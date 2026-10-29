@@ -1,31 +1,49 @@
-//! Le lecteur de bulletins (lot B du plan d'import, `prive/journal/PLAN-IMPORT-BULLETINS.md`) : une page de PDF
-//! devient un `BulletinLu`, TEL QU'IL EST. Le bulletin fait foi (decide) : rien ne se recalcule, chaque montant est
-//! un `Decimal` lu sur la page (« 1 421,13 » -> 1421.13).
+//! Le lecteur de bulletins : une page de PDF devient un `BulletinLu`, TEL QU'IL EST, quel que soit le logiciel qui
+//! l'a fait. Le bulletin fait foi : rien ne se recalcule, chaque montant est un `Decimal` lu sur la page
+//! (« 1 421,13 » -> 1421.13).
 //!
 //! La page se lit par `fabrique_pdf::inspection::inspecter` : chaque mot et sa boite. Le texte dans l'ordre du flux
-//! ne suffit pas : le tableau des cotisations a cinq colonnes, et seule la position en x dit dans laquelle tombe un
-//! nombre.
+//! ne suffit pas : le tableau des cotisations a plusieurs colonnes, et seule la position en x dit dans laquelle tombe
+//! un nombre.
 //!
-//! LA MISE EN PAGE N'EST PAS DANS LE CODE : elle est dans la table livree `bulletins-gabarits-base.json` (sa cle
-//! `_forme` la decrit). Un gabarit, c'est une signature (les repères qui le reconnaissent), les repères de l'en-tete
-//! et du pied, deux cadres (l'entreprise, le salarie), les colonnes du tableau et les grilles du pied. Un troisieme
-//! logiciel s'ajoute dans la table, pas ici.
+//! CE QUE TOUT BULLETIN IMPRIME. Le code du travail fixe ses mentions (art. R. 3243-1 : le nom et l'adresse de
+//! l'employeur, son code APE et son Siret, la convention, le nom et l'emploi du salarie, la periode, le brut, les
+//! cotisations, l'impot preleve, la somme versee, la date du paiement, le total verse par l'employeur ;
+//! `atelier/reference/sources/code-du-travail/articles-20261028.md`) et le modele de l'arrete du 25 fevrier 2016 leurs
+//! libelles, leur ordre et leurs regroupements (art. R. 3243-2 ; `atelier/reference/sources/montant-net-social/
+//! legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml`) : « Santé », « Retraite »..., le total des cotisations, le
+//! net social, le net avant impot. Sa mise en page ne l'est pas. Le lecteur n'en connait donc aucune ; il trouve
+//! chaque chose par ce qui l'annonce, dans la table livree `bulletins-lecture-base.json` (sa cle `_forme` la decrit) :
+//! - une MENTION par son libelle (`mentions`) : sa valeur est ce qui le suit sur son rang ;
+//! - le TABLEAU par son rang d'en-tetes, un « Libellé » suivi de « Base », « Taux », « Part salarié »... (`entetes`) :
+//!   une colonne, c'est l'en-tete qui la titre, sur un rang ou sur deux ; un rang d'en-tetes plus bas (« Taux
+//!   Montant » sous « Part employeur ») la precise ;
+//! - les rangs du tableau par les libelles du modele (`resumes`, `familles`, `titres`) ;
+//! - le pied : l'impot preleve et le net imposable sous leur rang d'en-tetes (« base », « taux », « montant »), les
+//!   cumuls sous « Période » et « Cumul » (`cumuls`) ;
+//! - les deux ADRESSES (employeur, salarie) sans libelle : chacune est un bloc de rangs alignes dont un porte un code
+//!   postal ; celui de l'employeur est suivi de son Siret, de son code APE ou de sa convention.
+//! Un logiciel connu se reconnait a sa signature (`logiciels`) : le compte rendu le nomme, la lecture n'en fait rien.
 //!
 //! RIEN NE SE DEVINE (regle 1). Une page :
 //! - sans un mot (lettres en traces, scan : pas d'OCR) -> refus `sans texte` ;
-//! - qu'aucun gabarit ne reconnait -> refus `gabarit inconnu` (deux qui la reconnaissent : refus aussi) ;
-//! - ou ne se lisent pas ce qui identifie le bulletin (salarie, periode, brut, net a payer) -> refus `incomplet`.
+//! - dont le rang d'en-tetes du tableau ne se trouve pas -> refus `sans en-têtes` ;
+//! - qui se lit de deux facons (deux rangs d'en-tetes, une colonne « Montant » qui ne dit pas quelle part, deux
+//!   colonnes de la meme part, deux adresses de salarie) -> refus `ambigu` ;
+//! - ou ne se lisent pas ce qui identifie le bulletin (le salarie, la periode, le brut, le net a payer) -> refus
+//!   `incomplet`, qui nomme la mention ;
+//! - l'annexe d'un bulletin (le detail de ses cotisations) n'est pas un bulletin -> refus `annexe`.
 //!
 //! Le reste est facultatif. Deux controles, SANS CORRECTION : le brut vaut la somme des lignes soumises, le net a
 //! payer se retrouve (net avant impot = brut - cotisations salariales + lignes non soumises ; net a payer = net
 //! avant impot - impot preleve). Un ecart va dans `avertissements`, le bulletin est rendu quand meme. Un libelle de
-//! ligne absent de la table est signale de meme, et la ligne gardee telle quelle (decide, plan §4 : pas de refus).
+//! ligne absent de la table est signale de meme, et la ligne gardee telle quelle.
 //!
-//! LES LIGNES ET LES COMPTEURS (lot C). La table dit, par gabarit, la rubrique du catalogue que porte chaque libelle
-//! de ligne (`null` : connu, sans rubrique sure). `compteurs` en tire les cachets, heures, heures d'enseignement et
-//! jours d'un bulletin comme pour une saisie (le catalogue dit l'unite, le forfait de 12 h d'un cachet, ce qui compte
-//! pour l'ouverture des droits), et les confronte aux cumuls que le bulletin imprime : un desaccord est un
-//! avertissement, et le bulletin l'emporte sur ce qu'il compte lui-meme.
+//! LES LIGNES ET LES COMPTEURS. La table dit la rubrique du catalogue que porte chaque libelle de ligne (`lignes` ;
+//! `null` : connu, sans rubrique sure). `compteurs` en tire les cachets, heures, heures d'enseignement et jours d'un
+//! bulletin comme pour une saisie (le catalogue dit l'unite, le forfait de 12 h d'un cachet, ce qui compte pour
+//! l'ouverture des droits), et les confronte aux cumuls que le bulletin imprime : un desaccord est un avertissement,
+//! et le bulletin l'emporte sur ce qu'il compte lui-meme.
 
 use std::path::Path;
 use std::str::FromStr;
@@ -35,27 +53,64 @@ use serde_json::{json, Map, Value};
 use socle::date::Jour;
 use socle::num::{Decimal, Resultat};
 
-/// La table des gabarits, dans `logiciel/donnees/`.
-pub const FICHIER_TABLE: &str = "bulletins-gabarits-base.json";
+/// La table de lecture, dans `logiciel/donnees/`.
+pub const FICHIER_TABLE: &str = "bulletins-lecture-base.json";
 
-/// Un mot plus loin que cela du precedent ne continue pas un repère (en points).
+/// Deux mots dont le milieu vertical s'ecarte de moins que cela sont sur un meme rang (en points).
+const TOLERANCE: f64 = 3.5;
+
+/// Un mot plus loin que cela du precedent ne continue pas un libelle.
 const ECART_MOTS: f64 = 15.0;
 
 /// Deux morceaux d'un nombre (« 1 » et « 421,13 ») separes de moins que cela forment un seul nombre (l'espace des
 /// milliers grandit avec le corps du texte : 2 points en 9, 4 en 14).
 const ECART_MILLIERS: f64 = 5.0;
 
-/// Un nombre « sous » un repère : au plus a cette distance verticale.
+/// Un montant « sous » son libelle : au plus a cette distance verticale.
 const DESSOUS_MAX: f64 = 40.0;
 
-/// Une grille du pied : ses lignes sont au plus a cette distance sous son en-tete.
+/// Les rangs d'une grille du pied : au plus a cette distance sous son en-tete.
 const GRILLE_HAUTEUR: f64 = 60.0;
-
-/// Un nombre d'une grille va a la colonne dont l'en-tete est le plus proche, a moins de cette distance.
-const GRILLE_ECART: f64 = 60.0;
 
 /// Une periode de dates travaillees plus longue que cela n'est pas depliee en jours.
 const INTERVALLE_MAX: i64 = 366;
+
+/// Sur un rang de l'en-tete, deux mots separes de plus que cela sont deux morceaux (un libelle et sa valeur, deux
+/// colonnes d'adresses) ; « 99999 » et sa commune, ecrits en deux, restent un.
+const ECART_SEGMENT: f64 = 40.0;
+
+/// La valeur d'une mention commence au plus a cette distance de son libelle, sur son rang.
+const VALEUR_LOIN: f64 = 180.0;
+
+/// Les mots d'une valeur se suivent a moins de cet ecart.
+const VALEUR_SUITE: f64 = 40.0;
+
+/// Une valeur sur plusieurs rangs : chaque rang au plus a cette distance du precedent.
+const VALEUR_RANG: f64 = 14.0;
+
+/// Les rangs d'un bloc d'adresse se suivent a moins de cet ecart vertical.
+const BLOC_ECART: f64 = 30.0;
+
+/// Ce qui suit un bloc d'adresse dans sa colonne (le Siret de l'employeur) : au plus a cet ecart vertical.
+const BLOC_SUIVANT: f64 = 35.0;
+
+/// Deux morceaux de l'en-tete commencent dans la meme colonne a moins de cela.
+const MEME_COLONNE: f64 = 2.5;
+
+/// Les rangs d'en-tetes du tableau : au plus a cet ecart vertical du « Libellé ».
+const ENTETE_HAUTEUR: f64 = 12.0;
+
+/// Les mots d'un meme en-tete de colonne, sur un rang (« Part Employeur ») : au plus cet ecart.
+const ENTETE_MOTS: f64 = 6.0;
+
+/// Un en-tete precise celui du dessus (« Taux » sous « Part employeur ») si son milieu tombe a moins de cela de lui.
+const SOUS_ENTETE: f64 = 25.0;
+
+/// Un nombre aligne a droite depasse le bord droit de l'en-tete de sa colonne d'au plus cela.
+const COLONNE_MARGE: f64 = 20.0;
+
+/// Le libelle d'un rang finit au moins a cette distance avant la premiere colonne.
+const LIBELLE_MARGE: f64 = 15.0;
 
 // --------------------------------------------------------------------------------------------- le texte
 
@@ -79,7 +134,7 @@ fn canon(texte: &str) -> String {
 }
 
 /// Un nombre ecrit sur un bulletin : virgule decimale (les points et espaces sont alors des milliers), ou point
-/// decimal s'il n'y a pas de virgule (« 0.000 % » du PAS de CoolPaie). Le signe moins en tete.
+/// decimal s'il n'y a pas de virgule (« 0.000 % »). Le signe moins en tete.
 pub fn lire_nombre(texte: &str) -> Option<Decimal> {
     let t = texte.trim();
     let (negatif, t) = match t.strip_prefix('-') {
@@ -120,6 +175,11 @@ pub fn lire_date(texte: &str) -> Option<Jour> {
     Jour::nouveau(an, p[1].parse().ok()?, p[0].parse().ok()?)
 }
 
+/// Un mot qui n'est que ponctuation (« — », « · », « : », « - », « | ») : il borne une valeur, il n'en est pas.
+fn ponctuation(t: &str) -> bool {
+    !t.is_empty() && !t.chars().any(char::is_alphanumeric)
+}
+
 // --------------------------------------------------------------------------------------------- la page
 
 #[derive(Clone, Debug)]
@@ -138,7 +198,7 @@ impl Mot {
     }
 }
 
-/// Une boite : celle d'un repère trouve (union de ses mots), ou d'un nombre.
+/// Une boite : celle d'un libelle trouve (union de ses mots), ou d'un nombre.
 #[derive(Clone, Copy, Debug)]
 struct Boite {
     x0: f64,
@@ -152,7 +212,10 @@ impl Boite {
         Boite { x0: m.x0, y0: m.y0, x1: m.x1, y1: m.y1 }
     }
     fn union(self, m: &Mot) -> Boite {
-        Boite { x0: self.x0.min(m.x0), y0: self.y0.min(m.y0), x1: self.x1.max(m.x1), y1: self.y1.max(m.y1) }
+        self.unir(Boite::de(m))
+    }
+    fn unir(self, b: Boite) -> Boite {
+        Boite { x0: self.x0.min(b.x0), y0: self.y0.min(b.y0), x1: self.x1.max(b.x1), y1: self.y1.max(b.y1) }
     }
     fn cy(&self) -> f64 {
         (self.y0 + self.y1) / 2.0
@@ -178,13 +241,13 @@ struct Page {
 }
 
 impl Page {
-    fn nouvelle(mut mots: Vec<Mot>, tolerance: f64) -> Page {
+    fn nouvelle(mut mots: Vec<Mot>) -> Page {
         mots.sort_by(|a, b| a.cy().total_cmp(&b.cy()).then(a.x0.total_cmp(&b.x0)));
         let voisins = (0..mots.len())
             .map(|i| {
                 let m = &mots[i];
                 (0..mots.len())
-                    .filter(|&j| j != i && (mots[j].cy() - m.cy()).abs() <= tolerance && mots[j].x0 >= m.x1 - 1.0 && mots[j].x0 - m.x1 <= ECART_MOTS)
+                    .filter(|&j| j != i && (mots[j].cy() - m.cy()).abs() <= TOLERANCE && mots[j].x0 >= m.x1 - 1.0 && mots[j].x0 - m.x1 <= ECART_MOTS)
                     .min_by(|&a, &b| mots[a].x0.total_cmp(&mots[b].x0))
             })
             .collect();
@@ -192,7 +255,7 @@ impl Page {
         Page { mots, nombres, voisins }
     }
 
-    /// Le repère `phrase` commence-t-il au mot `i` ? Sa boite, et le dernier mot.
+    /// Le libelle `phrase` commence-t-il au mot `i` ? Sa boite, et son dernier mot.
     fn repere_en(&self, i: usize, phrase: &[String]) -> Option<(Boite, usize)> {
         if phrase.is_empty() || self.mots[i].jetons.first() != Some(&phrase[0]) {
             return None;
@@ -211,27 +274,37 @@ impl Page {
             }
             k += 1;
         }
-        Some((boite, mot))
+        // Un libelle finit avec un mot : « Statut » ne se lit pas dans « Statutaire ».
+        (k == self.mots[mot].jetons.len()).then_some((boite, mot))
     }
 
-    /// La premiere occurrence (de haut en bas, puis de gauche a droite) d'une des phrases, parmi les mots que
-    /// `garder` retient.
-    fn trouver(&self, phrases: &[Vec<String>], garder: &dyn Fn(&Mot) -> bool) -> Option<(Boite, usize)> {
+    /// Le plus long des libelles `phrases` qui commence au mot `i`.
+    fn libelle_en(&self, i: usize, phrases: &[Vec<String>]) -> Option<(Boite, usize)> {
+        phrases.iter().filter_map(|p| self.repere_en(i, p).map(|r| (p.len(), r))).max_by_key(|(n, _)| *n).map(|(_, r)| r)
+    }
+
+    /// Chaque occurrence d'un des libelles, de haut en bas puis de gauche a droite, parmi les mots que `garder`
+    /// retient : (sa boite, son premier mot, son dernier mot).
+    fn occurrences(&self, phrases: &[Vec<String>], garder: &dyn Fn(&Mot) -> bool) -> Vec<(Boite, usize, usize)> {
         let mut ordre: Vec<usize> = (0..self.mots.len()).filter(|&i| garder(&self.mots[i])).collect();
         ordre.sort_by(|&a, &b| self.mots[a].y0.total_cmp(&self.mots[b].y0).then(self.mots[a].x0.total_cmp(&self.mots[b].x0)));
-        ordre.into_iter().find_map(|i| phrases.iter().find_map(|p| self.repere_en(i, p)))
+        ordre.into_iter().filter_map(|i| self.libelle_en(i, phrases).map(|(b, f)| (b, i, f))).collect()
     }
 
-    /// Le mot est-il un morceau d'un nombre dont le milieu est a droite de `limite` (le « 1 » de « 1 421,13 ») ?
+    /// Le mot est-il un morceau d'un nombre dont le bord droit est a droite de `limite` (le « 1 » de « 1 421,13 ») ?
     fn dans_un_nombre(&self, m: &Mot, limite: f64) -> bool {
         self.nombres.iter().any(|n| {
             let b = n.boite;
-            b.cx() > limite && m.x0 >= b.x0 - 0.01 && m.x1 <= b.x1 + 0.01 && (m.cy() - b.cy()).abs() < 1.0
+            b.x1 > limite && m.x0 >= b.x0 - 0.01 && m.x1 <= b.x1 + 0.01 && (m.cy() - b.cy()).abs() < 1.0
         })
     }
 
     fn present(&self, phrase: &[String]) -> bool {
         (0..self.mots.len()).any(|i| self.repere_en(i, phrase).is_some())
+    }
+
+    fn indice(&self, m: &Mot) -> usize {
+        self.mots.iter().position(|x| std::ptr::eq(x, m)).unwrap_or(0)
     }
 }
 
@@ -264,13 +337,13 @@ fn nombres_de(mots: &[Mot]) -> Vec<Nombre> {
     sortie.into_iter().filter_map(|(t, b)| lire_nombre(&t).map(|valeur| Nombre { valeur, boite: b })).collect()
 }
 
-/// Des mots en rangs (milieu vertical a moins de `tol` du premier mot du rang), chaque rang de gauche a droite.
-fn en_rangs<'a>(mut mots: Vec<&'a Mot>, tol: f64) -> Vec<Vec<&'a Mot>> {
+/// Des mots en rangs (milieu vertical a moins de `TOLERANCE` du premier mot du rang), chaque rang de gauche a droite.
+fn en_rangs<'a>(mut mots: Vec<&'a Mot>) -> Vec<Vec<&'a Mot>> {
     mots.sort_by(|a, b| a.cy().total_cmp(&b.cy()));
     let mut rangs: Vec<Vec<&Mot>> = Vec::new();
     for m in mots {
         match rangs.last_mut() {
-            Some(r) if (m.cy() - r[0].cy()).abs() <= tol => r.push(m),
+            Some(r) if (m.cy() - r[0].cy()).abs() <= TOLERANCE => r.push(m),
             _ => rangs.push(vec![m]),
         }
     }
@@ -280,14 +353,14 @@ fn en_rangs<'a>(mut mots: Vec<&'a Mot>, tol: f64) -> Vec<Vec<&'a Mot>> {
     rangs
 }
 
-/// Une ligne de paie qui ecrit son taux dans son libelle, apres `mot` (« Cachets à 150,00 ») : le libelle sans lui, et
-/// le taux. Sans nombre apres le dernier `mot`, le libelle tel quel.
-fn taux_du_libelle(libelle: &str, mot: &str) -> (String, Option<Decimal>) {
+/// Une ligne de paie qui ecrit son taux dans son libelle (« Cachets à 150,00 ») : le libelle sans lui, et le taux.
+/// Sans « à <nombre> » en fin de libelle, le libelle tel quel.
+fn taux_du_libelle(libelle: &str) -> (String, Option<Decimal>) {
     let mots: Vec<&str> = libelle.split_whitespace().collect();
-    for k in (0..mots.len().saturating_sub(1)).rev() {
-        if canon(mots[k]) == mot {
-            if let Some(t) = lire_nombre(mots[k + 1]) {
-                return (mots[..k].join(" "), Some(t));
+    if let [debut @ .., a, n] = mots.as_slice() {
+        if canon(a) == "a" && !debut.is_empty() {
+            if let Some(t) = lire_nombre(n) {
+                return (debut.join(" "), Some(t));
             }
         }
     }
@@ -314,101 +387,126 @@ enum Sorte {
     Nombre,
 }
 
-/// Le type de chaque champ est fixe par son nom : la table dit ou il est, pas ce qu'il est.
-const CHAMPS: [(&str, Sorte); 22] = [
-    ("numero", Sorte::Texte),
-    ("numero_objet", Sorte::Compact),
-    ("spectacle", Sorte::Texte),
-    ("analytique", Sorte::Texte),
-    ("siret", Sorte::Compact),
-    ("naf", Sorte::Texte),
-    ("urssaf", Sorte::Compact),
-    ("convention", Sorte::Texte),
-    ("licence", Sorte::Texte),
-    ("naissance", Sorte::Date),
-    ("nir", Sorte::Compact),
-    ("code", Sorte::Texte),
-    ("emploi", Sorte::Texte),
-    ("statut", Sorte::Texte),
-    ("abattement", Sorte::Nombre),
-    ("conges_spectacles", Sorte::Compact),
-    ("periode", Sorte::Periode),
-    ("dates_travaillees", Sorte::Intervalles),
-    ("regle_le", Sorte::Date),
-    ("mode_reglement", Sorte::Texte),
-    ("net_a_payer", Sorte::Nombre),
-    ("cout_employeur", Sorte::Nombre),
-];
-
-const COLONNES_CORPS: [&str; 5] = ["base", "taux_employeur", "montant_employeur", "taux_salarie", "montant_salarie"];
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Section {
+    /// Au-dessus du tableau.
     Entete,
+    /// Sous le net avant impot.
     Pied,
     Page,
 }
 
+/// Chaque mention : son type, ou elle se cherche, combien de rangs sa valeur peut couvrir, et si elle dit
+/// l'employeur (elle suit alors son adresse). Le type est fixe ici : la table dit comment la mention s'annonce, pas ce
+/// qu'elle est.
+const MENTIONS: [(&str, Sorte, Section, usize, bool); 23] = [
+    ("numero", Sorte::Texte, Section::Entete, 1, false),
+    ("numero_objet", Sorte::Compact, Section::Entete, 1, false),
+    ("spectacle", Sorte::Texte, Section::Entete, 1, false),
+    ("analytique", Sorte::Texte, Section::Entete, 1, false),
+    ("siret", Sorte::Compact, Section::Entete, 1, true),
+    ("naf", Sorte::Texte, Section::Entete, 1, true),
+    ("urssaf", Sorte::Compact, Section::Entete, 1, true),
+    ("convention", Sorte::Texte, Section::Entete, 2, true),
+    ("licence", Sorte::Texte, Section::Entete, 1, true),
+    ("naissance", Sorte::Date, Section::Entete, 1, false),
+    ("nir", Sorte::Compact, Section::Entete, 1, false),
+    ("code", Sorte::Texte, Section::Entete, 1, false),
+    ("emploi", Sorte::Texte, Section::Entete, 1, false),
+    ("statut", Sorte::Texte, Section::Entete, 1, false),
+    ("abattement", Sorte::Nombre, Section::Entete, 1, false),
+    ("conges_spectacles", Sorte::Compact, Section::Entete, 1, false),
+    ("periode", Sorte::Periode, Section::Entete, 1, false),
+    ("dates_travaillees", Sorte::Intervalles, Section::Entete, 12, false),
+    ("regle_le", Sorte::Date, Section::Page, 1, false),
+    ("mode_reglement", Sorte::Texte, Section::Page, 1, false),
+    ("contrat", Sorte::Texte, Section::Page, 1, false),
+    ("net_a_payer", Sorte::Nombre, Section::Pied, 1, false),
+    ("cout_employeur", Sorte::Nombre, Section::Pied, 1, false),
+];
+
 #[derive(Clone, Debug)]
-struct Champ {
-    nom: String,
+struct Mention {
+    nom: &'static str,
     sorte: Sorte,
-    reperes: Vec<Vec<String>>,
-    dessous: bool,
-    jusqu_a: f64,
-    lignes: usize,
-    apres: Option<String>,
-    /// Le mot avant lequel la valeur s'arrete, sur un rang qui porte un autre champ apres elle.
-    avant: Option<String>,
     section: Section,
+    rangs: usize,
+    employeur: bool,
+    libelles: Vec<Vec<String>>,
 }
 
-#[derive(Clone, Debug)]
-struct Cadre {
-    x: (f64, f64),
-    y: (f64, f64),
+/// Ce qu'un en-tete de colonne annonce.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Genre {
+    Base,
+    Taux,
+    Montant,
+    Periode,
+    Cumul,
 }
 
-#[derive(Clone, Debug)]
-struct Resume {
-    libelles: Vec<String>,
-    colonne: String,
+/// La part qu'une colonne porte.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Part {
+    Salarie,
+    Employeur,
 }
 
-#[derive(Clone, Debug)]
-struct Corps {
-    libelle_jusqu_a: f64,
-    quantite_jusqu_a: f64,
-    colonnes: Vec<(String, f64, f64)>,
-    taux: String,
-    montant: String,
-    brut: Resume,
+/// Les mots des en-tetes, par ce qu'ils annoncent (`entetes` de la table).
+#[derive(Clone, Debug, Default)]
+struct Entetes {
+    libelle: Vec<String>,
+    base: Vec<String>,
+    taux: Vec<String>,
+    montant: Vec<String>,
+    salarie: Vec<String>,
+    employeur: Vec<String>,
+    periode: Vec<String>,
+    cumul: Vec<String>,
+}
+
+impl Entetes {
+    fn tous(&self) -> impl Iterator<Item = &String> {
+        [&self.libelle, &self.base, &self.taux, &self.montant, &self.salarie, &self.employeur, &self.periode, &self.cumul].into_iter().flatten()
+    }
+
+    /// Le genre et la part d'un en-tete, par ses jetons. Une part seule (« Salarié ») annonce un montant.
+    fn lire(&self, jetons: &[String]) -> (Option<Genre>, Option<Part>) {
+        let a = |l: &[String]| jetons.iter().any(|j| l.contains(j));
+        let part = match (a(&self.salarie), a(&self.employeur)) {
+            (true, false) => Some(Part::Salarie),
+            (false, true) => Some(Part::Employeur),
+            _ => None,
+        };
+        let genre = if a(&self.base) {
+            Some(Genre::Base)
+        } else if a(&self.taux) {
+            Some(Genre::Taux)
+        } else if a(&self.periode) {
+            Some(Genre::Periode)
+        } else if a(&self.cumul) {
+            Some(Genre::Cumul)
+        } else if a(&self.montant) || part.is_some() {
+            Some(Genre::Montant)
+        } else {
+            None
+        };
+        (genre, part)
+    }
+}
+
+/// Les libelles des rangs qui resument le tableau, canoniques.
+#[derive(Clone, Debug, Default)]
+struct Resumes {
+    brut: Vec<String>,
     total: Vec<String>,
-    net_social: Resume,
-    net_avant_impot: Resume,
-    /// Le mot apres lequel une ligne de paie ecrit son taux dans son libelle (« 2 Cachets à 150,00 ») ; `None` : le taux
-    /// est dans sa colonne.
-    taux_dans_le_libelle: Option<String>,
-    /// La derniere ligne de paie porte-t-elle le libelle du brut apres le sien (« 2 Cachets à 150,00 — MONTANT BRUT ») ?
-    /// Ce rang est alors la ligne et le brut, son montant celui des deux.
-    brut_en_fin_de_ligne: bool,
+    net_social: Vec<String>,
+    net_avant_impot: Vec<String>,
+    pas: Vec<String>,
+    net_imposable: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
-enum Cible {
-    Pas,
-    /// `net_imposable`, lu dans cette colonne.
-    NetImposable(String),
-    Cumul(String),
-}
-
-#[derive(Clone, Debug)]
-struct Grille {
-    colonnes: Vec<(String, Vec<String>, bool)>,
-    lignes: Vec<(Cible, Vec<String>)>,
-}
-
-/// Un libelle de ligne de paie que la table connait (lot C).
+/// Un libelle de ligne de paie que la table connait.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LigneTable {
     /// Tel que la table l'ecrit.
@@ -421,41 +519,23 @@ pub struct LigneTable {
     pub heures: Option<Decimal>,
 }
 
-/// Un gabarit de la table, verifie a la lecture.
-#[derive(Clone, Debug)]
-pub struct Gabarit {
-    pub nom: String,
-    pub libelle: String,
-    signature: Vec<Vec<String>>,
-    tolerance: f64,
-    tableau: Vec<Vec<String>>,
-    entreprise: Cadre,
-    salarie: Cadre,
-    nom_prenom: bool,
-    champs: Vec<Champ>,
-    corps: Corps,
-    grilles: Vec<Grille>,
-    /// Les libelles de lignes de paie connus.
-    lignes: Vec<LigneTable>,
-}
-
-/// La table entiere : les gabarits, et les familles de cotisations communes.
+/// La table de lecture, verifiee a la lecture.
 #[derive(Clone, Debug)]
 pub struct Table {
-    pub gabarits: Vec<Gabarit>,
+    mentions: Vec<Mention>,
+    entetes: Entetes,
+    resumes: Resumes,
+    /// Les titres de sections du tableau qui ne sont ni une famille ni une ligne, canoniques.
+    titres: Vec<String>,
+    /// Ce qui ouvre l'annexe d'un bulletin.
+    annexe: Vec<Vec<String>>,
     /// (cle, titres canoniques).
     familles: Vec<(String, Vec<String>)>,
-}
-
-fn nombre_de(v: &Value, ou: &str) -> Resultat<f64> {
-    v.as_f64().ok_or_else(|| format!("{} : un nombre est attendu", ou))
-}
-
-fn intervalle(v: Option<&Value>, ou: &str) -> Resultat<(f64, f64)> {
-    match v.and_then(Value::as_array).map(Vec::as_slice) {
-        Some([a, b]) => Ok((nombre_de(a, ou)?, nombre_de(b, ou)?)),
-        _ => Err(format!("{} : [min, max] attendu", ou)),
-    }
+    /// (cle, libelles canoniques).
+    cumuls: Vec<(String, Vec<String>)>,
+    /// (nom, signature : les libelles qui doivent tous se trouver).
+    logiciels: Vec<(String, Vec<Vec<String>>)>,
+    lignes: Vec<LigneTable>,
 }
 
 /// Un texte, ou une liste de textes : leurs jetons.
@@ -469,12 +549,12 @@ fn phrases(v: Option<&Value>, ou: &str) -> Resultat<Vec<Vec<String>>> {
     for x in liste {
         let p = jetons(x.as_str().ok_or_else(|| format!("{} : un texte est attendu", ou))?);
         if p.is_empty() {
-            return Err(format!("{} : un repère vide", ou));
+            return Err(format!("{} : un libellé vide", ou));
         }
         sortie.push(p);
     }
     if sortie.is_empty() {
-        return Err(format!("{} : aucun repère", ou));
+        return Err(format!("{} : aucun libellé", ou));
     }
     Ok(sortie)
 }
@@ -483,37 +563,87 @@ fn libelles(v: Option<&Value>, ou: &str) -> Resultat<Vec<String>> {
     Ok(phrases(v, ou)?.into_iter().map(|p| p.join(" ")).collect())
 }
 
-fn texte_requis<'a>(v: &'a Value, cle: &str, ou: &str) -> Resultat<&'a str> {
-    v.get(cle).and_then(Value::as_str).ok_or_else(|| format!("{} : `{}` manque", ou, cle))
+/// Des mots seuls (un en-tete de colonne se lit mot a mot).
+fn mots_seuls(v: Option<&Value>, ou: &str) -> Resultat<Vec<String>> {
+    let p = phrases(v, ou)?;
+    if let Some(x) = p.iter().find(|x| x.len() != 1) {
+        return Err(format!("{} : « {} » n'est pas un mot seul", ou, x.join(" ")));
+    }
+    Ok(p.into_iter().map(|mut x| x.remove(0)).collect())
 }
 
-fn resume(v: Option<&Value>, colonnes: &[(String, f64, f64)], ou: &str) -> Resultat<Resume> {
-    let v = v.ok_or_else(|| format!("{} manque", ou))?;
-    let colonne = texte_requis(v, "colonne", ou)?.to_string();
-    if !colonnes.iter().any(|c| c.0 == colonne) {
-        return Err(format!("{} : colonne inconnue « {} »", ou, colonne));
-    }
-    Ok(Resume { libelles: libelles(v.get("libelles"), ou)?, colonne })
+/// Un objet de listes de libelles : (cle, libelles canoniques).
+fn groupes(v: Option<&Value>, ou: &str) -> Resultat<Vec<(String, Vec<String>)>> {
+    let o = v.and_then(Value::as_object).ok_or_else(|| format!("table de lecture : `{}` manque", ou))?;
+    o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| Ok((k.clone(), libelles(Some(x), &format!("{}.{}", ou, k))?))).collect()
 }
 
 impl Table {
-    /// La table livree (`logiciel/donnees/bulletins-gabarits-base.json`).
+    /// La table livree (`logiciel/donnees/bulletins-lecture-base.json`).
     pub fn livree() -> Resultat<Table> {
         let chemin = socle::fichiers::dossier_du_code().join(FICHIER_TABLE);
         Table::depuis(&*socle::fichiers::json_en_cache(&chemin)?)
     }
 
-    /// Une table, verifiee : un champ, une colonne ou une forme inconnue est un refus qui la nomme.
+    /// Une table, verifiee : une mention, un en-tete, un resume ou une forme inconnue est un refus qui le nomme.
     pub fn depuis(v: &Value) -> Resultat<Table> {
-        let mut familles = Vec::new();
-        if let Some(f) = v.get("familles").and_then(Value::as_object) {
-            for (cle, titres) in f.iter().filter(|(k, _)| !k.starts_with('_')) {
-                familles.push((cle.clone(), libelles(Some(titres), &format!("familles.{}", cle))?));
+        let m = v.get("mentions").and_then(Value::as_object).ok_or("table de lecture : `mentions` manque")?;
+        let mut mentions = Vec::new();
+        for (n, x) in m.iter().filter(|(k, _)| !k.starts_with('_')) {
+            let &(nom, sorte, section, rangs, employeur) =
+                MENTIONS.iter().find(|c| c.0 == n).ok_or_else(|| format!("mentions.{} : mention inconnue", n))?;
+            mentions.push(Mention { nom, sorte, section, rangs, employeur, libelles: phrases(Some(x), &format!("mentions.{}", n))? });
+        }
+        let e = v.get("entetes").ok_or("table de lecture : `entetes` manque")?;
+        if let Some(k) = e.as_object().and_then(|o| o.keys().find(|k| !k.starts_with('_') && !matches!(k.as_str(), "libelle" | "base" | "taux" | "montant" | "salarie" | "employeur" | "periode" | "cumul"))) {
+            return Err(format!("entetes.{} : en-tête inconnu", k));
+        }
+        let mot = |k: &str| mots_seuls(e.get(k), &format!("entetes.{}", k));
+        let entetes = Entetes {
+            libelle: mot("libelle")?,
+            base: mot("base")?,
+            taux: mot("taux")?,
+            montant: mot("montant")?,
+            salarie: mot("salarie")?,
+            employeur: mot("employeur")?,
+            periode: mot("periode")?,
+            cumul: mot("cumul")?,
+        };
+        let r = groupes(v.get("resumes"), "resumes")?;
+        if let Some((k, _)) = r.iter().find(|(k, _)| !matches!(k.as_str(), "brut" | "total" | "net_social" | "net_avant_impot" | "pas" | "net_imposable")) {
+            return Err(format!("resumes.{} : résumé inconnu", k));
+        }
+        let resume = |k: &str| r.iter().find(|(x, _)| x == k).map(|(_, l)| l.clone()).ok_or_else(|| format!("resumes.{} manque", k));
+        let resumes = Resumes {
+            brut: resume("brut")?,
+            total: resume("total")?,
+            net_social: resume("net_social")?,
+            net_avant_impot: resume("net_avant_impot")?,
+            pas: resume("pas")?,
+            net_imposable: resume("net_imposable")?,
+        };
+        let mut logiciels = Vec::new();
+        if let Some(o) = v.get("logiciels").and_then(Value::as_object) {
+            for (k, x) in o.iter().filter(|(k, _)| !k.starts_with('_')) {
+                logiciels.push((k.clone(), phrases(x.get("signature"), &format!("logiciels.{}.signature", k))?));
             }
         }
-        let liste = v.get("gabarits").and_then(Value::as_array).ok_or("table des gabarits : `gabarits` manque")?;
-        let gabarits = liste.iter().enumerate().map(|(i, g)| gabarit(g, i)).collect::<Resultat<Vec<_>>>()?;
-        Ok(Table { gabarits, familles })
+        Ok(Table {
+            mentions,
+            entetes,
+            resumes,
+            titres: libelles(v.get("titres"), "titres")?,
+            annexe: phrases(v.get("annexe"), "annexe")?,
+            familles: groupes(v.get("familles"), "familles")?,
+            cumuls: groupes(v.get("cumuls"), "cumuls")?,
+            logiciels,
+            lignes: lignes_de(v.get("lignes"))?,
+        })
+    }
+
+    /// Les libelles de lignes de paie que la table connait, et leur rubrique.
+    pub fn lignes(&self) -> &[LigneTable] {
+        &self.lignes
     }
 
     fn famille(&self, libelle: &str) -> Option<&str> {
@@ -525,189 +655,44 @@ impl Table {
         let debut = format!("{} ", libelle);
         self.familles.iter().any(|(_, t)| t.iter().any(|x| x.starts_with(&debut)))
     }
-}
 
-impl Gabarit {
-    /// Les libelles de lignes de paie que ce gabarit connait, et leur rubrique.
-    pub fn lignes(&self) -> &[LigneTable] {
-        &self.lignes
+    fn mention(&self, nom: &str) -> Option<&Mention> {
+        self.mentions.iter().find(|m| m.nom == nom)
     }
 }
 
-fn gabarit(g: &Value, i: usize) -> Resultat<Gabarit> {
-    let nom = texte_requis(g, "nom", &format!("gabarit {}", i + 1))?.to_string();
-    let ou = |s: &str| format!("gabarit {} : {}", nom, s);
-    let tolerance = match g.get("tolerance") {
-        Some(t) => nombre_de(t, &ou("tolerance"))?,
-        None => 3.5,
-    };
-    let blocs = g.get("blocs").ok_or_else(|| ou("`blocs` manque"))?;
-    let cadre = |cle: &str| -> Resultat<Cadre> {
-        let b = blocs.get(cle).ok_or_else(|| ou(&format!("blocs.{} manque", cle)))?;
-        Ok(Cadre { x: intervalle(b.get("x"), &ou(&format!("blocs.{}.x", cle)))?, y: intervalle(b.get("y"), &ou(&format!("blocs.{}.y", cle)))? })
-    };
-    let nom_prenom = match blocs.get("salarie").and_then(|s| s.get("ordre")).and_then(Value::as_str) {
-        Some("nom_prenom") => true,
-        Some("prenom_nom") => false,
-        _ => return Err(ou("blocs.salarie.ordre : `nom_prenom` ou `prenom_nom`")),
-    };
-
-    let mut champs = Vec::new();
-    if let Some(cs) = g.get("champs").and_then(Value::as_object) {
-        for (n, c) in cs.iter().filter(|(k, _)| !k.starts_with('_')) {
-            let o = ou(&format!("champs.{}", n));
-            let sorte = CHAMPS.iter().find(|(x, _)| x == n).map(|(_, s)| *s).ok_or_else(|| format!("{} : champ inconnu", o))?;
-            let dessous = match c.get("position").and_then(Value::as_str) {
-                None | Some("droite") => false,
-                Some("dessous") => true,
-                Some(a) => return Err(format!("{} : position « {} » (droite ou dessous)", o, a)),
-            };
-            if dessous && sorte != Sorte::Nombre {
-                return Err(format!("{} : seul un montant se lit dessous", o));
-            }
-            let section = match c.get("section").and_then(Value::as_str) {
-                None | Some("entete") => Section::Entete,
-                Some("pied") => Section::Pied,
-                Some("page") => Section::Page,
-                Some(a) => return Err(format!("{} : section « {} » (entete, pied ou page)", o, a)),
-            };
-            champs.push(Champ {
-                nom: n.clone(),
-                sorte,
-                reperes: phrases(c.get("repere"), &o)?,
-                dessous,
-                jusqu_a: match c.get("jusqu_a") {
-                    Some(x) => nombre_de(x, &o)?,
-                    None => f64::INFINITY,
-                },
-                lignes: c.get("lignes").and_then(Value::as_u64).unwrap_or(1).max(1) as usize,
-                apres: c.get("apres").and_then(Value::as_str).map(canon),
-                avant: c.get("avant").and_then(Value::as_str).map(canon),
-                section,
-            });
-        }
-    }
-
-    let c = g.get("corps").ok_or_else(|| ou("`corps` manque"))?;
-    let mut colonnes = Vec::new();
-    for (n, b) in c.get("colonnes").and_then(Value::as_object).ok_or_else(|| ou("corps.colonnes manque"))? {
-        if !COLONNES_CORPS.contains(&n.as_str()) {
-            return Err(ou(&format!("corps.colonnes : colonne inconnue « {} »", n)));
-        }
-        let (a, z) = intervalle(Some(b), &ou(&format!("corps.colonnes.{}", n)))?;
-        colonnes.push((n.clone(), a, z));
-    }
-    let ligne = c.get("ligne").ok_or_else(|| ou("corps.ligne manque"))?;
-    let col = |cle: &str| -> Resultat<String> {
-        let n = texte_requis(ligne, cle, &ou("corps.ligne"))?;
-        if colonnes.iter().any(|x| x.0 == n) {
-            Ok(n.to_string())
-        } else {
-            Err(ou(&format!("corps.ligne.{} : colonne inconnue « {} »", cle, n)))
-        }
-    };
-    let corps = Corps {
-        libelle_jusqu_a: nombre_de(c.get("libelle_jusqu_a").unwrap_or(&Value::Null), &ou("corps.libelle_jusqu_a"))?,
-        quantite_jusqu_a: nombre_de(c.get("quantite_jusqu_a").unwrap_or(&Value::Null), &ou("corps.quantite_jusqu_a"))?,
-        taux: col("taux")?,
-        montant: col("montant")?,
-        brut: resume(c.get("brut"), &colonnes, &ou("corps.brut"))?,
-        total: libelles(c.get("total"), &ou("corps.total"))?,
-        net_social: resume(c.get("net_social"), &colonnes, &ou("corps.net_social"))?,
-        net_avant_impot: resume(c.get("net_avant_impot"), &colonnes, &ou("corps.net_avant_impot"))?,
-        taux_dans_le_libelle: c.get("taux_dans_le_libelle").and_then(Value::as_str).map(canon),
-        brut_en_fin_de_ligne: c.get("brut_en_fin_de_ligne").and_then(Value::as_bool).unwrap_or(false),
-        colonnes,
-    };
-
-    let mut grilles = Vec::new();
-    for (k, gr) in g.get("grilles").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]).iter().enumerate() {
-        let o = ou(&format!("grilles[{}]", k));
-        let mut cols = Vec::new();
-        for x in gr.get("colonnes").and_then(Value::as_array).ok_or_else(|| format!("{} : colonnes manque", o))? {
-            let n = texte_requis(x, "nom", &o)?.to_string();
-            let entete = phrases(x.get("entete"), &o)?.remove(0);
-            cols.push((n, entete, x.get("facultative").and_then(Value::as_bool).unwrap_or(false)));
-        }
-        if cols.is_empty() || cols[0].2 {
-            return Err(format!("{} : la premiere colonne est obligatoire", o));
-        }
-        let a_col = |n: &str| cols.iter().any(|c| c.0 == n);
-        let mut lignes = Vec::new();
-        for x in gr.get("lignes").and_then(Value::as_array).ok_or_else(|| format!("{} : lignes manque", o))? {
-            let cible = match (x.get("champ").and_then(Value::as_str), x.get("cumul").and_then(Value::as_str)) {
-                (Some("pas"), None) => {
-                    if !(a_col("base") && a_col("taux") && a_col("montant")) {
-                        return Err(format!("{} : la ligne du PAS veut les colonnes base, taux et montant", o));
-                    }
-                    Cible::Pas
-                }
-                (Some("net_imposable"), None) => {
-                    let colonne = texte_requis(x, "colonne", &o)?;
-                    if !a_col(colonne) {
-                        return Err(format!("{} : colonne inconnue « {} »", o, colonne));
-                    }
-                    Cible::NetImposable(colonne.into())
-                }
-                (None, Some(nom)) => {
-                    if !(a_col("periode") && a_col("cumul")) {
-                        return Err(format!("{} : un cumul veut les colonnes periode et cumul", o));
-                    }
-                    Cible::Cumul(nom.into())
-                }
-                _ => return Err(format!("{} : une ligne remplit `champ` (pas, net_imposable) ou `cumul`", o)),
-            };
-            lignes.push((cible, libelles(x.get("libelles"), &o)?));
-        }
-        grilles.push(Grille { colonnes: cols, lignes });
-    }
-
+fn lignes_de(v: Option<&Value>) -> Resultat<Vec<LigneTable>> {
     let mut lignes: Vec<LigneTable> = Vec::new();
-    if let Some(l) = g.get("lignes").and_then(Value::as_object) {
-        for (libelle, valeur) in l.iter().filter(|(k, _)| !k.starts_with('_')) {
-            let o = ou(&format!("lignes.{}", libelle));
-            let (rubrique, heures) = match valeur {
-                Value::Null => (None, None),
-                Value::String(s) if !s.is_empty() => (Some(s.clone()), None),
-                Value::Object(m) => {
-                    if let Some(k) = m.keys().find(|k| !k.starts_with('_') && !matches!(k.as_str(), "rubrique" | "heures")) {
-                        return Err(format!("{} : cle inconnue « {} » (rubrique, heures)", o, k));
-                    }
-                    let r = m.get("rubrique").and_then(Value::as_str).filter(|s| !s.is_empty());
-                    let r = r.ok_or_else(|| format!("{} : `rubrique` manque", o))?.to_string();
-                    let h = match m.get("heures") {
-                        None => None,
-                        Some(x) => match socle::num::dec(x) {
-                            Ok(h) if x.is_number() && h > Decimal::ZERO => Some(h),
-                            _ => return Err(format!("{} : `heures` est un nombre d'heures positif", o)),
-                        },
-                    };
-                    (Some(r), h)
+    let Some(l) = v.and_then(Value::as_object) else { return Err("table de lecture : `lignes` manque".into()) };
+    for (libelle, valeur) in l.iter().filter(|(k, _)| !k.starts_with('_')) {
+        let o = format!("lignes.{}", libelle);
+        let (rubrique, heures) = match valeur {
+            Value::Null => (None, None),
+            Value::String(s) if !s.is_empty() => (Some(s.clone()), None),
+            Value::Object(m) => {
+                if let Some(k) = m.keys().find(|k| !k.starts_with('_') && !matches!(k.as_str(), "rubrique" | "heures")) {
+                    return Err(format!("{} : cle inconnue « {} » (rubrique, heures)", o, k));
                 }
-                _ => return Err(format!("{} : une rubrique, null, ou {{rubrique, heures}}", o)),
-            };
-            let c = canon(libelle);
-            if lignes.iter().any(|x| x.canon == c) {
-                return Err(format!("{} : libellé en double", o));
+                let r = m.get("rubrique").and_then(Value::as_str).filter(|s| !s.is_empty());
+                let r = r.ok_or_else(|| format!("{} : `rubrique` manque", o))?.to_string();
+                let h = match m.get("heures") {
+                    None => None,
+                    Some(x) => match socle::num::dec(x) {
+                        Ok(h) if x.is_number() && h > Decimal::ZERO => Some(h),
+                        _ => return Err(format!("{} : `heures` est un nombre d'heures positif", o)),
+                    },
+                };
+                (Some(r), h)
             }
-            lignes.push(LigneTable { libelle: libelle.clone(), canon: c, rubrique, heures });
+            _ => return Err(format!("{} : une rubrique, null, ou {{rubrique, heures}}", o)),
+        };
+        let c = canon(libelle);
+        if lignes.iter().any(|x| x.canon == c) {
+            return Err(format!("{} : libellé en double", o));
         }
+        lignes.push(LigneTable { libelle: libelle.clone(), canon: c, rubrique, heures });
     }
-
-    Ok(Gabarit {
-        libelle: g.get("libelle").and_then(Value::as_str).unwrap_or(&nom).to_string(),
-        signature: phrases(g.get("signature"), &ou("signature"))?,
-        tolerance,
-        tableau: phrases(g.get("tableau"), &ou("tableau"))?,
-        entreprise: cadre("entreprise")?,
-        salarie: cadre("salarie")?,
-        nom_prenom,
-        champs,
-        corps,
-        grilles,
-        lignes,
-        nom,
-    })
+    Ok(lignes)
 }
 
 // --------------------------------------------------------------------------------------------- le bulletin lu
@@ -725,7 +710,7 @@ pub struct Entreprise {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Salarie {
-    /// Le nom tel qu'il est ecrit (premier rang du cadre).
+    /// Le nom tel qu'il est ecrit (premier rang de son adresse).
     pub nom_complet: Option<String>,
     pub nom: Option<String>,
     pub prenom: Option<String>,
@@ -747,8 +732,8 @@ pub struct LignePaie {
     pub taux: Option<Decimal>,
     pub montant: Option<Decimal>,
     pub soumis: bool,
-    /// La rubrique du catalogue que la table donne a ce libelle (lot C) ; `None` : libelle connu sans rubrique sure,
-    /// ou absent de la table (alors signale).
+    /// La rubrique du catalogue que la table donne a ce libelle ; `None` : libelle connu sans rubrique sure, ou absent
+    /// de la table (alors signale).
     pub rubrique: Option<String>,
     /// Les heures d'une unite que le libelle dit (« 4h »), d'apres la table : pour une rubrique dont les heures se
     /// saisissent (un service de repetition).
@@ -785,15 +770,18 @@ pub struct Cumul {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BulletinLu {
-    pub gabarit: String,
+    /// Le logiciel que sa signature nomme (`logiciels` de la table) ; `None` : un autre.
+    pub logiciel: Option<String>,
     pub numero: Option<String>,
     pub entreprise: Entreprise,
     pub salarie: Salarie,
     pub numero_objet: Option<String>,
-    /// Le titre du spectacle (CoolPaie).
+    /// Le titre du spectacle.
     pub spectacle: Option<String>,
-    /// Le code analytique (gabarit B).
+    /// Le code analytique.
     pub analytique: Option<String>,
+    /// Le numero du contrat, quand le bulletin l'imprime.
+    pub contrat: Option<String>,
     pub debut: Jour,
     pub fin: Jour,
     /// Les intervalles « du ... au ... » des dates travaillees, tels qu'ecrits.
@@ -814,7 +802,7 @@ pub struct BulletinLu {
     pub cout_employeur: Option<Decimal>,
     pub regle_le: Option<Jour>,
     pub mode_reglement: Option<String>,
-    /// Les cumuls, dans l'ordre de la table : `cachets`, `jours`, `heures`, `brut`, `plafond`, `cout_employeur`...
+    /// Les cumuls, dans l'ordre de la page : `cachets`, `jours`, `heures`, `brut`, `plafond`, `cout_employeur`...
     pub cumuls: Vec<(String, Cumul)>,
     pub avertissements: Vec<String>,
 }
@@ -824,14 +812,16 @@ pub struct BulletinLu {
 pub enum Refus {
     /// Aucun mot : lettres en traces ou page scannee (pas d'OCR). Le detail dit ce que la fabrique a vu.
     SansTexte(String),
-    /// Aucun gabarit de la table ne reconnait la page.
-    GabaritInconnu,
-    /// Plusieurs gabarits la reconnaissent : la table est a corriger, on ne choisit pas.
-    PlusieursGabarits(Vec<String>),
+    /// Le rang d'en-tetes du tableau ne se trouve pas : le detail dit ce qui manquait.
+    SansEntetes(String),
+    /// La page se lit de deux facons : le detail dit lesquelles.
+    Ambigu(String),
+    /// L'annexe d'un bulletin, qui en detaille les cotisations : rien a reprendre.
+    Annexe,
     /// Un libelle de ligne de paie absent de la table. Il n'est que SIGNALE (son message va dans les avertissements) :
-    /// la ligne est gardee telle quelle, la page lue (decide, plan §4).
+    /// la ligne est gardee telle quelle, la page lue.
     LibelleInconnu(String),
-    /// Ce qui identifie le bulletin ne se lit pas (salarie, periode, brut, net a payer).
+    /// Une mention qui identifie le bulletin ne se lit pas (salarie, periode, brut, net a payer).
     Incomplet(String),
     /// La page se contredit au point de ne pas se lire.
     Incoherent(String),
@@ -841,8 +831,9 @@ impl Refus {
     pub fn code(&self) -> &'static str {
         match self {
             Refus::SansTexte(_) => "sans_texte",
-            Refus::GabaritInconnu => "gabarit_inconnu",
-            Refus::PlusieursGabarits(_) => "plusieurs_gabarits",
+            Refus::SansEntetes(_) => "sans_entetes",
+            Refus::Ambigu(_) => "ambigu",
+            Refus::Annexe => "annexe",
             Refus::LibelleInconnu(_) => "libelle_inconnu",
             Refus::Incomplet(_) => "incomplet",
             Refus::Incoherent(_) => "incoherent",
@@ -853,8 +844,9 @@ impl Refus {
         match self {
             Refus::SansTexte(d) if d.is_empty() => "sans texte".into(),
             Refus::SansTexte(d) => format!("sans texte : {}", d),
-            Refus::GabaritInconnu => "gabarit inconnu".into(),
-            Refus::PlusieursGabarits(n) => format!("plusieurs gabarits : {}", n.join(", ")),
+            Refus::SansEntetes(d) => format!("sans en-têtes : {}", d),
+            Refus::Ambigu(d) => format!("ambigu : {}", d),
+            Refus::Annexe => "annexe d'un bulletin : le détail de ses cotisations, rien à reprendre".into(),
             Refus::LibelleInconnu(l) => format!("libellé inconnu : « {} »", l),
             Refus::Incomplet(d) => format!("incomplet : {}", d),
             Refus::Incoherent(d) => format!("incohérent : {}", d),
@@ -868,8 +860,8 @@ pub struct Lecture {
     /// La page dans le PDF, a partir de 1.
     pub page: usize,
     pub resultat: Result<BulletinLu, Refus>,
-    /// Une page refusee apres que le cadre du salarie a ete lu : ce qu'il en a rendu (nom, NIR, adresse...), pour la
-    /// caviarder (lot E). `None` pour un bulletin lu, ou quand rien n'a ete reconnu.
+    /// Une page refusee dont le salarie s'est lu : ce qu'il en a rendu (nom, NIR, adresse...), pour la caviarder.
+    /// `None` pour un bulletin lu, ou quand rien n'a ete reconnu.
     pub partiel: Option<Salarie>,
 }
 
@@ -895,7 +887,7 @@ fn j(x: &Option<Jour>) -> Value {
 }
 
 impl BulletinLu {
-    /// Les montants en chaines (`"1421.13"`, exacts, comme `str(Decimal)`), les dates en ISO, l'absent en `null`.
+    /// Les montants en chaines (`"1421.13"`, exacts), les dates en ISO, l'absent en `null`.
     pub fn to_json(&self) -> Value {
         let e = &self.entreprise;
         let s = &self.salarie;
@@ -904,7 +896,7 @@ impl BulletinLu {
             cumuls.insert(n.clone(), json!({"periode": d(&c.periode), "cumul": d(&c.cumul)}));
         }
         json!({
-            "gabarit": self.gabarit,
+            "logiciel": t(&self.logiciel),
             "numero": t(&self.numero),
             "entreprise": {
                 "nom": t(&e.nom), "adresse": e.adresse, "siret": t(&e.siret), "naf": t(&e.naf),
@@ -918,6 +910,7 @@ impl BulletinLu {
             "numero_objet": t(&self.numero_objet),
             "spectacle": t(&self.spectacle),
             "analytique": t(&self.analytique),
+            "contrat": t(&self.contrat),
             "debut": self.debut.iso(),
             "fin": self.fin.iso(),
             "dates_travaillees": self.dates_travaillees.iter().map(|(a, b)| json!({"debut": a.iso(), "fin": b.iso()})).collect::<Vec<_>>(),
@@ -986,7 +979,7 @@ fn mots_de(p: &Value) -> Vec<Mot> {
         if texte.is_empty() || r.len() != 4 {
             continue;
         }
-        // Un meme mot ecrit deux fois au meme endroit (CoolPaie double ses cumuls) ne compte qu'une fois.
+        // Un meme mot ecrit deux fois au meme endroit (des cumuls imprimes en double) ne compte qu'une fois.
         let double = mots.iter().any(|x| x.texte == texte && (x.x0 - r[0]).abs() < 0.05 && (x.y0 - r[1]).abs() < 0.05);
         if !double {
             mots.push(Mot { jetons: jetons(&texte), texte, x0: r[0], y0: r[1], x1: r[2], y1: r[3] });
@@ -1005,26 +998,20 @@ fn lire_page(p: &Value, signale: &[&str], table: &Table) -> (Result<BulletinLu, 
         }
         return (Err(Refus::SansTexte(detail)), None);
     }
-    let reconnus: Vec<&Gabarit> = table
-        .gabarits
-        .iter()
-        .filter(|g| {
-            let page = Page::nouvelle(mots.clone(), g.tolerance);
-            g.signature.iter().all(|s| page.present(s))
-        })
-        .collect();
-    match reconnus.as_slice() {
-        [] => (Err(Refus::GabaritInconnu), None),
-        [g] => {
-            let mut l = Lecteur { g, table, page: Page::nouvelle(mots, g.tolerance), avertissements: Vec::new(), partiel: None };
-            let r = l.lire();
-            (r, l.partiel)
-        }
-        plusieurs => (Err(Refus::PlusieursGabarits(plusieurs.iter().map(|g| g.nom.clone()).collect())), None),
+    let page = Page::nouvelle(mots);
+    if table.annexe.iter().any(|a| page.present(a)) {
+        return (Err(Refus::Annexe), None);
     }
+    let logiciel = table.logiciels.iter().find(|(_, s)| s.iter().all(|x| page.present(x))).map(|(n, _)| n.clone());
+    let debuts = (0..page.mots.len())
+        .map(|i| table.mentions.iter().position(|m| page.libelle_en(i, &m.libelles).is_some()))
+        .collect();
+    let mut l = Lecteur { t: table, page, debuts, pris: Vec::new(), avertissements: Vec::new(), partiel: None };
+    let r = l.lire(logiciel);
+    (r, l.partiel)
 }
 
-/// Une valeur de champ, lue.
+/// Une valeur de mention, lue.
 #[derive(Clone, Debug)]
 enum Valeur {
     Texte(String),
@@ -1034,87 +1021,215 @@ enum Valeur {
     Nombre(Decimal),
 }
 
+/// Une colonne de tableau : ce que son en-tete annonce, et sa boite.
+#[derive(Clone, Debug)]
+struct Colonne {
+    genre: Genre,
+    part: Option<Part>,
+    boite: Boite,
+    texte: String,
+}
+
+/// Les colonnes, de gauche a droite par leur bord droit : un nombre aligne a droite va a la premiere dont le bord
+/// droit (plus `COLONNE_MARGE`) le couvre.
+fn colonne_de<'c>(cols: &'c [Colonne], n: &Nombre) -> Option<&'c Colonne> {
+    cols.iter().find(|c| n.boite.x1 <= c.boite.x1 + COLONNE_MARGE)
+}
+
+fn trier_colonnes(cols: &mut [Colonne]) {
+    cols.sort_by(|a, b| a.boite.x1.total_cmp(&b.boite.x1));
+}
+
+/// Les en-tetes de colonnes d'un ensemble de mots : les mots voisins d'un rang s'unissent (« Part Employeur »), puis
+/// ceux de rangs differents qui se chevauchent (« Taux » sur « salarial »).
+fn etiquettes(mots: &[&Mot]) -> Vec<(Boite, Vec<String>, String)> {
+    let mut sortie: Vec<(Boite, Vec<String>, String)> = Vec::new();
+    for rang in en_rangs(mots.to_vec()) {
+        let mut du_rang: Vec<(Boite, Vec<String>, String)> = Vec::new();
+        for m in rang {
+            match du_rang.last_mut() {
+                Some((b, j, t)) if m.x0 - b.x1 <= ENTETE_MOTS => {
+                    *b = b.union(m);
+                    j.extend(m.jetons.iter().cloned());
+                    t.push(' ');
+                    t.push_str(&m.texte);
+                }
+                _ => du_rang.push((Boite::de(m), m.jetons.clone(), m.texte.clone())),
+            }
+        }
+        for e in du_rang {
+            match sortie.iter_mut().find(|(b, _, _)| b.x0 < e.0.x1 && e.0.x0 < b.x1) {
+                Some((b, j, t)) => {
+                    *b = b.unir(e.0);
+                    j.extend(e.1);
+                    t.push(' ');
+                    t.push_str(&e.2);
+                }
+                None => sortie.push(e),
+            }
+        }
+    }
+    sortie.sort_by(|a, b| a.0.x0.total_cmp(&b.0.x0));
+    sortie
+}
+
+/// Le rang d'en-tetes du tableau : ses colonnes, et les bornes verticales de ses rangs.
+struct Tableau {
+    colonnes: Vec<Colonne>,
+    haut: f64,
+    bas: f64,
+}
+
+/// Un morceau d'un rang de l'en-tete : des mots qui se suivent.
+struct Morceau<'a> {
+    mots: Vec<&'a Mot>,
+    /// Commence par le libelle d'une mention, ou porte la valeur d'une mention : il coupe un bloc d'adresse.
+    mention: Option<usize>,
+    coupe: bool,
+}
+
+impl Morceau<'_> {
+    fn x0(&self) -> f64 {
+        self.mots[0].x0
+    }
+    fn cy(&self) -> f64 {
+        milieu(&self.mots)
+    }
+    fn lignes(&self) -> Vec<String> {
+        texte_de(&self.mots).split(" — ").map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+    }
+}
+
+/// Une ligne d'adresse « 99999 Commune ».
+fn code_postal(ligne: &str) -> bool {
+    let mut it = ligne.splitn(2, ' ');
+    let cp = it.next().unwrap_or("");
+    cp.len() == 5 && cp.chars().all(|c| c.is_ascii_digit()) && it.next().is_some_and(|r| !r.trim().is_empty())
+}
+
+/// Un bloc d'adresse : le nom au premier rang, l'adresse ensuite.
+struct Bloc {
+    lignes: Vec<String>,
+    employeur: bool,
+}
+
 struct Lecteur<'a> {
-    g: &'a Gabarit,
-    table: &'a Table,
+    t: &'a Table,
     page: Page,
+    /// Pour chaque mot, la mention dont un libelle commence la.
+    debuts: Vec<Option<usize>>,
+    /// Les mots pris par la valeur d'une mention.
+    pris: Vec<usize>,
     avertissements: Vec<String>,
-    /// Ce que le cadre du salarie a rendu, des qu'il est lu (meme si la page est refusee ensuite).
+    /// Ce que l'adresse et les mentions du salarie ont rendu, des qu'ils sont lus (meme si la page est refusee ensuite).
     partiel: Option<Salarie>,
 }
 
-/// Les bornes verticales des sections : l'en-tete finit au tableau, le pied commence au net avant impot.
-#[derive(Clone, Copy)]
-struct Sections {
-    tableau: Boite,
-    pied: Option<Boite>,
-}
-
-/// Un rang du corps : son libelle (la quantite en tete mise a part) et ses nombres, par colonne.
+/// Un rang du corps : son libelle et ses nombres, chacun avec sa colonne.
 struct RangCorps {
     libelle: String,
-    quantite: Option<Decimal>,
-    nombres: Vec<(String, Decimal)>,
+    /// La quantite en tete du libelle, et le libelle sans elle (une ligne de paie : « 2 Cachets isolés »).
+    quantite: Option<(Decimal, String)>,
+    nombres: Vec<(Option<(Genre, Option<Part>)>, Decimal)>,
     cy: f64,
 }
 
 impl RangCorps {
-    fn colonne(&self, c: &str) -> Option<Decimal> {
-        self.nombres.iter().find(|(n, _)| n == c).map(|(_, v)| *v)
+    fn colonne(&self, g: Genre, p: Option<Part>) -> Option<Decimal> {
+        self.nombres.iter().find(|(c, _)| *c == Some((g, p))).map(|(_, v)| *v)
+    }
+    /// Le dernier nombre du rang : la valeur d'un resume, le montant d'une ligne.
+    fn dernier(&self) -> Option<Decimal> {
+        self.nombres.last().map(|(_, v)| *v)
     }
 }
 
 impl<'a> Lecteur<'a> {
-    fn lire(&mut self) -> Result<BulletinLu, Refus> {
-        let tol = self.g.tolerance;
-        let tableau = self
-            .page
-            .trouver(&self.g.tableau, &|_| true)
-            .map(|(b, _)| b)
-            .ok_or_else(|| Refus::Incomplet(format!("l'en-tête du tableau (« {} ») ne se trouve pas", self.g.tableau[0].join(" "))))?;
-        let fin_corps: Vec<Vec<String>> = self.g.corps.net_avant_impot.libelles.iter().map(|l| l.split(' ').map(String::from).collect()).collect();
-        let pied = self.page.trouver(&fin_corps, &|m: &Mot| m.cy() > tableau.cy() + tol).map(|(b, _)| b);
-        let sections = Sections { tableau, pied };
-
-        // L'en-tete et le pied.
-        let mut valeurs: Vec<(String, Valeur)> = Vec::new();
-        for c in &self.g.champs {
-            if let Some(v) = self.champ(c, sections) {
-                valeurs.push((c.nom.clone(), v));
+    fn lire(&mut self, logiciel: Option<String>) -> Result<BulletinLu, Refus> {
+        let tableau = self.tableau();
+        // L'en-tete finit au tableau ; sans tableau, toute la page en est (le salarie se lit pour le caviardage).
+        let limite = match &tableau {
+            Ok(Some(t)) => t.haut - TOLERANCE,
+            _ => f64::INFINITY,
+        };
+        let mut valeurs: Vec<(&'static str, Valeur)> = Vec::new();
+        let pied_provisoire = None;
+        for k in 0..self.t.mentions.len() {
+            if self.t.mentions[k].section == Section::Entete {
+                if let Some(v) = self.mention(k, limite, pied_provisoire) {
+                    valeurs.push((self.t.mentions[k].nom, v));
+                }
             }
         }
-        let texte = |n: &str| {
-            valeurs.iter().find(|(k, _)| k == n).and_then(|(_, v)| match v {
-                Valeur::Texte(s) => Some(s.clone()),
-                _ => None,
-            })
+        let blocs = self.blocs(limite);
+        let (entreprise, salarie) = match (&tableau, blocs) {
+            (Err(_), Ok(b)) => b,
+            (Err(_), Err(_)) => (None, None),
+            (Ok(_), b) => b?,
         };
-        let date = |n: &str| valeurs.iter().find(|(k, _)| k == n).and_then(|(_, v)| if let Valeur::Date(j) = v { Some(*j) } else { None });
-        let nombre = |n: &str| valeurs.iter().find(|(k, _)| k == n).and_then(|(_, v)| if let Valeur::Nombre(x) = v { Some(*x) } else { None });
-        let periode = valeurs.iter().find_map(|(k, v)| if let (true, Valeur::Periode(a, b)) = (k == "periode", v) { Some((*a, *b)) } else { None });
-        let dates_travaillees = valeurs
-            .iter()
-            .find_map(|(k, v)| if let (true, Valeur::Intervalles(l)) = (k == "dates_travaillees", v) { Some(l.clone()) } else { None })
-            .unwrap_or_default();
-
-        // Les deux cadres.
-        let (nom_e, adresse_e) = self.cadre(&self.g.entreprise, sections);
-        let (nom_s, adresse_s) = self.cadre(&self.g.salarie, sections);
+        let texte = |valeurs: &[(&str, Valeur)], n: &str| {
+            valeurs.iter().find(|(k, _)| *k == n).and_then(|(_, v)| if let Valeur::Texte(s) = v { Some(s.clone()) } else { None })
+        };
+        let date = |valeurs: &[(&str, Valeur)], n: &str| valeurs.iter().find(|(k, _)| *k == n).and_then(|(_, v)| if let Valeur::Date(j) = v { Some(*j) } else { None });
+        let nombre = |valeurs: &[(&str, Valeur)], n: &str| valeurs.iter().find(|(k, _)| *k == n).and_then(|(_, v)| if let Valeur::Nombre(x) = v { Some(*x) } else { None });
+        let (nom_s, adresse_s) = match salarie {
+            Some(b) => {
+                let mut l = b.lignes.into_iter();
+                (l.next(), l.collect())
+            }
+            None => (None, Vec::new()),
+        };
         let (nom, prenom) = match &nom_s {
             Some(n) => self.separer_nom(n),
             None => (None, None),
         };
+        let nir = texte(&valeurs, "nir");
+        let salarie = Salarie {
+            nom_complet: nom_s.clone(),
+            nom,
+            prenom,
+            nir: nir.clone(),
+            naissance: date(&valeurs, "naissance"),
+            adresse: adresse_s,
+            code: texte(&valeurs, "code"),
+            emploi: texte(&valeurs, "emploi"),
+            statut: texte(&valeurs, "statut"),
+            abattement: nombre(&valeurs, "abattement"),
+            conges_spectacles: texte(&valeurs, "conges_spectacles"),
+        };
+        if nom_s.is_some() || nir.is_some() {
+            self.partiel = Some(salarie.clone());
+        }
+        let Some(tableau) = tableau? else {
+            return Err(Refus::SansEntetes(format!(
+                "aucun rang ne titre le tableau des lignes (« {} », suivi de « {} » et des parts) : le brut et les cotisations ne se rangent pas",
+                self.t.entetes.libelle.first().map_or("libellé", String::as_str),
+                self.t.entetes.base.first().map_or("base", String::as_str)
+            )));
+        };
 
-        // Le corps.
-        let corps = self.corps(sections);
-        // Le pied : les grilles.
+        // Le corps, puis le pied.
+        let corps = self.corps(&tableau)?;
+        let pied = corps.fin;
+        for k in 0..self.t.mentions.len() {
+            if self.t.mentions[k].section != Section::Entete {
+                if let Some(v) = self.mention(k, limite, pied) {
+                    valeurs.push((self.t.mentions[k].nom, v));
+                }
+            }
+        }
         let mut pas: Option<Pas> = None;
         let mut net_imposable: Option<Decimal> = None;
         let mut cumuls: Vec<(String, Cumul)> = Vec::new();
-        for gr in &self.g.grilles {
-            self.grille(gr, sections, &mut pas, &mut net_imposable, &mut cumuls);
+        if let Some(p) = pied {
+            self.grilles(p, &mut pas, &mut net_imposable, &mut cumuls);
         }
 
+        let periode = valeurs.iter().find_map(|(k, v)| if let (true, Valeur::Periode(a, b)) = (*k == "periode", v) { Some((*a, *b)) } else { None });
+        let dates_travaillees = valeurs
+            .iter()
+            .find_map(|(k, v)| if let (true, Valeur::Intervalles(l)) = (*k == "dates_travaillees", v) { Some(l.clone()) } else { None })
+            .unwrap_or_default();
         let mut jours_travailles = Vec::new();
         for (a, b) in &dates_travaillees {
             let n = b.moins(a);
@@ -1129,63 +1244,50 @@ impl<'a> Lecteur<'a> {
             }
         }
 
-        // Ce qui identifie le bulletin. Ce que le cadre du salarie a deja rendu est garde (`partiel`) : une page refusee
-        // plus bas se caviarde depuis ce qu'on a reconnu (lot E).
-        let nir = texte("nir");
-        let salarie = Salarie {
-            nom_complet: nom_s.clone(),
-            nom,
-            prenom,
-            nir: nir.clone(),
-            naissance: date("naissance"),
-            adresse: adresse_s,
-            code: texte("code"),
-            emploi: texte("emploi"),
-            statut: texte("statut"),
-            abattement: nombre("abattement"),
-            conges_spectacles: texte("conges_spectacles"),
-        };
-        self.partiel = Some(salarie.clone());
+        // Ce qui identifie le bulletin (R. 3243-1 : 4° le nom du salarie, 5° la periode, 7° le brut, 10° la somme recue).
         if nom_s.is_none() && nir.is_none() {
-            return Err(Refus::Incomplet("ni le nom du salarié ni son NIR ne se lisent".into()));
+            return Err(Refus::Incomplet("ni le nom du salarié (son adresse) ni son NIR ne se trouvent".into()));
         }
-        let (debut, fin) = periode.ok_or_else(|| Refus::Incomplet("la période (du ... au ...) ne se lit pas".into()))?;
-        let brut = corps.brut.ok_or_else(|| Refus::Incomplet(format!("le brut (« {} ») ne se lit pas", self.g.corps.brut.libelles[0])))?;
-        let net_a_payer = nombre("net_a_payer").ok_or_else(|| Refus::Incomplet("le net à payer ne se lit pas".into()))?;
+        let (debut, fin) = periode.ok_or_else(|| Refus::Incomplet(format!("la période (« {} du ... au ... ») ne se trouve pas", self.libelle_de("periode"))))?;
+        let brut = corps.lu.brut.ok_or_else(|| Refus::Incomplet(format!("le brut (« {} ») ne se trouve pas", self.t.resumes.brut.first().map_or("", String::as_str))))?;
+        let net_a_payer = nombre(&valeurs, "net_a_payer").ok_or_else(|| Refus::Incomplet(format!("le net à payer (« {} ») ne se trouve pas", self.libelle_de("net_a_payer"))))?;
+        // Le mode de reglement : sa mention, sinon ce qui suit « par » dans celle de la date (« le 30/11/2026 par virement »).
+        let mode_reglement = texte(&valeurs, "mode_reglement").or_else(|| self.mode_de_la_date(limite, pied));
 
         let mut b = BulletinLu {
-            gabarit: self.g.nom.clone(),
-            numero: texte("numero"),
+            logiciel,
+            numero: texte(&valeurs, "numero"),
             entreprise: Entreprise {
-                nom: nom_e,
-                adresse: adresse_e,
-                siret: texte("siret"),
-                naf: texte("naf"),
-                urssaf: texte("urssaf"),
-                convention: texte("convention"),
-                licence: texte("licence"),
+                nom: entreprise.as_ref().and_then(|e| e.lignes.first().cloned()),
+                adresse: entreprise.map(|e| e.lignes.into_iter().skip(1).collect()).unwrap_or_default(),
+                siret: texte(&valeurs, "siret"),
+                naf: texte(&valeurs, "naf"),
+                urssaf: texte(&valeurs, "urssaf"),
+                convention: texte(&valeurs, "convention"),
+                licence: texte(&valeurs, "licence"),
             },
             salarie,
-            numero_objet: texte("numero_objet"),
-            spectacle: texte("spectacle"),
-            analytique: texte("analytique"),
+            numero_objet: texte(&valeurs, "numero_objet"),
+            spectacle: texte(&valeurs, "spectacle"),
+            analytique: texte(&valeurs, "analytique"),
+            contrat: texte(&valeurs, "contrat"),
             debut,
             fin,
             dates_travaillees,
             jours_travailles,
-            lignes: corps.lignes,
+            lignes: corps.lu.lignes,
             brut,
-            cotisations: corps.cotisations,
-            total_employeur: corps.total_employeur,
-            total_salarie: corps.total_salarie,
-            net_social: corps.net_social,
-            net_avant_impot: corps.net_avant_impot,
+            cotisations: corps.lu.cotisations,
+            total_employeur: corps.lu.total_employeur,
+            total_salarie: corps.lu.total_salarie,
+            net_social: corps.lu.net_social,
+            net_avant_impot: corps.lu.net_avant_impot,
             net_imposable,
             pas,
             net_a_payer,
-            cout_employeur: nombre("cout_employeur"),
-            regle_le: date("regle_le"),
-            mode_reglement: texte("mode_reglement"),
+            cout_employeur: nombre(&valeurs, "cout_employeur"),
+            regle_le: date(&valeurs, "regle_le"),
+            mode_reglement,
             cumuls,
             avertissements: std::mem::take(&mut self.avertissements),
         };
@@ -1193,67 +1295,109 @@ impl<'a> Lecteur<'a> {
         Ok(b)
     }
 
-    fn dans_section(&self, m_cy: f64, section: Section, s: Sections) -> bool {
-        let tol = self.g.tolerance;
+    /// Le premier libelle d'une mention, pour le dire dans un refus.
+    fn libelle_de(&self, nom: &str) -> String {
+        self.t.mention(nom).and_then(|m| m.libelles.first()).map(|p| p.join(" ")).unwrap_or_else(|| nom.to_string())
+    }
+
+    fn dans_section(&self, cy: f64, section: Section, limite: f64, pied: Option<f64>) -> bool {
         match section {
-            Section::Entete => m_cy < s.tableau.cy() - tol,
-            Section::Pied => s.pied.is_some_and(|p| m_cy >= p.cy() - tol),
+            Section::Entete => cy < limite,
+            Section::Pied => pied.is_some_and(|p| cy > p + TOLERANCE),
             Section::Page => true,
         }
     }
 
-    /// Un champ de l'en-tete ou du pied.
-    fn champ(&mut self, c: &Champ, s: Sections) -> Option<Valeur> {
-        let tol = self.g.tolerance;
-        let (rep, _) = self.page.trouver(&c.reperes, &|m: &Mot| self.dans_section(m.cy(), c.section, s))?;
-        if c.dessous {
-            let fenetre = |n: &&Nombre| {
-                let b = n.boite;
-                b.cy() > rep.cy() + 2.0 && b.cy() - rep.cy() <= DESSOUS_MAX && b.cx() >= rep.x0 - 20.0 && b.cx() <= rep.x1 + 80.0
+    // ----------------------------------------------------------------------------------------- les mentions
+
+    /// La valeur d'une mention : la premiere de ses occurrences qui en porte une.
+    fn mention(&mut self, k: usize, limite: f64, pied: Option<f64>) -> Option<Valeur> {
+        let m = self.t.mentions[k].clone();
+        let occ = self.page.occurrences(&m.libelles, &|x: &Mot| self.dans_section(x.cy(), m.section, limite, pied));
+        for (rep, _, dernier) in occ {
+            let v = if m.sorte == Sorte::Nombre && m.section == Section::Pied {
+                self.montant_de(&rep, dernier)
+            } else {
+                let mots = self.valeur(k, &rep, dernier, m.rangs);
+                if mots.is_empty() {
+                    None
+                } else {
+                    let v = self.lire_valeur(&m, &mots.iter().map(|&i| self.page.mots[i].texte.clone()).collect::<Vec<_>>());
+                    if v.is_some() {
+                        self.pris.extend(mots);
+                    }
+                    v
+                }
             };
-            let dist = |n: &Nombre| (n.boite.cx() - rep.cx()).hypot(n.boite.cy() - rep.cy());
-            return self.page.nombres.iter().filter(fenetre).min_by(|a, b| dist(a).total_cmp(&dist(b))).map(|n| Valeur::Nombre(n.valeur));
+            if v.is_some() {
+                return v;
+            }
         }
-        // A droite, sur le meme rang, puis les rangs qui suivent (`lignes`).
-        let dans = |m: &Mot, x_min: f64| m.x0 >= x_min && m.x1 <= c.jusqu_a;
-        let mut rangs: Vec<Vec<&Mot>> = Vec::new();
-        let premier: Vec<&Mot> = self.page.mots.iter().filter(|m| (m.cy() - rep.cy()).abs() <= tol && dans(m, rep.x1 - 0.5)).collect();
-        let x_suite = premier.iter().map(|m| m.x0).fold(rep.x0, f64::min) - 3.0;
+        None
+    }
+
+    /// Les mots qui suivent un libelle sur son rang (et les rangs dessous, pour une valeur qui en couvre plusieurs) :
+    /// le premier a moins de `VALEUR_LOIN`, les suivants a moins de `VALEUR_SUITE`, jusqu'au libelle d'une autre
+    /// mention. La ponctuation qui borne la valeur (« — », « · », « : ») n'en est pas.
+    fn valeur(&self, k: usize, rep: &Boite, dernier: usize, rangs: usize) -> Vec<usize> {
+        let p = &self.page;
+        let suite = |depart: f64, cy: f64, x_min: f64, loin: f64| -> Vec<usize> {
+            let mut rang: Vec<usize> = (0..p.mots.len()).filter(|&i| i != dernier && (p.mots[i].cy() - cy).abs() <= TOLERANCE && p.mots[i].x0 >= x_min).collect();
+            rang.sort_by(|&a, &b| p.mots[a].x0.total_cmp(&p.mots[b].x0));
+            let mut pris = Vec::new();
+            let mut bord = depart;
+            for i in rang {
+                let commencee = pris.iter().any(|&x: &usize| !ponctuation(&p.mots[x].texte));
+                let ecart = p.mots[i].x0 - bord;
+                if ecart > if commencee { VALEUR_SUITE } else { loin } {
+                    break;
+                }
+                // Le libelle d'une autre mention, ou le separateur de deux mentions sur un rang (« — », « · », « | »).
+                if self.debuts[i].is_some_and(|x| x != k) || (commencee && matches!(p.mots[i].texte.as_str(), "—" | "·" | "|")) {
+                    break;
+                }
+                pris.push(i);
+                bord = p.mots[i].x1;
+            }
+            pris
+        };
+        let mut mots = suite(rep.x1, rep.cy(), rep.x1 - 0.5, VALEUR_LOIN);
+        let x_valeur = mots.iter().find(|&&i| !ponctuation(&p.mots[i].texte)).map_or(rep.x0, |&i| p.mots[i].x0);
+        let x_suite = x_valeur.min(rep.x0) - 3.0;
         let mut cy = rep.cy();
-        rangs.push(premier);
-        while rangs.len() < c.lignes {
-            let suivants: Vec<&Mot> =
-                self.page.mots.iter().filter(|m| m.cy() > cy + tol && m.cy() <= cy + tol + 14.0 && dans(m, x_suite)).collect();
-            let Some(haut) = suivants.iter().map(|m| m.cy()).min_by(f64::total_cmp) else { break };
-            let mut rang: Vec<&Mot> = suivants.into_iter().filter(|m| (m.cy() - haut).abs() <= tol).collect();
-            rang.sort_by(|a, b| a.x0.total_cmp(&b.x0));
-            // Un rang qui commence par le repère d'un autre champ n'est pas une suite.
-            let i = self.page.mots.iter().position(|m| std::ptr::eq(m, rang[0])).unwrap_or(0);
-            if self.g.champs.iter().any(|x| x.reperes.iter().any(|p| self.page.repere_en(i, p).is_some())) {
+        let mut n = 1;
+        while n < rangs && !mots.is_empty() {
+            let haut = (0..p.mots.len())
+                .filter(|&i| p.mots[i].cy() > cy + TOLERANCE && p.mots[i].cy() <= cy + TOLERANCE + VALEUR_RANG && p.mots[i].x0 >= x_suite)
+                .min_by(|&a, &b| p.mots[a].cy().total_cmp(&p.mots[b].cy()).then(p.mots[a].x0.total_cmp(&p.mots[b].x0)));
+            let Some(h) = haut else { break };
+            // Le rang suivant commence ou commence la valeur (ou son libelle), et pas par le libelle d'une mention.
+            let premier = (0..p.mots.len())
+                .filter(|&i| (p.mots[i].cy() - p.mots[h].cy()).abs() <= TOLERANCE && p.mots[i].x0 >= x_suite)
+                .min_by(|&a, &b| p.mots[a].x0.total_cmp(&p.mots[b].x0))
+                .unwrap_or(h);
+            let aligne = (p.mots[premier].x0 - x_valeur).abs() <= 3.0 || (p.mots[premier].x0 - rep.x0).abs() <= 3.0;
+            if self.debuts[premier].is_some() || !aligne {
                 break;
             }
-            cy = haut;
-            rangs.push(rang);
+            let mut rang = vec![premier];
+            rang.extend(suite(p.mots[premier].x1, p.mots[premier].cy(), p.mots[premier].x1 - 0.5, VALEUR_SUITE));
+            cy = p.mots[h].cy();
+            mots.extend(rang);
+            n += 1;
         }
-        let mut mots: Vec<&Mot> = rangs.into_iter().flatten().collect();
-        if let Some(a) = &c.apres {
-            let k = mots.iter().position(|m| &canon(&m.texte) == a)?;
-            mots.drain(..=k);
-        }
-        if let Some(a) = &c.avant {
-            if let Some(k) = mots.iter().position(|m| &canon(&m.texte) == a) {
-                mots.truncate(k);
-            }
-        }
-        // Le deux-points isole qui suit un repère n'est pas la valeur.
-        while mots.first().is_some_and(|m| m.texte == ":") {
+        while mots.first().is_some_and(|&i| ponctuation(&p.mots[i].texte)) {
             mots.remove(0);
         }
-        if mots.is_empty() {
-            return None;
+        while mots.last().is_some_and(|&i| ponctuation(&p.mots[i].texte)) {
+            mots.pop();
         }
-        let textes: Vec<&str> = mots.iter().map(|m| m.texte.as_str()).collect();
-        match c.sorte {
+        mots
+    }
+
+    fn lire_valeur(&mut self, m: &Mention, textes: &[String]) -> Option<Valeur> {
+        let textes: Vec<&str> = textes.iter().map(|s| s.trim_end_matches(['.', '·'])).filter(|s| !s.is_empty()).collect();
+        match m.sorte {
             Sorte::Texte => Some(Valeur::Texte(textes.join(" "))),
             Sorte::Compact => Some(Valeur::Texte(textes.concat())),
             Sorte::Date => textes.iter().find_map(|x| lire_date(x)).map(Valeur::Date),
@@ -1270,7 +1414,7 @@ impl<'a> Lecteur<'a> {
                         Some(Valeur::Periode(lire_date(textes[1])?, lire_date(textes[3])?))
                     }
                     _ => {
-                        self.avertissements.push(format!("{} : « {} » n'est pas une période du ... au ...", c.nom, textes.join(" ")));
+                        self.avertissements.push(format!("{} : « {} » n'est pas une période du ... au ...", m.nom, textes.join(" ")));
                         None
                     }
                 }
@@ -1294,7 +1438,7 @@ impl<'a> Lecteur<'a> {
                     l = textes.iter().filter_map(|x| lire_date(x)).map(|j| (j, j)).collect();
                 }
                 if l.is_empty() {
-                    self.avertissements.push(format!("{} : « {} » ne se lit pas en dates", c.nom, textes.join(" ")));
+                    self.avertissements.push(format!("{} : « {} » ne se lit pas en dates", m.nom, textes.join(" ")));
                     return None;
                 }
                 Some(Valeur::Intervalles(l))
@@ -1302,77 +1446,313 @@ impl<'a> Lecteur<'a> {
         }
     }
 
-    /// Un cadre sans repère (entreprise, salarie) : le premier rang est le nom, les suivants l'adresse.
-    fn cadre(&self, c: &Cadre, s: Sections) -> (Option<String>, Vec<String>) {
-        let mots: Vec<&Mot> = self
-            .page
-            .mots
+    /// Un montant du pied : le nombre qui suit son libelle sur son rang, sinon le plus proche dessous.
+    fn montant_de(&self, rep: &Boite, dernier: usize) -> Option<Valeur> {
+        let p = &self.page;
+        let bord_libelle = (0..p.mots.len())
+            .filter(|&i| i != dernier && self.debuts[i].is_some() && (p.mots[i].cy() - rep.cy()).abs() <= TOLERANCE && p.mots[i].x0 > rep.x1)
+            .map(|i| p.mots[i].x0)
+            .fold(f64::INFINITY, f64::min);
+        let droite = p
+            .nombres
             .iter()
-            .filter(|m| m.x0 >= c.x.0 && m.x1 <= c.x.1 && m.cy() >= c.y.0 && m.cy() <= c.y.1 && self.dans_section(m.cy(), Section::Entete, s))
-            .collect();
-        let mut rangs = en_rangs(mots, self.g.tolerance).into_iter().map(|r| texte_de(&r));
-        (rangs.next(), rangs.collect())
+            .filter(|n| (n.boite.cy() - rep.cy()).abs() <= TOLERANCE && n.boite.x0 > rep.x1 && n.boite.x1 < bord_libelle)
+            .min_by(|a, b| a.boite.x0.total_cmp(&b.boite.x0));
+        if let Some(n) = droite {
+            return Some(Valeur::Nombre(n.valeur));
+        }
+        let fenetre = |n: &&Nombre| {
+            let b = n.boite;
+            b.cy() > rep.cy() + 2.0 && b.cy() - rep.cy() <= DESSOUS_MAX && b.cx() >= rep.x0 - 20.0 && b.cx() <= rep.x1 + 80.0
+        };
+        let dist = |n: &Nombre| (n.boite.cx() - rep.cx()).hypot(n.boite.cy() - rep.cy());
+        p.nombres.iter().filter(fenetre).min_by(|a, b| dist(a).total_cmp(&dist(b))).map(|n| Valeur::Nombre(n.valeur))
     }
 
-    /// Le nom et le prenom, selon l'ordre du gabarit ; sinon, le nom complet seul et un avertissement.
+    /// Le mode de reglement ecrit apres « par » dans la mention de la date du paiement.
+    fn mode_de_la_date(&self, limite: f64, pied: Option<f64>) -> Option<String> {
+        let k = self.t.mentions.iter().position(|m| m.nom == "regle_le")?;
+        let m = &self.t.mentions[k];
+        for (rep, _, dernier) in self.page.occurrences(&m.libelles, &|x: &Mot| self.dans_section(x.cy(), m.section, limite, pied)) {
+            let mots = self.valeur(k, &rep, dernier, 1);
+            let textes: Vec<&str> = mots.iter().map(|&i| self.page.mots[i].texte.as_str()).collect();
+            if !textes.iter().any(|x| lire_date(x).is_some()) {
+                continue;
+            }
+            let apres: Vec<&str> = textes.iter().skip_while(|x| canon(x) != "par").skip(1).copied().collect();
+            let mode = apres.join(" ").trim_end_matches(['.', ';', ',']).trim().to_string();
+            return (!mode.is_empty()).then_some(mode);
+        }
+        None
+    }
+
+    // ----------------------------------------------------------------------------------------- les adresses
+
+    /// Les adresses de l'employeur et du salarie : les blocs de rangs alignes de l'en-tete dont un rang, apres le
+    /// premier, porte un code postal. Celui de l'employeur est suivi, dans sa colonne, d'une mention de l'employeur
+    /// (son Siret, son code APE, sa convention) ; celui du salarie est l'autre. Deux adresses de salarie : refus.
+    fn blocs(&mut self, limite: f64) -> Result<(Option<Bloc>, Option<Bloc>), Refus> {
+        let p = &self.page;
+        let mots: Vec<&Mot> = p.mots.iter().filter(|m| m.cy() < limite).collect();
+        let mut morceaux: Vec<Morceau> = Vec::new();
+        for rang in en_rangs(mots) {
+            let mut courant: Vec<&Mot> = Vec::new();
+            for m in rang {
+                if courant.last().is_some_and(|x| m.x0 - x.x1 > ECART_SEGMENT) {
+                    morceaux.push(self.morceau(std::mem::take(&mut courant)));
+                }
+                courant.push(m);
+            }
+            if !courant.is_empty() {
+                morceaux.push(self.morceau(courant));
+            }
+        }
+        let mut colonnes: Vec<Vec<&Morceau>> = Vec::new();
+        for m in &morceaux {
+            match colonnes.iter_mut().find(|c| (c[0].x0() - m.x0()).abs() < MEME_COLONNE) {
+                Some(c) => c.push(m),
+                None => colonnes.push(vec![m]),
+            }
+        }
+        let mut blocs: Vec<(f64, Bloc)> = Vec::new();
+        for c in colonnes.iter_mut() {
+            c.sort_by(|a, b| a.cy().total_cmp(&b.cy()));
+            let mut k = 0;
+            while k < c.len() {
+                if c[k].coupe {
+                    k += 1;
+                    continue;
+                }
+                let debut = k;
+                while k + 1 < c.len() && !c[k + 1].coupe && c[k + 1].cy() - c[k].cy() <= BLOC_ECART {
+                    k += 1;
+                }
+                let lignes: Vec<String> = c[debut..=k].iter().flat_map(|m| m.lignes()).collect();
+                if lignes.len() >= 2 && lignes[1..].iter().any(|l| code_postal(l)) {
+                    let suivant = c.get(k + 1).filter(|s| s.cy() - c[k].cy() <= BLOC_SUIVANT);
+                    let employeur = suivant.and_then(|s| s.mention).is_some_and(|x| self.t.mentions[x].employeur);
+                    blocs.push((c[debut].cy(), Bloc { lignes, employeur }));
+                }
+                k += 1;
+            }
+        }
+        blocs.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let (employeurs, salaries): (Vec<_>, Vec<_>) = blocs.into_iter().map(|(_, b)| b).partition(|b| b.employeur);
+        if employeurs.len() > 1 {
+            self.avertissements.push(format!("{} adresses d'employeur : la première est gardée", employeurs.len()));
+        }
+        let mut salaries = salaries.into_iter();
+        let salarie = salaries.next();
+        if salaries.next().is_some() {
+            return Err(Refus::Ambigu("deux adresses sans mention de l'employeur après elles : laquelle est celle du salarié ne se dit pas".into()));
+        }
+        Ok((employeurs.into_iter().next(), salarie))
+    }
+
+    fn morceau<'m>(&self, mots: Vec<&'m Mot>) -> Morceau<'m> {
+        let i = self.page.indice(mots[0]);
+        let mention = self.debuts[i];
+        let pris = mots.iter().any(|m| self.pris.contains(&self.page.indice(m)));
+        Morceau { coupe: mention.is_some() || pris, mention, mots }
+    }
+
+    /// Le nom et le prenom : les mots en capitales sont le nom quand les autres ne le sont pas (« Fanchon BRIOCHE ») ;
+    /// tout en capitales et en deux mots, le nom vient d'abord (l'usage administratif, « BRIOCHE FANCHON » : une
+    /// inference, relevee sur les bulletins lus). Sinon, le nom complet seul et un avertissement.
     fn separer_nom(&mut self, complet: &str) -> (Option<String>, Option<String>) {
         let mots: Vec<&str> = complet.split_whitespace().collect();
         let capitales = |w: &str| w.chars().any(char::is_alphabetic) && !w.chars().any(char::is_lowercase);
-        if self.g.nom_prenom {
+        let k = mots.iter().filter(|w| capitales(w)).count();
+        if k == mots.len() {
             if let [nom, prenom] = mots.as_slice() {
                 return (Some(nom.to_string()), Some(prenom.to_string()));
             }
-        } else if let Some(k) = mots.iter().position(|w| capitales(w)) {
-            if k > 0 && mots[k..].iter().all(|w| capitales(w)) {
-                return (Some(mots[k..].join(" ")), Some(mots[..k].join(" ")));
+        } else if k > 0 {
+            let debut = mots.iter().take_while(|w| capitales(w)).count();
+            let fin = mots.iter().rev().take_while(|w| capitales(w)).count();
+            if debut == k {
+                return (Some(mots[..k].join(" ")), Some(mots[k..].join(" ")));
+            }
+            if fin == k {
+                let n = mots.len() - k;
+                return (Some(mots[n..].join(" ")), Some(mots[..n].join(" ")));
             }
         }
         self.avertissements.push(format!("nom et prénom non séparés : « {} »", complet));
         (None, None)
     }
 
-    /// Les rangs du corps : libelles a gauche, nombres a droite, chaque nombre au rang le plus proche.
-    fn rangs_du_corps(&mut self, s: Sections) -> Vec<RangCorps> {
-        let tol = self.g.tolerance;
-        let c = &self.g.corps;
-        let haut = s.tableau.cy() + tol;
-        let bas = s.pied.map_or(f64::INFINITY, |p| p.cy() + tol);
-        let dans = |y: f64| y > haut && y <= bas;
-        let gauche: Vec<&Mot> = self.page.mots.iter().filter(|m| m.x1 <= c.libelle_jusqu_a && dans(m.cy()) && !self.page.dans_un_nombre(m, c.libelle_jusqu_a)).collect();
-        let rangs = en_rangs(gauche, tol);
+    // ----------------------------------------------------------------------------------------- le tableau
+
+    /// Le rang d'en-tetes du tableau : un mot « Libellé » (`entetes.libelle`) et, a sa hauteur, des rangs faits
+    /// d'en-tetes seulement, dont au moins une colonne de montant. Aucun : `None` ; deux : refus.
+    fn tableau(&self) -> Result<Option<Tableau>, Refus> {
+        let p = &self.page;
+        let e = &self.t.entetes;
+        let est_entete = |m: &Mot| !m.jetons.is_empty() && m.jetons.iter().all(|j| e.tous().any(|x| x == j));
+        let mut trouves: Vec<Tableau> = Vec::new();
+        let mut derniere_erreur: Option<Refus> = None;
+        for c in p.mots.iter().filter(|m| m.jetons.first().is_some_and(|j| e.libelle.contains(j))) {
+            let zone: Vec<&Mot> = p.mots.iter().filter(|m| (m.cy() - c.cy()).abs() <= ENTETE_HAUTEUR && m.x0 >= c.x0).collect();
+            let rangs: Vec<Vec<&Mot>> = en_rangs(zone).into_iter().filter(|r| r.iter().all(|m| est_entete(m))).collect();
+            if !rangs.iter().any(|r| r.iter().any(|m| std::ptr::eq(*m, c))) {
+                continue;
+            }
+            let mots: Vec<&Mot> = rangs.iter().flatten().copied().filter(|m| !std::ptr::eq(*m, c) && !m.jetons.iter().any(|j| e.libelle.contains(j))).collect();
+            match self.colonnes_du_corps(&mots, None) {
+                Ok(colonnes) => {
+                    let haut = rangs.iter().flatten().map(|m| m.cy()).fold(f64::INFINITY, f64::min);
+                    let bas = rangs.iter().flatten().map(|m| m.cy()).fold(f64::NEG_INFINITY, f64::max);
+                    trouves.push(Tableau { colonnes, haut, bas });
+                }
+                Err(r) => derniere_erreur = Some(r),
+            }
+        }
+        match trouves.len() {
+            0 => match derniere_erreur {
+                Some(r @ Refus::Ambigu(_)) => Err(r),
+                _ => Ok(None),
+            },
+            1 => Ok(trouves.pop()),
+            n => Err(Refus::Ambigu(format!("{} rangs d'en-têtes titrent un tableau : lequel porte les lignes ne se dit pas", n))),
+        }
+    }
+
+    /// Les colonnes que des mots d'en-tetes annoncent : base, taux et montant de chaque part. Sous un rang deja lu
+    /// (`dessus`), un en-tete prend la part de celui qu'il precise (« Taux » sous « Part employeur ») et le remplace.
+    /// Un taux qui ne dit pas sa part, seul de son genre, est celui du salarie : c'est le seul taux que le code du
+    /// travail exige sur le bulletin (R. 3243-1, 8°, a ; le modele de l'arrete du 25/02/2016 n'a qu'une colonne
+    /// « Taux »). Un montant sans part, deux colonnes de la meme part : refus (ambigu).
+    fn colonnes_du_corps(&self, mots: &[&Mot], dessus: Option<&[Colonne]>) -> Result<Vec<Colonne>, Refus> {
+        let mut cols: Vec<Colonne> = Vec::new();
+        for (boite, jetons, texte) in etiquettes(mots) {
+            let (genre, part) = self.t.entetes.lire(&jetons);
+            if let Some(g @ (Genre::Base | Genre::Taux | Genre::Montant)) = genre {
+                cols.push(Colonne { genre: g, part, boite, texte });
+            }
+        }
+        if let Some(dessus) = dessus {
+            let mut precises: Vec<bool> = vec![false; dessus.len()];
+            for c in cols.iter_mut() {
+                let parent = dessus
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, d)| c.boite.cx() >= d.boite.x0 - SOUS_ENTETE && c.boite.cx() <= d.boite.x1 + SOUS_ENTETE && d.genre == Genre::Montant)
+                    .min_by(|a, b| (a.1.boite.cx() - c.boite.cx()).abs().total_cmp(&(b.1.boite.cx() - c.boite.cx()).abs()));
+                if let Some((k, d)) = parent {
+                    if c.part.is_none() {
+                        c.part = d.part;
+                    }
+                    precises[k] = true;
+                }
+            }
+            for (k, d) in dessus.iter().enumerate() {
+                if !precises[k] && !cols.iter().any(|c| c.genre == d.genre && c.part == d.part) {
+                    cols.push(d.clone());
+                }
+            }
+        }
+        let taux_sans_part = cols.iter().filter(|c| c.genre == Genre::Taux).count() == 1;
+        for c in cols.iter_mut() {
+            match (c.genre, c.part) {
+                (Genre::Taux, None) if taux_sans_part => c.part = Some(Part::Salarie),
+                (Genre::Taux | Genre::Montant, None) => {
+                    return Err(Refus::Ambigu(format!("la colonne « {} » ne dit pas si elle est la part du salarié ou celle de l'employeur", c.texte)));
+                }
+                (Genre::Base, _) => c.part = None,
+                _ => {}
+            }
+        }
+        for (i, a) in cols.iter().enumerate() {
+            if let Some(b) = cols[i + 1..].iter().find(|b| b.genre == a.genre && b.part == a.part) {
+                return Err(Refus::Ambigu(format!("deux colonnes disent la même chose : « {} » et « {} »", a.texte, b.texte)));
+            }
+        }
+        if !cols.iter().any(|c| c.genre == Genre::Montant) {
+            return Err(Refus::SansEntetes("le rang d'en-têtes n'annonce aucune colonne de montant (« Part salarié », « Employeur »...)".into()));
+        }
+        trier_colonnes(&mut cols);
+        Ok(cols)
+    }
+
+    /// Les rangs du corps : libelles a gauche de la premiere colonne, nombres dans les colonnes, chaque nombre au rang
+    /// le plus proche. Un rang fait d'en-tetes seulement, sans libelle, precise les colonnes pour la suite.
+    fn rangs_du_corps(&mut self, t: &Tableau) -> Result<Vec<RangCorps>, Refus> {
+        let p = &self.page;
+        let e = &self.t.entetes;
+        let seuil = t.colonnes.iter().map(|c| c.boite.x0).fold(f64::INFINITY, f64::min) - LIBELLE_MARGE;
+        let haut = t.bas + TOLERANCE;
+        let gauche: Vec<&Mot> = p.mots.iter().filter(|m| m.x1 <= seuil && m.cy() > haut && !p.dans_un_nombre(m, seuil)).collect();
+        let rangs = en_rangs(gauche);
+        // Le rang qui precise les en-tetes (le premier) : sans libelle, des en-tetes seulement, a droite du libelle.
+        let droite: Vec<&Mot> = p.mots.iter().filter(|m| m.x1 > seuil && m.cy() > haut).collect();
+        let mut sous: Option<(f64, Vec<Colonne>)> = None;
+        for r in en_rangs(droite) {
+            let sans_libelle = !rangs.iter().any(|g| (milieu(g) - milieu(&r)).abs() <= TOLERANCE);
+            let entetes = r.len() >= 2 && r.iter().all(|m| !m.jetons.is_empty() && m.jetons.iter().all(|j| e.tous().any(|x| x == j)));
+            if sans_libelle && entetes {
+                sous = Some((milieu(&r), self.colonnes_du_corps(&r, Some(&t.colonnes))?));
+                break;
+            }
+        }
         let mut sortie: Vec<RangCorps> = rangs
             .iter()
             .map(|r| {
-                let (quantite, libelle) = match r.split_first() {
-                    Some((q, reste)) if !reste.is_empty() && q.x0 <= c.quantite_jusqu_a && ressemble_nombre(&q.texte) => (lire_nombre(&q.texte), texte_de(reste)),
-                    _ => (None, texte_de(r)),
+                let quantite = match r.split_first() {
+                    Some((q, reste)) if !reste.is_empty() && ressemble_nombre(&q.texte) => lire_nombre(&q.texte).map(|v| (v, texte_de(reste))),
+                    _ => None,
                 };
-                RangCorps { libelle, quantite, nombres: Vec::new(), cy: milieu(r) }
+                RangCorps { libelle: texte_de(r), quantite, nombres: Vec::new(), cy: milieu(r) }
             })
             .collect();
-        let nombres: Vec<Nombre> = self.page.nombres.iter().filter(|n| n.boite.cx() > c.libelle_jusqu_a && dans(n.boite.cy())).cloned().collect();
+        // Le corps finit au net avant impot (compris) : le pied commence sous lui.
+        if let Some(k) = sortie.iter().position(|r| self.t.resumes.net_avant_impot.contains(&canon(&r.libelle))) {
+            sortie.truncate(k + 1);
+        }
+        let bas = sortie.last().map_or(f64::INFINITY, |r| r.cy + TOLERANCE);
+        if sous.as_ref().is_some_and(|(y, _)| *y > bas) {
+            sous = None;
+        }
+        let nombres: Vec<Nombre> = p.nombres.iter().filter(|n| n.boite.x1 > seuil && n.boite.cy() > haut && n.boite.cy() <= bas).cloned().collect();
+        let mut places: Vec<Vec<(f64, Option<(Genre, Option<Part>)>, Decimal)>> = vec![Vec::new(); sortie.len()];
         for n in nombres {
-            let Some(col) = c.colonnes.iter().find(|(_, a, z)| n.boite.x1 > *a && n.boite.x1 <= *z) else {
-                self.avertissements.push(format!("nombre {} hors des colonnes du tableau (x {:.0})", n.valeur, n.boite.x1));
-                continue;
+            let cols: &[Colonne] = match &sous {
+                Some((y, c)) if n.boite.cy() > *y => c,
+                _ => &t.colonnes,
             };
-            let proche = sortie.iter_mut().filter(|r| (r.cy - n.boite.cy()).abs() <= tol).min_by(|a, b| (a.cy - n.boite.cy()).abs().total_cmp(&(b.cy - n.boite.cy()).abs()));
+            let col = colonne_de(cols, &n).map(|c| (c.genre, c.part));
+            let proche = (0..sortie.len())
+                .filter(|&k| (sortie[k].cy - n.boite.cy()).abs() <= TOLERANCE)
+                .min_by(|&a, &b| (sortie[a].cy - n.boite.cy()).abs().total_cmp(&(sortie[b].cy - n.boite.cy()).abs()));
             match proche {
-                Some(r) if r.colonne(&col.0).is_none() => r.nombres.push((col.0.clone(), n.valeur)),
-                Some(r) => self.avertissements.push(format!("« {} » : deux nombres dans la colonne {}", r.libelle, col.0)),
+                Some(k) if col.is_some() && places[k].iter().any(|(_, c, _)| *c == col) => {
+                    self.avertissements.push(format!("« {} » : deux nombres dans une même colonne", sortie[k].libelle));
+                }
+                Some(k) => {
+                    if col.is_none() {
+                        self.avertissements.push(format!("« {} » : le nombre {} est hors des colonnes du tableau", sortie[k].libelle, n.valeur));
+                    }
+                    places[k].push((n.boite.x1, col, n.valeur));
+                }
                 None => self.avertissements.push(format!("nombre {} sans libellé à sa hauteur", n.valeur)),
             }
         }
-        sortie
+        for (r, mut l) in sortie.iter_mut().zip(places) {
+            l.sort_by(|a, b| a.0.total_cmp(&b.0));
+            r.nombres = l.into_iter().map(|(_, c, v)| (c, v)).collect();
+        }
+        Ok(sortie)
     }
 
-    fn corps(&mut self, s: Sections) -> CorpsLu {
-        let rangs = self.rangs_du_corps(s);
-        let c = &self.g.corps;
+    /// Le corps, rang par rang, dans l'ordre du modele : les lignes soumises jusqu'au brut ; les cotisations, sous leur
+    /// famille, jusqu'au total ; apres le total, une famille facultative (hors total) ou le net social, puis les lignes
+    /// non soumises ; le net avant impot le ferme.
+    fn corps(&mut self, t: &Tableau) -> Result<CorpsLu, Refus> {
+        let rangs = self.rangs_du_corps(t)?;
+        let table = self.t;
+        let r_ = &table.resumes;
         let est = |libelle: &str, liste: &[String]| liste.iter().any(|x| x == libelle);
-        let mut lu = CorpsLu::default();
-        /// Les lignes soumises jusqu'au brut ; les cotisations jusqu'au total ; apres le total, une famille
-        /// facultative (hors total) ou le net social, puis les lignes non soumises.
+        let mut lu = Corps::default();
         #[derive(PartialEq, Clone, Copy)]
         enum Phase {
             Lignes,
@@ -1385,71 +1765,90 @@ impl<'a> Lecteur<'a> {
         let mut famille_apres_total = false;
         let mut titre_en_cours: Option<(String, String)> = None; // (canonique, tel qu'ecrit)
         let mut avertissements = Vec::new();
-        let ligne = |r: &RangCorps, soumis: bool, avertissements: &mut Vec<String>| {
-            let (libelle, taux_ecrit) = match &c.taux_dans_le_libelle {
-                Some(mot) => taux_du_libelle(&r.libelle, mot),
-                None => (r.libelle.clone(), None),
-            };
+        let mut fin: Option<f64> = None;
+        // Une ligne de paie : sa quantite en tete, son montant au dernier nombre, son taux a l'avant-dernier ou dans son
+        // libelle (« Cachets à 150,00 »).
+        let ligne = |libelle: &str, quantite: Option<Decimal>, r: &RangCorps, soumis: bool, avertissements: &mut Vec<String>| {
+            let (libelle, taux_ecrit) = taux_du_libelle(libelle);
             let cl = canon(&libelle);
-            let (rubrique, heures) = match self.g.lignes.iter().find(|x| x.canon == cl) {
+            let (rubrique, heures) = match table.lignes.iter().find(|x| x.canon == cl) {
                 Some(x) => (x.rubrique.clone(), x.heures),
                 None => {
                     avertissements.push(Refus::LibelleInconnu(libelle.clone()).message());
                     (None, None)
                 }
             };
-            LignePaie { quantite: r.quantite, libelle, taux: taux_ecrit.or(r.colonne(&c.taux)), montant: r.colonne(&c.montant), soumis, rubrique, heures }
+            let n = r.nombres.len();
+            let taux = if n >= 2 { Some(r.nombres[n - 2].1) } else { taux_ecrit };
+            LignePaie { quantite, libelle, taux, montant: r.dernier(), soumis, rubrique, heures }
+        };
+        let de_ligne = |r: &RangCorps| match &r.quantite {
+            Some((q, reste)) => (reste.clone(), Some(*q)),
+            None => (r.libelle.clone(), None),
         };
         for r in rangs {
             let cl = canon(&r.libelle);
-            if est(&cl, &c.net_avant_impot.libelles) {
-                lu.net_avant_impot = r.colonne(&c.net_avant_impot.colonne);
+            if est(&cl, &r_.net_avant_impot) {
+                lu.net_avant_impot = r.dernier();
+                fin = Some(r.cy);
                 break;
             }
             if r.libelle.is_empty() {
                 continue;
             }
-            // La derniere ligne et le brut sur un meme rang : la ligne, puis le brut.
-            if phase == Phase::Lignes && c.brut_en_fin_de_ligne {
-                if let Some(b) = c.brut.libelles.iter().find(|b| cl.ends_with(&format!(" {}", b))) {
+            if phase == Phase::Lignes {
+                // La derniere ligne et le brut sur un meme rang (« 2 Cachets à 150,00 — MONTANT BRUT ») : la ligne, puis le brut.
+                let (libelle, quantite) = de_ligne(&r);
+                let cll = canon(&libelle);
+                if let Some(b) = r_.brut.iter().find(|b| cll.ends_with(&format!(" {}", b))) {
                     let n = b.split(' ').count();
-                    let mots: Vec<&str> = r.libelle.split_whitespace().collect();
+                    let mots: Vec<&str> = libelle.split_whitespace().collect();
                     let garde = mots.len().saturating_sub(n);
-                    let libelle = mots[..garde].join(" ").trim_end_matches(|ch: char| !ch.is_alphanumeric()).trim().to_string();
-                    let seule = RangCorps { libelle, quantite: r.quantite, nombres: r.nombres.clone(), cy: r.cy };
-                    lu.lignes.push(ligne(&seule, true, &mut avertissements));
-                    lu.brut = r.colonne(&c.brut.colonne);
+                    let seule = mots[..garde].join(" ").trim_end_matches(|ch: char| !ch.is_alphanumeric()).trim().to_string();
+                    if !seule.is_empty() && canon(&seule) != "salaire" {
+                        lu.lignes.push(ligne(&seule, quantite, &r, true, &mut avertissements));
+                    }
+                    lu.brut = r.dernier();
                     phase = Phase::Cotisations;
                     continue;
                 }
+                if est(&cl, &r_.brut) {
+                    lu.brut = r.dernier();
+                    phase = Phase::Cotisations;
+                } else {
+                    lu.lignes.push(ligne(&libelle, quantite, &r, true, &mut avertissements));
+                }
+                continue;
+            }
+            if est(&cl, &table.titres) && r.nombres.is_empty() {
+                continue;
             }
             match phase {
-                Phase::Lignes if est(&cl, &c.brut.libelles) => {
-                    lu.brut = r.colonne(&c.brut.colonne);
-                    phase = Phase::Cotisations;
+                Phase::Lignes => {}
+                Phase::NonSoumis if est(&cl, &r_.net_social) => lu.net_social = r.dernier(),
+                Phase::NonSoumis => {
+                    let (libelle, quantite) = de_ligne(&r);
+                    lu.lignes.push(ligne(&libelle, quantite, &r, false, &mut avertissements));
                 }
-                Phase::Lignes => lu.lignes.push(ligne(&r, true, &mut avertissements)),
-                Phase::NonSoumis if est(&cl, &c.net_social.libelles) => lu.net_social = r.colonne(&c.net_social.colonne),
-                Phase::NonSoumis => lu.lignes.push(ligne(&r, false, &mut avertissements)),
                 Phase::Cotisations | Phase::ApresTotal => {
-                    if phase == Phase::Cotisations && est(&cl, &c.total) {
-                        lu.total_employeur = r.colonne("montant_employeur");
-                        lu.total_salarie = r.colonne("montant_salarie");
+                    if phase == Phase::Cotisations && est(&cl, &r_.total) {
+                        lu.total_employeur = r.colonne(Genre::Montant, Some(Part::Employeur));
+                        lu.total_salarie = r.colonne(Genre::Montant, Some(Part::Salarie));
                         phase = Phase::ApresTotal;
                         if let Some((_, ecrit)) = titre_en_cours.take() {
                             avertissements.push(format!("rang sans montant : « {} »", ecrit));
                         }
                         continue;
                     }
-                    if phase == Phase::ApresTotal && est(&cl, &c.net_social.libelles) {
-                        lu.net_social = r.colonne(&c.net_social.colonne);
+                    if est(&cl, &r_.net_social) {
+                        lu.net_social = r.dernier();
                         phase = Phase::NonSoumis;
                         continue;
                     }
                     // Un titre de famille, peut-etre ecrit sur deux rangs.
                     if let Some((tc, te)) = titre_en_cours.take() {
                         let (cle, ecrit) = (format!("{} {}", tc, cl), format!("{} {}", te, r.libelle));
-                        if let Some(f) = self.table.famille(&cle) {
+                        if let Some(f) = table.famille(&cle) {
                             famille = Some(f.to_string());
                             famille_apres_total |= phase == Phase::ApresTotal;
                             if !r.nombres.is_empty() {
@@ -1457,13 +1856,13 @@ impl<'a> Lecteur<'a> {
                             }
                             continue;
                         }
-                        if r.nombres.is_empty() && self.table.debut_de_famille(&cle) {
+                        if r.nombres.is_empty() && table.debut_de_famille(&cle) {
                             titre_en_cours = Some((cle, ecrit));
                             continue;
                         }
                         avertissements.push(format!("rang sans montant : « {} »", te));
                     }
-                    if let Some(f) = self.table.famille(&cl) {
+                    if let Some(f) = table.famille(&cl) {
                         famille = Some(f.to_string());
                         famille_apres_total |= phase == Phase::ApresTotal;
                         if !r.nombres.is_empty() {
@@ -1471,14 +1870,15 @@ impl<'a> Lecteur<'a> {
                         }
                         continue;
                     }
-                    if r.nombres.is_empty() && self.table.debut_de_famille(&cl) {
+                    if r.nombres.is_empty() && table.debut_de_famille(&cl) {
                         titre_en_cours = Some((cl, r.libelle.clone()));
                         continue;
                     }
                     if phase == Phase::ApresTotal && !famille_apres_total {
                         // Ni famille ni net social apres le total : les lignes non soumises commencent.
                         phase = Phase::NonSoumis;
-                        lu.lignes.push(ligne(&r, false, &mut avertissements));
+                        let (libelle, quantite) = de_ligne(&r);
+                        lu.lignes.push(ligne(&libelle, quantite, &r, false, &mut avertissements));
                         continue;
                     }
                     if r.nombres.is_empty() {
@@ -1489,95 +1889,83 @@ impl<'a> Lecteur<'a> {
             }
         }
         self.avertissements.extend(avertissements);
-        lu
+        Ok(CorpsLu { lu, fin })
     }
 
-    /// Une grille du pied : l'en-tete (toutes ses colonnes obligatoires sur un meme rang), puis ses lignes.
-    fn grille(&mut self, gr: &Grille, s: Sections, pas: &mut Option<Pas>, net_imposable: &mut Option<Decimal>, cumuls: &mut Vec<(String, Cumul)>) {
-        let tol = self.g.tolerance;
-        let page = &self.page;
-        let pied = |m: &Mot| self.dans_section(m.cy(), Section::Pied, s);
-        // Chaque occurrence de la premiere colonne, de haut en bas : la premiere dont le rang porte les autres.
-        let mut premiers: Vec<(Boite, usize)> =
-            (0..page.mots.len()).filter(|&i| pied(&page.mots[i])).filter_map(|i| page.repere_en(i, &gr.colonnes[0].1)).collect();
-        premiers.sort_by(|a, b| a.0.y0.total_cmp(&b.0.y0));
-        let mut entete: Option<Vec<(String, Boite, usize)>> = None;
-        for (b0, i0) in premiers {
-            let mut cols = vec![(gr.colonnes[0].0.clone(), b0, i0)];
-            let mut complet = true;
-            for (n, phrase, facultative) in &gr.colonnes[1..] {
-                let x_min = cols.last().map_or(0.0, |c| c.1.x1);
-                let trouve = (0..page.mots.len())
-                    .filter(|&i| (page.mots[i].cy() - b0.cy()).abs() <= tol && page.mots[i].x0 >= x_min)
-                    .filter_map(|i| page.repere_en(i, phrase))
-                    .min_by(|a, b| a.0.x0.total_cmp(&b.0.x0));
-                match trouve {
-                    Some((b, i)) => cols.push((n.clone(), b, i)),
-                    None if *facultative => {}
-                    None => {
-                        complet = false;
-                        break;
-                    }
+    // ----------------------------------------------------------------------------------------- le pied
+
+    /// Les grilles du pied, chacune sous son rang d'en-tetes : l'impot preleve et le net imposable (« base »,
+    /// « taux », « montant »), les cumuls (« Période », « Cumul »).
+    fn grilles(&mut self, pied: f64, pas: &mut Option<Pas>, net_imposable: &mut Option<Decimal>, cumuls: &mut Vec<(String, Cumul)>) {
+        let p = &self.page;
+        let t = self.t;
+        let mots: Vec<&Mot> = p.mots.iter().filter(|m| m.cy() > pied + TOLERANCE).collect();
+        let mut entetes: Vec<(f64, Vec<Colonne>, bool)> = Vec::new();
+        for r in en_rangs(mots) {
+            let mut cols: Vec<Colonne> = Vec::new();
+            for (boite, jetons, texte) in etiquettes(&r) {
+                if let (Some(genre), part) = t.entetes.lire(&jetons) {
+                    cols.push(Colonne { genre, part, boite, texte });
                 }
             }
-            if complet {
-                entete = Some(cols);
-                break;
+            let a = |g: Genre| cols.iter().any(|c| c.genre == g);
+            if a(Genre::Periode) && a(Genre::Cumul) {
+                cols.retain(|c| matches!(c.genre, Genre::Periode | Genre::Cumul));
+                trier_colonnes(&mut cols);
+                entetes.push((milieu(&r), cols, true));
+            } else if a(Genre::Taux) && (a(Genre::Base) || a(Genre::Montant)) {
+                cols.retain(|c| matches!(c.genre, Genre::Base | Genre::Taux | Genre::Montant | Genre::Cumul));
+                trier_colonnes(&mut cols);
+                entetes.push((milieu(&r), cols, false));
             }
         }
-        let Some(mut cols) = entete else { return };
-        // L'en-tete d'une colonne continue sur les mots qui le suivent, jusqu'a la colonne suivante (« taux
-        // personnalise », « cumul annuel ») : pas au-dela d'un blanc, ni sur ce qui se trouve plus loin sur le rang.
-        for k in 0..cols.len() {
-            let fin = cols.get(k + 1).map_or(f64::INFINITY, |c| c.1.x0);
-            let mut i = cols[k].2;
-            while let Some(v) = page.voisins[i].filter(|&v| page.mots[v].x0 < fin) {
-                cols[k].1 = cols[k].1.union(&page.mots[v]);
-                i = v;
-            }
-        }
-        let cols: Vec<(String, Boite)> = cols.into_iter().map(|(n, b, _)| (n, b)).collect();
-        let haut = cols[0].1.cy() + tol;
-        let gauche = cols.iter().map(|c| c.1.x0).fold(f64::INFINITY, f64::min) - 2.0;
-        let libelles: Vec<&Mot> = page.mots.iter().filter(|m| m.cy() > haut && m.cy() <= haut + GRILLE_HAUTEUR && m.x1 <= gauche && !page.dans_un_nombre(m, gauche)).collect();
-        let rangs = en_rangs(libelles, tol);
-        let rangs: Vec<(String, f64)> = rangs.iter().map(|r| (canon(&texte_de(r)), milieu(r))).collect();
-        let nombres: Vec<&Nombre> = page.nombres.iter().filter(|n| n.boite.cy() > haut - tol && n.boite.cx() > gauche).collect();
-        let valeurs_du_rang = |cy: f64| -> Vec<(String, Decimal)> {
-            let mut v: Vec<(String, Decimal)> = Vec::new();
-            for n in &nombres {
-                // Le rang le plus proche de ce nombre doit etre celui-ci.
-                let d = (n.boite.cy() - cy).abs();
-                if d > tol || rangs.iter().any(|(_, autre)| (n.boite.cy() - autre).abs() < d) {
-                    continue;
-                }
-                let proche = cols.iter().map(|(c, b)| (c, (b.cx() - n.boite.cx()).abs())).min_by(|a, b| a.1.total_cmp(&b.1));
-                if let Some((c, e)) = proche {
-                    if e <= GRILLE_ECART && !v.iter().any(|(x, _)| x == c) {
-                        v.push((c.clone(), n.valeur));
+        for (k, (y, cols, cumul)) in entetes.iter().enumerate() {
+            let jusqu_a = entetes.get(k + 1).map_or(y + GRILLE_HAUTEUR, |e| e.0.min(y + GRILLE_HAUTEUR));
+            let seuil = cols.iter().map(|c| c.boite.x0).fold(f64::INFINITY, f64::min) - LIBELLE_MARGE;
+            let dans = |cy: f64| cy > y + TOLERANCE && cy <= jusqu_a + if k + 1 < entetes.len() { -TOLERANCE } else { 0.0 };
+            let libelles: Vec<&Mot> = p.mots.iter().filter(|m| dans(m.cy()) && m.x1 <= seuil && !p.dans_un_nombre(m, seuil)).collect();
+            let rangs: Vec<(String, f64)> = en_rangs(libelles).iter().map(|r| (canon(&texte_de(r)), milieu(r))).collect();
+            let nombres: Vec<&Nombre> = p.nombres.iter().filter(|n| dans(n.boite.cy()) && n.boite.x1 > seuil).collect();
+            let valeurs_du_rang = |cy: f64| -> Vec<(Genre, Decimal)> {
+                let mut v: Vec<(Genre, Decimal)> = Vec::new();
+                for n in &nombres {
+                    // Le rang le plus proche de ce nombre doit etre celui-ci.
+                    let ecart = (n.boite.cy() - cy).abs();
+                    if ecart > TOLERANCE || rangs.iter().any(|(_, autre)| (n.boite.cy() - autre).abs() < ecart) {
+                        continue;
+                    }
+                    if let Some(c) = colonne_de(cols, n) {
+                        if !v.iter().any(|(g, _)| *g == c.genre) {
+                            v.push((c.genre, n.valeur));
+                        }
                     }
                 }
-            }
-            v
-        };
-        for (cible, libs) in &gr.lignes {
-            let Some((_, cy)) = rangs.iter().find(|(l, _)| libs.contains(l)) else { continue };
-            let v = valeurs_du_rang(*cy);
-            let col = |c: &str| v.iter().find(|(x, _)| x == c).map(|(_, y)| *y);
-            match cible {
-                Cible::Pas if pas.is_none() => *pas = Some(Pas { base: col("base"), taux: col("taux"), montant: col("montant"), cumul: col("cumul") }),
-                Cible::NetImposable(c) if net_imposable.is_none() => *net_imposable = col(c),
-                Cible::Cumul(n) if !cumuls.iter().any(|(x, _)| x == n) => {
-                    cumuls.push((n.clone(), Cumul { periode: col("periode"), cumul: col("cumul") }));
+                v
+            };
+            for (libelle, cy) in &rangs {
+                let v = valeurs_du_rang(*cy);
+                let col = |g: Genre| v.iter().find(|(x, _)| *x == g).map(|(_, y)| *y);
+                if *cumul {
+                    if let Some((nom, _)) = t.cumuls.iter().find(|(_, l)| l.contains(libelle)) {
+                        if !cumuls.iter().any(|(x, _)| x == nom) {
+                            cumuls.push((nom.clone(), Cumul { periode: col(Genre::Periode), cumul: col(Genre::Cumul) }));
+                        }
+                    }
+                    if net_imposable.is_none() && t.resumes.net_imposable.contains(libelle) {
+                        *net_imposable = col(Genre::Periode);
+                    }
+                } else if pas.is_none() && t.resumes.pas.contains(libelle) {
+                    *pas = Some(Pas { base: col(Genre::Base), taux: col(Genre::Taux), montant: col(Genre::Montant), cumul: col(Genre::Cumul) });
+                } else if net_imposable.is_none() && t.resumes.net_imposable.contains(libelle) {
+                    *net_imposable = col(Genre::Montant);
                 }
-                _ => {}
             }
         }
     }
 }
 
 #[derive(Default)]
-struct CorpsLu {
+struct Corps {
     lignes: Vec<LignePaie>,
     brut: Option<Decimal>,
     cotisations: Vec<Cotisation>,
@@ -1587,7 +1975,13 @@ struct CorpsLu {
     net_avant_impot: Option<Decimal>,
 }
 
-impl CorpsLu {
+/// Le corps lu, et le milieu du rang qui le ferme (le net avant impot) : le pied commence sous lui.
+struct CorpsLu {
+    lu: Corps,
+    fin: Option<f64>,
+}
+
+impl Corps {
     fn ajouter(&mut self, mut c: Cotisation, hors_total: bool) {
         c.hors_total = hors_total;
         self.cotisations.push(c);
@@ -1598,11 +1992,11 @@ fn cotisation(famille: &Option<String>, libelle: String, r: &RangCorps) -> Cotis
     Cotisation {
         famille: famille.clone(),
         libelle,
-        base: r.colonne("base"),
-        taux_employeur: r.colonne("taux_employeur"),
-        montant_employeur: r.colonne("montant_employeur"),
-        taux_salarie: r.colonne("taux_salarie"),
-        montant_salarie: r.colonne("montant_salarie"),
+        base: r.colonne(Genre::Base, None),
+        taux_employeur: r.colonne(Genre::Taux, Some(Part::Employeur)),
+        montant_employeur: r.colonne(Genre::Montant, Some(Part::Employeur)),
+        taux_salarie: r.colonne(Genre::Taux, Some(Part::Salarie)),
+        montant_salarie: r.colonne(Genre::Montant, Some(Part::Salarie)),
         hors_total: false,
     }
 }
@@ -1643,7 +2037,7 @@ fn controler(b: &mut BulletinLu) {
     }
 }
 
-// --------------------------------------------------------------------------------------------- les compteurs (lot C)
+// --------------------------------------------------------------------------------------------- les compteurs
 
 /// Ce qu'un bulletin compte pour les droits, sous la forme de `cumul::Engagement` : les heures sont celles de
 /// travail HORS cachets (un cachet se convertit au moment du decompte), l'enseignement est dedans, pas en plus.
@@ -1655,7 +2049,7 @@ pub struct Compteurs {
     pub heures: Option<Decimal>,
     /// La part de `heures` qui est de l'enseignement (`compte_pour = ouverture_des_droits`).
     pub heures_enseignement: Option<Decimal>,
-    /// Les jours travailles : les dates du bulletin (CoolPaie), ou son cumul « Jours » (sPAIEctacle).
+    /// Les jours travailles : les dates du bulletin, ou son cumul « Jours ».
     pub jours: Option<Decimal>,
     /// Les desaccords avec les cumuls du bulletin, et les lignes qui n'entrent dans aucun compteur.
     pub avertissements: Vec<String>,
@@ -1687,10 +2081,10 @@ fn nombre_ecrit(x: Option<Decimal>) -> String {
 ///
 /// Puis les cumuls du bulletin (`cachets`, `heures`, `jours`, colonne de la periode), quand il les imprime. Un
 /// desaccord est un avertissement, et LE BULLETIN L'EMPORTE sur ce qu'il compte lui-meme : ses cachets, ses jours,
-/// ses heures quand aucun cachet ne s'y mele. Un total d'heures ou des cachets sont convertis (sPAIEctacle) se
-/// confronte a heures + cachets x forfait, mais ne se decompose pas : on ne devine pas la conversion qu'un logiciel a
-/// faite (un cachet groupe a 8 h, la regle d'avant le decret du 13 juillet 2016) ; les compteurs restent ceux des
-/// lignes. Une erreur : une rubrique que le catalogue ne connait pas.
+/// ses heures quand aucun cachet ne s'y mele. Un total d'heures ou des cachets sont convertis se confronte a heures +
+/// cachets x forfait, mais ne se decompose pas : on ne devine pas la conversion qu'un logiciel a faite (un cachet
+/// groupe a 8 h, la regle d'avant le decret du 13 juillet 2016) ; les compteurs restent ceux des lignes. Une erreur :
+/// une rubrique que le catalogue ne connait pas.
 pub fn compteurs(b: &BulletinLu, racine: &Path) -> Resultat<Compteurs> {
     let zero = Decimal::ZERO;
     let mut avertissements = Vec::new();

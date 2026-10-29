@@ -2,8 +2,8 @@
 //! bulletins FICTIFS d'un logiciel precedent, un PDF par bulletin, pour qu'une compagnie fictive entre dans PuppetPaie
 //! « D'un logiciel précédent » en important ses bulletins par la page.
 //!
-//! La page se dessine par la fabrique des tests (`bulletins_fictifs.rs`, a cote : un seul code), aux positions des
-//! gabarits de la table livree ; elle se relit donc par `bulletin_lu` comme un vrai bulletin. Ici, seulement ce qu'un
+//! La page se dessine par la fabrique des tests (`bulletins_fictifs.rs`, a cote : un seul code), a la maniere du
+//! logiciel choisi ; elle se relit par `bulletin_lu` comme un vrai bulletin. Ici, seulement ce qu'un
 //! ancien logiciel aurait calcule et imprime, a partir d'une description courte (le format : `atelier/outils/banc/
 //! LISEZ-MOI.md`, « Une compagnie qui vient d'un logiciel précédent ») :
 //!
@@ -422,8 +422,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
     if !matches!(gabarit.as_str(), "coolpaie" | "spaiectacle") {
         return Err(format!("gabarit inconnu : {} (coolpaie ou spaiectacle)", gabarit));
     }
-    let table = Table::livree()?;
-    let g = table.gabarits.iter().find(|x| x.nom == gabarit).ok_or_else(|| format!("la table livrée n'a pas le gabarit {}", gabarit))?;
+    let g = Table::livree()?;
 
     let e = d.get("entreprise").filter(|v| v.is_object()).ok_or("`entreprise` manque")?.clone();
     for cle in ["raison_sociale", "adresse", "code_postal", "commune", "siret", "naf"] {
@@ -466,7 +465,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
         let canon = jetons(&libelle);
         let connu = g.lignes().iter().find(|x| jetons(&x.libelle) == canon).ok_or_else(|| {
             let connus: Vec<&str> = g.lignes().iter().map(|x| x.libelle.as_str()).collect();
-            format!("{} : « {} » n'est pas un libellé du gabarit {} ({})", ou, libelle, gabarit, connus.join(", "))
+            format!("{} : « {} » n'est pas un libellé de la table de lecture ({})", ou, libelle, connus.join(", "))
         })?;
         let code = connu.rubrique.clone().ok_or_else(|| {
             format!("{} : « {} » n'a pas de rubrique sûre dans la table : la page se lirait sans contrat", ou, connu.libelle)
@@ -897,7 +896,7 @@ mod tests {
             let lus = lire_tout(&d);
             assert_eq!(lus.len(), 3);
             for b in &lus {
-                assert_eq!(b.gabarit, gabarit);
+                assert_eq!(b.logiciel.as_deref(), Some(gabarit));
                 assert!(b.avertissements.is_empty(), "{} : {:?}", gabarit, b.avertissements);
                 assert_eq!(b.entreprise.siret.as_deref().map(|s| s.replace(' ', "")).as_deref(), Some("12345678200010"));
                 let c = crate::bulletin_lu::compteurs(b, &d).unwrap();

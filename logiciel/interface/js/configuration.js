@@ -336,8 +336,9 @@ const SORTS_IMPORT = {
   incoherent: ["incohérent", "erreur"],
   incomplet: ["incomplet", "erreur"],
   sans_texte: ["sans texte", "erreur"],
-  gabarit_inconnu: ["gabarit inconnu", "erreur"],
-  plusieurs_gabarits: ["plusieurs gabarits", "erreur"],
+  sans_entetes: ["tableau introuvable", "erreur"],
+  ambigu: ["ambigu", "erreur"],
+  annexe: ["annexe", ""],
   non_reconnu: ["non reconnu", "erreur"],
   doublon: ["doublon", ""],
   archive: ["archive", ""],
@@ -746,9 +747,8 @@ async function rafraichirEtatImportation() {
   try { cible.innerHTML = vueEtatImportation(await api("importation-etat")); } catch (e) { /* l'état se relira à la prochaine visite */ }
 }
 
-/* L'aperçu, ou ce qui a été repris. Aucun logiciel n'y est nommé (lot G2) :
-   les déclarations sont des DSN et des AEM, les bulletins des bulletins ; le
-   nom d'un gabarit ne reste que dans la raison d'un fichier non repris. */
+/* L'aperçu, ou ce qui a été repris. Aucun logiciel n'y est nommé : les
+   déclarations sont des DSN et des AEM, les bulletins des bulletins. */
 function vueImportation(r) {
   const periode = r.premier_mois ? ` (${moisEnClair(r.premier_mois)} → ${moisEnClair(r.dernier_mois)})` : "";
   const contrats = r.contrats

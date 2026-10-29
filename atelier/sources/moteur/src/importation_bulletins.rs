@@ -20,8 +20,8 @@
 //! UN MOIS SAISI N'EST PAS REPRIS : un bulletin dont le mois a son fichier dans `paies/` est « deja saisi », rien
 //! d'autre (ni fiche, ni contrat, ni paie).
 //!
-//! RIEN NE SE DEVINE (regle 1). Une page n'est pas reprise quand : elle n'a pas de texte, aucun gabarit (ou plusieurs)
-//! ne la reconnait, ce qui l'identifie ne se lit pas (le lecteur), son NIR ne se lit pas ou contredit sa cle, son
+//! RIEN NE SE DEVINE (regle 1). Une page n'est pas reprise quand : elle n'a pas de texte, le rang d'en-tetes de son
+//! tableau ne se trouve pas, elle se lit de deux facons, ce qui l'identifie ne se lit pas (le lecteur), son NIR ne se lit pas ou contredit sa cle, son
 //! Siret n'est pas celui de la compagnie (« bulletin d'une autre entreprise »), plusieurs paies declarees pourraient
 //! etre la sienne, ou un autre bulletin donne d'autres montants pour la meme paie. LE BULLETIN FAIT FOI (lot E) : une
 //! page qui se contredit elle-meme (`incohérent : ...` du lecteur : le brut n'est pas la somme des lignes, le net ne
@@ -46,7 +46,7 @@ use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
 
-use crate::bulletin_lu::{self, BulletinLu, Compteurs, Refus, Table};
+use crate::bulletin_lu::{self, BulletinLu, Compteurs, Table};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::valeur::valeur_en_texte;
@@ -69,11 +69,13 @@ use crate::routes::import::{self as ri, ACreer, Apercu, CleEngagement};
 /// | `incoherent` | une DSN ou une AEM d'une autre entreprise (rien n'en est lu) ; la page contredit le reste (bulletin d'une autre entreprise, NIR qui contredit sa cle, plusieurs paies possibles, deux bulletins qui different) : non repris -- une page qui ne retombe pas sur ses propres totaux est reprise (le bulletin fait foi) |
 /// | `incomplet` | ce qui identifie le bulletin ne se lit pas : non repris |
 /// | `sans_texte` | aucun mot (lettres en traces, scan) : non repris |
-/// | `gabarit_inconnu` / `plusieurs_gabarits` | la table des gabarits ne la reconnait pas, ou pas d'une seule facon |
+/// | `sans_entetes` | le rang d'en-tetes de son tableau (« Libellé », « Base », les parts) ne se trouve pas : non repris |
+/// | `ambigu` | la page se lit de deux facons (deux en-tetes, une colonne sans sa part, deux adresses de salarie) : non repris |
+/// | `annexe` | l'annexe d'un bulletin, qui en detaille les cotisations : rien a reprendre |
 /// | `non_reconnu` | ni DSN, ni AEM, ni PDF lisible, ni archive |
 /// | `doublon` | la copie exacte d'un autre fichier du dossier |
 /// | `archive` | un zip, ouvert : son contenu a son propre sort |
-pub const SORTS: [&str; 12] = [
+pub const SORTS: [&str; 13] = [
     "repris",
     "deja_repris",
     "libelle_inconnu",
@@ -81,20 +83,21 @@ pub const SORTS: [&str; 12] = [
     "incoherent",
     "incomplet",
     "sans_texte",
-    "gabarit_inconnu",
-    "plusieurs_gabarits",
+    "sans_entetes",
+    "ambigu",
+    "annexe",
     "non_reconnu",
     "doublon",
     "archive",
 ];
 
 /// Les sorts d'une page, du plus grave au moins grave : un PDF de plusieurs pages prend le plus grave.
-const GRAVITE: [&str; 9] =
-    ["incoherent", "incomplet", "plusieurs_gabarits", "gabarit_inconnu", "sans_texte", "libelle_inconnu", "repris", "deja_saisi", "deja_repris"];
+const GRAVITE: [&str; 10] =
+    ["incoherent", "incomplet", "ambigu", "sans_entetes", "sans_texte", "libelle_inconnu", "repris", "deja_saisi", "deja_repris", "annexe"];
 
-/// Les sorts qui laissent quelque chose a voir (l'editeur, la table des gabarits) : le fichier n'est pas repris.
+/// Les sorts qui laissent quelque chose a voir (l'editeur, la table de lecture) : le fichier n'est pas repris.
 pub(crate) fn non_repris(sort: &str) -> bool {
-    matches!(sort, "incoherent" | "incomplet" | "plusieurs_gabarits" | "gabarit_inconnu" | "sans_texte" | "non_reconnu")
+    matches!(sort, "incoherent" | "incomplet" | "ambigu" | "sans_entetes" | "sans_texte" | "non_reconnu")
 }
 
 const A_CREER: &str = "<a creer>";
@@ -258,12 +261,12 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         .collect();
 
     // 2. Les bulletins, page par page.
-    let table = Table::livree().map_err(|m| erreur("ErreurOperation", format!("La table des gabarits de bulletins ne se lit pas : {}", m)))?;
+    let table = Table::livree().map_err(|m| erreur("ErreurOperation", format!("La table de lecture des bulletins ne se lit pas : {}", m)))?;
     let saisis: HashSet<String> = crate::routes::etapes::mois_saisis(&ctx.racine).into_iter().collect();
     let mut pages: BTreeMap<usize, Vec<PageCr>> = BTreeMap::new();
     let mut illisibles: BTreeMap<usize, String> = BTreeMap::new();
     let mut lus: Vec<Lu> = Vec::new();
-    let mut par_gabarit: BTreeMap<String, usize> = BTreeMap::new();
+    let mut par_logiciel: BTreeMap<String, usize> = BTreeMap::new();
     let (mut du, mut au): (Option<Jour>, Option<Jour>) = (None, None);
     let mut n_pages = 0usize;
     let (mut salaries_lus, mut entreprises_lues): (Vec<bulletin_lu::Salarie>, Vec<bulletin_lu::Entreprise>) = (Vec::new(), Vec::new());
@@ -291,23 +294,15 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
                     b
                 }
                 Err(r) => {
-                    let sort = match &r {
-                        Refus::SansTexte(_) => "sans_texte",
-                        Refus::GabaritInconnu => "gabarit_inconnu",
-                        Refus::PlusieursGabarits(_) => "plusieurs_gabarits",
-                        Refus::LibelleInconnu(_) => "libelle_inconnu",
-                        Refus::Incomplet(_) => "incomplet",
-                        Refus::Incoherent(_) => "incoherent",
-                    };
-                    cr.push(PageCr { page: l.page, sort, raison: r.message(), infos: Map::new() });
+                    cr.push(PageCr { page: l.page, sort: r.code(), raison: r.message(), infos: Map::new() });
                     continue;
                 }
             };
-            *par_gabarit.entry(b.gabarit.clone()).or_default() += 1;
+            *par_logiciel.entry(b.logiciel.clone().unwrap_or_else(|| "autre".into())).or_default() += 1;
             du = Some(du.map_or(b.debut, |d| d.min(b.debut)));
             au = Some(au.map_or(b.fin, |d| d.max(b.fin)));
             let mut infos = Map::new();
-            infos.insert("gabarit".into(), json!(b.gabarit));
+            infos.insert("logiciel".into(), json!(b.logiciel));
             infos.insert("numero".into(), json!(b.numero));
             infos.insert("debut".into(), json!(b.debut.iso()));
             infos.insert("fin".into(), json!(b.fin.iso()));
@@ -994,14 +989,14 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             "total": tri.fichiers.len(),
         }),
     );
-    let lus_n: usize = par_gabarit.values().sum();
+    let lus_n: usize = par_logiciel.values().sum();
     reponse.insert(
         "bulletins".into(),
         json!({
             "pages": n_pages,
             "lus": lus_n,
             "repris": pages_reprises,
-            "par_gabarit": par_gabarit,
+            "par_logiciel": par_logiciel,
             "du": du.map(|d| d.iso()),
             "au": au.map(|d| d.iso()),
             "fiches_a_creer": nouvelles_fiches,
@@ -1046,7 +1041,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
 /// Ce que la page dit d'elle-meme dans le compte rendu.
 fn infos_de(l: &Lu, salarie: Option<&str>) -> Map<String, Value> {
     let mut infos = Map::new();
-    infos.insert("gabarit".into(), json!(l.b.gabarit));
+    infos.insert("logiciel".into(), json!(l.b.logiciel));
     infos.insert("numero".into(), json!(l.b.numero));
     if let Some(s) = salarie {
         infos.insert("salarie".into(), json!(s));
@@ -1351,7 +1346,7 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
     poser("lignes", v["lignes"].clone());
     poser("dates", v["dates_travaillees"].clone());
     poser("cotisations", v["cotisations"].clone());
-    poser("bulletin", json!({"fichier": chemin, "page": page, "gabarit": b.gabarit, "numero": b.numero}));
+    poser("bulletin", json!({"fichier": chemin, "page": page, "logiciel": b.logiciel, "numero": b.numero, "contrat": b.contrat}));
     ecarts
 }
 
@@ -1395,7 +1390,7 @@ fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(Cle
         m.insert("heures_enseignement".into(), json!(enseignement));
     }
     m.insert("atteste_par".into(), json!("bulletin"));
-    // LA NATURE DU CONTRAT (#236) : aucun gabarit connu ne l'imprime (`bulletins-gabarits-base.json`), et rien sur la
+    // LA NATURE DU CONTRAT : aucun des bulletins lus ne l'imprime en mention (`bulletins-lecture-base.json`), et rien sur la
     // page ne la fixe a coup sur. Deux marques disent un engagement du spectacle : la cotisation Congés Spectacles
     // (due pour l'artiste ou le technicien qui n'est pas employe douze mois de suite, D. 7121-41 du code du travail,
     // `atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md`) et le numero d'objet (interdit hors des

@@ -1,5 +1,5 @@
-//! LA FABRIQUE DE BULLETINS FICTIFS d'un logiciel precedent, aux positions des deux gabarits de la table livree
-//! (`logiciel/donnees/bulletins-gabarits-base.json`) : CoolPaie (A) et sPAIEctacle (B). Une page se decrit (les
+//! LA FABRIQUE DE BULLETINS FICTIFS d'un logiciel precedent, a la maniere de deux logiciels de paie : CoolPaie (A)
+//! et sPAIEctacle (B), leurs positions relevees sur leurs bulletins. Une page se decrit (les
 //! structures `A` et `B`), la fabrique la dessine (`texte_fixe`, positions du haut-gauche de la page), et le lecteur
 //! (`bulletin_lu`) la relit comme un vrai bulletin.
 //!
