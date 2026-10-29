@@ -87,7 +87,11 @@ fn mois_suivant(m: &str) -> String {
 fn nom_du_salarie(racine: &Path, cle: &str) -> String {
     let fiches = crate::routes::lire_json_ou_vide(&racine.join("config").join("salaries.json")).unwrap_or(Value::Null);
     let Some(f) = fiches.get(cle).filter(|f| f.is_object()) else { return cle.to_string() };
-    let t = |k: &str| texte(f, k);
+    // La fiche est datee (`[{"valeur"}, {"depuis", "valeur"}]`) : son nom est sa derniere valeur.
+    let t = |k: &str| match f.get(k) {
+        Some(Value::Array(versions)) => versions.last().map(|v| texte(v, "valeur")).unwrap_or_default(),
+        _ => texte(f, k),
+    };
     let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
     let nom = if t("nom_affichage").is_empty() { t("nom") } else { t("nom_affichage") };
     let n = format!("{} {}", prenom, nom).trim().to_string();
@@ -231,6 +235,10 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         true
     })
     .map_err(socle::echec::Echec::from)?;
+    // Son anciennete dans l'entreprise part du debut de son contrat, s'il a commence avant le premier bulletin repris.
+    if let Some(debut) = contrat.get("contrat_debut").and_then(Value::as_str) {
+        crate::routes::fiches::reprendre_anciennete(ctx, &salarie, &du, debut)?;
+    }
     // LA COMPAGNIE EMPLOIE UN PERMANENT : c'est ce qu'on vient de dire (une nature payee au mois). La case « La
     // compagnie emploie aussi des salaries au mois » de la fiche Entreprise (`contexte::emploie_des_permanents`) se
     // coche donc ici, sans la redemander : sans elle, la paie du mois suivant refuserait ce contrat
@@ -243,6 +251,37 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         crate::routes::fiches::poser_entreprise(ctx, "emploie_des_permanents", json!(true), Some(depuis))?;
     }
     Ok(json!({"ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares}))
+}
+
+/// LES CONGES PAYES D'UN PERMANENT DONT LE CONTRAT CONTINUE : il a acquis des jours dans l'ancien logiciel (L3141-3 du
+/// code du travail, `atelier/reference/sources/code-du-travail/articles-20260919.md`) et en a peut-etre pris ; aucun
+/// gabarit de bulletin repris ne les imprime, et un solde ne se devine
+/// pas (regle 1). Ils se recopient de son dernier bulletin sur sa fiche (`conges_reprise`, que
+/// `engagement::conges::reprise_conges` lit) ; sans eux, ses conges partiraient de zero au premier mois paye ici. Rend
+/// `[{salarie, nom, depuis}]` (`depuis` : le premier jour paye ici), pour ceux dont la fiche ne les dit pas. Ne leve
+/// jamais.
+pub(crate) fn conges_a_dire(racine: &Path) -> Vec<Value> {
+    let engs = engagements(racine);
+    let dernier = dernier_mois(&engs);
+    if dernier.is_empty() {
+        return Vec::new();
+    }
+    let suite = mois_suivant(&dernier);
+    let fiches = crate::routes::lire_json_ou_vide(&racine.join("config").join("salaries.json")).unwrap_or(Value::Null);
+    let dit = |cle: &str| -> bool {
+        let Some(c) = fiches.get(cle).and_then(|f| f.get("conges_reprise")) else { return false };
+        let a_une_date = |v: &Value| v.get("date").is_some_and(vrai);
+        match c {
+            Value::Array(versions) => versions.iter().any(|x| x.get("valeur").is_some_and(a_une_date)),
+            autre => a_une_date(autre),
+        }
+    };
+    let mut vus = std::collections::BTreeSet::new();
+    repris_en_cours(racine, &suite)
+        .into_iter()
+        .filter(|r| !dit(&r.salarie) && vus.insert(r.salarie.clone()))
+        .map(|r| json!({"salarie": r.salarie, "nom": nom_du_salarie(racine, &r.salarie), "depuis": format!("{}-01", suite)}))
+        .collect()
 }
 
 /// Un contrat de permanent repris des bulletins qui court en `mois` : le salarie, le debut, la fin (vide sans terme),

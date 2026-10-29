@@ -576,6 +576,8 @@ fn etat_importation(racine: &Path) -> R<Value> {
         "attend_editeur": attend,
         // Les contrats repris dont la nature reste a dire, par salarie.
         "a_dire": crate::import::nature::a_dire(racine),
+        // Les permanents dont le contrat continue et dont la fiche ne dit pas les conges a la reprise.
+        "conges_a_dire": crate::import::nature::conges_a_dire(racine),
     }))
 }
 

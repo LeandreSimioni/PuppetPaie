@@ -448,7 +448,24 @@ function vueEtatImportation(e) {
         : x.parti ? `<span class="pastille alerte">attend l'éditeur</span>`
         : `<span class="pastille">pas encore parti</span>`}</div>
     </div>`).join("");
-  return repris + vueNaturesADire(e.a_dire) + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
+  return repris + vueNaturesADire(e.a_dire) + vueCongesADire(e.conges_a_dire)
+    + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
+}
+
+/* LES CONGÉS À LA REPRISE D'UN PERMANENT DONT LE CONTRAT CONTINUE
+   (`conges_a_dire`, du moteur) : aucun bulletin repris ne les dit, ils se
+   recopient du dernier bulletin de l'ancien logiciel, sur sa fiche. */
+function vueCongesADire(liste) {
+  if (!liste || !liste.length) return "";
+  const lignes = liste.map((x) => `<div class="rang">
+      <div class="rang-infos"><b class="rang-nom">${echapper(x.nom)}</b>
+        ses congés payés acquis et pris dans votre ancien logiciel ne sont sur aucun bulletin repris.
+        Recopiez-les de son dernier bulletin dans sa fiche (« Congés payés à la reprise »), à partir du
+        ${echapper(jjmmaaaa(x.depuis))} : sans eux, ses congés repartent de zéro.</div>
+      <div class="rang-etat"><button type="button" class="petit" data-ouvrir-fiche="salarie"
+        data-ouvrir-cle="${echapper(x.salarie)}">Ouvrir sa fiche</button></div>
+    </div>`).join("");
+  return `<h3>Les congés payés à reprendre</h3>${lignes}`;
 }
 
 /* LA NATURE DES CONTRATS REPRIS QU'AUCUN BULLETIN NE DIT
