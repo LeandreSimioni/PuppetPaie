@@ -267,8 +267,8 @@ impl Client {
     /// `Client.appel` : GET, ou POST si des donnees sont fournies, ou `methode`. Rend le JSON de la
     /// reponse (`{}` si elle est vide).
     ///
-    /// DEFAUT 1 DU PYTHON, CORRIGE : le jeton d'acces se gardait pour la vie du client, donc une sauvegarde de plus
-    /// d'une heure (3600 s) recevait des 401 pour chaque fichier restant. Ici, un 401 fait oublier le jeton, en demande
+    /// UN JETON D'ACCES NE VIT QU'UNE HEURE (3600 s) : garde pour la vie du client, une sauvegarde de plus
+    /// d'une heure recevrait des 401 pour chaque fichier restant. Un 401 fait donc oublier le jeton, en demande
     /// un autre (rafraichissement) et recommence UNE fois ; un second 401 est rendu comme une erreur ordinaire. Un
     /// client sans identifiants (`pour_essai`) ne peut pas rafraichir : le 401 est rendu tel quel.
     pub fn appel(&mut self, url: &str, donnees: Option<&[u8]>, content_type: Option<&str>, methode: Option<&str>) -> Result<Value, ErreurGoogle> {

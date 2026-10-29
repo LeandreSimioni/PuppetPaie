@@ -150,7 +150,7 @@ pub static TEXTES: &[Texte] = &[
             // plein droit a l'echeance du terme (aucun preavis : L1234-1 est
             // celui du licenciement) ; L1243-1 et L1243-2 disent les ruptures
             // avant le terme, dont le preavis du salarie qui a trouve un CDI.
-            // Lot U7 : L1243-3 et L1243-4 (ce que coute une rupture anticipee
+            // L1243-3 et L1243-4 (ce que coute une rupture anticipee
             // hors des cas de L1243-1), L1226-4-2, L1226-4-3 et L1226-20 (la
             // rupture d'un CDD pour inaptitude, 033) : le preavis de chaque
             // motif de rupture anticipee.

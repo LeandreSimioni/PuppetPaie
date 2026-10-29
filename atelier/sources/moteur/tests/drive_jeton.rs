@@ -50,7 +50,7 @@ fn compagnie_liee(nom: &str) -> PathBuf {
     r
 }
 
-// ------------------------------------------------------------ defaut 1 : le jeton renouvele
+// ------------------------------------------------------------ le jeton renouvele
 
 #[test]
 fn jeton_revoque_au_rafraichissement_rien_ne_part_vers_drive() {

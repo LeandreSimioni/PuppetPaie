@@ -388,8 +388,8 @@ pub(crate) fn ecrire_index(racine: &Path, index: &Value) -> Result<(), ErreurGoo
 /// suffisent : on ne decide pas d'un televersement, seulement s'il vaut la peine d'aller voir. Au
 /// moindre doute (index absent, fichier apparu ou disparu), la reponse est non.
 ///
-/// DEFAUT 6 DU PYTHON, CORRIGE : `rien_n_a_bouge` ne regardait pas `racine_drive` ; un index ecrit pour une autre racine
-/// du Drive (`--racine-drive`) laissait la veille croire que tout etait sauvegarde la ou on l'attend. Un index d'une autre
+/// `racine_drive` compte : un index ecrit pour une autre racine
+/// du Drive (`--racine-drive`) laisserait la veille croire que tout est sauvegarde la ou on l'attend. Un index d'une autre
 /// racine (ou qui n'en dit aucune) donne non.
 pub fn rien_n_a_bouge(racine: &Path, racine_drive: &str) -> bool {
     let index = lire_index(racine);
@@ -556,7 +556,7 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
             let nom = relatif.rsplit('/').next().unwrap_or(relatif);
             let mut faire = || -> Result<Option<EtatFichier>, ErreurGoogle> {
                 let locale = empreinte(&chemin).map_err(|e| ErreurGoogle::fichier(&e, &chemin))?;
-                // Le fichier de ce nom que `lister` connait (defaut 3 : le meme pour decider ET pour remplacer).
+                // Le fichier de ce nom que `lister` connait (le meme pour decider ET pour remplacer).
                 let connu = deja.get(nom);
                 let distante = if tout { None } else { connu.and_then(|d| d.md5.clone()).filter(|m| !m.is_empty()) };
                 if distante.as_deref() == Some(locale.as_str()) {
