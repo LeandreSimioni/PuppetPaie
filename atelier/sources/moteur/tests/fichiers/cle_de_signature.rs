@@ -5,7 +5,8 @@
 
 use crate::outils::chemin_unique;
 use moteur::compagnie::coffre::{oublier_mot_de_passe_tape, retenir_mot_de_passe_tape, Coffre};
-use moteur::compagnie::maj::{generer_cle_au_poste, signature_valide, signer_par_la_cle};
+use moteur::atelier::publier::{generer_cle_au_poste, signer_par_la_cle};
+use moteur::compagnie::maj::signature_valide;
 use std::collections::BTreeMap;
 use std::path::Path;
 

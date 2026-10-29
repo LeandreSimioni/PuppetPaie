@@ -37,7 +37,7 @@ fn la_cle_de_github_va_dans_le_dossier_maj_de_l_installation() {
     let s = std::process::Command::new(maj::programme(&code, "puppetpaie"))
         .args(["maj", "--cle-github"])
         .env_remove("PUPPETPAIE_CODE")
-        .env_remove(maj::VARIABLE_GRAINE)
+        .env_remove(moteur::atelier::publier::VARIABLE_GRAINE)
         .current_dir(&inst)
         .output()
         .unwrap();

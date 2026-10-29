@@ -26,7 +26,7 @@ pub static SPEC: Spec = Spec {
 };
 
 pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
-    if let Err(m) = crate::compagnie::maj::exiger_editeur(&cadre.racine, "la verification des sources") {
+    if let Err(m) = crate::atelier::publier::exiger_editeur(&cadre.racine, "la verification des sources") {
         eprintln!("{} La verification des sources est un outil de l'editeur, lance avant chaque publication.", m);
         return 1;
     }

@@ -8,6 +8,7 @@
 pub mod extraire;
 pub mod generer_tables;
 pub mod guet;
+pub mod publier;
 pub mod releve;
 pub mod scenario;
 pub mod sources;

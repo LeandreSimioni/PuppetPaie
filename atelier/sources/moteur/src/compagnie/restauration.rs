@@ -400,7 +400,7 @@ pub fn a_faire(coffre: &Coffre) -> Vec<String> {
     }
     // La cle de signature (lot K1) : scellee par la cle maitresse du coffre, elle s'ouvre quand il s'ouvre, et seulement
     // avec lui ; scellee a l'ancienne, par la cle du poste qui l'a faite seule, elle ne s'ouvre nulle part ailleurs.
-    match crate::compagnie::maj::cle_scellee_par_le_coffre(cible) {
+    match crate::atelier::publier::cle_scellee_par_le_coffre(cible) {
         None => {}
         Some(true) if coffre.chemin().exists() => lignes.push(
             "config/maj-cle-privee.bin (la cle qui signe les mises a jour) est revenu, scelle par le coffre : il s'ouvre quand le coffre \
