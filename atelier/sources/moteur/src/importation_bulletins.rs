@@ -17,8 +17,10 @@
 //! nouvelle : `contrat` = « bulletin <numero> » (CoolPaie), sinon le nom du fichier (et la page, s'il en a plusieurs),
 //! `declare_par: "bulletin"`, `mois` = le mois de la fin de periode du bulletin.
 //!
-//! UN MOIS SAISI N'EST PAS REPRIS : un bulletin dont le mois a son fichier dans `paies/` est « deja saisi », rien
-//! d'autre (ni fiche, ni contrat, ni paie).
+//! CE QUI EST SAISI ICI N'EST PAS REPRIS : un bulletin d'un salarie qu'un engagement saisi (non importe) paie dans le
+//! mois du bulletin est « deja saisi », rien d'autre (ni fiche, ni contrat, ni paie) -- sauf s'il a une paie declaree a
+//! completer (une DSN de l'apercu ou une paie importee, meme salarie, meme mois) : il la complete, quel que soit
+//! l'ordre de la saisie et de l'import.
 //!
 //! RIEN NE SE DEVINE (regle 1). Une page n'est pas reprise quand : elle n'a pas de texte, le rang d'en-tetes de son
 //! tableau ne se trouve pas, elle se lit de deux facons, ce qui l'identifie ne se lit pas (le lecteur), son NIR ne se lit pas ou contredit sa cle, son
@@ -65,7 +67,7 @@ use crate::routes::import::{self as ri, ACreer, Apercu, CleEngagement};
 /// | `repris` | ce que le fichier porte entre dans l'apercu |
 /// | `deja_repris` | tout ce qu'il porte est deja dans l'historique (ou dans un autre fichier du dossier) |
 /// | `libelle_inconnu` | repris, mais une ligne au moins a un libelle que la table ne connait pas : gardee telle quelle |
-/// | `deja_saisi` | le mois a des engagements dans `engagements/` : non repris |
+/// | `deja_saisi` | un engagement saisi paie ce salarie ce mois-la, et aucune paie declaree n'est a completer : non repris |
 /// | `incoherent` | une DSN ou une AEM d'une autre entreprise (rien n'en est lu) ; la page contredit le reste (bulletin d'une autre entreprise, NIR qui contredit sa cle, plusieurs paies possibles, deux bulletins qui different) : non repris -- une page qui ne retombe pas sur ses propres totaux est reprise (le bulletin fait foi) |
 /// | `incomplet` | ce qui identifie le bulletin ne se lit pas : non repris |
 /// | `sans_texte` | aucun mot (lettres en traces, scan) : non repris |
@@ -135,6 +137,8 @@ struct Lu {
     cle_nir: Option<String>,
     /// Le mois de la fin de periode.
     mois: String,
+    /// Le mois a des engagements saisis (`mois_saisis`).
+    mois_saisi: bool,
     compteurs: Result<Compteurs, String>,
     /// Ce que la page dit d'elle-meme qui ne se retrouve pas (`incohérent : ...`) : un avertissement, le bulletin fait foi.
     incoherences: Vec<String>,
@@ -309,10 +313,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             let mois = mois_de(&b.fin);
             infos.insert("mois".into(), json!(mois));
             let refus = |sort: &'static str, raison: String, infos: Map<String, Value>| PageCr { page: l.page, sort, raison, infos };
-            if saisis.contains(&mois) {
-                cr.push(refus("deja_saisi", format!("le mois {} a des engagements dans engagements/ : non repris", mois), infos));
-                continue;
-            }
+            let mois_saisi = saisis.contains(&mois);
             // LE BULLETIN FAIT FOI : une page qui se contredit (un centime sur le net) est reprise telle qu'imprimee.
             let incoherences: Vec<String> = b.avertissements.iter().filter(|a| a.starts_with("incohérent")).cloned().collect();
             let (nir, cle_nir) = match nir_lu(&b) {
@@ -327,7 +328,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
                 }
             };
             let compteurs = bulletin_lu::compteurs(&b, &ctx.racine);
-            lus.push(Lu { fichier: i, page: l.page, b, nir, cle_nir, mois, compteurs, incoherences });
+            lus.push(Lu { fichier: i, page: l.page, b, nir, cle_nir, mois, mois_saisi, compteurs, incoherences });
         }
     }
 
@@ -417,6 +418,37 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     for x in &historique_paies {
         hist_par_cle.insert(ri::cle_paie(x)?, x.clone());
     }
+
+    // Ce qui est saisi ici : (salarie, mois) que paie un engagement saisi. Un bulletin qui en est, sans paie declaree
+    // du meme salarie et du meme mois a completer (DSN de cet apercu, paie importee), est « deja saisi ».
+    let mut saisis_ici: HashSet<(String, String)> = HashSet::new();
+    if lus.iter().any(|l| l.mois_saisi) {
+        let objets = engagement::stock::objets(&ctx.racine).map_err(|m| erreur("ErreurOperation", m))?;
+        for o in objets.iter().filter(|o| !o.est_importe()) {
+            let Some(cle) = engagement::cle_de_l_engagement(ctx, &Value::Object(o.brut.clone())) else { continue };
+            for l in lus.iter().filter(|l| l.mois_saisi) {
+                if o.couvre(&l.mois).map_err(|m| erreur("ErreurOperation", m))? {
+                    saisis_ici.insert((cle.clone(), l.mois.clone()));
+                }
+            }
+        }
+    }
+    let declarees: HashSet<(String, String)> = ap
+        .paies
+        .iter()
+        .chain(historique_paies.iter())
+        .map(|x| (x.get("nir").map(valeur_en_texte).unwrap_or_default(), x.get("mois").map(valeur_en_texte).unwrap_or_default()))
+        .collect();
+    let mut gardes: Vec<Lu> = Vec::new();
+    for l in lus {
+        if saisis_ici.contains(&(cle_de(&l.nir), l.mois.clone())) && !declarees.contains(&(l.nir.clone(), l.mois.clone())) {
+            let raison = format!("le mois {} de ce salarié est saisi ici, sans paie déclarée à compléter : non repris", l.mois);
+            pages.entry(l.fichier).or_default().push(PageCr { page: l.page, sort: "deja_saisi", raison, infos: infos_de(&l, None) });
+            continue;
+        }
+        gardes.push(l);
+    }
+    let lus = gardes;
     let nirs_dsn: HashSet<String> = ap
         .a_creer
         .iter()

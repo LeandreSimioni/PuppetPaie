@@ -226,7 +226,7 @@ fn le_contrat_d_un_permanent_qui_continue_se_reprend_au_mois_suivant() {
 }
 
 /// LE PASSE FAIT PAR PUPPETPAIE SE REIMPORTE comme celui d'un autre logiciel, et UN CONTRAT D'USAGE QUI Y A COMMENCE
-/// CONTINUE ICI. Le bulletin et la DSN que le banc sort (le gabarit `puppetpaie` de `bulletins-gabarits-base.json`, la
+/// CONTINUE ICI. Le bulletin et la DSN que le banc sort (lu par `bulletin_lu`, la
 /// DSN relue par `importation`), la DSN declarant le contrat jusqu'au 03/12 (S21.G00.40.010), font sur une compagnie
 /// neuve un engagement importe : le numero que la DSN deposee lui a donne (S21.G00.40.009, regle 4), ce que le bulletin
 /// imprime, compte dans les cumuls des annexes 8 et 10 ; aucun geste ne le modifie, et rien n'est ecrit. Decembre ne
