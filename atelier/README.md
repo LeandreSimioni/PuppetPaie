@@ -583,8 +583,8 @@ Sans coffre, en ligne de commande, pour cette fenêtre seulement :
 $env:NET_ENTREPRISES_MOTDEPASSE = (Read-Host "mot de passe net-entreprises")
 ```
 
-La commande télécharge et archive tout dans `retours/`, puis **affiche** les
-taux lus sans rien écrire. Il faut `--appliquer` pour toucher `config/pas.json`.
+La commande télécharge et archive tout dans `retours/`, et les taux qu'un compte rendu de
+nature 94 communique vont aussitôt dans `config/pas.json` (rattachés par le NIR) ; elle les affiche.
 `moteur pas` montre l'état courant et d'où il vient.
 
 ### Un taux se périme au bout de deux mois
