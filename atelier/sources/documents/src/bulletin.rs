@@ -241,16 +241,16 @@ pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
     Ok(format!("{} € ({} h à {})", fmt_eur(p.plafond), fmt_heures(p.heures), fmt_eur(dec_f64(p.smic)?)))
 }
 
-/// `entreprise.convention_du_contrat` : (IDCC, libelle) d'un contrat.
-pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<(String, String)> {
+/// L'IDCC d'un contrat : celui de la compagnie, sauf l'artiste-interprète d'une émission de télévision d'une compagnie
+/// de la 2642 ou de la 3241, qui relève de la 1734 (`minima-conventionnels.json`, `_regles_1734`).
+pub fn idcc_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<String> {
     let idcc = ou(ent, "idcc", "");
-    let libelle = ou(ent, "convention_collective", "");
     let tv = sp.get("emission_tv_1734").map_or(false, vrai);
     if (idcc != "2642" && idcc != "3241") || !tv {
-        return Ok((idcc, libelle));
+        return Ok(idcc);
     }
     if ou(sal, "statut", "artiste") != "artiste" {
-        return Ok((idcc, libelle));
+        return Ok(idcc);
     }
     let code = sal.get("code_emploi_ft").filter(|c| vrai(c)).map(en_texte);
     let metier = match &code {
@@ -267,11 +267,25 @@ pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<(
             code.unwrap_or_else(|| "(aucun)".into()),
             ou(sal, "nom", "ce salarié")
         )),
-        Some(f) if matches!(f.as_str(), Some("Artistes") | Some("Cirque et rue")) => {
-            Ok(("1734".into(), "Artistes-interprètes engagés pour des émissions de télévision".into()))
-        }
-        Some(_) => Ok((idcc, libelle)),
+        Some(f) if matches!(f.as_str(), Some("Artistes") | Some("Cirque et rue")) => Ok("1734".into()),
+        Some(_) => Ok(idcc),
     }
+}
+
+/// (IDCC, libellé) de la convention d'un contrat, pour ce qui s'imprime : le libellé se lit au catalogue des conventions
+/// du barème de l'année de `jour` (`droit::bareme::libelle_convention`), la 1734, qui n'a pas de couche de barème, à
+/// son titre KALI (`sources.json`, KALICONT000005635286).
+pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value, jour: &Jour) -> Resultat<(String, String)> {
+    let idcc = idcc_du_contrat(ent, sp, sal)?;
+    if idcc.is_empty() {
+        return Err("La fiche entreprise ne dit pas sa convention collective (`idcc`).".into());
+    }
+    let libelle = if idcc == "1734" {
+        "Artistes-interprètes engagés pour des émissions de télévision".to_string()
+    } else {
+        droit::bareme::libelle_convention(&idcc, jour.an)?
+    };
+    Ok((idcc, libelle))
 }
 
 /// Un bulletin qui remplace en entier celui qui est parti (`{"remplace": true, "rectifie", "mois_origine"}`) : la paie du
@@ -888,7 +902,7 @@ pub struct Jeu<'a> {
 fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     let p = j.paie;
     let (sal, e, sp) = (&p.salarie, &p.engagement, &p.spectacle);
-    let conv = convention_du_contrat(ent, sp, sal)?;
+    let conv = convention_du_contrat(ent, sp, sal, &e.fin_mois()?)?;
     let n = COLONNES;
     let nat = e.nat()?;
     let permanent = nat.mensuelle();

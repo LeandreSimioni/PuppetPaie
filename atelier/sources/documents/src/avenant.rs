@@ -324,7 +324,7 @@ fn lieu_du_contrat(e: &Eng) -> String {
 /// `contrat.marqueurs` : les valeurs offertes au modele. `remuneration`, `brut` et `net` sont ceux
 /// de la paie calculee ; `sal` la fiche du salarie telle qu'elle vaut pour cet engagement.
 fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
-    let (idcc, convention) = convention_du_contrat(ent, sp, sal)?;
+    let (idcc, convention) = convention_du_contrat(ent, sp, sal, &Jour::lire(&e.debut)?)?;
     let sig = requis(ent, "signataire")?;
     let licence = match requis(ent, "licence_spectacle")? {
         Value::String(s) => s.clone(),

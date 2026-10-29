@@ -249,25 +249,6 @@
    "ecran": true
   },
   {
-   "cle": "convention_collective",
-   "libelle": "Convention collective",
-   "forme": "texte",
-   "aide": "",
-   "obligatoire": false,
-   "longueur": null,
-   "exemple": "",
-   "choix": [],
-   "declare": false,
-   "derive_de": null,
-   "rubrique": null,
-   "si_permanents": false,
-   "si": null,
-   "si_etablissements": false,
-   "si_entreprise": null,
-   "booleen_defaut": true,
-   "ecran": true
-  },
-  {
    "_note": "L'annexe de la CCN 3090 ou l'entreprise se range. Elle ne se declare\nnulle part : elle sert aux minima conventionnels (moteur/minima.py), qui\ndifferent d'une annexe a l'autre -- un cachet d'artiste dramatique n'a\npas le meme plancher en salle (annexe 1) qu'en tournee (annexe 4). Vide :\nle moteur prend le plancher le plus bas des annexes candidates, et le dit.",
    "cle": "annexe_convention",
    "libelle": "Annexe de la convention",

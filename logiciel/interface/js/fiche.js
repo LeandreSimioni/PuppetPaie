@@ -651,12 +651,13 @@ function brancherNationalite() {
   poser();
 }
 
-/*  UN SEUL CHOIX POUR LA CONVENTION (22/09/2026)
+/*  UN SEUL CHOIX POUR LA CONVENTION
  *
- *  L'IDCC remplit ses deux doubles, qui restent dans la fiche en cases
- *  cachees : le LIBELLE (il s'imprime sur le bulletin) et le CODE CONVENTION
- *  DSN (rubrique S21.G00.11.022, sur l'etablissement, la meme valeur que
- *  l'IDCC du contrat en S21.G00.40.017).
+ *  L'IDCC remplit son double, qui reste dans la fiche en case cachee : le
+ *  CODE CONVENTION DSN (rubrique S21.G00.11.022, sur l'etablissement, la
+ *  meme valeur que l'IDCC du contrat en S21.G00.40.017). Le libelle de la
+ *  convention ne s'ecrit pas dans la fiche : le bulletin et le contrat le
+ *  lisent au catalogue par l'IDCC (`droit::bareme::libelle_convention`).
  *
  *  Et l'ANNEXE ne se montre que pour la 3090 : les six annexes sont les
  *  siennes, elles ne veulent rien dire ailleurs. Elle ne se declare nulle
@@ -665,17 +666,10 @@ function brancherNationalite() {
 function brancherConvention() {
   const idcc = document.querySelector('#config-formulaire [data-cle="idcc"]');
   if (!idcc) return;
-  const libelle = document.querySelector('#config-formulaire [data-cle="convention_collective"]');
   const codeDsn = document.querySelector('#config-formulaire [data-cle="code_convention_dsn"]');
   const annexe = document.querySelector('#config-formulaire [data-cle="annexe_convention"]');
-  // Le libelle ne se reecrit que si l'on CHANGE de convention : au
-  // chargement, celui que la fiche porte (« Spectacle vivant du secteur
-  // privé ») est celui que la compagnie a ecrit, et il reste.
-  const idccDepart = String(idcc.value || "");
   const poser = () => {
     const v = String(idcc.value || "");
-    const cv = (ETAT.conventions || []).find((x) => String(x.idcc) === v);
-    if (cv && libelle && (v !== idccDepart || !libelle.value)) libelle.value = cv.libelle;
     if (codeDsn) codeDsn.value = v;
     const champAnnexe = annexe && annexe.closest(".champ");
     if (champAnnexe) champAnnexe.hidden = v !== "3090";
