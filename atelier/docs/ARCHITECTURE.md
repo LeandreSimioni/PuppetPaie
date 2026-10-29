@@ -486,36 +486,27 @@ salarié, et un mois payé en compte au moins un. Un mois du contrat sans paye
 ## Les droits (annexes 8 et 10), et d'où viennent les contrats
 
 `droit/src/cumul.rs` compte les 507 heures sur 12 mois (un cachet = 12 h, les
-heures d'enseignement plafonnées) et imprime le bloc de cumul du bulletin.
-Depuis le 15/09/2026 il ne lit qu'**une source, la nôtre**, en deux fichiers :
+heures d'enseignement plafonnées) sur les lignes qu'on lui passe (`Declare`) ; il
+ne sait pas ce qu'est un engagement. Ces lignes, c'est l'engagement qui les lit
+(`engagement/src/cumul.rs`, `lire_engagements`), dans **une seule source, la
+compagnie** :
 
-| | quoi | quand |
-|---|---|---|
-| `prive/historique/engagements.json` | les contrats attestés **avant** ce logiciel : les AEM de CoolPaie, importées une fois (`moteur importer`) — dates, numéro d'objet, cachets, heures, jours, brut, numéro et date d'attestation | pour tout mois qui n'a pas de fichier de paie |
-| `prive/engagements/AAAA-MM.json` | les engagements saisis ici, lus par `charger` (`engagement/src/lib.rs`) (un seul chemin de calcul : mêmes cachets, heures et brut que le bulletin et la DSN) | pour le mois du fichier — et l'historique se tait |
+| | quoi |
+|---|---|
+| les engagements importés | les contrats que l'import atteste (une AEM, un bulletin : dates, numéro d'objet, cachets, heures, jours, brut), lus par `importe::contrats_lus` |
+| les paies écrites des engagements validés | une ligne par paie d'intermittent, mois par mois (`etats::validees_du_mois`) : mêmes cachets, heures et brut que le bulletin et la DSN ; ce qui est en saisie n'est pas payé et n'entre dans aucun cumul |
 
-La règle de départage tient en une phrase : **un mois qui a son fichier de
-paie est lu là, jamais deux fois.** Pendant le double run d'août 2026, l'AEM
-de CoolPaie et notre fichier disent la même chose (vérifié : six engagements,
-mêmes cachets, heures, jours et brut), et c'est le fichier qui compte. Un
-fichier qui ne se charge pas (brouillon en cours, année sans barème) ne
-couvre pas son mois : l'historique parle pour lui s'il a quelque chose à
-dire. Les bornes d'un engagement issu d'une paie sont celles de sa **période
-de paie** (le contrat borné au mois) : un contrat d'octobre à décembre compte
-ses cachets d'octobre en octobre.
+Un mois qui a des paies écrites est lu là, et les engagements importés de ce mois
+se taisent : rien ne se compte deux fois. Les bornes d'une ligne tirée d'une paie
+sont celles de sa **période de paie** (le contrat borné au mois) : un contrat
+d'octobre à décembre compte ses cachets d'octobre en octobre.
 
-Le bulletin se compte lui-même : `bulletin.ecrire` passe les paies qu'il
-imprime à `cumul.lire_engagements(ctx, paies_courantes=...)`, qui les
-substitue au fichier de leur mois.
+Le bulletin se compte lui-même : `documents::bulletin` passe les paies qu'il
+imprime à `lire_engagements(ctx, Some(paies))`, qui les substitue à celles de
+leur mois. Les conseils (`compagnie/conseils.rs`) et la position des droits
+(`service::droits`) lisent la même chose.
 
-Avant cette date, `cumul.py` lisait `export/AEM_EDI` — le dossier de
-CoolPaie — directement. Cela liait les droits à un logiciel qu'on résilie en
-janvier 2027, et laissait de côté les mois produits ici (plus d'AEM depuis le
-01/06/2026 : la compagnie est en 100 % DSN). `lire_aem` reste (`moteur/src/import/dsn_aem.rs`) : il
-dépouille un dossier d'AEM (l'import s'en sert, et nos propres AEM de
-`sorties/`), mais plus personne ne l'appelle pour les droits.
-
-### Les conseils « Le saviez-vous ? » (ticket 224)
+### Les conseils « Le saviez-vous ? »
 
 Une **option de la compagnie** (fiche Entreprise, `conseils`, décochée par défaut) : sans elle, aucune route ne rend
 rien. Le texte, ses chiffres et ses sources sont des données (`logiciel/donnees/conseils.json`, chaque citation lue à
@@ -529,10 +520,10 @@ Trois familles, qui parlent à l'employeur :
 | ce que la compagnie a fait (`conseils-salarie`, `conseils-resume`) | la fiche du salarié ; l'accueil | `cumul::position_droits` sur la fenêtre (depuis `anniversaire_droits`, sinon 12 mois glissants) : heures comptées chez nous et part des 507, cachets perdus d'un mois, ce que les conseils de saisie auraient changé |
 
 Un conseil de saisie n'est **pas un avis** (`engagement::Avis`) : il ne passe ni dans les avertissements de la paie, ni au
-bulletin, ni à `produire` ; une paie validée (sa carte figée) n'en a pas. Il tient en **une phrase** (`texte`) ; son
+bulletin ; un engagement validé n'en a pas. Il tient en **une phrase** (`texte`) ; son
 `detail` (les deux faces, les chiffres) et sa référence se déplient derrière « pourquoi ? » : le moteur rend les deux, la
 page n'affiche que ce qu'elle reçoit. Le salarié s'y nomme **par son seul prénom** (`{prenom}`, `conseils::prenom`), jamais
-par un pronom qui le genre (le test `conseils_banque` y veille). Les deux conseils « plus d'heures » ne se montrent que si
+par un pronom qui le genre. Les deux conseils « plus d'heures » ne se montrent que si
 la somme couvre le minimum conventionnel (`minima::cachet_de_repetition`, `minima::minimum_de_la_ligne`) et disent leurs
 deux faces : précieux s'il manque des heures pour les 507, à éviter si elles sont assurées un mois indemnisé (le coût se
 dit en jours d'allocation, art. 30, au demi-jour le plus proche, jamais en euros ; un coût qui s'arrondit à zéro se dit
@@ -542,21 +533,57 @@ heure de plus coûte plus qu'elle ne rapporte. **Le seul cas de certitude** : no
 507 heures sur la fenêtre ; ses droits sont ouverts, et « intense plutôt que dilué » prend la place des conseils « plus
 d'heures ».
 
-### L'import CoolPaie
+## L'import : le passé d'une compagnie
 
-`moteur/src/import/dsn_aem.rs` lit le dossier `import/` de la compagnie (les DSN
-pour l'identité, l'emploi, les numéros d'objet et l'entreprise ; les AEM pour
-les contrats ; l'`export/` de CoolPaie avant le 10/10/2026, `atelier/README.md`,
-« Reprendre l'historique ») ;
-`moteur/src/import/ecrite.rs` décide quoi écrire, par les mêmes fiches que
-l'écran (`routes::fiches::ecrire_fiche` : même clé, même matricule, même vérification,
-même filet). Une fiche existante n'est jamais modifiée : ce que la DSN disait
-autrement est rendu dans `ecarts`, et c'est à l'humain de dater un
-changement. La dernière DSN où un salarié figure fait foi pour son identité ;
-l'annule-et-remplace d'un mois passe après l'original. Un numéro d'objet
-sans titre devient `objet-<numéro>`, titre « A COMPLETER », et l'année se lit
-dans le numéro (`266Z` = 2026). La base CoolPaie (`bases/*.CSOC`) est
-chiffrée : on ne la lit pas.
+Une compagnie qui arrive d'un autre logiciel met tout ce qu'elle a dans sa boîte aux lettres `import/` (DSN, AEM,
+bulletins en PDF, zip, doublons) ; l'import en tire ses fiches et ses **engagements importés**
+(`moteur/src/import/`, routes `importation-apercu`, `importer`, `importation-etat`).
+
+- **Le tri** (`import/tri.rs`) : chaque fichier reçoit une sorte, par son contenu, jamais par son nom (`dsn`, `aem`,
+  `pdf_texte`, `pdf_sans_texte`, `archive`…). Une DSN d'une autre entreprise que la compagnie n'est pas lue.
+- **Les DSN et les AEM d'abord** (`import/dsn_aem.rs`) : l'identité, l'emploi, les numéros d'objet, l'entreprise, ce
+  qui a été déclaré et versé ; les AEM, les contrats. La dernière DSN où un salarié figure fait foi pour son identité ;
+  l'annule-et-remplace d'un mois passe après l'original. Un numéro d'objet sans titre devient `objet-<numéro>`, titre
+  « A COMPLETER », et l'année se lit dans le numéro (`266Z` = 2026).
+- **Puis les bulletins, par un lecteur unique** (`import/bulletin_lu.rs`), le même pour tout logiciel : il ne connaît
+  aucune mise en page. Il trouve les mentions que tout bulletin imprime (art. R. 3243-1 du code du travail) par leurs
+  libellés, et les colonnes du tableau par leurs en-têtes, d'après la table livrée `bulletins-lecture-base.json`, qui dit
+  aussi la rubrique du catalogue de chaque libellé de ligne ; un logiciel connu se reconnaît à sa signature, pour le
+  compte rendu seulement. Rien ne se devine : une page sans texte, sans en-têtes, qui se lit de deux façons
+  (`ambigu`), ou dont ce qui identifie le bulletin ne se lit pas (`incomplet`) est refusée, et le compte rendu dit
+  pourquoi. Deux contrôles sans correction (le brut vaut la somme des lignes soumises ; le net se retrouve) : un écart
+  avertit, le bulletin est repris avec ce qu'il imprime. Chaque bulletin est rapproché de la paie que sa DSN déclare
+  (NIR, début, fin) et la complète (`import/bulletins.rs`) ; sans DSN, il fait foi seul. Un bulletin d'un salarié
+  qu'un engagement saisi paie le même mois n'est pas repris, sauf pour compléter une paie déclarée.
+- **L'aperçu n'écrit rien** ; `importer` écrit ce qu'il annonce (`import/ecrite.rs`) : les fiches à créer, par le même
+  chemin que l'écran (`routes::fiches::ecrire_fiche`) ; dans une fiche qui existe, seulement ce qui y est vide ou
+  « A COMPLETER » (`import/completer.rs`), le reste étant signalé (`ecarts`), jamais appliqué ; les engagements
+  importés, chacun dans `engagements/AAAA-MM.json`, le fichier du mois où il commence (le contrat qu'une AEM ou un
+  bulletin atteste, et ce qui a été versé, mois par mois) ; la copie de chaque pièce reprise dans
+  `historique/bulletins/`, nommée par son empreinte (rien de personnel dans un nom). Un import se rejoue sans dommage.
+- **La nature à dire** (`import/nature.rs`) : un bulletin sans marque du spectacle est celui d'un permanent ; la page
+  demande sa nature (CDI ou CDD), la route `importation-nature` l'écrit.
+- **Le mois importé** (`import/mois.rs`) : un mois qu'aucun engagement de la saisie ne touche et que des engagements
+  importés touchent. La page Paie le montre par ses engagements, une carte fermée « importé » chacun, sans geste ;
+  une case qu'aucune pièce ne porte reste vide et dit pourquoi. Sa DSN est celle de l'ancien logiciel (le journal des
+  dépôts, à défaut la DSN importée) : rien ne propose de la refaire.
+- **La CASC-SVP des mois importés** (`import/casc.rs`) : un mois tenu dans un autre logiciel a pu partir sans elle ;
+  `exporter regularisation-casc-svp` prépare la régularisation depuis les engagements importés, `casc-regularise`
+  note l'année faite.
+- **Les écarts de calcul** (`import/ecarts.rs`, `engagement/src/ecarts.rs`) : à la fin de chaque import, et à
+  l'ouverture de la compagnie pour les paies importées pas encore comparées (`journal/ecarts-import.json`), chaque paie
+  importée se compare à ce que le moteur aurait calculé de la même saisie, avec les barèmes et la configuration à la
+  date de la période. Rien ne change dans l'engagement importé. Les écarts partent chez l'éditeur comme un incident de
+  fonctionnement (nature `logiciel`, `ecarts_import`, un incident par sorte d'écart), sans rien afficher ni demander :
+  ils ne désignent personne (ni nom, NIR, naissance, adresse, ni salaire ou montant d'une paie ; seulement la
+  cotisation et ses libellés, le mois, l'IDCC et l'annexe, l'organisation patronale, la nature et le statut, d'où vient
+  le taux AT/MP, le logiciel reconnu, les deux taux et l'écart relatif), et le texte passe quand même par le
+  caviardage. Une paie se compare une fois. Ce qui ne se compare pas le dit (une période sans barème, une convention
+  sans couche, une ligne sans rubrique).
+- **L'incident d'import** (`import/incident.rs`, `import/caviardage.rs`) : quand des fichiers n'ont pas pu être repris,
+  `importation-incident` montre ce qui partirait chez l'éditeur (le compte rendu de chaque fichier non repris, et le
+  texte des pages caviardé de tout ce qui désigne une personne) ; rien ne part sans le clic « Envoyer »
+  (`importation-incident-envoyer`), et jamais le fichier d'origine.
 
 ## La DSN
 
