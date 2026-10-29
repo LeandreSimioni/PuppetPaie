@@ -5,29 +5,18 @@ certificats Congés Spectacles et DSN mensuelle (plus d'AEM depuis le
 01/06/2026 : 100 % DSN), pour les
 intermittents au cachet comme pour les salariés permanents. Il est écrit pour
 **toute compagnie**, quelle que soit sa convention ; son premier utilisateur
-est aussi son banc d'essai, une compagnie chez qui il
-remplace CoolPaie (150 €/an). Le moteur est écrit en **Rust**,
-multiplateforme (`atelier/sources/moteur/`, le programme `moteur`, et la fenêtre
-`atelier/sources/fenetre/`, le programme `puppetpaie`) ; le Python est retiré
-du produit depuis le 09/10/2026 (lot K).
+est aussi son banc d'essai. Le moteur est écrit en **Rust**,
+multiplateforme (`atelier/sources/`, le programme `moteur`, et la fenêtre
+`atelier/sources/fenetre/`, le programme `puppetpaie`) ; ses parties et leurs
+dossiers sont dans `docs/ARCHITECTURE.md`, « Les parties ».
+
+L'**engagement** est au centre : un salarié, un spectacle, des lignes de paie
+datées. Validé, il écrit ses paies, une par mois couvert ; le contrat, la DPAE,
+le bulletin, le certificat et la DSN se fabriquent depuis elles, à leur départ.
 
 Le calcul n'est pas confié au modèle de langage : il est fait par du code
-déterministe, calé sur les fichiers réellement déposés depuis 2021.
+déterministe, et chaque règle cite le texte déposé qui la fonde.
 Claude sert à parler à ce moteur en français, pas à calculer la paie.
-
-## Vérifié contre CoolPaie
-
-| Ce qui est rejoué | Résultat |
-|---|---|
-| Bulletin FAVART juin 2026 (2 cachets, 260 € brut) | identique **au centime** — brut, assiette CSG, 149,66 € patronal, 58,68 € salarial, 201,32 € net, 208,81 € imposable |
-| DSN de juillet 2026 (4 contrats, 997 lignes) | **identique ligne pour ligne**, hors le nom du logiciel émetteur |
-| DPAE du 28/08/2026 (6 enregistrements) | **identiques octet pour octet** — mais c'est le seul fichier DPAE laissé par CoolPaie, voir docs/ARCHITECTURE.md |
-| 10 fichiers AEM V5 de 2026 | **identiques octet pour octet** |
-| Schéma AEM sur 189 enregistrements 2021-2026 | validé à 189/189 |
-
-Ce rapport est celui du calcul Python, retiré le 02/10/2026 : le moteur Rust
-(`atelier/sources/moteur/`), qui calcule depuis, en reproduisait les sorties à l'octet sur tous
-les mois des compagnies fictives et de la compagnie.
 
 ## L'arrivée d'une compagnie
 
@@ -45,8 +34,8 @@ est à faire.
 
 ## Reprendre l'historique : l'import
 
-Ce qui est déjà déclaré ne se ressaisit pas. **Un seul dossier, tout dedans**
-(10/10/2026) : le dossier `import/` de la compagnie reçoit tout ce que
+Ce qui est déjà déclaré ne se ressaisit pas. **Un seul dossier, tout dedans** :
+le dossier `import/` de la compagnie reçoit tout ce que
 l'ancien logiciel a laissé — bulletins de paie en PDF, DSN, AEM, archives
 zip —, sans qu'aucun logiciel ait à être nommé ; le moteur trie par le
 contenu des fichiers et reconstruit tout ce qu'il peut.
@@ -68,7 +57,7 @@ l'historique de la compagnie ; le dossier `import/` peut ensuite être vidé.
 | l'entreprise (SIREN, NAF, adresse, IDCC, licence, affiliation CS) | S10 et blocs 06/11/40 des DSN | `config/entreprise.json`, **seulement si la fiche est vide** |
 | les salariés (NIR, état civil, adresse, courriel, emploi, PCS, statut) | bloc S21.G00.30 et dernier bloc 40 de la **dernière** DSN où ils figurent | une fiche par NIR inconnu ; une fiche existante n'est **jamais modifiée**, ce que la DSN disait autrement est signalé |
 | les spectacles (numéros d'objet) | `S21.G00.40.050` des DSN, et les AEM | une fiche `objet-<numéro>` par numéro inconnu, titre « A COMPLETER » (ni la DSN ni l'AEM ne portent le titre), active seulement si le numéro est de l'année |
-| l'historique des contrats (dates, cachets, heures, jours, brut) | chaque enregistrement AEM, dédoublonné | `historique/engagements.json` |
+| les engagements (le contrat : dates, numéro, cachets, heures, jours ; ce qui a été versé, mois par mois) | les AEM, les DSN, et les bulletins, lus par un seul lecteur pour tout logiciel et rapprochés de leur DSN | des **engagements importés**, dans `engagements/AAAA-MM.json` (le mois où chacun commence) : validés, documents partis, ils se lisent et ne se modifient pas |
 
 **L'import COPIE ce qu'il reprend** — les DSN, les AEM et les PDF dont une
 page au moins est reprise — dans `historique/bulletins/`, sous le nom de sa
@@ -79,24 +68,32 @@ l'import le signale. Pour que le dossier d'un salarié ait ses années
 CoolPaie, les PDF sont à sortir de CoolPaie avant :
 `docs/COOLPAIE-SORTIR-SES-DOCUMENTS.md`.
 
-Jusqu'au 10/10/2026 (journal, §216-§217), l'import lisait le dossier `export/`
-de CoolPaie et le copiait dans `historique/coolpaie/` (`DSN/`, `AEM_EDI/`, les
-PDF). Le moteur relit encore cette copie chez une compagnie importée ainsi
-(la DSN déposée d'un mois, le dossier d'un salarié), mais ni l'écran ni la
-ligne de commande ne passent plus par là.
-
 L'import se rejoue sans dommage : ce qui existe est laissé, ce qui manque est
 ajouté. La base CoolPaie elle-même (`bases/*.CSOC`) est chiffrée et n'est pas
 lue — on n'en a pas besoin.
 
+**Un mois importé** se voit dans l'onglet Paie : une carte fermée « importé »
+par engagement, sans « Modifier… ». Sa DSN est celle de l'ancien logiciel :
+rien ne propose de la refaire ; un engagement saisi ici sur ce mois se déclare
+dans la DSN suivante. Un bulletin de permanent ne dit pas sa nature : la page
+la demande après l'import (CDI ou CDD).
+
+**Les écarts de calcul.** À chaque import, chaque paie importée se compare à ce
+que PuppetPaie aurait calculé de la même saisie ; rien ne change dans
+l'engagement importé, et les écarts partent chez l'éditeur comme un incident
+de fonctionnement, sans rien qui désigne une personne (ni nom, ni NIR, ni
+montant d'une paie). Un fichier que l'import n'a pas su reprendre se signale
+à l'éditeur depuis l'écran de l'import, après « Envoyer » seulement, caviardé
+(`docs/ARCHITECTURE.md`, « L'import »).
+
 **Pourquoi l'historique compte.** Les droits à l'assurance chômage (annexes
 8 et 10 : 507 h sur 12 mois, un cachet = 12 h) se comptent sur tout ce que la
 compagnie a déclaré, et `moteur droits` comme le bloc de cumul du
-bulletin lisent **une seule source, la nôtre** : l'historique importé, puis
-nos engagements. Un mois qui a des engagements dans `engagements/` est lu là, et
-l'historique se tait pour ce mois-là — pendant un double run, rien n'est
-compté deux fois. Une fois l'import fait, le logiciel n'a plus besoin du
-dossier `import/` : il lit ses copies.
+bulletin lisent **une seule source, la compagnie** : les engagements importés,
+puis les paies écrites des engagements validés. Un mois qui a des paies
+écrites est lu là, et les engagements importés de ce mois se taisent : rien
+n'est compté deux fois. Une fois l'import fait, le logiciel n'a plus besoin
+du dossier `import/` : il lit ses copies.
 
 ## Faire une paie
 
@@ -167,7 +164,7 @@ celle de tous porte ce qui a été fabriqué (et le dit, `systemes` dans
 `derniere.json`), et une installation dont le système n'est pas publié garde
 sa version et le dit, sans rien télécharger.
 
-Plus de Python (lot J5) : la fenêtre est le programme `puppetpaie`, une
+La fenêtre est le programme `puppetpaie`, une
 fenêtre Tauri (WebView2 sous Windows, WebKit sous Mac et Linux) qui tient le
 serveur de la page et l'arrête avec elle (`atelier/sources/fenetre/`).
 Sans moteur de rendu (un Linux sans WebKitGTK), le lanceur passe à
@@ -307,8 +304,7 @@ ailleurs.
 Tant que l'application n'est pas passée par la vérification Google, l'écran
 « Google n'a pas validé cette application » apparaît la première fois :
 *Paramètres avancés* → *Accéder à PuppetPaie…*. La marche à suivre pour la faire
-disparaître, et celle pour utiliser sa propre application Google plutôt que la
-nôtre, étaient en tête de `moteur/google.py` (Python, retiré au lot K) ; la
+disparaître passe par la vérification de l'application chez Google ; la
 déclaration de l'application est `logiciel/donnees/google-application.json`.
 
 ## À l'ouverture : le coffre, la sauvegarde, les retours
@@ -919,30 +915,27 @@ entreprise : 1 théâtre, 4 tournée…) ; sans elle, ou quand une grille
 distingue les jauges, le moteur retient **le plus bas** — il se tait plutôt
 que de crier à tort.
 
-**Et il dit ce qu'il n'a comparé à rien** (21/09/2026). Son silence voulait
-dire deux choses à la fois — « au-dessus du minimum » et « il n'y a pas de
-minimum ici » —, si bien qu'on pouvait lire six paies sans un mot et les
-croire vérifiées. Une ligne de travail sans plancher donne donc une phrase
-qui dit **pourquoi** : un métier que la classification de la CCNEAC ne
-nomme pas, un métier sans ligne de minima, un salaire mensuel sous la 3090
-(comparé à rien). Non bloquant comme le reste, et **une
-phrase par raison**, pas par ligne.
+**Et il dit ce qu'il n'a comparé à rien.** Un silence voudrait dire deux
+choses à la fois — « au-dessus du minimum » et « il n'y a pas de minimum
+ici » —, et six paies sans un mot se croiraient vérifiées. Une ligne de
+travail sans plancher donne donc une phrase qui dit **pourquoi** : un métier
+que la classification de la CCNEAC ne nomme pas, un métier sans ligne de
+minima, un salaire mensuel sous la 3090 (comparé à rien). Non bloquant comme
+le reste, et **une phrase par raison**, pas par ligne
+(`engagement/src/minima.rs`).
 
-La commande `minima` du Python — ce qui est comparé, ce qui ne l'est pas, et
-ce qui est relevé sans être lu — **n'est pas portée** en Rust ; les
-avertissements, eux, sortent avec chaque paie (`engagement/src/minima.rs`). Elle
-était la réponse à « est-ce que mes paies sont vérifiées ? ». Elle distinguait une grille **relevée** d'une grille **appliquée** : les
-cachets d'artistes de la CCNEAC sont relevés et servent, et depuis le
-23/09/2026 ses emplois autres qu'artistiques aussi — groupe de l'article XI.3
-(`classification_1285` du catalogue), échelon de la fiche (`echelon_ccneac`,
-le premier sans lui), à l'heure comme au mois ; la NAO 2026, non étendue, dort dans le fichier sans
-être lue, et la commande le dit plutôt que de le laisser croire.
+Une grille **relevée** n'est pas toujours une grille **appliquée** : les
+cachets d'artistes de la CCNEAC sont relevés et servent, ses emplois autres
+qu'artistiques aussi — groupe de l'article XI.3 (`classification_1285` du
+catalogue), échelon de la fiche (`echelon_ccneac`, le premier sans lui), à
+l'heure comme au mois ; la NAO 2026, non étendue, est dans le fichier sans
+être lue.
 
 **Les sources** de ces données — notices France Travail, nomenclature des
 emplois, PCS-ESE de l'Insee, avenants salaires sur Légifrance, NAO — sont
 décrites et datées dans `logiciel/donnees/sources.json`, leurs copies rangées
-dans `atelier/reference/sources/`. **`moteur sources`** les relit (`moteur/src/atelier/sources.rs`,
-porté en Rust au lot S1, 13/10/2026) : pour chacune, ce qu'elle contient, sa
+dans `atelier/reference/sources/`. **`moteur sources`** les relit (`moteur/src/atelier/sources.rs`) :
+pour chacune, ce qu'elle contient, sa
 version, la date du relevé et son âge, et si la copie colle au condensat du
 manifeste (conforme, différente, absente). **`--verifier`** retourne voir en
 ligne : une source qui se télécharge est reprise et comparée — `inchangee`,
@@ -966,9 +959,8 @@ chiffres et lettres de `str.isdigit`/`str.isalnum`/`\d`, cp437 et cp1252, les
 encodages qu'un XML de retour peut déclarer, les caractères d'un nom XML)
 s'écrivent depuis les textes déposés (`atelier/reference/sources/unicode/`,
 `python/`, `w3c/`, chacun avec son `LISEZ-MOI.md`) par **`moteur generer-tables
-atelier/reference/sources atelier/sources`** (`moteur/src/atelier/generer_tables.rs`,
-15/10/2026 ; avant, quatre scripts Python les tiraient de l'Unicode de
-l'interpréteur). Le test `tables_generees` vérifie que les tables commitées sont
+atelier/reference/sources atelier/sources`** (`moteur/src/atelier/generer_tables.rs`).
+Le test `referentiels` vérifie que les tables commitées sont
 celles que les textes donnent. Monter de version d'Unicode : déposer les
 nouveaux fichiers, changer les constantes `UNICODE_*` du module, relancer, lire
 le `git diff` (`unicode/LISEZ-MOI.md`).
@@ -982,17 +974,15 @@ parle de salaires, ou le texte cité lui-même, met la source « à relire » av
 son titre, sa date et son état (étendu ou non) ; les autres mouvements sont
 montrés en second. `--relever` garde le XML du texte touché
 (`atelier/reference/sources/kali/`), qui contient le texte intégral. La lecture
-est résumée dans `atelier/reference/sources/veille-kali.json` (le même fichier
-que du temps du Python : la veille reprend où elle s'était arrêtée) ; la
+est résumée dans `atelier/reference/sources/veille-kali.json` (la veille
+reprend où elle s'était arrêtée) ; la
 première fois, elle remonte l'index (environ un an) jusqu'à la dernière fiche
 de chaque convention, pour savoir ensuite rattacher un texte à la sienne : une
-minute, une fois. L'ouverture hebdomadaire du Python la refaisait toute
-seule ; en Rust, l'ouverture accepte l'option et ne vérifie rien
+minute, une fois. L'ouverture d'une compagnie ne la fait pas
 (`moteur/src/compagnie/ouverture.rs`) : c'est l'éditeur qui la lance.
 
 Quand une source a changé, le référentiel qu'elle nourrit se **relève** par
-**`moteur extraire`** (`moteur/src/atelier/extraire/`, porté en Rust le 15/10/2026 depuis
-les `atelier/outils/extraire_*.py`) : `naf` (les deux classeurs INSEE →
+**`moteur extraire`** (`moteur/src/atelier/extraire/`) : `naf` (les deux classeurs INSEE →
 `naf-base.json`), `usages` et `formats` (le classeur de net-entreprises ou le
 cahier technique en PDF → `usages-dsn-*.json`, `formats-dsn-*.json`), `urssaf`
 (la Table des Urssaf, la liste des sites, le COG 2015 →
@@ -1004,7 +994,7 @@ fichiers déposés et le jour du relevé. Par exemple :
 (les commandes de chaque table sont dans `atelier/reference/norme-dsn/LISEZMOI.md`
 et `atelier/reference/sources/insee-naf-2025/LISEZ-MOI.md`). Puis
 `git diff logiciel/donnees/` dit ce qui a bougé, et
-`tests/fichiers/extraction.rs` vérifie que chaque table livrée est bien ce que
+`tests/fichiers/referentiels.rs` vérifie que chaque table livrée est bien ce que
 ses textes déposés donnent.
 
 **Les textes eux-mêmes**, articles de loi et de convention, se relèvent dans les
@@ -1424,26 +1414,13 @@ Quatre choses à savoir :
   qu'ils s'additionnent (`rust_xlsxwriter`, dans le programme). Le PDF est
   fait par la fabrique de PDF, elle aussi dans le programme. C'est le CSV qui
   fait foi ;
-- chaque ligne porte **d'où elle vient** (colonne `Source`), parce qu'il y a
-  deux sources et qu'elles n'ont pas les mêmes colonnes :
-  - **saisie** — le mois a des engagements validés dans `engagements/`. Les bulletins sont
-    relus des paies validées, et toutes les colonnes sont remplies ;
-  - **DSN déposée** — le mois est antérieur à PuppetPaie. C'est ce que la DSN
-    a déclaré avoir versé, importé de CoolPaie dans
-    `historique/paies.json` : brut, net imposable, net à payer, PAS. **Une
-    DSN ne déclare pas la répartition des cotisations entre part salariale et
-    part patronale** (bloc 81 : un montant par code, les deux parts
-    confondues), donc pas le coût employeur non plus. Ces colonnes restent
-    **vides** sur ces lignes, les totaux ne les comptent pas, et l'export dit
-    sur combien de bulletins chaque total porte.
-
-  Un mois qui a une saisie est lu là, jamais dans l'historique — même règle
-  que pour les droits (le moteur Rust, `engagement/src/cumul.rs`).
+- chaque ligne vient des **paies écrites des engagements validés**
+  (`documents/src/etats_paie.rs`, `charger_mois`) : les bulletins se relisent
+  de ces paies, et toutes les colonnes sont remplies.
 
 Un export **lit** : il ne calcule aucune paie, ne dépose rien, ne consomme
-aucun numéro. Un mois qui n'a pas été produit n'a pas de numéro de contrat
-figé, et la colonne reste vide plutôt que de porter un numéro qui n'a jamais
-été déclaré.
+aucun numéro. Le numéro de contrat est celui que l'engagement porte depuis sa
+validation.
 
 ### Tous les états (23/09/2026)
 
@@ -1599,12 +1576,12 @@ Le logiciel porte un numéro de version — une date, dans le fichier
 `VERSION` — que `moteur version` affiche, comme la fenêtre de
 lancement et le bandeau de l'interface.
 
-**Une installation, un logiciel, une mise à jour** (lot U1, 14/10/2026) : ce
+**Une installation, un logiciel, une mise à jour** : ce
 n'est pas une compagnie qui se met à jour, c'est le logiciel. Au lancement, il
 **cherche une nouvelle version** pour lui-même, sans qu'aucune compagnie soit
 ouverte, au dépôt que dit le réglage de l'installation (`maj/reglage.json`, à
-côté de `logiciel/`, clé `depot` : un dossier ou une adresse web ; en repli,
-`prive/config/maj.json` ; sinon l'adresse par défaut du code). Si elle existe,
+côté de `logiciel/`, clé `depot` : un dossier ou une adresse web ;
+sinon l'adresse par défaut du code). Si elle existe,
 l'archive de son système (`derniere.json` en nomme quatre : `windows`, `linux`,
 `mac`, et `tout-systeme`, prise si la sienne manque) est téléchargée dans le
 fil de fond, vérifiée (condensat, puis **signature de l'éditeur**, une par
@@ -1630,7 +1607,7 @@ incident — une compagnie hors ligne fait sa paie. Une version prête
 s'installe au lancement suivant (ou au clic *« Redémarrer pour mettre à
 jour »*) ; rien ne la retient. Quand elle **change un calcul** de paie, sa
 phrase (`--calcul` au moment de publier) se lit dans la bulle de
-l'indicateur, à côté de la version prête, et dans `moteur version`. Un taux
+l'indicateur, à côté de la version prête, dans `moteur version`, et une fois au lancement qui suit son installation (« PuppetPaie … est en place. Elle change un calcul de paie : … »). Un taux
 qui change n'en est pas une : la déclaration est mensuelle, le mois suivant
 rattrape.
 
@@ -1639,10 +1616,12 @@ Deux sortes de versions. La plupart sont silencieuses. Quelques-unes sont
 change, une déclaration que l'ancienne version ferait fausse) : une fois
 téléchargée, **aucun dépôt réel ne part** tant qu'elle n'est pas appliquée.
 
-Chez l'éditeur (`"editeur": true` dans le réglage de l'installation, ou en repli
-`prive/config/maj.json`), on **publie** en plus, après relecture des sources (voir
-plus haut) ; son installation reçoit comme les autres une version plus récente
-que la sienne :
+Une version se publie par le flux « Publier » du dépôt public
+(`.github/workflows/publier.yml`, approuvé par l'éditeur), qui compile, signe
+avec la clé de GitHub et pose tout dans une Release (`moteur/src/atelier/publier.rs`).
+Le moteur accepte aussi la clé d'un poste d'éditeur (`"editeur": true` dans le
+réglage de l'installation), après relecture des sources (voir plus haut) ; son
+installation reçoit comme les autres une version plus récente que la sienne :
 
 ```bash
 moteur maj --cle                      # une fois : la clé qui signe
@@ -1653,11 +1632,10 @@ pose les archives **signées** (une par système dont la fenêtre est dans
 `logiciel/`, et celle de tous) et `derniere.json` dans le dépôt, et refuse de
 republier un numéro déjà pris : augmenter `VERSION` d'abord. La clé privée
 vit dans `prive/config/maj-cle-privee.bin`, scellée par la clé maîtresse
-du coffre (14/10/2026) : elle s'ouvre où le coffre s'ouvre, par la clé du
+du coffre : elle s'ouvre où le coffre s'ouvre, par la clé du
 poste ou, sur un autre, par le mot de passe du logiciel ; elle dépend donc du
 `coffre.bin` qui l'a scellée. `moteur maj --cle` refuse de la fabriquer sans mot
-de passe du logiciel, et rescelle ainsi une clé faite avant (scellée par la
-clé du poste seule), sans changer la paire. Perdue, les compagnies refuseraient
+de passe du logiciel. Perdue, les compagnies refuseraient
 toute version suivante. Le dépôt n'est qu'une
 adresse ; le format est le même sur un disque et sur un site.
 
@@ -1669,24 +1647,16 @@ banc d'essai n'emploie aucun permanent, ne relève pas de la CCNEAC,
 n'adhère à aucune organisation patronale, n'a qu'un établissement et ne prend
 pas de stagiaire — cinq cas qu'aucune de nos données n'éprouve.
 
-`outils/compagnies_fictives.py` fabriquait seize compagnies **de toutes
-pièces** — rien n'était emprunté à `prive/` — et leur faisait produire un
-mois. Il est parti avec le Python (lot K, 09/10/2026) et **n'est pas porté** :
-`docs/COMPAGNIES-FICTIVES.md` et `docs/COMPAGNIES-FICTIVES-DEPOT.md` gardent
-son dernier bilan (21/09/2026), qui n'est plus régénéré.
-
-Les tests du moteur Rust montent leurs propres compagnies de test (`outils::dossier_de_test`, `compagnies::ajouter_dans`),
-et les règles se prouvent sur les compagnies fictives livrées (`fictives/`).
-Les identités y sont inventées et **leurs clés se vérifient** : clé de NIR
+Les tests du moteur montent leurs propres compagnies de test (`outils::dossier_de_test`, `compagnies::ajouter_dans`) ;
+les compagnies fictives livrées (`fictives/`) se jouent dans l'interface, et un test ne les lit jamais
+(`docs/COMPAGNIES-FICTIVES.md`). Les identités y sont inventées et **leurs clés se vérifient** : clé de NIR
 calculée, clé de Luhn du SIRET, IBAN de forme juste. Un test ne doit pas
 pouvoir passer sur un numéro impossible.
 
-**Ce n'est pas un réparateur.** Les refus sont voulus tant que les taux
-manquent, et la liste des cas muets est le travail à venir, pas un défaut à
-cacher. Le seul validateur reste le **dépôt de test** net-entreprises, qui ne
-conserve rien : les DSN produites ici sont conformes au tableau des usages et
-aux formats de la norme, **et à rien d'autre**, tant qu'elles n'y sont pas
-passées.
+Les refus sont voulus tant que les taux manquent. Le seul validateur reste le
+**dépôt de test** net-entreprises, qui ne conserve rien : les DSN produites ici
+sont conformes au tableau des usages et aux formats de la norme, **et à rien
+d'autre**, tant qu'elles n'y sont pas passées.
 
 ### La compagnie d'essai : le dépôt de test sans `prive/`
 
@@ -1700,7 +1670,7 @@ Ses dépôts de test partent sur net-entreprises et à l'Urssaf ; tout dépôt r
 y est refusé. Les clés, la suite des commandes et ce qui reste à confirmer :
 `docs/COMPAGNIE-D-ESSAI.md`.
 
-### Le banc d'essai daté, le scénario et son rejeu (#236)
+### Le banc d'essai daté, le scénario et son rejeu
 
 Pour faire **vivre** une compagnie fictive dans l'interface, comme un testeur,
 mois après mois : `node outils/banc/banc.js lancer <banc> --jour AAAA-MM-JJ`
@@ -1754,7 +1724,7 @@ la seconde est celle qui sert tous les jours : `logiciel/` a pour destination
 un dépôt public, et une autre compagnie utilisera ce code avec **ses**
 données à elle — le logiciel doit donc savoir que les siennes sont ailleurs.
 
-Le rangement du 09/10/2026 (`atelier/CLAUDE.md`, « Le rangement ») :
+Le rangement (`atelier/CLAUDE.md`, « Où sont les choses ») :
 
 ```
 PuppetPaie.cmd            le lanceur (Windows)
@@ -1763,33 +1733,32 @@ logiciel/                 exactement ce qu'une compagnie reçoit, et ce que publ
                           VERSION (une date), donnees/ (barèmes, bases, modèles,
                           sources.json), interface/ (la page) ; et, posés par le
                           flux « Publier » seulement, linux/ et mac/ (puppetpaie,
-                          paie) : une archive par système, et une pour tous
+                          moteur) : une archive par système, et une pour tous
 fictives/                 les compagnies fictives, livrées aussi
 maj/                      la mise à jour de l'installation (jamais dans Git)
 prive/                    les données de la compagnie du poste
 atelier/                  ← ce dossier : tout le reste
-  sources/moteur/           le moteur (programme `moteur`) : calcul, bulletin,
-                          contrat, DPAE, certificats CS, DSN, signalements,
-                          dépôts, retours, envois, exports, la mise à jour
-                          (`src/maj.rs`) ; ses tests dans `tests/`
-                          (`cargo test --profile essais`) ; moteur.exe et les
-                          programmes Linux et Mac dans `bin/`
+  sources/                l'espace Cargo, une crate par partie : socle, droit,
+                          engagement, documents, declarations, envois, et
+                          moteur (programme `moteur` : src/routes/, interface/,
+                          compagnie/, import/, atelier/, commandes/ ; ses
+                          tests dans `tests/` ; moteur.exe et les programmes
+                          Linux et Mac dans `bin/`) — docs/ARCHITECTURE.md,
+                          « Les parties »
   sources/fenetre/        la fenêtre (programme `puppetpaie`, Tauri)
   sources/fabrique-pdf/   la fabrique de PDF
   reference/              les textes qui fondent les règles, tels que servis
                           (lois et codes, conventions, norme DSN, BOFiP,
                           BOSS…), leur transcription et un LISEZ-MOI.md par
-                          dossier (15/10/2026 ; d'un organisme privé, seule la
+                          dossier (d'un organisme privé, seule la
                           transcription) ; `moteur sources` y vérifie les copies
-  docs/                   ARCHITECTURE.md, RUBRIQUES.md,
-                          COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md
-                          (le dernier bilan du crash-test, 21/09/2026)
+  docs/                   ARCHITECTURE.md, RUBRIQUES.md, COMPAGNIES-FICTIVES.md,
+                          COMPAGNIE-D-ESSAI.md, COMPAGNIES-FICTIVES-DEPOT.md
   outils/                 les outils d'atelier : `banc/` (le banc d'essai daté, en
                           Node : LISEZ-MOI.md), `demos/` (un scénario de
-                          démonstration). Plus un fichier Python depuis le
-                          15/10/2026 : le garde avant commit, le guet, les tables
-                          Unicode, les relevés des référentiels, des codes et des
-                          conventions sont des commandes de `moteur`
+                          démonstration). Le garde avant commit, le guet, les
+                          tables Unicode, les relevés des référentiels, des codes
+                          et des conventions sont des commandes de `moteur`
                           (`verifier-avant-commit`, `guet`, `generer-tables`,
                           `extraire`, `releve-codes`, `releve-conventions`)
   PuppetPaie.sh, PuppetPaie.command   les lanceurs Linux et Mac
@@ -1804,17 +1773,14 @@ prive/                    les données de la compagnie
   engagements/            les engagements, dans le fichier du mois où chacun commence
   imprevus/               les imprévus des salariés (arrêts de travail,
                           suspensions), au mois où ils commencent (créé au
-                          premier) ; l'ancien dossier arrets/ n'est plus lu
+                          premier)
   exports/                les états pour le comptable et les organismes
-  historique/             les contrats et les paies attestés avant ce logiciel
-                          (l'import), et les copies de ce qu'il a repris
-                          (`bulletins/` ; `coolpaie/` avant le 10/10/2026)
+  historique/             les copies de ce que l'import a repris (`bulletins/`)
   sorties/                les fichiers produits
-  gabarits/               enregistrements AEM et DPAE réels servant de patrons
+  gabarits/               les enregistrements DPAE servant de patrons
   retours/                ce que renvoient les organismes
-  reference/              des extraits de l'historique CoolPaie ; les textes
-                          déposés sont dans `atelier/reference/` (15/10/2026)
-  journal/                ETAT.md — où en est le projet
+  journal/                le journal des envois (depots.json), des incidents,
+                          des écarts de l'import
 ```
 
 La compagnie est `PUPPETPAIE_DONNEES` si elle est posée, sinon le dossier
@@ -1832,7 +1798,7 @@ dont chaque taux a été retrouvé.
 
 ### Avant un commit : le garde des données réelles
 
-Rien de la compagnie du poste n'entre dans le dépôt public. `paie
+Rien de la compagnie du poste n'entre dans le dépôt public. `moteur
 verifier-avant-commit` cherche, dans ce que Git emporterait (hors de
 `prive/`), les NIR, IBAN et BIC qui ne portent pas la marque d'invention, et
 les vraies valeurs qu'il lit dans `prive/config/` quand il est là (SIRET,
