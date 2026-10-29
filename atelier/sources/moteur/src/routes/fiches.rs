@@ -580,41 +580,9 @@ fn verifier_fiche(charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------ changements-declares
 
-/// Le dossier parent : `.` pour un nom seul.
-fn parent_ou_point(p: &Path) -> std::path::PathBuf {
-    match p.parent() {
-        Some(x) if x.as_os_str().is_empty() => std::path::PathBuf::from("."),
-        Some(x) => x.to_path_buf(),
-        None => p.to_path_buf(),
-    }
-}
-
-/// Le dossier de CoolPaie, remonte de dossier en
-/// dossier, puis la copie `export-coolpaie`, puis `export` (absent).
-pub(crate) fn trouver_export(depart: &Path) -> std::path::PathBuf {
-    let p1 = parent_ou_point(depart);
-    let p2 = parent_ou_point(&p1);
-    for base in [depart, p1.as_path(), p2.as_path()] {
-        let p = base.join("export");
-        if p.is_dir() {
-            return p;
-        }
-    }
-    let copie = depart.join("export-coolpaie");
-    if copie.is_dir() {
-        return copie;
-    }
-    depart.join("export")
-}
-
-/// `declarations_coolpaie` : la copie de l'import quand elle porte des DSN ou des
-/// AEM, l'`export/` de CoolPaie sinon.
-pub(crate) fn declarations_coolpaie(ctx: &Contexte) -> std::path::PathBuf {
-    let copie = ctx.racine.join("historique").join("coolpaie");
-    if copie.join("DSN").is_dir() || copie.join("AEM_EDI").is_dir() {
-        return copie;
-    }
-    trouver_export(&ctx.racine)
+/// Ou l'import copie les pieces qu'il reprend de l'ancien logiciel, les DSN deposees comprises (`historique/bulletins/`).
+pub(crate) fn pieces_importees(ctx: &Contexte) -> std::path::PathBuf {
+    ctx.racine.join("historique").join("bulletins")
 }
 
 /// Les fichiers (et dossiers) dont le nom finit par
@@ -638,7 +606,7 @@ fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
     let jeton = format!(",'{}'", valeur_en_texte(valeur));
     let prefixe = "S20.G00.05.005,";
     let (mut fichiers, mut mois) = (0, Vec::<String>::new());
-    for dossier in [declarations_coolpaie(ctx).join("DSN"), ctx.racine.join("sorties")] {
+    for dossier in [pieces_importees(ctx), ctx.racine.join("sorties")] {
         if !dossier.exists() {
             continue;
         }

@@ -185,7 +185,7 @@ fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Ech
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let ctx = &cadre.ctx;
     if args.drapeau("amorcer") {
-        let export = crate::routes::fiches::declarations_coolpaie(ctx).join("DSN");
+        let export = crate::routes::fiches::pieces_importees(ctx);
         if !export.exists() {
             dire!("Dossier introuvable : {}", export.display());
             return Ok(1);

@@ -1,10 +1,10 @@
-//! Les routes de l'import d'un export CoolPaie : ce qu'il ferait, rien d'ecrit (`importation-apercu`), ou en est la
-//! boite aux lettres (`importation-etat`), l'import lui-meme (`importer`, `import/ecrite.rs`) et la nature d'un
+//! Les routes de l'import du passe d'une compagnie : ce qu'il ferait, rien d'ecrit (`importation-apercu`), ou en est
+//! la boite aux lettres (`importation-etat`), l'import lui-meme (`importer`, `import/ecrite.rs`) et la nature d'un
 //! contrat importe (`importation-nature`).
 //!
-//! `importation-apercu` lit l'export (DSN et AEM) par `import/dsn_aem.rs`. `{"dossier": ...}` : la boite aux lettres
-//! `import/` entiere (`import::bulletins`) : le tri, les DSN et AEM qu'il trouve passees par `apercu_lu` (le meme
-//! code que pour l'export), puis les bulletins de paie.
+//! `importation-apercu` lit la boite aux lettres `import/` entiere (`{"dossier": ...}` en nomme une autre ;
+//! `import::bulletins`) : le tri, les DSN et AEM qu'il trouve (`import/dsn_aem.rs`, par `apercu_lu`), puis
+//! les bulletins de paie.
 //!
 //! `contrats_nouveaux` : un contrat atteste que l'historique (les engagements importes) porte deja
 //! -- meme salarie, memes dates, meme objet, memes heures, cachets, jours et meme brut (`str`) -- n'est
@@ -33,18 +33,9 @@ pub const ECRITURES: &[&str] = &["importer", crate::import::nature::ROUTE];
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        // `{"dossier": ...}` (vide : `import/` de la compagnie) : la boite aux lettres entiere, bulletins compris
-        // (`import::bulletins`) ; sans `dossier`, l'export de CoolPaie.
-        "importation-apercu" if charge.get("dossier").is_some() => {
-            if charge.get("export").is_some_and(vrai) {
-                return Err(erreur("ErreurOperation", "L'apercu lit un export (`export`) ou un dossier (`dossier`), pas les deux."));
-            }
-            Ok(Value::Object(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse))
-        }
-        "importation-apercu" => {
-            let export = export_de(ctx, charge)?;
-            Ok(Value::Object(apercu_importation(ctx, &export, ctx.aujourdhui)?.reponse))
-        }
+        // `{"dossier": ...}` (vide ou absent : `import/` de la compagnie) : la boite aux lettres entiere, bulletins
+        // compris (`import::bulletins`).
+        "importation-apercu" => Ok(Value::Object(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse)),
         "importation-etat" => etat_importation(&ctx.racine),
         "importer" => crate::import::ecrite::importer(ctx, charge),
         // La nature des contrats repris qu'aucun bulletin ne dit.
@@ -76,23 +67,6 @@ pub(crate) fn dossier_import(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
 pub(crate) fn dossier_de_travail() -> PathBuf {
     let marque = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     std::env::temp_dir().join(format!("puppetpaie-tri-{}-{}", std::process::id(), marque))
-}
-
-/// Le dossier de CoolPaie, remonte de dossier en dossier.
-pub(crate) fn trouver_export(racine: &Path) -> PathBuf {
-    let parent = racine.parent();
-    let grand = parent.and_then(Path::parent);
-    for base in [Some(racine), parent, grand].into_iter().flatten() {
-        let p = base.join("export");
-        if p.is_dir() {
-            return p;
-        }
-    }
-    let copie = racine.join("export-coolpaie");
-    if copie.is_dir() {
-        return copie;
-    }
-    racine.join("export")
 }
 
 /// `brut(valeur)` : un dictionnaire perd ses cles qui commencent par `_`.
@@ -184,18 +158,6 @@ fn fiche_entreprise(lecture: &dsn_aem::LectureDsn) -> R<Map<String, Value>> {
     Ok(e)
 }
 
-/// Le dossier de l'export demandé : `charge.export`, ou celui qu'on trouve a cote des donnees.
-pub(crate) fn export_de(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
-    let export_v = charge.get("export").filter(|v| vrai(v));
-    Ok(match export_v {
-        None => trouver_export(&ctx.racine),
-        Some(Value::String(s)) => PathBuf::from(crate::routes::depots::normaliser(s)),
-        Some(autre) => {
-            return Err(erreur("TypeError", format!("expected str, bytes or os.PathLike object, not {}", nom_type(autre))));
-        }
-    })
-}
-
 /// Une fiche que l'import creerait : ou elle va dans la reponse, et ce qu'elle porte (tel quel, les cles
 /// `_vu_dans` comprises, que la reponse ne montre pas).
 pub(crate) struct ACreer {
@@ -217,59 +179,6 @@ pub(crate) struct Apercu {
     /// Les contrats que les bulletins attestent (`import::bulletins`), contrats d'engagements importes
     /// pretes a ecrire, chacune avec le NIR qui la rattache (`salarie` vaut `<a creer>` tant que la fiche n'existe pas).
     pub(crate) engagements_bulletins: Vec<(String, Value)>,
-    pub(crate) source: String,
-}
-
-/// `apercu_importation(ctx, dossier, aujourdhui)`.
-///
-/// UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE N'EST PAS LUE : `dsn_aem::garder_export` les ecarte devant le
-/// Siren de la compagnie (`dsn_aem::siren_de_reference`, le meme que pour les bulletins) ; l'apercu lit alors une
-/// copie de l'export sans elles (un dossier de travail, efface avant de rendre), et chacune est un avertissement.
-pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: socle::date::Jour) -> R<Apercu> {
-    let export: PathBuf = export.to_path_buf();
-    let (dsn, aem) = dsn_aem::dossiers(&export);
-    if dsn.is_none() && aem.is_none() {
-        return Err(erreur(
-            "ErreurOperation",
-            format!(
-                "Aucune DSN ni AEM sous {}. Le dossier attendu est l'export des déclarations d'avant, avec ses sous-dossiers `DSN/` et `AEM_EDI/`.",
-                export.display()
-            ),
-        ));
-    }
-    let garde = dsn_aem::garder_export(&ctx.entreprise, dsn.as_deref(), aem.as_deref());
-    let source = export.display().to_string();
-    let mut ap = if garde.ecartes.is_empty() {
-        apercu_lu(ctx, &source, dsn.as_deref(), aem.as_deref(), aujourdhui, &HashSet::new())?
-    } else {
-        let travail = dossier_de_travail();
-        let rendu = (|| -> R<Apercu> {
-            let ecartes: HashSet<&PathBuf> = garde.ecartes.iter().map(|(f, _)| f).collect();
-            let mut dossiers: [Option<PathBuf>; 2] = [None, None];
-            for (k, (sous, fichiers)) in [
-                ("DSN", dsn.as_deref().map(dsn_aem::fichiers_dsn).unwrap_or_default()),
-                ("AEM_EDI", aem.as_deref().map(dsn_aem::fichiers_aem).unwrap_or_default()),
-            ]
-            .into_iter()
-            .enumerate()
-            {
-                let d = travail.join(sous);
-                std::fs::create_dir_all(&d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
-                for f in fichiers.iter().filter(|f| !ecartes.contains(f)) {
-                    let nom = f.file_name().unwrap_or_default();
-                    std::fs::copy(f, d.join(nom)).map_err(|e| erreur("OSError", format!("{} : {}", f.display(), e)))?;
-                }
-                dossiers[k] = Some(d);
-            }
-            apercu_lu(ctx, &source, dossiers[0].as_deref(), dossiers[1].as_deref(), aujourdhui, &HashSet::new())
-        })();
-        let _ = std::fs::remove_dir_all(&travail);
-        rendu?
-    };
-    if let Some(Value::Array(a)) = ap.reponse.get_mut("avertissements") {
-        a.extend(garde.avertissements(true, true).into_iter().map(Value::String));
-    }
-    Ok(ap)
 }
 
 /// LE NOM QUE LA PERSONNE A DONNE A LA COMPAGNIE (« Ajouter une compagnie ») reste le sien : la fiche que l'import cree
@@ -586,7 +495,7 @@ pub(crate) fn apercu_lu(
     }) else {
         unreachable!("un objet")
     };
-    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, engagements_bulletins: Vec::new(), source: source.to_string() })
+    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, engagements_bulletins: Vec::new() })
 }
 
 /// `int(x)` d'une valeur JSON : un entier, un reel, un texte qui se lit comme un entier.

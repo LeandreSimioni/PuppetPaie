@@ -1,20 +1,16 @@
 //! `importer` : ecrit ce que `importation-apercu` annonce.
 //!
-//! Dans l'ordre : la COPIE de l'`export/` de CoolPaie dans `historique/coolpaie/` (rien ne s'ecrase) ; l'apercu
-//! relu DANS la copie ; l'alerte CASC-SVP (`alerte_apres_import`) ; les fiches a creer (entreprise, salaries,
-//! spectacles), ecrites comme celles de l'ecran (`crate::routes::fiches::ecrire_fiche`, `forcer`) ; les ENGAGEMENTS
-//! IMPORTES (`engagement::importe`), chacun dans `engagements/AAAA-MM.json`, le fichier du mois ou il commence : le
-//! contrat qu'une AEM ou un bulletin atteste, et ce qui a ete verse, mois par mois (la DSN deposee, completee par le
-//! bulletin). Un import se rejoue sans dommage. La reponse est celle de l'apercu, completee de ce qui a ete ecrit
-//! (`ecrit`, `fichiers`, `copie`).
-//!
-//! `{"dossier": ...}` : la boite aux lettres `import/` entiere, comme l'apercu (`import::bulletins`). Ce qui est
-//! repris (DSN, AEM, PDF dont une page au moins est reprise) est COPIE dans `historique/bulletins/`, sous le nom de sa
-//! copie (`<empreinte>.<pdf|dsn|txt>` : rien de personnel ; `import::bulletins::nom_copie`) -- rien ne s'ecrase ;
-//! l'apercu est relu DANS ces copies, et c'est lui qui s'ecrit. La reponse garde le compte rendu (`tri`) du dossier lu,
-//! pour l'ecran ; rien n'en part (l'incident est `import::incident`, sur le clic de la personne). Les pieces
-//! copiees restent sous `historique/` : le dossier du salarie montre les pages des bulletins, l'alerte CASC-SVP relit
-//! les DSN.
+//! `{"dossier": ...}` : la boite aux lettres `import/` entiere, comme l'apercu (`import::bulletins`). Dans l'ordre : ce
+//! qui est repris (DSN, AEM, PDF dont une page au moins est reprise) est COPIE dans `historique/bulletins/`, sous le nom
+//! de sa copie (`<empreinte>.<pdf|dsn|txt>` : rien de personnel ; `import::bulletins::nom_copie`) -- rien ne s'ecrase ;
+//! l'apercu est relu DANS ces copies, et c'est lui qui s'ecrit ; l'alerte CASC-SVP (`alerte_apres_import`) ; les fiches
+//! a creer (entreprise, salaries, spectacles), ecrites comme celles de l'ecran (`crate::routes::fiches::ecrire_fiche`,
+//! `forcer`) ; les ENGAGEMENTS IMPORTES (`engagement::importe`), chacun dans `engagements/AAAA-MM.json`, le fichier du
+//! mois ou il commence : le contrat qu'une AEM ou un bulletin atteste, et ce qui a ete verse, mois par mois (la DSN
+//! deposee, completee par le bulletin). Un import se rejoue sans dommage. La reponse est celle de l'apercu, completee de
+//! ce qui a ete ecrit (`ecrit`, `fichiers`, `copie`) ; elle garde le compte rendu (`tri`) du dossier lu, pour l'ecran ;
+//! rien n'en part (l'incident est `import::incident`, sur le clic de la personne). Les pieces copiees restent sous
+//! `historique/` : le dossier du salarie montre les pages des bulletins, l'alerte CASC-SVP relit les DSN.
 //!
 //! UNE PAIE, DEUX SOURCES, UNE LIGNE (les deux chemins) : une ligne de DSN qui arrive sur une ligne que des bulletins
 //! ont deja completee garde ce que le bulletin a ecrit (le bulletin fait foi) ; une ligne qu'un bulletin seul declare
@@ -33,7 +29,6 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::Decimal;
 use socle::echec::Echec;
-use crate::routes::import::{apercu_importation, export_de};
 
 type R<T> = Result<T, Echec>;
 
@@ -73,116 +68,6 @@ fn sans_prives(v: &Value) -> Value {
     }
 }
 
-// ------------------------------------------------------------------ la copie
-
-/// `Path.resolve()` : absolu, liens suivis, meme si le chemin n'existe pas.
-fn resoudre(p: &Path) -> PathBuf {
-    if let Ok(c) = std::fs::canonicalize(p) {
-        return c;
-    }
-    let absolu = if p.is_absolute() { p.to_path_buf() } else { std::env::current_dir().unwrap_or_default().join(p) };
-    match (absolu.parent(), absolu.file_name()) {
-        (Some(parent), Some(nom)) => resoudre(parent).join(nom),
-        _ => absolu,
-    }
-}
-
-/// `sorted(d.rglob("*"))`, les fichiers seulement.
-fn fichiers_sous(d: &Path) -> Vec<PathBuf> {
-    fn marcher(d: &Path, out: &mut Vec<PathBuf>) {
-        let Ok(rd) = std::fs::read_dir(d) else { return };
-        for e in rd.flatten() {
-            let p = e.path();
-            if p.is_dir() {
-                marcher(&p, out);
-            } else if p.is_file() {
-                out.push(p);
-            }
-        }
-    }
-    let mut out = Vec::new();
-    marcher(d, &mut out);
-    out.sort();
-    out
-}
-
-fn dossier_copie(ctx: &Contexte) -> PathBuf {
-    ctx.racine.join("historique").join("coolpaie")
-}
-
-/// `copier_export` : copie l'`export/` de CoolPaie dans `historique/coolpaie/` -- les DSN, les AEM, et les PDF qu'il
-/// a ecrits. RIEN NE S'ECRASE : un fichier deja copie et identique est laisse ; un fichier du meme nom et d'un
-/// autre contenu est laisse aussi, et SIGNALE.
-fn copier_export(ctx: &Contexte, export: &Path, ecartes: &[PathBuf]) -> R<Value> {
-    let copie = dossier_copie(ctx);
-    let (rc, re) = (resoudre(&copie), resoudre(export));
-    if re == rc || re.ancestors().skip(1).any(|a| a == rc) {
-        return Ok(json!({"copies": 0, "identiques": 0, "differents": [], "dossier": copie.display().to_string()}));
-    }
-    let (dsn, aem) = crate::import::dsn_aem::dossiers(export);
-    // `ecartes` : les DSN et les AEM d'une autre entreprise, qui ne se copient pas.
-    let mut paires: Vec<(PathBuf, PathBuf)> = Vec::new();
-    for (d, nom) in [(&dsn, "DSN"), (&aem, "AEM_EDI")] {
-        if let Some(d) = d {
-            for f in fichiers_sous(d).into_iter().filter(|f| !ecartes.contains(f)) {
-                let rel = Path::new(nom).join(f.strip_prefix(d).unwrap_or(&f));
-                paires.push((f, rel));
-            }
-        }
-    }
-    if dsn.as_deref() != Some(export) && aem.as_deref() != Some(export) {
-        let mut pdfs: Vec<PathBuf> = std::fs::read_dir(export)
-            .map_err(|e| en_os(&e, export))?
-            .flatten()
-            .map(|e| e.path())
-            .filter(|p| p.is_file() && p.file_name().is_some_and(|n| n.to_string_lossy().ends_with(".pdf")))
-            .collect();
-        pdfs.sort();
-        for f in pdfs {
-            let rel = PathBuf::from(f.file_name().unwrap_or_default());
-            paires.push((f, rel));
-        }
-        let mut dossiers: Vec<PathBuf> = std::fs::read_dir(export).map_err(|e| en_os(&e, export))?.flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect();
-        dossiers.sort();
-        for d in dossiers {
-            if Some(&d) == dsn.as_ref() || Some(&d) == aem.as_ref() || d.file_name().is_some_and(|n| n == "TEMP") {
-                continue;
-            }
-            for f in fichiers_sous(&d) {
-                let rel = f.strip_prefix(export).unwrap_or(&f).to_path_buf();
-                paires.push((f, rel));
-            }
-        }
-    }
-    let (mut copies, mut identiques) = (0usize, 0usize);
-    let mut differents: Vec<String> = Vec::new();
-    for (source, rel) in paires {
-        let cible = copie.join(&rel);
-        if cible.exists() {
-            let a = std::fs::read(&source).map_err(|e| en_os(&e, &source))?;
-            let b = std::fs::read(&cible).map_err(|e| en_os(&e, &cible))?;
-            if a == b {
-                identiques += 1;
-            } else {
-                differents.push(rel.to_string_lossy().replace('\\', "/"));
-            }
-            continue;
-        }
-        if let Some(parent) = cible.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| en_os(&e, parent))?;
-        }
-        // `shutil.copy2` : le contenu, les droits et la date de modification.
-        std::fs::copy(&source, &cible).map_err(|e| en_os(&e, &source))?;
-        if let Ok(m) = std::fs::metadata(&source).and_then(|m| m.modified()) {
-            if let Ok(f) = std::fs::OpenOptions::new().write(true).open(&cible) {
-                let _ = f.set_modified(m);
-            }
-        }
-        copies += 1;
-    }
-    Ok(json!({"copies": copies, "identiques": identiques, "differents": differents, "dossier": copie.display().to_string()}))
-}
-
 // ------------------------------------------------------------------ l'alerte CASC-SVP
 
 /// Un montant de l'alerte CASC-SVP : `1 234,50 €`.
@@ -214,7 +99,7 @@ fn libelle_casc(m: &str) -> R<String> {
 }
 
 /// La DSN qu'un mois importe a deposee hors de PuppetPaie : le fichier que l'import a retenu pour ce mois (la paie
-/// versee d'un engagement importe), sous `historique/coolpaie/DSN/` ou dans le dossier d'ou il a ete repris. `None` : un
+/// versee d'un engagement importe), sous `historique/bulletins/` ou dans le dossier d'ou il a ete repris. `None` : un
 /// mois que l'import n'a pas retenu ; un fichier retenu introuvable refuse.
 pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>, String> {
     let lignes: Vec<Value> = engagement::importe::paies_lues(&ctx.racine)?
@@ -227,14 +112,8 @@ pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>
         Some(v) if vrai(v) => PathBuf::from(valeur_en_texte(v)),
         _ => ctx.racine.clone(),
     };
-    for d in [
-        ctx.racine.join("historique").join("coolpaie").join("DSN"),
-        ctx.racine.join("historique").join("bulletins"),
-        ctx.racine.join("export-coolpaie").join("DSN"),
-        ctx.racine.join("export-coolpaie"),
-        source.join("DSN"),
-        source.clone(),
-    ] {
+    // La copie que l'import a faite (le dossier de la compagnie, ou qu'il soit), puis le dossier d'ou la paie a ete lue.
+    for d in [dossier_bulletins(ctx), source] {
         if d.join(&nom).exists() {
             return Ok(Some(d.join(&nom)));
         }
@@ -754,60 +633,9 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
 
 // ------------------------------------------------------------------ la route
 
-/// `importer` : `{"export"?}`, ou `{"dossier": ...}` (la boite aux lettres `import/` ; vide : celle de la compagnie).
+/// `importer` : `{"dossier": ...}`, la boite aux lettres `import/` (vide ou absent : celle de la compagnie).
 pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
-    if charge.get("dossier").is_some() {
-        if charge.get("export").is_some_and(vrai) {
-            return Err(erreur("ErreurOperation", "L'import lit un export (`export`) ou un dossier (`dossier`), pas les deux."));
-        }
-        return importer_dossier(ctx, charge);
-    }
-    let aujourdhui = ctx.date;
-    let source = export_de(ctx, charge)?;
-    let (dsn, aem) = crate::import::dsn_aem::dossiers(&source);
-    if dsn.is_none() && aem.is_none() {
-        // L'apercu leve, et dit pourquoi.
-        apercu_importation(ctx, &source, aujourdhui)?;
-    }
-    // UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE ne se copie pas, donc ne se lit pas : la relecture ne la voit
-    // plus, l'avertissement vient d'ici.
-    let garde = crate::import::dsn_aem::garder_export(&ctx.entreprise, dsn.as_deref(), aem.as_deref());
-    let ecartes: Vec<PathBuf> = garde.ecartes.iter().map(|(f, _)| f.clone()).collect();
-    let pieces = dsn.as_deref().map_or(0, |d| crate::import::dsn_aem::fichiers_dsn(d).len())
-        + aem.as_deref().map_or(0, |d| crate::import::dsn_aem::fichiers_aem(d).len());
-    if !ecartes.is_empty() && ecartes.len() >= pieces {
-        // Rien de la compagnie dans cet export : rien ne s'ecrit, pas meme la copie.
-        return Err(erreur(
-            "ErreurOperation",
-            format!("Aucune DSN ni AEM de la compagnie sous {} : {}", source.display(), garde.avertissements(true, false).join(" ; ")),
-        ));
-    }
-    // D'ABORD LA COPIE, ENSUITE LA LECTURE : tout ce qui suit se lit dans `historique/coolpaie/`.
-    let copie = copier_export(ctx, &source, &ecartes)?;
-    let frais_avant = Contexte::nouveau(&ctx.racine, None).map_err(Echec::from)?;
-    let mut imp = apercu_importation(&frais_avant, &dossier_copie(ctx), aujourdhui)?;
-    let mut reponse = Value::Object(std::mem::take(&mut imp.reponse));
-    let mut avertissements: Vec<Value> = reponse["avertissements"].as_array().cloned().unwrap_or_default();
-    avertissements.extend(garde.avertissements(true, false).into_iter().map(Value::String));
-    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
-    if !differents.is_empty() {
-        avertissements.push(json!(avertissement_differents(&differents, "l'export")));
-    }
-    if let Some(alerte) = alerte_apres_import(ctx)? {
-        avertissements.push(json!(alerte));
-    }
-    let note = json!(format!("Repris de l'export des declarations d'avant le {}", jj_mm_aaaa(&aujourdhui)));
-    let e = ecrire(ctx, &imp, &mut reponse, &note, &imp.source)?;
-    avertissements.extend(e.avertissements.iter().map(|a| json!(a)));
-    reponse["avertissements"] = Value::Array(avertissements);
-    reponse["contrats_nouveaux"] = json!(e.contrats_aem);
-    reponse["rien_a_faire"] = json!(e.rien());
-    reponse["ecrit"] = json!(true);
-    reponse["fichiers"] = Value::Array(e.fichiers);
-    reponse["copie"] = copie;
-    reponse["depots_repris"] = json!(depots_attestes_au_journal(ctx, charge)?);
-    rapporter_les_ecarts(ctx);
-    Ok(reponse)
+    importer_dossier(ctx, charge)
 }
 
 /// LES MOIS IMPORTES SONT DECLARES S'ILS L'ONT ETE : les depots DSN que les retours deja releves attestent
