@@ -1118,11 +1118,11 @@ fn sexe(fiche: &Value) -> String {
 
 // ------------------------------------------- le contrat qui deborde du mois
 
-/// `libelle_mois` : '2026-10' -> 'octobre 2026' (sans accent, comme l'ecrivent les phrases et les documents qui
-/// l'appellent). Ses appelants ecrivent une phrase et ne refusent pas pour le mois : un mois illisible ou hors 01-12
+/// `libelle_mois` : '2026-12' -> 'décembre 2026', le mois en toutes lettres, avec ses accents, des phrases et des documents
+/// qui l'appellent. Ses appelants ecrivent une phrase et ne refusent pas pour le mois : un mois illisible ou hors 01-12
 /// s'ecrit tel quel (« 2026-00 »), jamais sous le nom de janvier.
 pub fn libelle_mois(mois: &str) -> String {
-    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Minuscule)
+    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
 }
 
 /// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`

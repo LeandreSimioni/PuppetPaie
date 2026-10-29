@@ -228,13 +228,18 @@ fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, V
 }
 
 /// Un depart en mots, sans sa date : « le contrat », « l'avenant n° 1 », « la DPAE », « les documents de novembre 2026 ».
+/// Une DSN se nomme par le mois de la DSN qui est partie : la correction d'un mois passe portee par la DSN d'un mois
+/// suivant (`Depart::par`) est « la DSN de décembre 2026 (correction de novembre 2026) ».
 pub(crate) fn quoi_du_depart(d: &Depart) -> String {
     match (d.envoi, d.mois.as_deref()) {
         (Envoi::Contrat, _) if d.avenant.is_some() => format!("l'avenant n° {}", d.avenant.as_deref().unwrap_or_default()),
         (Envoi::Contrat, _) => "le contrat".to_string(),
         (Envoi::Dpae, _) => "la DPAE".to_string(),
         (Envoi::Documents, Some(m)) => format!("les documents de {}", crate::libelle_mois(m)),
-        (Envoi::Dsn, Some(m)) => format!("la DSN de {}", crate::libelle_mois(m)),
+        (Envoi::Dsn, Some(m)) => match d.par.as_deref() {
+            Some(p) => format!("la DSN de {} (correction de {})", crate::libelle_mois(p), crate::libelle_mois(m)),
+            None => format!("la DSN de {}", crate::libelle_mois(m)),
+        },
         (Envoi::Signalement, _) => "un signalement".to_string(),
         (_, None) => "un envoi".to_string(),
     }
