@@ -263,6 +263,12 @@ impl Objet {
             };
         }
         if mois > self.fichier.as_str() && !self.mensuel() {
+            // Un contrat d'usage qui ne dit pas son debut commence a son premier jour joue, celui de son premier mois :
+            // les mois suivants le declarent (S21.G00.40.001) et ne le prennent pas pour une embauche.
+            let debut = crate::debut_brut(&Value::Object(premiere.clone()));
+            if !v.contains_key("debut") && !debut.is_empty() {
+                v.insert("debut".into(), Value::String(debut));
+            }
             v.insert("jours_contrat".into(), Value::from(crate::jours_du_contrat(&Value::Object(premiere)) as i64));
         }
         Ok(Some(v))
