@@ -2080,8 +2080,17 @@ fn saisie_recue(ctx: &Contexte, charge: &Value) -> R<Value> {
     match charge.get("saisie") {
         None => Err(erreur("KeyError", socle::fichiers::absent("saisie"))),
         Some(d) if d.is_object() => Ok(d.clone()),
+        // La saisie enregistree, telle que l'ecran la montre (`vue_a_l_ecran`) : ce qui manque a un engagement se
+        // retrouve en le calculant.
         Some(Value::String(s)) => {
-            let mut v = engagement::saisie_du_mois(&ctx.racine, s).map_err(|m| erreur("FileNotFoundError", m))?;
+            let mut v = engagement::stock::vue_a_l_ecran(&ctx.racine, s)
+                .map_err(|m| erreur("FileNotFoundError", m))?
+                .ok_or_else(|| erreur("FileNotFoundError", format!("{} : aucun engagement ne touche ce mois ({}/).", s, engagement::stock::DOSSIER)))?;
+            for e in v.get_mut("engagements").and_then(Value::as_array_mut).into_iter().flatten() {
+                if let Some(o) = e.as_object_mut() {
+                    o.remove(engagement::stock::A_COMPLETER);
+                }
+            }
             v["mois"] = Value::String(s.clone());
             Ok(v)
         }

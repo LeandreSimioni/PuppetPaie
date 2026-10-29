@@ -590,6 +590,8 @@ pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
         "mot_de_passe_pose": mot_de_passe_pose,
         "cle_poste": cle_poste,
         "chemin_cle": coffre.chemin_cle().display().to_string(),
+        // Ce que montrent le filet et le compte Google d'une compagnie fictive, ou rien ne se branche : une information.
+        "fictive": {"filet": super::pastille("information", "désactivé"), "google": super::pastille("information", "non lié")},
         // La pastille du mot de passe du logiciel (rattache a l'administrateur, la page dit a combien de compagnies).
         "pastille_mot_de_passe": if simule {
             super::pastille("information", "simulé")

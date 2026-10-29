@@ -124,8 +124,8 @@ function peindreDus(mois) {
     if (f.du) rangs.push({ f, o });
   });
   if (!rangs.length) { cible.innerHTML = ""; return; }
-  // Le plus pressé d'abord : ce qui est en retard, puis par date butoir.
-  const rang = (x) => (x.o && x.o.etat === "en_retard" ? "0" : "1") + ((x.o && x.o.butoir) || "9");
+  // Le plus pressé d'abord (`priorite`, que le moteur donne), puis par date butoir.
+  const rang = (x) => String((x.o && x.o.priorite) ?? 1) + ((x.o && x.o.butoir) || "9");
   rangs.sort((x, y) => rang(x).localeCompare(rang(y)));
   cible.innerHTML = `<h2>Ce qui est dû</h2>
     ${rangs.map((x, k) => (x.a ? rangObligation(x.a, x.o, k) : rangFin(x.f, k))).join("")}`;

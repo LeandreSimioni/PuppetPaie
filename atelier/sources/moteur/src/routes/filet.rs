@@ -102,15 +102,24 @@ fn poser_les_pastilles(nom: &str, v: &mut Value) {
                 g.insert("pastille".into(), p);
             }
         }
-        "signalements" => {
+        "signalements" | "signalement-envoyer" => {
             for s in o.get_mut("signalements").and_then(Value::as_array_mut).into_iter().flatten() {
                 let Some(s) = s.as_object_mut() else { continue };
-                let p = match s.get("etat").and_then(Value::as_str) {
+                let etat = s.get("etat").and_then(Value::as_str).map(String::from);
+                let p = match etat.as_deref() {
                     Some("en-cours") => super::pastille("information", "en cours d'envoi"),
                     Some("pas-parti") => super::pastille("information", "pas encore parti"),
                     _ => Value::Null,
                 };
                 s.insert("pastille".into(), p);
+                // Son depart, que la boite du message dit juste apres l'envoi : PuppetPaie renvoie de lui-meme ce qui
+                // n'est pas parti, rien n'est a faire (une information).
+                let depart = match etat.as_deref() {
+                    Some("en-cours") => super::pastille("information", "Envoi en cours…"),
+                    Some("pas-parti") => super::pastille("information", "Pas encore parti"),
+                    _ => super::pastille("fait", "Message envoyé."),
+                };
+                s.insert("depart".into(), depart);
             }
         }
         _ => {}

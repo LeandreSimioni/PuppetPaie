@@ -34,12 +34,11 @@ function peindreEtatGlobal() {
   // d'objet qui part en DSN. Un mois porte d'ailleurs plusieurs spectacles :
   // c'est l'engagement qui dit le sien, pas le mois.
   const c = ETAT.configuration;
-  const err = [c.entreprise, ...c.salaries, ...c.spectacles]
-    .reduce((n, f) => n + f.anomalies.filter((a) => a.gravite === "erreur" && !aRemplir(a)).length, 0);
   const annees = Object.entries(c.compteurs).filter(([k]) => /^\d{4}$/.test(k));
   const compteurs = annees.slice(-1)[0];
+  // Les erreurs de configuration, comptées par le moteur (`configuration`, `erreurs`).
   const html = `
-    ${err ? `<span class="pastille erreur">${err} erreur(s) de configuration</span>` : ""}
+    ${pastilleDeLEtat(c.erreurs)}
     ${compteurs ? `<div>compteurs ${echapper(compteurs[0])} :
        bulletin <b>${compteurs[1].bulletin ?? "?"}</b> ·
        AEM <b>${compteurs[1].aem ?? "?"}</b> ·

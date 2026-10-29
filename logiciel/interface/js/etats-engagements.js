@@ -23,8 +23,9 @@ function identitesDuBloc(div) {
   // jour de l'engagement est le plus petit de TOUTES ses lignes -- sauf si le
   // contrat dit son début (un contrat en cours depuis octobre s'identifie
   // par le 12/10, pas par son premier cachet de novembre).
+  // Sans jour ni début, il n'a pas de premier jour : un engagement à compléter, que le moteur enregistre tel quel,
+  // se désigne par son salarié et ce début vide.
   const debut = debutDuBloc(div);
-  if (!debut) return [];
   return salariesDuBloc(div).map((salarie) => ({ salarie, debut }));
 }
 
@@ -67,7 +68,7 @@ const contratDe = (l) => ({ salarie: l.salarie, debut: l.debut,
 function bandeauEtats(ligne) {
   return `<div class="etats-actes">` + (ligne.carres || []).map((c, i) => {
     const clic = !!c.action;
-    const classe = c.etat === "en_attente" ? "en-attente" : (c.couleur || "gris");
+    const classe = c.coupee ? "en-attente" : (c.couleur || "gris");
     return `<span class="etat-acte ${classe}${clic ? " cliquable" : ""}"
         ${clic ? `data-carre="${i}" tabindex="0" role="button"` : ""}
         title="${echapper(c.phrase + (clic ? " — " + c.action.libelle : ""))}">

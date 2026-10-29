@@ -396,6 +396,8 @@ fn poser_l_etat(m: &mut Map<String, Value>, etat: &str) {
     m.insert("etat".into(), json!(etat));
     m.insert("du".into(), json!(du));
     m.insert("pastille".into(), crate::routes::pastille(couleur, mots));
+    // Le plus presse d'abord, la ou on le montre : ce qui est en retard, puis le reste (par date butoir).
+    m.insert("priorite".into(), json!(if etat == EN_RETARD { 0 } else { 1 }));
 }
 
 fn indetermine(mut m: Map<String, Value>, pourquoi: String) -> Value {

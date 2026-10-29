@@ -407,12 +407,22 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         .iter()
         .map(|(k, v)| fiche_verifiee("spectacle", Some(k), &avec_historique(v, ctx.spectacle_brut(k))?))
         .collect::<R<Vec<_>>>()?;
+    // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre : une erreur a corriger, que la
+    // compagnie peut corriger (orange) ; un champ obligatoire vide n'en est pas une, il reste a remplir.
+    let erreurs = std::iter::once(&entreprise)
+        .chain(salaries.iter())
+        .chain(spectacles.iter())
+        .flat_map(|f| f["anomalies"].as_array().cloned().unwrap_or_default())
+        .filter(|a| a["gravite"] == "erreur" && a["message"] != "obligatoire")
+        .count();
+    let erreurs = if erreurs > 0 { super::pastille("a_faire", &format!("{} erreur{} de configuration", erreurs, if erreurs > 1 { "s" } else { "" })) } else { Value::Null };
     let permanents = ctx.emploie_des_permanents();
     Ok(json!({
         "entreprise": entreprise,
         "salaries": salaries,
         "spectacles": spectacles,
         "compteurs": compteurs(&ctx.racine)?,
+        "erreurs": erreurs,
         "description": {
             "entreprise": champs::description("entreprise")?,
             "salarie": champs::description("salarie")?,
@@ -480,7 +490,7 @@ pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
 /// `bilan_des_mois` : chaque mois connu, du plus recent au plus ancien, avec ou
 /// en est sa DSN (en mots), s'il se corrige, et quelles SORTES de documents il
 /// a. L'etat de la DSN : « passee » (bilan OK), « refusee », « attente »,
-/// « a_deposer », « en_retard » ; la meme lecture que les
+/// « a_deposer », « a_venir » (avant son premier jour de depot), « en_retard » ; la meme lecture que les
 /// rappels : le journal des depots, et lui seul.
 fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]) -> R<Value> {
     let mut out = Vec::new();
@@ -521,8 +531,10 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
             sortes.insert(rang, "attestations AER");
         }
-        // Une DSN qui n'est pas partie est a deposer : elle se fabrique a son depot.
-        let etat = etat.unwrap_or("a_deposer");
+        // Une DSN qui n'est pas partie est a deposer : elle se fabrique a son depot. Avant son premier jour de depot (un
+        // mois avant l'echeance, `Echeance::premier_depot`), elle est a venir : rien a faire encore.
+        let a_venir = echeance.premier_depot().map_err(|m| erreur("ValueError", m))?.ordinal() > ctx.aujourdhui.ordinal();
+        let etat = etat.unwrap_or(if a_venir { "a_venir" } else { "a_deposer" });
         // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a deposer, refusee ou en
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
@@ -532,7 +544,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             // suivante (`import::mois::dsn_de_l_ancien_logiciel`).
             "importee" => crate::import::mois::dsn_de_l_ancien_logiciel(ctx, nom)?.is_some_and(|d| d["engagements"].as_u64().is_some_and(|n| n > 0)),
             "passee" => vrai(&m.etat_remplacement(nom, &Value::Null)?["a_envoyer"]),
-            "attente" => false,
+            "attente" | "a_venir" => false,
             _ => true,
         };
         // CE QUE LA PASTILLE DIT, et sa couleur (`routes::couleur_de_l_etat`) : une DSN qui attend son bilan, ou dont
@@ -544,6 +556,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             "en_retard" => ("orange", "DSN en retard"),
             "importee" => ("vert", "DSN déclarée avant PuppetPaie"),
             "sans_trace" => ("gris", "tenu avant PuppetPaie — sa DSN est celle de l'ancien logiciel"),
+            "a_venir" => ("gris", "DSN à venir"),
             _ => ("orange", "DSN à déposer"),
         };
         out.push(json!({

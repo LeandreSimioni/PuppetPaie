@@ -297,6 +297,8 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         "siren": a.champ("siren"), "salaries": a.salaries, "lignes": a.lignes,
         "pas_versements": a.pas_versements, "pas_bareme": a.pas_bareme,
         "ordres": ordres, "ordres_erreur": ordres_erreur,
+        // Un depot reel les declenche tous : a regarder (orange) ; joues, rien ne part (une information).
+        "couleur_ordres": crate::routes::couleur_de_l_etat(if crate::compagnie::bridage::branchement(&ctx.racine).joue() { "information" } else { "a_faire" }),
         "deja_depose": deja,
         "remplacement": remplacement,
         "recapitulatif": recapitulatif,

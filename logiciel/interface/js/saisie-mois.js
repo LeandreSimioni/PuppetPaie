@@ -893,7 +893,7 @@ function majAvisDsn(mois) {
   const d = !IMPORTE && MOIS_AFFICHE === mois ? DSN_DEPOSEE : null;
   avis.hidden = !d;
   if (!d) return;
-  avis.className = "encart " + (d.confirmer ? "attention" : "info");
+  avis.className = "encart " + (ENCART_DE_COULEUR[d.couleur] ?? "");
   avis.textContent = d.phrase;
 }
 

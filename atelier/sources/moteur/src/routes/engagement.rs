@@ -59,13 +59,13 @@ pub(super) fn maintenant() -> String {
 
 // ------------------------------------------------------------------ valider-engagement
 
-/// L'ENGAGEMENT DESIGNE AUQUEL IL MANQUE UN FAIT (`engagement::stock::A_COMPLETER`) : il n'est dans aucune lecture du
-/// mois, seulement a l'ecran. `None` si l'engagement designe n'est pas de ceux-la.
+/// L'ENGAGEMENT DESIGNE AUQUEL IL MANQUE UN FAIT (`engagement::stock::A_COMPLETER`), tel que l'ecran le montre (sa
+/// saisie, `Objet::a_l_ecran_tel_quel`). `None` si l'engagement designe n'est pas de ceux-la.
 fn incomplet_designe(ctx: &Contexte, charge: &Value) -> R<Option<engagement::stock::Objet>> {
     let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
     let objets = engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?;
     Ok(objets.into_iter().find(|o| {
-        let e = Value::Object(o.brut.clone());
+        let e = Value::Object(o.a_l_ecran_tel_quel().brut);
         o.a_completer().is_some()
             && engagement::cle_de_l_engagement(ctx, &e).as_deref() == Some(salarie)
             && engagement::debut_brut(&e) == debut
@@ -180,11 +180,17 @@ pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
 /// (`a_faire`, en phrases : la DPAE a annuler, la DSN d'un mois a corriger). Rien ne part de lui-meme.
 fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
-    // Un engagement auquel il manque un fait n'a jamais ete valide : rien n'est parti de lui, il s'efface.
+    // Un engagement auquel il manque un fait et qui n'a jamais ete valide : rien n'est parti de lui, il s'efface. Deja
+    // valide une fois, il se retire comme les autres, tel qu'il est ecrit.
+    let mut designe = charge.clone();
     if let Some(o) = incomplet_designe(ctx, charge)? {
-        engagement::stock::effacer(&ctx.racine, &o).map_err(Echec::from)?;
-        return Ok(json!({"retire": "supprime"}));
+        if o.jamais_valide() {
+            engagement::stock::effacer(&ctx.racine, &o).map_err(Echec::from)?;
+            return Ok(json!({"retire": "supprime"}));
+        }
+        designe["debut"] = json!(engagement::debut_brut(&Value::Object(o.brut.clone())));
     }
+    let charge = &designe;
     let (_, i) = engagement_designe(ctx, charge)?;
     if !booleen(charge, "non_actif", false) {
         return match engagement::etats::supprimer(ctx, mois, i) {

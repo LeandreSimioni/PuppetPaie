@@ -439,15 +439,16 @@ function vosMessages(liste) {
 let SG_ENVOI = null;
 function departDuMessage(s) {
   const deja = SG_ENVOI && SG_ENVOI.deja ? ` <span class="discret">Ce message était déjà enregistré : il ne part qu'une fois.</span>` : "";
-  if (!s || s.etat === "en-cours") {
+  // Où en est son départ : le moteur le dit (`depart`) ; tant qu'il ne l'a pas lu, l'envoi est en cours.
+  if (!s || !s.depart) {
     return `<b>Merci, votre message est enregistré.</b> <span class="sg-envoi">Envoi en cours…</span>${deja}`;
   }
-  if (s.etat === "pas-parti") {
-    return `<b>Merci, votre message est enregistré.</b> <span class="sg-envoi alerte">Pas encore parti</span>
-      — ${echapper(s.raison || "PuppetPaie le renverra de lui-même.")}${deja}`;
-  }
-  return `<span class="sg-envoi envoye">Message envoyé.</span> Merci ! La réponse de l'éditeur viendra ici,
+  if (s.depart.couleur === "vert") {
+    return `${pastilleDeLEtat(s.depart)} Merci ! La réponse de l'éditeur viendra ici,
     dans « Vos messages ».${deja}`;
+  }
+  return `<b>Merci, votre message est enregistré.</b> ${pastilleDeLEtat(s.depart)}${
+    s.etat === "pas-parti" ? ` — ${echapper(s.raison || "PuppetPaie le renverra de lui-même.")}` : ""}${deja}`;
 }
 
 /** Où en est un message (l'état vient du moteur, `problemes::signalements`). */

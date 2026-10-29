@@ -35,7 +35,7 @@ function ouvrirGeste(action, mois) {
 }
 
 /** La classe d'une case : la couleur que le moteur donne au groupe (`couleur`) ; une attente se dessine en deux moitiés. */
-const classeDeCase = (g) => g.etat === "en_attente" ? "en-attente" : (g.couleur || "gris");
+const classeDeCase = (g) => g.coupee ? "en-attente" : (g.couleur || "gris");
 
 /** Les colonnes déjà dessinées pour un mois : une colonne qui apparaît entre en glissant. */
 const COLONNES_VUES = new Map();
@@ -59,7 +59,7 @@ function dessinerCase(et, k, g, colonnes, neuves, gestes) {
   const quoi = `<span class="quoi">${g.compte_texte
     ? `<span class="compte">${echapper(g.compte_texte)}</span> ` : ""}${echapper(g.quoi || "")}</span>`;
   const limite = ech ? `<span class="ech">${echapper(ech)}</span>` : "";
-  const corps = g.etat === "en_attente" ? `
+  const corps = g.coupee ? `
       <span class="moitie faite"><span class="etape-rond">✓</span>${cote ? "" : `<b>${echapper(et.nom)}</b>`}</span>
       <span class="moitie attend"><span class="kase-texte">${quoi}${limite}</span></span>` : `
       <span class="etape-rond">${fini ? "✓" : k + 1}</span>
@@ -250,7 +250,7 @@ function corpsDsn(a) {
     <details class="replie">
       <summary>Ordres de télépaiement (${v.length}) — la conséquence de ce que
         la DSN déclare ; un dépôt réel les déclenche tous</summary>
-      <div class="encart ${enFictive() ? "info" : "attention"}">
+      <div class="encart ${ENCART_DE_COULEUR[a.couleur_ordres] ?? ""}">
       ${a.ordres_erreur ? `<p><b>${echapper(a.ordres_erreur)}</b></p>` : ""}
       ${v.length
         ? `<table class="ordres">
@@ -448,7 +448,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
         const l = r.ratees[r.ratees.length - 1];
         const anos = (l.retours || []).flatMap((x) => x.anomalies || []);
         const motif = anos.join(" ; ") || l.reponse || "motif non lu";
-        ecrire(`<div class="encart attention"><b>Le test est refusé</b>
+        ecrire(`<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}"><b>Le test est refusé</b>
           ${echapper(motif)}
           Le même refus attendrait le dépôt réel : c'est cela qu'il faut corriger.</div>`);
         libre();
@@ -557,14 +557,14 @@ function encartRepetition(r, quoi, a) {
   // testée, voulez-vous l'envoyer » — ou « elle est déjà envoyée en test,
   // on attend les retours, qui arrivent bientôt ».
   if (r.conforme && r.compte_rendu === "ok") {
-    return `<div class="encart bien">
+    return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
       <b>${cette} est testée — conforme. Voulez-vous l'envoyer ?</b>
       Testée le ${echapper(quand(r.conforme.quand))} : le même contenu est
       passé au bac à sable sans anomalie. ${enFictive() ? "L'envoi, simulé, est le bouton « Envoyer — simulé »." : "Le dépôt réel est le bouton « Envoyer le réel »."}
       ${certificatParPersonne(r.conforme)}</div>`;
   }
   if (r.conforme) {
-    return `<div class="encart">
+    return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
       <b>${cette} est en test — son compte rendu est attendu</b>
       Envoyée en test le ${echapper(quand(r.conforme.quand))}. ${enFictive() ? "L'envoi simulé se" : "Le dépôt réel se"}
       fait ici, une fois ce compte rendu revenu conforme.</div>`;
@@ -572,7 +572,7 @@ function encartRepetition(r, quoi, a) {
   // Jamais essayé : ce n'est pas une mise en garde, c'est l'étape suivante
   // (26/09/2026 : l'orange se garde pour ce qui demande de corriger).
   const rate = (r.ratees || []).length || (r.perimees || []).length;
-  return `<div class="encart ${rate ? "attention" : ""}">
+  return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
     <b>${rate ? "Pas de test valable pour ce contenu" : "D'abord, le dépôt de test"}</b>
     ${echapper(situationRepetition(r))} ${enFictive() ? "L'envoi simulé se fait une fois le" : "Le dépôt réel se fait une fois le"}
     test revenu conforme.</div>`;

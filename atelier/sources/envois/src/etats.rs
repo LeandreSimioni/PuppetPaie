@@ -1262,9 +1262,17 @@ pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R
         Some(c) if vrai(c) => compte_rendu_du_depot(c)?,
         _ => "",
     };
+    // LA COULEUR DE L'ENCART qui le dit (la charte des etats, `moteur::routes::couleur_de_l_etat`) : teste conforme, vert ;
+    // essaye et rate (ou un test d'un contenu d'avant), a corriger, orange ; en test, ou jamais essaye, une information.
+    let couleur = match conforme {
+        Some(_) if compte_rendu == "ok" => "vert",
+        Some(_) => "gris",
+        None if !ratees.is_empty() || !perimees.is_empty() => "orange",
+        None => "gris",
+    };
     Ok(json!({
         "empreinte": empreinte, "fichier": nom, "conforme": conforme, "compte_rendu": compte_rendu,
-        "ratees": ratees, "perimees": perimees,
+        "ratees": ratees, "perimees": perimees, "couleur": couleur,
     }))
 }
 

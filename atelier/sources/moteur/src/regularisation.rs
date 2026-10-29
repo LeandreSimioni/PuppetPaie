@@ -242,6 +242,17 @@ pub(crate) fn de_mois_en_clair(mois: &str) -> String {
 /// se declare dans la DSN qui porte (`dsn_qui_porte`). Se confirme seulement la modification d'un engagement de la
 /// saisie qu'une DSN partie ici a deja declare pour ce mois (`saisie_declaree`).
 pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
+    let mut r = ce_que_la_modification_fait(m, ctx, mois)?;
+    // La couleur de l'avis : une modification a confirmer, a regarder (orange) ; sinon une information.
+    if let Some(o) = r.as_object_mut() {
+        let confirmer = o.get("confirmer").is_some_and(vrai);
+        o.insert("couleur".into(), json!(crate::routes::couleur_de_l_etat(if confirmer { "a_faire" } else { "information" })));
+    }
+    Ok(r)
+}
+
+/// `modification_de_la_paie`, sans la couleur de son avis.
+fn ce_que_la_modification_fait(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(ctx, mois)? {
         let mut r = json!({"confirmer": false, "mois_courant": d["porteur"], "phrase": d["phrase"]});
         if saisie_declaree(ctx, mois)?.is_some() {

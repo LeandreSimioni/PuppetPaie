@@ -218,8 +218,8 @@ async function dessinerCoffre(cible) {
     cible.querySelectorAll("input, button:not([data-aller-fiche])").forEach((x) => {
       x.disabled = true;
     });
-    cible.querySelector(".k-filet-etat").innerHTML = `<span class="pastille">désactivé</span>`;
-    cible.querySelector(".k-google-etat").innerHTML = `<span class="pastille">non lié</span>`;
+    cible.querySelector(".k-filet-etat").innerHTML = pastilleDeLEtat(c.fictive.filet);
+    cible.querySelector(".k-google-etat").innerHTML = pastilleDeLEtat(c.fictive.google);
     cible.querySelectorAll("[data-aller-fiche]").forEach((b) => {
       b.onclick = () => document.querySelector(
         `.sous-onglets button[data-fiche="${b.dataset.allerFiche}"]`).click();
