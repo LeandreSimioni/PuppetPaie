@@ -1,6 +1,5 @@
 //! `moteur depot-dsn (FICHIER | AAAA-MM) (--test | --reel | --apercu) [--confirmer-mois AAAA-MM] [--force] [--sans-repetition MOTIF]
-//! [--environnement production|editeur] [--ordre N] [--fenetre]` : deposer une DSN sur net-entreprises (`moteur/commandes_dsn.py`,
-//! `cmd_depot_dsn`). La seule commande qui declare quelque chose avec `deposer-dpae`.
+//! [--environnement production|editeur] [--ordre N] [--fenetre]` : deposer une DSN sur net-entreprises. La seule commande qui declare quelque chose avec `deposer-dpae`.
 //! Un mois `AAAA-MM` a la place du fichier : la DSN du mois, fabriquee a son depot depuis ses engagements valides
 //! (`depart::fabriquer_dsn`).
 //!
@@ -23,10 +22,9 @@
 //! - dans une COMPAGNIE D'ESSAI (`essai.rs`), l'aperçu ne montre pas le SIREN : c'est celui d'une vraie compagnie, venu de
 //!   `PUPPETPAIE_COMPAGNIE`, qui ne s'affiche pas.
 //!
-//! `qui` = `ligne de commande`, comme le Python. Pas de `--json` (le Python n'en a pas ici).
+//! `qui` = `ligne de commande`. Pas de `--json`.
 //!
-//! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : `--reel --environnement editeur` y partait et etait note au journal comme un depot
-//! reel ; un fichier illisible autre qu'`OSError` ou une panne hors `ErreurApi` y donnaient une trace. Ici : une phrase.
+//! Un fichier illisible, une panne : une phrase.
 
 use serde_json::{json, Value};
 
@@ -219,7 +217,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     Ok(0)
 }
 
-/// Les erreurs d'un depot, comme le Python les rend : une preuve ou un refus du point de depot -> `Refus :` (2) ; une erreur metier ->
+/// Les erreurs d'un depot : une preuve ou un refus du point de depot -> `Refus :` (2) ; une erreur metier ->
 /// sa phrase (2) ; le reste -> `Echec du depot` (1).
 fn refus_du_depot(e: &Echec) -> i32 {
     let phrase = super::actes::phrase(e);

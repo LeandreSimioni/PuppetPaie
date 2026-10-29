@@ -3,14 +3,12 @@
 //! financeurs.
 //!
 //! Sans etat : la liste de ce qui existe (texte ou `--json`). Avec un etat : l'etat est calcule par le moteur
-//! (`crate::routes::archives::exporter_objet`, la route `exporter`) et, sauf `--apercu`, ECRIT dans `exports/` -- les memes fichiers que le
-//! Python. Le texte est rendu a partir de l'objet (le livre de paie, le tableau, la regularisation CASC-SVP), pas du JSON : le
-//! chemin ecrit y est entier, comme au Python. Rien n'est lu au coffre, rien ne part : pas de mot de passe.
+//! (`crate::routes::archives::exporter_objet`, la route `exporter`) et, sauf `--apercu`, ECRIT dans `exports/`. Le texte est rendu a partir de l'objet (le livre de paie, le tableau, la regularisation CASC-SVP), pas du JSON : le
+//! chemin ecrit y est entier. Rien n'est lu au coffre, rien ne part : pas de mot de passe.
 //!
 //! Sans `--format` ni `--logiciel`, les ecritures comptables suivent le logiciel retenu (`moteur compta-logiciel`) ; ailleurs, le CSV.
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : toute exception qui n'etait pas une `ErreurOperation` (un plan comptable abime,
-//! une saisie illisible) sortait en trace d'appels ; ici, un plantage propre (une ligne `Classe: phrase` sur la sortie d'erreur et au
+//! Une panne qui n'est pas une `ErreurOperation` (un plan comptable abime, une saisie illisible) : un plantage propre (une ligne `Classe: phrase` sur la sortie d'erreur et au
 //! journal des incidents, code 1), comme les autres commandes.
 //!
 //! POINT DOUTEUX : `--analytique` et `--sans-analytique` ensemble : argparse retient le dernier tape ; l'analyse des options ne

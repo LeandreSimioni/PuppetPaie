@@ -1,4 +1,4 @@
-//! L'analyse des arguments d'une commande, a la facon d'`argparse` (la ligne de commande Python, `moteur/cli.py`) :
+//! L'analyse des arguments d'une commande, a la facon d'`argparse` :
 //! options longues, abreviations non ambigues (`--arch` pour `--archives`), `--option=valeur`, positionnels
 //! facultatifs, choix fermes, entiers. Un refus d'analyse a le code 2 et la forme d'`argparse` :
 //! `usage: ...` puis `moteur COMMANDE: error: ...` sur la sortie d'erreur.
@@ -153,7 +153,7 @@ pub fn usage(spec: &Spec) -> String {
     u
 }
 
-/// `int(texte)` de Python pour un argument : espaces et signe permis.
+/// Un entier donne en argument : espaces au bord et signe permis.
 fn entier_de(t: &str) -> Option<i64> {
     t.trim().parse::<i64>().ok()
 }

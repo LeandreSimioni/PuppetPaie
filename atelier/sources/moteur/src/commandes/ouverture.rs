@@ -89,7 +89,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     let incidents = r.get("incidents").and_then(Value::as_array).map_or(0, Vec::len);
     if args.drapeau("json") {
         rendre(&enveloppe("ouverture", en_json(&r)));
-        // Le Python rend 0 toujours avec `--json`.
+        // Avec `--json`, le code est toujours 0.
         return 0;
     }
     dire_ouverture(&r);

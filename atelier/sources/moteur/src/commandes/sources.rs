@@ -1,9 +1,9 @@
 //! `moteur sources [--verifier] [--relever] [--json]` : d'ou viennent les donnees livrees, de quand elles datent, et -- avec
-//! `--verifier` -- si la source en ligne a bouge depuis qu'on l'a lue (`moteur/cli.py`, `cmd_sources`, retire au lot K ;
-//! le travail est dans `sources.rs` et `kali.rs`).
+//! `--verifier` -- si la source en ligne a bouge depuis qu'on l'a lue (le travail est dans
+//! `sources.rs` et `kali.rs`).
 //!
-//! UN OUTIL DE L'EDITEUR (Leandre, 11/10/2026 : lance avant chaque publication ; rien pour une compagnie, qui ne fait que
-//! recevoir la mise a jour signee). Il est dans le `moteur` livre, comme `moteur maj --publier`, parce que c'est ce
+//! UN OUTIL DE L'EDITEUR, lance avant chaque publication ; rien pour une compagnie, qui ne fait que recevoir la mise a
+//! jour signee. Il est dans le `moteur` livre, comme `moteur maj --publier`, parce que c'est ce
 //! programme-la que le poste de l'editeur fait tourner (il ne compile pas le Rust ; `moteur-atelier` n'est jamais livre),
 //! et il est refuse ailleurs que sur ce poste, de la meme facon que la publication (`maj::exiger_editeur` :
 //! le reglage de l'installation, `"editeur": true`, et jamais depuis une copie). CACHEE : elle n'apparait pas dans l'aide.

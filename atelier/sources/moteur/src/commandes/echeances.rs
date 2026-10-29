@@ -2,7 +2,7 @@
 //! Tout passe par les routes du moteur (`echeancier`, `rappels`) : la fenetre fait les memes appels, et un rappel lu ici
 //! est exactement celui qu'elle montre a l'ouverture.
 //!
-//! `echeancier --fait CLE` / `--defait CLE` (cocher une echeance, lot J2b) passe par la route `echeance-faite`.
+//! `echeancier --fait CLE` / `--defait CLE` (cocher une echeance) passe par la route `echeance-faite`.
 
 use serde_json::{json, Value};
 
@@ -28,8 +28,8 @@ fn marque(etat: &str) -> &'static str {
     }
 }
 
-/// `AAAA-MM-JJ` ou `AAAAMMJJ` (Python 3.11 et apres), avec les refus de `date(...)` quand la
-/// forme est bonne et la valeur impossible. (Les semaines ISO, `2027-W01-1`, ne sont pas portees : une forme illisible.)
+/// `AAAA-MM-JJ` ou `AAAAMMJJ`, refuse quand la forme est bonne et la valeur impossible. (Les semaines ISO, `2027-W01-1`,
+/// ne se lisent pas : une forme illisible.)
 fn jour_le(args: &Args) -> Result<Option<String>, Echec> {
     let Some(t) = args.texte("le") else { return Ok(None) };
     let b = t.as_bytes();
@@ -56,7 +56,7 @@ fn jour_le(args: &Args) -> Result<Option<String>, Echec> {
 }
 
 pub fn echeancier(cadre: &Cadre, args: &Args) -> i32 {
-    // `args.fait or args.defait` : une valeur vide ne coche rien (le Python passe alors a la liste).
+    // `--fait` ou `--defait` : une valeur vide ne coche rien (la commande rend alors la liste).
     let cle = args.texte("fait").filter(|t| !t.is_empty()).or(args.texte("defait").filter(|t| !t.is_empty()));
     if let Some(cle) = cle {
         return cocher(cadre, cle, args.texte("fait").is_some_and(|t| !t.is_empty()));
@@ -68,10 +68,10 @@ pub fn echeancier(cadre: &Cadre, args: &Args) -> i32 {
 }
 
 /// `echeancier --fait CLE` / `--defait CLE` : dire qu'une echeance que seul l'humain sait faite l'est (ou ne l'est plus). Une note,
-/// pas un acte : rien ne part, pas de mot de passe. Ecrit `config/echeancier.json` avec `qui = "ligne de commande"`, comme le Python.
+/// pas un acte : rien ne part, pas de mot de passe. Ecrit `config/echeancier.json` avec `qui = "ligne de commande"`.
 ///
-/// DEFAUT DU PYTHON, NE SE REPRODUIT PAS : une echeance inconnue, ou qui ne se coche pas, donnait une trace d'appels. Ici :
-/// `! phrase`, code 2. (Le Python ignore `--json` sur ce chemin : la reponse est toujours la phrase.)
+/// Une echeance inconnue, ou qui ne se coche pas : `! phrase`, code 2. (`--json` est sans effet sur ce chemin : la reponse
+/// est toujours la phrase.)
 fn cocher(cadre: &Cadre, cle: &str, fait: bool) -> i32 {
     match cadre.route("echeance-faite", json!({"cle": cle, "fait": fait, "qui": "ligne de commande"})) {
         Ok(r) => {
@@ -93,7 +93,7 @@ fn faire_echeancier(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     };
     let r = cadre.route("echeancier", charge)?;
     if args.drapeau("json") {
-        // `print(json.dumps(...))` : le code de sortie est 0, comme le Python.
+        // L'enveloppe JSON : le code de sortie est 0.
         rendre(&enveloppe("echeancier", r));
         return Ok(0);
     }

@@ -3,8 +3,8 @@
 //!
 //! Dans `moteur-atelier`, hors compagnie fictive, la commande exige le faux Google (`PUPPETPAIE_ATELIER_GOOGLE`).
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : un mois illisible (`..`) se lisait tel quel (corrige dans `archivage.rs` : refus
-//! `ErreurOperation`) ; une erreur de disque hors `ErreurGoogle` sortait en trace d'appels.
+//! Un mois illisible (`..`) est refuse (`archivage.rs` : `ErreurOperation`) ; une erreur de disque hors `ErreurGoogle` est
+//! une phrase.
 
 use serde_json::{json, Value};
 

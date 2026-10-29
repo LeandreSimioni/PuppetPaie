@@ -1,6 +1,5 @@
 //! `moteur pas [--amorcer]` : les taux de prelevement a la source connus, et
-//! l'ecriture du magasin `config/pas.json` que `moteur pas --amorcer` et `moteur retours --appliquer` font
-//!.
+//! l'ecriture du magasin `config/pas.json` que `moteur pas --amorcer` et `moteur retours --appliquer` font.
 //!
 //! `--demander` (ecrire les signalements d'amorcage, nature 08 ; rien n'est depose) : `demander`, sur `amorcage_demande`.
 

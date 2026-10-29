@@ -1,5 +1,5 @@
-//! Ce que les commandes ecrivent : l'enveloppe `--json` de `moteur/sortie_json.py`, et les petits outils de mise en
-//! forme qui font ressembler une ligne a celle de `%-10s %6d` du Python.
+//! Ce que les commandes ecrivent : l'enveloppe `--json`, et les petits outils de mise en forme d'une ligne en colonnes
+//! (`%-10s %6d` : un texte cale a gauche, un nombre a droite).
 
 use serde_json::{json, Value};
 
@@ -40,12 +40,12 @@ pub fn erreur(commande: &str, classe: &str, message: &str, extra: &[(&str, Value
     json!({"commande": commande, "ok": false, "erreur": Value::Object(corps)})
 }
 
-/// Le texte d'une valeur JSON comme `str(x)` de Python le donnerait : `None`, `True`, `0.5`.
+/// Le texte d'une valeur JSON : `None` pour null, `True`, `0.5`.
 pub fn texte(v: &Value) -> String {
     socle::valeur::valeur_en_texte(v)
 }
 
-/// Le texte d'une cle d'un objet JSON, `None` quand elle manque (Python leverait `KeyError` ; ici on est plus doux).
+/// Le texte d'une cle d'un objet JSON, `None` quand elle manque.
 pub fn champ(v: &Value, cle: &str) -> String {
     v.get(cle).map(texte).unwrap_or_else(|| "None".into())
 }
@@ -132,7 +132,7 @@ pub fn json_ligne(v: &Value) -> String {
     s
 }
 
-/// `d[cle]` : le texte de la cle, ou le `KeyError` que Python leverait.
+/// Le texte de la cle, ou le refus `KeyError` quand elle manque.
 pub fn exiger(v: &Value, cle: &str) -> Result<String, socle::echec::Echec> {
     match v.get(cle) {
         Some(x) => Ok(texte(x)),

@@ -1,25 +1,23 @@
-//! `moteur coffre [etat|poser|oublier|ouverture|verifier|seance]` : les mots de passe des organismes, scelles sur le disque
-//!. Jamais une valeur dans une sortie.
+//! `moteur coffre [etat|poser|oublier|ouverture|verifier|seance]` : les mots de passe des organismes, scelles sur le disque.
+//! Jamais une valeur dans une sortie.
 //!
 //! LE COFFRE, ET COMMENT IL EST TENU ICI.
 //!
 //! - Un mot de passe ne se donne JAMAIS en option, en argument ni en variable : `poser` et `ouverture` le demandent par le moteur
 //!   (`demande::saisir_secret` : la fenetre du moteur s'il y en a une, sinon le terminal SANS ECHO par `/dev/tty` -- ni l'entree ni la
-//!   sortie standard --, sinon un refus). `--fenetre` est accepte et sans effet (la fenetre du moteur est au lot J3). Rien de ce qui est
+//!   sortie standard --, sinon un refus). `--fenetre` est accepte et sans effet. Rien de ce qui est
 //!   tape n'est ecrit, journalise, repete ou rendu : il va au coffre, qui le scelle, puis il est lache.
 //! - Poser, oublier, changer le mot de passe du logiciel sont des ACTES : si un mot de passe du logiciel est pose, le moteur le
-//!   demande LUI-MEME a un humain avant (`filet::exiger_mot_de_passe`, comme la page), sinon il refuse ; le Python ne demandait rien
-//!   ici (un ecart voulu : la page le demandait deja). Dans `moteur-atelier`, hors compagnie fictive, ces gestes sont refuses.
+//!   demande LUI-MEME a un humain avant (`filet::exiger_mot_de_passe`, comme la page), sinon il refuse. Dans `moteur-atelier`, hors compagnie fictive, ces gestes sont refuses.
 //! - `verifier` ne lit jamais un secret : il appelle la route `coffre-verifier`, qui ne rend qu'un verdict (UNE tentative par compte).
 //! - `seance` : le mot de passe du logiciel tape une fois (par `demande::ouvrir_seance`), garde 12 h ; il ouvre le coffre, il
 //!   n'autorise jamais un acte reel.
 //!
-//! `--json` est accepte et sans effet (le Python n'a pas de sortie JSON pour le coffre). Les phrases d'une demande de mot de passe vont
+//! `--json` est accepte et sans effet (le coffre n'a pas de sortie JSON). Les phrases d'une demande de mot de passe vont
 //! sur la sortie d'erreur ou sur le terminal, jamais sur la sortie standard d'un programme qui lirait du JSON.
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : `oublier` d'un service inconnu, `poser` d'un secret que le coffre refuse (une
-//! panne de disque) sortaient en trace d'appels ; ici une phrase. Le Python ne demandait pas le mot de passe du logiciel pour
-//! poser ou oublier un secret ni pour changer celui du logiciel quand la cle du poste ouvrait le coffre.
+//! `oublier` d'un service inconnu, `poser` d'un secret que le coffre refuse (une panne de disque) : une phrase. Poser ou
+//! oublier un secret, changer le mot de passe du logiciel demandent ce mot de passe meme quand la cle du poste ouvre le coffre.
 
 use serde_json::{json, Value};
 
@@ -119,7 +117,7 @@ fn exiger(cadre: &Cadre, quoi: &str) -> Result<(), Echec> {
     crate::compagnie::filet::exiger_mot_de_passe(&cadre.racine, &Value::Null, quoi)
 }
 
-/// Le service nomme a la ligne de commande : sa fiche, ou la phrase qui dit lesquels existent (code 2, comme le Python).
+/// Le service nomme a la ligne de commande : sa fiche, ou la phrase qui dit lesquels existent (code 2).
 fn service_demande(args: &Args, inconnu: &str) -> Result<&'static crate::compagnie::coffre::Service, i32> {
     let Some(nom) = args.texte("service").filter(|s| !s.is_empty()) else {
         dire!("Quel service ? {}", services_connus().join(", "));
@@ -246,8 +244,8 @@ fn ouverture(cadre: &Cadre) -> Result<i32, Echec> {
         dire!("Son mot de passe ACTUEL l'ouvre, et une cle sera reposee ici.");
         dire!();
     }
-    // S'il y a deja un mot de passe du logiciel, un humain tape l'actuel (le moteur le demande lui-meme) ; le Python ne le
-    // demandait que si la cle du poste n'ouvrait pas le coffre.
+    // S'il y a deja un mot de passe du logiciel, un humain tape l'actuel (le moteur le demande lui-meme), meme si la cle
+    // du poste ouvre le coffre.
     exiger(cadre, "changer le mot de passe du logiciel")?;
     let lignes = vec!["Le NOUVEAU mot de passe du logiciel (pas celui d'un organisme).".to_string(), "La frappe ne s'affiche pas.".to_string()];
     let mdp = match saisir_deux_fois(
@@ -307,7 +305,7 @@ fn verifier(cadre: &Cadre) -> Result<i32, Echec> {
                     dire!("       {}", champ(&v, "conseil"));
                 }
             }
-            // Une panne (reseau, boite, coffre qui ne s'ouvre pas) : le Python sortait en trace d'appels. Ici, le verdict est un refus
+            // Une panne (reseau, boite, coffre qui ne s'ouvre pas) : le verdict est un refus
             // d'une ligne -- la premiere de la phrase, qui ne porte jamais un secret.
             Err(e) => {
                 essais.push(service);

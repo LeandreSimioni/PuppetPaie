@@ -1,5 +1,4 @@
-//! Le cachet de l'entreprise, DESSINE depuis ses propres donnees -- en SVG
-//!.
+//! Le cachet de l'entreprise, DESSINE depuis ses propres donnees -- en SVG.
 //!
 //! ECRIT LE 22/09/2026, sur une remarque de l'editeur qui regardait son AER : ce
 //! que le logiciel posait dans la case << Signature de l'employeur >> n'etait pas
