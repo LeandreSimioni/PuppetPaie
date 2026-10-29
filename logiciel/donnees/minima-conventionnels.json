@@ -12,7 +12,7 @@
   "annexe": "la fiche entreprise dit son annexe de la CCN 3090 (`annexe_convention`). Sans elle, le moteur prend le plus bas des minima des annexes ou le metier a une ligne, et le dit."
  },
  "3090": {
-  "libelle": "CCN des entreprises du secteur prive du spectacle vivant",
+  "libelle": "CCN des entreprises du secteur privé du spectacle vivant",
   "source": "legifrance-3090-avenant-salaires-20250721",
   "texte": "avenant du 21/07/2025, etendu par arrete du 17/02/2026 (JO 24/02/2026)",
   "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000028157262",
@@ -20,10 +20,10 @@
   "etendu": true,
   "annexes": {
    "1": {
-    "libelle": "Exploitants de lieux, producteurs ou diffuseurs de spectacles dramatiques, lyriques, choregraphiques et de musique classique",
+    "libelle": "Exploitants de lieux, producteurs ou diffuseurs de spectacles dramatiques, lyriques, chorégraphiques et de musique classique",
     "cachets": {
      "theatre.role": {
-      "libelle": "Role (artiste dramatique), salle jusqu'a 200 places",
+      "libelle": "Rôle (artiste dramatique), salle jusqu'à 200 places",
       "periode": "trimestre",
       "jauge": "<= 200 places",
       "paliers": [
@@ -59,7 +59,7 @@
       }
      },
      "musicien": {
-      "libelle": "Musicien(ne), theatre musical et orchestre",
+      "libelle": "Musicien(ne), théâtre musical et orchestre",
       "periode": "mois",
       "paliers": [
        {
@@ -113,10 +113,10 @@
     }
    },
    "2": {
-    "libelle": "Exploitants de lieux, producteurs ou diffuseurs de spectacles de chanson, varietes, jazz, musiques actuelles",
+    "libelle": "Exploitants de lieux, producteurs ou diffuseurs de spectacles de chanson, variétés, jazz, musiques actuelles",
     "cachets": {
      "musicien.petites_salles": {
-      "libelle": "Musicien(ne), salle de 300 places au plus, 1re partie ou plateau decouverte",
+      "libelle": "Musicien(ne), salle de 300 places au plus, 1re partie ou plateau découverte",
       "periode": "mois",
       "paliers": [
        {
@@ -213,10 +213,10 @@
     }
    },
    "4": {
-    "libelle": "Producteurs ou diffuseurs de spectacles en tournee (dramatiques, lyriques, choregraphiques, marionnettes, music-hall, varietes...)",
+    "libelle": "Producteurs ou diffuseurs de spectacles en tournée (dramatiques, lyriques, chorégraphiques, marionnettes, music-hall, variétés...)",
     "cachets": {
      "dramatique.role_principal": {
-      "libelle": "Artiste dramatique, role principal",
+      "libelle": "Artiste dramatique, rôle principal",
       "periode": "mois",
       "paliers": [
        {
@@ -238,7 +238,7 @@
       ]
      },
      "dramatique.role_plus_100": {
-      "libelle": "Artiste dramatique, role de plus de 100 lignes",
+      "libelle": "Artiste dramatique, rôle de plus de 100 lignes",
       "periode": "mois",
       "paliers": [
        {
@@ -260,7 +260,7 @@
       ]
      },
      "dramatique.role_1_100": {
-      "libelle": "Artiste dramatique, role de 1 a 100 lignes",
+      "libelle": "Artiste dramatique, rôle de 1 à 100 lignes",
       "periode": "mois",
       "paliers": [
        {
@@ -392,7 +392,7 @@
       ]
      },
      "lyrique.premier_role": {
-      "libelle": "Artiste lyrique, 1er role",
+      "libelle": "Artiste lyrique, 1er rôle",
       "periode": "mois",
       "paliers": [
        {
@@ -414,7 +414,7 @@
       ]
      },
      "lyrique.second_role": {
-      "libelle": "Artiste lyrique, second role",
+      "libelle": "Artiste lyrique, second rôle",
       "periode": "mois",
       "paliers": [
        {
@@ -458,7 +458,7 @@
       ]
      },
      "music_hall": {
-      "libelle": "Artiste de music-hall, illusionniste, numero visuel",
+      "libelle": "Artiste de music-hall, illusionniste, numéro visuel",
       "periode": "mois",
       "paliers": [
        {
@@ -480,7 +480,7 @@
       ]
      },
      "cirque": {
-      "libelle": "Artiste de cirque engage dans un spectacle dramatique, lyrique, choregraphique ou de varietes",
+      "libelle": "Artiste de cirque engagé dans un spectacle dramatique, lyrique, chorégraphique ou de variétés",
       "periode": "mois",
       "paliers": [
        {
@@ -555,7 +555,7 @@
       ]
      },
      "musicien.petites_salles": {
-      "libelle": "Musicien(ne), petites salles (300 places) ou premieres parties",
+      "libelle": "Musicien(ne), petites salles (300 places) ou premières parties",
       "periode": "mois",
       "paliers": [
        {
@@ -614,7 +614,7 @@
     "libelle": "Producteurs ou diffuseurs de spectacles de cirque",
     "cachets": {
      "cirque": {
-      "libelle": "Artiste de cirque en tournee (hors chapiteau)",
+      "libelle": "Artiste de cirque en tournée (hors chapiteau)",
       "periode": "mois",
       "paliers": [
        {
@@ -717,7 +717,7 @@
   "etendu": true,
   "cachets": {
    "dramatique": {
-    "libelle": "Artiste dramatique ou choregraphique, cachet forfaitaire jour, CDD < 1 mois",
+    "libelle": "Artiste dramatique ou chorégraphique, cachet forfaitaire jour, CDD < 1 mois",
     "periode": "mois",
     "paliers": [
      {
@@ -741,7 +741,7 @@
     ]
    },
    "musicien_autres": {
-    "libelle": "Musicien(ne) engage(e) au sein d'autres entreprises, representation",
+    "libelle": "Musicien(ne) engagé(e) au sein d'autres entreprises, représentation",
     "periode": "mois",
     "paliers": [
      {
@@ -751,7 +751,7 @@
     ]
    },
    "musiques_actuelles": {
-    "libelle": "Musicien(ne), musiques actuelles, cas general (116,34 en salle < 300 places, 1re partie, plateau decouverte)",
+    "libelle": "Musicien(ne), musiques actuelles, cas général (116,34 en salle < 300 places, 1re partie, plateau découverte)",
     "periode": "mois",
     "paliers": [
      {
@@ -761,7 +761,7 @@
     ]
    },
    "lyrique_soliste": {
-    "libelle": "Artiste lyrique soliste, representation, cas general",
+    "libelle": "Artiste lyrique soliste, représentation, cas général",
     "periode": "mois",
     "paliers": [
      {
@@ -771,7 +771,7 @@
     ]
    },
    "choeur": {
-    "libelle": "Artiste de choeur, representation, cas general",
+    "libelle": "Artiste de choeur, représentation, cas général",
     "periode": "mois",
     "paliers": [
      {
@@ -788,15 +788,15 @@
    "par_categorie": {
     "musicien_autres": {
      "service": 58.22,
-     "libelle": "service de repetition d'un musicien, musiques actuelles, journee de 2 services (116,45) -- le plus bas des ensembles"
+     "libelle": "service de répétition d'un musicien, musiques actuelles, journée de 2 services (116,45) -- le plus bas des ensembles"
     },
     "choeur": {
      "service": 70.47,
-     "libelle": "service de repetition d'un artiste de choeur, journee de 2 services (140,95)"
+     "libelle": "service de répétition d'un artiste de choeur, journée de 2 services (140,95)"
     },
     "lyrique_soliste": {
      "service": 82.14,
-     "libelle": "service de repetition d'un artiste lyrique soliste, journee de 2 services (164,29)"
+     "libelle": "service de répétition d'un artiste lyrique soliste, journée de 2 services (164,29)"
     }
    }
   },
@@ -970,22 +970,22 @@
     "par_categorie": {
      "musicien_autres": {
       "service": 59.1,
-      "libelle": "musiques actuelles, journee de 2 services (118,20)"
+      "libelle": "musiques actuelles, journée de 2 services (118,20)"
      },
      "choeur": {
       "service": 71.18,
-      "libelle": "choeur, journee de 2 services (142,36)"
+      "libelle": "choeur, journée de 2 services (142,36)"
      },
      "lyrique_soliste": {
       "service": 82.96,
-      "libelle": "lyrique soliste, journee de 2 services (165,93)"
+      "libelle": "lyrique soliste, journée de 2 services (165,93)"
      }
     }
    }
   },
   "grilles_complementaires": [
    {
-    "nom": "artistes dramatiques et choregraphiques, au mois",
+    "nom": "artistes dramatiques et chorégraphiques, au mois",
     "population": "tous",
     "statut": "artiste",
     "unite": "mois",
@@ -1000,7 +1000,7 @@
     },
     "majorations": [
      {
-      "nom": "stagiaire de 1re annee (-30 %)",
+      "nom": "stagiaire de 1re année (-30 %)",
       "groupe": "stagiaire",
       "si_salarie": {
        "stagiaire_ccneac": "1"
@@ -1010,7 +1010,7 @@
       }
      },
      {
-      "nom": "stagiaire de 2e annee (-15 %)",
+      "nom": "stagiaire de 2e année (-15 %)",
       "groupe": "stagiaire",
       "si_salarie": {
        "stagiaire_ccneac": "2"
@@ -1067,7 +1067,7 @@
     },
     "majorations": [
      {
-      "nom": "4e a 6e annee",
+      "nom": "4e à 6e année",
       "groupe": "anciennete",
       "anciennete": {
        "champ": "poste_depuis",
@@ -1078,7 +1078,7 @@
       }
      },
      {
-      "nom": "7e a 9e annee",
+      "nom": "7e à 9e année",
       "groupe": "anciennete",
       "anciennete": {
        "champ": "poste_depuis",
@@ -1089,7 +1089,7 @@
       }
      },
      {
-      "nom": "10e a 12e annee",
+      "nom": "10e à 12e année",
       "groupe": "anciennete",
       "anciennete": {
        "champ": "poste_depuis",
@@ -1100,7 +1100,7 @@
       }
      },
      {
-      "nom": "13e a 15e annee",
+      "nom": "13e à 15e année",
       "groupe": "anciennete",
       "anciennete": {
        "champ": "poste_depuis",
@@ -1111,7 +1111,7 @@
       }
      },
      {
-      "nom": "16e annee et au-dela",
+      "nom": "16e année et au-delà",
       "groupe": "anciennete",
       "anciennete": {
        "champ": "poste_depuis",
@@ -2508,7 +2508,7 @@
     }
    },
    {
-    "nom": "annexe 6, artistes choregraphiques",
+    "nom": "annexe 6, artistes chorégraphiques",
     "population": "intermittent",
     "statut": "artiste",
     "unite": "cachet",
@@ -2554,7 +2554,7 @@
     }
    },
    {
-    "nom": "annexe 6, varietes",
+    "nom": "annexe 6, variétés",
     "population": "intermittent",
     "statut": "artiste",
     "unite": "cachet",
@@ -2593,7 +2593,7 @@
     }
    },
    {
-    "nom": "categorie C, figurants",
+    "nom": "catégorie C, figurants",
     "population": "intermittent",
     "statut": "artiste",
     "unite": "cachet",
@@ -2608,7 +2608,7 @@
     }
    },
    {
-    "nom": "categorie C, doublures lumiere",
+    "nom": "catégorie C, doublures lumière",
     "population": "intermittent",
     "statut": "artiste",
     "unite": "cachet",
@@ -2622,7 +2622,7 @@
     }
    },
    {
-    "nom": "realisateurs de fiction, la journee",
+    "nom": "réalisateurs de fiction, la journée",
     "unite": "jour",
     "population": "tous",
     "statut": "artiste",
@@ -2639,7 +2639,7 @@
     }
    },
    {
-    "nom": "realisateurs de fiction, la semaine",
+    "nom": "réalisateurs de fiction, la semaine",
     "unite": "semaine",
     "population": "tous",
     "statut": "artiste",
@@ -2656,7 +2656,7 @@
     }
    },
    {
-    "nom": "realisateurs de fiction, le mois",
+    "nom": "réalisateurs de fiction, le mois",
     "unite": "mois",
     "population": "tous",
     "statut": "artiste",
@@ -2910,7 +2910,7 @@
   },
   "grilles_complementaires": [
    {
-    "nom": "realisateurs, la semaine (annexe I)",
+    "nom": "réalisateurs, la semaine (annexe I)",
     "unite": "semaine",
     "categories": [
      "realisateur"
@@ -2926,7 +2926,7 @@
     }
    },
    {
-    "nom": "realisateurs, la semaine (annexe III, sur derogation)",
+    "nom": "réalisateurs, la semaine (annexe III, sur dérogation)",
     "unite": "semaine",
     "categories": [
      "realisateur"
@@ -2939,7 +2939,7 @@
      "derogation_annexe_iii_3097": true
     },
     "remplace": [
-     "realisateurs, la semaine (annexe I)"
+     "réalisateurs, la semaine (annexe I)"
     ],
     "_lecture": "Annexe III (KALIARTI000050329478) : 1 588,97 la semaine, plus un interessement de 2 852,61 hors paie ; le mensuel de l'article 52 ne s'y applique pas.",
     "valeurs": {
@@ -2947,7 +2947,7 @@
     }
    },
    {
-    "nom": "realisateurs, la journee (hors production)",
+    "nom": "réalisateurs, la journée (hors production)",
     "unite": "jour",
     "categories": [
      "realisateur"
@@ -2962,7 +2962,7 @@
     }
    },
    {
-    "nom": "realisateurs de films publicitaires, la semaine",
+    "nom": "réalisateurs de films publicitaires, la semaine",
     "unite": "semaine",
     "categories": [
      "realisateur_publicite"
@@ -2976,7 +2976,7 @@
     }
    },
    {
-    "nom": "realisateurs de films publicitaires, la journee",
+    "nom": "réalisateurs de films publicitaires, la journée",
     "unite": "jour",
     "categories": [
      "realisateur_publicite"
@@ -2996,7 +2996,7 @@
   }
  },
   "3252": {
-    "libelle": "CCN des entreprises au service de la creation et de l'evenement (IDCC 3252)",
+    "libelle": "CCN des entreprises au service de la création et de l'événement (IDCC 3252)",
     "source": "kali-entrepot",
     "texte": "CCN du 27/06/2024, art. 7.2, 7.3 et annexes I a V, version de l'avenant n° 3 du 22/04/2025 ; doublage : avenant n° 1 du 07/11/2022 ; mannequins : avenant n° 2 du 22/01/2025",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000051346072",
@@ -4551,7 +4551,7 @@
         "_source_facteur": "Annexe V, art. 3.4.2 (KALIARTI000051642282) : un contrat de 5 a 8 h se paie au journalier (= horaire x 5), les heures au-dela de 8 au taux horaire, une heure au moins est due. Un taux horaire compare a toutes les heures crierait a tort sur une journee de 8 h ; le plancher horaire est donc le taux x 5/8 (journal §159)."
       },
       {
-        "nom": "mannequins, la journee",
+        "nom": "mannequins, la journée",
         "population": "intermittent",
         "statut": "artiste",
         "unite": "jour",
@@ -5014,7 +5014,7 @@
     }
   },
   "3241": {
-    "libelle": "CCN de la telediffusion (IDCC 3241)",
+    "libelle": "CCN de la télédiffusion (IDCC 3241)",
     "source": "kali-entrepot",
     "texte": "accords du 11/05/2026 (permanents ; CDDU), au 01/06/2026",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000044261829",
@@ -5028,7 +5028,7 @@
     },
     "grilles": [
       {
-        "nom": "permanents, moins de 50 salaries",
+        "nom": "permanents, moins de 50 salariés",
         "population": "permanent",
         "statut": "tous",
         "unite": "mois",
@@ -5054,7 +5054,7 @@
         },
         "majorations": [
           {
-            "nom": "entreprise de 50 salaries et plus (ou groupe de plus de 50)",
+            "nom": "entreprise de 50 salariés et plus (ou groupe de plus de 50)",
             "groupe": "effectif",
             "si_entreprise": {
               "cinquante_salaries_3241": true
@@ -5102,7 +5102,7 @@
         },
         "majorations": [
           {
-            "nom": "M2, experimente dans la fonction (350 jours ou 2 800 heures)",
+            "nom": "M2, expérimenté dans la fonction (350 jours ou 2 800 heures)",
             "groupe": "experience",
             "si_salarie": {
               "experimente_3241": true
@@ -5159,7 +5159,7 @@
     }
   },
   "1734": {
-    "libelle": "CCN des artistes-interpretes engages pour des emissions de television (IDCC 1734)",
+    "libelle": "CCN des artistes-interprètes engagés pour des émissions de télévision (IDCC 1734)",
     "source": "kali-entrepot",
     "texte": "avenant du 18/01/2024, au 01/02/2024",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635286",
@@ -5171,7 +5171,7 @@
     },
     "grilles": [
       {
-        "nom": "prix de journee et forfaits",
+        "nom": "prix de journée et forfaits",
         "population": "intermittent",
         "statut": "artiste",
         "unite": "cachet",
@@ -5203,7 +5203,7 @@
     }
   },
   "2121": {
-    "libelle": "CCN de l'edition, annexe IX (edition phonographique) (IDCC 2121)",
+    "libelle": "CCN de l'édition, annexe IX (édition phonographique) (IDCC 2121)",
     "source": "kali-entrepot",
     "texte": "accord NAO du 03/02/2026 de l'edition phonographique, au 01/03/2026",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635096",
@@ -5507,7 +5507,7 @@
     },
     "grilles": [
       {
-        "nom": "indices de reference",
+        "nom": "indices de référence",
         "population": "permanent",
         "statut": "tous",
         "unite": "mois",
@@ -5534,7 +5534,7 @@
         },
         "majorations": [
           {
-            "nom": "radio de type 2 (+10 points B de l'indice 124 a 199)",
+            "nom": "radio de type 2 (+10 points B de l'indice 124 à 199)",
             "groupe": "type de radio",
             "si_entreprise": {
               "type_radio_1922": "2"
@@ -5554,7 +5554,7 @@
             "_source": "accord du 05/12/2008 relatif aux classifications (BOCC 2009/7, NOR ASET0950172M ; source bocc-1922-classifications-20081205), article 2 b : << pour toutes les fonctions dont l'indice de reference est egal ou superieur a 124 et jusqu'a 199 : l'indice applicable a chaque fonction est majore de 10 points ; a partir de l'indice de reference 200, les indices applicables sont les indices de reference >>. Points B (15,14 / 10,19 : accord du 27/06/2025)."
           },
           {
-            "nom": "radio de type 3 (+20 points B de 124 a 179, +30 de 180 a 199)",
+            "nom": "radio de type 3 (+20 points B de 124 à 179, +30 de 180 à 199)",
             "groupe": "type de radio",
             "si_entreprise": {
               "type_radio_1922": "3"
@@ -5647,7 +5647,7 @@
     },
     "grilles": [
       {
-        "nom": "niveaux et echelons",
+        "nom": "niveaux et échelons",
         "population": "permanent",
         "statut": "tous",
         "unite": "mois",

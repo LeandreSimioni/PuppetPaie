@@ -670,8 +670,7 @@ function brancherConvention() {
   const annexe = document.querySelector('#config-formulaire [data-cle="annexe_convention"]');
   // Le libelle ne se reecrit que si l'on CHANGE de convention : au
   // chargement, celui que la fiche porte (« Spectacle vivant du secteur
-  // privé ») valait mieux que celui du catalogue, sans accents, qui
-  // l'ecrasait a chaque enregistrement.
+  // privé ») est celui que la compagnie a ecrit, et il reste.
   const idccDepart = String(idcc.value || "");
   const poser = () => {
     const v = String(idcc.value || "");
