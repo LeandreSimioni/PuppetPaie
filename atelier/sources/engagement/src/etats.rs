@@ -1084,11 +1084,13 @@ fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<()> {
         };
         let ancienne = v.paie_ecrite(mois).cloned();
         let empreinte_ecrite = ancienne.as_ref().and_then(|a| a.get("empreinte"));
-        let tient = empreinte_ecrite.and_then(empreinte::entrees_de).is_some_and(|en| empreinte::tient(ctx, &en, &mut relues));
-        if tient {
+        // Partie, elle ne bouge que par une decision de l'editeur : on la cherche d'abord (quelques entrees), et
+        // l'empreinte entiere ne se verifie que si elle a lieu.
+        if parti && !empreinte_ecrite.is_some_and(|e| empreinte::code_ou_regle_change(ctx, e, mois, &mut relues)) {
             continue;
         }
-        if parti && !empreinte_ecrite.is_some_and(|e| empreinte::code_ou_regle_change(ctx, e, mois, &mut relues)) {
+        let tient = empreinte_ecrite.and_then(empreinte::entrees_de).is_some_and(|en| empreinte::tient(ctx, &en, &mut relues));
+        if tient {
             continue;
         }
         a_refaire.push((i, v.objet, ancienne, parti));
