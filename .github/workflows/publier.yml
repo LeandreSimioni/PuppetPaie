@@ -5,10 +5,10 @@
 # QUATRE ARCHIVES DE MISE A JOUR PAR VERSION (Leandre, 15/10/2026 : « Il y a les quatre : une par systeme et une
 # tout-systeme, ensemble ») : Windows, Linux, Mac, et une qui porte les trois (un dossier portable pour plusieurs
 # machines, et le repli). Chacune porte LE CONTENU DE `logiciel/` A SA RACINE, sans fictives : c'est un CONTRAT avec toutes
-# les installations posees, dont le code la deballe telle quelle (tete de paie/src/maj.rs) ; elle ne change plus de forme.
-# Chaque installation prend celle de son systeme (paie/src/maj.rs). Dans `logiciel/`, les programmes de Windows sont a la
+# les installations posees, dont le code la deballe telle quelle (tete de moteur/src/maj.rs) ; elle ne change plus de forme.
+# Chaque installation prend celle de son systeme (moteur/src/maj.rs). Dans `logiciel/`, les programmes de Windows sont a la
 # racine (`puppetpaie.exe`, `WebView2Loader.dll`, les seuls suivis par Git) ; ceux de Linux et de Mac dans `logiciel/linux/`
-# et `logiciel/mac/` (`puppetpaie`, la fenetre ; `paie`, le moteur), poses ici seulement.
+# et `logiciel/mac/` (`puppetpaie`, la fenetre ; `moteur`, le moteur), poses ici seulement.
 #
 # A COTE (ticket #246, 22/10/2026) : L'ARCHIVE DES FICTIVES (`puppetpaie-<v>-fictives.zip`, signee, nommee dans
 # `derniere.json` sous `fictives` avec son empreinte : un poste ne la telecharge que si elle a change) et LES ARCHIVES
@@ -20,7 +20,7 @@
 # tous les systemes porte ce qui a ete fabrique et le dit (`systemes`) ; une installation dont le systeme n'est pas publie
 # ne telecharge rien, garde sa version et le dit.
 #
-#   1. fabriquer      (Linux) compile le moteur Linux, qui marque les fictives livrees (`paie maj --marquer-fictives` :
+#   1. fabriquer      (Linux) compile le moteur Linux, qui marque les fictives livrees (`moteur maj --marquer-fictives` :
 #                     la livraison que l'installeur pose avec elles) et signera (toujours) ; puis la fenetre et le moteur
 #                     Windows (atelier/installeur/construire.sh, MinGW), pose la fenetre neuve dans `logiciel/`, fabrique
 #                     l'installeur Windows (il ne pose que les fichiers suivis et ces marques : rien de `linux/` ni de
@@ -31,8 +31,8 @@
 #                     `logiciel/mac/`. Aucun secret.
 #   3. publier        ATTEND L'APPROBATION DE LEANDRE (environnement `publication` : approbateur Leandre, `main` seule),
 #                     puis seulement voit le secret PUPPETPAIE_CLE_SIGNATURE (la graine de la cle de GitHub). Il rassemble
-#                     `logiciel/` (les systemes choisis) et `fictives/`, et le moteur lui-meme signe (`paie maj
-#                     --publier-github`, paie/src/maj.rs) : une archive de mise a jour par systeme fabrique et celle de
+#                     `logiciel/` (les systemes choisis) et `fictives/`, et le moteur lui-meme signe (`moteur maj
+#                     --publier-github`, moteur/src/maj.rs) : une archive de mise a jour par systeme fabrique et celle de
 #                     tous, et celle des fictives, chacune verifiee contre CLE_PUBLIQUE_GITHUB, `derniere.json` qui les
 #                     nomme, et a cote les archives d'installation ; il refuse une version qui n'est pas plus recente que
 #                     la derniere Release. La forme de chacune est verifiee, puis une Release GitHub `v<version>` porte ces
@@ -125,22 +125,22 @@ jobs:
 
       # Le moteur Linux : il signe (toujours), il marque les fictives avant l'installeur, et il ouvre la page dans le
       # navigateur sur un Linux sans WebKitGTK.
-      # L'essai `paie version` ouvre une compagnie, comme toute commande du produit (`commandes::executer`) : ici une
+      # L'essai `moteur version` ouvre une compagnie, comme toute commande du produit (`commandes::executer`) : ici une
       # compagnie fictive livree (`fictives/`, le banc d'essai de l'interface, regle 11) ; sans elle, le moteur refuse
       # (« fichier introuvable : logiciel/config/entreprise.json », Publier n° 5, 15/10/2026). Rien n'y est ecrit.
       - name: Le moteur Linux
         env:
           PUPPETPAIE_DONNEES: ${{ github.workspace }}/fictives/fictive-1285-petite
         run: |
-          cargo build --release --locked --manifest-path atelier/sources/paie/Cargo.toml --bin paie
-          "$CARGO_TARGET_DIR/release/paie" version
+          cargo build --release --locked --manifest-path atelier/sources/moteur/Cargo.toml --bin moteur
+          "$CARGO_TARGET_DIR/release/moteur" version
 
       # LES MARQUES DE LA LIVRAISON DE FICTIVES (`fictives/.livraison.json`, `fictives/<nom>/.livree.json` : maj.rs,
       # `marquer_les_fictives`), avant l'installeur, qui les pose : une installation de l'installeur retient la livraison
       # qu'elle a et ne la retelecharge pas. Elles ne changent ni l'empreinte ni ce qui se livre.
       - name: Les marques des fictives
         run: |
-          "$CARGO_TARGET_DIR/release/paie" maj --marquer-fictives --logiciel logiciel
+          "$CARGO_TARGET_DIR/release/moteur" maj --marquer-fictives --logiciel logiciel
           test -f fictives/.livraison.json
           [ "$(ls fictives/*/.livree.json | wc -l)" -ge 4 ] || { echo "::error::Les fictives ne sont pas toutes marquees."; exit 1; }
 
@@ -167,13 +167,13 @@ jobs:
           cp "$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/puppetpaie.exe" logiciel/puppetpaie.exe
           if [ "$SYSTEMES" != windows ]; then
             mkdir -p logiciel/linux
-            cp "$CARGO_TARGET_DIR/release/puppetpaie" "$CARGO_TARGET_DIR/release/paie" logiciel/linux/
-            chmod +x logiciel/linux/puppetpaie logiciel/linux/paie
+            cp "$CARGO_TARGET_DIR/release/puppetpaie" "$CARGO_TARGET_DIR/release/moteur" logiciel/linux/
+            chmod +x logiciel/linux/puppetpaie logiciel/linux/moteur
             ls -l logiciel/linux
           fi
           mkdir -p publication
           cp "atelier/depot/installeur/PuppetPaie-$L-installeur.exe" publication/
-          cp "$CARGO_TARGET_DIR/release/paie" publication/paie
+          cp "$CARGO_TARGET_DIR/release/moteur" publication/moteur
           tar -cf publication.tar logiciel fictives publication
           ls -l publication logiciel/puppetpaie.exe
 
@@ -203,25 +203,25 @@ jobs:
       - name: Le moteur et la fenetre Mac
         run: |
           for CIBLE in x86_64-apple-darwin aarch64-apple-darwin; do
-            cargo build --release --locked --target "$CIBLE" --manifest-path atelier/sources/paie/Cargo.toml --bin paie
+            cargo build --release --locked --target "$CIBLE" --manifest-path atelier/sources/moteur/Cargo.toml --bin moteur
             cargo build --release --locked --target "$CIBLE" --manifest-path atelier/sources/fenetre/Cargo.toml
           done
 
       # Un seul fichier pour les deux sortes de Mac : l'installation n'a pas a savoir quel processeur a le sien.
-      # L'essai `paie version` ouvre une compagnie fictive livree, comme sous Linux (voir « Le moteur Linux »).
+      # L'essai `moteur version` ouvre une compagnie fictive livree, comme sous Linux (voir « Le moteur Linux »).
       - name: Universels, dans logiciel/mac/
         env:
           PUPPETPAIE_DONNEES: ${{ github.workspace }}/fictives/fictive-1285-petite
         run: |
           mkdir -p logiciel/mac
-          for P in paie puppetpaie; do
+          for P in moteur puppetpaie; do
             lipo -create -output "logiciel/mac/$P" \
               "$CARGO_TARGET_DIR/x86_64-apple-darwin/release/$P" \
               "$CARGO_TARGET_DIR/aarch64-apple-darwin/release/$P"
             lipo -info "logiciel/mac/$P"
           done
-          chmod +x logiciel/mac/paie logiciel/mac/puppetpaie
-          logiciel/mac/paie version
+          chmod +x logiciel/mac/moteur logiciel/mac/puppetpaie
+          logiciel/mac/moteur version
           tar -cf mac.tar logiciel/mac
           ls -l logiciel/mac
 
@@ -261,7 +261,7 @@ jobs:
         run: |
           tar -xf publication.tar
           if [ "$SYSTEMES" = tous ]; then tar -xf mac.tar; fi
-          chmod +x publication/paie
+          chmod +x publication/moteur
           ls -lR logiciel/puppetpaie.exe logiciel/WebView2Loader.dll $(ls -d logiciel/linux logiciel/mac 2>/dev/null)
 
       # Le `derniere.json` de la derniere Release, a cote de ce qu'on signe : le moteur refuse une version qui n'est
@@ -281,7 +281,7 @@ jobs:
           NOTES: ${{ inputs.notes }}
           CALCUL: ${{ inputs.calcul }}
           EXIGEE: ${{ inputs.exigee }}
-        run: ./publication/paie maj --publier-github --logiciel logiciel --sortie sortie --notes "$NOTES" --calcul "$CALCUL" --exigee "$EXIGEE"
+        run: ./publication/moteur maj --publier-github --logiciel logiciel --sortie sortie --notes "$NOTES" --calcul "$CALCUL" --exigee "$EXIGEE"
 
       # Exactement les archives choisies, ou rien : le moteur fait l'archive d'un systeme quand sa fenetre est dans
       # `logiciel/`, et celle de tous dit sous `systemes` ce qu'elle porte.

@@ -360,7 +360,7 @@ premiere embauche (Configuration > Entreprise), et c'est tout.\n\
 consecutives au-dessus (art. L. 130-1, II, CSS), et il manque \
 l'effectif de {}. L'Urssaf le calcule et le renvoie en \
 compte-rendu metier de nature 118 : relever les retours \
-(`paie retours --depuis JJ/MM/AAAA`), le moteur \
+(`moteur retours --depuis JJ/MM/AAAA`), le moteur \
 l'ecrit seul dans config/effectifs.json.\n\
 \x20 Une compagnie qui a embauche pour la premiere fois il y a moins \
 de cinq ans n'a qu'a le dire : la date de sa premiere embauche \
@@ -1085,6 +1085,27 @@ fn controler(bareme: &Value, fiche: &Value, eff: &Effectif, ou: &str) -> Resulta
 
 /// Une liste datee : `[{depuis, valeur}, ...]`, dont une entree au plus sans `depuis` (la valeur de tout temps). La forme
 /// des baremes et de toute la configuration de la compagnie.
+/// Le `depuis` de la valeur en vigueur a `jour` de chaque liste datee `[{depuis, valeur}]` que porte `v`, a toute
+/// profondeur ; une liste dont seule la valeur de tout temps s'applique n'en donne pas.
+fn dates_en_vigueur(v: &Value, jour: &Jour, out: &mut Vec<Jour>) -> Resultat<()> {
+    if est_liste_datee(v) {
+        let mut retenu: Option<Jour> = None;
+        for e in v.as_array().into_iter().flatten() {
+            let Some(depuis) = depuis_entree(e)? else { continue };
+            if depuis <= *jour && retenu.map_or(true, |r| depuis > r) {
+                retenu = Some(depuis);
+            }
+        }
+        out.extend(retenu);
+        return Ok(());
+    }
+    match v {
+        Value::Object(o) => o.values().try_for_each(|x| dates_en_vigueur(x, jour, out)),
+        Value::Array(a) => a.iter().try_for_each(|x| dates_en_vigueur(x, jour, out)),
+        _ => Ok(()),
+    }
+}
+
 fn est_liste_datee(v: &Value) -> bool {
     match v {
         Value::Array(a) => {
@@ -1386,27 +1407,25 @@ impl Contexte {
     /// `[{depuis, valeur}]` du bareme de l'annee (le socle, la convention, la compagnie), du plus ancien au plus recent,
     /// sans doublon. Une paie qui s'est calculee sous d'autres regles le dit a sa date (« regle du JJ/MM/AAAA »).
     pub fn regles_datees(&self, jour: &Jour) -> Resultat<Vec<Jour>> {
-        fn parcourir(v: &Value, jour: &Jour, out: &mut Vec<Jour>) -> Resultat<()> {
-            if est_liste_datee(v) {
-                let mut retenu: Option<Jour> = None;
-                for e in v.as_array().into_iter().flatten() {
-                    let Some(depuis) = depuis_entree(e)? else { continue };
-                    if depuis <= *jour && retenu.map_or(true, |r| depuis > r) {
-                        retenu = Some(depuis);
-                    }
-                }
-                out.extend(retenu);
-                return Ok(());
-            }
-            match v {
-                Value::Object(o) => o.values().try_for_each(|x| parcourir(x, jour, out)),
-                Value::Array(a) => a.iter().try_for_each(|x| parcourir(x, jour, out)),
-                _ => Ok(()),
-            }
-        }
         let brut = self.bareme_brut(jour.an, &self.entreprise_au(jour)?).map_err(|r| r.message)?;
         let mut out = Vec::new();
-        parcourir(&brut, jour, &mut out)?;
+        dates_en_vigueur(&brut, jour, &mut out)?;
+        out.sort();
+        out.dedup();
+        Ok(out)
+    }
+
+    /// LES VALEURS DATEES DE LA COMPAGNIE QUI S'APPLIQUENT A CE JOUR a l'engagement du salarie `salarie` sur le spectacle
+    /// `spectacle` : le `depuis` de la valeur en vigueur de chaque liste datee de leurs fiches et de celle de l'entreprise,
+    /// du plus ancien au plus recent, sans doublon. Une paie qui s'est calculee avant qu'une de ces valeurs s'applique le
+    /// dit a sa date (« règle du JJ/MM/AAAA »).
+    pub fn configuration_datee(&self, jour: &Jour, salarie: &str, spectacle: Option<&str>) -> Resultat<Vec<Jour>> {
+        let mut out = Vec::new();
+        dates_en_vigueur(&self.entreprise_brute, jour, &mut out)?;
+        let fiches = [self.salaries_bruts.get(salarie), spectacle.and_then(|s| self.spectacles_bruts.get(s))];
+        for f in fiches.into_iter().flatten() {
+            dates_en_vigueur(f, jour, &mut out)?;
+        }
         out.sort();
         out.dedup();
         Ok(out)
@@ -1563,7 +1582,7 @@ PSS_H_METROP).",
     }
 
     /// LES ORGANISMES ET CONTRATS DE LA DSN (`config/organismes.json`), lus a `lue_au` : un fichier date comme les
-    /// fiches, chaque cle une liste `{depuis, valeur}` (`paie::organismes` l'ecrit, par `dater`). `None` : la compagnie
+    /// fiches, chaque cle une liste `{depuis, valeur}` (`moteur::organismes` l'ecrit, par `dater`). `None` : la compagnie
     /// ne les a pas encore enregistres.
     pub fn organismes(&self) -> Resultat<Option<Value>> {
         let p = self.racine.join("config").join(ORGANISMES);

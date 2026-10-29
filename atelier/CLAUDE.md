@@ -60,7 +60,7 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
 
 ## Une séance, par tickets
 
-- **Un ticket** : lire ce qu'il dit, le reproduire (dans la fenêtre, sur une compagnie fictive, ou par `paie route`), corriger
+- **Un ticket** : lire ce qu'il dit, le reproduire (dans la fenêtre, sur une compagnie fictive, ou par `moteur route`), corriger
   dans le public, prouver (un test quand c'est le moteur ; la fenêtre, à l'écran, quand c'est l'interface), puis **commenter le
   ticket** (ce qui est fait, où, comment le voir) et le **fermer** : corrigé sur la branche, c'est fermé, avec la phrase « ce sera
   réglé dans la nouvelle version » (Léandre, 15/10) ; on n'attend pas la version publiée. Ce qu'un ticket
@@ -73,7 +73,7 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
   Léandre fusionne. Le privé reçoit, sur la même branche, ce qui s'adresse à Léandre (`journal/`).
 - **La fin de séance, c'est Léandre qui la dit** : la passe de tests ne se lance pas avant. Puis : le récit dans
   `journal/archives/<jour>.md`, une ligne dans `INDEX.md`, et `ETAT.md` **remplacé** (jamais empilé ; une page).
-- Le contexte se surveille (`paie guet` en arrière-plan, `--commits` pour sortir au prochain commit ; `paie/src/guet.rs`) ;
+- Le contexte se surveille (`moteur guet` en arrière-plan, `--commits` pour sortir au prochain commit ; `moteur/src/guet.rs`) ;
   c'est Léandre qui décide quand il sonne.
 
 ## Où sont les choses
@@ -82,7 +82,7 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
 y crée sa branche, on y code, on y ouvre la PR. `puppetpaieprivate` (privé) : `journal/` (`ETAT.md`, passations, topos,
 archives), `reference-privee/` (les textes lus qu'on ne republie pas), et les **tickets** (ses issues). **Les données de la
 compagnie ne sont dans aucun dépôt** : le poste, la clé USB, le Drive. Rien de réel n'entre jamais dans le public
-(`paie verifier-avant-commit`, en crochet avant chaque commit, et le test `donnees_reelles`). Dans les anciens textes
+(`moteur verifier-avant-commit`, en crochet avant chaque commit, et le test `donnees_reelles`). Dans les anciens textes
 du journal, `prive/journal/` se lit `journal/` du privé.
 
 À la racine du public, ce que les gens reçoivent, et l'atelier :
@@ -93,11 +93,11 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe` (la fenêtre), `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page : `index.html`, `interface.css`, `js/`). C'est ce que publie la mise à jour. |
 | `fictives/` | les quatre compagnies fictives, livrées (`docs/COMPAGNIES-FICTIVES.md`) |
 | `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
-| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `envois/` (ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours, et le journal de ce qui est parti ; il reçoit des pièces faites et un mot de passe, et le branchement que `paie` choisit : le monde, le simulateur ou le message), `paie/` (le reste du moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
+| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `envois/` (ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours, et le journal de ce qui est parti ; il reçoit des pièces faites et un mot de passe, et le branchement que `moteur` choisit : le monde, le simulateur ou le message), `moteur/` (le reste du moteur, programme `moteur` ; exécutables livrés dans `moteur/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
-| `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `paie`), les docs, les versions publiées, l'installeur, le site |
+| `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `moteur`), les docs, les versions publiées, l'installeur, le site |
 
-**L'interface** : la page `logiciel/interface/` (HTML, CSS, JS sans cadre) parle au moteur par `paie route` (`js/tuyau.js`) ;
+**L'interface** : la page `logiciel/interface/` (HTML, CSS, JS sans cadre) parle au moteur par `moteur route` (`js/tuyau.js`) ;
 la fenêtre Tauri (`atelier/sources/fenetre/`) ne fait que l'afficher. **Toute décision vit dans le moteur** (règle 2) : une page
 affiche et saisit, elle ne calcule ni ne refuse d'elle-même. On compile hors du dépôt (`CARGO_TARGET_DIR`) ; les exécutables
 livrés (Windows, Linux, Mac), c'est « Publier » qui les compile.
@@ -165,7 +165,7 @@ montre que celui qui a lieu.
   l'espace et les croit à jour d'après les dates : une crate compilée depuis l'autre checkout masque le code présent.
 - Ne se délègue pas : une décision de conception, un acte qui engage (dépôt réel, envoi, signature), tout ce qui toucherait au
   coffre. Un Opus **ne réécrit jamais l'historique** (`--amend`, `rebase`, `reset`) et **ne laisse aucune tâche de fond**.
-- **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `paie/` ; ce qui ne se porte pas proprement remonte à Léandre.
+- **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `moteur/` ; ce qui ne se porte pas proprement remonte à Léandre.
   **Pas de Python non plus comme outil** (Léandre, 21/10/2026, devant « a Python patch script ») : le code se modifie avec
   Edit/Write, fonction par fonction (`sed` pour un remplacement mécanique simple) ; un texte se lit avec `pandoc`/`grep` ;
   Playwright se pilote en Node. Aucun script de patch, dans aucun langage.
@@ -181,7 +181,7 @@ Une règle sans texte déposé est un souvenir.
   pas ; **un `LISEZ-MOI.md` par dossier** (l'URL, la date du relevé, ce qu'on en lit, **où le moteur s'en sert**) ; une
   **inférence** s'écrit comme telle ; la note `_source` d'un barème et le commentaire d'une fonction **citent le fichier
   déposé**, pas une URL seule.
-- **Les codes** (travail, sécurité sociale, impôts, CGCT) se relèvent depuis LEGI (`paie releve-codes`, les textes suivis dans `paie/src/releve_codes/textes.rs`,
+- **Les codes** (travail, sécurité sociale, impôts, CGCT) se relèvent depuis LEGI (`moteur releve-codes`, les textes suivis dans `moteur/src/releve_codes/textes.rs`,
   `moissonner` puis `rapport`), jamais à la main ; la norme DSN est dans `norme-dsn/texte/` ; le BOFiP brut dans `bofip/` ;
   le BOSS depuis sa page quand elle répond.
 - **Ce qui ne se republie pas** : un document d'organisme privé (Audiens, Afdas, CASC-SVP, Agirc-Arrco…) entre par sa
@@ -201,7 +201,7 @@ prive/config/maj-cle-privee.bin  la clé qui signe les mises à jour (éditeur)
 `coffre.lire()`. C'est une **convention, pas une garantie** : la clé maîtresse est scellée par le mot de passe du logiciel et
 par la clé du poste (`cle-poste.bin`, dans `~/.config/puppetpaie/` ou `%APPDATA%\PuppetPaie\`, ou dans le dossier portable
 marqué `PORTABLE.json`) ; sur le poste, un agent *pourrait* les ouvrir sans mot de passe. Ce qui tient la règle, c'est qu'elle
-est écrite ici et qu'aucune commande n'affiche jamais un mot de passe. `paie coffre` dit ce qui est posé, et cela suffit.
+est écrite ici et qu'aucune commande n'affiche jamais un mot de passe. `moteur coffre` dit ce qui est posé, et cela suffit.
 
 ## Ce qu'un agent peut faire, et à quelle condition
 
@@ -212,7 +212,7 @@ est écrite ici et qu'aucune commande n'affiche jamais un mot de passe. `paie co
 | **déposer une DSN ou une DPAE en réel, envoyer, faire signer** | **le mot de passe du logiciel, tapé par un humain au moment de l'acte** |
 | **approuver une publication** (environnement `publication` du public) | **jamais un agent** : les sessions Claude agissent sous l'identité de Léandre ; seul Léandre approuve |
 
-**Deux mots de passe, deux chemins, pas d'autre.** Ouvrir le coffre = la séance (`paie coffre seance --fenetre`, une boîte,
+**Deux mots de passe, deux chemins, pas d'autre.** Ouvrir le coffre = la séance (`moteur coffre seance --fenetre`, une boîte,
 12 h, lancée avant la première commande qui touche au coffre ; jamais `getpass` ; sans terminal, refus). Un acte réel = le
 popup, à chaque fois ; la séance n'est jamais une preuve. **Ne pas contourner** : un agent ne tape pas le mot de passe, ne pose
 pas `PUPPETPAIE_MOTDEPASSE` ni la variable d'un organisme, n'ouvre pas le coffre dans un script. Si la clé du poste n'ouvre pas
@@ -225,12 +225,12 @@ Léandre a posé `NET_ENTREPRISES_MOTDEPASSE` dans l'environnement : un agent ne
 
 ## Faire tourner le code dans le conteneur, et les tests
 
-**Le moteur Linux est déjà là** : `atelier/sources/paie/bin/linux/paie` (et la fenêtre `bin/linux/puppetpaie`), livrés par
+**Le moteur Linux est déjà là** : `atelier/sources/moteur/bin/linux/moteur` (et la fenêtre `bin/linux/puppetpaie`), livrés par
 l'ancien flux « Moteur Rust » (retiré le 15/10/2026) ; `bin/SOURCES` dit de quelles sources. Pour reproduire une route : `PUPPETPAIE_CODE=logiciel/donnees` puis `echo '{"route":"…","charge":{…}}' |
-atelier/sources/paie/bin/linux/paie route --racine <copie d'une compagnie fictive>` (sans `PUPPETPAIE_CODE`, l'exécutable
+atelier/sources/moteur/bin/linux/moteur route --racine <copie d'une compagnie fictive>` (sans `PUPPETPAIE_CODE`, l'exécutable
 livré cherche ses référentiels au chemin de compilation). **Pour reproduire, observer ou mesurer, on ne compile pas**
 (Léandre, 16/10/2026) : l'exécutable Linux livré sert tel quel, tant qu'il marche. On ne compile que pour éprouver ce qu'on
-vient de changer dans le moteur (`cd atelier/sources/paie && cargo build --release`), et les tests compilent toujours. La fenêtre demande
+vient de changer dans le moteur (`cd atelier/sources/moteur && cargo build --release`), et les tests compilent toujours. La fenêtre demande
 `libwebkit2gtk-4.1-dev libsoup-3.0-dev librsvg2-dev xvfb`.
 
 **Tout doit être vert. Une PR dont la suite est rouge ne se fusionne pas.** Une fois, à la fin, avant de pousser ; pendant le
@@ -240,17 +240,17 @@ fusionné** (Léandre, 23/10/2026 : « ces tests 20 fois de suite, ça n'a pas d
 binaires qu'il nomme un par un (`-E 'binary(routes)'`…).
 
 ```bash
-cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, engagement, documents, declarations, envois, paie ; les dossiers de travail des tests (~3 Go)
+cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, engagement, documents, declarations, envois, moteur ; les dossiers de travail des tests (~3 Go)
 cargo nextest run --cargo-profile essais --no-fail-fast                  # les sept crates ; la fenêtre n'a pas de tests
 ```
 
 - La suite de l'atelier (`--features atelier`, sa propre cible `<cible>-atelier`), seulement quand on touche à ce qui est sous
   `#[cfg(feature = "atelier")]` : `CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo nextest run --cargo-profile
-  essais -p paie --features atelier --lib --test atelier --test fichiers -E 'test(/(^|::)atelier::/)'`.
-- **Quatre binaires par domaine dans `paie/tests/`** (`tests/calcul/`, `tests/dsn/`, `tests/routes/`, `tests/fichiers/`) ; un fichier qui pose une
+  essais -p moteur --features atelier --lib --test atelier --test fichiers -E 'test(/(^|::)atelier::/)'`.
+- **Quatre binaires par domaine dans `moteur/tests/`** (`tests/calcul/`, `tests/dsn/`, `tests/routes/`, `tests/fichiers/`) ; un fichier qui pose une
   variable d'environnement reste seul dans `tests/`. Les aides sont dans `tests/outils/` (un fichier n'en recopie aucune) ;
   un test se monte dans `outils::dossier_de_test`. Un test qui monte une compagnie passe par le moteur entier et reste dans
-  `paie/tests/` ; un test qui n'appelle que les fonctions de `documents`, de `declarations` ou d'`envois` sur des valeurs vit dans sa crate
+  `moteur/tests/` ; un test qui n'appelle que les fonctions de `documents`, de `declarations` ou d'`envois` sur des valeurs vit dans sa crate
   (`<crate>/tests/`, ou son `#[cfg(test)]`). Un fichier seul : `-E 'binary(calcul) & test(/^clauses::/)'` ; les tests d'une
   crate : `-p declarations`.
 - **Ce qu'un test prouve** : une règle qui cite son texte déposé, ou un contrat (une route refuse et rien n'est écrit ; un
@@ -316,7 +316,7 @@ un truc urgent ; c'est lui qui lance « Publier », jamais un agent. En cas de d
 10. **Test = réel.** Un dépôt de test accepté (`OK, 0 anomalie`) vaut un dépôt réel : même moteur, même fichier, même circuit.
     On ne présente jamais un acte « prouvé en test, pas en réel » comme un risque ; reste ouvert ce que le test ne montre pas
     (AER, taux de PAS). Le garde-fou test → réel protège d'un envoi par erreur, il ne met pas le moteur en doute.
-11. **La copie de développement ne se voit pas dans l'interface.** `prive-dev/` reste en ligne de commande (`paie --dev …`) ;
+11. **La copie de développement ne se voit pas dans l'interface.** `prive-dev/` reste en ligne de commande (`moteur --dev …`) ;
     l'interface s'essaie sur les compagnies fictives.
 
 ## Les fins de ligne
@@ -332,11 +332,11 @@ On publie depuis GitHub (`journal/finitions/PUBLIER.md` du privé) : à la fin d
 « Publier » (`.github/workflows/publier.yml`) avec `notes`, et `calcul` **seulement** si la version change un calcul de paie
 (la seule phrase qu'une compagnie verra ; un taux qui change n'en est pas une), `exigee` plus rarement encore. **Léandre
 approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub. Une Release porte trois sortes d'archives
-(`paie/src/maj.rs`, en tête) : **la mise à jour** (`puppetpaie-<v>-<système>.zip`, le contenu de `logiciel/` à la racine :
+(`moteur/src/maj.rs`, en tête) : **la mise à jour** (`puppetpaie-<v>-<système>.zip`, le contenu de `logiciel/` à la racine :
 **sa forme est un contrat avec toutes les installations posées et ne change plus**), **les fictives** (livrées à part, signées,
 téléchargées seulement quand leur empreinte change ; elles ne remplacent que ce qu'une livraison a posé), **l'installation**
 (`…-installation.zip`, `logiciel/` et `fictives/`, pour Linux, Mac et le dossier portable) ; plus `derniere.json` et
 l'installeur Windows. Une version qui change un calcul attend la DSN des mois saisis avant de s'appliquer (`--malgre-calcul`
 pour passer outre). Jamais pendant que l'interface tourne ; jamais republier un numéro. Le moteur accepte encore la clé de
-signature d'un poste (`maj-cle-privee.bin`, `paie maj --publier`), mais on ne publie que depuis GitHub. On est en
+signature d'un poste (`maj-cle-privee.bin`, `moteur maj --publier`), mais on ne publie que depuis GitHub. On est en
 développement : ne pas signaler qu'aucune version n'a été publiée depuis longtemps.

@@ -2,7 +2,7 @@
 
 Pour un développeur (ou une séance Claude dans le nuage) qui n'a pas les données de sa compagnie sur la machine, mais
 qui veut faire passer une DSN, un signalement ou une DPAE **en test** sur la vraie plate-forme — le seul validateur du
-projet (`atelier/CLAUDE.md`, règle 10). Lot E1, 15/10/2026 ; le code : `atelier/sources/paie/src/essai.rs`.
+projet (`atelier/CLAUDE.md`, règle 10). Lot E1, 15/10/2026 ; le code : `atelier/sources/moteur/src/essai.rs`.
 
 Pour développer et faire passer la suite de tests, **rien de tout cela n'est utile** : les tests tournent sur les
 compagnies fictives et de faux serveurs, sans aucune variable.
@@ -50,7 +50,7 @@ done
 ## Monter la compagnie d'essai
 
 ```bash
-paie essai monter [DOSSIER] [--depuis FICTIVE]
+moteur essai monter [DOSSIER] [--depuis FICTIVE]
 ```
 
 - copie une compagnie **fictive** livrée (défaut : `fictive-3090-grande`, qui a des permanents et des intermittents
@@ -70,18 +70,18 @@ Un refus ne laisse rien sur le disque.
 
 Toutes les commandes suivantes nomment la compagnie par `PUPPETPAIE_DONNEES`. Sans `prive/` voisin, c'est
 indispensable : le moteur prendrait sinon le logiciel lui-même pour compagnie. Dans le nuage, le moteur Linux livré
-est `atelier/sources/paie/bin/linux/paie` (il peut retarder sur les sources : sinon, `cargo build --release`).
+est `atelier/sources/moteur/bin/linux/moteur` (il peut retarder sur les sources : sinon, `cargo build --release`).
 
 ```bash
-paie essai monter
+moteur essai monter
 export PUPPETPAIE_DONNEES=/tmp/puppetpaie-essai     # le dossier que la commande a dit
 ```
 
 **Une DSN mensuelle de test** :
 
 ```bash
-paie depot-dsn 2026-09 --test                      # la DSN du mois se fabrique sous votre identité, et part en test
-paie retours                                        # quelques minutes plus tard : le bilan (CCO/BAN) fait foi
+moteur depot-dsn 2026-09 --test                      # la DSN du mois se fabrique sous votre identité, et part en test
+moteur retours                                        # quelques minutes plus tard : le bilan (CCO/BAN) fait foi
 ```
 
 La base d'essai de net-entreprises garde les essais **par SIRET**, y compris ceux faits depuis un autre poste ; le
@@ -92,22 +92,22 @@ part alors en annule-et-remplace à cet ordre. Sans `--ordre`, chaque nouvel ess
 plus grand que le précédent (le journal compte ses essais) : `--ordre` évite de remonter un à un.
 
 ```bash
-paie depot-dsn sorties/2026-09/DSN_Septembre2026.dsn --test --ordre 7
+moteur depot-dsn sorties/2026-09/DSN_Septembre2026.dsn --test --ordre 7
 ```
 
 Une DSN copiée de la fictive (écrite avant le montage, sous son SIREN) est refusée : déposer la DSN par son mois
-(`paie depot-dsn 2026-09`), qui la fabrique sous votre identité.
+(`moteur depot-dsn 2026-09`), qui la fabrique sous votre identité.
 
-**Un signalement** (fin de contrat, arrêt, demande de taux) : `paie fin-contrat signaler AAAA-MM SALARIE --test`,
-`paie arret …`, `paie pas --demander --test`, puis `paie depot-dsn <fichier> --test`. Son ordre se lit sur la
+**Un signalement** (fin de contrat, arrêt, demande de taux) : `moteur fin-contrat signaler AAAA-MM SALARIE --test`,
+`moteur arret …`, `moteur pas --demander --test`, puis `moteur depot-dsn <fichier> --test`. Son ordre se lit sur la
 plate-forme à l'écriture (lot O1).
 
 **Une DPAE de test** :
 
 ```bash
-paie dpae 2026-11                                   # --seulement SALARIE:AAAA-MM-JJ pour une seule embauche
-paie deposer-dpae sorties/2026-11/DPAE_Novembre2026.txt --test
-paie retours --dpae --flux <le flux rendu>
+moteur dpae 2026-11                                   # --seulement SALARIE:AAAA-MM-JJ pour une seule embauche
+moteur deposer-dpae sorties/2026-11/DPAE_Novembre2026.txt --test
+moteur retours --dpae --flux <le flux rendu>
 ```
 
 ## Ce qui reste à confirmer au premier dépôt

@@ -33,6 +33,8 @@ pub struct Depart {
     /// Le mois de la DSN qui a declare `mois` quand ce n'est pas la sienne : la correction d'un mois passe, portee par la
     /// DSN d'un mois suivant. `None` : la DSN du mois lui-meme.
     pub par: Option<String>,
+    /// Le numero de l'avenant quand ce qui est parti est un avenant au contrat, pas le contrat.
+    pub avenant: Option<String>,
     pub version: u64,
     pub le: String,
 }

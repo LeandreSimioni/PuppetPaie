@@ -12,7 +12,7 @@
    LA FORME, EN TROIS ENDROITS, ET PAS UN DE PLUS :
 
    - LA PORTE est sur la carte de l'engagement : « Un imprévu… » (et « … »
-     sur une paie validée). Elle propose un arrêt de travail, une absence
+     sur un engagement validé). Elle propose un arrêt de travail, une absence
      (congé parental, sans solde, sabbatique… : une suspension du contrat,
      bloc 65), et, quand la carte sait déjà dire une fin, la rupture avant
      terme — qui n'est pas une boîte de plus : elle ouvre le « Contrat » de
@@ -247,8 +247,8 @@ function brancherFin(r, mois, f) {
 /* --------------------------------------------------------- LA PORTE
    Sur la carte d'un engagement, quand elle porte UN salarié (plusieurs
    cochés, c'est une saisie en cours : on ne sait pas encore de qui on
-   parle). « Un imprévu… » au pied d'une carte ouverte, « … » sur une paie
-   validée. */
+   parle). « Un imprévu… » au pied d'une carte ouverte, « … » sur un engagement
+   validé. */
 function majPorteImprevu(div) {
   const b = div.querySelector(".e-imprevu-btn");
   if (b) b.hidden = salariesDuBloc(div).length !== 1;
@@ -266,9 +266,9 @@ function carteDe(div) {
 
 /** La rupture a-t-elle un sens d'ici ? Seulement quand la carte sait déjà la dire : une nature qui a des motifs de
  *  rupture (le moteur les donne, `natures`), une fin qu'on peut écrire (un contrat payé au mois, ou des bornes déjà
- *  écrites), et une paie ouverte. Sinon on ne l'invente pas. */
+ *  écrites), et un engagement ouvert. Sinon on ne l'invente pas. */
 function ruptureOuverte(div) {
-  if (carteFermee(div) || div.classList.contains("validee")) return null;    // une carte fermée, une paie validée
+  if (carteFermee(div) || div.classList.contains("validee")) return null;    // une carte fermée, un engagement validé
   const nat = natureDe(div.querySelector(".e-nature").value);
   if (!(nat.motifs_rupture || []).length) return null;
   if (!nat.mensuelle && !div.querySelector(".e-fin").value) return null;
@@ -362,7 +362,7 @@ function peindreImprevusDeLaCarte(div, liste) {
         ${jours.length ? `<div class="imprevu-jours">Payé pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"} :
           ${jours.map((c) => c.dates.map((iso) => `${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}
             ${validee ? "" : `<button class="lien" data-retirer="${echapper(iso)}" data-rubrique="${echapper(c.rubrique)}">retirer ce jour</button>`}`).join(" · ")).join(" · ")}
-          ${validee ? `<span class="discret">— la paie est validée : cliquer sur la carte, puis « Modifier… », pour retirer ces jours.</span>` : ""}
+          ${validee ? `<span class="discret">— l'engagement est validé : cliquer sur la carte, puis « Modifier l'engagement… », pour retirer ces jours.</span>` : ""}
         </div>` : ""}
       </div>`;
   }).join("");
@@ -685,12 +685,12 @@ async function etapeSuite(i, p, phrase) {
       <span class="discret">— le complément versé après les indemnités journalières ; à dire quand on le connaît</span>
       <input type="number" step="0.01" min="0" id="su-maintien"></label>` : ""}
     ${jours.length ? `<div class="champ-boite">Des jours sont payés pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"}.
-      Cocher ceux à retirer de la paie :
+      Cocher ceux à retirer de l'engagement :
       <div class="liste-jours">${jours.map((c, k) => c.dates.map((iso) => ici(c)
         ? `<label class="coche"><input type="checkbox" data-jour="${k}" value="${echapper(iso)}">
              ${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}</label>`
         : `<div class="discret">${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))} — à retirer dans la saisie ${
-             echapper(deMois(c.mois))}${c.mois === MOIS_AFFICHE ? " (la paie est validée : la modifier d'abord)" : ""}</div>`).join("")).join("")}
+             echapper(deMois(c.mois))}${c.mois === MOIS_AFFICHE ? " (l'engagement est validé : le modifier d'abord)" : ""}</div>`).join("")).join("")}
       </div></div>` : ""}
     <div class="actions">
       <button class="secondaire" id="su-plus-tard">Plus tard</button>
@@ -713,7 +713,7 @@ async function etapeSuite(i, p, phrase) {
       const c = jours[+x.dataset.jour];
       if (retirerJour(div, c.rubrique, x.value)) retires++;
     });
-    if (retires) dire(`${retires} jour${retires > 1 ? "s" : ""} retiré${retires > 1 ? "s" : ""} de la paie. La saisie s'enregistre.`);
+    if (retires) dire(`${retires} jour${retires > 1 ? "s" : ""} retiré${retires > 1 ? "s" : ""} de l'engagement. La saisie s'enregistre.`);
     await finir();
   };
 }
@@ -995,7 +995,7 @@ async function boitePapiersDeFin(mois, salarie) {
   document.getElementById("fp-dossier").onclick = async () => {
     try {
       const d = await api("ouvrir-dossier", { mois });
-      if (d && d.dossier) dire(`Dossier ouvert : ${d.dossier}`);
+      if (d && d.phrase) dire(d.phrase);
     } catch (e) { dire(e.message, "erreur"); }
   };
 }

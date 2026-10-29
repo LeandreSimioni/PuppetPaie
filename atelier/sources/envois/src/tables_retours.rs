@@ -1,4 +1,4 @@
-//! GENERE par `paie generer-tables` : ne pas editer. Unicode 18.0.0.
+//! GENERE par `moteur generer-tables` : ne pas editer. Unicode 18.0.0.
 //! Lu dans `atelier/reference/sources/unicode/unicode-ucd-18.0.0-unicodedata-20261015.txt`.
 //! Lu dans `atelier/reference/sources/unicode/unicode-mappings-microsoft-cp437-20261015.txt`.
 //! Lu dans `atelier/reference/sources/unicode/unicode-mappings-microsoft-cp1252-20261015.txt`.

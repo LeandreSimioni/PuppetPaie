@@ -1,17 +1,17 @@
 # Le banc d'essai daté (#236, phase 2)
 
 Faire vivre une compagnie dans l'interface, comme un testeur, en avançant le calendrier — et que tout ce qu'on y fait
-s'enregistre dans un **scénario** rejouable sans navigateur (`paie/src/scenario.rs`). Le banc ne décide rien : il lance
-le binaire de l'atelier (`paie-atelier`, qui refuse tout acte réel) sur une copie d'installation **bridée** neuve, et lui
-parle par `/atelier/<geste>` (`paie/src/interface/mod.rs`, `Fenetre::atelier`).
+s'enregistre dans un **scénario** rejouable sans navigateur (`moteur/src/scenario.rs`). Le banc ne décide rien : il lance
+le binaire de l'atelier (`moteur-atelier`, qui refuse tout acte réel) sur une copie d'installation **bridée** neuve, et lui
+parle par `/atelier/<geste>` (`moteur/src/interface/mod.rs`, `Fenetre::atelier`).
 
 ## La notice d'un agent qui joue au banc
 
 **0. Le programme** (une fois, par l'orchestrateur ; plusieurs bancs le partagent) :
 
 ```bash
-cd atelier/sources/paie && CARGO_TARGET_DIR=<cible>-atelier cargo build --profile essais --features atelier --bin paie-atelier
-export PUPPETPAIE_ATELIER=<cible>-atelier/essais/paie-atelier
+cd atelier/sources/moteur && CARGO_TARGET_DIR=<cible>-atelier cargo build --profile essais --features atelier --bin moteur-atelier
+export PUPPETPAIE_ATELIER=<cible>-atelier/essais/moteur-atelier
 ```
 
 **1. Lancer** une installation neuve au jour où la compagnie commence (un dossier hors du dépôt, à toi seul) :
@@ -95,23 +95,23 @@ fichier par fichier, à celle du banc (le banc tire les mêmes aléas que le rej
 banc » : c'est bon. Une ligne `DIFFERENCE` nomme un fichier : quelque chose a écrit sans passer par la fenêtre, ou le
 rejeu s'écarte — à mettre dans la passation, tel quel.
 
-Les mêmes commandes, sans le banc (`paie-atelier scenario …`, ou l'exemple `vie_fictive` du moteur ordinaire) :
+Les mêmes commandes, sans le banc (`moteur-atelier scenario …`, ou l'exemple `vie_fictive` du moteur ordinaire) :
 
 ```bash
-paie-atelier scenario rejouer  <scénario> <installation neuve> [--lectures]   # dit ce que l'horloge a joué, ECART sinon
-paie-atelier scenario verifier <scénario> <installation du banc> <dossier de travail>
-paie-atelier scenario elaguer  <scénario> <scénario sans lectures>            # pour le figer (phase 4)
-cd atelier/sources/paie && CARGO_TARGET_DIR=<cible> cargo run --profile essais --example vie_fictive -- rejouer <scénario> <dossier neuf>
+moteur-atelier scenario rejouer  <scénario> <installation neuve> [--lectures]   # dit ce que l'horloge a joué, ECART sinon
+moteur-atelier scenario verifier <scénario> <installation du banc> <dossier de travail>
+moteur-atelier scenario elaguer  <scénario> <scénario sans lectures>            # pour le figer (phase 4)
+cd atelier/sources/moteur && CARGO_TARGET_DIR=<cible> cargo run --profile essais --example vie_fictive -- rejouer <scénario> <dossier neuf>
 ```
 
 ## Une compagnie qui vient d'un logiciel précédent
 
 Une compagnie qui entre par « D'un logiciel précédent » importe, par la page, les bulletins de son ancien logiciel. Ces
 bulletins sont **fictifs** : l'orchestrateur les fabrique d'une description JSON, au gabarit CoolPaie ou sPAIEctacle
-que l'import sait lire, un PDF par bulletin (`paie/src/atelier/fabriquer_bulletins.rs`, la fabrique même des tests) :
+que l'import sait lire, un PDF par bulletin (`moteur/src/atelier/fabriquer_bulletins.rs`, la fabrique même des tests) :
 
 ```bash
-paie-atelier fabriquer-bulletins description.json /tmp/banc-<nom>/bulletins --gabarit spaiectacle
+moteur-atelier fabriquer-bulletins description.json /tmp/banc-<nom>/bulletins --gabarit spaiectacle
 ```
 
 Puis le joueur les dépose dans le dossier que la page désigne (`import/` de la compagnie, ou le champ du dossier), comme
@@ -211,7 +211,7 @@ Un obstacle relevé en jouant s'écrit ici, avec le geste qui le contourne, jusq
 
 ## Pour le rejeu en test
 
-Un scénario qu'on fige devient un test (`paie/tests/rejeu.rs`, `tests/outils/rejeu.rs`) : `scenario elaguer` l'écrit
+Un scénario qu'on fige devient un test (`moteur/tests/rejeu.rs`, `tests/outils/rejeu.rs`) : `scenario elaguer` l'écrit
 sans ses lectures (le rejeu les écarte déjà ; le test `un_scenario_elague_se_rejoue_a_l_identique` le prouve) dans
-`paie/tests/donnees/scenarios/<nom>/`, puis on ajoute le test sur le modèle des Tréteaux du Banc ; l'oracle s'écrit par
+`moteur/tests/donnees/scenarios/<nom>/`, puis on ajoute le test sur le modèle des Tréteaux du Banc ; l'oracle s'écrit par
 `PUPPETPAIE_REECRIRE_ORACLES=1`.

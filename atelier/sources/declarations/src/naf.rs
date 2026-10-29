@@ -3,7 +3,7 @@
 //! La NAF 2025 « entre en vigueur le 1er janvier 2027 » et remplace la NAF rev. 2 a la meme date (decret n° 2025-736 du
 //! 31/07/2025, art. 2 et 6 ; `atelier/reference/sources/insee-naf-2025/legifrance-decret-2025-736-naf-2025-20250731.txt`).
 //! Les deux nomenclatures n'ont aucun code en commun ; la table livree (`logiciel/donnees/naf-base.json`, relevee par
-//! `paie extraire naf` sur les fichiers de l'INSEE) dit, pour chaque code rev. 2, vers quels codes 2025 son
+//! `moteur extraire naf` sur les fichiers de l'INSEE) dit, pour chaque code rev. 2, vers quels codes 2025 son
 //! contenu passe. Elle ne choisit pas : `90.01Z` (arts du spectacle vivant) passe en `90.20Y` (activites de spectacle)
 //! ou en `90.39G` (production et organisation d'evenements culturels) selon l'activite, et c'est l'INSEE qui attribue le
 //! code (decret, art. 5 ; notification, avis de situation Sirene).

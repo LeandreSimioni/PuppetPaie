@@ -57,7 +57,7 @@ const LECTURES_DU_MOIS = new Set(["saisie", "contrats-en-cours", "etat-du-mois",
   "embauches-a-declarer", "fins-de-contrat", "etat-par-engagement", "imprevus"]);
 // Des lectures que la page fait souvent, sans rien changer : elles ne vident pas ce qui a été lu.
 const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organismes-contrats", "incident-navigateur", "diagnostic-etat",
-  "verifier-fiche", "emploi", "signalements", "apercu", "importation-incident", "importation-tri", "arret-obligations",
+  "verifier-fiche", "emploi", "signalements", "apercu", "importation-incident", "arret-obligations",
   // Les imprévus d'un salarié (son dossier), les contrats qu'un imprévu suspendrait : des lectures.
   "imprevus", "arret-contrats",
   // Les contrats déclarés avant PuppetPaie (l'historique importé) : une lecture, que l'écran d'un mois passé fait en se peignant.
@@ -124,7 +124,7 @@ function poserLeMois(mois, ecran) {
  * ne dépose ni n'envoie sur un écran que le moteur n'a pas confirmé. */
 let VERIF = null;         // { mois, promesse } : la vérification en route
 const GESTES_QUI_ENGAGENT = new Set(["valider-engagement", "contrat-recu", "contrats-imprimer", "dsn-a-deposer", "deposer", "dpae",
-  "demander-signature", "envoyer-documents", "avenant-envoyer", "avenants-envoyer",
+  "demander-signature", "envoyer-documents", "documents-imprimer", "avenant-envoyer", "avenants-envoyer",
   "dossier-envoyer", "casc-envoyer", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents",
   "cloture"]);
 
@@ -470,7 +470,7 @@ window.addEventListener("unhandledrejection", (ev) => {
 async function ouvrirEtDire(route, charge = {}) {
   try {
     const r = await api(route, charge);
-    if (r && r.dossier) dire(`Dossier ouvert : ${r.dossier}`);
+    if (r && r.phrase) dire(r.phrase);
   } catch (e) { dire(e.message, "erreur"); }
 }
 

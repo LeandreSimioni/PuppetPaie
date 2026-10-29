@@ -1,6 +1,6 @@
 {
  "_quoi": "La NAF 2025 (sous-classes) et la correspondance de chaque sous-classe NAF rev. 2 vers la NAF 2025. La fiche entreprise porte le code APE sans point (`9020Y`). Le moteur s'en sert pour reconnaitre un code saisi et pour refuser, dans un fichier DSN P27V01, un code NAF rev. 2 qui n'a plus cours, en disant vers quels codes NAF 2025 il passe : il ne choisit jamais entre eux, c'est l'INSEE qui attribue le code (`declarations/src/naf.rs`).",
- "_source": "INSEE, page « NAF 2025 » (https://www.insee.fr/fr/information/8181066) : insee-naf-2025-structure-20241004.xlsx (structure, feuille « Sous-classes ») et insee-naf-2025-correspondances-naf-rev2-vers-naf-2025-20260107.xlsx (feuille « NAF rév. 2 vers NAF 2025 »), deposes dans atelier/reference/sources/insee-naf-2025/. Releve automatiquement par `paie extraire naf` le 15/10/2026.",
+ "_source": "INSEE, page « NAF 2025 » (https://www.insee.fr/fr/information/8181066) : insee-naf-2025-structure-20241004.xlsx (structure, feuille « Sous-classes ») et insee-naf-2025-correspondances-naf-rev2-vers-naf-2025-20260107.xlsx (feuille « NAF rév. 2 vers NAF 2025 »), deposes dans atelier/reference/sources/insee-naf-2025/. Releve automatiquement par `moteur extraire naf` le 15/10/2026.",
  "_sha256": {
   "insee-naf-2025-structure-20241004.xlsx": "6bbb9b9affc7d547f7b2b4a790043d6c942362d743bf38377d5e32bd7ceba2d7",
   "insee-naf-2025-correspondances-naf-rev2-vers-naf-2025-20260107.xlsx": "8746ed6b5ec70dca426a158a9b43b91e97fd71cf34bc0d8094b982b7260397ab"

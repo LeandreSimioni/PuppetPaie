@@ -74,6 +74,11 @@ impl Jour {
         format!("{:02}/{:02}/{:04}", self.jour, self.mois, self.an)
     }
 
+    /// `JJ/MM`, sans l'annee.
+    pub fn jj_mm(&self) -> String {
+        format!("{:02}/{:02}", self.jour, self.mois)
+    }
+
     /// `JJMMAAAA`.
     pub fn jjmmaaaa(&self) -> String {
         format!("{:02}{:02}{:04}", self.jour, self.mois, self.an)

@@ -14,7 +14,7 @@ lancement la ramène devant et s'arrête, sans mise à jour. La fermer d'abord.
 Essayer une mise à jour :
 
 1. Chez l'éditeur, publier une version plus récente que `logiciel/VERSION` du bac
-   (`paie maj --publier`, dans un PowerShell ordinaire).
+   (`moteur maj --publier`, dans un PowerShell ordinaire).
 2. `logiciel\puppetpaie.exe maj` : il trouve la version, la télécharge, vérifie la
    signature, la contrôle et la pose dans `maj/` (« prête »), à côté de `logiciel/`.
 3. Double-cliquer `logiciel\puppetpaie.exe` : aucune fenêtre ne doit s'ouvrir avant la

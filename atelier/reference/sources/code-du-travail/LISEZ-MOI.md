@@ -278,16 +278,16 @@ sections « Le bulletin de paie » et « La mensualisation » ; `xml/L3243-2.xml
   l. 763), écrite dans la couche de la convention (`logiciel/donnees/clauses-conventionnelles-base.json`,
   `remise_du_contrat`, avec son inférence sur les métiers).
 - **L3243-2** (`LEGIARTI000033024092`) : « Lors du paiement du salaire, l'employeur remet [...] une pièce justificative dite
-  bulletin de paie. » Le bulletin est dû le jour du paiement.
+  bulletin de paie. » Le bulletin accompagne le paiement ; le moteur n'en tire aucune échéance : la case Documents du
+  mois n'en a pas, chaque compagnie envoie ses documents quand elle veut (souvent après la DSN, qui fait remonter l'AER).
 - **L3242-1** (`LEGIARTI000006902858`) : « Le paiement de la rémunération est effectué une fois par mois » ; « ces
-  dispositions ne s'appliquent pas [...] aux salariés intermittents ». Il ne donne donc aucun jour pour un cachet : le jour du
-  paiement est celui que l'engagement (ou son mois) écrit, `date_paiement`. Sans lui, aucune échéance ne se dit (règle 1).
+  dispositions ne s'appliquent pas [...] aux salariés intermittents ». Il ne donne donc aucun jour pour un cachet.
 
 **Inférence** (écrite dans `droit/src/echeances.rs`) : un jour ouvrable va du lundi au samedi, moins les fériés chômés de la
 compagnie (`conges::jours_ouvrables`, L3141-3) ; « dans les deux jours ouvrables suivant l'embauche » se compte depuis le
 lendemain de l'embauche.
 
-**Où le moteur s'en sert** : `atelier/sources/droit/src/echeances.rs` (`remise_du_contrat`, `remise_du_bulletin`), lu par
-`paie/src/routes_mois.rs` (`etat_par_engagement`, `echeances` de chaque engagement ; l'échéance des cases Contrats et
-Documents de `bilan_du_mois`). Test : `droit/tests/droit/clauses.rs`
+**Où le moteur s'en sert** : `atelier/sources/droit/src/echeances.rs` (`remise_du_contrat`), lu par
+`moteur/src/routes_mois.rs` (`etat_par_engagement`, `echeances` de chaque engagement ; l'échéance de la case Contrats
+de `bilan_du_mois`). Test : `droit/tests/droit/clauses.rs`
 (`la_remise_du_contrat_suit_l1242_13_et_la_1285_pour_ses_musiciens`).

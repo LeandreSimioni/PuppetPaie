@@ -81,7 +81,7 @@ function ajouterToutCocher(racine) {
 
 /* CE QUI S'OUVRE S'OUVRE D'UN CLIC SUR LUI-MÊME (Léandre, ticket #218 :
  * « plus simple que modifier ou en voir plus : si on clique ça s'ouvre,
- * simple et efficace »). Une carte de paie, la ligne d'une fiche, la ligne
+ * simple et efficace »). Une carte d'engagement, la ligne d'une fiche, la ligne
  * d'un mot de passe : plus de bouton « Voir le détail » ni « Modifier » pour
  * les ouvrir, la ligne entière est le geste. UN SEUL MÉCANISME pour toute la
  * page : `rendreOuvrable(el, ouvrir)` pose la fonction, l'écoute ci-dessous
@@ -142,7 +142,7 @@ document.getElementById("voile").onclick = (e) => {
    Chrome, et il n'y aura pas Chrome ». Le mot de passe se tape, à chaque
    fois, et c'est le but. */
 function demanderMotDePasse(pourquoi, { envoi = false } = {}) {
-  // LA COMPAGNIE FICTIVE (routes_accueil::simulation_active) : rien ne part, rien à prouver.
+  // LA COMPAGNIE FICTIVE (le moteur : `simulation`, route `etat`) : rien ne part, rien à prouver.
   // L'acte suit son cours comme en vrai, sans le popup.
   if (enFictive()) return Promise.resolve("fictive");
   // UNE FICTIVE AJOUTÉE (ticket #236, `envois_refuses` du moteur) : un envoi n'y part pas, le moteur le refuse avant

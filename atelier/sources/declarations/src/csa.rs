@@ -183,7 +183,7 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Csa>> {
 supplementaire a l'apprentissage {} (code du travail L. 6242-1) se calcule sur le quotient de ses alternants, que l'Urssaf \
 calcule et renvoie debut mars en compte rendu metier de nature 118 (fiche net-entreprises 2624) : l'effectif moyen annuel \
 des contrats favorisant l'insertion professionnelle (code {}) et celui de determination du taux d'alternants (code {}). \
-config/effectifs.json ne les a pas pour {} : relever les retours (`paie retours`), le moteur les y ecrit. Ils ne se \
+config/effectifs.json ne les a pas pour {} : relever les retours (`moteur retours`), le moteur les y ecrit. Ils ne se \
 saisissent pas. Rien n'est ecrit.",
             n + 1,
             n,

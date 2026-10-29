@@ -91,14 +91,14 @@
                contrat — la fin du mois, pas besoin de l'afficher. »
              « Et pas de lieu là-haut : c'est lié au contrat, le lieu. »
 
-           Les trois avaient la même excuse — « ça se répète d'une paie à
+           Les trois avaient la même excuse — « ça se répète d'un engagement à
            l'autre » — et le même défaut : un champ affiché est un champ à
            remplir, à relire et à ne pas se tromper, pour une valeur qui ne
            change jamais. Le taux se reprend du dernier saisi, la date de
            paiement est le dernier jour du mois, et le lieu appartient au
            cachet (chaque engagement a le sien, sous ses lignes de paie).
 
-           Ce qui n'a jamais été ici, et pourquoi : le spectacle. Une paie est
+           Ce qui n'a jamais été ici, et pourquoi : le spectacle. Un engagement est
            un spectacle est un numéro d'objet — un contrat ne peut en porter
            qu'un — et un mois en porte plusieurs. En faire un défaut du mois,
            c'était laisser un déroulant choisir à notre place ce qui part en
@@ -132,7 +132,7 @@
            fois là. -->
       <h2>Les engagements
         <span class="discret">— chacun porte son état</span></h2>
-      <!-- UN MOIS DONT LA DSN EST DÉPOSÉE (21/10/2026) : ce qu'une modification de sa paie entraîne, tel que le moteur le
+      <!-- UN MOIS DONT LA DSN EST DÉPOSÉE : ce qu'une modification de ses engagements entraîne, tel que le moteur le
            dit (route `saisie`, `dsn_deposee`) — un annule-et-remplace tant qu'il est admis, puis une confirmation et la
            correction dans la DSN suivante. js/saisie-mois.js, majFermeture(). -->
       <!-- UN MOIS SAISI EN DÉMO, la compagnie gardée au déblocage (ticket #236) : rien n'en est parti. js/saisie-mois.js,
@@ -162,14 +162,13 @@
     </div>
 
     <aside class="col-apercu">
-      <h2>Le mois <span class="discret" id="apercu-sous-titre">calculé, rien n'est écrit</span></h2>
+      <h2>Le mois <span class="discret" id="apercu-sous-titre"></span></h2>
       <div id="apercu"></div>
 
-      <!-- Ce qui est parti de ce mois-ci, et ce qui peut encore partir.
-           Chaque acte porte la phrase du journal : un écran qui ne dirait
-           que « déposer » laisserait croire qu'il reste à faire ce qui est
-           déjà fait. Rien ne part d'un clic — chaque bouton ouvre un
-           récapitulatif qui demande le mot de passe du logiciel. -->
+      <!-- Les étapes du mois (js/actes.js) : ce qui est parti tient dans la
+           grande case de chaque étape, ce qui reste sort à côté. Rien ne part
+           d'un clic — une case ouvre un récapitulatif qui demande le mot de
+           passe du logiciel. -->
       <h2>Les étapes</h2>
       <div id="actions-mois"></div>
 
@@ -365,7 +364,7 @@
 <script src="/js/reprise-journal.js?v={{EMPREINTE}}"></script>
 <script src="/js/imprevus.js?v={{EMPREINTE}}"></script>
 <script src="/js/conseils.js?v={{EMPREINTE}}"></script>
-<script src="/js/etats-paies.js?v={{EMPREINTE}}"></script>
+<script src="/js/etats-engagements.js?v={{EMPREINTE}}"></script>
 <script src="/js/configuration.js?v={{EMPREINTE}}"></script>
 <script src="/js/fiche.js?v={{EMPREINTE}}"></script>
 <script src="/js/historique.js?v={{EMPREINTE}}"></script>

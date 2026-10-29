@@ -25,7 +25,7 @@ async function rafraichirApresVeille(v) {
   if (!apres || apres === avant || v.en_cours) return;
   const mois = document.getElementById("mois").value;
   try {
-    await dessinerEtatsDesPaies(mois);
+    await dessinerEtatsDesEngagements(mois);
     await rafraichirActions();
   } catch (e) { /* le bandeau dit déjà l'essentiel */ }
 }

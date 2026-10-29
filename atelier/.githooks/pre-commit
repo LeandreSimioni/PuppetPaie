@@ -1,16 +1,16 @@
 #!/bin/sh
-# Refuse un commit qui emporterait une donnee personnelle : `paie verifier-avant-commit --indexes`
-# (atelier/sources/paie/src/verifier_avant_commit.rs) juge ce que l'index porte -- les NIR, IBAN et BIC
+# Refuse un commit qui emporterait une donnee personnelle : `moteur verifier-avant-commit --indexes`
+# (atelier/sources/moteur/src/verifier_avant_commit.rs) juge ce que l'index porte -- les NIR, IBAN et BIC
 # sans la marque d'invention, et les vraies valeurs de prive/config/ quand il est la.
 #
 # A poser une fois, depuis la racine du depot :
 #
 #     git config core.hooksPath atelier/.githooks
 #
-# Le programme : PUPPETPAIE_FABRIQUE s'il nomme un paie, sinon celui que Cargo a compile
+# Le programme : PUPPETPAIE_FABRIQUE s'il nomme un moteur, sinon celui que Cargo a compile
 # (CARGO_TARGET_DIR, sinon atelier/sources/target, la cible de l'espace ; `cargo build --release`, ou le profil `essais` que les
 # seances du nuage compilent pour les tests), sinon celui
-# que le depot livre (atelier/sources/paie/bin/<systeme>/). Le premier qui connait la commande
+# que le depot livre (atelier/sources/moteur/bin/<systeme>/). Le premier qui connait la commande
 # juge ; si aucun ne la connait, le commit est refuse : un garde qui n'a pas tourne ne laisse
 # pas passer.
 #
@@ -18,7 +18,7 @@
 # Ne le faire qu'apres avoir REGARDE ce qui est signale.
 
 racine=$(git rev-parse --show-toplevel) || exit 1
-paie_src="$racine/atelier/sources/paie"
+moteur_src="$racine/atelier/sources/moteur"
 
 case "$(uname -s)" in
     MINGW* | MSYS* | CYGWIN* | Windows*) systeme=windows ;;
@@ -34,10 +34,10 @@ unix() {
 cible=$(unix "${CARGO_TARGET_DIR:-$racine/atelier/sources/target}")
 voulu=$(unix "$PUPPETPAIE_FABRIQUE")
 
-for p in "$voulu" "$cible/release/paie" "$cible/release/paie.exe" "$cible/essais/paie" "$cible/essais/paie.exe" \
-         "$paie_src/bin/$systeme/paie" "$paie_src/bin/$systeme/paie.exe"; do
+for p in "$voulu" "$cible/release/moteur" "$cible/release/moteur.exe" "$cible/essais/moteur" "$cible/essais/moteur.exe" \
+         "$moteur_src/bin/$systeme/moteur" "$moteur_src/bin/$systeme/moteur.exe"; do
     [ -n "$p" ] && [ -f "$p" ] || continue
-    case "$(basename "$p")" in paie | paie.exe) ;; *) continue ;; esac
+    case "$(basename "$p")" in moteur | moteur.exe) ;; *) continue ;; esac
     "$p" verifier-avant-commit --aide >/dev/null 2>&1 || continue
     "$p" verifier-avant-commit --indexes
     code=$?
@@ -52,7 +52,7 @@ for p in "$voulu" "$cible/release/paie" "$cible/release/paie.exe" "$cible/essais
     exit 1
 done
 
-echo "Commit refuse : aucun programme paie ne connait verifier-avant-commit."
-echo "Le compiler : cd atelier/sources/paie && cargo build --release"
+echo "Commit refuse : aucun moteur ne connait verifier-avant-commit."
+echo "Le compiler : cd atelier/sources/moteur && cargo build --release"
 echo "Pour passer outre malgre tout : git commit --no-verify"
 exit 1

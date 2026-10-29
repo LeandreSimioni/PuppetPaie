@@ -1,45 +1,23 @@
-/* Ce qui part : actions, DSN, DPAE, depot, repetition, envoi, signature, avenant. */
+/* Ce qui part : les étapes du mois, et les boîtes qui déposent, envoient et font signer. */
 "use strict";
 
 /* =======================================================================
-   LE MOIS : CE QUI PART D'ICI
+   LES ÉTAPES DU MOIS
    =======================================================================
-   Quatre actes, un seul écran pour les quatre : déposer la DSN, déposer la
-   DPAE, envoyer les documents aux salariés, demander la signature des
-   contrats. Le moteur sait les faire depuis le 11/09/2026 ; ils n'avaient
-   pas d'écran, et un bouton qui n'existe pas est une fonction qui n'existe
-   pas.
+   Le moteur rend (`etat-du-mois`) les colonnes du mois et, étape par étape
+   (DPAE, Contrats, DSN, Documents), les groupes à dessiner : chacun son état
+   (`fait`, `a_faire`, `en_attente`, `refuse`), les colonnes qu'il couvre, ce
+   qu'il écrit (`compte_texte` en gras, `quoi`, `echeance.court`) et le geste
+   qu'ouvre un clic. La page en fait des cases alignées sur les colonnes — la
+   première, la grande, porte ce qui est fait ; ce qui reste sort à côté — et
+   relie les cases d'une étape à la suivante par des traits droits (l'arbre).
+   Elle ne choisit ni une couleur hors de l'état, ni une phrase, ni un geste.
 
-   TROIS RÈGLES, ET AUCUNE N'EST TENUE ICI — c'est tout le sujet :
-
-   1. La phrase d'état vient du JOURNAL, par le moteur (`journal.resume`).
-      Elle distingue trois choses qu'un écran confondrait vite : jamais
-      parti, parti sans réponse, parti et répondu. « En attente » affiché
-      comme « conforme », c'est une déclaration qu'on croit faite.
-   2. Rien ne part d'un clic. Chaque bouton ouvre un RÉCAPITULATIF, et le
-      récapitulatif demande le mot de passe DU LOGICIEL — pas celui de
-      l'organisme, que cette page ne voit jamais, ne demande jamais et ne
-      reçoit jamais. Le moteur va le chercher lui-même au coffre.
-   3. Le mois déclaré y est écrit EN GROS. Ce n'est pas de la décoration :
-      recopier le mois était le seul geste qu'on ne peut pas faire sans
-      regarder l'écran, et il a été retiré du parcours. Un mot de passe se
-      tape de mémoire, les yeux ailleurs — donc c'est ce bloc-là qui porte
-      désormais toute la lecture (docstring d'`operations.Preuve`).
-
-   La séance se voit AVANT le clic, et pourtant les boutons restent actifs.
-   Un garde-fou posé dans un front est un garde-fou qu'on contourne par
-   l'autre face : c'est `operations` qui refuse, et lui seul. La page
-   prévient, parce que découvrir un refus après avoir tapé son mot de passe
-   est une mauvaise façon d'apprendre qu'il fallait ouvrir la séance.
+   RIEN NE PART D'UN CLIC : une case ouvre un récapitulatif, qui demande le
+   mot de passe DU LOGICIEL, jamais celui de l'organisme (le moteur va le
+   chercher lui-même au coffre). C'est le moteur qui refuse un acte, et lui
+   seul : un garde-fou posé dans un front se contourne par l'autre.
 */
-let MOIS_ACTES = null;          // le dernier /api/etat-du-mois lu
-
-/* LE FIL DES ENVOIS N'EST PLUS ICI (20/10/2026, tickets #219, #220) : tous les envois du mois et tous leurs retours, lus,
- * sont dans l'Historique (js/historique.js, route `historique-mois`). L'étape garde son état et son bouton ; un lien
- * mène au mois dans l'Historique. */
-/* LES ÉTAPES DU MOIS (#257) : le moteur rend, étape par étape, les groupes à dessiner (`etat-du-mois`, `etapes`) —
- * chacun son état (fait, a_faire, en_attente, refuse), son compte, sa phrase courte, son échéance et le geste qu'ouvre
- * un clic — et laquelle est la suivante. La page ne décide rien : elle dessine ce que disent les groupes. */
 
 /** Le geste d'un groupe, tel que le moteur le nomme. */
 function ouvrirGeste(action, mois) {
@@ -48,6 +26,7 @@ function ouvrirGeste(action, mois) {
   switch (action.geste) {
     case "declarer_embauches": return boiteDpae(m);
     case "faire_signer": return boiteSignature(m);
+    case "contrats_en_attente": return boiteContratsEnAttente(m);
     case "deposer_dsn": return deposerLaDsn(m);
     case "deposer_fichier": return boiteDepot(action.quoi, action.fichier);
     case "envoyer_documents": return boiteEnvoi(m);
@@ -55,10 +34,43 @@ function ouvrirGeste(action, mois) {
   }
 }
 
-/** La classe d'un état, pour la couleur que la feuille de style donne déjà. */
-const COULEUR_ETAT = { fait: "bien", a_faire: "alerte", en_attente: "alerte", refuse: "refus" };
+/** La classe d'une case, d'après l'état du groupe (la feuille de style en fait la couleur). */
+const CASE_DE_L_ETAT = { fait: "vert", a_faire: "orange", en_attente: "en-attente", refuse: "rouge" };
 
-/* -------------------------------------------- la colonne des quatre étapes */
+/** Les colonnes déjà dessinées pour un mois : une colonne qui apparaît entre en glissant. */
+const COLONNES_VUES = new Map();
+
+/** Une case : un groupe d'une étape (`k`, son rang), placé sur ses colonnes. */
+function dessinerCase(et, k, g, colonnes, neuves, gestes) {
+  const de = colonnes.indexOf(g.colonnes[0]) + 1;
+  const a = colonnes.indexOf(g.colonnes[g.colonnes.length - 1]) + 2;
+  const classe = CASE_DE_L_ETAT[g.etat] || "orange";
+  const fini = g.etat === "fait";
+  const cote = g.colonnes[0] !== colonnes[0];
+  const neuf = g.colonnes.some((c) => neuves.has(c));
+  const ech = g.echeance && g.echeance.court;
+  const titre = [et.nom, g.phrase, g.echeance && g.echeance.texte && `— ${g.echeance.texte}`, et.phrase]
+    .filter(Boolean).join(" ");
+  let bouton = "";
+  if (!fini && g.action) {
+    gestes.push(g.action);
+    bouton = `data-geste="${gestes.length - 1}" tabindex="0" role="button"`;
+  }
+  const quoi = `<span class="quoi">${g.compte_texte
+    ? `<span class="compte">${echapper(g.compte_texte)}</span> ` : ""}${echapper(g.quoi || "")}</span>`;
+  const limite = ech ? `<span class="ech">${echapper(ech)}</span>` : "";
+  const corps = g.etat === "en_attente" ? `
+      <span class="moitie faite"><span class="etape-rond">✓</span><b>${echapper(et.nom)}</b></span>
+      <span class="moitie attend"><span class="kase-texte">${quoi}${limite}</span></span>` : `
+      <span class="etape-rond">${fini ? "✓" : k + 1}</span>
+      <span class="kase-texte">
+        <span class="ligne1"><b>${echapper(et.nom)}</b></span>${fini ? "" : quoi}${limite}
+      </span>`;
+  return `<div class="kase ${classe}${cote ? " cote" : ""}${neuf ? " neuf" : ""}${bouton ? " cliquable" : ""}"
+      data-k="${k}" style="grid-column:${de} / ${a}" title="${echapper(titre)}" ${bouton}>${corps}</div>`;
+}
+
+/* -------------------------------------------- le panneau des quatre étapes */
 async function dessinerActions(mois) {
   const cible = document.getElementById("actions-mois");
   if (!mois) { cible.innerHTML = ""; return; }
@@ -70,51 +82,73 @@ async function dessinerActions(mois) {
     cible.innerHTML = `<p class="discret">${echapper(err.message)}</p>`;
     return;
   }
-  MOIS_ACTES = e;
+  const colonnes = e.colonnes && e.colonnes.length ? e.colonnes : ["G"];
+  const vues = COLONNES_VUES.get(mois);
+  const neuves = new Set(vues ? colonnes.filter((c) => !vues.includes(c)) : []);
+  COLONNES_VUES.set(mois, colonnes);
+  const gabarit = colonnes.map((c, i) => i === 0 ? "minmax(0, 1.4fr)" : "minmax(0, 1fr)").join(" ");
   const gestes = [];
-  cible.innerHTML = `<ol class="etapes">` + (e.etapes || []).map((et, i) => {
-    const groupes = et.groupes || [];
-    const ouverts = groupes.filter((g) => g.etat !== "fait");
-    const fini = ouverts.length === 0;
-    const pire = ouverts.find((g) => g.etat === "refuse") || ouverts[0];
-    const couleur = pire ? COULEUR_ETAT[pire.etat] : "bien";
-    const courte = ouverts.map((g) => g.phrase).filter(Boolean).join(" · ");
-    const echeance = ouverts.map((g) => g.echeance && g.echeance.texte).find(Boolean);
-    const nEnvois = (e.lignes || []).filter((x) => x.quoi === et.cle).length;
-    const boutons = ouverts.filter((g) => g.action).map((g) => {
-      gestes.push(g.action);
-      return `<button class="${et.suivante ? "primaire" : "secondaire"}" data-geste="${gestes.length - 1}">${echapper(g.action.libelle)}</button>`;
-    });
-    if (et.second) {
-      gestes.push(et.second);
-      boutons.push(`<button class="secondaire" data-geste="${gestes.length - 1}">${echapper(et.second.libelle)}</button>`);
-    }
-    return `
-      <li class="etape ${echapper(couleur)} ${fini ? "faite" : ""} ${et.suivante ? "suivante" : ""}">
-        <details ${et.suivante ? "open" : ""}>
-          <summary>
-            <span class="etape-rond">${fini ? "✓" : i + 1}</span>
-            <span class="etape-nom">${echapper(et.nom)}</span>
-            <span class="etape-court">${echapper(courte)}</span>${echeance
-              ? ` <span class="etape-limite"><b>${echapper(echeance)}</b></span>` : ""}
-          </summary>
-          <div class="etape-corps">
-            ${et.phrase ? `<div class="etape-phrase">${echapper(et.phrase)}</div>` : ""}
-            ${et.detail ? `<div class="discret etape-detail">${echapper(et.detail)}</div>` : ""}
-            ${boutons.join("")}
-            ${nEnvois ? `<button class="lien etape-envois" data-historique="${echapper(mois)}">voir ${nEnvois > 1
-              ? `les ${nEnvois} envois` : "l'envoi"} et leurs retours dans l'Historique</button>` : ""}
-          </div>
-        </details>
-      </li>`;
-  }).join("") + `</ol>`;
+  const rangees = (e.etapes || []).map((et, k) => {
+    const cases = (et.groupes || []).map((g) => dessinerCase(et, k, g, colonnes, neuves, gestes)).join("");
+    return `<li class="rangee"><div class="kases" style="grid-template-columns:${gabarit}">${cases}</div></li>`;
+  }).join("");
+  // Le geste second d'une étape (l'annule-et-remplace sans nécessité) : un lien sous le panneau, hors de l'arbre.
+  const seconds = (e.etapes || []).filter((et) => et.second).map((et) => {
+    gestes.push(et.second);
+    return `<button class="lien etape-second" data-geste="${gestes.length - 1}">${echapper(et.second.libelle)}</button>`;
+  }).join("");
+  cible.innerHTML = `<ol class="etapes">${rangees}<svg class="arbre" aria-hidden="true"></svg></ol>${seconds}`;
 
-  cible.querySelectorAll("[data-geste]").forEach((b) => {
-    b.onclick = () => ouvrirGeste(gestes[Number(b.dataset.geste)], mois);
+  cible.querySelectorAll("[data-geste]").forEach((d) => {
+    const ouvrir = (ev) => { ev.preventDefault(); ouvrirGeste(gestes[Number(d.dataset.geste)], mois); };
+    d.addEventListener("click", ouvrir);
+    if (d.getAttribute("role") === "button") {
+      d.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") ouvrir(ev); });
+    }
   });
-  cible.querySelectorAll("[data-historique]").forEach((b) => {
-    b.onclick = () => ouvrirMoisHistorique(b.dataset.historique);
+  dessinerArbre(cible.querySelector(".etapes"));
+  if (!dessinerActions.observe) {
+    // L'arbre suit la largeur du panneau (fenêtre redimensionnée, colonne qui réapparaît).
+    dessinerActions.observe = new ResizeObserver(() => dessinerArbre(cible.querySelector(".etapes")));
+    dessinerActions.observe.observe(cible);
+  }
+}
+
+/* L'ARBRE : un trait droit relie une case d'une étape à une case de la suivante. Chaque case du haut a le sien vers le
+ * bas si son milieu tombe dans une case ; chaque case du bas qu'aucun trait n'atteint a le sien vers le haut. Un trait
+ * est orange si ses deux bouts restent à faire (le rouge compte comme l'orange, l'attente aussi), vert sinon. */
+function dessinerArbre(liste) {
+  const svg = liste && liste.querySelector(".arbre");
+  if (!svg) return;
+  const base = liste.getBoundingClientRect();
+  if (!base.width) return;
+  const rangs = [...new Set([...liste.querySelectorAll(".kase")].map((el) => el.dataset.k))];
+  const boites = (k) => [...liste.querySelectorAll(`.kase[data-k="${k}"]`)].map((el) => {
+    // Le trait d'une case coupée tombe dans sa moitié qui attend.
+    const r = el.getBoundingClientRect();
+    const attend = el.querySelector(".moitie.attend");
+    const a = attend ? attend.getBoundingClientRect() : r;
+    return { el, r, x: a.left + a.width / 2 };
   });
+  const ouvert = (el) => !el.classList.contains("vert");
+  const couleur = (h, b) => ouvert(h) && ouvert(b) ? "orange" : "vert";
+  const traits = [];
+  for (let i = 0; i < rangs.length - 1; i++) {
+    const dessus = boites(rangs[i]), dessous = boites(rangs[i + 1]);
+    const dedans = (x, b) => x >= b.r.left && x <= b.r.right;
+    dessous.forEach((d) => {
+      const haut = dessus.find((h) => dedans(d.x, h));
+      const deja = dessus.some((h) => dedans(h.x, d));
+      if (haut && !deja) traits.push({ c: couleur(haut.el, d.el), x: d.x, y1: haut.r.bottom, y2: d.r.top });
+    });
+    dessus.forEach((h) => {
+      const bas = dessous.find((d) => dedans(h.x, d));
+      if (bas) traits.push({ c: couleur(h.el, bas.el), x: h.x, y1: h.r.bottom, y2: bas.r.top });
+    });
+  }
+  const ordre = { vert: 1, orange: 2 };
+  svg.innerHTML = traits.sort((a, b) => ordre[a.c] - ordre[b.c]).map((t) =>
+    `<path class="${t.c}" d="M${t.x - base.left},${t.y1 - base.top} V${t.y2 - base.top}"/>`).join("");
 }
 
 /* Ce qu'il faut relire après avoir déposé ou envoyé : l'état du mois affiché,
@@ -123,7 +157,7 @@ async function rafraichirActions() {
   const mois = document.getElementById("mois").value;
   await dessinerActions(mois);
   await dessinerEmbauches(mois);
-  await dessinerEtatsDesPaies(mois);
+  await dessinerEtatsDesEngagements(mois);
 }
 
 /* ---------------------------------------- le récapitulatif d'un dépôt */
@@ -131,7 +165,7 @@ async function rafraichirActions() {
 /** CE QUE LA DSN DÉCLARE, contrat par contrat, LU DANS LE FICHIER
  *  (30/09/2026, l'éditeur : « ce que l'utilisateur veut voir et vérifier,
  *  c'est que tous les contrats sont dans la DSN »). Comparé aux contrats
- *  saisis du mois : un contrat absent du fichier, ou que la paie dit
+ *  saisis du mois : un contrat absent du fichier, ou que l'engagement dit
  *  autrement, se dit en tête. */
 function recapitulatifDsn(r) {
   if (!r) return "";
@@ -643,73 +677,77 @@ function boiteRenvoiDsn(etat, renvoyer) {
 const quand_ = (iso) => quand(iso);
 
 /* ------------------------------------------ les documents aux salariés */
+/** LES DOCUMENTS DU MOIS : chaque salarié à qui ils partent, coché ; on
+ *  décoche. Deux gestes : Imprimer (un seul PDF, salarié par salarié : bulletin,
+ *  certificat, AER) et Envoyer par courriel quand une boîte est posée. Les deux
+ *  sont un départ : le moteur numérote et fige la paie. */
 async function boiteEnvoi(mois) {
   let a;
   try {
     a = await api("envoi-apercu", { mois });
   } catch (e) { dire(e.message, "erreur"); return; }
 
-  // LE MOTEUR DIT S'IL PEUT (documents_prets) : DSN déposée et passée, AER
-  // revenue, documents écrits. Et une boîte courriel pour ENVOYER (le mot de
-  // passe d'application dans Configuration > Mots de passe) — sans elle,
-  // les documents se donnent à la main depuis le dossier du mois. Le compte
-  // Google n'y est pour rien : il ne porte que le Drive (18/09/2026).
-  const peut = a.pret && a.boite_liee;
+  const peut = a.pret && a.messages.length;
   ouvrirBoite(`
-    <h3>Envoyer les documents</h3>
+    <h3>Les documents</h3>
     ${moisEnGros(mois)}
-    ${a.boite_liee ? `<p class="discret">Depuis ${echapper(a.expediteur)}.</p>`
-      : `<div class="encart"><b>Aucune boîte courriel</b>
-         Posez le mot de passe d'application de la boîte de la compagnie
-         (Configuration › Mots de passe) pour envoyer par courriel. En
-         attendant, les documents s'ouvrent depuis le dossier du mois et se
-         remettent à la main.</div>`}
+    ${a.boite_liee && a.expediteur ? `<p class="discret">Courriels depuis ${echapper(a.expediteur)}.</p>` : ""}
     ${(a.empechements || []).map((x) =>
       `<div class="encart attention">${echapper(x)}</div>`).join("")}
     ${(a.avertissements || []).concat(a.informations || []).map((x) =>
       `<div class="encart info">${echapper(x)}</div>`).join("")}
     ${!a.messages.length ? "" : `<table class="table-envoi">
-      <colgroup><col class="c-salarie"><col class="c-adresse"><col class="c-pieces"><col class="c-taille"></colgroup>
-      <tr><th>Salarié</th><th>Adresse</th><th>Pièces</th><th>Taille</th></tr>
+      <colgroup><col class="c-coche"><col class="c-salarie">${a.boite_liee ? `<col class="c-adresse">` : ""}<col class="c-pieces"></colgroup>
+      <tr><th></th><th>Salarié</th>${a.boite_liee ? "<th>Adresse</th>" : ""}<th>Pièces</th></tr>
       ${a.messages.map((m) => `
         <tr>
+          <td><input type="checkbox" class="e-qui" value="${echapper(m.cle)}" checked
+                     aria-label="${echapper(m.nom)}"></td>
           <td>${echapper(m.nom)}${m.renvoi ? `<br><span class="pastille alerte">documents corrigés —
             remplacent ceux du ${echapper(m.envoye_le)}</span>` : ""}</td>
-          <td>${echapper(m.destinataire)}</td>
+          ${a.boite_liee ? `<td>${echapper(m.destinataire)}</td>` : ""}
           <td class="pieces">${m.pieces.map((x) => `<div>${echapper(x)}</div>`).join("")}</td>
-          <td class="num">${Math.round(m.octets / 1024)} ko</td>
         </tr>
-        ${m.renvoi ? `<tr><td colspan="4" class="discret">Le courriel dit ce qui a changé :
+        ${m.renvoi ? `<tr><td></td><td colspan="${a.boite_liee ? 3 : 2}" class="discret">Ce qui a changé :
           <ul>${m.changements.map((c) => `<li>${echapper(c)}</li>`).join("")}</ul></td></tr>` : ""}`).join("")}
     </table>`}
-    ${a.renvois ? `<div class="encart info"><b>La paie a changé depuis l'envoi</b>
-      Seuls les salariés dont la paie a changé reçoivent à nouveau leurs
-      documents, refaits, avec un courriel qui dit ce qui a changé.</div>` : ""}
-    ${a.deja ? `<div class="encart attention"><b>Déjà envoyé</b>
-      Le ${echapper(quand(a.deja.quand))} — ${echapper(a.deja.reponse || "")}.
-      Renvoyer enverra une seconde fois.</div>` : ""}
-    ${!peut ? "" : enFictive() ? noteFictive("les salariés", false)
-      : `<p class="note">Un courriel n'engage pas l'employeur comme une
-      déclaration — personne ne prélève rien — mais il part chez quelqu'un et
-      ne revient pas. Le mot de passe du logiciel est demandé à l'envoi.</p>`}
+    ${a.deja ? `<div class="encart attention"><b>Déjà partis</b>
+      Le ${echapper(quand(a.deja.quand))}.</div>` : ""}
+    ${peut && a.boite_liee && enFictive() ? noteFictive("les salariés", false) : ""}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      ${a.messages.length ? `<button class="secondaire" id="e-dossier">Ouvrir le dossier des documents</button>` : ""}
-      <button class="primaire" id="e-envoyer" ${peut ? "" : "disabled"}
-              title="${peut ? "" : echapper((a.empechements || []).concat(
-                a.boite_liee ? [] : ["Aucune boîte courriel."]).join(" "))}">${echapper(a.bouton)}${enFictive() ? " — simulé" : ""}</button>
+      ${peut ? `<button class="${a.boite_liee ? "secondaire" : "primaire"}" id="e-imprimer"
+        title="Les documents des salariés cochés, en un seul PDF, à imprimer et à remettre en main propre">Imprimer</button>` : ""}
+      ${peut && a.boite_liee ? `<button class="primaire" id="e-envoyer">Envoyer par courriel${enFictive() ? " — simulé" : ""}</button>` : ""}
     </div>`);
 
-  const dossier = document.getElementById("e-dossier");
-  if (dossier) dossier.onclick = () => ouvrirDossier(dossier, mois, "documents");
-  document.getElementById("e-envoyer").onclick = async () => {
-    const mdp = await demanderMotDePasse("envoyer les documents à " + a.messages.length + " salarié(s)", { envoi: true });
+  const coches = () => [...document.querySelectorAll(".e-qui:checked")].map((c) => c.value);
+  const imprimer = document.getElementById("e-imprimer");
+  if (imprimer) imprimer.onclick = async () => {
+    const salaries = coches();
+    if (!salaries.length) { dire("Aucun salarié coché."); return; }
+    const rendre = occupe(imprimer, "Impression…");
+    try {
+      const r = await api("documents-imprimer", { mois, salaries });
+      fermerBoite();
+      dire("Documents de " + r.salaries.length + " salarié(s) à imprimer.", "envoye");
+      await ouvrirImpression(mois, r.impression);
+      await rafraichirActions();
+    } catch (e) {
+      rendre();
+      dire(e.message, "erreur");
+    }
+  };
+  const envoyer = document.getElementById("e-envoyer");
+  if (envoyer) envoyer.onclick = async () => {
+    const salaries = coches();
+    if (!salaries.length) { dire("Aucun salarié coché."); return; }
+    const mdp = await demanderMotDePasse("envoyer les documents à " + salaries.length + " salarié(s)", { envoi: true });
     if (!mdp) return;
-    const rendre = occupe(document.getElementById("e-envoyer"),
-                          "Envoi des documents en cours…");
+    const rendre = occupe(envoyer, "Envoi des documents en cours…");
     const repere = await repereCourrielsFictifs();
     try {
-      const r = await api("envoyer-documents", { mois, motdepasse: mdp });
+      const r = await api("envoyer-documents", { mois, salaries, motdepasse: mdp });
       fermerBoite();
       dire(r.partis.length + " message(s) envoyé(s).", "envoye");
       afficherEnvoi("Documents aux salariés", mois, r.partis, r.avertissements);
@@ -731,122 +769,93 @@ function signeLe(quandRecu, par) {
   return (par === "courriel" ? "signé d'un clic le " : "signé, reçu le ") + quand(quandRecu);
 }
 
+/** LE PDF À IMPRIMER s'ouvre : le moteur l'a écrit (`impression`), la fenêtre l'ouvre. */
+async function ouvrirImpression(mois, fichier) {
+  try {
+    const r = await api("ouvrir-piece", { impression: mois, fichier });
+    if (r && r.phrase) dire(r.phrase);
+  } catch (e) { dire(e.message, "erreur"); }
+}
+
+/** LES CONTRATS À FAIRE PARTIR : ceux que le moteur dit à envoyer
+ *  (`a_envoyer` : jamais partis, ou changés depuis), tous cochés ; on décoche
+ *  ce qu'on ne fait pas partir. `seulement` : les salariés choisis ailleurs
+ *  (la pastille d'un engagement) ; les autres restent dans la liste, décochés.
+ *  Un contrat signé qui a changé part en avenant. Deux gestes : Imprimer (un
+ *  seul PDF de tout ce qui est coché), et Envoyer à la signature quand une
+ *  boîte courriel est posée. */
 async function boiteSignature(mois, seulement) {
   let a;
   try {
     a = await api("signature-apercu", { mois });
   } catch (e) { dire(e.message, "erreur"); return; }
 
-  // Cochés d'avance : ceux dont aucune demande n'est partie. Redemander une
-  // signature déjà demandée se fait — on relance quelqu'un — mais ça se
-  // décide, ça ne se coche pas tout seul.
-  //
-  // `seulement` : la sélection venue des cases de la colonne de gauche. Elle
-  // REMPLACE la règle du dessus — quelqu'un qui a coché trois paies a déjà
-  // choisi, et lui recocher les autres serait défaire son geste. La liste
-  // reste entière : on voit ce qu'on n'a pas pris, et on peut le reprendre.
-  // Coché d'office : ce qui n'est ni demandé ni revenu signé. Un contrat
-  // reçu ne repart pas, même dans une sélection.
-  // Un contrat caduc (la paie a changé depuis son envoi) se recoche d'office :
-  // celui qui est parti n'est plus le bon.
-  // Un contrat SIGNÉ qui a changé ne repart pas en entier : il part en
-  // AVENANT (30/09/2026, « sinon il peut réclamer tous les contrats »),
-  // coché d'avance comme le reste de ce qui est à faire.
-  const avenantAFaire = (c) => c.caduc && c.recu_le;
-  const choisi = (c) => (seulement ? seulement.includes(c.salarie)
-                                   : c.caduc || (!c.recu_le && !c.demande_le))
-                        && (c.caduc || !c.recu_le);
-  a.contrats.sort((x, y) => (y.caduc && y.recu_le ? 1 : 0) - (x.caduc && x.recu_le ? 1 : 0));
+  const contrats = a.contrats.filter((c) => c.a_envoyer);
+  const coche = (c) => !seulement || seulement.includes(c.salarie);
   ouvrirBoite(`
-    <h3>Demander la signature des contrats</h3>
+    <h3>Faire signer les contrats</h3>
     ${moisEnGros(mois)}
-    <div class="encart">
+    ${a.boite_liee ? `<div class="encart">
       <b>Signature d'un clic</b>
       Le contrat part par courriel avec un bouton « Je signe ». Le salarié
-      appuie dessus, sa messagerie s'ouvre sur une réponse toute écrite avec
-      un code unique, il l'envoie. Rien à faire ensuite : la réponse est
-      relevée toute seule, à l'ouverture et avec la sauvegarde régulière —
-      la signature passe au journal, le message est gardé comme preuve, et
-      le salarié reçoit son contrat contresigné.${a.attendues ? ` <b>${a.attendues}
-      réponse${a.attendues > 1 ? "s" : ""} attendue${a.attendues > 1 ? "s" : ""}.</b>` : ""}
-      Un contrat signé à la main se note toujours d'un clic sur sa pastille.
-    </div>
-    ${enFictive() ? noteFictive("les salariés").replace("sa réponse arrive comme la vraie",
+      appuie dessus et renvoie la réponse toute écrite ; elle est relevée toute
+      seule et le salarié reçoit son contrat contresigné.
+    </div>` : ""}
+    ${a.boite_liee && enFictive() ? noteFictive("les salariés").replace("sa réponse arrive comme la vraie",
       "la signature revient comme la vraie") : ""}
     ${noteDpaeAvance()}
-    <div class="liste-choix">
-      ${a.contrats.map((c) => `
+    ${!contrats.length ? `<p class="discret">Aucun contrat à faire partir ce mois-ci.</p>` : `<div class="liste-choix">
+      ${contrats.map((c) => `
         <label class="choix">
           <input type="checkbox" class="s-qui" value="${echapper(c.salarie)}"
-                 data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}" ${avenantAFaire(c) ? 'data-avenant="1"' : ""}
-                 ${choisi(c) ? "checked" : ""}>
+                 data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}" ${c.en_avenant ? 'data-avenant="1"' : ""}
+                 ${coche(c) ? "checked" : ""}>
           <span><b>${echapper(c.nom)}</b> — ${echapper(c.spectacle)},
             ${echapper(periodeEnClair(c.debut, c.fin))}
             ${c.numero ? `<span class="discret">(contrat n° ${echapper(c.numero)})</span>` : ""}
-            <br><span class="discret">${echapper(c.destinataire)
-              || "aucun courriel dans la fiche — l'envoi sera refusé"}</span>
-            ${c.caduc && c.recu_le ? `<br><span class="pastille alerte">${echapper(c.pourquoi
-              || "la paie a changé depuis la signature")} — signé : partira en avenant</span>
+            ${a.boite_liee ? `<br><span class="discret">${echapper(c.destinataire)
+              || "aucun courriel dans la fiche — l'envoi sera refusé"}</span>` : ""}
+            ${c.en_avenant ? `<br><span class="pastille alerte">${echapper(c.pourquoi
+              || "l'engagement a changé depuis la signature")} — signé : partira en avenant</span>
               <button class="lien s-avenant" data-salarie="${echapper(c.salarie)}"
                 data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}">voir l'avenant</button>`
-              : c.avenant_attendu ? `<br><span class="pastille alerte">avenant n° ${echapper(String(c.avenant.numero))}
-              envoyé le ${echapper(quand(c.avenant.quand))} — pas encore revenu signé</span>`
               : c.caduc ? `<br><span class="pastille alerte">${echapper(c.pourquoi
-              || "la paie a changé depuis l'envoi")}${c.demande_le ? ` (envoyé le ${echapper(quand(c.demande_le))})` : ""} —
-              ce contrat est à renvoyer</span>`
-              : c.recu_le ? `<br><span class="pastille bien">${echapper(signeLe(c.recu_le, c.recu_par))}</span>`
-              : c.demande_le && c.main_propre ? `<br><span class="pastille alerte">imprimé le
-              ${echapper(quand(c.demande_le))} pour une remise en main propre — pas encore revenu signé</span>`
-              : c.demande_le ? `<br><span class="pastille alerte">demandé le
-              ${echapper(quand(c.demande_le))} — pas encore revenu</span>
-              ${a.boite_liee ? `<button class="secondaire petit s-relancer"
-                data-salarie="${echapper(c.salarie)}" data-debut="${echapper(c.debut)}"
-                data-numero="${echapper(c.numero || "")}"
-                title="Renvoie le même contrat, avec un mot de rappel">Relancer</button>` : ""}` : ""}</span>
+              || "l'engagement a changé depuis l'envoi")}${c.demande_le ? ` (parti le ${echapper(quand(c.demande_le))})` : ""} —
+              ce contrat est à refaire partir</span>` : ""}</span>
         </label>`).join("")}
-    </div>
-    ${a.boite_liee ? "" : `<div class="encart"><b>Aucune boîte courriel</b>
-      Posez le mot de passe d'application de la boîte de la compagnie
-      (Configuration › Mots de passe) pour envoyer les contrats par courriel.
-      En attendant, ils s'impriment pour être signés à la main.</div>`}
+    </div>`}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      ${a.produit ? `<button class="secondaire" id="s-dossier">Ouvrir le dossier des contrats</button>` : ""}
-      <button class="secondaire" id="s-imprimer" title="Les contrats cochés, en PDF, à imprimer et à faire signer à la main : ils partent sous leur numéro">Imprimer</button>
-      <button class="primaire" id="s-envoyer" ${a.boite_liee ? "" : "disabled"}
-              title="${a.boite_liee ? "" : "Aucune boîte courriel."}">${enFictive() ? "Envoyer à la signature — simulé" : "Envoyer à la signature"}</button>
+      ${contrats.length ? `<button class="${a.boite_liee ? "secondaire" : "primaire"}" id="s-imprimer"
+        title="Les contrats cochés, en un seul PDF, à imprimer et à faire signer à la main : ils partent sous leur numéro">Imprimer</button>` : ""}
+      ${contrats.length && a.boite_liee ? `<button class="primaire" id="s-envoyer">${enFictive()
+        ? "Envoyer à la signature — simulé" : "Envoyer à la signature"}</button>` : ""}
     </div>`);
 
-  const dossierS = document.getElementById("s-dossier");
-  if (dossierS) dossierS.onclick = () => ouvrirDossier(dossierS, mois, "contrats");
-  // IMPRIMER : le contrat part à la main, sous son numéro, et le journal le
-  // note ; le salarié le signe, et sa pastille se coche à son retour.
-  document.getElementById("s-imprimer").onclick = async () => {
-    const coches = [...document.querySelectorAll(".s-qui:checked")].filter((c) => !c.dataset.avenant);
+  // IMPRIMER : les contrats partent à la main, sous leur numéro, et le
+  // journal le note ; le PDF de tous les contrats cochés s'ouvre.
+  const imprimer = document.getElementById("s-imprimer");
+  if (imprimer) imprimer.onclick = async () => {
+    const coches = [...document.querySelectorAll(".s-qui:checked")];
     if (!coches.length) { dire("Aucun contrat coché."); return; }
-    const contrats = coches.map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero }));
-    const bouton = document.getElementById("s-imprimer");
-    const rendre = occupe(bouton, "Impression…");
+    // Un contrat signé qui a changé s'imprime en avenant, dans le même PDF.
+    const choisis = coches.filter((c) => !c.dataset.avenant)
+      .map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero }));
+    const avenants = coches.filter((c) => c.dataset.avenant)
+      .map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero, mois }));
+    const rendre = occupe(imprimer, "Impression…");
     try {
-      const r = await api("contrats-imprimer", { mois, contrats });
+      const r = await api("contrats-imprimer", { mois, contrats: choisis, avenants });
       fermerBoite();
-      // Le dossier des contrats s'ouvre ; s'il ne s'ouvre pas, son chemin se dit.
-      let ou = "";
-      try {
-        const d = await api("ouvrir-dossier", { mois, quoi: "contrats" });
-        ou = d && d.dossier ? " Dossier : " + d.dossier : "";
-      } catch (err) { ou = " " + err.message; }
-      dire(r.contrats.length + " contrat(s) à imprimer : " + r.contrats.map((c) => "n° " + c.numero).join(", ") + "." + ou, "envoye");
+      dire("À imprimer : " + [...r.contrats.map((c) => "contrat n° " + c.numero),
+        ...r.avenants.map((c) => "avenant n° " + c.avenant + " au contrat n° " + c.numero)].join(", ") + ".", "envoye");
+      await ouvrirImpression(mois, r.impression);
       await rafraichirActions();
     } catch (e) {
       rendre();
       dire(e.message, "erreur");
     }
   };
-  // RELANCER (30/09/2026) : le MÊME contrat, redemandé parce que la
-  // signature n'est pas revenue — distinct de « Envoyer », qui sert à un
-  // contrat jamais parti ou changé depuis. Le journal le dit, et la
-  // signature déjà donnée n'est jamais défaite par une relance.
   document.querySelectorAll(".s-avenant").forEach((b) => {
     b.onclick = (ev) => {
       ev.preventDefault();                 // le bouton est dans un <label>
@@ -854,52 +863,33 @@ async function boiteSignature(mois, seulement) {
       boiteAvenant(mois, b.dataset.salarie, b.dataset.debut, b.dataset.numero);
     };
   });
-  document.querySelectorAll(".s-relancer").forEach((b) => {
-    b.onclick = async (ev) => {
-      ev.preventDefault();                 // le bouton est dans un <label>
-      const contrats = [{ salarie: b.dataset.salarie, debut: b.dataset.debut, numero: b.dataset.numero }];
-      const mdp = await demanderMotDePasse("relancer la signature de ce contrat", { envoi: true });
-      if (!mdp) return;
-      const rendre = occupe(b, "Relance…");
-      try {
-        const r = await api("demander-signature",
-                            { mois, contrats, motdepasse: mdp, relance: true });
-        fermerBoite();
-        dire("Relance partie : " + r.partis.join(", ") + ".", "envoye");
-        await rafraichirActions();
-      } catch (e) {
-        rendre();
-        dire(e.message, "erreur");
-      }
-    };
-  });
-  document.getElementById("s-envoyer").onclick = async () => {
+  const envoyer = document.getElementById("s-envoyer");
+  if (envoyer) envoyer.onclick = async () => {
     // Par CONTRAT : un salarié peut avoir un contrat coché et un autre non.
     const coches = [...document.querySelectorAll(".s-qui:checked")];
     // Les contrats signés qui ont changé partent en AVENANT, les autres en
-    // contrat : un seul bouton, un seul mot de passe (30/09/2026).
+    // contrat : un seul bouton, un seul mot de passe.
     const avenants = coches.filter((c) => c.dataset.avenant)
       .map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero, mois }));
-    // Le numéro distingue deux contrats du même salarié qui commencent le même jour (retours Windows, B).
-    const contrats = coches.filter((c) => !c.dataset.avenant)
+    // Le numéro distingue deux contrats du même salarié qui commencent le même jour.
+    const choisis = coches.filter((c) => !c.dataset.avenant)
       .map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero }));
     if (!coches.length) { dire("Aucun contrat coché."); return; }
-    const quoi = [contrats.length ? contrats.length + " contrat(s)" : "",
+    const quoi = [choisis.length ? choisis.length + " contrat(s)" : "",
                   avenants.length ? avenants.length + " avenant(s)" : ""].filter(Boolean).join(" et ");
     const mdp = await demanderMotDePasse("envoyer " + quoi + " à la signature", { envoi: true });
     if (!mdp) return;
-    const rendre = occupe(document.getElementById("s-envoyer"), "Envoi de " + quoi + " en cours…");
+    const rendre = occupe(envoyer, "Envoi de " + quoi + " en cours…");
     const repere = await repereCourrielsFictifs();
     try {
-      const r = contrats.length
-        ? await api("demander-signature", { mois, contrats, motdepasse: mdp })
+      const r = choisis.length
+        ? await api("demander-signature", { mois, contrats: choisis, motdepasse: mdp })
         : { partis: [], contrats: [] };
-      // Les avenants d'un même salarié partent ensemble, dans un seul
-      // courriel, comme ses contrats (30/09/2026).
+      // Les avenants d'un même salarié partent ensemble, dans un seul courriel, comme ses contrats.
       if (avenants.length) {
         const av = await api("avenants-envoyer", { avenants, motdepasse: mdp });
         r.partis.push(...av.partis);
-        r.contrats.push(...av.avenants.map((a) => ({ fichier: a.fichier })));
+        r.contrats.push(...av.avenants.map((x) => ({ fichier: x.fichier })));
       }
       fermerBoite();
       dire(quoi + " envoyé(s) à la signature.", "envoye");
@@ -917,7 +907,78 @@ async function boiteSignature(mois, seulement) {
   };
 }
 
-/** L'AVENANT (30/09/2026). Le contrat parti se lit (son PDF), la paie
+/** LES CONTRATS EN ATTENTE : un contrat ou un avenant parti, pas revenu
+ *  signé. Le moteur dit, pour chacun, ce qui est parti et quand (`attente`),
+ *  et ses gestes, route et charge : « Reçu signé » (`recu`, pour tous : ce
+ *  qui part par courriel peut revenir signé sur papier) et « Relancer »
+ *  (`relancer`, parti par courriel, boîte posée). Une note se défait : le
+ *  moteur rend de quoi l'annuler (`annuler`) et la phrase qui la dit. */
+async function boiteContratsEnAttente(mois, fait) {
+  let a;
+  try {
+    a = await api("signature-apercu", { mois });
+  } catch (e) { dire(e.message, "erreur"); return; }
+  const contrats = a.contrats.filter((c) => c.en_attente);
+  ouvrirBoite(`
+    <h3>Les contrats en attente</h3>
+    ${moisEnGros(mois)}
+    ${fait ? `<div class="encart info" id="a-fait">${echapper(fait.texte)}
+      <button class="lien" id="a-annuler">Annuler</button></div>` : ""}
+    ${!contrats.length ? `<p class="discret">Aucun contrat n'attend sa signature.</p>` : `<div class="liste-choix">
+      ${contrats.map((c, i) => `
+        <div class="choix">
+          <span><b>${echapper(c.nom)}</b> — ${echapper(c.spectacle)},
+            ${echapper(periodeEnClair(c.debut, c.fin))}
+            ${c.numero ? `<span class="discret">(contrat n° ${echapper(c.numero)})</span>` : ""}
+            <br><span class="pastille alerte">${echapper(c.attente)}</span></span>
+          <span class="gestes-contrat">
+            <button class="primaire petit a-recu" data-i="${i}">Reçu signé</button>
+            ${c.relancer ? `<button class="secondaire petit a-relancer" data-i="${i}"
+              title="Renvoie le même document, avec un mot de rappel">Relancer</button>` : ""}
+          </span>
+        </div>`).join("")}
+    </div>`}
+    <div class="actions">
+      <button class="secondaire" onclick="fermerBoite()">Fermer</button>
+    </div>`);
+
+  const annuler = document.getElementById("a-annuler");
+  if (annuler) annuler.onclick = async () => {
+    const rendre = occupe(annuler, "…");
+    try {
+      await api(fait.annuler.route, fait.annuler.charge);
+      await rafraichirActions();
+      boiteContratsEnAttente(mois);
+    } catch (e) { rendre(); dire(e.message, "erreur"); }
+  };
+  document.querySelectorAll(".a-recu").forEach((b) => {
+    b.onclick = async () => {
+      const c = contrats[Number(b.dataset.i)];
+      const rendre = occupe(b, "…");
+      try {
+        const r = await api(c.recu.route, c.recu.charge);
+        await rafraichirActions();
+        boiteContratsEnAttente(mois, { texte: r.phrase, annuler: r.annuler });
+      } catch (e) { rendre(); dire(e.message, "erreur"); }
+    };
+  });
+  document.querySelectorAll(".a-relancer").forEach((b) => {
+    b.onclick = async () => {
+      const c = contrats[Number(b.dataset.i)];
+      const mdp = await demanderMotDePasse(c.relancer.pourquoi, { envoi: true });
+      if (!mdp) return;
+      const rendre = occupe(b, "Relance…");
+      try {
+        const r = await api(c.relancer.route, { ...c.relancer.charge, motdepasse: mdp });
+        fermerBoite();
+        dire("Relance partie : " + r.partis.join(", ") + ".", "envoye");
+        await rafraichirActions();
+      } catch (e) { rendre(); dire(e.message, "erreur"); }
+    };
+  });
+}
+
+/** L'AVENANT. Le contrat parti se lit (son PDF), l'engagement
  *  d'aujourd'hui s'y compare, article par article : ce qui a changé se
  *  montre, l'ancien texte à côté du nouveau. L'avenant part à la signature
  *  par le même circuit « Je signe » que le contrat. Un contrat qui n'a pas
@@ -940,7 +1001,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
       envoyé le ${echapper(quand(x.quand))} — ${x.signe ? "signé le " + echapper(quand(x.signe))
       : "pas encore revenu signé"}</p>`).join("")}
     ${mods.length ? `
-      <div class="encart">Le contrat parti se compare à la paie d'aujourd'hui :
+      <div class="encart">Le contrat parti se compare à l'engagement d'aujourd'hui :
         ${mods.length > 1 ? mods.length + " articles ont changé" : "un article a changé"}.
         L'avenant n° ${a.numero} cite l'ancien texte et le nouveau ; le reste du
         contrat ne change pas.</div>
@@ -951,22 +1012,22 @@ async function boiteAvenant(mois, salarie, debut, numero) {
       </div>`).join("")}
       <label>Date d'effet de l'avenant
         <input type="date" id="av-effet" value="${echapper(a.effet)}"></label>`
-    : `<div class="encart">Le contrat parti dit déjà tout ce que dit la paie :
+    : `<div class="encart">Le contrat parti dit déjà tout ce que dit l'engagement :
         il n'y a rien à modifier.</div>`}
-    ${mods.length && a.remplacable ? `<p class="discret">Le contrat n'a pas commencé : il peut aussi être
+    ${mods.length && a.remplacable && a.boite_liee ? `<p class="discret">Le contrat n'a pas commencé : il peut aussi être
       refait en entier. Le nouveau porte en tête « annule et remplace le contrat
       n° ${echapper(a.contrat || "")} du ${echapper(jjmmaaaa(a.date_contrat))} ».</p>` : ""}
     <p class="discret"><a href="#" id="av-pieces">Voir ce qui est parti (contrat envoyé, signé, preuve)</a></p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      ${mods.length && a.remplacable ? `<button class="secondaire" id="av-remplace">${enFictive() ? "Contrat qui annule et remplace — simulé…" : "Contrat qui annule et remplace…"}</button>` : ""}
-      ${mods.length ? `<button class="primaire" id="av-envoyer">${enFictive() ? "Envoyer l'avenant à la signature — simulé…" : "Envoyer l'avenant à la signature…"}</button>` : ""}
+      ${mods.length && a.remplacable && a.boite_liee ? `<button class="secondaire" id="av-remplace">${enFictive() ? "Contrat qui annule et remplace — simulé…" : "Contrat qui annule et remplace…"}</button>` : ""}
+      ${mods.length && a.boite_liee ? `<button class="primaire" id="av-envoyer">${enFictive() ? "Envoyer l'avenant à la signature — simulé…" : "Envoyer l'avenant à la signature…"}</button>` : ""}
     </div>`);
   document.getElementById("av-pieces").onclick = (ev) => {
     ev.preventDefault();
     fermerBoite();
     boitePieces({ salarie, debut, numero, nom: a.nom, fin: a.fin, spectacle: a.spectacle,
-                  etats: { signature: { fait: a.date_contrat, recu: a.signe } } }, "signature");
+                }, "contrat-signature");
   };
   const envoyer = document.getElementById("av-envoyer");
   if (envoyer) envoyer.onclick = async () => {
@@ -1003,29 +1064,6 @@ async function boiteAvenant(mois, salarie, debut, numero) {
       dire(e.message, "erreur");
     }
   };
-}
-
-/** Ouvre le dossier du mois dans l'explorateur, et le DIT dans la boîte :
- *  le bandeau du haut est sous la boîte, on ne le voit pas d'ici. Une
- *  fenêtre de l'explorateur peut s'ouvrir derrière PuppetPaie — le chemin
- *  écrit ici permet de la retrouver. */
-async function ouvrirDossier(bouton, mois, quoi) {
-  let note = bouton.parentNode.querySelector(".note-dossier");
-  if (!note) {
-    note = document.createElement("p");
-    note.className = "note note-dossier";
-    bouton.parentNode.appendChild(note);
-  }
-  try {
-    const r = await api("ouvrir-dossier", { mois, quoi });
-    // L'explorateur passe devant ; le chemin reste dit ici (#141), s'il
-    // s'ouvrait derrière la fenêtre.
-    note.classList.remove("erreur");
-    note.textContent = r && r.dossier ? `Dossier ouvert : ${r.dossier}` : "";
-  } catch (e) {
-    note.textContent = e.message;
-    note.classList.add("erreur");
-  }
 }
 
 function afficherEnvoi(titre, mois, partis, details) {

@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  paie:
+  moteur:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,4 +38,4 @@ jobs:
         run: cargo nextest run --cargo-profile essais --locked --no-fail-fast
       # Dans sa propre cible : `--features atelier` recompile toute la caisse (atelier/CLAUDE.md, « Les tests »).
       - name: Lancer la suite de l'atelier
-        run: cargo nextest run --cargo-profile essais --locked -p paie --features atelier --target-dir target-atelier --lib --test atelier --test fichiers -E 'test(/(^|::)atelier::/)'
+        run: cargo nextest run --cargo-profile essais --locked -p moteur --features atelier --target-dir target-atelier --lib --test atelier --test fichiers -E 'test(/(^|::)atelier::/)'

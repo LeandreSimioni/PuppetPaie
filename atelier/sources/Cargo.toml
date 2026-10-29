@@ -1,6 +1,6 @@
 # L'espace Cargo du moteur : une crate par partie, chaque flèche descend.
 #
-#     paie          la ligne de commande `paie` et les parties du dessus (interface, compagnie, import, atelier) ;
+#     moteur        la ligne de commande `moteur` et les parties du dessus (interface, compagnie, import, atelier) ;
 #                   choisit le branchement des envois, ouvre le coffre, note les incidents
 #     envois        ce qui part et revient (net-entreprises, DPAE, signature, courriel, Drive, retours et bilans) et le
 #                   journal de ce qui est parti ; recoit des pieces fabriquees et un mot de passe, ne fabrique rien,
@@ -20,14 +20,14 @@
 #                   réseau
 #
 # `declarations` prend à `documents` (le bordereau, le bulletin, le certificat que la DSN reprend), jamais l'inverse.
-# `envois` prend à `declarations` et à `documents` ce qui part ; l'engagement ne lit pas le journal, `paie` lui passe
+# `envois` prend à `declarations` et à `documents` ce qui part ; l'engagement ne lit pas le journal, `moteur` lui passe
 # ce qui est parti.
 #
 # La fenêtre (`fenetre/`) et la fabrique de PDF (`fabrique-pdf/`) gardent chacune leur verrou et leurs profils : elles ne
-# sont pas de l'espace (la fenêtre prend `paie` par son chemin).
+# sont pas de l'espace (la fenêtre prend `moteur` par son chemin).
 
 [workspace]
-members = ["socle", "droit", "engagement", "documents", "declarations", "envois", "paie"]
+members = ["socle", "droit", "engagement", "documents", "declarations", "envois", "moteur"]
 exclude = ["fenetre", "fabrique-pdf"]
 resolver = "2"
 

@@ -3,7 +3,7 @@
 #
 # Sur un Linux (le conteneur), compile en croise pour Windows 64 bits (chaine GNU, MinGW) :
 #   1. les outils, s'ils manquent : MinGW, NSIS, la cible Rust x86_64-pc-windows-gnu ;
-#   2. le moteur `paie.exe` (preuve que le moteur se compile ; il n'est PAS dans l'installeur : une compagnie
+#   2. le moteur `moteur.exe` (preuve que le moteur se compile ; il n'est PAS dans l'installeur : une compagnie
 #      recoit `logiciel/`, ou la fenetre sert aussi les routes, `puppetpaie route ...`) ;
 #   3. la fenetre `puppetpaie.exe` (Tauri 2) ;
 #   4. l'installeur NSIS `PuppetPaie-<JJ.MM.AAAA>-installeur.exe` (la version lue, pas l'identifiant), dans `atelier/depot/installeur/`.
@@ -12,7 +12,7 @@
 # suivis par Git de `logiciel/` et de `fictives/` (ni `logiciel/linux/` ni `logiciel/mac/`, qui ne sont pas suivis), et les
 # marques de la livraison de fictives si le flux les a posees --,
 # et la fenetre fraichement compilee a la place de `logiciel/puppetpaie.exe`. Rien sur le bridage : sans rien qui dise
-# « debloque », le logiciel est bride (ticket #246, paie/src/bridage.rs).
+# « debloque », le logiciel est bride (ticket #246, moteur/src/bridage.rs).
 #
 # Usage :
 #   atelier/installeur/construire.sh                     tout
@@ -20,7 +20,7 @@
 #                                                        `logiciel/puppetpaie.exe` du depot (celui du poste)
 #
 # CARGO_TARGET_DIR : la cible de compilation (par defaut ~/puppetpaie-cible-windows). Rien n'est ecrit dans
-# `logiciel/` ni dans `atelier/sources/paie/bin/` : le dossier de preparation est `<cible>/installeur/`.
+# `logiciel/` ni dans `atelier/sources/moteur/bin/` : le dossier de preparation est `<cible>/installeur/`.
 # Rien ne s'execute de ce qui est fabrique (pas de Windows ici) : l'essai se fait sur un poste Windows.
 
 set -euo pipefail
@@ -66,8 +66,8 @@ echo "Cible   : $CARGO_TARGET_DIR"
 
 # --- 2. et 3. Le moteur, puis la fenetre -------------------------------------------------------------------------
 SORTIE_RUST="$CARGO_TARGET_DIR/$CIBLE_RUST/release"
-dire "Le moteur (paie.exe)"
-cargo build --release --locked --target "$CIBLE_RUST" --manifest-path "$SOURCES/paie/Cargo.toml"
+dire "Le moteur (moteur.exe)"
+cargo build --release --locked --target "$CIBLE_RUST" --manifest-path "$SOURCES/moteur/Cargo.toml"
 
 if [ "$EXE_DU_LOGICIEL" = 1 ]; then
     dire "La fenetre : celle du depot (logiciel/puppetpaie.exe), sans compiler"
@@ -87,7 +87,7 @@ cd "$DEPOT"
 # Les fichiers suivis par Git, et eux seuls : ni les coffres d'une fictive ouverte (.gitignore), ni `fictives/.origine/`.
 git ls-files -z logiciel fictives > "$PREPA/liste.z"
 # L'installeur est celui de WINDOWS : les programmes de Linux et de Mac (`logiciel/linux/`, `logiciel/mac/`, que le flux
-# « Publier » pose pour les archives de ces systemes et celle de tous ; paie/src/maj.rs) ne sont jamais suivis
+# « Publier » pose pour les archives de ces systemes et celle de tous ; moteur/src/maj.rs) ne sont jamais suivis
 # (.gitignore), donc jamais poses. Si l'un l'etait, l'installeur s'arrete plutot que de les livrer a Windows.
 if grep -zqE '^logiciel/(linux|mac)/' "$PREPA/liste.z"; then
     echo "Des programmes Linux ou Mac sont suivis par Git dans logiciel/ : l'installeur Windows ne les pose pas." >&2
@@ -99,7 +99,7 @@ while IFS= read -r -d '' f; do
     cp -p "$f" "$PREPA/pose/$f"
 done < "$PREPA/liste.z"
 # Les marques de la livraison de fictives (`fictives/.livraison.json`, `fictives/<nom>/.livree.json`), que le flux
-# « Publier » pose avant de fabriquer l'installeur (`paie maj --marquer-fictives`, paie/src/maj.rs) : une installation de
+# « Publier » pose avant de fabriquer l'installeur (`moteur maj --marquer-fictives`, moteur/src/maj.rs) : une installation de
 # l'installeur retient sa livraison et ne retelecharge pas des fictives qui n'ont pas change. Pas suivies par Git ; hors
 # du flux (un poste), il n'y en a pas, et la premiere livraison se pose alors par le marqueur des fictives livrees.
 for f in fictives/.livraison.json fictives/*/.livree.json; do
@@ -185,4 +185,4 @@ makensis -V2 -INPUTCHARSET UTF8 \
 
 dire "Fait"
 ls -l "$SORTIE/$NOM"
-sha256sum "$SORTIE/$NOM" "$PREPA/pose/logiciel/puppetpaie.exe" "$PREPA/pose/logiciel/WebView2Loader.dll" "$SORTIE_RUST/paie.exe"
+sha256sum "$SORTIE/$NOM" "$PREPA/pose/logiciel/puppetpaie.exe" "$PREPA/pose/logiciel/WebView2Loader.dll" "$SORTIE_RUST/moteur.exe"

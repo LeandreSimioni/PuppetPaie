@@ -2,7 +2,7 @@
 //!
 //! Ce que la personne a ECRIT elle-meme dans sa reponse (la citation du message d'origine
 //! exclue), l'adresse dont elle vient, la date a laquelle elle l'a ecrite : la releve des fiches s'en sert
-//! (`routes_fiches_courriel`), celle des signatures s'en sert aussi. Lecture MIME par `mailparse`
+//! (`moteur::routes::fiches`), celle des signatures s'en sert aussi. Lecture MIME par `mailparse`
 //! (charset inconnu, en-tete `Date` sans fuseau, entites HTML hors du latin courant : voir les fonctions concernees).
 //!
 //! La citation commence a la premiere ligne qui ressemble a l'une des formes de `_DEBUT_CITATION` : `>`,

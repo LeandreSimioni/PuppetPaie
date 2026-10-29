@@ -1,7 +1,7 @@
 /* LES CONSEILS « LE SAVIEZ-VOUS ? » (ticket 224, 21/10/2026). Une option de
  * la fiche Entreprise, décochée par défaut : sans elle, le moteur ne rend
  * rien, et rien ne s'affiche. Tout se décide dans le moteur
- * (paie/src/conseils.rs, la banque dans donnees/conseils.json) ; la page
+ * (moteur/src/conseils.rs, la banque dans donnees/conseils.json) ; la page
  * affiche :
  *   - à l'accueil, le conseil du jour et « un autre » (`conseil-du-jour`),
  *     et ce que les contrats de la compagnie ont fait pour les droits de

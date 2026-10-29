@@ -1,7 +1,7 @@
 /* La compagnie fictive : les notes de l'envoi simule, les signatures jouees, les courriels expliques. */
 "use strict";
 
-/* LA COMPAGNIE FICTIVE (le moteur : routes_accueil::simulation_active, interface/compagnies.rs) : même interface, mêmes étapes,
+/* LA COMPAGNIE FICTIVE (le moteur : `simulation` de la route `etat`, interface/compagnies.rs) : même interface, mêmes étapes,
    mais ce qui part est joué — dépôts, retours, courriels, signatures. Le
    moteur le dit dans `etat` ; la page ne fait que ne pas demander de mot de
    passe, et le dire au moment de l'acte. */
@@ -86,7 +86,7 @@ const CIRCUITS_FICTIFS = {
    que fait une compagnie réelle, et pourquoi il voit ce qu'il voit. La mise à
    jour, elle, est celle du logiciel (une par installation, lot U1) : elle se
    fait partout. Les phrases disent le logiciel tel qu'il est (sauvegarde.rs,
-   maj.rs, pas.rs, amorcage_demande.rs, dans atelier/sources/paie/src/), rien de plus. */
+   maj.rs, pas.rs, amorcage_demande.rs, dans atelier/sources/moteur/src/), rien de plus. */
 const EXPLICATIONS_FICTIVES = {
   coulisses: {
     titre: "Les coulisses de la compagnie fictive",

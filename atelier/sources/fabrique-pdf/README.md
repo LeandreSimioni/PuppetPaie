@@ -11,10 +11,10 @@ cargo test --release --locked
 cargo build --release --locked      # target/release/fabrique-pdf[.exe]
 ```
 
-Le moteur ne lance pas ce programme : `paie` lie la fabrique comme
-bibliothèque (`paie/Cargo.toml`, `documents/src/fabrique.rs`), dans le même
-processus, et sa ligne de commande est **`paie pdf …`** (les mêmes modes que
-ci-dessous ; `paie pdf --aide`). Le programme `fabrique-pdf` reste pour
+Le moteur ne lance pas ce programme : `moteur` lie la fabrique comme
+bibliothèque (`moteur/Cargo.toml`, `documents/src/fabrique.rs`), dans le même
+processus, et sa ligne de commande est **`moteur pdf …`** (les mêmes modes que
+ci-dessous ; `moteur pdf --aide`). Le programme `fabrique-pdf` reste pour
 l'atelier.
 
 ## Appeler

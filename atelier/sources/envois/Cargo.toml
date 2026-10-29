@@ -43,5 +43,5 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 rustls-platform-verifier = "0.7"
 
 [features]
-# La redirection de l'atelier vers un faux serveur local (`redirection`), pour `paie-atelier` seulement.
+# La redirection de l'atelier vers un faux serveur local (`redirection`), pour `moteur-atelier` seulement.
 atelier = []

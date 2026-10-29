@@ -1,4 +1,4 @@
-//! LES SUITES D'UN ENVOI : ce qu'un envoi releve en chemin et que `paie` fait ensuite, parce que cela touche a la
+//! LES SUITES D'UN ENVOI : ce qu'un envoi releve en chemin et que `moteur` fait ensuite, parce que cela touche a la
 //! compagnie et non au transport. Un envoi les remplit au fil de l'eau, meme quand il echoue ; l'appelant les fait
 //! toutes, que l'envoi ait abouti ou non.
 

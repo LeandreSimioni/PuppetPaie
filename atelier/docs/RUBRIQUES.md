@@ -174,7 +174,7 @@ nulle part** : elle se paie des années plus tard, quand le salarié compte ses
   même mois en font trente, et un plafond appliqué contrat par contrat les
   laisserait tous passer. Et il ne borne ni ce qu'on paie ni ce qu'on déclare :
   les cachets au-delà sont joués, payés, déclarés, et n'apportent plus
-  d'heures. C'est pourquoi il vit dans `paie/src/cumul.rs`, le décompte des droits, et
+  d'heures. C'est pourquoi il vit dans `droit/src/cumul.rs`, le décompte des droits, et
   non dans le calcul.
 
 Les deux plafonds sont **indépendants** et le restent : l'enseignement est dans
@@ -227,7 +227,7 @@ La source de chacune se lit dans `logiciel/donnees/rubriques-base.json` (et
 | ce qu'on y trouve | où |
 |---|---|
 | les 12 h du cachet, les 507 heures, les limites d'enseignement | règlement d'assurance chômage, **annexes VIII et X** (unedic.org) |
-| l'assiette des cotisations | **CSS L.242-1**, relevé par `paie releve-codes` |
+| l'assiette des cotisations | **CSS L.242-1**, relevé par `moteur releve-codes` |
 | le régime des indemnités de rupture | **CGI 80 duodecies**, **CSS L.136-1-1**, même outil |
 | les frais professionnels et leurs limites | **arrêté du 20/12/2002** |
 | les jours et heures à déclarer, les codes emploi | **cahier technique AEM V5**, France Travail |
@@ -282,9 +282,9 @@ Et les trois branchés le 20/09/2026, qui ne sont plus dans cette liste :
 
 | champ | ce qu'il fait maintenant |
 |---|---|
-| `dsn_autres_bruts` | un bloc 54 par ligne qui le porte, code vérifié contre la norme (`paie/src/calcul.rs`, `declarations/src/dsn.rs`) |
+| `dsn_autres_bruts` | un bloc 54 par ligne qui le porte, code vérifié contre la norme (`engagement/src/calcul.rs`, `declarations/src/dsn.rs`) |
 | `conges_spectacles` | l'assiette `brut_cs`, un sous-ensemble du brut ligne par ligne, que le barème nomme |
-| `arret_de_travail` | `dsn.generer` refuse de produire le mois quand la ligne est là et l'arrêt absent ; depuis le 15/10/2026, la ligne d'un permanent se tire de l'arrêt saisi (`paie/src/imprevus.rs`), et le refus ne vise plus qu'une ligne écrite à la main |
+| `arret_de_travail` | `dsn.generer` refuse de produire le mois quand la ligne est là et l'arrêt absent ; depuis le 15/10/2026, la ligne d'un permanent se tire de l'arrêt saisi (`engagement/src/imprevus.rs`), et le refus ne vise plus qu'une ligne écrite à la main |
 
 **Pourquoi c'est grave et pas seulement inélégant.** Celui qui construit une
 rubrique les remplit de bonne foi. Il écrit `dsn_autres_bruts: "09"` pour un

@@ -96,7 +96,7 @@ fn depots_attestes(ctx: &Contexte) -> R<(Vec<Atteste>, Vec<String>)> {
 }
 
 /// `journal-reprise` : `ecrire` absent, elle dit ce qu'elle ferait ; `qui` signe les lignes reprises. Rend le rapport, et les
-/// incidents que le rattachement des retours a releves (`paie` les note).
+/// incidents que le rattachement des retours a releves (`moteur` les note).
 pub fn reprise(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -> AvecIncidents<Value> {
     let mut incidents = Vec::new();
     let resultat = reprise_et_incidents(ctx, ecrire, qui, maintenant, &mut incidents);
@@ -110,7 +110,7 @@ fn reprise_et_incidents(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &st
         let b = &d.bilan;
         let reel = texte(b, "essai_reel") == "02";
         // UN TEST QUE CE LOGICIEL N'A PAS ENVOYE NE S'AFFICHE PAS ET NE SE REPREND PAS : sous le
-        // meme compte net-entreprises, les essais de l'atelier (ligne de commande, `paie --dev`, seances du nuage)
+        // meme compte net-entreprises, les essais de l'atelier (ligne de commande, `moteur --dev`, seances du nuage)
         // reviennent dans les retours de la compagnie. Un test n'engage rien : absent du journal, il vient d'ailleurs.
         // Il compte pourtant pour l'ordre (`ordre_signalements::dernier_ordre_des_mensuelles`, lu en silence). Un REEL
         // absent du journal est un depot de la compagnie (l'atelier n'en fait jamais) : il se reprend.

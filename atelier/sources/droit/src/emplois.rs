@@ -3,7 +3,7 @@
 //! Deux fichiers livres avec le code : `emplois-base.json` (le catalogue) et
 //! `nomenclature-emplois-ft.json` (les codes France Travail).
 //!
-//! De l'interface (l'accueil, `routes_accueil.rs`) : `catalogue`, `familles`,
+//! De l'interface (l'accueil, `moteur::routes::ouverture`) : `catalogue`, `familles`,
 //! `noms_des_conventions` et `controler_fiche`.
 
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};

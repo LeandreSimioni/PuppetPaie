@@ -1,5 +1,5 @@
 //! La forme normale NFKC d'un texte, sans crate : les tables (`tables_nfkc.rs`) sont ecrites par
-//! `paie generer-tables` (`generer_tables.rs`) depuis la base Unicode deposee (`atelier/reference/sources/unicode/`).
+//! `moteur generer-tables` (`generer_tables.rs`) depuis la base Unicode deposee (`atelier/reference/sources/unicode/`).
 //!
 //! Les trois temps de la norme (Unicode, chapitre 3, D65, D109 et D117 :
 //! `atelier/reference/sources/unicode/unicode-norme-18.0.0-chapitre-3-extraits-20261015.md`) : decomposition de

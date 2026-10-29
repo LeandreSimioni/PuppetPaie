@@ -6,7 +6,7 @@
 //! enverrait un courriel. Reparer chaque essai ne suffit pas.
 //!
 //! La regle, en un seul endroit : quand la variable `PUPPETPAIE_ESSAIS_HORS_RESEAU` est posee -- Cargo la pose pour tout
-//! processus qu'il lance, donc pour chaque essai et chaque `paie` qu'un essai lance (`atelier/sources/.cargo/config.toml`,
+//! processus qu'il lance, donc pour chaque essai et chaque `moteur` qu'un essai lance (`atelier/sources/.cargo/config.toml`,
 //! `[env]`, `force`) --, une sortie vers une autre machine que celle-ci est REFUSEE avant toute connexion. La seule
 //! porte : un mandataire LOCAL que l'essai nomme dans cette variable meme (`outils::mandataire`, un faux qui note a qui
 //! le moteur voulait parler et refuse) ; il remplace alors le mandataire de l'environnement (celui d'un conteneur, qui

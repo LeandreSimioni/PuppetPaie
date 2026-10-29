@@ -151,7 +151,7 @@ impl<'a> Declarations<'a> {
 
     /// L'identite que la derniere DSN qui le porte a declaree pour ce salarie, ou `None` s'il n'a jamais ete declare.
     /// Il se reconnait a un NIR que sa fiche (`brute`, datee) a porte, sinon a son matricule
-    /// (30.019 ; il finit le NTT et ne change pas sans NIR, `routes_ecritures::ecrire_fiche`).
+    /// (30.019 ; il finit le NTT et ne change pas sans NIR, `moteur::routes::fiches::ecrire_fiche`).
     pub fn derniere(&mut self, salarie: &Value, brute: &Value) -> Resultat<Option<Declaree>> {
         let mut nirs: Vec<String> = vec![texte(salarie.get("nir"))];
         nirs.extend(valeurs_datees(brute, "nir")?.into_iter().map(|(_, v)| texte(Some(v))));

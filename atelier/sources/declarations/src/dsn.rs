@@ -4089,10 +4089,10 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// p. 13. Une DSN « normale » se depose jusqu'au jour de l'echeance (5 ou 15)
 /// a midi ; un annule-et-remplace, lui, « au plus tard la veille a minuit ».
 /// Au-dela, la rectification se porte dans les paies des mois suivants
-/// (`paie corriger`). Le moteur connait l'echeance de l'etablissement
+/// (`moteur corriger`). Le moteur connait l'echeance de l'etablissement
 /// (`Contexte::echeance_dsn` : le 5 a cinquante salaries, le 15 sinon --
 /// critere infere, la norme ne le donne pas, fiche N7 § 1.4.2) et sa veille
-/// (`routes_mois::Moteur::limite`) : passe cette veille, il refuse de produire
+/// (`moteur::routes::etapes::Moteur::limite`) : passe cette veille, il refuse de produire
 /// l'annule-et-remplace (`depart::forme_a_produire`) comme de le
 /// deposer (`depot_acte`), « AnnuleRemplaceHorsDelai ». Ce n'est pas ici, dans
 /// `generer`, qui ecrit ce qu'on lui donne, mais avant lui.
@@ -4214,7 +4214,7 @@ mois (il y figure sans cachet), ou corriger les dates de l'arret. Rien n'est ecr
         return Err(format!(
             "Absence pour arret de travail dans la paie de {}, mais aucun arret saisi en face : {}. La ligne retire \
 le salaire des heures non travaillees ; c'est le bloc « Arret de travail - S21.G00.60 » qui ouvre les indemnites \
-journalieres, et il se construit depuis l'arret, pas depuis la ligne. Saisir l'arret (`paie arret \
+journalieres, et il se construit depuis l'arret, pas depuis la ligne. Saisir l'arret (`moteur arret \
 saisir`), ou retirer la ligne. Rien n'est ecrit.",
             mois,
             manquants.join(", ")

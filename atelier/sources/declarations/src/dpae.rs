@@ -12,8 +12,8 @@
 //! l'engagement, sa nature, et rend les octets. Une cle absente d'une fiche est
 //! refusee sous la forme `'cle'`.
 //!
-//! Deux commandes (`service`) : `paie dpae` (enregistrements, contenu,
-//! ecriture du fichier et de son .zip, recapitulatif) et `paie dpae-lire` (les
+//! Deux commandes (`service`) : `moteur dpae` (enregistrements, contenu,
+//! ecriture du fichier et de son .zip, recapitulatif) et `moteur dpae-lire` (les
 //! lecteurs : `relire`, `lire_certificat`, `meme_declaration`).
 
 use std::path::{Path, PathBuf};

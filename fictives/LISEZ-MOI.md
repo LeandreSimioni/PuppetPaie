@@ -47,12 +47,12 @@ compagnie fictive a été reproduite ce jour-là.
   sont inventés.
 - Chaque dossier porte `COPIE-DE-DEVELOPPEMENT.json` : les dernières portes
   avant le réseau refusent une DSN ou une DPAE réelle, la sauvegarde et la
-  publication (`paie/src/interface/compagnies.rs`, `est_copie` et
-  `est_fictive` ; `paie/src/routes_accueil.rs`, `simulation_active`).
+  publication (`moteur/src/interface/compagnies.rs`, `est_copie` et
+  `est_fictive` ; `moteur/src/routes_accueil.rs`, `simulation_active`).
   **Ne pas le retirer.**
 - Le montant Urssaf de chaque DSN est **calculé** par le moteur, comme pour
   une vraie compagnie : la somme des lignes 23, chacune valorisée à la table
-  des CTP de l'Urssaf (journal §162, `paie/src/bordereau.rs`).
+  des CTP de l'Urssaf (journal §162, `documents/src/bordereau.rs`).
 - **Les taux d'impôt (prélèvement à la source) sont fabriqués**, comme
   s'ils venaient des comptes-rendus de la DGFiP (`config/pas.json`, journal
   §115). Chaque salarié a le sien (27/09/2026 : une compagnie de
@@ -65,7 +65,7 @@ compagnie fictive a été reproduite ce jour-là.
 
 On arrive sur le bureau d'un administrateur : ce qu'il a fait est fait, ce
 qui tombe maintenant reste à faire. À chaque ouverture, l'horloge
-(`paie/src/horloge.rs`, `rattraper`) joue ce qui était dû avant
+(`moteur/src/horloge.rs`, `rattraper`) joue ce qui était dû avant
 aujourd'hui, à sa date, et seulement ce qui n'a pas été fait :
 
 | quand | ce qui se joue |
@@ -86,7 +86,7 @@ elle s'ouvre sans mot de passe. En ligne de commande, la compagnie est
 `PUPPETPAIE_DONNEES` (depuis la racine du dépôt) :
 
 ```bash
-PUPPETPAIE_DONNEES=fictives/fictive-3090-grande paie echeancier
+PUPPETPAIE_DONNEES=fictives/fictive-3090-grande moteur echeancier
 ```
 
 (sous Windows : `set PUPPETPAIE_DONNEES=fictives\fictive-3090-grande` puis la
@@ -95,7 +95,7 @@ même commande.)
 Une fictive livrée ne se supprime pas : sa tuile la remet à zéro. Les
 compagnies qu'on ajoute à côté d'elles en démo (`ajoutee-<nom>`) se suppriment
 depuis leur Configuration, et se gardent ou non au déblocage
-(`atelier/sources/paie/src/interface/suppression.rs`).
+(`atelier/sources/moteur/src/interface/suppression.rs`).
 
 ## D'où elles viennent
 

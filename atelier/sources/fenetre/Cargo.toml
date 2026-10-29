@@ -2,7 +2,7 @@
 name = "puppetpaie"
 version = "0.1.0"
 edition = "2021"
-description = "La fenetre de PuppetPaie (lot J3) : le moteur `paie` et sa page, dans une fenetre Tauri."
+description = "La fenetre de PuppetPaie (lot J3) : le moteur `moteur` et sa page, dans une fenetre Tauri."
 license = "EUPL-1.2"
 publish = false
 
@@ -14,8 +14,8 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-# Le moteur : le serveur de la fenetre (`paie::interface`) et les routes, que ce binaire sert aussi (`puppetpaie route`).
-paie = { path = "../paie" }
+# Le moteur : le serveur de la fenetre (`moteur::interface`) et les routes, que ce binaire sert aussi (`puppetpaie route`).
+moteur = { path = "../moteur" }
 fabrique-pdf = { path = "../fabrique-pdf" }
 tauri = { version = "2", features = [] }
 

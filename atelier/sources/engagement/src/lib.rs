@@ -7,7 +7,7 @@
 //! SEUL L'ENGAGEMENT CALCULE. Le calcul (`calcul`, `charger_donnees`), les cumuls, les conges, les minima, le solde et
 //! les periodes sont prives a la crate. Ce qui est public, ce sont les types qu'on lit (`Paie`, `Engagement`, le
 //! compteur de conges) et les gestes : valider, modifier et relire (`etats`, `stock`, `relire`, `departs`, `numeros`),
-//! et, pour l'ecran seulement (la fonctionnalite Cargo `ecran`, que seul `paie` demande), le calcul d'une saisie
+//! et, pour l'ecran seulement (la fonctionnalite Cargo `ecran`, que seul `moteur` demande), le calcul d'une saisie
 //! (`pour_l_ecran`), viser un montant (`viser`), la saisie lue sans paie et le preavis. Un document ou une declaration
 //! ne lit que les paies ecrites d'un engagement valide.
 
@@ -25,6 +25,7 @@ pub mod relire;
 pub mod solde;
 pub mod numeros;
 pub mod stock;
+pub mod versions;
 #[cfg(feature = "ecran")]
 pub mod viser;
 
@@ -87,7 +88,7 @@ pub struct Engagement {
     pub dernier_jour_paye: Option<String>,
     /// Le jour ou prend effet ce que la saisie de CE mois change au contrat (avenant : nature, motif, duree du
     /// travail, emploi, date de debut ; AAAA-MM-JJ) : la « Date de la modification » du bloc 41 (`dsn::changements_contrat`).
-    /// Il ne se recopie pas d'un mois a l'autre (`routes_contrats::DEFINIT_LE_MENSUEL`) : le mois suivant declare deja
+    /// Il ne se recopie pas d'un mois a l'autre (`moteur::routes::mois::DEFINIT_LE_MENSUEL`) : le mois suivant declare deja
     /// la nouvelle valeur.
     pub date_modification: Option<String>,
     pub transaction: Option<String>,
@@ -1049,7 +1050,7 @@ pub(crate) fn engagements(
 
 /// Les phrases des refus qui disent une saisie pas encore finie, et non un defaut du logiciel : un spectacle pas encore
 /// choisi, des jours pas encore coches, des heures pas encore dites. L'ecran enregistre a chaque frappe, et ces refus
-/// montent sous `SaisieIncomplete` (`routes_mois::classer_saisie`, `routes_ouverture::refus_du_calcul`) ; leur message
+/// montent sous `SaisieIncomplete` (`moteur::routes::etapes::classer_saisie`, `moteur::routes::mois::refus_du_calcul`) ; leur message
 /// commence par « L'engagement N de AAAA-MM ».
 const SAISIE_INCOMPLETE: [&str; 3] = [" ne dit pas quel spectacle il joue", " ne dit aucun jour joue", " ne dit pas ses heures"];
 

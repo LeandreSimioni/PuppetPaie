@@ -348,7 +348,7 @@ function pastilleSort(sort) {
 }
 
 /* « Ouvrir le dossier » n'a de sens que si la page tourne sur le poste,
-   servie par sa fenêtre (Tauri, ou `paie interface` dans le navigateur du
+   servie par sa fenêtre (Tauri, ou `moteur interface` dans le navigateur du
    poste) : c'est elle qui pose `window.pywebview` (la cale de
    `interface/mod.rs`, avant le premier script) et qui sait la route
    `ouvrir-import` (`interface/api.rs`). Sans elle, le bouton n'apparaît pas. */
@@ -408,7 +408,7 @@ async function dessinerImportation(cible) {
       try {
         const r = await api("ouvrir-import", { dossier: document.getElementById("import-dossier").value.trim() });
         // Le dossier ouvert se dit (#141) : l'explorateur peut s'ouvrir derrière la fenêtre.
-        if (r && r.dossier) dire(`Dossier ouvert : ${r.dossier}`);
+        if (r && r.phrase) dire(r.phrase);
       } catch (err) { dire(err.message, "erreur"); }
     };
   }
@@ -1007,7 +1007,7 @@ const FACULTATIFS = {
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
- *  - `siren`, `nic` : le SIRET (le moteur, `routes_fiches::deriver`, #236) ;
+ *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`, #236) ;
  *    `convention_collective`,
  *    `code_convention_dsn` : l'IDCC (`brancherConvention`) ;
  *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,

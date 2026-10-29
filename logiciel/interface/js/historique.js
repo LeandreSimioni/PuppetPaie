@@ -110,7 +110,10 @@ async function dessinerMoisHistorique(d) {
 
   vue.querySelectorAll("[data-piece]").forEach((b) => {
     b.onclick = async () => {
-      try { await api("ouvrir-piece", { historique: mois, chemin: b.dataset.piece }); }
+      try {
+        const r = await api("ouvrir-piece", { historique: mois, chemin: b.dataset.piece });
+        if (r && r.phrase) dire(r.phrase);
+      }
       catch (e) { dire(e.message, "erreur"); }
     };
   });

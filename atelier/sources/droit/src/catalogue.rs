@@ -1,12 +1,10 @@
 //! Le catalogue des rubriques : ce que le calcul lit.
 //!
-//! Trois fichiers : `donnees/rubriques-base.json` (le logiciel),
-//! `config/rubriques-compagnie.json` et `config/rubriques-actives.json` (les
-//! donnees, sous la racine de la compagnie). Les rubriques de la compagnie sont
-//! des regles du calcul : datees comme toute la configuration, lues a la date de
-//! la periode. `rubriques-actives.json` est une preference d'affichage (l'ordre
-//! du deroulant de saisie, les rubriques cochees, combien de fois chacune a
-//! servi) : aucun calcul ne la lit, elle ne depend d'aucune periode.
+//! Deux fichiers : `donnees/rubriques-base.json` (le logiciel) et
+//! `config/rubriques-compagnie.json` (les donnees, sous la racine de la
+//! compagnie). Les rubriques de la compagnie sont des regles du calcul : datees
+//! comme toute la configuration, lues a la date de la periode. Le catalogue se
+//! range par libelle.
 
 use socle::fichiers::{dossier_du_code, lire_json, repr, signature, vrai};
 use socle::num::Resultat;
@@ -87,13 +85,12 @@ pub const AUTRES_BRUTS: &[(&str, &str)] = &[
 
 /// Les champs d'une rubrique : tout autre
 /// champ dans un fichier est refuse.
-const CHAMPS_CONNUS: [&str; 28] = [
+const CHAMPS_CONNUS: [&str; 26] = [
     "code", "libelle", "unite", "nature", "saisie", "soumis", "imposable",
     "conges_spectacles", "source", "sens", "heures_forfait", "plafond", "aem",
     "dsn_type", "dsn_autres_bruts", "annexe", "plafond_mensuel",
     "plafond_annuel_heures", "compte_pour", "salaire_de_base", "retabli",
     "suspension", "arret_de_travail", "conges_pris", "dsn_bloc52", "origine",
-    "usages", "active",
 ];
 
 /// Une forme de paie : ce que le bulletin appelle une ligne.
@@ -125,8 +122,6 @@ pub struct Rubrique {
     pub conges_pris: bool,
     pub dsn_bloc52: Option<String>,
     pub origine: String,
-    pub usages: i64,
-    pub active: bool,
 }
 
 fn joindre(l: &[&str]) -> String {
@@ -304,9 +299,7 @@ fn entier(v: &Value) -> i64 {
     }
 }
 
-fn construire(code: &str, d: &Map<String, Value>, origine: &str, usages: i64, active: bool)
-    -> Resultat<Rubrique>
-{
+fn construire(code: &str, d: &Map<String, Value>, origine: &str) -> Resultat<Rubrique> {
     let mut inconnus: Vec<&str> = d
         .keys()
         .map(|k| k.as_str())
@@ -366,8 +359,6 @@ fn construire(code: &str, d: &Map<String, Value>, origine: &str, usages: i64, ac
         conges_pris: drapeau("conges_pris"),
         dsn_bloc52: chaine_opt(d, "dsn_bloc52"),
         origine: origine.to_string(),
-        usages,
-        active,
     };
     r.verifier()?;
     Ok(r)
@@ -416,8 +407,6 @@ fn construire_catalogue(racine: &Path, jour: &Jour) -> Resultat<Vec<Rubrique>> {
             brut.push((c.clone(), v.as_object().cloned().unwrap_or_default(), false));
         }
     }
-    let mut choix: Vec<String> = Vec::new();
-    let mut usages = Map::new();
     if socle::fichiers::est_dossier(racine) {
         for (c, v) in propres_au(racine, jour)? {
             if let Some(e) = brut.iter_mut().find(|e| e.0 == c) {
@@ -429,30 +418,13 @@ fn construire_catalogue(racine: &Path, jour: &Jour) -> Resultat<Vec<Rubrique>> {
                 brut.push((c, v, true));
             }
         }
-        let actives = lire(&racine.join("config").join("rubriques-actives.json"))?;
-        if let Some(Value::Array(a)) = actives.get("actives") {
-            choix = a.iter().filter_map(|x| x.as_str().map(String::from)).collect();
-        }
-        if let Some(Value::Object(u)) = actives.get("usages") {
-            usages = u.clone();
-        }
     }
     let mut out = Vec::new();
     for (code, mut d, propre) in brut {
         d.remove("_propre");
-        let u = usages.get(&code).map_or(0, entier);
-        out.push(construire(
-            &code,
-            &d,
-            if propre { "compagnie" } else { "base" },
-            u,
-            !choix.is_empty() && choix.contains(&code),
-        )?);
+        out.push(construire(&code, &d, if propre { "compagnie" } else { "base" })?);
     }
-    out.sort_by(|a, b| {
-        (!a.active, -a.usages, a.libelle.to_lowercase())
-            .cmp(&(!b.active, -b.usages, b.libelle.to_lowercase()))
-    });
+    out.sort_by_key(|r| r.libelle.to_lowercase());
     Ok(out)
 }
 
@@ -464,16 +436,15 @@ fn empreinte(p: &Path) -> String {
 type EnCache = (bool, Arc<Vec<Rubrique>>);
 static CATALOGUES: OnceLock<Mutex<HashMap<String, EnCache>>> = OnceLock::new();
 
-/// Les rubriques disponibles a `jour` (la date de la periode payee : les rubriques de la compagnie sont datees) : les
-/// actives d'abord (la plus utilisee en tete), puis les autres par libelle. `racine` est la racine des donnees de la
-/// compagnie (`ctx.racine`). Construit une fois par etat des trois fichiers (et par jour, si la compagnie a date une
+/// Les rubriques disponibles a `jour` (la date de la periode payee : les rubriques de la compagnie sont datees), par
+/// libelle. `racine` est la racine des donnees de la
+/// compagnie (`ctx.racine`). Construit une fois par etat des deux fichiers (et par jour, si la compagnie a date une
 /// de ses rubriques).
 pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
     let fichiers = format!(
-        "{}|{}|{}",
+        "{}|{}",
         empreinte(&dossier_du_code().join("rubriques-base.json")),
         empreinte(&racine.join("config").join(RUBRIQUES_COMPAGNIE)),
-        empreinte(&racine.join("config").join("rubriques-actives.json")),
     );
     let cache = CATALOGUES.get_or_init(|| Mutex::new(HashMap::new()));
     let connue = cache.lock().unwrap().get(&fichiers).map(|(datee, _)| *datee);
@@ -492,7 +463,6 @@ pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
         for p in [
             dossier_du_code().join("rubriques-base.json"),
             racine.join("config").join(RUBRIQUES_COMPAGNIE),
-            racine.join("config").join("rubriques-actives.json"),
         ] {
             if socle::fichiers::existe(&p) {
                 socle::fichiers::noter_si_besoin(&p);
@@ -512,9 +482,9 @@ pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
 
 /// LA RUBRIQUE D'UNE LIGNE DE PAIE NEUVE, par forme de paie (`"activite"` ou `"mensuelle"`, celles de
 /// [`Rubrique::reservee_a`]) : une ligne neuve paie un travail, elle ne s'ouvre pas sur la premiere rubrique du
-/// deroulant (« Absence », dans une compagnie neuve, ou rien n'est coche et ou le catalogue se trie par libelle) : la
-/// premiere rubrique de salaire (nature `salaire`) que la forme propose, dans l'ordre du catalogue (les cochees d'abord,
-/// la plus utilisee en tete) ; au mois, le salaire de base (`salaire_de_base`) passe devant. `None` : aucune.
+/// deroulant, qui se range par libelle (« Absence » en tete) : la
+/// premiere rubrique de salaire (nature `salaire`) que la forme propose, dans l'ordre du catalogue ; au mois, le
+/// salaire de base (`salaire_de_base`) passe devant. `None` : aucune.
 pub fn par_defaut<'a>(cat: &'a [Rubrique], forme: &str) -> Option<&'a Rubrique> {
     let proposee = |r: &&Rubrique| r.reservee_a().map_or(true, |f| f == forme);
     let salaire = |r: &&Rubrique| r.nature == "salaire";
