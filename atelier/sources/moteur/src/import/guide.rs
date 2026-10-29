@@ -32,7 +32,7 @@ pub fn guide() -> Value {
             },
             {
                 "quoi": "Les DSN déposées",
-                "ou": "Les fichiers que votre ancien logiciel a déposés chaque mois sur net-entreprises, s'il vous les a laissés.",
+                "ou": "Les fichiers que votre ancien logiciel a déposés chaque mois sur net-entreprises, s'il vous les a laissés. Mettez-les avec les bulletins : ils portent ce que les bulletins n'impriment pas toujours (le compte bancaire, le numéro Congés Spectacles, la licence).",
                 "lu": [
                     "la compagnie : son Siret, son adresse, son code APE, sa convention, sa licence, son numéro d'adhérent Congés Spectacles, le compte qui paie les cotisations",
                     "chaque salarié : son identité entière, naissance comprise",
