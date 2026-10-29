@@ -120,6 +120,18 @@ fn echapper(t: &str) -> String {
 }
 
 /// La version telle que la fenetre la montre : `JJ.MM.AAAA` (`maj::version_lue`) ; le fichier garde l'identifiant.
+/// Le binaire de l'atelier n'est pas une version publiee : il dit de quelles sources il est fait (le commit, `build.rs`).
+#[cfg(feature = "atelier")]
+fn version() -> String {
+    let commit = env!("PAIE_COMMIT");
+    if commit.is_empty() {
+        "de développement".to_string()
+    } else {
+        format!("de développement, {}", commit)
+    }
+}
+
+#[cfg(not(feature = "atelier"))]
 fn version() -> String {
     crate::compagnie::maj::version_lue(&std::fs::read_to_string(compagnies::logiciel().join("VERSION")).unwrap_or_else(|_| "0.0.0".into()))
 }

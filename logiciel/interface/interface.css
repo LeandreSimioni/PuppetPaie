@@ -756,6 +756,21 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   .grille-mois { grid-template-columns: 1fr; }
   .engagement .ligne1 { grid-template-columns: 1fr 1fr; }
 }
+/* UN TÉLÉPHONE : l'en-tête tient en deux lignes — la maison, le nom et sa version, le signalement ; puis les onglets.
+   Le sous-titre et l'étiquette de la maison se taisent, le logo se resserre. */
+@media (max-width: 480px) {
+  .bandeau { gap: 4px 8px; padding: 6px 10px; }
+  .marque { gap: 6px; }
+  .marque .sous:not(.version) { display: none; }
+  .marque strong { font-size: 14px; }
+  .logo { width: 28px; height: 18px; }
+  body.accueil-possible .bandeau .retour-accueil { font-size: 0; padding: 2px 4px; margin-right: 0; }
+  .retour-accueil .maison { width: 20px; height: 20px; }
+  .bandeau button.signaler { margin-left: auto; font-size: 11px; }
+  .onglets { order: 5; width: 100%; justify-content: space-between; }
+  .onglets button { padding: 5px 6px; }
+  .etat { order: 6; }
+}
 
 /* ------------------------------------------------- les lignes de paie
    Une ligne = une rubrique, une quantite, un taux, et des heures quand la

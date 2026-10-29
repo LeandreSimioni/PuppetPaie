@@ -802,19 +802,24 @@ function brancherImportation() {
 async function apercuImportation() {
   IMPORT_DOSSIER = document.getElementById("import-dossier").value.trim();
   const cible = document.getElementById("import-resultat");
-  cible.innerHTML = `<p class="discret">Lecture du dossier…</p>`;
+  // LE GESTE QUI ATTEND SE VOIT : le bouton dit qu'il lit, la page qu'elle travaille.
+  const rendre = occupe(document.getElementById("import-apercu"), "Lecture des fichiers…");
+  cible.innerHTML = `<p class="discret">Lecture du dossier, fichier par fichier…</p>`;
   try {
     const r = await api("importation-apercu", { dossier: IMPORT_DOSSIER });
     cible.innerHTML = vueImportation(r);
     brancherImportation();
   } catch (e) {
     cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`;
+  } finally {
+    rendre();
   }
 }
 
 async function ecrireImportation() {
   const cible = document.getElementById("import-resultat");
   cible.classList.add("attente");
+  occupe(document.getElementById("import-ecrire"), "Reprise en cours : les fiches, les contrats, puis chaque bulletin…");
   try {
     const r = await api("importer", { dossier: IMPORT_DOSSIER });
     cible.innerHTML = vueImportation(r);
