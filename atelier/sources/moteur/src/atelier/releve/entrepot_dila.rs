@@ -1,5 +1,5 @@
-//! L'entrepot local des textes de la DILA (LEGI, KALI) : lu une fois, tenu a jour ensuite. Porte de
-//! `atelier/outils/entrepot_dila.py` (retire le 15/10/2026) ; ses deux utilisateurs sont `releve::codes` (`moteur releve-codes`)
+//! L'entrepot local des textes de la DILA (LEGI, KALI) : lu une fois, tenu a jour ensuite. Ses deux
+//! utilisateurs sont `releve::codes` (`moteur releve-codes`)
 //! et `releve::conventions` (`moteur releve-conventions`).
 //!
 //! POURQUOI (24/09/2026, journal §122). La moisson des codes relisait, a CHAQUE passage, l'archive globale de la base LEGI
@@ -21,12 +21,11 @@
 //! Ce module ne sait rien des codes ni des conventions : il range des articles sous une cle, et il sait faire defiler des
 //! archives (`LecteurTar`, que `kali.rs` emploie aussi). Les deux commandes qui s'en servent disent quoi garder.
 //!
-//! LES FICHIERS sont ceux qu'ecrivait le Python, champ pour champ : `articles.jsonl.gz` (une ligne par article, cles
+//! LES FICHIERS : `articles.jsonl.gz` (une ligne par article, cles
 //! triees, la cle de l'article sous `cle`, lignes triees par cle ; gzip a `mtime` 0 et au nom `articles.jsonl.gz.tmp`
-//! dans l'en-tete, comme `gzip.GzipFile(tmp, mtime=0)`) et `etat.json` (`json.dump(indent=1, sort_keys=True)`, sans saut
+//! dans l'en-tete) et `etat.json` (indent 1, cles triees, sans saut
 //! de ligne final). Deux sauvegardes du meme contenu donnent le meme fichier : Git ne voit changer que ce qui a change.
-//! Le flux compresse, lui, n'est pas celui de la zlib du Python (meme contenu, autres octets compresses : le premier
-//! enregistrement en Rust reecrit le fichier une fois, ce que faisait de toute facon chaque livraison appliquee).
+//! Le flux compresse depend du compresseur : le meme contenu peut donner d'autres octets.
 
 use std::collections::{BTreeMap, HashSet};
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
@@ -45,7 +44,7 @@ type R<T> = Result<T, String>;
 // ------------------------------------------------------------------ l'entrepot
 
 /// Le separateur des parties d'une cle d'article (`("impots", "1724")`, `("3090", "KALIARTI...")`) dans la cle de la table :
-/// aucune des parties ne le porte, et une cle se trie comme le tuple du Python (une partie prefixe d'une autre passe avant).
+/// aucune des parties ne le porte, et une cle se trie partie par partie (une partie prefixe d'une autre passe avant).
 const SEP: char = '\u{0}';
 
 /// La cle de table d'un article, depuis ses parties.
@@ -60,7 +59,7 @@ pub fn parties(cle: &str) -> Vec<&str> {
 
 /// Des articles sous une cle, et l'etat de lecture.
 ///
-/// `articles` : cle -> `{"id", "debut", ...}` ; l'ordre est celui du dictionnaire du Python (l'ordre du fichier au
+/// `articles` : cle -> `{"id", "debut", ...}` ; l'ordre est celui d'insertion (l'ordre du fichier au
 /// chargement, puis les cles neuves a la fin ; une cle remplacee garde sa place) -- c'est lui qui range les articles d'un
 /// `releve.json`. `etat` : `{"global", "lues", "changes", "construit_le", "mis_a_jour_le"}`.
 pub struct Entrepot {
@@ -261,7 +260,7 @@ pub fn telecharger(source: &dyn Source, url: &str) -> R<Vec<u8>> {
     Err(derniere)
 }
 
-/// Une page d'index, un seul essai (`urlopen(BASE, timeout=120)` du Python).
+/// Une page d'index, un seul essai (120 s).
 pub fn page(source: &dyn Source, url: &str) -> R<String> {
     Ok(String::from_utf8_lossy(&source.lire(url, 120)?).into_owned())
 }
@@ -503,11 +502,11 @@ pub fn sans_blancs(t: &str) -> &str {
     t.trim_matches(blanc)
 }
 
-/// `html.unescape` pour ce que portent les XML de la DILA : les references numeriques (avec les regles de Python : `&#13;`
+/// Les entites de ce que portent les XML de la DILA : les references numeriques (selon HTML5 : `&#13;`
 /// rend `\r`, `&#128;`-`&#159;` la page 1252, `&#0;` et les substituts U+FFFD, les points de code interdits rien) et les
 /// entites nommees `amp`, `lt`, `gt`, `quot`, `apos`, `nbsp`. INFERENCE : un XML bien forme ne connait que ces cinq-la
 /// (`nbsp` en plus, par prudence) ; le releve du 15/10/2026 de `legi-entrepot/` (55 035 articles) ne porte que `&#13;`,
-/// `&#10;`, `&gt;`, `&lt;` et `&amp;`. Une autre entite nommee resterait telle quelle, la ou le Python la decoderait.
+/// `&#10;`, `&gt;`, `&lt;` et `&amp;`. Une autre entite nommee reste telle quelle.
 pub fn unescape_html(t: &str) -> String {
     if !t.contains('&') {
         return t.to_string();
@@ -521,7 +520,7 @@ pub fn unescape_html(t: &str) -> String {
             let n = if let Some(h) = num.strip_prefix(['x', 'X']) { u64::from_str_radix(h, 16) } else { num.parse::<u64>() };
             return reference_numerique(n.unwrap_or(u64::MAX));
         }
-        // Le nom entier, puis (comme le Python) le plus long debut qui en est un : `&ampx` rend `&x`.
+        // Le nom entier, puis le plus long debut qui en est un : `&ampx` rend `&x`.
         if let Some(r) = entite(s) {
             return r.to_string();
         }
@@ -581,7 +580,7 @@ pub fn texte(v: &Value) -> String {
     socle::valeur::valeur_en_texte(v)
 }
 
-/// La verite d'une valeur au sens du Python (`if v:`).
+/// Une valeur presente et non vide (ni `null`, `false`, `0`, `""`, `[]`, `{}`).
 pub fn vrai(v: &Value) -> bool {
     match v {
         Value::Null => false,

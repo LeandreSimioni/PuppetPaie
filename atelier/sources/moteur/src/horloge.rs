@@ -1,5 +1,5 @@
 //! L'horloge de la compagnie fictive : `rattraper`, `dernier_rattrapage`
-//! et tout ce qu'ils appellent -- lot I1.
+//! et tout ce qu'ils appellent.
 //!
 //! A chaque ouverture, la COMPAGNIE FICTIVE joue ce qu'une compagnie bien tenue aurait fait AVANT aujourd'hui, a sa
 //! date : elle saisit, valide, envoie. Le jour de chaque embauche, ses engagements se valident a 5 h, son contrat part a
@@ -59,9 +59,8 @@ const QUOI: &str = "L'horloge de la compagnie fictive (moteur/simulation.py) : l
 pub struct HorlogeFictive<'a> {
     racine: &'a Path,
     /// LE JOUR JOUE : celui que l'horloge rattrape. Chaque contexte qu'elle ouvre porte ce jour (`aujourdhui` ET `date`),
-    /// jamais l'horloge reelle de la machine : l'ancien Python jugeait la cloture d'une annee, l'export, le jour inscrit
-    /// a l'echeancier, la DPAE sur `date.today()`, et rejouee dans le futur d'une copie la compagnie fictive disait « exercice
-    /// 2026 clos -- non joue » (defaut du Python, corrige ici ; le contexte de l'interface, lui, garde la date reelle).
+    /// jamais l'horloge reelle de la machine : la cloture d'une annee, l'export, le jour inscrit
+    /// a l'echeancier, la DPAE se jugent au jour joue (le contexte de l'interface, lui, garde la date reelle).
     jour: Jour,
 }
 
@@ -76,7 +75,7 @@ impl<'a> HorlogeFictive<'a> {
         HorlogeFictive { jour, ..self }
     }
 
-    /// Un contexte AU JOUR JOUE (`date` et `aujourdhui`), a la place de `Contexte(racine)` du Python.
+    /// Un contexte AU JOUR JOUE (`date` et `aujourdhui`).
     fn contexte(&self) -> R<Contexte> {
         self.contexte_a(self.jour)
     }
@@ -170,9 +169,8 @@ fn dater(racine: &Path, depuis: usize, quand: &str) {
     let _ = socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2);
 }
 
-/// Les refus que Python rangeait sous `ErreurOperation`.
+/// Les refus ordinaires d'une operation (un refus du moteur sans classe en est un).
 fn est_une_erreur_d_operation(e: &Echec) -> bool {
-    // Un refus du moteur sans classe est, cote Python, un `CalculRefuse` : une `ErreurOperation`.
     e.classe.is_none()
         || matches!(
         e.classe,
@@ -207,7 +205,7 @@ fn instant_du_pas(quand: &str) -> Option<f64> {
 
 /// `_pas` : un pas joue -- le geste, ses lignes de journal datees, et sa phrase. Une erreur devient la phrase, sans
 /// arreter les autres pas. `geste` rend `true` quand il a fait quelque chose (sa phrase se dit), `false` quand il n'y
-/// avait rien a faire (`return False` du Python : ni phrase, ni date).
+/// avait rien a faire (ni phrase, ni date).
 fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Contexte) -> R<bool>) -> Vec<String> {
     let racine = d.racine;
     let echec = |e: &Echec| vec![format!("Le {} : {} — non joué ({})", le(quand), quoi, motif_de(e))];
@@ -583,8 +581,8 @@ fn a_l_echeance(d: &HorlogeFictive, mois: &str, echeance: Jour) -> Vec<String> {
         if !crate::routes::etapes::documents_partis(ctx, mois, &engagements, &lignes)?.is_empty() {
             return Ok(false);
         }
-        // LES DOCUMENTS D'UN MOIS QUI N'EST PAS PARTI ne partent pas (#236, trouve sur la demo Les Faisceaux : un mois que
-        // l'horloge n'avait pas pu ecrire voyait « ses documents envoyes ») : ils suivent sa DSN, jamais avant.
+        // LES DOCUMENTS D'UN MOIS QUI N'EST PAS PARTI ne partent pas :
+        // ils suivent sa DSN, jamais avant.
         if !dsn_partie(ctx, mois)? {
             return Ok(false);
         }
@@ -648,8 +646,8 @@ fn l_annee(d: &HorlogeFictive, annee: i32, jour: Jour) -> R<Vec<String>> {
         if jour < fin || deja.contains_key(&cle) {
             continue;
         }
-        // UNE ECHEANCE D'AVANT LA COMPAGNIE ne la regarde pas (#236, trouve au banc : une compagnie ajoutee en novembre
-        // cochait « Les spectacles de 2026 » au 31/03/2026) : le jour ou elle a ete ajoutee (`compagnies::cree_le`).
+        // UNE ECHEANCE D'AVANT LA COMPAGNIE ne la regarde pas :
+        // le jour ou elle a ete ajoutee (`compagnies::cree_le`).
         if crate::interface::compagnies::cree_le(racine).is_some_and(|c| fin < c) {
             continue;
         }

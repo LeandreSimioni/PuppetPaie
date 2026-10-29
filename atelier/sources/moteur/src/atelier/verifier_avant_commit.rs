@@ -2,7 +2,6 @@
 //! données personnelles : trois motifs génériques (un NIR, un IBAN, un BIC), puis, si `prive/config/` est là, les VRAIES
 //! valeurs de la compagnie du poste qu'il y lit (SIRET, SIREN, comptes Urssaf, Congés Spectacles et France Travail, IBAN,
 //! BIC, et pour chaque salarié son NIR, son numéro Congés Spectacles, son courriel, son adresse, son nom et son prénom).
-//! Porté de `atelier/outils/verifier_avant_commit.py` (lot B, 15/10/2026), qu'il remplace.
 //!
 //! Le verrou de la suite (`tests/fichiers/donnees_reelles.rs`) tient déjà, à chaque passage de tests, le nom et le SIREN
 //! de la compagnie du poste, les chemins du poste et les NIR sans la marque d'invention. Ce garde-ci fait ce que le verrou
@@ -132,7 +131,7 @@ const CLES_SALARIE: [&str; 4] = ["nir", "num_conges_spectacles", "email", "adres
 pub struct Trouvaille {
     /// Relatif à la racine du dépôt, en `/`.
     pub fichier: String,
-    /// À partir de 1, les lignes comptées comme `str.splitlines` de Python les comptait.
+    /// À partir de 1, les lignes comptées par `socle::texte::lignes_du_texte`.
     pub ligne: usize,
     pub quoi: String,
 }
@@ -180,8 +179,7 @@ fn porte_fr(ligne: &str) -> bool {
 }
 
 /// Les trois motifs génériques. La casse compte : un BIC et un IBAN s'écrivent en capitales, et chercher « CHIFFRE » sans
-/// tenir compte de la casse trouve le mot « chiffres » dans une phrase française (première version du script Python, 56
-/// fausses alertes).
+/// tenir compte de la casse trouve le mot « chiffres » dans une phrase française.
 fn generiques() -> Vec<Motif> {
     [
         // Un NIR : sexe, année, MOIS 01-12, puis 8 chiffres ; treize chiffres, ou quinze avec la clé. Le mois est restreint
@@ -198,8 +196,8 @@ fn generiques() -> Vec<Motif> {
     .collect()
 }
 
-/// Une valeur JSON comme Python l'écrirait par `str()` (un nombre en chiffres, une chaîne telle quelle), si elle est
-/// « vraie » au sens de Python (ni nulle, ni vide, ni zéro, ni `false`).
+/// Une valeur JSON en texte (un nombre en chiffres, une chaîne telle quelle), si elle est
+/// présente et non vide (ni nulle, ni vide, ni zéro, ni `false`).
 fn valeur_vraie_en_texte(v: &Value) -> Option<String> {
     match v {
         Value::Null | Value::Bool(false) => None,
@@ -229,12 +227,12 @@ fn objet<'a>(v: &'a Value, quoi: &str) -> R<&'a serde_json::Map<String, Value>> 
 }
 
 /// Les valeurs à ne jamais publier, lues hors du dépôt (`<racine>/prive/config/`), dans l'ordre où on les lit, une fois
-/// chacune (une valeur vue deux fois garde sa place et prend le dernier nom, comme le dictionnaire du Python). Sous six
+/// chacune (une valeur vue deux fois garde sa place et prend le dernier nom). Sous six
 /// caractères, trop de fausses alertes : elles ne se cherchent pas. Sans `prive/config/` -- un clone frais, le nuage --,
 /// rien : les motifs génériques suffisent à attraper un NIR ou un IBAN quelconque.
 ///
-/// Écart voulu avec le Python : il retombait en silence sur les seuls motifs génériques quand `entreprise.json` ou
-/// `salaries.json` manquait ou ne se lisait pas. Ici, un fichier absent ne se lit pas et l'autre se lit quand même ; un
+/// Un fichier absent ou illisible ne fait pas retomber en silence sur les seuls motifs génériques
+/// (`entreprise.json`, `salaries.json`) : un fichier absent ne se lit pas et l'autre se lit quand même ; un
 /// fichier présent mais illisible arrête tout (code 2) : un garde qui ne lit pas ce qu'il protège ne laisse pas passer.
 /// Et le nom d'un salarié n'est jamais dans ce que la commande affiche (`salarie.nir`, pas la clé de sa fiche).
 fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
@@ -286,8 +284,8 @@ fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
     Ok(valeurs.into_iter().filter(|(v, _)| v.chars().count() >= 6).collect())
 }
 
-/// Les motifs : les génériques, puis les vraies valeurs, sans tenir compte de la casse (les deux côtés en minuscules,
-/// comme `re.IGNORECASE` du Python les comparait). Une valeur lue qui est elle-même dans `FICTIVES` ne se cherche pas :
+/// Les motifs : les génériques, puis les vraies valeurs, sans tenir compte de la casse (les deux côtés en minuscules).
+/// Une valeur lue qui est elle-même dans `FICTIVES` ne se cherche pas :
 /// c'est une compagnie fictive copiée dans `prive/`, pas une donnée réelle.
 fn motifs(racine: &Path) -> R<Vec<Motif>> {
     let mut m = generiques();
@@ -348,8 +346,8 @@ fn fichiers(racine: &Path, indexes: bool) -> R<Vec<String>> {
 }
 
 /// Ce que l'index porte pour chaque fichier (`git cat-file --batch`, `:0:<chemin>`) : c'est cela, et non la copie de
-/// travail, que le commit emportera. Écart voulu avec le Python, qui relisait la copie de travail : un fichier indexé
-/// puis retouché passait sur sa version retouchée.
+/// travail, que le commit emportera. Un fichier indexé
+/// puis retouché est jugé sur sa version indexée.
 fn contenus_indexes(racine: &Path, noms: &[String]) -> R<Vec<Option<Vec<u8>>>> {
     if noms.is_empty() {
         return Ok(Vec::new());
@@ -392,7 +390,7 @@ fn contenus_indexes(racine: &Path, noms: &[String]) -> R<Vec<Option<Vec<u8>>>> {
     Ok(contenus)
 }
 
-/// Les octets lus en UTF-8, ce qui n'en est pas sauté (le `errors="ignore"` du Python).
+/// Les octets lus en UTF-8, ce qui n'en est pas sauté.
 fn utf8_sans_erreurs(mut o: &[u8]) -> String {
     let mut s = String::with_capacity(o.len());
     loop {

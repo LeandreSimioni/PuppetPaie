@@ -1,5 +1,4 @@
-//! Le filet de securite DPAE, cote poste (`moteur/operations_filet.py`,
-//! `moteur/filet.py`) : s'inscrire aupres du serveur de rappels, relire si
+//! Le filet de securite DPAE, cote poste : s'inscrire aupres du serveur de rappels, relire si
 //! l'adresse est confirmee, effacer le compte, armer un reveil la veille d'une
 //! embauche et le desarmer des que la DPAE part.
 //!
@@ -8,10 +7,9 @@
 //! s'identifie par (salarie, premier jour), comme dans le journal des DPAE.
 //!
 //! CE QUI NE PART JAMAIS D'ICI : une DPAE REELLE. Le test automatique d'une
-//! DPAE (`_tester` : produire le fichier et le deposer en TEST chez l'Urssaf)
-//! suppose `produire_dpae` et `deposer_dpae`, les actes du lot H ; il reste en
-//! Python et ne fait qu'ecrire dans l'etat les
-//! tests qu'il a faits, par `passage`.
+//! DPAE (produire le fichier et le deposer en TEST chez l'Urssaf)
+//! suppose `produire_dpae` et `deposer_dpae` ; ici, `passage` ne fait qu'ecrire dans l'etat les
+//! tests qu'il a faits.
 //!
 //! Un seul fichier d'etat, ecrit en entier : un verrou court
 //! (`config/.filet.verrou`) exclut deux lectures-ecritures simultanees ; tenu,
@@ -52,8 +50,7 @@ fn en_os(m: String) -> socle::echec::Echec {
 pub(crate) fn lire_etat(racine: &Path) -> R<Value> {
     let mut e = crate::routes::fiches::lire_tolerant(&chemin(racine))?.unwrap_or_else(|| json!({}));
     let Value::Object(m) = &mut e else {
-        // Le Python plantait (`AttributeError: 'list' object has no attribute 'setdefault'`) : un refus, avec sa phrase (decision de
-        // Leandre : un defaut du Python ne se reproduit pas).
+        // Un etat qui n'est pas un objet : un refus, avec sa phrase.
         return Err(erreur("ErreurOperation", format!("{} est illisible : ce n'est pas un objet JSON.\nLe deplacer suffit a repartir de zero (le filet sera a reactiver).", chemin(racine).display())));
     };
     for (cle, defaut) in [("compte", Value::Null), ("tests", json!({})), ("reveils", json!({}))] {
@@ -142,7 +139,7 @@ pub(crate) fn etat_filet(racine: &Path) -> R<Value> {
 }
 
 /// Le serveur du filet de cette compagnie : celui de son compte, sinon celui qu'elle a pose (`serveur` de
-/// `config/filet-dpae.json`), sinon celui du moteur (`editeur::SERVEUR_PAR_DEFAUT`, lot S1). `activer` s'y inscrit,
+/// `config/filet-dpae.json`), sinon celui du moteur (`editeur::SERVEUR_PAR_DEFAUT`). `activer` s'y inscrit,
 /// `filet-etat` le montre.
 pub fn serveur(etat: &Value) -> String {
     let texte = |v: Option<&Value>| v.filter(|v| vrai(v)).map(valeur_en_texte);
@@ -172,7 +169,7 @@ pub fn activer(racine: &Path, adresse: &Value, motdepasse: &Value) -> R<Value> {
     let ancien = get(&etat, "compte")?.clone();
     // Le serveur : celui du compte precedent, sinon celui que la compagnie a pose, sinon celui du moteur.
     if vrai(&ancien) {
-        // Un compte qui n'est pas un objet : le refus de `get`, comme avant.
+        // Un compte qui n'est pas un objet : le refus de `get`.
         get(&ancien, "serveur")?;
     }
     let serveur = serveur(&etat);
@@ -266,7 +263,7 @@ pub fn verifier(racine: &Path) -> R<Value> {
 
 /// `embauches_suivies` en JSON : les embauches sans trace de DPAE, d'une
 /// semaine en arriere a l'infini, chacune avec son contrat parti ou non.
-/// Le journal des depots, ou un refus qui le dit (le Python plantait : `JSONDecodeError`, `UnicodeDecodeError`...).
+/// Le journal des depots, ou un refus qui le dit (un fichier qui ne se lit pas en JSON).
 fn journal_lisible(racine: &Path) -> R<Vec<Value>> {
     etats::charger(racine).map_err(|e| match e.classe {
         Some("JSONDecodeError" | "UnicodeDecodeError" | "AttributeError" | "TypeError") => erreur(
