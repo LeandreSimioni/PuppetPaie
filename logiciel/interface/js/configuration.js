@@ -880,7 +880,7 @@ const SECTIONS_FICHE = {
                       "licence_spectacle", "premiere_embauche"]],
     ["Adresse", ["adresse_affichage", "code_postal", "commune_affichage"]],
     ["Convention collective", ["idcc",
-                               "code_convention_dsn", "annexe_convention",
+                               "annexe_convention",
                                "jauge_annexe_1", "type_radio_1922",
                                "cinquante_salaries_3241"]],
     // LE CURSEUR DES PERMANENTS SORT DE L'« AVANCÉ » (ticket #214, 20/10/2026).
@@ -1008,7 +1008,6 @@ const FACULTATIFS = {
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
  *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`, #236) ;
- *    `code_convention_dsn` : l'IDCC (`brancherConvention`) ;
  *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,
  *    jamais demande.
  *
@@ -1017,7 +1016,7 @@ const FACULTATIFS = {
  *  du code postal et Audiens. L'editeur : « il ne faut pas enlever de
  *  l'interface les choix que peut faire l'entreprise ». */
 const CACHES = {
-  entreprise: ["siren", "nic", "code_convention_dsn",
+  entreprise: ["siren", "nic",
                "etablissements"],
   // `sante_svp` se remplit par les trois cases de la complementaire sante ;
   // `taux_pas` n'est plus lu par personne (il vit dans config/pas.json) :

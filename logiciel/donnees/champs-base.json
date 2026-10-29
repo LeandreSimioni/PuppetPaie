@@ -974,6 +974,7 @@
    "ecran": true
   },
   {
+   "_note": "La convention collective principale de l'établissement (S21.G00.11.022, « Table IDCC », atelier/reference/norme-dsn/texte/bloc-S21.G00.11.txt) : l'IDCC de la fiche, que le moteur recopie (`routes::fiches::deriver`). L'IDCC du contrat (S21.G00.40.017) en diffère pour la 1734 (`droit::minima::idcc_du_contrat`).",
    "cle": "code_convention_dsn",
    "libelle": "Code convention DSN",
    "forme": "chiffres",
@@ -983,7 +984,7 @@
    "exemple": "",
    "choix": [],
    "declare": true,
-   "derive_de": null,
+   "derive_de": "idcc",
    "rubrique": "S21.G00.11.022",
    "si_permanents": false,
    "si": null,

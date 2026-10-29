@@ -96,10 +96,9 @@ function dessinerFormulaire(fiche) {
     }
     const sous = SOUS_CHAMPS[c.cle];
     if (sous) return structureHtml(c, v, sous, a, avecPermanents);
-    // LA CONVENTION SE CHOISIT, ELLE NE SE TAPE PAS (22/09/2026). Le 3090
-    // etait demande trois fois : l'IDCC, son libelle, et le code convention
-    // DSN -- la meme information sous trois noms. Un seul choix les remplit
-    // tous les trois (`brancherConvention`). La liste vient du moteur
+    // LA CONVENTION SE CHOISIT, ELLE NE SE TAPE PAS : l'IDCC seul ; son
+    // libelle et le code convention DSN, le moteur les tire de lui (voir
+    // `brancherConvention`). La liste vient du moteur
     // (`web._conventions`, section `par_convention` du socle) : l'ecran
     // n'invente ni un numero ni un libelle, et il DIT quand une convention
     // existe sans que ses taux soient releves -- le calcul la refuse.
@@ -653,11 +652,11 @@ function brancherNationalite() {
 
 /*  UN SEUL CHOIX POUR LA CONVENTION
  *
- *  L'IDCC remplit son double, qui reste dans la fiche en case cachee : le
- *  CODE CONVENTION DSN (rubrique S21.G00.11.022, sur l'etablissement, la
- *  meme valeur que l'IDCC du contrat en S21.G00.40.017). Le libelle de la
- *  convention ne s'ecrit pas dans la fiche : le bulletin et le contrat le
- *  lisent au catalogue par l'IDCC (`droit::bareme::libelle_convention`).
+ *  L'IDCC se choisit, et rien d'autre : le code convention DSN de
+ *  l'etablissement (S21.G00.11.022), le moteur le tire de l'IDCC
+ *  (`routes::fiches::deriver`) ; le libelle de la convention, le bulletin
+ *  et le contrat le lisent au catalogue par l'IDCC
+ *  (`droit::bareme::libelle_convention`).
  *
  *  Et l'ANNEXE ne se montre que pour la 3090 : les six annexes sont les
  *  siennes, elles ne veulent rien dire ailleurs. Elle ne se declare nulle
@@ -666,11 +665,9 @@ function brancherNationalite() {
 function brancherConvention() {
   const idcc = document.querySelector('#config-formulaire [data-cle="idcc"]');
   if (!idcc) return;
-  const codeDsn = document.querySelector('#config-formulaire [data-cle="code_convention_dsn"]');
   const annexe = document.querySelector('#config-formulaire [data-cle="annexe_convention"]');
   const poser = () => {
     const v = String(idcc.value || "");
-    if (codeDsn) codeDsn.value = v;
     const champAnnexe = annexe && annexe.closest(".champ");
     if (champAnnexe) champAnnexe.hidden = v !== "3090";
     // CE QUI NE CONCERNE QU'UNE CONVENTION, ET QU'UNE GRANDE STRUCTURE

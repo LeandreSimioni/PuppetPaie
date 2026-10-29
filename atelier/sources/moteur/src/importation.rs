@@ -52,7 +52,10 @@ pub(crate) const EMPLOI: [(&str, &str); 5] = [
 /// l'adresse du siege (06.004-006) et son NIC (06.002) ne servent qu'a defaut. La DSN ne declare pas la raison sociale de
 /// l'entreprise : celle de l'emetteur (S10.G00.01.003) n'est reprise que si l'emetteur EST l'entreprise (meme Siren en
 /// S10.G00.01.001 et en S21.G00.06.001) -- une inference : la norme ne dit pas que l'entreprise qui depose elle-meme y met
-/// son nom, mais l'emetteur « ayant elabore le present envoi » est alors elle.
+/// son nom, mais l'emetteur « ayant elabore le present envoi » est alors elle. L'IDCC de la fiche est la convention
+/// principale de l'etablissement (S21.G00.11.022, p. 147, `bloc-S21.G00.11.txt`), qui vient avant tout contrat dans le
+/// fichier ; l'IDCC d'un contrat (S21.G00.40.017) n'en tient lieu qu'a defaut : il en differe pour la 1734
+/// (`droit::minima::idcc_du_contrat`). Le code convention DSN de la fiche, le moteur le tire de l'IDCC (`routes::fiches::deriver`).
 const ENTREPRISE: [(&str, &str); 8] = [
     ("S21.G00.06.001", "siren"),
     ("S21.G00.11.001", "nic"),
@@ -60,7 +63,7 @@ const ENTREPRISE: [(&str, &str); 8] = [
     ("S21.G00.11.004", "code_postal"),
     ("S21.G00.11.005", "commune"),
     ("S21.G00.06.003", "naf"),
-    ("S21.G00.11.022", "code_convention_dsn"),
+    ("S21.G00.11.022", "idcc"),
     ("S21.G00.40.017", "idcc"),
 ];
 

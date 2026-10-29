@@ -1482,8 +1482,17 @@ pub(crate) fn ecrire_datee(
 ) -> R<()> {
     let a_dater = changements_a_dater(ancienne, donnees);
     if depuis.is_none() && !a_dater.is_empty() {
-        let libelles: HashMap<String, String> = champs::fiche(nom)?.into_iter().map(|c| (c.cle, c.libelle)).collect();
-        let noms: Vec<String> = a_dater.iter().map(|k| format!("« {} »", libelles.get(k).unwrap_or(k))).collect();
+        // Un champ calcule qui change avec la case d'ou il derive est le meme fait : la case le dit seule.
+        let fiche = champs::fiche(nom)?;
+        let derive_d_un_change = |k: &str| {
+            fiche.iter().find(|c| c.cle == k).and_then(|c| c.derive_de.as_ref()).is_some_and(|s| a_dater.contains(s))
+        };
+        let libelles: HashMap<&str, &str> = fiche.iter().map(|c| (c.cle.as_str(), c.libelle.as_str())).collect();
+        let noms: Vec<String> = a_dater
+            .iter()
+            .filter(|k| !derive_d_un_change(k))
+            .map(|k| format!("« {} »", libelles.get(k.as_str()).copied().unwrap_or(k)))
+            .collect();
         return Err(refus(format!(
             "Changer {} demande sa date d'effet (« a partir du ») : ce qui precede garde l'ancienne valeur, et la date ne \
              se devine pas. Rien n'a ete enregistre.",
