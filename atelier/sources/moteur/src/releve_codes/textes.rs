@@ -207,7 +207,7 @@ pub static TEXTES: &[Texte] = &[
             // deductions au titre de frais professionnels calculees
             // forfaitairement en pourcentage de cette remuneration que dans
             // des limites et conditions fixees par arrete >> (III).
-            Domaine { cle: "reduction_generale", titre: "La reduction generale et les deductions forfaitaires pour frais professionnels", numeros: &["L241-13", "D241-7"] },
+            Domaine { cle: "reduction_generale", titre: "La reduction generale et les deductions forfaitaires pour frais professionnels", numeros: &["L241-13", "D241-7", "D241-10"] },
             // LE MONTANT NET SOCIAL (10/10/2026) : sa definition est codifiee
             // par le decret 2023-1378 au II de R844-1 (prime d'activite), le
             // meme texte que le 9 bis de R3243-1 du code du travail. C'est

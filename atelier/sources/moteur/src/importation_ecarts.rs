@@ -12,7 +12,8 @@
 //!
 //! CE QUI PART NE DESIGNE PERSONNE : ni nom, prenom, NIR, naissance ou adresse, ni salaire, brut, net ou montant d'une
 //! paie. Seulement la cotisation et les libelles du bulletin, la grandeur, notre taux et le leur, l'ecart RELATIF d'une
-//! base ou d'un montant, le mois, l'IDCC et l'annexe de la convention, la nature, le statut et la qualite de cadre,
+//! base ou d'un montant, le mois, l'IDCC et l'annexe de la convention, l'organisation patronale de la compagnie (elle
+//! change le taux de la retraite complementaire), la nature, le statut et la qualite de cadre,
 //! d'ou vient le taux AT/MP du calcul (la compagnie ou le bulletin), le logiciel reconnu.
 //! Sans le fil ni les ecritures du diagnostic (`Note::sans_contexte`) : leurs charges de routes portent des montants.
 //! Le texte passe quand meme par le caviardage (`caviardage`, les fiches de la compagnie connues), et un montant ecrit
@@ -93,7 +94,7 @@ pub fn rapports(ctx: &Contexte) -> (Vec<Rapport>, Vec<String>) {
 
 fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
     let texte = |k: &str| ctx.entreprise.get(k).filter(|v| vrai(v)).map(en_texte);
-    let (idcc, annexe) = (texte("idcc"), texte("annexe_convention"));
+    let (idcc, annexe, organisation) = (texte("idcc"), texte("annexe_convention"), texte("organisation_patronale"));
     let mut connus = Connus::default();
     crate::importation_incident::ajouter_les_fiches(ctx, &mut connus, std::iter::empty());
     let logiciel = |c: &Comparaison| c.logiciel.clone().unwrap_or_else(|| "autre".into());
@@ -141,7 +142,7 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
         );
         let detail = json!({
             "cotisation": cotisation, "libelles": libelles, "grandeur": grandeur.code(), "logiciel": logiciel,
-            "idcc": idcc, "annexe": annexe, "cas": cas,
+            "idcc": idcc, "annexe": annexe, "organisation_patronale": organisation, "cas": cas,
         });
         sortie.push(Rapport { genre: format!("{} · {} · {}", cotisation, grandeur.code(), logiciel), resume, detail });
     }

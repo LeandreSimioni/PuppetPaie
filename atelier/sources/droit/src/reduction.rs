@@ -93,13 +93,17 @@ pub fn reduction_generale(
         let x = mul(diviser(t, Decimal::new(6, 1))?, sub(diviser(mul(plafond, smic_ref), brut)?, Decimal::ONE));
         coefficient = quantifier4(t.min(x));
     } else {
-        // Le crochet est borne a 1 ; seul le terme a la puissance passe par le flottant.
+        // Le crochet est borne a 1 ; seul le terme a la puissance passe par le flottant. Le resultat ne s'arrondit qu'une
+        // fois, apres la majoration : D. 241-10, I (`legi-entrepot/articles.jsonl.gz` des sources, LEGIARTI000054252223,
+        // en vigueur au 15/06/2026) ecrit la formule majoree d'un seul tenant, « (Tmin + (Tdelta x [...]P)) x b », et
+        // D. 241-7, II (`code-de-la-securite-sociale/xml/D241-7.xml`) arrondit « le résultat obtenu par application de
+        // cette formule » a quatre decimales.
         let crochet = Decimal::ONE.min(div(sub(diviser(mul(plafond, smic_ref), brut)?, Decimal::ONE), Decimal::TWO));
         let puissance = en_f64(dec(requis(rg, "puissance")?)?);
         let terme = dec_f64(en_f64(crochet).powf(puissance))?;
-        coefficient = quantifier4(add(dec(requis(rg, "tmin")?)?, mul(dec(requis(rg, "tdelta")?)?, terme)));
+        coefficient = add(dec(requis(rg, "tmin")?)?, mul(dec(requis(rg, "tdelta")?)?, terme));
     }
-    // Majoration des salaries d'une caisse de conges payes (D. 241-10 CSS).
+    // Majoration des salaries d'une caisse de conges payes (D. 241-10, IV : b = 100/90).
     if let Some(b) = rg.get("majoration_caisse_conges") {
         if caisse_conges && vrai(b) && !coefficient.is_zero() {
             let t = en_texte(b);
@@ -109,9 +113,10 @@ pub fn reduction_generale(
             }
             let lire = |s: &str| Decimal::from_str(s).map_err(|_| socle::num::illisible(s));
             let (num, den) = (lire(parts[0])?, lire(parts[1])?);
-            coefficient = quantifier4(diviser(mul(coefficient, num), den)?);
+            coefficient = diviser(mul(coefficient, num), den)?;
         }
     }
+    let coefficient = if coefficient.is_zero() { coefficient } else { quantifier4(coefficient) };
     reduction_au_coefficient(bar, coefficient, brut, heures).map(Some)
 }
 
