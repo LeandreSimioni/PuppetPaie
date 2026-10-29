@@ -159,6 +159,7 @@ atelier/bac-a-sable/prive/journal/
 /compagnies/
 atelier/prive-dev/
 import/
+!atelier/sources/moteur/src/import/
 atelier/bac-a-sable/prive/config/coffre.bin
 atelier/bac-a-sable/prive/config/.jeton-interface
 logiciel/donnees/google-application.json
