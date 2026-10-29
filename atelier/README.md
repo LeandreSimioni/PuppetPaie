@@ -841,22 +841,17 @@ négatif, pas d'ordre pour lui, l'ordre du mois courant diminué d'autant — et
 si le crédit dépasse le bordereau courant, le moteur refuse et renvoie vers
 l'URSSAF.
 
-La différence de net se paie — ou se retient — avec la paie du mois courant,
-par un **bulletin rectificatif** du mois d'origine : un numéro neuf de la
-suite, le numéro du bulletin qu'il rectifie (lu dans la paie déclarée), le
-prélèvement à la source sur la différence tel que la DSN le déclare, et le
-net à verser ou à retenir. Il s'archive à côté de l'original
-(`sorties/<origine>/Rectificatif_…pdf`) et part au salarié avec les pièces
-du mois (`envoi/BulletinRectificatif_…pdf`).
+La DSN déclare, elle ne fabrique aucun bulletin : chaque paie a un seul
+bulletin et un seul paiement. Si le bulletin du mois corrigé est déjà parti
+au salarié, la paie refaite part avec les documents sous un **bulletin
+rectificatif** : un numéro neuf de la suite de l'année, le numéro du bulletin
+qu'il rectifie, et l'écart avec ce bulletin parti ; l'original se garde à
+côté (`sorties/<mois>/Bulletin_…_<numéro>.pdf`). Si aucun
+bulletin n'est parti, la paie a son bulletin ordinaire, du mois d'origine.
 
 Dans la fenêtre, **Historique › Les corrections** montre, mois par mois,
 chaque contrat corrigé : la paie déclarée, la paie validée, et la DSN qui
 l'a portée ou la prochaine qui la portera.
-
-Un mois **fermé** (échéance passée, DSN jamais partie) se rouvre depuis
-l'onglet Paie : le bouton « Ce mois est fermé — le rouvrir » ouvre
-l'avertissement des pénalités, et c'est la réponse qui rouvre. En ligne de
-commande, c'est `--forcer`.
 
 Un contrat déclaré ne se retire plus : s'il n'a pas eu lieu, ses quantités
 passent à zéro et la correction en déclare l'annulation des montants.
@@ -1243,14 +1238,15 @@ signature.
 
 Le mois fini, la fenêtre s'ouvre sur le suivant — et dit ce qui attend. Le
 2 octobre : *« Il est temps d'envoyer la DSN de septembre. Avez-vous bien
-fini les paies de septembre ? »*, avec l'état exact du mois (tant de paies,
-tant de validées, écrit ou pas) et un bouton **Vérifier et envoyer** qui
-ouvre le mois, l'écrit s'il ne l'est pas, puis enchaîne sur le récapitulatif
-de dépôt et son mot de passe. Rien ne part sans ce dernier geste. Passé le
-15, le rappel dit « en retard ». « Plus tard » ferme la boîte, qui reviendra
-à l'ouverture suivante tant que le journal des dépôts n'a pas une DSN réelle
-passée pour ce mois — qu'elle vienne de ce logiciel ou d'un autre (celle de
-CoolPaie pendant le double run est relevée des retours, donc connue).
+fini les paies de septembre ? »*, avec l'état exact du mois (tant
+d'engagements, tant de validés) et un bouton **Vérifier et envoyer** qui
+ouvre le mois, puis enchaîne sur le récapitulatif de dépôt et son mot de
+passe. Rien ne part sans ce dernier geste. Passé l'échéance (le 5 ou le 15,
+reportée au jour ouvré), le rappel dit « en retard ». « Plus tard » ferme la
+boîte, qui reviendra à l'ouverture suivante tant que le journal des dépôts
+n'a pas une DSN réelle passée pour ce mois — qu'elle vienne de ce logiciel ou
+d'un autre (relevée des retours, donc connue). Un mois importé ne se rappelle
+pas : sa DSN est celle de l'ancien logiciel.
 
 ```
 moteur rappels                    la même liste, en ligne de commande
@@ -1273,18 +1269,20 @@ echo '{"route":"conseils-salarie","charge":{"salarie":"<CLE>"}}' | moteur route 
 
 ### La DPAE préparée d'avance, et son filet de sécurité
 
-Dès qu'un contrat part — envoyé à la signature, ou écrit avec le mois pour
-être imprimé —, sa DPAE s'écrit et part **en test**, sans rien demander :
+Dès qu'un contrat part — envoyé à la signature, ou imprimé pour la main
+propre —, sa DPAE s'écrit et part **en test**, sans rien demander :
 c'est le même fichier que le dépôt réel reprendra, déjà répété. Le test ne
 déclare rien. Il se fait à l'ouverture, à chaque passage de la veille, et
-juste après l'envoi des contrats ; une panne devient une ligne d'incident,
-et le passage suivant réessaie.
+juste après l'envoi des contrats à la signature ; une panne devient une ligne
+d'incident, et le passage suivant réessaie. Le dépôt réel n'est permis
+qu'après une répétition réussie de ce fichier-là.
 
-Huit jours avant l'embauche, la boîte des rappels dit **« DPAE à envoyer —
-embauche du … »**, avec le bouton **Envoyer la DPAE**, qui ouvre le dépôt de
-ce fichier (le réel, avec le mot de passe du logiciel). Le rappel se tait
-dès que la DPAE réelle est au journal, et dit « en retard » une fois
-l'embauche commencée.
+Dès que l'engagement est validé, la boîte des rappels dit **« DPAE à envoyer —
+embauche du … »**, avec le bouton **Envoyer la DPAE** (**Préparer la DPAE** tant que son fichier n'est pas écrit), qui ouvre le dépôt de
+ce fichier (le réel, avec le mot de passe du logiciel) ; un engagement encore en
+saisie se rappelle huit jours avant l'embauche, « Engagement à valider ». Le
+rappel se tait dès que la DPAE réelle est au journal, et dit « en retard » une
+fois l'embauche commencée.
 
 **Le filet** (Configuration › Mots de passe, une option à cocher) : le
 logiciel confie au serveur de PuppetPaie un réveil pour la veille de chaque
