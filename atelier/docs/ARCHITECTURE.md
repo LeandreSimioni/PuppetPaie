@@ -602,13 +602,9 @@ sous la base 78 du `131` (type 23), à l'Urssaf (fiche net-entreprises 2556 ;
 saisit en NAF rév. 2 ou en NAF 2025 (`logiciel/donnees/naf-base.json`, relevé
 de l'INSEE) ; un fichier P27V01 refuse un code NAF rév. 2 et dit vers quels codes
 NAF 2025 il passe, sans choisir (`declarations/src/naf.rs`).
-`declarations/src/dsn.rs` émet les blocs dans l'ordre observé dans des DSN acceptées, corrigé là où la relecture de la
-norme l'a demandé (`prive/journal/RELECTURE-NORME-DSN.md`).
+`declarations/src/dsn.rs` émet les blocs dans l'ordre que la norme donne, et que des DSN acceptées montrent.
 
-Ce que le moteur écrit, là où on l'avait d'abord déduit des DSN de CoolPaie
-(« correspondances retrouvées », redites le 11/10/2026 d'après la norme
-déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
-`prive/journal/norme/`) :
+Ce que le moteur écrit, d'après la norme déposée (`atelier/reference/norme-dsn/texte/`) :
 
 - `S21.G00.70.012` et `S21.G00.78.005` sont l'« Identifiant technique
   Affiliation » : « interne au message », unique pour chaque affiliation du
@@ -629,8 +625,6 @@ déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
   (prévoyance et retraite supplémentaire) : `cotisation_sante_patronale` et
   `cotisation_prevoyance_retraite_supp` du barème (les lignes patronales du
   bulletin, ou un taux sur une base), arrondis à l'euro (`dsn::autre_revenu`).
-  La règle « arrondi supérieur(cachets × 1,5) » n'existe ni dans la norme ni
-  dans le code.
 - `S21.G00.53` : `12` et `37` sont des **unités** (53.003), pas des types :
   `12` = journée (les jours distincts travaillés), `37` = cachets isolés (le
   nombre de cachets), `35` = heures d'intermittent hors cachets ; un permanent
@@ -639,7 +633,7 @@ déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
 - `S21.G00.86` (type 07, unité 01) = l'ancienneté en jours depuis
   `date_anciennete` de la fiche jusqu'à la fin du mois déclaré, jamais zéro
   (CCH-12, p. 322 ; `dsn::anciennete_du_mois`). Une fiche qui ne la porte pas
-  refuse ; le 01/12/2019 d'avant était la date de la compagnie d'essai.
+  refuse.
 - `S21.G00.23` : une ligne par CTP de `config/organismes.json` (composé depuis
   `ctp_urssaf` de `logiciel/donnees/organismes-base.json`), sur l'assiette que
   la ligne nomme (`brut`, `csg`, `brut_artiste`, `brut_x115_artiste`,
@@ -653,10 +647,9 @@ déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
   (`retours.rs`), ne se calcule pas, et ne s'écrit qu'avec un taux de type 01
   (`dsn::bloc_versement`).
 
-**Un contrat qui déborde du mois** (15/09/2026, option B1 de
-`prive/journal/CONTRATS-PLURIMENSUELS.md`). `Engagement` connaît son mois
-(`mois`, posé par `charger`) et en déduit `premier_mois`, `dernier_mois`,
-`debut_periode`/`fin_periode` (le contrat borné au mois). La DSN en tire :
+**Un contrat qui déborde du mois.** `Engagement` connaît le mois de la saisie qui le porte
+(`mois`) et en déduit s'il en est le premier ou le dernier (`premier_mois`, `dernier_mois`),
+et `debut_periode`/`fin_periode` (le contrat borné au mois). La DSN en tire :
 
 - bloc 40 identique chaque mois — 40.001 début, 40.009 numéro, 40.010 fin
   prévisionnelle sont les identifiants du contrat (fiche net-entreprises
@@ -665,12 +658,13 @@ déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
   contrat : la norme veut « a minima » la période de paie (§ 2.1.3.2, p. 28),
   et une date au plus le dernier jour du mois principal (§ 4.4.12, p. 99) ; les
   CCH-11 de 51.001 et CCH-13 de 51.002 (p. 246-247) bornent, elles, par le
-  contrat (fiche N2). En P27V01, le 58 d'un versement du mois n'est plus daté :
+  contrat. En P27V01, le 58 d'un versement du mois n'est plus daté :
   il hérite de la datation du 50 (fiche net-entreprises 2983,
   `dsn::dates_du_58_du_mois`) ;
 - bloc 62 (fin de contrat) **le dernier mois seulement** ;
 - bloc 53 : l'activité du mois, comme toujours ;
-- date de constitution (S20.G00.05.007) : le jour où le fichier est fabriqué, comme les signalements et la FCTU (retours Windows, F, 07/10/2026). Elle valait avant la fin de période la plus tardive du mois ; une DSN produite le 07/10 restait « constituée le 23/09 ». Un fichier refait un autre jour porte donc une autre date.
+- date de constitution (S20.G00.05.007) : le jour où le fichier est fabriqué, comme pour les signalements et la FCTU
+  (`dsn::generer`) ; un fichier refait un autre jour porte une autre date.
 
 `Engagement.planning` (jours des mois suivants, lus sous `planning` sur les
 lignes, avec leur lieu dans `planning_lieux`) ne compte ni dans
@@ -683,8 +677,7 @@ chaque mois a payé le sien.
 Le barème et le SMIC (`engagement::calcul`) sont ceux de `fin_periode`, pas de
 `fin` : un contrat de décembre à février se paie en décembre au barème de
 décembre. Sur un contrat qui tient dans son mois, ces propriétés valent
-`debut`/`fin`. Les trois DSN d'un contrat d'octobre à décembre ont été déposées en
-test le 15/09/2026, conformes. La quotité 40.012/013 est celle du **contrat entier** (jours
+`debut`/`fin`. La quotité 40.012/013 est celle du **contrat entier** (jours
 signés : dates du premier mois + planning, `Engagement.jours_contrat`),
 identique chaque mois et jamais zéro : le cahier technique 2026.1 interdit
 le zéro en unité journée (bloc 40, CCH-11). Comme elle ne bouge pas d'un mois
@@ -698,11 +691,11 @@ déjà déclaré change (`changements_contrat.rs`). Plafond 31 en journée
 a quand même sa DSN : le contrat en cours avec un versement à zéro — bloc 50,
 quatre 51, 53 à 0 jour, 58, et par affiliation prévoyance une base 78 « 31 »
 avec sa cotisation 81 « 059 », tous à `0.00` ; ni 54, ni autre base. Pas de
-bulletin. Établi par trois dépôts de test le 15/09/2026 (ETAT.md §26.9).
+bulletin.
 
 ### L'échéance de dépôt : le 5 ou le 15, reportée au jour ouvré, à midi
 
-Depuis le 15/10/2026, **un seul endroit** la donne : `declarations/src/echeance_dsn.rs` (`du_mois`, `de_la_compagnie`).
+**Un seul endroit** la donne : `declarations/src/echeance_dsn.rs` (`du_mois`, `de_la_compagnie`).
 Le jour est celui de R. 243-6, II (le 5 du mois suivant à partir de cinquante salariés quand la paie est faite dans le
 mois, le 15 sinon ; `Contexte::echeance_dsn` choisit selon l'effectif) ; R. 133-14, I le **reporte** : « Si le délai
 imparti pour effectuer la déclaration sociale nominative expire un jour férié ou non ouvré, il est prorogé jusqu'au jour
@@ -720,7 +713,7 @@ l'échéance reportée.
 Tout ce qui parle de la date limite de dépôt passe par lui : l'état du mois et l'annule-et-remplace
 (`Moteur::limite`), les régularisations, le bilan des mois, l'échéancier, les rappels, les réveils du filet, le mois
 hors délai, l'horloge des compagnies fictives, et la date butoir d'un **signalement d'arrêt subrogé** (R. 133-14, II :
-avec la DSN du mois de l'événement, donc avec son report). Les routes rendent, sans toucher à leurs champs existants,
+avec la DSN du mois de l'événement, donc avec son report). Les routes rendent
 `echeance_depot` (`echeance_dsn` sur une obligation) : `jour`, `heure` (`12:00`), `nominale`, `reportee`, `pourquoi`,
 `phrase`, `veille_annule_et_remplace`, `textes`, `inference`. **Une seule date n'en dépend pas** : la date de paiement
 du bloc 20 (`S21.G00.20.011`, `dsn.rs`, `echeance_mois_suivant`) reste le 5 ou le 15 de R. 243-6, qui ne prévoit
@@ -744,49 +737,43 @@ temporaire** `S21.G00.30.020` (CCH-12), et le moteur le fabrique :
 
 Deux conséquences hors DSN : la **DPAE** part alors avec sa zone NIR à blanc,
 ce qui vaut demande d'immatriculation (formalité `IMMA`) ; et le **taux de
-PAS** ne viendra jamais, la DGFiP n'ayant personne à qui répondre — c'est le
-barème de l'article 204 H du CGI qui s'applique, et le moteur ne sait pas
-encore le lire : il refuse (`pas.etat`).
+PAS** ne viendra jamais, la DGFiP n'ayant personne à qui répondre — c'est la
+grille de l'article 204 H du CGI qui s'applique (`droit/src/pas.rs`, la section
+`pas_taux_par_defaut` du barème de l'année).
 
-Déposé en test le 20/09/2026, un salarié sans NIR, identifié par son seul
-NTT : **0 anomalie bloquante, 0 non bloquante**, certificat de conformité
-délivré (flux `WShDs9Z0fCO3ouFVp.nLino`).
+Un salarié sans NIR, identifié par son seul NTT, a été déposé en test :
+**0 anomalie bloquante, 0 non bloquante**, certificat de conformité délivré.
 
 ### Le montant Urssaf : un calcul
-
-(Ce versement a longtemps été nommé « Audiens » ici et dans la commande : les
-libellés de `organismes.json` étaient intervertis, corrigés le 10/09/2026 ;
-les SIRET et les montants ont toujours été justes.)
 
 Le bordereau Urssaf d'une DSN (22.005, recopié en 20.005) est la somme de ses
 lignes 23, chacune valorisée au taux de la table des CTP de l'Urssaf pour la
 période (plafonné pour le qualifiant 921, déplafonné pour le 920, le taux AT
 arrondi à part, les réductions de format F en déduction), arrondie à l'euro
 ligne par ligne : `documents/src/bordereau.rs`, table
-`moteur/urssaf-codes-types-personnel.csv`.
-Rejouée sur les 75 DSN de CoolPaie, la règle en retrouve 74 au centime
+`logiciel/donnees/urssaf-codes-types-personnel.csv`.
+Rejouée sur 75 DSN mensuelles acceptées d'une compagnie, la règle en retrouve 74 au centime
 (octobre 2025 : 394 pour 393). Un code absent de la table fait refuser : le
 bloc est un **ordre de télépaiement**, un montant faux fait un prélèvement faux.
 
 ### Les cotisations se calculent rubrique par rubrique
 
-CoolPaie n'applique pas les taux au brut global : il les applique à **chaque
-rubrique de salaire**, arrondit chaque montant, puis somme. L'assiette CSG suit
-la même règle ; les cotisations CSG, en revanche, se calculent une seule fois
+Le moteur n'applique pas les taux au brut global : il les applique à **chaque
+rubrique de salaire**, arrondit chaque montant, puis somme (`engagement/src/calcul.rs`, « les assiettes, par rubrique
+de salaire »). L'assiette CSG suit la même règle ; les cotisations CSG, en revanche, se calculent une seule fois
 sur l'assiette agrégée.
 
-Invisible sur un contrat au cachet pur, qui n'a qu'une rubrique — d'où 168
-bulletins qui ne trahissaient rien. Le bulletin 27/2026 (1 cachet à 130 € et
-12 h de masterclass à 20 €) l'a révélé :
+La différence ne se voit pas sur un contrat au cachet pur, qui n'a qu'une rubrique. Sur un bulletin d'un cachet à
+130 € et de 12 h à 20 €, elle se voit, et c'est le calcul par rubrique que les DSN acceptées montrent :
 
-| | rubrique par rubrique | brut global | CoolPaie |
+| | rubrique par rubrique | brut global | DSN acceptée |
 |---|---|---|---|
 | Assiette CSG | 367,63 | 367,64 | **367,63** |
 | Charges patronales | 212,99 | 213,00 | **212,99** |
 | Coût employeur | 582,99 | 583,00 | **582,99** |
 
-L'arrondi lui-même est bien **au demi supérieur** : vérifié sur les 144 cas
-ambigus des cotisations `S21.G00.81` de l'historique, 144/144.
+L'arrondi est **au demi supérieur** (`socle::num::eur`) : c'est ce que montrent les 144 cas ambigus des cotisations
+`S21.G00.81` de ces DSN, 144 sur 144.
 
 ## La nature du contrat, et les salariés permanents
 
