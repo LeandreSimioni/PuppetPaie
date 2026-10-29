@@ -42,13 +42,13 @@ pub struct Depart {
 /// Ce qui est parti, engagement par engagement : `(cle du salarie, numero du contrat)`.
 #[derive(Debug, Clone, Default)]
 pub struct Departs {
-    par_engagement: BTreeMap<(String, String), Vec<Depart>>,
+    par_engagement: std::sync::Arc<BTreeMap<(String, String), Vec<Depart>>>,
 }
 
 impl Departs {
     /// Note un depart de l'engagement du salarie `cle` au numero `numero`.
     pub fn noter(&mut self, cle: &str, numero: &str, d: Depart) {
-        self.par_engagement.entry((cle.to_string(), numero.to_string())).or_default().push(d);
+        std::sync::Arc::make_mut(&mut self.par_engagement).entry((cle.to_string(), numero.to_string())).or_default().push(d);
     }
 
     /// Les departs de cet engagement, dans l'ordre ou ils sont partis.

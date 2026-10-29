@@ -231,7 +231,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
 
     // --- l'indemnite compensatrice de conges payes (L3141-28) : toujours due
     let salarie = t(cle(e, "salarie")?);
-    let cpt = compteur_conges(ctx, &salarie, &fin, Some(mois))?;
+    let cpt = compteur_conges(ctx, &salarie, &fin, mois)?;
     let mut pris_ce_mois = Decimal::ZERO;
     for c in e.get("conges_pris").and_then(|c| c.as_array()).map_or(&[][..], |a| &a[..]) {
         pris_ce_mois = add(pris_ce_mois, Decimal::from(jours_ouvrables_de(c, ent)?));

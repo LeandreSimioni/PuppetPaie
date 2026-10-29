@@ -285,6 +285,9 @@ pub struct Contenu {
     /// Le compteur de conges payes que le bulletin montre (`conges::compteur_au_bulletin`), tel que la validation l'a
     /// ecrit ; `None` pour une paie que rien n'a encore validee, et pour un contrat sans compteur de l'employeur.
     pub conges: Option<crate::conges::CompteurConges>,
+    /// Le compteur de conges avant le mois (`conges::Avant`), que la validation ecrit avec le compteur du bulletin et que
+    /// le mois suivant reprend ; `None` sans compteur.
+    pub conges_avant: Option<crate::conges::Avant>,
     /// Le plafond d'un salarie a temps partiel (`plafond_temps_partiel`), tel que le calcul l'a applique : ce que la DSN
     /// declare en S21.G00.40.084.
     pub plafond_temps_partiel: PlafondTempsPartiel,
@@ -305,7 +308,7 @@ impl Paie {
             bases: BTreeMap::new(), remuneration: Vec::new(), reduction_generale: None,
             deduction_forfaitaire: None, avertissements: Vec::new(), salaire_de_base: zero,
             salaire_retabli: zero, assiette_chomage: zero, heures_travaillees: zero,
-            heures_absence: zero, periodes: Vec::new(), pas: None, conges: None, plafond_temps_partiel,
+            heures_absence: zero, periodes: Vec::new(), pas: None, conges: None, conges_avant: None, plafond_temps_partiel,
         })
     }
 
