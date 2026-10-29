@@ -1207,9 +1207,24 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
     // salarie (ses codes emploi, PCS-ESE, statut), son nom, sa naissance, son adresse, le numero d'objet d'un spectacle
     // partent dans la DPAE et la DSN, qui ne se font pas sans eux, et rien ne se devine (regle 1). La fiche entreprise se
     // remplit en plusieurs fois (« Pour demarrer » dit ce qui manque) : ses manques restent forcables.
+    // CE QUE L'ECRAN DIT D'UNE ERREUR, d'apres le champ : s'il part dans une declaration (`declare` ; un champ lisible,
+    // par la forme declaree qui s'en deduit), et s'il se force.
+    let mut declares: std::collections::HashMap<&str, bool> = std::collections::HashMap::new();
+    for c in &champs {
+        for cle in [Some(c.cle.as_str()), c.derive_de.as_deref().filter(|d| !d.is_empty())].into_iter().flatten() {
+            *declares.entry(cle).or_insert(false) |= c.declare;
+        }
+    }
     for a in anomalies.iter_mut() {
         let manque = a["gravite"] == "erreur" && a["message"] == "obligatoire" && nom != "entreprise";
         a["forcable"] = json!(!manque);
+        let declare = a["champ"].as_str().and_then(|k| declares.get(k)).copied().unwrap_or(false);
+        a["pourquoi"] = json!(match (manque, declare) {
+            (true, true) => "Sans ces valeurs, ni la DPAE ni la DSN ne peuvent se faire : elles se remplissent avant d'enregistrer.",
+            (true, false) => "Ces valeurs se remplissent avant d'enregistrer.",
+            (false, true) => "Ces champs partent dans des déclarations. Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir.",
+            (false, false) => "Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir.",
+        });
     }
     // Une fiche mise de cote ne doit pas crier. Ses manques restent visibles --
     // et redeviennent bloquants a la reactivation, ce que le message dit.

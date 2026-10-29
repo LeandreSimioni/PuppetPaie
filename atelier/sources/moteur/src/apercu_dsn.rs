@@ -178,7 +178,10 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                 "jours": c.mesure_texte("jours"), "cachets": c.mesure_texte("cachets"),
                 "heures": c.mesure_texte("heures"),
                 "fin_declaree": c.fin_declaree, "motif_fin": c.motif_fin, "remunere": c.remunere,
-                "paie": p.is_some(), "ecarts": ecarts, "correction": correction,
+                "paie": p.is_some(), "correction": correction,
+                // Un contrat du fichier qui ne dit pas ce que dit la paie : a corriger, la compagnie le peut.
+                "pastille_ecarts": if ecarts.is_empty() { Value::Null } else { crate::routes::pastille("a_faire", &ecarts.join(" ; ")) },
+                "ecarts": ecarts,
             }));
         }
         let versements: Vec<Value> = sal
@@ -205,6 +208,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             "numero": n,
             "debut": p.engagement.debut.iso(),
             "fin": p.engagement.fin.map_or(String::new(), |f| f.iso()),
+            "pastille": crate::routes::pastille("a_faire", "absent du fichier"),
         }));
     }
     let conforme = compare && absents.is_empty() && n_ecarts == 0;
@@ -212,6 +216,8 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
         "salaries": salaries_json, "absents": absents,
         "contrats": n_contrats, "corrections": n_corrections, "contrats_saisis": par_numero.len(),
         "compare": compare, "conforme": conforme,
+        // La couleur du bilan : conforme, vert ; un ecart ou un absent, orange ; rien a comparer, gris.
+        "couleur": if conforme { "vert" } else if compare { "orange" } else { "gris" },
     }))
 }
 
@@ -291,6 +297,8 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         "siren": a.champ("siren"), "salaries": a.salaries, "lignes": a.lignes,
         "pas_versements": a.pas_versements, "pas_bareme": a.pas_bareme,
         "ordres": ordres, "ordres_erreur": ordres_erreur,
+        // Un depot reel les declenche tous : a regarder (orange) ; joues, rien ne part (une information).
+        "couleur_ordres": crate::routes::couleur_de_l_etat(if crate::compagnie::bridage::branchement(&ctx.racine).joue() { "information" } else { "a_faire" }),
         "deja_depose": deja,
         "remplacement": remplacement,
         "recapitulatif": recapitulatif,

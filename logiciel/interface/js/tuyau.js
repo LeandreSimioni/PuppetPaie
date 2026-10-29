@@ -514,6 +514,8 @@ const echapper = (s) => String(s ?? "").replace(/[&<>"]/g,
 const CLASSE_DE_COULEUR = { vert: "bien", orange: "alerte", rouge: "erreur", gris: "info" };
 const pastilleDeLEtat = (p) => p && p.mots
   ? `<span class="pastille ${CLASSE_DE_COULEUR[p.couleur] ?? ""}">${echapper(p.mots)}</span>` : "";
+/* Un encart de la même couleur : `.encart` a ses propres classes. */
+const ENCART_DE_COULEUR = { vert: "bien", orange: "attention", rouge: "erreur", gris: "info" };
 
 /* Une phrase du moteur qui porte un lien (le texte d'une convention) :
  * echappee d'abord, puis l'adresse https devient cliquable. Le point

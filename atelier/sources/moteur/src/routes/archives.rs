@@ -231,7 +231,13 @@ fn mois_a_corriger(ctx: &Contexte) -> R<Value> {
 /// La route `regularisations`.
 fn regularisations(ctx: &Contexte) -> R<Value> {
     let mois = mois_a_corriger(ctx)?;
-    Ok(json!({"mois": mois, "corrections": corrections_par_mois(ctx)?}))
+    let mut corrections = corrections_par_mois(ctx)?;
+    // La pastille de chaque correction : portee par une DSN partie, faite ; a porter par la prochaine, a faire.
+    for c in corrections.iter_mut().flat_map(|m| m.get_mut("corrections").and_then(Value::as_array_mut).into_iter().flatten()) {
+        let mots = c.get("etat").map(valeur_en_texte).unwrap_or_default();
+        c["pastille"] = super::pastille(if c.get("portee_par").is_some_and(vrai) { "fait" } else { "a_faire" }, &mots);
+    }
+    Ok(json!({"mois": mois, "corrections": corrections}))
 }
 
 /// `charge["cle"]`.
@@ -850,6 +856,8 @@ fn etat_exercices(ctx: &Contexte) -> R<Value> {
         out.push(json!({
             "annee": a, "mois": mois, "dsn_acceptees": acceptees,
             "clos": clos.get(a).cloned().unwrap_or(Value::Null),
+            // Sa pastille : close, faite ; ouverte, une information (une annee se clot quand la compagnie le veut).
+            "pastille": if clos.contains_key(a.as_str()) { super::pastille("fait", "clos") } else { super::pastille("information", "ouvert") },
             "export": export_json,
         }));
     }

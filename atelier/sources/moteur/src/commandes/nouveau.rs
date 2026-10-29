@@ -67,10 +67,17 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     // Le mois dit son taux et sa date de paiement ; ses engagements restent ceux qu'il montre (ceux des mois d'avant qui
     // courent encore y sont deja).
     let mut data = crate::routes::mois::squelette(&cadre.ctx, mois)?;
-    if let Some(vue) = engagement::stock::vue_du_mois(&cadre.racine, mois).map_err(Echec::from)? {
+    if let Some(vue) = engagement::stock::vue_a_l_ecran(&cadre.racine, mois).map_err(Echec::from)? {
         data["engagements"] = vue.get("engagements").cloned().unwrap_or_else(|| json!([]));
     }
-    engagement::stock::ecrire_vue_du_mois(&cadre.ctx, mois, &data).map_err(|m| Echec { classe: Some("ErreurOperation"), message: m })?;
+    // Ce qui manquait a un engagement lui manque toujours.
+    let manques: Vec<Option<String>> = data["engagements"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|e| e.get(engagement::stock::A_COMPLETER).and_then(Value::as_str).map(String::from))
+        .collect();
+    engagement::stock::ecrire_vue_du_mois(&cadre.ctx, mois, &data, &manques).map_err(|m| Echec { classe: Some("ErreurOperation"), message: m })?;
     for cle in ["taux_cachet", "date_paiement"] {
         engagement::stock::poser_au_mois(&cadre.racine, mois, cle, data[cle].clone()).map_err(|m| Echec { classe: Some("OSError"), message: m })?;
     }

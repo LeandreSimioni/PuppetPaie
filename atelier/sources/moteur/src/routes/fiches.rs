@@ -1090,7 +1090,20 @@ fn retirer_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 fn identite(ctx: &Contexte) -> R<Value> {
-    Ok(json!({"identite": crate::routes::ouverture::identite(ctx, &ctx.gabarits())?}))
+    let mut v = crate::routes::ouverture::identite(ctx, &ctx.gabarits())?;
+    // La pastille de chaque image : la sienne, posee, ou celle que le logiciel dessine, faites ; rien de pose, a faire.
+    for e in v.as_object_mut().into_iter().flat_map(|o| o.values_mut()) {
+        let Some(o) = e.as_object_mut() else { continue };
+        let p = if o.get("pose").is_some_and(vrai) {
+            super::pastille("fait", "le vôtre")
+        } else if o.get("automatique").is_some_and(vrai) {
+            super::pastille("fait", "celui du logiciel")
+        } else {
+            super::pastille("a_faire", "rien de posé")
+        };
+        o.insert("pastille".into(), p);
+    }
+    Ok(json!({"identite": v}))
 }
 
 // ---------------------------------------------------------------- les metiers
@@ -2104,7 +2117,9 @@ fn modeles(ctx: &Contexte) -> R<Value> {
     }
     let liste: Vec<Value> = Modele::TOUS
         .iter()
-        .map(|m| json!({"cle": m.cle(), "nom": m.nom(), "description": m.description(), "apercu": adresse_apercu(*m)}))
+        .map(|m| json!({"cle": m.cle(), "nom": m.nom(), "description": m.description(), "apercu": adresse_apercu(*m),
+            // Le modele de la compagnie : sa pastille, celle d'un choix fait.
+            "pastille": if *m == modele { super::pastille("fait", if choisi.is_none() { "celui de la compagnie (par défaut)" } else { "celui de la compagnie" }) } else { Value::Null }}))
         .collect();
     Ok(json!({
         "choisi": modele.cle(),

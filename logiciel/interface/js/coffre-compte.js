@@ -58,12 +58,7 @@ async function dessinerCoffre(cible) {
   // qu'il sert à faire, où il en est, et les gestes. Les cases de saisie ne
   // s'ouvrent que sur un clic sur la ligne (ou « Poser… ») -- cinq formulaires ouverts
   // d'office faisaient croire qu'il y avait cinq choses à remplir.
-  const etatService = (s) => fictive ? `<span class="pastille">simulé</span>`
-    : s.environnement
-    ? `<span class="pastille alerte" title="Il passe devant le coffre.">fourni par l'environnement</span>`
-    : s.pose ? `<span class="pastille bien" title="${echapper(s.pose_le)}">posé le ${echapper(jjmmaaaa(String(s.pose_le || "").slice(0, 10)))}</span>${
-        s.compte ? ` <span class="discret">${echapper(s.compte)}</span>` : ""}`
-    : `<span class="pastille alerte">absent</span>`;
+  const etatService = (s) => `${pastilleDeLEtat(s.pastille)}${!fictive && !s.environnement && s.pose && s.compte ? ` <span class="discret">${echapper(s.compte)}</span>` : ""}`;
   cible.innerHTML = `
     <p class="intro">Les mots de passe dont le logiciel a besoin pour déposer, relever et
       envoyer. La page ne voit jamais un mot de passe, seulement s'il est posé.</p>
@@ -86,9 +81,7 @@ async function dessinerCoffre(cible) {
             : exige || fictive
             ? "demandé à l'ouverture et à chaque dépôt réel, envoi ou signature"
             : "rien ne peut partir en réel tant qu'il n'est pas posé"}</span></div>
-        <div class="rang-etat">${fictive ? `<span class="pastille">simulé</span>`
-          : exige ? `<span class="pastille bien">${adm.rattachee ? "commun à " + (1 + (adm.autres || []).length) + " compagnies" : "posé"}</span>`
-          : `<span class="pastille alerte">aucun</span>`}</div>
+        <div class="rang-etat">${pastilleDeLEtat(c.pastille_mot_de_passe)}</div>
         <div class="rang-actions">
           ${exige ? "" : `<button class="secondaire k-ouvrir">Poser…</button>`}</div>
         <form class="rang-forme" id="k-logiciel" onsubmit="return false" autocomplete="off" hidden>
@@ -107,7 +100,7 @@ async function dessinerCoffre(cible) {
       <div class="rang" id="k-admin">
         <div class="rang-infos"><b class="rang-nom">L'administrateur</b>
           <span class="discret">cette compagnie s'ouvre avec ${enListe(adm.autres || [])}, d'un seul mot de passe</span></div>
-        <div class="rang-etat"><span class="pastille bien">rattachée</span></div>
+        <div class="rang-etat">${pastilleDeLEtat(adm.pastille)}</div>
         <div class="rang-actions"><button class="lien k-ouvrir">Détacher…</button></div>
         <form class="rang-forme" onsubmit="return false" autocomplete="off" hidden>
           <p class="note">Détachée, elle a son propre mot de passe : celui de l'administrateur ne l'ouvre plus, et elle
@@ -122,7 +115,7 @@ async function dessinerCoffre(cible) {
       <div class="rang" id="k-admin">
         <div class="rang-infos"><b class="rang-nom">L'administrateur</b>
           <span class="discret">le mot de passe de ${enListe(adm.autres || [])} peut ouvrir aussi cette compagnie</span></div>
-        <div class="rang-etat"><span class="pastille">son propre mot de passe</span></div>
+        <div class="rang-etat">${pastilleDeLEtat(adm.pastille)}</div>
         <div class="rang-actions"><button class="secondaire k-ouvrir">Rattacher…</button></div>
         <form class="rang-forme" onsubmit="return false" autocomplete="off" hidden>
           <p class="note">Rattachée, elle s'ouvre avec le mot de passe de l'administrateur, et ses déclarations prêtes
@@ -225,8 +218,8 @@ async function dessinerCoffre(cible) {
     cible.querySelectorAll("input, button:not([data-aller-fiche])").forEach((x) => {
       x.disabled = true;
     });
-    cible.querySelector(".k-filet-etat").innerHTML = `<span class="pastille">désactivé</span>`;
-    cible.querySelector(".k-google-etat").innerHTML = `<span class="pastille">non lié</span>`;
+    cible.querySelector(".k-filet-etat").innerHTML = pastilleDeLEtat(c.fictive.filet);
+    cible.querySelector(".k-google-etat").innerHTML = pastilleDeLEtat(c.fictive.google);
     cible.querySelectorAll("[data-aller-fiche]").forEach((b) => {
       b.onclick = () => document.querySelector(
         `.sous-onglets button[data-fiche="${b.dataset.allerFiche}"]`).click();
@@ -393,8 +386,8 @@ async function dessinerCoffre(cible) {
       ev.target.disabled = true; verdict.textContent = "Connexion…";
       try {
         const v = await api("coffre-verifier", { service });
-        verdict.innerHTML = v.ok ? `<span class="pastille bien">OK</span> ${echapper(v.message || "session ouverte chez l'organisme.")}`
-          : `<span class="pastille erreur">refusé</span> ${echapper(v.message)}${v.conseil ? "<br>" + echapper(v.conseil) : ""}`;
+        verdict.innerHTML = `${pastilleDeLEtat(v.pastille)} ${v.ok ? echapper(v.message || "session ouverte chez l'organisme.")
+          : `${echapper(v.message)}${v.conseil ? "<br>" + echapper(v.conseil) : ""}`}`;
       } catch (e) { verdict.textContent = e.message; }
       ev.target.disabled = false;
     };
@@ -429,14 +422,12 @@ async function dessinerCompteGoogle(cible, preuve, ok, raté) {
   const oublier = carte.querySelector("#k-google-oublier");
   let g = null;
   try { g = await api("google-etat"); }
-  catch (e) { etat.innerHTML = `<span class="pastille alerte">état inconnu</span> ${echapper(e.message)}`; }
+  catch (e) { etat.innerHTML = `<span class="discret">état inconnu : ${echapper(e.message)}</span>`; }
   if (!carte.isConnected) return;       // la page a été redessinée entre-temps
   if (g) {
-    etat.innerHTML = !g.compte
-      ? `<span class="pastille alerte" title="La sauvegarde ne peut pas partir tant qu'un Drive n'est pas lié.">aucun Drive lié</span>`
-      : g.verifie
-        ? `<span class="pastille bien" title="L'autorisation tient${g.accordees?.length ? " (" + g.accordees.map(echapper).join(", ") + ")" : ""}.">lié</span> <span class="discret">${echapper(g.compte)}</span>`
-        : `<span class="pastille alerte">lié, mais</span> <span class="discret">${echapper(g.compte)} : ${echapper(g.probleme || "l'autorisation ne répond pas")}</span>`;
+    etat.innerHTML = `${pastilleDeLEtat(g.pastille)}${!g.compte ? ""
+      : g.verifie ? ` <span class="discret">${echapper(g.compte)}</span>`
+      : ` <span class="discret">${echapper(g.compte)} : ${echapper(g.probleme || "l'autorisation ne répond pas")}</span>`}`;
     lier.textContent = g.compte ? "Relier le Drive" : "Lier le Drive";
   }
   lier.disabled = false;

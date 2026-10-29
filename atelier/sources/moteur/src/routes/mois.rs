@@ -412,7 +412,7 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Un mois neuf s'ouvre VIDE, avec le dernier taux saisi ; un mois que des engagements touchent prend du squelette ce
     // qu'il ne dit pas de lui.
     let mut saisie = squelette(ctx, &mois)?;
-    if let Some(Value::Object(vue)) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? {
+    if let Some(Value::Object(vue)) = engagement::stock::vue_a_l_ecran(&ctx.racine, &mois).map_err(Echec::from)? {
         for (k, v) in vue {
             saisie[k] = v;
         }
@@ -480,6 +480,8 @@ impl Echeance {
             "cle": self.cle, "quoi": self.quoi, "mois": self.mois, "titre": self.titre, "detail": self.detail,
             "source": self.source, "etat": self.etat, "date": self.date, "cochable": self.cochable, "annee": self.annee,
             "echeance_depot": self.echeance_depot, "rappel": self.rappel,
+            // Sa pastille : la couleur et les mots de son etat (`super::pastille`).
+            "pastille": super::pastille(self.etat, match self.etat { EN_RETARD => "en retard", A_FAIRE => "à faire", FAIT => "fait", _ => "pour info" }),
         })
     }
 }
@@ -992,7 +994,17 @@ pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
 /// Un engagement dont le salarie est inconnu (ou qui n'est pas un dictionnaire)
 /// est sauté.
 pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(String, Map<String, Value>)>> {
-    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
+    engagements_de(ctx, engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?)
+}
+
+/// `engagements_du_mois` de ce que l'ecran du mois montre (`engagement::stock::vue_a_l_ecran`) : avec ceux auxquels il
+/// manque un fait.
+fn engagements_a_l_ecran(ctx: &Contexte, mois: &str) -> R<Vec<(String, Map<String, Value>)>> {
+    engagements_de(ctx, engagement::stock::vue_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?)
+}
+
+fn engagements_de(ctx: &Contexte, vue: Option<Value>) -> R<Vec<(String, Map<String, Value>)>> {
+    let Some(data) = vue else {
         return Ok(Vec::new());
     };
     let mut out = Vec::new();
@@ -1075,7 +1087,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
     // LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : deux contrats du meme salarie qui commencent le meme jour se
     // reprennent chacun, et chacun se dit repris ou non.
     let mut deja: Vec<Option<jumeaux::Ident>> = Vec::new();
-    for (c, e) in engagements_du_mois(ctx, &texte)? {
+    for (c, e) in engagements_a_l_ecran(ctx, &texte)? {
         deja.push(Some((c, bornes_brutes(&e)?.0, jumeaux::numero_du_champ(e.get("numero")))));
     }
     let precedents = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?;
@@ -1812,8 +1824,16 @@ fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`crate::regularisation::modification_de_la_paie`).
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let dsn = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
+    // Ce qui manque encore, engagement par engagement, dans l'ordre de l'ecran (`null` : rien).
+    let a_completer: Vec<Value> = engagement::stock::vue_a_l_ecran(&ctx.racine, mois)
+        .map_err(Echec::from)?
+        .and_then(|v| v.get("engagements").and_then(Value::as_array).cloned())
+        .unwrap_or_default()
+        .iter()
+        .map(|e| e.get(engagement::stock::A_COMPLETER).cloned().unwrap_or(Value::Null))
+        .collect();
     // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
-    Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant()}))
+    Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant(), "a_completer": a_completer}))
 }
 
 /// LA SAISIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE : une ecriture qui en change la paie
@@ -1842,8 +1862,8 @@ fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, c
     let declaree = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
     let a_confirmer = declaree.get("confirmer").is_some_and(vrai);
     refuser_si_avant_la_premiere_embauche(ctx, mois)?;
-    // Le calcul valide la saisie : un nom de salarie ou un spectacle inconnu refuse, et rien n'est ecrit.
-    engagement::pour_l_ecran(ctx, &donnees).map_err(|m| refus_du_calcul(ctx, &donnees, m))?;
+    // Ce qui manque a chaque engagement pour se calculer : il s'ecrit avec, et seule sa validation refuse.
+    let manques = manques_de_la_saisie(ctx, &donnees);
     if a_confirmer {
         // Ce qui change LA PAIE (`sans_bruit`) ; un mois sans saisie n'a rien de declare a changer.
         let actuelle = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(plain)?;
@@ -1863,10 +1883,72 @@ fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, c
             return Err(erreur(crate::regularisation::CLASSE_A_CONFIRMER, texte));
         }
     }
-    engagement::stock::ecrire_vue_du_mois(ctx, mois, &donnees).map_err(|m| erreur("ErreurOperation", m))?;
+    engagement::stock::ecrire_vue_du_mois(ctx, mois, &donnees, &manques).map_err(|m| {
+        if manques.iter().flatten().any(|x| *x == m) {
+            refus_du_calcul(ctx, &donnees, m)
+        } else {
+            erreur("ErreurOperation", m)
+        }
+    })?;
     // UN MOIS FAIT EN DEMO, retravaille dans la compagnie gardee : il cesse d'etre « de demo » (`suppression::sortir_de_la_demo`).
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     Ok(engagement::stock::chemin(&ctx.racine, mois))
+}
+
+/// CE QUI MANQUE A CHAQUE ENGAGEMENT DE LA SAISIE `data` pour se calculer, dans son ordre (`None` : rien). Une saisie
+/// qui se calcule entiere n'a rien qui manque. Sinon, chaque engagement se calcule a la suite de ceux d'avant qui se
+/// calculent (le calcul d'un engagement lit ceux qui le precedent) : celui qui refuse porte le refus, et les suivants se
+/// calculent sans lui.
+pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &Value) -> Vec<Option<String>> {
+    let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    if engagement::pour_l_ecran(ctx, data).is_ok() {
+        return vec![None; tous.len()];
+    }
+    let mut gardes: Vec<Value> = Vec::new();
+    let mut manques = Vec::new();
+    for (i, e) in tous.iter().enumerate() {
+        let mut essai = data.clone();
+        essai["engagements"] = Value::Array(gardes.iter().cloned().chain(std::iter::once(e.clone())).collect());
+        match engagement::pour_l_ecran(ctx, &essai) {
+            Ok(_) => {
+                gardes.push(e.clone());
+                manques.push(None);
+            }
+            // Le refus nomme l'engagement par son rang dans l'essai : c'est son rang dans la saisie.
+            Err(m) => manques.push(Some(m.replacen(&format!("L'engagement {} de", gardes.len() + 1), &format!("L'engagement {} de", i + 1), 1))),
+        }
+    }
+    manques
+}
+
+/// CE QUI MANQUAIT, RELU APRES UNE ECRITURE : un fait se complete aussi hors de la saisie (la sante sur la fiche, le
+/// contrat de prevoyance de l'entreprise). Chaque mois ou un engagement attend un fait (`engagement::stock::A_COMPLETER`)
+/// se recalcule sous la configuration de ce mois ; ce qui manque se reecrit s'il a change. Rien d'autre ne change : la
+/// saisie reecrite est celle que l'ecran montre. Sans engagement qui attend, rien ne se calcule.
+pub(crate) fn relire_les_manques(base: &Contexte) -> R<()> {
+    let mut mois: Vec<String> = engagement::stock::objets(&base.racine)
+        .map_err(Echec::from)?
+        .iter()
+        .filter(|o| o.a_completer().is_some())
+        .filter_map(|o| o.brut.get(engagement::stock::A_COMPLETER)?.get("mois")?.as_str().map(String::from))
+        .collect();
+    mois.sort();
+    mois.dedup();
+    for m in mois {
+        let ctx = base.du_mois(&m)?;
+        let Some(vue) = engagement::stock::vue_a_l_ecran(&ctx.racine, &m).map_err(Echec::from)? else { continue };
+        let dits: Vec<Option<String>> = vue["engagements"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|e| e.get(engagement::stock::A_COMPLETER).and_then(Value::as_str).map(String::from))
+            .collect();
+        let manques = manques_de_la_saisie(&ctx, &vue);
+        if manques != dits {
+            engagement::stock::ecrire_vue_du_mois(&ctx, &m, &vue, &manques).map_err(plain)?;
+        }
+    }
+    Ok(())
 }
 
 fn centimes(x: Decimal) -> Decimal {
@@ -1998,8 +2080,17 @@ fn saisie_recue(ctx: &Contexte, charge: &Value) -> R<Value> {
     match charge.get("saisie") {
         None => Err(erreur("KeyError", socle::fichiers::absent("saisie"))),
         Some(d) if d.is_object() => Ok(d.clone()),
+        // La saisie enregistree, telle que l'ecran la montre (`vue_a_l_ecran`) : ce qui manque a un engagement se
+        // retrouve en le calculant.
         Some(Value::String(s)) => {
-            let mut v = engagement::saisie_du_mois(&ctx.racine, s).map_err(|m| erreur("FileNotFoundError", m))?;
+            let mut v = engagement::stock::vue_a_l_ecran(&ctx.racine, s)
+                .map_err(|m| erreur("FileNotFoundError", m))?
+                .ok_or_else(|| erreur("FileNotFoundError", format!("{} : aucun engagement ne touche ce mois ({}/).", s, engagement::stock::DOSSIER)))?;
+            for e in v.get_mut("engagements").and_then(Value::as_array_mut).into_iter().flatten() {
+                if let Some(o) = e.as_object_mut() {
+                    o.remove(engagement::stock::A_COMPLETER);
+                }
+            }
             v["mois"] = Value::String(s.clone());
             Ok(v)
         }
@@ -2298,8 +2389,74 @@ fn annee_de(mois: &str) -> R<i32> {
 /// Un engagement valide montre la paie qu'il a ecrite, avec ses numeros du moment ; s'il s'est recalcule de lui-meme,
 /// ses informations disent quand et pourquoi (`etats::phrase_du_recalcul`). Un engagement en saisie se calcule, et
 /// porte ses conseils de saisie.
+/// L'APERCU D'UNE SAISIE DONT DES ENGAGEMENTS NE SE CALCULENT PAS ENCORE (`manques_de_la_saisie`) : les autres se
+/// calculent, et chacun de ceux-la tient sa place dans `paies` avec ce qui lui manque (`a_completer`), sans montant ;
+/// la carte qui en porte un n'a pas de total. Une saisie dont aucun refus ne se rapporte a un engagement refuse.
 fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let data = saisie_recue(ctx, charge)?;
+    let refus = match apercu_de(ctx, charge, &data) {
+        Ok(v) => return Ok(v),
+        Err(refus) => refus,
+    };
+    let manques = manques_de_la_saisie(ctx, &data);
+    if manques.iter().all(Option::is_none) {
+        return Err(refus);
+    }
+    let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    let mut complete = data.clone();
+    complete["engagements"] = Value::Array(tous.iter().zip(&manques).filter(|(_, m)| m.is_none()).map(|(e, _)| e.clone()).collect());
+    let mut sans_blocs = charge.clone();
+    if let Some(c) = sans_blocs.as_object_mut() {
+        c.remove("blocs");
+    }
+    let mut r = apercu_de(ctx, &sans_blocs, &complete)?;
+    let mut calculees = r["paies"].as_array().cloned().unwrap_or_default().into_iter();
+    let paies: Vec<Value> = tous
+        .iter()
+        .zip(&manques)
+        .map(|(e, m)| match m {
+            None => calculees.next().unwrap_or(Value::Null),
+            Some(m) => json!({
+                "a_completer": m, "salarie": {"_cle": e.get("salarie").cloned().unwrap_or(Value::Null)},
+                "avertissements": [], "informations": [],
+            }),
+        })
+        .collect();
+    let tailles: Vec<usize> = match charge.get("blocs").and_then(Value::as_array) {
+        Some(a) => a.iter().map(|x| x.as_u64().unwrap_or(0) as usize).collect(),
+        None => vec![1; paies.len()],
+    };
+    let mut blocs = Vec::new();
+    let (mut rang, mut rang_calcule) = (0, 0);
+    let blocs_calcules = r["blocs"].as_array().cloned().unwrap_or_default();
+    for n in tailles {
+        let fin = (rang + n).min(paies.len());
+        let part = &manques[rang..fin];
+        if part.iter().any(Option::is_some) || part.is_empty() {
+            blocs.push(Value::Null);
+        } else {
+            // Une carte toute calculee : la somme de ses engagements, calcules un par un.
+            let vs = &blocs_calcules[rang_calcule..(rang_calcule + part.len()).min(blocs_calcules.len())];
+            let somme = |cle: &str| -> R<String> {
+                let mut t = Decimal::new(0, 2);
+                for v in vs {
+                    t += dec(v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
+                }
+                Ok(q2(t).to_string())
+            };
+            blocs.push(json!({"net_a_payer": somme("net_a_payer")?, "brut": somme("brut")?, "cout_employeur": somme("cout_employeur")?, "engagements": part.len()}));
+        }
+        rang_calcule += part.iter().filter(|m| m.is_none()).count();
+        rang = fin;
+    }
+    r["paies"] = Value::Array(paies);
+    r["blocs"] = Value::Array(blocs);
+    Ok(r)
+}
+
+/// L'apercu de la saisie `data` : chaque engagement se calcule.
+fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
+    let data = data.clone();
     let avec_lignes = vrai_opt(charge.get("lignes"));
     let avec_urssaf = vrai_opt(charge.get("urssaf"));
     let mois = data.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;

@@ -42,16 +42,6 @@ let IMPREVUS = null;        // la dernière lecture `imprevus` du mois affiché
 let FINS = null;            // la dernière lecture `fins-de-contrat` du mois affiché
 let NOMENCLATURES_IMPREVUS = null;   // motifs d'arrêt, de reprise, d'absence : ceux de la dernière lecture
 
-/* Ce qui est DÛ, et comment il se dit. Les autres états (fait, à venir, à
-   la charge du salarié) ne sont pas dus : ils ne paraissent pas dans la
-   colonne. « Délai à préciser » : le moteur ne peut pas compter, il manque
-   un fait — c'est encore à faire. */
-const ETATS_DUS = {
-  en_retard: ["erreur", "en retard"],
-  a_faire: ["alerte", "à faire"],
-  indetermine: ["alerte", "délai à préciser"],
-};
-
 /** Le nom d'un salarié, tel que la saisie le montre ; sa clé à défaut. */
 function nomDuSalarie(cle) {
   // La saisie écrit parfois le nom tel qu'on l'a tapé (« Audinot ») là où la fiche a sa clé (« AUDINOT ») : même personne.
@@ -127,15 +117,15 @@ function peindreDus(mois) {
   if (!cible) return;
   const rangs = [];
   ((IMPREVUS && IMPREVUS.imprevus) || []).filter((i) => i.genre === "arret").forEach((a) => {
-    (a.obligations || []).filter((o) => ETATS_DUS[o.etat]).forEach((o) => rangs.push({ a, o }));
+    (a.obligations || []).filter((o) => o.du).forEach((o) => rangs.push({ a, o }));
   });
   ((FINS && FINS.fins) || []).forEach((f) => {
     const o = f.obligation;
-    if (f.a_saisir.length || !o || ETATS_DUS[o.etat]) rangs.push({ f, o });
+    if (f.du) rangs.push({ f, o });
   });
   if (!rangs.length) { cible.innerHTML = ""; return; }
-  // Le plus pressé d'abord : ce qui est en retard, puis par date butoir.
-  const rang = (x) => (x.o && x.o.etat === "en_retard" ? "0" : "1") + ((x.o && x.o.butoir) || "9");
+  // Le plus pressé d'abord (`priorite`, que le moteur donne), puis par date butoir.
+  const rang = (x) => String((x.o && x.o.priorite) ?? 1) + ((x.o && x.o.butoir) || "9");
   rangs.sort((x, y) => rang(x).localeCompare(rang(y)));
   cible.innerHTML = `<h2>Ce qui est dû</h2>
     ${rangs.map((x, k) => (x.a ? rangObligation(x.a, x.o, k) : rangFin(x.f, k))).join("")}`;
@@ -147,10 +137,8 @@ function peindreDus(mois) {
 }
 
 /** L'état d'une obligation : la pastille et son mot. */
-function pastilleDu(o, incomplet) {
-  if (incomplet) return `<span class="pastille alerte">à compléter</span>`;
-  const [classe, mot] = (o && ETATS_DUS[o.etat]) || ["", ""];
-  return mot ? `<span class="pastille ${classe}">${echapper(mot)}</span>` : "";
+function pastilleDu(o) {
+  return pastilleDeLEtat(o && o.pastille);
 }
 
 /** Le « pourquoi » d'une obligation, replié : la phrase du moteur, le délai et son point de départ, les textes. */
@@ -230,7 +218,7 @@ function brancherObligation(r, a, o) {
    proposer un bouton qui refuse serait pire que ne rien proposer. */
 function rangFin(f, k) {
   const manque = f.a_saisir.length;
-  return rangDu(k, pastilleDu(f.obligation, manque), (f.obligation && f.obligation.libelle) || "Signalement de fin de contrat",
+  return rangDu(k, pastilleDeLEtat(f.pastille), (f.obligation && f.obligation.libelle) || "Signalement de fin de contrat",
     `${nomDuSalarie(f.salarie)}, ${f.nature}, fin le ${jjmmaaaa(f.fin)}`, butoirEnClair(f.obligation),
     `<button class="secondaire petit" data-geste="signaler"${manque ? " disabled" : ""}>Signaler…</button>
      <button class="lien" data-geste="papiers">Les papiers de fin…</button>`,
@@ -1041,7 +1029,7 @@ function ceQuiEnEstParti(i) {
   if ((i.reporte_par || []).length) morceaux.push(`déclaré par la DSN ${i.reporte_par.map((m) => echapper(deMois(m))).join(", ")}`);
   (i.obligations || []).forEach((o) => {
     if (o.fait && o.fait.le && Array.isArray(o.ou)) morceaux.push(`${echapper(minuscule(o.libelle))} : faite le ${echapper(jjmmaaaa(o.fait.le))}`);
-    else if (ETATS_DUS[o.etat]) morceaux.push(`${pastilleDu(o)} ${echapper(minuscule(o.libelle))}, ${echapper(butoirEnClair(o))}`);
+    else if (o.du) morceaux.push(`${pastilleDu(o)} ${echapper(minuscule(o.libelle))}, ${echapper(butoirEnClair(o))}`);
   });
   return morceaux.length ? morceaux.join(" · ") : `<span class="discret">rien n'est encore parti</span>`;
 }
