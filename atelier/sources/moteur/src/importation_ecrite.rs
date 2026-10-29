@@ -431,6 +431,19 @@ fn rapprocher(par_cle: &mut BTreeMap<(String, String, String), Value>) -> usize 
         if cibles.len() > 1 {
             cibles.retain(|k| k.0 == kb.0);
         }
+        // UN CONTRAT A CHEVAL SUR DEUX MOIS : le bulletin imprime la periode du mois, la DSN le contrat entier
+        // (S21.G00.40.001 et .010, `norme-dsn/texte/bloc-S21.G00.40.txt`). Le bulletin complete la paie declaree du meme
+        // mois dont le contrat contient sa periode, quand il n'y en a qu'une.
+        if cibles.is_empty() {
+            cibles = par_cle
+                .iter()
+                .filter(|(k, x)| {
+                    let (d, f) = (t(x, "debut"), t(x, "fin"));
+                    !declaree_par_bulletin(x) && k.0 == kb.0 && t(x, "salarie") == salarie && !d.is_empty() && d <= debut && (f.is_empty() || fin <= f)
+                })
+                .map(|(k, _)| k.clone())
+                .collect();
+        }
         match cibles.as_slice() {
             [] => {}
             [kd] => {
@@ -487,7 +500,25 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
     }
     for p in paies {
         let (s, d, f, o) = (t(&p, "salarie"), t(&p, "debut"), t(&p, "fin"), t(&p, "numero_objet"));
-        let candidats: Vec<usize> = (0..groupes.len()).filter(|&i| groupes[i].contrat.is_some() && groupes[i].salarie == s && groupes[i].debut == d && groupes[i].fin == f).collect();
+        let mut candidats: Vec<usize> = (0..groupes.len()).filter(|&i| groupes[i].contrat.is_some() && groupes[i].salarie == s && groupes[i].debut == d && groupes[i].fin == f).collect();
+        // Le contrat qu'un bulletin atteste porte la periode du mois ; la paie declaree, le contrat entier : la periode
+        // du bulletin dans le contrat declare, et l'engagement prend les dates du contrat.
+        if candidats.is_empty() && !d.is_empty() && !declaree_par_bulletin(&p) {
+            candidats = (0..groupes.len())
+                .filter(|&i| {
+                    let g = &groupes[i];
+                    g.paies.is_empty()
+                        && g.contrat.as_ref().is_some_and(|c| t(c, "atteste_par") == "bulletin")
+                        && g.salarie == s
+                        && d <= g.debut
+                        && (f.is_empty() || g.fin <= f)
+                })
+                .collect();
+            if let [i] = candidats.as_slice() {
+                groupes[*i].debut = d.clone();
+                groupes[*i].fin = f.clone();
+            }
+        }
         let atteste = match candidats.as_slice() {
             [i] => Some(*i),
             [] => None,

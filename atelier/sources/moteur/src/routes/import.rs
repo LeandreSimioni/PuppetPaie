@@ -555,7 +555,7 @@ pub(crate) fn apercu_lu(
         paies.push(json!({
             "mois": mois, "salarie": cle.cloned().unwrap_or_else(|| "<a creer>".to_string()), "nir": nir,
             "contrat": contrat, "numero_objet": objet,
-            "debut": texte("debut"), "fin": texte("fin"),
+            "debut": texte("debut"), "fin": texte("fin"), "quotite": texte("quotite"),
             "brut": texte("brut"), "net_imposable": texte("net_imposable"),
             // 50.004 est le net verse, pas le net a payer : la DSN ne declare pas celui-ci, un bulletin le donnera.
             "net_verse": texte("net_verse"), "net_a_payer": "", "pas": texte("pas"),

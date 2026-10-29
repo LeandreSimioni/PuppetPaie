@@ -428,10 +428,14 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     // UN MOIS TENU AVANT CE LOGICIEL : aucun engagement de la saisie, ses engagements importes -- en cartes, et l'etat vrai
     // de sa DSN (`mois_importe`). Il se lit ; rien ne s'y ajoute.
     let importe = if existe { None } else { crate::mois_importe::vue(ctx, &mois)? };
+    // UN MOIS A LA FOIS IMPORTE ET SAISI : ses engagements importes se montrent a cote de ceux de la saisie, en cartes
+    // fermees ; ils se lisent, rien ne les calcule.
+    let importes = if existe { crate::mois_importe::cartes(ctx, &mois)? } else { Vec::new() };
     Ok(json!({
         "mois": brut,
         "existe": existe,
         "importe": importe,
+        "importes": importes,
         "defauts": defauts,
         // Un mois passe d'avant la premiere embauche : rien n'y est du, il se lit (`avant_la_premiere_embauche`).
         "avant_premiere_embauche": avant_embauche,
@@ -1210,6 +1214,56 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             deja_repris: false,
             lignes: Vec::new(),
             mensuel: Some(mensuel),
+        });
+    }
+    // LE CONTRAT D'USAGE COMMENCE DANS L'ANCIEN LOGICIEL ET CONTINUE ICI (`engagement::importe::Importe::continue_apres`) :
+    // ses mois verses sont importes, les suivants se paient ici, sous le numero et les dates que la DSN deposee lui a
+    // donnes (regle 4). Le spectacle est celui de son numero d'objet, le cachet celui que l'ancien logiciel a paye.
+    for i in engagement::importe::qui_continuent(&ctx.racine, texte_mois).map_err(Echec::from)? {
+        let b = &i.objet().brut;
+        let t = |x: &Map<String, Value>, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+        let (salarie, debut, fin, numero) = (t(b, "salarie"), t(b, "debut"), t(b, "fin"), t(b, "numero"));
+        let ident = vec![json!(salarie), json!(debut), json!(numero)];
+        if vus.contient(&ident)? {
+            continue;
+        }
+        vus.poser(ident, ())?;
+        let Ok(sal) = ctx.salarie(&salarie) else { continue };
+        let paies = i.paies();
+        let derniere = paies.values().last().copied().cloned().unwrap_or_default();
+        let objet_du = |x: &Map<String, Value>| ["numero_objet", "objet"].iter().map(|k| t(x, k)).find(|o| !o.is_empty()).unwrap_or_default();
+        let numero_objet = i.contrat().map(objet_du).filter(|o| !o.is_empty()).unwrap_or_else(|| objet_du(&derniere));
+        let spectacle = ctx
+            .spectacles
+            .iter()
+            .filter(|(k, _)| !k.starts_with('_'))
+            .find(|(_, s)| !numero_objet.is_empty() && s.get("numero_objet").map(valeur_en_texte).is_some_and(|n| n.eq_ignore_ascii_case(&numero_objet)))
+            .map_or(Value::Null, |(k, _)| json!(k));
+        let taux_cachet = derniere
+            .get("lignes")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .find(|l| l.get("rubrique").and_then(Value::as_str) == Some("cachet"))
+            .and_then(|l| l.get("taux").and_then(|x| valeur_en_texte(x).parse::<f64>().ok()))
+            .map_or(Value::Null, nombre_f);
+        let ts = |k: &str| sal.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
+        let prenom = if ts("prenom_affichage").is_empty() { ts("prenom") } else { ts("prenom_affichage") };
+        out.push(EnCours {
+            salarie: salarie.clone(),
+            nom: format!("{} {}", ts("nom"), prenom),
+            spectacle,
+            debut,
+            fin,
+            numero: json!(numero),
+            depuis: i.continue_apres().unwrap_or_default(),
+            metier: Value::Null,
+            cadre: Value::Null,
+            taux_cachet,
+            lieu: json!(""),
+            deja_repris: false,
+            lignes: Vec::new(),
+            mensuel: None,
         });
     }
     let en_cours: Vec<Option<jumeaux::Ident>> = out.iter().map(|c| Some((c.salarie.clone(), c.debut.clone(), jumeaux::numero_du_champ(Some(&c.numero))))).collect();

@@ -89,10 +89,14 @@ fn porte_par_un_envoi(ctx: &Contexte, o: &Objet, cle: &str, n: &str) -> Resultat
 
 /// Un engagement ecrit avant `o` (plus ancien fichier, ou plus haut dans le meme) porte-t-il deja le numero `n` ? Une
 /// copie d'engagement emporte le numero de l'original : il reste a l'original.
+/// Le contrat importe que `o` continue (`importe::continue_par`) porte le sien : c'est le meme contrat, pas une copie.
 fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
-    Ok(stock::objets(&ctx.racine)?
-        .iter()
-        .any(|x| (x.fichier.as_str(), x.rang) < (o.fichier.as_str(), o.rang) && x.brut.get("numero").map(en_texte).as_deref() == Some(n)))
+    let continue_ = crate::importe::continue_par(&ctx.racine, &o.brut)?.map(|i| (i.objet().fichier.clone(), i.objet().rang));
+    Ok(stock::objets(&ctx.racine)?.iter().any(|x| {
+        (x.fichier.as_str(), x.rang) < (o.fichier.as_str(), o.rang)
+            && continue_.as_ref() != Some(&(x.fichier.clone(), x.rang))
+            && x.brut.get("numero").map(en_texte).as_deref() == Some(n)
+    }))
 }
 
 /// LE NUMERO A LA VALIDATION de l'engagement `o` (`etats::valider`), pose sur lui ; `le` : l'instant de la validation.

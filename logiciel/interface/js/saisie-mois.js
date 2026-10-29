@@ -686,6 +686,7 @@ async function chargerMois(mois, repeint = false) {
   if (DEMANDE_MOIS !== mois) return;
   SAISIE = r.saisie;
   IMPORTE = r.importe || null;
+  IMPORTES = r.importes || [];
   MOIS_AFFICHE = mois;
   document.getElementById("mois").value = mois;
   afficherMoisChoisi();
@@ -826,6 +827,7 @@ async function repeindreLeMois(mois, ancien, frais) {
     AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
     DSN_DEPOSEE = r.dsn_deposee || null;
     IMPORTE = r.importe || null;
+    IMPORTES = r.importes || [];
     majFermeture(mois, r.existe);
     dessinerMoisImporte();
   } catch (e) { /* la saisie se lit comme avant : rien à changer */ }
@@ -931,6 +933,7 @@ function confirmerModification(mois, texte, renvoyer) {
  * l'import n'a pas pu lire se dit sur la carte, case par case, et pourquoi —
  * jamais un blanc muet. La page n'en décide rien : elle affiche. */
 let IMPORTE = null;   // le mois tenu avant PuppetPaie, tel que le moteur le rend, ou null
+let IMPORTES = [];    // les cartes des engagements importés d'un mois qui a aussi une saisie
 
 const CASES_IMPORTEES = [
   ["brut", "Brut"], ["net_imposable", "Net imposable"], ["net_a_payer", "Net à payer"],
@@ -944,6 +947,18 @@ function dessinerMoisImporte() {
   const cible = document.getElementById("mois-importe");
   // Le cachet par défaut et la date de paiement servent à saisir : un mois tenu avant n'en a pas l'usage.
   document.getElementById("rappels-mois").hidden = !!IMPORTE;
+  if (!IMPORTE && IMPORTES.length) {
+    // UN MOIS À LA FOIS IMPORTÉ ET SAISI : les engagements importés, en cartes fermées, à côté de ceux de la saisie.
+    const mois = MOIS_AFFICHE;
+    const moisCourt = MOIS_COURTS[parseInt(mois.slice(5, 7), 10) - 1] || "";
+    cible.innerHTML = `
+      <p class="mi-tete"><b>Importé${IMPORTES.length > 1 ? "s" : ""}</b> <span class="discret">— ${IMPORTES.length}
+        engagement${IMPORTES.length > 1 ? "s" : ""} de l'ancien logiciel · lecture seule</span></p>
+      ${IMPORTES.map((p, i) => carteImportee(p, i, moisCourt, mois)).join("")}`;
+    ouvrirLesCartesImportees(cible);
+    cible.hidden = false;
+    return;
+  }
   if (!IMPORTE) { cible.hidden = true; cible.innerHTML = ""; return; }
   const mois = IMPORTE.mois;
   const moisCourt = MOIS_COURTS[parseInt(mois.slice(5, 7), 10) - 1] || "";
@@ -956,7 +971,12 @@ function dessinerMoisImporte() {
       ${n} paie${n > 1 ? "s" : ""} ${[total("brut", "· brut"), total("net_a_payer", "· net")].filter(Boolean).join(" ")}
       · lecture seule</span></p>
     ${IMPORTE.paies.map((p, i) => carteImportee(p, i, moisCourt, mois)).join("")}`;
-  // LA CARTE S'OUVRE D'UN CLIC SUR ELLE (ticket #218, `rendreOuvrable`) : ses cases se déplient, un second clic les replie.
+  ouvrirLesCartesImportees(cible);
+  cible.hidden = false;
+}
+
+/** La carte s'ouvre d'un clic sur elle (`rendreOuvrable`) : ses cases se déplient, un second clic les replie. */
+function ouvrirLesCartesImportees(cible) {
   cible.querySelectorAll(".carte-importee").forEach((div) => {
     const cases = div.querySelector(".ci-cases");
     rendreOuvrable(div.querySelector(".e-resume"), () => {
@@ -964,7 +984,6 @@ function dessinerMoisImporte() {
       div.classList.toggle("ouverte", !cases.hidden);
     }, "Voir ou replier les cases de l'engagement");
   });
-  cible.hidden = false;
 }
 
 function carteImportee(p, i, moisCourt, mois) {
