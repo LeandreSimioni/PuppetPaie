@@ -4357,7 +4357,7 @@ certificat de conformite du depot precedent.",
             f.add("S21.G00.13.004", d.millesime);
         }
     }
-    for k in [("S21.G00.11.001", "nic"), ("S21.G00.11.002", "naf"), ("S21.G00.11.003", "adresse"), ("S21.G00.11.004", "code_postal"), ("S21.G00.11.005", "commune"), ("S21.G00.11.022", "code_convention_dsn")] {
+    for k in [("S21.G00.11.001", "nic"), ("S21.G00.11.002", "naf"), ("S21.G00.11.003", "adresse"), ("S21.G00.11.004", "code_postal"), ("S21.G00.11.005", "commune"), ("S21.G00.11.022", "idcc")] {
         if k.0 == "S21.G00.11.002" && !usage_admet(&f, k.0, "01")? {
             continue;
         }

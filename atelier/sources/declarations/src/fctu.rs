@@ -566,7 +566,7 @@ ou un annule."
         ("S21.G00.11.003", "adresse"),
         ("S21.G00.11.004", "code_postal"),
         ("S21.G00.11.005", "commune"),
-        ("S21.G00.11.022", "code_convention_dsn"),
+        ("S21.G00.11.022", "idcc"),
     ] {
         if rub == "S21.G00.11.002" && !usage_admet(&f, rub, NATURE)? {
             continue;
