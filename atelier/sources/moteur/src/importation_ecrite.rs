@@ -39,7 +39,7 @@ type R<T> = Result<T, Echec>;
 
 
 /// Les colonnes qu'un bulletin ajoute a une paie (`importation_bulletins::completer`).
-const COLONNES_BULLETIN: [&str; 11] = [
+const COLONNES_BULLETIN: [&str; 12] = [
     "spectacle",
     "analytique",
     "cotisations_salariales",
@@ -50,6 +50,7 @@ const COLONNES_BULLETIN: [&str; 11] = [
     "lignes",
     "dates",
     "cotisations",
+    "emploi_imprime",
     "bulletin",
 ];
 /// Les montants sur lesquels le bulletin l'emporte.
