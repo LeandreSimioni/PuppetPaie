@@ -1659,10 +1659,7 @@ async function brancherAtmp() {
   const peindre = (r) => {
     if (!r) return;
     const t = r.taux || {};
-    const taux = t.valeur === null || t.valeur === undefined ? "" : String(t.valeur).replace(".", ",");
-    $("atmp-resume").innerHTML = r.nom
-      ? `<b>Code risque ${echapper(r.nom)}</b>${taux ? ` — taux ${echapper(taux)} %` : ""}`
-      : "";
+    $("atmp-resume").innerHTML = r.resume ? `<b>${echapper(r.resume)}</b>` : "";
     $("atmp-libelle").textContent = r.risque ? `« ${r.risque.libelle} »` : "";
     $("atmp-explication").textContent = r.explication || "";
     $("atmp-ou").textContent = [r.ou_le_lire, r.ou_le_changer].filter(Boolean).join(" ");

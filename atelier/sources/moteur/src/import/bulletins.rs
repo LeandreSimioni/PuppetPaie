@@ -187,7 +187,7 @@ fn mois_de(j: &Jour) -> String {
 }
 
 /// Un texte compare sans casse, sans accents, sans espaces ni ponctuation de bord (`bulletin_lu::jetons`).
-fn compare(t: &str) -> String {
+pub(crate) fn compare(t: &str) -> String {
     bulletin_lu::jetons(t).concat()
 }
 

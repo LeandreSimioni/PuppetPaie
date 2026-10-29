@@ -177,6 +177,22 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
         None => json!(if f.get("pcs_ese").map_or(String::new(), valeur_en_texte).starts_with("354") { "artiste" } else { "technicien" }),
     };
     f.insert("statut".into(), statut);
+    // L'EMPLOI EN CLAIR d'un metier du catalogue : son libelle, au feminin pour une salariee (le sexe que porte son NIR),
+    // comme quand on le choisit dans la fiche (`routes::mois::emploi`) ; la forme declaree reste celle de la DSN. Le metier
+    // est celui du code emploi, sinon celui que nomme l'intitule declare (S21.G00.40.006), s'il en nomme un seul
+    // (`emplois::par_intitule`, comme pour un bulletin).
+    let intitule = f.get("emploi").map_or(String::new(), valeur_en_texte);
+    let du_catalogue = if m.get("libelle").is_some_and(vrai) {
+        Some(code.clone())
+    } else {
+        droit::emplois::par_intitule(&intitule, crate::import::bulletins::compare)?.map(|(c, _)| c)
+    };
+    if let Some(c) = du_catalogue {
+        let femme = declarations::ntt::sexe(&json!({"nir": decl.nir})) == "2";
+        if let Some(l) = droit::emplois::resoudre(&c, None, femme)?.get("emploi_affichage").filter(|l| vrai(l)) {
+            f.insert("emploi_affichage".into(), l.clone());
+        }
+    }
     let mut f = declarations::champs::combler_affichage("salarie", &f)?;
     f.insert("actif".into(), json!(true));
     Ok(f)

@@ -212,6 +212,7 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
         "taux": pose.as_ref().map(|_| json!({"valeur": valeur, "code_risque": code})),
         "risque": connu.map(risque_en_json),
         "nom": connu.map(nom).unwrap_or_else(|| code.clone()),
+        "resume": if code.is_empty() { String::new() } else { format!("Code risque {}{}", connu.map(nom).unwrap_or_else(|| code.clone()), taux_dit.as_ref().map(|t| format!(", taux {}", t)).unwrap_or_default()) },
         "pose_a_la_creation": a_la_creation,
         "explication": match (connu.and_then(|r| r.alsace_moselle.map(|g| (r, g))), en_alsace_moselle(ctx)) {
             (Some((r, (groupe, t))), true) => format!(
