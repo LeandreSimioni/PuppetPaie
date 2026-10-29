@@ -125,7 +125,7 @@ function engagementsDuBloc(div, mois) {
       if (faits.conges.length) e.conges_pris = faits.conges;
       if (faits.primes.length) e.primes = faits.primes;
     } else {
-      // UN MOIS DU CONTRAT SANS CACHET (15/09/2026) : un contrat aux bornes
+      // UN MOIS DU CONTRAT SANS CACHET : un contrat aux bornes
       // dites, et aucune ligne remplie, s'écrit `lignes: []` — la DSN porte
       // le contrat avec un versement à zéro, sans bulletin.
       if (lignes.length) e.lignes = JSON.parse(JSON.stringify(lignes));
@@ -267,7 +267,7 @@ async function calculerApercu(lu) {
   }
 }
 
-/* UNE ERREUR DU MOTEUR, LISIBLE (30/09/2026). Le nom de l'exception
+/* UNE ERREUR DU MOTEUR, LISIBLE. Le nom de l'exception
  * (« FileNotFoundError », « ErreurOperation ») s'affichait en gras, en tête :
  * il ne dit rien à qui fait la paie. La première ligne du message dit quoi
  * faire ; le reste — la règle, la commande — se déplie si on le veut. */
@@ -278,7 +278,7 @@ function erreurEnClair(e) {
     ${lignes.map((l) => `<div>${echapper(l)}</div>`).join("")}</details>` : ""}`;
 }
 
-/* UN BLOC PARLE D'UNE SEULE VOIX (24/09/2026). Deux salariés payés ensemble
+/* UN BLOC PARLE D'UNE SEULE VOIX. Deux salariés payés ensemble
  * recevaient chacun le même avis — « FAVART Célimène : contrat… » puis
  * « MARAIS Marin : contrat… », quatre encarts pour deux choses à dire.
  * Le moteur ouvre ses avis par le nom (`qui` : « NOM Prénom » suivi de
@@ -510,7 +510,7 @@ function peindreChiffres(div, total) {
   });
 }
 
-/* VISER UN TOTAL, ET EN DÉDUIRE LE TAUX (22/09/2026).
+/* VISER UN TOTAL, ET EN DÉDUIRE LE TAUX.
  *
  * L'enveloppe vient avant la paie : on sait qu'on a 500 € pour ce plateau,
  * et on cherche ce que ça fait de cachet. La page ne calcule rien elle-même
@@ -689,7 +689,7 @@ async function chargerMois(mois, repeint = false) {
   MOIS_AFFICHE = mois;
   document.getElementById("mois").value = mois;
   afficherMoisChoisi();
-  // LE CACHET PAR DÉFAUT, LE MOTEUR LE DIT (#140, règle 2) : le dernier
+  // LE CACHET PAR DÉFAUT, LE MOTEUR LE DIT : le dernier
   // cachet du mois chargé, sinon son `taux_cachet`, sinon le dernier saisi du
   // dossier (`defauts`). Faute de réponse, on garde celui de l'écran.
   const defauts = r.defauts || {};
@@ -710,13 +710,13 @@ async function chargerMois(mois, repeint = false) {
   // change de mois on arrive sur cette version toute ouverte alors que les
   // paies sont fermées en vert ». Un bloc naît ouvert ; il ne se replie
   // qu'à l'arrivée de l'état de son engagement (`etat-par-engagement`). Le démarrage
-  // l'attendait déjà sous son voile (22/09/2026) ; un changement de mois ne
+  // l'attendait déjà sous son voile ; un changement de mois ne
   // l'attendait pas. Les blocs restent donc cachés jusque-là, et l'on
   // arrive directement sur les cartes. La page ne devine pas elle-même ce
   // qui est validé : un engagement se lit validé aussi quand la DSN réelle du
   // mois est partie, et c'est le moteur qui le sait.
   //
-  // LES CARTES NAISSENT FERMÉES (16/10/2026) : une coque, que l'état de son
+  // LES CARTES NAISSENT FERMÉES : une coque, que l'état de son
   // engagement ouvre s'il n'est pas validé (`fermerEdition`, `ouvrirCarte`).
   // Un repeint garde ouvertes celles qui l'étaient, et leurs dépliants.
   const avant = repeint ? [...cible.querySelectorAll(".engagement")] : [];
@@ -888,7 +888,7 @@ function majAvisDemo(mois) {
   if (!avis.hidden) avis.textContent = d.phrase;
 }
 
-/** LA BOÎTE QUI DEMANDE CONFIRMATION (21/10/2026) : le texte est celui du refus du moteur. « Modifier quand même »
+/** LA BOÎTE QUI DEMANDE CONFIRMATION : le texte est celui du refus du moteur. « Modifier quand même »
  *  renvoie la même saisie avec la confirmation (`renvoyer`), et la séance d'édition du mois n'en redemande plus ;
  *  « Annuler » remet la saisie telle qu'elle est enregistrée. */
 function confirmerModification(mois, texte, renvoyer) {
@@ -1106,7 +1106,7 @@ async function enregistrerEnPartant({ s, confirme }, chargement) {
   if (mois) verifierLeMois(mois, chargement.catch(() => {}));
 }
 
-/* LE CHOIX DU MOIS (25/09/2026). « Un truc simple, qu'on puisse cliquer sur
+/* LE CHOIX DU MOIS. « Un truc simple, qu'on puisse cliquer sur
  * toute la case pour arriver aux choix, et que le défilement soit plus
  * rapide. » Une case : ‹ Octobre 2026 ›. Un clic sur une flèche charge le mois
  * TOUT DE SUITE (16/10/2026 : plus d'attente pour voir si un autre clic
@@ -1199,7 +1199,7 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") fermerGrilleMois(); });
 
-/* UN CLIC SUR UNE DATE OUVRE LE CALENDRIER, PARTOUT (25/09/2026). Sans cela il
+/* UN CLIC SUR UNE DATE OUVRE LE CALENDRIER, PARTOUT. Sans cela il
  * fallait viser la petite icône au bout de la case. */
 document.addEventListener("click", (e) => {
   const c = e.target;
@@ -1244,7 +1244,7 @@ function noteSaisie(texte) {
 
 /** Enregistre si quelque chose a changé. Rend true si le fichier a été écrit.
  *
- *  UN ENREGISTREMENT À LA FOIS (#253, 23/10/2026). L'enregistrement part une
+ *  UN ENREGISTREMENT À LA FOIS. L'enregistrement part une
  *  seconde après la dernière frappe ; un mois long met plus d'une seconde à se
  *  calculer, et le suivant partait pendant que le précédent tournait encore.
  *  Ils se suivent : chacun attend la fin du précédent, puis compare ce qui est
@@ -1286,7 +1286,7 @@ async function enregistrerSaisieSeule(silencieux) {
   } catch (e) {
     // Un engagement dont on n'a pas encore choisi les jours n'est pas une faute :
     // c'est la saisie en cours. On le dit en une ligne, sans la règle du
-    // fichier (« lignes: [] ») ni d'alerte (30/09/2026).
+    // fichier (« lignes: [] ») ni d'alerte.
     // Ce que la norme ne permet pas de déclarer après la limite (un contrat déclaré retiré, des dates qui le sortent
     // d'un autre mois où il est saisi) : le
     // moteur dit pourquoi et quoi faire, et la saisie revient telle qu'elle est enregistrée.

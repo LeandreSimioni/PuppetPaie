@@ -1,4 +1,4 @@
-//! La fenetre sans Tauri (`moteur/fenetre.py`) : la page dans un navigateur de la famille Chromium en mode application
+//! La fenetre sans Tauri : la page dans un navigateur de la famille Chromium en mode application
 //! (`--app`, une fenetre sans onglets ni barre d'adresse, son propre profil), sinon dans le navigateur par defaut.
 //! `PUPPETPAIE_NAVIGATEUR` choisit a la main : une commande (l'adresse est ajoutee a la fin), ou `defaut`.
 

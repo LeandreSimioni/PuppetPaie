@@ -1,5 +1,5 @@
 //! `moteur casc-regularise ANNEE --vire-le AAAA-MM-JJ --montant EUROS` : noter qu'une annee de CASC-SVP est regularisee, apres le
-//! virement (`moteur/commandes_exports.py`, `cmd_casc_regularise` ; `operations_casc.marquer_regularise`). Route `casc-regularise`.
+//! virement. Route `casc-regularise`.
 //! Rien ne part : c'est une ligne dans `config/casc-svp.json` ; l'envoi des courriels est `moteur casc-envoyer`.
 //!
 //! `qui` : `ligne de commande`, comme le Python.

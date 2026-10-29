@@ -1,5 +1,5 @@
 //! `moteur incidents [--detail] [--quoi NATURE] [--json]` : le journal des incidents, en lecture
-//! (`moteur/commandes_incidents.py`). Les routes `incidents-lire` et `incidents-regrouper` font le travail.
+//!. Les routes `incidents-lire` et `incidents-regrouper` font le travail.
 //!
 //! `--envoyer` (deposer chez l'editeur, route `incidents-envoyer`) et `--oublier` (vider, route `incidents-oublier`) : lot J2b, theme 2.
 //! Ni l'un ni l'autre ne demande de mot de passe (le Python non plus) : le journal est deja caviarde par le moteur, `moteur route

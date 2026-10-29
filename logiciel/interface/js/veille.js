@@ -109,7 +109,7 @@ function dessinerVeille(v) {
 
   // 2. LES NOUVELLES : ce qui est arrivé depuis le dernier regard.
   const nouvelles = [];
-  // Les retours se LISENT dans l'Historique (20/10/2026) : le bandeau les annonce et y mène.
+  // Les retours se LISENT dans l'Historique : le bandeau les annonce et y mène.
   const retours = d.nouveaux ? ` <button class="lien" data-vers-historique>${d.nouveaux} retour${d.nouveaux > 1 ? "s" : ""}
     nouveau${d.nouveaux > 1 ? "x" : ""} — les lire dans l'Historique</button>` : "";
   (d.signatures_recues || []).forEach((x) => nouvelles.push(`contrat signé par ${x.nom}`));

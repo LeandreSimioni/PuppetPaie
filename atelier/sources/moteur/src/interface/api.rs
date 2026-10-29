@@ -236,7 +236,7 @@ fn texte(charge: &Value, cle: &str) -> Result<String, Refus> {
 }
 
 fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
-    // UNE PIECE DE L'HISTORIQUE (20/10/2026) : un document du mois ou la piece d'un retour, que `historique-mois` a
+    // UNE PIECE DE L'HISTORIQUE : un document du mois ou la piece d'un retour, que `historique-mois` a
     // listee pour ce mois -- et rien d'autre : le chemin vient de la page, il ne s'ouvre que s'il est dans la liste.
     if let Some(mois) = charge.get("historique").and_then(Value::as_str) {
         let chemin = texte(charge, "chemin")?;

@@ -1,5 +1,5 @@
 //! Le journal des incidents : ce que le logiciel n'a pas su faire
-//! (`moteur/incidents.py`).
+//!.
 //!
 //! `journal.py` note ce qu'un fichier produit est DEVENU ; celui-ci note les
 //! moments ou le logiciel s'est arrete, a refuse, ou s'est fait rejeter. Il
@@ -10,8 +10,8 @@
 //!
 //! Quatre natures (`logiciel`, `refus`, `dpae`, `dsn`) ; les deux premieres se
 //! regroupent par empreinte, et le meme incident revu dans les dix minutes se
-//! compte dans sa ligne (`fois`, `derniere`). UNE LIGNE PORTE DE QUOI DEBOGUER
-//! : le detail (la charge de la route, l'etat du mois),
+//! compte dans sa ligne (`fois`, `derniere`). UNE LIGNE PORTE DE QUOI DEBOGUER :
+//! le detail (la charge de la route, l'etat du mois),
 //! la trace, le fil des trois minutes d'avant et la machine (`diagnostic`).
 //! RIEN QUI DESIGNE UNE PERSONNE : `noter` passe tout par la frontiere de
 //! `diagnostic` (une personne devient sa forme, « salarie n°2 ») puis CAVIARDE
@@ -24,7 +24,7 @@
 //!
 //! Format sur le disque identique au Python (`util.ecrire_json`, indent 2) :
 //! les deux cohabitent tant que du Python note encore des incidents
-//! (`operations_declarations`, `operations_paies`, `web.py`).
+//!.
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;

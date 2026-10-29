@@ -315,7 +315,7 @@ fn identifies(ctx: &Contexte, d: &Value) -> Option<Vec<Option<droit::jumeaux::Id
 /// -- la paie validee, ou, pour un engagement en saisie, son calcul -- par ce qu'elles declarent (`resume`, les
 /// bornes) ; un engagement dont aucune DSN du mois n'est partie est un contrat ajoute. `None` : aucune DSN du mois n'est
 
-/// UN CONTRAT DECLARE NE SE RETIRE PAS APRES LA LIMITE (21/10/2026). Ce que la norme permet apres la date
+/// UN CONTRAT DECLARE NE SE RETIRE PAS APRES LA LIMITE. Ce que la norme permet apres la date
 /// d'exigibilite (cahier technique DSN 2026.1, §2.2.2.5 et §2.1.3.6,
 /// `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`) : des rappels de paie dans une DSN
 /// suivante, et, pour un contrat, le changement d'une donnee par bloc « Changements contrat » (S21.G00.41). Rien
@@ -323,7 +323,7 @@ fn identifies(ctx: &Contexte, d: &Value) -> Option<Vec<Option<droit::jumeaux::Id
 /// 1722, `atelier/reference/sources/net-entreprises-base-connaissances/`). Un contrat qui n'a pas eu lieu garde donc son
 /// bloc 40 et voit ses montants annules (ses quantites a zero : la correction les declare en negatif).
 ///
-/// SES DATES SE CORRIGENT (21/10/2026) : le contrat garde son numero, il se retrouve a ses nouvelles dates
+/// SES DATES SE CORRIGENT : le contrat garde son numero, il se retrouve a ses nouvelles dates
 /// (`jumeaux::apparier_meme_numero`), et sa correction les declare : l'ancienne date de debut en bloc 41 (fiche
 /// net-entreprises 1952), la fin en bloc 62 (fiche 1722), un versement par mois civil (§2.2.2.5). Les autres mois du
 /// contrat suivent (`propager_les_bornes`).

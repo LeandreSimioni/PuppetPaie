@@ -9,7 +9,7 @@ const enFictive = () => !!(ETAT && ETAT.simulation);
 const noteFictive = (vers, reponse = true) => `<p class="note"><b>Compagnie fictive</b> —
   rien ne part vers ${echapper(vers)} : l'envoi est simulé${reponse
   ? ", et sa réponse arrive comme la vraie, quelques secondes plus tard" : ""}.</p>`;
-/* LA DPAE PRÉPARÉE D'AVANCE, DITE DANS UNE COMPAGNIE FICTIVE (27/09/2026) : le
+/* LA DPAE PRÉPARÉE D'AVANCE, DITE DANS UNE COMPAGNIE FICTIVE : le
    test part en silence (filet.rs) et le filet n'y existe pas — une
    ligne, là où naissent les contrats, pour que le visiteur sache l'un et
    l'autre. */
@@ -80,7 +80,7 @@ const CIRCUITS_FICTIFS = {
   },
 };
 
-/* CE QU'UNE COMPAGNIE FICTIVE NE FAIT PAS, DIT AU LIEU D'ÊTRE TU (27/09/2026).
+/* CE QU'UNE COMPAGNIE FICTIVE NE FAIT PAS, DIT AU LIEU D'ÊTRE TU.
    La sauvegarde est coupée dans une compagnie fictive, et quatre salariés
    fictifs n'ont volontairement pas de taux de PAS : le visiteur doit savoir ce
    que fait une compagnie réelle, et pourquoi il voit ce qu'il voit. La mise à

@@ -38,7 +38,7 @@ pub fn plan(ctx: &Contexte) -> R<(Map<String, Value>, &'static str)> {
     Ok((p, origine))
 }
 
-/// `operations_exercice.plan_comptable` : le plan livre, recouvert cle par cle par
+/// Le plan livre, recouvert cle par cle par
 /// `config/plan-comptable.json`.
 pub fn plan_comptable(ctx: &Contexte) -> R<Map<String, Value>> {
     let base = lire_json(&ctx.code.join("plan-comptable-base.json"))?;
@@ -130,7 +130,7 @@ fn compte_de(plan: &Map<String, Value>, k: &str) -> R<Value> {
     }
 }
 
-/// `operations_ecritures.controler_plan` : ce qui, dans le plan comptable, ne
+/// Ce qui, dans le plan comptable, ne
 /// passerait pas dans ce format -- avant l'export.
 pub fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
     let plan = plan_comptable(ctx)?;
@@ -208,7 +208,7 @@ pub enum Refus {
     Autre(Echec),
 }
 
-/// `operations_exercice.compte_du_salarie` : le sous-compte 421 d'un salarie, ou
+/// Le sous-compte 421 d'un salarie, ou
 /// "" si le plan n'en veut pas.
 pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) -> Result<String, Refus> {
     let net = ou(plan.get("net").unwrap_or(&Value::Null), objet_vide());

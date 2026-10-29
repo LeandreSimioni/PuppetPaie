@@ -1,6 +1,6 @@
 //! La machinerie commune des etats exportes : un tableau, six facons de l'ecrire --
 //! CSV, texte tabule, XLSX, PDF, HTML, JSON --, et les ecrivains du livre de paie, qui a les siens
-//! (`operations_exports.csv_livre`, `xlsx_livre`, `pdf_livre`).
+//!.
 //!
 //! UN ETAT DECLARE, LA MACHINERIE ECRIT. Un etat rend un `Tableau` : ses colonnes (et lesquelles portent un
 //! montant), ses sections (un groupe de lignes et son sous-total), un total general, ses avertissements et les

@@ -1,4 +1,4 @@
-//! LE SCENARIO D'UNE COMPAGNIE (#236, phase 2) : ce qu'on a fait dans l'interface, geste par geste, et son rejeu sans
+//! LE SCENARIO D'UNE COMPAGNIE : ce qu'on a fait dans l'interface, geste par geste, et son rejeu sans
 //! navigateur.
 //!
 //! UN SCENARIO EST UN DOSSIER :

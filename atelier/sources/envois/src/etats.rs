@@ -1788,7 +1788,7 @@ pub fn dsn_du_mois(lignes: &[Value], entreprise: &Value, mois: &str) -> R<Value>
 // Les etats et resumes sur un journal invente (noms et numeros fictifs).
 // ------------------------------------------------------ le journal
 
-/// Le dernier contrat parti a la signature pour cette paie (`operations_documents.contrat_parti`) :
+/// Le dernier contrat parti a la signature pour cette paie :
 /// le mois, le numero, le fichier, la date d'envoi et, s'il est revenu, celle de la signature.
 /// Un avenant n'en est pas un.
 pub struct Parti {
@@ -1853,7 +1853,7 @@ pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Optio
     Ok(parti)
 }
 
-/// `operations_documents._chemin_piece` : le fichier d'une piece partie, dans `sorties/<mois>/` ou
+/// Le fichier d'une piece partie, dans `sorties/<mois>/` ou
 /// son `envoi/`. Un NOM, jamais un chemin : ce qui porte un separateur ne se resout pas.
 pub fn chemin_piece(racine: &Path, mois: &Value, fichier: &Value) -> Option<PathBuf> {
     if !vrai(mois) || !vrai(fichier) {
@@ -1867,7 +1867,7 @@ pub fn chemin_piece(racine: &Path, mois: &Value, fichier: &Value) -> Option<Path
     [base.join("envoi").join(&nom), base.join(&nom)].into_iter().find(|f| f.is_file())
 }
 
-/// `operations_documents._avenants_du_contrat` : les avenants du contrat parti -- pas ceux d'un
+/// Les avenants du contrat parti -- pas ceux d'un
 /// contrat qu'il a remplace. `tous` : ce que `journal.avenants` dit pour cette paie (la liste, ou rien).
 pub fn avenants_du_contrat(tous: Option<&Value>, parti: &Parti) -> Vec<Value> {
     let depuis = if vrai(&parti.quand) { socle::date::en_texte(&parti.quand) } else { String::new() };

@@ -1,5 +1,5 @@
 //! `moteur arrivee [--json]` : l'arrivee d'une compagnie, etape par etape -- ce qui est pret, ce qui manque, quoi lancer.
-//! Rien n'est ecrit (`moteur/operations_arrivee.py`, `moteur/commandes_exports.py` : `cmd_arrivee`).
+//! Rien n'est ecrit.
 //!
 //! `arrivee` ne fait RIEN : elle LIT et dresse la liste des etapes, dans l'ordre ou une compagnie les franchit, chacune
 //! avec son etat (`fait`, `a_faire`, `sans_objet`) et la commande qui la fait avancer. Cette liste n'existait pas encore

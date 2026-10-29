@@ -51,8 +51,8 @@ pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois"];
 /// Les lectures de l'ecran d'un mois qui ne sont pas les deux etats : la route, et si sa charge est `{"mois"}` (sinon
 /// `{}`). La page les demandait une a une, chacune dans un processus ; elles sont faites ici, une fois, avec les memes
 /// routes, et rendues telles quelles (resultat ou refus).
-/// Les arrets n'y sont plus (15/10/2026) : la page lit les imprevus du mois, chaque arret avec ses obligations. La reprise
-/// du journal non plus (20/10/2026) : elle se montre dans l'Historique, avec les envois et leurs retours.
+/// Les arrets n'y sont plus : la page lit les imprevus du mois, chaque arret avec ses obligations. La reprise
+/// du journal non plus : elle se montre dans l'Historique, avec les envois et leurs retours.
 const LECTURES: [(&str, bool); 5] = [
     ("saisie", true),
     ("contrats-en-cours", true),

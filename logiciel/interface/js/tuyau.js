@@ -437,7 +437,7 @@ window.addEventListener("error", (ev) => {
 // événement qui NE REMONTE PAS : sans capture, `window` ne le voit jamais.
 }, true);
 
-/* D'OÙ VIENT UN REJET (09/10/2026). L'événement d'une promesse rejetée ne dit
+/* D'OÙ VIENT UN REJET. L'événement d'une promesse rejetée ne dit
  * ni fichier ni ligne ; une Error, si : le premier script que cite sa pile,
  * là où elle a été levée. Chromium (WebView2) écrit « at f (http://hôte/js/
  * x.js?v=…:12:5) », WebKit « f@http://hôte/js/x.js?v=…:12:5 ». La requête

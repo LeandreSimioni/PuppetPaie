@@ -1,7 +1,7 @@
 //! La ligne de commande du produit, `moteur COMMANDE ...` : ce qu'un humain (ou un agent) tape.
 //!
 //! Une commande = un module, qui declare ses options (`analyse::Spec`) et rend un code de sortie. Chacune reprend la
-//! commande Python du meme nom (`moteur/cli.py`, `moteur/commandes_*.py`) : memes options, meme sortie -- texte et
+//! commande Python du meme nom : memes options, meme sortie -- texte et
 //! `--json` (l'enveloppe de `moteur/sortie_json.py`) --, meme code de sortie. Elle s'appuie sur ce que le moteur sait
 //! deja faire (les routes, `moteur route NOM`) : rien ne se recopie ici, on lit et on met en forme.
 //!

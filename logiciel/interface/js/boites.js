@@ -127,7 +127,7 @@ document.getElementById("voile").onclick = (e) => {
   else fermerBoite();
 };
 
-/* LE MOT DE PASSE DU LOGICIEL : UN POPUP, TOUJOURS LE MÊME (17/09/2026).
+/* LE MOT DE PASSE DU LOGICIEL : UN POPUP, TOUJOURS LE MÊME.
    Chaque acte qui engage — dépôt réel, envoi, signature, écrire dans le
    coffre — passe par ici : on clique le bouton de l'acte, le popup demande
    le mot de passe, Entrée, et l'acte part. Plus de champ posé dans chaque

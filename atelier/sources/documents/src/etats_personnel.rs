@@ -145,7 +145,7 @@ fn sexe(nir: Option<&Value>) -> &'static str {
     }
 }
 
-/// `operations_etats.registre_du_personnel` : une ligne par embauche, dans l'ordre des embauches, avec les mentions
+/// Une ligne par embauche, dans l'ordre des embauches, avec les mentions
 /// obligatoires. Un intermittent est embauche a chaque contrat : chaque CDDU est une entree et une sortie.
 pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
@@ -223,7 +223,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ============================================= 15. le fichier du personnel
 
-/// `operations_etats.fichier_du_personnel` : chaque fiche de salarie, coordonnees comprises -- ce que le comptable
+/// Chaque fiche de salarie, coordonnees comprises -- ce que le comptable
 /// demande a l'ouverture du dossier. Pas de periode : ce sont les fiches d'aujourd'hui.
 pub fn fichier_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut fiches: Vec<(&String, &Value)> = ctx.salaries.iter().collect();
@@ -311,7 +311,7 @@ fn reponse(r: Option<&Value>) -> String {
     t.chars().take(160).collect()
 }
 
-/// `operations_etats.journal_des_declarations` : chaque acte qui a engage la compagnie -- DSN, DPAE, envois,
+/// Chaque acte qui a engage la compagnie -- DSN, DPAE, envois,
 /// signatures --, avec sa date, son mode, son issue et son fichier : la piste d'audit.
 pub fn journal_des_declarations(ctx: &Contexte, d: &Demande, journal: &[Value]) -> R<Tableau> {
     let p = Periode::de(ctx, d, false)?;

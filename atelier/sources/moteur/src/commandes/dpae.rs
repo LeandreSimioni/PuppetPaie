@@ -1,5 +1,5 @@
 //! `moteur dpae FICHIER [--heure HHMM] [--seulement SALARIE:AAAA-MM-JJ ...] [--force] [--json]` : produire la seule DPAE d'un mois,
-//! avant l'embauche (`moteur/cli.py`, `cmd_dpae` ; `operations_declarations.produire_dpae`). Rien ne part : un fichier a plat
+//! avant l'embauche. Rien ne part : un fichier a plat
 //! (990 caracteres par embauche), son archive et son recapitulatif, plus -- dans le meme geste -- les signalements d'amorcage
 //! (nature 08) des embauches dont le taux de PAS manque. Le depot est une commande a part (`moteur deposer-dpae`).
 //!

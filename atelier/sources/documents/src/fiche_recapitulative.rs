@@ -509,7 +509,7 @@ impl<'a> Recapitulatifs<'a> {
 
     // ------------------------------------------------ le cout de l'annee
 
-    /// `operations_etats.couts_de_l_annee` : ce qu'un spectacle, ou un salarie, a coute dans
+    /// Ce qu'un spectacle, ou un salarie, a coute dans
     /// l'annee (`self.annee`), jusqu'au mois de `ctx.aujourdhui` ; ce qui est seulement saisi pour
     /// plus tard se dit a part (`prevu`). Sans annee, ou sans mois cette annee-la : rien.
     pub fn couts_de_l_annee(&mut self) -> R<Value> {

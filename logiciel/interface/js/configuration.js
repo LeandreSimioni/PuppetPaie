@@ -171,7 +171,7 @@ function dessinerConfig() {
   const voirArchives = ARCHIVES_VISIBLES[FICHE_ACTIVE]
     || archivees.some((f) => f.cle === CLE_ACTIVE);
   // UNE BARRE, DEUX GESTES : chercher, ajouter. Le titre qui répétait le
-  // sous-onglet (« SALARIÉS » sous Salariés) est parti (24/09/2026).
+  // sous-onglet (« SALARIÉS » sous Salariés) est parti.
   liste.innerHTML = `<div class="barre-liste">
       <input type="search" id="config-recherche" class="recherche" autocomplete="off"
         value="${echapper(RECHERCHE[FICHE_ACTIVE] || "")}"
@@ -396,7 +396,7 @@ async function dessinerImportation(cible) {
       : formulaire}
     </div>`;
   document.getElementById("import-apercu").onclick = () => apercuImportation();
-  // L'EXPLORATEUR (08/10/2026) : la boîte du système, ouverte par le poste.
+  // L'EXPLORATEUR : la boîte du système, ouverte par le poste.
   document.getElementById("import-parcourir").onclick = async () => {
     try {
       const r = await api("choisir-dossier", { titre: "Le dossier à reprendre" });
@@ -838,7 +838,7 @@ async function ecrireImportation() {
   }
 }
 
-/*  LA FICHE ENTREPRISE SE LIT (22/09/2026)
+/*  LA FICHE ENTREPRISE SE LIT
  *
  *  Elle etait une liste plate de trente cases, des accolades JSON a taper
  *  pour le signataire et la banque, une etiquette « DÉCLARÉ » sous chacune,
@@ -873,7 +873,7 @@ const SECTIONS_FICHE = {
   // leur case cachee soit posee dans le bloc de la valeur dont elles
   // viennent (voir CACHES).
   entreprise: [
-    // La date de la première embauche sort de l'« Avancé » (30/09/2026) :
+    // La date de la première embauche sort de l'« Avancé » :
     // pour une compagnie de moins de cinq ans, sans elle l'effectif est
     // inconnu et le premier mois ne se calcule pas.
     ["La compagnie", ["nom_affichage", "siret", "siren", "nic", "naf",
@@ -908,14 +908,14 @@ const SECTIONS_FICHE = {
     // déclare chaque année si la compagnie la doit (bloc S21.G00.44), et ne
     // se fait pas sans réponse. Le moteur ne connaît pas sa TVA.
     ["La TVA et la taxe sur les salaires", ["taxe_sur_les_salaires"]],
-    // L'AVANCE (23/09/2026). L'editeur : « si on peut deviner que c'est le
+    // L'AVANCE. L'editeur : « si on peut deviner que c'est le
     // truc de base, on le met en truc de base ; si les gens veulent changer,
     // ils cliquent sur avancé ». Chacun de ces champs a une valeur par
     // defaut qui est le cas ordinaire d'une compagnie : pas de salarie au
     // mois, pas de syndicat, pas de CSE, pas d'exemption, et un effectif lu
     // dans les retours de l'Urssaf plutot qu'une date de premiere embauche.
     // Le bloc s'ouvre de lui-meme si l'un d'eux s'ecarte du cas ordinaire.
-    // Chaque case suit ce qui la commande (26/09/2026) : les fériés chômés
+    // Chaque case suit ce qui la commande : les fériés chômés
     // et la prévoyance ne se montrent qu'avec des permanents, la date
     // d'adhésion qu'avec un syndicat, le CSE qu'en CCNEAC, l'exemption
     // CASC-SVP qu'en 3090, l'article 45 qu'au cinéma.
@@ -947,7 +947,7 @@ const SECTIONS_FICHE = {
       "pays_nationalite_hors_liste", "code_nationalite_dsn"]],
     ["Coordonnées", ["adresse_affichage", "code_postal", "commune_affichage",
                      "email"]],
-    // LE MÉTIER SE CHOISIT, SES CODES SE DÉDUISENT (30/09/2026). La liste
+    // LE MÉTIER SE CHOISIT, SES CODES SE DÉDUISENT. La liste
     // des métiers cochés (Configuration › Métiers) se pose en tête du bloc
     // (`METIER_HTML`) ; l'intitulé reste à portée de main — c'est lui que
     // lit le contrat. Statut, cadre, PCS-ESE et code France Travail se
@@ -1027,7 +1027,7 @@ const CACHES = {
 /* Une structure, case par case. `liste: true` = plusieurs lignes, avec un
  * « + ». Ce qui n'est pas nomme ici est CONSERVE tel quel.
  *
- * LES PERSONNES SE SAISISSENT COMME ON LES ECRIT (23/09/2026). Le nom et le
+ * LES PERSONNES SE SAISISSENT COMME ON LES ECRIT. Le nom et le
  * prenom en capitales sans accents, c'est la forme de l'AEM et de la DSN :
  * le moteur la fabrique (`champs.deriver_personnes`), on ne la demande plus. */
 const SOUS_CHAMPS = {
@@ -1049,7 +1049,7 @@ const SOUS_CHAMPS = {
     ["tel", "Téléphone", ""],
     ["email", "Courriel", ""],
   ] },
-  // LA QUALITE DU DECLARANT NE S'AFFICHE PAS (22/09/2026). C'est
+  // LA QUALITE DU DECLARANT NE S'AFFICHE PAS. C'est
   // S20.G00.07.004, et elle vaut 04 : << la personne qui etablit la paie
   // dans l'entreprise >>. La valeur reste dans la fiche et repart telle
   // quelle (STRUCTURES_ORIGINE) ; `dsn.rs` la lit comme avant.
@@ -1396,7 +1396,7 @@ function METIER_HTML(fiche) {
   </div>`;
 }
 
-/* CE QU'UN SPECTACLE, OU UN SALARIÉ, A COÛTÉ DANS L'ANNÉE (30/09/2026).
+/* CE QU'UN SPECTACLE, OU UN SALARIÉ, A COÛTÉ DANS L'ANNÉE.
  * L'éditeur : « si un administrateur veut savoir combien un de ses
  * spectacles lui a coûté dans l'année, il faut qu'il le trouve
  * facilement ». La réponse était dans Exports, un état parmi vingt-deux ;
@@ -1428,7 +1428,7 @@ async function peindreCoutAnnee() {
   el.innerHTML = ligne(cette, an) + ligne(avant, an - 1);
 }
 
-/* L'ONGLET MÉTIERS (30/09/2026). L'éditeur : « les métiers, c'est vraiment
+/* L'ONGLET MÉTIERS. L'éditeur : « les métiers, c'est vraiment
  * un onglet à part : on a les métiers de base de notre convention, on peut
  * en rajouter » — et les cocher ou les décocher. Ce qui est coché se
  * propose dans la fiche d'un salarié et dans un engagement ; rien d'autre
@@ -1500,7 +1500,7 @@ async function dessinerMetiers(cible) {
   peindre();
 }
 
-/* LES ORGANISMES ET LES CONTRATS DE LA DSN (09/10/2026). Une ligne par
+/* LES ORGANISMES ET LES CONTRATS DE LA DSN. Une ligne par
  * contrat que la convention exige ; le moteur (`organismes-contrats`) dit ce
  * qui est fixé par la branche et ce que la compagnie saisit. Enregistrer
  * compose config/organismes.json (`organismes-enregistrer`) : la page ne
@@ -1556,7 +1556,7 @@ async function dessinerOrganismes(cible) {
   };
 }
 
-/* LE TAUX AT/MP (30/09/2026), en tête du bloc « Vos numéros chez les
+/* LE TAUX AT/MP, en tête du bloc « Vos numéros chez les
  * organismes ». Il n'est pas un champ de la fiche : il vit dans le barème
  * de la compagnie (`config/baremes/<année>.json`), s'enregistre seul, à la
  * sortie de la case, et ne marque pas la fiche « modifiée ». Sans lui, le
@@ -1610,7 +1610,7 @@ async function brancherAtmp() {
   code.onchange = poser;
 }
 
-/* LA COMPLÉMENTAIRE SANTÉ D'UN PERMANENT (19/09/2026), en tete du bloc
+/* LA COMPLÉMENTAIRE SANTÉ D'UN PERMANENT, en tete du bloc
  * « Salarié au mois ». Elle n'est pas un taux de barème : c'est un forfait
  * en pourcentage du PMSS, et il dépend de deux choses que seul le bulletin
  * d'adhésion du salarié dit. Trois cases plutôt qu'un JSON à taper ; le
@@ -1634,7 +1634,7 @@ function SANTE_HTML() {
   </div>`;
 }
 
-/* LE HAUT D'UNE FICHE SALARIE (23/09/2026) : son nom en clair, et deux
+/* LE HAUT D'UNE FICHE SALARIE : son nom en clair, et deux
  * gestes. « Exporter ses documents » mene a l'onglet Exports, le dossier de
  * ce salarie deja choisi ; une fiche neuve propose de la faire remplir par
  * la personne elle-meme, par courriel (`demanderFiche`). */

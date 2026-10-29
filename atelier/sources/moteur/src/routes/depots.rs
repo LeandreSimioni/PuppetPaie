@@ -741,7 +741,7 @@ fn tester_les_dpae(
     mut client: Option<&mut envois::releve_retours::Client>,
 ) -> R<Option<Value>> {
     // La copie de developpement ne teste pas d'elle-meme ; sans le mot de passe Urssaf, rien ne part. LA
-    // COMPAGNIE FICTIVE, elle, teste (27/09/2026) : son depot est joue.
+    // COMPAGNIE FICTIVE, elle, teste : son depot est joue.
     // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
     if !crate::compagnie::bridage::branchement(&ctx.racine).joue() {
         let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();

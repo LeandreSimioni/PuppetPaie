@@ -539,8 +539,8 @@ pub(crate) fn decouper_ttf(donnees: &[u8], voulus: &[u16]) -> Result<(Vec<u8>, V
     }
 
     // Ce qu'un PDF demande à une police TrueType embarquée (`FontFile2`) : ces six tables, et pas
-    // `cmap`, `name`, `post`, `OS/2`, ni les tables de crénage et de substitution. NI LE HINTING
-    // : les instructions TrueType (`cvt `, `fpgm`, `prep` et celles de chaque glyphe,
+    // `cmap`, `name`, `post`, `OS/2`, ni les tables de crénage et de substitution. NI LE HINTING :
+    // les instructions TrueType (`cvt `, `fpgm`, `prep` et celles de chaque glyphe,
     // retirées plus haut) ajustent les contours à la grille des pixels d'un écran ; elles faisaient
     // plus du tiers du poids des glyphes de Liberation. Les contours, eux, sont recopiés à
     // l'identique : le texte imprimé ne change pas d'un point.

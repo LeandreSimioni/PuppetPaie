@@ -1,5 +1,5 @@
 //! `moteur depots [--depuis JJ/MM/AAAA] [--jusqu-a JJ/MM/AAAA] [--environnement production|editeur]` : la liste des depots que
-//! net-entreprises a vus, telle quelle (`moteur/commandes_retours.py`, `cmd_depots`). CACHEE : elle marche, elle
+//! net-entreprises a vus, telle quelle. CACHEE : elle marche, elle
 //! n'apparait pas dans l'aide. C'est une commande d'enquete pour l'editeur, sur le poste d'une compagnie -- retrouver
 //! quelque chose sur un depot passe, par exemple la date de constitution d'un fichier qu'on n'a plus. Volontairement
 //! BRUTE : tous les champs que le service renvoie, sans en choisir.

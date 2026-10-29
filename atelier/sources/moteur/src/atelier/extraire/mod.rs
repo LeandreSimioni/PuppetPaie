@@ -34,7 +34,7 @@ pub struct Releve {
     pub donnees: Value,
     /// L'indentation du JSON (`json.dump(..., indent=n)` du releve d'origine).
     pub indent: usize,
-    /// Un saut de ligne apres le JSON (`extraire_urssaf.py` en mettait un, les autres non).
+    /// Un saut de ligne apres le JSON.
     pub saut_final: bool,
     /// Ce que la commande dit en finissant (les nombres, ce qui a ete ecarte).
     pub bilan: Vec<String>,

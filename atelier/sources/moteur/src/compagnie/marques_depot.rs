@@ -61,7 +61,7 @@ pub(crate) fn arrets_pour(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::ARRET)).map_err(crate::routes::imprevus::refus_magasin)
 }
 
-/// `operations_arrets._mois_de` : le mois ou l'arret commence.
+/// Le mois ou l'arret commence.
 fn mois_de(arret: &Value) -> String {
     valeur_en_texte(&arret["dernier_jour_travaille"]).chars().take(7).collect()
 }
@@ -75,7 +75,7 @@ fn trouver_ou_rien(ctx: &Contexte, salarie: &Value, dernier_jour: &Value) -> R<O
     }
 }
 
-/// `operations_arrets.marquer_envoye_depuis` : trace l'envoi d'un signalement a partir du FICHIER qui vient
+/// Trace l'envoi d'un signalement a partir du FICHIER qui vient
 /// de partir. Le fichier ne porte pas la cle de nos fiches : il porte un NIR (S21.G00.30.001) et le jour de
 /// l'evenement. `None` si le fichier ne vient pas du magasin -- ce n'est pas une erreur.
 pub(crate) fn marquer_envoye_depuis(
@@ -179,7 +179,7 @@ pub(crate) fn enregistrer_demande(ctx: &Contexte, cles: &[String], motif: &str, 
     Ok(())
 }
 
-/// `operations_amorcage.marquer_demande_depuis` : note la demande a partir du FICHIER qui vient de partir.
+/// Note la demande a partir du FICHIER qui vient de partir.
 /// C'est ici que la demande commence a courir -- ce qui fait courir les cinq jours ouvres, c'est le depot.
 pub(crate) fn marquer_demande_depuis(ctx: &Contexte, chemin: &Path, quand: &str) -> R<()> {
     let texte = lire_latin1(chemin)?;

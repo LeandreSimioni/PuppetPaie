@@ -1,4 +1,4 @@
-//! LE REJEU D'UN SCENARIO ET SES SORTIES (#236, phase 2 ; le socle des tests de fictives de la phase 4).
+//! LE REJEU D'UN SCENARIO ET SES SORTIES.
 //!
 //! Un scenario enregistre au banc d'essai (`moteur/src/atelier/scenario.rs`, `atelier/outils/banc/`) est fige dans
 //! `tests/donnees/scenarios/<nom>/` (`gestes.jsonl`, `pieces/`) ; `rejouer` le rejoue dans un `dossier_de_test`, dans le

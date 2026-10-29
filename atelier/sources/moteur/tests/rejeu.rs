@@ -1,4 +1,4 @@
-//! LE REJEU DES SCENARIOS DU BANC D'ESSAI (#236, phase 2). Un scenario enregistre dans l'interface (`atelier/outils/banc/`,
+//! LE REJEU DES SCENARIOS DU BANC D'ESSAI. Un scenario enregistre dans l'interface (`atelier/outils/banc/`,
 //! `moteur/src/atelier/scenario.rs`) se rejoue sans navigateur et reproduit la compagnie, octet pour octet d'un rejeu a l'autre ;
 //! ses sorties (paies, DSN, DPAE, bulletins, certificats Conges Spectacles, journaux) se comparent a un oracle.
 //!
@@ -34,7 +34,7 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     for doc in ["sorties/2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf", "sorties/2026-11/envoi/CertificatCS_FULLER_Novembre2026.pdf"] {
         assert!(f.get(doc).is_some(), "{} manque", doc);
     }
-    // Ajoutee le 02/11/2026, la compagnie ne coche aucune echeance de 2026 fermee avant (#236, ticket 8 du banc).
+    // Ajoutee le 02/11/2026, la compagnie ne coche aucune echeance de 2026 fermee avant.
     let cochees = f["config/echeancier.json"]["fait"].as_object().map(|m| m.keys().cloned().collect::<Vec<_>>()).unwrap_or_default();
     assert!(cochees.is_empty(), "echeances cochees : {:?}", cochees);
     // L'AER CINEMA SPECTACLE (`aer::due`, `aer_fictive`) : la DSN mensuelle de novembre, qui porte la fin du contrat de la

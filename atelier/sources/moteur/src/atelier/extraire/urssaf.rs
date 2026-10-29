@@ -10,7 +10,7 @@
 //! 133-136 du format, annexe II.1 de la norme. C'est la liste des codes VALIDES, celle que le point de depot oppose au rejet
 //! « Code URSSAF invalide -- n'appartenant pas a la liste des Codes Urssaf ».
 //!
-//! LE TERRITOIRE SE LIT AILLEURS (22/09/2026). La Table des Urssaf ne porte que le code postal du SIEGE de chaque
+//! LE TERRITOIRE SE LIT AILLEURS. La Table des Urssaf ne porte que le code postal du SIEGE de chaque
 //! organisme, pas sa circonscription. Deux sources publiees, deposees a cote, ferment la chaine sans rien inventer :
 //!   * la Liste des sites et des activites du reseau (open data Urssaf, `urssaf-liste-des-sites-et-des-activites.csv`)
 //!     porte `code_organisme_ur_regionale` A COTE de `code_ancienne_region` : c'est le pont region -> code Urssaf, publie

@@ -1,4 +1,4 @@
-//! Les compagnies du poste, telles que l'accueil les propose (`moteur/compagnies.py`, lot J3b).
+//! Les compagnies du poste, telles que l'accueil les propose.
 //!
 //! A cote du code : `prive/` (la vraie), `compagnies/*` (les autres vraies), `fictives/*` (les compagnies fictives, livrees
 //! avec le logiciel). La copie de developpement (`prive-dev/`) n'est jamais proposee. Bride (`bridage.rs`), l'accueil ne

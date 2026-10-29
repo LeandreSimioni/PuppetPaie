@@ -1,4 +1,4 @@
-//! `importation-apercu` sur la boite aux lettres `import/` (lot D du plan d'import, `prive/journal/PLAN-IMPORT-BULLETINS.md`).
+//! `importation-apercu` sur la boite aux lettres `import/`.
 //! RIEN N'EST ECRIT.
 //!
 //! 1. Le tri (`import::tri`) : chaque fichier recoit sa sorte, par le contenu.

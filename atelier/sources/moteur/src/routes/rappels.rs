@@ -443,7 +443,7 @@ fn derniere_dsn_passee(st: &Etat) -> R<Option<String>> {
 
 /// Le premier mois dont la compagnie doit une DSN, quand on le sait.
 ///
-/// UNE COMPAGNIE NEUVE N'EST EN RETARD DE RIEN (30/09/2026). Creee depuis
+/// UNE COMPAGNIE NEUVE N'EST EN RETARD DE RIEN. Creee depuis
 /// l'accueil un 30 septembre, elle s'ouvrait sur << Deposer la DSN d'aout 2026
 /// -- en retard >>. Le premier mois du, c'est celui de sa premiere embauche ;
 /// sans cette date, une compagnie qui n'a ni salarie, ni paie saisie, ni DSN au
@@ -458,7 +458,7 @@ pub(crate) fn premier_mois_declarable(st: &Etat) -> Option<String> {
     if !crate::routes::etapes::mois_saisis(st.racine()).is_empty() {
         return None;
     }
-    // DES FICHES NE SONT PAS UN PASSE (09/10/2026) : une compagnie neuve remplit ses salaries avant sa premiere paie ;
+    // DES FICHES NE SONT PAS UN PASSE : une compagnie neuve remplit ses salaries avant sa premiere paie ;
     // sans paie ni DSN, elle n'a aucun mois d'avant a declarer (elle reclamait la DSN du mois precedent sa naissance).
     if !st.journal.is_empty() && st.journal.iter().any(|l| l.get("quoi").and_then(Value::as_str) == Some(DSN)) {
         return None;

@@ -1,6 +1,6 @@
 //! `moteur dossier [CLE ...] [--mois AAAA-MM] [--annee AAAA] [--toutes-les-annees] [--seulement CATEGORIE ...] [--ensemble]
 //! [--apercu] [--envoyer] [--fenetre]` : le dossier d'un salarie -- ou de chacun --, tous ses documents sur une periode
-//! (`moteur/commandes_exports.py`, `cmd_dossier` ; `operations_dossier`). Pas de `--json` (le Python n'en a pas ici).
+//!. Pas de `--json` (le Python n'en a pas ici).
 //!
 //! Le dossier se construit par `crate::routes::dossier_salarie::construire` (celui de la route `dossier-salarie`) et s'ecrit dans
 //! `exports/dossiers/` sauf `--apercu` (le compte des pages, rien sur le disque).

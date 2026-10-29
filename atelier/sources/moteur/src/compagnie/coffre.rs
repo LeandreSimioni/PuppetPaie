@@ -731,7 +731,7 @@ impl Coffre {
         }
         let mut f = match options.open(&p) {
             Ok(f) => f,
-            // Une autre commande l'a posee entre `existe` et ici (reste 158) : c'est la sienne qui vaut, sinon le
+            // Une autre commande l'a posee entre `existe` et ici : c'est la sienne qui vaut, sinon le
             // coffre se scellerait avec deux cles. On la relit, elle et elle seule.
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => return self.cle_poste(false),
             Err(e) => return Err(oserr(&e, &p)),

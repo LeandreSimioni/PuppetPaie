@@ -88,7 +88,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             let p = par_numero.get(&c.numero).map(|&i| &liste[i]);
             let mut ecarts: Vec<String> = Vec::new();
             let brut = c.brut_texte();
-            // UNE CORRECTION D'UN MOIS DEJA DECLARE (21/10/2026) : un contrat que la paie du mois ne porte pas, et dont la
+            // UNE CORRECTION D'UN MOIS DEJA DECLARE : un contrat que la paie du mois ne porte pas, et dont la
             // fin (40.010) precede le mois, n'est dans le fichier que pour sa regularisation (la correction d'un mois suivant,
             // `dsn::generer` et ses `regs`). Ce n'est pas un ecart avec la paie : il se dit pour ce qu'il est.
             let correction = p.is_none() && !c.fin.is_empty() && c.fin.as_str() < format!("{}-01", mois).as_str();

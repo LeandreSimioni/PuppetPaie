@@ -1,4 +1,4 @@
-//! Ce que la page ecrit pour l'exercice (`moteur/operations_exercice.py`) : `cloture` (et sa
+//! Ce que la page ecrit pour l'exercice : `cloture` (et sa
 //! reouverture, `rouvrir`) et `export-compta`.
 //!
 //! - L'export compta : les ecritures de l'annee (ou de `du` a `au`), mois par mois, et leur CSV
@@ -132,7 +132,7 @@ fn dossier_exercices(ctx: &Contexte) -> PathBuf {
     ctx.racine.join("sorties").join("exercices")
 }
 
-/// `operations_exercice.export_compta` : le journal de paie de l'annee (ou de `du` a `au`), et son fichier CSV.
+/// Le journal de paie de l'annee (ou de `du` a `au`), et son fichier CSV.
 /// Les mois pris sont ceux qui ont une saisie.
 fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) -> R<ExportCompta> {
     let plan = plan_comptable(ctx)?;
@@ -236,7 +236,7 @@ pub(crate) fn export_compta_charge(ctx: &Contexte, charge: &Value) -> R<ExportCo
 
 // ------------------------------------------------------------------ la cloture
 
-/// `operations_socle.exercices` : `config/exercices.json`, sans les cles qui commencent par `_`.
+/// `config/exercices.json`, sans les cles qui commencent par `_`.
 fn lire_exercices(ctx: &Contexte) -> R<Map<String, Value>> {
     match crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => Ok(o),
@@ -268,7 +268,7 @@ fn fichiers_sous(d: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// `operations_exercice.cloturer` : fige l'annee et reunit ce qu'il faut garder en un zip. Refuse si un mois
+/// Fige l'annee et reunit ce qu'il faut garder en un zip. Refuse si un mois
 /// de l'annee qui a des paies n'a pas de DSN reelle acceptee (`forcer` passe outre, et c'est ecrit dans
 /// `exercices.json`), une annee deja close, et l'annee en cours.
 pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> R<Value> {
@@ -408,7 +408,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     }))
 }
 
-/// `operations_exercice.rouvrir_exercice` : retire la cloture. L'archive reste sur le disque : elle dit ce
+/// Retire la cloture. L'archive reste sur le disque : elle dit ce
 /// qu'etait l'annee au moment ou on l'a fermee.
 fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
     let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {

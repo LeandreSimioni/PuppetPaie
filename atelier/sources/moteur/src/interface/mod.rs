@@ -1123,8 +1123,7 @@ pub struct Options {
 
 const USAGE: &str = "Usage : moteur interface [--port N] [--sans-navigateur] [--veille MINUTES]";
 
-/// Les options de `moteur interface`. Une valeur qui ne se lit pas est refusee, jamais remplacee par le defaut
-/// (reste 143 : `--port` etait lu puis ignore).
+/// Les options de `moteur interface`. Une valeur qui ne se lit pas est refusee, jamais remplacee par le defaut.
 pub fn lire_options(args: &[String]) -> Result<Options, String> {
     let mut o = Options { port: None, minutes_veille: MINUTES_VEILLE, sans_navigateur: false };
     let mut i = 0;

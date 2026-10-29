@@ -50,7 +50,7 @@ pub enum Variante {
     /// Titre, préambule, articles numérotés, mention finale, cases de signature.
     Contrat,
     /// Le contrat, plus un article « Modification de l'article n » par article modifié, qui cite
-    /// l'ancien texte puis le nouveau (`moteur/avenant.py`) ; les articles du modèle suivent,
+    /// l'ancien texte puis le nouveau ; les articles du modèle suivent,
     /// numérotés à la suite.
     Avenant,
     /// Certificat de travail, reçu pour solde de tout compte : des intitulés sans numéro, une

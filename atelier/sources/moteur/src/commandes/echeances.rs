@@ -1,4 +1,4 @@
-//! `moteur echeancier [--le AAAA-MM-JJ] [--json]` et `moteur rappels [--le AAAA-MM-JJ] [--json]` (`moteur/commandes_exercice.py`).
+//! `moteur echeancier [--le AAAA-MM-JJ] [--json]` et `moteur rappels [--le AAAA-MM-JJ] [--json]`.
 //! Tout passe par les routes du moteur (`echeancier`, `rappels`) : la fenetre fait les memes appels, et un rappel lu ici
 //! est exactement celui qu'elle montre a l'ouverture.
 //!

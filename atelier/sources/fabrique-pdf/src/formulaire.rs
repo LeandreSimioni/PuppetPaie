@@ -10,7 +10,7 @@
 //!
 //! C'est ce que faisait PyMuPDF pour l'attestation employeur rematérialisée (AER) de France
 //! Travail : remplir le cadre 5, poser la signature dans la case signature et le cachet dans la
-//! case cachet (`moteur/aer.py`, `moteur/cachet.py`).
+//! case cachet.
 //!
 //! L'apparence d'un champ texte suit celle que MuPDF écrivait (mesurée sur les AER) : découpe à
 //! 1 pt du bord, texte à 2 pt du bord, ligne de base à `(h − corps) / 2 + 0,2 corps` du bas pour

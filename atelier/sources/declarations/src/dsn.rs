@@ -407,7 +407,7 @@ fn nomenclature_subrogation(libelle: &str) -> Resultat<String> {
 /// Ce que chaque nature admet du bloc se lit dans le tableau des usages (cahier technique 2026.1, p. 363-382,
 /// `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60) : la subrogation (60.004 a 60.008) est
 /// C en 01, O ou C en 04, I en 05 et en 07 ; la date de l'accident (60.012), I en 01 et en 07. `nature` est celle du
-/// fichier, jamais une autre (reste R1 #42 : le FCTU passait « 01 »).
+/// fichier, jamais une autre.
 pub fn bloc_60(f: &mut Fichier, a: &Arret, nature: &str, banque: &Value) -> Resultat<()> {
     let v = &a.v;
     f.add_v("S21.G00.60.001", g(v, "motif"))?;
@@ -2894,7 +2894,7 @@ fn taux_at_du_ctp(ctp: &Value, bar: &Value) -> Resultat<String> {
     if !vrai(g(ctp, "taux_at")) {
         return Ok(String::new());
     }
-    // LE TAUX DU BAREME DU MOIS DECLARE (09/10/2026), et non celui recopie dans config/organismes.json : celui-la
+    // LE TAUX DU BAREME DU MOIS DECLARE, et non celui recopie dans config/organismes.json : celui-la
     // restait fige quand le taux changeait a l'ecran (1,25 garde, 1,40 pose le 03/10), ou en cours d'annee (1,69 puis
     // 1,65 au 01/06/2025). `taux_at` du CTP ne dit plus que « cette ligne porte le taux AT » ("bareme").
     if !vrai(g(g(bar, "taux_atmp"), "valeur")) {
@@ -4220,7 +4220,7 @@ saisir`), ou retirer la ligne. Rien n'est ecrit.",
             manquants.join(", ")
         ));
     }
-    // LA SUSPENSION D'UN CONTRAT QUE CE MOIS NE DECLARE PAS (15/10/2026) : le bloc 65 se declare SOUS le contrat suspendu,
+    // LA SUSPENSION D'UN CONTRAT QUE CE MOIS NE DECLARE PAS : le bloc 65 se declare SOUS le contrat suspendu,
     // dans chaque DSN dont le mois croise la suspension (bloc S21.G00.65, cahier technique DSN 2026.1, p. 281,
     // `atelier/reference/norme-dsn/texte/bloc-S21.G00.65.txt`) ; il se tire du magasin des imprevus pour le contrat de
     // chaque paie (`imprevus::suspensions_du_mois`). Une suspension de cet etablissement dont le contrat manque ne serait
@@ -4695,7 +4695,7 @@ certificat de conformite du depot precedent.",
         let mut ajoutes: Vec<&Regularisation> = Vec::new();
         for r in &corrections {
             let deja = lot.iter().position(|p| p.engagement.numero == r.apres.engagement.numero).map(|i| i as i64 + 1);
-            // UN CONTRAT SUR PLUSIEURS MOIS corrige pour plusieurs mois (21/10/2026) : un seul bloc 40 sous l'individu,
+            // UN CONTRAT SUR PLUSIEURS MOIS corrige pour plusieurs mois : un seul bloc 40 sous l'individu,
             // pose par la premiere de ses corrections ; chaque mois garde son versement, rattache a ce mois (cahier
             // technique DSN 2026.1, §2.2.2.5 : « valorisees mois civil par mois civil »).
             let meme_contrat = ajoutes.iter().position(|a| a.apres.engagement.numero == r.apres.engagement.numero);
@@ -4713,7 +4713,7 @@ certificat de conformite du depot precedent.",
                     let b = bar_de(&dernier.mois)?;
                     let autres: Vec<&Paie> =
                         regs.iter().filter(|x| x.mois == dernier.mois).map(|x| &x.apres).chain(des_mois_regularises[&dernier.mois].iter()).collect();
-                    // UNE FIN CORRIGEE (21/10/2026) : « une correction de fin de contrat s'opere par l'emission d'un bloc
+                    // UNE FIN CORRIGEE : « une correction de fin de contrat s'opere par l'emission d'un bloc
                     // " Fin du contrat - S21.G00.62 " dans la DSN mensuelle suivante portant les informations correctes
                     // qui ecraseront celles precedemment declarees » (fiche net-entreprises 1722,
                     // `atelier/reference/sources/net-entreprises-base-connaissances/`). UN CONTRAT AJOUTE apres la limite

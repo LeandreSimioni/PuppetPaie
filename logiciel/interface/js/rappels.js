@@ -28,7 +28,7 @@ async function montrerRappels(lu = api) {
   let manques = [];
   try { manques = (await lu("pour-demarrer")).manques || []; } catch (e) { manques = []; }
   const liste = r.rappels || [];
-  // L'ÉCHÉANCIER (23/09/2026) : « un pop-up au démarrage : on est le…,
+  // L'ÉCHÉANCIER : « un pop-up au démarrage : on est le…,
   // bienvenue sur PuppetPaie, n'oublie pas de faire la DSN ». Elle s'ouvrait
   // aussi une fois par jour quand rien n'attendait ; l'éditeur, 01/10/2026 :
   // « elle apparaît seulement s'il y a des trucs à faire ».
@@ -62,7 +62,7 @@ async function rafraichirRappels(lu) {
   boiteRappels(liste, ech, manques);
 }
 
-/* POUR DÉMARRER (09/10/2026). Une compagnie neuve découvrait ce qui lui
+/* POUR DÉMARRER. Une compagnie neuve découvrait ce qui lui
  * manquait un refus après l'autre. Le moteur (`pour-demarrer`) rend tout
  * d'un coup : ce que chaque manque bloque, où il se saisit, où la compagnie
  * trouve la valeur. La page ne fait que l'afficher. */
@@ -143,7 +143,7 @@ async function peindreDemarrageDans(conteneur) {
 
 /* L'en-tête de la boîte : la date, la bienvenue, ce qui est à faire ce
  * mois-ci, et l'année qui vient repliée. Tout vient du moteur
- * (`operations_echeancier`) : la page ne sait pas ce qu'est une échéance. */
+ * : la page ne sait pas ce qu'est une échéance. */
 function htmlEcheancier(ech) {
   if (!ech) return "";
   const pastille = (x) => ({
@@ -276,7 +276,7 @@ async function agirSurRappel(r) {
     return deposerLaDsn(r.mois);
   }
   if (r.quoi === "dpae") {
-    // LA DPAE PRÉPARÉE D'AVANCE (27/09/2026) : son test est passé, le bouton
+    // LA DPAE PRÉPARÉE D'AVANCE : son test est passé, le bouton
     // ouvre le dépôt de CE fichier — le réel, avec le mot de passe. Sans
     // fichier testé, on va au mois et à la boîte des embauches.
     if (r.fichier) return boiteDepot("dpae", r.fichier);

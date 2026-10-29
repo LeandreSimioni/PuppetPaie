@@ -131,7 +131,7 @@ function boiteDiagnostic(d, rang, signales = []) {
  * de prendre une capture de l'écran qu'elle cachait, sans rien perdre.
  * « Voir ce qui part » reste là pour qui veut regarder, mais n'est plus une
  * étape : l'aperçu est le corps exact de l'envoi
- * (`operations_filet.signalement_apercu`), la page ne décide de rien. */
+ *, la page ne décide de rien. */
 const CAPTURE_MAX = 1536 * 1024;           // 1,5 Mo, comme le moteur
 const CAPTURES_MAX = 5;
 let SIGNALEMENT_REDUIT = null;             // rouvre la boîte rangée dans sa pastille
@@ -339,7 +339,7 @@ function boiteSignalement() {
       const r = await api("signalement-envoyer", charge());
       $("sg-pre").hidden = true;
       $("sg-resultat").hidden = false;
-      // D'ABORD MERCI (01/10/2026), puis où en est l'envoi, dit par le moteur (ticket #220 : « envoi en cours » puis
+      // D'ABORD MERCI, puis où en est l'envoi, dit par le moteur (ticket #220 : « envoi en cours » puis
       // « message envoyé »). La réponse revient dans « Vos messages ».
       SG_ENVOI = { id: r.id, deja: !!r.deja };
       $("sg-resultat").innerHTML = departDuMessage((r.signalements || []).find((s) => s.id === r.id));
@@ -500,8 +500,8 @@ function listeSignalements(liste) {
         ? ` <a href="${echapper(s.ticket)}" target="_blank" rel="noopener">ticket n° ${echapper(String(s.ticket_numero ?? ""))}</a>` : ""}${s.etat !== "arrive" ? etatDuMessage(s) : ""}</li>`).join("")}</ul>`;
 }
 
-/** La ligne du filet de sécurité DPAE (27/09/2026). L'état vient du moteur
- *  (`operations_filet.etat_filet`) ; la clé du compte ne vient jamais ici. */
+/** La ligne du filet de sécurité DPAE. L'état vient du moteur
+ *  ; la clé du compte ne vient jamais ici. */
 let ATTENTE_FILET = null;      // la minuterie qui guette la confirmation
 
 async function dessinerFilet(rang, exige) {
@@ -521,7 +521,7 @@ async function dessinerFilet(rang, exige) {
   compte.textContent = !f.actif ? "" : f.confirme ? f.adresse
     : `un courriel est parti à ${f.adresse} : cliquez sur le lien qu'il contient —
        cette ligne passera d'elle-même à « actif »`;
-  // LA CONFIRMATION SE VOIT SANS RIEN FAIRE (27/09/2026) : tant que l'adresse
+  // LA CONFIRMATION SE VOIT SANS RIEN FAIRE : tant que l'adresse
   // attend son clic, on redemande au serveur toutes les dix secondes, dix
   // minutes au plus, et on s'arrête dès qu'on quitte l'écran.
   if (f.actif && !f.confirme) guetterConfirmation(rang, exige, Date.now());

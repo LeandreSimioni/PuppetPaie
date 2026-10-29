@@ -1,4 +1,4 @@
-//! LA VIE D'UNE COMPAGNIE FICTIVE, REJOUEE SANS NAVIGATEUR (#236, phase 2).
+//! LA VIE D'UNE COMPAGNIE FICTIVE, REJOUEE SANS NAVIGATEUR.
 //!
 //! L'atelier seulement, jamais livre. Un SCENARIO (`moteur/src/atelier/scenario.rs`) est ce que l'enregistreur du banc d'essai a
 //! consigne pendant qu'on jouait dans l'interface (`atelier/outils/banc/`) : le « + » de l'accueil, chaque route que la

@@ -76,7 +76,7 @@ pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
     ))
 }
 
-/// `operations_socle._verifier_preuve` : la forme de preuve retenue, ou un refus. Aucun acte sans elle.
+/// La forme de preuve retenue, ou un refus. Aucun acte sans elle.
 /// LA REGLE : LE MOT DE PASSE DU LOGICIEL, toujours -- le mois recopie seul n'a jamais prouve qu'un humain
 /// etait la. Un booleen « confirme=True » venu du front ne prouve rien du tout.
 ///
@@ -348,8 +348,8 @@ fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
 }
 
 /// `prochain_ordre_de_test` : l'ordre a donner au prochain essai de ce mois, ou `None` pour le premier. Les
-/// suivants partent en annule-et-remplace, a un ordre plus grand que tout ce que la base de test a pu retenir
-/// : le plus grand des ordres deja poses par nous, de ceux des fichiers essayes encore sur le disque, du nombre
+/// suivants partent en annule-et-remplace, a un ordre plus grand que tout ce que la base de test a pu retenir :
+/// le plus grand des ordres deja poses par nous, de ceux des fichiers essayes encore sur le disque, du nombre
 /// d'essais, et de ce que les bilans archives disent de la base d'essai pour le mois de constitution du fichier
 /// (`ordre_signalements::dernier_ordre_des_mensuelles` : les essais faits AILLEURS sous le meme SIREN, l'atelier ou un
 /// autre poste, comptent pour l'ordre sans s'afficher ; Leandre, 20/10/2026), plus un. Une mensuelle du mois deja
@@ -386,7 +386,7 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
     Ok(connus.into_iter().max().map(|m| m + 1))
 }
 
-/// `operations_remplacement.verifier_depot` : le garde-fou du depot REEL d'une mensuelle, ecrit depuis la
+/// Le garde-fou du depot REEL d'une mensuelle, ecrit depuis la
 /// norme. `Ok(true)` : un annule-et-remplace en regle (rien a forcer) ; `Ok(false)` : une premiere DSN ou une
 /// normale (`DsnDejaDeposee` tranche) ; un refus sinon.
 fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Value) -> R<bool> {
@@ -437,7 +437,7 @@ fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Val
     Ok(true)
 }
 
-/// `operations_declarations.deposer_dsn` : depose une DSN. La seule sortie du moteur qui declare quelque chose.
+/// Depose une DSN. La seule sortie du moteur qui declare quelque chose.
 ///
 /// L'ORDRE COMPTE : 1. lire le fichier ; 2. verifier que le mode demande colle a la nature codee dedans ;
 /// 3. exiger la preuve (reel) ; 4. exiger la REPETITION (reel, `contournement` pour la sortie de secours) ;
@@ -535,7 +535,7 @@ pub fn deposer_dsn_dans(
         // UN SIGNALEMENT N'EST PAS CONCERNE : plusieurs peuvent partir le meme mois.
         if !apercu.est_signalement() {
             let mut etat_mois = etats::etat_dsn_du_mois(&lignes, &mois, &nic, &principal)?;
-            // L'ANNULE-ET-REMPLACE EN REGLE PART SANS QU'ON FORCE RIEN (30/09/2026).
+            // L'ANNULE-ET-REMPLACE EN REGLE PART SANS QU'ON FORCE RIEN.
             if verifier_depot_remplacement(ctx, &mois, &apercu, &nic)? {
                 etat_mois = Value::Null;
             }
@@ -551,7 +551,7 @@ pub fn deposer_dsn_dans(
                 ));
             }
         }
-        // LA PAIE A CHANGE DEPUIS L'ECRITURE (30/09/2026) : le fichier est peut-etre conforme a son test, il ne
+        // LA PAIE A CHANGE DEPUIS L'ECRITURE : le fichier est peut-etre conforme a son test, il ne
         // declare plus la paie.
         let change = if apercu.est_signalement() {
             None
@@ -612,7 +612,7 @@ pub fn deposer_dsn_dans(
 
 // ----------------------------------------------------------------------- la DPAE
 
-/// `operations_declarations.deposer_dpae` : depose une DPAE. Meme ordre, memes regles que la DSN. La DPAE
+/// Depose une DPAE. Meme ordre, memes regles que la DSN. La DPAE
 /// declare des EMBAUCHES, et le journal retient lesquelles (salarie, premier jour).
 pub fn deposer_dpae(
     ctx: &Contexte,

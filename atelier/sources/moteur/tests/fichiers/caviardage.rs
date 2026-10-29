@@ -1,4 +1,4 @@
-//! `caviardage` (lot E1 du plan d'import des bulletins) : rien de personnel ne reste d'un texte de
+//! `caviardage` : rien de personnel ne reste d'un texte de
 //! bulletin, et ce dont l'editeur a besoin (montants, taux, dates de periode, libelles, numero
 //! d'objet, Siret, NAF) reste.
 //!

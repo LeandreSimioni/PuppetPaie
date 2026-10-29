@@ -1,4 +1,4 @@
-//! `moteur archiver MOIS [--racine-drive NOM]` : deposer les sorties d'un mois dans le Drive (`moteur/cli.py`, `cmd_archiver`).
+//! `moteur archiver MOIS [--racine-drive NOM]` : deposer les sorties d'un mois dans le Drive.
 //! `archivage::archiver` fait le travail ; le jeton est lu au coffre par le client Drive, jamais passe par la commande.
 //!
 //! Dans `moteur-atelier`, hors compagnie fictive, la commande exige le faux Google (`PUPPETPAIE_ATELIER_GOOGLE`).

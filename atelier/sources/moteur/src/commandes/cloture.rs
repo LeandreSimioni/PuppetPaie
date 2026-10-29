@@ -1,5 +1,5 @@
 //! `moteur cloture [ANNEE] [--rouvrir] [--forcer] [--json]` : cloturer un exercice (le zip de l'annee), le rouvrir, ou dire l'etat de
-//! chaque exercice (`moteur/commandes_exercice.py`, `cmd_cloture`). Routes `exercices` (l'etat), `cloture` (cloturer, rouvrir ;
+//! chaque exercice. Routes `exercices` (l'etat), `cloture` (cloturer, rouvrir ;
 //! `exercice_ecrit.rs`). `qui` : `cli`, comme le Python.
 //!
 //! Sans annee : l'etat de chaque exercice (lecture seule). Avec une annee : fige l'exercice (`config/exercices.json`) et ecrit

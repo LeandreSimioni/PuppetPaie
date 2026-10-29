@@ -1,5 +1,5 @@
 //! `moteur coffre [etat|poser|oublier|ouverture|verifier|seance]` : les mots de passe des organismes, scelles sur le disque
-//! (`moteur/commandes_ouverture.py`, `cmd_coffre`). Jamais une valeur dans une sortie.
+//!. Jamais une valeur dans une sortie.
 //!
 //! LE COFFRE, ET COMMENT IL EST TENU ICI.
 //!

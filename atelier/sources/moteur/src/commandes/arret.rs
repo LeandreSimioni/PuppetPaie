@@ -1,11 +1,11 @@
 //! `moteur arret [liste|motifs|contrats|saisir|reprise|prolonger|maintien|signaler|oublier|connu|declare] [SALARIE] [options] [--json]` : les arrets de travail, de la
-//! saisie au signalement (`moteur/commandes_arrets.py`). RIEN NE PART D'ICI : `signaler` ECRIT un fichier, c'est `moteur depot-dsn`
+//! saisie au signalement. RIEN NE PART D'ICI : `signaler` ECRIT un fichier, c'est `moteur depot-dsn`
 //! qui le depose.
 //!
 //! Chaque verbe passe par une route du moteur : `arrets` (la liste), `arret-contrats`, `arret-enregistrer` (`saisir`),
 //! `arret-reprise`, `arret-prolonger` (`prolonger` : l'avis de prolongation, `--fin`, et la fin de subrogation, `--subrogation-fin`),
 //! `arret-maintien` (`maintien` : le complement de salaire d'un mois, les jours deja indemnises), `arret-signaler`,
-//! `arret-oublier`. Les arrets vivent dans le magasin des imprevus (`imprevus`). `connu` et `declare` (15/10/2026) : `arret-connaissance`
+//! `arret-oublier`. Les arrets vivent dans le magasin des imprevus (`imprevus`). `connu` et `declare` : `arret-connaissance`
 //! (le jour ou la compagnie a su l'arret ou l'accident), `accident-declare` (la declaration d'accident du travail faite, hors DSN) et,
 //! avec `--attestation`, `attestation-declare` (l'attestation de salaire faite hors DSN, pour un deuil d'enfant) ; les
 //! obligations de chaque arret, leur delai et leur etat, sont celles que la route `arrets` rend (`obligations.rs`). Les motifs et le « oui/non » de la subrogation se lisent dans

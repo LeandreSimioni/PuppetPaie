@@ -1,5 +1,5 @@
 //! `moteur emplois [--tous] [--chercher MOT] [--autres] [--ajouter CODE ...] [--retirer CODE ...] [--json]` : le catalogue des metiers
-//! (`moteur/cli.py`, `cmd_emplois`). `--ajouter` / `--retirer` mettent au deroulant (ou en otent) des metiers d'une autre
+//!. `--ajouter` / `--retirer` mettent au deroulant (ou en otent) des metiers d'une autre
 //! convention : route `metiers-ajoutes` (ecrit `config/metiers-ajoutes.json`, une preference d'affichage, rien ne part).
 //!
 //! `--tous` (la nomenclature France Travail entiere, 1 236 codes) n'est PAS porte : `emplois::catalogue` n'a pas de nomenclature.

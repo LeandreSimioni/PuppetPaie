@@ -1,6 +1,6 @@
 //! Les routes de l'interface (`moteur route`) : chaque test monte sa compagnie fictive dans un dossier a lui.
 //!
-//! Un binaire pour tout le groupe (11/10/2026, séance « tests plus rapides ») : moins d'éditions de liens, moins de
+//! Un binaire pour tout le groupe : moins d'éditions de liens, moins de
 //! disque, et les tests des différents fichiers se répartissent sur les cœurs. Un fichier seul :
 //! `cargo nextest run --cargo-profile essais -E 'binary(routes) & test(/^<fichier>::/)'` (le nom du fichier est le nom du module).
 //! Aucun de ces fichiers ne change l'environnement du processus (`set_var`) : ceux qui le font restent seuls dans `tests/`.

@@ -1,5 +1,5 @@
 //! `moteur envoi FICHIER [--sans-navigateur] [--json]` : envoyer a chaque salarie son bulletin, son certificat Conges Spectacles et
-//! son AER (`moteur/cli.py`, `cmd_envoi` ; `operations_documents.preparer_envoi` puis l'envoi de la route `envoyer-documents`).
+//! son AER.
 //!
 //! SANS LA PAGE DU NAVIGATEUR (decision de Leandre, TRI-J0) : le Python servait une page de relecture locale et n'envoyait qu'au
 //! clic. Ici la commande prepare, MONTRE ce qui partirait (les memes lignes que le Python), puis l'envoi est celui du moteur :

@@ -1,5 +1,5 @@
 //! `moteur export-compta ANNEE [--du N] [--au N] [--apercu] [--json]` : le journal de paie de l'annee, pour la comptabilite
-//! (`moteur/commandes_exercice.py`, `cmd_export_compta` ; `operations_exercice.export_compta`). Route `export-compta`
+//!. Route `export-compta`
 //! (`exercice_ecrit::export_compta_charge`). Ecrit `exports/` ... `Compta_AAAA.csv` sauf `--apercu` ; rien n'est lu au coffre.
 //!
 //! Le texte rend le chemin ECRIT en entier (le JSON n'en rend que le nom), comme le Python.

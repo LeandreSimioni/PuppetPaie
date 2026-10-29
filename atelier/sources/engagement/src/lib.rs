@@ -888,7 +888,7 @@ fn nature_de(e: &Value, rang: usize, mois: &str) -> Resultat<Arc<Nature>> {
 /// au mois : les lignes de paie du mois, et ce qu'il y a a en dire.
 pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &Value, &str) -> Resultat<(Vec<Value>, Vec<Avis>)>;
 
-/// `operations_paies._saisie_lue` : les engagements d'un fichier de mois,
+/// Les engagements d'un fichier de mois,
 /// construits avant tout calcul. `lignes_permanent` fournit les lignes d'un
 /// engagement paye au mois ; les avertissements rendus vont avec, un jeu par
 /// engagement (vide hors des permanents).

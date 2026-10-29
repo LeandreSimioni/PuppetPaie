@@ -47,7 +47,7 @@ impl Ecriture {
     }
 }
 
-/// `operations_exercice._dernier_jour` : le dernier jour du mois, AAAA-MM-JJ.
+/// Le dernier jour du mois, AAAA-MM-JJ.
 fn dernier_jour(annee: i64, mois: i64) -> R<String> {
     let (a, m) = if mois == 12 { (annee + 1, 1) } else { (annee, mois + 1) };
     let premier = socle::date::Jour::lire(&format!("{:04}-{:02}-01", a, m)).map_err(|x| erreur("ValueError", x))?;
@@ -85,7 +85,7 @@ fn ou_texte(v: Option<&Value>, defaut: &str) -> String {
     }
 }
 
-/// `operations_exercice.ecritures_du_mois` : une ecriture pour le mois, depuis les paies validees.
+/// Une ecriture pour le mois, depuis les paies validees.
 /// Le brut par spectacle, la charge patronale et le tiers par ligne de bulletin, le prelevement a la source retenu
 /// (une dette envers l'Etat, au compte `pas` du plan), le net par salarie -- le net PAYE, apres l'impot, celui du
 /// bulletin. Un identifiant de ligne absent du plan fait refuser : on ne devine pas un compte.
@@ -296,7 +296,7 @@ fn champ_csv(t: &str) -> String {
     }
 }
 
-/// `operations_exercice.csv_compta` : point-virgule, virgule decimale, UTF-8 avec BOM.
+/// Point-virgule, virgule decimale, UTF-8 avec BOM.
 pub fn csv_compta(ecritures: &[Ecriture]) -> Vec<u8> {
     let mut t = String::from("\u{feff}");
     let mut rang = |champs: &[String]| {

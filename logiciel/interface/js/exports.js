@@ -205,7 +205,7 @@ async function lancerDossier(route, apercu) {
 }
 
 /** Les états rangés par famille, dans l'ordre que le moteur donne : une
- *  vingtaine d'états ne se lisent pas en vrac (23/09/2026). */
+ *  vingtaine d'états ne se lisent pas en vrac. */
 function familles(etats) {
   const out = [];
   for (const e of etats) {
@@ -216,7 +216,7 @@ function familles(etats) {
   return out;
 }
 
-/** LES QUESTIONS DE L'ÉTAT CHOISI, et rien d'autre (23/09/2026). L'éditeur :
+/** LES QUESTIONS DE L'ÉTAT CHOISI, et rien d'autre. L'éditeur :
  *  « quand on arrive sur les exports on n'a qu'une case, et selon ce qu'on
  *  choisit on arrive sur ce qui est pertinent ». Quelles questions, quel
  *  bouton, un aperçu ou non : c'est le moteur qui le dit (`FORMES`). */
@@ -308,7 +308,7 @@ function dessinerQuestions(opt) {
   };
 }
 
-/** LE LOGICIEL DU COMPTABLE (23/09/2026). Choisi une fois, retenu par le
+/** LE LOGICIEL DU COMPTABLE. Choisi une fois, retenu par le
  *  moteur (config/compta.json) : il fixe le format, et le menu des formats
  *  s'efface. La case d'analytique ne vaut que pour les formats qui la
  *  portent. Ce que le plan comptable ne tiendrait pas dans ce format est dit
@@ -514,7 +514,7 @@ function dessinerCasc(r) {
   };
 }
 
-/** UN ÉTAT DE LA MACHINERIE COMMUNE (23/09/2026) : ses colonnes, ses
+/** UN ÉTAT DE LA MACHINERIE COMMUNE : ses colonnes, ses
  *  sections et ses totaux viennent du moteur (`tableaux.Tableau`). La page ne
  *  sait rien de chaque état : un état neuf s'affiche sans qu'on touche ici. */
 function dessinerTableau(r, apercu) {

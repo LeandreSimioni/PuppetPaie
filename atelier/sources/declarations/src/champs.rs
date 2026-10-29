@@ -436,7 +436,7 @@ pub fn normaliser(c: &Champ, valeur: &Value) -> R<Value> {
     }))
 }
 
-// Plus de defauts (10/10/2026) : `statut_conventionnel` et `statut_categoriel_rc` se montraient a 05 et
+// Plus de defauts : `statut_conventionnel` et `statut_categoriel_rc` se montraient a 05 et
 // 04 sur une fiche qui ne les portait pas, et l'import les ecrivait ainsi. Ils se lisent du metier ou se saisissent ;
 // la DSN refuse ce qui ne se lit pas (`dsn::statuts_du_contrat`).
 
@@ -522,7 +522,7 @@ fn comme_la_page(v: Option<&Value>) -> String {
 /// UNE CONDITION DE `champs-base.json` (`si`, `exige_si`) remplie par la fiche `donnees` : chaque cle de la condition
 /// vaut l'une des valeurs listees ; `"*"` admet toute valeur non vide (et pas `false`). LA MEME REGLE que la page applique
 /// pour replier un champ (`fiche.js`, `conditionRemplie`) : un manque de « Pour demarrer » et un refus de la DSN se
-/// jugent sur ce que l'ecran montre (#236, « aucun manque ne pointe vers un champ masque »). Une condition absente est
+/// jugent sur ce que l'ecran montre. Une condition absente est
 /// remplie.
 pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
     let Some(o) = si.as_object() else { return true };

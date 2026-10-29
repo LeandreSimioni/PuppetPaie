@@ -375,7 +375,7 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
             l.phrases.push(format!("{} taux de prélèvement à la source communiqué{}.", n, if n > 1 { "s" } else { "" }));
         }
         l.anomalies = r["anomalies"].as_array().cloned().unwrap_or_default();
-        // LE VERDICT EST CELUI DE LA PIECE (21/10/2026) : France Travail publie son compte rendu « cinéma, spectacle »
+        // LE VERDICT EST CELUI DE LA PIECE : France Travail publie son compte rendu « cinéma, spectacle »
         // (nature 45) toujours au statut ANOBLOQUANTE, même quand il ne relève rien (guide « De la DSN à l'attestation
         // employeur », v3.2, p. 10, dépose dans `net-entreprises-base-connaissances/`). Ce que dit la piece passe devant.
         let etats: Vec<String> = std::iter::once(valeur_en_texte(&r["etat_envoi"]))

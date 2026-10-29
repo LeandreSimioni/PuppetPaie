@@ -1,5 +1,5 @@
 //! `moteur signatures [--mois AAAA-MM] [--json]` : relever maintenant les reponses « Je signe » dans la boite courriel
-//! (`moteur/commandes_ouverture.py`, `cmd_signatures`). Route `signatures-relever` : la releve, le journal, la preuve archivee, le
+//!. Route `signatures-relever` : la releve, le journal, la preuve archivee, le
 //! contrat contresigne et son renvoi. `qui` : `ligne de commande`, comme le Python.
 //!
 //! Code de sortie : 1 quand la releve a rencontre un incident, 0 sinon.

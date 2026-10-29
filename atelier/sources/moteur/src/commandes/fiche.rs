@@ -1,4 +1,4 @@
-//! `moteur fiche [--archives] [--json]` : rappeler les donnees de reference (`moteur/cli.py`, `cmd_fiche`).
+//! `moteur fiche [--archives] [--json]` : rappeler les donnees de reference.
 //! Elle lit le `Contexte` ; rien ne s'ecrit.
 
 use std::collections::BTreeSet;

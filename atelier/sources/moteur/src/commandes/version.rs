@@ -1,4 +1,4 @@
-//! `moteur version [--json]` : la version du logiciel, et ce qui est pret (`moteur/commandes_maj.py`, `cmd_version`). La route
+//! `moteur version [--json]` : la version du logiciel, et ce qui est pret. La route
 //! `maj-etat` fait le travail. `--controle` (il verifiait que le code Python s'importe en entier) n'a plus d'objet : le
 //! moteur est un seul programme.
 

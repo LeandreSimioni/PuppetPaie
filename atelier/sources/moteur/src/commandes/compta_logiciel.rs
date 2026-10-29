@@ -1,5 +1,5 @@
 //! `moteur compta-logiciel [LOGICIEL|aucun] [--analytique]` : le logiciel du comptable, retenu pour les ecritures comptables, et ce
-//! que le plan comptable ne tiendrait pas dans son format (`moteur/commandes_exports.py`, `cmd_compta_logiciel`). Sans argument :
+//! que le plan comptable ne tiendrait pas dans son format. Sans argument :
 //! ce qui est retenu (lecture seule) ; avec : route `retenir-logiciel` (ecrit `config/compta.json` -- un reglage, pas un depot : pas de
 //! mot de passe). `aucun` retire le choix. La sortie est toujours le texte du Python : `--json` est accepte et sans effet, comme lui.
 //!

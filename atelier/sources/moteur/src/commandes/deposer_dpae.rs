@@ -1,5 +1,5 @@
 //! `moteur deposer-dpae FICHIER [--test | --reel] [--confirmer AAAA-MM] [--majuscules] [--sans-repetition MOTIF] [--fenetre]` :
-//! deposer une DPAE deja produite (`moteur/commandes_dpae.py`, `cmd_deposer_dpae`). ESSAI A BLANC par defaut : sans `--test` ni
+//! deposer une DPAE deja produite. ESSAI A BLANC par defaut : sans `--test` ni
 //! `--reel`, la commande relit le fichier, affiche chaque personne declaree, verifie les delais, et s'arrete.
 //!
 //! Les garde-fous sont ceux du moteur (`depot_acte::deposer_dpae`), jamais ceux de la commande :

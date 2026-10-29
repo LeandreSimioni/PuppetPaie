@@ -39,7 +39,7 @@
 //!    fete legale (`echeance_dsn::non_ouvre`).
 //! 6. Tout autre organisme sans S21.G00.20.011 : aucun texte depose ne dit son jour. Le logiciel le dit.
 //!
-//! LE TROP-VERSE (21/10/2026) : un ordre n'est jamais negatif ; quand une correction a la baisse laisse un credit, l'ordre
+//! LE TROP-VERSE : un ordre n'est jamais negatif ; quand une correction a la baisse laisse un credit, l'ordre
 //! le dit, avec ce que la compagnie en fait (`credit`). Le credit se LIT dans le fichier, a la maille ou la norme le
 //! porte : les bordereaux negatifs des mois corriges (22.005) pour l'Urssaf, les composants (55.001) pour un organisme
 //! complementaire, le prelevement retenu (50.009 et 56.007) pour la DGFiP, les cotisations individuelles (81.004) de

@@ -450,7 +450,7 @@ pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<V
     Ok(out)
 }
 
-/// `operations_documents._ent_du_mois` : la fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
+/// La fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
 pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
     let licence = ctx.licence(&Jour::lire(&format!("{}-01", mois.get(..7).ok_or("mois illisible")?))?)?;
     let mut ent = ctx.entreprise.clone();

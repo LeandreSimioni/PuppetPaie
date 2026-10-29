@@ -7,7 +7,7 @@
 
 let ETATS_ENGAGEMENTS = null;      // "clé|début|rang" → les quatre actes ; null = pas lu
 
-/* LES JUMEAUX (09/10/2026) : deux contrats du même salarié qui commencent le
+/* LES JUMEAUX : deux contrats du même salarié qui commencent le
    même jour ne se confondent pas. Le moteur les identifie par leur numéro
    quand il est posé, sinon par leur RANG parmi ceux du même salarié et du
    même jour, dans l'ordre du fichier (`jumeaux.rs`) — et le fichier suit
@@ -208,7 +208,7 @@ function peindreEtats() {
       // d'abord » : le bouton n'existe plus, l'enregistrement se fait tout
       // seul une seconde après la frappe, et il n'y a donc rien à faire —
       // seulement à attendre que l'écran se rattrape.
-      // Plus de message ici (30/09/2026) : « Pas encore dans la saisie
+      // Plus de message ici : « Pas encore dans la saisie
       // enregistrée… » s'affichait en orange sur chaque carte à l'ouverture,
       // le temps d'un aller-retour, et se lisait comme un souci.
       cible.innerHTML = `<div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`;
@@ -217,7 +217,7 @@ function peindreEtats() {
     }
     if (lignes.length === 1) {
       const ligne = lignes[0];
-      // Un contrat sur plusieurs mois : son chevron est au bord de la case (#127, `poserChevrons`).
+      // Un contrat sur plusieurs mois : son chevron est au bord de la case.
       div._ligne = ligne;
       const dp = ligne.etats.dpae || {};
       if (dp.fait && !dp.refusee) {
@@ -534,7 +534,7 @@ function boiteModifier(ligne) {
   };
 }
 
-/* LA DPAE NE SE DIT QUE SUR CE QU'ELLE DÉCLARE (30/09/2026). L'utilisateur :
+/* LA DPAE NE SE DIT QUE SUR CE QU'ELLE DÉCLARE. L'utilisateur :
  * l'avertissement doit correspondre aux vraies attentes de la DPAE, rien
  * d'inventé. Ce qu'elle déclare, c'est R1221-1 du code du travail : le
  * salarié, la date et l'heure d'embauche, la nature et la durée du contrat
@@ -581,7 +581,7 @@ function avisDpaeDeplacee(div, ps, ligne) {
     <a href="${URSSAF_DPAE}" target="_blank" rel="noopener">La page de l'Urssaf</a>`;
 }
 
-/* PLUS DE CASE DE SÉLECTION NI DE BARRE D'ACTIONS GROUPÉES (15/09/2026) :
+/* PLUS DE CASE DE SÉLECTION NI DE BARRE D'ACTIONS GROUPÉES :
  * « on pourrait enlever la petite coche de sélection, tout se fait
  * directement quand on clique sur le bouton déposer DPAE ou demander les
  * signatures ». Les deux boîtes de la colonne de droite listent chaque

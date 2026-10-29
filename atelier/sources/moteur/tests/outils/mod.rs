@@ -147,7 +147,7 @@ pub fn saisie(racine: &Path, mois: &str) -> Value {
 
 
 
-/// Le rejeu d'un scenario du banc d'essai et le releve de ses sorties (#236, phase 2).
+/// Le rejeu d'un scenario du banc d'essai et le releve de ses sorties.
 pub mod rejeu;
 
 // ------------------------------------------------------------------ la route

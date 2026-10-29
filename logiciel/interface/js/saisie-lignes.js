@@ -23,7 +23,7 @@ function optionsRubriques(choisie, nat) {
       ${echapper(r.libelle)}</option>`).join("");
 }
 
-/* LES LISTES COMMUNES SE FABRIQUENT UNE FOIS (16/10/2026). Les rubriques, les
+/* LES LISTES COMMUNES SE FABRIQUENT UNE FOIS. Les rubriques, les
  * métiers (deux cents options), les natures, les spectacles, les salariés à
  * cocher : la même liste dans chaque carte, et chaque carte la refabriquait —
  * échapper, assembler, analyser. Elle se fabrique une fois par source (les
@@ -313,7 +313,7 @@ function fermerCalendriers() {
 function ouvrirCalendrier(ligne, moisForce) {
   fermerCalendriers();
   // `moisForce` : la correction d'un mois deja depose se coche dans SON mois,
-  // pas dans celui qu'affiche l'ecran de paie (18/09/2026).
+  // pas dans celui qu'affiche l'ecran de paie.
   const mois = moisForce || document.getElementById("mois").value;
   if (!mois) { dire("Choisir le mois d'abord."); return; }
   const bloc = ligne.closest(".engagement");
@@ -551,8 +551,8 @@ let SAISIE_DATE_PAIEMENT = "";   // celle du fichier, ou celle que le moteur pro
 
 /** Le jour d'une date écrite d'une façon ou de l'autre — « 2026-10-02 » ou
  *  {"jour": "2026-10-02", "lieu": "Berlin"}. */
-/* CE QU'UN ENGAGEMENT PEUT PORTER ET QUE LA SAISIE COURANTE NE DEMANDE PAS
- * (16/10/2026). Le moteur lit ces champs dans la saisie (`engagement::
+/* CE QU'UN ENGAGEMENT PEUT PORTER ET QUE LA SAISIE COURANTE NE DEMANDE PAS.
+ * Le moteur lit ces champs dans la saisie (`engagement::
  * engagements`, `solde.rs`) ; un contrat repris, un import, une saisie à la
  * main les écrivent. « Rien de remplissable s'il n'y a pas à le remplir » :
  * chacun n'apparaît dans « Plus d'options » que s'il a une valeur — et alors
@@ -624,7 +624,7 @@ function poserAvant(div, e) {
   majAvenant(div);
 }
 
-/* L'AVENANT NE SE PROPOSE QU'À UN CONTRAT QUI EXISTE DÉJÀ (#236, 23/10/2026).
+/* L'AVENANT NE SE PROPOSE QU'À UN CONTRAT QUI EXISTE DÉJÀ.
  * Un CDI saisi pour la première fois montrait « Avenant à compter du » : rien
  * à remplir, puisque ce qu'on tape ce mois-ci, ce sont les termes du contrat.
  * La case paraît quand le contrat a commencé avant le mois affiché — c'est ce
@@ -1219,7 +1219,7 @@ function majNature(div) {
                      || div.querySelector(".e-fin").value);
   const bornes = !!nat.mensuelle || ecrites;
   div.querySelectorAll(".e-borne").forEach((l) => { l.hidden = !bornes; });
-  // UN CONTRAT AU MOIS DIT SES BORNES (#236, 23/10/2026) : son début (et la fin
+  // UN CONTRAT AU MOIS DIT SES BORNES : son début (et la fin
   // d'un CDD) ne se déduit d'aucun jour coché, et le moteur refuse sans lui.
   // Tant qu'il manque, le contrat s'ouvre de lui-même — un testeur ne va pas
   // chercher sous « Plus d'options » ce qu'on exige de lui.
@@ -1443,7 +1443,7 @@ function rafraichirReferentiels() {
 function nouvelleFiche(nom) {
   // Les onglets redessinent APRES coup (leurs gestionnaires attendent
   // `quitterLaFiche`) : sans cette marque, `dessinerConfig` effacait la
-  // fiche neuve qu'on venait d'ouvrir (23/09/2026).
+  // fiche neuve qu'on venait d'ouvrir.
   const onglet = document.querySelector('.onglets button[data-vue="configuration"]');
   const sous = document.querySelector(`.sous-onglets button[data-fiche="${nom}"]`);
   if (!onglet.classList.contains("actif")) onglet.click();
@@ -1506,7 +1506,7 @@ function dedoubler(div) {
 }
 
 /** Les lignes de paie d'un bloc, telles qu'elles sont saisies. */
-/* VISER UN MONTANT SANS TAUX (24/09/2026). Une ligne sans taux ne part pas
+/* VISER UN MONTANT SANS TAUX. Une ligne sans taux ne part pas
  * dans la saisie -- elle est incomplete. Sauf pour « Viser un montant » :
  * le taux est justement ce qu'on cherche, et le moteur le trouve seul quand
  * il n'y a qu'une ligne de salaire (`_poser_taux_provisoires`). */
@@ -1594,7 +1594,7 @@ async function poserContratsEnCours(mois) {
     // coché son planning. Sinon une ligne de cachets, à dater.
     const e = { ...(c.engagement || {}), salarie: c.salarie, spectacle: c.spectacle,
                 debut: c.debut, fin: c.fin, numero: c.numero };
-    // UN CONTRAT PAYÉ AU MOIS N'A PAS DE CACHET (09/10/2026) : le moteur le
+    // UN CONTRAT PAYÉ AU MOIS N'A PAS DE CACHET : le moteur le
     // reprend avec sa nature et ce qui la définit, sans lignes — il compose
     // chaque mois les siennes (`conges::lignes_du_mois`), et une ligne écrite
     // remplacerait son salaire mensuel.

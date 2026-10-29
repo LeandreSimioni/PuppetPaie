@@ -358,7 +358,7 @@ fn jours_sur_les_lignes(
     Ok(lignes)
 }
 
-/// Ce que la page propose quand la saisie ne le dit pas (#140, regle 2 : la page ne le decide pas) :
+/// Ce que la page propose quand la saisie ne le dit pas :
 /// - `taux_cachet` : le taux d'une ligne de cachet neuve, celui du dernier cachet de CE mois, sinon son
 ///   `taux_cachet`, sinon le dernier taux saisi du dossier (`dernier_taux`), sinon rien (`null`) ;
 /// - `date_paiement` : la fin du mois, la date de paiement d'un mois qui n'en dit pas (celle du squelette).
@@ -381,7 +381,7 @@ fn defauts_de_la_saisie(ctx: &Contexte, mois: &str, saisie: &Value) -> Value {
     json!({"taux_cachet": taux, "date_paiement": date_paiement})
 }
 
-/// LE SPECTACLE ET LE LIEU DU MOIS DESCENDENT SUR CHAQUE ENGAGEMENT (16/10/2026). Une saisie peut les ecrire au niveau
+/// LE SPECTACLE ET LE LIEU DU MOIS DESCENDENT SUR CHAQUE ENGAGEMENT. Une saisie peut les ecrire au niveau
 /// du mois, comme defaut de ses engagements (`engagement::engagements` : `ou(e.spectacle, data.spectacle)`,
 /// `e.lieu or data.lieu`) ; l'ecran, lui, montre le spectacle d'un engagement et le lieu d'un contrat, et n'ecrit que ce
 /// qu'il montre. Ils sont donc poses sur chaque engagement qui ne dit pas le sien -- le spectacle seulement sur un
@@ -418,7 +418,7 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
             saisie[k] = v;
         }
     }
-    // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE (21/10/2026) n'est pas ferme : sa paie se modifie, en le
+    // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE n'est pas ferme : sa paie se modifie, en le
     // confirmant a la premiere modification (`crate::regularisation::modification_de_la_paie`) -- il n'est pas en retard.
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let dsn_deposee = crate::regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;

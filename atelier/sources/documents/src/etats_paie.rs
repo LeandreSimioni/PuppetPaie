@@ -51,7 +51,7 @@ pub fn mois_abrege(i: usize) -> String {
 
 // ------------------------------------------------------------------ ou ca s'ecrit
 
-/// `operations_exports.dossier_exports` : `exports/`, et le sous-dossier de l'annee quand il y en a une.
+/// `exports/`, et le sous-dossier de l'annee quand il y en a une.
 pub fn dossier_exports(ctx: &Contexte, annee: Option<&str>) -> PathBuf {
     let d = ctx.racine.join("exports");
     match annee {
@@ -62,7 +62,7 @@ pub fn dossier_exports(ctx: &Contexte, annee: Option<&str>) -> PathBuf {
 
 // ------------------------------------------------------------------ la periode
 
-/// `operations_etats.Periode` : ce qu'on a demande, les mois qu'on a, et d'ou ils viennent.
+/// Ce qu'on a demande, les mois qu'on a, et d'ou ils viennent.
 pub struct Periode {
     pub dispo: BTreeMap<String, &'static str>,
     pub un_mois: Option<String>,
@@ -161,7 +161,7 @@ impl Periode {
     }
 }
 
-/// `operations_exports._mois_pris` : les mois demandes qu'on sait exporter -- et le refus qui dit lequel manque.
+/// Les mois demandes qu'on sait exporter -- et le refus qui dit lequel manque.
 fn mois_pris(dispo: &BTreeMap<String, &'static str>, mois: &Option<String>, annee: &Option<String>, toutes: bool) -> R<Vec<String>> {
     if toutes {
         if dispo.is_empty() {
@@ -823,7 +823,7 @@ fn cle_tri(l: &Ligne, cles: &[&str]) -> Vec<String> {
 
 // =========================================================== 1. le livre de paie detaille
 
-/// `operations_etats.livre_detaille` : chaque bulletin ligne a ligne -- la remuneration, puis chaque cotisation,
+/// Chaque bulletin ligne a ligne -- la remuneration, puis chaque cotisation,
 /// base, taux et montants.
 pub fn livre_detaille(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
@@ -974,7 +974,7 @@ pub fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ================================================== 3. la masse salariale par mois
 
-/// `operations_etats.masse_salariale` : un mois par ligne -- ce que le comptable rapproche du compte 641.
+/// Un mois par ligne -- ce que le comptable rapproche du compte 641.
 pub fn masse_salariale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
@@ -1048,7 +1048,7 @@ pub fn masse_salariale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ===================================================== 4. l'etat des virements
 
-/// `operations_etats.etat_des_virements` : le net a verser, salarie par salarie et mois par mois.
+/// Le net a verser, salarie par salarie et mois par mois.
 pub fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
@@ -1105,7 +1105,7 @@ fn type_de_taux(code: &str) -> &'static str {
     }
 }
 
-/// `operations_etats.prelevement_a_la_source` : ce qui a ete retenu au titre de l'impot sur le revenu.
+/// Ce qui a ete retenu au titre de l'impot sur le revenu.
 pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let (mut avert, mut lignes, mut sans) = (Vec::new(), Vec::new(), Vec::new());
@@ -1290,7 +1290,7 @@ pub fn assiettes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // =============================================== 11. les heures et les cachets
 
-/// `operations_etats.heures_et_cachets` : contrat par contrat, cachets, heures retenues pour les annexes 8 et 10,
+/// Contrat par contrat, cachets, heures retenues pour les annexes 8 et 10,
 /// jours travailles, brut, lus dans les paies ecrites des engagements valides.
 pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, false)?;
@@ -1346,7 +1346,7 @@ pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // =============================================== 12. le cout par spectacle
 
-/// `operations_etats.cout_par_spectacle` : chaque spectacle, salarie par salarie.
+/// Chaque spectacle, salarie par salarie.
 pub fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();

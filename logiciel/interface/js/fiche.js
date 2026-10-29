@@ -13,7 +13,7 @@ function dessinerFormulaire(fiche) {
   if (!fiche) return;
   FICHE_COURANTE = fiche;
   const desc = ETAT.configuration.description[FICHE_ACTIVE];
-  // CE QUE LA CASE « Emploie des permanents » OUVRE (22/09/2026). Les
+  // CE QUE LA CASE « Emploie des permanents » OUVRE. Les
   // champs qui ne servent qu'aux permanents restent dans le formulaire —
   // avec leur valeur, qui repart à l'enregistrement — mais ne se montrent
   // qu'à qui a dit en employer. Une case affichée est une case à remplir, à
@@ -21,14 +21,14 @@ function dessinerFormulaire(fiche) {
   // cachetier n'a jamais rien à dire.
   const avecPermanents = !!(ETAT.configuration || {}).permanents;
   // Une compagnie à un seul établissement ne voit pas la case « Établissement »
-  // du salarié (25/09/2026) : la question ne se pose pas.
+  // du salarié : la question ne se pose pas.
   const avecEtablissements = !!(ETAT.configuration || {}).etablissements;
   // Une case obligatoire encore vide n'est pas une faute tant qu'on n'a pas
   // essayé d'enregistrer : l'astérisque le dit (`aRemplir`).
   const anomalie = (cle) => fiche.anomalies.find((a) => a.champ === cle && !aRemplir(a));
 
   // Les champs CALCULES ne sont pas proposes a la saisie : c'est le
-  // programme qui les fabrique. ET ILS NE SE MONTRENT PLUS (23/09/2026) :
+  // programme qui les fabrique. ET ILS NE SE MONTRENT PLUS :
   // `COMPAGNIE DU FIL` sous « Compagnie du Fil », c'etait faire lire a
   // l'utilisateur la forme de la DSN. L'editeur : « ça, les gens s'en
   // fichent ». Le moteur la fabrique, et ne revient vers l'humain que si
@@ -53,7 +53,7 @@ function dessinerFormulaire(fiche) {
   // convention décide, et elle ne change pas pendant qu'on remplit la fiche
   // d'un salarié. Le champ est posé, replié — il garde sa valeur.
   const entreprise = ((ETAT.configuration || {}).entreprise || {}).donnees || {};
-  // TOUTES LES CONDITIONS AU MÊME ENDROIT (26/09/2026) : les chemins de
+  // TOUTES LES CONDITIONS AU MÊME ENDROIT : les chemins de
   // dessin (liste de choix, case, structure, champ simple) ne posaient pas
   // tous la marque des permanents — « Jours fériés chômés » se montrait à
   // une compagnie sans salarié au mois. Elle se pose ici, sur ce que chacun
@@ -102,13 +102,13 @@ function dessinerFormulaire(fiche) {
     // (`web._conventions`, section `par_convention` du socle) : l'ecran
     // n'invente ni un numero ni un libelle, et il DIT quand une convention
     // existe sans que ses taux soient releves -- le calcul la refuse.
-    // LE CODE URSSAF SE CHOISIT (22/09/2026). Trois chiffres a taper, dont
+    // LE CODE URSSAF SE CHOISIT. Trois chiffres a taper, dont
     // personne ne sait ou ils se trouvent, et qu'un rejet de DPAE signale
     // des jours plus tard. La liste est celle de la Table des Urssaf, relevee
     // et datee (`donnees/urssaf-dpae-base.json`). Elle ne dit PAS quel organisme couvre
     // quel territoire : l'ecran ne le devine donc pas depuis le code postal,
     // il propose, et l'aide dit ou lire le code.
-    // LA SIGNATURE DES COURRIELS SE COLLE (08/10/2026) : un cadre qui garde la
+    // LA SIGNATURE DES COURRIELS SE COLLE : un cadre qui garde la
     // mise en forme copiee depuis une messagerie, son poids sous le cadre. Le
     // HTML part dans un champ cache ; le moteur le nettoie encore a l'envoi.
     if (c.cle === "courriel_signature") {
@@ -200,7 +200,7 @@ function dessinerFormulaire(fiche) {
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
       </div>`;
     }
-    // UNE LISTE DE CHOIX SE CHOISIT (23/09/2026) : l'annexe s'ecrivait « 4 »
+    // UNE LISTE DE CHOIX SE CHOISIT : l'annexe s'ecrivait « 4 »
     // a la main, le CSE « cse_adherent_fnas ».
     // La fiche salarie a suivi le meme jour : le sexe s'ecrivait « 2 », la
     // nationalite « 01 », le statut cadre « 04 ».
@@ -230,7 +230,7 @@ function dessinerFormulaire(fiche) {
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
       </div>`;
     }
-    // LES AUTRES NOMS D'UN SPECTACLE (23/09/2026) : une liste de mots, qui
+    // LES AUTRES NOMS D'UN SPECTACLE : une liste de mots, qui
     // s'affichait en JSON, crochets et guillemets compris. Une ligne, les
     // noms separes par des virgules ; `lireFormulaire` refait la liste.
     if (c.cle === "alias" && FICHE_ACTIVE === "spectacle"
@@ -349,7 +349,7 @@ function dessinerFormulaire(fiche) {
       const entete = opt.metier ? METIER_HTML(fiche) : opt.sante ? SANTE_HTML()
         : opt.atmp ? ATMP_HTML() : "";
       const permanents = toute || opt.sante;
-      // LE BLOC DU SALARIÉ AU MOIS NE S'OUVRE QU'À LUI (26/09/2026). Dans une
+      // LE BLOC DU SALARIÉ AU MOIS NE S'OUVRE QU'À LUI. Dans une
       // compagnie qui emploie aussi des permanents, la fiche d'une comédienne
       // au cachet déroulait sa complémentaire santé et sa prévoyance. Replié
       // pour qui n'a jamais eu de contrat au mois — sauf s'il y a déjà une
@@ -412,7 +412,7 @@ function dessinerFormulaire(fiche) {
       </div>
     </div>`;
 
-  // LA VERIFICATION EST EN DIRECT, ET ELLE EST SEULE (22/09/2026). Il y
+  // LA VERIFICATION EST EN DIRECT, ET ELLE EST SEULE. Il y
   // avait un bouton « Vérifier sans enregistrer » a cote d'« Enregistrer ».
   // Il appelait la MEME fonction que la frappe, a 400 ms pres : un bouton
   // qui ne fait rien de plus que ce qui se fait deja tout seul. L'editeur :
@@ -431,7 +431,7 @@ function dessinerFormulaire(fiche) {
   const choixMetier = document.getElementById("config-metier-choix");
   if (choixMetier) {
     choixMetier.value = (fiche.donnees || {}).code_emploi_ft || "";
-    // L'INTITULÉ SUIT LE MÉTIER (#236, 23/10/2026). Le champ libre « Emploi »
+    // L'INTITULÉ SUIT LE MÉTIER. Le champ libre « Emploi »
     // côtoyait la liste « Métier » : on tapait l'emploi, on ne choisissait pas
     // le métier, et l'enregistrement refusait sur des codes cachés (PCS-ESE,
     // statut). L'intitulé n'apparaît qu'une fois le métier choisi — prérempli
@@ -524,7 +524,7 @@ function brancherSignatureCourriel() {
   peser();
 }
 
-/* CHANGER D'URSSAF SE CONFIRME (08/10/2026). Celle du code postal est
+/* CHANGER D'URSSAF SE CONFIRME. Celle du code postal est
  * celle qui recoit les declarations ; en choisir une autre sans un mot
  * passait inapercu jusqu'au rejet. On demande, et « non » remet l'ancienne. */
 function brancherUrssaf() {
@@ -670,8 +670,8 @@ function brancherConvention() {
     const v = String(idcc.value || "");
     const champAnnexe = annexe && annexe.closest(".champ");
     if (champAnnexe) champAnnexe.hidden = v !== "3090";
-    // CE QUI NE CONCERNE QU'UNE CONVENTION, ET QU'UNE GRANDE STRUCTURE
-    // (23/09/2026). Le CSE decide du FNAS de la CCNEAC ; l'exemption de la
+    // CE QUI NE CONCERNE QU'UNE CONVENTION, ET QU'UNE GRANDE STRUCTURE.
+    // Le CSE decide du FNAS de la CCNEAC ; l'exemption de la
     // CASC-SVP n'existe que dans la 3090, et seulement a cinquante salaries
     // avec un CSE -- qui se dit alors dans le meme champ. Une petite
     // compagnie ne voit ni l'un ni l'autre, sauf s'ils sont deja remplis.
@@ -691,7 +691,7 @@ function brancherConvention() {
   poser();
 }
 
-/*  LE NUMERO DE SECURITE SOCIALE SE COLLE D'UN COUP (23/09/2026)
+/*  LE NUMERO DE SECURITE SOCIALE SE COLLE D'UN COUP
  *
  *  Il s'ecrit en quinze chiffres sur la carte Vitale ; la fiche le garde en
  *  deux cases, le numero et sa cle, parce que la cle VERIFIE le numero (le
@@ -716,13 +716,13 @@ function brancherNir() {
   poser();
 }
 
-/*  CE QUE LA FICHE SALARIE BRANCHE DE PLUS (23/09/2026)
+/*  CE QUE LA FICHE SALARIE BRANCHE DE PLUS
  *
  *  - l'echelon CCNEAC ne se montre que pour une compagnie de la CCNEAC ;
  *  - « Exporter ses documents » mene a l'onglet Exports, le dossier de ce
  *    salarie deja choisi, sur l'annee la plus recente ;
  *  - une fiche neuve peut partir chez la personne, par courriel ;
- *  - ses imprévus (15/10/2026), et la porte pour en saisir un (js/imprevus.js).
+ *  - ses imprévus, et la porte pour en saisir un (js/imprevus.js).
  */
 function brancherSalarie(fiche) {
   if (FICHE_ACTIVE !== "salarie") return;
@@ -817,8 +817,8 @@ function brancherFichesAttendues() {
   });
 }
 
-/** LE CURSEUR DES PERMANENTS, TEL QUE L'ÉCRAN LE MONTRE EN CE MOMENT
- * . C'est la réponse du moteur : celle de la
+/** LE CURSEUR DES PERMANENTS, TEL QUE L'ÉCRAN LE MONTRE EN CE MOMENT.
+ * C'est la réponse du moteur : celle de la
  *  configuration enregistrée (`ETAT.configuration.permanents`), puis, la case
  *  à peine cochée ou décochée, celle de la route `permanents` sur la fiche en
  *  cours. La page ne le déduit jamais elle-même. */
@@ -1062,14 +1062,14 @@ function histoireDuChamp(lignes, desc, donnees) {
   </details>`;
 }
 
-/* MODIFIER, C'EST TOUJOURS LE MEME BOUTON (24/09/2026) : un crayon et le
+/* MODIFIER, C'EST TOUJOURS LE MEME BOUTON : un crayon et le
    mot. Il y en avait trois formes -- un lien rouge « Modifier… » sur les
    paies, un bouton vert au crayon sur les fiches, « Remplacer… » ou
    « Changer… » sur les mots de passe et la signature. Les points de
    suspension disent qu'une boite s'ouvre avant. Voir `.modifier`. */
 const CRAYON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>`;
 
-/* UN MONTANT S'ECRIT D'UNE SEULE FACON (24/09/2026) : « 1 053,08 € ». Le
+/* UN MONTANT S'ECRIT D'UNE SEULE FACON : « 1 053,08 € ». Le
    moteur envoie des nombres (« 210.80 ») ; la page en avait trois mises en
    forme locales, et une dizaine d'endroits montraient le nombre tel quel --
    la boite de depot DSN disait « 210.80 € » a cote d'un apercu en
@@ -1157,7 +1157,7 @@ function lireFormulaire() {
   return d;
 }
 
-/*  CE QUE LE MOTEUR PROPOSE POUR UNE CASE VIDE (22/09/2026)
+/*  CE QUE LE MOTEUR PROPOSE POUR UNE CASE VIDE
  *
  *  Le code Urssaf se déduit du code postal — deux tables relevées, les 101
  *  départements couverts. Mais le rattachement d'une entreprise à une
@@ -1177,7 +1177,7 @@ function lireFormulaire() {
 function appliquerSuggestions(suggestions) {
   Object.entries(suggestions).forEach(([cle, s]) => {
     const champ = document.querySelector(`#config-formulaire [data-cle="${CSS.escape(cle)}"]`);
-    // Le code Urssaf vide vaut deja « celui du code postal » (23/09/2026) :
+    // Le code Urssaf vide vaut deja « celui du code postal » :
     // le remplir ici l'ecrirait dans la fiche, et un demenagement ne le
     // suivrait plus.
     if (cle === "code_urssaf") return;
@@ -1194,7 +1194,7 @@ function appliquerSuggestions(suggestions) {
   });
 }
 
-/*  CE QU'ON A TAPÉ ET PAS ENREGISTRÉ (22/09/2026)
+/*  CE QU'ON A TAPÉ ET PAS ENREGISTRÉ
  *
  *  La page disait, sous les boutons, que l'ancienne version est copiee dans
  *  `config/avant/` — de la plomberie, affichee a quelqu'un qui n'a rien
@@ -1203,7 +1203,7 @@ function appliquerSuggestions(suggestions) {
  *  maintenant. Rien si on n'a rien touche.
  */
 let FICHE_MODIFIEE = false;
-// LA FICHE TELLE QU'ELLE S'EST OUVERTE (08/10/2026). Taper un « a » puis
+// LA FICHE TELLE QU'ELLE S'EST OUVERTE. Taper un « a » puis
 // l'effacer demandait d'enregistrer une fiche identique : on compare
 // maintenant ce qui est dans les cases a ce qui y etait a l'ouverture.
 let FICHE_INITIALE = null;
@@ -1263,7 +1263,7 @@ async function quitterLaFiche() {
         <button class="secondaire" id="q-jeter">Abandonner les modifications</button>
         <button class="secondaire" id="q-rester">Rester sur la fiche</button>
       </div>`, () => repondre("rester"));
-    // REPONDRE D'ABORD, FERMER ENSUITE (22/09/2026). Dans l'autre ordre,
+    // REPONDRE D'ABORD, FERMER ENSUITE. Dans l'autre ordre,
     // `fermerBoite` appelait le rappel de fermeture -- « rester » -- avant le
     // bouton : les trois boutons valaient « Rester sur la fiche ».
     document.getElementById("q-enregistrer").onclick = () => { repondre("enregistrer"); fermerBoite(); };
@@ -1372,7 +1372,7 @@ function valeurLisible(v) {
   return String(v);
 }
 
-/* L'HISTORIQUE D'UN BLOC (24/09/2026). `declarant_dsn` est une structure :
+/* L'HISTORIQUE D'UN BLOC. `declarant_dsn` est une structure :
  * l'historique affichait « [object Object] » quand on avait seulement passe
  * le courriel en minuscules. On ne montre que ce qui a CHANGE, avec le
  * libelle de la case -- « Courriel : CONTACT@EXEMPLE.FR ». Une cle que
@@ -1395,7 +1395,7 @@ function valeurHistorique(champ, avant, apres) {
     .join(" · ");
 }
 
-/* RIEN DE ROUGE (25/09/2026). « On a le droit de changer de métier, je ne sais
+/* RIEN DE ROUGE. « On a le droit de changer de métier, je ne sais
  * même pas pourquoi on mettrait un avertissement. » Un changement de fiche est
  * un geste normal : la boîte ne demande que la date d'effet — c'est elle qui
  * garde aux déclarations déjà faites leur ancienne valeur (fiches datées) —,
@@ -1457,7 +1457,7 @@ function demanderDateDEffet(changements) {
 }
 
 /* `forcer` : l'utilisateur a passé outre un refus, dans la boîte qui le
- * lui propose. Un seul chemin d'écriture, forcé ou non (30/09/2026) : le
+ * lui propose. Un seul chemin d'écriture, forcé ou non : le
  * chemin forcé se contentait de redessiner, et la fiche restait « modifiée »
  * -- quitter l'onglet demandait d'enregistrer ce qui l'était déjà. */
 async function ecrireFiche(fiche, donnees, daté, forcer = false) {
@@ -1471,7 +1471,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
     // spectacle : le mot suffit.
     dire(forcer ? "Enregistré malgré les erreurs." : fiche.cle ? "Enregistré." : "Fiche créée.");
     FICHE_MODIFIEE = false;
-    // ENREGISTRER REFERME LA FICHE (24/09/2026). Elle se redessinait ouverte,
+    // ENREGISTRER REFERME LA FICHE. Elle se redessinait ouverte,
     // identique : rien ne distinguait une fiche enregistree d'une fiche qui
     // ne l'etait pas, et l'editeur attendait qu'elle se ferme. Un salarie ou un
     // spectacle revient a la liste, sa ligne marquee un instant ; la fiche
@@ -1514,7 +1514,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
         erreurs = erreurs.filter((a) => !duMetier.includes(a));
         erreurs.unshift({ champ: "Métier", message: "à choisir dans la liste" });
       }
-      // LE MOTEUR DIT CE QUI SE FORCE (#236, règle 2) : une erreur de forme
+      // LE MOTEUR DIT CE QUI SE FORCE : une erreur de forme
       // (`forcable`), oui ; une valeur obligatoire absente d'un salarié ou d'un
       // spectacle (son métier…), non — sans elle, ni DPAE ni DSN.
       const forcable = e.detail.anomalies.filter((a) => a.gravite === "erreur").every((a) => a.forcable !== false);

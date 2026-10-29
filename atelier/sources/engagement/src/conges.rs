@@ -753,7 +753,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     if !nat.mensuelle() {
         return Err(format!("{} n'est pas un contrat paye au mois : ses lignes se saisissent.", nat.libelle));
     }
-    // LES ABSENCES NE SE SAISISSENT PLUS DANS LE MOIS (15/10/2026) : un arret de travail ou une suspension est un
+    // LES ABSENCES NE SE SAISISSENT PLUS DANS LE MOIS : un arret de travail ou une suspension est un
     // imprevu, saisi une fois sur le salarie (`imprevus`), dont le moteur tire la ligne de chaque mois qu'il traverse.
     if e.get("absences").is_some() {
         return Err(format!(

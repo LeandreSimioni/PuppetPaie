@@ -80,7 +80,7 @@ pub const CHAMPS: [(&str, usize, usize); 14] = [
     ("jours_essai", 884, 887),     // N_JJ_ESSAI, la periode d'essai en jours
 ];
 
-/// L'EMPLOYEUR (24/09/2026). Ces zones restaient celles du gabarit -- un
+/// L'EMPLOYEUR. Ces zones restaient celles du gabarit -- un
 /// enregistrement REEL de la compagnie du poste --, et toute autre compagnie
 /// aurait declare ses embauches sous le SIRET, la raison sociale, l'adresse et
 /// le telephone de celle-la. Releve par les compagnies fictives. Elles
@@ -312,7 +312,7 @@ fn urssaf_existe(code: &str) -> Resultat<bool> {
 
 // -------------------------------------------- ce que la DPAE lit d'une embauche
 
-/// Ce que la DPAE lit d'une embauche (`operations_paies.Embauche` ou `Paie`) :
+/// Ce que la DPAE lit d'une embauche :
 /// la fiche du salarie, le debut et la fin de l'engagement, sa nature, et --
 /// pour le recapitulatif seulement -- le spectacle.
 #[derive(Debug, Clone)]
@@ -386,7 +386,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
                 b - a
             ));
         }
-        // ET LE CODE DOIT EXISTER (22/09/2026). Trois chiffres bien formes
+        // ET LE CODE DOIT EXISTER. Trois chiffres bien formes
         // suffisaient ; le point de depot, lui, repond << Code URSSAF invalide
         // -- n'appartenant pas a la liste des Codes Urssaf >>, des jours plus
         // tard, sur une embauche qui n'est alors pas declaree. La liste est

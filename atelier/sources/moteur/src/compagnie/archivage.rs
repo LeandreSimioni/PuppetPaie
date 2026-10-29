@@ -1,4 +1,4 @@
-//! L'archivage d'un mois dans le Drive (`operations_documents.archiver`).
+//! L'archivage d'un mois dans le Drive.
 //!
 //! Ecrit au lot H4b, non prouve. Les sorties d'un mois (`sorties/<mois>/`, sans le sous-dossier
 //! `envoi/` : memes documents redecoupes par salarie, deja partis) vont dans

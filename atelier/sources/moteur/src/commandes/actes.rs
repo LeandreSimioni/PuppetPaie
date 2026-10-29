@@ -2,7 +2,7 @@
 //! deposer. Ce qu'elles ont en commun avec la consultation (J2a) vit dans `mod.rs`, `analyse.rs` et `rendu.rs` ; ici, ce
 //! que seuls les actes demandent.
 //!
-//! UNE ERREUR METIER EST UNE REPONSE (`moteur/cli.py`) : le Python attrape `ErreurOperation` (et ses filles) et l'ecrit
+//! UNE ERREUR METIER EST UNE REPONSE : le Python attrape `ErreurOperation` (et ses filles) et l'ecrit
 //! en une phrase, `! phrase` et le code 2 -- ou, avec `--json`, `sortie_json.erreur`. Une erreur d'un autre genre est un
 //! plantage (`Cadre::plantage`, code 1). Le Rust ne distingue les classes que par leur nom, rendu par les routes.
 
@@ -11,7 +11,7 @@ use serde_json::Value;
 use super::rendu::{erreur, rendre};
 use socle::echec::Echec;
 
-/// Les classes que le Python attrape comme `ErreurOperation` : elle-meme et ses filles (`operations_*.py`).
+/// Les classes que le Python attrape comme `ErreurOperation` : elle-meme et ses filles.
 const OPERATION: [&str; 28] = [
     "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "CompteursVerrouilles",
     "VersionExigee", "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai",

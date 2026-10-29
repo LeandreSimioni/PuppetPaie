@@ -81,7 +81,7 @@ fn main() -> std::process::ExitCode {
         return std::process::ExitCode::SUCCESS;
     }
     // Sinon le logiciel cherche, en fond, une version plus recente pour l'installation : elle s'appliquera au prochain
-    // lancement (lot U1 : c'est le logiciel qui se met a jour, une fois par installation, pas une compagnie).
+    // lancement.
     moteur::compagnie::maj::chercher_en_fond();
     let (fenetre, port) = match moteur::interface::demarrer(moteur::interface::MINUTES_VEILLE, &prise) {
         Ok(x) => x,

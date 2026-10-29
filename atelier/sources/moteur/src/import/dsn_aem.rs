@@ -1,4 +1,4 @@
-//! `moteur/importation.py` : lire ce que CoolPaie a depose (DSN et AEM), pour ne pas le ressaisir.
+//! Lire ce que CoolPaie a depose (DSN et AEM), pour ne pas le ressaisir.
 //!
 //! Ce module LIT et rend des donnees, comme le Python : il n'ecrit rien. Les DSN se lisent ligne a
 //! ligne en gardant l'individu courant ; les AEM par positions fixes (1000 caracteres, latin-1).

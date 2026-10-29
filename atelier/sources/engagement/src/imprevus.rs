@@ -1,4 +1,4 @@
-//! LES IMPREVUS D'UN SALARIE (15/10/2026) : ce qui arrive a un contrat en cours et le suspend -- un ARRET de travail
+//! LES IMPREVUS D'UN SALARIE : ce qui arrive a un contrat en cours et le suspend -- un ARRET de travail
 //! (bloc S21.G00.60, son signalement 04/05) ou une SUSPENSION d'une autre sorte (bloc S21.G00.65 : conge parental,
 //! sabbatique, sans solde...). Un imprevu se saisit UNE FOIS, sur le salarie et le contrat qu'il suspend, avec ses dates ;
 //! le moteur en tire tout le reste, mois par mois :
@@ -456,7 +456,7 @@ pub fn jours_de_conges_non_acquis(
     Ok(total)
 }
 
-/// L'ANCIENNETE QUE LES SUSPENSIONS LAISSENT (15/10/2026) : le jour d'ou se compte l'anciennete du salarie `cle` au
+/// L'ANCIENNETE QUE LES SUSPENSIONS LAISSENT : le jour d'ou se compte l'anciennete du salarie `cle` au
 /// `a`, `depuis` recule des jours de suspension qui n'y comptent pas, et ce qu'il y a a en dire. Pour les droits que le
 /// salarie tient de son anciennete (le maintien de salaire, L1226-1 ; la prime d'anciennete de la 3090) :
 ///
@@ -586,7 +586,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 /// pour ce mois (`maintien`) : la loi le dit (`maintien_possible`), elle ne le verse pas -- les indemnites journalieres a
 /// deduire (D1226-5) ne se devinent pas.
 ///
-/// LA RETENUE AU REEL DU MOIS (15/10/2026). « La retenue par heure d'absence d'un salarie paye au mois doit etre en
+/// LA RETENUE AU REEL DU MOIS. « La retenue par heure d'absence d'un salarie paye au mois doit etre en
 /// principe egale au quotient du salaire mensuel par le nombre d'heures de travail dans l'entreprise pour le mois
 /// considere », et non sur un horaire moyen (Cass. soc. 11/02/1982, n° 80-40.359 ; 14/05/1987, n° 84-43.854 :
 /// `atelier/reference/sources/suspension-non-remuneree/cass-soc-19820211-80-40359-JURITEXT000007009242.xml` et

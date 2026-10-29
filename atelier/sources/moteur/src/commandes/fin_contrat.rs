@@ -1,6 +1,6 @@
 //! `moteur fin-contrat [liste|signaler|documents] AAAA-MM [SALARIE] [--remplace ID] [--ordre N] [--le AAAA-MM-JJ] [--test] [--json]` :
 //! le signalement de fin de contrat de travail unique (nature 07) et les deux papiers dus au salarie qui part
-//! (`moteur/commandes_fctu.py`).
+//!.
 //!
 //! - `liste` dit quels contrats du mois se terminent et se signalent, et ce qui manque a la saisie (route `fins-de-contrat`) ;
 //! - `signaler` ECRIT le fichier du signalement dans `sorties/AAAA-MM/` (route `fin-contrat-signaler`) -- rien ne part, le depot

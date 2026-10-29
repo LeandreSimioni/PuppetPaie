@@ -432,7 +432,7 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
     (d, illisible)
 }
 
-/// `operations_fiches.naissance_depuis_nir` : le departement et le pays de naissance que le NIR ECRIT (les 6e et 7e
+/// Le departement et le pays de naissance que le NIR ECRIT (les 6e et 7e
 /// signes ; 99 pour une naissance a l'etranger). Deux cas se taisent : la Corse d'avant 1976 (« 20 ») et un NIR
 /// incomplet.
 fn naissance_depuis_nir(nir: Option<&Value>) -> Vec<(&'static str, String)> {

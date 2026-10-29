@@ -1,4 +1,4 @@
-//! La veille de la fenetre (`web.py`, classe `Veille`) : relever les retours, les signatures et les fiches, puis
+//! La veille de la fenetre : relever les retours, les signatures et les fiches, puis
 //! sauvegarder, a l'ouverture puis toutes les `minutes`. En arriere-plan, jamais dans une requete ; un tour a la fois.
 //! Elle ne depose rien : elle appelle la route `ouverture`, qui ne connait que la releve et la sauvegarde.
 

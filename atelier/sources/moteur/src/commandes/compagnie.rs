@@ -99,7 +99,7 @@ pub fn poser_le_jour() -> Jour {
 }
 
 /// La racine de la compagnie de cette commande. `dev` : la copie de developpement, ou la phrase du refus
-/// (`moteur/__main__.py` sort avec ces phrases).
+///.
 pub fn racine(dev: bool) -> Result<PathBuf, String> {
     if dev {
         if !mode_actif() {

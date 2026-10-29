@@ -47,7 +47,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }
         "importation-etat" => etat_importation(&ctx.racine),
         "importer" => crate::import::ecrite::importer(ctx, charge),
-        // La nature des contrats repris qu'aucun bulletin ne dit (#236, `import::nature`).
+        // La nature des contrats repris qu'aucun bulletin ne dit.
         crate::import::nature::ROUTE => crate::import::nature::dire(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
@@ -666,7 +666,7 @@ fn etat_importation(racine: &Path) -> R<Value> {
         "reprises": reprises_faites(racine, &engagements, &paies),
         "editeur": editeur,
         "attend_editeur": attend,
-        // Les contrats repris dont la nature reste a dire, par salarie (#236, `import::nature`).
+        // Les contrats repris dont la nature reste a dire, par salarie.
         "a_dire": crate::import::nature::a_dire(racine),
     }))
 }

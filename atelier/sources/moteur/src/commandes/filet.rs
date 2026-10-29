@@ -1,5 +1,5 @@
 //! `moteur filet [etat|activer ADRESSE|verifier|desactiver|preparer|suivies]` : la DPAE preparee d'avance et son filet de securite
-//! (`moteur/commandes_filet.py`). Les routes `filet-etat`, `filet-suivies`, `filet-activer`, `filet-verifier`, `filet-desactiver` et
+//!. Les routes `filet-etat`, `filet-suivies`, `filet-activer`, `filet-verifier`, `filet-desactiver` et
 //! `filet-preparer` font le travail.
 //!
 //! GARDE-FOUS. `activer` et `desactiver` engagent (un compte chez le serveur du filet, des reveils) : la route exige le mot de passe
@@ -35,7 +35,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     let quoi = args.texte("quoi").unwrap_or("etat");
     match faire(cadre, quoi, args) {
         Ok(c) => c,
-        // `except ops.ErreurOperation as e: print("! %s" % e); return 1` (`commandes_filet.py`) : un refus, pas un plantage.
+        // `except ops.ErreurOperation as e: print("! %s" % e); return 1` : un refus, pas un plantage.
         Err(e) if est_operation(e.classe) => {
             dire!("! {}", e.message);
             1

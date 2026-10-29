@@ -1,4 +1,4 @@
-//! Le solde de tout compte (`operations_permanents.solde_de_tout_compte`) :
+//! Le solde de tout compte :
 //! ce qui est du au salarie quand son contrat se termine -- conges non pris,
 //! precarite, preavis, indemnite de rupture -- et les phrases qui le disent.
 

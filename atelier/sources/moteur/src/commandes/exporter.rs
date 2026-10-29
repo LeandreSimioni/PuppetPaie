@@ -1,6 +1,6 @@
 //! `moteur exporter [ETAT] [--mois AAAA-MM] [--annee AAAA] [--toutes-les-annees] [--par ...] [--format ...] [--logiciel ...]
 //! [--analytique|--sans-analytique] [--coordonnees] [--apercu] [--json]` : les etats pour le comptable, les organismes, les
-//! financeurs (`moteur/commandes_exports.py`, `cmd_exporter` ; `operations_exports.exporter`).
+//! financeurs.
 //!
 //! Sans etat : la liste de ce qui existe (texte ou `--json`). Avec un etat : l'etat est calcule par le moteur
 //! (`crate::routes::archives::exporter_objet`, la route `exporter`) et, sauf `--apercu`, ECRIT dans `exports/` -- les memes fichiers que le

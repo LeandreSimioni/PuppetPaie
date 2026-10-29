@@ -10,7 +10,7 @@
 //! CE QUI NE PART JAMAIS D'ICI : une DPAE REELLE. Le test automatique d'une
 //! DPAE (`_tester` : produire le fichier et le deposer en TEST chez l'Urssaf)
 //! suppose `produire_dpae` et `deposer_dpae`, les actes du lot H ; il reste en
-//! Python (`operations_filet.preparer`) et ne fait qu'ecrire dans l'etat les
+//! Python et ne fait qu'ecrire dans l'etat les
 //! tests qu'il a faits, par `passage`.
 //!
 //! Un seul fichier d'etat, ecrit en entier : un verrou court

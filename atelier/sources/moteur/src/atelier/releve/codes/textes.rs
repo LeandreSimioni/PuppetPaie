@@ -45,7 +45,7 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "documents", titre: "Les documents remis a la fin du contrat", numeros: &["L1234-19", "L1234-20", "D1234-6", "D1234-7", "D1234-8"] },
             Domaine { cle: "retraite", titre: "Le depart et la mise a la retraite", numeros: &["L1237-5", "L1237-6", "L1237-7", "L1237-8", "L1237-9", "L1237-10", "D1237-1", "D1237-2", "D1237-2-1"] },
             Domaine { cle: "rupture_conventionnelle", titre: "La rupture conventionnelle", numeros: &["L1237-11", "L1237-12", "L1237-13", "L1237-14", "L1237-15", "L1237-16"] },
-            // LE BULLETIN DE PAIE (21/09/2026). Le §11.1 tient une decision
+            // LE BULLETIN DE PAIE. Le §11.1 tient une decision
             // a une reference citee de memoire : << tout paiement de salaire
             // s'accompagne d'un bulletin (L3243-2) >>, et c'est elle qui
             // commande le bulletin RECTIFICATIF du mois d'origine. Une
@@ -79,8 +79,8 @@ pub static TEXTES: &[Texte] = &[
             // `calcul.representation_du_personnel` prend la representation
             // DECLAREE pour un fait, sans l'opposer au CRM 118.
             Domaine { cle: "effectif_cse", titre: "L'effectif qui compte pour le comite social et economique", numeros: &["L1111-2", "L2311-2", "L2315-61"] },
-            // LES MAJORATIONS DES EMPLOYEURS AFFILIES A UNE CAISSE DE CONGES
-            // (10/10/2026, lot V1n). L243-1-3 du code de la securite sociale
+            // LES MAJORATIONS DES EMPLOYEURS AFFILIES A UNE CAISSE DE CONGES.
+            // L243-1-3 du code de la securite sociale
             // cite ces articles-la : la caisse (L3141-32), les contributions
             // de formation et d'apprentissage qu'il majore (L6131-2, L6242-1,
             // L6331-6), la taxe d'apprentissage (L6241-1) et les intermittents
@@ -91,7 +91,7 @@ pub static TEXTES: &[Texte] = &[
             // precedant la demande de conge (la lettre circulaire Acoss 2013-019,
             // annexe 1, R5, y borne la majoration).
             Domaine { cle: "majoration_caisses", titre: "Les contributions de formation et d'apprentissage majorees chez un employeur affilie a une caisse de conges", numeros: &["L3141-32", "L6131-2", "L6241-1", "L6242-1", "L6331-6", "L6331-55", "D7121-28", "D7121-40", "D7121-41"] },
-            // LE CHOMAGE ET L'AGS D'UN PERMANENT (10/10/2026, lot V2e).
+            // LE CHOMAGE ET L'AGS D'UN PERMANENT.
             // L5422-9 : les contributions << sont assises sur les remunerations
             // brutes dans la limite d'un plafond >> ; L5422-20 renvoie ses
             // mesures d'application a la convention d'assurance chomage, dont le
@@ -100,7 +100,7 @@ pub static TEXTES: &[Texte] = &[
             // declare les remunerations qui servent au calcul. L3253-18 : l'AGS
             // est assise sur les memes remunerations que le chomage.
             Domaine { cle: "chomage", titre: "L'assiette des contributions d'assurance chomage et de l'AGS", numeros: &["L5422-9", "L5422-14", "L5422-20", "L3253-18"] },
-            // LE BLOC S21.G00.44 DE LA DSN DE DECEMBRE (10/10/2026, lot V3b) :
+            // LE BLOC S21.G00.44 DE LA DSN DE DECEMBRE :
             // qui est assujetti a quoi. L6131-1 : tout employeur concourt a la
             // formation (CFP, CPF-CDD, contribution supplementaire), sauf ceux
             // de son II (Etat, collectivites et leurs EPA, hopitaux publics,
@@ -111,13 +111,13 @@ pub static TEXTES: &[Texte] = &[
             // D6331-72 : les CDD qui ne donnent pas lieu a la contribution
             // CPF-CDD (contrats aides, apprentissage, professionnalisation, et
             // ceux de L6321-9) ; le CDD saisonnier est exclu par L6331-6 meme.
-            // L6331-1 A (13/10/2026, lot F1) : l'effectif de la CFP et le
+            // L6331-1 A : l'effectif de la CFP et le
             // franchissement de son seuil de onze se comptent selon L130-1 du
             // code de la securite sociale -- cinq ans pour le franchir a la
             // hausse, et une annee sous le seuil fait recourir le delai (le
             // controle `seuils_effectif` de `contexte.rs`).
             Domaine { cle: "assujettissement_fiscal", titre: "Qui doit la formation professionnelle et la taxe d'apprentissage (bloc S21.G00.44 de la DSN)", numeros: &["L6131-1", "L6241-1-1", "L6331-1 A", "L6331-1", "L6331-3", "D6331-72", "L6321-9"] },
-            // LE TEMPS PARTIEL ET LA DUREE LEGALE (10/10/2026, lot V4b). R242-2
+            // LE TEMPS PARTIEL ET LA DUREE LEGALE. R242-2
             // du code de la securite sociale permet a l'employeur de corriger
             // le plafond des salaries de L3123-1 a due proportion de leur
             // duree contractuelle, majoree des heures complementaires de
@@ -127,19 +127,19 @@ pub static TEXTES: &[Texte] = &[
             // (S21.G00.40.012) << ne doit pas inclure les heures
             // supplementaires structurelles >>.
             Domaine { cle: "temps_partiel", titre: "Le temps partiel, la duree legale et les heures complementaires et supplementaires", numeros: &["L3121-27", "L3121-28", "L3123-1", "L3123-8", "L3123-20", "L3123-21", "L3123-28"] },
-            // LES CONGES POUR EVENEMENTS FAMILIAUX (10/10/2026, lot V4b) : ils
+            // LES CONGES POUR EVENEMENTS FAMILIAUX : ils
             // << n'entrainent pas de reduction de la remuneration >> (L3142-2).
             // C'est ce que dit `remunere` du motif 637 (`permanents-base.json`),
             // et en 2027 le bloc S21.G00.65 ne declare plus qu'une absence << sans
             // maintien de sa remuneration normale >>.
             Domaine { cle: "evenements_familiaux", titre: "Les conges pour evenements familiaux", numeros: &["L3142-1", "L3142-2"] },
-            // LE CONGE DE DEUIL D'UN ENFANT (15/10/2026, lot << le deuil >>). L3142-1-1 : huit jours, fractionnables
+            // LE CONGE DE DEUIL D'UN ENFANT. L3142-1-1 : huit jours, fractionnables
             // (D3142-1-1 : deux periodes d'au moins une journee), pris dans l'annee du deces ; le salarie << informe
             // l'employeur vingt-quatre heures au moins avant le debut de chaque periode d'absence >>. C'est le motif d'arret
             // 19 de la DSN ; ses indemnites journalieres sont celles de L331-9 du code de la securite sociale (plus bas).
             // `moteur/src/obligations.rs` (l'attestation de salaire hors DSN, `obligations-base.json`).
             Domaine { cle: "conge_de_deuil", titre: "Le conge de deuil d'un enfant", numeros: &["L3142-1-1", "D3142-1-1"] },
-            // LE REGISTRE UNIQUE DU PERSONNEL (11/10/2026, reste R1 #147) : ses
+            // LE REGISTRE UNIQUE DU PERSONNEL : ses
             // mentions (D1221-23 : la nationalite, 1°) sont ce que
             // `etats_personnel::registre_du_personnel` ecrit ; il citait les
             // articles sans qu'ils soient dans le releve.
@@ -148,7 +148,7 @@ pub static TEXTES: &[Texte] = &[
             // l'embauche apres la declaration (L1221-10), la date d'embauche dans la declaration (R1221-1, 3°), la date
             // previsible (R1221-4).
             Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-4"] },
-            // LA FIN D'UN CDD (13/10/2026, lot U5) : L1243-5 la fait cesser de
+            // LA FIN D'UN CDD : L1243-5 la fait cesser de
             // plein droit a l'echeance du terme (aucun preavis : L1234-1 est
             // celui du licenciement) ; L1243-1 et L1243-2 disent les ruptures
             // avant le terme, dont le preavis du salarie qui a trouve un CDI.
@@ -157,7 +157,7 @@ pub static TEXTES: &[Texte] = &[
             // rupture d'un CDD pour inaptitude, 033) : le preavis de chaque
             // motif de rupture anticipee.
             Domaine { cle: "fin_de_cdd", titre: "La fin d'un CDD : a son terme, ou avant", numeros: &["L1243-1", "L1243-2", "L1243-3", "L1243-4", "L1243-5", "L1226-4-2", "L1226-4-3", "L1226-20"] },
-            // LE PREAVIS NON EFFECTUE, MOTIF PAR MOTIF (13/10/2026, lot P1).
+            // LE PREAVIS NON EFFECTUE, MOTIF PAR MOTIF.
             // L1234-5 est au chapitre du licenciement ; ce que les autres fins
             // de contrat en font est dans ces articles-ci : la demission
             // (L1237-1) et sa rupture abusive (L1237-2), l'inaptitude non
@@ -167,7 +167,7 @@ pub static TEXTES: &[Texte] = &[
             // majeure d'un CDI (L1234-12, L1234-13), la periode d'essai
             // (L1221-25, L1221-26 : un delai de prevenance, pas un preavis).
             Domaine { cle: "preavis_non_effectue", titre: "Le preavis non effectue : ce que chaque fin de contrat en fait", numeros: &["L1237-1", "L1237-2", "L1226-4", "L1226-12", "L1226-14", "L1234-12", "L1234-13", "L1221-25", "L1221-26"] },
-            // UN MOIS ENTIER DE SUSPENSION NON REMUNEREE (15/10/2026) : lus dans l'entrepot par la recherche du jour
+            // UN MOIS ENTIER DE SUSPENSION NON REMUNEREE : lus dans l'entrepot par la recherche du jour
             // (`atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-du-travail-20261015.md`), suivis
             // depuis. Le conge parental d'education (L1225-54 : sa duree compte pour moitie dans l'anciennete,
             // `imprevus::anciennete_depuis`), le conge sabbatique et le conge pour creation d'entreprise (rien sur
@@ -177,7 +177,7 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "conge_parental", titre: "Le conge parental d'education", numeros: &["L1225-47", "L1225-48", "L1225-49", "L1225-50", "L1225-51", "L1225-52", "L1225-53", "L1225-54", "L1225-55", "L1225-56", "L1225-57", "L1225-58", "L1225-59"] },
             Domaine { cle: "conge_sabbatique", titre: "Le conge sabbatique et le conge pour creation d'entreprise", numeros: &["L3142-28", "L3142-29", "L3142-30", "L3142-31", "L3142-32", "L3142-33", "L3142-34", "L3142-105", "L3142-106", "L3142-107", "L3142-108", "L3142-109"] },
             Domaine { cle: "mensualisation", titre: "La mensualisation et les retenues sur salaire", numeros: &["L3242-1", "L3242-2", "L3242-3", "L3251-1"] },
-            // LA LICENCE D'ENTREPRENEUR DE SPECTACLES (#236, 23/10/2026) : de qui elle est exigee (S21.G00.40.049 de la
+            // LA LICENCE D'ENTREPRENEUR DE SPECTACLES : de qui elle est exigee (S21.G00.40.049 de la
             // DSN, `demarrage::licence_exigee`, `dsn::licence_du_contrat`) ; la norme DSN y renvoie (« L.7122-3 et
             // suivants »). L7122-22 et L7122-23 : l'organisateur occasionnel, qui passe par le guichet unique.
             Domaine { cle: "licence_spectacles", titre: "L'entrepreneur de spectacles vivants et sa declaration", numeros: &["L7122-1", "L7122-2", "L7122-3", "L7122-4", "L7122-5", "L7122-6", "L7122-22", "L7122-23"] },
@@ -196,7 +196,7 @@ pub static TEXTES: &[Texte] = &[
         dossier: "code-de-la-securite-sociale",
         titre: "Code de la securite sociale -- ce que la paie lit",
         domaines: &[
-            // R242-1 (11/10/2026, lot R9) : son troisieme alinea renvoie a des
+            // R242-1 : son troisieme alinea renvoie a des
             // arretes << les conditions et limites dans lesquelles la
             // remuneration peut faire l'objet d'un abattement pour frais
             // professionnels >> (l'arrete du 4 septembre 2025, plus bas) ; son
@@ -208,7 +208,7 @@ pub static TEXTES: &[Texte] = &[
             // forfaitairement en pourcentage de cette remuneration que dans
             // des limites et conditions fixees par arrete >> (III).
             Domaine { cle: "reduction_generale", titre: "La reduction generale et les deductions forfaitaires pour frais professionnels", numeros: &["L241-13", "D241-7", "D241-10"] },
-            // LE MONTANT NET SOCIAL (10/10/2026) : sa definition est codifiee
+            // LE MONTANT NET SOCIAL : sa definition est codifiee
             // par le decret 2023-1378 au II de R844-1 (prime d'activite), le
             // meme texte que le 9 bis de R3243-1 du code du travail. C'est
             // lui qui dit ce que S21.G00.58.004 contient (frais professionnels
@@ -234,7 +234,7 @@ pub static TEXTES: &[Texte] = &[
             // les seuils de cotisation (formation, FNAL, echeance de la DSN,
             // versement mobilite via L2333-64). Il ne dit rien du CSE.
             Domaine { cle: "effectif", titre: "L'effectif au sens de la securite sociale", numeros: &["L130-1"] },
-            // LE PLAFOND (10/10/2026, lot V1i) : la vieillesse plafonnee
+            // LE PLAFOND : la vieillesse plafonnee
             // (L241-3, et son taux D242-4), le FNAL et le chomage d'un
             // intermittent s'assoient sur LE plafond de sa periode. R242-2 dit
             // qu'il se reduit au prorata des jours du contrat ; D242-17 a
@@ -242,14 +242,14 @@ pub static TEXTES: &[Texte] = &[
             // propre aux artistes (douze fois le plafond horaire par jour) est
             // dans l'arrete du 24 janvier 1975, plus bas.
             Domaine { cle: "plafond", titre: "Le plafond de la securite sociale et sa reduction", numeros: &["L241-3", "D242-4", "R242-2", "D242-17", "D242-18", "D242-19"] },
-            // LE PLAFOND D'UN TEMPS PARTIEL (10/10/2026, lot V4b) : L242-8 pose
+            // LE PLAFOND D'UN TEMPS PARTIEL : L242-8 pose
             // l'abattement d'assiette des salaries a temps partiel, que le
             // dernier alinea du I de R242-2 met en oeuvre (l'employeur << est
             // en droit de corriger le plafond >>) ; L242-10, qu'il cite, en
             // exclut les emplois a taux ou assiette specifiques et le plafond
             // fractionne entre plusieurs employeurs. `droit/src/plafond.rs`.
             Domaine { cle: "plafond_temps_partiel", titre: "Le plafond d'un salarie a temps partiel (l'abattement d'assiette)", numeros: &["L242-8", "L242-10"] },
-            // LA DISPENSE D'UN TEMPS PARTIEL DE LA SANTE (13/10/2026, lot D1).
+            // LA DISPENSE D'UN TEMPS PARTIEL DE LA SANTE.
             // R242-1-6, 2°, c : un salarie a temps partiel peut se dispenser
             // quand la cotisation atteindrait 10 % de sa remuneration -- ce
             // qui dit qu'un forfait de sante ne baisse pas avec le temps de
@@ -262,24 +262,24 @@ pub static TEXTES: &[Texte] = &[
             // et l'assiette de la CRDS (L136-2). Le maintien de la sante d'un mois suspendu sans indemnisation :
             // `calcul::sante_de_la_suspension`.
             Domaine { cle: "protection_complementaire", titre: "Les garanties collectives de protection sociale complementaire", numeros: &["R242-1-1", "R242-1-2", "R242-1-3", "R242-1-4", "R242-1-5", "L911-1", "L911-2", "L911-7", "L911-8", "D911-1", "D911-2", "D911-3", "D911-4", "D911-5", "D911-6", "D911-7", "D911-8", "L136-2"] },
-            // LES MAJORATIONS DES EMPLOYEURS AFFILIES A UNE CAISSE DE CONGES
-            // (10/10/2026, lot V1n) : le FNAL, le versement mobilite et les
+            // LES MAJORATIONS DES EMPLOYEURS AFFILIES A UNE CAISSE DE CONGES :
+            // le FNAL, le versement mobilite et les
             // contributions de formation se paient par une majoration de
             // 11,5 % (10 % pour la taxe d'apprentissage d'un intermittent du
             // spectacle) ; `majoration_conges_115` des baremes.
             Domaine { cle: "majoration_caisses", titre: "Les majorations des employeurs affilies a une caisse de conges payes", numeros: &["L243-1-3", "D243-0-2", "D243-0-3"] },
-            // L'ARRONDI A L'EURO DES MONTANTS DECLARES (13/10/2026, lot U5) :
+            // L'ARRONDI A L'EURO DES MONTANTS DECLARES :
             // L130-1 ne le dit plus (le guide Urssaf de la DSN le cite encore) ;
             // il est dans L133-10, qui compte la fraction egale a 0,50 pour 1.
             Domaine { cle: "arrondi", titre: "L'arrondi a l'euro des cotisations et de leurs assiettes declarees", numeros: &["L133-10"] },
-            // LES SIGNALEMENTS D'EVENEMENT ET LEUR DELAI (15/10/2026, lot << les obligations d'un arret >>). R133-13 dit
+            // LES SIGNALEMENTS D'EVENEMENT ET LEUR DELAI. R133-13 dit
             // quels evenements la DSN declare (le debut et la fin d'un arret, la fin du contrat) ; R133-14, II, quand :
             // avec la mensuelle du mois, sauf la fin du contrat et -- quand l'employeur n'est PAS subroge -- le debut et la
             // fin de l'arret, << dans un delai fixe par arrete [...] qui ne peut exceder cinq jours ouvres >> (l'arrete du
             // 2 juillet 2013, plus bas) ; ses exceptions : aucune retenue sur le salaire du mois (1°), les fins de CDD
             // d'usage du 3° de L1242-2 (2°). `moteur/src/obligations.rs`.
             Domaine { cle: "signalements", titre: "Les signalements d'evenement de la DSN et leur delai", numeros: &["R133-13", "R133-14"] },
-            // LA DECLARATION D'ACCIDENT DU TRAVAIL (15/10/2026). Hors DSN : L441-2 la met a la charge de l'employeur << de
+            // LA DECLARATION D'ACCIDENT DU TRAVAIL. Hors DSN : L441-2 la met a la charge de l'employeur << de
             // tout accident dont il a eu connaissance >>, R441-3 en fixe le delai (quarante-huit heures, non compris les
             // dimanches et jours feries), R441-2 celui de la victime envers l'employeur (vingt-quatre heures), R441-6 les
             // reserves motivees (dix jours francs). L411-1 et L411-2 disent que l'accident de trajet en est un ; L441-5 la
@@ -288,7 +288,7 @@ pub static TEXTES: &[Texte] = &[
             // LA MALADIE PROFESSIONNELLE N'EST PAS DECLAREE PAR L'EMPLOYEUR : L461-5 la met << par les soins de la
             // victime >>, R461-5 lui donne quinze jours. Le motif d'arret 05 n'appelle donc pas de declaration d'accident.
             Domaine { cle: "maladie_professionnelle", titre: "La declaration d'une maladie professionnelle (par la victime)", numeros: &["L461-5", "R461-5"] },
-            // LE CONGE DE DEUIL ET SES INDEMNITES JOURNALIERES (15/10/2026, lot << le deuil >>). L331-9 : pendant le conge
+            // LE CONGE DE DEUIL ET SES INDEMNITES JOURNALIERES. L331-9 : pendant le conge
             // de L3142-1-1 du code du travail, l'assure percoit l'indemnite journaliere de L331-3 ; l'employeur qui maintient
             // le salaire (L3142-2) est subroge de plein droit. D331-7 : l'indemnisation se fractionne comme le conge.
             // R323-10 : l'attestation de salaire que l'employeur adresse a la caisse pour les indemnites journalieres, et que
@@ -298,7 +298,7 @@ pub static TEXTES: &[Texte] = &[
         ],
     },
     // ------------------------------------------------------------------
-    // L'IDENTIFIANT EST VERIFIE, PAS SUPPOSE (21/09/2026) : une sonde a
+    // L'IDENTIFIANT EST VERIFIE, PAS SUPPOSE : une sonde a
     // fait defiler l'archive globale -- 1 750 418 articles -- et a
     // releve sous quel LEGITEXT vivent ces numeros-la. C'est la
     // precaution du piege 3 de l'en-tete, appliquee AVANT de moissonner
@@ -324,7 +324,7 @@ pub static TEXTES: &[Texte] = &[
         ],
     },
     // ------------------------------------------------------------------
-    // UN ARRETE, PAS UN CODE (10/10/2026, lot V1i). La base LEGI range les
+    // UN ARRETE, PAS UN CODE. La base LEGI range les
     // textes non codifies sous leur JORFTEXT, dans le chemin du fichier
     // comme le LEGITEXT d'un code (`TNC_en_vigueur/JORF/TEXT/.../
     // JORFTEXT000000310494/article/...`) : le meme filtre les attrape.
@@ -342,7 +342,7 @@ pub static TEXTES: &[Texte] = &[
         ],
     },
     // ------------------------------------------------------------------
-    // LE DELAI DES SIGNALEMENTS D'EVENEMENT (15/10/2026). R133-14, II, du code de la securite sociale renvoie le delai de
+    // LE DELAI DES SIGNALEMENTS D'EVENEMENT. R133-14, II, du code de la securite sociale renvoie le delai de
     // la fin du contrat et de l'arret non subroge a << un arrete conjoint du ministre charge de la securite sociale et du
     // ministre charge de l'emploi, qui ne peut exceder cinq jours ouvres >>. C'est celui-ci (Legifrance, JORFTEXT000027683422) :
     // son article 1er fixe ce delai a cinq jours ouvres. Un arrete, pas un code, range sous son JORFTEXT comme celui de 1975.
@@ -358,7 +358,7 @@ pub static TEXTES: &[Texte] = &[
         ],
     },
     // ------------------------------------------------------------------
-    // LA DEDUCTION FORFAITAIRE SPECIFIQUE (11/10/2026, lot R9). Un arrete,
+    // LA DEDUCTION FORFAITAIRE SPECIFIQUE. Un arrete,
     // pas un code, range sous son JORFTEXT comme celui de 1975 ; trouve
     // par une sonde de l'archive globale et des livraisons (le titre
     // << frais professionnels deductibles >>), pas suppose. Il a ABROGE et
@@ -405,8 +405,8 @@ pub static TEXTES: &[Texte] = &[
         ],
     },
     // ------------------------------------------------------------------
-    // LA PARTICIPATION DES EMPLOYEURS A L'EFFORT DE CONSTRUCTION
-    // (10/10/2026, lot V3b). La DSN de decembre declare chaque annee si
+    // LA PARTICIPATION DES EMPLOYEURS A L'EFFORT DE CONSTRUCTION.
+    // La DSN de decembre declare chaque annee si
     // l'employeur y est assujetti (bloc S21.G00.44, codes 005 et 006) :
     // c'est L313-1 de ce code qui dit qui la doit (cinquante salaries,
     // hors Etat et collectivites), et comment se compte l'effectif.
@@ -421,7 +421,7 @@ pub static TEXTES: &[Texte] = &[
         ],
     },
     // ------------------------------------------------------------------
-    // UNE LOI, PAS UN CODE (10/10/2026, lot V3b) : son article 135 a
+    // UNE LOI, PAS UN CODE : son article 135 a
     // reecrit L6241-1 du code du travail (version du 21/02/2026) et rend
     // redevables de la taxe d'apprentissage les associations a activites
     // non lucratives. Ce qu'on y cherche : a partir de quand.
@@ -463,7 +463,7 @@ pub static TEXTES: &[Texte] = &[
             // (S21.G00.20.005 de la DGFiP, << arrondi a l'entier le plus
             // proche >>) est une somme a recevoir de l'administration.
             Domaine { cle: "arrondi", titre: "L'arrondi a l'euro des sommes a recevoir", numeros: &["1724"] },
-            // LE PRELEVEMENT A LA SOURCE D'UN MOIS (13/10/2026, lot D1) :
+            // LE PRELEVEMENT A LA SOURCE D'UN MOIS :
             // 1671, 1 et 2 -- la retenue est « effectuee par le debiteur
             // lors du paiement », au taux transmis « au plus tard le
             // deuxieme mois suivant sa transmission » ; ce qui a ete

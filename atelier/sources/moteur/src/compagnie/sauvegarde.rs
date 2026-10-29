@@ -1,4 +1,4 @@
-//! La sauvegarde du dossier prive dans le Drive, par differences (`sauvegarde.py`).
+//! La sauvegarde du dossier prive dans le Drive, par differences.
 //!
 //! Ecrit au lot H4b, non prouve. Ce sont des FONCTIONS, pas des routes : leurs appelants sont
 //! l'ouverture et la veille, la ligne de commande, et `web.py` qui lit

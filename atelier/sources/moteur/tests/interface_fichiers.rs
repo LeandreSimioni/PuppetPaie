@@ -34,7 +34,7 @@ fn banc() -> (&'static Banc, MutexGuard<'static, ()>) {
         let origine = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/interface");
         copier(&origine, &logiciel.join("interface"));
         std::fs::create_dir_all(logiciel.join("donnees")).unwrap();
-        // Le « + » derive la raison sociale de la fiche neuve par la regle des champs (#236, lot A), qui lit les
+        // Le « + » derive la raison sociale de la fiche neuve par la regle des champs, qui lit les
         // referentiels livres avec toute installation (champs, norme DSN) : ceux du dossier `donnees/`, tels quels.
         for e in std::fs::read_dir(origine.join("../donnees")).unwrap() {
             let p = e.unwrap().path();

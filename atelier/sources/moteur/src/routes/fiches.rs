@@ -108,8 +108,7 @@ fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// `taxe-sur-les-salaires-regime` : `{"taxe_sur_les_salaires": {...}}`, ce que la fiche en cours de saisie dit -- sans
 /// lui, celle de la compagnie. Rend la conclusion du moteur (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art.
-/// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien
-///.
+/// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien.
 fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
     let ent = match charge.get(cle) {

@@ -1,4 +1,4 @@
-//! `moteur google [etat|autoriser|oublier]` : le compte Google, qui ne porte que le Drive (`moteur/cli.py`, `cmd_google`).
+//! `moteur google [etat|autoriser|oublier]` : le compte Google, qui ne porte que le Drive.
 //! `autoriser` et `oublier` sont des actes (J2b) ; `autoriser` AFFICHE l'URL de consentement sans ouvrir de navigateur (la fenetre
 //! de consentement est au lot J3b).
 //!

@@ -223,7 +223,7 @@ fn envoye(imp: &Value, nature: &str) -> bool {
     imp["envois"].as_array().is_some_and(|e| e.iter().any(|x| x.get("nature").and_then(Value::as_str) == Some(nature)))
 }
 
-/// UN ARRET EN COURS (21/10/2026) : celui dont on peut encore apprendre qu'il se prolonge ou que le salarie a repris plus
+/// UN ARRET EN COURS : celui dont on peut encore apprendre qu'il se prolonge ou que le salarie a repris plus
 /// tot. Aucune reprise n'est saisie, et :
 ///
 /// - sa fin previsionnelle n'est pas passee : le salarie est arrete aujourd'hui ;
@@ -340,7 +340,7 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
             }
         }
         let mut r = resume(ctx, &n, &imp)?;
-        // CE QU'UN ARRET FAIT NAITRE, SUR L'ARRET LUI-MEME (15/10/2026) : la page des imprevus (la carte d'un salarie, la
+        // CE QU'UN ARRET FAIT NAITRE, SUR L'ARRET LUI-MEME : la page des imprevus (la carte d'un salarie, la
         // colonne du mois, son dossier) lit une seule liste, et chaque arret y porte ses obligations, calculees au meme
         // endroit que pour la route `arrets` (`obligations::de_l_arret`).
         if imprevus::est_un_arret(&imp) {
@@ -437,7 +437,7 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
 // ------------------------------------------------------------------ la prolongation
 
 /// `arret-prolonger` : `{salarie, dernier_jour, fin?, subrogation_fin?}` -> `{"arret": resume, "subrogation_a_revoir",
-/// "phrase", "avertissements"}`. L'AVIS DE PROLONGATION D'UN ARRET EN COURS (21/10/2026).
+/// "phrase", "avertissements"}`. L'AVIS DE PROLONGATION D'UN ARRET EN COURS.
 ///
 /// CE QUI PART, ET CE QUI NE PART PAS. « En cas de prolongation d'arret, il ne faut pas envoyer de nouveau signalement de
 /// nature " arret de travail ". Il suffit de declarer la nouvelle date de fin de l'arret en DSN mensuelle, au niveau de la

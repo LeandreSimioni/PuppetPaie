@@ -919,7 +919,7 @@ jusqu'au »), si l'organisme et la convention le permettent ; sinon c'est a tran
     Ok(fiche)
 }
 
-/// LA COMPLEMENTAIRE SANTE D'UN MOIS ENTIEREMENT SUSPENDU SANS INDEMNISATION (15/10/2026). Un permanent dont toute la
+/// LA COMPLEMENTAIRE SANTE D'UN MOIS ENTIEREMENT SUSPENDU SANS INDEMNISATION. Un permanent dont toute la
 /// periode payee est couverte par des suspensions non remunerees (conge parental 632, sabbatique 639, sans solde 501... :
 /// `imprevus::suspendu_sans_remuneration` ; un arret de travail n'en est pas une) :
 ///

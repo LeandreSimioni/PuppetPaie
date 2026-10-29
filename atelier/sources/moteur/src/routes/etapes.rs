@@ -469,7 +469,7 @@ pub fn mois_saisis(racine: &Path) -> Vec<String> {
 /// modification du fichier, que deux machines -- ou deux rejeux -- ne donnent pas pareille.
 /// - Les DSN : D'ABORD LA MENSUELLE (nature 01 ; un etablissement par fichier, le principal `DSN_<Mois>.dsn` avant les
 ///   `DSN_<Mois>_<NIC>.dsn`, par le nom) : c'est « la DSN du mois » que l'ecran et l'echeance attendent. D'un meme
-///   etablissement, LA DERNIERE ECRITE D'ABORD (#253, 23/10/2026) : un annule-et-remplace s'ecrit a cote de la DSN deja
+///   etablissement, LA DERNIERE ECRITE D'ABORD : un annule-et-remplace s'ecrit a cote de la DSN deja
 ///   partie, sous `DSN_<Mois>_AR<ordre>.dsn` (`depart::fabriquer_dsn`), et c'est lui qui part ; il se reconnait a son numero
 ///   d'ordre (S20.G00.05.004, ou `_AR<n>` du nom), le plus grand d'abord. Rangees par le seul nom, la DSN deja deposee
 ///   (`DSN_Janvier2025.dsn`) passait avant son annule-et-remplace (`DSN_Janvier2025_AR2.dsn`) : la boite « Deposer » et
@@ -824,7 +824,7 @@ impl<'a> Moteur<'a> {
                 premier(&g.avenants, cles).unwrap_or(&nul),
                 avenant,
             );
-            // UN CDI EN COURS N'A PAS D'ETAT DE CONTRAT MENSUEL (30/09/2026).
+            // UN CDI EN COURS N'A PAS D'ETAT DE CONTRAT MENSUEL.
             if nat.mensuelle() && nat.duree_indeterminee && !premier_mois {
                 let recu = premier(&g.recus, cles).filter(|r| vrai(r));
                 let depuis = mois_du_contrat.first().cloned().unwrap_or_default();

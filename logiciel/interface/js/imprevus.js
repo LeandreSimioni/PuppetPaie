@@ -1,7 +1,7 @@
 /* Les imprévus : un arrêt de travail, une absence, ce qu'ils font naître, et la fin d'un contrat qui se signale. */
 "use strict";
 
-/* ------------------------------------------------ LES IMPRÉVUS (15/10/2026)
+/* ------------------------------------------------ LES IMPRÉVUS
    Léandre : « simple pour les gens qui ont besoin de simple, compliqué pour
    les gens qui ont besoin de compliqué ». Quelqu'un qui fait des paies
    apprend qu'un salarié est malade : il va sur la ligne de ce salarié, pas
@@ -877,7 +877,7 @@ function boiteSignalerArret(a, nature) {
                                         remplace: remplace ? remplace.value.trim() : "" });
     } catch (e) { rendre(); dire(e.message, "erreur"); return; }
     fermerBoite();
-    // Les avis du signalement suivent le message, sur la même ligne (24/09/2026).
+    // Les avis du signalement suivent le message, sur la même ligne.
     dire(["Signalement écrit : " + r.nom + ". Rien n'est parti."].concat(r.avertissements || []).join("  ·  "));
     await rafraichirImprevus();
     boiteDepot("dsn", r.fichier);

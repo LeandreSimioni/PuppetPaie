@@ -1,5 +1,5 @@
 //! `moteur aer [--mois AAAA-MM] [--forcer]` : ranger les attestations employeur de France Travail deja recues
-//! (`moteur/commandes_retours.py`, `cmd_aer` ; `operations_documents.ranger_aer`).
+//!.
 //!
 //! Cette commande ne parle a aucun service : `retours` a deja telecharge et archive les fichiers (nature 46). Ici on les ouvre et
 //! l'on ecrit un PDF par salarie dans `sorties/<mois>/envoi/`, sous le meme nom de famille que le bulletin et le certificat CS --

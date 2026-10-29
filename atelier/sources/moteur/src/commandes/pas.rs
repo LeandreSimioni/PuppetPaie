@@ -1,6 +1,6 @@
-//! `moteur pas [--amorcer]` : les taux de prelevement a la source connus (`moteur/commandes_retours.py`, `cmd_pas`), et
+//! `moteur pas [--amorcer]` : les taux de prelevement a la source connus, et
 //! l'ecriture du magasin `config/pas.json` que `moteur pas --amorcer` et `moteur retours --appliquer` font
-//! (`moteur/pas.py` : `enregistrer`, `releves_historiques`, `amorcer`, `ecrire`).
+//!.
 //!
 //! `--demander` (ecrire les signalements d'amorcage, nature 08 ; rien n'est depose) : `demander`, sur `amorcage_demande`.
 

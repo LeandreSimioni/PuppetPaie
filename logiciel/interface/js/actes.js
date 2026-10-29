@@ -365,7 +365,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
                                        forcer, contournement });
       rendre();
       if (!reel) {
-        // LE TEST NE FERME PLUS LA BOÎTE (25/09/2026) : « ça a quitté la
+        // LE TEST NE FERME PLUS LA BOÎTE : « ça a quitté la
         // fenêtre au lieu de rester et d'attendre les retours pour proposer
         // d'envoyer direct ». On reste, on attend le compte rendu, et le
         // bouton du réel s'allume ici même.
@@ -491,7 +491,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
     // Pas de test pour ce contenu : c'est lui qui vient d'abord.
     document.getElementById("d-test").className = "primaire";
     document.getElementById("d-reel").className = "secondaire";
-    // LE MOIS QU'ON VIENT DE FERMER PART EN TEST TOUT SEUL (29/09/2026) :
+    // LE MOIS QU'ON VIENT DE FERMER PART EN TEST TOUT SEUL :
     // « on produit la DSN de test complète et on attend le retour du test,
     // ensuite on propose d'envoyer la DSN réelle ». Un test n'engage rien.
     if (testerDabord) lancer(false);
@@ -561,7 +561,7 @@ function encartRepetition(r, quoi, a) {
   if (!r) return "";
   const cette = (quoi === "dsn" ? "Cette DSN" : "Cette DPAE")
     + (quoi === "dsn" ? "" : echapper(embauchesDe(a)));
-  // Les deux phrases de l'éditeur (25/09/2026) : « cette DPAE est déjà
+  // Les deux phrases de l'éditeur : « cette DPAE est déjà
   // testée, voulez-vous l'envoyer » — ou « elle est déjà envoyée en test,
   // on attend les retours, qui arrivent bientôt ».
   if (r.conforme && r.compte_rendu === "ok") {

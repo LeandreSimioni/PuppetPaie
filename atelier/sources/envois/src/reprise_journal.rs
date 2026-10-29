@@ -6,7 +6,7 @@
 //! et sa `origine` (`retours/<piece>`) : c'est une reconstitution, pas un acte de ce logiciel.
 //!
 //! Une piece qui ne se lit pas (fichier inaccessible, XML mal forme) est NOMMEE dans `illisibles`, « nom (classe) »,
-//! et les autres passent (reste 164) ; un XML bien forme qui n'est pas un bilan de depot est saute sans
+//! et les autres passent ; un XML bien forme qui n'est pas un bilan de depot est saute sans
 //! bruit : le dossier melange des retours de toutes natures.
 //!
 //! UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT (sinon un mois importe se dit en retard alors qu'il est deja
@@ -39,7 +39,7 @@ struct Atteste {
     deja: bool,
 }
 
-/// `operations_retours.depots_attestes` : lecture pure.
+/// Lecture pure.
 fn depots_attestes(ctx: &Contexte) -> R<(Vec<Atteste>, Vec<String>)> {
     let dossier = ctx.racine.join("retours");
     std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
@@ -233,7 +233,7 @@ fn flux_du_nom(nom: &str) -> String {
     reste.rsplit_once('.').map_or(reste, |(a, _)| a).to_string()
 }
 
-/// `operations_retours.embauches_attestees` : les DPAE dont `retours/dpae/` porte le certificat (nature 41). Une entree par FLUX, avec
+/// Les DPAE dont `retours/dpae/` porte le certificat (nature 41). Une entree par FLUX, avec
 /// les embauches qu'il declare ; les NIR qu'on ne sait rattacher a aucune fiche sont DITS, jamais devines. LECTURE PURE.
 pub fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
     let dossier = ctx.racine.join("retours").join("dpae");
@@ -286,7 +286,7 @@ pub fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
     (sortie, inconnus)
 }
 
-/// `operations_retours.reconstruire_journal_dpae` : remet au journal les DPAE que les certificats de l'Urssaf attestent. Memes formes
+/// Remet au journal les DPAE que les certificats de l'Urssaf attestent. Memes formes
 /// et memes regles que la reprise DSN : `ecrire` a faux par defaut (elle DIT), idempotente par le flux, chaque ligne porte `origine`.
 /// Rend `{"trouves", "ajoutes", "deja", "inconnus", "ecrit"}`. Aucun reseau, aucun depot, pas de mot de passe.
 pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -> R<Value> {

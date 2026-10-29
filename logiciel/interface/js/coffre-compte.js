@@ -9,9 +9,9 @@
  * passe DES ORGANISMES (net-entreprises, Urssaf) vont au coffre : on les
  * pose, on les vérifie (UNE tentative, jamais de boucle : l'organisme bloque
  * le compte au bout de quelques échecs), on les oublie. La boîte courriel
- * (17/09/2026) s'y pose aussi, avec son adresse : c'est un mot de passe
- * d'application, la seule boîte qui envoie et qui lit. Et le COMPTE GOOGLE
- * (18/09/2026), qui ne porte que le Drive : « Lier le Drive » ouvre la
+ * s'y pose aussi, avec son adresse : c'est un mot de passe
+ * d'application, la seule boîte qui envoie et qui lit. Et le COMPTE GOOGLE,
+ * qui ne porte que le Drive : « Lier le Drive » ouvre la
  * page de consentement dans le navigateur du système et attend qu'on y
  * accepte ; « Oublier » efface le jeton local.
  *
@@ -35,8 +35,8 @@ function compteDuService(s) {
         <button class="lien" data-aller-fiche="entreprise">${echapper(id.ou || "fiche Entreprise")}</button></span>`;
 }
 
-/** CE QUI EST PARTI CHEZ L'ÉDITEUR (30/09/2026). Le journal des incidents,
- *  regroupé (`operations_filet.diagnostic_etat`) : ce qui est parti, ce qui
+/** CE QUI EST PARTI CHEZ L'ÉDITEUR. Le journal des incidents,
+ *  regroupé : ce qui est parti, ce qui
  *  attend, et pour chaque groupe le contenu EXACT qui quitte le poste. */
 async function dessinerCoffre(cible) {
   // LA COMPAGNIE FICTIVE (27/09/2026, l'éditeur) : le même écran, tout grisé —
@@ -54,7 +54,7 @@ async function dessinerCoffre(cible) {
     if (r && r.ok) adm = r.etat || {};
   }
   const enListe = (n) => n.length > 1 ? n.slice(0, -1).join(", ") + " et " + n[n.length - 1] : (n[0] || "");
-  // UNE LIGNE PAR SECRET (23/09/2026), comme les mois de l'Historique : ce
+  // UNE LIGNE PAR SECRET, comme les mois de l'Historique : ce
   // qu'il sert à faire, où il en est, et les gestes. Les cases de saisie ne
   // s'ouvrent que sur un clic sur la ligne (ou « Poser… ») -- cinq formulaires ouverts
   // d'office faisaient croire qu'il y avait cinq choses à remplir.

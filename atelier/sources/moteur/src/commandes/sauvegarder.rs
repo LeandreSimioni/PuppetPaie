@@ -1,5 +1,5 @@
 //! `moteur sauvegarder [--tout] [--point] [--racine-drive NOM]` : le dossier prive dans le Drive, par differences
-//! (`moteur/commandes_ouverture.py`, `cmd_sauvegarder`). Ne supprime jamais rien la-bas.
+//!. Ne supprime jamais rien la-bas.
 //!
 //! `--json` est accepte et sans effet (le Python n'a pas de sortie JSON ici). Ni mot de passe ni jeton ne passe par la commande : le
 //! client Drive lit le jeton au coffre (`sauvegarde::sauvegarder`, `Client::nouveau`). Dans `moteur-atelier`, hors compagnie fictive, la

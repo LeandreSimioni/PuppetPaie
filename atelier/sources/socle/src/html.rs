@@ -36,7 +36,7 @@ pub fn mailto(adresse: &str, objet: &str, corps: &str) -> String {
     format!("mailto:{}?subject={}&body={}", pourcent(adresse, "@"), pourcent(objet, ""), pourcent(corps, ""))
 }
 
-/// `operations_casc._html` : le courriel en HTML, le meme texte, mais le tableau des masses en vrai tableau -- en
+/// Le courriel en HTML, le meme texte, mais le tableau des masses en vrai tableau -- en
 /// texte brut, ses barres ne s'alignent que dans une police a chasse fixe, ce qu'aucune messagerie n'emploie.
 pub fn courriel_en_html(corps: &str) -> String {
     let blanc = |c: char| c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c);

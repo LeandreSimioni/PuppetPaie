@@ -113,7 +113,7 @@ fn table_boss() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../reference/boss-table-parametres-2026.csv")
 }
 
-/// LE PLAFOND DE LA SECURITE SOCIALE D'UNE ANNEE (mensuel, horaire), d'un texte et non de memoire (#236, regle 1) :
+/// LE PLAFOND DE LA SECURITE SOCIALE D'UNE ANNEE (mensuel, horaire), d'un texte et non de memoire :
 /// le bareme livre du moteur (`logiciel/donnees/baremes/<annee>.json`, `plafond_securite_sociale`, qui cite sa
 /// source), sinon la table des parametres du BOSS deposee (`table_boss`), sinon refus -- l'annee manque, on ne
 /// l'invente pas.

@@ -1,4 +1,4 @@
-//! L'horloge de la compagnie fictive (`moteur/simulation.py`, a partir de `QUI_HORLOGE`) : `rattraper`, `dernier_rattrapage`
+//! L'horloge de la compagnie fictive : `rattraper`, `dernier_rattrapage`
 //! et tout ce qu'ils appellent -- lot I1.
 //!
 //! A chaque ouverture, la COMPAGNIE FICTIVE joue ce qu'une compagnie bien tenue aurait fait AVANT aujourd'hui, a sa
@@ -569,7 +569,7 @@ fn a_l_echeance(d: &HorlogeFictive, mois: &str, echeance: Jour) -> Vec<String> {
         // LA DSN SE FABRIQUE A SON DEPOT, depuis les engagements valides du mois.
         d.reverifier()?;
         crate::compagnie::depart::fabriquer_dsn(ctx, mois, QUI_HORLOGE)?;
-        // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES (#236, trouve au banc d'essai), dans l'ordre de
+        // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES, dans l'ordre de
         // `crate::routes::etapes::ordre_de_depot` : la mensuelle, puis les signalements. L'horloge ne prenait que la plus recente --
         // un signalement d'amorcage, ecrit apres la mensuelle -- et la mensuelle ne partait jamais.
         deposer_les_dsn(d, ctx, mois, |_| true, &mut a_faire)

@@ -7,7 +7,7 @@
 //! exactement comme KALI pour les conventions collectives : une archive globale et une livraison par soir. Le releve
 //! devient donc RE-VERIFIABLE automatiquement, comme la table des parametres du BOSS et celle des CTP de l'Urssaf.
 //!
-//! PLUSIEURS TEXTES, UN SEUL PASSAGE (19/09/2026). Le code du travail dit ce qu'une indemnite de rupture VAUT ; le code de
+//! PLUSIEURS TEXTES, UN SEUL PASSAGE. Le code du travail dit ce qu'une indemnite de rupture VAUT ; le code de
 //! la securite sociale dit ce qu'elle SUPPORTE, et le code general des impots ce qu'elle coute a celui qui la recoit. Tous
 //! se lisent dans la meme archive : ce qui coute, c'est de faire defiler 1,1 Go, pas de reconnaitre un article de plus au
 //! passage. Le dossier donne en argument est celui des SOURCES ; chaque texte y ecrit dans le sien (`textes::TEXTES`).
@@ -19,7 +19,7 @@
 //! `TEXTES` ne demande plus aucun telechargement : il est deja dans l'entrepot. `rapport` ecrit le document lisible a
 //! partir de ce qui a ete moissonne.
 //!
-//! `comparer` REPOND A LA QUESTION QUE `moissonner` POSE (21/09/2026). « Huit articles ont change de version » ne dit pas
+//! `comparer` REPOND A LA QUESTION QUE `moissonner` POSE. « Huit articles ont change de version » ne dit pas
 //! si le DROIT a change : un article dont un alinea etranger a la paie est reecrit recoit un identifiant neuf sans que rien
 //! de ce qui nous concerne bouge. Il faut donc relire chaque article contre sa version d'AVANT -- et cette version-la ne se
 //! trouve nulle part ailleurs que dans l'archive globale. Le releve ne garde que la version en vigueur ; l'historique Git
