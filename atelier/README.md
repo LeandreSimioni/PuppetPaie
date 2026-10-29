@@ -1286,7 +1286,7 @@ moteur filet suivies               les embauches sans trace de DPAE
    0,55 %, `tdelta` 0,3781) : au-delà, on les corrige dans son propre
    fichier, en nommant la rubrique par son `id`.
 
-   **L'effectif ne se saisit pas** (23/09/2026) : l'Urssaf le calcule et le
+   **L'effectif ne se saisit pas** : l'Urssaf le calcule et le
    renvoie dans les retours DSN (nature 118, l'été qui suit l'année) ; le
    relevé l'écrit seul dans `config/effectifs.json`, et un seuil n'est
    franchi qu'après cinq années consécutives au-dessus (art. L. 130-1 CSS).
