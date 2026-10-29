@@ -722,8 +722,8 @@ moteur depot-dsn sorties/2026-10/SignalementArret_Celi_20261007.dsn --test
 
 `saisir` **n'envoie rien** : l'arrêt est écrit dans le magasin des **imprévus**
 (`imprevus/AAAA-MM.json`), au mois de son dernier jour travaillé. C'est un fait
-saisi **une fois** : la production de chaque mois qu'il traverse en tire le bloc
-60 de la DSN et, pour un permanent, la ligne qui retire le salaire des jours
+saisi **une fois** : chaque mois qu'il traverse en tire le bloc
+60 de sa DSN et, pour un permanent, la ligne qui retire le salaire des jours
 d'absence (et le maintien de salaire saisi sur l'arrêt, `moteur arret maintien
 Celi --dernier-jour 2026-10-07 --mois 2026-10 --montant 300`) ; les cachets
 d'un intermittent datés pendant l'arrêt sont nommés, jamais retirés d'office. `signaler` **écrit un fichier**, et c'est `depot-dsn` qui
@@ -741,7 +741,7 @@ moteur arret reprise Celi --dernier-jour 2026-10-07 --le 2026-10-15
 Une prolongation **ne fait partir aucun signalement** : elle change la fin
 prévisionnelle, que la DSN mensuelle de chaque mois traversé porte
 (`S21.G00.60.003` ; fiche net-entreprises 1983). Si l'arrêt est subrogé et finit
-désormais après sa subrogation, le moteur le dit et demande la fin de subrogation
+après sa subrogation, le moteur le dit et demande la fin de subrogation
 (il ne connaît pas le maximum de la convention) ; repoussée après le dépôt du
 signalement d'arrêt, elle fait naître un **signalement d'arrêt rectificatif**
 (annule et remplace, `moteur arret signaler ... --remplace <identifiant>`). Une
@@ -835,7 +835,7 @@ Dans la fenêtre, **Historique › Les corrections** montre, mois par mois,
 chaque contrat corrigé : la paie déclarée, la paie validée, et la DSN qui
 l'a portée ou la prochaine qui la portera.
 
-Un contrat déclaré ne se retire plus : s'il n'a pas eu lieu, ses quantités
+Un contrat déclaré ne se retire pas : s'il n'a pas eu lieu, ses quantités
 passent à zéro et la correction en déclare l'annulation des montants.
 
 ## Le fichier de saisie
@@ -863,9 +863,9 @@ Théâtre 71 le 14, 15, 17, 18 ». Deux villes, deux lignes — et c'est **une
 seule paie** : même spectacle, donc même numéro d'objet, donc un contrat, un
 bulletin. Les jours de l'engagement sont la réunion de ceux de ses
 lignes. Le contrat groupe les dates par lieu et les nomme toutes ; le lieu ne
-se déclare nulle part ailleurs (ni DSN, ni AEM, ni DPAE).
+se déclare nulle part ailleurs (ni DSN, ni DPAE).
 
-**Une seule écriture, depuis le 13/09/2026.** Un engagement n'a que des
+**Une seule écriture.** Un engagement n'a que des
 `lignes` ; `dates`, `cachets`, `heures` ou `taux_horaire` posés sur
 l'engagement lui-même sont **refusés**. Un contrat mixte se saisit
 avec une ligne `cachet` et une ligne `heure`, chacune à son taux.
@@ -1007,13 +1007,8 @@ lance pas sans raison.
 
 ### La nature du contrat, et les salariés permanents
 
-*Chantier en cours depuis le 18/09/2026. Ce qui suit marche ; ce qui manque
-est dit à la fin.*
-
 Un engagement peut dire sa **nature de contrat**. Sans elle, c'est un CDD
-d'usage du spectacle — l'intermittent, ce que sont les 146 contrats de
-l'historique, et c'est pour cela qu'aucune saisie existante n'a besoin d'être
-touchée.
+d'usage du spectacle — l'intermittent.
 
 ```json
 { "salarie": "Camille", "nature": "cdi",
@@ -1043,12 +1038,12 @@ Un contrat permanent (`cdi`, `cdd`) n'a **ni dates jouées, ni spectacle** :
 Comme un CDDU de tournée, un contrat permanent est **saisi dans chacun de ses
 mois**, avec les mêmes `debut` et `numero`.
 
-**Une saisie de permanent dit des FAITS, pas des lignes.** Depuis le
-18/09/2026, `charger` en déduit les lignes du bulletin — salaire de base et
+**Une saisie de permanent dit des FAITS, pas des lignes.** Le moteur en déduit les lignes du bulletin
+(`engagement/src/lib.rs`, à la lecture de la saisie) — salaire de base et
 son prorata, congés pris et l'indemnité qui les couvre, primes, solde de
 tout compte le dernier mois. Un arrêt de travail ou une suspension (congé
 parental, sabbatique, sans solde…) n'est **pas** un fait du mois : c'est un
-**imprévu**, saisi une fois sur le salarié (`moteur arret saisir`, `paie
+**imprévu**, saisi une fois sur le salarié (`moteur arret saisir`, `moteur
 suspension saisir`), dont le moteur tire la ligne de chaque mois qu'il traverse
 (une saisie qui porte encore des `absences` est refusée) :
 
@@ -1092,11 +1087,11 @@ dans les **cinq jours ouvrés** qui suivent la fin, et l'ouverture le rappelle.
   de l'usage. Tant que rien n'est dit, le moteur ne retire que le 1er mai du
   décompte des congés — et il le dit à chaque fois.
 
-**Tout cela se saisit aussi à l'écran** depuis le 19/09/2026. Un engagement
+**Tout cela se saisit aussi à l'écran.** Un engagement
 porte une case **Nature**, et c'est elle qui change la forme du bloc : un
 permanent perd le spectacle et les lignes de paie, et gagne son salaire
-mensuel, sa quotité, et trois listes de faits — congés pris, absences,
-primes. Sa fin, quand elle se signale, se saisit sous « Contrat » (motif de
+mensuel, sa quotité, et deux listes de faits — congés pris, primes ; ses arrêts et ses absences sont des
+imprévus, sur sa fiche. Sa fin, quand elle se signale, se saisit sous « Contrat » (motif de
 la rupture, notification, préavis, transaction), et une boîte **Fin de
 contrat**, à côté des arrêts de travail, liste ce qui se termine ce mois-ci,
 **dit ce qui manque** plutôt que de proposer un bouton qui refuserait, écrit
@@ -1104,8 +1099,7 @@ le signalement et enchaîne sur le dépôt. Les deux papiers dus au salarié
 s'écrivent du même endroit. La complémentaire santé, elle, se choisit sur la
 fiche du salarié : un niveau, un conjoint, des enfants.
 
-La **prévoyance des permanents**, qui manquait au début du chantier, est
-relevée depuis le 19/09/2026 et livrée avec le logiciel : la convention
+La **prévoyance des permanents** est livrée avec le logiciel : la convention
 collective la fixe (`logiciel/donnees/prevoyance-conventionnelle-base.json`,
 `docs/ARCHITECTURE.md`, « Le taux d'une branche n'est pas une donnée de
 compagnie »). Ce qui reste propre à chaque compagnie, et la fait refuser
@@ -1147,8 +1141,8 @@ Spectacles du dernier mois additionne les cachets et le brut de tous les
 mois du contrat, lus dans les paies validées de l'engagement — le seul
 regard en arrière du moteur.
 
-**Le numéro se pose sur l'engagement** quand le contrat part à la signature,
-ou avec les documents de son premier mois, et se relit dans tous ses mois.
+**Le numéro se pose sur l'engagement** à sa validation (`engagement/src/numeros.rs`), et se relit dans tous
+ses mois.
 Un mois qui n'est pas le premier ne se numérote pas : sans numéro connu, le
 moteur en tirerait un autre, il refuse.
 
@@ -1167,9 +1161,8 @@ Valider ? » :
 **L'historique dans le calendrier.** La flèche vers le mois *précédent*
 remonte aussi loin qu'on veut, en lecture seule : les mois passés montrent
 les contrats déclarés des salariés cochés — une plage grisée quand on ne
-connaît que début, fin et nombre de cachets (l'historique importé des AEM,
-avant août 2026), les jours joués en gris plein quand le mois a été produit
-ici — et la liste des contrats du mois sous la grille, avec le titre du
+connaît que début, fin et nombre de cachets (l'historique importé des AEM),
+les jours joués en gris plein quand l'engagement a été validé ici — et la liste des contrats du mois sous la grille, avec le titre du
 spectacle. C'est ce que la compagnie a déclaré, pas la position du salarié :
 ses autres employeurs n'y sont pas. Rien ne s'y coche.
 
@@ -1187,10 +1180,10 @@ signature.
 ## Ce qu'il faut vérifier à chaque mois
 
 1. **Le montant Urssaf** du bloc `S21.G00.20` de la DSN. C'est un ordre de
-   télépaiement, et il se **calcule** depuis le 29/09/2026 : c'est la somme des
+   télépaiement, et il se **calcule** : c'est la somme des
    lignes du bordereau (bloc 23), chacune valorisée à la table des CTP de
-   l'Urssaf et arrondie à l'euro (`documents/src/bordereau.rs`) — 74 des 75
-   DSN de CoolPaie retrouvées au centime. Rien à recopier :
+   l'Urssaf et arrondie à l'euro (`documents/src/bordereau.rs`) — 74 de 75
+   DSN acceptées d'une compagnie retrouvées au centime. Rien à recopier :
 
    ```
    moteur depot-dsn 2026-09 --apercu
@@ -1198,8 +1191,7 @@ signature.
 2. **La DSN en dépôt de test** (`depot-dsn --test`) avant tout dépôt réel.
    C'est le validateur qui fait foi : la même brique de contrôle que DSN-Val,
    à jour, côté plate-forme (voir `atelier/reference/norme-dsn/LISEZMOI.md`).
-   Depuis le 20/09/2026 ce n'est plus une discipline mais une **règle du
-   moteur** : un dépôt réel dont le contenu exact n'est pas passé en test est
+   C'est une **règle du moteur** : un dépôt réel dont le contenu exact n'est pas passé en test est
    refusé, pour la DSN comme pour la DPAE — voir « La répétition avant
    l'irréversible ».
 3. **Le numéro d'objet du spectacle** : France Travail en délivre un nouveau
