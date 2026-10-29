@@ -203,8 +203,7 @@ de vérifier le nombre au lieu de le croire. La source nomme le texte et sa
 date, pas « la réglementation ».
 
 La source de chacune se lit dans `logiciel/donnees/rubriques-base.json` (et
-`config/rubriques-compagnie.json` pour celles d'une compagnie) ; la commande
-`rubriques --detail` du Python qui l'affichait n'est pas portée.
+`config/rubriques-compagnie.json` pour celles d'une compagnie).
 
 ---
 
