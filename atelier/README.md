@@ -492,15 +492,14 @@ Urssaf et sans consommer de numéro de bulletin :
 moteur dpae 2026-09 --heure 0800
 ```
 
-Elle dit, pour chaque contrat, si le délai est tenu — la DPAE ne s'envoie que
-dans les 8 jours qui précèdent l'embauche.
+Elle dit si une embauche est déjà passée : la DPAE est alors hors délai, et elle s'écrit quand même, sans antidater
+(code de sortie 3).
 
 **Le dépôt.** Deux voies. À la main sur net-entreprises.fr, rubrique DPAE
 (dépôt du `.txt`, ou saisie en ligne à partir du `_recapitulatif.txt`). Ou par
 l'API de l'Urssaf, depuis la fenêtre : elle montre qui est déclaré, et n'envoie
 rien tant que le mot de passe du logiciel n'est pas tapé. C'est le mot de passe
-qui vaut confirmation. (Les raccourcis `Depot DPAE.cmd` et `Retours DSN.cmd`
-d'avant le rangement du 09/10/2026 n'existent plus.)
+qui vaut confirmation.
 
 En ligne de commande, même chose :
 
@@ -521,7 +520,7 @@ moteur deposer-dpae sorties/2026-09/DPAE_Septembre2026.txt --test
 
 Le champ `C_VERSION` bascule de `120` à `TST` **en mémoire** au moment de
 l'envoi ; le fichier sur le disque reste un fichier réel. L'API DPAE ne demande
-aucune inscription, seulement un compte en ligne Urssaf. Détail : `../prive/journal/ETAT.md` §7 bis.
+aucune inscription, seulement un compte en ligne Urssaf.
 
 ## La répétition avant l'irréversible
 
@@ -543,7 +542,7 @@ Trois refus, trois gestes différents — le message dit lequel : un test qui a
 absence de test se comble. Dans la page, le bouton du dépôt de test est dans
 la boîte du refus.
 
-**La sortie de secours existe, et elle est tracée.** Le service de test sera
+**La sortie de secours existe, et elle est tracée.** Le service de test peut être
 indisponible un 5 du mois à 23 h, et bloquer une déclaration à l'échéance est
 pire qu'un dépôt imparfait :
 
@@ -573,7 +572,7 @@ moteur retours
 
 Ou, sans ligne de commande : la fenêtre les relève à l'ouverture.
 
-Le mot de passe n'est plus demandé si le coffre le porte (`paie
+Le mot de passe n'est pas demandé si le coffre le porte (`moteur
 coffre poser net-entreprises`) : relever les retours est une lecture, et c'est
 ce qui permet à l'ouverture de le faire seule. Le champ reste, pour le cas où
 aucun coffre n'est posé — et ce qui y est tapé passe devant le coffre.
@@ -654,7 +653,7 @@ Première embauche, taux périmé, salarié sans NIR : la DGFiP n'a pas donné d
 taux, et la loi ne laisse pas le choix. C'est la **grille de taux par défaut**
 de l'article 204 H du CGI — type 13, et **pas d'identifiant**
 (`S21.G00.50.008` n'est obligatoire qu'avec un taux transmis par la DGFiP,
-type 01 : CCH-11, p. 244). Le moteur ne s'arrête donc plus : il
+type 01 : CCH-11, p. 244). Le moteur
 calcule, versement par versement.
 
 Ce que le bloc 50 porte alors :
@@ -667,8 +666,7 @@ Ce que le bloc 50 porte alors :
 
 L'abattement n'a pas de rubrique : il se lit dans l'écart entre 50.002 et
 50.013 (cahier technique 2026.1, p. 245). `50.012` est réservée aux
-abattements des assistants maternels et familiaux ; le moteur ne l'écrit plus
-depuis la vague 1a (10/10/2026).
+abattements des assistants maternels et familiaux ; le moteur ne l'écrit pas.
 
 L'abattement (la moitié du SMIC net imposable mensuel) vaut pour un CDD dont
 le terme n'excède pas deux mois ou dont le terme est imprécis, et seulement
@@ -709,7 +707,7 @@ déclarations le disent, et ce ne sont pas la même :
   l'employeur. Il informe l'Assurance Maladie au plus près de l'événement,
   pour les indemnités journalières ;
 - le **report dans la DSN mensuelle** : obligatoire (cahier technique 2026.1
-  §2.5.2), et il se fait tout seul à la production du mois. Un arrêt qui dure
+  §2.5.2), et il se fait tout seul à la fabrication de la DSN du mois. Un arrêt qui dure
   est reporté par **chaque** DSN dont le mois croise l'arrêt.
 
 ```bash
