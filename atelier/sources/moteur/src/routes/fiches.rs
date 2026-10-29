@@ -430,6 +430,16 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
         faits.extend(deriver_personnes(donnees, forcer));
         faits.extend(deriver_siren_nic(donnees));
     }
+    // LE DEPARTEMENT DE NAISSANCE SE LIT DANS LE NIR (regle 2 : la page le montre, le moteur l'ecrit) : ses 6e et 7e
+    // caracteres sont le departement de naissance, 99 pour une personne nee a l'etranger (S21.G00.30.001 et .014,
+    // `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.30.txt`). Il ne s'ecrit que dans une case vide : une
+    // valeur saisie qui le contredit se dit (`champs::controles_croises`), elle ne se remplace pas.
+    if nom == "salarie" && socle::texte::strip(&texte_ou_vide(donnees.get("departement_naissance"))).is_empty() {
+        if let Some(dep) = champs::departement_du_nir(&texte_ou_vide(donnees.get("nir"))) {
+            faits.insert("departement_naissance".into(), json!([donnees.get("departement_naissance").cloned().unwrap_or(Value::Null), dep]));
+            donnees.insert("departement_naissance".into(), Value::String(dep));
+        }
+    }
     if nom == "salarie" && socle::texte::strip(&texte_ou_vide(donnees.get("initiales_contrat"))).is_empty() {
         let lettres: String = texte_ou_vide(donnees.get("nom")).chars().filter(|c| c.is_ascii_uppercase()).collect();
         if !lettres.is_empty() {
@@ -480,19 +490,14 @@ pub(crate) fn urssaf_du_code_postal(cp: Option<&Value>) -> R<String> {
 fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     let mut propose = Map::new();
     if nom == "salarie" {
-        let nir = socle::texte::strip(&texte_ou_vide(donnees.get("nir"))).to_string();
-        let c: Vec<char> = nir.chars().collect();
-        if c.len() == 13 && champs::tous_chiffres(&nir) && (c[0] == '1' || c[0] == '2') {
-            let dep: String = c[5..7].iter().collect();
-            if dep != "20" {
-                let mut trouvees = vec![("departement_naissance", dep.clone())];
-                if dep != "99" {
-                    trouvees.push(("pays_naissance", "FR".to_string()));
-                }
-                for (cle, valeur) in trouvees {
-                    if socle::texte::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
-                        propose.insert(cle.into(), json!({"valeur": valeur, "pourquoi": "lu dans le numéro de sécurité sociale"}));
-                    }
+        if let Some(dep) = champs::departement_du_nir(&texte_ou_vide(donnees.get("nir"))) {
+            let mut trouvees = vec![("departement_naissance", dep.clone())];
+            if dep != "99" {
+                trouvees.push(("pays_naissance", "FR".to_string()));
+            }
+            for (cle, valeur) in trouvees {
+                if socle::texte::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
+                    propose.insert(cle.into(), json!({"valeur": valeur, "pourquoi": "lu dans le numéro de sécurité sociale"}));
                 }
             }
         }
