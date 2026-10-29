@@ -751,6 +751,11 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     reponse["fichiers"] = Value::Array(e.fichiers);
     reponse["copie"] = copie;
     reponse["depots_repris"] = json!(depots_attestes_au_journal(ctx, charge)?);
+    // Ce que les DSN reprises disent de la configuration hors de la fiche (le taux AT/MP, les organismes), lu avec les
+    // fiches telles que l'import les a ecrites.
+    if let Ok(frais) = Contexte::nouveau(&ctx.racine, Some(ctx.date)) {
+        reponse["parametrage"] = json!(crate::import::parametrage::parametrer(&frais));
+    }
     rapporter_les_ecarts(ctx);
     Ok(reponse)
 }

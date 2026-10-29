@@ -26,7 +26,7 @@ async function montrerRappels(lu = api) {
   try { r = await lu("rappels"); } catch (e) { return; }
   try { ech = await lu("echeancier"); } catch (e) { ech = null; }
   let manques = [];
-  try { manques = (await lu("pour-demarrer")).manques || []; } catch (e) { manques = []; }
+  try { const pd = await lu("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { manques = []; }
   const liste = r.rappels || [];
   // L'ÉCHÉANCIER : « un pop-up au démarrage : on est le…,
   // bienvenue sur PuppetPaie, n'oublie pas de faire la DSN ». Elle s'ouvrait
@@ -49,7 +49,7 @@ async function rafraichirRappels(lu) {
   let r, ech = null, manques = [];
   try { r = await lu("rappels"); } catch (e) { return; }
   try { ech = await lu("echeancier"); } catch (e) { ech = null; }
-  try { manques = (await lu("pour-demarrer")).manques || []; } catch (e) { manques = []; }
+  try { const pd = await lu("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { manques = []; }
   const liste = r.rappels || [];
   const neuf = { liste, ech, manques };
   if (JSON.stringify(neuf) === JSON.stringify(RAPPELS_MONTRES)) return;
@@ -62,12 +62,27 @@ async function rafraichirRappels(lu) {
   boiteRappels(liste, ech, manques);
 }
 
+/* CE QUE LE MOTEUR A POSÉ DE LUI-MÊME (`pour-demarrer`, `poses`) : dit avec
+ * ce qui manque, en information, avec le lien vers sa case. */
+let POSES_DEMARRAGE = [];
+function htmlPoses() {
+  if (!POSES_DEMARRAGE.length) return "";
+  return `<div class="rappel demarrage-poses">
+    <h3>Posé pour vous</h3>
+    <ul class="rappel-liste">${POSES_DEMARRAGE.map((p) => `
+      <li>${pastilleDeLEtat(p.pastille)}
+        <button type="button" class="lien" data-manque-champ="${echapper(p.champ || "")}"
+          data-manque-ou="${echapper(p.ou || "")}"><b>${echapper(p.libelle)}</b></button>
+        <div class="note">${echapper(p.texte)}</div></li>`).join("")}</ul>
+  </div>`;
+}
+
 /* POUR DÉMARRER. Une compagnie neuve découvrait ce qui lui
  * manquait un refus après l'autre. Le moteur (`pour-demarrer`) rend tout
  * d'un coup : ce que chaque manque bloque, où il se saisit, où la compagnie
  * trouve la valeur. La page ne fait que l'afficher. */
 function htmlDemarrage(manques) {
-  if (!manques || !manques.length) return "";
+  if (!manques || !manques.length) return htmlPoses();
   // CHAQUE CHOSE MÈNE À SA CASE : le libellé conduit au champ que le
   // moteur nomme (`champ`, celui que l'écran montre : `demarrage::a_l_ecran`),
   // ou à l'onglet qu'il nomme (`ou`) quand ce n'est pas une case.
@@ -85,7 +100,7 @@ function htmlDemarrage(manques) {
       <p class="note">Tant qu'elles manquent, ce qu'elles bloquent sera refusé. Elles se trouvent toutes sur les courriers des organismes.</p>
       <ul class="rappel-liste">${manques.map(ligne).join("")}</ul>
       <div class="actions"><button class="petit" data-aller-configuration>Ouvrir la configuration</button></div>
-    </div>`;
+    </div>${htmlPoses()}`;
 }
 
 /** Aller à ce qui manque : l'onglet, puis la case (son tiroir ouvert, le
@@ -135,7 +150,7 @@ function peindreDemarrage(conteneur) {
 }
 async function peindreDemarrageDans(conteneur) {
   let manques = [];
-  try { manques = (await api("pour-demarrer")).manques || []; } catch (e) { return; }
+  try { const pd = await api("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { return; }
   conteneur.innerHTML = htmlDemarrage(manques);
   const b = conteneur.querySelector("[data-aller-configuration]");
   if (b) b.remove();

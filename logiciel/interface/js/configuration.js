@@ -820,12 +820,18 @@ function vueImportation(r) {
     nc ? `${nc} contrat${nc > 1 ? "s" : ""}` : "",
     np ? `${np} bulletin${np > 1 ? "s" : ""}` : "",
   ].filter((x) => x);
+  // La couleur de l'encart, et ce que l'import a posé de la configuration,
+  // viennent du moteur (`encart`, `parametrage`).
+  const couleur = ENCART_DE_COULEUR[(r.encart || {}).couleur] || "";
+  const pose = (r.parametrage || []).length
+    ? `<p class="note">Posé dans la configuration :</p><ul>${r.parametrage.map((p) => `<li>${echapper(p)}</li>`).join("")}</ul>` : "";
   const bouton = r.ecrit
-    ? `<div class="encart bien"><b>Repris.</b> ${(r.fichiers || []).map((f) => echapper(f)).join("<br>")}
+    ? `<div class="encart ${couleur}"><b>Repris.</b> ${(r.fichiers || []).map((f) => echapper(f)).join("<br>")}
+        ${pose}
         <p class="note">Les fichiers lus sont copiés dans l'historique de la compagnie ; vous pouvez vider
           le dossier <code>import/</code>.</p></div>`
     : r.rien_a_faire
-      ? `<div class="encart bien"><b>Rien à reprendre</b> : tout est déjà là.</div>`
+      ? `<div class="encart ${couleur}"><b>Rien à reprendre</b> : tout est déjà là.</div>`
       : `<p><button class="primaire" id="import-ecrire">Reprendre${quoi.length ? " " + quoi.join(", ") : ""}</button>
          <span class="note">Rien n'est écrit avant ce clic.</span></p>`;
   return `<div id="import-incident"></div>
@@ -1114,14 +1120,12 @@ const SOUS_CHAMPS = {
   declarant_dsn: { champs: [
     ["civilite", "Civilité", "Celle de la personne que les organismes contactent : elle s'écrit dans chaque DSN.",
      { choix: { "": "—", "02": "Madame", "01": "Monsieur" } }],
-    ["prenom_affichage", "Prénom", ""],
-    ["nom_affichage", "Nom", ""],
+    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
     ["tel", "Téléphone", ""],
     ["email", "Courriel", ""],
   ] },
   contact_sante_travail: { champs: [
-    ["prenom_affichage", "Prénom", ""],
-    ["nom_affichage", "Nom", ""],
+    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
     ["tel", "Téléphone", ""],
     ["email", "Courriel", ""],
   ] },
@@ -1619,23 +1623,34 @@ async function dessinerOrganismes(cible) {
   };
 }
 
-/* LE TAUX AT/MP, en tête du bloc « Vos numéros chez les
- * organismes ». Il n'est pas un champ de la fiche : il vit dans le barème
- * de la compagnie (`config/baremes/<année>.json`), s'enregistre seul, à la
- * sortie de la case, et ne marque pas la fiche « modifiée ». Sans lui, le
- * premier mois d'une compagnie neuve ne se calculait pas. */
+/* LE CODE RISQUE ET LE TAUX AT/MP, en tête du bloc « Vos numéros chez les
+ * organismes ». Ils ne sont pas des champs de la fiche : ils vivent dans le
+ * barème de la compagnie (`config/baremes/<année>.json`). Le moteur
+ * (`taux-atmp`) dit ce qui est posé, le risque tel que l'arrêté l'écrit,
+ * pourquoi, où le lire, où le changer, et les codes qu'il connaît ; la page
+ * les affiche. « Avancé » les change : le moteur refuse ce qui ne va pas. */
 function ATMP_HTML() {
   const an = anneeDuJour();
   return `<div class="encart" id="config-atmp" data-annee="${an}">
-    <div class="ligne-champs">
-      <label>Taux accident du travail (AT/MP) ${an}
-        <input id="atmp-valeur" class="hors-fiche" inputmode="decimal" placeholder="1,25"></label>
-      <label>Code risque
-        <input id="atmp-code" class="hors-fiche" placeholder="923AD" maxlength="5"></label>
-    </div>
-    <div class="aide">En pourcentage, tel que l'Assurance Maladie le notifie
-      chaque année (compte AT/MP sur net-entreprises). Nécessaire pour
-      calculer la paie. <span id="atmp-etat"></span></div>
+    <h4>Accidents du travail (AT/MP) ${an}</h4>
+    <p id="atmp-resume"></p>
+    <p class="note" id="atmp-libelle"></p>
+    <p class="aide" id="atmp-explication"></p>
+    <p class="aide" id="atmp-ou"></p>
+    <details id="atmp-avance"><summary>Avancé</summary>
+      <div class="ligne-champs">
+        <label>Code risque notifié
+          <select id="atmp-choix" class="hors-fiche"></select></label>
+        <label id="atmp-autre-l">Autre code (s'il n'est pas dans la liste)
+          <input id="atmp-code" class="hors-fiche" maxlength="7"></label>
+        <label>Taux notifié (%)
+          <input id="atmp-valeur" class="hors-fiche" inputmode="decimal"></label>
+      </div>
+      <div class="aide">Le taux vide : celui de l'arrêté de l'année, quand il s'applique au code choisi.
+        Avec 999ZZ, pas de taux.</div>
+      <div class="actions"><button class="petit" id="atmp-enregistrer">Enregistrer</button>
+        <span id="atmp-etat"></span></div>
+    </details>
   </div>`;
 }
 
@@ -1643,25 +1658,32 @@ async function brancherAtmp() {
   const bloc = document.getElementById("config-atmp");
   if (!bloc) return;
   const annee = Number(bloc.dataset.annee);
-  const valeur = document.getElementById("atmp-valeur");
-  const code = document.getElementById("atmp-code");
-  const etat = document.getElementById("atmp-etat");
-  // Repeindre n'efface jamais ce qu'on est en train de taper : la réponse
-  // d'un premier enregistrement (le taux) arrivait pendant qu'on tapait le
-  // code risque, et le vidait.
-  const peindre = (t) => {
-    if (!t) return;
-    if (document.activeElement !== valeur) valeur.value = String(t.valeur).replace(".", ",");
-    if (t.code_risque && document.activeElement !== code) code.value = t.code_risque;
+  const $ = (id) => document.getElementById(id);
+  const [choix, code, valeur, etat] = ["atmp-choix", "atmp-code", "atmp-valeur", "atmp-etat"].map($);
+  // Ces cases ne sont pas la fiche : elles ne la marquent pas modifiée.
+  [choix, code, valeur].forEach((c) => { c.oninput = null; });
+  const peindre = (r) => {
+    if (!r) return;
+    const t = r.taux || {};
+    $("atmp-resume").innerHTML = r.resume ? `<b>${echapper(r.resume)}</b>` : "";
+    $("atmp-libelle").textContent = r.risque ? `« ${r.risque.libelle} »` : "";
+    $("atmp-explication").textContent = r.explication || "";
+    $("atmp-ou").textContent = [r.ou_le_lire, r.ou_le_changer].filter(Boolean).join(" ");
+    const codes = r.codes || [];
+    const connu = codes.some((c) => c.code === t.code_risque);
+    choix.innerHTML = codes.map((c) =>
+      `<option value="${echapper(c.code)}">${echapper(c.code_arrete || c.code)} — ${echapper(c.libelle)}</option>`).join("")
+      + `<option value="">Un autre code notifié</option>`;
+    choix.value = connu ? t.code_risque : "";
+    if (document.activeElement !== code) code.value = connu ? "" : (t.code_risque || "");
+    if (document.activeElement !== valeur) valeur.value = "";
   };
-  // Ces deux cases ne sont pas la fiche : elles ne la marquent pas modifiée.
-  [valeur, code].forEach((c) => { c.oninput = null; });
-  try { peindre((await api("taux-atmp", { annee })).taux); } catch (e) { /* rien à montrer */ }
-  const poser = async () => {
-    if (!valeur.value.trim()) return;
+  try { peindre(await api("taux-atmp", { annee })); } catch (e) { /* rien à montrer */ }
+  $("atmp-enregistrer").onclick = async (ev) => {
+    ev.preventDefault();
     try {
-      peindre((await api("taux-atmp", { annee, valeur: valeur.value,
-                                        code_risque: code.value })).taux);
+      peindre(await api("taux-atmp", { annee, code_risque: choix.value || code.value,
+                                       valeur: valeur.value }));
       etat.textContent = "Enregistré.";
       valeur.classList.remove("faute");
     } catch (e) {
@@ -1669,8 +1691,6 @@ async function brancherAtmp() {
       valeur.classList.add("faute");
     }
   };
-  valeur.onchange = poser;
-  code.onchange = poser;
 }
 
 /* LA COMPLÉMENTAIRE SANTÉ D'UN PERMANENT, en tete du bloc

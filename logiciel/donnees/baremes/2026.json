@@ -1518,9 +1518,29 @@
     },
   "_quoi": "LE SOCLE DE DROIT COMMUN DE L'ANNEE, livre avec le logiciel et le meme pour toutes les compagnies : taux Urssaf, Agirc-Arrco, chomage, CSG, plafond de la Securite sociale, SMIC, et les taux de la branche du spectacle (Conges Spectacles, prevoyance interbranche, formation, CASC). Ce qui est propre a une entreprise n'est PAS ici : son taux AT/MP notifie, et ce que son effectif change. Elle l'ecrit dans config/baremes/<annee>.json, que `moteur/baremes.fusionner` empile par-dessus celui-ci.",
   "_ce_qui_depend_de_l_entreprise": {
-    "taux_atmp": "LE taux AT/MP de l'etablissement, notifie chaque janvier par l'Assurance Maladie (compte AT/MP sur net-entreprises). Aucun logiciel ne peut aller le chercher : il est propre a l'etablissement, et il n'y a pas de valeur par defaut raisonnable. Les rubriques `atmp` de ce socle portent leur FACTEUR et le moteur les remplit.",
+    "taux_atmp": "LE taux AT/MP de l'etablissement, notifie chaque janvier par l'Assurance Maladie (compte AT/MP sur net-entreprises). Il est propre a l'etablissement ; a la creation d'une compagnie, le moteur pose le risque `risques_atmp.par_defaut` et son taux de l'arrete de l'annee (`risques_atmp`), que la compagnie change dans Configuration. Les rubriques `atmp` de ce socle portent leur FACTEUR et le moteur les remplit.",
     "effectif": "Trois valeurs de ce socle sont ecrites pour une entreprise de MOINS DE ONZE salaries : le FNAL a 0,10 % (0,50 % a partir de 50 salaries), la contribution a la formation professionnelle des permanents a 0,55 % (1,00 % a partir de 11), et le `tdelta` de la reduction generale, 0,3781 au FNAL 0,10 (0,3821 au FNAL 0,50). Une entreprise plus grande les surcharge dans son fichier. CETTE PHRASE NE SUFFIT PLUS : depuis le 21/09/2026 la meme chose est ecrite pour etre LUE, chemin par chemin, dans la section `seuils_effectif`, et le moteur refuse de payer quand l'effectif declare atteint un seuil que la surcouche n'a pas suivi. Ce qui est ici est le commentaire ; ce qui est la-bas est le controle.",
     "_comment": "La surcouche se fond cle par cle. Une rubrique se reprend par son `id`, une cotisation DSN par son `code81` (et son `affectation` s'il y en a une) : on n'ecrit que ce qui change. Exemple, pour une entreprise de soixante salaries : {\"annee\": 2026, \"taux_atmp\": {\"valeur\": 2.10, \"code_risque\": \"923AD\"}, \"rubriques_bulletin\": [{\"id\": \"autres_2\", \"taux_pat\": 0.35}]}"
+  },
+  "risques_atmp": {
+    "_source": "atelier/reference/sources/tarification-atmp/ : arrete du 30/12/2025 (taux nets collectifs 2026, annexe 1 ; art. 5 : les lettres TC marquent les activites du I de D. 242-6-14), legifrance-arrete-tarification-atmp-2026-complet-20261029.txt, annexe 1 l. 486-561, annexe 3 (Alsace-Moselle, D. 242-35 ; art. 4) l. 1495-1600 ; D. 242-6-14 et D. 242-6-2 CSS (code-de-la-securite-sociale/xml/). Norme DSN, S21.G00.40.040 et .043 (norme-dsn/texte/bloc-S21.G00.40.txt l. 1224-1315) pour 999ZZ.",
+    "_quoi": "Les risques qu'une structure du spectacle peut se voir notifier, tels que l'annexe 1 les ecrit. `code` : la forme de la DSN (S21.G00.40.040, sans point) ; `code_arrete` : celle de l'arrete. `tc` : le taux est collectif quel que soit l'effectif (D. 242-6-14, I) ; sans TC, il n'est collectif que sous 20 salaries (D. 242-6-2), sinon c'est celui que la CARSAT notifie. 999ZZ : pas encore de notification ; la DSN interdit alors le taux (SIG-11), et aucun texte depose ne dit ce que le bulletin cotise.",
+    "arrete": "l'arrêté du 30 décembre 2025 relatif à la tarification des risques d'accidents du travail et de maladies professionnelles pour l'année 2026",
+    "par_defaut": "923AD",
+    "codes": [
+      {"code": "923AD", "code_arrete": "92.3AD", "taux": 1.50, "tc": true, "alsace_moselle": {"groupe": 3, "taux": 3.34},
+       "libelle": "Création et interprétation littéraires et artistiques (y compris les artistes). Services annexes des spectacles (tout intermittent du spectacle).",
+       "precisions": "Y compris la décoration sur émail, sur faïence et sur porcelaine (non annexée à une fabrique)."},
+      {"code": "921CC", "code_arrete": "92.1CC", "taux": 1.07, "tc": false, "alsace_moselle": {"groupe": 1, "taux": 1.23},
+       "libelle": "Production de films et de programmes pour le cinéma, la télévision, la radiodiffusion, etc. … Enregistrement sonore et édition musicale. Distribution et projection de films. Activités photographiques (hors agences de presse). Gestion d'activités de spectacles et gestion d'activités culturelles et socio-éducatives."},
+      {"code": "913EA", "code_arrete": "91.3EA", "taux": 1.20, "tc": true, "alsace_moselle": {"groupe": 1, "taux": 1.23},
+       "libelle": "Associations culturelles et socio-éducatives ne gérant pas d'équipements."},
+      {"code": "927CC", "code_arrete": "92.7CC", "taux": 1.78, "tc": false, "alsace_moselle": {"groupe": 3, "taux": 3.34},
+       "libelle": "Attractions foraines avec et sans montage de manèges ou de chapiteaux, et autres spectacles et services récréatifs.",
+       "precisions": "Y sont compris les cirques ambulants, les ménageries et toutes attractions mues par la force motrice, mécanique ou électrique ; et bal, dancing, patinage, curiosités naturelles, spectacles son et lumière, parcs zoologiques, parc d'attractions et de loisirs."},
+      {"code": "999ZZ", "code_arrete": null, "taux": null, "tc": false,
+       "libelle": "Pas encore de notification de la CARSAT (établissement qui vient d'être créé)."}
+    ]
   },
   "seuils_effectif": {
     "_quoi": "CE QUE L'EFFECTIF DE L'ENTREPRISE CHANGE DANS CE SOCLE, ecrit pour etre LU par le moteur : il lit cette section, la confronte a l'effectif que l'Urssaf calcule et renvoie en CRM de nature 118 (config/effectifs.json ; un seuil n'est franchi qu'apres cinq annees consecutives), et REFUSE de payer plutot que de produire un bulletin faux et muet.",

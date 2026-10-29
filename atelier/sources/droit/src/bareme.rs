@@ -851,17 +851,18 @@ pub fn bareme_atmp(bar: Value) -> Resultat<Value> {
         let taux = g(g(&bar, "taux_atmp"), "valeur");
         if taux.is_null() {
             let a = annee(&bar);
-            return Err(format!(
-                "Bareme {} : le taux AT/MP manque. Il se lit sur la decision \
-annuelle de l'Assurance Maladie (compte AT/MP sur \
-net-entreprises, courant janvier) et s'ecrit dans \
-config/baremes/{}.json :\n    \
-{{\"annee\": {}, \"taux_atmp\": {{\"valeur\": 1.50, \
-\"code_risque\": \"923AD\"}}}}\n  \
-Il est propre a l'etablissement : le moteur ne peut ni le \
-deviner, ni prendre celui d'une autre compagnie.",
-                a, a, a
-            ));
+            let sans_notification = g(g(&bar, "taux_atmp"), "code_risque").as_str() == Some(SANS_NOTIFICATION);
+            return Err(if sans_notification {
+                format!(
+                    "Le taux AT/MP {} manque : le code risque est 999ZZ (pas encore de notification de la CARSAT), que la DSN déclare sans taux, et aucun texte ne dit quel taux le bulletin cotise en attendant. Le code et le taux notifiés se saisissent dans Configuration › Entreprise, « Accidents du travail (AT/MP) », dès que la notification arrive (compte AT/MP sur net-entreprises).",
+                    a
+                )
+            } else {
+                format!(
+                    "Le taux AT/MP {} manque. Il se lit sur la notification de la CARSAT (compte AT/MP sur net-entreprises) et se saisit avec le code risque dans Configuration › Entreprise, « Accidents du travail (AT/MP) ». Il est propre à l’établissement : le moteur ne le devine pas.",
+                    a
+                )
+            });
         }
         let mut r = copie(r);
         r.insert("taux_pat".into(), nd(rond(mul(dec(taux)?, dec(facteur)?), 3)));
@@ -2390,4 +2391,107 @@ pub fn somme_pct(a: Decimal, taux: &[f64]) -> Resultat<Decimal> {
         m += socle::num::pct(a, socle::num::dec_f64(*t)?);
     }
     Ok(m)
+}
+
+// ------------------------------------------------------------ les risques AT/MP de l'arrete de l'annee
+
+/// UN RISQUE AT/MP QUE LE SOCLE DE L'ANNEE CONNAIT (`risques_atmp.codes`), tel que l'annexe 1 de l'arrete de tarification
+/// de l'annee l'ecrit (`atelier/reference/sources/tarification-atmp/`, transcription des annexes l. 497-561).
+#[derive(Debug, Clone, PartialEq)]
+pub struct RisqueAtmp {
+    /// La forme de la DSN (S21.G00.40.040), sans point : `923AD`.
+    pub code: String,
+    /// La forme de l'arrete, `92.3AD` ; rien pour 999ZZ.
+    pub code_arrete: Option<String>,
+    pub libelle: String,
+    pub precisions: Option<String>,
+    /// Le taux net collectif de l'annexe 1, en pourcentage ; rien pour 999ZZ.
+    pub taux: Option<Decimal>,
+    /// « TC » : le taux reste collectif quel que soit l'effectif (D. 242-6-14, I ; art. 5 de l'arrete).
+    pub tc: bool,
+    /// Le groupe et le taux de l'annexe 3, en Alsace-Moselle (art. 4 de l'arrete ; D. 242-35, non releve).
+    pub alsace_moselle: Option<(i64, Decimal)>,
+}
+
+/// Le code sans notification de la CARSAT (S21.G00.40.040, `norme-dsn/texte/bloc-S21.G00.40.txt` l. 1236-1252) : la DSN
+/// interdit alors le taux (SIG-11, l. 1311-1313).
+pub const SANS_NOTIFICATION: &str = "999ZZ";
+
+/// Les risques que le socle `socle` connait (vide pour une annee sans table : son arrete n'est pas depose).
+pub fn risques_atmp(socle: &Value) -> Vec<RisqueAtmp> {
+    let texte = |v: &Value| v.as_str().map(str::trim).filter(|s| !s.is_empty()).map(String::from);
+    liste(g(g(socle, "risques_atmp"), "codes"))
+        .iter()
+        .filter_map(|r| {
+            Some(RisqueAtmp {
+                code: texte(g(r, "code"))?,
+                code_arrete: texte(g(r, "code_arrete")),
+                libelle: texte(g(r, "libelle")).unwrap_or_default(),
+                precisions: texte(g(r, "precisions")),
+                taux: g(r, "taux").as_f64().and_then(|t| Decimal::try_from(t).ok()).map(|t| t.round_dp(2)),
+                tc: vrai(g(r, "tc")),
+                alsace_moselle: g(g(r, "alsace_moselle"), "groupe").as_i64().zip(g(g(r, "alsace_moselle"), "taux").as_f64().and_then(|t| Decimal::try_from(t).ok()).map(|t| t.round_dp(2))),
+            })
+        })
+        .collect()
+}
+
+/// Le risque que le socle pose a la creation d'une compagnie (`risques_atmp.par_defaut`), s'il le connait.
+pub fn risque_par_defaut(socle: &Value) -> Option<RisqueAtmp> {
+    let code = g(g(socle, "risques_atmp"), "par_defaut").as_str()?;
+    risques_atmp(socle).into_iter().find(|r| r.code == code)
+}
+
+/// LE TAUX QUE L'ARRETE FIXE pour ce risque : le taux net collectif de l'annexe 1 quand il s'applique, c'est-a-dire pour
+/// un risque « TC » quel que soit l'effectif (D. 242-6-14, I), et pour un autre sous 20 salaries (D. 242-6-2, 1°). `moins_de_20`
+/// : l'effectif dit-il moins de 20 salaries (`None` : il ne le dit pas) ? Rien quand le taux est celui que la CARSAT
+/// notifie, ou qu'il n'y en a pas (999ZZ). Rien en Alsace-Moselle (`alsace_moselle`) : l'annexe 3 y fixe d'autres taux
+/// collectifs, sans lettres TC, en application de D. 242-35, qui n'est pas releve : ce qu'il dit de l'effectif n'est pas
+/// etabli, le taux se saisit.
+pub fn taux_de_l_arrete(r: &RisqueAtmp, moins_de_20: Option<bool>, alsace_moselle: bool) -> Option<Decimal> {
+    if alsace_moselle {
+        None
+    } else if r.tc || moins_de_20 == Some(true) {
+        r.taux
+    } else {
+        None
+    }
+}
+
+/// L'etablissement est-il dans le Haut-Rhin, le Bas-Rhin ou la Moselle (art. 4 de l'arrete) ? Lu dans les deux premiers
+/// chiffres de son code postal (68, 67, 57) : une inference, le code postal suivant le numero du departement dans ces trois
+/// departements.
+pub fn en_alsace_moselle(code_postal: &str) -> bool {
+    matches!(code_postal.trim().get(..2), Some("57" | "67" | "68"))
+}
+
+#[cfg(test)]
+mod tests_risques_atmp {
+    use super::*;
+
+    /// 92.3AD est « TC » a 1,50 % en 2026 (`tarification-atmp/legifrance-arrete-tarification-atmp-2026-complet-20261029.txt`,
+    /// annexe 1, l. 496-498) : son taux est celui de l'arrete quel que soit l'effectif
+    /// (D. 242-6-14, I) ; 92.1CC, sans TC (l. 489-493), ne l'a que sous 20 salaries (D. 242-6-2, 1°) ; en Alsace-Moselle,
+    /// l'annexe 3 vaut et le taux se saisit (art. 4).
+    #[test]
+    fn le_taux_d_un_risque_tc_est_celui_de_l_arrete_quel_que_soit_l_effectif() {
+        let socle = socle::fichiers::lire_json(&dossier_du_code().join("baremes").join("2026.json")).unwrap();
+        let r = risque_par_defaut(&socle).unwrap();
+        assert_eq!((r.code.as_str(), r.code_arrete.as_deref(), r.tc), ("923AD", Some("92.3AD"), true));
+        assert_eq!(taux_de_l_arrete(&r, Some(false), false), Some(Decimal::new(150, 2)));
+        assert_eq!(taux_de_l_arrete(&r, None, false), Some(Decimal::new(150, 2)));
+        assert_eq!(taux_de_l_arrete(&r, Some(true), true), None);
+        assert_eq!(r.alsace_moselle, Some((3, Decimal::new(334, 2))));
+        let gestion = risques_atmp(&socle).into_iter().find(|r| r.code == "921CC").unwrap();
+        assert_eq!(taux_de_l_arrete(&gestion, Some(true), false), Some(Decimal::new(107, 2)));
+        assert_eq!(taux_de_l_arrete(&gestion, Some(false), false), None);
+        assert_eq!(taux_de_l_arrete(&gestion, None, false), None);
+        let sans = risques_atmp(&socle).into_iter().find(|r| r.code == SANS_NOTIFICATION).unwrap();
+        assert_eq!(taux_de_l_arrete(&sans, Some(true), false), None);
+    }
+}
+
+/// Le nom de l'arrete qui fixe les taux du socle (`risques_atmp.arrete`), pour le dire a l'ecran.
+pub fn arrete_atmp(socle: &Value) -> Option<String> {
+    g(g(socle, "risques_atmp"), "arrete").as_str().map(String::from)
 }

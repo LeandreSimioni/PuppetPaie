@@ -1,0 +1,2396 @@
+Arrêté du 30 décembre 2025 relatif à la tarification des risques
+d'accidents du travail et de maladies professionnelles pour l'année
+2026
+VERSION INITIALE
+
+ NOR : SFHS2536273A
+ ELI : https://www.legifrance.gouv.fr/eli/arrete/2025/12/30/SFHS2536273A/jo/texte
+ JORF n°0306 du 31 décembre 2025
+ Texte n°101
+
+
+
+
+ Le ministre du travail et des solidarités, la ministre de la santé, des familles, de l'autonomie et
+ des personnes handicapées et la ministre de l'action et des comptes publics,
+ Vu le code de la sécurité sociale , notamment ses articles D. 242-6-6 , D. 242-6-8 et D. 242-34 ;
+ Vu la loi n° 2025-1403 du 30 décembre 2025 de financement de la sécurité sociale pour 2026 ;
+ Vu le décret n° 2015-1679 du 15 décembre 2015 relatif à la tarification des accidents du travail
+ et des maladies professionnelles à Mayotte et portant application de l'
+ article 28-6 de l'ordonnance n° 96-1122 du 20 décembre 1996 modifiée relative à l'amélioration
+ de la santé publique à Mayotte ;
+ Vu l'arrêté du 17 octobre 1995 modifié relatif à la tarification des risques d'accidents du travail
+ et de maladies professionnelles ;
+ Vu les délibérations de la commission des accidents du travail et des maladies professionnelles
+ en dates du 13 novembre 2025 et du 18 décembre 2025 ;
+ Vu la délibération de la commission régionale des accidents du travail et des maladies
+ professionnelles de la caisse d'assurance retraite et de la santé au travail de l'Alsace-Moselle en
+ date du 20 novembre 2025,
+ Arrêtent :
+
+
+ Article 1
+
+ Les taux nets collectifs visés aux articles D. 242-6-11 et
+ D. 242-6-18 à D. 242-6-23 du code de la sécurité sociale sont fixés par l'annexe 1 au présent
+ arrêté.
+Article 2
+
+Le taux net moyen national de cotisation est de 2,08 %.
+
+
+
+
+Article 3
+
+Les coûts moyens de chacune des catégories d'incapacité temporaire et d'incapacité
+permanente mentionnées aux articles D. 242-6-6 et D. 242-34 du code de la sécurité sociale
+sont fixés par l'annexe 2 au présent arrêté pour chacun des comités techniques nationaux
+mentionnés à l'article R. 421-7 du même code .
+
+
+
+
+Article 4
+
+Les taux nets collectifs visés à l'article D. 242-35 du code de la sécurité sociale applicables dans
+les départements du Haut-Rhin, du Bas-Rhin et de la Moselle sont fixés par l'annexe 3 au présent
+arrêté.
+
+
+
+
+Article 5
+
+Les activités professionnelles visées au I de l'article D. 242-6-14 du code de la sécurité sociale et
+les catégories de travailleurs visées au dernier alinéa de l'article D. 242-6-22 du même code sont
+celles mentionnées à l'annexe 1 au présent arrêté pour lesquelles le taux net est suivi des lettres
+TC.
+
+
+
+
+Article 6
+
+Le présent arrêté s'applique aux cotisations dues au titre de l'année 2026.
+
+
+
+
+Article 7
+
+Le présent arrêté sera publié au Journal officiel de la République française.
+
+
+
+
+    Annexe
+ANNEXES
+ANNEXE 1
+TAUX NETS COLLECTIFS APPLICABLES EN 2026
+                               Cacher le tableau
+
+INDUSTRIES DE LA MÉTALLURGIE
+
+
+                                                                               CODE     TAUX NET
+CATÉGORIE DE RISQUE
+                                                                               RISQUE   (en %)
+
+
+Fonderie de fonte, d'acier moulé ou de fonte malléable. Fabrication de
+fonte, d'acier, d'articles ou tubes en fonte. Fabrication de radiateurs, de    27.1ZF   6,34 %
+chaudières pour le chauffage central, la cuisine.
+
+
+Métallurgie des métaux non ferreux et précieux. Laminage à chaud ou
+                                                                               27.4CH   4,95 %
+relaminage sans fabrication de fonte ni d'acier.
+
+
+Fonderie des métaux légers ou non ferreux.                                     27.5EB   6,23 %
+
+
+Construction métallique, fabrication de charpentes ; fournitures et
+armatures métalliques préparées pour le béton armé (préparation des
+                                                                               28.1AD   4,08 %
+armatures en ateliers hors chantiers). Travail à froid des métaux (étirage,
+laminage, profilage, pliage, tréfilage) et métallurgie des ferro-alliages.
+
+
+Fabrication d'articles, de meubles et menuiseries, de fûts et emballages
+métalliques, de fils et câbles isolés. Fabrication de bouchage, d'emballage,
+de ferblanterie, de conditionnement métallique. Repoussage des métaux          28.1CB   3,05 %
+en feuilles. Fabrication d'accessoires d'ameublement en bronze et/ou fer
+forgé.
+
+
+Chaudronnerie et soudure.                                                      28.3CG   5,13 %
+
+
+Fabrication de tubes en acier ou de tubes isolateurs (sauf tubes en fonte).
+Fabrication de chaudronnerie de contenants (réservoirs, citernes, bouteilles
+pour gaz comprimés), de générateurs de vapeur et accessoires,                28.3CH     3,76 %
+d'équipements généralement sous pression et de chaudronnerie nucléaire.
+Fabrication de tuyaux métalliques flexibles.
+
+
+Forge, estampage, matriçage. Métallurgie des poudres et frittage.              28.4AD   3,25 %
+Découpage, emboutissage. Sciage des métaux, graveurs-estampeurs.
+                                                                                28.4BI     2,91 %
+Décolletage.
+
+
+Traitement et revêtement des métaux.                                            28.5AA     3,65 %
+
+
+Mécanique industrielle.                                                         28.5DA     3,25 %
+
+
+Usinage de précision ou réparation d'articles métalliques divers.               28.5DF     2,32 %
+
+
+Travaux d'intervention, de montage, démontage et entretien de matériels
+divers dans les usines. - Réparateurs mécaniciens. - Fabrication de manèges     28.5DG     4,53 %
+pour fêtes foraines.
+
+
+Fabrication, montage, installation, entretien, réparation de machines,
+équipements, outillages : machine-outil, machine pour les industries de
+process (1), du textile, du cuir, de la chaussure ; matériel fixe et roulant pour
+                                                                                  28.6DF   2,19 %
+le transport guidé ; matériel incendie ; ascenseur, monte-charge, porte
+automatique et escalier mécanique ; équipements de levage et de
+manutention.
+
+
+Fabrication de boulonnerie, ressorts, visseries et quincaillerie. Fabrication
+et/ou entretien de couverts, couteaux, ciseaux, rasoirs. Fabrication
+                                                                                28.6FB     2,06 %
+d'articles de sport, jeux, jouets, articles de puériculture non classés par
+ailleurs.
+
+
+Fabrication de composants mécaniques : transmissions hydrauliques et
+pneumatiques, turbines, compresseurs, roulements, matrices, poinçons,
+moules et modèles, organes mécaniques de transmission. Fabrication de           29.1AF     2,30 %
+moteurs autres que pour aéronefs, automobiles et motocycles.
+Reconstruction de moteurs sauf pour l'aéronautique.
+
+
+Fabrication de pompes et d'articles de robinetterie.                            29.1FB     2,07 %
+
+
+Fabrication, installation, entretien, réparation de matériels aérauliques et
+thermiques, de fours et de brûleurs, d'appareils frigorifiques domestiques      29.2FI     3,13 %
+et industriels. Fabrication d'appareils ménagers électriques.
+
+
+Fabrication et/ou réparation d'engins mobiles et systèmes pour : la
+construction, les mines, le forage, la préparation des minerais et matériaux,   29.3DC     2,69 %
+le matériel agricole.
+Fabrication, réparation, entretien de : matériels électriques,
+électromagnétiques industriels, appareillages électriques d'installation,
+accumulateurs, isolateurs, piles, condensateurs, lampes électriques,             31.2AG    2,18 %
+matériels électriques pour moteurs et véhicules. Montage de petits
+matériels électriques. Réparation, entretien de matériels ménagers.
+
+
+Fabrication, installation, entretien, réparation de : matériels et appareils
+électroniques de réception, de téléphonie, d'enregistrement, d'imagerie
+médicale, de composants, d'éléments chauffants. Fabrication, installation,       32.1BC    1,09 %
+entretien, réparation de matériel bureautique, informatique et activités
+connexes.
+
+
+Fabrication, réparation de matériel médico-chirurgical, de prothèses y
+compris dentaires, d'instruments de précision, d'optique, d'horlogerie, de
+                                                                                  33.1BC   1,58 %
+laboratoire. Emaillage, bijouterie, joaillerie, orfèvrerie, gravage de médailles,
+de monnaies (hors commerce).
+
+
+Fabrication, installation d'appareils de mesure, de comptage, de
+signalisation, de contrôle, de sécurité, de régulation. Conception et            33.2BK    1,19 %
+installation de systèmes de contrôle et de production automatisée.
+
+
+Construction de véhicules automobiles. Succursales et filiales des
+                                                                                 34.1ZE    2,70 %
+constructeurs.
+
+
+Construction de carrosseries, bennes, remorques autres que de tourisme.
+                                                                                 34.2AB    4,17 %
+Fabrication de caravanes et véhicules de loisirs.
+
+
+Fabrication d'équipements, de parties, d'accessoires et de pièces
+détachées pour l'automobile y compris équipements de carrosserie et de           34.3ZE    2,70 %
+châssis.
+
+
+Construction, réparation ou peinture de navires en acier (y compris
+                                                                                 35.1BF    6,34 %
+équipements spécifiques de bord).
+
+
+Recherche, fabrication, entretien, maintenance, réparation,
+reconditionnement pour : aéronautique, aérospatiale, missiles, armement,         35.3BC    0,93 %
+structures, équipements.
+
+
+Entreprises spécialisées dans l'installation de machines électriques dans les
+                                                                                 45.3AA    2,85 %
+usines et établissements industriels.
+
+
+Importation, commerce, entretien, réparation de véhicules automobiles de         50.1ZF    2,50 %
+marque (importateurs, concessionnaires, agents, réparateurs agréés),
+commerce et réparation indépendante (à l'exception des 502ZH et 341ZE).
+Fabrication, réparation, commerce de motocycles, cycles et véhicules
+divers (y compris pièces et équipements). Electricité automobile.
+
+
+Dépannage, remorquage de véhicules automobiles (sans atelier de
+réparation et non annexé à un garage). Mécaniciens-réparateurs
+n'appartenant pas à un réseau de marque automobile. Fabrication ou
+                                                                              50.2ZH     3,17 %
+fabrication associée à la réparation de menuiserie, tôlerie, sellerie,
+peintures spécialisées de voitures. Récupération de matières métalliques
+recyclables.
+
+
+(1) Process : procédés de fabrication pour chimie, pharmacie, agroalimentaire, plasturgie,
+caoutchouc, métallurgie, fonderie, soudage, etc.
+
+
+INDUSTRIES DU BATIMENT ET DES TRAVAUX PUBLICS
+
+
+                                                                              CODE       TAUX NET
+CATÉGORIE DE RISQUE
+                                                                              RISQUE     (en %)
+
+
+Salariés occupant des fonctions supports de nature administrative dans
+                                                                              00.00A     0,71 %
+des entreprises du BTP.
+
+
+Terrassements courants et travaux préparatoires spécialisés (y compris
+                                                                              45.1AA     4,59 %
+travaux paysagers sauf horticulture).
+
+
+Autres travaux de gros œuvre. Entreprise générale du bâtiment.
+                                                                              45.2BE     7,39 %
+Construction métallique : montage, levage. Fumisterie industrielle.
+
+
+Ouvrages d'art, autres travaux d'infrastructures spécialisés (forages et
+sondages, fondations spéciales, travaux souterrains, de voies ferrées,        45.2CD     4,36 %
+maritimes et fluviaux).
+
+
+Construction et entretien de réseaux (électricité, eaux, gaz,
+                                                                              45.2ED     4,73 %
+télécommunications, etc…) et autres réseaux non classés par ailleurs.
+
+
+Travaux de couverture, de charpente en bois, d'étanchéité.                    45.2JD     8,73 %
+
+
+Construction et entretien de chaussées (y compris sols sportifs et pavage).
+Fabrication de produits asphaltés ou enrobés (avec transport et mise en       45.2PB     4,06 %
+œuvre).
+Travaux de plomberie, de génie climatique, d'électricité, autres travaux
+                                                                              45.3AF     3,77 %
+d'installation technique non classés par ailleurs.
+
+
+Travaux de menuiserie extérieure.                                             45.4CE     5,49 %
+
+
+Travaux d'isolation, travaux de finitions (travaux d'aménagements
+                                                                              45.4LE     6,16 %
+intérieurs).
+
+
+Ateliers des entreprises du bâtiment et des travaux publics relevant du
+CTN B et rattachées aux numéros de risque 45.2BE, 45.2JD, 45.3AF, 45.4CE      45.4MC     2,08 %
+et 45.4LE.
+
+
+Entretien, réparation, location et montage de matériel pour le bâtiment et
+                                                                              45.5ZB     4,67 %
+les travaux publics.
+
+
+Conception de projets architecturaux y compris décoration, ingénierie du
+                                                                              74.2CE     0,86 %
+BTP (y compris topographie, métrés, hygiène et sécurité, etc…).
+
+
+Allocations complémentaires aux indemnités journalières de sécurité
+sociale versées soit par des organismes de prévoyance soit par des            75.3CA     5,99 %       TC
+employeurs : activités de bâtiment (gros œuvre) et travaux publics. (1)
+
+
+Allocations complémentaires aux indemnités journalières de sécurité
+sociale versées soit par des organismes de prévoyance soit par des            75.3CB     3,67 %       TC
+employeurs : autres activités.
+
+
+Caisses de congés payés du bâtiment et des travaux publics (en ce qui
+                                                                              91.1AA     0,49 %       TC
+concerne les indemnités versées par ces organismes).
+
+
+(1) Les activités de bâtiment gros œuvre et de travaux publics sont identifiées sous les numéros de
+risques suivants : 45.1AA, 45.2BE, 45.2CD, 45.2ED, 45.2PB
+
+
+INDUSTRIES DES TRANSPORTS, DE L'EAU, DU GAZ, DE L'ÉLECTRICITE, DU LIVRE ET DE LA
+COMMUNICATION
+
+
+                                                                              CODE       TAUX NET
+CATÉGORIE DE RISQUE
+                                                                              RISQUE     (en %)
+Édition, imprimerie. Reprographie et activités connexes (reliure, dorure
+main, affiches, composition, photocomposition, gravure et photogravure).     22.2CD   2,02 %
+Routage.
+
+
+Traitement des déchets des activités industrielles, économiques et des
+ménages, récupération, tri, recyclage, valorisation matière y compris        37.1ZF   4,40 %
+démantèlement, désamorçage, démolition de munitions.
+
+
+Agents statutaires des industries électriques et gazières. (1)               40.1ZE   0,16 %    TC
+
+
+Salariés non statutaires des industries électriques et gazières. (1)         40.1ZF   2,05 %    TC
+
+
+Production et distribution de chauffage urbain, exploitants de chauffage
+d'immeubles, opérateurs d'efficacité énergétique, valorisation énergétique   40.3ZE   2,05 %
+des déchets, usine d'incinération de résidus urbains.
+
+
+Captage, traitement et distribution de l'eau.                                41.0ZA   1,88 %
+
+
+Transport ferroviaire.                                                       60.1ZA   1,14 %    TC
+
+
+Transports terrestres de voyageurs, y compris par taxi.                      60.2BD   3,96 %
+
+
+Téléphériques, remontées mécaniques.                                         60.2CA   3,96 %
+
+
+Transports routiers de marchandises. Location de véhicules avec chauffeur.   60.2MG   5,40 %
+
+
+Déménagement et garde-meubles.                                               60.2NA   6,56 %
+
+
+Transports aériens réguliers et non réguliers : personnel navigant et non
+                                                                             62.1ZC   1,65 %
+navigant. Services aéroportuaires.
+
+
+Ouvriers dockers maritimes intermittents, soumis au régime de la vignette,
+et effectuant quel que soit le classement de l'entreprise qui les emploie,
+                                                                             63.1AZ   35,00 %
+des opérations de chargement, de déchargement ou de manutention de
+marchandises.
+
+
+Manutention, chargement, déchargement, entreposage de marchandises
+                                                                             63.1BE   8,06 %
+ou fret dans les ports maritimes et fluviaux, et les aéroports.
+Entreposage et stockage non frigorifique non reliés à une voie d'eau.
+                                                                               63.1EE   3,27 %
+Entreposage de liquides en vrac.
+
+
+Transports par eau de marchandises et de passagers, et services auxiliaires.   63.2CF   1,99 %
+
+
+Agences de voyage. Offices de tourisme.                                        63.3ZC   0,85 %
+
+
+Entreprises de groupage effectuant directement ou non l'enlèvement ou la
+                                                                               63.4AA   4,11 %
+livraison à domicile des marchandises, messagerie, fret express.
+
+
+Affrètement et organisation des transports maritimes, routiers ou aériens.
+                                                                               63.4CI   1,71 %
+Gares routières et exploitation d'ouvrages routiers à péage.
+
+
+Services postaux et financiers.                                                64.1AA   2,50 %   TC
+
+
+Autres activités de courrier : activités autres que celles exercées par La
+Poste. - Acheminement du courrier, lettre, colis généralement en express. -    64.1CA   4,21 %
+Activités de coursiers urbains et taxis-marchandises.
+
+
+Activités de télécommunications, y compris les activités de télésurveillance
+                                                                             64.2BB     0,88 %
+(sans personnel d'intervention sur le site surveillé).
+
+
+Créateurs et intermédiaires de publicité (2) : régies publicitaires. Agences
+                                                                               74.4BB   1,14 %
+de presse y compris journalistes et photographes indépendants.
+
+
+Transports de fonds et services sécurisés.                                     74.6ZB   3,28 %
+
+
+Entreprises de travaux connexes aux sociétés de transports ferroviaires y
+compris la manutention dans les gares ferroviaires. Entreprises de             74.7ZE   3,99 %
+nettoyage de matériel roulant sur les emprises de chemin de fer.
+
+
+Acheminement et distribution de presse gratuite ou payante.                    74.8GB   2,02 %
+
+
+Caisses de congés payés dans les ports et dans certaines entreprises de
+manutention et de transports (en ce qui concerne les indemnités versées        75.3CC   0,49 %   TC
+par ces organismes).
+
+
+Ambulances.                                                                    85.1JA   4,11 %
+Services d'assainissement (sauf ceux visés sous le numéro 74.7ZF). Collecte
+                                                                                  90.0AA   3,84 %
+et traitement des eaux usées.
+
+
+Collecte des déchets ménagers ou d'activités, dangereux ou non
+                                                                                  90.0BF   4,62 %
+dangereux. Nettoiement de voirie-balayage, lavage.
+
+
+Caisses des congés payés des spectacles (en ce qui concerne les indemnités
+                                                                           91.1AE          0,49 %    TC
+versées par ces organismes).
+
+
+Associations culturelles et socio-éducatives ne gérant pas d'équipements.         91.3EA   1,20 %    TC
+
+
+Production de films et de programmes pour le cinéma, la télévision, la
+radiodiffusion, etc. … Enregistrement sonore et édition musicale.
+Distribution et projection de films. Activités photographiques (hors              92.1CC   1,07 %
+agences de presse). Gestion d'activités de spectacles et gestion d'activités
+culturelles et socio-éducatives.
+
+
+Création et interprétation littéraires et artistiques (y compris les artistes).
+                                                                                  92.3AD   1,50 %    TC
+(3) Services annexes des spectacles (tout intermittent du spectacle).
+
+
+Gestion d'équipements et centres sportifs (personnel non visé par ailleurs
+                                                                                  92.6AA   1,69 %
+et notamment aux risques 92.6CH et 92.6CI).
+
+
+Associations ou sociétés sportives ne gérant pas d'équipements.                   92.6CG   1,15 %    TC
+
+
+Sportifs professionnels, y compris entraîneurs joueurs, quel que soit le
+classement de l'établissement qui les emploie (4) : rugby, escalade, moto,        92.6CH   6,07 %
+handball, basket, hockey, équitation, volley-ball, football, ski, cyclisme.
+
+
+Sportifs professionnels, pour les sports non visés par ailleurs, incluant
+également les entraîneurs non joueurs des sports visés par le 926CH, quel
+                                                                                  92.6CI   1,22 %
+que soit le classement de l'établissement qui les emploie (4), arbitres et
+juges.
+
+
+Organisation de jeux de hasard et d'argent (dont courses de chevaux et de
+                                                                                  92.7AB   1,27 %
+taureaux).
+
+
+Attractions foraines avec et sans montage de manèges ou de chapiteaux
+                                                                                  92.7CC   1,78 %
+(5), et autres spectacles et services récréatifs (6).
+
+
+(1) Ce tarif vise l'ensemble du personnel des industries électriques et gazières, y compris le personnel
+de la Compagnie parisienne de chauffage urbain.
+
+
+(2) La fabrication d'affiches peintes et d'enseignes (pose exclue) relève des industries du livre (risque
+22.2CD) : la pose desdites affiches et enseignes ainsi que la publicité par affiches peintes
+directement sur les murs relèvent des industries du bâtiment (n° 45.4LE).
+
+
+(3) Y compris la décoration sur émail, sur faïence et sur porcelaine (non annexée à une fabrique).
+
+
+(4) Le sportif qui pratique professionnellement plus d'une discipline sportive est classé avec celui des
+sports exercés qui présente le taux de risque le plus élevé.
+
+
+(5) Sous cette rubrique sont également compris les cirques ambulants, les ménageries et toutes
+attractions mues par la force motrice, mécanique ou électrique.
+
+
+(6) Y compris bal, dancing, patinage, curiosités naturelles, spectacles son et lumière, parcs
+zoologiques, parc d'attractions et de loisirs.
+
+
+SERVICES, COMMERCES ET INDUSTRIES DE L'ALIMENTATION
+
+
+                                                                                 CODE        TAUX NET
+CATÉGORIE DE RISQUE
+                                                                                 RISQUE      (en %)
+
+
+Cultures et élevage dans les départements d'outre-mer.                           01.1AA      5,40 %
+
+
+Abattage du bétail, découpe et commerce de gros de viandes de
+                                                                                 15.1AE      6,44 %
+boucherie. Production de viandes de volailles.
+
+
+Transformation et conservation de la viande et préparation de produits à
+base de viande (y compris boyauderie). Transformation et conservation du         15.1EC      4,59 %
+poisson.
+
+
+Autres industries alimentaires non classées par ailleurs et transformation du
+                                                                              15.5CC         2,54 %
+tabac.
+
+
+Transformation et conservation de légumes et de fruits. Fabrication
+                                                                                 15.8AC      3,60 %
+industrielle de produits de boulangerie, pâtisserie et pizza.
+
+
+Commerce de détail (avec ou sans fabrication) de pain, pâtisserie,
+                                                                                 15.8CD      2,12 %
+confiserie et chocolats.
+
+
+Fabrication et transformation de café et épices. Fabrication de boissons         15.9SC      1,76 %
+sauf produits laitiers.
+
+
+Intermédiaires de commerce en produits agricoles et alimentaires et vente
+par correspondance sans manutention, ni livraison, ni stockage, ni            51.1NB   0,87 %
+conditionnement.
+
+
+Commerce de gros (commerce interentreprises) alimentaire non spécialisé.      51.3TC   2,54 %
+
+
+Commerce de détail de produits laitiers, de produits surgelés, de fruits et
+                                                                              52.1BC   2,07 %
+légumes, de boissons et d'alimentation générale.
+
+
+Grande et moyenne distribution et Drive - Vente par automate.                 52.1FB   3,58 %
+
+
+Commerce de détail de viandes, poissons, charcuterie artisanale y compris
+                                                                              52.2CB   2,95 %
+traiteurs, organisateurs de réception.
+
+
+Installations d'hébergement à équipements légers ou développés.               55.2EC   2,06 %
+
+
+Restaurants, café-tabac, hôtels avec ou sans restaurant et foyers.            55.3AC   1,78 %
+
+
+Restauration type rapide y compris wagons-lits et wagons-restaurants.         55.3BC   1,55 %
+
+
+Restauration collective.                                                      55.5AA   4,13 %
+
+
+Entreposage frigorifique.                                                     63.1DA   3,90 %
+
+
+INDUSTRIES DE LA CHIMIE, DU CAOUTCHOUC ET DE LA PLASTURGIE
+
+
+                                                                              CODE     TAUX NET
+CATÉGORIE DE RISQUE
+                                                                              RISQUE   (en %)
+
+
+Production, transport par conduite et raffinage de pétrole et de gaz.
+Fabrication d'ingrédients et additifs pour carburation et lubrification, de
+produits asphaltés et bitumeux. Commerce de gros des produits pétroliers.     11.1ZC   1,74 %
+Fabrication de produits chimiques organiques de base. Fabrication de
+caoutchoucs synthétiques, d'élastomères, de matières plastiques.
+
+
+Production et transformation de matières nucléaires.                          23.3ZA   1,41 %
+
+
+Fabrication de produits chimiques minéraux et inorganiques, organiques de 24.1GN       3,74 %
+synthèse ou dérivés du bois, de produits azotés et d'engrais, d'abrasifs, de
+pigments, colorants, émaux, de produits photographiques, d'électrodes.
+Métallurgie de l'aluminium, des ferro-alliages et métaux légers.
+Electrométallurgie, électrochimie. Dénaturation d'éthanol.
+
+
+Fabrication de peintures, vernis, colles, encres, mastics. Fabrication de
+gélatines et de leurs dérivés. Fabrication de produits d'entretien.            24.3ZC   2,15 %
+Fabrication d'explosifs, d'articles de pyrotechnie, de poudres propulsives.
+
+
+Fabrication de préparations pharmaceutiques, de cosmétiques et de
+parfums. Fabrication et transformation d'extraits de végétaux, d'algues,
+bois résineux. Fabrication de produits de base pour détergents, de produits 24.4CC      1,43 %
+détergents, de pesticides et de biocides. Fabrication et traitement
+chimique de corps gras.
+
+
+Fabrication d'articles en caoutchouc naturel ou synthétique à partir
+                                                                               25.1AC   2,55 %
+d'élastomères secs ou sous forme latex ou en solution.
+
+
+Fabrication, assemblage d'articles et pièces en matières plastiques, y
+                                                                               25.2HK   3,15 %
+compris composites.
+
+
+Chimie expert. Laboratoires de recherches chimiques.                           73.1ZB   1,41 %
+
+
+INDUSTRIES DU BOIS, DE L'AMEUBLEMENT, DU PAPIER-CARTON, DU TEXTILE, DU VÊTEMENT, DES
+CUIRS ET DES PEAUX ET DES PIERRES ET TERRES A FEU
+
+
+                                                                               CODE     TAUX NET
+CATÉGORIE DE RISQUE
+                                                                               RISQUE   (en %)
+
+
+Extraction et préparation de matériaux issus des carrières de roches
+                                                                               14.1AH   3,98 %
+meubles ou massives.
+
+
+Extraction, broyage et préparation de produits minéraux divers.                14.5ZM   2,61 %
+
+
+Travail des fibres textiles naturelles (filature, moulinage et retordage,
+                                                                               17.1KB   4,50 %
+préparation de la laine, fibres dures, ouates…).
+
+
+Fabrication de tissu et articles textiles.                                     17.2AC   3,40 %
+
+
+Fabrication de mailles, dentelles, rubans, produits élastiques et d'articles
+                                                                               17.7AB   3,30 %
+divers.
+Confection. Fabrication d'accessoires de l'habillement et d'articles en toile. 18.2CB   2,36 %
+
+
+Maroquinerie.                                                                 19.2ZH    2,25 %
+
+
+Chaussure. Cuirs et peaux.                                                    19.3ZL    4,06 %
+
+
+Scieries, y compris prestations de service, abattage et coupe de bois dans
+                                                                              20.1AF    7,00 %
+les DOM, fabrication de charbon de bois à usage domestique.
+
+
+Travail mécanique du bois, traitement et fabrication d'objets en bois.        20.1BB    4,55 %
+
+
+Menuiserie, charpentes et panneaux à base de bois et commerce
+                                                                              20.3ZF    4,23 %
+menuiserie et panneaux.
+
+
+Fabrication d'emballages issus du bois et d'articles de tonnellerie.          20.4ZI    4,70 %
+
+
+Production et transformation des pâtes à papier et carton.                    21.2BD    3,12 %
+
+
+Fabrication, façonnage et travail technique du verre.                         26.1EE    4,03 %
+
+
+Fabrication de vaisselle et d'objets en porcelaine ou en faïence.             26.2AG    4,85 %
+
+
+Fabrication de tuiles et briques et de produits céramiques non désignés par
+                                                                            26.2AH      3,88 %
+ailleurs.
+
+
+Fabrication d'appareils sanitaires en céramique.                              26.2CA    6,54 %
+
+
+Fabrication de ciment, chaux, plâtre, produits en plâtre, agrégats légers,
+                                                                              26.5AB    2,60 %
+matériaux enrobés d'étanchéité et produits non désignés ailleurs.
+
+
+Fabrication de produits en béton.                                             26.6AA    5,40 %
+
+
+Préparation et livraison de béton prêt à l'emploi (sans mise en œuvre). (1)   26.6EB    3,38 %
+
+
+                                                                                        99,00
+Fabrication de produits en fibre-ciment.                                      26.6JB
+                                                                                        %
+
+
+Fabrication et pose de produits de marbrerie.                                 26.7ZD    5,88 %
+Fabrication et réparation de navires en bois et en polyester stratifié.        35.1EB     4,04 %
+
+
+Fabrication et réparation de meubles et de cercueils en bois ou en matière
+                                                                               36.1GC     4,04 %
+similaire et d'instruments de musique.
+
+
+Fabrication et réparation de sièges, de matelas et sommiers et d'articles de
+                                                                               36.1MD     4,13 %
+literie et pour voiliers.
+
+
+Commerce du bois.                                                              51.5EG     2,77 %
+
+
+Autres industries du cuir.                                                     52.7AC     2,66 %
+
+
+Blanchisserie et teinturerie de gros, y compris la location de linge et
+                                                                               71.4AC     4,12 %
+vêtements professionnels blanchis. (2)
+
+
+Blanchisserie et teinturerie de détail, y compris laverie automatique.         93.0BA     2,36 %
+
+
+(1) Cette livraison peut comporter la manutention du béton, au moyen de pompes et canalisations,
+jusqu'aux coffrages. Les entreprises de préparation et de livraison de béton prêt à l'emploi, avec mise
+en œuvre de ce béton, relèvent du comité technique national des industries du bâtiment et des
+travaux publics.
+
+
+(2) La location de linge seule relève du comité technique national des commerces non alimentaires.
+
+
+COMMERCES NON ALIMENTAIRES
+
+
+                                                                               CODE       TAUX NET
+CATÉGORIE DE RISQUE
+                                                                               RISQUE     (en %)
+
+
+Commerce et location de véhicules automobiles et d'équipements
+associés, de machines et équipements agricoles. Ecoles de conduite.            50.3AD     1,87 %
+Exploitation de parkings.
+
+
+Commerce de combustibles, charbons, carburants et lavages
+                                                                               50.5ZB     2,46 %
+automatiques.
+
+
+Commerce de gros sans manutention. Centrales d'achats et intermédiaires
+                                                                               51.1RB     0,86 %
+du commerce non alimentaire.
+Commerce de métaux, de biens d'occasion et commerce non alimentaire
+                                                                               51.5CC   2,34 %
+sur éventaires et marchés.
+
+
+Commerce de gros de matériaux de construction.                                 51.5FA   1,99 %
+
+
+Commerce de gros et location de matériel de bureau, électroménager,
+                                                                               51.6GC   0,94 %
+multimédia et informatique.
+
+
+Commerce de gros d'équipement industriel et de la maison, d'équipement
+                                                                               51.6KC   1,39 %
+de la personne et de produits pharmaceutiques.
+
+
+Intermédiaires du commerce avec manutention. Commerce de gros de
+                                                                               51.6LC   1,55 %
+produits chimiques et autres.
+
+
+Commerce de gros ou location de matériel de construction (bâtiment et
+                                                                               51.6NC   2,41 %
+travaux publics) et agricole.
+
+
+Commerce de détail de produits pharmaceutiques, d'articles médicaux et
+orthopédiques, d'optique et photographiques, de parfumerie et de               52.3AC   0,93 %
+produits de beauté.
+
+
+Commerce de détail de l'habillement, textiles, chaussures, maroquinerie.
+                                                                               52.4CD   1,41 %
+Vente à distance. Commerce de bijouterie, d'horlogerie, et d'orfèvrerie.
+
+
+Grands magasins, magasins multi-commerces ou magasins populaires,
+                                                                               52.4HC   2,08 %
+commerces de meubles et de décoration de la maison.
+
+
+Commerce de détail et location de matériel électroménager, multimédia,
+                                                                               52.4LA   1,65 %
+informatique.
+
+
+Commerce de détail de bricolage (surface de vente supérieure ou égale à
+                                                                               52.4PB   2,56 %
+400 m2).
+
+
+Commerce de détail et location associée d'articles de sport et de loisirs, y
+                                                                               52.4WA   1,15 %
+compris cycles.
+
+
+Commerce de fleurs et d'animaux d'agrément.                                    52.4XB   1,94 %
+
+
+Commerce de détail de quincaillerie et de droguerie (surface de vente          52.4ZD   1,75 %
+inférieure à 400 m2), céramique mobilière, arts de la table, jouets,
+instruments de musique, et autres.
+
+
+Promotion, vente, location ou administration de biens immobiliers.               70.3AD     1,25 %
+
+
+Concierges et employés d'immeubles.                                              70.3CB     3,47 %    TC
+
+
+Location de biens de consommation (mobiliers, linges, bâches, sacs, etc.) et
+                                                                             71.4AB         1,99 %
+d'autres biens d'équipements. (1)
+
+
+(1) L'activité de location de linge et de vêtements professionnels associée à l'activité de blanchisserie
+relève des industries du bois, de l'ameublement, du papier-carton, du textile, du vêtement, des cuirs
+et peaux et des pierres et terres à feu (risque n° 71.4AC).
+
+
+ACTIVITÉS DE SERVICES I
+
+
+                                                                                 CODE       TAUX NET
+CATÉGORIE DE RISQUE
+                                                                                 RISQUE     (en %)
+
+
+Organismes et auxiliaires financiers - Bourse de commerce.                       65.1AB     0,70 %    TC
+
+
+Assurances et auxiliaires d'assurances.                                          66.0AB     0,79 %    TC
+
+
+Travaux informatiques à façon.                                                   72.3ZA     0,82 %
+
+
+Etablissements de recherche scientifique et technique.                           73.1ZE     0,91 %
+
+
+Groupements d'employeurs. Coopératives d'activité et d'emploi. Services
+                                                                                 74.1GB     0,70 %
+divers rendus principalement aux entreprises non désignés par ailleurs.
+
+
+Crédit-bail mobilier et immobilier, location de brevets. Cabinets juridiques
+et offices publics ou ministériels. Cabinets d'expertise comptable et            74.1GD     0,70 %    TC
+d'analyse financière. Cabinets d'études informatiques et d'organisation.
+
+
+Holdings. Cabinets de conseils en information et documentation. Cabinets
+                                                                                 74.1JB     0,70 %
+d'études économiques, sociologiques, marchandisage.
+
+
+Cabinets d'études techniques : agences de brevets, expertises, expertises
+                                                                                 74.2CB     0,82 %    TC
+en œuvre d'art. - Expert chargé d'évaluer les dommages (ou les risques).
+Bureaux d'essais, bancs d'essais.                                               74.3BA   1,12 %
+
+
+Administration centrale et services extérieurs des administrations (y
+compris leurs établissements publics). Représentation diplomatique
+                                                                                75.1AG   0,88 %   TC
+étrangère en France. Organismes internationaux. - Service des armées
+alliées.
+
+
+Collectivités territoriales (communales, départementales, régionales…) y
+                                                                                75.1BA   1,66 %
+compris leurs établissements publics hors secteur médico-social.
+
+
+Personnes détenues, quelle que soit l'activité exercée.                         75.2EE   0,90 %   TC
+
+
+Activités générales de sécurité sociale.                                        75.3AA   0,96 %   TC
+
+
+Couverture du risque chômage et autres garanties du maintien de revenu, y
+compris la caisse nationale de surcompensation du bâtiment et des travaux
+                                                                          75.3BB         0,79 %   TC
+publics et caisses de retraite ne relevant pas de la législation sur les
+assurances.
+
+
+Personnel enseignant et administratif des établissements d'enseignement
+                                                                                80.1ZA   1,25 %   TC
+privés et des organismes de formation.
+
+
+Elèves et étudiants des établissements publics ou privés d'enseignement
+                                                                                         0,0010
+secondaire, supérieur ou spécialisé visés à l'article L. 412-8 (2°, b) du       80.2AA            TC
+                                                                                         %
+code de la sécurité sociale .
+
+
+Elèves et étudiants des établissements publics et privés d'enseignement                  0,0093
+                                                                                80.2CA            TC
+technique visés à l'article L. 412-8 (2°, a) du code de la sécurité sociale .            %
+
+
+Activités des organisations consulaires et patronales, des organisations
+professionnelles, des syndicats de salariés, des organisations religieuses, des
+                                                                                91.3EJ   1,20 %   TC
+organisations politiques et des organisations associatives non classées
+ailleurs.
+
+
+ACTIVITÉS DE SERVICES II
+
+
+                                                                                CODE     TAUX NET
+CATÉGORIE DE RISQUE
+                                                                                RISQUE   (en %)
+
+
+Personnel permanent des entreprises de travail temporaire. (1)                  74.5BC   1,00 %
+Toutes catégories de personnel de travail temporaire. (1)                      74.5BD   2,78 %
+
+
+Travail temporaire : personnel de bureau et personnel paramédical. (1)         74.5BE   1,00 %
+
+
+Agences privées de recherches, entreprises de surveillance (sans transports
+                                                                               74.6ZA   2,67 %
+de fonds).
+
+
+Services de nettoyage de locaux et d'objets divers. Activités de
+                                                                               74.7ZF   3,92 %
+désinfection, de désinsectisation et de dératisation.
+
+
+Entreprises de conditionnement non spécialisées.                               74.8DA   3,83 %
+
+
+Travaux à façon divers sauf la location de brevets, entreposage d'archives
+d'entreprises (y compris la consultation d'archives). Ionisation de produits   74.8KC   1,09 %
+divers.
+
+
+Etablissements publics médico-sociaux des collectivités territoriales.         75.1CC   1,30 %
+
+
+Accueil à domicile à titre onéreux, d'enfants, de personnes âgées ou
+d'adultes handicapés confiés par des organismes publics, des œuvres, des       75.1CD   1,64 %
+établissements ou des services de soins.
+
+
+Administration hospitalière, y compris ses établissements publics.             75.1CE   1,30 %
+
+
+Services de soins privés médicaux exclusivement à domicile.                    85.1AC   2,25 %
+
+
+Etablissements de soins privés y compris les centres de réadaptation
+                                                                               85.1AD   2,25 %
+fonctionnelle, autres instituts pour la santé (établissements thermaux, etc.).
+
+
+Médecine systématique et de dépistage (y compris les centres
+                                                                               85.1CB   1,06 %
+interentreprises de médecine du travail).
+
+
+Cabinets de soins : médicaux et dentaires.                                     85.1CD   1,19 %
+
+
+Cabinets d'auxiliaires médicaux.                                               85.1GA   2,25 %
+
+
+Laboratoires d'analyses médicales extrahospitaliers.                           85.1KA   1,19 %
+
+
+Centres de transfusion sanguine et banques d'organes. Vétérinaires.            85.2ZB   2,25 %
+Cliniques vétérinaires.
+
+
+Services d'aide sociale à domicile (auxiliaires de vie, aides ménagères…).       85.3AB      3,71 %    TC
+
+
+Accueil, hébergement en établissement pour personnes âgées (maisons de
+                                                                                 85.3AC      3,71 %    TC
+retraite…).
+
+
+Accueil, hébergement en établissement pour personnes handicapées
+                                                                                 85.3AD      3,71 %    TC
+(enfants et adultes).
+
+
+Accueil, hébergement, prévention pour petite enfance, l'enfance,
+                                                                                 85.3AE      3,71 %    TC
+l'adolescence. (2)
+
+
+Action sociale sous toutes ses formes hors risques
+                                                                                 85.3BA      3,71 %    TC
+853AB/853AC/853AD/853AE.
+
+
+Stagiaires des centres de formation professionnelle, de réadaptation
+                                                                                 85.3HA      2,08 %    TC
+fonctionnelle, de rééducation professionnelle.
+
+
+Travailleurs handicapés des établissements ou services d'aide par le travail.    85.3HB      1,61 %    TC
+
+
+Association intermédiaire (personnes dépourvues d'emploi et mises à
+                                                                                 85.3KL      3,56 %    TC
+disposition).
+
+
+Coiffure. Fabrication de postiches. Esthétique corporelle.                       93.0DB      1,96 %
+
+
+Pompes funèbres et services annexes, y compris le commerce d'articles
+                                                                                 93.0HB      3,74 %
+funéraires. (3)
+
+
+Services personnels divers (y compris cabinets de graphologie, agences
+                                                                                 93.0NC      3,56 %
+matrimoniales).
+
+
+(1) Le taux du numéro de risque 74.5BC est applicable au personnel de ces entreprises non visé par
+les articles L. 1251-16 et L. 1251-17 du code du travail . Le taux du numéro de risque 74.5BD est
+applicable aux établissements occupant, soit uniquement du personnel pour tous autres travaux,
+soit simultanément du personnel pour tous autres travaux et/ou du personnel pour travaux de
+bureau et/ou du personnel paramédical. Le taux du numéro de risque 74.5BE est applicable aux
+établissements occupant exclusivement du personnel affecté à des travaux de bureau ou
+paramédical ou ces deux catégories de personnel.
+
+
+(2) Y compris les crèches, garderies, centres aérés et de loisirs…à l'exclusion des structures et colonies
+de vacances visées au numéro de risque 55.2EC.
+
+
+(3) Y compris les entreprises qui, à titre accessoire, effectuent le travail du bois et du marbre.
+
+
+CATÉGORIES DE TRAVAILLEURS VISÉS L'ARTICLE D. 242-6-22 DU CODE DE LA SÉCURITÉ SOCIALE
+
+
+                                                                                  CODE
+CATÉGORIE DE RISQUE
+                                                                                  RISQUE
+
+
+Voyageurs de commerce, représentants, placier non exclusif (au service de
+                                                                                  51.1TG     0,79 %   TC
+plusieurs employeurs).
+
+
+Salariés d'un employeur ne comportant pas d'établissement en France, visé
+                                                                          51.1TH             0,73 %   TC
+à l'article L 243-1-2 du code de la sécurité sociale .
+
+
+Vendeurs colporteurs de presse, porteurs de presse visés à l'article L. 311-3
+                                                                                  52.4RB     1,90 %   TC
+(18°) du code de la sécurité sociale .
+
+
+Vendeurs à domicile visés à l'article L. 311-3 (20°) du
+                                                                                  52.6GA     2,07 %   TC
+code de la sécurité sociale .
+
+
+Accueil à domicile, à titre onéreux, d'enfants pour le compte de particuliers
+et de personnes âgées ou d'adultes handicapés sur leur propre demande         85.3CA         0,91 %   TC
+ou pour le compte de particuliers.
+
+
+Toute personne occupée exclusivement au service de particuliers :
+employés de maison (femme de ménage, lingère, couturière, blanchisseuse           95.0ZA     2,06 %   TC
+à la journée, chauffeur de maître).
+
+
+Toute personne effectuant des travaux de courte durée pour le compte de
+                                                                                  95.0ZC     0,64 %   TC
+particuliers : travaux de bureaux ou assimilables.
+
+
+Toute personne effectuant des travaux de courte durée pour le compte de
+particuliers : travaux industriels (relevant généralement de professions du       95.0ZD     7,39 %   TC
+bâtiment).
+
+
+CATÉGORIES DE PERSONNELS VISÉS A L'ARTICLE 1er (III) DE L'ARRÊTÉ DU 17 OCTOBRE 1995
+RELATIF A LA TARIFICATION DES RISQUES D'ACCIDENTS DU TRAVAIL ET DE MALADIES
+PROFESSIONNELLES
+
+
+CATÉGORIE DE RISQUE                                                               CODE       TAUX NET
+                                                                              RISQUE    (en %)
+
+Salariés occupant des fonctions supports de nature administrative dans
+des entreprises relevant de branches professionnelles autres que celle du     00.00B    0,64 %
+BTP.
+
+
+
+
+Annexe
+
+ANNEXE 2
+Barèmes 2026 des coûts moyens d'incapacité temporaire et d'incapacité permanente
+                                  Afficher le tableau
+
+
+
+
+Annexe
+
+ANNEXE 3
+TAUX NETS COLLECTIFS APPLICABLES EN 2026 DANS LES DÉPARTEMENTS DU HAUT-RHIN,
+DU BAS-RHIN ET DE LA MOSELLE
+                               Cacher le tableau
+
+INDUSTRIES DE LA MÉTALLURGIE
+
+
+                                                                                             TAUX
+                                                                                    CODE
+CATÉGORIE DE RISQUE                                                                          NET
+                                                                                    RISQUE
+                                                                                             (en %)
+
+
+Groupe 1                                                                                     1,57
+
+
+Usinage de précision ou réparation d'articles métalliques divers.                   285DF
+
+
+Fabrication de composants mécaniques : transmissions hydrauliques et
+pneumatiques, turbines, compresseurs, roulements, matrices, poinçons, moules
+et modèles, organes mécaniques de transmission. Fabrication de moteurs autres       291AF
+que pour aéronefs, automobiles et motocycles. Reconstruction de moteurs sauf
+pour l'aéronautique.
+
+
+Fabrication de pompes et d'articles de robinetterie.                                291FB
+
+
+Fabrication et/ou réparation d'engins mobiles et systèmes pour : la construction,   293DC
+les mines, le forage, la préparation des minerais et matériaux, le matériel
+agricole.
+
+
+Fabrication, installation, entretien, réparation de : matériels et appareils
+électroniques de réception, de téléphonie, d'enregistrement, d'imagerie
+médicale, de composants, d'éléments chauffants. Fabrication, installation,            321BC
+entretien, réparation de matériel bureautique, informatique et activités
+connexes.
+
+
+Fabrication, réparation de matériel médico-chirurgical, de prothèses y compris
+dentaires, d'instruments de précision, d'optique, d'horlogerie, de laboratoire.
+                                                                                      331BC
+Emaillage, bijouterie, joaillerie, orfèvrerie, gravage de médailles, de monnaies
+(hors commerce).
+
+
+Fabrication, installation d'appareils de mesure, de comptage, de signalisation, de
+contrôle, de sécurité, de régulation. Conception et installation de systèmes de    332BK
+contrôle et de production automatisée.
+
+
+Construction de véhicules automobiles. Succursales et filiales des constructeurs.     341ZE
+
+
+Recherche, fabrication, entretien, maintenance, réparation, reconditionnement
+                                                                                      353BC
+pour : aéronautique, aérospatiale, missiles, armement, structures, équipements.
+
+
+Entreprises spécialisées dans l'installation de machines électriques dans les
+                                                                                      453AA
+usines et établissements industriels.
+
+
+Groupe 2                                                                                      2,05
+
+
+Fonderie des métaux légers ou non ferreux.                                            275EB
+
+
+Fabrication, montage, installation, entretien, réparation de machines,
+équipements, outillages : machine-outil, machine pour les industries de
+process(1), du textile, du cuir, de la chaussure ; matériel fixe et roulant pour le   286DF
+transport guidé ; matériel incendie ; ascenseur, monte-charges, porte-
+automatique et escalier mécanique ; équipements de levage et de manutention.
+
+
+Fabrication, installation, entretien, réparation de matériels aérauliques et
+thermiques, de fours et de brûleurs, d'appareils frigorifiques domestiques et         292FI
+industriels. Fabrication d'appareils ménagers électriques.
+
+
+Fabrication, réparation, entretien de : matériels électriques, électromagnétiques     312AG
+industriels, appareillages électriques d'installation, accumulateurs, isolateurs,
+piles, condensateurs, lampes électriques, matériels électriques pour moteurs et
+véhicules. Montage de petits matériels électriques. Réparation, entretien de
+matériels ménagers.
+
+
+Importation, commerce, entretien, réparation de véhicules automobiles de
+marque (importateurs, concessionnaires, agents, réparateurs agréés), commerce
+et réparation indépendante (à l'exception du 50.2ZH et du 34.1ZE). Fabrication,       501ZF
+réparation, commerce de motocycles, cycles et véhicules divers (y compris
+pièces et équipements). Electricité automobile.
+
+
+Groupe 3                                                                                      3,37
+
+
+Découpage, emboutissage. Sciage des métaux, graveurs estampeurs.
+                                                                                      284BI
+Décolletage.
+
+
+Traitement et revêtement des métaux.                                                  285AA
+
+
+Mécanique industrielle.                                                               285DA
+
+
+Fabrication de boulonnerie, ressorts, visseries et quincaillerie. Fabrication et/ou
+entretien de couverts, couteaux, ciseaux, rasoirs. Fabrication d'articles de sport,   286FB
+jeux, jouets, articles de puériculture non classés par ailleurs.
+
+
+Groupe 4                                                                                      4,05
+
+
+Métallurgie de métaux non ferreux et précieux. Laminage à chaud ou relaminage
+                                                                                      274CH
+sans fabrication de fonte ni d'acier.
+
+
+Construction métallique, fabrication de charpentes ; fournitures et armatures
+métalliques préparées pour le béton armé (préparation des armatures en ateliers
+                                                                                   281AD
+hors chantiers). Travail à froid des métaux (étirage, laminage, profilage, pliage,
+tréfilage) et métallurgie des ferro-alliages.
+
+
+Fabrication d'articles, de meubles et menuiseries, de fûts et emballages
+métalliques, de fils et câbles isolés. Fabrication de bouchage, d'emballage, de
+                                                                                281CB
+ferblanterie, de conditionnement métallique. Repoussage des métaux en feuilles.
+Fabrication d'accessoires d'ameublement en bronze et/ou fer forgé.
+
+
+Chaudronnerie et soudure.                                                             283CG
+
+
+Fabrication de tubes en acier ou de tubes isolateurs (sauf tubes en fonte).       283CH
+Fabrication de chaudronnerie de contenants (réservoirs, citernes, bouteilles pour
+gaz comprimés), de générateurs de vapeur et accessoires, d'équipements
+généralement sous pression et de chaudronnerie nucléaire. Fabrication de
+tuyaux métalliques flexibles.
+
+
+Forge, estampage, matriçage. Métallurgie des poudres et frittage.                 284AD
+
+
+Travaux d'intervention, de montage, démontage et entretien de matériels divers
+dans les usines - Réparateurs mécaniciens - Fabrication de manèges pour fêtes     285DG
+foraines.
+
+
+Construction de carrosseries, bennes, remorques autres que de tourisme.
+                                                                                  342AB
+Fabrication de caravanes et véhicules de loisirs.
+
+
+Fabrication d'équipements, de parties, d'accessoires et de pièces détachées
+                                                                                  343ZE
+pour l'automobile y compris équipements de carrosserie et de châssis.
+
+
+Construction, réparation ou peinture de navires en acier (y compris équipements
+                                                                                351BF
+spécifiques de bord).
+
+
+Dépannage, remorquage de véhicules automobiles (sans atelier de réparation et
+non annexé à un garage). Mécaniciens-réparateurs n'appartenant pas à un réseau
+de marque automobile. Fabrication ou fabrication associée à la réparation de       502ZH
+menuiserie, tôlerie, sellerie, peintures spécialisées de voitures. Récupération de
+matières métalliques recyclables.
+
+
+Groupe 5                                                                                   6,46
+
+
+Fonderie de fonte, d'acier moulé ou de fonte malléable. Fabrication de fonte,
+d'acier, d'articles ou tubes en fonte. Fabrication de radiateurs, de chaudières   271ZF
+pour le chauffage central, la cuisine.
+
+
+INDUSTRIES DU BATIMENT ET DES TRAVAUX PUBLICS
+
+
+                                                                                           TAUX
+                                                                                  CODE
+CATÉGORIE DE RISQUE                                                                        NET
+                                                                                  RISQUE
+                                                                                           (en %)
+
+
+Groupe 1                                                                                   0,60
+
+
+Salariés occupant des fonctions supports de nature administrative dans les
+                                                                                  0000A
+entreprises du BTP.
+Conception de projets architecturaux y compris décoration, ingénierie du BTP (y
+                                                                                   742CE
+compris topographie, métrés, hygiène et sécurité, etc).
+
+
+Groupe 2                                                                                     3,96
+
+
+Travaux de plomberie, de génie climatique, d'électricité, autres travaux
+                                                                                   453AF
+d'installation technique non classés par ailleurs.
+
+
+Entretien, réparation, location et montage de matériel pour le bâtiment et les
+                                                                                   455ZB
+travaux publics.
+
+
+Groupe 3                                                                                     6,26
+
+
+Terrassements courants et travaux préparatoires spécialisés (y compris travaux
+                                                                                   451AA
+paysagers sauf horticulture).
+
+
+Ouvrages d'art, autres travaux d'infrastructures spécialisées (forages et sondages,
+                                                                                     452CD
+fondations spéciales, travaux souterrains, de voies ferrées, maritimes et fluviaux).
+
+
+Construction et entretien de réseaux (électricité, eaux, gaz, télécommunications,
+                                                                                  452ED
+etc…) et autres réseaux non classés par ailleurs.
+
+
+Construction et entretien de chaussées (y compris sols sportifs et pavage).
+                                                                                   452PB
+Fabrication de produits asphaltés ou enrobés (avec transport et mise en œuvre).
+
+
+Travaux de menuiserie extérieure.                                                  454CE
+
+
+Travaux d'isolation, travaux de finitions (travaux d'aménagements intérieurs).     454LE
+
+
+Groupe 4                                                                                     8,90
+
+
+Autres travaux de gros-œuvre. Entreprise générale du bâtiment. Construction
+                                                                                   452BE
+métallique : montage, levage. Fumisterie industrielle.
+
+
+Travaux de couverture, de charpente en bois, d'étanchéité.                         452JD
+
+
+Groupe 5                                                                                     T. nat.
+
+
+Caisses de congés payés du bâtiment et des travaux publics (en ce qui concerne     911AA
+les indemnités versées par ces organismes).
+
+
+Groupe 6                                                                                     2,08
+
+
+Ateliers des entreprises du bâtiment et des travaux publics relevant du CTN B et
+                                                                                    454MC
+rattachées aux numéros de risque 45.2BE, 45.2JD, 45.3AF, 45.4CE et 45.4LE
+
+
+INDUSTRIES DES TRANSPORTS, DE L'EAU, DU GAZ, DE L'ÉLECTRICITE, DU LIVRE ET DE LA
+COMMUNICATION
+
+
+                                                                                             TAUX
+                                                                                    CODE
+CATÉGORIE DE RISQUE                                                                          NET
+                                                                                    RISQUE
+                                                                                             (en %)
+
+
+Groupe 1                                                                                     1,23
+
+
+Transports aériens réguliers et non réguliers : personnel navigant et non navigant.
+                                                                                    621ZC
+Services aéroportuaires.
+
+
+Agences de voyage. Offices de tourisme.                                             633ZC
+
+
+Associations culturelles et socio-éducatives ne gérant pas d'équipements.           913EA
+
+
+Production de films et de programmes pour le cinéma, la télévision, la
+radiodiffusion, etc… Enregistrement sonore et édition musicale. Distribution et
+                                                                                    921CC
+projection de films. Activités photographiques (hors agences de presse). Gestion
+d'activités de spectacles et gestion d'activités culturelles et socio-éducatives.
+
+
+Associations ou sociétés sportives ne gérant pas d'équipements.                     926CG
+
+
+Groupe 2                                                                                     2,09
+
+
+Edition, imprimerie. Reprographie et activités connexes (reliure, dorure main,
+                                                                                    222CD
+affiches, composition, photocomposition, gravure et photogravure). Routage.
+
+
+Production et distribution de chauffage urbain, exploitants de chauffage
+d'immeubles, opérateurs d'efficacité énergétique, valorisation énergétique des      403ZE
+déchets, usine d'incinération de résidus urbains.
+
+
+Captage, traitement et distribution de l'eau.                                       410ZA
+Affrètement et organisation des transports maritimes, routiers ou aériens. Gares
+                                                                                      634CI
+routières et exploitation d'ouvrages routiers à péages.
+
+
+Créateurs et intermédiaires de publicité : régies publicitaires. Agences de presse,
+                                                                                      744BB
+y compris journalistes et photographes indépendants.
+
+
+Acheminement et distribution de presse gratuite ou payante.                           748GB
+
+
+Gestion d'équipements et centres sportifs (personnel non visé par ailleurs et
+                                                                                      926AA
+notamment aux risques 92.6 CH et 92.6 CI).
+
+
+Organisation de jeux de hasard et d'argent (dont courses de chevaux et de
+                                                                                      927AB
+taureaux).
+
+
+Groupe 3                                                                                      3,34
+
+
+Transports terrestres de voyageurs, y compris par taxis.                              602BD
+
+
+Téléphériques, remontées mécaniques.                                                  602CA
+
+
+Entreposage et stockage non frigorifique non reliés à une voie d'eau. Entreposage
+                                                                                  631EE
+de liquides en vrac.
+
+
+Entreprises de groupage effectuant directement ou non l'enlèvement ou la
+                                                                                      634AA
+livraison à domicile des marchandises, messagerie, fret express.
+
+
+Autres activités de courrier : activités autres que celles exercées par La Poste. -
+Acheminement du courrier, lettre, colis généralement en express. - Activités de       641CA
+coursiers urbains et taxis-marchandises.
+
+
+Transports de fonds et services sécurisés.                                            746ZB
+
+
+Entreprises de travaux connexes aux sociétés de transports ferroviaires, y
+compris la manutention dans les gares ferroviaires. Entreprises de nettoyage de       747ZE
+matériel roulant sur les emprises de chemin de fer.
+
+
+Ambulances.                                                                           851JA
+Services d'assainissement (sauf ceux visés sous le numéro 74.7ZF). Collecte et
+                                                                                  900AA
+traitement des eaux usées.
+
+
+Création et interprétation littéraires et artistiques (y compris les artistes).
+                                                                                  923AD
+Services annexes des spectacles (tout intermittent du spectacle).
+
+
+Attractions foraines avec et sans montage de manèges ou de chapiteaux, et
+                                                                                  927CC
+autres spectacles et services récréatifs.
+
+
+Groupe 4                                                                                  5,04
+
+
+Traitement des déchets des activités industrielles, économiques et des ménages,
+récupération, tri, recyclage, valorisation matière y compris démantèlement,       371ZF
+désamorçage, démolition de munitions.
+
+
+Transports routiers de marchandises. Location de véhicules avec chauffeur.        602MG
+
+
+Déménagement et garde-meubles.                                                    602NA
+
+
+Manutention, chargement, déchargement, entreposage de marchandises ou fret
+                                                                                  631BE
+dans les ports maritimes et fluviaux, et les aéroports.
+
+
+Collecte des déchets ménagers ou d'activités, dangereux ou non dangereux.
+                                                                                  900BF
+Nettoiement de voirie - balayage, lavage.
+
+
+Groupe 5                                                                                  T. nat
+
+
+Agents statutaires des Industries Electriques et Gazières.                        401ZE
+
+
+Groupe 6                                                                                  T. nat
+
+
+Salariés non statutaires des Industries Electriques et Gazières.                  401ZF
+
+
+Groupe 7                                                                                  T. nat
+
+
+Transport ferroviaire.                                                            601ZA
+
+
+Groupe 8                                                                                  T. nat
+Services postaux et financiers.                                                       641AA
+
+
+Groupe 9                                                                                       T. nat
+
+
+Activités de télécommunications, y compris les activités de télésurveillance (sans
+                                                                                   642BB
+personnel d'intervention sur le site surveillé).
+
+
+Groupe 10                                                                                      T. nat
+
+
+Sportifs professionnels, y compris entraîneurs joueurs, quel que soit le
+classement de l'établissement qui les emploie : rugby, escalade, moto, handball,      926CH
+basket, hockey, équitation, volley-ball, football, ski, cyclisme.
+
+
+Groupe 11                                                                                      T. nat
+
+
+Sportifs professionnels, pour les sports non visés par ailleurs, incluant également
+les entraîneurs non joueurs des sports visés par le 92.6 CH, quel que soit le         926CI
+classement de l'établissement qui les emploie, arbitres et juges.
+
+
+Groupe 12                                                                                      T. nat
+
+
+Transports par eau de marchandises et de passagers, et services auxiliaires.          632CF
+
+
+Groupe 99                                                                                      T. nat
+
+
+Caisses de congés payés des spectacles (en ce qui concerne les indemnités
+                                                                                      911AE
+versées par ces organismes).
+
+
+SERVICES, COMMERCES ET INDUSTRIES DE L'ALIMENTATION
+
+
+                                                                                               TAUX
+                                                                                      CODE
+CATÉGORIE DE RISQUE                                                                            NET
+                                                                                      RISQUE
+                                                                                               (en %)
+
+
+Groupe 1                                                                                       1,94
+
+
+Autres industries alimentaires non classées par ailleurs et transformation du
+                                                                                      155CC
+tabac.
+Commerce de détail (avec ou sans fabrication) de pain, pâtisserie, confiserie et
+                                                                                   158CD
+chocolats.
+
+
+Fabrication et transformation de café et épices. Fabrication de boissons sauf
+                                                                                   159SC
+produits laitiers.
+
+
+Intermédiaires de commerce en produits agricoles et alimentaires et vente par
+                                                                                511NB
+correspondance sans manutention, ni livraison, ni stockage, ni conditionnement.
+
+
+Commerce de gros (commerce interentreprises) alimentaire non spécialisé.           513TC
+
+
+Commerce de détail de produits laitiers, de produits surgelés, de fruits et
+                                                                                   521BC
+légumes, de boissons et d'alimentation générale.
+
+
+Restaurants, café-tabac, hôtels avec ou sans restaurant et foyers.                 553AC
+
+
+Restauration type rapide y compris wagons-lits et wagons-restaurants.              553BC
+
+
+Groupe 2                                                                                   3,75
+
+
+Abattage du bétail, découpe et commerce de gros de viandes de boucherie.
+                                                                                   151AE
+Production de viandes de volailles.
+
+
+Transformation et conservation de la viande et préparation de produits à base
+                                                                                   151EC
+de viande (y compris boyauderie). Transformation et conservation du poisson.
+
+
+Transformation et conservation de légumes et de fruits. Fabrication industrielle
+                                                                                   158AC
+de produits de boulangerie, pâtisserie et pizza.
+
+
+Grande et moyenne distribution et Drive - vente par automate.                      521FB
+
+
+Commerce de détail de viandes, poissons, charcuterie artisanale y compris
+                                                                                   522CB
+traiteurs, organisateurs de réception.
+
+
+Installations d'hébergement à équipements légers ou développés.                    552EC
+
+
+Restauration collective.                                                           555AA
+
+
+Entreposage frigorifique.                                                          631DA
+INDUSTRIES DE LA CHIMIE, DU CAOUTCHOUC, DE LA PLASTURGIE
+
+
+                                                                                               TAUX
+                                                                                      CODE
+CATÉGORIE DE RISQUE                                                                            NET
+                                                                                      RISQUE
+                                                                                               (en %)
+
+
+Groupe 1                                                                                       1,39
+
+
+Production et transformation de matières nucléaires.                                  233ZA
+
+
+Fabrication de peintures, vernis, colles, encres, mastics. Fabrication de gélatines
+et de leurs dérivés. Fabrication de produits d'entretien. Fabrication d'explosifs,    243ZC
+d'articles de pyrotechnie, de poudres propulsives.
+
+
+Fabrication de préparations pharmaceutiques, de cosmétiques et de parfums.
+Fabrication et transformation d'extraits de végétaux, d'algues, bois résineux.
+                                                                                      244CC
+Fabrication de produits de base pour détergents, de produits détergents, de
+pesticides et de biocides. Fabrication et traitement chimique de corps gras.
+
+
+Chimie expert. Laboratoires de recherches chimiques.                                  731ZB
+
+
+Groupe 2                                                                                       2,89
+
+
+Production, transport par conduite et raffinage de pétrole et de gaz. Fabrication
+d'ingrédients et d'additifs pour carburation et lubrification, de produits
+asphaltés et bitumeux. Commerce de gros des produits pétroliers. Fabrication de 111ZC
+produits chimiques organiques de base. Fabrication de caoutchoucs
+synthétiques, d'élastomères, de matières plastiques.
+
+
+Fabrication de produits chimiques minéraux et inorganiques, organiques de
+synthèse ou dérivés du bois, de produits azotés et d'engrais, d'abrasifs, de
+pigments, colorants, émaux, de produits photographiques, d'électrodes.                241GN
+Métallurgie de l'aluminium, des ferro-alliages et métaux légers.
+Electrométallurgie, électrochimie. Dénaturation d'éthanol.
+
+
+Fabrication d'articles en caoutchouc naturel ou synthétique à partir
+                                                                                      251AC
+d'élastomères secs ou sous forme latex ou en solution.
+
+
+Fabrication, assemblage d'articles et pièces en matières plastiques, y compris
+                                                                                      252HK
+composites.
+INDUSTRIES DU BOIS, DE L'AMEUBLEMENT, DU PAPIER-CARTON, DU TEXTILE, DU VÊTEMENT, DES
+CUIRS ET PEAUX, DES PIERRES ET TERRES A FEU
+
+
+                                                                                                TAUX
+                                                                                       CODE
+CATÉGORIE DE RISQUE                                                                             NET
+                                                                                       RISQUE
+                                                                                                (en %)
+
+
+Groupe 1                                                                                        2,81
+
+
+Fabrication de mailles, dentelles, rubans, produits élastiques et d'articles divers.   177AB
+
+
+Confection. Fabrication d'accessoires de l'habillement et d'articles en toile.         182CB
+
+
+Maroquinerie.                                                                          192ZH
+
+
+Production et transformation des pâtes à papier et carton.                             212BD
+
+
+Fabrication et réparation de meubles et de cercueils en bois ou en matière
+                                                                                       361GC
+similaire et d'instruments de musique.
+
+
+Autres industries du cuir.                                                             527AC
+
+
+Groupe 2                                                                                        2,84
+
+
+Extraction, broyage et préparation de produits minéraux divers.                        145ZM
+
+
+Fabrication de tissu et articles textiles.                                             172AC
+
+
+Chaussure. Cuirs et peaux.                                                             193ZL
+
+
+Travail mécanique du bois, traitement et fabrication d'objets en bois.                 201BB
+
+
+Fabrication, façonnage et travail technique du verre.                                  261EE
+
+
+Fabrication de vaisselle et d'objets en porcelaine ou en faïence.                      262AG
+
+
+Fabrication de ciment, chaux, plâtre, produits en plâtre, agrégats légers,
+                                                                                       265AB
+matériaux enrobés d'étanchéité et produits non désignés ailleurs.
+Fabrication et réparation de navires en bois et en polyester stratifié.             351EB
+
+
+Fabrication et réparation de sièges, de matelas et sommiers et d'articles de
+                                                                                    361MD
+literie et pour voiliers.
+
+
+Commerce du bois.                                                                   515EG
+
+
+Blanchisserie et teinturerie de détail, y compris laverie automatique.              930BA
+
+
+Groupe 3                                                                                      4,36
+
+
+Extraction et préparation de matériaux issus des carrières de roches meubles ou
+                                                                                    141AH
+massives.
+
+
+Travail des fibres textiles naturelles (filature, moulinage et retordage, préparation
+                                                                                      171KB
+de la laine, fibres dures, ouates…).
+
+
+Scieries, y compris prestations de service, abattage et coupe de bois dans les
+                                                                                    201AF
+DOM, fabrication de charbon de bois à usage domestique.
+
+
+Menuiserie, charpentes et panneaux à base de bois et commerce menuiserie et
+                                                                                    203ZF
+panneaux.
+
+
+Fabrication d'emballages issus du bois et d'articles de tonnellerie.                204ZI
+
+
+Fabrication de tuiles et briques et de produits céramiques non désignés par
+                                                                                    262AH
+ailleurs.
+
+
+Fabrication d'appareils sanitaires en céramique.                                    262CA
+
+
+Fabrication de produits en béton.                                                   266AA
+
+
+Préparation et livraison de béton prêt à l'emploi (sans mise en œuvre).             266EB
+
+
+Fabrication de produits en fibre-ciment.                                            266JB
+
+
+Fabrication et pose de produits de marbrerie.                                       267ZD
+Blanchisserie et teinturerie de gros, y compris la location de linge et vêtements
+professionnels blanchis. (1) (1) La location de linge seule relève du comité        714AC
+technique national du commerce non alimentaire.
+
+
+COMMERCE NON ALIMENTAIRE
+
+
+                                                                                             TAUX
+                                                                                    CODE
+CATÉGORIE DE RISQUE                                                                          NET
+                                                                                    RISQUE
+                                                                                             (en %)
+
+
+Groupe 1                                                                                     0,92
+
+
+Commerce de gros et location de matériel de bureau, électroménager,
+                                                                                    516GC
+multimédia et informatique.
+
+
+Commerce de détail de produits pharmaceutiques, d'articles médicaux et
+orthopédiques, d'optique et photographiques, de parfumerie et de produits de        523AC
+beauté.
+
+
+Commerce de détail et location associée d'articles de sport et de loisirs, y
+                                                                                    524WA
+compris cycles.
+
+
+Groupe 2                                                                                     1,47
+
+
+Commerce et location de véhicules automobiles et d'équipements associés, de
+machines et équipements agricoles. Ecoles de conduite. Exploitation de              503AD
+parkings.
+
+
+Commerce de gros sans manutention. Centrales d'achat et intermédiaires du
+                                                                                    511RB
+commerce non alimentaires.
+
+
+Commerce de gros de matériaux de construction.                                      515FA
+
+
+Commerce de gros d'équipement industriel et de la maison, d'équipement de la
+                                                                                    516KC
+personne et de produits pharmaceutiques.
+
+
+Intermédiaires du commerce avec manutention. Commerce de gros de produits
+                                                                                    516LC
+chimiques et autres.
+
+
+Commerce de détail de l'habillement, textiles, chaussures, maroquinerie. Vente à 524CD
+distance. Commerce de bijouterie, d'horlogerie, et d'orfèvrerie.
+
+
+Commerce de fleurs et d'animaux d'agrément.                                     524XB
+
+
+Location de biens de consommation (mobiliers, linges, bâches, sacs, etc.) et
+                                                                                714AB
+d'autres biens d'équipements.
+
+
+Groupe 3                                                                                  1,64
+
+
+Commerce de combustibles, charbons, carburants et lavages automatiques.         505ZB
+
+
+Commerce de métaux, de biens d'occasion et commerce non alimentaire sur
+                                                                                515CC
+éventaires et marchés.
+
+
+Commerce de gros ou location de matériel de construction (bâtiment et travaux
+                                                                              516NC
+publics) et agricole.
+
+
+Grands magasins, magasins multi-commerces ou magasins populaires,
+                                                                                524HC
+commerces de meubles et de décoration de la maison.
+
+
+Commerce de détail et location de matériel électroménager, multimédia,
+                                                                                524LA
+informatique.
+
+
+Commerce de détail de bricolage (surface de vente supérieure ou égale à 400
+                                                                                524PB
+m2).
+
+
+Commerce de détail de quincaillerie et de droguerie (surface de vente inférieure
+à 400 m2), céramique mobilière, arts de la table, jouets, instruments de musique, 524ZD
+et autres.
+
+
+Promotion, vente, location ou administration de biens immobiliers.              703AD
+
+
+Concierges et employés d'immeubles.                                             703CB
+
+
+ACTIVITÉS DE SERVICES I
+
+
+                                                                                          TAUX
+                                                                                CODE
+CATÉGORIE DE RISQUE                                                                       NET
+                                                                                RISQUE
+                                                                                          (en %)
+Groupe 1                                                                                       0,82
+
+
+Organismes et auxiliaires financiers. Bourse de commerce.                              651AB
+
+
+Assurances et auxiliaires d'assurances.                                                660AB
+
+
+Travaux informatiques à façon.                                                         723ZA
+
+
+Groupements d'employeurs. Coopératives d'activité et d'emploi. Services divers
+                                                                                       741GB
+rendus principalement aux entreprises non désignés par ailleurs.
+
+
+Crédit-bail mobilier et immobilier, location de brevets. Cabinets juridiques et
+offices publics ou ministériels. Cabinets d'expertise comptable et d'analyse           741GD
+financière. Cabinets d'études informatiques et d'organisation.
+
+
+Holdings. Cabinets de conseils en information et documentation. Cabinets
+                                                                                       741JB
+d'études économiques, sociologiques, marchandisage.
+
+
+Cabinets d'études techniques : agences de brevets, expertises, expertises en
+                                                                                       742CB
+œuvre d'art. - Expert chargé d'évaluer les dommages (ou les risques).
+
+
+Bureaux d'essais, bancs d'essais.                                                      743BA
+
+
+Activités générales de sécurité sociale.                                               753AA
+
+
+Couverture du risque chômage et autres garanties du maintien du revenu, y
+compris la caisse nationale de surcompensation du bâtiment et des travaux              753BB
+publics et caisses de retraite ne relevant pas de la législation sur les assurances.
+
+
+Activités des organisations consulaires et patronales, des organisations
+professionnelles, des syndicats de salariés, des organisations religieuses, des        913EJ
+organisations politiques et des organisations associatives non classées ailleurs.
+
+
+Groupe 2                                                                                       1,31
+
+
+Collectivités territoriales (communales, départementales, régionales…), y compris
+                                                                                  751BA
+leurs établissements publics hors secteur médico-social.
+Personnel enseignant et administratif des établissements d'enseignement privés
+                                                                                   801ZA
+et des organismes de formation.
+
+
+Groupe 3                                                                                     T. nat
+
+
+Administration centrale et services extérieurs des administrations (y compris
+leurs établissements publics). Représentation diplomatique étrangère en France.    751AG
+Organismes internationaux. Service des armées alliées.
+
+
+Groupe 4                                                                                     T. nat
+
+
+Elèves et étudiants des établissements publics ou privés d'enseignement
+secondaire, supérieur ou spécialisé visés à l'article L 412-8 (2°, b) du           802AA
+Code de la Sécurité Sociale .
+
+
+Groupe 5                                                                                     T. nat
+
+
+Elèves et étudiants des établissements publics et privés d'enseignement
+                                                                                   802CA
+technique visés à l'article L 412-8 (2°, a) du Code de la Sécurité Sociale .
+
+
+Groupe 6                                                                                     T. nat
+
+
+Personnes détenues, quelle que soit l'activité exercée.                            752EE
+
+
+Groupe 7                                                                                     T. nat
+
+
+Etablissements de recherche scientifique et technique.                             731ZE
+
+
+ACTIVITÉS DE SERVICES II
+
+
+                                                                                             TAUX
+                                                                                   CODE
+CATÉGORIE DE RISQUE                                                                          NET
+                                                                                   RISQUE
+                                                                                             (en %)
+
+
+Groupe 1                                                                                     1,16
+
+
+Travaux à façon divers sauf la location de brevets, entreposage d'archives
+                                                                                     748KC
+d'entreprises (y compris la consultation d'archives). Ionisation de produits divers.
+Accueil à domicile, à titre onéreux, d'enfants, de personnes âgées ou d'adultes
+handicapés confiés par des organismes publics, des œuvres, des établissements             751CD
+ou des services de soins.
+
+
+Administration hospitalière (y compris ses établissements publics).                       751CE
+
+
+Médecine systématique et de dépistage (y compris les centres interentreprises
+                                                                                          851CB
+de médecine du travail).
+
+
+Cabinets de soins : médicaux et dentaires.                                                851CD
+
+
+Laboratoires d'analyses médicales extrahospitaliers.                                      851KA
+
+
+Coiffure. Fabrication de postiches. Esthétique corporelle.                                930DB
+
+
+Groupe 2                                                                                          2,35
+
+
+Agences privées de recherches, entreprises de surveillance (sans transports de
+                                                                                          746ZA
+fonds).
+
+
+Etablissements publics médico-sociaux des collectivités territoriales.                    751CC
+
+
+Etablissements de soins privés, y compris les centres de réadaptation
+                                                                                          851AD
+fonctionnelle, autres instituts pour la santé (établissements thermaux, etc.).
+
+
+Cabinets d'auxiliaires médicaux.                                                          851GA
+
+
+Centres de transfusion sanguine et banques d'organes. Vétérinaires. Cliniques
+                                                                                          852ZB
+vétérinaires.
+
+
+Accueil, hébergement en établissement pour personnes handicapées (enfants et
+                                                                                          853AD
+adultes).
+
+
+Accueil, hébergement, prévention pour petite enfance, l'enfance, l'adolescence
+(1). (1) : Y compris les crèches, garderies, centres aérés et de loisirs… à l'exclusion   853AE
+des structures et colonies de vacances visées au numéro 55.2 EC.
+
+
+Action sociale sous toutes ses formes hors risques 85.3 AB/85.3 AC/85.3 AD/85.3
+                                                                                          853BA
+AE.
+Pompes funèbres et services annexes, y compris le commerce d'articles
+                                                                                    930HB
+funéraires.
+
+
+Services personnels divers (y compris cabinets de graphologie, agences
+                                                                                    930NC
+matrimoniales).
+
+
+Groupe 3                                                                                    3,01
+
+
+Toutes catégories de personnel de travail temporaire.                               745BD
+
+
+Groupe 4                                                                                    4,99
+
+
+Services de nettoyage de locaux et d'objets divers. Activités de désinfection, de
+                                                                                    747ZF
+désinsectisation et de dératisation.
+
+
+Entreprises de conditionnement non spécialisées.                                    748DA
+
+
+Services de soins privés médicaux exclusivement à domicile.                         851AC
+
+
+Services d'aide sociale à domicile (auxiliaires de vie, aides ménagères…).          853AB
+
+
+Accueil, hébergement en établissement pour personnes âgées (maisons de
+                                                                                    853AC
+retraite…).
+
+
+Groupe 5                                                                                    T. nat
+
+
+Travail temporaire : personnel de bureau et personnel paramédical. (1) (1) Le taux
+du numéro de risque 74.5 BE est applicable aux établissements occupant
+                                                                                   745BE
+exclusivement du personnel affecté à des travaux de bureau ou paramédical ou
+ces deux catégories de personnel.
+
+
+Groupe 6                                                                                    T. nat
+
+
+Personnel permanent des entreprises de travail temporaire.                          745BC
+
+
+Groupe 7                                                                                    T. nat
+
+
+Stagiaires des centres de formation professionnelle, de réadaptation
+                                                                                    853HA
+fonctionnelle, de rééducation professionnelle.
+Groupe 8                                                                                  T. nat
+
+
+Travailleurs handicapés des établissements ou services d'aide par le travail.    853HB
+
+
+Groupe 9                                                                                  T. nat
+
+
+Association intermédiaire (personnes dépourvues d'emploi et mises à
+                                                                                 853KL
+disposition).
+
+
+CATÉGORIES DE TRAVAILLEURS VISÉS L'ARTICLE D 242-6-22 DU CODE DE LA SÉCURITÉ SOCIALE ET
+A L'ARTICLE 1er (III) DE L'ARRÊTÉ DU 17 OCTOBRE 1995 RELATIF A LA TARIFICATION DES RISQUES
+D'ACCIDENTS DU TRAVAIL ET DE MALADIES PROFESSIONNELLES
+
+
+                                                                                          TAUX
+                                                                                 CODE
+CATÉGORIE DE RISQUE                                                                       NET
+                                                                                 RISQUE
+                                                                                          (en %)
+
+
+Groupe 1                                                                                  0,60
+
+
+Salariés occupant des fonctions supports de nature administrative dans des
+                                                                                 0000B
+entreprises relevant de branches professionnelles autres que celles du BTP.
+
+
+Groupe 2                                                                                  8,90
+
+
+Toute personne effectuant des travaux de courte durée pour le compte de
+particuliers : travaux industriels (relevant généralement de professions du      950ZD
+bâtiment).
+
+
+Groupe 3                                                                                  T. nat
+
+
+Voyageurs de commerce, représentants, placier non exclusif (au service de
+                                                                                 511TG
+plusieurs employeurs).
+
+
+Groupe 4                                                                                  T. nat
+
+
+Salariés d'un employeur ne comportant pas d'établissement en France, visé à l'
+                                                                                 511TH
+article L 243-1-2 du Code de la Sécurité Sociale .
+
+
+Groupe 5                                                                                  T. nat
+     Vendeurs-colporteurs de presse, porteurs de presse visés à l'article L. 311-3 (18°)
+                                                                                           524RB
+     du Code de la Sécurité Sociale .
+
+
+     Groupe 6                                                                                      T. nat
+
+
+     Vendeurs à domicile visés à l'article L. 311-3 (20°) du Code de la Sécurité Sociale . 526GA
+
+
+     Groupe 7                                                                                      T. nat
+
+
+     Toute personne occupée exclusivement au service de particuliers : employés de
+     maison (femme de ménage, lingère, couturière, blanchisseuse à la journée,             950ZA
+     chauffeur de maître).
+
+
+     Groupe 8                                                                                      T. nat
+
+
+     Toute personne effectuant des travaux de courte durée pour le compte de
+                                                                                           950ZC
+     particuliers : travaux de bureaux ou assimilables.
+
+
+
+
+Fait le 30 décembre 2025.
+
+
+La ministre de la santé, des familles, de l'autonomie et des personnes handicapées,
+Pour la ministre et par délégation :
+La cheffe de service, adjointe au directeur de la sécurité sociale,
+D. Champetier
+
+
+Le ministre du travail et des solidarités,
+Pour le ministre et par délégation :
+La cheffe de service, adjointe au directeur de la sécurité sociale,
+D. Champetier
+
+
+La ministre de l'action et des comptes publics,
+Pour la ministre et par délégation :
+La cheffe de service, adjointe au directeur de la sécurité sociale,
+D. Champetier
+

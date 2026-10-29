@@ -37,6 +37,7 @@ pub mod engagement;
 pub mod contrats;
 pub mod modeles_contrat;
 pub mod fiches;
+pub mod atmp;
 pub mod import;
 pub mod imprevus;
 pub mod filet;
@@ -168,7 +169,13 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if dossier_salarie::ROUTES.contains(&r) => dossier_salarie::route(o, &ctx, route, &charge),
         r if ouverture::ROUTES.contains(&r) => ouverture::route(o, &ctx, route, &charge),
         // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
-        declarations::demarrage::ROUTE => declarations::demarrage::route(&ctx),
+        // Ce que le moteur a pose de lui-meme se dit en information (gris).
+        declarations::demarrage::ROUTE => declarations::demarrage::route(&ctx).map(|mut v| {
+            if let Some(Value::Array(p)) = v.get_mut("poses") {
+                p.iter_mut().for_each(|x| x["pastille"] = pastille("information", "posé pour vous"));
+            }
+            v
+        }),
         // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
         r if crate::compagnie::conseils::ROUTES.contains(&r) => crate::compagnie::conseils::route(&ctx, route, &charge),
         // Supprimer la compagnie : ce que la boite demande (`interface::suppression::question`) ; la suppression elle-meme

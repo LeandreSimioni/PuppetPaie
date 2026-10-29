@@ -62,7 +62,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "taxe-sur-les-salaires-regime" => taxe_sur_les_salaires_regime(ctx, charge),
         "verifier-fiche" => verifier_fiche(charge),
         "changements-declares" => changements_declares(ctx, charge),
-        "taux-atmp" => taux_atmp(ctx, charge),
+        "taux-atmp" => crate::routes::atmp::route(ctx, charge),
         "metiers-catalogue" => metiers_catalogue(ctx),
         "bulletin-modeles" => modeles(ctx),
         "bulletin-modele-apercu" => {
@@ -231,31 +231,6 @@ pub(crate) fn lire_tolerant(p: &Path) -> R<Option<Value>> {
     Ok(String::from_utf8(octets).ok().and_then(|t| serde_json::from_str(&t).ok()))
 }
 
-/// `taux_atmp` : le taux AT/MP d'une annee, lu ; pose d'abord si `valeur` est donnee.
-fn taux_atmp(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let an = entier(exiger(charge, "annee")?)?;
-    // `valeur` donnee : on POSE d'abord (`poser_taux_atmp`), puis on relit.
-    if let Some(v) = charge.get("valeur").filter(|v| !v.is_null() && v.as_str() != Some("")) {
-        let vide = json!("");
-        crate::routes::fiches::poser_taux_atmp(ctx, an, v, charge.get("code_risque").unwrap_or(&vide))?;
-    }
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
-    let taux = match lire_tolerant(&p)? {
-        None => Value::Null,
-        Some(Value::Object(o)) => match o.get("taux_atmp") {
-            Some(Value::Object(t)) if t.get("valeur").map_or(false, |v| !v.is_null()) => {
-                let code = t.get("code_risque").filter(|c| vrai(c)).cloned().unwrap_or_else(|| json!(""));
-                json!({"valeur": t["valeur"], "code_risque": code})
-            }
-            _ => Value::Null,
-        },
-        Some(autre) => {
-            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&autre))));
-        }
-    };
-    Ok(json!({"annee": an, "taux": taux}))
-}
-
 // ------------------------------------------------------------ verifier-fiche
 
 /// Un objet, de ce qu'un JSON porte : un objet se copie ; une liste
@@ -341,12 +316,13 @@ fn capitales(v: &Value) -> String {
 /// rend `{cle: [avant, apres]}` pour les structures modifiees.
 fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<String, Value> {
     let mut faits = Map::new();
-    // Le contact de la medecine du travail interne (S20.G00.07 de type 17, `dsn::contact_sante_travail`) s'ecrit comme
-    // celui de la DSN : « NOM PRENOM ».
-    let personnes: [(&str, &[&str], Option<(&str, [&str; 2])>); 3] = [
+    // LE CONTACT DSN ET CELUI DE LA MEDECINE DU TRAVAIL INTERNE : la norme les ecrit en « nom et prenom » en une seule
+    // rubrique (S20.G00.07.001, `norme-dsn/texte/bloc-S20.G00.07.txt` l. 63-71) ; la fiche les saisit en une case
+    // (`nom_prenom_affichage`), dont la forme declaree est la meme en capitales sans accents.
+    let personnes: [(&str, &[&str], Option<(&str, &[&str])>); 3] = [
         ("signataire", &["nom", "prenom"], None),
-        ("declarant_dsn", &[], Some(("nom_prenom", ["nom", "prenom"]))),
-        ("contact_sante_travail", &[], Some(("nom_prenom", ["nom", "prenom"]))),
+        ("declarant_dsn", &[], Some(("nom_prenom", &["nom_prenom"]))),
+        ("contact_sante_travail", &[], Some(("nom_prenom", &["nom_prenom"]))),
     ];
     for (cle, officiels, compose) in personnes {
         let Some(Value::Object(p)) = donnees.get(cle) else { continue };
@@ -758,78 +734,6 @@ pub(crate) fn chiffre_lu(c: char) -> Option<u32> {
     DEBUTS.iter().find(|d| u >= **d && u < **d + 10).map(|d| u - d)
 }
 
-/// Le jour d'aujourd'hui a Paris, `JJ/MM/AAAA`.
-fn aujourdhui_jj_mm_aaaa() -> String {
-    let t = socle::temps::secondes();
-    let iso = socle::paris::iso_secondes(t);
-    format!("{}/{}/{}", &iso[8..10], &iso[5..7], &iso[..4])
-}
-
-/// Pose le taux AT/MP de l'annee dans la surcouche de la
-/// compagnie (`config/baremes/<annee>.json`), le reste de la surcouche est garde.
-pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risque: &Value) -> R<()> {
-    let brut = valeur_en_texte(valeur).replace(',', ".").replace('%', "");
-    let Some(v) = socle::num::decimal_lu(&brut) else {
-        return Err(erreur("ErreurOperation", format!("Taux AT/MP illisible : {}.", valeur_ecrite(valeur))));
-    };
-    if v <= socle::num::Decimal::ZERO || v >= socle::num::Decimal::from(20) {
-        return Err(erreur(
-            "ErreurOperation",
-            format!("Taux AT/MP de {} % : il se donne en pourcentage, par exemple 1,25 pour 1,25 %.", v.normalize()),
-        ));
-    }
-    let code = match code_risque {
-        Value::String(s) => s.trim_matches(socle::texte::blanc).to_uppercase(),
-        autre if !vrai(autre) => String::new(),
-        autre => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(autre)))),
-    };
-    if !code.is_empty() && !code_risque_valide(&code) {
-        return Err(erreur(
-            "ErreurOperation",
-            format!(
-                "Code risque « {} » : trois chiffres et deux caractères, comme 923AD, tel qu'il figure sur la notification.",
-                code
-            ),
-        ));
-    }
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
-    let lu = if p.exists() { lire_saisie(&p)? } else { json!({}) };
-    let mut data = if vrai(&lu) { lu } else { json!({"annee": an, "socle": an}) };
-    let Value::Object(d) = &mut data else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&data))));
-    };
-    let ancien: Map<String, Value> = match d.get("taux_atmp") {
-        Some(Value::Object(a)) => a.clone(),
-        _ => Map::new(),
-    };
-    let mut nouveau: Map<String, Value> = ancien.iter().filter(|(k, _)| k.starts_with('_')).map(|(k, w)| (k.clone(), w.clone())).collect();
-    let ancien_code = ancien.get("code_risque").filter(|c| vrai(c)).cloned();
-    let code_final = if !code.is_empty() {
-        Value::String(code)
-    } else {
-        ancien_code.unwrap_or_else(|| json!(""))
-    };
-    nouveau.insert("valeur".into(), serde_json::Number::from_f64(v.to_string().parse::<f64>().unwrap_or(0.0)).map_or(Value::Null, Value::Number));
-    nouveau.insert("code_risque".into(), code_final.clone());
-    nouveau.insert("_source".into(), json!(format!("Saisi dans PuppetPaie le {} (notification AT/MP).", aujourdhui_jj_mm_aaaa())));
-    if !vrai(&code_final) {
-        nouveau.shift_remove("code_risque");
-    }
-    d.insert("taux_atmp".into(), Value::Object(nouveau));
-    if let Some(parent) = p.parent() {
-        creer_dossier(parent)?;
-    }
-    if p.exists() {
-        crate::routes::mois::sauver_avant(&p)?;
-    }
-    ecrire_json(&p, &data, 2).map_err(en_os)
-}
-
-/// `re.fullmatch(r"\d{3}[0-9A-Z]{2}", code)`.
-fn code_risque_valide(code: &str) -> bool {
-    let c: Vec<char> = code.chars().collect();
-    c.len() == 5 && c[..3].iter().all(|x| x.is_ascii_digit()) && c[3..].iter().all(|x| x.is_ascii_digit() || x.is_ascii_uppercase())
-}
 
 /// L'onglet
 /// Metiers, tout le catalogue, chaque metier coche ou non.

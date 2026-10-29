@@ -4,7 +4,8 @@
 //! - les bulletins : `bulletin_lu` (`Entreprise`, `Salarie`, `BulletinLu`), et la fiche que `bulletins` en tire
 //!   (`fiche_entreprise`, `statut_et_metier`) ;
 //! - les DSN : `dsn_aem::lire_une_dsn` (`ENTREPRISE`, `IDENTITE`, `EMPLOI`, `VERSEMENT`, le bloc 20, la licence 40.049,
-//!   le numero d'adherent Conges Spectacles 40.022) ;
+//!   le numero d'adherent Conges Spectacles 40.022, le contact S20.G00.07) et `parametrage` (le code risque 40.040, les
+//!   adhesions S21.G00.15) ;
 //! - les AEM : `dsn_aem::lire_aem` (`ContratAtteste`) ;
 //! - les archives : `tri` (un zip s'ouvre, son contenu se trie comme le reste ; un PDF sans texte ne se lit pas).
 //!
@@ -32,9 +33,11 @@ pub fn guide() -> Value {
             },
             {
                 "quoi": "Les DSN déposées",
-                "ou": "Les fichiers que votre ancien logiciel a déposés chaque mois sur net-entreprises, s'il vous les a laissés. Mettez-les avec les bulletins : ils portent ce que les bulletins n'impriment pas toujours (le compte bancaire, le numéro Congés Spectacles, la licence).",
+                "ou": "Les fichiers que votre ancien logiciel a déposés chaque mois sur net-entreprises, s'il vous les a laissés. Mettez-les avec les bulletins : ils portent ce que les bulletins n'impriment pas toujours (le compte bancaire, le numéro Congés Spectacles, la licence, le contact des organismes, le code risque des accidents du travail, les contrats de prévoyance).",
                 "lu": [
-                    "la compagnie : son Siret, son adresse, son code APE, sa convention, sa licence, son numéro d'adhérent Congés Spectacles, le compte qui paie les cotisations",
+                    "la compagnie : son Siret, son adresse, son code APE, sa convention, sa licence, son numéro d'adhérent Congés Spectacles, le compte qui paie les cotisations, la personne que les organismes contactent",
+                    "ses accidents du travail : le code risque et le taux de chaque année déclarée",
+                    "ses organismes et ses contrats de prévoyance et de santé",
                     "chaque salarié : son identité entière, naissance comprise",
                     "chaque contrat : son début, sa fin, son numéro, sa durée de travail, son emploi",
                     "chaque mois : ce qui a été versé et déclaré",
@@ -51,7 +54,7 @@ pub fn guide() -> Value {
                 "lu": [],
             },
         ],
-        "reste": "Ce qu'aucune pièce ne porte se demande ensuite, une fois, avec l'endroit où le trouver : par exemple le taux accident du travail de l'année, que l'Assurance Maladie notifie chaque janvier, ou, pour un salarié payé au mois, si son contrat est un CDI ou un CDD, ce qu'un bulletin n'imprime pas.",
+        "reste": "Ce qu'aucune pièce ne porte se demande ensuite, une fois, avec l'endroit où le trouver : par exemple qui signe les contrats, la date de la première embauche de la compagnie, ou, pour un salarié payé au mois, si son contrat est un CDI ou un CDD, ce qu'un bulletin n'imprime pas.",
         "rien_n_est_perdu": "Un fichier que le logiciel ne sait pas lire est dit, avec sa raison ; il ne change rien au reste. Les noms des fichiers ne comptent pas : le logiciel lit leur contenu.",
     })
 }
