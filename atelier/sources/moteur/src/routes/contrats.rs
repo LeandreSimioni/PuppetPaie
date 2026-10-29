@@ -655,6 +655,11 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         "fin": p.engagement.fin.map_or("None".to_string(), |f| f.iso()),
         "nom": format!("{} {}", prenom, valeur_en_texte(get_requis(sal, "nom")?)),
         "spectacle": p.titre()?,
+        // CE QUE LE COURRIEL DIT DU CONTRAT : son nom (`contrat_ecrit.nom` de sa nature), son spectacle s'il en a un, sa
+        // periode (« a partir du » pour un contrat sans terme).
+        "nom_du_contrat": p.engagement.nat().map_err(Echec::from)?.nom_du_contrat(),
+        "pour": if vrai(&p.spectacle) { format!(" pour {}", p.titre()?) } else { String::new() },
+        "periode": match p.engagement.fin { Some(f) => format!("du {} au {}", p.engagement.debut.jj_mm_aaaa(), f.jj_mm_aaaa()), None => format!("à partir du {}", p.engagement.debut.jj_mm_aaaa()) },
         "mois": parti.mois,
         "contrat": parti.numero,
         "date_contrat": parti.date(),

@@ -767,12 +767,12 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
                 &a.modifications().iter().map(|m| format!("l'article {} « {} »", valeur_en_texte(&m["numero"]), valeur_en_texte(&m["article"]))).collect::<Vec<_>>(),
             );
             Ok(format!(
-                "l'avenant n° {} à ton contrat d'engagement n° {} pour {}, du {} au {}, qui modifie {}",
+                "l'avenant n° {} à ton {} n° {}{}, {}, qui modifie {}",
                 a.numero(),
+                a.texte("nom_du_contrat"),
                 a.contrat(),
-                a.texte("spectacle"),
-                jj(&a.texte("debut"))?,
-                jj(&a.texte("fin"))?,
+                a.texte("pour"),
+                a.texte("periode"),
                 articles
             ))
         };
@@ -780,9 +780,13 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
         let (mut sujet, mut liste, quoi);
         if aa.len() == 1 {
             let a = &aa[0];
-            sujet = format!("Avenant n° {} - {}", a.numero(), sujet_de(&a.texte("spectacle")));
+            sujet = if a.texte("pour").is_empty() {
+                format!("Avenant n° {} - {} - {} {}", a.numero(), capitaliser(&a.texte("nom_du_contrat")), nom_mois, an)
+            } else {
+                format!("Avenant n° {} - {}", a.numero(), sujet_de(&a.texte("spectacle")))
+            };
             liste = format!("Tu trouveras ci-joint {} ; le reste du contrat ne change pas.", un(a)?);
-            quoi = format!("l'avenant n° {} au contrat d'engagement n° {} pour {}", a.numero(), a.contrat(), a.texte("spectacle"));
+            quoi = format!("l'avenant n° {} au {} n° {}{}", a.numero(), a.texte("nom_du_contrat"), a.contrat(), a.texte("pour"));
         } else {
             sujet = format!(
                 "Avenants - {}",
@@ -799,7 +803,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
             liste = format!("Tu trouveras ci-joint {} avenants à tes contrats, un document chacun :\n{}\nLe reste de chaque contrat ne change pas.", aa.len(), morceaux.join("\n"));
             quoi = format!(
                 "les avenants suivants : {}",
-                aa.iter().map(|a| format!("n° {} au contrat d'engagement n° {} pour {}", a.numero(), a.contrat(), a.texte("spectacle"))).collect::<Vec<_>>().join(" ; ")
+                aa.iter().map(|a| format!("n° {} au {} n° {}{}", a.numero(), a.texte("nom_du_contrat"), a.contrat(), a.texte("pour"))).collect::<Vec<_>>().join(" ; ")
             );
         }
         if aa.iter().any(UnAvenant::relance) {
