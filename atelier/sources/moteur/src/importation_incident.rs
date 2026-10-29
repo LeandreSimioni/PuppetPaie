@@ -184,12 +184,32 @@ fn connus(ctx: &Contexte, lu: &DossierLu) -> Connus {
             adresse(&mut c, l);
         }
     }
+    ajouter_les_fiches(ctx, &mut c, lu.ap.a_creer.iter().filter(|a| a.nom == "salarie").map(|a| Value::Object(a.donnees.clone())));
+    for Entreprise { nom, adresse: lignes, .. } in &lu.entreprises_lues {
+        pousser(&mut c.entreprise, nom.clone());
+        for l in lignes {
+            pousser(&mut c.entreprise, Some(l.clone()));
+        }
+    }
+    c
+}
+
+/// Ce que les fiches de la compagnie disent de ses salaries (et `autres`, des fiches qui ne sont pas encore ecrites),
+/// ajoute aux valeurs connues ; la compagnie, protegee.
+pub(crate) fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus, autres: impl Iterator<Item = Value>) {
+    let pousser = |v: &mut Vec<String>, x: Option<String>| {
+        if let Some(x) = x.map(|t| t.trim().to_string()).filter(|t| !t.is_empty()) {
+            if !v.contains(&x) {
+                v.push(x);
+            }
+        }
+    };
     let fiches = ctx
         .salaries
         .iter()
         .filter(|(k, v)| !k.starts_with('_') && v.is_object())
         .map(|(_, v)| v.clone())
-        .chain(lu.ap.a_creer.iter().filter(|a| a.nom == "salarie").map(|a| Value::Object(a.donnees.clone())));
+        .chain(autres);
     for f in fiches {
         let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
         for k in ["nom", "nom_affichage"] {
@@ -218,13 +238,6 @@ fn connus(ctx: &Contexte, lu: &DossierLu) -> Connus {
     for k in ["raison_sociale", "nom_affichage", "adresse", "adresse_affichage", "code_postal", "commune", "commune_affichage"] {
         pousser(&mut c.entreprise, e.get(k).filter(|v| vrai(v)).map(valeur_en_texte));
     }
-    for Entreprise { nom, adresse: lignes, .. } in &lu.entreprises_lues {
-        pousser(&mut c.entreprise, nom.clone());
-        for l in lignes {
-            pousser(&mut c.entreprise, Some(l.clone()));
-        }
-    }
-    c
 }
 
 /// Le caviardage d'un texte, ce qui en est enleve ajoute au compte.

@@ -104,6 +104,10 @@ fn fiches_a_creer(apercu: &Value) -> Vec<(String, &Value)> {
 #[test]
 fn l_apercu_annonce_ce_que_l_ecriture_trouvera() {
     let racine = neuve("apercu");
+    // Sa premiere embauche dit son effectif : ses paies importees se comparent.
+    let mut e = lire(&racine, "config/entreprise.json");
+    e["premiere_embauche"] = json!([{"valeur": "2025-01-01"}]);
+    std::fs::write(racine.join("config/entreprise.json"), serde_json::to_string_pretty(&e).unwrap()).unwrap();
     deposer(&racine);
     let apercu = reussi(&route(&racine, "importation-apercu", json!({"dossier": ""}))).clone();
     let a_creer = fiches_a_creer(&apercu);
@@ -136,6 +140,37 @@ fn l_apercu_annonce_ce_que_l_ecriture_trouvera() {
     let brioche = salaries.as_object().unwrap().values().find(|s| s["nir"] == json!("2881175999001")).unwrap();
     assert_eq!(brioche["pcs_ese"], json!("354c"), "{}", brioche);
     assert_eq!(brioche["statut"], json!("artiste"));
+
+    // LES ECARTS DE CALCUL DE L'IMPORT PARTENT SANS RIEN QUI DESIGNE UNE PERSONNE : ni nom, prenom, NIR, naissance ou
+    // adresse des fiches, ni brut, net ou cout d'une paie importee, dans ce qui partirait chez l'editeur.
+    let partiraient: Vec<String> = moteur::incidents::lire(&racine, None, false)
+        .unwrap()
+        .iter()
+        .filter(|l| l["ou"] == json!(moteur::importation_ecarts::OU))
+        .map(|l| moteur::incidents::pour_l_editeur(&racine, l).unwrap().to_string())
+        .collect();
+    assert!(!partiraient.is_empty(), "l'import n'a rien rapporte de ses ecarts");
+    let mut interdits: Vec<String> = Vec::new();
+    for s in salaries.as_object().unwrap().values() {
+        for k in ["nom", "prenom", "nir", "date_naissance", "adresse", "commune"] {
+            if let Some(v) = s[k].as_str().filter(|v| v.len() > 2) {
+                interdits.push(v.to_string());
+            }
+        }
+    }
+    for p in engagement::importe::paies_lues(&racine).unwrap() {
+        for k in ["brut", "net_a_payer", "net_imposable", "net_social", "cout_employeur"] {
+            if let Some(v) = p[k].as_str() {
+                interdits.extend([v.to_string(), v.replace('.', ",")]);
+            }
+        }
+    }
+    assert!(interdits.len() > 10, "{:?}", interdits);
+    for texte in &partiraient {
+        for x in &interdits {
+            assert!(!texte.contains(x.as_str()), "« {} » partirait : {}", x, texte);
+        }
+    }
 }
 
 /// La nature : muette (un CDDU) pour l'artiste ; a dire pour le permanent, et seulement une nature de permanent.

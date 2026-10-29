@@ -805,6 +805,7 @@ pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
     reponse["fichiers"] = Value::Array(e.fichiers);
     reponse["copie"] = copie;
     reponse["depots_repris"] = json!(depots_attestes_au_journal(ctx, charge)?);
+    rapporter_les_ecarts(ctx);
     Ok(reponse)
 }
 
@@ -816,6 +817,14 @@ fn depots_attestes_au_journal(ctx: &Contexte, charge: &Value) -> R<usize> {
     crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::reprise_journal::reprendre_les_depots(ctx, &qui, &crate::routes::maintenant()))
 }
 
+
+/// LES ECARTS DE CALCUL PARTENT A CHAQUE IMPORT (`importation_ecarts`), lus avec les fiches telles que l'import les a
+/// ecrites ; rien ne s'en dit a l'ecran.
+fn rapporter_les_ecarts(ctx: &Contexte) {
+    if let Ok(frais) = Contexte::nouveau(&ctx.racine, Some(ctx.date)) {
+        crate::importation_ecarts::rapporter(&frais);
+    }
+}
 fn avertissement_differents(differents: &[String], ou: &str) -> String {
     format!(
         "{} fichier(s) de {} portent le nom d'un fichier déjà copié avec un autre contenu : la copie est gardée telle quelle, à comparer à la main ({}).",
@@ -925,6 +934,7 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     reponse["fichiers"] = Value::Array(e.fichiers);
     reponse["copie"] = copie;
     reponse["depots_repris"] = json!(depots_attestes_au_journal(ctx, charge)?);
+    rapporter_les_ecarts(ctx);
     Ok(reponse)
 }
 

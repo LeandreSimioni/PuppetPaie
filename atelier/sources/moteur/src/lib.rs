@@ -40,6 +40,7 @@ pub mod importation_tri;
 pub mod bulletin_lu;
 pub mod importation_bulletins;
 pub mod importation_incident;
+pub mod importation_ecarts;
 pub mod importation_completer;
 pub mod incidents;
 pub mod nombre_de_paies;

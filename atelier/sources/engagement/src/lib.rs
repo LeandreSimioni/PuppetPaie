@@ -16,6 +16,7 @@ pub mod calcul;
 pub mod conges;
 pub mod cumul;
 pub mod departs;
+pub mod ecarts;
 pub mod empreinte;
 pub mod etats;
 pub mod importe;
