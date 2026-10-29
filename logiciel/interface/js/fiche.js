@@ -169,13 +169,13 @@ function dessinerFormulaire(fiche) {
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
       </div>`;
     }
-    // UN PAYS SE CHOISIT DANS LA LISTE (10/10/2026, vague 1k) : on tapait un
-    // code ISO (« IT », « MA »). La liste vient du moteur (`etat.pays`, le Code
+    // UN PAYS SE CHOISIT DANS LA LISTE, il ne se tape pas en code ISO.
+    // La liste vient du moteur (`etat.pays`, le Code
     // officiel geographique de l'INSEE), triee par nom ; une lettre tapee sur
     // la liste ouverte va au premier pays qui commence par elle. Un code
     // deja saisi que la liste ne connait pas reste affiche, et le moteur le
     // refuse en le disant.
-    // Le pays de naissance a sa liste a lui (lot R2, 11/10/2026) : la table
+    // Le pays de naissance a sa liste a lui : la table
     // « Pays » de la DSN que le moteur sert (`etat.pays_naissance`), le Kosovo
     // et les Etats disparus compris.
     const listePays = (c.cle === "pays_naissance" && (ETAT.pays_naissance || []).length)
@@ -271,10 +271,8 @@ function dessinerFormulaire(fiche) {
       : structure
       ? `<textarea rows="4" data-cle="${c.cle}" data-structure="1">${echapper(JSON.stringify(v ?? null, null, 1))}</textarea>`
       : `<input data-cle="${c.cle}" data-forme="${c.forme}" value="${echapper(v ?? "")}"${
-            // Une date se choisit dans un calendrier (23/09/2026 pour la fiche
-            // salarié ; #236, 23/10/2026, pour toutes : « Date de la première
-            // embauche » était un texte qui refusait 16/11/2026) ; la valeur reste
-            // AAAA-MM-JJ, celle du moteur.
+            // Une date se choisit dans un calendrier, dans toutes les fiches ;
+            // la valeur reste AAAA-MM-JJ, celle du moteur.
             c.forme === "date"
               && /^(\d{4}-\d{2}-\d{2})?$/.test(String(v ?? "")) ? ' type="date"' : ""}${
             c.exemple ? ` placeholder="ex. ${echapper(c.exemple)}"` : ""}
@@ -357,7 +355,7 @@ function dessinerFormulaire(fiche) {
       if (opt.sante && avecPermanents && FICHE_ACTIVE === "salarie") {
         // Au mois : le moteur le dit (`salaries_au_mois`) — ou la saisie en cours
         // l'engage déjà au mois, pas encore enregistrée parce que sa santé manque
-        // (#236 : le refus envoyait sur un tiroir replié).
+        // (le refus ne doit pas envoyer sur un tiroir replié).
         let enCours = false;
         try {
           enCours = (saisieCourante().engagements || []).some((x) => x.salarie === fiche.cle
@@ -401,8 +399,8 @@ function dessinerFormulaire(fiche) {
         — marqué${err > 1 ? "s" : ""} ci-dessous.</div>` : ""}
       ${sections ? champs : `<div class="champs">${champs}</div>`}
       <div class="actions">
-        <!-- ANNULER (ticket #124, 15/10/2026) : « quand je crée un salarié je
-             peux pas annuler, j'ai juste enregistrer ». Voir annulerFiche. -->
+        <!-- ANNULER : une fiche qu'on crée ou modifie peut s'abandonner sans
+             enregistrer. Voir annulerFiche. -->
         <button class="secondaire" id="config-annuler"${FICHE_ACTIVE === "entreprise" ? " hidden" : ""}
           title="${FICHE_ACTIVE === "entreprise" ? "Reprendre ce qui est enregistré"
             : fiche.cle ? "Laisser la fiche telle qu'elle est enregistrée et revenir à la liste"
@@ -615,14 +613,14 @@ function brancherListes(fiche) {
 }
 
 
-/*  LA NATIONALITE DSN SE DEDUIT DU PAYS (10/10/2026, vague 1k)
+/*  LA NATIONALITE DSN SE DEDUIT DU PAYS
  *
  *  Avec un pays de nationalite de la liste, la case « Nationalite »
  *  (S21.G00.30.013) ne se choisit plus : elle montre ce que le moteur en
  *  deduit (`codification_ue` de chaque pays dans `etat.pays`), et le moteur
- *  la recrit a l'enregistrement. Sans pays, elle se choisit comme avant ;
+ *  la recrit a l'enregistrement. Sans pays, elle se choisit ;
  *  avec un pays absent de la liste (« Pays de nationalite absent de la
- *  liste », vague 2h), elle se choisit aussi : c'est le moteur qui refuse
+ *  liste »), elle se choisit aussi : c'est le moteur qui refuse
  *  un tel pays sans nationalite choisie (`codification_ue`).
  */
 function brancherNationalite() {
@@ -1284,10 +1282,9 @@ async function quitterLaFiche() {
   return !FICHE_MODIFIEE;
 }
 
-/* LA VÉRIFICATION PENDANT LA FRAPPE (revue le 30/09/2026). Le texte sous
- * chaque case suit désormais ce qu'on tape : « obligatoire » restait sous un
- * SIRET valide, et un SIRET faux se colorait sans dire pourquoi. Plus de
- * message volant « N point(s) à regarder » à chaque frappe : la case parle. */
+/* LA VÉRIFICATION PENDANT LA FRAPPE. Le texte sous chaque case suit ce qu'on
+ * tape : « obligatoire » s'efface sous un SIRET valide, un SIRET faux dit
+ * pourquoi. Aucun message volant à chaque frappe : la case parle. */
 async function verifierFormulaire() {
   const r = await api("verifier-fiche",
     { nom: FICHE_ACTIVE, donnees: lireFormulaire() });
@@ -1404,7 +1401,7 @@ function valeurHistorique(champ, avant, apres) {
 const CHAMPS_DU_METIER = ["emploi_affichage", "emploi", "pcs_ese", "code_emploi_ft", "statut"];
 
 function demanderDateDEffet(changements) {
-  const aujourdHui = aujourdhuiIso();   // le jour du moteur (#236)
+  const aujourdHui = aujourdhuiIso();   // le jour du moteur
   const metier = changements.filter((c) => CHAMPS_DU_METIER.includes(c.champ));
   const autres = changements.filter((c) => !CHAMPS_DU_METIER.includes(c.champ));
   const lisible = (c, cote) => valeurLisible(c[cote + "_lisible"] ?? c[cote]);

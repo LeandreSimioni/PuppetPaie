@@ -84,7 +84,7 @@ const CIRCUITS_FICTIFS = {
    La sauvegarde est coupée dans une compagnie fictive, et quatre salariés
    fictifs n'ont volontairement pas de taux de PAS : le visiteur doit savoir ce
    que fait une compagnie réelle, et pourquoi il voit ce qu'il voit. La mise à
-   jour, elle, est celle du logiciel (une par installation, lot U1) : elle se
+   jour, elle, est celle du logiciel (une par installation) : elle se
    fait partout. Les phrases disent le logiciel tel qu'il est (sauvegarde.rs,
    maj.rs, pas.rs, amorcage_demande.rs, dans atelier/sources/moteur/src/), rien de plus. */
 const EXPLICATIONS_FICTIVES = {

@@ -314,9 +314,9 @@ function dessinerConfig() {
    les DSN disaient autrement que les fiches ; le bouton n'écrit qu'après.
    Une fiche existante reçoit seulement ce qui y est vide ou « A COMPLETER »
    (`import::completer`) ; tout champ rempli fait foi, l'écart
-   est signalé, un changement se date à la main (operations_fiches).
+   est signalé, un changement se date à la main.
 
-   LA BOÎTE AUX LETTRES (lot F du plan d'import, 10/10/2026). Une seule
+   LA BOÎTE AUX LETTRES. Une seule
    entrée : le dossier `import/` de la compagnie, où l'on met tout ce que
    l'ancien logiciel a laissé — DSN, AEM, bulletins de paie en PDF, archives
    zip. Le moteur trie par le contenu (`importation-apercu` avec `dossier`) et
@@ -1652,7 +1652,7 @@ function enteteSalarie(fiche) {
     <!-- SES IMPRÉVUS (15/10/2026) : ses arrêts et ses absences, passés et en
          cours, ce qui en est parti, et la porte « Un imprévu… ». js/imprevus.js. -->
     <div class="fiche-imprevus" id="fiche-imprevus"></div>
-    <!-- CE QUE VOS CONTRATS FONT POUR SES DROITS (ticket 224) : les conseils sur
+    <!-- CE QUE VOS CONTRATS FONT POUR SES DROITS : les conseils sur
          l'historique, quand l'option « conseils » est cochée. js/conseils.js. -->
     <div class="fiche-conseils" id="fiche-conseils"></div>
     ${d.fiche_recue && fiche.anomalies.some((a) => a.gravite === "erreur")

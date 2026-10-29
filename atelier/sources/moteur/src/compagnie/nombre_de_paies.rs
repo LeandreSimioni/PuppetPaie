@@ -1,12 +1,12 @@
-//! LE NOMBRE DE PAIES DE L'ANNEE, ENVOYE A L'EDITEUR LE 16 JANVIER (ticket #246 ; Leandre, 22/10/2026 : « le logiciel est
-//! gratuit, sans abonnement ; c'est le seul moyen pour l'editeur de savoir combien il sert vraiment »).
+//! LE NOMBRE DE PAIES DE L'ANNEE, ENVOYE A L'EDITEUR LE 16 JANVIER : le logiciel est gratuit, sans abonnement, et c'est
+//! le seul moyen pour l'editeur de savoir combien il sert vraiment.
 //!
 //! CE QUI PART : une fois par an et par compagnie, `{"annee": N-1, "paies": <nombre>}`, et le numero de poste que portent
 //! deja les incidents. Rien d'autre : ni nom, ni SIREN, ni NIR, ni montant. Zero part aussi (zero est une information).
 //!
 //! LE COMPTE : les paies VALIDEES dont le mois de paie est dans l'annee N-1, intermittents et permanents confondus : une
-//! par mois que chaque engagement valide couvre (`engagements/`, `valide.paies`). Un mois tenu avant ce logiciel (ticket
-//! #215) n'a pas d'engagement : PuppetPaie n'a pas fait ces paies, elles ne comptent pas. Des engagements qui ne se
+//! par mois que chaque engagement valide couvre (`engagements/`, `valide.paies`). Un mois tenu avant ce logiciel n'a
+//! pas d'engagement : PuppetPaie n'a pas fait ces paies, elles ne comptent pas. Des engagements qui ne se
 //! lisent pas font REFUSER le compte (regle 1 : rien ne se devine) : rien ne part, et le passage suivant recommence.
 //!
 //! QUAND : a partir du 16 janvier (l'horloge du moteur, `PUPPETPAIE_AUJOURDHUI` dans les essais), a l'ouverture ou au

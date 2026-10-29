@@ -1,6 +1,6 @@
-//! `moteur journal [--quoi ACTE] [--mois AAAA-MM]` : le journal des depots, en lecture (`moteur/commandes_retours.py`,
-//! `cmd_journal`). `--reprendre` / `--ecrire` (remettre au journal les depots DSN attestes par `retours/`, lot J2b) : voir `reprendre`.
-//! Le Python ignore `--json` ici ; le Rust aussi.
+//! `moteur journal [--quoi ACTE] [--mois AAAA-MM]` : le journal des depots, en lecture.
+//! `--reprendre` / `--ecrire` (remettre au journal les depots DSN attestes par `retours/`) : voir `reprendre`.
+//! `--json` est sans effet ici.
 
 use serde_json::{json, Value};
 

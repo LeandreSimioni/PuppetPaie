@@ -248,7 +248,7 @@ pub struct QuestionFranchise {
     pub plafonds: Option<(Decimal, Decimal)>,
 }
 
-/// Un montant entier, ecrit comme sur l'ecran : « 37 500 € », en espaces insecables (ticket #245 : un montant ne se coupe
+/// Un montant entier, ecrit comme sur l'ecran : « 37 500 € », en espaces insecables (un montant ne se coupe
 /// pas en fin de ligne, « 85 / 000 € »).
 fn euros(x: Decimal) -> String {
     let s = crate::bulletin::fmt_eur(x);

@@ -1,12 +1,11 @@
-//! `moteur sauvegarder [--tout] [--point] [--racine-drive NOM]` : le dossier prive dans le Drive, par differences
-//!. Ne supprime jamais rien la-bas.
+//! `moteur sauvegarder [--tout] [--point] [--racine-drive NOM]` : le dossier prive dans le Drive, par differences.
+//! Ne supprime jamais rien la-bas.
 //!
-//! `--json` est accepte et sans effet (le Python n'a pas de sortie JSON ici). Ni mot de passe ni jeton ne passe par la commande : le
+//! `--json` est accepte et sans effet. Ni mot de passe ni jeton ne passe par la commande : le
 //! client Drive lit le jeton au coffre (`sauvegarde::sauvegarder`, `Client::nouveau`). Dans `moteur-atelier`, hors compagnie fictive, la
 //! commande exige le faux Google (`PUPPETPAIE_ATELIER_GOOGLE`) : sinon elle irait au vrai Drive.
 //!
-//! DEFAUT DU PYTHON, QUI NE SE REPRODUIT PAS : une `ErreurGoogle` (ou une erreur de disque) hors des cas attrapes sortait en trace
-//! d'appels ; ici `! phrase` et le code 2.
+//! Une `ErreurGoogle` (ou une erreur de disque) hors des cas attrapes : `! phrase` et le code 2.
 
 use super::actes::refuser_si_pas_redirige;
 use super::actes::Organisme;

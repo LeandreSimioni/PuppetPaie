@@ -96,9 +96,8 @@ pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
     Ok(if ctx.aujourdhui > limite { Some(limite) } else { None })
 }
 
-/// UN MOIS D'AVANT LA PREMIERE EMBAUCHE N'A PAS DE DSN DUE (#236, banc du Petit Castelet : ajoutee le 06/01/2025, premiere
-/// embauche le 25/01, la compagnie voyait decembre 2024 « Rouvrir ce mois (DSN en retard) — sa DSN était due le
-/// 15/01/2025 »). La DSN est due par l'employeur pour les salaries qu'il emploie (`crate::routes::rappels::premier_mois_declarable`,
+/// UN MOIS D'AVANT LA PREMIERE EMBAUCHE N'A PAS DE DSN DUE (une compagnie ajoutee le 06/01/2025, premiere
+/// embauche le 25/01, ne voit pas decembre 2024 « en retard »). La DSN est due par l'employeur pour les salaries qu'il emploie (`crate::routes::rappels::premier_mois_declarable`,
 /// la borne que l'echeancier et les rappels lisent deja) : un mois passe, sans saisie, ni tenu avant ce logiciel, qui
 /// precede le mois de la premiere embauche (`premiere_embauche` de la fiche Entreprise) n'est pas en retard, il n'a rien
 /// a declarer. Rend la premiere embauche (`AAAA-MM-JJ`), ou `None`.
@@ -1816,7 +1815,7 @@ fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`crate::regularisation::modification_de_la_paie`).
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let dsn = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
-    // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
+    // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
     Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant()}))
 }
 
@@ -2126,7 +2125,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
     let mois_du_contrat = e.mois_du_contrat()?;
     // Le taux du cachet, tel que le contrat l'imprime : celui de la premiere
     // ligne a l'unite << cachet >> ; sans cachet, la valeur ecrite, telle quelle,
-    // et rien quand rien n'est ecrit (regle 1, lot F1 : plus de 130 EUR).
+    // et rien quand rien n'est ecrit (regle 1 : plus de 130 EUR).
     let premier_cachet = e
         .lignes
         .iter()

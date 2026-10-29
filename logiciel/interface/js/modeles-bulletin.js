@@ -1,12 +1,11 @@
-/* Configuration → Modèle de bulletin (lot R11, 11/10/2026). */
+/* Configuration → Modèle de bulletin. */
 "use strict";
 
 /* DEUX MODÈLES, CÔTE À CÔTE, SUR UNE PAIE FICTIVE.
 
-   Léandre, 11/10/2026 : « ce qui me plaisait, c'est d'en avoir au moins deux,
-   un complet et un condensé ; que les gens puissent choisir ; dans la
-   configuration, un sélecteur avec la visualisation d'une paie fictive sous
-   chaque modèle ». PLAN-CONTRATS, C, 11 : la compagnie choisit pour tous ; un
+   Au moins deux modèles, un complet et un condensé, et la compagnie choisit :
+   dans la configuration, un sélecteur montre une paie fictive sous chaque
+   modèle. La compagnie choisit pour tous ; un
    salarié qui demande l'autre l'obtient par une case de sa fiche (Avancé), qui
    l'emporte.
 

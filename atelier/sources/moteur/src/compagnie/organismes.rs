@@ -192,8 +192,8 @@ fn references_prises(ctx: &Contexte) -> R<Vec<u32>> {
 }
 
 /// Une ligne se montre-t-elle a cette compagnie ? Un contrat des permanents (`role` : prevoyance ou sante, les
-/// affiliations d'un salarie paye au mois) ne se montre qu'a une compagnie qui en emploie (ticket #214 : « j'emploie pas
-/// de permanent pourtant on me propose de remplir ») : le curseur est `Contexte::emploie_des_permanents`, le meme que
+/// affiliations d'un salarie paye au mois) ne se montre qu'a une compagnie qui en emploie (rien a
+/// remplir pour qui n'emploie pas de permanent) : le curseur est `Contexte::emploie_des_permanents`, le meme que
 /// partout. Ce qui ne se montre pas ne change pas pour autant : `composer` garde un contrat fixe (la sante des
 /// permanents de la 3090, « declaree meme sans permanent ») et un contrat deja saisi (lu dans le fichier en place), et ne
 /// reclame pas un `si_permanents` vide.

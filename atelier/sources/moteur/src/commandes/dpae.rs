@@ -8,8 +8,8 @@
 //!
 //! Code de sortie 3 : au moins une embauche est deja passee, la DPAE est hors delai (elle s'ecrit quand meme, sans antidater).
 //!
-//! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : une embauche deja declaree, un contrat en cours depuis un mois precedent, une
-//! selection absente de la saisie, un fichier introuvable donnaient une trace d'appels. Ici : `! phrase`, code 2.
+//! Une embauche deja declaree, un contrat en cours depuis un mois precedent, une selection absente de la saisie, un
+//! fichier introuvable : `! phrase`, code 2.
 
 use serde_json::{json, Value};
 

@@ -275,7 +275,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         o.insert("mois_du_maintien".into(), json!(if ouvert { mois_traverses(imp)? } else { Vec::new() }));
         o.insert("jours_deja_indemnises_attendus".into(), json!(ouvert && maintien_legal));
         o.insert("cachets".into(), json!(cachets));
-        // CE QUE L'ARRET OUVRE A LA PAGE (21/10/2026, regle de Leandre : rien de remplissable s'il n'y a pas a le remplir) :
+        // CE QUE L'ARRET OUVRE A LA PAGE (rien de remplissable s'il n'y a pas a le remplir) :
         // un arret en cours se prolonge ou se reprend plus tot ; une reprise saisie se corrige tant que son signalement
         // n'est pas parti.
         let cours = en_cours(ctx, imp)?;

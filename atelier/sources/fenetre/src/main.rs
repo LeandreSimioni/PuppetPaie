@@ -1,6 +1,6 @@
 //! PuppetPaie : la fenetre. Le serveur de la fenetre (`moteur::interface`) tourne dans ce processus, et sa page
 //! s'affiche dans une fenetre Tauri (WebView2 sous Windows, WebKit sous Mac et Linux). Les routes du moteur tournent
-//! dans ce processus (`moteur::interface::api::route`, ticket #244) ; `puppetpaie route ...` reste, comme `moteur route ...`,
+//! dans ce processus (`moteur::interface::api::route`) ; `puppetpaie route ...` reste, comme `moteur route ...`,
 //! pour la mise a jour, qui eprouve le nouveau programme avant de l'installer (`moteur::compagnie::maj`).
 //!
 //! Sans Tauri (un poste sans moteur de rendu), `moteur interface` ouvre la meme page dans le navigateur.

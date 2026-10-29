@@ -1,7 +1,5 @@
 //! Le marquage d'un PDF existant (`fabrique-pdf --marquer entree.pdf sortie.pdf "texte"`) : un
-//! texte posé en pied de chaque page, comme `_marquer` de `moteur/operations_dossier.py`
-//! (`page.insert_text((34, hauteur - 12), texte, fontname="helv", fontsize=6, color=(0.45, 0.45,
-//! 0.45))`) : à 34 pt du bord gauche, ligne de base à 12 pt du bas de la page, Helvetica 6 pt, gris
+//! texte posé en pied de chaque page : à 34 pt du bord gauche, ligne de base à 12 pt du bas de la page, Helvetica 6 pt, gris
 //! 0,45, aligné à gauche et sur une ligne.
 //!
 //! La police est Liberation Sans (les métriques d'Helvetica) en sous-ensemble, comme dans tous les

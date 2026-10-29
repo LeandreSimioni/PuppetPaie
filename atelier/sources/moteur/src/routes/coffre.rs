@@ -291,7 +291,7 @@ pub(crate) fn identifiants(racine: &Path) -> R<(Value, Value, String)> {
 }
 
 /// Y a-t-il un jeton utilisable, sans rien demander au reseau. Un jeton illisible, un coffre qui
-/// refuse, un jeton sans `rafraichissement` : non. Ne leve jamais (l'ouverture, lot I2b, l'appelle).
+/// refuse, un jeton sans `rafraichissement` : non. Ne leve jamais (l'ouverture l'appelle).
 pub(crate) fn autorise(racine: &Path) -> bool {
     match lire_jeton(racine) {
         Ok(j) => champ(&j, "rafraichissement").map(|v| vrai(&v)).unwrap_or(false),

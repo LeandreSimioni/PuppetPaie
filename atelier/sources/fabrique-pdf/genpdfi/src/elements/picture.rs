@@ -112,7 +112,7 @@ impl Picture {
             return Err(invalid(format!("{} vide", name)));
         }
         // Une image plus fine que ce qui s'imprime est ramenée à `RESOLUTION` à sa largeur posée
-        // (ticket #228 : un logo de 1 200 pixels posé sur 26 mm pesait l'essentiel du bulletin).
+        // (un logo de 1 200 pixels posé sur 26 mm pesait l'essentiel du bulletin).
         // Les proportions posées sont celles de l'original : la réduction arrondit les pixels.
         let proportions = decoded.height() as f32 / decoded.width() as f32;
         let (decoded, reduite) = reduire(decoded, width);

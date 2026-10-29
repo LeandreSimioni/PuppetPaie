@@ -829,7 +829,7 @@ async function repeindreLeMois(mois, ancien, frais) {
     IMPORTES = r.importes || [];
     majFermeture(mois, r.existe);
     dessinerMoisImporte();
-  } catch (e) { /* la saisie se lit comme avant : rien à changer */ }
+  } catch (e) { /* la saisie se lit telle quelle : rien à changer */ }
   if (!enCours) calculerApercu(frais.lectures.apercu);
   await Promise.allSettled([
     dessinerActions(mois),
@@ -1150,7 +1150,7 @@ function moisVoisin(pas) {
 function dessinerGrilleMois() {
   const grille = document.getElementById("mois-grille");
   const choisi = document.getElementById("mois").value;
-  const ceMois = aujourdhuiIso().slice(0, 7);   // le mois du moteur (#236)
+  const ceMois = aujourdhuiIso().slice(0, 7);   // le mois du moteur
   const saisis = new Set((ETAT.historique || []).map((h) => h.mois));
   grille.innerHTML = `
     <div class="choix-mois-annee">

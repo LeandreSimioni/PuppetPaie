@@ -1,15 +1,14 @@
 //! La ligne de commande du produit, `moteur COMMANDE ...` : ce qu'un humain (ou un agent) tape.
 //!
-//! Une commande = un module, qui declare ses options (`analyse::Spec`) et rend un code de sortie. Chacune reprend la
-//! commande Python du meme nom : memes options, meme sortie -- texte et
-//! `--json` (l'enveloppe de `moteur/sortie_json.py`) --, meme code de sortie. Elle s'appuie sur ce que le moteur sait
+//! Une commande = un module, qui declare ses options (`analyse::Spec`) et rend un code de sortie ; sa sortie est un
+//! texte, ou l'enveloppe `--json` (`rendu::enveloppe`). Elle s'appuie sur ce que le moteur sait
 //! deja faire (les routes, `moteur route NOM`) : rien ne se recopie ici, on lit et on met en forme.
 //!
-//! Les phrases proposent `moteur ...`, jamais `python -m moteur ...`.
+//! Les phrases proposent `moteur ...`.
 //!
-//! LE MOT DE PASSE. Chaque commande installe au demarrage la demande reelle (`demande::installer`, lot J1). Une
+//! LE MOT DE PASSE. Chaque commande installe au demarrage la demande reelle (`demande::installer`). Une
 //! consultation qui trouve le coffre ferme -- ni la cle du poste, ni un mot de passe tape, ni une seance -- le demande
-//! par `demande::ouvrir_seance` (fenetre au lot J3 ; le terminal, sans echo ; sinon un refus avec sa phrase), jamais
+//! par `demande::ouvrir_seance` (la fenetre du moteur s'il y en a une ; le terminal, sans echo ; sinon un refus avec sa phrase), jamais
 //! par autre chose.
 
 /// Ecrit une ligne sur la sortie standard. Un tuyau ferme (`| head`) n'est pas une erreur du programme.
@@ -138,9 +137,9 @@ impl Cadre {
         1
     }
 
-    /// Ouvre le coffre si la cle du poste ne le fait pas (`operations`/`commandes_ouverture.ouverture_du_coffre`) :
+    /// Ouvre le coffre si la cle du poste ne le fait pas :
     /// rien a demander quand la cle du poste l'ouvre, ou qu'une seance est gardee ; sinon la seance se demande par
-    /// `demande::ouvrir_seance`. Un refus ne coupe pas la commande (comme le Python) : le secret vient peut-etre de
+    /// `demande::ouvrir_seance`. Un refus ne coupe pas la commande : le secret vient peut-etre de
     /// l'environnement, et sinon la lecture du coffre dira elle-meme ce qui manque. La phrase est dite.
     pub fn ouvrir_le_coffre(&self) {
         let c = crate::compagnie::coffre::Coffre::du_poste(&self.racine, "");

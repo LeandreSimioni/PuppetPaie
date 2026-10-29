@@ -1,11 +1,11 @@
-//! La COMPAGNIE D'ESSAI (lot E1, 15/10/2026) : un vrai depot de TEST -- net-entreprises pour la DSN et ses signalements,
+//! La COMPAGNIE D'ESSAI : un vrai depot de TEST -- net-entreprises pour la DSN et ses signalements,
 //! l'Urssaf pour la DPAE -- depuis une machine qui n'a pas `prive/` (une seance dans le nuage, le poste d'un autre
 //! developpeur). Inventaire : `prive/journal/finitions/TOPO-VARIABLES-ENVIRONNEMENT.md` du depot prive.
 //!
 //! `moteur essai monter [DOSSIER] [--depuis FICTIVE]` copie une compagnie FICTIVE livree (ses salaries inventes, ses paies,
 //! son bareme, ses organismes) dans DOSSIER, hors de tout depot Git, et lui donne l'IDENTITE d'une vraie compagnie, lue dans
 //! UNE variable d'environnement, `PUPPETPAIE_COMPAGNIE` : un objet JSON sur une ligne, fragment de `config/entreprise.json`,
-//! avec EXACTEMENT les cles de `CLES` (decide par Leandre le 14/10/2026). Le reste de la seance nomme cette compagnie par
+//! avec EXACTEMENT les cles de `CLES`. Le reste de la seance nomme cette compagnie par
 //! `PUPPETPAIE_DONNEES=DOSSIER` et se sert des commandes ordinaires (`moteur depot-dsn AAAA-MM --test`, `moteur dpae`,
 //! `moteur deposer-dpae --test`, `moteur retours`).
 //!

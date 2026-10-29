@@ -1,6 +1,4 @@
-//! Ce qu'un depot REEL laisse derriere lui, hors du journal des depots (`moteur/operations_arrets.py`
-//! `marquer_envoye_depuis` et `marquer_reportes`, `operations_amorcage.marquer_demande_depuis`,
-//! `pas.enregistrer_demande`) -- lot H2.
+//! Ce qu'un depot REEL laisse derriere lui, hors du journal des depots.
 //!
 //! Chaque fonction ecrit la trace d'un acte parti : la DSN qui a reporte un arret, le signalement d'un
 //! arret, la demande d'un taux de PAS a la DGFiP. Rien d'ici ne fait partir quoi que ce

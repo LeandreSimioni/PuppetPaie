@@ -35,8 +35,8 @@ pub struct Fichier {
     norme: Option<crate::norme::Norme>,
     /// L'individu en cours d'ecriture n'a qu'UN bloc « Contrat - S21.G00.40 » dans la declaration : S21.G00.78.006 ne
     /// s'ecrit pas. « Dans le cas de la declaration d'un contrat unique, cette rubrique n'est pas a renseigner. »
-    /// (cahier technique 2026.1, p. 298, `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt` l. 9-14 ; reste R1 #26).
-    /// Pose par `generer` individu par individu ; faux ailleurs (la rubrique s'ecrit comme avant).
+    /// (cahier technique 2026.1, p. 298, `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt` l. 9-14).
+    /// Pose par `generer` individu par individu ; faux ailleurs (la rubrique s'ecrit).
     pub contrat_unique: bool,
 }
 
@@ -160,8 +160,8 @@ pub fn contact_emetteur(f: &mut Fichier, ent: &Value) -> Resultat<()> {
 /// lignes 67-80) donne la liste ; « 04 - Contact chez le declare recouvrant, entre autres, des cotisations de Securite
 /// Sociale (Urssaf CN, MSA) et contributions assurance chomage et cotisations AGS (France Travail) » est celui-la. Les
 /// types 14 et 17 (referent handicap des 250 salaries et plus, medecine du travail interne) ne sont pas ce contact-la.
-/// Une compagnie neuve n'a donc rien a choisir (#236 : la fiche ne montre pas cette case, et « Pour demarrer » ne la
-/// demande plus) ; une valeur posee dans la fiche (`declarant_dsn.qualite`) reste lue telle quelle.
+/// Une compagnie neuve n'a donc rien a choisir (la fiche ne montre pas cette case, et « Pour demarrer » ne la
+/// demande pas) ; une valeur posee dans la fiche (`declarant_dsn.qualite`) reste lue telle quelle.
 pub const TYPE_CONTACT_ORDINAIRE: &str = "04";
 
 /// Le type du contact a ecrire en S20.G00.07.004 : celui de la fiche s'il y en a un, sinon [`TYPE_CONTACT_ORDINAIRE`].
@@ -4005,8 +4005,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// l'historique de vie professionnelle du salarie.
 ///
 /// `regularisations` : les corrections de mois DEPOSES dont l'echeance est
-/// passee, a porter par CETTE declaration (operations_regularisation.
-/// Regularisation : mois d'origine, paie AVANT telle que deposee, paie
+/// passee, a porter par CETTE declaration (chacune : mois d'origine, paie AVANT telle que deposee, paie
 /// APRES corrigee). Cahier technique 2026.1 §2.2.2.5 : « une fois passee
 /// la date d'exigibilite, les corrections doivent etre portees par une DSN
 /// mensuelle ulterieure », par les memes blocs DATES DE LA PERIODE

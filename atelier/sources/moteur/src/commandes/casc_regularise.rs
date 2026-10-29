@@ -2,12 +2,10 @@
 //! virement. Route `casc-regularise`.
 //! Rien ne part : c'est une ligne dans `config/casc-svp.json` ; l'envoi des courriels est `moteur casc-envoyer`.
 //!
-//! `qui` : `ligne de commande`, comme le Python.
+//! `qui` : `ligne de commande`.
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : la date du virement et le montant s'ecrivaient tels quels, lisibles ou non (une
-//! date `hier`, un montant `abc` etaient notes, puis un `InvalidOperation` plantait le dossier suivant) ; une annee sans rien a
-//! regulariser (deja notee, ou aucune DSN deposee) s'ecrivait quand meme, avec zero mois. Ici : une phrase (`! ...`), code 2,
-//! et rien n'est ecrit.
+//! Une date du virement ou un montant illisibles (une date `hier`, un montant `abc`), une annee sans rien a regulariser
+//! (deja notee, ou aucune DSN deposee) : une phrase (`! ...`), code 2, et rien n'est ecrit.
 
 use serde_json::json;
 
@@ -47,7 +45,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         Ok(d) if d > socle::num::Decimal::ZERO => {}
         _ => return Err(refus(format!("--montant attend le montant vire, en euros (un nombre positif), recu {}.", socle::fichiers::repr(montant)))),
     }
-    // Rien a regulariser : le Python notait quand meme une ligne sans mois.
+    // Rien a regulariser : aucune ligne sans mois ne s'ecrit.
     let r = crate::import::casc::regularisation(
         &cadre.ctx,
         &crate::import::casc::Demande { annee: Some(annee.to_string()), ..Default::default() },

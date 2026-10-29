@@ -1,4 +1,4 @@
-# Comment ce dépôt est rangé (15/10/2026)
+# Comment ce dépôt est rangé
 
 **PuppetPaie est un logiciel de paie du spectacle vivant, pour toute compagnie qui emploie des artistes et des
 techniciens**, intermittents au cachet comme salariés permanents. Moteur Rust (`moteur`) et fenêtre (`puppetpaie`),
@@ -13,14 +13,18 @@ PuppetPaie/  (ce dépôt, public)
 │                       modèles), interface/ (la page HTML, CSS, JS)
 ├── fictives/           les quatre compagnies fictives livrées, sur lesquelles on essaie l'interface
 ├── maj/                (poste seulement) la mise à jour de l'installation
-├── prive/              (poste seulement, jamais dans Git) la compagnie du poste : config, paies, sorties, retours
+├── prive/              (poste seulement, jamais dans Git) la compagnie du poste : config, engagements, paies, sorties, retours, journal
 └── atelier/            tout le reste :
-    ├── sources/        moteur/ (le moteur ; exécutables dans moteur/bin/<système>/), fenetre/ (Tauri), fabrique-pdf/
+    ├── sources/        l'espace Cargo : socle/, droit/, engagement/, documents/, declarations/, envois/, moteur/
+    │                   (le programme moteur ; exécutables livrés dans moteur/bin/<système>/) ; fenetre/ (Tauri),
+    │                   fabrique-pdf/
     ├── reference/      les textes qui fondent chaque règle (un LISEZ-MOI par dossier)
-    ├── docs/           ARCHITECTURE, RUBRIQUES, COMPAGNIES-FICTIVES, COMPAGNIE-D-ESSAI
-    ├── outils/         les outils d'atelier (relevés, extracteurs, garde-fou de publication)
+    ├── docs/           ARCHITECTURE, RUBRIQUES, COMPAGNIES-FICTIVES, COMPAGNIE-D-ESSAI, COOLPAIE-SORTIR-SES-DOCUMENTS
+    ├── outils/         banc/ (le banc d'essai daté, piloté en Node), demos/
+    ├── bac-a-sable/    une installation en retard d'une version, pour essayer la mise à jour
     ├── depot/, installeur/, site/, maquettes/
-    └── README.md       comment chaque commande s'utilise
+    ├── README.md       comment chaque commande s'utilise
+    └── AVANT-LE-PREMIER-COMMIT.md   ce qui n'entre jamais dans le dépôt, et le garde avant commit
 
 puppetpaieprivate/  (le dépôt privé)
 ├── journal/            ETAT.md (le point de reprise, une page), passations, topos, archives/

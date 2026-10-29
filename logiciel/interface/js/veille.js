@@ -174,8 +174,8 @@ function dessinerVeille(v) {
   });
 }
 
-/** LE PASSAGE EN COURS, ÉTAPE PAR ÉTAPE (ticket #220, Léandre, 20/10/2026 : « juste un message dans la ligne qui
- *  explique ce que fait la machine »). Tant qu'un passage tourne, la page lit `veille-etape` toutes les secondes : deux
+/** LE PASSAGE EN COURS, ÉTAPE PAR ÉTAPE : un message dans la ligne dit ce que fait la
+ *  machine. Tant qu'un passage tourne, la page lit `veille-etape` toutes les secondes : deux
  *  drapeaux et l'étape que le moteur a écrite en y entrant, sans processus ni calcul — la page ne rame pas. Le passage
  *  fini, le bandeau se repeint d'un coup (`suivreVeille`). Un seul suivi à la fois. */
 let SUIVI_ETAPES = null;

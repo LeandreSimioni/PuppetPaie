@@ -1,5 +1,4 @@
-//! SUPPRIMER UNE COMPAGNIE, ET GARDER AU DEBLOCAGE CELLES QU'ON A AJOUTEES EN DEMO (ticket #236, points 3 et 4 ; Leandre,
-//! 22/10/2026). Tout se decide ici ; la fenetre (`interface/mod.rs`) passe la saisie de la page et lache ce qu'elle tient
+//! SUPPRIMER UNE COMPAGNIE, ET GARDER AU DEBLOCAGE CELLES QU'ON A AJOUTEES EN DEMO. Tout se decide ici ; la fenetre (`interface/mod.rs`) passe la saisie de la page et lache ce qu'elle tient
 //! de la compagnie (sa veille, sa file sur le fil des calculs, son journal) au moment ou on le lui dit.
 //!
 //! SUPPRIMER (`supprimer`). Une FICTIVE LIVREE ne se supprime pas : elle se remet a zero (`compagnies::remettre_a_zero`),

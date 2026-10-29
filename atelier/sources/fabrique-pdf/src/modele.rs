@@ -1,7 +1,6 @@
 //! Le fichier `.modele` : sa grammaire, ses marqueurs `{{...}}`, ses refus.
 //!
-//! C'est la lecture de `moteur/contrat.py` (`lire_modele`, `_paragraphes`, `_substituer`,
-//! `_GRAS`), à l'identique : mêmes clés, mêmes commentaires, mêmes refus. Le format est
+//! Le format est
 //! volontairement pauvre — une ligne-clé, puis son texte jusqu'à la clé suivante ; les lignes
 //! qui commencent par `#` (après blancs) sont des commentaires — et ce module ne connaît AUCUNE
 //! mise en page : il rend des textes. La mise en page d'un contrat, d'un avenant, d'un certificat
@@ -11,7 +10,7 @@ use std::collections::BTreeMap;
 
 use crate::description::{refus, Refus};
 
-/// Les clés d'un modèle, dans l'ordre où le Python les teste (`CLES`).
+/// Les clés d'un modèle, dans l'ordre où elles se testent.
 const CLES: [&str; 7] = [
     "TITRE:",
     "SOUSTITRE:",
@@ -35,11 +34,11 @@ pub struct Modele {
     pub modification: Vec<String>,
 }
 
-/// Les valeurs offertes au modèle : « employeur.siret » -> « 123… ». Triées (BTreeMap), comme le
-/// `sorted(vals)` du message d'erreur Python.
+/// Les valeurs offertes au modèle : « employeur.siret » -> « 123… ». Triées (BTreeMap), comme
+/// le message d'erreur les nomme.
 pub type Valeurs = BTreeMap<String, String>;
 
-/// Un blanc au sens de `str.isspace` de Python : Unicode, plus les séparateurs ASCII 0x1C-0x1F.
+/// Un blanc : celui d'Unicode, plus les séparateurs ASCII 0x1C-0x1F.
 fn est_blanc(c: char) -> bool {
     c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
 }
@@ -48,7 +47,7 @@ fn strip(s: &str) -> &str {
     s.trim_matches(est_blanc)
 }
 
-/// `str.splitlines()` de Python : \n, \r\n, \r, \v, \f, 0x1C-0x1E, 0x85, U+2028, U+2029.
+/// Les lignes, coupées à toute fin de ligne : \n, \r\n, \r, \v, \f, 0x1C-0x1E, 0x85, U+2028, U+2029.
 fn lignes(texte: &str) -> Vec<&str> {
     let mut sortie = Vec::new();
     let mut debut = 0;
@@ -294,7 +293,7 @@ pub fn morceaux_substitues(texte: &str, gras: bool) -> Vec<(String, bool)> {
     sortie
 }
 
-/// Le texte substitué coupé en lignes non vides (`_paragraphes` de `documents_fin.py`) : une
+/// Le texte substitué coupé en lignes non vides : une
 /// valeur peut en valoir plusieurs, comme l'inventaire du reçu de solde de tout compte, une
 /// somme par ligne. Un `**` ne se referme pas d'une ligne à l'autre.
 pub fn lignes_substituees(texte: &str, vals: &Valeurs) -> Result<Vec<String>, Refus> {

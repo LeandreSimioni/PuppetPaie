@@ -65,8 +65,8 @@ function poserRubriques(select, choisie, nat) {
 function ligneRubrique(l = {}, nat) {
   const div = document.createElement("div");
   div.className = "rubrique";
-  // LA RUBRIQUE D'UNE LIGNE NEUVE, le moteur la dit (#236 : c'était la
-  // première du déroulant, « Absence » dans une compagnie neuve) : par forme
+  // LA RUBRIQUE D'UNE LIGNE NEUVE, le moteur la dit (la première du
+  // déroulant serait « Absence » dans une compagnie neuve) : par forme
   // de paie (`etat.rubrique_par_defaut`, `catalogue::par_defaut`).
   const forme = nat && nat.mensuelle ? "mensuelle" : "activite";
   const code = l.rubrique || (ETAT.rubrique_par_defaut || {})[forme] || "";
@@ -512,7 +512,7 @@ function lignesDe(e) {
    partent de là. Il continue d'être écrit dans le fichier — le moteur s'en
    sert comme défaut d'un engagement qui ne dit pas son taux — mais plus
    personne n'a à le saisir. Sa valeur de départ, c'est le MOTEUR qui la dit
-   (route `saisie`, `defauts.taux_cachet`, #140) : la page n'en choisit pas. */
+   (route `saisie`, `defauts.taux_cachet`) : la page n'en choisit pas. */
 let DERNIER_TAUX = null;
 /* Le dernier taux donné pour chaque AUTRE rubrique (heure, service de
  * répétition…). Le cachet garde le sien dans DERNIER_TAUX, qui s'enregistre. */
@@ -718,8 +718,7 @@ function poserSpectacles(select) {
  *  d'avoir plusieurs engagements — un contrat porte un numéro d'objet, donc un
  *  spectacle, et le mois en compte plusieurs. Il est donc une case de cet
  *  engagement, toujours visible, sans défaut et sans héritage. */
-/* LA CARTE NAÎT FERMÉE (Léandre, 16/10/2026 : « la base, ça doit être la carte
- * fermée, pas ouverte ; on affiche l'ouverte que quand on clique dessus »).
+/* LA CARTE NAÎT FERMÉE : elle ne s'ouvre que quand on clique dessus.
  * Une carte lue dans le fichier du mois (`chargerMois`) naît COQUE : ce qui se
  * voit d'un engagement validé (`.e-resume`, ses imprévus, ses états) et ce que
  * l'aperçu y peint — la carte figée que le moteur rend pour un engagement validé.
@@ -827,15 +826,15 @@ function construireCarte(div, e) {
       <label class="e-spectacle-bloc">Spectacle
         <select class="e-spectacle"></select></label>
     </div>
-    <!-- Les jours et le lieu ne sont plus ici : ils sont sur chaque ligne de
-         paie, qui porte désormais la phrase entière — « 4 cachets à 130 € au
+    <!-- Les jours et le lieu sont sur chaque ligne de
+         paie, qui porte la phrase entière — « 4 cachets à 130 € au
          Théâtre 71 le 14 15 17 18 ». Voir ligneRubrique(). -->
     <div class="rubriques"></div>
     <button class="ajouter-rubrique discret">+ une ligne de paie</button>
     <!-- UN PERMANENT NE SE SAISIT PAS EN LIGNES DE PAIE, ET C'EST TOUT
          L'INTÉRÊT. Ce qu'on tape, ce sont des FAITS — un salaire au mois,
          des congés pris, une prime — et c'est
-         operations_permanents.lignes_du_mois qui en fait des lignes : le
+         le moteur (engagement::conges::lignes_du_mois) qui en fait des lignes : le
          prorata d'un mois incomplet, les deux calculs de l'indemnité de
          congés, la retenue et l'indemnité qui la couvre. Un arrêt ou une
          suspension n'est pas un fait du mois : c'est un IMPRÉVU, saisi une
@@ -849,7 +848,7 @@ function construireCarte(div, e) {
                  placeholder="celui du contrat signé"></label>
         <label title="la quotité de travail du contrat (S21.G00.40.013)">Quotité
           <input type="number" step="0.01" min="0" class="e-quotite"></label>
-        <!-- UN AVENANT SE DATE (vague V3c). Ce que cette saisie change au
+        <!-- UN AVENANT SE DATE. Ce que cette saisie change au
              contrat (quotité, nature, motif, date de début) se déclare avec
              l'ancienne valeur dans le bloc Changements contrat de la DSN, daté
              du jour où il prend effet (S21.G00.41.001) : le moteur le lit ici,
@@ -1095,9 +1094,9 @@ function construireCarte(div, e) {
   // --- le mois payé d'un permanent, et ses faits
   div.querySelector(".e-salaire").value = e.salaire_mensuel ?? "";
   div.querySelector(".e-quotite").value = e.quotite_contrat ?? "";
-  // Le salaire et la quotité tapés recalculent et s'enregistrent (#236 : un
-  // permanent repris d'un autre logiciel restait sans paie, rien n'écoutait
-  // ces deux cases). `onchange` : pas un calcul par touche d'un montant.
+  // Le salaire et la quotité tapés recalculent et s'enregistrent (un
+  // permanent repris d'un autre logiciel n'a pas d'autre case qui fasse sa
+  // paie). `onchange` : pas un calcul par touche d'un montant.
   div.querySelectorAll(".e-salaire, .e-quotite").forEach((c) => { c.onchange = rafraichirApercu; });
   div.querySelector(".e-date-modification").value = e.date_modification || "";
   poserAvant(div, e);
@@ -1451,7 +1450,7 @@ function nouvelleFiche(nom) {
   CLE_ACTIVE = null;
   FICHE_NEUVE = true;
   dessinerConfig();
-  // L'ancienneté d'une fiche neuve : le jour du moteur (#236 ; le moteur la pose
+  // L'ancienneté d'une fiche neuve : le jour du moteur (le moteur la pose
   // aussi à l'enregistrement si elle est vide), à changer au besoin.
   const donnees = nom === "salarie"
     ? { actif: true, date_anciennete: aujourdhuiIso() }
@@ -1600,7 +1599,7 @@ async function poserContratsEnCours(mois) {
     // remplacerait son salaire mensuel.
     if (!natureDe(e.nature).mensuelle) {
       // Le moteur rend toujours au moins une ligne de cachets, avec le taux
-      // du contrat ou le dernier saisi (`engagement_de_reprise`, #140).
+      // du contrat ou le dernier saisi (`engagement_de_reprise`).
       e.lignes = (e.lignes || []).map((l) => (l.quantite === 0 ? { ...l, quantite: "" } : l));
     }
     // Ce que l'engagement repris porte d'autre (la durée de référence,
@@ -1635,9 +1634,7 @@ function pourQuoi(ligne) {
  * `jusqu_a`), avec le début et la fin du contrat : la page ne compare aucune
  * date. Un contrat sans terme (un CDI) n'en porte pas : il dure, il n'est
  * pas « sur plusieurs mois ». */
-/* UN CONTRAT SUR PLUSIEURS MOIS (ticket #127, Léandre, 15/10/2026) : « juste
- * un petit v tourné, à côté de la case, et qu'on puisse cliquer dessus et ça
- * amène au mois précédent ». Un chevron au bord de la case de l'engagement,
+/* UN CONTRAT SUR PLUSIEURS MOIS : un chevron au bord de la case de l'engagement,
  * à gauche quand le contrat a commencé avant ce mois, à droite quand il se
  * poursuit après (un permanent en CDI aussi) ; cliquer va au mois voisin.
  * Tout vient du moteur (`contrat.premier_mois`, `dernier_mois`, `depuis`,

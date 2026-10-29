@@ -1,4 +1,4 @@
-//! UN LOGICIEL = UN ADMINISTRATEUR (ticket #244 du depot prive ; Leandre, 22/10/2026). Une installation de PuppetPaie
+//! UN LOGICIEL = UN ADMINISTRATEUR. Une installation de PuppetPaie
 //! (le dossier qui porte `logiciel/`, et a cote `prive/`, `compagnies/*`, `fictives/*` : `interface/compagnies.rs`)
 //! appartient a une personne qui gere une ou plusieurs compagnies ; qui veut deux administrateurs installe un second
 //! logiciel. Les compagnies fictives restent hors de tout cela.
@@ -147,7 +147,7 @@ pub fn rattachees(inst: &Path) -> Vec<PathBuf> {
     out
 }
 
-/// UNE COMPAGNIE SUPPRIMEE (`interface::suppression`, ticket #236) sort du registre : une compagnie creee plus tard sous
+/// UNE COMPAGNIE SUPPRIMEE (`interface::suppression`) sort du registre : une compagnie creee plus tard sous
 /// le meme dossier n'en herite pas. Rien a faire si elle n'y est pas.
 pub fn oublier(inst: &Path, racine: &Path) -> Result<(), String> {
     let Some(rel) = relatif(inst, racine) else { return Ok(()) };
@@ -659,8 +659,7 @@ fn assembler(inst: &Path, par_compagnie: Vec<(PathBuf, Result<Value, String>)>) 
     })
 }
 
-/// Le tableau de l'administrateur a partir du tableau de chaque compagnie, deja fait ailleurs (le fil de la fenetre,
-/// ticket #244) : celui de chacune, ou son refus en phrase.
+/// Le tableau de l'administrateur a partir du tableau de chaque compagnie, deja fait ailleurs (le fil de la fenetre) : celui de chacune, ou son refus en phrase.
 pub fn tableau_de(inst: &Path, par_compagnie: Vec<(PathBuf, Result<Value, String>)>) -> Value {
     let mut v = assembler(inst, par_compagnie);
     v["garde"] = json!(false);

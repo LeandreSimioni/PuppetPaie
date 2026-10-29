@@ -31,7 +31,7 @@ pub struct Ecriture {
     pub mois: String,
     pub auxiliaire: String,
     pub auxiliaire_libelle: String,
-    /// Posee par les etats de `operations_ecritures` (« PAIE-AAAA-MM »).
+    /// Posee par les etats des ecritures comptables (« PAIE-AAAA-MM »).
     pub piece: String,
     /// Le rang de l'ecriture (une par mois) dans l'etat, a partir de 1.
     pub numero: i64,

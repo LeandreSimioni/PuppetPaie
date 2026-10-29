@@ -133,8 +133,7 @@ const NATIONALITES: [(&str, &str); 60] = [
 
 /// Les nationalites d'un pays que la liste livree n'a pas (`pays-base.json`, COG de l'INSEE : le Kosovo n'y a pas de
 /// code ISO) : (mot sans accent, nom du pays). Le nom va dans `pays_nationalite_hors_liste` ; la zone
-/// (`code_nationalite_dsn`) ne s'en deduit pas, l'administrateur la choisit. Reste
-/// R1 #147.
+/// (`code_nationalite_dsn`) ne s'en deduit pas, l'administrateur la choisit.
 const NATIONALITES_HORS_LISTE: [(&str, &str); 3] = [("kosovare", "Kosovo"), ("kosovar", "Kosovo"), ("kosovo", "Kosovo")];
 /// `FORME_CODE` : un code de fiche bien forme.
 pub fn est_un_code(t: &str) -> bool {

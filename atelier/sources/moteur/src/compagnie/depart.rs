@@ -66,7 +66,7 @@ fn annee_de(mois: &str) -> R<i64> {
 
 // ------------------------------------------------------------- le journal des pieces ecrites
 
-/// LE JOURNAL DES PIECES ECRITES (`journal/dsn-ecrites.json`, #236) : chaque piece que le moteur ecrit -- une DSN, une
+/// LE JOURNAL DES PIECES ECRITES (`journal/dsn-ecrites.json`) : chaque piece que le moteur ecrit -- une DSN, une
 /// DPAE, un export compta -- y note QUAND, au temps du moteur (`temps.rs`, par `socle::paris::maintenant`). C'est ce que
 /// l'ecran dit (« ecrit le ... ») : la date d'un fichier n'est pas celle de son ecriture (une fictive livree est
 /// decompressee chez le visiteur, un banc simule le temps). `cle` : `<mois>/<fichier>`, ou `exercices/<fichier>` ;

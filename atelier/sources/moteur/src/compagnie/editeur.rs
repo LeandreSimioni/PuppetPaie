@@ -1,11 +1,9 @@
-//! Le canal vers l'editeur (`moteur/editeur.py`, et ce que `filet.Client` en
-//! utilisait) : le POST JSON vers le serveur de l'editeur, pour les incidents
+//! Le canal vers l'editeur : le POST JSON vers le serveur de l'editeur, pour les incidents
 //! (`rapport`), « Un probleme, une idee ? » (`retour`, `reponses`) et le filet
 //! DPAE (`inscrire`, `etat`, `armer`, `desarmer`, `desinscrire`).
 //!
 //! Le PAQUET SOUDE, bride pour toujours (`bridage::paquet_soude`) ne garde que
-//! les actions de l'editeur (et `poste`) : les autres levent `EditionBridee`,
-//! comme le faisait `editeur.poster` (et la soudure de `filet.Client._post`).
+//! les actions de l'editeur (et `poste`) : les autres levent `EditionBridee`.
 //!
 //! UNE CLE PAR POSTE, PLUS DE SECRET PARTAGE (serveur version 7, 13/10/2026 ;
 //! le contrat : `prive/journal/filet/DEMANDE-SERVEUR-CLE-PAR-POSTE.md`). Le
@@ -27,7 +25,7 @@ use serde_json::Value;
 use socle::echec::Echec;
 use envois::transport::{envoyer, Panne, Requete};
 
-/// `editeur.ACTIONS_DEMO` du Python : ce que le paquet soude (bride pour toujours) peut poster.
+/// Ce que le paquet soude (bride pour toujours) peut poster.
 pub const ACTIONS_BRIDEES: [&str; 4] = ["poste", "rapport", "retour", "reponses"];
 
 /// Les actions qui exigent l'identite du poste (`poste` dans le corps, `X-Filet-Cle`).
@@ -36,9 +34,8 @@ pub const ACTIONS_DU_POSTE: [&str; 4] = ["inscrire", "rapport", "retour", "repon
 /// Ce que dit le moteur a un 401 du serveur sur une action du poste : l'identite se redemande.
 pub const REDEMANDER_IDENTITE: &str = "Le serveur ne reconnait plus ce poste : retirer \"cle\" de config/diagnostic.json pour lui redemander une identite.";
 
-/// Le serveur de l'editeur QUAND LA CONFIGURATION NE DIT RIEN (lot S1, 13/10/2026) : le filet DPAE (ses rappels), les
-/// incidents, « Un probleme, une idee ? » et leurs reponses. Il repond sur `filet.puppetpaie.fr` (enregistrement pose
-/// par Leandre le 13/10/2026 ; le serveur vit dans le depot du site de l'editeur, `infra/filet/`). Ce qu'une compagnie a
+/// Le serveur de l'editeur QUAND LA CONFIGURATION NE DIT RIEN : le filet DPAE (ses rappels), les
+/// incidents, « Un probleme, une idee ? » et leurs reponses. Il repond sur `filet.puppetpaie.fr` (le serveur vit dans le depot du site de l'editeur, `infra/filet/`). Ce qu'une compagnie a
 /// pose le remplace toujours : `serveur` de `config/filet-dpae.json`, celui de son compte du filet, ou `EDITEUR.json` du
 /// paquet. Jamais dans les essais : le garde-fou reseau (`garde_reseau`) le refuse ; un test pose son serveur local, ou
 /// nomme un faux mandataire local comme seule porte.
@@ -47,8 +44,8 @@ pub const SERVEUR_PAR_DEFAUT: &str = "https://filet.puppetpaie.fr";
 /// Le filet ne doit jamais faire attendre une paie.
 pub const DELAI: u64 = 15;
 
-/// `editeur.ErreurFilet`, ou une autre exception que le Python laissait passer
-/// (`classe` : son nom) -- celle-ci ne se rattrape pas comme un `ErreurFilet`.
+/// Une erreur du filet, ou une autre panne (`classe` : son nom) -- celle-ci ne se rattrape pas comme une erreur du
+/// filet.
 #[derive(Debug)]
 pub struct ErreurFilet {
     pub message: String,
@@ -251,8 +248,8 @@ pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str
     match envoyer(&r) {
         Ok((brut, _)) => {
             let octets = if brut.is_empty() { b"{}".to_vec() } else { brut };
-            // `json.loads(bytes)` : le texte se lit en UTF-8 ; un echec est une
-            // `ValueError`, que le Python rangeait avec les pannes de reseau.
+            // Le texte se lit en UTF-8 ; un echec est une `ValueError`, rangee
+            // avec les pannes de reseau.
             let texte = match std::str::from_utf8(&octets) {
                 Ok(t) => t.trim_start_matches('\u{feff}'),
                 Err(e) => return Err(ErreurFilet::filet(format!("Filet DPAE injoignable : {}", e), 0)),
@@ -369,7 +366,7 @@ impl Client {
         self.post_du_poste("rapport", serde_json::json!({"incidents": incidents}), DELAI)
     }
 
-    /// Le nombre de paies de l'annee (`nombre_de_paies`, ticket #246) : `{"annee", "paies"}` et le numero du poste, rien
+    /// Le nombre de paies de l'annee (`nombre_de_paies`) : `{"annee", "paies"}` et le numero du poste, rien
     /// d'autre.
     pub fn compter_paies(&self, annee: i32, paies: usize) -> Rep {
         self.post_du_poste("paies", serde_json::json!({"annee": annee, "paies": paies}), DELAI)

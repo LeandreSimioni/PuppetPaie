@@ -22,7 +22,7 @@ pub struct Veille {
     sauvegarde_en_cours: AtomicBool,
     tour_unique: Mutex<()>,
     arretee: AtomicBool,
-    /// Quand partira le prochain tour de la boucle (Leandre, 21/10/2026 : « prochain relevé dans … minutes »).
+    /// Quand partira le prochain tour de la boucle (« prochain relevé dans … minutes »).
     prochain: Mutex<Option<std::time::SystemTime>>,
     /// Les etats des mois, a verifier apres chaque tour : un retour releve, une signature notee changent un mois.
     etats: Option<Arc<FileDesEtats>>,
@@ -128,8 +128,8 @@ impl Veille {
     pub fn demarrer(self: &Arc<Self>) {
         let v = self.clone();
         crate::routes::fil_de_routes(move || {
-            // La mise a jour ne se cherche plus ici, a l'ouverture d'une compagnie : c'est le logiciel qui la cherche pour
-            // lui-meme, au lancement (`maj::chercher_en_fond`, lot U1).
+            // La mise a jour ne se cherche pas ici, a l'ouverture d'une compagnie : c'est le logiciel qui la cherche pour
+            // lui-meme, au lancement (`maj::chercher_en_fond`).
             v.tour(false, true);
             while v.minutes > 0 {
                 *v.prochain.lock().unwrap_or_else(|p| p.into_inner()) = Some(std::time::SystemTime::now() + Duration::from_secs(v.minutes * 60));

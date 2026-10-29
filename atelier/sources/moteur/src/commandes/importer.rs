@@ -1,5 +1,4 @@
-//! `moteur importer [--dossier D] [--ecrire]` : reprendre l'historique depuis la boite aux lettres `import/` (lot F du plan
-//! d'import, `prive/journal/PLAN-IMPORT-BULLETINS.md`), pour le diagnostic et le poste.
+//! `moteur importer [--dossier D] [--ecrire]` : reprendre l'historique depuis la boite aux lettres `import/`, pour le diagnostic et le poste.
 //!
 //! Sans `--ecrire`, l'APERCU (route `importation-apercu`, `{"dossier": D}`) : rien n'est ecrit. Avec `--ecrire`, la
 //! reprise (route `importer`, meme charge) : la reponse de l'apercu, completee de ce qui a ete ecrit. Sans `--dossier`,

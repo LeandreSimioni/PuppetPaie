@@ -1,5 +1,4 @@
-//! La demande du mot de passe du logiciel, faite PAR LE MOTEUR (Leandre, 08/10/2026 : « une IA ne fait rien de reel
-//! sans humain », lot J1).
+//! La demande du mot de passe du logiciel, faite PAR LE MOTEUR : une IA ne fait rien de reel sans humain.
 //!
 //! Pour un acte qui engage -- depot reel, envoi aux salaries, demande de signature, tout ce que
 //! `depot_acte::verifier_preuve` et `filet::exiger_mot_de_passe` gardent --, le moteur demande LUI-MEME le mot de
@@ -215,8 +214,8 @@ pub fn autoriser_acte(racine: &Path, acte: &Acte) -> Verdict {
     }
 }
 
-/// L'aval d'un humain pour un acte qui part pour PLUSIEURS compagnies de l'administrateur (`administrateur::deposer`, ticket
-/// #244) : le mot de passe tape, verifie sur le coffre de `racine` (une compagnie rattachee), RENDU a l'appelant, qui le
+/// L'aval d'un humain pour un acte qui part pour PLUSIEURS compagnies de l'administrateur (`administrateur::deposer`) : le
+/// mot de passe tape, verifie sur le coffre de `racine` (une compagnie rattachee), RENDU a l'appelant, qui le
 /// passe comme preuve au depot de chaque compagnie -- chaque depot le reverifie sur son propre coffre (`verifier_preuve`).
 /// Rien n'est retenu ici. Refuse comme `autoriser_acte` : sans mot de passe pose, sans humain, fenetre fermee.
 pub fn mot_de_passe_de_l_acte(racine: &Path, acte: &Acte) -> Result<String, String> {
@@ -326,8 +325,7 @@ impl Canal for Fausse {
 pub struct Reel {
     /// Y a-t-il un ecran (`DISPLAY` / `WAYLAND_DISPLAY` sous Linux ; present sous Windows et macOS) ?
     pub ecran: bool,
-    /// La fenetre native du moteur. AUCUNE POUR L'INSTANT : le choix de la bibliotheque est celui de Leandre
-    /// (`prive/journal/j/PASSATION-J1.md`). Sans elle, un ecran seul ne suffit pas : on passe au terminal, sinon on refuse.
+    /// La fenetre native du moteur. AUCUNE : le choix de la bibliotheque est une decision d'editeur. Sans elle, un ecran seul ne suffit pas : on passe au terminal, sinon on refuse.
     pub fenetre: Option<Box<dyn Canal>>,
     /// Le terminal de l'humain (`/dev/tty`), saisie sans echo.
     pub terminal: Option<Box<dyn Canal>>,
@@ -349,8 +347,8 @@ pub fn ecran_present(env: &dyn Fn(&str) -> Option<String>) -> bool {
     env("DISPLAY").is_some() || env("WAYLAND_DISPLAY").is_some()
 }
 
-/// LA FENETRE NATIVE. Pas encore choisie (decision de Leandre) : rend `None`. Le jour ou une bibliotheque est retenue,
-/// c'est ICI qu'elle se branche, derriere `Canal`, et rien d'autre ne change.
+/// LA FENETRE NATIVE : aucune bibliotheque n'est retenue (une decision d'editeur), elle rend `None`. Une bibliotheque se
+/// branche ICI, derriere `Canal`, et rien d'autre ne change.
 fn fenetre_native() -> Option<Box<dyn Canal>> {
     None
 }

@@ -11,11 +11,10 @@
 //! obligations de chaque arret, leur delai et leur etat, sont celles que la route `arrets` rend (`obligations.rs`). Les motifs et le « oui/non » de la subrogation se lisent dans
 //! `arrets-base.json`.
 //!
-//! `saisir` et `reprise` inscrivent `qui = "ligne de commande"` (la charge de la route le porte), comme le Python.
+//! `saisir` et `reprise` inscrivent `qui = "ligne de commande"` (la charge de la route le porte).
 //!
-//! DEFAUTS DU PYTHON, NE SE REPRODUISENT PAS : un verbe auquel il manque le salarie, un jour, une date ou un motif donnait une trace
-//! d'appels (`None` jete dans la recherche) ; une date illisible aussi. Ici : `! phrase`, code 2. Le Python ignore `--json` pour
-//! `oublier` : le texte seul, ici aussi.
+//! Un verbe auquel il manque le salarie, un jour, une date ou un motif, une date illisible : `! phrase`, code 2. `--json` est
+//! sans effet pour `oublier` : le texte seul.
 
 use serde_json::{json, Value};
 

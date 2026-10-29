@@ -17,8 +17,8 @@
 //! Tant que l'empreinte est la meme, il se sert sans rien refaire ; si quoi que ce soit a bouge, par le logiciel ou a la
 //! main, il se refait une fois.
 //!
-//! L'OUVERTURE D'UNE COMPAGNIE (ticket #244 : « pas 1 seconde, une demi max » ; « je veux que l'affichage soit en
-//! premier ; une fois affichee, les petits ajustements du moteur se font sans faire bouger la page »). Le meme mecanisme,
+//! L'OUVERTURE D'UNE COMPAGNIE, en une demi-seconde au plus : l'affichage d'abord ; une fois la page affichee, les petits
+//! ajustements du moteur se font sans la faire bouger. Le meme mecanisme,
 //! sous une autre cle (`OUVERTURE`) : `ouverture.etat.json`, a la racine de la compagnie, porte ce que la page lit en
 //! s'ouvrant et qui n'est pas l'ecran d'un mois (`LECTURES_OUVERTURE` : la configuration et l'historique, le mois a
 //! ouvrir, l'echeancier, les rappels, ce qui manque pour demarrer, les conseils) ; lui s'ecrit, pour qu'une compagnie
@@ -151,7 +151,7 @@ const HORS_DE_L_ECRAN: [&str; 9] = [
     "config/.filet.verrou",
     "journal/signalements.json",
     "journal/incidents.json",
-    // Le tableau de l'administrateur (`administrateur.rs`, ticket #244) : le resume de la compagnie que l'accueil lit.
+    // Le tableau de l'administrateur (`administrateur.rs`) : le resume de la compagnie que l'accueil lit.
     "config/.tableau.json",
 ];
 
@@ -410,8 +410,8 @@ struct EtatDeLaFile {
     arretee: bool,
 }
 
-/// LE FIL DES CALCULS EN FOND (ticket #244 : « ouvrir n'importe quelle compagnie instantanement, meme a la premiere
-/// ouverture du jour »). UN fil pour TOUTES les compagnies que la fenetre tient (`FileDesEtats`, une par compagnie) : un
+/// LE FIL DES CALCULS EN FOND : n'importe quelle compagnie s'ouvre instantanement, meme a la premiere ouverture du jour.
+/// UN fil pour TOUTES les compagnies que la fenetre tient (`FileDesEtats`, une par compagnie) : un
 /// calcul a la fois sur le poste, jamais deux qui se disputent le processeur pendant qu'on ouvre une compagnie. Il sert
 /// d'abord la compagnie OUVERTE (`devant`), puis les autres, chacune son tour (une cle chacune : leurs ouvertures
 /// d'abord, puis les mois a ouvrir, puis le reste), dans l'ordre ou la fenetre les a donnees (la derniere ouverte
@@ -559,8 +559,7 @@ impl Fil {
     }
 }
 
-/// LA FILE DES ETATS D'UNE COMPAGNIE (ticket #212, Leandre, 16/10/2026 : « quand je change de mois c'est pas
-/// instantane »). Dans le processus de la fenetre, le fil des calculs (`Fil`) refait ses etats, un a la fois : jamais
+/// LA FILE DES ETATS D'UNE COMPAGNIE : changer de mois est instantane. Dans le processus de la fenetre, le fil des calculs (`Fil`) refait ses etats, un a la fois : jamais
 /// deux calculs du meme mois en meme temps, pas un processus par mois (sous Windows chaque processus coute, l'antivirus
 /// l'inspecte). Le calcul est celui de `moteur route` (`lire`, qui fait les memes routes par `routes::commande`), garde
 /// d'une panique (`catch_unwind`) : une route qui tombe rend un refus, la fenetre reste.
@@ -817,8 +816,8 @@ impl FileDesEtats {
         }
     }
 
-    /// CE QUE FAIT LE MOTEUR, en une phrase (ticket #244 : « ne pas poireauter devant une roue qui tourne pour on ne sait
-    /// pas quoi ») : ce que le fil refait en ce moment.
+    /// CE QUE FAIT LE MOTEUR, en une phrase (jamais une roue qui tourne sans dire pourquoi) : ce que le fil refait en ce
+    /// moment.
     pub fn phrase(&self) -> String {
         match self.verrou().en_cours.clone() {
             Some(c) if c == OUVERTURE => "Lecture de la compagnie : sa configuration, ses échéances, ses rappels…".into(),
@@ -828,7 +827,7 @@ impl FileDesEtats {
         }
     }
 
-    /// L'OUVERTURE D'UNE COMPAGNIE (la route `ouverture` de la fenetre, ticket #244) : d'un coup, ce que la page lit en
+    /// L'OUVERTURE D'UNE COMPAGNIE (la route `ouverture` de la fenetre) : d'un coup, ce que la page lit en
     /// s'ouvrant -- les lectures de l'ouverture (`lectures`, une entree par route, au format d'une reponse de la page), le
     /// mois a ouvrir (`mois`) et l'ecran de ce mois (`ecran`, celui de la route `mois`). Le DERNIER ETAT CONNU, tout de
     /// suite : chacun marque `perime` s'il l'est (`perime` pour les lectures, `ecran.perime` pour le mois), et refait

@@ -298,7 +298,7 @@ impl Drop for Derivation {
 /// La cle d'un mois au memo de la derivation : la compagnie, le mois, le registre de lectures ouvert sur ce fil
 /// (`fichiers::generation`, 0 sans registre) et l'etat de la validation en cours (`etats::marque_de_validation`). Un
 /// calcul suivi ne se sert ainsi que des mois relus par lui-meme (leurs lectures se notent), meme dans une derivation
-/// ouverte avant lui (`moteur::routes::etapes::mois_a_ouvrir`, ticket #244).
+/// ouverte avant lui (`moteur::routes::etapes::mois_a_ouvrir`).
 fn cle_du_memo(ctx: &Contexte, mois: &str) -> (String, String) {
     (
         ctx.racine.display().to_string(),
@@ -796,8 +796,8 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
 
     let debut_mois = premier_du_mois(mois)?;
     let fin_mois = fin_mois_de(mois)?;
-    // La date de debut d'un contrat paye au mois : la meme phrase que `engagement::Engagement` (#236 : une saisie neuve
-    // refusait sur « champ 'debut' absent », et la page disait « choisir les jours travailles »).
+    // La date de debut d'un contrat paye au mois : la meme phrase que `engagement::Engagement` (une saisie neuve sans
+    // debut ne refuse pas sur « champ 'debut' absent »).
     let Some(debut) = e.get("debut").filter(|x| vrai(x)) else {
         return Err(format!(
             "Contrat {} ({}) : la date de debut du contrat n'est pas dite. Elle part en DSN (S21.G00.40.001) et identifie \

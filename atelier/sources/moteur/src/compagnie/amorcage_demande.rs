@@ -1,5 +1,5 @@
-//! Demander a la DGFiP les taux de PAS qui manquent : qui, et comment (`moteur/operations_amorcage.py` : `a_combler`,
-//! `produire`, `recapitulatif`). Lot J2b, theme 1c.
+//! Demander a la DGFiP les taux de PAS qui manquent : qui, et comment (`a_combler`, `produire`,
+//! `recapitulatif`).
 //!
 //! Deux usages : le motif 07 (changement de logiciel declaratif, une fois, pour tout le monde) et le motif 01 (embauche
 //! effective, qui part avec la DPAE : `crate::routes::depots::dpae` y passe aussi). UN SIGNALEMENT, UN INDIVIDU, UN FICHIER.
@@ -105,7 +105,7 @@ fn a_combler(ctx: &Contexte, paies: &[Paie], forcer: bool) -> Result<Vec<Ligne>,
 }
 
 /// `produire` : ecrit un fichier de signalement par individu, dans `sorties/AAAA-MM/`, et son recapitulatif. Un refus est une phrase
-/// (`ErreurOperation` ou `AmorcageImpossible` du Python). `ecrits` : les fichiers poses, au fur et a mesure.
+/// (`ErreurOperation` ou `AmorcageImpossible`). `ecrits` : les fichiers poses, au fur et a mesure.
 pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<PathBuf>) -> Result<Lot, String> {
     use declarations::amorcage as am;
     let mut lignes = a_combler(ctx, paies, d.forcer)?;

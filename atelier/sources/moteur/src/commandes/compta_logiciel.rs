@@ -1,12 +1,11 @@
 //! `moteur compta-logiciel [LOGICIEL|aucun] [--analytique]` : le logiciel du comptable, retenu pour les ecritures comptables, et ce
 //! que le plan comptable ne tiendrait pas dans son format. Sans argument :
 //! ce qui est retenu (lecture seule) ; avec : route `retenir-logiciel` (ecrit `config/compta.json` -- un reglage, pas un depot : pas de
-//! mot de passe). `aucun` retire le choix. La sortie est toujours le texte du Python : `--json` est accepte et sans effet, comme lui.
+//! mot de passe). `aucun` retire le choix. La sortie est toujours le texte : `--json` est accepte et sans effet.
 //!
 //! Code 0 ; un refus (`ErreurOperation`) : `! phrase`, code 2.
 //!
-//! POINT DOUTEUX : le champ `_quoi` de `config/compta.json` dit `moteur compta-logiciel` (le Python y ecrivait `python -m moteur ...`) ;
-//! c'est un commentaire que rien ne lit.
+//! Le champ `_quoi` de `config/compta.json` dit `moteur compta-logiciel` : c'est un commentaire que rien ne lit.
 
 use serde_json::{json, Value};
 

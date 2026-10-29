@@ -1,6 +1,5 @@
-//! LES ORDRES DE PAIEMENT D'UNE DSN, EN CLAIR (ticket #223, 19/10/2026 : « une espece de liste de paiement, on ne sait
-//! pas a qui »). Chaque bloc S21.G00.20 du fichier est un ordre de prelevement ; la boite de depot le montrait en montant
-//! nu. Ici, un seul endroit dit, par ordre : A QUI (l'organisme), POUR QUOI (ce qu'il couvre, et sur quelle periode),
+//! LES ORDRES DE PAIEMENT D'UNE DSN, EN CLAIR : jamais une liste de montants sans dire a qui. Chaque bloc S21.G00.20 du
+//! fichier est un ordre de prelevement. Ici, un seul endroit dit, par ordre : A QUI (l'organisme), POUR QUOI (ce qu'il couvre, et sur quelle periode),
 //! COMBIEN, et POUR QUAND. La page affiche ce que rend `decrire`, rien d'autre (regle 2).
 //!
 //! CE QUI SE LIT (regle 1 : rien ne se devine) :

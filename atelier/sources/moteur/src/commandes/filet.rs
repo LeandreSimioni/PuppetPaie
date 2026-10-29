@@ -1,5 +1,5 @@
-//! `moteur filet [etat|activer ADRESSE|verifier|desactiver|preparer|suivies]` : la DPAE preparee d'avance et son filet de securite
-//!. Les routes `filet-etat`, `filet-suivies`, `filet-activer`, `filet-verifier`, `filet-desactiver` et
+//! `moteur filet [etat|activer ADRESSE|verifier|desactiver|preparer|suivies]` : la DPAE preparee d'avance et son filet de securite.
+//! Les routes `filet-etat`, `filet-suivies`, `filet-activer`, `filet-verifier`, `filet-desactiver` et
 //! `filet-preparer` font le travail.
 //!
 //! GARDE-FOUS. `activer` et `desactiver` engagent (un compte chez le serveur du filet, des reveils) : la route exige le mot de passe
@@ -7,11 +7,10 @@
 //! (fenetre, terminal sans echo), sinon il refuse -- jamais un mot de passe en option ni en variable. Dans `moteur-atelier`, hors
 //! compagnie fictive, ils sont refuses. `verifier` ne lit que l'etat chez le serveur du filet (l'adresse vient de la configuration de la
 //! compagnie, comme celle du serveur des incidents), sans secret. `preparer` teste les DPAE a venir EN TEST chez l'Urssaf (jamais un
-//! depot reel, donc sans preuve, comme la veille) : dans `moteur-atelier`, il exige le faux Urssaf local. `qui` : `ligne de commande`,
-//! comme le Python.
+//! depot reel, donc sans preuve, comme la veille) : dans `moteur-atelier`, il exige le faux Urssaf local. `qui` : `ligne de commande`.
 //!
-//! Le Python rendait `! phrase` code 1 pour une `ErreurOperation` ; ici aussi (le refus du mot de passe, de l'atelier, du serveur).
-//! Une panne que le Python laissait sortir en trace d'appels (reseau, disque) passe par `Cadre::plantage` : une ligne sur la sortie
+//! Une `ErreurOperation` rend `! phrase`, code 1 (le refus du mot de passe, de l'atelier, du serveur).
+//! Une panne (reseau, disque) passe par `Cadre::plantage` : une ligne sur la sortie
 //! d'erreur, une ligne au journal des incidents, code 1.
 
 use serde_json::{json, Value};

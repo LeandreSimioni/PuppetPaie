@@ -1,6 +1,5 @@
 //! `moteur google [etat|autoriser|oublier]` : le compte Google, qui ne porte que le Drive.
-//! `autoriser` et `oublier` sont des actes (J2b) ; `autoriser` AFFICHE l'URL de consentement sans ouvrir de navigateur (la fenetre
-//! de consentement est au lot J3b).
+//! `autoriser` et `oublier` sont des actes ; `autoriser` AFFICHE l'URL de consentement sans ouvrir de navigateur.
 //!
 //! ATTENTION : l'etat rafraichit reellement le jeton aupres de Google quand un compte est lie (la route `google-etat`) :
 //! c'est la seule facon de savoir si l'autorisation tient. Sans jeton, il n'y a aucune connexion.
@@ -69,7 +68,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 
 /// `moteur google oublier` : efface le jeton local (rien ne part au reseau). La route exige le mot de passe du logiciel s'il en est un
 /// de pose : le MOTEUR le demande lui-meme a un humain (fenetre, terminal sans echo), sinon il refuse. Dans `moteur-atelier`, hors
-/// compagnie fictive, le geste est refuse. Les erreurs sont rendues comme le Python : le message nu (code 2), ou `--json`.
+/// compagnie fictive, le geste est refuse. Les erreurs : le message nu (code 2), ou `--json`.
 fn oublier(cadre: &Cadre, json: bool) -> i32 {
     let r = super::actes::refuser_dans_l_atelier(cadre, "d'oublier le compte Google").and_then(|()| cadre.route("google-oublier", json!({})));
     match r {
@@ -100,7 +99,7 @@ fn oublier(cadre: &Cadre, json: bool) -> i32 {
 ///
 /// GARDE-FOUS. Le mot de passe du logiciel s'il en est un de pose : le moteur le demande lui-meme a un humain (`exiger_mot_de_passe`),
 /// sinon il refuse. Dans `moteur-atelier`, hors compagnie fictive : refuse, sauf si Google est redirige vers le faux Google local.
-/// L'URL va sur la sortie standard (comme le Python) ; avec `--json`, sur la sortie d'erreur, pour que la sortie standard ne porte que
+/// L'URL va sur la sortie standard ; avec `--json`, sur la sortie d'erreur, pour que la sortie standard ne porte que
 /// le JSON d'une erreur.
 fn autoriser(cadre: &Cadre, json: bool) -> i32 {
     let r = super::actes::refuser_si_pas_redirige(cadre, super::actes::Organisme::Google, "lier le compte Google")

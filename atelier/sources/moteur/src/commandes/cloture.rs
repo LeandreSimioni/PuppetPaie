@@ -1,16 +1,15 @@
 //! `moteur cloture [ANNEE] [--rouvrir] [--forcer] [--json]` : cloturer un exercice (le zip de l'annee), le rouvrir, ou dire l'etat de
 //! chaque exercice. Routes `exercices` (l'etat), `cloture` (cloturer, rouvrir ;
-//! `exercice_ecrit.rs`). `qui` : `cli`, comme le Python.
+//! `exercice_ecrit.rs`). `qui` : `cli`.
 //!
 //! Sans annee : l'etat de chaque exercice (lecture seule). Avec une annee : fige l'exercice (`config/exercices.json`) et ecrit
 //! `sorties/exercices/Exercice_AAAA.zip` ; `--forcer` cloture meme si un mois n'a pas de DSN acceptee ; `--rouvrir` retire la cloture
 //! (l'archive reste). Rien ne part, rien n'est lu au coffre : pas de mot de passe.
 //!
-//! LE JSON d'une cloture est celui du Python (`Cloture` : `annee, le, archive` -- le NOM du zip --, `octets, empreinte, contenu, manques`) ;
-//! la route rend le chemin entier et `fichiers` : la commande les remet en forme. Le texte garde la forme du Python.
+//! LE JSON d'une cloture : `annee, le, archive` -- le NOM du zip --, `octets, empreinte, contenu, manques` ; la route rend le
+//! chemin entier et `fichiers` : la commande les remet en forme.
 //!
-//! DEFAUT DU PYTHON, QUI NE SE REPRODUIT PAS : une annee illisible (`abc`), un fichier d'exercices abime, un disque plein sortaient en
-//! trace d'appels ; ici, `! phrase` (code 2) pour ce que la route nomme un refus, un plantage propre sinon.
+//! Une annee illisible (`abc`), un fichier d'exercices abime, un disque plein : `! phrase` (code 2) pour ce que la route nomme un refus, un plantage propre sinon.
 //!
 //! POINT DOUTEUX : l'empreinte et la taille du zip dependent du compresseur (le Rust n'est pas zlib) ; le contenu, lui, est identique.
 

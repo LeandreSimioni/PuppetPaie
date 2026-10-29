@@ -1396,7 +1396,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // contributions sociales du salarie (`tot_sal`, parts salariales de sante et de prevoyance comprises). Le
     // financement patronal des garanties collectives (sante, prevoyance, Fonds sante des intermittents) n'y entre pas :
     // R. 844-1, II, 1° l'excepte. La page du BOSS l'y range (II.A.1, Q 13, 14, 29) sans texte qui l'appuie ; le decret
-    // prime (vague 1m, meme LISEZ-MOI, derniere section). Des lignes hors assiette, seules
+    // prime (meme LISEZ-MOI, derniere section). Des lignes hors assiette, seules
     // celles qui sont un revenu (indemnites, imposables ou non) ; ni remboursement de frais dans ses limites, ni
     // mouvement de tresorerie (acompte) : la nature de la rubrique le dit, et une nature qui ne le dit pas refuse
     // (`Rubrique::hors_assiette`). Pas de prelevement a la source : un net SOCIAL.

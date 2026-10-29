@@ -1,5 +1,5 @@
-//! `moteur droits [--detail] [--mois AAAA-MM] [--json]` : heures et cachets cumules, annexes 8 et 10 (`moteur/cli.py`,
-//! `cmd_droits`). Le calcul est celui du moteur (`service::droits`, que le Python appelait par `paie_rust.droits`) ;
+//! `moteur droits [--detail] [--mois AAAA-MM] [--json]` : heures et cachets cumules, annexes 8 et 10. Le calcul
+//! est celui du moteur (`service::droits`) ;
 //! cette commande lit la position de chaque salarie et la met en forme.
 
 use rust_decimal::RoundingStrategy;
@@ -46,7 +46,7 @@ fn vrai(v: &Value, cle: &str) -> bool {
     v.get(cle).is_some_and(socle::fichiers::vrai)
 }
 
-/// `Decimal(v).quantize(Decimal("0.01"))`, au pair le plus proche comme le contexte de Python.
+/// Le nombre a deux decimales, arrondi au pair le plus proche.
 fn deux_decimales(v: &str) -> String {
     match v.trim().parse::<Decimal>() {
         Ok(d) => {
@@ -58,7 +58,7 @@ fn deux_decimales(v: &str) -> String {
     }
 }
 
-/// `_valeur_droits` : ce que la position du moteur dit, lu comme le Python le lisait (nombres entiers, `brut` a deux
+/// Ce que la position du moteur dit, mis en forme (nombres entiers, `brut` a deux
 /// decimales, textes et dates tels quels).
 fn convertir(cle: &str, v: &Value) -> Value {
     const TEXTES: [&str; 6] = ["titre", "sous_titre", "libelle_fenetre", "salarie", "numero_objet", "mois"];

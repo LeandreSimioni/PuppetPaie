@@ -4,9 +4,8 @@
 /* =======================================================================
    HISTORIQUE
    =======================================================================
-   TOUS LES ENVOIS ET TOUS LES RETOURS SE LISENT ICI (Leandre, 20/10/2026 ;
-   tickets #219, #220, #222 : « il n'y a pas d'endroit où voir tous les
-   retours », « un système simple qui n'envoie pas de bug »). La page Paie est
+   TOUS LES ENVOIS ET TOUS LES RETOURS SE LISENT ICI, en un seul endroit.
+   La page Paie est
    l'endroit où l'on FAIT le mois ; l'Historique, celui où l'on VOIT ce qu'il a
    produit, envoyé et reçu.
 

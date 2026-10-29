@@ -2,8 +2,7 @@
 //! Rien n'est ecrit.
 //!
 //! `arrivee` ne fait RIEN : elle LIT et dresse la liste des etapes, dans l'ordre ou une compagnie les franchit, chacune
-//! avec son etat (`fait`, `a_faire`, `sans_objet`) et la commande qui la fait avancer. Cette liste n'existait pas encore
-//! dans le moteur Rust : elle est portee ici, depuis le Python.
+//! avec son etat (`fait`, `a_faire`, `sans_objet`) et la commande qui la fait avancer.
 
 use serde_json::{json, Map, Value};
 
@@ -37,7 +36,7 @@ fn ko(m: String) -> Echec {
     Echec { classe: None, message: m }
 }
 
-/// `"%g" % v` de Python, la virgule pour separateur decimal (`effectif._nombre`).
+/// Un nombre a six chiffres significatifs au plus, sans zero de queue, la virgule pour separateur decimal.
 fn nombre(v: f64) -> String {
     let t = if v == v.trunc() && v.abs() < 1e6 {
         format!("{}", v as i64)

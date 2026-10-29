@@ -61,7 +61,7 @@ fn cle_de_version(v: &str) -> Vec<i64> {
 
 /// La raison pour laquelle une version telechargee et pas encore appliquee est
 /// indispensable avant de declarer -- ou `""`.
-/// La version prete est celle de l'INSTALLATION du contexte (`<installation>/logiciel/donnees` = `ctx.code`, lot U1).
+/// La version prete est celle de l'INSTALLATION du contexte (`<installation>/logiciel/donnees` = `ctx.code`).
 pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
     let code = ctx.code.parent().map(Path::to_path_buf).unwrap_or_default();
     let Some(p) = crate::routes::ouverture::prete(&code.join(".."))? else { return Ok(String::new()) };
@@ -352,7 +352,7 @@ fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
 /// le plus grand des ordres deja poses par nous, de ceux des fichiers essayes encore sur le disque, du nombre
 /// d'essais, et de ce que les bilans archives disent de la base d'essai pour le mois de constitution du fichier
 /// (`ordre_signalements::dernier_ordre_des_mensuelles` : les essais faits AILLEURS sous le meme SIREN, l'atelier ou un
-/// autre poste, comptent pour l'ordre sans s'afficher ; Leandre, 20/10/2026), plus un. Une mensuelle du mois deja
+/// autre poste, comptent pour l'ordre sans s'afficher), plus un. Une mensuelle du mois deja
 /// acceptee dans la base d'essai, meme venue d'ailleurs, fait partir l'essai en annule-et-remplace. Trop grand ne coute
 /// rien ; trop petit, c'est B1-208-11. `constitution` : le mois de constitution du fichier (`AAAA-MM`, S20.G00.05.007).
 fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution: &str) -> R<Option<i64>> {
@@ -454,11 +454,11 @@ pub fn deposer_dsn(
     deposer_dsn_dans(ctx, fichier, reel, preuve, qui, "production", forcer, contournement, None)
 }
 
-/// `deposer_dsn` avec l'ENVIRONNEMENT du point de depot (`production` ou `editeur`, comme `Client(ctx, environnement)` du Python). La
+/// `deposer_dsn` avec l'ENVIRONNEMENT du point de depot (`production` ou `editeur`). La
 /// plate-forme de l'editeur est une plate-forme d'ESSAI : un depot REEL n'y a pas de sens et reste refuse ici, car le journal le
 /// noterait comme une declaration partie.
 ///
-/// `ordre_d_essai` (`moteur depot-dsn --test --ordre N`, lot E1) : l'ordre au-dessous duquel un ESSAI de mensuelle ne part pas,
+/// `ordre_d_essai` (`moteur depot-dsn --test --ordre N`) : l'ordre au-dessous duquel un ESSAI de mensuelle ne part pas,
 /// donne par qui sait ce que la base d'essai a deja retenu pour ce SIRET et ce mois (un autre poste, une compagnie d'essai, le
 /// « dernier ordre accepte » d'un B1-208-11). L'essai part alors en annule-et-remplace a cet ordre, ou plus haut si le journal
 /// en sait davantage. Refuse pour un depot reel et pour un signalement (leur ordre est celui du fichier, lu sur la
@@ -627,7 +627,7 @@ pub fn deposer_dpae(
 }
 
 /// `deposer_dpae` avec, au besoin, le client Urssaf que l'appelant donne a la place du vrai (la preuve : un client pointe sur
-/// un serveur local, lot I2b). Un client donne n'est jamais confronte au coffre, et ses identifiants sont verifies comme ceux
+/// un serveur local). Un client donne n'est jamais confronte au coffre, et ses identifiants sont verifies comme ceux
 /// d'un client construit ici. Sans client, rien ne change.
 #[allow(clippy::too_many_arguments)]
 pub fn deposer_dpae_avec(

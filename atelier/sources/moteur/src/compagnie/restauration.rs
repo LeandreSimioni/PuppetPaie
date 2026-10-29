@@ -1,4 +1,4 @@
-//! La restauration du dossier prive depuis le Drive (`moteur restaurer`) : le retour de `sauvegarde.rs` (lot R1, 13/10/2026).
+//! La restauration du dossier prive depuis le Drive (`moteur restaurer`) : le retour de `sauvegarde.rs`.
 //!
 //! Le plan (`atelier/PLAN-DEPOT-PUBLIC.md` § 4, premier trou) : « aucune commande ne redescend ». Le jour ou le depot Git
 //! ne porte plus les donnees, la sauvegarde Drive est la seule copie de `prive/` ; sans retour, ce n'est pas une copie.
@@ -15,7 +15,7 @@
 //! RIEN D'EFFACE, NI ICI NI LA-BAS. Le trait `Drive` n'a pas de suppression ; ici, un fichier qui existe n'est jamais
 //! remplace.
 //!
-//! UN DOSSIER QUI N'EST PAS VIDE (le choix du lot R1) : il est accepte si tout ce que la sauvegarde y porterait (son
+//! UN DOSSIER QUI N'EST PAS VIDE : il est accepte si tout ce que la sauvegarde y porterait (son
 //! `inventaire`) est DEJA identique a la copie du Drive (meme empreinte), et refuse sinon, avant toute ecriture, en nommant
 //! les fichiers. Pourquoi pas « ne recevoir que ce qui manque » : ce serait fabriquer une compagnie qu'aucun poste n'a eue
 //! (un journal de depots d'ici, des compteurs de la-bas : regle 4, un numero de contrat se lit, il ne se recalcule pas), et

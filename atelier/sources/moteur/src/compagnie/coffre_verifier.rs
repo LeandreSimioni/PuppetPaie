@@ -1,5 +1,4 @@
-//! `coffre-verifier` (`moteur/operations_ouverture.py` : `verifier_secret`, qui remonte `commandes_ouverture.
-//! cmd_verifier_coffre`). Lot H4a.
+//! `coffre-verifier`.
 //!
 //! ECRIT, NON PROUVE, NON BRANCHE. Le secret pose ouvre-t-il une session chez l'organisme ? UNE SEULE TENTATIVE,
 //! JAMAIS DE BOUCLE : au-dela de quelques echecs, net-entreprises bloque le compte (403). Trois services :
@@ -41,7 +40,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     verifier_secret(ctx, charge.get("service"))
 }
 
-/// `operations_ouverture.verifier_secret`, avec les vraies connexions.
+/// Le secret pose ouvre-t-il une session : `verifier_secret_avec`, avec les vraies connexions.
 pub fn verifier_secret(ctx: &Contexte, service: Option<&Value>) -> R<Value> {
     verifier_secret_avec(ctx, service, &mut authentifier_pour_de_vrai, &mut |c| crate::compagnie::boite::verifier(&c.racine))
 }
@@ -52,7 +51,7 @@ fn authentifier_pour_de_vrai(ctx: &Contexte, service: &str, mdp: Option<String>)
     client.authentifier()
 }
 
-/// `operations_ouverture.verifier_secret`. Rend `{service, ok, message, conseil}` ; pour la boite, ce que
+/// Le secret pose d'un service ouvre-t-il une session ? Rend `{service, ok, message, conseil}` ; pour la boite, ce que
 /// `courriel.verifier` dit, puis `service`.
 pub fn verifier_secret_avec(ctx: &Contexte, service: Option<&Value>, authentifier: Authentifier, boite: OuvrirBoite) -> R<Value> {
     let nom = match service.and_then(Value::as_str) {

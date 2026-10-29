@@ -1,6 +1,6 @@
 //! L'archivage d'un mois dans le Drive.
 //!
-//! Ecrit au lot H4b, non prouve. Les sorties d'un mois (`sorties/<mois>/`, sans le sous-dossier
+//! Les sorties d'un mois (`sorties/<mois>/`, sans le sous-dossier
 //! `envoi/` : memes documents redecoupes par salarie, deja partis) vont dans
 //! `PuppetPaie/<mois>` du Drive du compte autorise. Le fichier groupe y a toute sa place :
 //! c'est l'archive de la compagnie, pas le courrier d'un salarie.
@@ -51,7 +51,7 @@ pub fn mois_valide(mois: &str) -> bool {
 /// `archiver` : depose les sorties d'un mois dans le Drive du compte autorise.
 ///
 /// `client` : `None` pour le vrai (`Client::nouveau`, construit APRES les controles du dossier,
-/// comme le Python : un mois absent se dit avant tout refus du client).
+/// pour qu'un mois absent se dit avant tout refus du client).
 pub fn archiver(racine: &Path, mois: &str, racine_drive: &str, client: Option<&mut dyn Drive>) -> Result<Archivage, ErreurGoogle> {
     if !mois_valide(mois) {
         return Err(ErreurGoogle::nouvelle("ErreurOperation", format!("Mois illisible : '{}' (AAAA-MM attendu).", mois)));
@@ -80,8 +80,8 @@ pub fn archiver(racine: &Path, mois: &str, racine_drive: &str, client: Option<&m
         }
     };
     let cible = client.chemin(&[racine_drive, mois])?;
-    // Un seul listage du dossier du mois : c'est lui qui dit quels fichiers se remplacent (defauts 3 et 4 du Python :
-    // une recherche par fichier, par nom seul, dossiers compris).
+    // Un seul listage du dossier du mois : c'est lui qui dit quels fichiers se remplacent (et
+    // non une recherche par fichier, par nom seul, qui prendrait les dossiers).
     let deja = client.lister(&cible)?;
     let mut deposes = Vec::new();
     for f in &fichiers {

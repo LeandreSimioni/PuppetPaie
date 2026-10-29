@@ -1,11 +1,11 @@
-//! `moteur emplois [--tous] [--chercher MOT] [--autres] [--ajouter CODE ...] [--retirer CODE ...] [--json]` : le catalogue des metiers
-//!. `--ajouter` / `--retirer` mettent au deroulant (ou en otent) des metiers d'une autre
+//! `moteur emplois [--tous] [--chercher MOT] [--autres] [--ajouter CODE ...] [--retirer CODE ...] [--json]` : le catalogue des metiers.
+//! `--ajouter` / `--retirer` mettent au deroulant (ou en otent) des metiers d'une autre
 //! convention : route `metiers-ajoutes` (ecrit `config/metiers-ajoutes.json`, une preference d'affichage, rien ne part).
 //!
 //! `--tous` (la nomenclature France Travail entiere, 1 236 codes) n'est PAS porte : `emplois::catalogue` n'a pas de nomenclature.
 //! La commande le dit en une phrase (code 2) au lieu de rendre une liste incomplete.
 //!
-//! Le Python ne distingue pas `--ajouter` et `--retirer` donnes ensemble : les codes de `--ajouter`, retires. Idem ici.
+//! `--ajouter` et `--retirer` donnes ensemble : les codes de `--ajouter`, retires.
 
 use serde_json::{json, Value};
 
