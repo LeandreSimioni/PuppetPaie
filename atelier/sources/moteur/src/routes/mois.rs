@@ -987,12 +987,6 @@ pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
 
 // ------------------------------------------------------------ les fichiers de mois
 
-/// Les mois que des engagements touchent, dans l'ordre croissant (`engagement::stock::mois_saisis`) ; un fichier
-/// d'engagements illisible refuse.
-pub(crate) fn mois_saisis(ctx: &Contexte) -> R<Vec<String>> {
-    engagement::stock::mois_saisis(&ctx.racine).map_err(|m| erreur("ValueError", m))
-}
-
 /// Les engagements bruts que le mois montre (`engagement::stock::vue_du_mois`), avec la cle du salarie ; vide si aucun
 /// engagement ne le touche.
 /// Un engagement dont le salarie est inconnu (ou qui n'est pas un dictionnaire)
@@ -1084,7 +1078,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
     for (c, e) in engagements_du_mois(ctx, &texte)? {
         deja.push(Some((c, bornes_brutes(&e)?.0, jumeaux::numero_du_champ(e.get("numero")))));
     }
-    let precedents = mois_saisis(ctx)?;
+    let precedents = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?;
     let Some(texte_mois) = mois.as_str() else {
         // `x.mois < mois` : un texte et autre chose ne se comparent pas.
         return match precedents.first() {
@@ -1556,7 +1550,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
     // mois regarde l'ecrit (c'est lui qui a les jours joues).
     let mut vus: Dico<usize> = Dico::nouveau();
     let mut paie: Vec<Passe> = Vec::new();
-    let mut connus = mois_saisis(ctx)?;
+    let mut connus = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?;
     connus.reverse();
     for mc in &connus {
         couverts.insert(mc.clone());

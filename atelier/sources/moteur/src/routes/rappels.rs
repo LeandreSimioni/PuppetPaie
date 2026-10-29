@@ -455,7 +455,7 @@ pub(crate) fn premier_mois_declarable(st: &Etat) -> Option<String> {
         return Some(embauche);
     }
     // Une compagnie qui a deja des engagements a deja declare.
-    if !crate::routes::etapes::mois_saisis(st.racine()).is_empty() {
+    if !engagement::stock::mois_saisis(st.racine()).unwrap_or_default().is_empty() {
         return None;
     }
     // DES FICHES NE SONT PAS UN PASSE : une compagnie neuve remplit ses salaries avant sa premiere paie ;
@@ -602,7 +602,7 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
 /// Ce que la DSN de `mois` declare en plus pour les mois dont l'ancien logiciel a depose la DSN, dit comme la page Paie
 /// le dit (`import::mois::dsn_de_l_ancien_logiciel`).
 fn ajouter_les_mois_de_l_ancien_logiciel(st: &Etat, mois: &str, r: &mut Rappel) -> R<()> {
-    for m in crate::routes::etapes::mois_saisis(st.racine()).into_iter().filter(|m| m.as_str() < mois) {
+    for m in engagement::stock::mois_saisis(st.racine()).unwrap_or_default().into_iter().filter(|m| m.as_str() < mois) {
         let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(st.ctx, &m)? else { continue };
         if d["porteur"] == json!(mois) && d["engagements"].as_u64().is_some_and(|n| n > 0) {
             let lib = socle::date::libelle_du_mois(&m, socle::date::Graphie::Accentuee).map_err(Refus::from)?;

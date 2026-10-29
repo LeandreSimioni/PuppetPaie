@@ -1617,7 +1617,7 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
     let cle_texte = valeur_en_texte(cle);
     let mut sorties: Vec<(String, Value)> = Vec::new();
     let mut vus: Dico<()> = Dico::nouveau();
-    let mut mois = crate::routes::mois::mois_saisis(ctx)?;
+    let mut mois = engagement::stock::mois_saisis(&ctx.racine).map_err(socle::echec::Echec::from)?;
     mois.reverse();
     for m in mois {
         for (c, e) in crate::routes::mois::engagements_du_mois(ctx, &m)? {

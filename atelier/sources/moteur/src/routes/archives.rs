@@ -151,7 +151,7 @@ pub(crate) fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R
 /// porter (`etat` « à porter ») et celles deja portees par la DSN d'un mois suivant (« portée »).
 fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
     let mut out = Vec::new();
-    for mois in crate::routes::etapes::mois_saisis(&ctx.racine) {
+    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
         let (a_porter, portees) = crate::regularisation::corrections_du_mois(ctx, &mois)?;
         let mut corrections: Vec<Value> = portees
             .into_iter()
@@ -218,7 +218,7 @@ fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
 fn mois_a_corriger(ctx: &Contexte) -> R<Value> {
     let mut m = Moteur::nouveau(ctx);
     let mut etats = Vec::new();
-    for mois in crate::routes::etapes::mois_saisis(&ctx.racine) {
+    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
         etats.push(etat_mois(&mut m, ctx, &mois)?);
     }
     let choisis = |f: &dyn Fn(&Value) -> bool| -> Vec<Value> { etats.iter().filter(|e| f(e)).cloned().collect() };
@@ -250,7 +250,7 @@ fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 /// Les mois qu'il y a matiere a exporter : ceux que des engagements touchent, du plus ancien au plus recent, chacun
 /// marque `saisie` (ses paies se lisent dans ses engagements valides).
 pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<Vec<(String, &'static str)>> {
-    let mut mois: Vec<(String, &'static str)> = crate::routes::mois::mois_saisis(ctx)?.into_iter().map(|m| (m, "saisie")).collect();
+    let mut mois: Vec<(String, &'static str)> = engagement::stock::mois_saisis(&ctx.racine).map_err(socle::echec::Echec::from)?.into_iter().map(|m| (m, "saisie")).collect();
     mois.sort();
     mois.dedup();
     Ok(mois)
