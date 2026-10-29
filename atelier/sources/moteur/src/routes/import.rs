@@ -272,6 +272,17 @@ pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: socl
     Ok(ap)
 }
 
+/// LE NOM QUE LA PERSONNE A DONNE A LA COMPAGNIE (« Ajouter une compagnie ») reste le sien : la fiche que l'import cree
+/// garde son nom et sa raison sociale, que les pieces ecrivent en capitales (S21.G00.06.003) ; changer le nom d'une
+/// fiche demande une date d'effet que l'import ne devine pas.
+pub(crate) fn garder_le_nom(ctx: &Contexte, e: &mut Map<String, Value>) {
+    for k in ["nom_affichage", "raison_sociale"] {
+        if let Some(v) = ctx.entreprise.get(k).filter(|v| vrai(v) && !valeur_en_texte(v).trim().is_empty()) {
+            e.insert(k.into(), v.clone());
+        }
+    }
+}
+
 /// La cle `_cle_engagement` : (salarie, debut, fin, numero_objet, heures, cachets, jours, str(brut)).
 pub(crate) type CleEngagement = (String, String, String, String, i128, i128, i128, String);
 
@@ -356,7 +367,8 @@ pub(crate) fn apercu_lu(
     let mut a_completer: Vec<crate::importation_completer::ACompleter> = Vec::new();
     let origine_dsn = |mois: &str| json!({"source": "dsn", "mois": mois});
     if !lecture.entreprise.is_empty() {
-        let e = fiche_entreprise(&lecture)?;
+        let mut e = fiche_entreprise(&lecture)?;
+        garder_le_nom(ctx, &mut e);
         if !ctx.entreprise.get("siren").is_some_and(|s| vrai(s) && !valeur_en_texte(s).trim().is_empty()) {
             let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);

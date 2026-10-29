@@ -423,9 +423,9 @@ fn bulletin_lu_la_table_decide() {
     faux["gabarits"][0]["champs"]["salaire_devine"] = json!({"repere": "Salaire"});
     assert!(Table::depuis(&faux).unwrap_err().contains("champs.salaire_devine"), "le refus nomme le champ");
 
-    // La table livree se lit, et ses deux gabarits y sont.
+    // La table livree se lit, et ses trois gabarits y sont.
     let t = Table::livree().unwrap();
-    assert_eq!(t.gabarits.iter().map(|g| g.nom.as_str()).collect::<Vec<_>>(), ["coolpaie", "spaiectacle"]);
+    assert_eq!(t.gabarits.iter().map(|g| g.nom.as_str()).collect::<Vec<_>>(), ["coolpaie", "spaiectacle", "puppetpaie"]);
 }
 
 // ------------------------------------------------------------------------------------------- lot C : les compteurs

@@ -202,6 +202,103 @@
         "Absence cachet en activité partielle": null,
         "Indemnisation cachet en activité partielle": null
       }
+    },
+    {
+      "nom": "puppetpaie",
+      "libelle": "PuppetPaie",
+      "_vu": "Le bulletin que fabrique PuppetPaie (atelier/sources/documents/src/bulletin.rs), relevé sur les bulletins du banc rejoué (moteur/tests/donnees/scenarios/treteaux-du-banc) : une page par bulletin, le modèle de l'arrêté du 25 février 2016. Une compagnie qui reprend ses bulletins faits par PuppetPaie les importe comme ceux d'un autre logiciel.",
+      "signature": ["SMIC retenu pour la réduction générale"],
+      "tolerance": 3.5,
+      "tableau": "LIBELLE",
+      "blocs": {
+        "entreprise": {"x": [0, 300], "y": [40, 66]},
+        "salarie": {"x": [40, 298], "y": [105, 140], "ordre": "nom_prenom"}
+      },
+      "champs": {
+        "numero": {"repere": "Bulletin de paie n°"},
+        "numero_objet": {"repere": "Numéro d'objet :", "avant": "—"},
+        "spectacle": {"repere": "Spectacle :"},
+        "siret": {"repere": "N° Siret :"},
+        "naf": {"repere": "NAF (APE) :"},
+        "urssaf": {"repere": "Urssaf :"},
+        "convention": {"repere": "Conv. collective :"},
+        "licence": {"repere": "Licence spec. :"},
+        "nir": {"repere": "N° Sécurité sociale :", "jusqu_a": 298},
+        "naissance": {"repere": "Date de naissance :", "jusqu_a": 298},
+        "emploi": {"repere": "Emploi :", "jusqu_a": 298, "avant": "Statut"},
+        "statut": {"repere": "Statut :", "jusqu_a": 298},
+        "conges_spectacles": {"repere": "N° Congés Spectacles :", "jusqu_a": 298},
+        "abattement": {"repere": "Abattement :", "jusqu_a": 298},
+        "periode": {"repere": "Période :"},
+        "dates_travaillees": {"repere": "Dates travaillées :", "lignes": 4},
+        "regle_le": {"repere": "Règlement le", "section": "pied"},
+        "mode_reglement": {"repere": "Règlement le", "apres": "par", "section": "pied"},
+        "net_a_payer": {"repere": "MONTANT NET A PAYER (en Euros)", "section": "pied"},
+        "cout_employeur": {"repere": "TOTAL VERSÉ PAR L'EMPLOYEUR", "section": "pied"}
+      },
+      "corps": {
+        "libelle_jusqu_a": 330,
+        "quantite_jusqu_a": 50,
+        "colonnes": {
+          "base": [330, 395],
+          "taux_salarie": [395, 440],
+          "montant_salarie": [440, 500],
+          "montant_employeur": [500, 560]
+        },
+        "ligne": {"taux": "taux_salarie", "montant": "base"},
+        "taux_dans_le_libelle": "à",
+        "brut_en_fin_de_ligne": true,
+        "brut": {"libelles": ["MONTANT BRUT"], "colonne": "base"},
+        "total": ["TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES"],
+        "net_social": {"libelles": ["MONTANT NET SOCIAL"], "colonne": "montant_employeur"},
+        "net_avant_impot": {"libelles": ["MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU"], "colonne": "montant_employeur"}
+      },
+      "grilles": [
+        {
+          "colonnes": [
+            {"nom": "base", "entete": "Base"},
+            {"nom": "taux", "entete": "Taux"},
+            {"nom": "montant", "entete": "Salarié"}
+          ],
+          "lignes": [
+            {"champ": "pas", "libelles": ["IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE"]},
+            {"champ": "net_imposable", "colonne": "montant", "libelles": ["Montant net imposable"]}
+          ]
+        },
+        {
+          "colonnes": [
+            {"nom": "periode", "entete": "Periode"},
+            {"nom": "cumul", "entete": "Cumul"}
+          ],
+          "lignes": [
+            {"cumul": "cachets", "libelles": ["Cachets"]},
+            {"cumul": "heures", "libelles": ["Total heures (cachets × 12 + heures)"]},
+            {"cumul": "brut", "libelles": ["Salaire brut"]}
+          ]
+        }
+      ],
+      "_lignes": "Une ligne de paie s'imprime « <quantité> <libellé de la rubrique, au pluriel sur son premier mot> à <taux> » (engagement::calcul::LigneBrut::designation), le taux lu dans le libellé ; une rubrique à l'heure qui ne dit pas « heure » s'imprime « <n> h de <libellé> ». Une seule ligne porte « — MONTANT BRUT » après elle. Les libellés sont ceux de rubriques-base.json.",
+      "lignes": {
+        "Cachet": "cachet",
+        "Cachets": "cachet",
+        "Heure de travail": "heure",
+        "Heures de travail": "heure",
+        "Journée de travail": "journee",
+        "Journées de travail": "journee",
+        "Semaine de travail": "semaine",
+        "Semaines de travail": "semaine",
+        "Salaire mensuel de base": "mois",
+        "Salaires mensuel de base": "mois",
+        "Service de répétition": "repetition",
+        "Services de répétition": "repetition",
+        "h de Masterclass / action culturelle": "enseignement",
+        "Prime": "prime",
+        "Primes": "prime",
+        "Défraiement au forfait": "defraiement_forfait",
+        "Défraiements au forfait": "defraiement_forfait",
+        "Défraiement au réel": "defraiement_reel",
+        "Défraiements au réel": "defraiement_reel"
+      }
     }
   ]
 }

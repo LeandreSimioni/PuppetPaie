@@ -558,7 +558,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             let proposees = fiche_entreprise(&lus, dernier)?;
             completer_a_creer(&mut ap.a_creer, &mut reponse, "entreprise", None, &proposees)?;
         } else if reponse.get("entreprise").is_none_or(Value::is_null) {
-            let e = fiche_entreprise(&lus, dernier)?;
+            let mut e = fiche_entreprise(&lus, dernier)?;
+            ri::garder_le_nom(ctx, &mut e);
             let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);
             ap.a_creer.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });

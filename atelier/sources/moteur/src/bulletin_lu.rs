@@ -280,6 +280,20 @@ fn en_rangs<'a>(mut mots: Vec<&'a Mot>, tol: f64) -> Vec<Vec<&'a Mot>> {
     rangs
 }
 
+/// Une ligne de paie qui ecrit son taux dans son libelle, apres `mot` (« Cachets à 150,00 ») : le libelle sans lui, et
+/// le taux. Sans nombre apres le dernier `mot`, le libelle tel quel.
+fn taux_du_libelle(libelle: &str, mot: &str) -> (String, Option<Decimal>) {
+    let mots: Vec<&str> = libelle.split_whitespace().collect();
+    for k in (0..mots.len().saturating_sub(1)).rev() {
+        if canon(mots[k]) == mot {
+            if let Some(t) = lire_nombre(mots[k + 1]) {
+                return (mots[..k].join(" "), Some(t));
+            }
+        }
+    }
+    (libelle.to_string(), None)
+}
+
 fn texte_de(mots: &[&Mot]) -> String {
     mots.iter().map(|m| m.texte.as_str()).collect::<Vec<_>>().join(" ")
 }
@@ -344,6 +358,8 @@ struct Champ {
     jusqu_a: f64,
     lignes: usize,
     apres: Option<String>,
+    /// Le mot avant lequel la valeur s'arrete, sur un rang qui porte un autre champ apres elle.
+    avant: Option<String>,
     section: Section,
 }
 
@@ -370,6 +386,12 @@ struct Corps {
     total: Vec<String>,
     net_social: Resume,
     net_avant_impot: Resume,
+    /// Le mot apres lequel une ligne de paie ecrit son taux dans son libelle (« 2 Cachets à 150,00 ») ; `None` : le taux
+    /// est dans sa colonne.
+    taux_dans_le_libelle: Option<String>,
+    /// La derniere ligne de paie porte-t-elle le libelle du brut apres le sien (« 2 Cachets à 150,00 — MONTANT BRUT ») ?
+    /// Ce rang est alors la ligne et le brut, son montant celui des deux.
+    brut_en_fin_de_ligne: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -560,6 +582,7 @@ fn gabarit(g: &Value, i: usize) -> Resultat<Gabarit> {
                 },
                 lignes: c.get("lignes").and_then(Value::as_u64).unwrap_or(1).max(1) as usize,
                 apres: c.get("apres").and_then(Value::as_str).map(canon),
+                avant: c.get("avant").and_then(Value::as_str).map(canon),
                 section,
             });
         }
@@ -592,6 +615,8 @@ fn gabarit(g: &Value, i: usize) -> Resultat<Gabarit> {
         total: libelles(c.get("total"), &ou("corps.total"))?,
         net_social: resume(c.get("net_social"), &colonnes, &ou("corps.net_social"))?,
         net_avant_impot: resume(c.get("net_avant_impot"), &colonnes, &ou("corps.net_avant_impot"))?,
+        taux_dans_le_libelle: c.get("taux_dans_le_libelle").and_then(Value::as_str).map(canon),
+        brut_en_fin_de_ligne: c.get("brut_en_fin_de_ligne").and_then(Value::as_bool).unwrap_or(false),
         colonnes,
     };
 
@@ -1215,6 +1240,11 @@ impl<'a> Lecteur<'a> {
             let k = mots.iter().position(|m| &canon(&m.texte) == a)?;
             mots.drain(..=k);
         }
+        if let Some(a) = &c.avant {
+            if let Some(k) = mots.iter().position(|m| &canon(&m.texte) == a) {
+                mots.truncate(k);
+            }
+        }
         // Le deux-points isole qui suit un repère n'est pas la valeur.
         while mots.first().is_some_and(|m| m.texte == ":") {
             mots.remove(0);
@@ -1235,6 +1265,10 @@ impl<'a> Lecteur<'a> {
                 let dates: Vec<Jour> = textes.iter().filter_map(|x| lire_date(x)).collect();
                 match dates.as_slice() {
                     [a, b] => Some(Valeur::Periode(*a, *b)),
+                    // « du A au B (contrat du C au D) » : la periode est la premiere.
+                    [..] if textes.len() >= 4 && canon(textes[0]) == "du" && canon(textes[2]) == "au" && lire_date(textes[1]).is_some() && lire_date(textes[3]).is_some() => {
+                        Some(Valeur::Periode(lire_date(textes[1])?, lire_date(textes[3])?))
+                    }
                     _ => {
                         self.avertissements.push(format!("{} : « {} » n'est pas une période du ... au ...", c.nom, textes.join(" ")));
                         None
@@ -1254,6 +1288,10 @@ impl<'a> Lecteur<'a> {
                         }
                     }
                     k += 1;
+                }
+                if l.is_empty() {
+                    // Une liste de jours (« 20/11/2026, 21/11/2026 ») : chacun est un intervalle d'un jour.
+                    l = textes.iter().filter_map(|x| lire_date(x)).map(|j| (j, j)).collect();
                 }
                 if l.is_empty() {
                     self.avertissements.push(format!("{} : « {} » ne se lit pas en dates", c.nom, textes.join(" ")));
@@ -1348,15 +1386,19 @@ impl<'a> Lecteur<'a> {
         let mut titre_en_cours: Option<(String, String)> = None; // (canonique, tel qu'ecrit)
         let mut avertissements = Vec::new();
         let ligne = |r: &RangCorps, soumis: bool, avertissements: &mut Vec<String>| {
-            let cl = canon(&r.libelle);
+            let (libelle, taux_ecrit) = match &c.taux_dans_le_libelle {
+                Some(mot) => taux_du_libelle(&r.libelle, mot),
+                None => (r.libelle.clone(), None),
+            };
+            let cl = canon(&libelle);
             let (rubrique, heures) = match self.g.lignes.iter().find(|x| x.canon == cl) {
                 Some(x) => (x.rubrique.clone(), x.heures),
                 None => {
-                    avertissements.push(Refus::LibelleInconnu(r.libelle.clone()).message());
+                    avertissements.push(Refus::LibelleInconnu(libelle.clone()).message());
                     (None, None)
                 }
             };
-            LignePaie { quantite: r.quantite, libelle: r.libelle.clone(), taux: r.colonne(&c.taux), montant: r.colonne(&c.montant), soumis, rubrique, heures }
+            LignePaie { quantite: r.quantite, libelle, taux: taux_ecrit.or(r.colonne(&c.taux)), montant: r.colonne(&c.montant), soumis, rubrique, heures }
         };
         for r in rangs {
             let cl = canon(&r.libelle);
@@ -1366,6 +1408,20 @@ impl<'a> Lecteur<'a> {
             }
             if r.libelle.is_empty() {
                 continue;
+            }
+            // La derniere ligne et le brut sur un meme rang : la ligne, puis le brut.
+            if phase == Phase::Lignes && c.brut_en_fin_de_ligne {
+                if let Some(b) = c.brut.libelles.iter().find(|b| cl.ends_with(&format!(" {}", b))) {
+                    let n = b.split(' ').count();
+                    let mots: Vec<&str> = r.libelle.split_whitespace().collect();
+                    let garde = mots.len().saturating_sub(n);
+                    let libelle = mots[..garde].join(" ").trim_end_matches(|ch: char| !ch.is_alphanumeric()).trim().to_string();
+                    let seule = RangCorps { libelle, quantite: r.quantite, nombres: r.nombres.clone(), cy: r.cy };
+                    lu.lignes.push(ligne(&seule, true, &mut avertissements));
+                    lu.brut = r.colonne(&c.brut.colonne);
+                    phase = Phase::Cotisations;
+                    continue;
+                }
             }
             match phase {
                 Phase::Lignes if est(&cl, &c.brut.libelles) => {

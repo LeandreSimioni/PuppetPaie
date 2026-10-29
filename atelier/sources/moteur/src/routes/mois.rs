@@ -425,8 +425,8 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let avant_embauche = avant_la_premiere_embauche(ctx, &mois)?;
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
-    // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : pas de fichier ici, mais l'historique importe le porte -- ses paies,
-    // en cartes, et l'etat vrai de sa DSN (`mois_importe`). Il se lit ; rien ne s'y ajoute.
+    // UN MOIS TENU AVANT CE LOGICIEL : aucun engagement de la saisie, ses engagements importes -- en cartes, et l'etat vrai
+    // de sa DSN (`mois_importe`). Il se lit ; rien ne s'y ajoute.
     let importe = if existe { None } else { crate::mois_importe::vue(ctx, &mois)? };
     Ok(json!({
         "mois": brut,
@@ -1724,14 +1724,14 @@ pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
     Ok(())
 }
 
-/// UN MOIS TENU AVANT CE LOGICIEL NE SE SAISIT PAS (ticket #215) : ses paies ont ete calculees et declarees ailleurs
-/// (l'historique importe les porte, `mois_importe`). Une saisie le ferait recalculer ici et proposerait d'en ecrire la
-/// DSN -- une declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre.
+/// UN MOIS TENU AVANT CE LOGICIEL NE SE SAISIT PAS : ses paies ont ete calculees et declarees ailleurs (ses engagements
+/// sont importes, `mois_importe`). Une saisie le ferait recalculer ici et proposerait d'en ecrire la DSN -- une
+/// declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre.
 pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
     if crate::mois_importe::importe(&ctx.racine, mois)? {
         return Err(refus(format!(
-            "{} a ete tenu avant PuppetPaie : ses paies ont ete faites par l'ancien logiciel et sont dans l'historique \
-             importe. Il se lit dans la page Paie ; il ne se saisit pas ici.",
+            "{} a ete tenu avant PuppetPaie : ses paies ont ete faites par l'ancien logiciel, ses engagements sont \
+             importes. Il se lit dans la page Paie ; il ne se saisit pas ici.",
             mois
         )));
     }

@@ -224,3 +224,40 @@ fn le_contrat_d_un_permanent_qui_continue_se_reprend_au_mois_suivant() {
     let mai = reussi(&route(&racine, "contrats-en-cours", json!({"mois": "2025-05"}))).clone();
     assert!(mai["contrats"].as_array().unwrap().iter().all(|c| c["salarie"] != json!(cle)), "{}", mai);
 }
+
+/// LE PASSE FAIT PAR PUPPETPAIE SE REIMPORTE comme celui d'un autre logiciel : le bulletin et la DSN que le banc sort
+/// (le gabarit `puppetpaie` de `bulletins-gabarits-base.json`, la DSN relue par `importation`) font, sur une compagnie
+/// neuve, un engagement importe : le numero de contrat que la DSN deposee lui a donne (S21.G00.40.009, regle 4), ce que
+/// le bulletin imprime, compte dans les cumuls des annexes 8 et 10 ; aucun geste ne le modifie, et rien n'est ecrit.
+#[test]
+fn le_bulletin_et_la_dsn_de_puppetpaie_se_reimportent_en_engagement_importe() {
+    let d = dossier_de_test("import_neuve", "puppetpaie");
+    let (_, banc) = crate::outils::rejeu::rejouer("treteaux-du-banc", &d.join("banc"));
+    let racine = ajouter_dans(&d.join("reprise"), "Les Tréteaux du Banc").unwrap().racine;
+    let import = racine.join("import");
+    std::fs::create_dir_all(&import).unwrap();
+    for f in ["envoi/Bulletin_FULLER_Novembre2026.pdf", "DSN_Novembre2026.dsn"] {
+        let p = banc.join("sorties/2026-11").join(f);
+        std::fs::copy(&p, import.join(p.file_name().unwrap())).unwrap();
+    }
+    let jour = "2026-12-20";
+    reussi(&crate::outils::route(&racine, "importer", json!({"dossier": ""}), jour));
+
+    let importes = engagement::importe::tous(&racine).unwrap();
+    assert_eq!(importes.len(), 1, "{:?}", importes);
+    let i = &importes[0];
+    assert_eq!(i.objet().brut["numero"], json!("FU1.26.01"));
+    let paie = i.paies()["2026-11"].clone();
+    assert_eq!((paie["declare_par"].clone(), paie["net_a_payer"].clone()), (json!("DSN"), json!("232.30")), "{:?}", paie);
+    assert!(paie["bulletin"].is_object(), "le bulletin ne complete pas la paie de la DSN : {:?}", paie);
+    assert_eq!(paie["lignes"][0]["rubrique"], json!("cachet"));
+    let ctx = droit::contexte::Contexte::nouveau(&racine, None).unwrap();
+    let declares = engagement::cumul::lire_engagements(&ctx, None).unwrap();
+    assert_eq!(declares.iter().map(|e| e.cachets).sum::<i64>(), 2, "{:?}", declares);
+
+    let avant = engagements_ecrits(&racine);
+    let fuller = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20"});
+    assert_eq!(crate::outils::route(&racine, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "valide": false}), jour)["ok"], json!(false));
+    assert_eq!(crate::outils::route(&racine, "retirer-engagement", fuller, jour)["ok"], json!(false));
+    assert_eq!(engagements_ecrits(&racine), avant);
+}
