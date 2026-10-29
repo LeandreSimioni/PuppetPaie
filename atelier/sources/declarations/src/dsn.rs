@@ -1454,17 +1454,17 @@ fn qui_contrat(p: &Paie) -> String {
 
 /// `S21.G00.86.003` d'une DSN mensuelle : l'anciennete dans l'entreprise (type 07, en jours), « connue a la fin de la
 /// periode mensuelle declaree », jamais zero (cahier technique 2026.1, p. 322, `norme-dsn/texte/bloc-S21.G00.86.txt`,
-/// l. 104-115). Elle part de `date_anciennete` de la fiche, posee a la creation de la fiche (l'ecran la pose sur toute
-/// fiche neuve, l'import au premier contrat lu) et que les gens peuvent changer. Une fiche qui ne la porte pas ne dit
-/// pas ce jour : elle refuse. Une date apres la fin du mois donnerait zero ou moins, que la CCH-12 interdit : elle
-/// refuse aussi.
+/// l. 104-115). Elle part de `date_anciennete` de la fiche, l'embauche : le premier jour du premier contrat du salarie (la
+/// paie la lit ainsi, `calcul::fiche_de_l_engagement` ; l'import la pose au premier contrat lu), et que les gens peuvent
+/// changer. Une fiche qui ne la porte pas ne dit pas ce jour : elle refuse. Une date apres la fin du mois donnerait zero
+/// ou moins, que la CCH-12 interdit : elle refuse aussi.
 pub fn anciennete_du_mois(s: &Value, cle: &str, fin_m: &Jour) -> Resultat<i64> {
     let Some(v) = s.get("date_anciennete").filter(|v| vrai(v)) else {
         return Err(format!(
             "{} : la fiche ne porte pas sa date d'anciennete (`date_anciennete`, « Dans la compagnie depuis »), d'ou se \
-compte l'anciennete declaree en S21.G00.86.003. C'est la date de la creation de la fiche (decide le 23/09/2026), que \
-l'ecran pose sur toute fiche neuve et l'import au premier contrat lu ; cette fiche ne la dit pas, et elle ne se devine \
-pas. La saisir sur la fiche : le jour ou la personne est entree dans la compagnie.",
+compte l'anciennete declaree en S21.G00.86.003. C'est le jour de son embauche, que la validation de son premier \
+engagement pose et l'import au premier contrat lu ; cette fiche ne la dit pas, et elle ne se devine pas. La saisir sur \
+la fiche : le jour ou la personne est entree dans la compagnie.",
             qui_fiche(s, cle)
         ));
     };

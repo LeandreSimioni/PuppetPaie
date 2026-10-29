@@ -605,6 +605,33 @@ function raresDuBloc(div, e) {
   });
 }
 
+/* LES CASES DU CONTRAT ÉCRIT (`.e-ecrit`) : la valeur que l'engagement porte.
+ * Une case se montre quand le moteur la demande pour cet engagement
+ * (`montrerEcrit`, après chaque aperçu), ou quand elle a déjà une valeur :
+ * rien de saisi ne devient invisible. */
+function poserEcrit(div, e) {
+  div.querySelectorAll(".e-ecrit-champ").forEach((c) => {
+    c.value = e[c.dataset.cle] ?? "";
+    c.onchange = rafraichirApercu;
+  });
+  montrerEcrit(div, []);
+}
+
+function montrerEcrit(div, demandes) {
+  div.querySelectorAll(".e-ecrit [data-ecrit]").forEach((l) => {
+    const c = l.querySelector(".e-ecrit-champ");
+    l.hidden = !(demandes || []).includes(l.dataset.ecrit) && c.value.trim() === "";
+  });
+}
+
+/** Ce que les cases du contrat écrit écrivent. */
+function ecritDuBloc(div, e) {
+  div.querySelectorAll(".e-ecrit-champ").forEach((c) => {
+    const v = c.value.trim();
+    if (v !== "") e[c.dataset.cle] = c.dataset.type === "number" ? +v : v;
+  });
+}
+
 /* LES TERMES DU CONTRAT AVANT UN AVENANT EN COURS DE MOIS (`avant`,
  * periodes.rs : le salaire mensuel et la quotité d'avant, sur lesquels se paie
  * la période d'avant l'avenant). Ils se montrent quand l'engagement les porte,
@@ -956,6 +983,22 @@ function construireCarte(div, e) {
            se saisit comme un CDD d'usage, avec tout ce qui va avec. -->
       <label class="e-recours-bloc" hidden>Motif de recours
         <select class="e-recours"></select></label>
+      <!-- CE QUE LE CONTRAT ÉCRIT DE CET ENGAGEMENT DIT EN PLUS (le modèle
+           le remplit avec le reste). Le moteur dit quelles cases cet
+           engagement appelle (\`contrat.ecrits\` de l'aperçu,
+           routes/mois.rs) : la période d'essai et les clauses de tout
+           contrat écrit, la personne remplacée d'un remplacement, la
+           répartition des horaires d'un temps partiel. -->
+      <div class="e-ecrit">
+        <label data-ecrit="periode_essai_jours" hidden title="la durée de la période d'essai que le contrat prévoit ; vide : aucune">Période d'essai (jours)
+          <input type="number" min="0" step="1" class="e-ecrit-champ" data-cle="periode_essai_jours" data-type="number"></label>
+        <label data-ecrit="personne_remplacee" hidden title="le contrat d'un remplacement nomme la personne remplacée et sa qualification (L. 1242-12, 1°)">Personne remplacée
+          <input type="text" class="e-ecrit-champ" data-cle="personne_remplacee" placeholder="nom, qualification"></label>
+        <label data-ecrit="repartition_horaire" hidden title="à temps partiel, le contrat dit la répartition des heures entre les jours de la semaine ou les semaines du mois (L. 3123-6)">Répartition des horaires
+          <input type="text" class="e-ecrit-champ" data-cle="repartition_horaire" placeholder="ex. lundi, mardi et jeudi, de 9 h à 17 h"></label>
+        <label data-ecrit="clauses_particulieres" hidden title="à la place des clauses particulières de la compagnie (Configuration › Modèles de contrat)">Clauses particulières de ce contrat
+          <textarea rows="2" class="e-ecrit-champ" data-cle="clauses_particulieres" placeholder="vide : celles de la compagnie"></textarea></label>
+      </div>
       <!-- LA FIN D'UN CONTRAT QUI SE SIGNALE (19/09/2026). Trois faits que
            le moteur ne devine pas, et il a raison de ne pas les deviner :
            une date de notification ne se déduit pas d'un salaire, et le
@@ -1102,6 +1145,7 @@ function construireCarte(div, e) {
   div.querySelector(".e-date-modification").value = e.date_modification || "";
   poserAvant(div, e);
   poserRares(div, e);
+  poserEcrit(div, e);
   remplirFaits(div, e);
   div.querySelectorAll(".ajouter-fait").forEach((b) => {
     b.onclick = (ev) => {
@@ -1179,6 +1223,7 @@ function construireCarte(div, e) {
   const nat = natureDe(selNat.value);
   div.querySelector(".e-options").hidden = !(e.metier || e.cadre != null
     || CHAMPS_RARES.some((c) => aUneValeur(e[c.cle]))
+    || ["periode_essai_jours", "personne_remplacee", "repartition_horaire", "clauses_particulieres"].some((c) => aUneValeur(e[c]))
     || nat.mensuelle || e.debut && e.debut.slice(0, 7) < (document.getElementById("mois").value || "")
     || e.motif_recours || e.motif_rupture);
   return div;
@@ -1472,11 +1517,9 @@ function nouvelleFiche(nom) {
   CLE_ACTIVE = null;
   FICHE_NEUVE = true;
   dessinerConfig();
-  // L'ancienneté d'une fiche neuve : le jour du moteur (le moteur la pose
-  // aussi à l'enregistrement si elle est vide), à changer au besoin.
-  const donnees = nom === "salarie"
-    ? { actif: true, date_anciennete: aujourdhuiIso() }
-    : { actif: true };
+  // L'ancienneté d'une fiche neuve : celle de son embauche, que le moteur
+  // pose à la validation de son premier engagement (à changer, dans Avancé).
+  const donnees = { actif: true };
   dessinerFormulaire({ nom, cle: null, donnees, anomalies: [] });
   document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
 }

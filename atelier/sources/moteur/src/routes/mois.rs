@@ -2100,6 +2100,26 @@ fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
     })
 }
 
+/// LES CASES DU CONTRAT ECRIT QUE CET ENGAGEMENT APPELLE (`engagement::CHAMPS_DU_CONTRAT_ECRIT`), et elles seules : la
+/// periode d'essai et les clauses particulieres de tout contrat ecrit ; la personne remplacee d'un CDD de remplacement
+/// (L1242-12, 1° ; `Nature::motif_de_remplacement`) ; la repartition des horaires d'un temps partiel (L3123-6, 1° : la
+/// modalite 20 de S21.G00.40.014, `Engagement::modalite_temps_travail`). Un engagement dont le contrat ne se fait pas
+/// signer ici (`engagement::contrat_a_signer`) n'en a aucune.
+fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &droit::natures::Nature) -> R<Vec<&'static str>> {
+    if !engagement::contrat_a_signer(&ctx.racine, e)? {
+        return Ok(Vec::new());
+    }
+    let mut v = vec!["periode_essai_jours"];
+    if e.motif_recours.as_deref().is_some_and(|m| nat.motif_de_remplacement(m)) {
+        v.push("personne_remplacee");
+    }
+    if nat.mensuelle() && e.modalite_temps_travail()? == "20" {
+        v.push("repartition_horaire");
+    }
+    v.push("clauses_particulieres");
+    Ok(v)
+}
+
 /// Une paie pour l'ecran. `brut` : l'engagement tel qu'il
 /// est ecrit dans la saisie ; `mois` : le mois du fichier (pour `lieu` et
 /// `taux_cachet`, gardes tels qu'ecrits).
@@ -2153,6 +2173,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
             "depuis": mois_du_contrat.first().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
             "jusqu_a": mois_du_contrat.last().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
             "periode": { "debut": iso(&e.debut_periode()?), "fin": iso(&e.fin_periode()?) },
+            "ecrits": champs_du_contrat_ecrit(ctx, e, &nat)?,
         },
         "dates_travail": e.dates_travail.iter().map(iso).collect::<Vec<_>>(),
         "cachets": e.cachets, "taux_cachet": taux_cachet,

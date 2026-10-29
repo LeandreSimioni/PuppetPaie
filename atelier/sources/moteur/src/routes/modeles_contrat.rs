@@ -90,14 +90,22 @@ fn modeles(ctx: &Contexte) -> R<Value> {
         for quoi in ["contrat", "avenant"] {
             let (_, nom) = nom_du_modele(&nat.cle, quoi)?;
             let a_soi = propre(ctx, &nom);
-            let verdict = match &a_soi {
+            let (verdict, texte) = match &a_soi {
                 Some(p) => match std::fs::read_to_string(p) {
-                    Ok(t) => verifier(&nat, quoi, &nom, &t).err(),
-                    Err(e) => Some(format!("{} ne se lit pas : {}", p.display(), e)),
+                    Ok(t) => (verifier(&nat, quoi, &nom, &t).err(), Some(t)),
+                    Err(e) => (Some(format!("{} ne se lit pas : {}", p.display(), e)), None),
                 },
-                None => None,
+                None => (None, None),
             };
-            pieces.push(json!({"quoi": quoi, "nom": nom, "propre": a_soi.is_some(), "refus": verdict}));
+            // CE QUE LA PASTILLE DIT, et sa couleur (`couleur_de_l_etat`) : le modele de la compagnie, bon ou refuse ; le
+            // modele du logiciel, une information.
+            let (etat, mots) = match (&a_soi, &verdict) {
+                (Some(_), Some(_)) => ("refuse", "le modèle de la compagnie, refusé"),
+                (Some(_), None) => ("fait", "le modèle de la compagnie"),
+                (None, _) => ("info", "le modèle du logiciel"),
+            };
+            pieces.push(json!({"quoi": quoi, "nom": nom, "propre": a_soi.is_some(), "refus": verdict, "texte": texte,
+                               "pastille": {"couleur": crate::routes::couleur_de_l_etat(etat), "mots": mots}}));
         }
         let mut champs = documents::contrat_ecrit::champs_des_modeles(&nat);
         champs.extend(CHAMPS_DU_REMPLACEMENT.iter().map(|c| json!({"marqueur": format!("{{{{{}}}}}", c), "quoi": "le contrat remplacé (bloc ANNULE: seulement)", "obligatoire": false})));

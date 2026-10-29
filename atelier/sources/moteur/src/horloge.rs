@@ -793,6 +793,10 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
                 continue;
             }
             engagement::etats::valider(ctx, mois, i).map_err(Echec::from)?;
+            let brut = Value::Object(o.brut.clone());
+            if let Some(cle) = engagement::cle_de_l_engagement(ctx, &brut) {
+                crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(&brut))?;
+            }
             fait = true;
         }
         Ok(fait)

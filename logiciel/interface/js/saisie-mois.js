@@ -144,6 +144,7 @@ function engagementsDuBloc(div, mois) {
     // de paiement propre au contrat, son lieu, l'emploi et les statuts
     // déclarés… (`CHAMPS_RARES`).
     raresDuBloc(div, e);
+    ecritDuBloc(div, e);
     return e;
   });
 }
@@ -234,6 +235,8 @@ async function calculerApercu(lu) {
       // UN CONTRAT SUR PLUSIEURS MOIS : le chevron au bord de
       // la case, d'après ce que le moteur rend (`poserChevrons`).
       if (p) poserChevrons(div, p.contrat, p.debut, p.fin);
+      // Les cases du contrat écrit que le moteur demande pour cet engagement.
+      montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
       div.querySelector(".resolu").innerHTML = p
         ? `${p.contrat && p.contrat.sans_paie
              ? `<b>aucun cachet ce mois-ci</b> — pas de bulletin, la DSN porte le contrat`

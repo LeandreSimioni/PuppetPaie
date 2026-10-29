@@ -826,17 +826,31 @@ pub(crate) fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resulta
         statut_conventionnel: eng.statut_conventionnel.clone(),
         statut_categoriel_rc: eng.statut_categoriel_rc.clone(),
     };
-    if nat.mensuelle() {
+    let fiche = if nat.mensuelle() {
         // La fiche de la derniere periode elementaire : un mois decoupe declare la derniere valeur connue
         // (norme DSN 2026.1, § 2.1.2.4, p. 22) ; un mois d'un seul tenant, la periode de paie entiere. La dispense de
         // sante se lit sur ces memes bornes (`dispense_de_la_periode`).
         let (debut, fin) = *crate::periodes::bornes(ctx, eng)?.last().ok_or("aucune periode de paie")?;
         let du_mois = droit::emplois::emploi_du_mois(ctx, &cle, &debut, &fin)?;
         let fiche = dispense_de_la_periode(emploi_de(&du_mois, &emploi)?, &debut, &fin)?;
-        sante_de_la_suspension(ctx, eng, fiche)
+        sante_de_la_suspension(ctx, eng, fiche)?
     } else {
-        emploi_de(&ctx.salarie_au(&cle, &eng.debut)?, &emploi)
+        emploi_de(&ctx.salarie_au(&cle, &eng.debut)?, &emploi)?
+    };
+    Ok(anciennete_a_l_embauche(fiche, eng))
+}
+
+/// L'ANCIENNETE DANS L'ENTREPRISE (S21.G00.86.003, `norme-dsn/texte/bloc-S21.G00.86.txt`) d'une fiche qui ne la date pas
+/// encore : elle part de l'embauche, le premier jour de ce contrat, qui est le premier du salarie (la validation de son
+/// premier engagement la pose sur sa fiche, `moteur::routes::fiches::poser_anciennete_a_l_embauche`, ou elle se change).
+/// INFERENCE : l'anciennete dans l'entreprise commence a l'entree dans l'entreprise.
+fn anciennete_a_l_embauche(mut fiche: Value, eng: &Engagement) -> Value {
+    if let Some(o) = fiche.as_object_mut() {
+        if !o.get("date_anciennete").is_some_and(vrai) {
+            o.insert("date_anciennete".into(), Value::String(eng.debut.iso()));
+        }
     }
+    fiche
 }
 
 /// La cle de la fiche du salarie de `eng`.

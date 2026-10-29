@@ -125,12 +125,19 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
     // reference, c'est un temps partiel, dont le contrat dit la repartition (L3123-6, 1°).
     let q = texte(eng, "quotite_contrat").or_else(|| texte(eng, "quotite")).ok_or_else(|| format!("Le contrat de {} ne dit pas sa durée du travail (heures par mois). Rien n'est écrit.", nom))?;
     let q = dec(&json!(q))?;
-    let reference = match texte(eng, "quotite_reference_saisie") {
-        Some(r) => dec(&json!(r))?,
-        None => nat.quotite_reference_defaut.map(|r| dec(&json!(r))).transpose()?.unwrap_or(q),
+    // Le temps partiel comme la DSN le declare (S21.G00.40.014, `Engagement::modalite_temps_travail`) : la modalite
+    // saisie, sinon une quotite sous la reference de l'entreprise, plafonnee a la duree legale.
+    let legale = nat.quotite_reference_defaut.map(|r| dec(&json!(r))).transpose()?;
+    let reference = match (texte(eng, "quotite_reference_saisie").map(|r| dec(&json!(r))).transpose()?, legale) {
+        (Some(r), Some(l)) => r.min(l),
+        (r, l) => r.or(l).unwrap_or(q),
+    };
+    let partiel = match texte(eng, "modalite_temps_travail_saisie") {
+        Some(m) => m == "20",
+        None => q < reference,
     };
     let mut duree = format!("{} heures par mois", heures(q));
-    if q < reference {
+    if partiel {
         let repartition = ecrit(eng, "repartition_horaire").ok_or_else(|| {
             format!(
                 "Le contrat de {} est à temps partiel ({} heures par mois, pour {} à temps plein) : il dit « la répartition de la durée du travail entre les jours de la semaine ou les semaines du mois » (L. 3123-6, 1°). L'écrire dans l'engagement (Plus d'options › Répartition des horaires). Rien n'est écrit.",
