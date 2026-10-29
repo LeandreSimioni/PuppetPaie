@@ -168,13 +168,14 @@ Ce que ça impose au moteur :
 
 - `dates_engagement` (`engagement/src/lib.rs`) est le **seul endroit** qui sache où
   chercher les jours d'un engagement : dans ses lignes, et nulle part
-  ailleurs. `charger` passe par lui, et le décompte des droits (`cumul.rs`) lit ce qu'il a chargé.
+  ailleurs. La lecture d'un engagement (`Engagement::nouveau`) passe par lui, et le décompte des droits (`cumul.rs`)
+  lit ce qu'elle a lu.
 - **Une seule écriture.** `Engagement` exige
   `lignes` ; `cachets` et `heures` en sont **dérivés** (l'AEM, le bloc 53 de
   la DSN, le plafond et `cumul` les lisent toujours), `taux_cachet` est le
-  taux de la première ligne `cachet`, `taux_horaire` n'existe plus. Un
+  taux de la première ligne `cachet`. Un
   engagement portant `dates`, `cachets`, `heures` ou `taux_horaire` est
-  refusé par `charger`, qui dit ce qu'il a vu et ce qu'une saisie porte.
+  refusé, avec ce que le moteur a vu et ce qu'une saisie porte.
 - `date::d` (`socle/src/date.rs`) accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
   date : une date détaillée est une date, tout ce qui parcourt des jours
   continue de marcher sans le savoir.
@@ -193,27 +194,27 @@ Ce que ça impose au moteur :
 
 Trois fichiers de données livrés avec le moteur, et une règle : **toute
 donnée réglementaire part d'une source officielle téléchargée, décrite,
-datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
+datée, vérifiable**.
 
-- `moteur/nomenclature-emplois-ft.json` — les **1 236 codes emploi** France
+- `logiciel/donnees/nomenclature-emplois-ft.json` — les **1 236 codes emploi** France
   Travail (annexes 8 et 10), **générés** depuis le PDF de la nomenclature.
-- `moteur/emplois-base.json` — **129 métiers du spectacle vivant** en onze
+- `logiciel/donnees/emplois-base.json` — **129 métiers du spectacle vivant** en onze
   familles. Chaque métier : libellé (et féminin), `emploi` officiel
   (S21.G00.40.006), `pcs_ese` (40.004, depuis les fiches Insee), `statut`
   (déduit de l'annexe, jamais saisi), `cadre_par_defaut`,
   `statut_conventionnel` (40.002 : cadre → 04, artiste et agent de maîtrise
   → 05, administratif non cadre → 06, employé technique → 07),
-  `classification_3090` et `minima`. `emplois.resoudre(code, cadre, feminin)`
+  `classification_3090` et `minima`. `droit::emplois::resoudre(code, cadre, feminin)`
   rend sept champs : les six déclarés et le libellé lisible
-  (`emploi_affichage`, au féminin si la fiche dit sexe 2). `engagements` les
+  (`emploi_affichage`, au féminin si la fiche dit sexe 2). La lecture de l'engagement les
   pose tous les sept sur l'engagement, sauf ce que l'engagement écrit
   lui-même (un `emploi` écrit à la main ne garde pas le libellé du métier) ;
-  `emploi_de` les reporte sur la fiche de cet engagement, et le contrat lit
+  `emplois::emploi_de` les reporte sur la fiche de cet engagement, et le contrat lit
   le libellé de là. Le cadre se combine au statut.
-- `moteur/minima-conventionnels.json` — les grilles de la **3090** (annexes
+- `logiciel/donnees/minima-conventionnels.json` — les grilles de la **3090** (annexes
   1, 2, 4, 5 et clauses communes) et de la **1285** (cachet, répétition,
   cirque, musiciens, lyrique, chœur ; NAO 2026 sous `non_etendu`).
-  `minima.avertissements(ctx, paie)` compare chaque ligne à son plancher et
+  `engagement::minima::avertissements` compare chaque ligne à son plancher et
   rend une phrase, jamais un refus. **Toute inconnue tire vers le bas** :
   jauge minimale, palier du mois pour un barème trimestriel, la plus basse
   des annexes quand la fiche entreprise ne dit pas la sienne
@@ -222,7 +223,7 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
 - `logiciel/donnees/sources.json` — le **manifeste** : pour chaque source, titre,
   éditeur, URL, description, version et d'où on la lit, date de relevé,
   fichier de la copie (dans `atelier/reference/sources/`, versionnée dans le
-  dépôt depuis le 15/10/2026 ; l'original d'un organisme privé n'y est pas, seule
+  dépôt ; l'original d'un organisme privé n'y est pas, seule
   sa transcription), SHA-256, mode de vérification, et
   quels fichiers de données elle nourrit. `moteur sources --verifier`
   (poste de l'éditeur seulement, `moteur/src/atelier/sources.rs`) retélécharge et compare ; une source `changee` est à RELIRE
@@ -276,19 +277,9 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
   la base entière, 180 Mo, la première fois ou pour une convention nouvelle),
   `article <IDCC> <numéro>…`, `chercher <IDCC> <mot>`.
 
-  Ce que ce dernier verbe a trouvé le 21/09/2026, et qu'un relevé sans
-  comparaison aurait laissé passer : sur huit articles changés, **un seul
-  changement touchait la paie de près** — le taux de L137-12, passé de 30 à
-  40 % —, `L242-1` perdant un alinéa sans que son 7°, le seul dont le moteur
-  dépende, bouge d'un mot.
+## Le barème, lu sur un bulletin
 
-Ce que la confrontation à CoolPaie a montré (`reference-privee/professions-coolpaie.md (relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé)`) :
-les 51 codes PE concordent ; CoolPaie met l'accessoiriste en PCS `637d`,
-l'Insee dit `637c` ; sa colonne « abat. » n'est pas la DFS réglementaire.
-
-## Le barème, et comment il a été retrouvé
-
-Point de départ : le bulletin FAVART de juin 2026, brut 260,00 €.
+Un bulletin d'artiste au cachet, brut 260,00 €, dans la convention 3090 :
 
 | Rubrique | Base | Patronal | Salarial |
 |---|---|---|---|
@@ -313,9 +304,8 @@ Les taux de vieillesse et de famille sont les taux de droit commun réduits de
 5,985 ≈ 5,990 ; 6,90 × 0,70 = 4,83 ; 5,25 × 0,70 = 3,675 ≈ 3,680).
 
 **Le plafond de Sécurité sociale est dans le barème** (`plafond_securite_sociale`
-: `{"mensuel": 4005, "horaire": 30}`, source BOSS), depuis le 16/09/2026 —
-c'était la seule valeur réglementaire qui vivait dans le code. Le module
-(`droit/src/plafond.rs`) ne porte plus que la règle, et
+: `{"mensuel": 4005, "horaire": 30}`, source BOSS). Le module
+(`droit/src/plafond.rs`) ne porte que la règle, et
 `calcul::plafond_de_l_engagement` en est la seule source : le bas du bulletin,
 les bases du calcul, la DSN et le bordereau la suivent. La règle, telle que
 le module la dit avec ses textes (`atelier/reference/sources/`) :
@@ -331,18 +321,15 @@ le module la dit avec ses textes (`atelier/reference/sources/`) :
   l'établissement y renonce (`plafond_temps_partiel` : « entier ») ; un
   artiste à temps partiel garde le plafond entier (BOSS § 1090). Le choix se
   déclare en `S21.G00.40.084` à partir de P27V01 (`calcul::plafond_temps_partiel`,
-  `dsn::proratisation_du_plafond` ; lots V4b et R5a).
+  `dsn::proratisation_du_plafond`).
 
 Sur ce plafond s'assoient, pour un intermittent, la vieillesse plafonnée, le
 FNAL (`brut_plafonne`, `brut_x115_plafonne`) et le chômage, dans la limite de
 quatre plafonds (`brut_chomage`) ; pour un permanent, les tranches et le
-chômage, dans la limite de quatre plafonds de la période (`brut_chomage`, lot
-V2e).
+chômage, dans la limite de quatre plafonds de la période (`brut_chomage`).
 
-**Une valeur du barème peut être datée.** Le SMIC l'a toujours été
-(`smic_horaire`, liste de `{depuis, valeur}`) ; depuis le 16/09/2026 toute
-valeur peut l'être — un taux, un plafond — parce que les DSN de CoolPaie
-montrent des changements en cours d'année (AGS 0,20 → 0,25 au 01/07/2024,
+**Une valeur du barème peut être datée** : le SMIC (`smic_horaire`, liste de `{depuis, valeur}`), et toute autre
+valeur — un taux, un plafond —, parce que le droit change en cours d'année (AGS 0,20 → 0,25 au 01/07/2024,
 chômage 11,45 → 11,40 au 01/06/2025) :
 
 ```json
@@ -350,8 +337,8 @@ chômage 11,45 → 11,40 au 01/06/2025) :
          {"depuis": "2024-07-01", "valeur": 0.25}]
 ```
 
-`Contexte.bareme(date)` rend le barème **résolu à cette date** ; `calcul` et
-`dsn` lisent des nombres et n'en savent rien. Une date antérieure à toute
+`Contexte::bareme(jour)` rend le barème **résolu à cette date** ; le calcul et
+la DSN lisent des nombres et n'en savent rien. Une date antérieure à toute
 entrée est un refus, pas un zéro.
 
 **La configuration de la compagnie est datée de même.** Chaque valeur d'une
@@ -397,14 +384,12 @@ cotisation prévoyance `059` de la DSN (0,420 + 0,810 ; « Cotisation individuel
 
 ## Le SMIC déclaré en DSN (composant 01 de la base 03)
 
-Cette section s'appelait « Le plafond déclaré en DSN » : ce n'est pas un
-plafond. `S21.G00.79.001 = '01'` est le « Montant du SMIC retenu pour le
+Ce n'est pas un plafond. `S21.G00.79.001 = '01'` est le « Montant du SMIC retenu pour le
 calcul de la Réduction générale », rattaché à une base 03 (cahier technique
-2026.1, p. 299-300 ; `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt` ;
-fiche N3 de `prive/journal/norme/`).
+2026.1, p. 299-300 ; `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt`).
 
-Dans les DSN de CoolPaie, il valait **SMIC horaire × 7 h × nombre de
-cachets**. Vérifié sur soixante-dix contrats de 2021 à 2026 : la valeur par
+Dans des DSN acceptées d'une compagnie, il vaut **SMIC horaire × 7 h × nombre de
+cachets**. Vu sur soixante-dix contrats de 2021 à 2026 : la valeur par
 cachet suit exactement les revalorisations du SMIC (10,25 → 10,48 → 10,57 →
 10,85 → 11,07 → 11,27 → 11,65 → 11,88 → 12,02 → 12,31), et pour les contrats
 payés à l'heure c'est SMIC × nombre d'heures — 52 h en octobre 2025, 140 h en
@@ -414,17 +399,16 @@ Le moteur (`dsn::bases_et_cotisations`) écrit sous chaque base 03 le SMIC de
 référence de la réduction générale quand la paie en a une
 (`ReductionGenerale::smic_reference`), sinon `Paie::plafond` — qui, malgré
 son nom, n'est pas un plafond de Sécurité sociale mais le SMIC horaire × les
-heures de la paie (`calcul::calculer`, « 7.5 » ; les heures d'un intermittent
-bornées à `heures_par_cachet` × jours) : la valeur de CoolPaie. Un artiste n'a
-pas de réduction générale et reçoit quand même ce composant (reste #41 de
-`prive/journal/RESTES-A-FINALISER.md`). Le plafond de Sécurité sociale est
+heures de la paie (`engagement/src/calcul.rs`, « 7.5 » ; les heures d'un intermittent
+bornées à `heures_par_cachet` × jours) : la valeur que ces DSN montrent. Un artiste n'a
+pas de réduction générale et reçoit quand même ce composant. Le plafond de Sécurité sociale est
 décrit plus haut, avec le barème.
 
 ## L'AEM V5
 
-Enregistrements de 1000 caractères, latin-1, séparés par CRLF. Zones
-que l'import relit (`moteur/src/import/dsn_aem.rs`, `lire_aem` ; la compagnie est en 100 % DSN et n'en émet
-aucune). La queue numérique est celle-ci :
+Le moteur n'émet pas d'AEM : il relit, à l'import, celles qu'un ancien logiciel a déposées
+(`moteur/src/import/dsn_aem.rs`, `lire_aem`). Enregistrements de 1000 caractères, latin-1, séparés par CRLF. La
+queue numérique est celle-ci :
 
 | Position | Contenu |
 |---|---|
@@ -438,28 +422,20 @@ aucune). La queue numérique est celle-ci :
 | 690-712 | zéros |
 | 712-721 | même montant |
 
-Ce schéma a été testé sur les 189 enregistrements émis depuis 2021 : 189/189
-conformes. C'est l'arrondi à l'euro, et non au centime, qui bloquait au départ
-(119,79 → 120, 7,29 → 7, 36,30 → 36).
+Ce schéma se vérifie sur 189 enregistrements déposés de 2021 à 2026 : 189/189. La contribution est arrondie à
+l'euro, non au centime (119,79 → 120, 7,29 → 7, 36,30 → 36).
 
-### Les positions 650-659, élucidées
+### Les positions 650-659
 
-Elles se lisaient mal parce qu'un contrat au cachet pur a autant de jours que
-de cachets : `00002` + `0002` se laissait interpréter comme « 2 heures, 2
-cachets », et 168 des 189 enregistrements sont dans ce cas. Les contrats mixtes
-trahissaient l'erreur (`01201`, `02401`, `01604`…).
+Le formulaire officiel de l'AEM V5 donne les trois champs accolés : **Nombre d'HEURES effectuées**, **Nombre de
+CACHETS**, **Nombre de JOURS travaillés**, en 3 / 2 / 4 caractères. Un contrat au cachet pur a autant de jours que
+de cachets (`000` `02` `0002`) ; un contrat mixte les distingue : `012` `01` `0004` = 12 heures, 1 cachet, 4 jours
+travaillés, pour un brut de 370 € = 130 € de cachet + 12 h à 20 €.
 
-Le formulaire officiel imprimé par CoolPaie (`affichage/aemV5/aemV501.pdf`)
-donne les trois champs accolés : **Nombre d'HEURES effectuées**, **Nombre de
-CACHETS**, **Nombre de JOURS travaillés**. La découpe 3 / 2 / 4 est cohérente
-sur 185 des 189 enregistrements — les 4 restants sont un même contrat de
-décembre 2021 au format antérieur.
+`lire_aem` lit 650-653 en heures, 653-655 et 655-657 en cachets (les deux zones sommées) et 657-659 en jours : sur
+une AEM où les jours tiennent en deux chiffres, c'est la même lecture.
 
-Exemple, le contrat du 23 au 26 août 2026 : `012` `01` `0004` = 12 heures,
-1 cachet, 4 jours travaillés. Brut 370 € = 130 € de cachet + 12 h à 20 €.
-
-Le moteur calcule donc ces trois champs au lieu de recopier une valeur
-inexpliquée. Un contrat mixte se saisit avec une ligne `cachet` **et** une
+Un contrat mixte se saisit avec une ligne `cachet` **et** une
 ligne `heure`, chacune à son taux : le taux du cachet ne s'applique pas aux
 heures.
 
@@ -472,11 +448,9 @@ l'engagement) : on peut jouer un cachet réparti sur trois jours, ou deux
 cachets le même jour. À défaut, les jours valent le nombre de dates jouées
 **distinctes**.
 
-Ces trois valeurs partent dans l'AEM (positions 650-659), dans la DSN (bloc
+Ces trois valeurs partent dans la DSN (bloc
 `S21.G00.53` : unité 12 journée, 37 cachets, 35 heures) et dans les droits
-(`cumul.rs`). Aucune de ces destinations ne les recalcule — la DSN le faisait
-pour les jours jusqu'au 20/09/2026, et déclarait donc autre chose que
-l'attestation dès que les deux différaient. Un engagement qui porte des
+(`cumul.rs`). Aucune de ces destinations ne les recalcule. Un engagement qui porte des
 lignes de paie et **zéro jour** est refusé : l'unité 12 ouvre les droits du
 salarié, et un mois payé en compte au moins un. Un mois du contrat sans paye
 (`lignes: []`) et un contrat mensuel, qui compte en heures, en sont exclus.
