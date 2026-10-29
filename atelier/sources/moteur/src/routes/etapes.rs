@@ -113,6 +113,9 @@ fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
 /// Le point d'un engagement auquel il manque un fait, sur chacune de ses lignes.
 const A_COMPLETER: &str = "a_completer";
 
+/// Le point des documents d'un mois dont le jour du paiement n'est pas venu (`etats.documents.a_venir`).
+const A_VENIR: &str = "a_venir";
+
 #[derive(Clone, Copy)]
 struct Point {
     dpae: &'static str,
@@ -162,6 +165,8 @@ impl Point {
             "a_renvoyer"
         } else if vrai(&o["fait"]) {
             "fait"
+        } else if vrai(&o["a_venir"]) {
+            A_VENIR
         } else {
             "a_envoyer"
         };
@@ -877,7 +882,21 @@ impl<'a> Moteur<'a> {
                 };
                 signature["cdi_en_cours"] = json!({"depuis": depuis, "signe_en": signe_en});
             }
-            let documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
+            let mut documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
+            // LES DOCUMENTS SE REMETTENT AU PAIEMENT : « Lors du paiement du salaire, l'employeur remet [...] une piece
+            // justificative dite bulletin de paie » (C. trav., art. L. 3243-2,
+            // atelier/reference/sources/code-du-travail/xml/L3243-2.xml). Le jour du paiement est celui que le bulletin
+            // imprime (`date_paiement`, a defaut la fin de la periode) ; avant lui, ce qui n'est pas parti est a venir.
+            if !vrai(&documents["fait"]) {
+                let paye_le = match p.engagement.date_paiement.as_deref().filter(|d| !d.is_empty()) {
+                    Some(d) => Jour::lire(d).map_err(plain)?,
+                    None => p.engagement.fin_periode().map_err(plain)?,
+                };
+                if paye_le.ordinal() > self.ctx.aujourdhui.ordinal() {
+                    let source = "Code du travail, art. L. 3243-2 (atelier/reference/sources/code-du-travail/xml/L3243-2.xml)";
+                    documents["a_venir"] = droit::echeances::Echeance { jour: paye_le, mots: "à remettre le", heure: "", source: source.into() }.en_json();
+                }
+            }
             ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents}));
             let vue = Value::Object(ligne.clone());
             ligne.insert("carres".into(), carres(&vue));
@@ -1359,10 +1378,15 @@ impl<'a> Moteur<'a> {
 
         // --- Documents : par salarie du mois, des que son engagement est valide.
         let mut documents = Vec::new();
-        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.documents, &["a_renvoyer", "a_envoyer", A_COMPLETER])) {
+        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.documents, &["a_renvoyer", "a_envoyer", A_COMPLETER, A_VENIR])) {
             let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].documents == point).map(|(p, _)| p).collect();
             let n = siens.iter().map(|p| valeur_en_texte(&p["salarie"])).collect::<BTreeSet<String>>().len();
             let g = match point.as_str() {
+                // Le jour du paiement n'est pas venu : rien a faire encore, le premier jour le dit.
+                A_VENIR => {
+                    let jour = siens.iter().map(|p| &p["etats"]["documents"]["a_venir"]).filter(|e| e.is_object()).min_by_key(|e| valeur_en_texte(&e["jour"])).cloned().unwrap_or(Value::Null);
+                    groupe(A_VENIR, Value::Null, String::new(), "à venir".into(), jour, Value::Null)
+                }
                 "a_renvoyer" => groupe("a_faire", json!(n), n.to_string(), "à renvoyer".into(), Value::Null, action("envoyer_documents", format!("Renvoyer les documents corrigés ({})…", n))),
                 "a_envoyer" => groupe("a_faire", json!(n), n.to_string(), "à envoyer".into(), Value::Null, action("envoyer_documents", "Envoyer les documents…".into())),
                 // Ce qui reste a completer se compte en engagements, comme a la DPAE.
@@ -1767,6 +1791,7 @@ fn carres(p: &Value) -> Value {
     let (etat, phrase, geste) = match pt.documents {
         "a_renvoyer" => ("a_faire", format!("Documents à renvoyer : {}", valeur_en_texte(&o["pourquoi"])), action("envoyer_documents", "Renvoyer les documents corrigés…".into())),
         "a_envoyer" => ("a_faire", "Documents à envoyer".to_string(), action("envoyer_documents", "Envoyer les documents…".into())),
+        A_VENIR => (A_VENIR, format!("Documents {}, jour du paiement", valeur_en_texte(&o["a_venir"]["texte"])), Value::Null),
         _ => ("fait", format!("Documents partis {}", le_jour(&o["fait"])), Value::Null),
     };
     let documents = json!({"cle": DOCUMENTS, "nom": "Documents", "etat": etat, "phrase": phrase, "action": geste});
@@ -1774,7 +1799,7 @@ fn carres(p: &Value) -> Value {
     let restes = [
         match pt.dpae { "refuse" => "refusée", "a_faire" => "à déposer", _ => "" },
         match pt.contrat { "a_envoyer" => "à envoyer", "a_refaire" => "à refaire signer", "en_attente" => "signature attendue", _ => "" },
-        match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", _ => "" },
+        match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", A_VENIR => "à venir", _ => "" },
     ];
     let mut tous = [dpae, contrat, documents];
     for (c, reste) in tous.iter_mut().zip(restes) {
