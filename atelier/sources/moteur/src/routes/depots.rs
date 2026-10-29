@@ -681,7 +681,7 @@ pub(crate) fn filet_preparer(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 /// `filet_preparer` avec, au besoin, le client Urssaf que l'appelant donne pour le test automatique des DPAE (la preuve de
-/// l'ouverture, lot I2b : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
+/// l'ouverture : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
 pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Option<&mut envois::releve_retours::Client>) -> R<Value> {
     let tester = charge.get("tester").map_or(true, vrai);
     let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());

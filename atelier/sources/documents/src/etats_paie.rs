@@ -95,7 +95,7 @@ pub fn mois_importes(ctx: &Contexte) -> R<BTreeSet<String>> {
     Ok(tous.iter().flat_map(|i| i.paies().into_keys()).collect())
 }
 
-/// `operations_exports._libelle_periode`.
+/// Le libelle de la periode d'un etat : un mois, une annee, ou toutes les annees (de la premiere a la derniere).
 fn libelle_periode(mois: &[String], un_mois: &Option<String>, annee: &Option<String>, toutes: bool) -> R<String> {
     if toutes {
         let annees: BTreeSet<String> = mois.iter().map(|m| m.chars().take(4).collect()).collect();
@@ -110,7 +110,8 @@ fn libelle_periode(mois: &[String], un_mois: &Option<String>, annee: &Option<Str
 }
 
 impl Periode {
-    /// `Periode(ctx, mois, annee, toutes_les_annees, obligatoire=...)`.
+    /// La periode d'un etat : un mois, une annee, ou toutes les annees. `obligatoire` : ses mois sont ceux que la compagnie
+    /// a (`mois_pris`), sinon ceux que la demande nomme.
     pub fn nouvelle(ctx: &Contexte, mois: Option<&str>, annee: Option<&str>, toutes: bool, obligatoire: bool) -> R<Periode> {
         let mois = mois.filter(|m| !m.is_empty()).map(str::to_string);
         let annee = annee.filter(|a| !a.is_empty()).map(str::to_string);
@@ -142,7 +143,7 @@ impl Periode {
         Ok(Periode { dispo, un_mois: mois, annee, toutes, mois: pris, libelle, importes })
     }
 
-    /// `Periode(ctx, mois, annee, toutes)` d'une demande.
+    /// La periode d'une demande (`mois`, `annee`, `toutes`).
     pub fn de(ctx: &Contexte, d: &Demande, obligatoire: bool) -> R<Periode> {
         Periode::nouvelle(ctx, d.mois.as_deref(), d.annee.as_deref(), d.toutes, obligatoire)
     }
@@ -576,7 +577,7 @@ fn grouper(lignes: &[LigneLivre], regroupement: &str) -> R<Vec<Groupe>> {
     Ok(out)
 }
 
-/// `operations_exports.livre_de_paie`.
+/// Le livre de paie d'UNE periode (un mois, une annee ou toutes), au format et dans le regroupement demandes.
 pub fn livre_de_paie(ctx: &Contexte, d: &Demande) -> R<LivreDePaie> {
     let donnees = usize::from(d.mois.as_deref().is_some_and(|m| !m.is_empty())) + usize::from(d.annee.as_deref().is_some_and(|a| !a.is_empty())) + usize::from(d.toutes);
     if donnees != 1 {
@@ -988,7 +989,7 @@ pub fn livre_detaille(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ===================================================== 2. le recapitulatif annuel par salarie
 
-/// `operations_etats.recapitulatif_annuel`.
+/// Le recapitulatif annuel : une ligne par salarie et par annee (pas pour un mois).
 pub fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     if d.mois.as_deref().is_some_and(|m| !m.is_empty()) {
         return Err(refus("Le récapitulatif annuel se demande pour une année, ou pour toutes les années — pas pour un mois."));
@@ -1259,7 +1260,7 @@ fn ou_zero(x: Decimal) -> Decimal {
     }
 }
 
-/// `operations_etats.reduction_generale`.
+/// La reduction generale de chaque paie de la periode : brut, heures, SMIC de reference, coefficient.
 pub fn reduction_generale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let (mut avert, mut lignes) = (Vec::new(), Vec::new());
@@ -1323,7 +1324,7 @@ const ASSIETTES: [(&str, &str); 10] = [
     ("brut_dfs", "Brut après DFS"),
 ];
 
-/// `operations_etats.assiettes`.
+/// Les assiettes de cotisation de chaque paie de la periode, et son plafond.
 pub fn assiettes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let (mut avert, mut lignes) = (Vec::new(), Vec::new());

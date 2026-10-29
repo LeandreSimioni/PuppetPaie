@@ -73,8 +73,8 @@ fn main() -> std::process::ExitCode {
         moteur::interface::Instance::Tenue(p) => p,
         moteur::interface::Instance::Devant => return std::process::ExitCode::SUCCESS,
     };
-    // Une installation posee avant le lot U1 range ses compagnies fictives (`demo/` devient `fictives/`), et une livraison
-    // de fictives prete se pose (`moteur::compagnie::maj::poser_les_fictives_pretes`).
+    // Une livraison de fictives prete se pose (`moteur::compagnie::maj::poser_les_fictives_pretes`), et le reste d'une
+    // compagnie supprimee s'efface (`suppression::effacer_les_restes`).
     moteur::interface::preparer_l_installation();
     // Une version prete s'applique ICI, avant toute fenetre : le relais attend notre fin, bascule et ouvre la neuve.
     if moteur::compagnie::maj::au_lancement() {

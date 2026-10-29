@@ -769,7 +769,7 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 #[cfg(test)]
 mod tests_mois {
-    /// Lot F1 : le mois « 00 » d'une alerte CASC-SVP n'est aucun mois et se refuse (il se lisait janvier).
+    /// Le mois « 00 » d'une alerte CASC-SVP n'est aucun mois et se refuse (ce n'est pas janvier).
     #[test]
     fn le_mois_00_de_l_alerte_casc_se_refuse() {
         let refus = super::libelle_casc("2026-00").unwrap_err();

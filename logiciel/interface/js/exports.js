@@ -2,16 +2,15 @@
 "use strict";
 
 /* =======================================================================
-   EXPORTS  (22/09/2026)
+   EXPORTS
    -----------------------------------------------------------------------
-   « Il faut vraiment un endroit où on peut faire des exports, pour les
-   trucs comptables. » Le voici, et il ne porte que quatre questions :
+   L'endroit des exports comptables. Il ne porte que quatre questions :
    QUOI (l'état), QUAND (un mois, une année, toutes les années), COMMENT
    (le regroupement et le format), et un APERÇU avant d'écrire.
 
    Tout ce qui s'affiche ici vient du moteur : les états, les formats, les
    regroupements et les périodes sont rendus par `exports-periodes`. Un état
-   ajouté demain dans `operations_exports.ETATS` apparaît dans ce menu sans
+   ajouté au moteur (`routes/archives.rs`) apparaît dans ce menu sans
    qu'on touche à ce fichier — c'est la règle 2 vue depuis la page : elle
    n'affiche pas ce qu'elle croit savoir, elle affiche ce que le moteur dit.
 
