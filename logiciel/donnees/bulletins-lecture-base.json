@@ -1,0 +1,143 @@
+{
+  "_quoi": "Ce que le lecteur de bulletins (moteur/src/bulletin_lu.rs) cherche sur une page de PDF qu'une compagnie met dans import/ : les libellés qui annoncent chaque mention, les en-têtes des colonnes, les rangs qui résument le tableau, les familles de cotisations, les cumuls, et la rubrique de chaque libellé de ligne de paie. Livré avec le logiciel : il ne décrit aucune compagnie ni aucune mise en page. Un bulletin que le lecteur ne lit pas s'affine ici, sans code.",
+  "_sources": "Les mentions du bulletin : code du travail, art. R. 3243-1 (atelier/reference/sources/code-du-travail/articles-20261028.md). Leurs libellés, leur ordre et leurs regroupements : le modèle de l'arrêté du 25 février 2016, art. 1, I, pris pour l'art. R. 3243-2 (atelier/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml). Les autres libellés sont ceux que les bulletins lus impriment (CoolPaie, sPAIEctacle, PuppetPaie) : relevés, pas déduits.",
+  "_forme": {
+    "texte": "Tout libellé se compare en minuscules, sans accents, l'apostrophe typographique lue comme droite, le tiret comme un espace, et le deux-points collé à un mot retiré (« Cachets: » vaut « Cachets » ; un « : » isolé reste un mot). Un libellé se trouve s'il se lit de gauche à droite sur un même rang, ses mots séparés de moins de 15 points, et s'il finit avec un mot. Entre plusieurs libellés qui commencent au même mot, le plus long l'emporte.",
+    "mentions": "Chaque mention du bulletin, par les libellés qui l'annoncent. Sa valeur est ce qui suit le libellé sur son rang, jusqu'au libellé d'une autre mention ; la ponctuation qui la borne (« — », « · », « : ») n'en est pas. Le type de chaque mention (texte, date, période, montant), l'endroit où elle se cherche (au-dessus du tableau, dans le pied, partout) et le nombre de rangs que sa valeur peut couvrir sont fixés par son nom dans le moteur.",
+    "entetes": "Les mots des en-têtes de colonnes. Le tableau commence au rang d'un mot de `libelle` suivi de rangs faits d'en-têtes seulement ; une colonne est un en-tête (ses mots voisins, et ceux des rangs qui le chevauchent : « Taux » sur « salarial ») ; elle est une base, un taux ou un montant, et dit sa part (`salarie`, `employeur`). Un rang d'en-têtes plus bas, sans libellé, précise les colonnes qu'il chevauche (« Taux Montant » sous « Part employeur »). Dans le pied, `periode` et `cumul` titrent la grille des cumuls.",
+    "resumes": "Les rangs qui découpent le tableau, par leur libellé exact : `brut` (la fin des lignes soumises ; il peut finir la dernière d'entre elles : « … — MONTANT BRUT »), `total` (des cotisations), `net_social`, `net_avant_impot` (la fin du tableau, le début du pied), et dans le pied `pas` (l'impôt prélevé) et `net_imposable`.",
+    "titres": "Les titres de sections du tableau qui ne sont ni une famille ni une ligne : passés.",
+    "annexe": "Ce qui ouvre la page annexe d'un bulletin (le détail de ses cotisations) : elle n'est pas un bulletin.",
+    "familles": "Les familles de cotisations du modèle : un rang dont le libellé est l'un de ces titres ouvre la famille (il peut porter lui-même des montants, ou s'écrire sur deux rangs).",
+    "cumuls": "Les rangs de la grille des cumuls, par leur libellé. `heures` est le total d'heures tel que le bulletin le compte : les cachets y sont convertis quand il en a, et un logiciel peut y convertir un cachet groupé à 8 h, la règle d'avant le décret du 13 juillet 2016.",
+    "logiciels": "La signature d'un logiciel connu : les libellés qui doivent tous se trouver sur la page. Le compte rendu le nomme ; la lecture n'en fait rien.",
+    "lignes": "La correspondance libellé de ligne de paie → rubrique du catalogue (`rubriques-base.json`). La valeur : le code de la rubrique ; `null` : libellé connu, sans rubrique sûre (la ligne est gardée telle quelle, elle n'entre dans aucun compteur) ; ou `{\"rubrique\": code, \"heures\": n}` quand le LIBELLÉ dit les heures d'une unité (« 4h ») d'une rubrique dont les heures se saisissent (`saisie` contient `heures`, pas de `heures_forfait`). Un libellé absent est SIGNALÉ (avertissement) et la ligne gardée avec son libellé, sans refus. Une ligne dont la rubrique est hors de l'assiette (`soumis: false` au catalogue : un défraiement) ne compte pas dans le brut, où que le bulletin l'imprime."
+  },
+
+  "mentions": {
+    "numero": ["Bulletin de paie n°", "Bulletin de salaire n°"],
+    "numero_objet": ["Numéro d'objet", "N° d'objet"],
+    "spectacle": ["Spectacle :"],
+    "analytique": ["Analytique"],
+    "siret": ["N° Siret", "Siret", "N° SIRET"],
+    "naf": ["NAF(APE)", "NAF (APE)", "Code APE", "APE", "Code NAF"],
+    "urssaf": ["Urssaf :", "N° Urssaf"],
+    "convention": ["Conv. collective", "Convention Collective", "Convention collective applicable"],
+    "licence": ["Licence spec. N°", "Licence spec.", "Licence"],
+    "naissance": ["Date de naissance", "Né le", "Née le"],
+    "nir": ["N° Sécurité Sociale", "NIR", "N° SS", "Numéro de sécurité sociale"],
+    "code": ["Code Salarié", "Matricule"],
+    "emploi": ["Emploi"],
+    "statut": ["Statut"],
+    "abattement": ["Abattement"],
+    "conges_spectacles": ["N° de Congés Spectacles", "N° Congés Spectacles", "N° Congés Sp."],
+    "periode": ["Périodes", "Période", "Période du"],
+    "dates_travaillees": ["Dates travaillées"],
+    "regle_le": ["Réglement le", "Règlement le", "Règlement", "Payé le", "Date de paiement"],
+    "mode_reglement": ["mode de règlement", "Mode de paiement"],
+    "contrat": ["Contrat n°"],
+    "net_a_payer": ["NET A PAYER AU SALARIE", "Net payé", "MONTANT NET A PAYER (en Euros)", "MONTANT NET A PAYER", "Net à payer"],
+    "cout_employeur": ["Total versé par l'employeur", "Total versé par", "Coût total employeur"]
+  },
+
+  "entetes": {
+    "libelle": ["Libellé", "Libellés", "Désignation", "Rubrique", "Rubriques"],
+    "base": ["Base"],
+    "taux": ["Taux"],
+    "montant": ["Montant", "Part", "Parts"],
+    "salarie": ["Salarié", "Salariés", "Salarial", "Salariale", "Salariales"],
+    "employeur": ["Employeur", "Employeurs", "Patronal", "Patronale", "Patronales"],
+    "periode": ["Période", "Periode"],
+    "cumul": ["Cumul"]
+  },
+
+  "resumes": {
+    "brut": ["SALAIRE BRUT", "MONTANT BRUT", "Rémunération brute", "Salaire brut"],
+    "total": ["Total des Cotisations et Contributions", "TOTAL COTISATIONS ET CONTRIB. OBLIGATOIRES", "TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES"],
+    "net_social": ["NET SOCIAL", "MONTANT NET SOCIAL"],
+    "net_avant_impot": ["NET A PAYER AVANT IMPOT SUR LE REVENU", "MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU", "Net à payer avant impôt"],
+    "pas": ["Impôt sur le revenu prélevé à la source"],
+    "net_imposable": ["Net imposable", "Montant net imposable"]
+  },
+
+  "titres": ["Cotisations et contributions sociales obligatoires", "Remboursements et déductions diverses"],
+
+  "annexe": ["Document annexe au bulletin"],
+
+  "familles": {
+    "sante": ["Santé"],
+    "accidents_du_travail": ["Accidents du travail - maladies professionnelles", "Accidents du travail & maladies professionnelles"],
+    "retraite": ["Retraite"],
+    "famille": ["Famille"],
+    "assurance_chomage": ["Assurance chômage"],
+    "autres_contributions": ["Autres contributions dues par l'employeur", "Autres charges dues par l'employeur"],
+    "conges_spectacles": ["Congés Spectacles"],
+    "cotisations_facultatives": ["Cotisations et contributions sociales facultatives"],
+    "cotisations_conventionnelles": ["Cotisations statutaires ou prévues par la convention collective", "Cotisations prévues par la convention collective"],
+    "csg": ["CSG / CRDS", "CSG déductible à l'impôt sur le revenu", "CSG déductible de l'impôt sur le revenu", "CSG/CRDS non déductible à l'impôt sur le revenu", "CSG/CRDS non déductible de l'impôt sur le revenu"],
+    "exonerations": ["Exonérations et allègements de cotisations"]
+  },
+
+  "cumuls": {
+    "cachets": ["Cachets"],
+    "jours": ["Jours"],
+    "heures": ["Heures", "Total heures (cachets × 12 + heures)"],
+    "brut": ["Salaire brut"],
+    "plafond": ["Plafond Urssaf"],
+    "cout_employeur": ["Cout employeur", "Coût employeur"],
+    "net_imposable": ["Net imposable"],
+    "pas": ["Montant PAS"]
+  },
+
+  "logiciels": {
+    "coolpaie": {"signature": ["coolpaie"]},
+    "spaiectacle": {"signature": ["GHS - sPAIEctacle"]},
+    "puppetpaie": {"signature": ["SMIC retenu pour la réduction générale"]}
+  },
+
+  "_lignes": "Chaque code vérifié dans rubriques-base.json. Cachets isolés et groupés : `cachet` (unité cachet, 12 h ; la distinction isolé 12 h / groupé 8 h est supprimée depuis le décret du 13 juillet 2016). « Service(s) répét. 4h (contrat<5j) » et « Service de répétition 4 heures » : `repetition`, 4 h par service (le libellé). Masterclass / Action Culturelle : `enseignement` (même libellé au catalogue, unité heure, compte_pour ouverture_des_droits). Heures : `heure`. Défraiement non soumis et prime de panier non soumise : `defraiement_forfait` (frais professionnels au forfait, hors assiette dans les limites du barème). Acompte : `acompte` (avance déjà versée, retenue du net). Congés payés (absence, indemnité, indemnité compensatrice) et indemnité de précarité : leur rubrique, même libellé au catalogue ; « Journée(s) de 7 Heures » : `journee`, 7 h par journée (le libellé). Sans rubrique sûre, `null` : les cachets de répétition (comptés comme des cachets par le bulletin qui les imprime, rangés sous `repetition` par le catalogue d'un autre logiciel), la prime de panier soumise (aucune rubrique du catalogue ne dit ce régime), l'activité partielle (le catalogue n'en a pas). Le bulletin de PuppetPaie imprime une ligne « <quantité> <libellé de la rubrique, au pluriel sur son premier mot> à <taux> » (engagement::calcul::LigneBrut::designation), et « <n> h de <libellé> » pour une rubrique à l'heure qui ne dit pas « heure ».",
+  "lignes": {
+    "Cachets isolés": "cachet",
+    "Cachets groupés": "cachet",
+    "Cachets de répétition": null,
+    "Service(s) répét. 4h (contrat<5j)": {"rubrique": "repetition", "heures": 4},
+    "Service de répétition 4 heures": {"rubrique": "repetition", "heures": 4},
+    "Masterclass / Action Culturelle": "enseignement",
+    "Heures": "heure",
+    "Défraiement non soumis": "defraiement_forfait",
+    "Prime de panier non soumise": "defraiement_forfait",
+    "Prime de panier soumise": null,
+    "Acompte": "acompte",
+    "Cachet en activité partielle": null,
+    "Absence cachet en activité partielle": null,
+    "Indemnisation cachet en activité partielle": null,
+    "Cachet": "cachet",
+    "Cachets": "cachet",
+    "Heure de travail": "heure",
+    "Heures de travail": "heure",
+    "Journée de travail": "journee",
+    "Journées de travail": "journee",
+    "Semaine de travail": "semaine",
+    "Semaines de travail": "semaine",
+    "Salaire mensuel de base": "mois",
+    "Salaires mensuel de base": "mois",
+    "Service de répétition": "repetition",
+    "Services de répétition": "repetition",
+    "h de Masterclass / action culturelle": "enseignement",
+    "Prime": "prime",
+    "Primes": "prime",
+    "Défraiement au forfait": "defraiement_forfait",
+    "Défraiements au forfait": "defraiement_forfait",
+    "Défraiement au réel": "defraiement_reel",
+    "Défraiements au réel": "defraiement_reel",
+    "Absence congés payés": "absence_conges_payes",
+    "Absences congés payés": "absence_conges_payes",
+    "Indemnité de congés payés": "indemnite_conges_payes",
+    "Indemnités de congés payés": "indemnite_conges_payes",
+    "Indemnité compensatrice de congés payés": "indemnite_compensatrice_conges",
+    "Indemnités compensatrice de congés payés": "indemnite_compensatrice_conges",
+    "Indemnité de fin de contrat (précarité)": "indemnite_precarite",
+    "Indemnités de fin de contrat (précarité)": "indemnite_precarite",
+    "Journée(s) de 7 Heures": {"rubrique": "journee", "heures": 7}
+  }
+}

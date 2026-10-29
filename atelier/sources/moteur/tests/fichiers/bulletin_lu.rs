@@ -1,16 +1,16 @@
-//! `bulletin_lu` (lot B du plan d'import des bulletins) : une page de PDF devient un bulletin lu, tel qu'il est.
+//! `bulletin_lu` : une page de PDF devient un bulletin lu, tel qu'il est, par un seul lecteur pour tout logiciel.
 //!
-//! LES PDF SONT FICTIFS, fabriques par la fabrique (`bulletins_fictifs/mod.rs`, partage avec `routes::import`) (`texte_fixe`, positions du haut-gauche de la page) aux
-//! positions des deux gabarits de la table livree : CoolPaie (A) et sPAIEctacle (B). Noms, adresses, NIR, Siret,
-//! numeros d'objet, titres et montants sont inventes ; rien de `prive/`, aucun des PDF reels de `import/`.
+//! LES PDF SONT FICTIFS, fabriques par la fabrique (`bulletins_fictifs/mod.rs`, partage avec `routes::import`) (`texte_fixe`, positions du haut-gauche de la page) a la
+//! maniere de deux logiciels : CoolPaie (A) et sPAIEctacle (B) ; le lecteur n'en connait aucune mise en page. Noms,
+//! adresses, NIR, Siret, numeros d'objet, titres et montants sont inventes ; rien de `prive/`, aucun des PDF reels.
 //!
 //! Les formes : A cachets isoles + services de repetition, A cachets groupes (2021, avec un impot preleve), A
 //! masterclass, A heures d'un « non cadre », A 2021 sans numero d'objet, B cachets isoles + cotisation facultative
 //! + defraiement non soumis, B 2020 activite partielle (connue sans rubrique ; sans elle dans la table, libelles
-//! inconnus gardes). Puis les refus : sans texte, gabarit inconnu, plusieurs gabarits, incomplet ; et un
-//! avertissement d'incoherence.
+//! inconnus gardes). Puis les refus : sans texte, sans en-tetes, ambigu, incomplet ; et un avertissement
+//! d'incoherence.
 //!
-//! Lot C : les compteurs (cachets, heures, enseignement, jours) de chaque forme, confrontes aux cumuls du bulletin ;
+//! Les compteurs (cachets, heures, enseignement, jours) de chaque forme, confrontes aux cumuls du bulletin ;
 //! un cumul qui ne colle pas (le bulletin l'emporte sur ce qu'il compte lui-meme, pas sur un total ou des cachets
 //! sont convertis : un cachet groupe a 8 h) ; la table ne nomme que des rubriques du catalogue.
 
@@ -33,7 +33,7 @@ fn dossier(nom: &str) -> PathBuf {
 
 /// La table livree, en JSON, pour en tirer des variantes.
 fn table_livree_json() -> Value {
-    let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees/bulletins-gabarits-base.json");
+    let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees/bulletins-lecture-base.json");
     serde_json::from_str(&std::fs::read_to_string(chemin).unwrap()).unwrap()
 }
 
@@ -83,7 +83,7 @@ fn bulletin_lu_coolpaie_cachets_et_services_de_repetition_chaque_champ() {
     assert_eq!(
         sans_cotisations,
         json!({
-            "gabarit": "coolpaie",
+            "logiciel": "coolpaie",
             "numero": "7/2026",
             "entreprise": {
                 "nom": "Compagnie des Essais", "adresse": ["12 rue Imaginaire", "99998 Nullepart"],
@@ -98,6 +98,7 @@ fn bulletin_lu_coolpaie_cachets_et_services_de_repetition_chaque_champ() {
             "numero_objet": "999Z99999901",
             "spectacle": "Les Fictifs en Tournée",
             "analytique": null,
+            "contrat": null,
             "debut": "2026-01-14",
             "fin": "2026-01-24",
             "dates_travaillees": [
@@ -216,7 +217,7 @@ fn bulletin_lu_spaiectacle_cachets_facultative_et_defraiement_non_soumis() {
     assert_eq!(
         sans_cotisations,
         json!({
-            "gabarit": "spaiectacle",
+            "logiciel": "spaiectacle",
             "numero": null,
             "entreprise": {
                 "nom": "Les Ateliers Fictifs", "adresse": ["Maison des Essais", "99998 Fictiveville"],
@@ -231,6 +232,7 @@ fn bulletin_lu_spaiectacle_cachets_facultative_et_defraiement_non_soumis() {
             "numero_objet": "186Z99999901",
             "spectacle": null,
             "analytique": "FICTION",
+            "contrat": null,
             "debut": "2026-04-02",
             "fin": "2026-04-03",
             "dates_travaillees": [],
@@ -271,6 +273,17 @@ fn bulletin_lu_spaiectacle_cachets_facultative_et_defraiement_non_soumis() {
     let hors: Vec<bool> = v["cotisations"].as_array().unwrap().iter().map(|c| c["hors_total"].as_bool().unwrap()).collect();
     assert_eq!(hors.iter().filter(|h| **h).count(), 1);
     assert!(*hors.last().unwrap());
+
+    // Le meme defraiement imprime au-dessus du brut : hors de l'assiette (`soumis: false` du catalogue), il n'est pas
+    // dans le brut, et les deux controles se retrouvent sans avertissement.
+    let mut p = b_cachets();
+    p.lignes.push(p.non_soumis.remove(0));
+    let dessus = d.join("dessus.pdf");
+    pdf(vec![page_b(&p)], &dessus);
+    let l = lire(&dessus).unwrap();
+    let b = lu(&l[0]);
+    assert_eq!(b.avertissements, Vec::<String>::new());
+    assert_eq!((b.lignes[1].libelle.as_str(), b.lignes[1].soumis), ("Défraiement non soumis", false));
 }
 
 #[test]
@@ -284,7 +297,7 @@ fn bulletin_lu_spaiectacle_2020_activite_partielle_libelles_inconnus_gardes() {
     // Sans elle, trois libelles absents de la table : signales, les lignes gardees telles quelles, la page lue
     // (decide, plan §4 : pas de refus).
     let mut sans = table_livree_json();
-    let lignes = sans["gabarits"][1]["lignes"].as_object_mut().unwrap();
+    let lignes = sans["lignes"].as_object_mut().unwrap();
     lignes.retain(|k, _| !k.contains("activité partielle"));
     let l = lire_avec(&chemin, &Table::depuis(&sans).unwrap()).unwrap();
     let b = lu(&l[0]);
@@ -374,58 +387,54 @@ fn bulletin_lu_les_refus_sont_nommes() {
     assert!(matches!(refus, Refus::SansTexte(_)), "{:?}", refus);
     assert_eq!((l[0].to_json()["page"].clone(), l[0].to_json()["refus"].clone()), (json!(1), json!("sans_texte")));
 
-    // Gabarit inconnu : une page avec du texte, qu'aucune signature de la table ne reconnait.
+    // Sans en-tetes : une page avec du texte, sans rang qui titre le tableau des lignes.
     let inconnu = d.join("inconnu.pdf");
     let mut b = Vec::new();
     t(&mut b, 50.0, 60.0, "Bulletin de salaire d'un autre logiciel");
     t(&mut b, 50.0, 80.0, "Salaire de base 1 000,00");
     pdf(vec![b], &inconnu);
     let l = lire(&inconnu).unwrap();
-    assert_eq!(l[0].resultat.clone().unwrap_err(), Refus::GabaritInconnu);
-    assert_eq!(l[0].to_json(), json!({"page": 1, "refus": "gabarit_inconnu", "raison": "gabarit inconnu"}));
+    assert!(matches!(l[0].resultat.clone().unwrap_err(), Refus::SansEntetes(_)));
+    assert_eq!(l[0].to_json()["refus"], json!("sans_entetes"));
+
+    // Ambigu : une colonne « Montant » qui ne dit pas quelle part elle porte ; on ne la devine pas.
+    let ambigu = d.join("ambigu.pdf");
+    let mut page = page_a(&a_repetitions());
+    for x in page.iter_mut() {
+        if x["texte"] == json!("Part Salarié") {
+            x["texte"] = json!("Montant");
+        }
+    }
+    pdf(vec![page], &ambigu);
+    let l = lire(&ambigu).unwrap();
+    assert!(matches!(l[0].resultat.clone().unwrap_err(), Refus::Ambigu(_)), "{:?}", l[0].resultat);
+    // Le salarie s'est lu avant le refus : de quoi caviarder la page.
+    assert_eq!(l[0].partiel.as_ref().and_then(|s| s.nir.clone()).as_deref(), Some("288117599900146"));
 
     // Un PDF que la fabrique n'ouvre pas : une erreur du fichier, pas d'une page.
     let casse = d.join("casse.pdf");
     std::fs::write(&casse, b"%PDF-1.7\nceci n'est pas un PDF\n").unwrap();
     assert!(lire(&casse).unwrap_err().starts_with("PDF que la fabrique n'ouvre pas"));
 
-    // Incomplet : un bulletin CoolPaie dont le net a payer ne se lit pas.
+    // La somme versee non imprimee (un impot nul) : le net avant impot moins l'impot preleve, imprimes l'un et l'autre
+    // (R. 3243-1, 9° et 10° ; le modele de l'arrete du 25/02/2016), et le compte rendu dit qu'elle a ete lue ainsi.
     let sans_net = d.join("sans-net.pdf");
     let mut page = page_a(&a_repetitions());
     page.retain(|x| !x["texte"].as_str().unwrap_or("").ends_with('€'));
+    pdf(vec![page.clone()], &sans_net);
+    let l = lire(&sans_net).unwrap();
+    let b = lu(&l[0]);
+    assert_eq!(b.net_a_payer.to_string(), "477.82");
+    assert!(b.avertissements.iter().any(|a| a.starts_with("le net à payer n'est pas imprimé")), "{:?}", b.avertissements);
+
+    // Incomplet : ni le net a payer, ni l'impot preleve qui le donnerait.
+    page.retain(|x| x["texte"] != json!("0.00"));
     pdf(vec![page], &sans_net);
     let l = lire(&sans_net).unwrap();
-    assert_eq!(l[0].resultat.clone().unwrap_err(), Refus::Incomplet("le net à payer ne se lit pas".into()));
-}
-
-/// La table decide, pas le code : sans le gabarit B, sa page est un gabarit inconnu ; deux gabarits qui se
-/// reconnaissent sur la meme page, c'est un refus ; un champ inconnu dans la table, un refus de la table.
-#[test]
-fn bulletin_lu_la_table_decide() {
-    let d = dossier("table");
-    let chemin = d.join("b.pdf");
-    pdf(vec![page_b(&b_cachets())], &chemin);
-    let livree = table_livree_json();
-
-    let mut sans_b = livree.clone();
-    sans_b["gabarits"].as_array_mut().unwrap().retain(|g| g["nom"] != "spaiectacle");
-    let l = lire_avec(&chemin, &Table::depuis(&sans_b).unwrap()).unwrap();
-    assert_eq!(l[0].resultat.clone().unwrap_err(), Refus::GabaritInconnu);
-
-    let mut double = livree.clone();
-    let mut copie = double["gabarits"][1].clone();
-    copie["nom"] = json!("copie");
-    double["gabarits"].as_array_mut().unwrap().push(copie);
-    let l = lire_avec(&chemin, &Table::depuis(&double).unwrap()).unwrap();
-    assert_eq!(l[0].resultat.clone().unwrap_err(), Refus::PlusieursGabarits(vec!["spaiectacle".into(), "copie".into()]));
-
-    let mut faux = livree.clone();
-    faux["gabarits"][0]["champs"]["salaire_devine"] = json!({"repere": "Salaire"});
-    assert!(Table::depuis(&faux).unwrap_err().contains("champs.salaire_devine"), "le refus nomme le champ");
-
-    // La table livree se lit, et ses trois gabarits y sont.
-    let t = Table::livree().unwrap();
-    assert_eq!(t.gabarits.iter().map(|g| g.nom.as_str()).collect::<Vec<_>>(), ["coolpaie", "spaiectacle", "puppetpaie"]);
+    match l[0].resultat.clone().unwrap_err() {
+        Refus::Incomplet(m) => assert!(m.contains("net à payer"), "{}", m),
+        r => panic!("{:?}", r),
+    }
 }
 
 // ------------------------------------------------------------------------------------------- lot C : les compteurs
@@ -552,7 +561,7 @@ fn bulletin_lu_un_libelle_inconnu_reste_sans_rubrique() {
     let chemin = d.join("b.pdf");
     pdf(vec![page_b(&b_cachets())], &chemin);
     let mut sans = table_livree_json();
-    sans["gabarits"][1]["lignes"].as_object_mut().unwrap().remove("Cachets isolés");
+    sans["lignes"].as_object_mut().unwrap().remove("Cachets isolés");
     let l = lire_avec(&chemin, &Table::depuis(&sans).unwrap()).unwrap();
     let b = lu(&l[0]);
     assert_eq!(b.avertissements, vec!["libellé inconnu : « Cachets isolés »"]);
@@ -569,7 +578,7 @@ fn bulletin_lu_un_libelle_inconnu_reste_sans_rubrique() {
     // Une rubrique que le catalogue ne connait pas : la lecture passe (la table ne lit pas le catalogue), le compte
     // refuse et la nomme.
     let mut fausse = table_livree_json();
-    fausse["gabarits"][1]["lignes"]["Cachets isolés"] = json!("cachet_devine");
+    fausse["lignes"]["Cachets isolés"] = json!("cachet_devine");
     let l = lire_avec(&chemin, &Table::depuis(&fausse).unwrap()).unwrap();
     assert!(compteurs(lu(&l[0]), &racine()).unwrap_err().starts_with("Rubrique inconnue : 'cachet_devine'"));
 }
@@ -580,29 +589,24 @@ fn bulletin_lu_la_table_ne_nomme_que_des_rubriques_du_catalogue() {
     let r = racine();
     let t = Table::livree().unwrap();
     let mut vues = Vec::new();
-    for g in &t.gabarits {
-        for l in g.lignes() {
-            let Some(code) = &l.rubrique else { continue };
-            let rub = droit::catalogue::rubrique(&r, code, &socle::date::Jour::lire("2026-10-28").unwrap()).unwrap_or_else(|e| panic!("{} / {} : {}", g.nom, l.libelle, e));
-            if l.heures.is_some() {
-                assert!(rub.saisie.iter().any(|s| s == "heures") && rub.heures_forfait.is_none(), "{} / {}", g.nom, l.libelle);
-            }
-            vues.push((g.nom.as_str(), l.libelle.as_str(), code.as_str(), l.heures.map(|h| h.to_string())));
+    for l in t.lignes() {
+        let Some(code) = &l.rubrique else { continue };
+        let rub = droit::catalogue::rubrique(&r, code, &socle::date::Jour::lire("2026-10-28").unwrap()).unwrap_or_else(|e| panic!("{} : {}", l.libelle, e));
+        if l.heures.is_some() {
+            assert!(rub.saisie.iter().any(|s| s == "heures") && rub.heures_forfait.is_none(), "{}", l.libelle);
         }
+        vues.push((l.libelle.as_str(), code.as_str(), l.heures.map(|h| h.to_string())));
     }
     let quatre = Some("4".to_string());
     for attendu in [
-        ("coolpaie", "Cachets isolés", "cachet", None),
-        ("coolpaie", "Cachets groupés", "cachet", None),
-        ("coolpaie", "Service(s) répét. 4h (contrat<5j)", "repetition", quatre.clone()),
-        ("coolpaie", "Masterclass / Action Culturelle", "enseignement", None),
-        ("coolpaie", "Heures", "heure", None),
-        ("spaiectacle", "Cachets isolés", "cachet", None),
-        ("spaiectacle", "Cachets groupés", "cachet", None),
-        ("spaiectacle", "Service de répétition 4 heures", "repetition", quatre.clone()),
-        ("spaiectacle", "Heures", "heure", None),
-        ("spaiectacle", "Défraiement non soumis", "defraiement_forfait", None),
-        ("spaiectacle", "Acompte", "acompte", None),
+        ("Cachets isolés", "cachet", None),
+        ("Cachets groupés", "cachet", None),
+        ("Service(s) répét. 4h (contrat<5j)", "repetition", quatre.clone()),
+        ("Masterclass / Action Culturelle", "enseignement", None),
+        ("Heures", "heure", None),
+        ("Service de répétition 4 heures", "repetition", quatre.clone()),
+        ("Défraiement non soumis", "defraiement_forfait", None),
+        ("Acompte", "acompte", None),
     ] {
         assert!(vues.contains(&attendu), "{:?}", attendu);
     }
@@ -612,13 +616,13 @@ fn bulletin_lu_la_table_ne_nomme_que_des_rubriques_du_catalogue() {
 
     // Une valeur de `lignes` mal formee est un refus de la table, qui la nomme.
     for (valeur, erreur) in [
-        (json!(42), "gabarit coolpaie : lignes.Heures : une rubrique, null, ou {rubrique, heures}"),
-        (json!({"heures": 4}), "gabarit coolpaie : lignes.Heures : `rubrique` manque"),
-        (json!({"rubrique": "heure", "heures": -1}), "gabarit coolpaie : lignes.Heures : `heures` est un nombre d'heures positif"),
-        (json!({"rubrique": "heure", "duree": 4}), "gabarit coolpaie : lignes.Heures : cle inconnue « duree » (rubrique, heures)"),
+        (json!(42), "lignes.Heures : une rubrique, null, ou {rubrique, heures}"),
+        (json!({"heures": 4}), "lignes.Heures : `rubrique` manque"),
+        (json!({"rubrique": "heure", "heures": -1}), "lignes.Heures : `heures` est un nombre d'heures positif"),
+        (json!({"rubrique": "heure", "duree": 4}), "lignes.Heures : cle inconnue « duree » (rubrique, heures)"),
     ] {
         let mut v = table_livree_json();
-        v["gabarits"][0]["lignes"]["Heures"] = valeur;
+        v["lignes"]["Heures"] = valeur;
         let e = Table::depuis(&v).unwrap_err();
         assert!(e.contains("lignes.Heures"), "le refus de {} nomme la ligne : {}", erreur, e);
     }

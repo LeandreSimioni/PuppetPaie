@@ -1,8 +1,8 @@
-//! L'incident de l'import (lot E du plan d'import, `prive/journal/PLAN-IMPORT-BULLETINS.md` §2.c et §4) : ce qui part
-//! chez l'editeur quand des fichiers du dossier `import/` n'ont pas pu etre repris, pour qu'il ecrive le gabarit ou le
-//! libelle qui manquait.
+//! L'incident de l'import : ce qui part chez l'editeur quand des fichiers du dossier `import/` n'ont pas pu etre
+//! repris, pour qu'il affine la table de lecture (`bulletins-lecture-base.json`) : l'en-tete, la mention, le libelle de
+//! ligne ou la colonne que le lecteur n'a pas trouve, ou trouve de deux facons.
 //!
-//! DEUX ROUTES, ET RIEN NE PART SANS LA SECONDE (decide par Leandre, plan §4) :
+//! DEUX ROUTES, ET RIEN NE PART SANS LA SECONDE :
 //! - `importation-incident`, `{"dossier": ...}` : ce qui PARTIRAIT, en entier, tel qu'il partirait (`texte`), ce qui en
 //!   a ete enleve (`resume` : « 3 noms, 1 NIR enlevés »), et les fichiers non repris pour l'ecran (`fichiers` :
 //!   `chemin`, `sort`, `raison`). `a_envoyer` : faux quand tout est repris. RIEN N'EST ECRIT, ni dans le journal des
@@ -11,17 +11,17 @@
 //!   message est NOTE dans le journal des incidents (`incidents::noter`) puis envoye par le canal existant
 //!   (`incidents::envoyer`). `{"envoye": bool, "message": "..."}`. Un second clic ne le note pas deux fois.
 //!
-//! CE QUI PART : le compte rendu de chaque fichier non repris (son sort, sa raison, ceux de ses pages, le gabarit
+//! CE QUI PART : le compte rendu de chaque fichier non repris (son sort, sa raison, ceux de ses pages, le logiciel
 //! reconnu, la forme de chaque page -- mots, polices, images, traits) et le TEXTE DES PAGES REFUSEES, CAVIARDE
 //! (`caviardage::caviarder`) : noms, prenoms, NIR, dates de naissance, adresses, numeros Conges Spectacles, courriels,
 //! telephones, IBAN, remplaces par `<NOM>`, `<NIR>`... ; les montants, les taux, les libelles restent -- c'est ce qu'il
-//! faut pour ecrire un gabarit. Le caviardage connait ce que les bulletins du dossier ont dit de leurs salaries, pages
+//! faut pour affiner la lecture. Le caviardage connait ce que les bulletins du dossier ont dit de leurs salaries, pages
 //! refusees comprises (`bulletin_lu::Lecture::partiel`), les fiches de la compagnie et celles que l'import creerait ;
 //! il cherche le reste par la forme. Un fichier se nomme par son empreinte (16 caracteres), JAMAIS par son nom (un
 //! « bulletin-Dupont.pdf ») ; une raison qui citerait le chemin le perd aussi. LE FICHIER D'ORIGINE NE PART JAMAIS.
 //!
 //! LA FORME DU CANAL : un incident de nature `logiciel` (ce que le logiciel n'a pas su faire), `ou` = `importation`,
-//! un par sort (« fichier non repris : gabarit_inconnu »...) : le serveur regroupe par sort, et chaque incident a sa
+//! un par sort (« fichier non repris : sans_entetes »...) : le serveur regroupe par sort, et chaque incident a sa
 //! place -- le detail (le compte rendu) tient en 2 400 caracteres chez le serveur, la trace (le texte des pages) en
 //! 4 000 : ce qui depasse ne part pas, et `texte` le dit a l'endroit ou il coupe. Le journal ajoute la version du
 //! logiciel, le systeme et le numero anonyme du poste (`incidents::pour_l_editeur`) ; `texte` le dit aussi.
@@ -53,7 +53,7 @@ const DETAIL_MAX: usize = 2400;
 const COUPE: &str = "[… la suite ne part pas : la trace d'un incident tient en 4 000 caractères]";
 
 /// Les sorts d'une page dont le texte part (une page sans texte n'en a pas).
-const PAGES_A_LIRE: [&str; 4] = ["incoherent", "incomplet", "gabarit_inconnu", "plusieurs_gabarits"];
+const PAGES_A_LIRE: [&str; 4] = ["incoherent", "incomplet", "sans_entetes", "ambigu"];
 
 /// Une route de ce module.
 pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -105,8 +105,8 @@ impl Proposition {
                 t.push_str(&format!("- fichier {} ({}, {} octets) : {}\n", s("fichier"), s("sorte"), s("taille"), s("raison")));
                 for p in f.get("pages").and_then(Value::as_array).into_iter().flatten() {
                     let s = |c: &str| p.get(c).map(valeur_en_texte).unwrap_or_default();
-                    let gabarit = if s("gabarit").is_empty() { String::new() } else { format!(" [gabarit {}]", s("gabarit")) };
-                    t.push_str(&format!("    page {} : {}{} -- {} ({})\n", s("page"), s("sort"), gabarit, s("raison"), s("forme")));
+                    let logiciel = if s("logiciel").is_empty() { String::new() } else { format!(" [{}]", s("logiciel")) };
+                    t.push_str(&format!("    page {} : {}{} -- {} ({})\n", s("page"), s("sort"), logiciel, s("raison"), s("forme")));
                 }
             }
             if let Some(a) = m.detail.get("autres").and_then(Value::as_u64) {
@@ -276,8 +276,8 @@ fn proposer(ctx: &Contexte, lu: &DossierLu) -> Proposition {
             e.insert("page".into(), json!(n));
             e.insert("sort".into(), json!(ps));
             e.insert("raison".into(), json!(propre(p.get("raison").and_then(Value::as_str).unwrap_or(""), &mut compte)));
-            if let Some(g) = p.get("gabarit").and_then(Value::as_str) {
-                e.insert("gabarit".into(), json!(g));
+            if let Some(g) = p.get("logiciel").and_then(Value::as_str) {
+                e.insert("logiciel".into(), json!(g));
             }
             e.insert("forme".into(), json!(forme));
             pages.push(Value::Object(e));
