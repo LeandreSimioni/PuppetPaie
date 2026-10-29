@@ -21,3 +21,4 @@ mod compagnie_supprimee;
 mod contrat_imprime;
 mod revalider;
 mod contrat_a_cheval;
+mod homonymes;

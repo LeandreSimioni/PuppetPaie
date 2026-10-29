@@ -138,7 +138,8 @@ impl<'a> Recapitulatifs<'a> {
         }
     }
 
-    /// Les deux etats reduits au salarie `cle`, en un PDF dans `tmp`. `None` quand aucun des deux n'a rien a dire de
+    /// Les deux etats reduits au salarie `cle` (les lignes qui portent sa cle : deux salaries de meme nom et de meme
+    /// prenom ont chacun la leur), en un PDF dans `tmp`. `None` quand aucun des deux n'a rien a dire de
     /// lui. Les avertissements des etats nomment d'autres salaries : la fiche ne les porte pas.
     pub fn pdf(&mut self, cle: &str, tmp: &Path) -> R<Option<PathBuf>> {
         let fiche = self.ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
@@ -153,7 +154,7 @@ impl<'a> Recapitulatifs<'a> {
             let sections: Vec<Section> = t
                 .sections
                 .iter()
-                .map(|s| Section::nouvelle(s.libelle.clone(), s.lignes.iter().filter(|l| l.texte("salarie") == lui).cloned().collect()))
+                .map(|s| Section::nouvelle(s.libelle.clone(), s.lignes.iter().filter(|l| l.texte("cle_salarie") == cle).cloned().collect()))
                 .filter(|s| !s.lignes.is_empty())
                 .collect();
             if sections.is_empty() {
