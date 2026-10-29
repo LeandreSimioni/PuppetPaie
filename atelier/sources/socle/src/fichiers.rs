@@ -139,10 +139,34 @@ pub fn sha256_hex(octets: &[u8]) -> String {
 
 /// Ce que vaut un fichier pour l'empreinte : le hachage de son contenu, ou `absent`.
 pub fn empreinte_fichier(chemin: &Path) -> String {
+    if let Some(e) = empreinte_du_code(chemin) {
+        return e;
+    }
     match std::fs::read(chemin) {
         Ok(o) => sha256_hex(&o),
         Err(_) => "absent".into(),
     }
+}
+
+/// L'EMPREINTE D'UN FICHIER DU CODE LIVRE (`dossier_du_code`), hachee une fois tant que sa signature (date, taille) ne
+/// change pas : les referentiels pesent plus d'un megaoctet, et chaque calcul suivi, chaque empreinte relue d'une paie
+/// les nommerait tous. Une mise a jour les reecrit, d'ou une signature neuve. `None` hors du code, ou s'il ne se lit pas.
+fn empreinte_du_code(chemin: &Path) -> Option<String> {
+    type Empreintes = Mutex<HashMap<PathBuf, ((u128, u64), String)>>;
+    static EMPREINTES: OnceLock<Empreintes> = OnceLock::new();
+    if !chemin.starts_with(dossier_du_code()) {
+        return None;
+    }
+    let sig = signature(chemin)?;
+    let cache = EMPREINTES.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Some((vue, e)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
+        if *vue == sig {
+            return Some(e.clone());
+        }
+    }
+    let e = sha256_hex(&std::fs::read(chemin).ok()?);
+    ranger(cache, chemin.to_path_buf(), (sig, e.clone()));
+    Some(e)
 }
 
 fn noms(chemin: &Path) -> Option<Vec<String>> {
@@ -174,7 +198,9 @@ pub fn noter_si_besoin(chemin: &Path) {
 pub fn lire_texte(chemin: &Path) -> std::io::Result<String> {
     match std::fs::read(chemin) {
         Ok(o) => {
-            noter("fichier", chemin, sha256_hex(&o));
+            if suivi() {
+                noter("fichier", chemin, empreinte_du_code(chemin).unwrap_or_else(|| sha256_hex(&o)));
+            }
             String::from_utf8(o).map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "stream did not contain valid UTF-8"))
         }
         Err(e) => {
@@ -310,6 +336,55 @@ pub fn json_en_cache_ou<E>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Val
         cache.lock().unwrap().insert(chemin.to_path_buf(), (s, v.clone()));
     }
     Ok(v)
+}
+
+/// LES ECRITURES DU PROCESSUS, fichier par fichier : chaque `ecriture::ecrire_json` compte la sienne. Un cache garde un
+/// fichier sous sa signature (date, taille) ET ce compte : deux ecritures du meme processus dans le meme instant
+/// d'horloge, a la meme taille, ne se confondent pas.
+fn ecritures() -> &'static Mutex<HashMap<PathBuf, u64>> {
+    static ECRITURES: OnceLock<Mutex<HashMap<PathBuf, u64>>> = OnceLock::new();
+    ECRITURES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Combien de fois ce processus a ecrit `chemin`.
+pub fn ecritures_de(chemin: &Path) -> u64 {
+    ecritures().lock().unwrap_or_else(|p| p.into_inner()).get(chemin).copied().unwrap_or(0)
+}
+
+/// Une ecriture de `chemin` par ce processus (`ecriture::ecrire_json`).
+pub fn noter_ecriture(chemin: &Path) {
+    *ecritures().lock().unwrap_or_else(|p| p.into_inner()).entry(chemin.to_path_buf()).or_insert(0) += 1;
+}
+
+type CacheDeLaCompagnie = Mutex<HashMap<PathBuf, ((u128, u64), u64, Arc<Value>)>>;
+
+/// UN JSON DE LA COMPAGNIE LU UNE FOIS TANT QU'IL NE CHANGE PAS : sa signature (date, taille) et les ecritures du
+/// processus (`noter_ecriture`) le gardent. `None` s'il n'existe pas. Rien ne se note au registre : l'appelant dit ce
+/// qu'il lit (les engagements se comptent par leur saisie, `engagement::stock`). Partage : on ne le modifie pas.
+pub fn json_partage(chemin: &Path) -> Resultat<Option<Arc<Value>>> {
+    static CACHE: OnceLock<CacheDeLaCompagnie> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let Some(sig) = signature_lue(chemin) else {
+        return match std::fs::metadata(chemin) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(panne_fichier(&e, chemin)),
+            Ok(_) => Err(format!("{} : signature illisible", chemin.display())),
+        };
+    };
+    let n = ecritures_de(chemin);
+    if let Some((vue, m, v)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
+        if *vue == sig && *m == n {
+            return Ok(Some(v.clone()));
+        }
+    }
+    let octets = match std::fs::read(chemin) {
+        Ok(o) => o,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(panne_fichier(&e, chemin)),
+    };
+    let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| format!("{} : {}", chemin.display(), e))?);
+    ranger(cache, chemin.to_path_buf(), (sig, n, v.clone()));
+    Ok(Some(v))
 }
 
 /// `json.loads(p.read_text(encoding="utf-8"))`, sans cache.

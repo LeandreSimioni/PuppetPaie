@@ -101,23 +101,23 @@ pub fn fichiers(racine: &Path) -> Vec<String> {
 
 /// Le fichier d'un mois, lu tel quel ; `None` s'il n'existe pas.
 pub fn lire_fichier(racine: &Path, mois: &str) -> Resultat<Option<Map<String, Value>>> {
+    Ok(lire_partage(racine, mois)?.map(|v| v.as_object().cloned().unwrap_or_default()))
+}
+
+/// Le fichier d'un mois tel que le processus l'a lu (`socle::fichiers::json_partage`) : chaque lecture des engagements
+/// passe par lui, et il ne se relit que quand il a change. `None` s'il n'existe pas.
+fn lire_partage(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<Value>>> {
     let p = chemin(racine, mois);
-    let octets = match std::fs::read(&p) {
-        Ok(o) => o,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(socle::fichiers::panne_fichier(&e, &p)),
-    };
-    let v: Value = serde_json::from_slice(&octets).map_err(|e| format!("{} : {}", p.display(), e))?;
-    match v {
-        Value::Object(m) => Ok(Some(m)),
-        autre => Err(format!("{} : un objet est attendu, lu {}", p.display(), socle::valeur::nom_type(&autre))),
+    match socle::fichiers::json_partage(&p)? {
+        Some(v) if !v.is_object() => Err(format!("{} : un objet est attendu, lu {}", p.display(), socle::valeur::nom_type(&v))),
+        v => Ok(v),
     }
 }
 
 /// Le fichier de `mois` ne porte-t-il que des engagements importes (`importe`) ? Un tel mois n'a pas de saisie : il se
 /// lit. Un fichier illisible ou sans engagement n'est pas de l'import.
 fn importes_seuls(racine: &Path, mois: &str) -> bool {
-    let Ok(Some(f)) = lire_fichier(racine, mois) else { return false };
+    let Ok(Some(f)) = lire_partage(racine, mois) else { return false };
     let es = f.get("engagements").and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
     !es.is_empty() && es.iter().all(|e| e.get(crate::importe::IMPORTE).is_some_and(Value::is_object))
 }
@@ -362,7 +362,7 @@ fn difference(base: &Map<String, Value>, vue: &Map<String, Value>) -> Map<String
 pub fn objets(racine: &Path) -> Resultat<Vec<Objet>> {
     let mut out = Vec::new();
     for f in fichiers(racine) {
-        let Some(m) = lire_fichier(racine, &f)? else { continue };
+        let Some(m) = lire_partage(racine, &f)? else { continue };
         for (rang, e) in m.get("engagements").and_then(Value::as_array).into_iter().flatten().enumerate() {
             if let Value::Object(brut) = e {
                 out.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: brut.clone() });
