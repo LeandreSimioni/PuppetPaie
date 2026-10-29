@@ -36,8 +36,8 @@ fn sortie_absente(dossier: &Path) -> ErreurGoogle {
     ErreurGoogle::nouvelle("SortieAbsente", format!("{} n'existe pas.", dossier.display()))
 }
 
-/// DEFAUT 7 DU PYTHON, CORRIGE : `archiver` ne controlait pas `mois`, et `sorties/<mois>` se lisait tel quel : `..` ou `../config`
-/// archivait le dossier `config` (coffre et jeton compris), `2026-06/envoi` archivait les fiches de salaries une a une.
+/// `archiver` controle `mois` avant de lire `sorties/<mois>` : sans quoi `..` ou `../config`
+/// archiverait le dossier `config` (coffre et jeton compris), `2026-06/envoi` les fiches de salaries une a une.
 /// Seul `AAAA-MM` (quatre chiffres, un tiret, un mois de 01 a 12) est un mois.
 pub fn mois_valide(mois: &str) -> bool {
     let b = mois.as_bytes();

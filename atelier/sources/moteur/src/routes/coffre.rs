@@ -450,7 +450,7 @@ fn rafraichir(ctx: &Contexte, client_id: &Value, client_secret: &Value) -> R<Opt
 /// `google-etat` : ce que la page dit du compte Google (lie, a quelle date), jamais le jeton.
 fn google_etat(ctx: &Contexte) -> R<Value> {
     // L'application ne sert qu'a rafraichir un jeton : sans Drive lie, son absence (une copie de travail du depot) n'est
-    // pas un refus, et l'etat dit seulement « pas lie » (#235 du prive). Un `config/google.json` pose mais illisible ou
+    // pas un refus, et l'etat dit seulement « pas lie ». Un `config/google.json` pose mais illisible ou
     // incomplet en reste un : c'est un fichier de l'utilisateur, a corriger.
     let application = match identifiants(&ctx.racine) {
         Err(e) if config(&ctx.racine).join(FICHIER_IDENTIFIANTS).exists() => return Err(e),

@@ -70,9 +70,9 @@ enum Verrou {
     Chemin,
 }
 
-/// Ce qui attend la décision de Léandre (lot N1, 14/10/2026) : le verrou qu'il suspend, les fichiers (relatifs à la racine
+/// Ce qui attend une décision d'éditeur : le verrou qu'il suspend, les fichiers (relatifs à la racine
 /// du dépôt), et pourquoi. Un motif qui ne couvre plus rien se retire (`chaque_suspens_couvre_encore_un_fichier`) : la
-/// liste ne fait que rétrécir. `prive/journal/finitions/PASSATION-N1.md` dit ce qui est proposé pour chacun.
+/// liste ne fait que rétrécir.
 const EN_SUSPENS: [(Verrou, &str, &str); 8] = [
     (Verrou::Nom, "^atelier/prive-dev/", "la copie de développement : des données de la compagnie du poste"),
     (Verrou::Siren, "^atelier/prive-dev/", "la copie de développement : des données de la compagnie du poste"),

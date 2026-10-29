@@ -34,7 +34,7 @@ fn par_champ<'a>(m: &'a [Value], champ: &str) -> Vec<&'a Value> {
     m.iter().filter(|x| x["champ"] == json!(champ)).collect()
 }
 
-/// AUCUN MANQUE NE POINTE VERS UN CHAMP MASQUE, POUR AUCUNE CONVENTION (#236 : « Licence d'entrepreneur de spectacles —
+/// AUCUN MANQUE NE POINTE VERS UN CHAMP MASQUE, POUR AUCUNE CONVENTION (un bug qui a echappe : « Licence d'entrepreneur de spectacles —
 /// bloque la DSN » en 1790, alors que la case y etait repliee). Pour chaque convention du bareme 2026 (et la compagnie qui
 /// n'a pas encore dit la sienne), avec et sans permanents, avec et sans spectacle : tout ce que « Pour demarrer » demande
 /// dans la fiche Entreprise est une case que l'ecran montre (`Champ::montre`, la regle que la page applique, `fiche.js`),

@@ -1,6 +1,5 @@
 //! Tests du lecteur de `.modele` (`src/modele.rs`) et du style « contrat » (`src/style_contrat.rs`) :
-//! la grammaire, les marqueurs, les refus — les mêmes que ceux de `moteur/contrat.py` — et la
-//! preuve qu'un document « modèle » donne exactement le PDF de la description à blocs équivalente.
+//! la grammaire, les marqueurs, les refus, et la preuve qu'un document « modèle » donne exactement le PDF de la description à blocs équivalente.
 
 use std::path::{Path, PathBuf};
 
@@ -185,7 +184,7 @@ fn para_json(morceaux: Value, taille: Option<f64>, couleur: Option<&str>, align:
     b
 }
 
-/// Le même document, écrit à la main en blocs (ce que le Python envoyait avant le format 2).
+/// Le même document, écrit à la main en blocs.
 fn description_a_blocs() -> Value {
     let g = |t: &str| json!({"texte": t, "gras": true});
     let n = |t: &str| json!({"texte": t});

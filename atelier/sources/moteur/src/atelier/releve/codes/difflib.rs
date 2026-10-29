@@ -1,7 +1,7 @@
-//! `difflib.unified_diff` du Python, sur des listes de lignes (`SequenceMatcher(None, a, b)`, `autojunk` compris) : la
-//! comparaison d'un article a sa version d'avant (`comparer`) doit rendre les memes lignes que le moissonneur Python, qui
-//! la faisait avec `difflib.unified_diff(a, b, "avant", "apres", lineterm="", n=1)`. Le meme algorithme (Ratcliff et
-//! Obershelp : le plus long bloc commun, puis recursivement a gauche et a droite), les memes regroupements.
+//! Le diff unifie de deux listes de lignes : la comparaison d'un article a sa version d'avant (`comparer`), en-tetes
+//! `avant` et `apres`, une ligne de contexte. L'algorithme est celui de Ratcliff et Obershelp (le plus long bloc commun,
+//! puis recursivement a gauche et a droite ; une ligne trop frequente d'une longue liste ne sert pas d'ancre), et ses
+//! regroupements en blocs `@@`.
 
 use std::collections::{HashMap, HashSet};
 

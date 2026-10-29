@@ -298,8 +298,8 @@ async function agirSurRappel(r) {
   if (r.quoi === "revue-spectacles") return boiteRevueSpectacles(r);
 }
 
-/* ---- La revue des spectacles, en début d'année (l'éditeur, 30/09/2026,
- * journal §167). Un numéro d'objet vaut tant que le spectacle se joue : on
+/* ---- La revue des spectacles, en début d'année. Un numéro d'objet vaut
+ * tant que le spectacle se joue : on
  * demande seulement lesquels continuent. Tout est coché ; décocher archive,
  * et une fiche archivée se réactive d'un clic dans Configuration. */
 function boiteRevueSpectacles(r) {

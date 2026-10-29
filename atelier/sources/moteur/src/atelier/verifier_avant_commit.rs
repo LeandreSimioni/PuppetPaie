@@ -70,7 +70,7 @@ pub const FICTIVES: [(&str, &str); 8] = [
     ("FR7630001000000000000000185", "IBAN fait de zéros, test du caviardage"),
 ];
 
-/// Les textes de référence (`atelier/reference/`, 15/10/2026) sont des copies, octet pour octet, de ce que d'autres ont
+/// Les textes de référence (`atelier/reference/`) sont des copies, octet pour octet, de ce que d'autres ont
 /// publié (leur empreinte se vérifie, `moteur sources`) : un numéro qui y a la forme d'un NIR, d'un IBAN ou d'un BIC est
 /// celui de l'émetteur -- l'exemple d'une documentation officielle, ou un nombre qui n'en est pas un. Chacun est nommé
 /// ici, fichier par fichier (relatif à la racine du dépôt), avec ce qu'il est ; seuls les motifs GÉNÉRIQUES s'y taisent,

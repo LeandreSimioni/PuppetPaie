@@ -1,5 +1,5 @@
-//! La veille des conventions collectives par les livraisons open data KALI de la DILA (`moteur/kali.py`, retire au lot K,
-//! porte au lot S1). Un outil de l'EDITEUR (`moteur sources --verifier`), jamais d'une compagnie.
+//! La veille des conventions collectives par les livraisons open data KALI de la DILA. Un outil de l'EDITEUR
+//! (`moteur sources --verifier`), jamais d'une compagnie.
 //!
 //! Legifrance refuse les robots (403). Mais la DILA publie chaque soir, en open data et sans compte, ce qui a change dans
 //! la base KALI (les conventions collectives) : une archive de quelques centaines de Ko par jour, a
@@ -19,7 +19,7 @@
 //! La lecture est incrementale : chaque livraison lue est resumee une fois dans `atelier/reference/sources/veille-kali.json` (ce
 //! qui touche NOS conventions, rien d'autre), et n'est jamais retelechargee. Le rapport est recalcule a chaque fois
 //! depuis la date de releve de la source : un signal vu hier ne disparait pas parce qu'on a relance la commande. Le
-//! fichier est celui qu'ecrivait le Python (memes cles) : la veille reprend ou il s'etait arrete.
+//! fichier garde ses cles d'une version a l'autre : la veille reprend ou elle s'etait arretee.
 //!
 //! Ce module ne decide rien : il rend ce qui a bouge, `sources::verifier` en fait un etat, la commande l'affiche.
 

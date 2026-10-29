@@ -5,12 +5,10 @@
 //! Le PAQUET SOUDE, bride pour toujours (`bridage::paquet_soude`) ne garde que
 //! les actions de l'editeur (et `poste`) : les autres levent `EditionBridee`.
 //!
-//! UNE CLE PAR POSTE, PLUS DE SECRET PARTAGE (serveur version 7, 13/10/2026 ;
-//! le contrat : `prive/journal/filet/DEMANDE-SERVEUR-CLE-PAR-POSTE.md`). Le
+//! UNE CLE PAR POSTE, AUCUN SECRET PARTAGE (serveur version 7). Le
 //! serveur donne a chaque poste son numero et sa cle (`POST /poste`) ; les
 //! actions de l'editeur (`inscrire`, `rapport`, `retour`, `reponses`) portent
-//! le numero dans le corps et la cle dans `X-Filet-Cle`. `X-Filet-Secret` et le
-//! `secret` de `config/filet-dpae.json` n'existent plus.
+//! le numero dans le corps et la cle dans `X-Filet-Cle`.
 //!
 //! Jamais le vrai serveur dans les essais : l'adresse vient de la
 //! configuration, et les essais en donnent une locale. Quand la configuration

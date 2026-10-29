@@ -28,8 +28,7 @@
 //!     TGE, un employeur qui passe par le GUSO ne suivent pas la geographie : l'ecran presente le code deduit, la compagnie
 //!     le corrige si le sien differe.
 //!
-//! Portage de `atelier/outils/extraire_urssaf.py`, qui ignorait ses arguments et ecrivait des qu'on le lancait : ici les
-//! trois sources et la sortie se nomment.
+//! Les trois sources et la sortie se nomment.
 
 use std::collections::BTreeSet;
 use std::io::Read;
@@ -43,7 +42,7 @@ use socle::fichiers::repr;
 use socle::num::Resultat;
 use socle::texte::strip;
 
-/// Les caracteres de windows-1252 de 0x80 a 0x9F (`None` : non attribue, que le codec de Python refuse).
+/// Les caracteres de windows-1252 de 0x80 a 0x9F (`None` : non attribue, l'octet est refuse).
 const CP1252: [Option<char>; 32] = [
     Some('\u{20ac}'),
     None,
@@ -95,8 +94,8 @@ fn latin1(octets: &[u8]) -> String {
     octets.iter().map(|&b| b as char).collect()
 }
 
-/// `csv.reader(texte, delimiter=d)` de Python (guillemets doubles, un guillemet n'ouvre qu'en debut de champ ; une ligne
-/// vide ne donne aucun rang, comme `DictReader` les saute).
+/// Les rangs d'un CSV separe par `delim` (guillemets doubles, un guillemet n'ouvre qu'en debut de champ ; une ligne
+/// vide ne donne aucun rang).
 fn rangs_csv(texte: &str, delim: char) -> Vec<Vec<String>> {
     let (mut rangs, mut rang, mut champ): (Vec<Vec<String>>, Vec<String>, String) =
         (Vec::new(), Vec::new(), String::new());
@@ -172,7 +171,7 @@ impl Table {
     }
 }
 
-/// `texte.zfill(n)` de Python.
+/// Le texte complete de zeros a gauche jusqu'a `n` caracteres, apres son signe s'il en a un.
 fn zfill(texte: &str, n: usize) -> String {
     let long = texte.chars().count();
     if long >= n {

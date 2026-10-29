@@ -5,8 +5,8 @@
 //! Le tableau des usages (`extraire::usages`) dit si une rubrique a le droit d'etre la. Il ne dit pas ce qu'elle doit
 //! CONTENIR. Or chaque rubrique du cahier technique porte, en face de sa definition, sa longueur `[min,max]` et une
 //! expression reguliere de controle nommee CSL -- par exemple, pour un montant, `-?(([0-9]){1,12})\.[0-9]{2}`, et pour
-//! une date `[0-9]{8}`. Le 19/09/2026, le montant d'une indemnite de rupture s'ecrivait dans `S21.G00.52.004`, qui est
-//! une DATE : les quatre rubriques du bloc 52 avaient le droit d'etre la, c'est leur CONTENU qui etait faux. Une
+//! une date `[0-9]{8}`. Un montant d'indemnite de rupture ecrit dans `S21.G00.52.004`, qui est
+//! une DATE, passe les usages : les quatre rubriques du bloc 52 ont le droit d'etre la, c'est leur CONTENU qui est faux. Une
 //! expression de controle le dit tout de suite.
 //!
 //! Deux sources, selon l'extension, deposees dans `atelier/reference/norme-dsn/` (son `LISEZMOI.md`) :
@@ -26,10 +26,9 @@
 //!   suivant ; on y lit la premiere longueur `[min,max]` et chaque expression `CSL nn : ...`.
 //!
 //! UNE EXPRESSION QUE LE MOTEUR NE SAIT PAS COMPILER (`formats::Regex::compiler`) EST LAISSEE TOMBER, plutot que reparee a
-//! la main : une expression devinee refuserait des valeurs licites. Elle est nommee dans `_expressions_ecartees`. (Le
-//! releve d'origine ecartait ce que le `re` de Python ne compilait pas ; le moteur, qui seul se sert de ces expressions,
-//! en reconnait un sous-ensemble prouve contre `re` : le critere est desormais le sien. Sur les sources deposees, les deux
-//! criteres ecartent les memes trois expressions, coupees par la mise en page.)
+//! la main : une expression devinee refuserait des valeurs licites. Elle est nommee dans `_expressions_ecartees`. Le
+//! critere est celui du moteur, qui seul se sert de ces expressions ; sur les sources deposees, il ecarte trois
+//! expressions, coupees par la mise en page.
 //!
 //! CE QUE LE RELEVE VAUT. Il est lu dans un document, donc il peut etre faux, et un controle faux refuserait une
 //! declaration licite -- pire que pas de controle du tout (regle 7). Une expression qui refuse une valeur deja acceptee
@@ -58,9 +57,9 @@ fn compile(expression: &str) -> bool {
 }
 
 /// Les groupes de `CSL\s*\d*\s*:\s*(.*?)(?=\n[ \t]*\n)` (drapeau `S` : `.` prend aussi le saut de ligne), cherches de
-/// gauche a droite comme `re.findall`. UNE EXPRESSION DE CONTROLE VA JUSQU'A LA LIGNE VIDE SUIVANTE : le PDF la coupe en
+/// gauche a droite, sans chevauchement. UNE EXPRESSION DE CONTROLE VA JUSQU'A LA LIGNE VIDE SUIVANTE : le PDF la coupe en
 /// plein milieu d'un motif, sans espace (`(20)[0-` puis `9]{2}`) ; on la recolle ensuite en retirant les sauts de ligne.
-/// La recherche refait pas a pas ce que fait le moteur a retour arriere de Python, y compris quand la ligne vide est
+/// La recherche suit pas a pas un moteur a retour arriere (le motif a une anticipation), y compris quand la ligne vide est
 /// mangee par les blancs qui suivent les deux-points.
 fn csl_trouvees(corps: &str) -> Vec<String> {
     let entete = Regex::new(r"\ACSL[\s\x1c-\x1f]*\d*[\s\x1c-\x1f]*:").expect("motif");
@@ -180,7 +179,8 @@ fn relever_pdf(texte: &str, ecartees: &mut Vec<Ecartee>) -> Resultat<Map<String,
     Ok(out)
 }
 
-/// Une cle de dictionnaire comme Python la compare : `1 == 1.0 == True`, un texte n'egale qu'un texte.
+/// La cle d'une case : un entier, un flottant de valeur entiere et un booleen (0 ou 1) de meme valeur se confondent ;
+/// un texte n'egale qu'un texte.
 fn cle(c: &Cellule) -> String {
     let nombre = |f: f64| {
         if f.fract() == 0.0 && f.abs() < 9.2e18 {
@@ -197,7 +197,7 @@ fn cle(c: &Cellule) -> String {
     }
 }
 
-/// `dict(zip(entete, ligne + [None] * ...))[nom]` : la valeur de la derniere colonne titree `nom`, ou `None`.
+/// La valeur de la derniere colonne titree `nom` (une ligne plus courte que l'en-tete se complete de vides), ou `None`.
 fn champ<'a>(entete: &[Option<Cellule>], ligne: &'a [Option<Cellule>], nom: &str) -> Option<Option<&'a Cellule>> {
     let j = entete.iter().rposition(|t| matches!(t, Some(Cellule::Texte(s)) if s == nom))?;
     Some(ligne.get(j).and_then(Option::as_ref))
@@ -212,7 +212,7 @@ fn champ_exige<'a>(
     champ(entete, ligne, nom).ok_or_else(|| format!("la feuille « {} » n'a pas de colonne « {} »", feuille, nom))
 }
 
-/// `int(valeur)` de Python : un entier, un flottant tronque, un booleen, un texte d'entier.
+/// L'entier d'une case : un entier, un flottant tronque, un booleen (0 ou 1), un texte d'entier.
 fn entier_de(c: &Cellule) -> Resultat<i64> {
     match c {
         Cellule::Entier(i) => Ok(*i),

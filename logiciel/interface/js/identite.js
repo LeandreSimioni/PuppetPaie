@@ -63,7 +63,7 @@ async function dessinerIdentite(cible) {
     </div>`;
   };
 
-  // OÙ VA CHAQUE IMAGE, en toutes lettres (§110) : le moteur en tient la
+  // OÙ VA CHAQUE IMAGE, en toutes lettres : le moteur en tient la
   // liste (`DOCUMENTS_IDENTITE`). La page disait de la signature
   // « l'attestation et le certificat » ; elle part aussi sur chaque contrat.
   const ou = (quoi) => {

@@ -327,7 +327,7 @@ fn nfkd_ascii(u: &Ucd) -> String {
 }
 
 /// Une page de code de `Public/MAPPINGS` (`0xXX<tab>0xXXXX<tab>#NOM`) : les octets 0x80 a 0xFF, U+FFFD pour un octet
-/// que la page ne definit pas (`#UNDEFINED`, comme le `replace` de Python que `pyexpat` lit).
+/// que la page ne definit pas (`#UNDEFINED`) : un tel octet se remplace, il ne fait pas echouer la lecture.
 fn page_de_code(sources: &Path, nom: &str) -> Result<[u32; 128], String> {
     let texte = lire(sources, nom)?;
     let mut t = [0u32; 128];

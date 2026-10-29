@@ -1,4 +1,4 @@
-//! La restauration du dossier prive depuis le Drive (`restauration.rs`, lot R1) contre le FAUX `Drive` en memoire
+//! La restauration du dossier prive depuis le Drive (`restauration.rs`) contre le FAUX `Drive` en memoire
 //! (`tests/faux_drive`) : l'index reconstruit
 //! laisse la sauvegarde suivante sans rien a faire ; le dossier qui n'est pas vide (refus, ou accepte s'il ne porte que le
 //! jeton ou des copies identiques, d'ou la reprise apres une coupure) ; l'empreinte qui ne colle pas ; ce qui ne redescend

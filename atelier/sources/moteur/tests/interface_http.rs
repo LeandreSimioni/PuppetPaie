@@ -48,7 +48,7 @@ fn requete_brute(port: u16, brut: &str) -> (u16, String) {
     (tete.split_whitespace().nth(1).unwrap().parse().unwrap(), corps.to_string())
 }
 
-/// #141 : un geste de l'accueil refuse (jeton absent) dit une PHRASE, pas un objet (« [object Object] ») ; un corps
+/// Un geste de l'accueil refuse (jeton absent) dit une PHRASE, pas un objet (« [object Object] ») ; un corps
 /// trop gros recoit une reponse JSON qui le dit, pas un corps vide que la page ne sait pas lire.
 #[test]
 fn le_lanceur_refuse_en_phrase_et_un_corps_trop_gros_se_dit_en_json() {

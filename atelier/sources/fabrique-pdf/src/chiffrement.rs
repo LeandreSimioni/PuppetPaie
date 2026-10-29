@@ -23,9 +23,9 @@ type CbcChiffre256 = cbc::Encryptor<aes::Aes256>;
 type CbcDechiffre256 = cbc::Decryptor<aes::Aes256>;
 type CbcChiffre128 = cbc::Encryptor<aes::Aes128>;
 
-/// Les permissions, comme `PDF_PERM_PRINT | PDF_PERM_COPY | PDF_PERM_ACCESSIBILITY` de MuPDF :
+/// Les permissions du dictionnaire de chiffrement (`/P`) :
 /// bits 3 (imprimer), 5 (copier) et 10 (accessibilité), les bits réservés à 1 (7, 8 et 13 à 32).
-/// Vaut -3372 en entier signé, comme dans les fichiers que PyMuPDF verrouillait.
+/// Vaut -3372 en entier signé.
 pub const PERMISSIONS: u32 = 0xFFFF_F0C0 | 4 | 16 | 512;
 
 fn refus<T>(m: impl Into<String>) -> Result<T, Refus> {

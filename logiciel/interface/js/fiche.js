@@ -298,7 +298,7 @@ function dessinerFormulaire(fiche) {
 
   // LES SECTIONS. Une fiche qui n'en declare pas garde sa liste plate ;
   // un champ oublie d'une table de sections s'affiche dans la derniere.
-  // `ecran` faux : le champ garde sa valeur, la fiche ne le montre pas (§94).
+  // `ecran` faux : le champ garde sa valeur, la fiche ne le montre pas.
   const saisissables = desc.filter((c) => !c.calcule && c.ecran !== false);
   const sections = SECTIONS_FICHE[FICHE_ACTIVE];
   let champs;
@@ -1323,7 +1323,7 @@ function aRemplir(a) {
 
 /*  ENREGISTRER UNE FICHE : DATER CE QUI CHANGE
  *
- *  Le §18.12 du journal raconte ce qui arrive quand on ne le fait pas. Une
+ *  Ce qui arrive quand on ne le fait pas : une
  *  commune de naissance a ete corrigee depuis cet ecran ; l'avertissement
  *  disait bien « enregistrer declarera PARIS 12E », et il etait juste. Ce
  *  qu'il ne disait pas, c'est que 55 DSN etaient deja parties avec l'autre

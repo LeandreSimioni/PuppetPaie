@@ -1,4 +1,4 @@
-//! Corrections DSN, vague 1g (point 19 de la relecture) : Agirc-Arrco se declare en 131, l'Apec en 132.
+//! Agirc-Arrco se declare en 131, l'Apec en 132.
 //!
 //! Cahier technique DSN 2026.1 (`atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`) : la modalite Agirc-Arrco de
 //! S21.G00.81.001 reserve « 105 - Montant de cotisation Regime Unifie Agirc-Arrco, y compris Apec » a la

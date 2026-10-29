@@ -157,7 +157,7 @@ fn un_chemin_qui_sort_de_la_page_rend_404() {
     assert_eq!(get(b, "/js/tuyau.js").code, 200);
 }
 
-/// Ticket #218 : la capture d'ecran du « Un probleme, une idee ? » dessine la page par html2canvas 1.4.1, qui ne lit
+/// La capture d'ecran du « Un probleme, une idee ? » dessine la page par html2canvas 1.4.1, qui ne lit
 /// que les couleurs hexadecimales, nommees, `rgb()`/`rgba()` et `hsl()`/`hsla()` ; une fonction de couleur plus recente
 /// (`color-mix()`, que Chromium calcule en `color(srgb ...)`, `color()`, `lab()`, `lch()`, `oklab()`, `oklch()`,
 /// `hwb()`) la fait echouer sur toute la page (« Attempting to parse an unsupported color function "color" »). Ni la
@@ -228,7 +228,7 @@ fn tuile_ajoutee(html: &str) -> String {
     format!("cie:{}", dossier)
 }
 
-/// Capture de Leandre (Windows, version 20.10.2026) : sur la page du mot de passe d'une compagnie, « Retour » ne
+/// Un bug qui a echappe : sur la page du mot de passe d'une compagnie, « Retour » ne
 /// faisait rien (le geste `accueil` manquait a la cale de la page). Les deux pages du mot de passe (le choix, a la
 /// premiere ouverture, puis la saisie) n'appellent que des gestes que leur cale definit, offrent Retour et Echap, et
 /// le geste `accueil` ramene la fenetre au choix de la compagnie : `/` sert de nouveau l'accueil.

@@ -185,7 +185,7 @@ fn le_programme_n_ecrit_rien_quand_il_refuse() {
     let r = lancer(&json!({"pieces": [{"fichier": a}]}));
     assert_eq!(r.status.code(), Some(0));
     assert_eq!(textes(&std::fs::read(&sortie).unwrap()).len(), 1);
-    // l'aide la nomme : c'est ce que le Python lit pour savoir si le programme assemble
+    // l'aide nomme le mode
     let aide = Command::new(exe).arg("--aide").output().unwrap();
     assert!(String::from_utf8(aide.stdout).unwrap().contains("--assembler"));
 }

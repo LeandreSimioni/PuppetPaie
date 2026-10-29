@@ -7,13 +7,10 @@
 //! dans le `moteur` livre parce que c'est ce programme-la que le poste de l'editeur fait tourner, mais il n'apparait que dans
 //! l'aide de bas niveau (`moteur` sans argument), avec les autres outils d'atelier.
 //!
-//! Le portage des scripts `atelier/outils/extraire_naf.py`, `extraire_usages.py`, `extraire_formats.py` et
-//! `extraire_urssaf.py` (et de leurs bibliotheques `lire_xlsx.py`, `lire_pdf.py`), retires le 15/10/2026 : chaque releve
-//! redonne, a l'octet, le referentiel livre, hors le `_source` (qui nomme desormais la commande, le fichier depose et la
-//! date du releve). La preuve : `tests/fichiers/extraction.rs`, qui rejoue chaque releve sur `atelier/reference/`.
+//! Chaque releve redonne, a l'octet, le referentiel livre, hors le `_source` (qui nomme la commande, le fichier depose et
+//! la date du releve). La preuve : `tests/fichiers/extraction.rs`, qui rejoue chaque releve sur `atelier/reference/`.
 //!
-//! UN REFERENTIEL NE S'ECRASE PAS PAR ACCIDENT. La sortie se nomme toujours (pas de cible par defaut, contrairement a
-//! l'ancien `extraire_urssaf.py`, qui ecrivait des qu'on le lancait) ; elle finit en `.json` ; un fichier deja la n'est
+//! UN REFERENTIEL NE S'ECRASE PAS PAR ACCIDENT. La sortie se nomme toujours (pas de cible par defaut) ; elle finit en `.json` ; un fichier deja la n'est
 //! remplace qu'avec `--remplacer` ; et rien ne s'ecrit avant que le releve soit entierement fait (fichier temporaire, puis
 //! renommage).
 
@@ -32,7 +29,7 @@ use socle::num::Resultat;
 /// Un releve fait, pret a s'ecrire.
 pub struct Releve {
     pub donnees: Value,
-    /// L'indentation du JSON (`json.dump(..., indent=n)` du releve d'origine).
+    /// L'indentation du JSON ecrit (n espaces par niveau).
     pub indent: usize,
     /// Un saut de ligne apres le JSON.
     pub saut_final: bool,
@@ -41,7 +38,7 @@ pub struct Releve {
 }
 
 impl Releve {
-    /// Les octets du fichier : `json.dump(donnees, ensure_ascii=False, indent=n)`, en LF.
+    /// Les octets du fichier : le JSON indente, accents non echappes, en LF.
     pub fn octets(&self) -> Vec<u8> {
         let mut t = socle::ecriture::json_indente(&self.donnees, self.indent);
         if self.saut_final {
@@ -279,17 +276,17 @@ pub(crate) fn sha256(chemin: &Path) -> Resultat<String> {
     Ok(socle::fichiers::sha256_hex(&octets))
 }
 
-/// `" ".join(texte.split())` : les blancs (au sens de Python) ramenes a un, sans blanc au bord.
+/// Les blancs (`socle::texte::blanc`) ramenes a un, sans blanc au bord.
 pub(crate) fn blancs_ramenes(texte: &str) -> String {
     texte.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
-/// `unicodedata.normalize("NFC", texte)`.
+/// Le texte en forme composee (NFC).
 pub(crate) fn nfc(texte: &str) -> String {
     icu_normalizer::ComposingNormalizerBorrowed::new_nfc().normalize(texte).into_owned()
 }
 
-/// Une case d'un classeur en texte comme le releve sur PDF le rend : vide pour une case vide, sinon `str()` de la valeur,
+/// Une case d'un classeur en texte comme le releve sur PDF le rend : vide pour une case vide, sinon la valeur en texte,
 /// blancs ramenes a un, en forme composee (NFC).
 pub(crate) fn propre(c: &Option<socle::lecture_xlsx::Cellule>) -> String {
     match c {
@@ -303,9 +300,9 @@ pub(crate) fn date_du_releve(jour: &Jour) -> String {
     jour.jj_mm_aaaa()
 }
 
-/// `sum()` de Python sur des flottants (3.12 et suivants) : le premier terme, puis la somme compensee de Neumaier, la
+/// La somme de flottants : le premier terme, puis la somme compensee de Neumaier, la
 /// compensation ajoutee a la fin si elle est non nulle et finie. Les frontieres des tableaux du cahier (`usages.rs`) sont des
-/// moyennes : le meme calcul que le releve d'origine, au dernier bit.
+/// moyennes : ce calcul redonne, au dernier bit, celles du referentiel livre.
 pub(crate) fn somme_compensee(valeurs: &[f64]) -> f64 {
     let Some((premier, reste)) = valeurs.split_first() else { return 0.0 };
     let mut f = 0.0 + premier;

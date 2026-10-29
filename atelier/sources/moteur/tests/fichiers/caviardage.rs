@@ -2,8 +2,8 @@
 //! bulletin, et ce dont l'editeur a besoin (montants, taux, dates de periode, libelles, numero
 //! d'objet, Siret, NAF) reste.
 //!
-//! TOUT EST FICTIF : les deux bulletins sont ecrits ici, aux gabarits decrits par les consignes du
-//! lot B (A, CoolPaie ; B, logiciel non identifie), avec des valeurs inventees. Les NIR sont de forme
+//! TOUT EST FICTIF : les deux bulletins sont ecrits ici, a deux gabarits de bulletin
+//! (A, CoolPaie ; B, logiciel non identifie), avec des valeurs inventees. Les NIR sont de forme
 //! fabriquee (departement 99, commune 999), les Siret commencent par 900 000, les IBAN sont faits de
 //! zeros. Aucun PDF de `import/` n'est lu.
 
@@ -214,7 +214,7 @@ fn une_etiquette_n_est_pas_reprise_et_rien_ne_fuit_des_marques() {
     assert_eq!(c.texte, "a\u{FFFD}b <PRENOM> <NOM>");
 }
 
-/// #149 : le code salarie tout en chiffres, seul a la ligne qui suit « Code salarié : » (deux colonnes que la fabrique
+/// Le code salarie tout en chiffres, seul a la ligne qui suit « Code salarié : » (deux colonnes que la fabrique
 /// rend sur deux lignes), part comme celui de la meme ligne ; une date ou un montant de la ligne suivante restent.
 #[test]
 fn un_code_salarie_en_chiffres_a_la_ligne_suivante_part() {

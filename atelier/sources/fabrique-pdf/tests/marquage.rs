@@ -1,6 +1,5 @@
 //! Tests de `--marquer` : un texte en pied de chaque page d'un PDF existant (6 pt, gris 0,45, à
-//! 34 pt du bord gauche, ligne de base à 12 pt du bas — `_marquer` de operations_dossier.py), en
-//! Liberation Sans sous-ensemble avec sa table `ToUnicode`, sans toucher aux flux existants.
+//! 34 pt du bord gauche, ligne de base à 12 pt du bas), en Liberation Sans sous-ensemble avec sa table `ToUnicode`, sans toucher aux flux existants.
 
 use lopdf::content::Content;
 use lopdf::{Document, Object, ObjectId};

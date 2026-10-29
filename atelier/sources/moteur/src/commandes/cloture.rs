@@ -11,7 +11,7 @@
 //!
 //! Une annee illisible (`abc`), un fichier d'exercices abime, un disque plein : `! phrase` (code 2) pour ce que la route nomme un refus, un plantage propre sinon.
 //!
-//! POINT DOUTEUX : l'empreinte et la taille du zip dependent du compresseur (le Rust n'est pas zlib) ; le contenu, lui, est identique.
+//! L'empreinte et la taille du zip dependent du compresseur ; le contenu, lui, ne depend que des fichiers.
 
 use serde_json::{json, Value};
 

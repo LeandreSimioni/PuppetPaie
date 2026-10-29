@@ -508,8 +508,8 @@ function occupe(bouton, texte) {
 const echapper = (s) => String(s ?? "").replace(/[&<>"]/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-/* Une phrase du moteur qui porte un lien (le texte d'une convention, journal
- * §161) : echappee d'abord, puis l'adresse https devient cliquable. Le point
+/* Une phrase du moteur qui porte un lien (le texte d'une convention) :
+ * echappee d'abord, puis l'adresse https devient cliquable. Le point
  * qui clot la phrase reste dehors. */
 const echapperLiens = (s) => echapper(s).replace(
   /(https:\/\/[^\s<]+?)([.,;]?)(?=\s|$)/g,

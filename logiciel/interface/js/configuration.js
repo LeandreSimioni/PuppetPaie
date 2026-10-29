@@ -89,7 +89,7 @@ function dessinerConfig() {
   const rangees = [...courantes, ...archivees];
   const salarie = FICHE_ACTIVE === "salarie";
 
-  // UN SPECTACLE, PAS UNE FICHE PAR NUMÉRO (§94). Une fiche archivée du
+  // UN SPECTACLE, PAS UNE FICHE PAR NUMÉRO. Une fiche archivée du
   // même titre qu'un spectacle actif (un ancien numéro) se montre sous lui,
   // pas dans les archives.
   const titreDe = (d) => String(d.titre || "").normalize("NFD")
@@ -1030,8 +1030,8 @@ const CACHES = {
  * prenom en capitales sans accents, c'est la forme de l'AEM et de la DSN :
  * le moteur la fabrique (`champs.deriver_personnes`), on ne la demande plus. */
 const SOUS_CHAMPS = {
-  // Le solde de congés d'un salarié au mois arrivé d'un autre logiciel
-  // (§111) : ce que son dernier bulletin disait.
+  // Le solde de congés d'un salarié au mois arrivé d'un autre logiciel :
+  // ce que son dernier bulletin disait.
   conges_reprise: { champs: [
     ["date", "PuppetPaie compte à partir du", "Le premier jour du premier mois produit par PuppetPaie", { date: true }],
     ["report", "Reste N-1 (jours)", "Les jours de l'année de référence précédente qui restent à prendre"],
@@ -1073,7 +1073,7 @@ const SOUS_CHAMPS = {
     ["iban", "IBAN", "Sur votre relevé d'identité bancaire (RIB) : 27 caractères commençant par FR."],
     ["bic", "BIC", "Sur le même RIB, 8 ou 11 caractères."],
   ] },
-  // LA PREVOYANCE ET LA SANTE DES PERMANENTS (24/09/2026, journal §129).
+  // LA PREVOYANCE ET LA SANTE DES PERMANENTS.
   // Elles se saisissaient en JSON dans une zone de texte : un administrateur
   // n'avait pas a lire des accolades. Une case vide est RETIREE a
   // l'enregistrement, et le moteur applique alors la convention. Le format
