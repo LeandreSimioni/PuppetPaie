@@ -140,9 +140,26 @@ pub fn sha256_hex(octets: &[u8]) -> String {
 /// Ce que vaut un fichier pour l'empreinte : le hachage de son contenu, ou `absent`.
 pub fn empreinte_fichier(chemin: &Path) -> String {
     match std::fs::read(chemin) {
-        Ok(o) => sha256_hex(&o),
+        Ok(o) => empreinte_des_octets(chemin, o),
         Err(_) => "absent".into(),
     }
+}
+
+/// LE HACHAGE DES OCTETS `octets`, lus de `chemin`, fait une fois par contenu : les referentiels du code pesent plus
+/// d'un megaoctet, et chaque calcul suivi, chaque empreinte relue d'une paie les nomme tous. Le hachage garde ne sert
+/// que si les octets sont exactement ceux qu'il a haches : il ne se perime jamais.
+fn empreinte_des_octets(chemin: &Path, octets: Vec<u8>) -> String {
+    type Empreintes = Mutex<HashMap<PathBuf, (Vec<u8>, String)>>;
+    static EMPREINTES: OnceLock<Empreintes> = OnceLock::new();
+    let cache = EMPREINTES.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Some((vus, e)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
+        if *vus == octets {
+            return e.clone();
+        }
+    }
+    let e = sha256_hex(&octets);
+    ranger(cache, chemin.to_path_buf(), (octets, e.clone()));
+    e
 }
 
 fn noms(chemin: &Path) -> Option<Vec<String>> {
@@ -174,7 +191,9 @@ pub fn noter_si_besoin(chemin: &Path) {
 pub fn lire_texte(chemin: &Path) -> std::io::Result<String> {
     match std::fs::read(chemin) {
         Ok(o) => {
-            noter("fichier", chemin, sha256_hex(&o));
+            if suivi() {
+                noter("fichier", chemin, empreinte_des_octets(chemin, o.clone()));
+            }
             String::from_utf8(o).map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "stream did not contain valid UTF-8"))
         }
         Err(e) => {
@@ -310,6 +329,32 @@ pub fn json_en_cache_ou<E>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Val
         cache.lock().unwrap().insert(chemin.to_path_buf(), (s, v.clone()));
     }
     Ok(v)
+}
+
+type CacheDesContenus = Mutex<HashMap<PathBuf, (Arc<Vec<u8>>, Arc<Value>)>>;
+
+/// UN JSON LU, ANALYSE UNE FOIS PAR CONTENU : le fichier se relit a chaque fois (ses octets), et ce qu'on en avait tire
+/// ne sert que si ses octets sont exactement ceux d'alors. Rien ne se lit perime, quel que soit qui l'a ecrit et quand
+/// (une autre fenetre, une restauration, une cle USB aux dates a deux secondes pres) : seule l'analyse s'epargne, et
+/// c'est elle qui coute. `None` s'il n'existe pas. Rien ne se note au registre : l'appelant dit ce qu'il lit (les
+/// engagements se comptent par leur saisie, `engagement::stock`). Partage : on ne le modifie pas ; deux lectures du meme
+/// contenu rendent la meme valeur (`Arc::ptr_eq`).
+pub fn json_partage(chemin: &Path) -> Resultat<Option<Arc<Value>>> {
+    static CACHE: OnceLock<CacheDesContenus> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let octets = match std::fs::read(chemin) {
+        Ok(o) => o,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(panne_fichier(&e, chemin)),
+    };
+    if let Some((vus, v)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
+        if **vus == octets {
+            return Ok(Some(v.clone()));
+        }
+    }
+    let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| format!("{} : {}", chemin.display(), e))?);
+    ranger(cache, chemin.to_path_buf(), (Arc::new(octets), v.clone()));
+    Ok(Some(v))
 }
 
 /// `json.loads(p.read_text(encoding="utf-8"))`, sans cache.

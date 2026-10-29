@@ -522,12 +522,13 @@ pub(crate) fn marque_de_validation() -> String {
 }
 
 /// Les engagements valides de `mois` qui ont une paie ecrite pour lui, avec leur rang a l'ecran ; un engagement en cours
-/// de validation y porte les paies qu'elle a deja calculees, et seulement elles.
+/// de validation y porte les paies qu'elle a deja calculees, et seulement elles. Ce qui est parti n'y change rien (une
+/// paie partie se lit comme une paie validee) : le journal des envois ne se lit pas, et un calcul qui lit ces paies ne
+/// depend que d'elles (`paies <mois>`), pas de chaque depot.
 fn valides_lues(ctx: &Contexte, mois: &str) -> Resultat<Vec<(usize, Valide)>> {
     let en_cours = EN_VALIDATION.with(|e| e.borrow().clone()).unwrap_or_default();
     let mut out = Vec::new();
-    for (i, e) in ecrits(ctx, mois)?.into_iter().enumerate() {
-        let o = e.objet();
+    for (i, o) in stock::objets_du_mois(&ctx.racine, mois)?.into_iter().enumerate() {
         let v = match en_cours.iter().find(|(f, r, _)| o.fichier == *f && o.rang == *r) {
             Some((_, _, paies)) => {
                 let Some(p) = paies.get(mois) else { continue };
@@ -535,7 +536,7 @@ fn valides_lues(ctx: &Contexte, mois: &str) -> Resultat<Vec<(usize, Valide)>> {
                 lue.brut.insert("valide".into(), json!({ "le": "", "paies": { mois: p } }));
                 Valide::de(lue)
             }
-            None => e.valide().cloned(),
+            None => Valide::de(o),
         };
         if let Some(v) = v.filter(|v| v.paie_ecrite(mois).is_some_and(|p| p.get("paie").is_some())) {
             out.push((i, v));
@@ -879,7 +880,7 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, precedente: Option<&Va
     for m in o.mois_couverts(mois)? {
         let partis = documents_partis(siens, &m).is_some();
         let garde = anciennes.get(&m).filter(|f| {
-            let saisie = stock::vue_du_mois(&ctx.racine, &m).ok().flatten().map(|v| stock::empreinte_de_saisie(&v));
+            let saisie = stock::empreinte_de_la_saisie_du_mois(&ctx.racine, &m).ok().flatten();
             let ecrite = f.get("empreinte").and_then(empreinte::entrees_de).and_then(|e| e.get(&stock::cle_de_saisie(&m)).cloned());
             partis && saisie.is_some() && saisie == ecrite
         });

@@ -17,6 +17,7 @@ pub mod google_autorisation;
 pub mod journal;
 pub mod ligne_d_envoi;
 pub mod ordre_signalements;
+pub mod organismes_simules;
 pub mod redirection;
 pub mod releve_retours;
 pub mod reprise_journal;

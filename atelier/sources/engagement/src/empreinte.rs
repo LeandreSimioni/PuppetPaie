@@ -97,7 +97,7 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
                 return crate::etats::empreinte_des_paies_validees(ctx, mois).is_some_and(|e| v == e);
             }
             if let Some(mois) = k.strip_prefix("saisie ") {
-                return stock::vue_du_mois(racine, mois).ok().flatten().is_some_and(|vue| v == stock::empreinte_de_saisie(&vue));
+                return stock::empreinte_de_la_saisie_du_mois(racine, mois).ok().flatten().is_some_and(|e| v == e);
             }
             match fichiers::chemin_de(k, racine, &code) {
                 Some((genre, p)) => match genre.as_str() {

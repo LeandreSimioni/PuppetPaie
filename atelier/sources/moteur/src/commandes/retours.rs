@@ -1,11 +1,10 @@
 //! `moteur retours [--dpae] [--flux IDFLUX] [--depuis JJ/MM/AAAA] [--jusqu-a JJ/MM/AAAA] [--environnement production|editeur]
-//! [--tout] [--appliquer]` : recuperer les retours des organismes. Le releve lui-meme est celui du moteur
+//! [--tout]` : recuperer les retours des organismes. Le releve lui-meme est celui du moteur
 //! (`crate::compagnie::releve::relever_retours`) ; ici ne reste que ce
-//! qui s'affiche -- et le traitement du taux de PAS, qui demande un oeil humain.
+//! qui s'affiche, dont les taux de PAS recus (le releve les a deja appliques, `compagnie::suites`).
 //!
 //! ATTENTION : cette commande va au RESEAU (net-entreprises, ou le service DPAE de l'Urssaf avec `--dpae`). Sur une
-//! compagnie fictive, les retours sont joues sans reseau. Une lecture : on archive sans rien demander, mais on
-//! n'ECRIT JAMAIS un taux de PAS dans la configuration sans `--appliquer`.
+//! compagnie fictive, les retours sont joues sans reseau.
 //!
 //! LE MOT DE PASSE. Si le coffre est ferme (ni la cle du poste, ni une seance), `Cadre::ouvrir_le_coffre` le demande par
 //! `demande::ouvrir_seance` : fenetre (J3), terminal, ou refus avec sa phrase. `--fenetre` est accepte et ne change rien :
@@ -31,7 +30,6 @@ pub static SPEC: Spec = Spec {
         Opt::valeur("jusqu-a"),
         Opt::choix("environnement", &["production", "editeur"], Some("production")),
         Opt::drapeau("tout"),
-        Opt::drapeau("appliquer"),
         Opt::drapeau("json"),
     ],
 };
@@ -254,10 +252,10 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
         dire!("\nAucun compte-rendu DGFiP de nature 94 (taux du PAS) dans ce lot.\nC'est le retour le plus tardif de la chaine : il arrive apres l'accuse, le\ncertificat de conformite et les bilans. Relancer quelques jours apres un depot.\n");
         return Ok(0);
     }
-    traiter_crm_pas(cadre, args, &crm)
+    traiter_crm_pas(cadre, &crm)
 }
 
-fn traiter_crm_pas(cadre: &Cadre, args: &Args, crm: &[&releve_retours::RetourArchive]) -> Result<i32, Echec> {
+fn traiter_crm_pas(cadre: &Cadre, crm: &[&releve_retours::RetourArchive]) -> Result<i32, Echec> {
     let nirs: Vec<Value> = cadre
         .ctx
         .salaries
@@ -265,7 +263,6 @@ fn traiter_crm_pas(cadre: &Cadre, args: &Args, crm: &[&releve_retours::RetourArc
         .filter(|(_, s)| s.get("nir").is_some_and(socle::fichiers::vrai))
         .map(|(cle, s)| json!([cle, s["nir"]]))
         .collect();
-    let mut tous: Vec<Value> = Vec::new();
     let mut illisible = false;
     for a in crm {
         let nom = a.chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
@@ -304,30 +301,6 @@ fn traiter_crm_pas(cadre: &Cadre, args: &Args, crm: &[&releve_retours::RetourArc
                 champ(x, "identifiant")
             );
         }
-        let production = a.retour.get("production").filter(|p| socle::fichiers::vrai(p)).map(texte).unwrap_or_default();
-        for x in rattaches {
-            let mut m = x.as_object().cloned().unwrap_or_default();
-            m.insert("periode".into(), json!(debut_de(&production, 6)));
-            m.insert("mis_a_disposition".into(), a.retour.get("publication").cloned().unwrap_or(Value::Null));
-            tous.push(Value::Object(m));
-        }
     }
-    let code = i32::from(illisible);
-    if tous.is_empty() {
-        return Ok(code);
-    }
-    if !args.drapeau("appliquer") {
-        dire!("\nRien n'a ete ecrit. Verifier les valeurs ci-dessus, puis :\n    moteur retours --appliquer\n");
-        return Ok(code);
-    }
-    let chgts = super::pas::appliquer(&cadre.ctx, &tous, "CRM DGFiP nature 94")?;
-    if !chgts.is_empty() {
-        dire!("\nconfig/pas.json mis a jour :");
-        for c in chgts {
-            dire!("  {}", c);
-        }
-    } else {
-        dire!("\nconfig/pas.json inchange : les valeurs recues sont deja celles connues.");
-    }
-    Ok(code)
+    Ok(i32::from(illisible))
 }

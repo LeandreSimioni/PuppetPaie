@@ -4,6 +4,8 @@
 //! `tests/donnees/scenarios/<nom>/` (`gestes.jsonl`, `pieces/`) ; `rejouer` le rejoue dans un `dossier_de_test`, dans le
 //! processus du test, et `sorties` releve ce que la compagnie en a tire. `rejouer_et_comparer` compare ce releve a
 //! l'oracle `tests/donnees/scenarios/<nom>/sorties.json` (reecrit par `PUPPETPAIE_REECRIRE_ORACLES=1`).
+//! `rejouer_et_lire` rejoue une fois et lit la compagnie le soir de jours choisis (`Soir` : une ligne de bulletin, un bloc
+//! de DSN, une case de l'ecran des etapes), sans rejouer pour chaque date.
 //!
 //! CE QUE LE RELEVE GARDE, fichier par fichier, sous la compagnie :
 //! - les paies de chaque mois saisi, CALCULEES au dernier jour du scenario (`engagement::charger`, rien
@@ -48,6 +50,73 @@ pub fn rejouer_dossier(sc: &Path, dossier: &Path) -> (moteur::atelier::scenario:
     let nom = sc.display();
     let r = moteur::atelier::scenario::rejouer(sc, &dossier.join("installation"), &moteur::atelier::scenario::OptionsRejeu::default())
         .unwrap_or_else(|m| panic!("le scenario {} ne se rejoue pas : {}", nom, m));
+    assert!(r.ecarts.is_empty(), "le rejeu de {} s'ecarte de l'enregistrement :\n{}", nom, r.ecarts.join("\n"));
+    let racine = r.compagnies.first().map(|(_, p)| p.clone()).unwrap_or_else(|| panic!("le scenario {} n'ajoute aucune compagnie", nom));
+    (r, racine)
+}
+
+/// UN SOIR DU REJEU : la compagnie telle qu'elle est a la fin du jour `jour`, avant le premier geste du lendemain
+/// (`rejouer_et_lire`). Ce qu'un test y lit, il le lit comme l'ecran ou un salarie le lirait.
+pub struct Soir<'a> {
+    pub jour: String,
+    pub racine: &'a Path,
+}
+
+impl Soir<'_> {
+    /// Le texte du bulletin de `salarie` pour `mois` (`sorties/<mois>/envoi/Bulletin_<SALARIE>_…`), ligne a ligne ; vide
+    /// s'il n'est pas encore fait.
+    pub fn bulletin(&self, mois: &str, salarie: &str) -> Vec<String> {
+        let envoi = self.racine.join("sorties").join(mois).join("envoi");
+        let prefixe = format!("Bulletin_{}_", salarie);
+        let mut noms: Vec<String> = std::fs::read_dir(&envoi)
+            .into_iter()
+            .flatten()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with(&prefixe) && n.ends_with(".pdf"))
+            .collect();
+        noms.sort();
+        let Some(nom) = noms.last() else { return Vec::new() };
+        let (pages, _) = fabrique_pdf::lecture::texte(&envoi.join(nom).to_string_lossy()).unwrap_or_else(|m| panic!("{} : {}", nom, m.0));
+        pages.join("\n").lines().map(|l| l.trim_end().to_string()).collect()
+    }
+
+    /// La premiere ligne du bulletin de `salarie` pour `mois` qui contient `libelle`.
+    pub fn ligne_de_bulletin(&self, mois: &str, salarie: &str, libelle: &str) -> Option<String> {
+        self.bulletin(mois, salarie).into_iter().find(|l| l.contains(libelle))
+    }
+
+    /// Le bloc de l'individu `nom` dans la DSN mensuelle de `mois` (`sorties/<mois>/DSN_<Mois><Annee>.dsn`) : (rubrique,
+    /// valeur), dans l'ordre ; vide si elle n'est pas encore fabriquee.
+    pub fn bloc_dsn(&self, mois: &str, nom: &str) -> Vec<(String, String)> {
+        let f = self.racine.join("sorties").join(mois).join(format!("DSN_{}.dsn", socle::date::etiquette_du_mois(mois).unwrap()));
+        let Ok(octets) = std::fs::read(&f) else { return Vec::new() };
+        super::individu(&octets.iter().map(|&o| o as char).collect::<String>(), nom)
+    }
+
+    /// L'etat de chaque groupe de la case `cle` du mois `mois`, tel que l'ecran des etapes le montre ce soir-la
+    /// (`etat-du-mois`).
+    pub fn case(&self, mois: &str, cle: &str) -> Vec<String> {
+        let r = super::route(self.racine, "etat-du-mois", json!({"mois": mois}), &self.jour);
+        let etapes = super::reussi(&r)["etapes"].as_array().cloned().unwrap_or_default();
+        let e = etapes.iter().find(|e| e["cle"] == json!(cle)).unwrap_or_else(|| panic!("la case {} de {} manque", cle, mois)).clone();
+        e["groupes"].as_array().into_iter().flatten().map(|g| g["etat"].as_str().unwrap_or_default().to_string()).collect()
+    }
+}
+
+/// REJOUE le scenario `nom` UNE FOIS, et le lit le soir de chacun des `jours` (AAAA-MM-JJ, dans l'ordre) : `lire` recoit
+/// la compagnie telle qu'elle est ce soir-la, puis le rejeu reprend. Un ecart avec l'enregistrement fait echouer le test.
+pub fn rejouer_et_lire(nom: &str, dossier: &Path, jours: &[&str], mut lire: impl FnMut(&Soir)) -> (moteur::atelier::scenario::Rejeu, PathBuf) {
+    let _un = UN_A_LA_FOIS.lock().unwrap_or_else(|p| p.into_inner());
+    let arrets: Vec<socle::date::Jour> = jours.iter().map(|j| socle::date::Jour::lire(j).unwrap()).collect();
+    let mut lus = 0;
+    let r = moteur::atelier::scenario::rejouer_et_lire(&scenario(nom), &dossier.join("installation"), &Default::default(), &arrets, &mut |jour, r| {
+        let (_, racine) = r.compagnies.first().unwrap_or_else(|| panic!("le scenario {} n'a pas encore de compagnie le {}", nom, jour.iso()));
+        lire(&Soir { jour: jour.iso(), racine });
+        lus += 1;
+    })
+    .unwrap_or_else(|m| panic!("le scenario {} ne se rejoue pas : {}", nom, m));
+    assert_eq!(lus, jours.len(), "des soirs n'ont pas ete lus");
     assert!(r.ecarts.is_empty(), "le rejeu de {} s'ecarte de l'enregistrement :\n{}", nom, r.ecarts.join("\n"));
     let racine = r.compagnies.first().map(|(_, p)| p.clone()).unwrap_or_else(|| panic!("le scenario {} n'ajoute aucune compagnie", nom));
     (r, racine)

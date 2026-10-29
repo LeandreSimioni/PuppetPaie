@@ -583,8 +583,8 @@ Sans coffre, en ligne de commande, pour cette fenêtre seulement :
 $env:NET_ENTREPRISES_MOTDEPASSE = (Read-Host "mot de passe net-entreprises")
 ```
 
-La commande télécharge et archive tout dans `retours/`, puis **affiche** les
-taux lus sans rien écrire. Il faut `--appliquer` pour toucher `config/pas.json`.
+La commande télécharge et archive tout dans `retours/`, et les taux qu'un compte rendu de
+nature 94 communique vont aussitôt dans `config/pas.json` (rattachés par le NIR) ; elle les affiche.
 `moteur pas` montre l'état courant et d'où il vient.
 
 ### Un taux se périme au bout de deux mois
@@ -1660,7 +1660,15 @@ Le scénario se **rejoue** sans navigateur, depuis un dossier vide, dans une
 installation que le rejeu monte lui-même, bridée en toutes lettres :
 `moteur-atelier scenario rejouer <scénario> <dossier neuf>` (ou, sans le binaire
 de l'atelier, `cargo run --profile essais --example vie_fictive -- rejouer …`) ;
-`outils/demos/les-faisceaux/` en est un, écrit à la main. Au rejeu comme au banc,
+`outils/demos/les-faisceaux/` en est un, écrit à la main. Un scénario **s'écrit à
+la main** sans rien calculer : chaque ligne est un geste daté par `heure`, à
+Paris (`AAAA-MM-JJ`, à 9 h, ou `AAAA-MM-JJTHH:MM`) — une ligne sans date suit la
+précédente d'une seconde —, une route écrit et réussit par défaut, la compagnie
+se tait quand il n'y en a qu'une, `{"geste":"jour","jour":"AAAA-MM-JJ"}` ouvre la
+fictive ce jour-là (son horloge joue ce qui était dû), et une pièce déposée se
+nomme par son chemin dans le scénario (`{"chemin": "pieces/…"}`). Le format
+entier est en tête de `scenario.rs` ; `rejouer … --jusqu-au AAAA-MM-JJ` s'arrête
+le soir de ce jour. Au rejeu comme au banc,
 le temps du moteur est figé à l'instant de chaque geste et les aléas suivent une
 suite fixe (`socle/src/temps.rs`) : deux rejeux écrivent les mêmes octets, et
 `banc.js verifier` (`scenario verifier`) contrôle, fichier par fichier, que le

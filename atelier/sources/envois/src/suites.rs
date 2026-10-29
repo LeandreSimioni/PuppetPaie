@@ -50,6 +50,9 @@ pub struct Suites {
     pub incidents_des_retours: Vec<Value>,
     /// Les attestations France Travail archivees, a ranger.
     pub aer: Vec<PathBuf>,
+    /// Les comptes rendus DGFiP de nature 94 archives (le retour tel que la liste le decrit, l'archive) : leurs taux
+    /// s'appliquent au magasin du PAS.
+    pub taux_pas: Vec<(Value, PathBuf)>,
     /// Un depot refuse.
     pub depot_refuse: Option<DepotRefuse>,
     /// Un depot reel accepte.

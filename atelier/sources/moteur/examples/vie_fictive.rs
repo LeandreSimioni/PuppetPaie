@@ -5,7 +5,7 @@
 //! page a appelee avec sa charge et son instant, le geste qui rend les envois simules, les jours ou le calendrier a
 //! avance. Ce programme sert la ligne de commande des scenarios (`scenario::commande`) sans le binaire de l'atelier :
 //!
-//!     cargo run --profile essais --example vie_fictive -- rejouer <scenario> <installation neuve> [--lectures]
+//!     cargo run --profile essais --example vie_fictive -- rejouer <scenario> <installation neuve> [--lectures] [--jusqu-au AAAA-MM-JJ]
 //!     cargo run --profile essais --example vie_fictive -- verifier <scenario> <installation du banc> <dossier de travail>
 //!     cargo run --profile essais --example vie_fictive -- elaguer <scenario> <scenario sans lectures>
 //!

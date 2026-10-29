@@ -16,9 +16,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Décompression des polices de métriques embarquées (voir build.rs).
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
-# L'assemblage du dossier (src/assemblage.rs) et la relecture des PDF dans les tests : même version
-# et mêmes fonctionnalités que celle que printpdf embarque déjà, donc pas une copie de plus.
-lopdf = { version = "0.31", default-features = false, features = ["pom_parser"] }
+# La lecture des PDF (src/lecture.rs : les formulaires, l'assemblage, le verrou, le marquage) : la version que printpdf
+# embarque deja, donc pas une copie de plus. Son analyseur `nom_parser` lit un PDF des dizaines de fois plus vite que
+# `pom_parser` (que printpdf demande) ; quand les deux sont la, lopdf prend `nom_parser`.
+lopdf = { version = "0.31", default-features = false, features = ["nom_parser"] }
 
 # Les largeurs de Liberation, pour l'extraction de texte (déjà là via genpdfi : pas une copie de plus).
 ttf-parser = "0.24"

@@ -88,3 +88,22 @@ professionnelle (par la victime) ».
 **Où le moteur s'en sert** : `atelier/sources/droit/src/reduction.rs` (`reduction_generale`, argument `caisse_conges`) et la
 note `_majoration_caisse_conges` de `logiciel/donnees/baremes/2026.json` ; le test de la règle est
 `droit/tests/droit/reduction.rs`.
+
+## L'effectif au sens de la sécurité sociale, et son décompte (relevé du 29/10/2026)
+
+`articles-20261029.md`, section « L'effectif au sens de la securite sociale » (`xml/L130-1.xml`, `xml/R130-1.xml`, R. 130-1
+en vigueur depuis le 02/01/2020).
+
+- **L. 130-1, I** : l'effectif annuel est « la moyenne du nombre de personnes employées au cours de chacun des mois de
+  l'année civile précédente » ; **II** : un seuil n'est franchi qu'après cinq années civiles consécutives.
+- **R. 130-1, I** : les mois sans salarié ne comptent pas dans la moyenne ; l'effectif se tronque au centième.
+- **R. 130-1, II** : comptent les titulaires d'un contrat de travail, sauf les CDD qui remplacent un salarié absent
+  (deuxième phrase du 2° de L. 1111-2 du code du travail) ; à temps plein, entièrement ; à temps partiel, au rapport des
+  horaires du contrat à la durée légale ou conventionnelle (dernier alinéa de L. 1111-2) ; chacun « à due proportion du
+  nombre de jours du mois pendant lequel [il a] été employé ».
+- **R. 130-1, III** renvoie à L. 1111-3 du code du travail (apprentis, contrats aidés…), qui n'est pas relevé : ces
+  exclusions ne sont pas appliquées.
+
+**Où le moteur s'en sert** : `atelier/sources/envois/src/organismes_simules.rs` (`effectif_annuel`), le compte rendu de
+nature 118 que le simulateur rend à une compagnie fictive ; `droit/src/contexte.rs` (`Effectif::atteint`) pour la règle
+des cinq ans.
