@@ -1,11 +1,9 @@
 //! `moteur releve-conventions mettre-a-jour|article|chercher` : le texte complet des conventions collectives suivies, tenu a
-//! jour en local. Porte de `atelier/outils/relever_les_conventions.py` (retire le 15/10/2026) ; meme entrepot
-//! (`kali-entrepot/`), memes champs. Un outil de l'atelier : `<sources>` est `atelier/reference/sources` du depot.
+//! jour en local (`kali-entrepot/`). Un outil de l'atelier : `<sources>` est `atelier/reference/sources` du depot.
 //!
-//! POURQUOI (24/09/2026, journal §122). La veille des conventions (`kali.rs`, `moteur sources --verifier`) est
-//! incrementale, mais elle ne garde que la LISTE des textes de chaque convention -- pas leurs articles. Le 24/09/2026,
-//! relever les clauses de rupture de la 3090 puis de la 1285 a demande de retelecharger deux fois la base KALI entiere
-//! (180 Mo) et ses 246 livraisons, et de filtrer a la main. L'entrepot garde, dans `kali-entrepot/`, TOUS les articles des
+//! POURQUOI. La veille des conventions (`kali.rs`, `moteur sources --verifier`) est incrementale, mais elle ne garde que
+//! la LISTE des textes de chaque convention -- pas leurs articles ; sans entrepot, relever une clause demanderait de
+//! retelecharger la base KALI entiere (180 Mo) et toutes ses livraisons, puis de filtrer a la main. L'entrepot garde, dans `kali-entrepot/`, TOUS les articles des
 //! conventions citees par `donnees/sources.json` -- clauses communes, annexes, avenants, toutes versions --, et la liste
 //! des livraisons deja appliquees : un article se lit en une seconde, et une mise a jour ne telecharge que les livraisons
 //! nouvelles.
@@ -60,8 +58,7 @@ pub fn suivies(manifeste: &Value) -> Map<String, Value> {
             out.insert(dila::texte(c), json!(idcc));
         }
     }
-    // Les conventions que le moteur ne porte pas encore, gardees pour etre relues avant d'ecrire leur couche (25/09/2026,
-    // journal §130).
+    // Les conventions que le moteur ne porte pas encore, gardees pour etre relues avant d'ecrire leur couche.
     for (idcc, c) in manifeste.get("conventions_a_relever").and_then(Value::as_object).into_iter().flatten() {
         if idcc.starts_with('_') {
             continue;

@@ -1,5 +1,5 @@
-//! `moteur guet` : le guet de l'orchestrateur, combien de contexte le sous-agent a-t-il consomme ? Un outil d'atelier
-//! (il remplace `atelier/guet.py`, 15/10/2026).
+//! `moteur guet` : le guet de l'orchestrateur, combien de contexte le sous-agent a-t-il consomme ?
+//! Un outil d'atelier.
 //!
 //! Lit toutes les 30 s le dernier `usage` du transcript du sous-agent (et de celui de l'orchestrateur), jamais un
 //! transcript entier : la fin du fichier seulement. Il SORT quand il faut reveiller l'orchestrateur, qui le lance en
@@ -12,10 +12,9 @@
 //!
 //! OU SONT LES TRANSCRIPTS : sous `~/.claude/projects/<dossier ou la seance a ete lancee, encode>/`, le fichier
 //! `<seance>.jsonl` pour l'orchestrateur, `<seance>/subagents/*.jsonl` pour ses sous-agents. L'encodage remplace `/`
-//! par `-` (ce que faisait `guet.py`) ; il remplace aussi tout autre caractere hors `[A-Za-z0-9]` (un `\`, un `:`, un
-//! point), par inference : c'est ce qu'on voit sur les dossiers deja crees, pas un texte lu. La seance peut etre
-//! lancee depuis le depot ou depuis un de ses parents (`guet.py` ne cherchait qu'au depot, et ne trouvait rien quand
-//! la seance partait du dossier parent) : le guet essaie le depot puis chacun de ses parents, et garde celui des
+//! par `-`, et aussi tout autre caractere hors `[A-Za-z0-9]` (un `\`, un `:`, un point), par inference : c'est ce
+//! qu'on voit sur les dossiers deja crees, pas un texte lu. La seance peut etre lancee depuis le depot ou depuis un de
+//! ses parents : le guet essaie le depot puis chacun de ses parents, et garde celui des
 //! dossiers dont le dernier `.jsonl` est le plus recent. `--transcript` force le fichier du sous-agent.
 //!
 //! ```text

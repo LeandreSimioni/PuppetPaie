@@ -2,13 +2,12 @@
 //! utilisateurs sont `releve::codes` (`moteur releve-codes`)
 //! et `releve::conventions` (`moteur releve-conventions`).
 //!
-//! POURQUOI (24/09/2026, journal §122). La moisson des codes relisait, a CHAQUE passage, l'archive globale de la base LEGI
-//! (1,1 Go) puis toutes les livraisons quotidiennes parues depuis (438 le 24/09/2026), et ne gardait que les articles
-//! qu'on lui demandait. Un article de plus -- le 231 du code general des impots pour la taxe sur les salaires -- coutait
-//! donc une heure. Et les conventions collectives, dont la veille (`kali.rs`) ne garde que la liste des textes, se
-//! relisaient a la main dans la base KALI entiere.
+//! POURQUOI. Sans entrepot, chaque moisson des codes relirait l'archive globale de la base LEGI (1,1 Go) puis toutes les
+//! livraisons quotidiennes parues depuis (des centaines), pour ne garder que les articles demandes : un article de plus
+//! couterait une heure. Et les conventions collectives, dont la veille (`kali.rs`) ne garde que la liste des textes, se
+//! reliraient a la main dans la base KALI entiere.
 //!
-//! L'entrepot tient les deux choses qui manquaient :
+//! L'entrepot tient deux choses :
 //!
 //!   1. LE TEXTE COMPLET, garde en local et compresse : tous les articles des codes et des conventions suivis, pas
 //!      seulement ceux qu'on cite. Ajouter un article, c'est le lire dans l'entrepot -- quelques secondes, rien a
@@ -165,7 +164,7 @@ pub fn liste(etat: &Map<String, Value>, cle: &str) -> Vec<String> {
     etat.get(cle).and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect()).unwrap_or_default()
 }
 
-/// `json.dumps(dict(article, cle=list(cle)), ensure_ascii=False, sort_keys=True)`.
+/// L'article et sa `cle` (une liste) en JSON sur une ligne, cles triees, sans echappement des accents.
 fn ligne_triee(article: &Value, cle: &[&str]) -> String {
     let mut entrees: Vec<(&str, Value)> = Vec::new();
     if let Some(o) = article.as_object() {

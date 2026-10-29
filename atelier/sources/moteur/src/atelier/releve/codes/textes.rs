@@ -1,5 +1,5 @@
-//! LES TEXTES QU'ON LIT, et ou leur releve se depose (`TEXTES` de `atelier/outils/relever_les_codes.py`, retire le
-//! 15/10/2026). Un seul passage de l'archive les sert TOUS : ce qui coute, c'est de faire defiler 1,1 Go, pas de
+//! LES TEXTES QU'ON LIT, et ou leur releve se depose (`TEXTES`). Un seul passage de l'archive les sert
+//! TOUS : ce qui coute, c'est de faire defiler 1,1 Go, pas de
 //! reconnaitre un article de plus au passage.
 //!
 //! CE QUE LA PAIE A BESOIN DE LIRE. Un article ajoute ici est deja dans l'entrepot (`legi-entrepot/`, qui garde TOUS les
@@ -53,23 +53,23 @@ pub static TEXTES: &[Texte] = &[
             // decision qu'on ne peut pas defendre.
             //
             // R3243-3 N'EST PAS DE LA LISTE, et ce n'est pas un oubli : le
-            // passage du 21/09/2026 l'a rendu dans une version ABROGEE
-            // depuis le 27/02/2016 (LEGIARTI000018533802). Il ne s'agissait
-            // pas du piege 1 de l'en-tete -- l'article n'a plus AUCUNE
+            // releve le rend dans une version ABROGEE
+            // depuis le 27/02/2016 (LEGIARTI000018533802). Ce n'est
+            // pas le piege 1 de l'en-tete -- l'article n'a plus AUCUNE
             // version en vigueur a trouver. Le laisser ici ferait dire
             // << perime >> au garde-fou a chaque passage, pour un article
             // qui n'existe plus : le bruit finirait par couvrir le vrai
             // signal, celui d'un article vivant qu'on aurait garde vieux.
             // Ce qu'il disait -- la mention des cotisations PATRONALES sur
-            // le bulletin -- se lit desormais dans R3243-1, qui est de la
+            // le bulletin -- se lit dans R3243-1, qui est de la
             // liste et en vigueur.
-            // R3243-4 A R3243-6 (lot R11, 11/10/2026) : ce que le bulletin ne
+            // R3243-4 A R3243-6 : ce que le bulletin ne
             // peut pas dire (la greve, la representation), et la seule
             // derogation qui dispense de la part patronale (le particulier
             // employeur, R3243-6) -- lus dans l'entrepot pour trancher les
             // modeles de bulletin ; a relever au prochain `moissonner`.
             Domaine { cle: "bulletin", titre: "Le bulletin de paie : ce qu'il porte, et quand il est du", numeros: &["L3243-1", "L3243-2", "L3243-3", "L3243-4", "R3243-1", "R3243-2", "R3243-4", "R3243-5", "R3243-6"] },
-            // L'EFFECTIF DU CSE (23/09/2026, §80.1). Les seuils de 11 et 50
+            // L'EFFECTIF DU CSE. Les seuils de 11 et 50
             // de la CCNEAC -- et le FNAS qui en decoule -- sont ceux du comite
             // social et economique, que la convention rattache au code du
             // travail (elle cite L2315-61). L'effectif s'y compte selon
@@ -144,7 +144,7 @@ pub static TEXTES: &[Texte] = &[
             // `etats_personnel::registre_du_personnel` ecrit ; il citait les
             // articles sans qu'ils soient dans le releve.
             Domaine { cle: "registre", titre: "Le registre unique du personnel", numeros: &["L1221-13", "D1221-23", "D1221-24"] },
-            // La DPAE quand la date d'embauche d'un contrat declare change (21/10/2026, `crate::routes::etapes::etat_par_engagement`) :
+            // La DPAE quand la date d'embauche d'un contrat declare change (`crate::routes::etapes::etat_par_engagement`) :
             // l'embauche apres la declaration (L1221-10), la date d'embauche dans la declaration (R1221-1, 3°), la date
             // previsible (R1221-4).
             Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-4"] },
@@ -184,7 +184,7 @@ pub static TEXTES: &[Texte] = &[
         ],
     },
     // ------------------------------------------------------------------
-    // POURQUOI CE CODE-LA, a partir du 19/09/2026 : le code du travail dit
+    // POURQUOI CE CODE-LA : le code du travail dit
     // ce qu'une indemnite de rupture VAUT ; il ne dit pas un mot de ce
     // qu'elle SUPPORTE. Le regime social d'une indemnite de rupture
     // conventionnelle ou de retraite -- cotisations, CSG/CRDS, et la
@@ -229,7 +229,7 @@ pub static TEXTES: &[Texte] = &[
             // le moteur AVERTIT au lieu de verifier
             // (`permanents-base.json`, `_pourquoi_pas_verifie`).
             Domaine { cle: "age_de_la_retraite", titre: "L'age auquel la retraite s'ouvre", numeros: &["L161-17-2", "L351-1", "L351-8"] },
-            // L'EFFECTIF DE L'URSSAF (23/09/2026, §80.1) : moyenne annuelle,
+            // L'EFFECTIF DE L'URSSAF : moyenne annuelle,
             // regle des cinq ans -- celui que porte le CRM 118 et qui regle
             // les seuils de cotisation (formation, FNAL, echeance de la DSN,
             // versement mobilite via L2333-64). Il ne dit rien du CSE.
@@ -308,10 +308,9 @@ pub static TEXTES: &[Texte] = &[
     // POURQUOI CE CODE-LA. Le versement mobilite est du par les
     // employeurs de ONZE salaries et plus etablis dans le ressort d'une
     // autorite organisatrice qui l'a institue, et son taux est fixe
-    // LOCALEMENT -- il n'a pas de valeur de droit commun. Depuis le
-    // 21/09/2026 le moteur REFUSE de payer un effectif de onze sans une
-    // attestation, et ce refus renvoie a deux articles cites de memoire,
-    // jamais relus. On les releve avant d'ecrire la moindre rubrique.
+    // LOCALEMENT -- il n'a pas de valeur de droit commun. Le moteur
+    // REFUSE de payer un effectif de onze sans une attestation, et ce
+    // refus renvoie a ces deux articles : ils se relevent ici.
     Texte {
         cle: "collectivites",
         legitext: "LEGITEXT000006070633",
@@ -441,7 +440,7 @@ pub static TEXTES: &[Texte] = &[
     // moitie de phrase.
     // 235 bis : la cotisation de 2 % de l'employeur qui n'a pas investi
     // sa participation a l'effort de construction (norme DSN, p. 58 ; bloc
-    // S21.G00.44, lot V3b).
+    // S21.G00.44).
     Texte {
         cle: "impots",
         legitext: "LEGITEXT000006069577",
@@ -451,15 +450,15 @@ pub static TEXTES: &[Texte] = &[
         domaines: &[
             Domaine { cle: "rupture", titre: "Le regime fiscal des indemnites de rupture", numeros: &["80 duodecies"] },
             Domaine { cle: "peec", titre: "La participation des employeurs a l'effort de construction (la cotisation de 2 %)", numeros: &["235 bis"] },
-            // LA TAXE SUR LES SALAIRES (journal §117) : l'employeur qui
+            // LA TAXE SUR LES SALAIRES : l'employeur qui
             // n'est pas assujetti a la TVA -- beaucoup d'associations
             // du spectacle. Le bareme (231) et l'abattement des
             // associations (1679 A) ; 1679 dit quand elle se verse. 293 B : les plafonds de
             // la franchise en base de TVA, auxquels renvoie le 2e alinea du 1 de 231 -- sous eux, pas de taxe ; leurs
             // montants entrent au bareme de l'annee (`taxe_sur_les_salaires.plafonds_franchise`).
             Domaine { cle: "taxe_salaires", titre: "La taxe sur les salaires", numeros: &["231", "293 B", "1679", "1679 A"] },
-            // L'ARRONDI A L'EURO DES SOMMES DUES A LA DGFIP (13/10/2026,
-            // lot U5) : le versement du prelevement a la source
+            // L'ARRONDI A L'EURO DES SOMMES DUES A LA DGFIP : le
+            // versement du prelevement a la source
             // (S21.G00.20.005 de la DGFiP, << arrondi a l'entier le plus
             // proche >>) est une somme a recevoir de l'administration.
             Domaine { cle: "arrondi", titre: "L'arrondi a l'euro des sommes a recevoir", numeros: &["1724"] },

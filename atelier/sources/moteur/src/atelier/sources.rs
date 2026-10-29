@@ -1,6 +1,5 @@
-//! Les sources des donnees livrees avec le logiciel, et leur veille (`moteur/sources.py`, retire au lot K, porte au lot
-//! S1). Un outil de l'EDITEUR, lance avant chaque publication (`moteur sources --verifier`) ; une compagnie ne fait que
-//! recevoir la mise a jour signee.
+//! Les sources des donnees livrees avec le logiciel, et leur veille. Un outil de l'EDITEUR, lance avant chaque
+//! publication (`moteur sources --verifier`) ; une compagnie ne fait que recevoir la mise a jour signee.
 //!
 //! `donnees/sources.json` dit, pour chaque texte dont derive un fichier de donnees (nomenclature des emplois, catalogue
 //! des metiers, minima, baremes), ce qu'il contient, de quand il date, quand on l'a releve, ou en est la copie et quel est
@@ -8,7 +7,7 @@
 //!
 //! Le principe : une donnee ne se recopie pas d'un editeur, elle se lit dans le texte qui fait foi ; la copie est gardee
 //! dans le depot public, a cote du code (`atelier/reference/sources/` de l'installation de l'editeur, qui est le depot :
-//! Leandre, 15/10/2026, les textes de reference rendent le logiciel verifiable) pour qu'on puisse toujours montrer d'ou
+//! les textes de reference rendent le logiciel verifiable) pour qu'on puisse toujours montrer d'ou
 //! vient un nombre ; et quand le condensat en ligne ne colle plus, c'est le signal de RELIRE -- pas de remplacer le
 //! fichier a l'aveugle, puisque les donnees derivees ont ete ecrites a la main depuis la lecture. `--relever` pose la
 //! nouvelle version A COTE de l'ancienne, suffixee de la date, jamais par-dessus.

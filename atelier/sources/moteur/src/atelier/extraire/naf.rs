@@ -12,7 +12,7 @@
 //! Les codes s'ecrivent dans le JSON comme la fiche entreprise les porte : quatre chiffres et une lettre, sans le point
 //! (`9020Y`) ; le code INSEE, avec son point, est garde a cote. Rien n'est interprete : le releve recopie. La date
 //! d'entree en vigueur vient du decret n° 2025-736 du 31/07/2025, depose a cote
-//! (`legifrance-decret-2025-736-naf-2025-20250731.txt`, art. 2 et 6). Portage de `atelier/outils/extraire_naf.py`.
+//! (`legifrance-decret-2025-736-naf-2025-20250731.txt`, art. 2 et 6).
 
 use std::path::Path;
 

@@ -1,6 +1,5 @@
 //! `moteur releve-codes moissonner|rapport|comparer <sources> [code] [--reconstruire]` : les articles de loi dont la paie a
-//! besoin, releves chez la DILA. Porte de `atelier/outils/relever_les_codes.py` (retire le 15/10/2026) ; memes fichiers,
-//! memes champs, meme ordre. Un outil de l'atelier : `<sources>` est `atelier/reference/sources` du depot.
+//! besoin, releves chez la DILA. Un outil de l'atelier : `<sources>` est `atelier/reference/sources` du depot.
 //!
 //! POURQUOI. Legifrance refuse les robots (403) : les articles du §38.3 avaient ete releves A LA MAIN, un par un, ce qui
 //! marche une fois et se perime en silence. La base LEGI est publique en open data (`echanges.dila.gouv.fr/OPENDATA/LEGI/`),
@@ -12,7 +11,7 @@
 //! se lisent dans la meme archive : ce qui coute, c'est de faire defiler 1,1 Go, pas de reconnaitre un article de plus au
 //! passage. Le dossier donne en argument est celui des SOURCES ; chaque texte y ecrit dans le sien (`textes::TEXTES`).
 //!
-//! `moissonner` TIENT UN ENTREPOT A JOUR (journal §122) : `legi-entrepot/` dans le dossier des sources garde TOUS les
+//! `moissonner` TIENT UN ENTREPOT A JOUR : `legi-entrepot/` dans le dossier des sources garde TOUS les
 //! articles en vigueur des textes suivis et la liste des livraisons deja appliquees (`entrepot_dila`). La premiere fois
 //! (ou avec `--reconstruire`), l'archive globale defile -- 1,1 Go, un quart d'heure --, puis les livraisons depuis sa date ;
 //! ensuite, seules les livraisons nouvelles se telechargent (quelques secondes pour une semaine). Ajouter un article a
@@ -44,8 +43,8 @@
 //!      sociale, et rien n'interdit a un autre code d'en porter un du meme nom. Ce qui tranche, c'est le LEGITEXT dans le
 //!      chemin du fichier -- pas le numero.
 //!
-//! CE QUI DIFFERE DU PYTHON : les documents ecrits nomment la commande (`moteur releve-codes`) la ou ils nommaient le
-//! script ; l'archive compressee de l'entrepot (`entrepot_dila`) ; et la date du jour, prise dans
+//! Les documents ecrits nomment la commande (`moteur releve-codes`) ; l'entrepot est une archive compressee
+//! (`entrepot_dila`) ; la date du jour se prend dans
 //! `PUPPETPAIE_AUJOURDHUI` quand elle est posee (`contexte::aujourdhui_sans_note`, en temps universel sinon).
 
 use std::collections::{HashMap, HashSet};
@@ -74,7 +73,7 @@ pub const DEPUIS: &str = "20250713";
 pub const XML: &str = "xml";
 /// Les versions d'avant, a cote des pieces (`comparer`).
 pub const ANTERIEUR: &str = "xml-anterieur";
-/// L'entrepot des textes suivis, a cote des releves (journal §122).
+/// L'entrepot des textes suivis, a cote des releves.
 pub const ENTREPOT: &str = "legi-entrepot";
 
 const USAGE: &str = "usage : moteur releve-codes moissonner <sources> [--reconstruire]
@@ -178,7 +177,7 @@ pub fn commande(args: &[String]) -> i32 {
 /// Fait defiler une archive et garde les articles en vigueur ; rend (fichiers d'article des textes suivis, secondes).
 ///
 /// `tar` : une archive ouverte (en flux pour la globale, en memoire pour une livraison). `tous` : garder TOUS les articles
-/// des textes suivis -- c'est ce que fait l'entrepot (journal §122) --, et non les seuls voulus.
+/// des textes suivis -- c'est ce que fait l'entrepot --, et non les seuls voulus.
 ///
 /// `changes` : chaque fois qu'une livraison remplace la version d'un article, on note laquelle et quand. C'est la seule
 /// chose qui compte au deuxieme passage -- « aucun des articles n'a bouge » est une phrase qui doit se prouver, pas se
@@ -253,7 +252,7 @@ fn passer<L: Read>(
         let id = groupe(re_id(), &m.nom).unwrap_or("").to_string();
         if let (Some(ch), Some(a)) = (changes.as_deref_mut(), ancien) {
             if a.get("id").and_then(Value::as_str).unwrap_or("") != id {
-                // L'ordre des cles est celui du Python : il se voit dans `releve.json`, qui ne trie pas.
+                // L'ordre des cles se voit dans `releve.json`, qui ne trie pas.
                 ch.push(json!({
                     "texte": texte, "article": num, "avant": a.get("id").cloned().unwrap_or(json!("")),
                     "apres": id, "depuis": debut, "livraison": livraison,
@@ -306,7 +305,7 @@ fn passer_le_global(
 /// LA PREMIERE FOIS SEULEMENT (ou avec `reconstruire`), l'archive globale defile -- 1,1 Go, un quart d'heure -- et
 /// l'entrepot garde TOUS les articles en vigueur des textes suivis, pas seulement les voulus. Ensuite, seules les
 /// livraisons pas encore appliquees se telechargent, plusieurs a la fois, et s'appliquent dans l'ordre. Ajouter un article
-/// a `TEXTES` ne coute plus rien : il est deja dans l'entrepot (journal §122).
+/// a `TEXTES` ne coute plus rien : il est deja dans l'entrepot.
 pub fn moissonner(racine: &Path, reconstruire: bool, source: &dyn Source, aujourdhui: &Jour) -> R<()> {
     let jour = aujourdhui.iso();
     std::fs::create_dir_all(racine).map_err(|e| format!("{} : {}", racine.display(), e))?;
@@ -315,7 +314,7 @@ pub fn moissonner(racine: &Path, reconstruire: bool, source: &dyn Source, aujour
     if ent.existe() && !reconstruire {
         ent = ent.charger()?;
         dire(&format!("== entrepot : {} articles, {} livraisons deja appliquees ==", ent.articles.len(), ent.lues().len()));
-        // UN TEXTE AJOUTE A `TEXTES` APRES LA CONSTRUCTION (11/10/2026, lot R9 : l'arrete du 4 septembre 2025 sur les frais
+        // UN TEXTE AJOUTE A `TEXTES` APRES LA CONSTRUCTION (l'arrete du 4 septembre 2025 sur les frais
         // professionnels) n'a aucun article dans l'entrepot : l'archive globale ne l'a pas garde. On la refait defiler pour
         // lui seul, puis les livraisons deja lues.
         let presents: HashSet<&str> = ent.articles.keys().map(|k| dila::parties(k)[0]).collect();
@@ -532,7 +531,7 @@ fn contenu(xml: &str) -> String {
     };
     let t = motif(&BALISE, r"<[^>]+>").replace_all(t, "\n");
     let t = dila::unescape_html(&t);
-    // `\s` du Python : le blanc d'Unicode, plus \x1c a \x1f.
+    // Une ligne vide : rien que des blancs d'Unicode et des caracteres \x1c a \x1f.
     let t = motif(&VIDES, r"\n[\s\x1C-\x1F]*\n+").replace_all(&t, "\n");
     dila::sans_blancs(&t).to_string()
 }
@@ -587,7 +586,7 @@ pub fn rapport(racine: &Path, quel: &str, aujourdhui: &Jour) -> R<()> {
     Ok(())
 }
 
-/// Un fichier texte lu comme le Python l'ouvre (`open(..., encoding="utf-8")`) : fins de ligne universelles.
+/// Un fichier texte en UTF-8, fins de ligne universelles (`\r\n` et `\r` deviennent `\n`).
 fn lire_texte(p: &Path) -> R<String> {
     let t = std::fs::read_to_string(p).map_err(|e| format!("{} : {}", p.display(), e))?;
     Ok(if t.contains('\r') { t.replace("\r\n", "\n").replace('\r', "\n") } else { t })
@@ -710,7 +709,7 @@ fn champ(c: &Map<String, Value>, k: &str) -> String {
 /// {(texte, article): xml} et ecrit chaque piece a cote des autres, dans `<texte>/xml-anterieur/`.
 ///
 /// ON S'ARRETE DES QU'ON LES A TOUTES. L'archive porte 1,75 million d'articles et les versions cherchees ne sont qu'une
-/// poignee : sortir au dernier trouve a economise un cinquieme du defilement, le 21/09/2026.
+/// poignee : sortir au dernier trouve economise un cinquieme du defilement.
 fn avant(racine: &Path, changements: &[Map<String, Value>], source: &dyn Source) -> R<HashMap<(String, String), String>> {
     let mut vise: HashMap<String, (String, String)> = HashMap::new();
     for c in changements {
@@ -876,7 +875,7 @@ fn ecrire_comparaison(
     Ok(())
 }
 
-/// `difflib.unified_diff` du Python, pour les essais.
+/// Le diff unifie de deux listes de lignes (`difflib::unifie`), pour les essais.
 pub fn diff_unifie(a: &[String], b: &[String], n: usize) -> Vec<String> {
     difflib::unifie(a, b, "avant", "apres", n)
 }
