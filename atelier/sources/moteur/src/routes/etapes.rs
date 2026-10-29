@@ -1732,6 +1732,13 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
     let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
     let resumes = etats::resumes_des_documents(lignes, mois)?;
     let mut out: HashMap<String, Value> = HashMap::new();
+    // Les documents d'un salarie partent ensemble, pour tous ses engagements valides du mois : un engagement valide dont
+    // ils ne sont pas partis (valide apres leur envoi) les rend a envoyer, avec son bulletin.
+    let a_envoyer: HashSet<String> = etats
+        .iter()
+        .filter(|e| matches!(e, engagement::etats::Etat::Valide(_)))
+        .filter_map(|e| engagement::cle_de_l_engagement(ctx, &Value::Object(e.objet().brut.clone())))
+        .collect();
     for e in etats {
         if !matches!(e, engagement::etats::Etat::Partis(_)) {
             continue;
@@ -1745,6 +1752,9 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
             .map(|d| d.le.clone())
             .max();
         let Some(quand) = dernier else { continue };
+        if a_envoyer.contains(&cle) {
+            continue;
+        }
         let plus_recent = out.get(&cle).and_then(|v| v["quand"].as_str()).is_some_and(|q| q >= quand.as_str());
         if !plus_recent {
             out.insert(cle.clone(), json!({"quand": quand, "resume": resumes.get(&cle).cloned().unwrap_or(Value::Null)}));

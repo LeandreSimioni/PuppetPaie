@@ -85,37 +85,29 @@ pub fn de_mois(nom: &str) -> String {
 pub const CORPS: &str = "Bonjour {prenom},\n\nTu trouveras ci-joint tes documents pour {mois} {annee} :\n\n{liste}\n\n{notes}{france_travail}\nBien à toi,\n{signataire}\n{raison_sociale}\n";
 
 /// L'ordre des pieces, une fois pour toutes : il gouverne les pieces jointes, la liste du message et les notes.
-pub const PIECES: [&str; 4] = ["bulletin", "rectificatif", "certificat_cs", "aer"];
+pub const PIECES: [&str; 3] = ["bulletin", "certificat_cs", "aer"];
 
-pub const PREFIXES: [(&str, &str); 4] = [
+pub const PREFIXES: [(&str, &str); 3] = [
     ("bulletin", "Bulletin"),
-    ("rectificatif", "BulletinRectificatif"),
     ("certificat_cs", "CertificatCS"),
     ("aer", "AER"),
 ];
 
-pub const LIBELLES: [(&str, &str); 4] = [
+pub const LIBELLES: [(&str, &str); 3] = [
     ("bulletin", "le bulletin de paie"),
-    ("rectificatif", "le bulletin rectificatif d'un mois précédent"),
     ("certificat_cs", "le certificat d'emploi Congés Spectacles"),
     ("aer", "l'attestation employeur France Travail (AER Cinéma Spectacle)"),
 ];
 
 /// Pour l'objet du message, ou l'on n'a pas la place des libelles longs.
-pub const COURTS: [(&str, &str); 4] = [
+pub const COURTS: [(&str, &str); 3] = [
     ("bulletin", "bulletin"),
-    ("rectificatif", "bulletin rectificatif"),
     ("certificat_cs", "certificat Congés Spectacles"),
     ("aer", "attestation France Travail"),
 ];
 
-pub const NOTES: [(&str, &str); 4] = [
+pub const NOTES: [(&str, &str); 3] = [
     ("bulletin", "Le bulletin est à conserver sans limitation de durée."),
-    (
-        "rectificatif",
-        "Le bulletin rectificatif remplace, pour le mois qu'il indique, le bulletin remis alors : la différence est \
-         versée (ou retenue) avec la paie de ce mois-ci. Garde les deux.",
-    ),
     (
         "certificat_cs",
         "Le certificat d'emploi Congés Spectacles te sert à faire valoir tes droits à congé auprès d'Audiens : \
@@ -189,8 +181,7 @@ fn an_mois(mois: &str) -> Result<(i32, usize), String> {
 }
 
 /// Ce que le salarie declare a son actualisation France Travail du mois (`recap_france_travail`) : une ligne par
-/// contrat, sur ce qui a ete fait DANS LE MOIS. Rien pour un permanent ni pour un salarie qui n'a qu'un
-/// rectificatif ce mois-ci : chaine vide.
+/// contrat, sur ce qui a ete fait DANS LE MOIS. Rien pour un permanent : chaine vide.
 pub fn recap_france_travail(paies: &[&Paie], mois: &str, employeur: &str) -> Result<String, String> {
     let mut lignes: Vec<String> = Vec::new();
     for p in paies {
@@ -342,28 +333,15 @@ pub fn ce_qui_a_change(faits: &[String], ancien: &Value, nouveau: &Value) -> Vec
 /// Ce que le courriel de renvoi dit quand le resume n'a pas bouge.
 pub const RIEN_DANS_LE_RESUME: &str = "  - le détail de ton bulletin ; tes jours, tes cachets, tes heures, ton brut et ton net à payer restent les mêmes";
 
-/// Un `Message` par salarie, a partir des pieces individuelles deja ecrites (`preparer`). Un salarie peut avoir
-/// plusieurs contrats dans le mois : ses pieces sont ecrites une fois, sous sa cle, et il ne recoit qu'un seul
-/// message. `fiche` (cle -> fiche salarie) : pour celui qui n'a AUCUNE paie ce mois-ci mais un bulletin
-/// rectificatif d'un mois precedent.
-pub fn preparer(
-    paies: &[Paie],
-    ent: &Value,
-    mois: &str,
-    dossier: &Path,
-    fiche: Option<&dyn Fn(&str) -> Value>,
-) -> Result<Vec<Message>, String> {
-    preparer_avec(paies, ent, mois, dossier, fiche, &std::collections::HashMap::new())
-}
-
-/// La meme ; `renvois` (cle -> `Renvoi`) : ceux dont la paie a change depuis l'envoi de leurs documents recoivent le
-/// courriel de renvoi (`CORPS_RENVOI`), qui dit ce qui a change ; les autres, le premier courriel (`CORPS`).
+/// Un `Message` par salarie du mois, a partir des pieces individuelles deja ecrites. Un salarie peut avoir plusieurs
+/// contrats dans le mois : ses pieces sont ecrites une fois, sous sa cle, et il ne recoit qu'un seul message.
+/// `renvois` (cle -> `Renvoi`) : ceux dont la paie a change depuis l'envoi de leurs documents recoivent le courriel de
+/// renvoi (`CORPS_RENVOI`), qui dit ce qui a change ; les autres, le premier courriel (`CORPS`).
 pub fn preparer_avec(
     paies: &[Paie],
     ent: &Value,
     mois: &str,
     dossier: &Path,
-    fiche: Option<&dyn Fn(&str) -> Value>,
     renvois: &std::collections::HashMap<String, Renvoi>,
 ) -> Result<Vec<Message>, String> {
     let (an, mo) = an_mois(mois)?;
@@ -371,29 +349,8 @@ pub fn preparer_avec(
     let nom_mois = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee)?;
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
-    let mut salaries: Vec<Value> = paies.iter().map(|p| p.salarie.clone()).collect();
+    let salaries: Vec<Value> = paies.iter().map(|p| p.salarie.clone()).collect();
     let cle_de = |s: &Value| -> Result<String, String> { Ok(en_texte(s.get("_cle").ok_or_else(|| cle_absente("_cle"))?)) };
-    if let Some(fiche) = fiche {
-        let prefixe = format!("{}_", chercher(&PREFIXES, "rectificatif"));
-        let suffixe = format!("_{}.pdf", etiq);
-        let mut noms: Vec<String> = match std::fs::read_dir(dossier) {
-            Ok(l) => l.filter_map(|e| e.ok()).map(|e| e.file_name().to_string_lossy().into_owned()).collect(),
-            Err(_) => Vec::new(),
-        };
-        noms.retain(|n| n.len() >= prefixe.len() + suffixe.len() && n.starts_with(&prefixe) && n.ends_with(&suffixe));
-        noms.sort();
-        for nom in noms {
-            let cle = nom[prefixe.len()..nom.len() - suffixe.len()].to_string();
-            let connues: Result<Vec<String>, String> = salaries.iter().map(&cle_de).collect();
-            if !connues?.contains(&cle) {
-                let mut f = fiche(&cle);
-                if let Some(o) = f.as_object_mut() {
-                    o.insert("_cle".into(), Value::String(cle));
-                }
-                salaries.push(f);
-            }
-        }
-    }
     for s in &salaries {
         let cle = cle_de(s)?;
         if vus.contains(&cle) {

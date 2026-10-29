@@ -71,15 +71,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
     if engagement::importe::dsn_deposee(&ctx.racine, mois).map_err(Echec::from)?.is_none() {
         return Ok(None);
     }
-    let lignes = etats::charger(&ctx.racine)?;
-    let partie = |m: &str| -> R<bool> {
-        let e = etats::dsn_du_mois(&lignes, &ctx.entreprise, m)?;
-        Ok((vrai(&e) && !e.get("refusee").is_some_and(vrai)) || engagement::importe::dsn_deposee(&ctx.racine, m).map_err(Echec::from)?.is_some())
-    };
-    let mut porteur = socle::date::Jour::lire(&format!("{}-01", mois)).map_err(Echec::from)?.mois_suivant();
-    while partie(&porteur)? {
-        porteur = socle::date::Jour::lire(&format!("{}-01", porteur)).map_err(Echec::from)?.mois_suivant();
-    }
+    let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
     let departs = envois::journal::departs(&ctx.racine)?;
     let mut n = 0;
     for e in engagement::etats::du_mois(ctx, mois)? {
