@@ -1,10 +1,10 @@
-//! La mise a jour dans l'ombre (`moteur/maj.py`, lot J4) : verifier, appliquer, revenir ; et, chez l'editeur, publier.
+//! La mise a jour d'une installation : verifier, appliquer, revenir. La publication, chez l'editeur, est dans
+//! `atelier::publier`.
 //!
-//! UNE MISE A JOUR PAR INSTALLATION (lot U1, 14/10/2026). Il n'y a qu'un logiciel par installation, et c'est lui qui se
-//! met a jour, pas une compagnie : tout se passe dans `<installation>/maj/` (a cote de `logiciel/`, que la bascule ne
-//! touche pas), sans qu'aucune compagnie soit ouverte. Toute installation recoit, celle de l'editeur comprise (Leandre,
-//! 14/10/2026 : « mon logiciel c'est le meme que les autres […] quand je fais une mise a jour, il faut que la mise a jour
-//! arrive aussi sur ma machine ») ; l'editeur, en plus, publie. Le bridage n'y joue aucun role.
+//! UNE MISE A JOUR PAR INSTALLATION. Il n'y a qu'un logiciel par installation, et c'est lui qui se met a jour, pas une
+//! compagnie : tout se passe dans `<installation>/maj/` (a cote de `logiciel/`, que la bascule ne touche pas), sans
+//! qu'aucune compagnie soit ouverte. Toute installation recoit, celle de l'editeur comprise. Le bridage n'y joue aucun
+//! role.
 //!
 //!   verifier   au lancement, en fond (`chercher_en_fond` ; lance sans reseau, il reprend de lui-meme). Lit
 //!              `derniere.json` au depot ; une version plus recente est
@@ -13,76 +13,57 @@
 //!              puis `maj/prete.json` est pose.
 //!   appliquer  au demarrage suivant. Ce qui est dans `logiciel/` va dans `logiciel/.avant/`, la version prete prend sa
 //!              place ; si ca casse en route, tout revient.
-//!   publier    chez l'editeur : les archives signees et `derniere.json` dans le depot. Depuis le lot P1 (14/10/2026), la
-//!              publication se fait sur GitHub : le flux « Publier » du depot public (`.github/workflows/publier.yml`)
-//!              fabrique `logiciel/`, attend l'approbation de Leandre, signe par `publier_depuis_l_environnement` et
-//!              pose les archives, `derniere.json` et l'installeur dans une Release, que `DEPOT_PAR_DEFAUT` lit.
 //!
-//! QUATRE ARCHIVES PAR VERSION (Leandre, 15/10/2026 : « Il y a les quatre : une par systeme et une tout-systeme,
-//! ensemble »). `logiciel/` porte les programmes des trois systemes : `puppetpaie.exe` et `WebView2Loader.dll` a la
-//! racine (Windows, le seul suivi par Git), `linux/puppetpaie` et `linux/moteur`, `mac/puppetpaie` et `mac/moteur` (poses
-//! par le flux, universels Intel et Apple pour le Mac) : Linux et Mac ont tous deux un `puppetpaie`, chacun son dossier
-//! (`dossier_programmes`). La publication fait une archive par systeme (les fichiers communs et ceux de ce systeme,
-//! `systeme_du_fichier`) et une qui porte tout (`TOUT_SYSTEME` : un dossier portable pour plusieurs machines, et le repli),
-//! chacune signee ; `derniere.json` les nomme sous `archives`. Une installation prend celle de son systeme (`SYSTEME`), ou
-//! la tout-systeme si la sienne manque (`telecharger`). « Publier » choisit ce qu'il fabrique (Windows seul, Windows et
-//! Linux, ou les trois ; Leandre, 15/10/2026) : seules les archives fabriquees sont nommees, la tout-systeme dit sous
-//! `systemes` ceux qu'elle porte, et une installation dont le systeme n'est pas publie garde sa version et le dit.
+//! UNE ARCHIVE PAR SYSTEME, ET UNE TOUT-SYSTEME. `logiciel/` porte les programmes des trois systemes : `puppetpaie.exe` et
+//! `WebView2Loader.dll` a la racine (Windows, le seul suivi par Git), `linux/puppetpaie` et `linux/moteur`,
+//! `mac/puppetpaie` et `mac/moteur` (poses par le flux « Publier », universels Intel et Apple pour le Mac) : Linux et Mac
+//! ont tous deux un `puppetpaie`, chacun son dossier (`dossier_programmes`). Une version a une archive par systeme (les
+//! fichiers communs et ceux de ce systeme, `systeme_du_fichier`) et une qui porte tout (`TOUT_SYSTEME` : un dossier
+//! portable pour plusieurs machines, et le repli), chacune signee ; `derniere.json` les nomme sous `archives`. Une
+//! installation prend celle de son systeme (`SYSTEME`), ou la tout-systeme si la sienne manque (`telecharger`). Seules les
+//! archives fabriquees sont nommees, la tout-systeme dit sous `systemes` ceux qu'elle porte, et une installation dont le
+//! systeme n'est pas publie garde sa version et le dit.
 //!
 //! ====================================================================================================================
 //! LA FORME DE L'ARCHIVE DE MISE A JOUR EST UN CONTRAT AVEC TOUTES LES INSTALLATIONS POSEES. ELLE NE CHANGE PLUS.
 //! ====================================================================================================================
-//! L'archive que `derniere.json` nomme sous `archives` (`archiver`, `puppetpaie-<version>-<systeme>.zip`) porte LE CONTENU
-//! DE `logiciel/` A SA RACINE (`VERSION`, `donnees/`, `interface/`, les programmes), et rien d'autre : ni `logiciel/` en
-//! tete, ni `fictives/`. C'est le code DEJA INSTALLE chez chaque compagnie qui la lit, pas celui qu'elle apporte : il la
-//! deballe telle quelle dans `maj/<version>/logiciel/`, y lit `VERSION`, et refuse si ce n'est pas la version annoncee.
-//! Changer cette forme, c'est couper toutes les installations posees de leurs mises a jour, sans retour possible : leur
-//! code ne se change que par une mise a jour. Le ticket #246 l'a fait (7ea89f6, `logiciel/` et `fictives/` dans chaque
-//! archive : les installations posees lisaient « 0.0.0 » et refusaient) ; on est revenu a la forme d'avant le jour meme.
+//! L'archive que `derniere.json` nomme sous `archives` (`puppetpaie-<version>-<systeme>.zip`) porte LE CONTENU DE
+//! `logiciel/` A SA RACINE (`VERSION`, `donnees/`, `interface/`, les programmes), et rien d'autre : ni `logiciel/` en tete,
+//! ni `fictives/`. C'est le code DEJA INSTALLE chez chaque compagnie qui la lit, pas celui qu'elle apporte : il la deballe
+//! telle quelle dans `maj/<version>/logiciel/`, y lit `VERSION`, et refuse si ce n'est pas la version annoncee. Changer
+//! cette forme, c'est couper toutes les installations posees de leurs mises a jour, sans retour possible : leur code ne se
+//! change que par une mise a jour.
 //! De meme pour `derniere.json` : `version`, et sous `archives` une entree par systeme (`archive`, `sha256`,
-//! `signature` ; `systemes` pour la tout-systeme) ; on peut AJOUTER une cle a sa racine (`fictives`, le 22/10/2026 : le
-//! code d'avant ne lit que `version` et `archives`), jamais en retirer ni en changer une, et rien sous `archives` qui ne
-//! soit un systeme (le code d'avant refuse alors tout `derniere.json`). Les installations d'avant le 15/10/2026 (une seule
-//! archive) lisent, elles, `archive`, `sha256` et `signature` a la racine : ce sont ceux de l'archive de Windows
-//! (`publier_signe`).
-//! `tests/fichiers/mise_a_jour.rs` deballe l'archive comme le code d'avant (`deballer` de 8fc646b, recopie tel quel).
+//! `signature` ; `systemes` pour la tout-systeme) ; on peut AJOUTER une cle a sa racine (`fictives`), jamais en retirer ni
+//! en changer une, et rien sous `archives` qui ne soit un systeme (une installation posee refuse alors tout
+//! `derniere.json`). `archive`, `sha256` et `signature` a la racine, que lit une installation qui ne connait qu'une
+//! archive, sont ceux de l'archive de Windows.
+//! `tests/fichiers/mise_a_jour.rs` deballe l'archive comme le fait le code des installations posees.
 //!
-//! L'ARCHIVE D'INSTALLATION, a cote (ticket #246, 22/10/2026 : `archiver_installation`,
-//! `puppetpaie-<version>-<systeme>-installation.zip`) : ce que l'installeur Windows pose, pour Linux, Mac et le dossier
-//! portable (la tout-systeme) : `logiciel/` et, a cote, `fictives/` (les compagnies fictives livrees). Decompressee dans
-//! un dossier neuf, elle s'ouvre bridee sur ses quatre fictives. Elle ne sert qu'a installer : aucune installation ne la
-//! telecharge, `derniere.json` ne la nomme pas, et elle n'est pas signee (l'installeur Windows non plus) ; la Release
-//! la porte a cote des archives de mise a jour.
+//! L'ARCHIVE D'INSTALLATION, a cote (`puppetpaie-<version>-<systeme>-installation.zip`) : ce que l'installeur Windows
+//! pose, pour Linux, Mac et le dossier portable (la tout-systeme) : `logiciel/` et, a cote, `fictives/` (les compagnies
+//! fictives livrees). Decompressee dans un dossier neuf, elle s'ouvre bridee sur ses quatre fictives. Elle ne sert qu'a
+//! installer : aucune installation ne la telecharge, `derniere.json` ne la nomme pas, et elle n'est pas signee
+//! (l'installeur Windows non plus) ; la Release la porte a cote des archives de mise a jour.
 //!
-//! LES FICTIVES VOYAGENT A PART (Leandre, 22/10/2026) : `archiver_fictives`, `puppetpaie-<version>-fictives.zip`, signee,
-//! nommee dans `derniere.json` sous `fictives` (une cle ajoutee, qu'un code d'avant ignore) avec l'EMPREINTE de leur
-//! contenu. Une installation ne la telecharge que si l'empreinte n'est pas celle qu'elle retient (`fictives/.livraison.json`)
-//! : une Release aux memes fictives ne coute rien. Quand elle a change, la livraison REMPLACE les fictives du poste au
-//! lancement suivant, jouees ou non, photos d'origine comprises (`preparer_les_fictives`, `poser_les_fictives_pretes`).
-//! La mise a jour du logiciel, elle, ne touche jamais `fictives/`.
+//! LES FICTIVES VOYAGENT A PART : `puppetpaie-<version>-fictives.zip`, signee, nommee dans `derniere.json` sous `fictives`
+//! (une cle qu'une installation posee qui ne la connait pas ignore) avec l'EMPREINTE de leur contenu. Une installation ne
+//! la telecharge que si l'empreinte n'est pas celle qu'elle retient (`fictives/.livraison.json`) : une Release aux memes
+//! fictives ne coute rien. Quand elle a change, la livraison REMPLACE les fictives du poste au lancement suivant, jouees
+//! ou non, photos d'origine comprises (`preparer_les_fictives`, `poser_les_fictives_pretes`). La mise a jour du logiciel,
+//! elle, ne touche jamais `fictives/`.
 //!
-//! LE RELAIS, AU LANCEMENT (09/10/2026 : « que personne ne voit »). Sous Windows, un programme ne se remplace pas pendant
-//! qu'il tourne. Le programme qu'on lance regarde donc, AVANT TOUTE FENETRE, si l'installation a une version prete
-//! (`au_lancement`) : il copie le programme NEUF hors de `logiciel/` (`maj/relais-<version>`), le lance avec
-//! `maj-relais`, et s'arrete sans rien avoir montre. Le relais attend la fin de ce processus (par son numero, pas par un
-//! port), bascule, lance la fenetre neuve, et s'arrete : on voit s'ouvrir directement la neuve.
+//! LE RELAIS, AU LANCEMENT, que personne ne voit. Sous Windows, un programme ne se remplace pas pendant qu'il tourne. Le
+//! programme qu'on lance regarde donc, AVANT TOUTE FENETRE, si l'installation a une version prete (`au_lancement`) : il
+//! copie le programme NEUF hors de `logiciel/` (`maj/relais-<version>`), le lance avec `maj-relais`, et s'arrete sans rien
+//! avoir montre. Le relais attend la fin de ce processus (par son numero, pas par un port), bascule, lance la fenetre
+//! neuve, et s'arrete : on voit s'ouvrir directement la neuve.
 //!
 //! UNE VERSION S'INSTALLE DES QU'ELLE EST PRETE : au lancement suivant, ou au clic « Redemarrer pour mettre a jour ».
 //! Rien ne la retient. Sa phrase `calcul` (la case de « Publier ») dit a la compagnie ce qu'elle change d'un calcul de
 //! paie : l'indicateur la montre avec la version prete, puis, une fois, au lancement qui suit son installation
 //! (`dire_l_installation`) ; `moteur version` aussi. Une version EXIGEE bloque tout depot reel tant qu'elle n'est pas
 //! installee (`depot_acte::exigee_en_attente`) ; l'indicateur le dit, sans survol (`Recherche::etat`, `exigee`).
-//!
-//! LA CLE DE SIGNATURE (`config/maj-cle-privee.bin`, lot K1, 14/10/2026 ; Leandre : « si mon ordi tombe, on pourra plus
-//! faire de mise a jour, ça me va pas »). Sa graine est scellee par la CLE MAITRESSE DU COFFRE
-//! (`Coffre::proteger_par_le_coffre`), dans un petit JSON (`FORMAT_CLE`) : elle s'ouvre partout ou le coffre s'ouvre, par
-//! la cle du poste, ou ailleurs par le mot de passe du logiciel (tape, ou la seance). Elle depend donc du coffre qui l'a
-//! scellee : sans lui, rien ne l'ouvre, et un coffre neuf ne l'ouvrira pas. Avant, elle etait scellee par la cle du poste
-//! seule (`Coffre::proteger`) : perdue avec le poste, les compagnies auraient refuse toute version suivante.
-//! UNE CLE SCELLEE A L'ANCIENNE s'ouvre encore par la cle du poste qui l'a faite, et s'y RESCELLE par le coffre a cette
-//! ouverture (`cle_privee`) : c'est la seule facon de la sauver sans changer la paire, donc sans faire parvenir une
-//! nouvelle cle publique a chaque compagnie. `moteur maj --cle` sur une cle a l'ancienne fait cette ouverture sans publier.
-
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
@@ -92,17 +73,14 @@ use sha2::{Digest, Sha256};
 use crate::atelier::publier::{dire_les_archives, generer_cle, generer_cle_github, marquer_les_fictives, publier, publier_depuis_l_environnement};
 
 /// La cle publique de l'editeur (Ed25519, 32 octets en base64) : toute archive non signee par elle est refusee.
-/// Refaite le 09/10/2026 : l'ancienne (16/09, scellee par le moteur Python) n'existait plus sur le poste ; aucune
-/// compagnie n'avait encore recu de version.
 pub const CLE_PUBLIQUE: &str = "sDj5+46oBt7Yy1x00VJ1ThJNOwf5jT5+bttXEN/yAIU=";
-/// LA CLE PUBLIQUE DE GITHUB (lot P1, 14/10/2026) : le flux « Publier » du depot public signe l'archive avec une cle
-/// neuve, dediee, dont la graine est le secret `PUPPETPAIE_CLE_SIGNATURE` de l'environnement `publication` (approuve
-/// par Leandre). Fabriquee sur le poste de l'editeur par `moteur maj --cle-github` (`generer_cle_github`), qui ecrit la
-/// cle publique dans un fichier a reporter ICI. Reportee le 14/10/2026 (fabriquee par Leandre sur son poste). Vide,
-/// aucune archive ne serait acceptee par elle et le flux refuserait de publier (`publier_depuis_l_environnement`).
+/// LA CLE PUBLIQUE DE GITHUB : le flux « Publier » du depot public signe l'archive avec une cle dediee, dont la graine est
+/// le secret `PUPPETPAIE_CLE_SIGNATURE` de l'environnement `publication` (approuve par l'editeur). Fabriquee sur le poste
+/// de l'editeur par `moteur maj --cle-github` (`generer_cle_github`), qui ecrit la cle publique dans un fichier a reporter
+/// ICI. Vide, aucune archive ne serait acceptee par elle et le flux refuserait de publier (`publier_depuis_l_environnement`).
 pub const CLE_PUBLIQUE_GITHUB: &str = "48dC1Gb82e2Zh7z7NiUH14EbXX7IvXTp83Xaui/31wg=";
 /// Le depot des mises a jour QUAND LE REGLAGE DE L'INSTALLATION NE DIT RIEN : les fichiers de la DERNIERE RELEASE du
-/// depot public (lot P1, 14/10/2026 ; avant, le serveur du filet, qui ne servait rien). GitHub repond a
+/// depot public. GitHub repond a
 /// `releases/latest/download/<fichier>` par une redirection vers la Release la plus recente, puis vers son stockage :
 /// `lire_depot` les suit (ureq, dix au plus). `derniere.json` y nomme les archives, servies a cote. Un `depot` pose dans le
 /// reglage le remplace toujours. Il ne sert qu'a RECEVOIR (`verifier`) : `publier` ecrit dans un dossier.
@@ -112,13 +90,12 @@ const AGENT: &str = "PuppetPaie (mise a jour)";
 const NE_PAS_TOUCHER: [&str; 3] = [".git", ".avant", ".apres"];
 /// Ce qui, dans `logiciel/`, dit l'INSTALLATION et non la version : il ne part jamais dans une archive (`archiver`), et la
 /// bascule le laisse EXACTEMENT comme il etait -- remis s'il etait la (copie depuis `.avant/`, qui garde l'image entiere de
-/// la version d'avant pour `revenir`), absent s'il n'y etait pas, meme si une archive d'avant le lot V1 en portait un.
-/// Leandre, 14/10/2026 : « le petit curseur ecrit en JSON lui il reste comme il etait. Si les gens ont debloque, elle reste
-/// debloquee » ; bridee, elle reste bridee. Depuis le ticket #246, ce fichier n'est plus que celui du PAQUET SOUDE
-/// (`"edition": "bride"`, `bridage.rs`) ; le geste, `.edition.json`, vit a cote de `logiciel/` : la bascule n'y touche pas.
+/// la version precedente pour `revenir`), absent s'il n'y etait pas, meme si l'archive en porte un. Une installation
+/// debloquee reste debloquee ; bridee, elle reste bridee. Ce fichier est celui du PAQUET SOUDE (`"edition": "bride"`,
+/// `bridage.rs`) ; le geste, `.edition.json`, vit a cote de `logiciel/` : la bascule n'y touche pas.
 pub(crate) const PROPRES_A_L_INSTALLATION: [&str; 1] = ["EDITION.json"];
 
-/// LES TROIS SYSTEMES, chacun son archive (Leandre, 15/10/2026). Le nom est celui du dossier des programmes de ce systeme
+/// LES TROIS SYSTEMES, chacun son archive. Le nom est celui du dossier des programmes de ce systeme
 /// dans `logiciel/` (sauf Windows, dont les programmes sont a la racine : `dossier_programmes_de`) et la cle de son
 /// archive dans `derniere.json`.
 pub const SYSTEMES: [&str; 3] = ["windows", "linux", "mac"];
@@ -151,9 +128,9 @@ pub fn dossier_programmes(code: &Path) -> PathBuf {
 }
 
 /// Le dossier des programmes d'un systeme : `logiciel/` lui-meme pour Windows, ou l'exe est pose a cote de `donnees/` et
-/// `interface/` (rangement du 09/10/2026 : `logiciel/` est exactement ce que les gens recoivent ; le raccourci de
-/// l'installeur et `PuppetPaie.cmd` le lancent la) ; `logiciel/linux/` et `logiciel/mac/` pour les deux autres, qui ont
-/// chacun un `puppetpaie` (15/10/2026 : l'archive de tous les systemes les porte ensemble). Un programme pose dans un
+/// `interface/` (`logiciel/` est exactement ce que les gens recoivent ; le raccourci de l'installeur et `PuppetPaie.cmd`
+/// le lancent la) ; `logiciel/linux/` et `logiciel/mac/` pour les deux autres, qui ont chacun un `puppetpaie` (l'archive
+/// de tous les systemes les porte ensemble). Un programme pose dans un
 /// sous-dossier trouve ses `donnees/` en remontant (`commandes::compagnie::fixer_le_code`).
 pub fn dossier_programmes_de(code: &Path, systeme: &str) -> PathBuf {
     if systeme == "windows" {
@@ -205,8 +182,7 @@ pub fn plus_recente(candidate: &str, reference: &str) -> bool {
     cle_de_version(candidate) > cle_de_version(reference)
 }
 
-/// LA VERSION TELLE QU'UN HUMAIN LA LIT : `JJ.MM.AAAA` (Leandre, 14/10/2026 : « mettre la version jour.mois.annee plutot
-/// que comme maintenant en commencant par annee, ca embrouille » ; `prive/journal/ETAT.md`, « DECIDE LE 14/10/2026 »).
+/// LA VERSION TELLE QU'UN HUMAIN LA LIT : `JJ.MM.AAAA`, l'annee en tete embrouille.
 /// L'IDENTIFIANT, lui, reste `AAAA.MM.JJ` (`VERSION`, `derniere.json`, les archives, `prive/maj/<version>/`, ce que signe
 /// l'editeur) : `plus_recente` compare les trois nombres de gauche a droite, et `01.11.2026` passerait pour plus ancienne
 /// que `14.10.2026`. Seul l'affichage change : tout ce qui montre une version passe par ici. Ce qui n'a pas la forme d'une
@@ -234,8 +210,7 @@ pub(crate) fn ecrire_json(p: &Path, v: &Value) -> R<()> {
 }
 
 /// L'INSTALLATION : le dossier qui porte `logiciel/`, et a cote les compagnies (`prive/`, `compagnies/`, les fictives) et
-/// `maj/`. Il n'y a qu'un logiciel par installation, et c'est lui qui se met a jour (lot U1, 14/10/2026 ; Leandre : « il
-/// n'y a pas de logiciels differents, il n'y en a qu'un »), pas une compagnie : la mise a jour se cherche, se range et
+/// `maj/`. Il n'y a qu'un logiciel par installation, et c'est lui qui se met a jour, pas une compagnie : la mise a jour se cherche, se range et
 /// s'applique ici, sans qu'aucune compagnie soit ouverte. Un dossier portable est une installation comme une autre.
 pub fn installation() -> PathBuf {
     crate::interface::compagnies::base()
@@ -256,18 +231,16 @@ fn logiciel_de(inst: &Path) -> PathBuf {
 }
 
 const REGLAGE: &str = "reglage.json";
-/// Le reglage d'avant le lot U1, lu EN REPLI quand l'installation n'a pas le sien : la compagnie du poste le portait
-/// (`prive/config/maj.json`, `editeur` et `depot`), et c'est ainsi qu'est regle le poste de l'editeur. On le lit, on ne le
-/// migre pas : rien a ecrire sur un poste qui marche, et un seul fichier fait foi a la fois (le neuf, s'il est pose).
-const REGLAGE_D_AVANT: &str = "prive/config/maj.json";
+/// Le reglage porte par la compagnie du poste (`prive/config/maj.json`, `editeur` et `depot`), lu EN REPLI quand
+/// l'installation n'a pas le sien : c'est ainsi qu'est regle le poste de l'editeur. Un seul fichier fait foi a la fois
+/// (celui de l'installation, s'il est pose).
+const REGLAGE_DE_LA_COMPAGNIE: &str = "prive/config/maj.json";
 
-/// Le reglage de l'installation : (depot pose, editeur). `maj/reglage.json`, sinon `prive/config/maj.json` (le reglage
-/// d'avant le lot U1), sinon rien de pose. `editeur` ne sert qu'a autoriser la publication (Leandre, 14/10/2026 : « mon
-/// logiciel c'est le meme que les autres. C'est juste que je peux travailler dessus, mais quand je fais une mise a jour, il
-/// faut que la mise a jour arrive aussi sur ma machine ») : le poste de l'editeur recoit comme les autres.
+/// Le reglage de l'installation : (depot pose, editeur). `maj/reglage.json`, sinon `prive/config/maj.json`, sinon rien de
+/// pose. `editeur` ne sert qu'a autoriser la publication : le poste de l'editeur recoit comme les autres.
 pub fn reglage(inst: &Path) -> R<(Option<String>, bool)> {
     let neuf = dossier_maj(inst).join(REGLAGE);
-    let (p, nom) = if neuf.exists() { (neuf, "maj/reglage.json") } else { (inst.join(REGLAGE_D_AVANT), REGLAGE_D_AVANT) };
+    let (p, nom) = if neuf.exists() { (neuf, "maj/reglage.json") } else { (inst.join(REGLAGE_DE_LA_COMPAGNIE), REGLAGE_DE_LA_COMPAGNIE) };
     if !p.exists() {
         return Ok((None, false));
     }
@@ -292,7 +265,7 @@ pub(crate) fn lire_depot(depot: &str, nom: &str) -> R<Vec<u8>> {
     lire_depot_suivi(depot, nom, &|_, _| {}).map_err(|(_, e)| e)
 }
 
-/// Ce qu'on dit d'un echec, en un mot, a l'ecran (ticket #210 : « les erreurs se disent en un mot, sans alarme ») ; la
+/// Ce qu'on dit d'un echec, en un mot, a l'ecran, sans alarme ; la
 /// phrase entiere va au journal de la mise a jour.
 const HORS_LIGNE: &str = "hors ligne";
 const INTROUVABLE: &str = "introuvable";
@@ -494,8 +467,8 @@ fn controler(neuf: &Path, racine: &Path) -> R<()> {
 }
 
 /// L'archive de CE systeme, sinon celle de tous les systemes SI ELLE LE PORTE (sa liste `systemes`) : leur cle dans
-/// `derniere.json` et leur entree, dans l'ordre ou les essayer. Vide : la version est publiee sans ce systeme (Leandre,
-/// 15/10/2026 : « Publier » choisit Windows seul, Windows et Linux, ou les trois), l'installation ne telecharge rien.
+/// `derniere.json` et leur entree, dans l'ordre ou les essayer. Vide : la version est publiee sans ce systeme (« Publier »
+/// choisit Windows seul, Windows et Linux, ou les trois), l'installation ne telecharge rien.
 fn archives_a_essayer(d: &Value) -> Vec<(&'static str, &Value)> {
     let porte = |a: &Value| a["systemes"].as_array().is_some_and(|l| l.iter().any(|x| x.as_str() == Some(SYSTEME)));
     let mut v: Vec<(&'static str, &Value)> = d["archives"].get(SYSTEME).map(|a| (SYSTEME, a)).into_iter().collect();
@@ -587,8 +560,8 @@ fn lire_valeur(p: &Path) -> Option<Value> {
     serde_json::from_slice(&std::fs::read(p).ok()?).ok()
 }
 
-/// Ce qu'un dossier `fictives/` retient de sa livraison (`LIVRAISON`), ou `None` (une installation d'avant ce mecanisme,
-/// ou posee par l'installeur Windows, qui ne la porte pas).
+/// Ce qu'un dossier `fictives/` retient de sa livraison (`LIVRAISON`), ou `None` (une installation qui n'a recu
+/// aucune livraison, ou posee par l'installeur Windows, qui ne la porte pas).
 fn livraison_retenue(fictives: &Path) -> Option<Value> {
     lire_valeur(&fictives.join(LIVRAISON)).filter(|v| v.get("empreinte").and_then(Value::as_str).is_some_and(|e| !e.is_empty()))
 }
@@ -627,9 +600,9 @@ fn deballer_les_fictives(octets: &[u8], cible: &Path) -> R<()> {
     Ok(())
 }
 
-/// LES FICTIVES SE METTENT A JOUR A PART DU LOGICIEL (Leandre, 22/10/2026). `derniere.json` les nomme sous `fictives`
-/// (`archive`, `sha256`, `signature`, `empreinte`) -- une cle qu'un code d'avant ignore : il ne lit que `version` et
-/// `archives`. Une installation ne les telecharge QUE si leur empreinte n'est pas celle qu'elle retient
+/// LES FICTIVES SE METTENT A JOUR A PART DU LOGICIEL. `derniere.json` les nomme sous `fictives` (`archive`, `sha256`,
+/// `signature`, `empreinte`) -- une cle qu'une installation posee qui ne la connait pas ignore : elle ne lit que
+/// `version` et `archives`. Une installation ne les telecharge QUE si leur empreinte n'est pas celle qu'elle retient
 /// (`fictives/.livraison.json`) ni celle qui l'attend deja prete : une Release aux memes fictives ne coute rien. Recues,
 /// condensat et signature verifies comme une archive du logiciel, et leur `.livraison.json` disant l'empreinte annoncee,
 /// elles attendent dans `maj/fictives-pretes/` le prochain lancement (`poser_les_fictives_pretes`). Un DEPOT DE TRAVAIL
@@ -673,8 +646,8 @@ pub fn preparer_les_fictives(inst: &Path, depot: &str, d: &Value, cles: &[&str])
     })
 }
 
-/// LE MARQUEUR D'UNE FICTIVE LIVREE, pour une installation qui ne retient aucune livraison (d'avant ce mecanisme, ou
-/// posee par l'installeur Windows) : son `COPIE-DE-DEVELOPPEMENT.json` dit `copie_de` = « compagnie fictive <son nom> »,
+/// LE MARQUEUR D'UNE FICTIVE LIVREE, pour une installation qui ne retient aucune livraison (qui n'en a recu aucune,
+/// ou posee par l'installeur Windows) : son `COPIE-DE-DEVELOPPEMENT.json` dit `copie_de` = « compagnie fictive <son nom> »,
 /// exactement ce que porte chaque fictive livree (`fictives/<nom>/COPIE-DE-DEVELOPPEMENT.json`). Une fictive copiee et
 /// renommee sur le poste dit encore le nom de celle qu'elle copie : ce n'est pas le sien.
 fn marquee_comme_livree(dossier: &Path, nom: &str) -> bool {
@@ -683,12 +656,12 @@ fn marquee_comme_livree(dossier: &Path, nom: &str) -> bool {
 }
 
 /// AU LANCEMENT, avant toute fenetre (`interface::preparer_l_installation`) : la livraison de fictives prete se pose.
-/// Elle ne touche QUE CE QU'ELLE A POSE ELLE-MEME (Leandre, 22/10/2026 : « les gens pourront creer des fictives avec leurs
-/// donnees, il ne faut pas les supprimer par megarde ») : un dossier de `fictives/` est a elle si son nom est dans
+/// Elle ne touche QUE CE QU'ELLE A POSE ELLE-MEME (une fictive faite sur le poste porte les donnees de quelqu'un, elle ne
+/// se supprime pas par megarde) : un dossier de `fictives/` est a elle si son nom est dans
 /// `posees` de la livraison retenue ET que sa marque (`.livree.json`) dit l'empreinte qu'on y a retenue ; sans livraison
 /// retenue, si son nom est celui d'une fictive livree et qu'il porte le marqueur d'une fictive livree
 /// (`marquee_comme_livree`). Ce qui est a elle est REMPLACE, joue ou non, photo d'origine (`fictives/.origine/<nom>`)
-/// comprise -- elle se reprend a la prochaine ouverture, sur la fictive neuve (Leandre, 22/10/2026 : « on remplace ») --
+/// comprise -- elle se reprend a la prochaine ouverture, sur la fictive neuve --
 /// ou RETIRE si la nouvelle livraison ne le porte plus. Une fictive nouvelle apparait. Une fictive livree dont le nom est
 /// pris par un dossier qui n'est pas a la livraison n'est PAS posee : le dossier reste intact, le journal de la mise a
 /// jour le dit, et elle n'entre pas dans `posees`. Tout autre dossier (une copie renommee, une fictive faite sur le
@@ -796,7 +769,7 @@ pub fn verifier_avec(inst: &Path, telecharger_aussi: bool, cles: &[&str]) -> Str
     verifier_suivi(inst, telecharger_aussi, cles, &Recherche::nouvelle())
 }
 
-/// `verifier_avec`, en tenant `suivi` a jour a chaque etape (ce que l'indicateur montre, ticket #210). Ce que la recherche
+/// `verifier_avec`, en tenant `suivi` a jour a chaque etape (ce que l'indicateur montre). Ce que la recherche
 /// rend (la phrase du journal) et ce qu'elle laisse dans `suivi` disent la meme chose.
 pub fn verifier_suivi(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Recherche) -> String {
     verifier_en(inst, telecharger_aussi, cles, suivi, false)
@@ -868,10 +841,8 @@ fn verifier_en(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Rech
     }
 }
 
-/// LA RECHERCHE EN FOND, DITE A L'ECRAN (ticket #210, Leandre, 16/10/2026 : « quand il charge la mise a jour en
-/// arriere-plan, j'aimerais qu'il y ait un petit truc en bas a gauche, des l'ecran d'accueil, avec une barre de
-/// progression : Recherche de mise a jour / Aucune mise a jour / Mise a jour en cours (avec la barre) / Redemarrer pour
-/// mettre a jour »). Le moteur tient ou en est la recherche de CE processus (`chercher_en_fond` pose `RECHERCHE`) ;
+/// LA RECHERCHE EN FOND, DITE A L'ECRAN : en bas a gauche, des l'accueil, « Recherche de mise a jour », « Aucune mise a
+/// jour », « Mise a jour en cours » (avec une barre de progression), « Redemarrer pour mettre a jour ». Le moteur tient ou en est la recherche de CE processus (`chercher_en_fond` pose `RECHERCHE`) ;
 /// l'accueil et la page d'une compagnie la lisent par le geste `maj` du lanceur (`interface::Fenetre::lanceur`) et
 /// n'affichent que ce que `etat` leur dit : la phrase, la barre, et s'il faut relire (`en_cours`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -935,13 +906,13 @@ const RELIRE_EN_COURS_MS: u64 = 700;
 const RELIRE_EN_ATTENTE_MS: u64 = 10_000;
 const RELIRE_EN_FOND_MS: u64 = 30_000;
 
-/// LE RYTHME DE LA RECHERCHE quand le logiciel est a jour (Leandre, 21/10/2026 : la 2026.10.21, publiee a 11 h 40, ne
-/// se voyait pas dans un logiciel lance avant, qui restait « Logiciel a jour » ; « ca coute rien » : toutes les 5 minutes).
+/// LE RYTHME DE LA RECHERCHE quand le logiciel est a jour : toutes les 5 minutes, pour qu'une version publiee pendant
+/// que le logiciel tourne s'y voie.
 /// Un tour ne coute qu'une demande de `derniere.json` ; le fil dort entre deux (`chercher_tant_qu_il_tourne`).
 pub const RYTHME_A_JOUR: std::time::Duration = std::time::Duration::from_secs(5 * 60);
 
-/// LE RYTHME DES NOUVEAUX ESSAIS quand le depot ne repond pas (ticket #217, Leandre, 20/10/2026 : le logiciel demarre
-/// sans reseau et reste « hors ligne » alors que le poste est connecte). Apres le n-ieme echec, la recherche attend la
+/// LE RYTHME DES NOUVEAUX ESSAIS quand le depot ne repond pas (un logiciel qui demarre
+/// sans reseau ne reste pas « hors ligne » une fois le poste connecte). Apres le n-ieme echec, la recherche attend la
 /// n-ieme duree, puis la derniere a chaque fois : un essai par 5 minutes au plus lent, jamais plus d'un par 30 secondes.
 /// Un essai hors ligne ne coute qu'une demande de `derniere.json` qui echoue ; le fil dort entre deux.
 pub const ATTENTES_HORS_LIGNE: [std::time::Duration; 4] = [
@@ -1196,8 +1167,8 @@ pub fn appliquer(inst: &Path) -> R<Value> {
     appliquer_depuis(&dossier_maj(inst), &logiciel_de(inst))
 }
 
-/// `appliquer`, le dossier de la version prete et le logiciel donnes : `<installation>/maj/`, ou, pour le relais lance par
-/// une version d'avant le lot U1, le `maj/` de la compagnie ou elle l'avait rangee.
+/// `appliquer`, le dossier de la version prete et le logiciel donnes : `<installation>/maj/`, ou, pour le relais lance avec
+/// `--racine`, le `maj/` de la compagnie ou la version prete est rangee.
 fn appliquer_depuis(maj: &Path, code: &Path) -> R<Value> {
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
     let d = (|| {
@@ -1243,8 +1214,8 @@ fn appliquer_depuis(maj: &Path, code: &Path) -> R<Value> {
     };
     if let Err(e) = faire() {
         // Tout revient : ce qui est arrive repart, ce qui est parti revient. Ce qui est arrive se suit par son nom, pas par
-        // difference avec ce qui est parti (avant le lot V1, un fichier de la version neuve qui portait le nom d'un fichier
-        // de l'ancienne -- VERSION, donnees -- restait en place, et l'ancien ne revenait pas : un melange des deux).
+        // difference avec ce qui est parti (un fichier de la version neuve qui porte le nom d'un fichier de l'ancienne --
+        // VERSION, donnees -- resterait en place, et l'ancien ne reviendrait pas : un melange des deux).
         for nom in &arrives {
             let _ = deplacer(&code.join(nom), &neuf.join(nom));
         }
@@ -1337,8 +1308,7 @@ pub fn chercher_en_fond() {
 }
 
 /// LA RECHERCHE CONTINUE TANT QUE LE LOGICIEL TOURNE. `verifier_suivi`, puis, selon ce qu'elle laisse dans `suivi` :
-/// - un echec `HORS_LIGNE` (le depot ne repond pas, ou la reception a ete coupee ; ticket #217, Leandre, 20/10/2026 : le
-///   logiciel lance sans reseau restait « hors ligne » alors que le poste etait connecte) : un nouvel essai apres
+/// - un echec `HORS_LIGNE` (le depot ne repond pas, ou la reception a ete coupee) : un nouvel essai apres
 ///   `attentes[n]` (la derniere se repete : `ATTENTES_HORS_LIGNE`). Le moment du prochain essai est dans `suivi` : la
 ///   bulle le dit, et la page relit tant qu'il est prevu (`relire_ms`) ;
 /// - « a jour » : un tour calme (`verifier_en`) toutes les `rythme` (`RYTHME_A_JOUR`). Une version publiee
@@ -1447,7 +1417,7 @@ fn attendre_fin(pid: u32, _inst: &Path) -> bool {
 
 /// Hors Windows, la prise du verrou n'est jamais heritee (CLOEXEC) : quand LA FENETRE DE CETTE INSTALLATION ne repond plus
 /// a son creneau (`interface::instance::ouverte`, qui compare le dossier de l'installation), elle est partie. Une autre
-/// installation ouverte sur le poste (ticket #244) a son propre creneau, et ne se confond jamais avec elle.
+/// installation ouverte sur le poste a son propre creneau, et ne se confond jamais avec elle.
 #[cfg(not(windows))]
 fn attendre_fin(_pid: u32, inst: &Path) -> bool {
     for _ in 0..120 {
@@ -1461,8 +1431,8 @@ fn attendre_fin(_pid: u32, inst: &Path) -> bool {
 
 /// Le relais (`puppetpaie maj-relais --installation I --code C --attendre PID`) : attend la fin du programme qui l'a
 /// lance, bascule, et lance la fenetre (la neuve, ou l'ancienne si la bascule a echoue). Ecrit ce qui s'est passe dans le
-/// journal de la mise a jour. Lance par une version d'avant le lot U1, il recoit `--racine R` (la compagnie dont `maj/`
-/// porte la version prete) au lieu de `--installation` : il l'applique de la.
+/// journal de la mise a jour. Avec `--racine R` (la compagnie dont `maj/` porte la version
+/// prete) au lieu de `--installation`, il l'applique de la.
 pub fn relais(args: &[String]) -> i32 {
     let valeur = |n: &str| args.iter().position(|a| a == n).and_then(|i| args.get(i + 1)).map(PathBuf::from);
     let Some(code) = valeur("--code") else { return 2 };
@@ -1491,12 +1461,12 @@ pub fn relais(args: &[String]) -> i32 {
 /// --calcul T --exigee T] [--marquer-fictives --logiciel L]`.
 pub fn commande(args: &[String]) -> i32 {
     // D'abord savoir ou l'on est installe : sans cela, `installation()` retombe sur le dossier ou le programme a ete
-    // compile (un chemin du conteneur, que Windows lit sur le lecteur courant : le 14/10/2026, la graine de `--cle-github`
-    // est allee dans `D:\home\user\puppetpaieprivate\maj\`).
+    // compile (un chemin du conteneur, que Windows lit sur le lecteur courant : la graine de `--cle-github` irait
+    // dans `D:\home\user\...\maj\`).
     crate::commandes::compagnie::fixer_le_code();
     let drapeau = |n: &str| args.iter().any(|a| a == n);
     let valeur = |n: &str| args.iter().position(|a| a == n).and_then(|i| args.get(i + 1)).filter(|v| !v.starts_with("--")).cloned();
-    // Les gestes de la publication par GitHub (lot P1) : ni compagnie ni coffre.
+    // Les gestes de la publication par GitHub : ni compagnie ni coffre.
     let github = if drapeau("--cle-github") {
         let dossier = valeur("--cle-github").map(PathBuf::from).unwrap_or_else(|| dossier_maj(&installation()));
         Some(generer_cle_github(&dossier).map(|r| {
@@ -1638,7 +1608,7 @@ mod tests {
         (0..z.len()).map(|i| z.by_index(i).unwrap().name().to_string()).collect()
     }
 
-    /// Une archive qui porterait un `EDITION.json` (publiee avant le lot V1) ne change pas l'installation : un paquet soude
+    /// Une archive qui porterait un `EDITION.json` ne change pas l'installation : un paquet soude
     /// garde son `EDITION.json` ; une installation sans `EDITION.json` n'en recoit pas (elle reste bridee ou debloquee par son
     /// `.edition.json`, a cote de `logiciel/`, que la bascule ne touche pas).
     #[test]
