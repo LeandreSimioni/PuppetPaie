@@ -1752,7 +1752,7 @@ function enteteSalarie(fiche) {
       <h3>La faire remplir par la personne</h3>
       <p class="aide">Elle reçoit un courriel avec un bouton : une réponse
         s'ouvre avec les questions (identité, naissance, numéro de sécurité
-        sociale, adresse), elle y répond et l'envoie. Sa fiche se crée
+        sociale, adresse, compte bancaire), elle y répond et l'envoie. Sa fiche se crée
         seule à l'arrivée de la réponse ; il vous restera l'emploi à
         choisir.</p>
       ${lie ? `<div class="champs">

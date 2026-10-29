@@ -1389,7 +1389,10 @@ pub(crate) fn ecrire_datee(
             continue;
         }
         let avant = ancienne.get(k.as_str());
-        if (vide(avant) && vide(Some(v))) || avant.is_some_and(|a| meme(a, v)) {
+        // « A COMPLETER » est une case vide a remplir, pas rien : il s'ecrit (une fiche importee le porte, et la fiche
+        // d'un spectacle sans titre ne se lit pas).
+        let rien = v.is_null() || v.as_str() == Some("");
+        if (vide(avant) && rien) || avant.is_some_and(|a| meme(a, v)) {
             continue;
         }
         let nir_qui_arrive = k == "nir" && !brute.contains_key("nir") && depuis.is_some();
@@ -2010,6 +2013,8 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
         ("adresse", "12 rue du Temple".to_string()),
         ("code_postal", "75003".to_string()),
         ("commune", "Paris".to_string()),
+        // Le compte fabrique des fictives, a la cle juste (`socle::iban::faute_iban`).
+        ("iban", "FR7630001007941234567890185".to_string()),
     ]);
     let mut lignes: Vec<String> =
         fq::QUESTIONS.iter().map(|(cle, lib, fac)| format!("{}{} : {}", lib, if *fac { " (facultatif)" } else { "" }, reponses.get(cle).map(String::as_str).unwrap_or(""))).collect();

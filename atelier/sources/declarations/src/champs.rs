@@ -735,10 +735,7 @@ pub fn luhn(numero: &str) -> bool {
 /// LE COMPTE BANCAIRE D'UNE FICHE (`banque`, de l'entreprise ou d'un salarie) : la faute de son IBAN, puis de son BIC.
 fn faute_banque(o: &Map<String, Value>) -> Option<String> {
     let texte = |k: &str| o.get(k).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty());
-    if let Some(f) = texte("iban").and_then(socle::iban::faute_iban) {
-        return Some(format!("IBAN : {}", f));
-    }
-    texte("bic").and_then(socle::iban::faute_bic).map(|f| format!("BIC : {}", f))
+    texte("iban").and_then(socle::iban::faute_iban).or_else(|| texte("bic").and_then(socle::iban::faute_bic))
 }
 
 /// `forme_declarative` : la valeur telle qu'elle PARTIRA. Une date se saisit

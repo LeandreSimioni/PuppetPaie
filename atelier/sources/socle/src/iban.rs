@@ -31,7 +31,7 @@ pub fn faute_iban(saisi: &str) -> Option<String> {
         reste = if v >= 10 { (reste * 100 + v) % 97 } else { (reste * 10 + v) % 97 };
     }
     if reste != 1 {
-        return Some("la clé de cet IBAN est fausse : un caractère a sans doute été mal recopié du RIB".into());
+        return Some("la clé de l'IBAN est fausse : un caractère a sans doute été mal recopié du RIB".into());
     }
     None
 }
