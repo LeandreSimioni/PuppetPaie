@@ -1450,7 +1450,6 @@
                   "entrees": {
                     "dossier racine:imprevus": "absent",
                     "dossier? racine:": "oui",
-                    "dossier? racine:arrets": "non",
                     "existe code:baremes/2026.json": "oui",
                     "existe code:rubriques-base.json": "oui",
                     "existe racine:config/baremes/2026.json": "oui",

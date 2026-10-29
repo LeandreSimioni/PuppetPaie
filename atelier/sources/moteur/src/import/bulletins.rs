@@ -11,7 +11,7 @@
 //!    jamais appliques) ; un contrat atteste par bulletin (`atteste_par: "bulletin"`, meme cle `_cle_engagement` que
 //!    les AEM) ; la paie, rapprochee des paies versees des engagements importes et des DSN par (NIR, debut, fin).
 //!
-//! LE BULLETIN FAIT FOI (decide, plan §4) : une paie deja declaree est COMPLETEE par le bulletin (cotisations par
+//! LE BULLETIN FAIT FOI : une paie deja declaree est COMPLETEE par le bulletin (cotisations par
 //! part, cout employeur, lignes, dates, titre...) et, sur le brut, le net imposable, le net a payer et le PAS, c'est
 //! le montant du bulletin qui s'ecrit ; l'ecart est note dans le compte rendu. Une paie qu'aucune DSN ne declare est
 //! nouvelle : `contrat` = « bulletin <numero> » (CoolPaie), sinon le nom du fichier (et la page, s'il en a plusieurs),
@@ -29,7 +29,7 @@
 //! page qui se contredit elle-meme (`incohérent : ...` du lecteur : le brut n'est pas la somme des lignes, le net ne
 //! se retrouve pas -- un centime sur le net avant impot chez CoolPaie) est REPRISE avec les montants qu'elle imprime,
 //! et l'incoherence est un avertissement du compte rendu. Un libelle de ligne inconnu de la table n'empeche pas la
-//! reprise (decide, plan §4) : la ligne est gardee telle quelle, sans compteur, et le sort le dit.
+//! reprise : la ligne est gardee telle quelle, sans compteur, et le sort le dit.
 //!
 //! LES NOMS DE FICHIER NE PORTENT RIEN DE PERSONNEL. Ce que l'import ecrit nomme chaque fichier par sa COPIE dans
 //! `historique/bulletins/` : `<16 premiers caracteres de l'empreinte SHA-256>.<pdf|dsn|txt>` (`nom_copie`) -- le

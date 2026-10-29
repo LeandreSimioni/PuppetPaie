@@ -16,7 +16,7 @@
 //! UN SEUL MAGASIN : `imprevus/AAAA-MM.json` sous les donnees de la compagnie, au mois ou l'imprevu se range (le dernier
 //! jour travaille d'un arret, le premier jour d'une suspension) : `{"_origine", "mois", "imprevus": [...]}`. Chaque
 //! imprevu dit son `genre` (`arret` ou `suspension`) ; ses champs sont `CHAMPS_ARRET` ou `CHAMPS_SUSPENSION`, et tout
-//! autre champ refuse. Le dossier `arrets/` d'avant le 15/10/2026 n'est plus lu : sa presence refuse (`refuser_l_ancien`).
+//! autre champ refuse.
 
 use std::path::{Path, PathBuf};
 
@@ -161,21 +161,6 @@ fn est_un_mois(nom: &str) -> bool {
     b.len() == 12 && b[4] == b'-' && nom.ends_with(".json") && b[..4].iter().chain(&b[5..7]).all(u8::is_ascii_digit)
 }
 
-/// LE DOSSIER `arrets/` N'EST PLUS LU (15/10/2026, regle du 14/10 : pas de compatibilite). Un arret qu'il garderait ne
-/// serait ni reporte ni retire de la paie : rien ne se lit tant qu'il est la, et la phrase dit le geste.
-fn refuser_l_ancien(racine: &Path) -> Resultat<()> {
-    if socle::fichiers::est_dossier(&racine.join("arrets")) {
-        return Err(format!(
-            "Le dossier {} n'est plus lu : depuis le 15/10/2026, arrets de travail et suspensions sont des IMPREVUS, \
-dans {}. Pour chaque arrets/AAAA-MM.json : le deplacer en imprevus/AAAA-MM.json, y renommer la cle \"arrets\" en \
-\"imprevus\", ajouter \"genre\": \"arret\" a chaque arret ; puis supprimer le dossier arrets/. Rien n'est lu d'ici la.",
-            racine.join("arrets").display(),
-            dossier(racine).display()
-        ));
-    }
-    Ok(())
-}
-
 /// Les imprevus d'un fichier deja lu.
 fn du_contenu(contenu: &Value, chemin: &Path) -> Resultat<Vec<Value>> {
     let Value::Object(m) = contenu else {
@@ -192,7 +177,6 @@ fn du_contenu(contenu: &Value, chemin: &Path) -> Resultat<Vec<Value>> {
 /// Tous les imprevus de la compagnie, dans l'ordre des mois du magasin puis de leur saisie, verifies et complets. La
 /// lecture se note au registre du calcul (`fichiers::lister`, `fichiers::lire_json`) : un imprevu saisi refait la paie.
 pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
-    refuser_l_ancien(racine)?;
     let Some(fichiers) = socle::fichiers::lister(&dossier(racine)) else { return Ok(Vec::new()) };
     let mut out = Vec::new();
     for f in fichiers {
@@ -207,7 +191,6 @@ pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
 
 /// Les imprevus que le fichier d'un mois du magasin range, complets ; vide s'il n'existe pas.
 pub fn du_fichier(racine: &Path, mois: &str) -> Resultat<Vec<Value>> {
-    refuser_l_ancien(racine)?;
     let p = chemin(racine, mois);
     if !socle::fichiers::existe(&p) {
         return Ok(Vec::new());

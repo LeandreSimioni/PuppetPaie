@@ -1,7 +1,7 @@
 //! La restauration du dossier prive depuis le Drive (`moteur restaurer`) : le retour de `sauvegarde.rs`.
 //!
-//! Le plan (`atelier/PLAN-DEPOT-PUBLIC.md` § 4, premier trou) : « aucune commande ne redescend ». Le jour ou le depot Git
-//! ne porte plus les donnees, la sauvegarde Drive est la seule copie de `prive/` ; sans retour, ce n'est pas une copie.
+//! Aucun depot Git ne porte les donnees de la compagnie (regle 9) : la sauvegarde Drive est la seule copie de `prive/`
+//! hors du poste ; sans retour, ce n'est pas une copie.
 //!
 //! CE QU'ELLE FAIT, dans cet ordre, et rien n'est ecrit avant la troisieme etape :
 //! 1. elle retrouve `<racine_drive>/sauvegarde` dans le Drive du compte relie, SANS RIEN Y CREER (`Drive::sous_dossiers`,

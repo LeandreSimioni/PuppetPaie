@@ -1255,8 +1255,10 @@ D'où `contrats_au` (`moteur/src/routes/imprevus.rs`), qui lit les contrats des 
 plutôt que d'en fabriquer un.
 
 Une rubrique interdite écrite par mégarde, c'est une anomalie bloquante
-**CST-04** côté plate-forme, et le fichier ne déclare rien. Le tableau des
-usages est relevé dans `logiciel/donnees/arrets-base.json` (section `usages`).
+**CST-04** côté plate-forme, et le fichier ne déclare rien. Tout signalement
+produit se confronte, avant dépôt, au tableau des usages de la norme
+(`logiciel/donnees/usages-dsn-base.json`, natures 01, 04 et 05 ;
+`declarations::usages::verifier_fichier`, appelé par `declarations/src/signalement.rs`).
 
 ### Le bloc 60, et ses trois visages
 

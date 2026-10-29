@@ -277,6 +277,11 @@ pub fn fiche_texte(fiche: &Value, cle: &str) -> String {
     fiche.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()
 }
 
+/// La cle de la fiche du salarie (`_cle`) : ce qui distingue deux salaries de meme nom et de meme prenom.
+pub fn cle_de(fiche: &Value) -> R<String> {
+    Ok(valeur_en_texte(fiche.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?))
+}
+
 /// Le titre du spectacle d'une paie (`(p.spectacle or {}).get("titre") or ""`).
 pub fn titre_spectacle(p: &Paie) -> String {
     p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte).unwrap_or_default()
@@ -474,7 +479,7 @@ fn lignes_importees(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<Vec<Lign
         lignes.push(LigneLivre {
             mois: mois.to_string(),
             salarie: qui(&s)?,
-            cle_salarie: valeur_en_texte(s.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?),
+            cle_salarie: cle_de(&s)?,
             contrat,
             nature,
             spectacle: lu(p, "spectacle"),
@@ -516,7 +521,7 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<Ligne
         lignes.push(LigneLivre {
             mois: mois.to_string(),
             salarie: qui(s)?,
-            cle_salarie: valeur_en_texte(s.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?),
+            cle_salarie: cle_de(s)?,
             contrat: p.engagement.numero.clone().unwrap_or_default(),
             nature: nat_libelle(p)?,
             spectacle: titre_spectacle(p),
@@ -1001,11 +1006,11 @@ pub fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut par: HashMap<(String, String), (Ligne, i64)> = HashMap::new();
     let zero = zero2();
     for l in &lignes {
-        let cle = (annee_de(&l.mois), l.salarie.clone());
+        let cle = (annee_de(&l.mois), l.cle_salarie.clone());
         if !par.contains_key(&cle) {
             ordre.push(cle.clone());
             let mut n = Ligne::nouvelle();
-            n.t("annee", cle.0.clone()).t("salarie", cle.1.clone()).n("bulletins", 0);
+            n.t("annee", cle.0.clone()).t("salarie", l.salarie.clone()).t("cle_salarie", cle.1.clone()).n("bulletins", 0);
             par.insert(cle.clone(), (n, 0));
         }
         let (ligne, n) = par.get_mut(&cle).expect("insere");
@@ -1049,7 +1054,7 @@ pub fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     t.mois = p.mois.clone();
     t.colonnes = cols;
     t.avertissements = avert;
-    t.sections = sections_de(a_trier, |l| l.texte("annee"), |k| k.clone(), Some(&|l| cle_tri(l, &["salarie"])));
+    t.sections = sections_de(a_trier, |l| l.texte("annee"), |k| k.clone(), Some(&|l| cle_tri(l, &["salarie", "cle_salarie"])));
     t.sources = vec!["cumuls des bulletins de l'année ; le net imposable est celui que la DSN transmet à la DGFiP pour la déclaration de revenus".to_string()];
     finir(ctx, &mut t, Some(&p), "recapitulatif-annuel", &d.format, d.ecrire)?;
     Ok(t)
@@ -1396,8 +1401,8 @@ pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
                 None => derniere,
             };
             let mut l = Ligne::nouvelle();
-            l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", e.numero.clone().unwrap_or_default());
-            l.t("spectacle", titre_spectacle(paie)).t("emploi", emploi).t("debut", jj(&debut)).t("fin", jj(&fin));
+            l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("cle_salarie", cle_de(&paie.salarie)?);
+            l.t("contrat", e.numero.clone().unwrap_or_default()).t("spectacle", titre_spectacle(paie)).t("emploi", emploi).t("debut", jj(&debut)).t("fin", jj(&fin));
             l.d("cachets", cachets).d("heures", heures).n("jours", e.dates_travail.len() as i64).d("brut", eur2(paie.brut));
             lignes.push(l);
         }
@@ -1407,7 +1412,7 @@ pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     }
     let mut t = Tableau::nouveau("heures-et-cachets", "Heures et cachets (annexes 8 et 10)", p.libelle.clone());
     t.mois = lignes.iter().map(|l| l.texte("mois")).collect::<BTreeSet<_>>().into_iter().collect();
-    t.sections = sections_de(lignes, |l| l.texte("salarie"), |k| k.clone(), Some(&|l| cle_tri(l, &["mois", "debut", "contrat"])));
+    t.sections = sections_de(lignes, |l| (l.texte("salarie"), l.texte("cle_salarie")), |k| k.0.clone(), Some(&|l| cle_tri(l, &["mois", "debut", "contrat"])));
     t.colonnes = vec![
         col_t("mois", "Mois"),
         col_t("salarie", "Salarié"),

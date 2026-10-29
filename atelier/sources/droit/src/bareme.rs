@@ -1956,8 +1956,8 @@ Relevees a ce jour : {}.\n  \
 Ce qui manque n'est pas du code -- le mecanisme est ecrit -- mais \
 un bloc de nombres : le titre << prevoyance >> de cette convention \
 sur Legifrance (taux, assiette, repartition, conditions \
-d'ouverture), a ajouter dans moteur/prevoyance-conventionnelle-\
-base.json avec sa source.\n  \
+d'ouverture), a ajouter dans logiciel/donnees/prevoyance-\
+conventionnelle-base.json avec sa source.\n  \
 Tant qu'il manque, le moteur refuse de payer un permanent : une \
 prevoyance oubliee ne se voit pas sur un bulletin, elle se \
 decouvre le jour ou le salarie en a besoin.",

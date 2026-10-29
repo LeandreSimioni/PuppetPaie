@@ -2,7 +2,7 @@
 //! textes de référence d'`atelier/reference/` — n'écrit pas un NIR qui ne soit pas inventé (sauf, dans un texte de référence,
 //! l'exemple que son émetteur y a imprimé : `EXEMPLES_DES_TEXTES`) ; aucun test ne construit un chemin vers `prive/` ; la
 //! suite ne prend pas `prive/` pour racine. Tout ce qui part du dépôt hors de `prive/` (`atelier/` entier, `.claude/`, la racine : le dépôt public part de
-//! là, `atelier/PLAN-DEPOT-PUBLIC.md`, « La forme du dépôt public ») ne porte ni le SIREN ni le nom de la compagnie du poste,
+//! là, `atelier/CLAUDE.md`, « Où sont les choses » et règle 9) ne porte ni le SIREN ni le nom de la compagnie du poste,
 //! ni un chemin du poste (un chemin absolu sous le dossier des utilisateurs de Windows), sauf ce qui attend une décision
 //! (`EN_SUSPENS`). Il ne voit ni les adresses ni les noms de personnes : les écrire ici pour les chercher, ce serait les
 //! publier.
@@ -80,7 +80,7 @@ const EN_SUSPENS: [(Verrou, &str, &str); 8] = [
     (Verrou::Nom, "^atelier/site/", "les pages du site de l'éditeur, qui nomment l'éditeur : ici ou dans le dépôt du site"),
     (Verrou::Chemin, "^atelier/bac-a-sable/", "le bac à sable de la mise à jour : son maj.json et ses sorties portent le poste"),
     (Verrou::Chemin, r"^fictives/[^/]+/journal/depots\.json$", "le moteur écrit la trace d'un dépôt par son chemin absolu (depot_acte.rs)"),
-    (Verrou::Chemin, r"^fictives/[^/]+/journal/incidents\.json$", "des traces Python d'avant le portage ; un fichier propre au poste (PROPRES_AU_POSTE)"),
+    (Verrou::Chemin, r"^fictives/[^/]+/journal/incidents\.json$", "des incidents écrits sur le poste de l'éditeur, dont la pile d'appels nomme ses chemins ; un fichier propre au poste (compagnies::PROPRES_AU_POSTE)"),
     (Verrou::Chemin, r"^fictives/[^/]+/sorties/.+\.description\.json$", "le moteur écrit le logo et la signature par leur chemin absolu (contrat.rs, bulletin.rs)"),
 ];
 
