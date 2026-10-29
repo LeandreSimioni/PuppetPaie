@@ -777,12 +777,9 @@ L'arrondi est **au demi supérieur** (`socle::num::eur`) : c'est ce que montrent
 
 ## La nature du contrat, et les salariés permanents
 
-Écrit le 18/09/2026, **chantier en cours** : le calcul, la déclaration, le
-signalement de fin de contrat et l'écran d'un permanent marchent. Ce qui
-manquait était un taux — la prévoyance des permanents — et on le croyait à
-demander à Audiens ; le 19/09/2026 il a été **relevé en ligne**, puis rangé là
-où toute compagnie le lira : **la convention le fixe, donc le logiciel le
-livre**. L'état exact est aux §38 à §45 de `prive/journal/ETAT.md`.
+Le calcul, la déclaration, le signalement de fin de contrat et l'écran d'un permanent sont ceux d'un intermittent,
+avec ce que la nature du contrat change. La prévoyance des permanents est un taux que **la convention fixe, donc le
+logiciel le livre**.
 
 ### Le taux d'une branche n'est pas une donnée de compagnie
 
@@ -815,20 +812,19 @@ moteur refuse et réclame `prevoyance_branche_depuis` — supposer qu'il vient d
 la branche ferait cotiser pour rien, supposer le contraire laisserait un
 salarié découvert pendant un an.
 
-Le catalogue porte **deux** conventions. La **1285 (CCNEAC)**, le secteur
-subventionné, y est **confirmée depuis le 23/09/2026** — non cadres 0,95 % T1,
+Le catalogue porte **dix** conventions : 1285, 1790, 1922, 2121, 2412, 2642, 3090, 3097, 3241 et 3252. Une convention
+qui n'y est pas refuse, et une convention relevée mais pas confirmée (`applicable: false`) refuse aussi, en disant ce
+qui a été lu (`prevoyance::regime`, dans `droit/src/bareme.rs`). La **1285 (CCNEAC)**, le secteur
+subventionné, y porte — non cadres 0,95 % T1,
 cadres 1,50 % T1 + 0,81 % T2, 100 % patronal, dus dès l'embauche (art.
 XII.2.1.2 et XII.2.1.5), la tranche 2 allant du plafond à **quatre**
-plafonds. La confirmation vient de la **base KALI de la DILA** (open data,
+plafonds. Le texte se lit dans la **base KALI de la DILA** (open data,
 sans compte, là où Légifrance refuse les robots) : la base complète, puis
 toutes ses livraisons quotidiennes jusqu'à la veille, pour lire la version
 **en vigueur** de chaque article. Elle porte aussi la **santé** des
 permanents, qui est un taux de la convention et non un contrat à niveaux :
 0,81 % du PMSS en 2026, 0,89 % au 01/01/2027, au moins pour moitié patronal
-(XII.2.1.10 et 11) — `calcul._sante_conventionnelle`. Les onze autres
-conventions qu'Audiens sert refusent, sans nombres — le mécanisme est écrit,
-il n'y manque qu'un bloc. Le mécanisme `applicable: false` reste, pour la
-prochaine convention relevée sans être confirmée.
+(XII.2.1.10 et 11) — `droit::bareme::sante_conventionnelle`.
 
 Un écart est à connaître : la CCNEAC ajoute à l'interbranche, **pour ses
 intermittents cadres techniciens seulement** (XII.2.2.1), 0,45 % en TA et
@@ -840,12 +836,12 @@ compagnie privée n'a pas. Ses artistes cadres restent à l'interbranche
 
 ### Ce qu'un permanent déclare, et ce qui se réclame salarié par salarié
 
-Venu de `CLAUDE.md` (règle 6) le 04/10/2026. La prévoyance des permanents :
+La prévoyance des permanents :
 1,20 % de la tranche A pour la 3090, porté à 1,50 % pour un cadre, 100 %
 patronal ; la CASC-SVP d'un permanent est celle de l'article 4.22 (0,50 % de la
 tranche A mensuelle, 100 % patronale) ; les blocs 54 (92 santé, 93 prévoyance)
 et les bases 31 (059) se lisent sur les lignes du bulletin. La section
-`par_nature.permanent` du barème est complète depuis le 23/09/2026 (2025 et 2026).
+`par_nature.permanent` du barème est complète en 2025 et en 2026.
 
 Ce qui reste est **propre à chaque compagnie** et la fait refuser, elle seule :
 ses références d'adhésion (`organismes.json`, `affiliations_par_nature.permanent`,
@@ -858,10 +854,10 @@ moins d'un an dans l'entreprise, son ancienneté **dans la branche**
 
 `par_categorie.cadre` du barème décrit un cadre **intermittent** : tranches
 journalières, prévoyance de l'accord interbranches. Appliquée à une
-administratrice en CDI, elle lui donnait des plafonds à la journée et la
-prévoyance de quelqu'un d'autre, en silence. Depuis le 19/09/2026,
-`calcul.bareme_cadre` lit `par_categorie.cadre_permanent` quand le contrat est
-mensuel : mêmes taux Agirc-Arrco (le régime est unifié), mais l'Apec sur
+administratrice en CDI, elle lui donnerait des plafonds à la journée et la
+prévoyance de quelqu'un d'autre, en silence.
+`droit::bareme::bareme_cadre` lit `par_categorie.cadre_permanent` quand le contrat est
+mensuel, et refuse si la section n'est pas vérifiée (`_verifie`) : mêmes taux Agirc-Arrco (le régime est unifié), mais l'Apec sur
 quatre plafonds **du mois** et la CET sur des tranches mensuelles. Sa
 prévoyance, elle, vient de la convention.
 
@@ -879,14 +875,14 @@ Ce qui sépare un permanent d'un intermittent, en une page :
 | quotité (40.011) | journée (12), ≤ 31 (CCH-12 du bloc 40) | heure (10), ≤ 250 (CCH-13 du bloc 40, p. 189 ; 3250 est le plafond de la mesure 53.002) |
 | fin prévisionnelle | obligatoire | absente sur un CDI |
 | numéro d'objet (40.050) | oui | **INTERDIT** — CCH-11 ne l'autorise que pour les natures 02 et 10 |
-| congés payés | caisse des Congés Spectacles (40.022, cotisation 15,5 %), sauf un CDDU de douze mois ou plus | chez l'employeur : compteur, indemnité, solde ; sauf le CDD de droit commun de moins de douze mois d'un artiste, déclaré à la caisse (`caisse_conges::affilie`, lot V2f) |
+| congés payés | caisse des Congés Spectacles (40.022, cotisation 15,5 %), sauf un CDDU de douze mois ou plus | chez l'employeur : compteur, indemnité, solde ; sauf le CDD de droit commun de moins de douze mois d'un artiste, déclaré à la caisse (`caisse_conges::affilie`) |
 | assiettes FNAL / taxe d'apprentissage | brut **majoré** de 11,5 % et de 10 % (CSS L. 243-1-3, D. 243-0-2), pour un contrat déclaré à la caisse des Congés Spectacles | brut nu ; tranche 1 majorée de 11,5 % (FNAL) et brut majoré de 11,5 % (taxe d'apprentissage) pour un contrat déclaré à la caisse (`par_caisse_conges.affilie` du barème) |
 | plafond de Sécurité sociale | par paie : 12 × le PSS horaire par journée pour un artiste engagé moins de cinq jours, sinon le PSS au prorata des jours rémunérés (`plafond.rs`) | la période de paie (R. 242-2), proratisé à la quotité d'un temps partiel sauf renonciation de l'établissement (`40.084` en P27V01) |
 | chômage | 9,75 / 2,40 dans la limite de quatre plafonds, recouvré par **France Travail** | 4,00 + AGS 0,25 dans la limite de quatre plafonds de la période, recouvré par l'**Urssaf** (CTP 772, 937) |
 | retraite complémentaire | taux Audiens, tranches **journalières** | droit commun, tranches **mensuelles** |
 | formation professionnelle | 2,00 % (CTP 983) | 0,55 % (CTP 959) |
 | mutuelle santé | aucune | **obligatoire** (ANI, art. L911-7) |
-| fin du contrat | à son terme (031) : DSN mensuelle, circuit dérogatoire 62.017 = 01 (la norme le réserve au contrat infra-mensuel, p. 277 : pour un CDDU à cheval sur deux mois, c'est une décision ouverte, fiche N5) ; un FCTU si le salarié le demande. Rompu avant son terme (036, 037, 084…) : 62.017 = 02 et **signalement nature 07** (CCH-12, fiche 2062 ; lot C1, `Nature::signalement_fctu`) | **signalement nature 07** (FCTU) |
+| fin du contrat | à son terme (031) : DSN mensuelle, circuit dérogatoire 62.017 = 01 (la norme le réserve au contrat infra-mensuel, p. 277) ; un FCTU si le salarié le demande. Rompu avant son terme (036, 037, 084…) : 62.017 = 02 et **signalement nature 07** (CCH-12, fiche 2062 ; `Nature::signalement_fctu`) | **signalement nature 07** (FCTU) |
 | blocs 51 | les quatre valent le brut | 001 brut, 002 assiette chômage, 003 salaire rétabli, 010 salaire de base |
 | bloc 53 | jours (12), cachets (37), heures (35) | heures (10), absences en type 02 |
 
