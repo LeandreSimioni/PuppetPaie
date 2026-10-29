@@ -431,6 +431,19 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
         faits.extend(deriver_personnes(donnees, forcer));
         faits.extend(deriver_siren_nic(donnees));
     }
+    // LE COMPTE BANCAIRE S'ECRIT COMPACT : l'IBAN et le BIC sans blancs, en majuscules -- « FR76 3000 6000 … » est le
+    // meme compte que « FR763000 6000… » (`socle::iban::iban_compact`, communique IBAN de la Banque centrale de Turquie,
+    // annexe 3 : `reference/sources/iban/`).
+    if let Some(Value::Object(b)) = donnees.get_mut("banque") {
+        for k in ["iban", "bic"] {
+            if let Some(Value::String(brut)) = b.get(k).cloned() {
+                let forme = socle::iban::iban_compact(&brut);
+                if forme != brut {
+                    b.insert(k.into(), Value::String(forme));
+                }
+            }
+        }
+    }
     // LE DEPARTEMENT DE NAISSANCE SE LIT DANS LE NIR (regle 2 : la page le montre, le moteur l'ecrit) : ses 6e et 7e
     // caracteres sont le departement de naissance, 99 pour une personne nee a l'etranger (S21.G00.30.001 et .014,
     // `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.30.txt`). Il ne s'ecrit que dans une case vide : une
@@ -1389,7 +1402,10 @@ pub(crate) fn ecrire_datee(
             continue;
         }
         let avant = ancienne.get(k.as_str());
-        if (vide(avant) && vide(Some(v))) || avant.is_some_and(|a| meme(a, v)) {
+        // « A COMPLETER » est une case vide a remplir, pas rien : il s'ecrit (une fiche importee le porte, et la fiche
+        // d'un spectacle sans titre ne se lit pas).
+        let rien = v.is_null() || v.as_str() == Some("");
+        if (vide(avant) && rien) || avant.is_some_and(|a| meme(a, v)) {
             continue;
         }
         let nir_qui_arrive = k == "nir" && !brute.contains_key("nir") && depuis.is_some();
@@ -2010,6 +2026,8 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
         ("adresse", "12 rue du Temple".to_string()),
         ("code_postal", "75003".to_string()),
         ("commune", "Paris".to_string()),
+        // Le compte fabrique des fictives, a la cle juste (`socle::iban::faute_iban`).
+        ("iban", "FR7630001007941234567890185".to_string()),
     ]);
     let mut lignes: Vec<String> =
         fq::QUESTIONS.iter().map(|(cle, lib, fac)| format!("{}{} : {}", lib, if *fac { " (facultatif)" } else { "" }, reponses.get(cle).map(String::as_str).unwrap_or(""))).collect();

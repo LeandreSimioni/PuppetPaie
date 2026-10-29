@@ -1807,3 +1807,9 @@ details.pourquoi p, details.pourquoi ul { margin: 4px 0; }
    recouvrait le net d'une carte. Toujours en bas à gauche (#210) ; l'accueil
    des compagnies, qui ne lit pas cette feuille, le garde flottant. */
 body > .maj { position: static; flex: none; align-self: flex-start; margin: 0 0 4px 12px; padding: 2px 8px; background: none; }
+
+/* Le guide de l'import (`vueGuideImport`) : une pièce, ce qu'elle est, où la trouver, ce qui s'en lit. */
+.guide-pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin: 0 0 12px; }
+.guide-piece { border: 1px solid var(--bord); border-radius: 4px; padding: 10px 12px; background: var(--carte, #fff); }
+.guide-piece ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.guide-piece li { margin: 2px 0; }

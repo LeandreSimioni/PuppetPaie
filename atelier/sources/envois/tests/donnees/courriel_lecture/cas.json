@@ -1,5 +1,5 @@
 {
-"questionnaire": "Prénom : \nNom de famille (de naissance) : \nDate de naissance (JJ/MM/AAAA) : \nCommune de naissance : \nPays de naissance : \nNationalité : \nNuméro de sécurité sociale (15 chiffres) : \nSans numéro de sécurité sociale : femme ou homme ? (facultatif) : \nAdresse (numéro et rue) : \nCode postal : \nCommune : \nNuméro Congés Spectacles (facultatif) : \nDate anniversaire de vos droits France Travail (JJ/MM/AAAA) (facultatif) : \n\nCode (ne pas modifier) : FIC-ABCDEF",
+"questionnaire": "Prénom : \nNom de famille (de naissance) : \nDate de naissance (JJ/MM/AAAA) : \nCommune de naissance : \nPays de naissance : \nNationalité : \nNuméro de sécurité sociale (15 chiffres) : \nSans numéro de sécurité sociale : femme ou homme ? (facultatif) : \nAdresse (numéro et rue) : \nCode postal : \nCommune : \nNuméro Congés Spectacles (facultatif) : \nDate anniversaire de vos droits France Travail (JJ/MM/AAAA) (facultatif) : \nIBAN (le compte où verser le salaire, sur le RIB) : \nBIC (sur le même RIB) (facultatif) : \n\nCode (ne pas modifier) : FIC-ABCDEF",
 "sujet": "Ta fiche pour {compagnie}",
 "corps": "Bonjour{virgule_prenom},\n\nPour préparer ton contrat, {compagnie} a besoin de quelques informations sur toi.\n\nLe plus simple : appuie sur le bouton « Remplir ma fiche » de ce message. Une réponse s'ouvre avec les questions ; écris chaque réponse après les deux-points, puis envoie-la. Les lignes marquées « facultatif » peuvent rester vides.\n\nSi ta messagerie n'affiche pas le bouton, réponds simplement à ce message en recopiant les lignes ci-dessous, avec tes réponses :\n\n{questionnaire}\n\nCes informations servent à tes contrats, à tes bulletins et aux déclarations obligatoires (Urssaf, France Travail, Audiens). Elles restent chez {compagnie}.\n\nBien à toi,\n{signataire}\n{compagnie}\n",
 "html": "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#2C3E50\">\n<p>Bonjour{virgule_prenom},</p>\n<p>Pour préparer ton contrat, {compagnie} a besoin de quelques informations sur toi.</p>\n<p>Appuie sur le bouton : une réponse s'ouvre avec les questions. Écris chaque réponse après les deux-points, puis envoie-la. Les lignes marquées « facultatif » peuvent rester vides.</p>\n<p style=\"margin:26px 0\">\n<a href=\"{mailto}\" style=\"display:inline-block;background:#B22222;color:#ffffff;padding:14px 26px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px\">Remplir ma fiche</a>\n</p>\n<p style=\"font-size:13px;color:#555\">Si le bouton ne fait rien, réponds simplement à ce message en recopiant ces lignes avec tes réponses :</p>\n<pre style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f4f4f4;padding:12px\">{questionnaire}</pre>\n<p>Ces informations servent à tes contrats, à tes bulletins et aux déclarations obligatoires (Urssaf, France Travail, Audiens). Elles restent chez {compagnie}.</p>\n<p>Bien à toi,<br>{signataire}<br>{compagnie}</p>\n</div>\n",
@@ -68,6 +68,16 @@ true
 [
 "anniversaire",
 "Date anniversaire de vos droits France Travail (JJ/MM/AAAA)",
+true
+],
+[
+"iban",
+"IBAN (le compte où verser le salaire, sur le RIB)",
+false
+],
+[
+"bic",
+"BIC (sur le même RIB)",
 true
 ]
 ],

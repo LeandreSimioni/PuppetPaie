@@ -1587,6 +1587,26 @@
    "ecran": true
   },
   {
+   "_note": "LE COMPTE OU LE SALAIRE EST VIRE : l'IBAN, controle par sa cle (ISO 13616, MOD 97-10 : atelier/reference/sources/iban/), et le BIC, facultatif (reglement (UE) 260/2012, art. 5, 7). Il ne part dans aucune declaration.",
+   "cle": "banque",
+   "libelle": "Compte bancaire",
+   "forme": "structure",
+   "aide": "Le compte sur lequel la compagnie lui vire son salaire : sur son relevé d'identité bancaire (RIB).",
+   "obligatoire": false,
+   "longueur": null,
+   "exemple": "",
+   "choix": [],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": false,
+   "si": null,
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": true,
+   "ecran": true
+  },
+  {
    "cle": "num_conges_spectacles",
    "libelle": "Numéro Congés Spectacles",
    "forme": "texte",

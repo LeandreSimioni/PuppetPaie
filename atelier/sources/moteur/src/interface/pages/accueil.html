@@ -66,10 +66,6 @@
              justify-content:center; color:var(--discret); min-height:170px; }
   .ajouter:hover { border-color:var(--texte); color:var(--texte); }
   .ajouter .plus { font-size:38px; line-height:1; }
-  .ajouter form { display:none; width:85%; }
-  .ajouter.saisie .invite { display:none; }
-  .ajouter.saisie form { display:block; }
-  .ajouter form button { margin-top:8px; }
   .erreur { text-align:center; }
   .fictives { margin-top:26px; }
   /* Au-dessus de la bande qui tire la fenetre : sinon elle prend l'appui. */
@@ -89,7 +85,17 @@
   .avis-ajouter .carte-avis { background:#fff; padding:22px 26px; border-radius:6px; width:440px; max-width:calc(100vw - 32px); }
   .avis-ajouter a { color:var(--accent); }
   .avis-ajouter .barre { display:flex; gap:8px; }
+  .avis-ajouter .barre[hidden] { display:none; }
   .avis-ajouter .barre button.second { background:#fff; color:var(--texte); border-color:var(--bord); font-weight:normal; }
+  .avis-ajouter .venues { display:flex; flex-direction:column; gap:10px; margin:4px 0 6px; }
+  .avis-ajouter .venue { margin:0; text-align:left; background:#fff; color:var(--texte); border:1px solid var(--bord);
+                         font-weight:normal; padding:11px 13px; }
+  .avis-ajouter .venue b { display:block; font-size:15px; margin-bottom:2px; }
+  .avis-ajouter .venue span { color:var(--discret); font-size:12.5px; }
+  .avis-ajouter .venue:hover, .avis-ajouter .venue.choisie { border-color:var(--accent); }
+  .avis-ajouter .venue.choisie { box-shadow:inset 3px 0 0 var(--accent); }
+  .avis-ajouter form label { display:block; margin-top:8px; font-weight:bold; }
+  .avis-ajouter form input { margin-top:4px; font-weight:normal; }
   /* Au deblocage, les compagnies creees en demo a garder (ticket #236). */
   .a-garder { list-style:none; margin:0 0 12px; padding:0; }
   .a-garder li { padding:4px 0; }
@@ -187,27 +193,47 @@
   // Et l'appui ne tire pas la fenetre (pywebview ecoute le mousedown du corps).
   geste.addEventListener("mousedown", (e) => e.stopPropagation());
   const ajout = document.querySelector(".ajouter");
-  if (ajout) {
-    const nom = ajout.querySelector("input");
-    const saisir = () => { ajout.classList.add("saisie"); nom.focus(); };
-    // BRIDE (ticket #236) : le message d'abord, le nom ensuite -- le moteur ne sert le message qu'a un logiciel bride.
+  const choix = document.getElementById("choix-venue");
+  if (ajout && choix) {
+    // LES DEUX CHEMINS DU « + » : une compagnie neuve, ou d'un logiciel précédent (`compagnies::Venue`). Le nom ne se
+    // demande qu'une fois le chemin choisi ; c'est le moteur qui crée la compagnie et ouvre, selon le chemin, sa page.
+    const form = document.getElementById("choix-venue-nom");
+    const nom = form.querySelector("input");
+    const barre = document.getElementById("venue-barre");
+    let venue = "";
+    const montrer = (v) => {
+      venue = v;
+      choix.querySelectorAll(".venue").forEach((b) => {
+        b.classList.toggle("choisie", b.dataset.venue === v);
+        b.hidden = !!v && b.dataset.venue !== v;
+      });
+      form.hidden = !v;
+      barre.hidden = !!v;
+      if (v) nom.focus();
+    };
+    const ouvrirChoix = () => { montrer(""); choix.hidden = false; };
+    choix.addEventListener("mousedown", (e) => e.stopPropagation());
+    choix.querySelectorAll(".venue").forEach((b) => { b.onclick = () => montrer(b.dataset.venue); });
+    document.getElementById("venue-retour").onclick = () => montrer("");
+    document.getElementById("venue-annuler").onclick = () => { choix.hidden = true; };
+    choix.addEventListener("keydown", (e) => { if (e.key === "Escape") choix.hidden = true; });
+    // BRIDE (ticket #236) : le message d'abord, les chemins ensuite -- le moteur ne sert le message qu'a un logiciel bride.
     const avis = document.getElementById("avis-ajouter");
     ajout.addEventListener("click", () => {
-      if (ajout.classList.contains("saisie")) return;
-      if (!avis) { saisir(); return; }
+      if (!avis) { ouvrirChoix(); return; }
       avis.hidden = false;
       document.getElementById("avis-continuer").focus();
     });
     if (avis) {
       avis.addEventListener("mousedown", (e) => e.stopPropagation());
       document.getElementById("avis-annuler").onclick = () => { avis.hidden = true; };
-      document.getElementById("avis-continuer").onclick = () => { avis.hidden = true; saisir(); };
+      document.getElementById("avis-continuer").onclick = () => { avis.hidden = true; ouvrirChoix(); };
       avis.addEventListener("keydown", (e) => { if (e.key === "Escape") avis.hidden = true; });
     }
-    ajout.querySelector("form").addEventListener("submit", async (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault(); e.stopPropagation();
-      const r = await window.pywebview.api.ajouter(nom.value);
-      err.textContent = r.ok ? "" : r.erreur;
+      const r = await window.pywebview.api.ajouter(nom.value, venue);
+      document.getElementById("venue-erreur").textContent = r.ok ? "" : r.erreur;
     });
   }
 </script>

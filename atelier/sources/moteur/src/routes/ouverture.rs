@@ -945,6 +945,9 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "supprimable": crate::interface::suppression::genre(&crate::compagnie::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),
         // UNE COMPAGNIE CREEE EN DEMO PUIS GARDEE : sa mention, et les mois saisis en demo, ou la page la montre.
         "demo": crate::interface::suppression::mention(&ctx.racine),
+        // UNE COMPAGNIE VENUE D'UN LOGICIEL PRECEDENT, DONT RIEN N'EST ENCORE REPRIS : la page s'ouvre sur l'import et
+        // son guide (`import::guide::commencer_par_l_import`) ; ce qui manque pour demarrer se dit apres lui.
+        "commencer_par_l_import": crate::import::guide::commencer_par_l_import(&ctx.racine),
         "historique": historique,
         "salaries": salaries,
         "spectacles": spectacles,

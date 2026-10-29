@@ -346,10 +346,8 @@ async function dessinerImportation(cible) {
   let e = null;
   try { e = await api("importation-etat"); } catch (err) { e = null; }
   if (!IMPORT_DOSSIER && e && e.dossier) IMPORT_DOSSIER = e.dossier;
-  const formulaire = `<p class="intro">Mettez dans ce dossier tout ce que votre ancien logiciel vous a
-      laissé — bulletins de paie en PDF, DSN, AEM, archives zip —, puis « Voir ce qui serait repris ».
-      Rien n'est écrit avant « Reprendre ».</p>
-    <div class="e-contrat-champs">
+  const deja = e && ((e.reprises && e.reprises.length) || e.contrats);
+  const dossier = `<div class="e-contrat-champs">
       <label style="flex:1">Le dossier
         <span style="display:flex;gap:6px">
           <input type="text" id="import-dossier" style="flex:1" placeholder="vide : le dossier import/ de la compagnie"
@@ -358,21 +356,38 @@ async function dessinerImportation(cible) {
           ${fenetreDuPoste() ? `<button type="button" class="secondaire" id="import-ouvrir">Ouvrir le dossier</button>` : ""}
         </span>
       </label>
-      <button class="secondaire" id="import-apercu">Voir ce qui serait repris</button>
-    </div>
-    <div id="import-resultat"></div>`;
-  const deja = e && ((e.reprises && e.reprises.length) || e.contrats);
-  cible.innerHTML = `
+      ${deja ? `<button class="secondaire" id="import-apercu">Voir ce qui serait repris</button>` : ""}
+    </div>`;
+  if (deja) {
+    cible.innerHTML = `
     <div class="carte">
       <div id="import-etat">${vueEtatImportation(e)}</div>
-      ${deja ? `<details class="relire"><summary>Relire un dossier — un fichier ajouté depuis, un
+      <details class="relire"><summary>Relire un dossier — un fichier ajouté depuis, un
           salarié ou une année qui manquait</summary>
           <p class="note">Les fiches qui existent déjà ne sont pas touchées ; ce que les DSN ou les
             bulletins disaient autrement est seulement signalé. Ce qui est déjà repris ne se double pas.</p>
-          ${formulaire}
-        </details>`
-      : formulaire}
+          <p class="intro">Mettez dans ce dossier ce qui manquait, puis « Voir ce qui serait repris ».
+            Rien n'est écrit avant « Reprendre ».</p>
+          ${dossier}
+          <div id="import-resultat"></div>
+        </details>
     </div>`;
+  } else {
+    // RIEN N'EST ENCORE REPRIS : le guide (`importation-etat`, `guide`, du moteur), le dossier, et « Importer », qui
+    // reprend tout d'un geste. Ce qui reste à dire (`import-etat`, `import-demarrage`) se peint au-dessus après lui.
+    cible.innerHTML = `
+    <div class="carte">
+      <div id="import-etat">${vueEtatImportation(e)}</div>
+      <div id="import-demarrage"></div>
+      <div id="import-guide">${vueGuideImport(e && e.guide)}
+        ${dossier}
+        <p><button class="primaire" id="import-tout">Importer</button>
+          <button type="button" class="lien" id="import-apercu">ou voir d'abord ce qui serait repris</button></p>
+      </div>
+      <div id="import-resultat"></div>
+    </div>`;
+    document.getElementById("import-tout").onclick = () => importerDepuisLeGuide();
+  }
   document.getElementById("import-apercu").onclick = () => apercuImportation();
   // L'EXPLORATEUR : la boîte du système, ouverte par le poste.
   document.getElementById("import-parcourir").onclick = async () => {
@@ -391,6 +406,45 @@ async function dessinerImportation(cible) {
       } catch (err) { dire(err.message, "erreur"); }
     };
   }
+}
+
+/* LE GUIDE DE L'IMPORT (`import::guide`, du moteur) : ce qu'on met dans le
+   dossier, ce que le logiciel lit de chaque pièce, ce qui restera à dire. La
+   page le montre tel quel. */
+function vueGuideImport(g) {
+  if (!g) return "";
+  const pieces = (g.pieces || []).map((p) => `<div class="guide-piece">
+      <b>${echapper(p.quoi)}</b>
+      <div class="note">${echapper(p.ou)}</div>
+      ${(p.lu || []).length ? `<ul>${p.lu.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>` : ""}
+    </div>`).join("");
+  return `<h3>Reprendre votre passé</h3>
+    <p class="intro">Mettez dans le dossier ci-dessous tout ce que votre ancien logiciel vous a laissé, puis
+      « Importer » : PuppetPaie crée la fiche de la compagnie, ses salariés, ses spectacles et leurs contrats
+      avec ce que les pièces disent.</p>
+    <div class="guide-pieces">${pieces}</div>
+    <p class="note">${echapper(g.reste || "")}</p>
+    <p class="note">${echapper(g.rien_n_est_perdu || "")}</p>`;
+}
+
+/* « IMPORTER », D'UN GESTE : le moteur reprend tout (`importer`), puis la page
+   montre, au-dessus, ce qui reste à dire — la nature des contrats repris, les
+   congés à reprendre (`importation-etat`) et ce qui manque encore pour
+   démarrer (`pour-demarrer`) — et, dessous, ce qui a été repris. */
+async function importerDepuisLeGuide() {
+  IMPORT_DOSSIER = document.getElementById("import-dossier").value.trim();
+  const rendre = occupe(document.getElementById("import-tout"), "Import en cours : les fiches, les contrats, puis chaque bulletin…");
+  await ecrireImportation();
+  rendre();
+  // Rien de repris (un dossier vide, des pièces illisibles) : le guide reste, avec ce que le moteur en a dit.
+  let etat = null;
+  try { etat = await api("importation-etat"); } catch (e) { return; }
+  if (!((etat.reprises || []).length || etat.contrats)) return;
+  const guide = document.getElementById("import-guide");
+  if (guide) guide.hidden = true;
+  const demarrage = document.getElementById("import-demarrage");
+  if (demarrage) await peindreDemarrage(demarrage);
+  document.getElementById("import-etat").scrollIntoView({ block: "start" });
 }
 
 /* L'ÉTAT (`importation-etat`), en une ligne et sans nommer de logiciel :
@@ -940,6 +994,8 @@ const SECTIONS_FICHE = {
       "pays_nationalite_hors_liste", "code_nationalite_dsn"]],
     ["Coordonnées", ["adresse_affichage", "code_postal", "commune_affichage",
                      "email"]],
+    // LE COMPTE OÙ LE SALAIRE EST VIRÉ : l'IBAN, dont le moteur contrôle la clé, et le BIC.
+    ["Paiement du salaire", ["banque"]],
     // LE MÉTIER SE CHOISIT, SES CODES SE DÉDUISENT. La liste
     // des métiers cochés (Configuration › Métiers) se pose en tête du bloc
     // (`METIER_HTML`) ; l'intitulé reste à portée de main — c'est lui que
@@ -1064,7 +1120,7 @@ const SOUS_CHAMPS = {
     ["email", "Courriel", ""],
   ] },
   banque: { champs: [
-    ["iban", "IBAN", "Sur votre relevé d'identité bancaire (RIB) : 27 caractères commençant par FR."],
+    ["iban", "IBAN", "Sur le relevé d'identité bancaire (RIB) : 27 caractères commençant par FR pour un compte en France, de 15 à 34 ailleurs. Les espaces ne comptent pas."],
     ["bic", "BIC", "Sur le même RIB, 8 ou 11 caractères."],
   ] },
   // LA PREVOYANCE ET LA SANTE DES PERMANENTS.
@@ -1666,7 +1722,7 @@ function enteteSalarie(fiche) {
       <h3>La faire remplir par la personne</h3>
       <p class="aide">Elle reçoit un courriel avec un bouton : une réponse
         s'ouvre avec les questions (identité, naissance, numéro de sécurité
-        sociale, adresse), elle y répond et l'envoie. Sa fiche se crée
+        sociale, adresse, compte bancaire), elle y répond et l'envoie. Sa fiche se crée
         seule à l'arrivée de la réponse ; il vous restera l'emploi à
         choisir.</p>
       ${lie ? `<div class="champs">

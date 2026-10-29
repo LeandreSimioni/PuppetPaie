@@ -44,8 +44,9 @@ function etape(t) { console.log(`\n== ${t}`); }
   await page.waitForTimeout(300);
   await banc.capture(page, C + "p01-avis-ajouter.png");
   if (await page.isVisible("#avis-continuer")) await page.click("#avis-continuer");
-  await page.fill(".tuile.ajouter input", NOM);
-  await page.click(".tuile.ajouter button[type=submit]");
+  await page.click("#choix-venue .venue[data-venue=neuve]");
+  await page.fill("#choix-venue-nom input", NOM);
+  await page.click("#choix-venue-nom button[type=submit]");
   await page.waitForLoadState("load");
   await page.waitForTimeout(3000);
   await banc.capture(page, C + "p02-compagnie-ajoutee.png");
