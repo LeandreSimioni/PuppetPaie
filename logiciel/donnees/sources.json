@@ -286,7 +286,7 @@
       "fichier": "kali-1285-titres-ii-iii-x-xi-xii-20260923.md",
       "sha256": "b34ae71464dec49417db6af5605abc138bac39adf035c40108968da478ada1e3",
       "verification": "manuelle",
-      "verification_comment": "La copie est extraite des archives open data de la DILA, qui se relisent sans compte (voir moteur/kali.py). La veille KALI (bloc `kali`) dit si la convention bouge apres le releve ; un article XII.2, III.3 ou II.2 modifie veut dire que la couche 1285 du bareme et le catalogue de prevoyance sont a relire.",
+      "verification_comment": "La copie est extraite des archives open data de la DILA, qui se relisent sans compte (`moteur/src/atelier/releve/kali.rs`). La veille KALI (bloc `kali`) dit si la convention bouge apres le releve ; un article XII.2, III.3 ou II.2 modifie veut dire que la couche 1285 du bareme et le catalogue de prevoyance sont a relire.",
       "nourrit": [
         "prevoyance-conventionnelle-base.json",
         "baremes/2026.json",
@@ -370,7 +370,7 @@
       "editeur": "CASC-SVP",
       "url": "https://static.123cegestionplus.com/CEV2_CASCSVPV2/2f16cb05-2efc-43ba-94e3-000ec20df6de.pdf",
       "page": "https://casc-svp.portailce.com/Article/Article/9",
-      "contenu": "Comment la CASC-SVP se declare en DSN : adhesion prevoyance CASCSVP chez P0983 (S21.G00.15), versement a P0983 (S21.G00.20), composant de versement affecte CASCSVP (S21.G00.55), affiliation (S21.G00.70.012/013), base 31 a zero, composant 79 type 11 tranche A, cotisation 059. Taux 0,40 % jusqu'au 31/12/2025, 0,50 % depuis le 01/01/2026. C'est la piece qui fait coder la CASC dans dsn.py (prive/journal/CASC-SVP-REGULARISATION.md).",
+      "contenu": "Comment la CASC-SVP se declare en DSN : adhesion prevoyance CASCSVP chez P0983 (S21.G00.15), versement a P0983 (S21.G00.20), composant de versement affecte CASCSVP (S21.G00.55), affiliation (S21.G00.70.012/013), base 31 a zero, composant 79 type 11 tranche A, cotisation 059. Taux 0,40 % jusqu'au 31/12/2025, 0,50 % depuis le 01/01/2026. La DSN code la CASC d'apres cette piece (`declarations/src/dsn.rs`).",
       "version": "2026-06",
       "version_lue_dans": "le titre du document (Version juin 2026) et le libelle du lien de la page",
       "releve_le": "2026-09-22",
@@ -396,7 +396,7 @@
       "transcription": "casc-svp-modele-liste-nominative.csv",
       "verification": "telechargement",
       "nourrit": [
-        "operations_casc.py"
+        "modeles/casc-svp-liste-nominative.xlsx"
       ]
     },
     "kali-3090-titres-iv-v-sante": {
@@ -405,13 +405,13 @@
       "url": "https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000028157267?idConteneur=KALICONT000028157262",
       "open_data": "https://echanges.dila.gouv.fr/OPENDATA/KALI/",
       "page_de_veille": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000028157262",
-      "contenu": "TRANSCRIPTION des articles en vigueur, lus dans la base KALI complete du 13/07/2025 puis dans les 245 livraisons quotidiennes jusqu'au 22/09/2026. Elle tranche le reste du releve du 23/09 (journal §77) : FCAP-SVP 0,1 % de la tranche A, plancher 80 EUR, plafond 300 EUR par an et par entreprise, tous employeurs assujettis, collecte annuelle en debut d'annee (5.1, 5.3) ; exemption de la CASC-SVP pour les entreprises d'au moins 50 salaries dotees d'un CSE dont la contribution aux activites sociales et culturelles est au moins egale (4.22 B) ; cotisation globale MINIMALE des frais de sante des permanents, en % du PMSS, socle 1,29 / 1,44 / 1,60 / 1,75 (2025 a 2028), annexe II 1,74 / 1,84 / 1,94 (2025 a 2027), au moins 50 % employeur (accord du 19/07/2024, art. 13).",
+      "contenu": "TRANSCRIPTION des articles en vigueur, lus dans la base KALI complete du 13/07/2025 puis dans les 245 livraisons quotidiennes jusqu'au 22/09/2026. Elle tranche le reste du releve du 23/09 : FCAP-SVP 0,1 % de la tranche A, plancher 80 EUR, plafond 300 EUR par an et par entreprise, tous employeurs assujettis, collecte annuelle en debut d'annee (5.1, 5.3) ; exemption de la CASC-SVP pour les entreprises d'au moins 50 salaries dotees d'un CSE dont la contribution aux activites sociales et culturelles est au moins egale (4.22 B) ; cotisation globale MINIMALE des frais de sante des permanents, en % du PMSS, socle 1,29 / 1,44 / 1,60 / 1,75 (2025 a 2028), annexe II 1,74 / 1,84 / 1,94 (2025 a 2027), au moins 50 % employeur (accord du 19/07/2024, art. 13).",
       "version": "4.22 du 18/10/2024 ; 5.1 et 5.3 du 01/07/2013 ; 5.2 du 18/10/2024 ; accord du 19/07/2024 en vigueur etendu au 01/01/2025",
       "releve_le": "2026-09-23",
       "fichier": "kali-3090-titres-iv-v-sante-20260923.md",
       "sha256": "f62e95074217f1e8813b5f0f28b7a12c244ef2df788b4c5c7feb8a89765fc811",
       "verification": "manuelle",
-      "verification_comment": "La copie est extraite des archives open data de la DILA, qui se relisent sans compte (voir moteur/kali.py). La veille KALI (bloc `kali`) dit si la convention bouge apres le releve ; un article 4.22, 5.1 ou 13 de l'accord de 2024 modifie veut dire relire casc-svp-base.json et prevoyance-conventionnelle-base.json.",
+      "verification_comment": "La copie est extraite des archives open data de la DILA, qui se relisent sans compte (`moteur/src/atelier/releve/kali.rs`). La veille KALI (bloc `kali`) dit si la convention bouge apres le releve ; un article 4.22, 5.1 ou 13 de l'accord de 2024 modifie veut dire relire casc-svp-base.json et prevoyance-conventionnelle-base.json.",
       "nourrit": [
         "prevoyance-conventionnelle-base.json",
         "casc-svp-base.json"
@@ -520,7 +520,7 @@
       "sha256": "1727fe26ec4aacfefa920b52167bc9e38dd2767d0a51f7cb23e2f354856f427e",
       "transcription": "spiac-cgt-pav-minima-20260101.csv",
       "verification": "telechargement",
-      "verification_comment": "PAS le texte qui fait foi : une consolidation syndicale. Elle est RECALCULEE depuis le texte (grille KALI de l'avenant n° 4 de 2012 et les pourcentages des avenants 7 a 20) : moins d'un demi-centime d'ecart sur chaque emploi essaye (journal §132). Un nouvel avenant salaires de la 2642 veut dire : relire, recalculer, puis seulement recopier -- l'entrepot KALI suit la 2642 (`conventions_a_relever`) et note ce qui change (`etat.json`, `changes`).",
+      "verification_comment": "PAS le texte qui fait foi : une consolidation syndicale. Elle est RECALCULEE depuis le texte (grille KALI de l'avenant n° 4 de 2012 et les pourcentages des avenants 7 a 20) : moins d'un demi-centime d'ecart sur chaque emploi essaye. Un nouvel avenant salaires de la 2642 veut dire : relire, recalculer, puis seulement recopier -- l'entrepot KALI suit la 2642 (`conventions_a_relever`) et note ce qui change (`etat.json`, `changes`).",
       "nourrit": [
         "minima-conventionnels.json"
       ]
@@ -606,7 +606,7 @@
       "fichier": "insee-naf-2025/insee-naf-2025-structure-20241004.xlsx",
       "sha256": "6bbb9b9affc7d547f7b2b4a790043d6c942362d743bf38377d5e32bd7ceba2d7",
       "verification": "manuelle",
-      "verification_comment": "Transmis par Leandre depuis la page INSEE (le conteneur n'a pas l'adresse directe du fichier) : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer `moteur extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer` et lire ce qui change.",
+      "verification_comment": "Releve depuis la page INSEE sur un poste qui l'atteint (le conteneur n'a pas l'adresse directe du fichier) : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer `moteur extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer` et lire ce qui change.",
       "nourrit": [
         "naf-base.json"
       ]
@@ -623,7 +623,7 @@
       "fichier": "insee-naf-2025/insee-naf-2025-correspondances-naf-rev2-vers-naf-2025-20260107.xlsx",
       "sha256": "8746ed6b5ec70dca426a158a9b43b91e97fd71cf34bc0d8094b982b7260397ab",
       "verification": "manuelle",
-      "verification_comment": "Transmis par Leandre depuis la page INSEE : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer `moteur extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer` et lire ce qui change (une correspondance qui se precise change la phrase du refus, jamais le code d'une compagnie).",
+      "verification_comment": "Releve depuis la page INSEE sur un poste qui l'atteint : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer `moteur extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer` et lire ce qui change (une correspondance qui se precise change la phrase du refus, jamais le code d'une compagnie).",
       "nourrit": [
         "naf-base.json"
       ]

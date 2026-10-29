@@ -133,7 +133,7 @@
         "moins_de_50_ans": 70,
         "50_ans_et_plus": 120
       },
-      "source": "Heures d'enseignement artistique ou technique. Retenues pour les 507 heures dans la limite de 70 h (moins de 50 ans) ou 120 h (50 ans et plus) ; l'age retenu est celui a la fin du contrat servant a l'ouverture des droits. Conditions : contrat avec un employeur de la liste de l'arrete du 23 mars 2017 (art. D. 5424-51 du code du travail) et enseignement en rapport avec le metier exerce. Cette liste (art. 2) compte les ecoles, colleges, lycees et universites, les conservatoires, les structures d'enseignement artistique (NAF 85.52Z), l'INA -- et aussi les structures du spectacle vivant, du cinema et de l'audiovisuel qui beneficient d'un financement public : une compagnie subventionnee qui fait enseigner ses artistes y entre elle-meme, ou que l'enseignement ait lieu (Legifrance, JORFARTI000034307838, relu le 24/09/2026). Enseignement et formation ensemble ne depassent pas les 2/3 de l'affiliation requise (338 h sur 507). La DSN n'a pas d'unite propre a l'enseignement : ces heures partent en unite 35 comme les autres (DSN d'aout 2026 en annule et remplace) ; la distinction n'existe que dans le decompte des droits (cumul.py). Vaut pour les DEUX annexes ; pour un technicien, le contrat d'enseignement doit etre termine au moment de l'examen de la demande. Ces heures servent a l'OUVERTURE DES DROITS seulement : elles n'entrent pas dans le calcul du montant de l'ARE. Source : France Travail, francetravail.fr/spectacle -- heures d'enseignement, consulte le 10/09/2026.",
+      "source": "Heures d'enseignement artistique ou technique. Retenues pour les 507 heures dans la limite de 70 h (moins de 50 ans) ou 120 h (50 ans et plus) ; l'age retenu est celui a la fin du contrat servant a l'ouverture des droits. Conditions : contrat avec un employeur de la liste de l'arrete du 23 mars 2017 (art. D. 5424-51 du code du travail) et enseignement en rapport avec le metier exerce. Cette liste (art. 2) compte les ecoles, colleges, lycees et universites, les conservatoires, les structures d'enseignement artistique (NAF 85.52Z), l'INA -- et aussi les structures du spectacle vivant, du cinema et de l'audiovisuel qui beneficient d'un financement public : une compagnie subventionnee qui fait enseigner ses artistes y entre elle-meme, ou que l'enseignement ait lieu (Legifrance, JORFARTI000034307838, relu le 24/09/2026). Enseignement et formation ensemble ne depassent pas les 2/3 de l'affiliation requise (338 h sur 507). La DSN n'a pas d'unite propre a l'enseignement : ces heures partent en unite 35 comme les autres ; la distinction n'existe que dans le decompte des droits (`droit/src/cumul.rs`). Vaut pour les DEUX annexes ; pour un technicien, le contrat d'enseignement doit etre termine au moment de l'examen de la demande. Ces heures servent a l'OUVERTURE DES DROITS seulement : elles n'entrent pas dans le calcul du montant de l'ARE. Source : France Travail, francetravail.fr/spectacle -- heures d'enseignement, consulte le 10/09/2026.",
       "compte_pour": "ouverture_des_droits"
     },
     "majoration": {
@@ -349,7 +349,7 @@
       "soumis": true,
       "imposable": true,
       "conges_spectacles": false,
-      "source": "L'indemnite due pour les jours de conges pris : art. L3141-24, le plus favorable du dixieme de la remuneration de la periode de reference et du maintien de salaire. Le moteur calcule les deux et retient le plus favorable (moteur/permanents.py) ; la regle et ses nombres sont dans moteur/permanents-base.json."
+      "source": "L'indemnite due pour les jours de conges pris : art. L3141-24, le plus favorable du dixieme de la remuneration de la periode de reference et du maintien de salaire. Le moteur calcule les deux et retient le plus favorable (`droit::permanents::indemnite_conges`) ; la regle et ses nombres sont dans `permanents-base.json`."
     },
     "indemnite_compensatrice_conges": {
       "libelle": "Indemnité compensatrice de congés payés",
@@ -540,7 +540,7 @@
       "soumis": true,
       "imposable": true,
       "conges_spectacles": true,
-      "source": "La prime d'anciennete de la convention 3090, annexe I, article 3.11 : 1 % du salaire conventionnel par annee de presence au-dela de trois, jusqu'a 10 % (journal §121). Un salaire : soumise, imposable, et dans l'assiette des conges payes."
+      "source": "La prime d'anciennete de la convention 3090, annexe I, article 3.11 : 1 % du salaire conventionnel par annee de presence au-dela de trois, jusqu'a 10 %. Un salaire : soumise, imposable, et dans l'assiette des conges payes."
     },
     "indemnite_licenciement_conventionnelle": {
       "libelle": "Indemnité conventionnelle de licenciement (supplément)",
@@ -634,5 +634,5 @@
     "_source": "Reglement d'assurance chomage, annexes VIII et X (decret du 13 juillet 2016 et suivants) : 507 heures sur les 12 mois (365 jours) precedant la fin du contrat retenu."
   },
   "_annexes": "Depuis le decret du 13 juillet 2016, les DEUX annexes demandent 507 heures sur 12 mois -- auparavant 10 mois pour les techniciens (annexe VIII) et 10,5 mois pour les artistes (annexe X). La duree ne les distingue donc plus. Ce qui les distingue : l'artiste peut etre paye au cachet (12 h, 28 par mois au plus), le technicien est paye a l'heure et ses heures sont les heures faites. Les heures d'enseignement valent pour les deux, dans les memes limites d'age.",
-  "_deux_compteurs": "Les heures ne comptent pas toutes pour la meme chose. `compte_pour` le dit : les heures d'enseignement ouvrent les droits mais n'entrent pas dans le calcul du montant de l'ARE. Un cumul qui les melangerait annoncerait une allocation fausse. C'est a cumul.py de tenir les deux decomptes, pas a la rubrique."
+  "_deux_compteurs": "Les heures ne comptent pas toutes pour la meme chose. `compte_pour` le dit : les heures d'enseignement ouvrent les droits mais n'entrent pas dans le calcul du montant de l'ARE. Un cumul qui les melangerait annoncerait une allocation fausse. C'est au cumul (`droit/src/cumul.rs`) de tenir les deux decomptes, pas a la rubrique."
 }

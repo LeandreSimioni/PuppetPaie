@@ -250,7 +250,7 @@
    "ecran": true
   },
   {
-   "_note": "L'annexe de la CCN 3090 ou l'entreprise se range. Elle ne se declare\nnulle part : elle sert aux minima conventionnels (moteur/minima.py), qui\ndifferent d'une annexe a l'autre -- un cachet d'artiste dramatique n'a\npas le meme plancher en salle (annexe 1) qu'en tournee (annexe 4). Vide :\nle moteur prend le plancher le plus bas des annexes candidates, et le dit.",
+   "_note": "L'annexe de la CCN 3090 ou l'entreprise se range. Elle ne se declare\nnulle part : elle sert aux minima conventionnels (`droit/src/minima.rs`), qui\ndifferent d'une annexe a l'autre -- un cachet d'artiste dramatique n'a\npas le meme plancher en salle (annexe 1) qu'en tournee (annexe 4). Vide :\nle moteur prend le plancher le plus bas des annexes candidates, et le dit.",
    "cle": "annexe_convention",
    "libelle": "Annexe de la convention",
    "forme": "choix",
@@ -851,7 +851,7 @@
    "ecran": true
   },
   {
-   "_note": "L'EFFECTIF NE SE SAISIT PLUS (23/09/2026) : l'Urssaf le calcule et le\nrenvoie en CRM de nature 118, et `moteur/effectif.py` l'ecrit seul dans\nconfig/effectifs.json a chaque releve des retours. Ce qui se saisit,\nc'est la date de la PREMIERE EMBAUCHE : avant elle, aucun salarie, et\nune compagnie neuve n'a pas a attendre cinq ans de 118 pour etre payee\n(art. L. 130-1, II, CSS).",
+   "_note": "L'EFFECTIF NE SE SAISIT PAS : l'Urssaf le calcule et le\nrenvoie en CRM de nature 118, et le releve des retours l'ecrit seul dans\nconfig/effectifs.json (`envois/src/releve_retours.rs`). Ce qui se saisit,\nc'est la date de la PREMIERE EMBAUCHE : avant elle, aucun salarie, et\nune compagnie neuve n'a pas a attendre cinq ans de 118 pour etre payee\n(art. L. 130-1, II, CSS).",
    "cle": "premiere_embauche",
    "libelle": "Date de la première embauche",
    "forme": "date",
@@ -1290,7 +1290,7 @@
    "ecran": true
   },
   {
-   "_note": "LE SEXE NE SE DECLARE NULLE PART TEL QUEL : aucune rubrique du bloc 30\nne le porte. Il voyage dans le premier caractere du NIR -- et, quand il\nn'y a pas de NIR, dans celui du numero technique temporaire, dont il\nest le premier morceau (voir `moteur/ntt.py`). D'ou une case qui ne\nsert qu'a ce cas-la, et que l'ecran ne montre que sans NIR : le\ndedoubler serait s'exposer a ce que les deux se contredisent.",
+   "_note": "LE SEXE NE SE DECLARE NULLE PART TEL QUEL : aucune rubrique du bloc 30\nne le porte. Il voyage dans le premier caractere du NIR -- et, quand il\nn'y a pas de NIR, dans celui du numero technique temporaire, dont il\nest le premier morceau (`declarations/src/ntt.rs`). D'ou une case qui ne\nsert qu'a ce cas-la, et que l'ecran ne montre que sans NIR : le\ndedoubler serait s'exposer a ce que les deux se contredisent.",
    "cle": "sexe",
    "libelle": "Sexe",
    "forme": "choix",
@@ -1704,7 +1704,7 @@
    "ecran": true
   },
   {
-   "_note": "S21.G00.40.002 -- cahier technique DSN 2026.1, p. 182. Ce n'est PAS la\nnature du contrat (c'est .007) : c'est le classement au sens de la\nconvention collective. Il etait code en dur a \"05\" dans dsn.py, ce qui\nest juste pour un artiste et faux pour tout le reste -- les 151 DSN de\nl'export le montrent : 05 pour les 146 contrats d'artistes, 07 pour le\ncharge de production, 04 pour la metteuse en scene.\n06 : l'employe administratif non cadre, que le catalogue des\nmetiers pose (attachee de production) -- la fiche le refusait et\ns'affichait en erreur (26/09/2026).\n03 : le cadre dirigeant (votant au college employeur des elections\nprud'homales), que la norme liste et que la CCH-11 de 40.003 admet pour un\ncadre (p. 182) ; il manquait (reste R1 #59, 11/10/2026).",
+   "_note": "S21.G00.40.002 -- cahier technique DSN 2026.1, p. 182. Ce n'est PAS la\nnature du contrat (c'est .007) : c'est le classement au sens de la\nconvention collective, qui se lit sur la fiche du salarie : 05 pour un\nartiste, 07 pour un charge de production, 04 pour une metteuse en scene.\n06 : l'employe administratif non cadre, que le catalogue des\nmetiers pose (attachee de production).\n03 : le cadre dirigeant (votant au college employeur des elections\nprud'homales), que la norme liste et que la CCH-11 de 40.003 admet pour un\ncadre (p. 182).",
    "cle": "statut_conventionnel",
    "libelle": "Classement conventionnel (DSN)",
    "forme": "choix",
@@ -1730,7 +1730,7 @@
    "ecran": true
   },
   {
-   "_note": "S21.G00.40.003. Il voyage avec le precedent : la regle CCH-11 du cahier\ntechnique exige 002 dans (03, 04, 08) des que 003 vaut 01. La metteuse\nen scene de l'export porte bien 04 + 01.\nLa norme 2026.1 (p. 183) liste 01 cadre, 02 extension cadre, 04 non cadre,\n98 retraite complementaire sans statut cadre ou non cadre, 99 pas de\nretraite complementaire. Le 03 qu'on offrait n'existe pas (reste R1 #59,\n11/10/2026). 98 et 99 (regimes publics, fonctionnaires) ne sont pas\nofferts : le moteur ne lit que 01 (cadre, bareme.rs) et ne sait pas ce\nqu'une paie sans Agirc-Arrco deviendrait ; les ouvrir est un chantier.",
+   "_note": "S21.G00.40.003. Il voyage avec le precedent : la regle CCH-11 du cahier\ntechnique exige 002 dans (03, 04, 08) des que 003 vaut 01 : une metteuse\nen scene cadre porte 04 + 01.\nLa norme 2026.1 (p. 183) liste 01 cadre, 02 extension cadre, 04 non cadre,\n98 retraite complementaire sans statut cadre ou non cadre, 99 pas de\nretraite complementaire ; 03 n'en est pas. 98 et 99 (regimes publics, fonctionnaires) ne sont pas\nofferts : le moteur ne lit que 01 (cadre, bareme.rs) et ne sait pas ce\nqu'une paie sans Agirc-Arrco deviendrait ; les ouvrir est un chantier.",
    "cle": "statut_categoriel_rc",
    "libelle": "Cadre ou non cadre",
    "forme": "choix",
@@ -1817,7 +1817,7 @@
    "ecran": true
   },
   {
-   "_note": "BENEFICIAIRE DE L'OBLIGATION D'EMPLOI (S21.G00.40.072).\nTout employeur le declare chaque mois, quel que soit son effectif\n(D5212-4) : c'est ce que l'Urssaf compte pour la declaration OETH\n(`moteur/oeth.py`). Vide : le salarie n'en est pas un, ou ne l'a pas dit\n-- rien ne l'y oblige, et rien ne se devine.",
+   "_note": "BENEFICIAIRE DE L'OBLIGATION D'EMPLOI (S21.G00.40.072).\nTout employeur le declare chaque mois, quel que soit son effectif\n(D5212-4) : c'est ce que l'Urssaf compte pour la declaration OETH\n(`declarations/src/oeth.rs`). Vide : le salarie n'en est pas un, ou ne l'a pas dit\n-- rien ne l'y oblige, et rien ne se devine.",
    "cle": "statut_boeth",
    "libelle": "Bénéficiaire de l'obligation d'emploi (handicap)",
    "forme": "choix",

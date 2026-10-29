@@ -83,7 +83,7 @@
     "motifs_sans_preavis": {
       "087": "Licenciement pour faute grave — L1234-1 : « Lorsque le licenciement n'est pas motivé par une faute grave ».",
       "088": "Licenciement pour faute lourde.",
-      "034": "Fin de période d'essai à l'initiative de l'employeur : pas de préavis, un délai de prévenance (L1221-25 : vingt-quatre heures, quarante-huit heures, deux semaines ou un mois selon la durée de présence), pas L1234-1. S'il n'est pas respecté, L1221-25, dernier alinéa, ouvre au salarié « une indemnité compensatrice [...] égale au montant des salaires et avantages que le salarié aurait perçus s'il avait accompli son travail jusqu'à l'expiration du délai de prévenance » : le moteur la calcule (`preavis.delai_de_prevenance`, lot P2).",
+      "034": "Fin de période d'essai à l'initiative de l'employeur : pas de préavis, un délai de prévenance (L1221-25 : vingt-quatre heures, quarante-huit heures, deux semaines ou un mois selon la durée de présence), pas L1234-1. S'il n'est pas respecté, L1221-25, dernier alinéa, ouvre au salarié « une indemnité compensatrice [...] égale au montant des salaires et avantages que le salarié aurait perçus s'il avait accompli son travail jusqu'à l'expiration du délai de prévenance » : le moteur la calcule (`droit::permanents::delai_de_prevenance`).",
       "035": "Fin de période d'essai à l'initiative du salarié : pas de préavis, un délai de prévenance que le salarié respecte (L1221-26 : quarante-huit heures, vingt-quatre sous huit jours de présence) ; aucun article ne lui donne d'indemnité.",
       "031": "Fin de CDD arrivé à son terme : le contrat « cesse de plein droit à l'échéance du terme » (L1243-5, atelier/reference/sources/code-du-travail/articles-20261013.md), il n'y a pas de préavis ; L1234-1 est celui du licenciement (« Lorsque le licenciement n'est pas motivé par une faute grave »). Seul le CDD à objet défini (L1242-2, 6°) prend fin après « un délai de prévenance au moins égal à deux mois » : le moteur n'a pas cette nature.",
       "043": "Rupture conventionnelle : il n'y a pas de préavis, il y a une date convenue. L1237-13 : la convention « fixe la date de rupture du contrat de travail, qui ne peut intervenir avant le lendemain du jour de l'homologation ». Un salarié dispensé de venir jusque-là n'a donc aucune indemnité compensatrice de préavis — et le FCTU le dit à sa façon, avec le type de préavis « 90 - pas de clause de préavis applicable » (CCH-12)."
@@ -331,7 +331,7 @@
 
   "maintien_de_salaire": {
     "_quoi": "L'indemnite complementaire que l'employeur verse pendant un arret de travail, en plus des indemnites journalieres de la Securite sociale.",
-    "_source": "Code du travail L1226-1 et D1226-1 a D1226-8, releves le 19/09/2026 dans la base LEGI de la DILA par `moteur releve-codes`. Le §38.9 les disait non releves : ils le sont.",
+    "_source": "Code du travail L1226-1 et D1226-1 a D1226-8, releves le 19/09/2026 dans la base LEGI de la DILA par `moteur releve-codes`.",
     "_qui_y_a_droit": "L1226-1 : tout salarie ayant UNE ANNEE d'anciennete dans l'entreprise, appreciee au PREMIER JOUR de l'absence (D1226-8). Ces dispositions << ne s'appliquent pas aux salaries travaillant a domicile, aux salaries saisonniers, aux salaries INTERMITTENTS et aux salaries temporaires >> : c'est une regle de permanent, et le moteur la refuse a un CDDU.",
     "_la_fraude_averee": "L1226-1 (`LEGIARTI000054331868`, en vigueur depuis le 27/06/2026) porte un alinea de plus : ces dispositions << ne s'appliquent pas EN CAS DE FRAUDE AVEREE DU SALARIE afin d'obtenir le versement des indemnites journalieres >> mentionnees a L321-1 ou au 2° de L431-1 du code de la securite sociale, << dont l'employeur a ete informe en application du VI de l'article L. 114-9 >>. Le moteur ne le verifie pas et ne le peut pas : c'est la caisse qui informe l'employeur, et cela ne se lit dans aucune saisie.",
     "anciennete_mois_minimum": 12,
@@ -387,8 +387,8 @@
   "documents_de_fin_de_contrat": {
     "_quoi": "Ce que l'employeur doit remettre au salarié quand le contrat se termine. La liste dit ce qui les produit.",
     "attestation_france_travail": "Depuis le 01/06/2026, elle n'est plus éditée par l'employeur : c'est le signalement de fin de contrat (nature 07) qui la déclenche, et France Travail édite l'attestation. Même mécanisme que l'AER des intermittents.",
-    "certificat_de_travail": "Art. L1234-19 et D1234-6. Écrit : `moteur/documents_fin.py`, modèle `gabarits/certificat-travail.modele`. D1234-6 plafonne son contenu — dates d'entrée et de sortie, emplois occupés et leurs périodes, et RIEN d'autre.",
-    "recu_pour_solde_de_tout_compte": "Art. L1234-20, D1234-7 et D1234-8. Écrit : `moteur/documents_fin.py`, modèle `gabarits/recu-solde-de-tout-compte.modele`. Il fait l'INVENTAIRE des sommes, ligne à ligne, et non un total : il n'est libératoire, six mois après signature, que pour celles qui y figurent.",
+    "certificat_de_travail": "Art. L1234-19 et D1234-6. Écrit : `moteur/src/routes/imprevus.rs`, modèle `modeles/certificat-travail.modele`. D1234-6 plafonne son contenu — dates d'entrée et de sortie, emplois occupés et leurs périodes, et RIEN d'autre.",
+    "recu_pour_solde_de_tout_compte": "Art. L1234-20, D1234-7 et D1234-8. Écrit : `moteur/src/routes/imprevus.rs`, modèle `modeles/recu-solde-de-tout-compte.modele`. Il fait l'INVENTAIRE des sommes, ligne à ligne, et non un total : il n'est libératoire, six mois après signature, que pour celles qui y figurent.",
     "_etat": "Les deux se produisent d'un geste — `moteur fin-contrat documents <mois> <salarié>`, ou le bouton de la fin de contrat dans la fenêtre —, du mois qui porte la date de fin, le même que le solde de tout compte. Ce sont des PAPIERS : rien ne part nulle part."
   }
 }
