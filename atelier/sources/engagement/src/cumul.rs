@@ -50,7 +50,13 @@ fn ligne_importee(e: &Value) -> Resultat<Option<Declare>> {
 /// Les contrats que l'import atteste (`importe::contrats_lus` : une AEM, un bulletin). Vide tant qu'on n'a rien importe.
 pub(crate) fn lire_importes(ctx: &Contexte) -> Resultat<Vec<Declare>> {
     let mut out = Vec::new();
-    for e in crate::importe::contrats_lus(&ctx.racine)? {
+    for i in crate::importe::tous(&ctx.racine)? {
+        let Some(mut e) = i.ligne_du_contrat() else { continue };
+        // Un contrat qui continue ici : ce que les pieces attestent s'arrete a son dernier mois verse, la suite est
+        // dans les paies de ce logiciel.
+        if let Some(dernier) = i.continue_apres() {
+            e["fin"] = Value::String(socle::date::dernier_du_mois(&dernier)?.iso());
+        }
         if let Some(x) = ligne_importee(&e)? {
             out.push(x);
         }

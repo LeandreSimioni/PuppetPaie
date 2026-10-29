@@ -342,18 +342,19 @@ pub(crate) fn etapes(vue: &Value) -> Value {
     })
 }
 
-/// LE MOIS TENU AVANT, comme la page Paie le montre : `None` si un engagement de la saisie touche le mois ou si aucun
-/// engagement importe ne le touche. Sinon `{"dsn", "paies", "totaux", "incompletes"}` : une carte par engagement
-/// importe, son contrat atteste et ce qui lui a ete verse ce mois-la.
-pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
-    if !importe(&ctx.racine, mois)? {
-        return Ok(None);
+/// LES CARTES DES ENGAGEMENTS IMPORTES QUI TOUCHENT `mois`, qu'il soit tenu avant ce logiciel ou qu'il ait aussi des
+/// engagements de la saisie : une carte par engagement importe, son contrat atteste et ce qui lui a ete verse ce
+/// mois-la, dans l'ordre de leur debut.
+pub(crate) fn cartes(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
+    let importes = importes_du_mois(&ctx.racine, mois)?;
+    if importes.is_empty() {
+        return Ok(Vec::new());
     }
     let lignes = etats::charger(&ctx.racine)?;
     let embauches = etats::embauches_par_depot(&lignes)?;
     let (certifiees, _) = envois::reprise_journal::embauches_attestees(ctx);
     let mut cartes = Vec::new();
-    for i in importes_du_mois(&ctx.racine, mois)? {
+    for i in importes {
         let contrat = i.ligne_du_contrat();
         let paie = i.lignes_des_paies().into_iter().find(|p| texte(p, "mois") == mois);
         let brut = Value::Object(i.objet().brut.clone());
@@ -362,6 +363,17 @@ pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
         cartes.push(carte(ctx, mois, paie.as_ref(), contrat.as_ref(), dpae));
     }
     cartes.sort_by(|a, b| (texte(a, "debut"), texte(a, "nom")).cmp(&(texte(b, "debut"), texte(b, "nom"))));
+    Ok(cartes)
+}
+
+/// LE MOIS TENU AVANT, comme la page Paie le montre : `None` si un engagement de la saisie touche le mois ou si aucun
+/// engagement importe ne le touche. Sinon `{"dsn", "paies", "totaux", "incompletes"}` : une carte par engagement
+/// importe, son contrat atteste et ce qui lui a ete verse ce mois-la.
+pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
+    if !importe(&ctx.racine, mois)? {
+        return Ok(None);
+    }
+    let cartes = cartes(ctx, mois)?;
 
     // Les totaux du mois, sur ce qui est connu ; ce qui manque se compte a part.
     let mut totaux = Map::new();

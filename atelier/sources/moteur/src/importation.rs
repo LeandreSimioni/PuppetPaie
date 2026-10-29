@@ -224,6 +224,8 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
             c.insert(champ.to_string(), texte(v));
         } else if let (true, Some(c)) = (k == "S21.G00.40.009", contrats.last_mut()) {
             c.insert("numero".into(), texte(v));
+        } else if let (true, Some(c)) = (k == "S21.G00.40.013", contrats.last_mut()) {
+            c.insert("quotite".into(), texte(v));
         } else if let (true, Some(c)) = (k == "S21.G00.40.010", contrats.last_mut()) {
             c.insert("fin".into(), Value::String(jjmmaaaa(v)));
         } else if let (true, Some(c)) = (k == "S21.G00.40.050", contrats.last_mut()) {
@@ -451,6 +453,9 @@ pub(crate) fn lire_dsn(dossier: &Path) -> LectureDsn {
             m.insert("objet".into(), Value::String(ici("objet")));
             m.insert("debut".into(), Value::String(ici("debut")));
             m.insert("fin".into(), Value::String(ici("fin")));
+            if !ici("quotite").is_empty() {
+                m.insert("quotite".into(), Value::String(ici("quotite")));
+            }
             m.insert("depot".into(), Value::String(depot.clone()));
             m.insert("fichier".into(), info["fichier"].clone());
             out.paies.insert((mois.clone(), texte_de(v, "nir").to_string(), numero.to_string()), m);

@@ -382,6 +382,32 @@ pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
     Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.clone() })
 }
 
+/// Ce que l'ancien logiciel a verse en `mois` pour un contrat qui continue ici : le brut, les cachets (une ligne, aux
+/// jours que le bulletin imprime) et les jours travailles. `None` sans bulletin qui donne ses jours et ses cachets : le
+/// mois reste parmi les manquants (rien ne se devine).
+fn verse_par_l_ancien_logiciel(i: &engagement::importe::Importe, mois: &str) -> Option<(Decimal, Vec<Value>, i64)> {
+    let paies = i.paies();
+    let p = paies.get(mois)?;
+    let brut = eur2(socle::num::dec(p.get("brut")?).ok()?);
+    let mut dates: Vec<String> = Vec::new();
+    for d in p.get("dates")?.as_array()? {
+        let (a, b) = (Jour::lire(&valeur_en_texte(d.get("debut")?)).ok()?, Jour::lire(&valeur_en_texte(d.get("fin")?)).ok()?);
+        let mut j = a;
+        while j <= b {
+            dates.push(j.iso());
+            j = j.plus_jours(1).ok()?;
+        }
+    }
+    let nombre = |x: Option<&Value>| x.map(valeur_en_texte).and_then(|t| t.trim().parse::<f64>().ok());
+    let cachets = p.get("lignes")?.as_array()?.iter().find(|l| l.get("rubrique").and_then(Value::as_str) == Some("cachet"))?;
+    let (quantite, taux) = (nombre(cachets.get("quantite"))?, nombre(cachets.get("taux"))?);
+    if dates.is_empty() {
+        return None;
+    }
+    let jours = dates.len() as i64;
+    Some((brut, vec![json!({"rubrique": "cachet", "quantite": quantite, "taux": taux, "dates": dates})], jours))
+}
+
 /// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Les mois d'avant se lisent
 /// dans les paies validees de l'engagement (`engagement::etats::paie_ecrite_de`). Rend la paie du certificat et les
 /// mois du contrat dont aucune paie n'est ecrite.
@@ -392,12 +418,25 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
     let debut = eng.debut.iso();
     let mut manquants: Vec<String> = Vec::new();
     let mut lignes: Vec<Value> = Vec::new();
+    // Un contrat commence dans l'ancien logiciel : ses mois d'avant sont ceux que l'engagement importe a verses.
+    let mut cherche = Map::new();
+    cherche.insert("salarie".into(), json!(cle));
+    cherche.insert("debut".into(), json!(debut));
+    cherche.insert("numero".into(), eng.numero.clone().map_or(Value::Null, Value::String));
+    let importe = engagement::importe::continue_par(&ctx.racine, &cherche).map_err(|e| avec("ValueError", e))?;
     let mut bruts = Decimal::new(0, 2);
     let mut jours = 0i64;
     for m in mois_du.iter().filter(|m| **m < eng.mois) {
         let ecrite = engagement::etats::paie_ecrite_de(ctx, m, &cle, &debut).map_err(|e| avec("ValueError", e))?;
         let Some(paie) = ecrite.as_ref().and_then(|x| x.get("paie")) else {
-            manquants.push(m.clone());
+            match importe.as_ref().and_then(|i| verse_par_l_ancien_logiciel(i, m)) {
+                Some((brut, l, j)) => {
+                    bruts += brut;
+                    lignes.extend(l);
+                    jours += j;
+                }
+                None => manquants.push(m.clone()),
+            }
             continue;
         };
         let illisible = |k: &str| avec("ValueError", format!("{} : paie ecrite illisible : `{}`", m, k));

@@ -69,12 +69,32 @@ impl Importe {
         self.lu().get("paies").and_then(Value::as_object).into_iter().flatten().filter_map(|(m, p)| Some((m.clone(), p.as_object()?))).collect()
     }
 
-    /// Les mois qu'il touche : de son debut a sa fin, et ceux ou il a ete verse.
+    /// LE CONTRAT D'USAGE QUI CONTINUE ICI : le dernier mois verse par l'ancien logiciel, quand le contrat que la DSN
+    /// deposee declare finit apres lui (S21.G00.40.010, sa fin previsionnelle : `norme-dsn/texte/bloc-S21.G00.40.txt`).
+    /// Les mois qui suivent se paient ici, sous le numero et les dates que cette DSN lui a donnes (regle 4). Un contrat
+    /// qu'une AEM atteste est fini (l'AEM se remet a la fin du contrat) ; un contrat paye au mois a sa propre reprise,
+    /// sa nature dite (`importation_nature`) ; sans numero, rien ne se reprend.
+    pub fn continue_apres(&self) -> Option<String> {
+        let dernier = self.paies().into_keys().max()?;
+        let fin = self.texte("fin");
+        let contrat = self.contrat();
+        let lu = |k: &str| contrat.and_then(|c| c.get(k)).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
+        let paye_au_mois = droit::natures::nature(Some(&lu("nature"))).is_ok_and(|n| n.mensuelle()) || vrai(contrat.and_then(|c| c.get("nature_a_dire")).unwrap_or(&Value::Null));
+        let continue_ = fin.len() >= 7 && &fin[..7] > dernier.as_str() && lu("atteste_par") != "AEM" && !paye_au_mois && !self.texte("numero").is_empty();
+        continue_.then_some(dernier)
+    }
+
+    /// Les mois qu'il touche : de son debut a sa fin (au dernier mois verse, s'il continue ici : `continue_apres`), et
+    /// ceux ou il a ete verse.
     pub fn mois(&self) -> Vec<String> {
         let (debut, fin) = (self.texte("debut"), self.texte("fin"));
         let mut v: Vec<String> = self.paies().into_keys().collect();
         if debut.len() >= 7 {
-            let fin = if fin.len() >= 7 { fin } else { debut.clone() };
+            let fin = match self.continue_apres() {
+                Some(dernier) => format!("{}-01", dernier),
+                None if fin.len() >= 7 => fin,
+                None => debut.clone(),
+            };
             let mut m = debut[..7].to_string();
             while m.as_str() <= &fin[..7] {
                 v.push(m.clone());
@@ -149,6 +169,54 @@ pub fn paies_lues(racine: &Path) -> Resultat<Vec<Value>> {
 /// L'engagement importe du salarie `cle` (la cle de sa fiche) qui commence le `debut` et touche `mois`, s'il y en a un.
 pub fn celui_de(racine: &Path, mois: &str, cle: &str, debut: &str) -> Resultat<Option<Importe>> {
     Ok(du_mois(racine, mois)?.into_iter().find(|i| i.texte("salarie") == cle && i.texte("debut") == debut))
+}
+
+/// Les contrats d'usage importes qui continuent en `mois` (`Importe::continue_apres`) : verses avant lui par l'ancien
+/// logiciel, ils finissent en `mois` ou apres.
+pub fn qui_continuent(racine: &Path, mois: &str) -> Resultat<Vec<Importe>> {
+    Ok(tous(racine)?
+        .into_iter()
+        .filter(|i| i.continue_apres().is_some_and(|d| d.as_str() < mois) && i.texte("fin").get(..7).is_some_and(|f| f >= mois))
+        .collect())
+}
+
+/// Le contrat importe que l'engagement `e` de la saisie continue : meme salarie, meme debut, meme numero, et il continue
+/// apres son dernier mois verse (`continue_apres`).
+pub fn continue_par(racine: &Path, e: &Map<String, Value>) -> Resultat<Option<Importe>> {
+    let t = |k: &str| e.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
+    let (salarie, debut, numero) = (t("salarie"), t("debut"), t("numero"));
+    if salarie.is_empty() || debut.is_empty() || numero.is_empty() {
+        return Ok(None);
+    }
+    Ok(tous(racine)?.into_iter().find(|i| {
+        i.continue_apres().is_some() && i.texte("salarie") == salarie && i.texte("debut") == debut && i.texte("numero") == numero
+    }))
+}
+
+impl Importe {
+    /// LES JOURS DU CONTRAT ENTIER (S21.G00.40.013 d'un contrat d'usage : `Engagement::quotite`) d'un contrat qui continue
+    /// ici, `propres` etant ceux que la saisie lui donne : les jours que les bulletins importes impriment, plus les siens ;
+    /// a defaut d'un bulletin pour chaque mois verse, la quotite que la DSN deposee a declaree pour ce contrat (elle le
+    /// dit pour le contrat entier, `norme-dsn/texte/bloc-S21.G00.40.txt`). `None` quand aucune piece ne les donne.
+    pub fn jours_du_contrat_continue(&self, propres: usize) -> Option<i64> {
+        let paies = self.paies();
+        let jours = |p: &Map<String, Value>| -> Option<i64> {
+            let dates = p.get("dates")?.as_array()?;
+            let mut n = 0i64;
+            for d in dates {
+                let lire = |k: &str| socle::date::Jour::lire(&d.get(k).map(en_texte).unwrap_or_default()).ok();
+                let (a, b) = (lire("debut")?, lire("fin")?);
+                n += b.moins(&a) + 1;
+            }
+            (n > 0).then_some(n)
+        };
+        let lus: Option<Vec<i64>> = paies.values().map(|p| jours(p)).collect();
+        if let Some(l) = lus.filter(|l| !l.is_empty()) {
+            return Some(l.iter().sum::<i64>() + propres as i64);
+        }
+        let dernier = paies.into_values().last()?;
+        dernier.get("quotite").map(en_texte).and_then(|q| q.trim().replace(',', ".").parse::<f64>().ok()).filter(|q| *q > 0.0 && q.fract() == 0.0).map(|q| q as i64)
+    }
 }
 
 /// Le refus d'un geste sur un engagement importe : il se lit, il ne se modifie pas.
