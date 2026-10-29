@@ -740,13 +740,10 @@ pub fn bareme_sante(bar: Value, sal: &Value, nat: Option<&Nature>, fin: Option<&
         let vide = |v: &Value| v.is_null() || v.as_str() == Some("");
         if vide(g(choix, "taux_contrat")) {
             return Err(format!(
-                "{} : la complementaire sante d'un permanent est OBLIGATOIRE \
-(art. L911-7 du code de la Securite sociale), et la convention \
-{} n'a pas de regime de sante a elle : c'est le contrat de \
-l'entreprise qui fixe la cotisation.\n  \
-A poser : fiche Entreprise, « Santé des permanents », taux \
-du contrat (en % du plafond mensuel, pour le salarie \
-seul) et part employeur. Rien n'est calcule.",
+                "{} : sa complémentaire santé ne se calcule pas encore. Un salarié au mois y est affilié \
+d'office (article L911-7 du code de la sécurité sociale), et la convention {} n'a pas de régime de santé à elle : \
+c'est le contrat de la compagnie qui fixe la cotisation. À dire dans Configuration › Entreprise, « Santé des \
+permanents » : le taux du contrat (en % du plafond mensuel, pour le salarié seul) et la part de l'employeur.",
                 nom_du_salarie(sal, "ce salarie"),
                 idcc
             ));
@@ -798,14 +795,9 @@ la Securite sociale), et pas plus de 100.",
         Some(t) => t,
         None => {
             return Err(format!(
-                "{} : la complementaire sante d'un permanent est OBLIGATOIRE \
-(art. L911-7 du code de la Securite sociale) et son niveau ne se \
-devine pas.\n  \
-A choisir sur sa fiche : Configuration › Salariés, bloc « Salarié au \
-mois », Complémentaire santé (le niveau du contrat souscrit, sur son \
-bulletin d'adhésion ; ou sa dispense, s'il en a une). Les trois niveaux \
-et leurs taux sont dans le bareme (par_nature.permanent, rubrique \
-`mutuelle`, `_releve_svp_sante`).",
+                "{} : sa complémentaire santé n'est pas encore dite. Un salarié au mois y est affilié \
+d'office (article L911-7 du code de la sécurité sociale), et son niveau se lit sur son bulletin d'adhésion. \
+À choisir sur sa fiche, Configuration › Salariés, « Complémentaire santé » : le niveau, ou sa dispense s'il en a une.",
                 nom_du_salarie(sal, "ce salarie")
             ))
         }
@@ -2065,15 +2057,11 @@ donnees/prevoyance-conventionnelle-base.json.",
             }
         }
         Err(format!(
-            "{} : la prevoyance d'un non cadre permanent s'ouvre apres {} mois \
-d'anciennete DANS LA BRANCHE, pas dans l'entreprise -- et il n'y a \
-que {} ici.\n  \
-A dire sur sa fiche : Configuration › Salariés, bloc « Salarié au \
-mois », « Dans la branche depuis » : la date a laquelle il est entre dans la branche. \
-S'il n'y travaillait pas avant, c'est sa date d'embauche chez nous.\n  \
-Le moteur ne le devine pas : le supposer venu de la branche ferait \
-cotiser pour rien, le supposer nouveau laisserait un salarie \
-decouvert pendant un an.",
+            "{} : depuis quand travaille-t-il dans le spectacle vivant ? Sa prévoyance commence après {} mois \
+dans la branche, chez nous ou dans une autre compagnie, et il n'en a que {} ici. À dire sur sa fiche, \
+Configuration › Salariés, « Dans la branche depuis » : le jour où il y est entré ; s'il n'y travaillait pas \
+avant, son jour d'embauche chez nous. Le supposer venu de la branche le ferait cotiser pour rien, le supposer \
+nouveau le laisserait sans couverture pendant un an.",
             nom_du_salarie(sal, "ce salarie"),
             seuil,
             match mois_maison {

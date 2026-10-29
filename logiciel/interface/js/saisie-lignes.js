@@ -846,8 +846,9 @@ function construireCarte(div, e) {
         <label>Salaire mensuel brut
           <input type="number" step="0.01" min="0" class="e-salaire"
                  placeholder="celui du contrat signé"></label>
-        <label title="la quotité de travail du contrat (S21.G00.40.013)">Quotité
-          <input type="number" step="0.01" min="0" class="e-quotite"></label>
+        <label title="la durée du travail du contrat, en heures par mois (S21.G00.40.013)">Heures par mois
+          <input type="number" step="0.01" min="0" class="e-quotite">
+          <button type="button" class="lien e-temps-plein" hidden></button></label>
         <!-- UN AVENANT SE DATE. Ce que cette saisie change au
              contrat (quotité, nature, motif, date de début) se déclare avec
              l'ancienne valeur dans le bloc Changements contrat de la DSN, daté
@@ -1242,8 +1243,22 @@ function majNature(div) {
       + " suivant (le mois venu, le contrat y est repris, ses jours cochés) ;"
       + " la DPAE et le contrat imprimé ne partent qu'avec ce mois-ci, le"
       + " certificat Congés Spectacles à la fin du contrat.";
+  // LA DURÉE DU CONTRAT se tape, elle ne se devine pas : la durée de
+  // référence d'un temps plein que le moteur donne (`quotite_defaut`) se
+  // propose d'un clic, jamais en grisé dans la case, où elle passerait pour
+  // une valeur saisie.
   const quotite = div.querySelector(".e-quotite");
-  quotite.placeholder = nat.quotite_defaut != null ? String(nat.quotite_defaut) : "";
+  const pleine = div.querySelector(".e-temps-plein");
+  pleine.hidden = nat.quotite_defaut == null;
+  if (nat.quotite_defaut != null) {
+    pleine.textContent = `temps plein : ${String(nat.quotite_defaut).replace(".", ",")} h`;
+    pleine.onclick = (ev) => {
+      ev.preventDefault();
+      quotite.value = nat.quotite_defaut;
+      quotite.dispatchEvent(new Event("change"));
+      quotite.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+  }
   // Le motif de recours : proposé seulement par les natures qui en ont un.
   const recours = nat.motifs_recours || [];
   div.querySelector(".e-recours-bloc").hidden = !recours.length;

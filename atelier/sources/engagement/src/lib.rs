@@ -580,11 +580,9 @@ impl Engagement {
         match self.quotite_contrat {
             Some(q) => dec_f64(q),
             None => Err(format!(
-                "Contrat {} ({}) : la duree contractuelle de travail \
-                 (S21.G00.40.013, en heures par mois) n'est pas dite. Elle \
-                 figure au contrat signe -- 151,67 h pour un temps plein a \
-                 35 h -- et la DSN la declare : elle ne se devine pas.",
-                self.numero_ou_point(),
+                "{} : combien d'heures par mois ? La durée du travail se lit sur le contrat signé \
+                 (151,67 h pour un temps plein à 35 h) et la DSN la déclare. À taper dans la case « Heures par \
+                 mois » de l'engagement.",
                 nat.libelle
             )),
         }
@@ -668,13 +666,6 @@ impl Engagement {
             None => self.fin_mois()?,
         };
         Ok(mois_entre(&self.debut, &fin))
-    }
-
-    fn numero_ou_point(&self) -> String {
-        match &self.numero {
-            Some(n) if !n.is_empty() => n.clone(),
-            _ => "?".to_string(),
-        }
     }
 
     // ------------------------------------------------------------ les lieux

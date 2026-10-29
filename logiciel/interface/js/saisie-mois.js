@@ -1094,11 +1094,11 @@ async function enregistrerEnPartant({ s, confirme }, chargement) {
     if (e.detail?.type === "ModificationApresEcheance") {
       confirmerModification(s.mois, e.message, async () => {
         try { await ecrire(true); dire(`${moisEnClair(s.mois)} : modification enregistrée.`); }
-        catch (e2) { dire(`${moisEnClair(s.mois)} : PAS enregistré — ${e2.message}`, "erreur"); }
+        catch (e2) { dire(`${moisEnClair(s.mois)} : non enregistré — ${e2.message}`, "erreur"); }
       });
       return;
     }
-    if (e.detail?.type !== "SaisieIncomplete") dire(`${moisEnClair(s.mois)} : PAS enregistré — ${e.message}`, "erreur");
+    if (e.detail?.type !== "SaisieIncomplete") dire(`${moisEnClair(s.mois)} : non enregistré — ${e.message}`, "erreur");
     return;
   }
   // Le mois affiché se vérifie quand il est peint (la vérification part tout de suite : le moteur refait l'état).
@@ -1293,7 +1293,7 @@ async function enregistrerSaisieSeule(silencieux) {
     if (e.detail?.type === "ModificationNonDeclarable") {
       dire(e.message, "erreur");
       if (MOIS_AFFICHE === s.mois) await chargerMois(s.mois, true);
-      noteSaisie("PAS enregistré — " + e.message);
+      noteSaisie("Non enregistré — " + e.message);
       return false;
     }
     if (e.detail?.type === "ModificationApresEcheance") {
@@ -1309,7 +1309,7 @@ async function enregistrerSaisieSeule(silencieux) {
     }
     // Un échec d'enregistrement ne peut pas rester discret : c'est du travail
     // qu'on croit posé et qui ne l'est pas.
-    noteSaisie("PAS enregistré — " + e.message);
+    noteSaisie("Non enregistré — " + e.message);
     if (!silencieux) dire(e.message, "erreur");
     return false;
   }
