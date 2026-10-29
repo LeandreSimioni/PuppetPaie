@@ -9,7 +9,7 @@ use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
 use socle::ecriture::ecrire_json;
-use socle::fichiers::{lire_json, repr, vrai};
+use socle::fichiers::{repr, vrai};
 use socle::num::Resultat;
 
 /// Les actes que l'on note ; un autre est refuse.
@@ -52,9 +52,13 @@ pub fn empreinte_fichier(chemin: &Path) -> Resultat<String> {
     std::fs::read(chemin).map(|b| empreinte(&b)).map_err(|e| format!("{} : {}", chemin.display(), e))
 }
 
+/// Les lignes du journal `p`, lues une fois tant qu'il ne change pas (`socle::fichiers::json_partage`) : chaque etat de
+/// mois, chaque envoi le relit, et il grandit avec la compagnie. Un calcul suivi le note comme toute lecture.
 fn lignes_du_fichier(p: &Path) -> Resultat<Vec<Value>> {
-    match lire_json(p)? {
-        Value::Array(a) => Ok(a),
+    let v = socle::fichiers::json_partage(p)?.ok_or_else(|| format!("{} : fichier introuvable", p.display()))?;
+    socle::fichiers::noter_si_besoin(p);
+    match v.as_ref() {
+        Value::Array(a) => Ok(a.clone()),
         _ => Err(format!("{} : une liste etait attendue", p.display())),
     }
 }

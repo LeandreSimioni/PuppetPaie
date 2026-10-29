@@ -880,7 +880,7 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, precedente: Option<&Va
     for m in o.mois_couverts(mois)? {
         let partis = documents_partis(siens, &m).is_some();
         let garde = anciennes.get(&m).filter(|f| {
-            let saisie = stock::vue_du_mois(&ctx.racine, &m).ok().flatten().map(|v| stock::empreinte_de_saisie(&v));
+            let saisie = stock::empreinte_de_la_saisie_du_mois(&ctx.racine, &m).ok().flatten();
             let ecrite = f.get("empreinte").and_then(empreinte::entrees_de).and_then(|e| e.get(&stock::cle_de_saisie(&m)).cloned());
             partis && saisie.is_some() && saisie == ecrite
         });

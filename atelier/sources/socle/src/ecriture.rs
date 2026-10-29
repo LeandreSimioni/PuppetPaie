@@ -207,9 +207,7 @@ pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()
     // ni l'empreinte de l'etat d'un mois ni la sauvegarde ne le voient le temps qu'il existe.
     let provisoire = provisoire(chemin);
     std::fs::write(&provisoire, texte).map_err(|e| format!("{} : {}", provisoire.display(), e))?;
-    let fait = std::fs::rename(&provisoire, chemin).map_err(|e| format!("{} : {}", chemin.display(), e));
-    crate::fichiers::noter_ecriture(chemin);
-    fait
+    std::fs::rename(&provisoire, chemin).map_err(|e| format!("{} : {}", chemin.display(), e))
 }
 
 /// Le fichier provisoire d'une ecriture de `chemin` : a cote, `<nom>.<processus>-<numero>.tmp`, que nulle autre ecriture

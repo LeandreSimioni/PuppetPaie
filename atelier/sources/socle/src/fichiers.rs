@@ -139,34 +139,27 @@ pub fn sha256_hex(octets: &[u8]) -> String {
 
 /// Ce que vaut un fichier pour l'empreinte : le hachage de son contenu, ou `absent`.
 pub fn empreinte_fichier(chemin: &Path) -> String {
-    if let Some(e) = empreinte_du_code(chemin) {
-        return e;
-    }
     match std::fs::read(chemin) {
-        Ok(o) => sha256_hex(&o),
+        Ok(o) => empreinte_des_octets(chemin, o),
         Err(_) => "absent".into(),
     }
 }
 
-/// L'EMPREINTE D'UN FICHIER DU CODE LIVRE (`dossier_du_code`), hachee une fois tant que sa signature (date, taille) ne
-/// change pas : les referentiels pesent plus d'un megaoctet, et chaque calcul suivi, chaque empreinte relue d'une paie
-/// les nommerait tous. Une mise a jour les reecrit, d'ou une signature neuve. `None` hors du code, ou s'il ne se lit pas.
-fn empreinte_du_code(chemin: &Path) -> Option<String> {
-    type Empreintes = Mutex<HashMap<PathBuf, ((u128, u64), String)>>;
+/// LE HACHAGE DES OCTETS `octets`, lus de `chemin`, fait une fois par contenu : les referentiels du code pesent plus
+/// d'un megaoctet, et chaque calcul suivi, chaque empreinte relue d'une paie les nomme tous. Le hachage garde ne sert
+/// que si les octets sont exactement ceux qu'il a haches : il ne se perime jamais.
+fn empreinte_des_octets(chemin: &Path, octets: Vec<u8>) -> String {
+    type Empreintes = Mutex<HashMap<PathBuf, (Vec<u8>, String)>>;
     static EMPREINTES: OnceLock<Empreintes> = OnceLock::new();
-    if !chemin.starts_with(dossier_du_code()) {
-        return None;
-    }
-    let sig = signature(chemin)?;
     let cache = EMPREINTES.get_or_init(|| Mutex::new(HashMap::new()));
-    if let Some((vue, e)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
-        if *vue == sig {
-            return Some(e.clone());
+    if let Some((vus, e)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
+        if *vus == octets {
+            return e.clone();
         }
     }
-    let e = sha256_hex(&std::fs::read(chemin).ok()?);
-    ranger(cache, chemin.to_path_buf(), (sig, e.clone()));
-    Some(e)
+    let e = sha256_hex(&octets);
+    ranger(cache, chemin.to_path_buf(), (octets, e.clone()));
+    e
 }
 
 fn noms(chemin: &Path) -> Option<Vec<String>> {
@@ -199,7 +192,7 @@ pub fn lire_texte(chemin: &Path) -> std::io::Result<String> {
     match std::fs::read(chemin) {
         Ok(o) => {
             if suivi() {
-                noter("fichier", chemin, empreinte_du_code(chemin).unwrap_or_else(|| sha256_hex(&o)));
+                noter("fichier", chemin, empreinte_des_octets(chemin, o.clone()));
             }
             String::from_utf8(o).map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "stream did not contain valid UTF-8"))
         }
@@ -338,52 +331,29 @@ pub fn json_en_cache_ou<E>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Val
     Ok(v)
 }
 
-/// LES ECRITURES DU PROCESSUS, fichier par fichier : chaque `ecriture::ecrire_json` compte la sienne. Un cache garde un
-/// fichier sous sa signature (date, taille) ET ce compte : deux ecritures du meme processus dans le meme instant
-/// d'horloge, a la meme taille, ne se confondent pas.
-fn ecritures() -> &'static Mutex<HashMap<PathBuf, u64>> {
-    static ECRITURES: OnceLock<Mutex<HashMap<PathBuf, u64>>> = OnceLock::new();
-    ECRITURES.get_or_init(|| Mutex::new(HashMap::new()))
-}
+type CacheDesContenus = Mutex<HashMap<PathBuf, (Arc<Vec<u8>>, Arc<Value>)>>;
 
-/// Combien de fois ce processus a ecrit `chemin`.
-pub fn ecritures_de(chemin: &Path) -> u64 {
-    ecritures().lock().unwrap_or_else(|p| p.into_inner()).get(chemin).copied().unwrap_or(0)
-}
-
-/// Une ecriture de `chemin` par ce processus (`ecriture::ecrire_json`).
-pub fn noter_ecriture(chemin: &Path) {
-    *ecritures().lock().unwrap_or_else(|p| p.into_inner()).entry(chemin.to_path_buf()).or_insert(0) += 1;
-}
-
-type CacheDeLaCompagnie = Mutex<HashMap<PathBuf, ((u128, u64), u64, Arc<Value>)>>;
-
-/// UN JSON DE LA COMPAGNIE LU UNE FOIS TANT QU'IL NE CHANGE PAS : sa signature (date, taille) et les ecritures du
-/// processus (`noter_ecriture`) le gardent. `None` s'il n'existe pas. Rien ne se note au registre : l'appelant dit ce
-/// qu'il lit (les engagements se comptent par leur saisie, `engagement::stock`). Partage : on ne le modifie pas.
+/// UN JSON LU, ANALYSE UNE FOIS PAR CONTENU : le fichier se relit a chaque fois (ses octets), et ce qu'on en avait tire
+/// ne sert que si ses octets sont exactement ceux d'alors. Rien ne se lit perime, quel que soit qui l'a ecrit et quand
+/// (une autre fenetre, une restauration, une cle USB aux dates a deux secondes pres) : seule l'analyse s'epargne, et
+/// c'est elle qui coute. `None` s'il n'existe pas. Rien ne se note au registre : l'appelant dit ce qu'il lit (les
+/// engagements se comptent par leur saisie, `engagement::stock`). Partage : on ne le modifie pas ; deux lectures du meme
+/// contenu rendent la meme valeur (`Arc::ptr_eq`).
 pub fn json_partage(chemin: &Path) -> Resultat<Option<Arc<Value>>> {
-    static CACHE: OnceLock<CacheDeLaCompagnie> = OnceLock::new();
+    static CACHE: OnceLock<CacheDesContenus> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let Some(sig) = signature_lue(chemin) else {
-        return match std::fs::metadata(chemin) {
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(e) => Err(panne_fichier(&e, chemin)),
-            Ok(_) => Err(format!("{} : signature illisible", chemin.display())),
-        };
-    };
-    let n = ecritures_de(chemin);
-    if let Some((vue, m, v)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
-        if *vue == sig && *m == n {
-            return Ok(Some(v.clone()));
-        }
-    }
     let octets = match std::fs::read(chemin) {
         Ok(o) => o,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(panne_fichier(&e, chemin)),
     };
+    if let Some((vus, v)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
+        if **vus == octets {
+            return Ok(Some(v.clone()));
+        }
+    }
     let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| format!("{} : {}", chemin.display(), e))?);
-    ranger(cache, chemin.to_path_buf(), (sig, n, v.clone()));
+    ranger(cache, chemin.to_path_buf(), (Arc::new(octets), v.clone()));
     Ok(Some(v))
 }
 

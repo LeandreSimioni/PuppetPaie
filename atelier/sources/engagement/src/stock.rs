@@ -360,25 +360,62 @@ fn difference(base: &Map<String, Value>, vue: &Map<String, Value>) -> Map<String
 
 /// Tous les engagements, fichier par fichier, du plus ancien au plus recent, dans l'ordre de chaque fichier.
 pub fn objets(racine: &Path) -> Resultat<Vec<Objet>> {
+    Ok(tous(racine)?.1.as_ref().clone())
+}
+
+/// Les fichiers des engagements d'une compagnie tels qu'ils viennent d'etre lus : chaque mois, et ce que son fichier
+/// contient (`socle::fichiers::json_partage` : la meme valeur tant que les octets sont les memes).
+type Lus = Vec<(String, std::sync::Arc<Value>)>;
+
+/// Deux lectures ont-elles trouve exactement les memes fichiers, aux memes octets ?
+fn memes(a: &Lus, b: &Lus) -> bool {
+    a.len() == b.len() && a.iter().zip(b).all(|((m, x), (n, y))| m == n && std::sync::Arc::ptr_eq(x, y))
+}
+
+fn lus(racine: &Path) -> Resultat<Lus> {
     let mut out = Vec::new();
     for f in fichiers(racine) {
-        let Some(m) = lire_partage(racine, &f)? else { continue };
+        if let Some(v) = lire_partage(racine, &f)? {
+            out.push((f, v));
+        }
+    }
+    Ok(out)
+}
+
+/// TOUS LES ENGAGEMENTS D'UNE COMPAGNIE, tires une fois des memes fichiers : chaque lecture relit les fichiers, et ce
+/// qu'on en avait tire ne sert que si leurs octets sont exactement les memes (`memes`). L'ecran d'un mois, chaque paie
+/// qui se verifie, chaque DSN les relit : refaits et recopies a chaque fois, ils coutaient d'autant plus que la
+/// compagnie a d'engagements et de mois. Partage : on n'y touche pas, on recopie ce qu'on garde.
+fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Vec<Objet>>)> {
+    type Tires = std::sync::Mutex<std::collections::HashMap<PathBuf, (Lus, std::sync::Arc<Vec<Objet>>)>>;
+    static TIRES: std::sync::OnceLock<Tires> = std::sync::OnceLock::new();
+    let tires = TIRES.get_or_init(Default::default);
+    let fichiers = lus(racine)?;
+    if let Some((vus, v)) = tires.lock().unwrap_or_else(|p| p.into_inner()).get(racine) {
+        if memes(vus, &fichiers) {
+            return Ok((fichiers, v.clone()));
+        }
+    }
+    let mut out = Vec::new();
+    for (f, m) in &fichiers {
         for (rang, e) in m.get("engagements").and_then(Value::as_array).into_iter().flatten().enumerate() {
             if let Value::Object(brut) = e {
                 out.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: brut.clone() });
             }
         }
     }
-    Ok(out)
+    let out = std::sync::Arc::new(out);
+    socle::fichiers::ranger(tires, racine.to_path_buf(), (fichiers.clone(), out.clone()));
+    Ok((fichiers, out))
 }
 
 /// Les engagements qui touchent `mois`, dans l'ordre de l'ecran : ceux des fichiers d'avant qui courent encore, puis
 /// ceux du mois.
 pub fn objets_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
     let mut out = Vec::new();
-    for o in objets(racine)? {
+    for o in tous(racine)?.1.iter() {
         if o.fichier.as_str() <= mois && o.couvre(mois)? {
-            out.push(o);
+            out.push(o.clone());
         }
     }
     Ok(out)
@@ -387,9 +424,9 @@ pub fn objets_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
 /// Les engagements non actifs (`NON_ACTIF`) qui toucheraient `mois` s'ils l'etaient encore : ce qui se lit d'eux.
 pub fn non_actifs_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
     let mut out = Vec::new();
-    for o in objets(racine)? {
+    for o in tous(racine)?.1.iter() {
         if o.est_non_actif() && o.fichier.as_str() <= mois && o.dans_ses_bornes(mois)? {
-            out.push(o);
+            out.push(o.clone());
         }
     }
     Ok(out)
@@ -414,25 +451,71 @@ pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
 /// LE MOIS DE L'ECRAN : `{"mois", <defauts du mois>, "engagements": [la vue de chacun]}`, ou `None` quand aucun
 /// engagement ne le touche et qu'il n'a pas de fichier. Un engagement valide y dit quand (`valide` : `{"le"}`).
 pub fn vue_du_mois(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
-    let fichier = lire_fichier(racine, mois)?;
-    let objets = objets_du_mois(racine, mois)?;
-    if (fichier.is_none() || importes_seuls(racine, mois)) && objets.is_empty() {
-        return Ok(None);
+    Ok(saisie_du_mois(racine, mois)?.map(|s| {
+        socle::fichiers::noter_valeur(&cle_de_saisie(mois), s.1.clone());
+        s.0.clone()
+    }))
+}
+
+/// L'empreinte de la saisie de `mois` (`empreinte_de_saisie`), celle que `vue_du_mois` note ; `None` sans saisie.
+pub fn empreinte_de_la_saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<String>> {
+    Ok(saisie_du_mois(racine, mois)?.map(|s| s.1.clone()))
+}
+
+/// La vue de `mois` et son empreinte, faites une fois pour les memes fichiers aux memes octets (`memes`) :
+/// chaque paie qui se verifie relit la saisie des mois qu'elle a lus. La vue d'une ligne lit aussi l'unite de sa rubrique
+/// (`droit::catalogue::rubrique`) : les deux catalogues en font partie.
+fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(Value, String)>>> {
+    type Saisie = Option<std::sync::Arc<(Value, String)>>;
+    type Vues = std::sync::Mutex<std::collections::HashMap<(PathBuf, String), (Lus, Saisie)>>;
+    static VUES: std::sync::OnceLock<Vues> = std::sync::OnceLock::new();
+    static ABSENT: std::sync::OnceLock<std::sync::Arc<Value>> = std::sync::OnceLock::new();
+    let vues = VUES.get_or_init(Default::default);
+    let (mut lus, tous) = tous(racine)?;
+    for p in [socle::fichiers::dossier_du_code().join("rubriques-base.json"), racine.join("config").join(droit::catalogue::RUBRIQUES_COMPAGNIE)] {
+        // Absent, il est le meme d'une lecture a l'autre ; illisible, il ne l'est jamais (la vue se refait).
+        let v = match socle::fichiers::json_partage(&p) {
+            Ok(Some(v)) => v,
+            Ok(None) => ABSENT.get_or_init(|| std::sync::Arc::new(Value::Null)).clone(),
+            Err(_) => std::sync::Arc::new(Value::Null),
+        };
+        lus.push((p.to_string_lossy().into_owned(), v));
     }
-    let mut data = fichier.unwrap_or_default();
-    data.insert("mois".into(), Value::String(mois.to_string()));
-    let mut engagements = Vec::new();
-    for o in &objets {
-        let Some(mut v) = o.vue(mois)? else { continue };
-        if let Some(le) = o.brut.get("valide").and_then(|x| x.get("le")) {
-            v.insert("valide".into(), serde_json::json!({ "le": le }));
+    let cle = (racine.to_path_buf(), mois.to_string());
+    if let Some((vus, s)) = vues.lock().unwrap_or_else(|p| p.into_inner()).get(&cle) {
+        if memes(vus, &lus) {
+            return Ok(s.clone());
         }
-        engagements.push(Value::Object(v));
     }
-    data.insert("engagements".into(), Value::Array(engagements));
-    let vue = Value::Object(data);
-    socle::fichiers::noter_valeur(&cle_de_saisie(mois), empreinte_de_saisie(&vue));
-    Ok(Some(vue))
+    // Ce que le fichier du mois pose pour tous ; ses engagements, la vue les refait (ceux des mois d'avant qui courent).
+    let fichier: Option<Map<String, Value>> = lire_partage(racine, mois)?
+        .map(|v| v.as_object().into_iter().flatten().map(|(k, x)| (k.clone(), if k == "engagements" { Value::Null } else { x.clone() })).collect());
+    let mut objets = Vec::new();
+    for o in tous.iter() {
+        if o.fichier.as_str() <= mois && o.couvre(mois)? {
+            objets.push(o);
+        }
+    }
+    let saisie = if (fichier.is_none() || importes_seuls(racine, mois)) && objets.is_empty() {
+        None
+    } else {
+        let mut data = fichier.unwrap_or_default();
+        data.insert("mois".into(), Value::String(mois.to_string()));
+        let mut engagements = Vec::new();
+        for o in &objets {
+            let Some(mut v) = o.vue(mois)? else { continue };
+            if let Some(le) = o.brut.get("valide").and_then(|x| x.get("le")) {
+                v.insert("valide".into(), serde_json::json!({ "le": le }));
+            }
+            engagements.push(Value::Object(v));
+        }
+        data.insert("engagements".into(), Value::Array(engagements));
+        let vue = Value::Object(data);
+        let empreinte = empreinte_de_saisie(&vue);
+        Some(std::sync::Arc::new((vue, empreinte)))
+    };
+    socle::fichiers::ranger(vues, cle, (lus, saisie.clone()));
+    Ok(saisie)
 }
 
 /// La cle sous laquelle un calcul note la saisie d'un mois qu'il a lue (`socle::fichiers::suivre`).
