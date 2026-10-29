@@ -69,8 +69,9 @@
 //!
 //! UNE VERSION S'INSTALLE DES QU'ELLE EST PRETE : au lancement suivant, ou au clic « Redemarrer pour mettre a jour ».
 //! Rien ne la retient. Sa phrase `calcul` (la case de « Publier ») dit a la compagnie ce qu'elle change d'un calcul de
-//! paie : l'indicateur la montre avec la version prete (`Recherche::etat`), `moteur version` aussi. Une version EXIGEE
-//! bloque tout depot reel tant qu'elle n'est pas appliquee (`depot_acte::exigee_en_attente`).
+//! paie : l'indicateur la montre avec la version prete, puis, une fois, au lancement qui suit son installation
+//! (`dire_l_installation`) ; `moteur version` aussi. Une version EXIGEE bloque tout depot reel tant qu'elle n'est pas
+//! installee (`depot_acte::exigee_en_attente`) ; l'indicateur le dit, sans survol (`Recherche::etat`, `exigee`).
 //!
 //! LA CLE DE SIGNATURE (`config/maj-cle-privee.bin`, lot K1, 14/10/2026 ; Leandre : « si mon ordi tombe, on pourra plus
 //! faire de mise a jour, ça me va pas »). Sa graine est scellee par la CLE MAITRESSE DU COFFRE
@@ -921,6 +922,11 @@ struct Point {
     mot: String,
     /// La phrase `calcul` de la version prete : ce qu'elle change d'un calcul de paie (vide : rien).
     calcul: String,
+    /// La raison `exigee` de la version prete : elle est indispensable avant de declarer (vide : elle ne l'est pas).
+    exigee: String,
+    /// Ce que la version en place, installee juste avant ce lancement, change d'un calcul de paie
+    /// (`dire_l_installation`) : vide, rien a dire. Il tient tout le lancement, quelle que soit l'etape.
+    installee: String,
     sans_ce_systeme: Option<String>,
     /// Un echec `HORS_LIGNE` que la recherche reprendra d'elle-meme : quand (`chercher_tant_qu_il_tourne`).
     nouvel_essai: Option<std::time::Instant>,
@@ -935,6 +941,8 @@ impl Point {
             attendus: None,
             mot: String::new(),
             calcul: String::new(),
+            exigee: String::new(),
+            installee: String::new(),
             sans_ce_systeme: None,
             nouvel_essai: None,
         }
@@ -1003,18 +1011,29 @@ impl Recherche {
         let mut p = self.0.lock().unwrap_or_else(|e| e.into_inner());
         if p.etape != etape {
             let garde = version.map(String::from).or_else(|| if etape == Etape::AJour { None } else { p.version.take() });
-            *p = Point { etape, version: garde, ..Point::vide() };
+            let installee = std::mem::take(&mut p.installee);
+            *p = Point { etape, version: garde, installee, ..Point::vide() };
         } else if let Some(v) = version {
             p.version = Some(v.to_string());
         }
         plus(&mut p);
     }
 
-    /// La version `v` est prete (`maj/prete.json`) : elle s'applique au redemarrage ; sa phrase `calcul` se garde pour
-    /// l'indicateur.
+    /// La version `v` est prete (`maj/prete.json`) : elle s'applique au redemarrage ; sa phrase `calcul` et sa raison
+    /// `exigee` se gardent pour l'indicateur.
     fn prete(&self, inst: &Path, v: &str) {
-        let calcul = prete(inst).and_then(|p| p.get("calcul").and_then(Value::as_str).map(str::trim).map(String::from)).unwrap_or_default();
-        self.poser(Etape::Prete, Some(v), |p| p.calcul = calcul);
+        let d = prete(inst);
+        let texte = |cle: &str| d.as_ref().and_then(|p| p.get(cle).and_then(Value::as_str).map(str::trim).map(String::from)).unwrap_or_default();
+        let (calcul, exigee) = (texte("calcul"), texte("exigee"));
+        self.poser(Etape::Prete, Some(v), |p| {
+            p.calcul = calcul;
+            p.exigee = exigee;
+        });
+    }
+
+    /// Ce que la version en place, installee juste avant ce lancement, change d'un calcul de paie (`dire_l_installation`).
+    fn installee(&self, phrase: String) {
+        self.0.lock().unwrap_or_else(|e| e.into_inner()).installee = phrase;
     }
 
     pub fn etape(&self) -> Etape {
@@ -1030,9 +1049,10 @@ impl Recherche {
     /// Ce que l'indicateur montre, tout decide ici : `etape`, `texte` (vide : rien a montrer), `detail` (la bulle),
     /// `progression` (0 a 1, ou rien : pas de barre ; une barre sans fin connue est `null` avec `barre`), `en_cours`
     /// (une recherche se fait), `relire_ms` (dans combien la page relit : pendant une recherche, pendant qu'un nouvel essai
-    /// est prevu, et tant que la recherche de fond tourne ; `null`, elle se tait), `redemarrer` (le clic est offert).
-    /// Tout se dit positivement, par ce qui est vrai (ticket #217, Leandre, 20/10/2026 : « Logiciel a jour » plutot
-    /// qu'« Aucune mise a jour »).
+    /// est prevu, et tant que la recherche de fond tourne ; `null`, elle se tait), `redemarrer` (le clic est offert),
+    /// `exigee` (la version prete est indispensable avant de declarer : la phrase, ou `null`), `installee` (ce que la
+    /// version en place, installee juste avant ce lancement, change d'un calcul de paie : la phrase, ou `null`).
+    /// Tout se dit positivement, par ce qui est vrai (« Logiciel a jour » plutot qu'« Aucune mise a jour »).
     pub fn etat(&self) -> Value {
         let p = self.0.lock().unwrap_or_else(|e| e.into_inner());
         let lue = p.version.as_deref().map(version_lue);
@@ -1077,7 +1097,7 @@ impl Recherche {
                 if p.calcul.is_empty() {
                     nommee("est prête : elle s'installe au redémarrage.")
                 } else {
-                    nommee(&format!("est prête : elle s'installe au redémarrage. Elle change un calcul de paie : {}", p.calcul))
+                    nommee(&format!("est prête : elle s'installe au redémarrage. {}", phrase_du_calcul(&p.calcul)))
                 },
                 false,
                 None,
@@ -1115,8 +1135,43 @@ impl Recherche {
             "relire_ms": relire_ms,
             "redemarrer": p.etape == Etape::Prete,
             "version": lue,
+            // Une version prete EXIGEE : les depots reels la refusent tant qu'elle n'est pas installee
+            // (`depot_acte::exigee_en_attente`, qui lit le meme `prete.json`). La phrase se lit sans survol.
+            "exigee": (p.etape == Etape::Prete && !p.exigee.is_empty())
+                .then(|| format!("Elle est indispensable avant de déclarer ({}) : aucun dépôt réel ne part tant qu'elle n'est pas installée.", p.exigee)),
+            "installee": (!p.installee.is_empty()).then(|| p.installee.clone()),
         })
     }
+}
+
+/// « Elle change un calcul de paie : … », la phrase `calcul` de « Publier » terminee par un point.
+fn phrase_du_calcul(calcul: &str) -> String {
+    let c = calcul.trim();
+    let point = if c.ends_with(['.', '!', '?', '…']) { "" } else { "." };
+    format!("Elle change un calcul de paie : {}{}", c, point)
+}
+
+/// LA VERSION QUI VIENT DE S'INSTALLER se dit au lancement qui suit, une fois. La bascule (`appliquer_depuis`) ecrit
+/// `maj/appliquee.json` avec la phrase `calcul` et `vue: false` ; lu ici, il passe a `vue: true` et ne se redit plus.
+/// Une version qui change un calcul de paie se dit pour tout ce lancement (`Point::installee`) : « PuppetPaie X est en
+/// place. Elle change un calcul de paie : … » ; une version sans phrase `calcul` n'a rien de plus a dire que « Logiciel
+/// a jour ». Si `vue` ne s'ecrit pas, la phrase se dit quand meme : mieux vaut la relire que ne jamais la lire.
+fn dire_l_installation(inst: &Path, suivi: &Recherche) {
+    let chemin = dossier_maj(inst).join("appliquee.json");
+    let Some(mut a) = lire_json(&chemin) else { return };
+    if a.get("vue").and_then(Value::as_bool) != Some(false) {
+        return;
+    }
+    a["vue"] = json!(true);
+    if let Err(e) = ecrire_json(&chemin, &a) {
+        noter(inst, &format!("{} : {}", chemin.display(), e));
+    }
+    let calcul = a.get("calcul").and_then(Value::as_str).map(str::trim).unwrap_or_default();
+    if calcul.is_empty() {
+        return;
+    }
+    let version = version_lue(a.get("version").and_then(Value::as_str).unwrap_or_default());
+    suivi.installee(format!("PuppetPaie {} est en place. {}", version, phrase_du_calcul(calcul)));
 }
 
 /// Le geste « Redemarrer pour mettre a jour » : la version prete part au relais (comme au lancement, `au_lancement`) ; a
@@ -1791,17 +1846,18 @@ pub fn au_lancement() -> bool {
     }
 }
 
-/// AU LANCEMENT, apres `au_lancement` : le logiciel cherche pour lui-meme, en fond, sans attendre qu'une compagnie
-/// s'ouvre ; ce qu'il trouve s'appliquera au lancement suivant (ou au clic « Redemarrer pour mettre a jour »). Ce qui
-/// s'est passe va dans le journal de la mise a jour ; ou elle en est, dans `RECHERCHE` (l'indicateur, ticket #210).
-/// Elle continue tant que le logiciel tourne (`chercher_tant_qu_il_tourne` : ticket #217 sans reseau, 21/10/2026 a jour).
-/// Un seul fil par processus : un second appel ne lance rien.
+/// AU LANCEMENT, apres `au_lancement` : la version qui vient de s'installer se dit (`dire_l_installation`), puis le
+/// logiciel cherche pour lui-meme, en fond, sans attendre qu'une compagnie s'ouvre ; ce qu'il trouve s'installe au
+/// lancement suivant (ou au clic « Redemarrer pour mettre a jour »). Ce qui s'est passe va dans le journal de la mise a
+/// jour ; ou elle en est, dans `RECHERCHE` (l'indicateur). Elle continue tant que le logiciel tourne
+/// (`chercher_tant_qu_il_tourne`). Un seul fil par processus : un second appel ne lance rien.
 pub fn chercher_en_fond() {
     static LANCEE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     if LANCEE.swap(true, std::sync::atomic::Ordering::SeqCst) {
         return;
     }
     let inst = installation();
+    dire_l_installation(&inst, &RECHERCHE);
     RECHERCHE.poser(Etape::Recherche, None, |_| {});
     std::thread::spawn(move || chercher_tant_qu_il_tourne(&inst, &cles_de_l_editeur(), &RECHERCHE, &ATTENTES_HORS_LIGNE, RYTHME_A_JOUR));
 }

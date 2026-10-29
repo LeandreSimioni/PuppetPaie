@@ -1,10 +1,10 @@
-//! `moteur ouverture [--sans-sauvegarde] [--sans-retours] [--sans-signatures] [--sans-sources] [--sans-maj] [--jours N] [--pas-avant N]
+//! `moteur ouverture [--sans-sauvegarde] [--sans-retours] [--sans-signatures] [--sans-sources] [--jours N] [--pas-avant N]
 //! [--veille]` : tout ce qui se fait a l'ouverture (`moteur/commandes_ouverture.py`, `cmd_ouverture`). La route `ouverture` fait le
 //! travail (retours DSN et DPAE, signatures, filet DPAE, incidents de l'editeur, sauvegarde, trace) et ne rend jamais d'erreur : une
 //! panne est une phrase de `incidents`.
 //!
-//! NON PORTE (lot J, comme la route) : la verification de la version et celle des sources. `--sans-maj` et `--sans-sources` sont
-//! acceptes et sans effet ; `maj` et `sources` valent `null` en `--json`, et le texte n'a ni la ligne `Sources` ni la ligne `Version`.
+//! La mise a jour se cherche au lancement du logiciel, pas ici ; la verification des sources non plus : `--sans-sources` est
+//! accepte et sans effet, `sources` vaut `null` en `--json`, et le texte n'a pas de ligne `Sources`.
 //!
 //! LE COFFRE. Les retours et les signatures lisent des mots de passe au coffre : `Cadre::ouvrir_le_coffre` d'abord (la cle du poste,
 //! ou une seance que le moteur demande lui-meme ; ses phrases vont sur la sortie d'erreur, donc pas dans un `--json`). Aucun mot de
@@ -31,7 +31,6 @@ pub static SPEC: Spec = Spec {
         Opt::drapeau("sans-retours"),
         Opt::drapeau("sans-signatures"),
         Opt::drapeau("sans-sources"),
-        Opt::drapeau("sans-maj"),
         Opt::entier("jours"),
         Opt::entier("pas-avant"),
         Opt::drapeau("veille"),
@@ -112,7 +111,7 @@ fn objet(v: &Value, cle: &str) -> Option<Value> {
     v.get(cle).filter(|x| x.is_object()).cloned()
 }
 
-/// `_en_json` : les memes cles, dans le meme ordre ; `maj` et `sources` sont `null` (non portes).
+/// Ce que `--json` rend : `sources` est `null`.
 fn en_json(r: &Value) -> Value {
     let get = |v: &Value, k: &str| v.get(k).cloned().unwrap_or(Value::Null);
     let sauvegarde = objet(r, "sauvegarde").map(|s| json!({"resume": get(&s, "resume"), "deposes": get(&s, "deposes"), "identiques": get(&s, "identiques"), "octets": get(&s, "octets")}));
@@ -124,7 +123,6 @@ fn en_json(r: &Value) -> Value {
         "sauvegarde": sauvegarde,
         "retours": retours,
         "signatures": signatures,
-        "maj": Value::Null,
         "sources": Value::Null,
         "incidents": get(r, "incidents"),
         "manquants": get(r, "manquants"),

@@ -30,18 +30,14 @@ async function rafraichirApresVeille(v) {
   } catch (e) { /* le bandeau dit déjà l'essentiel */ }
 }
 
-/* LE BANDEAU, REPENSÉ (24/09/2026). On y cherche trois choses, dans cet
-   ordre : est-ce que tout va bien ? est-ce qu'il est arrivé quelque chose ?
-   est-ce qu'il y a quelque chose à FAIRE ? Il enfilait tout à la suite
-   (« dernier passage … — 285 retour(s), dont 2 nouveau(x), 1 archive(s). —
-   Mot de passe Urssaf (DPAE) absent du coffre […] `python -m moteur coffre
-   poser urssaf` »), en orange dès qu'une ligne manquait.
-
-   Maintenant : une phrase calme quand tout va (« À jour — relevé à 16:28 »,
-   le détail au survol) ; les nouvelles en clair (retours, signatures,
-   version) ; ce qui est à faire en orange, dit en mots, avec le lien vers
+/* LE BANDEAU. On y cherche trois choses, dans cet ordre : est-ce que tout
+   va bien ? est-ce qu'il est arrivé quelque chose ? est-ce qu'il y a quelque
+   chose à FAIRE ? Une phrase calme quand tout va (« À jour — relevé à
+   16:28 », le détail au survol) ; les nouvelles en clair (retours,
+   signatures) ; ce qui est à faire en orange, dit en mots, avec le lien vers
    l'endroit où le faire. Jamais une commande de terminal : une fenêtre
-   n'en a pas. */
+   n'en a pas. La mise à jour n'est pas ici : l'indicateur la dit
+   (js/mise-a-jour.js). */
 const A_POSER = {
   "net-entreprises": ["Les retours de DSN ne se relèvent pas seuls : le mot de passe net-entreprises n'est pas posé.", "Poser le mot de passe"],
   urssaf: ["Les retours de DPAE ne se relèvent pas seuls : le mot de passe Urssaf (DPAE) n'est pas posé.", "Poser le mot de passe"],
@@ -87,8 +83,7 @@ function dessinerVeille(v) {
 
   // 1. L'ÉTAT, en une phrase. Le détail des relevés passe au survol : on
   //    le cherche rarement, et il reste à portée.
-  const detail = [...(d.injoignables || []), d.sauvegarde, d.retours, d.signatures, d.fiches, d.sources,
-                  d.maj_exigee ? "" : d.maj].filter(Boolean).join("\n");
+  const detail = [...(d.injoignables || []), d.sauvegarde, d.retours, d.signatures, d.fiches, d.sources].filter(Boolean).join("\n");
   if (v.sauvegarde_en_cours) suivreLesEtapes();
   // « HORS CONNEXION, C'EST QUAND IL N'Y A PAS INTERNET, PAS QUAND ON ATTEND » (Léandre, 21/10/2026) : l'attente
   // dit l'heure du prochain relevé ; un service qui n'a pas répondu se nomme (au survol), et le relevé qui est
@@ -118,7 +113,6 @@ function dessinerVeille(v) {
   const retours = d.nouveaux ? ` <button class="lien" data-vers-historique>${d.nouveaux} retour${d.nouveaux > 1 ? "s" : ""}
     nouveau${d.nouveaux > 1 ? "x" : ""} — les lire dans l'Historique</button>` : "";
   (d.signatures_recues || []).forEach((x) => nouvelles.push(`contrat signé par ${x.nom}`));
-  if (d.maj && !d.maj_exigee) nouvelles.push(d.maj);
   // L'HORLOGE DE LA COMPAGNIE FICTIVE : ce que l'administrateur fictif a fait
   // pendant l'absence du visiteur, chaque geste à sa date limite.
   const horloge = enFictive() && (d.horloge || []).length
@@ -127,12 +121,10 @@ function dessinerVeille(v) {
   if (retours) morceaux.push(retours);
   if (nouvelles.length) morceaux.push(`<b>${nouvelles.map(echapper).join(" · ")}</b>`);
   if (horloge) morceaux.push(horloge);
-  if (d.maj_note) morceaux.push(`<b>${echapper(d.maj_note)}</b>`);
 
   // 3. CE QUI EST À FAIRE : en mots, avec le chemin. Le premier se lit, les
   //    suivants se déplient.
   const afaire = [];
-  if (d.maj_exigee) afaire.push(`<b>${echapper(d.maj)}</b>`);
   (d.a_poser || []).forEach((code) => {
     const [phrase, geste] = A_POSER[code] || [code, "Mots de passe"];
     afaire.push(`${echapper(phrase)} <button class="lien" data-aller="${echapper(code)}">${echapper(geste)}</button>`);
