@@ -168,13 +168,14 @@ Ce que ça impose au moteur :
 
 - `dates_engagement` (`engagement/src/lib.rs`) est le **seul endroit** qui sache où
   chercher les jours d'un engagement : dans ses lignes, et nulle part
-  ailleurs. `charger` passe par lui, et le décompte des droits (`cumul.rs`) lit ce qu'il a chargé.
+  ailleurs. La lecture d'un engagement (`Engagement::nouveau`) passe par lui, et le décompte des droits (`cumul.rs`)
+  lit ce qu'elle a lu.
 - **Une seule écriture.** `Engagement` exige
   `lignes` ; `cachets` et `heures` en sont **dérivés** (l'AEM, le bloc 53 de
   la DSN, le plafond et `cumul` les lisent toujours), `taux_cachet` est le
-  taux de la première ligne `cachet`, `taux_horaire` n'existe plus. Un
+  taux de la première ligne `cachet`. Un
   engagement portant `dates`, `cachets`, `heures` ou `taux_horaire` est
-  refusé par `charger`, qui dit ce qu'il a vu et ce qu'une saisie porte.
+  refusé, avec ce que le moteur a vu et ce qu'une saisie porte.
 - `date::d` (`socle/src/date.rs`) accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
   date : une date détaillée est une date, tout ce qui parcourt des jours
   continue de marcher sans le savoir.
@@ -193,27 +194,27 @@ Ce que ça impose au moteur :
 
 Trois fichiers de données livrés avec le moteur, et une règle : **toute
 donnée réglementaire part d'une source officielle téléchargée, décrite,
-datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
+datée, vérifiable**.
 
-- `moteur/nomenclature-emplois-ft.json` — les **1 236 codes emploi** France
+- `logiciel/donnees/nomenclature-emplois-ft.json` — les **1 236 codes emploi** France
   Travail (annexes 8 et 10), **générés** depuis le PDF de la nomenclature.
-- `moteur/emplois-base.json` — **129 métiers du spectacle vivant** en onze
+- `logiciel/donnees/emplois-base.json` — **129 métiers du spectacle vivant** en onze
   familles. Chaque métier : libellé (et féminin), `emploi` officiel
   (S21.G00.40.006), `pcs_ese` (40.004, depuis les fiches Insee), `statut`
   (déduit de l'annexe, jamais saisi), `cadre_par_defaut`,
   `statut_conventionnel` (40.002 : cadre → 04, artiste et agent de maîtrise
   → 05, administratif non cadre → 06, employé technique → 07),
-  `classification_3090` et `minima`. `emplois.resoudre(code, cadre, feminin)`
+  `classification_3090` et `minima`. `droit::emplois::resoudre(code, cadre, feminin)`
   rend sept champs : les six déclarés et le libellé lisible
-  (`emploi_affichage`, au féminin si la fiche dit sexe 2). `engagements` les
+  (`emploi_affichage`, au féminin si la fiche dit sexe 2). La lecture de l'engagement les
   pose tous les sept sur l'engagement, sauf ce que l'engagement écrit
   lui-même (un `emploi` écrit à la main ne garde pas le libellé du métier) ;
-  `emploi_de` les reporte sur la fiche de cet engagement, et le contrat lit
+  `emplois::emploi_de` les reporte sur la fiche de cet engagement, et le contrat lit
   le libellé de là. Le cadre se combine au statut.
-- `moteur/minima-conventionnels.json` — les grilles de la **3090** (annexes
+- `logiciel/donnees/minima-conventionnels.json` — les grilles de la **3090** (annexes
   1, 2, 4, 5 et clauses communes) et de la **1285** (cachet, répétition,
   cirque, musiciens, lyrique, chœur ; NAO 2026 sous `non_etendu`).
-  `minima.avertissements(ctx, paie)` compare chaque ligne à son plancher et
+  `engagement::minima::avertissements` compare chaque ligne à son plancher et
   rend une phrase, jamais un refus. **Toute inconnue tire vers le bas** :
   jauge minimale, palier du mois pour un barème trimestriel, la plus basse
   des annexes quand la fiche entreprise ne dit pas la sienne
@@ -222,7 +223,7 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
 - `logiciel/donnees/sources.json` — le **manifeste** : pour chaque source, titre,
   éditeur, URL, description, version et d'où on la lit, date de relevé,
   fichier de la copie (dans `atelier/reference/sources/`, versionnée dans le
-  dépôt depuis le 15/10/2026 ; l'original d'un organisme privé n'y est pas, seule
+  dépôt ; l'original d'un organisme privé n'y est pas, seule
   sa transcription), SHA-256, mode de vérification, et
   quels fichiers de données elle nourrit. `moteur sources --verifier`
   (poste de l'éditeur seulement, `moteur/src/atelier/sources.rs`) retélécharge et compare ; une source `changee` est à RELIRE
@@ -276,19 +277,9 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
   la base entière, 180 Mo, la première fois ou pour une convention nouvelle),
   `article <IDCC> <numéro>…`, `chercher <IDCC> <mot>`.
 
-  Ce que ce dernier verbe a trouvé le 21/09/2026, et qu'un relevé sans
-  comparaison aurait laissé passer : sur huit articles changés, **un seul
-  changement touchait la paie de près** — le taux de L137-12, passé de 30 à
-  40 % —, `L242-1` perdant un alinéa sans que son 7°, le seul dont le moteur
-  dépende, bouge d'un mot.
+## Le barème, lu sur un bulletin
 
-Ce que la confrontation à CoolPaie a montré (`reference-privee/professions-coolpaie.md (relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé)`) :
-les 51 codes PE concordent ; CoolPaie met l'accessoiriste en PCS `637d`,
-l'Insee dit `637c` ; sa colonne « abat. » n'est pas la DFS réglementaire.
-
-## Le barème, et comment il a été retrouvé
-
-Point de départ : le bulletin FAVART de juin 2026, brut 260,00 €.
+Un bulletin d'artiste au cachet, brut 260,00 €, dans la convention 3090 :
 
 | Rubrique | Base | Patronal | Salarial |
 |---|---|---|---|
@@ -313,9 +304,8 @@ Les taux de vieillesse et de famille sont les taux de droit commun réduits de
 5,985 ≈ 5,990 ; 6,90 × 0,70 = 4,83 ; 5,25 × 0,70 = 3,675 ≈ 3,680).
 
 **Le plafond de Sécurité sociale est dans le barème** (`plafond_securite_sociale`
-: `{"mensuel": 4005, "horaire": 30}`, source BOSS), depuis le 16/09/2026 —
-c'était la seule valeur réglementaire qui vivait dans le code. Le module
-(`droit/src/plafond.rs`) ne porte plus que la règle, et
+: `{"mensuel": 4005, "horaire": 30}`, source BOSS). Le module
+(`droit/src/plafond.rs`) ne porte que la règle, et
 `calcul::plafond_de_l_engagement` en est la seule source : le bas du bulletin,
 les bases du calcul, la DSN et le bordereau la suivent. La règle, telle que
 le module la dit avec ses textes (`atelier/reference/sources/`) :
@@ -331,18 +321,15 @@ le module la dit avec ses textes (`atelier/reference/sources/`) :
   l'établissement y renonce (`plafond_temps_partiel` : « entier ») ; un
   artiste à temps partiel garde le plafond entier (BOSS § 1090). Le choix se
   déclare en `S21.G00.40.084` à partir de P27V01 (`calcul::plafond_temps_partiel`,
-  `dsn::proratisation_du_plafond` ; lots V4b et R5a).
+  `dsn::proratisation_du_plafond`).
 
 Sur ce plafond s'assoient, pour un intermittent, la vieillesse plafonnée, le
 FNAL (`brut_plafonne`, `brut_x115_plafonne`) et le chômage, dans la limite de
 quatre plafonds (`brut_chomage`) ; pour un permanent, les tranches et le
-chômage, dans la limite de quatre plafonds de la période (`brut_chomage`, lot
-V2e).
+chômage, dans la limite de quatre plafonds de la période (`brut_chomage`).
 
-**Une valeur du barème peut être datée.** Le SMIC l'a toujours été
-(`smic_horaire`, liste de `{depuis, valeur}`) ; depuis le 16/09/2026 toute
-valeur peut l'être — un taux, un plafond — parce que les DSN de CoolPaie
-montrent des changements en cours d'année (AGS 0,20 → 0,25 au 01/07/2024,
+**Une valeur du barème peut être datée** : le SMIC (`smic_horaire`, liste de `{depuis, valeur}`), et toute autre
+valeur — un taux, un plafond —, parce que le droit change en cours d'année (AGS 0,20 → 0,25 au 01/07/2024,
 chômage 11,45 → 11,40 au 01/06/2025) :
 
 ```json
@@ -350,8 +337,8 @@ chômage 11,45 → 11,40 au 01/06/2025) :
          {"depuis": "2024-07-01", "valeur": 0.25}]
 ```
 
-`Contexte.bareme(date)` rend le barème **résolu à cette date** ; `calcul` et
-`dsn` lisent des nombres et n'en savent rien. Une date antérieure à toute
+`Contexte::bareme(jour)` rend le barème **résolu à cette date** ; le calcul et
+la DSN lisent des nombres et n'en savent rien. Une date antérieure à toute
 entrée est un refus, pas un zéro.
 
 **La configuration de la compagnie est datée de même.** Chaque valeur d'une
@@ -397,14 +384,12 @@ cotisation prévoyance `059` de la DSN (0,420 + 0,810 ; « Cotisation individuel
 
 ## Le SMIC déclaré en DSN (composant 01 de la base 03)
 
-Cette section s'appelait « Le plafond déclaré en DSN » : ce n'est pas un
-plafond. `S21.G00.79.001 = '01'` est le « Montant du SMIC retenu pour le
+Ce n'est pas un plafond. `S21.G00.79.001 = '01'` est le « Montant du SMIC retenu pour le
 calcul de la Réduction générale », rattaché à une base 03 (cahier technique
-2026.1, p. 299-300 ; `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt` ;
-fiche N3 de `prive/journal/norme/`).
+2026.1, p. 299-300 ; `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt`).
 
-Dans les DSN de CoolPaie, il valait **SMIC horaire × 7 h × nombre de
-cachets**. Vérifié sur soixante-dix contrats de 2021 à 2026 : la valeur par
+Dans des DSN acceptées d'une compagnie, il vaut **SMIC horaire × 7 h × nombre de
+cachets**. Vu sur soixante-dix contrats de 2021 à 2026 : la valeur par
 cachet suit exactement les revalorisations du SMIC (10,25 → 10,48 → 10,57 →
 10,85 → 11,07 → 11,27 → 11,65 → 11,88 → 12,02 → 12,31), et pour les contrats
 payés à l'heure c'est SMIC × nombre d'heures — 52 h en octobre 2025, 140 h en
@@ -414,17 +399,16 @@ Le moteur (`dsn::bases_et_cotisations`) écrit sous chaque base 03 le SMIC de
 référence de la réduction générale quand la paie en a une
 (`ReductionGenerale::smic_reference`), sinon `Paie::plafond` — qui, malgré
 son nom, n'est pas un plafond de Sécurité sociale mais le SMIC horaire × les
-heures de la paie (`calcul::calculer`, « 7.5 » ; les heures d'un intermittent
-bornées à `heures_par_cachet` × jours) : la valeur de CoolPaie. Un artiste n'a
-pas de réduction générale et reçoit quand même ce composant (reste #41 de
-`prive/journal/RESTES-A-FINALISER.md`). Le plafond de Sécurité sociale est
+heures de la paie (`engagement/src/calcul.rs`, « 7.5 » ; les heures d'un intermittent
+bornées à `heures_par_cachet` × jours) : la valeur que ces DSN montrent. Un artiste n'a
+pas de réduction générale et reçoit quand même ce composant. Le plafond de Sécurité sociale est
 décrit plus haut, avec le barème.
 
 ## L'AEM V5
 
-Enregistrements de 1000 caractères, latin-1, séparés par CRLF. Zones
-que l'import relit (`moteur/src/import/dsn_aem.rs`, `lire_aem` ; la compagnie est en 100 % DSN et n'en émet
-aucune). La queue numérique est celle-ci :
+Le moteur n'émet pas d'AEM : il relit, à l'import, celles qu'un ancien logiciel a déposées
+(`moteur/src/import/dsn_aem.rs`, `lire_aem`). Enregistrements de 1000 caractères, latin-1, séparés par CRLF. La
+queue numérique est celle-ci :
 
 | Position | Contenu |
 |---|---|
@@ -438,28 +422,20 @@ aucune). La queue numérique est celle-ci :
 | 690-712 | zéros |
 | 712-721 | même montant |
 
-Ce schéma a été testé sur les 189 enregistrements émis depuis 2021 : 189/189
-conformes. C'est l'arrondi à l'euro, et non au centime, qui bloquait au départ
-(119,79 → 120, 7,29 → 7, 36,30 → 36).
+Ce schéma se vérifie sur 189 enregistrements déposés de 2021 à 2026 : 189/189. La contribution est arrondie à
+l'euro, non au centime (119,79 → 120, 7,29 → 7, 36,30 → 36).
 
-### Les positions 650-659, élucidées
+### Les positions 650-659
 
-Elles se lisaient mal parce qu'un contrat au cachet pur a autant de jours que
-de cachets : `00002` + `0002` se laissait interpréter comme « 2 heures, 2
-cachets », et 168 des 189 enregistrements sont dans ce cas. Les contrats mixtes
-trahissaient l'erreur (`01201`, `02401`, `01604`…).
+Le formulaire officiel de l'AEM V5 donne les trois champs accolés : **Nombre d'HEURES effectuées**, **Nombre de
+CACHETS**, **Nombre de JOURS travaillés**, en 3 / 2 / 4 caractères. Un contrat au cachet pur a autant de jours que
+de cachets (`000` `02` `0002`) ; un contrat mixte les distingue : `012` `01` `0004` = 12 heures, 1 cachet, 4 jours
+travaillés, pour un brut de 370 € = 130 € de cachet + 12 h à 20 €.
 
-Le formulaire officiel imprimé par CoolPaie (`affichage/aemV5/aemV501.pdf`)
-donne les trois champs accolés : **Nombre d'HEURES effectuées**, **Nombre de
-CACHETS**, **Nombre de JOURS travaillés**. La découpe 3 / 2 / 4 est cohérente
-sur 185 des 189 enregistrements — les 4 restants sont un même contrat de
-décembre 2021 au format antérieur.
+`lire_aem` lit 650-653 en heures, 653-655 et 655-657 en cachets (les deux zones sommées) et 657-659 en jours : sur
+une AEM où les jours tiennent en deux chiffres, c'est la même lecture.
 
-Exemple, le contrat du 23 au 26 août 2026 : `012` `01` `0004` = 12 heures,
-1 cachet, 4 jours travaillés. Brut 370 € = 130 € de cachet + 12 h à 20 €.
-
-Le moteur calcule donc ces trois champs au lieu de recopier une valeur
-inexpliquée. Un contrat mixte se saisit avec une ligne `cachet` **et** une
+Un contrat mixte se saisit avec une ligne `cachet` **et** une
 ligne `heure`, chacune à son taux : le taux du cachet ne s'applique pas aux
 heures.
 
@@ -472,11 +448,9 @@ l'engagement) : on peut jouer un cachet réparti sur trois jours, ou deux
 cachets le même jour. À défaut, les jours valent le nombre de dates jouées
 **distinctes**.
 
-Ces trois valeurs partent dans l'AEM (positions 650-659), dans la DSN (bloc
+Ces trois valeurs partent dans la DSN (bloc
 `S21.G00.53` : unité 12 journée, 37 cachets, 35 heures) et dans les droits
-(`cumul.rs`). Aucune de ces destinations ne les recalcule — la DSN le faisait
-pour les jours jusqu'au 20/09/2026, et déclarait donc autre chose que
-l'attestation dès que les deux différaient. Un engagement qui porte des
+(`cumul.rs`). Aucune de ces destinations ne les recalcule. Un engagement qui porte des
 lignes de paie et **zéro jour** est refusé : l'unité 12 ouvre les droits du
 salarié, et un mois payé en compte au moins un. Un mois du contrat sans paye
 (`lignes: []`) et un contrat mensuel, qui compte en heures, en sont exclus.
@@ -602,13 +576,9 @@ sous la base 78 du `131` (type 23), à l'Urssaf (fiche net-entreprises 2556 ;
 saisit en NAF rév. 2 ou en NAF 2025 (`logiciel/donnees/naf-base.json`, relevé
 de l'INSEE) ; un fichier P27V01 refuse un code NAF rév. 2 et dit vers quels codes
 NAF 2025 il passe, sans choisir (`declarations/src/naf.rs`).
-`declarations/src/dsn.rs` émet les blocs dans l'ordre observé dans des DSN acceptées, corrigé là où la relecture de la
-norme l'a demandé (`prive/journal/RELECTURE-NORME-DSN.md`).
+`declarations/src/dsn.rs` émet les blocs dans l'ordre que la norme donne, et que des DSN acceptées montrent.
 
-Ce que le moteur écrit, là où on l'avait d'abord déduit des DSN de CoolPaie
-(« correspondances retrouvées », redites le 11/10/2026 d'après la norme
-déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
-`prive/journal/norme/`) :
+Ce que le moteur écrit, d'après la norme déposée (`atelier/reference/norme-dsn/texte/`) :
 
 - `S21.G00.70.012` et `S21.G00.78.005` sont l'« Identifiant technique
   Affiliation » : « interne au message », unique pour chaque affiliation du
@@ -629,8 +599,6 @@ déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
   (prévoyance et retraite supplémentaire) : `cotisation_sante_patronale` et
   `cotisation_prevoyance_retraite_supp` du barème (les lignes patronales du
   bulletin, ou un taux sur une base), arrondis à l'euro (`dsn::autre_revenu`).
-  La règle « arrondi supérieur(cachets × 1,5) » n'existe ni dans la norme ni
-  dans le code.
 - `S21.G00.53` : `12` et `37` sont des **unités** (53.003), pas des types :
   `12` = journée (les jours distincts travaillés), `37` = cachets isolés (le
   nombre de cachets), `35` = heures d'intermittent hors cachets ; un permanent
@@ -639,7 +607,7 @@ déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
 - `S21.G00.86` (type 07, unité 01) = l'ancienneté en jours depuis
   `date_anciennete` de la fiche jusqu'à la fin du mois déclaré, jamais zéro
   (CCH-12, p. 322 ; `dsn::anciennete_du_mois`). Une fiche qui ne la porte pas
-  refuse ; le 01/12/2019 d'avant était la date de la compagnie d'essai.
+  refuse.
 - `S21.G00.23` : une ligne par CTP de `config/organismes.json` (composé depuis
   `ctp_urssaf` de `logiciel/donnees/organismes-base.json`), sur l'assiette que
   la ligne nomme (`brut`, `csg`, `brut_artiste`, `brut_x115_artiste`,
@@ -653,10 +621,9 @@ déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
   (`retours.rs`), ne se calcule pas, et ne s'écrit qu'avec un taux de type 01
   (`dsn::bloc_versement`).
 
-**Un contrat qui déborde du mois** (15/09/2026, option B1 de
-`prive/journal/CONTRATS-PLURIMENSUELS.md`). `Engagement` connaît son mois
-(`mois`, posé par `charger`) et en déduit `premier_mois`, `dernier_mois`,
-`debut_periode`/`fin_periode` (le contrat borné au mois). La DSN en tire :
+**Un contrat qui déborde du mois.** `Engagement` connaît le mois de la saisie qui le porte
+(`mois`) et en déduit s'il en est le premier ou le dernier (`premier_mois`, `dernier_mois`),
+et `debut_periode`/`fin_periode` (le contrat borné au mois). La DSN en tire :
 
 - bloc 40 identique chaque mois — 40.001 début, 40.009 numéro, 40.010 fin
   prévisionnelle sont les identifiants du contrat (fiche net-entreprises
@@ -665,12 +632,13 @@ déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
   contrat : la norme veut « a minima » la période de paie (§ 2.1.3.2, p. 28),
   et une date au plus le dernier jour du mois principal (§ 4.4.12, p. 99) ; les
   CCH-11 de 51.001 et CCH-13 de 51.002 (p. 246-247) bornent, elles, par le
-  contrat (fiche N2). En P27V01, le 58 d'un versement du mois n'est plus daté :
+  contrat. En P27V01, le 58 d'un versement du mois n'est plus daté :
   il hérite de la datation du 50 (fiche net-entreprises 2983,
   `dsn::dates_du_58_du_mois`) ;
 - bloc 62 (fin de contrat) **le dernier mois seulement** ;
 - bloc 53 : l'activité du mois, comme toujours ;
-- date de constitution (S20.G00.05.007) : le jour où le fichier est fabriqué, comme les signalements et la FCTU (retours Windows, F, 07/10/2026). Elle valait avant la fin de période la plus tardive du mois ; une DSN produite le 07/10 restait « constituée le 23/09 ». Un fichier refait un autre jour porte donc une autre date.
+- date de constitution (S20.G00.05.007) : le jour où le fichier est fabriqué, comme pour les signalements et la FCTU
+  (`dsn::generer`) ; un fichier refait un autre jour porte une autre date.
 
 `Engagement.planning` (jours des mois suivants, lus sous `planning` sur les
 lignes, avec leur lieu dans `planning_lieux`) ne compte ni dans
@@ -683,8 +651,7 @@ chaque mois a payé le sien.
 Le barème et le SMIC (`engagement::calcul`) sont ceux de `fin_periode`, pas de
 `fin` : un contrat de décembre à février se paie en décembre au barème de
 décembre. Sur un contrat qui tient dans son mois, ces propriétés valent
-`debut`/`fin`. Les trois DSN d'un contrat d'octobre à décembre ont été déposées en
-test le 15/09/2026, conformes. La quotité 40.012/013 est celle du **contrat entier** (jours
+`debut`/`fin`. La quotité 40.012/013 est celle du **contrat entier** (jours
 signés : dates du premier mois + planning, `Engagement.jours_contrat`),
 identique chaque mois et jamais zéro : le cahier technique 2026.1 interdit
 le zéro en unité journée (bloc 40, CCH-11). Comme elle ne bouge pas d'un mois
@@ -698,11 +665,11 @@ déjà déclaré change (`changements_contrat.rs`). Plafond 31 en journée
 a quand même sa DSN : le contrat en cours avec un versement à zéro — bloc 50,
 quatre 51, 53 à 0 jour, 58, et par affiliation prévoyance une base 78 « 31 »
 avec sa cotisation 81 « 059 », tous à `0.00` ; ni 54, ni autre base. Pas de
-bulletin. Établi par trois dépôts de test le 15/09/2026 (ETAT.md §26.9).
+bulletin.
 
 ### L'échéance de dépôt : le 5 ou le 15, reportée au jour ouvré, à midi
 
-Depuis le 15/10/2026, **un seul endroit** la donne : `declarations/src/echeance_dsn.rs` (`du_mois`, `de_la_compagnie`).
+**Un seul endroit** la donne : `declarations/src/echeance_dsn.rs` (`du_mois`, `de_la_compagnie`).
 Le jour est celui de R. 243-6, II (le 5 du mois suivant à partir de cinquante salariés quand la paie est faite dans le
 mois, le 15 sinon ; `Contexte::echeance_dsn` choisit selon l'effectif) ; R. 133-14, I le **reporte** : « Si le délai
 imparti pour effectuer la déclaration sociale nominative expire un jour férié ou non ouvré, il est prorogé jusqu'au jour
@@ -720,7 +687,7 @@ l'échéance reportée.
 Tout ce qui parle de la date limite de dépôt passe par lui : l'état du mois et l'annule-et-remplace
 (`Moteur::limite`), les régularisations, le bilan des mois, l'échéancier, les rappels, les réveils du filet, le mois
 hors délai, l'horloge des compagnies fictives, et la date butoir d'un **signalement d'arrêt subrogé** (R. 133-14, II :
-avec la DSN du mois de l'événement, donc avec son report). Les routes rendent, sans toucher à leurs champs existants,
+avec la DSN du mois de l'événement, donc avec son report). Les routes rendent
 `echeance_depot` (`echeance_dsn` sur une obligation) : `jour`, `heure` (`12:00`), `nominale`, `reportee`, `pourquoi`,
 `phrase`, `veille_annule_et_remplace`, `textes`, `inference`. **Une seule date n'en dépend pas** : la date de paiement
 du bloc 20 (`S21.G00.20.011`, `dsn.rs`, `echeance_mois_suivant`) reste le 5 ou le 15 de R. 243-6, qui ne prévoit
@@ -744,58 +711,49 @@ temporaire** `S21.G00.30.020` (CCH-12), et le moteur le fabrique :
 
 Deux conséquences hors DSN : la **DPAE** part alors avec sa zone NIR à blanc,
 ce qui vaut demande d'immatriculation (formalité `IMMA`) ; et le **taux de
-PAS** ne viendra jamais, la DGFiP n'ayant personne à qui répondre — c'est le
-barème de l'article 204 H du CGI qui s'applique, et le moteur ne sait pas
-encore le lire : il refuse (`pas.etat`).
+PAS** ne viendra jamais, la DGFiP n'ayant personne à qui répondre — c'est la
+grille de l'article 204 H du CGI qui s'applique (`droit/src/pas.rs`, la section
+`pas_taux_par_defaut` du barème de l'année).
 
-Déposé en test le 20/09/2026, un salarié sans NIR, identifié par son seul
-NTT : **0 anomalie bloquante, 0 non bloquante**, certificat de conformité
-délivré (flux `WShDs9Z0fCO3ouFVp.nLino`).
+Un salarié sans NIR, identifié par son seul NTT, a été déposé en test :
+**0 anomalie bloquante, 0 non bloquante**, certificat de conformité délivré.
 
 ### Le montant Urssaf : un calcul
-
-(Ce versement a longtemps été nommé « Audiens » ici et dans la commande : les
-libellés de `organismes.json` étaient intervertis, corrigés le 10/09/2026 ;
-les SIRET et les montants ont toujours été justes.)
 
 Le bordereau Urssaf d'une DSN (22.005, recopié en 20.005) est la somme de ses
 lignes 23, chacune valorisée au taux de la table des CTP de l'Urssaf pour la
 période (plafonné pour le qualifiant 921, déplafonné pour le 920, le taux AT
 arrondi à part, les réductions de format F en déduction), arrondie à l'euro
 ligne par ligne : `documents/src/bordereau.rs`, table
-`moteur/urssaf-codes-types-personnel.csv`.
-Rejouée sur les 75 DSN de CoolPaie, la règle en retrouve 74 au centime
+`logiciel/donnees/urssaf-codes-types-personnel.csv`.
+Rejouée sur 75 DSN mensuelles acceptées d'une compagnie, la règle en retrouve 74 au centime
 (octobre 2025 : 394 pour 393). Un code absent de la table fait refuser : le
 bloc est un **ordre de télépaiement**, un montant faux fait un prélèvement faux.
 
 ### Les cotisations se calculent rubrique par rubrique
 
-CoolPaie n'applique pas les taux au brut global : il les applique à **chaque
-rubrique de salaire**, arrondit chaque montant, puis somme. L'assiette CSG suit
-la même règle ; les cotisations CSG, en revanche, se calculent une seule fois
+Le moteur n'applique pas les taux au brut global : il les applique à **chaque
+rubrique de salaire**, arrondit chaque montant, puis somme (`engagement/src/calcul.rs`, « les assiettes, par rubrique
+de salaire »). L'assiette CSG suit la même règle ; les cotisations CSG, en revanche, se calculent une seule fois
 sur l'assiette agrégée.
 
-Invisible sur un contrat au cachet pur, qui n'a qu'une rubrique — d'où 168
-bulletins qui ne trahissaient rien. Le bulletin 27/2026 (1 cachet à 130 € et
-12 h de masterclass à 20 €) l'a révélé :
+La différence ne se voit pas sur un contrat au cachet pur, qui n'a qu'une rubrique. Sur un bulletin d'un cachet à
+130 € et de 12 h à 20 €, elle se voit, et c'est le calcul par rubrique que les DSN acceptées montrent :
 
-| | rubrique par rubrique | brut global | CoolPaie |
+| | rubrique par rubrique | brut global | DSN acceptée |
 |---|---|---|---|
 | Assiette CSG | 367,63 | 367,64 | **367,63** |
 | Charges patronales | 212,99 | 213,00 | **212,99** |
 | Coût employeur | 582,99 | 583,00 | **582,99** |
 
-L'arrondi lui-même est bien **au demi supérieur** : vérifié sur les 144 cas
-ambigus des cotisations `S21.G00.81` de l'historique, 144/144.
+L'arrondi est **au demi supérieur** (`socle::num::eur`) : c'est ce que montrent les 144 cas ambigus des cotisations
+`S21.G00.81` de ces DSN, 144 sur 144.
 
 ## La nature du contrat, et les salariés permanents
 
-Écrit le 18/09/2026, **chantier en cours** : le calcul, la déclaration, le
-signalement de fin de contrat et l'écran d'un permanent marchent. Ce qui
-manquait était un taux — la prévoyance des permanents — et on le croyait à
-demander à Audiens ; le 19/09/2026 il a été **relevé en ligne**, puis rangé là
-où toute compagnie le lira : **la convention le fixe, donc le logiciel le
-livre**. L'état exact est aux §38 à §45 de `prive/journal/ETAT.md`.
+Le calcul, la déclaration, le signalement de fin de contrat et l'écran d'un permanent sont ceux d'un intermittent,
+avec ce que la nature du contrat change. La prévoyance des permanents est un taux que **la convention fixe, donc le
+logiciel le livre**.
 
 ### Le taux d'une branche n'est pas une donnée de compagnie
 
@@ -828,20 +786,19 @@ moteur refuse et réclame `prevoyance_branche_depuis` — supposer qu'il vient d
 la branche ferait cotiser pour rien, supposer le contraire laisserait un
 salarié découvert pendant un an.
 
-Le catalogue porte **deux** conventions. La **1285 (CCNEAC)**, le secteur
-subventionné, y est **confirmée depuis le 23/09/2026** — non cadres 0,95 % T1,
+Le catalogue porte **dix** conventions : 1285, 1790, 1922, 2121, 2412, 2642, 3090, 3097, 3241 et 3252. Une convention
+qui n'y est pas refuse, et une convention relevée mais pas confirmée (`applicable: false`) refuse aussi, en disant ce
+qui a été lu (`prevoyance::regime`, dans `droit/src/bareme.rs`). La **1285 (CCNEAC)**, le secteur
+subventionné, y porte — non cadres 0,95 % T1,
 cadres 1,50 % T1 + 0,81 % T2, 100 % patronal, dus dès l'embauche (art.
 XII.2.1.2 et XII.2.1.5), la tranche 2 allant du plafond à **quatre**
-plafonds. La confirmation vient de la **base KALI de la DILA** (open data,
+plafonds. Le texte se lit dans la **base KALI de la DILA** (open data,
 sans compte, là où Légifrance refuse les robots) : la base complète, puis
 toutes ses livraisons quotidiennes jusqu'à la veille, pour lire la version
 **en vigueur** de chaque article. Elle porte aussi la **santé** des
 permanents, qui est un taux de la convention et non un contrat à niveaux :
 0,81 % du PMSS en 2026, 0,89 % au 01/01/2027, au moins pour moitié patronal
-(XII.2.1.10 et 11) — `calcul._sante_conventionnelle`. Les onze autres
-conventions qu'Audiens sert refusent, sans nombres — le mécanisme est écrit,
-il n'y manque qu'un bloc. Le mécanisme `applicable: false` reste, pour la
-prochaine convention relevée sans être confirmée.
+(XII.2.1.10 et 11) — `droit::bareme::sante_conventionnelle`.
 
 Un écart est à connaître : la CCNEAC ajoute à l'interbranche, **pour ses
 intermittents cadres techniciens seulement** (XII.2.2.1), 0,45 % en TA et
@@ -853,12 +810,12 @@ compagnie privée n'a pas. Ses artistes cadres restent à l'interbranche
 
 ### Ce qu'un permanent déclare, et ce qui se réclame salarié par salarié
 
-Venu de `CLAUDE.md` (règle 6) le 04/10/2026. La prévoyance des permanents :
+La prévoyance des permanents :
 1,20 % de la tranche A pour la 3090, porté à 1,50 % pour un cadre, 100 %
 patronal ; la CASC-SVP d'un permanent est celle de l'article 4.22 (0,50 % de la
 tranche A mensuelle, 100 % patronale) ; les blocs 54 (92 santé, 93 prévoyance)
 et les bases 31 (059) se lisent sur les lignes du bulletin. La section
-`par_nature.permanent` du barème est complète depuis le 23/09/2026 (2025 et 2026).
+`par_nature.permanent` du barème est complète en 2025 et en 2026.
 
 Ce qui reste est **propre à chaque compagnie** et la fait refuser, elle seule :
 ses références d'adhésion (`organismes.json`, `affiliations_par_nature.permanent`,
@@ -871,10 +828,10 @@ moins d'un an dans l'entreprise, son ancienneté **dans la branche**
 
 `par_categorie.cadre` du barème décrit un cadre **intermittent** : tranches
 journalières, prévoyance de l'accord interbranches. Appliquée à une
-administratrice en CDI, elle lui donnait des plafonds à la journée et la
-prévoyance de quelqu'un d'autre, en silence. Depuis le 19/09/2026,
-`calcul.bareme_cadre` lit `par_categorie.cadre_permanent` quand le contrat est
-mensuel : mêmes taux Agirc-Arrco (le régime est unifié), mais l'Apec sur
+administratrice en CDI, elle lui donnerait des plafonds à la journée et la
+prévoyance de quelqu'un d'autre, en silence.
+`droit::bareme::bareme_cadre` lit `par_categorie.cadre_permanent` quand le contrat est
+mensuel, et refuse si la section n'est pas vérifiée (`_verifie`) : mêmes taux Agirc-Arrco (le régime est unifié), mais l'Apec sur
 quatre plafonds **du mois** et la CET sur des tranches mensuelles. Sa
 prévoyance, elle, vient de la convention.
 
@@ -892,26 +849,23 @@ Ce qui sépare un permanent d'un intermittent, en une page :
 | quotité (40.011) | journée (12), ≤ 31 (CCH-12 du bloc 40) | heure (10), ≤ 250 (CCH-13 du bloc 40, p. 189 ; 3250 est le plafond de la mesure 53.002) |
 | fin prévisionnelle | obligatoire | absente sur un CDI |
 | numéro d'objet (40.050) | oui | **INTERDIT** — CCH-11 ne l'autorise que pour les natures 02 et 10 |
-| congés payés | caisse des Congés Spectacles (40.022, cotisation 15,5 %), sauf un CDDU de douze mois ou plus | chez l'employeur : compteur, indemnité, solde ; sauf le CDD de droit commun de moins de douze mois d'un artiste, déclaré à la caisse (`caisse_conges::affilie`, lot V2f) |
+| congés payés | caisse des Congés Spectacles (40.022, cotisation 15,5 %), sauf un CDDU de douze mois ou plus | chez l'employeur : compteur, indemnité, solde ; sauf le CDD de droit commun de moins de douze mois d'un artiste, déclaré à la caisse (`caisse_conges::affilie`) |
 | assiettes FNAL / taxe d'apprentissage | brut **majoré** de 11,5 % et de 10 % (CSS L. 243-1-3, D. 243-0-2), pour un contrat déclaré à la caisse des Congés Spectacles | brut nu ; tranche 1 majorée de 11,5 % (FNAL) et brut majoré de 11,5 % (taxe d'apprentissage) pour un contrat déclaré à la caisse (`par_caisse_conges.affilie` du barème) |
 | plafond de Sécurité sociale | par paie : 12 × le PSS horaire par journée pour un artiste engagé moins de cinq jours, sinon le PSS au prorata des jours rémunérés (`plafond.rs`) | la période de paie (R. 242-2), proratisé à la quotité d'un temps partiel sauf renonciation de l'établissement (`40.084` en P27V01) |
 | chômage | 9,75 / 2,40 dans la limite de quatre plafonds, recouvré par **France Travail** | 4,00 + AGS 0,25 dans la limite de quatre plafonds de la période, recouvré par l'**Urssaf** (CTP 772, 937) |
 | retraite complémentaire | taux Audiens, tranches **journalières** | droit commun, tranches **mensuelles** |
 | formation professionnelle | 2,00 % (CTP 983) | 0,55 % (CTP 959) |
 | mutuelle santé | aucune | **obligatoire** (ANI, art. L911-7) |
-| fin du contrat | à son terme (031) : DSN mensuelle, circuit dérogatoire 62.017 = 01 (la norme le réserve au contrat infra-mensuel, p. 277 : pour un CDDU à cheval sur deux mois, c'est une décision ouverte, fiche N5) ; un FCTU si le salarié le demande. Rompu avant son terme (036, 037, 084…) : 62.017 = 02 et **signalement nature 07** (CCH-12, fiche 2062 ; lot C1, `Nature::signalement_fctu`) | **signalement nature 07** (FCTU) |
+| fin du contrat | à son terme (031) : DSN mensuelle, circuit dérogatoire 62.017 = 01 (la norme le réserve au contrat infra-mensuel, p. 277) ; un FCTU si le salarié le demande. Rompu avant son terme (036, 037, 084…) : 62.017 = 02 et **signalement nature 07** (CCH-12, fiche 2062 ; `Nature::signalement_fctu`) | **signalement nature 07** (FCTU) |
 | blocs 51 | les quatre valent le brut | 001 brut, 002 assiette chômage, 003 salaire rétabli, 010 salaire de base |
 | bloc 53 | jours (12), cachets (37), heures (35) | heures (10), absences en type 02 |
 
 ### Le barème a trois étages : le socle livré, la couche de convention, la surcouche de la compagnie
 
-Coupé en deux le 19/09/2026. Un barème mélangeait les taux de **droit
-commun** — Urssaf, Agirc-Arrco, chômage, CSG, plafond, SMIC, et les taux de
-la **branche** du spectacle — qui sont les mêmes pour tout le monde, et ce
-qui est **propre à une entreprise**, qui tient en un nombre : son taux AT/MP
-notifié. Mélangés, ils obligeaient chaque compagnie qui installe PuppetPaie à
-écrire mille lignes de taux nationaux, c'est-à-dire à relever elle-même ce
-que nous avions déjà relevé.
+Les taux de **droit commun** — Urssaf, Agirc-Arrco, chômage, CSG, plafond, SMIC, et les taux de la **branche** du
+spectacle — sont les mêmes pour tout le monde ; ce qui est **propre à une entreprise** tient en un nombre : son taux
+AT/MP notifié. Les premiers sont livrés, le second seul s'écrit dans la compagnie : une compagnie qui installe
+PuppetPaie ne relève pas elle-même les taux nationaux.
 
 ```
 logiciel/donnees/baremes/2026.json      le socle : droit commun + tout le spectacle
@@ -936,35 +890,30 @@ tranche B). C'est `idcc` de la fiche entreprise qui choisit — pas le code.
 payer un salarié d'une autre branche avec la CASC-SVP de la 3090 — une
 cotisation qu'il ne doit pas, un FNAS qu'il doit et qui manque — ne se
 verrait sur aucun bulletin. Une couche `applicable: false` refuse aussi :
-ses nombres sont relevés, pas confirmés (ce fut l'état de la 1285 jusqu'au
-23/09/2026), et le refus dit ce qu'il reste à relever.
+ses nombres sont relevés, pas confirmés, et le refus dit ce qu'il reste à relever.
 
-**Ce qu'une couche peut porter en plus de rubriques à fondre** — et que la
-1285 a fait écrire :
+**Ce qu'une couche peut porter en plus de rubriques à fondre** :
 
 - `contributions_conventionnelles` : des rubriques posées par
-  `calcul.bareme_convention` **après** le statut et la nature du contrat,
+  `droit::bareme::bareme_convention` **après** le statut et la nature du contrat,
   donc pour tout le monde — la section `technicien` du socle recopie la
   CASC-SVP de la 3090 dans son `ccn`, et le FNAS doit la remplacer là aussi.
   Un taux peut y dépendre de la **représentation du personnel** de la fiche
   entreprise (`representation_personnel`, lue par
-  `calcul.representation_du_personnel`, confrontée à l'effectif) et de la
+  `droit::bareme::representation_du_personnel`, confrontée à l'effectif) et de la
   nature du contrat : c'est le FNAS, 1,45 % sous onze salariés ou sans
   représentation, 0,825 % (permanents) / 1,325 % (intermittents) avec un CSE
   conventionnel ou un CSE adhérent, rien avec un CSE qui n'adhère pas.
 - `contributions_dsn` : les contributions que la DSN déclare sous une
   **adhésion Audiens** de la compagnie, comme la CASC-SVP de la 3090 — le
-  FNAS et le FCAP de la CCNEAC. `dsn.contributions_dsn` les résout mois par
+  FNAS et le FCAP de la CCNEAC. `dsn::contributions_dsn` les résout mois par
   mois (l'adhésion se lit dans `organismes.json`, `"contribution": "FNAS"`,
-  et le moteur refuse sans elle), et `dsn.places_par_contrat` réserve autant
-  d'identifiants d'affiliation de plus : trois pour la 3090, comme toujours
-  — la numérotation des DSN déposées ne bouge pas —, quatre pour la 1285.
+  et le moteur refuse sans elle), et `dsn::places_par_contrat` réserve autant
+  d'identifiants d'affiliation de plus : trois pour la 3090, quatre pour la 1285.
 
-`moteur/baremes.fusionner` empile les trois, et `Contexte._bareme_brut` est
+`droit::contexte::fusionner` empile les trois, et `Contexte::bareme_brut` (`droit/src/contexte.rs`) est
 le seul endroit qui le fait : le reste du moteur lit un barème déjà fondu et
-n'a pas à savoir d'où vient quel nombre. Un appel direct sans IDCC
-(`idcc=None`) ne résout pas la convention et laisse le socle tel quel —
-c'est le cas d'un outil ou d'un bac à sable.
+n'a pas à savoir d'où vient quel nombre.
 
 **La règle de fusion a une subtilité.** Un dictionnaire se fond clé par clé.
 Une **liste d'objets nommés** — les rubriques du bulletin (`id`), les
@@ -982,20 +931,14 @@ Une liste de **valeurs** (les paliers du SMIC, les composants d'une
 cotisation), elle, se remplace en entier.
 
 **Le marqueur `socle` est explicite, et c'est voulu.** Un fichier qui ne le
-porte pas est un barème **complet**, pris tel quel : ceux d'avant la coupure,
-et les bacs à sable des tests. Deviner aurait été dangereux dans les deux
-sens — une surcouche prise pour un barème complet paierait avec trois taux,
-un barème complet pris pour une surcouche hériterait de taux qu'il avait de
-bonnes raisons de ne pas avoir. `baremes.fige()` rend un barème autonome à
-partir d'une surcouche, socle fondu et marqueur retiré.
+porte pas est un barème **complet**, pris tel quel (`droit/src/contexte.rs`, la lecture du marqueur). Deviner serait
+dangereux dans les deux sens — une surcouche prise pour un barème complet paierait avec trois taux,
+un barème complet pris pour une surcouche hériterait de taux qu'il a de
+bonnes raisons de ne pas avoir.
 
-**Le taux AT/MP ne s'écrit plus qu'une fois.** Il en existait cinq copies, et
-un test de non-régression pour dire, chaque janvier, laquelle avait été
-oubliée. Les rubriques du socle portent maintenant leur **facteur** — 0,70
-pour un artiste, dont les taux Urssaf sont abattus de 30 % (arrêté du
-24/01/1975), 1 pour tout le monde d'autre — et `calcul.bareme_atmp` fait la
-multiplication. Il reste deux copies, dans les CTP de `organismes.json`, et
-le test les garde alignées.
+**Le taux AT/MP ne s'écrit qu'une fois**, dans la surcouche de la compagnie (`taux_atmp`). Les rubriques du socle
+portent leur **facteur** (`_facteur_atmp`) — 0,70 pour un artiste, dont les taux Urssaf sont abattus de 30 % (arrêté
+du 24/01/1975), 1 pour tout le monde d'autre — et `droit::bareme::bareme_atmp` fait la multiplication.
 
 **Trois valeurs du socle supposent une entreprise de moins de onze
 salariés** : le FNAL à 0,10 % (0,50 % à partir de 50), la formation
@@ -1005,14 +948,12 @@ nommées dans `_ce_qui_depend_de_l_entreprise`, en tête du socle.
 
 ### L'effectif, ses seuils, et ce que le moteur refuse
 
-Venu de `CLAUDE.md` (règle 8) le 04/10/2026, tel quel pour l'essentiel.
-
-**Ce que l'effectif change est écrit pour être LU**, depuis le 21/09/2026 : la
+**Ce que l'effectif change est écrit pour être LU** : la
 section `seuils_effectif` du socle dit, chemin par chemin, où vit chaque valeur
 qui dépend de l'effectif et ce que le socle y porte (formation des permanents à
 onze salariés ; FNAL, `tdelta` et échéance de la DSN à cinquante).
-`droit/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — depuis
-le 23/09/2026 il ne se saisit plus : il arrive en CRM de nature 118,
+`droit/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — il ne se saisit
+pas : il arrive en CRM de nature 118,
 `envois/src/releve_retours.rs` l'écrit seul dans `config/effectifs.json` à chaque relevé, et
 un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — et
 **refuse de payer** si la surcouche ne suit pas le palier atteint.
@@ -1026,14 +967,14 @@ un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — e
 - Ces seuils-là (formation, FNAL, échéance de la DSN) sont ceux du code de la
   sécurité sociale ; ceux du CSE (CCNEAC, 11 et 50) relèvent du code du travail,
   et le moteur ne les tranche pas avec l'effectif de l'Urssaf : la représentation
-  déclarée fait foi (`calcul.representation_du_personnel`).
+  déclarée fait foi (`droit::bareme::representation_du_personnel`).
 - Une valeur surchargée dans la surcouche est tenue pour décidée, comme le taux
   AT/MP.
 - Le même module refuse une **adhésion à une organisation patronale** dont la
   couche n'est pas relevée (`par_organisation_patronale`) et un **second
   établissement** incomplet (adresse, taux AT/MP) ; complet, il a sa propre DSN
-  depuis le 25/09/2026 (`droit/src/contexte.rs`, `declarations/src/dsn.rs`). Le contrôle est appelé dans
-  `Contexte._bareme_brut`, seul endroit que les deux fronts traversent.
+  (`droit/src/contexte.rs`, `declarations/src/dsn.rs`). Le contrôle (`contexte::controler`) est appelé dans
+  `Contexte::bareme_brut`, seul endroit que les deux fronts traversent.
 
 ### Le barème a deux axes, pas un
 
@@ -1042,14 +983,16 @@ artiste ou technicien — c'est-à-dire si ses taux Urssaf sont abattus de 30 %
 (arrêté du 24/01/1975). `par_nature` dit si son contrat est un CDDU ou un
 contrat permanent. **Les deux sont indépendants** : un comédien en CDI garde
 ses taux abattus *et* perd les Congés Spectacles. La pile est toujours la
-même, et dans cet ordre :
+même, dans cet ordre, et elle ne s'écrit qu'à un endroit, `droit::bareme::bareme_applique` :
 
 ```
-bareme_du_statut  →  bareme_de_la_nature  →  bareme_cadre
+établissement du salarié → statut (bareme_du_statut) → taux AT/MP → nature (bareme_de_la_nature) → caisse des
+Congés Spectacles → convention → CASC → santé → retraite en tranche 1 → catégorie (bareme_cadre) → article 45 →
+prévoyance → régime local → versement mobilité
 ```
 
-`calcul.calculer`, `dsn.cotisations` et le bloc 54 l'appliquent tous les
-trois. En sauter un, c'est déclarer les cotisations de quelqu'un d'autre.
+Le calcul du bulletin et la DSN (`dsn::cotisations`, le bloc 54) lisent le barème de cette pile ; en sauter un étage,
+ce serait déclarer les cotisations de quelqu'un d'autre.
 
 La section `par_nature` empile par identifiant (`rubriques` remplace,
 `rubriques_retirees` enlève, `rubriques_ajoutees` insère) ; seule la
@@ -1058,19 +1001,12 @@ du statut, et la nature ne change que la destination de la part chômage
 (`018:urssaf` et CTP 668 pour un permanent, `018:chomage` et CTP 671 pour un
 intermittent).
 
-**La section `par_nature.permanent` du barème 2026 n'est toujours pas
-vérifiée**, donc elle refuse — mais ce qui manque a rétréci le 19/09/2026,
-quand la fiche de paramétrage Audiens (version 139) a été relue en entier :
-elle porte les permanents, et c'est même le seul endroit où ils apparaissent.
-La **santé** y est relevée (1,44 / 1,84 / 2,04 % du PMSS selon le niveau) et
-la **CASC-SVP** aussi (0,50 % de la tranche A). La **prévoyance des
-permanents** n'est plus un trou : son taux vient de la convention, pas du
-barème (voir plus haut), et la rubrique porte `_rempli_par` comme la mutuelle.
-Ce qui retient encore la section, ce sont trois choses d'une autre nature : la
-**répartition de la CASC-SVP**, le **bloc 54 type 93**, et les deux
-**affiliations DSN 059** — leurs identifiants techniques viennent de la fiche
-de paramétrage, qui n'existe qu'une fois l'entreprise adhérée au régime de sa
-branche. La santé, elle, ne
+**La section `par_nature.permanent`** des barèmes 2025 et 2026 est vérifiée (`_verifie`). La fiche de paramétrage
+Audiens (version 139) porte les permanents : la **santé** (1,44 / 1,84 / 2,04 % du PMSS selon le niveau) et la
+**CASC-SVP** (0,50 % de la tranche A). La **prévoyance des permanents** vient de la convention, pas du barème (voir
+plus haut), et la rubrique porte `_rempli_par` comme la mutuelle. Les identifiants techniques des deux
+**affiliations DSN 059** viennent de la fiche de paramétrage de l'entreprise, qui n'existe qu'une fois l'entreprise
+adhérée au régime de sa branche : ce sont ses références d'adhésion (`organismes.json`). La santé ne
 se relève pas dans un barème : c'est un **forfait** dont le niveau se lit sur
 le bulletin d'adhésion du salarié (`sante_svp` sur sa fiche), et sans ce
 choix le moteur refuse, salarié par salarié.
@@ -1083,22 +1019,22 @@ général, avec le taux AT), 635 et 430 (compléments maladie et allocations
 familiales — le CTP 100 porte encore les anciens taux réduits 7,00 et 3,45),
 332 (FNAL plafonné), 772 (chômage), 937 (AGS), 959 (CFP), 987 (CPF-CDD, 1 % du
 brut d'un CDD de droit commun, C. trav. L. 6331-6 : la somme des cotisations 129 du
-nominatif ; le barème l'ajoute par `bareme::bareme_cpf_cdd` depuis le 11/10/2026), 668 (réduction
+nominatif ; le barème l'ajoute par `bareme::bareme_cpf_cdd`), 668 (réduction
 générale **étendue**, celle qui inclut le chômage : la somme des 018 de l'Urssaf
 du nominatif, parts sécurité sociale et chômage, guide déclaratif Urssaf § 8.2 ;
 `dsn::reduction_a_l_urssaf`, la même lecture pour le bordereau courant et pour
-celui d'une correction, depuis le 10/10/2026). Une correction qui fait
+celui d'une correction). Une correction qui fait
 **baisser** la réduction l'écrit sous son CTP de régularisation, 669 (801 pour
 le 671 d'un technicien intermittent), en assiette (23.004) et sans signe, et
 non en montant négatif (guide § 8.2, schéma ; `reduction_generale.dsn.ctp_regularisation`
-du barème, depuis le 11/10/2026). Un mois qui porte un
+du barème). Un mois qui porte un
 permanent sans aucun CTP marqué `"nature": "permanent"` **refuse** : le
 bordereau est un ordre de prélèvement.
 
-Le CTP 983 de l'intermittent devient conditionnel (`"nature": "intermittent"`) ;
+Le CTP 983 de l'intermittent est conditionnel (`"nature": "intermittent"`) ;
 les compléments abattus 432 et 636 ne portent que le brut des **artistes**
 (`"statut": "artiste"`), et un technicien intermittent relève des compléments au
-taux plein 430 et 635 (`"statut": "technicien"`, depuis le 11/10/2026 : « Les
+taux plein 430 et 635 (`"statut": "technicien"` : « Les
 techniciens ne sont pas concernés » par les taux réduits, page Urssaf déposée dans
 `atelier/reference/sources/urssaf-taux-reduits-artistes/`). Une ligne de
 `ctp_urssaf` peut dépendre de l'effectif (`effectif_au_moins`, `effectif_sous`, lus
@@ -1124,8 +1060,7 @@ décident. Les articles sont relevés et datés dans
   de la rupture** (L3141-28). Le compteur se **dérive des saisies**, jamais
   stocké — même règle que les 507 heures d'un intermittent ;
 - **précarité** : 10 % (L1243-8), **pas due pour un contrat d'usage**
-  (L1243-10 1°, qui renvoie au 3° de L1242-2) — c'est pourquoi aucun des 146
-  contrats de l'historique n'en porte ;
+  (L1243-10 1°, qui renvoie au 3° de L1242-2) ;
 - **préavis** : L1234-1, et **rien sous six mois d'ancienneté** — la loi y
   renvoie à la convention ou aux usages, et le moteur demande plutôt que
   d'inventer ;
@@ -1133,7 +1068,7 @@ décident. Les articles sont relevés et datés dans
   puis un tiers de mois (R1234-2), salaire de référence le plus favorable des
   deux formules (R1234-4). Un montant **supra-légal est refusé** : son régime
   social est autre, et le moteur ne sait pas l'assujettir ;
-- **les trois autres fins d'un CDI**, depuis le 19/09/2026 — et c'est le
+- **les trois autres fins d'un CDI** — et c'est le
   **motif de rupture** qui choisit, jamais la ressemblance :
   - **rupture conventionnelle** (motif 043) : son indemnité spécifique ne
     peut pas être inférieure à celle du licenciement (L1237-13), et c'est
@@ -1157,9 +1092,7 @@ décident. Les articles sont relevés et datés dans
   sécurité sociale**, et lui-même renvoie au régime fiscal de **l'article 80
   duodecies du code général des impôts** — est exclu des cotisations, dans la
   limite de deux plafonds annuels, ce qui n'est pas imposable. Les deux
-  articles ont été relevés le 19/09/2026, par le même moissonneur que le code
-  du travail (aujourd'hui `moteur releve-codes`, qui lisait dès lors trois codes en
-  un passage). Il en sort trois choses :
+  articles se relèvent avec le code du travail (`moteur releve-codes`). Il en sort trois choses :
   - l'indemnité **légale** de licenciement et celle de mise à la retraite ne
     sont **ni soumises ni imposables** (80 duodecies 3° b et 4° b, qui
     exonèrent « le montant prévu […] par la loi ») ;
@@ -1172,29 +1105,24 @@ décident. Les articles sont relevés et datés dans
     bénéficier d'une pension**. S'il l'est, elle est imposable — et reste
     hors cotisations (L242-1 II 7°, second alinéa, « y compris lorsqu'elles
     sont imposables »). D'où **deux rubriques** pour une seule indemnité, et
-    un moteur qui refuse de produire tant que le fait n'est pas dit.
+    un moteur qui refuse de calculer tant que le fait n'est pas dit.
 
-  Et ce que le moteur **ne** fait pas : la **contribution patronale de 40 %**
-  sur la part exonérée d'une rupture conventionnelle ou d'une mise à la
-  retraite (L137-12). Elle est due, aucune section du barème ne la porte, et
-  le moteur le dit à chaque fois plutôt que de l'inventer. Son taux **se
-  lit** dans `permanents-base.json` : il était de 30 % depuis 2023, la LFSS
-  2026 l'a porté à 40 % au 31/12/2025, et c'est une livraison quotidienne de
-  la DILA qui l'a appris au moteur — l'archive globale de LEGI, datée du
-  13/07/2025, porte encore l'ancien.
+  La **contribution patronale de 40 %** sur la part exonérée d'une rupture conventionnelle ou d'une mise à la
+  retraite (L137-12) n'est dans aucune section du barème : le solde de tout compte avertit, à chaque fois, de ce
+  qu'elle vaut (`engagement/src/solde.rs`). Son taux **se lit** dans `permanents-base.json`
+  (`regime_des_indemnites_de_rupture.contribution_patronale`, d'après la version de L137-12 en vigueur au
+  31/12/2025).
 
   Chacune a **son** code d'indemnité au bloc S21.G00.52 — 001, 003, 005 —,
   et le cahier technique interdit de les intervertir (CCH-21 à CCH-24). Le
   contrôle est au point d'écriture du bloc, dans `dsn.rs` (`permanents::code_52_permis`) : c'est le seul
-  endroit par où passent toutes les lignes. Avant, le moteur ne connaissait
-  que le 007 et le posait sur **toute** fin de CDI — une rupture
-  conventionnelle serait partie avec, et CCH-24 l'aurait fait rejeter ;
+  endroit par où passent toutes les lignes ;
 - **suspensions** (bloc S21.G00.65) : congé sans solde, parental, sabbatique…
   Saisies une fois comme **imprévus** du salarié (`engagement/src/imprevus.rs`) : chaque mois
   traversé en tire sa ligne et son bloc 65, entier, sans recopie. Un **congé payé n'en est pas une** — il est payé, le contrat n'est pas
   suspendu, et le moteur refuse d'écrire le motif « 200 - COP ».
 
-  **Un mois entier sans rémunération** (15/10/2026 ; textes et rapport :
+  **Un mois entier sans rémunération** (textes et rapport :
   `atelier/reference/sources/suspension-non-remuneree/`) :
   - la **retenue** d'une absence (arrêt comme suspension) se calcule **au réel du mois** : le salaire du mois
     fois les heures d'absence sur les heures de travail du mois (Cass. soc. 11/02/1982), au taux exact,
@@ -1235,16 +1163,9 @@ décident. Les articles sont relevés et datés dans
   saisissent (D1226-5) ;
 - **certificat de travail** (L1234-19, D1234-6) et **reçu pour solde de tout
   compte** (L1234-20, D1234-7, D1234-8) : produits par
-  `moteur/src/routes/imprevus.rs`, leur texte en donnée dans `gabarits/*.modele`.
+  `moteur/src/routes/imprevus.rs`, leur texte en donnée dans `logiciel/donnees/modeles/*.modele` (ou le modèle propre de la compagnie, `socle::fichiers::modele_de`).
   Le certificat est le seul document du logiciel dont le contenu soit
   **plafonné** par la loi — D1234-6 dit « exclusivement ».
-
-Ce qui n'est **toujours pas** calculé est dit plutôt que deviné : les
-périodes assimilées à du travail effectif (L3141-4 et L3141-5 sont relevés,
-mais pas L3141-5-1 — les deux jours par mois de la loi du 22/04/2024), le
-prorata d'un mois incomplet (fait aux jours calendaires, jamais confronté à
-un bulletin de référence), la rupture conventionnelle et les départs en
-retraite, et les clauses de la convention 3090.
 
 ## Les signalements d'événements (DSN événementielle)
 
@@ -1260,8 +1181,7 @@ Le moteur en écrit quatre, dans trois modules :
 **Trois modules et non un**, parce qu'ils ne portent pas la même chose. Les
 deux premiers ne portent pas de paie ; le FCTU ne porte que ça — il déclare le
 **solde de tout compte** (cahier technique p. 107, « y compris les données du
-mois en cours calculées dans le cadre du solde de tout compte »), et il ne
-pouvait donc pas s'écrire avant la paie des permanents. Le quatrième ne porte
+mois en cours calculées dans le cadre du solde de tout compte »). Le quatrième ne porte
 ni paie ni événement de contrat : il **demande** — c'est la seule façon
 d'obtenir de la DGFiP le taux de prélèvement à la source d'un salarié sans
 attendre une DSN mensuelle, depuis que TOPAze est fermé. Un signalement
@@ -1287,12 +1207,12 @@ d'usage part dans la **DSN mensuelle** avec le circuit dérogatoire
 Le moteur en émet un quand même si le salarié le demande (la norme le permet,
 p. 68 et p. 107), en le disant par un avertissement (`fctu.rs`, « La
 dérogation du spectacle ») ; la mensuelle qui suit écrit alors encore
-62.017 = 01 (fiche N5, 62.017 : une décision ouverte).
+62.017 = 01.
 
 **Ce que l'arborescence tranche, et que le tableau des usages ne dit pas.**
 Le tableau dit qu'une rubrique a le droit d'être là ; il ne dit pas si son
 bloc s'applique. Les cardinalités du modèle (p. 122, recopiées dans
-`moteur/fctu-base.json`) le disent :
+`logiciel/donnees/fctu-base.json`) le disent :
 
 ```
 S21.G00.30 - Individu               (1,1)   UN individu, UN contrat :
@@ -1308,7 +1228,7 @@ Et deux contrôles lui sont propres, tenus par le moteur avant tout dépôt :
 `S21.G00.78.001`) et **CCH-15** (au moins trois blocs 51, types 001, 002 et
 010, par versement).
 
-Déposé en test le 19/09/2026 : **0 anomalie bloquante, 0 non bloquante**,
+Un FCTU déposé en test : **0 anomalie bloquante, 0 non bloquante**,
 certificat de conformité délivré.
 
 **Un signalement d'arrêt n'est pas une petite DSN mensuelle.** Il ne porte ni
@@ -1331,24 +1251,20 @@ tout le reste du bloc 40                       I  (interdit)
 
 Le contrat est donc **désigné**, jamais redécrit : c'est la DSN mensuelle qui
 l'a déclaré, et ce sont ces deux identifiants-là qui doivent correspondre.
-D'où `operations_arrets.contrats_au()`, qui lit les contrats dans les saisies
+D'où `contrats_au` (`moteur/src/routes/imprevus.rs`), qui lit les contrats des engagements
 plutôt que d'en fabriquer un.
 
 Une rubrique interdite écrite par mégarde, c'est une anomalie bloquante
 **CST-04** côté plate-forme, et le fichier ne déclare rien. Le tableau des
-usages est donc relevé dans `logiciel/donnees/arrets-base.json` (section `usages`).
-Le générateur ne lit pas cette section : elle est l'attendu contre lequel un
-fichier produit se confronte, rubrique par rubrique, dans les deux sens (aucune
-interdite, toutes les obligatoires).
+usages est relevé dans `logiciel/donnees/arrets-base.json` (section `usages`).
 
 ### Le bloc 60, et ses trois visages
 
 Le même bloc « Arrêt de travail » s'écrit à quatre endroits, avec quatre jeux
 de rubriques — et c'est `dsn::bloc_60` qui les tient tous, pour qu'il n'y ait
 pas deux vérités sur ce qui part. Il décide de ce qu'il écrit par le tableau
-des usages, pour la nature du fichier et jamais une autre (`usage_admet` ;
-`atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60 ;
-reste R1 #42 : le FCTU passait « 01 »).
+des usages, pour la nature du fichier et jamais une autre (`dsn::usage_admet` ;
+`atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60).
 
 | rubrique | mensuelle (01) | arrêt (04) | reprise (05) | fin de contrat (07) |
 |---|---|---|---|---|
@@ -1384,10 +1300,10 @@ professionnelle sur lequel s'exploitent les signalements suivants. Et bloc
 dans TOUTES les DSN mensuelles dont le mois principal déclaré présente une
 période commune »*.
 
-`dsn.generer(..., arrets=…)` le fait : le bloc 60 s'écrit sous le bloc 40 du
+`dsn::generer` le fait : le bloc 60 s'écrit sous le bloc 40 du
 contrat suspendu, entre le contrat et la fin de contrat (l'ordre de
-l'arborescence : 41, 60, 62, 65, 70, 71). `operations_paies.produire_mois` lit
-le magasin tout seul et l'annonce dans les avertissements — y compris quand
+l'arborescence : 41, 60, 62, 65, 70, 71). La fabrication de la DSN du mois (`compagnie/depart.rs`,
+`fabriquer_dsn`) lit les arrêts qui croisent le mois et les annonce dans les avertissements — y compris quand
 l'arrêt n'a **jamais été signalé**, parce que la mensuelle ne remplace pas le
 signalement : elle le répète.
 
@@ -1397,13 +1313,13 @@ fils du bloc 40, il n'aurait rien où s'accrocher.
 
 ### Le magasin, et la trace des envois
 
-`imprevus/AAAA-MM.json` sous les données (depuis le 15/10/2026, `engagement/src/imprevus.rs`) :
+`imprevus/AAAA-MM.json` sous les données (`engagement/src/imprevus.rs`) :
 le magasin des **imprévus** d'un salarié, arrêts de travail (`"genre": "arret"`, au mois du
 dernier jour travaillé) et suspensions du bloc 65 (`"genre": "suspension"`, au mois de leur
 premier jour). Un imprévu se saisit une fois ; le moteur en tire la ligne de paie d'un
 permanent (`imprevus::lignes_du_mois`, le seul endroit qui la tire), le bloc 60 ou 65 de chaque
 DSN dont le mois le croise, et nomme les cachets d'un intermittent datés pendant l'imprévu.
-L'ancien dossier `arrets/` n'est plus lu : sa présence refuse. Chaque arrêt garde ses `envois` : les
+Chaque arrêt garde ses `envois` : les
 signalements déposés pour de vrai (nature, type, numéro d'ordre, identifiant
 rendu par le point de dépôt) et les DSN mensuelles qui l'ont reporté. C'est
 cette liste qui donne son rang au prochain annule-et-remplace — le cahier
@@ -1434,33 +1350,20 @@ Un enregistrement par contrat, encodage latin-1. Zones dans `declarations/src/dp
 | 368-412 | lieu de naissance (44 c.) |
 | 412-420 | date d'embauche `JJMMAAAA` |
 | 420-424 | heure d'embauche `HHMM` |
-| 730-731 | sexe `M` / `F` — lu sur le NIR quand il y en a un, sur la case `sexe` de la fiche sinon (`ntt.sexe`, la seule lecture du sexe dans le moteur) |
+| 730-731 | sexe `M` / `F` — lu sur le NIR quand il y en a un, sur la case `sexe` de la fiche sinon (`ntt::sexe`, la seule lecture du sexe dans le moteur) |
 | 827-829 | département de naissance |
-| 864-865 | `C_TYPE_CONTRAT` : `1` CDD, `2` CDI, `3` CTT — **la DPAE n'en connaît que trois**, quand la DSN en a une vingtaine. La valeur vient de la nature du contrat (`moteur/contrats-base.json`, section `dpae`) |
+| 864-865 | `C_TYPE_CONTRAT` : `1` CDD, `2` CDI, `3` CTT — **la DPAE n'en connaît que trois**, quand la DSN en a une vingtaine. La valeur vient de la nature du contrat (`logiciel/donnees/contrats-base.json`, section `dpae`) |
 | 865-873 | `D_FIN_CDD`, fin prévue du CDD `JJMMAAAA` — **à blanc pour un CDI**, qui n'a pas de terme |
 
-Le reste est constant : marqueur `DUE`, `912` (N_LG_MESS, la longueur du message hors entête — pas un code Urssaf), `120` (C_VERSION), SIRET, raison
-sociale, adresse, téléphone, code NAF, et `MT176` (code du service de santé au
-travail). Ces zones viennent du gabarit et ne sont jamais réécrites.
+Le gabarit (celui de la compagnie s'il en a un, sinon l'enregistrement neutre livré,
+`logiciel/donnees/modeles/due_tel_gabarit.txt`) ne donne que l'en-tête constante : marqueur `DUE`, `912` (N_LG_MESS,
+la longueur du message hors entête — pas un code Urssaf), `120` (C_VERSION). Les zones de l'employeur se lisent dans
+la fiche entreprise (`dpae::employeur` : SIRET, raison sociale, adresse, téléphone, code NAF, et le code du service de
+santé au travail, `medecine_travail`, qui ne se devine pas : sans lui, la DPAE refuse, sauf quand le gabarit est celui
+de la compagnie, au même SIRET, et le porte).
 
-**Niveau de preuve — plus faible qu'ailleurs, à savoir.** CoolPaie n'a laissé
-qu'**un seul** fichier DPAE dans tout le dossier
-(relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé ; 6 enregistrements du
-28/08/2026, deux salariés × trois contrats). Les 6 sont reconstitués octet pour
-octet, et l'audit des zones montre que tout segment non vide est soit un champ
-identifié, soit une donnée d'entreprise stable. Mais aucune variation n'a pu
-être observée sur : un autre établissement, un autre service de santé au
-travail, une heure d'embauche autre que 19h00.
-Pour l'usage de la compagnie — mêmes artistes, mêmes CDD d'usage — c'est couvert.
-
-**Le contrat autre que CDD, lui, n'est plus une supposition** (19/09/2026). Le
-`1` en position 864 était décrit ici comme codant « probablement durée
-déterminée » ; c'est `C_TYPE_CONTRAT`, et le dessin officiel (catégorie V
-« CONTRAT ») donne les trois valeurs. Il sortait en dur du gabarit : un CDI
-embauché serait parti déclaré à durée déterminée, avec un terme recopié de
-l'engagement. Ce qu'il n'a **toujours pas**, c'est un dépôt réel ou de test en
-face : la DPAE d'un permanent est conforme au dessin et aux tests, pas à une
-réponse de l'Urssaf.
+`C_TYPE_CONTRAT` (position 864) suit le dessin officiel (catégorie V « CONTRAT »), qui donne les trois valeurs : un
+CDI part à durée indéterminée, sans terme.
 
 **Ce que l'Urssaf répond** (onglet « Codes retour » du Format 120, tables dans
 `declarations/src/dpae.rs`) : le bilan de conformité (nature 11, XML) porte un `<code>`
@@ -1472,8 +1375,7 @@ et les formalités déclenchées (`I_CERTIF`, `I_IMMA`, `I_MT`, `I_PMF5`,
 971-976). `envois/src/etats.rs` lit le certificat (`dpae::lire_certificat`) et pose sur
 chaque embauche sa référence de dossier.
 
-Deux lectures à connaître, observées sur les 16 enregistrements reçus de juin
-au 12 septembre 2026, ceux de CoolPaie compris :
+Deux lectures à connaître, observées sur les certificats reçus :
 
 - **`99` « autre erreur, données facultatives » est l'état nominal**, toujours
   avec un `R_DOSSIER` et `CERTIF` + `MT` levées. Le tableau de 2013 est plus
@@ -1482,10 +1384,9 @@ au 12 septembre 2026, ceux de CoolPaie compris :
   parce qu'une DPAE identique existait — vu sur le second test des mêmes
   embauches. L'embauche est déclarée, par la première.
 
-Le moteur écrit le `.txt` **et** le `.txt.zip` du même nom, comme le faisait
-CoolPaie ; net-entreprises accepte les deux. `DPAE_<mois>_recapitulatif.txt`
-donne la même chose en clair pour la saisie en ligne, qui reste une option
-raisonnable pour deux personnes.
+Le moteur écrit le `.txt` **et** le `.txt.zip` du même nom ; net-entreprises accepte les deux.
+`DPAE_<mois>_recapitulatif.txt` (`dpae::recapitulatif`, écrit par `routes/depots.rs`) donne la même chose en clair
+pour la saisie en ligne.
 
 ## Le dépôt, et le journal
 
@@ -1493,8 +1394,7 @@ Ces déclarations engagent l'employeur. Le moteur les dépose **par l'API**
 (`envois/src/depot.rs` le prépare, `envois/src/transport.rs` l'envoie : net-entreprises
 pour la DSN, l'Urssaf pour la DPAE), jamais
 par un portail : un contrat écrit, des retours lus par programme, et une
-erreur qui se voit — la première DPAE du 12/09/2026 a été refusée cinq fois
-pour un code Urssaf faux que le portail DUE de CoolPaie laissait passer.
+erreur qui se voit (un code Urssaf faux, qu'un portail laisserait passer, fait refuser le dépôt).
 
 Trois garde-fous, tous dans le moteur (`moteur/src/compagnie/depot_acte.rs`, `moteur/src/compagnie/demande.rs`) :
 
@@ -1557,10 +1457,7 @@ installe un second logiciel. `moteur/src/compagnie/administrateur.rs` :
   elle ne scelle que des enveloppes, chacune d'une clé maîtresse tirée au hasard pour sa compagnie, et se pose une fois
   (`O_EXCL`) ; la séance gardée est **une par coffre** (`ouverture-gardee-<empreinte>.bin`). La mise à jour est déjà
   par installation (`maj/`) ; son relais attend la fin de **sa** fenêtre (le processus sous Windows, le créneau de son
-  installation ailleurs), et `moteur maj --appliquer` ne refuse que si **cette** installation est ouverte. Ce que la fenêtre
-  d'avant laissait sur le poste et que plus rien ne lit — la séance gardée au nom unique (`ouverture-gardee.bin`), le
-  `.jeton-interface` et le profil `navigateur/` communs, le profil WebView2 par défaut de Tauri (`fr.puppetpaie.fenetre`) —
-  s'efface au lancement, sans être lu (`interface::effacer_les_restes`).
+  installation ailleurs), et `moteur maj --appliquer` ne refuse que si **cette** installation est ouverte.
 - **Toutes les compagnies tenues à jour dès le lancement** (`Fenetre::prechauffer`, `etat_garde::Fil`) : chaque vraie
   compagnie de l'installation (pas les fictives) reçoit sa file des états sur **un seul fil de calcul** pour toute la
   fenêtre, la dernière ouverte d'abord (la date de son `journal/interface.log`), puis chacune son tour ; la compagnie
