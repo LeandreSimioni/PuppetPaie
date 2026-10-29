@@ -118,13 +118,13 @@ fenêtre s'ouvre, et c'est tout le logiciel.
 | tous | les systèmes publiés à la fois | `puppetpaie-<version>-tout-systeme-installation.zip` | `puppetpaie-<version>-tout-systeme.zip` | celui du système où l'on est | un dossier portable qui passe d'une machine à l'autre ; le repli d'une installation dont le système n'a pas son archive |
 
 **Pour installer, on prend l'installeur (Windows) ou l'archive d'installation**
-(`…-installation.zip`, ticket #246) : `logiciel/` et, à côté, `fictives/`, les
+(`…-installation.zip`) : `logiciel/` et, à côté, `fictives/`, les
 quatre compagnies fictives. Décompressée dans un dossier neuf (Linux, Mac, un
 dossier portable), elle s'ouvre bridée sur ses fictives ; le geste de
 l'accueil la débloque.
 
-**Bridé, le « + » de l'accueil ajoute une compagnie fictive** (`fictives/ajoutee-<nom>`,
-ticket #236) dont rien ne part. **Au déblocage**, l'accueil demande lesquelles
+**Bridé, le « + » de l'accueil ajoute une compagnie fictive** (`fictives/ajoutee-<nom>`)
+dont rien ne part. **Au déblocage**, l'accueil demande lesquelles
 garder, et redemande tant qu'il en reste : une compagnie gardée passe sous
 `compagnies/`, devient réelle (son mot de passe du logiciel se choisit à sa
 première ouverture, son coffre est gardé) et porte `config/demo.json`, qui fait
