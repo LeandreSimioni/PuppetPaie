@@ -653,6 +653,10 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         }
     }
 
+    // LES ECARTS DE CALCUL DES PAIES IMPORTEES qui ne sont pas encore comparees (`importation_ecarts::noter`) : une
+    // compagnie completee depuis l'import compare celles que le calcul refusait. Ils partent avec les autres incidents.
+    crate::importation_ecarts::noter(ctx);
+
     // LE DIAGNOSTIC A DISTANCE (29/09/2026) : ce que le journal des incidents a note part chez l'editeur -- pas depuis la
     // copie de developpement (ses refus sont ceux qu'on provoque pour essayer), mais depuis une compagnie fictive. Et les
     // reponses de l'editeur aux signalements de ce poste. Pas pendant les tests (`PUPPETPAIE_INCIDENTS` pose : le journal est

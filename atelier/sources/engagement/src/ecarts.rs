@@ -3,9 +3,10 @@
 //! autrement ; l'engagement importe ne change pas (il se lit, il ne se recalcule pas : `importe`), et la paie calculee
 //! ici ne s'ecrit nulle part.
 //!
-//! LA SAISIE REFAITE : le salarie (sa fiche, a la date de la periode : son statut, son metier), le spectacle que le
-//! bulletin nomme, la nature que la DSN ou l'AEM atteste (muette : un CDDU, regle 6), les lignes de remuneration que le
-//! bulletin imprime, par leur rubrique du catalogue (quantite, taux, heures), aux jours qu'il dit travailles, payee le
+//! LA SAISIE REFAITE : le salarie (sa fiche, a la date de la periode ; le statut, la qualite de cadre et l'emploi que
+//! le bulletin imprime passent devant les siens), le spectacle que le bulletin nomme, la nature que la DSN ou l'AEM atteste (muette : un CDDU, regle 6), les lignes de remuneration que le
+//! bulletin imprime, par leur rubrique du catalogue (quantite, taux, heures), aux jours qu'il dit travailles (sa periode,
+//! quand elle tient en un jour et qu'il n'en imprime pas), payee le
 //! jour du versement. Elle se calcule comme la validation la calculerait (`charger_donnees`), avec les baremes et la
 //! configuration a la date de la periode ; une compagnie qui n'a pas encore pose son taux AT/MP de l'annee lit celui que
 //! le bulletin applique (`Contexte::avec_le_taux_atmp_lu`).
@@ -111,13 +112,24 @@ impl Ecart {
 /// La comparaison d'une paie importee (un mois de l'engagement).
 #[derive(Clone, Debug)]
 pub struct Comparaison {
+    /// L'empreinte de la paie (`empreinte`).
+    pub empreinte: String,
     pub mois: String,
     /// Le logiciel que le lecteur a reconnu au bulletin ; `None` : un autre.
     pub logiciel: Option<String>,
     pub nature: Option<String>,
     pub statut: Option<String>,
+    /// Cadre (`true`) ou non cadre, quand le bulletin ou la fiche le dit.
+    pub cadre: Option<bool>,
+    /// D'ou vient le taux AT/MP du calcul : `compagnie` (celui qu'elle a pose pour l'annee) ou `bulletin` (celui que le
+    /// bulletin importe applique : l'AT/MP n'est alors pas compare).
+    pub taux_atmp: Option<&'static str>,
     /// Les ecarts ; `Err` : la paie ne se compare pas, et pourquoi.
     pub ecarts: Result<Vec<Ecart>, String>,
+    /// La paie ne s'est pas comparee parce que le calcul a refuse la saisie (une configuration a completer, l'effectif
+    /// de l'entreprise...) : elle se compare de nouveau quand la compagnie s'ouvre. Les autres raisons tiennent aux
+    /// pieces importees et ne changent pas.
+    pub a_refaire: bool,
     /// Les libelles de cotisation du bulletin que la table ne rattache a aucune cotisation : non compares.
     pub non_rattachees: Vec<String>,
 }
@@ -160,18 +172,34 @@ fn texte(o: &Map<String, Value>, k: &str) -> Option<String> {
 }
 
 /// Les comparaisons de chaque paie de l'engagement importe `imp`, mois par mois. `rattacher` : la cotisation que la
-/// table de lecture rattache a un libelle de cotisation imprime.
-pub fn comparer(racine: &Path, imp: &Importe, rattacher: &dyn Fn(&str) -> Option<String>) -> Vec<Comparaison> {
+/// table de lecture rattache a un libelle de cotisation imprime ; `deja` : la paie de cette empreinte (`empreinte`) est
+/// deja comparee, elle ne se compare pas deux fois.
+pub fn comparer(racine: &Path, imp: &Importe, rattacher: &dyn Fn(&str) -> Option<String>, deja: &dyn Fn(&str) -> bool) -> Vec<Comparaison> {
     let brut = &imp.objet().brut;
     let contrat = imp.contrat();
     let nature = contrat.and_then(|c| texte(c, "nature")).or_else(|| texte(brut, "nature"));
     imp.paies()
         .into_iter()
-        .map(|(mois, p)| {
+        .filter_map(|(mois, p)| {
+            let empreinte = empreinte(imp, &mois, p);
+            if deja(&empreinte) {
+                return None;
+            }
             let logiciel = p.get("bulletin").and_then(|b| b.get("logiciel")).filter(|x| vrai(x)).map(en_texte);
-            let mut c = Comparaison { mois: mois.clone(), logiciel, nature: nature.clone(), statut: None, ecarts: Ok(Vec::new()), non_rattachees: Vec::new() };
+            let mut c = Comparaison {
+                empreinte,
+                mois: mois.clone(),
+                logiciel,
+                nature: nature.clone(),
+                statut: None,
+                cadre: None,
+                taux_atmp: None,
+                ecarts: Ok(Vec::new()),
+                a_refaire: false,
+                non_rattachees: Vec::new(),
+            };
             c.ecarts = comparer_une(racine, brut, &mois, p, nature.as_deref(), rattacher, &mut c);
-            c
+            Some(c)
         })
         .collect()
 }
@@ -187,35 +215,45 @@ fn comparer_une(
 ) -> Result<Vec<Ecart>, String> {
     let annee = mois.get(..4).unwrap_or("");
     let fin = dernier_du_mois(mois)?;
-    let mut ctx = Contexte::nouveau(racine, Some(fin))?;
+    let mut ctx = Contexte::nouveau(racine, Some(fin)).map_err(|m| a_refaire(c, m))?;
     if !ctx.code.join("baremes").join(format!("{}.json", annee)).exists() {
         return Err(format!("aucun barème livré pour {} : la période ne se calcule pas ici", annee));
     }
+    // La convention fait la couche du bareme (regle 8) : sans elle, le calcul n'est pas celui de la compagnie.
+    if !ctx.entreprise.get("idcc").is_some_and(vrai) {
+        c.a_refaire = true;
+        return Err("la convention collective de l'entreprise n'est pas renseignée : le calcul n'aurait pas sa couche".into());
+    }
     let salarie = texte(brut, "salarie").ok_or("l'engagement importé ne nomme pas son salarié")?;
-    let fiche = ctx.salarie(&salarie)?;
-    c.statut = fiche.get("statut").filter(|x| vrai(x)).map(en_texte);
+    let fiche = ctx.salarie(&salarie).map_err(|m| a_refaire(c, m))?;
+    // LE STATUT ET L'EMPLOI DE CETTE PAIE sont ceux que son bulletin imprime (`emploi_imprime`) ; ce qu'il ne dit pas
+    // se lit dans la fiche. Un salarie artiste sur un contrat, non cadre au regime general sur un autre, se calcule
+    // chaque fois sous le sien.
+    let imprime = p.get("emploi_imprime").and_then(Value::as_object);
+    let du_bulletin = |k: &str| imprime.and_then(|m| m.get(k)).filter(|x| vrai(x));
+    c.statut = du_bulletin("statut").or(fiche.get("statut").filter(|x| vrai(x))).map(en_texte);
+    c.cadre = du_bulletin("statut_categoriel_rc").or(fiche.get("statut_categoriel_rc").filter(|x| vrai(x))).map(|s| en_texte(s) == "01");
     let Some(Value::Array(cotisations)) = p.get("cotisations") else {
         return Err("la paie importée n'a pas de bulletin : la DSN seule ne porte pas ses lignes de cotisation".into());
     };
     // LE TAUX AT/MP est celui de l'etablissement, notifie par l'Assurance Maladie. Une compagnie qui n'a pas encore pose
-    // le sien pour l'annee lit celui que le bulletin applique (son taux employeur, sinon son montant sur sa base), ramene
-    // au taux notifie par le facteur que le bareme applique a ce contrat (`droit::bareme::bareme_atmp`), au centieme de
-    // point comme un taux notifie. L'AT/MP n'est alors pas compare : il est l'entree.
+    // le sien pour l'annee lit celui que le bulletin applique (son taux employeur, sinon son montant sur sa base ; un
+    // bulletin qui n'imprime que le montant, sur l'assiette de la ligne AT/MP calculee ici), ramene au taux notifie par
+    // le facteur que le bareme applique a ce contrat (`droit::bareme::bareme_atmp`), au centieme de point comme un taux
+    // notifie. L'AT/MP n'est alors pas compare : il est l'entree.
     let an: i32 = annee.parse().map_err(|_| format!("mois illisible : {}", mois))?;
-    let mut atmp_applique: Option<Decimal> = None;
+    let mut atmp_imprime: Option<(Option<Decimal>, Option<Decimal>, Option<Decimal>)> = None;
     if !racine.join("config").join("baremes").join(format!("{}.json", annee)).exists() {
         let ligne = cotisations.iter().find(|l| l.get("libelle").map(en_texte).is_some_and(|x| rattacher(&x).as_deref() == Some("atmp")));
-        atmp_applique = ligne.and_then(|l| {
-            decimal(l.get("taux_employeur")).or_else(|| match (decimal(l.get("montant_employeur")), decimal(l.get("base"))) {
-                (Some(m), Some(b)) if !b.is_zero() => Some((m / b * Decimal::from(100)).round_dp(2)),
-                _ => None,
-            })
-        });
-        if atmp_applique.is_some() {
+        atmp_imprime = ligne
+            .map(|l| (decimal(l.get("taux_employeur")), decimal(l.get("montant_employeur")), decimal(l.get("base"))))
+            .filter(|(t, m, _)| t.is_some() || m.is_some_and(|m| !m.is_zero()));
+        if atmp_imprime.is_some() {
             ctx = ctx.avec_le_taux_atmp_lu(an, json!(1.0));
         }
     }
-    let atmp_lu = atmp_applique.is_some();
+    let atmp_lu = atmp_imprime.is_some();
+    c.taux_atmp = Some(if atmp_lu { "bulletin" } else { "compagnie" });
     let lignes = p.get("lignes").and_then(Value::as_array).cloned().unwrap_or_default();
     // Les jours travailles que le bulletin dit, chacun sur chaque ligne (les jours de l'engagement en sont la reunion).
     let mut jours: Vec<Value> = Vec::new();
@@ -225,6 +263,15 @@ fn comparer_une(
         while j <= b {
             jours.push(json!(j.iso()));
             j = j.plus_jours(1)?;
+        }
+    }
+    // Un bulletin qui n'imprime pas ses jours travailles, sur une periode d'un seul jour : ce jour est le jour travaille.
+    // Une periode plus longue ne dit pas lesquels : la paie ne se compare pas.
+    if jours.is_empty() {
+        if let (Some(d), Some(f)) = (texte(p, "debut"), texte(p, "fin")) {
+            if d == f {
+                jours.push(json!(Jour::lire(&d)?.iso()));
+            }
         }
     }
     let mut saisies = Vec::new();
@@ -270,19 +317,29 @@ fn comparer_une(
             e.insert(k.into(), v.clone());
         }
     }
+    for k in ["emploi", "pcs_ese", "code_emploi_ft", "statut", "statut_conventionnel", "statut_categoriel_rc"] {
+        if let Some(v) = du_bulletin(k) {
+            e.insert(k.into(), v.clone());
+        }
+    }
     e.insert("lignes".into(), Value::Array(saisies));
     let mut data = json!({"mois": mois, "engagements": [Value::Object(e)]});
     if let Some(v) = p.get("verse_le").filter(|x| vrai(x)) {
         data["date_paiement"] = v.clone();
     }
-    let mut saisie = crate::charger_donnees(&ctx, &data)?;
-    if let Some(applique) = atmp_applique {
-        // Calcule au taux notifie de 1 %, la ligne AT/MP porte le facteur du contrat.
-        let facteur = saisie.paies.first().and_then(|p| p.lignes.iter().find(|l| l.id == "atmp")).and_then(|l| l.taux_pat).filter(|f| *f > 0.0);
-        if let Some(f) = facteur {
+    let mut saisie = crate::charger_donnees(&ctx, &data).map_err(|m| a_refaire(c, m))?;
+    if let Some((taux, montant, base)) = atmp_imprime {
+        // Calcule au taux notifie de 1 %, la ligne AT/MP porte le facteur du contrat, et son assiette.
+        let ligne = saisie.paies.first().and_then(|p| p.lignes.iter().find(|l| l.id == "atmp"));
+        let facteur = ligne.and_then(|l| l.taux_pat).filter(|f| *f > 0.0);
+        let applique = taux.or_else(|| {
+            let b = base.or(ligne.map(|l| l.base)).filter(|b| !b.is_zero())?;
+            Some((montant? / b * Decimal::from(100)).round_dp(2))
+        });
+        if let (Some(f), Some(applique)) = (facteur, applique) {
             let notifie = (applique / dec_f64(f)?).round_dp(2);
             ctx = ctx.avec_le_taux_atmp_lu(an, json!(notifie.to_string().parse::<f64>().map_err(|e| e.to_string())?));
-            saisie = crate::charger_donnees(&ctx, &data)?;
+            saisie = crate::charger_donnees(&ctx, &data).map_err(|m| a_refaire(c, m))?;
         }
     }
     let paie = saisie.paies.first().ok_or("le calcul ne rend aucune paie")?;
@@ -374,10 +431,11 @@ fn comparer_une(
             }
         }
         for (grandeur, leur, notre) in [(Grandeur::TauxSalarie, l.taux_salarie, n.taux_sal), (Grandeur::TauxEmployeur, l.taux_employeur, n.taux_pat)] {
-            let Some(leur) = leur else { continue };
-            let notre = notre.map(dec_f64).transpose()?;
-            if (leur - notre.unwrap_or(zero)).abs() > Decimal::new(5, 4) {
-                ecarts.push(ecart(grandeur, notre, Some(leur), None));
+            // Un taux se compare quand chaque cote en a un : une ligne calculee sans taux (la reduction generale, un
+            // montant fixe) n'en a pas, et ce que le bulletin imprime a sa place n'en est pas un ; le montant compare.
+            let (Some(leur), Some(notre)) = (leur, notre.map(dec_f64).transpose()?) else { continue };
+            if (leur - notre).abs() > Decimal::new(5, 4) {
+                ecarts.push(ecart(grandeur, Some(notre), Some(leur), None));
             }
         }
     }
@@ -401,4 +459,21 @@ fn comparer_une(
 /// (leur - notre) / notre, a 4 decimales ; `None` quand le notre est nul.
 fn relatif(leur: Decimal, notre: Decimal) -> Option<Decimal> {
     (!notre.is_zero()).then(|| ((leur - notre) / notre).round_dp(4))
+}
+
+/// Une raison de non-comparaison venue du calcul : la paie se comparera de nouveau.
+fn a_refaire(c: &mut Comparaison, raison: String) -> String {
+    c.a_refaire = true;
+    raison
+}
+
+/// L'empreinte de la paie `mois` de l'engagement importe `imp` : ce qui la reconnait d'une comparaison a l'autre (son
+/// salarie, ses bornes, son numero et ce que les pieces en disent, sans la date ni le dossier de l'import).
+pub fn empreinte(imp: &Importe, mois: &str, p: &Map<String, Value>) -> String {
+    let brut = &imp.objet().brut;
+    let mut paie = p.clone();
+    paie.remove("importe_le");
+    paie.remove("source");
+    let graine = json!([brut.get("salarie"), brut.get("debut"), brut.get("fin"), brut.get("numero"), mois, paie]);
+    socle::fichiers::sha256_hex(graine.to_string().as_bytes())[..16].to_string()
 }

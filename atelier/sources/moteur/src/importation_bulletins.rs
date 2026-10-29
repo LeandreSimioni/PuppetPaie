@@ -1240,29 +1240,45 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
     f.insert("nir".into(), json!(nir));
     let cle = ls.iter().rev().find_map(|l| l.cle_nir.clone()).or_else(|| declarations::champs::cle_nir(nir)).unwrap_or_default();
     f.insert("nir_cle".into(), json!(cle));
-    // CE QUE LE STATUT IMPRIME DIT, EN TOUTES LETTRES (#236), et rien de plus : « Artiste » ou « Technicien » font
-    // la case « Artiste ou technicien » ; « Cadre » ou « Non cadre », la case « Cadre ou non cadre » (S21.G00.40.003 :
-    // 01 cadre, 04 non cadre, cahier technique 2026.1 p. 183). « Non cadre » ne dit pas artiste ou technicien : cette
-    // case-la reste a remplir, et l'apercu le dit.
-    match ls.iter().rev().find_map(|l| l.b.salarie.statut.as_deref()).map(compare).as_deref() {
-        Some(s @ ("artiste" | "technicien")) => {
-            f.insert("statut".into(), json!(s));
-        }
-        Some("cadre") => {
-            f.insert("statut_categoriel_rc".into(), json!("01"));
-        }
-        Some("noncadre") => {
-            f.insert("statut_categoriel_rc".into(), json!("04"));
-        }
-        _ => {}
+    let statut = ls.iter().rev().find_map(|l| l.b.salarie.statut.as_deref());
+    let emploi = f.get("emploi").map(valeur_en_texte);
+    f.extend(statut_et_metier(statut, emploi.as_deref())?);
+    if let Some(premier) = ls.iter().map(|l| l.b.debut).min() {
+        f.insert("date_anciennete".into(), json!(premier.iso()));
     }
-    // L'EMPLOI IMPRIME, QUAND IL NOMME UN METIER DU CATALOGUE ET UN SEUL (#236) : « MUSICIEN » est le metier MUS010 ;
-    // la fiche prend alors ce que le choix de ce metier donne dans la fiche (`emplois::resoudre` : le code PCS-ESE, le
-    // code France Travail, le statut conventionnel), comme si on l'avait choisi dans la liste. Le statut et la qualite
-    // de cadre imprimes priment sur ceux du catalogue. Un intitule qui ne nomme aucun metier, ou plusieurs, reste tel
-    // quel : le metier se choisit dans la fiche apres l'import, et l'apercu le dit.
-    let intitule = f.get("emploi").map(valeur_en_texte).unwrap_or_default();
-    if let Some((code, feminin)) = droit::emplois::par_intitule(&intitule, compare).map_err(|m| erreur("ErreurOperation", m))? {
+    lisibles_de_la_piece("salarie", &mut f)?;
+    let mut f = declarations::champs::combler_affichage("salarie", &f)?;
+    f.insert("actif".into(), json!(true));
+    Ok(f)
+}
+
+/// Ce que le statut et l'emploi qu'un bulletin imprime disent du salarie, en champs de sa fiche.
+///
+/// LE STATUT, EN TOUTES LETTRES (#236), et rien de plus : « Artiste » ou « Technicien » font la case « Artiste ou
+/// technicien » ; « Cadre » ou « Non cadre », la case « Cadre ou non cadre » (S21.G00.40.003 : 01 cadre, 04 non cadre,
+/// cahier technique 2026.1 p. 183) ; « artiste cadre » dit les deux. « Non cadre » ne dit pas artiste ou technicien :
+/// cette case-la reste a remplir, et l'apercu le dit.
+///
+/// L'EMPLOI, QUAND IL NOMME UN METIER DU CATALOGUE ET UN SEUL (#236) : « MUSICIEN » est le metier MUS010 ; la fiche
+/// prend alors ce que le choix de ce metier donne (`emplois::resoudre` : le code PCS-ESE, le code France Travail, le
+/// statut conventionnel), comme si on l'avait choisi dans la liste. Le statut et la qualite de cadre imprimes priment
+/// sur ceux du catalogue. Un intitule qui ne nomme aucun metier, ou plusieurs, reste tel quel : le metier se choisit
+/// dans la fiche apres l'import, et l'apercu le dit.
+pub(crate) fn statut_et_metier(statut: Option<&str>, emploi: Option<&str>) -> R<Map<String, Value>> {
+    let mut f = Map::new();
+    let intitule = emploi.map(str::trim).unwrap_or_default();
+    if !intitule.is_empty() {
+        f.insert("emploi".into(), json!(intitule));
+    }
+    let mots = statut.map(bulletin_lu::jetons).unwrap_or_default();
+    if let Some(s) = mots.iter().find(|m| *m == "artiste" || *m == "technicien") {
+        f.insert("statut".into(), json!(s));
+    }
+    if let Some(i) = mots.iter().position(|m| m == "cadre" || m == "noncadre") {
+        let non = mots[i] == "noncadre" || (i > 0 && mots[i - 1] == "non");
+        f.insert("statut_categoriel_rc".into(), json!(if non { "04" } else { "01" }));
+    }
+    if let Some((code, feminin)) = droit::emplois::par_intitule(intitule, compare).map_err(|m| erreur("ErreurOperation", m))? {
         let cadre = f.get("statut_categoriel_rc").map(valeur_en_texte).map(|s| s == "01");
         let r = droit::emplois::resoudre(&code, cadre, feminin).map_err(|m| erreur("ErreurOperation", m))?;
         for (k, v) in r.as_object().into_iter().flatten() {
@@ -1272,12 +1288,6 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
             f.insert(k.clone(), v.clone());
         }
     }
-    if let Some(premier) = ls.iter().map(|l| l.b.debut).min() {
-        f.insert("date_anciennete".into(), json!(premier.iso()));
-    }
-    lisibles_de_la_piece("salarie", &mut f)?;
-    let mut f = declarations::champs::combler_affichage("salarie", &f)?;
-    f.insert("actif".into(), json!(true));
     Ok(f)
 }
 
@@ -1378,6 +1388,12 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
     poser("lignes", v["lignes"].clone());
     poser("dates", v["dates_travaillees"].clone());
     poser("cotisations", v["cotisations"].clone());
+    // Le statut et l'emploi que CE bulletin imprime : un salarie artiste un mois peut etre technicien, ou non cadre au
+    // regime general, un autre ; la comparaison des calculs lit celui de la paie (`engagement::ecarts`), pas la fiche.
+    let imprime = statut_et_metier(b.salarie.statut.as_deref(), b.salarie.emploi.as_deref()).unwrap_or_default();
+    if !imprime.is_empty() {
+        poser("emploi_imprime", Value::Object(imprime));
+    }
     poser("bulletin", json!({"fichier": chemin, "page": page, "logiciel": b.logiciel, "numero": b.numero, "contrat": b.contrat}));
     ecarts
 }

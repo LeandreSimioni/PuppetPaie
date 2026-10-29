@@ -1,7 +1,8 @@
-//! LES ECARTS DE CALCUL DE L'IMPORT : a la fin de chaque import, chaque paie importee se compare a ce que ce moteur
-//! aurait calcule de la meme saisie (`engagement::ecarts`), et les ecarts partent chez l'editeur, pour voir ou deux
-//! logiciels lisent les textes autrement. Les engagements importes restent tels que l'autre logiciel les a ecrits ; rien
-//! ne s'ecrit dans la compagnie que la ligne du journal des incidents.
+//! LES ECARTS DE CALCUL DE L'IMPORT : a la fin de chaque import, et a l'ouverture de la compagnie, chaque paie importee
+//! pas encore comparee se compare a ce que ce moteur aurait calcule de la meme saisie (`engagement::ecarts`), et les
+//! ecarts partent chez l'editeur, pour voir ou deux logiciels lisent les textes autrement. Les engagements importes
+//! restent tels que l'autre logiciel les a ecrits ; rien ne s'ecrit dans la compagnie que la ligne du journal des
+//! incidents et le registre des paies comparees (`journal/ecarts-import.json`, leurs empreintes).
 //!
 //! UN INCIDENT DE FONCTIONNEMENT COMME LES AUTRES : rien ne s'affiche ni ne se demande. Nature `logiciel`, `ou` =
 //! `ecarts_import`, un incident par sorte d'ecart (la cotisation, la grandeur, le logiciel d'origine) pour que le
@@ -11,15 +12,18 @@
 //!
 //! CE QUI PART NE DESIGNE PERSONNE : ni nom, prenom, NIR, naissance ou adresse, ni salaire, brut, net ou montant d'une
 //! paie. Seulement la cotisation et les libelles du bulletin, la grandeur, notre taux et le leur, l'ecart RELATIF d'une
-//! base ou d'un montant, le mois, l'IDCC et l'annexe de la convention, la nature et le statut, le logiciel reconnu.
+//! base ou d'un montant, le mois, l'IDCC et l'annexe de la convention, la nature, le statut et la qualite de cadre,
+//! d'ou vient le taux AT/MP du calcul (la compagnie ou le bulletin), le logiciel reconnu.
 //! Sans le fil ni les ecritures du diagnostic (`Note::sans_contexte`) : leurs charges de routes portent des montants.
 //! Le texte passe quand meme par le caviardage (`caviardage`, les fiches de la compagnie connues), et un montant ecrit
 //! dans une raison (un refus du calcul) devient `<MONTANT>`.
 //!
-//! UN RAPPORT DEJA NOTE NE SE NOTE PAS DEUX FOIS (meme empreinte, meme resume, meme detail) : un import rejoue ne
-//! renvoie rien.
+//! UNE PAIE SE COMPARE UNE FOIS, sauf quand le calcul l'a refusee (une configuration a completer) : elle se compare de
+//! nouveau a l'ouverture suivante. UN RAPPORT DEJA NOTE NE SE NOTE PAS DEUX FOIS (meme empreinte, meme resume, meme
+//! detail) : un import rejoue ne renvoie rien.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use regex::Regex;
@@ -62,28 +66,45 @@ fn propre_json(v: &Value, connus: &Connus) -> Value {
     }
 }
 
-/// Les rapports des comparaisons de tous les engagements importes de la compagnie.
-pub fn rapports(ctx: &Contexte) -> Vec<Rapport> {
+/// Le registre des paies importees deja comparees (leurs empreintes, `engagement::ecarts::empreinte`).
+fn registre(racine: &Path) -> PathBuf {
+    racine.join("journal").join("ecarts-import.json")
+}
+
+fn comparees(racine: &Path) -> BTreeSet<String> {
+    socle::fichiers::lire_json(&registre(racine)).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default().iter().filter_map(|x| x.as_str().map(str::to_string)).collect()
+}
+
+/// Les rapports des paies importees de la compagnie que le registre ne dit pas deja comparees, et les empreintes des
+/// paies qui ne sont plus a comparer : comparees, ou que leurs pieces empechent de comparer (une paie que le calcul a
+/// refusee se compare de nouveau la fois suivante).
+pub fn rapports(ctx: &Contexte) -> (Vec<Rapport>, Vec<String>) {
     let table = match crate::bulletin_lu::Table::livree() {
         Ok(t) => t,
-        Err(m) => return vec![Rapport { genre: "table de lecture illisible".into(), resume: m, detail: json!({}) }],
+        Err(m) => return (vec![Rapport { genre: "table de lecture illisible".into(), resume: m, detail: json!({}) }], Vec::new()),
     };
     let rattacher = |l: &str| table.cotisation(l).map(str::to_string);
     let importes = engagement::importe::tous(&ctx.racine).unwrap_or_default();
-    let comparaisons: Vec<Comparaison> = importes.iter().flat_map(|i| engagement::ecarts::comparer(&ctx.racine, i, &rattacher)).collect();
+    let deja = comparees(&ctx.racine);
+    let comparaisons: Vec<Comparaison> = importes.iter().flat_map(|i| engagement::ecarts::comparer(&ctx.racine, i, &rattacher, &|e| deja.contains(e))).collect();
+    let faites: Vec<String> = comparaisons.iter().filter(|c| !c.a_refaire).map(|c| c.empreinte.clone()).collect();
+    (rapports_de(ctx, &comparaisons), faites)
+}
+
+fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
     let texte = |k: &str| ctx.entreprise.get(k).filter(|v| vrai(v)).map(en_texte);
     let (idcc, annexe) = (texte("idcc"), texte("annexe_convention"));
     let mut connus = Connus::default();
     crate::importation_incident::ajouter_les_fiches(ctx, &mut connus, std::iter::empty());
     let logiciel = |c: &Comparaison| c.logiciel.clone().unwrap_or_else(|| "autre".into());
-    let cas = |c: &Comparaison| json!({"mois": c.mois, "nature": c.nature, "statut": c.statut});
+    let cas = |c: &Comparaison| json!({"mois": c.mois, "nature": c.nature, "statut": c.statut, "cadre": c.cadre, "taux_atmp": c.taux_atmp});
 
     let mut ecarts: BTreeMap<(String, Grandeur, String), (Vec<String>, Vec<Value>)> = BTreeMap::new();
     let mut refus: BTreeMap<String, Vec<Value>> = BTreeMap::new();
     let mut seules: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for c in &comparaisons {
+    for c in comparaisons {
         match &c.ecarts {
-            Err(raison) => refus.entry(montant().replace_all(&propre(raison, &connus), "<MONTANT>").into_owned()).or_default().push(json!({"mois": c.mois, "logiciel": c.logiciel, "nature": c.nature, "statut": c.statut})),
+            Err(raison) => refus.entry(montant().replace_all(&propre(raison, &connus), "<MONTANT>").into_owned()).or_default().push(json!({"mois": c.mois, "logiciel": c.logiciel, "nature": c.nature, "statut": c.statut, "cadre": c.cadre})),
             Ok(liste) => {
                 for e in liste {
                     let (libelles, v) = ecarts.entry((e.cotisation.clone(), e.grandeur, logiciel(c))).or_default();
@@ -136,26 +157,47 @@ pub fn rapports(ctx: &Contexte) -> Vec<Rapport> {
     sortie.into_iter().map(|r| Rapport { genre: propre(&r.genre, &connus), resume: propre(&r.resume, &connus), detail: propre_json(&r.detail, &connus) }).collect()
 }
 
-/// A la fin d'un import : les rapports notes au journal des incidents (sauf ceux qui y sont deja), puis l'envoi
-/// ordinaire. Ne leve jamais et ne dit rien a l'ecran : rend le nombre de rapports notes.
+/// A la fin d'un import : les rapports notes, puis l'envoi ordinaire. Ne leve jamais et ne dit rien a l'ecran : rend le
+/// nombre de rapports notes.
 pub fn rapporter(ctx: &Contexte) -> usize {
+    let notes = noter(ctx);
+    if notes > 0 {
+        incidents::envoyer(&ctx.racine);
+    }
+    notes
+}
+
+/// Les paies importees pas encore comparees se comparent, leurs rapports se notent au journal des incidents (sauf ceux
+/// qui y sont deja), et le registre retient celles qui ne sont plus a comparer. A l'ouverture de la compagnie comme a
+/// la fin d'un import : une paie qu'une configuration incomplete empechait de calculer (l'effectif de l'entreprise...)
+/// se compare des que la compagnie est complete. Ne leve jamais ; rend le nombre de rapports notes.
+pub fn noter(ctx: &Contexte) -> usize {
     let racine = &ctx.racine;
+    if !engagement::importe::tous(racine).is_ok_and(|v| !v.is_empty()) {
+        return 0;
+    }
+    let (rapports, faites) = rapports(ctx);
     let deja = incidents::lire(racine, Some(incidents::LOGICIEL), false).unwrap_or_default();
-    let ecrit = |v: Value| incidents::nettoyer(&v, &mut Vec::new(), 600);
     let mut notes = 0;
-    for r in rapports(ctx) {
+    for r in rapports {
         let empreinte = json!(incidents::empreinte(incidents::LOGICIEL, OU, &r.genre));
-        let (resume, detail) = (ecrit(json!(r.resume)), ecrit(r.detail.clone()));
-        if deja.iter().any(|l| l.get("empreinte") == Some(&empreinte) && l.get("resume") == Some(&resume) && l.get("detail") == Some(&detail)) {
+        // Ce qui reconnait un rapport deja note : le journal tronque les longs textes, le rapport se reconnait a la
+        // signature de ce qu'il dit en entier.
+        let signature = json!(socle::fichiers::sha256_hex(format!("{}|{}", r.resume, r.detail).as_bytes())[..16].to_string());
+        if deja.iter().any(|l| l.get("empreinte") == Some(&empreinte) && l.pointer("/detail/signature") == Some(&signature)) {
             continue;
         }
-        let note = incidents::Note { nature: incidents::LOGICIEL, resume: &r.resume, ou: OU, quoi: &r.genre, detail: r.detail, sans_contexte: true, ..Default::default() };
+        let mut detail = r.detail;
+        detail["signature"] = signature;
+        let note = incidents::Note { nature: incidents::LOGICIEL, resume: &r.resume, ou: OU, quoi: &r.genre, detail, sans_contexte: true, ..Default::default() };
         if incidents::noter(racine, &note).is_some() {
             notes += 1;
         }
     }
-    if notes > 0 {
-        incidents::envoyer(racine);
+    if !faites.is_empty() {
+        let mut toutes = comparees(racine);
+        toutes.extend(faites);
+        let _ = socle::ecriture::ecrire_json(&registre(racine), &json!(toutes), 0);
     }
     notes
 }
