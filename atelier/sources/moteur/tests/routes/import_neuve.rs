@@ -231,7 +231,7 @@ fn le_contrat_d_un_permanent_qui_continue_se_reprend_au_mois_suivant() {
 /// neuve un engagement importe : le numero que la DSN deposee lui a donne (S21.G00.40.009, regle 4), ce que le bulletin
 /// imprime, compte dans les cumuls des annexes 8 et 10 ; aucun geste ne le modifie, et rien n'est ecrit. Decembre ne
 /// s'importe pas : le contrat s'y reprend, sous le meme numero et les memes dates (`norme-dsn/texte/bloc-S21.G00.40.txt`),
-/// et sa DSN declare la quotite du contrat entier (S21.G00.40.013).
+/// sa DSN declare la quotite du contrat entier (S21.G00.40.013), et son bulletin suit le numero du bulletin importe.
 #[test]
 fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let d = dossier_de_test("import_neuve", "puppetpaie");
@@ -277,6 +277,10 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let saisie = json!({"mois": "2026-12", "taux_cachet": 150, "date_paiement": "2026-12-31", "engagements": [e]});
     reussi(&route("enregistrer-saisie", json!({"mois": "2026-12", "saisie": saisie, "forcer": false, "modifier_apres_echeance": false})));
     reussi(&route("valider-engagement", json!({"mois": "2026-12", "salarie": "FULLER", "debut": "2026-11-20", "valide": true})));
+    // Le bulletin de decembre suit le 1/2026 que le bulletin importe imprime : deux bulletins de l'annee n'ont jamais le
+    // meme numero.
+    let apercu = reussi(&route("apercu", json!({"saisie": saisie, "lignes": false, "urssaf": false}))).clone();
+    assert_eq!(apercu["paies"][0]["numero_bulletin"], json!("2/2026"), "{}", apercu["paies"][0]);
     let ecrite = reussi(&route("dsn-a-deposer", json!({"mois": "2026-12"}))).clone();
     let decembre = std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap();
     let decembre = String::from_utf8_lossy(&decembre);

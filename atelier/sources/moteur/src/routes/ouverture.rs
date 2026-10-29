@@ -480,7 +480,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         // journal (un depot que les retours attestent y entre seul), ou c'est celle que l'import a lue (« importee »), ou
         // il n'en a aucune trace (« sans_trace ») -- et rien ne se refait ici.
         let importe = crate::mois_importe::importe(&ctx.racine, nom)?;
-        let importee = !vrai(&e) && importe && crate::mois_importe::dsn_importee(&ctx.racine, nom)?.is_some();
+        let importee = !vrai(&e) && crate::mois_importe::dsn_importee(&ctx.racine, nom)?.is_some();
         let etat: Option<&str> = if vrai(&e) && drapeau("refusee") {
             Some("refusee")
         } else if vrai(&e) && drapeau("passee") {
@@ -510,6 +510,9 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
         let a_faire = match etat {
             _ if importe => false,
+            // La DSN de l'ancien logiciel, et la saisie qui ajoute au mois : ce qui reste a declarer va dans une DSN
+            // suivante (`mois_importe::dsn_de_l_ancien_logiciel`).
+            "importee" => crate::mois_importe::dsn_de_l_ancien_logiciel(ctx, nom)?.is_some_and(|d| d["engagements"].as_u64().is_some_and(|n| n > 0)),
             "passee" => vrai(&m.etat_remplacement(nom, &Value::Null)?["a_envoyer"]),
             "attente" => false,
             _ => true,

@@ -895,10 +895,20 @@ impl<'a> Moteur<'a> {
 
     // ----------------------------------------------------- l'annule-et-remplace
 
-    /// `empreinte_saisie` : la paie du mois, resumee en 16 caracteres ; `None`
-    /// sans saisie ou si elle ne se lit pas.
+    /// `empreinte_saisie` : ce que la DSN du mois declare, resume en 16 caracteres -- la paie du mois, et la version de
+    /// chaque engagement d'un mois passe dont elle porte la correction (`produire_regularisations::regularisations_pour`) :
+    /// une correction validee apres l'ecriture du fichier le rend perime comme une paie du mois qui change. `None` sans
+    /// saisie ni correction.
     pub(crate) fn empreinte_saisie(&self, mois: &str) -> R<Option<String>> {
-        Ok(engagement::stock::vue_du_mois(self.racine(), mois).map_err(plain)?.map(|v| empreinte_de(&v)))
+        let vue = engagement::stock::vue_du_mois(self.racine(), mois).map_err(plain)?;
+        let portees: Vec<Value> = match declarations::produire_regularisations::regularisations_pour(self.ctx, mois) {
+            Ok(regs) => regs.iter().map(|r| json!([r.mois, valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)), r.apres.engagement.numero, r.version])).collect(),
+            Err(e) => vec![json!(e.message)],
+        };
+        Ok(match (vue, portees.is_empty()) {
+            (vue, true) => vue.map(|v| empreinte_de(&v)),
+            (vue, false) => Some(empreinte_de(&json!({"saisie": vue, "corrections": portees}))),
+        })
     }
 
     /// `limite` : le dernier jour ou un annule-et-remplace est admis, jusqu'a minuit : la veille de l'echeance de depot
@@ -1317,6 +1327,20 @@ impl<'a> Moteur<'a> {
         let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         let au_depot = echeance_dsn(echeance.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)");
         let e = etats::etat_dsn_du_mois(&self.lignes()?, mois, nic, &self.nic())?;
+        // LA DSN DEPOSEE PAR L'ANCIEN LOGICIEL ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se
+        // declare dans la DSN suivante qui n'est pas partie, et la case le dit (`mois_importe::dsn_de_l_ancien_logiciel`).
+        if let Some(d) = crate::mois_importe::dsn_de_l_ancien_logiciel(self.ctx, mois)?.filter(|_| !vrai(&e)) {
+            let mut g = fait();
+            if d["engagements"].as_u64().is_some_and(|n| n > 0) {
+                let porteur = valeur_en_texte(&d["porteur"]);
+                let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &porteur).map_err(|m| erreur("ValueError", m))?;
+                let mut a = action("deposer_dsn", format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&porteur, socle::date::Graphie::Accentuee)));
+                a["mois"] = json!(porteur);
+                g = groupe("a_faire", Value::Null, String::new(), valeur_en_texte(&d["quoi"]), echeance_dsn(e2.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"), a);
+            }
+            g["phrase"] = d["phrase"].clone();
+            return Ok((g, Value::Null));
+        }
         if !vrai(&e) {
             if !self.dsn_a_declarer(mois, nic)? {
                 return Ok((fait(), Value::Null));

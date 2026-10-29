@@ -59,9 +59,13 @@ pub struct Reg {
 
 /// UN MOIS SE CORRIGE DANS UNE DSN SUIVANTE quand sa DSN reelle est partie (un depart DSN du mois lui-meme, `departs`)
 /// et que son annule-et-remplace n'est plus admis (la veille de l'echeance passee, cahier technique DSN §1.4.2) ; avant,
-/// sa propre DSN se refait.
+/// sa propre DSN se refait. Un mois dont la DSN est celle de l'ancien logiciel (`engagement::importe::dsn_deposee`) se
+/// corrige toujours ailleurs : sa DSN n'a pas ete faite ici et ne se refait pas ici (regle 4).
 pub fn se_corrige_ailleurs(ctx: &Contexte, departs: &engagement::departs::Departs, mois: &str) -> R<bool> {
     use engagement::departs::Envoi;
+    if engagement::importe::dsn_deposee(&ctx.racine, mois).map_err(refus_valeur)?.is_some() {
+        return Ok(true);
+    }
     let partie = departs
         .engagements()
         .any(|(c, n)| departs.de(c, n).iter().any(|d| d.envoi == Envoi::Dsn && d.par.is_none() && d.mois.as_deref() == Some(mois)));

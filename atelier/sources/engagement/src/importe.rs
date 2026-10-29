@@ -166,6 +166,17 @@ pub fn paies_lues(racine: &Path) -> Resultat<Vec<Value>> {
     Ok(tous(racine)?.iter().flat_map(Importe::lignes_des_paies).collect())
 }
 
+/// LA DSN DE `mois` QUE L'ANCIEN LOGICIEL A DEPOSEE : une paie importee de ce mois qu'une DSN deposee declare
+/// (`declare_par: "DSN"`), en une ligne (`Importe::lignes_des_paies` : `depose_le`, `fichier`...), qu'une saisie touche
+/// aussi le mois ou non. Cette DSN n'est pas faite ici et ne se refait pas ici (regle 4) : ce que la saisie ajoute a
+/// ce mois se declare dans une DSN suivante, comme un contrat ajoute apres la DSN de son mois.
+pub fn dsn_deposee(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
+    Ok(du_mois(racine, mois)?
+        .iter()
+        .flat_map(Importe::lignes_des_paies)
+        .find(|p| p.get("mois").map(en_texte).as_deref() == Some(mois) && p.get("declare_par").map(en_texte).as_deref() == Some("DSN")))
+}
+
 /// L'engagement importe du salarie `cle` (la cle de sa fiche) qui commence le `debut` et touche `mois`, s'il y en a un.
 pub fn celui_de(racine: &Path, mois: &str, cle: &str, debut: &str) -> Resultat<Option<Importe>> {
     Ok(du_mois(racine, mois)?.into_iter().find(|i| i.texte("salarie") == cle && i.texte("debut") == debut))

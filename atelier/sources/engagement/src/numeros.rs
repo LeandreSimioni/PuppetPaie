@@ -77,6 +77,25 @@ fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>) -
     Ok(pris)
 }
 
+/// LE PLUS HAUT NUMERO DE BULLETIN `N/AAAA` DE `annee` QU'UN BULLETIN IMPORTE IMPRIME (0 sans aucun) : la suite des
+/// bulletins de l'annee continue apres lui, et deux bulletins de la meme annee ne portent jamais le meme numero. Un
+/// numero d'une autre forme n'est pas un rang de cette suite : il ne se lit pas comme tel.
+pub fn dernier_bulletin_importe(racine: &std::path::Path, annee: i64) -> Resultat<i64> {
+    let rang = |v: Option<&Value>| -> Option<i64> {
+        let t = v.filter(|x| vrai(x)).map(en_texte)?;
+        let (n, an) = t.trim().split_once('/')?;
+        let ok = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_digit());
+        (ok(n) && an.len() == 4 && ok(an) && an.parse::<i64>().ok()? == annee).then(|| n.parse().ok()).flatten()
+    };
+    let mut haut = 0;
+    for i in crate::importe::tous(racine)? {
+        let du_contrat = rang(i.contrat().and_then(|c| c.get("numero_bulletin")));
+        let des_paies = i.paies().into_values().filter_map(|p| rang(p.get("bulletin").and_then(|b| b.get("numero")))).max();
+        haut = haut.max(du_contrat.unwrap_or(0)).max(des_paies.unwrap_or(0));
+    }
+    Ok(haut)
+}
+
 /// Un envoi a-t-il porte le numero `n` de l'engagement `o` (du salarie `cle`) ? Ce qui est parti sous lui (`departs`),
 /// ou une version de lui gardee parce qu'un envoi l'avait emportee.
 fn porte_par_un_envoi(ctx: &Contexte, o: &Objet, cle: &str, n: &str) -> Resultat<bool> {
