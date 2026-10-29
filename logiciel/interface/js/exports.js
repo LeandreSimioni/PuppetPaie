@@ -36,8 +36,7 @@ async function dessinerExports() {
     `<option value="${echapper(v)}"${sel ? " selected" : ""}>${echapper(t)}</option>`;
   // Un format dont la brique manque se choisit quand même — le moteur écrit
   // alors le CSV et le dit —, mais l'étiquette prévient avant le clic.
-  // D'ABORD LA CATEGORIE, PUIS L'ETAT, PUIS SES QUESTIONS (Leandre,
-  // 08/10/2026) : rien n'est choisi d'office, et chaque choix deroule le
+  // D'ABORD LA CATEGORIE, PUIS L'ETAT, PUIS SES QUESTIONS : rien n'est choisi d'office, et chaque choix deroule le
   // suivant. Une categorie d'un seul etat le choisit d'elle-meme.
   const fams = familles(p.etats);
   cible.innerHTML = `

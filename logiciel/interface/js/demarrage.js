@@ -4,10 +4,9 @@
 /* =======================================================================
    DEMARRAGE
    =======================================================================
-   L'OUVERTURE D'UN COUP (ticket #244, Léandre, 22/10/2026 : « pas 1
-   seconde, une demi max » ; « je ne veux pas que la page s'affiche petit à
-   petit » ; « ne pas poireauter 5 secondes devant une roue qui tourne pour
-   on ne sait pas quoi »). UNE demande, `ouverture`, que la fenêtre sert
+   L'OUVERTURE D'UN COUP : en une demi-seconde au plus, la page entière
+   d'un seul geste, jamais petit à petit ni derrière une roue qui tourne
+   sans dire pourquoi. UNE demande, `ouverture`, que la fenêtre sert
    sans processus ni calcul (`etat_garde::FileDesEtats::ouverture`) : le
    dernier état connu de tout ce que la page lit en s'ouvrant — l'accueil,
    le mois à ouvrir et son écran, l'échéancier, les rappels, ce qui manque

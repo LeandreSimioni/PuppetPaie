@@ -434,8 +434,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
     const nom = quoi === "dsn" ? "La DSN" : "La DPAE";
     // Seul le bilan du test (le certificat, ou le bilan d'anomalies) ouvre le
     // réel ou le ferme ; l'accusé d'enregistrement dit « envoi reçu », pas
-    // « conforme » (tickets #221, #222 ; le moteur refuse le réel sans lui, DSN
-    // comme DPAE).
+    // « conforme » (le moteur refuse le réel sans lui, DSN comme DPAE).
     for (let tour = 0; tour < 30; tour++) {
       let r = null;
       try { r = await api("bilan-repetition", { quoi, fichier }); } catch (e) { /* on réessaie */ }
@@ -474,8 +473,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
 
   document.getElementById("d-test").onclick = () => lancer(false);
   document.getElementById("d-reel").onclick = () => lancer(true);
-  // LE TEST D'ABORD, TOUJOURS (ticket #103, 02/10/2026 : « on propose d'abord
-  // un test, on regarde si tout est ok et après on propose le réel »). Le
+  // LE TEST D'ABORD, TOUJOURS : on propose d'abord un test, puis le réel. Le
   // réel reste éteint tant que le test n'est pas revenu conforme. Passer
   // outre reste possible, mais c'est un petit lien, et le moteur demande
   // alors un motif écrit (RepetitionManquante → boiteRepetition).
@@ -536,9 +534,8 @@ async function suivreDepot(quoi, flux, mois) {
 
 /** Où en est la répétition de CE contenu — avant de proposer le dépôt réel.
  *  Un bouton qui refusera au clic est un bouton qui ment. */
-/** Les embauches que porte une DPAE, nommées (ticket #105, 02/10/2026 :
- *  deux salariés partis dans un seul dépôt, et l'écran disait « Cette DPAE »
- *  au singulier, sans dire pour qui -- on a cru qu'une seule était partie). */
+/** Les embauches que porte une DPAE, nommées : un seul dépôt peut en porter
+ *  plusieurs, et l'écran dit pour qui chacune est partie. */
 function embauchesDe(a) {
   const l = (a && a.embauches) || [];
   if (!l.length) return "";

@@ -475,7 +475,7 @@ async function basculerValidation(ligne, valide) {
  * sépare en un bloc par salarié. Les rouvrir demandait autant de boîtes que
  * de salariés, pour le même spectacle. Sœurs : même spectacle, mêmes bornes,
  * validés à la même seconde. Un même salarié n'est qu'une fois dans un
- * bloc : son jumeau (un autre contrat du même jour, #139) n'est jamais une
+ * bloc : son jumeau (un autre contrat du même jour) n'est jamais une
  * sœur, même validé à la même seconde. */
 function engagementsSoeurs(ligne) {
   const toutes = Object.values(ETATS_ENGAGEMENTS || {});

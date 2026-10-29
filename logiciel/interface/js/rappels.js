@@ -232,7 +232,7 @@ function boiteRappels(liste, ech, manques = []) {
   });
 }
 
-/* CE QUI EST DÛ (20/10/2026, #205) : une obligation à faire ou en retard
+/* CE QUI EST DÛ : une obligation à faire ou en retard
    (`obligations.rs`) — la fin d'un contrat qui se signale, la déclaration
    d'accident du travail, le signalement d'un arrêt, l'attestation de salaire
    du deuil. Le moteur rend l'obligation et ce sur quoi elle porte (`objet`) ;

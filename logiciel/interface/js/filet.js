@@ -153,7 +153,7 @@ function boiteSignalement() {
   const ecran = ecranCourant();
   const captures = [];                      // { type, donnees (data URL), octets }
   const enCours = new Set();                // les captures d'écran qui se dessinent encore (promesses)
-  chargerHtml2canvas().catch(() => {});     // l'outil de capture se charge dès l'ouverture, pas au clic (#253)
+  chargerHtml2canvas().catch(() => {});     // l'outil de capture se charge dès l'ouverture, pas au clic
   // La boîte déjà ouverte (une DPAE, un dépôt) attend dessous, et revient
   // quand celle-ci se ferme ou se réduit.
   let dessous = mettreDeCote();
