@@ -33,7 +33,7 @@ function dessinerHistorique() {
   // (`bilan_des_mois`, `pastille`).
   const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   cible.innerHTML = ETAT.historique.map((m) => {
-    const p = m.pastille || { couleur: "gris", mots: m.produit ? "écrit" : "saisi" };
+    const p = m.pastille;
     const couleur = CLASSE_DE_COULEUR[p.couleur] ?? "";
     const mots = p.mots;
     const depose = m.depose_le && m.dsn !== "a_deposer" ? ` le ${quand(m.depose_le).slice(0, 10)}` : "";
@@ -67,7 +67,6 @@ async function ouvrirMoisHistorique(mois) {
   d.scrollIntoView({ block: "start" });
 }
 
-const STATUTS = { OK: "bien", KO: "erreur", ANO: "alerte", "EN COURS": "" };
 
 /** La vue technique d'un mois : ses documents, ses envois et leurs retours, tels que le moteur les lit. */
 async function dessinerMoisHistorique(d) {
@@ -141,8 +140,6 @@ function dessinerEnvoi(e) {
 
 /** Un retour, lu : l'organisme, ce que dit sa pièce, ses anomalies ; la pièce elle-même en dernier recours. */
 function dessinerRetour(r) {
-  const couleur = STATUTS[r.verdict || r.statut] ?? "";
-  const statut = r.verdict || r.statut;
   const titre = r.titre || r.libelle || `retour de nature ${r.nature}`;
   const anomalies = (r.anomalies || []).length ? `
     <table class="anomalies"><tr><th>code</th><th>message</th><th>rubrique</th><th>salarié</th></tr>
@@ -155,7 +152,7 @@ function dessinerRetour(r) {
     <details class="retour">
       <summary><span class="discret">${echapper(r.quand ? quand(r.quand) : "")}</span>
         ${r.organisme ? `${echapper(r.organisme)} — ` : ""}${echapper(titre)}
-        ${statut ? `<span class="pastille ${couleur}">${echapper(statut)}</span>` : ""}</summary>
+        ${pastilleDeLEtat(r.pastille)}</summary>
       <div class="retour-corps">
         <p class="discret">Nature ${echapper(r.nature)} : ${echapper(r.libelle || "")}</p>
         ${(r.phrases || []).map((p) => `<p>${echapper(p)}</p>`).join("")}

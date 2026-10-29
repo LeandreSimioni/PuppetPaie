@@ -1494,3 +1494,29 @@ fn sans_l_objet(k: &CleEngagement) -> CleEngagement {
     k.3 = String::new();
     k
 }
+
+/// LA PASTILLE DE CHAQUE SORT (`SORTS`), telle que la page la dessine (`routes::pastille`) : repris, une information ;
+/// repris sous reserve (un libelle que la table ne connait pas), a voir ; non repris parce que quelque chose manque ou
+/// se contredit (`non_repris`), refuse ; laisse expres (deja saisi, annexe, doublon, archive ouverte), une information.
+pub fn pastilles_des_sorts() -> Value {
+    let mut m = serde_json::Map::new();
+    for s in SORTS {
+        let (etat, mots) = match s {
+            "repris" => ("fait", "repris"),
+            "deja_repris" => ("fait", "déjà repris"),
+            "libelle_inconnu" => ("a_faire", "libellé inconnu"),
+            "deja_saisi" => ("information", "déjà saisi"),
+            "incoherent" => ("refuse", "incohérent"),
+            "incomplet" => ("refuse", "incomplet"),
+            "sans_texte" => ("refuse", "sans texte"),
+            "sans_entetes" => ("refuse", "tableau introuvable"),
+            "ambigu" => ("refuse", "ambigu"),
+            "annexe" => ("information", "annexe"),
+            "non_reconnu" => ("refuse", "non reconnu"),
+            "doublon" => ("information", "doublon"),
+            _ => ("information", "archive"),
+        };
+        m.insert(s.to_string(), crate::routes::pastille(etat, mots));
+    }
+    Value::Object(m)
+}

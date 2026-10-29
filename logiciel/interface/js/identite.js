@@ -39,12 +39,12 @@ async function dessinerIdentite(cible) {
       : e.automatique ? apercu(`/identite/cachet-automatique?t=${t}`, titre)
       : `<div class="identite-apercu vide">rien de posé</div>`;
     const dit = e.pose
-      ? `<span class="pastille bien">le vôtre</span> <span class="discret">${e.format.toUpperCase()},
+      ? `${pastilleDeLEtat(e.pastille)} <span class="discret">${e.format.toUpperCase()},
            ${Math.round((e.octets || 0) / 1024)} Ko, posé le ${jjmmaaaa((e.quand || "").slice(0, 10))}</span>`
       : e.automatique
-        ? `<span class="pastille bien">celui du logiciel</span> <span class="discret">dessiné
+        ? `${pastilleDeLEtat(e.pastille)} <span class="discret">dessiné
              depuis la fiche Entreprise, il la suit : rien à faire</span>`
-        : `<span class="pastille alerte">rien de posé</span>`;
+        : pastilleDeLEtat(e.pastille);
     return `<div class="rang rang-image">
       ${vue}
       <div class="rang-infos">

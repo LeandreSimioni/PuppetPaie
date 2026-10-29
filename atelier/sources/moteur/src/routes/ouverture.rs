@@ -64,7 +64,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
                 &crate::routes::qui_de(charge),
                 &socle::paris::iso_secondes(socle::temps::secondes()),
             ),
-        ),
+        ).map(pastilles_de_la_reprise),
         "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
         autre => Err(plain(format!("route inconnue : {}", autre))),
     }
@@ -135,9 +135,23 @@ fn fiche_verifiee(nom: &str, cle: Option<&str>, donnees: &Value) -> R<Value> {
 pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Value>, anomalies: Vec<Value>, derives: &Map<String, Value>) -> R<Value> {
     let comble = champs::combler_affichage(nom, donnees)?;
     let declare = champs::apercu_derive(nom, &comble)?;
+    // Sa pastille : archivee (une information), ses erreurs (a corriger, la compagnie le peut), ce qui est a verifier,
+    // ou complete.
+    let erreurs = anomalies.iter().filter(|a| a["gravite"] == "erreur").count();
+    let a_verifier = anomalies.len() - erreurs;
+    let pluriel = |n: usize| if n > 1 { "s" } else { "" };
+    let pastille = if comble.get("actif") == Some(&Value::Bool(false)) {
+        super::pastille("information", "archivé")
+    } else if erreurs > 0 {
+        super::pastille("a_faire", &format!("{} erreur{}", erreurs, pluriel(erreurs)))
+    } else if a_verifier > 0 {
+        super::pastille("a_faire", &format!("{} à vérifier", a_verifier))
+    } else {
+        super::pastille("fait", "complet")
+    };
     Ok(json!({
         "nom": nom, "cle": cle, "donnees": brut(&Value::Object(comble)),
-        "declare": declare, "anomalies": anomalies, "derives": derives,
+        "declare": declare, "anomalies": anomalies, "derives": derives, "pastille": pastille,
     }))
 }
 
@@ -1081,4 +1095,16 @@ fn en_os(m: String) -> Echec {
 /// `Path.mkdir(parents=True, exist_ok=True)`.
 fn creer_dossier(d: &std::path::Path) -> R<()> {
     std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
+}
+
+/// La pastille de chaque depot que la reprise du journal remet (`ajoutes`) : un depot reel accepte, fait ; refuse,
+/// refuse ; un depot de test, une information.
+fn pastilles_de_la_reprise(mut v: Value) -> Value {
+    for d in v.get_mut("ajoutes").and_then(Value::as_array_mut).into_iter().flatten() {
+        let reel = d.get("mode").and_then(Value::as_str) == Some("reel");
+        let accepte = d.get("accepte").is_some_and(vrai);
+        let mots = format!("{}{}", if reel { "dépôt réel" } else { "test" }, if accepte { "" } else { " — refusé" });
+        d["pastille"] = super::pastille(if !reel { "information" } else if accepte { "fait" } else { "refuse" }, &mots);
+    }
+    v
 }

@@ -480,6 +480,8 @@ impl Echeance {
             "cle": self.cle, "quoi": self.quoi, "mois": self.mois, "titre": self.titre, "detail": self.detail,
             "source": self.source, "etat": self.etat, "date": self.date, "cochable": self.cochable, "annee": self.annee,
             "echeance_depot": self.echeance_depot, "rappel": self.rappel,
+            // Sa pastille : la couleur et les mots de son etat (`super::pastille`).
+            "pastille": super::pastille(self.etat, match self.etat { EN_RETARD => "en retard", A_FAIRE => "à faire", FAIT => "fait", _ => "pour info" }),
         })
     }
 }

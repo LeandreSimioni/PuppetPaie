@@ -127,8 +127,6 @@ function dessinerConfig() {
   // lettres, là où le clic sur toute la carte archivait sans prévenir.
   const rangHtml = (f, trouve) => {
     const d = f.donnees;
-    const err = f.anomalies.filter((a) => a.gravite === "erreur").length;
-    const av = f.anomalies.length - err;
     const archive = d.actif === false;
     const titre = salarie
       ? `${String(d.nom_affichage || d.nom || "").toUpperCase()} ${d.prenom_affichage || d.prenom || ""}`.trim()
@@ -142,10 +140,7 @@ function dessinerConfig() {
     const autresNumeros = !salarie && !archive && !trouve ? (passees[titreDe(d)] || [])
       .slice().sort((a, b) => String(b.donnees.numero_objet || "").localeCompare(
         String(a.donnees.numero_objet || ""))) : [];
-    const etat = archive ? `<span class="pastille archive">archivé</span>`
-      : err ? `<span class="pastille erreur">${err} erreur${err > 1 ? "s" : ""}</span>`
-      : av ? `<span class="pastille alerte">${av} à vérifier</span>`
-      : `<span class="pastille bien">complet</span>`;
+    const etat = pastilleDeLEtat(f.pastille);
     return `<div class="rang fiche${archive ? " archivee" : ""}${f.cle === CLE_ACTIVE ? " selectionnee" : ""}"
         data-cle="${echapper(f.cle)}">
       <div class="rang-infos">
@@ -325,27 +320,10 @@ function dessinerConfig() {
    qui ne l'est pas et pourquoi, c'est le moteur qui le dit. */
 let IMPORT_DOSSIER = "";
 
-/* Le sort d'un fichier ou d'une page (`import::bulletins::SORTS`) : son
-   mot, et la couleur de sa pastille. Vert : repris ; orange : repris avec une
-   réserve, ou laissé exprès ; rouge : pas repris, quelque chose manque. */
-const SORTS_IMPORT = {
-  repris: ["repris", "bien"],
-  deja_repris: ["déjà repris", "bien"],
-  libelle_inconnu: ["libellé inconnu", "alerte"],
-  deja_saisi: ["déjà saisi", ""],
-  incoherent: ["incohérent", "erreur"],
-  incomplet: ["incomplet", "erreur"],
-  sans_texte: ["sans texte", "erreur"],
-  sans_entetes: ["tableau introuvable", "erreur"],
-  ambigu: ["ambigu", "erreur"],
-  annexe: ["annexe", ""],
-  non_reconnu: ["non reconnu", "erreur"],
-  doublon: ["doublon", ""],
-  archive: ["archive", ""],
-};
-function pastilleSort(sort) {
-  const [mot, classe] = SORTS_IMPORT[sort] || [String(sort || "?").replace(/_/g, " "), ""];
-  return `<span class="pastille ${classe}">${echapper(mot)}</span>`;
+/* Le sort d'un fichier ou d'une page (`import::bulletins::SORTS`) : sa pastille,
+   telle que la réponse du moteur la donne (`pastilles`). */
+function pastilleSort(sort, pastilles) {
+  return pastilleDeLEtat((pastilles || {})[sort] || { couleur: "gris", mots: String(sort || "?") });
 }
 
 /* « Ouvrir le dossier » n'a de sens que si la page tourne sur le poste,
@@ -439,14 +417,12 @@ function vueEtatImportation(e) {
   const repris = quoi ? `<div class="rang">
       <div class="rang-infos"><b class="rang-nom">Historique repris${le ? ` le ${echapper(jjmmaaaa(le))}` : ""}</b>
         ${echapper(quoi + periode)}</div>
-      <div class="rang-etat"><span class="pastille bien">fait</span></div>
+      <div class="rang-etat">${pastilleDeLEtat(e.pastille_repris)}</div>
     </div>` : "";
   const editeur = (e.editeur || []).map((x) => `<div class="rang">
       <div class="rang-infos"><b class="rang-nom">${x.canal === "signalement" ? "Message à l'éditeur" : "Incident"}${
         x.quand ? ` du ${echapper(quand(x.quand))}` : ""}</b>${echapper(x.resume || "")}</div>
-      <div class="rang-etat">${x.repondu ? `<span class="pastille bien">réponse reçue</span>`
-        : x.parti ? `<span class="pastille alerte">attend l'éditeur</span>`
-        : `<span class="pastille">pas encore parti</span>`}</div>
+      <div class="rang-etat">${pastilleDeLEtat(x.pastille)}</div>
     </div>`).join("");
   return repris + vueNaturesADire(e.a_dire) + vueCongesADire(e.conges_a_dire)
     + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
@@ -591,12 +567,7 @@ function valeurImportee(v) {
    signalé. Une case vide est complétée, et la page dit d'où. */
 function fichesImportees(fiches, titre) {
   const lignes = (fiches || []).filter((f) => f).map((f) => {
-    const aCompleter = Object.keys(f.completer || {}).length;
-    const etat = f.etat === "completee" ? `<span class="pastille bien">complétée</span>`
-      : f.etat === "existante" && aCompleter ? `<span class="pastille alerte">à compléter</span>`
-      : f.etat === "existante" ? `<span class="pastille bien">existe déjà</span>`
-      : f.etat === "creee" ? `<span class="pastille bien">créée</span>`
-      : `<span class="pastille alerte">à créer</span>`;
+    const etat = pastilleDeLEtat(f.pastille);
     const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
       `<div class="acte-dernier"><b>${echapper(champ)}</b> ${f.etat === "completee" ? "a reçu" : "recevra"}
          « ${echapper(valeurImportee(e.valeur))} », lu dans ${origineImport(e)} — la case était vide</div>`).join("");
@@ -634,18 +605,18 @@ function fichesImportees(fiches, titre) {
 
 /* Le compte rendu, fichier par fichier (`tri.fichiers`) : le chemin dans le
    dossier, le sort, la raison. Un PDF de plusieurs pages déplie ses pages. */
-function compteRenduImport(tri) {
+function compteRenduImport(tri, pastilles) {
   if (!tri || !tri.fichiers) return "";
   const comptes = Object.entries(tri.comptes || {}).filter(([, n]) => n > 0)
-    .map(([s, n]) => `${pastilleSort(s)} ${n}`).join(" &nbsp; ");
+    .map(([s, n]) => `${pastilleSort(s, pastilles)} ${n}`).join(" &nbsp; ");
   const lignes = tri.fichiers.map((f) => {
     const pages = f.pages && f.pages.length > 1
       ? `<details class="relire"><summary>${f.pages.length} pages</summary>${f.pages.map((p) =>
           `<div class="acte-dernier">page ${p.page}${p.mois ? ` (${echapper(moisEnClair(p.mois))})` : ""}
-             ${pastilleSort(p.sort)} ${echapper(p.raison || "")}</div>`).join("")}</details>` : "";
+             ${pastilleSort(p.sort, pastilles)} ${echapper(p.raison || "")}</div>`).join("")}</details>` : "";
     const de = f.doublon_de ? ` <span class="discret">(copie de ${echapper(f.doublon_de)})</span>`
       : f.archive ? ` <span class="discret">(dans ${echapper(f.archive)})</span>` : "";
-    return `<tr><td>${echapper(f.chemin)}${de}</td><td style="white-space:nowrap">${pastilleSort(f.sort)}</td>
+    return `<tr><td>${echapper(f.chemin)}${de}</td><td style="white-space:nowrap">${pastilleSort(f.sort, pastilles)}</td>
       <td>${echapper(f.raison || "")}${pages}</td></tr>`;
   }).join("");
   return `<h3>Le dossier, fichier par fichier</h3>
@@ -686,8 +657,7 @@ function ecartsBulletinDsn(tri) {
           <td>${echapper(CHAMPS_PAIE[e.champ] || e.champ)}</td>
           <td class="nombre">${echapper(e.valeur == null ? "" : e.valeur)}</td>
           <td class="nombre">${echapper(e.bulletin == null ? "" : e.bulletin)}</td>
-          <td>${e.le_bulletin_l_emporte ? `<span class="pastille alerte">le bulletin l'emporte</span>`
-            : `<span class="pastille">noté</span>`}</td></tr>`);
+          <td>${pastilleDeLEtat(e.pastille)}</td></tr>`);
       }
     }
   }
@@ -729,7 +699,7 @@ async function preparerIncidentImport() {
         <span class="note">Rien ne part avant ce clic.</span></p>`
     : `<p class="note">Rien à envoyer.</p>`;
   cible.innerHTML = `<div class="encart attention"><b>Ces documents n'ont pas pu être repris.</b>
-      ${laisses.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort)}
+      ${laisses.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort, r.pastilles)}
         ${echapper(f.raison || "")}</div>`).join("")}
       <p>Un message peut partir chez le développeur ; Léandre s'en occupe et vous répond.</p>
       <div id="import-incident-envoi">${envoi}</div>
@@ -799,7 +769,7 @@ function vueImportation(r) {
       : `<p><button class="primaire" id="import-ecrire">Reprendre${quoi.length ? " " + quoi.join(", ") : ""}</button>
          <span class="note">Rien n'est écrit avant ce clic.</span></p>`;
   return `<div id="import-incident"></div>
-    ${compteRenduImport(r.tri)}
+    ${compteRenduImport(r.tri, r.pastilles)}
     <h3>${r.ecrit ? "Ce qui a été repris" : "Ce qui serait repris"}</h3>
     <div class="encart"><b>Déclarations</b>
       ${declarations}</div>

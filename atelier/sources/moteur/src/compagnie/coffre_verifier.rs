@@ -37,7 +37,11 @@ pub type OuvrirBoite<'a> = &'a mut dyn FnMut(&Contexte) -> Result<Value, envois:
 
 /// La route `coffre-verifier`.
 pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
-    verifier_secret(ctx, charge.get("service"))
+    // Sa pastille : la session s'ouvre, fait ; l'organisme refuse, refuse.
+    let mut v = verifier_secret(ctx, charge.get("service"))?;
+    let ok = v.get("ok").is_some_and(|x| x == true);
+    v["pastille"] = if ok { crate::routes::pastille("fait", "OK") } else { crate::routes::pastille("refuse", "refusé") };
+    Ok(v)
 }
 
 /// Le secret pose ouvre-t-il une session : `verifier_secret_avec`, avec les vraies connexions.

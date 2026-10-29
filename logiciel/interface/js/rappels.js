@@ -146,12 +146,7 @@ async function peindreDemarrageDans(conteneur) {
  * : la page ne sait pas ce qu'est une échéance. */
 function htmlEcheancier(ech) {
   if (!ech) return "";
-  const pastille = (x) => ({
-    en_retard: `<span class="pastille alerte">en retard</span>`,
-    a_faire: `<span class="pastille alerte">à faire</span>`,
-    fait: `<span class="pastille bien">fait</span>`,
-    information: `<span class="pastille">pour info</span>`,
-  }[x.etat] || "");
+  const pastille = (x) => pastilleDeLEtat(x.pastille);
   const avant = (x) => x.date && x.etat !== "fait"
     ? ` <span class="discret">— avant le ${echapper(jjmmaaaa(String(x.date || "").slice(0, 10)))}</span>` : "";
   const ligne = (x) => `
@@ -191,7 +186,7 @@ function htmlEcheancier(ech) {
 function boiteRappels(liste, ech, manques = []) {
   const html = htmlDemarrage(manques) + htmlEcheancier(ech) + liste.map((r, i) => `
     <div class="rappel ${r.en_retard ? "retard" : ""}">
-      <h3>${echapper(r.titre)}${r.en_retard ? ` <span class="pastille alerte">en retard</span>` : ""}${r.echeance_depot && r.echeance_depot.jour
+      <h3>${echapper(r.titre)}${r.pastille ? ` ${pastilleDeLEtat(r.pastille)}` : ""}${r.echeance_depot && r.echeance_depot.jour
         ? ` <span class="discret">— avant le ${echapper(jjmmaaaa(r.echeance_depot.jour))}</span>` : ""}</h3>
       <p class="rappel-question">${echapper(r.question)}</p>
       ${r.detail ? `<p class="note">${echapper(r.detail)}</p>` : ""}
@@ -349,7 +344,7 @@ async function dessinerExercices() {
     return `
     <div class="rang exercice">
       <span class="rang-nom">${echapper(x.annee)}</span>
-      <span class="pastille ${clos ? "bien" : "alerte"}">${clos ? "clos" : "ouvert"}</span>
+      ${pastilleDeLEtat(x.pastille)}
       <span class="rang-infos">
         ${x.mois.length} mois · ${x.dsn_acceptees.length} DSN acceptée${x.dsn_acceptees.length === 1 ? "" : "s"}
         ${clos ? ` · clos le ${echapper(quand(clos.le))}, ${echapper(clos.archive)}` : ""}

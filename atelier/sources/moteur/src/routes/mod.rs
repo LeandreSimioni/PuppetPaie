@@ -275,6 +275,24 @@ pub(crate) fn couleur_de_l_etat(etat: &str) -> &'static str {
     }
 }
 
+/// LA PASTILLE D'UN ETAT, telle que la page la dessine : sa couleur (`couleur_de_l_etat`) et ses mots.
+pub(crate) fn pastille(etat: &str, mots: &str) -> Value {
+    json!({"couleur": couleur_de_l_etat(etat), "mots": mots})
+}
+
+/// « 12/09/2026 à 18:18 » : un horodatage ISO tel que l'ecran le dit ; ce qui n'en est pas un, tel quel.
+pub(crate) fn quand(iso: &str) -> String {
+    let b = iso.as_bytes();
+    if b.len() < 10 || b[4] != b'-' || b[7] != b'-' {
+        return iso.to_string();
+    }
+    let jour = format!("{}/{}/{}", &iso[8..10], &iso[5..7], &iso[..4]);
+    match iso.get(11..16) {
+        Some(h) => format!("{} à {}", jour, h),
+        None => jour,
+    }
+}
+
 /// LE NOM D'UN SALARIE TEL QU'UN ECRAN LE MONTRE : le nom de famille en capitales, sous sa forme lisible (`nom_affichage`,
 /// accents compris : « SÉRAPHIN »), puis le prenom lisible. La forme declaree (`nom`, sans accents) reste celle de la DSN
 /// et de la DPAE ; une fiche qui n'a que celle-la la montre.

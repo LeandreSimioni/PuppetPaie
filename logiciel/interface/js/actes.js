@@ -201,9 +201,9 @@ function recapitulatifDsn(r) {
         : c.fin_declaree ? "fin le " + echapper(jjmmaaaa(c.fin_declaree)) : "en cours"}</td>
     </tr>
     ${c.ecarts.length ? `<tr class="ecart"><td></td><td colspan="6">
-      <span class="pastille alerte">${echapper(c.ecarts.join(" ; "))}</span></td></tr>` : ""}`).join("")).join("");
+      ${pastilleDeLEtat(c.pastille_ecarts)}</td></tr>` : ""}`).join("")).join("");
   return `
-    <div class="encart ${r.conforme ? "bien" : r.compare ? "attention" : ""}">
+    <div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
       <b>${r.contrats} contrat${r.contrats > 1 ? "s" : ""} dans ce fichier${r.corrections
         ? ` (et ${r.corrections} correction${r.corrections > 1 ? "s" : ""} d'un mois déjà déclaré)` : ""}${r.compare
         ? `, ${r.contrats_saisis} saisi${r.contrats_saisis > 1 ? "s" : ""} dans la paie du mois` : ""}</b>
@@ -213,7 +213,7 @@ function recapitulatifDsn(r) {
         : "Pas de paie saisie à comparer : le fichier se lit seul."}
     </div>
     ${r.absents.length ? `<ul class="absents">${r.absents.map((x) =>
-      `<li><span class="pastille alerte">absent du fichier</span> ${echapper(x.nom)} — contrat
+      `<li>${pastilleDeLEtat(x.pastille)} ${echapper(x.nom)} — contrat
        ${echapper(x.numero)}, du ${echapper(jjmmaaaa(x.debut))}</li>`).join("")}</ul>` : ""}
     <table class="recap-dsn">
       <tr><th>Salarié</th><th>Contrat</th><th>Dates</th><th>Emploi</th>
@@ -288,9 +288,7 @@ function corpsDpae(a) {
           <td>${echapper(jjmmaaaa(x.debut))}</td>
           <td>${x.fin ? echapper(jjmmaaaa(x.fin))
                       : `<span class="discret">sans terme</span>`}</td>
-          <td>${x.deja_declaree
-                ? `<span class="pastille alerte">déjà déclarée</span>`
-                : `<span class="pastille bien">à déclarer</span>`}</td>
+          <td>${pastilleDeLEtat(x.pastille)}</td>
         </tr>`).join("")}
     </table>
     ${deja ? `<div class="encart attention">
@@ -548,10 +546,7 @@ function certificatParPersonne(ligne) {
   if (!dpae.length) return "";
   return `<ul class="liste-certificat">${dpae.map((x) => `
     <li>${echapper([x.nom, x.prenom].filter(Boolean).join(" "))} :
-      ${x.enregistree ? `<span class="pastille bien">enregistrée${x.dossier
-          ? ` — dossier ${echapper(x.dossier)}` : ""}</span>`
-        : x.deja_existante ? `<span class="pastille">déjà existante</span>`
-        : `<span class="pastille erreur">${echapper(x.libelle || x.code || "refusée")}</span>`}</li>`).join("")}</ul>`;
+      ${pastilleDeLEtat(x.pastille)}</li>`).join("")}</ul>`;
 }
 
 function encartRepetition(r, quoi, a) {
@@ -700,8 +695,7 @@ async function boiteEnvoi(mois) {
         <tr>
           <td><input type="checkbox" class="e-qui" value="${echapper(m.cle)}" checked
                      aria-label="${echapper(m.nom)}"></td>
-          <td>${echapper(m.nom)}${m.renvoi ? `<br><span class="pastille alerte">documents corrigés —
-            remplacent ceux du ${echapper(m.envoye_le)}</span>` : ""}</td>
+          <td>${echapper(m.nom)}${m.pastille ? `<br>${pastilleDeLEtat(m.pastille)}` : ""}</td>
           ${a.boite_liee ? `<td>${echapper(m.destinataire)}</td>` : ""}
           <td class="pieces">${m.pieces.map((x) => `<div>${echapper(x)}</div>`).join("")}</td>
         </tr>
@@ -814,13 +808,9 @@ async function boiteSignature(mois, seulement) {
               : `<br><span class="s-courriel">pas de courriel dans sa fiche :
                   <input type="email" class="s-courriel-saisi" placeholder="son courriel" data-salarie="${echapper(c.salarie)}">
                   <button type="button" class="lien s-courriel-poser" data-salarie="${echapper(c.salarie)}">Enregistrer</button></span>`) : ""}
-            ${c.en_avenant ? `<br><span class="pastille alerte">${echapper(c.pourquoi
-              || "l'engagement a changé depuis la signature")} — signé : partira en avenant</span>
+            ${c.pastille ? `<br>${pastilleDeLEtat(c.pastille)}` : ""}${c.en_avenant ? `
               <button class="lien s-avenant" data-salarie="${echapper(c.salarie)}"
-                data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}">voir l'avenant</button>`
-              : c.caduc ? `<br><span class="pastille alerte">${echapper(c.pourquoi
-              || "l'engagement a changé depuis l'envoi")}${c.demande_le ? ` (parti le ${echapper(quand(c.demande_le))})` : ""} —
-              ce contrat est à refaire partir</span>` : ""}</span>
+                data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}">voir l'avenant</button>` : ""}</span>
         </label>`).join("")}
     </div>`}
     <div class="actions">
@@ -947,7 +937,7 @@ async function boiteContratsEnAttente(mois, fait) {
           <span><b>${echapper(c.nom)}</b> — ${echapper(c.spectacle)},
             ${echapper(periodeEnClair(c.debut, c.fin))}
             ${c.numero ? `<span class="discret">(contrat n° ${echapper(c.numero)})</span>` : ""}
-            <br><span class="pastille alerte">${echapper(c.attente)}</span></span>
+            <br>${pastilleDeLEtat(c.pastille)}</span>
           <span class="gestes-contrat">
             <button class="primaire petit a-recu" data-i="${i}">Reçu signé</button>
             ${c.relancer ? `<button class="secondaire petit a-relancer" data-i="${i}"

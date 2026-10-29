@@ -30,14 +30,53 @@ pub const ROUTES: &[&str] = &["importation-apercu", "importation-etat", "importe
 /// Celles qui ecrivent.
 pub const ECRITURES: &[&str] = &["importer", crate::import::nature::ROUTE];
 
+/// UNE REPONSE DE L'IMPORT, AVEC SES PASTILLES (`routes::pastille`) : celle de chaque sort
+/// (`import::bulletins::pastilles_des_sorts`), celle de chaque fiche que l'import cree, complete ou laisse
+/// (`fiche_importee` : creee, completee ou deja la, faite ; a creer ou a completer, a faire), celle de chaque ecart entre
+/// un bulletin et une DSN (le bulletin l'emporte, a voir ; sinon note, une information).
+pub(crate) fn avec_les_pastilles(mut v: Value) -> Value {
+    poser_les_pastilles(&mut v);
+    if let Some(o) = v.as_object_mut() {
+        o.insert("pastilles".into(), crate::import::bulletins::pastilles_des_sorts());
+    }
+    v
+}
+
+fn poser_les_pastilles(v: &mut Value) {
+    match v {
+        Value::Object(o) => {
+            let fiche = ["salarie", "spectacle", "entreprise"].contains(&o.get("nom").and_then(Value::as_str).unwrap_or("")) && o.contains_key("libelle");
+            if fiche {
+                let a_completer = o.get("completer").and_then(Value::as_object).is_some_and(|c| !c.is_empty());
+                let p = match o.get("etat").and_then(Value::as_str).unwrap_or("") {
+                    "completee" => super::pastille("fait", "complétée"),
+                    "existante" if a_completer => super::pastille("a_faire", "à compléter"),
+                    "existante" => super::pastille("fait", "existe déjà"),
+                    "creee" => super::pastille("fait", "créée"),
+                    _ => super::pastille("a_faire", "à créer"),
+                };
+                o.insert("pastille".into(), p);
+            }
+            if let Some(l) = o.get("le_bulletin_l_emporte").map(vrai) {
+                o.insert("pastille".into(), if l { super::pastille("a_faire", "le bulletin l'emporte") } else { super::pastille("information", "noté") });
+            }
+            for x in o.values_mut() {
+                poser_les_pastilles(x);
+            }
+        }
+        Value::Array(a) => a.iter_mut().for_each(poser_les_pastilles),
+        _ => {}
+    }
+}
+
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         // `{"dossier": ...}` (vide ou absent : `import/` de la compagnie) : la boite aux lettres entiere, bulletins
         // compris (`import::bulletins`).
-        "importation-apercu" => Ok(Value::Object(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse)),
+        "importation-apercu" => Ok(avec_les_pastilles(Value::Object(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse))),
         "importation-etat" => etat_importation(&ctx.racine),
-        "importer" => crate::import::ecrite::importer(ctx, charge),
+        "importer" => crate::import::ecrite::importer(ctx, charge).map(avec_les_pastilles),
         // La nature des contrats repris qu'aucun bulletin ne dit.
         crate::import::nature::ROUTE => crate::import::nature::dire(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
@@ -573,6 +612,8 @@ fn etat_importation(racine: &Path) -> R<Value> {
         "dossier": racine.join("import").display().to_string(),
         "reprises": reprises_faites(racine, &engagements, &paies),
         "editeur": editeur,
+        // La pastille de l'historique repris.
+        "pastille_repris": super::pastille("fait", "fait"),
         "attend_editeur": attend,
         // Les contrats repris dont la nature reste a dire, par salarie.
         "a_dire": crate::import::nature::a_dire(racine),
@@ -689,6 +730,16 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
             "numero": s.get("numero").cloned().unwrap_or(Value::Null),
             "parti": s.get("etat").and_then(Value::as_str) == Some("arrive"), "repondu": s.get("reponse").is_some_and(vrai),
         }));
+    }
+    // Sa pastille : la reponse recue, faite ; le reste attend l'editeur, rien que la compagnie ait a faire.
+    for x in out.iter_mut() {
+        x["pastille"] = if x["repondu"] == true {
+            super::pastille("fait", "réponse reçue")
+        } else if x["parti"] == true {
+            super::pastille("information", "attend l'éditeur")
+        } else {
+            super::pastille("information", "pas encore parti")
+        };
     }
     out
 }

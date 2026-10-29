@@ -207,6 +207,8 @@ impl Rappel {
             "quoi": self.quoi, "cle": self.cle, "titre": self.titre, "question": self.question,
             "mois": opt(&self.mois), "annee": opt(&self.annee), "etat": self.etat,
             "detail": self.detail, "fichier": opt(&self.fichier), "en_retard": self.en_retard,
+            // En retard : a faire, la compagnie le peut.
+            "pastille": if self.en_retard { super::pastille("en_retard", "en retard") } else { Value::Null },
             "engagements": self.engagements, "validees": self.validees,
             "spectacles": self.spectacles.iter().map(brut_valeur).collect::<Vec<_>>(),
             "salarie": opt(&self.salarie), "jour": opt(&self.jour), "a_saisir": self.a_saisir,

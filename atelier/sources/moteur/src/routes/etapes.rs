@@ -1178,10 +1178,10 @@ impl<'a> Moteur<'a> {
                 .iter()
                 .map(|(cle, nom)| {
                     let x = &b[*cle];
-                    let mut g = if est(&x["couleur"], "bien") {
+                    let mut g = if est(&x["couleur"], "vert") {
                         fait()
                     } else {
-                        groupe(if est(&x["couleur"], "refus") { "refuse" } else { "a_faire" }, Value::Null, String::new(), valeur_en_texte(&x["courte"]), Value::Null, Value::Null)
+                        groupe(if est(&x["couleur"], "rouge") { "refuse" } else { "information" }, Value::Null, String::new(), valeur_en_texte(&x["courte"]), Value::Null, Value::Null)
                     };
                     g["colonnes"] = json!(["G"]);
                     json!({"cle": cle, "nom": nom, "groupes": [g], "phrase": x["phrase"].clone()})

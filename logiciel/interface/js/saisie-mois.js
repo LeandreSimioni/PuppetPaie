@@ -1010,7 +1010,7 @@ function carteImportee(p, i, moisCourt) {
     p.heures ? `${p.heures} h` : ""].filter(Boolean).join(" · ");
   const pastille = (cle, titre) => {
     const e = p.etats[cle] || {};
-    return `<span class="etat-acte ${e.couleur === "bien" ? "vert" : "gris"}" title="${echapper(e.phrase || "")}">
+    return `<span class="etat-acte ${e.couleur || "gris"}" title="${echapper(e.phrase || "")}">
       <i class="carre"></i>${echapper(titre)}</span>`;
   };
   // LE MONTANT : le net à payer ; sans lui (une DSN seule ne le déclare pas), le brut, et la carte le dit.

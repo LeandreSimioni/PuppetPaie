@@ -46,10 +46,7 @@ async function dessinerDiagnostic(rang) {
     } catch (e) { dire(e.message, "erreur"); return; }
     dessinerDiagnostic(rang);
   };
-  etat.innerHTML = d.envoi === false ? `<span class="pastille alerte">désactivé</span>`
-    : !d.total ? `<span class="pastille bien">rien à signaler</span>`
-    : d.en_attente ? `<span class="pastille alerte">${d.en_attente} en attente</span>`
-    : `<span class="pastille bien">tout est parti</span>`;
+  etat.innerHTML = pastilleDeLEtat(d.pastille);
   compte.textContent = d.envoi === false ? "désactivé : les incidents restent sur cet ordinateur, rien ne part"
     : !d.serveur ? "aucun serveur de l'éditeur connu : rien ne part"
     : d.dernier_envoi ? `${d.partis} incident(s) parti(s), le dernier le ${quand(d.dernier_envoi)}`
@@ -87,9 +84,7 @@ function boiteDiagnostic(d, rang, signales = []) {
           ${g.combien > 1 ? `<span class="discret">× ${g.combien}</span>` : ""}
           — ${echapper(g.resume || g.genre || "")}
           <br><span class="discret">${echapper(g.ou || "")} · dernier le ${echapper(quand(g.derniere))}</span>
-          <br>${g.en_attente
-            ? `<span class="pastille alerte">${g.en_attente} en attente</span>`
-            : `<span class="pastille bien">parti le ${echapper(quand(g.parti_le))}</span>`}
+          <br>${pastilleDeLEtat(g.pastille)}
           <button class="lien d-contenu" data-i="${i}">voir le contenu exact</button>
           <pre class="d-pre" data-i="${i}" hidden></pre></span>
         </div>`).join("")}</div>`}
@@ -457,11 +452,7 @@ function departDuMessage(s) {
 
 /** Où en est un message (l'état vient du moteur, `problemes::signalements`). */
 function etatDuMessage(s) {
-  if (s.etat === "en-cours") return ` <span class="pastille">en cours d'envoi</span>`;
-  if (s.etat === "pas-parti") {
-    return ` <span class="pastille alerte">pas encore parti</span>
-      <span class="discret">— ${echapper(s.raison || "")}</span>`;
-  }
+  if (s.pastille) return ` ${pastilleDeLEtat(s.pastille)}${s.raison ? ` <span class="discret">— ${echapper(s.raison)}</span>` : ""}`;
   return ` <span class="discret">— arrivé, en attente de réponse</span>`;
 }
 
@@ -513,9 +504,7 @@ async function dessinerFilet(rang, exige) {
   if (f.actif && !f.confirme) {
     try { f = await api("filet-verifier"); } catch (e) { /* le serveur dira plus tard */ }
   }
-  etat.innerHTML = !f.actif ? `<span class="pastille">désactivé</span>`
-    : f.confirme ? `<span class="pastille bien">actif</span>`
-    : `<span class="pastille alerte">adresse à confirmer</span>`;
+  etat.innerHTML = pastilleDeLEtat(f.pastille);
   compte.textContent = !f.actif ? "" : f.confirme ? f.adresse
     : `un courriel est parti à ${f.adresse} : cliquez sur le lien qu'il contient —
        cette ligne passera d'elle-même à « actif »`;

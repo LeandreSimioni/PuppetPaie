@@ -459,6 +459,20 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         } else {
             (Value::Null, Value::Null)
         };
+        // Sa pastille : un contrat change depuis qu'il est revenu signe part en avenant ; change depuis son envoi, il est
+        // a refaire partir ; parti et pas revenu, il attend sa signature. Toutes a faire : la compagnie le peut.
+        let pourquoi_dit = etat["pourquoi"].as_str().filter(|t| !t.is_empty()).map(String::from);
+        let pastille = if a_envoyer && caduc && recu {
+            super::pastille("a_faire", &format!("{} — signé : partira en avenant", pourquoi_dit.unwrap_or_else(|| "l'engagement a changé depuis la signature".into())))
+        } else if caduc {
+            let parti_le = l["demande_le"].as_str().map_or(String::new(), |q| format!(" (parti le {})", super::quand(q)));
+            super::pastille("a_faire", &format!("{}{} — ce contrat est à refaire partir", pourquoi_dit.unwrap_or_else(|| "l'engagement a changé depuis l'envoi".into()), parti_le))
+        } else if en_attente {
+            super::pastille("en_attente", &attente)
+        } else {
+            Value::Null
+        };
+        l.insert("pastille".into(), pastille);
         l.insert("par".into(), par.clone());
         l.insert("a_envoyer".into(), json!(a_envoyer));
         l.insert("en_avenant".into(), json!(a_envoyer && caduc && recu));
