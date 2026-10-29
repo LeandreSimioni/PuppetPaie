@@ -113,14 +113,14 @@ pub fn jour_option(nom: &str, texte: &str) -> Result<socle::date::Jour, Echec> {
     })
 }
 
-/// `required=True` d'`argparse` pour des OPTIONS : `moteur COMMANDE: error: the following arguments are required: --a, --b`
+/// Des OPTIONS obligatoires : `moteur COMMANDE : à donner : --a, --b`
 /// (usage sur la sortie d'erreur, code 2). `None` quand toutes sont la.
 pub fn options_requises(spec: &super::analyse::Spec, args: &super::analyse::Args, noms: &[&str]) -> Option<i32> {
     let manquantes: Vec<String> = noms.iter().filter(|n| !args.drapeau(n)).map(|n| format!("--{}", n)).collect();
     if manquantes.is_empty() {
         return None;
     }
-    eprintln!("{}\npaie {}: error: the following arguments are required: {}", super::analyse::usage(spec), spec.commande, manquantes.join(", "));
+    eprintln!("{}\nmoteur {} : à donner : {}", super::analyse::usage(spec), spec.commande, manquantes.join(", "));
     Some(2)
 }
 
