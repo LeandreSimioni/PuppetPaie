@@ -4,7 +4,8 @@
 //! UN SCENARIO EST UN DOSSIER :
 //! - `gestes.jsonl` : un geste par ligne, dans l'ordre ou ils ont lieu. Les gestes :
 //!   - `{"geste": "debut", "jour", "logiciel"}` : le banc commence (rien a rejouer) ;
-//!   - `{"geste": "ajouter", "nom"}` : le « + » de l'accueil d'un logiciel bride (`compagnies::ajouter_dans`), le decor
+//!   - `{"geste": "ajouter", "nom", "venue"}` : le « + » de l'accueil d'un logiciel bride (`compagnies::ajouter_venant` ;
+//!     `venue` : `logiciel_precedent` quand la compagnie vient d'un logiciel precedent, absente sinon), le decor
 //!     de depart ; le banc y note `compagnie`, le dossier qu'il a cree, relatif a l'installation (`fictives/ajoutee-…`),
 //!     et le rejeu verifie qu'il cree le meme ;
 //!   - `{"geste": "simuler"}` : le geste d'atelier qui fait d'une fictive ajoutee une fictive aux envois simules
@@ -344,7 +345,8 @@ fn rejouer_les_gestes(
         match g.get("geste").and_then(Value::as_str) {
             Some("ajouter") => {
                 let nom = g.get("nom").and_then(Value::as_str).ok_or(format!("geste {} : `ajouter` sans nom", n))?;
-                let c = crate::interface::compagnies::ajouter_dans(inst, nom).map_err(|m| format!("geste {} : « + » refuse : {}", n, m))?;
+                let venue = crate::interface::compagnies::Venue::lire(g.get("venue").and_then(Value::as_str).unwrap_or(""));
+                let c = crate::interface::compagnies::ajouter_venant(inst, nom, venue).map_err(|m| format!("geste {} : « + » refuse : {}", n, m))?;
                 let rel = relatif(inst, &c.racine);
                 if !compagnie.is_empty() && rel != compagnie {
                     r.ecarts.push(format!("geste {} : le « + » a cree {} (enregistre : {})", n, rel, compagnie));

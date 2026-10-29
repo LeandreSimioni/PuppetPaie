@@ -324,16 +324,57 @@ pub fn cree_le(racine: &Path) -> Option<socle::date::Jour> {
     lire(&racine.join("config").join(FICHIER_CREATION))?.get("le").and_then(Value::as_str).and_then(|j| socle::date::Jour::lire(j).ok())
 }
 
+/// D'OU VIENT UNE COMPAGNIE AJOUTEE : le « + » propose les deux chemins. Une compagnie neuve commence ses paies ici ;
+/// une compagnie qui vient d'un logiciel precedent commence par reprendre son passe (`import`), et la page s'ouvre sur
+/// l'import tant qu'il n'a rien repris (`routes::ouverture::etat`, `commencer_par_l_import`). `creation.json` le garde
+/// (`venue`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Venue {
+    Neuve,
+    LogicielPrecedent,
+}
+
+impl Venue {
+    /// Le mot du geste de l'accueil et de `creation.json`.
+    pub fn mot(self) -> &'static str {
+        match self {
+            Venue::Neuve => "neuve",
+            Venue::LogicielPrecedent => "logiciel_precedent",
+        }
+    }
+
+    /// Le mot lu ; tout autre que `logiciel_precedent` est une compagnie neuve.
+    pub fn lire(mot: &str) -> Venue {
+        if mot == "logiciel_precedent" {
+            Venue::LogicielPrecedent
+        } else {
+            Venue::Neuve
+        }
+    }
+}
+
+/// La compagnie a ete ajoutee par le chemin « d'un logiciel precedent ».
+pub fn vient_d_un_logiciel_precedent(racine: &Path) -> bool {
+    lire(&racine.join("config").join(FICHIER_CREATION))
+        .and_then(|c| c.get("venue").and_then(Value::as_str).map(Venue::lire))
+        == Some(Venue::LogicielPrecedent)
+}
+
 /// « Ajouter une compagnie » : le dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
 ///
 /// LOGICIEL BRIDE : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
 /// un dossier `ajoutee-…`, avec le marqueur d'une fictive et sa marque. Debloque : une compagnie reelle, sous `compagnies/`.
-pub fn ajouter(nom: &str) -> Result<Compagnie, String> {
-    ajouter_dans(&base(), nom)
+pub fn ajouter(nom: &str, venue: Venue) -> Result<Compagnie, String> {
+    ajouter_venant(&base(), nom, venue)
 }
 
-/// `ajouter`, dans l'installation `inst` (le dossier qui porte `logiciel/`).
+/// `ajouter`, dans l'installation `inst` (le dossier qui porte `logiciel/`) : une compagnie neuve.
 pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
+    ajouter_venant(inst, nom, Venue::Neuve)
+}
+
+/// `ajouter`, dans l'installation `inst`, par le chemin `venue`.
+pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie, String> {
     let nom = nom.split_whitespace().collect::<Vec<_>>().join(" ");
     if nom.chars().count() < 2 {
         return Err("Le nom de la compagnie, s'il vous plait.".into());
@@ -366,7 +407,7 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;
     ecrire(
         &cfg.join(FICHIER_CREATION),
-        &json!({"le": creation.iso(), "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant)."}),
+        &json!({"le": creation.iso(), "venue": venue.mot(), "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant). `venue` : le chemin du « + », une compagnie neuve ou d'un logiciel precedent (elle commence alors par l'import)."}),
     )?;
     if !bride {
         return Ok(entree(format!("cie:{}", nom_dossier(&dossier)), &dossier, true));

@@ -616,20 +616,24 @@ impl Fenetre {
         }
     }
 
-    /// « Ajouter une compagnie » (le « + » de l'accueil). Au banc d'essai de l'atelier, le geste entre dans le scenario :
-    /// c'est le decor de depart que le rejeu refait (`scenario::rejouer`).
-    fn ajouter(&self, nom: &str) -> Result<compagnies::Compagnie, String> {
+    /// « Ajouter une compagnie » (le « + » de l'accueil), par l'un de ses deux chemins (`compagnies::Venue`). Au banc
+    /// d'essai de l'atelier, le geste entre dans le scenario : c'est le decor de depart que le rejeu refait
+    /// (`scenario::rejouer`).
+    fn ajouter(&self, nom: &str, venue: compagnies::Venue) -> Result<compagnies::Compagnie, String> {
         #[cfg(feature = "atelier")]
         if let Some(e) = crate::atelier::scenario::enregistreur_actif() {
             return e.geste("ajouter", || {
-                let c = compagnies::ajouter(nom)?;
+                let c = compagnies::ajouter(nom, venue)?;
                 let mut m = serde_json::Map::new();
                 m.insert("nom".into(), json!(nom));
+                if venue != compagnies::Venue::Neuve {
+                    m.insert("venue".into(), json!(venue.mot()));
+                }
                 m.insert("compagnie".into(), json!(e.compagnie(&c.racine)));
                 Ok((c, m))
             });
         }
-        compagnies::ajouter(nom)
+        compagnies::ajouter(nom, venue)
     }
 
     /// LES GESTES DU BANC D'ESSAI (l'atelier seulement ; `atelier/outils/banc/`) : `/atelier/<geste>`, avec le jeton.
@@ -730,7 +734,7 @@ impl Fenetre {
                 Ok((n, deja)) => json!({"ok": true, "message": format!("{} est {}.", n, if deja { "déjà dans son état d'origine" } else { "revenue à son état d'origine" })}),
                 Err(m) => refus(m),
             },
-            ("ajouter", Phase::Accueil) => match self.ajouter(&a(0)).and_then(|c| self.prendre(c.racine)) {
+            ("ajouter", Phase::Accueil) => match self.ajouter(&a(0), compagnies::Venue::lire(&a(1))).and_then(|c| self.prendre(c.racine)) {
                 Ok(()) => ok(true),
                 Err(m) => refus(m),
             },

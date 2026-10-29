@@ -39,7 +39,8 @@ simulé, et, si l'accueil s'affiche, clique la tuile de `compagnie`. Un script c
 lancée entre deux scripts. Le modèle complet, du « + » à la DSN : `exemple.js` (à côté).
 
 **3. Créer sa compagnie par « + »**, comme un testeur : la tuile « Ajouter une compagnie » (`.tuile.ajouter .invite`), le
-message (« Continuer », `#avis-continuer`), le nom (`.tuile.ajouter input`), « Créer et ouvrir ». Elle est alors une
+message (« Continuer », `#avis-continuer`), le chemin (« Une compagnie neuve », `#choix-venue .venue[data-venue=neuve]`, ou
+« D'un logiciel précédent », `[data-venue=logiciel_precedent]`), le nom (`#choix-venue-nom input`), « Créer et ouvrir ». Elle est alors une
 **fictive ajoutée** : tout s'y fait, mais ses envois (DPAE, DSN, contrats) sont refusés.
 
 **4. Rendre ses envois simulés** — le geste d'atelier, une fois, la compagnie ouverte dans la page :
