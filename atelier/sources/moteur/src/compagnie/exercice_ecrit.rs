@@ -6,9 +6,9 @@
 //! - La cloture : fige l'annee (`config/exercices.json`) et reunit ce qu'il faut garder en un zip
 //!   (`sorties/exercices/Exercice_AAAA.zip`) : saisies, sorties, retours des organismes, journal des depots,
 //!   fiches, bareme, export compta, LISEZ-MOI. Le zip est ecrit par le zip de `routes::dossier_salarie` (deflate,
-//!   CRC-32, entrees dans l'ordre du Python) : la liste des fichiers et chacun d'eux, octet pour octet, sont ceux
-//!   de l'ancien Python ; les octets COMPRESSES (donc l'empreinte et la taille de l'archive) dependent du
-//!   compresseur, et l'empreinte rendue est celle de l'archive que ce programme a reellement ecrite.
+//!   CRC-32, entrees dans un ordre fixe) : la liste des fichiers et chacun d'eux sont fixes, octet pour octet ; les
+//!   octets COMPRESSES (donc l'empreinte et la taille de l'archive) dependent du compresseur, et l'empreinte rendue
+//!   est celle de l'archive que ce programme a reellement ecrite.
 //!
 //! Un refus de l'export pendant la cloture (une `ErreurOperation`, dont les refus du calcul) n'arrete pas la
 //! cloture : il est rendu dans `manques`, et l'archive part sans export.
@@ -40,7 +40,7 @@ fn en_os(e: &std::io::Error, p: &Path) -> Echec {
     erreur("OSError", format!("{} : {}", p.display(), e))
 }
 
-/// Une `ErreurOperation` pour un `except ErreurOperation` de Python : celles que le moteur nomme, et
+/// Une erreur d'operation, que l'appelant rattrape : celles que le moteur nomme, et
 /// les refus du calcul (`CalculRefuse`, `SaisieIncomplete`), qui en sont.
 fn est_une_erreur_d_operation(e: &Echec) -> bool {
     matches!(e.classe, None | Some("ErreurOperation") | Some("SaisieIncomplete"))
@@ -101,7 +101,7 @@ impl<'a> Depots<'a> {
 
 // ------------------------------------------------------------------ l'export compta
 
-/// `operations_exercice.ExportCompta`.
+/// L'export compta d'un exercice.
 pub(crate) struct ExportCompta {
     pub(crate) annee: String,
     pub(crate) du: i64,

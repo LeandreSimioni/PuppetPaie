@@ -1,9 +1,8 @@
-//! CE QUI PART POUR DEBOGUER (Leandre, 23/10/2026 : « il faut joindre un max d'info pour pouvoir deboguer les
-//! utilisateurs facilement [...] Pas sur leurs salaries, mais sur la machine un max. C'est le pacte. » ; puis : « un petit
-//! historique de toutes les actions sur la machine, joint au ticket... les 3 minutes d'avant »).
+//! CE QUI PART POUR DEBOGUER : le plus possible sur la machine, rien sur les salaries -- c'est le pacte avec
+//! l'utilisateur. Avec chaque envoi part l'historique des actions des trois dernieres minutes.
 //!
-//! Le ticket #253 (retour R-D8C558) est arrive avec dix incidents `{"route": "mois"}` identiques : ni la charge, ni ce que
-//! la page faisait, ni l'endroit du code. Ce module tient, en UN SEUL ENDROIT, tout ce qu'un retour (« Un probleme, une
+//! Un incident `{"route": "mois"}` seul ne dit ni la charge, ni ce que la page faisait, ni l'endroit du code. Ce module
+//! tient, en UN SEUL ENDROIT, tout ce qu'un retour (« Un probleme, une
 //! idee ? ») et chaque incident portent de plus :
 //!
 //! - LA FRONTIERE (`en_forme`, `texte_en_forme`) : rien qui designe une personne ne passe. Noms, prenoms, NIR, adresses,

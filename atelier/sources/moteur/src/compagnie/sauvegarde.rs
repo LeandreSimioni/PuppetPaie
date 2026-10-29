@@ -1,12 +1,11 @@
 //! La sauvegarde du dossier prive dans le Drive, par differences.
 //!
-//! Ecrit au lot H4b, non prouve. Ce sont des FONCTIONS, pas des routes : leurs appelants sont
-//! l'ouverture et la veille, la ligne de commande, et `web.py` qui lit
-//! `derniere` et `rien_n_a_bouge`. Le client Drive se passe en parametre (`drive::Drive`).
+//! Ce sont des FONCTIONS, pas des routes : leurs appelants sont l'ouverture et la veille, la ligne de commande, et
+//! l'interface qui lit `derniere` et `rien_n_a_bouge`. Le client Drive se passe en parametre (`drive::Drive`).
 //!
 //! CE QU'ELLE SAUVE : tout le dossier des donnees (`config/`, `engagements/`, `sorties/`, `retours/`,
 //! `gabarits/`, `journal/`, `reference/`), coffre compris (`coffre.bin`, scelle par le mot de passe du logiciel, qui
-//! l'ouvre sur un poste neuf apres `moteur restaurer` : Leandre, 13/10/2026, redit le 14/10), sauf le jeton Google
+//! l'ouvre sur un poste neuf apres `moteur restaurer`), sauf le jeton Google
 //! (`google-jeton.bin`, le compte se relie), l'etat de la machine (`.compteurs.verrou`, l'index lui-meme) et le rebut.
 //!
 //! ELLE NE SUPPRIME JAMAIS RIEN dans le Drive : le trait `Drive` n'a d'ailleurs aucune
@@ -35,10 +34,9 @@ const NOMS_EXCLUS: [&str; 6] = ["google-jeton.bin", ".jeton-interface", ".compte
 const SUFFIXES_EXCLUS: [&str; 4] = [".pyc", ".tmp", ".lock", ".part"];
 const DOSSIERS_EXCLUS: [&str; 2] = ["__pycache__", ".git"];
 
-/// `_SIGNES_HORS_LIGNE`, SANS `timed out` (DEFAUT 2 DU PYTHON, CORRIGE) : le Python rangeait « timed out » avec l'absence de
-/// reseau, si bien qu'un delai de LECTURE depasse (un serveur qui repond trop lentement, un dossier de Drive qui ne
-/// repond pas) arretait TOUTE la sauvegarde (« Hors connexion : sauvegarde au prochain passage ») alors que le reseau est la.
-/// Un delai depasse est maintenant un incident du dossier ou du fichier ; l'absence de reseau reste « injoignable »,
+/// Les signes d'une absence de reseau, SANS `timed out` : un delai de LECTURE depasse (un serveur qui repond trop
+/// lentement, un dossier de Drive qui ne repond pas) n'arrete pas TOUTE la sauvegarde (« Hors connexion : sauvegarde au
+/// prochain passage ») quand le reseau est la. Un delai depasse est un incident du dossier ou du fichier ; l'absence de reseau reste « injoignable »,
 /// `getaddrinfo`, `Network is unreachable`, `Name or service not known`... (un delai de CONNEXION dit « Reseau injoignable :
 /// timed out » : il garde son « injoignable »).
 const SIGNES_HORS_LIGNE: [&str; 10] = [
@@ -428,7 +426,7 @@ pub struct Derniere {
 }
 
 impl Derniere {
-    /// `{"quand", "fichiers", "racine_drive"}`, comme le dict du Python.
+    /// `{"quand", "fichiers", "racine_drive"}`.
     pub fn en_json(&self) -> Value {
         json!({"quand": self.quand, "fichiers": self.fichiers, "racine_drive": self.racine_drive})
     }
@@ -452,7 +450,7 @@ pub fn derniere(racine: &Path) -> Derniere {
 /// `sauvegarder` : envoie ce qui a change. Rend le compte rendu, n'imprime rien.
 ///
 /// `client` : le client Drive a utiliser. `None` : le vrai (`Client::nouveau`), construit AVANT
-/// l'inventaire comme le Python ; il refuse une copie de developpement.
+/// l'inventaire ; il refuse une copie de developpement.
 pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option<&mut dyn Drive>) -> Result<Sauvegarde, ErreurGoogle> {
     let debut = std::time::Instant::now();
     let mut propre: Client;
@@ -518,8 +516,8 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
                 None => client.chemin(&segments)?,
             };
             dossiers.insert(cle.clone(), json!(parent));
-            // Meme avec `tout`, on liste : c'est `lister` qui dit ce qui existe, donc ce qui se REMPLACE (defaut 4 du Python :
-            // plus de recherche par fichier). `tout` ne sert qu'a ne pas comparer les empreintes.
+            // Meme avec `tout`, on liste : c'est `lister` qui dit ce qui existe, donc ce qui se REMPLACE (aucune
+            // recherche par fichier). `tout` ne sert qu'a ne pas comparer les empreintes.
             let deja = client.lister(&parent)?;
             Ok((parent, deja))
         })();

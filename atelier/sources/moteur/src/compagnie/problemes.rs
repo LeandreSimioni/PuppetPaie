@@ -1,5 +1,4 @@
-//! Le bouton « Un probleme, une idee ? » (`moteur/operations_filet.py`,
-//! `moteur/web.py::_captures_de`) : l'apercu de ce qui partira, l'envoi chez
+//! Le bouton « Un probleme, une idee ? » : l'apercu de ce qui partira, l'envoi chez
 //! l'editeur, la boite des signalements faits depuis ce poste, la releve des
 //! reponses de l'editeur et leur lecture.
 //!
@@ -344,19 +343,18 @@ fn texte_ou_vide(v: &Value, cle: &str) -> R<String> {
     Ok(if vrai(x) { valeur_en_texte(x) } else { String::new() })
 }
 
-/// `signalement-envoyer` : ENREGISTRE le message sur le poste, et rend la main tout de suite (Leandre, 14/10/2026 : le
-/// bouton ne reste plus sur « Envoi… » le temps du serveur). Rien ne part d'ici : le depart est `partir`, que l'interface
+/// `signalement-envoyer` : ENREGISTRE le message sur le poste, et rend la main tout de suite (le
+/// bouton ne reste pas sur « Envoi… » le temps du serveur). Rien ne part d'ici : le depart est `partir`, que l'interface
 /// lance aussitot en fond et que la veille relance tant que le message attend. Le corps exact qui partira (celui de
 /// l'apercu, captures comprises) est fige maintenant, dans `journal/signalements/<id>.json` ; la boite
 /// (`journal/signalements.json`) en garde la ligne, `en-attente`.
 ///
-/// UN MEME MESSAGE NE S'ENREGISTRE QU'UNE FOIS (ticket #229, Leandre, 20/10/2026 : un message parti deux fois, l'un
-/// « arrive », l'autre « pas encore parti, le contenu n'est plus sur cet ordinateur »). Deux defauts, corriges ici :
+/// UN MEME MESSAGE NE S'ENREGISTRE QU'UNE FOIS (sinon il partirait deux fois, l'un « arrive », l'autre « pas encore
+/// parti, le contenu n'est plus sur cet ordinateur »). Deux gardes :
 /// - le meme texte avec les memes captures, enregistre depuis moins de `DOUBLON_SECONDES` (un double clic, une requete
 ///   rejouee par la fenetre), n'ajoute pas de ligne : la route rend celle qui existe (`deja`) ;
-/// - le corps s'ecrivait AVANT que la ligne n'entre dans la boite, hors de son verrou : un passage de `partir` lance par
-///   le premier envoi effacait entre-temps le corps du second, qu'aucune ligne n'annoncait encore
-///   (`effacer_les_partis`). Le corps et sa ligne s'ecrivent maintenant sous le meme verrou, que l'effacement tient aussi.
+/// - le corps et sa ligne s'ecrivent sous le meme verrou, que l'effacement (`effacer_les_partis`) tient aussi : un
+///   passage de `partir` lance par le premier envoi ne peut pas effacer le corps du second avant que sa ligne l'annonce.
 pub fn envoyer(racine: &Path, texte: &Value, ecran: &Value, captures: &[Value]) -> R<Value> {
     let (corps, _trouve, caps) = corps_signalement(racine, texte, ecran, captures)?;
     let empreinte = empreinte_du_message(&corps);

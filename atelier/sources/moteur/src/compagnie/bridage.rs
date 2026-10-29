@@ -1,27 +1,22 @@
-//! LE BRIDAGE (lot U1, 14/10/2026). Il n'y a qu'un logiciel, BRIDE ou DEBLOQUE ; Leandre : « Il n'y a pas de version
-//! demonstration. C'est toujours le meme logiciel qui est bride ou pas bride. » Bride, l'accueil ne propose que les
+//! LE BRIDAGE. Il n'y a qu'un logiciel, BRIDE ou DEBLOQUE, et pas de version de demonstration a part : c'est toujours
+//! le meme logiciel, bride ou pas. Bride, l'accueil ne propose que les
 //! compagnies fictives, et son « + » ajoute une FICTIVE AJOUTEE (`compagnies::ajouter`) dont les envois sont
 //! refuses (`branchement` : le message) ; debloque, il propose aussi les compagnies reelles. Rien d'autre ne change :
 //! le meme moteur, la meme mise a jour (le bridage n'y joue aucun role, `compagnie::maj`).
 //!
-//! BRIDE TANT QUE RIEN NE DIT QU'IL EST DEBLOQUE (ticket #246, Leandre 22/10/2026 : « Le logiciel ne doit jamais etre
-//! debloque par defaut »). Une installation neuve -- l'installeur, une archive de la Release decompressee dans un dossier
+//! BRIDE TANT QUE RIEN NE DIT QU'IL EST DEBLOQUE : le logiciel n'est jamais debloque par defaut. Une installation neuve -- l'installeur, une archive de la Release decompressee dans un dossier
 //! neuf, un `logiciel/` dont un fichier aurait disparu -- part bridee ; seul un fichier qui dit « debloque » la debloque.
 //!
 //! Deux fichiers le disent, lus ici et nulle part ailleurs :
 //! - `.edition.json`, a cote de `logiciel/` : ce que le geste de l'accueil a retenu sur ce poste, `"edition": "bride"` ou
-//!   `"debloque"`. C'est le seul chemin du deblocage (demain aussi celui du ticket #236).
+//!   `"debloque"`. C'est le seul chemin du deblocage.
 //! - `logiciel/EDITION.json`, `"edition": "bride"` : le PAQUET SOUDE, bride pour toujours, dont les envois sont joues et
 //!   qui ne poste a l'editeur que ses incidents ; le geste n'y fait rien. Propre a l'installation : la mise a jour ne le
 //!   touche pas (`compagnie::maj`, `PROPRES_A_L_INSTALLATION`), aucune archive n'en porte.
 //!
-//! Avant le ticket #246, `logiciel/EDITION.json` pouvait aussi dire `"defaut": "bride"` (l'installeur Windows le posait) et,
-//! sans rien, le logiciel partait debloque. Le defaut est desormais bride : la cle `defaut` ne se lit plus, et l'installeur
-//! ne pose plus de fichier. Une installation debloquee par le geste garde son `.edition.json` ; une installation qui
-//! n'etait debloquee que faute de fichier devient bridee.
+//! Une cle `defaut` dans `logiciel/EDITION.json` ne se lit pas, et l'installeur ne pose aucun fichier.
 //!
-//! Les mots d'avant le lot U1 se lisent encore : `"demo"` s'y lit « bride », `"complete"` « debloque ». Le geste ecrit les
-//! mots neufs.
+//! `"demo"` se lit aussi « bride », et `"complete"` « debloque ». Le geste ecrit `"bride"` ou `"debloque"`.
 //!
 //! L'INSTALLATION dont on parle : celle du logiciel qui tourne (`compagnies::base()`), ou celle qu'on nomme (`_de`) --
 //! l'administrateur et la liste des compagnies lisent l'installation qu'on leur donne.
@@ -35,7 +30,7 @@ const FICHIER_INSTALLATION: &str = "EDITION.json";
 pub const BRIDE: &str = "bride";
 pub const DEBLOQUE: &str = "debloque";
 
-/// Un mot du bridage : `Some(true)` bride, `Some(false)` debloque ; les mots d'avant le lot U1 se lisent encore.
+/// Un mot du bridage : `Some(true)` bride, `Some(false)` debloque ; `"demo"` et `"complete"` se lisent aussi.
 fn bride_selon(mot: &str) -> Option<bool> {
     match mot {
         BRIDE | "demo" => Some(true),
@@ -77,7 +72,7 @@ pub fn est_bride_de(inst: &Path) -> bool {
     mot(&lire(&inst.join(FICHIER_GESTE)), "edition").unwrap_or(true)
 }
 
-/// LE REFUS D'UN ENVOI DEPUIS UNE FICTIVE AJOUTEE (ticket #236, Leandre 22/10/2026), mot pour mot : le meme pour tout geste
+/// LE REFUS D'UN ENVOI DEPUIS UNE FICTIVE AJOUTEE, mot pour mot : le meme pour tout geste
 /// qui ferait partir quelque chose vers un organisme ou une personne. Sa classe : `CLASSE_REFUS_D_ENVOI` (la page la
 /// reconnait et montre la phrase dans sa boite, `js/tuyau.js`).
 pub const REFUS_D_ENVOI: &str = "L'envoi n'est pas possible depuis la version démo. Pour 2027, et afin d'offrir un service de qualité, le nombre d'utilisateurs est restreint. N'hésitez pas à contacter Léandre (puppetpaie@gmail.com) avec une courte présentation et votre motivation pour débloquer le logiciel et faire partie des premiers utilisateurs.";

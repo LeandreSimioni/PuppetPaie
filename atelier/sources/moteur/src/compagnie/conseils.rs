@@ -17,7 +17,7 @@
 //! Le texte, ses chiffres dates et sa source vivent dans `donnees/conseils.json` : un conseil s'ajoute sans toucher au
 //! moteur. Ici, seulement les conditions et les valeurs qu'elles fournissent. Ce qui est sur se chiffre : les heures
 //! comptees chez nous, leur part des 507, ce que les conseils auraient change en heures et en jours d'allocation (annexe
-//! X ou VIII, art. 30). JAMAIS d'euros d'allocation (Leandre) : on ne connait pas les autres employeurs. Le seul cas de
+//! X ou VIII, art. 30). JAMAIS d'euros d'allocation : on ne connait pas les autres employeurs. Le seul cas de
 //! certitude : nos contrats font a eux seuls au moins 507 heures sur la fenetre ; alors ses droits sont ouverts, et le
 //! conseil « plus d'heures » cede la place a « intense plutot que dilue ».
 //!
@@ -423,8 +423,7 @@ fn jours_bruts(heures: Decimal, a: &Art30) -> Decimal {
     div(heures, a.heures_par_jour) * a.coefficient
 }
 
-/// « environ » : au demi-jour le plus proche (Leandre, 21/10/2026 : 8 heures en annexe X, 1,04 jour, font « environ
-/// 1 jour »). Zero quand le cout est de moins d'un quart de jour : la condition ne fournit alors pas `jours_perdus`, et
+/// « environ » : au demi-jour le plus proche (8 heures en annexe X, 1,04 jour, font « environ 1 jour »). Zero quand le cout est de moins d'un quart de jour : la condition ne fournit alors pas `jours_perdus`, et
 /// la variante « -minime » de la banque dit « moins d'un demi-jour » au lieu d'une perte.
 fn environ(jours: Decimal) -> Decimal {
     (jours * Decimal::from(2)).round_dp_with_strategy(0, rust_decimal::RoundingStrategy::MidpointAwayFromZero) / Decimal::from(2)
@@ -489,8 +488,8 @@ fn gain_repetition(ctx: &Contexte, p: &Paie, heures_cachet: Decimal) -> Resultat
 /// convention le permet (`minima::minimum_de_la_ligne`, un minimum a l'heure) : la ligne au plus grand gain, ou rien.
 /// Sous le minimum, rien.
 ///
-/// LE SEUIL : un gain d'au moins `seuil` heures, le poids d'un cachet (12 heures, annexe X art. 3 §1 ; Leandre,
-/// 21/10/2026 : « seulement si l'ecart est important »). Pourquoi lui : les deux simulations du ticket 224 (le modele
+/// LE SEUIL : un gain d'au moins `seuil` heures, le poids d'un cachet (12 heures, annexe X art. 3 §1) : un conseil
+/// ne se donne que si l'ecart est important. Pourquoi lui : deux simulations (le modele
 /// mensuel des annexes VIII et X, rejoue sur les exemples chiffres du guide France Travail) montrent que des heures de
 /// plus pour la meme somme ne valent que pres du seuil des 507 heures, ou elles peuvent valoir d'un mois a une annee de
 /// droits ; ailleurs, un mois indemnise, chaque heure coute 0,13 jour d'allocation (X ; 0,175 en VIII) et rapporte
