@@ -770,7 +770,7 @@ fn ecart_avec_le_bulletin_parti(ctx: &Contexte, apres: &Paie, parti: &Paie, mois
         "taux": taux,
         "prelevement": prelevement.map_or(Value::Null, |p| json!(p.to_string())),
         "a_verser": a_verser.to_string(),
-        "mois_versement": engagement::libelle_mois(mois_versement),
+        "mois_versement": crate::regularisation::mois_en_clair(mois_versement),
     }))
 }
 
@@ -848,10 +848,10 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
                 let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
                 let mut e = ecart_avec_le_bulletin_parti(ctx, &paies[i], &parti, &porteur)?;
                 e["rectifie"] = json!(r);
-                e["mois_origine"] = json!(engagement::libelle_mois(mois));
+                e["mois_origine"] = json!(crate::regularisation::mois_en_clair(mois));
                 e
             }
-            None => json!({"remplace": true, "rectifie": r, "mois_origine": engagement::libelle_mois(mois)}),
+            None => json!({"remplace": true, "rectifie": r, "mois_origine": crate::regularisation::mois_en_clair(mois)}),
         };
         rectificatifs.insert(i, rectif);
     }

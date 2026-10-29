@@ -220,7 +220,7 @@ pub const CLASSE_A_CONFIRMER: &str = "ModificationApresEcheance";
 pub const CLASSE_NON_DECLARABLE: &str = "ModificationNonDeclarable";
 
 /// `septembre 2026`, avec ses accents.
-fn mois_en_clair(mois: &str) -> String {
+pub(crate) fn mois_en_clair(mois: &str) -> String {
     socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
 }
 
