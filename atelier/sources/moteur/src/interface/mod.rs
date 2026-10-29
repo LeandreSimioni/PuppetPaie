@@ -1022,15 +1022,11 @@ fn egal_en_temps_constant(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 
-/// AU LANCEMENT, avant tout : ce qu'une installation posee avant le lot U1 doit ranger (`demo/` devient `fictives/`,
-/// `compagnies::ranger_les_fictives`), la livraison de fictives prete (`maj::poser_les_fictives_pretes`), et ce que la
-/// fenetre d'avant le ticket #244 a laisse sur le poste
-/// (`effacer_les_restes`). Ce qui s'est passe va dans le journal de l'installation (`maj::noter`).
+/// AU LANCEMENT, avant tout : la livraison de fictives prete (`maj::poser_les_fictives_pretes`), et le reste cache d'une
+/// compagnie supprimee (`suppression::effacer_les_restes`). Ce qui s'est passe va dans le journal de l'installation
+/// (`maj::noter`).
 pub fn preparer_l_installation() {
     let inst = crate::compagnie::maj::installation();
-    if let Some(t) = compagnies::ranger_les_fictives(&inst) {
-        crate::compagnie::maj::noter(&inst, &t);
-    }
     // Une livraison de compagnies fictives prete (`maj::preparer_les_fictives`) remplace celles du poste, avant toute fenetre.
     if let Some(t) = crate::compagnie::maj::poser_les_fictives_pretes(&inst) {
         crate::compagnie::maj::noter(&inst, &t);
@@ -1041,40 +1037,6 @@ pub fn preparer_l_installation() {
         let noms: Vec<String> = restes.iter().map(|p| p.display().to_string()).collect();
         crate::compagnie::maj::noter(&inst, &format!("Restes de compagnies supprimees effaces : {}.", noms.join(", ")));
     }
-    let effaces = effacer_les_restes(&navigateur::dossier_utilisateur(), &crate::compagnie::coffre::Coffre::dossier_cle_du_poste());
-    if !effaces.is_empty() {
-        let noms: Vec<String> = effaces.iter().map(|p| p.display().to_string()).collect();
-        crate::compagnie::maj::noter(&inst, &format!("Restes de l'ancienne fenetre effaces : {}.", noms.join(", ")));
-    }
-}
-
-/// Le dossier de la fenetre Tauri d'avant le ticket #244, ou WebView2 (WebKit ailleurs) tenait son profil : l'identifiant
-/// de `fenetre/tauri.conf.json` sous les donnees locales de l'utilisateur, a cote de `dossier_utilisateur`.
-const PROFIL_TAURI_D_AVANT: &str = "fr.puppetpaie.fenetre";
-
-/// CE QUE LA FENETRE D'AVANT LE TICKET #244 LAISSAIT SUR LE POSTE, et que plus rien ne lit : la seance gardee au nom
-/// unique (`ouverture-gardee.bin`, a cote de la cle du poste : une seance scellee du coffre, remplacee par une par coffre,
-/// `Coffre::chemin_gardee`), le jeton de la page du profil commun (`.jeton-interface`), le profil du Chromium commun
-/// (`navigateur/`) et celui de WebView2 (le dossier par defaut de Tauri) : chaque fenetre a les siens
-/// (`instance::dossier_local`), et ceux d'avant gardaient cookies et mots de passe retenus. Effaces sans etre lus ; rend
-/// ce qui l'a ete. Pas de transition (rien ne les relit), pas de dechet non plus.
-pub fn effacer_les_restes(utilisateur: &Path, cle: &Path) -> Vec<PathBuf> {
-    let mut effaces = Vec::new();
-    for f in [cle.join(crate::compagnie::coffre::GARDEE), utilisateur.join(".jeton-interface")] {
-        if std::fs::symlink_metadata(&f).is_ok_and(|m| !m.is_dir()) && std::fs::remove_file(&f).is_ok() {
-            effaces.push(f);
-        }
-    }
-    let mut dossiers = vec![utilisateur.join("navigateur")];
-    if let Some(local) = utilisateur.parent() {
-        dossiers.push(local.join(PROFIL_TAURI_D_AVANT));
-    }
-    for d in dossiers {
-        if std::fs::symlink_metadata(&d).is_ok_and(|m| m.is_dir()) && std::fs::remove_dir_all(&d).is_ok() {
-            effaces.push(d);
-        }
-    }
-    effaces
 }
 
 pub use instance::{Instance, Prise};
