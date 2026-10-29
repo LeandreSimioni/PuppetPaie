@@ -1086,8 +1086,7 @@ décident. Les articles sont relevés et datés dans
   de la rupture** (L3141-28). Le compteur se **dérive des saisies**, jamais
   stocké — même règle que les 507 heures d'un intermittent ;
 - **précarité** : 10 % (L1243-8), **pas due pour un contrat d'usage**
-  (L1243-10 1°, qui renvoie au 3° de L1242-2) — c'est pourquoi aucun des 146
-  contrats de l'historique n'en porte ;
+  (L1243-10 1°, qui renvoie au 3° de L1242-2) ;
 - **préavis** : L1234-1, et **rien sous six mois d'ancienneté** — la loi y
   renvoie à la convention ou aux usages, et le moteur demande plutôt que
   d'inventer ;
@@ -1095,7 +1094,7 @@ décident. Les articles sont relevés et datés dans
   puis un tiers de mois (R1234-2), salaire de référence le plus favorable des
   deux formules (R1234-4). Un montant **supra-légal est refusé** : son régime
   social est autre, et le moteur ne sait pas l'assujettir ;
-- **les trois autres fins d'un CDI**, depuis le 19/09/2026 — et c'est le
+- **les trois autres fins d'un CDI** — et c'est le
   **motif de rupture** qui choisit, jamais la ressemblance :
   - **rupture conventionnelle** (motif 043) : son indemnité spécifique ne
     peut pas être inférieure à celle du licenciement (L1237-13), et c'est
@@ -1119,9 +1118,7 @@ décident. Les articles sont relevés et datés dans
   sécurité sociale**, et lui-même renvoie au régime fiscal de **l'article 80
   duodecies du code général des impôts** — est exclu des cotisations, dans la
   limite de deux plafonds annuels, ce qui n'est pas imposable. Les deux
-  articles ont été relevés le 19/09/2026, par le même moissonneur que le code
-  du travail (aujourd'hui `moteur releve-codes`, qui lisait dès lors trois codes en
-  un passage). Il en sort trois choses :
+  articles se relèvent avec le code du travail (`moteur releve-codes`). Il en sort trois choses :
   - l'indemnité **légale** de licenciement et celle de mise à la retraite ne
     sont **ni soumises ni imposables** (80 duodecies 3° b et 4° b, qui
     exonèrent « le montant prévu […] par la loi ») ;
@@ -1134,29 +1131,24 @@ décident. Les articles sont relevés et datés dans
     bénéficier d'une pension**. S'il l'est, elle est imposable — et reste
     hors cotisations (L242-1 II 7°, second alinéa, « y compris lorsqu'elles
     sont imposables »). D'où **deux rubriques** pour une seule indemnité, et
-    un moteur qui refuse de produire tant que le fait n'est pas dit.
+    un moteur qui refuse de calculer tant que le fait n'est pas dit.
 
-  Et ce que le moteur **ne** fait pas : la **contribution patronale de 40 %**
-  sur la part exonérée d'une rupture conventionnelle ou d'une mise à la
-  retraite (L137-12). Elle est due, aucune section du barème ne la porte, et
-  le moteur le dit à chaque fois plutôt que de l'inventer. Son taux **se
-  lit** dans `permanents-base.json` : il était de 30 % depuis 2023, la LFSS
-  2026 l'a porté à 40 % au 31/12/2025, et c'est une livraison quotidienne de
-  la DILA qui l'a appris au moteur — l'archive globale de LEGI, datée du
-  13/07/2025, porte encore l'ancien.
+  La **contribution patronale de 40 %** sur la part exonérée d'une rupture conventionnelle ou d'une mise à la
+  retraite (L137-12) n'est dans aucune section du barème : le solde de tout compte avertit, à chaque fois, de ce
+  qu'elle vaut (`engagement/src/solde.rs`). Son taux **se lit** dans `permanents-base.json`
+  (`regime_des_indemnites_de_rupture.contribution_patronale`, d'après la version de L137-12 en vigueur au
+  31/12/2025).
 
   Chacune a **son** code d'indemnité au bloc S21.G00.52 — 001, 003, 005 —,
   et le cahier technique interdit de les intervertir (CCH-21 à CCH-24). Le
   contrôle est au point d'écriture du bloc, dans `dsn.rs` (`permanents::code_52_permis`) : c'est le seul
-  endroit par où passent toutes les lignes. Avant, le moteur ne connaissait
-  que le 007 et le posait sur **toute** fin de CDI — une rupture
-  conventionnelle serait partie avec, et CCH-24 l'aurait fait rejeter ;
+  endroit par où passent toutes les lignes ;
 - **suspensions** (bloc S21.G00.65) : congé sans solde, parental, sabbatique…
   Saisies une fois comme **imprévus** du salarié (`engagement/src/imprevus.rs`) : chaque mois
   traversé en tire sa ligne et son bloc 65, entier, sans recopie. Un **congé payé n'en est pas une** — il est payé, le contrat n'est pas
   suspendu, et le moteur refuse d'écrire le motif « 200 - COP ».
 
-  **Un mois entier sans rémunération** (15/10/2026 ; textes et rapport :
+  **Un mois entier sans rémunération** (textes et rapport :
   `atelier/reference/sources/suspension-non-remuneree/`) :
   - la **retenue** d'une absence (arrêt comme suspension) se calcule **au réel du mois** : le salaire du mois
     fois les heures d'absence sur les heures de travail du mois (Cass. soc. 11/02/1982), au taux exact,
@@ -1197,16 +1189,9 @@ décident. Les articles sont relevés et datés dans
   saisissent (D1226-5) ;
 - **certificat de travail** (L1234-19, D1234-6) et **reçu pour solde de tout
   compte** (L1234-20, D1234-7, D1234-8) : produits par
-  `moteur/src/routes/imprevus.rs`, leur texte en donnée dans `gabarits/*.modele`.
+  `moteur/src/routes/imprevus.rs`, leur texte en donnée dans `logiciel/donnees/modeles/*.modele` (ou le modèle propre de la compagnie, `socle::fichiers::modele_de`).
   Le certificat est le seul document du logiciel dont le contenu soit
   **plafonné** par la loi — D1234-6 dit « exclusivement ».
-
-Ce qui n'est **toujours pas** calculé est dit plutôt que deviné : les
-périodes assimilées à du travail effectif (L3141-4 et L3141-5 sont relevés,
-mais pas L3141-5-1 — les deux jours par mois de la loi du 22/04/2024), le
-prorata d'un mois incomplet (fait aux jours calendaires, jamais confronté à
-un bulletin de référence), la rupture conventionnelle et les départs en
-retraite, et les clauses de la convention 3090.
 
 ## Les signalements d'événements (DSN événementielle)
 
@@ -1222,8 +1207,7 @@ Le moteur en écrit quatre, dans trois modules :
 **Trois modules et non un**, parce qu'ils ne portent pas la même chose. Les
 deux premiers ne portent pas de paie ; le FCTU ne porte que ça — il déclare le
 **solde de tout compte** (cahier technique p. 107, « y compris les données du
-mois en cours calculées dans le cadre du solde de tout compte »), et il ne
-pouvait donc pas s'écrire avant la paie des permanents. Le quatrième ne porte
+mois en cours calculées dans le cadre du solde de tout compte »). Le quatrième ne porte
 ni paie ni événement de contrat : il **demande** — c'est la seule façon
 d'obtenir de la DGFiP le taux de prélèvement à la source d'un salarié sans
 attendre une DSN mensuelle, depuis que TOPAze est fermé. Un signalement
@@ -1249,12 +1233,12 @@ d'usage part dans la **DSN mensuelle** avec le circuit dérogatoire
 Le moteur en émet un quand même si le salarié le demande (la norme le permet,
 p. 68 et p. 107), en le disant par un avertissement (`fctu.rs`, « La
 dérogation du spectacle ») ; la mensuelle qui suit écrit alors encore
-62.017 = 01 (fiche N5, 62.017 : une décision ouverte).
+62.017 = 01.
 
 **Ce que l'arborescence tranche, et que le tableau des usages ne dit pas.**
 Le tableau dit qu'une rubrique a le droit d'être là ; il ne dit pas si son
 bloc s'applique. Les cardinalités du modèle (p. 122, recopiées dans
-`moteur/fctu-base.json`) le disent :
+`logiciel/donnees/fctu-base.json`) le disent :
 
 ```
 S21.G00.30 - Individu               (1,1)   UN individu, UN contrat :
@@ -1270,7 +1254,7 @@ Et deux contrôles lui sont propres, tenus par le moteur avant tout dépôt :
 `S21.G00.78.001`) et **CCH-15** (au moins trois blocs 51, types 001, 002 et
 010, par versement).
 
-Déposé en test le 19/09/2026 : **0 anomalie bloquante, 0 non bloquante**,
+Un FCTU déposé en test : **0 anomalie bloquante, 0 non bloquante**,
 certificat de conformité délivré.
 
 **Un signalement d'arrêt n'est pas une petite DSN mensuelle.** Il ne porte ni
@@ -1293,24 +1277,20 @@ tout le reste du bloc 40                       I  (interdit)
 
 Le contrat est donc **désigné**, jamais redécrit : c'est la DSN mensuelle qui
 l'a déclaré, et ce sont ces deux identifiants-là qui doivent correspondre.
-D'où `operations_arrets.contrats_au()`, qui lit les contrats dans les saisies
+D'où `contrats_au` (`moteur/src/routes/imprevus.rs`), qui lit les contrats des engagements
 plutôt que d'en fabriquer un.
 
 Une rubrique interdite écrite par mégarde, c'est une anomalie bloquante
 **CST-04** côté plate-forme, et le fichier ne déclare rien. Le tableau des
-usages est donc relevé dans `logiciel/donnees/arrets-base.json` (section `usages`).
-Le générateur ne lit pas cette section : elle est l'attendu contre lequel un
-fichier produit se confronte, rubrique par rubrique, dans les deux sens (aucune
-interdite, toutes les obligatoires).
+usages est relevé dans `logiciel/donnees/arrets-base.json` (section `usages`).
 
 ### Le bloc 60, et ses trois visages
 
 Le même bloc « Arrêt de travail » s'écrit à quatre endroits, avec quatre jeux
 de rubriques — et c'est `dsn::bloc_60` qui les tient tous, pour qu'il n'y ait
 pas deux vérités sur ce qui part. Il décide de ce qu'il écrit par le tableau
-des usages, pour la nature du fichier et jamais une autre (`usage_admet` ;
-`atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60 ;
-reste R1 #42 : le FCTU passait « 01 »).
+des usages, pour la nature du fichier et jamais une autre (`dsn::usage_admet` ;
+`atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60).
 
 | rubrique | mensuelle (01) | arrêt (04) | reprise (05) | fin de contrat (07) |
 |---|---|---|---|---|
@@ -1346,10 +1326,10 @@ professionnelle sur lequel s'exploitent les signalements suivants. Et bloc
 dans TOUTES les DSN mensuelles dont le mois principal déclaré présente une
 période commune »*.
 
-`dsn.generer(..., arrets=…)` le fait : le bloc 60 s'écrit sous le bloc 40 du
+`dsn::generer` le fait : le bloc 60 s'écrit sous le bloc 40 du
 contrat suspendu, entre le contrat et la fin de contrat (l'ordre de
-l'arborescence : 41, 60, 62, 65, 70, 71). `operations_paies.produire_mois` lit
-le magasin tout seul et l'annonce dans les avertissements — y compris quand
+l'arborescence : 41, 60, 62, 65, 70, 71). La fabrication de la DSN du mois (`compagnie/depart.rs`,
+`fabriquer_dsn`) lit les arrêts qui croisent le mois et les annonce dans les avertissements — y compris quand
 l'arrêt n'a **jamais été signalé**, parce que la mensuelle ne remplace pas le
 signalement : elle le répète.
 
@@ -1359,13 +1339,13 @@ fils du bloc 40, il n'aurait rien où s'accrocher.
 
 ### Le magasin, et la trace des envois
 
-`imprevus/AAAA-MM.json` sous les données (depuis le 15/10/2026, `engagement/src/imprevus.rs`) :
+`imprevus/AAAA-MM.json` sous les données (`engagement/src/imprevus.rs`) :
 le magasin des **imprévus** d'un salarié, arrêts de travail (`"genre": "arret"`, au mois du
 dernier jour travaillé) et suspensions du bloc 65 (`"genre": "suspension"`, au mois de leur
 premier jour). Un imprévu se saisit une fois ; le moteur en tire la ligne de paie d'un
 permanent (`imprevus::lignes_du_mois`, le seul endroit qui la tire), le bloc 60 ou 65 de chaque
 DSN dont le mois le croise, et nomme les cachets d'un intermittent datés pendant l'imprévu.
-L'ancien dossier `arrets/` n'est plus lu : sa présence refuse. Chaque arrêt garde ses `envois` : les
+Chaque arrêt garde ses `envois` : les
 signalements déposés pour de vrai (nature, type, numéro d'ordre, identifiant
 rendu par le point de dépôt) et les DSN mensuelles qui l'ont reporté. C'est
 cette liste qui donne son rang au prochain annule-et-remplace — le cahier
@@ -1396,33 +1376,20 @@ Un enregistrement par contrat, encodage latin-1. Zones dans `declarations/src/dp
 | 368-412 | lieu de naissance (44 c.) |
 | 412-420 | date d'embauche `JJMMAAAA` |
 | 420-424 | heure d'embauche `HHMM` |
-| 730-731 | sexe `M` / `F` — lu sur le NIR quand il y en a un, sur la case `sexe` de la fiche sinon (`ntt.sexe`, la seule lecture du sexe dans le moteur) |
+| 730-731 | sexe `M` / `F` — lu sur le NIR quand il y en a un, sur la case `sexe` de la fiche sinon (`ntt::sexe`, la seule lecture du sexe dans le moteur) |
 | 827-829 | département de naissance |
-| 864-865 | `C_TYPE_CONTRAT` : `1` CDD, `2` CDI, `3` CTT — **la DPAE n'en connaît que trois**, quand la DSN en a une vingtaine. La valeur vient de la nature du contrat (`moteur/contrats-base.json`, section `dpae`) |
+| 864-865 | `C_TYPE_CONTRAT` : `1` CDD, `2` CDI, `3` CTT — **la DPAE n'en connaît que trois**, quand la DSN en a une vingtaine. La valeur vient de la nature du contrat (`logiciel/donnees/contrats-base.json`, section `dpae`) |
 | 865-873 | `D_FIN_CDD`, fin prévue du CDD `JJMMAAAA` — **à blanc pour un CDI**, qui n'a pas de terme |
 
-Le reste est constant : marqueur `DUE`, `912` (N_LG_MESS, la longueur du message hors entête — pas un code Urssaf), `120` (C_VERSION), SIRET, raison
-sociale, adresse, téléphone, code NAF, et `MT176` (code du service de santé au
-travail). Ces zones viennent du gabarit et ne sont jamais réécrites.
+Le gabarit (celui de la compagnie s'il en a un, sinon l'enregistrement neutre livré,
+`logiciel/donnees/modeles/due_tel_gabarit.txt`) ne donne que l'en-tête constante : marqueur `DUE`, `912` (N_LG_MESS,
+la longueur du message hors entête — pas un code Urssaf), `120` (C_VERSION). Les zones de l'employeur se lisent dans
+la fiche entreprise (`dpae::employeur` : SIRET, raison sociale, adresse, téléphone, code NAF, et le code du service de
+santé au travail, `medecine_travail`, qui ne se devine pas : sans lui, la DPAE refuse, sauf quand le gabarit est celui
+de la compagnie, au même SIRET, et le porte).
 
-**Niveau de preuve — plus faible qu'ailleurs, à savoir.** CoolPaie n'a laissé
-qu'**un seul** fichier DPAE dans tout le dossier
-(relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé ; 6 enregistrements du
-28/08/2026, deux salariés × trois contrats). Les 6 sont reconstitués octet pour
-octet, et l'audit des zones montre que tout segment non vide est soit un champ
-identifié, soit une donnée d'entreprise stable. Mais aucune variation n'a pu
-être observée sur : un autre établissement, un autre service de santé au
-travail, une heure d'embauche autre que 19h00.
-Pour l'usage de la compagnie — mêmes artistes, mêmes CDD d'usage — c'est couvert.
-
-**Le contrat autre que CDD, lui, n'est plus une supposition** (19/09/2026). Le
-`1` en position 864 était décrit ici comme codant « probablement durée
-déterminée » ; c'est `C_TYPE_CONTRAT`, et le dessin officiel (catégorie V
-« CONTRAT ») donne les trois valeurs. Il sortait en dur du gabarit : un CDI
-embauché serait parti déclaré à durée déterminée, avec un terme recopié de
-l'engagement. Ce qu'il n'a **toujours pas**, c'est un dépôt réel ou de test en
-face : la DPAE d'un permanent est conforme au dessin et aux tests, pas à une
-réponse de l'Urssaf.
+`C_TYPE_CONTRAT` (position 864) suit le dessin officiel (catégorie V « CONTRAT »), qui donne les trois valeurs : un
+CDI part à durée indéterminée, sans terme.
 
 **Ce que l'Urssaf répond** (onglet « Codes retour » du Format 120, tables dans
 `declarations/src/dpae.rs`) : le bilan de conformité (nature 11, XML) porte un `<code>`
@@ -1434,8 +1401,7 @@ et les formalités déclenchées (`I_CERTIF`, `I_IMMA`, `I_MT`, `I_PMF5`,
 971-976). `envois/src/etats.rs` lit le certificat (`dpae::lire_certificat`) et pose sur
 chaque embauche sa référence de dossier.
 
-Deux lectures à connaître, observées sur les 16 enregistrements reçus de juin
-au 12 septembre 2026, ceux de CoolPaie compris :
+Deux lectures à connaître, observées sur les certificats reçus :
 
 - **`99` « autre erreur, données facultatives » est l'état nominal**, toujours
   avec un `R_DOSSIER` et `CERTIF` + `MT` levées. Le tableau de 2013 est plus
@@ -1444,10 +1410,9 @@ au 12 septembre 2026, ceux de CoolPaie compris :
   parce qu'une DPAE identique existait — vu sur le second test des mêmes
   embauches. L'embauche est déclarée, par la première.
 
-Le moteur écrit le `.txt` **et** le `.txt.zip` du même nom, comme le faisait
-CoolPaie ; net-entreprises accepte les deux. `DPAE_<mois>_recapitulatif.txt`
-donne la même chose en clair pour la saisie en ligne, qui reste une option
-raisonnable pour deux personnes.
+Le moteur écrit le `.txt` **et** le `.txt.zip` du même nom ; net-entreprises accepte les deux.
+`DPAE_<mois>_recapitulatif.txt` (`dpae::recapitulatif`, écrit par `routes/depots.rs`) donne la même chose en clair
+pour la saisie en ligne.
 
 ## Le dépôt, et le journal
 
