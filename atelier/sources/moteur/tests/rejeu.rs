@@ -283,4 +283,25 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     assert!(!ligne["retours"].as_array().unwrap().iter().any(|x| x["nature"] == json!("94")), "une DSN refusee n'a pas de taux : {}", ligne);
     let etat = envois::etats::dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), &ctx.entreprise, "2026-11").unwrap();
     assert_eq!(etat["refusee"], json!(true), "{}", etat);
+
+    // UN FICHIER REFUSE NE REPART PAS TOUT SEUL : a l'ouverture suivante, l'horloge refait la DSN a son echeance, octet
+    // pour octet, et ne la redepose pas ; une fois corrigee (le telephone du declarant, S20.G00.07.002), elle part, et le
+    // mois est accepte.
+    let de_novembre = || outils::lire(&racine, "journal/depots.json").as_array().unwrap().iter().filter(|l| l["fichier"] == json!("DSN_Novembre2026.dsn")).count();
+    let ouvrir = |jour: &str| {
+        let le = socle::paris::naif_de_iso(&format!("{}T09:00:00", jour)).unwrap() as f64;
+        socle::temps::pendant(le, || moteur::horloge::rattraper(&racine, Some(socle::date::Jour::lire(jour).unwrap()), true)).unwrap()
+    };
+    let avant = de_novembre();
+    ouvrir("2026-12-20");
+    assert_eq!(de_novembre(), avant, "le fichier refuse ne repart pas");
+    let mut entreprise = outils::lire(&racine, "config/entreprise.json");
+    entreprise["declarant_dsn"][0]["valeur"]["tel"] = json!("0100000053");
+    std::fs::write(racine.join("config/entreprise.json"), serde_json::to_string_pretty(&entreprise).unwrap()).unwrap();
+    ouvrir("2026-12-21");
+    assert_eq!(de_novembre(), avant + 2, "le fichier corrige part, en test puis en reel");
+    let etat = envois::etats::dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), &ctx.entreprise, "2026-11").unwrap();
+    assert_eq!(etat["refusee"], json!(false), "{}", etat);
+    ouvrir("2026-12-22");
+    assert_eq!(de_novembre(), avant + 2, "une DSN acceptee ne repart pas");
 }

@@ -1471,6 +1471,48 @@ installe un second logiciel. `moteur/src/compagnie/administrateur.rs` :
   l'accueil ne relève les comptes rendus qu'une fois le mot de passe de l'administrateur tapé dans la fenêtre.
 
 
+## L'horloge des compagnies fictives
+
+Une compagnie fictive (livrée, ou ajoutée par le « + » puis rendue simulée au banc) vit en temps réel : à chaque
+ouverture, et à chaque passage de la veille, son horloge (`moteur/src/horloge.rs`, `rattraper`) joue ce qu'une compagnie
+bien tenue aurait fait **avant aujourd'hui**, à sa date, et seulement ce qui n'est pas fait. Hors d'une compagnie fictive
+elle ne touche à rien (`HorlogeFictive::verifier`, revérifiée avant chaque geste) ; ses dépôts passent par
+`depot_acte` contre le simulateur, ses courriels par une boîte muette.
+
+**Ce qu'elle joue, et à quel instant** (heure de Paris) :
+
+| instant | pas |
+|---|---|
+| le jour de l'embauche, 5 h | les engagements qui commencent ce jour-là se valident |
+| 6 h | les contrats partent à la signature : ceux qui ne sont jamais partis, et ceux que l'engagement a rendus faux avant leur retour signé (dans leur version présente) |
+| 7 h | la DPAE (test puis réel), et le signalement d'amorçage qui part avec elle |
+| 8 h | les contrats reviennent signés (imprimés, pour un salarié sans courriel) |
+| l'instant de la dernière validation d'un engagement | l'avenant d'un contrat revenu signé que l'engagement a rendu faux part, puis revient signé |
+| la date butoir que rend `obligations`, 9 h 30 | les signalements dus : arrêt (04), reprise anticipée (05), fin de contrat (07) |
+| le 1er du mois suivant, 9 h | ce qui reste en saisie du mois se valide |
+| l'échéance de la DSN (`echeance_dsn`), 10 h, puis 11 h | la DSN du mois se fabrique et part (test puis réel) ; puis les documents aux salariés, rectificatifs compris (ce que l'étape Documents dit à envoyer) |
+| le 31 janvier, 10 h, puis 11 h | l'exercice d'avant se clôt, puis s'exporte pour la comptabilité |
+
+Les pas se rassemblent avec leur instant, se trient, et se jouent du plus ancien au plus récent : une embauche du 3 avril
+passe avant la DSN de mars du 15. Chaque pas regarde, à son instant, ce que le moteur en dit (le journal, l'aperçu des
+signatures, les embauches à déclarer, les obligations, le bilan du mois) et ne fait rien si c'est fait. Les mois d'un
+contrat sans terme se jouent comme les autres : `engagement::stock::mois_saisis` les mène jusqu'au mois d'aujourd'hui.
+
+**Ce qui est « fait »** : un mois dont l'échéance est passée, dont toutes les étapes sont vertes
+(`Moteur::etapes_restantes`, ce que l'écran montre) et dont aucun signalement n'est dû. La mémoire de l'horloge
+(`config/horloge.json`) le garde avec l'empreinte de sa saisie et de ses imprévus : il ne se relit plus tant qu'elles ne
+changent pas et que sa DSN n'est pas refusée. Une année est faite quand l'année d'avant est close et exportée. Une
+échéance annuelle n'est faite que par son fait (le taux AT/MP posé, la revue des spectacles) : l'horloge n'en coche aucune.
+
+**Ce qu'elle ne fait jamais** : saisir, ni corriger une saisie (un signalement que la saisie ne permet pas d'écrire, un
+engagement que le moteur refuse de valider, restent à faire, et le pas le dit) ; redéposer les octets qu'un organisme a
+refusés. Une DSN refusée laisse son mois à faire : à chaque ouverture l'horloge la refait, datée de son échéance, et ne la
+redépose pas tant qu'elle est identique ; quand une personne a corrigé ce qui la faisait refuser, le fichier change, part à
+l'instant où l'horloge le trouve, et les documents suivent. Ce qui vient après aujourd'hui reste au visiteur.
+
+**Une fictive fraîchement installée** (sa configuration et ses engagements validés, ni journal, ni `sorties/`, ni
+`retours/`) : sa première ouverture fabrique et joue tout le passé dû, dans l'ordre du calendrier ; la seconde ne fait rien.
+
 ## La version, et la mise à jour dans l'ombre
 
 `VERSION` (une date, `AAAA.MM.JJ`, comparée en entiers). Ce qu'une installation reçoit, vérifie et applique est dans
