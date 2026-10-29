@@ -300,7 +300,7 @@ fn valide_le(o: &engagement::stock::Objet, n: u64) -> Option<socle::date::Jour> 
 /// fabriquee (`dsn::fabriquer`) depuis les versions qu'elle a emportees (`versions` de sa ligne) : les paies de son mois,
 /// et les corrections des mois passes qu'elle portait -- leur paie d'apres, la version emportee ; ce qu'elles annulaient,
 /// le dernier etat declare par ce qui etait parti avant elle (`versement_declare::dernier_declare` sur les lignes qui la
-/// precedent). Les arrets n'y sont pas : ils ne portent aucun montant. `remplacee_versait_pas` : sur un
+/// precedent) ; les arrets du mois de son etablissement, qu'elle reporte. `remplacee_versait_pas` : sur un
 /// annule-et-remplace, si la DSN remplacee versait a la DGFiP.
 fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, remplacee_versait_pas: Option<bool>) -> R<declarations::dsn::Fabriquee> {
     let l = &lignes[rang];
@@ -310,7 +310,12 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
     let type_dsn = Some(champ("type")).filter(|t| !t.is_empty()).unwrap_or_else(|| "01".into());
     let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
     let nic = Some(champ("etablissement")).filter(|n| !n.is_empty()).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
-    let quand = valeur_en_texte(l.get("quand").unwrap_or(&Value::Null));
+    // Constituee le jour ou son fichier a ete ecrit (le journal des ecritures), sinon le jour de son depot.
+    let ecrite = journal_des_ecritures(&ctx.racine)
+        .get(&format!("{}/{}", mois, valeur_en_texte(l.get("fichier").unwrap_or(&Value::Null))))
+        .and_then(|n| n.get("quand"))
+        .map(valeur_en_texte);
+    let quand = ecrite.unwrap_or_else(|| valeur_en_texte(l.get("quand").unwrap_or(&Value::Null)));
     let constitution = socle::date::Jour::lire(quand.get(..10).unwrap_or_default()).map_err(valeur)?;
     let forme = Forme { type_dsn, ordre: m.ordre_de_la_ligne(&mois, l)?, etablissement: plusieurs.then_some(nic), constitution, remplacee_versait_pas };
     let avant = envois::journal::departs_des_lignes(&lignes[..rang]);
@@ -370,7 +375,17 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
             },
         });
     }
-    declarations::dsn::fabriquer(ctx, &paies, &mois, &regs, &[], &forme.options()).map_err(valeur)
+    let mut arrets: Vec<declarations::dsn::Arret> = Vec::new();
+    for a in crate::compagnie::marques_depot::arrets_pour(ctx, &mois)? {
+        if let Some(n) = &forme.etablissement {
+            let sal = ctx.salarie(&valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null))).map_err(valeur)?;
+            if droit::bareme::etablissement_du_salarie(&ctx.entreprise, &sal).map_err(valeur)? != *n {
+                continue;
+            }
+        }
+        arrets.push(declarations::dsn::Arret { v: a });
+    }
+    declarations::dsn::fabriquer(ctx, &paies, &mois, &regs, &arrets, &forme.options()).map_err(valeur)
 }
 
 /// LES DSN MENSUELLES PARTIES de `mois` pour l'etablissement `nic` (`Null` : le principal), reelles et acceptees, dans
@@ -891,59 +906,287 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
         certificats.push((i, pc, n));
     }
 
+    // LE BULLETIN D'ORIGINE RESTE : une paie refaite part sous un nouveau numero, et ce qui est parti se garde.
+    for (i, p) in paies.iter().enumerate().filter(|(i, p)| part(p) && numerotees[*i]) {
+        if let (Some(r), true) = (ecrits[i].rectifie.as_deref(), a_poser.get(&i).is_some_and(|x| x.0.is_some())) {
+            let cle = cle_de(p);
+            let piece = dossier.join(envois::envoi::nom_fichier("Bulletin", &cle, &etiq));
+            let garde = sortie.join(format!("Bulletin_{}_{}_{}.pdf", cle, etiq, numero_en_nom(r)));
+            if piece.exists() && !garde.exists() {
+                std::fs::copy(&piece, &garde).map_err(|e| os(&garde, e))?;
+            }
+        }
+    }
+    let impression = Impression { paies: &paies, numeros: &numeros, rectificatifs: &rectificatifs, certificats: &certificats };
+    imprimer(ctx, mois, &ent, &impression, cles, false)?;
+    let mut poses: Vec<(usize, (Option<String>, Option<(i64, i64)>))> = a_poser.into_iter().collect();
+    poses.sort_by_key(|(i, _)| *i);
+    faits.a_poser = poses.into_iter().map(|(i, (b, ce))| (cle_de(&paies[i]), paies[i].engagement.debut.iso(), jumeaux[i], b, ce)).collect();
+    Ok(faits)
+}
+
+/// Ce qu'un envoi de documents imprime : les paies du mois, au meme rang le numero de bulletin de chacune (`None` : elle
+/// n'en a pas), le rectificatif de celles qui en sont un, et les certificats Conges Spectacles numerotes (rang de la paie,
+/// certificat, premier N CE).
+struct Impression<'a> {
+    paies: &'a [Paie],
+    numeros: &'a [Option<String>],
+    rectificatifs: &'a HashMap<usize, Value>,
+    certificats: &'a [(usize, &'a PaieCs, i64)],
+}
+
+/// LES DOCUMENTS D'UN ENVOI, ECRITS : un `Bulletin_<cle>_<Mois>.pdf` (tous ses bulletins du mois) et un
+/// `CertificatCS_<cle>_<Mois>.pdf` par salarie de `cles`, dans `sorties/<mois>/envoi/`, et l'archive du mois
+/// (`Bulletins_<Mois>.pdf`, `CertificatsCS_<Mois>.pdf` et son recapitulatif), qui porte tous les documents numerotes.
+/// `absents` : seuls les fichiers qui manquent s'ecrivent (une piece partie refaite pour se lire).
+fn imprimer(ctx: &Contexte, mois: &str, ent: &Value, imp: &Impression, cles: &[String], absents: bool) -> R<()> {
+    let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
+    let sortie = ctx.racine.join("sorties").join(mois);
+    let dossier = sortie.join("envoi");
+    std::fs::create_dir_all(&dossier).map_err(|e| os(&dossier, e))?;
+    let a_ecrire = |f: &Path| !(absents && f.exists());
+    let paies = imp.paies;
+    let numerotee = |i: usize| imp.numeros.get(i).is_some_and(Option::is_some);
+    let bulletins = |rangs: &[usize], toutes: Option<&[Paie]>| -> R<Value> {
+        let imprimees: Vec<Paie> = rangs.iter().map(|i| paies[*i].clone()).collect();
+        let rectifs: HashMap<usize, Value> = rangs.iter().enumerate().filter_map(|(k, i)| imp.rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
+        let leurs_numeros: Vec<Option<String>> = rangs.iter().map(|i| imp.numeros[*i].clone()).collect();
+        documents::bulletin::jeux_et_description(ctx, &imprimees, &leurs_numeros, ent, mois, toutes, false, &rectifs).map_err(valeur)
+    };
+
     // UN JEU DE DOCUMENTS PAR SALARIE QUI LES RECOIT.
     let mut vus: Vec<String> = Vec::new();
-    for p in paies.iter().filter(|p| part(p)) {
+    for p in paies.iter().filter(|p| cles.contains(&cle_de(p))) {
         let cle = cle_de(p);
         if vus.contains(&cle) {
             continue;
         }
         vus.push(cle.clone());
-        let siennes: Vec<usize> = (0..paies.len()).filter(|i| cle_de(&paies[*i]) == cle && numerotees[*i]).collect();
-        if !siennes.is_empty() {
-            let piece = dossier.join(envois::envoi::nom_fichier("Bulletin", &cle, &etiq));
-            // LE BULLETIN D'ORIGINE RESTE : une paie refaite part sous un nouveau numero, et ce qui est parti se garde.
-            for i in &siennes {
-                if let (Some(r), true) = (ecrits[*i].rectifie.as_deref(), a_poser.get(i).is_some_and(|x| x.0.is_some())) {
-                    let garde = sortie.join(format!("Bulletin_{}_{}_{}.pdf", cle, etiq, numero_en_nom(r)));
-                    if piece.exists() && !garde.exists() {
-                        std::fs::copy(&piece, &garde).map_err(|e| os(&garde, e))?;
-                    }
-                }
-            }
-            let imprimees: Vec<Paie> = siennes.iter().map(|i| paies[*i].clone()).collect();
-            let rectifs: HashMap<usize, Value> = siennes.iter().enumerate().filter_map(|(k, i)| rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
-            let leurs_numeros: Vec<Option<String>> = siennes.iter().map(|i| numeros[*i].clone()).collect();
-            let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &leurs_numeros, &ent, mois, Some(&paies), false, &rectifs).map_err(valeur)?;
-            documents::fabrique::ecrire_pdf(&description, &piece)?;
+        let siennes: Vec<usize> = (0..paies.len()).filter(|i| cle_de(&paies[*i]) == cle && numerotee(*i)).collect();
+        let piece = dossier.join(envois::envoi::nom_fichier("Bulletin", &cle, &etiq));
+        if !siennes.is_empty() && a_ecrire(&piece) {
+            documents::fabrique::ecrire_pdf(&bulletins(&siennes, Some(paies))?, &piece)?;
         }
-        let ses_certificats: Vec<(&PaieCs, i64)> = certificats.iter().filter(|(i, _, _)| cle_de(&paies[*i]) == cle).map(|(_, pc, n)| (*pc, *n)).collect();
-        if !ses_certificats.is_empty() {
-            let description = conges_spectacles::description_numerotee(&ses_certificats, &ent).map_err(Echec::from)?;
-            documents::fabrique::ecrire_pdf(&description, &dossier.join(envois::envoi::nom_fichier("CertificatCS", &cle, &etiq)))?;
+        let ses_certificats: Vec<(&PaieCs, i64)> = imp.certificats.iter().filter(|(i, _, _)| cle_de(&paies[*i]) == cle).map(|(_, pc, n)| (*pc, *n)).collect();
+        let piece = dossier.join(envois::envoi::nom_fichier("CertificatCS", &cle, &etiq));
+        if !ses_certificats.is_empty() && a_ecrire(&piece) {
+            let description = conges_spectacles::description_numerotee(&ses_certificats, ent).map_err(Echec::from)?;
+            documents::fabrique::ecrire_pdf(&description, &piece)?;
         }
     }
 
     // L'ARCHIVE DU MOIS : tous ses documents numerotes.
-    let archivees: Vec<usize> = (0..paies.len()).filter(|i| numerotees[*i]).collect();
-    if !archivees.is_empty() {
-        let imprimees: Vec<Paie> = archivees.iter().map(|i| paies[*i].clone()).collect();
-        let rectifs: HashMap<usize, Value> = archivees.iter().enumerate().filter_map(|(k, i)| rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
-        let leurs_numeros: Vec<Option<String>> = archivees.iter().map(|i| numeros[*i].clone()).collect();
-        let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &leurs_numeros, &ent, mois, None, false, &rectifs).map_err(valeur)?;
-        documents::fabrique::ecrire_pdf(&description, &sortie.join(format!("Bulletins_{}.pdf", etiq)))?;
+    let archivees: Vec<usize> = (0..paies.len()).filter(|i| numerotee(*i)).collect();
+    let archive = sortie.join(format!("Bulletins_{}.pdf", etiq));
+    if !archivees.is_empty() && a_ecrire(&archive) {
+        documents::fabrique::ecrire_pdf(&bulletins(&archivees, None)?, &archive)?;
     }
-    if !certificats.is_empty() {
-        let mut paires: Vec<(&PaieCs, i64)> = certificats.iter().map(|(_, pc, n)| (*pc, *n)).collect();
+    if !imp.certificats.is_empty() {
+        let mut paires: Vec<(&PaieCs, i64)> = imp.certificats.iter().map(|(_, pc, n)| (*pc, *n)).collect();
         paires.sort_by_key(|(_, n)| *n);
-        let description = conges_spectacles::description_numerotee(&paires, &ent).map_err(Echec::from)?;
-        documents::fabrique::ecrire_pdf(&description, &sortie.join(format!("CertificatsCS_{}.pdf", etiq)))?;
+        let archive = sortie.join(format!("CertificatsCS_{}.pdf", etiq));
+        if a_ecrire(&archive) {
+            let description = conges_spectacles::description_numerotee(&paires, ent).map_err(Echec::from)?;
+            documents::fabrique::ecrire_pdf(&description, &archive)?;
+        }
         let recap = sortie.join(format!("CertificatsCS_{}_recapitulatif.txt", etiq));
-        let texte = conges_spectacles::recapitulatif(&paires, &ent).map_err(Echec::from)?;
-        std::fs::write(&recap, texte).map_err(|e| os(&recap, e))?;
+        if a_ecrire(&recap) {
+            let texte = conges_spectacles::recapitulatif(&paires, ent).map_err(Echec::from)?;
+            std::fs::write(&recap, texte).map_err(|e| os(&recap, e))?;
+        }
     }
-    let mut poses: Vec<(usize, (Option<String>, Option<(i64, i64)>))> = a_poser.into_iter().collect();
-    poses.sort_by_key(|(i, _)| *i);
-    faits.a_poser = poses.into_iter().map(|(i, (b, ce))| (cle_de(&paies[i]), paies[i].engagement.debut.iso(), jumeaux[i], b, ce)).collect();
-    Ok(faits)
+    Ok(())
+}
+
+// ------------------------------------------------------------- une piece partie, refaite pour se lire
+
+/// UNE PIECE PARTIE, pour la lire : son fichier dans `sorties/<mois>/` ou son `envoi/` ; s'il manque, refait a
+/// l'identique depuis ce que le journal dit d'elle -- la ligne qui l'a fait partir, les versions des engagements qu'elle
+/// a emportees, le jour ou elle a ete fabriquee -- et remis a sa place. Regle 4 : refaite pour se lire, jamais pour
+/// repartir ; ce qui se redepose se fabrique a son depart (`fabriquer_dsn`, `fabriquer_documents`).
+///
+/// Se refont : la DSN mensuelle (`dsn_partie`, et l'empreinte que le journal a notee a son depot le verifie), les
+/// bulletins, rectificatifs compris, et les certificats Conges Spectacles d'un envoi de documents, avec l'archive du mois.
+/// Ce qui vient d'un organisme (l'AER, un bilan, un compte rendu) ne se refait pas : il se lit dans `retours/`.
+/// Refus : un nom qui n'est pas celui d'une piece partie de `mois`, une piece qui ne se refait pas, une piece refaite
+/// qui ne dit pas ce qui est parti.
+pub(crate) fn piece_partie(ctx: &Contexte, mois: &str, nom: &str) -> R<PathBuf> {
+    let refus = |m: String| erreur("ErreurOperation", m);
+    if [mois, nom].iter().any(|t| t.is_empty() || t.contains(['/', '\\']) || t.contains("..")) {
+        return Err(refus(format!("{} n'est pas une piece de {}.", nom, mois)));
+    }
+    if let Some(f) = envois::etats::chemin_piece(&ctx.racine, &json!(mois), &json!(nom)) {
+        return Ok(f);
+    }
+    let mut m = Moteur::nouveau(ctx);
+    let lignes = m.lignes()?;
+    let texte = |l: &Value, k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let du_mois = |l: &Value| texte(l, "mois") == mois && vrai(l.get("accepte").unwrap_or(&Value::Null));
+    let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
+    let sortie = ctx.racine.join("sorties").join(mois);
+
+    // LA DSN MENSUELLE : la derniere ligne qui l'a deposee, le reel devant son test.
+    let deposee = |reel: bool| lignes.iter().rposition(|l| texte(l, "quoi") == "dsn" && texte(l, "fichier") == nom && du_mois(l) && (texte(l, "mode") == "reel") == reel);
+    if crate::routes::etapes::est_une_dsn_mensuelle(nom) {
+        let Some(rang) = deposee(true).or_else(|| deposee(false)) else {
+            return Err(refus(format!("{} : le journal ne dit pas qu'elle est partie.", nom)));
+        };
+        refaire_la_dsn(ctx, &mut m, &lignes, rang, &sortie.join(nom))?;
+        return Ok(sortie.join(nom));
+    }
+
+    // LES DOCUMENTS D'UN ENVOI AUX SALARIES, et l'archive du mois.
+    let des_documents = nom.starts_with("Bulletin_")
+        || nom.starts_with("CertificatCS_")
+        || [format!("Bulletins_{}.pdf", etiq), format!("CertificatsCS_{}.pdf", etiq), format!("CertificatsCS_{}_recapitulatif.txt", etiq)].contains(&nom.to_string());
+    if des_documents {
+        let envois: Vec<usize> = (0..lignes.len()).filter(|r| texte(&lignes[*r], "quoi") == "documents" && du_mois(&lignes[*r])).collect();
+        // Du dernier envoi au premier : le fichier est celui que le dernier envoi qui le porte a ecrit.
+        for rang in envois.into_iter().rev() {
+            refaire_les_documents(ctx, mois, &lignes, rang)?;
+        }
+        return envois::etats::chemin_piece(&ctx.racine, &json!(mois), &json!(nom))
+            .ok_or_else(|| refus(format!("{} : aucun envoi de documents de {} ne l'a fait partir.", nom, engagement::libelle_mois(mois))));
+    }
+    if nom.starts_with("AER_") {
+        return Err(refus(format!(
+            "{} vient de France Travail : il ne se refait pas, il se lit dans retours/ ; le fichier a été déplacé ou effacé.",
+            nom
+        )));
+    }
+    Err(refus(format!("{} n'est plus dans sorties/{} : le journal dit qu'il est parti, le fichier a été déplacé ou effacé.", nom, mois)))
+}
+
+/// Le contexte de la compagnie au jour `jour`, ce jour-la etant aujourd'hui : celui de la route qui a fabrique une piece.
+fn contexte_du_jour(ctx: &Contexte, jour: socle::date::Jour) -> R<Contexte> {
+    let mut c = Contexte::nouveau(&ctx.racine, Some(jour)).map_err(valeur)?;
+    c.aujourdhui = jour;
+    Ok(c)
+}
+
+/// L'instant `AAAA-MM-JJTHH:MM[:SS]` (heure de Paris), en secondes UTC, et son jour.
+fn instant_de(quand: &str) -> Option<(socle::date::Jour, f64)> {
+    let (jour, heure) = quand.split_once('T')?;
+    let jour = socle::date::Jour::lire(jour).ok()?;
+    let mut hms = heure.split(':').map(|x| x.parse::<i64>().ok());
+    let (h, m, s) = (hms.next()??, hms.next().flatten().unwrap_or(0), hms.next().flatten().unwrap_or(0));
+    Some((jour, socle::temps::instant_de(jour, h) + (m * 60 + s) as f64))
+}
+
+/// LA DSN MENSUELLE QUE DIT LA LIGNE `lignes[rang]`, refaite (`dsn_partie`) au jour ou son fichier a ete ecrit (le journal
+/// des ecritures), et ecrite a `cible` si ses octets ont l'empreinte que le journal a notee a son depot.
+fn refaire_la_dsn(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, cible: &Path) -> R<()> {
+    let l = &lignes[rang];
+    let mois = valeur_en_texte(l.get("mois").unwrap_or(&Value::Null));
+    let nic = l.pointer("/detail/etablissement").filter(|v| vrai(v)).map(valeur_en_texte);
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
+    let nic_v = match (plusieurs, nic) {
+        (true, Some(n)) => Value::String(n),
+        (true, None) => Value::String(droit::bareme::nic_principal(&ctx.entreprise)),
+        (false, _) => Value::Null,
+    };
+    // Un annule-et-remplace : la DSN qu'il remplacait versait-elle a la DGFiP ?
+    let mut avant: Vec<(i64, usize)> = Vec::new();
+    for x in m.depots_reels(&mois, &nic_v)? {
+        if let Some(r) = lignes.iter().position(|y| *y == x).filter(|r| *r < rang) {
+            avant.push((m.ordre_de_la_ligne(&mois, &x)?, r));
+        }
+    }
+    avant.sort();
+    let type_dsn = l.pointer("/detail/type").map(valeur_en_texte).unwrap_or_default();
+    let versait = match avant.last() {
+        Some((_, r)) if type_dsn == "03" || type_dsn == "05" => Some(verse_a_la_dgfip(&dsn_partie(ctx, m, lignes, *r, None)?)),
+        _ => None,
+    };
+    let f = dsn_partie(ctx, m, lignes, rang, versait)?;
+    let octets = declarations::dsn::en_latin1(&f.texte).map_err(valeur)?;
+    let attendue = valeur_en_texte(l.get("empreinte").unwrap_or(&Value::Null));
+    if envois::journal::empreinte(&octets) != attendue {
+        return Err(erreur(
+            "ErreurOperation",
+            format!("{} ne se refait pas à l'identique de ce qui est parti : le fichier a été déplacé ou effacé.", socle::fichiers::nom_du(cible)),
+        ));
+    }
+    if let Some(parent) = cible.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| os(parent, e))?;
+    }
+    std::fs::write(cible, &octets).map_err(|e| os(cible, e))
+}
+
+/// La paie ecrite de `mois` que porte la version de l'engagement `o` dont le bulletin a le numero `numero`.
+fn paie_ecrite_au_bulletin<'a>(o: &'a engagement::stock::Objet, mois: &str, numero: &str) -> Option<&'a Value> {
+    let passees = o.brut.get("versions").and_then(Value::as_array).into_iter().flatten();
+    [o.brut.get("valide"), o.brut.get("precedente")]
+        .into_iter()
+        .flatten()
+        .chain(passees)
+        .filter_map(|v| v.get("paies").and_then(|p| p.get(mois)))
+        .find(|p| p.get(engagement::etats::BULLETIN).and_then(Value::as_str) == Some(numero))
+}
+
+/// LES DOCUMENTS QU'A FAIT PARTIR LA LIGNE `lignes[rang]` (un envoi aux salaries de `mois`), refaits tels qu'ils sont
+/// partis : chaque engagement du mois dans la version sur laquelle ses derniers documents etaient partis a ce moment-la
+/// (`engagement::etats::paie_partie`), sous les numeros que cette version porte ; le rectificatif d'une paie refaite,
+/// avec l'ecart au bulletin parti avant lui quand la DSN du mois ne se refaisait plus ; au jour et a l'heure de l'envoi.
+/// Seuls les fichiers qui manquent s'ecrivent.
+fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usize) -> R<()> {
+    let l = &lignes[rang];
+    let quand = valeur_en_texte(l.get("quand").unwrap_or(&Value::Null));
+    let Some((jour, instant)) = instant_de(&quand) else { return Err(valeur(format!("journal : un envoi de documents sans date ({})", quand))) };
+    let cles: Vec<String> = l.pointer("/detail/salaries").and_then(Value::as_array).into_iter().flatten().filter_map(|s| s.get("cle")).map(valeur_en_texte).collect();
+    let refaire = || -> R<()> {
+        let ctx = contexte_du_jour(ctx, jour)?.du_mois(mois).map_err(valeur)?;
+        let jusqu_a = envois::journal::departs_des_lignes(&lignes[..=rang]);
+        let avant = envois::journal::departs_des_lignes(&lignes[..rang]);
+        let clos = regularisations::se_corrige_ailleurs(&ctx, &avant, mois)?;
+        let mut paies: Vec<Paie> = Vec::new();
+        let mut numeros: Vec<Option<String>> = Vec::new();
+        let mut premiers_ce: Vec<Option<i64>> = Vec::new();
+        let mut rectificatifs: HashMap<usize, Value> = HashMap::new();
+        for e in engagement::etats::du_mois(&ctx, mois).map_err(Echec::from)? {
+            let Some(v) = e.valide() else { continue };
+            let Some(p) = engagement::etats::paie_partie(&ctx, v.objet(), &jusqu_a, mois).map_err(Echec::from)? else { continue };
+            let ecrite = p.numero_bulletin.as_deref().and_then(|n| paie_ecrite_au_bulletin(v.objet(), mois, n));
+            if let Some(r) = ecrite.and_then(|x| x.get(engagement::etats::RECTIFIE)).and_then(Value::as_str) {
+                let parti = if clos { engagement::etats::paie_partie(&ctx, v.objet(), &avant, mois).map_err(Echec::from)? } else { None };
+                let rectif = match parti {
+                    Some(parti) => {
+                        let porteur = crate::regularisation::dsn_qui_porte(&ctx, mois)?;
+                        let mut e = ecart_avec_le_bulletin_parti(&ctx, &p, &parti, &porteur)?;
+                        e["rectifie"] = json!(r);
+                        e["mois_origine"] = json!(crate::regularisation::mois_en_clair(mois));
+                        e
+                    }
+                    None => json!({"remplace": true, "rectifie": r, "mois_origine": crate::regularisation::mois_en_clair(mois)}),
+                };
+                rectificatifs.insert(paies.len(), rectif);
+            }
+            numeros.push(if p.engagement.sans_paie() { None } else { p.numero_bulletin.clone() });
+            premiers_ce.push(ecrite.and_then(|x| x.get(engagement::etats::CE)).and_then(Value::as_i64));
+            paies.push(p);
+        }
+        let (mut pour_cs, _) = crate::routes::dossier_salarie::certificats_dus(&ctx, &paies)?;
+        pour_cs.sort_by_key(|(cle, _, _)| cles.iter().position(|c| c == cle).unwrap_or(usize::MAX));
+        let mut certificats: Vec<(usize, &PaieCs, i64)> = Vec::new();
+        for (cle, debut, pc) in &pour_cs {
+            let Some(pc) = pc else { continue };
+            let Some(i) = (0..paies.len()).find(|i| cle_de(&paies[*i]) == *cle && paies[*i].engagement.debut.iso() == *debut) else { continue };
+            if let Some(n) = premiers_ce[i] {
+                certificats.push((i, pc, n));
+            }
+        }
+        let ent = ctx.entreprise_du_mois(mois).map_err(valeur)?;
+        let impression = Impression { paies: &paies, numeros: &numeros, rectificatifs: &rectificatifs, certificats: &certificats };
+        imprimer(&ctx, mois, &ent, &impression, &cles, true)
+    };
+    socle::temps::pendant(instant, refaire)
+}
+
+/// La route `piece-partie` : `{"mois", "fichier"}`. Le chemin de la piece partie, refaite si son fichier manque
+/// (`piece_partie`), relatif a la compagnie : `{"chemin": "sorties/<mois>/[envoi/]<fichier>"}`.
+pub(crate) fn piece_partie_route(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let champ = |k: &str| charge.get(k).and_then(Value::as_str).map(String::from).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
+    let f = piece_partie(ctx, &champ("mois")?, &champ("fichier")?)?;
+    let relatif = f.strip_prefix(&ctx.racine).unwrap_or(&f).to_string_lossy().replace('\\', "/");
+    Ok(json!({"chemin": relatif}))
 }

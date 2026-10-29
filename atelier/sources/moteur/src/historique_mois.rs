@@ -216,7 +216,7 @@ fn sorte_de(nom: &str) -> &'static str {
 /// Les documents du mois : les fichiers de `sorties/<mois>/` (`mois_connus`, la liste de l'Historique) et les PDF de
 /// `sorties/<mois>/envoi/` (`documents_du_mois`). Une archive `.zip` n'est que l'emballage
 /// du fichier de meme nom qui part au depot : elle ne se liste pas.
-fn documents(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
+fn documents(ctx: &Contexte, mois: &str, lignes: &[Value]) -> R<Vec<Value>> {
     let noms = crate::routes::ouverture::mois_connus(&ctx.racine).into_iter().find(|(m, _)| m == mois).map(|(_, n)| n).unwrap_or_default();
     let mut out: Vec<Value> = Vec::new();
     for nom in noms.iter().filter(|n| !n.ends_with(".zip")) {
@@ -227,9 +227,43 @@ fn documents(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
         let nom = valeur_en_texte(&d["nom"]);
         out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": d["salarie"], "chemin": format!("sorties/{}/envoi/{}", mois, nom)}));
     }
+    // CE QUE LE JOURNAL DIT PARTI, meme si son fichier manque : `ouvrir-piece` le refait (`depart::piece_partie`).
+    for nom in pieces_du_journal(lignes) {
+        if out.iter().any(|d| d["nom"] == json!(nom)) {
+            continue;
+        }
+        let dans_l_envoi = ["Bulletin_", "CertificatCS_", "AER_", "Contrat_", "Avenant"].iter().any(|p| nom.starts_with(p));
+        let chemin = if dans_l_envoi { format!("sorties/{}/envoi/{}", mois, nom) } else { format!("sorties/{}/{}", mois, nom) };
+        out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": "", "chemin": chemin}));
+    }
     let rang = |v: &Value| SORTES.iter().position(|(s, _)| v["sorte"] == json!(s)).unwrap_or(SORTES.len());
     out.sort_by_key(|v| rang(v));
     Ok(out)
+}
+
+/// Les noms des pieces que les lignes acceptees du journal d'un mois disent parties : le fichier d'un depot, les contrats
+/// d'une demande de signature, les pieces d'un envoi de documents.
+fn pieces_du_journal(lignes: &[Value]) -> Vec<String> {
+    let mut noms: Vec<String> = Vec::new();
+    let mut noter = |v: &Value| {
+        if let Some(n) = v.as_str().filter(|n| !n.is_empty() && !n.contains(['/', '\\'])) {
+            if !noms.iter().any(|x| x == n) {
+                noms.push(n.to_string());
+            }
+        }
+    };
+    for l in lignes.iter().filter(|l| l["accepte"] == json!(true)) {
+        noter(&l["fichier"]);
+        for c in l["detail"]["contrats"].as_array().into_iter().flatten() {
+            noter(&c["fichier"]);
+        }
+        for s in l["detail"]["salaries"].as_array().into_iter().flatten() {
+            for p in s["pieces"].as_array().into_iter().flatten() {
+                noter(p);
+            }
+        }
+    }
+    noms
 }
 
 // ------------------------------------------------------------------ les retours, lus
@@ -804,7 +838,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     // Le plus recent en premier : c'est le dernier envoi qu'on vient lire ; a la meme heure, le reel devant son test.
     envois.sort_by(|a, b| (valeur_en_texte(&b["quand"]), b["mode"] == json!("reel")).cmp(&(valeur_en_texte(&a["quand"]), a["mode"] == json!("reel"))));
-    Ok(json!({"mois": mois, "documents": documents(ctx, mois)?, "envois": envois}))
+    Ok(json!({"mois": mois, "documents": documents(ctx, mois, &lignes)?, "envois": envois}))
 }
 
 /// Le chemin d'une piece que `historique-mois` a listee pour `mois` (un document ou la piece d'un retour), ou `None` :

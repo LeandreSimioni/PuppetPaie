@@ -72,6 +72,24 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     let jour = socle::paris::iso_secondes(r2.fin.unwrap())[..10].to_string();
     let second: Value = outils::rejeu::sorties(&racine2, &jour);
     assert!(second == releve, "deux rejeux du meme scenario ne rendent pas les memes sorties");
+
+    // UNE PIECE PARTIE DONT LE FICHIER MANQUE SE REFAIT A L'IDENTIQUE (`depart::piece_partie`, route `piece-partie`) : la
+    // DSN, le bulletin, le certificat Conges Spectacles et l'archive du mois, `sorties/` effacee, ont les octets d'avant.
+    let pieces = [
+        "2026-11/DSN_Novembre2026.dsn",
+        "2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf",
+        "2026-11/envoi/CertificatCS_FULLER_Novembre2026.pdf",
+        "2026-11/Bulletins_Novembre2026.pdf",
+        "2026-11/CertificatsCS_Novembre2026.pdf",
+    ];
+    let avant: Vec<Vec<u8>> = pieces.iter().map(|p| std::fs::read(racine2.join("sorties").join(p)).unwrap()).collect();
+    std::fs::remove_dir_all(racine2.join("sorties")).unwrap();
+    for (p, octets) in pieces.iter().zip(&avant) {
+        let nom = p.rsplit('/').next().unwrap();
+        let r = outils::route(&racine2, "piece-partie", json!({"mois": "2026-11", "fichier": nom}), &jour);
+        assert_eq!(outils::reussi(&r)["chemin"], json!(format!("sorties/{}", p)), "{}", r);
+        assert!(std::fs::read(racine2.join("sorties").join(p)).unwrap() == *octets, "{} ne se refait pas a l'identique", p);
+    }
 }
 
 /// La demo Les Faisceaux sans la civilite du contact DSN. La DSN
