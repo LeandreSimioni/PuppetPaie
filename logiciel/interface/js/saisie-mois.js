@@ -954,7 +954,7 @@ function dessinerMoisImporte() {
     cible.innerHTML = `
       <p class="mi-tete"><b>Importé${IMPORTES.length > 1 ? "s" : ""}</b> <span class="discret">— ${IMPORTES.length}
         engagement${IMPORTES.length > 1 ? "s" : ""} de l'ancien logiciel · lecture seule</span></p>
-      ${IMPORTES.map((p, i) => carteImportee(p, i, moisCourt, mois)).join("")}`;
+      ${IMPORTES.map((p, i) => carteImportee(p, i, moisCourt)).join("")}`;
     ouvrirLesCartesImportees(cible);
     cible.hidden = false;
     return;
@@ -970,7 +970,7 @@ function dessinerMoisImporte() {
     <p class="mi-tete"><b>Tenu avant PuppetPaie</b> <span class="discret">— d'après l'historique importé ·
       ${n} paie${n > 1 ? "s" : ""} ${[total("brut", "· brut"), total("net_a_payer", "· net")].filter(Boolean).join(" ")}
       · lecture seule</span></p>
-    ${IMPORTE.paies.map((p, i) => carteImportee(p, i, moisCourt, mois)).join("")}`;
+    ${IMPORTE.paies.map((p, i) => carteImportee(p, i, moisCourt)).join("")}`;
   ouvrirLesCartesImportees(cible);
   cible.hidden = false;
 }
@@ -986,11 +986,10 @@ function ouvrirLesCartesImportees(cible) {
   });
 }
 
-function carteImportee(p, i, moisCourt, mois) {
-  const borne = (d) => d && d.slice(0, 7) === mois ? String(parseInt(d.slice(8, 10), 10)) : "";
-  // QUAND : les jours travaillés que le bulletin imprime ; sans eux, le début et la fin du contrat dans le mois.
+function carteImportee(p, i, moisCourt) {
+  // QUAND : les jours travaillés que le bulletin imprime ; sans eux, la période du contrat, telle que le moteur la dit.
   const jours = p.dates.length ? joursEnClair(p.dates)
-    : [borne(p.debut) || "1", borne(p.fin) || "…"].filter((x, k, a) => k === 0 || x !== a[0]).join("–");
+    : (p.periode || "");
   const quoi = [p.spectacle.titre || p.spectacle.numero_objet,
     p.cachets ? `${p.cachets} cachet${p.cachets > 1 ? "s" : ""}` : "",
     p.heures ? `${p.heures} h` : ""].filter(Boolean).join(" · ");
@@ -1025,7 +1024,7 @@ function carteImportee(p, i, moisCourt, mois) {
     <div class="carte-importee${p.manque.length ? " incomplete" : ""}" data-rang="${i}">
       <div class="e-resume">
         <div class="carte-quand" title="${echapper(p.dates.length ? p.dates.map(jjmmaaaa).join(", ") : "début et fin du contrat : les jours exacts ne sont pas lus")}">
-          <b class="${jours.includes(" · ") ? "epars" : ""}">${echapper(jours)}</b><span>${echapper(moisCourt)}</span></div>
+          <b class="${jours.includes(" · ") || jours.includes(" – ") ? "epars" : ""}">${echapper(jours)}</b><span>${echapper(moisCourt)}</span></div>
         <div class="carte-qui" title="${echapper(origine ? "lu dans : " + origine : "")}">
           <span class="carte-nom"><b>${echapper(p.nom)}</b> <span class="mot-etat">importé</span></span>
           <span class="discret">${echapper(quoi || "spectacle non lu")}</span></div>

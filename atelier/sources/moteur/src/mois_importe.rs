@@ -151,6 +151,26 @@ fn spectacle_de(ctx: &Contexte, numero: &str) -> Option<(String, String)> {
     })
 }
 
+/// LA PERIODE D'UN CONTRAT IMPORTE DANS `mois`, en clair, quand le bulletin ne dit pas ses jours : « 20–27 » pour un
+/// contrat qui commence et finit dans le mois (le 1er quand il a commence avant), « 20/11 – 03/12 » pour un contrat a
+/// cheval sur un autre mois, « … » pour une borne que l'import n'a pas lue.
+fn periode_en_clair(debut: &str, fin: &str, mois: &str) -> String {
+    let (d, f) = (socle::date::Jour::lire(debut).ok(), socle::date::Jour::lire(fin).ok());
+    let dans = |j: &socle::date::Jour| j.iso().starts_with(mois);
+    let dehors = d.as_ref().is_some_and(|j| !dans(j)) || f.as_ref().is_some_and(|j| !dans(j));
+    let borne = |j: Option<&socle::date::Jour>, defaut: &str| match j {
+        Some(j) if dehors => j.jj_mm(),
+        Some(j) => j.jour.to_string(),
+        None => defaut.to_string(),
+    };
+    let (a, b) = (borne(d.as_ref(), if dehors { "…" } else { "1" }), borne(f.as_ref(), "…"));
+    match (a == b, dehors) {
+        (true, _) => a,
+        (false, true) => format!("{} – {}", a, b),
+        (false, false) => format!("{}–{}", a, b),
+    }
+}
+
 /// Les jours d'intervalles `[{"debut", "fin"}]` (les dates travaillees d'un bulletin), dans `mois`.
 fn jours_du_mois(dates: &Value, mois: &str) -> Vec<String> {
     let mut out = Vec::new();
@@ -307,6 +327,7 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
         "contrat": texte(p, "contrat"),
         "debut": debut,
         "fin": fin,
+        "periode": periode_en_clair(&debut, &fin, mois),
         "dates": dates,
         "cachets": nombre("cachets"),
         "heures": nombre("heures"),
