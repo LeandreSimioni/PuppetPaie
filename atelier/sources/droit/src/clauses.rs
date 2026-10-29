@@ -158,6 +158,39 @@ pub fn nom(idcc: &Value) -> String {
     }
 }
 
+/// Les mots d'un nom de convention qui la distinguent : sans accent ni ponctuation, sans les mots que tout titre de
+/// convention porte (« convention collective nationale »), les mots de liaison, les dates.
+fn mots_du_nom(nom: &str) -> std::collections::BTreeSet<String> {
+    const COMMUNS: &[&str] = &[
+        "convention", "collective", "nationale", "ccn", "pour", "des", "les", "aux", "dans", "janvier", "fevrier", "mars",
+        "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre",
+    ];
+    socle::texte::cle_recherche(nom)
+        .split(' ')
+        .filter(|m| m.chars().count() > 2 && m.chars().all(char::is_alphabetic) && !COMMUNS.contains(m))
+        .map(str::to_string)
+        .collect()
+}
+
+/// L'IDCC d'une convention que le bulletin nomme sans son numéro : celle, seule, dont le libellé de la table (le
+/// titre de la convention dans KALI, que cite le `_source` de sa couche) porte tous les mots distinctifs du nom
+/// imprimé. Un nom que plusieurs conventions portent (« spectacle », « production »), ou qu'aucune ne porte
+/// entier, ne donne rien : rien ne se devine (règle 1).
+pub fn idcc_nomme(nom: &str) -> Resultat<Option<String>> {
+    let lus = mots_du_nom(nom);
+    if lus.is_empty() {
+        return Ok(None);
+    }
+    let t = table()?;
+    let mut trouves = get(&t, "conventions").as_object().into_iter().flatten().filter(|(_, c)| {
+        get(c, "libelle").as_str().is_some_and(|l| lus.is_subset(&mots_du_nom(l)))
+    });
+    Ok(match (trouves.next(), trouves.next()) {
+        (Some((idcc, _)), None) => Some(idcc.clone()),
+        _ => None,
+    })
+}
+
 fn non_relevees(idcc: &Value) -> String {
     format!("les clauses de {} ne sont pas relevees", nom(idcc))
 }

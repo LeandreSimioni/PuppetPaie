@@ -1313,8 +1313,14 @@ fn fiche_entreprise(lus: &[Lu], l: &Lu) -> R<Map<String, Value>> {
         f.insert("code_postal".into(), json!(cp));
         f.insert("commune".into(), json!(commune));
     }
-    if let Some(i) = e.convention.as_deref().and_then(idcc_lu) {
-        f.insert("idcc".into(), json!(i));
+    if let Some(c) = e.convention.as_deref() {
+        let i = match idcc_lu(c) {
+            Some(i) => Some(i),
+            None => droit::clauses::idcc_nomme(c).map_err(|m| erreur("ErreurOperation", m))?,
+        };
+        if let Some(i) = i {
+            f.insert("idcc".into(), json!(i));
+        }
     }
     if let Some(u) = urssaf_lu(&l.b) {
         f.insert("urssaf_compte".into(), json!(u));
