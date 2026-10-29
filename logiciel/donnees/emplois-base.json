@@ -7105,8 +7105,8 @@
    ]
   },
   "CON010": {
-   "libelle": "Concepteur des eclairages",
-   "feminin": "Concepteur des eclairages",
+   "libelle": "Concepteur des éclairages",
+   "feminin": "Concepteur des éclairages",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Techniques du spectacle",
@@ -7201,8 +7201,8 @@
    }
   },
   "REA130": {
-   "libelle": "Realisateur perruques",
-   "feminin": "Realisateur perruques",
+   "libelle": "Réalisateur perruques",
+   "feminin": "Réalisateur perruques",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Techniques du spectacle",
@@ -7218,8 +7218,8 @@
    ]
   },
   "REG090": {
-   "libelle": "Regisseur d'equipement scenique",
-   "feminin": "Regisseur d'equipement scenique",
+   "libelle": "Régisseur d'équipement scénique",
+   "feminin": "Régisseur d'équipement scénique",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Techniques du spectacle",
@@ -7320,8 +7320,8 @@
    }
   },
   "REG210": {
-   "libelle": "Regisseur de choeur",
-   "feminin": "Regisseur de choeur",
+   "libelle": "Régisseur de chœur",
+   "feminin": "Régisseur de chœur",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Techniques du spectacle",
@@ -7426,8 +7426,8 @@
    }
   },
   "CHA180": {
-   "libelle": "Charge de recherche",
-   "feminin": "Charge de recherche",
+   "libelle": "Chargé de recherche",
+   "feminin": "Chargé de recherche",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Production audiovisuelle",
@@ -7461,8 +7461,8 @@
    }
   },
   "CHE370": {
-   "libelle": "Chef ops / chef operateur prise de son",
-   "feminin": "Chef ops / chef operateur prise de son",
+   "libelle": "Chef ops / chef opérateur prise de son",
+   "feminin": "Chef ops / chef opérateur prise de son",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Production audiovisuelle",
@@ -7577,8 +7577,8 @@
    ]
   },
   "MET010": {
-   "libelle": "Metallier",
-   "feminin": "Metallier",
+   "libelle": "Métallier",
+   "feminin": "Métallier",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Production audiovisuelle",
@@ -7661,8 +7661,8 @@
    ]
   },
   "RES040": {
-   "libelle": "Responsable reperages",
-   "feminin": "Responsable reperages",
+   "libelle": "Responsable repérages",
+   "feminin": "Responsable repérages",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Production audiovisuelle",
@@ -7998,8 +7998,8 @@
    }
   },
   "ELE030": {
-   "libelle": "Electricien pupitreur",
-   "feminin": "Electricien pupitreur",
+   "libelle": "Électricien pupitreur",
+   "feminin": "Électricien pupitreur",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8478,8 +8478,8 @@
    }
   },
   "OPE360": {
-   "libelle": "Operateur de pad",
-   "feminin": "Operateur de pad",
+   "libelle": "Opérateur de pad",
+   "feminin": "Opérateur de pad",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8493,8 +8493,8 @@
    ]
   },
   "OPE370": {
-   "libelle": "Operateur bandes antenne",
-   "feminin": "Operateur bandes antenne",
+   "libelle": "Opérateur bandes antenne",
+   "feminin": "Opérateur bandes antenne",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8653,8 +8653,8 @@
    }
   },
   "OPE380": {
-   "libelle": "Operateur de reperage",
-   "feminin": "Operateur de reperage",
+   "libelle": "Opérateur de repérage",
+   "feminin": "Opérateur de repérage",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8668,8 +8668,8 @@
    ]
   },
   "OPE390": {
-   "libelle": "Operateur simulation",
-   "feminin": "Operateur simulation",
+   "libelle": "Opérateur simulation",
+   "feminin": "Opérateur simulation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8964,8 +8964,8 @@
    }
   },
   "TEC350": {
-   "libelle": "Technicien de scene",
-   "feminin": "Technicien de scene",
+   "libelle": "Technicien de scène",
+   "feminin": "Technicien de scène",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8979,8 +8979,8 @@
    ]
   },
   "ASS750": {
-   "libelle": "Assistant technicien de scene",
-   "feminin": "Assistant technicien de scene",
+   "libelle": "Assistant technicien de scène",
+   "feminin": "Assistant technicien de scène",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9045,8 +9045,8 @@
    }
   },
   "REG220": {
-   "libelle": "Regisseur de salle",
-   "feminin": "Regisseur de salle",
+   "libelle": "Régisseur de salle",
+   "feminin": "Régisseur de salle",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9090,8 +9090,8 @@
    ]
   },
   "AID030": {
-   "libelle": "Aide de scene",
-   "feminin": "Aide de scene",
+   "libelle": "Aide de scène",
+   "feminin": "Aide de scène",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9231,8 +9231,8 @@
    }
   },
   "PRO130": {
-   "libelle": "Programmeur lumiere",
-   "feminin": "Programmeur lumiere",
+   "libelle": "Programmeur lumière",
+   "feminin": "Programmeur lumière",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9246,8 +9246,8 @@
    ]
   },
   "ENC020": {
-   "libelle": "Encodeur lumiere",
-   "feminin": "Encodeur lumiere",
+   "libelle": "Encodeur lumière",
+   "feminin": "Encodeur lumière",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9396,8 +9396,8 @@
    ]
   },
   "TEC520": {
-   "libelle": "Technicien echafaudeur",
-   "feminin": "Technicien echafaudeur",
+   "libelle": "Technicien échafaudeur",
+   "feminin": "Technicien échafaudeur",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9495,8 +9495,8 @@
    ]
   },
   "PRO100": {
-   "libelle": "Programmeur multimedia",
-   "feminin": "Programmeur multimedia",
+   "libelle": "Programmeur multimédia",
+   "feminin": "Programmeur multimédia",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9510,8 +9510,8 @@
    ]
   },
   "ENC010": {
-   "libelle": "Encodeur multimedia",
-   "feminin": "Encodeur multimedia",
+   "libelle": "Encodeur multimédia",
+   "feminin": "Encodeur multimédia",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9774,8 +9774,8 @@
    }
   },
   "SUP110": {
-   "libelle": "Superviseur constructeur de decors",
-   "feminin": "Superviseur constructeur de decors",
+   "libelle": "Superviseur constructeur de décors",
+   "feminin": "Superviseur constructeur de décors",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9804,8 +9804,8 @@
    ]
   },
   "CON180": {
-   "libelle": "Concepteur technique decor",
-   "feminin": "Concepteur technique decor",
+   "libelle": "Concepteur technique décor",
+   "feminin": "Concepteur technique décor",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9988,8 +9988,8 @@
    }
   },
   "ASS550": {
-   "libelle": "Assistant constructeur de decors",
-   "feminin": "Assistant constructeur de decors",
+   "libelle": "Assistant constructeur de décors",
+   "feminin": "Assistant constructeur de décors",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -10542,8 +10542,8 @@
    ]
   },
   "CHE200": {
-   "libelle": "Chef eclairagiste",
-   "feminin": "Chef eclairagiste",
+   "libelle": "Chef éclairagiste",
+   "feminin": "Chef éclairagiste",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Télédiffusion",
@@ -10706,8 +10706,8 @@
    }
   },
   "DEC030": {
-   "libelle": "Decorateur ensemblier",
-   "feminin": "Decorateur ensemblier",
+   "libelle": "Décorateur ensemblier",
+   "feminin": "Décorateur ensemblier",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Télédiffusion",
@@ -10751,8 +10751,8 @@
    ]
   },
   "VID010": {
-   "libelle": "Videographiste",
-   "feminin": "Videographiste",
+   "libelle": "Vidéographiste",
+   "feminin": "Vidéographiste",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Télédiffusion",
@@ -10782,8 +10782,8 @@
    ]
   },
   "DES050": {
-   "libelle": "Dessinateur en generique",
-   "feminin": "Dessinateur en generique",
+   "libelle": "Dessinateur en générique",
+   "feminin": "Dessinateur en générique",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Télédiffusion",
@@ -11227,8 +11227,8 @@
    ]
   },
   "ETA040": {
-   "libelle": "Etalonneur numerique",
-   "feminin": "Etalonneur numerique",
+   "libelle": "Étalonneur numérique",
+   "feminin": "Étalonneur numérique",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11242,8 +11242,8 @@
    ]
   },
   "CHE650": {
-   "libelle": "Chef etalonneur numerique",
-   "feminin": "Chef etalonneur numerique",
+   "libelle": "Chef étalonneur numérique",
+   "feminin": "Chef étalonneur numérique",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11425,8 +11425,8 @@
    }
   },
   "VER010": {
-   "libelle": "Verificateur d'animation",
-   "feminin": "Verificateur d'animation",
+   "libelle": "Vérificateur d'animation",
+   "feminin": "Vérificateur d'animation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11440,8 +11440,8 @@
    ]
   },
   "CHE490": {
-   "libelle": "Chef verificateur d'animation",
-   "feminin": "Chef verificateur d'animation",
+   "libelle": "Chef vérificateur d'animation",
+   "feminin": "Chef vérificateur d'animation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11524,8 +11524,8 @@
    }
   },
   "DIR100": {
-   "libelle": "Directeur de modelisation",
-   "feminin": "Directeur de modelisation",
+   "libelle": "Directeur de modélisation",
+   "feminin": "Directeur de modélisation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11539,8 +11539,8 @@
    ]
   },
   "SUP020": {
-   "libelle": "Superviseur de modelisation",
-   "feminin": "Superviseur de modelisation",
+   "libelle": "Superviseur de modélisation",
+   "feminin": "Superviseur de modélisation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11587,8 +11587,8 @@
    }
   },
   "DIR200": {
-   "libelle": "Directeur rendu et eclairage",
-   "feminin": "Directeur rendu et eclairage",
+   "libelle": "Directeur rendu et éclairage",
+   "feminin": "Directeur rendu et éclairage",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11602,8 +11602,8 @@
    ]
   },
   "SUP040": {
-   "libelle": "Superviseur rendu et eclairage",
-   "feminin": "Superviseur rendu et eclairage",
+   "libelle": "Superviseur rendu et éclairage",
+   "feminin": "Superviseur rendu et éclairage",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11728,8 +11728,8 @@
    ]
   },
   "DEC070": {
-   "libelle": "Decorateur volume",
-   "feminin": "Decorateur volume",
+   "libelle": "Décorateur volume",
+   "feminin": "Décorateur volume",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11743,8 +11743,8 @@
    ]
   },
   "CHE160": {
-   "libelle": "Chef decorateur volume",
-   "feminin": "Chef decorateur volume",
+   "libelle": "Chef décorateur volume",
+   "feminin": "Chef décorateur volume",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11758,8 +11758,8 @@
    ]
   },
   "OPE330": {
-   "libelle": "Operateur volume",
-   "feminin": "Operateur volume",
+   "libelle": "Opérateur volume",
+   "feminin": "Opérateur volume",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11773,8 +11773,8 @@
    ]
   },
   "CHE400": {
-   "libelle": "Chef operateur volume",
-   "feminin": "Chef operateur volume",
+   "libelle": "Chef opérateur volume",
+   "feminin": "Chef opérateur volume",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -12502,8 +12502,8 @@
    }
   },
   "SCU030": {
-   "libelle": "Sculpteur decorateur",
-   "feminin": "Sculpteur decorateur",
+   "libelle": "Sculpteur décorateur",
+   "feminin": "Sculpteur décorateur",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Édition phonographique",
@@ -12520,8 +12520,8 @@
    }
   },
   "CHE450": {
-   "libelle": "Chef sculpteur decorateur",
-   "feminin": "Chef sculpteur decorateur",
+   "libelle": "Chef sculpteur décorateur",
+   "feminin": "Chef sculpteur décorateur",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Édition phonographique",
