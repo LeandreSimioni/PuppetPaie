@@ -361,7 +361,7 @@ pub fn preparer_avec(
         let email = s.get("email").filter(|v| vrai(v));
         let Some(email) = email else {
             return Err(format!(
-                "Pas d'adresse e-mail pour {} {} : completer config/salaries.json avant d'envoyer.",
+                "Pas d'adresse e-mail pour {} {} : saisir son courriel dans sa fiche, ou imprimer ses documents.",
                 texte("nom")?,
                 texte("prenom")?
             ));
