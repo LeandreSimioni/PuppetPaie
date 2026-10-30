@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 use moteur::interface::compagnies::ajouter_dans;
 use serde_json::{json, Value};
 
-use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, pdf, A};
+use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, page_aem, page_certificat, pdf, Aem, Certificat, A};
 use crate::outils::{dossier_de_test, fiche_au, lire, reussi};
 
 const JOUR: &str = "2026-10-03";
@@ -415,4 +415,174 @@ fn le_mois_saisi_puis_importe_declare_la_saisie_dans_la_dsn_suivante() {
     let p = &saisi["valide"]["paies"]["2026-11"];
     assert_eq!((&p["bulletin"], &p["rectifie"]), (&json!("2/2026"), &Value::Null), "{}", p);
     assert!(pdfs("sorties/2026-12").is_empty(), "{:?}", pdfs("sorties/2026-12"));
+}
+
+/// Le certificat Congés Spectacles d'un salarie du test (`identite_a` : le Siret de `Compagnie des Essais`) ; le NIR,
+/// le nom, l'emploi et le nombre de jours ou cachets lui sont propres, le contrat du 14 au 24/01/2026.
+fn certificat(nir: &'static str, nom: &'static str, emploi: &'static str, nombre: &'static str, brut: &'static str, barres: bool) -> Certificat {
+    Certificat {
+        siret: "99999999900017",
+        compte: "0000099999A",
+        numero: "1",
+        employeur: "COMPAGNIE DES ESSAIS",
+        nir,
+        nom,
+        prenom: "ESSAI",
+        adresse: ["3 impasse des Essais", "99999 VILLE FICTIVE"],
+        emploi,
+        cadre: false,
+        debut: "14/01/2026",
+        fin: "24/01/2026",
+        nombre,
+        base_conge: brut,
+        brut,
+        dates_a_barres: barres,
+    }
+}
+
+/// LES CERTIFICATS D'EMPLOI CONGES SPECTACLES A L'IMPORT (mise en page d'Audiens, dates `JJ MM AAAA` ou `JJ/MM/AAAA`).
+/// Seuls, ils creent les fiches et les contrats qu'ils attestent : le « NB JOURS OU CACHETS » compte des cachets pour un
+/// artiste, des jours pour un technicien (Unédic, circulaire 2016-25, l. 5802 : « le nombre de cachets pour les
+/// artistes ») ; le numero d'adherent de la compagnie (« COMPTE ») entre dans sa fiche. Avec les bulletins, ils
+/// confirment sans rien creer en double, et donnent le numero d'adherent que le bulletin n'imprime pas. Et deux salaries
+/// nouveaux payes aux memes dates gardent chacun le contrat de son bulletin.
+#[test]
+fn les_certificats_conges_spectacles_seuls_puis_avec_les_bulletins() {
+    let artiste = || certificat("288117599900146", "BRIOCHE", "ARTISTE DRAMATIQUE", "2", "590", false);
+    let regisseur = || certificat("185079999912388", "TARTEMPION", "REGISSEUR", "3", "468", true);
+
+    // Seuls.
+    let racine = neuve("certificats_seuls");
+    std::fs::create_dir_all(racine.join("import")).unwrap();
+    pdf(vec![page_certificat(&artiste()), page_certificat(&regisseur())], &racine.join("import/certificats.pdf"));
+    let r = reussi(&route(&racine, "importer", json!({"dossier": ""}))).clone();
+    assert_eq!(r["certificats"]["contrats_nouveaux"], json!(2), "{}", r["certificats"]);
+    assert_eq!(entreprise_lue(&racine)["congesspectacles_adherent"], json!("0000099999A"));
+    let salaries = salaries_lus(&racine);
+    let cle = |nir: &str| salaries.as_object().unwrap().iter().find(|(_, s)| s["nir"] == json!(nir)).map(|(k, _)| k.clone()).unwrap_or_else(|| panic!("{} sans fiche", nir));
+    let (a, t) = (cle("2881175999001"), cle("1850799999123"));
+    let contrats = contrats_importes(&racine);
+    assert_eq!(contrats.len(), 2, "{:?}", contrats);
+    for c in &contrats {
+        assert_eq!(c["atteste_par"], json!("certificat"));
+        assert_eq!((c["debut"].clone(), c["fin"].clone()), (json!("2026-01-14"), json!("2026-01-24")));
+        let attendu = if c["salarie"] == json!(a) { (2, 0, "590.00") } else { (0, 3, "468.00") };
+        assert!(c["salarie"] == json!(a) || c["salarie"] == json!(t), "{}", c);
+        assert_eq!((c["cachets"].as_i64().unwrap(), c["jours"].as_i64().unwrap(), c["brut"].as_str().unwrap()), attendu, "{}", c);
+    }
+    // Reimporte : rien de neuf.
+    reussi(&route(&racine, "importer", json!({"dossier": ""})));
+    assert_eq!(contrats_importes(&racine).len(), 2);
+
+    // Avec les bulletins : deux salaries aux memes dates, chacun son contrat ; les certificats n'ajoutent rien.
+    let racine = neuve("certificats_et_bulletins");
+    let import = racine.join("import");
+    std::fs::create_dir_all(&import).unwrap();
+    let mut second = a_repetitions();
+    second.id.nom = "TARTEMPION";
+    second.id.nir = "185079999912388";
+    second.id.code = "8";
+    pdf(vec![page_a(&a_repetitions())], &import.join("bulletin-1.pdf"));
+    pdf(vec![page_a(&second)], &import.join("bulletin-2.pdf"));
+    let mut c2 = artiste();
+    c2.nir = "185079999912388";
+    c2.nom = "TARTEMPION";
+    pdf(vec![page_certificat(&artiste()), page_certificat(&c2)], &import.join("certificats.pdf"));
+    let r = reussi(&route(&racine, "importer", json!({"dossier": ""}))).clone();
+    assert_eq!(r["certificats"]["contrats_nouveaux"], json!(0), "{}", r["certificats"]);
+    assert_eq!(r["certificats"]["confirmes"], json!(2), "{}", r["certificats"]);
+    let contrats = contrats_importes(&racine);
+    assert_eq!(contrats.len(), 2, "{:?}", contrats);
+    assert!(contrats.iter().all(|c| c["atteste_par"] == json!("bulletin")), "{:?}", contrats);
+    let salaries: BTreeSet<String> = contrats.iter().map(|c| c["salarie"].as_str().unwrap().to_string()).collect();
+    assert_eq!(salaries.len(), 2, "{:?}", contrats);
+    assert_eq!(salaries_lus(&racine).as_object().unwrap().len(), 2);
+    assert_eq!(entreprise_lue(&racine)["congesspectacles_adherent"], json!("0000099999A"));
+}
+
+/// L'AEM d'un salarie du test (`identite_a` : le Siret de `Compagnie des Essais`), janvier 2026, du 14 au 24.
+fn aem(nir: &'static str, nom: &'static str, artiste: bool, isoles: &'static str, jours: &'static str, brut: &'static str) -> Aem {
+    Aem {
+        mois: "01/2026",
+        numero: "AEM0001",
+        siret: "99999999900017",
+        ape: "9001Z",
+        idcc: "3090",
+        employeur: "COMPAGNIE DES ESSAIS",
+        employeur_code_postal: "99998",
+        employeur_commune: "NULLEPART",
+        adherent: "0000099999A",
+        nom,
+        prenom: "ESSAI",
+        nir,
+        naissance: "04/11/1988",
+        rue: "3 IMPASSE DES ESSAIS",
+        code_postal: "99999",
+        commune: "VILLE FICTIVE",
+        emploi: if artiste { "ARTISTE DRAMATIQUE" } else { "REGISSEUR" },
+        objet: "999Z99999901",
+        cadre: false,
+        artiste,
+        embauche: "14/01/2026",
+        fin: "24/01/2026",
+        heures: "",
+        isoles,
+        groupes: "",
+        jours,
+        brut,
+    }
+}
+
+/// LES AEM EN PDF A L'IMPORT (le formulaire des annexes 8 et 10, tel qu'un logiciel l'edite) : seules, elles creent les
+/// fiches (naissance comprise ; artiste par la case « Artiste », annexe 10, technicien par la case « Technicien »,
+/// annexe 8 : Unédic, circulaire 2016-25, l. 783 et 1846), le spectacle de leur numero d'objet et les contrats qu'elles
+/// attestent, avec leurs cachets et leurs jours a part et le brut au centime. Et LE CONTRAT QU'UN CERTIFICAT SEUL A FAIT
+/// ENTRER (sans heures, le brut arrondi a l'euro) s'efface devant celui du bulletin importe ensuite, aux memes dates.
+#[test]
+fn les_aem_en_pdf_seules_et_le_contrat_d_un_certificat_que_le_bulletin_remplace() {
+    // Les AEM seules.
+    let racine = neuve("aem_seules");
+    std::fs::create_dir_all(racine.join("import")).unwrap();
+    let artiste = aem("288117599900146", "BRIOCHE", true, "2", "2", "590,40");
+    let regisseur = aem("185079999912388", "TARTEMPION", false, "", "3", "468,15");
+    pdf(vec![page_aem(&artiste), page_aem(&regisseur)], &racine.join("import/aem.pdf"));
+    let r = reussi(&route(&racine, "importer", json!({"dossier": ""}))).clone();
+    assert_eq!(r["aem_pdf"]["contrats_nouveaux"], json!(2), "{}", r["aem_pdf"]);
+    assert_eq!(entreprise_lue(&racine)["congesspectacles_adherent"], json!("0000099999A"));
+    let salaries = salaries_lus(&racine);
+    let fiche = |nir: &str| salaries.as_object().unwrap().iter().find(|(_, s)| s["nir"] == json!(nir)).map(|(k, s)| (k.clone(), s.clone())).unwrap_or_else(|| panic!("{} sans fiche", nir));
+    let ((a, fa), (_, ft)) = (fiche("2881175999001"), fiche("1850799999123"));
+    assert_eq!((&fa["statut"], &fa["date_naissance"]), (&json!("artiste"), &json!("1988-11-04")), "{}", fa);
+    assert_eq!(ft["statut"], json!("technicien"), "{}", ft);
+    let spectacles = lire(&racine, "config/spectacles.json");
+    assert!(spectacles.to_string().contains("999Z99999901"), "{}", spectacles);
+    let contrats = contrats_importes(&racine);
+    assert_eq!(contrats.len(), 2, "{:?}", contrats);
+    for c in &contrats {
+        assert_eq!((&c["atteste_par"], &c["numero_objet"]), (&json!("AEM"), &json!("999Z99999901")), "{}", c);
+        assert_eq!((c["debut"].clone(), c["fin"].clone()), (json!("2026-01-14"), json!("2026-01-24")));
+        let attendu = if c["salarie"] == json!(a) { (0, 2, 2, "590.40") } else { (0, 0, 3, "468.15") };
+        let n = |k: &str| c[k].as_i64().unwrap();
+        assert_eq!((n("heures"), n("cachets"), n("jours"), c["brut"].as_str().unwrap()), attendu, "{}", c);
+    }
+    reussi(&route(&racine, "importer", json!({"dossier": ""})));
+    assert_eq!(contrats_importes(&racine).len(), 2);
+
+    // Le certificat d'abord, le bulletin ensuite : le contrat du bulletin remplace celui du certificat.
+    let racine = neuve("certificat_puis_bulletin");
+    let import = racine.join("import");
+    std::fs::create_dir_all(&import).unwrap();
+    pdf(vec![page_certificat(&certificat("288117599900146", "BRIOCHE", "ARTISTE DRAMATIQUE", "2", "590", false))], &import.join("certificat.pdf"));
+    reussi(&route(&racine, "importer", json!({"dossier": ""})));
+    let contrats = contrats_importes(&racine);
+    assert_eq!(contrats.iter().map(|c| c["atteste_par"].clone()).collect::<Vec<_>>(), vec![json!("certificat")], "{:?}", contrats);
+    std::fs::remove_file(import.join("certificat.pdf")).unwrap();
+    pdf(vec![page_a(&a_repetitions())], &import.join("bulletin.pdf"));
+    let r = reussi(&route(&racine, "importer", json!({"dossier": ""}))).clone();
+    assert_eq!(r["bulletins"]["contrats_nouveaux"], json!(1), "{}", r["bulletins"]);
+    let contrats = contrats_importes(&racine);
+    assert_eq!(contrats.len(), 1, "{:?}", contrats);
+    assert_eq!(contrats[0]["atteste_par"], json!("bulletin"), "{}", contrats[0]);
+    assert!(contrats[0]["heures"].as_i64().unwrap() > 0, "{}", contrats[0]);
+    assert_eq!(engagement::importe::tous(&racine).unwrap().len(), 1, "un engagement, pas deux");
 }

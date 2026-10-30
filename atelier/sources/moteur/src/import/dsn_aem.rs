@@ -630,6 +630,16 @@ pub(crate) struct ContratAtteste {
     pub(crate) fichier: String,
 }
 
+/// Le contrat atteste, tel qu'un engagement importe le porte (`salarie` : la cle de sa fiche).
+pub(crate) fn ligne_du_contrat(c: &ContratAtteste, salarie: &str) -> serde_json::Value {
+    serde_json::json!({
+        "salarie": salarie, "debut": c.debut.iso(), "fin": c.fin.iso(), "numero_objet": c.numero_objet,
+        "heures": c.heures as i64, "cachets": c.cachets as i64, "jours": c.jours as i64, "brut": c.brut,
+        "atteste_par": "AEM", "numero_attestation": c.numero_attestation,
+        "atteste_le": c.date_attestation, "fichier": c.fichier,
+    })
+}
+
 /// Tous les contrats attestes d'un dossier AEM_EDI, dedoublonnes, et les
 /// fichiers ou enregistrements illisibles. Un `InvalidOperation` (un brut qui n'est pas un nombre)
 /// n'est pas rattrape.
