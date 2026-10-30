@@ -1411,7 +1411,12 @@ const CHAMPS_DU_METIER = ["emploi_affichage", "emploi", "pcs_ese", "code_emploi_
 function demanderDateDEffet(changements, propose, pourquoi) {
   const metier = changements.filter((c) => CHAMPS_DU_METIER.includes(c.champ));
   const autres = changements.filter((c) => !CHAMPS_DU_METIER.includes(c.champ));
-  const lisible = (c, cote) => valeurLisible(c[cote + "_lisible"] ?? c[cote]);
+  // Une case à choix se dit par le libellé que la fiche montre (« Régisseur de théâtre »), pas par son code.
+  const lisible = (c, cote) => {
+    const v = c[cote + "_lisible"] ?? c[cote];
+    const nom = (LIBELLES_CHOIX[c.champ] || {})[String(v ?? "")];
+    return nom && String(v ?? "") ? nom : valeurLisible(v);
+  };
   const ligne = (titre, avant, apres, detail = "") => `<div class="changement">
       <div class="changement-titre">${echapper(titre)}</div>
       <div class="changement-valeurs">
