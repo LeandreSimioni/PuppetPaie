@@ -869,7 +869,7 @@ fn signables(ctx: &Contexte, mois: &str) -> R<Vec<Signable>> {
                     nom: valeur_en_texte(&x["nom"]),
                     courriel: x.get("destinataire").is_some_and(vrai),
                     numero: valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"])),
-                    a_envoyer: x.get("a_envoyer").is_some_and(vrai),
+                    a_envoyer: x.get("a_envoyer").is_some_and(vrai) && !x.get("en_avenant").is_some_and(vrai),
                 })
                 .collect()
         })
