@@ -5,7 +5,7 @@
 use serde_json::json;
 
 use crate::outils::rejeu::{rejouer_dossier, scenario};
-use crate::outils::{dossier_de_test, reussi, route};
+use crate::outils::{dossier_de_test, reussi, route, valider_la_carte};
 
 #[test]
 fn la_case_de_la_dsn_ecrite_ouvre_son_recapitulatif() {
@@ -17,7 +17,7 @@ fn la_case_de_la_dsn_ecrite_ouvre_son_recapitulatif() {
     std::fs::write(sc.join("gestes.jsonl"), debut.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
     let jour = "2026-12-01";
-    reussi(&route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20"}), jour));
+    reussi(&valider_la_carte(&c, "2026-11", "FULLER", jour));
     reussi(&route(&c, "dsn-a-deposer", json!({"mois": "2026-11"}), jour));
 
     let e = route(&c, "etat-du-mois", json!({"mois": "2026-11"}), jour);

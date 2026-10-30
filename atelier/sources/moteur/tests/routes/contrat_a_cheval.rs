@@ -60,18 +60,17 @@ fn des_heures_a_cheval_se_disent_sur_la_carte_de_leur_mois() {
     let s = crate::outils::saisie(&c, "2026-11");
     let spectacle = s["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").unwrap()["spectacle"].clone();
     let regie = json!({"salarie": "FULLER", "spectacle": spectacle, "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 19, "dates": ["2026-11-29", "2026-11-30"], "planning": ["2026-12-01"]}]});
-    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": {"engagements": [regie]}}), jour));
-    let rang = crate::outils::saisie(&c, "2026-11")["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "FULLER" && e["valide"].is_null()).unwrap();
-    let valider = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-29", "numero": "", "rang": rang});
+    let place = reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": regie}), jour))["place"].clone();
+    let valider = json!({"mois": "2026-11", "place": place, "saisie": regie});
 
     let (_, refus) = crate::outils::refus(&route(&c, "valider-engagement", valider.clone(), jour));
     assert!(refus.contains("01/12/2026") && refus.contains("carte de décembre 2026"), "le refus ne dit ni le jour ni la carte : {}", refus);
 
-    let mut decembre = crate::outils::saisie(&c, "2026-12");
-    for e in decembre["engagements"].as_array_mut().unwrap().iter_mut().filter(|e| e["salarie"] == "FULLER" && e["debut"] == "2026-11-29") {
-        e["lignes"][0]["quantite"] = json!(8);
-    }
-    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-12", "saisie": decembre}), jour));
+    let decembre = engagement::stock::vue_a_l_ecran(&c, "2026-12").unwrap().unwrap();
+    let k = decembre["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "FULLER" && e["debut"] == "2026-11-29").unwrap();
+    let mut carte = decembre["engagements"][k].clone();
+    carte["lignes"][0]["quantite"] = json!(8);
+    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-12", "place": k, "saisie": carte}), jour));
     assert!(reussi(&route(&c, "valider-engagement", valider, jour))["valide"].is_string());
     let heures = |mois: &str| -> Vec<Value> {
         let a = route(&c, "apercu", json!({"mois": mois}), jour);

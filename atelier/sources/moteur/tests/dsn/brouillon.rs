@@ -5,7 +5,7 @@
 use serde_json::json;
 
 use crate::outils::rejeu::{rejouer_dossier, scenario};
-use crate::outils::{dossier_de_test, individu, reussi, route, saisie, valeur};
+use crate::outils::{dossier_de_test, individu, reussi, route, saisie, valeur, valider_la_carte};
 
 #[test]
 fn un_engagement_en_saisie_ne_change_pas_la_dsn() {
@@ -17,20 +17,20 @@ fn un_engagement_en_saisie_ne_change_pas_la_dsn() {
     std::fs::write(sc.join("gestes.jsonl"), debut.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
     let jour = "2026-12-01";
-    reussi(&route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20"}), jour));
+    reussi(&valider_la_carte(&c, "2026-11", "FULLER", jour));
     let dsn = || {
         let r = route(&c, "dsn-a-deposer", json!({"mois": "2026-11"}), jour);
         std::fs::read_to_string(reussi(&r)["chemin"].as_str().unwrap()).unwrap()
     };
     let seule = dsn();
 
-    let mut s = saisie(&c, "2026-11");
+    let s = saisie(&c, "2026-11");
     let spectacle = s["engagements"][0]["spectacle"].clone();
-    s["engagements"].as_array_mut().unwrap().push(json!({
+    let nouveau = json!({
         "salarie": "FULLER", "spectacle": spectacle, "metier": "ACC010",
         "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}],
-    }));
-    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": s}), jour));
+    });
+    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": nouveau}), jour));
     let avec = dsn();
 
     let emploi = |texte: &str| valeur(&individu(texte, "FULLER"), "S21.G00.40.036");

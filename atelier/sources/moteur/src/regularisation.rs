@@ -207,13 +207,6 @@ fn mois_des_bornes(b: &Bornes) -> R<Vec<String>> {
 
 // ------------------------------------------------- modifier la paie d'un mois deja declare
 
-/// LA PAIE D'UN MOIS DEJA DECLARE SE MODIFIE EN LE SACHANT. La cle de la charge qui confirme, pour
-/// `enregistrer-saisie` (et toute route qui ecrit la saisie d'un mois, `crate::routes::mois::ecrire_saisie_confirmee`).
-pub const CONFIRMATION: &str = "modifier_apres_echeance";
-
-/// La classe du refus : la page la reconnait et montre l'avertissement, avec « Modifier quand meme » et « Annuler ».
-pub const CLASSE_A_CONFIRMER: &str = "ModificationApresEcheance";
-
 /// La classe du refus de ce qui ne se declare pas apres la limite (`refus_non_declarable`) : la page le dit et recharge
 /// la saisie enregistree.
 pub const CLASSE_NON_DECLARABLE: &str = "ModificationNonDeclarable";
@@ -228,8 +221,8 @@ pub(crate) fn de_mois_en_clair(mois: &str) -> String {
     envois::envoi::de_mois(&mois_en_clair(mois))
 }
 
-/// Ce que la page dit d'un mois dont la DSN reelle est deposee, avant qu'on en modifie la paie (`saisie`,
-/// `enregistrer-saisie`) ; `Null` quand aucune DSN reelle acceptee n'est partie.
+/// Ce que la page dit d'un mois dont la DSN reelle est deposee, avant qu'on en modifie un engagement (`saisie`,
+/// `modifier-engagement`) ; `Null` quand aucune DSN reelle acceptee n'est partie.
 ///
 /// * tant que l'annule-et-remplace est admis (jusqu'a la veille de l'echeance, minuit) : une phrase, rien a confirmer ;
 /// * apres : `confirmer`, et l'avertissement que la page montre a la premiere modification. Il dit ce qui est VRAI : la DSN

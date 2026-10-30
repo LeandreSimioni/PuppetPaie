@@ -766,7 +766,8 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
   div.dataset.numeroDe = e.numero ? (e.salarie || "") : "";
   const mois = document.getElementById("mois").value;
   if (e.debut && mois && e.debut.slice(0, 7) < mois) div.classList.add("en-cours");
-  if (e.rangs) div.dataset.rangs = e.rangs.join(",");
+  // Sa place dans l'écran du mois, que le moteur a rendue : ce qui la désigne quand elle s'écrit.
+  if (e.rangs) { div.dataset.rangs = e.rangs.join(","); div.dataset.place = String(e.rangs[0]); }
   if (fermee && e.rangs) return div;
   construireCarte(div, e);
   return div;
@@ -778,13 +779,12 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
 function ouvrirCarte(div) {
   if (!carteFermee(div)) return;
   const lus = engagementsLus(div);
-  const intacte = DERNIERE_ECRITE !== null && JSON.stringify(saisieCourante()) === DERNIERE_ECRITE;
   construireCarte(div, { ...(lus[0] || {}), salaries: lus.map((x) => x.salarie) });
   if (div._paies) peindreChiffres(div, div._total);
   // Les cases du contrat écrit que le moteur a demandées pour cet engagement, au dernier aperçu.
   const p = (div._paies || [])[0];
   montrerEcrit(div, p && p.contrat ? p.contrat.ecrits : div._ecrits);
-  if (intacte) DERNIERE_ECRITE = JSON.stringify(saisieCourante());
+  marquerEcrite(div);
 }
 
 /** Le salarié d'une carte, à choisir dans la liste commune (un bouton radio par carte), choisi pour `voulus`,

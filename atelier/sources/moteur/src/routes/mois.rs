@@ -15,7 +15,7 @@
 
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
@@ -1785,26 +1785,21 @@ pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) 
     Ok(())
 }
 
+/// « ENREGISTRE » : la carte d'un engagement en saisie s'ecrit, et elle seule (`ecrire_une_carte`). Charge : `mois`,
+/// `saisie` (ce que la carte ecrit pour `mois`), `place` (sa place dans l'ecran du mois, que la route `saisie` a rendue,
+/// ou celle que cette route a rendue a la premiere ecriture ; absente, l'engagement est neuf). Rend `place`,
+/// `a_completer` (ce qui lui manque encore, `null` : rien) et `enregistre_a`.
 fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
-    let confirme = charge.get(crate::regularisation::CONFIRMATION).is_some_and(vrai);
-    let Value::Object(brute) = exiger(charge, "saisie")? else {
-        return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
-    };
-    let p = ecrire_saisie_confirmee(ctx, mois, brute, confirme)?;
-    // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`crate::regularisation::modification_de_la_paie`).
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
-    let dsn = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
-    // Ce qui manque encore, engagement par engagement, dans l'ordre de l'ecran (`null` : rien).
-    let a_completer: Vec<Value> = engagement::stock::vue_a_l_ecran(&ctx.racine, mois)
+    let _verrou = avant_d_ecrire(ctx, mois)?;
+    let place = ecrire_une_carte(ctx, mois, charge)?;
+    let a_completer = engagement::stock::objets_a_l_ecran(&ctx.racine, mois)
         .map_err(Echec::from)?
-        .and_then(|v| v.get("engagements").and_then(Value::as_array).cloned())
-        .unwrap_or_default()
-        .iter()
-        .map(|e| e.get(engagement::stock::A_COMPLETER).cloned().unwrap_or(Value::Null))
-        .collect();
+        .get(place)
+        .and_then(|o| o.a_completer())
+        .map_or(Value::Null, Value::String);
     // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
-    Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant(), "a_completer": a_completer}))
+    Ok(json!({"place": place, "a_completer": a_completer, "enregistre_a": maintenant()}))
 }
 
 /// AVANT TOUTE ECRITURE D'UN ENGAGEMENT (saisir, valider, modifier, retirer) : une ecriture a la fois (la fenetre sert
@@ -1821,55 +1816,28 @@ pub(crate) fn avant_d_ecrire(ctx: &Contexte, mois: &str) -> R<std::sync::MutexGu
     Ok(verrou)
 }
 
-/// LA SAISIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE : une ecriture qui en change la paie
-/// (`crate::routes::etapes::empreinte_de` : ni la validation ni ce que le moteur tient seul) se refuse sans `confirme`
-/// (`crate::regularisation::CONFIRMATION` dans la charge), sous `CLASSE_A_CONFIRMER`, avec l'avertissement que la page
-/// montre ; rien n'est ecrit. Avec, elle s'ecrit ; revalide, l'engagement fait partir sa correction dans la DSN d'un
-/// mois suivant (`produire_regularisations::corrections_dues`).
-pub(crate) fn ecrire_saisie_confirmee(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
-    let _verrou = avant_d_ecrire(ctx, mois)?;
-    ecrire_saisie_seule(ctx, mois, brute, confirme)
-}
-
-/// `ecrire_saisie_confirmee`, la seule ecriture en cours.
-fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
-    let mut donnees = brute.clone();
-    donnees.insert("mois".into(), Value::String(mois.to_string()));
-    let donnees = Value::Object(donnees);
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
-    let declaree = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
-    let a_confirmer = declaree.get("confirmer").is_some_and(vrai);
-    // Ce qui manque a chaque engagement pour se calculer : il s'ecrit avec, et seule sa validation refuse.
-    let manques = manques_de_la_saisie(ctx, &donnees);
-    if a_confirmer {
-        // Ce qui change LA PAIE (`sans_bruit`) ; un mois sans saisie n'a rien de declare a changer.
-        let actuelle = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(plain)?;
-        let change = actuelle.as_ref().is_some_and(|a| crate::routes::etapes::empreinte_de(a) != crate::routes::etapes::empreinte_de(&donnees));
-        // Ce que la norme ne permet pas de declarer apres la limite (un contrat declare retire, ses dates changees) se
-        // refuse, confirme ou non : accepte, il ne serait jamais declare (`crate::regularisation::refus_non_declarable`).
-        if change {
-            let base = crate::regularisation::saisie_declaree(ctx, mois)?.or_else(|| actuelle.clone());
-            if let Some(base) = base {
-                if let Some(texte) = crate::regularisation::refus_non_declarable(ctx, mois, &base, &donnees)? {
-                    return Err(erreur(crate::regularisation::CLASSE_NON_DECLARABLE, texte));
-                }
-            }
-        }
-        if change && !confirme {
-            let texte = declaree.get("avertissement").map(valeur_en_texte).unwrap_or_default();
-            return Err(erreur(crate::regularisation::CLASSE_A_CONFIRMER, texte));
-        }
-    }
-    engagement::stock::ecrire_vue_du_mois(ctx, mois, &donnees, &manques).map_err(|m| {
-        if manques.iter().flatten().any(|x| *x == m) {
-            refus_du_calcul(ctx, &donnees, m)
-        } else {
-            erreur("ErreurOperation", m)
-        }
-    })?;
+/// LA CARTE D'UN ENGAGEMENT EN SAISIE, ECRITE (`engagement::stock::ecrire_la_carte`) : `saisie` et `place` de la
+/// charge. Un mois sans fichier le prend avec ce qu'il dit par defaut (`squelette` : le cachet et la date de paiement
+/// du mois). Ce qui manque a chaque engagement du mois se note ensuite (`noter_les_manques`) : seule la validation
+/// refuse. Rend la place de l'engagement ecrit. L'appelant tient le verrou (`avant_d_ecrire`).
+pub(crate) fn ecrire_une_carte(ctx: &Contexte, mois: &str, charge: &Value) -> R<usize> {
+    let Some(Value::Object(saisie)) = charge.get("saisie") else {
+        return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
+    };
+    let place = match charge.get("place").filter(|v| !v.is_null()) {
+        None => None,
+        Some(v) => Some(v.as_u64().ok_or_else(|| erreur("TypeError", "`place` : un entier est attendu"))? as usize),
+    };
+    let mut defauts = match squelette(ctx, mois)? {
+        Value::Object(m) => m,
+        _ => Map::new(),
+    };
+    defauts.remove("engagements");
+    let place = engagement::stock::ecrire_la_carte(ctx, mois, place, saisie, &defauts).map_err(|m| erreur("ErreurOperation", m))?;
+    noter_les_manques(ctx, mois)?;
     // UN MOIS FAIT EN DEMO, retravaille dans la compagnie gardee : il cesse d'etre « de demo » (`suppression::sortir_de_la_demo`).
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
-    Ok(engagement::stock::chemin(&ctx.racine, mois))
+    Ok(place)
 }
 
 /// CE QUI MANQUE A CHAQUE ENGAGEMENT DE LA SAISIE `data` pour se calculer, dans son ordre (`None` : rien). Une saisie
@@ -1897,10 +1865,17 @@ pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &Value) -> Vec<Option<S
     manques
 }
 
-/// CE QUI MANQUAIT, RELU APRES UNE ECRITURE : un fait se complete aussi hors de la saisie (la sante sur la fiche, le
+/// CE QUI MANQUE AUX ENGAGEMENTS DE L'ECRAN DE `mois`, calcule sous `ctx` et pose sur chacun qui n'est pas valide
+/// (`engagement::stock::noter_les_manques`) : seul celui dont ce qui manque change se reecrit.
+fn noter_les_manques(ctx: &Contexte, mois: &str) -> R<()> {
+    let Some(vue) = engagement::stock::vue_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)? else { return Ok(()) };
+    let manques = manques_de_la_saisie(ctx, &vue);
+    engagement::stock::noter_les_manques(&ctx.racine, mois, &manques).map_err(plain)
+}
+
+/// CE QUI MANQUAIT, RELU APRES UNE ECRITURE : un fait se complete aussi hors de la carte (la sante sur la fiche, le
 /// contrat de prevoyance de l'entreprise). Chaque mois ou un engagement attend un fait (`engagement::stock::A_COMPLETER`)
-/// se recalcule sous la configuration de ce mois ; ce qui manque se reecrit s'il a change. Rien d'autre ne change : la
-/// saisie reecrite est celle que l'ecran montre. Sans engagement qui attend, rien ne se calcule.
+/// se recalcule sous la configuration de ce mois (`noter_les_manques`). Sans engagement qui attend, rien ne se calcule.
 pub(crate) fn relire_les_manques(base: &Contexte) -> R<()> {
     let mut mois: Vec<String> = engagement::stock::objets(&base.racine)
         .map_err(Echec::from)?
@@ -1911,18 +1886,7 @@ pub(crate) fn relire_les_manques(base: &Contexte) -> R<()> {
     mois.sort();
     mois.dedup();
     for m in mois {
-        let ctx = base.du_mois(&m)?;
-        let Some(vue) = engagement::stock::vue_a_l_ecran(&ctx.racine, &m).map_err(Echec::from)? else { continue };
-        let dits: Vec<Option<String>> = vue["engagements"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .map(|e| e.get(engagement::stock::A_COMPLETER).and_then(Value::as_str).map(String::from))
-            .collect();
-        let manques = manques_de_la_saisie(&ctx, &vue);
-        if manques != dits {
-            engagement::stock::ecrire_vue_du_mois(&ctx, &m, &vue, &manques).map_err(plain)?;
-        }
+        noter_les_manques(&base.du_mois(&m)?, &m)?;
     }
     Ok(())
 }

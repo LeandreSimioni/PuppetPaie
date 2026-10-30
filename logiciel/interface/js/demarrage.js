@@ -115,7 +115,7 @@ async function rafraichirOuverture() {
   dessinerConseils(conseilsDe(o));
   if (!ETAT.commencer_par_l_import) rafraichirRappels((r) => lectureDe(o, r));
   const intact = MOIS_AFFICHE === OUVERTURE.mois && DEMANDE_MOIS === OUVERTURE.mois
-    && JSON.stringify(saisieCourante()) === DERNIERE_ECRITE;
+    && toutEstEcrit();
   if (o.mois !== OUVERTURE.mois && intact) allerAuMois(o.mois);
   OUVERTURE = { mois: o.mois };
 }
@@ -178,9 +178,7 @@ function fenetreNative() {
 async function avantDeQuitter() {
   clearTimeout(MINUTEUR_SAISIE);
   await enregistrerSaisie(false);
-  const s = saisieCourante();
-  const ecrivable = !!s.mois;
-  return !(ecrivable && JSON.stringify(s) !== DERNIERE_ECRITE);
+  return toutEstEcrit();
 }
 window.avantDeQuitter = avantDeQuitter;
 function boutonAccueil(api) {

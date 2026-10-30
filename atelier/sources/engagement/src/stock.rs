@@ -11,8 +11,8 @@
 //! dit. Le salarie, les bornes et le numero du contrat sont ceux de l'engagement (`PARTAGES`), dans tous ses mois.
 //!
 //! LE MOIS DE L'ECRAN (`vue_du_mois`) montre les engagements qui le touchent : ceux de son fichier, et ceux des fichiers
-//! d'avant qui courent encore. C'est ce que la saisie d'un mois a toujours ete (`{"mois", "engagements": [...]}`), et
-//! ce que les calculs lisent ; l'ecran l'ecrit en entier (`ecrire_vue_du_mois`), et chaque engagement y retrouve le sien.
+//! d'avant qui courent encore (`{"mois", "engagements": [...]}`) : ce que les calculs lisent. Une carte de l'ecran
+//! ecrit son engagement, et lui seul (`ecrire_la_carte`).
 //!
 //! L'identite d'un engagement : son salarie et son premier jour, et son numero de contrat quand il est pose, ou son rang
 //! parmi ceux du meme salarie et du meme jour (`droit::jumeaux`).
@@ -675,190 +675,112 @@ pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
 
 // ------------------------------------------------------------------ l'ecriture
 
-/// L'identite d'un engagement brut du mois : (cle du salarie, premier jour, numero pose), `None` s'il ne nomme aucune
-/// fiche.
-fn identite(ctx: &Contexte, e: &Value) -> Option<droit::jumeaux::Ident> {
-    let cle = crate::cle_de_l_engagement(ctx, e)?;
-    Some((cle, crate::debut_brut(e), droit::jumeaux::numero_pose(e)))
-}
-
-/// Les engagements de l'ecran de `mois` (`vue`, la saisie entiere du mois), rendus a leurs objets : chacun retrouve le
-/// sien (`droit::jumeaux::apparier_meme_numero`, puis, pour qui reste, le meme salarie pas encore valide, dans l'ordre), un nouveau
-/// commence dans le fichier du mois, un engagement que l'ecran ne montre plus et qui commencait ce mois-ci s'efface.
+/// L'ECRITURE D'UNE CARTE : l'engagement en saisie que l'ecran de `mois` montre a la place `place`
+/// (`objets_a_l_ecran`) prend `saisie`, ce que sa carte ecrit pour `mois` ; sans place, l'engagement est neuf et commence
+/// dans le fichier du mois (le fichier se cree avec ce que le mois dit par defaut, `defauts`). C'est la seule ecriture
+/// qui cree un engagement. Rend la place de l'engagement ecrit dans l'ecran de `mois`.
 ///
-/// UN ENGAGEMENT VALIDE NE CHANGE PAS PAR CE CHEMIN : il se modifie d'un geste, remis en saisie (`etats::modifier`) puis
-/// sa saisie posee (`poser_la_saisie`) et revalide ; ce que l'ecran envoie pour lui ne compte pas, et il ne s'efface pas. Ce que l'ecran envoie de
-/// `valide` ne compte jamais.
-///
-/// `manques` : pour chaque engagement de la vue, dans son ordre, ce qui lui manque pour se calculer (`None` : rien) ;
-/// l'engagement s'ecrit avec (`A_COMPLETER`). Un engagement complet en `mois` perd ce que `mois` lui faisait manquer.
-///
-/// Refus, et rien n'est ecrit : un engagement dont les nouvelles bornes laisseraient hors du contrat un mois ou il a des
-/// jours payes ; un engagement du salarie et du premier jour d'un engagement importe qui touche `mois` (il se lit, il ne
-/// se reecrit pas ni ne se double).
-pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Option<String>]) -> Resultat<Vec<PathBuf>> {
+/// Ce que le moteur tient seul ne se prend pas de la saisie ; le numero du contrat et le nom du spectacle ecrits se
+/// gardent (`poser_sur`). Refus, et rien n'est ecrit : un engagement valide (il se modifie d'un geste,
+/// `etats::modifier`), une place que l'ecran ne montre pas, un engagement du salarie et du premier jour d'un engagement
+/// importe, des bornes qui laisseraient hors du contrat un mois ou il a des jours payes, un engagement neuf que l'ecran
+/// de `mois` ne montrerait pas.
+pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, place: Option<usize>, saisie: &Map<String, Value>, defauts: &Map<String, Value>) -> Resultat<usize> {
     let racine = &ctx.racine;
-    let entrants: Vec<Value> = vue.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    for e in &entrants {
-        let Some(cle) = crate::cle_de_l_engagement(ctx, e) else { continue };
-        let debut = crate::debut_brut(e);
+    let e = Value::Object(saisie.clone());
+    if let Some(cle) = crate::cle_de_l_engagement(ctx, &e) {
+        let debut = crate::debut_brut(&e);
         if crate::importe::celui_de(racine, mois, &cle, &debut)?.is_some() {
             return Err(crate::importe::refus(&e.get("salarie").map(en_texte).unwrap_or(cle), &debut));
         }
     }
-    let mut tous = objets(racine)?;
-    // Les engagements que le mois montre, par leur place dans `tous`.
-    let mut du_mois: Vec<usize> = Vec::new();
-    for (i, o) in tous.iter().enumerate() {
-        if o.fichier.as_str() <= mois && o.a_l_ecran(mois)? {
-            du_mois.push(i);
-        }
-    }
-    // Telles que l'ecran les montre : c'est elles qu'il renvoie.
-    let vues_actuelles: Vec<Value> =
-        du_mois.iter().map(|i| tous[*i].vue(mois).map(|v| Value::Object(v.unwrap_or_default()))).collect::<Resultat<_>>()?;
-    let ids_entrants: Vec<Option<droit::jumeaux::Ident>> = entrants.iter().map(|e| identite(ctx, e)).collect();
-    let ids_actuels: Vec<Option<droit::jumeaux::Ident>> = vues_actuelles.iter().map(|e| identite(ctx, e)).collect();
-    let mut paires = droit::jumeaux::apparier_meme_numero(&ids_entrants, &ids_actuels);
-    // Le meme salarie, dont les dates ont change et qui n'a pas de numero : dans l'ordre, un a un. Jamais un engagement
-    // valide : ses dates ne changent pas par ce chemin, l'ecran le renvoie tel qu'il le montre ; un engagement du meme
-    // salarie a d'autres dates est un autre engagement (un cachet a cote d'un CDD), qui s'ecrit.
-    let mut pris: Vec<bool> = vec![false; ids_actuels.len()];
-    for j in paires.iter().flatten() {
-        pris[*j] = true;
-    }
-    let valides: Vec<bool> = du_mois.iter().map(|i| tous[*i].est_valide()).collect();
-    for (i, p) in paires.iter_mut().enumerate() {
-        if p.is_some() {
-            continue;
-        }
-        let Some(x) = &ids_entrants[i] else { continue };
-        if let Some(j) = (0..ids_actuels.len())
-            .find(|j| !pris[*j] && !valides[*j] && ids_actuels[*j].as_ref().is_some_and(|y| y.0 == x.0 && (x.2.is_none() || y.2.is_none())))
-        {
-            *p = Some(j);
-            pris[j] = true;
-        }
-    }
-    // Le meme numero sous un autre salarie : le meme engagement, dont le salarie a change (`numeros` dit s'il garde son
-    // numero).
-    for (i, p) in paires.iter_mut().enumerate() {
-        let Some(n) = ids_entrants[i].as_ref().and_then(|x| x.2.as_ref()).filter(|_| p.is_none()) else { continue };
-        if let Some(j) = (0..ids_actuels.len()).find(|j| !pris[*j] && ids_actuels[*j].as_ref().is_some_and(|y| y.2.as_ref() == Some(n))) {
-            *p = Some(j);
-            pris[j] = true;
-        }
-    }
-    let mut touches: Vec<String> = vec![mois.to_string()];
-    let mut nouveaux: Vec<Map<String, Value>> = Vec::new();
-    for (i, e) in entrants.iter().enumerate() {
-        let Value::Object(e) = e else { continue };
-        let mut saisie = e.clone();
-        for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
-            saisie.remove(*k);
-        }
-        match paires[i] {
-            Some(j) => {
-                let o = &mut tous[du_mois[j]];
-                if o.est_valide() {
-                    continue;
-                }
-                if !saisie.get("numero").is_some_and(vrai) {
-                    if let Some(n) = o.brut.get("numero").filter(|n| vrai(n)).cloned() {
-                        saisie.insert("numero".into(), n);
-                    }
-                }
-                // Un spectacle se nomme par la cle de sa fiche, son titre ou son numero d'objet : le meme, sous un autre
-                // nom, garde celui qui est ecrit.
-                if let Some(ecrit) = vues_actuelles[j].get("spectacle").filter(|s| vrai(s)) {
-                    if saisie.get("spectacle").is_some_and(|s| s != ecrit && meme_spectacle(ctx, s, ecrit)) {
-                        saisie.insert("spectacle".into(), ecrit.clone());
-                    }
-                }
-                match manques.get(i).cloned().flatten() {
-                    Some(m) => {
-                        poser_le_mois(o, mois, &saisie)?;
-                        o.brut.insert(A_COMPLETER.into(), serde_json::json!({ "mois": mois, "manque": m }));
-                    }
-                    None => {
-                        poser_le_mois(o, mois, &saisie)?;
-                        if o.brut.get(A_COMPLETER).and_then(|a| a.get("mois")).and_then(Value::as_str).is_none_or(|m| m == mois) {
-                            o.brut.remove(A_COMPLETER);
-                        }
-                    }
-                }
-                touches.push(o.fichier.clone());
+    let (fichier, rang) = match place {
+        Some(k) => {
+            let mut o = objets_a_l_ecran(racine, mois)?.into_iter().nth(k).ok_or_else(|| {
+                format!("{} : l'écran ne montre pas d'engagement à la place {} ; rechargez le mois. Rien n'est écrit.", crate::libelle_mois(mois), k + 1)
+            })?;
+            if o.est_valide() {
+                return Err(format!("{} : cet engagement est validé, il se modifie d'un geste. Rien n'est écrit.", crate::libelle_mois(mois)));
             }
-            None => {
-                if let Some(m) = manques.get(i).cloned().flatten() {
-                    saisie.insert(A_COMPLETER.into(), serde_json::json!({ "mois": mois, "manque": m }));
-                }
-                nouveaux.push(saisie)
+            poser_sur(ctx, &mut o, mois, saisie)?;
+            let p = chemin(racine, &o.fichier);
+            sauver_avant(&p)?;
+            reecrire(racine, &o)?;
+            (o.fichier, o.rang)
+        }
+        None => {
+            let mut saisie = saisie.clone();
+            for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
+                saisie.remove(*k);
             }
+            let p = chemin(racine, mois);
+            let mut contenu = match lire_fichier(racine, mois)? {
+                Some(c) => c,
+                None => defauts.clone(),
+            };
+            contenu.insert("mois".into(), Value::String(mois.to_string()));
+            let es = contenu.entry("engagements").or_insert_with(|| Value::Array(Vec::new()));
+            let Value::Array(es) = es else { return Err(format!("{} : `engagements` n'est pas une liste", mois)) };
+            let rang = es.len();
+            es.push(Value::Object(saisie));
+            if let Some(d) = p.parent() {
+                std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
+            }
+            sauver_avant(&p)?;
+            socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
+            (mois.to_string(), rang)
         }
-    }
-    // Ce que l'ecran ne montre plus : un engagement de ce mois-ci, pas encore valide, s'efface ; un engagement d'un
-    // mois d'avant revient a ce que ses mois d'avant reconduisent.
-    let mut effaces: Vec<(String, usize)> = Vec::new();
-    for (j, i) in du_mois.iter().enumerate() {
-        if pris[j] || paires.contains(&Some(j)) {
-            continue;
-        }
-        let o = &mut tous[*i];
+    };
+    objets_a_l_ecran(racine, mois)?
+        .iter()
+        .position(|o| o.fichier == fichier && o.rang == rang)
+        .ok_or_else(|| format!("{} : l'engagement écrit ne tombe pas dans ce mois (ses dates le placent ailleurs).", crate::libelle_mois(mois)))
+}
+
+/// CE QUI MANQUE A CHAQUE ENGAGEMENT DE L'ECRAN DE `mois` (`manques`, dans l'ordre de `objets_a_l_ecran` ; `None` :
+/// rien), pose sur chacun qui n'est pas valide (`A_COMPLETER`). Seul un engagement dont ce qui lui manque change se
+/// reecrit ; un engagement complet en `mois` perd ce que `mois` lui faisait manquer.
+pub fn noter_les_manques(racine: &Path, mois: &str, manques: &[Option<String>]) -> Resultat<()> {
+    for (o, m) in objets_a_l_ecran(racine, mois)?.into_iter().zip(manques) {
         if o.est_valide() {
             continue;
         }
-        if o.fichier == mois {
-            effaces.push((o.fichier.clone(), o.rang));
-        } else if let Some(Value::Object(s)) = o.brut.get_mut(SUITE) {
-            if s.remove(mois).is_some() {
-                touches.push(o.fichier.clone());
+        let mut o = o;
+        let avant = o.brut.get(A_COMPLETER).cloned();
+        match m {
+            Some(m) => {
+                o.brut.insert(A_COMPLETER.into(), serde_json::json!({ "mois": mois, "manque": m }));
             }
-        }
-    }
-    touches.sort();
-    touches.dedup();
-    // Les fichiers touches, recomposes : les objets dans leur ordre, moins les effaces, plus les nouveaux au mois.
-    let mut ecrits = Vec::new();
-    for f in &touches {
-        let mut contenu = lire_fichier(racine, f)?.unwrap_or_default();
-        if f == mois {
-            if let Value::Object(m) = vue {
-                for (k, x) in m {
-                    if k != "engagements" {
-                        contenu.insert(k.clone(), x.clone());
-                    }
+            None => {
+                if o.brut.get(A_COMPLETER).and_then(|a| a.get("mois")).and_then(Value::as_str).is_none_or(|x| x == mois) {
+                    o.brut.remove(A_COMPLETER);
                 }
             }
-            contenu.insert("mois".into(), Value::String(mois.to_string()));
         }
-        let mut es: Vec<Value> = tous
-            .iter()
-            .filter(|o| &o.fichier == f && !effaces.contains(&(o.fichier.clone(), o.rang)))
-            .map(|o| Value::Object(o.brut.clone()))
-            .collect();
-        if f == mois {
-            es.extend(nouveaux.iter().cloned().map(Value::Object));
+        if o.brut.get(A_COMPLETER) != avant.as_ref() {
+            reecrire(racine, &o)?;
         }
-        contenu.insert("engagements".into(), Value::Array(es));
-        let p = chemin(racine, f);
-        sauver_avant(&p)?;
-        socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
-        ecrits.push(p);
     }
-    Ok(ecrits)
+    Ok(())
 }
 
-/// LA SAISIE D'UN ENGAGEMENT, POSEE SUR SON MOIS : l'engagement de rang `rang` de l'ecran de `mois` prend `saisie` (ce que
-/// sa carte ecrit pour `mois`), comme l'ecriture de la saisie du mois le fait pour un engagement en saisie
-/// (`ecrire_vue_du_mois`) : ce que le moteur tient seul ne se prend pas de la saisie, le numero du contrat et le nom du
-/// spectacle ecrits se gardent. Refus : un engagement valide (il se rouvre d'abord, `etats::modifier`), ou des bornes qui
-/// laisseraient hors du contrat un mois ou il a des jours payes ; rien n'est ecrit.
+/// LA SAISIE D'UN ENGAGEMENT VALIDE ROUVERT, POSEE SUR SON MOIS : l'engagement de rang `rang` de `mois`
+/// (`objets_du_mois`), remis en saisie (`etats::modifier`), prend `saisie` (`poser_sur`). Refus : un engagement valide,
+/// ou des bornes qui laisseraient hors du contrat un mois ou il a des jours payes ; rien n'est ecrit.
 pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Map<String, Value>) -> Resultat<()> {
     let mut o = objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
     if o.est_valide() {
         return Err(format!("{} : l'engagement de rang {} est valide, il ne prend pas de saisie", mois, rang + 1));
     }
+    poser_sur(ctx, &mut o, mois, saisie)?;
+    reecrire(&ctx.racine, &o)?;
+    Ok(())
+}
+
+/// Ce que la carte ecrit pour `mois`, pose sur l'objet `o` : ce que le moteur tient seul ne se prend pas de la saisie,
+/// le numero du contrat ecrit se garde, un spectacle nomme autrement que celui qui est ecrit (sa cle, son titre, son
+/// numero d'objet) garde son nom ecrit.
+fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resultat<()> {
     let mut saisie = saisie.clone();
     for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
         saisie.remove(*k);
@@ -873,12 +795,8 @@ pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Map<Str
             saisie.insert("spectacle".into(), ecrit);
         }
     }
-    poser_le_mois(&mut o, mois, &saisie)?;
-    reecrire(&ctx.racine, &o)?;
-    Ok(())
+    poser_le_mois(o, mois, &saisie)
 }
-
-
 /// `a` et `b` nomment-ils la meme fiche de spectacle (`Contexte::spectacle`) ?
 fn meme_spectacle(ctx: &Contexte, a: &Value, b: &Value) -> bool {
     let cle = |v: &Value| ctx.spectacle(&en_texte(v)).ok().and_then(|f| f.get("_cle").cloned());

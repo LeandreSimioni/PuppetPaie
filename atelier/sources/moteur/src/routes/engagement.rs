@@ -106,42 +106,42 @@ fn designe_a_l_ecran(ctx: &Contexte, charge: &Value) -> R<Designe> {
     })
 }
 
-/// « VALIDER L'ENGAGEMENT » : l'engagement se designe dans la saisie enregistree de `mois` : `salarie`, `debut`, et, si
-/// deux contrats du salarie commencent ce jour-la, `numero` ou `rang` (son rang parmi eux). Il ecrit ses paies, une par
-/// mois qu'il couvre (`engagement::etats::valider`) ; un engagement deja valide le reste, tel quel (il se modifie par
-/// `modifier-engagement`). Refus : un engagement absent de la saisie enregistree (valider ce qui n'est pas enregistre
-/// poserait une pastille verte sur un formulaire qu'un rechargement effacerait), ou auquel il manque un fait.
+/// « VALIDER L'ENGAGEMENT », UN GESTE : la carte s'ecrit (`saisie`, et `place`, sa place dans l'ecran du mois, absente
+/// pour un engagement neuf : `crate::routes::mois::ecrire_une_carte`), puis l'engagement ecrit se valide : il ecrit ses
+/// paies, une par mois qu'il couvre (`engagement::etats::valider`). Il lui manque un fait : la carte reste ecrite en
+/// saisie, et la validation refuse en disant lequel. Un engagement valide ne se valide pas (il se modifie par
+/// `modifier-engagement`).
 fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
+    let mois = texte_requis(charge, "mois")?;
     // Valider ne se defait pas : un engagement valide se modifie (`modifier-engagement`) ou se retire.
     if charge.get("valide").is_some() {
         return Err(erreur("TypeError", "`valide` : valider-engagement valide ; un engagement valide se modifie ou se retire. Rien n'est écrit."));
     }
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
-    // Il lui manque un fait : la validation dit lequel, et rien n'est ecrit. Ce qui manquait se relit d'abord : le fait a
-    // pu se dire depuis, sur sa fiche.
+    // Ce qui manquait aux autres se relit d'abord : un fait a pu se dire depuis, sur une fiche.
     crate::routes::mois::relire_les_manques(ctx)?;
-    let charge = match designe_a_l_ecran(ctx, charge)? {
-        Designe::ACompleter(o) => {
-            let manque = o.a_completer().unwrap_or_default();
-            let data = engagement::stock::vue_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
-            return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
-        }
-        Designe::DansLaVue(c) => c,
-    };
-    let (data, i) = engagement_designe(ctx, &charge)?;
-    let le = match data["engagements"][i].get("valide").and_then(|v| v.get("le")).cloned() {
-        Some(le) => le,
-        None => {
-            let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
-            let le = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
-            let cle = engagement::cle_de_l_engagement(ctx, &data["engagements"][i]).unwrap_or_else(|| salarie.to_string());
-            crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, debut)?;
-            Value::String(le)
-        }
-    };
+    let place = crate::routes::mois::ecrire_une_carte(ctx, mois, charge)?;
+    let ecrit = engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?.into_iter().nth(place);
+    let Some(o) = ecrit else { return Err(refus(format!("{} : l'engagement écrit n'est plus à l'écran.", engagement::libelle_mois(mois)))) };
+    if let Some(manque) = o.a_completer() {
+        let data = engagement::stock::vue_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+        return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
+    }
+    let i = engagement::stock::objets_du_mois(&ctx.racine, mois)
+        .map_err(Echec::from)?
+        .iter()
+        .position(|x| x.fichier == o.fichier && x.rang == o.rang)
+        .ok_or_else(|| refus(format!("{} : l'engagement écrit ne touche pas ce mois.", engagement::libelle_mois(mois))))?;
+    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+    let le = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
+    let e = &data["engagements"][i];
+    let (salarie, debut) = (e.get("salarie").cloned().unwrap_or(Value::Null), engagement::debut_brut(e));
+    if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &debut)?;
+    }
     let avis = avis_de_validation(ctx, mois, i)?;
-    Ok(json!({"salarie": salarie, "debut": debut, "valide": le, "avis": avis}))
+    Ok(json!({"salarie": salarie, "debut": debut, "place": place, "valide": le, "avis": avis}))
 }
 
 // ------------------------------------------------------------------ modifier-engagement

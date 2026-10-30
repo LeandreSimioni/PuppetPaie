@@ -10,9 +10,7 @@ let ETATS_ENGAGEMENTS = null;      // "clé|début|rang" → les quatre actes ; 
 /* LES JUMEAUX : deux contrats du même salarié qui commencent le
    même jour ne se confondent pas. Le moteur les identifie par leur numéro
    quand il est posé, sinon par leur RANG parmi ceux du même salarié et du
-   même jour, dans l'ordre du fichier (`jumeaux.rs`) — et le fichier suit
-   l'ordre des blocs à l'écran (`saisieCourante`). Chaque ligne
-   d'`etat-par-engagement` porte ce rang ; la page le rend à `valider-engagement`. */
+   même jour, dans l'ordre du fichier (`jumeaux.rs`). Chaque ligne d'`etat-par-engagement` porte ce rang. */
 const cleEngagement = (salarie, debut, rang) => salarie + "|" + debut + "|" + (rang || 0);
 
 /** Les (salarié, premier jour) d'un bloc, sans leur rang.
@@ -235,7 +233,7 @@ function peindreEtats() {
       // Une carte à valider dont on vient de retaper un fait (son début, son salarié) garde son bouton jusqu'à la
       // relecture qui suit l'enregistrement : le clic qui quitte le champ doit le trouver (`validerLaCarte`).
       if (div._ligne && !div._ligne.valide && cible.querySelector(".v-basculer[data-valide='1']")
-          && JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE) return;
+          && !toutEstEcrit()) return;
       poserEtats(cible, `<div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`);
       brancherRetirer(div);
       return;
@@ -332,7 +330,7 @@ function brancherValidation(div, ligne) {
   const b = div.querySelector(".v-basculer");
   if (b) b.onclick = (ev) => {
     ev.preventDefault();
-    validerLaCarte(div, ligne);
+    validerLaCarte(div);
   };
   const m = div.querySelector(".v-modifier");
   if (m) m.onclick = (ev) => { ev.preventDefault(); modifierLaCarte(div); };
@@ -346,19 +344,26 @@ function brancherValidation(div, ligne) {
   brancherRetirer(div);
 }
 
-/** « Valider l'engagement » valide ce que la carte montre : ce qu'on vient d'y taper s'enregistre d'abord (l'écriture
- *  part une seconde après la frappe), les états se relisent avec, puis la carte dit quel engagement elle désigne
- *  (un début retapé en change). Une saisie que le moteur n'enregistre pas ne se valide pas : la note de la saisie dit
- *  pourquoi. */
-async function validerLaCarte(div, ligne) {
+/** « Valider l'engagement », UN GESTE : la carte part au moteur telle qu'elle est (`valider-engagement` l'écrit, puis la
+ *  valide), sans attendre l'enregistrement automatique. Il lui manque un fait : elle reste écrite, et le moteur dit
+ *  lequel. */
+async function validerLaCarte(div) {
   clearTimeout(MINUTEUR_SAISIE);
-  await enregistrerSaisie(false);
-  if (JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE) {
-    dire(document.getElementById("note-saisie").textContent, "erreur");
-    return;
-  }
-  const ps = engagementsSaisisDuBloc(div);
-  return basculerValidation((ps.length === 1 && etatDEngagement(ps[0])) || ligne, true);
+  const charge = chargeDeLaCarte(div, document.getElementById("mois").value);
+  if (!charge) { dire("Choisir qui est engagé.", "erreur"); return; }
+  // Une écriture automatique de cette carte déjà en route se finit d'abord : sa place en vient.
+  await ENREGISTREMENT;
+  if (div.dataset.place) charge.place = +div.dataset.place;
+  try {
+    const r = await api("valider-engagement", charge);
+    div.dataset.place = String(r.place);
+    div._ecrite = JSON.stringify({ ...charge, place: r.place });
+    // Ce que le moteur dit sans refuser (un contrat qui ne pourra pas partir) se dit, à sa couleur.
+    const avis = (r && r.avis) || [];
+    if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
+    else dire("Engagement validé.");
+  } catch (e) { dire(e.message, "erreur"); }
+  await rafraichirActions();
 }
 
 /** Le bouton « Retirer cet engagement » d'un bloc, quel que soit son état. Le moteur
@@ -426,22 +431,6 @@ function peindreNonActifs(liste) {
   });
 }
 
-/** « Valider l'engagement » : le moteur valide, ou dit ce qui manque. */
-async function validerEngagement(mois, ligne) {
-  return api("valider-engagement", { mois, ...contratDe(ligne) });
-}
-
-async function basculerValidation(ligne) {
-  const mois = document.getElementById("mois").value;
-  try {
-    const r = await validerEngagement(mois, ligne);
-    // Ce que le moteur dit sans refuser (un contrat qui ne pourra pas partir) se dit, à sa couleur.
-    const avis = (r && r.avis) || [];
-    if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
-    else dire("Engagement validé.");
-    await rafraichirActions();
-  } catch (e) { dire(e.message, "erreur"); }
-}
 
 /* UN CLIC SUR LA CARTE D'UN ENGAGEMENT VALIDÉ L'OUVRE, toutes ses cases modifiables. Rien ne s'écrit tant qu'on n'a
  * pas cliqué « Modifier l'engagement » : la carte reste ouverte avec ce qu'on y a tapé, « Annuler » la referme telle
@@ -550,7 +539,7 @@ async function boiteDpae(mois) {
   if (ecran && ecran.value === mois && typeof enregistrerSaisie === "function") {
     clearTimeout(MINUTEUR_SAISIE);
     await enregistrerSaisie(true);
-    if (JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE) {
+    if (!toutEstEcrit()) {
       pasEnregistre = document.getElementById("note-saisie").textContent
         || "La saisie à l'écran n'est pas enregistrée.";
     }

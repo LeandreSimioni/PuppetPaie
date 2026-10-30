@@ -316,9 +316,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     assert_eq!((c["debut"].clone(), c["fin"].clone(), c["numero"].clone()), (json!("2026-11-20"), json!("2026-12-03"), json!("FU1.26.01")), "{}", r);
     let mut e = c["engagement"].clone();
     e["lignes"] = json!([{"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": ["2026-12-02", "2026-12-03"]}]);
-    let saisie = json!({"mois": "2026-12", "taux_cachet": 150, "date_paiement": "2026-12-31", "engagements": [e]});
-    reussi(&route("enregistrer-saisie", json!({"mois": "2026-12", "saisie": saisie, "forcer": false, "modifier_apres_echeance": false})));
-    reussi(&route("valider-engagement", json!({"mois": "2026-12", "salarie": "FULLER", "debut": "2026-11-20"})));
+    reussi(&route("valider-engagement", json!({"mois": "2026-12", "saisie": e})));
     // Le contrat a ete signe dans l'ancien logiciel : il ne se refait pas signer ici.
     let signature = reussi(&route("signature-apercu", json!({"mois": "2026-12"}))).clone();
     let a_signer: Vec<&Value> = signature["contrats"].as_array().into_iter().flatten().filter(|c| c["salarie"] == "FULLER").collect();

@@ -191,18 +191,6 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "ajoute"));
     let jour = "2026-12-16";
     let lignes = |q: u32, dates: &[&str]| json!([{"rubrique": "cachet", "quantite": q, "taux": 150, "lieu": "Salle fictive de Rezé", "dates": dates}]);
-    let saisie = |second: Value| {
-        json!({"mois": "2026-11", "saisie": {"mois": "2026-11", "taux_cachet": 150, "date_paiement": "2026-11-30", "engagements": [
-            {"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.01", "lignes": lignes(2, &["2026-11-20", "2026-11-21"])},
-            second,
-        ]}, "forcer": false, "modifier_apres_echeance": true})
-    };
-    let second = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-27"});
-    let avec = |x: Value| {
-        let mut f = second.clone();
-        f.as_object_mut().unwrap().extend(x.as_object().unwrap().clone());
-        f
-    };
     let documents = || -> Vec<String> {
         let r = outils::route(&racine, "etat-du-mois", json!({"mois": "2026-11"}), jour);
         let etapes = outils::reussi(&r)["etapes"].as_array().unwrap().clone();
@@ -227,8 +215,8 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
         e["valide"]["paies"]["2026-11"].clone()
     };
 
-    outils::reussi(&outils::route(&racine, "enregistrer-saisie", saisie(json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])})), jour));
-    outils::reussi(&outils::route(&racine, "valider-engagement", avec(json!({})), jour));
+    let second = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])});
+    outils::reussi(&outils::route(&racine, "valider-engagement", json!({"mois": "2026-11", "saisie": second}), jour));
     assert_eq!(documents(), ["a_faire"], "le bulletin du contrat ajoute est a envoyer");
     outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), jour));
     let dsn = std::fs::read(racine.join("sorties/2026-12/DSN_Decembre2026.dsn")).unwrap().iter().map(|&o| o as char).collect::<String>();
