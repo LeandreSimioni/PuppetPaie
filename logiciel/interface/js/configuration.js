@@ -1003,10 +1003,13 @@ const SECTIONS_FICHE = {
      { sante: true }],
     // L'avance : ce qui a une valeur par defaut juste pour presque tout le
     // monde. Le tiroir s'ouvre seul si l'une s'en ecarte (`ORDINAIRE`).
+    // La déduction forfaitaire spécifique : un tiroir à elle, qui dit ce que
+    // l'entreprise en a décidé (`DFS_HTML`).
+    ["Déduction forfaitaire spécifique", ["deduction_forfaitaire",
+      "deduction_forfaitaire_accord"], { avance: true, dfs: true }],
     ["Avancé — cas particuliers", ["statut", "statut_categoriel_rc",
       "pcs_ese", "code_emploi_ft", "date_anciennete", "code_salarie",
-      "initiales_contrat", "statut_conventionnel", "deduction_forfaitaire",
-      "deduction_forfaitaire_accord", "statut_boeth", "echelon_ccneac", "classement_conventionnel",
+      "initiales_contrat", "statut_conventionnel", "statut_boeth", "echelon_ccneac", "classement_conventionnel",
       "poste_depuis", "experimente_3241", "stagiaire_ccneac",
       "etablissement", "actif"], { avance: true }],
     ["", ["historique"]],
@@ -1601,6 +1604,35 @@ async function dessinerOrganismes(cible) {
       dessinerOrganismes(cible);
     } catch (e) { dire(e.message, "erreur"); }
   };
+}
+
+/* LA DÉDUCTION FORFAITAIRE SPÉCIFIQUE, vue depuis la fiche d'un salarié : ce
+ * que la fiche de l'entreprise en dit (l'option est celle de l'employeur), et
+ * le chemin pour la régler. La page nomme l'option, le moteur décide
+ * (`calcul::deduction_forfaitaire`). */
+function DFS_HTML() {
+  const entreprise = ((ETAT.configuration || {}).entreprise || {}).donnees || {};
+  const option = String(entreprise.deduction_forfaitaire_option || "");
+  const nom = (LIBELLES_CHOIX.deduction_forfaitaire_option || {})[option] || option;
+  const phrase = option
+    ? `La compagnie l'applique (fiche de l'entreprise) : « ${echapper(nom)} ».`
+    : "La compagnie ne l'applique pas : c'est une option de l'employeur, qui se règle dans la fiche de l'entreprise (« Avancé — cas particuliers »). Une fois l'option posée, la profession et l'accord du salarié se disent ici.";
+  return `<div class="encart" id="config-dfs">
+    <p>${phrase}</p>
+    <div class="actions"><button type="button" class="petit secondaire" onclick="ouvrirOptionDfs()">${
+      option ? "Voir dans la fiche de l'entreprise" : "Régler dans la fiche de l'entreprise"}</button></div>
+  </div>`;
+}
+
+/* Ouvre la fiche de l'entreprise sur l'option de la déduction forfaitaire. */
+async function ouvrirOptionDfs() {
+  await ouvrirFicheImportee("entreprise");
+  const champ = document.querySelector('[data-cle="deduction_forfaitaire_option"]');
+  if (!champ) return;
+  const tiroir = champ.closest("details");
+  if (tiroir) tiroir.open = true;
+  champ.scrollIntoView({ behavior: "smooth", block: "center" });
+  champ.focus();
 }
 
 /* LE CODE RISQUE ET LE TAUX AT/MP, en tête du bloc « Vos numéros chez les

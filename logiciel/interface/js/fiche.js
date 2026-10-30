@@ -337,6 +337,7 @@ function dessinerFormulaire(fiche) {
         });
         return `<details class="bloc avance"${ecart ? " open" : ""}>
           <summary>${echapper(titre)}</summary>
+          ${(options || {}).dfs ? DFS_HTML() : ""}
           <div class="champs">${dedansHtml}</div>
         </details>`;
       }
