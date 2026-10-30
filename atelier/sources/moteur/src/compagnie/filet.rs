@@ -318,11 +318,10 @@ pub struct Reveils {
 fn dsn_a_rappeler(ctx: &Contexte) -> R<Vec<(String, String)>> {
     use crate::routes::rappels::{mois_a_declarer, nic_principal, Etat};
     let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
-    let echeance = ctx.echeance_dsn().map_err(socle::echec::Echec::from)?;
     let mut out = Vec::new();
     for m in mois_a_declarer(&st).map_err(socle::echec::Echec::from)? {
         // Le jour de depot, reporte au jour ouvre (`echeance_dsn`) : le reveil sonne la veille et le jour meme, avant midi.
-        let jour = declarations::echeance_dsn::du_mois(&m, echeance).map_err(socle::echec::Echec::from)?.jour;
+        let jour = declarations::echeance_dsn::de_la_compagnie(ctx, &m).map_err(socle::echec::Echec::from)?.jour;
         out.push((m, jour.iso()));
     }
     Ok(out)

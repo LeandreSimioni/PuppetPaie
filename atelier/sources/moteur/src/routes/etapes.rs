@@ -1041,6 +1041,32 @@ impl<'a> Moteur<'a> {
         e.veille().map_err(plain)
     }
 
+    /// Le refus d'un annule-et-remplace du mois apres sa `limite` (cahier technique DSN §1.4.2) ; `Ok` jusqu'a elle.
+    pub(crate) fn refuser_si_hors_delai(&self, mois: &str) -> R<()> {
+        let limite = self.limite(mois)?;
+        if self.ctx.aujourdhui <= limite {
+            return Ok(());
+        }
+        Err(erreur(
+            "AnnuleRemplaceHorsDelai",
+            format!(
+                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). Ce qui a change dans ce mois part dans la DSN d'un mois suivant, en correction. Rien ne part.",
+                mois,
+                limite.jj_mm_aaaa()
+            ),
+        ))
+    }
+
+    /// Le plus haut ordre porte par ces depots reels du mois (`depots_reels`) ; `None` s'il n'y en a pas.
+    pub(crate) fn dernier_ordre(&self, mois: &str, faits: &[Value]) -> R<Option<i64>> {
+        let mut dernier: Option<i64> = None;
+        for l in faits {
+            let n = self.ordre_de_la_ligne(mois, l)?;
+            dernier = Some(dernier.map_or(n, |d| d.max(n)));
+        }
+        Ok(dernier)
+    }
+
     /// Le rang d'un depot reel du journal : l'ordre que sa ligne porte (S20.G00.05.004 du fichier parti, noté au depot).
     pub(crate) fn ordre_de_la_ligne(&self, mois: &str, l: &Value) -> R<i64> {
         let d = ou(get(l, "detail")?, objet_vide());
@@ -1095,10 +1121,7 @@ impl<'a> Moteur<'a> {
         let Some(derniere) = faits.last() else {
             return Ok(Value::Object(out));
         };
-        let mut dernier = i64::MIN;
-        for l in &faits {
-            dernier = dernier.max(self.ordre_de_la_ligne(mois, l)?);
-        }
+        let dernier = self.dernier_ordre(mois, &faits)?.unwrap_or(i64::MIN);
         out.insert("dernier_ordre".into(), json!(dernier));
         out.insert("prochain_ordre".into(), json!(dernier + 1));
         // Ce que la DSN a emporte, compare au present des engagements du mois (`dsn_a_refaire`).

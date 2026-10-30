@@ -391,11 +391,7 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
 fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Value) -> R<bool> {
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let faits = m.depots_reels(mois, nic)?;
-    let mut dernier: Option<i64> = None;
-    for l in &faits {
-        let n = m.ordre_de_la_ligne(mois, l)?;
-        dernier = Some(dernier.map_or(n, |d| d.max(n)));
-    }
+    let dernier = m.dernier_ordre(mois, &faits)?;
     if !["03", "05"].contains(&a.champ("type_declaration")) {
         return Ok(false);
     }
@@ -409,17 +405,7 @@ fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Val
         None if vues.du_mois_acceptee || vues.ordre > 0 => vues.ordre,
         None => return Ok(false),
     };
-    let limite = m.limite(mois)?;
-    if ctx.aujourdhui > limite {
-        return Err(erreur(
-            "AnnuleRemplaceHorsDelai",
-            format!(
-                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). Ce qui a change dans ce mois part dans la DSN d'un mois suivant, en correction. Rien n'est parti.",
-                mois,
-                limite.jj_mm_aaaa()
-            ),
-        ));
-    }
+    m.refuser_si_hors_delai(mois)?;
     let ordre: i64 = a.champ("ordre").trim().parse().unwrap_or(0);
     if ordre <= dernier {
         return Err(erreur(

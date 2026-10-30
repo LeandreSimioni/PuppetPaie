@@ -545,8 +545,8 @@ fn date_en_clair(j: &Jour) -> String {
 }
 
 /// La DSN de `mois`, due dans le mois suivant, a midi, le jour que dit `echeance_dsn` (reporte au jour ouvre).
-fn dsn(st: &Etat, jour_dsn: u32, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> {
-    let echeance = declarations::echeance_dsn::du_mois(mois, jour_dsn).map_err(|m| erreur("ValueError", m))?;
+fn dsn(st: &Etat, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> {
+    let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
     let e = st.etat_dsn(mois).map_err(en_echec)?;
     let etat = if vrai(&e) && !vrai_opt(e.get("refusee")) {
@@ -629,7 +629,6 @@ fn mois_de_l_echeance(e: &Value, rang: Option<usize>) -> R<i64> {
 /// Une echeance annuelle ; `None` quand elle ne concerne pas ce dossier.
 fn annuelle(
     st: &Etat,
-    jour_dsn: u32,
     e: &Value,
     annee: i32,
     faites: &Map<String, Value>,
@@ -657,7 +656,7 @@ fn annuelle(
         }
     }
     // `{jour_dsn}` : le jour de janvier ou la DSN de decembre de l'annee d'avant est due, reporte (`echeance_dsn`).
-    let jour_dsn = declarations::echeance_dsn::du_mois(&format!("{:04}-12", annee - 1), jour_dsn).map_err(|m| erreur("ValueError", m))?.jour.jour;
+    let jour_dsn = declarations::echeance_dsn::de_la_compagnie(ctx, &format!("{:04}-12", annee - 1)).map_err(|m| erreur("ValueError", m))?.jour.jour;
     let valeurs = [("annee", annee.to_string()), ("annee_precedente", (annee - 1).to_string()), ("jour_dsn", jour_dsn.to_string())];
     let mois = format!("{}-{:02}", annee, mois_de_l_echeance(e, Some(0))?);
     let courant = format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois);
@@ -721,7 +720,6 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let faites = cochees(ctx)?;
     let courant = format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois);
     let annuelles = annuelles_de(&base, ctx.entreprise.get("idcc"))?;
-    let jour_dsn = ctx.echeance_dsn()?;
     let st = Etat { ctx, aujourdhui, journal: etats::charger(&ctx.racine)?, principal: rappels::nic_principal(ctx) };
     let modele = base.get("dsn").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("dsn")))?;
 
@@ -735,7 +733,7 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let reclames = rappels::mois_a_declarer(&st).map_err(en_echec)?;
     for m in reclames.iter().cloned() {
         if m < precedent {
-            toutes.push(dsn(&st, jour_dsn, &m, modele, &aujourdhui)?);
+            toutes.push(dsn(&st, &m, modele, &aujourdhui)?);
         }
     }
     for n in -1..mois_a_venir {
@@ -743,12 +741,12 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
         if premier.as_ref().map_or(false, |p| !p.is_empty() && m < *p) {
             continue; // avant la premiere embauche : rien a declarer
         }
-        toutes.push(dsn(&st, jour_dsn, &m, modele, &aujourdhui)?);
+        toutes.push(dsn(&st, &m, modele, &aujourdhui)?);
     }
     let derniere_annee: i32 = mois_plus(&courant, mois_a_venir)[..4].parse().unwrap_or(aujourdhui.an);
     for annee in aujourdhui.an..=derniere_annee {
         for e in &annuelles {
-            if let Some(x) = annuelle(&st, jour_dsn, e, annee, &faites, &aujourdhui, &premier)? {
+            if let Some(x) = annuelle(&st, e, annee, &faites, &aujourdhui, &premier)? {
                 toutes.push(x);
             }
         }
@@ -776,7 +774,7 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
             .map(|a| a.iter().filter_map(Value::as_i64).map(|m| format!("{}-{:02}", aujourdhui.an, m)).collect())
             .unwrap_or_default();
         if mois_de.iter().skip(1).any(|m| *m == courant) {
-            if let Some(x) = annuelle(&st, jour_dsn, e, aujourdhui.an, &faites, &aujourdhui, &premier)? {
+            if let Some(x) = annuelle(&st, e, aujourdhui.an, &faites, &aujourdhui, &premier)? {
                 if x.etat == A_FAIRE {
                     ce_mois.push(x);
                 }

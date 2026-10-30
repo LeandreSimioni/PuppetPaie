@@ -131,11 +131,7 @@ pub(crate) fn ecrit_le(racine: &Path, fichier: &Path) -> Value {
 /// passe ; sinon annule-et-remplace au rang suivant -- et un refus si son delai est passe.
 fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R<(String, i64, bool)> {
     let faits = m.depots_reels(mois, nic)?;
-    let mut dernier: Option<i64> = None;
-    for l in &faits {
-        let n = m.ordre_de_la_ligne(mois, l)?;
-        dernier = Some(dernier.map_or(n, |d| d.max(n)));
-    }
+    let dernier = m.dernier_ordre(mois, &faits)?;
     // CE QUE LA PLATE-FORME A VU EN REEL ce mois civil, lu en silence dans les bilans archives
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : le rang se compte « au cours du mois courant » (cahier
     // technique DSN, p. 136), toutes declarations du SIREN confondues, d'ou qu'elles soient parties (un autre poste).
@@ -147,17 +143,7 @@ fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R
         None if vues.du_mois_acceptee => vues.ordre.max(1),
         None => return Ok(("01".into(), vues.ordre + 1, false)),
     };
-    let limite = m.limite(mois)?;
-    if ctx.aujourdhui > limite {
-        return Err(erreur(
-            "AnnuleRemplaceHorsDelai",
-            format!(
-                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). Ce qui a change dans ce mois part dans la DSN d'un mois suivant, en correction. Rien n'est ecrit.",
-                mois,
-                limite.jj_mm_aaaa()
-            ),
-        ));
-    }
+    m.refuser_si_hors_delai(mois)?;
     Ok(("03".into(), dernier + 1, true))
 }
 
