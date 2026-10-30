@@ -135,7 +135,7 @@ un manque du logiciel.",
 }
 
 /// Le fichier d'un signalement d'amorcage, pret a deposer.
-pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec> {
+pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::departs::Departs) -> Result<String, Echec> {
     verifier(paie, &o.motif, &o.type_declaration, o.remplace.as_deref())?;
     let ctx = &ctx.au(&paie.engagement.debut)?;
     let e = &paie.engagement;
@@ -270,7 +270,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
     // ------------------------------------------------------------ S21 contrat
     if !changement {
         // Les emplois multiples (`40.036`) : les autres contrats du salarie dans le mois de l'embauche.
-        let du_mois = crate::dsn::contrats_du_mois(ctx, &e.debut_periode()?.mois_iso())?;
+        let du_mois = crate::dsn::contrats_du_mois(ctx, &e.debut_periode()?.mois_iso(), departs)?;
         let emplois = crate::dsn::emplois_multiples(paie, &du_mois.iter().collect::<Vec<_>>());
         bloc_contrat(&mut f, paie, &etab, &orgs, 1, &bar, false, &[], NATURE, emplois)?;
         // L'anciennete, due des qu'une adhesion prevoyance est declaree.

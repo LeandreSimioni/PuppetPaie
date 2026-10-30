@@ -1201,7 +1201,7 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         .into_iter()
         .map(|v| declarations::dsn::Arret { v })
         .collect();
-    let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets).map_err(echec_fctu)?;
+    let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets, &envois::journal::departs(&ctx.racine).map_err(plain)?).map_err(echec_fctu)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
     crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
     Ok(json!({

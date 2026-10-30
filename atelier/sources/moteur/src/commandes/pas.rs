@@ -298,7 +298,7 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
             }
         },
     };
-    let paies = match declarations::dsn::contrats_du_mois(ctx, &mois) {
+    let paies = match envois::journal::departs(&ctx.racine).and_then(|departs| declarations::dsn::contrats_du_mois(ctx, &mois, &departs)) {
         Ok(p) if !p.is_empty() => p,
         Ok(_) => {
             dire!("Aucun engagement valide ne touche {} : un signalement d'amorcage declare le contrat d'un engagement valide. Rien n'est ecrit.", mois);

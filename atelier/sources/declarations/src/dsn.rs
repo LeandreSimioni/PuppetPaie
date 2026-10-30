@@ -301,8 +301,8 @@ fn emploi_declare(p: &Paie) -> (String, String, String) {
 /// (`engagement::etats::validees_du_mois`), dans l'ordre de l'ecran ; rien si le mois n'a pas de saisie. Un engagement
 /// en saisie n'y est pas : une declaration ne lit que l'engagement valide. Ils completent ceux qu'une declaration
 /// porte : la DSN d'un etablissement ne porte pas les contrats d'un autre, un signalement n'en porte qu'un.
-pub fn contrats_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
-    Ok(engagement::etats::validees_du_mois(ctx, mois)?.map(|(_, paies)| paies).unwrap_or_default())
+pub fn contrats_du_mois(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> Resultat<Vec<Paie>> {
+    Ok(engagement::etats::validees_du_mois(ctx, mois, departs)?.map(|(_, paies)| paies).unwrap_or_default())
 }
 
 /// `S21.G00.40.036` (code emplois multiples) du contrat `p` : « 02 - emplois multiples » si le salarie tient plus
@@ -4580,12 +4580,12 @@ certificat de conformite du depot precedent.",
     let date_ref = premier(mois)?;
     // LES CONTRATS DE CHAQUE PERIODE DE PAIE, pour les emplois multiples (`40.036`) : ceux de la declaration et ceux de
     // ses engagements valides (`contrats_du_mois`) ; pour un contrat regularise, ceux de son mois d'origine.
-    let du_mois = contrats_du_mois(ctx, mois)?;
+    let du_mois = contrats_du_mois(ctx, mois, departs)?;
     let periode: Vec<&Paie> = paies.iter().chain(du_mois.iter()).collect();
     let mut des_mois_regularises: HashMap<String, Vec<Paie>> = HashMap::new();
     for r in regs {
         if !des_mois_regularises.contains_key(&r.mois) {
-            des_mois_regularises.insert(r.mois.clone(), contrats_du_mois(ctx, &r.mois)?);
+            des_mois_regularises.insert(r.mois.clone(), contrats_du_mois(ctx, &r.mois, departs)?);
         }
     }
     let mut declarations = crate::changements_individu::Declarations::avant(ctx, mois, departs)?;

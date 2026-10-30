@@ -1330,7 +1330,7 @@ fn refaire_le_signalement(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -
                     envoi_test: false,
                     date_constitution: Some(jour),
                 };
-                let texte = declarations::amorcage::generer(&ctx_j, paie, &options).map_err(|e| valeur(e.message().to_string()))?;
+                let texte = declarations::amorcage::generer(&ctx_j, paie, &options, &envois::journal::departs(&ctx.racine)?).map_err(|e| valeur(e.message().to_string()))?;
                 declarations::dsn::ecrire(&texte, cible).map_err(valeur)
             }
             declarations::fctu::NATURE => route("fin-contrat-signaler", json!({"mois": mois, "salarie": premier, "ordre": ordre, "le": jour.iso()})),

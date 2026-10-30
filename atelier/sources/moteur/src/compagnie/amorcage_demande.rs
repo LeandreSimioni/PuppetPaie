@@ -132,6 +132,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
     // UN NUMERO D'ORDRE PAR FICHIER, a la suite de tous les signalements deja partis : la sequence ne se remet
     // jamais a zero (cahier technique DSN, p. 136), et deux signalements au meme ordre ne passent pas (p. 14).
     let premier = envois::journal::dernier_ordre_des_signalements(&ctx.racine)? + 1;
+    let departs = envois::journal::departs(&ctx.racine)?;
     let mut fichiers = Vec::new();
     for (rang, l) in retenus.iter().enumerate() {
         let nom = format!("Amorcage{}_{}_{}.dsn", d.motif, l.salarie, jour);
@@ -143,7 +144,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
             envoi_test: d.envoi_test,
             date_constitution: Some(d.constitution),
         };
-        let texte = am::generer(ctx, &paies[l.indice], &options).map_err(|e| e.message().to_string())?;
+        let texte = am::generer(ctx, &paies[l.indice], &options, &departs).map_err(|e| e.message().to_string())?;
         let cible = dossier.join(&nom);
         declarations::dsn::ecrire(&texte, &cible)?;
         crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None).map_err(|e| e.message)?;

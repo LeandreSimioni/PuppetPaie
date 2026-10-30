@@ -460,9 +460,9 @@ impl Default for Options {
 }
 
 /// Le fichier d'un FCTU, pret a deposer : les suspensions de l'engagement de la paie (bloc 65) ;
-/// `arrets` : les arrets a reporter (bloc 60).
+/// `arrets` : les arrets a reporter (bloc 60) ; `departs` : ce qui est parti, pour lire les engagements valides du mois.
 pub fn generer(
-    ctx: &Contexte, paie: &engagement::calcul::Paie, fin: &FinDeContrat, o: &Options, arrets: &[Arret],
+    ctx: &Contexte, paie: &engagement::calcul::Paie, fin: &FinDeContrat, o: &Options, arrets: &[Arret], departs: &engagement::departs::Departs,
 ) -> Result<String, Echec> {
     let type_declaration = o.type_declaration.as_str();
     let libelle_type = match type_de_declaration(type_declaration) {
@@ -615,7 +615,7 @@ ou un annule."
     // ------------------------------------------------------------ S21 contrat
     let siens: Vec<&Arret> = arrets.iter().collect();
     // Les emplois multiples (`40.036`) : les autres contrats du salarie dans la periode de paie du signalement.
-    let du_mois = crate::dsn::contrats_du_mois(ctx, &debut_p.mois_iso())?;
+    let du_mois = crate::dsn::contrats_du_mois(ctx, &debut_p.mois_iso(), departs)?;
     let emplois = crate::dsn::emplois_multiples(paie, &du_mois.iter().collect::<Vec<_>>());
     bloc_contrat_fctu(&mut f, paie, &ent_l, &orgs, 1, &bar, true, &siens, NATURE, Some(fin), emplois)?;
 

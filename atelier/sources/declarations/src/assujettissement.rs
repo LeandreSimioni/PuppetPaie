@@ -109,7 +109,7 @@ fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[
             out.push(MoisDeLAnnee::Calcules(m, declarees));
         } else {
             let mut garde = Vec::new();
-            for p in crate::dsn::contrats_du_mois(ctx, &m)? {
+            for p in crate::dsn::contrats_du_mois(ctx, &m, departs)? {
                 if droit::bareme::etablissement_du_salarie(ent, &p.salarie)? == nic {
                     garde.push(p);
                 }
