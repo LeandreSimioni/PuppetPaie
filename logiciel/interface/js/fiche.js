@@ -1416,9 +1416,9 @@ function demanderDateDEffet(changements) {
   const ligne = (titre, avant, apres, detail = "") => `<div class="changement">
       <div class="changement-titre">${echapper(titre)}</div>
       <div class="changement-valeurs">
-        <span class="avant">${echapper(avant)}</span>
+        <span class="avant">${String(avant).trim() ? echapper(avant) : `<i class="discret">vide</i>`}</span>
         <span class="fleche">→</span>
-        <span class="apres">${echapper(apres)}</span>
+        <span class="apres">${String(apres).trim() ? echapper(apres) : `<i class="discret">effacé</i>`}</span>
       </div>${detail ? `<div class="changement-prix">${detail}</div>` : ""}
     </div>`;
   let blocs = "";
@@ -1436,6 +1436,8 @@ function demanderDateDEffet(changements) {
     let repondu = false;
     const repondre = (v) => { if (!repondu) { repondu = true; resoudre(v); } };
     ouvrirBoite(`<h3>${titre}</h3>
+      <p>Vous changez ce que la fiche disait déjà : dites à partir de quand la
+         nouvelle valeur vaut, puis enregistrez.</p>
       <div class="changements">${blocs}</div>
       <label class="champ-boite">À partir du
         <input type="date" id="b-depuis" value="${aujourdHui}">
