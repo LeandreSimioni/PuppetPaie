@@ -88,7 +88,7 @@ pub fn fabriquer_octets(description: &Value) -> Result<Vec<u8>, String> {
 
 /// Le PDF verrouille en AES-256 (mot de passe utilisateur vide, impression et copie seules).
 pub fn verrouiller(octets: &[u8]) -> Result<Vec<u8>, String> {
-    fabrique_pdf::chiffrement::verrouiller(octets).map_err(|r| r.0.replace('\n', " "))
+    fabrique_pdf::chiffrement::verrouiller_avec(octets, socle::temps::aleas).map_err(|r| r.0.replace('\n', " "))
 }
 
 /// `fabrique.FORMAT`.

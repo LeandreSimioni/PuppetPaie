@@ -96,13 +96,19 @@ pub(crate) fn marquer_envoye_depuis(
         .ok_or_else(|| erreur("AttributeError", "'envois' n'est pas une liste"))?
         .push(json!({
             "nature": nature, "type": type_declaration, "ordre": rang,
-            "fichier": chemin.to_string_lossy(), "quand": quand,
+            "fichier": dans_la_compagnie(ctx, chemin), "quand": quand,
             // L'identifiant rendu par le point de depot : il se lit sur le certificat de conformite.
             "identifiant": "",
         }));
     let arret = liste[i].clone();
     crate::routes::imprevus::ecrire_arrets(ctx, &mois_de(&arret), liste)?;
     Ok(Some(arret))
+}
+
+/// Le fichier d'un envoi tel que l'imprevu le garde : relatif a la compagnie (`sorties/2026-03/DSN_Mars2026.dsn`), qui
+/// ne change pas quand la compagnie change de dossier (une copie, une sauvegarde relue, le rejeu d'un scenario).
+fn dans_la_compagnie(ctx: &Contexte, chemin: &Path) -> String {
+    chemin.strip_prefix(&ctx.racine).unwrap_or(chemin).to_string_lossy().into_owned()
 }
 
 /// Note, sur chaque imprevu (arret ou suspension) que la DSN mensuelle REELLE de `mois` a declare, qu'elle l'a reporte
@@ -124,7 +130,7 @@ pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand
         let quand = if quand.is_empty() { maintenant() } else { quand.to_string() };
         liste[i]["envois"].as_array_mut().ok_or_else(|| erreur("AttributeError", "'envois' n'est pas une liste"))?.push(json!({
             "nature": "01", "type": "01", "ordre": 0, "mois": mois,
-            "fichier": fichier.to_string_lossy(), "quand": quand, "identifiant": "",
+            "fichier": dans_la_compagnie(ctx, fichier), "quand": quand, "identifiant": "",
         }));
         crate::routes::imprevus::ecrire_arrets(ctx, &rangement.mois_iso(), liste)?;
     }

@@ -14,7 +14,8 @@
 //!     son horloge joue ce qui etait du (`horloge::rattraper`, comme a l'ouverture). `veille` (le banc, quand une
 //!     compagnie est ouverte) : sa veille passe, et son horloge joue dans la route `ouverture` qui suit, pas ici ;
 //!   - `{"geste": "etat", "cle"}` : l'etat d'un mois (ou de l'ouverture) que la fenetre a refait en fond et qui a ecrit
-//!     (`Enregistreur::fond`) ; le rejeu le refait (`etat_garde::lire`) ;
+//!     (`Enregistreur::fond`) ; le rejeu le refait (`etat_garde::lire`). `ok` (vrai par defaut) : il a reussi, et le rejeu
+//!     le verifie (un etat peut ecrire, puis refuser) ;
 //!   - `{"route", "charge"}` : une route du moteur, telle que la fenetre l'a servie (la page, la veille, le fil de fond :
 //!     `interface::api::route`), avec la charge que le moteur a recue. `ecrit` (vrai par defaut) : la route a change un
 //!     fichier de la compagnie -- le banc le note, et le rejeu ecarte les routes qui n'ont rien ecrit ; `ok` (vrai par
@@ -372,8 +373,12 @@ fn rejouer_les_gestes(
                 o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
                 let refait = crate::service::contexte(&o).map_err(|m| socle::echec::Echec { classe: None, message: m }).and_then(|ctx| crate::etat_garde::lire(&o, &ctx, cle));
                 crate::routes::remettre_le_fil();
-                if let Err(e) = refait {
-                    r.ecarts.push(format!("geste {} ({}) : l'etat de {} refuse au rejeu : {}", n, heure(t), cle, e.message));
+                // Comme une route : l'etat refait reussit, ou refuse, comme il l'a fait au banc (`ok`, vrai par defaut).
+                let attendu = g.get("ok") != Some(&Value::Bool(false));
+                match refait {
+                    Err(e) if attendu => r.ecarts.push(format!("geste {} ({}) : l'etat de {} refuse au rejeu : {}", n, heure(t), cle, e.message)),
+                    Ok(_) if !attendu => r.ecarts.push(format!("geste {} ({}) : l'etat de {} reussit au rejeu, refuse a l'enregistrement", n, heure(t), cle)),
+                    _ => {}
                 }
             }
             // Au banc, la compagnie ouverte joue son horloge dans sa veille, la route `ouverture` qui suit (`veille`) : le
@@ -755,7 +760,7 @@ mod enregistreur {
         /// validee qui se recalcule, celle d'un contrat sans terme qui entre dans le mois), sans qu'aucune route de la
         /// page ne le demande. `f` le refait sous le meme tour, au meme instant fige ; s'il a ecrit, le geste `etat`
         /// (la compagnie, la cle) entre dans le scenario, et le rejeu le refait (`etat_garde::lire`).
-        pub fn fond<T>(&self, racine: &Path, cle: &str, f: impl FnOnce() -> T) -> T {
+        pub fn fond<T, E>(&self, racine: &Path, cle: &str, f: impl FnOnce() -> std::thread::Result<Result<T, E>>) -> std::thread::Result<Result<T, E>> {
             let mut n = self.tour.lock().unwrap_or_else(|p| p.into_inner());
             let quand = socle::temps::secondes();
             socle::temps::figer(quand);
@@ -768,6 +773,11 @@ mod enregistreur {
                 ligne.insert("geste".into(), json!("etat"));
                 ligne.insert("compagnie".into(), json!(self.compagnie(racine)));
                 ligne.insert("cle".into(), json!(cle));
+                // Un etat refait peut ecrire puis refuser (une paie recalculee, puis un engagement qui ne se calcule pas) :
+                // le rejeu attend le meme refus.
+                if !matches!(rendu, Ok(Ok(_))) {
+                    ligne.insert("ok".into(), json!(false));
+                }
                 self.ecrire(&mut n, ligne, quand);
             }
             rendu
