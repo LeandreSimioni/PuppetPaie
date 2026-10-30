@@ -1382,7 +1382,7 @@ fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, pdf: &Path)
         documents::contrat::ecrire_et_garder(&ctx_j, &paies, &ent, pdf, &remplacements).map_err(Echec::from)
     };
     socle::temps::pendant(instant, ecrire)?;
-    let pareils = contrats.iter().zip(&paies).all(|(c, p)| c.get("clauses").is_none() || envois::envois_signature::clauses_du_contrat(&ctx_j, p, &ent) == c["clauses"]);
+    let pareils = contrats.iter().zip(&paies).all(|(c, p)| c.get("clauses").is_none() || crate::compagnie::signature::clauses_du_contrat(&ctx_j, p, &ent) == c["clauses"]);
     if !pareils {
         let _ = std::fs::remove_file(pdf);
         let _ = std::fs::remove_file(pdf.with_file_name(nom.replace(".pdf", ".description.json")));

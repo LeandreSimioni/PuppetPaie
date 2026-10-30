@@ -27,7 +27,7 @@ moteur journal          # les dépôts faits
 moteur sauvegarder --point   # où en est la dernière sauvegarde, sans réseau
 ```
 
-Une compagnie qui arrive : `moteur arrivee` dit ce qui manque (rien n'est écrit). Son historique va dans `import/` ;
+Une compagnie qui arrive : la route `pour-demarrer` dit ce qui manque (rien n'est écrit). Son historique va dans `import/` ;
 `moteur importer` en rend l'aperçu, `moteur importer --ecrire` le reprend.
 
 ## Ce qui est permis

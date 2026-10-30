@@ -30,4 +30,5 @@ pub mod releve;
 pub mod releve_signatures;
 pub mod restauration;
 pub mod sauvegarde;
+pub mod signature;
 pub mod suites;

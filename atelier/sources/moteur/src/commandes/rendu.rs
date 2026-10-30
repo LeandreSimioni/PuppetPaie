@@ -14,16 +14,6 @@ pub fn rendre(charge: &Value) -> i32 {
     }
 }
 
-/// Comme `rendre`, avec l'indentation d'un espace (`arrivee --json`).
-pub fn rendre_indent(charge: &Value, indent: usize) -> i32 {
-    dire!("{}", socle::ecriture::json_indente(charge, indent));
-    if charge.get("ok").and_then(Value::as_bool).unwrap_or(false) {
-        0
-    } else {
-        2
-    }
-}
-
 /// `sortie_json.enveloppe`.
 pub fn enveloppe(commande: &str, resultat: Value) -> Value {
     json!({"commande": commande, "ok": true, "resultat": resultat})
