@@ -274,8 +274,8 @@ pub fn question_franchise(bar: Option<&Value>, annee: i32) -> QuestionFranchise 
         return QuestionFranchise {
             aide: format!(
                 "Le barème {} du logiciel ne porte pas les plafonds de la franchise en base de TVA (code général des impôts, \
-art. 293 B) : la mise à jour du logiciel les apportera. Sous ces plafonds, la compagnie ne doit pas la taxe sur les salaires.",
-                annee
+art. 293 B) : ils se lisent dans cet article, pour le chiffre d'affaires de {}. Sous ces plafonds, la compagnie ne doit pas la taxe sur les salaires.",
+                annee, avant
             ),
             sous: "Sous les deux plafonds".to_string(),
             dessus: "Au-dessus d'un des plafonds".to_string(),
