@@ -168,8 +168,9 @@ impl Objet {
     pub fn dernier_mois(&self) -> Resultat<Option<String>> {
         match self.brut.get("fin").filter(|f| vrai(f)) {
             Some(f) => Ok(Some(socle::date::d(f)?.mois_iso().max(self.fichier.clone()))),
-            None if self.brut.get("lignes").is_some_and(|l| !l.is_null()) && !self.mensuel() => {
-                // Un contrat d'usage sans fin dite finit a son dernier jour joue ou planifie.
+            None if !self.mensuel() => {
+                // Un contrat d'usage sans fin dite finit a son dernier jour joue ou planifie ; sans jour encore, a son
+                // premier mois : seul un contrat paye au mois court sans terme.
                 let v = Value::Object(self.brut.clone());
                 let mut jours: Vec<String> = crate::dates_engagement(&v)
                     .iter()
@@ -180,7 +181,8 @@ impl Objet {
                     })
                     .collect();
                 jours.sort();
-                Ok(jours.last().map(|j| j.chars().take(7).collect::<String>()).filter(|m| mois_valide(m)).map(|m| m.max(self.fichier.clone())))
+                let dernier = jours.last().map(|j| j.chars().take(7).collect::<String>()).filter(|m| mois_valide(m));
+                Ok(Some(dernier.map_or(self.fichier.clone(), |m| m.max(self.fichier.clone()))))
             }
             None => Ok(None),
         }
