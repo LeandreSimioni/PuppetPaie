@@ -131,8 +131,6 @@ const EXPLICATIONS_FICTIVES = {
       ["Comment l'éviter", `Quand la DPAE d'une embauche s'écrit, le logiciel écrit aussi,
         pour chaque salarié sans taux valide, une demande de taux à la DGFiP (signalement
         d'amorçage), à déposer comme une DSN. La DGFiP répond sous cinq jours ouvrés.`],
-      ["Dans la compagnie fictive", `Ces salariés fictifs n'ont volontairement aucun taux : leurs
-        bulletins et leurs DSN montrent la grille par défaut, telle qu'elle s'applique.`],
     ],
   },
 };
