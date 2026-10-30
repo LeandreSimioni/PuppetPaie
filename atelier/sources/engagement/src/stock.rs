@@ -1019,6 +1019,70 @@ fn changer_un_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Re
     Ok(())
 }
 
+impl Objet {
+    /// L'engagement tel qu'une saisie gardee (`saisie`, celle d'une validation) le disait : meme fichier, meme rang.
+    pub fn d_apres_la_saisie(&self, saisie: &Map<String, Value>) -> Objet {
+        Objet { racine: self.racine.clone(), fichier: self.fichier.clone(), rang: self.rang, brut: saisie.clone() }
+    }
+
+    /// Ce que la vue de `mois` dit du contrat qui se reconduit (`RECONDUITS`, hors `PARTAGES`) : ce qui change « a partir
+    /// d'un mois ».
+    pub fn termes_du_mois(&self, mois: &str) -> Resultat<Option<Map<String, Value>>> {
+        Ok(self.vue(mois)?.map(|v| v.into_iter().filter(|(k, _)| RECONDUITS.contains(&k.as_str()) && !PARTAGES.contains(&k.as_str())).collect()))
+    }
+
+    /// LE CHANGEMENT « A PARTIR DE `depuis` » d'un contrat paye au mois : `self` est l'engagement modifie, `ancien` ce
+    /// qu'il disait a sa validation. Les mois d'avant `depuis` reprennent les termes d'`ancien` (`RECONDUITS`) et gardent
+    /// ce qui n'appartient qu'a eux ; les mois a partir de `depuis` sont ceux de `self`. Le mois `depuis`, s'il n'est
+    /// pas le premier, porte la date de l'avenant (`date_modification`, le 1er du mois, quand la saisie n'en dit pas) :
+    /// le document qui dit la modification la date de sa prise d'effet (code du travail R1221-40, `atelier/reference/
+    /// sources/code-du-travail/articles-20261029.md`, l. 856), et la DSN date de meme le bloc S21.G00.41 (41.001).
+    pub fn a_partir_du(&self, ancien: &Objet, depuis: &str) -> Resultat<Objet> {
+        let mut mois: Vec<String> = self.mois_saisis();
+        mois.extend(ancien.mois_saisis());
+        mois.push(depuis.to_string());
+        mois.sort();
+        mois.dedup();
+        let mut cibles: Vec<(String, Map<String, Value>)> = Vec::new();
+        for m in mois {
+            let Some(mut v) = self.vue(&m)? else { continue };
+            if m.as_str() < depuis {
+                if let Some(a) = ancien.vue(&m)? {
+                    for k in RECONDUITS.iter().filter(|k| !PARTAGES.contains(*k)) {
+                        match a.get(*k) {
+                            Some(x) => v.insert(k.to_string(), x.clone()),
+                            None => v.remove(*k),
+                        };
+                    }
+                }
+            } else if m.as_str() == depuis && m != self.fichier && !v.get("date_modification").is_some_and(vrai) {
+                v.insert("date_modification".into(), Value::String(premier_du_mois(&m)?.iso()));
+            }
+            cibles.push((m, v));
+        }
+        let mut r = self.clone();
+        let tenus: Vec<(&str, Value)> = TENUS_PAR_LE_MOTEUR.iter().filter(|k| **k != SUITE).filter_map(|k| r.brut.get(*k).map(|v| (*k, v.clone()))).collect();
+        let premiere = cibles.iter().find(|(m, _)| *m == self.fichier).map(|(_, v)| v.clone()).unwrap_or_else(|| self.premiere_vue());
+        r.brut = premiere;
+        for k in DEDUITS {
+            r.brut.remove(k);
+        }
+        for (k, v) in tenus {
+            r.brut.insert(k.to_string(), v);
+        }
+        for (m, v) in cibles.iter().filter(|(m, _)| *m != self.fichier) {
+            changer_un_mois(&mut r, m, v)?;
+        }
+        if let Some(Value::Object(s)) = r.brut.get_mut(SUITE) {
+            s.retain(|_, v| !v.as_object().is_some_and(Map::is_empty));
+        }
+        if r.brut.get(SUITE).and_then(Value::as_object).is_some_and(Map::is_empty) {
+            r.brut.remove(SUITE);
+        }
+        Ok(r)
+    }
+}
+
 /// Le mois qui precede `AAAA-MM`.
 pub fn mois_avant(mois: &str) -> Resultat<String> {
     let j = premier_du_mois(mois)?.plus_jours(-1)?;

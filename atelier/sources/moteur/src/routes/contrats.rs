@@ -669,6 +669,41 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             format!("Aucun contrat de {} commençant le {} dans les engagements de {}.", salarie, jj_mm_aaaa(debut_v)?, mois_parti),
         ));
     };
+    // L'ANCIEN TEXTE : celui que le contrat disait sur la version de l'engagement sur laquelle il (ou son dernier avenant)
+    // est parti. Ce qui change se compare au mois ou le contrat change (`engagement::etats::mois_du_changement`) : un
+    // contrat au mois qui change a partir d'un mois d'apres celui ou il est parti se compare ce mois-la, et l'avenant
+    // prend effet le premier jour de ce mois (ou a la date de l'avenant que la saisie de ce mois dit).
+    let departs = envois::journal::departs(&ctx.racine)?;
+    let siens = engagement::etats::du_mois(ctx, &mois_parti)?.into_iter().find_map(|e| {
+        let v = e.valide()?.clone();
+        let b = Value::Object(v.objet().brut.clone());
+        (engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie.as_str()) && b.get("numero").map(valeur_en_texte) == paies[i].engagement.numero).then_some(v)
+    });
+    let passee = siens.as_ref().and_then(|v| engagement::etats::version_au_depart(ctx, v, &departs, engagement::departs::Envoi::Contrat));
+    let mois_effet = match (siens.as_ref(), passee) {
+        (Some(v), Some(x)) => engagement::etats::mois_du_changement(v, x).map_err(Echec::from)?.filter(|m| *m > mois_parti),
+        _ => None,
+    };
+    let (paies, i, mois_compare) = match &mois_effet {
+        Some(me) => {
+            let (_d, ps) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, me, None)?;
+            let j = etats::paie_du_contrat(&ps, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?.ok_or_else(|| {
+                erreur("ErreurOperation", format!("Aucune paie de {} en {} pour le contrat n° {}.", salarie, engagement::libelle_mois(me), numero_parti))
+            })?;
+            (ps, j, me.clone())
+        }
+        None => (paies, i, mois_parti.clone()),
+    };
+    let effet = match (&mois_effet, siens.as_ref()) {
+        (Some(me), Some(v)) => {
+            let dite = v.objet().vue(me).map_err(Echec::from)?.and_then(|x| x.get("date_modification").filter(|d| vrai(d)).map(valeur_en_texte));
+            match dite {
+                Some(d) => d,
+                None => engagement::stock::premier_jour(me).map_err(Echec::from)?.iso(),
+            }
+        }
+        _ => valeur_en_texte(debut_v),
+    };
     let p = &paies[i];
     let g = m.globales()?;
     let deja = envois::etats::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
@@ -677,18 +712,13 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let paie_json = engagement::relire::ecrire(ctx, p)?;
     let numero_porte = Some(p.engagement.numero.clone().unwrap_or_else(|| "None".to_string()));
     let vals = documents::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
-    // L'ANCIEN TEXTE : celui que le contrat disait sur la version de l'engagement sur laquelle il (ou son dernier avenant)
-    // est parti, ecrit du modele avec les valeurs de cette version.
-    let departs = envois::journal::departs(&ctx.racine)?;
-    let siens = engagement::etats::du_mois(ctx, &mois_parti)?.into_iter().find_map(|e| {
-        let v = e.valide()?.clone();
-        let b = Value::Object(v.objet().brut.clone());
-        (engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie.as_str()) && b.get("numero").map(valeur_en_texte) == p.engagement.numero).then_some(v)
-    });
-    let ancienne = siens
-        .as_ref()
-        .and_then(|v| engagement::etats::version_au_depart(ctx, v, &departs, engagement::departs::Envoi::Contrat))
-        .and_then(|x| x.get("paies")?.get(&mois_parti)?.get("paie").cloned())
+    // L'ancien texte s'ecrit du modele avec les valeurs de la version partie, au mois compare (ou, pour un contrat sans
+    // terme dont cette version n'avait pas encore ecrit ce mois, a son dernier mois d'avant : ses termes s'y reconduisent).
+    let ancienne = passee
+        .and_then(|x| {
+            let ps = x.get("paies")?.as_object()?;
+            ps.get(&mois_compare).or_else(|| ps.iter().filter(|(k, _)| **k <= mois_compare).last().map(|(_, v)| v))?.get("paie").cloned()
+        })
         .ok_or_else(|| {
             erreur(
                 "ErreurOperation",
@@ -723,7 +753,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         "signe": parti.signe,
         "fichier_parti": parti.fichier,
         "numero": signes.iter().max().copied().unwrap_or(0) + 1,
-        "effet": debut_v,
+        "effet": effet,
         "modifications": modifications,
         "avenants": deja,
         "remplacable": debut > ctx.aujourdhui.iso(),

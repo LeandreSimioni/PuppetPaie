@@ -964,6 +964,116 @@ pub fn question_avant_de_modifier(ctx: &Contexte, mois: &str, rang: usize) -> Re
     Ok(documents.then(|| QUESTION_DOCUMENTS_PARTIS.to_string()))
 }
 
+/// « A PARTIR DE QUEL MOIS ? » : ce que le moteur demande avant de revalider un contrat paye au mois (CDD, CDI) de
+/// plusieurs mois dont un mois est parti (ses documents ou sa DSN), quand ce que le contrat dit (`stock::RECONDUITS` :
+/// salaire, duree du travail, emploi...) change dans un de ses mois. `partis` : les mois partis ; `choix` : les mois
+/// d'ou le changement peut valoir, du premier ou il change au dernier que la validation ecrit.
+#[derive(Debug, Clone)]
+pub struct APartirDu {
+    pub qui: String,
+    pub partis: Vec<String>,
+    pub choix: Vec<String>,
+}
+
+impl APartirDu {
+    /// La question, en mots.
+    pub fn phrase(&self) -> String {
+        let partis: Vec<String> = self.partis.iter().map(|m| crate::libelle_mois(m)).collect();
+        format!(
+            "{} : les documents ou la DSN de {} sont déjà partis. À partir de quel mois ce changement vaut-il ? Les mois \
+d'avant gardent leurs chiffres ; à partir du mois choisi, la paie prend le nouveau chiffre, et l'avenant le dit à compter \
+du premier jour de ce mois. Un mois déjà parti qui change aura un bulletin rectificatif.",
+            self.qui,
+            partis.join(", ")
+        )
+    }
+}
+
+/// La question « a partir de quel mois ? » pour l'engagement de rang `rang` de l'ecran de `mois` (voir `APartirDu`) ;
+/// `None` quand le fait ne l'appelle pas : un contrat d'usage, un engagement d'un seul mois, jamais valide, dont rien
+/// n'est parti, dont les termes ne changent pas, ou dont les bornes changent (le contrat entier change).
+pub fn question_a_partir_du(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Option<APartirDu>> {
+    let Some(o) = stock::objet_du_mois(&ctx.racine, mois, rang)? else { return Ok(None) };
+    let Some(ancien) = o.brut.get(PRECEDENTE).and_then(|p| p.get("saisie")).and_then(Value::as_object).map(|s| o.d_apres_la_saisie(s)) else {
+        return Ok(None);
+    };
+    if !o.mensuel() || !ancien.mensuel() {
+        return Ok(None);
+    }
+    if stock::PARTAGES.iter().any(|k| o.brut.get(*k).map(stock::canonique) != ancien.brut.get(*k).map(stock::canonique)) {
+        return Ok(None);
+    }
+    let departs = departs::lire(&ctx.racine)?;
+    let mut partis: Vec<String> =
+        ses_departs(ctx, &o, &departs).iter().filter(|d| matches!(d.envoi, Envoi::Documents | Envoi::Dsn)).filter_map(|d| d.mois.clone()).collect();
+    partis.sort();
+    partis.dedup();
+    if partis.is_empty() {
+        return Ok(None);
+    }
+    let couverts = o.mois_couverts(mois)?;
+    if couverts.len() < 2 {
+        return Ok(None);
+    }
+    let mut premier = None;
+    for m in &couverts {
+        if o.termes_du_mois(m)? != ancien.termes_du_mois(m)? {
+            premier = Some(m.clone());
+            break;
+        }
+    }
+    let Some(premier) = premier else { return Ok(None) };
+    let choix = couverts.into_iter().filter(|m| *m >= premier).collect();
+    Ok(Some(APartirDu { qui: qui_de(&o), partis, choix }))
+}
+
+/// La reponse : le changement vaut a partir de `depuis` (`stock::Objet::a_partir_du`), ecrit dans l'engagement. Refus :
+/// la question ne se pose pas, ou `depuis` n'est pas un de ses choix ; rien n'est ecrit.
+pub fn poser_a_partir_du(ctx: &Contexte, mois: &str, rang: usize, depuis: &str) -> Resultat<()> {
+    let q = question_a_partir_du(ctx, mois, rang)?.ok_or_else(|| "Rien ne change d'un mois à l'autre dans cet engagement : la question « à partir de quel mois ? » ne se pose pas. Rien n'est écrit.".to_string())?;
+    if !q.choix.iter().any(|m| m == depuis) {
+        return Err(format!(
+            "{} : « à partir de {} » n'est pas un des mois possibles ({}). Rien n'est écrit.",
+            q.qui,
+            depuis,
+            q.choix.iter().map(|m| crate::libelle_mois(m)).collect::<Vec<_>>().join(", ")
+        ));
+    }
+    let o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
+    let saisie = o.brut.get(PRECEDENTE).and_then(|p| p.get("saisie")).and_then(Value::as_object).cloned().unwrap_or_default();
+    let r = o.a_partir_du(&o.d_apres_la_saisie(&saisie), depuis)?;
+    stock::reecrire(&ctx.racine, &r)?;
+    Ok(())
+}
+
+/// LE MOIS OU LE CONTRAT CHANGE entre la version `passee` d'un engagement valide (sa saisie gardee) et son present : le
+/// premier mois dont les clauses (`CLAUSES`) different. C'est de ce mois que l'avenant prend effet (R1221-40 : « au plus
+/// tard a la date de prise d'effet de cette modification », `atelier/reference/sources/code-du-travail/
+/// articles-20261029.md`, l. 856). `None` : aucun mois ne change.
+pub fn mois_du_changement(v: &Valide, passee: &Value) -> Resultat<Option<String>> {
+    let Some(saisie) = passee.get("saisie").and_then(Value::as_object) else { return Ok(None) };
+    let ancien = v.objet.d_apres_la_saisie(saisie);
+    let mensuel = v.objet.mensuel();
+    let mut mois: Vec<String> = [&v.objet.brut.get("valide").cloned().unwrap_or(Value::Null), passee]
+        .iter()
+        .filter_map(|x| x.get("paies").and_then(Value::as_object))
+        .flat_map(|p| p.keys().cloned())
+        .chain(v.objet.mois_saisis())
+        .chain(ancien.mois_saisis())
+        .collect();
+    mois.sort();
+    mois.dedup();
+    let garder = |x: Option<Map<String, Value>>| -> Option<Map<String, Value>> {
+        x.map(|m| m.into_iter().filter(|(k, _)| CLAUSES.contains(&k.as_str()) && !(mensuel && k.as_str() == "lignes")).collect())
+    };
+    for m in mois {
+        if garder(v.objet.vue(&m)?) != garder(ancien.vue(&m)?) {
+            return Ok(Some(m));
+        }
+    }
+    Ok(None)
+}
+
 /// « MODIFIER… » : l'engagement repasse en saisie. Sa validation se garde (`precedente`) pour la suivante.
 pub fn modifier(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<EnSaisie> {
     let mut o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;

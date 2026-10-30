@@ -143,6 +143,24 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         let le = match deja {
             Some(le) => le,
             None => {
+                // UN CONTRAT AU MOIS DONT UN MOIS EST PARTI, ET DONT LES TERMES CHANGENT : « a partir de quel mois ? ».
+                // Sans reponse (`a_partir_du`), la question revient, avec ses choix ; un seul choix vaut reponse.
+                if let Some(q) = engagement::etats::question_a_partir_du(ctx, mois, i).map_err(Echec::from)? {
+                    let depuis = match charge.get("a_partir_du").filter(|v| vrai(v)).map(valeur_en_texte) {
+                        Some(m) => m,
+                        None if q.choix.len() == 1 => q.choix[0].clone(),
+                        None => {
+                            let choix: Vec<Value> = q
+                                .choix
+                                .iter()
+                                .map(|m| json!({"mois": m, "libelle": engagement::libelle_mois(m), "partis": q.partis.contains(m)}))
+                                .collect();
+                            return Ok(json!({"salarie": salarie, "debut": debut, "valide": Value::Null,
+                                "a_partir_du": {"phrase": q.phrase(), "choix": choix}}));
+                        }
+                    };
+                    engagement::etats::poser_a_partir_du(ctx, mois, i, &depuis).map_err(refus)?;
+                }
                 let le = engagement::etats::valider(ctx, mois, i).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
                 let cle = engagement::cle_de_l_engagement(ctx, &data["engagements"][i]).unwrap_or_else(|| salarie.to_string());
                 crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, debut)?;
