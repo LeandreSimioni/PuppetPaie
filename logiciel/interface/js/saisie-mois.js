@@ -180,7 +180,7 @@ function cartesAuMoteur(aussi) {
 }
 
 async function apercuDuMois(mois) {
-  return api("apercu", { mois, cartes: cartesAuMoteur().cartes });
+  return aSonTour(() => api("apercu", { mois, cartes: cartesAuMoteur().cartes }));
 }
 /** Les engagements que les cartes du mois affiché montrent, celles ouvertes pour être modifiées telles qu'on les a
  *  tapées : ce que l'aperçu compte. Rien ne s'écrit d'elles (chaque carte écrit son engagement). */
@@ -479,15 +479,17 @@ async function ajusterBloc(div, champ) {
   const montant = (champ.value || "").trim();
   // Vidée : on ne vise plus rien, et l'aperçu remettra le nombre calculé.
   if (montant === "") { rafraichirApercu(); return; }
-  const { cartes, rang } = cartesAuMoteur(div);
-  if (rang < 0) {
+  if (cartesAuMoteur(div).rang < 0) {
     note.innerHTML = `<span class="rouge">Choisir d'abord qui est payé.</span>`;
     return;
   }
   note.textContent = "calcul…";
   const mois = document.getElementById("mois").value;
   try {
-    const r = await api("ajuster", { mois, cartes, carte: rang, cible: champ.dataset.cible, montant: Number(montant) });
+    const r = await aSonTour(() => {
+      const { cartes, rang } = cartesAuMoteur(div);
+      return api("ajuster", { mois, cartes, carte: rang, cible: champ.dataset.cible, montant: Number(montant) });
+    });
     appliquerAjustement(div, r);
     // LA CASE MONTRE CE QU'ON ATTEINT, PAS CE QU'ON A TAPÉ. Un montant visé
     // qu'on laisse à l'écran, c'est un chiffre faux de deux centimes qui
@@ -1079,16 +1081,20 @@ async function ecrireLaCarte(div, charge, appel = api) {
   return r;
 }
 
-/** Écrit les cartes qui ont changé. Rend true si une carte a été écrite.
- *
- *  UN ENREGISTREMENT À LA FOIS. L'enregistrement part une seconde après la dernière frappe ; les écritures se suivent :
- *  chacune attend la fin de la précédente, puis compare ce qui est à l'écran à ce qui vient d'être écrit — rien ne
- *  repart pour rien. */
+/** UN APPEL AU MOTEUR À LA FOIS pour les cartes du mois : les écritures, l'aperçu et le montant visé se suivent.
+ *  Chacun attend la fin du précédent : une carte neuve dont l'écriture est en route n'est pas comptée deux fois (écrite,
+ *  et à la suite). */
 let ENREGISTREMENT = Promise.resolve(false);
-function enregistrerSaisie(silencieux) {
-  const tour = ENREGISTREMENT.then(() => enregistrerLesCartes(silencieux));
+function aSonTour(appel) {
+  const tour = ENREGISTREMENT.then(appel);
   ENREGISTREMENT = tour.catch(() => false);
   return tour;
+}
+
+/** Écrit les cartes qui ont changé. Rend true si une carte a été écrite. L'enregistrement part une seconde après la
+ *  dernière frappe ; il compare ce qui est à l'écran à ce qui vient d'être écrit — rien ne repart pour rien. */
+function enregistrerSaisie(silencieux) {
+  return aSonTour(() => enregistrerLesCartes(silencieux));
 }
 
 async function enregistrerLesCartes(silencieux) {
