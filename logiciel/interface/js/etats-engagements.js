@@ -465,7 +465,7 @@ async function modifierLaCarte(div) {
   let saisie;
   LIRE_LES_MODIFICATIONS = true;
   try { saisie = engagementsDuBloc(div, mois)[0] || {}; } finally { LIRE_LES_MODIFICATIONS = false; }
-  const charge = { mois, ...contratDe(div._ligne), saisie };
+  const charge = { mois, place: +div.dataset.place, saisie };
   try {
     let r = await api("modifier-engagement", charge);
     while (r && r.avertissement) {

@@ -231,7 +231,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     let modifier = |lignes: Value, confirme: bool| {
         let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.02", "lignes": lignes});
         outils::route(&racine, "modifier-engagement", json!({"mois": "2026-11", "confirme": confirme,
-            "salarie": "FULLER", "debut": "2026-11-27", "numero": "FU1.26.02", "saisie": saisie}), jour)
+            "place": outils::place(&racine, "2026-11", "FULLER", Some("FU1.26.02")), "saisie": saisie}), jour)
     };
     let ecrits = || std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
     let avant = ecrits();

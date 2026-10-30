@@ -150,6 +150,12 @@ pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) ->
     route(racine, "valider-engagement", json!({"mois": mois, "place": place, "saisie": es[place]}), jour)
 }
 
+/// La place, dans l'ecran de `mois`, de la carte du premier engagement de `salarie` (de numero `numero` s'il est dit).
+pub fn place(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> usize {
+    let vue = engagement::stock::vue_a_l_ecran(racine, mois).unwrap().unwrap();
+    vue["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).expect("la carte")
+}
+
 
 
 

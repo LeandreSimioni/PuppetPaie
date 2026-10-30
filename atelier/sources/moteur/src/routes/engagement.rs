@@ -58,6 +58,29 @@ pub(super) fn maintenant() -> String {
     socle::paris::iso_secondes(t)
 }
 
+/// L'ENGAGEMENT QU'UNE CARTE MONTRE : celui de l'ecran de `mois` a la place `place` (`engagement::stock::objets_a_l_ecran`,
+/// l'ordre dans lequel la route `saisie` rend le mois). Refus : une place que l'ecran ne montre pas.
+fn a_la_place(ctx: &Contexte, mois: &str, place: usize) -> R<engagement::stock::Objet> {
+    engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?.into_iter().nth(place).ok_or_else(|| {
+        refus(format!("{} : l'écran ne montre pas d'engagement à la place {} ; rechargez le mois. Rien n'est écrit.", engagement::libelle_mois(mois), place + 1))
+    })
+}
+
+/// `place` de la charge : la place de la carte dans l'ecran du mois.
+fn place_de(charge: &Value) -> R<usize> {
+    Ok(charge.get("place").and_then(Value::as_u64).ok_or_else(|| erreur("TypeError", "`place` : un entier est attendu"))? as usize)
+}
+
+/// Le rang de l'engagement `o` parmi ceux que `mois` calcule (`engagement::stock::objets_du_mois`, l'ordre de
+/// `vue_du_mois`) ; refus pour un engagement qui ne s'y calcule pas (il lui manque un fait).
+fn rang_calcule(ctx: &Contexte, mois: &str, o: &engagement::stock::Objet) -> R<usize> {
+    engagement::stock::objets_du_mois(&ctx.racine, mois)
+        .map_err(Echec::from)?
+        .iter()
+        .position(|x| x.fichier == o.fichier && x.rang == o.rang)
+        .ok_or_else(|| refus(format!("{} : cet engagement ne se calcule pas dans ce mois.", engagement::libelle_mois(mois))))
+}
+
 // ------------------------------------------------------------------ valider-engagement
 
 
@@ -76,17 +99,12 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Ce qui manquait aux autres se relit d'abord : un fait a pu se dire depuis, sur une fiche.
     crate::routes::mois::relire_les_manques(ctx)?;
     let place = crate::routes::mois::ecrire_une_carte(ctx, mois, charge)?;
-    let ecrit = engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?.into_iter().nth(place);
-    let Some(o) = ecrit else { return Err(refus(format!("{} : l'engagement écrit n'est plus à l'écran.", engagement::libelle_mois(mois)))) };
+    let o = a_la_place(ctx, mois, place)?;
     if let Some(manque) = o.a_completer() {
         let data = engagement::stock::vue_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
         return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
     }
-    let i = engagement::stock::objets_du_mois(&ctx.racine, mois)
-        .map_err(Echec::from)?
-        .iter()
-        .position(|x| x.fichier == o.fichier && x.rang == o.rang)
-        .ok_or_else(|| refus(format!("{} : l'engagement écrit ne touche pas ce mois.", engagement::libelle_mois(mois))))?;
+    let i = rang_calcule(ctx, mois, &o)?;
     let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
     let le = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
@@ -150,7 +168,7 @@ enum Issue {
 }
 
 /// « MODIFIER L'ENGAGEMENT » : les valeurs que la carte ouverte d'un engagement valide montre, ecrites d'un geste.
-/// L'engagement se designe comme pour `valider-engagement` (`salarie`, `debut`, `numero`, `rang`) ; `saisie` est ce que
+/// La carte se designe par sa place dans l'ecran du mois (`place`, que le moteur a rendue) ; `saisie` est ce que
 /// sa carte ecrit pour `mois`. Une carte porte un salarie : elle modifie son engagement, et lui seul.
 ///
 /// - Rien n'a change : rien ne s'ecrit, la reponse le dit (`change` faux).
@@ -181,13 +199,14 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         })?),
     };
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
-    let (data, i) = engagement_designe(ctx, charge)?;
-    if !data["engagements"][i].get("valide").is_some_and(Value::is_object) {
+    let o = a_la_place(ctx, mois, place_de(charge)?)?;
+    if !o.est_valide() {
         return Err(refus(format!(
             "{} : cet engagement n'est pas validé ; il se saisit sur sa carte, puis « Valider l'engagement ». Rien n'est écrit.",
-            valeur_en_texte(&data["engagements"][i]["salarie"])
+            engagement::etats::qui_de(ctx, &o)
         )));
     }
+    let i = rang_calcule(ctx, mois, &o)?;
     // Ce qu'une DSN deposee dont la limite est passee a declare : la base de ce que la norme permet encore.
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let declaree = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
@@ -386,54 +405,6 @@ fn avis_de_validation(ctx: &Contexte, mois: &str, i: usize) -> R<Vec<Value>> {
     )})])
 }
 
-/// L'ENGAGEMENT QUE LA PAGE DESIGNE dans la saisie enregistree de `mois` : `salarie`, `debut`, et, si deux contrats du
-/// salarie commencent ce jour-la, `numero` ou `rang` (son rang parmi eux). Rend la saisie du mois et son rang dans
-/// l'ecran. Refus : un engagement absent de la saisie enregistree (agir sur ce qui n'est pas enregistre poserait un etat
-/// sur un formulaire qu'un rechargement effacerait).
-fn engagement_designe(ctx: &Contexte, charge: &Value) -> R<(Value, usize)> {
-    let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
-    // UN ENGAGEMENT IMPORTE se lit : aucun geste ne le valide, ne le modifie ni ne le retire.
-    if engagement::importe::celui_de(&ctx.racine, mois, salarie, debut).map_err(Echec::from)?.is_some() {
-        return Err(refus(engagement::importe::refus(salarie, debut)));
-    }
-    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
-        return Err(refus(format!("Le mois {} n'est pas enregistre : il n'y a pas d'engagement a designer. Enregistrer la saisie d'abord.", mois)));
-    };
-    let rangs = crate::routes::fiches::identifiants(ctx, &data).map_err(Echec::from)?;
-    // LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : deux contrats du meme salarie peuvent commencer le meme jour.
-    let numero = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
-    let rang = charge.get("rang").and_then(Value::as_u64);
-    let du_jour: Vec<usize> = (0..rangs.len()).filter(|&j| rangs[j].0 == salarie && rangs[j].1 == debut).collect();
-    let par_numero = numero.as_ref().and_then(|n| du_jour.iter().copied().find(|&j| rangs[j].2.as_ref() == Some(n)));
-    let i = match (par_numero, du_jour.as_slice()) {
-        (_, []) => {
-            return Err(refus(format!(
-                "Aucun engagement de {} commencant le {} dans la saisie enregistree de {}. Enregistrer la saisie avant de valider.",
-                salarie, debut, mois
-            )))
-        }
-        (Some(j), _) => j,
-        // Un seul contrat ce jour-la : c'est lui, quel que soit le numero que l'ecran lui prete.
-        (None, [j]) => *j,
-        (None, plusieurs) => match rang.and_then(|r| plusieurs.get(r as usize)) {
-            Some(j) if numero.is_none() || rangs[*j].2.is_none() => *j,
-            _ => {
-                let lesquels: Vec<String> = plusieurs.iter().map(|&j| rangs[j].2.clone().unwrap_or_else(|| "sans numero".into())).collect();
-                return Err(refus(format!(
-                    "{} a {} contrats qui commencent le {} dans la saisie de {} ({}){} : dire lequel valider (son numero, ou son rang parmi eux). Rien n'est ecrit.",
-                    salarie,
-                    plusieurs.len(),
-                    debut,
-                    mois,
-                    lesquels.join(", "),
-                    numero.as_ref().map_or(String::new(), |n| format!(", aucun sous le n° {}", n))
-                )));
-            }
-        },
-    };
-    Ok((data, i))
-}
-
 // ------------------------------------------------------------------ retirer-engagement
 
 /// La classe du refus de supprimer un engagement dont quelque chose est parti : la page montre la phrase, et renvoie la
@@ -448,13 +419,8 @@ pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
 /// lui-meme.
 fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
-    let place = charge.get("place").and_then(Value::as_u64).ok_or_else(|| erreur("TypeError", "`place` : un entier est attendu"))? as usize;
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
-    let o = engagement::stock::objets_a_l_ecran(&ctx.racine, mois)
-        .map_err(Echec::from)?
-        .into_iter()
-        .nth(place)
-        .ok_or_else(|| refus(format!("{} : l'écran ne montre pas d'engagement à la place {} ; rechargez le mois. Rien n'est écrit.", engagement::libelle_mois(mois), place + 1)))?;
+    let o = a_la_place(ctx, mois, place_de(charge)?)?;
     let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
     if !booleen(charge, "non_actif", false) {
         return match engagement::etats::supprimer(ctx, &o, &departs) {
@@ -462,11 +428,7 @@ fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
             Err(m) => Err(erreur(CLASSE_ENGAGEMENT_PARTI, m)),
         };
     }
-    let i = engagement::stock::objets_du_mois(&ctx.racine, mois)
-        .map_err(Echec::from)?
-        .iter()
-        .position(|x| x.fichier == o.fichier && x.rang == o.rang)
-        .ok_or_else(|| refus(format!("{} : cet engagement n'a jamais été validé ; il se supprime.", engagement::libelle_mois(mois))))?;
+    let i = rang_calcule(ctx, mois, &o)?;
     let n = engagement::etats::desactiver(ctx, mois, i, &departs).map_err(Echec::from)?;
     Ok(json!({"retire": "non_actif", "le": n.le(), "a_faire": a_faire_en_phrases(&n.a_refaire(ctx, &departs))}))
 }

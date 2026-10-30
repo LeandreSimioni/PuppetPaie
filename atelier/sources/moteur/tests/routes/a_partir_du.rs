@@ -34,7 +34,7 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
     };
     let paie_de_janvier = lire()["valide"]["paies"]["2026-01"]["paie"].clone();
     assert!(!paie_de_janvier.is_null(), "{}", lire());
-    let svoboda = json!({"mois": "2026-01", "salarie": "SVOBODA", "debut": "2026-01-05"});
+    let svoboda = json!({"mois": "2026-01", "place": crate::outils::place(&c, "2026-01", "SVOBODA", None)});
     let ligne_de_janvier = || -> Value {
         let l = reussi(&route(&c, "etat-par-engagement", json!({"mois": "2026-01"}), jour)).clone();
         l["engagements"].as_array().and_then(|l| l.iter().find(|x| x["salarie"] == "SVOBODA")).cloned().unwrap_or(l)
