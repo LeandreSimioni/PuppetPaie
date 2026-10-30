@@ -391,11 +391,11 @@ fn detail_ou_liste<'a>(l: &'a Value, k: &str) -> R<Vec<Cow<'a, Value>>> {
 
 // ------------------------------------------------------------ les embauches
 
-/// Les embauches qu'une DPAE reelle declare : partie, et pas refusee (`verdict_dpae`) ; une DPAE refusee se redeclare.
+/// Les embauches qu'une DPAE reelle declare : partie, et pas refusee (`refuse_par_un_retour`) ; une DPAE refusee se redeclare.
 pub fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
     let mut d = Dico::nouveau();
     for l in filtrer(lignes, Some(DPAE), None, true)? {
-        if !accepte(l)? || verdict_dpae(l)?.1 {
+        if !accepte(l)? || refuse_par_un_retour(l)? {
             continue;
         }
         for e in detail_liste(l, "embauches")? {
@@ -431,44 +431,25 @@ pub fn etat_dsn_du_mois(lignes: &[Value], mois: &str, nic: &Value, principal: &s
         return Ok(Value::Null);
     };
     let retours = items(ou(get(l, "retours")?, &LISTE_VIDE))?;
-    let mut verdicts = Vec::new();
-    let mut refus = Vec::new();
-    let mut aer = false;
+    let (mut bilan_ok, mut aer, mut anomalies) = (false, false, Vec::new());
     for r in &retours {
-        let nature = valeur_en_texte(get(r, "nature")?);
-        if nature == "11" {
-            verdicts.push(ou(get(r, "verdict")?, texte_vide()));
-        }
-    }
-    for r in &retours {
-        if est(ou(get(r, "verdict")?, texte_vide()), "KO") {
-            refus.push(r);
-        }
-    }
-    for r in &retours {
-        if valeur_en_texte(get(r, "nature")?) == "46" {
-            aer = true;
-        }
-    }
-    let mut anomalies = Vec::new();
-    for r in &refus {
-        for a in items(ou(get(r, "anomalies")?, &LISTE_VIDE))? {
-            anomalies.push(a.into_owned());
+        let (nature, verdict) = (valeur_en_texte(get(r, "nature")?), ou(get(r, "verdict")?, texte_vide()));
+        bilan_ok |= nature == "11" && est(verdict, "OK");
+        aer |= nature == "46";
+        if est(verdict, "KO") {
+            anomalies.extend(items(ou(get(r, "anomalies")?, &LISTE_VIDE))?.into_iter().map(Cow::into_owned));
         }
     }
     // UN DEPOT REPRIS DES RETOURS (`reprise_journal`) : sa piece EST le bilan de la plate-forme, et la ligne
-    // en garde le verdict (`detail.etat_declaration`) -- tant qu'aucun retour n'est range en face, c'est lui qui dit.
+    // en garde le verdict (`detail.etat_declaration`) -- tant qu'aucun bilan n'est range en face, c'est lui qui dit.
     let detail = ou(get(l, "detail")?, objet_vide());
-    let repris = if verdicts.is_empty() && vrai(getd(detail, "reconstruit", &Value::Null)?) {
-        Some(valeur_en_texte(getd(detail, "etat_declaration", texte_vide())?).to_uppercase())
-    } else {
-        None
-    };
-    let refus_repris = repris.as_deref() == Some("KO");
+    let sans_bilan = !retours.iter().any(|r| get(r, "nature").is_ok_and(|n| valeur_en_texte(n) == "11"));
+    let repris_ok = sans_bilan && vrai(getd(detail, "reconstruit", &Value::Null)?) && valeur_en_texte(getd(detail, "etat_declaration", texte_vide())?).eq_ignore_ascii_case("OK");
+    let refusee = refuse_par_un_retour(l)?;
     Ok(json!({
         "quand": get(l, "quand")?, "fichier": get(l, "fichier")?, "flux": get(l, "flux")?,
-        "passee": (verdicts.iter().any(|v| est(v, "OK")) || repris.as_deref() == Some("OK")) && refus.is_empty(),
-        "refusee": !refus.is_empty() || refus_repris,
+        "passee": (bilan_ok || repris_ok) && !refusee,
+        "refusee": refusee,
         "anomalies": anomalies,
         "aer_recue": aer,
     }))
@@ -1218,13 +1199,24 @@ pub fn resume(ligne: &Value, recus: &Dico<()>, avenants: &Dico<Vec<Value>>, m: M
 
 // ------------------------------------------------------ la repetition avant l'acte
 
+/// UNE DECLARATION REFUSEE AU BILAN n'a rien depose : « c'est seulement après avoir satisfait à l'ensemble des
+/// contrôles […] qu'une déclaration sera acceptée », et une annule-et-remplace « doit annuler une déclaration
+/// précédemment reçue » (cahier technique DSN, § 4.1 et 4.2, `atelier/reference/norme-dsn/texte/chapitre-4-controles.txt`) :
+/// la suivante est une normale. Une DPAE : un retour KO sans certificat ni bilan OK (`verdict_dpae`). Une DSN : un retour
+/// KO ; pour un depot repris des retours (`reprise_journal`) sans bilan range en face, le verdict que la ligne garde.
 pub fn refuse_par_un_retour(ligne: &Value) -> R<bool> {
+    if est(get(ligne, "quoi")?, DPAE) {
+        return Ok(verdict_dpae(ligne)?.1);
+    }
+    let mut bilan = false;
     for r in items(ou(get(ligne, "retours")?, &LISTE_VIDE))? {
         if est(ou(get(&r, "verdict")?, texte_vide()), "KO") {
             return Ok(true);
         }
+        bilan |= valeur_en_texte(get(&r, "nature")?) == "11";
     }
-    Ok(false)
+    let detail = ou(get(ligne, "detail")?, objet_vide());
+    Ok(!bilan && vrai(getd(detail, "reconstruit", &Value::Null)?) && valeur_en_texte(getd(detail, "etat_declaration", texte_vide())?).eq_ignore_ascii_case("KO"))
 }
 
 /// Le compte rendu d'un depot : `ko` des qu'un retour refuse ; `ok` seulement quand LE BILAN le dit -- la nature 11

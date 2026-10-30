@@ -187,10 +187,11 @@ pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
         if l.get("mode").and_then(Value::as_str) != Some(REEL) {
             continue;
         }
-        // Un depot refuse n'a rien depose. Un courriel coupe en route a servi ceux qui l'ont recu : la ligne ne porte que
-        // leurs versions (`ligne_d_envoi::noter_echec_d_envoi`), et ce qui a atteint le salarie est parti.
+        // Une declaration refusee au depot ou au bilan n'a rien depose (`etats::refuse_par_un_retour`). Un courriel coupe en
+        // route a servi ceux qui l'ont recu : la ligne ne porte que leurs versions (`ligne_d_envoi::noter_echec_d_envoi`),
+        // et ce qui a atteint le salarie est parti.
         let au_salarie = matches!(envoi, Envoi::Documents | Envoi::Contrat);
-        if l.get("accepte") == Some(&Value::Bool(false)) && !au_salarie {
+        if !au_salarie && (l.get("accepte") == Some(&Value::Bool(false)) || crate::etats::refuse_par_un_retour(l).unwrap_or(false)) {
             continue;
         }
         let mois = matches!(envoi, Envoi::Documents | Envoi::Dsn).then(|| l.get("mois").and_then(Value::as_str).map(String::from)).flatten();
@@ -323,5 +324,27 @@ mod tests {
         assert_eq!(trace_de(r, &json!({"trace": "retours/depots/x.txt"})), Some(r.join("retours/depots/x.txt")));
         assert_eq!(trace_de(r, &json!({"trace": "/ailleurs/fictives/la-cie/retours/depots/x.txt"})), Some(PathBuf::from("/ailleurs/fictives/la-cie/retours/depots/x.txt")));
         assert_eq!(trace_de(r, &json!({"trace": null})), None);
+    }
+
+    /// Bug reel : une DSN ou une DPAE refusee au bilan comptait pour partie ; le mois se figeait et sa correction allait a
+    /// la DSN suivante. Rien n'a ete recu (cahier technique DSN, § 4.2, `norme-dsn/texte/chapitre-4-controles.txt`).
+    #[test]
+    fn une_declaration_refusee_au_bilan_n_est_pas_partie() {
+        let ligne = |quoi: &str, salarie: &str, retours: Value, detail: Value| {
+            json!({"quoi": quoi, "mode": REEL, "accepte": true, "mois": "2026-06", "quand": "2026-07-05T10:00:00", "detail": detail,
+                   "retours": retours, "versions": [{"salarie": salarie, "numero": "N1", "version": 1}]})
+        };
+        let ko = json!([{"nature": "10", "verdict": "OK"}, {"nature": "11", "verdict": "KO"}]);
+        let lignes = vec![
+            ligne("dsn", "ALPHA", ko.clone(), json!({})),
+            ligne("dsn", "BETA", json!([]), json!({"reconstruit": true, "etat_declaration": "KO"})),
+            ligne("dpae", "GAMMA", ko, json!({})),
+            ligne("dsn", "DELTA", json!([{"nature": "11", "verdict": "OK"}]), json!({})),
+        ];
+        let d = departs_des_lignes(&lignes);
+        for refusee in ["ALPHA", "BETA", "GAMMA"] {
+            assert!(d.de(refusee, "N1").is_empty(), "{refusee}");
+        }
+        assert_eq!(d.de("DELTA", "N1").len(), 1);
     }
 }
