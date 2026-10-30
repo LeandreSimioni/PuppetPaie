@@ -773,7 +773,7 @@ function poserSpectacles(select) {
  * tant que son formulaire n'existe pas, rien ne la modifie, et elle les écrit
  * tels quels (`engagementsDuBloc`). Son formulaire se construit à la première
  * occasion qui l'ouvre — l'état de son engagement dit qu'il n'est pas validé, on
- * la rouvre par « Modifier… », les états tardent (`fermerEdition`,
+ * on l'ouvre d'un clic pour la modifier, les états tardent (`fermerEdition`,
  * `ouvrirCarte`) — et il reste construit tant que la carte vit ; dès lors
  * c'est lui qui écrit. Naissent ouvertes : une carte neuve (« Ajouter un
  * engagement »), un contrat en cours repris, une carte dédoublée, et celle qui

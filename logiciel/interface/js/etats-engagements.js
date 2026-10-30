@@ -194,6 +194,18 @@ function peindreEtats() {
   document.querySelectorAll(".engagement").forEach((div) => {
     const cible = div.querySelector(".etats");
     if (!cible) return;
+    // UNE CARTE OUVERTE POUR ÊTRE MODIFIÉE désigne l'engagement validé qu'elle a ouvert, quoi qu'on y tape (son
+    // salarié, ses dates) : son bandeau reste celui de la modification jusqu'à « Modifier l'engagement » ou « Annuler ».
+    if (div.classList.contains("en-modification") && div._ligne) {
+      const ligne = (ETATS_ENGAGEMENTS && etatDEngagement(contratDe(div._ligne))) || div._ligne;
+      div._ligne = ligne;
+      poserEtats(cible, `<span class="etats-qui">${echapper(ligne.nom)}
+          <span class="discret">— ${echapper(pourQuoi(ligne))}</span></span>`
+        + bandeauEtats(ligne) + bandeauValidation(ligne));
+      brancherValidation(div, ligne);
+      brancherRecu(div);
+      return;
+    }
     const ps = engagementsSaisisDuBloc(div);
     const lignes = ETATS_ENGAGEMENTS
       ? ps.map(etatDEngagement).filter(Boolean)
@@ -270,7 +282,7 @@ function peindreEtats() {
 /** Valide chaque engagement du bloc, PUIS le démultiplie : « il faut le bouton
  *  valider, et une fois validé ça se démultiplie ».
  *  Chaque bloc né ici se repeint validé, fermé, avec son propre
- *  « Modifier… ». Si une validation échoue, on s'arrête là : ce qui est
+ *  carte qui s'ouvre d'un clic. Si une validation échoue, on s'arrête là : ce qui est
  *  validé l'est, le reste se voit au repeint. */
 async function validerPlusieurs(div, lignes) {
   const mois = document.getElementById("mois").value;
@@ -313,26 +325,11 @@ async function dessinerEtatsDesEngagements(mois) {
 }
 
 /* ------------------------------------------------ valider un engagement
-   « On valide, c'est vert, normalement on n'y revient pas, édition bloquée
-   temporairement avec un bouton pour modifier avec avertissement » —
-   11 et 12/09/2026.
+   Validé, l'engagement est vert, sur le bloc entier, et ses champs sont en lecture seule pour de vrai (`disabled`).
+   Un clic sur sa carte l'ouvre, toutes ses cases modifiables ; ce qui est parti et ce que le changement entraîne, le
+   moteur le dit à « Modifier l'engagement » (`modifierLesCartes`). */
 
-   Trois choses, et la troisième est celle qui compte.
-
-   1. VERT, et sur le bloc entier. Une pastille de plus se serait perdue au
-      milieu des quatre autres ; c'est le bloc qui change d'état, pas un
-      détail dedans.
-   2. ÉDITION FERMÉE. Les champs passent en lecture seule pour de vrai
-      (`disabled`), pas seulement grisés : un engagement validé qu'on peut encore
-      modifier par distraction n'est pas validé.
-   3. L'AVERTISSEMENT DIT CE QUE L'ÉDITEUR A DIT. Pas « êtes-vous sûr ? », qui
-      ne renseigne personne — mais la conséquence exacte qu'il a lui-même
-      nommée : modifier un engagement validé peut obliger à refaire la DPAE. Et
-      quand la DPAE est DÉJÀ partie pour cet engagement, l'écran le sait
-      (`etat-par-engagement`) et le dit avec sa date. C'est la différence entre un
-      avertissement qu'on lit et un avertissement qu'on clique. */
-
-/** Ferme ou rouvre les champs d'un bloc. Le bouton de validation, lui, reste
+/** Ferme ou ouvre les champs d'un bloc. Le bouton de validation, lui, reste
  *  actif — sinon on ne pourrait plus rouvrir. */
 function fermerEdition(div, ferme) {
   // Une carte fermée qui doit s'ouvrir se construit ici, une fois (ouvrirCarte).
@@ -358,14 +355,19 @@ function fermerEdition(div, ferme) {
    partie. Sinon le bloc s'en va, et l'enregistrement suit. */
 const BOUTON_RETIRER = `<button class="lien retirer-engagement" title="retirer cet engagement de la saisie">Retirer cet engagement</button>`;
 
-/** Le bandeau de validation d'un bloc, sous les quatre pastilles. */
+/** Le bandeau de validation d'un bloc, sous les quatre pastilles. Un engagement validé ne le montre qu'ouvert pour être
+ *  modifié : ses pièces, ses versions, et « Annuler » à côté de « Modifier l'engagement ». */
 function bandeauValidation(ligne) {
   if (ligne.valide) {
-    return `<div class="validation faite">
-      <span><b>Engagement validé</b> le ${echapper(quand(ligne.valide))}</span>
+    return `${recalculDe(ligne)}<div class="validation faite">
+      <span><b>Engagement validé</b> le ${echapper(quand(ligne.valide))}
+        ${(ligne.carres || []).filter((c) => c.lien).map((c) =>
+          ` · <button class="lien v-pieces" data-acte="${echapper(c.cle)}">${echapper(c.lien)}</button>`).join("")}
+        ${ligne.versions ? ` · ${versionsDe(ligne)}` : ""}</span>
       <span class="boutons">
         ${BOUTON_RETIRER}
-        <button class="modifier v-basculer" data-valide="0">${CRAYON}Modifier l'engagement…</button>
+        <button class="secondaire v-annuler">Annuler</button>
+        <button class="primaire v-modifier">Modifier l'engagement</button>
       </span>
     </div>`;
   }
@@ -382,9 +384,17 @@ function brancherValidation(div, ligne) {
   const b = div.querySelector(".v-basculer");
   if (b) b.onclick = (ev) => {
     ev.preventDefault();
-    if (b.dataset.valide === "1") return validerLaCarte(div, ligne);
-    boiteModifier(ligne);
+    validerLaCarte(div, ligne);
   };
+  const m = div.querySelector(".v-modifier");
+  if (m) m.onclick = (ev) => { ev.preventDefault(); modifierLesCartes(div); };
+  const a = div.querySelector(".v-annuler");
+  if (a) a.onclick = (ev) => { ev.preventDefault(); annulerLaModification(div); };
+  div.querySelectorAll(".v-pieces").forEach((p) => {
+    p.onclick = (ev) => { ev.preventDefault(); boitePieces(ligne, p.dataset.acte); };
+  });
+  const frise = div.querySelector(".etats .carte-versions");
+  if (frise) frise.onclick = (ev) => { ev.preventDefault(); boiteFrise(ligne); };
   brancherRetirer(div);
 }
 
@@ -448,7 +458,7 @@ function boiteNonActif(phrase) {
 }
 
 /** Les engagements non actifs du mois (`etat-par-engagement`, `non_actifs`) : une
- *  carte qui se lit, sans « Modifier… », et ce que leur désactivation rend à faire. */
+ *  carte qui se lit, qui ne s'ouvre pas, et ce que leur désactivation rend à faire. */
 function peindreNonActifs(liste) {
   const cible = document.getElementById("engagements");
   if (!cible) return;
@@ -468,64 +478,26 @@ function peindreNonActifs(liste) {
   });
 }
 
-/** « Valider l'engagement » ou « Modifier… ». Si des documents d'un de ses mois sont partis, le moteur pose sa
- *  question (`DocumentsPartis`) : la page la montre telle quelle, et ne renvoie qu'avec la réponse. */
-async function validerEngagement(mois, ligne, valide) {
-  const charge = { mois, ...contratDe(ligne), valide };
-  try {
-    const r = await api("valider-engagement", charge);
-    if (!r || !r.a_partir_du) return r;
-    // « À partir de quel mois ? » : le moteur la pose et donne les mois ; la page la montre et renvoie la réponse.
-    const q = r.a_partir_du;
-    const depuis = await new Promise((repondre) => {
-      ouvrirBoite(`<h3>À partir de quel mois ?</h3>
-        <p>${echapper(q.phrase)}</p>
-        <label>À partir de <select id="apd-mois">${q.choix.map((c) =>
-          `<option value="${echapper(c.mois)}">${echapper(c.libelle)}${c.partis ? " (déjà parti)" : ""}</option>`).join("")}</select></label>
-        <div class="actions">
-          <button class="secondaire" id="apd-non">Annuler</button>
-          <button class="primaire" id="apd-oui">Valider l'engagement</button>
-        </div>`, () => repondre(null));
-      document.getElementById("apd-non").onclick = () => fermerBoite();
-      document.getElementById("apd-oui").onclick = () => {
-        const m = document.getElementById("apd-mois").value; repondre(m); fermerBoite();
-      };
-    });
-    if (!depuis) return null;
-    return api("valider-engagement", { ...charge, a_partir_du: depuis });
-  } catch (e) {
-    if (e.detail?.type !== "DocumentsPartis") throw e;
-    const oui = await new Promise((repondre) => {
-      ouvrirBoite(`<p>${echapper(e.message)}</p>
-        <div class="actions">
-          <button class="secondaire" id="dp-non">Annuler</button>
-          <button class="primaire" id="dp-oui">Modifier l'engagement</button>
-        </div>`, () => repondre(false));
-      document.getElementById("dp-non").onclick = () => fermerBoite();
-      document.getElementById("dp-oui").onclick = () => { repondre(true); fermerBoite(); };
-    });
-    if (!oui) return null;
-    return api("valider-engagement", { ...charge, confirme: true });
-  }
+/** « Valider l'engagement » : le moteur valide, ou dit ce qui manque. */
+async function validerEngagement(mois, ligne) {
+  return api("valider-engagement", { mois, ...contratDe(ligne) });
 }
 
-async function basculerValidation(ligne, valide) {
+async function basculerValidation(ligne) {
   const mois = document.getElementById("mois").value;
   try {
-    const r = await validerEngagement(mois, ligne, valide);
-    if (r === null) return;
+    const r = await validerEngagement(mois, ligne);
     // Ce que le moteur dit sans refuser (un contrat qui ne pourra pas partir) se dit, à sa couleur.
     const avis = (r && r.avis) || [];
     if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
-    else dire(valide ? "Engagement validé." : "Engagement ouvert à la modification : le revalider ensuite.");
+    else dire("Engagement validé.");
     await rafraichirActions();
   } catch (e) { dire(e.message, "erreur"); }
 }
 
-/* LES ENGAGEMENTS VALIDÉS ENSEMBLE SE ROUVRENT ENSEMBLE. « Valider
+/* LES ENGAGEMENTS VALIDÉS ENSEMBLE SE MODIFIENT ENSEMBLE. « Valider
  * ces 2 engagements » les valide d'un geste, au même instant, puis l'écran les
- * sépare en un bloc par salarié. Les rouvrir demandait autant de boîtes que
- * de salariés, pour le même spectacle. Sœurs : même spectacle, mêmes bornes,
+ * sépare en un bloc par salarié. Sœurs : même spectacle, mêmes bornes,
  * validés à la même seconde. Un même salarié n'est qu'une fois dans un
  * bloc : son jumeau (un autre contrat du même jour) n'est jamais une
  * sœur, même validé à la même seconde. */
@@ -537,52 +509,93 @@ function engagementsSoeurs(ligne) {
   return soeurs.length ? soeurs : [ligne];
 }
 
-async function modifierEngagements(lignes) {
-  const mois = document.getElementById("mois").value;
-  try {
-    for (const l of lignes) {
-      if (await validerEngagement(mois, l, false) === null) return;
-    }
-    dire(lignes.length > 1 ? `Ces ${lignes.length} engagements sont ouverts à la modification.`
-                           : "Engagement ouvert à la modification : le revalider ensuite.");
-  } catch (e) { dire(e.message, "erreur"); }
-  await rafraichirActions();
+/** Les cartes de l'écran qui montrent un des engagements `lignes`. */
+function cartesDe(lignes) {
+  const meme = (a, b) => a && b && a.salarie === b.salarie && a.debut === b.debut && (a.rang || 0) === (b.rang || 0);
+  return [...document.querySelectorAll("#engagements .engagement")]
+    .filter((div) => lignes.some((l) => meme(div._ligne, l)));
 }
 
-/* MODIFIER L'ENGAGEMENT : un engagement dont aucun contrat n'est parti se rouvre d'un clic ; un contrat parti se dit
- * d'abord, parce que changer ce qu'il porte fait un avenant à faire signer. */
-function boiteModifier(ligne) {
-  const lignes = engagementsSoeurs(ligne);
-  const partis = lignes.filter((l) => l.etats && l.etats.signature
-    && (l.etats.signature.fait || l.etats.signature.recu));
-  if (!partis.length) return modifierEngagements(lignes);
-  const noms = lignes.map((l) => l.nom).join(", ");
-  const etat = (l) => {
-    const s = l.etats.signature;
-    return s.recu ? signeLe(s.recu, s.recu_par) : "envoyé le " + quand(s.fait);
-  };
-  ouvrirBoite(`
-    <h3>Modifier ${lignes.length > 1 ? `ces ${lignes.length} engagements` : "cet engagement"}</h3>
-    <p class="discret">${echapper(noms)} — ${echapper(ligne.spectacle)},
-      du ${echapper(jjmmaaaa(ligne.debut))} au ${echapper(jjmmaaaa(ligne.fin))}
-      · validée${lignes.length > 1 ? "s" : ""} le ${echapper(quand(ligne.valide))}</p>
-    <div class="encart attention">
-      <b>${partis.length > 1 ? "Les contrats sont déjà partis" : "Le contrat est déjà parti"}</b>
-      ${partis.map((l) => `${lignes.length > 1 ? echapper(l.nom) + " : c" : "C"}ontrat ${echapper(etat(l))}.`).join(" ")}
-      Il porte les dates, les heures, les cachets et la rémunération : si
-      l'un d'eux change, ce contrat n'est plus le bon : son carré passe à
-      l'orange, et un avenant est à faire signer au salarié.
-    </div>
-    <p class="note">Modifier n'annule rien et ne défait rien : ça remet les
-      champs en écriture. On revalide ensuite.</p>
-    <div class="actions">
-      <button class="secondaire" onclick="fermerBoite()">Annuler</button>
-      <button class="primaire" id="v-rouvrir">Modifier ${lignes.length > 1 ? "les engagements…" : "l'engagement…"}</button>
-    </div>`);
-  document.getElementById("v-rouvrir").onclick = async () => {
-    fermerBoite();
-    await modifierEngagements(lignes);
-  };
+/* UN CLIC SUR LA CARTE D'UN ENGAGEMENT VALIDÉ L'OUVRE, toutes ses cases modifiables, avec celles de ses sœurs. Rien
+ * ne s'écrit tant qu'on n'a pas cliqué « Modifier l'engagement » : la carte reste ouverte avec ce qu'on y a tapé,
+ * « Annuler » la referme telle qu'elle est enregistrée. */
+function ouvrirEnModification(div) {
+  if (!div._ligne || !div._ligne.valide) return;
+  cartesDe(engagementsSoeurs(div._ligne)).forEach((c) => {
+    c.classList.add("en-modification");
+    fermerEdition(c, false);
+  });
+  peindreEtats();
+}
+
+/** Les cartes ouvertes pour être modifiées avec celle-ci. */
+function cartesEnModification(div) {
+  return cartesDe(engagementsSoeurs(div._ligne)).filter((c) => c.classList.contains("en-modification"));
+}
+
+/** Referme les cartes telles qu'elles sont enregistrées : le mois se relit, ce qu'on y a tapé s'efface. */
+async function refermerLesCartes(cartes) {
+  const mois = document.getElementById("mois").value;
+  cartes.forEach((c) => c.classList.remove("en-modification"));
+  clearTimeout(MINUTEUR_SAISIE);
+  await enregistrerSaisie(true);
+  await chargerMois(mois, true);
+}
+
+async function annulerLaModification(div) {
+  await refermerLesCartes(cartesEnModification(div));
+}
+
+/* « MODIFIER L'ENGAGEMENT » : la page envoie ce que les cartes ouvertes montrent ; le moteur dit si rien n'a changé
+ * (la carte se referme), écrit ce qui a changé, ou rend son avertissement quand ce qui est parti le demande. La page
+ * le montre tel quel ; « Annuler » revient aux cartes avec ce qu'on y a tapé, la confirmation renvoie la demande. */
+async function modifierLesCartes(div) {
+  const mois = document.getElementById("mois").value;
+  const cartes = cartesEnModification(div);
+  let engagements;
+  LIRE_LES_MODIFICATIONS = true;
+  try {
+    engagements = cartes.map((c) => ({ ...contratDe(c._ligne), saisie: engagementsDuBloc(c, mois)[0] || {} }));
+  } finally { LIRE_LES_MODIFICATIONS = false; }
+  const charge = { mois, engagements };
+  try {
+    let r = await api("modifier-engagement", charge);
+    while (r && r.avertissement) {
+      const reponse = await boiteAvertissement(r.avertissement);
+      if (!reponse) return;
+      r = await api("modifier-engagement", { ...charge, confirme: true, a_partir_du: reponse.a_partir_du });
+    }
+    if (r && r.change) {
+      const avis = r.avis || [];
+      dire((cartes.length > 1 ? "Engagements modifiés." : "Engagement modifié.") + avis.map((a) => " " + a.phrase).join(""),
+           avis.length ? avis[0].couleur : undefined);
+    }
+    await refermerLesCartes(cartes);
+    await rafraichirActions();
+  } catch (e) { dire(e.message, "erreur"); }
+}
+
+/** L'avertissement du moteur : ses phrases, et la question « à partir de quel mois ? » quand elle se pose. Rend la
+ *  réponse (`{a_partir_du}`) à la confirmation, `null` à « Annuler ». */
+function boiteAvertissement(a) {
+  const q = a.a_partir_du;
+  return new Promise((repondre) => {
+    ouvrirBoite(`<h3>Modifier l'engagement</h3>
+      ${(a.phrases || []).map((p) => `<div class="encart attention">${echapper(p)}</div>`).join("")}
+      ${q ? `<p>${echapper(q.phrase)}</p>
+        <label>À partir de <select id="av-mois">${q.choix.map((c) =>
+          `<option value="${echapper(c.mois)}">${echapper(c.libelle)}${c.partis ? " (déjà parti)" : ""}</option>`).join("")}</select></label>` : ""}
+      <div class="actions">
+        <button class="secondaire" id="av-non">Annuler</button>
+        <button class="primaire" id="av-oui">Modifier l'engagement</button>
+      </div>`, () => repondre(null));
+    document.getElementById("av-non").onclick = () => fermerBoite();
+    document.getElementById("av-oui").onclick = () => {
+      const choix = document.getElementById("av-mois");
+      repondre({ a_partir_du: choix ? choix.value : null });
+      fermerBoite();
+    };
+  });
 }
 
 /* PLUS DE CASE DE SÉLECTION NI DE BARRE D'ACTIONS GROUPÉES :
