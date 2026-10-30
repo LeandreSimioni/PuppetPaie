@@ -148,7 +148,7 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
     // licenciement ni la convention ne disent, et que le moteur ne compte pas.
     if let Some(regle) = permanents::regle_du_preavis(motif, cdd)? {
         out.convention = None;
-        out.pourquoi = Some(format!("{} Dire la duree a la main (`preavis_mois`).", regle));
+        out.pourquoi = Some(format!("{} Dites sa durée sur la carte (« durée du préavis, en mois »).", regle));
         return Ok(out);
     }
     if legal == Some(Decimal::ZERO) || conv_mois == Some(Decimal::ZERO) {
@@ -158,16 +158,16 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
         return Ok(out);
     }
     if releve && conv_mois.is_none() && categorie.is_some_and(|c| !c.is_empty()) {
-        out.pourquoi = Some(format!("{}. Dire la duree a la main (`preavis_mois`).", t(conv_pourquoi)));
+        out.pourquoi = Some(format!("{}. Dites sa durée sur la carte (« durée du préavis, en mois »).", t(conv_pourquoi)));
         return Ok(out);
     }
     if releve && conv_mois.is_none() {
         let article = cle(cle(rel.as_ref().ok_or("None")?, "preavis")?, "article")?;
         out.pourquoi = Some(format!(
-            "la duree du preavis depend de la categorie du salarie dans {} \
-             (art. {}) -- et {}. La dire sur la fiche du salarie \
-             (`categorie_conventionnelle` : artiste, employe, \
-             agent_de_maitrise, cadre).",
+            "la durée du préavis dépend de la catégorie du salarié dans {} \
+             (art. {}), et {}. Dites-la sur la fiche du salarié \
+             (« Catégorie dans la convention » : artiste, employé, \
+             agent de maîtrise, cadre).",
             clauses::nom(idcc),
             t(article),
             t(get(&prof, "source"))
@@ -177,10 +177,10 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
     let candidats: Vec<Decimal> = [legal, conv_mois].into_iter().flatten().collect();
     if candidats.is_empty() {
         out.pourquoi = Some(format!(
-            "la loi ne dit pas sa duree en dessous de six mois d'anciennete \
-             (L1234-1 1° : \"la convention ou l'accord collectif de travail \
-             ou, a defaut, les usages\") et {}. La dire a la main \
-             (`preavis_mois`).",
+            "la loi ne dit pas sa durée en dessous de six mois d'ancienneté \
+             (L1234-1, 1° : « la convention ou l'accord collectif de travail \
+             ou, à défaut, les usages ») et {}. Dites-la sur la carte \
+             (« durée du préavis, en mois »).",
             t(conv_pourquoi)
         ));
         return Ok(out);
@@ -188,13 +188,13 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
     out.mois = Some(candidats.iter().copied().fold(candidats[0], plus_grand));
     if conv_mois.is_none() {
         out.qui = "la loi (L1234-1)".into();
-        out.dit = format!("L1234-1 ; {} : seule la loi est calculee", t(conv_pourquoi));
+        out.dit = format!("L1234-1 ; {} : seule la loi est calculée", t(conv_pourquoi));
     } else if legal.is_none() || conv_mois > legal {
         out.qui = t(get(&conv, "article"));
         out.dit = format!(
-            "{} ({}) -- {}",
+            "{} ({}) ; {}",
             t(get(&conv, "article")),
-            t(get(&prof, "categorie")),
+            clauses::categorie_en_mots(&t(get(&prof, "categorie"))),
             match legal {
                 None => "la loi n'en donne pas sous six mois".to_string(),
                 Some(l) => format!("la loi en donne {}", l),
@@ -206,7 +206,7 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
             "L1234-1 ; {} en donne {} ({})",
             t(get(&conv, "article")),
             t(get(&conv, "mois")),
-            t(get(&prof, "categorie"))
+            clauses::categorie_en_mots(&t(get(&prof, "categorie")))
         );
     }
     Ok(out)
@@ -330,13 +330,13 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     };
     if let Some(IndemniteDePreavis::Aucune(texte)) = &indemnite {
         let saisi = if e.get("preavis_mois").is_some_and(|x| !x.is_null()) {
-            " La duree saisie (`preavis_mois`) n'y change rien."
+            " La durée du préavis saisie n'y change rien."
         } else {
             ""
         };
         stc.avertissements.push(avertir(format!(
-            "{} : preavis declare non effectue, et AUCUNE indemnite compensatrice de preavis n'est due pour ce motif : \
-             le moteur n'ecrit pas de ligne.{} -- {}",
+            "{} : préavis déclaré non effectué, et aucune indemnité compensatrice de préavis n'est due pour ce motif : \
+             le logiciel n'écrit pas de ligne.{} {}",
             qui, saisi, texte
         )));
     } else if let Some(indemnite) = &indemnite {

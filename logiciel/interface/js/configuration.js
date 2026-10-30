@@ -472,7 +472,7 @@ function vueEtatImportation(e) {
   const bornes = [e.du, e.au, ...reprises.flatMap((r) => [r.du, r.au])]
     .filter((x) => x).map((x) => String(x).slice(0, 7)).sort();
   const [du, au] = [bornes[0], bornes[bornes.length - 1]];
-  const periode = !du ? "" : du === au ? `, en ${moisEnClair(du)}` : `, de ${moisEnClair(du)} à ${moisEnClair(au)}`;
+  const periode = !du ? "" : du === au ? `, en ${moisEnClair(du)}` : `, ${deMois(du)} à ${moisEnClair(au)}`;
   const le = [e.importe_le, ...reprises.map((r) => r.le)].filter((x) => x).sort().pop();
   const repris = quoi ? `<div class="rang">
       <div class="rang-infos"><b class="rang-nom">Historique repris${le ? ` le ${echapper(jjmmaaaa(le))}` : ""}</b>
@@ -500,7 +500,7 @@ function vueNaturesADire(liste) {
     debut: (x) => `<label>Début du contrat <input type="date" data-nature-champ="debut"></label>`,
     fin: (x) => `<label>Fin prévue <input type="date" data-nature-champ="fin"></label>`,
     numero: (x) => `<label title="rubrique S21.G00.40.009 de la DSN">Numéro du contrat
-        <input type="text" data-nature-champ="numero" placeholder="sur la DSN de ${echapper(moisEnClair(String(x.au).slice(0, 7)))}"></label>`,
+        <input type="text" data-nature-champ="numero" placeholder="sur la DSN ${echapper(deMois(String(x.au).slice(0, 7)))}"></label>`,
     salaire: (x) => `<label>Salaire mensuel brut <input type="number" step="0.01" min="0" data-nature-champ="salaire"
         placeholder="celui du contrat signé"></label>`,
     quotite: (x) => `<label title="rubrique S21.G00.40.013 de la DSN">Durée du travail (heures par mois)
@@ -592,7 +592,7 @@ async function ouvrirFicheImportee(nom, cle) {
 function origineImport(e) {
   return e.source === "bulletin" || "bulletin" in e
     ? `le bulletin${e.fichier ? ` (${echapper(e.fichier)}${e.page ? `, page ${e.page}` : ""})` : ""}`
-    : `la DSN de ${echapper(moisEnClair(e.mois))}`;
+    : `la DSN ${echapper(deMois(e.mois))}`;
 }
 
 /* Ce que l'import met dans une case vide ou « A COMPLETER » d'une fiche
@@ -617,7 +617,7 @@ function fichesImportees(fiches, titre) {
     const ecarts = Object.entries(f.ecarts || {}).map(([champ, e]) => {
       const ou = "bulletin" in e
         ? `le bulletin (${echapper(e.fichier || "")}${e.page ? `, page ${e.page}` : ""}) disait`
-        : `la DSN de ${echapper(moisEnClair(e.mois))} disait`;
+        : `la DSN ${echapper(deMois(e.mois))} disait`;
       const lu = "bulletin" in e ? e.bulletin : e.dsn;
       return `<div class="acte-dernier">${ou} <b>${echapper(champ)}</b> = « ${echapper(lu)} »,
          la fiche dit « ${echapper(e.fiche)} » — la fiche fait foi</div>`;

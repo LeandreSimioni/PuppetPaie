@@ -388,7 +388,7 @@ function ouvrirCalendrier(ligne, moisForce) {
         <div class="c-avert">
           <b>Vous êtes en train de créer un contrat sur plusieurs mois</b>
           — du ${echapper(jjmmaaaa(debutDuBloc(bloc) || mois + "-01"))} au
-          ${echapper(jjmmaaaa(attente))}. Les cachets de ${echapper(moisEnClair(attente.slice(0, 7)))}
+          ${echapper(jjmmaaaa(attente))}. Les cachets ${echapper(deMois(attente.slice(0, 7)))}
           se paieront dans le fichier de ce mois-là (« reprendre un contrat en
           cours » les retrouvera cochés) ; ce mois-ci partent le contrat et la
           DPAE pour le contrat entier. Valider ?
@@ -1699,9 +1699,9 @@ async function poserContratsEnCours(mois) {
   // se dit dans son bloc).
   const auMois = restants.every((c) => natureDe((c.engagement || {}).nature).mensuelle);
   dire(restants.length === 1
-    ? `Contrat en cours repris : ${restants[0].nom}${auMois ? "" : ` — poser ses jours de ${moisEnClair(mois)}`}.`
+    ? `Contrat en cours repris : ${restants[0].nom}${auMois ? "" : ` — poser ses jours ${deMois(mois)}`}.`
     : `${restants.length} contrats en cours repris (${restants.map((c) => c.nom).join(", ")})`
-      + (auMois ? "." : ` — poser leurs jours de ${moisEnClair(mois)}.`));
+      + (auMois ? "." : ` — poser leurs jours ${deMois(mois)}.`));
 }
 
 /** Ce qu'un engagement dit de lui-même en une ligne : son spectacle, ou — quand
