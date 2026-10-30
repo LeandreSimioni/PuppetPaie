@@ -1591,7 +1591,10 @@ pub fn bloc_contrat_fctu(
     let nat = e.nat()?;
     let atmp = g(bar, "taux_atmp");
     let ecrit_atmp = usage_admet(f, "S21.G00.40.043", nature_dsn)?;
-    if ecrit_atmp && (!vrai(g(atmp, "valeur")) || !vrai(g(atmp, "code_risque"))) {
+    // SIG-11 : sous le code risque 999ZZ (pas encore de notification), le taux (40.043) est interdit ; sous tout autre
+    // code, il est obligatoire (`norme-dsn/texte/bloc-S21.G00.40.txt`, l. 1309-1313).
+    let sans_notification = txt(g(atmp, "code_risque")) == bareme::SANS_NOTIFICATION;
+    if ecrit_atmp && (!vrai(g(atmp, "code_risque")) || (!sans_notification && !vrai(g(atmp, "valeur")))) {
         let annee = if bar.get("annee").is_some() { en_texte(&bar["annee"]) } else { "?".into() };
         return Err(format!(
             "Bareme {} : `taux_atmp` (valeur, code_risque) manque. C'est le taux AT/MP notifie a l'etablissement, \
@@ -1698,7 +1701,9 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     si_admise(f, nature_dsn, "S21.G00.40.039", nat.code("S21.G00.40.039"))?;
     if ecrit_atmp {
         si_admise(f, nature_dsn, "S21.G00.40.040", Some(en_texte(&atmp["code_risque"])))?;
-        si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(dec_avec_echelle(&atmp["valeur"])?, 2)))?;
+        if !sans_notification {
+            si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(dec_avec_echelle(&atmp["valeur"])?, 2)))?;
+        }
     }
     licence_du_contrat(f, nature_dsn, ent, nat.ecrit("S21.G00.40.050"))?;
     if nat.ecrit("S21.G00.40.050") && usage_admet(f, "S21.G00.40.050", nature_dsn)? {
