@@ -69,6 +69,15 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
   `ARCHITECTURE.md` disent ce qui doit être ; ce qui ne l'est pas encore (un trou constaté, un reste à faire) s'ouvre en
   ticket du privé, avec ses cases à cocher, et se ferme quand c'est fait. Un constat laissé dans un plan resterait vrai
   aux yeux de la séance suivante une fois réparé.
+- **Un retour se trie avant de se corriger** (Léandre, 30/10/2026 : « c'est pas qu'on corrige tout ce que dit le sonnet,
+  sinon on crée un logiciel totalement délirant ») : le rapport d'un joueur du banc comme le ticket d'un utilisateur dit ce
+  que quelqu'un a vécu, pas ce qu'il faut faire. L'orchestrateur, pour chaque point : le reproduit ou le lit dans le code ;
+  se demande si une vraie compagnie le vivrait (ou si c'est le script du joueur) ; cherche le texte qui tranche (un
+  Haiku pour la recherche, voir plus bas). Ne va à un Opus que ce qui tient ; ce qui dépend de la pratique du métier se
+  demande à Léandre en une ligne avant ; ce qui ne tient pas se dit au ticket, avec pourquoi.
+- **Une consigne ne donne pas de règle sans texte** (Léandre, 30/10/2026) : si l'orchestrateur n'a pas le texte, sa
+  consigne pose la question (le fait vu, ce qu'il faut savoir) et demande à l'exécutant de chercher le texte et de dire
+  son raisonnement ; un exécutant n'applique pas une règle de consigne qui ne cite pas de texte sans l'avoir cherché.
 - **La branche** : chaque séance part de `main` du public sur sa branche ; PR en brouillon tant que ce n'est pas fini ;
   Léandre fusionne. Le privé reçoit, sur la même branche, ce qui s'adresse à Léandre (`journal/`).
 - **La fin de séance, c'est Léandre qui la dit** : la passe de tests ne se lance pas avant. Puis : le récit dans
@@ -124,7 +133,10 @@ montre que celui qui a lieu.
 - **Le code qui reste et ce qui tranche une conception vont à un Opus** (`model: "opus"`) ; **ce qui lit, et ce qui est
   mécanique ou jetable (une suppression, un rafistolage provisoire), va à un Sonnet** ; une recherche simple à un Haiku
   (Léandre, 28/10/2026 : « le code final en Opus, les rafistolages Sonnet »). Un rapport n'est pas une preuve : il se
-  vérifie avant de s'affirmer.
+  vérifie avant de s'affirmer. **Au moindre doute sur un texte, l'orchestrateur envoie un Haiku le chercher** (Léandre,
+  30/10/2026 : « ils recherchent, ils coûtent peu ; c'est hyper bien pour faire de la recherche ») : dans
+  `atelier/reference/`, par `moteur releve-codes`, sur les sites qui répondent ; il rend les passages et leurs fichiers,
+  ou ce qui manque pour le ticket des textes à relever.
 - **L'orchestrateur organise, puis vérifie après coup** : il donne à l'Opus le but, les règles, la passation attendue, et le
   laisse faire ; il ne dit pas *comment* faire ce qu'il n'a pas lu dans le code. Puis il vérifie (commits, diff, tests).
 - **L'orchestrateur surveille pendant, pas seulement après** (Léandre, 25/10/2026 : « tu devrais regarder que tes agents
