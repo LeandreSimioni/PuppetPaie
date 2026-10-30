@@ -37,7 +37,6 @@ pub mod aer;
 pub mod casc_envoyer;
 pub mod casc_regularise;
 pub mod analyse;
-pub mod arrivee;
 pub mod archiver;
 pub mod arret;
 pub mod suspension;
@@ -202,7 +201,6 @@ fn commandes() -> Vec<Commande> {
         Commande { nom: "journal", aide: "le journal des depots -- le lire", cachee: false, spec: &journal::SPEC, executer: journal::executer },
         Commande { nom: "pas", aide: "taux de prelevement a la source connus", cachee: false, spec: &pas::SPEC, executer: pas::executer },
         Commande { nom: "google", aide: "le compte Google (Drive : sauvegarde, archivage) : son etat", cachee: false, spec: &google::SPEC, executer: google::executer },
-        Commande { nom: "arrivee", aide: "l'arrivee d'une compagnie : ce qui est pret, ce qui manque, quoi lancer (rien n'est ecrit)", cachee: false, spec: &arrivee::SPEC, executer: arrivee::executer },
         Commande { nom: "retours", aide: "recuperer les retours DSN (lecture seule)", cachee: false, spec: &retours::SPEC, executer: retours::executer },
         // L'enquete de l'editeur sur le poste d'une compagnie : elle marche, elle ne figure pas dans l'aide.
         Commande { nom: "depots", aide: "lister les depots vus par net-entreprises (enquete)", cachee: true, spec: &depots::SPEC, executer: depots::executer },

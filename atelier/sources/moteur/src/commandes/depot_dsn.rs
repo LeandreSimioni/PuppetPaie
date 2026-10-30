@@ -13,8 +13,8 @@
 //! - `--confirmer-mois` est verifie ICI, avant toute demande de mot de passe (le moteur ne le lit que lorsqu'un mot de passe est
 //!   donne a l'avance, ce que la commande ne fait jamais) ;
 //! - dans `moteur-atelier`, tout depot reel est refuse par `verifier_preuve` (`ActeReelRefuse`) ;
-//! - un depot REEL n'est possible que sur `production` : la plate-forme `editeur` est un service d'essai, et le journal y
-//!   noterait comme declaree une DSN qui ne l'est pas (voir `depot_acte::deposer_dsn_dans`).
+//! - un depot REEL n'est possible que sur `production` : `depot_acte::deposer_dsn_dans` le refuse, avant la demande du mot
+//!   de passe.
 //!
 //! - `--ordre N` : seulement avec `--test`, sur une mensuelle -- l'essai part en annule-et-remplace a l'ordre N au
 //!   moins, quand la base d'essai a deja retenu des essais de ce SIRET pour ce mois que le journal de ce dossier ignore (un
@@ -168,12 +168,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         dire!("{}", "-".repeat(62));
         dire!("Le fichier est code {} : sans --test, un depot {}.", apercu.champ("nature_envoi"), if apercu.reel() { "DECLARERAIT" } else { "ne declarerait rien" });
         return Ok(0);
-    }
-
-    // UN DEPOT REEL NE PART QUE SUR LA PRODUCTION : refuse avant tout affichage, avant toute demande.
-    if reel && environnement != "production" {
-        dire!("\nRefus : l'environnement '{}' est la plate-forme d'essai de l'editeur : rien n'y est declare. Un depot REEL ne part que sur 'production' ; pour essayer, utiliser --test. Rien n'est parti.", environnement);
-        return Ok(2);
     }
 
     dire!("{}\n{}\n{}", "-".repeat(62), if reel { "DEPOT REEL - LA DECLARATION PART" } else { "DEPOT DE TEST - rien ne sera conserve" }, "-".repeat(62));
