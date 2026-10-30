@@ -46,10 +46,6 @@ fn saisie_aux_numeros_declares(ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, 
 
 // ------------------------------------------------------------------ recapitulatif_dsn
 
-fn requis(v: &Value, cle: &str) -> Result<String, String> {
-    v.get(cle).map(socle::valeur::valeur_en_texte).ok_or_else(|| socle::fichiers::absent(cle))
-}
-
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
 fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<Value, String> {
     let sals = lire_recap(octets)?;
