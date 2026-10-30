@@ -860,10 +860,6 @@ impl<'a> Moteur<'a> {
                 "maille": "paie",
             });
             let cles = &cles_paies[i];
-            let rang_du_jour = rangs[..i].iter().filter(|r| **r == rangs[i]).count();
-            // Son rang parmi les contrats du meme salarie et du meme jour : ce que l'ecran rend a `valider-engagement` quand
-            // le contrat n'a pas encore de numero (`jumeaux`).
-            ligne.insert("rang".into(), json!(rang_du_jour));
             let nul = Value::Null;
             let avenant = refaire.get(i).is_some_and(|r| r.iter().any(|a| matches!(a, ARefaire::Avenant { .. })));
             let mut signature = etat_signature(
@@ -902,12 +898,10 @@ impl<'a> Moteur<'a> {
 
     /// LES ENGAGEMENTS AUXQUELS IL MANQUE UN FAIT (`engagement::stock::A_COMPLETER`), a leur place dans l'ordre de
     /// l'ecran : hors de toutes les lectures du mois, chacun a sa ligne a lui, qui dit ce qui lui manque
-    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre.
+    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre. Chaque ligne porte sa `place` :
+    /// l'identite de l'engagement a l'ecran, celle par laquelle une carte se lit et s'ecrit (`stock::objets_a_l_ecran`).
     fn avec_les_engagements_a_completer(&self, mois: &str, lignes: Vec<Value>) -> R<Vec<Value>> {
         let a_l_ecran = engagement::stock::objets_a_l_ecran(self.racine(), mois).map_err(plain)?;
-        if !a_l_ecran.iter().any(|o| o.a_completer().is_some()) {
-            return Ok(lignes);
-        }
         let mut calculees = lignes.into_iter();
         let mut out: Vec<Value> = Vec::new();
         for o in &a_l_ecran {
@@ -922,12 +916,8 @@ impl<'a> Moteur<'a> {
             out.push(ligne);
         }
         out.extend(calculees);
-        // Le rang de chacun parmi les engagements du meme salarie et du meme jour, dans l'ordre de l'ecran, ceux a
-        // completer compris : celui que la page lui donne, et que `valider-engagement` lit dans le meme ordre
-        // (`routes/engagement.rs`, `designe_a_l_ecran`).
-        for i in 0..out.len() {
-            let rang = out[..i].iter().filter(|l| l["salarie"] == out[i]["salarie"] && l["debut"] == out[i]["debut"]).count();
-            out[i]["rang"] = json!(rang);
+        for (place, l) in out.iter_mut().enumerate() {
+            l["place"] = json!(place);
         }
         Ok(out)
     }
@@ -949,7 +939,7 @@ impl<'a> Moteur<'a> {
             "salarie": cle, "nom": nom, "spectacle": spectacle, "nature": nature,
             "numero": e.get("numero").filter(|n| vrai(n)).cloned().unwrap_or(Value::Null),
             "debut": engagement::debut_brut(&e), "fin": e.get("fin").filter(|f| vrai(f)).cloned().unwrap_or(Value::Null),
-            "valide": Value::Null, "recalcul": Value::Null, "versions": Value::Null, "pieces": [], "rang": 0,
+            "valide": Value::Null, "recalcul": Value::Null, "versions": Value::Null, "pieces": [],
             "a_completer": o.a_completer(), "non_calcule": true,
             "contrat": {"premier_mois": premier_mois, "repris": false},
             "etats": {"dpae": {}, "signature": {}, "documents": {}},

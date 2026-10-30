@@ -5,57 +5,14 @@
    moteur ; un clic ouvre l'envoi que le moteur nomme, rien ne part d'un clic sans sa boîte. */
 "use strict";
 
-let ETATS_ENGAGEMENTS = null;      // "clé|début|rang" → les quatre actes ; null = pas lu
+let ETATS_ENGAGEMENTS = null;      // les lignes d'`etat-par-engagement`, rangées par place ; null = pas lu
 
-/* LES JUMEAUX : deux contrats du même salarié qui commencent le
-   même jour ne se confondent pas. Le moteur les identifie par leur numéro
-   quand il est posé, sinon par leur RANG parmi ceux du même salarié et du
-   même jour, dans l'ordre du fichier (`jumeaux.rs`). Chaque ligne d'`etat-par-engagement` porte ce rang. */
-const cleEngagement = (salarie, debut, rang) => salarie + "|" + debut + "|" + (rang || 0);
-
-/** Les (salarié, premier jour) d'un bloc, sans leur rang.
- *  Le moteur trie les dates et prend la première (`Engagement.debut`) : on
- *  fait pareil, sans quoi un engagement saisi « 12 3 » ne se retrouverait pas. */
-function identitesDuBloc(div) {
-  // Les jours sont sur les lignes de paie : le premier
-  // jour de l'engagement est le plus petit de TOUTES ses lignes -- sauf si le
-  // contrat dit son début (un contrat en cours depuis octobre s'identifie
-  // par le 12/10, pas par son premier cachet de novembre).
-  // Sans jour ni début, il n'a pas de premier jour : un engagement à compléter, que le moteur enregistre tel quel,
-  // se désigne par son salarié et ce début vide.
-  const debut = debutDuBloc(div);
-  return salariesDuBloc(div).map((salarie) => ({ salarie, debut }));
+/** La ligne d'`etat-par-engagement` d'une carte : celle de sa place à l'écran (`data-place`), que le moteur rend avec
+ *  chaque ligne. Une carte que le moteur n'a pas encore écrite n'a pas de place, donc pas d'état. */
+function etatDeLaCarte(div) {
+  if (!ETATS_ENGAGEMENTS || !div.dataset.place) return undefined;
+  return ETATS_ENGAGEMENTS[+div.dataset.place];
 }
-
-/** Les engagements d'un bloc, tels qu'ils sont SAISIS à l'écran : (salarié,
- *  premier jour), le numéro du contrat s'il est figé, et le rang du bloc
- *  parmi ceux du même salarié et du même jour qui le précèdent. */
-function engagementsSaisisDuBloc(div) {
-  const blocs = [...document.querySelectorAll(".engagement")];
-  const avant = blocs.slice(0, Math.max(0, blocs.indexOf(div))).flatMap(identitesDuBloc);
-  const numero = div.dataset.numero || "";
-  return identitesDuBloc(div).map((p) => ({ ...p, numero,
-    rang: avant.filter((a) => a.salarie === p.salarie && a.debut === p.debut).length }));
-}
-
-/** La ligne d'`etat-par-engagement` d'un engagement de l'écran : par son numéro s'il est
- *  posé, sinon par son rang — jamais une ligne qui porte un autre numéro que
- *  le sien (la règle de `valider-engagement`). */
-function etatDEngagement(p) {
-  if (!ETATS_ENGAGEMENTS) return undefined;
-  if (p.numero) {
-    const n = Object.values(ETATS_ENGAGEMENTS).find((l) => l.salarie === p.salarie
-      && l.debut === p.debut && l.numero === p.numero);
-    if (n) return n;
-  }
-  const l = ETATS_ENGAGEMENTS[cleEngagement(p.salarie, p.debut, p.rang)];
-  if (l && p.numero && l.numero && l.numero !== p.numero) return undefined;
-  return l;
-}
-
-/** QUEL contrat `valider-engagement` vise : son numéro s'il en a un, et son rang. */
-const contratDe = (l) => ({ salarie: l.salarie, debut: l.debut,
-                            numero: l.numero || "", rang: l.rang || 0 });
 
 /* LES TROIS CARRÉS DE LA LIGNE VALIDÉE : DPAE, Contrat, Documents. Le moteur
    rend chacun (`etat-par-engagement`, `carres`) : son nom, sa couleur, ce qui
@@ -194,7 +151,7 @@ function peindreEtats() {
     // UNE CARTE OUVERTE POUR ÊTRE MODIFIÉE désigne l'engagement validé qu'elle a ouvert, quoi qu'on y tape (son
     // salarié, ses dates) : son bandeau reste celui de la modification jusqu'à « Modifier l'engagement » ou « Annuler ».
     if (div.classList.contains("en-modification") && div._ligne) {
-      const ligne = (ETATS_ENGAGEMENTS && etatDEngagement(contratDe(div._ligne))) || div._ligne;
+      const ligne = etatDeLaCarte(div) || div._ligne;
       div._ligne = ligne;
       poserEtats(cible, `<span class="etats-qui">${echapper(ligne.nom)}
           <span class="discret">— ${echapper(pourQuoi(ligne))}</span></span>`
@@ -203,11 +160,8 @@ function peindreEtats() {
       brancherRecu(div);
       return;
     }
-    const ps = engagementsSaisisDuBloc(div);
-    const lignes = ETATS_ENGAGEMENTS
-      ? ps.map(etatDEngagement).filter(Boolean)
-      : [];
-    const connue = ps.length > 0 && lignes.length === ps.length;
+    const ligne = etatDeLaCarte(div);
+    const connue = !!ligne;
     div.classList.toggle("enregistree", connue);
     if (!ETATS_ENGAGEMENTS) { poserEtats(cible, ""); return; }
     if (!connue) {
@@ -238,7 +192,6 @@ function peindreEtats() {
       brancherRetirer(div);
       return;
     }
-    const ligne = lignes[0];
     // Un contrat sur plusieurs mois : son chevron est au bord de la case.
     div._ligne = ligne;
     poserEtats(cible, `<span class="etats-qui">${echapper(ligne.nom)}
@@ -256,8 +209,8 @@ async function dessinerEtatsDesEngagements(mois) {
   if (!mois) { ETATS_ENGAGEMENTS = null; peindreEtats(); return; }
   try {
     const r = await api("etat-par-engagement", { mois });
-    ETATS_ENGAGEMENTS = {};
-    r.engagements.forEach((l) => { ETATS_ENGAGEMENTS[cleEngagement(l.salarie, l.debut, l.rang)] = l; });
+    ETATS_ENGAGEMENTS = [];
+    r.engagements.forEach((l) => { ETATS_ENGAGEMENTS[l.place] = l; });
     peindreNonActifs(r.non_actifs);
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
