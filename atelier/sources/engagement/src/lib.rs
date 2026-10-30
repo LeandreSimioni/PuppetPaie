@@ -48,6 +48,8 @@ use socle::num::{dec, dec_f64, dec_avec_echelle, div, flottant, nombre, Decimal,
 #[derive(Debug, Clone)]
 pub struct Engagement {
     pub salarie: String,
+    /// Le salarié tel qu'une phrase d'écran le nomme (« NOM Prénom »).
+    pub nom: String,
     pub spectacle: Option<String>,
     pub dates_travail: Vec<Jour>,
     pub lignes: Vec<Value>,
@@ -252,10 +254,16 @@ fn liste<'a>(v: Option<&'a Value>, nom: &str) -> Resultat<&'a [Value]> {
 }
 
 impl Engagement {
+    /// « NOM Prénom, contrat N » : qui une phrase de refus désigne.
+    pub fn qui(&self) -> String {
+        format!("{}, contrat {}", self.nom, self.numero.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans numero"))
+    }
+
     /// `Engagement(**v)` : `v` porte les champs de la dataclass (`salarie`,
     /// `spectacle`, `dates_travail`, `lignes`, `debut`, ...). `racine` est
-    /// celle des donnees de la compagnie, pour le catalogue des rubriques.
-    pub fn nouveau(racine: &Path, v: &Value) -> Resultat<Engagement> {
+    /// celle des donnees de la compagnie, pour le catalogue des rubriques. `qui` : le salarie tel qu'un refus le nomme
+    /// (`salarie_nomme`).
+    pub fn nouveau(racine: &Path, v: &Value, qui: &str) -> Resultat<Engagement> {
         let o = v.as_object().ok_or("un engagement est un objet")?;
         let get = |k: &str| o.get(k);
 
@@ -281,11 +289,8 @@ impl Engagement {
         };
         let lignes: Vec<Value> = lignes_brutes.iter().map(ligne_en_pourcentage).collect::<Resultat<_>>()?;
 
-        let numero = chaine(get("numero"));
-        let numero_ou = || match &numero {
-            Some(n) if !n.is_empty() => n.clone(),
-            _ => "?".to_string(),
-        };
+        // Un refus nomme le salarie : c'est lui que la personne voit sur la carte.
+        let qui = qui.to_string();
         let mois_saisi = ou(get("mois"), None).unwrap_or_default();
         let debut_saisi = truthy(get("debut"));
         let fin_saisie = truthy(get("fin"));
@@ -308,38 +313,34 @@ impl Engagement {
         if mensuel {
             if !jours_joues.is_empty() || !planning_brut.is_empty() {
                 return Err(format!(
-                    "Contrat {} : un contrat paye au mois ({}) ne porte pas \
-                     de jours joues. Ce qu'il dit, c'est sa duree du travail \
-                     (`quotite_contrat`, en heures par mois) et ses bornes \
-                     (`debut`, et `fin` quand il se termine). Les jours \
-                     d'absence se saisissent en lignes d'absence.",
-                    numero_ou(),
+                    "{} : un contrat payé au mois ({}) ne porte pas de jours joués ; il dit sa durée du travail, en \
+                     heures par mois, et ses dates de début et de fin. Les jours d'absence se saisissent en lignes \
+                     d'absence.",
+                    qui,
                     nat.libelle
                 ));
             }
             if !debut_saisi {
                 return Err(format!(
-                    "Contrat {} ({}) : la date de debut du contrat n'est pas \
-                     dite. Elle part en DSN (S21.G00.40.001) et identifie le \
-                     contrat : elle ne se deduit de rien.",
-                    numero_ou(),
+                    "{} : saisissez la date de début de son {}, celle du contrat signé, sous « Contrat ».\n\
+                     Elle identifie le contrat dans la déclaration (S21.G00.40.001) : elle ne se déduit de rien.",
+                    qui,
                     nat.libelle
                 ));
             }
             if mois_saisi.is_empty() {
                 return Err(format!(
-                    "Contrat {} ({}) : le mois de paie n'est pas dit. Un \
-                     contrat mensuel n'a pas de date jouee d'ou le tirer.",
-                    numero_ou(),
+                    "{} ({}) : le mois de paie n'est pas dit. Un contrat payé au mois n'a pas de jour joué d'où le \
+                     tirer.",
+                    qui,
                     nat.libelle
                 ));
             }
             if !fin_saisie && !nat.duree_indeterminee {
                 return Err(format!(
-                    "Contrat {} ({}) : un contrat a duree determinee dit sa \
-                     date de fin. Elle est obligatoire en DSN \
-                     (S21.G00.40.010, CCH-12).",
-                    numero_ou(),
+                    "{} : saisissez la date de fin de son {}, sous « Contrat ».\n\
+                     Un contrat à durée déterminée dit sa fin : la déclaration l'exige (S21.G00.40.010, CCH-12).",
+                    qui,
                     nat.libelle
                 ));
             }
@@ -394,12 +395,10 @@ impl Engagement {
         let jours = entier_opt(get("jours"), "jours")?.unwrap_or(presents.len() as i64);
         if jours < 0 || (!lignes.is_empty() && !mensuel && jours == 0) {
             return Err(format!(
-                "Contrat {} : {} jour(s) travaille(s) pour {} ligne(s) de \
-                 paie. Les jours partent en DSN (bloc 53, unite 12) et en \
-                 AEM, et ce sont eux qui ouvrent les droits : un mois paye \
-                 en compte au moins un. Dater les lignes, ou dire `jours` \
-                 sur l'engagement.",
-                numero_ou(),
+                "{} : {} jour(s) travaillé(s) pour {} ligne(s) de paie. Cochez les jours de ses lignes.\n\
+                 Les jours partent dans la déclaration (bloc 53, unité 12) et dans l'AEM, et ce sont eux qui ouvrent \
+                 les droits : un mois payé en compte au moins un.",
+                qui,
                 jours,
                 lignes.len()
             ));
@@ -434,10 +433,9 @@ impl Engagement {
             let fin = fin.unwrap();
             if !(debut < debut_mois_de(&mois_saisi)? || fin > fin_mois_de(&mois_saisi)?) {
                 return Err(format!(
-                    "Contrat du {} au {} sans aucune ligne de paie : un contrat \
-                     qui tient dans son mois sans rien jouer n'a pas de sens. Un \
-                     mois sans cachet n'existe que pour un contrat qui deborde du \
-                     mois.",
+                    "{} : son contrat du {} au {} n'a aucune ligne de paie. Ajoutez-en une, ou retirez cet \
+                     engagement : un mois sans cachet n'existe que pour un contrat qui déborde du mois.",
+                    qui,
                     debut.jj_mm_aaaa(),
                     fin.jj_mm_aaaa()
                 ));
@@ -446,9 +444,11 @@ impl Engagement {
         if let Some(f) = fin {
             if debut > f {
                 return Err(format!(
-                    "Contrat du {} au {} : la fin precede le debut.",
-                    debut.jj_mm_aaaa(),
-                    f.jj_mm_aaaa()
+                    "{} : la fin de son contrat ({}) précède son début ({}) : corrigez l'une des deux dates, sous \
+                     « Contrat ».",
+                    qui,
+                    f.jj_mm_aaaa(),
+                    debut.jj_mm_aaaa()
                 ));
             }
         }
@@ -517,12 +517,13 @@ impl Engagement {
 
         Ok(Engagement {
             salarie: chaine(get("salarie")).unwrap_or_default(),
+            nom: qui.to_string(),
             spectacle: chaine(get("spectacle")),
             dates_travail: jours_joues,
             lignes,
             debut,
             fin,
-            numero,
+            numero: chaine(get("numero")),
             mois,
             planning,
             planning_lieux,
@@ -884,10 +885,15 @@ pub fn jours_du_contrat(e: &Value) -> usize {
     vus.len()
 }
 
-/// La nature de l'engagement `e` (`e.get("nature")`) ; un refus nomme l'engagement et son mois.
-fn nature_de(e: &Value, rang: usize, mois: &str) -> Resultat<Arc<Nature>> {
-    natures::nature(chaine(e.get("nature")).as_deref())
-        .map_err(|m| format!("Engagement {} de {} : {}", rang, mois, m))
+/// Le salarie qu'un refus nomme en tete, tel que l'ecran le nomme partout (`Contexte::nomme` : « NOM Prénom ») ;
+/// « Cet engagement » quand la carte n'a pas encore de salarie.
+pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&Value>) -> String {
+    chaine(salarie).filter(|s| !s.trim().is_empty()).map(|c| ctx.nomme(&c)).unwrap_or_else(|| "Cet engagement".to_string())
+}
+
+/// La nature de l'engagement `e` (`e.get("nature")`) ; un refus nomme son salarie.
+fn nature_de(ctx: &Contexte, e: &Value) -> Resultat<Arc<Nature>> {
+    natures::nature(chaine(e.get("nature")).as_deref()).map_err(|m| format!("{} : {}", salarie_nomme(ctx, e.get("salarie")), m))
 }
 
 /// Ce que `conges::lignes_du_mois` rend pour un engagement paye
@@ -909,72 +915,59 @@ pub(crate) fn engagements(
     let (mut out, mut dits) = (Vec::new(), Vec::new());
     let tous = data.get("engagements").ok_or_else(|| socle::fichiers::absent("engagements"))?;
     let tous = tous.as_array().ok_or("`engagements` : une liste est attendue")?;
-    for (i, e) in tous.iter().enumerate() {
-        let rang = i + 1;
-        let nat = nature_de(e, rang, &mois_dit)?;
+    for e in tous {
+        let qui = salarie_nomme(ctx, e.get("salarie"));
+        let nat = nature_de(ctx, e)?;
         let mut spectacle = ou(e.get("spectacle"), data.get("spectacle"));
         if nat.mensuelle() {
             // Employer des permanents se declare.
             if !ctx.emploie_des_permanents() {
                 return Err(format!(
-                    "Engagement {} de {} : config/entreprise.json : cette saisie porte un contrat paye au mois \
-                     ({}), et la fiche ne dit pas que la compagnie emploie des \
-                     permanents.\n\
-                     \x20 A faire, dans cet ordre : cocher << La compagnie emploie aussi des salaries au mois >> dans \
-                     Configuration > Entreprise (bloc << Vos salaries >>), puis remplir ce que la case ouvre -- la \
-                     complementaire sante de chaque permanent (obligatoire, art. L911-7, \
-                     le moteur refuse de payer sans elle) et, pour un non cadre de moins \
-                     d'un an dans l'entreprise, son entree dans la branche.\n\
-                     \x20 Si ce n'etait pas voulu : la nature de l'engagement se change dans \
-                     le bloc lui-meme -- un intermittent au cachet est un << CDD d'usage \
-                     du spectacle >>, et c'est ce qu'un engagement muet vaut.",
-                    rang, mois_dit, nat.libelle
+                    "{} : cet engagement est un contrat payé au mois ({}), et la compagnie ne dit pas qu'elle emploie \
+                     des salariés au mois.\n\
+                     \x20 À faire, dans cet ordre : cocher « La compagnie emploie aussi des salariés au mois » dans \
+                     Configuration › Entreprise (bloc « Vos salariés »), puis remplir ce que la case ouvre : la \
+                     complémentaire santé de chaque permanent (obligatoire, art. L911-7, le logiciel ne paie pas sans \
+                     elle) et, pour un non-cadre de moins d'un an dans l'entreprise, son entrée dans la branche.\n\
+                     \x20 Si ce n'était pas voulu : la nature se change sur la carte ; un intermittent au cachet est \
+                     un « CDD d'usage du spectacle », et c'est ce que vaut un engagement qui ne dit pas sa nature.",
+                    qui, nat.libelle
                 ));
             }
             // Un permanent ne joue pas un spectacle (S21.G00.40.050, CCH-11).
             if spectacle.as_deref().map_or(false, |s| !s.is_empty()) && truthy(e.get("spectacle")) {
                 return Err(format!(
-                    "L'engagement {} de {} est un {} et porte un spectacle \
-                     ({}). Le numero d'objet spectacle est interdit sur cette \
-                     nature de contrat (S21.G00.40.050, CCH-11) : un contrat \
-                     rattache a un spectacle est un contrat d'usage, et se \
-                     saisit en `cddu_spectacle`.",
-                    rang,
-                    mois_dit,
-                    nat.libelle,
-                    spectacle.as_deref().unwrap_or("")
+                    "{} : retirez le spectacle ({}) de cet engagement, ou choisissez le CDD d'usage si ce contrat est \
+                     celui d'un spectacle.\n\
+                     Le numéro d'objet spectacle est interdit sur un {} (S21.G00.40.050, CCH-11).",
+                    qui,
+                    spectacle.as_deref().unwrap_or(""),
+                    nat.libelle
                 ));
             }
             spectacle = None;
         } else if spectacle.as_deref().map_or(true, str::is_empty) {
             return Err(format!(
-                "L'engagement {} de {} ne dit pas quel spectacle il joue, et \
-                 le mois n'en propose aucun. Le spectacle porte le numero \
-                 d'objet, qui part en DSN, en AEM et sur le bulletin : il se \
-                 choisit, il ne se devine pas.",
-                rang, mois_dit
+                "{}{}\n\
+                 Le spectacle porte le numéro d'objet, qui part en DSN, en AEM et sur le bulletin : il se choisit, il ne \
+                 se devine pas.",
+                qui, PAS_DE_SPECTACLE
             ));
         }
         if ["dates", "cachets", "heures", "taux_horaire"].iter().any(|k| e.get(*k).is_some()) {
             return Err(format!(
-                "L'engagement {} de {} est ecrit a l'ancienne (`dates`, \
-                 `cachets`, `heures` ou `taux_horaire` sur l'engagement). \
-                 Depuis le 13/09/2026 tout se porte sur les lignes de paie \
-                 ([{{rubrique, quantite, taux, dates}}]), et l'engagement ne \
-                 garde aucun de ces champs.",
-                rang, mois_dit
+                "{} : l'engagement porte `dates`, `cachets`, `heures` ou `taux_horaire`, que le logiciel ne lit pas : \
+                 tout se porte sur les lignes de paie ([{{rubrique, quantite, taux, dates}}]).",
+                qui
             ));
         }
         let jours = if nat.mensuelle() { Vec::new() } else { dates_engagement(e) };
         // `lignes: []` ecrit est un mois du contrat sans cachet ; une ligne sans date est incomplete.
         if jours.is_empty() && !nat.mensuelle() && e.get("lignes") != Some(&Value::Array(Vec::new())) {
-            return Err(format!(
-                "L'engagement {} de {} ne dit aucun jour joue. Les jours se \
-                 portent sur chaque ligne de paie (\"dates\"). Sans eux il \
-                 n'y a ni debut, ni fin, ni contrat. Un mois du contrat sans \
-                 aucun cachet s'ecrit `lignes: []`, avec `debut` et `fin`.",
-                rang, mois_dit
-            ));
+            return Err(format!("{}{} Sans eux il n'y a ni début, ni fin, ni contrat.", qui, PAS_DE_JOUR));
+        }
+        if !nat.mensuelle() {
+            lignes_dites(ctx, e, &qui)?;
         }
         // Le metier de ce contrat : six champs declares, que l'engagement
         // ecrit par-dessus, et son libelle lisible (`emploi_affichage`).
@@ -988,7 +981,7 @@ pub(crate) fn engagements(
             let salarie = ctx.salarie(&chaine(e.get("salarie")).ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
             let feminin = sexe(&salarie) == "2";
             declare = emplois::resoudre(&code, cadre, feminin)
-                .map_err(|m| format!("Engagement {} de {} : {}", rang, mois_dit, m))?;
+                .map_err(|m| format!("{} : {}", qui, m))?;
         }
         let lignes = if nat.mensuelle() {
             let (lignes, avis) =
@@ -1056,26 +1049,74 @@ pub(crate) fn engagements(
         for k in CHAMPS_DU_CONTRAT_ECRIT {
             poser(k, e.get(k));
         }
-        let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs))?;
+        let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
         // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
         if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
-            heures_dites(ctx, &eng, rang, &mois_dit)?;
+            heures_dites(ctx, &eng, &qui)?;
         }
         out.push(eng);
     }
     Ok((out, dits))
 }
 
-/// Les phrases des refus qui disent une saisie pas encore finie, et non un defaut du logiciel : un spectacle pas encore
-/// choisi, des jours pas encore coches, des heures pas encore dites. L'ecran enregistre a chaque frappe, et ces refus
-/// montent sous `SaisieIncomplete` (`moteur::routes::etapes::classer_saisie`, `moteur::routes::mois::refus_du_calcul`) ; leur message
-/// commence par « L'engagement N de AAAA-MM ».
-const SAISIE_INCOMPLETE: [&str; 3] = [" ne dit pas quel spectacle il joue", " ne dit aucun jour joue", " ne dit pas ses heures"];
+/// Ce que disent les refus d'une saisie pas encore finie, et non un defaut du logiciel : un spectacle pas encore
+/// choisi, des jours pas encore coches, une ligne sans quantite, sans montant ou sans heures, une quantite qui ne compte
+/// rien. L'ecran enregistre a chaque frappe, et ces refus montent sous `SaisieIncomplete`
+/// (`moteur::routes::etapes::classer_saisie`, `moteur::routes::mois::refus_du_calcul`) ; leur message s'ouvre sur le
+/// salarie, puis dit quoi faire.
+const PAS_DE_SPECTACLE: &str = " : choisissez le spectacle que joue cet engagement, sur sa carte.";
+const PAS_DE_JOUR: &str = " : cochez les jours joués sur sa ligne de paie.";
+const LIGNE_A_DIRE: &str = " : saisissez ";
+const QUANTITE_SANS_COMPTE: &str = " : saisissez un nombre plus grand que zéro";
+const SAISIE_INCOMPLETE: [&str; 4] = [PAS_DE_SPECTACLE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE];
 
-/// Ce refus de `engagements` dit-il une saisie pas encore finie ([`SAISIE_INCOMPLETE`]) ?
+/// Chaque ligne de paie saisie dit sa quantite et son taux (ou sa base et son pourcentage) : la saisie s'enregistre
+/// sans eux, en saisie, et ce refus dit ce qui manque, ligne par ligne, avec le salarie (`qui`).
+///
+/// Une quantite (ou une base) dit combien la ligne paie : nulle, elle ne paie rien ; negative, elle retirerait ce
+/// qu'elle dit payer, et ses jours partiraient en DSN sans un euro (une absence se saisit en ligne d'absence, de
+/// quantite positive : c'est sa rubrique qui retire). L'une et l'autre se refusent, en disant la ligne. Seule une ligne
+/// qui ne porte que des jours a venir (`planning`, sans jour de ce mois) a une quantite nulle : elle ne paie rien ce
+/// mois-ci.
+fn lignes_dites(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
+    let vide = |v: Option<&Value>| matches!(v, None | Some(Value::Null)) || v.and_then(Value::as_str).is_some_and(|s| s.trim().is_empty());
+    for (i, l) in e.get("lignes").and_then(Value::as_array).into_iter().flatten().enumerate() {
+        let Some(code) = l.get("rubrique") else { continue };
+        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
+        let pourcentage = r.saisie.iter().any(|s| s == "taux_majoration");
+        let (quantite, taux) = if pourcentage { ("base", "taux_majoration") } else { ("quantite", "taux") };
+        let ligne = format!("sa ligne {} (« {} »)", i + 1, r.libelle);
+        if vide(l.get(quantite)) {
+            let quoi = if pourcentage { "la base" } else { "la quantité" };
+            return Err(format!("{}{}{} de {}.", qui, LIGNE_A_DIRE, quoi, ligne));
+        }
+        let n = flottant_opt(l.get(quantite)).ok().flatten();
+        let a_venir_seulement = l.get("dates").and_then(Value::as_array).is_none_or(Vec::is_empty)
+            && l.get("planning").and_then(Value::as_array).is_some_and(|p| !p.is_empty());
+        if n.is_some_and(|n| n < 0.0 || (n == 0.0 && !a_venir_seulement)) {
+            let quoi = if pourcentage { "la base" } else { "la quantité" };
+            return Err(format!(
+                "{} : {} de {} est {}{}, ou retirez la ligne (×).",
+                qui,
+                quoi,
+                ligne,
+                en_texte(l.get(quantite).unwrap_or(&Value::Null)),
+                QUANTITE_SANS_COMPTE
+            ));
+        }
+        if vide(l.get(taux)) {
+            let quoi = if pourcentage { "le pourcentage" } else { "le montant" };
+            return Err(format!("{}{}{} de {}.", qui, LIGNE_A_DIRE, quoi, ligne));
+        }
+    }
+    Ok(())
+}
+
+/// Ce refus de `engagements` dit-il une saisie pas encore finie ([`SAISIE_INCOMPLETE`]) ? Sa premiere ligne le dit.
 pub fn saisie_incomplete(message: &str) -> bool {
-    message.starts_with("L'engagement ") && SAISIE_INCOMPLETE.iter().any(|p| message.contains(p))
+    let tete = message.lines().next().unwrap_or("");
+    SAISIE_INCOMPLETE.iter().any(|p| tete.contains(p))
 }
 
 /// REGLE 1 : une ligne dont la rubrique demande ses heures (`heures` dans sa `saisie`, aucun forfait --
@@ -1083,7 +1124,7 @@ pub fn saisie_incomplete(message: &str) -> bool {
 /// les dit, sinon l'engagement se refuse. Sans elles, la ligne paierait et declarerait zero heure en DSN, en AEM, aux
 /// Conges Spectacles et a l'assurance chomage, sans un mot : `Rubrique::heures` n'a rien d'autre a compter. Une ligne
 /// de quantite nulle ne paie rien et ne compte rien : elle n'a pas d'heures a dire.
-fn heures_dites(ctx: &Contexte, eng: &Engagement, rang: usize, mois: &str) -> Resultat<()> {
+fn heures_dites(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()> {
     for (i, l) in eng.lignes.iter().enumerate() {
         let Some(code) = l.get("rubrique") else { continue };
         let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
@@ -1095,14 +1136,14 @@ fn heures_dites(ctx: &Contexte, eng: &Engagement, rang: usize, mois: &str) -> Re
             continue;
         }
         return Err(format!(
-            "L'engagement {} de {} : sa ligne {} (« {} ») ne dit pas ses heures. Cette rubrique n'a pas de forfait \
-             d'heures, comme le cachet en a un : ses heures sont un fait, que la DSN, l'AEM, les Congés Spectacles et \
-             l'assurance chômage comptent, et le moteur ne les devine pas. Saisir sur la ligne ses heures par {}.",
-            rang,
-            mois,
+            "{}{}ses heures par {} sur sa ligne {} (« {} »).\nCette rubrique n'a pas de forfait d'heures, comme le \
+             cachet en a un : ses heures sont un fait, que la DSN, l'AEM, les Congés Spectacles et l'assurance chômage \
+             comptent, et le logiciel ne les devine pas.",
+            qui,
+            LIGNE_A_DIRE,
+            r.unite,
             i + 1,
-            r.libelle,
-            r.unite
+            r.libelle
         ));
     }
     Ok(())
@@ -1167,12 +1208,9 @@ pub fn debut_brut(e: &Value) -> String {
     jours.into_iter().next().unwrap_or_default()
 }
 
-/// « NOM Prenom » d'une fiche.
+/// Le salarie d'une fiche, tel que l'ecran le nomme (`socle::texte::salarie_nomme`).
 fn qui_de(fiche: &Value) -> Resultat<String> {
-    let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte);
-    let nom = texte("nom").ok_or_else(|| socle::fichiers::absent("nom"))?;
-    let prenom = texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| socle::fichiers::absent("prenom"))?;
-    Ok(format!("{} {}", nom, prenom))
+    socle::texte::salarie_nomme(fiche).ok_or_else(|| socle::fichiers::absent("nom"))
 }
 
 /// « (n° FA1.26.13) » quand le contrat porte son numero ; rien sinon.

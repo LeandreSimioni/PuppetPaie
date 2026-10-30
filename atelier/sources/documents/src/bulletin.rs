@@ -7,7 +7,7 @@ use engagement::calcul::Paie;
 use engagement::conges::CompteurConges;
 use droit::contexte::Contexte;
 use droit::cumul::{tableau_cumul, Colonne};
-use engagement::cumul::lire_engagements;
+use engagement::cumul::lire_engagements_jusqu_au;
 use socle::date::{d, dernier_du_mois, en_texte, forme_ecrite, Jour};
 use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, div, sub, Decimal, Resultat};
@@ -1023,8 +1023,20 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         salarie.push(mt(format!(" {}\n", c)));
     }
     salarie.extend(ligne_caisse);
+    // LA DEDUCTION FORFAITAIRE SPECIFIQUE que la paie a appliquee : le taux de l'annee de sa categorie (arrete du
+    // 4 septembre 2025, art. 9, II : 16 % en 2026 pour la categorie 20 %, 18 % pour la 25 %), et ce qu'elle a retire,
+    // apres le plafond annuel et l'assiette minimum (`engagement::calcul::abattement_dfs` ;
+    // `atelier/reference/sources/dfs/LISEZ-MOI.md`).
     salarie.push(k("Abattement :"));
-    salarie.push(mt(" 0 %"));
+    salarie.push(mt(match &p.deduction_forfaitaire {
+        Some(d) => format!(
+            " {} % (catégorie {} %, taux de l'année) — {} € déduits",
+            fmt_heures(d.taux),
+            d.categorie,
+            fmt_eur(d.montant)
+        ),
+        None => " 0 %".to_string(),
+    }));
     let employeur = vec![
         m("EMPLOYEUR", true, None),
         mt("\n\n"),
@@ -1274,10 +1286,10 @@ pub fn jeux_et_description(
     let pas_par_paie = crate::prelevement::des_paies(ctx, paies)?;
     let mut colonnes_par_salarie: HashMap<String, Vec<Colonne>> = HashMap::new();
     if !mois.is_empty() {
-        // Tout ce que la compagnie a declare, ce mois-ci compris : les paies
+        // Tout ce que la compagnie a declare jusqu'a ce mois, ce mois-ci compris : les paies
         // qu'on imprime remplacent le fichier de leur mois.
         let courantes = paies_du_mois.filter(|p| !p.is_empty()).unwrap_or(paies);
-        let mut engagements = lire_engagements(ctx, Some(courantes))?;
+        let mut engagements = lire_engagements_jusqu_au(ctx, Some(courantes), Some(mois))?;
         if borne_au_mois {
             let fin = dernier_du_mois(mois)?;
             engagements.retain(|e| e.debut <= fin);

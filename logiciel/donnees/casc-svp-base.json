@@ -26,8 +26,11 @@
   "page": "https://casc-svp.portailce.com/Article/Article/9",
   "dsn": {
     "contrat": "CASCSVP",
+    "organisme": "P0983",
+    "identifiant": "100",
     "lignes_bulletin": ["ccn"],
-    "_quoi": "Ce que la DSN declare (`declarations/src/dsn.rs`, `casc_svp`) : une base 31 et une cotisation 059 sous l'adhesion prevoyance dont le libelle est `contrat` (sa reference est celle de la compagnie, dans config/organismes.json) ; montant = les lignes `lignes_bulletin` du bulletin, rubrique de la couche 3090 du bareme. Pas pour un mois regularise hors DSN (config/casc-svp.json).",
+    "_quoi": "Ce que la DSN declare (`declarations/src/dsn.rs`, `casc_svp`) : une base 31 et une cotisation 059 sous l'adhesion prevoyance CASCSVP ; montant = les lignes `lignes_bulletin` du bulletin, rubrique de la couche 3090 du bareme. Pas pour un mois regularise hors DSN (config/casc-svp.json). L'adhesion (bloc S21.G00.15) est entiere ici, la compagnie n'en saisit rien (`droit::adhesions::casc_svp`) : `contrat` est la reference du contrat (15.001), `organisme` le code d'Audiens Sante Prevoyance (15.002), tous deux donnes par la fiche de codification ; `identifiant` est l'identifiant technique de l'adhesion (15.005), interne au message DSN et choisi par le declarant (norme-dsn/texte/bloc-S21.G00.15.txt, l. 112-117), le meme que `organismes-base.json` reserve a la CASC-SVP dans `affectations_81_059`.",
+    "_source_adhesion": "atelier/reference/sources/casc-svp-fiche-codification-dsn-202606.txt (bloc Adhesion Prevoyance : S21.G00.15.001 CASCSVP, S21.G00.15.002 P0983 pour Audiens Sante Prevoyance, S21.G00.15.005 fait le lien avec S21.G00.70.013).",
     "_source": "Fiche de parametrage Audiens n. 139, groupes 00009 et 00010 : contrat CASCSVP, TAPrev 0,50 depuis le 01/01/2026. Web-conference Audiens 2026 p. 12 (bulletin d'un intermittent 3090 : CASC svp 0,5) et p. 18."
   }
 }

@@ -10,10 +10,12 @@
 //! propose un contrat que pour la periode qu'il couvre. Un contrat qui commence dans la periode la couvre : son
 //! affiliation se date de son premier jour (S21.G00.70.014, `dsn::rattachements`).
 
+use std::path::Path;
+
 use serde_json::Value;
 
 use socle::date::{en_texte, Jour};
-use socle::fichiers::vrai;
+use socle::fichiers::{lire_json, vrai};
 use socle::num::Resultat;
 
 /// La date de `cle` du contrat, ou `None` quand il n'en dit pas ; refus quand elle ne se lit pas.
@@ -31,6 +33,35 @@ pub fn en_vigueur(contrat: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
     let depuis = borne(contrat, "depuis")?;
     let jusqu_a = borne(contrat, "jusqu_a")?;
     Ok(depuis.map_or(true, |d| d <= *fin) && jusqu_a.map_or(true, |j| j >= *debut))
+}
+
+/// L'ADHESION CASC-SVP d'une compagnie de la 3090 qui n'en est pas exemptee (`bareme::casc_exemptee`), ou `None`.
+/// Elle est entiere dans `casc-svp-base.json` (`dsn` : `contrat`, `organisme`, `identifiant`) : la fiche de
+/// codification la donne a l'identique a toute compagnie (S21.G00.15.001 CASCSVP, S21.G00.15.002 P0983 ;
+/// `atelier/reference/sources/casc-svp-fiche-codification-dsn-202606.txt`), et l'identifiant technique (15.005) est
+/// interne au message DSN (`atelier/reference/norme-dsn/texte/bloc-S21.G00.15.txt`, l. 112-117). La compagnie n'en
+/// saisit donc rien : `Contexte::organismes` la porte meme quand `config/organismes.json` ne la nomme pas.
+pub fn casc_svp(code: &Path, ent: &Value) -> Resultat<Option<Value>> {
+    let base = lire_json(&code.join("casc-svp-base.json"))?;
+    let idcc = |v: &Value| en_texte(v).trim().to_string();
+    if idcc(ent.get("idcc").unwrap_or(&Value::Null)) != idcc(&base["idcc"]) || crate::bareme::casc_exemptee(ent)? {
+        return Ok(None);
+    }
+    let dsn = &base["dsn"];
+    let champ = |k: &str| -> Resultat<String> {
+        let v = en_texte(&dsn[k]).trim().to_string();
+        if v.is_empty() {
+            return Err(format!("casc-svp-base.json : `dsn.{}` manque.", k));
+        }
+        Ok(v)
+    };
+    Ok(Some(serde_json::json!({
+        "cle": "casc",
+        "libelle": champ("contrat")?,
+        "delegataire": champ("organisme")?,
+        "type": "02",
+        "reference": champ("identifiant")?,
+    })))
 }
 
 #[cfg(test)]
@@ -57,5 +88,18 @@ mod tests {
         assert!(en_vigueur(&json!({"depuis": "2026-03-15"}), &j("2026-03-01"), &j("2026-03-31")).unwrap());
         assert!(en_vigueur(&json!({"libelle": "INTERBRANCHE"}), &j("2025-01-01"), &j("2025-01-31")).unwrap());
         assert!(en_vigueur(&json!({"depuis": "2026-13-01"}), &j("2026-01-01"), &j("2026-01-31")).is_err());
+    }
+
+    /// L'adhesion CASC-SVP d'une 3090 est celle de la fiche de codification, sans rien de la compagnie
+    /// (`atelier/reference/sources/casc-svp-fiche-codification-dsn-202606.txt` : 15.001 CASCSVP, 15.002 P0983) ; une
+    /// autre convention, ou une 3090 exemptee (CCN 3090, art. 4.22 B), n'en a pas.
+    #[test]
+    fn la_casc_svp_d_une_3090_ne_se_saisit_pas() {
+        let code = socle::fichiers::dossier_du_code();
+        let a = casc_svp(&code, &json!({"idcc": "3090"})).unwrap().unwrap();
+        assert_eq!((a["libelle"].as_str(), a["delegataire"].as_str()), (Some("CASCSVP"), Some("P0983")));
+        assert!(casc_svp(&code, &json!({"idcc": "1285"})).unwrap().is_none());
+        let exemptee = json!({"idcc": "3090", "casc_svp_exemptee": true, "representation_personnel": "cse"});
+        assert!(casc_svp(&code, &exemptee).unwrap().is_none());
     }
 }

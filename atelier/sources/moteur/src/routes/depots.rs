@@ -470,10 +470,8 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         } else {
             ("ok", format!("dans {} jour(s) - delai tenu", reste))
         };
-        let nom = p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
-        let prenom = p.salarie.get("prenom_affichage").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom_affichage")))?;
         lignes.push(json!({
-            "salarie": format!("{} {}", valeur_en_texte(nom), valeur_en_texte(prenom)),
+            "salarie": socle::texte::salarie_nomme_ou(Some(&p.salarie), p.salarie.get("_cle").and_then(Value::as_str).unwrap_or("")),
             "debut": p.engagement.debut.iso(),
             "heure": heure,
             "etat": etat,
@@ -605,7 +603,11 @@ fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let fabriquee;
     let fichier = match (charge.get("fichier").filter(|f| vrai(f)), charge.get("mois").filter(|m| vrai(m))) {
         (None, Some(mois)) if etats::est(quoi, "dsn") => {
-            let dsn = crate::compagnie::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
+            // Avant son premier jour de depot, la DSN ne s'ecrit pas (`depart::pas_avant`).
+            if let Some((_, phrase, _)) = crate::compagnie::depart::pas_avant(ctx, &valeur_en_texte(mois))? {
+                return Err(erreur("ErreurOperation", format!("{} Rien n'est parti.", phrase)));
+            }
+            let dsn =crate::compagnie::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
             let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte);
             let chemin = match nic {
                 Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
@@ -1059,11 +1061,8 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
             None => (None, &vide),
         };
         let debut = iso_depuis_jjmmaaaa(champ("date_embauche"));
-        let nom_s = etats::getd(s, "nom", etats::texte_vide())?;
-        let prenom = etats::ou(etats::get(s, "prenom_affichage")?, etats::getd(s, "prenom", etats::texte_vide())?);
-        let nom = format!("{} {}", socle::valeur::valeur_en_texte(nom_s), socle::valeur::valeur_en_texte(prenom));
-        let nom = nom.trim_matches(socle::texte::blanc);
-        let nom = if nom.is_empty() { "salarie inconnu de la configuration" } else { nom };
+        let nom = socle::texte::salarie_nomme(s).unwrap_or_else(|| "salarie inconnu de la configuration".to_string());
+        let nom = nom.as_str();
         let type_brut = champ("type_contrat").trim_matches(socle::texte::blanc);
         let type_contrat = match type_brut {
             "1" => "CDD".to_string(),

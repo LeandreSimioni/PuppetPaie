@@ -386,21 +386,20 @@ reduction generale et echeance de la DSN a cinquante).",
 
 // ----------------------------------------- les baremes : socle, convention, fusion
 
-/// Une erreur de bareme ; `introuvable` est le `FileNotFoundError` que
-/// `plafond_securite_sociale` sait reformuler.
+/// Une erreur de bareme, dite pour l'utilisateur : ce qui manque, et ou le dire.
 struct Refus {
-    introuvable: bool,
     message: String,
 }
 
 impl From<String> for Refus {
     fn from(message: String) -> Refus {
-        Refus { introuvable: false, message }
+        Refus { message }
     }
 }
 
+/// Le bareme d'une annee, ou ce que la compagnie y dit, n'existe pas.
 fn introuvable(message: String) -> Refus {
-    Refus { introuvable: true, message }
+    Refus { message }
 }
 
 /// Les annees dont le socle est livre.
@@ -568,25 +567,15 @@ fn bareme_de_l_annee(dossier: &Path, an: i32, fichier: Option<Value>, idcc: Opti
         None => {
             if socle(dossier, an)?.is_none() {
                 return Err(introuvable(format!(
-                    "Pas de bareme pour {}.\n\
-\x20 Le socle livre avec le logiciel couvre : {}. Un socle neuf \
-s'ecrit en janvier, depuis le plus recent : SMIC, plafond de \
-la Securite sociale, taux qui ont bouge (voir \
-reference-privee/veille-taux.md (relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé)).",
+                    "Le logiciel n'a pas les taux de {} (SMIC, plafond de la Sécurité sociale, cotisations) : il a ceux de {}. Une paie de {} ne se calcule pas avec cette version.",
                     an,
-                    disponibles(dossier)
+                    disponibles(dossier),
+                    an
                 )));
             }
             return Err(introuvable(format!(
-                "Taux AT/MP {} de la compagnie : a renseigner dans Configuration \
-> Entreprise (Taux accident du travail), ou a la main dans \
-{}, qui tient en quatre lignes :\n\
-    {{\"annee\": {}, \"socle\": {}, \"taux_atmp\": {{\"valeur\": 1.50, \
-\"code_risque\": \"923AD\"}}}}\n\
-\x20 Ce taux est notifie chaque janvier par l'Assurance Maladie \
-(compte AT/MP sur net-entreprises) : il est propre a \
-l'etablissement, et aucun logiciel ne peut aller le chercher.",
-                an, ou, an, an
+                "Le code risque et le taux AT/MP de {} ne sont pas dits. Ils se lisent sur la notification de la CARSAT (compte AT/MP sur net-entreprises) et se saisissent dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».",
+                an
             )));
         }
         Some(f) => f,
@@ -1219,6 +1208,8 @@ pub struct Contexte {
 }
 
 const ENTREPRISE: &str = "config/entreprise.json";
+/// Combien d'annees en arriere le taux AT/MP d'une annee que la compagnie n'a pas dite se cherche.
+const ANNEES_DU_TAUX_ATMP: i32 = 5;
 /// Le fichier des organismes et contrats de la DSN, sous `config/`.
 pub const ORGANISMES: &str = "organismes.json";
 
@@ -1376,11 +1367,11 @@ impl Contexte {
 
     fn empreinte_bareme_de(&self, an: i32, ent: &Value) -> String {
         let cfg = self.racine.join("config");
-        let sig = [
-            socle::fichiers::signature(&cfg.join("baremes").join(format!("{}.json", an))),
-            socle::fichiers::signature(&self.code.join("baremes").join(format!("{}.json", an))),
-            socle::fichiers::signature(&cfg.join("effectifs.json")),
-        ];
+        // Les surcouches des annees d'avant : le taux AT/MP que l'annee ne dit pas s'en reprend (`taux_atmp_reporte`).
+        let sig: Vec<_> = (an - ANNEES_DU_TAUX_ATMP..=an)
+            .flat_map(|y| [socle::fichiers::signature(&cfg.join("baremes").join(format!("{}.json", y))), socle::fichiers::signature(&self.code.join("baremes").join(format!("{}.json", y)))])
+            .chain([socle::fichiers::signature(&cfg.join("effectifs.json"))])
+            .collect();
         format!("{}|{}|{}|{:?}|{}|g{}|{:?}", self.racine.display(), self.code.display(), an, sig, ent, socle::fichiers::generation(), self.atmp_lu)
     }
 
@@ -1401,9 +1392,49 @@ impl Contexte {
         Ok(fondu)
     }
 
+    /// LE TAUX AT/MP DE L'ANNEE `an` QUE LA COMPAGNIE N'A PAS DIT, d'apres le dernier qu'elle a dit dans les annees d'avant
+    /// (sa surcouche `config/baremes/<annee>.json`, `ANNEES_DU_TAUX_ATMP` au plus) : `bareme::taux_atmp_reporte`. `None`
+    /// : aucun code dit avant.
+    pub fn taux_atmp_reporte(&self, an: i32) -> Option<Result<Map<String, Value>, String>> {
+        self.taux_atmp_reporte_de(an, &self.entreprise)
+    }
+
+    /// LE TAUX AT/MP DE L'ANNEE `an` TEL QUE LE BAREME LE LIT (`bareme_brut_sans_cache`) : celui que la surcouche de
+    /// l'annee dit (`config/baremes/<an>.json`, `taux_atmp`), sinon celui qui se reprend d'une annee d'avant
+    /// (`taux_atmp_reporte`, qui porte `_reporte_de`). `Some(Err)` : pourquoi il ne se reprend pas, ou la surcouche
+    /// illisible ; `None` : rien de dit ni d'avant. Tout ce qui demande « le taux de l'annee est-il pose ? » lit ici.
+    pub fn taux_atmp_de(&self, an: i32) -> Option<Result<Map<String, Value>, String>> {
+        let p = self.racine.join("config").join("baremes").join(format!("{}.json", an));
+        if socle::fichiers::existe(&p) {
+            match lire_json(&p) {
+                Ok(v) => {
+                    if let Some(t) = v.get("taux_atmp").and_then(Value::as_object) {
+                        return Some(Ok(t.clone()));
+                    }
+                }
+                Err(e) => return Some(Err(e)),
+            }
+        }
+        self.taux_atmp_reporte(an)
+    }
+
+    fn taux_atmp_reporte_de(&self, an: i32, ent: &Value) -> Option<Result<Map<String, Value>, String>> {
+        let dossier = self.racine.join("config").join("baremes");
+        let (pa, pose) = (an - ANNEES_DU_TAUX_ATMP..an).rev().find_map(|y| {
+            let p = dossier.join(format!("{}.json", y));
+            let t = socle::fichiers::existe(&p).then(|| lire_json(&p).ok()).flatten()?.get("taux_atmp")?.clone();
+            t.get("code_risque").and_then(Value::as_str).is_some_and(|c| !c.trim().is_empty()).then_some((y, t))
+        })?;
+        let socles = self.code.join("baremes");
+        let socle_an = socle(&socles, an).ok().flatten();
+        let socle_avant = socle(&socles, pa).ok().flatten();
+        let alsace = ent.get("code_postal").map(en_texte).is_some_and(|c| crate::bareme::en_alsace_moselle(&c));
+        crate::bareme::taux_atmp_reporte(an, socle_an.as_ref(), (pa, &pose), socle_avant.as_ref(), alsace)
+    }
+
     fn bareme_brut_sans_cache(&self, an: i32, ent: &Value) -> Result<Value, Refus> {
         let p = self.racine.join("config").join("baremes").join(format!("{}.json", an));
-        let fichier = if socle::fichiers::existe(&p) {
+        let mut fichier = if socle::fichiers::existe(&p) {
             Some(lire_json(&p)?)
         } else {
             match &self.atmp_lu {
@@ -1411,6 +1442,26 @@ impl Contexte {
                 _ => None,
             }
         };
+        // Le taux AT/MP que la compagnie n'a pas dit pour l'annee se lit de celui qu'elle a dit avant
+        // (`bareme::taux_atmp_reporte`) ; ce qui ne se reprend pas dit pourquoi, et ce qu'il faut saisir.
+        if !fichier.as_ref().is_some_and(|f| f.get("taux_atmp").is_some_and(Value::is_object)) {
+            match self.taux_atmp_reporte_de(an, ent) {
+                Some(Ok(t)) => {
+                    let f = fichier.get_or_insert_with(|| serde_json::json!({"annee": an, "socle": an}));
+                    if let Some(o) = f.as_object_mut() {
+                        o.insert("taux_atmp".into(), Value::Object(t));
+                    }
+                }
+                Some(Err(pourquoi)) => match fichier.as_mut().and_then(Value::as_object_mut) {
+                    Some(o) => {
+                        o.insert("taux_atmp".into(), serde_json::json!({ "_manque": pourquoi }));
+                    }
+                    None if socle(&self.code.join("baremes"), an)?.is_some() => return Err(introuvable(pourquoi)),
+                    None => {}
+                },
+                None => {}
+            }
+        }
         let idcc = ent.get("idcc").filter(|v| !v.is_null());
         let fondu = bareme_de_l_annee(&self.code.join("baremes"), an, fichier, idcc)?;
         // Le controle est ici, le seul endroit qui compose un bareme.
@@ -1449,6 +1500,19 @@ impl Contexte {
         out.sort();
         out.dedup();
         Ok(out)
+    }
+
+    /// LES CONTRIBUTIONS DE BRANCHE QUE LA DSN DECLARE A CE JOUR : `contributions_dsn` de la couche de la convention que
+    /// la fiche entreprise nomme ce jour-la, dans le socle de l'annee (la meme liste que le bareme fondu porte). Elles ne
+    /// dependent que de la convention : un bareme que l'effectif ou le taux AT/MP rendent illisible les a quand meme.
+    /// Une annee sans socle, ou une fiche sans convention couverte, n'en a aucune (le refus se dit au bareme).
+    pub fn contributions_dsn(&self, jour: &Jour) -> Resultat<Vec<Value>> {
+        let Some(socle_an) = socle(&self.code.join("baremes"), jour.an)? else { return Ok(Vec::new()) };
+        let ent = self.entreprise_au(jour)?;
+        let Some(idcc) = ent.get("idcc").filter(|v| !v.is_null()) else { return Ok(Vec::new()) };
+        let Ok(couche) = convention(&socle_an, idcc) else { return Ok(Vec::new()) };
+        let couche = a_la_date(&couche, jour, &[])?;
+        Ok(couche.get("contributions_dsn").and_then(Value::as_array).cloned().unwrap_or_default())
     }
 
     pub fn bareme(&self, jour: &Jour) -> Resultat<Value> {
@@ -1524,15 +1588,6 @@ impl Contexte {
     pub fn plafond_securite_sociale(&self, annee: i32) -> Resultat<(i64, i64)> {
         let brut = match self.bareme_brut(annee, &self.entreprise) {
             Ok(b) => b,
-            Err(r) if r.introuvable => {
-                return Err(format!(
-                    "{} Le plafond de Securite sociale de {} se releve sur la table \
-des parametres du BOSS (PSS_M_METROP, PSS_H_METROP) et se pose \
-dans ce bareme, section plafond_securite_sociale.",
-                    r.message.lines().next().unwrap_or(""),
-                    annee
-                ))
-            }
             Err(r) => return Err(r.message),
         };
         let sec = brut.get("plafond_securite_sociale").filter(|v| vrai(v)).cloned().unwrap_or(Value::Null);
@@ -1601,29 +1656,21 @@ PSS_H_METROP).",
         self.spectacles_bruts.get(cle)
     }
 
-    /// LES ORGANISMES ET CONTRATS DE LA DSN (`config/organismes.json`), lus a `lue_au` : un fichier date comme les
-    /// fiches, chaque cle une liste `{depuis, valeur}` (`moteur::compagnie::organismes` l'ecrit, par `dater`). `None` : la compagnie
-    /// ne les a pas encore enregistres.
-    pub fn organismes(&self) -> Resultat<Option<Value>> {
-        let p = self.racine.join("config").join(ORGANISMES);
-        if !p.is_file() {
-            return Ok(None);
-        }
-        fiche_au(&lire_json(&p)?, &self.lue_au, &format!("config/{}", ORGANISMES)).map(Some)
-    }
-
-    /// `organismes`, exiges : la DSN et les signalements ne se font pas sans eux.
-    pub fn organismes_exiges(&self) -> Resultat<Value> {
-        self.organismes()?.ok_or_else(|| {
-            format!(
-                "config/{} manque : les organismes et contrats de la compagnie s'enregistrent dans Configuration › \
-Organismes et contrats. Rien n'est ecrit.",
-                ORGANISMES
-            )
-        })
+    /// LES ORGANISMES ET CONTRATS DE LA DSN a `lue_au`, composes depuis les textes livres et la configuration de cette
+    /// date (convention, bareme, `config/organismes.json` pour ce que la compagnie a saisi) : `organismes::composer`.
+    /// Ce qu'un texte donne entier vaut sans que la compagnie ait rien enregistre.
+    pub fn organismes(&self) -> Resultat<Value> {
+        let (saisi, prises) = crate::organismes::saisis(self)?;
+        crate::organismes::composer(self, &saisi, prises, &Map::new(), None)
     }
 
     // -------------------------------------------------------------- recherche
+
+    /// Le salarie de cette cle tel que l'ecran le nomme (`socle::texte::salarie_nomme` : « NOM Prénom ») ; la cle sans
+    /// fiche.
+    pub fn nomme(&self, cle: &str) -> String {
+        socle::texte::salarie_nomme_ou(self.salaries.get(cle), cle)
+    }
 
     /// Retrouve un salarie par cle, NIR, nom, prenom ou
     /// faute de frappe. Le nom EXACT retrouve n'importe qui, archive compris ;

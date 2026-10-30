@@ -157,7 +157,8 @@ fn champ_exige(ent: &Value, cle: &str) -> bool {
     crate::champs::champ("entreprise", cle).ok().flatten().is_some_and(|c| c.exige(ent))
 }
 
-/// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque.
+/// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque. Une ligne dit ce qu'elle bloque
+/// (`bloque`), ou, quand rien ne se refuse sans elle, ce qui se passe sinon (`sinon`).
 pub fn manques(ctx: &Contexte) -> Vec<Value> {
     let ent = &ctx.entreprise;
     let mut out: Vec<Value> = Vec::new();
@@ -270,10 +271,9 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         let (libelle, _) = champ(cle);
         out.push(manque(cle, libelle, "la DSN de décembre", ENTREPRISE, Some(cle), m));
     }
-    // LES CONTRATS DES PERMANENTS : une compagnie qui dit employer des salaries au mois APRES avoir enregistre ses
-    // organismes n'a pas leurs adhesions de prevoyance et de sante, et le mois d'un permanent se refuse alors
-    // (`dsn::affiliations`, « affiliations_par_nature.permanent.references est null »). Rien ne le disait d'avance.
-    if let (true, Ok(Some(orgs))) = (ctx.emploie_des_permanents(), ctx.organismes()) {
+    // LES CONTRATS DES PERMANENTS : c'est tout ce que la compagnie a a saisir des organismes (le reste, les textes le
+    // donnent : `droit::organismes`). Sans eux, le mois d'un permanent se refuse (`dsn::affiliations`).
+    if let (true, Ok(orgs)) = (ctx.emploie_des_permanents(), ctx.organismes()) {
         if !orgs.pointer("/affiliations_par_nature/permanent/references").is_some_and(vrai) {
             out.push(manque(
                 "organismes_permanents",
@@ -285,38 +285,136 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
             ));
         }
     }
-    // Les organismes de la DSN : la compagnie ne les a pas encore enregistres.
-    if !ctx.racine.join("config").join(droit::contexte::ORGANISMES).is_file() {
-        out.push(manque(
-            "organismes",
-            "Les organismes et les contrats de la DSN".into(),
-            "la DSN, donc l'écriture du mois",
-            "Configuration › Organismes et contrats",
-            None,
-            "Les comptes que la DSN paie (Urssaf, France Travail Spectacle, Congés Spectacles, retraite complémentaire) et vos contrats de prévoyance et de santé : l'organisme, la référence du contrat et la population couverte se lisent sur le certificat d'adhésion de l'assureur et sur sa fiche de paramétrage DSN.".into(),
-        ));
+    // LES CONGES PAYES ACQUIS AVANT PUPPETPAIE : un permanent dont le contrat commence avant le premier mois ou PuppetPaie
+    // le paie a acquis des jours ailleurs (L3141-3 du code du travail, `atelier/reference/sources/code-du-travail/
+    // articles-20260919.md`) ; un solde ne se devine pas (regle 1). Sa fiche les dit (`conges_reprise`, que
+    // `engagement::conges::reprise_conges` lit). Rien ne se refuse sans eux : la ligne dit ce qui se passe sinon (`sinon`),
+    // et non ce qu'elle bloque. C'est ici seulement que la question se pose, contrat repris d'un import compris.
+    for (salarie, nom, depuis) in conges_a_reprendre(ctx) {
+        out.push(json!({
+            "cle": format!("conges_reprise.{}", salarie),
+            "libelle": format!("Les congés payés de {} acquis avant le {}", nom, socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
+            "sinon": "son compteur de congés payés part de zéro",
+            "ou": format!("la fiche de {}, « Congés payés à la reprise »", nom),
+            "champ": "conges_reprise",
+            "salarie": salarie,
+            "trouver": format!("Son contrat a commencé avant que PuppetPaie le paie : recopiez de son dernier bulletin de votre ancien logiciel les jours acquis et pris, avec le {} pour date de reprise.", socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
+        }));
+    }
+    out
+}
+
+/// Les permanents dont un contrat commence avant le premier mois ou PuppetPaie le paie, et dont la fiche ne dit pas les
+/// conges a la reprise (`conges_reprise.date`) : `(salarie, nom, premier jour paye ici)`. Le premier mois paye ici est,
+/// pour un contrat repris d'un ancien logiciel (`engagement::importe`), celui qui suit le dernier mois repris (le contrat
+/// court encore ce mois-la, et sa nature est dite) ; sinon le premier `engagements/AAAA-MM.json` qui porte le salarie.
+/// Un intermittent n'en est pas (ses conges sont ceux des Conges Spectacles) ; un contrat ne d'ici n'a rien d'avant.
+fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
+    let t = |e: &Value, k: &str| e.get(k).filter(|v| vrai(v)).map(socle::date::en_texte).unwrap_or_default();
+    let mensuel = |nature: &str| droit::natures::nature(Some(nature)).is_ok_and(|n| n.mensuelle());
+    // (salarie, debut du contrat, premier jour paye ici)
+    let mut contrats: Vec<(String, String, String)> = Vec::new();
+    let mut vus: Vec<String> = Vec::new();
+    let repris = engagement::importe::contrats_lus(&ctx.racine).unwrap_or_default();
+    if let Some(dernier) = repris.iter().map(|e| t(e, "fin")).filter(|f| f.len() >= 7).map(|f| f[..7].to_string()).max() {
+        let suite = socle::date::dernier_du_mois(&dernier).and_then(|j| j.plus_jours(1)).map(|j| j.iso()).unwrap_or_default();
+        for e in &repris {
+            let (salarie, debut, fin) = (t(e, "salarie"), t(e, "contrat_debut"), t(e, "contrat_fin"));
+            if salarie.is_empty() || debut.is_empty() || suite.is_empty() || !mensuel(&t(e, "nature")) {
+                continue;
+            }
+            vus.push(salarie.clone());
+            if debut < suite && (fin.is_empty() || fin >= suite) && !contrats.iter().any(|c| c.0 == salarie) {
+                contrats.push((salarie, debut, suite.clone()));
+            }
+        }
+    }
+    let mois: Vec<String> = std::fs::read_dir(ctx.racine.join("engagements"))
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .filter_map(|n| n.strip_suffix(".json").filter(|m| m.len() == 7 && m.as_bytes()[4] == b'-').map(str::to_string))
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    for m in mois {
+        let Ok(f) = socle::fichiers::lire_json(&ctx.racine.join("engagements").join(format!("{}.json", m))) else { continue };
+        for e in f.get("engagements").and_then(Value::as_array).into_iter().flatten() {
+            let (salarie, debut) = (t(e, "salarie"), t(e, "debut"));
+            if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) || !mensuel(&t(e, "nature")) {
+                continue;
+            }
+            vus.push(salarie.clone());
+            contrats.push((salarie, debut, format!("{}-01", m)));
+        }
+    }
+    let mut out = Vec::new();
+    for (salarie, debut, premier) in contrats {
+        let fiche = ctx.salaries.get(&salarie);
+        let dit = fiche.and_then(|f| f.get("conges_reprise")).and_then(|c| c.get("date")).is_some_and(vrai);
+        if debut >= premier || dit {
+            continue;
+        }
+        let nom = fiche
+            .map(|f| {
+                let v = |k: &str| f.get(k).filter(|x| vrai(x)).map(socle::date::en_texte).unwrap_or_default();
+                let prenom = if v("prenom_affichage").is_empty() { v("prenom") } else { v("prenom_affichage") };
+                format!("{} {}", v("nom"), prenom).trim().to_string()
+            })
+            .filter(|n| !n.is_empty())
+            .unwrap_or_else(|| salarie.clone());
+        out.push((salarie, nom, premier));
     }
     out
 }
 
 /// CE QUE LE MOTEUR A POSE DE LUI-MEME A LA CREATION, et qui se dit avec ce qui manque : le code risque et le taux AT/MP de
-/// l'annee (`moteur::routes::atmp::poser_a_la_creation`), tant que personne ne les a changes. Le libelle est celui de l'arrete
+/// l'annee (`moteur::routes::atmp::poser_a_la_creation`), tant que personne ne les a changes, ou ceux que la notification
+/// de la CARSAT a poses, avec sa date (`moteur::routes::atmp::poser_notifie`). Le libelle est celui de l'arrete
 /// de l'annee (`droit::bareme::risques_atmp`, `atelier/reference/sources/tarification-atmp/`).
 pub fn poses(ctx: &Contexte) -> Vec<Value> {
     let an = ctx.aujourdhui.an;
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
-    let Some(t) = socle::fichiers::lire_json(&p).ok().and_then(|v| v.get("taux_atmp").cloned()) else { return Vec::new() };
-    if !t.get("_pose_a_la_creation").is_some_and(vrai) || en_alsace_moselle(ctx) {
+    let Some(Ok(t)) = ctx.taux_atmp_de(an) else { return Vec::new() };
+    let reporte_de = t.get("_reporte_de").and_then(Value::as_i64);
+    let notification = t.get("_notification").filter(|n| vrai(n));
+    let a_la_creation = t.get("_pose_a_la_creation").is_some_and(vrai);
+    if notification.is_none() && (!(a_la_creation || reporte_de.is_some()) || en_alsace_moselle(ctx)) {
         return Vec::new();
     }
     let code = t.get("code_risque").map(socle::date::en_texte).unwrap_or_default();
     let socle = ctx.socle_livre(an).ok().flatten().unwrap_or(Value::Null);
-    let Some(r) = droit::bareme::risques_atmp(&socle).into_iter().find(|r| r.code == code) else { return Vec::new() };
-    let taux = t.get("valeur").and_then(Value::as_f64).map(|v| format!("{:.2} %", v).replace('.', ",")).unwrap_or_default();
+    let risque = droit::bareme::risques_atmp(&socle).into_iter().find(|r| r.code == code);
+    let taux = t
+        .get("valeur")
+        .and_then(|v| droit::bareme::taux_atmp_au(v, &ctx.aujourdhui))
+        .map(|v| format!("{:.2} %", v.round_dp(2)).replace('.', ","))
+        .unwrap_or_default();
+    let nom = risque.as_ref().map(|r| r.code_arrete.clone().unwrap_or_else(|| r.code.clone())).unwrap_or_else(|| code.clone());
+    let libelle = format!("Accidents du travail : code risque {}, taux {} en {}", nom, taux, an);
+    // Le taux que la notification de la CARSAT a pose (`moteur::routes::atmp::poser_notifie`) : d'ou il vient.
+    if let Some(n) = notification {
+        let date = |k: &str| n.get(k).and_then(Value::as_str).and_then(|d| socle::date::Jour::lire(d).ok()).map(|j| j.jj_mm_aaaa());
+        return vec![json!({
+            "cle": "taux_atmp",
+            "libelle": libelle,
+            "texte": format!(
+                "{}Le code risque et le taux sont ceux de la notification de la CARSAT{}, en vigueur depuis le {} : le logiciel les a lus dans les retours de la DSN et posés de lui-même. Rien à recopier.",
+                risque.as_ref().map(|r| format!("« {} » ", r.libelle)).unwrap_or_default(),
+                date("calcul").or_else(|| date("le")).map(|d| format!(" du {}", d)).unwrap_or_default(),
+                date("effet").unwrap_or_default()
+            ),
+            "ou": ENTREPRISE,
+            "champ": "taux_atmp",
+        })];
+    }
+    let Some(r) = risque else { return Vec::new() };
     vec![json!({
         "cle": "taux_atmp",
-        "libelle": format!("Accidents du travail : code risque {}, taux {} en {}", r.code_arrete.as_deref().unwrap_or(&r.code), taux, an),
-        "texte": format!("« {} » Le logiciel l'a posé pour vous : c'est le risque du spectacle vivant, et son taux est le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle),
+        "libelle": libelle,
+        "texte": match reporte_de {
+            Some(de) => format!("« {} » Le code risque est celui que la compagnie a dit pour {} ; son taux de {} est celui de l'arrêté de tarification, le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle, de, an),
+            None => format!("« {} » Le logiciel l'a posé pour vous : c'est le risque du spectacle vivant, et son taux est le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle),
+        },
         "ou": ENTREPRISE,
         "champ": "taux_atmp",
     })]
@@ -327,16 +425,18 @@ pub fn route(ctx: &Contexte) -> R<Value> {
     Ok(json!({ "manques": manques(ctx), "poses": poses(ctx) }))
 }
 
-/// Ce qui suit le refus d'un acte quand la compagnie n'a pas fini de demarrer : toute la liste, d'un coup.
-pub fn a_la_suite(ctx: &Contexte) -> Option<String> {
-    let m = manques(ctx);
-    if m.is_empty() {
-        return None;
-    }
-    let lignes: Vec<String> = m
+/// Ce qui suit le refus d'un acte quand la compagnie n'a pas fini de demarrer : toute la liste, d'un coup, sans ce que
+/// le refus `deja_dit` dit deja (un manque dont l'explication est dans le refus ne se redit pas).
+pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> Option<String> {
+    let lignes: Vec<String> = manques(ctx)
         .iter()
+        .filter(|x| x.get("bloque").is_some())
+        .filter(|x| !x["trouver"].as_str().map(str::trim).is_some_and(|t| !t.is_empty() && deja_dit.contains(t)))
         .map(|x| format!("  - {} : bloque {} ({})", x["libelle"].as_str().unwrap_or(""), x["bloque"].as_str().unwrap_or(""), x["ou"].as_str().unwrap_or("")))
         .collect();
+    if lignes.is_empty() {
+        return None;
+    }
     Some(format!("\n\nPour démarrer, il manque encore :\n{}", lignes.join("\n")))
 }
 
@@ -347,6 +447,5 @@ fn en_alsace_moselle(ctx: &Contexte) -> bool {
 
 /// Le taux AT/MP de l'annee est-il encore celui que le moteur a pose a la creation ?
 fn pose_a_la_creation(ctx: &Contexte) -> bool {
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", ctx.aujourdhui.an));
-    socle::fichiers::lire_json(&p).ok().is_some_and(|v| v.pointer("/taux_atmp/_pose_a_la_creation").is_some_and(vrai))
+    matches!(ctx.taux_atmp_de(ctx.aujourdhui.an), Some(Ok(t)) if t.get("_pose_a_la_creation").is_some_and(vrai))
 }

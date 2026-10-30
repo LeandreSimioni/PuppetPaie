@@ -306,6 +306,15 @@ async function deposerLaDsn(mois) {
   try {
     r = await api("dsn-a-deposer", { mois });
   } catch (e) { dire(e.message, "erreur"); return; }
+  if (r.pas_avant) {
+    // Ce que le moteur dit d'une DSN que la norme ne laisse pas encore partir.
+    ouvrirBoite(`
+      <h3>Déposer la DSN</h3>
+      ${moisEnGros(r.mois)}
+      <p>${echapper(r.pas_avant.phrase)}</p>
+      <div class="actions"><button class="primaire" onclick="fermerBoite()">Fermer</button></div>`);
+    return;
+  }
   const dit = (r.avertissements || []).concat(r.informations || []);
   if (dit.length) dire(dit.join("  ·  "));
   await rafraichirActions();
@@ -793,6 +802,7 @@ async function boiteSignature(mois, seulement) {
     ${a.boite_liee && enFictive() ? noteFictive("les salariés").replace("sa réponse arrive comme la vraie",
       "la signature revient comme la vraie") : ""}
     ${noteDpaeAvance()}
+    ${(a.avertissements || []).map((x) => `<div class="encart info">${echapper(x)}</div>`).join("")}
     ${!contrats.length ? `<p class="discret">Aucun contrat à faire partir ce mois-ci.</p>` : `<div class="liste-choix">
       ${contrats.map((c) => `
         <label class="choix">
@@ -895,11 +905,13 @@ async function boiteSignature(mois, seulement) {
         const av = await api("avenants-envoyer", { avenants, motdepasse: mdp });
         r.partis.push(...av.partis);
         r.contrats.push(...av.avenants.map((x) => ({ fichier: x.fichier })));
+        r.avertissements = [...(r.avertissements || []), ...(av.avertissements || [])];
       }
       fermerBoite();
-      dire(quoi + " envoyé(s) à la signature.", "envoye");
+      dire((r.avertissements || []).length ? r.contrats.length + " contrat(s) envoyé(s) à la signature. " + r.avertissements.join(" ")
+                                           : quoi + " envoyé(s) à la signature.", "envoye");
       afficherEnvoi("Contrats à signer", mois, [...new Set(r.partis)],
-                    r.contrats.map((c) => c.fichier));
+                    [...(r.avertissements || []), ...r.contrats.map((c) => c.fichier)]);
       if (enFictive()) {
         attendreSignaturesFictives();
         fenetreCourrielsFictifs("signature", repere);

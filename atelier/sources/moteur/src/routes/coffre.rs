@@ -95,10 +95,14 @@ fn chaine<'a>(charge: &'a Value, cle: &str) -> Option<&'a str> {
 
 /// Range le mot de passe d'un organisme, ou de la boite courriel avec
 /// son adresse (`compte`). Rend l'etat du coffre, sans valeur.
+/// Un mot de passe vide se refuse avant la porte du mot de passe du logiciel : il n'y a rien a autoriser.
 fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
-    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "poser un mot de passe")?;
     let service = crate::compagnie::coffre::service_connu(optionnel(charge, "service")).map_err(en_operation)?;
     let valeur = chaine(charge, "valeur").unwrap_or("");
+    if socle::texte::strip(valeur).is_empty() {
+        return Err(refus(format!("Tapez le mot de passe {} à poser : rien n'a été posé.", service.nom)));
+    }
+    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "poser un mot de passe")?;
     coffre(ctx).poser(service.nom, valeur, chaine(charge, "compte")).map_err(en_operation)?;
     etat_du_coffre(ctx)
 }

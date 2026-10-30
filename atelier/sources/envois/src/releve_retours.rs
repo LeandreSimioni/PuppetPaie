@@ -337,7 +337,8 @@ fn cle_de_retour(r: &Value) -> [Value; 3] {
     ["flux", "nature", "publication"].map(|c| r.get(c).cloned().unwrap_or(Value::Null))
 }
 
-fn date_publication(r: &Value) -> String {
+/// La date de publication d'un retour (`AAAAMMJJ…`), en JJ/MM/AAAA ; « ? » quand il ne la dit pas.
+pub fn date_publication(r: &Value) -> String {
     let p = r.get("publication").filter(|v| !v.is_null()).map(valeur_en_texte).unwrap_or_default();
     let c: Vec<char> = p.chars().collect();
     if c.len() >= 8 {
@@ -473,6 +474,8 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> 
             let chemin = archiver(ctx, &x.retour, &x.contenu, "application/xml", "").map_err(en_echec)?;
             if x.retour.get("nature").and_then(Value::as_str) == Some(crate::retours::NATURE_TAUX_PAS) {
                 suites.taux_pas.push((x.retour.clone(), chemin));
+            } else if x.retour.get("nature").and_then(Value::as_str) == Some(crate::retours::NATURE_TAUX_ATMP) {
+                suites.taux_atmp.push((x.retour.clone(), chemin));
             }
             contenus.push((cle_de_retour(&x.retour), x.contenu.clone()));
         }
@@ -582,12 +585,9 @@ pub fn relever_retours(
         match client.telecharger(&url) {
             Ok((contenu, ctype)) => {
                 let chemin = archiver(ctx, &r, &contenu, &ctype, canal).map_err(en_echec)?;
+                // LE TAUX AT/MP NOTIFIE SE LIT DE LA NOTIFICATION (regle 1) : il se pose dans la surcouche, par les suites.
                 if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_TAUX_ATMP) {
-                    releve.a_faire.push(format!(
-                        "Notification du taux AT/MP recue le {} (retour de nature 34, archive {}) : le taux se reporte dans config/baremes/<annee>.json (`taux_atmp`), avec sa source.",
-                        date_publication(&r),
-                        chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
-                    ));
+                    suites.taux_atmp.push((r.clone(), chemin.clone()));
                 }
                 // UN SIGNALEMENT REFUSE B1-208-10 : l'ordre etait deja pris ; la conduite a tenir se dit.
                 if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some("11") {

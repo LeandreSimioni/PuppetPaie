@@ -222,7 +222,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
 
     // Les adhesions prevoyance que le contrat designe, et elles seules -- sauf
     // au changement de logiciel, qui n'affilie rien.
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let rattachees: HashSet<String> = if changement {
         HashSet::new()
     } else {

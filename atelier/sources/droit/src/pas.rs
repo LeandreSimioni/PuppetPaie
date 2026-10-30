@@ -45,8 +45,15 @@ pub type Triplet = (Value, Value, Value);
 // ------------------------------------------------------------- peremption
 
 /// Un taux transmis par la DGFiP vaut jusqu'a la fin du deuxieme mois suivant
-/// celui de sa mise a disposition.
-const VALIDITE_MOIS: u32 = 2;
+/// celui de sa mise a disposition : le debiteur « applique le taux calculé par
+/// l'administration fiscale, au plus tard le deuxième mois suivant sa
+/// transmission » (CGI, art. 1671, 2, `atelier/reference/sources/
+/// code-general-des-impots/articles-20261021.md`) ; « le taux de prélèvement est
+/// applicable jusqu'à la fin du deuxième mois qui suit sa mise à disposition » :
+/// mis a disposition le 10 fevrier, il est « valide jusqu'au 30 avril »
+/// (BOI-IR-PAS-30-10-20, § 70, `atelier/reference/sources/bofip/
+/// BOI-IR-PAS-30-10-20-20181203.html`).
+pub const VALIDITE_MOIS: u32 = 2;
 
 /// `str(e.get(cle) or "").strip()`.
 fn texte_ou_vide(e: &Value, cle: &str) -> String {
@@ -71,14 +78,19 @@ fn nombre_de(c: &[u32]) -> u32 {
 }
 
 /// D'ou court la validite, de la source la plus sure a la moins sure :
-/// `mis_a_disposition` (AAAAMMJJHHMMSS), puis `periode` (AAAAMM ou AAAA-MM),
-/// puis `releve_le`.
+/// `mis_a_disposition` (AAAAMMJJHHMMSS, la date du compte rendu), puis
+/// `applique_le` (AAAA-MM-JJ, le jour du versement ou une DSN l'applique, que sa
+/// mise a disposition precede : voir `commandes::pas::derniers_taux_des_dsn`),
+/// puis `periode` (AAAAMM ou AAAA-MM), puis `releve_le`.
 pub fn mise_a_disposition(e: &Value) -> Option<Jour> {
     let v = texte_ou_vide(e, "mis_a_disposition");
     if let Some(c) = chiffres(&v, 8) {
         if let Some(j) = Jour::nouveau(nombre_de(&c[..4]) as i32, nombre_de(&c[4..6]), nombre_de(&c[6..8])) {
             return Some(j);
         }
+    }
+    if let Ok(j) = depuis_iso(&texte_ou_vide(e, "applique_le")) {
+        return Some(j);
     }
     let p = texte_ou_vide(e, "periode").replace('-', "");
     if let Some(c) = chiffres(&p, 6) {
@@ -187,6 +199,33 @@ fn entree<'a>(magasin: &'a Value, cle: &str) -> Option<&'a Value> {
 /// Une entree vide vaut une entree absente (`if not e`).
 fn presente(e: Option<&Value>) -> Option<&Value> {
     e.filter(|v| vrai(v))
+}
+
+/// LE TAUX DU SALARIE `cle` AU JOUR `le` : de ceux que le magasin a recus pour lui (le present, `salaries`, et ceux
+/// qu'il a remplaces, `journal`), le dernier mis a disposition au plus tard ce jour-la. La retenue est « effectuée par le
+/// débiteur lors du paiement » (CGI, art. 204 A, 2, 1°, `atelier/reference/sources/code-general-des-impots/xml/
+/// 204_A.xml`) : un taux transmis apres le paiement d'un salaire ne vaut pas pour lui. Aucun taux recu avant ce jour :
+/// aucun (la grille de l'article 204 H s'applique). Le present qu'on ne sait pas dater reste le taux du salarie (il est
+/// alors perime, `est_perime`).
+fn en_vigueur<'a>(magasin: &'a Value, cle: &str, le: Jour) -> Option<&'a Value> {
+    let present = presente(entree(magasin, cle))?;
+    let Some(depuis) = mise_a_disposition(present) else {
+        return Some(present);
+    };
+    if depuis <= le {
+        return Some(present);
+    }
+    let anciens = magasin.get("journal").and_then(Value::as_array).into_iter().flatten();
+    anciens
+        .filter(|e| e.get("salarie").and_then(Value::as_str) == Some(cle))
+        .filter_map(|e| Some((mise_a_disposition(e)?, e)))
+        .filter(|(d, _)| *d <= le)
+        // A jour egal, le dernier recu.
+        .fold(None, |garde: Option<(Jour, &Value)>, (d, e)| match garde {
+            Some((g, _)) if g > d => garde,
+            _ => Some((d, e)),
+        })
+        .map(|(_, e)| e)
 }
 
 // ------------------------------------------ la grille de l'article 204 H du CGI
@@ -451,7 +490,7 @@ fn libelle(situation: &str) -> &'static str {
 pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>) -> Resultat<Value> {
     let le = le_jour(ctx, le);
     let magasin = charger(ctx)?;
-    let e = presente(entree(&magasin, cle));
+    let e = en_vigueur(&magasin, cle, le);
     let fin = e.and_then(fin_de_validite);
     let quoi = match e {
         None if sans_nir(ctx, cle) => SANS_NIR,
@@ -519,21 +558,29 @@ fn fr(iso: &Value) -> String {
     }
 }
 
-/// Les phrases a dire avant de declarer. Vide si tout va bien.
+
+/// Les phrases a dire avant de declarer, une par salarie dont la paie prendrait la grille de l'article 204 H, III
+/// (CGI, art. 1671, 2 : « A défaut de taux transmis par l'administration ») : ce que le magasin sait de lui. Vide si
+/// tout va bien.
 pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>) -> Resultat<Vec<String>> {
     let mut lignes = Vec::new();
     for s in diagnostic(ctx, cles, le)? {
-        if s["situation"] == Value::String(VALIDE.into()) {
-            continue;
-        }
-        let mut ligne = format!("{} : {}", en_texte(&s["salarie"]), en_texte(&s["libelle"]));
-        if s["situation"] == Value::String(PERIME.into()) {
-            ligne += &format!(" (il l'etait jusqu'au {})", fr(&s["valable_jusqu_a"]));
-        }
+        let quoi = s["situation"].as_str().unwrap_or_default();
+        let mut ligne = format!("{} : ", ctx.nomme(&en_texte(&s["salarie"])));
+        ligne += &match quoi {
+            VALIDE => continue,
+            PERIME => format!(
+                "le dernier taux transmis par la DGFiP ({} %) valait jusqu'au {}",
+                en_texte(&s["taux"]).replace('.', ","),
+                fr(&s["valable_jusqu_a"])
+            ),
+            SANS_NIR => "sans NIR dans sa fiche, la DGFiP ne peut transmettre aucun taux".into(),
+            _ => "aucun taux transmis par la DGFiP".into(),
+        };
         let dem = &s["demande"];
         if vrai(dem) {
             ligne += &format!(
-                " -- demande partie le {}, reponse attendue avant le {} : attendre si le calendrier le permet",
+                " ; taux demandé le {}, réponse attendue avant le {}",
                 fr(dem.get("quand").unwrap_or(&Value::Null)),
                 fr(dem.get("reponse_attendue_avant").unwrap_or(&Value::Null))
             );
@@ -543,3 +590,44 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>)
     Ok(lignes)
 }
 
+/// La phrase du bandeau : combien de salaries n'ont pas de taux valide, et ce que la paie applique alors.
+pub fn resume_avertissements(lignes: &[String]) -> String {
+    match lignes.len() {
+        0 => String::new(),
+        1 => "1 salarié sans taux de PAS valide transmis par la DGFiP : sa paie prend la grille de l'article 204 H du CGI.".into(),
+        n => format!("{} salariés sans taux de PAS valide transmis par la DGFiP : leur paie prend la grille de l'article 204 H du CGI.", n),
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    /// CGI, art. 204 A, 2, 1° (`atelier/reference/sources/code-general-des-impots/xml/204_A.xml`) : la retenue se fait
+    /// « lors du paiement ». Le taux transmis le 17/02 (compte rendu de la DSN de janvier) ne vaut pas pour le salaire de
+    /// janvier paye le 31/01 : c'est celui du 02/01 ; il vaut pour celui de fevrier. Sans taux recu avant le paiement :
+    /// aucun, la grille s'applique.
+    #[test]
+    fn un_taux_transmis_apres_le_paiement_ne_vaut_pas_pour_lui() {
+        let taux = |id: &str, le: &str| json!({"taux": "4.10", "type": "01", "identifiant": id, "mis_a_disposition": le});
+        let mut ancien = taux("250004", "20250102090000");
+        ancien["salarie"] = json!("MARCHAL");
+        let magasin = json!({"salaries": {"MARCHAL": taux("993918841", "20250217100000")}, "journal": [ancien]});
+        let id = |le: &str| en_vigueur(&magasin, "MARCHAL", Jour::lire(le).unwrap()).map(|e| e["identifiant"].clone());
+        assert_eq!(id("2025-01-31"), Some(json!("250004")));
+        assert_eq!(id("2025-02-28"), Some(json!("993918841")));
+        assert_eq!(id("2024-12-31"), None);
+    }
+
+    /// BOI-IR-PAS-30-10-20, § 70, exemple 1 (`atelier/reference/sources/bofip/BOI-IR-PAS-30-10-20-20181203.html`) :
+    /// un taux mis a disposition le 10 fevrier « est valide jusqu'au 30 avril ».
+    #[test]
+    fn un_taux_vaut_jusqu_a_la_fin_du_deuxieme_mois_qui_suit_sa_mise_a_disposition() {
+        let e = json!({"taux": "5.00", "type": "01", "identifiant": "1", "mis_a_disposition": "20260210120000"});
+        assert_eq!(fin_de_validite(&e), Jour::nouveau(2026, 4, 30));
+        assert!(!est_perime(&e, Jour::nouveau(2026, 4, 30).unwrap()));
+        assert!(est_perime(&e, Jour::nouveau(2026, 5, 1).unwrap()));
+    }
+}

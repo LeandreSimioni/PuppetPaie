@@ -185,7 +185,7 @@ impl Organisme {
 /// Les organismes de la compagnie : ses versements et ses adhesions (`config/organismes.json`, `Contexte::organismes`),
 /// et la partie normative livree (`organismes-base.json`), qui porte les adresses.
 struct Organismes {
-    compagnie: Option<Value>,
+    compagnie: Value,
     base: Value,
     idcc: String,
 }
@@ -200,7 +200,7 @@ impl Organismes {
         fn de(v: &Value) -> Vec<&Value> {
             v.get("versements").and_then(Value::as_array).map(|a| a.iter().collect()).unwrap_or_default()
         }
-        let mut tous = self.compagnie.as_ref().map(de).unwrap_or_default();
+        let mut tous = de(&self.compagnie);
         tous.extend(de(&self.base));
         tous
     }
@@ -223,7 +223,7 @@ impl Organismes {
     /// L'organisme de l'adhesion `cle` (la prevoyance, la sante) : celui que la compagnie a enregistre, sinon celui que
     /// la branche designe (`organisme_fixe` des contrats de `organismes-base.json`). `None` : elle n'a pas ce contrat.
     fn adhesion(&self, cle: &str) -> Option<Organisme> {
-        let enregistre = self.compagnie.as_ref().and_then(|c| c.get("adhesions_prevoyance")).and_then(Value::as_array).and_then(|a| {
+        let enregistre = self.compagnie.get("adhesions_prevoyance").and_then(Value::as_array).and_then(|a| {
             a.iter().find(|x| x.get("cle").and_then(Value::as_str) == Some(cle)).and_then(|x| x.get("delegataire").and_then(Value::as_str))
         });
         let designe = || {
@@ -272,7 +272,7 @@ pub fn poser_les_mentions(ctx: &Contexte, ent: &Value, sal: &Value, eng: &Value,
     );
     // LES ORGANISMES : le nom ET l'adresse (L1242-12, 8°) ; une adresse que la donnee ne porte pas ne se devine pas.
     let org = Organismes::lire(ctx, ent)?;
-    let retraite = org.retraite().ok_or_else(|| format!("Le contrat de {} nomme sa caisse de retraite complémentaire (L. 1242-12, 8°), et la compagnie ne verse à aucune (Configuration › Organismes et contrats). Rien n'est écrit.", nom))?;
+    let retraite = org.retraite().ok_or_else(|| format!("Le contrat de {} nomme sa caisse de retraite complémentaire (L. 1242-12, 8°), et la table livrée des versements (donnees/organismes-base.json) n'en nomme aucune (cotisation 131) : aucune saisie de la compagnie ne la donne. Rien n'est écrit.", nom))?;
     let manque_adresse = |o: &Organisme| format!("Le contrat de {} donne « le nom et l'adresse » de {} (L. 1242-12, 8°), et cette adresse n'est pas connue du logiciel. Rien n'est écrit.", nom, o.nom);
     m.insert("organismes.retraite".into(), retraite.nom_et_adresse().ok_or_else(|| manque_adresse(&retraite))?);
     let (cle_prevoyance, cle_sante) = if nat.permanent() { ("prevoyance_permanents", "sante_permanents") } else { ("interbranche", "tsintermittents") };

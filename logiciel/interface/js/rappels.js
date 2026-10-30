@@ -34,7 +34,22 @@ async function montrerRappels(lu = api) {
   // « elle apparaît seulement s'il y a des trucs à faire ».
   if (!liste.length && !(ech && ech.a_faire) && !manques.length) return;
   RAPPELS_MONTRES = { liste, ech, manques };
+  if (dejaMontres(RAPPELS_MONTRES)) return;
   boiteRappels(liste, ech, manques);
+}
+
+/* UNE FOIS, PUIS PLUS : la boîte s'ouvre à l'ouverture du logiciel ; la page
+ * rechargée pendant qu'il tourne ne la rouvre pas tant qu'elle dirait la même
+ * chose (le même jour, les mêmes choses à faire). La mémoire est celle de la
+ * fenêtre (`sessionStorage`) : le logiciel rouvert la montre de nouveau. */
+function dejaMontres(montres) {
+  const cle = "rappels-montres:" + ((montres.ech && montres.ech.compagnie) || "");
+  const empreinte = JSON.stringify(montres);
+  try {
+    if (sessionStorage.getItem(cle) === empreinte) return true;
+    sessionStorage.setItem(cle, empreinte);
+  } catch (e) { /* sans mémoire, la boîte s'ouvre */ }
+  return false;
 }
 
 /** L'ÉTAT FRAIS DE L'OUVERTURE : la boîte des rappels, si elle
@@ -89,15 +104,15 @@ function htmlDemarrage(manques) {
   const ligne = (m) => `
     <li>
       <button type="button" class="lien" data-manque-champ="${echapper(m.champ || "")}"
-        data-manque-ou="${echapper(m.ou || "")}"><b>${echapper(m.libelle)}</b></button>
-      <span class="discret">— bloque ${echapper(m.bloque)}</span>
+        data-manque-ou="${echapper(m.ou || "")}" data-manque-salarie="${echapper(m.salarie || "")}"><b>${echapper(m.libelle)}</b></button>
+      <span class="discret">— ${m.bloque ? `bloque ${echapper(m.bloque)}` : `sinon, ${echapper(m.sinon || "")}`}</span>
       <div class="note">À saisir dans ${echapper(m.ou)}.</div>
       ${m.trouver ? `<details><summary>Où le trouver</summary><p class="note">${echapper(m.trouver)}</p></details>` : ""}
     </li>`;
   return `
     <div class="rappel retard demarrage">
       <h3>Pour démarrer, il manque encore ${manques.length === 1 ? "une chose" : manques.length + " choses"}</h3>
-      <p class="note">Tant qu'elles manquent, ce qu'elles bloquent sera refusé. Elles se trouvent toutes sur les courriers des organismes.</p>
+      ${manques.some((m) => m.bloque) ? `<p class="note">Tant qu'elles manquent, ce qu'elles bloquent sera refusé.</p>` : ""}
       <ul class="rappel-liste">${manques.map(ligne).join("")}</ul>
       <div class="actions"><button class="petit" data-aller-configuration>Ouvrir la configuration</button></div>
     </div>${htmlPoses()}`;
@@ -105,8 +120,9 @@ function htmlDemarrage(manques) {
 
 /** Aller à ce qui manque : l'onglet, puis la case (son tiroir ouvert, le
  *  curseur dedans). Le taux AT/MP n'est pas une case de la fiche
- *  (`ATMP_HTML`) ; les organismes ont leur onglet. */
-function allerAuManque(champ, ou) {
+ *  (`ATMP_HTML`) ; les organismes ont leur onglet ; ce qui se dit sur la
+ *  fiche d'un salarié (`salarie`, du moteur) ouvre sa fiche. */
+async function allerAuManque(champ, ou, salarie) {
   if (!document.getElementById("voile").classList.contains("cachee")) fermerBoite();
   // Déjà dans la configuration : on n'y retourne pas. Recliquer l'onglet
   // redessinait la fiche et, sur une fiche en cours de saisie, ouvrait « Vous
@@ -115,10 +131,13 @@ function allerAuManque(champ, ou) {
   if (document.getElementById("vue-configuration").classList.contains("cachee")) {
     document.querySelector('.onglets button[data-vue="configuration"]').click();
   }
-  const fiche = /Organismes/.test(ou) ? "organismes" : "entreprise";
-  const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
-  if (sous && !sous.classList.contains("actif")) sous.click();
-  if (fiche !== "entreprise" || !champ) return;
+  const fiche = salarie ? "salarie" : /Organismes/.test(ou) ? "organismes" : "entreprise";
+  if (salarie) await ouvrirFicheImportee("salarie", salarie);
+  else {
+    const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
+    if (sous && !sous.classList.contains("actif")) sous.click();
+  }
+  if (fiche === "organismes" || !champ) return;
   const trouver = () => champ === "taux_atmp" ? document.getElementById("atmp-valeur")
     : document.querySelector(`#config-formulaire [data-cle="${CSS.escape(champ)}"]:not([type="hidden"])`)
       || document.querySelector(`#config-formulaire [data-sous-de="${CSS.escape(champ)}"]:not([type="hidden"])`);
@@ -139,7 +158,7 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-manque-champ]");
   if (!b) return;
   e.preventDefault();
-  allerAuManque(b.dataset.manqueChamp, b.dataset.manqueOu);
+  allerAuManque(b.dataset.manqueChamp, b.dataset.manqueOu, b.dataset.manqueSalarie);
 });
 
 /** La liste « Pour démarrer », en tête de Configuration › Entreprise. */

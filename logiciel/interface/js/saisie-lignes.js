@@ -128,7 +128,8 @@ function ligneRubrique(l = {}, nat) {
          {"jour", "lieu"} (le moteur l'accepte, \`jours_des_lignes\`). Il se
          montre ici, jour par jour, seulement quand la ligne en porte un ; vide,
          le jour prend le lieu de la ligne. -->
-    <div class="r-lieux-jours">${lieuxDesJours(l)}</div>`;
+    <div class="r-lieux-jours">${lieuxDesJours(l)}</div>
+    <div class="r-dit discret cachee"></div>`;
   poserRubriques(div.querySelector(".r-code"), code, nat);
   const majAffichage = () => {
     const r = rubriqueDe(div.querySelector(".r-code").value);
@@ -151,6 +152,10 @@ function ligneRubrique(l = {}, nat) {
     div.querySelector(".r-lieu").classList.toggle("cachee", montant);
     div.querySelector(".r-mot").classList.toggle("cachee", montant);
     div.querySelector(".r-taux").placeholder = montant ? "montant" : "taux";
+    // Ce que la ligne fait, quand le moteur le dit (`dit` de la rubrique : l'acompte).
+    const dit = div.querySelector(".r-dit");
+    dit.textContent = (r && r.dit) || "";
+    dit.classList.toggle("cachee", !(r && r.dit));
     // Une ligne en pourcentage : « base € à taux % », sans jours ni lieu.
     const pct = !!r && r.saisie.includes("taux_majoration");
     const mots = div.querySelectorAll(".r-mot");
@@ -622,6 +627,21 @@ function montrerEcrit(div, demandes) {
     const c = l.querySelector(".e-ecrit-champ");
     l.hidden = !(demandes || []).includes(l.dataset.ecrit) && c.value.trim() === "";
   });
+  nommerLesCases(div);
+}
+
+/** La ligne repliée du contrat nomme ce qu'il y a à dire dedans (le motif
+ *  d'un CDD, la période d'essai…) : ce qui se remplit se trouve sans
+ *  chercher. */
+function nommerLesCases(div) {
+  const d = div.querySelector(".e-contrat");
+  if (!d) return;
+  const noms = [...d.querySelectorAll(".e-recours-bloc, .e-ecrit [data-ecrit]")]
+    .filter((l) => !l.hidden)
+    .map((l) => (l.firstChild.textContent || "").trim().toLowerCase())
+    .filter(Boolean);
+  if (noms.length) d.dataset.cases = noms.join(", ");
+  else delete d.dataset.cases;
 }
 
 /** Ce que les cases du contrat écrit écrivent. */
@@ -796,7 +816,7 @@ function ouvrirCarte(div) {
   if (div._paies) peindreChiffres(div, div._total);
   // Les cases du contrat écrit que le moteur a demandées pour cet engagement, au dernier aperçu.
   const p = (div._paies || [])[0];
-  montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
+  montrerEcrit(div, p && p.contrat ? p.contrat.ecrits : div._ecrits);
   if (intacte) DERNIERE_ECRITE = JSON.stringify(saisieCourante());
 }
 
@@ -984,7 +1004,7 @@ function construireCarte(div, e) {
            au regard de L1242-2, et la plate-forme le contrôle (SIG-11). Un
            CDD d'usage n'apparaît pas dans cette liste et c'est délibéré — il
            se saisit comme un CDD d'usage, avec tout ce qui va avec. -->
-      <label class="e-recours-bloc" hidden>Motif de recours
+      <label class="e-recours-bloc" hidden title="pourquoi ce CDD est conclu : la DSN le déclare (motif de recours)">Motif du CDD
         <select class="e-recours"></select></label>
       <!-- CE QUE LE CONTRAT ÉCRIT DE CET ENGAGEMENT DIT EN PLUS (le modèle
            le remplit avec le reste). Le moteur dit quelles cases cet
@@ -1021,6 +1041,7 @@ function construireCarte(div, e) {
           <span class="discret e-rupture-dit">— ce que le signalement (nature 07) déclarera</span></div>
         <label class="e-motif-l">Motif de la rupture
           <select class="e-motif-rupture"></select></label>
+        <p class="discret e-motif-dit" hidden></p>
         <!-- Les dates et la transaction selon le motif (30/09/2026,
              permanents.faits_de_rupture) : notifiée pour une rupture que
              l'un décide, engagée pour un licenciement, signée pour une
@@ -1093,7 +1114,7 @@ function construireCarte(div, e) {
   poserListe(selNat, "natures", [ETAT.natures], () => (ETAT.natures || []).map(
     (n) => `<option value="${echapper(n.cle)}">${echapper(n.libelle)}</option>`).join(""));
   selNat.value = e.nature || ETAT.nature_defaut || "";
-  selNat.onchange = () => { majNature(div); rafraichirApercu(); };
+  selNat.onchange = () => { viderBornes(div); majNature(div); rafraichirApercu(); };
   const selSpec = div.querySelector(".e-spectacle");
   poserSpectacles(selSpec);
   selSpec.value = e.spectacle || "";
@@ -1135,6 +1156,7 @@ function construireCarte(div, e) {
   // --- le contrat
   div.querySelector(".e-debut").value = e.debut || "";
   div.querySelector(".e-fin").value = e.fin || "";
+  div.dataset.forme = formeDePaie(div);
   div.querySelectorAll(".e-debut, .e-fin").forEach((c) => {
     c.onchange = () => { majContrat(div); majRupture(div); rafraichirApercu(); };
   });
@@ -1243,6 +1265,28 @@ function natureDe(cle) {
            signalement_fctu: false, signalement_par_motif: {}, motifs_rupture: [] };
 }
 
+/** La forme de paie de la nature choisie : au mois, ou à l'usage (cachets,
+ *  heures, jours joués). */
+function formeDePaie(div) {
+  return natureDe(div.querySelector(".e-nature").value).mensuelle ? "mois" : "usage";
+}
+
+/** UN CONTRAT AU MOIS ET UN CONTRAT D'USAGE SONT DEUX CONTRATS. Les cases
+ *  « Début » et « Fin » servent aux deux : quand la nature passe d'une forme
+ *  de paie à l'autre, les bornes de la forme quittée ne sont pas celles du
+ *  nouveau contrat, elles se vident. */
+function viderBornes(div) {
+  const forme = formeDePaie(div);
+  const quittee = div.dataset.forme;
+  if (quittee && quittee !== forme) {
+    div.querySelector(".e-debut").value = "";
+    div.querySelector(".e-fin").value = "";
+    majContrat(div);
+    majRupture(div);
+  }
+  div.dataset.forme = forme;
+}
+
 /** Ce que la nature change à l'écran. Un permanent n'a ni spectacle (le
  *  numéro d'objet lui est INTERDIT, CCH-11) ni cachets : il a un salaire au
  *  mois et des faits. Cacher plutôt que griser, parce qu'une case qui ne
@@ -1316,6 +1360,13 @@ function majNature(div) {
     + recours.map((m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${
       echapper(m.libelle)}</option>`).join(""));
   sel.value = recours.some((m) => m.code === voulu) ? voulu : "";
+  // UN CDD DIT SON MOTIF, et le moteur refuse sans lui : tant qu'il manque,
+  // le contrat s'ouvre de lui-même, comme pour ses bornes.
+  if (recours.length && !sel.value) {
+    div.querySelector(".e-options").hidden = false;
+    div.querySelector(".e-contrat").open = true;
+  }
+  nommerLesCases(div);
   majRupture(div);
 }
 
@@ -1332,7 +1383,8 @@ function majNature(div) {
 function majRupture(div) {
   const nat = natureDe(div.querySelector(".e-nature").value);
   const bloc = div.querySelector(".e-rupture");
-  const fin = div.querySelector(".e-fin").value;
+  // Un contrat aux cachets n'écrit pas sa fin : le moteur la donne (`contrat.rupture`).
+  const fin = div.querySelector(".e-fin").value || (div._rupture && div._rupture.fin) || "";
   const motifs = nat.motifs_rupture || [];
   // LA FIN NE SE DEMANDE QUE LE MOIS OÙ ELLE A LIEU : un CDD de janvier à
   // juin n'a rien à dire de sa fin en janvier. Elle paraît quand la fin du
@@ -1354,6 +1406,11 @@ function majRupture(div) {
     + (nat.motifs_rupture || []).map(
       (m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${echapper(m.libelle)}</option>`).join(""));
   sel.value = (nat.motifs_rupture || []).some((m) => m.code === voulu) ? voulu : "";
+  // Ce que le moteur dit du motif choisi (ce qu'il ouvre pour le salarié), sous la liste.
+  const motifDit = div.querySelector(".e-motif-dit");
+  const dit = ((nat.motifs_rupture || []).find((m) => m.code === sel.value) || {}).dit || "";
+  motifDit.textContent = dit;
+  motifDit.hidden = !dit;
   const faits = (nat.faits_de_rupture || {})[sel.value] || [];
   div.querySelectorAll(".e-rupture [data-fait]").forEach((l) => {
     l.hidden = !faits.includes(l.dataset.fait);
@@ -1573,13 +1630,18 @@ function dedoubler(div) {
 }
 
 /** Les lignes de paie d'un bloc, telles qu'elles sont saisies. */
-/* VISER UN MONTANT SANS TAUX. Une ligne sans taux ne part pas
- * dans la saisie -- elle est incomplete. Sauf pour « Viser un montant » :
- * le taux est justement ce qu'on cherche, et le moteur le trouve seul quand
- * il n'y a qu'une ligne de salaire (`_poser_taux_provisoires`). */
-let GARDER_SANS_TAUX = false;
-const ligneEnvoyee = (r) => r.querySelector(".r-quantite").value !== ""
-  && (GARDER_SANS_TAUX || r.querySelector(".r-taux").value !== "");
+/* CE QU'UNE LIGNE DIT PART DANS LA SAISIE, même incomplète : ses jours, sa
+ * quantité, son taux ou ses heures. Le moteur l'enregistre en saisie et dit
+ * ce qui lui manque. Pour « Viser un montant », seules partent les lignes
+ * qui disent leur quantité : le taux est ce qu'on cherche, et le moteur le
+ * trouve seul quand il n'y a qu'une ligne de salaire. */
+let POUR_VISER = false;
+const ligneEnvoyee = (r) => {
+  const dit = (s) => r.querySelector(s).value.trim() !== "";
+  if (POUR_VISER) return dit(".r-quantite");
+  return dit(".r-quantite") || dit(".r-taux") || dit(".r-heures")
+    || joursDe(r.querySelector(".r-jours")).length > 0;
+};
 
 function lignesDuBloc(div, mois) {
   mois = mois || document.getElementById("mois").value;
@@ -1592,9 +1654,9 @@ function lignesDuBloc(div, mois) {
     // Une ligne en pourcentage s'écrit comme le moteur la lit : sa base et
     // son pourcentage (`calcul._ligne_en_pourcentage`).
     if (rr && rr.saisie.includes("taux_majoration")) {
-      return { rubrique: rr.code, base: +q, taux_majoration: t === "" ? "" : +t };
+      return { rubrique: rr.code, base: q === "" ? "" : +q, taux_majoration: t === "" ? "" : +t };
     }
-    const l = { rubrique: r.querySelector(".r-code").value, quantite: +q,
+    const l = { rubrique: r.querySelector(".r-code").value, quantite: q === "" ? "" : +q,
                 taux: t === "" ? "" : +t };
     // Les heures s'écrivent dès qu'elles sont dites : leur champ se montre
     // alors, quelle que soit la rubrique (`majAffichage`).

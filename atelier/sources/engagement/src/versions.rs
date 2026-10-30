@@ -270,10 +270,13 @@ fn enumerer(xs: &[String]) -> String {
 
 /// LA FRISE D'UN ENGAGEMENT VALIDE, s'il a ete modifie apres un envoi : `{"phrase", "versions"}`, la phrase de la ligne
 /// sous la carte et, de la plus ancienne a la presente, chaque version (`version`, `le`, `changements`, `partis`).
-/// `None` : aucune version passee, jamais modifie apres un envoi.
-pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs) -> Option<Value> {
+/// `None` : aucune version passee, jamais modifie apres un envoi, ou la paie de `mois` est restee celle de la version
+/// d'avant (un contrat au mois change a partir d'un mois suivant : ce mois-ci reste tel qu'il est parti).
+pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Option<Value> {
     let passees = v.versions();
-    if passees.is_empty() {
+    let paie_du_mois = |x: &Value| x.get("paies").and_then(|p| p.get(mois)).and_then(|p| p.get("paie")).cloned();
+    let present = v.objet().brut.get("valide");
+    if passees.last().zip(present).is_none_or(|(a, p)| paie_du_mois(a).is_some() && paie_du_mois(a) == paie_du_mois(p)) {
         return None;
     }
     let siens = ses_departs(ctx, v.objet(), departs);

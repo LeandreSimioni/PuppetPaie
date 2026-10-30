@@ -159,15 +159,9 @@ fn mensuelle(nat: Option<&Nature>) -> bool {
 }
 
 fn nom_du_salarie(sal: &Value, defaut: &str) -> String {
-    let nom = g(sal, "nom");
-    if vrai(nom) {
-        return en_texte(nom);
-    }
-    let cle = g(sal, "_cle");
-    if vrai(cle) {
-        return en_texte(cle);
-    }
-    defaut.to_string()
+    socle::texte::salarie_nomme(sal)
+        .or_else(|| Some(en_texte(g(sal, "_cle"))).filter(|_| vrai(g(sal, "_cle"))))
+        .unwrap_or_else(|| defaut.to_string())
 }
 
 // ---------------------------------------------------------------- le statut
@@ -720,6 +714,27 @@ n'est calcule.",
     Ok(())
 }
 
+/// D'OU VIENT LA COMPLEMENTAIRE SANTE D'UN SALARIE AU MOIS sous la convention de la fiche entreprise `ent`, quand ce
+/// n'est pas un niveau dit sur sa fiche, dans l'ordre ou `bareme_sante` les lit : le regime de la branche
+/// (`sante_conventionnelle`) ou le contrat de la compagnie. `None` : la 3090, dont le niveau se lit sur le bulletin
+/// d'adhesion du salarie (`sante_svp`), ou une compagnie qui n'a pas dit sa convention.
+pub fn sante_hors_fiche(ent: &Value) -> Resultat<Option<String>> {
+    let idcc = txt(g(ent, "idcc"));
+    if vrai(g(&regime_de(ent)?, "sante")) {
+        return Ok(Some(format!(
+            "Sa complémentaire santé est le régime de la convention {} : le taux est celui de la branche, et la part de l'employeur se dit dans Configuration › Entreprise, « Santé des permanents ». Une dispense se dit ci-dessous.",
+            idcc
+        )));
+    }
+    if idcc.is_empty() || idcc == "3090" {
+        return Ok(None);
+    }
+    Ok(Some(format!(
+        "Sa complémentaire santé est le contrat de la compagnie (la convention {} n'a pas de régime de santé à elle) : son taux et la part de l'employeur se disent dans Configuration › Entreprise, « Santé des permanents ». Une dispense se dit ci-dessous.",
+        idcc
+    )))
+}
+
 /// La complementaire sante d'un permanent, selon SON contrat a lui.
 pub fn bareme_sante(bar: Value, sal: &Value, nat: Option<&Nature>, fin: Option<&Jour>) -> Resultat<Value> {
     if !mensuelle(nat) {
@@ -852,6 +867,10 @@ pub fn bareme_atmp(bar: Value) -> Resultat<Value> {
         if taux.is_null() {
             let a = annee(&bar);
             let sans_notification = g(g(&bar, "taux_atmp"), "code_risque").as_str() == Some(SANS_NOTIFICATION);
+            // Le taux d'une annee que la compagnie n'a pas dit, et que celui d'avant ne donne pas (`taux_atmp_reporte`).
+            if let Some(pourquoi) = g(g(&bar, "taux_atmp"), "_manque").as_str() {
+                return Err(pourquoi.to_string());
+            }
             return Err(if sans_notification {
                 format!(
                     "Le taux AT/MP {} manque : le code risque est 999ZZ (pas encore de notification de la CARSAT), que la DSN déclare sans taux, et aucun texte ne dit quel taux le bulletin cotise en attendant. Le code et le taux notifiés se saisissent dans Configuration › Entreprise, « Accidents du travail (AT/MP) », dès que la notification arrive (compte AT/MP sur net-entreprises).",
@@ -2488,6 +2507,113 @@ mod tests_risques_atmp {
         assert_eq!(taux_de_l_arrete(&gestion, None, false), None);
         let sans = risques_atmp(&socle).into_iter().find(|r| r.code == SANS_NOTIFICATION).unwrap();
         assert_eq!(taux_de_l_arrete(&sans, Some(true), false), None);
+    }
+
+    /// L'annee que la compagnie n'a pas dite : 92.3AD, « TC », prend le taux de l'arrete de l'annee (1,65 % en 2025, annexe 1
+    /// de `legifrance-arrete-tarification-atmp-2025-complet-20261029.txt` ; 1,50 % en 2026), quel que soit l'effectif
+    /// (D. 242-6-14, I). Un taux notifie propre a la compagnie, un risque sans TC (92.1CC, D. 242-6-2) ou une annee dont
+    /// l'arrete n'est pas depose demandent le taux notifie de l'annee.
+    #[test]
+    fn le_taux_collectif_d_un_risque_tc_se_lit_dans_l_arrete_de_chaque_annee() {
+        let lire = |an: i32| socle::fichiers::lire_json(&dossier_du_code().join("baremes").join(format!("{}.json", an))).unwrap();
+        let (s25, s26) = (lire(2025), lire(2026));
+        let pose = |code: &str, t: f64| serde_json::json!({"code_risque": code, "valeur": t});
+        let t = taux_atmp_reporte(2026, Some(&s26), (2025, &pose("923AD", 1.65)), Some(&s25), false).unwrap().unwrap();
+        assert_eq!((t["code_risque"].as_str(), dec(&t["valeur"]).unwrap()), (Some("923AD"), Decimal::new(150, 2)));
+        assert!(taux_atmp_reporte(2026, Some(&s26), (2025, &pose("923AD", 2.10)), Some(&s25), false).unwrap().is_err());
+        assert!(taux_atmp_reporte(2026, Some(&s26), (2025, &pose("921CC", 1.04)), Some(&s25), false).unwrap().is_err());
+        assert!(taux_atmp_reporte(2026, Some(&s26), (2025, &pose("923AD", 1.65)), Some(&s25), true).unwrap().is_err());
+        assert!(taux_atmp_reporte(2027, None, (2026, &pose("923AD", 1.50)), Some(&s26), false).unwrap().is_err());
+        assert!(taux_atmp_reporte(2026, Some(&s26), (2025, &serde_json::json!({"valeur": 1.65})), Some(&s25), false).is_none());
+    }
+}
+
+/// Le taux AT/MP `t` ecrit pour l'ecran : « 1,50 % ».
+fn pourcent(t: Decimal) -> String {
+    let mut t = t.round_dp(2);
+    t.rescale(2);
+    format!("{} %", t.to_string().replace('.', ","))
+}
+
+/// Ou le code et le taux notifies se saisissent.
+const OU_SAISIR_ATMP: &str = "Ils se lisent sur la notification de la CARSAT (compte AT/MP sur net-entreprises) et se saisissent dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».";
+
+/// LE TAUX AT/MP D'UNE ANNEE QUE LA COMPAGNIE N'A PAS DIT, d'apres celui qu'elle a dit pour une annee d'avant (`avant` :
+/// `(annee, taux_atmp)` de sa surcouche). Le code risque est celui que la CARSAT a notifie a l'etablissement, et il le
+/// reste. Pour un risque « TC » de l'annexe 1 de l'arrete de l'annee (`socle_an`, `risques_atmp`), le taux est collectif
+/// quel que soit l'effectif (D. 242-6-14, I ; art. 5 de l'arrete, `atelier/reference/sources/tarification-atmp/`) : c'est
+/// celui de l'arrete de l'annee, et la compagnie n'a rien a redire au 1er janvier. Il ne se reprend que si celui d'avant
+/// etait deja ce taux collectif (`socle_avant`) : un taux notifie propre a la compagnie ne dit rien de l'annee suivante.
+/// Tout autre cas (un risque sans TC, 999ZZ, l'Alsace-Moselle, une annee dont l'arrete n'est pas depose) demande le taux
+/// notifie de l'annee : `Err` dit lequel et ou le saisir. `None` : aucun code n'a ete dit avant.
+pub fn taux_atmp_reporte(an: i32, socle_an: Option<&Value>, avant: (i32, &Value), socle_avant: Option<&Value>, alsace_moselle: bool) -> Option<Result<Map<String, Value>, String>> {
+    let (pa, pose) = avant;
+    let code = g(pose, "code_risque").as_str().map(str::trim).filter(|c| !c.is_empty())?.to_string();
+    if code == SANS_NOTIFICATION {
+        return Some(Err(format!(
+            "Le code risque et le taux AT/MP de {} manquent : en {}, la compagnie n'avait pas encore de notification (999ZZ). {}",
+            an, pa, OU_SAISIR_ATMP
+        )));
+    }
+    let r_avant = socle_avant.and_then(|s| risques_atmp(s).into_iter().find(|r| r.code == code));
+    let nom = r_avant.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());
+    let valeur_avant = g(pose, "valeur").as_f64().and_then(|t| Decimal::try_from(t).ok()).map(|t| t.round_dp(2));
+    let collectif_avant = r_avant.as_ref().and_then(|r| taux_de_l_arrete(r, None, alsace_moselle));
+    let notifie = |pourquoi: String| {
+        Err(format!("Le taux AT/MP de {} manque (code risque {}). {} Celui de {} se lit sur la notification de la CARSAT (compte AT/MP sur net-entreprises) et se saisit dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».", an, nom, pourquoi, an))
+    };
+    if alsace_moselle {
+        return Some(notifie("L'établissement est en Alsace-Moselle : son taux est celui que la CARSAT lui notifie chaque année.".into()));
+    }
+    if valeur_avant.is_none() || valeur_avant != collectif_avant {
+        return Some(notifie(format!(
+            "Celui de {}{} était le taux notifié à la compagnie, qui change chaque année.",
+            pa,
+            valeur_avant.map(|t| format!(" ({})", pourcent(t))).unwrap_or_default()
+        )));
+    }
+    let Some(r) = socle_an.and_then(|s| risques_atmp(s).into_iter().find(|r| r.code == code)) else {
+        return Some(notifie(format!(
+            "Son taux est celui de l'arrêté de tarification de {}, que le logiciel n'a pas.",
+            an
+        )));
+    };
+    if !r.tc {
+        return Some(notifie("Ce risque n'a un taux collectif que sous 20 salariés (code de la sécurité sociale, art. D. 242-6-2) : au-delà, c'est celui que la CARSAT notifie.".into()));
+    }
+    let Some(t) = taux_de_l_arrete(&r, None, false) else {
+        return Some(notifie(format!("L'arrêté de tarification de {} ne donne pas son taux.", an)));
+    };
+    let mut m = Map::new();
+    m.insert("valeur".into(), nd(t));
+    m.insert("code_risque".into(), Value::String(code));
+    m.insert("_reporte_de".into(), Value::from(pa));
+    m.insert(
+        "_source".into(),
+        Value::String(format!(
+            "Code risque notifié, dit pour {} ; taux collectif de {} ({}, « TC » : code de la sécurité sociale, art. D. 242-6-14), atelier/reference/sources/tarification-atmp/.",
+            pa,
+            socle_an.and_then(arrete_atmp).unwrap_or_else(|| format!("l'arrêté de tarification de {}", an)),
+            r.code_arrete.as_deref().unwrap_or(&r.code)
+        )),
+    );
+    Some(Ok(m))
+}
+
+/// LE TAUX AT/MP EN VIGUEUR CE JOUR-LA, tel que `taux_atmp.valeur` l'ecrit : un nombre, ou une liste datee
+/// `[{depuis, valeur}]` quand une notification change le taux en cours d'annee (la valeur dont le `depuis` est le plus
+/// recent au plus tard ce jour ; avant la premiere, la premiere). `None` : pas de taux.
+pub fn taux_atmp_au(valeur: &Value, jour: &Jour) -> Option<Decimal> {
+    match valeur {
+        Value::Array(a) => {
+            let mut v: Vec<(String, &Value)> = a.iter().map(|e| (en_texte(g(e, "depuis")), g(e, "valeur"))).collect();
+            v.sort_by(|x, y| x.0.cmp(&y.0));
+            let jour = jour.iso();
+            let choisi = v.iter().rev().find(|(d, _)| *d <= jour).or(v.first())?;
+            dec(choisi.1).ok()
+        }
+        Value::Null => None,
+        v => dec(v).ok(),
     }
 }
 

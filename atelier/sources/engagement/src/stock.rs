@@ -35,9 +35,10 @@ pub const SUITE: &str = "mois_suivants";
 
 /// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, la validation
 /// qu'une modification va remplacer, ses versions passees (`etats`), pour qui son numero de contrat a ete donne
-/// (`numeros`), qu'il n'est plus actif (`NON_ACTIF`), ce qui lui manque (`A_COMPLETER`), et ce que l'import a lu de lui
+/// (`numeros`), qu'il n'est plus actif (`NON_ACTIF`), ce qui lui manque (`A_COMPLETER`), ce que l'import a lu de lui
 /// (`importe::IMPORTE`).
-pub const TENUS_PAR_LE_MOTEUR: [&str; 8] = [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF, A_COMPLETER, crate::importe::IMPORTE];
+pub const TENUS_PAR_LE_MOTEUR: [&str; 8] =
+    [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF, A_COMPLETER, crate::importe::IMPORTE];
 
 /// UN ENGAGEMENT EN SAISIE AUQUEL IL MANQUE UN FAIT (un salaire, une duree du travail, une anciennete, un spectacle,
 /// des jours) : `{"mois", "manque"}`, le mois dont l'ecriture l'a trouve incomplet et ce que le calcul en dit ; l'ecran
@@ -167,8 +168,9 @@ impl Objet {
     pub fn dernier_mois(&self) -> Resultat<Option<String>> {
         match self.brut.get("fin").filter(|f| vrai(f)) {
             Some(f) => Ok(Some(socle::date::d(f)?.mois_iso().max(self.fichier.clone()))),
-            None if self.brut.get("lignes").is_some_and(|l| !l.is_null()) && !self.mensuel() => {
-                // Un contrat d'usage sans fin dite finit a son dernier jour joue ou planifie.
+            None if !self.mensuel() => {
+                // Un contrat d'usage sans fin dite finit a son dernier jour joue ou planifie ; sans jour encore, a son
+                // premier mois : seul un contrat paye au mois court sans terme.
                 let v = Value::Object(self.brut.clone());
                 let mut jours: Vec<String> = crate::dates_engagement(&v)
                     .iter()
@@ -179,7 +181,8 @@ impl Objet {
                     })
                     .collect();
                 jours.sort();
-                Ok(jours.last().map(|j| j.chars().take(7).collect::<String>()).filter(|m| mois_valide(m)).map(|m| m.max(self.fichier.clone())))
+                let dernier = jours.last().map(|j| j.chars().take(7).collect::<String>()).filter(|m| mois_valide(m));
+                Ok(Some(dernier.map_or(self.fichier.clone(), |m| m.max(self.fichier.clone()))))
             }
             None => Ok(None),
         }
@@ -694,7 +697,7 @@ fn identite(ctx: &Contexte, e: &Value) -> Option<droit::jumeaux::Ident> {
 }
 
 /// Les engagements de l'ecran de `mois` (`vue`, la saisie entiere du mois), rendus a leurs objets : chacun retrouve le
-/// sien (`droit::jumeaux::apparier_meme_numero`, puis, pour qui reste, le meme salarie, dans l'ordre), un nouveau
+/// sien (`droit::jumeaux::apparier_meme_numero`, puis, pour qui reste, le meme salarie pas encore valide, dans l'ordre), un nouveau
 /// commence dans le fichier du mois, un engagement que l'ecran ne montre plus et qui commencait ce mois-ci s'efface.
 ///
 /// UN ENGAGEMENT VALIDE NE CHANGE PAS PAR CE CHEMIN : il se modifie apres « Modifier » (`etats::modifier`), qui le
@@ -732,17 +735,22 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Op
     let ids_entrants: Vec<Option<droit::jumeaux::Ident>> = entrants.iter().map(|e| identite(ctx, e)).collect();
     let ids_actuels: Vec<Option<droit::jumeaux::Ident>> = vues_actuelles.iter().map(|e| identite(ctx, e)).collect();
     let mut paires = droit::jumeaux::apparier_meme_numero(&ids_entrants, &ids_actuels);
-    // Le meme salarie, dont les dates ont change et qui n'a pas de numero : dans l'ordre, un a un.
+    // Le meme salarie, dont les dates ont change et qui n'a pas de numero : dans l'ordre, un a un. Jamais un engagement
+    // valide : ses dates ne changent pas par ce chemin, l'ecran le renvoie tel qu'il le montre ; un engagement du meme
+    // salarie a d'autres dates est un autre engagement (un cachet a cote d'un CDD), qui s'ecrit.
     let mut pris: Vec<bool> = vec![false; ids_actuels.len()];
     for j in paires.iter().flatten() {
         pris[*j] = true;
     }
+    let valides: Vec<bool> = du_mois.iter().map(|i| tous[*i].est_valide()).collect();
     for (i, p) in paires.iter_mut().enumerate() {
         if p.is_some() {
             continue;
         }
         let Some(x) = &ids_entrants[i] else { continue };
-        if let Some(j) = (0..ids_actuels.len()).find(|j| !pris[*j] && ids_actuels[*j].as_ref().is_some_and(|y| y.0 == x.0 && (x.2.is_none() || y.2.is_none()))) {
+        if let Some(j) = (0..ids_actuels.len())
+            .find(|j| !pris[*j] && !valides[*j] && ids_actuels[*j].as_ref().is_some_and(|y| y.0 == x.0 && (x.2.is_none() || y.2.is_none())))
+        {
             *p = Some(j);
             pris[j] = true;
         }
@@ -966,6 +974,97 @@ fn changer_un_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Re
         s.extend(trie);
     }
     Ok(())
+}
+
+impl Objet {
+    /// L'engagement tel qu'une saisie gardee (`saisie`, celle d'une validation) le disait : meme fichier, meme rang.
+    pub fn d_apres_la_saisie(&self, saisie: &Map<String, Value>) -> Objet {
+        Objet { racine: self.racine.clone(), fichier: self.fichier.clone(), rang: self.rang, brut: saisie.clone() }
+    }
+
+    /// Ce que la vue de `mois` dit du contrat qui se reconduit (`RECONDUITS`, hors `PARTAGES`) : ce qui change « a partir
+    /// d'un mois ».
+    pub fn termes_du_mois(&self, mois: &str) -> Resultat<Option<Map<String, Value>>> {
+        Ok(self.vue(mois)?.map(|v| v.into_iter().filter(|(k, _)| RECONDUITS.contains(&k.as_str()) && !PARTAGES.contains(&k.as_str())).collect()))
+    }
+
+    /// LE CHANGEMENT « A PARTIR DE `depuis` » d'un contrat paye au mois : `self` est l'engagement modifie, `ancien` ce
+    /// qu'il disait a sa validation. Le changement, c'est chaque terme du contrat (`RECONDUITS`) que `self` dit autrement
+    /// qu'`ancien`, avec la valeur qu'il prend au premier mois ou il differe. Les mois d'avant `depuis` reprennent les
+    /// termes d'`ancien` ; `depuis` et tous les mois d'apres prennent les termes d'`ancien` et le changement par-dessus,
+    /// meme quand `ancien` y portait deja un autre chiffre : ce qui vaut « a partir de » vaut jusqu'au terme. Chaque mois
+    /// garde ce qui n'appartient qu'a lui (conges, primes). Le mois `depuis`, s'il n'est pas le premier, porte la date
+    /// de l'avenant (`date_modification`, le 1er du mois, quand la saisie n'en dit pas) : le document qui dit la
+    /// modification la date de sa prise d'effet (code du travail R1221-40, `atelier/reference/sources/code-du-travail/
+    /// articles-20261029.md`, l. 856), et la DSN date de meme le bloc S21.G00.41 (41.001). Un mois d'apres dont les
+    /// termes ne changent plus perd la date d'un avenant qui n'y a plus lieu.
+    pub fn a_partir_du(&self, ancien: &Objet, depuis: &str) -> Resultat<Objet> {
+        let termes: Vec<&str> = RECONDUITS.iter().copied().filter(|k| !PARTAGES.contains(k)).collect();
+        let mut mois: Vec<String> = self.mois_saisis();
+        mois.extend(ancien.mois_saisis());
+        mois.push(depuis.to_string());
+        mois.sort();
+        mois.dedup();
+        // Le changement : chaque terme, a sa valeur au premier mois ou il differe (`None` : retire).
+        let mut change: BTreeMap<&str, Option<Value>> = BTreeMap::new();
+        for m in &mois {
+            let (Some(n), Some(a)) = (self.vue(m)?, ancien.vue(m)?) else { continue };
+            for k in &termes {
+                if !change.contains_key(k) && n.get(*k).map(canonique) != a.get(*k).map(canonique) {
+                    change.insert(k, n.get(*k).cloned());
+                }
+            }
+        }
+        let mut cibles: Vec<(String, Map<String, Value>)> = Vec::new();
+        for m in mois {
+            let Some(mut v) = self.vue(&m)? else { continue };
+            if let Some(a) = ancien.vue(&m)? {
+                for k in &termes {
+                    match a.get(*k) {
+                        Some(x) => v.insert(k.to_string(), x.clone()),
+                        None => v.remove(*k),
+                    };
+                }
+            }
+            if m.as_str() >= depuis {
+                for (k, x) in &change {
+                    match x {
+                        Some(x) => v.insert(k.to_string(), x.clone()),
+                        None => v.remove(*k),
+                    };
+                }
+            }
+            if m.as_str() == depuis && m != self.fichier && !v.get("date_modification").is_some_and(vrai) {
+                v.insert("date_modification".into(), Value::String(premier_du_mois(&m)?.iso()));
+            } else if m.as_str() > depuis {
+                let memes = |x: &Map<String, Value>, y: &Map<String, Value>| termes.iter().all(|k| x.get(*k).map(canonique) == y.get(*k).map(canonique));
+                if cibles.last().is_some_and(|(_, p)| memes(p, &v)) {
+                    v.remove("date_modification");
+                }
+            }
+            cibles.push((m, v));
+        }
+        let mut r = self.clone();
+        let tenus: Vec<(&str, Value)> = TENUS_PAR_LE_MOTEUR.iter().filter(|k| **k != SUITE).filter_map(|k| r.brut.get(*k).map(|v| (*k, v.clone()))).collect();
+        let premiere = cibles.iter().find(|(m, _)| *m == self.fichier).map(|(_, v)| v.clone()).unwrap_or_else(|| self.premiere_vue());
+        r.brut = premiere;
+        for k in DEDUITS {
+            r.brut.remove(k);
+        }
+        for (k, v) in tenus {
+            r.brut.insert(k.to_string(), v);
+        }
+        for (m, v) in cibles.iter().filter(|(m, _)| *m != self.fichier) {
+            changer_un_mois(&mut r, m, v)?;
+        }
+        if let Some(Value::Object(s)) = r.brut.get_mut(SUITE) {
+            s.retain(|_, v| !v.as_object().is_some_and(Map::is_empty));
+        }
+        if r.brut.get(SUITE).and_then(Value::as_object).is_some_and(Map::is_empty) {
+            r.brut.remove(SUITE);
+        }
+        Ok(r)
+    }
 }
 
 /// Le mois qui precede `AAAA-MM`.

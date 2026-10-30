@@ -488,6 +488,13 @@ pub fn deposer_dsn_dans(
     // 2. le mode contre le fichier ; `presence_prouvee` : c'est ICI qu'on la prouve, jamais le transport.
     depot::verifier(&apercu, reel, None, true)?;
     let mois = apercu.mois_lisible();
+    // UNE MENSUELLE NE PART PAS AVANT SON PREMIER JOUR DE DEPOT (`depart::pas_avant`, cahier technique § 1.4.2), en
+    // test comme en reel. Un signalement part quand l'evenement a lieu.
+    if !apercu.est_signalement() && mois.len() == 7 {
+        if let Some((_, phrase, _)) = crate::compagnie::depart::pas_avant(ctx, &mois)? {
+            return Err(erreur("ErreurOperation", format!("{} Rien n'est parti.", phrase)));
+        }
+    }
     if let Some(n) = ordre_d_essai {
         if reel || apercu.est_signalement() || n < 1 {
             return Err(erreur(

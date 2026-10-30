@@ -151,13 +151,12 @@ fn changements_dates(brute: &Value, champs: &[&str]) -> Resultat<Vec<(Jour, Stri
     Ok(out)
 }
 
-/// « Prenom NOM, contrat <numero> » : qui la phrase de refus designe.
+/// « NOM Prénom, contrat <numéro> » : qui la phrase de refus désigne.
 fn qui(p: &Paie) -> String {
-    let t = |k: &str| p.salarie.get(k).and_then(Value::as_str).unwrap_or("").trim().to_string();
-    let nom = [t("prenom"), t("nom")].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" ");
+    let cle = p.salarie.get("_cle").and_then(Value::as_str).unwrap_or("");
     format!(
         "{}, contrat {}",
-        if nom.is_empty() { t("_cle") } else { nom },
+        socle::texte::salarie_nomme_ou(Some(&p.salarie), cle),
         p.engagement.numero.clone().unwrap_or_else(|| "sans numero".into())
     )
 }

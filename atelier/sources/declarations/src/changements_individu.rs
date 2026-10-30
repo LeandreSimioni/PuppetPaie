@@ -181,10 +181,8 @@ devine pas. Rien n'est ecrit.",
 }
 
 fn qui(salarie: &Value) -> String {
-    let prenom = texte(salarie.get("prenom_affichage").or(salarie.get("prenom")));
-    let nom = texte(salarie.get("nom"));
     let matricule = texte(salarie.get("code_salarie"));
-    format!("{} {} (matricule {})", prenom, nom, if matricule.is_empty() { "?" } else { &matricule })
+    format!("{} (matricule {})", socle::texte::salarie_nomme_ou(Some(salarie), "?"), if matricule.is_empty() { "?" } else { &matricule })
 }
 
 fn decrire(d: &Declaree) -> String {

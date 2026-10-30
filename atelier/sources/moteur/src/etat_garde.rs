@@ -649,13 +649,24 @@ impl FileDesEtats {
         }
         let o = &self.o;
         let _code = socle::fichiers::code_fige();
-        let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
-            lire(o, &ctx, mois)
-        }));
-        // Un calcul tombe a pu laisser son fil sale (un registre ouvert, les nombres « fideles ») : le mois suivant
-        // repart d'un fil propre.
-        crate::routes::remettre_le_fil();
+        let refaire = || {
+            let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
+                lire(o, &ctx, mois)
+            }));
+            // Un calcul tombe a pu laisser son fil sale (un registre ouvert, les nombres « fideles ») : le mois suivant
+            // repart d'un fil propre.
+            crate::routes::remettre_le_fil();
+            rendu
+        };
+        // LE BANC D'ESSAI : ce que l'etat refait ecrit entre dans le scenario (`scenario::Enregistreur::fond`).
+        #[cfg(feature = "atelier")]
+        let rendu = match crate::atelier::scenario::enregistreur_actif() {
+            Some(e) => e.fond(&self.racine, mois, refaire),
+            None => refaire(),
+        };
+        #[cfg(not(feature = "atelier"))]
+        let rendu = refaire();
         match rendu {
             Ok(Ok(v)) => Ok(v),
             Ok(Err(e)) => Err((e.classe, e.message)),

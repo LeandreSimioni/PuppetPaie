@@ -300,6 +300,8 @@ pub const PREFIXE_IMPRESSION: &str = "Impression_";
 pub fn reunir_pour_imprimer(dossier: &std::path::Path, quoi: &str, etiq: &str, pieces: &[std::path::PathBuf]) -> R<std::path::PathBuf> {
     let octets = documents::fabrique::fusion_pieces(&pieces.iter().map(|p| (p.clone(), None)).collect::<Vec<_>>())?;
     let f = dossier.join(format!("{}{}_{}.pdf", PREFIXE_IMPRESSION, quoi, etiq));
+    // Un mois dont seul un avenant s'imprime n'a pas encore son dossier d'envoi.
+    std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
     std::fs::write(&f, octets).map_err(|e| erreur("OSError", format!("{} : {}", f.display(), e)))?;
     Ok(f)
 }
@@ -389,7 +391,9 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
 
     let (an, nom_mois) = an_et_nom_du_mois(&s_mois)?;
     let ent = documents::avenant::ent_du_mois(ctx, &s_mois)?;
-    let par_salarie = contrats_choisis(ctx, &d.choisis, &mois, &paies)?;
+    // UN SALARIE SANS COURRIEL n'empeche pas les autres : son contrat ne part pas par courriel, il s'imprime ; les
+    // autres partent. Les adresses se lisent avant d'ecrire le moindre PDF : un refus ne laisse rien sur le disque.
+    let (par_salarie, noms_sans) = avec_et_sans_courriel(contrats_choisis(ctx, &d.choisis, &mois, &paies)?)?;
 
     // Le journal, lu une fois : chaque paie y retrouve SON contrat (salarie, debut, numero), pas celui de son jumeau du meme jour.
     let lignes_j = crate::etats::charger(&ctx.racine)?;
@@ -423,12 +427,6 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
     let expediteur = client.compte().to_lowercase();
     let mut messages: Vec<Message> = Vec::new();
     let mut contrats: Vec<Value> = Vec::new();
-    // Retours Windows, B : TOUTES les adresses se verifient avant d'ecrire le moindre PDF (un refus ne laisse rien sur le disque).
-    for (cle, ps, _) in &par_salarie {
-        if vrai_ou(&ps[0].salarie, "email").unwrap_or_default().trim().is_empty() {
-            return Err(refus(format!("{} n'a pas de courriel dans sa fiche : son contrat ne peut pas partir.", cle)));
-        }
-    }
     for (cle, ps, _) in &par_salarie {
         let sal = &ps[0].salarie;
         let adresse = vrai_ou(sal, "email").unwrap_or_default().trim().to_lowercase();
@@ -558,7 +556,40 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
         Some(&detail),
         Some(&versions),
     )?;
-    Ok(json!({"partis": partis, "contrats": contrats, "expediteur": expediteur, "ligne": ligne}))
+    let avertissements: Vec<String> = if noms_sans.is_empty() { Vec::new() } else { vec![sans_courriel_dit(&noms_sans)] };
+    Ok(json!({"partis": partis, "contrats": contrats, "expediteur": expediteur, "ligne": ligne, "avertissements": avertissements}))
+}
+
+/// Ce que la demande de signature et son apercu disent des contrats coches dont le salarie n'a pas de courriel : ils ne
+/// partent pas par courriel, ils s'impriment pour se signer en main propre, ou le courriel se saisit dans la fiche.
+pub fn sans_courriel_dit(noms: &[String]) -> String {
+    if noms.len() == 1 {
+        format!(
+            "Pas de courriel dans la fiche de {} : son contrat ne part pas à la signature par courriel. Imprimez-le pour le faire signer en main propre, ou saisissez son courriel dans sa fiche.",
+            noms[0]
+        )
+    } else {
+        format!(
+            "Pas de courriel dans les fiches de {} : leurs contrats ne partent pas à la signature par courriel. Imprimez-les pour les faire signer en main propre, ou saisissez leur courriel dans leur fiche.",
+            noms.join(", ")
+        )
+    }
+}
+
+/// Ce que l'envoi des avenants et l'apercu de la signature disent des avenants coches dont le salarie n'a pas de
+/// courriel : ils ne partent pas par courriel, ils s'impriment pour se signer en main propre, ou le courriel se saisit.
+pub fn avenants_sans_courriel_dit(noms: &[String]) -> String {
+    if noms.len() == 1 {
+        format!(
+            "Pas de courriel dans la fiche de {} : son avenant ne part pas à la signature par courriel. Imprimez-le pour le faire signer en main propre, ou saisissez son courriel dans sa fiche.",
+            noms[0]
+        )
+    } else {
+        format!(
+            "Pas de courriel dans les fiches de {} : leurs avenants ne partent pas à la signature par courriel. Imprimez-les pour les faire signer en main propre, ou saisissez leur courriel dans leur fiche.",
+            noms.join(", ")
+        )
+    }
 }
 
 /// L'annee et le nom du mois d'un « AAAA-MM », pour les sujets des courriels (« octobre 2026 ») ; un mois illisible ou
@@ -588,17 +619,29 @@ pub struct DemandeDeSignature<'a> {
 /// qui part. Une relance renvoie le meme contrat (elle n'en remplace aucun), et seulement un contrat demande par courriel,
 /// pas revenu, a jour. Rien n'est ecrit.
 pub fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<()> {
-    if !d.relance {
-        return Ok(());
-    }
-    if d.remplace {
+    if d.relance && d.remplace {
         return Err(refus("Une relance renvoie le même contrat : elle n'en remplace aucun."));
     }
     let (_, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, d.mois, None)?;
-    let par_salarie = contrats_choisis(ctx, &d.choisis, d.mois, &paies)?;
+    let (par_salarie, _) = avec_et_sans_courriel(contrats_choisis(ctx, &d.choisis, d.mois, &paies)?)?;
+    if !d.relance {
+        return Ok(());
+    }
     let tous: Vec<(String, String, String)> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default())).collect();
     let cles: Vec<(String, String, String)> = par_salarie.iter().flat_map(|(_, _, rs)| rs.iter().map(|r| tous[*r].clone())).collect();
     verifier_relance(&d.etats_des_contrats, &cles)
+}
+
+/// LES CONTRATS QUI PARTENT PAR COURRIEL : ceux dont la fiche du salarie a un courriel ; les autres s'impriment (leurs
+/// noms, pour le dire). Refus si aucun contrat choisi n'a de courriel : rien ne partirait.
+type ParSalarie = Vec<(String, Vec<Paie>, Vec<usize>)>;
+fn avec_et_sans_courriel(choisis: ParSalarie) -> R<(ParSalarie, Vec<String>)> {
+    let (avec, sans): (ParSalarie, ParSalarie) = choisis.into_iter().partition(|(_, ps, _)| !vrai_ou(&ps[0].salarie, "email").unwrap_or_default().trim().is_empty());
+    let noms: Vec<String> = sans.iter().map(|(k, ps, _)| socle::texte::salarie_nomme_ou(Some(&ps[0].salarie), k)).collect();
+    if avec.is_empty() && !noms.is_empty() {
+        return Err(refus(format!("{} Rien n'est parti.", sans_courriel_dit(&noms))));
+    }
+    Ok((avec, noms))
 }
 
 /// Une relance ne vaut que pour un contrat demande par courriel, pas revenu, a jour.
@@ -613,7 +656,7 @@ fn verifier_relance(etats: &[Value], cles: &[(String, String, String)]) -> R<()>
         let pb = match c {
             None => "n'a jamais ete demande : il s'envoie",
             Some(c) if !vrai(&c["demande_le"]) => "n'a jamais ete demande : il s'envoie",
-            Some(c) if vrai(&c["caduc"]) => "a change depuis son envoi : il se renvoie a jour",
+            Some(c) if vrai(&c["caduc"]) => "a change depuis son envoi : il se modifie par un avenant",
             Some(c) if vrai(&c["recu_le"]) => "est deja revenu signe",
             // Un contrat imprime n'a pas de courriel a renvoyer : il se remet en main propre.
             Some(c) if c["par"].as_str() == Some("imprime") => "est parti imprime, a remettre en main propre",

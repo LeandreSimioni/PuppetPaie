@@ -294,9 +294,9 @@ fn nom_de_la_dsn(m: &str, partie: bool) -> String {
     format!("DSN de {}{}", libelle_mois(m).unwrap_or_else(|_| m.to_string()), if partie { "" } else { " (à déposer)" })
 }
 
-/// `_libelles_organismes` : SIRET -> libelle, lu dans `config/organismes.json`.
+/// `_libelles_organismes` : SIRET -> libelle, lu dans les organismes de la compagnie (`Contexte::organismes`).
 fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
-    let Some(d) = ctx.organismes()? else { return Ok(Vec::new()) };
+    let d = ctx.organismes()?;
     let mut out: Vec<(String, String)> = Vec::new();
     for v in d.get("versements").and_then(Value::as_array).into_iter().flatten() {
         if let Some(siret) = v.get("siret").filter(|s| vrai(s)) {
@@ -351,7 +351,7 @@ pub fn versements_organismes(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois
         col_t("fichier", "DSN"),
     ];
     t.sources = vec![
-        "bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1), tiré de chaque DSN partie (des versions qu'elle a emportées) ou à déposer, par la fonction qui écrit la DSN ; libellés : config/organismes.json".to_string(),
+        "bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1), tiré de chaque DSN partie (des versions qu'elle a emportées) ou à déposer, par la fonction qui écrit la DSN ; libellés : donnees/organismes-base.json".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "versements-organismes", &d.format, d.ecrire)?;
     Ok(t)
@@ -526,7 +526,7 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let (taux, plancher, plafond) = (dec_de(&fp["taux"])?, dec_de(&fp["plancher"])?, dec_de(&fp["plafond"])?);
     let mut par_an: Vec<(String, i64, Decimal)> = Vec::new();
     let zero = zero2();
-    let orgs = ctx.organismes_exiges().map_err(refus)?;
+    let orgs = ctx.organismes().map_err(refus)?;
     for (m, paies) in paies_des_mois(ctx, &p, &mut avert)? {
         // La tranche A : la base 02 (« assiette brute plafonnee ») que la DSN declare pour chaque contrat (`dsn::cotisations`).
         let mut ta = zero;

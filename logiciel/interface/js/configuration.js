@@ -484,24 +484,8 @@ function vueEtatImportation(e) {
         x.quand ? ` du ${echapper(quand(x.quand))}` : ""}</b>${echapper(x.resume || "")}</div>
       <div class="rang-etat">${pastilleDeLEtat(x.pastille)}</div>
     </div>`).join("");
-  return repris + vueNaturesADire(e.a_dire) + vueCongesADire(e.conges_a_dire)
+  return repris + vueNaturesADire(e.a_dire)
     + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
-}
-
-/* LES CONGÉS À LA REPRISE D'UN PERMANENT DONT LE CONTRAT CONTINUE
-   (`conges_a_dire`, du moteur) : aucun bulletin repris ne les dit, ils se
-   recopient du dernier bulletin de l'ancien logiciel, sur sa fiche. */
-function vueCongesADire(liste) {
-  if (!liste || !liste.length) return "";
-  const lignes = liste.map((x) => `<div class="rang">
-      <div class="rang-infos"><b class="rang-nom">${echapper(x.nom)}</b>
-        ses congés payés acquis et pris dans votre ancien logiciel ne sont sur aucun bulletin repris.
-        Recopiez-les de son dernier bulletin dans sa fiche (« Congés payés à la reprise »), à partir du
-        ${echapper(jjmmaaaa(x.depuis))} : sans eux, ses congés repartent de zéro.</div>
-      <div class="rang-etat"><button type="button" class="petit" data-ouvrir-fiche="salarie"
-        data-ouvrir-cle="${echapper(x.salarie)}">Ouvrir sa fiche</button></div>
-    </div>`).join("");
-  return `<h3>Les congés payés à reprendre</h3>${lignes}`;
 }
 
 /* LA NATURE DES CONTRATS REPRIS QU'AUCUN BULLETIN NE DIT
@@ -578,8 +562,7 @@ document.addEventListener("click", async (ev) => {
       charge[c.dataset.natureChamp] = c.value;
     });
     const r = await api("importation-nature", charge);
-    dire(`Nature enregistrée sur ${r.ecrits} contrat${r.ecrits > 1 ? "s" : ""} repris.${r.permanents_declares
-      ? " La compagnie emploie donc des salariés au mois : Configuration › Entreprise dit ce que cela demande encore." : ""}`, "ok");
+    dire(r.phrase, r.couleur);
     // Les natures au mois s'ouvrent alors dans la saisie (`etat.natures`).
     ETAT = await api("etat");
     rafraichirReferentiels();
@@ -887,10 +870,7 @@ async function ecrireImportation() {
     await rafraichirEtatImportation();
     const aDire = document.querySelector("[data-nature-rang]");
     if (aDire) aDire.scrollIntoView({ block: "center" });
-    const b = r.bulletins || {};
-    dire(`Repris : ${(r.contrats_nouveaux || 0) + (b.contrats_nouveaux || 0)} contrat(s), ${
-      (b.paies_nouvelles || 0) + (b.paies_completees || 0)} bulletin(s), ${
-      [r.entreprise, ...(r.salaries || []), ...(r.spectacles || [])].filter((f) => f && (f.etat === "creee" || f.etat === "completee")).length} fiche(s).`, "ok");
+    dire(r.phrase, r.couleur);
   } catch (e) {
     cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`;
   } finally {
@@ -1023,10 +1003,13 @@ const SECTIONS_FICHE = {
      { sante: true }],
     // L'avance : ce qui a une valeur par defaut juste pour presque tout le
     // monde. Le tiroir s'ouvre seul si l'une s'en ecarte (`ORDINAIRE`).
+    // La déduction forfaitaire spécifique : un tiroir à elle, qui dit ce que
+    // l'entreprise en a décidé (`DFS_HTML`).
+    ["Déduction forfaitaire spécifique", ["deduction_forfaitaire",
+      "deduction_forfaitaire_accord"], { avance: true, dfs: true }],
     ["Avancé — cas particuliers", ["statut", "statut_categoriel_rc",
       "pcs_ese", "code_emploi_ft", "date_anciennete", "code_salarie",
-      "initiales_contrat", "statut_conventionnel", "deduction_forfaitaire",
-      "deduction_forfaitaire_accord", "statut_boeth", "echelon_ccneac", "classement_conventionnel",
+      "initiales_contrat", "statut_conventionnel", "statut_boeth", "echelon_ccneac", "classement_conventionnel",
       "poste_depuis", "experimente_3241", "stagiaire_ccneac",
       "etablissement", "actif"], { avance: true }],
     ["", ["historique"]],
@@ -1096,12 +1079,12 @@ const SOUS_CHAMPS = {
   // ce que son dernier bulletin disait.
   conges_reprise: { champs: [
     ["date", "PuppetPaie compte à partir du", "Le premier jour du premier mois produit par PuppetPaie", { date: true }],
-    ["report", "Reste N-1 (jours)", "Les jours de l'année de référence précédente qui restent à prendre"],
-    ["acquis_report", "Acquis N-1 en tout (jours)", "Souvent 30 : il sert à payer un jour au dixième"],
-    ["remuneration_report", "Brut de la période N-1 (€)", "L'assiette du dixième des jours N-1"],
-    ["acquis", "Acquis N (jours)", "Les jours acquis sur la période en cours, avant cette date"],
-    ["pris", "Pris sur N (jours)", "Les jours de la période en cours déjà pris avant cette date"],
-    ["remuneration_periode", "Brut de la période N (€)", "Le brut versé sur la période en cours, avant cette date"],
+    ["report", "Jours qui restent de la période passée", "Les jours de congés acquis sur la période de référence passée et pas encore pris. Le dernier bulletin de l'ancien logiciel les écrit souvent « N-1 », « reliquat » ou « solde N-1 »."],
+    ["acquis_report", "Jours acquis sur la période passée, en tout", "Souvent 30, pour une période entière : il sert à payer un jour au dixième. Sur le bulletin : « acquis N-1 »."],
+    ["remuneration_report", "Brut gagné pendant la période passée (€)", "Le brut de toute la période de référence passée, qui sert à calculer le dixième. Sur le bulletin : « base N-1 », ou dans votre ancien logiciel."],
+    ["acquis", "Jours acquis depuis le début de la période en cours", "Les jours acquis sur la période en cours, avant cette date. Sur le bulletin : « acquis N »."],
+    ["pris", "Jours déjà pris sur la période en cours", "Les jours pris sur ceux de la période en cours, avant cette date. Sur le bulletin : « pris N »."],
+    ["remuneration_periode", "Brut gagné depuis le début de la période en cours (€)", "Le brut versé sur la période en cours, avant cette date. Sur le bulletin : « base N »."],
   ] },
   signataire: { champs: [
     ["prenom_affichage", "Prénom", ""],
@@ -1570,7 +1553,7 @@ async function dessinerMetiers(cible) {
 /* LES ORGANISMES ET LES CONTRATS DE LA DSN. Une ligne par
  * contrat que la convention exige ; le moteur (`organismes-contrats`) dit ce
  * qui est fixé par la branche et ce que la compagnie saisit. Enregistrer
- * compose config/organismes.json (`organismes-enregistrer`) : la page ne
+ * écrit ce que la compagnie saisit (`organismes-enregistrer`) : la page ne
  * décide rien. */
 async function dessinerOrganismes(cible) {
   let r;
@@ -1603,7 +1586,7 @@ async function dessinerOrganismes(cible) {
         (organismes payés, Urssaf, taux AT/MP, compte France Travail) vient de la loi,
         de la convention et de la fiche Entreprise.</p>
       ${r.mois ? `<p class="note">Les contrats en vigueur en ${echapper(moisEnClair(r.mois))}.</p>` : ""}
-      ${r.compose ? "" : `<p class="rappel retard">Pas encore enregistré : la DSN est refusée tant que ces contrats ne le sont pas.</p>`}
+      ${r.a_saisir ? `<p class="rappel retard">Une référence de contrat manque : la DSN refuse les salariés que ce contrat couvre tant qu'elle n'est pas enregistrée.</p>` : ""}
       <table class="tableau">
         <thead><tr><th>Contrat</th><th>Bénéficiaires</th><th>Organisme</th><th>Référence du contrat</th></tr></thead>
         <tbody>${r.contrats.map(ligne).join("")}</tbody>
@@ -1621,6 +1604,35 @@ async function dessinerOrganismes(cible) {
       dessinerOrganismes(cible);
     } catch (e) { dire(e.message, "erreur"); }
   };
+}
+
+/* LA DÉDUCTION FORFAITAIRE SPÉCIFIQUE, vue depuis la fiche d'un salarié : ce
+ * que la fiche de l'entreprise en dit (l'option est celle de l'employeur), et
+ * le chemin pour la régler. La page nomme l'option, le moteur décide
+ * (`calcul::deduction_forfaitaire`). */
+function DFS_HTML() {
+  const entreprise = ((ETAT.configuration || {}).entreprise || {}).donnees || {};
+  const option = String(entreprise.deduction_forfaitaire_option || "");
+  const nom = (LIBELLES_CHOIX.deduction_forfaitaire_option || {})[option] || option;
+  const phrase = option
+    ? `La compagnie l'applique (fiche de l'entreprise) : « ${echapper(nom)} ».`
+    : "La compagnie ne l'applique pas : c'est une option de l'employeur, qui se règle dans la fiche de l'entreprise (« Avancé — cas particuliers »). Une fois l'option posée, la profession et l'accord du salarié se disent ici.";
+  return `<div class="encart" id="config-dfs">
+    <p>${phrase}</p>
+    <div class="actions"><button type="button" class="petit secondaire" onclick="ouvrirOptionDfs()">${
+      option ? "Voir dans la fiche de l'entreprise" : "Régler dans la fiche de l'entreprise"}</button></div>
+  </div>`;
+}
+
+/* Ouvre la fiche de l'entreprise sur l'option de la déduction forfaitaire. */
+async function ouvrirOptionDfs() {
+  await ouvrirFicheImportee("entreprise");
+  const champ = document.querySelector('[data-cle="deduction_forfaitaire_option"]');
+  if (!champ) return;
+  const tiroir = champ.closest("details");
+  if (tiroir) tiroir.open = true;
+  champ.scrollIntoView({ behavior: "smooth", block: "center" });
+  champ.focus();
 }
 
 /* LE CODE RISQUE ET LE TAUX AT/MP, en tête du bloc « Vos numéros chez les
@@ -1700,10 +1712,17 @@ async function brancherAtmp() {
  * champ `sante_svp` reste dans la fiche, en case cachée, et ces cases
  * l'écrivent (`brancherSante`). */
 function SANTE_HTML() {
+  // Sous une convention qui ne la fait pas choisir sur la fiche, le moteur dit
+  // d'où elle vient (`sante_hors_fiche`) : rien à remplir ici.
+  if (ETAT.sante_hors_fiche) {
+    return `<div class="encart" id="config-sante">
+      <div class="aide">${echapper(ETAT.sante_hors_fiche)}</div>
+    </div>`;
+  }
   return `<div class="encart" id="config-sante">
     <label>Complémentaire santé — le contrat souscrit par ce salarié
       <select id="config-sante-niveau">
-        <option value="">— aucune (intermittent) —</option>
+        <option value="">— pas encore dite —</option>
         ${(ETAT.niveaux_sante || []).map((n) =>
           `<option value="${echapper(n.niveau)}">niveau ${echapper(n.niveau)}
              — ${echapper(n.assure)} % du PMSS pour l'assuré seul</option>`).join("")}

@@ -500,373 +500,48 @@
       }
     },
     "config/organismes.json": {
-      "_quoi": "Compose par PuppetPaie (Configuration › Organismes et contrats) depuis donnees/organismes-base.json et les contrats saisis, date comme toute la configuration : chaque cle est une liste {depuis, valeur}. Ne pas modifier a la main : un nouvel enregistrement le recompose a partir du mois enregistre.",
-      "versements": [
-        {
-          "valeur": [
-            {
-              "siret": "77567608300030",
-              "libelle": "Caisse des Conges Spectacles",
-              "nom": "Caisse des Congés Spectacles",
-              "objet": "la cotisation de congés payés des intermittents",
-              "jour_de_paiement": 25,
-              "codes81": [
-                "066"
-              ],
-              "_source_nom": "Table IVO des nomenclatures DSN, « Caisse des Congés spectacles » (atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt, l. 492) ; Audiens, « Pour les Congés Spectacles > 77567608300030 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md). Objet : code 066 « Cotisation caisse de congés spectacles » (norme-dsn/texte/bloc-S21.G00.81.txt, l. 232).",
-              "_source_jour_de_paiement": "Audiens, dossier DSN : « L'échéance de paiement pour Audiens est pour un mois M, le 25 du mois M+1. Cette date est automatiquement retenue pour les paiements retraite et Congés Spectacles » (atelier/reference/sources/audiens-dsn/). La DSN n'écrit pas de date pour elle (S21.G00.20.011 : « Congés spectacles (AUDIENS) : non concerné ») : le 25 se dit dans la boîte de dépôt (`ordres_paiement.rs`)."
-            },
-            {
-              "siret": "13000548100010",
-              "libelle": "FRANCE TRAVAIL",
-              "nom": "France Travail",
-              "objet": "l'assurance chômage et l'AGS des intermittents",
-              "codes81": [
-                "040",
-                "048",
-                "041",
-                "018:chomage"
-              ],
-              "_source_nom": "Table IVO des nomenclatures DSN, « FRANCE TRAVAIL » (atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt, l. 974). Objet : codes 040 « Cotisation AC : assurance chômage », 041 « Cotisation AC majorée », 048 « Cotisation AGS : assurance garantie des salaires » (norme-dsn/texte/bloc-S21.G00.81.txt, l. 209-220). Sa date de paiement (S21.G00.20.011) est écrite par `dsn.rs`.",
-              "_libelle_coolpaie": "Bordereau France Travail",
-              "_libelle": "Libelle verifie sur l'export lisible de CoolPaie du meme jour, qui nomme lui-meme chaque bloc S21.G00.20, et confirme par les codes de cotisation portes. Codes 040/048/041 : contribution chomage, AGS. La reference CS00012345 est un compte Cinema Spectacle France Travail."
-            },
-            {
-              "siret": "44832375800038",
-              "libelle": "Retraite complementaire",
-              "nom": "Audiens Retraite",
-              "adresse": "74 rue Jean Bleuzen, 92177 Vanves Cedex",
-              "_source_adresse": "Groupe Audiens, pied de page de sa fiche des taux de la retraite complémentaire 2026 : « Groupe Audiens • 74 rue Jean Bleuzen • 92177 Vanves Cedex » (atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt, l. 48). INFÉRENCE : l'adresse du groupe est celle de sa caisse de retraite et de son institution de prévoyance, que le contrat écrit nomme (code du travail L. 1242-12, 8°).",
-              "objet": "la retraite complémentaire Agirc-Arrco",
-              "jour_de_paiement": 25,
-              "_source_nom": "Audiens, « Pour la retraite Audiens > 44832375800038 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md) ; table IVO, « AUDIENS », famille AAR (tables-organismes-20260924.txt, l. 480). Objet : codes 131 « Cotisation régime unifié Agirc-Arrco » et 105 (bloc-S21.G00.81.txt, l. 269, 287).",
-              "_source_jour_de_paiement": "Audiens, dossier DSN : le 25 du mois M+1, « automatiquement retenue pour les paiements retraite et Congés Spectacles » (atelier/reference/sources/audiens-dsn/). La DSN n'écrit pas de date (S21.G00.20.011 : « AGIRC-ARRCO : non concerné »).",
-              "codes81": [
-                "131",
-                "132",
-                "106",
-                "105"
-              ],
-              "_libelle_coolpaie": "Versement Audiens",
-              "_note": "Audiens est le groupe de retraite complementaire du spectacle : les deux noms designent le meme organisme. Code 131 = cotisation regime unifie Agirc-Arrco, 132 = cotisation Apec, 106 = reduction generale (part retraite). Le 105 (<< y compris Apec >>) ne s'ecrit plus que pour regulariser une periode anterieure a 2025 (cahier technique 2026.1 p. 302, atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt lignes 79-81) : il reste ici pour cette regularisation (`dsn::codes_du_versement`)."
-            },
-            {
-              "siret": "P0983",
-              "libelle": "AUDIENS PREVOYANCE",
-              "nom": "Audiens Santé Prévoyance",
-              "adresse": "74 rue Jean Bleuzen, 92177 Vanves Cedex",
-              "_source_adresse": "Voir `_source_adresse` d'Audiens Retraite : la même adresse du groupe (audiens-fp-taux-repartition-retraite-2026.txt, l. 48), inférence écrite comme telle.",
-              "objet": "la prévoyance et la santé",
-              "jour_de_paiement": 25,
-              "codes81": [
-                "059"
-              ],
-              "_libelle_coolpaie": "Versement Prevoyance / Sante",
-              "_source_nom": "P0983 est Audiens Santé Prévoyance, pas l'AFDAS. Audiens : « Pour Audiens Santé Prévoyance > P0983 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md) ; tables PREV et IVO des nomenclatures DSN, « AUDIENS PREVOYANCE » (dsn-nomenclatures/tables-organismes-20260924.txt, l. 32 et 625, famille CTI, institution de prévoyance). Le code 059 qu'il porte est « Cotisation individuelle Prévoyance-Assurance-Mutuelle » (norme-dsn/texte/bloc-S21.G00.81.txt, l. 228). L'AFDAS est l'OPCO (table OPCO, code 02) : la contribution formation part à l'Urssaf par ses CTP.",
-              "_source_jour_de_paiement": "Audiens, dossier DSN : le 25 du mois M+1, date qui « doit être renseignée dans le bloc paiement à destination d'Audiens Santé Prévoyance (P0983) » : `dsn.rs` l'écrit en S21.G00.20.011. L'échéance trimestrielle (moins de onze salariés, sur option) n'est pas modélisée (atelier/reference/sources/audiens-dsn/LISEZ-MOI.md)."
-            },
-            {
-              "siret": "78861779300013",
-              "libelle": "URSSAF",
-              "nom": "Urssaf",
-              "objet": "les cotisations et contributions sociales du bordereau Urssaf",
-              "_source_nom": "Table IVO des nomenclatures DSN, famille URS (tables-organismes-20260924.txt, l. 952, « Urssaf Ile-de-France ») : une Urssaf par région, d'où le nom générique ; c'est l'organisme du bordereau S21.G00.22.",
-              "codes81": [
-                "049",
-                "074",
-                "075",
-                "102",
-                "130",
-                "128",
-                "907",
-                "072",
-                "079",
-                "018:urssaf",
-                "040:urssaf",
-                "048:urssaf"
-              ],
-              "_montant": "CALCULE : le bordereau Urssaf (22.005, recopie en 20.005) est la somme des lignes 23, chacune valorisee a la table des CTP de l'Urssaf et arrondie a l'euro (documents/src/bordereau.rs). Rejoue sur les 75 DSN de CoolPaie : 74 au centime.",
-              "_libelle_coolpaie": "Bordereau Urssaf",
-              "_libelle": "Libelle verifie sur l'export lisible de CoolPaie du meme jour, qui nomme lui-meme chaque bloc S21.G00.20, et confirme par les codes de cotisation portes. C'est cet organisme qui porte le bordereau S21.G00.22 et les CTP S21.G00.23, notions propres a l'URSSAF.",
-              "_chomage_des_permanents": "Les cles 040:urssaf et 048:urssaf sont le chomage et l'AGS d'un SALARIE PERMANENT : meme code de cotisation qu'un intermittent (040, 048), mais recouvres par l'Urssaf et non par France Travail. C'est le bareme qui pose la cle (par_nature.permanent.cotisations_dsn), et la reduction generale suit le meme chemin (018:urssaf porte alors ses deux parts)."
-            }
-          ]
-        }
-      ],
-      "sans_individu": [
-        {
-          "valeur": {
-            "_source": "Cahier technique NEODeS 2026.1, section 2.4 (p. 64-67) et rubrique S20.G00.08.001 (p. 140), lu le 15/09/2026. Un mois sans aucun salarie se declare en 'normale sans individu' (S20.G00.05.002 = 02, S10.G00.00.008 = 02 'envoi neant'). Seuls S10, S20, S90, S21.G00.06 et S21.G00.11 sont admis, plus, pour nos organismes : 15 (prevoyance), 20 (tous), 22 et 23 (Urssaf). S20.G00.08 nomme les organismes precedemment destinataires qui n'ont plus d'individu rattache ce mois-ci : AGIRC-ARRCO 88, France Travail 93, Conges spectacles 97 (l'Urssaf et l'organisme complementaire n'y figurent pas).",
-            "absence_de_rattachement": [
-              "88",
-              "93",
-              "97"
-            ]
-          }
-        }
-      ],
-      "affectations_81_059": [
-        {
-          "valeur": {
-            "202": "103",
-            "203": "102",
-            "205": "103",
-            "206": "102"
-          }
-        }
-      ],
-      "ctp_urssaf": [
-        {
-          "valeur": [
-            {
-              "code": "027",
-              "qualifiant": "920",
-              "assiette": "brut"
-            },
-            {
-              "code": "260",
-              "qualifiant": "920",
-              "assiette": "csg"
-            },
-            {
-              "code": "312",
-              "qualifiant": "920",
-              "assiette": "brut_artiste",
-              "taux_at": "bareme",
-              "statut": "artiste"
-            },
-            {
-              "code": "312",
-              "qualifiant": "921",
-              "assiette": "brut_artiste",
-              "statut": "artiste"
-            },
-            {
-              "code": "334",
-              "qualifiant": "921",
-              "assiette": "brut_x115_artiste",
-              "statut": "artiste",
-              "effectif_sous": 50,
-              "_note": "FNAL ARTISTES PLAFONNE, 0,07 %, sous cinquante salaries (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 89-92 du .txt). `effectif_sous` : la ligne ne s'ecrit que si le seuil n'est pas franchi (config/effectifs.json, cinq annees consecutives : `dsn::Seuils`)."
-            },
-            {
-              "code": "316",
-              "qualifiant": "920",
-              "assiette": "brut_x115_artiste",
-              "statut": "artiste",
-              "effectif_au_moins": 50,
-              "_note": "FNAL ARTISTES TOTALITE, 0,35 % (table des CTP : taux deplafonne 0.35 depuis 2012), a partir de cinquante salaries : « Effectif 50 salaries et plus : 0,35 % », « CTP 316 : FNAL artistes totalite » (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 92 et 148 du .txt). Tableau DIDA : 316 -> 049, qualifiant 920 (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 2101). Sur la totalite du brut majore de 11,5 % (CSS L. 243-1-3 ; bareme, `seuils_effectif.fnal.au_dela` : brut_x115). Remplace le 334 (inference : la page donne un seul taux par tranche d'effectif)."
-            },
-            {
-              "code": "432",
-              "qualifiant": "920",
-              "assiette": "brut_artiste",
-              "statut": "artiste",
-              "_note": "COMPLEMENT AF ABATT. 30 %, 1,26 % : le taux abattu des ARTISTES (« Ce CTP artistes », tableau DIDA de l'Urssaf, atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 1450), sur le brut des artistes intermittents. « Seuls les artistes du spectacle sont concernes par l'application des taux reduits. Les techniciens ne sont pas concernes » (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt) : un technicien intermittent releve du 430. L'assiette est `brut_artiste`, sans les techniciens (`dsn::ctp_urssaf`)."
-            },
-            {
-              "code": "636",
-              "qualifiant": "920",
-              "assiette": "brut_artiste",
-              "statut": "artiste",
-              "_note": "COMPLEMENT MALADIE ABATT. 30%, 4,20 % : le taux abattu des ARTISTES (« Ce CTP artistes », tableau DIDA de l'Urssaf, atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 838 et 1410), sur le brut des artistes intermittents. « Seuls les artistes du spectacle sont concernes par l'application des taux reduits. Les techniciens ne sont pas concernes » (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt) : un technicien intermittent releve du 635. L'assiette est `brut_artiste`, sans les techniciens (`dsn::ctp_urssaf`)."
-            },
-            {
-              "code": "983",
-              "qualifiant": "920",
-              "assiette": "brut_intermittent",
-              "nature": "intermittent"
-            },
-            {
-              "code": "992",
-              "qualifiant": "920",
-              "assiette": "ta_principale"
-            },
-            {
-              "code": "100",
-              "qualifiant": "920",
-              "assiette": "brut_technicien",
-              "taux_at": "bareme",
-              "statut": "technicien",
-              "_note": "Regime general cas general, taux AT plein de la compagnie (CARSAT 1,50 en 2026 ; 01.69 en mai 2025). A changer avec _taux_carsat du bareme."
-            },
-            {
-              "code": "100",
-              "qualifiant": "921",
-              "assiette": "brut_technicien",
-              "statut": "technicien"
-            },
-            {
-              "code": "635",
-              "qualifiant": "920",
-              "assiette": "brut_technicien",
-              "statut": "technicien",
-              "_note": "COMPLEMENT COTISATION MALADIE, 6,00 %, au taux plein : le nominatif d'un technicien intermittent declare 907 a 6,00 (bareme, par_statut.technicien), et le taux abattu (636) est celui des artistes seuls (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt : « Les techniciens ne sont pas concernes »). Tableau DIDA : 635 -> 907, base 03, qualifiant 920 (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 12 et 1555)."
-            },
-            {
-              "code": "430",
-              "qualifiant": "920",
-              "assiette": "brut_technicien",
-              "statut": "technicien",
-              "_note": "COMPLEMENT COTISATION AF, 1,80 %, au taux plein : le nominatif d'un technicien intermittent declare 102 a 1,80 (bareme, par_statut.technicien), et le taux abattu (432) est celui des artistes seuls (meme page Urssaf). Tableau DIDA : 430 -> 102, base 03, qualifiant 920 (l. 3 et 701)."
-            },
-            {
-              "code": "332",
-              "qualifiant": "921",
-              "assiette": "brut_x115_technicien",
-              "statut": "technicien",
-              "_note": "FNAL moins de 50 salaries, brut x 1,115 (62,00 pour 56,00 en mai 2025)."
-            },
-            {
-              "code": "671",
-              "qualifiant": "921",
-              "montant": "reduction_generale_urssaf",
-              "statut": "technicien",
-              "_note": "Reduction generale des intermittents (AC non recouvree par l'Urssaf) : montant de cotisation en euros, 23.005, positif -- 8,00 en mai 2025. Regularisation : CTP 801."
-            },
-            {
-              "code": "100",
-              "qualifiant": "920",
-              "assiette": "brut_permanent",
-              "taux_at": "bareme",
-              "nature": "permanent",
-              "_note": "RG CAS GENERAL, assiette deplafonnee (13,26 % en 2026) plus le taux AT notifie a l'etablissement. A changer avec _taux_carsat du bareme. Table CTP Urssaf, ligne en vigueur depuis le 01/01/2026."
-            },
-            {
-              "code": "100",
-              "qualifiant": "921",
-              "assiette": "t1_permanent",
-              "nature": "permanent",
-              "_note": "RG CAS GENERAL, assiette plafonnee (15,45 % : vieillesse plafonnee 8,55 + 6,90). L'assiette est la tranche 1 du mois -- le plafond de Securite sociale de la periode, proratise quand le contrat ne couvre pas tout le mois."
-            },
-            {
-              "code": "635",
-              "qualifiant": "920",
-              "assiette": "brut_permanent",
-              "nature": "permanent",
-              "_note": "COMPLEMENT COTISATION MALADIE, 6,00 %. Le CTP 100 porte 7,00 % de maladie -- l'ancien taux reduit --, et ce complement fait les 13,00 % du taux plein (BOSS, COT_AM_SS_METROP). Meme decomposition que pour les artistes (636, abattu a 4,20)."
-            },
-            {
-              "code": "430",
-              "qualifiant": "920",
-              "assiette": "brut_permanent",
-              "nature": "permanent",
-              "_note": "COMPLEMENT COTISATION AF, 1,80 %. Le CTP 100 porte 3,45 % d'allocations familiales, ce complement fait les 5,25 % du taux plein (BOSS, COT_AF_SS_METROP). Equivalent non abattu du 432."
-            },
-            {
-              "code": "332",
-              "qualifiant": "921",
-              "assiette": "t1_x115_permanent",
-              "nature": "permanent",
-              "_note": "FNAL PLAFONNE, 0,10 % (BOSS, COT_FNAL_49_METROP : moins de cinquante salaries). L'assiette est la tranche 1, pas le brut : c'est ce que « plafonne » veut dire. Majoree de 11,5 % pour un permanent que l'employeur declare a la caisse des Conges Spectacles -- un CDD de moins de douze mois d'un artiste (CSS L. 243-1-3 ; seule la part plafonnee : lettre circulaire Acoss 2013-019, annexe 1, R2 ; atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md) --, la tranche 1 nue pour les autres."
-            },
-            {
-              "code": "772",
-              "qualifiant": "920",
-              "assiette": "chomage_permanent",
-              "nature": "permanent",
-              "_note": "CONTRIBUTIONS ASSURANCE CHOMAGE U2, 4,00 % depuis le 01/05/2025 (BOSS, COT_CH_UN_METROP). C'EST LA DIFFERENCE DE FOND avec un intermittent : pour un permanent, l'Urssaf recouvre l'assurance chomage ; pour un intermittent, non -- elle part a France Travail (bloc 78/81, codes 040 et 048), et c'est pour cela que la reduction generale d'un intermittent se declare « sans chomage ». ASSIETTE : `chomage_permanent`, la somme des bases 07 des permanents -- le brut dans la limite de QUATRE plafonds de la securite sociale de la periode (reglement general d'assurance chomage du 15/11/2024, art. 49 ; C. trav. L. 5422-9), la meme que le bulletin et le nominatif (040). Le tableau d'equivalence de l'Urssaf rattache le 772 a la base 07 sous le qualifiant 920 (atelier/reference/sources/chomage-permanents/ ; `dsn::valeur_ctp`)."
-            },
-            {
-              "code": "937",
-              "qualifiant": "920",
-              "assiette": "chomage_permanent",
-              "nature": "permanent",
-              "_note": "COTISATIONS AGS CAS GENERAL U2, 0,25 % depuis le 01/07/2024 (table CTP Urssaf ; attention, ses dates sont en AAAA-JJ-MM). ASSIETTE : celle du chomage, `chomage_permanent` (C. trav. L. 3253-18 : l'AGS est assise sur les remunerations qui servent au calcul des contributions d'assurance chomage ; equivalence Urssaf : base 07, code 048, qualifiant 920)."
-            },
-            {
-              "code": "959",
-              "qualifiant": "920",
-              "assiette": "cfp_permanent",
-              "nature": "permanent",
-              "_note": "CFP ENTREPRISE < 11 SALARIES, 0,55 % (art. L6331-1 du code du travail). Un intermittent releve du 983, a 2,00 % : deux contributions formation differentes dans la meme compagnie, et c'est normal. A CHANGER pour le 971 (1,00 %) si la compagnie franchit onze salaries. L'assiette `cfp_permanent` est la somme des 81.003 de la cotisation 128 des permanents : le brut, majore de 11,5 % pour un contrat declare a la caisse des Conges Spectacles (guide Urssaf des contributions de formation du 12/03/2026, fiche net-entreprises 2503 : atelier/reference/sources/majoration-caisses-conges/LISEZ-MOI.md ; `dsn::ctp_urssaf`)."
-            },
-            {
-              "code": "987",
-              "qualifiant": "920",
-              "assiette": "cpf_cdd",
-              "nature": "permanent",
-              "_note": "CONTRIBUTION CPF CDD, 1 % (table des CTP, depuis 2022 ; C. trav. L. 6331-6, atelier/reference/sources/code-du-travail/articles-20261010.md, l. 545-549) : les CDD de droit commun qui l'ouvrent (ni saisonniers, ni contrats aides ; le CDDU releve de L. 6331-55). L'assiette `cpf_cdd` est la somme des 81.003 de la cotisation 129 que leur nominatif declare (DIDA : 987 -> 129, base 03, qualifiant 920, atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 1001 ; `dsn::ctp_urssaf`)."
-            },
-            {
-              "code": "668",
-              "qualifiant": "921",
-              "montant": "reduction_generale_permanent",
-              "nature": "permanent",
-              "_note": "REDUCTION GENERALE ETENDUE U2 : la reduction generale degressive unique d'un salarie dont l'Urssaf recouvre AUSSI l'assurance chomage. C'est le pendant du 671 des intermittents, devenu « REDUCTION GENERALE SANS CHOMAGE » au 01/01/2026 dans la table de l'Urssaf. Montant de cotisation en euros (23.005), positif. Regularisation : CTP 669."
-            }
-          ]
-        }
-      ],
-      "_note_ctp": "Assiettes agregees du mois, arrondies a l'euro (bloc S21.G00.23). Verifie sur la DSN de juillet 2026 : brut 2000 -> 027=2000, 260=1987, 334=2230, 992=2200.",
-      "_note_libelles": "Un versement se reconnait a son SIRET, pas a son libelle : 13000548100010 est FRANCE TRAVAIL, 78861779300013 est l'URSSAF (le `_libelle` de chacun dit ou c'est verifie).",
-      "_note_ctp_technicien": "Les CTP marques statut=technicien ne s'ecrivent que si leur assiette (ou leur montant) est non nulle : un mois sans technicien est identique octet pour octet a avant. Releve sur la DSN CoolPaie de mai 2025, seul mois avec un technicien. Les CTP 027, 260, 983 et 992 gardent une assiette qui inclut le technicien, comme le faisait CoolPaie (1096 = 520 + 520 + 56 en mai 2025). Les CTP 312 (AT abattu) et 334 (FNAL abattu) ne portent que les artistes (1040 et 1160 en mai 2025, sans les 56 du technicien) ; 100 et 332 sont leurs pendants au taux plein.",
-      "_note_921": "SOUS LE QUALIFIANT 921 (<< Assiette plafonnee >>, cahier technique DSN 2026.1, p. 168), une population porte son assiette PLAFONNEE : `brut_artiste` sous 312/921 lit la somme des `brut_plafonne` des artistes (le brut de chaque contrat dans la limite de son plafond, celui du bulletin et de la base 02), `brut_x115_artiste` sous 334/921 celle des `brut_x115_plafonne` ; de meme pour les techniciens (100 et 332) ; `t1_permanent` est deja plafonne. C est le qualifiant qui dit plafonnee, pas la cle. Une cle qui n a pas de forme plafonnee refuse sous 921 (`dsn::valeur_ctp`).",
-      "_ctp_permanents": "Les CTP marques \"nature\": \"permanent\" ne s'ecrivent que s'il y a un salarie permanent dans le mois, et ceux marques \"intermittent\" que s'il y a un intermittent -- comme ceux marques \"statut\". Ils ont ete releves le 18/09/2026 dans la table des CTP de l'Urssaf (open data, source `urssaf-codes-types-personnel`), jamais deduits d'un autre CTP. AUCUN N'A ENCORE ETE DEPOSE, pas meme en test : c'est du code verifie contre une table, pas contre la plate-forme.",
-      "_taux_at": "Les CTP marques \"taux_at\": \"bareme\" portent le taux AT/MP (S21.G00.23.003) : celui du bareme du mois declare (`dsn::taux_at_du_ctp`, 70 % pour l'artiste), qui peut changer en cours d'annee. Il ne se recopie pas ici.",
+      "_quoi": "Ce que la compagnie a saisi dans Configuration › Organismes et contrats, et les identifiants d'adhesion attribues, date : chaque cle est une liste {depuis, valeur}. Le reste se compose des textes livres a la date de chaque mois. Ne pas modifier a la main.",
       "adhesions_prevoyance": [
         {
-          "valeur": [
-            {
-              "cle": "casc",
-              "libelle": "CASCSVP",
-              "delegataire": "P0983",
-              "type": "02",
-              "reference": "100"
-            },
-            {
-              "cle": "sante_permanents",
-              "libelle": "FM SPECT VIVANT PRIV",
-              "delegataire": "P0983",
-              "type": "02",
-              "reference": "101"
-            },
-            {
-              "cle": "interbranche",
-              "libelle": "INTERBRANCHE",
-              "delegataire": "P0983",
-              "type": "01",
-              "reference": "102"
-            },
-            {
-              "cle": "tsintermittents",
-              "libelle": "TSINTERMITTENTS",
-              "delegataire": "P0983",
-              "type": "01",
-              "reference": "103",
-              "depuis": "2026-01-01"
-            }
-          ]
-        }
-      ],
-      "affiliations_par_nature": [
-        {
-          "valeur": {
-            "intermittent": {
-              "references": [
-                "103",
-                "102"
-              ]
-            },
-            "permanent": {
-              "references": null,
-              "_a_confirmer": "La prévoyance et la santé des permanents ne sont pas toutes deux saisies (Configuration › Organismes et contrats) : un permanent est refusé tant qu'elles manquent."
-            }
-          }
+          "valeur": []
         }
       ]
     },
     "config/pas.json": {
-      "salaries": {},
-      "journal": [],
-      "demandes": {
+      "salaries": {
         "FULLER": {
-          "quand": "2026-11-20",
-          "motif": "01",
-          "reponse_attendue_avant": "2026-11-27",
-          "flux": ""
+          "taux": "8.30",
+          "type": "01",
+          "identifiant": "762147540",
+          "periode": "202611",
+          "mis_a_disposition": "20261215100000",
+          "source": "CRM DGFiP nature 94",
+          "releve_le": "2026-12-15 10:00"
         }
-      }
+      },
+      "journal": [
+        {
+          "taux": "8.30",
+          "type": "01",
+          "identifiant": "320888446",
+          "periode": "202611",
+          "mis_a_disposition": "20261120070000",
+          "source": "CRM DGFiP nature 94",
+          "releve_le": "2026-11-20 07:00",
+          "salarie": "FULLER"
+        },
+        {
+          "taux": "8.30",
+          "type": "01",
+          "identifiant": "762147540",
+          "periode": "202611",
+          "mis_a_disposition": "20261215100000",
+          "source": "CRM DGFiP nature 94",
+          "releve_le": "2026-12-15 10:00",
+          "salarie": "FULLER"
+        }
+      ],
+      "demandes": {}
     },
     "config/salaries.json": {
       "FULLER": {
@@ -1463,13 +1138,13 @@
                     "existe racine:config/pas.json": "oui",
                     "existe racine:config/rubriques-compagnie.json": "non",
                     "fiches": "9b984b7b3c575bbe1c616b6634916956b4f8919fa2395025849b8b66075dd973",
-                    "fichier code:baremes/2026.json": "b6a9085a16551f5976fb738ba7bd60977e8490b2ce2d1e49938c2e5c1d75387b",
-                    "fichier code:contrats-base.json": "a0c431f9a396fe2a4e29edbbe235ad7b6e31f757547295ed1b87252b2e1c6f64",
+                    "fichier code:baremes/2026.json": "6265acfbfe8d2d492c4ebe9472ad5924b9fbfa289f99ba1fb9e1f3268b20f744",
+                    "fichier code:contrats-base.json": "446aa713f7c9240d67b5a058a6f511dce6568641d3bdb3bd82c8fcb93ee5ef56",
                     "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",
                     "fichier code:minima-conventionnels.json": "2ef600adf478c5c235821d4847555f8b469acfbd29fae8cb863d38369535e882",
-                    "fichier code:rubriques-base.json": "9d560f40f8c1cf8f2c73a18cb13cfb066fd758fe8d1b4b9cbcf9e6fede56245b",
+                    "fichier code:rubriques-base.json": "04cf9a717d9c1ebad3492756c0b611493ce68f6ce10447f905aa6757f4af1799",
                     "fichier racine:config/baremes/2026.json": "18a1fd29e339afc1246fcefd6720bad48221693ac22780a790259021e260d045",
-                    "fichier racine:config/pas.json": "369e7ddb77a5d443cd25a0ae2ccff0df37a0dd3981c84b47943aa9ec87214484",
+                    "fichier racine:config/pas.json": "987e18b7273bfa5f4182d94cc50bc79d545211def693efb02c7ad669018d84a7",
                     "moteur": "<moteur>",
                     "saisie 2026-11": "f28d3244c6199dbe6399317ea93818581c2939f2a97fc35f21ed8e39db950417:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
                   },
@@ -1479,12 +1154,16 @@
                   "configuration": []
                 },
                 "pas": {
-                  "taux": "0.00",
-                  "type": "13",
-                  "identifiant": null,
-                  "abattement": "240.94",
-                  "montant_soumis": "0",
-                  "prelevement": "0"
+                  "taux": "8.30",
+                  "type": "01",
+                  "identifiant": "320888446",
+                  "abattement": "0",
+                  "montant_soumis": "240.94",
+                  "prelevement": "20"
+                },
+                "recalcul": {
+                  "le": "2026-11-20T08:00:00",
+                  "raison": "taux de PAS reçu"
                 },
                 "bulletin": "1/2026",
                 "ce": 1
@@ -1736,6 +1415,12 @@
             "nature": "11",
             "verdict": "OK",
             "libelle": "Bilan de conformite (compagnie fictive)"
+          },
+          {
+            "nature": "94",
+            "libelle": "Compte-rendu metier DGFiP, donnees nominatives (taux du PAS)",
+            "statut": "fictive",
+            "publication": "20261120070000"
           }
         ],
         "reponse": "<idflux>FICTIF-72F3139B75DB</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
@@ -1794,7 +1479,7 @@
         "origine": "compagnie fictive : joue par l'horloge",
         "mois": "2026-11",
         "fichier": "DSN_Novembre2026.dsn",
-        "empreinte": "5702f39c951e9e7f",
+        "empreinte": "29c0560777c5035c",
         "mode": "test",
         "qui": "horloge",
         "accepte": true,
@@ -1826,6 +1511,7 @@
           "nature": "01",
           "ordre": "1",
           "versements": [
+            "20.00",
             "46.50",
             "36.45",
             "33.12",
@@ -1833,7 +1519,7 @@
             "116.00"
           ],
           "salaries": 1,
-          "pas_bareme": 1,
+          "pas_bareme": 0,
           "repetition": null,
           "ordre_test": null,
           "etablissement": "00011"
@@ -1852,7 +1538,7 @@
         "origine": "compagnie fictive : joue par l'horloge",
         "mois": "2026-11",
         "fichier": "DSN_Novembre2026.dsn",
-        "empreinte": "5702f39c951e9e7f",
+        "empreinte": "29c0560777c5035c",
         "mode": "reel",
         "qui": "horloge",
         "accepte": true,
@@ -1881,6 +1567,12 @@
             "anomalies": [],
             "nature": "46",
             "libelle": "Attestation employeur rematerialisee (compagnie fictive)"
+          },
+          {
+            "nature": "94",
+            "libelle": "Compte-rendu metier DGFiP, donnees nominatives (taux du PAS)",
+            "statut": "fictive",
+            "publication": "20261215100000"
           }
         ],
         "reponse": "<idflux>FICTIF-265B91C07802</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
@@ -1891,6 +1583,7 @@
           "nature": "01",
           "ordre": "1",
           "versements": [
+            "20.00",
             "46.50",
             "36.45",
             "33.12",
@@ -1898,11 +1591,11 @@
             "116.00"
           ],
           "salaries": 1,
-          "pas_bareme": 1,
+          "pas_bareme": 0,
           "repetition": {
             "test": "2026-12-15T10:00:00",
             "flux": "FICTIF-1777C84CD67B",
-            "empreinte": "5702f39c951e9e7f",
+            "empreinte": "29c0560777c5035c",
             "compte_rendu": "ok"
           },
           "ordre_test": null,
@@ -1990,6 +1683,9 @@
         "quand": "2026-12-15T10:00:00",
         "empreinte_saisie": "17e96082c6f1f2ec"
       }
+    },
+    "retours/20261120-070000_nature94_FICTIF-72F3139B75DB.xml": {
+      "empreinte": "23b56724699833cb7b5923f801ef36716615a06cfdfa8cc2e295cdef9fd00051"
     },
     "retours/20261215-100000_nature46_FICTIF-265B91C07802.txt": [
       "PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\u0000\u0000!\u0000\u001bx£+Ïi\u0000\u0000Ü«\u0000\u0000D\u0000\u0000\u0000AER_32520440200011__112026_FICTIVE_15122026_FULLER_LOIE_1_900001.pdf´|\u0005XÍº¶ H)¥°èÕt7\bHK°@º»Dé\u000e)\téîî.\u0001\u0001iîÿ\u0012øöþöÞßÙgÿÿ9?ÃµwÍ<sÏÌ3ó¾óÌÜk^j9aQf \u000b\u0018\u0003\b`\u0003¿5Âàæf\u0015°µygnEGÏ*dÐ±147\u0013Ö±AÐ\ts\u00029àll@6 ÛÍ\u001f#\u001b\u001b-\u001b\u001bíÖ¾¢¶°¨ª2ÂÊÚÐÜUB\u000fafc¨oø,p´7·Ò³¦£g}i®÷ïAå¬Ìõluo²)Ø¾5BèÚÐÑ³*\u001aÚ è\u0004ll\u0010Ö67\u0015\u0003 L-LÌ\u001d\u0011¶V\u0000\u001d33\u0003Â\u001aÀ\u000e@Ø\u0000l\u0000:]sS\u000b\u001d\u00033C\u0004@ßP×ÆÐ\u000eA\u000f\u001f\u0001\u0010U\u0016\u0007HËJÐ³*ZéXX ôXEuL¬\u0011¼¼\u0018\b3½ß6\u0000ýÝ\u0016²BrVæ\u0016\b+\u001bC577«ðï(\u0019u0\r \u000fÝ|Âj²ÊZé!¬þ*A^PÌÊÜÖÂZ]UVHÌú/~§ØÚ\u0018Ý4\r Ï*§cÖq4·µa5C\bØÝD¾4×C°*Y#dÌÍ\u00107\u0011Ö\u0000\u001c\u0016\bV!\u001d\u001b\u001d\u0013s\u0003V\u0001]+sQs+S\u0000øw[äÿÞ4ðß&af0³\u0001@nrËè\"è¤u\u001c\u0011V\u0000 ý-¬\u0018«µ\u0001\u0002\u0000ýGß9~KuVeC=«0ÂÚÐÀLóTèßK¸\u001b\u0019\u0012fúæÿF' gþ\u0016\u000101±µ¶±ú\u001d\u0003\u0000BXØnúÙæw¹\u0002V6öæVÆ¼¼«Æßý/T\u001fþ¿Áþ§FÛÙ\u0000Øî2Üõâß59þY\u0013Ì*e¨g­\u000ed»éÐMÙ\u0000ÐÝ`¹\u0001¹éÕ¿#Ühþ\râ¦ÆÖ\u0000àïûUUÈÊÜBÐÜAý·",
@@ -2089,6 +1785,9 @@
       "\u0010Øê\u001c\rj\u00100?\u0005\u0006\u001f\u0011Øv\u0001\u0001K\u0003\u0004¶Ó^e{\u001e\u0002V\u0007\u0011°hÐ\r­&\rF\u0010°£©`\t\u0002öÔ\u0001ba±¿)\u0002\\48,\r\"°¦ÖÃ\b8!à\"Eû\b¸ÒÄt¥)Äí8\u0002»h£rö*\u0001=\b\u0004¦ \u0010ô\u0012#é\b\u001c\u00118®@ð3\u0004Bhc{\"\u0013g\u0011\b½@\u0018ímO%!pú\f\u0002á´ ýgd8\u0002g¼\u0010",
       "D z'\u0002g·\"\u0010cÀ9\u0017E fÉq4òñ4N Á¥\b$Ò~vQ\u0002K4M\\^À\u0015n\u001a|@ ©\u0001ä\u0016\u0016\u0016\u0006ËÃÓÊÝs»Ý\u000e.\fÃq­^M¤¨ÿ/PK\u0001\u0002\u0014\u0003\u0014\u0000\u0000\u0000\b\u0000\u0000\u0000!\u0000\u001bx£+Ïi\u0000\u0000Ü«\u0000\u0000D\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000¤\u0000\u0000\u0000\u0000AER_32520440200011__112026_FICTIVE_15122026_FULLER_LOIE_1_900001.pdfPK\u0005\u0006\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000r\u0000\u0000\u00001j\u0000\u0000\u0000\u0000"
     ],
+    "retours/20261215-100000_nature94_FICTIF-265B91C07802.xml": {
+      "empreinte": "b9d6d3e8504d7e18059b47d774ff8493034de500eeb7770c5150e9b7afef75be"
+    },
     "retours/depots/20261120-070000_depot-dpae_202611-2.txt": [
       "<idflux>FICTIF-74FB32171894</idflux>",
       "Compagnie fictive : DPAE reelle jouee, rien n'a quitte le poste."
@@ -2214,7 +1913,7 @@
       "S90.G00.90.002,'1'"
     ],
     "sorties/2026-11/Bulletins_Novembre2026.pdf": [
-      "Les Tréteaux du Banc 12 quai de la Fosse — 44000 Nantes Siret 32520440200011 · APE 9001Z · Licence PLATESV-D-2024-000352 Bulletin de paie n° 1/2026 Numéro d'objet : 266Z00952011 — Spectacle : Le Banc des menteurs FULLER Loïe 7 RUE DE LA PAIX 44000 NANTES N° Sécurité sociale : 282014499900246 Date de naissance : 15/01/1982 Emploi : Comédien Classification : Artiste-interprète N° Congés Spectacles : -Abattement : 0 % EMPLOYEUR N° Siret : 32520440200011 NAF (APE) : 9001Z Urssaf : 5200000000 Conv. collective : IDCC 3090 - Entreprises du secteur privé du spectacle vivant Licence spec. : PLATESV-D-2024-000352 Période : du 20/11/2026 au 21/11/2026 — Dates travaillées : 20/11/2026, 21/11/2026 LIBELLÉ Base Taux Salarié Employeur 2 Cachets à 150,00 — MONTANT BRUT 300,00 COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES Santé Sécurité Sociale Maladie Maternité Invalidité Décès 300,00 27,30 Accidents du travail & maladies professionnelles 300,00 2,31 Retraite Sécurité Sociale Vieillesse plafonnée 300,00 4,830 14,49 17,97 Sécurité Sociale Vieillesse déplafonnée 300,00 0,280 0,84 4,44 Retraite complémentaire, CEG et CET T1 300,00 5,300 15,90 17,22 Famille 300,00 11,04 Assurance chômage 300,00 2,400 7,20 29,25 Autres charges dues par l'employeur 57,49 Cotisations statutaires ou prévues par la convention collective 1,50 CSG déductible de l'impôt sur le revenu 298,08 6,800 20,27 CSG/CRDS non déductible de l'impôt sur le revenu 298,08 2,900 8,64 TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES 67,34 168,52 COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES Prévoyance, Incapacité, Invalidité, Décès, Autres 300,00 0,120 0,36 3,33 MONTANT NET SOCIAL 232,30 MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU 232,30 IMPÔT SUR LE REVENU Base Taux Salarié Montant net imposable 240,94 IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE 0,00 0,000 0,00 MONTANT NET À PAYER (en Euros) 232,30 TOTAL VERSÉ PAR L'EMPLOYEUR 471,85 CUMULS Période 11/2026 Cumul année 2026 Cachets 2 2 Heures déclarées 0 h 0 h Total heures (cachets × 12 + heures) 24 h 24 h Salaire brut 300,00 € 300,00 € Plafond Urssaf de la période : 720,00 € | SMIC retenu pour la réduction générale : 172,34 € (14 h à 12,31) | Règlement le 30/11/2026 par virement. Contrat n° FU1.26.01 — CDD d'usage du spectacle (intermittent), convention collective IDCC 3090. Conservez ce bulletin sans limitation de durée."
+      "Les Tréteaux du Banc 12 quai de la Fosse — 44000 Nantes Siret 32520440200011 · APE 9001Z · Licence PLATESV-D-2024-000352 Bulletin de paie n° 1/2026 Numéro d'objet : 266Z00952011 — Spectacle : Le Banc des menteurs FULLER Loïe 7 RUE DE LA PAIX 44000 NANTES N° Sécurité sociale : 282014499900246 Date de naissance : 15/01/1982 Emploi : Comédien Classification : Artiste-interprète N° Congés Spectacles : -Abattement : 0 % EMPLOYEUR N° Siret : 32520440200011 NAF (APE) : 9001Z Urssaf : 5200000000 Conv. collective : IDCC 3090 - Entreprises du secteur privé du spectacle vivant Licence spec. : PLATESV-D-2024-000352 Période : du 20/11/2026 au 21/11/2026 — Dates travaillées : 20/11/2026, 21/11/2026 LIBELLÉ Base Taux Salarié Employeur 2 Cachets à 150,00 — MONTANT BRUT 300,00 COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES Santé Sécurité Sociale Maladie Maternité Invalidité Décès 300,00 27,30 Accidents du travail & maladies professionnelles 300,00 2,31 Retraite Sécurité Sociale Vieillesse plafonnée 300,00 4,830 14,49 17,97 Sécurité Sociale Vieillesse déplafonnée 300,00 0,280 0,84 4,44 Retraite complémentaire, CEG et CET T1 300,00 5,300 15,90 17,22 Famille 300,00 11,04 Assurance chômage 300,00 2,400 7,20 29,25 Autres charges dues par l'employeur 57,49 Cotisations statutaires ou prévues par la convention collective 1,50 CSG déductible de l'impôt sur le revenu 298,08 6,800 20,27 CSG/CRDS non déductible de l'impôt sur le revenu 298,08 2,900 8,64 TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES 67,34 168,52 COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES Prévoyance, Incapacité, Invalidité, Décès, Autres 300,00 0,120 0,36 3,33 MONTANT NET SOCIAL 232,30 MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU 232,30 IMPÔT SUR LE REVENU Base Taux Salarié Montant net imposable 240,94 IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE 240,94 8,300 20,00 MONTANT NET À PAYER (en Euros) 212,30 TOTAL VERSÉ PAR L'EMPLOYEUR 471,85 CUMULS Période 11/2026 Cumul année 2026 Cachets 2 2 Heures déclarées 0 h 0 h Total heures (cachets × 12 + heures) 24 h 24 h Salaire brut 300,00 € 300,00 € Plafond Urssaf de la période : 720,00 € | SMIC retenu pour la réduction générale : 172,34 € (14 h à 12,31) | Règlement le 30/11/2026 par virement. Contrat n° FU1.26.01 — CDD d'usage du spectacle (intermittent), convention collective IDCC 3090. Conservez ce bulletin sans limitation de durée."
     ],
     "sorties/2026-11/CertificatsCS_Novembre2026.pdf": [
       "CERTIFICAT D'EMPLOI DESTINÉ AU SALARIÉ LES CONGES SPECTACLES Audiens TSA 30400 92177 Vanves Cedex Information des Intermittents www.audiens.org Tél. : 0 173 173 434 de 9h30 à 18 h : accueil sur place et téléphone Si vous n'êtes pas inscrit à notre Caisse, contactez-nous à l'adresse ci-dessus mentionnée afin que nous procédions à votre immatriculation. Votre demande de congé doit être adressée chaque année, quinze jours au moins avant votre départ en congé, dûment complétée et signée. Votre formulaire de demande de congé vous sera adressé automatiquement chaque début d'année en même temps que les sommes à déclarer à l'administration fiscale. Si tel n'est pas le cas, vous pouvez le demander par courrier ou 24h/24h : sur notre site internet ou notre serveur vocal téléphonique. La loi n°2004-801 du 6 août 2004 relative à la protection des personnes physiques à l'égard des traitements de données à caractère personnel s'applique aux informations portées sur ce certificat. Elle garantit un droit d'accès et de rectification auprès du service Information des Intermittents. N° SIRET COMPTE N° CE NIR NOM DE NAISSANCE NOM D'USAGE EMPLOI CADRE PRENOM PSEUDONYME DATES DE TRAVAIL NB JOURS OU CACHETS DEBUT FIN BASE CONGE Arrondie à l'euro le plus proche SALAIRE BRUT Arrondi à l'euro le plus proche Date : Nom du signataire Signature LOIE FULLER 7 rue de la Paix 44000 Nantes France 325204402 00011 0000052000F 1 2820144999002 46 LES TRETEAUX DU BANC FULLER COMEDIEN NON LOIE 20 11 2026 21 11 2026 2 300 300 21/11/26 APPIA N° d'agrément :"
@@ -2300,6 +1999,14 @@
       "S21.G00.15.002,'P0983'",
       "S21.G00.15.004,'01'",
       "S21.G00.15.005,'103'",
+      "S21.G00.20.001,'DGFIP'",
+      "S21.G00.20.002,'DGFIP_PAS'",
+      "S21.G00.20.003,'BANQFRPPXXX'",
+      "S21.G00.20.004,'FR7630001007943252044000039'",
+      "S21.G00.20.005,'20.00'",
+      "S21.G00.20.006,'01112026'",
+      "S21.G00.20.007,'30112026'",
+      "S21.G00.20.010,'05'",
       "S21.G00.20.001,'77567608300030'",
       "S21.G00.20.003,'BANQFRPPXXX'",
       "S21.G00.20.004,'FR7630001007943252044000039'",
@@ -2437,10 +2144,11 @@
       "S21.G00.50.002,'240.94'",
       "S21.G00.50.003,'01'",
       "S21.G00.50.004,'232.30'",
-      "S21.G00.50.006,'0.00'",
-      "S21.G00.50.007,'13'",
-      "S21.G00.50.009,'0.00'",
-      "S21.G00.50.013,'0.00'",
+      "S21.G00.50.006,'8.30'",
+      "S21.G00.50.007,'01'",
+      "S21.G00.50.008,'320888446'",
+      "S21.G00.50.009,'20.00'",
+      "S21.G00.50.013,'240.94'",
       "S21.G00.51.001,'20112026'",
       "S21.G00.51.002,'21112026'",
       "S21.G00.51.010,'FU1.26.01'",
@@ -2606,14 +2314,14 @@
       "S21.G00.86.002,'01'",
       "S21.G00.86.003,'29'",
       "S21.G00.86.005,'FU1.26.01'",
-      "S90.G00.90.001,'365'",
+      "S90.G00.90.001,'374'",
       "S90.G00.90.002,'1'"
     ],
     "sorties/2026-11/envoi/AER_FULLER_Novembre2026.pdf": [
       "COMPAGNIE FICTIVE — DOCUMENT DE DÉMONSTRATION : aucun organisme ne l'a émis, il n'a aucune valeur Compagnie fictive : imitation de l'attestation que France Travail édite d'après la DSN, pour la démonstration du logiciel. 1/3 Attestation employeur pour les activités relevant des annexes 8 et 10 au règlement d'assurance chômage Issue du processus de déclaration prévue par l'article R.133-14 II 2° du code de la sécurité sociale À SIGNER PAR L'EMPLOYEUR ET À REMETTRE AU SALARIÉ Articles L. 5422-14 et R. 5422-6 du code du travail Cette attestation est destinée au salarié ayant conclu plusieurs contrats à durée déterminée d'usage d'une durée inférieure ou égale à un mois pour la réalisation d'activités relevant des annexes VIII et X au règlement d'assurance chômage et dont le motif de fin de contrat de travail est une fin de CDD. En cas de contrat d'une durée supérieure à 1 mois, une attestation est remise au salarié pour chaque contrat. ATTENTION, cette attestation doit être transmise par le salarié à France Travail : en la téléchargeant sur son espace personnel si, au terme de sa demande d'allocations dématérialisée, il lui est demandé de la transmettre. 1 EMPLOYEUR N° SIRET Code APE/NAF N° IDCC Nom ou raison sociale Adresse Code postal Commune Êtes-vous titulaire d'une licence spectacle ou d'un n° de récépissé de déclaration d'entrepreneur de spectacles vivants valant licence ? Oui, n° Numéro d'affiliation à la caisse de congé spectacle : Oui, N° 2 SALARIÉ Nom de famille (nom de naissance) Nom d'usage (nom d'époux (se)) Prénom(s) Adresse Code postal Commune NIR (n° de Sécurité sociale) Date de naissance Lieu de naissance 3 CONTRAT DE TRAVAIL Emploi occupé Motif de la rupture : Fin de CDD Attestation éditée pour la démonstration (compagnie fictive) le 15/12/2026 — imitation : France Travail n'a rien édité 2820144999002, FULLER LOIE Logiciel utilisé PUPPETPAIE - reconstituée à partir des déclarations DSN de la compagnie fictive 32520440200011 9001Z 3090 LES TRETEAUX DU BANC 12 QUAI DE LA FOSSE 44000 NANTES PLATESV-D-2024-000352 970000052000F FULLER LOIE 7 RUE DE LA PAIX 44000 NANTES 2820144999002 15 01 1982 VILLENEUVE-SUR-LOIRE COMEDIEN Attestation éditée pour la démonstration (compagnie fictive) le 15/12/2026 — imitation : France Travail n'a rien édité 2820144999002, FULLER LOIE COMPAGNIE FICTIVE — DOCUMENT DE DÉMONSTRATION : aucun organisme ne l'a émis, il n'a aucune valeur Compagnie fictive : imitation de l'attestation que France Travail édite d'après la DSN, pour la démonstration du logiciel. 2/3 4 PRESTATIONS DE TRAVAIL ET SALAIRES Numéro de contrat Début du contrat (du) Fin du contrat (au) Numéro d'objet N° IDCC de la prestation (si différent) Début de période (du) Fin de période (au) Heures Cachets* Nombre de jours travaillés Salaire brut (non plafonné) Date de paiement * Uniquement pour les artistes Primes et indemnités Numéro de contrat Intitulé de la prime Date de paiement Montant brut (non plafonné) 01 02 03 04 05 Activité partielle Numéro de contrat Du (JJ/MM/AA) au (JJ/MM/AA) Nombre d'heures Indemnité d'activité partielle 01 02 03 04 05 FU1.26.01 20/11/2026 21/11/2026 266Z00952011 20/11/2026 21/11/2026 2 2 300.00 21/11/2026 Attestation éditée pour la démonstration (compagnie fictive) le 15/12/2026 — imitation : France Travail n'a rien édité 2820144999002, FULLER LOIE COMPAGNIE FICTIVE — DOCUMENT DE DÉMONSTRATION : aucun organisme ne l'a émis, il n'a aucune valeur Compagnie fictive : imitation de l'attestation que France Travail édite d'après la DSN, pour la démonstration du logiciel. 3/3 Périodes d'absence du salarié (congés maladie, maternité, paternité, d'adoption) Numéro de contrat Motif d'absence Du (JJ/MM/AA) au (JJ/MM/AA) 01 02 03 04 05 06 07 08 Si présence d'autres rémunérations : Du (JJ/MM/AA) au (JJ/MM/AA) Date de paiement Autres rémunérations brutes 01 02 03 04 05 06 5 AUTHENTIFICATION PAR L'EMPLOYEUR Je soussigné(e), (Nom) (Prénom) agissant en qualité de certifie que les renseignements indiqués sur la présente attestation sont exacts et notamment, en cas de cessation du contrat, que le motif de la rupture est une fin de contrat à durée déterminée. Le Signature de l'employeur Personne à joindre concernant cette attestation Téléphone E-mail Toute fausse déclaration est passible de deux ans d'emprisonnement et d'une amende pouvant aller jusqu'à 30 000 euros (Art. L. 5429-1 du code du travail) Vous devez conserver cette attestation Cachet de l'entreprise APPIA ADOLPHE Gérant Nantes 15 12 2026 APPIA ADOLPHE 0100000052 direction@les-treteaux.invalid"
     ],
     "sorties/2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf": [
-      "Les Tréteaux du Banc 12 quai de la Fosse — 44000 Nantes Siret 32520440200011 · APE 9001Z · Licence PLATESV-D-2024-000352 Bulletin de paie n° 1/2026 Numéro d'objet : 266Z00952011 — Spectacle : Le Banc des menteurs FULLER Loïe 7 RUE DE LA PAIX 44000 NANTES N° Sécurité sociale : 282014499900246 Date de naissance : 15/01/1982 Emploi : Comédien Classification : Artiste-interprète N° Congés Spectacles : -Abattement : 0 % EMPLOYEUR N° Siret : 32520440200011 NAF (APE) : 9001Z Urssaf : 5200000000 Conv. collective : IDCC 3090 - Entreprises du secteur privé du spectacle vivant Licence spec. : PLATESV-D-2024-000352 Période : du 20/11/2026 au 21/11/2026 — Dates travaillées : 20/11/2026, 21/11/2026 LIBELLÉ Base Taux Salarié Employeur 2 Cachets à 150,00 — MONTANT BRUT 300,00 COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES Santé Sécurité Sociale Maladie Maternité Invalidité Décès 300,00 27,30 Accidents du travail & maladies professionnelles 300,00 2,31 Retraite Sécurité Sociale Vieillesse plafonnée 300,00 4,830 14,49 17,97 Sécurité Sociale Vieillesse déplafonnée 300,00 0,280 0,84 4,44 Retraite complémentaire, CEG et CET T1 300,00 5,300 15,90 17,22 Famille 300,00 11,04 Assurance chômage 300,00 2,400 7,20 29,25 Autres charges dues par l'employeur 57,49 Cotisations statutaires ou prévues par la convention collective 1,50 CSG déductible de l'impôt sur le revenu 298,08 6,800 20,27 CSG/CRDS non déductible de l'impôt sur le revenu 298,08 2,900 8,64 TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES 67,34 168,52 COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES Prévoyance, Incapacité, Invalidité, Décès, Autres 300,00 0,120 0,36 3,33 MONTANT NET SOCIAL 232,30 MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU 232,30 IMPÔT SUR LE REVENU Base Taux Salarié Montant net imposable 240,94 IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE 0,00 0,000 0,00 MONTANT NET À PAYER (en Euros) 232,30 TOTAL VERSÉ PAR L'EMPLOYEUR 471,85 CUMULS Période 11/2026 Cumul année 2026 Cachets 2 2 Heures déclarées 0 h 0 h Total heures (cachets × 12 + heures) 24 h 24 h Salaire brut 300,00 € 300,00 € Plafond Urssaf de la période : 720,00 € | SMIC retenu pour la réduction générale : 172,34 € (14 h à 12,31) | Règlement le 30/11/2026 par virement. Contrat n° FU1.26.01 — CDD d'usage du spectacle (intermittent), convention collective IDCC 3090. Conservez ce bulletin sans limitation de durée."
+      "Les Tréteaux du Banc 12 quai de la Fosse — 44000 Nantes Siret 32520440200011 · APE 9001Z · Licence PLATESV-D-2024-000352 Bulletin de paie n° 1/2026 Numéro d'objet : 266Z00952011 — Spectacle : Le Banc des menteurs FULLER Loïe 7 RUE DE LA PAIX 44000 NANTES N° Sécurité sociale : 282014499900246 Date de naissance : 15/01/1982 Emploi : Comédien Classification : Artiste-interprète N° Congés Spectacles : -Abattement : 0 % EMPLOYEUR N° Siret : 32520440200011 NAF (APE) : 9001Z Urssaf : 5200000000 Conv. collective : IDCC 3090 - Entreprises du secteur privé du spectacle vivant Licence spec. : PLATESV-D-2024-000352 Période : du 20/11/2026 au 21/11/2026 — Dates travaillées : 20/11/2026, 21/11/2026 LIBELLÉ Base Taux Salarié Employeur 2 Cachets à 150,00 — MONTANT BRUT 300,00 COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES Santé Sécurité Sociale Maladie Maternité Invalidité Décès 300,00 27,30 Accidents du travail & maladies professionnelles 300,00 2,31 Retraite Sécurité Sociale Vieillesse plafonnée 300,00 4,830 14,49 17,97 Sécurité Sociale Vieillesse déplafonnée 300,00 0,280 0,84 4,44 Retraite complémentaire, CEG et CET T1 300,00 5,300 15,90 17,22 Famille 300,00 11,04 Assurance chômage 300,00 2,400 7,20 29,25 Autres charges dues par l'employeur 57,49 Cotisations statutaires ou prévues par la convention collective 1,50 CSG déductible de l'impôt sur le revenu 298,08 6,800 20,27 CSG/CRDS non déductible de l'impôt sur le revenu 298,08 2,900 8,64 TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES 67,34 168,52 COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES Prévoyance, Incapacité, Invalidité, Décès, Autres 300,00 0,120 0,36 3,33 MONTANT NET SOCIAL 232,30 MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU 232,30 IMPÔT SUR LE REVENU Base Taux Salarié Montant net imposable 240,94 IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE 240,94 8,300 20,00 MONTANT NET À PAYER (en Euros) 212,30 TOTAL VERSÉ PAR L'EMPLOYEUR 471,85 CUMULS Période 11/2026 Cumul année 2026 Cachets 2 2 Heures déclarées 0 h 0 h Total heures (cachets × 12 + heures) 24 h 24 h Salaire brut 300,00 € 300,00 € Plafond Urssaf de la période : 720,00 € | SMIC retenu pour la réduction générale : 172,34 € (14 h à 12,31) | Règlement le 30/11/2026 par virement. Contrat n° FU1.26.01 — CDD d'usage du spectacle (intermittent), convention collective IDCC 3090. Conservez ce bulletin sans limitation de durée."
     ],
     "sorties/2026-11/envoi/CertificatCS_FULLER_Novembre2026.pdf": [
       "CERTIFICAT D'EMPLOI DESTINÉ AU SALARIÉ LES CONGES SPECTACLES Audiens TSA 30400 92177 Vanves Cedex Information des Intermittents www.audiens.org Tél. : 0 173 173 434 de 9h30 à 18 h : accueil sur place et téléphone Si vous n'êtes pas inscrit à notre Caisse, contactez-nous à l'adresse ci-dessus mentionnée afin que nous procédions à votre immatriculation. Votre demande de congé doit être adressée chaque année, quinze jours au moins avant votre départ en congé, dûment complétée et signée. Votre formulaire de demande de congé vous sera adressé automatiquement chaque début d'année en même temps que les sommes à déclarer à l'administration fiscale. Si tel n'est pas le cas, vous pouvez le demander par courrier ou 24h/24h : sur notre site internet ou notre serveur vocal téléphonique. La loi n°2004-801 du 6 août 2004 relative à la protection des personnes physiques à l'égard des traitements de données à caractère personnel s'applique aux informations portées sur ce certificat. Elle garantit un droit d'accès et de rectification auprès du service Information des Intermittents. N° SIRET COMPTE N° CE NIR NOM DE NAISSANCE NOM D'USAGE EMPLOI CADRE PRENOM PSEUDONYME DATES DE TRAVAIL NB JOURS OU CACHETS DEBUT FIN BASE CONGE Arrondie à l'euro le plus proche SALAIRE BRUT Arrondi à l'euro le plus proche Date : Nom du signataire Signature LOIE FULLER 7 rue de la Paix 44000 Nantes France 325204402 00011 0000052000F 1 2820144999002 46 LES TRETEAUX DU BANC FULLER COMEDIEN NON LOIE 20 11 2026 21 11 2026 2 300 300 21/11/26 APPIA N° d'agrément :"

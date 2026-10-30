@@ -36,7 +36,7 @@ use std::path::Path;
 use serde_json::{json, Value};
 
 use droit::contexte::format_g;
-use socle::date::{d, en_texte, Jour};
+use socle::date::en_texte;
 use socle::fichiers::vrai;
 
 /// L'encre d'un tampon, et la geometrie du dessin. Le rapport 2:1 est celui
@@ -47,53 +47,6 @@ pub const LARGEUR: f64 = 300.0;
 pub const HAUTEUR: f64 = 150.0;
 /// Le tampon ne touche pas le bord de la case.
 pub const MARGE: f64 = 3.0;
-
-/// Le numero de licence applicable, ou None.
-///
-/// `entreprise.json` la porte DATEE (une liste de {depuis, numero}) parce
-/// qu'elle se renouvelle. `Contexte.licence` fait deja ce choix, mais ce
-/// module ne recoit qu'un dictionnaire -- il le refait, a l'identique, et
-/// sans lever : un cachet ne refuse pas de s'imprimer pour une licence.
-pub fn licence_du_jour(ent: &Value, date_ref: Option<&Jour>) -> Option<String> {
-    let val = ent.get("licence_spectacle").filter(|v| vrai(v))?;
-    if let Value::String(s) = val {
-        return Some(s.clone());
-    }
-    // Une licence qui n'est ni un texte ni la liste attendue : aucune.
-    let liste = val.as_array()?;
-    let mut tries: Vec<&Value> = liste.iter().collect();
-    for e in &tries {
-        e.as_object()?;
-    }
-    // `sorted(..., key=x.get("depuis") or "")` : tri stable, chaines comparees
-    // par point de code (l'ordre des octets UTF-8 est le meme).
-    let cle = |x: &&Value| -> String {
-        match x.get("depuis") {
-            Some(v) if vrai(v) => en_texte(v),
-            _ => String::new(),
-        }
-    };
-    tries.sort_by_key(cle);
-    let mut retenu: Option<&Value> = None;
-    for e in &tries {
-        // `jour is None or _d(e["depuis"]) <= jour` : sans jour de reference,
-        // la date n'est meme pas lue.
-        let ok = match date_ref {
-            None => true,
-            Some(j) => d(e.get("depuis")?).ok()? <= *j,
-        };
-        if ok {
-            retenu = e.get("numero");
-        }
-    }
-    // `retenu or (val[-1].get("numero") ...)` ; l'appelant ne garde que ce qui
-    // est vrai (`if lic:`), donc une valeur fausse vaut None des ici.
-    let valeur = match retenu.filter(|v| vrai(v)) {
-        Some(v) => Some(v),
-        None => liste.last().and_then(|e| e.get("numero")),
-    };
-    valeur.filter(|v| vrai(v)).map(en_texte)
-}
 
 /// Ce que le cachet porte : le nom, le lieu, les numeros.
 #[derive(Debug, Clone, PartialEq)]
@@ -109,8 +62,9 @@ fn texte_de(ent: &Value, cle: &str) -> Option<String> {
 
 /// `lignes` : rendu en donnees et non dessine, pour que cela se lise sans
 /// ouvrir un fichier. Les trois groupes n'ont pas le meme poids a l'oeil : le
-/// nom est ce qu'on lit, le reste est ce qu'on verifie.
-pub fn lignes(ent: &Value, date_ref: Option<&Jour>) -> Lignes {
+/// nom est ce qu'on lit, le reste est ce qu'on verifie. `ent` est la fiche a la
+/// date du document (`Contexte::entreprise`) : la licence y est le numero du jour.
+pub fn lignes(ent: &Value) -> Lignes {
     let nom = texte_de(ent, "nom_affichage")
         .or_else(|| texte_de(ent, "raison_sociale"))
         .unwrap_or_default();
@@ -132,7 +86,7 @@ pub fn lignes(ent: &Value, date_ref: Option<&Jour>) -> Lignes {
     if let Some(s) = texte_de(ent, "naf") {
         numeros.push(format!("APE {}", s));
     }
-    if let Some(l) = licence_du_jour(ent, date_ref) {
+    if let Some(l) = texte_de(ent, "licence_spectacle") {
         numeros.push(format!("Licence {}", l));
     }
     Lignes { nom, lieu, numeros }
@@ -163,8 +117,8 @@ fn echapper(t: &str) -> String {
 /// capitales, un filet, puis l'adresse et les numeros. C'est la mise en page
 /// d'un tampon encreur, et elle est tenue ICI pour que la page de
 /// Configuration et l'attestation montrent exactement la meme chose.
-pub fn svg(ent: &Value, date_ref: Option<&Jour>) -> Option<String> {
-    let t = lignes(ent, date_ref);
+pub fn svg(ent: &Value) -> Option<String> {
+    let t = lignes(ent);
     if t.nom.is_empty() && t.lieu.is_empty() && t.numeros.is_empty() {
         return None;
     }
@@ -276,12 +230,12 @@ pub fn image_fichier(page: &Value, rect: &Value, fichier: &str) -> Value {
 /// fiche, et il suit la fiche quand elle change. Un fichier pose l'emporte
 /// simplement parce qu'une compagnie qui prend la peine d'apporter son tampon
 /// veut le sien.
-pub fn image(page: &Value, rect: &Value, ent: &Value, date_ref: Option<&Jour>, fichier: Option<&str>) -> Option<Value> {
+pub fn image(page: &Value, rect: &Value, ent: &Value, fichier: Option<&str>) -> Option<Value> {
     if let Some(f) = fichier {
         if Path::new(f).exists() {
             return Some(image_fichier(page, rect, f));
         }
     }
-    let dessin = svg(ent, date_ref)?;
+    let dessin = svg(ent)?;
     Some(json!({"page": page, "rect": rect, "marge": MARGE, "svg": dessin}))
 }

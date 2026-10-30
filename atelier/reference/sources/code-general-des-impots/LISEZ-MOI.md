@@ -46,3 +46,18 @@ vendus », 85 000 € de « recettes en tout, subventions comprises » : les deu
 cases (`assujettissement::regime_taxe_sur_les_salaires`) nomme les deux plafonds.
 Le test `les_plafonds_de_la_franchise_viennent_du_bareme_qui_cite_le_texte_depose` (`tests/routes/routes_fiches.rs`) relit les
 montants dans `xml/293_B.xml`.
+
+## Le taux du prélèvement à la source qui vaut pour un salaire (lu le 30/10/2026)
+
+`xml/204_A.xml` (`LEGIARTI000033812067`) : « 2. Le prélèvement prend la forme : 1° Pour les revenus mentionnés à l'article 204
+B, d'une retenue à la source effectuée par le débiteur lors du paiement de ces revenus ». `xml/204_H.xml`, III, 4 : la DGFiP
+« transmet le taux au débiteur ».
+
+**Inférence**, écrite comme telle : la retenue d'un salaire se fait au taux que l'employeur tient le jour où il le paie ; un
+taux transmis après (le compte rendu de la DSN du mois, qui arrive le mois suivant) vaut pour les salaires payés ensuite, pas
+pour celui-là.
+
+**Où le moteur s'en sert** : `droit::pas::en_vigueur` (`atelier/sources/droit/src/pas.rs`) choisit, dans le magasin
+`config/pas.json` (le taux présent et ceux qu'il a remplacés, `journal`), le dernier mis à disposition au plus tard le jour du
+paiement ; `engagement::etats::prelevement` le demande à la date de paiement de la paie (sinon à la fin de sa période). Le test
+`un_taux_transmis_apres_le_paiement_ne_vaut_pas_pour_lui` (`droit/src/pas.rs`).

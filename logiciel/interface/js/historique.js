@@ -124,8 +124,7 @@ async function dessinerMoisHistorique(d) {
 /** Un envoi : ce qui est parti, quand, et sous lui ses retours. Un réel s'ouvre ; un test reste replié. */
 function dessinerEnvoi(e) {
   const test = e.mode === "test";
-  const id = [e.fichier && `fichier ${e.fichier}`, e.flux && `flux ${e.flux}`,
-              e.destinataire && `à ${e.destinataire}`].filter(Boolean).join(" · ");
+  const id = e.identite;
   const retours = e.retours.length ? e.retours.map(dessinerRetour).join("")
     : e.attend_retour ? `<p class="discret retour">Aucun retour pour l'instant.</p>` : "";
   return `

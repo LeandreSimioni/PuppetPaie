@@ -530,6 +530,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
         ecrits.insert(ctx.racine.join("config").join(fichier).display().to_string());
         completees += 1;
     }
+    crate::routes::fiches::dater_licences_suivantes(ctx, &imp.licences, note)?;
     let mut fichiers: Vec<Value> = ecrits.into_iter().map(Value::String).collect();
     let mut avertissements: Vec<String> = Vec::new();
 
@@ -754,8 +755,27 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Ce que les DSN reprises disent de la configuration hors de la fiche (le taux AT/MP, les organismes), lu avec les
     // fiches telles que l'import les a ecrites.
     if let Ok(frais) = Contexte::nouveau(&ctx.racine, Some(ctx.date)) {
-        reponse["parametrage"] = json!(crate::import::parametrage::parametrer(&frais));
+        let mut faits = crate::import::parametrage::parametrer(&frais);
+        // La nature des contrats repris des permanents, quand leur DSN reprise la dit.
+        faits.extend(crate::import::nature::dire_depuis_les_dsn(&ctx.racine, &ctx.date));
+        reponse["parametrage"] = json!(faits);
     }
+    // Ce que l'ecran dit de l'import fait, et sa couleur : l'ecriture a eu lieu, c'est fait (ce qui reste a dire a ses
+    // propres lignes : la nature des contrats repris, « Pour demarrer »).
+    let n = |v: &Value| v.as_u64().unwrap_or(0);
+    let b = &reponse["bulletins"];
+    let fiches = std::iter::once(&reponse["entreprise"])
+        .chain(reponse["salaries"].as_array().into_iter().flatten())
+        .chain(reponse["spectacles"].as_array().into_iter().flatten())
+        .filter(|f| matches!(f.get("etat").and_then(Value::as_str), Some("creee" | "completee")))
+        .count();
+    reponse["phrase"] = json!(format!(
+        "Repris : {} contrat(s), {} bulletin(s), {} fiche(s).",
+        n(&reponse["contrats_nouveaux"]) + n(&b["contrats_nouveaux"]),
+        n(&b["paies_nouvelles"]) + n(&b["paies_completees"]),
+        fiches
+    ));
+    reponse["couleur"] = json!(crate::routes::couleur_de_l_etat("fait"));
     rapporter_les_ecarts(ctx);
     Ok(reponse)
 }

@@ -368,8 +368,8 @@ s'écrit `[{"valeur": …}, {"depuis": "AAAA-MM-JJ", "valeur": …}]` : la premi
 valeur, sans `depuis`, vaut **de tout temps** (un contrat commencé avant la
 saisie de la fiche, un mois repris d'un autre logiciel la trouvent), chacune des
 suivantes à partir de sa date ; les clés `_…` sont des notes. Les organismes
-et contrats de la DSN (`config/organismes.json`, chaque clé, lus par
-`Contexte::organismes` ; enregistrer pour un mois écrit à partir de son premier
+et contrats saisis par la compagnie (`config/organismes.json`, le reste se composant des textes à la date lue :
+`droit::organismes`, `Contexte::organismes` ; enregistrer pour un mois écrit à partir de son premier
 jour) et les rubriques propres à la compagnie (`config/rubriques-compagnie.json`,
 lues par `catalogue::catalogue(racine, jour)`) sont datés de même. Une seule
 lecture, `contexte::fiche_au`, sur la même `valeur_au` que les barèmes ; une
@@ -628,7 +628,7 @@ Ce que le moteur écrit, d'après la norme déposée (`atelier/reference/norme-d
   `date_anciennete` de la fiche jusqu'à la fin du mois déclaré, jamais zéro
   (CCH-12, p. 322 ; `dsn::anciennete_du_mois`). Une fiche qui ne la porte pas
   refuse.
-- `S21.G00.23` : une ligne par CTP de `config/organismes.json` (composé depuis
+- `S21.G00.23` : une ligne par CTP des organismes de la compagnie (composés depuis
   `ctp_urssaf` de `logiciel/donnees/organismes-base.json`), sur l'assiette que
   la ligne nomme (`brut`, `csg`, `brut_artiste`, `brut_x115_artiste`,
   `ta_principale`, `chomage_permanent`…), sommée sur les paies du mois
@@ -838,7 +838,7 @@ et les bases 31 (059) se lisent sur les lignes du bulletin. La section
 `par_nature.permanent` du barème est complète en 2025 et en 2026.
 
 Ce qui reste est **propre à chaque compagnie** et la fait refuser, elle seule :
-ses références d'adhésion (`organismes.json`, `affiliations_par_nature.permanent`,
+la référence de son contrat de prévoyance (`adhesions_prevoyance` de `config/organismes.json`, composée en `affiliations_par_nature.permanent`,
 dans l'ordre prévoyance puis santé). **Deux faits se réclament salarié par
 salarié** : le niveau de garantie santé (`sante_svp`) et, pour un non cadre de
 moins d'un an dans l'entreprise, son ancienneté **dans la branche**
@@ -927,8 +927,8 @@ ses nombres sont relevés, pas confirmés, et le refus dit ce qu'il reste à rel
 - `contributions_dsn` : les contributions que la DSN déclare sous une
   **adhésion Audiens** de la compagnie, comme la CASC-SVP de la 3090 — le
   FNAS et le FCAP de la CCNEAC. `dsn::contributions_dsn` les résout mois par
-  mois (l'adhésion se lit dans `organismes.json`, `"contribution": "FNAS"`,
-  et le moteur refuse sans elle), et `dsn::places_par_contrat` réserve autant
+  mois (l'adhésion, `"contribution": "FNAS"`, se compose du barème du mois, `droit::organismes`,
+  sans rien de la compagnie), et `dsn::places_par_contrat` réserve autant
   d'identifiants d'affiliation de plus : trois pour la 3090, quatre pour la 1285.
 
 `droit::contexte::fusionner` empile les trois, et `Contexte::bareme_brut` (`droit/src/contexte.rs`) est
@@ -1026,7 +1026,7 @@ Audiens (version 139) porte les permanents : la **santé** (1,44 / 1,84 / 2,04 %
 **CASC-SVP** (0,50 % de la tranche A). La **prévoyance des permanents** vient de la convention, pas du barème (voir
 plus haut), et la rubrique porte `_rempli_par` comme la mutuelle. Les identifiants techniques des deux
 **affiliations DSN 059** viennent de la fiche de paramétrage de l'entreprise, qui n'existe qu'une fois l'entreprise
-adhérée au régime de sa branche : ce sont ses références d'adhésion (`organismes.json`). La santé ne
+adhérée au régime de sa branche : ce sont ses références d'adhésion, saisies dans `config/organismes.json`. La santé ne
 se relève pas dans un barème : c'est un **forfait** dont le niveau se lit sur
 le bulletin d'adhésion du salarié (`sante_svp` sur sa fiche), et sans ce
 choix le moteur refuse, salarié par salarié.

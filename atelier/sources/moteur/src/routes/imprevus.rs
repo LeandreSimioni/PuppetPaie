@@ -942,20 +942,46 @@ fn cle_du_nom(ctx: &Contexte, nom: &str) -> R<String> {
     fiche.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))
 }
 
-/// L'engagement de ce salarie (sa cle) qui se termine ce mois, et son rang dans la saisie. Un engagement se rattache a
-/// sa fiche comme sa paie (`engagement::cle_de_l_engagement`), quelle que soit la casse du nom saisi. `nom` : comme on
-/// l'a dit, pour la phrase.
-/// Un salarie sans engagement ce mois-la n'a pas de paie : la phrase le dit, avec le mois en toutes lettres.
-fn engagement_qui_finit<'a>(ctx: &Contexte, saisie: &'a Value, cle: &str, nom: &str, mois: &str) -> R<(usize, &'a Value)> {
+/// L'engagement brut avec ses bornes : un contrat aux cachets ne les ecrit pas, il commence son premier jour travaille et
+/// finit son dernier (`engagement::debut_brut`, `engagement::dates_engagement`).
+pub(crate) fn avec_ses_bornes(e: &Value) -> Value {
+    let mut e = e.clone();
+    let jour = |j: &Value| j.get("jour").map_or_else(|| valeur_en_texte(j), valeur_en_texte);
+    if !e.get("debut").is_some_and(vrai) {
+        let debut = engagement::debut_brut(&e);
+        if !debut.is_empty() {
+            e["debut"] = json!(debut);
+        }
+    }
+    if !e.get("fin").is_some_and(vrai) {
+        if let Some(fin) = engagement::dates_engagement(&e).iter().map(jour).max() {
+            e["fin"] = json!(fin);
+        }
+    }
+    e
+}
+
+/// L'engagement de ce salarie (sa cle) qui se termine ce mois, avec ses bornes (`avec_ses_bornes`), et son rang dans la
+/// saisie. Un engagement se rattache a sa fiche comme sa paie (`engagement::cle_de_l_engagement`), quelle que soit la
+/// casse du nom saisi. `nom` : comme on l'a dit, pour la phrase. Un contrat qui a un motif de rupture passe avant les
+/// autres. Un salarie sans engagement ce mois-la n'a pas de paie : la phrase le dit, avec le mois en toutes lettres.
+fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mois: &str) -> R<(usize, Value)> {
     let eng = saisie.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
-    let siens: Vec<(usize, &Value)> =
-        eng.iter().enumerate().filter(|(_, x)| engagement::cle_de_l_engagement(ctx, x).as_deref() == Some(cle)).collect();
+    let siens: Vec<(usize, Value)> = eng
+        .iter()
+        .enumerate()
+        .filter(|(_, x)| engagement::cle_de_l_engagement(ctx, x).as_deref() == Some(cle))
+        .map(|(i, x)| (i, avec_ses_bornes(x)))
+        .collect();
     if siens.is_empty() {
         return Err(refus(format!("{} n'a aucun engagement en {} : aucun contrat ne s'y termine.", nom, mois_dit(mois))));
     }
-    siens.into_iter().find(|(_, x)| x.get("fin").map_or(false, vrai)).ok_or_else(|| {
-        refus(format!("{} n'a aucun contrat qui se termine en {} (la saisie ne dit pas de `fin`).", nom, mois_dit(mois)))
-    })
+    let finit = |x: &Value| x.get("fin").and_then(Value::as_str).is_some_and(|f| f.starts_with(mois));
+    let rompu = siens.iter().position(|(_, x)| finit(x) && x.get("motif_rupture").is_some_and(vrai));
+    let i = rompu.or_else(|| siens.iter().position(|(_, x)| finit(x))).ok_or_else(|| {
+        refus(format!("{} n'a aucun contrat qui se termine en {}.", nom, mois_dit(mois)))
+    })?;
+    Ok(siens.into_iter().nth(i).expect("rang lu dans la meme liste"))
 }
 
 /// La paie validee de l'engagement de rang `rang` (`paies` : celles de `saisie_du_mois`, au meme rang que sa saisie),
@@ -1149,7 +1175,7 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (saisie, paies) = saisie_du_mois(ctx, mois)?;
     let cle = cle_du_nom(ctx, salarie)?;
     let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
-    let fin = fin_de_contrat_declaree(ctx, e, mois)?;
+    let fin = fin_de_contrat_declaree(ctx, &e, mois)?;
     let paie = paie_de_l_engagement(ctx, &paies, rang, &cle, salarie, mois)?;
     let type_declaration = if remplace.is_some() { declarations::fctu::ANNULE_ET_REMPLACE } else { declarations::fctu::NORMALE };
     let mut avertissements = declarations::fctu::verifier(&fin, &paie.engagement, type_declaration).map_err(echec_fctu)?;
@@ -1554,7 +1580,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
     let mut out = Vec::new();
     let journal = envois::etats::charger(&ctx.racine)?;
     for e in liste {
-        let e: &Value = &e;
+        let e: &Value = &avec_ses_bornes(&e);
         let nat = nature_de(get(e, "nature")?)?;
         // La regle est celle de la nature et du motif (`Nature::signalement_fctu`) : un CDDU rompu avant son terme se signale.
         let motif = e.get("motif_rupture").filter(|m| vrai(m)).map(valeur_en_texte);
@@ -1649,13 +1675,8 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
             if !(debut.as_str() <= jour && (fin.is_empty() || jour <= fin.as_str())) {
                 continue;
             }
-            let s = salarie(ctx, cle)?;
-            let champ = |k: &str| -> R<Value> { s.get(k).cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k))) };
-            let prenom = match s.get("prenom_affichage").filter(|x| vrai(x)) {
-                Some(p) => p.clone(),
-                None => champ("prenom")?,
-            };
-            let nom = format!("{} {}", valeur_en_texte(&champ("nom")?), valeur_en_texte(&prenom));
+            salarie(ctx, cle)?;
+            let nom = ctx.nomme(&valeur_en_texte(cle));
             let ou_vide = |k: &str| e.get(k).filter(|x| vrai(x)).cloned().unwrap_or_else(|| json!(""));
             let mut o = Map::new();
             o.insert("salarie".into(), cle.clone());

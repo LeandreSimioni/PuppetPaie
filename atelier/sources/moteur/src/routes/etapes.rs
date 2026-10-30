@@ -113,9 +113,6 @@ fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
 /// Le point d'un engagement auquel il manque un fait, sur chacune de ses lignes.
 const A_COMPLETER: &str = "a_completer";
 
-/// Le point des documents d'un mois dont le jour du paiement n'est pas venu (`etats.documents.a_venir`).
-const A_VENIR: &str = "a_venir";
-
 #[derive(Clone, Copy)]
 struct Point {
     dpae: &'static str,
@@ -165,8 +162,6 @@ impl Point {
             "a_renvoyer"
         } else if vrai(&o["fait"]) {
             "fait"
-        } else if vrai(&o["a_venir"]) {
-            A_VENIR
         } else {
             "a_envoyer"
         };
@@ -451,13 +446,16 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
     let paire = |v: &Value| (valeur_en_texte(&v["salarie"]), valeur_en_texte(&v["numero"]));
     // Les corrections de mois passes que la ligne porte ne sont pas des engagements de ce mois.
     let mut emportes: Vec<(String, String)> = emportes.iter().filter(|v| v.get("mois").is_none()).map(paire).collect();
+    // Un engagement rouvert par « Modifier… » et pas encore revalide reste celui que la DSN a declare : seule sa
+    // revalidation dit s'il a change (`engagement::etats::valider`).
     let mut presents: Vec<(String, String)> = etats
         .iter()
         .zip(&siens)
         .filter(|(_, s)| **s)
-        .filter_map(|(e, _)| e.valide())
-        .filter_map(|v| {
-            let b = Value::Object(v.objet().brut.clone());
+        .filter(|(e, _)| e.valide().is_some() || e.en_modification())
+        .map(|(e, _)| e.objet())
+        .filter_map(|o| {
+            let b = Value::Object(o.brut.clone());
             Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
         })
         .collect();
@@ -882,27 +880,13 @@ impl<'a> Moteur<'a> {
                 };
                 signature["cdi_en_cours"] = json!({"depuis": depuis, "signe_en": signe_en});
             }
-            let mut documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
-            // LES DOCUMENTS SE REMETTENT AU PAIEMENT : « Lors du paiement du salaire, l'employeur remet [...] une piece
-            // justificative dite bulletin de paie » (C. trav., art. L. 3243-2,
-            // atelier/reference/sources/code-du-travail/xml/L3243-2.xml). Le jour du paiement est celui que le bulletin
-            // imprime (`date_paiement`, a defaut la fin de la periode) ; avant lui, ce qui n'est pas parti est a venir.
-            if !vrai(&documents["fait"]) {
-                let paye_le = match p.engagement.date_paiement.as_deref().filter(|d| !d.is_empty()) {
-                    Some(d) => Jour::lire(d).map_err(plain)?,
-                    None => p.engagement.fin_periode().map_err(plain)?,
-                };
-                if paye_le.ordinal() > self.ctx.aujourdhui.ordinal() {
-                    let source = "Code du travail, art. L. 3243-2 (atelier/reference/sources/code-du-travail/xml/L3243-2.xml)";
-                    documents["a_venir"] = droit::echeances::Echeance { jour: paye_le, mots: "à remettre le", heure: "", source: source.into() }.en_json();
-                }
-            }
+            let documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
             ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents}));
             let vue = Value::Object(ligne.clone());
             ligne.insert("carres".into(), carres(&vue));
             ligne.insert("dpae_choix".into(), choix_dpae(&vue));
             // LA FRISE : un engagement modifie apres un envoi dit quand, et ce qui a change de version en version.
-            let frise = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| engagement::versions::frise(self.ctx, v, &departs));
+            let frise = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| engagement::versions::frise(self.ctx, v, &departs, mois));
             ligne.insert("versions".into(), frise.unwrap_or(Value::Null));
             out.push(Value::Object(ligne));
         }
@@ -1378,17 +1362,12 @@ impl<'a> Moteur<'a> {
         // --- DSN : par etablissement (`groupes_dsn`), chaque colonne sous la DSN de ses etablissements.
         let dsn: Vec<Value> = cases_de_la_ligne(&cols, |c| c.dsn.to_string()).into_iter().map(|(_, _, noms, k)| avec(classes[k].1.clone(), &noms)).collect();
 
-        // --- Documents : par salarie du mois, des que son engagement est valide.
+        // --- Documents : par salarie du mois, des que son engagement est valide, sans echeance : ils partent quand on veut.
         let mut documents = Vec::new();
-        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.documents, &["a_renvoyer", "a_envoyer", A_COMPLETER, A_VENIR])) {
+        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.documents, &["a_renvoyer", "a_envoyer", A_COMPLETER])) {
             let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].documents == point).map(|(p, _)| p).collect();
             let n = siens.iter().map(|p| valeur_en_texte(&p["salarie"])).collect::<BTreeSet<String>>().len();
             let g = match point.as_str() {
-                // Le jour du paiement n'est pas venu : rien a faire encore, le premier jour le dit.
-                A_VENIR => {
-                    let jour = siens.iter().map(|p| &p["etats"]["documents"]["a_venir"]).filter(|e| e.is_object()).min_by_key(|e| valeur_en_texte(&e["jour"])).cloned().unwrap_or(Value::Null);
-                    groupe(A_VENIR, Value::Null, String::new(), "à venir".into(), jour, Value::Null)
-                }
                 "a_renvoyer" => groupe("a_faire", json!(n), n.to_string(), "à renvoyer".into(), Value::Null, action("envoyer_documents", format!("Renvoyer les documents corrigés ({})…", n))),
                 "a_envoyer" => groupe("a_faire", json!(n), n.to_string(), "à envoyer".into(), Value::Null, action("envoyer_documents", "Envoyer les documents…".into())),
                 // Ce qui reste a completer se compte en engagements, comme a la DPAE.
@@ -1488,10 +1467,8 @@ impl<'a> Moteur<'a> {
             if !self.dsn_a_declarer(mois, nic)? {
                 return Ok((fait(), Value::Null));
             }
-            // AVANT SON PREMIER JOUR DE DEPOT (un mois avant l'echeance, `Echeance::premier_depot`), elle est a venir.
-            if echeance.premier_depot().map_err(|m| erreur("ValueError", m))?.ordinal() > self.ctx.aujourdhui.ordinal() {
-                return Ok((groupe("a_venir", Value::Null, String::new(), "à venir".into(), au_depot, Value::Null), Value::Null));
-            }
+            // Avant son premier jour de depot, la case reste a deposer : c'est le depot qui dit le jour
+            // (`compagnie::depart::dsn_a_deposer`).
             let (a, refus) = self.action_de_depot(mois, DSN, nic, action("deposer_dsn", "Déposer la DSN…".into()))?;
             let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
             return Ok((groupe("a_faire", Value::Null, String::new(), quoi, au_depot, a), Value::Null));
@@ -1793,7 +1770,6 @@ fn carres(p: &Value) -> Value {
     let (etat, phrase, geste) = match pt.documents {
         "a_renvoyer" => ("a_faire", format!("Documents à renvoyer : {}", valeur_en_texte(&o["pourquoi"])), action("envoyer_documents", "Renvoyer les documents corrigés…".into())),
         "a_envoyer" => ("a_faire", "Documents à envoyer".to_string(), action("envoyer_documents", "Envoyer les documents…".into())),
-        A_VENIR => (A_VENIR, format!("Documents {}, jour du paiement", valeur_en_texte(&o["a_venir"]["texte"])), Value::Null),
         _ => ("fait", format!("Documents partis {}", le_jour(&o["fait"])), Value::Null),
     };
     let documents = json!({"cle": DOCUMENTS, "nom": "Documents", "etat": etat, "phrase": phrase, "action": geste});
@@ -1801,13 +1777,20 @@ fn carres(p: &Value) -> Value {
     let restes = [
         match pt.dpae { "refuse" => "refusée", "a_faire" => "à déposer", _ => "" },
         match pt.contrat { "a_envoyer" => "à envoyer", "a_refaire" => "à refaire signer", "en_attente" => "signature attendue", _ => "" },
-        match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", A_VENIR => "à venir", _ => "" },
+        match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", _ => "" },
+    ];
+    // LE LIEN DU DETAIL vers ce qui est parti : seulement quand une piece est passee par le logiciel.
+    let liens = [
+        vrai(&d["fait"]).then_some("La DPAE partie"),
+        vrai(&s["fait"]).then_some("Le contrat parti"),
+        None,
     ];
     let mut tous = [dpae, contrat, documents];
-    for (c, reste) in tous.iter_mut().zip(restes) {
+    for ((c, reste), lien) in tous.iter_mut().zip(restes).zip(liens) {
         c["couleur"] = json!(super::couleur_de_l_etat(&valeur_en_texte(&c["etat"])));
         c["coupee"] = json!(est(&c["etat"], "en_attente"));
         c["reste"] = json!(reste);
+        c["lien"] = json!(lien);
     }
     json!(tous)
 }
@@ -1815,7 +1798,7 @@ fn carres(p: &Value) -> Value {
 /// CE QUE MONTRE LE DETAIL DU CONTRAT d'un engagement (les pieces parties, ouvertes depuis la ligne) : la phrase quand
 /// aucune piece n'est passee par le logiciel, l'encart d'un contrat qui n'est plus le bon, et les gestes, chacun son
 /// libelle, son geste et s'il est le principal. Un contrat parti ou recu se note signe (ou ne l'est plus) ; un contrat
-/// parti se modifie par un avenant ; un contrat a envoyer, ou parti et plus le bon sans etre signe, part a la signature.
+/// parti se modifie par un avenant, signe ou non, commence ou non ; un contrat jamais parti part a la signature.
 fn pieces_du_contrat(s: &Value) -> Value {
     let (fait, recu, caduc) = (vrai(&s["fait"]), vrai(&s["recu"]), vrai(&s["caduc"]));
     // Un contrat ou un avenant parti (`fait`, imprime ou par courriel) est une piece : le detail la nomme, il n'a pas de
@@ -1832,8 +1815,7 @@ fn pieces_du_contrat(s: &Value) -> Value {
             Some(p) => format!("{}{}.", p.to_uppercase(), c.as_str()),
             None => "L'engagement a changé depuis qu'il est parti.".to_string(),
         };
-        let suite = if recu { "Il est signé : il se modifie par un avenant, que le salarié signe à son tour." } else { "Le salarié doit recevoir le contrat à jour, et le signer à nouveau." };
-        json!({"titre": "Ce contrat n'est plus le bon", "texte": format!("{} {}", pourquoi, suite)})
+        json!({"titre": "Ce contrat n'est plus le bon", "texte": format!("{} Il se modifie par un avenant, que le salarié signe à son tour.", pourquoi)})
     });
     let mut gestes = Vec::new();
     if fait || recu {
@@ -1841,11 +1823,10 @@ fn pieces_du_contrat(s: &Value) -> Value {
         gestes.push(json!({"libelle": libelle, "action": {"geste": "contrat_recu", "recu": !recu}, "principal": false}));
     }
     if fait {
-        gestes.push(json!({"libelle": "Avenant…", "titre": "Modifier le contrat parti : l'ancien texte et le nouveau, article par article", "action": {"geste": "avenant"}, "principal": caduc && recu}));
+        gestes.push(json!({"libelle": "Avenant…", "titre": "Modifier le contrat parti : l'ancien texte et le nouveau, article par article", "action": {"geste": "avenant"}, "principal": caduc}));
     }
-    if (caduc || !fait) && !(caduc && recu) {
-        let libelle = if caduc { "Renvoyer le contrat à jour…" } else { "Envoyer à la signature…" };
-        gestes.push(json!({"libelle": libelle, "action": {"geste": "faire_signer"}, "principal": true}));
+    if !fait {
+        gestes.push(json!({"libelle": "Envoyer à la signature…", "action": {"geste": "faire_signer"}, "principal": true}));
     }
     json!({"vide": vide, "encart": encart, "gestes": gestes})
 }
@@ -1906,14 +1887,15 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
     let resumes = etats::resumes_des_documents(lignes, mois)?;
     let mut out: HashMap<String, Value> = HashMap::new();
     // Les documents d'un salarie partent ensemble, pour tous ses engagements valides du mois : un engagement valide dont
-    // ils ne sont pas partis (valide apres leur envoi) les rend a envoyer, avec son bulletin.
+    // ils ne sont pas partis (valide apres leur envoi) les rend a envoyer, avec son bulletin. Un engagement rouvert et pas
+    // encore revalide garde ce qui est parti sur sa validation (`Etat::en_modification`).
     let a_envoyer: HashSet<String> = etats
         .iter()
         .filter(|e| matches!(e, engagement::etats::Etat::Valide(_)))
         .filter_map(|e| engagement::cle_de_l_engagement(ctx, &Value::Object(e.objet().brut.clone())))
         .collect();
     for e in etats {
-        if !matches!(e, engagement::etats::Etat::Partis(_)) {
+        if !matches!(e, engagement::etats::Etat::Partis(_)) && !e.en_modification() {
             continue;
         }
         let brut = Value::Object(e.objet().brut.clone());

@@ -46,10 +46,6 @@ fn saisie_aux_numeros_declares(ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, 
 
 // ------------------------------------------------------------------ recapitulatif_dsn
 
-fn requis(v: &Value, cle: &str) -> Result<String, String> {
-    v.get(cle).map(socle::valeur::valeur_en_texte).ok_or_else(|| socle::fichiers::absent(cle))
-}
-
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
 fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<Value, String> {
     let sals = lire_recap(octets)?;
@@ -197,14 +193,9 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             continue;
         }
         let p = &liste[par_numero[n]];
-        let nom = requis(&p.salarie, "nom")?;
-        let prenom = match p.salarie.get("prenom_affichage") {
-            Some(v) if vrai(v) => socle::valeur::valeur_en_texte(v),
-            _ => requis(&p.salarie, "prenom")?,
-        };
         absents.push(json!({
             "salarie": p.salarie.get("_cle").cloned().ok_or_else(|| socle::fichiers::absent("_cle"))?,
-            "nom": format!("{} {}", nom, prenom),
+            "nom": socle::texte::salarie_nomme_ou(Some(&p.salarie), "Ce salarié"),
             "numero": n,
             "debut": p.engagement.debut.iso(),
             "fin": p.engagement.fin.map_or(String::new(), |f| f.iso()),
@@ -269,7 +260,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
     // LES ORDRES DE PAIEMENT EN CLAIR : a qui, pour quoi, combien, pour quand -- ceux de la DSN fabriquee
     // depuis les paies qu'elle couvre (`depart::refabriquer`) ; un fichier qui ne dit plus ce que disent les paies n'en
     // montre aucun.
-    let organismes = ctx.du_mois(&mois)?.organismes()?.unwrap_or(Value::Null);
+    let organismes = ctx.du_mois(&mois)?.organismes()?;
     let (ordres, ordres_erreur) = if signalement {
         (Vec::new(), Value::Null)
     } else {

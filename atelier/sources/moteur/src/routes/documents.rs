@@ -501,7 +501,7 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
             }
         );
         messages.push(Message {
-            nom: format!("{} {}", valeur_en_texte(get_requis(s, "prenom_affichage")?), valeur_en_texte(get_requis(s, "nom")?)),
+            nom: ctx.nomme(&cle),
             // Une fiche sans courriel se montre : ses documents s'impriment ; c'est l'envoi par courriel qui la refuse.
             destinataire: s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase(),
             cle,
@@ -581,6 +581,10 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
                     expediteur, signataire
                 ));
             }
+        }
+        let sans: Vec<String> = messages.iter().filter(|x| x.destinataire.is_empty()).map(|x| nom_de_la_paie(&paies, &x.cle)).collect();
+        if !sans.is_empty() {
+            avertissements.push(sans_courriel_dit(&sans.join(", ")));
         }
     }
     let lignes = m.lignes()?;
@@ -776,8 +780,7 @@ pub(crate) fn documents_imprimer(ctx: &Contexte, charge: &Value, qui: &str) -> R
         if cles.contains(&cle) || seulement.as_ref().is_some_and(|s| !s.contains(&cle)) {
             continue;
         }
-        let prenom = vrai_ou(&p.salarie, "prenom_affichage").or_else(|| vrai_ou(&p.salarie, "prenom")).unwrap_or_default();
-        noms.insert(cle.clone(), format!("{} {}", prenom, vrai_ou(&p.salarie, "nom").unwrap_or_default()).trim().to_string());
+        noms.insert(cle.clone(), socle::texte::salarie_nomme_ou(Some(&p.salarie), &cle));
         cles.push(cle);
     }
     if cles.is_empty() {
@@ -976,12 +979,26 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
     if cles.is_empty() {
         return Err(refus("Aucun salarié coché. Rien n'est parti."));
     }
+    // UN SALARIE SANS COURRIEL n'empeche pas les autres : ses documents ne partent pas par courriel, ils s'impriment
+    // (`documents-imprimer`) ; les autres partent.
+    let (cles, sans): (Vec<String>, Vec<String>) = cles.into_iter().partition(|c| a_un_courriel(&paies, c));
+    let noms_sans = sans.iter().map(|c| nom_de_la_paie(&paies, c)).collect::<Vec<_>>().join(", ");
+    if cles.is_empty() {
+        return Err(refus(format!(
+            "Pas de courriel dans la fiche de {} : ses documents ne partent pas par courriel. Imprimez-les pour les remettre en main propre, ou saisissez son courriel dans sa fiche. Rien n'est parti.",
+            noms_sans
+        )));
+    }
     let documents = crate::compagnie::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
-    let messages = envoi::preparer_avec(&paies, &ctx.entreprise, &mois_saisie, &dossier, &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
+    let paies_servies: Vec<engagement::calcul::Paie> = paies.iter().filter(|p| cles.contains(&p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default())).cloned().collect();
+    let messages = envoi::preparer_avec(&paies_servies, &ctx.entreprise, &mois_saisie, &dossier, &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
     let messages: Vec<envoi::Message> = choix.garder(messages, |m| m.cle.as_str()).into_iter().filter(|m| cles.contains(&m.cle)).collect();
     let client = ouvrir()?;
     let expediteur = expediteur_de(client.as_ref());
     let mut avertissements: Vec<String> = documents.avertissements.clone();
+    if !sans.is_empty() {
+        avertissements.push(sans_courriel_dit(&noms_sans));
+    }
     let signataire = requis(&ctx.entreprise, "signataire")?.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase();
     if !signataire.is_empty() && signataire != expediteur {
         avertissements.push(format!(
@@ -1047,6 +1064,45 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
         "avertissements": avertissements,
         "ligne": ligne,
     }))
+}
+
+/// La fiche du salarie `cle`, telle que ses paies du mois la portent, a-t-elle un courriel ?
+fn a_un_courriel(paies: &[engagement::calcul::Paie], cle: &str) -> bool {
+    paies.iter().any(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle) && p.salarie.get("email").is_some_and(vrai))
+}
+
+/// « NOM Prenom » du salarie `cle`, lu dans ses paies du mois.
+fn nom_de_la_paie(paies: &[engagement::calcul::Paie], cle: &str) -> String {
+    paies
+        .iter()
+        .find(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle))
+        .map(|p| {
+            socle::texte::salarie_nomme_ou(Some(&p.salarie), cle)
+        })
+        .unwrap_or_else(|| cle.to_string())
+}
+
+/// Ce que l'envoi dit de ceux qui n'ont pas de courriel : leurs documents ne sont pas partis, ils s'impriment.
+fn sans_courriel_dit(noms: &str) -> String {
+    format!(
+        "Pas de courriel dans la fiche de {} : ses documents ne partent pas par courriel. Imprimez-les pour les remettre en main propre, ou saisissez son courriel dans sa fiche.",
+        noms
+    )
+}
+
+/// Ceux a qui les documents du mois sont a faire partir (`choisir`) et qui n'ont pas de courriel dans leur fiche : leurs
+/// documents s'impriment. Leur cle, et leur nom.
+pub(crate) fn sans_courriel(ctx: &Contexte, mois: &str) -> R<Vec<(String, String)>> {
+    let (_, paies) = charger_le_mois(ctx, mois)?;
+    let mut cles: Vec<String> = Vec::new();
+    for p in &paies {
+        let c = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        if !cles.contains(&c) {
+            cles.push(c);
+        }
+    }
+    let choix = choisir(ctx, mois, &paies)?;
+    Ok(cles.into_iter().filter(|c| !choix.a_jour.contains(c) && !a_un_courriel(&paies, c)).map(|c| { let nom = nom_de_la_paie(&paies, &c); (c, nom) }).collect())
 }
 
 /// Le refus de `envoi.preparer` : une fiche sans adresse est un `ValueError`, une cle absente un `KeyError`.

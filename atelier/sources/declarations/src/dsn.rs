@@ -628,7 +628,7 @@ fn bareme_de(p: &Paie, bar: &Value) -> Resultat<Value> {
     let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
         &nat,
         p.engagement.motif_recours.as_deref(),
-        &format!("Contrat {} de {}", p.engagement.numero.as_deref().unwrap_or("sans numero"), p.engagement.salarie),
+        &droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &p.engagement.salarie),
     )?;
     bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), p.declaree_a_la_caisse_des_conges()?, cpf_cdd)
 }
@@ -965,19 +965,27 @@ pub fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, (debut, fin): 
     let sec = g(g(orgs, "affiliations_par_nature"), &cle);
     if !vrai(sec) {
         return Err(format!(
-            "config/organismes.json : `affiliations_par_nature` ne dit rien de '{}' (contrat {}). Le bloc \
-S21.G00.70.013 rattache le salarie a une adhesion prevoyance ; il ne se devine pas.",
-            cle, nat.libelle
+            "Contrat {} : la DSN rattache chaque salarié à ses contrats de prévoyance et de santé (S21.G00.70.013), et \
+les organismes composés pour la compagnie ne disent rien d'un salarié « {} » (seulement des intermittents et des \
+permanents). Aucune saisie de la compagnie ne le dit : c'est la composition livrée (donnees/organismes-base.json) qui \
+ne connaît pas ce cas. Rien n'est écrit.",
+            nat.libelle, cle
         ));
     }
     let refs = g(sec, "references");
     if !vrai(refs) {
-        let pourquoi = if vrai(g(sec, "_a_confirmer")) { en_texte(&sec["_a_confirmer"]) } else { "A relever.".into() };
+        let pourquoi = if vrai(g(sec, "_a_confirmer")) {
+            en_texte(&sec["_a_confirmer"])
+        } else {
+            "Leurs références se saisissent dans Configuration › Organismes et contrats ; elles se lisent sur le certificat \
+d'adhésion de l'assureur."
+                .into()
+        };
         return Err(format!(
-            "Contrat {} : les adhesions prevoyance d'un contrat '{}' ne sont pas confirmees (config/organismes.json, \
-`affiliations_par_nature.{}.references` est `null`).\n  {}\n  Declarer quand meme le rattacherait aux adhesions \
-d'une autre population -- ce que la plate-forme accepte sans rien dire.",
-            nat.libelle, cle, cle, pourquoi
+            "Contrat {} : la DSN rattache chaque salarié à ses contrats de prévoyance et de santé (S21.G00.70.013), et ceux \
+d'un salarié « {} » ne sont pas connus.\n  {}\n  Déclarer quand même le rattacherait aux contrats d'une autre \
+population, ce que la plate-forme accepte sans rien dire. Rien n'est écrit.",
+            nat.libelle, cle, pourquoi
         ));
     }
     let mut out: Vec<String> = Vec::new();
@@ -1242,9 +1250,8 @@ fn casc_svp(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str) -> Resultat<O
         Some(a) => a,
         None => {
             return Err(format!(
-                "Convention 3090 : la CASC-SVP se declare en DSN depuis janvier 2025, et config/organismes.json n'a \
-pas d'adhesion {} (`adhesions_prevoyance`). Sa reference se lit dans la fiche de parametrage Audiens ; elle ne se \
-devine pas. Rien n'est ecrit.",
+                "Convention 3090 : la CASC-SVP se declare en DSN depuis janvier 2025, et les organismes lus n'ont pas \
+l'adhesion {} que `Contexte::organismes` porte pour toute compagnie de la 3090. Rien n'est ecrit.",
                 contrat
             ))
         }
@@ -1277,11 +1284,10 @@ d'affiliation par contrat). Rien n'est ecrit.",
     Ok(Some(Value::Object(out)))
 }
 
-/// La DSN de `mois` porte-t-elle la CASC-SVP ? La regle qui l'y met (`casc_svp`) le dit ; sans adhesion CASCSVP au
-/// fichier des organismes, elle ne la porte pas.
+/// La DSN de `mois` porte-t-elle la CASC-SVP ? La regle qui l'y met (`casc_svp`) le dit.
 pub fn porte_la_casc(ctx: &Contexte, mois: &str) -> Resultat<bool> {
     let ctx = ctx.du_mois(mois)?;
-    let Some(orgs) = ctx.organismes()? else { return Ok(false) };
+    let orgs = ctx.organismes()?;
     Ok(matches!(casc_svp(&ctx, &ctx.entreprise, &orgs, mois), Ok(Some(_))))
 }
 
@@ -1310,9 +1316,8 @@ fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar:
             Some(a) => a,
             None => {
                 return Err(format!(
-                    "Convention {} : le {} se declare en DSN depuis {}, sous une adhesion Audiens de la compagnie, et \
-config/organismes.json n'en a pas (`adhesions_prevoyance`, une entree avec \"contribution\": \"{}\", sa \"reference\" et \
-son \"libelle\" tels que la fiche de parametrage Audiens les donne). Elle ne se devine pas. Rien n'est ecrit.",
+                    "Convention {} : le {} se declare en DSN depuis {}, sous une adhesion Audiens, et les organismes \
+du mois n'ont pas l'adhesion \"contribution\": \"{}\" que `droit::organismes` compose depuis le bareme. Rien n'est ecrit.",
                     socle::date::forme_ecrite(g(ent, "idcc")).trim_matches('\''),
                     nom,
                     en_texte(g(spec, "en_dsn_depuis")),
@@ -1394,10 +1399,10 @@ fn motif_recours(p: &Paie, nat: &Nature) -> Resultat<String> {
     match e.motif_recours.as_deref().filter(|m| !m.is_empty()) {
         Some(m) => Ok(m.to_string()),
         None => Err(format!(
-            "Contrat {} ({}) : le motif de recours (S21.G00.40.021) n'est pas dit. Il est obligatoire pour un CDD \
-(SIG-11) et c'est lui qui rend le contrat licite (art. L.1242-2 du code du travail) : remplacement d'un salarie, \
-accroissement temporaire d'activite, emploi saisonnier... Il se saisit sur l'engagement (`motif_recours`).",
-            e.numero.clone().unwrap_or_else(|| "None".into()),
+            "Dites pourquoi ce CDD est conclu (« Motif du CDD », sur la carte de l'engagement) : {} ({}) n'en dit pas le motif.\n\
+C'est le motif qui rend le contrat licite (code du travail, L. 1242-2 : remplacement d'un salarié, accroissement \
+temporaire d'activité, emploi saisonnier…) ; la DSN le déclare, il y est obligatoire (S21.G00.40.021, SIG-11).",
+            droit::cpf_cdd::le_contrat(e.numero.as_deref(), &e.salarie),
             nat.libelle
         )),
     }
@@ -1592,7 +1597,10 @@ pub fn bloc_contrat_fctu(
     let nat = e.nat()?;
     let atmp = g(bar, "taux_atmp");
     let ecrit_atmp = usage_admet(f, "S21.G00.40.043", nature_dsn)?;
-    if ecrit_atmp && (!vrai(g(atmp, "valeur")) || !vrai(g(atmp, "code_risque"))) {
+    // SIG-11 : sous le code risque 999ZZ (pas encore de notification), le taux (40.043) est interdit ; sous tout autre
+    // code, il est obligatoire (`norme-dsn/texte/bloc-S21.G00.40.txt`, l. 1309-1313).
+    let sans_notification = txt(g(atmp, "code_risque")) == bareme::SANS_NOTIFICATION;
+    if ecrit_atmp && (!vrai(g(atmp, "code_risque")) || (!sans_notification && !vrai(g(atmp, "valeur")))) {
         let annee = if bar.get("annee").is_some() { en_texte(&bar["annee"]) } else { "?".into() };
         return Err(format!(
             "Bareme {} : `taux_atmp` (valeur, code_risque) manque. C'est le taux AT/MP notifie a l'etablissement, \
@@ -1699,7 +1707,9 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     si_admise(f, nature_dsn, "S21.G00.40.039", nat.code("S21.G00.40.039"))?;
     if ecrit_atmp {
         si_admise(f, nature_dsn, "S21.G00.40.040", Some(en_texte(&atmp["code_risque"])))?;
-        si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(dec_avec_echelle(&atmp["valeur"])?, 2)))?;
+        if !sans_notification {
+            si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(dec_avec_echelle(&atmp["valeur"])?, 2)))?;
+        }
     }
     licence_du_contrat(f, nature_dsn, ent, nat.ecrit("S21.G00.40.050"))?;
     if nat.ecrit("S21.G00.40.050") && usage_admet(f, "S21.G00.40.050", nature_dsn)? {
@@ -2265,7 +2275,7 @@ pub fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Verseme
     let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
     let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
     let ent_e = fiche_de(ent, &nic)?;
     let e = &p.engagement;
@@ -2806,7 +2816,7 @@ fn sert_a_un_versement(orgs: &Value, code: &str) -> bool {
     })
 }
 
-/// Les cles de totalisation d'un versement 20 (`codes81` de `config/organismes.json`). Agirc-Arrco y porte 131 et 132
+/// Les cles de totalisation d'un versement 20 (`codes81` de `organismes-base.json`). Agirc-Arrco y porte 131 et 132
 /// (« Cotisation regime unifie Agirc-Arrco », « Cotisation Apec »), et 105 (« y compris Apec »), que la norme 2026.1 ne
 /// garde que « pour regularisation des periodes anterieures a 2025 » (cahier technique 2026.1, p. 302 et 305 ;
 /// `atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, lignes 79-81).
@@ -2894,9 +2904,8 @@ fn taux_at_du_ctp(ctp: &Value, bar: &Value) -> Resultat<String> {
     if !vrai(g(ctp, "taux_at")) {
         return Ok(String::new());
     }
-    // LE TAUX DU BAREME DU MOIS DECLARE, et non celui recopie dans config/organismes.json : celui-la
-    // restait fige quand le taux changeait a l'ecran (1,25 garde, 1,40 pose le 03/10), ou en cours d'annee (1,69 puis
-    // 1,65 au 01/06/2025). `taux_at` du CTP ne dit plus que « cette ligne porte le taux AT » ("bareme").
+    // LE TAUX DU BAREME DU MOIS DECLARE : il peut changer en cours d'annee (1,69 puis 1,65 au 01/06/2025) ; `taux_at` du CTP
+    // dit seulement « cette ligne porte le taux AT » ("bareme"), le taux ne se recopie pas.
     if !vrai(g(g(bar, "taux_atmp"), "valeur")) {
         if txt(g(ctp, "taux_at")) == "bareme" {
             return Err("Le bareme du mois n'a pas de taux AT/MP (`taux_atmp.valeur`), et un CTP de la DSN le porte. C'est \
@@ -3030,7 +3039,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decim
     out.insert("brut_x115_artiste".into(), somme(&art, &|i| b[i]["brut_x115"]));
     out.insert("reduction_generale_urssaf".into(), rg_tech);
     // Sous le qualifiant 921 (« Assiette plafonnee », cahier technique 2026.1, p. 168), une population porte son assiette
-    // PLAFONNEE : celle du bulletin et de la base 02 de chaque contrat (point 22). La cle de config/organismes.json reste
+    // PLAFONNEE : celle du bulletin et de la base 02 de chaque contrat (point 22). La cle de la table des CTP reste
     // celle de la population (`brut_artiste` sous 312/921) ; c'est le qualifiant qui dit plafonnee.
     let base = |i: usize, k: &str| b[i].get(k).copied().ok_or_else(|| socle::fichiers::absent(k));
     let plaf = |f: &dyn Fn(usize) -> bool, k: &str| -> Resultat<Decimal> {
@@ -3089,8 +3098,9 @@ fn valeur_ctp(somme: &HashMap<String, Decimal>, ctp: &Value) -> Resultat<(Decima
     match somme.get(&k) {
         Some(v) => Ok((*v, par_montant)),
         None if k.starts_with(&plafonnee("")) => Err(format!(
-            "config/organismes.json : le CTP {} sous le qualifiant {} (assiette plafonnee, cahier technique 2026.1, p. 168) \
-lit l'assiette « {} », qui n'a pas de forme plafonnee. Rien n'est ecrit.",
+            "La table des CTP livrée avec le logiciel (donnees/organismes-base.json, `ctp_urssaf`) : le CTP {} sous le \
+qualifiant {} (assiette plafonnée, cahier technique 2026.1, p. 168) lit l'assiette « {} », qui n'a pas de forme \
+plafonnée. Aucune saisie de la compagnie ne le corrige. Rien n'est écrit.",
             txt(g(ctp, "code")),
             QUALIFIANT_PLAFONNEE,
             &k[plafonnee("").len()..]
@@ -3108,8 +3118,7 @@ const CODE81_CPF_CDD: &str = "129";
 const CODE81_CFP: &str = "128";
 const ASSIETTE_CFP_PERMANENT: &str = "cfp_permanent";
 
-/// La table des CTP de `config/organismes.json`, telle que `organismes::composer` l'ecrit depuis
-/// `donnees/organismes-base.json`.
+/// La table des CTP des organismes composes (`organismes::composer`), depuis `donnees/organismes-base.json`.
 fn ctp_urssaf(orgs: &Value) -> Resultat<Vec<Value>> {
     Ok(liste(req(orgs, "ctp_urssaf")?).to_vec())
 }
@@ -3140,7 +3149,7 @@ impl Seuils {
         let seuil = |k: &str| -> Resultat<Option<i64>> {
             match g(ctp, k) {
                 Value::Null => Ok(None),
-                v => v.as_i64().map(Some).ok_or_else(|| format!("config/organismes.json : `{}` du CTP {} n'est pas un entier. Rien n'est ecrit.", k, txt(g(ctp, "code")))),
+                v => v.as_i64().map(Some).ok_or_else(|| format!("La table des CTP livrée avec le logiciel (donnees/organismes-base.json) : `{}` du CTP {} n'est pas un entier. Rien n'est écrit.", k, txt(g(ctp, "code")))),
             }
         };
         Ok(seuil("effectif_au_moins")?.map_or(true, |s| self.atteint(s)) && seuil("effectif_sous")?.map_or(true, |s| !self.atteint(s)))
@@ -3163,10 +3172,10 @@ fn lignes_bordereau(
     let ctps = ctps.as_slice();
     if !somme["brut_permanent"].is_zero() && !ctps.iter().any(|c| txt(g(c, "nature")) == "permanent") {
         return Err(format!(
-            "La DSN de {} porte {} EUR de brut de salaries permanents, et config/organismes.json n'a aucun CTP marque \
-\"nature\": \"permanent\". Le bordereau Urssaf serait faux : un permanent releve du regime general (CTP 100 et \
-suivants) et son assurance chomage est recouvree par l'Urssaf, contrairement a celle d'un intermittent. Relever les \
-CTP dans la table de l'Urssaf et les ajouter avant de declarer. Rien n'est ecrit.",
+            "La DSN de {} porte {} EUR de brut de salariés permanents, et la table des CTP livrée avec le logiciel \
+(donnees/organismes-base.json, `ctp_urssaf`) n'a aucun CTP des permanents. Le bordereau Urssaf serait faux : un \
+permanent relève du régime général (CTP 100 et suivants) et son assurance chômage est recouvrée par l'Urssaf, \
+contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le corrige. Rien n'est écrit.",
             mois,
             mt(somme["brut_permanent"])
         ));
@@ -3245,7 +3254,7 @@ pub fn bordereau_du_mois(ctx: &Contexte, paies: &[Paie], mois: &str, etablisseme
     let ent = &ctx.entreprise;
     let principal = bareme::nic_principal(ent);
     let nic = etablissement.filter(|n| !n.is_empty()).map_or_else(|| principal.clone(), str::to_string);
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let debut = premier(mois)?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
     let doeth = if nic == principal { crate::oeth::declaration(ctx, mois)? } else { None };
@@ -3365,15 +3374,6 @@ pub fn reference_versement(v: &Value, ent: &Value) -> Resultat<Option<String>> {
         return Ok(reference);
     }
     let fiche = Some(txt(g(ent, "france_travail_dossier_recouvrement")).trim().to_string()).filter(|s| !s.is_empty());
-    if let (Some(fi), Some(r)) = (&fiche, &reference) {
-        if fi != r {
-            return Err(format!(
-                "Deux dossiers de recouvrement France Travail : {} dans la fiche Entreprise, {} dans \
-config/organismes.json. Rien n'est ecrit : corrigez celui qui est faux.",
-                fi, r
-            ));
-        }
-    }
     Ok(fiche.or(reference))
 }
 
@@ -3519,8 +3519,8 @@ n'est ecrit.",
                     format!(
                         "Salarie {} : le contrat se rattache a l'adhesion {} (S21.G00.70.013), que la declaration ne declare \
 pas en bloc S21.G00.15. Le code d'affectation (S21.G00.55.003) doit etre un contrat declare en bloc 15 (norme p. 260, \
-CCH-11) : il ne se devine pas. Voir config/organismes.json, `adhesions_prevoyance` (et sa date `depuis`). Rien n'est \
-ecrit.",
+CCH-11) : il ne se devine pas. Ce contrat doit figurer, avec sa référence, dans Configuration › Organismes et \
+contrats ouvert sur le mois déclaré. Rien n'est écrit.",
                         nom, reference
                     )
                 })?;
@@ -3724,7 +3724,7 @@ pub fn assiettes_des_ctp(ctx: &Contexte, paies: &[Paie], mois: &str, nic: &str, 
     }
     let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, nic, mois)?;
     let refs: Vec<&Paie> = paies.iter().flat_map(|p| p.elementaires()).collect();
     let lignes = lignes_bordereau(&refs, &orgs, ent, &bar, None, None, None, mois, &Seuils::du_mois(ctx, mois)?)?;
@@ -4155,7 +4155,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
     let departs = engagement::departs::lire(&ctx.racine)?;
     let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, &departs)?;
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let an: i32 = mois[..4].parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mo: u32 = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let debut_mois = premier(mois)?;
@@ -4778,9 +4778,10 @@ affiliation (S21.G00.78.005). Rien n'est ecrit.",
     if let Some(c) = composants.iter().find(|c| !places_oc.iter().any(|(_, v)| en_texte(g(v, "siret")) == c.organisme)) {
         if !sans_individu {
             return Err(format!(
-                "Des cotisations sont declarees sous l'adhesion {} de l'organisme {} (S21.G00.15.002), et \
-config/organismes.json n'a pas de versement a cet organisme (`versements`, \"siret\": \"{}\") : le bloc 20 qui les \
-paie ne se devine pas. Rien n'est ecrit.",
+                "Des cotisations sont déclarées sous l'adhésion {} de l'organisme {} (S21.G00.15.002), et le logiciel ne \
+sait pas payer cet organisme : la table livrée des versements (donnees/organismes-base.json) n'en a aucun à {}, et le \
+bloc S21.G00.20 qui les paie ne se devine pas. Si ce code d'organisme a été saisi dans Configuration › Organismes et \
+contrats, le vérifier sur le certificat d'adhésion. Rien n'est écrit.",
                 c.code, c.organisme, c.organisme
             ));
         }
@@ -4892,14 +4893,6 @@ mod tests {
         assert!(casc_svp(&ctx_dsn("b3", &["2026-08"]), &json!({"idcc": "3090"}), &o, "2026-08").unwrap().is_none());
     }
 
-    #[test]
-    fn une_3090_sans_adhesion_casc_refuse() {
-        let mut o = orgs_casc();
-        o["adhesions_prevoyance"] = json!([{"libelle": "INTERBRANCHE", "reference": "102"}]);
-        let e = casc_svp(&ctx_dsn("c", &[]), &json!({"idcc": "3090"}), &o, "2026-09").unwrap_err();
-        assert!(e.contains("CASCSVP"), "{}", e);
-    }
-
     // S21.G00.20.002 de France Travail (`atelier/reference/sources/francetravail-100-dsn/net-entreprises-fiche-3344-intermittents-20251113.html`).
     #[test]
     fn le_dossier_france_travail_de_la_fiche_part_dans_la_dsn() {
@@ -4920,8 +4913,6 @@ mod tests {
             .as_deref(),
             Some("X")
         );
-        let e = reference_versement(&ft, &json!({"france_travail_dossier_recouvrement": "CS00000002"})).unwrap_err();
-        assert!(e.contains("CS00000002") && e.contains("CS00012345"), "{}", e);
         assert_eq!(SIRET_FRANCE_TRAVAIL, "13000548100010");
     }
 

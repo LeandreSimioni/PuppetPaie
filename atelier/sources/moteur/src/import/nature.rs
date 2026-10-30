@@ -83,23 +83,10 @@ fn mois_suivant(m: &str) -> String {
     }
 }
 
-/// Le nom d'un salarie, tel que la fiche le montre ; sa cle a defaut.
+/// Le nom d'un salarié à l'écran ; sa clé à défaut.
 fn nom_du_salarie(racine: &Path, cle: &str) -> String {
     let fiches = crate::routes::lire_json_ou_vide(&racine.join("config").join("salaries.json")).unwrap_or(Value::Null);
-    let Some(f) = fiches.get(cle).filter(|f| f.is_object()) else { return cle.to_string() };
-    // La fiche est datee (`[{"valeur"}, {"depuis", "valeur"}]`) : son nom est sa derniere valeur.
-    let t = |k: &str| match f.get(k) {
-        Some(Value::Array(versions)) => versions.last().map(|v| texte(v, "valeur")).unwrap_or_default(),
-        _ => texte(f, k),
-    };
-    let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
-    let nom = if t("nom_affichage").is_empty() { t("nom") } else { t("nom_affichage") };
-    let n = format!("{} {}", prenom, nom).trim().to_string();
-    if n.is_empty() {
-        cle.to_string()
-    } else {
-        n
-    }
+    socle::texte::salarie_nomme_ou(fiches.get(cle).filter(|f| f.is_object()), cle)
 }
 
 /// Les contrats a dire d'un salarie : (nombre, premier debut, derniere fin).
@@ -250,38 +237,26 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         let depuis = Jour::lire(&du).map_err(|m| refus(format!("{} : la case des permanents n'a pas ete cochee.", m)))?;
         crate::routes::fiches::poser_entreprise(ctx, "emploie_des_permanents", json!(true), Some(depuis))?;
     }
-    Ok(json!({"ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares}))
-}
-
-/// LES CONGES PAYES D'UN PERMANENT DONT LE CONTRAT CONTINUE : il a acquis des jours dans l'ancien logiciel (L3141-3 du
-/// code du travail, `atelier/reference/sources/code-du-travail/articles-20260919.md`) et en a peut-etre pris ; aucun
-/// gabarit de bulletin repris ne les imprime, et un solde ne se devine
-/// pas (regle 1). Ils se recopient de son dernier bulletin sur sa fiche (`conges_reprise`, que
-/// `engagement::conges::reprise_conges` lit) ; sans eux, ses conges partiraient de zero au premier mois paye ici. Rend
-/// `[{salarie, nom, depuis}]` (`depuis` : le premier jour paye ici), pour ceux dont la fiche ne les dit pas. Ne leve
-/// jamais.
-pub(crate) fn conges_a_dire(racine: &Path) -> Vec<Value> {
-    let engs = engagements(racine);
-    let dernier = dernier_mois(&engs);
-    if dernier.is_empty() {
-        return Vec::new();
-    }
-    let suite = mois_suivant(&dernier);
-    let fiches = crate::routes::lire_json_ou_vide(&racine.join("config").join("salaries.json")).unwrap_or(Value::Null);
-    let dit = |cle: &str| -> bool {
-        let Some(c) = fiches.get(cle).and_then(|f| f.get("conges_reprise")) else { return false };
-        let a_une_date = |v: &Value| v.get("date").is_some_and(vrai);
-        match c {
-            Value::Array(versions) => versions.iter().any(|x| x.get("valeur").is_some_and(a_une_date)),
-            autre => a_une_date(autre),
-        }
+    // Les contrats de prevoyance et de sante des permanents que l'ecran attend maintenant : ceux que les DSN reprises
+    // declarent (S21.G00.15) se posent, lus sous la fiche telle qu'elle vient d'etre ecrite.
+    let parametrage = match Contexte::nouveau(&ctx.racine, Some(ctx.date)) {
+        Ok(frais) if permanents_declares => crate::import::parametrage::poser_organismes_repris(&frais),
+        _ => Vec::new(),
     };
-    let mut vus = std::collections::BTreeSet::new();
-    repris_en_cours(racine, &suite)
-        .into_iter()
-        .filter(|r| !dit(&r.salarie) && vus.insert(r.salarie.clone()))
-        .map(|r| json!({"salarie": r.salarie, "nom": nom_du_salarie(racine, &r.salarie), "depuis": format!("{}-01", suite)}))
-        .collect()
+    // Ce que l'ecran dit du geste, et sa couleur : la nature est ecrite, c'est fait ; ce qui reste a dire pour un
+    // permanent est une ligne de « Pour demarrer », qui a la sienne.
+    let mut phrase = format!("Nature enregistrée sur {} contrat{} repris.", ecrits, if ecrits > 1 { "s" } else { "" });
+    if permanents_declares {
+        phrase.push_str(" La compagnie emploie donc des salariés au mois : « Pour démarrer » dit ce que cela demande encore.");
+    }
+    for p in &parametrage {
+        phrase.push(' ');
+        phrase.push_str(p);
+    }
+    Ok(json!({
+        "ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares, "parametrage": parametrage,
+        "phrase": phrase, "couleur": crate::routes::couleur_de_l_etat("fait"),
+    }))
 }
 
 /// Un contrat de permanent repris des bulletins qui court en `mois` : le salarie, le debut, la fin (vide sans terme),
@@ -328,4 +303,58 @@ pub(crate) fn repris_en_cours(racine: &Path, mois: &str) -> Vec<Repris> {
         .filter(|r| r.depuis.as_str() < mois && r.debut.as_str() < premier.as_str() && (r.fin.is_empty() || r.fin >= premier))
         .filter(|r| droit::natures::nature(Some(&r.nature)).is_ok_and(|n| n.mensuelle() && (n.duree_indeterminee || !r.fin.is_empty())))
         .collect()
+}
+
+/// CE QUE LA DSN REPRISE DIT DEJA NE SE DEMANDE PAS. Pour chaque salarie dont des contrats repris attendent leur nature
+/// (`a_dire`), le contrat que sa derniere DSN reprise declare la donne (S21.G00.40.007, la nature du contrat ;
+/// `norme-dsn/texte/bloc-S21.G00.40.txt`), avec ce que `demande` exige d'un contrat qui court encore : le debut (.001),
+/// le numero (.009), la duree du travail (.013), la fin s'il a un terme (.010) et le salaire du contrat, « la remuneration
+/// brute habituelle du salarie » (S21.G00.51, type 010 ; `bloc-S21.G00.51.txt`). Tout y est : la nature se dit comme a
+/// l'ecran (`dire`). Il en manque, ou la nature declaree n'est pas d'un permanent : rien ne se choisit, l'ecran le
+/// demande. Rend ce que chaque nature dite a fait, en phrases.
+pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
+    let lecture = crate::import::dsn_aem::lire_dsn(&racine.join("historique").join("bulletins"));
+    let Ok(permises) = natures_permanentes() else { return Vec::new() };
+    let mut faits = Vec::new();
+    for x in a_dire(racine) {
+        let salarie = texte(&x, "salarie");
+        let Ok(ctx) = Contexte::nouveau(racine, Some(*quand)) else { break };
+        let nir = ctx.salaries.get(&salarie).and_then(|f| f.get("nir")).map(valeur_en_texte).unwrap_or_default();
+        if nir.is_empty() {
+            continue;
+        }
+        // Sa derniere paie declaree : le contrat tel que la derniere DSN le dit.
+        let Some(((_, _, numero), p)) = lecture.paies.iter().filter(|((_, n, _), _)| *n == nir).last() else { continue };
+        let code = texte(&json!(p), "nature_dsn");
+        let Some(nat) = permises.iter().find(|n| n.codes.get("S21.G00.40.007").and_then(|c| c.get("valeur")).and_then(Value::as_str) == Some(code.as_str()))
+        else {
+            continue;
+        };
+        let en_cours = x.get("en_cours").is_some_and(vrai);
+        let lu = |k: &str| p.get(k).map(valeur_en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+        let mut charge = Map::new();
+        charge.insert("salarie".into(), json!(salarie));
+        charge.insert("nature".into(), json!(nat.cle));
+        let mut complet = true;
+        for champ in demande(nat, en_cours) {
+            let v = match champ {
+                "numero" => Some(numero.clone()).filter(|n| !n.is_empty()),
+                "salaire" => lu("salaire_base"),
+                autre => lu(autre),
+            };
+            match v {
+                Some(v) => {
+                    charge.insert(champ.into(), json!(v));
+                }
+                None => complet = false,
+            }
+        }
+        if !complet {
+            continue;
+        }
+        if let Ok(r) = dire(&ctx, &Value::Object(charge)) {
+            faits.push(format!("{} : {}, lu dans sa DSN reprise. {}", nom_du_salarie(racine, &salarie), nat.libelle, texte(&r, "phrase")));
+        }
+    }
+    faits
 }

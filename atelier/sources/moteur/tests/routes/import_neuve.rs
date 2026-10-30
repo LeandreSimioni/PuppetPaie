@@ -277,18 +277,25 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let novembre = banc.join("sorties/2026-11");
     std::fs::copy(novembre.join("envoi/Bulletin_FULLER_Novembre2026.pdf"), import.join("Bulletin_FULLER_Novembre2026.pdf")).unwrap();
     let dsn = std::fs::read(novembre.join("DSN_Novembre2026.dsn")).unwrap();
+    // Le taux que la DGFiP a transmis a l'ancien logiciel (S21.G00.50.007 = 01, son identifiant en .008).
     let dsn = String::from_utf8_lossy(&dsn).replace("S21.G00.40.010,'21112026'", "S21.G00.40.010,'03122026'");
+    assert!(dsn.contains("S21.G00.50.007,'01'"), "{}", dsn);
+    let identifiant = dsn.lines().find_map(|l| l.trim().strip_prefix("S21.G00.50.008,")).unwrap().to_string();
     std::fs::write(import.join("DSN_Novembre2026.dsn"), dsn.as_bytes()).unwrap();
     let jour = "2026-12-20";
     let route = |nom: &str, charge: Value| crate::outils::route(&racine, nom, charge, jour);
     reussi(&route("importer", json!({"dossier": ""})));
+
+    // La licence que la DSN declare (S21.G00.40.049) devient le numero de la fiche, celui que le bulletin imprime.
+    let licence = dsn.lines().find_map(|l| l.strip_prefix("S21.G00.40.049,'")).map(|l| l.trim_end_matches(['\'', '\r'])).unwrap();
+    assert_eq!(entreprise_lue(&racine)["licence_spectacle"], json!(licence));
 
     let importes = engagement::importe::tous(&racine).unwrap();
     assert_eq!(importes.len(), 1, "{:?}", importes);
     let i = &importes[0];
     assert_eq!((i.objet().brut["numero"].clone(), i.objet().brut["fin"].clone()), (json!("FU1.26.01"), json!("2026-12-03")));
     let paie = i.paies()["2026-11"].clone();
-    assert_eq!((paie["declare_par"].clone(), paie["net_a_payer"].clone()), (json!("DSN"), json!("232.30")), "{:?}", paie);
+    assert_eq!((paie["declare_par"].clone(), paie["net_a_payer"].clone()), (json!("DSN"), json!("212.30")), "{:?}", paie);
     assert!(paie["bulletin"].is_object(), "le bulletin ne complete pas la paie de la DSN : {:?}", paie);
 
     let avant = engagements_ecrits(&racine);
@@ -298,7 +305,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     assert_eq!(engagements_ecrits(&racine), avant);
 
     // Decembre se paie ici : le contrat s'y reprend avec son numero et ses dates.
-    for f in ["entreprise.json", "organismes.json", "pas.json", "baremes/2026.json"] {
+    for f in ["entreprise.json", "organismes.json", "baremes/2026.json"] {
         let cible = racine.join("config").join(f);
         std::fs::create_dir_all(cible.parent().unwrap()).unwrap();
         std::fs::copy(banc.join("config").join(f), cible).unwrap();
@@ -323,7 +330,9 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let ecrite = reussi(&route("dsn-a-deposer", json!({"mois": "2026-12"}))).clone();
     let decembre = std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap();
     let decembre = String::from_utf8_lossy(&decembre);
-    for attendu in ["S21.G00.40.001,'20112026'", "S21.G00.40.009,'FU1.26.01'", "S21.G00.40.013,'4.00'"] {
+    // Le taux transmis que la DSN reprise appliquait vaut encore en decembre (CGI, art. 1671, 2) : il continue.
+    let identifiant = format!("S21.G00.50.008,{}", identifiant);
+    for attendu in ["S21.G00.40.001,'20112026'", "S21.G00.40.009,'FU1.26.01'", "S21.G00.40.013,'4.00'", "S21.G00.50.007,'01'", identifiant.as_str()] {
         assert!(decembre.contains(attendu), "{} manque :\n{}", attendu, decembre);
     }
     let ctx = droit::contexte::Contexte::nouveau(&racine, None).unwrap();

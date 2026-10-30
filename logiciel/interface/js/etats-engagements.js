@@ -62,12 +62,13 @@ const contratDe = (l) => ({ salarie: l.salarie, debut: l.debut,
 /* LES TROIS CARRÉS DE LA LIGNE VALIDÉE : DPAE, Contrat, Documents. Le moteur
    rend chacun (`etat-par-engagement`, `carres`) : son nom, sa couleur, ce qui
    reste en un mot, sa phrase et le geste qu'ouvre un clic. La page les
-   dessine ; un carré qui a un geste est un bouton. */
+   dessine ; un carré qui a un geste est un bouton, sauf sur la carte d'un
+   engagement validé, qui s'ouvre toute entière sur son détail. */
 
 /** Le bandeau d'une ligne : un carré par acte. */
-function bandeauEtats(ligne) {
+function bandeauEtats(ligne, gestes = true) {
   return `<div class="etats-actes">` + (ligne.carres || []).map((c, i) => {
-    const clic = !!c.action;
+    const clic = gestes && !!c.action;
     const classe = c.coupee ? "en-attente" : (c.couleur || "gris");
     return `<span class="etat-acte ${classe}${clic ? " cliquable" : ""}"
         ${clic ? `data-carre="${i}" tabindex="0" role="button"` : ""}
@@ -197,7 +198,6 @@ function peindreEtats() {
     const lignes = ETATS_ENGAGEMENTS
       ? ps.map(etatDEngagement).filter(Boolean)
       : [];
-    avisDpaeDeplacee(div, ps, lignes.length === 1 ? lignes[0] : null);
     const connue = ps.length > 0 && lignes.length === ps.length;
     div.classList.toggle("enregistree", connue);
     if (!ETATS_ENGAGEMENTS) { poserEtats(cible, ""); return; }
@@ -233,11 +233,6 @@ function peindreEtats() {
       const ligne = lignes[0];
       // Un contrat sur plusieurs mois : son chevron est au bord de la case.
       div._ligne = ligne;
-      const dp = ligne.etats.dpae || {};
-      if (dp.fait && !dp.refusee) {
-        div._dpaeFaite = { salarie: ligne.salarie, debut: ligne.debut,
-                           nom: ligne.nom, quand: dp.fait };
-      }
       poserEtats(cible, `<span class="etats-qui">${echapper(ligne.nom)}
           <span class="discret">— ${echapper(pourQuoi(ligne))}</span></span>`
         + bandeauEtats(ligne) + bandeauValidation(ligne));
@@ -280,18 +275,21 @@ function peindreEtats() {
 async function validerPlusieurs(div, lignes) {
   const mois = document.getElementById("mois").value;
   let faites = 0;
+  const avis = [];
   try {
     for (const l of lignes) {
-      await api("valider-engagement", { mois, ...contratDe(l), valide: true });
+      const r = await validerEngagement(mois, l, true);
+      if (r === null) break;
+      avis.push(...((r && r.avis) || []));
       faites += 1;
     }
-    dire(`${faites} engagements validés.`);
+    dire(`${faites} engagements validés.` + avis.map((a) => " " + a.phrase).join(""), avis.length ? avis[0].couleur : undefined);
   } catch (e) {
     dire(e.message + (faites ? ` (${faites} validé(s) avant)` : ""),
          "erreur");
   }
   if (faites) dedoubler(div);
-  await dessinerEtatsDesEngagements(mois);
+  await rafraichirActions();
 }
 
 /** Lit `etat-par-engagement` et repeint. Pendant la lecture, les cartes gardent les états qu'elles montrent : une
@@ -474,7 +472,28 @@ function peindreNonActifs(liste) {
  *  question (`DocumentsPartis`) : la page la montre telle quelle, et ne renvoie qu'avec la réponse. */
 async function validerEngagement(mois, ligne, valide) {
   const charge = { mois, ...contratDe(ligne), valide };
-  try { return await api("valider-engagement", charge); } catch (e) {
+  try {
+    const r = await api("valider-engagement", charge);
+    if (!r || !r.a_partir_du) return r;
+    // « À partir de quel mois ? » : le moteur la pose et donne les mois ; la page la montre et renvoie la réponse.
+    const q = r.a_partir_du;
+    const depuis = await new Promise((repondre) => {
+      ouvrirBoite(`<h3>À partir de quel mois ?</h3>
+        <p>${echapper(q.phrase)}</p>
+        <label>À partir de <select id="apd-mois">${q.choix.map((c) =>
+          `<option value="${echapper(c.mois)}">${echapper(c.libelle)}${c.partis ? " (déjà parti)" : ""}</option>`).join("")}</select></label>
+        <div class="actions">
+          <button class="secondaire" id="apd-non">Annuler</button>
+          <button class="primaire" id="apd-oui">Valider l'engagement</button>
+        </div>`, () => repondre(null));
+      document.getElementById("apd-non").onclick = () => fermerBoite();
+      document.getElementById("apd-oui").onclick = () => {
+        const m = document.getElementById("apd-mois").value; repondre(m); fermerBoite();
+      };
+    });
+    if (!depuis) return null;
+    return api("valider-engagement", { ...charge, a_partir_du: depuis });
+  } catch (e) {
     if (e.detail?.type !== "DocumentsPartis") throw e;
     const oui = await new Promise((repondre) => {
       ouvrirBoite(`<p>${echapper(e.message)}</p>
@@ -493,9 +512,13 @@ async function validerEngagement(mois, ligne, valide) {
 async function basculerValidation(ligne, valide) {
   const mois = document.getElementById("mois").value;
   try {
-    if (await validerEngagement(mois, ligne, valide) === null) return;
-    dire(valide ? "Engagement validé." : "Engagement ouvert à la modification : le revalider ensuite.");
-    await dessinerEtatsDesEngagements(mois);
+    const r = await validerEngagement(mois, ligne, valide);
+    if (r === null) return;
+    // Ce que le moteur dit sans refuser (un contrat qui ne pourra pas partir) se dit, à sa couleur.
+    const avis = (r && r.avis) || [];
+    if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
+    else dire(valide ? "Engagement validé." : "Engagement ouvert à la modification : le revalider ensuite.");
+    await rafraichirActions();
   } catch (e) { dire(e.message, "erreur"); }
 }
 
@@ -523,12 +546,11 @@ async function modifierEngagements(lignes) {
     dire(lignes.length > 1 ? `Ces ${lignes.length} engagements sont ouverts à la modification.`
                            : "Engagement ouvert à la modification : le revalider ensuite.");
   } catch (e) { dire(e.message, "erreur"); }
-  await dessinerEtatsDesEngagements(mois);
+  await rafraichirActions();
 }
 
 /* MODIFIER L'ENGAGEMENT : un engagement dont aucun contrat n'est parti se rouvre d'un clic ; un contrat parti se dit
- * d'abord, parce que changer ce qu'il porte fait un avenant à faire signer. La DPAE se dit quand on change le premier
- * jour ou le salarié (`avisDpaeDeplacee`). */
+ * d'abord, parce que changer ce qu'il porte fait un avenant à faire signer. */
 function boiteModifier(ligne) {
   const lignes = engagementsSoeurs(ligne);
   const partis = lignes.filter((l) => l.etats && l.etats.signature
@@ -561,53 +583,6 @@ function boiteModifier(ligne) {
     fermerBoite();
     await modifierEngagements(lignes);
   };
-}
-
-/* LA DPAE NE SE DIT QUE SUR CE QU'ELLE DÉCLARE. L'utilisateur :
- * l'avertissement doit correspondre aux vraies attentes de la DPAE, rien
- * d'inventé. Ce qu'elle déclare, c'est R1221-1 du code du travail : le
- * salarié, la date et l'heure d'embauche, la nature et la durée du contrat
- * (sa date de fin, pour un CDD) — ni la rémunération, ni les heures, ni les
- * cachets. L'encart ne paraît donc que si l'une de ces données s'écarte de
- * la DPAE déposée : premier jour ou salarié (le bloc retient l'embauche
- * déclarée la dernière fois qu'il l'a lue), ou fin du contrat
- * (`fin_declaree`, lue au journal du dépôt). Et il dit ce que dit l'Urssaf,
- * page « DPAE » d'urssaf.fr, mise à jour le 15/07/2026 : les informations
- * relatives au contrat de travail se modifient dans l'espace en ligne
- * (Compte › Embauche › Modifier une DPAE) ; pour toute autre modification,
- * une nouvelle DPAE, ou les services de l'Urssaf (3957). Rien de plus : ni
- * délai, ni annulation, qu'aucune source officielle lue ne pose. */
-const URSSAF_DPAE = "https://www.urssaf.fr/accueil/employeur/embaucher-gerer-salaries/embaucher/declaration-prealable-embauche.html";
-
-function avisDpaeDeplacee(div, ps, ligne) {
-  const cible = div.querySelector(".etats");
-  let avis = div.querySelector(".avis-dpae");
-  const d = div._dpaeFaite;
-  const ecarts = [];
-  if (d && !ps.some((p) => p.salarie === d.salarie && p.debut === d.debut)) {
-    ecarts.push(ps.some((p) => p.salarie === d.salarie)
-      ? `premier jour : la DPAE déclare le ${jjmmaaaa(d.debut)}`
-      : `salarié : la DPAE déclare ${d.nom}`);
-  }
-  const dp = ligne && ligne.etats && ligne.etats.dpae;
-  if (dp && dp.fait && !dp.refusee && dp.fin_declaree && dp.fin_declaree !== ligne.fin) {
-    ecarts.push(`fin du contrat : la DPAE déclare le ${jjmmaaaa(dp.fin_declaree)},
-      l'engagement dit le ${jjmmaaaa(ligne.fin)}`);
-  }
-  if (!ecarts.length) { if (avis) avis.remove(); return; }
-  if (!avis) {
-    avis = document.createElement("div");
-    avis.className = "encart attention avis-dpae";
-    cible.parentNode.insertBefore(avis, cible);
-  }
-  const quandDpae = d ? d.quand : dp.fait;
-  avis.innerHTML = `<b>L'engagement ne correspond plus à la DPAE déposée le ${echapper(quand(quandDpae))}</b>
-    <ul>${ecarts.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>
-    Selon l'Urssaf, les informations relatives au contrat de travail se
-    modifient dans son espace en ligne (Compte › Embauche › Modifier une
-    DPAE) ; pour toute autre modification, on dépose une nouvelle DPAE ou on
-    contacte l'Urssaf (3957).
-    <a href="${URSSAF_DPAE}" target="_blank" rel="noopener">La page de l'Urssaf</a>`;
 }
 
 /* PLUS DE CASE DE SÉLECTION NI DE BARRE D'ACTIONS GROUPÉES :

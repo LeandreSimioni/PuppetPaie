@@ -812,6 +812,7 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .e-contrat > summary::-webkit-details-marker { display: none; }
 .e-contrat > summary::before { content: "▸ "; }
 .e-contrat[open] > summary::before { content: "▾ "; }
+.e-contrat[data-cases]:not([open]) > summary::after { content: " · " attr(data-cases); color: var(--discret); font-weight: normal; }
 .e-contrat.a-cheval > summary { color: var(--alerte); font-weight: bold; }
 .e-contrat-champs { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin: 4px 0; }
 .e-contrat-champs label { font-size: 12px; color: var(--discret); }
@@ -1041,9 +1042,6 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   font-size: 30px; line-height: 1.1; font-weight: bold;
   color: var(--action); text-transform: capitalize;
 }
-.mois-gros .iso {
-  font-family: Consolas, monospace; font-size: 15px; color: var(--discret);
-}
 
 /* Les ordres de télépaiement, en entier et un par ligne. Résumés en « 5
    versements », ils ne se relisent plus — et un dépôt réel les déclenche
@@ -1253,6 +1251,7 @@ pre.reponse {
 .rubrique .r-lieux-jours { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline;
                            font-size: 12px; }
 .rubrique .r-lieux-jours:empty { display: none; }
+.rubrique .r-dit { grid-column: 1 / -1; font-size: 0.85em; }
 .rubrique .r-lieu-jour-l[hidden] { display: none; }
 .rubrique .r-lieu-jour-l { display: inline-flex; align-items: baseline; gap: 4px; }
 .rubrique .r-lieu-jour { display: inline-block; width: 10rem; padding: .2rem .4rem; }

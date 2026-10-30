@@ -7,7 +7,16 @@ use socle::num::Resultat;
 
 use crate::natures::Nature;
 
-/// Un contrat ouvre-t-il la contribution CPF-CDD ? `qui` nomme le contrat dans un refus.
+/// Le contrat d'un salarie dans un message : « le contrat VA5.26.01 de VARENNE », « le contrat de VARENNE » tant qu'il n'a
+/// pas de numero.
+pub fn le_contrat(numero: Option<&str>, salarie: &str) -> String {
+    match numero.filter(|n| !n.is_empty()) {
+        Some(n) => format!("le contrat {} de {}", n, salarie),
+        None => format!("le contrat de {}", salarie),
+    }
+}
+
+/// Un contrat ouvre-t-il la contribution CPF-CDD ? `qui` nomme le contrat dans un refus (`le_contrat`).
 pub fn ouvre_cpf_cdd(nature: &str, dispositif: &str, motif: &str, qui: &str) -> Resultat<bool> {
     // « titulaires d'un contrat à durée déterminée » : la nature 02 (CDD de droit prive) seule.
     if nature != "02" {
@@ -22,8 +31,9 @@ pub fn ouvre_cpf_cdd(nature: &str, dispositif: &str, motif: &str, qui: &str) -> 
         "03" | "04" => return Ok(false),
         "" => {
             return Err(format!(
-                "{} : un CDD sans motif de recours (S21.G00.40.021). Le motif dit si le contrat ouvre la contribution \
-CPF-CDD (code du travail L. 6331-6 : pas un CDD saisonnier) ; il se saisit sur l'engagement (`motif_recours`).",
+                "Dites pourquoi ce CDD est conclu (« Motif du CDD », sur la carte de l'engagement) : {} n'en dit pas le motif.\n\
+Le motif dit si le contrat ouvre la contribution CPF-CDD (code du travail, L. 6331-6 : pas un CDD saisonnier) ; la DSN \
+le déclare (S21.G00.40.021).",
                 qui
             ))
         }
@@ -33,7 +43,7 @@ CPF-CDD (code du travail L. 6331-6 : pas un CDD saisonnier) ; il se saisit sur l
     // L. 6321-9 -- tous portent un dispositif de politique publique (40.008), et le moteur n'en ecrit aucun.
     if !dispositif.is_empty() && dispositif != "99" {
         return Err(format!(
-            "{} : un CDD sous le dispositif de politique publique {} (S21.G00.40.008). D. 6331-72 du code du travail en \
+            "Un CDD sous le dispositif de politique publique {1} (S21.G00.40.008), {0}. D. 6331-72 du code du travail en \
 exclut certains de la contribution CPF-CDD (contrats d'accompagnement dans l'emploi, d'apprentissage, de \
 professionnalisation, ceux de L. 6321-9) : le moteur ne sait pas lequel c'est, et ne declare pas le bloc \
 S21.G00.44 sur une supposition.",

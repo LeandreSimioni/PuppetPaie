@@ -337,6 +337,7 @@ function dessinerFormulaire(fiche) {
         });
         return `<details class="bloc avance"${ecart ? " open" : ""}>
           <summary>${echapper(titre)}</summary>
+          ${(options || {}).dfs ? DFS_HTML() : ""}
           <div class="champs">${dedansHtml}</div>
         </details>`;
       }
@@ -1335,9 +1336,9 @@ function aRemplir(a) {
  *
  *  D'ou cette etape, et les deux choses qu'elle demande :
  *
- *   - A PARTIR DE QUAND la nouvelle valeur vaut. Par defaut aujourd'hui,
- *     modifiable : si une declaration est partie ce matin avec l'ancienne,
- *     la nouvelle ne vaut qu'a partir de demain. C'est l'humain qui sait.
+ *   - A PARTIR DE QUAND la nouvelle valeur vaut. Le moteur propose le
+ *     premier mois dont rien n'est parti ; une autre date se choisit, dans
+ *     le passe aussi.
  *   - POURQUOI. Une correction et un demenagement se datent pareil ; seule
  *     la note dira, dans deux ans, laquelle des deux c'etait.
  *
@@ -1346,13 +1347,13 @@ function aRemplir(a) {
  */
 async function enregistrerFiche(fiche) {
   const donnees = lireFormulaire();
-  // Le moteur dit ce qui change une valeur existante : chacune demande sa
-  // date d'effet, et le moteur refuse sans elle (toute la configuration est
-  // datée). Une fiche neuve, une case vide qu'on remplit : rien à demander.
-  const { changements } = await api("changements-declares",
+  // Le moteur dit ce qui change la fiche, case vide comprise : chaque
+  // changement demande sa date d'effet, que le moteur propose, et il refuse
+  // sans elle (toute la configuration est datée). Une fiche neuve : rien à demander.
+  const { changements, depuis, pourquoi } = await api("changements-declares",
     { nom: FICHE_ACTIVE, cle: fiche.cle, donnees });
   if (changements.length) {
-    const daté = await demanderDateDEffet(changements);
+    const daté = await demanderDateDEffet(changements, depuis, pourquoi);
     // Annulé, ou la boîte fermée d'un clic à côté : rien n'est écrit, la
     // fiche garde ce qu'on y a tapé, et la page le dit.
     if (!daté) {
@@ -1408,17 +1409,21 @@ function valeurHistorique(champ, avant, apres) {
  * France Travail changent ensemble, ce sont trois écritures d'un seul fait. */
 const CHAMPS_DU_METIER = ["emploi_affichage", "emploi", "pcs_ese", "code_emploi_ft", "statut"];
 
-function demanderDateDEffet(changements) {
-  const aujourdHui = aujourdhuiIso();   // le jour du moteur
+function demanderDateDEffet(changements, propose, pourquoi) {
   const metier = changements.filter((c) => CHAMPS_DU_METIER.includes(c.champ));
   const autres = changements.filter((c) => !CHAMPS_DU_METIER.includes(c.champ));
-  const lisible = (c, cote) => valeurLisible(c[cote + "_lisible"] ?? c[cote]);
+  // Une case à choix se dit par le libellé que la fiche montre (« Régisseur de théâtre »), pas par son code.
+  const lisible = (c, cote) => {
+    const v = c[cote + "_lisible"] ?? c[cote];
+    const nom = (LIBELLES_CHOIX[c.champ] || {})[String(v ?? "")];
+    return nom && String(v ?? "") ? nom : valeurLisible(v);
+  };
   const ligne = (titre, avant, apres, detail = "") => `<div class="changement">
       <div class="changement-titre">${echapper(titre)}</div>
       <div class="changement-valeurs">
-        <span class="avant">${echapper(avant)}</span>
+        <span class="avant">${String(avant).trim() ? echapper(avant) : `<i class="discret">vide</i>`}</span>
         <span class="fleche">→</span>
-        <span class="apres">${echapper(apres)}</span>
+        <span class="apres">${String(apres).trim() ? echapper(apres) : `<i class="discret">effacé</i>`}</span>
       </div>${detail ? `<div class="changement-prix">${detail}</div>` : ""}
     </div>`;
   let blocs = "";
@@ -1436,12 +1441,14 @@ function demanderDateDEffet(changements) {
     let repondu = false;
     const repondre = (v) => { if (!repondu) { repondu = true; resoudre(v); } };
     ouvrirBoite(`<h3>${titre}</h3>
+      <p>Ce que vous changez vaut à partir d'une date : la voici proposée,
+         changez-la si besoin, puis enregistrez.</p>
       <div class="changements">${blocs}</div>
       <label class="champ-boite">À partir du
-        <input type="date" id="b-depuis" value="${aujourdHui}">
+        <input type="date" id="b-depuis" value="${echapper(propose || "")}">
       </label>
-      <p class="note">Ce qui est déjà déclaré garde l'ancienne valeur ; la
-         nouvelle vaut à partir de cette date.</p>
+      <p class="note">${echapper(pourquoi || "")} Avant cette date, la fiche garde ce
+         qu'elle disait.</p>
       <details class="b-note-bloc"><summary class="discret">ajouter une note</summary>
         <input type="text" id="b-note" placeholder="correction, déménagement…">
       </details>

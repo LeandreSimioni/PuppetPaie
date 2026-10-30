@@ -597,20 +597,8 @@ fn cochees(ctx: &Contexte) -> R<Map<String, Value>> {
 
 /// Le taux AT/MP de l'annee est-il pose ?
 fn atmp_pose(ctx: &Contexte, annee: i32) -> R<bool> {
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", annee));
-    if !p.exists() {
-        return Ok(false);
-    }
-    let v = match lire_saisie(&p) {
-        Ok(v) => v,
-        Err(e) if matches!(e.classe, Some("JSONDecodeError") | Some("UnicodeDecodeError")) => return Ok(false),
-        Err(e) => return Err(e),
-    };
-    let Some(o) = v.as_object() else { return Err(pas_de_get(&v)) };
-    Ok(match o.get("taux_atmp") {
-        Some(Value::Object(t)) => t.get("valeur").map_or(false, |x| !x.is_null()),
-        _ => false,
-    })
+    // Dit pour l'annee, ou un taux collectif que l'annee reprend d'elle-meme : rien a relever (`Contexte::taux_atmp_de`).
+    Ok(matches!(ctx.taux_atmp_de(annee), Some(Ok(t)) if t.get("valeur").is_some_and(|x| !x.is_null())))
 }
 
 /// Vrai, faux, ou `None` quand on ne peut pas le savoir.
@@ -1119,7 +1107,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                 continue;
             }
             vus.poser(ident.clone(), ())?;
-            let Ok(sal) = ctx.salarie(&cle) else { continue };
+            let Ok(_) = ctx.salarie(&cle) else { continue };
             // La nature d'abord : un contrat paye au mois ne se rattache a aucun spectacle
             // (S21.G00.40.050, CCH-11) et se reprend avec ce qui le definit, pas en cachets.
             let nature = match e.get("nature") {
@@ -1146,11 +1134,6 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                     Err(_) => continue,
                 },
             };
-            let texte_de = |k: &str| -> R<Value> { sal.get(k).cloned().ok_or_else(|| cle_manquante(k)) };
-            let prenom = match sal.get("prenom_affichage").filter(|x| vrai(x)) {
-                Some(p) => p.clone(),
-                None => texte_de("prenom")?,
-            };
             let taux_cachet = e
                 .get("lignes")
                 .filter(|x| vrai(x))
@@ -1163,7 +1146,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                 .unwrap_or(Value::Null);
             out.push(EnCours {
                 salarie: cle.clone(),
-                nom: format!("{} {}", valeur_en_texte(&texte_de("nom")?), valeur_en_texte(&prenom)),
+                nom: ctx.nomme(&cle),
                 spectacle: spec,
                 debut: debut.clone(),
                 fin,
@@ -1193,9 +1176,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             continue;
         }
         vus.poser(ident, ())?;
-        let Ok(sal) = ctx.salarie(&r.salarie) else { continue };
-        let t = |k: &str| sal.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
-        let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
+        let Ok(_) = ctx.salarie(&r.salarie) else { continue };
         let mut mensuel = Map::new();
         mensuel.insert("nature".into(), json!(r.nature));
         if let Some(s) = &r.salaire_mensuel {
@@ -1206,7 +1187,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
         }
         out.push(EnCours {
             salarie: r.salarie.clone(),
-            nom: format!("{} {}", t("nom"), prenom),
+            nom: ctx.nomme(&r.salarie),
             spectacle: Value::Null,
             debut: r.debut,
             fin: r.fin,
@@ -1233,7 +1214,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             continue;
         }
         vus.poser(ident, ())?;
-        let Ok(sal) = ctx.salarie(&salarie) else { continue };
+        let Ok(_) = ctx.salarie(&salarie) else { continue };
         let paies = i.paies();
         let derniere = paies.values().last().copied().cloned().unwrap_or_default();
         let objet_du = |x: &Map<String, Value>| ["numero_objet", "objet"].iter().map(|k| t(x, k)).find(|o| !o.is_empty()).unwrap_or_default();
@@ -1252,11 +1233,9 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             .find(|l| l.get("rubrique").and_then(Value::as_str) == Some("cachet"))
             .and_then(|l| l.get("taux").and_then(|x| valeur_en_texte(x).parse::<f64>().ok()))
             .map_or(Value::Null, nombre_f);
-        let ts = |k: &str| sal.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
-        let prenom = if ts("prenom_affichage").is_empty() { ts("prenom") } else { ts("prenom_affichage") };
         out.push(EnCours {
             salarie: salarie.clone(),
-            nom: format!("{} {}", ts("nom"), prenom),
+            nom: ctx.nomme(&salarie),
             spectacle,
             debut,
             fin,
@@ -1482,24 +1461,17 @@ fn titre_de(spec: Option<&Value>, numero: &Value) -> Value {
     }
 }
 
-/// `_nom` : « NOM Prenom » d'une cle de salarie (la cle elle-meme si elle est inconnue).
+/// « NOM Prénom » d'une clé de salarié (la clé elle-même si elle est inconnue).
 fn nom_de(ctx: &Contexte, cle: &Value) -> R<String> {
     let sal = match cle {
         Value::String(s) => ctx.salaries.get(s).filter(|x| vrai(x)),
         Value::Array(_) | Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(cle)))),
         _ => None,
     };
-    let (nom, prenom) = match sal {
-        Some(s) => (
-            s.get("nom").map(valeur_en_texte).unwrap_or_else(|| valeur_en_texte(cle)),
-            match s.get("prenom_affichage").filter(|x| vrai(x)) {
-                Some(p) => valeur_en_texte(p),
-                None => s.get("prenom").map(valeur_en_texte).unwrap_or_default(),
-            },
-        ),
-        None => (valeur_en_texte(cle), String::new()),
-    };
-    Ok(format!("{} {}", nom, prenom))
+    Ok(match sal {
+        Some(s) => socle::texte::salarie_nomme_ou(Some(s), &valeur_en_texte(cle)),
+        None => valeur_en_texte(cle),
+    })
 }
 
 /// Une quantite saisie, en flottant.
@@ -1878,7 +1850,7 @@ fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, c
                 }
             }
         }
-        if change && !confirme {
+        if change && !confirme && !actuelle.as_ref().is_some_and(|a| changements_dates_a_la_validation(ctx, mois, a, &donnees)) {
             let texte = declaree.get("avertissement").map(valeur_en_texte).unwrap_or_default();
             return Err(erreur(crate::regularisation::CLASSE_A_CONFIRMER, texte));
         }
@@ -1895,6 +1867,34 @@ fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, c
     Ok(engagement::stock::chemin(&ctx.racine, mois))
 }
 
+/// Tout ce qui change de la saisie `actuelle` a `nouvelle` (meme nombre d'engagements, compares un a un) tient a des
+/// contrats au mois rouverts dont un mois est parti (`engagement::etats::se_datera_a_la_validation`) : leur validation
+/// demandera « a partir de quel mois ? » et dira ce qui arrive a chaque mois parti. L'ecriture n'a rien a confirmer
+/// d'avance : une seule question, celle qui dit ce qui arrivera.
+fn changements_dates_a_la_validation(ctx: &Contexte, mois: &str, actuelle: &Value, nouvelle: &Value) -> bool {
+    let es = |v: &Value| v.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    let (avant, apres) = (es(actuelle), es(nouvelle));
+    if avant.len() != apres.len() {
+        return false;
+    }
+    let seul = |e: &Value| crate::routes::etapes::empreinte_de(&json!({"engagements": [e]}));
+    // Ce qui change hors des termes reconduits (une prime, un conge du mois) n'est pas « a partir d'un mois » : il change
+    // ce mois, et se confirme.
+    let hors_termes = |e: &Value| {
+        let mut e = e.clone();
+        if let Some(o) = e.as_object_mut() {
+            o.retain(|k, _| !engagement::stock::RECONDUITS.contains(&k.as_str()) || engagement::stock::PARTAGES.contains(&k.as_str()));
+        }
+        seul(&e)
+    };
+    // Un engagement valide ne change pas par l'ecriture de la saisie (`engagement::stock::ecrire_vue_du_mois`) : ce que
+    // l'ecran en renvoie (ses noms resolus) ne compte pas.
+    let valide = |a: &Value| a.get("valide").is_some_and(Value::is_object);
+    avant.iter().zip(&apres).enumerate().filter(|(_, (a, n))| !valide(a) && seul(a) != seul(n)).all(|(i, (a, n))| {
+        hors_termes(a) == hors_termes(n) && n.as_object().is_some_and(|n| engagement::etats::se_datera_a_la_validation(ctx, mois, i, n).unwrap_or(false))
+    })
+}
+
 /// CE QUI MANQUE A CHAQUE ENGAGEMENT DE LA SAISIE `data` pour se calculer, dans son ordre (`None` : rien). Une saisie
 /// qui se calcule entiere n'a rien qui manque. Sinon, chaque engagement se calcule a la suite de ceux d'avant qui se
 /// calculent (le calcul d'un engagement lit ceux qui le precedent) : celui qui refuse porte le refus, et les suivants se
@@ -1906,7 +1906,7 @@ pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &Value) -> Vec<Option<S
     }
     let mut gardes: Vec<Value> = Vec::new();
     let mut manques = Vec::new();
-    for (i, e) in tous.iter().enumerate() {
+    for e in tous.iter() {
         let mut essai = data.clone();
         essai["engagements"] = Value::Array(gardes.iter().cloned().chain(std::iter::once(e.clone())).collect());
         match engagement::pour_l_ecran(ctx, &essai) {
@@ -1914,8 +1914,7 @@ pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &Value) -> Vec<Option<S
                 gardes.push(e.clone());
                 manques.push(None);
             }
-            // Le refus nomme l'engagement par son rang dans l'essai : c'est son rang dans la saisie.
-            Err(m) => manques.push(Some(m.replacen(&format!("L'engagement {} de", gardes.len() + 1), &format!("L'engagement {} de", i + 1), 1))),
+            Err(m) => manques.push(Some(m)),
         }
     }
     manques
@@ -2191,6 +2190,31 @@ fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
     })
 }
 
+/// LA RUPTURE de cet engagement, telle que la page la propose (« Un imprévu… ») : `null` quand elle n'a pas de sens ici
+/// -- une nature sans motif de rupture (S21.G00.62.002, CCH-11 : `Nature::motifs_rupture`), ou un contrat a terme qui ne
+/// finit pas ce mois-ci -- ; sinon le libelle de la porte et la fin du contrat (celle qu'il dit, ou son dernier jour
+/// travaille quand il est aux cachets). Les motifs et ce que chacun demande viennent de `natures`.
+fn rupture_de(e: &engagement::Engagement, nat: &droit::natures::Nature) -> R<Value> {
+    if nat.motifs_rupture().is_empty() {
+        return Ok(Value::Null);
+    }
+    let porte = if nat.duree_indeterminee { "La fin du contrat (licenciement, démission…)" } else { "Une rupture avant terme" };
+    // Un contrat paye au mois (CDI, CDD) dit sa fin dans sa case : elle se tape, le mois ou elle a lieu.
+    if nat.duree_indeterminee || nat.mensuelle() {
+        return Ok(json!({"porte": porte, "fin": e.fin.map_or(Value::Null, |f| json!(f.iso()))}));
+    }
+    // Un contrat aux cachets finit son dernier jour travaille ; le bloc 62 s'ecrit ce mois-la et lui seul (fiche n° 3344,
+    // `fin_de_contrat` de `contrats-base.json`) : sa rupture se dit ce mois-la.
+    if !e.dernier_mois()? {
+        return Ok(Value::Null);
+    }
+    let fin = match e.fin {
+        Some(f) => f,
+        None => e.fin_periode()?,
+    };
+    Ok(json!({"porte": porte, "fin": fin.iso()}))
+}
+
 /// LES CASES DU CONTRAT ECRIT QUE CET ENGAGEMENT APPELLE (`engagement::CHAMPS_DU_CONTRAT_ECRIT`), et elles seules : la
 /// periode d'essai et les clauses particulieres de tout contrat ecrit ; la personne remplacee d'un CDD de remplacement
 /// (L1242-12, 1° ; `Nature::motif_de_remplacement`) ; la repartition des horaires d'un temps partiel (L3123-6, 1° : la
@@ -2209,6 +2233,24 @@ fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &dro
     }
     v.push("clauses_particulieres");
     Ok(v)
+}
+
+/// `champs_du_contrat_ecrit` d'un engagement qui ne se calcule pas encore (`a_completer`), lu sur sa saisie `e` : la
+/// periode d'essai et les clauses se disent avant que le reste soit complet. La repartition des horaires attend la
+/// duree du travail calculee.
+fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &Value) -> Vec<&'static str> {
+    let Ok(nat) = droit::natures::nature(e.get("nature").and_then(Value::as_str)) else { return Vec::new() };
+    let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Vec::new() };
+    let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_default();
+    if nat.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &engagement::debut_brut(e), &numero) {
+        return Vec::new();
+    }
+    let mut v = vec!["periode_essai_jours"];
+    if e.get("motif_recours").and_then(Value::as_str).is_some_and(|m| nat.motif_de_remplacement(m)) {
+        v.push("personne_remplacee");
+    }
+    v.push("clauses_particulieres");
+    v
 }
 
 /// Une paie pour l'ecran. `brut` : l'engagement tel qu'il
@@ -2265,6 +2307,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
             "jusqu_a": mois_du_contrat.last().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
             "periode": { "debut": iso(&e.debut_periode()?), "fin": iso(&e.fin_periode()?) },
             "ecrits": champs_du_contrat_ecrit(ctx, e, &nat)?,
+            "rupture": rupture_de(e, &nat)?,
         },
         "dates_travail": e.dates_travail.iter().map(iso).collect::<Vec<_>>(),
         "cachets": e.cachets, "taux_cachet": taux_cachet,
@@ -2316,16 +2359,10 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
     let mut out = Vec::new();
     for p in paies {
         if archivee(&p.salarie) {
-            let nom = p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
-            let prenom = match p.salarie.get("prenom_affichage") {
-                Some(x) if vrai(x) => x.clone(),
-                _ => p.salarie.get("prenom").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom")))?,
-            };
             out.push(format!(
-                "{} {} : sa fiche est archivee. Pour refaire une paie passee, rien a faire ; pour une nouvelle embauche, la \
+                "{} : sa fiche est archivee. Pour refaire une paie passee, rien a faire ; pour une nouvelle embauche, la \
                  reactiver (Configuration › Salaries, « Reactiver »).",
-                en_texte(nom),
-                en_texte(&prenom)
+                socle::texte::salarie_nomme_ou(Some(&p.salarie), "Ce salarié")
             ));
         }
         // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit
@@ -2357,21 +2394,11 @@ pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> 
     }
     let mut avert: Vec<String> = Vec::new();
     // L'apercu n'a pas a refuser : c'est la production qui le fera.
-    let urssaf = if !ctx.racine.join("config").join("organismes.json").is_file() {
-        // Une compagnie neuve n'a pas encore ses organismes : le bordereau
-        // attend, la paie non.
-        avert.push(
-            "Bordereau Urssaf pas encore calculable : les organismes de la compagnie (France Travail, Audiens, Urssaf) ne sont pas encore renseignés."
-                .to_string(),
-        );
-        Value::Null
-    } else {
-        match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
-            Ok(m) => Value::String(m.to_string()),
-            Err(e) => {
-                avert.push(format!("Bordereau Urssaf non calculable : {}", e));
-                Value::Null
-            }
+    let urssaf = match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
+        Ok(m) => Value::String(m.to_string()),
+        Err(e) => {
+            avert.push(format!("Bordereau Urssaf non calculable : {}", e));
+            Value::Null
         }
     };
 
@@ -2419,6 +2446,7 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             Some(m) => json!({
                 "a_completer": m, "salarie": {"_cle": e.get("salarie").cloned().unwrap_or(Value::Null)},
                 "avertissements": [], "informations": [],
+                "contrat": {"ecrits": champs_du_contrat_ecrit_en_saisie(ctx, e)},
             }),
         })
         .collect();
@@ -2449,9 +2477,23 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         rang_calcule += part.iter().filter(|m| m.is_none()).count();
         rang = fin;
     }
+    let aucun_chiffre = r["par_salarie"].as_array().is_none_or(Vec::is_empty);
+    r["phrase_du_mois"] = json!(phrase_du_mois(&paies, aucun_chiffre));
     r["paies"] = Value::Array(paies);
     r["blocs"] = Value::Array(blocs);
     Ok(r)
+}
+
+/// CE QUE LES CHIFFRES DU MOIS NE COMPTENT PAS, en une phrase sous eux (`None` : rien) : un engagement a completer ne
+/// se calcule pas, mais il est la ; un mois sans aucun engagement se dit aussi.
+fn phrase_du_mois(paies: &[Value], aucun_chiffre: bool) -> Option<String> {
+    let attendent = paies.iter().filter(|v| v.get("a_completer").is_some_and(vrai)).count();
+    match (attendent, aucun_chiffre) {
+        (0, true) => Some("Aucun engagement ce mois-ci.".to_string()),
+        (0, false) => None,
+        (1, vide) => Some(format!("1 engagement à compléter{} : il compte quand il est complet.", if vide { "" } else { ", pas encore compté" })),
+        (k, vide) => Some(format!("{} engagements à compléter{} : ils comptent quand ils sont complets.", k, if vide { "" } else { ", pas encore comptés" })),
+    }
 }
 
 /// L'apercu de la saisie `data` : chaque engagement se calcule.
@@ -2541,6 +2583,7 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
     }
     let n: usize = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", socle::fichiers::repr(&mois)))?;
     Ok(json!({
+        "phrase_du_mois": phrase_du_mois(&vues, par_salarie.is_empty()),
         "mois": mois,
         "libelle": format!("{} {}", socle::date::nom_du_mois(n as i64, socle::date::Graphie::Titre)?, annee),
         "paies": vues,

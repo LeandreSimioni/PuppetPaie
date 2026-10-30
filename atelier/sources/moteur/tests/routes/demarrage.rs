@@ -92,3 +92,36 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
     }
 }
 
+
+/// UN MATRICULE, UN SALARIE (un bug qui a echappe : deux fiches au matricule « 1 » s'enregistraient, et la DSN, qui
+/// rapproche chaque salarie de ses declarations par son matricule, S21.G00.30.019, prenait l'un pour l'autre). Un
+/// matricule deja porte se refuse a l'enregistrement, en nommant son porteur, et rien n'est ecrit ; une fiche sans
+/// matricule prend le suivant.
+#[test]
+fn un_matricule_deja_porte_se_refuse() {
+    let racine = neuve("matricule");
+    let fiche = |nom: &str, nir: &str, cle: &str, matricule: &str| {
+        json!({"nom": "salarie", "cle": null, "donnees": {
+            "prenom_affichage": "Loïe", "nom_affichage": nom, "nir": nir, "nir_cle": cle, "date_naissance": "1982-01-15",
+            "lieu_naissance_affichage": "Nantes", "departement_naissance": "44", "pays_naissance": "FR",
+            "code_nationalite_dsn": "01", "adresse_affichage": "7 rue de la Paix", "code_postal": "44000",
+            "commune_affichage": "Nantes", "emploi_affichage": "Comédien", "statut": "artiste", "statut_categoriel_rc": "04",
+            "pcs_ese": "354c", "code_emploi_ft": "COM010", "statut_conventionnel": "05", "code_salarie": matricule, "actif": true}})
+    };
+    reussi(&route(&racine, "enregistrer-fiche", fiche("Fuller", "2820144999002", "46", "1"), JOUR));
+    let avant = lire(&racine, "config/salaries.json");
+    let (_, phrase) = crate::outils::refus(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", "1"), JOUR));
+    assert!(phrase.contains("matricule 1") && phrase.contains("FULLER"), "{}", phrase);
+    assert_eq!(lire(&racine, "config/salaries.json"), avant, "un refus n'ecrit rien");
+    reussi(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", ""), JOUR));
+    let salaries = lire(&racine, "config/salaries.json");
+    let matricules: Vec<String> = salaries
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter(|(k, _)| !k.starts_with('_'))
+        .map(|(_, s)| fiche_au(s, JOUR)["code_salarie"].as_str().unwrap_or_default().to_string())
+        .collect();
+    assert_eq!(matricules.len(), 2);
+    assert!(matricules.contains(&"1".to_string()) && matricules.contains(&"2".to_string()), "{:?}", matricules);
+}

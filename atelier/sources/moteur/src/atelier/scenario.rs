@@ -10,9 +10,11 @@
 //!     et le rejeu verifie qu'il cree le meme ;
 //!   - `{"geste": "simuler"}` : le geste d'atelier qui fait d'une fictive ajoutee une fictive aux envois simules
 //!     (`rendre_simulee`) -- sans lui, ses envois sont refuses et elle ne peut pas vivre sa vie ;
-//!   - `{"geste": "jour", "jour"}` : le calendrier avance, et chaque compagnie du scenario s'ouvre ce jour-la : son
-//!     horloge joue ce qui etait du (`horloge::rattraper`, comme a l'ouverture). Au banc, la route `ouverture` qui suit
-//!     ne trouve alors plus rien a jouer ;
+//!   - `{"geste": "jour", "jour", "veille"}` : le calendrier avance, et chaque compagnie du scenario s'ouvre ce jour-la :
+//!     son horloge joue ce qui etait du (`horloge::rattraper`, comme a l'ouverture). `veille` (le banc, quand une
+//!     compagnie est ouverte) : sa veille passe, et son horloge joue dans la route `ouverture` qui suit, pas ici ;
+//!   - `{"geste": "etat", "cle"}` : l'etat d'un mois (ou de l'ouverture) que la fenetre a refait en fond et qui a ecrit
+//!     (`Enregistreur::fond`) ; le rejeu le refait (`etat_garde::lire`) ;
 //!   - `{"route", "charge"}` : une route du moteur, telle que la fenetre l'a servie (la page, la veille, le fil de fond :
 //!     `interface::api::route`), avec la charge que le moteur a recue. `ecrit` (vrai par defaut) : la route a change un
 //!     fichier de la compagnie -- le banc le note, et le rejeu ecarte les routes qui n'ont rien ecrit ; `ok` (vrai par
@@ -360,6 +362,23 @@ fn rejouer_les_gestes(
                 let racine = racines.get(compagnie).ok_or(format!("geste {} : `simuler` sur {}, que le scenario n'a pas ajoutee", n, compagnie))?;
                 rendre_simulee(racine).map_err(|m| format!("geste {} : {}", n, m))?;
             }
+            Some("etat") => {
+                let Some(racine) = racines.get(compagnie) else {
+                    r.autres_compagnies += 1;
+                    continue;
+                };
+                let cle = g.get("cle").and_then(Value::as_str).ok_or(format!("geste {} : `etat` sans cle", n))?;
+                let mut o = std::collections::HashMap::new();
+                o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
+                let refait = crate::service::contexte(&o).map_err(|m| socle::echec::Echec { classe: None, message: m }).and_then(|ctx| crate::etat_garde::lire(&o, &ctx, cle));
+                crate::routes::remettre_le_fil();
+                if let Err(e) = refait {
+                    r.ecarts.push(format!("geste {} ({}) : l'etat de {} refuse au rejeu : {}", n, heure(t), cle, e.message));
+                }
+            }
+            // Au banc, la compagnie ouverte joue son horloge dans sa veille, la route `ouverture` qui suit (`veille`) : le
+            // jour ne la joue pas une fois de plus, ce qu'un pas refuse se rejouant a chaque passage.
+            Some("jour") if g.get("veille") == Some(&Value::Bool(true)) => {}
             Some("jour") => {
                 for (_, racine) in &r.compagnies {
                     match crate::horloge::rattraper(racine, Some(jour), true) {
@@ -456,9 +475,10 @@ pub fn elaguer(scenario: &Path, vers: &Path) -> Result<(usize, usize), String> {
 }
 
 /// Ce qu'une comparaison de deux compagnies ne regarde pas : les caches que la fenetre refait en fond, son journal, l'etape
-/// en cours d'un passage de la veille.
+/// en cours d'un passage de la veille, et le journal des incidents (chaque incident porte le fil de la fenetre, ce que la
+/// page a fait avant lui, et la fenetre y note les refus que la page a recus : `compagnie::incidents::noter`).
 fn hors_comparaison(rel: &str) -> bool {
-    rel == "journal/interface.log" || rel == "ouverture.etat.json" || rel.ends_with(crate::compagnie::ouverture::ETAPE)
+    rel == "journal/interface.log" || rel == "journal/incidents.json" || rel == "ouverture.etat.json" || rel.ends_with(crate::compagnie::ouverture::ETAPE)
 }
 
 /// Les fichiers d'une compagnie, relatifs (barres droites), hors caches.
@@ -729,6 +749,28 @@ mod enregistreur {
             ligne.append(&mut plus);
             self.ecrire(&mut n, ligne, quand);
             Ok(t)
+        }
+
+        /// L'ETAT D'UN MOIS QUE LA FENETRE REFAIT EN FOND (`etat_garde::FileDesEtats`) : ce qui se lit peut ecrire (une paie
+        /// validee qui se recalcule, celle d'un contrat sans terme qui entre dans le mois), sans qu'aucune route de la
+        /// page ne le demande. `f` le refait sous le meme tour, au meme instant fige ; s'il a ecrit, le geste `etat`
+        /// (la compagnie, la cle) entre dans le scenario, et le rejeu le refait (`etat_garde::lire`).
+        pub fn fond<T>(&self, racine: &Path, cle: &str, f: impl FnOnce() -> T) -> T {
+            let mut n = self.tour.lock().unwrap_or_else(|p| p.into_inner());
+            let quand = socle::temps::secondes();
+            socle::temps::figer(quand);
+            let avant = empreinte(racine);
+            let rendu = f();
+            let ecrit = empreinte(racine) != avant;
+            socle::temps::defiger();
+            if ecrit {
+                let mut ligne = Map::new();
+                ligne.insert("geste".into(), json!("etat"));
+                ligne.insert("compagnie".into(), json!(self.compagnie(racine)));
+                ligne.insert("cle".into(), json!(cle));
+                self.ecrire(&mut n, ligne, quand);
+            }
+            rendu
         }
 
         /// Le dossier d'une compagnie, tel que le scenario le nomme.

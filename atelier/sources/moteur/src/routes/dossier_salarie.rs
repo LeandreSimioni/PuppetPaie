@@ -466,7 +466,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
         "statut": texte(&eng.statut), "statut_conventionnel": texte(&eng.statut_conventionnel),
         "statut_categoriel_rc": texte(&eng.statut_categoriel_rc),
     });
-    let entier = Engagement::nouveau(&ctx.racine, &entier).map_err(|m| avec("ValueError", m))?;
+    let entier = Engagement::nouveau(&ctx.racine, &entier, &ctx.nomme(&eng.salarie)).map_err(|m| avec("ValueError", m))?;
     let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut: bruts + eur2(p.brut), salarie: p.salarie.clone() };
     Ok((cs, manquants))
 }

@@ -85,8 +85,8 @@ fn engagement_de_paie(ctx: &Contexte, p: &Paie) -> Resultat<Option<Declare>> {
 
 /// Ce que les engagements valides declarent. Chaque mois se lit dans les paies ecrites de ses engagements valides
 /// (`etats::validees_du_mois`) : ce qui est en saisie n'est pas paye, il n'entre dans aucun cumul. `paies_courantes` : les
-/// paies d'un mois deja lues par l'appelant ; elles remplacent celles de leur mois.
-pub(crate) fn engagements_des_paies(ctx: &Contexte, paies_courantes: Option<&[Paie]>) -> Resultat<Vec<Declare>> {
+/// paies d'un mois deja lues par l'appelant ; elles remplacent celles de leur mois. `jusqu_au` : les mois d'apres ne se lisent pas.
+pub(crate) fn engagements_des_paies(ctx: &Contexte, paies_courantes: Option<&[Paie]>, jusqu_au: Option<&str>) -> Resultat<Vec<Declare>> {
     let mut groupes: Vec<(String, Vec<Declare>)> = Vec::new();
     for p in paies_courantes.unwrap_or(&[]) {
         let mois = p.engagement.mois.clone();
@@ -102,7 +102,7 @@ pub(crate) fn engagements_des_paies(ctx: &Contexte, paies_courantes: Option<&[Pa
         }
     }
     for stem in crate::stock::mois_saisis(&ctx.racine)? {
-        if groupes.iter().any(|(m, _)| *m == stem) {
+        if groupes.iter().any(|(m, _)| *m == stem) || jusqu_au.is_some_and(|j| stem.as_str() > j) {
             continue;
         }
         let Some((_, paies)) = crate::etats::validees_du_mois(ctx, &stem)? else { continue };
@@ -121,8 +121,15 @@ pub(crate) fn engagements_des_paies(ctx: &Contexte, paies_courantes: Option<&[Pa
 /// trie par (debut, fin, salarie). Un mois a la fois importe et saisi compte les deux : un engagement importe ne touche
 /// aucun mois de la saisie (`stock::Objet::couvre`), aucune paie d'ici ne le declare une seconde fois.
 pub fn lire_engagements(ctx: &Contexte, paies_courantes: Option<&[Paie]>) -> Resultat<Vec<Declare>> {
+    lire_engagements_jusqu_au(ctx, paies_courantes, None)
+}
+
+/// `lire_engagements`, sans les mois d'apres `jusqu_au` : ce qu'un document de ce mois-la cumule (ses fenetres se
+/// ferment a la fin du mois, `droit::cumul::tableau_cumul`). Un mois d'apres ne lui manque pas : un mois passe ne
+/// depend pas des suivants.
+pub fn lire_engagements_jusqu_au(ctx: &Contexte, paies_courantes: Option<&[Paie]>, jusqu_au: Option<&str>) -> Resultat<Vec<Declare>> {
     let mut tous = lire_importes(ctx)?;
-    tous.extend(engagements_des_paies(ctx, paies_courantes)?);
+    tous.extend(engagements_des_paies(ctx, paies_courantes, jusqu_au)?);
     tous.sort_by(|a, b| (a.debut, a.fin, &a.salarie).cmp(&(b.debut, b.fin, &b.salarie)));
     Ok(tous)
 }
