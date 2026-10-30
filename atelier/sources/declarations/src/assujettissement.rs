@@ -85,7 +85,7 @@ pub const CHAMP_CONTRIBUTION_SUPPLEMENTAIRE: &str = "contribution_supplementaire
 enum MoisDeLAnnee {
     /// Les paies du mois : celles de la DSN, ou les paies declarees d'un autre mois quand les montants sont necessaires.
     Calcules(String, Vec<Paie>),
-    /// Les contrats saisis du mois, sans montants (`dsn::contrats_du_mois`).
+    /// Les contrats valides du mois (`dsn::contrats_du_mois`), dont seuls comptent nature, dispositif et motif.
     Contrats(Vec<Paie>),
 }
 

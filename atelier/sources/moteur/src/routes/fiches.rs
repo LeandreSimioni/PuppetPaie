@@ -402,6 +402,26 @@ fn deriver_etablissements(donnees: &mut Map<String, Value>) -> R<()> {
                 None => t.shift_remove("valeur"),
             };
         }
+        // Le versement mobilite de sa commune : un taux (zero : aucun) et le code INSEE de la commune que la DSN declare.
+        if let Some(Value::Object(vm)) = o.get_mut("versement_mobilite") {
+            let insee = texte_ou_vide(vm.get("code_insee")).trim().to_uppercase();
+            let brut = vm.get("taux").filter(|t| !t.is_null()).map(valeur_en_texte).unwrap_or_default().replace(',', ".").replace('%', "");
+            if brut.trim().is_empty() {
+                vm.shift_remove("taux");
+            } else {
+                let t = socle::num::decimal_lu(brut.trim())
+                    .ok_or_else(|| erreur("ErreurOperation", format!("Taux du versement mobilité illisible : {}.", brut.trim())))?;
+                vm.insert("taux".into(), json!(t.to_string().parse::<f64>().unwrap_or(0.0)));
+            }
+            if insee.is_empty() {
+                vm.shift_remove("code_insee");
+            } else {
+                vm.insert("code_insee".into(), Value::String(insee));
+            }
+        }
+        if o.get("versement_mobilite").is_some_and(|v| sans_valeur(Some(v))) {
+            o.shift_remove("versement_mobilite");
+        }
         sortie.push(Value::Object(o));
     }
     donnees.insert("etablissements".into(), Value::Array(sortie));
@@ -706,8 +726,9 @@ fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
         autre => return Err(erreur("ErreurOperation", format!("Fiche inconnue : {}", valeur_ecrite(autre)))),
     };
     let vide = Value::Object(Map::new());
+    let montree = crate::routes::etablissements::entreprise_montree(ctx);
     let ancienne: &Value = if nom == "entreprise" {
-        &ctx.entreprise
+        &montree
     } else {
         let magasin = if nom == "salarie" { &ctx.salaries } else { &ctx.spectacles };
         match cle {
@@ -742,6 +763,11 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
     let a_dater = crate::routes::fiches::changements_a_dater(nom, ancienne, &donnees, cases_vides)?;
     for cle in &a_dater {
         let cle = cle.clone();
+        if nom == "entreprise" && cle == "etablissements" {
+            let changes = crate::routes::etablissements::a_dater(anc.get("etablissements"), donnees.get("etablissements"));
+            sortie.extend(changes.iter().map(|c| c.en_json()));
+            continue;
+        }
         let avant = anc.get(&cle).cloned().unwrap_or(Value::Null);
         let apres = donnees[&cle].clone();
         // La forme lisible d'une personne ne se declare pas, mais elle change : elle se date comme le reste.
@@ -1239,8 +1265,11 @@ fn vide(v: Option<&Value>) -> bool {
 /// La meme valeur, a la forme pres : un nombre saisi en texte (100 et « 100 »), une personne et sa forme lisible (les
 /// cles `_affichage` que l'ecran comble, `champs::combler_affichage`, ne se declarent pas).
 fn meme(a: &Value, b: &Value) -> bool {
+    // Une case d'une structure laissee vide (le BIC d'une banque) est une case absente : la fiche les montre pareil.
     let sans_affichage = |v: &Value| match v {
-        Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.ends_with("_affichage")).map(|(k, v)| (k.clone(), v.clone())).collect()),
+        Value::Object(o) => Value::Object(
+            o.iter().filter(|(k, x)| !k.ends_with("_affichage") && !sans_valeur(Some(x))).map(|(k, v)| (k.clone(), v.clone())).collect(),
+        ),
         autre => autre.clone(),
     };
     valeurs_egales(a, b)
@@ -1250,7 +1279,7 @@ fn meme(a: &Value, b: &Value) -> bool {
 
 /// Sans valeur : une case vide (`vide`), une case a cocher non cochee, une liste vide, une structure dont aucune case
 /// n'a de valeur. La fiche les montre vides ; un enregistrement qui les laisse ainsi ne change rien.
-fn sans_valeur(v: Option<&Value>) -> bool {
+pub(crate) fn sans_valeur(v: Option<&Value>) -> bool {
     vide(v)
         || v.is_some_and(|v| {
             v == &Value::Bool(false)
@@ -1279,20 +1308,27 @@ pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<Str
     // Une case a cocher que la fiche ne dit pas se montre a son defaut (`booleen_defaut`) : la laisser ainsi ne change rien.
     let defauts: HashMap<String, Value> =
         champs::fiche(nom)?.into_iter().filter(|c| c.forme == "booleen").map(|c| (c.cle, Value::Bool(c.booleen_defaut))).collect();
-    Ok(donnees
+    let mut cles: Vec<String> = donnees
         .iter()
         .filter(|(k, v)| {
             let avant = ancienne.get(k.as_str()).filter(|a| !a.is_null()).or_else(|| defauts.get(k.as_str()));
             !k.starts_with('_')
                 && !FAITS_SANS_DATE.contains(&(nom, k.as_str()))
-                // Les autres etablissements se datent chacun a son ouverture (`ecrire_etablissements`).
+                // Les autres etablissements : ligne par ligne (`etablissements::a_dater`).
                 && !(nom == "entreprise" && k.as_str() == "etablissements")
                 && !avant.is_some_and(|a| meme(a, v))
                 && !(sans_valeur(avant) && sans_valeur(Some(v)))
                 && (cases_vides || !vide(ancienne.get(k.as_str())))
         })
         .map(|(k, _)| k.clone())
-        .collect())
+        .collect();
+    if nom == "entreprise"
+        && donnees.contains_key("etablissements")
+        && !crate::routes::etablissements::a_dater(ancienne.get("etablissements"), donnees.get("etablissements")).is_empty()
+    {
+        cles.push("etablissements".into());
+    }
+    Ok(cles)
 }
 
 /// LE DERNIER MOIS PARTI pour la fiche `nom` (`cle` pour un salarie) : le dernier dont les documents ou la DSN sont
@@ -1356,83 +1392,6 @@ pub(crate) fn depuis_de(depuis: &Value) -> R<Option<Jour>> {
     } else {
         Ok(None)
     }
-}
-
-/// LES AUTRES ETABLISSEMENTS DE LA COMPAGNIE (`etablissements` de la fiche entreprise), tels que l'ecran les donne : chacun
-/// vaut a partir de sa date d'ouverture (`ouverture`), la liste se date d'elle-meme (une valeur par ouverture, chacune avec
-/// les etablissements deja ouverts) : une DSN, une paie d'avant l'ouverture ne le connaissent pas. Chacun dit son SIRET (du
-/// SIREN de la compagnie), son adresse et son code risque AT/MP : le taux est determine par etablissement et le classement
-/// suit l'activite qui y est exercee (D. 242-6-1, `atelier/reference/sources/code-de-la-securite-sociale/xml/D242-6-1.xml` ;
-/// arrete du 17/10/1995, art. 1, I, 1°, `tarification-atmp/`). Un code laisse vide prend celui que la compagnie a pour
-/// l'annee de l'ouverture (INFERENCE : l'activite de l'etablissement est celle de la compagnie tant que la notification
-/// de la CARSAT ne dit pas autre chose), et l'ecran le dit (`atmp::lire`). Le taux laisse vide est celui de l'arrete pour
-/// un risque « TC » (`droit::bareme::taux_atmp_applique`) ; sinon il se refuse (`droit::contexte`, le controle des
-/// etablissements).
-fn ecrire_etablissements(ctx: &Contexte, contenu: &mut Map<String, Value>, donnees: &Map<String, Value>, liste: &Value) -> R<()> {
-    let siren = texte_ou_vide(donnees.get("siren")).trim().to_string();
-    let mut entrees: Vec<(Jour, Value)> = Vec::new();
-    let mut griefs: Vec<String> = Vec::new();
-    for (i, e) in liste.as_array().into_iter().flatten().enumerate() {
-        let Value::Object(o) = e else { continue };
-        let mut o = o.clone();
-        let nom = Some(texte_ou_vide(o.get("libelle"))).filter(|l| !l.trim().is_empty()).unwrap_or_else(|| format!("Établissement {}", i + 1));
-        let siret = texte_ou_vide(o.get("siret"));
-        if siret.chars().count() != 14 || !siret.chars().all(|c| c.is_ascii_digit()) {
-            griefs.push(format!("{} : son SIRET (quatorze chiffres, sur l'avis de situation Sirene)", nom));
-        } else if !siren.is_empty() && siret[..9] != siren {
-            griefs.push(format!("{} : le SIRET {} n'est pas de la compagnie (son SIREN est {})", nom, siret, siren));
-        }
-        for (cle, mot) in [("adresse", "son adresse"), ("code_postal", "son code postal"), ("commune", "sa commune")] {
-            if texte_ou_vide(o.get(cle)).trim().is_empty() {
-                griefs.push(format!("{} : {}", nom, mot));
-            }
-        }
-        let ouverture = match o.get("ouverture").filter(|v| vrai(v)).map(socle::date::d) {
-            Some(Ok(j)) => j,
-            _ => {
-                griefs.push(format!("{} : sa date d'ouverture", nom));
-                continue;
-            }
-        };
-        let mut atmp = o.get("taux_atmp").and_then(Value::as_object).cloned().unwrap_or_default();
-        let du_siege = ctx.taux_atmp_de(ouverture.an).and_then(Result::ok).and_then(|t| t.get("code_risque").filter(|c| vrai(c)).map(valeur_en_texte));
-        let code = texte_ou_vide(atmp.get("code_risque")).trim().to_string();
-        if code.is_empty() {
-            match du_siege {
-                Some(code) => {
-                    atmp.insert("code_risque".into(), Value::String(code));
-                    atmp.insert("_code_de_la_compagnie".into(), Value::Bool(true));
-                }
-                None => griefs.push(format!("{} : son code risque AT/MP, tel que la CARSAT le notifie", nom)),
-            }
-        } else if du_siege.as_deref() != Some(code.as_str()) {
-            // Un autre code que celui de la compagnie : celui que la CARSAT a notifie.
-            atmp.shift_remove("_code_de_la_compagnie");
-        }
-        o.insert("taux_atmp".into(), Value::Object(atmp));
-        entrees.push((ouverture, Value::Object(o)));
-    }
-    if !griefs.is_empty() {
-        return Err(refus(format!(
-            "Autres établissements : il manque {}. Rien n'a été enregistré.",
-            griefs.join(" ; ")
-        )));
-    }
-    entrees.sort_by_key(|(j, _)| *j);
-    let mut datee = vec![json!({"valeur": []})];
-    let mut dates: Vec<Jour> = entrees.iter().map(|(j, _)| *j).collect();
-    dates.dedup();
-    for j in dates {
-        let ouverts: Vec<Value> = entrees.iter().filter(|(o, _)| *o <= j).map(|(_, e)| e.clone()).collect();
-        datee.push(json!({"depuis": j.iso(), "valeur": ouverts}));
-    }
-    // Le controle que toute lecture de la configuration fait (`droit::contexte`), sur la liste entiere, avant d'ecrire.
-    let fiche = json!({"siren": siren, "nic": texte_ou_vide(donnees.get("nic")), "etablissements": entrees.iter().map(|(_, e)| e.clone()).collect::<Vec<_>>()});
-    if let Ok(bar) = ctx.bareme(&ctx.aujourdhui) {
-        droit::contexte::controler_etablissements(&fiche, &bar).map_err(refus)?;
-    }
-    contenu.insert("etablissements".into(), Value::Array(datee));
-    Ok(())
 }
 
 /// POSER UN CHAMP DE LA FICHE ENTREPRISE (une route qui ne touche qu'une case : le modele de bulletin, la case des
@@ -1653,8 +1612,9 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
         return Err(erreur("TypeError", "`donnees` : un objet est attendu"));
     }
     let vide = Value::Object(Map::new());
+    let montree = crate::routes::etablissements::entreprise_montree(ctx);
     let ancienne: &Value = if nom == "entreprise" {
-        &ctx.entreprise
+        &montree
     } else {
         let magasin = if nom == "salarie" { &ctx.salaries } else { &ctx.spectacles };
         cle.as_deref().and_then(|k| magasin.get(k)).unwrap_or(&vide)
@@ -1751,7 +1711,7 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         let etablissements = sans_etablissements.shift_remove("etablissements");
         ecrire_datee(&mut contenu, nom, ancienne, &sans_etablissements, cases_vides, depuis, note.as_deref(), &ctx.lue_au)?;
         if let Some(l) = etablissements {
-            ecrire_etablissements(ctx, &mut contenu, &donnees, &l)?;
+            crate::routes::etablissements::ecrire(ctx, &mut contenu, &donnees, &l, depuis, note.as_deref())?;
         }
         return finir_fiche(None, &chemin, contenu, donnees, anomalies, derives);
     }

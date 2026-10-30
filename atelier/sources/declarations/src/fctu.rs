@@ -557,9 +557,9 @@ ou un annule."
     f.add_v("S21.G00.06.004", ent("adresse")?)?;
     f.add_v("S21.G00.06.005", ent("code_postal")?)?;
     f.add_v("S21.G00.06.006", ent("commune")?)?;
-    // L'etablissement est celui du salarie, comme dans ses mensuelles (`dsn::etablissement_du_salarie`) : le NIC est
+    // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = crate::dsn::etablissement_du_salarie(ent0, s)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent0, s)?;
     for (rub, k) in [
         ("S21.G00.11.001", "nic"),
         ("S21.G00.11.002", "naf"),

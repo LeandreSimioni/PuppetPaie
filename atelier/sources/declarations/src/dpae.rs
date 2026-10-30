@@ -310,6 +310,24 @@ fn urssaf_existe(code: &str) -> Resultat<bool> {
         .map_or(false, |o| o.iter().any(|x| x.get("code").map_or(false, |v| en_texte(v) == c))))
 }
 
+/// L'Urssaf qui recoit la DPAE d'un salarie d'un autre etablissement que le siege : celle « dans le ressort territorial
+/// duquel est situe l'etablissement devant employer le salarie » (code du travail, R. 1221-3, 1°,
+/// `atelier/reference/sources/code-du-travail/xml/R1221-3.xml`), lue au departement de son code postal
+/// (`urssaf-dpae-base.json`, `par_departement`). Le code de la fiche entreprise est celui du siege.
+fn urssaf_d_un_etablissement(vue: &Value) -> Resultat<String> {
+    let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json"))?;
+    let code = crate::champs::urssaf_du_code_postal(&base, vue.get("code_postal"));
+    if code.is_empty() {
+        return Err(format!(
+            "La DPAE ne sait pas a quelle Urssaf aller : l'etablissement {} a le code postal {}, qu'aucune Urssaf de la table \
+ne couvre (Configuration › Entreprise › Avancé, « Autres établissements »).",
+            en_texte(vue.get("siret").unwrap_or(&Value::Null)),
+            repr_valeur(vue.get("code_postal").unwrap_or(&Value::Null))
+        ));
+    }
+    Ok(code)
+}
+
 // -------------------------------------------- ce que la DPAE lit d'une embauche
 
 /// Ce que la DPAE lit d'une embauche :
@@ -369,23 +387,27 @@ fn ecrire_zone(buf: &mut [char], a: usize, b: usize, valeur: &str) {
 /// Un enregistrement de 990 caracteres.
 pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resultat<String> {
     let mut buf: Vec<char> = gabarit.to_vec();
+    let mut code_urssaf = p.code_urssaf.clone();
     if let Some(ent) = p.ent {
         // « N° SIRET de l'établissement » (N_SIRET, `norme-dpae/v5.3_FormatDPAE_EMAIL.txt` l. 235-243) : celui ou le salarie
-        // est rattache (`dsn::etablissement_du_salarie`), avec son adresse.
-        let ent = &crate::dsn::etablissement_du_salarie(ent, &e.salarie)?;
+        // est rattache (`droit::bareme::entreprise_du_salarie`), avec son adresse.
+        let ent = &droit::bareme::entreprise_du_salarie(ent, &e.salarie)?;
         for (nom, v) in employeur(ent, gabarit)? {
             let (a, b) = zone_employeur(nom);
             ecrire_zone(&mut buf, a, b, &v);
         }
+        if ent.get("_etablissement").is_some_and(vrai) {
+            code_urssaf = json!(urssaf_d_un_etablissement(ent)?);
+        }
     }
-    if vrai(&p.code_urssaf) {
+    if vrai(&code_urssaf) {
         let (a, b) = champ("code_urssaf");
-        let brut = en_texte(&p.code_urssaf);
+        let brut = en_texte(&code_urssaf);
         let v = strip(&brut);
         if v.chars().count() != b - a || !tout_chiffres(v) {
             return Err(format!(
                 "code_urssaf: {}, attendu {} chiffres (annexe II.1)",
-                repr_valeur(&p.code_urssaf),
+                repr_valeur(&code_urssaf),
                 b - a
             ));
         }
@@ -398,7 +420,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         if !urssaf_existe(v)? {
             return Err(format!(
                 "code_urssaf: {} n'est pas un organisme de recouvrement connu.\n  Le point de depot le refuserait (\u{ab} Code URSSAF invalide \u{bb}). Le code se lit sur les bordereaux Urssaf de la compagnie.",
-                repr_valeur(&p.code_urssaf)
+                repr_valeur(&code_urssaf)
             ));
         }
         ecrire_zone(&mut buf, a, b, v);
@@ -1037,6 +1059,25 @@ mod tests {
         // Sans code, celui du gabarit reste.
         let t = enr(&e, None, json!("")).unwrap();
         assert_eq!(zone(&t, "code_urssaf"), neutre()[133..136].iter().collect::<String>());
+    }
+
+    /// La DPAE d'un salarie d'un autre etablissement va a l'Urssaf « dans le ressort territorial duquel est situe
+    /// l'etablissement devant employer le salarie » (code du travail, R. 1221-3, 1°,
+    /// `atelier/reference/sources/code-du-travail/xml/R1221-3.xml`) ; celle du siege garde le code de la fiche.
+    #[test]
+    fn la_dpae_d_un_autre_etablissement_va_a_l_urssaf_de_son_territoire() {
+        let mut ent = entreprise();
+        ent["siren"] = json!("123456915");
+        ent["nic"] = json!("00016");
+        ent["etablissements"] = json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]);
+        let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).unwrap();
+        let nantes = base["par_departement"]["44"].as_str().unwrap().to_string();
+        let mut s = salarie();
+        s["etablissement"] = json!("00024");
+        let t = enr(&embauche(s, "cdi", Value::Null), Some(&ent), json!("117")).unwrap();
+        assert_eq!(zone(&t, "code_urssaf"), nantes);
+        let t = enr(&embauche(salarie(), "cdi", Value::Null), Some(&ent), json!("117")).unwrap();
+        assert_eq!(zone(&t, "code_urssaf"), "117");
     }
 
     #[test]

@@ -426,9 +426,9 @@ annule-et-remplace (type 03)."
     // ------------------------------------------------------ S21 entreprise
     f.add_v("S21.G00.06.001", req(ent, "siren")?)?;
     f.add_v("S21.G00.06.002", req(ent, "nic")?)?;
-    // L'etablissement est celui du salarie, comme dans ses mensuelles (`dsn::etablissement_du_salarie`) : le NIC est
+    // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = dsn::etablissement_du_salarie(ent, &salarie)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent, &salarie)?;
     f.add_v("S21.G00.11.001", req(&etab, "nic")?)?;
     f.add_v("S21.G00.11.003", req(&etab, "adresse")?)?;
     f.add_v("S21.G00.11.004", req(&etab, "code_postal")?)?;

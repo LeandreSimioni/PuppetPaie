@@ -1551,14 +1551,6 @@ pub fn embauche(ctx: &Contexte, eng: &Engagement) -> Resultat<calcul::Paie> {
     Ok(calcul::Paie::nouveau(eng.clone(), sal, spec, zero, zero, zero, 0.0, zero, tp))
 }
 
-/// Les embauches (`embauche`) de la saisie de `mois`, dans l'ordre de l'ecran ; `None` : aucun engagement ne touche le
-/// mois.
-pub fn embauches_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<calcul::Paie>>> {
-    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let engs = engagements_de_la_saisie(ctx, &data)?;
-    Ok(Some(engs.iter().map(|e| embauche(ctx, e)).collect::<Resultat<Vec<_>>>()?))
-}
-
 /// Les embauches (`embauche`) de la saisie `data`, dans l'ordre de l'ecran, chaque contrat qui deborde du mois suivi
 /// (`suivre_contrat`) : le salarie, son emploi et son spectacle d'abord, pour tous les engagements, puis le contrat qui
 /// deborde reprend le numero de son premier mois.

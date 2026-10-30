@@ -148,8 +148,8 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "registre", titre: "Le registre unique du personnel", numeros: &["L1221-13", "D1221-23", "D1221-24"] },
             // La DPAE quand la date d'embauche d'un contrat declare change (`crate::routes::etapes::etat_par_engagement`) :
             // l'embauche apres la declaration (L1221-10), la date d'embauche dans la declaration (R1221-1, 3°), la date
-            // previsible (R1221-4).
-            Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-4"] },
+            // previsible (R1221-4) ; l'Urssaf qui la recoit, celle du territoire de l'etablissement (R1221-3, `declarations::dpae`).
+            Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-3", "R1221-4"] },
             // LE CONTRAT ECRIT D'UN PERMANENT : l'information ecrite que tout salarie recoit (L1221-5-1, R1221-34 pour ses
             // mentions, R1221-35 pour ses delais et le renvoi aux textes, R1221-39 pour sa forme, R1221-40 pour ce qui change :
             // l'avenant) ; `documents::contrat` en tire les mentions obligatoires d'un CDI et de son avenant.
@@ -250,8 +250,8 @@ pub static TEXTES: &[Texte] = &[
             // LE MODE DE TARIFICATION DES AT/MP : les seuils d'effectif (D242-6-2) et le taux collectif quel que soit
             // l'effectif pour les activites que l'arrete annuel marque << TC >> (D242-6-14, I).
             // D242-6-1 : le taux est determine par etablissement, le classement suit l'activite ; D242-6-17 : le taux d'un
-            // etablissement nouvellement cree.
-            Domaine { cle: "atmp_tarification", titre: "Le mode de tarification des accidents du travail et maladies professionnelles", numeros: &["D242-6-1", "D242-6-2", "D242-6-14", "D242-6-17"] },
+            // etablissement nouvellement cree ; D242-6-15 : le taux notifie l'est pour une annee (`bareme::taux_atmp_d_un_etablissement`) ; D242-6-17 : un etablissement neuf a le taux collectif.
+            Domaine { cle: "atmp_tarification", titre: "Le mode de tarification des accidents du travail et maladies professionnelles", numeros: &["D242-6-1", "D242-6-2", "D242-6-14", "D242-6-15", "D242-6-17"] },
             // LE PLAFOND : la vieillesse plafonnee
             // (L241-3, et son taux D242-4), le FNAL et le chomage d'un
             // intermittent s'assoient sur LE plafond de sa periode. R242-2 dit

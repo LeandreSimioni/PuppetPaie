@@ -185,8 +185,8 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
     }
 }
 
-/// LES AUTRES ETABLISSEMENTS tels que la fiche les dit en dernier (ceux qui ouvrent plus tard compris) : la liste datee
-/// (`fiches::ecrire_etablissements`) se montre et se saisit entiere.
+/// LES AUTRES ETABLISSEMENTS OUVERTS tels que la fiche les dit en dernier (ceux qui ouvrent plus tard compris) : la liste
+/// datee (`etablissements::ecrire`) se montre et se saisit ; un etablissement ferme n'y est plus.
 pub(crate) fn etablissements_dits(ctx: &Contexte) -> Vec<Value> {
     let derniere = droit::contexte::valeurs_datees(ctx.entreprise_brute(), "etablissements").ok().and_then(|v| v.last().map(|(_, x)| (*x).clone()));
     let principal = texte_ou_vide(ctx.entreprise.get("nic"));
@@ -197,19 +197,36 @@ pub(crate) fn etablissements_dits(ctx: &Contexte) -> Vec<Value> {
 }
 
 /// CE QU'UN ENGAGEMENT CHOISIT quand la compagnie a d'autres etablissements que le siege : le siege (`nic` vide) puis
-/// chacun, nomme par son nom et sa commune, avec son ouverture. `Null` : un seul etablissement, rien a choisir.
+/// chacun, nomme par son nom et sa commune, avec son ouverture, et son dernier jour s'il est ferme (un engagement passe
+/// le garde). `Null` : un seul etablissement, rien a choisir.
 fn choix_d_etablissement(ctx: &Contexte) -> Value {
-    let autres = etablissements_dits(ctx);
+    let principal = texte_ou_vide(ctx.entreprise.get("nic"));
+    let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(ctx.entreprise_brute())
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|(e, _)| texte_ou_vide(e.get("nic")) != principal)
+        .collect();
     if autres.is_empty() {
         return Value::Null;
     }
     let commune = |f: &Value| texte_ou_vide(f.get("commune_affichage").filter(|v| vrai(v)).or(f.get("commune")));
     let mut out = vec![json!({"nic": "", "nom": format!("Le siège{}", Some(commune(&ctx.entreprise)).filter(|c| !c.is_empty()).map(|c| format!(", {}", c)).unwrap_or_default())})];
-    for e in autres {
+    for (e, fermeture) in autres {
         let nom = [texte_ou_vide(e.get("libelle")), commune(&e)].into_iter().filter(|s| !s.trim().is_empty()).collect::<Vec<_>>().join(", ");
-        out.push(json!({"nic": texte_ou_vide(e.get("nic")), "nom": if nom.is_empty() { texte_ou_vide(e.get("nic")) } else { nom }, "ouverture": e.get("ouverture").cloned().unwrap_or(Value::Null)}));
+        out.push(json!({
+            "nic": texte_ou_vide(e.get("nic")),
+            "nom": if nom.is_empty() { texte_ou_vide(e.get("nic")) } else { nom },
+            "ouverture": e.get("ouverture").cloned().unwrap_or(Value::Null),
+            "fermeture": fermeture.map(|j| j.iso()),
+        }));
     }
     Value::Array(out)
+}
+
+/// Les lignes des autres etablissements demandent-elles leur versement mobilite ? Oui quand le siege en paie un : le
+/// controle des etablissements l'exige alors de chacun (`droit::contexte::controler_etablissements`).
+fn versement_mobilite_des_etablissements(ctx: &Contexte) -> bool {
+    ctx.bareme_fondu(ctx.aujourdhui.an).ok().and_then(|b| b.get("versement_mobilite").cloned()).is_some_and(|v| v.is_object())
 }
 
 /// `Contexte.compteurs()` : `config/compteurs.json`, ou `{}`.
@@ -483,6 +500,7 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         "permanents": permanents,
         // Et ce que la liste des etablissements commande.
         "etablissements": choix_d_etablissement(ctx),
+        "versement_mobilite_des_etablissements": versement_mobilite_des_etablissements(ctx),
         // Et, parmi les salaries, ceux qui sont payes au mois.
         "salaries_au_mois": if permanents { salaries_au_mois(ctx)? } else { vec![] },
         // CE QUI EST POSE : signature et logo, avec leur date.

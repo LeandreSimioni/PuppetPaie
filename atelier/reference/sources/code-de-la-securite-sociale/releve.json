@@ -6329,6 +6329,14 @@
    "texte": "securite-sociale"
   },
   {
+   "apres": "LEGIARTI000054980990",
+   "article": "D242-6-15",
+   "avant": "LEGIARTI000028429426",
+   "depuis": "2026-10-15",
+   "livraison": "20261014-214049",
+   "texte": "securite-sociale"
+  },
+  {
    "apres": "LEGIARTI000054980993",
    "article": "D242-6-17",
    "avant": "LEGIARTI000022446511",
@@ -6386,6 +6394,11 @@
    "debut": "2010-07-08",
    "en_vigueur": true,
    "id": "LEGIARTI000006735892"
+  },
+  "D242-6-15": {
+   "debut": "2026-10-15",
+   "en_vigueur": true,
+   "id": "LEGIARTI000054980990"
   },
   "D242-6-17": {
    "debut": "2026-10-15",

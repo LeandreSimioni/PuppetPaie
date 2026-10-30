@@ -325,7 +325,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     assert!(a_signer.is_empty(), "le contrat repris se fait signer : {:?}", a_signer);
     // Le bulletin de decembre suit le 1/2026 que le bulletin importe imprime : deux bulletins de l'annee n'ont jamais le
     // meme numero.
-    let apercu = reussi(&route("apercu", json!({"saisie": saisie, "lignes": false, "urssaf": false}))).clone();
+    let apercu = reussi(&route("apercu", json!({"mois": "2026-12", "lignes": false, "urssaf": false}))).clone();
     assert_eq!(apercu["paies"][0]["numero_bulletin"], json!("2/2026"), "{}", apercu["paies"][0]);
     let ecrite = reussi(&route("dsn-a-deposer", json!({"mois": "2026-12"}))).clone();
     let decembre = std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap();

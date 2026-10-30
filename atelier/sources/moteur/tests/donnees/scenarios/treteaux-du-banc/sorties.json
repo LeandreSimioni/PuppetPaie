@@ -468,11 +468,6 @@
           "valeur": "NANTES"
         }
       ],
-      "etablissements": [
-        {
-          "valeur": []
-        }
-      ],
       "medecine_travail": [
         {
           "valeur": "MT952"
@@ -1142,7 +1137,7 @@
                     "existe racine:config/effectifs.json": "non",
                     "existe racine:config/pas.json": "oui",
                     "existe racine:config/rubriques-compagnie.json": "non",
-                    "fiches": "a7bab369d44f9d65f3af7f5da7ba42f06df2aa7eb81c19baf3aca28f4560b2fd",
+                    "fiches": "9b984b7b3c575bbe1c616b6634916956b4f8919fa2395025849b8b66075dd973",
                     "fichier code:baremes/2026.json": "6265acfbfe8d2d492c4ebe9472ad5924b9fbfa289f99ba1fb9e1f3268b20f744",
                     "fichier code:contrats-base.json": "fa6e9d4099fd495aa0ac87b0edbb5d88bdbf0242823427702cff8fb188b0d9b0",
                     "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",

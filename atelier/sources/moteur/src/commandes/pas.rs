@@ -278,7 +278,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 /// acte a part (`moteur depot-dsn`), avec sa preuve et son mot de passe -- et c'est lui qui fait courir les cinq jours ouvres, donc lui
 /// qui note la demande. Un refus de la norme ou de la demande est une phrase (code 1), jamais une trace.
 fn demander(cadre: &Cadre, args: &Args) -> i32 {
-    use engagement::embauches_du_mois as paies_du_mois;
     use crate::compagnie::amorcage_demande::{produire, Demande};
     let ctx = &cadre.ctx;
     let motif = args.texte("motif").unwrap_or("07");
@@ -299,10 +298,10 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
             }
         },
     };
-    let paies = match paies_du_mois(ctx, &mois) {
-        Ok(Some(p)) => p,
-        Ok(None) => {
-            dire!("Aucun engagement ne touche {}. Rien n'est ecrit.", mois);
+    let paies = match declarations::dsn::contrats_du_mois(ctx, &mois) {
+        Ok(p) if !p.is_empty() => p,
+        Ok(_) => {
+            dire!("Aucun engagement valide ne touche {} : un signalement d'amorcage declare le contrat d'un engagement valide. Rien n'est ecrit.", mois);
             return 1;
         }
         Err(m) => {

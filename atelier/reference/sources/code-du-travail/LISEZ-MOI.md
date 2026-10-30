@@ -226,6 +226,12 @@ section « La declaration prealable a l'embauche ») ; domaine `dpae` de `paie/s
 - **L1221-10** (`xml/L1221-10.xml`, `LEGIARTI000006900849`) : « L'embauche d'un salarié ne peut intervenir qu'après
   déclaration nominative accomplie par l'employeur auprès des organismes de protection sociale désignés à cet effet. »
 - **R1221-1** (`xml/R1221-1.xml`, `LEGIARTI000035492419`) : la DPAE comporte, 3°, la « Date et heure d'embauche ».
+- **R1221-3** (`xml/R1221-3.xml`, `LEGIARTI000039809055`, relevé le 30/10/2026) : elle « est adressée par l'employeur [...]
+  à l'organisme de recouvrement des cotisations du régime général de sécurité sociale dans le ressort territorial duquel
+  est situé l'établissement devant employer le salarié ». **Où le moteur s'en sert** : `declarations/src/dpae.rs`
+  (`urssaf_d_un_etablissement`) : la DPAE d'un salarié d'un autre établissement que le siège porte en C_URSSAF l'Urssaf du
+  département de cet établissement (`logiciel/donnees/urssaf-dpae-base.json`, `par_departement`) ; celle du siège, le code
+  de la fiche entreprise.
 - **R1221-4** (`xml/R1221-4.xml`, `LEGIARTI000024214323`) : elle « est adressée au plus
   tôt dans les huit jours précédant la date prévisible de l'embauche ».
 
@@ -300,7 +306,10 @@ l'arrêté du 25 février 2016 (`../montant-net-social/legi-arrete-20160225-bull
 `atelier/sources/moteur/src/import/bulletin_lu.rs`, le lecteur des bulletins importés : il trouve ces mentions par leurs
 libellés (`logiciel/donnees/bulletins-lecture-base.json`, `mentions`), refuse une page où le salarié, la période, le brut
 ou la somme reçue ne se trouvent pas, et lit un taux de colonne qui ne dit pas sa part comme celui du salarié, le seul que
-le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`.
+le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`. Le 1° dit aussi « le cas échéant, la
+désignation de l'établissement dont dépend le salarié », et le 2° le code APE « de l'établissement d'emploi » :
+`atelier/sources/documents/src/bulletin.rs` (`blocs_un`) imprime, pour un contrat d'un autre établissement que le siège,
+« Établissement : » et le SIRET de cet établissement dans le cadre EMPLOYEUR (`droit::bareme::entreprise_du_salarie`).
 
 ## Le contrat écrit : L1242-12 (CDD), L1221-5-1 et R1221-34 à R1221-40 (tout salarié), L3123-6 (temps partiel) (relevé du 29/10/2026, #285)
 

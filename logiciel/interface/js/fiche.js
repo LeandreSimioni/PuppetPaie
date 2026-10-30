@@ -1189,6 +1189,11 @@ function lireFormulaire() {
     listes[p][i] = listes[p][i] || {};
     poserEnChemin(listes[p][i], c.dataset.sousCle, c.value);
   });
+  // Une liste dont on a retiré toutes les lignes n'a plus de case : elle vaut
+  // « rien », et le moteur le lit (un établissement retiré ferme).
+  document.querySelectorAll("#config-formulaire [data-liste]").forEach((b) => {
+    listes[b.dataset.liste] = listes[b.dataset.liste] || [];
+  });
   Object.keys(listes).forEach((p) => {
     const propres = listes[p].filter((l) => l && ligneRemplie(l));
     d[p] = propres.length ? propres : null;

@@ -297,18 +297,20 @@ fn emploi_declare(p: &Paie) -> (String, String, String) {
     (txt(g(s, "pcs_ese")), txt(g(s, "code_emploi_ft")), txt(g(s, "emploi")))
 }
 
-/// Les contrats enregistres d'une periode de paie (les engagements du mois, sans montants) ; rien si le mois n'a pas de
-/// saisie. Ils completent ceux qu'une declaration porte : la DSN d'un etablissement ne porte pas les contrats d'un
-/// autre, un signalement n'en porte qu'un.
+/// Les contrats d'une periode de paie : la paie ecrite de chaque engagement valide du mois
+/// (`engagement::etats::validees_du_mois`), dans l'ordre de l'ecran ; rien si le mois n'a pas de saisie. Un engagement
+/// en saisie n'y est pas : une declaration ne lit que l'engagement valide. Ils completent ceux qu'une declaration
+/// porte : la DSN d'un etablissement ne porte pas les contrats d'un autre, un signalement n'en porte qu'un.
 pub fn contrats_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
-    Ok(engagement::embauches_du_mois(ctx, mois)?.unwrap_or_default())
+    Ok(engagement::etats::validees_du_mois(ctx, mois)?.map(|(_, paies)| paies).unwrap_or_default())
 }
 
 /// `S21.G00.40.036` (code emplois multiples) du contrat `p` : « 02 - emplois multiples » si le salarie tient plus
 /// d'un emploi chez la compagnie dans la periode de paie, « 01 - emploi unique » sinon. Cahier technique DSN 2026.1,
 /// p. 199 (`norme-dsn/texte/bloc-S21.G00.40.txt`, lignes 1174-1183) : « Cette rubrique précise si le salarié a
 /// plusieurs emplois chez un même employeur au cours d'une même période de paie. » `autres` : les contrats de la
-/// meme periode (ceux de la declaration et ceux de la saisie), de tous les salaries ; seuls ceux de `p` comptent.
+/// meme periode (ceux de la declaration et ceux des engagements valides du mois), de tous les salaries ; seuls ceux de
+/// `p` comptent.
 /// INFERENCE, ecrite comme telle : un emploi est ce que le bloc 40 decrit (PCS, code, libelle), la norme ne le
 /// definit pas autrement ; c'est ce que CoolPaie ecrivait (02 si et seulement si deux codes emploi distincts le meme
 /// mois, 148 contrats de son historique, fiche N1 de la relecture).
@@ -331,41 +333,6 @@ pub fn nics(fiche: &Value) -> Vec<String> {
     out
 }
 
-/// L'entreprise vue depuis l'etablissement `nic`.
-fn fiche_de(fiche: &Value, nic: &str) -> Resultat<Value> {
-    if nic.is_empty() || nic == bareme::nic_principal(fiche) {
-        return Ok(fiche.clone());
-    }
-    let e = bareme::entree(fiche, nic).ok_or_else(|| format!("Etablissement inconnu : {}.", nic))?;
-    let mut vue = fiche.as_object().cloned().unwrap_or_default();
-    let n = en_texte(req(&e, "nic")?);
-    vue.insert("nic".into(), Value::String(n.clone()));
-    vue.insert("siret".into(), Value::String(txt(g(fiche, "siren")) + &n));
-    for cle in ["adresse", "code_postal", "commune", "naf", "adresse_affichage", "commune_affichage", "complement_adresse"] {
-        if vrai(g(&e, cle)) {
-            vue.insert(cle.into(), e[cle].clone());
-        }
-    }
-    vue.insert("_etablissement".into(), Value::String(n));
-    let mut siege = Map::new();
-    siege.insert("nic".into(), Value::String(bareme::nic_principal(fiche)));
-    siege.insert("siret".into(), g(fiche, "siret").clone());
-    vue.insert("_siege".into(), Value::Object(siege));
-    Ok(Value::Object(vue))
-}
-
-/// L'etablissement sous lequel un salarie se declare : la fiche entreprise vue depuis l'etablissement de rattachement
-/// que dit SA fiche (`etablissement`, sinon le principal ; un NIC que la fiche entreprise ne porte pas refuse).
-///
-/// « Dans le cadre d'un contrat de travail, il s'agit de l'etablissement de rattachement administratif du salarie »
-/// (S21.G00.11.001, cahier technique DSN 2026.1, p. 144, `atelier/reference/norme-dsn/texte/bloc-S21.G00.11.txt`). Le
-/// NIC est une donnee identifiante : un signalement porte « les memes valeurs que celles portees dans la derniere DSN
-/// mensuelle deposee » (§ 2.1.1, p. 18 ; § 2.5.1, p. 67, `chapitre-2-principes-de-constitution.txt`). La mensuelle
-/// (une DSN par etablissement, qui refuse un salarie d'un autre, `generer`) et les signalements (arret, reprise, FCTU,
-/// amorcage) le lisent donc au meme endroit : `bareme::etablissement_du_salarie`, puis `fiche_de`.
-pub fn etablissement_du_salarie(ent: &Value, salarie: &Value) -> Resultat<Value> {
-    fiche_de(ent, &bareme::etablissement_du_salarie(ent, salarie)?)
-}
 
 // ----------------------------------------------------- les entrees
 
@@ -2277,7 +2244,7 @@ pub fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Verseme
     let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
     let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
-    let ent_e = fiche_de(ent, &nic)?;
+    let ent_e = bareme::fiche_de_l_etablissement(ent, &nic)?;
     let e = &p.engagement;
     let refs = affiliations(&orgs, &*e.nat()?, g(&bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
     let affiliations = rattachements(p, &orgs, bareme::entreprise_du(&bar, &ent_e), refs)?
@@ -3935,7 +3902,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
             let bar = bar_du(&ctx_m, &ctx_m.entreprise, orgs, &nic, &m)?;
             let mut ent = ctx_m.entreprise.as_object().cloned().unwrap_or_default();
             ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&premier(&m)?)?));
-            let ent_e = fiche_de(&Value::Object(ent), &nic)?;
+            let ent_e = bareme::fiche_de_l_etablissement(&Value::Object(ent), &nic)?;
             let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(&m)?);
             let refs: Vec<&Paie> = autres.iter().collect();
             bloc_contrat(&mut f, &declaree, &ent_e, orgs, 1, &bar, true, &[], "01", emplois_multiples(&declaree, &refs))?;
@@ -4177,7 +4144,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     let mut ent = ent0.as_object().cloned().unwrap_or_default();
     ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&debut_mois)?));
     let ent = Value::Object(ent);
-    let ent_e = fiche_de(&ent, &nic)?;
+    let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
 
     let mut arrets_du_mois = Vec::new();
     for a in arrets {
@@ -4612,7 +4579,7 @@ certificat de conformite du depot precedent.",
     }
     let date_ref = premier(mois)?;
     // LES CONTRATS DE CHAQUE PERIODE DE PAIE, pour les emplois multiples (`40.036`) : ceux de la declaration et ceux de
-    // la saisie du mois ; pour un contrat regularise, ceux de son mois d'origine.
+    // ses engagements valides (`contrats_du_mois`) ; pour un contrat regularise, ceux de son mois d'origine.
     let du_mois = contrats_du_mois(ctx, mois)?;
     let periode: Vec<&Paie> = paies.iter().chain(du_mois.iter()).collect();
     let mut des_mois_regularises: HashMap<String, Vec<Paie>> = HashMap::new();
