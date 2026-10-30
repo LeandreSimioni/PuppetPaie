@@ -708,7 +708,7 @@ fn identite(ctx: &Contexte, e: &Value) -> Option<droit::jumeaux::Ident> {
 }
 
 /// Les engagements de l'ecran de `mois` (`vue`, la saisie entiere du mois), rendus a leurs objets : chacun retrouve le
-/// sien (`droit::jumeaux::apparier_meme_numero`, puis, pour qui reste, le meme salarie, dans l'ordre), un nouveau
+/// sien (`droit::jumeaux::apparier_meme_numero`, puis, pour qui reste, le meme salarie pas encore valide, dans l'ordre), un nouveau
 /// commence dans le fichier du mois, un engagement que l'ecran ne montre plus et qui commencait ce mois-ci s'efface.
 ///
 /// UN ENGAGEMENT VALIDE NE CHANGE PAS PAR CE CHEMIN : il se modifie apres « Modifier » (`etats::modifier`), qui le
@@ -746,17 +746,22 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Op
     let ids_entrants: Vec<Option<droit::jumeaux::Ident>> = entrants.iter().map(|e| identite(ctx, e)).collect();
     let ids_actuels: Vec<Option<droit::jumeaux::Ident>> = vues_actuelles.iter().map(|e| identite(ctx, e)).collect();
     let mut paires = droit::jumeaux::apparier_meme_numero(&ids_entrants, &ids_actuels);
-    // Le meme salarie, dont les dates ont change et qui n'a pas de numero : dans l'ordre, un a un.
+    // Le meme salarie, dont les dates ont change et qui n'a pas de numero : dans l'ordre, un a un. Jamais un engagement
+    // valide : ses dates ne changent pas par ce chemin, l'ecran le renvoie tel qu'il le montre ; un engagement du meme
+    // salarie a d'autres dates est un autre engagement (un cachet a cote d'un CDD), qui s'ecrit.
     let mut pris: Vec<bool> = vec![false; ids_actuels.len()];
     for j in paires.iter().flatten() {
         pris[*j] = true;
     }
+    let valides: Vec<bool> = du_mois.iter().map(|i| tous[*i].est_valide()).collect();
     for (i, p) in paires.iter_mut().enumerate() {
         if p.is_some() {
             continue;
         }
         let Some(x) = &ids_entrants[i] else { continue };
-        if let Some(j) = (0..ids_actuels.len()).find(|j| !pris[*j] && ids_actuels[*j].as_ref().is_some_and(|y| y.0 == x.0 && (x.2.is_none() || y.2.is_none()))) {
+        if let Some(j) = (0..ids_actuels.len())
+            .find(|j| !pris[*j] && !valides[*j] && ids_actuels[*j].as_ref().is_some_and(|y| y.0 == x.0 && (x.2.is_none() || y.2.is_none())))
+        {
             *p = Some(j);
             pris[j] = true;
         }
