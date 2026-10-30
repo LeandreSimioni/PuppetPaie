@@ -22,7 +22,7 @@ use droit::catalogue::rubrique;
 use droit::clauses;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
-use socle::date::{d, dernier_du_mois, en_texte, jours_du_mois, premier_du_mois, forme_ecrite, Jour};
+use socle::date::{d, dernier_du_mois, en_texte, premier_du_mois, forme_ecrite, Jour};
 use crate::Avis;
 use socle::feries;
 use socle::fichiers::{repr, vrai};
@@ -39,6 +39,23 @@ fn requis<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
 /// Le salarie que nomme en tete ce que le moteur dit d'un engagement paye au mois (`crate::salarie_nomme`).
 pub(crate) fn qui(ctx: &Contexte, e: &Value) -> String {
     crate::salarie_nomme(ctx, e.get("salarie"))
+}
+
+/// La regle qui paie le mois incomplet [`debut`, `fin`] (borne au mois [`debut_mois`, `fin_mois`]) du contrat de
+/// `salarie` (`droit::periodes::regle_du_mois_incomplet`) : la convention de l'entreprise, le statut de la fiche (lu comme
+/// le bareme le lit : vide, un artiste), et si le contrat commence ou finit dans le mois.
+pub(crate) fn regle_du_mois_incomplet(
+    ctx: &Contexte,
+    salarie: &str,
+    debut: &Jour,
+    fin: &Jour,
+    debut_mois: &Jour,
+    fin_mois: &Jour,
+) -> droit::periodes::RegleDuMoisIncomplet {
+    let idcc = ctx.entreprise.get("idcc").map(en_texte).unwrap_or_default();
+    let fiche = ctx.salarie(salarie).unwrap_or(Value::Null);
+    let statut = fiche.get("statut").filter(|s| vrai(s)).map(en_texte).unwrap_or_else(|| "artiste".into());
+    droit::periodes::regle_du_mois_incomplet(&idcc, &statut, debut > debut_mois || fin < fin_mois)
 }
 
 /// Le flottant d'un decimal, correctement arrondi, par le texte.
@@ -1010,26 +1027,32 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         Some(f) => d(f)?.min(fin_mois),
         None => fin_mois,
     };
-    let jours_du_mois = Decimal::from(jours_du_mois(fin_mois.an, fin_mois.mois));
-    let jours_payes = Decimal::from(fin.moins(&debut) + 1);
-    // Le prorata d'un mois incomplet : au prorata des jours calendaires.
-    let fraction = div(jours_payes, jours_du_mois);
+    // Le salaire d'un mois incomplet : l'horaire reel du mois, ou la regle de la convention qui en a une
+    // (`droit::periodes::part_du_mois`).
+    let regle = regle_du_mois_incomplet(ctx, &en_texte(requis(e, "salarie")?), &debut, &fin, &debut_mois, &fin_mois);
+    let part = droit::periodes::part_du_mois(&debut, &fin, &fin_mois, regle)?;
+    let fraction = part.fraction;
+    let heures_par_jour = heures_par_jour_oeuvre(quotite);
     let mut avert = Vec::new();
     if fraction != Decimal::ONE {
         avert.push(info(format!(
-            "{} : mois incomplet ({} jours sur {}), salaire calculé au prorata des jours calendaires.",
+            "{} : mois incomplet, du {} au {} : {}.",
             qui(ctx, e),
-            jours_payes,
-            jours_du_mois
+            debut.jj_mm_aaaa(),
+            fin.jj_mm_aaaa(),
+            part.methode(heures_par_jour)
         )));
     }
 
     // `heures` est par unite (`Rubrique::heures`) : un mois vaut la quotite,
-    // et la fraction, en `quantite`, en fait le prorata.
+    // et la fraction, en `quantite`, en fait la part ; `precision` la dit sur le bulletin.
     let mut lignes = vec![json!({
         "rubrique": "mois", "quantite": flot(fraction), "taux": flot(salaire),
         "heures": flot(eur2(quotite)),
     })];
+    if let Some(p) = part.sur_le_bulletin(heures_par_jour) {
+        lignes[0]["precision"] = json!(p);
+    }
 
     // Le salaire du mois tel que la ligne « mois » le paie (`calcul::lignes_brut` : le montant arrondi ligne par ligne).
     let salaire_du_mois = socle::num::eur(mul(dec(requis(&lignes[0], "taux")?)?, dec(requis(&lignes[0], "quantite")?)?));
@@ -1039,7 +1062,6 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     let ouvrables_du_mois = if ouvrables != Decimal::ZERO { ouvrables } else { Decimal::ONE };
     let taux_jour_ouvrable = eur2(div(mul(salaire, fraction), ouvrables_du_mois));
     // Les heures de travail du mois, au reel (la mesure des absences : `imprevus::lignes_du_mois`).
-    let heures_par_jour = heures_par_jour_oeuvre(quotite);
     let heures_du_mois = eur2(mul(heures_par_jour, Decimal::from(jours_oeuvres(&debut, &fin, Some(ent))?)));
 
     // --- les conges pris : une retenue, et une indemnite qui la couvre

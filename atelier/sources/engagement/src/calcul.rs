@@ -58,6 +58,9 @@ pub struct LigneBrut {
     pub dsn_bloc52: Option<String>,
     pub arret_de_travail: bool,
     pub dsn_autres_bruts: Option<String>,
+    /// Ce que la ligne dit d'elle-meme sur le bulletin quand sa quantite ne suffit pas : la part payee d'un mois incomplet
+    /// (`droit::periodes::PartDuMois::sur_le_bulletin`).
+    pub precision: Option<String>,
 }
 
 impl LigneBrut {
@@ -72,6 +75,9 @@ impl LigneBrut {
         if self.unite == "mois" {
             if q == Decimal::ONE {
                 return self.libelle.clone();
+            }
+            if let Some(p) = &self.precision {
+                return format!("{} ({})", self.libelle, p);
             }
             let part = (q * Decimal::from(100)).round_dp(2).normalize().to_string().replace('.', ",");
             return format!("{} ({} % du mois)", self.libelle, part);
@@ -116,6 +122,9 @@ impl LigneBrut {
         m.insert("dsn_bloc52".into(), texte(&self.dsn_bloc52));
         m.insert("arret_de_travail".into(), Value::Bool(self.arret_de_travail));
         m.insert("dsn_autres_bruts".into(), texte(&self.dsn_autres_bruts));
+        if let Some(p) = &self.precision {
+            m.insert("precision".into(), Value::String(p.clone()));
+        }
         Value::Object(m)
     }
 }
@@ -154,6 +163,7 @@ pub(crate) fn lignes_brut(eng: &Engagement, ctx: &Contexte) -> Resultat<Vec<Lign
             dsn_bloc52: r.dsn_bloc52,
             arret_de_travail: r.arret_de_travail,
             dsn_autres_bruts,
+            precision: l.get("precision").and_then(Value::as_str).map(str::to_string),
         });
     }
     Ok(out)
