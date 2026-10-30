@@ -699,7 +699,7 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
     };
     let champs_fiche = champs::fiche(nom)?;
     let mut sortie = Vec::new();
-    let a_dater = crate::routes::fiches::changements_a_dater(ancienne, &donnees, cases_vides);
+    let a_dater = crate::routes::fiches::changements_a_dater(nom, ancienne, &donnees, cases_vides)?;
     for cle in &a_dater {
         let cle = cle.clone();
         let avant = anc.get(&cle).cloned().unwrap_or(Value::Null);
@@ -1208,14 +1208,14 @@ fn meme(a: &Value, b: &Value) -> bool {
         || (!a.is_object() && !a.is_array() && valeur_en_texte(a) == valeur_en_texte(b))
 }
 
-/// Sans valeur : une case vide (`vide`), une case a cocher non cochee, une liste ou une structure vides. La fiche les
-/// montre vides ; un enregistrement qui les laisse ainsi ne change rien.
+/// Sans valeur : une case vide (`vide`), une case a cocher non cochee, une liste vide, une structure dont aucune case
+/// n'a de valeur. La fiche les montre vides ; un enregistrement qui les laisse ainsi ne change rien.
 fn sans_valeur(v: Option<&Value>) -> bool {
     vide(v)
         || v.is_some_and(|v| {
             v == &Value::Bool(false)
                 || v.as_array().is_some_and(Vec::is_empty)
-                || v.as_object().is_some_and(|o| o.keys().all(|k| k.starts_with('_')))
+                || v.as_object().is_some_and(|o| o.iter().all(|(k, x)| k.starts_with('_') || sans_valeur(Some(x))))
         })
 }
 
@@ -1226,22 +1226,25 @@ fn sans_valeur(v: Option<&Value>) -> bool {
 /// cochee en fevrier ne vaut pas pour janvier ; la reponse a la question que la taxe sur les salaires pose apres la TVA,
 /// a sa date). Sans mois parti, la remplir est sa premiere valeur : aucun passe ne la lit. Une fiche neuve n'a rien a
 /// dater.
-pub(crate) fn changements_a_dater(ancienne: &Value, donnees: &Map<String, Value>, cases_vides: bool) -> Vec<String> {
+pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<String, Value>, cases_vides: bool) -> R<Vec<String>> {
     let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !k.starts_with('_')));
     if !existait {
-        return Vec::new();
+        return Ok(Vec::new());
     }
-    donnees
+    // Une case a cocher que la fiche ne dit pas se montre a son defaut (`booleen_defaut`) : la laisser ainsi ne change rien.
+    let defauts: HashMap<String, Value> =
+        champs::fiche(nom)?.into_iter().filter(|c| c.forme == "booleen").map(|c| (c.cle, Value::Bool(c.booleen_defaut))).collect();
+    Ok(donnees
         .iter()
         .filter(|(k, v)| {
-            let avant = ancienne.get(k.as_str());
+            let avant = ancienne.get(k.as_str()).filter(|a| !a.is_null()).or_else(|| defauts.get(k.as_str()));
             !k.starts_with('_')
                 && !avant.is_some_and(|a| meme(a, v))
                 && !(sans_valeur(avant) && sans_valeur(Some(v)))
-                && (cases_vides || !vide(avant))
+                && (cases_vides || !vide(ancienne.get(k.as_str())))
         })
         .map(|(k, _)| k.clone())
-        .collect()
+        .collect())
 }
 
 /// LE DERNIER MOIS PARTI pour la fiche `nom` (`cle` pour un salarie) : le dernier dont les documents ou la DSN sont
@@ -1373,7 +1376,8 @@ pub(crate) fn ecrire_datee(
     note: Option<&str>,
     lue_au: &Jour,
 ) -> R<()> {
-    let a_dater = changements_a_dater(ancienne, donnees, cases_vides);
+    let a_dater = changements_a_dater(nom, ancienne, donnees, cases_vides)?;
+    let booleens: HashSet<String> = champs::fiche(nom)?.into_iter().filter(|c| c.forme == "booleen").map(|c| c.cle).collect();
     if depuis.is_none() && !a_dater.is_empty() {
         // Un champ calcule qui change avec la case d'ou il derive est le meme fait : la case le dit seule.
         let fiche = champs::fiche(nom)?;
@@ -1416,7 +1420,10 @@ pub(crate) fn ecrire_datee(
                 .and_then(|(j, _)| j)
         };
         if remplit_un_absent {
-            droit::contexte::dater(brute, k, Value::String(String::new()), None, None);
+            // Avant `depuis`, la fiche ne disait rien : une case a cocher, son defaut (`null`, lu comme absent) ; un texte,
+            // une case vide (le NIR : « sans NIR », `ntt::depuis_quand_le_nir`).
+            let rien = if booleens.contains(k.as_str()) { Value::Null } else { Value::String(String::new()) };
+            droit::contexte::dater(brute, k, rien, None, None);
         }
         droit::contexte::dater(brute, k, v.clone(), jour.as_ref(), note);
     }
