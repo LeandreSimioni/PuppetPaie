@@ -309,7 +309,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
         std::fs::create_dir_all(cible.parent().unwrap()).unwrap();
         std::fs::copy(banc.join("config").join(f), cible).unwrap();
     }
-    assert_eq!(reussi(&route("saisie", json!({"mois": "2026-12"})))["importe"], Value::Null);
+    assert_eq!(reussi(&route("saisie", json!({"mois": "2026-12"})))["importes"], json!([]));
     let r = reussi(&route("contrats-en-cours", json!({"mois": "2026-12"}))).clone();
     let c = &r["contrats"][0];
     assert_eq!((c["debut"].clone(), c["fin"].clone(), c["numero"].clone()), (json!("2026-11-20"), json!("2026-12-03"), json!("FU1.26.01")), "{}", r);

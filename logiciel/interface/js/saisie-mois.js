@@ -204,13 +204,9 @@ function rafraichirApercu() {
 async function calculerApercu(lu) {
   const engagements = engagementsALEcran();
   const cible = document.getElementById("apercu");
-  document.getElementById("apercu-sous-titre").textContent = IMPORTE ? "tenu avant PuppetPaie" : "";
-  if (IMPORTE) {
-    // Un mois tenu avant PuppetPaie ne se calcule pas ici : ses paies sont celles de l'ancien logiciel.
-    const n = IMPORTE.paies.length;
-    cible.innerHTML = `<p class="discret">Mois tenu avant PuppetPaie : ${n} paie${n > 1 ? "s" : ""}
-      lue${n > 1 ? "s" : ""} dans l'historique importé, rien ne se calcule ici.${IMPORTE.incompletes
-      ? ` ${IMPORTE.incompletes} carte${IMPORTE.incompletes > 1 ? "s disent" : " dit"} ce que l'import n'a pas pu lire.` : ""}</p>`;
+  // Les engagements importés ne se calculent pas ici : ce sont ceux de l'ancien logiciel.
+  if (!engagements.length && IMPORTES.length) {
+    cible.innerHTML = `<p class="discret">Engagements de l'ancien logiciel : rien ne se calcule ici.</p>`;
     return;
   }
   // Dès qu'un engagement nomme son salarié, le moteur dit ce que le mois en compte et ce qui lui manque (`apercu`).
@@ -588,15 +584,13 @@ function vueApercu(a) {
 
 /* ------------------------------------------------------- charger un mois */
 let MOIS_AFFICHE = null;        // le mois REELLEMENT charge dans l'ecran
-let AVANT_EMBAUCHE = null;      // la premiere embauche, quand ce mois passe la precede (rien n'y est dû), ou null
 let DSN_DEPOSEE = null;         // ce que le moteur dit du mois déclaré (`dsn_deposee`), ou null
 
 
 function afficherRappelsMois() {
+  const t = TAUX_PAR_RUBRIQUE.cachet;
   document.getElementById("rappels-mois").innerHTML =
-    `${DERNIER_TAUX == null ? "aucun cachet par défaut"
-      : `cachet à <b>${echapper(euros(DERNIER_TAUX))}</b> par défaut`} ·
-     paiement le ${echapper(jjmmaaaa(SAISIE_DATE_PAIEMENT))} ·
+    `${t == null ? "aucun cachet par défaut" : `cachet à <b>${echapper(euros(t))}</b> par défaut`} ·
      le lieu et les jours se posent sur chaque ligne de paie`;
 }
 
@@ -616,26 +610,18 @@ async function chargerMois(mois, repeint = false) {
   // laisse tomber, sinon il repeindrait l'écran par-dessus le bon.
   if (DEMANDE_MOIS !== mois) return;
   SAISIE = r.saisie;
-  IMPORTE = r.importe || null;
   IMPORTES = r.importes || [];
   MOIS_AFFICHE = mois;
   document.getElementById("mois").value = mois;
   afficherMoisChoisi();
-  // LE CACHET PAR DÉFAUT, LE MOTEUR LE DIT : le dernier
-  // cachet du mois chargé, sinon son `taux_cachet`, sinon le dernier saisi du
-  // dossier (`defauts`). Faute de réponse, on garde celui de l'écran.
+  // LE TAUX DU CACHET D'UNE LIGNE NEUVE, LE MOTEUR LE DIT (`defauts.taux_cachet`) ; chaque autre rubrique part du
+  // dernier taux que le mois lui donne. Ce n'est qu'une commodité de saisie, à l'écran.
   const defauts = r.defauts || {};
-  if (defauts.taux_cachet != null) DERNIER_TAUX = +defauts.taux_cachet;
-  // Chaque autre rubrique garde le dernier taux que le mois lui donne : ce
-  // n'est qu'une commodité de saisie, que le moteur n'utilise pas.
+  if (defauts.taux_cachet != null) TAUX_PAR_RUBRIQUE.cachet = +defauts.taux_cachet;
   (SAISIE.engagements || []).forEach((e) => (e.lignes || []).forEach((l) => {
     if (!(+l.taux > 0) || !l.rubrique || l.rubrique === "cachet") return;
     TAUX_PAR_RUBRIQUE[l.rubrique] = +l.taux;
   }));
-  // La date de paiement d'une saisie existante fait foi -- on ne réécrit pas
-  // le 30 sur un mois payé le 15. Sinon, celle que le moteur propose (la fin
-  // du mois).
-  SAISIE_DATE_PAIEMENT = SAISIE.date_paiement || defauts.date_paiement || "";
   afficherRappelsMois();
   const cible = document.getElementById("engagements");
   // ON PRÉCHARGE, PUIS ON AFFICHE : « quand on
@@ -682,7 +668,6 @@ async function chargerMois(mois, repeint = false) {
   // Un repeint montre ses cartes tout de suite : les états qu'on a déjà de
   // ce mois s'y posent, une coque ne reste pas vide le temps de les relire.
   if (repeint && ETATS_ENGAGEMENTS) peindreEtats();
-    AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
   DSN_DEPOSEE = r.dsn_deposee || null;
   // Une confirmation ne vaut que pour LE mois confirmé : on la redonne en revenant.
   // Les blocs se montrent quand leurs états sont posés -- ou, quoi qu'il
@@ -705,7 +690,7 @@ async function chargerMois(mois, repeint = false) {
     throw e;
   }
   if (DEMANDE_MOIS !== mois) return;
-  majFermeture(mois, r.existe);
+  majAvisDuMois(mois, r.existe);
   dessinerMoisImporte();
   document.getElementById("resultat").innerHTML = "";
   // L'aperçu de la saisie enregistrée est dans la lecture : il ne se recalcule que quand on modifie la saisie.
@@ -752,14 +737,11 @@ async function repeindreLeMois(mois, ancien, frais) {
     const r = await api("saisie", { mois });
     if (MOIS_AFFICHE !== mois) return;
     const defauts = r.defauts || {};
-    if (defauts.taux_cachet != null) DERNIER_TAUX = +defauts.taux_cachet;
-    if (!SAISIE_DATE_PAIEMENT) SAISIE_DATE_PAIEMENT = defauts.date_paiement || "";
+    if (defauts.taux_cachet != null) TAUX_PAR_RUBRIQUE.cachet = +defauts.taux_cachet;
     afficherRappelsMois();
-    AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
     DSN_DEPOSEE = r.dsn_deposee || null;
-    IMPORTE = r.importe || null;
     IMPORTES = r.importes || [];
-    majFermeture(mois, r.existe);
+    majAvisDuMois(mois, r.existe);
     dessinerMoisImporte();
   } catch (e) { /* la saisie se lit telle quelle : rien à changer */ }
   if (!enCours) calculerApercu(frais.lectures.apercu);
@@ -771,30 +753,11 @@ async function repeindreLeMois(mois, ancien, frais) {
   ]);
 }
 
-/** Ce que l'écran dit d'un mois : un mois tenu avant PuppetPaie ou d'avant la
- *  première embauche se lit ; tout autre mois se saisit. */
-function majFermeture(mois, existe) {
+/** Ce que l'écran dit d'un mois, au-dessus de ses engagements. Ce que le moteur refuse d'y écrire (un mois qui
+ *  porte des engagements importés, un mois d'avant la première embauche), il le dit à l'écriture. */
+function majAvisDuMois(mois, existe) {
   majAvisDsn(mois);
   majAvisDemo(mois);
-  // UN MOIS TENU AVANT PUPPETPAIE : il se lit, rien ne s'y ajoute et rien ne le rouvre — sa DSN est
-  // faite ailleurs, ou le moteur dit qu'il n'en a pas trace ; ce n'est pas « en retard » (règle 4 : rien ne la refait).
-  if (IMPORTE) {
-    document.getElementById("ajouter-engagement").hidden = true;
-    document.getElementById("engagements").classList.add("lecture-seule");
-    noteSaisie("");
-    return;
-  }
-  // UN MOIS D'AVANT LA PREMIÈRE EMBAUCHE : le moteur dit qu'aucune DSN n'y est due ; rien ne s'y ajoute et rien
-  // ne le rouvre « en retard ».
-  if (AVANT_EMBAUCHE) {
-    document.getElementById("ajouter-engagement").hidden = true;
-    document.getElementById("engagements").classList.add("lecture-seule");
-    noteSaisie(`Ce mois précède la première embauche de la compagnie (${jjmmaaaa(AVANT_EMBAUCHE)}) : aucune DSN n'y est due. `
-      + "Si la compagnie employait déjà, la date de première embauche se corrige dans Configuration › Entreprise.");
-    return;
-  }
-  document.getElementById("ajouter-engagement").hidden = false;
-  document.getElementById("engagements").classList.remove("lecture-seule");
   noteSaisie(existe
     ? "Saisie chargée. L'enregistrement est automatique."
     : "Nouveau mois — l'enregistrement est automatique dès la première saisie.");
@@ -804,7 +767,7 @@ function majFermeture(mois, existe) {
  *  modification fera partir, ou que la modification se confirme et se corrige dans la DSN suivante. */
 function majAvisDsn(mois) {
   const avis = document.getElementById("avis-dsn");
-  const d = !IMPORTE && MOIS_AFFICHE === mois ? DSN_DEPOSEE : null;
+  const d = MOIS_AFFICHE === mois ? DSN_DEPOSEE : null;
   avis.hidden = !d;
   if (!d) return;
   avis.className = "encart " + (ENCART_DE_COULEUR[d.couleur] ?? "");
@@ -820,16 +783,11 @@ function majAvisDemo(mois) {
   if (!avis.hidden) avis.textContent = d.phrase;
 }
 
-/* UN MOIS IMPORTÉ EST UN MOIS COMME LES AUTRES : ses paies ont leurs cases.
- * Un mois tenu avant PuppetPaie n'a pas de fichier de paie : le
- * moteur le rend depuis l'historique importé (`importe` de la route `saisie`,
- * `import::mois`) — une carte par paie, comme celle d'un engagement validé :
- * quand, qui et pour quoi, ses états, son net ; un clic sur la carte montre
- * chaque case remplie de ce que l'import a lu, avec d'où elle vient. Ce que
- * l'import n'a pas pu lire se dit sur la carte, case par case, et pourquoi —
- * jamais un blanc muet. La page n'en décide rien : elle affiche. */
-let IMPORTE = null;   // le mois tenu avant PuppetPaie, tel que le moteur le rend, ou null
-let IMPORTES = [];    // les cartes des engagements importés d'un mois qui a aussi une saisie
+/* LES ENGAGEMENTS IMPORTÉS QUI TOUCHENT LE MOIS (`importes` de la route `saisie`, `import::mois::cartes`) : une carte
+ * fermée par engagement, comme celle d'un engagement validé : quand, qui et pour quoi, ses états, son net ; un clic sur
+ * la carte montre chaque case remplie de ce que l'import a lu, avec d'où elle vient. Ce que l'import n'a pas pu lire
+ * se dit sur la carte, case par case, et pourquoi. La page n'en décide rien : elle affiche. */
+let IMPORTES = [];
 
 const CASES_IMPORTEES = [
   ["brut", "Brut"], ["net_imposable", "Net imposable"], ["net_a_payer", "Net à payer"],
@@ -841,32 +799,12 @@ const SOURCES_IMPORTEES = { bulletin: "bulletin", DSN: "DSN", AEM: "AEM", histor
 
 function dessinerMoisImporte() {
   const cible = document.getElementById("mois-importe");
-  // Le cachet par défaut et la date de paiement servent à saisir : un mois tenu avant n'en a pas l'usage.
-  document.getElementById("rappels-mois").hidden = !!IMPORTE;
-  if (!IMPORTE && IMPORTES.length) {
-    // UN MOIS À LA FOIS IMPORTÉ ET SAISI : les engagements importés, en cartes fermées, à côté de ceux de la saisie.
-    const mois = MOIS_AFFICHE;
-    const moisCourt = MOIS_COURTS[parseInt(mois.slice(5, 7), 10) - 1] || "";
-    cible.innerHTML = `
-      <p class="mi-tete"><b>Importé${IMPORTES.length > 1 ? "s" : ""}</b> <span class="discret">— ${IMPORTES.length}
-        engagement${IMPORTES.length > 1 ? "s" : ""} de l'ancien logiciel · lecture seule</span></p>
-      ${IMPORTES.map((p, i) => carteImportee(p, i, moisCourt)).join("")}`;
-    ouvrirLesCartesImportees(cible);
-    cible.hidden = false;
-    return;
-  }
-  if (!IMPORTE) { cible.hidden = true; cible.innerHTML = ""; return; }
-  const mois = IMPORTE.mois;
-  const moisCourt = MOIS_COURTS[parseInt(mois.slice(5, 7), 10) - 1] || "";
-  const t = IMPORTE.totaux || {};
-  const n = IMPORTE.paies.length;
-  const total = (k, mot) => t[k] && t[k].montant != null
-    ? `${mot} ${euros(t[k].montant)}${t[k].connus < n ? ` (${t[k].connus} engagement${t[k].connus > 1 ? "s" : ""} sur ${n})` : ""}` : "";
+  if (!IMPORTES.length) { cible.hidden = true; cible.innerHTML = ""; return; }
+  const moisCourt = MOIS_COURTS[parseInt(MOIS_AFFICHE.slice(5, 7), 10) - 1] || "";
   cible.innerHTML = `
-    <p class="mi-tete"><b>Tenu avant PuppetPaie</b> <span class="discret">— d'après l'historique importé ·
-      ${n} paie${n > 1 ? "s" : ""} ${[total("brut", "· brut"), total("net_a_payer", "· net")].filter(Boolean).join(" ")}
-      · lecture seule</span></p>
-    ${IMPORTE.paies.map((p, i) => carteImportee(p, i, moisCourt)).join("")}`;
+    <p class="mi-tete"><b>Importé${IMPORTES.length > 1 ? "s" : ""}</b> <span class="discret">— ${IMPORTES.length}
+      engagement${IMPORTES.length > 1 ? "s" : ""} de l'ancien logiciel</span></p>
+    ${IMPORTES.map((p, i) => carteImportee(p, i, moisCourt)).join("")}`;
   ouvrirLesCartesImportees(cible);
   cible.hidden = false;
 }

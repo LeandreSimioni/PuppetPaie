@@ -90,28 +90,6 @@ pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
 
 // ============================================================ la saisie
 
-/// La date limite de depot depassee (`echeance_dsn`, reportee), ou `None`.
-pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
-    let limite = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?.jour;
-    Ok(if ctx.aujourdhui > limite { Some(limite) } else { None })
-}
-
-/// UN MOIS D'AVANT LA PREMIERE EMBAUCHE N'A PAS DE DSN DUE (une compagnie ajoutee le 06/01/2025, premiere
-/// embauche le 25/01, ne voit pas decembre 2024 « en retard »). La DSN est due par l'employeur pour les salaries qu'il emploie (`crate::routes::rappels::premier_mois_declarable`,
-/// la borne que l'echeancier et les rappels lisent deja) : un mois passe, sans saisie, ni tenu avant ce logiciel, qui
-/// precede le mois de la premiere embauche (`premiere_embauche` de la fiche Entreprise) n'est pas en retard, il n'a rien
-/// a declarer. Rend la premiere embauche (`AAAA-MM-JJ`), ou `None`.
-pub(crate) fn avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<Option<String>> {
-    let embauche = ctx.entreprise.get("premiere_embauche").and_then(Value::as_str).unwrap_or("").trim().to_string();
-    if embauche.len() < 7 || mois >= &embauche[..7] || engagement::stock::a_une_saisie(&ctx.racine, mois).map_err(Echec::from)? {
-        return Ok(None);
-    }
-    if crate::import::mois::importe(&ctx.racine, mois)? || mois_hors_delai(ctx, mois)?.is_none() {
-        return Ok(None);
-    }
-    Ok(Some(embauche))
-}
-
 /// Un mois neuf s'ouvre VIDE, avec le
 /// dernier taux saisi -- `null` quand le dossier n'a encore aucun cachet (R12 :
 /// aucun texte ne fixe un taux de cachet, la compagnie le saisit).
@@ -357,11 +335,10 @@ fn jours_sur_les_lignes(
     Ok(lignes)
 }
 
-/// Ce que la page propose quand la saisie ne le dit pas :
-/// - `taux_cachet` : le taux d'une ligne de cachet neuve, celui du dernier cachet de CE mois, sinon son
-///   `taux_cachet`, sinon le dernier taux saisi du dossier (`dernier_taux`), sinon rien (`null`) ;
-/// - `date_paiement` : la fin du mois, la date de paiement d'un mois qui n'en dit pas (celle du squelette).
-fn defauts_de_la_saisie(ctx: &Contexte, mois: &str, saisie: &Value) -> Value {
+/// Ce que la page propose quand la saisie ne le dit pas : `taux_cachet`, le taux d'une ligne de cachet neuve, celui
+/// du dernier cachet de CE mois, sinon son `taux_cachet`, sinon le dernier taux saisi du dossier (`dernier_taux`),
+/// sinon rien (`null`).
+fn defauts_de_la_saisie(ctx: &Contexte, saisie: &Value) -> Value {
     let du_mois = || -> Option<f64> {
         let objet = saisie.as_object()?;
         for e in elements(objet.get("engagements")).ok()?.iter().rev() {
@@ -376,8 +353,7 @@ fn defauts_de_la_saisie(ctx: &Contexte, mois: &str, saisie: &Value) -> Value {
     // Un dossier qu'on ne sait pas relire ne propose rien (`null`) : la route rend la saisie telle quelle, et
     // c'est l'apercu qui dira pourquoi.
     let taux = du_mois().or_else(|| dernier_taux(ctx).ok().flatten()).map_or(Value::Null, nombre_f);
-    let date_paiement = fin_du_mois(mois).map_or(Value::Null, Value::String);
-    json!({"taux_cachet": taux, "date_paiement": date_paiement})
+    json!({"taux_cachet": taux})
 }
 
 /// LE SPECTACLE ET LE LIEU DU MOIS DESCENDENT SUR CHAQUE ENGAGEMENT. Une saisie peut les ecrire au niveau
@@ -421,23 +397,16 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     // confirmant a la premiere modification (`crate::regularisation::modification_de_la_paie`) -- il n'est pas en retard.
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let dsn_deposee = crate::regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
-    let avant_embauche = avant_la_premiere_embauche(ctx, &mois)?;
     let saisie = descendre_le_mois(saisie);
-    let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
-    // UN MOIS TENU AVANT CE LOGICIEL : aucun engagement de la saisie, ses engagements importes -- en cartes, et l'etat vrai
-    // de sa DSN (`import::mois`). Il se lit ; rien ne s'y ajoute.
-    let importe = if existe { None } else { crate::import::mois::vue(ctx, &mois)? };
-    // UN MOIS A LA FOIS IMPORTE ET SAISI : ses engagements importes se montrent a cote de ceux de la saisie, en cartes
-    // fermees ; ils se lisent, rien ne les calcule.
-    let importes = if existe { crate::import::mois::cartes(ctx, &mois)? } else { Vec::new() };
+    let defauts = defauts_de_la_saisie(ctx, &saisie);
+    // LES ENGAGEMENTS IMPORTES QUI TOUCHENT LE MOIS, en cartes fermees : ils se lisent, rien ne les calcule
+    // (`import::mois`). Un mois qui en porte ne recoit pas d'engagement neuf (`refuser_si_importe`).
+    let importes = crate::import::mois::cartes(ctx, &mois)?;
     Ok(json!({
         "mois": brut,
         "existe": existe,
-        "importe": importe,
         "importes": importes,
         "defauts": defauts,
-        // Un mois passe d'avant la premiere embauche : rien n'y est du, il se lit (`avant_la_premiere_embauche`).
-        "avant_premiere_embauche": avant_embauche,
         // La DSN reelle du mois est deposee : ce qu'il faut savoir avant d'en modifier la paie (`null` sinon).
         "dsn_deposee": dsn_deposee,
         "saisie": resoudre_noms(ctx, &saisie)?,
@@ -1769,10 +1738,13 @@ fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
     Ok(())
 }
 
-/// UN MOIS D'AVANT LA PREMIERE EMBAUCHE NE SE SAISIT PAS (`crate::routes::mois::avant_la_premiere_embauche`) : aucune DSN n'y
-/// est due.
+/// UN MOIS D'AVANT LA PREMIERE EMBAUCHE NE SE SAISIT PAS : la DSN est due par l'employeur pour les salaries qu'il
+/// emploie, et le premier mois du est celui de la premiere embauche (`premiere_embauche` de la fiche Entreprise, la
+/// borne que l'echeancier et les rappels lisent : `crate::routes::rappels::premier_mois_declarable`). Un mois qui a deja
+/// des engagements se modifie.
 pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<()> {
-    if let Some(embauche) = crate::routes::mois::avant_la_premiere_embauche(ctx, mois)? {
+    let embauche = ctx.entreprise.get("premiere_embauche").and_then(Value::as_str).unwrap_or("").trim().to_string();
+    if embauche.len() >= 7 && mois < &embauche[..7] && !engagement::stock::a_une_saisie(&ctx.racine, mois).map_err(Echec::from)? {
         return Err(refus(format!(
             "{} precede la premiere embauche de la compagnie ({}) : aucune DSN n'y est due, rien ne s'y saisit. Si la \
              compagnie employait deja, corriger la date de premiere embauche (Configuration › Entreprise). Rien n'est ecrit.",

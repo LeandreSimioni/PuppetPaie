@@ -294,14 +294,6 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 .grille-mois .note { margin: 0 0 .45rem; }
 
 /* ----------------------------------------------------------- engagements */
-/* Un mois ferme (DSN due) : on lit, on ne touche pas. */
-#engagements.lecture-seule { pointer-events: none; }
-#engagements.lecture-seule .engagement:not(.validee) { opacity: .75; }
-/* ... mais la carte d'un engagement se LIT : elle s'ouvre d'un clic, et les pastilles
-   répondent (30/09/2026). Sans ça, rien d'un mois passé ne s'ouvrait, ni le
-   contrat ni la DPAE ; « Modifier… », dans le détail, reste caché tant que
-   le mois n'est pas rouvert. */
-#engagements.lecture-seule .e-resume { pointer-events: auto; }
 .engagement {
   border: 1px solid var(--bord); border-radius: 4px;
   padding: 12px; margin-bottom: 10px; background: var(--fond);
@@ -1234,7 +1226,6 @@ pre.reponse {
 /* La case validée ne montre que son résumé -- et ses chevrons (la règle
    `.validee > :not(.e-resume)` cache le reste). */
 .engagement.validee > button.chevron-pluri { display: flex; }
-#engagements.lecture-seule .chevron-pluri { pointer-events: auto; }
 /* Le nom d'abord : quand le nom et le mot de son état (« importé ») ne tiennent pas
    sur une ligne, le mot passe dessous ; le nom ne se coupe que s'il est plus long
    que la case entière. */
