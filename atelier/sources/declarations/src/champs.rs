@@ -193,6 +193,46 @@ pub fn titre(s: &str) -> String {
     out
 }
 
+/// Les mots-outils d'un nom de lieu, qui s'ecrivent en minuscules hors de la tete (« rue des Tisserands »,
+/// « Saint-Didier-au-Mont-d'Or ») ; les pieces declarees l'ecrivent en capitales.
+const MOTS_OUTILS: &[&str] = &["de", "des", "du", "la", "le", "les", "et", "en", "au", "aux", "sur", "sous", "lès", "lez"];
+
+/// Un nom de lieu (adresse, commune) ecrit en capitales, en lisible : `titre`, puis les mots-outils en minuscules sauf
+/// le premier, et l'elision (« d' », « l' ») de meme.
+pub fn lieu_lisible(s: &str) -> String {
+    let t = titre(s);
+    let mut out = String::new();
+    let mut mot = String::new();
+    let mut premier = true;
+    let pousser = |mot: &mut String, out: &mut String, premier: &mut bool| {
+        if mot.is_empty() {
+            return;
+        }
+        let bas = mot.to_lowercase();
+        if !*premier && MOTS_OUTILS.contains(&bas.as_str()) {
+            out.push_str(&bas);
+        } else if !*premier && (bas.starts_with("d'") || bas.starts_with("l'")) && mot.chars().count() > 2 {
+            let mut c = mot.chars();
+            out.extend(c.next().into_iter().flat_map(char::to_lowercase));
+            out.extend(c);
+        } else {
+            out.push_str(mot);
+        }
+        *premier = false;
+        mot.clear();
+    };
+    for c in t.chars() {
+        if c == ' ' || c == '-' {
+            pousser(&mut mot, &mut out, &mut premier);
+            out.push(c);
+        } else {
+            mot.push(c);
+        }
+    }
+    pousser(&mut mot, &mut out, &mut premier);
+    out
+}
+
 /// `sans_accents` : NFD, marques retirees.
 pub fn sans_accents(s: &str) -> String {
     sans_accent(s)
@@ -459,7 +499,10 @@ pub fn combler_affichage(nom: &str, donnees: &Map<String, Value>) -> R<Map<Strin
         }
         if let Some(Value::String(officiel)) = sortie.get(&c.cle) {
             if !officiel.is_empty() {
-                let t = titre(officiel);
+                let t = match c.cle.as_str() {
+                    "adresse" | "commune" | "lieu_naissance" => lieu_lisible(officiel),
+                    _ => titre(officiel),
+                };
                 sortie.insert(source.to_string(), Value::String(t));
             }
         }

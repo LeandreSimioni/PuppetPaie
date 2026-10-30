@@ -1595,6 +1595,26 @@ pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, cham
     Ok(ecrits)
 }
 
+/// LES LICENCES QUI SUIVENT LA PREMIERE (`routes::import::poser_licence`) : chacune vaut a partir du premier jour du mois
+/// ou les pieces importees la portent, comme un numero renouvele saisi « a partir du ». Seulement quand la fiche, sur le
+/// disque, porte pour seule licence la premiere que les pieces donnent : une licence saisie autrement reste ce qu'elle est.
+pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, String)], note: &Value) -> R<()> {
+    let Some(((_, premiere), suivantes)) = licences.split_first().filter(|(_, s)| !s.is_empty()) else { return Ok(()) };
+    let chemin = ctx.racine.join("config").join("entreprise.json");
+    let mut contenu = objet_du_fichier(&chemin)?;
+    let fiche = Value::Object(contenu.clone());
+    let portees = droit::contexte::valeurs_datees(&fiche, "licence_spectacle").map_err(plain)?;
+    if !matches!(portees.as_slice(), [(None, v)] if valeur_en_texte(v) == *premiere) {
+        return Ok(());
+    }
+    let note = Some(valeur_en_texte(note)).filter(|n| !n.trim().is_empty());
+    for (mois, numero) in suivantes {
+        let jour = socle::date::premier_du_mois(mois).map_err(plain)?;
+        droit::contexte::dater(&mut contenu, "licence_spectacle", json!(numero), Some(&jour), note.as_deref());
+    }
+    ecrire(&chemin, Value::Object(contenu))
+}
+
 fn finir_fiche(
     cle: Option<String>,
     chemin: &Path,

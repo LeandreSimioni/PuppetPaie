@@ -198,17 +198,24 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
     Ok(f)
 }
 
-/// La fiche Entreprise que les DSN donnent : ce qu'elles declarent de l'entreprise, son Siret, la suite de ses licences.
+/// LA LICENCE QUE LES PIECES DONNENT (`licences` : chaque numero lu, avec le mois ou il apparait, du plus ancien au plus
+/// recent). La fiche porte un numero, comme quand on le saisit : le premier, qui vaut de tout temps ; ceux qui le
+/// suivent se datent du mois ou les pieces le changent, a l'ecriture (`Apercu::licences`,
+/// `routes::fiches::dater_licences_suivantes`), comme un numero renouvele se saisit « a partir du ».
+pub(crate) fn poser_licence(f: &mut Map<String, Value>, licences: &[(String, String)]) {
+    if let Some((_, n)) = licences.first() {
+        f.insert("licence_spectacle".into(), json!(n));
+    }
+}
+
+/// La fiche Entreprise que les DSN donnent : ce qu'elles declarent de l'entreprise, son Siret, sa premiere licence.
 fn fiche_entreprise(lecture: &dsn_aem::LectureDsn) -> R<Map<String, Value>> {
     let mut e = lecture.entreprise.clone();
     let (siren, nic) = (e.get("siren").filter(|v| vrai(v)).cloned(), e.get("nic").filter(|v| vrai(v)).cloned());
     if let (Some(s), Some(n)) = (siren, nic) {
         e.insert("siret".into(), json!(format!("{}{}", valeur_en_texte(&s), valeur_en_texte(&n))));
     }
-    if !lecture.licences.is_empty() {
-        let l: Vec<Value> = lecture.licences.iter().map(|(m, n)| json!({"depuis": format!("{}-01", m), "numero": n})).collect();
-        e.insert("licence_spectacle".into(), Value::Array(l));
-    }
+    poser_licence(&mut e, &lecture.licences);
     let mut e = declarations::champs::combler_affichage("entreprise", &e)?;
     if e.get("raison_sociale").is_some_and(vrai) && !e.get("nom_affichage").is_some_and(vrai) {
         let t = titre_de(e.get("raison_sociale"));
@@ -238,6 +245,8 @@ pub(crate) struct Apercu {
     /// Les contrats que les bulletins attestent (`import::bulletins`), contrats d'engagements importes
     /// pretes a ecrire, chacune avec le NIR qui la rattache (`salarie` vaut `<a creer>` tant que la fiche n'existe pas).
     pub(crate) engagements_bulletins: Vec<(String, Value)>,
+    /// La suite des licences que les pieces donnent (mois `AAAA-MM`, numero), la plus ancienne d'abord (`poser_licence`).
+    pub(crate) licences: Vec<(String, String)>,
 }
 
 /// LE NOM QUE LA PERSONNE A DONNE A LA COMPAGNIE (« Ajouter une compagnie ») reste le sien : la fiche que l'import cree
@@ -554,7 +563,7 @@ pub(crate) fn apercu_lu(
     }) else {
         unreachable!("un objet")
     };
-    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, engagements_bulletins: Vec::new() })
+    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, engagements_bulletins: Vec::new(), licences: lecture.licences.clone() })
 }
 
 /// `int(x)` d'une valeur JSON : un entier, un reel, un texte qui se lit comme un entier.

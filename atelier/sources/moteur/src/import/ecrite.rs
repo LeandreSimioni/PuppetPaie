@@ -530,6 +530,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
         ecrits.insert(ctx.racine.join("config").join(fichier).display().to_string());
         completees += 1;
     }
+    crate::routes::fiches::dater_licences_suivantes(ctx, &imp.licences, note)?;
     let mut fichiers: Vec<Value> = ecrits.into_iter().map(Value::String).collect();
     let mut avertissements: Vec<String> = Vec::new();
 

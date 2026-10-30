@@ -283,6 +283,10 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let route = |nom: &str, charge: Value| crate::outils::route(&racine, nom, charge, jour);
     reussi(&route("importer", json!({"dossier": ""})));
 
+    // La licence que la DSN declare (S21.G00.40.049) devient le numero de la fiche, celui que le bulletin imprime.
+    let licence = dsn.lines().find_map(|l| l.strip_prefix("S21.G00.40.049,'")).map(|l| l.trim_end_matches(['\'', '\r'])).unwrap();
+    assert_eq!(entreprise_lue(&racine)["licence_spectacle"], json!(licence));
+
     let importes = engagement::importe::tous(&racine).unwrap();
     assert_eq!(importes.len(), 1, "{:?}", importes);
     let i = &importes[0];
