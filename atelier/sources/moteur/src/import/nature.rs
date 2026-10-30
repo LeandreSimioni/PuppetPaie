@@ -250,7 +250,13 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         let depuis = Jour::lire(&du).map_err(|m| refus(format!("{} : la case des permanents n'a pas ete cochee.", m)))?;
         crate::routes::fiches::poser_entreprise(ctx, "emploie_des_permanents", json!(true), Some(depuis))?;
     }
-    Ok(json!({"ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares}))
+    // Les contrats de prevoyance et de sante des permanents que l'ecran attend maintenant : ceux que les DSN reprises
+    // declarent (S21.G00.15) se posent, lus sous la fiche telle qu'elle vient d'etre ecrite.
+    let parametrage = match Contexte::nouveau(&ctx.racine, Some(ctx.date)) {
+        Ok(frais) if permanents_declares => crate::import::parametrage::poser_organismes_repris(&frais),
+        _ => Vec::new(),
+    };
+    Ok(json!({"ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares, "parametrage": parametrage}))
 }
 
 /// Un contrat de permanent repris des bulletins qui court en `mois` : le salarie, le debut, la fin (vide sans terme),

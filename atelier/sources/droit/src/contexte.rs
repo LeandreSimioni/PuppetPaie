@@ -1399,6 +1399,25 @@ impl Contexte {
         self.taux_atmp_reporte_de(an, &self.entreprise)
     }
 
+    /// LE TAUX AT/MP DE L'ANNEE `an` TEL QUE LE BAREME LE LIT (`bareme_brut_sans_cache`) : celui que la surcouche de
+    /// l'annee dit (`config/baremes/<an>.json`, `taux_atmp`), sinon celui qui se reprend d'une annee d'avant
+    /// (`taux_atmp_reporte`, qui porte `_reporte_de`). `Some(Err)` : pourquoi il ne se reprend pas, ou la surcouche
+    /// illisible ; `None` : rien de dit ni d'avant. Tout ce qui demande « le taux de l'annee est-il pose ? » lit ici.
+    pub fn taux_atmp_de(&self, an: i32) -> Option<Result<Map<String, Value>, String>> {
+        let p = self.racine.join("config").join("baremes").join(format!("{}.json", an));
+        if socle::fichiers::existe(&p) {
+            match lire_json(&p) {
+                Ok(v) => {
+                    if let Some(t) = v.get("taux_atmp").and_then(Value::as_object) {
+                        return Some(Ok(t.clone()));
+                    }
+                }
+                Err(e) => return Some(Err(e)),
+            }
+        }
+        self.taux_atmp_reporte(an)
+    }
+
     fn taux_atmp_reporte_de(&self, an: i32, ent: &Value) -> Option<Result<Map<String, Value>, String>> {
         let dossier = self.racine.join("config").join("baremes");
         let (pa, pose) = (an - ANNEES_DU_TAUX_ATMP..an).rev().find_map(|y| {

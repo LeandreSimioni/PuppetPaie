@@ -199,20 +199,31 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
         }
     }
 
-    // 5. Le taux AT/MP de la compagnie. Lu dans la SURCOUCHE, pas dans le bareme fondu : celui-ci refuse tant que
-    // l'effectif n'est pas connu, et c'est justement ce qu'on examine.
-    let surcouche = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
-    let taux = std::fs::read(&surcouche).ok().and_then(|o| String::from_utf8(o).ok()).and_then(|t| serde_json::from_str::<Value>(&t).ok()).and_then(|v| v.get("taux_atmp").cloned());
-    let valeur = taux.as_ref().filter(|t| t.is_object()).and_then(|t| t.get("valeur")).filter(|v| !v.is_null()).cloned();
+    // 5. Le taux AT/MP de la compagnie, tel que le bareme le lit (dit pour l'annee, ou repris d'une annee d'avant :
+    // `Contexte::taux_atmp_de`), sans passer par le bareme fondu : celui-ci refuse tant que l'effectif n'est pas connu,
+    // et c'est justement ce qu'on examine.
+    let taux = ctx.taux_atmp_de(an);
+    let valeur = match &taux {
+        Some(Ok(t)) => t.get("valeur").filter(|v| !v.is_null()).cloned(),
+        _ => None,
+    };
+    let reporte_de = match &taux {
+        Some(Ok(t)) => t.get("_reporte_de").and_then(Value::as_i64),
+        _ => None,
+    };
     out.push(Etape {
         cle: "atmp",
         quoi: format!("Le taux AT/MP notifié par la Carsat ({})", an),
         etat: if valeur.is_some() { FAIT } else { A_FAIRE },
-        detail: match &valeur {
-            Some(v) => format!("{} %", super::rendu::texte(v)),
-            None => format!("absent de config/baremes/{}.json : il se lit sur la notification (compte AT/MP de net-entreprises) et ne se devine pas", an),
+        detail: match (&valeur, &taux) {
+            (Some(v), _) => match reporte_de {
+                Some(de) => format!("{} % (code risque dit pour {} ; taux collectif de l'arrêté de {})", super::rendu::texte(v), de, an),
+                None => format!("{} %", super::rendu::texte(v)),
+            },
+            (None, Some(Err(pourquoi))) => pourquoi.clone(),
+            (None, _) => format!("absent de config/baremes/{}.json : il se lit sur la notification (compte AT/MP de net-entreprises) et ne se devine pas", an),
         },
-        commandes: if valeur.is_some() { vec![] } else { vec![format!("config/baremes/{}.json : \"taux_atmp\": {{\"valeur\": …}}", an)] },
+        commandes: if valeur.is_some() { vec![] } else { vec!["Configuration › Entreprise, « Accidents du travail (AT/MP) »".into()] },
     });
 
     // 6. Les taux de PAS.

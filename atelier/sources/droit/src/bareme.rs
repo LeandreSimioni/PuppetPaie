@@ -720,6 +720,27 @@ n'est calcule.",
     Ok(())
 }
 
+/// D'OU VIENT LA COMPLEMENTAIRE SANTE D'UN SALARIE AU MOIS sous la convention de la fiche entreprise `ent`, quand ce
+/// n'est pas un niveau dit sur sa fiche, dans l'ordre ou `bareme_sante` les lit : le regime de la branche
+/// (`sante_conventionnelle`) ou le contrat de la compagnie. `None` : la 3090, dont le niveau se lit sur le bulletin
+/// d'adhesion du salarie (`sante_svp`), ou une compagnie qui n'a pas dit sa convention.
+pub fn sante_hors_fiche(ent: &Value) -> Resultat<Option<String>> {
+    let idcc = txt(g(ent, "idcc"));
+    if vrai(g(&regime_de(ent)?, "sante")) {
+        return Ok(Some(format!(
+            "Sa complémentaire santé est le régime de la convention {} : le taux est celui de la branche, et la part de l'employeur se dit dans Configuration › Entreprise, « Santé des permanents ». Une dispense se dit ci-dessous.",
+            idcc
+        )));
+    }
+    if idcc.is_empty() || idcc == "3090" {
+        return Ok(None);
+    }
+    Ok(Some(format!(
+        "Sa complémentaire santé est le contrat de la compagnie (la convention {} n'a pas de régime de santé à elle) : son taux et la part de l'employeur se disent dans Configuration › Entreprise, « Santé des permanents ». Une dispense se dit ci-dessous.",
+        idcc
+    )))
+}
+
 /// La complementaire sante d'un permanent, selon SON contrat a lui.
 pub fn bareme_sante(bar: Value, sal: &Value, nat: Option<&Nature>, fin: Option<&Jour>) -> Resultat<Value> {
     if !mensuelle(nat) {
