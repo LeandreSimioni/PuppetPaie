@@ -391,10 +391,11 @@ fn detail_ou_liste<'a>(l: &'a Value, k: &str) -> R<Vec<Cow<'a, Value>>> {
 
 // ------------------------------------------------------------ les embauches
 
+/// Les embauches qu'une DPAE reelle declare : partie, et pas refusee (`verdict_dpae`) ; une DPAE refusee se redeclare.
 pub fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
     let mut d = Dico::nouveau();
     for l in filtrer(lignes, Some(DPAE), None, true)? {
-        if !accepte(l)? {
+        if !accepte(l)? || verdict_dpae(l)?.1 {
             continue;
         }
         for e in detail_liste(l, "embauches")? {
@@ -519,6 +520,20 @@ fn dossiers_urssaf(retours: &[Cow<'_, Value>]) -> R<Dico<Value>> {
     Ok(out)
 }
 
+/// Ce que les retours d'une DPAE partie en disent : `(passee, refusee)`. Passee : le certificat (nature 41) ou un bilan OK ;
+/// refusee : un retour KO, sans certificat ni bilan OK.
+fn verdict_dpae(l: &Value) -> R<(bool, bool)> {
+    let retours = items(ou(get(l, "retours")?, &LISTE_VIDE))?;
+    let (mut passee, mut ko) = (false, false);
+    for r in &retours {
+        let nature = valeur_en_texte(get(r, "nature")?);
+        let verdict = ou(get(r, "verdict")?, texte_vide());
+        passee |= nature == NATURE_CERTIFICAT_DPAE || (nature == "11" && est(verdict, "OK"));
+        ko |= est(verdict, "KO");
+    }
+    Ok((passee, ko && !passee))
+}
+
 pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
     let mut etat: Dico<Value> = Dico::nouveau();
     for l in filtrer(lignes, Some(DPAE), None, true)? {
@@ -526,24 +541,13 @@ pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
             continue;
         }
         let retours = items(ou(get(l, "retours")?, &LISTE_VIDE))?;
-        let mut passee = false;
-        for r in &retours {
-            let nature = valeur_en_texte(get(r, "nature")?);
-            if nature == NATURE_CERTIFICAT_DPAE || (nature == "11" && est(ou(get(r, "verdict")?, texte_vide()), "OK")) {
-                passee = true;
-            }
-        }
-        let mut refus = Vec::new();
+        let (passee, refusee) = verdict_dpae(l)?;
+        let mut anomalies = Vec::new();
         for r in &retours {
             if est(ou(get(r, "verdict")?, texte_vide()), "KO") {
-                refus.push(r);
-            }
-        }
-        let refusee = !refus.is_empty() && !passee;
-        let mut anomalies = Vec::new();
-        for r in &refus {
-            for a in items(ou(get(r, "anomalies")?, &LISTE_VIDE))? {
-                anomalies.push(a.into_owned());
+                for a in items(ou(get(r, "anomalies")?, &LISTE_VIDE))? {
+                    anomalies.push(a.into_owned());
+                }
             }
         }
         let dossiers = dossiers_urssaf(&retours)?;
@@ -1929,7 +1933,9 @@ mod tests {
         let mut refuse = ligne("dpae", "2026-06", "reel", "2026-06-01T11:00:00", json!({"embauches": [{"salarie": "BETA", "debut": "2026-06-03"}]}), json!([]));
         refuse["accepte"] = json!(false);
         let bon = ligne("dpae", "2026-06", "reel", "2026-06-01T12:00:00", json!({"embauches": [{"salarie": "GAMMA", "debut": "2026-06-04"}, {"salarie": "GAMMA", "debut": "2026-06-04"}]}), json!([]));
-        let l = vec![test, refuse, bon];
+        // Partie, et refusee par l'Urssaf : elle se redeclare.
+        let ko = ligne("dpae", "2026-06", "reel", "2026-06-01T13:00:00", json!({"embauches": [{"salarie": "DELTA", "debut": "2026-06-05"}]}), json!([{"nature": "11", "verdict": "KO"}]));
+        let l = vec![test, refuse, bon, ko];
         let e = embauches_par_depot(&l).unwrap();
         assert_eq!(e.cles(), json!([["GAMMA", "2026-06-04"]]));
         assert_eq!(e.sortie(Clone::clone), json!([["GAMMA", "2026-06-04", "2026-06-01T12:00:00"]]));

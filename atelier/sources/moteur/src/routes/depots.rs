@@ -382,24 +382,12 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
 
     let mut lignes = Vec::new();
     for p in &retenues {
-        let reste = p.engagement.debut.moins(&aujourdhui);
-        let (etat, libelle_ligne) = if reste < 0 {
-            ("retard", "EN RETARD (embauche passee)".to_string())
-        } else if reste == 0 {
-            ("aujourdhui", "AUJOURD'HUI - a deposer avant le debut du travail".to_string())
-        } else {
-            ("ok", format!("dans {} jour(s) - delai tenu", reste))
-        };
         lignes.push(json!({
             "salarie": socle::texte::salarie_nomme_ou(Some(&p.salarie), p.salarie.get("_cle").and_then(Value::as_str).unwrap_or("")),
             "debut": p.engagement.debut.iso(),
             "heure": heure,
-            "etat": etat,
-            "libelle": libelle_ligne,
-            "jours_restants": reste,
         }));
     }
-    let retard = lignes.iter().any(|l| l["etat"] == "retard");
 
     let nom_f = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let nom_recap = recap.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
@@ -439,7 +427,6 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         "mois": mois,
         "libelle": libelle,
         "dossier": sortie.to_string_lossy(),
-        "retard": retard,
         "lignes": lignes,
         "fichiers": fichiers,
         "etapes": etapes,
