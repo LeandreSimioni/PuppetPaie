@@ -131,43 +131,6 @@ fn ecrire_texte(chemin: &Path, texte: &str) -> R<()> {
 
 // ------------------------------------------------------------------ dpae
 
-/// La phrase qu'on lit en face d'une embauche deja declaree (`libelle_embauche_declaree`).
-fn libelle_embauche_declaree(cle: &str, debut: &str, e: &Value) -> R<String> {
-    let quand = {
-        let t = e.get("quand").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_default();
-        let c: Vec<char> = t.chars().collect();
-        if c.len() < 10 || c[4] != '-' || c[7] != '-' {
-            t
-        } else {
-            let tr = |a: usize, b: usize| c[a..b].iter().collect::<String>();
-            let jour = format!("{}/{}/{}", tr(8, 10), tr(5, 7), tr(0, 4));
-            if c.len() >= 16 {
-                format!("{} a {}", jour, tr(11, 16))
-            } else {
-                jour
-            }
-        }
-    };
-    let debut_lisible = documents::bulletin::jj_mm_aaaa(&json!(debut)).map_err(|m| erreur("ValueError", m))?;
-    if e.get("refusee").map_or(false, vrai) {
-        let mut vus: Vec<String> = Vec::new();
-        for a in e.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-            let t = valeur_en_texte(a);
-            if !vus.contains(&t) {
-                vus.push(t);
-            }
-        }
-        let motif = if vus.is_empty() { "motif non lu".to_string() } else { vus.join(" ; ") };
-        return Ok(format!("{} au {} : REFUSEE le {} -- {} -- a corriger et a renvoyer", cle, debut_lisible, quand, motif));
-    }
-    let suite = if e.get("passee").map_or(false, vrai) {
-        "certificat de conformite recu : la DPAE est passee, rien a faire de notre cote"
-    } else {
-        "retour pas encore arrive : on attend, on ne renvoie pas"
-    };
-    Ok(format!("{} au {} : declaree le {} -- {}", cle, debut_lisible, quand, suite))
-}
-
 /// Les noms `DPAE_<etiquette>_AAAAMMJJ-HHMM.txt` d'un dossier, du plus grand au plus petit
 /// (`sorted(sortie.glob("DPAE_%s_????????-????.txt" % etiq), reverse=True)`).
 fn fichiers_partiels(dossier: &Path, etiq: &str) -> Vec<PathBuf> {
@@ -266,7 +229,6 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `dpae`, avec ce que la reponse JSON ne porte pas et que la ligne de commande dit : qui est demande dans le signalement
 /// d amorcage (`None` : il n y en a pas) et, sinon, pourquoi il est ecarte.
 pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Vec<(String, String)>>, String)> {
-    let forcer = charge.get("forcer").is_some_and(vrai);
     let mois_demande = texte_requis(charge, "mois")?;
     let heure: Value = charge.get("heure").cloned().unwrap_or_else(|| json!("0800"));
     let selection: Option<&Vec<Value>> = match charge.get("engagements") {
@@ -277,8 +239,8 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
 
     // Les engagements valides du mois (rien ne part d'un engagement en saisie), vus comme des embauches, sans relire leur
     // paie.
-    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
-    let data = engagement::etats::validees_du_mois(ctx, mois_demande, &departs).map_err(plain)?.map(|(d, _)| d)
+    let journal = envois::journal::lu(&ctx.racine).map_err(plain)?;
+    let data = engagement::etats::validees_du_mois(ctx, mois_demande, &journal.departs).map_err(plain)?.map(|(d, _)| d)
         .ok_or_else(|| erreur("FileNotFoundError", format!("Aucune saisie pour {}.", mois_demande)))?;
     let paies: Vec<Paie> = {
         let engs = engagement::engagements_de_la_saisie(ctx, &data).map_err(plain)?;
@@ -290,17 +252,16 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let aujourdhui = ctx.aujourdhui;
     let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.debut.iso()) };
 
-    // Un contrat en cours depuis un mois precedent n'est pas une embauche de ce mois.
-    let mut en_cours: Vec<&Paie> = Vec::new();
-    let mut premiers: Vec<&Paie> = Vec::new();
-    for p in &paies {
-        if p.engagement.premier_mois().map_err(plain)? {
-            premiers.push(p);
-        } else {
-            en_cours.push(p);
-        }
-    }
-    let mut retenues: Vec<&Paie> = premiers;
+    // LES DPAE A FAIRE DU MOIS (`Moteur::embauches_a_declarer`, la seule liste) : une embauche deja partie en DPAE
+    // reelle, ou un contrat en cours depuis un mois precedent (sa DPAE part avec son premier mois), n'y est pas.
+    let a_faire: BTreeSet<(String, String)> = crate::routes::etapes::Moteur::nouveau(ctx)
+        .embauches_a_declarer(Some(&mois))?
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|e| (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["debut"])))
+        .collect();
+    let mut retenues: Vec<&Paie> = paies.iter().filter(|p| a_faire.contains(&cle_de(p))).collect();
     let mut marque = String::new();
     if let Some(sel) = selection {
         let mut voulues: BTreeSet<(String, String)> = BTreeSet::new();
@@ -316,37 +277,21 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
                 autre => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
             }
         }
-        retenues = paies.iter().filter(|p| voulues.contains(&cle_de(p))).collect();
-        let trouvees: BTreeSet<(String, String)> = retenues.iter().map(|p| cle_de(p)).collect();
-        let anciennes: BTreeSet<(String, String)> = en_cours.iter().map(|p| cle_de(p)).collect();
         let joint = |s: BTreeSet<&(String, String)>| s.into_iter().map(|(a, b)| format!("{} au {}", a, b)).collect::<Vec<_>>().join(", ");
-        let deja_parties: BTreeSet<&(String, String)> = voulues.intersection(&anciennes).collect();
-        if !deja_parties.is_empty() {
+        let hors: BTreeSet<&(String, String)> = voulues.difference(&a_faire).collect();
+        if !hors.is_empty() {
             return Err(refus(format!(
-                "Contrat en cours depuis un mois precedent, sa DPAE est deja partie avec son premier mois : {}. Rien n'est ecrit.",
-                joint(deja_parties)
+                "Aucune DPAE a faire pour : {} (deja partie, en cours depuis un mois precedent, ou absente de la saisie de {}). Rien n'est ecrit.",
+                joint(hors),
+                mois
             )));
         }
-        let absentes: BTreeSet<&(String, String)> = voulues.difference(&trouvees).collect();
-        if !absentes.is_empty() {
-            return Err(refus(format!("Ces embauches ne sont pas dans la saisie de {} : {}. Rien n'est ecrit.", mois, joint(absentes))));
-        }
-        if retenues.is_empty() {
-            return Err(refus("Aucune embauche retenue : il n'y a rien a declarer."));
-        }
+        retenues.retain(|p| voulues.contains(&cle_de(p)));
         let now = maintenant_iso();
         marque = format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16]);
     }
     if retenues.is_empty() {
-        return Err(refus(format!(
-            "Aucune embauche en {} : {}. Rien n'est ecrit.",
-            libelle,
-            if en_cours.is_empty() {
-                "la saisie est vide"
-            } else {
-                "les contrats du mois sont en cours depuis un mois precedent, leur DPAE est partie avec lui"
-            }
-        )));
+        return Err(refus(format!("Aucune DPAE a faire en {}. Rien n'est ecrit.", libelle)));
     }
 
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
@@ -379,32 +324,6 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         }
     }
 
-    // PAS DEUX FOIS : une embauche deja partie en DPAE reelle ne se reecrit pas.
-    let lignes_journal = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    let etat = etats::etat_des_embauches(&lignes_journal)?;
-    let mut deja: HashMap<(String, String), Value> = HashMap::new();
-    for entree in etat.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-        if let [Value::String(c), Value::String(d), info] = entree.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-            deja.insert((c.clone(), d.clone()), info.clone());
-        }
-    }
-    let mut bloquees: Vec<(String, String)> = Vec::new();
-    for p in &retenues {
-        let k = cle_de(p);
-        if let Some(info) = deja.get(&k) {
-            if !info.get("refusee").map_or(false, vrai) && !bloquees.contains(&k) {
-                bloquees.push(k);
-            }
-        }
-    }
-    if !bloquees.is_empty() && !forcer {
-        let mut phrases = Vec::new();
-        for (c, d) in &bloquees {
-            phrases.push(libelle_embauche_declaree(c, d, &deja[&(c.clone(), d.clone())])?);
-        }
-        return Err(refus(format!("Deja declaree(s), rien n'est ecrit :\n  {}", phrases.join("\n  "))));
-    }
-
     // LE MEME CONTENU, LE MEME FICHIER : une selection deja ecrite se reprend telle quelle.
     let mut ent = ctx.entreprise.clone();
     if let Some(o) = ent.as_object_mut() {
@@ -433,7 +352,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         for x in &pareils {
             let empreinte = envois::journal::empreinte_fichier(x).map_err(plain)?;
             let nom = x.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            let r = etats::repetition(&lignes_journal, etats::DPAE, &empreinte, &nom)?;
+            let r = etats::repetition(&journal.lignes, etats::DPAE, &empreinte, &nom)?;
             if vrai(&r["conforme"]) {
                 repetes.push(x.clone());
             }

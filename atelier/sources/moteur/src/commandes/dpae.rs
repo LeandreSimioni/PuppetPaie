@@ -1,4 +1,4 @@
-//! `moteur dpae FICHIER [--heure HHMM] [--seulement SALARIE:AAAA-MM-JJ ...] [--force] [--json]` : produire la seule DPAE d'un mois,
+//! `moteur dpae FICHIER [--heure HHMM] [--seulement SALARIE:AAAA-MM-JJ ...] [--json]` : produire la seule DPAE d'un mois,
 //! avant l'embauche. Rien ne part : un fichier a plat
 //! (990 caracteres par embauche), son archive et son recapitulatif, plus -- dans le meme geste -- les signalements d'amorcage
 //! (nature 08) des embauches dont le taux de PAS manque. Le depot est une commande a part (`moteur deposer-dpae`).
@@ -22,7 +22,7 @@ use socle::echec::Echec;
 pub static SPEC: Spec = Spec {
     commande: "dpae",
     positionnels: &[Pos::requis("fichier")],
-    options: &[Opt::avec_defaut("heure", "0800"), Opt::plusieurs("seulement"), Opt::drapeau("force"), Opt::drapeau("json")],
+    options: &[Opt::avec_defaut("heure", "0800"), Opt::plusieurs("seulement"), Opt::drapeau("json")],
 };
 
 pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
@@ -57,7 +57,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         Ok(m) => m,
         Err(e) => return Ok(reponse_metier("dpae", json, &e, &[])),
     };
-    let mut charge = json!({"mois": mois, "heure": args.texte("heure").unwrap_or("0800"), "forcer": args.drapeau("force")});
+    let mut charge = json!({"mois": mois, "heure": args.texte("heure").unwrap_or("0800")});
     if let Some(c) = choix {
         charge["engagements"] = Value::Array(c);
     }
