@@ -8,10 +8,10 @@
 //! RIEN NE SE DEVINE (regle 1) : une case qu'aucune piece ne porte reste vide, et la carte DIT pourquoi (`manque` : quel
 //! champ, et ce qui l'aurait donne). Rien ne s'ecrit ici : c'est une lecture.
 //!
-//! LA DSN D'UN MOIS TENU AVANT (`dsn_avant`) : le journal des depots d'abord (un depot que les retours attestent y entre
+//! L'ETAT DE LA DSN D'UN MOIS (`dsn_avant`), tenu avant ou non : le journal des depots d'abord (un depot que les retours attestent y entre
 //! de lui-meme : `reprise_journal::reprendre_les_depots`) ; a defaut, la DSN que l'import a lue pour ce mois (le fichier
 //! de l'ancien logiciel : `declare_par: "DSN"`) -- le mois est declare, rien ne propose de la refaire (regle 4 : une
-//! declaration deposee ne se regenere pas, et PuppetPaie n'a pas calcule ce mois). Sans aucune trace, il le dit, sans
+//! declaration deposee ne se regenere pas, et PuppetPaie n'a pas calcule ce mois). Un mois tenu avant sans aucune trace le dit, sans
 //! le dire « en retard » ni proposer de la produire.
 
 use std::collections::BTreeSet;
