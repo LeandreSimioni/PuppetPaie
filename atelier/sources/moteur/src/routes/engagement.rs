@@ -60,51 +60,6 @@ pub(super) fn maintenant() -> String {
 
 // ------------------------------------------------------------------ valider-engagement
 
-/// Ce que la page designe, lu dans l'ordre de l'ecran.
-enum Designe {
-    /// Un engagement auquel il manque un fait (`engagement::stock::A_COMPLETER`), hors de la saisie enregistree.
-    ACompleter(engagement::stock::Objet),
-    /// Un engagement de la saisie enregistree : la charge a donner a `engagement_designe`, son rang compte parmi les
-    /// engagements de `vue_du_mois`.
-    DansLaVue(Value),
-}
-
-/// L'ENGAGEMENT QUE LA PAGE DESIGNE, DANS L'ORDRE DE L'ECRAN (`engagement::stock::objets_a_l_ecran`) : `salarie`,
-/// `debut`, et, si deux contrats du salarie commencent ce jour-la, `numero` ou `rang`. La page compte ce rang sur ses
-/// cartes, celles des engagements a completer comprises (`etapes.rs`, `avec_les_engagements_a_completer`) ; la saisie
-/// enregistree (`vue_du_mois`) n'a pas ceux qui n'ont jamais ete valides : leur rang se retire avant de la lire.
-fn designe_a_l_ecran(ctx: &Contexte, charge: &Value) -> R<Designe> {
-    let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
-    let objets = engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?;
-    let du_jour: Vec<(engagement::stock::Objet, Option<String>)> = objets
-        .into_iter()
-        .filter_map(|o| {
-            let e = Value::Object(o.brut.clone());
-            let la = engagement::cle_de_l_engagement(ctx, &e).as_deref() == Some(salarie) && engagement::debut_brut(&e) == debut;
-            la.then(|| (o, droit::jumeaux::numero_pose(&e)))
-        })
-        .collect();
-    if !du_jour.iter().any(|(o, _)| o.a_completer().is_some()) {
-        return Ok(Designe::DansLaVue(charge.clone()));
-    }
-    let numero = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
-    let rang = charge.get("rang").and_then(Value::as_u64).unwrap_or(0) as usize;
-    let k = numero
-        .as_ref()
-        .and_then(|n| du_jour.iter().position(|(_, m)| m.as_ref() == Some(n)))
-        .or_else(|| (du_jour.len() == 1).then_some(0))
-        .or_else(|| (rang < du_jour.len()).then_some(rang));
-    Ok(match k {
-        Some(k) if du_jour[k].0.a_completer().is_some() => Designe::ACompleter(du_jour[k].0.clone()),
-        Some(k) => {
-            let hors_de_la_vue = du_jour[..k].iter().filter(|(o, _)| o.est_a_completer()).count();
-            let mut c = charge.clone();
-            c["rang"] = json!(k - hors_de_la_vue);
-            Designe::DansLaVue(c)
-        }
-        None => Designe::DansLaVue(charge.clone()),
-    })
-}
 
 /// « VALIDER L'ENGAGEMENT », UN GESTE : la carte s'ecrit (`saisie`, et `place`, sa place dans l'ecran du mois, absente
 /// pour un engagement neuf : `crate::routes::mois::ecrire_une_carte`), puis l'engagement ecrit se valide : il ecrit ses
@@ -485,31 +440,33 @@ fn engagement_designe(ctx: &Contexte, charge: &Value) -> R<(Value, usize)> {
 /// demande avec `non_actif` si l'utilisateur veut qu'il ne soit plus actif.
 pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
 
-/// « Retirer cet engagement » : l'engagement se designe comme pour `valider-engagement` (`engagement_designe`). Tant
-/// que rien n'est parti de lui, il se supprime, meme valide, et rend son numero (`engagement::etats::supprimer`). Des
-/// qu'un envoi est parti, le moteur refuse (`CLASSE_ENGAGEMENT_PARTI`, la phrase dit ce qui est parti) ; avec
-/// `non_actif`, il devient non actif (`engagement::etats::desactiver`) et la reponse dit ce que cela rend a faire
-/// (`a_faire`, en phrases : la DPAE a annuler, la DSN d'un mois a corriger). Rien ne part de lui-meme.
+/// « Retirer cet engagement » : la carte se designe par sa place dans l'ecran du mois (`place`, que le moteur a rendue).
+/// Tant que rien n'est parti de lui, l'engagement se supprime, meme valide, et rend son numero
+/// (`engagement::etats::supprimer`). Des qu'un envoi est parti, le moteur refuse (`CLASSE_ENGAGEMENT_PARTI`, la phrase
+/// dit ce qui est parti) ; avec `non_actif`, il devient non actif (`engagement::etats::desactiver`) et la reponse dit ce
+/// que cela rend a faire (`a_faire`, en phrases : la DPAE a annuler, la DSN d'un mois a corriger). Rien ne part de
+/// lui-meme.
 fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
+    let place = charge.get("place").and_then(Value::as_u64).ok_or_else(|| erreur("TypeError", "`place` : un entier est attendu"))? as usize;
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
-    // Un engagement auquel il manque un fait n'a jamais ete valide : rien n'est parti de lui, il s'efface.
-    let designe = match designe_a_l_ecran(ctx, charge)? {
-        Designe::ACompleter(o) => {
-            engagement::stock::effacer(&ctx.racine, &o).map_err(Echec::from)?;
-            return Ok(json!({"retire": "supprime"}));
-        }
-        Designe::DansLaVue(c) => c,
-    };
-    let charge = &designe;
-    let (_, i) = engagement_designe(ctx, charge)?;
+    let o = engagement::stock::objets_a_l_ecran(&ctx.racine, mois)
+        .map_err(Echec::from)?
+        .into_iter()
+        .nth(place)
+        .ok_or_else(|| refus(format!("{} : l'écran ne montre pas d'engagement à la place {} ; rechargez le mois. Rien n'est écrit.", engagement::libelle_mois(mois), place + 1)))?;
     let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
     if !booleen(charge, "non_actif", false) {
-        return match engagement::etats::supprimer(ctx, mois, i, &departs) {
+        return match engagement::etats::supprimer(ctx, &o, &departs) {
             Ok(()) => Ok(json!({"retire": "supprime"})),
             Err(m) => Err(erreur(CLASSE_ENGAGEMENT_PARTI, m)),
         };
     }
+    let i = engagement::stock::objets_du_mois(&ctx.racine, mois)
+        .map_err(Echec::from)?
+        .iter()
+        .position(|x| x.fichier == o.fichier && x.rang == o.rang)
+        .ok_or_else(|| refus(format!("{} : cet engagement n'a jamais été validé ; il se supprime.", engagement::libelle_mois(mois))))?;
     let n = engagement::etats::desactiver(ctx, mois, i, &departs).map_err(Echec::from)?;
     Ok(json!({"retire": "non_actif", "le": n.le(), "a_faire": a_faire_en_phrases(&n.a_refaire(ctx, &departs))}))
 }

@@ -1142,21 +1142,20 @@ pub fn ce_qui_est_parti(ctx: &Contexte, o: &Objet, departs: &Departs) -> Vec<Str
     out
 }
 
-/// SUPPRIMER L'ENGAGEMENT de rang `rang` dans l'ecran de `mois` : tant que rien n'est parti de lui (`ce_qui_est_parti`
-/// vide), il s'efface, meme valide, et rend son numero (`numeros` : le suivant se tire de ce que portent les
+/// SUPPRIMER L'ENGAGEMENT `o` (celui qu'une carte montre, en saisie ou valide) : tant que rien n'est parti de lui
+/// (`ce_qui_est_parti` vide), il s'efface, meme valide, et rend son numero (`numeros` : le suivant se tire de ce que portent les
 /// engagements et ce qui est parti). Refus des qu'un envoi est parti : il ne se supprime plus, il peut ne plus etre
 /// actif (`desactiver`) ; rien n'est ecrit.
-pub fn supprimer(ctx: &Contexte, mois: &str, rang: usize, departs: &Departs) -> Resultat<()> {
-    let o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
-    let partis = ce_qui_est_parti(ctx, &o, departs);
+pub fn supprimer(ctx: &Contexte, o: &Objet, departs: &Departs) -> Resultat<()> {
+    let partis = ce_qui_est_parti(ctx, o, departs);
     if !partis.is_empty() {
         return Err(format!(
             "{} : déjà parti : {}. Il ne se supprime plus ; il peut devenir non actif : il reste dans la compagnie, avec ses versions, et ne compte plus dans aucune paie ni aucune déclaration. Rien n'est effacé.",
-            qui_de(ctx, &o),
+            qui_de(ctx, o),
             partis.join(" ; "),
         ));
     }
-    stock::effacer(&ctx.racine, &o)?;
+    stock::effacer(&ctx.racine, o)?;
     Ok(())
 }
 

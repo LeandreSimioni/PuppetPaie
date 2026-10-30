@@ -366,30 +366,32 @@ async function validerLaCarte(div) {
   await rafraichirActions();
 }
 
-/** Le bouton « Retirer cet engagement » d'un bloc, quel que soit son état. Le moteur
- *  décide (`retirer-engagement`) : rien de parti, l'engagement s'efface ; un
- *  envoi parti, il refuse (`EngagementParti`), la page montre sa phrase et
- *  propose de rendre l'engagement non actif. Un bloc pas encore enregistré
- *  n'a rien dans le moteur : il s'efface de l'écran. */
+/** Le bouton « Retirer cet engagement » d'une carte, quel que soit son état. Le moteur décide (`retirer-engagement`,
+ *  la carte désignée par sa place) : rien de parti, l'engagement s'efface ; un envoi parti, il refuse
+ *  (`EngagementParti`), la page montre sa phrase et propose de rendre l'engagement non actif. Une carte jamais écrite
+ *  n'a rien dans le moteur : elle s'efface de l'écran. Les places des cartes suivantes changent : ce qui attend s'écrit
+ *  d'abord, puis le mois se relit. */
 function brancherRetirer(div) {
   const b = div.querySelector(".retirer-engagement");
   if (!b) return;
   b.onclick = async (ev) => {
     ev.preventDefault();
     const mois = document.getElementById("mois").value;
-    const lignes = engagementsSaisisDuBloc(div).map(etatDEngagement).filter(Boolean);
-    if (!lignes.length) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
+    clearTimeout(MINUTEUR_SAISIE);
+    await enregistrerSaisie(true);
+    if (!div.dataset.place) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
+    const charge = { mois, place: +div.dataset.place };
     try {
-      for (const l of lignes) {
-        try {
-          await api("retirer-engagement", { mois, ...contratDe(l) });
-        } catch (e) {
-          if (e.detail?.type !== "EngagementParti") throw e;
-          if (!await boiteNonActif(e.message)) return;
-          const r = await api("retirer-engagement", { mois, ...contratDe(l), non_actif: true });
-          if (r.a_faire?.length) dire(`${l.nom} : non actif. À faire : ${r.a_faire.join(", ")}.`);
-        }
+      try {
+        await api("retirer-engagement", charge);
+        dire("Engagement retiré.");
+      } catch (e) {
+        if (e.detail?.type !== "EngagementParti") throw e;
+        if (!await boiteNonActif(e.message)) return;
+        const r = await api("retirer-engagement", { ...charge, non_actif: true });
+        dire("Engagement non actif." + (r.a_faire?.length ? ` À faire : ${r.a_faire.join(", ")}.` : ""));
       }
+      div.remove();
       await chargerMois(mois, true);
     } catch (e) { dire(e.message, "erreur"); }
   };
