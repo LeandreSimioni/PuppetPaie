@@ -289,7 +289,7 @@ fn modifier_puis_revalider(
     }
     let mut changes = false;
     for i in rangs {
-        changes |= engagement::etats::saisie_changee(ctx, mois, *i).map_err(Echec::from)?;
+        changes |= engagement::etats::a_revalider_rouvert(ctx, mois, *i).map_err(Echec::from)?;
     }
     if !changes {
         return Ok(Issue::Rien);

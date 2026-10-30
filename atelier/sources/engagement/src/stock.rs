@@ -46,7 +46,7 @@ pub const TENUS_PAR_LE_MOTEUR: [&str; 8] =
 ///
 /// - Un engagement qui n'a jamais ete valide est ecrit tel que l'ecran l'a saisi ; il ne touche aucun mois
 ///   (`Objet::couvre`) : rien ne le calcule, rien ne part de lui.
-/// - Un engagement deja valide une fois, remis en saisie (« Modifier… »), garde ce qu'il disait de complet : les
+/// - Un engagement deja valide une fois, remis en saisie (`etats::modifier`), garde ce qu'il disait de complet : les
 ///   lectures du mois le voient en saisie, tel qu'il etait (rien ne part d'un engagement en saisie, et ce qui est parti
 ///   pour lui se relit sur lui) ; la saisie de l'ecran se garde a cote, dans `saisie`, et l'ecran la montre. Elle devient
 ///   la sienne quand elle se calcule.
@@ -700,8 +700,8 @@ fn identite(ctx: &Contexte, e: &Value) -> Option<droit::jumeaux::Ident> {
 /// sien (`droit::jumeaux::apparier_meme_numero`, puis, pour qui reste, le meme salarie pas encore valide, dans l'ordre), un nouveau
 /// commence dans le fichier du mois, un engagement que l'ecran ne montre plus et qui commencait ce mois-ci s'efface.
 ///
-/// UN ENGAGEMENT VALIDE NE CHANGE PAS PAR CE CHEMIN : il se modifie apres « Modifier » (`etats::modifier`), qui le
-/// remet en saisie ; ce que l'ecran envoie pour lui ne compte pas, et il ne s'efface pas. Ce que l'ecran envoie de
+/// UN ENGAGEMENT VALIDE NE CHANGE PAS PAR CE CHEMIN : il se modifie d'un geste, remis en saisie (`etats::modifier`) puis
+/// sa saisie posee (`poser_la_saisie`) et revalide ; ce que l'ecran envoie pour lui ne compte pas, et il ne s'efface pas. Ce que l'ecran envoie de
 /// `valide` ne compte jamais.
 ///
 /// `manques` : pour chaque engagement de la vue, dans son ordre, ce qui lui manque pour se calculer (`None` : rien) ;

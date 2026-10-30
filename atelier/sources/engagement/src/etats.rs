@@ -176,7 +176,7 @@ impl Valide {
         let ecrite = self.paie_ecrite(mois).and_then(|p| p.get("paie")).ok_or_else(|| match &self.refus {
             Some(refus) => format!("{} : la paie de {} ne se calcule pas. {}", qui_de(ctx, &self.objet), socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee), refus),
             None => format!(
-                "{} : la paie de {} n'est pas calculée. Revalidez l'engagement (« Modifier… », puis « Valider l'engagement »).",
+                "{} : la paie de {} n'est pas calculée. Revalidez l'engagement : ouvrez sa carte, puis « Modifier l'engagement ».",
                 qui_de(ctx, &self.objet),
                 socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
             ),
@@ -341,7 +341,7 @@ fn a_revalider(ctx: &Contexte, o: &Objet, v: &Value) -> Option<String> {
     }
     (!manque.is_empty()).then(|| {
         format!(
-            "{} : sa validation ne porte pas {}. Cet engagement est a revalider (« Modifier… », puis « Valider l'engagement ») ; rien n'est ecrit.",
+            "{} : sa validation ne porte pas {}. Cet engagement est a revalider : ouvrir sa carte, puis « Modifier l'engagement » ; rien n'est ecrit.",
             qui_de(ctx, o),
             manque.join(", ni ")
         )
@@ -943,12 +943,13 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, precedente: Option<&Va
     }
     Ok(paies)
 }
-
-/// La saisie de l'engagement de rang `rang` de l'ecran de `mois`, rouvert (`modifier`), dit-elle autre chose que sa
-/// validation mise de cote ? Faux pour un engagement qui n'a pas ete rouvert.
-pub fn saisie_changee(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<bool> {
+/// L'engagement de rang `rang` de l'ecran de `mois`, rouvert (`modifier`), est-il a revalider ? Sa saisie dit autre
+/// chose que sa validation mise de cote, ou celle-ci ne dit pas tout ce qu'un envoi emporte (`a_revalider`). Faux pour un
+/// engagement qui n'a pas ete rouvert.
+pub fn a_revalider_rouvert(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<bool> {
     let Some(o) = stock::objet_du_mois(&ctx.racine, mois, rang)? else { return Ok(false) };
-    Ok(o.brut.get(PRECEDENTE).and_then(|p| p.get("saisie")).is_some_and(|s| *s != saisie_de(&o)))
+    let Some(p) = o.brut.get(PRECEDENTE) else { return Ok(false) };
+    Ok(p.get("saisie") != Some(&saisie_de(&o)) || a_revalider(ctx, &o, p).is_some())
 }
 
 /// « A PARTIR DE QUEL MOIS ? » : ce que le moteur demande avant de revalider un contrat paye au mois (CDD, CDI) de
