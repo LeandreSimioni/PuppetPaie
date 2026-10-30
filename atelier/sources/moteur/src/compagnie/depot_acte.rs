@@ -283,29 +283,6 @@ fn refuser_si_copie(ctx: &Contexte, quoi: &str) -> R<()> {
 
 // ------------------------------------------------------------------------ la DSN
 
-/// `libelle_dsn_deposee` : la phrase en face d'une DSN deja partie -- la meme pour les deux faces.
-fn libelle_dsn_deposee(mois: &str, e: &Value) -> String {
-    let quand = quand_a(&e["quand"]);
-    let anomalies = || -> String {
-        let mut v: Vec<String> = Vec::new();
-        for a in e.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-            let t = valeur_en_texte(a);
-            if !v.contains(&t) {
-                v.push(t);
-            }
-        }
-        v.join(" ; ")
-    };
-    if vrai(&e["refusee"]) {
-        let a = anomalies();
-        return format!("DSN de {} deposee le {} -- REFUSEE : {} -- a corriger et a renvoyer", mois, quand, if a.is_empty() { "motif non lu".to_string() } else { a });
-    }
-    if vrai(&e["passee"]) {
-        return format!("DSN de {} deposee le {} -- bilan de conformite recu : elle est passee, rien a faire de notre cote", mois, quand);
-    }
-    format!("DSN de {} deposee le {} -- retour pas encore arrive : on attend, on ne renvoie pas", mois, quand)
-}
-
 /// `ordre_d_essai_du_fichier` : l'ordre auquel un essai part : le calcule, jamais plus bas que celui que le fichier porte
 /// deja. `None` reste `None`.
 fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64>> {
@@ -492,7 +469,6 @@ pub fn deposer_dsn_dans(
         ));
     }
     let nic: Value = if apercu.champ("etablissement").is_empty() { Value::Null } else { json!(apercu.champ("etablissement")) };
-    let principal = etats::nic_principal(&ctx.entreprise);
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
 
     let (mut forme, mut repetition) = (String::new(), Value::Null);
@@ -520,17 +496,16 @@ pub fn deposer_dsn_dans(
         // PAS DEUX FOIS SANS LE VOULOIR. Une DSN reelle deja partie pour ce mois, et pas refusee, ne repart pas.
         // UN SIGNALEMENT N'EST PAS CONCERNE : plusieurs peuvent partir le meme mois.
         if !apercu.est_signalement() {
-            let mut etat_mois = etats::etat_dsn_du_mois(&lignes, &mois, &nic, &principal)?;
-            // L'ANNULE-ET-REMPLACE EN REGLE PART SANS QU'ON FORCE RIEN.
-            if verifier_depot_remplacement(ctx, &mois, &apercu, &nic)? {
-                etat_mois = Value::Null;
-            }
-            if vrai(&etat_mois) && !vrai(&etat_mois["refusee"]) && !forcer {
+            let etat_mois = crate::import::mois::dsn_avant(ctx, &mois, &nic)?;
+            // L'ANNULE-ET-REMPLACE EN REGLE PART SANS QU'ON FORCE RIEN (ses gardes passent toujours).
+            let remplace = verifier_depot_remplacement(ctx, &mois, &apercu, &nic)?;
+            if matches!(etat_mois["etat"].as_str(), Some("passee" | "attente")) && !remplace && !forcer {
                 return Err(avec_donnee(
                     "DsnDejaDeposee",
                     format!(
-                        "{}. Rien n'est parti. Ce fichier est une declaration NORMALE, et la plate-forme n'en accepte pas une seconde pour le meme mois (cahier technique DSN §1.4.3.2) : pour corriger, refaire la DSN du mois -- elle sortira en annule-et-remplace.",
-                        libelle_dsn_deposee(&mois, &etat_mois)
+                        "{} : {}. Rien n'est parti. Ce fichier est une declaration NORMALE, et la plate-forme n'en accepte pas une seconde pour le meme mois (cahier technique DSN §1.4.3.2) : pour corriger, refaire la DSN du mois -- elle sortira en annule-et-remplace.",
+                        mois,
+                        valeur_en_texte(&etat_mois["phrase"])
                     ),
                     "etat",
                     etat_mois,

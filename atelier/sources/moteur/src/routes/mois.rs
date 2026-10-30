@@ -517,7 +517,7 @@ fn date_en_clair(j: &Jour) -> String {
 fn dsn(st: &Etat, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> {
     let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
-    let e = crate::import::mois::dsn_avant(st.ctx, mois)?;
+    let e = crate::import::mois::dsn_avant(st.ctx, mois, &Value::Null)?;
     let etat = if !matches!(e["etat"].as_str(), Some("refusee" | "a_deposer")) {
         FAIT
     } else if *aujourdhui > limite {

@@ -36,7 +36,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
     let passee = ctx.aujourdhui > limite;
-    let etat = crate::import::mois::dsn_avant(ctx, mois)?["etat"].as_str().unwrap_or_default().to_string();
+    let etat = crate::import::mois::dsn_avant(ctx, mois, &Value::Null)?["etat"].as_str().unwrap_or_default().to_string();
     let deposee = matches!(etat.as_str(), "passee" | "attente" | "refusee");
     let drapeau = |k: &str| etat == k;
     let mut out = Map::new();
@@ -502,7 +502,7 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
 /// l'ancien logiciel, `engagement::importe::dsn_deposee`). Une correction se declare dans la DSN suivante (cahier
 /// technique DSN 2026.1, § 2.1.2.1, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`).
 pub(crate) fn dsn_qui_porte(ctx: &Contexte, mois: &str) -> R<String> {
-    let partie = |m: &str| -> R<bool> { Ok(matches!(crate::import::mois::dsn_avant(ctx, m)?["etat"].as_str(), Some("passee" | "attente" | "importee"))) };
+    let partie = |m: &str| -> R<bool> { Ok(matches!(crate::import::mois::dsn_avant(ctx, m, &Value::Null)?["etat"].as_str(), Some("passee" | "attente" | "importee"))) };
     let suivant = |m: &str| -> R<String> { Ok(socle::date::Jour::lire(&format!("{}-01", m)).map_err(Echec::from)?.mois_suivant()) };
     let mut porteur = suivant(mois)?;
     while partie(&porteur)? {

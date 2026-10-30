@@ -649,20 +649,12 @@ function boiteRepetition(etat, quoi, repeter, quandMeme) {
   };
 }
 
-/** Une DSN réelle est déjà partie pour ce mois. Dire où elle en est, et ne
- *  renvoyer que si on le veut vraiment. */
+/** Une DSN réelle est déjà partie pour ce mois. Dire où elle en est (le moteur
+ *  le dit), et ne renvoyer que si on le veut vraiment. */
 function boiteRenvoiDsn(etat, renvoyer) {
-  const quand = etat && etat.quand ? quand_(etat.quand) : "?";
-  const situation = etat.passee
-    ? `Le bilan de conformité est arrivé : <b>elle est passée</b>, il n'y a
-       rien à faire de notre côté.`
-    : `<b>Son retour n'est pas encore arrivé</b> : on attend, on ne renvoie pas.`;
   ouvrirBoite(`
     <h3>Une DSN est déjà partie pour ce mois</h3>
-    <div class="encart attention">
-      <b>Déposée le ${echapper(quand)}${etat.flux ? ` — flux ${echapper(etat.flux)}` : ""}</b>
-      ${situation}
-    </div>
+    <div class="encart attention"><b>${echapper(etat?.phrase || "")}</b></div>
     <p class="note">Renvoyer quand même fait un <b>annule-et-remplace</b> à
       net-entreprises : la nouvelle DSN remplace la précédente, avec ses ordres
       de télépaiement. À ne faire que si c'est voulu — une paie corrigée, par
@@ -673,7 +665,6 @@ function boiteRenvoiDsn(etat, renvoyer) {
     </div>`);
   document.getElementById("d-renvoyer").onclick = () => { fermerBoite(); renvoyer(); };
 }
-const quand_ = (iso) => quand(iso);
 
 /* ------------------------------------------ les documents aux salariés */
 /** LES DOCUMENTS DU MOIS : chaque salarié à qui ils partent, coché ; on

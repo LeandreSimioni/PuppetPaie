@@ -1475,10 +1475,11 @@ impl<'a> Moteur<'a> {
     fn groupes_dsn_de(&mut self, mois: &str, nic: &Value) -> R<(Value, Value)> {
         let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         let au_depot = echeance_dsn(echeance.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)");
-        let e = etats::etat_dsn_du_mois(&self.lignes()?, mois, nic, &self.nic())?;
+        let e = crate::import::mois::dsn_avant(self.ctx, mois, nic)?;
+        let partie = matches!(e["etat"].as_str(), Some("passee" | "attente" | "refusee"));
         // LA DSN DEPOSEE PAR L'ANCIEN LOGICIEL ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se
         // declare dans la DSN suivante qui n'est pas partie, et la case le dit (`import::mois::dsn_de_l_ancien_logiciel`).
-        if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(self.ctx, mois)?.filter(|_| !vrai(&e)) {
+        if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(self.ctx, mois)?.filter(|_| !partie) {
             let mut g = fait();
             if d["engagements"].as_u64().is_some_and(|n| n > 0) {
                 let porteur = valeur_en_texte(&d["porteur"]);
@@ -1490,7 +1491,7 @@ impl<'a> Moteur<'a> {
             g["phrase"] = d["phrase"].clone();
             return Ok((g, Value::Null));
         }
-        if !vrai(&e) {
+        if !partie {
             if !self.dsn_a_declarer(mois, nic)? {
                 return Ok((fait(), Value::Null));
             }
@@ -1500,7 +1501,7 @@ impl<'a> Moteur<'a> {
             let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
             return Ok((groupe("a_faire", Value::Null, String::new(), quoi, au_depot, a), Value::Null));
         }
-        if vrai(get(&e, "refusee")?) {
+        if e["etat"] == "refusee" {
             return Ok((
                 groupe("refuse", Value::Null, String::new(), "refusée · l'éditeur est prévenu".into(), au_depot, action("historique", "Voir le bilan…".into())),
                 Value::Null,

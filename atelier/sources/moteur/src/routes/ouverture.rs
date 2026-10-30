@@ -567,7 +567,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
         // L'ETAT DE LA DSN, lu une fois (`import::mois::dsn_avant`) ; une DSN a deposer passee l'echeance est en retard.
         let importe = crate::import::mois::importe(&ctx.racine, nom)?;
-        let lu = crate::import::mois::dsn_avant(ctx, nom)?;
+        let lu = crate::import::mois::dsn_avant(ctx, nom, &Value::Null)?;
         let etat = match lu["etat"].as_str().unwrap_or("a_deposer") {
             "a_deposer" if en_retard => "en_retard",
             autre => autre,

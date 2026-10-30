@@ -276,7 +276,7 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
     if !vrai_opt(exercice_clos(st.ctx, &precedent.to_string())?.as_ref()) && !mois_de_l_annee(st.ctx, &precedent.to_string()).is_empty() {
         // La cloture vient APRES la DSN de decembre : tant qu'elle manque, c'est
         // son rappel qui parle, pas celui-ci.
-        let e = dsn_avant(st.ctx, &decembre)?;
+        let e = dsn_avant(st.ctx, &decembre, &Value::Null)?;
         if matches!(e["etat"].as_str(), Some("passee" | "attente" | "refusee" | "importee")) {
             let mut r = Rappel::nouveau(
                 CLOTURE,
@@ -404,7 +404,7 @@ fn derniere_dsn_passee(st: &Etat) -> R<Option<String>> {
     }
     let mut passes = Vec::new();
     for m in mois {
-        let e = dsn_avant(st.ctx, &m)?;
+        let e = dsn_avant(st.ctx, &m, &Value::Null)?;
         if !matches!(e["etat"].as_str(), Some("refusee" | "a_deposer")) {
             passes.push(m);
         }
@@ -454,7 +454,7 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
     }
     let (mut out, mut m) = (Vec::new(), premier);
     while m <= dernier {
-        let e = dsn_avant(st.ctx, &m)?;
+        let e = dsn_avant(st.ctx, &m, &Value::Null)?;
         if matches!(e["etat"].as_str(), Some("refusee" | "a_deposer")) {
             out.push(m.clone());
         }
@@ -527,7 +527,7 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
     r.engagements = engagements;
     r.validees = validees;
 
-    let etat = dsn_avant(st.ctx, mois)?;
+    let etat = dsn_avant(st.ctx, mois, &Value::Null)?;
     if etat["etat"] == "refusee" {
         r.etat = A_CORRIGER.into();
         let anomalies: Vec<String> = etat.get("anomalies").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default();

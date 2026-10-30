@@ -79,7 +79,7 @@ fn entier(v: &Value) -> R<i64> {
 
 /// Une DSN reelle acceptee est-elle partie pour ce mois ? (`import::mois::dsn_avant`)
 fn dsn_acceptee(ctx: &Contexte, mois: &str) -> R<bool> {
-    Ok(matches!(crate::import::mois::dsn_avant(ctx, mois)?["etat"].as_str(), Some("passee" | "attente" | "refusee")))
+    Ok(matches!(crate::import::mois::dsn_avant(ctx, mois, &Value::Null)?["etat"].as_str(), Some("passee" | "attente" | "refusee")))
 }
 
 // ------------------------------------------------------------------ l'export compta

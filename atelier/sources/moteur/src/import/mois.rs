@@ -113,13 +113,13 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
 }
 
 /// L'ETAT DE LA DSN D'UN MOIS, composé ici et nulle part ailleurs (l'accueil, le mois tenu avant, les rappels, la
-/// clôture et l'échéancier le lisent) : `etat` (« passee », « attente », « refusee » : le journal, et `anomalies` pour
+/// clôture, l'échéancier, le panneau, le suivi d'un dépôt et le dépôt réel le lisent) : `etat` (« passee », « attente », « refusee » : le journal, et `anomalies` pour
 /// une refusée ; « importee » : la DSN de l'ancien logiciel ; « sans_trace » : un mois tenu avant dont rien ne garde la
 /// DSN, qui ne se réclame pas ; « a_deposer » : un mois de ce logiciel dont la DSN n'est pas partie, sans mots ici),
-/// `courte`, `phrase`, `quand`.
-pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str) -> R<Value> {
+/// `courte`, `phrase`, `quand`. `nic` : l'etablissement (`Null` : le principal ; les etats du journal sont les siens).
+pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str, nic: &Value) -> R<Value> {
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    let e = etats::dsn_du_mois(&lignes, &ctx.entreprise, mois)?;
+    let e = etats::etat_dsn_du_mois(&lignes, mois, nic, &etats::nic_principal(&ctx.entreprise))?;
     let quand = |e: &Value| etats::quand_lisible(e.get("quand").unwrap_or(&Value::Null));
     if vrai(&e) {
         let refusee = e.get("refusee").is_some_and(vrai);
@@ -471,7 +471,7 @@ pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     let manques = cartes.iter().filter(|c| c["manque"].as_array().is_some_and(|l| !l.is_empty())).count();
     Ok(Some(json!({
         "mois": mois,
-        "dsn": dsn_avant(ctx, mois)?,
+        "dsn": dsn_avant(ctx, mois, &Value::Null)?,
         "paies": cartes,
         "totaux": totaux,
         "incompletes": manques,
