@@ -1111,7 +1111,10 @@ function construireCarte(div, e) {
   selNat.onchange = () => { majNature(div); rafraichirApercu(); };
   const selSpec = div.querySelector(".e-spectacle");
   poserSpectacles(selSpec);
-  selSpec.value = e.spectacle || "";
+  // Ce que la nature du moment ne prend pas, le moteur le garde de côté (`de_cote`) : les cases cachées le
+  // portent, et il revient avec la nature qui s'en sert.
+  const deCote = e.de_cote || {};
+  selSpec.value = e.spectacle || deCote.spectacle || "";
   selSpec.onchange = rafraichirApercu;
   // --- le métier
   const selMet = div.querySelector(".e-metier");
@@ -1128,7 +1131,7 @@ function construireCarte(div, e) {
   cadre.onchange = rafraichirApercu;
   // --- les lignes de paie
   const cible = div.querySelector(".rubriques");
-  lignesDe(e).forEach((l) => cible.appendChild(ligneRubrique(l, natureDe(selNat.value))));
+  lignesDe(deCote.lignes ? { lignes: deCote.lignes } : e).forEach((l) => cible.appendChild(ligneRubrique(l, natureDe(selNat.value))));
   div.querySelector(".ajouter-rubrique").onclick = (ev) => {
     ev.preventDefault();
     cible.appendChild(ligneRubrique({}, natureDe(selNat.value)));
