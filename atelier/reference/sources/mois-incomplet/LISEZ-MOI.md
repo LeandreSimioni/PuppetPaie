@@ -14,8 +14,7 @@ Lu aussi, sans le republier : l'article des Éditions Lamy Liaisons « Jurisprud
   de son salaire de base ». La Cour casse : « il lui appartenait de rechercher l'horaire de travail dans l'entreprise et de
   déterminer le salaire dû à Mme X... en multipliant la rémunération horaire par le nombre d'heures de travail réellement
   effectuées ». La rémunération horaire est « le quotient du salaire mensuel par le nombre d'heures de travail dans
-  l'entreprise pour le mois considéré ». Visa : l'article 2 de la loi n° 78-49 du 19 janvier 1978 relative à la
-  mensualisation.
+  l'entreprise pour le mois considéré ». Visa : « l'article 2 de la loi n° 78-49 du 10 janvier 1978 relative à la mensualisation et à la procédure conventionnelle » (date telle que l'arrêt l'écrit).
 - **Donc, pour un mois incomplet** (entrée, sortie, changement de salaire en cours de mois) : salaire mensuel ÷ heures du mois
   dans l'entreprise × heures réellement travaillées par le salarié. Ni le trentième, ni les jours calendaires.
 - L'article Lamy cite l'arrêt de principe, publié au Bulletin : Cass. soc., 24/06/1992, n° 89-41.387 (3/30e cassé, même
