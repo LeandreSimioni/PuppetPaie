@@ -1621,16 +1621,21 @@ déclarent tous deux.",
 /// son obligation (`obligations::de_la_fin`) comptee au jour `aujourdhui`. UN SEUL ENDROIT : la route `fins-de-contrat` (la
 /// colonne du mois) et les rappels de l'ouverture (`rappels`) la lisent.
 pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
-    // Un signalement de fin ne se doit que pour un engagement valide (`validees_du_mois`) : un brouillon ne part pas.
-    let journal = envois::journal::lu(&ctx.racine)?;
-    let Some((saisie, _)) = engagement::etats::validees_du_mois(ctx, mois, &journal.departs).map_err(Echec::from)? else {
+    // Un signalement de fin ne se doit que pour un engagement valide, lu tel qu'il est ecrit (`tels_qu_ecrits`) : un
+    // brouillon ne part pas, et ce qui ne fait que lire ne recalcule rien.
+    let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());
     };
+    let journal = envois::journal::lu(&ctx.racine)?;
+    let etats = engagement::etats::tels_qu_ecrits(ctx, mois, &journal.departs).map_err(Echec::from)?;
     let fin_mois = fin_du_mois(mois)?;
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
     let mut out = Vec::new();
-    for e in liste {
+    for (i, e) in liste.into_iter().enumerate() {
+        if etats.get(i).and_then(|x| x.valide()).is_none() {
+            continue;
+        }
         let e: &Value = &avec_ses_bornes(&e);
         let nat = nature_de(get(e, "nature")?)?;
         // La regle est celle de la nature et du motif (`Nature::signalement_fctu`) : un CDDU rompu avant son terme se signale.
