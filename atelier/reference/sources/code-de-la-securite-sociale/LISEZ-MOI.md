@@ -130,3 +130,21 @@ est le taux collectif de l'arrêté, quel que soit l'effectif. Hors « TC », so
 est aussi collectif.
 
 **Où le moteur s'en sert** : nulle part encore (déposés pour que la règle du taux AT/MP s'écrive dessus).
+
+## Le taux AT/MP d'un établissement (relevé du 30/10/2026)
+
+`articles-20261030.md`, section « Le mode de tarification des accidents du travail et maladies professionnelles »
+(`xml/D242-6-1.xml`, `xml/D242-6-17.xml`, versions issues du décret n° 2026-951, en vigueur au 15/10/2026 et applicables aux
+cotisations dues à compter de 2027 : `../tarification-atmp/`).
+
+- **D. 242-6-1** : « Le taux de la cotisation due au titre des accidents du travail et des maladies professionnelles est
+  déterminé par établissement » ; « Le classement d'un établissement dans une catégorie de risque est effectué en fonction de
+  l'activité exercée » (la nomenclature et les modalités : arrêté du 17/10/1995, `../tarification-atmp/`).
+- **D. 242-6-17** : un établissement nouvellement créé d'une entreprise en tarification collective, ou dans une catégorie de
+  risque que l'entreprise n'avait pas, a les taux nets collectifs l'année de sa création et les deux années civiles
+  suivantes. La version applicable aux cotisations de 2026 (avant le décret) n'est pas relevée : le moteur ne s'en sert pas.
+
+**Où le moteur s'en sert** : `moteur/src/routes/fiches.rs` (`ecrire_etablissements`), `moteur/src/routes/atmp.rs`
+(`d_un_etablissement`), `droit/src/bareme.rs` (`taux_atmp_applique`) : chaque établissement a son code risque et son taux,
+lus au même endroit que ceux de la compagnie (`bareme_atmp`) ; un code « TC » prend le taux de l'arrêté de l'année
+(D. 242-6-14).

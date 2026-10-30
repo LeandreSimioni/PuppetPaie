@@ -185,16 +185,31 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
     }
 }
 
-/// La fiche porte-t-elle un etablissement autre
-/// que le principal ?
-fn plusieurs_etablissements(fiche: &Value) -> bool {
-    let principal = texte_ou_vide(fiche.get("nic"));
-    let entrees: Vec<&Value> = match fiche.get("etablissements").filter(|v| vrai(v)) {
-        None => vec![],
-        Some(Value::Array(a)) => a.iter().collect(),
-        Some(autre) => vec![autre],
-    };
-    entrees.iter().any(|e| e.is_object() && texte_ou_vide(e.get("nic")) != principal)
+/// LES AUTRES ETABLISSEMENTS tels que la fiche les dit en dernier (ceux qui ouvrent plus tard compris) : la liste datee
+/// (`fiches::ecrire_etablissements`) se montre et se saisit entiere.
+pub(crate) fn etablissements_dits(ctx: &Contexte) -> Vec<Value> {
+    let derniere = droit::contexte::valeurs_datees(ctx.entreprise_brute(), "etablissements").ok().and_then(|v| v.last().map(|(_, x)| (*x).clone()));
+    let principal = texte_ou_vide(ctx.entreprise.get("nic"));
+    match derniere {
+        Some(Value::Array(a)) => a.into_iter().filter(|e| e.is_object() && texte_ou_vide(e.get("nic")) != principal).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// CE QU'UN ENGAGEMENT CHOISIT quand la compagnie a d'autres etablissements que le siege : le siege (`nic` vide) puis
+/// chacun, nomme par son nom et sa commune, avec son ouverture. `Null` : un seul etablissement, rien a choisir.
+fn choix_d_etablissement(ctx: &Contexte) -> Value {
+    let autres = etablissements_dits(ctx);
+    if autres.is_empty() {
+        return Value::Null;
+    }
+    let commune = |f: &Value| texte_ou_vide(f.get("commune_affichage").filter(|v| vrai(v)).or(f.get("commune")));
+    let mut out = vec![json!({"nic": "", "nom": format!("Le siège{}", Some(commune(&ctx.entreprise)).filter(|c| !c.is_empty()).map(|c| format!(", {}", c)).unwrap_or_default())})];
+    for e in autres {
+        let nom = [texte_ou_vide(e.get("libelle")), commune(&e)].into_iter().filter(|s| !s.trim().is_empty()).collect::<Vec<_>>().join(", ");
+        out.push(json!({"nic": texte_ou_vide(e.get("nic")), "nom": if nom.is_empty() { texte_ou_vide(e.get("nic")) } else { nom }, "ouverture": e.get("ouverture").cloned().unwrap_or(Value::Null)}));
+    }
+    Value::Array(out)
 }
 
 /// `Contexte.compteurs()` : `config/compteurs.json`, ou `{}`.
@@ -417,7 +432,20 @@ fn avec_historique(fiche: &Value, brute: Option<&Value>) -> R<Value> {
 }
 
 fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
-    let entreprise = fiche_verifiee("entreprise", None, &avec_historique(&ctx.entreprise, Some(ctx.entreprise_brute()))?)?;
+    let mut vue = avec_historique(&ctx.entreprise, Some(ctx.entreprise_brute()))?;
+    if let Some(o) = vue.as_object_mut() {
+        let autres = etablissements_dits(ctx);
+        if autres.is_empty() {
+            o.shift_remove("etablissements");
+        } else {
+            o.insert("etablissements".into(), Value::Array(autres));
+        }
+        // Leur histoire est celle de leurs ouvertures, que chacun dit.
+        if let Some(Value::Array(h)) = o.get_mut("historique") {
+            h.retain(|l| l.get("champ").and_then(Value::as_str) != Some("etablissements"));
+        }
+    }
+    let entreprise = fiche_verifiee("entreprise", None, &vue)?;
     let salaries = ctx
         .salaries
         .iter()
@@ -454,7 +482,7 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         // serait les effacer au premier enregistrement. La page les replie.
         "permanents": permanents,
         // Et ce que la liste des etablissements commande.
-        "etablissements": plusieurs_etablissements(&ctx.entreprise),
+        "etablissements": choix_d_etablissement(ctx),
         // Et, parmi les salaries, ceux qui sont payes au mois.
         "salaries_au_mois": if permanents { salaries_au_mois(ctx)? } else { vec![] },
         // CE QUI EST POSE : signature et logo, avec leur date.

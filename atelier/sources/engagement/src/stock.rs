@@ -63,7 +63,7 @@ pub const PARTAGES: [&str; 4] = ["salarie", "debut", "fin", "numero"];
 /// salaire, son emploi), son spectacle, son lieu et son metier. Ni ses lignes (celles d'un contrat paye au mois se
 /// composent chaque mois), ni ce qui n'appartient qu'a un mois (conges pris, absences, primes, rupture, date de
 /// paiement, avenant date).
-pub const RECONDUITS: [&str; 20] = [
+pub const RECONDUITS: [&str; 21] = [
     "salarie",
     "spectacle",
     "debut",
@@ -72,6 +72,7 @@ pub const RECONDUITS: [&str; 20] = [
     "metier",
     "cadre",
     "lieu",
+    "etablissement",
     "nature",
     "motif_recours",
     "quotite_contrat",

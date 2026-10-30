@@ -537,6 +537,35 @@ fn taux_exact(montant: Decimal, quantite: Decimal) -> Value {
     Value::String(div(montant, quantite).normalize().to_string())
 }
 
+/// LA FICHE DU SALARIE D'UN IMPREVU, rattachee a l'etablissement du contrat qu'il suspend (`calcul::etablissement_du_contrat`) :
+/// un signalement d'arret porte l'etablissement de la derniere DSN mensuelle du contrat (cahier technique DSN 2026.1,
+/// § 2.5.1, p. 67). Le contrat se lit dans la saisie du mois ou il commence ; introuvable, la fiche telle quelle.
+pub fn fiche_du_salarie(ctx: &Contexte, imp: &Value) -> Resultat<Value> {
+    let fiche = ctx.salarie(&s(imp, "salarie"))?;
+    let cle = en_texte(g(&fiche, "_cle"));
+    let Some(debut) = Some(g(imp, "contrat_debut")).filter(|v| vrai(v)).map(d).transpose()? else { return Ok(fiche) };
+    let mois = format!("{:04}-{:02}", debut.an, debut.mois);
+    let Some(data) = crate::stock::vue_du_mois(&ctx.racine, &mois)? else { return Ok(fiche) };
+    for e in g(&data, "engagements").as_array().into_iter().flatten() {
+        if !vrai(g(e, "debut")) || d(g(e, "debut"))? != debut || cle_de(ctx, e).ok().as_deref() != Some(cle.as_str()) {
+            continue;
+        }
+        let (n_imp, n) = (s(imp, "contrat_numero"), s(e, "numero"));
+        if !n_imp.is_empty() && !n.is_empty() && n_imp != n {
+            continue;
+        }
+        let mut f = fiche;
+        if let Some(o) = f.as_object_mut() {
+            match g(e, "etablissement").as_str().map(str::trim).filter(|n| !n.is_empty()) {
+                Some(n) => o.insert("etablissement".into(), Value::String(n.to_string())),
+                None => o.remove("etablissement"),
+            };
+        }
+        return Ok(f);
+    }
+    Ok(fiche)
+}
+
 /// La cle de la fiche du salarie d'un engagement de saisie.
 fn cle_de(ctx: &Contexte, e: &Value) -> Resultat<String> {
     let nom = en_texte(g(e, "salarie"));

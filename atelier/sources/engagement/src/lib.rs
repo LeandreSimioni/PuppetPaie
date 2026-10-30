@@ -80,6 +80,9 @@ pub struct Engagement {
     pub statut: Option<String>,
     pub statut_conventionnel: Option<String>,
     pub statut_categoriel_rc: Option<String>,
+    /// L'etablissement (NIC) ou le salarie est rattache pour CE contrat, quand la compagnie en a plusieurs ; `None` : le
+    /// principal. La fiche du salarie le porte pour la paie et les declarations du contrat (`calcul::fiche_de_l_engagement`).
+    pub etablissement: Option<String>,
     pub nature: Option<String>,
     pub quotite_contrat: Option<f64>,
     pub quotite_reference_saisie: Option<f64>,
@@ -543,6 +546,7 @@ impl Engagement {
             statut: chaine(get("statut")),
             statut_conventionnel: chaine(get("statut_conventionnel")),
             statut_categoriel_rc: chaine(get("statut_categoriel_rc")),
+            etablissement: chaine(get("etablissement")).filter(|t| !t.trim().is_empty()),
             nature,
             quotite_contrat: flottant_opt(get("quotite_contrat"))?,
             quotite_reference_saisie: flottant_opt(get("quotite_reference_saisie"))?,
@@ -772,6 +776,10 @@ impl Engagement {
         m.insert("statut".into(), texte(&self.statut));
         m.insert("statut_conventionnel".into(), texte(&self.statut_conventionnel));
         m.insert("statut_categoriel_rc".into(), texte(&self.statut_categoriel_rc));
+        // Ecrit seulement quand il est dit.
+        if let Some(n) = &self.etablissement {
+            m.insert("etablissement".into(), Value::String(n.clone()));
+        }
         m.insert("nature".into(), Value::String(self.nat()?.cle.clone()));
         m.insert("quotite_contrat".into(), optionnel(self.quotite_contrat)?);
         m.insert("quotite_reference_saisie".into(), optionnel(self.quotite_reference_saisie)?);
@@ -1040,6 +1048,7 @@ pub(crate) fn engagements(
         poser("quotite_reference_saisie", q);
         poser("modalite_temps_travail_saisie", e.get("modalite_temps_travail"));
         poser("motif_recours", e.get("motif_recours"));
+        poser("etablissement", e.get("etablissement"));
         poser("motif_rupture", e.get("motif_rupture"));
         // La fin du contrat telle que la saisie la dit : la mensuelle et le FCTU en tirent le meme S21.G00.62.006
         // (`fctu::dernier_jour_paye`).

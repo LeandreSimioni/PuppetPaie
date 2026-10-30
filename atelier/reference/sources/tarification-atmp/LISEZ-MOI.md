@@ -84,3 +84,10 @@ la sécurité sociale qu'ils appliquent (D. 242-6-2, D. 242-6-14) sont relevés 
   l'année de la création et les deux années civiles suivantes (art. 4, D. 242-6-17). **Le moteur ne s'en sert pas
   encore** : le taux par établissement est au ticket #311 ; D. 242-6-17 dit le taux d'un établissement nouveau, pas ce
   que le bulletin cotise sous 999ZZ avant la notification (ticket #307).
+- **Les autres établissements** (Configuration › Entreprise › Avancé) : chacun son code risque et son taux
+  (`etablissements[].taux_atmp`, D. 242-6-1, `../code-de-la-securite-sociale/xml/D242-6-1.xml`) ; le classement suit l'activité
+  exercée dans l'établissement (arrêté du 17/10/1995, art. 1, I, 1°). Un code laissé vide prend celui de la compagnie pour
+  l'année de l'ouverture (une INFÉRENCE, dite à l'écran avec ces textes : `moteur::routes::fiches::ecrire_etablissements`,
+  `moteur::routes::atmp::d_un_etablissement`) ; un taux laissé vide est celui de l'annexe 1 pour un risque « TC »
+  (`droit::bareme::taux_atmp_applique`, lu par `bareme_atmp` pour la compagnie comme pour ses établissements). Tout autre
+  taux se saisit tel que la CARSAT le notifie à l'établissement.
