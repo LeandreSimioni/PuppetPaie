@@ -2,7 +2,7 @@
 //! fins de contrat qui se signalent et ce qu'un arret fait naitre, de `obligations.rs` --, les DPAE, la cloture de
 //! l'exercice, l'export compta, la revue des spectacles). Aucun calcul de paie : les engagements se lisent sans
 //! chiffrer, et leur etat (`engagement::etats`), le journal par `etats`. Ses lectures servent aussi le panneau et le
-//! filet (`mois_a_declarer`, `embauches_suivies`, `exercice_clos`).
+//! filet (`mois_a_declarer`, `exercice_clos`) ; les DPAE a faire se lisent au panneau (`etapes::Moteur::embauches_a_declarer`).
 //!
 //! Un refus porte sa `classe` : voir `encoder` et `decoder`, que `mod.rs` utilise.
 
@@ -13,8 +13,7 @@ use serde_json::{json, Value};
 
 use droit::contexte::{archivee, Contexte};
 use socle::date::{en_texte, Jour};
-use droit::emplois::{emploi_de, EmploiEngagement};
-use engagement::{self, Engagement};
+use engagement;
 use envois::etats;
 use socle::fichiers::{lire_json, vrai};
 use socle::num::Resultat;
@@ -141,11 +140,6 @@ const A_PRODUIRE: &str = "a_produire";
 const A_DEPOSER: &str = "a_deposer";
 const A_CORRIGER: &str = "a_corriger";
 
-/// La DPAE d'un engagement valide se rappelle a toute distance de l'embauche. Un engagement encore en saisie se rappelle
-/// huit jours avant l'embauche, comme un engagement a valider : la DPAE part de l'engagement valide, au plus tard avant
-/// le debut du travail. Une embauche passee sans DPAE se rappelle une semaine.
-const RAPPEL_JOURS: i64 = 8;
-const RETARD_JOURS: i64 = 7;
 
 /// Un rappel est une DONNEE : quoi, pour quel mois, ou en est-on, et ce qu'il y
 /// a a faire. Il ne fait rien : << verifier et envoyer >> passe par les
@@ -740,149 +734,6 @@ fn periode_de_l_arret(resume: &Value) -> String {
 }
 
 // ------------------------------------------------------------- les DPAE
-
-/// Une embauche sans trace de DPAE : ce qu'un rappel en dit.
-pub(crate) struct Embauche {
-    pub(crate) mois: String,
-    pub(crate) salarie: String,
-    pub(crate) debut: String,
-    pub(crate) fin: String,
-    pub(crate) nom: String,
-    pub(crate) spectacle: String,
-    /// Ce que la DPAE de l'embauche declare.
-    pub(crate) empreinte: String,
-}
-
-/// Ce que la DPAE d'une embauche declare -- si
-/// cela change, le test fait ne vaut plus. L'identite du salarie, les bornes du
-/// contrat, le spectacle ; pas les taux ni les cachets. `sha256(repr(tuple))[:16]`.
-fn empreinte_de_l_embauche(e: &Engagement, sal: &Value) -> String {
-    use sha2::{Digest, Sha256};
-    let ident: Vec<String> = ["nir", "nom", "prenom", "date_naissance", "lieu_naissance", "departement_naissance", "sexe", "nationalite"]
-        .iter()
-        .map(|k| socle::fichiers::repr(&texte_ou_vide(sal, k)))
-        .collect();
-    let fin = e.fin.map_or("None".to_string(), |f| f.iso());
-    let spectacle = e.spectacle.clone().unwrap_or_else(|| "None".to_string());
-    let brut = format!(
-        "({}, {}, {}, ({}), {})",
-        socle::fichiers::repr(&e.debut.iso()),
-        socle::fichiers::repr(&fin),
-        socle::fichiers::repr(&spectacle),
-        ident.join(", "),
-        socle::fichiers::repr(e.nature.as_deref().unwrap_or(""))
-    );
-    let h = Sha256::digest(brut.as_bytes());
-    h.iter().map(|o| format!("{:02x}", o)).collect::<String>()[..16].to_string()
-}
-
-/// La fiche salarie telle qu'elle vaut POUR CET ENGAGEMENT (`engagement.emploi_de`).
-fn fiche_pour(ctx: &Contexte, e: &Engagement) -> Resultat<Value> {
-    let fiche = ctx.salarie(&e.salarie)?;
-    let cle = fiche.get("_cle").and_then(Value::as_str).unwrap_or_default();
-    let emploi = EmploiEngagement {
-        emploi: e.emploi.clone(),
-        emploi_affichage: e.emploi_affichage.clone(),
-        pcs_ese: e.pcs_ese.clone(),
-        code_emploi_ft: e.code_emploi_ft.clone(),
-        statut: e.statut.clone(),
-        statut_conventionnel: e.statut_conventionnel.clone(),
-        statut_categoriel_rc: e.statut_categoriel_rc.clone(),
-    };
-    emploi_de(&ctx.salarie_au(cle, &e.debut)?, &emploi)
-}
-
-/// Les embauches sans trace de DPAE,
-/// d'une semaine en arriere a l'infini. Chacune dit si son ENGAGEMENT EST VALIDE : la DPAE part de
-/// l'engagement valide, et des sa validation. << Sans trace >> et non << non declaree >> : le journal ne
-/// connait que ce que CE logiciel a depose.
-pub(crate) fn embauches_suivies(st: &Etat) -> R<Vec<(Embauche, bool)>> {
-    let depuis = st.aujourdhui.plus_jours(-RETARD_JOURS)?;
-    let mois_min = mois_de(&depuis);
-    let faites = etats::embauches_par_depot(&st.journal)?;
-
-    let mut out = Vec::new();
-    for (mois, saisie, _) in mois_connus(st.ctx) {
-        if saisie.is_none() {
-            continue;
-        }
-        if mois < mois_min {
-            continue;
-        }
-        let mut valides = BTreeSet::new();
-        for o in engagement::stock::objets_du_mois(&st.ctx.racine, &mois).unwrap_or_default() {
-            let b = Value::Object(o.brut.clone());
-            if b.get("valide").is_some_and(|x| x.get("le").is_some()) {
-                valides.insert((engagement::cle_de_l_engagement(st.ctx, &b).unwrap_or_default(), engagement::debut_brut(&b)));
-            }
-        }
-        // Une saisie en cours d'ecriture : le passage suivant.
-        let Ok(Some(data)) = engagement::stock::vue_du_mois(&st.ctx.racine, &mois) else { continue };
-        let Ok(engs) = engagement::engagements_de_la_saisie(st.ctx, &data) else { continue };
-        let mut du_mois = Vec::new();
-        let mut illisible = false;
-        for e in &engs {
-            let (Ok(sal), Ok(nat)) = (fiche_pour(st.ctx, e), e.nat()) else {
-                illisible = true;
-                break;
-            };
-            let spectacle = if nat.mensuelle() {
-                Value::Null
-            } else {
-                match e.spectacle.as_deref().map(|s| st.ctx.spectacle(s)) {
-                    Some(Ok(s)) => s,
-                    _ => {
-                        illisible = true;
-                        break;
-                    }
-                }
-            };
-            du_mois.push((e, sal, spectacle));
-        }
-        if illisible {
-            continue;
-        }
-        let mois_dit = data.get("mois").map(en_texte).unwrap_or_default();
-        for (e, sal, spectacle) in du_mois {
-            if !e.premier_mois()? {
-                continue; // un contrat en cours : sa DPAE est partie avec son 1er mois
-            }
-            let cle = texte_ou_vide(&sal, "_cle");
-            let debut = e.debut.iso();
-            if e.debut < depuis {
-                continue;
-            }
-            let k = [Value::String(cle.clone()), Value::String(debut.clone())];
-            if faites.contient(&k)? {
-                continue;
-            }
-            let prenom = match sal.get("prenom_affichage") {
-                Some(p) if vrai(p) => en_texte(p),
-                _ => sal.get("prenom").map(en_texte).unwrap_or_default(),
-            };
-            let titre = match spectacle.get("titre") {
-                Some(t) if vrai(t) => en_texte(t),
-                _ => "salarié au mois".to_string(),
-            };
-            let valide = valides.contains(&(cle.clone(), debut.clone()));
-            out.push((
-                Embauche {
-                    mois: mois_dit.clone(),
-                    salarie: cle,
-                    debut,
-                    fin: e.fin.map_or("None".to_string(), |f| f.iso()),
-                    nom: format!("{} {}", sal.get("nom").map(en_texte).unwrap_or_default(), prenom),
-                    spectacle: titre,
-                    empreinte: empreinte_de_l_embauche(e, &sal),
-                },
-                valide,
-            ));
-        }
-    }
-    out.sort_by(|a, b| (&a.0.debut, &a.0.nom).cmp(&(&b.0.debut, &b.0.nom)));
-    Ok(out)
-}
-
 /// Ce qui a fait echouer un depot de test, en une phrase.
 fn pourquoi_rate(ligne: &Value) -> String {
     let mut anomalies: Vec<String> = Vec::new();
@@ -911,8 +762,8 @@ fn jj_mm_aaaa(iso: &str) -> String {
     Jour::lire(iso).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string())
 }
 
-/// Les DPAE a envoyer : celles des engagements valides, et les engagements a valider des embauches proches
-/// (`RAPPEL_JOURS`), celles en retard. Une par jour d'embauche, avec le fichier
+/// Les DPAE a envoyer : celles des engagements valides (`etapes::Moteur::embauches_a_declarer`), a toute distance de
+/// l'embauche, celles en retard comprises. Une par jour d'embauche, avec le fichier
 /// teste s'il y en a un -- le bouton ouvre alors directement son depot. Se tait
 /// des que la DPAE reelle est au journal.
 fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
@@ -922,24 +773,19 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
         Ok(t) => serde_json::from_str::<Value>(&t).ok().and_then(|v| v.get("tests").cloned()).filter(|t| t.is_object()).unwrap_or_else(|| json!({})),
         Err(_) => json!({}),
     };
-    let limite = aujourdhui.plus_jours(RAPPEL_JOURS)?.iso();
-    let mut jours: BTreeMap<(String, String), Vec<(Embauche, bool)>> = BTreeMap::new();
-    for (e, valide) in embauches_suivies(st)? {
-        if valide || e.debut <= limite {
-            jours.entry((e.mois.clone(), e.debut.clone())).or_default().push((e, valide));
-        }
+    let mut jours: BTreeMap<(String, String), Vec<Value>> = BTreeMap::new();
+    let a_faire = crate::routes::etapes::Moteur::nouveau(st.ctx).embauches_a_declarer(None)?;
+    for e in a_faire.as_array().into_iter().flatten() {
+        jours.entry((texte_ou_vide(e, "mois"), texte_ou_vide(e, "debut"))).or_default().push(e.clone());
     }
 
     let mut out = Vec::new();
-    for ((mois, debut), avec_etat) in jours {
+    for ((mois, debut), groupe) in jours {
         let jour = Jour::lire(&debut)?;
-        // Un engagement encore en saisie : ce qui se rappelle, c'est de le valider ; la DPAE part de l'engagement valide.
-        let a_valider: Vec<String> = avec_etat.iter().filter(|(_, v)| !*v).map(|(e, _)| format!("{} ({})", e.nom, e.spectacle)).collect();
-        let groupe: Vec<Embauche> = avec_etat.into_iter().map(|(e, _)| e).collect();
         let essais: Vec<Value> = groupe
             .iter()
             .map(|e| {
-                let t = tests.get(format!("{}|{}", e.salarie, e.debut)).cloned().unwrap_or(Value::Null);
+                let t = tests.get(format!("{}|{}", texte_ou_vide(e, "salarie"), debut)).cloned().unwrap_or(Value::Null);
                 if vrai(&t) { t } else { json!({}) }
             })
             .collect();
@@ -962,9 +808,6 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
                 }
             }
         }
-        if !a_valider.is_empty() {
-            pret = format!("Engagement encore en saisie, à valider (« Valider l'engagement ») : {}. La DPAE part de l'engagement validé.", a_valider.join(", "));
-        }
         if pret.is_empty() {
             let erreurs: Vec<String> = essais.iter().filter(|t| vrai_opt(t.get("erreur"))).map(|t| en_texte(&t["erreur"])).collect();
             pret = match erreurs.first() {
@@ -973,7 +816,7 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
             };
         }
         let retard = jour < aujourdhui;
-        let noms = groupe.iter().map(|e| format!("{} ({})", e.nom, e.spectacle)).collect::<Vec<_>>().join(", ");
+        let noms = groupe.iter().map(|e| format!("{} ({})", texte_ou_vide(e, "nom"), texte_ou_vide(e, "spectacle"))).collect::<Vec<_>>().join(", ");
         let quand = if retard {
             format!("L'embauche a commencé le {} : la DPAE est EN RETARD, à envoyer tout de suite.", jj_mm_aaaa(&debut))
         } else if jour == aujourdhui {
@@ -989,11 +832,7 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
         let mut r = Rappel::nouveau(
             DPAE,
             format!("dpae:{}", debut),
-            if a_valider.is_empty() {
-                format!("DPAE à envoyer — embauche du {}", jj_mm_aaaa(&debut))
-            } else {
-                format!("Engagement à valider — embauche du {}", jj_mm_aaaa(&debut))
-            },
+            format!("DPAE à envoyer — embauche du {}", jj_mm_aaaa(&debut)),
             format!("Pas de trace d'envoi pour : {}.", noms),
         );
         r.mois = Some(mois);

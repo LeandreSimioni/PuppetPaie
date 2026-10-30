@@ -816,7 +816,7 @@ fn tester_les_dpae(
     let deja = etat.get("tests").cloned().unwrap_or_else(|| json!({}));
     for e in suivies {
         let (salarie, debut) = (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["debut"]));
-        if !vrai(&e["valide"]) || debut < aujourdhui {
+        if debut < aujourdhui {
             continue;
         }
         if let Some(t) = deja.get(cle_du_test(&salarie, &debut)).filter(|t| vrai(t)) {
