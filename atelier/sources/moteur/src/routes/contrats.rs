@@ -195,6 +195,31 @@ fn choisis_de(charge: &Value) -> R<Choisis> {
     Ok(Choisis { salaries, contrats })
 }
 
+/// UN CONTRAT PARTI PUIS CHANGE NE REPART PAS EN CONTRAT : signe ou non, commence ou non, il se modifie par un avenant
+/// (`signature-apercu` le dit, `en_avenant`). Refus quand un contrat vise expressement (`contrats`, `salaries`) en est un ;
+/// rien n'est ecrit.
+fn refuser_les_contrats_partis(ctx: &Contexte, mois: &str, choisis: &envois::envois_signature::Choisis) -> R<()> {
+    if choisis.contrats.is_none() && choisis.salaries.is_none() {
+        return Ok(());
+    }
+    let apercu = signature_apercu(ctx, &json!({"mois": mois}))?;
+    for c in apercu["contrats"].as_array().into_iter().flatten().filter(|c| vrai(&c["en_avenant"])) {
+        let (salarie, debut) = (valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["debut"]));
+        let numero = valeur_en_texte(&etats::numero_de_cle(&c["numero"]));
+        let vise = choisis.salaries.as_ref().is_some_and(|l| l.contains(&salarie))
+            || choisis.contrats.as_ref().is_some_and(|l| {
+                l.iter().any(|(s, d, n)| *s == salarie && *d == debut && n.as_ref().map_or(true, |n| *n == numero))
+            });
+        if vise {
+            return Err(refus(format!(
+                "Le contrat de {} est déjà parti et l'engagement a changé depuis : il se modifie par un avenant, que la boîte « Faire signer les contrats » propose. Rien n'est parti.",
+                valeur_en_texte(&c["nom"])
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// La route `contrats-imprimer` (`envois_signature::contrats_imprimer`), `qui` donne (l'horloge d'une compagnie fictive
 /// passe le sien).
 /// `avenants` : les avenants des contrats signes qui ont change ([{"salarie", "debut", "numero", "mois", "effet"}]),
@@ -207,6 +232,7 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
     }
     let contrats_choisis = ["contrats", "salaries"].iter().any(|k| charge.get(*k).is_some_and(vrai));
     let choisis = choisis_de(charge)?;
+    refuser_les_contrats_partis(ctx, &charge_texte(charge, "mois")?, &choisis)?;
     let choisis = (contrats_choisis || avenants.is_empty()).then_some(&choisis);
     envois::envois_signature::contrats_imprimer(ctx, &charge_texte(charge, "mois")?, choisis, &avenants, qui)
 }
@@ -228,6 +254,9 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
     } else {
         Vec::new()
     };
+    if !relance && !remplace {
+        refuser_les_contrats_partis(ctx, &mois, &choisis)?;
+    }
     let demande = envois::envois_signature::DemandeDeSignature { mois: &mois, relance, remplace, choisis, etats_des_contrats };
     // Un refus se dit d'abord : la boite et la preuve ne se demandent que pour ce qui part.
     envois::envois_signature::verifier_demande(ctx, &demande)?;

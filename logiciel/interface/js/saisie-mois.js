@@ -238,7 +238,7 @@ async function calculerApercu(lu) {
       div._paies = part;
       // La rupture que le moteur propose pour cet engagement (`contrat.rupture`) : la porte « Un imprévu… » et la fin.
       div._rupture = (p && p.contrat && p.contrat.rupture) || null;
-      majRupture(div);
+      if (div.querySelector(".e-nature") && div.querySelector(".e-rupture")) majRupture(div);
       peindreCarte(div);
       // Ce qui a été numéroté : un contrat en cours garde le numéro de son
       // premier mois, et c'est ici qu'il revient à l'écran quand la saisie
