@@ -127,6 +127,10 @@ compliqué pour les gens qui ont besoin de compliqué ») : un champ n'apparaît
 appelle une date, un arrêt qui appelle le maintien), jamais « au cas où » ; le chemin simple ne montre que les faits, le
 chemin compliqué s'ouvre de lui-même quand un fait l'appelle. On prévoit tous les cas dans le moteur, et l'écran n'en
 montre que celui qui a lieu.
+**L'affichage dit le nom le plus court ; l'explication ne vient que là où l'on explique** (Léandre, 30/10/2026 : « il y
+a une différence entre l'affichage et ce en quoi il est explicité ; l'affichage doit être le plus simple possible »).
+Une carte, une liste, une pastille, un titre disent le mot qu'un utilisateur reconnaît (« CDDU », « CDD », « CDI ») ; le
+sens long va dans l'aide d'un champ, un conseil ou le document qui doit le dire en toutes lettres (le contrat écrit).
 
 ## Les sous-agents : Opus pour coder, Sonnet ou Haiku pour lire
 

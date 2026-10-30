@@ -20,10 +20,10 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::routes::{brut, maintenant, qui_de, salarie};
-use declarations::signalement::{self, ARRET};
+use declarations::signalement;
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
-use engagement::imprevus::{self, SUSPENSION};
+use engagement::imprevus::{self, ARRET, SUSPENSION};
 use envois::etats::{get, getd, items, objet_vide, ou, Dico};
 use socle::date::{d, en_texte, repr_texte, Jour};
 use socle::echec::{erreur, Echec, Refus, R};
@@ -753,7 +753,7 @@ pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) ->
 /// Ce que la norme refuse (`SignalementImpossible`, une
 /// `ValueError`) ; les avertissements ne servent pas ici.
 pub(crate) fn verifier(arret: &Value) -> R<()> {
-    match signalement::verifier(&declarations::dsn::Arret { v: arret.clone() }, ARRET, None) {
+    match signalement::verifier(&declarations::dsn::Arret { v: arret.clone() }, signalement::ARRET, None) {
         Ok(_) => Ok(()),
         Err(signalement::Echec::Impossible(m)) => Err(erreur("ValueError", m)),
         Err(signalement::Echec::Autre(m)) => Err(Echec { classe: None, message: m }),
@@ -1120,11 +1120,12 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// (`fin-contrat-signaler`).
 fn fin_de_contrat_declaree(ctx: &Contexte, e: &Value, mois: &str) -> R<declarations::fctu::FinDeContrat> {
     let manque = crate::routes::imprevus::ce_qui_manque(ctx, e)?;
+    let e = &crate::routes::imprevus::fin_au_terme(e)?;
     if !manque.is_empty() {
         let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_else(|| "?".to_string());
-        let liste: Vec<String> = manque.iter().map(valeur_en_texte).collect();
+        let liste: Vec<String> = manque.iter().map(crate::routes::imprevus::phrase_du_manque).collect();
         return Err(refus(format!(
-            "Contrat {} : le signalement de fin de contrat ne peut pas etre produit, la saisie ne dit pas tout.\n  {}",
+            "Contrat {} : le signalement de fin de contrat ne s'écrit pas encore ; il manque, dans la carte de l'engagement, sous « Contrat » :\n  {}",
             numero,
             liste.join("\n  ")
         )));
@@ -1502,24 +1503,67 @@ fn nature_de(cle: &Value) -> R<std::sync::Arc<droit::natures::Nature>> {
     droit::natures::nature(texte.as_deref()).map_err(|m| erreur("KeyError", m))
 }
 
-/// `_ce_qui_manque_au_signalement` : ce qu'un signalement exige et que la
-/// saisie ne dit pas encore.
+/// Ce qui manque a un signalement, tel que l'ecran le dit : `champ` (la donnee de l'engagement, `data-fait` de sa carte),
+/// `case` (le nom de la case, sous « Contrat »), `dire` (ce qu'on y met, en mots d'utilisateur, visible sans rien
+/// deplier) et `pourquoi` (la regle de la norme).
+fn manque(champ: &str, case: &str, dire: impl Into<String>, pourquoi: impl Into<String>) -> Value {
+    json!({"champ": champ, "case": case, "dire": dire.into(), "pourquoi": pourquoi.into()})
+}
+
+/// Le type de preavis « 90 - pas de clause de preavis applicable » (`fctu-base.json`, S21.G00.63.001).
+const SANS_PREAVIS: &str = "90";
+
+/// UN CONTRAT A DUREE DETERMINEE QUI VA A SON TERME n'a rien a dire de sa fin : son motif est celui de sa nature
+/// (`contrats-base.json`, `motif_par_defaut` : 031, « la fin normale d'un CDD arrive a son terme »), et il n'a pas de
+/// preavis -- il « cesse de plein droit a l'echeance du terme » (L1243-5, `permanents-base.json`, `motifs_sans_preavis`,
+/// 031) --, ce que le bloc S21.G00.63 declare en type 90. L'engagement tel que le signalement le lit : sans motif de
+/// rupture saisi, ces deux faits ; avec un motif saisi, tel quel.
+pub(crate) fn fin_au_terme(e: &Value) -> R<Value> {
+    let mut e = e.clone();
+    if vrai(get(&e, "motif_rupture")?) {
+        return Ok(e);
+    }
+    if let Some(m) = nature_de(get(&e, "nature")?)?.motif_rupture_par_defaut() {
+        e["motif_rupture"] = json!(m);
+        if !vrai(get(ou(get(&e, "preavis")?, objet_vide()), "type")?) {
+            e["preavis"] = json!({"type": SANS_PREAVIS});
+        }
+    }
+    Ok(e)
+}
+
+/// La phrase d'un manque (`ce_qui_manque`) : sa case et ce qu'on y met.
+pub(crate) fn phrase_du_manque(m: &Value) -> String {
+    format!("« {} » : {}", valeur_en_texte(&m["case"]), valeur_en_texte(&m["dire"]))
+}
+
+/// `_ce_qui_manque_au_signalement` : ce qu'un signalement exige et que la saisie ne dit pas encore, un manque par case
+/// de la carte (`manque`).
 pub(crate) fn ce_qui_manque(ctx: &Contexte, e: &Value) -> R<Vec<Value>> {
+    let e = &fin_au_terme(e)?;
     let mut manque = Vec::new();
     let motif = get(e, "motif_rupture")?;
     if !vrai(motif) {
-        manque.push(json!(
-            "`motif_rupture` : le motif de la rupture (S21.G00.62.002) est obligatoire, et un CDI n'en a aucun par defaut."
+        manque.push(self::manque(
+            "motif_rupture",
+            "Motif de la rupture",
+            "pourquoi le contrat a pris fin.",
+            "Le motif de la rupture (S21.G00.62.002) est obligatoire, et un CDI n'en a aucun par défaut.",
         ));
     }
     // CCH-12 de S21.G00.62.003 : la date de notification, obligatoire pour ces motifs (`fctu::notification_exigee`).
     if vrai(motif) && !vrai(get(e, "notification_rupture")?) && declarations::fctu::notification_exigee(&valeur_en_texte(motif)).map_err(plain)? {
-        manque.push(json!(format!(
-            "`notification_rupture` : la date de notification de la rupture (S21.G00.62.003) est obligatoire pour le motif {} \
-(CCH-12, cahier technique DSN p. 275) : l'envoi de la lettre de licenciement ou de rupture, la remise de la demission, la \
-notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans elle.",
-            valeur_en_texte(motif)
-        )));
+        manque.push(self::manque(
+            "notification_rupture",
+            "Notifiée le",
+            "le jour où la rupture a été notifiée : la démission remise, la lettre de rupture ou de licenciement envoyée, la \
+fin de la période d'essai notifiée.",
+            format!(
+                "La date de notification de la rupture (S21.G00.62.003) est obligatoire pour le motif {} (CCH-12, cahier \
+technique DSN p. 275). Le signalement ne s'écrit pas sans elle.",
+                valeur_en_texte(motif)
+            ),
+        ));
     }
     let preavis = ou(get(e, "preavis")?, objet_vide());
     if !vrai(get(preavis, "type")?) {
@@ -1533,11 +1577,11 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
         let mut dit = match (duree, &regle) {
             (Some(m), _) if m != Decimal::ZERO => format!("La loi en donne {} mois (L1234-1).", m),
             (Some(_), _) => format!(
-                "La loi ne donne aucun preavis pour ce motif : {}",
+                "La loi ne donne aucun préavis pour ce motif : {}",
                 droit::permanents::raison_sans_preavis(motif_texte.as_deref(), cdd).map_err(plain)?.unwrap_or_default()
             ),
             (None, Some(r)) => format!("La loi en donne un que le moteur ne compte pas : {}", r),
-            (None, None) => "Sous six mois d'anciennete, la loi renvoie a la convention ou aux usages (L1234-1) : elle ne dit pas de duree.".to_string(),
+            (None, None) => "Sous six mois d'ancienneté, la loi renvoie à la convention ou aux usages (L1234-1) : elle ne dit pas de durée.".to_string(),
         };
         // Ce que dit la convention, a cote, par le moteur (le calcul de `moteur preavis`) ; pas pour un motif sans preavis
         // ni pour la rupture d'un CDD par le salarie (L1243-2), que la convention du licenciement ne regle pas.
@@ -1551,17 +1595,21 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
                 }
             }
         }
-        manque.push(json!(format!(
-            "`preavis` : {{\"type\": \"...\", \"debut\": \"...\", \"fin\": \"...\"}}. Le bloc S21.G00.63 est OBLIGATOIRE dans un \
-             signalement de fin de contrat (cardinalite 1,*) : meme sans preavis, il se declare, avec le type << 90 - pas de clause de \
-             preavis applicable >>. {}",
-            dit
-        )));
+        manque.push(self::manque(
+            "preavis",
+            "Préavis",
+            format!("le préavis de la rupture, ses dates s'il y en a un, ou « pas de clause de préavis ». {}", dit),
+            "Le bloc S21.G00.63 est obligatoire dans un signalement de fin de contrat (cardinalité 1,*) : même sans préavis, il \
+se déclare, avec le type « 90 - pas de clause de préavis applicable ».",
+        ));
     } else if declarations::fctu::preavis_non_effectue(&valeur_en_texte(get(preavis, "type")?)).map_err(plain)? && !vrai(get(e, "dernier_jour_paye")?) {
-        manque.push(json!(
-            "`dernier_jour_paye` : sur un preavis non effectue, le dernier jour travaille et paye au salaire habituel \
-(S21.G00.62.006) n'est pas la fin du contrat, il precede le debut du preavis (CCH-12, cahier technique DSN p. 275). La \
-mensuelle et le signalement le declarent tous deux."
+        manque.push(self::manque(
+            "dernier_jour_paye",
+            "Dernier jour payé",
+            "le dernier jour travaillé et payé au salaire habituel, avant le préavis qui n'est pas effectué.",
+            "Sur un préavis non effectué, le dernier jour travaillé et payé au salaire habituel (S21.G00.62.006) n'est pas la fin \
+du contrat, il précède le début du préavis (CCH-12, cahier technique DSN p. 275). La mensuelle et le signalement le \
+déclarent tous deux.",
         ));
     }
     Ok(manque)
@@ -1598,13 +1646,22 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         let a_saisir = ce_qui_manque(ctx, e)?;
         // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`).
         let obligation = crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal, aujourdhui)?;
-        // Due : il manque de quoi signaler, aucun delai ne se lit, ou le delai court. Sa pastille : ce qui manque, sinon
+        // Due : il manque de quoi signaler, aucun delai ne se lit, ou le delai court. Sa pastille : celle du delai passe
+        // (« en retard » l'emporte : la date butoir ne se tait pas parce qu'une case manque), sinon ce qui manque, sinon
         // celle du delai.
         let incomplet = !a_saisir.is_empty();
         let du = incomplet || obligation.is_null() || obligation.get("du").is_some_and(vrai);
-        let pastille = if incomplet { super::pastille("a_faire", "à compléter") } else { obligation.get("pastille").cloned().unwrap_or(Value::Null) };
+        let en_retard = obligation.get("etat").and_then(Value::as_str) == Some(crate::obligations::EN_RETARD);
+        let pastille = if incomplet && !en_retard {
+            super::pastille("a_faire", "à compléter")
+        } else {
+            obligation.get("pastille").cloned().unwrap_or(Value::Null)
+        };
         out.push(json!({
             "salarie": salarie,
+            "mois": mois,
+            "debut": e["debut"],
+            "en_retard": en_retard,
             "numero": get(e, "numero")?,
             "fin": e["fin"],
             "nature": nat.libelle,
@@ -1622,8 +1679,32 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
 /// La route `fins-de-contrat`.
 fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let fins = fins_a_signaler(ctx, &valeur_en_texte(brut), ctx.aujourdhui)?;
+    let mois = valeur_en_texte(brut);
+    let mut fins = fins_en_retard_avant(ctx, &mois, ctx.aujourdhui)?;
+    fins.extend(fins_a_signaler(ctx, &mois, ctx.aujourdhui)?);
     Ok(json!({"mois": brut, "fins": fins}))
+}
+
+/// Combien de mois en arriere un signalement de fin en retard se rappelle : une annee de paies.
+pub(crate) const MOIS_EN_ARRIERE: u32 = 12;
+
+/// LES FINS D'AVANT, EN RETARD : celles des mois qui precedent `mois` (sur `MOIS_EN_ARRIERE`) dont le signalement est du
+/// et sa date butoir passee. Une echeance manquee reste due -- le signalement se fait « dans les cinq jours ouvres qui
+/// suivent la survenance de la fin du contrat » (cahier technique DSN 2026.1, p. 107, `fctu-base.json`, `_delai`) -- et
+/// elle se dit sur le mois qu'on regarde, pas seulement sur celui ou le contrat a fini.
+pub(crate) fn fins_en_retard_avant(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
+    let mut out = Vec::new();
+    let mut m = mois.to_string();
+    for _ in 0..MOIS_EN_ARRIERE {
+        m = socle::date::premier_du_mois(&m).and_then(|j| j.plus_jours(-1)).map_err(|e| erreur("ValueError", e))?.mois_iso();
+        let mut celles: Vec<Value> = fins_a_signaler(ctx, &m, aujourdhui)?
+            .into_iter()
+            .filter(|f| f["du"] == json!(true) && f["en_retard"] == json!(true))
+            .collect();
+        celles.extend(out);
+        out = celles;
+    }
+    Ok(out)
 }
 
 // ------------------------------------------------------------ regularisations
