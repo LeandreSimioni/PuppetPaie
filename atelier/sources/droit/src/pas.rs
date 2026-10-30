@@ -45,11 +45,14 @@ pub type Triplet = (Value, Value, Value);
 // ------------------------------------------------------------- peremption
 
 /// Un taux transmis par la DGFiP vaut jusqu'a la fin du deuxieme mois suivant
-/// celui de sa mise a disposition : « si le dernier taux de PAS communiqué par la
-/// DGFIP avait plus de 2 mois, le collecteur aurait appliqué le barème légal »
-/// (GIP-MDS et DGFiP, « DSN : données et axes structurants prévus pour le PAS »,
-/// v19, exemple 10, `atelier/reference/sources/suspension-non-remuneree/
-/// net-entreprises-dsn-solution-technique-pas-v19-20170308.txt`).
+/// celui de sa mise a disposition : le debiteur « applique le taux calculé par
+/// l'administration fiscale, au plus tard le deuxième mois suivant sa
+/// transmission » (CGI, art. 1671, 2, `atelier/reference/sources/
+/// code-general-des-impots/articles-20261021.md`) ; « le taux de prélèvement est
+/// applicable jusqu'à la fin du deuxième mois qui suit sa mise à disposition » :
+/// mis a disposition le 10 fevrier, il est « valide jusqu'au 30 avril »
+/// (BOI-IR-PAS-30-10-20, § 70, `atelier/reference/sources/bofip/
+/// BOI-IR-PAS-30-10-20-20181203.html`).
 pub const VALIDITE_MOIS: u32 = 2;
 
 /// `str(e.get(cle) or "").strip()`.
@@ -75,14 +78,19 @@ fn nombre_de(c: &[u32]) -> u32 {
 }
 
 /// D'ou court la validite, de la source la plus sure a la moins sure :
-/// `mis_a_disposition` (AAAAMMJJHHMMSS), puis `periode` (AAAAMM ou AAAA-MM),
-/// puis `releve_le`.
+/// `mis_a_disposition` (AAAAMMJJHHMMSS, la date du compte rendu), puis
+/// `applique_le` (AAAA-MM-JJ, le jour du versement ou une DSN l'applique, que sa
+/// mise a disposition precede : voir `commandes::pas::derniers_taux_des_dsn`),
+/// puis `periode` (AAAAMM ou AAAA-MM), puis `releve_le`.
 pub fn mise_a_disposition(e: &Value) -> Option<Jour> {
     let v = texte_ou_vide(e, "mis_a_disposition");
     if let Some(c) = chiffres(&v, 8) {
         if let Some(j) = Jour::nouveau(nombre_de(&c[..4]) as i32, nombre_de(&c[4..6]), nombre_de(&c[6..8])) {
             return Some(j);
         }
+    }
+    if let Ok(j) = depuis_iso(&texte_ou_vide(e, "applique_le")) {
+        return Some(j);
     }
     let p = texte_ou_vide(e, "periode").replace('-', "");
     if let Some(c) = chiffres(&p, 6) {
@@ -623,5 +631,15 @@ mod tests {
         assert_eq!(id("2025-01-31"), Some(json!("250004")));
         assert_eq!(id("2025-02-28"), Some(json!("993918841")));
         assert_eq!(id("2024-12-31"), None);
+    }
+
+    /// BOI-IR-PAS-30-10-20, § 70, exemple 1 (`atelier/reference/sources/bofip/BOI-IR-PAS-30-10-20-20181203.html`) :
+    /// un taux mis a disposition le 10 fevrier « est valide jusqu'au 30 avril ».
+    #[test]
+    fn un_taux_vaut_jusqu_a_la_fin_du_deuxieme_mois_qui_suit_sa_mise_a_disposition() {
+        let e = json!({"taux": "5.00", "type": "01", "identifiant": "1", "mis_a_disposition": "20260210120000"});
+        assert_eq!(fin_de_validite(&e), Jour::nouveau(2026, 4, 30));
+        assert!(!est_perime(&e, Jour::nouveau(2026, 4, 30).unwrap()));
+        assert!(est_perime(&e, Jour::nouveau(2026, 5, 1).unwrap()));
     }
 }

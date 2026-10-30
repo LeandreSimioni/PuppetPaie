@@ -125,8 +125,8 @@ pub(crate) fn parametrer(ctx: &Contexte) -> Vec<String> {
 }
 
 /// LE TAUX DE PRELEVEMENT A LA SOURCE que la DGFiP a transmis a la compagnie et que ses DSN reprises appliquent
-/// (S21.G00.50.006 a .008) : au magasin du PAS, comme un taux recu, date du mois de la DSN
-/// (`commandes::pas::derniers_taux_des_dsn`). La validite se lit ensuite comme pour tout taux recu (`droit::pas`).
+/// (S21.G00.50.006 a .008) : au magasin du PAS, comme un taux recu, date du jour du versement qui
+/// l'applique (`commandes::pas::derniers_taux_des_dsn`, une inference). La validite se lit ensuite comme pour tout taux recu (`droit::pas`).
 fn poser_taux_pas(ctx: &Contexte, faits: &mut Vec<String>) {
     let dossier = ctx.racine.join("historique").join("bulletins");
     let releves = crate::commandes::pas::derniers_taux_des_dsn(ctx, &dossier);
