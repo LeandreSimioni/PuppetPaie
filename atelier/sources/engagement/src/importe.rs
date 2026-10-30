@@ -294,7 +294,6 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Map<String, Value>>) -> Resultat
         if let Some(d) = p.parent() {
             std::fs::create_dir_all(d).map_err(|e| socle::fichiers::panne_fichier(&e, d))?;
         }
-        stock::sauver_avant(&p)?;
         socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
         ecrits.push(p);
     }

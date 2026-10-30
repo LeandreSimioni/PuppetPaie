@@ -506,7 +506,7 @@ pub fn non_actifs_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
     Ok(out)
 }
 
-/// Efface l'objet `o` de son fichier (meme fichier, meme rang), apres une copie dans `avant/`.
+/// Efface l'objet `o` de son fichier (meme fichier, meme rang).
 pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     let mut contenu = lire_fichier(racine, &o.fichier)?.ok_or_else(|| format!("{} : le fichier de l'engagement a disparu", o.fichier))?;
     let Some(Value::Array(es)) = contenu.get_mut("engagements") else {
@@ -517,7 +517,6 @@ pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     }
     es.remove(o.rang);
     let p = chemin(racine, &o.fichier);
-    sauver_avant(&p)?;
     socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
     Ok(p)
 }
@@ -703,8 +702,6 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, place: Option<usize>, saisie:
                 return Err(format!("{} : cet engagement est validé, il se modifie d'un geste. Rien n'est écrit.", crate::libelle_mois(mois)));
             }
             poser_sur(ctx, &mut o, mois, saisie)?;
-            let p = chemin(racine, &o.fichier);
-            sauver_avant(&p)?;
             reecrire(racine, &o)?;
             (o.fichier, o.rang)
         }
@@ -726,7 +723,6 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, place: Option<usize>, saisie:
             if let Some(d) = p.parent() {
                 std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
             }
-            sauver_avant(&p)?;
             socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
             (mois.to_string(), rang)
         }
@@ -1066,35 +1062,6 @@ pub fn reecrire(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     Ok(p)
 }
 
-/// Combien de copies d'un fichier `avant/` garde.
-const GARDER_COPIES: usize = 20;
-
-/// Une copie du fichier dans `engagements/avant/`, horodatee, avant de le remplacer : on revient a la saisie d'avant
-/// si une ecriture l'a abimee. Les plus anciennes au-dela de `GARDER_COPIES` s'effacent.
-pub(crate) fn sauver_avant(chemin: &Path) -> Resultat<()> {
-    if !chemin.exists() {
-        return Ok(());
-    }
-    let io = |e: std::io::Error| e.to_string();
-    let dossier = chemin.parent().unwrap_or(Path::new(".")).join("avant");
-    std::fs::create_dir_all(&dossier).map_err(io)?;
-    let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let horodatage = socle::paris::iso_secondes(socle::temps::secondes()).replace(['-', ':'], "").replace('T', "-");
-    std::fs::copy(chemin, dossier.join(format!("{}.{}", nom, horodatage))).map_err(io)?;
-    let prefixe = format!("{}.", nom);
-    let mut anciennes: Vec<String> = std::fs::read_dir(&dossier)
-        .map_err(io)?
-        .filter_map(|e| e.ok())
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .filter(|n| n.starts_with(&prefixe))
-        .collect();
-    anciennes.sort();
-    while anciennes.len() > GARDER_COPIES {
-        let _ = std::fs::remove_file(dossier.join(anciennes.remove(0)));
-    }
-    Ok(())
-}
-
 /// Le debut d'un engagement de l'ecran, tel que son identite le lit (pour qui compare deux vues).
 pub fn debut_vu(e: &Map<String, Value>) -> String {
     debut_de(e)
@@ -1129,6 +1096,5 @@ pub fn poser_au_mois(racine: &Path, mois: &str, cle: &str, valeur: Value) -> Res
     contenu.entry("engagements").or_insert_with(|| Value::Array(Vec::new()));
     contenu.insert(cle.to_string(), valeur);
     let p = chemin(racine, mois);
-    sauver_avant(&p)?;
     socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)
 }
