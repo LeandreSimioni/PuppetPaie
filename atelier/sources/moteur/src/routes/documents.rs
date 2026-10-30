@@ -659,7 +659,7 @@ fn compte_de_la_boite(ctx: &Contexte) -> R<String> {
     Ok(a.trim().to_string())
 }
 
-// ------------------------------------------------------------------ les contrats (`envois::envois_signature`)
+// ------------------------------------------------------------------ les contrats (`compagnie::signature`)
 
 /// Les elements d'une liste de la charge, ou rien : `charge.get(cle)` quand il est vrai.
 pub(super) fn liste_de<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Vec<Value>>> {
@@ -806,7 +806,7 @@ pub(crate) fn documents_imprimer(ctx: &Contexte, charge: &Value, qui: &str) -> R
         return Err(refus(format!("Aucun document écrit pour {} : rien à imprimer.", engagement::libelle_mois(&mois))));
     }
     let versions = journal::versions_du_mois(ctx, &mois, &envois::journal::departs(&ctx.racine)?, |cle, _, _| cles.iter().any(|c| c == cle)).map_err(Echec::from)?;
-    let impression = envois::envois_signature::reunir_pour_imprimer(&dossier, "documents", &etiq, &pieces)?;
+    let impression = crate::compagnie::signature::reunir_pour_imprimer(&dossier, "documents", &etiq, &pieces)?;
     let avertissements = documents.avertissements.clone();
     documents.engager(ctx, &mois_saisie)?;
     let detail = json!({"salaries": salaries, "main_propre": true});
