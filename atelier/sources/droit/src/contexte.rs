@@ -735,11 +735,11 @@ pub fn controler_etablissements(fiche: &Value, bareme: &Value) -> Resultat<()> {
         }
         // Le code risque se dit toujours ; le taux, sauf quand l'arrete de l'annee le fixe (`bareme::taux_atmp_applique`).
         // Le taux d'une autre annee que celle du bareme ne se controle pas ici : la paie de l'annee le demande
-        // (`bareme::surcharger`, `bareme::taux_atmp_de_l_annee`).
+        // (`bareme::surcharger`, `bareme::taux_atmp_d_un_etablissement`).
         let an = texte_ou_vide(bareme.get("annee"));
         let brut = e.get("taux_atmp").cloned().unwrap_or(Value::Null);
         let d_une_autre_annee = brut.get("annee").filter(|a| vrai(a)).is_some_and(|a| en_texte(a).trim() != an.trim());
-        let atmp = crate::bareme::taux_atmp_de_l_annee(&brut, &an);
+        let atmp = crate::bareme::taux_atmp_d_un_etablissement(&e, &an);
         let atmp_juste = vrai_opt(atmp.get("code_risque"))
             && (d_une_autre_annee
                 || crate::bareme::taux_atmp_applique(bareme, &atmp, crate::bareme::en_alsace_moselle(&texte_ou_vide(e.get("code_postal")))).is_some());

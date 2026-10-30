@@ -250,7 +250,7 @@ pub static TEXTES: &[Texte] = &[
             // LE MODE DE TARIFICATION DES AT/MP : les seuils d'effectif (D242-6-2) et le taux collectif quel que soit
             // l'effectif pour les activites que l'arrete annuel marque << TC >> (D242-6-14, I).
             // D242-6-1 : le taux est determine par etablissement, le classement suit l'activite ; D242-6-17 : le taux d'un
-            // etablissement nouvellement cree ; D242-6-15 : le taux notifie l'est pour une annee (`bareme::taux_atmp_de_l_annee`).
+            // etablissement nouvellement cree ; D242-6-15 : le taux notifie l'est pour une annee (`bareme::taux_atmp_d_un_etablissement`) ; D242-6-17 : un etablissement neuf a le taux collectif.
             Domaine { cle: "atmp_tarification", titre: "Le mode de tarification des accidents du travail et maladies professionnelles", numeros: &["D242-6-1", "D242-6-2", "D242-6-14", "D242-6-15", "D242-6-17"] },
             // LE PLAFOND : la vieillesse plafonnee
             // (L241-3, et son taux D242-4), le FNAL et le chomage d'un

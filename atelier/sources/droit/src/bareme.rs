@@ -1315,7 +1315,8 @@ pub fn surcharger(bar: Value, fiche: &Value, nic: &str) -> Resultat<Value> {
     let an = annee(&bar);
     let mut out = en_map(bar);
     // Le taux de l'etablissement, que `bareme_atmp` lit comme celui de la compagnie ; en Alsace-Moselle d'apres SON code postal.
-    let mut atmp = taux_atmp_de_l_annee(exiger(&e, "taux_atmp")?, &an);
+    exiger(&e, "taux_atmp")?;
+    let mut atmp = taux_atmp_d_un_etablissement(&e, &an);
     let alsace = en_alsace_moselle(&txt(g(&e, "code_postal")));
     if let Some(o) = atmp.as_object_mut() {
         if alsace {
@@ -2540,19 +2541,43 @@ pub fn taux_atmp_applique(bar: &Value, taux_atmp: &Value, alsace_moselle: bool) 
     }
     let code = txt(g(taux_atmp, "code_risque"));
     let r = risques_atmp(bar).into_iter().find(|r| r.code == code.trim())?;
-    taux_de_l_arrete(&r, None, alsace_moselle)
+    // Un etablissement nouvellement cree a le taux collectif, quel que soit l'effectif (`taux_atmp_d_un_etablissement`).
+    let collectif = if vrai(g(taux_atmp, "_etablissement_neuf")) { Some(true) } else { None };
+    taux_de_l_arrete(&r, collectif, alsace_moselle)
 }
 
-/// LE CODE ET LE TAUX D'UN AUTRE ETABLISSEMENT POUR L'ANNEE `an` : le taux saisi porte l'annee pour laquelle la CARSAT l'a
-/// notifie (`annee`) et ne vaut que pour elle, comme celui de la compagnie se dit dans la surcouche de chaque annee (le taux
-/// est « le taux net notifie de l'annee », D. 242-6-15, `code-de-la-securite-sociale/xml/D242-6-15.xml` ; il est determine par etablissement, D. 242-6-1). Une autre annee garde le code,
-/// sans taux : celui de l'arrete pour un risque « TC » (`taux_atmp_applique`), sinon il manque.
-pub fn taux_atmp_de_l_annee(taux_atmp: &Value, an: &str) -> Value {
-    let mut t = taux_atmp.clone();
+/// La derniere annee de cotisations a laquelle s'applique D. 242-6-17 dans sa version LEGIARTI000022446511 : la version
+/// issue du decret n° 2026-951 s'applique aux cotisations dues a compter de 2027 (sa note,
+/// `code-de-la-securite-sociale/xml/D242-6-17.xml`).
+const DERNIERE_ANNEE_D242_6_17_DE_2012: i32 = 2026;
+
+/// LE CODE ET LE TAUX D'UN AUTRE ETABLISSEMENT (`e`, une ligne de `etablissements`) POUR L'ANNEE `an`.
+///
+/// Le taux saisi porte l'annee pour laquelle la CARSAT l'a notifie (`annee`) et ne vaut que pour elle, comme celui de la
+/// compagnie se dit dans la surcouche de chaque annee : le taux est determine par etablissement (D. 242-6-1) et « le taux
+/// net notifie » l'est d'une annee sur l'autre (D. 242-6-15, `code-de-la-securite-sociale/xml-anterieur/D242-6-15.xml`, la
+/// version applicable en 2026). Une autre annee garde le code, sans taux.
+///
+/// Sans taux saisi, « les taux nets collectifs sont applicables aux etablissements nouvellement crees durant l'annee de
+/// leur creation et les deux annees civiles suivantes, quel que soit leur effectif ou celui de l'entreprise dont ils
+/// relevent » (D. 242-6-17, version applicable aux cotisations jusqu'a 2026,
+/// `code-de-la-securite-sociale/xml-anterieur/D242-6-17.xml`) : l'annee de son ouverture et les deux suivantes, le taux
+/// de l'arrete de l'annee pour son risque, TC ou non (`_etablissement_neuf`, lu par `taux_atmp_applique`). Ce que cet
+/// article excepte (un etablissement issu d'un precedent, le taux unique d'une entreprise qui l'a choisi) se dit par le taux
+/// notifie, qui se saisit. A compter de 2027, la version du decret n° 2026-951 ne se lit pas ici : un risque sans TC
+/// demande son taux.
+pub fn taux_atmp_d_un_etablissement(e: &Value, an: &str) -> Value {
+    let mut t = g(e, "taux_atmp").clone();
+    let annee: Option<i32> = an.trim().parse().ok();
+    let ouvert: Option<i32> = Some(txt(g(e, "ouverture"))).filter(|o| o.len() >= 4).and_then(|o| o[..4].parse().ok());
     if let Some(o) = t.as_object_mut() {
         let dite = o.get("annee").filter(|a| vrai(a)).map(en_texte);
         if dite.is_some_and(|a| a.trim() != an.trim()) {
             o.shift_remove("valeur");
+        }
+        let neuf = matches!((annee, ouvert), (Some(a), Some(y)) if a <= DERNIERE_ANNEE_D242_6_17_DE_2012 && y <= a && a <= y + 2);
+        if neuf && o.get("valeur").map_or(true, Value::is_null) {
+            o.insert("_etablissement_neuf".into(), Value::Bool(true));
         }
     }
     t
@@ -2610,6 +2635,30 @@ mod tests_risques_atmp {
         assert_eq!(taux("00025"), Some(1.5));
         assert_eq!(taux("00033"), None);
         assert_eq!(taux("00041"), Some(2.4));
+    }
+
+    /// « Les taux nets collectifs sont applicables aux etablissements nouvellement crees durant l'annee de leur creation et
+    /// les deux annees civiles suivantes, quel que soit leur effectif » (D. 242-6-17, version applicable aux cotisations de
+    /// 2026, `code-de-la-securite-sociale/xml-anterieur/D242-6-17.xml`) : un etablissement ouvert en 2024 ou apres, classe
+    /// en 92.1CC (sans TC), a en 2026 le taux collectif de l'arrete (1,07 %, `legifrance-arrete-tarification-atmp-2026-
+    /// complet-20261029.txt`, annexe 1) ; ouvert en 2023, il demande son taux notifie. Le taux saisi pour une annee
+    /// (D. 242-6-15) ne vaut pas pour la suivante.
+    #[test]
+    fn un_etablissement_neuf_a_le_taux_collectif_trois_annees() {
+        let socle = socle::fichiers::lire_json(&dossier_du_code().join("baremes").join("2026.json")).unwrap();
+        let mut bar = socle.clone();
+        bar["nic"] = serde_json::json!("00017");
+        let fiche = serde_json::json!({"nic": "00017", "etablissements": [
+            {"nic": "00025", "code_postal": "44000", "ouverture": "2024-06-01", "taux_atmp": {"code_risque": "921CC"}},
+            {"nic": "00033", "code_postal": "38000", "ouverture": "2023-12-01", "taux_atmp": {"code_risque": "921CC"}},
+            {"nic": "00041", "code_postal": "38000", "ouverture": "2023-12-01", "taux_atmp": {"code_risque": "921CC", "valeur": 2.4, "annee": 2025}}]});
+        let taux = |nic: &str| {
+            let b = taux_atmp_resolu(surcharger(bar.clone(), &fiche, nic).unwrap()).0;
+            b["taux_atmp"]["valeur"].as_f64()
+        };
+        assert_eq!(taux("00025"), Some(1.07));
+        assert_eq!(taux("00033"), None);
+        assert_eq!(taux("00041"), None);
     }
 
     /// L'annee que la compagnie n'a pas dite : 92.3AD, « TC », prend le taux de l'arrete de l'annee (1,65 % en 2025, annexe 1

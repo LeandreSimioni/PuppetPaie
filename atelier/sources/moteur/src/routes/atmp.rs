@@ -320,7 +320,7 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
 /// arrete du 17/10/1995, art. 1, I, 1°) ; un code « TC » a le taux de l'arrete de l'annee quel que soit l'effectif
 /// (D. 242-6-14, I), lu au meme endroit que pour la compagnie (`bareme::taux_atmp_applique`).
 fn d_un_etablissement(e: &Value, an: i64, socle: Option<&Value>, arrete: Option<&str>) -> Value {
-    let t = bareme::taux_atmp_de_l_annee(e.get("taux_atmp").unwrap_or(&Value::Null), &an.to_string());
+    let t = bareme::taux_atmp_d_un_etablissement(e, &an.to_string());
     let code = t.get("code_risque").map(valeur_en_texte).unwrap_or_default();
     let r = socle.and_then(|s| bareme::risques_atmp(s).into_iter().find(|r| r.code == code));
     let nom_code = r.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());
@@ -336,8 +336,12 @@ fn d_un_etablissement(e: &Value, an: i64, socle: Option<&Value>, arrete: Option<
     }
     phrases.push(match (&taux, t.get("valeur").filter(|v| !v.is_null())) {
         (Some(_), Some(_)) => "Le taux est celui que vous avez saisi, tel que la notification de la CARSAT le dit.".to_string(),
-        (Some(x), None) => format!(
+        (Some(x), None) if r.as_ref().is_some_and(|r| r.tc) => format!(
             "Le taux de ce risque est collectif, le même quel que soit l'effectif (code de la sécurité sociale, art. D. 242-6-14, et {}) : {} en {}.",
+            arrete, en_pourcent(*x), an
+        ),
+        (Some(x), None) => format!(
+            "Un établissement nouvellement créé a le taux collectif de son risque l'année de sa création et les deux années suivantes, quel que soit l'effectif (code de la sécurité sociale, art. D. 242-6-17, et {}) : {} en {}. Si la CARSAT notifie un autre taux à cet établissement, saisissez-le.",
             arrete, en_pourcent(*x), an
         ),
         (None, _) if code == bareme::SANS_NOTIFICATION => "999ZZ : pas encore de notification ; la paie de cet établissement attend le code et le taux notifiés.".to_string(),
