@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use serde_json::{json, Value};
 
 use crate::outils::rejeu::{rejouer_dossier, scenario};
-use crate::outils::{dossier_de_test, noms, reussi, route, saisie};
+use crate::outils::{dossier_de_test, noms, refus, reussi, route, saisie};
 
 /// Le banc rejoue jusqu'au 16/12, FULLER engagee les 20 et 21/11 et planifiee les 02 et 03/12.
 fn fuller_a_cheval(cas: &str) -> PathBuf {
@@ -129,4 +129,22 @@ fn la_date_de_debut_changee_se_fait_signer_en_avenant() {
     reussi(&route(&c, "contrat-recu", recu, jour));
     let x = contrat(&c);
     assert!(x["caduc"] != json!(true) && x["en_attente"] != json!(true) && x["a_envoyer"] != json!(true), "{}", x);
+}
+
+/// LA RUPTURE SE NOTIFIE PENDANT LE CONTRAT (CCH-11 de S21.G00.62.003, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt` :
+/// la date de notification est « supérieure ou égale à la date de début de contrat de travail et inférieure ou égale à
+/// la date de fin ») : une date hors du contrat se refuse a la validation, en disant les bornes, et rien ne s'ecrit.
+#[test]
+fn une_notification_hors_du_contrat_se_refuse_a_la_validation() {
+    let c = fuller_a_cheval("notification");
+    let jour = "2026-12-16";
+    let avant = saisie(&c, "2026-12");
+    let mut fuller: Value = avant["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
+    let debut = engagement::debut_brut(&fuller);
+    fuller["notification_rupture"] = json!("2026-11-14");
+    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true, "engagements": [
+        {"salarie": "FULLER", "debut": debut, "numero": fuller["numero"], "rang": 0, "saisie": fuller}]}), jour);
+    let (_, phrase) = refus(&r);
+    assert!(phrase.contains("14/11/2026") && phrase.contains("20/11/2026") && phrase.contains("03/12/2026"), "{}", r);
+    assert_eq!(saisie(&c, "2026-12"), avant, "une notification refusee s'est ecrite");
 }

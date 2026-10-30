@@ -514,6 +514,31 @@ impl Engagement {
                 ));
             }
         }
+        // La rupture se notifie pendant le contrat : « La date de notification de la rupture de contrat doit être
+        // supérieure ou égale à la date de début de contrat de travail et inférieure ou égale à la date de fin de contrat
+        // de travail » (CCH-11 de S21.G00.62.003, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt`). La fin d'un
+        // contrat aux cachets qui ne la dit pas est son dernier jour joue.
+        if let Some(t) = chaine(get("notification_rupture")).filter(|t| !t.trim().is_empty()) {
+            let n = Jour::lire(&t).map_err(|_| format!("Notifiée le : « {} » n'est pas une date.", t))?;
+            let derniere = fin.or_else(|| jours_joues.last().copied());
+            if n < debut || derniere.is_some_and(|f| n > f) {
+                return Err(match derniere {
+                    Some(f) => format!(
+                        "Notifiée le {} : la rupture se notifie pendant le contrat, entre son premier jour, le {}, et sa \
+                         fin, le {}. La date de notification se corrige dans la carte, sous « Contrat ».",
+                        n.jj_mm_aaaa(),
+                        debut.jj_mm_aaaa(),
+                        f.jj_mm_aaaa()
+                    ),
+                    None => format!(
+                        "Notifiée le {} : la rupture se notifie pendant le contrat, au plus tôt son premier jour, le {}. \
+                         La date de notification se corrige dans la carte, sous « Contrat ».",
+                        n.jj_mm_aaaa(),
+                        debut.jj_mm_aaaa()
+                    ),
+                });
+            }
+        }
 
         Ok(Engagement {
             salarie: chaine(get("salarie")).unwrap_or_default(),
@@ -1040,6 +1065,7 @@ pub(crate) fn engagements(
         poser("modalite_temps_travail_saisie", e.get("modalite_temps_travail"));
         poser("motif_recours", e.get("motif_recours"));
         poser("motif_rupture", e.get("motif_rupture"));
+        poser("notification_rupture", e.get("notification_rupture"));
         // La fin du contrat telle que la saisie la dit : la mensuelle et le FCTU en tirent le meme S21.G00.62.006
         // (`fctu::dernier_jour_paye`).
         poser("preavis", e.get("preavis"));
