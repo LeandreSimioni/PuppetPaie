@@ -525,7 +525,7 @@ pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
 /// engagement ne le touche et qu'il n'a pas de fichier. Un engagement valide y dit quand (`valide` : `{"le"}`).
 pub fn vue_du_mois(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
     Ok(saisie_du_mois(racine, mois, false)?.map(|s| {
-        socle::fichiers::noter_valeur(&cle_de_saisie(mois), s.1.clone());
+        socle::fichiers::noter_valeur(&cle_de_saisie(mois, None), s.1.clone());
         s.0.clone()
     }))
 }
@@ -537,15 +537,19 @@ pub fn vue_a_l_ecran(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
     Ok(saisie_du_mois(racine, mois, true)?.map(|s| s.0.clone()))
 }
 
-/// L'empreinte de la saisie de `mois` (`empreinte_de_saisie`), celle que `vue_du_mois` note ; `None` sans saisie.
-pub fn empreinte_de_la_saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<String>> {
-    Ok(saisie_du_mois(racine, mois, false)?.map(|s| s.1.clone()))
+/// L'empreinte de la saisie de `mois` (`empreinte_de_saisie`) : celle que `vue_du_mois` note, ou, pour `salarie`, celle
+/// que la paie de ses engagements du mois note ; `None` sans saisie.
+pub fn empreinte_de_la_saisie_du_mois(racine: &Path, mois: &str, salarie: Option<&str>) -> Resultat<Option<String>> {
+    Ok(saisie_du_mois(racine, mois, false)?.map(|s| match salarie {
+        None => s.1.clone(),
+        Some(_) => empreinte_de_saisie(&s.0, salarie),
+    }))
 }
 
 /// La vue de `mois` et son empreinte, faites une fois pour les memes fichiers aux memes octets (`memes`) :
 /// chaque paie qui se verifie relit la saisie des mois qu'elle a lus. La vue d'une ligne lit aussi l'unite de sa rubrique
 /// (`droit::catalogue::rubrique`) : les deux catalogues en font partie.
-fn saisie_du_mois(racine: &Path, mois: &str, ecran: bool) -> Resultat<Option<std::sync::Arc<(Value, String)>>> {
+pub(crate) fn saisie_du_mois(racine: &Path, mois: &str, ecran: bool) -> Resultat<Option<std::sync::Arc<(Value, String)>>> {
     type Saisie = Option<std::sync::Arc<(Value, String)>>;
     type Vues = std::sync::Mutex<std::collections::HashMap<(PathBuf, String, bool), (Lus, Saisie)>>;
     static VUES: std::sync::OnceLock<Vues> = std::sync::OnceLock::new();
@@ -590,16 +594,20 @@ fn saisie_du_mois(racine: &Path, mois: &str, ecran: bool) -> Resultat<Option<std
         }
         data.insert("engagements".into(), Value::Array(engagements));
         let vue = Value::Object(data);
-        let empreinte = empreinte_de_saisie(&vue);
+        let empreinte = empreinte_de_saisie(&vue, None);
         Some(std::sync::Arc::new((vue, empreinte)))
     };
     socle::fichiers::ranger(vues, cle, (lus, saisie.clone()));
     Ok(saisie)
 }
 
-/// La cle sous laquelle un calcul note la saisie d'un mois qu'il a lue (`socle::fichiers::suivre`).
-pub fn cle_de_saisie(mois: &str) -> String {
-    format!("saisie {}", mois)
+/// La cle sous laquelle un calcul note la saisie d'un mois qu'il a lue (`socle::fichiers::suivre`) : `saisie <mois>`, ou
+/// `saisie <mois> <salarie>` pour la saisie dont depend la paie de ce salarie dans son mois (`etats::calculer_les_rangs`).
+pub fn cle_de_saisie(mois: &str, salarie: Option<&str>) -> String {
+    match salarie {
+        Some(s) => format!("saisie {} {}", mois, s),
+        None => format!("saisie {}", mois),
+    }
 }
 
 /// L'empreinte de la saisie d'un mois : ce qu'elle dit, sans ce que le moteur tient seul (la validation) ni le numero du
@@ -607,11 +615,12 @@ pub fn cle_de_saisie(mois: &str) -> String {
 /// `<le mois>:<ses engagements>` : ce que le mois pose pour tous (taux du cachet, date de paiement...), et ses
 /// engagements ; la raison d'un recalcul dit laquelle a change (`etats::raison`). Seuls les engagements valides
 /// comptent : une paie ecrite ne lit que ceux-la (`etats::calculer_les_rangs`), et un brouillon tape a cote d'elle ne
-/// la fait pas recalculer.
-pub fn empreinte_de_saisie(vue: &Value) -> String {
+/// la fait pas recalculer. Avec `salarie`, seuls ses engagements comptent : la paie d'un engagement ne lit, des autres
+/// engagements du mois, que ceux du meme salarie (`etats::calculer_les_rangs`).
+pub fn empreinte_de_saisie(vue: &Value, salarie: Option<&str>) -> String {
     let mut v = vue.clone();
     if let Some(Value::Array(es)) = v.get_mut("engagements") {
-        es.retain(|e| e.get("valide").is_some());
+        es.retain(|e| e.get("valide").is_some() && salarie.is_none_or(|s| e.get("salarie").and_then(Value::as_str) == Some(s)));
         for e in es.iter_mut() {
             if let Value::Object(m) = e {
                 m.remove("valide");

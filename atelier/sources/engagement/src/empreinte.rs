@@ -1,10 +1,11 @@
-//! CE DONT UNE PAIE DEPEND. Le calcul d'un mois note tout ce qu'il lit (`socle::fichiers::suivre`) : le contenu de chaque
-//! fichier (baremes du socle et de la compagnie, catalogues livres, fiches, effectifs, imprevus, taux de prelevement a la
-//! source...), les fichiers absents, les dossiers parcourus, les fiches telles qu'elles valent a la date du calcul, le
-//! jour s'il le lit, la saisie de chaque mois qu'il lit (`stock::vue_du_mois`, la saisie, pas le fichier : ecrire la
-//! validation d'un engagement ne change rien a ce que les autres lisent) et les paies validees des mois qu'il lit
-//! (`paies <mois>`, `etats::paies_validees`). S'y ajoutent la marque du code qui calcule
-//! (`MOTEUR`) et les regles datees qui s'appliquent a la periode payee (`regles`).
+//! CE DONT UNE PAIE DEPEND : l'empreinte est celle d'un engagement, pas d'un mois. Le calcul d'un mois note tout ce qu'il
+//! lit (`socle::fichiers::suivre`) : le contenu de chaque fichier (baremes du socle et de la compagnie, catalogues livres,
+//! effectifs, imprevus, taux de prelevement a la source...), les fichiers absents, les dossiers parcourus, les fiches
+//! telles qu'elles valent au dernier jour du mois paye, le jour s'il le lit, et les paies validees des autres mois qu'il
+//! lit (`paies <mois>`, `etats::paies_validees`). De la saisie de son mois, chaque paie ne garde que ce dont elle depend :
+//! ce que le mois pose pour tous et les engagements valides de son salarie (`saisie <mois> <salarie>`,
+//! `etats::calculer_les_rangs`). S'y ajoutent la marque du code qui calcule (`MOTEUR`) et les regles datees qui
+//! s'appliquent a la periode payee (`regles`).
 //!
 //! L'empreinte TIENT quand chacune de ses entrees vaut encore ce qu'elle valait (`tient`) : aucun calcul, une relecture
 //! du disque. Elle ne tient plus : la paie se recalcule, et ce qui a change dit pourquoi (`etats::rafraichir`).
@@ -37,14 +38,15 @@ fn est_un_fichier_d_engagements(cle: &str) -> bool {
     cle.split_once(' ').is_some_and(|(_, c)| c.starts_with(&format!("racine:{}/", stock::DOSSIER)) || c == format!("racine:{}", stock::DOSSIER))
 }
 
-/// `f`, qui calcule depuis la saisie `data` d'un mois, et tout ce qu'il a lu.
+/// `f`, qui calcule depuis la saisie `data` d'un mois, et tout ce qu'il a lu. Les fiches s'y comptent telles qu'elles
+/// valent au dernier jour de ce mois (`Contexte::du_mois`), quel que soit le jour du contexte qui calcule : la meme paie a
+/// la meme empreinte, quel que soit le mois que l'ecran regarde.
 pub(crate) fn suivre<T>(ctx: &Contexte, data: &Value, f: impl FnOnce() -> Resultat<T>) -> Resultat<(T, BTreeMap<String, String>)> {
+    let mois = data.get("mois").and_then(Value::as_str).ok_or_else(|| fichiers::absent("mois"))?;
+    let fiches = empreinte_fiches(&ctx.du_mois(mois)?);
     fichiers::suivre(&ctx.racine, &dossier_du_code());
-    if let Some(m) = data.get("mois").and_then(Value::as_str) {
-        fichiers::noter_valeur(&stock::cle_de_saisie(m), stock::empreinte_de_saisie(data));
-    }
     let r = f();
-    fichiers::noter_valeur("fiches", empreinte_fiches(ctx));
+    fichiers::noter_valeur("fiches", fiches);
     let mut entrees = fichiers::rendre();
     entrees.retain(|k, _| !est_un_fichier_d_engagements(k));
     entrees.insert("moteur".into(), MOTEUR.into());
@@ -96,8 +98,9 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
             if let Some(mois) = k.strip_prefix("paies ") {
                 return crate::etats::empreinte_des_paies_validees(ctx, mois).is_some_and(|e| v == e);
             }
-            if let Some(mois) = k.strip_prefix("saisie ") {
-                return stock::empreinte_de_la_saisie_du_mois(racine, mois).ok().flatten().is_some_and(|e| v == e);
+            if let Some(reste) = k.strip_prefix("saisie ") {
+                let (mois, salarie) = reste.split_once(' ').map_or((reste, None), |(m, s)| (m, Some(s)));
+                return stock::empreinte_de_la_saisie_du_mois(racine, mois, salarie).ok().flatten().is_some_and(|e| v == e);
             }
             match fichiers::chemin_de(k, racine, &code) {
                 Some((genre, p)) => match genre.as_str() {
