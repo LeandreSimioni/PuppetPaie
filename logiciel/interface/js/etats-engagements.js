@@ -288,7 +288,7 @@ async function validerPlusieurs(div, lignes) {
          "erreur");
   }
   if (faites) dedoubler(div);
-  await dessinerEtatsDesEngagements(mois);
+  await rafraichirActions();
 }
 
 /** Lit `etat-par-engagement` et repeint. Pendant la lecture, les cartes gardent les états qu'elles montrent : une
@@ -496,7 +496,7 @@ async function basculerValidation(ligne, valide) {
     const avis = (r && r.avis) || [];
     if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
     else dire(valide ? "Engagement validé." : "Engagement ouvert à la modification : le revalider ensuite.");
-    await dessinerEtatsDesEngagements(mois);
+    await rafraichirActions();
   } catch (e) { dire(e.message, "erreur"); }
 }
 
@@ -524,7 +524,7 @@ async function modifierEngagements(lignes) {
     dire(lignes.length > 1 ? `Ces ${lignes.length} engagements sont ouverts à la modification.`
                            : "Engagement ouvert à la modification : le revalider ensuite.");
   } catch (e) { dire(e.message, "erreur"); }
-  await dessinerEtatsDesEngagements(mois);
+  await rafraichirActions();
 }
 
 /* MODIFIER L'ENGAGEMENT : un engagement dont aucun contrat n'est parti se rouvre d'un clic ; un contrat parti se dit

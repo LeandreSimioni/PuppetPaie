@@ -59,12 +59,11 @@ function deMois(iso) {
   const nom = moisEnClair(iso);
   return ("aeiouyâàéèêîôû".includes(nom[0]) ? "d'" : "de ") + nom;
 }
-
+/* Le mois déclaré, EN GROS : son nom en clair. */
 /* Le mois déclaré, EN GROS : son nom en clair, et l'ISO dessous. */
 function moisEnGros(mois) {
   return `<div class="mois-gros">
     <span class="clair">${echapper(moisEnClair(mois))}</span>
-    <span class="iso">${echapper(mois)}</span>
   </div>`;
 }
 

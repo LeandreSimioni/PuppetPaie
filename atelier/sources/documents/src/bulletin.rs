@@ -1023,8 +1023,20 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         salarie.push(mt(format!(" {}\n", c)));
     }
     salarie.extend(ligne_caisse);
+    // LA DEDUCTION FORFAITAIRE SPECIFIQUE que la paie a appliquee : le taux de l'annee de sa categorie (arrete du
+    // 4 septembre 2025, art. 9, II : 16 % en 2026 pour la categorie 20 %, 18 % pour la 25 %), et ce qu'elle a retire,
+    // apres le plafond annuel et l'assiette minimum (`engagement::calcul::abattement_dfs` ;
+    // `atelier/reference/sources/dfs/LISEZ-MOI.md`).
     salarie.push(k("Abattement :"));
-    salarie.push(mt(" 0 %"));
+    salarie.push(mt(match &p.deduction_forfaitaire {
+        Some(d) => format!(
+            " {} % (catégorie {} %, taux de l'année) — {} € déduits",
+            fmt_heures(d.taux),
+            d.categorie,
+            fmt_eur(d.montant)
+        ),
+        None => " 0 %".to_string(),
+    }));
     let employeur = vec![
         m("EMPLOYEUR", true, None),
         mt("\n\n"),
