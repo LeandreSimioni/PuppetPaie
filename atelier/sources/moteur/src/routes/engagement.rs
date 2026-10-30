@@ -155,8 +155,9 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
                                 .iter()
                                 .map(|m| json!({"mois": m, "libelle": engagement::libelle_mois(m), "partis": q.partis.contains(m)}))
                                 .collect();
+                            let phrase = [q.phrase()].into_iter().chain(ce_qui_arrive_aux_mois_partis(ctx, &q)?).collect::<Vec<_>>().join(" ");
                             return Ok(json!({"salarie": salarie, "debut": debut, "valide": Value::Null,
-                                "a_partir_du": {"phrase": q.phrase(), "choix": choix}}));
+                                "a_partir_du": {"phrase": phrase, "choix": choix}}));
                         }
                     };
                     engagement::etats::poser_a_partir_du(ctx, mois, i, &depuis).map_err(refus)?;
@@ -179,6 +180,33 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         Value::Null
     };
     Ok(json!({"salarie": salarie, "debut": debut, "valide": rendu}))
+}
+
+/// CE QUI ARRIVE A UN MOIS PARTI que le changement toucherait, pour chaque mois parti parmi les choix de la question
+/// « a partir de quel mois ? » : sa paie se refait (bulletin rectificatif), et sa DSN, si elle est deposee, se corrige
+/// comme toute modification d'un mois declare (`crate::regularisation::modification_de_la_paie`) : par un
+/// annule-et-remplace jusqu'a la limite, ensuite dans la DSN du mois en cours. C'est la seule question posee : l'ecriture
+/// de la saisie ne la demande pas d'avance (`engagement::etats::se_datera_a_la_validation`).
+fn ce_qui_arrive_aux_mois_partis(ctx: &Contexte, q: &engagement::etats::APartirDu) -> R<Vec<String>> {
+    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
+    let mut out = Vec::new();
+    for mois in q.choix.iter().filter(|c| q.partis.contains(c)) {
+        let de = engagement::libelle_mois(mois);
+        let d = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
+        let dsn = if d.is_null() {
+            String::new()
+        } else if d.get("confirmer").is_some_and(vrai) {
+            format!(
+                " ; sa DSN, déposée, ne se remplace plus : la correction se déclarera dans la DSN {}",
+                crate::regularisation::de_mois_en_clair(&valeur_en_texte(&d["mois_courant"]))
+            )
+        } else {
+            let limite = socle::date::Jour::lire(&valeur_en_texte(&d["limite"])).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
+            format!(" ; sa DSN déposée sera remplacée par un annule-et-remplace, admis jusqu'au {} à minuit", limite)
+        };
+        out.push(format!("Si le changement vaut dès {} : {} a un bulletin rectificatif{}.", de, de, dsn));
+    }
+    Ok(out)
 }
 
 /// CE QUE LA VALIDATION DIT SANS REFUSER, pour l'engagement de rang `i` de la saisie de `mois` : un contrat que le

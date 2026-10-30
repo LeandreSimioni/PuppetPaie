@@ -1041,6 +1041,7 @@ function construireCarte(div, e) {
           <span class="discret e-rupture-dit">— ce que le signalement (nature 07) déclarera</span></div>
         <label class="e-motif-l">Motif de la rupture
           <select class="e-motif-rupture"></select></label>
+        <p class="discret e-motif-dit" hidden></p>
         <!-- Les dates et la transaction selon le motif (30/09/2026,
              permanents.faits_de_rupture) : notifiée pour une rupture que
              l'un décide, engagée pour un licenciement, signée pour une
@@ -1405,6 +1406,11 @@ function majRupture(div) {
     + (nat.motifs_rupture || []).map(
       (m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${echapper(m.libelle)}</option>`).join(""));
   sel.value = (nat.motifs_rupture || []).some((m) => m.code === voulu) ? voulu : "";
+  // Ce que le moteur dit du motif choisi (ce qu'il ouvre pour le salarié), sous la liste.
+  const motifDit = div.querySelector(".e-motif-dit");
+  const dit = ((nat.motifs_rupture || []).find((m) => m.code === sel.value) || {}).dit || "";
+  motifDit.textContent = dit;
+  motifDit.hidden = !dit;
   const faits = (nat.faits_de_rupture || {})[sel.value] || [];
   div.querySelectorAll(".e-rupture [data-fait]").forEach((l) => {
     l.hidden = !faits.includes(l.dataset.fait);

@@ -244,7 +244,7 @@ pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: imp
         let brut = Value::Object(v.objet().brut.clone());
         let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
         if garder(&cle, numero, &brut) {
-            if let Some(phrase) = v.a_revalider() {
+            if let Some(phrase) = v.a_revalider(ctx) {
                 return Err(phrase);
             }
             let version = v.version().ok_or("validation illisible : `version`")?;
