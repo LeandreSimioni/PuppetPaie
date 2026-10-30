@@ -566,7 +566,15 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, mois: &str, calendrier: &
         let maintenant = maintenant_du(jour);
         (maintenant.clone(), maintenant)
     } else {
-        (format!("{}T10:00:00", echeance.iso()), format!("{}T11:00:00", echeance.iso()))
+        // Les documents partent apres la validation : la paie partie d'un engagement revalide apres l'echeance repart, en
+        // bulletin rectificatif, a l'instant de sa revalidation.
+        let revalide = engagement::stock::objets_du_mois(d.racine, mois)
+            .map_err(Echec::from)?
+            .iter()
+            .filter_map(|o| o.brut.get("valide").and_then(|v| v.get("le")).and_then(Value::as_str).map(|t| t.chars().take(19).collect::<String>()))
+            .max();
+        let documents = format!("{}T11:00:00", echeance.iso());
+        (format!("{}T10:00:00", echeance.iso()), revalide.filter(|r| *r > documents).unwrap_or(documents))
     };
     calendrier.push(Pas { quand: quand_dsn, quoi: format!("DSN de {} déposée", mois_fr(mois)), geste: Geste::Dsn { mois: mois.to_string(), echeance } });
     calendrier.push(Pas {

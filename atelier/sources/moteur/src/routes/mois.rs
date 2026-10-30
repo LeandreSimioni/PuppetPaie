@@ -1740,11 +1740,16 @@ fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
 
 /// UN MOIS D'AVANT LA PREMIERE EMBAUCHE NE SE SAISIT PAS : la DSN est due par l'employeur pour les salaries qu'il
 /// emploie, et le premier mois du est celui de la premiere embauche (`premiere_embauche` de la fiche Entreprise, la
-/// borne que l'echeancier et les rappels lisent : `crate::routes::rappels::premier_mois_declarable`). Un mois qui a deja
-/// des engagements se modifie.
+/// borne que l'echeancier et les rappels lisent : `crate::routes::rappels::premier_mois_declarable`), une fois l'echeance
+/// de sa DSN passee (`echeance_dsn`). Avant elle, une compagnie qui commence saisit ce mois, et sa DSN se depose a temps.
+/// Un mois qui a deja des engagements se modifie.
 pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<()> {
     let embauche = ctx.entreprise.get("premiere_embauche").and_then(Value::as_str).unwrap_or("").trim().to_string();
-    if embauche.len() >= 7 && mois < &embauche[..7] && !engagement::stock::a_une_saisie(&ctx.racine, mois).map_err(Echec::from)? {
+    if embauche.len() >= 7
+        && mois < &embauche[..7]
+        && ctx.aujourdhui > declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(Echec::from)?.jour
+        && !engagement::stock::a_une_saisie(&ctx.racine, mois).map_err(Echec::from)?
+    {
         return Err(refus(format!(
             "{} precede la premiere embauche de la compagnie ({}) : aucune DSN n'y est due, rien ne s'y saisit. Si la \
              compagnie employait deja, corriger la date de premiere embauche (Configuration › Entreprise). Rien n'est ecrit.",
