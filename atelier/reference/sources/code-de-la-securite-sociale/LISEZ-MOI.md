@@ -144,7 +144,14 @@ cotisations dues à compter de 2027 : `../tarification-atmp/`).
   risque que l'entreprise n'avait pas, a les taux nets collectifs l'année de sa création et les deux années civiles
   suivantes. La version applicable aux cotisations de 2026 (avant le décret) n'est pas relevée : le moteur ne s'en sert pas.
 
-**Où le moteur s'en sert** : `moteur/src/routes/fiches.rs` (`ecrire_etablissements`), `moteur/src/routes/atmp.rs`
+- **D. 242-6-15** (`xml/D242-6-15.xml`, relevé le 30/10/2026 ; même décret, même application à compter de 2027) : « le
+  taux net notifié ne peut varier d'une année sur l'autre » — le taux notifié l'est pour une année. La version applicable
+  aux cotisations de 2026 (`LEGIARTI000028429426`) n'est pas relevée ici (voir `xml-anterieur/` après `moteur releve-codes
+  comparer`).
+
+**Où le moteur s'en sert** : `moteur/src/routes/etablissements.rs` (`ecrire` : la ligne d'un établissement se date ; son
+taux saisi porte l'année de sa date d'effet), `droit/src/bareme.rs` (`taux_atmp_de_l_annee` : il ne vaut que pour cette
+année, D. 242-6-15), `moteur/src/routes/atmp.rs`
 (`d_un_etablissement`), `droit/src/bareme.rs` (`taux_atmp_applique`) : chaque établissement a son code risque et son taux,
 lus au même endroit que ceux de la compagnie (`bareme_atmp`) ; un code « TC » prend le taux de l'arrêté de l'année
 (D. 242-6-14).

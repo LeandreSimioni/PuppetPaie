@@ -37,6 +37,7 @@ pub mod engagement;
 pub mod contrats;
 pub mod modeles_contrat;
 pub mod fiches;
+pub mod etablissements;
 pub mod atmp;
 pub mod import;
 pub mod imprevus;

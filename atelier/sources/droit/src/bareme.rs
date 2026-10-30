@@ -1312,15 +1312,38 @@ pub fn surcharger(bar: Value, fiche: &Value, nic: &str) -> Resultat<Value> {
         Some(e) => e,
         None => return Ok(bar),
     };
+    let an = annee(&bar);
     let mut out = en_map(bar);
     // Le taux de l'etablissement, que `bareme_atmp` lit comme celui de la compagnie ; en Alsace-Moselle d'apres SON code postal.
-    let mut atmp = exiger(&e, "taux_atmp")?.clone();
-    if let Some(o) = atmp.as_object_mut().filter(|_| en_alsace_moselle(&txt(g(&e, "code_postal")))) {
-        o.insert("_alsace_moselle".into(), Value::Bool(true));
+    let mut atmp = taux_atmp_de_l_annee(exiger(&e, "taux_atmp")?, &an);
+    let alsace = en_alsace_moselle(&txt(g(&e, "code_postal")));
+    if let Some(o) = atmp.as_object_mut() {
+        if alsace {
+            o.insert("_alsace_moselle".into(), Value::Bool(true));
+        }
+        // Le taux saisi d'une autre annee ne vaut pas pour celle-ci, et l'arrete ne le donne pas (un risque sans « TC ») :
+        // `bareme_atmp` le refuse en le disant.
+        if o.get("valeur").map_or(true, Value::is_null) && taux_atmp_applique(&Value::Object(out.clone()), &Value::Object(o.clone()), alsace).is_none() {
+            o.insert(
+                "_manque".into(),
+                Value::String(format!(
+                    "Le taux AT/MP {} de l'établissement « {} » manque : la CARSAT le notifie chaque année à cet établissement \
+(compte AT/MP sur net-entreprises), et son risque {} n'a pas de taux collectif dans l'arrêté de l'année. Il se saisit dans \
+Configuration › Entreprise › Avancé, « Autres établissements », à partir du 1er janvier {}.",
+                    an,
+                    Some(txt(g(&e, "libelle"))).filter(|l| !l.trim().is_empty()).unwrap_or_else(|| txt(g(&e, "nic"))),
+                    o.get("code_risque").map(txt).unwrap_or_default().trim(),
+                    an
+                )),
+            );
+        }
     }
     out.insert("taux_atmp".into(), atmp);
+    // « aucun », ou un taux de zero : la commune de l'etablissement n'en a pas, ou il y emploie moins de onze salaries
+    // (CGCT, L. 2333-64, I, l'effectif « employe dans chacune des zones »).
     let vm = g(&e, "versement_mobilite");
-    if vm == "aucun" || (vm.is_null() && !vrai(out.get("versement_mobilite").unwrap_or(&NUL))) {
+    let aucun = vm == "aucun" || g(vm, "taux").as_f64() == Some(0.0);
+    if aucun || (vm.is_null() && !vrai(out.get("versement_mobilite").unwrap_or(&NUL))) {
         out.shift_remove("versement_mobilite");
     } else if vm.is_object() {
         out.insert("versement_mobilite".into(), vm.clone());
@@ -2518,6 +2541,21 @@ pub fn taux_atmp_applique(bar: &Value, taux_atmp: &Value, alsace_moselle: bool) 
     let code = txt(g(taux_atmp, "code_risque"));
     let r = risques_atmp(bar).into_iter().find(|r| r.code == code.trim())?;
     taux_de_l_arrete(&r, None, alsace_moselle)
+}
+
+/// LE CODE ET LE TAUX D'UN AUTRE ETABLISSEMENT POUR L'ANNEE `an` : le taux saisi porte l'annee pour laquelle la CARSAT l'a
+/// notifie (`annee`) et ne vaut que pour elle, comme celui de la compagnie se dit dans la surcouche de chaque annee (le taux
+/// est « le taux net notifie de l'annee », D. 242-6-15, `code-de-la-securite-sociale/xml/D242-6-15.xml` ; il est determine par etablissement, D. 242-6-1). Une autre annee garde le code,
+/// sans taux : celui de l'arrete pour un risque « TC » (`taux_atmp_applique`), sinon il manque.
+pub fn taux_atmp_de_l_annee(taux_atmp: &Value, an: &str) -> Value {
+    let mut t = taux_atmp.clone();
+    if let Some(o) = t.as_object_mut() {
+        let dite = o.get("annee").filter(|a| vrai(a)).map(en_texte);
+        if dite.is_some_and(|a| a.trim() != an.trim()) {
+            o.shift_remove("valeur");
+        }
+    }
+    t
 }
 
 /// L'etablissement est-il dans le Haut-Rhin, le Bas-Rhin ou la Moselle (art. 4 de l'arrete) ? Lu dans les deux premiers

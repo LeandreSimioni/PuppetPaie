@@ -1088,7 +1088,8 @@ function construireCarte(div, e) {
   const selEtab = div.querySelector(".e-etablissement");
   const etabs = Array.isArray((ETAT.configuration || {}).etablissements) ? ETAT.configuration.etablissements : [];
   div.querySelector(".e-etablissement-bloc").hidden = !etabs.length;
-  selEtab.innerHTML = etabs.map((x) => `<option value="${echapper(x.nic || "")}">${echapper(x.nom)}${x.ouverture ? ` (ouvert le ${echapper(x.ouverture.split("-").reverse().join("/"))})` : ""}</option>`).join("");
+  const jj = (iso) => echapper(iso.split("-").reverse().join("/"));
+  selEtab.innerHTML = etabs.map((x) => `<option value="${echapper(x.nic || "")}">${echapper(x.nom)}${x.ouverture ? ` (ouvert le ${jj(x.ouverture)}${x.fermeture ? `, jusqu’au ${jj(x.fermeture)}` : ""})` : ""}</option>`).join("");
   selEtab.value = e.etablissement || "";
   selEtab.onchange = rafraichirApercu;
   // --- le métier

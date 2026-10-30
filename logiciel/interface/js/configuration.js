@@ -1198,6 +1198,10 @@ const SOUS_CHAMPS = {
     ["ouverture", "Ouvert le", "", { date: true }],
     ["taux_atmp.code_risque", "Code risque AT/MP", "", { codesAtmp: true }],
     ["taux_atmp.valeur", "Taux AT/MP (%)", "", { decimal: true }],
+    // Le versement mobilité de sa commune, quand le siège en paie un (le
+    // moteur le dit : `versement_mobilite_des_etablissements`) ; 0 : aucun.
+    ["versement_mobilite.taux", "Versement mobilité (%)", "0 si aucun", { decimal: true, si: "versement_mobilite_des_etablissements" }],
+    ["versement_mobilite.code_insee", "Code INSEE de la commune", "", { si: "versement_mobilite_des_etablissements" }],
   ] },
 };
 
@@ -1448,7 +1452,7 @@ document.addEventListener("input", cocherUnBouton, true);
 function ligneStructure(cle, sous, ligne, i) {
   const o = ligne && typeof ligne === "object" ? ligne : {};
   return `<div class="ligne-structure" data-index="${i}">
-    ${sous.champs.map(([k, lib, aide, genre = {}]) => {
+    ${sous.champs.filter(([, , , genre = {}]) => !genre.si || (ETAT.configuration || {})[genre.si]).map(([k, lib, aide, genre = {}]) => {
       const val = valeurEn(o, k);
       const attrs = `data-liste-de="${echapper(cle)}" data-liste-index="${i}"
           data-sous-cle="${echapper(k)}" ${aide ? `placeholder="${echapper(aide)}"` : ""}`;

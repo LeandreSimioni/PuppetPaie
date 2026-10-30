@@ -955,11 +955,11 @@
    "ecran": true
   },
   {
-   "_note": "LES AUTRES ETABLISSEMENTS que le siege (celui du `nic` ci-dessus) : chacun son SIRET, son adresse, sa date d'ouverture, son code risque et son taux AT/MP (`taux_atmp`, D. 242-6-1 du code de la securite sociale : le taux est determine par etablissement). Chacun a sa DSN (S21.G00.11) ; un engagement dit le sien (`engagement::Engagement::etablissement`). La liste se date a l'ouverture de chacun (`moteur::routes::fiches::ecrire_etablissements`).",
+   "_note": "LES AUTRES ETABLISSEMENTS que le siege (celui du `nic` ci-dessus) : chacun son SIRET, son adresse, sa date d'ouverture, son code risque et son taux AT/MP (`taux_atmp`, D. 242-6-1 du code de la securite sociale : le taux est determine par etablissement). Chacun a sa DSN (S21.G00.11) ; un engagement dit le sien (`engagement::Engagement::etablissement`). La liste se date a chaque ouverture, modification et fermeture (`moteur::routes::etablissements`).",
    "cle": "etablissements",
    "libelle": "Autres établissements",
    "forme": "structure",
-   "aide": "Un autre lieu où la compagnie emploie des salariés, avec son propre SIRET (un atelier, une salle) : il a sa DSN et son taux AT/MP. Le siège n'y figure pas. Un engagement dit alors dans quel établissement la personne travaille.",
+   "aide": "Un autre lieu où la compagnie emploie des salariés, avec son propre SIRET (un atelier, une salle) : il a sa DSN et son taux AT/MP. Le siège n'y figure pas. Un engagement dit alors dans quel établissement la personne travaille. Une ligne changée vaut à partir de la date que vous direz ; une ligne retirée ferme l’établissement à cette date.",
    "obligatoire": false,
    "longueur": null,
    "exemple": "",
