@@ -249,6 +249,9 @@ pub(crate) struct Apercu {
     /// registre de l'import les a dits nouveaux (`import::attestes`). Chacun avec le NIR qui le rattache (`salarie` vaut
     /// `<a creer>` tant que la fiche n'existe pas) et le bloc du compte rendu qui le compte.
     pub(crate) contrats_attestes: Vec<crate::import::attestes::Retenu>,
+    /// CE QUE L'IMPORT CHANGE AUX CONTRATS DE L'HISTORIQUE : le contrat qu'un certificat atteste, reduit aux mois qu'il atteste
+    /// seul ou retire, celui d'une AEM que le bulletin remplace (`import::attestes`).
+    pub(crate) contrats_changes: Vec<crate::import::attestes::Change>,
     /// La suite des licences que les pieces donnent (mois `AAAA-MM`, numero), la plus ancienne d'abord (`poser_licence`).
     pub(crate) licences: Vec<(String, String)>,
 }
@@ -529,7 +532,7 @@ pub(crate) fn apercu_lu(
     }) else {
         unreachable!("un objet")
     };
-    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, contrats_attestes: Vec::new(), licences: lecture.licences.clone() })
+    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, contrats_attestes: Vec::new(), contrats_changes: Vec::new(), licences: lecture.licences.clone() })
 }
 
 /// Le nombre de valeurs distinctes (`len({...})`) : `1`, `1.0` et `True` ne font

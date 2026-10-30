@@ -160,14 +160,16 @@ pub(crate) struct DossierLu {
 
 /// `importation-apercu` avec `{"dossier": ...}`.
 pub(crate) fn apercu_dossier(ctx: &Contexte, dossier: &Path) -> R<Apercu> {
-    lire_dossier(ctx, dossier, |lu| Ok(lu.ap))
+    lire_dossier(ctx, dossier, &HashMap::new(), |lu| Ok(lu.ap))
 }
 
 /// Lit le dossier, et passe ce qui a ete lu a `suite` AVANT d'effacer le dossier de travail (les zip ouverts) : la
-/// copie de l'import et le texte des pages refusees s'y lisent encore.
-pub(crate) fn lire_dossier<T>(ctx: &Contexte, dossier: &Path, suite: impl FnOnce(DossierLu) -> R<T>) -> R<T> {
+/// copie de l'import et le texte des pages refusees s'y lisent encore. `deposes` : le nom que la personne a donne a un
+/// fichier du dossier, par son chemin dans le dossier, quand le dossier lu est fait de copies (`import::ecrite`) ; tout
+/// ce que l'import dit d'un fichier (« lu dans… », le compte rendu) le nomme ainsi.
+pub(crate) fn lire_dossier<T>(ctx: &Contexte, dossier: &Path, deposes: &HashMap<String, String>, suite: impl FnOnce(DossierLu) -> R<T>) -> R<T> {
     let travail = ri::dossier_de_travail();
-    let rendu = trier_et_lire(ctx, dossier, &travail).and_then(suite);
+    let rendu = trier_et_lire(ctx, dossier, &travail, deposes).and_then(suite);
     let _ = std::fs::remove_dir_all(&travail);
     rendu
 }
@@ -251,8 +253,13 @@ fn idcc_lu(texte: &str) -> Option<String> {
     (apres.len() == 4 && saut <= 6).then_some(apres)
 }
 
-fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu> {
-    let tri = crate::import::tri::trier(dossier, travail)?;
+fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashMap<String, String>) -> R<DossierLu> {
+    let mut tri = crate::import::tri::trier(dossier, travail)?;
+    for f in &mut tri.fichiers {
+        if let Some(nom) = deposes.get(&f.chemin) {
+            f.chemin = nom.clone();
+        }
+    }
 
     // 1. Les DSN et AEM : ce que chacune dit de son employeur. Elles ne sont copiees la ou l'import existant
     // les lit qu'apres l'etape 3, et seulement celles de la compagnie.
@@ -545,7 +552,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
                     sans += 1;
                     continue;
                 }
-                if registre.pareils(&c.nir, &c.debut.iso(), &c.fin.iso(), false).is_empty() {
+                if registre.pareils(&c.nir, &c.debut.iso(), &c.fin.iso(), "AEM").is_empty() {
                     registre.ajouter(&c.nir, crate::import::dsn_aem::ligne_du_contrat(c, &cle_de(&c.nir)), "AEM", "declarations");
                     nouveaux += 1;
                 }
@@ -1062,25 +1069,28 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
                     "inconnu"
                 }
                 Ok((cle, ligne_contrat)) => {
-                    let pareils = registre.pareils(&l.nir, &debut, &fin, false);
+                    // LE BULLETIN EST LA PIECE DE PAIE : un contrat d'AEM aux memes dates qui compte autre chose
+                    // s'efface devant le sien (`import::attestes`) ; un autre contrat atteste reste, et l'ecart se dit.
+                    let pareils = registre.pareils(&l.nir, &debut, &fin, "bulletin");
                     let compte = |a: &Atteste| (a.heures, a.cachets, a.jours, a.brut);
                     let le_sien = (cle.4, cle.5, cle.6, socle::num::decimal_lu(&cle.7));
+                    let en_mots = crate::import::attestes::en_mots(cle.4, cle.5, cle.6, le_sien.3);
                     if pareils.iter().any(|a| compte(a) == le_sien) {
                         phrases.push("contrat déjà attesté".into());
                         "deja"
-                    } else if let Some(a) = pareils.first() {
+                    } else if let Some(a) = pareils.iter().find(|a| a.par != "AEM") {
                         phrases.push(format!(
-                            "un contrat attesté aux mêmes dates ({}) porte d'autres compteurs : il est gardé, celui du bulletin n'est pas ajouté",
-                            a.d_ou()
+                            "un contrat attesté aux mêmes dates ({}) porte d'autres compteurs : il est gardé, celui du bulletin n'est pas ajouté (le contrat attesté dit {}, le bulletin {})",
+                            a.d_ou(),
+                            a.en_mots(),
+                            en_mots
                         ));
                         infos.insert("contrat_bulletin".into(), ligne_contrat);
                         "ecart"
                     } else {
                         phrases.push("contrat attesté ajouté".into());
                         contrats_liste.push(ligne_contrat.clone());
-                        if registre.ajouter(&l.nir, ligne_contrat, "bulletin", "bulletins") {
-                            phrases.push("il remplace le contrat repris d'un certificat Congés Spectacles aux mêmes dates".into());
-                        }
+                        phrases.extend(registre.ajouter(&l.nir, ligne_contrat, "bulletin", "bulletins"));
                         "nouveau"
                     }
                 }
@@ -1148,16 +1158,31 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         infos.insert("debut".into(), json!(d));
         infos.insert("fin".into(), json!(f));
         infos.insert("mois".into(), json!(cl.mois()));
-        let pareils = registre.pareils(nir, &d, &f, !est_aem);
-        if !pareils.is_empty() {
+        let pareils = registre.pareils(nir, &d, &f, cl.source());
+        // UN CERTIFICAT DONT D'AUTRES PIECES N'ATTESTENT QUE DES MOIS (un bulletin, une AEM, chacun le sien) atteste seul
+        // ses autres mois (`attestes::reste_du_certificat`) ; un certificat deja repris ne se reprend pas deux fois.
+        let mut reste: Option<Value> = None;
+        let mut sans_reste: Option<String> = None;
+        if !est_aem && !pareils.is_empty() && !pareils.iter().any(Atteste::de_certificat) {
+            let statut = statut_de(ctx, &par_nir, &ap.a_creer, nir, c)?;
+            let copie = nom_copie(&tri.fichiers[cl.fichier]).unwrap_or_else(|| chemin_cert(cl));
+            if let Ok((ligne, _)) = contrat_du_certificat(c, statut.as_deref(), &cle_de(nir), &copie) {
+                match registre.reste_du_certificat(nir, &ligne, &pareils) {
+                    Ok(r) => reste = r,
+                    Err(m) => sans_reste = Some(m),
+                }
+            }
+        }
+        if !pareils.is_empty() && reste.is_none() {
             if est_aem {
                 aem_confirmees += 1;
             } else {
                 certificats_confirmes += 1;
             }
-            let mut sources: Vec<&str> = pareils.iter().map(Atteste::d_ou).collect();
+            let mut sources: Vec<String> = pareils.iter().map(Atteste::d_ou).collect();
             sources.dedup();
             let mut phrases = vec![format!("{} {} : le contrat est déjà attesté ({}), rien n'est ajouté", nom, du_au, sources.join(", "))];
+            phrases.extend(sans_reste);
             // L'ecart, quand les contrats confirmes tiennent dans les dates de la piece (un certificat coupe au 31 mars
             // n'en porte qu'une part).
             if pareils.iter().all(|a| a.debut >= d && a.fin <= f) {
@@ -1193,6 +1218,18 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             pages.entry(cl.fichier).or_default().push(PageCr { page: c.page, sort: "deja_repris", raison: phrases.join(" ; "), infos });
             continue;
         }
+        // Le reste d'un certificat : ses dates et ses compteurs sont ceux du reste.
+        let (d, f, du_au) = match &reste {
+            Some(l) => {
+                let (rd, rf) = (valeur_en_texte(&l["debut"]), valeur_en_texte(&l["fin"]));
+                let jj = |x: &str| Jour::lire(x).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| x.to_string());
+                let mut sources: Vec<String> = pareils.iter().map(Atteste::d_ou).collect();
+                sources.dedup();
+                let du_au = format!("{} (attesté ailleurs pour ses autres mois : {}) : le reste, du {} au {},", du_au, sources.join(", "), jj(&rd), jj(&rf));
+                (rd, rf, du_au)
+            }
+            None => (d, f, du_au),
+        };
         let autres: Vec<String> = declarees_dates
             .iter()
             .filter(|p| &p.0 == nir && chevauche(&p.1, &p.2, &d, &f) && !(p.1 == d && p.2 == f))
@@ -1210,9 +1247,16 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             continue;
         }
         let copie = nom_copie(&tri.fichiers[cl.fichier]).unwrap_or_else(|| chemin_cert(cl));
-        let lu = match &cl.aem {
-            Some(a) => contrat_de_l_aem(a, &cle_de(nir), &copie),
-            None => {
+        let est_reste = reste.is_some();
+        let lu = match (&cl.aem, reste) {
+            (Some(a), _) => contrat_de_l_aem(a, &cle_de(nir), &copie),
+            (None, Some(l)) => {
+                let n = |k: &str| l.get(k).and_then(Value::as_i64).unwrap_or(0);
+                let quoi = if n("cachets") > 0 { format!("{} cachet(s)", n("cachets")) } else { format!("{} jour(s)", n("jours")) };
+                let brut_reste = valeur_en_texte(&l["brut"]);
+                Ok((l, format!("{}, {} € de brut : ce que dit le certificat moins ce que disent les autres pièces ; son brut, {} €, est arrondi à l'euro", quoi, brut_reste, brut)))
+            }
+            (None, None) => {
                 let statut = statut_de(ctx, &par_nir, &ap.a_creer, nir, c)?;
                 contrat_du_certificat(c, statut.as_deref(), &cle_de(nir), &copie)
             }
@@ -1224,15 +1268,15 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             }
             Ok((ligne, quoi)) => {
                 infos.insert("contrat".into(), json!("nouveau"));
-                let mut raison = if est_aem {
+                let raison = if est_aem {
                     format!("AEM {} : contrat attesté ajouté ({}, {} € de brut)", du_au, quoi, ligne["brut"].as_str().unwrap_or(""))
+                } else if est_reste {
+                    format!("certificat Congés Spectacles {} contrat attesté ajouté ({}) ; les heures, que le certificat ne porte pas, n'y sont pas", du_au, quoi)
                 } else {
                     format!("certificat Congés Spectacles {} : contrat attesté ajouté ({}, {} € de brut arrondi à l'euro) ; les heures, que le certificat ne porte pas, n'y sont pas", du_au, quoi, brut)
                 };
                 let bloc = if est_aem { "aem_pdf" } else { "certificats" };
-                if registre.ajouter(nir, ligne, cl.source(), bloc) {
-                    raison.push_str(" ; il remplace le contrat repris d'un certificat Congés Spectacles aux mêmes dates");
-                }
+                let raison = std::iter::once(raison).chain(registre.ajouter(nir, ligne, cl.source(), bloc)).collect::<Vec<_>>().join(" ; ");
                 pages.entry(cl.fichier).or_default().push(PageCr { page: c.page, sort: "repris", raison, infos });
             }
         }
@@ -1402,7 +1446,13 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         "rien_a_faire".into(),
         json!(rien && nouvelles_fiches == 0 && ap.a_completer.is_empty() && registre.retenus.is_empty() && paies_nouvelles == 0 && paies_completees == 0),
     );
+    if !registre.muets.is_empty() {
+        if let Some(Value::Array(a)) = reponse.get_mut("avertissements") {
+            a.extend(registre.muets.iter().map(|m| json!(m)));
+        }
+    }
     ap.contrats_attestes = registre.retenus;
+    ap.contrats_changes = registre.changes;
     ap.reponse = reponse;
     Ok(DossierLu { ap, tri, copies, salaries_lus, entreprises_lues })
 }
