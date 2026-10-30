@@ -26,6 +26,9 @@ entreprises** du champ.
   l'accord ».
 - **Avenant n° 8 du 21/05/2025**, article 2 (au 01/01/2026) : fonds
   collectif cadres 0,81 %, **non cadres 0,77 %**.
+- **Avenant n° 9** (au 01/01/2027) : connu par le courrier d'Audiens aux employeurs, transcrit dans
+  `audiens-courrier-avenant9-taux-2027-20261030.md` (prévoyance cadres 1,025 / 0,265, non cadres 0,485 / 0,265, sur la
+  T1 ; fonds collectif inchangé) ; l'avenant lui-même reste à relever.
 
 Recoupement : la web-conférence Audiens « Nouveautés 2026 » (p. 11) ne
 donne qu'une exception aux taux de l'interbranche, la CCNEAC ; aucune pour
