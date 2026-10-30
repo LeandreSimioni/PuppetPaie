@@ -301,8 +301,8 @@ pub struct Reveils {
 /// `_dsn_a_rappeler` : (mois, jour d'echeance ISO) des DSN dont la boite des
 /// rappels parle -- aucun depot REEL accepte, ou un depot refuse.
 fn dsn_a_rappeler(ctx: &Contexte) -> R<Vec<(String, String)>> {
-    use crate::routes::rappels::{mois_a_declarer, nic_principal, Etat};
-    let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
+    use crate::routes::rappels::{mois_a_declarer, Etat};
+    let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)? };
     let mut out = Vec::new();
     for m in mois_a_declarer(&st).map_err(socle::echec::Echec::from)? {
         // Le jour de depot, reporte au jour ouvre (`echeance_dsn`) : le reveil sonne la veille et le jour meme, avant midi.

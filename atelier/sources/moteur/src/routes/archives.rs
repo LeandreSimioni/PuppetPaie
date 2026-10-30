@@ -13,7 +13,6 @@ use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus,
 use crate::routes::engagement::{booleen, maintenant};
 use crate::routes::ouverture::marquer_echeance;
 use crate::routes::lire_json_ou_vide;
-use crate::routes::etapes::Moteur;
 use crate::routes::fiches::entier;
 use crate::routes::ouverture::mois_connus;
 use documents::plan_comptable::{controler_plan, tables};
@@ -773,7 +772,6 @@ fn etat_exercices(ctx: &Contexte) -> R<Value> {
     let mois_tous: Vec<String> = mois_connus(&ctx.racine).into_iter().map(|(m, _)| m).collect();
     let mut annees: BTreeSet<String> = mois_tous.iter().map(|m| m.chars().take(4).collect()).collect();
     annees.extend(clos.keys().cloned());
-    let mut m = Moteur::nouveau(ctx);
     let mut out = Vec::new();
     for a in annees.iter().rev() {
         let mut mois: Vec<&String> = mois_tous.iter().filter(|x| x.starts_with(a.as_str())).collect();
@@ -782,7 +780,7 @@ fn etat_exercices(ctx: &Contexte) -> R<Value> {
         let export = export.exists().then_some(export);
         let mut acceptees = Vec::new();
         for x in &mois {
-            if vrai(&m.dsn_du_mois(x)?) {
+            if matches!(crate::import::mois::dsn_avant(ctx, x)?["etat"].as_str(), Some("passee" | "attente" | "refusee")) {
                 acceptees.push(json!(x));
             }
         }

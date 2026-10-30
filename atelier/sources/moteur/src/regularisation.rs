@@ -30,15 +30,15 @@ fn non_regularisable(message: impl Into<String>) -> Echec {
 
 /// `etat_mois` : ce mois se corrige-t-il par regularisation, et sinon, quoi faire.
 pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Value> {
-    let e = m.dsn_du_mois(&valeur_en_texte(mois_v))?;
     let Some(mois) = mois_v.as_str() else {
         return Err(erreur("TypeError", format!("'mois' : {}", socle::fichiers::attendu("un texte", nom_type(mois_v)))));
     };
     let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
     let passee = ctx.aujourdhui > limite;
-    let deposee = vrai(&e);
-    let drapeau = |k: &str| deposee && e.get(k).is_some_and(vrai);
+    let etat = crate::import::mois::dsn_avant(ctx, mois)?["etat"].as_str().unwrap_or_default().to_string();
+    let deposee = matches!(etat.as_str(), "passee" | "attente" | "refusee");
+    let drapeau = |k: &str| etat == k;
     let mut out = Map::new();
     out.insert("mois".into(), json!(mois));
     out.insert("deposee".into(), json!(deposee));
@@ -502,11 +502,7 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
 /// l'ancien logiciel, `engagement::importe::dsn_deposee`). Une correction se declare dans la DSN suivante (cahier
 /// technique DSN 2026.1, § 2.1.2.1, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`).
 pub(crate) fn dsn_qui_porte(ctx: &Contexte, mois: &str) -> R<String> {
-    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    let partie = |m: &str| -> R<bool> {
-        let e = envois::etats::dsn_du_mois(&lignes, &ctx.entreprise, m)?;
-        Ok((vrai(&e) && !e.get("refusee").is_some_and(vrai)) || engagement::importe::dsn_deposee(&ctx.racine, m).map_err(Echec::from)?.is_some())
-    };
+    let partie = |m: &str| -> R<bool> { Ok(matches!(crate::import::mois::dsn_avant(ctx, m)?["etat"].as_str(), Some("passee" | "attente" | "importee"))) };
     let suivant = |m: &str| -> R<String> { Ok(socle::date::Jour::lire(&format!("{}-01", m)).map_err(Echec::from)?.mois_suivant()) };
     let mut porteur = suivant(mois)?;
     while partie(&porteur)? {

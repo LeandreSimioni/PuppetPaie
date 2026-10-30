@@ -8,10 +8,10 @@
 //! RIEN NE SE DEVINE (regle 1) : une case qu'aucune piece ne porte reste vide, et la carte DIT pourquoi (`manque` : quel
 //! champ, et ce qui l'aurait donne). Rien ne s'ecrit ici : c'est une lecture.
 //!
-//! LA DSN D'UN MOIS TENU AVANT (`dsn_avant`) : le journal des depots d'abord (un depot que les retours attestent y entre
+//! L'ETAT DE LA DSN D'UN MOIS (`dsn_avant`), tenu avant ou non : le journal des depots d'abord (un depot que les retours attestent y entre
 //! de lui-meme : `reprise_journal::reprendre_les_depots`) ; a defaut, la DSN que l'import a lue pour ce mois (le fichier
 //! de l'ancien logiciel : `declare_par: "DSN"`) -- le mois est declare, rien ne propose de la refaire (regle 4 : une
-//! declaration deposee ne se regenere pas, et PuppetPaie n'a pas calcule ce mois). Sans aucune trace, il le dit, sans
+//! declaration deposee ne se regenere pas, et PuppetPaie n'a pas calcule ce mois). Un mois tenu avant sans aucune trace le dit, sans
 //! le dire « en retard » ni proposer de la produire.
 
 use std::collections::BTreeSet;
@@ -112,8 +112,11 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
     Ok(Some(json!({"porteur": porteur, "engagements": n, "quoi": quoi, "phrase": phrase})))
 }
 
-/// L'etat de la DSN d'un mois, en mots, lu une fois (l'accueil et le mois tenu avant le lisent) : `etat` (« passee », « attente », « refusee » : le
-/// journal ; « importee » : la DSN de l'ancien logiciel ; « sans_trace »), `courte`, `phrase`, `quand`.
+/// L'ETAT DE LA DSN D'UN MOIS, composé ici et nulle part ailleurs (l'accueil, le mois tenu avant, les rappels, la
+/// clôture et l'échéancier le lisent) : `etat` (« passee », « attente », « refusee » : le journal, et `anomalies` pour
+/// une refusée ; « importee » : la DSN de l'ancien logiciel ; « sans_trace » : un mois tenu avant dont rien ne garde la
+/// DSN, qui ne se réclame pas ; « a_deposer » : un mois de ce logiciel dont la DSN n'est pas partie, sans mots ici),
+/// `courte`, `phrase`, `quand`.
 pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str) -> R<Value> {
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let e = etats::dsn_du_mois(&lignes, &ctx.entreprise, mois)?;
@@ -128,7 +131,10 @@ pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str) -> R<Value> {
         } else {
             ("attente", "déposée — retour attendu".to_string(), format!("DSN déposée le {} — retour attendu", quand(&e)))
         };
-        return Ok(json!({"etat": etat, "courte": courte, "phrase": phrase, "quand": e.get("quand").cloned().unwrap_or(Value::Null)}));
+        return Ok(json!({
+            "etat": etat, "courte": courte, "phrase": phrase, "quand": e.get("quand").cloned().unwrap_or(Value::Null),
+            "anomalies": e.get("anomalies").cloned().unwrap_or(Value::Null),
+        }));
     }
     if let Some(d) = dsn_importee(&ctx.racine, mois)? {
         let etablie = texte(&d, "etablie_le");
@@ -142,6 +148,9 @@ pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str) -> R<Value> {
             ),
             "quand": Value::Null,
         }));
+    }
+    if !importe(&ctx.racine, mois)? {
+        return Ok(json!({"etat": "a_deposer", "quand": Value::Null}));
     }
     Ok(json!({
         "etat": "sans_trace",

@@ -6,8 +6,6 @@
 //! Elle passe par la route `dpae` du moteur (`crate::routes::depots::dpae_detail`). La route lit les
 //! engagements du mois (`AAAA-MM`, ou `engagements/AAAA-MM.json` des donnees) : un autre fichier est refuse en une phrase.
 //!
-//! Code de sortie 3 : au moins une embauche est deja passee, la DPAE est hors delai (elle s'ecrit quand meme, sans antidater).
-//!
 //! Une embauche deja declaree, un contrat en cours depuis un mois precedent, une selection absente de la saisie, un
 //! fichier introuvable : `! phrase`, code 2.
 
@@ -71,17 +69,16 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             return Err(e);
         }
     };
-    let retard = r.get("retard").is_some_and(socle::fichiers::vrai);
     if json {
         rendre(&enveloppe("dpae", r));
-        return Ok(if retard { 3 } else { 0 });
+        return Ok(0);
     }
     let lignes: Vec<Value> = r.get("lignes").and_then(Value::as_array).cloned().unwrap_or_default();
     dire!("\n{} - {} contrat(s) a declarer\n{}", champ(&r, "libelle"), lignes.len(), "-".repeat(58));
     for l in &lignes {
         let heure = champ(l, "heure");
         let (h, m) = (heure.chars().take(2).collect::<String>(), heure.chars().skip(2).collect::<String>());
-        dire!("  {:<22} {} a {}h{}  {}", champ(l, "salarie"), jj_mm_aaaa(&champ(l, "debut")), h, m, champ(l, "libelle"));
+        dire!("  {:<22} {} a {}h{}", champ(l, "salarie"), jj_mm_aaaa(&champ(l, "debut")), h, m);
     }
     dire!("{}", "-".repeat(58));
 
@@ -101,10 +98,5 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     afficher_fichiers(&fichiers, &dossier);
     let etapes: Vec<Value> = r.get("etapes").and_then(Value::as_array).cloned().unwrap_or_default();
     afficher_etapes(&etapes, "A faire :");
-    if retard {
-        dire!("\n>>> Au moins une embauche est deja passee : la DPAE est hors delai.");
-        dire!(">>> La deposer quand meme, sans antidater.");
-        return Ok(3);
-    }
     Ok(0)
 }
