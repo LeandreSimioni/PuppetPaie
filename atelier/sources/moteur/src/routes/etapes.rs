@@ -1776,11 +1776,18 @@ fn carres(p: &Value) -> Value {
         match pt.contrat { "a_envoyer" => "à envoyer", "a_refaire" => "à refaire signer", "en_attente" => "signature attendue", _ => "" },
         match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", _ => "" },
     ];
+    // LE LIEN DU DETAIL vers ce qui est parti : seulement quand une piece est passee par le logiciel.
+    let liens = [
+        vrai(&d["fait"]).then_some("La DPAE partie"),
+        vrai(&s["fait"]).then_some("Le contrat parti"),
+        None,
+    ];
     let mut tous = [dpae, contrat, documents];
-    for (c, reste) in tous.iter_mut().zip(restes) {
+    for ((c, reste), lien) in tous.iter_mut().zip(restes).zip(liens) {
         c["couleur"] = json!(super::couleur_de_l_etat(&valeur_en_texte(&c["etat"])));
         c["coupee"] = json!(est(&c["etat"], "en_attente"));
         c["reste"] = json!(reste);
+        c["lien"] = json!(lien);
     }
     json!(tous)
 }
@@ -1938,7 +1945,7 @@ pub(crate) fn est_une_dsn_mensuelle(nom: &str) -> bool {
 }
 
 /// La phrase de la pastille Contrat d'un engagement qui a change depuis la version sur laquelle son contrat est parti.
-pub(crate) const CONTRAT_A_REFAIRE: &str = "l'engagement a changé depuis l'envoi du contrat : un avenant est à faire signer";
+pub(crate) const CONTRAT_A_REFAIRE: &str = "l'engagement a changé depuis l'envoi du contrat";
 
 /// `_etat_signature` : la pastille Contrat d'un engagement.
 ///

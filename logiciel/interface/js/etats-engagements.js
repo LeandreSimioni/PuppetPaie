@@ -556,7 +556,8 @@ function boiteModifier(ligne) {
       ${partis.map((l) => `${lignes.length > 1 ? echapper(l.nom) + " : c" : "C"}ontrat ${echapper(etat(l))}.`).join(" ")}
       Il porte les dates, les heures, les cachets et la rémunération : si
       l'un d'eux change, ce contrat n'est plus le bon : son carré passe à
-      l'orange, et un avenant est à faire signer au salarié.
+      l'orange : un contrat à jour part à sa place, ou un avenant s'il est déjà
+      signé.
     </div>
     <p class="note">Modifier n'annule rien et ne défait rien : ça remet les
       champs en écriture. On revalide ensuite.</p>

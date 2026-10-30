@@ -326,13 +326,21 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
     let etiq = socle::date::etiquette_du_mois(&s_mois).map_err(|m| erreur("ValueError", m))?;
     let ent = documents::avenant::ent_du_mois(ctx, &s_mois)?;
+    let remplacements = remplacements_des(ctx, &paies, &par_salarie, false, false)?;
     let (mut fichiers, mut contrats) = (Vec::new(), Vec::new());
     for (cle, ps, _) in &par_salarie {
-        let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, ""));
-        documents::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &[])?;
+        let remplace = remplacements.iter().any(|((k, _, _), _)| k == cle);
+        let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, if remplace { "_remplace" } else { "" }));
+        documents::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &remplacements)?;
         fichiers.push(json!(pdf.to_string_lossy()));
         for p in ps.iter() {
-            contrats.push(Value::Object(entree_du_contrat(ctx, p, cle, &pdf, &p.titre()?, &s_mois, &ent)));
+            let mut c = entree_du_contrat(ctx, p, cle, &pdf, &p.titre()?, &s_mois, &ent);
+            let propre = (cle.clone(), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default());
+            if let Some((_, (numero, _))) = remplacements.iter().find(|(k, _)| *k == propre) {
+                c.insert("acte".into(), json!("remplace"));
+                c.insert("remplace".into(), json!(numero));
+            }
+            contrats.push(Value::Object(c));
         }
     }
     let mut saisies: HashMap<String, (Value, Vec<Paie>)> = HashMap::new();
@@ -369,6 +377,52 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
 
 // ------------------------------------------------------------------ demander-signature
 
+/// Ce que `remplacements_des` rend : `((salarie, debut, numero de l'engagement), (numero parti, jour du depart))`.
+type Remplaces = Vec<((String, String, String), (String, String))>;
+
+/// LES CONTRATS QUI EN REMPLACENT UN AUTRE. Un contrat qui repart alors qu'un autre est deja parti pour le meme
+/// engagement (il a change depuis, sans etre revenu signe : signe, il se modifie par un avenant) annule et remplace
+/// celui-la : il le dit en tete et porte son propre nom, le PDF parti avant lui reste sur le disque. Un contrat dont
+/// l'execution a commence ne s'annule pas. `remplace` le demande expressement, et refuse alors ce qui n'a rien a
+/// remplacer ou a commence ; une relance renvoie le meme contrat et n'en remplace aucun.
+fn remplacements_des(ctx: &Contexte, paies: &[Paie], par_salarie: &ParSalarie, relance: bool, remplace: bool) -> R<Remplaces> {
+    let mut remplacements: Remplaces = Vec::new();
+    if relance {
+        return Ok(remplacements);
+    }
+    // Le journal, lu une fois : chaque paie y retrouve SON contrat (salarie, debut, numero), pas celui de son jumeau du meme jour.
+    let lignes_j = crate::etats::charger(&ctx.racine)?;
+    let tous: Vec<(String, String, String)> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default())).collect();
+    let cles_j = crate::etats::cles_des_paies(&lignes_j, &tous)?;
+    let aujourdhui = ctx.aujourdhui.iso();
+    let lignes = crate::journal::lire(&ctx.racine, None, None, false).map_err(Echec::from)?;
+    for (k, ps, rs) in par_salarie {
+        for (p, r) in ps.iter().zip(rs) {
+            let debut = p.engagement.debut.iso();
+            // Le contrat qui part est remplace, lui : le jumeau du meme jour qui n'est pas parti n'a rien a remplacer.
+            let Some(parti) = crate::etats::contrat_parti(&lignes, k, &debut, Some(cles_j[*r][0].2.as_str()))? else {
+                if !remplace {
+                    continue;
+                }
+                return Err(refus(format!("Le contrat de {} du {} n'est jamais parti : il n'a rien à remplacer, il s'envoie. Rien n'est parti.", k, jj(&debut)?)));
+            };
+            if debut <= aujourdhui {
+                if !remplace {
+                    continue;
+                }
+                return Err(refus(format!(
+                    "Le contrat de {} du {} a commencé : un contrat en cours d'exécution ne s'annule pas, il se modifie par un avenant. Rien n'est parti.",
+                    k,
+                    jj(&debut)?
+                )));
+            }
+            let numero = if vrai(&parti.numero) { valeur_en_texte(&parti.numero) } else { "(sans numéro)".to_string() };
+            remplacements.push(((k.clone(), debut, p.engagement.numero.clone().unwrap_or_default()), (numero, jj(&parti.date())?)));
+        }
+    }
+    Ok(remplacements)
+}
+
 /// Envoie a chaque salarie son contrat, avec le bouton « Je signe ».
 ///
 /// `remplace` : le contrat refait EN ENTIER, qui annule et remplace celui qui est deja parti -- une phrase en tete
@@ -393,33 +447,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
     // autres partent. Les adresses se lisent avant d'ecrire le moindre PDF : un refus ne laisse rien sur le disque.
     let (par_salarie, noms_sans) = avec_et_sans_courriel(contrats_choisis(ctx, &d.choisis, &mois, &paies)?)?;
 
-    // Le journal, lu une fois : chaque paie y retrouve SON contrat (salarie, debut, numero), pas celui de son jumeau du meme jour.
-    let lignes_j = crate::etats::charger(&ctx.racine)?;
-    let tous: Vec<(String, String, String)> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default())).collect();
-    let cles_j = crate::etats::cles_des_paies(&lignes_j, &tous)?;
-    let aujourdhui = ctx.aujourdhui.iso();
-    let mut remplacements: Vec<((String, String, String), (String, String))> = Vec::new();
-    if remplace {
-        let lignes = crate::journal::lire(&ctx.racine, None, None, false).map_err(Echec::from)?;
-        for (k, ps, rs) in &par_salarie {
-            for (p, r) in ps.iter().zip(rs) {
-                let debut = p.engagement.debut.iso();
-                // Le contrat qui part est remplace, lui : le jumeau du meme jour qui n'est pas parti n'a rien a remplacer.
-                let Some(parti) = crate::etats::contrat_parti(&lignes, k, &debut, Some(cles_j[*r][0].2.as_str()))? else {
-                    return Err(refus(format!("Le contrat de {} du {} n'est jamais parti : il n'a rien à remplacer, il s'envoie. Rien n'est parti.", k, jj(&debut)?)));
-                };
-                if debut <= aujourdhui {
-                    return Err(refus(format!(
-                        "Le contrat de {} du {} a commencé : un contrat en cours d'exécution ne s'annule pas, il se modifie par un avenant. Rien n'est parti.",
-                        k,
-                        jj(&debut)?
-                    )));
-                }
-                let numero = if vrai(&parti.numero) { valeur_en_texte(&parti.numero) } else { "(sans numéro)".to_string() };
-                remplacements.push(((k.clone(), debut, p.engagement.numero.clone().unwrap_or_default()), (numero, jj(&parti.date())?)));
-            }
-        }
-    }
+    let remplacements = remplacements_des(ctx, &paies, &par_salarie, relance, remplace)?;
 
     let (signataire, raison) = signataire_et_raison(ctx)?;
     let expediteur = client.compte().to_lowercase();
@@ -430,6 +458,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
         let adresse = vrai_ou(sal, "email").unwrap_or_default().trim().to_lowercase();
         let code = code_signature();
         // Le contrat qui en remplace un autre porte son propre nom : le PDF parti avant lui reste sur le disque.
+        let remplace = remplacements.iter().any(|((k, _, _), _)| k == cle);
         let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, if remplace { "_remplace" } else { "" }));
         documents::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &remplacements)?;
         let mut spectacles: Vec<String> = Vec::new();
@@ -479,6 +508,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
             liste = format!("{}{}", RAPPEL_RELANCE, liste);
         }
         if remplace {
+            sujet = format!("{} (annule et remplace le précédent)", sujet);
             liste.push_str(&format!(
                 "\n\n{} celui que tu as reçu avant, qui est réputé n'avoir jamais produit d'effet.",
                 if ps.len() == 1 { "Il annule et remplace" } else { "Chacun annule et remplace" }
@@ -510,9 +540,8 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
             c.insert("code".into(), json!(code));
             c.insert("adresse".into(), json!(adresse));
             c.insert("relance".into(), json!(relance));
-            if remplace {
-                let propre = p.engagement.numero.clone().unwrap_or_default();
-                let numero = remplacements.iter().find(|(k, _)| *k == (cle.clone(), debut.clone(), propre.clone())).map(|(_, (n, _))| n.clone()).unwrap_or_default();
+            let propre = p.engagement.numero.clone().unwrap_or_default();
+            if let Some((_, (numero, _))) = remplacements.iter().find(|(k, _)| *k == (cle.clone(), debut.clone(), propre.clone())) {
                 c.insert("acte".into(), json!("remplace"));
                 c.insert("remplace".into(), json!(numero));
             }

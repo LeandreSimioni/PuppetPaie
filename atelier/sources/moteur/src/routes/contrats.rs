@@ -467,7 +467,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             super::pastille("a_faire", &format!("{} — signé : partira en avenant", pourquoi_dit.unwrap_or_else(|| "l'engagement a changé depuis la signature".into())))
         } else if caduc {
             let parti_le = l["demande_le"].as_str().map_or(String::new(), |q| format!(" (parti le {})", super::quand(q)));
-            super::pastille("a_faire", &format!("{}{} — ce contrat est à refaire partir", pourquoi_dit.unwrap_or_else(|| "l'engagement a changé depuis l'envoi".into()), parti_le))
+            super::pastille("a_faire", &format!("{}{} — un contrat à jour part à sa place et l'annule", pourquoi_dit.unwrap_or_else(|| "l'engagement a changé depuis l'envoi".into()), parti_le))
         } else if en_attente {
             super::pastille("en_attente", &attente)
         } else {

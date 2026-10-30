@@ -493,8 +493,8 @@ function boiteDetail(ligne, ps) {
     ${recalculDe(ligne)}
     ${ps.length ? ps.map(bloc).join("") : `<p class="discret">Le détail n'est pas encore calculé.</p>`}
     <div class="actions">
-      <button class="lien d-pieces" data-acte="dpae">La DPAE partie</button>
-      <button class="lien d-pieces" data-acte="contrat-signature">Le contrat parti</button>
+      ${(ligne.carres || []).filter((c) => c.lien).map((c) =>
+        `<button class="lien d-pieces" data-acte="${echapper(c.cle)}">${echapper(c.lien)}</button>`).join("")}
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
       <button class="modifier" id="d-modifier">${CRAYON}Modifier l'engagement…</button>
     </div>`);
