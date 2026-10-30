@@ -128,7 +128,8 @@ function ligneRubrique(l = {}, nat) {
          {"jour", "lieu"} (le moteur l'accepte, \`jours_des_lignes\`). Il se
          montre ici, jour par jour, seulement quand la ligne en porte un ; vide,
          le jour prend le lieu de la ligne. -->
-    <div class="r-lieux-jours">${lieuxDesJours(l)}</div>`;
+    <div class="r-lieux-jours">${lieuxDesJours(l)}</div>
+    <div class="r-dit discret cachee"></div>`;
   poserRubriques(div.querySelector(".r-code"), code, nat);
   const majAffichage = () => {
     const r = rubriqueDe(div.querySelector(".r-code").value);
@@ -151,6 +152,10 @@ function ligneRubrique(l = {}, nat) {
     div.querySelector(".r-lieu").classList.toggle("cachee", montant);
     div.querySelector(".r-mot").classList.toggle("cachee", montant);
     div.querySelector(".r-taux").placeholder = montant ? "montant" : "taux";
+    // Ce que la ligne fait, quand le moteur le dit (`dit` de la rubrique : l'acompte).
+    const dit = div.querySelector(".r-dit");
+    dit.textContent = (r && r.dit) || "";
+    dit.classList.toggle("cachee", !(r && r.dit));
     // Une ligne en pourcentage : « base € à taux % », sans jours ni lieu.
     const pct = !!r && r.saisie.includes("taux_majoration");
     const mots = div.querySelectorAll(".r-mot");
