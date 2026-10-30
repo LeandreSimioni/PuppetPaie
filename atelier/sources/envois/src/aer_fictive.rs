@@ -142,7 +142,7 @@ fn mois_suivant(m: &str) -> String {
 
 /// La DSN reelle deposee pour `m` (le journal), lue ; `None` si le mois n'en a pas.
 fn dsn_deposee(ctx: &Contexte, lignes: &[Value], m: &str) -> Option<Vec<Individu>> {
-    let l = crate::etats::dsn_du_mois(lignes, &ctx.entreprise, m).ok()?;
+    let l = crate::etats::etat_dsn_du_mois(lignes, m, &Value::Null, &crate::etats::nic_principal(&ctx.entreprise)).ok()?;
     let fichier = l.get("fichier").map(socle::valeur::valeur_en_texte).filter(|f| !f.is_empty() && f != "None")?;
     let p = std::path::Path::new(&fichier);
     let chemin = if p.is_absolute() { p.to_path_buf() } else { ctx.racine.join("sorties").join(m).join(&fichier) };

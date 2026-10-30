@@ -120,7 +120,7 @@ pub const NOTES: [(&str, &str); 3] = [
     ),
 ];
 
-/// Quand l'AER DUE ce mois-ci (`aer::due` : un intermittent dont le contrat finit dans le mois) n'est pas jointe. On le
+/// Quand l'AER DUE ce mois-ci (un intermittent dont le contrat finit dans le mois) n'est pas jointe. On le
 /// DIT, plutot que d'envoyer un message qui laisse croire que le dossier est complet ; on ne promet rien de la suite.
 /// Un salarie a qui aucune AER Cinema Spectacle n'est due (un permanent, un contrat d'usage qui continue le mois
 /// suivant) n'a pas cette phrase.
@@ -337,12 +337,15 @@ pub const RIEN_DANS_LE_RESUME: &str = "  - le détail de ton bulletin ; tes jour
 /// contrats dans le mois : ses pieces sont ecrites une fois, sous sa cle, et il ne recoit qu'un seul message.
 /// `renvois` (cle -> `Renvoi`) : ceux dont la paie a change depuis l'envoi de leurs documents recoivent le courriel de
 /// renvoi (`CORPS_RENVOI`), qui dit ce qui a change ; les autres, le premier courriel (`CORPS`).
+/// `a_part` (cle -> pieces) : ce qui est du au salarie et ne part pas avec ce courriel, tel que le moteur le decide
+/// (`aer`, `attestation_fctu`) ; le courriel le dit, sans rien promettre.
 pub fn preparer_avec(
     paies: &[Paie],
     ent: &Value,
     mois: &str,
     dossier: &Path,
     renvois: &std::collections::HashMap<String, Renvoi>,
+    a_part: &std::collections::HashMap<String, Vec<&'static str>>,
 ) -> Result<Vec<Message>, String> {
     let (an, mo) = an_mois(mois)?;
     let etiq = socle::date::etiquette_du_mois(mois)?;
@@ -387,15 +390,11 @@ pub fn preparer_avec(
             }
             v
         };
-        let (mut aer_due, mut fctu) = (false, false);
-        for p in &siennes {
-            aer_due |= documents::aer::due(&p.engagement)?;
-            fctu |= documents::aer::attestation_fctu(&p.engagement)?;
-        }
-        if aer_due && !presents.contains(&"aer") {
+        let a_part = a_part.get(&cle).map(Vec::as_slice).unwrap_or(&[]);
+        if a_part.contains(&"aer") && !presents.contains(&"aer") {
             notes.push(NOTE_SANS_AER);
         }
-        if fctu {
+        if a_part.contains(&"attestation_fctu") {
             notes.push(NOTE_SANS_ATTESTATION_FCTU);
         }
         let nom_affichage = en_texte(ent.get("nom_affichage").ok_or_else(|| cle_absente("nom_affichage"))?);

@@ -1752,12 +1752,6 @@ pub fn nic_principal(entreprise: &Value) -> String {
     }
 }
 
-/// Le dernier depot REEL accepte de DSN du mois (`etat_dsn_du_mois`), `Null`
-/// si rien de reel n'est parti : le mois est « parti » des qu'il existe.
-pub fn dsn_du_mois(lignes: &[Value], entreprise: &Value, mois: &str) -> R<Value> {
-    etat_dsn_du_mois(lignes, mois, &Value::Null, &nic_principal(entreprise))
-}
-
 // Les etats et resumes sur un journal invente (noms et numeros fictifs).
 // ------------------------------------------------------ le journal
 

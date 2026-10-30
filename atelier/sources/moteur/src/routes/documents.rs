@@ -395,19 +395,25 @@ pub(crate) fn ranger_aer_detail(ctx: &Contexte, mois: Option<&str>, fichiers: Op
     Ok(fait)
 }
 
-/// Une AER Cinema Spectacle est-elle due a l'un des salaries du mois (`aer::due`) ? Sans elle, France Travail n'en
-/// publie aucune (pas de retour 46) : le mois d'un permanent seul n'a rien a attendre.
-fn aer_attendue(paies: &[engagement::calcul::Paie]) -> R<bool> {
+/// Ce qui est du a chaque salarie du mois et ne se fabrique pas ici : l'AER Cinema Spectacle (`aer::due`), que France
+/// Travail publie apres la DSN (retour 46), et l'attestation employeur de droit commun (`aer::attestation_fctu`), qu'elle
+/// edite apres le signalement de fin de contrat. Par salarie : ce que son courriel dit absent.
+fn dues_a_part(paies: &[engagement::calcul::Paie]) -> R<HashMap<String, Vec<&'static str>>> {
+    let mut out: HashMap<String, Vec<&'static str>> = HashMap::new();
     for p in paies {
-        if documents::aer::due(&p.engagement).map_err(Echec::from)? {
-            return Ok(true);
+        let siennes = out.entry(p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()).or_default();
+        if documents::aer::due(&p.engagement).map_err(Echec::from)? && !siennes.contains(&"aer") {
+            siennes.push("aer");
+        }
+        if documents::aer::attestation_fctu(&p.engagement).map_err(Echec::from)? && !siennes.contains(&"attestation_fctu") {
+            siennes.push("attestation_fctu");
         }
     }
-    Ok(false)
+    Ok(out)
 }
 
 /// `documents_prets` : peut-on envoyer les documents du mois ? Le moteur repond, et dit pourquoi.
-fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str, paies: &[engagement::calcul::Paie]) -> R<Map<String, Value>> {
+fn documents_prets(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::Paie]) -> R<Map<String, Value>> {
     let dossier = ctx.racine.join("sorties").join(mois).join("envoi");
     // LES DOCUMENTS PARTENT DES QU'UN ENGAGEMENT EST VALIDE : ils se fabriquent a leur envoi, depuis sa paie ecrite.
     let mut empechements: Vec<String> = Vec::new();
@@ -416,8 +422,8 @@ fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str, paies: &[engageme
     }
     // L'AER NE SE FABRIQUE PAS : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
     let mut informations: Vec<String> = Vec::new();
-    let e = m.dsn_du_mois(mois)?;
-    if vrai(&e) && e.get("passee").is_some_and(vrai) && !e.get("aer_recue").is_some_and(vrai) && aer_attendue(paies)? {
+    let e = crate::import::mois::dsn_avant(ctx, mois, &Value::Null)?;
+    if e["etat"] == "passee" && !e.get("aer_recue").is_some_and(vrai) && dues_a_part(paies)?.values().any(|v| v.contains(&"aer")) {
         informations.push(
             "L'attestation employeur (AER) de France Travail n'est pas encore revenue : France Travail l'édite à partir de la DSN, et chaque relevé des retours la cherche. Elle partira avec un envoi suivant."
                 .to_string(),
@@ -543,8 +549,8 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     // Ce qui peut partir du mois, numerote.
     let (data, paies) = charger_le_mois(ctx, &mois)?;
-    let mut m = Moteur::nouveau(ctx);
-    let prets = documents_prets(&mut m, ctx, &mois, &paies)?;
+    let m = Moteur::nouveau(ctx);
+    let prets = documents_prets(ctx, &mois, &paies)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
     // A QUI ILS PARTENT : le meme choix que l'envoi (`crate::routes::documents::choisir`).
     let choix = crate::routes::documents::choisir(ctx, &mois, &paies)?;
@@ -992,7 +998,7 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
     }
     let documents = crate::compagnie::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
     let paies_servies: Vec<engagement::calcul::Paie> = paies.iter().filter(|p| cles.contains(&p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default())).cloned().collect();
-    let messages = envoi::preparer_avec(&paies_servies, &ctx.entreprise, &mois_saisie, &dossier, &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
+    let messages = envoi::preparer_avec(&paies_servies, &ctx.entreprise, &mois_saisie, &dossier, &choix.renvois, &dues_a_part(&paies_servies)?).map_err(|m| refus_de_preparation(&m))?;
     let messages: Vec<envoi::Message> = choix.garder(messages, |m| m.cle.as_str()).into_iter().filter(|m| cles.contains(&m.cle)).collect();
     let client = ouvrir()?;
     let expediteur = expediteur_de(client.as_ref());
