@@ -916,8 +916,6 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
         None => (1, le),
     };
     o.brut.remove(PRECEDENTE);
-    // Ce que la nature ne prend pas (`stock::DE_COTE`) ne se garde qu'en saisie.
-    o.brut.remove(stock::DE_COTE);
     o.brut.insert("valide".into(), json!({ "le": le, "version": version, "saisie": saisie, "paies": paies }));
     stock::reecrire(&ctx.racine, &o)?;
     Valide::de(o).ok_or_else(|| "validation illisible".to_string())
