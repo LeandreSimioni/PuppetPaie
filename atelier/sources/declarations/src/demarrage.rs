@@ -399,11 +399,13 @@ pub fn route(ctx: &Contexte) -> R<Value> {
     Ok(json!({ "manques": manques(ctx), "poses": poses(ctx) }))
 }
 
-/// Ce qui suit le refus d'un acte quand la compagnie n'a pas fini de demarrer : toute la liste, d'un coup.
-pub fn a_la_suite(ctx: &Contexte) -> Option<String> {
+/// Ce qui suit le refus d'un acte quand la compagnie n'a pas fini de demarrer : toute la liste, d'un coup, sans ce que
+/// le refus `deja_dit` dit deja (un manque dont l'explication est dans le refus ne se redit pas).
+pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> Option<String> {
     let lignes: Vec<String> = manques(ctx)
         .iter()
         .filter(|x| x.get("bloque").is_some())
+        .filter(|x| !x["trouver"].as_str().map(str::trim).is_some_and(|t| !t.is_empty() && deja_dit.contains(t)))
         .map(|x| format!("  - {} : bloque {} ({})", x["libelle"].as_str().unwrap_or(""), x["bloque"].as_str().unwrap_or(""), x["ou"].as_str().unwrap_or("")))
         .collect();
     if lignes.is_empty() {
