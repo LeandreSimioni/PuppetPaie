@@ -576,10 +576,11 @@ let DEMANDE_MOIS = null;
  *  était déplié le reste. */
 async function chargerMois(mois, repeint = false) {
   DEMANDE_MOIS = mois;
-  // TOUT LE MOIS D'UN COUP, lu (pas calculé) : les lectures ci-dessous le prennent dans `LU`. Le dernier état connu,
-  // même périmé : il se vérifie derrière (`verifierLeMois`, plus bas).
+  // TOUT LE MOIS D'UN COUP, lu (pas calculé) : les lectures ci-dessous le prennent dans `LU`. Changer de mois prend le
+  // dernier état connu, même périmé, qui se vérifie derrière (`verifierLeMois`, plus bas) ; un repeint, après une
+  // écriture, attend l'état frais.
   let lu;
-  try { lu = await lireLeMois(mois, true); } catch (e) { if (DEMANDE_MOIS === mois) document.getElementById("engagements").classList.remove("en-lecture"); throw e; }
+  try { lu = await lireLeMois(mois, !repeint); } catch (e) { if (DEMANDE_MOIS === mois) document.getElementById("engagements").classList.remove("en-lecture"); throw e; }
   if (DEMANDE_MOIS !== mois) return;
   if (!lu.perime) moisConfirme(mois);
   const r = await api("saisie", { mois });
