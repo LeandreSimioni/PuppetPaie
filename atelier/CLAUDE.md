@@ -72,8 +72,8 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
 - **Un retour se trie avant de se corriger** (Léandre, 30/10/2026 : « c'est pas qu'on corrige tout ce que dit le sonnet,
   sinon on crée un logiciel totalement délirant ») : le rapport d'un joueur du banc comme le ticket d'un utilisateur dit ce
   que quelqu'un a vécu, pas ce qu'il faut faire. L'orchestrateur, pour chaque point : le reproduit ou le lit dans le code ;
-  se demande si une vraie compagnie le vivrait (ou si c'est le script du joueur) ; cherche le texte qui tranche (un
-  Haiku pour la recherche, voir plus bas). Ne va à un Opus que ce qui tient ; ce qui dépend de la pratique du métier se
+  se demande si une vraie compagnie le vivrait (ou si c'est le script du joueur) ; **vérifie toujours que les textes
+  sont d'accord pour l'implanter** (un Haiku les cherche, voir plus bas). Ne va à un Opus que ce qui tient ; ce qui dépend de la pratique du métier se
   demande à Léandre en une ligne avant ; ce qui ne tient pas se dit au ticket, avec pourquoi.
 - **Une consigne ne donne pas de règle sans texte** (Léandre, 30/10/2026) : si l'orchestrateur n'a pas le texte, sa
   consigne pose la question (le fait vu, ce qu'il faut savoir) et demande à l'exécutant de chercher le texte et de dire
