@@ -278,11 +278,9 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     std::fs::copy(novembre.join("envoi/Bulletin_FULLER_Novembre2026.pdf"), import.join("Bulletin_FULLER_Novembre2026.pdf")).unwrap();
     let dsn = std::fs::read(novembre.join("DSN_Novembre2026.dsn")).unwrap();
     // Le taux que la DGFiP a transmis a l'ancien logiciel (S21.G00.50.007 = 01, son identifiant en .008).
-    let fin = if dsn.contains(&b'\r') { "\r\n" } else { "\n" };
-    let dsn = String::from_utf8_lossy(&dsn)
-        .replace("S21.G00.40.010,'21112026'", "S21.G00.40.010,'03122026'")
-        .replace("S21.G00.50.007,'13'", &format!("S21.G00.50.007,'01'{}S21.G00.50.008,'123456789'", fin));
-    assert!(dsn.contains("S21.G00.50.008,'123456789'"), "{}", dsn);
+    let dsn = String::from_utf8_lossy(&dsn).replace("S21.G00.40.010,'21112026'", "S21.G00.40.010,'03122026'");
+    assert!(dsn.contains("S21.G00.50.007,'01'"), "{}", dsn);
+    let identifiant = dsn.lines().find_map(|l| l.trim().strip_prefix("S21.G00.50.008,")).unwrap().to_string();
     std::fs::write(import.join("DSN_Novembre2026.dsn"), dsn.as_bytes()).unwrap();
     let jour = "2026-12-20";
     let route = |nom: &str, charge: Value| crate::outils::route(&racine, nom, charge, jour);
@@ -297,7 +295,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let i = &importes[0];
     assert_eq!((i.objet().brut["numero"].clone(), i.objet().brut["fin"].clone()), (json!("FU1.26.01"), json!("2026-12-03")));
     let paie = i.paies()["2026-11"].clone();
-    assert_eq!((paie["declare_par"].clone(), paie["net_a_payer"].clone()), (json!("DSN"), json!("232.30")), "{:?}", paie);
+    assert_eq!((paie["declare_par"].clone(), paie["net_a_payer"].clone()), (json!("DSN"), json!("212.30")), "{:?}", paie);
     assert!(paie["bulletin"].is_object(), "le bulletin ne complete pas la paie de la DSN : {:?}", paie);
 
     let avant = engagements_ecrits(&racine);
@@ -333,7 +331,8 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let decembre = std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap();
     let decembre = String::from_utf8_lossy(&decembre);
     // Le taux transmis que la DSN reprise appliquait vaut encore en decembre (CGI, art. 1671, 2) : il continue.
-    for attendu in ["S21.G00.40.001,'20112026'", "S21.G00.40.009,'FU1.26.01'", "S21.G00.40.013,'4.00'", "S21.G00.50.007,'01'", "S21.G00.50.008,'123456789'"] {
+    let identifiant = format!("S21.G00.50.008,{}", identifiant);
+    for attendu in ["S21.G00.40.001,'20112026'", "S21.G00.40.009,'FU1.26.01'", "S21.G00.40.013,'4.00'", "S21.G00.50.007,'01'", identifiant.as_str()] {
         assert!(decembre.contains(attendu), "{} manque :\n{}", attendu, decembre);
     }
     let ctx = droit::contexte::Contexte::nouveau(&racine, None).unwrap();
