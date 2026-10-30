@@ -462,7 +462,7 @@ pub fn authentifier(donnees: &[u8], a: &Authentification) -> R<Vec<u8>> {
         // dans Configuration, et c'est lui qui part ; qu'elle le retire, et le
         // dessin reprend la main.
         let page = champs[CHAMP_CACHET].get("page").cloned().unwrap_or(Value::Null);
-        if let Some(tampon) = cachet::image(&page, rect, a.ent, Some(&a.aujourdhui), a.cachet_fichier) {
+        if let Some(tampon) = cachet::image(&page, rect, a.ent, a.cachet_fichier) {
             images.push(tampon);
         }
     }

@@ -247,6 +247,7 @@ impl Ouverture {
             "incidents": self.incidents,
             "manquants": self.manquants,
             "taux_pas": self.taux_pas,
+            "taux_pas_phrase": droit::pas::resume_avertissements(&self.taux_pas),
             "retours_dpae": retours_dpae,
             "fiches": fiches,
             "a_poser": self.a_poser,

@@ -45,8 +45,15 @@ pub type Triplet = (Value, Value, Value);
 // ------------------------------------------------------------- peremption
 
 /// Un taux transmis par la DGFiP vaut jusqu'a la fin du deuxieme mois suivant
-/// celui de sa mise a disposition.
-const VALIDITE_MOIS: u32 = 2;
+/// celui de sa mise a disposition : le debiteur « applique le taux calculé par
+/// l'administration fiscale, au plus tard le deuxième mois suivant sa
+/// transmission » (CGI, art. 1671, 2, `atelier/reference/sources/
+/// code-general-des-impots/articles-20261021.md`) ; « le taux de prélèvement est
+/// applicable jusqu'à la fin du deuxième mois qui suit sa mise à disposition » :
+/// mis a disposition le 10 fevrier, il est « valide jusqu'au 30 avril »
+/// (BOI-IR-PAS-30-10-20, § 70, `atelier/reference/sources/bofip/
+/// BOI-IR-PAS-30-10-20-20181203.html`).
+pub const VALIDITE_MOIS: u32 = 2;
 
 /// `str(e.get(cle) or "").strip()`.
 fn texte_ou_vide(e: &Value, cle: &str) -> String {
@@ -71,14 +78,19 @@ fn nombre_de(c: &[u32]) -> u32 {
 }
 
 /// D'ou court la validite, de la source la plus sure a la moins sure :
-/// `mis_a_disposition` (AAAAMMJJHHMMSS), puis `periode` (AAAAMM ou AAAA-MM),
-/// puis `releve_le`.
+/// `mis_a_disposition` (AAAAMMJJHHMMSS, la date du compte rendu), puis
+/// `applique_le` (AAAA-MM-JJ, le jour du versement ou une DSN l'applique, que sa
+/// mise a disposition precede : voir `commandes::pas::derniers_taux_des_dsn`),
+/// puis `periode` (AAAAMM ou AAAA-MM), puis `releve_le`.
 pub fn mise_a_disposition(e: &Value) -> Option<Jour> {
     let v = texte_ou_vide(e, "mis_a_disposition");
     if let Some(c) = chiffres(&v, 8) {
         if let Some(j) = Jour::nouveau(nombre_de(&c[..4]) as i32, nombre_de(&c[4..6]), nombre_de(&c[6..8])) {
             return Some(j);
         }
+    }
+    if let Ok(j) = depuis_iso(&texte_ou_vide(e, "applique_le")) {
+        return Some(j);
     }
     let p = texte_ou_vide(e, "periode").replace('-', "");
     if let Some(c) = chiffres(&p, 6) {
@@ -546,21 +558,41 @@ fn fr(iso: &Value) -> String {
     }
 }
 
-/// Les phrases a dire avant de declarer. Vide si tout va bien.
+/// « Prénom Nom » de la fiche, ou la cle sans fiche.
+fn nom_affiche(ctx: &Contexte, cle: &str) -> String {
+    let Some(f) = ctx.salaries.get(cle).filter(|f| vrai(f)) else { return cle.to_string() };
+    let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(en_texte).unwrap_or_default();
+    let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
+    let nom = format!("{} {}", prenom, t("nom")).trim().to_string();
+    if nom.is_empty() {
+        cle.to_string()
+    } else {
+        nom
+    }
+}
+
+/// Les phrases a dire avant de declarer, une par salarie dont la paie prendrait la grille de l'article 204 H, III
+/// (CGI, art. 1671, 2 : « A défaut de taux transmis par l'administration ») : ce que le magasin sait de lui. Vide si
+/// tout va bien.
 pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>) -> Resultat<Vec<String>> {
     let mut lignes = Vec::new();
     for s in diagnostic(ctx, cles, le)? {
-        if s["situation"] == Value::String(VALIDE.into()) {
-            continue;
-        }
-        let mut ligne = format!("{} : {}", en_texte(&s["salarie"]), en_texte(&s["libelle"]));
-        if s["situation"] == Value::String(PERIME.into()) {
-            ligne += &format!(" (il l'etait jusqu'au {})", fr(&s["valable_jusqu_a"]));
-        }
+        let quoi = s["situation"].as_str().unwrap_or_default();
+        let mut ligne = format!("{} : ", nom_affiche(ctx, &en_texte(&s["salarie"])));
+        ligne += &match quoi {
+            VALIDE => continue,
+            PERIME => format!(
+                "le dernier taux transmis par la DGFiP ({} %) valait jusqu'au {}",
+                en_texte(&s["taux"]).replace('.', ","),
+                fr(&s["valable_jusqu_a"])
+            ),
+            SANS_NIR => "sans NIR dans sa fiche, la DGFiP ne peut transmettre aucun taux".into(),
+            _ => "aucun taux transmis par la DGFiP".into(),
+        };
         let dem = &s["demande"];
         if vrai(dem) {
             ligne += &format!(
-                " -- demande partie le {}, reponse attendue avant le {} : attendre si le calendrier le permet",
+                " ; taux demandé le {}, réponse attendue avant le {}",
                 fr(dem.get("quand").unwrap_or(&Value::Null)),
                 fr(dem.get("reponse_attendue_avant").unwrap_or(&Value::Null))
             );
@@ -568,6 +600,15 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>)
         lignes.push(ligne);
     }
     Ok(lignes)
+}
+
+/// La phrase du bandeau : combien de salaries n'ont pas de taux valide, et ce que la paie applique alors.
+pub fn resume_avertissements(lignes: &[String]) -> String {
+    match lignes.len() {
+        0 => String::new(),
+        1 => "1 salarié sans taux de PAS valide transmis par la DGFiP : sa paie prend la grille de l'article 204 H du CGI.".into(),
+        n => format!("{} salariés sans taux de PAS valide transmis par la DGFiP : leur paie prend la grille de l'article 204 H du CGI.", n),
+    }
 }
 
 
@@ -590,5 +631,15 @@ mod tests {
         assert_eq!(id("2025-01-31"), Some(json!("250004")));
         assert_eq!(id("2025-02-28"), Some(json!("993918841")));
         assert_eq!(id("2024-12-31"), None);
+    }
+
+    /// BOI-IR-PAS-30-10-20, § 70, exemple 1 (`atelier/reference/sources/bofip/BOI-IR-PAS-30-10-20-20181203.html`) :
+    /// un taux mis a disposition le 10 fevrier « est valide jusqu'au 30 avril ».
+    #[test]
+    fn un_taux_vaut_jusqu_a_la_fin_du_deuxieme_mois_qui_suit_sa_mise_a_disposition() {
+        let e = json!({"taux": "5.00", "type": "01", "identifiant": "1", "mis_a_disposition": "20260210120000"});
+        assert_eq!(fin_de_validite(&e), Jour::nouveau(2026, 4, 30));
+        assert!(!est_perime(&e, Jour::nouveau(2026, 4, 30).unwrap()));
+        assert!(est_perime(&e, Jour::nouveau(2026, 5, 1).unwrap()));
     }
 }

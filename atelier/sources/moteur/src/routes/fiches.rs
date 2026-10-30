@@ -1204,6 +1204,16 @@ fn meme(a: &Value, b: &Value) -> bool {
 /// Les cases d'un metier : quatre ecritures d'un seul fait, choisies ensemble dans le catalogue.
 const METIER: [&str; 4] = ["emploi_affichage", "emploi", "pcs_ese", "code_emploi_ft"];
 
+/// UNE STRUCTURE QU'ON COMPLETE NE CHANGE PAS : chacune de ses cases deja remplies reste ce qu'elle etait, seules des
+/// cases vides se remplissent (la reponse a une question que la fiche pose apres une autre, la taxe sur les salaires).
+/// C'est la premiere valeur de ces cases, comme un champ vide qu'on remplit.
+fn structure_completee(a: &Value, v: &Value) -> bool {
+    let (Value::Object(a), Value::Object(v)) = (a, v) else { return false };
+    a.iter()
+        .filter(|(k, x)| !k.starts_with('_') && !k.ends_with("_affichage") && !vide(Some(*x)))
+        .all(|(k, x)| v.get(k).is_some_and(|y| meme(x, y)))
+}
+
 /// Les champs de `donnees` qui CHANGENT une valeur existante de `ancienne` (la fiche telle que l'ecran l'a montree) :
 /// ceux-la demandent leur date d'effet. Remplir un champ vide n'en est pas un : c'est sa premiere valeur. Sauf le NIR qui
 /// arrive sur une fiche qui existait : la premiere DSN qui le porte porte aussi le NTT sous lequel le salarie etait
@@ -1219,7 +1229,8 @@ pub(crate) fn changements_a_dater(ancienne: &Value, donnees: &Map<String, Value>
         .filter(|(k, v)| {
             !k.starts_with('_')
                 && !(metier_a_completer && METIER.contains(&k.as_str()))
-                && (nir_qui_arrive(k, v) || (!vide(ancienne.get(k.as_str())) && !ancienne.get(k.as_str()).is_some_and(|a| meme(a, v))))
+                && (nir_qui_arrive(k, v)
+                    || (!vide(ancienne.get(k.as_str())) && !ancienne.get(k.as_str()).is_some_and(|a| meme(a, v) || structure_completee(a, v))))
         })
         .map(|(k, _)| k.clone())
         .collect()
@@ -1593,6 +1604,26 @@ pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, cham
         ecrire(&chemin, Value::Object(contenu))?;
     }
     Ok(ecrits)
+}
+
+/// LES LICENCES QUI SUIVENT LA PREMIERE (`routes::import::poser_licence`) : chacune vaut a partir du premier jour du mois
+/// ou les pieces importees la portent, comme un numero renouvele saisi « a partir du ». Seulement quand la fiche, sur le
+/// disque, porte pour seule licence la premiere que les pieces donnent : une licence saisie autrement reste ce qu'elle est.
+pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, String)], note: &Value) -> R<()> {
+    let Some(((_, premiere), suivantes)) = licences.split_first().filter(|(_, s)| !s.is_empty()) else { return Ok(()) };
+    let chemin = ctx.racine.join("config").join("entreprise.json");
+    let mut contenu = objet_du_fichier(&chemin)?;
+    let fiche = Value::Object(contenu.clone());
+    let portees = droit::contexte::valeurs_datees(&fiche, "licence_spectacle").map_err(plain)?;
+    if !matches!(portees.as_slice(), [(None, v)] if valeur_en_texte(v) == *premiere) {
+        return Ok(());
+    }
+    let note = Some(valeur_en_texte(note)).filter(|n| !n.trim().is_empty());
+    for (mois, numero) in suivantes {
+        let jour = socle::date::premier_du_mois(mois).map_err(plain)?;
+        droit::contexte::dater(&mut contenu, "licence_spectacle", json!(numero), Some(&jour), note.as_deref());
+    }
+    ecrire(&chemin, Value::Object(contenu))
 }
 
 fn finir_fiche(
@@ -2096,4 +2127,20 @@ fn choisir(ctx: &Contexte, charge: &Value) -> R<Value> {
     crate::routes::fiches::poser_entreprise(ctx, CASE_MODELE, json!(modele.cle()), Some(ctx.aujourdhui))?;
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(refus)?;
     modeles(&neuf)
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    /// La reponse a la question que la taxe sur les salaires pose apres la TVA complete la structure : rien a dater ; une
+    /// case deja remplie qui change, si.
+    #[test]
+    fn completer_une_structure_ne_demande_pas_de_date() {
+        let ancienne = json!({"taxe_sur_les_salaires": {"tva": "exoneree"}});
+        let completee = json!({"taxe_sur_les_salaires": {"tva": "exoneree", "sous_franchise": true}});
+        assert!(super::changements_a_dater(&ancienne, completee.as_object().unwrap()).is_empty());
+        let changee = json!({"taxe_sur_les_salaires": {"tva": "assujettie", "part_tva": 20}});
+        assert_eq!(super::changements_a_dater(&ancienne, changee.as_object().unwrap()), vec!["taxe_sur_les_salaires"]);
+    }
 }

@@ -75,7 +75,7 @@ fn ecrire(ctx: &Contexte, data: &Value) -> Result<(), Echec> {
 }
 
 /// Applique des releves de CRM ; rend les changements lisibles. Un releve :
-/// `{"salarie", "taux", "type", "identifiant", "periode", "mis_a_disposition"}`.
+/// `{"salarie", "taux", "type", "identifiant", "periode", "mis_a_disposition", "applique_le"}`.
 pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<String>, Echec> {
     let mut data = droit::pas::charger(ctx).map_err(ko)?;
     let mut changements = Vec::new();
@@ -88,11 +88,14 @@ pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Ve
         soldees = demandes.shift_remove(&cle).is_some() || soldees;
         let avant = data["salaries"].get(&cle).cloned();
         let get = |k: &str| r.get(k).cloned().unwrap_or(Value::Null);
-        let neuf = json!({
+        let mut neuf = json!({
             "taux": get("taux"), "type": get("type"), "identifiant": get("identifiant"),
             "periode": get("periode"), "mis_a_disposition": get("mis_a_disposition"),
             "source": source, "releve_le": horodatage,
         });
+        if let Some(a) = r.get("applique_le").filter(|a| socle::fichiers::vrai(a)) {
+            neuf["applique_le"] = a.clone();
+        }
         if let Some(a) = avant.as_ref().filter(|a| socle::fichiers::vrai(a)) {
             if ["taux", "type", "identifiant"].iter().all(|k| a.get(*k) == neuf.get(*k)) {
                 continue;
@@ -148,10 +151,16 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
                 nir = Some(val);
             } else if code.starts_with("S21.G00.50.00") {
                 cur.insert(code.to_string(), val.clone());
-                if code == "S21.G00.50.008" {
+                // « -1 » : un CDD court sans taux personnalise (`norme-dsn/texte/bloc-S21.G00.50.txt`, S21.G00.50.008) ;
+                // aucun taux n'a ete transmis.
+                if code == "S21.G00.50.008" && val != "-1" {
                     if let (Some(cle), Some(m)) = (nir.as_ref().and_then(|n| par_nir.get(n)), mois.as_ref()) {
                         let g = |k: &str| cur.get(k).map_or(Value::Null, |v| json!(v));
-                        let rel = json!({"taux": g("S21.G00.50.006"), "type": g("S21.G00.50.007"), "identifiant": val, "periode": m});
+                        let mut rel = json!({"taux": g("S21.G00.50.006"), "type": g("S21.G00.50.007"), "identifiant": val, "periode": m});
+                        // S21.G00.50.001, la date du versement (JJMMAAAA).
+                        if let Ok(j) = socle::date::Jour::lire(&crate::import::dsn_aem::jjmmaaaa(cur.get("S21.G00.50.001").map_or("", String::as_str))) {
+                            rel["applique_le"] = json!(j.iso());
+                        }
                         match trouve.iter_mut().find(|(k, _)| k == cle) {
                             Some((_, mm)) => {
                                 mm.insert(m.clone(), rel);
@@ -167,8 +176,20 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
     trouve.into_iter().map(|(cle, mm)| (cle, mm.into_values().collect())).collect()
 }
 
-/// Pose l'etat courant a partir de la derniere DSN deposee de chaque salarie.
-fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Echec> {
+/// LE DERNIER TAUX TRANSMIS PAR LA DGFiP QUE LES DSN DEJA DEPOSEES DE `dossier` DECLARENT, par salarie (un releve tel que
+/// `enregistrer` le prend). Une DSN qui declare un taux de type 01 avec son identifiant (S21.G00.50.006 a .008,
+/// `norme-dsn/texte/bloc-S21.G00.50.txt` : « Identifiant du taux porté par le CRM PAS […] transmis par la DGFIP ») dit
+/// que la DGFiP a transmis ce taux a l'employeur, qui l'applique (CGI, art. 1671, 2,
+/// `atelier/reference/sources/code-general-des-impots/articles-20261021.md`). Sa validite court de sa mise a disposition
+/// (`droit::pas::VALIDITE_MOIS`), que la DSN ne porte pas. Ce que les textes en disent : la retenue se fait « lors du
+/// paiement » (CGI, art. 1671, 1) avec un taux « toujours valide à la date de son application » (BOI-IR-PAS-30-10-20,
+/// § 80, `atelier/reference/sources/bofip/BOI-IR-PAS-30-10-20-20181203.html`) : le taux etait donc mis a disposition au
+/// plus tard le jour du versement (S21.G00.50.001) et au plus tot deux mois pleins avant ; le compte rendu « est
+/// transmis le mois au cours duquel la DSN […] a été déposée » (meme page, § 30), mais la DSN qui applique le
+/// taux n'en porte pas la date. INFERENCE (aucun texte ne date un taux lu dans une DSN) : le releve est date du jour du versement
+/// (`applique_le`), la mise a disposition la plus tardive que les textes permettent ; le compte rendu de la DSN suivante
+/// le remplace.
+pub(crate) fn derniers_taux_des_dsn(ctx: &Contexte, dossier: &std::path::Path) -> Vec<Value> {
     let mut releves = Vec::new();
     for (cle, entrees) in releves_historiques(ctx, dossier) {
         if let Some(dernier) = entrees.last() {
@@ -177,6 +198,12 @@ fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Ech
             releves.push(Value::Object(r));
         }
     }
+    releves
+}
+
+/// Pose l'etat courant a partir de la derniere DSN deposee de chaque salarie.
+fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Echec> {
+    let releves = derniers_taux_des_dsn(ctx, dossier);
     let nom = dossier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     enregistrer(ctx, &releves, &format!("amorcage depuis les DSN deposees ({})", nom))
 }

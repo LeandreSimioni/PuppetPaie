@@ -120,7 +120,33 @@ pub(crate) fn parametrer(ctx: &Contexte) -> Vec<String> {
     let mut faits = Vec::new();
     poser_atmp(ctx, &lecture, &mut faits);
     poser_organismes(ctx, &lecture, &mut faits);
+    poser_taux_pas(ctx, &mut faits);
     faits
+}
+
+/// LE TAUX DE PRELEVEMENT A LA SOURCE que la DGFiP a transmis a la compagnie et que ses DSN reprises appliquent
+/// (S21.G00.50.006 a .008) : au magasin du PAS, comme un taux recu, date du jour du versement qui
+/// l'applique (`commandes::pas::derniers_taux_des_dsn`, une inference). La validite se lit ensuite comme pour tout taux recu (`droit::pas`).
+fn poser_taux_pas(ctx: &Contexte, faits: &mut Vec<String>) {
+    let dossier = ctx.racine.join("historique").join("bulletins");
+    let releves = crate::commandes::pas::derniers_taux_des_dsn(ctx, &dossier);
+    let Ok(changes) = crate::commandes::pas::enregistrer(ctx, &releves, "DSN reprises par l'import") else { return };
+    for r in &releves {
+        let cle = texte(r, "salarie");
+        if !changes.iter().any(|c| c.starts_with(&format!("{} :", cle))) {
+            continue;
+        }
+        let qui = ctx.salaries.get(&cle).map(|s| {
+            let prenom = if vrai(s.get("prenom_affichage").unwrap_or(&Value::Null)) { texte(s, "prenom_affichage") } else { texte(s, "prenom") };
+            format!("{} {}", prenom, texte(s, "nom")).trim().to_string()
+        });
+        faits.push(format!(
+            "Prélèvement à la source de {} : taux {} % transmis par la DGFiP, appliqué dans la DSN de {} (S21.G00.50.006 à .008).",
+            qui.filter(|q| !q.is_empty()).unwrap_or(cle),
+            texte(r, "taux").replace('.', ","),
+            en_clair(&texte(r, "periode"))
+        ));
+    }
 }
 
 /// Les contrats des permanents que les DSN reprises portent, poses quand la compagnie se met a employer un permanent

@@ -568,6 +568,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     }
 
     // 6. L'entreprise : creee des bulletins si ni la fiche ni une DSN ne la donne ; sinon ses ecarts.
+    if ap.licences.is_empty() {
+        ap.licences = licences_lues(&lus);
+    }
     if let Some(dernier) = lus.iter().rev().find(|l| siret_lu(&l.b).is_some()).or(lus.last()) {
         if siren_fiche.is_some() {
             let ec = ecarts_entreprise(&ctx.entreprise, &lus, dernier, &chemin_de(dernier));
@@ -1306,7 +1309,20 @@ pub(crate) fn statut_et_metier(statut: Option<&str>, emploi: Option<&str>, femme
     Ok(f)
 }
 
-/// La fiche de l'entreprise, des bulletins : le plus recent pour l'identite, la suite des licences comme les DSN.
+/// La suite des licences que les bulletins impriment (mois, numero), la plus ancienne d'abord, comme les DSN.
+fn licences_lues(lus: &[Lu]) -> Vec<(String, String)> {
+    let mut licences: Vec<(String, String)> = Vec::new();
+    for x in lus {
+        if let Some(n) = x.b.entreprise.licence.as_deref().filter(|n| !n.is_empty()) {
+            if licences.last().is_none_or(|p| p.1 != n) {
+                licences.push((x.mois.clone(), n.to_string()));
+            }
+        }
+    }
+    licences
+}
+
+/// La fiche de l'entreprise, des bulletins : le plus recent pour l'identite, la premiere licence (`poser_licence`).
 fn fiche_entreprise(lus: &[Lu], l: &Lu) -> R<Map<String, Value>> {
     let e = &l.b.entreprise;
     let mut f = Map::new();
@@ -1340,18 +1356,7 @@ fn fiche_entreprise(lus: &[Lu], l: &Lu) -> R<Map<String, Value>> {
     if let Some(u) = urssaf_lu(&l.b) {
         f.insert("urssaf_compte".into(), json!(u));
     }
-    let mut licences: Vec<(String, String)> = Vec::new();
-    for x in lus {
-        if let Some(n) = x.b.entreprise.licence.as_deref().filter(|n| !n.is_empty()) {
-            if licences.last().is_none_or(|p| p.1 != n) {
-                licences.push((x.mois.clone(), n.to_string()));
-            }
-        }
-    }
-    if !licences.is_empty() {
-        let l: Vec<Value> = licences.iter().map(|(m, n)| json!({"depuis": format!("{}-01", m), "numero": n})).collect();
-        f.insert("licence_spectacle".into(), Value::Array(l));
-    }
+    crate::routes::import::poser_licence(&mut f, &licences_lues(lus));
     lisibles_de_la_piece("entreprise", &mut f)?;
     let mut f = declarations::champs::combler_affichage("entreprise", &f)?;
     if f.get("raison_sociale").is_some_and(vrai) && !f.get("nom_affichage").is_some_and(vrai) {
