@@ -377,7 +377,7 @@ function peindreCarte(div) {
   const paye = p ? designation(p).toLowerCase() : "";
   // Un contrat sur plusieurs mois porte sa pastille à côté du nom.
   poserChevrons(div, ligne.contrat, ligne.debut, ligne.fin);
-  const net = div._total ? euros(div._total.net_a_payer) : "";
+  const net = div._total ? euros(div._total.net_paye) : "";
   const detail = [p && p.numero_bulletin ? `bulletin ${p.numero_bulletin}` : "",
                   p && p.numero_contrat ? `contrat ${p.numero_contrat}` : "",
                   `validée le ${quand(ligne.valide)}`].filter(Boolean).join(" · ");
@@ -487,7 +487,10 @@ function boiteDetail(ligne, ps) {
         <tbody>${lignes}</tbody>
         <tfoot>
           <tr><td colspan="3">Brut</td><td class="nombre">${echapper(euros(p.brut))}</td></tr>
-          <tr><td colspan="3"><b>Net à payer</b></td><td class="nombre"><b>${echapper(euros(p.net_a_payer))}</b></td></tr>
+          ${Number(p.prelevement_a_la_source) ? `
+          <tr><td colspan="3">Net à payer avant impôt</td><td class="nombre">${echapper(euros(p.net_a_payer))}</td></tr>
+          <tr><td colspan="3">Impôt prélevé à la source</td><td class="nombre">${echapper(euros(p.prelevement_a_la_source))}</td></tr>` : ""}
+          <tr><td colspan="3"><b>Net à payer</b></td><td class="nombre"><b>${echapper(euros(p.net_paye))}</b></td></tr>
           <tr><td colspan="3" class="discret">Coût employeur</td><td class="nombre discret">${echapper(euros(p.cout_employeur))}</td></tr>
         </tfoot>
       </table>`;
@@ -521,7 +524,7 @@ function peindreChiffres(div, total) {
     // Le net (ce qu'on vire) et le coût employeur (ce que la compagnie sort), tels que le moteur les somme pour la
     // carte (`blocs` de l'aperçu). Le brut reste dans l'aperçu.
     net.innerHTML = total
-      ? `Net <b>${echapper(euros(total.net_a_payer))}</b>
+      ? `Net <b>${echapper(euros(total.net_paye))}</b>
          <span class="e-cout">Coût employeur <b>${echapper(euros(total.cout_employeur))}</b></span>${total.engagements > 1
           ? ` <span class="discret">pour ${total.engagements} salariés</span>` : ""}`
       : `<span class="discret">Le net s'affiche dès que l'engagement est complet.</span>`;
@@ -640,7 +643,7 @@ function vueApercu(a) {
       <li title="coût employeur ${echapper(euros(g.cout_employeur))} · brut ${echapper(euros(g.brut))}">
         <span>${echapper(g.nom)}
           <span class="discret">· ${g.engagements} engagement${g.engagements > 1 ? "s" : ""}</span></span>
-        <b>${euros(g.net_a_payer)}</b>
+        <b>${euros(g.net_paye)}</b>
       </li>`).join("")}
     </ul>${phrase}`;
 }

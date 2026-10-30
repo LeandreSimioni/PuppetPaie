@@ -2290,6 +2290,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
     };
     let lieu = brut.get("lieu").or_else(|| data.get("lieu")).cloned().unwrap_or_else(|| Value::String(String::new()));
     let avis: Vec<&Avis> = p.avertissements.iter().collect();
+    let prelevement = p.pas.as_ref().map_or(Decimal::new(0, 2), |v| v.prelevement);
     let mut d = json!({
         "numero_bulletin": p.numero_bulletin.clone().map_or(Value::Null, Value::String),
         "numero_contrat": e.numero.clone().map_or(Value::Null, Value::String),
@@ -2322,6 +2323,10 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
         "plafond": q2(p.plafond).to_string(), "smic": nombre_f(p.smic),
         "total_patronal": q2(p.total_pat).to_string(), "total_salarial": q2(p.total_sal).to_string(),
         "net_social": q2(p.net_social).to_string(), "net_a_payer": q2(p.net_a_payer).to_string(),
+        // CE QUE LA COMPAGNIE VIRE : la somme effectivement recue par le salarie (C. trav. R. 3243-1, 10°,
+        // `atelier/reference/sources/code-du-travail/articles-20261029.md`), le « MONTANT NET À PAYER » du bulletin :
+        // le net a payer moins l'impot preleve a la source.
+        "prelevement_a_la_source": q2(prelevement).to_string(), "net_paye": q2(p.net_a_payer - prelevement).to_string(),
         "net_imposable": q2(p.net_imposable).to_string(), "cout_employeur": q2(p.cout_employeur).to_string(),
         "avertissements": avis.iter().filter(|a| !a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
         "informations": avis.iter().filter(|a| a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
@@ -2472,7 +2477,7 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
                 }
                 Ok(q2(t).to_string())
             };
-            blocs.push(json!({"net_a_payer": somme("net_a_payer")?, "brut": somme("brut")?, "cout_employeur": somme("cout_employeur")?, "engagements": part.len()}));
+            blocs.push(json!({"net_paye": somme("net_paye")?, "brut": somme("brut")?, "cout_employeur": somme("cout_employeur")?, "engagements": part.len()}));
         }
         rang_calcule += part.iter().filter(|m| m.is_none()).count();
         rang = fin;
@@ -2534,17 +2539,17 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
         }
         Ok(q2(t))
     };
-    let (total_brut, total_cout, total_net) = (somme("brut")?, somme("cout_employeur")?, somme("net_a_payer")?);
+    let (total_brut, total_cout, total_net) = (somme("brut")?, somme("cout_employeur")?, somme("net_paye")?);
     // LES TROIS NOMBRES, sommes ici : par bloc de l'ecran (`blocs` : combien d'engagements chaque carte porte, dans
     // l'ordre ; sans lui, une carte par engagement) et par salarie (la colonne « Le mois »).
     let trois = |vs: &[&Value]| -> R<Value> {
         let mut t = [Decimal::new(0, 2), Decimal::new(0, 2), Decimal::new(0, 2)];
         for v in vs {
-            for (k, cle) in ["net_a_payer", "brut", "cout_employeur"].iter().enumerate() {
+            for (k, cle) in ["net_paye", "brut", "cout_employeur"].iter().enumerate() {
                 t[k] += dec(v.get(*cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
             }
         }
-        Ok(json!({"net_a_payer": q2(t[0]).to_string(), "brut": q2(t[1]).to_string(), "cout_employeur": q2(t[2]).to_string(), "engagements": vs.len()}))
+        Ok(json!({"net_paye": q2(t[0]).to_string(), "brut": q2(t[1]).to_string(), "cout_employeur": q2(t[2]).to_string(), "engagements": vs.len()}))
     };
     let tailles: Vec<usize> = match charge.get("blocs").and_then(Value::as_array) {
         Some(a) => a.iter().map(|x| x.as_u64().unwrap_or(0) as usize).collect(),
