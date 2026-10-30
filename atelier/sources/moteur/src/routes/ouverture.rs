@@ -658,6 +658,7 @@ pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
         // CE QUE LA RUBRIQUE PROMET SANS QUE RIEN NE LE TIENNE.
         "non_appliques": non_appliques,
         "source": r.source,
+        "dit": r.dit,
     })
 }
 

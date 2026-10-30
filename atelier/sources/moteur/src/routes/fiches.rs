@@ -652,8 +652,9 @@ pub(crate) fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
     }
 }
 
-/// `changements-declares` : les valeurs existantes que cet enregistrement ferait
-/// changer (chacune demande sa date d'effet), avec ce que la valeur sortante a deja servi a declarer. Regarde, n'ecrit rien.
+/// `changements-declares` : ce que cet enregistrement ferait
+/// changer (chacune demande sa date d'effet), avec ce que la valeur sortante a deja servi a declarer, et la date que le
+/// moteur propose (`date_proposee`, `depuis` et `pourquoi`). Regarde, n'ecrit rien.
 fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom_brut = exiger(charge, "nom")?;
     let cle = charge.get("cle").unwrap_or(&Value::Null);
@@ -677,14 +678,20 @@ fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     };
     let copie = copie_en_objet(donnees)?;
-    Ok(json!({"changements": changements(ctx, nom, ancienne, copie)?}))
+    let cases_vides = dernier_mois_parti(ctx, nom, cle.as_str())?.is_some();
+    let changements = changements(ctx, nom, ancienne, copie, cases_vides)?;
+    if changements.is_empty() {
+        return Ok(json!({"changements": changements}));
+    }
+    let (depuis, pourquoi) = date_proposee(ctx, nom, cle.as_str())?;
+    Ok(json!({"changements": changements, "depuis": depuis.iso(), "pourquoi": pourquoi}))
 }
 
 /// Le coeur de `changements_declares` : la fiche `ancienne` (telle que l'ecran l'a montree) et les `donnees` qui la
 /// remplaceraient ; chaque valeur existante qui changerait (`crate::routes::fiches::changements_a_dater`), celles-la memes
 /// dont l'enregistrement exigera la date d'effet. Un champ declare dit aussi ce que sa valeur sortante a deja servi a
 /// declarer.
-pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Map<String, Value>) -> R<Vec<Value>> {
+pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Map<String, Value>, cases_vides: bool) -> R<Vec<Value>> {
     let Value::Object(mut donnees) = garder_notes_internes(ancienne, &Value::Object(copie)) else { unreachable!() };
     deriver(nom, &mut donnees, true)?;
     let Value::Object(anc) = ancienne else {
@@ -692,7 +699,7 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
     };
     let champs_fiche = champs::fiche(nom)?;
     let mut sortie = Vec::new();
-    let a_dater = crate::routes::fiches::changements_a_dater(ancienne, &donnees);
+    let a_dater = crate::routes::fiches::changements_a_dater(nom, ancienne, &donnees, cases_vides)?;
     for cle in &a_dater {
         let cle = cle.clone();
         let avant = anc.get(&cle).cloned().unwrap_or(Value::Null);
@@ -1201,39 +1208,97 @@ fn meme(a: &Value, b: &Value) -> bool {
         || (!a.is_object() && !a.is_array() && valeur_en_texte(a) == valeur_en_texte(b))
 }
 
-/// Les cases d'un metier : quatre ecritures d'un seul fait, choisies ensemble dans le catalogue.
-const METIER: [&str; 4] = ["emploi_affichage", "emploi", "pcs_ese", "code_emploi_ft"];
-
-/// UNE STRUCTURE QU'ON COMPLETE NE CHANGE PAS : chacune de ses cases deja remplies reste ce qu'elle etait, seules des
-/// cases vides se remplissent (la reponse a une question que la fiche pose apres une autre, la taxe sur les salaires).
-/// C'est la premiere valeur de ces cases, comme un champ vide qu'on remplit.
-fn structure_completee(a: &Value, v: &Value) -> bool {
-    let (Value::Object(a), Value::Object(v)) = (a, v) else { return false };
-    a.iter()
-        .filter(|(k, x)| !k.starts_with('_') && !k.ends_with("_affichage") && !vide(Some(*x)))
-        .all(|(k, x)| v.get(k).is_some_and(|y| meme(x, y)))
+/// Sans valeur : une case vide (`vide`), une case a cocher non cochee, une liste vide, une structure dont aucune case
+/// n'a de valeur. La fiche les montre vides ; un enregistrement qui les laisse ainsi ne change rien.
+fn sans_valeur(v: Option<&Value>) -> bool {
+    vide(v)
+        || v.is_some_and(|v| {
+            v == &Value::Bool(false)
+                || v.as_array().is_some_and(Vec::is_empty)
+                || v.as_object().is_some_and(|o| o.iter().all(|(k, x)| k.starts_with('_') || sans_valeur(Some(x))))
+        })
 }
 
-/// Les champs de `donnees` qui CHANGENT une valeur existante de `ancienne` (la fiche telle que l'ecran l'a montree) :
-/// ceux-la demandent leur date d'effet. Remplir un champ vide n'en est pas un : c'est sa premiere valeur. Sauf le NIR qui
-/// arrive sur une fiche qui existait : la premiere DSN qui le porte porte aussi le NTT sous lequel le salarie etait
-/// declare (`ntt::depuis_quand_le_nir`), et le jour ou il arrive ne se devine pas.
-pub(crate) fn changements_a_dater(ancienne: &Value, donnees: &Map<String, Value>) -> Vec<String> {
+/// LES CHAMPS DE `donnees` QUI CHANGENT LA FICHE `ancienne` (telle que l'ecran l'a montree) : ceux-la demandent leur date
+/// d'effet (modele, « Le temps » : toute la configuration est datee, et une valeur sans date rend le passe faux des
+/// qu'elle change). Une valeur deja dite qui change, toujours. Une case vide qu'on remplit, quand `cases_vides` : la
+/// fiche a deja servi a un mois parti (`dernier_mois_parti`), et ce mois ne disait rien d'elle (la deduction forfaitaire
+/// cochee en fevrier ne vaut pas pour janvier ; la reponse a la question que la taxe sur les salaires pose apres la TVA,
+/// a sa date). Sans mois parti, la remplir est sa premiere valeur : aucun passe ne la lit. Une fiche neuve n'a rien a
+/// dater.
+pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<String, Value>, cases_vides: bool) -> R<Vec<String>> {
     let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !k.starts_with('_')));
-    let nir_qui_arrive = |k: &str, v: &Value| existait && k == "nir" && vide(ancienne.get(k)) && !vide(Some(v));
-    // UN METIER QUI N'ETAIT PAS ENCORE CHOISI SE COMPLETE, IL NE CHANGE PAS : sans code PCS-ESE, l'intitule lu sur un
-    // ancien bulletin n'a rien pu declarer (la DSN l'exige, S21.G00.40.004), et choisir le metier n'a pas de date d'effet.
-    let metier_a_completer = vide(ancienne.get("pcs_ese"));
-    donnees
+    if !existait {
+        return Ok(Vec::new());
+    }
+    // Une case a cocher que la fiche ne dit pas se montre a son defaut (`booleen_defaut`) : la laisser ainsi ne change rien.
+    let defauts: HashMap<String, Value> =
+        champs::fiche(nom)?.into_iter().filter(|c| c.forme == "booleen").map(|c| (c.cle, Value::Bool(c.booleen_defaut))).collect();
+    Ok(donnees
         .iter()
         .filter(|(k, v)| {
+            let avant = ancienne.get(k.as_str()).filter(|a| !a.is_null()).or_else(|| defauts.get(k.as_str()));
             !k.starts_with('_')
-                && !(metier_a_completer && METIER.contains(&k.as_str()))
-                && (nir_qui_arrive(k, v)
-                    || (!vide(ancienne.get(k.as_str())) && !ancienne.get(k.as_str()).is_some_and(|a| meme(a, v) || structure_completee(a, v))))
+                && !avant.is_some_and(|a| meme(a, v))
+                && !(sans_valeur(avant) && sans_valeur(Some(v)))
+                && (cases_vides || !vide(ancienne.get(k.as_str())))
         })
         .map(|(k, _)| k.clone())
-        .collect()
+        .collect())
+}
+
+/// LE DERNIER MOIS PARTI pour la fiche `nom` (`cle` pour un salarie) : le dernier dont les documents ou la DSN sont
+/// partis (`engagement::departs`), ou que l'ancien logiciel a verse et declare (un engagement importe), pour ce salarie,
+/// ou pour quiconque quand c'est la fiche de l'entreprise. `None` : aucun ; une fiche de spectacle n'en a pas.
+pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -> R<Option<String>> {
+    use engagement::departs::Envoi;
+    if nom == "spectacle" {
+        return Ok(None);
+    }
+    let sien = |c: &str| nom == "entreprise" || Some(c) == cle;
+    let departs = engagement::departs::lire(&ctx.racine).map_err(plain)?;
+    let partis = departs
+        .engagements()
+        .filter(|(c, _)| sien(c))
+        .flat_map(|(c, n)| departs.de(c, n))
+        .filter(|d| matches!(d.envoi, Envoi::Documents | Envoi::Dsn))
+        .filter_map(|d| d.mois.clone());
+    let mut importes = Vec::new();
+    for i in engagement::importe::tous(&ctx.racine).map_err(plain)? {
+        let c = engagement::cle_de_l_engagement(ctx, &Value::Object(i.objet().brut.clone()));
+        if c.as_deref().is_some_and(sien) {
+            importes.extend(i.paies().into_keys());
+        }
+    }
+    Ok(partis.chain(importes).max())
+}
+
+/// LA DATE QU'UN CHANGEMENT DE FICHE PROPOSE, et pourquoi : le premier jour du mois qui suit le dernier mois parti
+/// (`dernier_mois_parti`) : ce qui est parti garde ce qu'il a dit, le reste prend la valeur nouvelle. Aucun mois parti :
+/// le premier jour du mois en cours. Une autre date se choisit, dans le passe aussi : ce qui est parti se corrige alors.
+pub(crate) fn date_proposee(ctx: &Contexte, nom: &str, cle: Option<&str>) -> R<(Jour, String)> {
+    let en_clair = |m: &str| -> R<String> {
+        let j = socle::date::premier_du_mois(m).map_err(plain)?;
+        Ok(format!("{} {}", socle::date::nom_du_mois(j.mois as i64, socle::date::Graphie::Accentuee).map_err(plain)?, j.an))
+    };
+    let qui = if nom == "entreprise" { "" } else { " pour ce salarié" };
+    Ok(match dernier_mois_parti(ctx, nom, cle)? {
+        Some(m) => {
+            let j = socle::date::premier_du_mois(&m).map_err(plain)?;
+            let suivant = socle::date::premier_du_mois(&j.mois_suivant()).map_err(plain)?;
+            let phrase = format!(
+                "Proposé : le premier mois dont rien n'est parti{}. Jusqu'à {} compris, ce qui est parti garde l'ancienne valeur.",
+                qui,
+                en_clair(&m)?
+            );
+            (suivant, phrase)
+        }
+        None => {
+            let mois = format!("{:04}-{:02}", ctx.aujourdhui.an, ctx.aujourdhui.mois);
+            let phrase = format!("Proposé : le premier jour de {}, rien n'étant encore parti{}.", en_clair(&mois)?, qui);
+            (socle::date::premier_du_mois(&mois).map_err(plain)?, phrase)
+        }
+    })
 }
 
 /// La date d'effet que la charge d'une route d'ecriture donne (`depuis`, AAAA-MM-JJ), ou `None`.
@@ -1252,7 +1317,7 @@ pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depui
     let mut contenu = objet_du_fichier(&chemin)?;
     let mut donnees = Map::new();
     donnees.insert(champ.to_string(), valeur);
-    ecrire_datee(&mut contenu, "entreprise", &ctx.entreprise, &donnees, depuis, None, &ctx.lue_au)?;
+    ecrire_datee(&mut contenu, "entreprise", &ctx.entreprise, &donnees, false, depuis, None, &ctx.lue_au)?;
     sauver_avant(&chemin)?;
     ecrire(&chemin, Value::Object(contenu))
 }
@@ -1297,20 +1362,22 @@ pub(crate) fn reprendre_anciennete(ctx: &Contexte, salarie: &str, pose_le: &str,
 
 /// ECRIRE UNE FICHE DATEE : chaque valeur de `donnees` qui differe de `ancienne` (la fiche lue a `lue_au`, celle que
 /// l'ecran a montree) s'ecrit dans la fiche datee `brute` (`contexte::dater`). Ce qui change une valeur existante vaut a
-/// partir de `depuis`, et sans lui se refuse : ce qui precede garde l'ancienne valeur. La premiere valeur d'un champ
-/// (absent de la fiche) vaut de tout temps ; celle qui remplit un champ vide vaut depuis `depuis`, a defaut depuis la
-/// valeur vide qu'elle remplit. Le NIR qui arrive : la fiche disait « sans NIR » de tout temps, le NIR vaut depuis
-/// `depuis`. Les notes `_...` s'ecrivent telles quelles.
+/// partir de `depuis`, et sans lui se refuse : ce qui precede garde l'ancienne valeur (`changements_a_dater` dit ce qui
+/// change, `cases_vides` comprises). Un champ absent de la fiche qu'un changement remplit ne disait rien de tout temps, et le dit encore avant
+/// `depuis` (le NIR qui arrive : « sans NIR » avant lui). Ce qui ne change rien s'ecrit tel quel. Les notes `_...`
+/// s'ecrivent telles quelles.
 pub(crate) fn ecrire_datee(
     brute: &mut Map<String, Value>,
     nom: &str,
     ancienne: &Value,
     donnees: &Map<String, Value>,
+    cases_vides: bool,
     depuis: Option<Jour>,
     note: Option<&str>,
     lue_au: &Jour,
 ) -> R<()> {
-    let a_dater = changements_a_dater(ancienne, donnees);
+    let a_dater = changements_a_dater(nom, ancienne, donnees, cases_vides)?;
+    let booleens: HashSet<String> = champs::fiche(nom)?.into_iter().filter(|c| c.forme == "booleen").map(|c| c.cle).collect();
     if depuis.is_none() && !a_dater.is_empty() {
         // Un champ calcule qui change avec la case d'ou il derive est le meme fait : la case le dit seule.
         let fiche = champs::fiche(nom)?;
@@ -1341,7 +1408,7 @@ pub(crate) fn ecrire_datee(
         if (vide(avant) && rien) || avant.is_some_and(|a| meme(a, v)) {
             continue;
         }
-        let nir_qui_arrive = k == "nir" && !brute.contains_key("nir") && depuis.is_some();
+        let remplit_un_absent = depuis.is_some() && a_dater.contains(k) && !brute.contains_key(k.as_str());
         let jour = if depuis.is_some() {
             depuis
         } else {
@@ -1352,8 +1419,11 @@ pub(crate) fn ecrire_datee(
                 .last()
                 .and_then(|(j, _)| j)
         };
-        if nir_qui_arrive {
-            droit::contexte::dater(brute, k, Value::String(String::new()), None, None);
+        if remplit_un_absent {
+            // Avant `depuis`, la fiche ne disait rien : une case a cocher, son defaut (`null`, lu comme absent) ; un texte,
+            // une case vide (le NIR : « sans NIR », `ntt::depuis_quand_le_nir`).
+            let rien = if booleens.contains(k.as_str()) { Value::Null } else { Value::String(String::new()) };
+            droit::contexte::dater(brute, k, rien, None, None);
         }
         droit::contexte::dater(brute, k, v.clone(), jour.as_ref(), note);
     }
@@ -1442,7 +1512,8 @@ fn poser_courriel(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), v.clone())).collect();
     donnees.insert("email".into(), Value::String(email.trim().to_string()));
-    ecrire_fiche(ctx, "salarie", Some(cle.to_string()), &Value::Object(donnees), Forcer::Rien, &Value::Null, &Value::Null)?;
+    let (depuis, _) = date_proposee(ctx, "salarie", Some(cle))?;
+    ecrire_fiche(ctx, "salarie", Some(cle.to_string()), &Value::Object(donnees), Forcer::Rien, &json!(depuis.iso()), &Value::Null)?;
     Ok(json!({"salarie": cle, "email": email.trim()}))
 }
 
@@ -1547,10 +1618,11 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
     }
 
     let (depuis, note) = (depuis_de(depuis)?, Some(valeur_en_texte(note)).filter(|n| vrai(note) && !n.trim().is_empty()));
+    let cases_vides = dernier_mois_parti(ctx, nom, cle.as_deref().filter(|k| !k.is_empty()))?.is_some();
     let mut contenu = objet_du_fichier(&chemin)?;
     if nom == "entreprise" {
         // La fiche entreprise est le fichier entier.
-        ecrire_datee(&mut contenu, nom, ancienne, &donnees, depuis, note.as_deref(), &ctx.lue_au)?;
+        ecrire_datee(&mut contenu, nom, ancienne, &donnees, cases_vides, depuis, note.as_deref(), &ctx.lue_au)?;
         return finir_fiche(None, &chemin, contenu, donnees, anomalies, derives);
     }
     if cle.as_deref().map_or(true, str::is_empty) {
@@ -1562,7 +1634,7 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         Some(Value::Object(m)) => m.clone(),
         _ => Map::new(),
     };
-    ecrire_datee(&mut brute, nom, ancienne, &donnees, depuis, note.as_deref(), &ctx.lue_au)?;
+    ecrire_datee(&mut brute, nom, ancienne, &donnees, cases_vides, depuis, note.as_deref(), &ctx.lue_au)?;
     contenu.insert(k, Value::Object(brute));
     finir_fiche(cle, &chemin, contenu, donnees, anomalies, derives)
 }
@@ -1943,7 +2015,12 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
                 d
             }
         };
-        let f = crate::routes::fiches::ecrire_fiche(ctx, "salarie", existante.clone(), &Value::Object(donnees.clone()), crate::routes::fiches::Forcer::Tout, &Value::Null, &Value::Null)?;
+        // Ce qu'elle complete d'une fiche qui existe se date comme un changement de l'ecran (`date_proposee`).
+        let depuis = match &existante {
+            Some(k) => json!(date_proposee(ctx, "salarie", Some(k))?.0.iso()),
+            None => Value::Null,
+        };
+        let f = crate::routes::fiches::ecrire_fiche(ctx, "salarie", existante.clone(), &Value::Object(donnees.clone()), crate::routes::fiches::Forcer::Tout, &depuis, &Value::Null)?;
         let texte_de = |cle: &str| donnees.get(cle).map(valeur_en_texte).unwrap_or_default();
         let nom = format!("{} {}", texte_de("prenom_affichage"), texte_de("nom_affichage"));
         let erreurs = f.anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).count();
@@ -2127,20 +2204,4 @@ fn choisir(ctx: &Contexte, charge: &Value) -> R<Value> {
     crate::routes::fiches::poser_entreprise(ctx, CASE_MODELE, json!(modele.cle()), Some(ctx.aujourdhui))?;
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(refus)?;
     modeles(&neuf)
-}
-
-#[cfg(test)]
-mod tests {
-    use serde_json::json;
-
-    /// La reponse a la question que la taxe sur les salaires pose apres la TVA complete la structure : rien a dater ; une
-    /// case deja remplie qui change, si.
-    #[test]
-    fn completer_une_structure_ne_demande_pas_de_date() {
-        let ancienne = json!({"taxe_sur_les_salaires": {"tva": "exoneree"}});
-        let completee = json!({"taxe_sur_les_salaires": {"tva": "exoneree", "sous_franchise": true}});
-        assert!(super::changements_a_dater(&ancienne, completee.as_object().unwrap()).is_empty());
-        let changee = json!({"taxe_sur_les_salaires": {"tva": "assujettie", "part_tva": 20}});
-        assert_eq!(super::changements_a_dater(&ancienne, changee.as_object().unwrap()), vec!["taxe_sur_les_salaires"]);
-    }
 }

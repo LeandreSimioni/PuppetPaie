@@ -36,23 +36,9 @@ pub const SUITE: &str = "mois_suivants";
 /// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, la validation
 /// qu'une modification va remplacer, ses versions passees (`etats`), pour qui son numero de contrat a ete donne
 /// (`numeros`), qu'il n'est plus actif (`NON_ACTIF`), ce qui lui manque (`A_COMPLETER`), ce que l'import a lu de lui
-/// (`importe::IMPORTE`), et ce que sa nature du moment n'utilise pas (`DE_COTE`).
-pub const TENUS_PAR_LE_MOTEUR: [&str; 9] =
-    [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF, A_COMPLETER, crate::importe::IMPORTE, DE_COTE];
-
-/// CE QUE LA NATURE DU MOMENT N'UTILISE PAS, dans un engagement en saisie : ce qu'il disait sous l'autre forme de paie
-/// avant que sa nature change. Passe a une nature payee au mois, il garde son spectacle et ses lignes de paie (un
-/// permanent n'a ni spectacle, S21.G00.40.050 et CCH-11, ni ligne de cachet : sa paie se compose du mois). Revenu a un
-/// contrat d'usage, il garde les bornes, le salaire, la quotite et le motif de recours de son contrat au mois (un contrat
-/// d'usage tire ses bornes de ses jours joues, et son contrat est autre). Ils ne se lisent dans aucun calcul ni aucun
-/// document (la vue ne les porte pas) ; l'ecran les montre a part (`vue_a_l_ecran`), et ils redeviennent les siens quand
-/// l'ecran les renvoie sous une nature qui s'en sert. La validation les oublie.
-pub const DE_COTE: &str = "de_cote";
-
-/// Ce que `DE_COTE` garde sous une nature payee au mois : le spectacle et les lignes de paie.
-const MIS_DE_COTE_AU_MOIS: [&str; 2] = ["spectacle", "lignes"];
-/// Ce que `DE_COTE` garde sous un contrat d'usage : ce que le contrat au mois disait de lui-meme.
-const MIS_DE_COTE_A_L_USAGE: [&str; 5] = ["debut", "fin", "salaire_mensuel", "quotite_contrat", "motif_recours"];
+/// (`importe::IMPORTE`).
+pub const TENUS_PAR_LE_MOTEUR: [&str; 8] =
+    [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF, A_COMPLETER, crate::importe::IMPORTE];
 
 /// UN ENGAGEMENT EN SAISIE AUQUEL IL MANQUE UN FAIT (un salaire, une duree du travail, une anciennete, un spectacle,
 /// des jours) : `{"mois", "manque"}`, le mois dont l'ecriture l'a trouve incomplet et ce que le calcul en dit ; l'ecran
@@ -616,9 +602,6 @@ fn saisie_du_mois(racine: &Path, mois: &str, ecran: bool) -> Resultat<Option<std
             if let Some(manque) = o.a_completer().filter(|_| ecran) {
                 v.insert(A_COMPLETER.into(), Value::String(manque));
             }
-            if let Some(cote) = o.brut.get(DE_COTE).filter(|_| ecran) {
-                v.insert(DE_COTE.into(), cote.clone());
-            }
             engagements.push(Value::Object(v));
         }
         data.insert("engagements".into(), Value::Array(engagements));
@@ -805,10 +788,6 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Op
                         saisie.insert("spectacle".into(), ecrit.clone());
                     }
                 }
-                match mettre_de_cote(&saisie, o.brut.get(DE_COTE), &vues_actuelles[j]) {
-                    Some(cote) => o.brut.insert(DE_COTE.into(), Value::Object(cote)),
-                    None => o.brut.remove(DE_COTE),
-                };
                 match manques.get(i).cloned().flatten() {
                     // Deja valide une fois : il garde ce qu'il disait de complet, la saisie de l'ecran se garde a cote.
                     Some(m) if !o.jamais_valide() => {
@@ -891,30 +870,6 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Op
 fn meme_spectacle(ctx: &Contexte, a: &Value, b: &Value) -> bool {
     let cle = |v: &Value| ctx.spectacle(&en_texte(v)).ok().and_then(|f| f.get("_cle").cloned());
     cle(a).is_some_and(|x| Some(x) == cle(b))
-}
-
-/// CE QUE `saisie` GARDE DE COTE (`DE_COTE`), ou `None`. Ce que la nature de la saisie n'utilise pas
-/// (`MIS_DE_COTE_AU_MOIS` sous une nature payee au mois, `MIS_DE_COTE_A_L_USAGE` sous un contrat d'usage), et que la
-/// saisie ne dit pas, se reprend de ce qui etait deja de cote (`cote`), sinon de la vue que l'ecran montrait (`avant`)
-/// quand elle etait de l'autre forme de paie : la nature vient de changer. Sous une nature qui s'en sert, rien ne reste
-/// de cote : l'ecran les renvoie dans la saisie, comme siens.
-fn mettre_de_cote(saisie: &Map<String, Value>, cote: Option<&Value>, avant: &Value) -> Option<Map<String, Value>> {
-    let au_mois = |v: Option<&Value>| droit::natures::nature(v.and_then(Value::as_str)).is_ok_and(|n| n.mensuelle());
-    let mensuelle = au_mois(saisie.get("nature"));
-    let changee = mensuelle != au_mois(avant.get("nature"));
-    let cles: &[&str] = if mensuelle { &MIS_DE_COTE_AU_MOIS } else { &MIS_DE_COTE_A_L_USAGE };
-    let dit = |v: &Value| vrai(v) && v.as_array().is_none_or(|l| !l.is_empty());
-    let mut garde = Map::new();
-    for k in cles {
-        if saisie.get(*k).is_some_and(dit) {
-            continue;
-        }
-        let de_l_ecran = avant.get(*k).filter(|_| changee);
-        if let Some(x) = cote.and_then(|c| c.get(*k)).or(de_l_ecran).filter(|x| dit(x)) {
-            garde.insert(k.to_string(), x.clone());
-        }
-    }
-    (!garde.is_empty()).then_some(garde)
 }
 
 /// Pose la saisie que l'ecran montre pour `mois` sur l'objet `o` : son premier mois s'il commence en `mois`, sinon ce

@@ -256,7 +256,8 @@
       "soumis": false,
       "imposable": false,
       "conges_spectacles": false,
-      "source": "Avance sur salaire deja versee : elle se retient du net, elle ne touche aucune assiette."
+      "source": "Avance sur salaire deja versee : elle se retient du net, elle ne touche aucune assiette.",
+      "dit": "Une avance déjà versée au salarié : elle se retire du net à payer ; le brut et les cotisations ne changent pas."
     },
     "absence_non_remuneree": {
       "libelle": "Absence non rémunérée",

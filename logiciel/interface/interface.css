@@ -1251,6 +1251,7 @@ pre.reponse {
 .rubrique .r-lieux-jours { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline;
                            font-size: 12px; }
 .rubrique .r-lieux-jours:empty { display: none; }
+.rubrique .r-dit { grid-column: 1 / -1; font-size: 0.85em; }
 .rubrique .r-lieu-jour-l[hidden] { display: none; }
 .rubrique .r-lieu-jour-l { display: inline-flex; align-items: baseline; gap: 4px; }
 .rubrique .r-lieu-jour { display: inline-block; width: 10rem; padding: .2rem .4rem; }

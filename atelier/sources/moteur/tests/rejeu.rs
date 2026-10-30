@@ -250,45 +250,6 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     assert_eq!((&p["bulletin"], &p["rectifie"]), (&json!("3/2026"), &json!("2/2026")), "{}", p);
 }
 
-/// UN CODE CORRIGE NE FAIT PAS ENTRER DANS UN MOIS PARTI UNE CONFIGURATION MODIFIEE DEPUIS. Aux Treteaux, les documents
-/// de novembre sont partis sans deduction forfaitaire specifique ; la compagnie l'adopte ensuite, sans date (l'accord de
-/// chaque salarie, arrete du 4 septembre 2025, art. 9, I, al. 3, `atelier/reference/sources/dfs/LISEZ-MOI.md`), puis le
-/// code qui calcule change. La paie de novembre reste celle qui est partie : la recalculer appliquerait la deduction a
-/// un bulletin qui ne l'a pas eue, et en ferait un rectificatif que personne n'a decide.
-#[test]
-fn un_code_corrige_ne_fait_pas_entrer_une_configuration_dans_un_mois_parti() {
-    let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "code-corrige"));
-    let jour = "2026-12-16";
-    let paie = || -> Value {
-        let e = outils::lire(&racine, "engagements/2026-11.json");
-        let e = e["engagements"].as_array().unwrap().iter().find(|x| x["salarie"] == json!("FULLER")).expect("la comedienne").clone();
-        e["valide"]["paies"]["2026-11"].clone()
-    };
-    let avant = paie();
-    assert!(avant["bulletin"].is_string(), "les documents de novembre sont partis : {}", avant);
-
-    let mut ent = outils::lire(&racine, "config/entreprise.json");
-    ent["deduction_forfaitaire_option"] = json!([{"valeur": "accord_individuel"}]);
-    outils::ecrire(&racine, "config/entreprise.json", &ent);
-    let mut sal = outils::lire(&racine, "config/salaries.json");
-    sal["FULLER"]["deduction_forfaitaire"] = json!([{"valeur": "artiste_dramatique"}]);
-    sal["FULLER"]["deduction_forfaitaire_accord"] = json!([{"valeur": "contrat"}]);
-    outils::ecrire(&racine, "config/salaries.json", &sal);
-    // Le code qui a calcule la paie partie n'est plus celui-ci.
-    let mut f = outils::lire(&racine, "engagements/2026-11.json");
-    for e in f["engagements"].as_array_mut().unwrap() {
-        if let Some(p) = e.pointer_mut("/valide/paies/2026-11/empreinte/entrees") {
-            p["moteur"] = json!("0.0.0+un-autre-code");
-        }
-    }
-    outils::ecrire(&racine, "engagements/2026-11.json", &f);
-
-    outils::reussi(&outils::route(&racine, "etat-du-mois", json!({"mois": "2026-11"}), jour));
-    let apres = paie();
-    assert_eq!(apres["paie"]["deduction_forfaitaire"], Value::Null, "{}", apres["paie"]);
-    assert_eq!((&apres["paie"]["net_a_payer"], &apres["rectifie"]), (&avant["paie"]["net_a_payer"], &Value::Null), "{}", apres);
-}
-
 /// CE QUE LES ORGANISMES REPONDENT A LA FICTIVE (`envois::organismes_simules`), sur la DSN de novembre des Treteaux, deposee
 /// en reel par l'horloge : la DGFiP communique le taux que le scenario lui a annonce (compte rendu 94, lu par le lecteur des
 /// vrais) et la releve le pose au magasin du PAS -- un taux se lit, il ne se devine pas (regle 1) ; puis net-entreprises

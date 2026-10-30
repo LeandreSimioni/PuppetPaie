@@ -85,12 +85,12 @@ pub const AUTRES_BRUTS: &[(&str, &str)] = &[
 
 /// Les champs d'une rubrique : tout autre
 /// champ dans un fichier est refuse.
-const CHAMPS_CONNUS: [&str; 26] = [
+const CHAMPS_CONNUS: [&str; 27] = [
     "code", "libelle", "unite", "nature", "saisie", "soumis", "imposable",
     "conges_spectacles", "source", "sens", "heures_forfait", "plafond", "aem",
     "dsn_type", "dsn_autres_bruts", "annexe", "plafond_mensuel",
     "plafond_annuel_heures", "compte_pour", "salaire_de_base", "retabli",
-    "suspension", "arret_de_travail", "conges_pris", "dsn_bloc52", "origine",
+    "suspension", "arret_de_travail", "conges_pris", "dsn_bloc52", "origine", "dit",
 ];
 
 /// Une forme de paie : ce que le bulletin appelle une ligne.
@@ -122,6 +122,8 @@ pub struct Rubrique {
     pub conges_pris: bool,
     pub dsn_bloc52: Option<String>,
     pub origine: String,
+    /// Ce que la ligne fait, que l'ecran dit sous elle quand son nom ne le dit pas (l'acompte).
+    pub dit: Option<String>,
 }
 
 fn joindre(l: &[&str]) -> String {
@@ -359,6 +361,7 @@ fn construire(code: &str, d: &Map<String, Value>, origine: &str) -> Resultat<Rub
         conges_pris: drapeau("conges_pris"),
         dsn_bloc52: chaine_opt(d, "dsn_bloc52"),
         origine: origine.to_string(),
+        dit: chaine_opt(d, "dit"),
     };
     r.verifier()?;
     Ok(r)
