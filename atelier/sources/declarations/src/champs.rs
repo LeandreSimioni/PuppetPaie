@@ -883,6 +883,13 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
             _ => None,
         });
     }
+    // Les jours travailles d'un permanent : ceux que le calcul lira (`droit::conges::JoursTravailles`).
+    if c.cle == "jours_travailles" {
+        let fiche = serde_json::json!({ "jours_travailles": valeur });
+        return Ok(droit::conges::JoursTravailles::de_la_fiche(&fiche).err().map(|e| {
+            e.split_once(" : ").map_or(e.clone(), |(_, m)| m.to_string())
+        }));
+    }
     let Some(Value::String(brut)) = valeur else { return Ok(None) };
     // La signature des courriels est du HTML colle : sa seule regle est son poids (150 Ko, images comprises).
     if c.cle == CLE_SIGNATURE {

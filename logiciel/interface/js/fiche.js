@@ -244,6 +244,21 @@ function dessinerFormulaire(fiche) {
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
       </div>`;
     }
+    // LES JOURS TRAVAILLÉS : une case par jour de la semaine. Sans valeur, celles
+    // que le moteur compte (`droit::conges::JoursTravailles`) : du lundi au vendredi.
+    if (c.cle === "jours_travailles" && FICHE_ACTIVE === "salarie") {
+      const coches = Array.isArray(v) ? v : JOURS_SEMAINE.slice(0, 5);
+      return `<div class="champ pleine${c.si_permanents ? " champ-permanents" : ""}"${
+          c.si_permanents && !avecPermanents ? " hidden" : ""}>
+        <label>${echapper(c.libelle)} ${aideHtml(c.cle, c.aide)}</label>
+        <div class="jours-semaine" data-cle="${c.cle}" data-jours="1">
+          ${JOURS_SEMAINE.map((j) => `<label class="coche"><input type="checkbox"
+              data-jour="${j}"${coches.includes(j) ? " checked" : ""}> ${j}</label>`).join("")}
+        </div>
+        ${aideCorps(c.cle, c.aide)}
+        ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
+      </div>`;
+    }
     // UNE CASE A COCHER SE LIT COMME UNE PHRASE : la case, puis ce qu'elle dit.
     if (c.forme === "booleen") {
       const coche = v == null ? c.booleen_defaut !== false : v !== false;
@@ -365,6 +380,9 @@ function dessinerFormulaire(fiche) {
         const auMois = ((ETAT.configuration || {}).salaries_au_mois || []).includes(fiche.cle) || enCours;
         const rempli = dedans.some((c) => {
           const v = fiche.donnees[c.cle];
+          // Les jours du lundi au vendredi sont la valeur que la case montre.
+          if (c.cle === "jours_travailles" && Array.isArray(v)
+              && v.join() === JOURS_SEMAINE.slice(0, 5).join()) return false;
           return v !== null && v !== undefined && v !== "";
         }) || !!fiche.donnees.sante_svp;
         return `<details class="bloc avance" data-bloc-permanents="1"${auMois || rempli ? " open" : ""}>
@@ -1088,7 +1106,10 @@ function euros(v) {
 function lireFormulaire() {
   const d = {};
   document.querySelectorAll("#config-formulaire [data-cle]").forEach((c) => {
-    if (c.dataset.listeTextes) {
+    if (c.dataset.jours) {
+      d[c.dataset.cle] = [...c.querySelectorAll("[data-jour]")].filter((x) => x.checked)
+        .map((x) => x.dataset.jour);
+    } else if (c.dataset.listeTextes) {
       d[c.dataset.cle] = c.value.split(",").map((x) => x.trim()).filter(Boolean);
     } else if (c.dataset.structure) {
       try { d[c.dataset.cle] = JSON.parse(c.value); }

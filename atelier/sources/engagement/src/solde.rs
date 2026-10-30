@@ -400,7 +400,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     }
 
     // --- le delai de prevenance d'une fin d'essai a l'initiative de l'employeur (L1221-25)
-    delai_de_prevenance(e, &fin, salaire, motif, &nat, &qui, &mut stc)?;
+    delai_de_prevenance(ctx, e, &fin, salaire, motif, &nat, &qui, &mut stc)?;
 
     // --- l'indemnite de rupture, et laquelle depend du motif
     indemnite_de_rupture(ctx, e, mois, anciennete, motif, &nat, &mut stc)?;
@@ -440,7 +440,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
 /// jusqu'a l'expiration du delai (`preavis.delai_de_prevenance`, ses lectures dans `_lecture`). La ligne : la part du
 /// delai apres la fin du contrat, le salaire de chaque mois pour ses heures (`droit::periodes::part_du_mois`) ; DSN 52 « 017 ».
 fn delai_de_prevenance(
-    e: &Value, fin: &socle::date::Jour, salaire: Decimal, motif: Option<&str>, nat: &Nature, qui: &str, stc: &mut Solde,
+    ctx: &Contexte, e: &Value, fin: &socle::date::Jour, salaire: Decimal, motif: Option<&str>, nat: &Nature, qui: &str, stc: &mut Solde,
 ) -> Resultat<()> {
     let Some(regle) = permanents::regle_du_delai_de_prevenance(motif)? else {
         return Ok(());
@@ -516,7 +516,9 @@ fn delai_de_prevenance(
     while j <= delai.expiration {
         let fin_mois = socle::date::Jour { an: j.an, mois: j.mois, jour: j.jours_du_mois() };
         let f = fin_mois.min(delai.expiration);
-        let part = droit::periodes::part_du_mois(&j, &f, &fin_mois, droit::periodes::RegleDuMoisIncomplet::HoraireReel)?;
+        let debut_mois = socle::date::Jour { an: j.an, mois: j.mois, jour: 1 };
+        let horaire = crate::conges::horaire_du_mois(ctx, &t(cle(e, "salarie")?), &debut, &debut_mois, &fin_mois)?;
+        let part = droit::periodes::part_du_mois(&j, &f, &fin_mois, droit::periodes::RegleDuMoisIncomplet::HoraireReel, &horaire)?;
         fraction = add(fraction, part.fraction);
         jours += part.jours;
         j = f.plus_jours(1)?;
@@ -524,7 +526,7 @@ fn delai_de_prevenance(
     let rubrique = t(cle(&regle, "rubrique")?);
     stc.lignes.push(json!({"rubrique": rubrique, "quantite": flot(fraction), "taux": flot(salaire)}));
     stc.avertissements.push(avertir(format!(
-        "{} : {} ; le contrat finit le {} : {} jour(s) ouvre(s) du delai non effectue(s), payes {} EUR au salaire mensuel, pour \
+        "{} : {} ; le contrat finit le {} : {} jour(s) travaille(s) du delai non effectue(s), payes {} EUR au salaire mensuel, pour \
          leurs heures (L1221-25, indemnite compensatrice ; Cass. soc., 20/01/1999 ; DSN 52 : 017). Elle comprend les avantages et \
          l'indemnite compensatrice de conges payes de ces jours : le moteur ne les a PAS ajoutes, a verifier. Le decompte \
          de la presence et du delai est une lecture (permanents-base.json, `preavis.delai_de_prevenance._lecture`).",

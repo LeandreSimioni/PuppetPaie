@@ -80,17 +80,18 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
     // Le contrat borne au mois : la regle d'un premier ou d'un dernier mois incomplet le regarde, pas la coupure.
     let (debut, fin) = (eng.debut_periode()?, eng.fin_periode()?);
     let regle = crate::conges::regle_du_mois_incomplet(ctx, &eng.salarie, &debut, &fin, &debut_mois, &fin_mois);
+    let horaire = crate::conges::horaire_du_mois(ctx, &eng.salarie, &eng.debut, &debut_mois, &fin_mois)?;
     let mut out = Vec::new();
     for (d, f) in bornes {
         let (salaire, quotite) = if avenant.map_or(false, |a| *d < a) { (salaire_avant, quotite_avant) } else { (salaire_apres, quotite_apres) };
         // Chaque periode, au salaire de ses termes, par la regle d'un mois incomplet (`droit::periodes::part_du_mois`).
-        let part = droit::periodes::part_du_mois(d, f, &fin_mois, regle)?;
+        let part = droit::periodes::part_du_mois(d, f, &fin_mois, regle, &horaire)?;
         let mut e = eng.clone();
         e.periode = Some((*d, *f));
         e.quotite_contrat = Some(crate::conges::flot(quotite));
         let (q, h) = (crate::conges::flot(part.fraction), crate::conges::flot(eur2(quotite)));
         let mut ligne = json!({"rubrique": "mois", "quantite": q, "taux": crate::conges::flot(salaire), "heures": h});
-        if let Some(p) = part.sur_le_bulletin(droit::conges::heures_par_jour_oeuvre(quotite)) {
+        if let Some(p) = part.sur_le_bulletin(droit::conges::heures_par_jour(quotite, &horaire.jours)) {
             ligne["precision"] = json!(p);
         }
         e.lignes = vec![ligne];
