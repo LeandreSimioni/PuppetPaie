@@ -838,7 +838,7 @@ et les bases 31 (059) se lisent sur les lignes du bulletin. La section
 `par_nature.permanent` du barème est complète en 2025 et en 2026.
 
 Ce qui reste est **propre à chaque compagnie** et la fait refuser, elle seule :
-ses références d'adhésion (`organismes.json`, `affiliations_par_nature.permanent`,
+la référence de son contrat de prévoyance (`adhesions_prevoyance` de `config/organismes.json`, composée en `affiliations_par_nature.permanent`,
 dans l'ordre prévoyance puis santé). **Deux faits se réclament salarié par
 salarié** : le niveau de garantie santé (`sante_svp`) et, pour un non cadre de
 moins d'un an dans l'entreprise, son ancienneté **dans la branche**
@@ -1026,7 +1026,7 @@ Audiens (version 139) porte les permanents : la **santé** (1,44 / 1,84 / 2,04 %
 **CASC-SVP** (0,50 % de la tranche A). La **prévoyance des permanents** vient de la convention, pas du barème (voir
 plus haut), et la rubrique porte `_rempli_par` comme la mutuelle. Les identifiants techniques des deux
 **affiliations DSN 059** viennent de la fiche de paramétrage de l'entreprise, qui n'existe qu'une fois l'entreprise
-adhérée au régime de sa branche : ce sont ses références d'adhésion (`organismes.json`). La santé ne
+adhérée au régime de sa branche : ce sont ses références d'adhésion, saisies dans `config/organismes.json`. La santé ne
 se relève pas dans un barème : c'est un **forfait** dont le niveau se lit sur
 le bulletin d'adhésion du salarié (`sante_svp` sur sa fiche), et sans ce
 choix le moteur refuse, salarié par salarié.

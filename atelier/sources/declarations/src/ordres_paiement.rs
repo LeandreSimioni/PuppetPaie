@@ -6,7 +6,7 @@
 //!
 //! - L'ORGANISME : S21.G00.20.001 du fichier. Son nom propre et ce que couvre son versement (`nom`, `objet`) se lisent
 //!   dans la base livree, `donnees/organismes-base.json` (`versement_normatif`), qui cite pour chacun la
-//!   table IVO des nomenclatures DSN et Audiens ; a defaut, le libelle de `config/organismes.json`. « DGFIP » est la
+//!   table IVO des nomenclatures DSN et Audiens ; a defaut, le libelle de l'organisme dans `organismes` (`Contexte::organismes`). « DGFIP » est la
 //!   valeur que la norme donne a la DGFiP (cahier technique 2026.1, `norme-dsn/texte/bloc-S21.G00.20.txt`, l. 47). Un
 //!   identifiant que ni la base ni la configuration ne connaissent se dit tel quel, sans nom invente.
 //! - L'URSSAF : l'organisme du bordereau (S21.G00.22.001) du meme fichier ; une Urssaf par region, le nom est generique.
@@ -117,7 +117,7 @@ fn texte_de<'a>(v: Option<&'a Value>, cle: &str) -> Option<&'a str> {
 /// (le nom propre, ou l'identifiant quand rien ne le connait), `identifiant`, `objet`, `montant`, `periode` (du, au),
 /// `date` (ISO, ou `null` quand aucun texte ne la dit), `quand` (la phrase de la page), `source` (d'ou vient la date) et
 /// `credit` (le trop-verse que l'ordre ne reprend pas ou reprend, et ce que la compagnie en fait ; `null` sans
-/// trop-verse). `organismes` : `config/organismes.json` (Null s'il manque) ; `jour_echeance` : 5 ou 15
+/// trop-verse). `organismes` : `Contexte::organismes` (Null s'il manque) ; `jour_echeance` : 5 ou 15
 /// (`Contexte::echeance_dsn`).
 pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jour_echeance: u32) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();

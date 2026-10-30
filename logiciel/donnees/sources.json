@@ -205,9 +205,9 @@
       "fichier": "urssaf-codes-types-personnel.csv",
       "sha256": "12b280d883c49c3bcad7971ab9269e372a628d64bfc7f0254def1ce31ab73171",
       "verification": "telechargement",
-      "verification_comment": "La table bouge a chaque changement de taux : un condensat qui ne colle plus ne veut pas dire que NOS codes ont change, seulement que la table a ete republiee. Ce qu'il faut relire alors, ce sont les lignes des CTP que config/organismes.json declare.",
+      "verification_comment": "La table bouge a chaque changement de taux : un condensat qui ne colle plus ne veut pas dire que NOS codes ont change, seulement que la table a ete republiee. Ce qu'il faut relire alors, ce sont les lignes des CTP de `organismes-base.json`.",
       "nourrit": [
-        "config/organismes.json",
+        "organismes-base.json",
         "moteur/urssaf-codes-types-personnel.csv (copie livree avec le logiciel : les taux du bordereau Urssaf calcule, documents/src/bordereau.rs ; a recopier quand la source change)"
       ]
     },
