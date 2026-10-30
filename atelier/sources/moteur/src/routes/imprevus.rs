@@ -1621,14 +1621,15 @@ déclarent tous deux.",
 /// son obligation (`obligations::de_la_fin`) comptee au jour `aujourdhui`. UN SEUL ENDROIT : la route `fins-de-contrat` (la
 /// colonne du mois) et les rappels de l'ouverture (`rappels`) la lisent.
 pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
-    let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
+    // Un signalement de fin ne se doit que pour un engagement valide (`validees_du_mois`) : un brouillon ne part pas.
+    let journal = envois::journal::lu(&ctx.racine)?;
+    let Some((saisie, _)) = engagement::etats::validees_du_mois(ctx, mois, &journal.departs).map_err(Echec::from)? else {
         return Ok(Vec::new());
     };
     let fin_mois = fin_du_mois(mois)?;
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
     let mut out = Vec::new();
-    let journal = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     for e in liste {
         let e: &Value = &avec_ses_bornes(&e);
         let nat = nature_de(get(e, "nature")?)?;
@@ -1647,7 +1648,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         let cle = ctx.salarie(&valeur_en_texte(salarie)).ok().and_then(|f| f.get("_cle").map(valeur_en_texte));
         let a_saisir = ce_qui_manque(ctx, e)?;
         // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`).
-        let obligation = crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal, aujourdhui)?;
+        let obligation = crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal.lignes, aujourdhui)?;
         // Due : il manque de quoi signaler, aucun delai ne se lit, ou le delai court. Sa pastille : celle du delai passe
         // (« en retard » l'emporte : la date butoir ne se tait pas parce qu'une case manque), sinon ce qui manque, sinon
         // celle du delai.
