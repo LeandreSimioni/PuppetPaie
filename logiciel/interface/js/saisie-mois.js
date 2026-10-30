@@ -560,9 +560,9 @@ async function ajusterBloc(div, champ) {
   const engagements = [];
   for (let k = 0; k < combien; k++) engagements.push(debut + k);
   note.textContent = "calcul…";
-  GARDER_SANS_TAUX = true;
+  POUR_VISER = true;
   let saisie;
-  try { saisie = saisieCourante(); } finally { GARDER_SANS_TAUX = false; }
+  try { saisie = saisieCourante(); } finally { POUR_VISER = false; }
   try {
     const r = await api("ajuster", {
       saisie, engagements,
@@ -588,10 +588,10 @@ function appliquerAjustement(div, r) {
   // Les mêmes lignes que `lignesDuBloc` a envoyées pour viser, dans le même
   // ordre : une ligne sans quantité n'est pas partie, donc elle ne compte
   // pas dans les rangs ; une ligne sans taux, si.
-  GARDER_SANS_TAUX = true;
+  POUR_VISER = true;
   let rangs;
   try { rangs = [...div.querySelectorAll(".rubrique")].filter(ligneEnvoyee); }
-  finally { GARDER_SANS_TAUX = false; }
+  finally { POUR_VISER = false; }
   (e.lignes || []).forEach((l) => {
     const cible = rangs[l.rang];
     if (cible) cible.querySelector(".r-taux").value = l.taux;
@@ -662,9 +662,10 @@ function regrouper(engagements) {
   // formulaire montre un engagement et l'écrit pour chaque salarié coché.
   // Deux engagements qui diffèrent en quoi que ce soit — le motif de
   // recours de deux CDD aux mêmes bornes, un salaire, un numéro, un lieu
-  // propre à un jour — ont chacun leur bloc. Ni un engagement validé.
+  // propre à un jour — ont chacun leur bloc. Ni un engagement validé. Ce qui
+  // manque (`a_completer`) nomme son salarié : il ne sépare pas le bloc.
   const empreinteDe = (e) => {
-    const { salarie, ...reste } = e;
+    const { salarie, a_completer, ...reste } = e;
     return JSON.stringify(Object.keys(reste).sort().map((k) => [k, reste[k]]));
   };
   engagements.forEach((e, rang) => {

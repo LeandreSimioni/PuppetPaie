@@ -1573,13 +1573,18 @@ function dedoubler(div) {
 }
 
 /** Les lignes de paie d'un bloc, telles qu'elles sont saisies. */
-/* VISER UN MONTANT SANS TAUX. Une ligne sans taux ne part pas
- * dans la saisie -- elle est incomplete. Sauf pour « Viser un montant » :
- * le taux est justement ce qu'on cherche, et le moteur le trouve seul quand
- * il n'y a qu'une ligne de salaire (`_poser_taux_provisoires`). */
-let GARDER_SANS_TAUX = false;
-const ligneEnvoyee = (r) => r.querySelector(".r-quantite").value !== ""
-  && (GARDER_SANS_TAUX || r.querySelector(".r-taux").value !== "");
+/* CE QU'UNE LIGNE DIT PART DANS LA SAISIE, même incomplète : ses jours, sa
+ * quantité, son taux ou ses heures. Le moteur l'enregistre en saisie et dit
+ * ce qui lui manque. Pour « Viser un montant », seules partent les lignes
+ * qui disent leur quantité : le taux est ce qu'on cherche, et le moteur le
+ * trouve seul quand il n'y a qu'une ligne de salaire. */
+let POUR_VISER = false;
+const ligneEnvoyee = (r) => {
+  const dit = (s) => r.querySelector(s).value.trim() !== "";
+  if (POUR_VISER) return dit(".r-quantite");
+  return dit(".r-quantite") || dit(".r-taux") || dit(".r-heures")
+    || joursDe(r.querySelector(".r-jours")).length > 0;
+};
 
 function lignesDuBloc(div, mois) {
   mois = mois || document.getElementById("mois").value;
@@ -1592,9 +1597,9 @@ function lignesDuBloc(div, mois) {
     // Une ligne en pourcentage s'écrit comme le moteur la lit : sa base et
     // son pourcentage (`calcul._ligne_en_pourcentage`).
     if (rr && rr.saisie.includes("taux_majoration")) {
-      return { rubrique: rr.code, base: +q, taux_majoration: t === "" ? "" : +t };
+      return { rubrique: rr.code, base: q === "" ? "" : +q, taux_majoration: t === "" ? "" : +t };
     }
-    const l = { rubrique: r.querySelector(".r-code").value, quantite: +q,
+    const l = { rubrique: r.querySelector(".r-code").value, quantite: q === "" ? "" : +q,
                 taux: t === "" ? "" : +t };
     // Les heures s'écrivent dès qu'elles sont dites : leur champ se montre
     // alors, quelle que soit la rubrique (`majAffichage`).

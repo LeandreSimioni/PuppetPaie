@@ -967,14 +967,16 @@ pub(crate) fn engagements(
         }
         let jours = if nat.mensuelle() { Vec::new() } else { dates_engagement(e) };
         // `lignes: []` ecrit est un mois du contrat sans cachet ; une ligne sans date est incomplete.
+        let qui = chaine(e.get("salarie")).map(|s| format!(" ({})", s)).unwrap_or_default();
         if jours.is_empty() && !nat.mensuelle() && e.get("lignes") != Some(&Value::Array(Vec::new())) {
             return Err(format!(
-                "L'engagement {} de {} ne dit aucun jour joue. Les jours se \
-                 portent sur chaque ligne de paie (\"dates\"). Sans eux il \
-                 n'y a ni debut, ni fin, ni contrat. Un mois du contrat sans \
-                 aucun cachet s'ecrit `lignes: []`, avec `debut` et `fin`.",
-                rang, mois_dit
+                "L'engagement {} de {}{} ne dit aucun jour joué : cochez ses jours sur sa ligne de paie. Sans eux il \
+                 n'y a ni début, ni fin, ni contrat.",
+                rang, mois_dit, qui
             ));
+        }
+        if !nat.mensuelle() {
+            lignes_dites(ctx, e, rang, &mois_dit, &qui)?;
         }
         // Le metier de ce contrat : six champs declares, que l'engagement
         // ecrit par-dessus, et son libelle lisible (`emploi_affichage`).
@@ -1071,7 +1073,29 @@ pub(crate) fn engagements(
 /// choisi, des jours pas encore coches, des heures pas encore dites. L'ecran enregistre a chaque frappe, et ces refus
 /// montent sous `SaisieIncomplete` (`moteur::routes::etapes::classer_saisie`, `moteur::routes::mois::refus_du_calcul`) ; leur message
 /// commence par « L'engagement N de AAAA-MM ».
-const SAISIE_INCOMPLETE: [&str; 3] = [" ne dit pas quel spectacle il joue", " ne dit aucun jour joue", " ne dit pas ses heures"];
+const SAISIE_INCOMPLETE: [&str; 5] =
+    [" ne dit pas quel spectacle il joue", " ne dit aucun jour joué", " ne dit pas ses heures", " ne dit pas combien", " ne dit pas son taux"];
+
+/// Chaque ligne de paie saisie dit sa quantite et son taux (ou sa base et son pourcentage) : la saisie s'enregistre
+/// sans eux, en saisie, et ce refus dit ce qui manque, ligne par ligne, avec le salarie (`qui`).
+fn lignes_dites(ctx: &Contexte, e: &Value, rang: usize, mois: &str, qui: &str) -> Resultat<()> {
+    let vide = |v: Option<&Value>| matches!(v, None | Some(Value::Null)) || v.and_then(Value::as_str).is_some_and(|s| s.trim().is_empty());
+    for (i, l) in e.get("lignes").and_then(Value::as_array).into_iter().flatten().enumerate() {
+        let Some(code) = l.get("rubrique") else { continue };
+        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
+        let pourcentage = r.saisie.iter().any(|s| s == "taux_majoration");
+        let (quantite, taux) = if pourcentage { ("base", "taux_majoration") } else { ("quantite", "taux") };
+        let manque = if vide(l.get(quantite)) {
+            if pourcentage { "ne dit pas combien : la base est vide" } else { "ne dit pas combien : la quantité est vide" }
+        } else if vide(l.get(taux)) {
+            if pourcentage { "ne dit pas son taux : le pourcentage est vide" } else { "ne dit pas son taux : le montant est vide" }
+        } else {
+            continue;
+        };
+        return Err(format!("L'engagement {} de {}{} : sa ligne {} (« {} ») {}.", rang, mois, qui, i + 1, r.libelle, manque));
+    }
+    Ok(())
+}
 
 /// Ce refus de `engagements` dit-il une saisie pas encore finie ([`SAISIE_INCOMPLETE`]) ?
 pub fn saisie_incomplete(message: &str) -> bool {
