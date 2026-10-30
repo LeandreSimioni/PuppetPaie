@@ -112,11 +112,6 @@ fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
 /// (`groupes_dsn`).
 /// Le point d'un engagement auquel il manque un fait, sur chacune de ses lignes.
 const A_COMPLETER: &str = "a_completer";
-/// Le point d'une DPAE partie qui ne dit plus ce que dit l'engagement (`etats.dpae.ecart`) : a corriger aupres de
-/// l'Urssaf, jusqu'a ce que la compagnie note la correction faite (`dpae-corrigee`).
-const A_CORRIGER: &str = "a_corriger";
-/// Ce que l'Urssaf dit de la DPAE a corriger (page « DPAE » d'urssaf.fr, mise a jour le 15/07/2026).
-const DEMARCHE_DPAE: &str = "Selon l'Urssaf, les informations relatives au contrat de travail se modifient dans son espace en ligne (Compte › Embauche › Modifier une DPAE) ; pour toute autre modification, on dépose une nouvelle DPAE ou on contacte l'Urssaf (3957).";
 
 #[derive(Clone, Copy)]
 struct Point {
@@ -145,8 +140,6 @@ impl Point {
             "fait"
         } else if vrai(&d["refusee"]) {
             "refuse"
-        } else if vrai(&d["fait"]) && vrai(&d["ecart"]) {
-            A_CORRIGER
         } else if vrai(&d["fait"]) {
             "fait"
         } else {
@@ -179,12 +172,12 @@ impl Point {
     /// l'est, signe ou non.
     fn vague(&self) -> (bool, &'static str, &'static str, usize) {
         let contrat = if matches!(self.contrat, "a_envoyer" | "a_refaire") { self.contrat } else { "parti" };
-        (matches!(self.dpae, "a_faire" | A_CORRIGER), contrat, self.documents, self.dsn)
+        (self.dpae == "a_faire", contrat, self.documents, self.dsn)
     }
 
     /// Combien de ses lignes sont faites de notre cote : l'ordre des colonnes, la plus avancee en G.
     fn avance(&self, dsn_fait: &[bool]) -> usize {
-        [!matches!(self.dpae, "a_faire" | A_COMPLETER | A_CORRIGER), matches!(self.contrat, "fait" | "en_attente"), self.documents == "fait", dsn_fait.get(self.dsn).copied().unwrap_or(false)]
+        [!matches!(self.dpae, "a_faire" | A_COMPLETER), matches!(self.contrat, "fait" | "en_attente"), self.documents == "fait", dsn_fait.get(self.dsn).copied().unwrap_or(false)]
             .iter()
             .filter(|x| **x)
             .count()
@@ -398,36 +391,6 @@ pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String,
             Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
         })
         .collect())
-}
-
-/// LA DPAE PARTIE pour une version passee de cet engagement (`brut` : ses `versions` et sa version validee) qui disait
-/// un autre salarie ou un autre premier jour que `(cle, debut)` : la phrase de l'ecart et le jour du depot. Une DPAE
-/// refusee ne declare rien. La DPAE declare l'identite du salarie et la date d'embauche (R. 1221-1 du code du travail) :
-/// une autre personne ou un autre jour, ce n'est pas cette embauche.
-fn dpae_d_un_autre(ctx: &Contexte, brut: &Map<String, Value>, cle: &str, debut: &str, dpae: &HashMap<Paire, Value>) -> Option<(String, Value)> {
-    let passees = brut
-        .get("versions")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .chain(brut.get("valide"))
-        .filter_map(|v| v.get("saisie"));
-    for s in passees {
-        let Some(autre) = engagement::cle_de_l_engagement(ctx, s) else { continue };
-        let jour = engagement::debut_brut(s);
-        if (autre.as_str(), jour.as_str()) == (cle, debut) {
-            continue;
-        }
-        let Some(d) = dpae.get(&(autre.clone(), jour.clone())).filter(|d| vrai(&d["quand"]) && !vrai(&d["refusee"])) else { continue };
-        let phrase = if autre != cle {
-            let nom = ctx.salarie(&autre).ok().map_or_else(|| autre.clone(), |f| super::nom_a_l_ecran(&f));
-            format!("salarié : la DPAE déclare {}", nom.trim())
-        } else {
-            format!("premier jour : la DPAE déclare {}", le_jour(&json!(jour)))
-        };
-        return Some((phrase, d["quand"].clone()));
-    }
-    None
 }
 
 /// La date d'embauche que la DPAE partie a declaree, quand elle n'est plus celle de l'engagement (`ARefaire::Dpae`).
@@ -875,34 +838,7 @@ impl<'a> Moteur<'a> {
                     date_changee = json!({"avant": avant, "vaut": vaut, "phrase": phrase});
                 }
             }
-            // CE QUE LA DPAE PARTIE DECLARE ET QUE L'ENGAGEMENT NE DIT PLUS : la date de fin d'un contrat qui en a une
-            // (R. 1221-1 du code du travail, la nature et la duree du contrat). Dit tant que la DPAE n'est pas corrigee.
-            let fin_declaree = if nat.date_fin_dpae() { get(dpae_v, "fin")?.clone() } else { Value::Null };
-            let fin_dite = p.engagement.fin.map(|f| f.iso());
-            let ecart = if vrai(get(dpae_v, "quand")?) && !vrai(get(dpae_v, "refusee")?) && vrai(&fin_declaree)
-                && Some(valeur_en_texte(&fin_declaree)) != fin_dite
-            {
-                json!(format!(
-                    "fin du contrat : la DPAE déclare {}, l'engagement dit {}",
-                    le_jour(&fin_declaree),
-                    fin_dite.as_deref().map_or_else(|| "aucune fin".to_string(), |f| le_jour(&json!(f)))
-                ))
-            } else {
-                Value::Null
-            };
-            // UNE DPAE PARTIE POUR CET ENGAGEMENT QUAND IL DISAIT UN AUTRE SALARIE, OU UN AUTRE PREMIER JOUR (une de ses
-            // versions, validee ou en cours de modification) : elle ne declare pas cette embauche. Dit tant que la DPAE de
-            // l'embauche telle qu'elle est n'est pas partie.
-            let (ecart, ecart_depuis) = match (vrai(&ecart), vrai(get(dpae_v, "quand")?), vrai(&date_changee)) {
-                (false, false, false) => match etats_eng.get(i).and_then(|e| dpae_d_un_autre(self.ctx, &e.objet().brut, &cle, &debut, &g.dpae)) {
-                    Some((phrase, quand)) => (json!(phrase), quand),
-                    None => (Value::Null, Value::Null),
-                },
-                _ => (ecart, get(dpae_v, "quand")?.clone()),
-            };
             let dpae = json!({
-                "ecart": ecart,
-                "ecart_depuis": ecart_depuis,
                 "date_changee": date_changee,
                 "fait": get(dpae_v, "quand")?,
                 "passee": vrai(get(dpae_v, "passee")?),
@@ -910,7 +846,7 @@ impl<'a> Moteur<'a> {
                 "anomalies": ou(get(dpae_v, "anomalies")?, &LISTE_VIDE),
                 "dossier": ou(get(dpae_v, "dossier")?, texte_vide()),
                 "deja_existante": vrai(get(dpae_v, "deja_existante")?),
-                "fin_declaree": fin_declaree,
+                "fin_declaree": if nat.date_fin_dpae() { get(dpae_v, "fin")?.clone() } else { Value::Null },
                 "maille": "paie",
             });
             let cles = &cles_paies[i];
@@ -1363,7 +1299,7 @@ impl<'a> Moteur<'a> {
 
         // --- DPAE : par embauche du mois. Partie, elle est faite tant qu'aucun retour ne revient KO.
         let mut dpae = Vec::new();
-        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.dpae, &["a_faire", "refuse", A_COMPLETER, A_CORRIGER])) {
+        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.dpae, &["a_faire", "refuse", A_COMPLETER])) {
             let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].dpae == point).map(|(p, _)| p).collect();
             let n = siens.len();
             let g = match point.as_str() {
@@ -1374,9 +1310,6 @@ impl<'a> Moteur<'a> {
                     groupe("a_faire", json!(n), n.to_string(), quoi, echeance_de(&siens, DPAE), a)
                 }
                 A_COMPLETER => a_completer(n),
-                // Une DPAE partie qui ne dit plus ce que dit l'engagement : son ecart et la demarche sont sur le carre de
-                // l'engagement, qu'ouvre le detail de la DPAE.
-                A_CORRIGER => groupe("a_faire", json!(n), n.to_string(), "à corriger".to_string(), Value::Null, Value::Null),
                 _ => fait(),
             };
             dpae.push(avec(g, &noms));
@@ -1795,22 +1728,11 @@ fn carres(p: &Value) -> Value {
             ("refuse", format!("DPAE refusée {} : {}", le_jour(&d["fait"]), motif), action("historique", "Voir le bilan…".into()))
         }
         "a_faire" => ("a_faire", "DPAE à déposer".to_string(), action("declarer_embauches", "Envoyer les DPAE…".into())),
-        A_CORRIGER => (
-            "a_faire",
-            format!("DPAE déposée {}, à corriger : {}", le_jour(&d["fait"]), valeur_en_texte(&d["ecart"])),
-            json!({"geste": "pieces", "libelle": "Voir ce qui est à corriger…"}),
-        ),
         _ if !embauche => ("fait", format!("DPAE faite en {}, à l'embauche", depuis), Value::Null),
         _ if vrai(&d["passee"]) => ("fait", format!("DPAE déposée {}, passée", le_jour(&d["fait"])), Value::Null),
         _ => ("fait", format!("DPAE déposée {}, retour pas encore arrivé", le_jour(&d["fait"])), Value::Null),
     };
-    let pieces = if pt.dpae == A_CORRIGER {
-        json!({"vide": "Aucune DPAE déposée pour cette embauche.",
-               "encart": {"titre": "L'engagement ne correspond plus à la DPAE déposée", "texte": format!("{}. {}", socle::texte::capitaliser(&valeur_en_texte(&d["ecart"])), DEMARCHE_DPAE)},
-               "gestes": [{"libelle": "Noter la DPAE corrigée", "action": {"geste": "dpae_corrigee"}, "principal": true}]})
-    } else {
-        json!({"vide": "Aucune DPAE déposée pour cette embauche.", "encart": null, "gestes": []})
-    };
+    let pieces = json!({"vide": "Aucune DPAE déposée pour cette embauche.", "encart": null, "gestes": []});
     let dpae = json!({"cle": DPAE, "nom": "DPAE", "etat": etat, "phrase": phrase, "action": geste, "pieces": pieces});
 
     let cdi = &s["cdi_en_cours"];
@@ -1850,7 +1772,7 @@ fn carres(p: &Value) -> Value {
     let documents = json!({"cle": DOCUMENTS, "nom": "Documents", "etat": etat, "phrase": phrase, "action": geste});
     // CE QUI RESTE, EN UN MOT, sur le carre meme (la phrase entiere est l'infobulle), et la couleur de son etat.
     let restes = [
-        match pt.dpae { "refuse" => "refusée", "a_faire" => "à déposer", A_CORRIGER => "à corriger", _ => "" },
+        match pt.dpae { "refuse" => "refusée", "a_faire" => "à déposer", _ => "" },
         match pt.contrat { "a_envoyer" => "à envoyer", "a_refaire" => "à refaire signer", "en_attente" => "signature attendue", _ => "" },
         match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", _ => "" },
     ];

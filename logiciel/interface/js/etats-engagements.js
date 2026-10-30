@@ -89,7 +89,6 @@ function brancherRecu(div) {
       if (!c || !c.action) return;
       const mois = document.getElementById("mois").value;
       if (c.action.geste === "contrat_recu") return noterSigne(mois, ligne, c.action.recu, c.action.avenant);
-      if (c.action.geste === "pieces") return boitePieces(ligne, c.cle);
       ouvrirGeste(c.action, mois);
     };
     s.onclick = agir;
@@ -121,17 +120,6 @@ async function noterRecu(mois, charge) {
   annuler.textContent = "Annuler";
   annuler.onclick = () => { el.classList.add("cachee"); noterRecu(mois, r.annuler.charge); };
   el.append(" — ", annuler);
-}
-
-/** La DPAE corrigée auprès de l'Urssaf : la compagnie le note, le moteur l'écrit au journal. */
-async function noterDpaeCorrigee(mois, ligne) {
-  let r;
-  try {
-    r = await api("dpae-corrigee", { mois, salarie: ligne.salarie, debut: ligne.debut });
-  } catch (e) { dire(e.message, "erreur"); return; }
-  await dessinerEtatsDesEngagements(mois);
-  await rafraichirActions();
-  dire(r.phrase);
 }
 
 /** Les pièces parties d'un engagement pour un acte (`dpae`, `contrat-signature` : la clé de son carré). */
@@ -177,7 +165,6 @@ async function boitePieces(ligne, acte) {
       if (a.geste === "contrat_recu") noterSigne(mois, ligne, a.recu);
       else if (a.geste === "avenant") boiteAvenant(mois, ligne.salarie, ligne.debut, ligne.numero);
       else if (a.geste === "faire_signer") boiteSignature(mois, [ligne.salarie]);
-      else if (a.geste === "dpae_corrigee") noterDpaeCorrigee(mois, ligne);
     };
   });
   document.querySelectorAll(".p-ouvrir").forEach((b) => {
@@ -211,7 +198,6 @@ function peindreEtats() {
     const lignes = ETATS_ENGAGEMENTS
       ? ps.map(etatDEngagement).filter(Boolean)
       : [];
-    avisDpaeDeplacee(div, ps, lignes.length === 1 ? lignes[0] : null);
     const connue = ps.length > 0 && lignes.length === ps.length;
     div.classList.toggle("enregistree", connue);
     if (!ETATS_ENGAGEMENTS) { poserEtats(cible, ""); return; }
@@ -542,8 +528,7 @@ async function modifierEngagements(lignes) {
 }
 
 /* MODIFIER L'ENGAGEMENT : un engagement dont aucun contrat n'est parti se rouvre d'un clic ; un contrat parti se dit
- * d'abord, parce que changer ce qu'il porte fait un avenant à faire signer. La DPAE se dit quand on change le premier
- * jour ou le salarié (`avisDpaeDeplacee`). */
+ * d'abord, parce que changer ce qu'il porte fait un avenant à faire signer. */
 function boiteModifier(ligne) {
   const lignes = engagementsSoeurs(ligne);
   const partis = lignes.filter((l) => l.etats && l.etats.signature
@@ -576,42 +561,6 @@ function boiteModifier(ligne) {
     fermerBoite();
     await modifierEngagements(lignes);
   };
-}
-
-/* LA DPAE NE SE DIT QUE SUR CE QU'ELLE DÉCLARE. L'utilisateur :
- * l'avertissement doit correspondre aux vraies attentes de la DPAE, rien
- * d'inventé. Ce qu'elle déclare, c'est R1221-1 du code du travail : le
- * salarié, la date et l'heure d'embauche, la nature et la durée du contrat
- * (sa date de fin, pour un CDD) — ni la rémunération, ni les heures, ni les
- * cachets. L'encart ne paraît donc que si l'une de ces données s'écarte de
- * la DPAE déposée : premier jour ou salarié (le bloc retient l'embauche
- * déclarée la dernière fois qu'il l'a lue), ou fin du contrat
- * (`fin_declaree`, lue au journal du dépôt). Et il dit ce que dit l'Urssaf,
- * page « DPAE » d'urssaf.fr, mise à jour le 15/07/2026 : les informations
- * relatives au contrat de travail se modifient dans l'espace en ligne
- * (Compte › Embauche › Modifier une DPAE) ; pour toute autre modification,
- * une nouvelle DPAE, ou les services de l'Urssaf (3957). Rien de plus : ni
- * délai, ni annulation, qu'aucune source officielle lue ne pose. */
-const URSSAF_DPAE = "https://www.urssaf.fr/accueil/employeur/embaucher-gerer-salaries/embaucher/declaration-prealable-embauche.html";
-
-function avisDpaeDeplacee(div, ps, ligne) {
-  const cible = div.querySelector(".etats");
-  let avis = div.querySelector(".avis-dpae");
-  // L'écart, le moteur le dit (`etats.dpae.ecart`) : la fin, le salarié ou le premier jour que la DPAE partie déclare.
-  const dp = ligne && ligne.etats && ligne.etats.dpae;
-  if (!(dp && dp.ecart)) { if (avis) avis.remove(); return; }
-  if (!avis) {
-    avis = document.createElement("div");
-    avis.className = "encart attention avis-dpae";
-    cible.parentNode.insertBefore(avis, cible);
-  }
-  avis.innerHTML = `<b>L'engagement ne correspond plus à la DPAE déposée le ${echapper(quand(dp.ecart_depuis || dp.fait))}</b>
-    <ul><li>${echapper(dp.ecart)}</li></ul>
-    Selon l'Urssaf, les informations relatives au contrat de travail se
-    modifient dans son espace en ligne (Compte › Embauche › Modifier une
-    DPAE) ; pour toute autre modification, on dépose une nouvelle DPAE ou on
-    contacte l'Urssaf (3957).
-    <a href="${URSSAF_DPAE}" target="_blank" rel="noopener">La page de l'Urssaf</a>`;
 }
 
 /* PLUS DE CASE DE SÉLECTION NI DE BARRE D'ACTIONS GROUPÉES :
