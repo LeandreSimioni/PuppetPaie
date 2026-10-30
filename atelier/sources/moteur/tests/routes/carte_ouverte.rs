@@ -30,7 +30,7 @@ fn le_salarie_coche_en_plus_part_avec_la_carte() {
     let s = saisie(&c, "2026-11");
     let fuller: Value = s["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
     let debut = engagement::debut_brut(&fuller);
-    let v = route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": debut, "numero": "", "rang": 0, "valide": true}), jour);
+    let v = route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": debut, "numero": "", "rang": 0}), jour);
     assert!(reussi(&v)["valide"].is_string(), "{}", v);
 
     // La carte ouverte, DUNCAN coche en plus : chaque salarie recoit sa copie de ce que la carte dit.

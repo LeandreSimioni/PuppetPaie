@@ -22,7 +22,7 @@ fn un_nouvel_engagement_envoye_seul_ne_se_perd_pas_sur_le_valide() {
     let s = saisie(&c, "2026-11");
     let fuller: Value = s["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
     let debut = fuller["debut"].as_str().map(str::to_string).unwrap_or_else(|| engagement::debut_brut(&fuller));
-    let v = route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": debut, "numero": "", "rang": 0, "valide": true}), jour);
+    let v = route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": debut, "numero": "", "rang": 0}), jour);
     assert!(reussi(&v)["valide"].is_string(), "le contrat de FULLER ne se valide pas : {}", v);
 
     // Un cachet de plus pour FULLER, un autre jour, envoye seul.

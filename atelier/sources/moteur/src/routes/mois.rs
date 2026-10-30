@@ -1756,15 +1756,16 @@ pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
     Ok(())
 }
 
-/// UN MOIS TENU AVANT CE LOGICIEL NE SE SAISIT PAS : ses paies ont ete calculees et declarees ailleurs (ses engagements
-/// sont importes, `import::mois`). Une saisie le ferait recalculer ici et proposerait d'en ecrire la DSN -- une
-/// declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre.
-pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
-    if crate::import::mois::importe(&ctx.racine, mois)? {
+/// UN MOIS QUI PORTE DES PAIES IMPORTEES NE RECOIT PAS D'ENGAGEMENT NEUF : ses paies ont ete calculees et declarees par
+/// l'ancien logiciel (`engagement::importe`), et sa DSN avec elles ; un engagement de plus la changerait, et une
+/// declaration deja faite ne se regenere pas (regle 4). Ce mois se finit dans l'ancien logiciel. Rien ne passe outre.
+fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
+    let importes = engagement::importe::du_mois(&ctx.racine, mois).map_err(Echec::from)?;
+    if importes.iter().any(|i| i.paies().contains_key(mois)) {
         return Err(refus(format!(
-            "{} a ete tenu avant PuppetPaie : ses paies ont ete faites par l'ancien logiciel, ses engagements sont \
-             importes. Il se lit dans la page Paie ; il ne se saisit pas ici.",
-            mois
+            "{} porte des paies importées de votre ancien logiciel : il ne reçoit pas d'engagement neuf. Finissez ce mois \
+             dans l'ancien logiciel. Rien n'est écrit.",
+            engagement::libelle_mois(mois)
         )));
     }
     Ok(())
@@ -1806,12 +1807,18 @@ fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant(), "a_completer": a_completer}))
 }
 
-/// UNE ECRITURE DES ENGAGEMENTS A LA FOIS : la fenetre sert ses routes en parallele, et la page enregistre une seconde
-/// apres la derniere frappe, meme si l'enregistrement d'avant n'a pas fini. L'ecriture de la saisie d'un mois et la
-/// modification d'un engagement valide (`crate::routes::engagement`) passent l'une apres l'autre, dans ce processus.
-pub(crate) fn une_ecriture_a_la_fois() -> std::sync::MutexGuard<'static, ()> {
+/// AVANT TOUTE ECRITURE D'UN ENGAGEMENT (saisir, valider, modifier, retirer) : une ecriture a la fois (la fenetre sert
+/// ses routes en parallele, et la page enregistre une seconde apres la derniere frappe, meme si l'enregistrement d'avant
+/// n'a pas fini), puis les trois refus du mois : des paies importees (`refuser_si_importe`), un exercice clos
+/// (`refuser_si_clos`), un mois d'avant la premiere embauche (`refuser_si_avant_la_premiere_embauche`). Le verrou rendu
+/// se garde jusqu'a la fin de l'ecriture.
+pub(crate) fn avant_d_ecrire(ctx: &Contexte, mois: &str) -> R<std::sync::MutexGuard<'static, ()>> {
     static ECRITURE_EN_COURS: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    ECRITURE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner())
+    let verrou = ECRITURE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner());
+    refuser_si_importe(ctx, mois)?;
+    refuser_si_clos(ctx, mois)?;
+    refuser_si_avant_la_premiere_embauche(ctx, mois)?;
+    Ok(verrou)
 }
 
 /// LA SAISIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE : une ecriture qui en change la paie
@@ -1820,7 +1827,7 @@ pub(crate) fn une_ecriture_a_la_fois() -> std::sync::MutexGuard<'static, ()> {
 /// montre ; rien n'est ecrit. Avec, elle s'ecrit ; revalide, l'engagement fait partir sa correction dans la DSN d'un
 /// mois suivant (`produire_regularisations::corrections_dues`).
 pub(crate) fn ecrire_saisie_confirmee(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
-    let _une_a_la_fois = une_ecriture_a_la_fois();
+    let _verrou = avant_d_ecrire(ctx, mois)?;
     ecrire_saisie_seule(ctx, mois, brute, confirme)
 }
 
@@ -1829,12 +1836,9 @@ fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, c
     let mut donnees = brute.clone();
     donnees.insert("mois".into(), Value::String(mois.to_string()));
     let donnees = Value::Object(donnees);
-    refuser_si_importe(ctx, mois)?;
-    refuser_si_clos(ctx, mois)?;
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let declaree = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
     let a_confirmer = declaree.get("confirmer").is_some_and(vrai);
-    refuser_si_avant_la_premiere_embauche(ctx, mois)?;
     // Ce qui manque a chaque engagement pour se calculer : il s'ecrit avec, et seule sa validation refuse.
     let manques = manques_de_la_saisie(ctx, &donnees);
     if a_confirmer {

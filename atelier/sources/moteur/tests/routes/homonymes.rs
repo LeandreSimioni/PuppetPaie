@@ -39,7 +39,7 @@ fn un_homonyme_ne_porte_rien_de_l_autre() {
     s["engagements"].as_array_mut().unwrap().push(deux);
     reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": s}), jour));
     for (salarie, debut) in [("FULLER", "2026-11-20"), ("FULLER-2", "2026-11-24")] {
-        reussi(&route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": salarie, "debut": debut, "valide": true}), jour));
+        reussi(&route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": salarie, "debut": debut}), jour));
     }
     let numeros: Vec<(String, String)> = lire(&c, "engagements/2026-11.json")["engagements"]
         .as_array()

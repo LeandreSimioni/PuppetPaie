@@ -20,7 +20,7 @@ fn une_journee_de_plus_de_24_heures_se_refuse_et_plus_de_10_heures_se_dit() {
     let jour = "2026-11-02";
     let spectacle = saisie(&c, "2026-11")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").unwrap()["spectacle"].clone();
     let regie = |heures: i64| json!({"salarie": "FULLER", "spectacle": spectacle, "lignes": [{"rubrique": "heure", "quantite": heures, "taux": 19, "dates": ["2026-11-28"]}]});
-    let valider = |rang: usize| json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-28", "numero": "", "rang": rang, "valide": true});
+    let valider = |rang: usize| json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-28", "numero": "", "rang": rang});
     let ecran = || reussi(&route(&c, "saisie", json!({"mois": "2026-11"}), jour))["saisie"].clone();
     let rang = || ecran()["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "FULLER" && e["valide"].is_null()).unwrap();
 

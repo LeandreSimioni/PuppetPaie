@@ -228,7 +228,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     };
 
     outils::reussi(&outils::route(&racine, "enregistrer-saisie", saisie(json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])})), jour));
-    outils::reussi(&outils::route(&racine, "valider-engagement", avec(json!({"valide": true})), jour));
+    outils::reussi(&outils::route(&racine, "valider-engagement", avec(json!({})), jour));
     assert_eq!(documents(), ["a_faire"], "le bulletin du contrat ajoute est a envoyer");
     outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), jour));
     let dsn = std::fs::read(racine.join("sorties/2026-12/DSN_Decembre2026.dsn")).unwrap().iter().map(|&o| o as char).collect::<String>();

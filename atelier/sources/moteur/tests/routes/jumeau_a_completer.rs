@@ -37,7 +37,7 @@ fn le_jumeau_calcule_se_valide_a_cote_de_celui_a_completer() {
     let rangs: Vec<(u64, bool)> = lignes.iter().map(|l| (l["rang"].as_u64().unwrap(), l["a_completer"].is_string())).collect();
     assert_eq!(rangs, vec![(0, true), (1, false)], "les rangs ne suivent pas l'ordre de l'écran : {:?}", lignes);
 
-    let designe = |rang: u64| json!({"mois": "2026-11", "salarie": "FULLER", "debut": debut, "numero": "", "rang": rang, "valide": true});
+    let designe = |rang: u64| json!({"mois": "2026-11", "salarie": "FULLER", "debut": debut, "numero": "", "rang": rang});
     let (_, m) = refus(&route(&c, "valider-engagement", designe(0), jour));
     let manque = r["a_completer"][k].as_str().unwrap();
     assert!(m.contains(manque), "celui à compléter doit dire ce qui lui manque ({}) : {}", manque, m);

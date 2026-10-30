@@ -606,10 +606,13 @@ pub fn cle_de_saisie(mois: &str) -> String {
 /// L'empreinte de la saisie d'un mois : ce qu'elle dit, sans ce que le moteur tient seul (la validation) ni le numero du
 /// contrat (pose a l'envoi, il ne change aucun montant), les cles triees et un nombre ecrit comme un nombre. Deux parts,
 /// `<le mois>:<ses engagements>` : ce que le mois pose pour tous (taux du cachet, date de paiement...), et ses
-/// engagements ; la raison d'un recalcul dit laquelle a change (`etats::raison`).
+/// engagements ; la raison d'un recalcul dit laquelle a change (`etats::raison`). Seuls les engagements valides
+/// comptent : une paie ecrite ne lit que ceux-la (`etats::calculer_les_rangs`), et un brouillon tape a cote d'elle ne
+/// la fait pas recalculer.
 pub fn empreinte_de_saisie(vue: &Value) -> String {
     let mut v = vue.clone();
     if let Some(Value::Array(es)) = v.get_mut("engagements") {
+        es.retain(|e| e.get("valide").is_some());
         for e in es.iter_mut() {
             if let Value::Object(m) = e {
                 m.remove("valide");

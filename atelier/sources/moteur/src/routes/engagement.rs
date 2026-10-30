@@ -113,6 +113,11 @@ fn designe_a_l_ecran(ctx: &Contexte, charge: &Value) -> R<Designe> {
 /// poserait une pastille verte sur un formulaire qu'un rechargement effacerait), ou auquel il manque un fait.
 fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
+    // Valider ne se defait pas : un engagement valide se modifie (`modifier-engagement`) ou se retire.
+    if charge.get("valide").is_some() {
+        return Err(erreur("TypeError", "`valide` : valider-engagement valide ; un engagement valide se modifie ou se retire. Rien n'est écrit."));
+    }
+    let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     // Il lui manque un fait : la validation dit lequel, et rien n'est ecrit. Ce qui manquait se relit d'abord : le fait a
     // pu se dire depuis, sur sa fiche.
     crate::routes::mois::relire_les_manques(ctx)?;
@@ -225,10 +230,7 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
             refus(format!("« le {} » : un jour du mois est attendu, de 1 à 31. Rien n'est écrit.", valeur_en_texte(v)))
         })?),
     };
-    crate::routes::mois::refuser_si_importe(ctx, mois)?;
-    crate::routes::mois::refuser_si_clos(ctx, mois)?;
-    crate::routes::mois::refuser_si_avant_la_premiere_embauche(ctx, mois)?;
-    let _une_a_la_fois = crate::routes::mois::une_ecriture_a_la_fois();
+    let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     let mut rangs = Vec::new();
     let mut saisies = Vec::new();
     let mut nouvelles = Vec::new();
@@ -554,6 +556,7 @@ pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
 /// (`a_faire`, en phrases : la DPAE a annuler, la DSN d'un mois a corriger). Rien ne part de lui-meme.
 fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
+    let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     // Un engagement auquel il manque un fait n'a jamais ete valide : rien n'est parti de lui, il s'efface.
     let designe = match designe_a_l_ecran(ctx, charge)? {
         Designe::ACompleter(o) => {

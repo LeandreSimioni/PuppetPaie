@@ -62,7 +62,7 @@ fn des_heures_a_cheval_se_disent_sur_la_carte_de_leur_mois() {
     let regie = json!({"salarie": "FULLER", "spectacle": spectacle, "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 19, "dates": ["2026-11-29", "2026-11-30"], "planning": ["2026-12-01"]}]});
     reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": {"engagements": [regie]}}), jour));
     let rang = crate::outils::saisie(&c, "2026-11")["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "FULLER" && e["valide"].is_null()).unwrap();
-    let valider = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-29", "numero": "", "rang": rang, "valide": true});
+    let valider = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-29", "numero": "", "rang": rang});
 
     let (_, refus) = crate::outils::refus(&route(&c, "valider-engagement", valider.clone(), jour));
     assert!(refus.contains("01/12/2026") && refus.contains("carte de décembre 2026"), "le refus ne dit ni le jour ni la carte : {}", refus);

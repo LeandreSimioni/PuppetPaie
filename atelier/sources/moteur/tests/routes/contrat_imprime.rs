@@ -18,7 +18,7 @@ fn la_relance_d_un_contrat_imprime_se_refuse_et_rien_n_est_ecrit() {
     let (_, c) = rejouer_dossier(&sc, &d);
     let jour = "2026-11-02";
     let contrat = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20"});
-    reussi(&route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "valide": true}), jour));
+    reussi(&route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20"}), jour));
     reussi(&route(&c, "contrats-imprimer", json!({"mois": "2026-11", "contrats": [contrat]}), jour));
 
     let journal = std::fs::read(c.join("journal/depots.json")).unwrap();
