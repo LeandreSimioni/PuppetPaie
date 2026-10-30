@@ -9,8 +9,8 @@
 //!   derniere DSN a la place de celui pose a la creation ou repris d'une annee d'avant, s'il est autre : le code reste celui que la CARSAT a notifie tant qu'elle n'en
 //!   notifie pas un autre (inference : la norme dit que l'employeur declare un code « qui lui a deja ete notifie ») ; son
 //!   taux est celui que l'arrete de l'annee fixe a ce risque (`droit::bareme::taux_de_l_arrete`), et sinon il se demande.
-//! - LES ORGANISMES ET LES CONTRATS DE LA DSN (`config/organismes.json`, `compagnie::organismes`), quand la compagnie ne
-//!   les a pas encore enregistres : chaque contrat que l'ecran demanderait (`organismes-contrats`) recoit la reference
+//! - LES ORGANISMES ET LES CONTRATS DE LA DSN (`config/organismes.json`, `compagnie::organismes`) : chaque contrat
+//!   que l'ecran attend encore (`organismes-contrats`, ceux des permanents des que la compagnie en emploie : `poser_organismes_repris`) recoit la reference
 //!   (S21.G00.15.001) et l'organisme (S21.G00.15.002) d'une adhesion de la derniere DSN (`norme-dsn/texte/bloc-S21.G00.15.txt`).
 //!   Un contrat dont la reference est fixee (celui de la branche) n'a rien a recevoir ; un contrat a saisir recoit
 //!   l'adhesion de la DSN qu'aucun contrat fixe ne porte, s'il n'y en a qu'une et qu'un seul contrat l'attend (inference :
@@ -83,9 +83,10 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
     }
 }
 
-/// Les organismes et les contrats de la DSN (voir l'en-tete), quand la compagnie ne les a pas enregistres.
+/// Les organismes et les contrats de la DSN (voir l'en-tete), pour les contrats que l'ecran attend encore. Un contrat
+/// deja saisi a son libelle et n'attend plus rien.
 fn poser_organismes(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
-    if lecture.adhesions.is_empty() || ctx.racine.join("config").join(droit::contexte::ORGANISMES).is_file() {
+    if lecture.adhesions.is_empty() {
         return;
     }
     let Ok(ecran) = crate::compagnie::organismes::lire(ctx, &json!({})) else { return };
@@ -102,8 +103,10 @@ fn poser_organismes(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String
     saisies.insert(texte(l, "cle"), json!({"libelle": texte(a, "libelle"), "organisme": texte(a, "organisme")}));
     if crate::compagnie::organismes::enregistrer(ctx, &json!({"contrats": saisies})).is_ok() {
         faits.push(format!(
-            "Organismes et contrats de la DSN : enregistrés d'après la DSN reprise ({} adhésion(s), S21.G00.15).",
-            lecture.adhesions.len()
+            "{} : contrat {} chez {}, lu dans la DSN reprise (S21.G00.15.001, S21.G00.15.002).",
+            texte(l, "quoi"),
+            texte(a, "libelle"),
+            texte(a, "organisme")
         ));
     }
 }
@@ -117,6 +120,17 @@ pub(crate) fn parametrer(ctx: &Contexte) -> Vec<String> {
     let mut faits = Vec::new();
     poser_atmp(ctx, &lecture, &mut faits);
     poser_organismes(ctx, &lecture, &mut faits);
+    faits
+}
+
+/// Les contrats des permanents que les DSN reprises portent, poses quand la compagnie se met a employer un permanent
+/// (la nature d'un contrat repris dite, `import::nature::dire`) : l'ecran ne les attendait pas encore a l'import.
+pub(crate) fn poser_organismes_repris(ctx: &Contexte) -> Vec<String> {
+    let lecture = crate::import::dsn_aem::lire_dsn(&ctx.racine.join("historique").join("bulletins"));
+    let mut faits = Vec::new();
+    if lecture.fichiers > 0 {
+        poser_organismes(ctx, &lecture, &mut faits);
+    }
     faits
 }
 

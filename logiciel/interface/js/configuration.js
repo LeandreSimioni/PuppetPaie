@@ -563,7 +563,8 @@ document.addEventListener("click", async (ev) => {
     });
     const r = await api("importation-nature", charge);
     dire(`Nature enregistrée sur ${r.ecrits} contrat${r.ecrits > 1 ? "s" : ""} repris.${r.permanents_declares
-      ? " La compagnie emploie donc des salariés au mois : Configuration › Entreprise dit ce que cela demande encore." : ""}`, "ok");
+      ? " La compagnie emploie donc des salariés au mois : Configuration › Entreprise dit ce que cela demande encore." : ""}${
+      (r.parametrage || []).map((p) => ` ${p}`).join("")}`, "ok");
     // Les natures au mois s'ouvrent alors dans la saisie (`etat.natures`).
     ETAT = await api("etat");
     rafraichirReferentiels();
