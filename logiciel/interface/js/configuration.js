@@ -1076,12 +1076,12 @@ const SOUS_CHAMPS = {
   // ce que son dernier bulletin disait.
   conges_reprise: { champs: [
     ["date", "PuppetPaie compte à partir du", "Le premier jour du premier mois produit par PuppetPaie", { date: true }],
-    ["report", "Reste N-1 (jours)", "Les jours de l'année de référence précédente qui restent à prendre"],
-    ["acquis_report", "Acquis N-1 en tout (jours)", "Souvent 30 : il sert à payer un jour au dixième"],
-    ["remuneration_report", "Brut de la période N-1 (€)", "L'assiette du dixième des jours N-1"],
-    ["acquis", "Acquis N (jours)", "Les jours acquis sur la période en cours, avant cette date"],
-    ["pris", "Pris sur N (jours)", "Les jours de la période en cours déjà pris avant cette date"],
-    ["remuneration_periode", "Brut de la période N (€)", "Le brut versé sur la période en cours, avant cette date"],
+    ["report", "Jours qui restent de la période passée", "Les jours de congés acquis sur la période de référence passée et pas encore pris. Le dernier bulletin de l'ancien logiciel les écrit souvent « N-1 », « reliquat » ou « solde N-1 »."],
+    ["acquis_report", "Jours acquis sur la période passée, en tout", "Souvent 30, pour une période entière : il sert à payer un jour au dixième. Sur le bulletin : « acquis N-1 »."],
+    ["remuneration_report", "Brut gagné pendant la période passée (€)", "Le brut de toute la période de référence passée, qui sert à calculer le dixième. Sur le bulletin : « base N-1 », ou dans votre ancien logiciel."],
+    ["acquis", "Jours acquis depuis le début de la période en cours", "Les jours acquis sur la période en cours, avant cette date. Sur le bulletin : « acquis N »."],
+    ["pris", "Jours déjà pris sur la période en cours", "Les jours pris sur ceux de la période en cours, avant cette date. Sur le bulletin : « pris N »."],
+    ["remuneration_periode", "Brut gagné depuis le début de la période en cours (€)", "Le brut versé sur la période en cours, avant cette date. Sur le bulletin : « base N »."],
   ] },
   signataire: { champs: [
     ["prenom_affichage", "Prénom", ""],
