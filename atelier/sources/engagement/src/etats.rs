@@ -747,9 +747,17 @@ fn chiffres(v: &Value) -> Value {
     x
 }
 
-/// Pourquoi la paie a change de `avant` a `apres` : son prelevement seul, une regle datee nouvelle, le code qui calcule
-/// (le moteur ou ce qu'il livre), la saisie d'un autre engagement, ou la configuration de la compagnie.
-fn raison(avant: &Value, apres: &Value) -> String {
+/// Pourquoi la paie a change de `avant` a `apres` : son prelevement seul, une regle datee nouvelle, la saisie d'un autre
+/// engagement ou du mois, la paie d'un autre mois, une valeur datee de la compagnie, le code qui calcule (le moteur ou ce
+/// qu'il livre), ou la configuration de la compagnie.
+///
+/// UNE SEULE RAISON, LA MEME QUELLE QUE SOIT L'HEURE DE LA LECTURE. Une paie dont l'empreinte ne tient plus sans qu'un
+/// chiffre change renouvelle son empreinte sans rien dire (`rafraichir`) : selon que l'ecran a lu le mois entre deux
+/// gestes ou non, l'empreinte ecrite porte deja le code present ou encore l'ancien. Ce que la compagnie a fait (une
+/// saisie, une paie d'un autre mois, une valeur datee) dit donc pourquoi avant le code, qui ne se nomme que lorsque rien
+/// d'autre n'a change. Une paie partie (`parti`) ne bouge que par une decision de l'editeur : le code et les regles
+/// datees s'y nomment d'abord, puisque ce sont eux qui la refont.
+fn raison(avant: &Value, apres: &Value, parti: bool) -> String {
     let (a, b) = (chiffres(avant), chiffres(apres));
     if a["paie"] == b["paie"] && a[CONGES] == b[CONGES] && a["pas"] != b["pas"] {
         return TAUX_DE_PAS.to_string();
@@ -763,7 +771,8 @@ fn raison(avant: &Value, apres: &Value) -> String {
     let entrees = |v: &Value| v.get("empreinte").and_then(empreinte::entrees_de).unwrap_or_default();
     let (ea, eb) = (entrees(avant), entrees(apres));
     let changees: Vec<&String> = ea.keys().chain(eb.keys()).filter(|k| ea.get(*k) != eb.get(*k)).collect();
-    if changees.iter().any(|k| *k == "moteur" || k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:"))) {
+    let code = changees.iter().any(|k| *k == "moteur" || k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:")));
+    if code && parti {
         return CALCUL_CORRIGE.to_string();
     }
     // La saisie d'un mois : `<le mois>:<ses engagements>` (`stock::empreinte_de_saisie`).
@@ -790,6 +799,9 @@ fn raison(avant: &Value, apres: &Value) -> String {
     });
     if let Some(jour) = config_nouvelle.or_else(|| annee_du_bareme.map(|an| format!("{}-01-01", an))) {
         return format!("règle du {}", Jour::lire(&jour).map(|j| j.jj_mm_aaaa()).unwrap_or(jour));
+    }
+    if code {
+        return CALCUL_CORRIGE.to_string();
     }
     CONFIGURATION.to_string()
 }
@@ -1288,7 +1300,7 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<
     let nouvelles = calculer_les_rangs(ctx, mois, &rangs)?;
     for ((_, mut o, ancienne, parti), mut nouvelle) in a_refaire.into_iter().zip(nouvelles) {
         let raison = match &ancienne {
-            Some(a) if chiffres(a) != chiffres(&nouvelle) => Some(raison(a, &nouvelle)),
+            Some(a) if chiffres(a) != chiffres(&nouvelle) => Some(raison(a, &nouvelle, parti)),
             Some(a) => {
                 if let Some(r) = a.get("recalcul").filter(|r| r.is_object()) {
                     nouvelle["recalcul"] = r.clone();
