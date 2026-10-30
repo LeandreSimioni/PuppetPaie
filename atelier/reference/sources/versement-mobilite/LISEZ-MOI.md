@@ -11,8 +11,7 @@ Données sous licence Open Database License (ODbL) : republiées ici telles quel
 - Une ligne par commune où l'Urssaf publie un taux (20 284 communes) : `code_insee`, `commune`, `departement`, `taux_vm`
   (versement mobilité, en %), `taux_vma` (additionnel), `taux_vmr` (régional et rural), `aom` (autorité organisatrice de
   la mobilité), `zone_url`. Exemple : Nantes Métropole, 2 %.
-- **Le taux en vigueur au 09/09/2026, sans date d'effet** : le fichier ne dit pas depuis quand un taux vaut, ni ce qu'il
-  valait avant. Un taux qui change (souvent au 1er janvier ou au 1er juillet) demandera un relevé neuf, daté.
+- **La source et ses dates** (page du jeu, `datagouv-page-jeu-versement-mobilite-20261030.md`) : le jeu est dérivé du fichier de l'Urssaf Caisse nationale « Table_Taux_VM_VMA_VMRR » (open.urssaf.fr, ODbL), « pour les taux, leurs dates d'effet et l'organisme percepteur » ; le dérivé ne garde que le taux **en vigueur au 09/09/2026, sans date d'effet** et sans historique. Pour lire un taux à la date de la paie, le fichier de l'Urssaf est à relever (open.urssaf.fr ne répond pas depuis le conteneur, data.gouv.fr non plus).
 
 ## Où le moteur s'en sert
 
