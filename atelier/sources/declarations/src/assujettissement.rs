@@ -128,11 +128,7 @@ fn codes_du_contrat(p: &Paie) -> Resultat<(String, String, String)> {
 }
 
 fn qui(p: &Paie) -> String {
-    format!(
-        "Contrat {} de {}",
-        p.engagement.numero.clone().unwrap_or_else(|| "sans numero".into()),
-        txt(g(&p.salarie, "_cle"))
-    )
+    droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &txt(g(&p.salarie, "_cle")))
 }
 
 fn cpf_cdd(annee: &[MoisDeLAnnee]) -> Resultat<bool> {
