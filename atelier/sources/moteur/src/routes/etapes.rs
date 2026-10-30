@@ -146,7 +146,14 @@ impl Point {
             "a_faire"
         };
         let s = &p["etats"]["signature"];
-        let contrat = if !(embauche && vrai(&p["contrat"]["ecrit"])) {
+        // Le contrat se fait signer au mois de l'embauche ; un avenant, a chaque mois du contrat : tant qu'il n'est pas
+        // revenu signe, chacun de ses mois le dit.
+        let ecrit = vrai(&p["contrat"]["ecrit"]);
+        let contrat = if ecrit && !embauche && vrai(&s["caduc"]) {
+            "a_refaire"
+        } else if ecrit && !embauche && vrai(&s["avenant_attendu"]) {
+            "en_attente"
+        } else if !(embauche && ecrit) {
             "fait"
         } else if !vrai(&s["fait"]) {
             "a_envoyer"

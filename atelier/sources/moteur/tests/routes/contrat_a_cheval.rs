@@ -3,15 +3,21 @@
 //! second mois le declare depuis ce jour-la (S21.G00.40.001, `norme-dsn/texte/bloc-S21.G00.40.txt`). Le banc, FULLER
 //! engagee les 20 et 21/11 avec deux jours planifies les 02 et 03/12, vit jusqu'au 16/12 : decembre ne refait ni DPAE ni
 //! contrat, et sa DSN dit le contrat du 20/11.
+//!
+//! L'AVENANT, LUI, SE VOIT A CHAQUE MOIS DU CONTRAT (un bug qui a echappe : le carre « Contrat » d'un mois qui n'est pas
+//! celui de l'embauche restait vert, « Contrat signe », alors que l'avertissement de « Modifier l'engagement » venait de
+//! dire qu'un avenant est a faire signer).
 
-use serde_json::json;
+use std::path::PathBuf;
+
+use serde_json::{json, Value};
 
 use crate::outils::rejeu::{rejouer_dossier, scenario};
-use crate::outils::{dossier_de_test, noms, reussi, route};
+use crate::outils::{dossier_de_test, noms, reussi, route, saisie};
 
-#[test]
-fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
-    let d = dossier_de_test("contrat_a_cheval", "second_mois");
+/// Le banc rejoue jusqu'au 16/12, FULLER engagee les 20 et 21/11 et planifiee les 02 et 03/12.
+fn fuller_a_cheval(cas: &str) -> PathBuf {
+    let d = dossier_de_test("contrat_a_cheval", cas);
     let sc = d.join("scenario");
     std::fs::create_dir_all(&sc).unwrap();
     let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
@@ -19,8 +25,12 @@ fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
     assert!(gestes.contains(novembre));
     let gestes = gestes.replace(novembre, r#""dates":["2026-11-20","2026-11-21"],"planning":["2026-12-02","2026-12-03"]}"#);
     std::fs::write(sc.join("gestes.jsonl"), gestes).unwrap();
-    let (_, c) = rejouer_dossier(&sc, &d);
+    rejouer_dossier(&sc, &d).1
+}
 
+#[test]
+fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
+    let c = fuller_a_cheval("second_mois");
     let dpae: Vec<String> = noms(&c.join("retours/depots")).into_iter().filter(|n| n.contains("depot-dpae")).collect();
     assert!(dpae.iter().all(|n| n.contains("_202611")), "une DPAE est repartie en decembre : {:?}", dpae);
     assert!(!c.join("sorties/2026-12/envoi").exists(), "un contrat est refait en decembre : {:?}", noms(&c.join("sorties/2026-12/envoi")));
@@ -31,5 +41,33 @@ fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
     let decembre = String::from_utf8_lossy(&std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap()).to_string();
     for attendu in ["S21.G00.40.001,'20112026'", "S21.G00.40.009,'FU1.26.01'", "S21.G00.40.010,'03122026'", "S21.G00.40.013,'4.00'"] {
         assert!(decembre.contains(attendu), "{} manque :\n{}", attendu, decembre);
+    }
+}
+
+#[test]
+fn l_avenant_a_faire_signer_se_voit_au_second_mois() {
+    let c = fuller_a_cheval("avenant");
+    let jour = "2026-12-16";
+    let carre_contrat = |mois: &str| -> Value {
+        let l = reussi(&route(&c, "etat-par-engagement", json!({"mois": mois}), jour)).clone();
+        let fuller = l["engagements"].as_array().and_then(|l| l.iter().find(|x| x["salarie"] == "FULLER")).cloned().unwrap_or(l);
+        fuller["carres"].as_array().and_then(|c| c.iter().find(|x| x["cle"] == "contrat-signature")).cloned().unwrap_or(fuller)
+    };
+    assert_eq!(carre_contrat("2026-12")["etat"], json!("fait"), "{}", carre_contrat("2026-12"));
+
+    // La carte ouverte en decembre, le cachet change, « Modifier l'engagement » confirme.
+    let mut fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
+    let debut = engagement::debut_brut(&fuller);
+    let lignes = fuller["lignes"].as_array_mut().unwrap();
+    let taux = lignes[0]["taux"].as_f64().unwrap();
+    lignes[0]["taux"] = json!(taux + 20.0);
+    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true, "engagements": [
+        {"salarie": "FULLER", "debut": debut, "numero": fuller["numero"], "rang": 0, "saisie": fuller}]}), jour);
+    assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
+
+    for mois in ["2026-11", "2026-12"] {
+        let carre = carre_contrat(mois);
+        assert_eq!(carre["etat"], json!("a_faire"), "{} : {}", mois, carre);
+        assert!(carre["phrase"].as_str().is_some_and(|p| p.contains("avenant")), "{} : {}", mois, carre);
     }
 }
