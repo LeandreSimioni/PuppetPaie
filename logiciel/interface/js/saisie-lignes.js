@@ -787,37 +787,29 @@ function ouvrirCarte(div) {
   if (intacte) DERNIERE_ECRITE = JSON.stringify(saisieCourante());
 }
 
-/** Les salariés à cocher d'une carte : la liste commune, cochée pour `voulus`,
+/** Le salarié d'une carte, à choisir dans la liste commune (un bouton radio par carte), choisi pour `voulus`,
  *  et un salarié du fichier absent des actifs (fiche mise de côté) garde sa
- *  case, cochée : on ne perd pas un engagement parce qu'on a archivé quelqu'un. */
+ *  case, choisie : on ne perd pas un engagement parce qu'on a archivé quelqu'un. */
+let LISTES_QUI = 0;
 function poserQui(liste, voulus) {
   const actifs = ETAT.salaries || [];
   const connus = new Set(actifs.map((s) => s.cle));
   poserListe(liste, "salaries", [actifs], () => actifs.map(
-    (s) => `<label><input type="checkbox" class="e-qui-case" value="${echapper(s.cle)}"> ${
+    (s) => `<label><input type="radio" class="e-qui-case" value="${echapper(s.cle)}"> ${
       echapper(s.libelle)}</label>`).join(""));
-  liste.querySelectorAll(".e-qui-case").forEach((c) => { c.checked = c.defaultChecked = voulus.has(c.value); });
+  if (!liste.dataset.nom) liste.dataset.nom = "qui-" + (++LISTES_QUI);
+  liste.querySelectorAll(".e-qui-case").forEach((c) => {
+    c.name = liste.dataset.nom;
+    c.checked = c.defaultChecked = voulus.has(c.value);
+  });
   liste.insertAdjacentHTML("beforeend", [...voulus].filter((c) => !connus.has(c)).map(
-    (c) => `<label><input type="checkbox" class="e-qui-case" value="${echapper(c)}"
+    (c) => `<label><input type="radio" class="e-qui-case" name="${liste.dataset.nom}" value="${echapper(c)}"
        checked> ${echapper(c)} <span class="discret">(fiche mise de côté)</span></label>`).join(""));
 }
 
 /** Le formulaire d'une carte, posé devant sa coque et branché. */
 function construireCarte(div, e) {
-  // QUI : une liste à COCHER, pas un menu, et UN bloc pour tous les cochés.
-  //
-  // L'ancienne option « Les deux » qui dédoublait le bloc à la sélection
-  // était taillée pour une compagnie à deux têtes, et dédoublait trop tôt.
-  // La demande : « il faut pouvoir cocher dedans, x Célimène
-  // x Marin, pas d'option les deux d'un coup » ; puis : « le dédoublement
-  // doit se faire une fois validé, pas avant — c'est ce qui va me faire
-  // aller vite quand j'ai plusieurs employés pour le même spectacle avec la
-  // même paye ». Donc : on coche qui on veut, on saisit UNE fois, on valide
-  // — et LÀ le bloc se démultiplie, un bloc par salarié (validerPlusieurs).
-  //
-  // Le moteur, lui, ne connaît toujours qu'un salarié par engagement : c'est
-  // saisieCourante qui écrit un engagement par salarié coché, et chargerMois
-  // qui regroupe au retour ce qui est identique et pas encore validé.
+  // QUI : un salarié. Une carte porte un engagement, et un engagement un salarié.
   const voulus = new Set(e.salaries || (e.salarie ? [e.salarie] : []));
   div.insertAdjacentHTML("afterbegin", `
     <div class="ligne1">
@@ -826,7 +818,7 @@ function construireCarte(div, e) {
            on n'y administre pas (13/09/2026). -->
       <div class="champ">Salarié
         <details class="e-qui">
-          <summary class="vide">— cocher —</summary>
+          <summary class="vide">— choisir —</summary>
           <div class="e-qui-liste"></div>
         </details>
       </div>
@@ -1566,7 +1558,7 @@ function majQui(div) {
   const resume = div.querySelector(".e-qui summary");
   const noms = [...div.querySelectorAll(".e-qui-case:checked")]
     .map((c) => c.parentNode.textContent.replace(/\s+/g, " ").trim());
-  resume.textContent = noms.length ? noms.join(" + ") : "— cocher —";
+  resume.textContent = noms.length ? noms.join(" + ") : "— choisir —";
   resume.classList.toggle("vide", !noms.length);
   // Un imprévu se dit d'UN salarié : la porte ne s'ouvre que sur une carte qui n'en porte qu'un.
   majPorteImprevu(div);
@@ -1579,26 +1571,6 @@ document.addEventListener("click", (ev) => {
     if (!d.contains(ev.target)) d.open = false;
   });
 });
-
-/** Plusieurs salariés cochés : le bloc devient un bloc par salarié.
- *
- *  Appelé APRÈS la validation (validerPlusieurs), pas avant : tant qu'on
- *  saisit, un seul bloc pour tous — c'est ça qui va vite. Le moteur, lui, ne
- *  connaît qu'un salarié par engagement, un contrat, un bulletin ; ici on ne
- *  fait que montrer à l'écran ce que le fichier contient déjà. Rien à faire
- *  pour zéro ou une case. */
-function dedoubler(div) {
-  const cles = salariesDuBloc(div);
-  if (cles.length < 2) return;
-  // Chaque bloc né ici part de ce que l'écran écrit pour SON salarié — les
-  // lignes, lieux et jours compris (les salariés jouent les mêmes dates aux
-  // mêmes endroits), la nature, le métier, tout ce que le formulaire dit.
-  const engagements = engagementsDuBloc(div, document.getElementById("mois").value);
-  const parent = div.parentNode;
-  const suivant = div.nextSibling;
-  div.remove();
-  engagements.forEach((e) => parent.insertBefore(ligneEngagement(e), suivant));
-}
 
 /** Les lignes de paie d'un bloc, telles qu'elles sont saisies. */
 /* CE QU'UNE LIGNE DIT PART DANS LA SAISIE, même incomplète : ses jours, sa

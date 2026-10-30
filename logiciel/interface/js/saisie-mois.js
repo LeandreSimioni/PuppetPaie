@@ -74,7 +74,7 @@ function ruptureDuBloc(div, nat, fin, e) {
   }
 }
 
-/** Les engagements qu'un bloc écrit : un par salarié coché. */
+/** L'engagement qu'une carte écrit (aucun tant qu'elle n'a pas de salarié). */
 function engagementsDuBloc(div, mois) {
   // Une carte fermée, ou ouverte pour être modifiée : ce qu'on y tape ne s'écrit qu'à « Modifier l'engagement » ; seuls
   // l'aperçu et le montant visé la lisent (`LIRE_LES_MODIFICATIONS`).
@@ -82,12 +82,7 @@ function engagementsDuBloc(div, mois) {
     return engagementsLus(div).map((e) => JSON.parse(JSON.stringify(e)));
   // L'ENGAGEMENT N'ÉCRIT PLUS DE `dates` : chacune de ses lignes porte les
   // siennes, avec son lieu, et le moteur en fait la réunion
-  // (`operations.dates_engagement`).
-  //
-  // UN ENGAGEMENT PAR SALARIÉ COCHÉ. Le bloc en porte plusieurs à l'écran
-  // pour aller vite ; le fichier, lui, garde le format du moteur — un
-  // salarié, un engagement. Chacun reçoit sa copie de ce que le formulaire
-  // dit : un bloc ne regroupe que des engagements identiques (`regrouper`).
+  // (`operations.dates_engagement`). Une carte porte un salarié : elle écrit son engagement.
   const spectacle = div.querySelector(".e-spectacle").value;
   const etablissement = div.querySelector(".e-etablissement").value;
   const lignes = lignesDuBloc(div, mois);
@@ -612,35 +607,6 @@ let DSN_DEPOSEE = null;         // ce que le moteur dit du mois déclaré (`dsn_
 let MOIS_CONFIRME = null;       // le mois dont on a confirmé la modification, pour cette séance d'édition
 let CONFIRMATION_OUVERTE = null; // le mois dont la boîte de confirmation est ouverte
 
-/** Le fichier en blocs : ce qui a été saisi d'un coup pour plusieurs
- *  salariés (saisieCourante) revient d'un coup — même spectacle, mêmes
- *  lignes, qui se suivent, et AUCUN validé. Un engagement validé, lui, est
- *  déjà démultiplié : il a son bloc, fermé, et n'absorbe rien. */
-function regrouper(engagements) {
-  const groupes = [];
-  // UN BLOC NE REGROUPE QUE DES ENGAGEMENTS IDENTIQUES, au salarié près : le
-  // formulaire montre un engagement et l'écrit pour chaque salarié coché.
-  // Deux engagements qui diffèrent en quoi que ce soit — le motif de
-  // recours de deux CDD aux mêmes bornes, un salaire, un numéro, un lieu
-  // propre à un jour — ont chacun leur bloc. Ni un engagement validé. Ce qui
-  // manque (`a_completer`) nomme son salarié : il ne sépare pas le bloc.
-  const empreinteDe = (e) => {
-    const { salarie, a_completer, ...reste } = e;
-    return JSON.stringify(Object.keys(reste).sort().map((k) => [k, reste[k]]));
-  };
-  engagements.forEach((e, rang) => {
-    const empreinte = empreinteDe(e);
-    const dernier = groupes[groupes.length - 1];
-    if (dernier && !e.valide && !dernier.valide && dernier.empreinte === empreinte
-        && !dernier.salaries.includes(e.salarie)) {
-      dernier.salaries.push(e.salarie);
-      dernier.rangs.push(rang);
-    } else {
-      groupes.push({ ...e, salaries: [e.salarie], rangs: [rang], empreinte });
-    }
-  });
-  return groupes;
-}
 
 function afficherRappelsMois() {
   document.getElementById("rappels-mois").innerHTML =
@@ -711,7 +677,8 @@ async function chargerMois(mois, repeint = false) {
     ETATS_ENGAGEMENTS = null;
   }
   cible.innerHTML = "";
-  const groupes = regrouper(SAISIE.engagements || []);
+  // Une carte par engagement : une carte porte un salarié.
+  const groupes = (SAISIE.engagements || []).map((e, rang) => ({ ...e, salaries: [e.salarie], rangs: [rang] }));
   const ouvertes = avant.length === groupes.length ? avant.map((div) => !carteFermee(div)) : [];
   groupes.forEach((g, i) => cible.appendChild(ligneEngagement(g, { fermee: !ouvertes[i] })));
   if (deplies) {

@@ -97,8 +97,8 @@ fn l_avenant_a_faire_signer_se_voit_au_second_mois() {
     let lignes = fuller["lignes"].as_array_mut().unwrap();
     let taux = lignes[0]["taux"].as_f64().unwrap();
     lignes[0]["taux"] = json!(taux + 20.0);
-    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true, "engagements": [
-        {"salarie": "FULLER", "debut": debut, "numero": fuller["numero"], "rang": 0, "saisie": fuller}]}), jour);
+    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true,
+        "salarie": "FULLER", "debut": debut, "numero": fuller["numero"], "rang": 0, "saisie": fuller}), jour);
     assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
 
     for mois in ["2026-11", "2026-12"] {
@@ -119,8 +119,8 @@ fn la_date_de_debut_changee_se_declare_avec_l_ancienne() {
     let mut fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
     let debut = engagement::debut_brut(&fuller);
     fuller["debut"] = json!("2026-11-19");
-    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true, "engagements": [
-        {"salarie": "FULLER", "debut": debut, "numero": fuller["numero"], "rang": 0, "saisie": fuller}]}), jour);
+    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true,
+        "salarie": "FULLER", "debut": debut, "numero": fuller["numero"], "rang": 0, "saisie": fuller}), jour);
     assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
 
     let ecrite = reussi(&route(&c, "dsn-a-deposer", json!({"mois": "2026-12"}), "2026-12-20")).clone();
@@ -141,8 +141,8 @@ fn la_date_de_debut_changee_se_fait_signer_en_avenant() {
     let mut fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
     let (debut, numero) = (engagement::debut_brut(&fuller), fuller["numero"].clone());
     fuller["debut"] = json!("2026-11-19");
-    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true, "engagements": [
-        {"salarie": "FULLER", "debut": debut, "numero": numero, "rang": 0, "saisie": fuller}]}), jour);
+    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true,
+        "salarie": "FULLER", "debut": debut, "numero": numero, "rang": 0, "saisie": fuller}), jour);
     assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
 
     let contrat = |c: &PathBuf| -> Value {
@@ -178,8 +178,8 @@ fn une_notification_hors_du_contrat_se_refuse_a_la_validation() {
     let mut fuller: Value = avant["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
     let debut = engagement::debut_brut(&fuller);
     fuller["notification_rupture"] = json!("2026-11-14");
-    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true, "engagements": [
-        {"salarie": "FULLER", "debut": debut, "numero": fuller["numero"], "rang": 0, "saisie": fuller}]}), jour);
+    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true,
+        "salarie": "FULLER", "debut": debut, "numero": fuller["numero"], "rang": 0, "saisie": fuller}), jour);
     let (_, phrase) = refus(&r);
     assert!(phrase.contains("14/11/2026") && phrase.contains("20/11/2026") && phrase.contains("03/12/2026"), "{}", r);
     assert_eq!(saisie(&c, "2026-12"), avant, "une notification refusee s'est ecrite");

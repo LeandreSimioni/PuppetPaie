@@ -47,7 +47,8 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
         let mut e = svoboda.clone();
         e["saisie"] = saisie;
         e["saisie"]["salaire_mensuel"] = json!(salaire);
-        let mut charge = json!({"mois": "2026-01", "engagements": [e]});
+        let mut charge = e;
+        charge["mois"] = json!("2026-01");
         charge.as_object_mut().unwrap().extend(x.as_object().unwrap().clone());
         route(&c, "modifier-engagement", charge, jour)
     };

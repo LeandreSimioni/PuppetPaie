@@ -300,7 +300,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
 
     let avant = engagements_ecrits(&racine);
     let fuller = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20"});
-    assert_eq!(route("modifier-engagement", json!({"mois": "2026-11", "engagements": [{"salarie": "FULLER", "debut": "2026-11-20", "saisie": {"salarie": "FULLER"}}]}))["ok"], json!(false));
+    assert_eq!(route("modifier-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "saisie": {"salarie": "FULLER"}}))["ok"], json!(false));
     assert_eq!(route("retirer-engagement", fuller)["ok"], json!(false));
     assert_eq!(engagements_ecrits(&racine), avant);
 
