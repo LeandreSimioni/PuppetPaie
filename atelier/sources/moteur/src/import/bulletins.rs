@@ -696,11 +696,19 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         Historique((String, String, String)),
     }
     let mut index: HashMap<(String, String, String), Vec<(String, String, Cible)>> = HashMap::new();
+    // LA PAIE D'UN CONTRAT QUI COURT AU-DELA DU MOIS (un permanent) : la DSN la date des bornes du contrat
+    // (S21.G00.40.001 et .010, un CDI sans fin), le bulletin de la periode payee ; les dates ne la rapprochent donc pas.
+    // Le numero du contrat (S21.G00.40.009, que le versement rappelle en S21.G00.51.010) et le mois, si : un bulletin qui
+    // imprime son numero se rattache a la paie que la DSN du mois declare sous ce numero.
+    let mut par_numero: HashMap<(String, String, String), Vec<(String, String, Cible)>> = HashMap::new();
     let mut vus: HashSet<(String, String, String)> = HashSet::new();
     for (k, x) in ap.paies.iter().enumerate() {
         let t = |c: &str| x.get(c).map(valeur_en_texte).unwrap_or_default();
         vus.insert((t("mois"), t("nir"), t("contrat")));
         index.entry((t("nir"), t("debut"), t("fin"))).or_default().push((t("mois"), t("contrat"), Cible::Dsn(k)));
+        if !t("contrat").is_empty() {
+            par_numero.entry((t("nir"), t("mois"), t("contrat"))).or_default().push((t("mois"), t("contrat"), Cible::Dsn(k)));
+        }
     }
     // Une paie que l'historique tient d'un bulletin seul s'efface devant la DSN qui la declare (la DSN est lue apres le
     // bulletin : l'ordre inverse) : le bulletin complete la ligne DSN, et l'ecriture retire la ligne « bulletin »
@@ -741,6 +749,11 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         let mut infos = infos_de(l, Some(&salarie));
         let (debut, fin) = (l.b.debut.iso(), l.b.fin.iso());
         let mut candidats: Vec<(String, String, Cible)> = index.get(&(l.nir.clone(), debut.clone(), fin.clone())).cloned().unwrap_or_default();
+        if candidats.is_empty() {
+            if let Some(n) = l.b.contrat.as_deref().map(str::trim).filter(|n| !n.is_empty()) {
+                candidats = par_numero.get(&(l.nir.clone(), l.mois.clone(), n.to_string())).cloned().unwrap_or_default();
+            }
+        }
         if candidats.iter().any(|c| matches!(c.2, Cible::Dsn(_))) {
             candidats.retain(|c| !matches!(&c.2, Cible::Historique(k) if de_bulletin.contains(k)));
         }
@@ -1410,7 +1423,11 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
 /// Les heures se comptent en heures entieres comme celles d'une saisie (`cumul::engagement_de_paie` : arrondi au
 /// pair) ; des cachets ou des jours qui ne sont pas entiers, ou un compteur inconnu, ne font pas de contrat.
 fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(CleEngagement, Value), String> {
-    let (Some(cachets), Some(heures), Some(jours)) = (c.cachets, c.heures, c.jours) else {
+    // LES JOURS TRAVAILLES sont ceux qu'atteste l'attestation employeur mensuelle de l'intermittent (annexes 8 et 10) ;
+    // un permanent paye au mois n'en a pas, et son bulletin n'imprime ni dates travaillees ni cumul de jours : son
+    // contrat ne compte pas de jours (0), il ne les « ignore » pas.
+    let jours = if c.jours.is_none() && !marque_d_intermittent(&l.b) { Some(Decimal::ZERO) } else { c.jours };
+    let (Some(cachets), Some(heures), Some(jours)) = (c.cachets, c.heures, jours) else {
         let manque: Vec<&str> =
             [("cachets", c.cachets), ("heures", c.heures), ("jours", c.jours)].iter().filter(|x| x.1.is_none()).map(|x| x.0).collect();
         return Err(format!("{} inconnu(s), on ne les devine pas", manque.join(", ")));
