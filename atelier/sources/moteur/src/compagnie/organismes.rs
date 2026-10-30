@@ -77,12 +77,11 @@ fn attendus(ctx: &Contexte, base: &Value) -> R<Vec<Value>> {
     let idcc = txt(g(ent, "idcc"));
     let contrats = g(base, "contrats");
     let mut out = liste(g(contrats, "tous"));
-    let casc = declarations::casc::base().map_err(plain)?;
-    if idcc == txt(g(&casc, "idcc")) && !droit::bareme::casc_exemptee(ent).map_err(plain)? {
+    if let Some(casc) = droit::adhesions::casc_svp(&ctx.code, ent).map_err(plain)? {
         out.push(json!({
-            "cle": "casc", "libelle": txt(g(g(&casc, "dsn"), "contrat")), "reference": "100", "type": "02",
+            "cle": "casc", "libelle": casc["libelle"], "reference": casc["reference"], "type": casc["type"],
             "beneficiaires": "tous les salariés", "quoi": "CASC-SVP (activités sociales et culturelles)",
-            "organisme": AUDIENS, "organisme_fixe": true,
+            "organisme": casc["delegataire"], "organisme_fixe": true,
         }));
     }
     // Les contributions de branche en DSN : le bareme dit lesquelles. Un bareme illisible (taux AT/MP manquant...) se

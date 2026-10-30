@@ -1242,9 +1242,8 @@ fn casc_svp(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str) -> Resultat<O
         Some(a) => a,
         None => {
             return Err(format!(
-                "Convention 3090 : la CASC-SVP se declare en DSN depuis janvier 2025, et config/organismes.json n'a \
-pas d'adhesion {} (`adhesions_prevoyance`). Sa reference se lit dans la fiche de parametrage Audiens ; elle ne se \
-devine pas. Rien n'est ecrit.",
+                "Convention 3090 : la CASC-SVP se declare en DSN depuis janvier 2025, et les organismes lus n'ont pas \
+l'adhesion {} que `Contexte::organismes` porte pour toute compagnie de la 3090. Rien n'est ecrit.",
                 contrat
             ))
         }
@@ -1277,8 +1276,8 @@ d'affiliation par contrat). Rien n'est ecrit.",
     Ok(Some(Value::Object(out)))
 }
 
-/// La DSN de `mois` porte-t-elle la CASC-SVP ? La regle qui l'y met (`casc_svp`) le dit ; sans adhesion CASCSVP au
-/// fichier des organismes, elle ne la porte pas.
+/// La DSN de `mois` porte-t-elle la CASC-SVP ? La regle qui l'y met (`casc_svp`) le dit ; sans organismes enregistres,
+/// elle ne la porte pas.
 pub fn porte_la_casc(ctx: &Contexte, mois: &str) -> Resultat<bool> {
     let ctx = ctx.du_mois(mois)?;
     let Some(orgs) = ctx.organismes()? else { return Ok(false) };
@@ -4890,14 +4889,6 @@ mod tests {
         assert!(casc_svp(&ctx_dsn("b1", &[]), &json!({"idcc": "1285"}), &o, "2026-09").unwrap().is_none());
         assert!(casc_svp(&ctx_dsn("b2", &[]), &json!({"idcc": "3090"}), &o, "2024-12").unwrap().is_none());
         assert!(casc_svp(&ctx_dsn("b3", &["2026-08"]), &json!({"idcc": "3090"}), &o, "2026-08").unwrap().is_none());
-    }
-
-    #[test]
-    fn une_3090_sans_adhesion_casc_refuse() {
-        let mut o = orgs_casc();
-        o["adhesions_prevoyance"] = json!([{"libelle": "INTERBRANCHE", "reference": "102"}]);
-        let e = casc_svp(&ctx_dsn("c", &[]), &json!({"idcc": "3090"}), &o, "2026-09").unwrap_err();
-        assert!(e.contains("CASCSVP"), "{}", e);
     }
 
     // S21.G00.20.002 de France Travail (`atelier/reference/sources/francetravail-100-dsn/net-entreprises-fiche-3344-intermittents-20251113.html`).
