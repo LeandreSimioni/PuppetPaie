@@ -199,15 +199,36 @@ fn quand_publication(p: &str) -> String {
 // ------------------------------------------------------------------ les documents
 
 /// Les sortes de documents, dans l'ordre ou on les cherche, par le debut du nom (les fichiers du mois et ceux d'envoi).
-const SORTES: [(&str, &[&str]); 7] = [
+const SORTES: [(&str, &[&str]); 8] = [
     ("Bulletins de paie", &["Bulletins_", "Bulletin_"]),
     ("Certificats Congés Spectacles", &["CertificatsCS_", "CertificatCS_"]),
     ("Attestations employeur (AER)", &["AER_"]),
     ("Contrats", &["Contrats_", "Contrat_", "Avenant"]),
     ("DPAE", &["DPAE_"]),
     ("DSN", &["DSN_"]),
+    ("Demandes de taux de prélèvement à la source", &["Amorcage"]),
     ("AEM", &["AEM_"]),
 ];
+
+/// CE QUE LA PERSONNE LIT d'une demande de taux de prelevement a la source (le signalement d'amorcage,
+/// `amorcage_demande::produire` : `Amorcage<motif>_<salarie>_<AAAAMMJJ>.dsn`, et sa note
+/// `Amorcage<motif>_<AAAAMMJJ>_recapitulatif.txt`) : pour qui, et quel jour. Un autre nom se lit tel quel.
+fn nom_lisible(ctx: &Contexte, nom: &str) -> String {
+    let jour = |t: &str| socle::date::Jour::lire(&format!("{}-{}-{}", t.get(..4).unwrap_or(""), t.get(4..6).unwrap_or(""), t.get(6..8).unwrap_or(""))).ok().map(|j| j.jj_mm_aaaa());
+    let Some(reste) = nom.strip_prefix("Amorcage").and_then(|r| r.get(3..)) else { return nom.to_string() };
+    if let Some(j) = reste.strip_suffix("_recapitulatif.txt").and_then(jour) {
+        return format!("Note des demandes du {}", j);
+    }
+    if let Some((cle, j)) = reste.strip_suffix(".dsn").and_then(|s| s.rsplit_once('_')).and_then(|(c, t)| jour(t).map(|j| (c, j))) {
+        let qui = ctx.salaries.get(cle).map(|s| {
+            let t = |k: &str| s.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+            let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
+            format!("{} {}", t("nom"), prenom).trim().to_string()
+        });
+        return format!("Taux de {}, demandé le {}", qui.filter(|q| !q.is_empty()).unwrap_or_else(|| cle.to_string()), j);
+    }
+    nom.to_string()
+}
 
 fn sorte_de(nom: &str) -> &'static str {
     SORTES.iter().find(|(_, p)| p.iter().any(|x| nom.starts_with(x))).map(|(s, _)| *s).unwrap_or("Autres pièces")
@@ -246,6 +267,10 @@ fn documents(ctx: &Contexte, mois: &str, lignes: &[Value]) -> R<Vec<Value>> {
         });
         let nom = format!("Bulletin de {} (ancien logiciel)", qui.filter(|q| !q.is_empty()).unwrap_or(cle.clone()));
         out.push(json!({"nom": nom, "sorte": "Bulletins de paie", "salarie": cle, "chemin": b["chemin"]}));
+    }
+    for d in out.iter_mut() {
+        let lisible = nom_lisible(ctx, d["nom"].as_str().unwrap_or(""));
+        d["nom"] = json!(lisible);
     }
     let rang = |v: &Value| SORTES.iter().position(|(s, _)| v["sorte"] == json!(s)).unwrap_or(SORTES.len());
     out.sort_by_key(|v| rang(v));
