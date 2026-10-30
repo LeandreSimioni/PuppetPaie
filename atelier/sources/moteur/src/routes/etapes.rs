@@ -1041,6 +1041,32 @@ impl<'a> Moteur<'a> {
         e.veille().map_err(plain)
     }
 
+    /// Le refus d'un annule-et-remplace du mois apres sa `limite` (cahier technique DSN §1.4.2) ; `Ok` jusqu'a elle.
+    pub(crate) fn refuser_si_hors_delai(&self, mois: &str) -> R<()> {
+        let limite = self.limite(mois)?;
+        if self.ctx.aujourdhui <= limite {
+            return Ok(());
+        }
+        Err(erreur(
+            "AnnuleRemplaceHorsDelai",
+            format!(
+                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). Ce qui a change dans ce mois part dans la DSN d'un mois suivant, en correction. Rien ne part.",
+                mois,
+                limite.jj_mm_aaaa()
+            ),
+        ))
+    }
+
+    /// Le plus haut ordre porte par ces depots reels du mois (`depots_reels`) ; `None` s'il n'y en a pas.
+    pub(crate) fn dernier_ordre(&self, mois: &str, faits: &[Value]) -> R<Option<i64>> {
+        let mut dernier: Option<i64> = None;
+        for l in faits {
+            let n = self.ordre_de_la_ligne(mois, l)?;
+            dernier = Some(dernier.map_or(n, |d| d.max(n)));
+        }
+        Ok(dernier)
+    }
+
     /// Le rang d'un depot reel du journal : l'ordre que sa ligne porte (S20.G00.05.004 du fichier parti, noté au depot).
     pub(crate) fn ordre_de_la_ligne(&self, mois: &str, l: &Value) -> R<i64> {
         let d = ou(get(l, "detail")?, objet_vide());
@@ -1095,10 +1121,7 @@ impl<'a> Moteur<'a> {
         let Some(derniere) = faits.last() else {
             return Ok(Value::Object(out));
         };
-        let mut dernier = i64::MIN;
-        for l in &faits {
-            dernier = dernier.max(self.ordre_de_la_ligne(mois, l)?);
-        }
+        let dernier = self.dernier_ordre(mois, &faits)?.unwrap_or(i64::MIN);
         out.insert("dernier_ordre".into(), json!(dernier));
         out.insert("prochain_ordre".into(), json!(dernier + 1));
         // Ce que la DSN a emporte, compare au present des engagements du mois (`dsn_a_refaire`).
@@ -1619,7 +1642,9 @@ impl<'a> Moteur<'a> {
             .collect())
     }
 
-    /// `embauches_a_declarer` : les contrats dont la DPAE n'est pas encore partie.
+    /// `embauches_a_declarer` : les contrats des engagements valides dont la DPAE n'est pas encore partie, chacun avec
+    /// l'empreinte de ce que sa DPAE declare. La seule liste des DPAE a faire : le panneau, les rappels, le filet,
+    /// l'horloge la lisent.
     pub fn embauches_a_declarer(&mut self, mois: Option<&str>) -> R<Value> {
         // UNE DERIVATION POUR TOUS LES MOIS : le bilan de chaque mois charge sa saisie, et les conges d'un
         // permanent y lisent les paies validees des mois d'avant (`conges::paies_du_mois`) une fois pour toute la route.
@@ -1644,6 +1669,10 @@ impl<'a> Moteur<'a> {
             let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &self.departs()?).map_err(plain)?;
             let refaire = a_refaire_du_mois(self.ctx, &etats_m, &self.departs()?)?;
             for (i, p) in s.paies.iter().enumerate() {
+                // La DPAE part de l'engagement valide : un engagement en saisie n'a rien a declarer.
+                if etats_m.get(i).and_then(|e| e.valide()).is_none() {
+                    continue;
+                }
                 let cle = texte_de(requis(&p.salarie, "_cle")?);
                 let debut = p.engagement.debut.iso();
                 // UNE DPAE PAR EMBAUCHE, reconnue a sa date : « L'embauche d'un salarié ne peut intervenir qu'après
@@ -1679,6 +1708,7 @@ impl<'a> Moteur<'a> {
                     "nom": super::nom_a_l_ecran(&p.salarie),
                     "spectacle": titre.unwrap_or_else(|| json!("salarié au mois")),
                     "debut": debut, "fin": p.engagement.fin.map(|f| f.iso()),
+                    "empreinte": empreinte_de_l_embauche(&p.engagement, &p.salarie),
                 });
                 // Seulement quand une date d'embauche a change : le reste du temps, rien a dire.
                 if !pourquoi.is_null() {
@@ -2047,4 +2077,23 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "mois-a-ouvrir" => m.mois_a_ouvrir(),
         autre => Err(plain(format!("route inconnue : {}", autre))),
     }
+}
+
+/// Ce que la DPAE d'une embauche declare, en 16 caracteres : l'identite du salarie telle que l'engagement la lit, les
+/// bornes du contrat, le spectacle, la nature ; pas les taux ni les cachets. Un test de DPAE fait sur une autre empreinte
+/// ne vaut plus.
+fn empreinte_de_l_embauche(e: &engagement::Engagement, sal: &Value) -> String {
+    let champ = |k: &str| socle::fichiers::repr(&sal.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default());
+    let ident: Vec<String> = ["nir", "nom", "prenom", "date_naissance", "lieu_naissance", "departement_naissance", "sexe", "nationalite"].iter().map(|k| champ(k)).collect();
+    let fin = e.fin.map_or("None".to_string(), |f| f.iso());
+    let spectacle = e.spectacle.clone().unwrap_or_else(|| "None".to_string());
+    let brut = format!(
+        "({}, {}, {}, ({}), {})",
+        socle::fichiers::repr(&e.debut.iso()),
+        socle::fichiers::repr(&fin),
+        socle::fichiers::repr(&spectacle),
+        ident.join(", "),
+        socle::fichiers::repr(e.nature.as_deref().unwrap_or(""))
+    );
+    sha256_hex(brut.as_bytes())[..16].to_string()
 }

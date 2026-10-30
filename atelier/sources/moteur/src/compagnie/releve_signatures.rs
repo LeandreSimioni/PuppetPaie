@@ -1,4 +1,4 @@
-//! La releve des reponses « Je signe ». La demande de signature (`envois::envois_signature::demander_signature`) a garde,
+//! La releve des reponses « Je signe ». La demande de signature (`crate::compagnie::signature::demander_signature`) a garde,
 //! au journal, un CODE (`SIG-XXXXXX`) par courriel parti. Cette releve cherche chaque code attendu dans la boite
 //! (`envois::releve_signatures::chercher_reponse`, le tri strict) et fait tout ce qui suit : la preuve archivee
 //! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`documents::contrat::contresigner`), le journal (une ligne
@@ -84,7 +84,7 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
             None => (
                 "Re: contrat".to_string(),
                 envoi::formater(
-                    envois::envois_signature::CORPS_REPONSE,
+                    crate::compagnie::signature::CORPS_REPONSE,
                     &[("nom", nom), ("quoi", "le contrat d'engagement".to_string()), ("code", code.clone())],
                 ),
             ),
@@ -177,7 +177,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         },
     };
 
-    let (signataire, raison) = envois::envois_signature::signataire_et_raison(ctx)?;
+    let (signataire, raison) = crate::compagnie::signature::signataire_et_raison(ctx)?;
     let expediteur = client.compte().to_lowercase();
 
     for a in &attendues {
@@ -287,7 +287,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         }
 
         // Le contrat contresigne, renvoye au salarie.
-        let (an, nom_mois) = envois::envois_signature::an_et_nom_du_mois(&a_mois)?;
+        let (an, nom_mois) = crate::compagnie::signature::an_et_nom_du_mois(&a_mois)?;
         let pdfs: Vec<PathBuf> = signes.iter().map(|(_, p)| p.clone()).collect();
         let contresigne = Contresigne {
             a,

@@ -19,7 +19,7 @@ use crate::routes::ouverture::mois_connus;
 use documents::plan_comptable::{controler_plan, tables};
 use droit::contexte::Contexte;
 use envois::envoi::{self, Message};
-use envois::etats::{self, get, getd, items, ou, texte_vide};
+use envois::etats::{self, getd, items, ou, texte_vide};
 use envois::ligne_d_envoi::{echec_d_envoi, noter, noter_echec_d_envoi};
 use socle::date::jour_iso;
 use socle::echec::{erreur, Echec, R};
@@ -125,7 +125,7 @@ pub(crate) fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R
         }
         for nom in pdf_de(d)? {
             // Le PDF a imprimer reunit les pieces de plusieurs salaries : chacune se liste seule, lui jamais.
-            if nom.starts_with(envois::envois_signature::PREFIXE_IMPRESSION) {
+            if nom.starts_with(crate::compagnie::signature::PREFIXE_IMPRESSION) {
                 continue;
             }
             if let Some(p) = prefixes {
@@ -171,73 +171,15 @@ fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
     Ok(out)
 }
 
-/// `etat_mois` : ce mois se corrige-t-il par regularisation, et sinon, quoi faire.
-fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
-    let e = m.dsn_du_mois(mois)?;
-    let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
-    let limite = echeance.jour;
-    let passee = ctx.aujourdhui > limite;
-    let deposee = vrai(&e);
-    let drapeau = |k: &str| -> R<bool> { Ok(deposee && vrai(get(&e, k)?)) };
-    let (partie_passee, refusee) = (drapeau("passee")?, drapeau("refusee")?);
-    // `_remplacement.limite` : la veille de l'echeance (reportee), a minuit.
-    let veille = echeance.veille().map_err(plain)?;
-    let mut regularisable = false;
-    let raison = if !deposee {
-        let retard = if passee { format!(" (en retard : `moteur depot-dsn {} --test`, puis --reel)", mois) } else { String::new() };
-        format!("Aucune DSN reelle n'est partie pour {} : ce mois se saisit et se depose normalement{}.", mois, retard)
-    } else if refusee {
-        format!("La DSN de {} a ete REFUSEE : elle se corrige et se redepose, il n'y a rien a regulariser.", mois)
-    } else if ctx.aujourdhui <= veille {
-        format!(
-            "La DSN de {} est partie et l'annule-et-remplace est admis jusqu'au {} a minuit : modifier le mois et refaire la DSN, \
-             elle partira en annule-et-remplace.",
-            mois,
-            veille.jj_mm_aaaa()
-        )
-    } else {
-        regularisable = true;
-        format!(
-            "La DSN de {} est deposee et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance du {}) : \
-             une correction part dans la DSN du mois courant, datee de {}.",
-            mois,
-            veille.jj_mm_aaaa(),
-            limite.jj_mm_aaaa(),
-            mois
-        )
-    };
-    Ok(json!({
-        "mois": mois, "deposee": deposee, "passee": partie_passee, "refusee": refusee,
-        "echeance": limite.iso(), "echeance_passee": passee, "echeance_depot": echeance.en_json(),
-        "mois_courant": ctx.aujourdhui.mois_iso(),
-        "regularisable": regularisable, "raison": raison,
-    }))
-}
-
-/// `mois_a_corriger` : les mois qui appellent une decision.
-fn mois_a_corriger(ctx: &Contexte) -> R<Value> {
-    let mut m = Moteur::nouveau(ctx);
-    let mut etats = Vec::new();
-    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
-        etats.push(etat_mois(&mut m, ctx, &mois)?);
-    }
-    let choisis = |f: &dyn Fn(&Value) -> bool| -> Vec<Value> { etats.iter().filter(|e| f(e)).cloned().collect() };
-    Ok(json!({
-        "regularisables": choisis(&|e| e["regularisable"] == json!(true)),
-        "en_retard": choisis(&|e| e["echeance_passee"] == json!(true) && e["deposee"] == json!(false)),
-    }))
-}
-
 /// La route `regularisations`.
 fn regularisations(ctx: &Contexte) -> R<Value> {
-    let mois = mois_a_corriger(ctx)?;
     let mut corrections = corrections_par_mois(ctx)?;
     // La pastille de chaque correction : portee par une DSN partie, faite ; a porter par la prochaine, a faire.
     for c in corrections.iter_mut().flat_map(|m| m.get_mut("corrections").and_then(Value::as_array_mut).into_iter().flatten()) {
         let mots = c.get("etat").map(valeur_en_texte).unwrap_or_default();
         c["pastille"] = super::pastille(if c.get("portee_par").is_some_and(vrai) { "fait" } else { "a_faire" }, &mots);
     }
-    Ok(json!({"mois": mois, "corrections": corrections}))
+    Ok(json!({"corrections": corrections}))
 }
 
 /// `charge["cle"]`.

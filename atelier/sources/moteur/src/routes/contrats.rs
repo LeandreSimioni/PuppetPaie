@@ -11,7 +11,7 @@ use crate::routes::documents::{charge_texte, client_courriel, cle, get_requis, j
 use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
 use crate::routes::etapes::{dans_l_ensemble, premier, Moteur, SaisieMois};
 use droit::contexte::Contexte;
-use envois::envois_signature::{Choisis, UnAvenant};
+use crate::compagnie::signature::{Choisis, UnAvenant};
 use envois::etats::{self, est, get, getd, items, objet_vide, ou, LISTE_VIDE, DPAE, SIGNATURE};
 use envois::journal::{self, Note};
 use socle::date::jour_iso;
@@ -200,7 +200,7 @@ fn choisis_de(charge: &Value) -> R<Choisis> {
 /// UN CONTRAT PARTI PUIS CHANGE NE REPART PAS EN CONTRAT : signe ou non, commence ou non, il se modifie par un avenant
 /// (`signature-apercu` le dit, `en_avenant`). Refus quand un contrat vise expressement (`contrats`, `salaries`) en est un ;
 /// rien n'est ecrit.
-fn refuser_les_contrats_partis(ctx: &Contexte, mois: &str, choisis: &envois::envois_signature::Choisis) -> R<()> {
+fn refuser_les_contrats_partis(ctx: &Contexte, mois: &str, choisis: &crate::compagnie::signature::Choisis) -> R<()> {
     if choisis.contrats.is_none() && choisis.salaries.is_none() {
         return Ok(());
     }
@@ -222,7 +222,7 @@ fn refuser_les_contrats_partis(ctx: &Contexte, mois: &str, choisis: &envois::env
     Ok(())
 }
 
-/// La route `contrats-imprimer` (`envois_signature::contrats_imprimer`), `qui` donne (l'horloge d'une compagnie fictive
+/// La route `contrats-imprimer` (`signature::contrats_imprimer`), `qui` donne (l'horloge d'une compagnie fictive
 /// passe le sien).
 /// `avenants` : les avenants des contrats signes qui ont change ([{"salarie", "debut", "numero", "mois", "effet"}]),
 /// imprimes avec eux ; sans `contrats` ni `salaries`, seuls les avenants s'impriment.
@@ -236,10 +236,10 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
     let choisis = choisis_de(charge)?;
     refuser_les_contrats_partis(ctx, &charge_texte(charge, "mois")?, &choisis)?;
     let choisis = (contrats_choisis || avenants.is_empty()).then_some(&choisis);
-    envois::envois_signature::contrats_imprimer(ctx, &charge_texte(charge, "mois")?, choisis, &avenants, qui)
+    crate::compagnie::signature::contrats_imprimer(ctx, &charge_texte(charge, "mois")?, choisis, &avenants, qui)
 }
 
-/// La route `demander-signature` : la boite, la preuve, puis `envois_signature::demander_signature`. `relance` : l'etat
+/// La route `demander-signature` : la boite, la preuve, puis `signature::demander_signature`. `relance` : l'etat
 /// des contrats du mois (`signature-apercu`) dit lesquels peuvent se relancer.
 pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let mois = charge_texte(charge, "mois")?;
@@ -259,13 +259,13 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
     if !relance && !remplace {
         refuser_les_contrats_partis(ctx, &mois, &choisis)?;
     }
-    let demande = envois::envois_signature::DemandeDeSignature { mois: &mois, relance, remplace, choisis, etats_des_contrats };
+    let demande = crate::compagnie::signature::DemandeDeSignature { mois: &mois, relance, remplace, choisis, etats_des_contrats };
     // Un refus se dit d'abord : la boite et la preuve ne se demandent que pour ce qui part.
-    envois::envois_signature::verifier_demande(ctx, &demande)?;
+    crate::compagnie::signature::verifier_demande(ctx, &demande)?;
     let mut client = ouvrir()?;
     let quoi = if relance { "relance de demande de signature de contrat" } else if remplace { "contrat refait, a signer (il annule et remplace le precedent)" } else { "demande de signature de contrat" };
     verifier_preuve(ctx, Some(&preuve_de(charge)), &mois, quoi, &a_qui)?;
-    envois::envois_signature::demander_signature(ctx, &demande, client.as_mut())
+    crate::compagnie::signature::demander_signature(ctx, &demande, client.as_mut())
 }
 
 /// La route `avenant-envoyer` : un seul avenant. La reponse : `partis`, `fichier`, `numero`, `ligne`.
@@ -365,10 +365,10 @@ fn avenant_a_relancer(ctx: &Contexte, v: &Value) -> R<UnAvenant> {
     Ok(UnAvenant { apercu, effet: valeur_en_texte(&a["effet"]) })
 }
 
-/// Les avenants voulus, verifies, puis la boite, la preuve, et `envois_signature::envoyer_avenants`. UN SALARIE SANS
+/// Les avenants voulus, verifies, puis la boite, la preuve, et `signature::envoyer_avenants`. UN SALARIE SANS
 /// COURRIEL n'empeche pas les autres : ses avenants ne partent pas, ils se nomment dans le second terme (la phrase de
-/// `envois_signature::avenants_sans_courriel_dit`) ; refus si aucun avenant coche n'a de courriel.
-pub(crate) fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve, ouvrir: Ouvrir) -> R<(envois::envois_signature::Avenants, Vec<String>)> {
+/// `signature::avenants_sans_courriel_dit`) ; refus si aucun avenant coche n'a de courriel.
+pub(crate) fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve, ouvrir: Ouvrir) -> R<(crate::compagnie::signature::Avenants, Vec<String>)> {
     if voulus.is_empty() {
         return Err(refus("Aucun avenant coché. Rien n'est parti."));
     }
@@ -378,16 +378,16 @@ pub(crate) fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve
         avenants_voulus(ctx, voulus)?.into_iter().partition(|(_, aa)| aa.iter().all(|a| !a.texte("destinataire").trim().is_empty()));
     let noms_sans: Vec<String> = sans.iter().map(|(k, _)| ctx.nomme(k)).collect();
     if par_salarie.is_empty() {
-        return Err(refus(format!("{} Rien n'est parti.", envois::envois_signature::avenants_sans_courriel_dit(&noms_sans))));
+        return Err(refus(format!("{} Rien n'est parti.", crate::compagnie::signature::avenants_sans_courriel_dit(&noms_sans))));
     }
-    let avertissements = if noms_sans.is_empty() { Vec::new() } else { vec![envois::envois_signature::avenants_sans_courriel_dit(&noms_sans)] };
+    let avertissements = if noms_sans.is_empty() { Vec::new() } else { vec![crate::compagnie::signature::avenants_sans_courriel_dit(&noms_sans)] };
     let mut client = ouvrir()?;
     let mut mois_vus: Vec<String> = par_salarie.iter().flat_map(|(_, aa)| aa.iter().map(|a| a.texte("mois"))).collect();
     mois_vus.sort();
     let a_qui = format!("{} salarie(s) : {}", par_salarie.len(), par_salarie.iter().map(|(k, _)| k.as_str()).collect::<Vec<_>>().join(", "));
     let quoi = if par_salarie.iter().any(|(_, aa)| aa.iter().any(UnAvenant::relance)) { "relance d'avenant(s) a signer" } else { "envoi d'avenant(s) a signer" };
     verifier_preuve(ctx, Some(preuve), mois_vus.first().map_or("", String::as_str), quoi, &a_qui)?;
-    Ok((envois::envois_signature::envoyer_avenants(ctx, &par_salarie, client.as_mut())?, avertissements))
+    Ok((crate::compagnie::signature::envoyer_avenants(ctx, &par_salarie, client.as_mut())?, avertissements))
 }
 
 /// `apercu_signature` : les contrats du mois et l'etat de leur demande de signature.
@@ -535,10 +535,10 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let mut avertissements: Vec<String> = Vec::new();
     if !sans.is_empty() {
-        avertissements.push(envois::envois_signature::sans_courriel_dit(&sans));
+        avertissements.push(crate::compagnie::signature::sans_courriel_dit(&sans));
     }
     if !sans_avenant.is_empty() {
-        avertissements.push(envois::envois_signature::avenants_sans_courriel_dit(&sans_avenant));
+        avertissements.push(crate::compagnie::signature::avenants_sans_courriel_dit(&sans_avenant));
     }
     let dossier = ctx.racine.join("sorties").join(&mois);
     let envoi = dossier.join("envoi");

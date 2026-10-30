@@ -21,16 +21,13 @@ Claude sert à parler à ce moteur en français, pas à calculer la paie.
 ## L'arrivée d'une compagnie
 
 ```
-moteur arrivee
+echo '{"route":"pour-demarrer","charge":{}}' | moteur route --racine <compagnie>
 ```
 
-dit, dans l'ordre, ce qui est prêt et ce qui manque — la fiche de
-l'entreprise, la reprise de l'historique (sans objet si la compagnie ne vient
-d'aucun autre logiciel), les fiches des salariés, l'effectif (les CRM de nature 118 de l'Urssaf,
-ou la date de la première embauche), le taux AT/MP notifié, les taux de PAS,
-les accès net-entreprises et Urssaf — avec, pour chaque manque, la commande
-qui le fait avancer. Elle n'écrit rien et sort en erreur tant qu'une étape
-est à faire.
+dit d'un coup tout ce qui manque à la compagnie (la fiche de l'entreprise,
+l'effectif, le taux AT/MP, l'employeur de la DPAE…), ce que chaque manque
+bloque et où il se saisit ; l'écran le montre dans ses rappels. Rien n'est
+écrit.
 
 ## Reprendre l'historique : l'import
 

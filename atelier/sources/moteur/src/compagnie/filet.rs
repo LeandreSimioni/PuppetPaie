@@ -261,8 +261,6 @@ pub fn verifier(racine: &Path) -> R<Value> {
 
 // ------------------------------------------------------- les embauches suivies
 
-/// `embauches_suivies` en JSON : les embauches sans trace de DPAE, d'une
-/// semaine en arriere a l'infini, chacune avec son engagement valide ou non.
 /// Le journal des depots, ou un refus qui le dit (un fichier qui ne se lit pas en JSON).
 fn journal_lisible(racine: &Path) -> R<Vec<Value>> {
     etats::charger(racine).map_err(|e| match e.classe {
@@ -274,19 +272,11 @@ fn journal_lisible(racine: &Path) -> R<Vec<Value>> {
     })
 }
 
+/// Les embauches suivies : les DPAE a faire (`etapes::Moteur::embauches_a_declarer`), le journal des depots lisible.
 pub fn suivies(ctx: &Contexte) -> R<Vec<Value>> {
-    use crate::routes::rappels::{embauches_suivies, nic_principal, Etat};
-    let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
-    let liste = embauches_suivies(&st).map_err(socle::echec::Echec::from)?;
-    Ok(liste
-        .into_iter()
-        .map(|(e, valide)| {
-            json!({
-                "mois": e.mois, "salarie": e.salarie, "debut": e.debut, "fin": e.fin,
-                "nom": e.nom, "spectacle": e.spectacle, "valide": valide, "empreinte": e.empreinte,
-            })
-        })
-        .collect())
+    journal_lisible(&ctx.racine)?;
+    let a_faire = crate::routes::etapes::Moteur::nouveau(ctx).embauches_a_declarer(None)?;
+    Ok(a_faire.as_array().cloned().unwrap_or_default())
 }
 
 /// `echeance_du_reveil` : la veille a 9 h ; passee, le jour meme a 7 h ; passe
@@ -318,11 +308,10 @@ pub struct Reveils {
 fn dsn_a_rappeler(ctx: &Contexte) -> R<Vec<(String, String)>> {
     use crate::routes::rappels::{mois_a_declarer, nic_principal, Etat};
     let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
-    let echeance = ctx.echeance_dsn().map_err(socle::echec::Echec::from)?;
     let mut out = Vec::new();
     for m in mois_a_declarer(&st).map_err(socle::echec::Echec::from)? {
         // Le jour de depot, reporte au jour ouvre (`echeance_dsn`) : le reveil sonne la veille et le jour meme, avant midi.
-        let jour = declarations::echeance_dsn::du_mois(&m, echeance).map_err(socle::echec::Echec::from)?.jour;
+        let jour = declarations::echeance_dsn::de_la_compagnie(ctx, &m).map_err(socle::echec::Echec::from)?.jour;
         out.push((m, jour.iso()));
     }
     Ok(out)
@@ -364,9 +353,6 @@ fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str
             }
         };
         for e in suivies {
-            if !vrai(get(e, "valide")?) {
-                continue;
-            }
             let debut = valeur_en_texte(get(e, "debut")?);
             if let Some(quand) = echeance_du_reveil(&debut, maintenant)? {
                 poser(cle(&valeur_en_texte(get(e, "salarie")?), &debut), debut, quand, "dpae");

@@ -149,15 +149,9 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
 /// fenetre, il vaut confirmation), puis le coffre. Ce qui autorise a y puiser pour un depot REEL, c'est la
 /// preuve verifiee juste avant par l'appelant. Ce qui SORT d'ici est un secret : il va directement au client.
 pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Option<&str>) -> R<Option<String>> {
-    let variable = if service == "net-entreprises" { envois::releve_retours::VARIABLE_MOTDEPASSE } else { envois::releve_retours::VARIABLE_MOTDEPASSE_DPAE };
-    if let Ok(v) = std::env::var(variable) {
-        if !v.is_empty() {
-            return Ok(Some(v));
-        }
-    }
     let coffre = crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "");
     let vers = crate::routes::vers_route;
-    if !coffre.pose(service).map_err(vers)? {
+    if !coffre.disponible(service).map_err(vers)? {
         return Err(erreur(
             "ErreurOperation",
             format!("Mot de passe {} absent : ni dans l'environnement, ni au coffre.\n  moteur coffre poser {}", service, service),
@@ -391,11 +385,7 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
 fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Value) -> R<bool> {
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let faits = m.depots_reels(mois, nic)?;
-    let mut dernier: Option<i64> = None;
-    for l in &faits {
-        let n = m.ordre_de_la_ligne(mois, l)?;
-        dernier = Some(dernier.map_or(n, |d| d.max(n)));
-    }
+    let dernier = m.dernier_ordre(mois, &faits)?;
     if !["03", "05"].contains(&a.champ("type_declaration")) {
         return Ok(false);
     }
@@ -409,17 +399,7 @@ fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Val
         None if vues.du_mois_acceptee || vues.ordre > 0 => vues.ordre,
         None => return Ok(false),
     };
-    let limite = m.limite(mois)?;
-    if ctx.aujourdhui > limite {
-        return Err(erreur(
-            "AnnuleRemplaceHorsDelai",
-            format!(
-                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). Ce qui a change dans ce mois part dans la DSN d'un mois suivant, en correction. Rien n'est parti.",
-                mois,
-                limite.jj_mm_aaaa()
-            ),
-        ));
-    }
+    m.refuser_si_hors_delai(mois)?;
     let ordre: i64 = a.champ("ordre").trim().parse().unwrap_or(0);
     if ordre <= dernier {
         return Err(erreur(

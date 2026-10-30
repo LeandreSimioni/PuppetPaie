@@ -380,7 +380,7 @@ fn ce_qui_arrive_aux_mois_partis(ctx: &Contexte, q: &engagement::etats::APartirD
 
 /// CE QUE LA VALIDATION DIT SANS REFUSER, pour l'engagement de rang `i` de la saisie de `mois` : un contrat que le
 /// logiciel fait signer (`engagement::contrat_a_signer`) part a la signature par courriel, a l'adresse de la fiche ; sans
-/// elle, il ne partira pas (`envois::envois_signature`, qui le refuse au depart). Il s'imprime, ou le courriel se saisit.
+/// elle, il ne partira pas (`compagnie::signature`, qui le refuse au depart). Il s'imprime, ou le courriel se saisit.
 fn avis_de_validation(ctx: &Contexte, mois: &str, i: usize) -> R<Vec<Value>> {
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else { return Ok(Vec::new()) };
     let e = &data["engagements"][i];
