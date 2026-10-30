@@ -95,17 +95,22 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
     m.insert("contrat.lieu".into(), lieu);
     // LA REMUNERATION ET SES COMPOSANTES (L1242-12, 7° ; R1221-34, 11°) : le salaire mensuel de base (le taux de la ligne
     // de salaire de base, pas son montant du mois, que le prorata d'une entree en cours de mois reduit), puis ce qui
-    // s'y ajoute et fait le brut.
+    // s'y ajoute et fait le brut. Un mois coupe par un avenant a une ligne de salaire de base par periode, dans l'ordre
+    // des jours : le contrat dit celui de la derniere, ses termes a partir de l'avenant.
     let mut morceaux = Vec::new();
+    let mut base = None;
     for l in remuneration.iter().filter(|l| fait_le_brut(l)) {
         if l.get("conges_pris").is_some_and(vrai) {
             continue;
         }
         if l.get("salaire_de_base").is_some_and(vrai) {
-            morceaux.insert(0, format!("un salaire mensuel brut de {} €", fmt_eur(dec(l.get("taux").unwrap_or(&Value::Null))?)));
+            base = Some(format!("un salaire mensuel brut de {} €", fmt_eur(dec(l.get("taux").unwrap_or(&Value::Null))?)));
         } else if dec(l.get("montant").unwrap_or(&Value::Null))? > Decimal::ZERO {
             morceaux.push(ligne_citee(l)?);
         }
+    }
+    if let Some(b) = base {
+        morceaux.insert(0, b);
     }
     if morceaux.is_empty() {
         return Err(format!("Le contrat de {} ne dit aucune rémunération : la paie de son premier mois n'a pas de salaire de base. Rien n'est écrit.", nom));

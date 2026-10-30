@@ -27,6 +27,24 @@ pub fn jours_oeuvres(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Re
     jours_de_semaine(debut, fin, entreprise, 5)
 }
 
+/// LES JOURS OUVRES entre deux dates, bornes incluses : du lundi au vendredi, jours feries compris -- les jours que
+/// l'horaire de l'entreprise programme dans le mois, un ferie chome etant paye comme un jour de travail (L3133-3 : « Le
+/// chomage des jours feries ne peut entrainer aucune perte de salaire », `atelier/reference/sources/code-du-travail/
+/// articles-20261029.md`, l. 113). Fiche DSN 2693, exemple 4 (`atelier/reference/sources/suspension-non-remuneree/
+/// net-entreprises-fiche2693-volumes-activite-exemples-20260929.txt`, l. 509) : janvier 2024 entier, « nombre de jours
+/// ouvres du mois [...] 161 heures (23 jours x 7 heures) », le lundi 1er janvier compte parmi les 23. L'hypothese des
+/// cinq jours est celle de `jours_oeuvres`.
+pub fn jours_ouvres(debut: &Jour, fin: &Jour) -> Resultat<i64> {
+    let (mut n, mut jour) = (0, *debut);
+    while jour <= *fin {
+        if jour.jour_de_la_semaine() < 5 {
+            n += 1;
+        }
+        jour = jour.plus_jours(1)?;
+    }
+    Ok(n)
+}
+
 /// Les jours de `debut` a `fin` dont le rang dans la semaine (lundi = 0) est sous `jusqu_a`, moins les feries chomes.
 fn jours_de_semaine(debut: &Jour, fin: &Jour, entreprise: Option<&Value>, jusqu_a: u32) -> Resultat<i64> {
     let chomes = feries::chomes_entre(debut, fin, entreprise)?;

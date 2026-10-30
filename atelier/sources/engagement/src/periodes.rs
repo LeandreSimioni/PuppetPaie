@@ -1,8 +1,8 @@
 //! La paie d'un mois decoupee en periodes elementaires (`droit::periodes`, qui cite les textes) : chaque periode est une
 //! paie calculee par `calcul::calculer_periode`, sur un engagement borne (`Engagement::periode`) ; elle lit sa fiche sur
 //! ses bornes, sa pile de bareme (rien n'est empile ailleurs que dans `bareme_applique`), son plafond
-//! (`plafond::plafond_permanent` : le prorata calendaire qui servait deja au contrat commence ou fini en cours de mois,
-//! sur une autre borne), son salaire. La paie du mois est leur somme (`assembler`).
+//! (`plafond::plafond_permanent` : le prorata calendaire de R. 242-2, sur les bornes de la periode), son salaire (la part
+//! du mois de ses heures, `droit::periodes::part_du_mois`). La paie du mois est leur somme (`assembler`).
 
 use std::collections::BTreeMap;
 
@@ -40,9 +40,9 @@ pub(crate) fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jo
 
 /// Les engagements des periodes elementaires `bornes` de `eng` : chacun borne a sa periode, sur les termes du contrat
 /// de la periode (ceux d'`avant` jusqu'a la veille de l'avenant, ceux de la saisie ensuite), avec sa ligne de salaire :
-/// le salaire mensuel x jours de la periode / jours du mois, pour la duree du travail de la periode (la ligne « mois »
-/// de `conges::lignes_du_mois`, dont la quantite fait deja le prorata d'un mois incomplet ; FAQ Agirc-Arrco, exemples 1
-/// et 2).
+/// le salaire mensuel de la periode a la part du mois de ses heures (`droit::periodes::part_du_mois`, la regle de la
+/// ligne « mois » de `conges::lignes_du_mois`), pour la duree du travail de la periode ; le plafond, lui, se coupe aux
+/// jours calendaires (FAQ Agirc-Arrco, exemples 1 et 2 ; CSS R. 242-2, I).
 ///
 /// Refus : une paie qui porte autre chose que son salaire mensuel. Une prime, un conge, une absence, une prime
 /// d'anciennete ou un solde de tout compte se rattachent a une periode, ou a l'autre, ou aux deux, et rien ne le dit
@@ -76,15 +76,24 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
         None => (salaire_apres, quotite_apres),
     };
     let fin_mois = eng.fin_mois()?;
+    let debut_mois = Jour::nouveau(fin_mois.an, fin_mois.mois, 1).ok_or("engagements_des_periodes : premier jour du mois")?;
+    // Le contrat borne au mois : la regle d'un premier ou d'un dernier mois incomplet le regarde, pas la coupure.
+    let (debut, fin) = (eng.debut_periode()?, eng.fin_periode()?);
+    let regle = crate::conges::regle_du_mois_incomplet(ctx, &eng.salarie, &debut, &fin, &debut_mois, &fin_mois);
     let mut out = Vec::new();
     for (d, f) in bornes {
         let (salaire, quotite) = if avenant.map_or(false, |a| *d < a) { (salaire_avant, quotite_avant) } else { (salaire_apres, quotite_apres) };
-        let fraction = droit::periodes::fraction_du_mois(d, f, &fin_mois);
+        // Chaque periode, au salaire de ses termes, par la regle d'un mois incomplet (`droit::periodes::part_du_mois`).
+        let part = droit::periodes::part_du_mois(d, f, &fin_mois, regle)?;
         let mut e = eng.clone();
         e.periode = Some((*d, *f));
         e.quotite_contrat = Some(crate::conges::flot(quotite));
-        let (q, h) = (crate::conges::flot(fraction), crate::conges::flot(eur2(quotite)));
-        e.lignes = vec![json!({"rubrique": "mois", "quantite": q, "taux": crate::conges::flot(salaire), "heures": h})];
+        let (q, h) = (crate::conges::flot(part.fraction), crate::conges::flot(eur2(quotite)));
+        let mut ligne = json!({"rubrique": "mois", "quantite": q, "taux": crate::conges::flot(salaire), "heures": h});
+        if let Some(p) = part.sur_le_bulletin(droit::conges::heures_par_jour_oeuvre(quotite)) {
+            ligne["precision"] = json!(p);
+        }
+        e.lignes = vec![ligne];
         // Les heures que la DSN mesure (S21.G00.53, « heures » d'un contrat paye au mois) : celles de la ligne de la
         // periode, comme `Engagement::nouveau` les tire des lignes du mois.
         let heures = droit::catalogue::rubrique(&ctx.racine, "mois", &ctx.lue_au)?.heures(q, Some(h));
@@ -277,8 +286,8 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
     m.avertissements.push(Avis {
         info: true,
         texte: format!(
-            "{} : le statut, la categorie ou la duree du travail change en cours de mois ; la paie se decoupe en {} periodes \
-elementaires, chacune sur ses cotisations et sa part du plafond : {}. La DSN declare les remunerations et les bases de \
+            "{} : le contrat (statut, categorie, duree du travail, salaire) change en cours de mois ; la paie se decoupe en {} periodes \
+elementaires, chacune payee pour ses heures (Cass. soc., 20/01/1999, n° 96-45.042), sur ses cotisations et sa part du plafond : {}. La DSN declare les remunerations et les bases de \
 chacune (norme DSN, § 2.1.3.2).",
             eng.qui(),
             parts.len(),

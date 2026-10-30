@@ -13,6 +13,7 @@ mod emplois;
 mod essai;
 mod natures;
 mod pas;
+mod mois_incomplet;
 mod permanents;
 mod plafond;
 mod reduction;

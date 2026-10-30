@@ -471,6 +471,195 @@ pub fn page_b<S: AsRef<str>>(p: &B<S>) -> Vec<Value> {
     b
 }
 
+// ------------------------------------------------------------------------------------------- le certificat Congés Spectacles
+
+/// UN CERTIFICAT D'EMPLOI CONGES SPECTACLES, a la mise en page qu'Audiens impose (le titre, la Caisse, les rubriques
+/// « N° SIRET », « COMPTE », « N° CE », « NIR », « NOM DE NAISSANCE »..., le bloc d'adresse du salarie au-dessus), les
+/// dates ecrites `JJ MM AAAA` ou `JJ/MM/AAAA` selon le logiciel (`dates_a_barres`).
+pub struct Certificat<S = &'static str> {
+    pub siret: S,
+    pub compte: S,
+    pub numero: S,
+    pub employeur: S,
+    /// Quinze caracteres, sans espace : il s'imprime en treize, puis sa cle.
+    pub nir: S,
+    pub nom: S,
+    pub prenom: S,
+    /// La rue, « code postal commune ».
+    pub adresse: [S; 2],
+    pub emploi: S,
+    pub cadre: bool,
+    /// JJ/MM/AAAA.
+    pub debut: S,
+    pub fin: S,
+    pub nombre: S,
+    pub base_conge: S,
+    pub brut: S,
+    pub dates_a_barres: bool,
+}
+
+/// La page d'un certificat.
+pub fn page_certificat<S: AsRef<str>>(c: &Certificat<S>) -> Vec<Value> {
+    let mut b = Vec::new();
+    let date = |d: &str| if c.dates_a_barres { d.to_string() } else { d.replace('/', " ") };
+    let siret = c.siret.as_ref();
+    let nir = c.nir.as_ref();
+    grand(&mut b, 322.8, 150.0, &format!("{} {}", c.prenom.as_ref(), c.nom.as_ref()), 11.0);
+    grand(&mut b, 322.8, 166.0, c.adresse[0].as_ref(), 11.0);
+    grand(&mut b, 322.8, 182.0, c.adresse[1].as_ref(), 11.0);
+    grand(&mut b, 49.0, 432.0, "CERTIFICAT D'EMPLOI", 11.0);
+    grand(&mut b, 212.0, 430.0, "LES CONGES SPECTACLES", 14.0);
+    grand(&mut b, 49.0, 444.0, "DESTINÉ AU SALARIÉ", 11.0);
+    grand(&mut b, 48.0, 568.0, "N° SIRET", 14.0);
+    grand(&mut b, 123.6, 568.0, &format!("{} {}", &siret[..siret.len().min(9)], &siret[siret.len().min(9)..]), 14.0);
+    grand(&mut b, 253.9, 568.0, "COMPTE", 14.0);
+    grand(&mut b, 338.4, 568.0, c.compte.as_ref(), 14.0);
+    grand(&mut b, 431.0, 568.0, "N° CE", 14.0);
+    grand(&mut b, 503.5, 568.0, c.numero.as_ref(), 14.0);
+    grand(&mut b, 55.0, 603.0, "NIR", 14.0);
+    grand(&mut b, 112.8, 603.0, &nir[..nir.len().min(13)], 14.0);
+    grand(&mut b, 229.7, 603.0, &nir[nir.len().min(13)..], 14.0);
+    grand(&mut b, 319.0, 603.0, c.employeur.as_ref(), 14.0);
+    grand(&mut b, 58.1, 626.3, "NOM DE NAISSANCE", 9.0);
+    grand(&mut b, 174.0, 626.3, c.nom.as_ref(), 9.0);
+    grand(&mut b, 319.0, 626.3, "PRENOM", 9.0);
+    grand(&mut b, 390.0, 626.3, c.prenom.as_ref(), 9.0);
+    grand(&mut b, 58.1, 636.4, "NOM D'USAGE", 9.0);
+    grand(&mut b, 319.0, 636.4, "PSEUDONYME", 9.0);
+    grand(&mut b, 57.8, 646.2, "EMPLOI", 9.0);
+    grand(&mut b, 174.0, 646.2, c.emploi.as_ref(), 9.0);
+    grand(&mut b, 57.8, 656.3, "CADRE", 9.0);
+    grand(&mut b, 174.0, 656.3, if c.cadre { "OUI" } else { "NON" }, 9.0);
+    grand(&mut b, 160.0, 674.3, "DATES DE TRAVAIL", 11.0);
+    grand(&mut b, 407.0, 674.3, "NB JOURS OU CACHETS", 11.0);
+    grand(&mut b, 51.8, 693.0, "DEBUT", 14.0);
+    grand(&mut b, 126.0, 693.0, &date(c.debut.as_ref()), 14.0);
+    grand(&mut b, 235.0, 693.0, "FIN", 14.0);
+    grand(&mut b, 266.9, 693.0, &date(c.fin.as_ref()), 14.0);
+    grand(&mut b, 457.4, 693.0, c.nombre.as_ref(), 14.0);
+    grand(&mut b, 70.8, 725.4, "BASE CONGE", 14.0);
+    grand(&mut b, 248.6, 725.4, c.base_conge.as_ref(), 14.0);
+    grand(&mut b, 319.0, 725.4, "SALAIRE BRUT", 14.0);
+    grand(&mut b, 470.6, 725.4, c.brut.as_ref(), 14.0);
+    grand(&mut b, 72.0, 740.3, "Arrondie à l'euro le plus proche", 8.0);
+    grand(&mut b, 319.0, 740.3, "Arrondi à l'euro le plus proche", 8.0);
+    grand(&mut b, 355.0, 752.0, "Date :", 9.0);
+    grand(&mut b, 441.8, 752.0, &date(c.fin.as_ref()), 9.0);
+    grand(&mut b, 354.0, 764.0, "Nom du signataire", 9.0);
+    grand(&mut b, 105.1, 774.0, "N° d'agrément :", 9.0);
+    grand(&mut b, 355.0, 774.0, "Signature", 9.0);
+    b
+}
+
+// ------------------------------------------------------------------------------------------- l'AEM en PDF
+
+/// UNE ATTESTATION D'EMPLOYEUR MENSUELLE (annexes 8 et 10) telle qu'un logiciel l'edite sur le formulaire d'Unédic :
+/// les rubriques sur leurs lignes (« N° SIRET », « Raison sociale », « Nom de famille », « NIR »...), les cases cochees
+/// d'un « Ñ » a droite de leur libelle, les heures, cachets et jours en colonnes sous leurs en-tetes sur deux rangs, le
+/// brut sous « SALAIRES BRUTS ». Les nombres vides (`""`) ne s'impriment pas.
+pub struct Aem<S = &'static str> {
+    /// MM/AAAA.
+    pub mois: S,
+    pub numero: S,
+    pub siret: S,
+    pub ape: S,
+    pub idcc: S,
+    pub employeur: S,
+    pub employeur_code_postal: S,
+    pub employeur_commune: S,
+    pub adherent: S,
+    pub nom: S,
+    pub prenom: S,
+    /// Quinze caracteres, sans espace.
+    pub nir: S,
+    /// JJ/MM/AAAA.
+    pub naissance: S,
+    pub rue: S,
+    pub code_postal: S,
+    pub commune: S,
+    pub emploi: S,
+    pub objet: S,
+    pub cadre: bool,
+    pub artiste: bool,
+    /// JJ/MM/AAAA.
+    pub embauche: S,
+    pub fin: S,
+    pub heures: S,
+    pub isoles: S,
+    pub groupes: S,
+    pub jours: S,
+    /// « 590,00 ».
+    pub brut: S,
+}
+
+/// La page d'une AEM.
+pub fn page_aem<S: AsRef<str>>(a: &Aem<S>) -> Vec<Value> {
+    let mut b = Vec::new();
+    // Une ligne : chaque texte a son abscisse, repoussee au-dela du precedent (un blanc de 10 points entre deux).
+    let ligne = |b: &mut Vec<Value>, y: f64, textes: &[(f64, &str)]| {
+        let mut fin = 0.0f64;
+        for (x, texte) in textes {
+            if texte.is_empty() {
+                continue;
+            }
+            let x = x.max(fin + 10.0);
+            t(b, x, y, texte);
+            fin = x + 6.5 * texte.chars().count() as f64;
+        }
+    };
+    let jma = |d: &S| -> Vec<String> { d.as_ref().split('/').map(String::from).collect() };
+    let coche = |l: &str, oui: bool| if oui { format!("{} Ñ", l) } else { l.to_string() };
+    let (mm, an) = a.mois.as_ref().split_once('/').unwrap_or(("00", "0000"));
+    let (n, e, f) = (jma(&a.naissance), jma(&a.embauche), jma(&a.fin));
+    ligne(&mut b, 35.0, &[(40.0, "ACTIVITÉS RELEVANT DES ANNEXES 8 et 10 au règlement de l'Assurance Chômage")]);
+    ligne(&mut b, 47.0, &[(40.0, "À REMPLIR PAR L'EMPLOYEUR ET À REMETTRE AU SALARIÉ")]);
+    ligne(
+        &mut b,
+        78.0,
+        &[(30.0, "1 ATTESTATION (AEM)"), (0.0, "MOIS"), (0.0, &mm[..1]), (0.0, &mm[1..]), (0.0, "20"), (0.0, &an[2..3]), (0.0, &an[3..]), (0.0, "ATTESTATION N°"), (0.0, a.numero.as_ref())],
+    );
+    ligne(&mut b, 104.0, &[(30.0, "AEM INITIALE Ñ"), (0.0, "COMPLÉMENTAIRE"), (0.0, "RECTIFICATIVE POSITIVE"), (0.0, "OU NÉGATIVE")]);
+    ligne(&mut b, 114.0, &[(300.0, "N° DE L'ATTESTATION INITIALE")]);
+    ligne(&mut b, 130.0, &[(30.0, "2 EMPLOYEUR")]);
+    ligne(&mut b, 146.0, &[(30.0, "N° SIRET"), (0.0, a.siret.as_ref()), (0.0, "Code APE/NAF"), (0.0, a.ape.as_ref()), (0.0, "N° d'affiliation"), (0.0, "99999999999")]);
+    ligne(&mut b, 158.0, &[(30.0, "N° IDCC"), (0.0, a.idcc.as_ref()), (0.0, "Si différent, N° IDCC de la prestation de travail")]);
+    ligne(&mut b, 172.0, &[(30.0, "Raison sociale"), (0.0, a.employeur.as_ref())]);
+    ligne(&mut b, 184.0, &[(30.0, "Code Postal"), (0.0, a.employeur_code_postal.as_ref()), (0.0, "Commune"), (0.0, a.employeur_commune.as_ref()), (0.0, "Courriel")]);
+    ligne(&mut b, 198.0, &[(30.0, "N° d'affiliation à la caisse OUI Ñ"), (0.0, a.adherent.as_ref()), (0.0, "NON")]);
+    ligne(&mut b, 207.0, &[(30.0, "de congés spectacles")]);
+    ligne(&mut b, 230.0, &[(30.0, "3 SALARIE")]);
+    ligne(&mut b, 246.0, &[(30.0, "Nom de famille"), (0.0, a.nom.as_ref()), (0.0, "Prénom"), (0.0, a.prenom.as_ref())]);
+    ligne(&mut b, 256.0, &[(30.0, "(Nom de naissance)")]);
+    ligne(&mut b, 270.0, &[(30.0, "Nom d'usage")]);
+    ligne(&mut b, 286.0, &[(30.0, "NIR"), (0.0, a.nir.as_ref()), (0.0, "Date de naissance"), (0.0, &n[0]), (0.0, &n[1]), (0.0, &n[2])]);
+    ligne(&mut b, 302.0, &[(30.0, "Adresse"), (0.0, a.rue.as_ref())]);
+    ligne(&mut b, 318.0, &[(30.0, "Code Postal"), (0.0, a.code_postal.as_ref()), (0.0, "Commune"), (0.0, a.commune.as_ref())]);
+    ligne(&mut b, 340.0, &[(30.0, "4 PRESTATION DE TRAVAIL")]);
+    ligne(&mut b, 356.0, &[(30.0, "Emploi occupé"), (0.0, a.emploi.as_ref()), (0.0, "Numéro Objet"), (0.0, a.objet.as_ref())]);
+    // « Non » au-dessus de « cadre » : « Non cadre » sur deux rangs, comme le formulaire.
+    ligne(&mut b, 366.0, &[(150.0, "Non")]);
+    ligne(
+        &mut b,
+        374.0,
+        &[(30.0, &coche("Cadre", a.cadre)), (150.0, &coche("cadre", !a.cadre)), (0.0, "Réalisateur"), (0.0, &coche("Artiste", a.artiste)), (0.0, &coche("Technicien", !a.artiste)), (0.0, "Ouvrier")],
+    );
+    ligne(&mut b, 392.0, &[(30.0, "Date d'embauche"), (0.0, &e[0]), (0.0, &e[1]), (0.0, &e[2]), (0.0, "à Contrat en cours")]);
+    ligne(&mut b, 404.0, &[(30.0, "Sinon à Date de fin du contrat de travail"), (0.0, &f[0]), (0.0, &f[1]), (0.0, &f[2])]);
+    ligne(&mut b, 414.0, &[(30.0, "(Date de début du contrat)")]);
+    // Les en-tetes des nombres, sur deux rangs, et les nombres a leur aplomb.
+    ligne(&mut b, 432.0, &[(40.0, "Nombre d'"), (110.0, "HEURES"), (200.0, "Nombre de"), (330.0, "Nombre de")]);
+    ligne(&mut b, 442.0, &[(40.0, "effectuées"), (200.0, "CACHETS*"), (330.0, "JOURS")]);
+    ligne(&mut b, 452.0, &[(180.0, "isolés"), (240.0, "groupés"), (330.0, "travaillés")]);
+    ligne(&mut b, 470.0, &[(122.0, a.heures.as_ref()), (186.0, a.isoles.as_ref()), (250.0, a.groupes.as_ref()), (345.0, a.jours.as_ref())]);
+    ligne(&mut b, 484.0, &[(100.0, "* Uniquement pour les artistes (voir notice)")]);
+    ligne(&mut b, 500.0, &[(150.0, "RÉMUNERATION VERSÉES AU COURS DU MOIS")]);
+    ligne(&mut b, 512.0, &[(40.0, "SALAIRES BRUTS"), (220.0, "SALAIRES BRUTS")]);
+    ligne(&mut b, 521.0, &[(220.0, "soumis à contributions d'assurance chômage *")]);
+    ligne(&mut b, 536.0, &[(55.0, a.brut.as_ref()), (235.0, a.brut.as_ref())]);
+    ligne(&mut b, 600.0, &[(30.0, "5 AUTHENTIFICATION PAR L'EMPLOYEUR")]);
+    b
+}
+
 /// Une page sans un mot : un trait seul, aucune police (comme une impression en traces).
 pub fn pdf_en_traces() -> Vec<u8> {
     let flux = "10 10 m 190 190 l S";

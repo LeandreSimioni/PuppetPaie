@@ -1060,6 +1060,7 @@ pub(crate) fn engagements(
             poser(k, e.get(k));
         }
         let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
+        notifiee_pendant_le_contrat(e, &eng)?;
         // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
         if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
@@ -1068,6 +1069,28 @@ pub(crate) fn engagements(
         out.push(eng);
     }
     Ok((out, dits))
+}
+
+/// La rupture se notifie pendant le contrat : « La date de notification de la rupture de contrat doit être supérieure
+/// ou égale à la date de début de contrat de travail et inférieure ou égale à la date de fin de contrat de travail »
+/// (CCH-11 de S21.G00.62.003, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt`). La saisie `e` qui la dit
+/// (`notification_rupture`) se refuse, en disant les bornes du contrat `eng` ; un contrat sans fin ne borne que le debut.
+fn notifiee_pendant_le_contrat(e: &Value, eng: &Engagement) -> Resultat<()> {
+    let Some(t) = e.get("notification_rupture").and_then(Value::as_str).filter(|t| !t.trim().is_empty()) else { return Ok(()) };
+    let n = Jour::lire(t).map_err(|_| format!("{} : « Notifiée le » {} n'est pas une date.", eng.nom, t))?;
+    if n >= eng.debut && eng.fin.map_or(true, |f| n <= f) {
+        return Ok(());
+    }
+    let bornes = match eng.fin {
+        Some(f) => format!("entre son premier jour, le {}, et sa fin, le {}", eng.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
+        None => format!("au plus tôt son premier jour, le {}", eng.debut.jj_mm_aaaa()),
+    };
+    Err(format!(
+        "{} : notifiée le {}, la rupture doit l'être pendant le contrat, {}. La date se corrige dans sa carte, sous « Contrat ».",
+        eng.nom,
+        n.jj_mm_aaaa(),
+        bornes
+    ))
 }
 
 /// Ce que disent les refus d'une saisie pas encore finie, et non un defaut du logiciel : un spectacle pas encore

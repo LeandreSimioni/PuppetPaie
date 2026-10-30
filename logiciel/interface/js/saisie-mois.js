@@ -100,7 +100,7 @@ function engagementsDuBloc(div, mois) {
   const faits = faitsDuBloc(div);
   const salaire = div.querySelector(".e-salaire").value;
   const quotite = div.querySelector(".e-quotite").value;
-  const dateModification = div.querySelector(".e-date-modification").value;
+  const avenant = div._avenant || {};
   return salariesDuBloc(div).map((salarie) => {
     // LE NUMÉRO EST CELUI D'UN CONTRAT, DONC D'UN SALARIÉ : celui du
     // bloc s'il est le sien. Un salarié coché en plus n'hérite pas du
@@ -127,9 +127,9 @@ function engagementsDuBloc(div, mois) {
       if (recours) e.motif_recours = recours;
       if (salaire !== "") e.salaire_mensuel = +salaire;
       if (quotite !== "") e.quotite_contrat = +quotite;
-      if (dateModification) e.date_modification = dateModification;
-      const avant = avantDuBloc(div);
-      if (avant) e.avant = avant;
+      // L'avenant du mois, tel que le moteur l'a posé (« À partir de ») : la carte ne le saisit pas.
+      if (avenant.date_modification) e.date_modification = avenant.date_modification;
+      if (avenant.avant) e.avant = avenant.avant;
       if (faits.conges.length) e.conges_pris = faits.conges;
       if (faits.primes.length) e.primes = faits.primes;
     } else {
@@ -237,7 +237,8 @@ async function calculerApercu(lu) {
         div._total = null;
         peindreChiffres(div, null);
         div._paies = [];
-        div._rupture = null;
+        // La rupture que le dernier aperçu calculé a dite reste : un fait refusé (une date de notification hors du
+        // contrat) ne fait pas disparaître de la saisie le motif et les dates de la fin.
         peindreCarte(div);
         div.querySelector(".resolu").innerHTML = "";
         // Les cases du contrat écrit se disent avant que le reste soit complet (la période d'essai d'un CDD).
