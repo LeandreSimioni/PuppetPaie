@@ -597,22 +597,8 @@ fn cochees(ctx: &Contexte) -> R<Map<String, Value>> {
 
 /// Le taux AT/MP de l'annee est-il pose ?
 fn atmp_pose(ctx: &Contexte, annee: i32) -> R<bool> {
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", annee));
-    // Un taux collectif que l'annee reprend d'elle-meme (`Contexte::taux_atmp_reporte`) n'a rien a relever.
-    let reporte = || matches!(ctx.taux_atmp_reporte(annee), Some(Ok(_)));
-    if !p.exists() {
-        return Ok(reporte());
-    }
-    let v = match lire_saisie(&p) {
-        Ok(v) => v,
-        Err(e) if matches!(e.classe, Some("JSONDecodeError") | Some("UnicodeDecodeError")) => return Ok(false),
-        Err(e) => return Err(e),
-    };
-    let Some(o) = v.as_object() else { return Err(pas_de_get(&v)) };
-    Ok(match o.get("taux_atmp") {
-        Some(Value::Object(t)) => t.get("valeur").map_or(false, |x| !x.is_null()),
-        _ => reporte(),
-    })
+    // Dit pour l'annee, ou un taux collectif que l'annee reprend d'elle-meme : rien a relever (`Contexte::taux_atmp_de`).
+    Ok(matches!(ctx.taux_atmp_de(annee), Some(Ok(t)) if t.get("valeur").is_some_and(|x| !x.is_null())))
 }
 
 /// Vrai, faux, ou `None` quand on ne peut pas le savoir.

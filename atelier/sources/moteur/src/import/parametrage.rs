@@ -6,7 +6,7 @@
 //! - LE CODE RISQUE ET LE TAUX AT/MP (S21.G00.40.040, .043 ; `norme-dsn/texte/bloc-S21.G00.40.txt` l. 1224-1315) dans la
 //!   surcouche du bareme de chaque annee (`routes::atmp::poser`). Une annee dont une DSN est reprise recoit le code et le
 //!   taux qu'elle declare, s'ils n'y sont pas deja dits par la compagnie. L'annee en cours, sans DSN, recoit le code de la
-//!   derniere DSN a la place de celui pose a la creation : le code reste celui que la CARSAT a notifie tant qu'elle n'en
+//!   derniere DSN a la place de celui pose a la creation ou repris d'une annee d'avant, s'il est autre : le code reste celui que la CARSAT a notifie tant qu'elle n'en
 //!   notifie pas un autre (inference : la norme dit que l'employeur declare un code « qui lui a deja ete notifie ») ; son
 //!   taux est celui que l'arrete de l'annee fixe a ce risque (`droit::bareme::taux_de_l_arrete`), et sinon il se demande.
 //! - LES ORGANISMES ET LES CONTRATS DE LA DSN (`config/organismes.json`, `compagnie::organismes`), quand la compagnie ne
@@ -27,16 +27,19 @@ fn texte(v: &Value, k: &str) -> String {
     v.get(k).filter(|x| vrai(x)).map(valeur_en_texte).map(|s| s.trim().to_string()).unwrap_or_default()
 }
 
-/// Le `taux_atmp` deja pose pour l'annee : (dit par la compagnie, pose a la creation).
-fn deja_pose(ctx: &Contexte, an: i32) -> (bool, bool) {
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
-    let t = socle::fichiers::lire_json(&p).ok().and_then(|v| v.get("taux_atmp").cloned());
-    match t {
-        Some(t) if t.is_object() => {
-            let creation = t.get("_pose_a_la_creation").is_some_and(vrai);
-            (!creation, creation)
+/// Le taux AT/MP de l'annee tel que le bareme le lit (`Contexte::taux_atmp_de`) : (dit par la compagnie pour l'annee,
+/// code qui vaut sans qu'elle l'ait dit : pose a la creation, ou repris d'une annee d'avant).
+fn deja_pose(ctx: &Contexte, an: i32) -> (bool, Option<String>) {
+    match ctx.taux_atmp_de(an) {
+        Some(Ok(t)) => {
+            let code = t.get("code_risque").filter(|c| vrai(c)).map(valeur_en_texte);
+            if t.get("_pose_a_la_creation").is_some_and(vrai) || t.get("_reporte_de").is_some() {
+                (false, code)
+            } else {
+                (true, code)
+            }
         }
-        _ => (false, false),
+        _ => (false, None),
     }
 }
 
@@ -58,11 +61,8 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
         return;
     }
     let Some((_, (mois, code, _))) = lecture.atmp.iter().next_back() else { return };
-    let (dit, creation) = deja_pose(ctx, courante);
-    let pose = socle::fichiers::lire_json(&ctx.racine.join("config").join("baremes").join(format!("{}.json", courante)))
-        .ok()
-        .and_then(|v| v.pointer("/taux_atmp/code_risque").map(valeur_en_texte));
-    if dit || (creation && pose.as_deref() == Some(code.as_str())) {
+    let (dit, de_lui_meme) = deja_pose(ctx, courante);
+    if dit || de_lui_meme.as_deref() == Some(code.as_str()) {
         return;
     }
     let source = format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040) ; taux de l'arrêté de {}.", en_clair(mois), courante);

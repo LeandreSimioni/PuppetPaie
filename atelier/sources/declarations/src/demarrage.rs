@@ -373,9 +373,9 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
 /// de l'annee (`droit::bareme::risques_atmp`, `atelier/reference/sources/tarification-atmp/`).
 pub fn poses(ctx: &Contexte) -> Vec<Value> {
     let an = ctx.aujourdhui.an;
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
-    let Some(t) = socle::fichiers::lire_json(&p).ok().and_then(|v| v.get("taux_atmp").cloned()) else { return Vec::new() };
-    if !t.get("_pose_a_la_creation").is_some_and(vrai) || en_alsace_moselle(ctx) {
+    let Some(Ok(t)) = ctx.taux_atmp_de(an) else { return Vec::new() };
+    let reporte_de = t.get("_reporte_de").and_then(Value::as_i64);
+    if !(t.get("_pose_a_la_creation").is_some_and(vrai) || reporte_de.is_some()) || en_alsace_moselle(ctx) {
         return Vec::new();
     }
     let code = t.get("code_risque").map(socle::date::en_texte).unwrap_or_default();
@@ -385,7 +385,10 @@ pub fn poses(ctx: &Contexte) -> Vec<Value> {
     vec![json!({
         "cle": "taux_atmp",
         "libelle": format!("Accidents du travail : code risque {}, taux {} en {}", r.code_arrete.as_deref().unwrap_or(&r.code), taux, an),
-        "texte": format!("« {} » Le logiciel l'a posé pour vous : c'est le risque du spectacle vivant, et son taux est le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle),
+        "texte": match reporte_de {
+            Some(de) => format!("« {} » Le code risque est celui que la compagnie a dit pour {} ; son taux de {} est celui de l'arrêté de tarification, le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle, de, an),
+            None => format!("« {} » Le logiciel l'a posé pour vous : c'est le risque du spectacle vivant, et son taux est le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle),
+        },
         "ou": ENTREPRISE,
         "champ": "taux_atmp",
     })]
@@ -416,6 +419,5 @@ fn en_alsace_moselle(ctx: &Contexte) -> bool {
 
 /// Le taux AT/MP de l'annee est-il encore celui que le moteur a pose a la creation ?
 fn pose_a_la_creation(ctx: &Contexte) -> bool {
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", ctx.aujourdhui.an));
-    socle::fichiers::lire_json(&p).ok().is_some_and(|v| v.pointer("/taux_atmp/_pose_a_la_creation").is_some_and(vrai))
+    matches!(ctx.taux_atmp_de(ctx.aujourdhui.an), Some(Ok(t)) if t.get("_pose_a_la_creation").is_some_and(vrai))
 }

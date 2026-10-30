@@ -172,23 +172,15 @@ fn risque_en_json(r: &RisqueAtmp) -> Value {
 /// CE QUE L'ECRAN DIT du code et du taux de l'annee : ce qui est pose, le risque tel que l'arrete l'ecrit, la phrase qui
 /// l'explique, ou le lire, ou le changer, et les codes que l'avance propose.
 pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
-    let p = surcouche(&ctx.racine, an);
-    let pose = match crate::routes::fiches::lire_tolerant(&p)? {
-        Some(Value::Object(o)) => o.get("taux_atmp").and_then(Value::as_object).cloned(),
-        Some(autre) => return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&autre)))),
-        None => None,
-    };
-    // L'annee que la compagnie n'a pas dite : le taux qui se reprend d'une annee d'avant, ou pourquoi il ne se reprend pas.
-    let (pose, reporte, manque) = match pose {
-        Some(p) if !p.is_empty() => (Some(p), None, None),
-        _ => match ctx.taux_atmp_reporte(an as i32) {
-            Some(Ok(t)) => {
-                let de = t.get("_reporte_de").and_then(Value::as_i64);
-                (Some(t), de, None)
-            }
-            Some(Err(m)) => (None, None, Some(m)),
-            None => (None, None, None),
-        },
+    // Ce que l'annee dit, ou, l'annee que la compagnie n'a pas dite, le taux qui se reprend d'une annee d'avant, ou
+    // pourquoi il ne se reprend pas (`Contexte::taux_atmp_de`).
+    let (pose, reporte, manque) = match ctx.taux_atmp_de(an as i32) {
+        Some(Ok(t)) => {
+            let de = t.get("_reporte_de").and_then(Value::as_i64);
+            (Some(t), de, None)
+        }
+        Some(Err(m)) => (None, None, Some(m)),
+        None => (None, None, None),
     };
     let code = pose.as_ref().and_then(|t| t.get("code_risque")).filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let valeur = pose.as_ref().and_then(|t| t.get("valeur")).filter(|v| !v.is_null()).cloned();
