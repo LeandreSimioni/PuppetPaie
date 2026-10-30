@@ -1502,6 +1502,19 @@ impl Contexte {
         Ok(out)
     }
 
+    /// LES CONTRIBUTIONS DE BRANCHE QUE LA DSN DECLARE A CE JOUR : `contributions_dsn` de la couche de la convention que
+    /// la fiche entreprise nomme ce jour-la, dans le socle de l'annee (la meme liste que le bareme fondu porte). Elles ne
+    /// dependent que de la convention : un bareme que l'effectif ou le taux AT/MP rendent illisible les a quand meme.
+    /// Une annee sans socle, ou une fiche sans convention couverte, n'en a aucune (le refus se dit au bareme).
+    pub fn contributions_dsn(&self, jour: &Jour) -> Resultat<Vec<Value>> {
+        let Some(socle_an) = socle(&self.code.join("baremes"), jour.an)? else { return Ok(Vec::new()) };
+        let ent = self.entreprise_au(jour)?;
+        let Some(idcc) = ent.get("idcc").filter(|v| !v.is_null()) else { return Ok(Vec::new()) };
+        let Ok(couche) = convention(&socle_an, idcc) else { return Ok(Vec::new()) };
+        let couche = a_la_date(&couche, jour, &[])?;
+        Ok(couche.get("contributions_dsn").and_then(Value::as_array).cloned().unwrap_or_default())
+    }
+
     pub fn bareme(&self, jour: &Jour) -> Resultat<Value> {
         // Le bareme resolu a ce jour est garde, comme `_baremes_resolus` ; on en
         // rend une copie, que l'appelant peut modifier.

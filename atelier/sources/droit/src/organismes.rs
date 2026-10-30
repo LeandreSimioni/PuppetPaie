@@ -119,21 +119,18 @@ pub fn attendus(ctx: &Contexte, base: &Value) -> Resultat<Vec<Value>> {
             "organisme": casc["delegataire"], "organisme_fixe": true,
         }));
     }
-    // Les contributions de branche en DSN : le bareme de la date dit lesquelles. Un bareme illisible (taux AT/MP
-    // manquant...) se signale ailleurs (`pour-demarrer`) ; ici, il ne fait que taire ces lignes.
-    if let Ok(bar) = ctx.bareme(&ctx.lue_au) {
-        for c in liste(g(&bar, "contributions_dsn")) {
-            let nom = txt(g(&c, "contribution"));
-            if nom.is_empty() {
-                continue;
-            }
-            out.push(json!({
-                "cle": format!("contribution_{}", nom.to_lowercase()), "contribution": nom, "libelle_defaut": nom,
-                "type": "01", "beneficiaires": "selon le contrat",
-                "quoi": format!("Contribution {} (en DSN depuis {})", nom, txt(g(&c, "en_dsn_depuis"))),
-                "organisme": AUDIENS, "organisme_fixe": true,
-            }));
+    // Les contributions de branche en DSN : la convention de la date dit lesquelles (`Contexte::contributions_dsn`).
+    for c in ctx.contributions_dsn(&ctx.lue_au)? {
+        let nom = txt(g(&c, "contribution"));
+        if nom.is_empty() {
+            continue;
         }
+        out.push(json!({
+            "cle": format!("contribution_{}", nom.to_lowercase()), "contribution": nom, "libelle_defaut": nom,
+            "type": "01", "beneficiaires": "selon le contrat",
+            "quoi": format!("Contribution {} (en DSN depuis {})", nom, txt(g(&c, "en_dsn_depuis"))),
+            "organisme": AUDIENS, "organisme_fixe": true,
+        }));
     }
     out.extend(liste(g(contrats, &idcc)));
     Ok(out)
