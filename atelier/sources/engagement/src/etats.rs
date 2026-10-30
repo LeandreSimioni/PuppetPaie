@@ -1274,7 +1274,24 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<
     let mut a_refaire: Vec<(usize, Objet, Option<Value>, bool)> = Vec::new();
     let mut relues = empreinte::Relues::default();
     let mut reecrit = false;
-    let etats = tels_qu_ecrits(ctx, mois, departs)?;
+    let mut etats = tels_qu_ecrits(ctx, mois, departs)?;
+    // CE DONT UNE PAIE DEPEND SE MET A JOUR AVANT ELLE : les mois d'avant que ses paies ont lus (`paies <mois>` : conges,
+    // cumuls, deduction forfaitaire de l'annee) se relisent d'abord, du plus ancien au plus recent. Ce que la lecture de
+    // `mois` trouve ne depend donc pas de l'ordre dans lequel les mois ont ete lus.
+    let mut avant: Vec<String> = etats
+        .iter()
+        .filter_map(|e| e.valide()?.paie_ecrite(mois)?.get("empreinte").and_then(empreinte::entrees_de))
+        .flat_map(|en| en.into_keys().filter_map(|k| k.strip_prefix("paies ").map(String::from)))
+        .filter(|m| m.as_str() < mois)
+        .collect();
+    avant.sort();
+    avant.dedup();
+    if !avant.is_empty() {
+        for m in &avant {
+            du_mois(ctx, m, departs)?;
+        }
+        etats = tels_qu_ecrits(ctx, mois, departs)?;
+    }
     for (i, e) in etats.iter().enumerate() {
         let (v, parti) = match e {
             Etat::Valide(v) => (v, false),
