@@ -202,7 +202,8 @@ function ligneRubrique(l = {}, nat) {
   div.querySelector(".r-taux").oninput = () => {
     const v = div.querySelector(".r-taux").value;
     const r = div.querySelector(".r-code").value;
-    if (v !== "" && +v > 0) {
+    // Une carte ouverte pour être modifiée ne s'écrit pas : son taux ne devient pas celui du mois.
+    if (v !== "" && +v > 0 && !div.closest(".en-modification")) {
       if (r === "cachet") { DERNIER_TAUX = +v; afficherRappelsMois(); }
       else TAUX_PAR_RUBRIQUE[r] = +v;
     }
@@ -662,7 +663,7 @@ function poserAvant(div, e) {
   div.querySelector(".e-avant-quotite").value = avant.quotite_contrat ?? "";
   const majAvant = () => {
     const dit = div.querySelector(".e-avant-salaire").value !== "" || div.querySelector(".e-avant-quotite").value !== "";
-    div.querySelector(".e-avant").hidden = !dit && !div.querySelector(".e-date-modification").value;
+    div.querySelector(".e-avant").hidden = !avenantSurLaCarte(div) || (!dit && !div.querySelector(".e-date-modification").value);
   };
   div.querySelector(".e-date-modification").addEventListener("change", majAvant);
   div.querySelectorAll(".e-avant input").forEach((c) => { c.oninput = rafraichirApercu; });
@@ -671,16 +672,23 @@ function poserAvant(div, e) {
   majAvenant(div);
 }
 
-/* L'AVENANT NE SE PROPOSE QU'À UN CONTRAT QUI EXISTE DÉJÀ.
+/* L'AVENANT NE SE PROPOSE QU'À UN CONTRAT QUI EXISTE DÉJÀ ET QUI SE SAISIT.
  * Un CDI saisi pour la première fois montrait « Avenant à compter du » : rien
  * à remplir, puisque ce qu'on tape ce mois-ci, ce sont les termes du contrat.
  * La case paraît quand le contrat a commencé avant le mois affiché — c'est ce
- * fait-là qui l'appelle —, ou quand elle porte déjà une date. */
+ * fait-là qui l'appelle —, ou quand elle porte déjà une date. Un engagement
+ * validé, ouvert pour être modifié, ne la montre pas, ni les termes d'avant :
+ * la date du changement, le moteur la demande à « Modifier l'engagement »
+ * (« À partir de quel mois ? »), quand ce qui est parti l'appelle. */
+function avenantSurLaCarte(div) {
+  return !(div._ligne && div._ligne.valide);
+}
+
 function majAvenant(div) {
   const case_ = div.querySelector(".e-date-modification");
   const debut = div.querySelector(".e-debut").value;
   const mois = document.getElementById("mois").value || "";
-  const cachee = !case_.value && !(debut && mois && debut.slice(0, 7) < mois);
+  const cachee = !avenantSurLaCarte(div) || (!case_.value && !(debut && mois && debut.slice(0, 7) < mois));
   const l = case_.closest("label");
   l.hidden = cachee;
   l.style.display = cachee ? "none" : "";   // la feuille de style pose `display` sur ces étiquettes
@@ -773,7 +781,7 @@ function poserSpectacles(select) {
  * tant que son formulaire n'existe pas, rien ne la modifie, et elle les écrit
  * tels quels (`engagementsDuBloc`). Son formulaire se construit à la première
  * occasion qui l'ouvre — l'état de son engagement dit qu'il n'est pas validé, on
- * la rouvre par « Modifier… », les états tardent (`fermerEdition`,
+ * on l'ouvre d'un clic pour la modifier, les états tardent (`fermerEdition`,
  * `ouvrirCarte`) — et il reste construit tant que la carte vit ; dès lors
  * c'est lui qui écrit. Naissent ouvertes : une carte neuve (« Ajouter un
  * engagement »), un contrat en cours repris, une carte dédoublée, et celle qui
@@ -871,7 +879,7 @@ function construireCarte(div, e) {
            donnees/contrats-base.json le savait tout seul. Elle change la
            forme du bloc : un permanent n'a ni spectacle ni cachets, il a un
            salaire au mois et des faits. -->
-      <label class="e-nature-bloc" title="ce que la DSN écrira de la structure de ce contrat">Nature
+      <label class="e-nature-bloc">Nature
         <select class="e-nature"></select></label>
       <label class="e-spectacle-bloc">Spectacle
         <select class="e-spectacle"></select></label>
@@ -1112,7 +1120,9 @@ function construireCarte(div, e) {
   // --- la nature du contrat, et la forme du bloc qu'elle décide
   const selNat = div.querySelector(".e-nature");
   poserListe(selNat, "natures", [ETAT.natures], () => (ETAT.natures || []).map(
-    (n) => `<option value="${echapper(n.cle)}">${echapper(n.libelle)}</option>`).join(""));
+    (n) => `<option value="${echapper(n.cle)}" title="${echapper(n.aide || "")}">${echapper(n.libelle)}</option>`).join(""));
+  // Le nom court se lit ; ce qu'il veut dire est dans l'aide du champ, nature par nature.
+  div.querySelector(".e-nature-bloc").title = (ETAT.natures || []).filter((n) => n.aide).map((n) => `${n.libelle} : ${n.aide}`).join("\n");
   selNat.value = e.nature || ETAT.nature_defaut || "";
   selNat.onchange = () => { viderBornes(div); majNature(div); rafraichirApercu(); };
   const selSpec = div.querySelector(".e-spectacle");

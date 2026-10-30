@@ -238,9 +238,23 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     assert_eq!(documents(), ["fait"]);
     assert_eq!(paie_du_second()["bulletin"], json!("2/2026"));
 
-    outils::reussi(&outils::route(&racine, "valider-engagement", avec(json!({"valide": false, "confirme": true})), jour));
-    outils::reussi(&outils::route(&racine, "enregistrer-saisie", saisie(json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.02", "lignes": lignes(2, &["2026-11-27", "2026-11-28"])})), jour));
-    outils::reussi(&outils::route(&racine, "valider-engagement", avec(json!({"valide": true})), jour));
+    // « Modifier l'engagement » : sans changement, rien ne s'ecrit et rien ne se dit ; son bulletin parti, le changement
+    // vient avec l'avertissement et rien ne s'ecrit sans la confirmation.
+    let modifier = |lignes: Value, confirme: bool| {
+        let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.02", "lignes": lignes});
+        outils::route(&racine, "modifier-engagement", json!({"mois": "2026-11", "confirme": confirme,
+            "engagements": [{"salarie": "FULLER", "debut": "2026-11-27", "numero": "FU1.26.02", "saisie": saisie}]}), jour)
+    };
+    let ecrits = || std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
+    let avant = ecrits();
+    let r = outils::reussi(&modifier(lignes(1, &["2026-11-27"]), false)).clone();
+    assert_eq!((&r["change"], r.get("avertissement")), (&json!(false), None), "{}", r);
+    assert!(ecrits() == avant, "une modification sans changement a ecrit");
+    let r = outils::reussi(&modifier(lignes(2, &["2026-11-27", "2026-11-28"]), false)).clone();
+    let consequences: Vec<Value> = r["avertissement"]["engagements"].as_array().into_iter().flatten().flat_map(|e| e["consequences"].as_array().cloned().unwrap_or_default()).collect();
+    assert!(consequences.iter().any(|p| p.as_str().is_some_and(|p| p.contains("bulletin rectificatif"))), "{}", r);
+    assert!(ecrits() == avant, "une modification non confirmee a ecrit");
+    outils::reussi(&modifier(lignes(2, &["2026-11-27", "2026-11-28"]), true));
     assert_eq!(documents(), ["a_faire"], "le bulletin parti est a rectifier");
     std::fs::remove_dir_all(racine.join("sorties/2026-12")).unwrap();
     outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), jour));

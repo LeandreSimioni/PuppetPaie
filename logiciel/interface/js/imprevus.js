@@ -215,21 +215,73 @@ function brancherObligation(r, a, o) {
    mensuelle ; rompu avant (036, 037…), il se signale (fiche 2062). C'est le
    moteur qui tranche (`Nature::signalement_fctu`, route `fins-de-contrat`).
    Ce qui manque au signalement se tape dans la carte, sous « Contrat » :
-   proposer un bouton qui refuse serait pire que ne rien proposer. */
+   proposer un bouton qui refuse serait pire que ne rien proposer. Le
+   moteur dit chaque manque par le nom de sa case et ce qu'on y met
+   (`a_saisir`) ; il se lit sans rien déplier, et « La dire… » mène à la
+   case. Une fin d'un mois passé dont le signalement est en retard paraît
+   aussi (`mois`) : une échéance manquée ne se tait pas. */
 function rangFin(f, k) {
   const manque = f.a_saisir.length;
+  const ailleurs = f.mois && f.mois !== MOIS_AFFICHE ? ` (${moisEnClair(f.mois)})` : "";
   return rangDu(k, pastilleDeLEtat(f.pastille), (f.obligation && f.obligation.libelle) || "Signalement de fin de contrat",
-    `${nomDuSalarie(f.salarie)}, ${f.nature}, fin le ${jjmmaaaa(f.fin)}`, butoirEnClair(f.obligation),
+    `${nomDuSalarie(f.salarie)}, ${f.nature}, fin le ${jjmmaaaa(f.fin)}${ailleurs}`, butoirEnClair(f.obligation),
     `<button class="secondaire petit" data-geste="signaler"${manque ? " disabled" : ""}>Signaler…</button>
      <button class="lien" data-geste="papiers">Les papiers de fin…</button>`,
-    manque ? `<details class="pourquoi du-manque"><summary>${manque} chose${manque > 1 ? "s" : ""} à dire dans sa carte,
-      sous « Contrat », avant de signaler</summary>${f.a_saisir.map((m) => `<p>${echapper(m)}</p>`).join("")}</details>` : "",
+    manque ? `<div class="du-manque"><p>À dire dans sa carte, sous « Contrat », avant de signaler :</p>
+      ${f.a_saisir.map((m, i) => `<p><b>${echapper(m.case)}</b> : ${echapper(m.dire)}
+        <button class="lien" data-case="${i}">La dire…</button></p>`).join("")}</div>` : "",
     pourquoiDu(f.obligation));
 }
 
 function brancherFin(r, mois, f) {
-  r.querySelector('[data-geste="signaler"]').onclick = () => boiteSignalerFin(mois, f);
-  r.querySelector('[data-geste="papiers"]').onclick = () => boitePapiersDeFin(mois, f.salarie);
+  r.querySelector('[data-geste="signaler"]').onclick = () => boiteSignalerFin(f.mois || mois, f);
+  r.querySelector('[data-geste="papiers"]').onclick = () => boitePapiersDeFin(f.mois || mois, f.salarie);
+  r.querySelectorAll("[data-case]").forEach((b) => {
+    b.onclick = () => allerALaCase(f, f.a_saisir[Number(b.dataset.case)].champ);
+  });
+}
+
+/* LA CASE D'UN MANQUE, dans la carte de l'engagement : le mois de la fin,
+   la carte du salarié, rouverte à la modification si elle est validée (le
+   chemin de toujours, « Modifier l'engagement… »), le bloc « Contrat »
+   déplié, la case sous le curseur. */
+const CASES_DE_FIN = {
+  motif_rupture: ".e-motif-rupture",
+  notification_rupture: ".e-notification",
+  preavis: ".e-preavis-type",
+  dernier_jour_paye: ".e-dernier-paye",
+};
+
+/** Attend que `test()` rende quelque chose (au plus `ms`) ; rend ce qu'il rend, ou null. */
+async function attendre(test, ms) {
+  for (let t = 0; t < ms; t += 200) {
+    const v = test();
+    if (v) return v;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return null;
+}
+
+async function allerALaCase(f, champ) {
+  if (f.mois && f.mois !== MOIS_AFFICHE) allerAuMois(f.mois);
+  const carte = () => {
+    if (f.mois && (MOIS_AFFICHE !== f.mois || document.getElementById("engagements").classList.contains("en-lecture"))) return null;
+    const siennes = [...document.querySelectorAll("#engagements .engagement")]
+      .filter((d) => salariesDuBloc(d).some((x) => x.toUpperCase() === String(f.salarie).toUpperCase()));
+    return siennes.find((d) => carteDe(d).numero === f.numero || (f.debut && carteDe(d).debut === f.debut)) || siennes[0] || null;
+  };
+  let div = await attendre(carte, 15000);
+  if (!div) { dire(`La carte de ${nomDuSalarie(f.salarie)} ne se trouve pas dans ${moisEnClair(f.mois || MOIS_AFFICHE)}.`, "erreur"); return; }
+  if (div.classList.contains("validee") && div._ligne) ouvrirEnModification(div);
+  else ouvrirCarte(div);
+  const options = div.querySelector(".e-options");
+  if (options) options.hidden = false;
+  const contrat = div.querySelector(".e-contrat");
+  if (contrat) contrat.open = true;
+  const cible = (CASES_DE_FIN[champ] && div.querySelector(CASES_DE_FIN[champ])) || div.querySelector(".e-contrat");
+  if (!cible) return;
+  cible.scrollIntoView({ block: "center" });
+  cible.focus();
 }
 
 /* --------------------------------------------------------- LA PORTE
@@ -346,7 +398,7 @@ function peindreImprevusDeLaCarte(div, liste) {
         ${jours.length ? `<div class="imprevu-jours">Payé pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"} :
           ${jours.map((c) => c.dates.map((iso) => `${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}
             ${validee ? "" : `<button class="lien" data-retirer="${echapper(iso)}" data-rubrique="${echapper(c.rubrique)}">retirer ce jour</button>`}`).join(" · ")).join(" · ")}
-          ${validee ? `<span class="discret">— l'engagement est validé : cliquer sur la carte, puis « Modifier l'engagement… », pour retirer ces jours.</span>` : ""}
+          ${validee ? `<span class="discret">— l'engagement est validé : cliquer sur sa carte pour l'ouvrir, retirer ces jours, puis « Modifier l'engagement ».</span>` : ""}
         </div>` : ""}
       </div>`;
   }).join("");

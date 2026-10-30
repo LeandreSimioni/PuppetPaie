@@ -78,7 +78,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             }
             let a_saisir: Vec<Value> = f.get("a_saisir").and_then(Value::as_array).cloned().unwrap_or_default();
             for m in &a_saisir {
-                dire!("    A SAISIR : {}", super::rendu::texte(m));
+                dire!("    A SAISIR : {}", crate::routes::imprevus::phrase_du_manque(m));
             }
             if a_saisir.is_empty() {
                 dire!("    pret a signaler : moteur fin-contrat signaler {} {}", mois, champ(f, "salarie"));

@@ -297,7 +297,70 @@
       "soumis": true,
       "imposable": true,
       "conges_spectacles": false,
-      "source": "L'absence pour arret de travail : elle retire le salaire des heures non travaillees. La SUSPENSION, elle, ne se declare pas ici mais dans le bloc « Arret de travail - S21.G00.60 » (signalement.rs, et le magasin des imprevus) — un arret a son signalement et son report mensuel, et une ligne de paie ne les remplace pas. Pour un permanent, le moteur TIRE cette ligne de l'arret saisi une fois (imprevus.rs : les jours d'absence du mois, quel que soit le motif de l'arret) ; elle ne se saisit plus dans le mois. `arret_de_travail` dit au moteur de verifier qu'un arret est bien saisi en face d'une ligne ecrite a la main : une absence sans arret declare est une prestation que le salarie ne touchera pas."
+      "source": "L'absence pour arret de travail : elle retire le salaire des heures non travaillees. La SUSPENSION, elle, ne se declare pas ici mais dans le bloc « Arret de travail - S21.G00.60 » (signalement.rs, et le magasin des imprevus) — un arret a son signalement et son report mensuel, et une ligne de paie ne les remplace pas. Pour un permanent, le moteur TIRE cette ligne de l'arret saisi une fois (imprevus.rs : les jours d'absence du mois) ; elle ne se saisit plus dans le mois. Le bulletin nomme l'absence d'apres le motif de l'arret (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : chaque motif de `arrets-base.json` dit sa rubrique (`rubrique`), et celle-ci est celle de la maladie (01) ; les autres ne different que par leur libelle. `arret_de_travail` dit au moteur de verifier qu'un arret est bien saisi en face d'une ligne ecrite a la main : une absence sans arret declare est une prestation que le salarie ne touchera pas."
+    },
+    "absence_maternite": {
+      "libelle": "Absence maternité",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 02 « maternite » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_paternite": {
+      "libelle": "Absence paternité",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 03 « paternite / accueil de l'enfant » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_accident_trajet": {
+      "libelle": "Absence accident de trajet",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 04 « conge suite a un accident de trajet » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_maladie_professionnelle": {
+      "libelle": "Absence maladie professionnelle",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 05 « conge suite a maladie professionnelle » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_accident_travail": {
+      "libelle": "Absence accident du travail",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 06 « conge suite a accident de travail ou de service » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_dispense_grossesse": {
+      "libelle": "Absence dispense de travail (grossesse)",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 07 « femme enceinte dispensee de travail » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_adoption": {
+      "libelle": "Absence adoption",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 09 « adoption » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_deuil_enfant": {
+      "libelle": "Absence deuil d'enfant",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 19 « deuil d'enfant » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_conge_naissance": {
+      "libelle": "Absence congé de naissance",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 20 « conge supplementaire de naissance » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "maintien_salaire": {
       "libelle": "Maintien de salaire",

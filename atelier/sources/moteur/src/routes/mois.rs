@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::routes::fiches::{maintenant, refus, texte_requis};
-use crate::routes::rappels::{self, brut_valeur, texte, Etat};
+use crate::routes::rappels::{self, texte, Etat};
 use engagement::calcul::Paie;
 use engagement::Avis;
 use droit::catalogue;
@@ -1806,18 +1806,21 @@ fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant(), "a_completer": a_completer}))
 }
 
+/// UNE ECRITURE DES ENGAGEMENTS A LA FOIS : la fenetre sert ses routes en parallele, et la page enregistre une seconde
+/// apres la derniere frappe, meme si l'enregistrement d'avant n'a pas fini. L'ecriture de la saisie d'un mois et la
+/// modification d'un engagement valide (`crate::routes::engagement`) passent l'une apres l'autre, dans ce processus.
+pub(crate) fn une_ecriture_a_la_fois() -> std::sync::MutexGuard<'static, ()> {
+    static ECRITURE_EN_COURS: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    ECRITURE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 /// LA SAISIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE : une ecriture qui en change la paie
 /// (`crate::routes::etapes::empreinte_de` : ni la validation ni ce que le moteur tient seul) se refuse sans `confirme`
 /// (`crate::regularisation::CONFIRMATION` dans la charge), sous `CLASSE_A_CONFIRMER`, avec l'avertissement que la page
 /// montre ; rien n'est ecrit. Avec, elle s'ecrit ; revalide, l'engagement fait partir sa correction dans la DSN d'un
 /// mois suivant (`produire_regularisations::corrections_dues`).
-///
-/// UNE SAISIE S'ECRIT A LA FOIS : la fenetre sert ses routes en parallele, et la page enregistre une seconde apres la
-/// derniere frappe, meme si l'enregistrement d'avant n'a pas fini. Deux ecritures du meme mois passent l'une apres
-/// l'autre, dans ce processus (`SAISIE_EN_COURS`).
 pub(crate) fn ecrire_saisie_confirmee(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
-    static SAISIE_EN_COURS: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    let _une_a_la_fois = SAISIE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner());
+    let _une_a_la_fois = une_ecriture_a_la_fois();
     ecrire_saisie_seule(ctx, mois, brute, confirme)
 }
 
@@ -1848,7 +1851,7 @@ fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, c
                 }
             }
         }
-        if change && !confirme && !actuelle.as_ref().is_some_and(|a| changements_dates_a_la_validation(ctx, mois, a, &donnees)) {
+        if change && !confirme {
             let texte = declaree.get("avertissement").map(valeur_en_texte).unwrap_or_default();
             return Err(erreur(crate::regularisation::CLASSE_A_CONFIRMER, texte));
         }
@@ -1863,34 +1866,6 @@ fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, c
     // UN MOIS FAIT EN DEMO, retravaille dans la compagnie gardee : il cesse d'etre « de demo » (`suppression::sortir_de_la_demo`).
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     Ok(engagement::stock::chemin(&ctx.racine, mois))
-}
-
-/// Tout ce qui change de la saisie `actuelle` a `nouvelle` (meme nombre d'engagements, compares un a un) tient a des
-/// contrats au mois rouverts dont un mois est parti (`engagement::etats::se_datera_a_la_validation`) : leur validation
-/// demandera « a partir de quel mois ? » et dira ce qui arrive a chaque mois parti. L'ecriture n'a rien a confirmer
-/// d'avance : une seule question, celle qui dit ce qui arrivera.
-fn changements_dates_a_la_validation(ctx: &Contexte, mois: &str, actuelle: &Value, nouvelle: &Value) -> bool {
-    let es = |v: &Value| v.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    let (avant, apres) = (es(actuelle), es(nouvelle));
-    if avant.len() != apres.len() {
-        return false;
-    }
-    let seul = |e: &Value| crate::routes::etapes::empreinte_de(&json!({"engagements": [e]}));
-    // Ce qui change hors des termes reconduits (une prime, un conge du mois) n'est pas « a partir d'un mois » : il change
-    // ce mois, et se confirme.
-    let hors_termes = |e: &Value| {
-        let mut e = e.clone();
-        if let Some(o) = e.as_object_mut() {
-            o.retain(|k, _| !engagement::stock::RECONDUITS.contains(&k.as_str()) || engagement::stock::PARTAGES.contains(&k.as_str()));
-        }
-        seul(&e)
-    };
-    // Un engagement valide ne change pas par l'ecriture de la saisie (`engagement::stock::ecrire_vue_du_mois`) : ce que
-    // l'ecran en renvoie (ses noms resolus) ne compte pas.
-    let valide = |a: &Value| a.get("valide").is_some_and(Value::is_object);
-    avant.iter().zip(&apres).enumerate().filter(|(_, (a, n))| !valide(a) && seul(a) != seul(n)).all(|(i, (a, n))| {
-        hors_termes(a) == hors_termes(n) && n.as_object().is_some_and(|n| engagement::etats::se_datera_a_la_validation(ctx, mois, i, n).unwrap_or(false))
-    })
 }
 
 /// CE QUI MANQUE A CHAQUE ENGAGEMENT DE LA SAISIE `data` pour se calculer, dans son ordre (`None` : rien). Une saisie
@@ -2150,44 +2125,6 @@ pub(crate) fn q2(x: Decimal) -> Decimal {
     r
 }
 
-/// Une ligne de la saisie, avec ce que la rubrique en dit.
-fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
-    let rubrique = l.get("rubrique");
-    let infos = || -> Option<(String, String, f64)> {
-        let r = droit::catalogue::rubrique(&ctx.racine, l.get("rubrique")?.as_str()?, &ctx.lue_au).ok()?;
-        let quantite = match l.get("quantite") {
-            None | Some(Value::Null) => 0.0,
-            Some(q) if !vrai(q) => 0.0,
-            Some(q) => flottant(q).ok()?,
-        };
-        let saisies = match l.get("heures") {
-            None | Some(Value::Null) => None,
-            Some(Value::Number(n)) => n.as_f64(),
-            Some(_) => return None,
-        };
-        let total = r.heures(quantite, saisies);
-        Some((r.libelle, r.unite, total))
-    };
-    let (libelle, unite, total) = match infos() {
-        Some((l, u, t)) => (Value::String(l), Value::String(u), Some(t)),
-        None => (rubrique.cloned().unwrap_or(Value::Null), Value::Null, None),
-    };
-    let jours = |cle: &str| -> Value {
-        Value::Array(l.get(cle).and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().map(brut_valeur).collect()))
-    };
-    json!({
-        "rubrique": rubrique.cloned().unwrap_or(Value::Null),
-        "libelle": libelle, "unite": unite,
-        "quantite": l.get("quantite").cloned().unwrap_or(Value::Null),
-        "taux": l.get("taux").cloned().unwrap_or(Value::Null),
-        "heures_par_unite": l.get("heures").cloned().unwrap_or(Value::Null),
-        "heures": total.filter(|t| *t != 0.0).map_or(Value::Null, nombre_f),
-        "lieu": match l.get("lieu") { Some(x) if vrai(x) => x.clone(), _ => Value::String(String::new()) },
-        "dates": jours("dates"),
-        "planning": jours("planning"),
-    })
-}
-
 /// LA RUPTURE de cet engagement, telle que la page la propose (« Un imprévu… ») : `null` quand elle n'a pas de sens ici
 /// -- une nature sans motif de rupture (S21.G00.62.002, CCH-11 : `Nature::motifs_rupture`), ou un contrat a terme qui ne
 /// finit pas ce mois-ci -- ; sinon le libelle de la porte et la fin du contrat (celle qu'il dit, ou son dernier jour
@@ -2315,7 +2252,6 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
             "rubrique": l.code, "designation": l.designation(),
             "quantite": l.quantite.to_string(), "taux": l.taux.to_string(), "montant": q2(l.montant).to_string(),
         })).collect::<Vec<_>>(),
-        "lignes_saisies": e.lignes.iter().map(|l| ligne_saisie(ctx, l)).collect::<Vec<_>>(),
         "jours": jours, "lieu": lieu,
         "brut": q2(p.brut).to_string(), "base_csg": q2(p.base_csg).to_string(),
         "plafond": q2(p.plafond).to_string(), "smic": nombre_f(p.smic),

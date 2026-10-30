@@ -76,7 +76,10 @@ function ruptureDuBloc(div, nat, fin, e) {
 
 /** Les engagements qu'un bloc écrit : un par salarié coché. */
 function engagementsDuBloc(div, mois) {
-  if (carteFermee(div)) return engagementsLus(div).map((e) => JSON.parse(JSON.stringify(e)));
+  // Une carte fermée, ou ouverte pour être modifiée : ce qu'on y tape ne s'écrit qu'à « Modifier l'engagement » ; seuls
+  // l'aperçu et le montant visé la lisent (`LIRE_LES_MODIFICATIONS`).
+  if (carteFermee(div) || (div.classList.contains("en-modification") && !LIRE_LES_MODIFICATIONS))
+    return engagementsLus(div).map((e) => JSON.parse(JSON.stringify(e)));
   // L'ENGAGEMENT N'ÉCRIT PLUS DE `dates` : chacune de ses lignes porte les
   // siennes, avec son lieu, et le moteur en fait la réunion
   // (`operations.dates_engagement`).
@@ -151,6 +154,14 @@ function engagementsDuBloc(div, mois) {
   });
 }
 
+/* UNE CARTE OUVERTE POUR ÊTRE MODIFIÉE (`ouvrirEnModification`) ne s'écrit pas : la saisie du mois garde son
+ * engagement tel qu'il est enregistré. L'aperçu et le montant visé, qui n'écrivent rien, la lisent telle qu'elle est. */
+let LIRE_LES_MODIFICATIONS = false;
+function saisieAvecLesModifications() {
+  LIRE_LES_MODIFICATIONS = true;
+  try { return saisieCourante(); } finally { LIRE_LES_MODIFICATIONS = false; }
+}
+
 function saisieCourante() {
   const mois = document.getElementById("mois").value;
   const engagements = [...document.querySelectorAll(".engagement")]
@@ -179,7 +190,7 @@ function rafraichirApercu() {
 
 /** `lu` : l'aperçu tel que la lecture du mois le porte (la saisie enregistrée) ; sans lui, on le demande au moteur. */
 async function calculerApercu(lu) {
-  const saisie = saisieCourante();
+  const saisie = saisieAvecLesModifications();
   const cible = document.getElementById("apercu");
   document.getElementById("apercu-sous-titre").textContent = IMPORTE ? "tenu avant PuppetPaie" : "";
   if (IMPORTE) {
@@ -349,7 +360,7 @@ function engagementsParBloc(a, blocs) {
  * combien — le net seulement, ce qu'on vire ; brut et coût sont dans
  * l'aperçu à droite de l'écran, les répéter ici serait du bruit. Numéros
  * de bulletin et de contrat, date de validation : en infobulle.
- * « Modifier… » rouvre la saisie entière (et « Retirer » avec elle).
+ * Un clic sur elle l'ouvre, toutes ses cases modifiables (`ouvrirEnModification`).
  *
  * Deux sources, qui n'arrivent pas au même moment : l'aperçu du moteur
  * (`div._paies` : jours, ce qui est payé, net) et l'état de l'engagement
@@ -396,11 +407,9 @@ function peindreCarte(div) {
     <span class="carte-modifier">
       <button class="lien carte-imprevu" title="Un imprévu : un arrêt de travail, une absence…"
         aria-label="Un imprévu">&hellip;</button></span>`;
-  // VOIR SANS MODIFIER (l'utilisateur, 29/09/2026) : relire les heures d'un
-  // service de répétition ne doit pas demander de rouvrir l'engagement. LA CARTE
-  // S'OUVRE D'UN CLIC SUR ELLE, carrés compris : un clic sur la carte ne fait partir aucun envoi.
-  // « Modifier » est dans la boîte du détail.
-  rendreOuvrable(cible, () => boiteDetail(div._ligne, div._paies || []), "Ouvrir le détail de la paie");
+  // LA CARTE S'OUVRE D'UN CLIC SUR ELLE, carrés compris, toutes ses cases modifiables : un clic n'écrit rien et ne
+  // fait partir aucun envoi. Rien ne s'écrit avant « Modifier l'engagement » (`ouvrirEnModification`).
+  rendreOuvrable(cible, () => ouvrirEnModification(div), "Ouvrir l'engagement pour le modifier");
   // LA PORTE DES IMPRÉVUS sur un engagement validé : un arrêt ou
   // une absence arrive souvent après la paie. js/imprevus.js.
   const porte = cible.querySelector(".carte-imprevu");
@@ -437,81 +446,6 @@ function boiteFrise(ligne) {
       </li>`).join("")}
     </ol>
     <div class="actions"><button class="secondaire" onclick="fermerBoite()">Fermer</button></div>`);
-}
-
-/** Un jour d'une ligne, nu ou avec son propre lieu (`{"jour", "lieu"}`). */
-const jourEnClair = (x) => jjmmaaaa(jourDe(x)) + (x && typeof x === "object" && x.lieu ? ` (${x.lieu})` : "");
-
-/** Le détail d'un engagement validé, en lecture : ce qui est payé ligne par
- *  ligne, les jours, les montants. « Modifier… » dedans. */
-function boiteDetail(ligne, ps) {
-  const nombre = (x) => (x === null || x === undefined || x === "") ? ""
-    : String(x).replace(".", ",");
-  const bloc = (p) => {
-    const lignes = (p.remuneration || []).map((r) => `<tr>
-        <td>${echapper(r.designation)}</td>
-        <td class="nombre">${echapper(nombre(r.quantite))}</td>
-        <td class="nombre">${r.taux ? echapper(euros(r.taux)) : ""}</td>
-        <td class="nombre">${echapper(euros(r.montant))}</td></tr>`).join("");
-    const dates = (p.dates_travail || []).map(jjmmaaaa).join(", ");
-    // CE QUI A ÉTÉ SAISI, ligne par ligne (30/09/2026 : « je vois 2 services
-    // mais pas combien d'heures chaque service ; je veux tout voir sans avoir
-    // à modifier »). Le moteur rend les heures par unité ET leur total.
-    const h = (x) => nombre(x) + " h";
-    const saisies = (p.lignes_saisies || []).map((l) => `
-      <div class="detail-saisie">
-        <b>${echapper(nombre(l.quantite))} × ${echapper(l.libelle || l.rubrique)}</b>
-        à ${echapper(euros(l.taux))}
-        ${l.heures_par_unite ? ` — <b>${echapper(h(l.heures_par_unite))}</b>
-          ${l.unite === "heure" ? "" : `par ${echapper(l.unite || "unité")}`}` : ""}
-        ${l.heures ? `, ${echapper(h(l.heures))} en tout` : ""}
-        ${l.dates.length ? `<br><span class="discret">Jours :</span> ${echapper(l.dates.map(jourEnClair).join(", "))}` : ""}
-        ${l.planning.length ? `<br><span class="discret">Prévu ensuite :</span> ${echapper(l.planning.map(jourEnClair).join(", "))}` : ""}
-        ${l.lieu ? `<br><span class="discret">Lieu :</span> ${echapper(l.lieu)}` : ""}
-      </div>`).join("");
-    const refs = [p.numero_contrat ? `contrat n° ${p.numero_contrat}` : "",
-                  p.numero_bulletin ? `bulletin n° ${p.numero_bulletin}` : "",
-                  p.nature && p.nature.libelle ? p.nature.libelle : ""].filter(Boolean).join(" · ");
-    return `
-      ${refs ? `<p class="discret">${echapper(refs)}</p>` : ""}
-      ${saisies}
-      <p>${dates ? `<b>Jours travaillés :</b> ${echapper(dates)}<br>` : ""}
-        ${p.heures ? `<b>Heures déclarées :</b> ${echapper(nombre(p.heures))}<br>` : ""}
-        ${p.cachets ? `<b>Cachets :</b> ${echapper(nombre(p.cachets))}<br>` : ""}
-        ${p.lieu && !saisies ? `<b>Lieu :</b> ${echapper(p.lieu)}<br>` : ""}
-        ${p.emploi && p.emploi.libelle ? `<b>Emploi :</b> ${echapper(p.emploi.libelle)}` : ""}
-        ${p.emploi && p.emploi.cadre ? " (cadre)" : ""}</p>
-      <table class="tableau-detail">
-        <thead><tr><th>Ce qui est payé</th><th class="nombre">Nombre</th>
-          <th class="nombre">Taux</th><th class="nombre">Montant</th></tr></thead>
-        <tbody>${lignes}</tbody>
-        <tfoot>
-          <tr><td colspan="3">Brut</td><td class="nombre">${echapper(euros(p.brut))}</td></tr>
-          ${Number(p.prelevement_a_la_source) ? `
-          <tr><td colspan="3">Net à payer avant impôt</td><td class="nombre">${echapper(euros(p.net_a_payer))}</td></tr>
-          <tr><td colspan="3">Impôt prélevé à la source</td><td class="nombre">${echapper(euros(p.prelevement_a_la_source))}</td></tr>` : ""}
-          <tr><td colspan="3"><b>Net à payer</b></td><td class="nombre"><b>${echapper(euros(p.net_paye))}</b></td></tr>
-          <tr><td colspan="3" class="discret">Coût employeur</td><td class="nombre discret">${echapper(euros(p.cout_employeur))}</td></tr>
-        </tfoot>
-      </table>`;
-  };
-  ouvrirBoite(`
-    <h3>${echapper(ligne.nom)}</h3>
-    <p class="discret">${echapper(pourQuoi(ligne))}, ${echapper(periodeEnClair(ligne.debut, ligne.fin))}
-      · validée le ${echapper(quand(ligne.valide))}</p>
-    ${recalculDe(ligne)}
-    ${ps.length ? ps.map(bloc).join("") : `<p class="discret">Le détail n'est pas encore calculé.</p>`}
-    <div class="actions">
-      ${(ligne.carres || []).filter((c) => c.lien).map((c) =>
-        `<button class="lien d-pieces" data-acte="${echapper(c.cle)}">${echapper(c.lien)}</button>`).join("")}
-      <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      <button class="modifier" id="d-modifier">${CRAYON}Modifier l'engagement…</button>
-    </div>`);
-  const m = document.getElementById("d-modifier");
-  if (m) m.onclick = () => { fermerBoite(); boiteModifier(ligne); };
-  document.querySelectorAll(".d-pieces").forEach((b) => {
-    b.onclick = () => { fermerBoite(); boitePieces(ligne, b.dataset.acte); };
-  });
 }
 
 /** Les trois nombres du bloc. Une case en cours de frappe ne se repeint pas :
@@ -566,7 +500,7 @@ async function ajusterBloc(div, champ) {
   note.textContent = "calcul…";
   POUR_VISER = true;
   let saisie;
-  try { saisie = saisieCourante(); } finally { POUR_VISER = false; }
+  try { saisie = saisieAvecLesModifications(); } finally { POUR_VISER = false; }
   try {
     const r = await api("ajuster", {
       saisie, engagements,
