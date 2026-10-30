@@ -384,7 +384,7 @@ function peindreCarte(div) {
       <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}${
         ligne.contrat && ligne.contrat.repris ? " · contrat repris de votre ancien logiciel" : ""}</span>
     </div>
-    <div class="carte-actes">${bandeauEtats(ligne)}</div>
+    <div class="carte-actes">${bandeauEtats(ligne, false)}</div>
     <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>
     ${recalculDe(ligne)}${versionsDe(ligne)}
     <span class="carte-modifier">
@@ -392,14 +392,13 @@ function peindreCarte(div) {
         aria-label="Un imprévu">&hellip;</button></span>`;
   // VOIR SANS MODIFIER (l'utilisateur, 29/09/2026) : relire les heures d'un
   // service de répétition ne doit pas demander de rouvrir l'engagement. LA CARTE
-  // S'OUVRE D'UN CLIC SUR ELLE : plus de « Voir le détail ».
+  // S'OUVRE D'UN CLIC SUR ELLE, carrés compris : un clic sur la carte ne fait partir aucun envoi.
   // « Modifier » est dans la boîte du détail.
   rendreOuvrable(cible, () => boiteDetail(div._ligne, div._paies || []), "Ouvrir le détail de la paie");
   // LA PORTE DES IMPRÉVUS sur un engagement validé : un arrêt ou
   // une absence arrive souvent après la paie. js/imprevus.js.
   const porte = cible.querySelector(".carte-imprevu");
   porte.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); menuImprevu(porte, { div }); };
-  brancherRecu(cible);
   const frise = cible.querySelector(".carte-versions");
   if (frise) frise.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); boiteFrise(ligne); };
 }

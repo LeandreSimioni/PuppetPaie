@@ -62,12 +62,13 @@ const contratDe = (l) => ({ salarie: l.salarie, debut: l.debut,
 /* LES TROIS CARRÉS DE LA LIGNE VALIDÉE : DPAE, Contrat, Documents. Le moteur
    rend chacun (`etat-par-engagement`, `carres`) : son nom, sa couleur, ce qui
    reste en un mot, sa phrase et le geste qu'ouvre un clic. La page les
-   dessine ; un carré qui a un geste est un bouton. */
+   dessine ; un carré qui a un geste est un bouton, sauf sur la carte d'un
+   engagement validé, qui s'ouvre toute entière sur son détail. */
 
 /** Le bandeau d'une ligne : un carré par acte. */
-function bandeauEtats(ligne) {
+function bandeauEtats(ligne, gestes = true) {
   return `<div class="etats-actes">` + (ligne.carres || []).map((c, i) => {
-    const clic = !!c.action;
+    const clic = gestes && !!c.action;
     const classe = c.coupee ? "en-attente" : (c.couleur || "gris");
     return `<span class="etat-acte ${classe}${clic ? " cliquable" : ""}"
         ${clic ? `data-carre="${i}" tabindex="0" role="button"` : ""}
