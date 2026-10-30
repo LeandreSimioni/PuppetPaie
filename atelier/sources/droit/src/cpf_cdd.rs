@@ -22,8 +22,9 @@ pub fn ouvre_cpf_cdd(nature: &str, dispositif: &str, motif: &str, qui: &str) -> 
         "03" | "04" => return Ok(false),
         "" => {
             return Err(format!(
-                "{} : un CDD sans motif de recours (S21.G00.40.021). Le motif dit si le contrat ouvre la contribution \
-CPF-CDD (code du travail L. 6331-6 : pas un CDD saisonnier) ; il se saisit sur l'engagement (`motif_recours`).",
+                "{} : dites pourquoi ce CDD est conclu (« Motif du CDD », sur la carte de l'engagement).\n\
+Le motif dit si le contrat ouvre la contribution CPF-CDD (code du travail, L. 6331-6 : pas un CDD saisonnier) ; la DSN \
+le déclare (S21.G00.40.021).",
                 qui
             ))
         }

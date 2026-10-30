@@ -934,11 +934,9 @@ pub(crate) fn engagements(
             // Un permanent ne joue pas un spectacle (S21.G00.40.050, CCH-11).
             if spectacle.as_deref().map_or(false, |s| !s.is_empty()) && truthy(e.get("spectacle")) {
                 return Err(format!(
-                    "L'engagement {} de {} est un {} et porte un spectacle \
-                     ({}). Le numero d'objet spectacle est interdit sur cette \
-                     nature de contrat (S21.G00.40.050, CCH-11) : un contrat \
-                     rattache a un spectacle est un contrat d'usage, et se \
-                     saisit en `cddu_spectacle`.",
+                    "L'engagement {} de {} est un {} et porte un spectacle ({}) : retirez le spectacle, ou \
+                     choisissez le CDD d'usage si ce contrat est celui d'un spectacle.\n\
+                     Le numéro d'objet spectacle est interdit sur cette nature de contrat (S21.G00.40.050, CCH-11).",
                     rang,
                     mois_dit,
                     nat.libelle,
@@ -948,11 +946,12 @@ pub(crate) fn engagements(
             spectacle = None;
         } else if spectacle.as_deref().map_or(true, str::is_empty) {
             return Err(format!(
-                "L'engagement {} de {} ne dit pas quel spectacle il joue, et \
-                 le mois n'en propose aucun. Le spectacle porte le numero \
-                 d'objet, qui part en DSN, en AEM et sur le bulletin : il se \
-                 choisit, il ne se devine pas.",
-                rang, mois_dit
+                "L'engagement {} de {}{} ne dit pas quel spectacle il joue : choisissez-le sur la carte.\n\
+                 Le spectacle porte le numéro d'objet, qui part en DSN, en AEM et sur le bulletin : il se choisit, il ne \
+                 se devine pas.",
+                rang,
+                mois_dit,
+                chaine(e.get("salarie")).map(|s| format!(" ({})", s)).unwrap_or_default()
             ));
         }
         if ["dates", "cachets", "heures", "taux_horaire"].iter().any(|k| e.get(*k).is_some()) {

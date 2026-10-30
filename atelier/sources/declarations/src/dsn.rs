@@ -1399,9 +1399,9 @@ fn motif_recours(p: &Paie, nat: &Nature) -> Resultat<String> {
     match e.motif_recours.as_deref().filter(|m| !m.is_empty()) {
         Some(m) => Ok(m.to_string()),
         None => Err(format!(
-            "Contrat {} ({}) : le motif de recours (S21.G00.40.021) n'est pas dit. Il est obligatoire pour un CDD \
-(SIG-11) et c'est lui qui rend le contrat licite (art. L.1242-2 du code du travail) : remplacement d'un salarie, \
-accroissement temporaire d'activite, emploi saisonnier... Il se saisit sur l'engagement (`motif_recours`).",
+            "Contrat {} ({}) : dites pourquoi ce CDD est conclu (« Motif du CDD », sur la carte de l'engagement).\n\
+C'est le motif qui rend le contrat licite (code du travail, L. 1242-2 : remplacement d'un salarié, accroissement \
+temporaire d'activité, emploi saisonnier…) ; la DSN le déclare, il y est obligatoire (S21.G00.40.021, SIG-11).",
             e.numero.clone().unwrap_or_else(|| "None".into()),
             nat.libelle
         )),

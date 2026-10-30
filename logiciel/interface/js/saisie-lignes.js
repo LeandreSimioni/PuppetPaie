@@ -622,6 +622,21 @@ function montrerEcrit(div, demandes) {
     const c = l.querySelector(".e-ecrit-champ");
     l.hidden = !(demandes || []).includes(l.dataset.ecrit) && c.value.trim() === "";
   });
+  nommerLesCases(div);
+}
+
+/** La ligne repliée du contrat nomme ce qu'il y a à dire dedans (le motif
+ *  d'un CDD, la période d'essai…) : ce qui se remplit se trouve sans
+ *  chercher. */
+function nommerLesCases(div) {
+  const d = div.querySelector(".e-contrat");
+  if (!d) return;
+  const noms = [...d.querySelectorAll(".e-recours-bloc, .e-ecrit [data-ecrit]")]
+    .filter((l) => !l.hidden)
+    .map((l) => (l.firstChild.textContent || "").trim().toLowerCase())
+    .filter(Boolean);
+  if (noms.length) d.dataset.cases = noms.join(", ");
+  else delete d.dataset.cases;
 }
 
 /** Ce que les cases du contrat écrit écrivent. */
@@ -984,7 +999,7 @@ function construireCarte(div, e) {
            au regard de L1242-2, et la plate-forme le contrôle (SIG-11). Un
            CDD d'usage n'apparaît pas dans cette liste et c'est délibéré — il
            se saisit comme un CDD d'usage, avec tout ce qui va avec. -->
-      <label class="e-recours-bloc" hidden>Motif de recours
+      <label class="e-recours-bloc" hidden title="pourquoi ce CDD est conclu : la DSN le déclare (motif de recours)">Motif du CDD
         <select class="e-recours"></select></label>
       <!-- CE QUE LE CONTRAT ÉCRIT DE CET ENGAGEMENT DIT EN PLUS (le modèle
            le remplit avec le reste). Le moteur dit quelles cases cet
@@ -1316,6 +1331,13 @@ function majNature(div) {
     + recours.map((m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${
       echapper(m.libelle)}</option>`).join(""));
   sel.value = recours.some((m) => m.code === voulu) ? voulu : "";
+  // UN CDD DIT SON MOTIF, et le moteur refuse sans lui : tant qu'il manque,
+  // le contrat s'ouvre de lui-même, comme pour ses bornes.
+  if (recours.length && !sel.value) {
+    div.querySelector(".e-options").hidden = false;
+    div.querySelector(".e-contrat").open = true;
+  }
+  nommerLesCases(div);
   majRupture(div);
 }
 
