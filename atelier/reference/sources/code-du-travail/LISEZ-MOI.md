@@ -416,3 +416,21 @@ refuse (`plus_d_une_journee` : une journée n'en a que 24, aucun texte n'est né
 des heures sur plusieurs jours les répartit également ; la journée la plus chargée en compte au moins cette moyenne.
 Test : `moteur/tests/routes/duree_du_travail.rs`. L3121-20 (la semaine) et L3131-1 (le repos) ne sont pas encore contrôlés :
 la saisie ne dit pas les heures de début et de fin d'une journée.
+
+## Les jours fériés chômés d'un permanent : L3133-3, L3133-5 (relevé LEGI du 29/10/2026, séance 8, lot Q2)
+
+Relevés par `moteur releve-codes` : `articles-20261029.md`, l. 111-124 ; XML : `xml/L3133-3.xml`, `xml/L3133-5.xml`.
+
+- **L3133-3** (`LEGIARTI000033020893`) : « Le chômage des jours fériés ne peut entraîner aucune perte de salaire pour les
+  salariés totalisant au moins trois mois d'ancienneté dans l'entreprise ou l'établissement » ; les saisonniers cumulent
+  leurs contrats ; ni les travailleurs à domicile, ni les intermittents, ni les temporaires.
+- **L3133-5** (`LEGIARTI000033020881`) : « Le chômage du 1er mai ne peut être une cause de réduction de salaire. »
+
+**Lecture** : a contrario, un férié que l'entreprise chôme n'est pas dû à un permanent qui n'a pas trois mois
+d'ancienneté le jour du férié, sauf le 1er mai. Une convention peut faire mieux : celles de la 3090 et de la 1285 sur les
+fériés ne sont pas relevées ici (la 3090, titre VII, dit seulement quand ils sont chômés).
+
+**Où le moteur s'en sert** : `droit::conges::feries_non_payes` (les fériés chômés de l'entreprise, `feries::chomes_entre`,
+qui tombent un jour travaillé du salarié, avant ses trois mois comptés depuis « Dans la compagnie depuis ») ;
+`droit::periodes::part_du_mois` les retire des heures payées du mois, et l'aperçu le dit. Test :
+`droit/tests/droit/mois_incomplet.rs`, `un_ferie_chome_ne_se_paie_qu_apres_trois_mois_d_anciennete`.

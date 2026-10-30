@@ -514,25 +514,26 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     let le = json!(aujourdhui.iso());
     // LES CONTRATS QUE L'IMPORT RETIENT (`import::attestes` en a decide), rattaches par NIR a la fiche qui existe
     // maintenant, comptes par bloc du compte rendu.
+    // Ce que le registre change aux contrats de l'historique : reduit, ou retire.
+    for (avant, apres) in &imp.contrats_changes {
+        if let Some(i) = engagements.iter().position(|e| e == avant) {
+            match apres {
+                Some(l) => engagements[i] = l.clone(),
+                None => {
+                    engagements.remove(i);
+                }
+            }
+        }
+    }
     let mut comptes: HashMap<&str, usize> = HashMap::new();
-    let mut nouveaux: Vec<(String, String, String)> = Vec::new();
-    let t = |e: &Value, k: &str| e.get(k).map(valeur_en_texte).unwrap_or_default();
     for (nir, ligne, bloc) in &imp.contrats_attestes {
         let Some(cle) = par_nir.get(nir) else { continue };
         let mut e = ligne.clone();
         e["salarie"] = json!(cle);
         e["importe_le"] = le.clone();
-        if t(&e, "atteste_par") != "certificat" {
-            nouveaux.push((cle.clone(), t(&e, "debut"), t(&e, "fin")));
-        }
         engagements.push(e);
         *comptes.entry(bloc).or_default() += 1;
     }
-    // LE CONTRAT QU'UN CERTIFICAT SEUL ATTESTE s'efface devant celui d'un bulletin ou d'une AEM du meme salarie dont les
-    // dates le chevauchent, que le registre a dit le remplacer.
-    engagements.retain(|e| {
-        t(e, "atteste_par") != "certificat" || !nouveaux.iter().any(|a| a.0 == t(e, "salarie") && crate::import::attestes::chevauche(&a.1, &a.2, &t(e, "debut"), &t(e, "fin")))
-    });
     let compte = |bloc: &str| comptes.get(bloc).copied().unwrap_or(0);
     let (contrats_aem, contrats_bulletins, contrats_certificats, contrats_aem_pdf) =
         (compte("declarations"), compte("bulletins"), compte("certificats"), compte("aem_pdf"));
@@ -655,12 +656,14 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let aujourdhui = ctx.date;
     let dossier = crate::routes::import::dossier_import(ctx, charge)?;
     // 1. Le dossier tel qu'il est : son compte rendu (pour l'ecran), et la copie de ce qu'il reprend.
-    let (tri, non_repris, copie, noms) = crate::import::bulletins::lire_dossier(ctx, &dossier, |lu| {
+    let (tri, non_repris, copie, noms, deposes) = crate::import::bulletins::lire_dossier(ctx, &dossier, &HashMap::new(), |lu| {
         let (copie, noms) = copier_repris(ctx, &lu)?;
         let tri = lu.ap.reponse.get("tri").cloned().unwrap_or(Value::Null);
         let non_repris: Vec<Value> =
             lu.ap.reponse.get("avertissements").and_then(Value::as_array).into_iter().flatten().filter(|a| dit_les_non_repris(a)).cloned().collect();
-        Ok((tri, non_repris, copie, noms))
+        // La copie se relit sous le nom du fichier depose.
+        let deposes: HashMap<String, String> = lu.copies.iter().map(|(i, nom)| (nom.clone(), lu.tri.fichiers[*i].chemin.clone())).collect();
+        Ok((tri, non_repris, copie, noms, deposes))
     })?;
 
     // 2. D'ABORD LA COPIE, ENSUITE LA LECTURE : l'apercu relu dans les copies de ce dossier (et d'elles seules), prises
@@ -673,7 +676,7 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
             std::fs::copy(copies.join(nom), relu.join(nom)).map_err(|e| en_os(&e, &copies.join(nom)))?;
         }
         let frais_avant = Contexte::nouveau(&ctx.racine, None).map_err(Echec::from)?;
-        crate::import::bulletins::lire_dossier(&frais_avant, &relu, |lu| Ok(lu.ap))
+        crate::import::bulletins::lire_dossier(&frais_avant, &relu, &deposes, |lu| Ok(lu.ap))
     };
     let rendu = relire();
     let _ = std::fs::remove_dir_all(&relu);

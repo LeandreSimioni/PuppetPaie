@@ -2045,6 +2045,26 @@
    "ecran": true
   },
   {
+   "_note": "LES JOURS TRAVAILLES D'UN PERMANENT : les jours de la semaine que son horaire programme. Les heures du mois\ns'y comptent (`droit::conges::JoursTravailles`) : le salaire d'un mois incomplet par l'horaire reel (Cass. soc.,\n20/01/1999, n° 96-45.042, atelier/reference/sources/mois-incomplet/), la retenue d'une absence, les feries chomes\nqu'il ne voit pas payes. Une liste de jours (\"lundi\" ... \"dimanche\") ; absente, du lundi au vendredi, ce que la case\nmontre cochee. Datee comme toute la fiche.",
+   "cle": "jours_travailles",
+   "libelle": "Jours travaillés",
+   "forme": "structure",
+   "aide": "Les jours de la semaine où il travaille, d'après son contrat. Ses heures du mois s'y comptent : le salaire d'un mois commencé ou fini en cours de route, ce qu'une absence retire.",
+   "obligatoire": false,
+   "longueur": null,
+   "exemple": "",
+   "choix": [],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": true,
+   "si": null,
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": true,
+   "ecran": true
+  },
+  {
    "_note": "LE FORFAIT JOURS DE LA 1790 : les cadres (V\net plus) et les agents de maitrise IV.3 au forfait ont un minimum\nmajore de 5 % (avenant n° 41, chap. IV ; avenant n° 76).",
    "cle": "forfait_jours",
    "libelle": "Au forfait jours",

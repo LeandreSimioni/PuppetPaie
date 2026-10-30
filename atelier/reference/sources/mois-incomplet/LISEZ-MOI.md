@@ -25,11 +25,17 @@ Lu aussi, sans le republier : l'article des Éditions Lamy Liaisons « Jurisprud
 ## Où le moteur s'en sert
 
 - `droit::periodes::part_du_mois` : la part du salaire mensuel qu'une période payée porte (une entrée, une sortie, un
-  avenant au jour) ; le quotient des heures de la période sur celles du mois, comptées en jours ouvrés du lundi au
-  vendredi, fériés compris (`droit::conges::jours_ouvres` ; fiche DSN 2693, exemple 4, dans `../suspension-non-remuneree/`).
-  **Inférence nommée** : la saisie ne dit pas les jours de la semaine travaillés ; l'horaire est pris du lundi au vendredi.
+  avenant au jour, l'indemnité du délai de prévenance, la retenue d'une absence) ; le quotient des heures de la période
+  sur celles du mois, comptées sur les **jours travaillés** du salarié, jours fériés compris
+  (`droit::conges::JoursTravailles` : la case « Jours travaillés » de sa fiche, du lundi au vendredi tant qu'elle n'en dit
+  pas d'autres ; fiche DSN 2693, exemple 4, dans `../suspension-non-remuneree/`). Un férié chômé qu'il ne voit pas payé
+  (moins de trois mois d'ancienneté, L3133-3 ; jamais le 1er mai, L3133-5 : `../code-du-travail/`,
+  `droit::conges::feries_non_payes`) reste une heure du mois et n'est pas une heure payée.
 - `droit::periodes::regle_du_mois_incomplet` : la CCN 1285, art. X.3, pour le premier ou le dernier mois d'un artiste.
-- Ce qui l'emploie : la ligne « mois » de `engagement::conges::lignes_du_mois` et les périodes d'un mois coupé par un
-  avenant (`engagement::periodes::engagements_des_periodes`) ; la ligne du bulletin dit la part (« 105 h sur les 154 h
-  du mois »), l'aperçu cite l'arrêt.
+  L'article ne borne pas le résultat au salaire mensuel ; le moteur ne le borne pas, et l'aperçu le dit.
+- Ce qui l'emploie : la ligne « mois » de `engagement::conges::lignes_du_mois`, les périodes d'un mois coupé par un
+  avenant (`engagement::periodes::engagements_des_periodes`), les absences (`engagement::imprevus::lignes_du_mois`),
+  l'indemnité du délai de prévenance (`engagement::solde`) ; l'horaire d'un salarié pour un mois :
+  `engagement::conges::horaire_du_mois`. La ligne du bulletin dit la part (« 105 h sur les 154 h du mois »), l'aperçu
+  cite l'arrêt.
 - Le plafond de la sécurité sociale d'un mois incomplet reste aux jours calendaires (R. 242-2) : ce n'est pas le salaire.

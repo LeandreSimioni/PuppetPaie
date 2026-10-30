@@ -516,15 +516,18 @@ pub fn arrets_du_contrat(ctx: &Contexte, paie: &crate::calcul::Paie, debut: &Jou
 // ------------------------------------------------------ les lignes d'un permanent
 
 /// Ce que le mois d'un contrat paye au mois donne pour mesurer une absence (`conges::lignes_du_mois`) : les bornes du
-/// contrat dans le mois, le salaire que la ligne « mois » paie, les heures d'un jour oeuvre et celles du mois au reel
-/// (`conges::heures_par_jour_oeuvre`, `conges::jours_oeuvres`), et ce que vaut un jour ouvrable (l'assiette du maintien de
-/// salaire que la loi donne, dit sans etre applique).
-pub struct MoisDuContrat {
+/// contrat dans le mois, le salaire que la ligne « mois » paie et les jours travailles payes qu'elle porte
+/// (`droit::periodes::part_du_mois`), l'horaire du salarie qui les compte et les heures d'un jour
+/// (`droit::conges::heures_par_jour`), et ce que vaut un jour ouvrable (l'assiette du maintien de salaire que la loi
+/// donne, dit sans etre applique).
+pub struct MoisDuContrat<'a> {
     pub debut: Jour,
     pub fin: Jour,
+    pub fin_mois: Jour,
     pub salaire_du_mois: Decimal,
     pub heures_par_jour: Decimal,
-    pub heures_du_mois: Decimal,
+    pub jours_payes: i64,
+    pub horaire: &'a droit::periodes::Horaire,
     pub taux_jour_ouvrable: Decimal,
 }
 
@@ -606,21 +609,27 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 /// `cass-soc-19870514-84-43854-JURITEXT000007018764.xml` ; la DDETS en tire « salaire mensualise / heures programmees sur
 /// le mois », `dreets-limousin-qr-assmat-retenues-absence-20150101.txt`). Les heures d'absence se comptent au reel
 /// (fiche DSN 2640, « sans application d'une regle de trois visant a rapprocher le volume d'absence a la quotite de
-/// travail mensualisee » ; fiche 2693, exemple 10 : septembre 2026 entier, 154 h = 22 x 7 h ; meme dossier) : les jours
-/// oeuvres de l'absence fois les heures d'un jour (`conges::jours_oeuvres`, `conges::heures_par_jour_oeuvre` : l'hypothese
-/// classique, du lundi au vendredi, est une inference nommee). La retenue est le salaire du mois fois ces heures sur les
-/// heures du mois, au taux exact (`taux_exact`) : un mois entier d'absence retire exactement le salaire du mois.
+/// travail mensualisee » ; fiche 2693, exemple 10 : septembre 2026 entier, 154 h = 22 x 7 h ; exemple 4 : les jours
+/// feries comptent parmi les heures du mois ; meme dossier) : les jours travailles de l'absence, comptes comme ceux du
+/// salaire du mois (`droit::periodes::part_du_mois`, sur l'horaire du salarie : ses jours travailles, les feries qu'il ne
+/// voit pas payes deja hors de son salaire), fois les heures d'un jour (`droit::conges::heures_par_jour`). La retenue est
+/// le salaire du mois fois ces heures sur les heures payees du mois, au taux exact (`taux_exact`) : un mois entier
+/// d'absence retire exactement le salaire du mois.
 pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<Value>, Vec<Avis>)> {
     let qui = crate::conges::qui(ctx, e);
-    let ent = &ctx.entreprise;
     let (mut lignes, mut avert) = (Vec::new(), Vec::new());
     // Le taux de l'heure d'absence : le salaire du mois sur ses heures de travail (Cass. soc. 11/02/1982).
-    let taux_horaire = if m.heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, m.heures_du_mois)) } else { None };
+    let heures_du_mois = eur2(mul(m.heures_par_jour, Decimal::from(m.jours_payes)));
+    let taux_horaire = if heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, heures_du_mois)) } else { None };
     for imp in du_contrat_dans_le_mois(ctx, e, mois)? {
         let (premier, dernier) = (premier_jour(&imp)?, dernier_jour(&imp)?);
         let (debut, fin) = (premier.max(m.debut), dernier.min(m.fin));
-        let oeuvres = if debut <= fin { Decimal::from(droit::conges::jours_oeuvres(&debut, &fin, Some(ent))?) } else { Decimal::ZERO };
-        let heures = eur2(mul(m.heures_par_jour, oeuvres));
+        let jours = if debut <= fin {
+            droit::periodes::part_du_mois(&debut, &fin, &m.fin_mois, droit::periodes::RegleDuMoisIncomplet::HoraireReel, m.horaire)?.jours
+        } else {
+            0
+        };
+        let heures = eur2(mul(m.heures_par_jour, Decimal::from(jours)));
         let retenue = |rubrique: &str| -> Option<Value> {
             match &taux_horaire {
                 Some(t) if heures > Decimal::ZERO => Some(json!({"rubrique": rubrique, "quantite": flot(heures), "taux": t})),
@@ -628,9 +637,9 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) 
             }
         };
         let au_reel = format!(
-            "{} jour(s) oeuvre(s) d'absence ce mois-ci, {} h au reel sur {} h de travail du mois, retirees au quotient du \
+            "{} jour(s) travaille(s) d'absence ce mois-ci, {} h au reel sur {} h de travail du mois, retirees au quotient du \
 salaire du mois",
-            oeuvres, heures, m.heures_du_mois
+            jours, heures, heures_du_mois
         );
         let code = s(&imp, "motif");
         if est_un_arret(&imp) {

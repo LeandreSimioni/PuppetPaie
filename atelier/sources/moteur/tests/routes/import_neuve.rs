@@ -325,7 +325,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     assert!(a_signer.is_empty(), "le contrat repris se fait signer : {:?}", a_signer);
     // Le bulletin de decembre suit le 1/2026 que le bulletin importe imprime : deux bulletins de l'annee n'ont jamais le
     // meme numero.
-    let apercu = reussi(&route("apercu", json!({"saisie": saisie, "lignes": false, "urssaf": false}))).clone();
+    let apercu = reussi(&route("apercu", json!({"mois": "2026-12", "lignes": false, "urssaf": false}))).clone();
     assert_eq!(apercu["paies"][0]["numero_bulletin"], json!("2/2026"), "{}", apercu["paies"][0]);
     let ecrite = reussi(&route("dsn-a-deposer", json!({"mois": "2026-12"}))).clone();
     let decembre = std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap();
@@ -585,4 +585,57 @@ fn les_aem_en_pdf_seules_et_le_contrat_d_un_certificat_que_le_bulletin_remplace(
     assert_eq!(contrats[0]["atteste_par"], json!("bulletin"), "{}", contrats[0]);
     assert!(contrats[0]["heures"].as_i64().unwrap() > 0, "{}", contrats[0]);
     assert_eq!(engagement::importe::tous(&racine).unwrap().len(), 1, "un engagement, pas deux");
+}
+
+/// UN CERTIFICAT SUR DEUX MOIS ET LE BULLETIN D'UN SEUL : le bulletin remplace le mois qu'il atteste, et lui seul ;
+/// l'autre mois reste atteste par le certificat (ses cachets et son brut moins ceux du bulletin), que le certificat et
+/// le bulletin viennent ensemble ou l'un apres l'autre. Et le bulletin, piece de paie, remplace le contrat d'une AEM
+/// aux memes dates qui compte autre chose.
+#[test]
+fn le_bulletin_d_un_mois_ne_remplace_que_ce_mois_du_certificat_et_l_emporte_sur_l_aem() {
+    let sur_deux_mois = || {
+        let mut c = certificat("288117599900146", "BRIOCHE", "ARTISTE DRAMATIQUE", "4", "900", false);
+        c.fin = "05/02/2026";
+        c
+    };
+    let attendus = |racine: &Path| {
+        let mut contrats: Vec<(String, String, String, i64, String)> = contrats_importes(racine)
+            .iter()
+            .map(|c| (c["atteste_par"].as_str().unwrap().into(), c["debut"].as_str().unwrap().into(), c["fin"].as_str().unwrap().into(), c["cachets"].as_i64().unwrap(), c["brut"].as_str().unwrap().into()))
+            .collect();
+        contrats.sort();
+        assert_eq!(
+            contrats,
+            vec![
+                ("bulletin".into(), "2026-01-14".into(), "2026-01-24".into(), 2, "590.00".into()),
+                ("certificat".into(), "2026-02-01".into(), "2026-02-05".into(), 2, "310.00".into()),
+            ]
+        );
+    };
+    for ensemble in [true, false] {
+        let racine = neuve(if ensemble { "certificat_et_bulletin_ensemble" } else { "certificat_puis_bulletin_d_un_mois" });
+        let import = racine.join("import");
+        std::fs::create_dir_all(&import).unwrap();
+        pdf(vec![page_certificat(&sur_deux_mois())], &import.join("certificat.pdf"));
+        if !ensemble {
+            reussi(&route(&racine, "importer", json!({"dossier": ""})));
+        }
+        pdf(vec![page_a(&a_repetitions())], &import.join("bulletin.pdf"));
+        reussi(&route(&racine, "importer", json!({"dossier": ""})));
+        attendus(&racine);
+        reussi(&route(&racine, "importer", json!({"dossier": ""})));
+        attendus(&racine);
+    }
+
+    let racine = neuve("aem_puis_bulletin");
+    let import = racine.join("import");
+    std::fs::create_dir_all(&import).unwrap();
+    pdf(vec![page_aem(&aem("288117599900146", "BRIOCHE", true, "3", "", "640,00"))], &import.join("aem.pdf"));
+    reussi(&route(&racine, "importer", json!({"dossier": ""})));
+    std::fs::remove_file(import.join("aem.pdf")).unwrap();
+    pdf(vec![page_a(&a_repetitions())], &import.join("bulletin.pdf"));
+    reussi(&route(&racine, "importer", json!({"dossier": ""})));
+    let contrats = contrats_importes(&racine);
+    assert_eq!(contrats.len(), 1, "{:?}", contrats);
+    assert_eq!((&contrats[0]["atteste_par"], &contrats[0]["cachets"], &contrats[0]["brut"]), (&json!("bulletin"), &json!(2), &json!("590.00")), "{}", contrats[0]);
 }

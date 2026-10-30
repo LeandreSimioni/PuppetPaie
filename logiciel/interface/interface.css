@@ -564,6 +564,8 @@ label.coche {
   font-size: 13px; color: var(--texte); padding: 3px 0;
 }
 label.coche input { width: auto; margin: 0; flex: none; }
+/* Les jours travaillés d'un permanent : les sept cases sur une ligne. */
+.jours-semaine { display: flex; flex-wrap: wrap; gap: 0 16px; }
 .espace-haut { margin-top: 12px; }
 /* L'aide depliee : un encart qui se lit, pas une note de bas de page. */
 #config-formulaire .champ .aide:not([hidden]) {

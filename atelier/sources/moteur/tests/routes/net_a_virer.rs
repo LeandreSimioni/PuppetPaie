@@ -6,7 +6,7 @@
 use serde_json::{json, Value};
 
 use crate::outils::rejeu::{rejouer_dossier, scenario};
-use crate::outils::{dec, dossier_de_test, ecrire, reussi, route, saisie};
+use crate::outils::{dec, dossier_de_test, ecrire, reussi, route};
 
 #[test]
 fn le_net_a_virer_est_le_net_apres_impot() {
@@ -23,8 +23,7 @@ fn le_net_a_virer_est_le_net_apres_impot() {
         "mis_a_disposition": "20261015100000", "source": "CRM DGFiP nature 94",
     }}}));
 
-    let s = saisie(&c, "2026-11");
-    let r = route(&c, "apercu", json!({"saisie": s}), jour);
+    let r = route(&c, "apercu", json!({"mois": "2026-11"}), jour);
     let a = reussi(&r);
     let paies = a["paies"].as_array().unwrap();
     let fuller: &Value = paies.iter().find(|p| p["salarie"]["cle"] == "FULLER").expect("FULLER n'est pas dans l'apercu");

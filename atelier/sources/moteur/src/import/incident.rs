@@ -58,7 +58,7 @@ const PAGES_A_LIRE: [&str; 4] = ["incoherent", "incomplet", "sans_entetes", "amb
 /// Une route de ce module.
 pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let dossier = crate::routes::import::dossier_import(ctx, charge)?;
-    let proposition = ib::lire_dossier(ctx, &dossier, |lu| Ok(proposer(ctx, &lu)))?;
+    let proposition = ib::lire_dossier(ctx, &dossier, &std::collections::HashMap::new(), |lu| Ok(proposer(ctx, &lu)))?;
     match nom {
         "importation-incident" => Ok(crate::routes::import::avec_les_pastilles(proposition.json())),
         _ => Ok(envoyer(&ctx.racine, &proposition)),
