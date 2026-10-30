@@ -179,14 +179,6 @@ function rafraichirApercu() {
 async function calculerApercu(lu) {
   const saisie = saisieCourante();
   const cible = document.getElementById("apercu");
-  // Les jours sont sur les lignes de paie : un engagement « a des jours » dès
-  // qu'une de ses lignes en porte.
-  const aDesJours = (e) => (e.lignes || []).some((l) => (l.dates || []).length);
-  // UN PERMANENT N'A PAS DE JOURS, et c'est normal : il est payé au mois.
-  // La première version de ce garde-fou ne connaissait que les cachets, et
-  // un CDI saisi en entier restait devant « ajouter des jours joués »
-  // pendant que sa paie, elle, était calculable.
-  const aDeQuoiPayer = (e) => aDesJours(e) || e.salaire_mensuel != null;
   document.getElementById("apercu-sous-titre").textContent = IMPORTE ? "tenu avant PuppetPaie" : "";
   if (IMPORTE) {
     // Un mois tenu avant PuppetPaie ne se calcule pas ici : ses paies sont celles de l'ancien logiciel.
@@ -196,7 +188,8 @@ async function calculerApercu(lu) {
       ? ` ${IMPORTE.incompletes} carte${IMPORTE.incompletes > 1 ? "s disent" : " dit"} ce que l'import n'a pas pu lire.` : ""}</p>`;
     return;
   }
-  if (!saisie.engagements.length || !saisie.engagements.some(aDeQuoiPayer)) {
+  // Dès qu'un engagement nomme son salarié, le moteur dit ce que le mois en compte et ce qui lui manque (`apercu`).
+  if (!saisie.engagements.length) {
     // Le permanent ne se nomme qu'à une compagnie qui en emploie.
     const perm = !!(ETAT.configuration || {}).permanents;
     cible.innerHTML = `<p class="discret">Ajouter un engagement, une ligne de
@@ -230,6 +223,9 @@ async function calculerApercu(lu) {
         div._paies = [];
         peindreCarte(div);
         div.querySelector(".resolu").innerHTML = "";
+        // Les cases du contrat écrit se disent avant que le reste soit complet (la période d'essai d'un CDD).
+        div._ecrits = p && p.contrat && p.contrat.ecrits;
+        montrerEcrit(div, div._ecrits);
         div.querySelector(".avis").innerHTML = `<div class="encart attention avis-engagement"><b>À compléter avant de valider</b>${
           manques.map((x) => `<div>${erreurEnClair(x.a_completer)}</div>`).join("")}</div>`;
         return;

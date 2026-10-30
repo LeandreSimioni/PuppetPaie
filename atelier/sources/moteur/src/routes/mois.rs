@@ -2199,6 +2199,24 @@ fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &dro
     Ok(v)
 }
 
+/// `champs_du_contrat_ecrit` d'un engagement qui ne se calcule pas encore (`a_completer`), lu sur sa saisie `e` : la
+/// periode d'essai et les clauses se disent avant que le reste soit complet. La repartition des horaires attend la
+/// duree du travail calculee.
+fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &Value) -> Vec<&'static str> {
+    let Ok(nat) = droit::natures::nature(e.get("nature").and_then(Value::as_str)) else { return Vec::new() };
+    let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Vec::new() };
+    let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_default();
+    if nat.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &engagement::debut_brut(e), &numero) {
+        return Vec::new();
+    }
+    let mut v = vec!["periode_essai_jours"];
+    if e.get("motif_recours").and_then(Value::as_str).is_some_and(|m| nat.motif_de_remplacement(m)) {
+        v.push("personne_remplacee");
+    }
+    v.push("clauses_particulieres");
+    v
+}
+
 /// Une paie pour l'ecran. `brut` : l'engagement tel qu'il
 /// est ecrit dans la saisie ; `mois` : le mois du fichier (pour `lieu` et
 /// `taux_cachet`, gardes tels qu'ecrits).
@@ -2397,6 +2415,7 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             Some(m) => json!({
                 "a_completer": m, "salarie": {"_cle": e.get("salarie").cloned().unwrap_or(Value::Null)},
                 "avertissements": [], "informations": [],
+                "contrat": {"ecrits": champs_du_contrat_ecrit_en_saisie(ctx, e)},
             }),
         })
         .collect();

@@ -811,7 +811,7 @@ function ouvrirCarte(div) {
   if (div._paies) peindreChiffres(div, div._total);
   // Les cases du contrat écrit que le moteur a demandées pour cet engagement, au dernier aperçu.
   const p = (div._paies || [])[0];
-  montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
+  montrerEcrit(div, p && p.contrat ? p.contrat.ecrits : div._ecrits);
   if (intacte) DERNIERE_ECRITE = JSON.stringify(saisieCourante());
 }
 
