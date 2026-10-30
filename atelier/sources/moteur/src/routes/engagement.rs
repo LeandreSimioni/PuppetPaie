@@ -107,14 +107,14 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let i = rang_calcule(ctx, mois, &o)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
-    let le = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
+    let v = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?;
     let e = &data["engagements"][i];
     let (salarie, debut) = (e.get("salarie").cloned().unwrap_or(Value::Null), engagement::debut_brut(e));
     if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
         crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &debut)?;
     }
-    let avis = avis_de_validation(ctx, mois, i)?;
-    Ok(json!({"salarie": salarie, "debut": debut, "place": place, "valide": le, "avis": avis}))
+    let avis = avis_de_validation(ctx, &v, &departs)?;
+    Ok(json!({"salarie": salarie, "debut": debut, "place": place, "valide": v.le(), "avis": avis}))
 }
 
 // ------------------------------------------------------------------ modifier-engagement
@@ -163,8 +163,8 @@ enum Issue {
     Rien,
     /// Ce qui est parti le demande : l'avertissement, a confirmer.
     Avertir(Value),
-    /// Ecrite : la date de sa validation.
-    Ecrite(String),
+    /// Ecrite : l'engagement revalide.
+    Ecrite(engagement::etats::Valide),
 }
 
 /// « MODIFIER L'ENGAGEMENT » : les valeurs que la carte ouverte d'un engagement valide montre, ecrites d'un geste.
@@ -237,9 +237,10 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
         crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(e))?;
     }
-    let avis = avis_de_validation(ctx, mois, i)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
+    let avis = avis_de_validation(ctx, &valide, &departs)?;
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
-    Ok(json!({"change": true, "valide": valide, "avis": avis}))
+    Ok(json!({"change": true, "valide": valide.le(), "avis": avis}))
 }
 
 /// La modification elle-meme, sur les fichiers : l'engagement de rang `i` se rouvre, prend sa saisie et se revalide. Ce
@@ -294,7 +295,7 @@ fn modifier_puis_revalider(
     if !confirme && !lignes.is_empty() {
         return Ok(Issue::Avertir(json!({"engagements": en_valeur(engagement::etats::qui_de(ctx, v.objet()), lignes), "a_partir_du": Value::Null})));
     }
-    Ok(Issue::Ecrite(v.le().to_string()))
+    Ok(Issue::Ecrite(v))
 }
 
 /// Le contrat (ou un avenant) de l'engagement `o` est-il parti ?
@@ -378,12 +379,12 @@ fn ce_qui_arrive_aux_mois_partis(ctx: &Contexte, q: &engagement::etats::APartirD
     Ok(out)
 }
 
-/// CE QUE LA VALIDATION DIT SANS REFUSER, pour l'engagement de rang `i` de la saisie de `mois` : un contrat que le
-/// logiciel fait signer (`engagement::contrat_a_signer`) part a la signature par courriel, a l'adresse de la fiche ; sans
-/// elle, il ne partira pas (`compagnie::signature`, qui le refuse au depart). Il s'imprime, ou le courriel se saisit.
-fn avis_de_validation(ctx: &Contexte, mois: &str, i: usize) -> R<Vec<Value>> {
-    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else { return Ok(Vec::new()) };
-    let e = &data["engagements"][i];
+/// CE QUE LA VALIDATION DIT SANS REFUSER, pour l'engagement valide `v` : ce qu'il fait signer (son contrat tant qu'il
+/// n'est pas parti, ensuite l'avenant que le changement demande, `ce_que_le_changement_entraine`, ou rien) part a la
+/// signature par courriel, a l'adresse de la fiche ; sans elle, il ne partira pas (`compagnie::signature`, qui le refuse
+/// au depart). Il s'imprime, ou le courriel se saisit.
+fn avis_de_validation(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Vec<Value>> {
+    let e = &Value::Object(v.objet().brut.clone());
     let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Ok(Vec::new()) };
     let nature = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_err(Echec::from)?;
     let numero = e.get("numero").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
@@ -394,14 +395,22 @@ fn avis_de_validation(ctx: &Contexte, mois: &str, i: usize) -> R<Vec<Value>> {
     if fiche.get("email").map(valeur_en_texte).is_some_and(|m| !m.trim().is_empty()) {
         return Ok(Vec::new());
     }
+    let document = if !contrat_parti(ctx, v.objet(), departs) {
+        "contrat"
+    } else if ce_que_le_changement_entraine(ctx, v, departs)?.iter().any(|l| l == UN_AVENANT) {
+        "avenant"
+    } else {
+        return Ok(Vec::new());
+    };
     let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(valeur_en_texte);
     let qui = [texte("nom"), texte("prenom_affichage").or_else(|| texte("prenom"))].into_iter().flatten().collect::<Vec<_>>().join(" ");
     // Orange : a faire, et la compagnie peut le faire.
     Ok(vec![json!({"couleur": "orange", "phrase": format!(
-        "{} n'a pas de courriel dans sa fiche : son contrat ne pourra pas partir à la signature par courriel. Imprimez-le \
+        "{} n'a pas de courriel dans sa fiche : son {} ne pourra pas partir à la signature par courriel. Imprimez-le \
          pour le faire signer, ou saisissez son courriel (étape « Contrats » de la paie, ou sa fiche dans Configuration › \
          Salariés).",
-        if qui.is_empty() { cle } else { qui }
+        if qui.is_empty() { cle } else { qui },
+        document
     )})])
 }
 
