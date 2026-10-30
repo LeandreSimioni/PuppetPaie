@@ -1493,8 +1493,9 @@ impl<'a> Moteur<'a> {
             return Ok((groupe("a_faire", Value::Null, String::new(), quoi, veille, a), Value::Null));
         }
         if vrai(&r["saisie_modifiee"]) {
-            // Apres la veille : la correction part dans la DSN du mois suivant, qui la porte d'elle-meme.
-            let suivant = socle::date::Jour::lire(&format!("{}-01", mois)).map_err(plain)?.mois_suivant();
+            // Apres la veille : la correction part dans la DSN qui porte (la premiere d'un mois suivant qui n'est pas
+            // partie), celle que l'avertissement de « Modifier l'engagement » nomme aussi.
+            let suivant = crate::regularisation::dsn_qui_porte(self.ctx, mois)?;
             let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &suivant).map_err(|m| erreur("ValueError", m))?;
             let mut a = action("deposer_dsn", format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)));
             a["mois"] = json!(suivant);
