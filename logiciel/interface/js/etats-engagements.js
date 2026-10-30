@@ -574,7 +574,7 @@ async function modifierLesCartes(div) {
     }
     if (r && r.change) {
       const avis = r.avis || [];
-      dire((cartes.length > 1 ? "Engagements modifiés." : "Engagement modifié.") + avis.map((a) => " " + a.phrase).join(""),
+      dire((engagements.length > 1 ? "Engagements modifiés." : "Engagement modifié.") + avis.map((a) => " " + a.phrase).join(""),
            avis.length ? avis[0].couleur : undefined);
     }
     await refermerLesCartes(cartes);
@@ -582,14 +582,17 @@ async function modifierLesCartes(div) {
   } catch (e) { dire(e.message, "erreur"); }
 }
 
-/** L'avertissement du moteur : ses phrases, et la question « à partir de quel mois ? » quand elle se pose. Rend la
- *  réponse (`{a_partir_du}`) à la confirmation, `null` à « Annuler ». */
+/** L'avertissement du moteur : chaque engagement nommé une fois, une ligne par ce que le changement entraîne, et la
+ *  question « à partir de quel mois ? » quand elle se pose. Rend la réponse (`{a_partir_du}`) à la confirmation,
+ *  `null` à « Annuler ». */
 function boiteAvertissement(a) {
   const q = a.a_partir_du;
   return new Promise((repondre) => {
     ouvrirBoite(`<h3>Modifier l'engagement</h3>
-      ${(a.phrases || []).map((p) => `<div class="encart attention">${echapper(p)}</div>`).join("")}
+      ${(a.engagements || []).map((e) => `<div class="encart attention"><b>${echapper(e.qui)}</b>
+        ${e.consequences.length ? `<ul>${e.consequences.map((c) => `<li>${echapper(c)}</li>`).join("")}</ul>` : ""}</div>`).join("")}
       ${q ? `<p>${echapper(q.phrase)}</p>
+        ${(q.si || []).length ? `<ul class="discret">${q.si.map((s) => `<li>${echapper(s)}</li>`).join("")}</ul>` : ""}
         <label>À partir de <select id="av-mois">${q.choix.map((c) =>
           `<option value="${echapper(c.mois)}">${echapper(c.libelle)}${c.partis ? " (déjà parti)" : ""}</option>`).join("")}</select></label>` : ""}
       <div class="actions">

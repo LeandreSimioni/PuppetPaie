@@ -58,7 +58,7 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
     assert!(!ligne_de_janvier()["etats"]["documents"]["fait"].is_null(), "{}", ligne_de_janvier()["etats"]);
     let question = &q["avertissement"]["a_partir_du"];
     let phrase = question["phrase"].as_str().unwrap_or_default();
-    assert!(phrase.contains("SVOBODA Josef"), "{}", q);
+    assert!(q["avertissement"]["engagements"][0]["qui"].as_str().is_some_and(|n| n.contains("SVOBODA Josef")), "{}", q);
     assert!(phrase.contains("janvier 2026"), "{}", q);
     let choix: Vec<&str> = question["choix"].as_array().unwrap().iter().map(|c| c["mois"].as_str().unwrap()).collect();
     assert!(choix.starts_with(&["2026-01", "2026-02"]), "{}", q);

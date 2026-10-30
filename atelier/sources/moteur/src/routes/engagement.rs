@@ -197,11 +197,13 @@ enum Issue {
 ///
 /// - Rien n'a change : rien ne s'ecrit, la reponse le dit (`change` faux).
 /// - Quelque chose a change, et rien de ce qui est parti ne le demande : la modification s'ecrit, l'engagement reste valide.
-/// - Ce qui est parti le demande : la reponse porte l'avertissement (`avertissement` : ses phrases, et, pour un contrat
-///   au mois dont un mois est parti, la question « a partir de quel mois ? » avec ses choix), et rien n'est ecrit ; la
-///   page le montre et renvoie la demande avec `confirme` (et `a_partir_du`, le mois choisi). Les phrases disent ce que
-///   le changement entraine pour chaque envoi parti sur la version d'avant (`engagement::etats::a_refaire`) : un avenant
-///   a faire signer, une DPAE a deposer pour une embauche avancee, un bulletin rectificatif, la DSN qui se corrige.
+/// - Ce qui est parti le demande : la reponse porte l'avertissement, et rien n'est ecrit ; la page le montre et renvoie
+///   la demande avec `confirme` (et `a_partir_du`, le mois choisi). `avertissement` : `engagements`, chaque engagement
+///   touche nomme une fois (`qui`) avec une ligne par ce que le changement entraine pour un envoi parti sur la version
+///   d'avant (`consequences`, `engagement::etats::a_refaire`) : un avenant a faire signer, une DPAE a deposer pour une
+///   embauche avancee, un bulletin rectificatif, la DSN qui se corrige ; et, pour un contrat au mois dont un mois est
+///   parti, `a_partir_du` : la question « a partir de quel mois ? » (`phrase`), ce que chaque mois parti deviendrait
+///   (`si`) et ses choix.
 ///
 /// Refus, et rien n'est ecrit : un engagement qui n'est pas valide (il se saisit sur sa carte), importe, d'un mois tenu
 /// avant PuppetPaie, d'un exercice clos ; un changement que la norme ne permet plus de declarer
@@ -324,7 +326,13 @@ fn modifier_puis_revalider(
         }
     }
     let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
-    let mut phrases: Vec<String> = Vec::new();
+    // L'AVERTISSEMENT : chaque engagement que le changement touche, nomme une fois (`qui`), et une ligne par ce que le
+    // changement entraine pour lui (`consequences`).
+    let mut touches: Vec<(String, Vec<String>)> = Vec::new();
+    let mut dire = |qui: String, lignes: Vec<String>| match touches.iter_mut().find(|(q, _)| *q == qui) {
+        Some((_, l)) => l.extend(lignes),
+        None => touches.push((qui, lignes)),
+    };
     // « A PARTIR DE QUEL MOIS ? » : un contrat au mois dont un mois est parti et dont les termes changent. Sans reponse
     // parmi ses choix, la question vient dans l'avertissement ; un seul choix vaut reponse.
     let mut question = Value::Null;
@@ -335,18 +343,19 @@ fn modifier_puis_revalider(
             Some(d) => engagement::etats::poser_a_partir_du(ctx, mois, *i, &d).map_err(refus)?,
             None => {
                 let o = engagement::stock::objet_du_mois(&ctx.racine, mois, *i).map_err(Echec::from)?;
-                if o.as_ref().is_some_and(|o| contrat_parti(ctx, o, &departs)) {
-                    phrases.push(format!("{} : le contrat est déjà parti ; ce changement le modifie, un avenant sera à faire signer.", q.qui));
-                }
+                let avenant = o.as_ref().is_some_and(|o| contrat_parti(ctx, o, &departs));
+                dire(q.qui.clone(), if avenant { vec![UN_AVENANT.to_string()] } else { Vec::new() });
                 let choix: Vec<Value> =
                     q.choix.iter().map(|m| json!({"mois": m, "libelle": engagement::libelle_mois(m), "partis": q.partis.contains(m)})).collect();
-                let phrase = [q.phrase()].into_iter().chain(ce_qui_arrive_aux_mois_partis(ctx, &q)?).collect::<Vec<_>>().join(" ");
-                question = json!({"phrase": phrase, "choix": choix});
+                question = json!({"phrase": q.phrase(), "si": ce_qui_arrive_aux_mois_partis(ctx, &q)?, "choix": choix});
             }
         }
     }
+    let en_valeur = |t: Vec<(String, Vec<String>)>| -> Value {
+        Value::Array(t.into_iter().map(|(qui, c)| json!({"qui": qui, "consequences": c})).collect())
+    };
     if !question.is_null() {
-        return Ok(Issue::Avertir(json!({"phrases": phrases, "a_partir_du": question})));
+        return Ok(Issue::Avertir(json!({"engagements": en_valeur(touches), "a_partir_du": question})));
     }
     let mut faits = Vec::new();
     for i in rangs {
@@ -354,11 +363,14 @@ fn modifier_puis_revalider(
             let data = engagement::stock::vue_a_l_ecran(&ctx.racine, mois).ok().flatten().unwrap_or(Value::Null);
             crate::routes::mois::refus_du_calcul(ctx, &data, m)
         })?;
-        phrases.extend(ce_que_le_changement_entraine(ctx, &v, &departs)?);
+        let lignes = ce_que_le_changement_entraine(ctx, &v, &departs)?;
+        if !lignes.is_empty() {
+            dire(engagement::etats::qui_de(ctx, v.objet()), lignes);
+        }
         faits.push((*i, v.le().to_string()));
     }
-    if !confirme && !phrases.is_empty() {
-        return Ok(Issue::Avertir(json!({"phrases": phrases, "a_partir_du": Value::Null})));
+    if !confirme && !touches.is_empty() {
+        return Ok(Issue::Avertir(json!({"engagements": en_valeur(touches), "a_partir_du": Value::Null})));
     }
     Ok(Issue::Ecrite(faits))
 }
@@ -372,58 +384,61 @@ fn contrat_parti(ctx: &Contexte, o: &engagement::stock::Objet, departs: &engagem
     departs.de(&cle, &numero).iter().any(|d| d.envoi == engagement::departs::Envoi::Contrat)
 }
 
-/// CE QUE LE CHANGEMENT ENTRAINE, en phrases, pour l'engagement revalide `v` : chaque envoi parti sur une version qui
-/// n'est plus la sienne (`engagement::etats::a_refaire`, sans l'avenant d'un contrat rompu :
+/// Ce qu'un contrat parti que le changement modifie entraine.
+const UN_AVENANT: &str = "un avenant à faire signer";
+
+/// CE QUE LE CHANGEMENT ENTRAINE, une ligne par consequence, pour l'engagement revalide `v` : chaque envoi parti sur une
+/// version qui n'est plus la sienne (`engagement::etats::a_refaire`, sans l'avenant d'un contrat rompu :
 /// `crate::routes::contrats::seule_la_rupture`). Une embauche reportee ne refait pas la DPAE
 /// (`crate::regularisation::dpae_d_une_date_changee`).
 fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Vec<String>> {
     use engagement::etats::ARefaire;
     let saisie = |x: Option<&Value>| x.and_then(|x| x.get("saisie")).cloned().unwrap_or(Value::Null);
     let presente = saisie(v.objet().brut.get("valide"));
-    let qui = engagement::etats::qui_de(ctx, v.objet());
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let mut out = Vec::new();
     for a in engagement::etats::a_refaire(ctx, v, departs) {
         match a {
             ARefaire::Avenant { depuis } => {
                 if !crate::routes::contrats::seule_la_rupture(&saisie(v.version_numero(depuis)), &presente) {
-                    out.push(format!("{} : le contrat est déjà parti ; ce changement le modifie, un avenant sera à faire signer.", qui));
+                    out.push(UN_AVENANT.to_string());
                 }
             }
             ARefaire::Dpae { debut_declare, .. } => {
                 let (rien_a_refaire, phrase) = crate::regularisation::dpae_d_une_date_changee(&debut_declare, &engagement::debut_brut(&presente));
                 if !rien_a_refaire {
-                    out.push(format!("{} : {}", qui, phrase));
+                    out.push(phrase);
                 }
             }
-            ARefaire::Bulletin { mois, .. } => out.push(format!(
-                "{} : les documents de {} sont déjà partis ; un bulletin rectificatif sera à envoyer.",
-                qui,
-                engagement::libelle_mois(&mois)
-            )),
-            ARefaire::Dsn { mois, .. } => out.push(format!("{} : {}.", qui, la_dsn_qui_change(&mut m, ctx, &mois)?)),
+            ARefaire::Bulletin { mois, .. } => out.push(un_bulletin_rectificatif(&mois)),
+            ARefaire::Dsn { mois, .. } => out.push(la_dsn_qui_change(&mut m, ctx, &mois)?),
         }
     }
     Ok(out)
+}
+
+/// « un bulletin rectificatif de janvier 2026 » : la paie partie de `mois` se refait.
+fn un_bulletin_rectificatif(mois: &str) -> String {
+    format!("un bulletin rectificatif {}", crate::regularisation::de_mois_en_clair(mois))
 }
 
 /// Ce qui arrive a la DSN deposee de `mois` quand sa paie change, comme toute modification d'un mois declare
 /// (`crate::regularisation::modification_de_la_paie`) : un annule-et-remplace jusqu'a la limite, ensuite la correction
 /// dans la DSN du mois en cours.
 fn la_dsn_qui_change(m: &mut crate::routes::etapes::Moteur, ctx: &Contexte, mois: &str) -> R<String> {
-    let de = engagement::libelle_mois(mois);
+    let de = crate::regularisation::de_mois_en_clair(mois);
     let d = crate::regularisation::modification_de_la_paie(m, ctx, mois)?;
     Ok(if d.get("confirmer").is_some_and(vrai) {
         format!(
-            "la DSN de {}, déposée, ne se remplace plus : la correction se déclarera dans la DSN {}",
-            de,
-            crate::regularisation::de_mois_en_clair(&valeur_en_texte(&d["mois_courant"]))
+            "la correction dans la DSN {} (celle {}, déposée, ne se remplace plus)",
+            crate::regularisation::de_mois_en_clair(&valeur_en_texte(&d["mois_courant"])),
+            de
         )
     } else if d.is_null() {
-        format!("la DSN de {} est partie : elle se corrigera", de)
+        format!("la DSN {} à corriger", de)
     } else {
         let limite = socle::date::Jour::lire(&valeur_en_texte(&d["limite"])).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
-        format!("la DSN de {}, déposée, sera remplacée par un annule-et-remplace, admis jusqu'au {} à minuit", de, limite)
+        format!("un annule-et-remplace de la DSN {}, admis jusqu'au {} à minuit", de, limite)
     })
 }
 
@@ -434,10 +449,9 @@ fn ce_qui_arrive_aux_mois_partis(ctx: &Contexte, q: &engagement::etats::APartirD
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let mut out = Vec::new();
     for mois in q.choix.iter().filter(|c| q.partis.contains(c)) {
-        let de = engagement::libelle_mois(mois);
         let d = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
         let dsn = if d.is_null() { String::new() } else { format!(" ; {}", la_dsn_qui_change(&mut m, ctx, mois)?) };
-        out.push(format!("Si le changement vaut dès {} : {} a un bulletin rectificatif{}.", de, de, dsn));
+        out.push(format!("dès {} : {}{}", engagement::libelle_mois(mois), un_bulletin_rectificatif(mois), dsn));
     }
     Ok(out)
 }

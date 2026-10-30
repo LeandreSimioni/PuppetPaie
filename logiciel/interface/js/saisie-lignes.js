@@ -663,7 +663,7 @@ function poserAvant(div, e) {
   div.querySelector(".e-avant-quotite").value = avant.quotite_contrat ?? "";
   const majAvant = () => {
     const dit = div.querySelector(".e-avant-salaire").value !== "" || div.querySelector(".e-avant-quotite").value !== "";
-    div.querySelector(".e-avant").hidden = !dit && !div.querySelector(".e-date-modification").value;
+    div.querySelector(".e-avant").hidden = !avenantSurLaCarte(div) || (!dit && !div.querySelector(".e-date-modification").value);
   };
   div.querySelector(".e-date-modification").addEventListener("change", majAvant);
   div.querySelectorAll(".e-avant input").forEach((c) => { c.oninput = rafraichirApercu; });
@@ -672,16 +672,23 @@ function poserAvant(div, e) {
   majAvenant(div);
 }
 
-/* L'AVENANT NE SE PROPOSE QU'À UN CONTRAT QUI EXISTE DÉJÀ.
+/* L'AVENANT NE SE PROPOSE QU'À UN CONTRAT QUI EXISTE DÉJÀ ET QUI SE SAISIT.
  * Un CDI saisi pour la première fois montrait « Avenant à compter du » : rien
  * à remplir, puisque ce qu'on tape ce mois-ci, ce sont les termes du contrat.
  * La case paraît quand le contrat a commencé avant le mois affiché — c'est ce
- * fait-là qui l'appelle —, ou quand elle porte déjà une date. */
+ * fait-là qui l'appelle —, ou quand elle porte déjà une date. Un engagement
+ * validé, ouvert pour être modifié, ne la montre pas, ni les termes d'avant :
+ * la date du changement, le moteur la demande à « Modifier l'engagement »
+ * (« À partir de quel mois ? »), quand ce qui est parti l'appelle. */
+function avenantSurLaCarte(div) {
+  return !(div._ligne && div._ligne.valide);
+}
+
 function majAvenant(div) {
   const case_ = div.querySelector(".e-date-modification");
   const debut = div.querySelector(".e-debut").value;
   const mois = document.getElementById("mois").value || "";
-  const cachee = !case_.value && !(debut && mois && debut.slice(0, 7) < mois);
+  const cachee = !avenantSurLaCarte(div) || (!case_.value && !(debut && mois && debut.slice(0, 7) < mois));
   const l = case_.closest("label");
   l.hidden = cachee;
   l.style.display = cachee ? "none" : "";   // la feuille de style pose `display` sur ces étiquettes

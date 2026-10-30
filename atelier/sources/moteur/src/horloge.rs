@@ -672,6 +672,8 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 let a = crate::routes::contrats::signature_apercu(ctx, &json!({"mois": mois}))?;
                 Ok(a["contrats"].as_array().into_iter().flatten().find(|x| valeur_en_texte(&x["salarie"]) == *salarie && valeur_en_texte(&x["debut"]) == *debut).cloned())
             };
+            // La ligne de l'horloge dit ce que le journal dit : parti par courriel, ou imprime et remis en main propre.
+            let imprime = std::cell::Cell::new(false);
             let mut fait = pas(d, &format!("avenant du contrat de {} envoyé à la signature", nom), quand, |ctx| {
                 let Some(x) = du_contrat(ctx)?.filter(|x| x.get("en_avenant").is_some_and(vrai)) else {
                     return Ok(false);
@@ -683,10 +685,15 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
                 if crate::routes::contrats::envoyer_avenants(ctx, std::slice::from_ref(&voulu), &Preuve::de_la_charge(&json!({})), &mut ouvrir).is_err() {
                     crate::routes::contrats::contrats_imprimer_par(ctx, &json!({"mois": mois, "avenants": [voulu]}), QUI_HORLOGE)?;
+                    imprime.set(true);
                 }
                 Ok(true)
             });
-            fait.extend(pas(d, &format!("avenant du contrat de {} revenu signé", nom), quand, |ctx| {
+            if imprime.get() {
+                fait = fait.into_iter().map(|l| l.replace("envoyé à la signature", "imprimé, remis en main propre")).collect();
+            }
+            let signe = if imprime.get() { "signé, remis en main propre" } else { "revenu signé" };
+            fait.extend(pas(d, &format!("avenant du contrat de {} {}", nom, signe), quand, |ctx| {
                 let Some(x) = du_contrat(ctx)? else { return Ok(false) };
                 if !(x.get("avenant_attendu").is_some_and(vrai) && x.get("en_attente").is_some_and(vrai)) {
                     return Ok(false);

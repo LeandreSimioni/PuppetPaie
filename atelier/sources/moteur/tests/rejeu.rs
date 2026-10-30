@@ -251,8 +251,8 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     assert_eq!((&r["change"], r.get("avertissement")), (&json!(false), None), "{}", r);
     assert!(ecrits() == avant, "une modification sans changement a ecrit");
     let r = outils::reussi(&modifier(lignes(2, &["2026-11-27", "2026-11-28"]), false)).clone();
-    let phrases = r["avertissement"]["phrases"].as_array().cloned().unwrap_or_default();
-    assert!(phrases.iter().any(|p| p.as_str().is_some_and(|p| p.contains("bulletin rectificatif"))), "{}", r);
+    let consequences: Vec<Value> = r["avertissement"]["engagements"].as_array().into_iter().flatten().flat_map(|e| e["consequences"].as_array().cloned().unwrap_or_default()).collect();
+    assert!(consequences.iter().any(|p| p.as_str().is_some_and(|p| p.contains("bulletin rectificatif"))), "{}", r);
     assert!(ecrits() == avant, "une modification non confirmee a ecrit");
     outils::reussi(&modifier(lignes(2, &["2026-11-27", "2026-11-28"]), true));
     assert_eq!(documents(), ["a_faire"], "le bulletin parti est a rectifier");

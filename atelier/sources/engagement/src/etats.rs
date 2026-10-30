@@ -964,14 +964,13 @@ pub struct APartirDu {
 }
 
 impl APartirDu {
-    /// La question, en mots.
+    /// La question, en mots ; l'avertissement nomme l'engagement (`qui`).
     pub fn phrase(&self) -> String {
         let partis: Vec<String> = self.partis.iter().map(|m| crate::libelle_mois(m)).collect();
         format!(
-            "{} : les documents ou la DSN de {} sont déjà partis. À partir de quel mois ce changement vaut-il ? Les mois \
+            "Les documents ou la DSN de {} sont déjà partis. À partir de quel mois ce changement vaut-il ? Les mois \
 d'avant gardent leurs chiffres ; à partir du mois choisi, la paie prend le nouveau chiffre, et l'avenant le dit à compter \
 du premier jour de ce mois.",
-            self.qui,
             partis.join(", ")
         )
     }
