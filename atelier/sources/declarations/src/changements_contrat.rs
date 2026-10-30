@@ -327,7 +327,7 @@ p. 217).",
             return Err(format!(
                 "{} : le contrat etait declare par l'etablissement {} (DSN de {}) et l'est maintenant par l'etablissement {}. \
 Le SIRET de l'ancien etablissement se declare dans un bloc Changements contrat (S21.G00.41.012) date du jour de la \
-mutation (cahier technique DSN, p. 21) : dans la carte de l'engagement, « Avenant à compter du ».",
+mutation (cahier technique DSN, p. 21) : ouvrir la carte de l'engagement, changer l'établissement, « Modifier l'engagement », et dire dans l'avertissement le mois et le jour où il change.",
                 qui(p),
                 decl.siret,
                 libelle_mois(&decl.mois),
