@@ -1493,6 +1493,30 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
             }
         }
     }
+    // UN MATRICULE, UN SALARIE : la DSN rapproche chaque salarie de ses declarations par son matricule (S21.G00.30.019, dont
+    // « le choix de la valeur revient a l'employeur », `norme-dsn/texte/bloc-S21.G00.30.txt`, l. 327-329) ; deux fiches au
+    // meme matricule s'y confondraient. `forcer` ne leve pas ce refus.
+    if nom == "salarie" {
+        let matricule = donnees.get("code_salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+        let matricule = matricule.trim();
+        if !matricule.is_empty() {
+            let porteur = ctx.salaries.iter().find(|(k, s)| {
+                Some(k.as_str()) != cle.as_deref()
+                    && s.get("code_salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim() == matricule
+            });
+            if let Some((k, s)) = porteur {
+                let prenom = s.get("prenom_affichage").filter(|p| vrai(p)).or(s.get("prenom")).map(valeur_en_texte).unwrap_or_default();
+                let qui = format!("{} {}", s.get("nom").map(valeur_en_texte).unwrap_or_default(), prenom).trim().to_string();
+                return Err(refus(format!(
+                    "Le matricule {} est déjà celui de {} (fiche {}). Un matricule désigne un salarié et un seul : la DSN \
+rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser la case vide pour prendre le suivant.",
+                    matricule,
+                    if qui.is_empty() { k.as_str() } else { qui.as_str() },
+                    k
+                )));
+            }
+        }
+    }
     let chemin = ctx.racine.join("config").join(fichier);
     if cle.as_deref().map_or(true, str::is_empty) && nom == "salarie" {
         // Le matricule d'une fiche neuve : le suivant. Un matricule saisi est garde tel quel.
