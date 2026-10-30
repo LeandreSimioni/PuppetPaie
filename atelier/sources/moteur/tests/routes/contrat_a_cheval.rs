@@ -74,7 +74,7 @@ fn des_heures_a_cheval_se_disent_sur_la_carte_de_leur_mois() {
     reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-12", "saisie": decembre}), jour));
     assert!(reussi(&route(&c, "valider-engagement", valider, jour))["valide"].is_string());
     let heures = |mois: &str| -> Vec<Value> {
-        let a = route(&c, "apercu", json!({"saisie": crate::outils::saisie(&c, mois)}), jour);
+        let a = route(&c, "apercu", json!({"mois": mois}), jour);
         reussi(&a)["paies"].as_array().unwrap().iter().filter(|p| p["debut"] == "2026-11-29").map(|p| p["remuneration"][0]["quantite"].clone()).collect()
     };
     assert_eq!((heures("2026-11"), heures("2026-12")), (vec![json!("16")], vec![json!("8")]));

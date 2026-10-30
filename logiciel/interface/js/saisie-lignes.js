@@ -1602,13 +1602,9 @@ function dedoubler(div) {
 /** Les lignes de paie d'un bloc, telles qu'elles sont saisies. */
 /* CE QU'UNE LIGNE DIT PART DANS LA SAISIE, même incomplète : ses jours, sa
  * quantité, son taux ou ses heures. Le moteur l'enregistre en saisie et dit
- * ce qui lui manque. Pour « Viser un montant », seules partent les lignes
- * qui disent leur quantité : le taux est ce qu'on cherche, et le moteur le
- * trouve seul quand il n'y a qu'une ligne de salaire. */
-let POUR_VISER = false;
+ * ce qui lui manque. */
 const ligneEnvoyee = (r) => {
   const dit = (s) => r.querySelector(s).value.trim() !== "";
-  if (POUR_VISER) return dit(".r-quantite");
   return dit(".r-quantite") || dit(".r-taux") || dit(".r-heures")
     || joursDe(r.querySelector(".r-jours")).length > 0;
 };

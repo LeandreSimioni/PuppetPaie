@@ -160,6 +160,27 @@ function engagementsDuBloc(div, mois) {
 /* UNE CARTE OUVERTE POUR ÊTRE MODIFIÉE (`ouvrirEnModification`) ne s'écrit pas : la saisie du mois garde son
  * engagement tel qu'il est enregistré. L'aperçu et le montant visé, qui n'écrivent rien, la lisent telle qu'elle est. */
 let LIRE_LES_MODIFICATIONS = false;
+
+/** Les engagements validés ouverts pour être modifiés : chacun désigné, avec ce que sa carte montre (`mois_designe`). */
+function modifieesDeLaPage(mois) {
+  LIRE_LES_MODIFICATIONS = true;
+  try {
+    return [...document.querySelectorAll(".engagement.en-modification")].filter((c) => c._ligne)
+      .map((c) => ({ ...contratDe(c._ligne), saisies: engagementsDuBloc(c, mois) }));
+  } finally { LIRE_LES_MODIFICATIONS = false; }
+}
+
+/* L'APERÇU ET LE MONTANT VISÉ CALCULENT LE MOIS ENREGISTRÉ, et les cartes ouvertes pour être modifiées : ce qui est
+ * tapé s'enregistre d'abord, sans attendre la seconde de l'enregistrement automatique. */
+async function enregistrerAvantDeCalculer() {
+  if (MINUTEUR_SAISIE) { clearTimeout(MINUTEUR_SAISIE); MINUTEUR_SAISIE = null; }
+  await enregistrerSaisie(true);
+}
+
+async function apercuDuMois(mois, blocs) {
+  await enregistrerAvantDeCalculer();
+  return api("apercu", { mois, modifiees: modifieesDeLaPage(mois), blocs });
+}
 function saisieAvecLesModifications() {
   LIRE_LES_MODIFICATIONS = true;
   try { return saisieCourante(); } finally { LIRE_LES_MODIFICATIONS = false; }
@@ -224,7 +245,7 @@ async function calculerApercu(lu) {
       try { deLu = lireReponse(lu); } catch (e) { deLu = null; }
       if (deLu && (deLu.paies || []).length !== saisie.engagements.length) deLu = null;
     }
-    const a = deLu ? structuredClone(deLu) : await api("apercu", { saisie, blocs: tailles });
+    const a = deLu ? structuredClone(deLu) : await apercuDuMois(saisie.mois, tailles);
     cible.innerHTML = vueApercu(a);
     // Les dates resolues, sous chaque engagement : ce que le moteur a compris.
     const parBloc = engagementsParBloc(a, blocs);
@@ -477,8 +498,8 @@ function peindreChiffres(div, total) {
  *
  * L'enveloppe vient avant la paie : on sait qu'on a 500 € pour ce plateau,
  * et on cherche ce que ça fait de cachet. La page ne calcule rien elle-même
- * — le passage du brut au coût n'est pas un pourcentage — : elle envoie la
- * saisie telle quelle et le moteur rejoue la paie jusqu'à tomber juste.
+ * — le passage du brut au coût n'est pas un pourcentage — : elle désigne les engagements du bloc, et le moteur
+ * rejoue leur paie, telle qu'elle est enregistrée ou ouverte pour être modifiée, jusqu'à tomber juste.
  *
  * Le bloc entier est visé, tous ses salariés cochés compris : « 500 € pour
  * payer les gens », c'est 500 € en tout, répartis au prorata de ce qui est
@@ -502,12 +523,11 @@ async function ajusterBloc(div, champ) {
   const engagements = [];
   for (let k = 0; k < combien; k++) engagements.push(debut + k);
   note.textContent = "calcul…";
-  POUR_VISER = true;
-  let saisie;
-  try { saisie = saisieAvecLesModifications(); } finally { POUR_VISER = false; }
+  const mois = document.getElementById("mois").value;
   try {
+    await enregistrerAvantDeCalculer();
     const r = await api("ajuster", {
-      saisie, engagements,
+      mois, modifiees: modifieesDeLaPage(mois), engagements,
       cible: champ.dataset.cible, montant: Number(montant),
     });
     appliquerAjustement(div, r);
@@ -527,13 +547,9 @@ async function ajusterBloc(div, champ) {
 function appliquerAjustement(div, r) {
   const e = (r.engagements || [])[0];
   if (!e) return;
-  // Les mêmes lignes que `lignesDuBloc` a envoyées pour viser, dans le même
-  // ordre : une ligne sans quantité n'est pas partie, donc elle ne compte
-  // pas dans les rangs ; une ligne sans taux, si.
-  POUR_VISER = true;
-  let rangs;
-  try { rangs = [...div.querySelectorAll(".rubrique")].filter(ligneEnvoyee); }
-  finally { POUR_VISER = false; }
+  // Les lignes que la carte a enregistrées (`lignesDuBloc`), dans le même ordre : une ligne vide n'est pas partie,
+  // donc elle ne compte pas dans les rangs.
+  const rangs = [...div.querySelectorAll(".rubrique")].filter(ligneEnvoyee);
   (e.lignes || []).forEach((l) => {
     const cible = rangs[l.rang];
     if (cible) cible.querySelector(".r-taux").value = l.taux;

@@ -1970,9 +1970,9 @@ fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> Value {
     Value::Object(d)
 }
 
-/// Le taux qu'il faudrait, pour que ces engagements coutent CE montant. N'ecrit rien.
+/// Le taux qu'il faudrait, pour que les engagements `engagements` (leurs rangs dans l'ordre de l'ecran du mois que
+/// `mois_designe` lit) coutent CE montant. N'ecrit rien.
 fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let source = exiger(charge, "saisie")?;
     let engagements = exiger(charge, "engagements")?;
     let cible = texte_requis(charge, "cible")?;
     let montant = exiger(charge, "montant")?;
@@ -1986,10 +1986,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
     if vise <= Decimal::ZERO {
         return Err(refus(format!("Un montant vise se dit en euros et il est positif (recu : {}).", vise)));
     }
-    if !source.is_object() {
-        return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
-    }
-    let data = source.clone();
+    let data = mois_designe(ctx, charge)?;
     let mut rangs: Vec<i64> = Vec::new();
     for i in envois::etats::items(engagements)? {
         rangs.push(crate::routes::fiches::entier(&i)?);
@@ -2000,7 +1997,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
     if rangs.is_empty() || rangs[0] < 0 || rangs[rangs.len() - 1] >= total as i64 {
         let noms: Vec<String> = rangs.iter().map(i64::to_string).collect();
         return Err(refus(format!(
-            "Engagement(s) {} : la saisie en porte {}.",
+            "Engagement(s) {} : le mois en porte {}.",
             if noms.is_empty() { "aucun".to_string() } else { noms.join(", ") },
             total
         )));
@@ -2047,27 +2044,50 @@ pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> 
     Echec::from(message)
 }
 
-/// Une saisie recue : un dictionnaire (l'ecran), ou un mois (`AAAA-MM`, la saisie que ses engagements montrent).
-fn saisie_recue(ctx: &Contexte, charge: &Value) -> R<Value> {
-    match charge.get("saisie") {
-        None => Err(erreur("KeyError", socle::fichiers::absent("saisie"))),
-        Some(d) if d.is_object() => Ok(d.clone()),
-        // La saisie enregistree, telle que l'ecran la montre (`vue_a_l_ecran`) : ce qui manque a un engagement se
-        // retrouve en le calculant.
-        Some(Value::String(s)) => {
-            let mut v = engagement::stock::vue_a_l_ecran(&ctx.racine, s)
-                .map_err(|m| erreur("FileNotFoundError", m))?
-                .ok_or_else(|| erreur("FileNotFoundError", format!("{} : aucun engagement ne touche ce mois ({}/).", s, engagement::stock::DOSSIER)))?;
-            for e in v.get_mut("engagements").and_then(Value::as_array_mut).into_iter().flatten() {
-                if let Some(o) = e.as_object_mut() {
-                    o.remove(engagement::stock::A_COMPLETER);
-                }
-            }
-            v["mois"] = Value::String(s.clone());
-            Ok(v)
+/// LE MOIS QUE L'APERCU ET LE MONTANT VISE CALCULENT : ses engagements tels qu'ils sont enregistres, dans l'ordre de
+/// l'ecran (`vue_a_l_ecran`), et, a la place de chaque engagement valide ouvert pour etre modifie (`modifiees` :
+/// `salarie`, `debut`, et, si deux contrats du salarie commencent ce jour-la, `numero` ou `rang`), les saisies que sa
+/// carte montre (`saisies`), que rien n'ecrit avant « Modifier l'engagement ». Un engagement ne se recoit pas autrement :
+/// le reste du mois est celui du disque.
+pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let mois = texte_requis(charge, "mois")?;
+    let mut v = engagement::stock::vue_a_l_ecran(&ctx.racine, mois)
+        .map_err(Echec::from)?
+        .unwrap_or_else(|| json!({"engagements": []}));
+    v["mois"] = Value::String(mois.to_string());
+    let mut tous: Vec<Value> = v.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    for e in tous.iter_mut() {
+        if let Some(o) = e.as_object_mut() {
+            o.remove(engagement::stock::A_COMPLETER);
         }
-        Some(autre) => Err(erreur("TypeError", format!("saisie illisible : {}", autre))),
     }
+    let mut remplacements: Vec<(usize, Vec<Value>)> = Vec::new();
+    for m in charge.get("modifiees").and_then(Value::as_array).into_iter().flatten() {
+        let (salarie, debut) = (texte_requis(m, "salarie")?, texte_requis(m, "debut")?);
+        let numero = m.get("numero").filter(|n| vrai(n)).map(valeur_en_texte);
+        let rang = m.get("rang").and_then(Value::as_u64).unwrap_or(0) as usize;
+        let du_jour: Vec<usize> = (0..tous.len())
+            .filter(|&i| engagement::cle_de_l_engagement(ctx, &tous[i]).as_deref() == Some(salarie) && engagement::debut_brut(&tous[i]) == debut)
+            .collect();
+        let i = numero
+            .as_ref()
+            .and_then(|n| du_jour.iter().copied().find(|&i| jumeaux::numero_pose(&tous[i]).as_ref() == Some(n)))
+            .or_else(|| du_jour.get(rang).copied())
+            .ok_or_else(|| refus(format!("{} : aucun engagement de {} ne commence le {} ; la page se recharge.", mois, salarie, debut)))?;
+        let Some(saisies) = m.get("saisies").and_then(Value::as_array).filter(|s| s.iter().all(Value::is_object)) else {
+            return Err(erreur("TypeError", "`saisies` : une liste d'engagements est attendue pour chaque engagement modifie"));
+        };
+        if remplacements.iter().any(|(j, _)| *j == i) {
+            return Err(refus(format!("{} : l'engagement de {} du {} est designe deux fois.", mois, salarie, debut)));
+        }
+        remplacements.push((i, saisies.clone()));
+    }
+    remplacements.sort_by(|a, b| b.0.cmp(&a.0));
+    for (i, saisies) in remplacements {
+        tous.splice(i..=i, saisies);
+    }
+    v["engagements"] = Value::Array(tous);
+    Ok(v)
 }
 
 /// Une paie que l'ecran montre, et pourquoi elle s'est recalculee d'elle-meme (`{"le", "raison"}`), s'il y a lieu.
@@ -2348,9 +2368,10 @@ fn annee_de(mois: &str) -> R<i32> {
     Ok(mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", socle::fichiers::repr(mois)))?)
 }
 
-/// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur. Charge : `saisie` (le mois tel
-/// que l'ecran le tient), `lignes` (vrai : les lignes de cotisation de chaque paie, pour le bulletin affiche), `urssaf`
-/// (vrai : le bordereau Urssaf du mois, que la boite « Fermer le mois » montre ; il ne se calcule que la).
+/// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur. Charge : `mois`, `modifiees`
+/// (les engagements valides ouverts pour etre modifies, `mois_designe`), `blocs` (combien d'engagements porte chaque
+/// carte), `lignes` (vrai : les lignes de cotisation de chaque paie, pour le bulletin affiche), `urssaf` (vrai : le
+/// bordereau Urssaf du mois).
 ///
 /// Un engagement valide montre la paie qu'il a ecrite, avec ses numeros du moment ; s'il s'est recalcule de lui-meme,
 /// ses informations disent quand et pourquoi (`etats::phrase_du_recalcul`). Un engagement en saisie se calcule, et
@@ -2359,7 +2380,7 @@ fn annee_de(mois: &str) -> R<i32> {
 /// calculent, et chacun de ceux-la tient sa place dans `paies` avec ce qui lui manque (`a_completer`), sans montant ;
 /// la carte qui en porte un n'a pas de total. Une saisie dont aucun refus ne se rapporte a un engagement refuse.
 fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let data = saisie_recue(ctx, charge)?;
+    let data = mois_designe(ctx, charge)?;
     let refus = match apercu_de(ctx, charge, &data) {
         Ok(v) => return Ok(v),
         Err(refus) => refus,
