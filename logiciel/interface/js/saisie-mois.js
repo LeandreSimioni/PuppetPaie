@@ -627,7 +627,9 @@ function designation(p) {
  * son net, le coût et le brut au survol. Le moteur les somme (`total_net`, `total_cout`, `par_salarie` de l'aperçu). */
 function vueApercu(a) {
   const groupes = a.par_salarie || [];
-  if (!groupes.length) return `<p class="discret">Aucun engagement ce mois-ci.</p>`;
+  // Ce que les chiffres ne comptent pas (un engagement à compléter, ou aucun), le moteur le dit (`phrase_du_mois`).
+  const phrase = a.phrase_du_mois ? `<p class="discret">${echapper(a.phrase_du_mois)}</p>` : "";
+  if (!groupes.length) return phrase;
   return `
     <div class="mois-chiffres">
       <div><span>Net à virer</span><b>${euros(a.total_net)}</b></div>
@@ -639,7 +641,7 @@ function vueApercu(a) {
           <span class="discret">· ${g.engagements} engagement${g.engagements > 1 ? "s" : ""}</span></span>
         <b>${euros(g.net_a_payer)}</b>
       </li>`).join("")}
-    </ul>`;
+    </ul>${phrase}`;
 }
 
 /* ------------------------------------------------------- charger un mois */
