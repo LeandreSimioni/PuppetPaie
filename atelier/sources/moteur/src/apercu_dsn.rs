@@ -197,14 +197,9 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             continue;
         }
         let p = &liste[par_numero[n]];
-        let nom = requis(&p.salarie, "nom")?;
-        let prenom = match p.salarie.get("prenom_affichage") {
-            Some(v) if vrai(v) => socle::valeur::valeur_en_texte(v),
-            _ => requis(&p.salarie, "prenom")?,
-        };
         absents.push(json!({
             "salarie": p.salarie.get("_cle").cloned().ok_or_else(|| socle::fichiers::absent("_cle"))?,
-            "nom": format!("{} {}", nom, prenom),
+            "nom": socle::texte::salarie_nomme_ou(Some(&p.salarie), "Ce salarié"),
             "numero": n,
             "debut": p.engagement.debut.iso(),
             "fin": p.engagement.fin.map_or(String::new(), |f| f.iso()),

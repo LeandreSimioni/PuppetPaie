@@ -83,23 +83,10 @@ fn mois_suivant(m: &str) -> String {
     }
 }
 
-/// Le nom d'un salarie, tel que la fiche le montre ; sa cle a defaut.
+/// Le nom d'un salarié à l'écran ; sa clé à défaut.
 fn nom_du_salarie(racine: &Path, cle: &str) -> String {
     let fiches = crate::routes::lire_json_ou_vide(&racine.join("config").join("salaries.json")).unwrap_or(Value::Null);
-    let Some(f) = fiches.get(cle).filter(|f| f.is_object()) else { return cle.to_string() };
-    // La fiche est datee (`[{"valeur"}, {"depuis", "valeur"}]`) : son nom est sa derniere valeur.
-    let t = |k: &str| match f.get(k) {
-        Some(Value::Array(versions)) => versions.last().map(|v| texte(v, "valeur")).unwrap_or_default(),
-        _ => texte(f, k),
-    };
-    let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
-    let nom = if t("nom_affichage").is_empty() { t("nom") } else { t("nom_affichage") };
-    let n = format!("{} {}", prenom, nom).trim().to_string();
-    if n.is_empty() {
-        cle.to_string()
-    } else {
-        n
-    }
+    socle::texte::salarie_nomme_ou(fiches.get(cle).filter(|f| f.is_object()), cle)
 }
 
 /// Les contrats a dire d'un salarie : (nombre, premier debut, derniere fin).

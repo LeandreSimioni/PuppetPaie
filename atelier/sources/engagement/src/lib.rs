@@ -48,6 +48,8 @@ use socle::num::{dec, dec_f64, dec_avec_echelle, div, flottant, nombre, Decimal,
 #[derive(Debug, Clone)]
 pub struct Engagement {
     pub salarie: String,
+    /// Le salarié tel qu'une phrase d'écran le nomme (« NOM Prénom »).
+    pub nom: String,
     pub spectacle: Option<String>,
     pub dates_travail: Vec<Jour>,
     pub lignes: Vec<Value>,
@@ -252,6 +254,11 @@ fn liste<'a>(v: Option<&'a Value>, nom: &str) -> Resultat<&'a [Value]> {
 }
 
 impl Engagement {
+    /// « NOM Prénom, contrat N » : qui une phrase de refus désigne.
+    pub fn qui(&self) -> String {
+        format!("{}, contrat {}", self.nom, self.numero.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans numero"))
+    }
+
     /// `Engagement(**v)` : `v` porte les champs de la dataclass (`salarie`,
     /// `spectacle`, `dates_travail`, `lignes`, `debut`, ...). `racine` est
     /// celle des donnees de la compagnie, pour le catalogue des rubriques. `qui` : le salarie tel qu'un refus le nomme
@@ -510,6 +517,7 @@ impl Engagement {
 
         Ok(Engagement {
             salarie: chaine(get("salarie")).unwrap_or_default(),
+            nom: qui.to_string(),
             spectacle: chaine(get("spectacle")),
             dates_travail: jours_joues,
             lignes,

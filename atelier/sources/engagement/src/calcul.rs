@@ -596,10 +596,10 @@ section verifiee.",
 ///   [...] >>. Aucun texte depose ne dit si une autre indemnite hors assiette (une indemnite de rupture exoneree par sa
 ///   propre regle) s'y reintegre : refus (regle 1). Un acompte, un mouvement de tresorerie, n'est rien de tout cela.
 fn dfs_applicable(
-    eng: &Engagement, nat: &Nature, sal: &Value, o: &OptionDfs, lb: &[LigneBrut], rubriques_bulletin: &[&Value], racine: &std::path::Path,
+    eng: &Engagement, nat: &Nature, o: &OptionDfs, lb: &[LigneBrut], rubriques_bulletin: &[&Value], racine: &std::path::Path,
     jour: &Jour,
 ) -> Resultat<()> {
-    let qui = format!("Contrat {} de {}", eng.numero.clone().unwrap_or_else(|| "?".into()), salarie_nomme(sal).unwrap_or_default());
+    let qui = eng.qui();
     if nat.mensuelle() {
         return Err(format!(
             "{} : une deduction forfaitaire specifique sur un contrat paye au mois ({}). Le logiciel ne la porte que sur \
@@ -1074,9 +1074,9 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
         // La caisse paie ses conges (D. 7121-41) : l'employeur ne les paie pas en plus.
         if let Some(l) = lb.iter().find(|l| matches!(l.code.as_str(), "absence_conges_payes" | "indemnite_conges_payes" | "indemnite_compensatrice_conges")) {
             return Err(format!(
-                "Contrat {} : la ligne << {} >> paie des conges a un salarie que l'employeur declare a la caisse des \
+                "{} : la ligne << {} >> paie des conges a un salarie que l'employeur declare a la caisse des \
 Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'est la caisse qui les lui verse. Les payer aussi au bulletin serait les payer deux fois. Refus.",
-                eng.numero.clone().unwrap_or_else(|| "?".into()),
+                eng.qui(),
                 l.code
             ));
         }
@@ -1211,7 +1211,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // et sans descendre sous l'assiette minimum ; les assiettes majorees partent du brut abattu (Acoss 2013-019, R6).
     let mut dfs: Option<DeductionForfaitaire> = None;
     if let Some(o) = deduction_forfaitaire(&bar, &sal, &ctx.entreprise)? {
-        dfs_applicable(eng, &nat, &sal, &o, &lb, &rubriques_bulletin, &ctx.racine, &ctx.lue_au)?;
+        dfs_applicable(eng, &nat, &o, &lb, &rubriques_bulletin, &ctx.racine, &ctx.lue_au)?;
         let deja = dfs_deja_deduite(ctx, eng, &sal, precedentes)?;
         let montants: Vec<Decimal> = soumises.iter().map(|l| l.montant).collect();
         let a = abattement_dfs(&o, &montants, brut, deja, plafond);
@@ -1638,11 +1638,11 @@ pub(crate) fn duree_du_temps_partiel(e: &Engagement) -> Resultat<(Decimal, Decim
     let nat = e.nat()?;
     if let Some(l) = e.lignes.iter().find(|l| l.get("rubrique").and_then(Value::as_str) == Some("heure")) {
         return Err(format!(
-            "Contrat {} : le plafond de Securite sociale de ce salarie a temps partiel se corrige a la duree de son \
+            "{} : le plafond de Securite sociale de ce salarie a temps partiel se corrige a la duree de son \
 contrat << majoree du nombre d'heures complementaires >> du mois (CSS R. 242-2, I, dernier alinea), et la paie porte des \
 heures en plus du salaire mensuel ({} h) : heures complementaires ou non, le logiciel ne le sait pas. Refus : il ne les \
 devine pas.",
-            e.numero.clone().unwrap_or_else(|| "?".into()),
+            e.qui(),
             l.get("quantite").map(en_texte).unwrap_or_default()
         ));
     }

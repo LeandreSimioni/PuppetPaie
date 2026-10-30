@@ -915,13 +915,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
     let salaries = cles
         .into_iter()
         .map(|k| {
-            let v = &ctx.salaries[k];
-            let nom = v.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
-            let prenom = match v.get("prenom_affichage").filter(|p| vrai(p)) {
-                Some(p) => p,
-                None => v.get("prenom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom")))?,
-            };
-            Ok(json!({"cle": k, "libelle": format!("{} {}", valeur_en_texte(nom), valeur_en_texte(prenom))}))
+            Ok(json!({"cle": k, "libelle": ctx.nomme(k)}))
         })
         .collect::<R<Vec<Value>>>()?;
     let spectacles = ctx

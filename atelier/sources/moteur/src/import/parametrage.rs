@@ -136,10 +136,7 @@ fn poser_taux_pas(ctx: &Contexte, faits: &mut Vec<String>) {
         if !changes.iter().any(|c| c.starts_with(&format!("{} :", cle))) {
             continue;
         }
-        let qui = ctx.salaries.get(&cle).map(|s| {
-            let prenom = if vrai(s.get("prenom_affichage").unwrap_or(&Value::Null)) { texte(s, "prenom_affichage") } else { texte(s, "prenom") };
-            format!("{} {}", prenom, texte(s, "nom")).trim().to_string()
-        });
+        let qui = ctx.salaries.get(&cle).and_then(socle::texte::salarie_nomme);
         faits.push(format!(
             "Prélèvement à la source de {} : taux {} % transmis par la DGFiP, appliqué dans la DSN de {} (S21.G00.50.006 à .008).",
             qui.filter(|q| !q.is_empty()).unwrap_or(cle),
