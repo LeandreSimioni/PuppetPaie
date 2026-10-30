@@ -1890,6 +1890,89 @@ pub fn taux_pas_d_octets(o: &[u8]) -> Result<Value, Echec> {
     extraire_taux_pas(o)
 }
 
+/// UN TAUX AT/MP NOTIFIE, tel qu'un compte rendu de nature 34 le porte : l'etablissement de la declaration a laquelle il
+/// est rattache (`SIREN`, `nic_affectation`), puis un element `taux_AT` (`code_ctn`, `section`, `code_risque`,
+/// `temoin_bureau`, `taux`, `date_effet`, `date_calcul`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct TauxAtmpNotifie {
+    pub siren: String,
+    pub nic: String,
+    pub code_ctn: String,
+    pub section: String,
+    /// Le code risque tel que la DSN le declare (S21.G00.40.040) : celui de la notification, suivi du « B » quand le taux
+    /// est celui des fonctions support.
+    pub code_risque: String,
+    /// En pourcentage (1.50 pour 1,50 %).
+    pub taux: socle::num::Decimal,
+    pub date_effet: socle::date::Jour,
+    pub date_calcul: Option<socle::date::Jour>,
+}
+
+/// AAAAMMJJ (le format du schema des bilans) ou AAAA-MM-JJ.
+fn jour_aaaammjj(t: &str) -> Option<socle::date::Jour> {
+    let c: String = t.chars().filter(char::is_ascii_digit).collect();
+    if c.len() != 8 {
+        return None;
+    }
+    socle::date::Jour::nouveau(c[..4].parse().ok()?, c[4..6].parse().ok()?, c[6..8].parse().ok()?)
+}
+
+/// LES TAUX AT/MP QU'UNE NOTIFICATION DE NATURE 34 COMMUNIQUE. Le guide de l'API DSN (§5.26.1 : « CR métier taux AT »,
+/// format DSN harmonise, rattache a la derniere declaration mensuelle) et la specification du schema des bilans (VT2.2,
+/// groupe « Bilan » : « taux_AT — Code CTN, Section, Code risque, Témoin bureau, Taux, Date effet, Date calcul » ; les noms
+/// des elements, `…-declaration-resultat-type-20201118.png`), deposes dans `atelier/reference/sources/gip-mds-api-dsn/`
+/// (LISEZ-MOI, « La notification du taux AT/MP »). Le taux est lu en pourcentage et le temoin bureau « B » s'ajoute au
+/// code (inferences dites au LISEZ-MOI). Refus quand la piece ne se lit pas, ou qu'elle ne porte aucun `taux_AT` lisible
+/// (un bloc `communication` seul : les noms de ses rubriques ne sont ecrits nulle part) : rien ne se devine.
+pub fn taux_atmp_d_octets(o: &[u8]) -> Result<Vec<TauxAtmpNotifie>, Echec> {
+    let arbre = lire_octets(o)?;
+    let mut out = Vec::new();
+    for d in arbre.tous().filter(|e| local(&e.tag) == "declaration") {
+        let id = arbre.sous(d).find(|x| local(&x.tag) == "declaration_identification");
+        let (siren, nic) = match id {
+            Some(i) => (premier_texte(&arbre, i, &["SIREN"]).to_string(), premier_texte(&arbre, i, &["nic_affectation"]).to_string()),
+            None => (String::new(), String::new()),
+        };
+        for t in arbre.sous(d).filter(|x| local(&x.tag) == "taux_AT") {
+            let champ = |n: &str| premier_texte(&arbre, t, &[n]).to_string();
+            let illisible = |quoi: &str, v: &str| echec("ValueError", format!("Notification du taux AT/MP : {} illisible ({:?}).", quoi, v));
+            if siren.is_empty() || nic.is_empty() {
+                return Err(echec("ValueError", "Notification du taux AT/MP : la déclaration ne dit pas son établissement (SIREN, nic_affectation)."));
+            }
+            let code = champ("code_risque").to_uppercase();
+            let ok_code = code.len() == 5 && code.chars().all(|c| c.is_ascii_digit() || c.is_ascii_uppercase());
+            if !ok_code {
+                return Err(illisible("code risque", &code));
+            }
+            let bureau = champ("temoin_bureau");
+            let code_risque = match bureau.as_str() {
+                "" => code,
+                "B" | "b" => format!("{}B", code),
+                autre => return Err(illisible("témoin bureau", autre)),
+            };
+            let brut = champ("taux");
+            let taux = socle::num::decimal_lu(&brut.replace(',', ".")).filter(|v| *v > socle::num::Decimal::ZERO && *v < socle::num::Decimal::from(100));
+            let Some(taux) = taux else { return Err(illisible("taux", &brut)) };
+            let effet = champ("date_effet");
+            let Some(date_effet) = jour_aaaammjj(&effet) else { return Err(illisible("date d'effet", &effet)) };
+            out.push(TauxAtmpNotifie {
+                siren: siren.clone(),
+                nic: nic.clone(),
+                code_ctn: champ("code_ctn"),
+                section: champ("section"),
+                code_risque,
+                taux,
+                date_effet,
+                date_calcul: jour_aaaammjj(&champ("date_calcul")),
+            });
+        }
+    }
+    if out.is_empty() {
+        return Err(echec("ValueError", "Notification du taux AT/MP : aucun élément taux_AT lisible (code risque, taux, date d'effet)."));
+    }
+    Ok(out)
+}
+
 /// Une fiche de parametrage d'un organisme complementaire.
 pub fn fiche_d_octets(o: &[u8]) -> Result<Value, Echec> {
     fiche_parametrage(o)

@@ -53,6 +53,9 @@ pub struct Suites {
     /// Les comptes rendus DGFiP de nature 94 archives (le retour tel que la liste le decrit, l'archive) : leurs taux
     /// s'appliquent au magasin du PAS.
     pub taux_pas: Vec<(Value, PathBuf)>,
+    /// Les notifications du taux AT/MP de nature 34 archivees (le retour, l'archive) : leur code et leur taux se posent
+    /// dans la surcouche de l'annee.
+    pub taux_atmp: Vec<(Value, PathBuf)>,
     /// Un depot refuse.
     pub depot_refuse: Option<DepotRefuse>,
     /// Un depot reel accepte.

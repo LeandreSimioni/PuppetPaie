@@ -369,22 +369,48 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
 }
 
 /// CE QUE LE MOTEUR A POSE DE LUI-MEME A LA CREATION, et qui se dit avec ce qui manque : le code risque et le taux AT/MP de
-/// l'annee (`moteur::routes::atmp::poser_a_la_creation`), tant que personne ne les a changes. Le libelle est celui de l'arrete
+/// l'annee (`moteur::routes::atmp::poser_a_la_creation`), tant que personne ne les a changes, ou ceux que la notification
+/// de la CARSAT a poses, avec sa date (`moteur::routes::atmp::poser_notifie`). Le libelle est celui de l'arrete
 /// de l'annee (`droit::bareme::risques_atmp`, `atelier/reference/sources/tarification-atmp/`).
 pub fn poses(ctx: &Contexte) -> Vec<Value> {
     let an = ctx.aujourdhui.an;
     let Some(Ok(t)) = ctx.taux_atmp_de(an) else { return Vec::new() };
     let reporte_de = t.get("_reporte_de").and_then(Value::as_i64);
-    if !(t.get("_pose_a_la_creation").is_some_and(vrai) || reporte_de.is_some()) || en_alsace_moselle(ctx) {
+    let notification = t.get("_notification").filter(|n| vrai(n));
+    let a_la_creation = t.get("_pose_a_la_creation").is_some_and(vrai);
+    if notification.is_none() && (!(a_la_creation || reporte_de.is_some()) || en_alsace_moselle(ctx)) {
         return Vec::new();
     }
     let code = t.get("code_risque").map(socle::date::en_texte).unwrap_or_default();
     let socle = ctx.socle_livre(an).ok().flatten().unwrap_or(Value::Null);
-    let Some(r) = droit::bareme::risques_atmp(&socle).into_iter().find(|r| r.code == code) else { return Vec::new() };
-    let taux = t.get("valeur").and_then(Value::as_f64).map(|v| format!("{:.2} %", v).replace('.', ",")).unwrap_or_default();
+    let risque = droit::bareme::risques_atmp(&socle).into_iter().find(|r| r.code == code);
+    let taux = t
+        .get("valeur")
+        .and_then(|v| droit::bareme::taux_atmp_au(v, &ctx.aujourdhui))
+        .map(|v| format!("{:.2} %", v.round_dp(2)).replace('.', ","))
+        .unwrap_or_default();
+    let nom = risque.as_ref().map(|r| r.code_arrete.clone().unwrap_or_else(|| r.code.clone())).unwrap_or_else(|| code.clone());
+    let libelle = format!("Accidents du travail : code risque {}, taux {} en {}", nom, taux, an);
+    // Le taux que la notification de la CARSAT a pose (`moteur::routes::atmp::poser_notifie`) : d'ou il vient.
+    if let Some(n) = notification {
+        let date = |k: &str| n.get(k).and_then(Value::as_str).and_then(|d| socle::date::Jour::lire(d).ok()).map(|j| j.jj_mm_aaaa());
+        return vec![json!({
+            "cle": "taux_atmp",
+            "libelle": libelle,
+            "texte": format!(
+                "{}Le code risque et le taux sont ceux de la notification de la CARSAT{}, en vigueur depuis le {} : le logiciel les a lus dans les retours de la DSN et posés de lui-même. Rien à recopier.",
+                risque.as_ref().map(|r| format!("« {} » ", r.libelle)).unwrap_or_default(),
+                date("calcul").or_else(|| date("le")).map(|d| format!(" du {}", d)).unwrap_or_default(),
+                date("effet").unwrap_or_default()
+            ),
+            "ou": ENTREPRISE,
+            "champ": "taux_atmp",
+        })];
+    }
+    let Some(r) = risque else { return Vec::new() };
     vec![json!({
         "cle": "taux_atmp",
-        "libelle": format!("Accidents du travail : code risque {}, taux {} en {}", r.code_arrete.as_deref().unwrap_or(&r.code), taux, an),
+        "libelle": libelle,
         "texte": match reporte_de {
             Some(de) => format!("« {} » Le code risque est celui que la compagnie a dit pour {} ; son taux de {} est celui de l'arrêté de tarification, le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle, de, an),
             None => format!("« {} » Le logiciel l'a posé pour vous : c'est le risque du spectacle vivant, et son taux est le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle),

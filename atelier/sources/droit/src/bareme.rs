@@ -2606,6 +2606,23 @@ pub fn taux_atmp_reporte(an: i32, socle_an: Option<&Value>, avant: (i32, &Value)
     Some(Ok(m))
 }
 
+/// LE TAUX AT/MP EN VIGUEUR CE JOUR-LA, tel que `taux_atmp.valeur` l'ecrit : un nombre, ou une liste datee
+/// `[{depuis, valeur}]` quand une notification change le taux en cours d'annee (la valeur dont le `depuis` est le plus
+/// recent au plus tard ce jour ; avant la premiere, la premiere). `None` : pas de taux.
+pub fn taux_atmp_au(valeur: &Value, jour: &Jour) -> Option<Decimal> {
+    match valeur {
+        Value::Array(a) => {
+            let mut v: Vec<(String, &Value)> = a.iter().map(|e| (en_texte(g(e, "depuis")), g(e, "valeur"))).collect();
+            v.sort_by(|x, y| x.0.cmp(&y.0));
+            let jour = jour.iso();
+            let choisi = v.iter().rev().find(|(d, _)| *d <= jour).or(v.first())?;
+            dec(choisi.1).ok()
+        }
+        Value::Null => None,
+        v => dec(v).ok(),
+    }
+}
+
 /// Le nom de l'arrete qui fixe les taux du socle (`risques_atmp.arrete`), pour le dire a l'ecran.
 pub fn arrete_atmp(socle: &Value) -> Option<String> {
     g(g(socle, "risques_atmp"), "arrete").as_str().map(String::from)
