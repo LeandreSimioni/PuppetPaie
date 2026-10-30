@@ -1666,6 +1666,12 @@ PSS_H_METROP).",
 
     // -------------------------------------------------------------- recherche
 
+    /// Le salarie de cette cle tel que l'ecran le nomme (`socle::texte::salarie_nomme` : « NOM Prénom ») ; la cle sans
+    /// fiche.
+    pub fn nomme(&self, cle: &str) -> String {
+        socle::texte::salarie_nomme_ou(self.salaries.get(cle), cle)
+    }
+
     /// Retrouve un salarie par cle, NIR, nom, prenom ou
     /// faute de frappe. Le nom EXACT retrouve n'importe qui, archive compris ;
     /// la recherche APPROCHANTE (prefixe, Levenshtein <= 3) ne va que parmi les actifs.

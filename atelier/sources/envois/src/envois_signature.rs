@@ -558,11 +558,6 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
     Ok(json!({"partis": partis, "contrats": contrats, "expediteur": expediteur, "ligne": ligne, "avertissements": avertissements}))
 }
 
-/// « NOM Prenom » d'une fiche, comme `signature-apercu` nomme le salarie.
-fn nom_de_fiche(sal: &Value) -> R<String> {
-    Ok(format!("{} {}", valeur_en_texte(requis(sal, "nom")?), prenom_de(sal)?))
-}
-
 /// Ce que la demande de signature et son apercu disent des contrats coches dont le salarie n'a pas de courriel : ils ne
 /// partent pas par courriel, ils s'impriment pour se signer en main propre, ou le courriel se saisit dans la fiche.
 pub fn sans_courriel_dit(noms: &[String]) -> String {
@@ -574,6 +569,22 @@ pub fn sans_courriel_dit(noms: &[String]) -> String {
     } else {
         format!(
             "Pas de courriel dans les fiches de {} : leurs contrats ne partent pas à la signature par courriel. Imprimez-les pour les faire signer en main propre, ou saisissez leur courriel dans leur fiche.",
+            noms.join(", ")
+        )
+    }
+}
+
+/// Ce que l'envoi des avenants et l'apercu de la signature disent des avenants coches dont le salarie n'a pas de
+/// courriel : ils ne partent pas par courriel, ils s'impriment pour se signer en main propre, ou le courriel se saisit.
+pub fn avenants_sans_courriel_dit(noms: &[String]) -> String {
+    if noms.len() == 1 {
+        format!(
+            "Pas de courriel dans la fiche de {} : son avenant ne part pas à la signature par courriel. Imprimez-le pour le faire signer en main propre, ou saisissez son courriel dans sa fiche.",
+            noms[0]
+        )
+    } else {
+        format!(
+            "Pas de courriel dans les fiches de {} : leurs avenants ne partent pas à la signature par courriel. Imprimez-les pour les faire signer en main propre, ou saisissez leur courriel dans leur fiche.",
             noms.join(", ")
         )
     }
@@ -624,7 +635,7 @@ pub fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<()> {
 type ParSalarie = Vec<(String, Vec<Paie>, Vec<usize>)>;
 fn avec_et_sans_courriel(choisis: ParSalarie) -> R<(ParSalarie, Vec<String>)> {
     let (avec, sans): (ParSalarie, ParSalarie) = choisis.into_iter().partition(|(_, ps, _)| !vrai_ou(&ps[0].salarie, "email").unwrap_or_default().trim().is_empty());
-    let noms = sans.iter().map(|(_, ps, _)| nom_de_fiche(&ps[0].salarie)).collect::<R<Vec<_>>>()?;
+    let noms: Vec<String> = sans.iter().map(|(k, ps, _)| socle::texte::salarie_nomme_ou(Some(&ps[0].salarie), k)).collect();
     if avec.is_empty() && !noms.is_empty() {
         return Err(refus(format!("{} Rien n'est parti.", sans_courriel_dit(&noms))));
     }
