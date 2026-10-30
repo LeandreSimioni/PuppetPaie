@@ -375,3 +375,35 @@ renouvellement (L1221-21) n'est pas jugé : l'engagement ne porte que la périod
 `engagement/src/calcul.rs` (`essai_dans_son_plafond`) : un engagement dont la période d'essai dépasse son plafond ne se
 calcule pas ; il s'enregistre à compléter, et sa validation refuse en citant le texte. Test :
 `droit/tests/droit/essai.rs`.
+
+## La durée maximale du travail et le repos quotidien (relevé du 30/10/2026, séance 8, lot P2)
+
+`articles-20261030.md`, section « La duree maximale du travail et le repos quotidien » (XML : `xml/L3121-18.xml`,
+`xml/L3121-19.xml`, `xml/L3121-20.xml`, `xml/L3131-1.xml`, `xml/L3131-2.xml`), relevés par `moteur releve-codes moissonner`
+depuis l'entrepôt LEGI (domaine `duree_maximale` de `moteur/src/atelier/releve/codes/textes.rs`).
+
+- **L3121-18** (`LEGIARTI000033020428`, depuis le 10/08/2016) : « La durée quotidienne de travail effectif par salarié ne
+  peut excéder dix heures, sauf : 1° En cas de dérogation accordée par l'inspecteur du travail […] ; 2° En cas d'urgence […] ;
+  3° Dans les cas prévus à l'article L. 3121-19. »
+- **L3121-19** (`LEGIARTI000033020422`) : une convention ou un accord (d'entreprise, d'établissement, à défaut de branche) peut
+  prévoir le dépassement de la durée maximale quotidienne « à condition que ce dépassement n'ait pas pour effet de porter
+  cette durée à plus de douze heures ».
+- **L3121-20** (`LEGIARTI000033020414`) : 48 heures au plus dans une même semaine. **L3131-1** et **L3131-2** : onze heures
+  consécutives de repos quotidien, sauf dérogation par convention ou accord.
+
+**La convention 3090** (spectacle vivant privé), lue dans l'entrepôt KALI (`../kali-entrepot/articles.jsonl.gz`, par
+`moteur releve-conventions chercher atelier/reference/sources 3090 "durée quotidienne"`) : la durée quotidienne dépend de
+l'annexe et de la filière. Par exemple : 10 heures, portées à 12 « dans les cas suivants » pour le personnel technique
+(`KALIARTI000028157685`, titre III, III.3, art. 2) ; 10 heures, portées à 12 « selon les nécessités et spécificités des
+tournées », dans une amplitude de 15 heures (`KALIARTI000028157839`, titre III, 3.2.6) ; 10 heures pour l'artiste-interprète
+(`KALIARTI000028157888`, 3.3.3) ; 8 heures, portées à 12 pour les salariés directement liés au spectacle
+(`KALIARTI000028157882`, 2.2.3) ; 12 heures pour la filière salle et restauration (`KALIARTI000028157805`, 7.1.2) ; 8 heures
+pour un travailleur de nuit (`KALIARTI000028157401`, titre VIII, 8.14). Aucune ne dépasse les 12 heures de L3121-19.
+
+**Où le moteur s'en sert** : `atelier/sources/engagement/src/duree.rs`. Une journée saisie au-delà de 10 heures se dit sur la
+carte de l'engagement (`au_dela_du_maximum`, un avertissement : la phrase cite L3121-18 et L3121-19, sans refuser — c'est
+l'employeur qui en répond, et une annexe de sa convention peut la porter à 12 heures) ; au-delà de 24 heures, la saisie se
+refuse (`plus_d_une_journee` : une journée n'en a que 24, aucun texte n'est nécessaire). **Inférence** : une ligne qui paie
+des heures sur plusieurs jours les répartit également ; la journée la plus chargée en compte au moins cette moyenne.
+Test : `moteur/tests/routes/duree_du_travail.rs`. L3121-20 (la semaine) et L3131-1 (le repos) ne sont pas encore contrôlés :
+la saisie ne dit pas les heures de début et de fin d'une journée.

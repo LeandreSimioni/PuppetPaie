@@ -15,6 +15,7 @@ pub mod cachet;
 pub mod calcul;
 pub mod conges;
 pub mod cumul;
+pub mod duree;
 pub mod departs;
 pub mod ecarts;
 pub mod empreinte;
@@ -1069,7 +1070,9 @@ const PAS_DE_SPECTACLE: &str = " : choisissez le spectacle que joue cet engageme
 const PAS_DE_JOUR: &str = " : cochez les jours joués sur sa ligne de paie.";
 const LIGNE_A_DIRE: &str = " : saisissez ";
 const QUANTITE_SANS_COMPTE: &str = " : saisissez un nombre plus grand que zéro";
-const SAISIE_INCOMPLETE: [&str; 4] = [PAS_DE_SPECTACLE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE];
+/// Une journee de plus de 24 heures (`duree::plus_d_une_journee`) : une faute de frappe, a corriger comme une saisie pas finie.
+pub(crate) const JOURNEE_DE_PLUS_DE_24: &str = ", et une journée n'a que 24 heures";
+const SAISIE_INCOMPLETE: [&str; 5] = [PAS_DE_SPECTACLE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE, JOURNEE_DE_PLUS_DE_24];
 
 /// Chaque ligne de paie saisie dit sa quantite et son taux (ou sa base et son pourcentage) : la saisie s'enregistre
 /// sans eux, en saisie, et ce refus dit ce qui manque, ligne par ligne, avec le salarie (`qui`).
@@ -1122,7 +1125,10 @@ fn lignes_dites(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
             return Err(format!("{}{}{} de {}.", qui, LIGNE_A_DIRE, quoi, ligne));
         }
     }
-    Ok(())
+    match duree::plus_d_une_journee(ctx, e, qui)? {
+        Some(refus) => Err(refus),
+        None => Ok(()),
+    }
 }
 
 /// Ce refus de `engagements` dit-il une saisie pas encore finie ([`SAISIE_INCOMPLETE`]) ? Sa premiere ligne le dit.
@@ -1444,6 +1450,10 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> 
                 libelle
             );
             p.ecrire().avertissements.push(Avis { info: false, texte: msg });
+        }
+        // Une journee au-dela de la duree quotidienne maximale : on le dit, l'employeur en repond.
+        if let Some(texte) = duree::au_dela_du_maximum(ctx, e, &qui_de(&p.salarie)?)? {
+            p.ecrire().avertissements.push(Avis { info: false, texte });
         }
     }
     // Les contrats qui debordent du mois.
