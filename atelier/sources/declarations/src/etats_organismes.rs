@@ -351,7 +351,7 @@ pub fn versements_organismes(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois
         col_t("fichier", "DSN"),
     ];
     t.sources = vec![
-        "bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1), tiré de chaque DSN partie (des versions qu'elle a emportées) ou à déposer, par la fonction qui écrit la DSN ; libellés : config/organismes.json".to_string(),
+        "bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1), tiré de chaque DSN partie (des versions qu'elle a emportées) ou à déposer, par la fonction qui écrit la DSN ; libellés : donnees/organismes-base.json".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "versements-organismes", &d.format, d.ecrire)?;
     Ok(t)

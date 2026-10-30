@@ -272,7 +272,7 @@ pub fn poser_les_mentions(ctx: &Contexte, ent: &Value, sal: &Value, eng: &Value,
     );
     // LES ORGANISMES : le nom ET l'adresse (L1242-12, 8°) ; une adresse que la donnee ne porte pas ne se devine pas.
     let org = Organismes::lire(ctx, ent)?;
-    let retraite = org.retraite().ok_or_else(|| format!("Le contrat de {} nomme sa caisse de retraite complémentaire (L. 1242-12, 8°), et la compagnie ne verse à aucune (Configuration › Organismes et contrats). Rien n'est écrit.", nom))?;
+    let retraite = org.retraite().ok_or_else(|| format!("Le contrat de {} nomme sa caisse de retraite complémentaire (L. 1242-12, 8°), et la table livrée des versements (donnees/organismes-base.json) n'en nomme aucune (cotisation 131) : aucune saisie de la compagnie ne la donne. Rien n'est écrit.", nom))?;
     let manque_adresse = |o: &Organisme| format!("Le contrat de {} donne « le nom et l'adresse » de {} (L. 1242-12, 8°), et cette adresse n'est pas connue du logiciel. Rien n'est écrit.", nom, o.nom);
     m.insert("organismes.retraite".into(), retraite.nom_et_adresse().ok_or_else(|| manque_adresse(&retraite))?);
     let (cle_prevoyance, cle_sante) = if nat.permanent() { ("prevoyance_permanents", "sante_permanents") } else { ("interbranche", "tsintermittents") };

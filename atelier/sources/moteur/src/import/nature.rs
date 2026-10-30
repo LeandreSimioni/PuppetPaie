@@ -256,7 +256,20 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         Ok(frais) if permanents_declares => crate::import::parametrage::poser_organismes_repris(&frais),
         _ => Vec::new(),
     };
-    Ok(json!({"ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares, "parametrage": parametrage}))
+    // Ce que l'ecran dit du geste, et sa couleur : la nature est ecrite, c'est fait ; ce qui reste a dire pour un
+    // permanent est une ligne de « Pour demarrer », qui a la sienne.
+    let mut phrase = format!("Nature enregistrée sur {} contrat{} repris.", ecrits, if ecrits > 1 { "s" } else { "" });
+    if permanents_declares {
+        phrase.push_str(" La compagnie emploie donc des salariés au mois : « Pour démarrer » dit ce que cela demande encore.");
+    }
+    for p in &parametrage {
+        phrase.push(' ');
+        phrase.push_str(p);
+    }
+    Ok(json!({
+        "ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares, "parametrage": parametrage,
+        "phrase": phrase, "couleur": crate::routes::couleur_de_l_etat("fait"),
+    }))
 }
 
 /// Un contrat de permanent repris des bulletins qui court en `mois` : le salarie, le debut, la fin (vide sans terme),

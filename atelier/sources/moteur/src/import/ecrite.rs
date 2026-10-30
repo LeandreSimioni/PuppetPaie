@@ -756,6 +756,22 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     if let Ok(frais) = Contexte::nouveau(&ctx.racine, Some(ctx.date)) {
         reponse["parametrage"] = json!(crate::import::parametrage::parametrer(&frais));
     }
+    // Ce que l'ecran dit de l'import fait, et sa couleur : l'ecriture a eu lieu, c'est fait (ce qui reste a dire a ses
+    // propres lignes : la nature des contrats repris, « Pour demarrer »).
+    let n = |v: &Value| v.as_u64().unwrap_or(0);
+    let b = &reponse["bulletins"];
+    let fiches = std::iter::once(&reponse["entreprise"])
+        .chain(reponse["salaries"].as_array().into_iter().flatten())
+        .chain(reponse["spectacles"].as_array().into_iter().flatten())
+        .filter(|f| matches!(f.get("etat").and_then(Value::as_str), Some("creee" | "completee")))
+        .count();
+    reponse["phrase"] = json!(format!(
+        "Repris : {} contrat(s), {} bulletin(s), {} fiche(s).",
+        n(&reponse["contrats_nouveaux"]) + n(&b["contrats_nouveaux"]),
+        n(&b["paies_nouvelles"]) + n(&b["paies_completees"]),
+        fiches
+    ));
+    reponse["couleur"] = json!(crate::routes::couleur_de_l_etat("fait"));
     rapporter_les_ecarts(ctx);
     Ok(reponse)
 }

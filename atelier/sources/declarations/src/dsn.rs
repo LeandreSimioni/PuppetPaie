@@ -965,19 +965,27 @@ pub fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, (debut, fin): 
     let sec = g(g(orgs, "affiliations_par_nature"), &cle);
     if !vrai(sec) {
         return Err(format!(
-            "config/organismes.json : `affiliations_par_nature` ne dit rien de '{}' (contrat {}). Le bloc \
-S21.G00.70.013 rattache le salarie a une adhesion prevoyance ; il ne se devine pas.",
-            cle, nat.libelle
+            "Contrat {} : la DSN rattache chaque salarié à ses contrats de prévoyance et de santé (S21.G00.70.013), et \
+les organismes composés pour la compagnie ne disent rien d'un salarié « {} » (seulement des intermittents et des \
+permanents). Aucune saisie de la compagnie ne le dit : c'est la composition livrée (donnees/organismes-base.json) qui \
+ne connaît pas ce cas. Rien n'est écrit.",
+            nat.libelle, cle
         ));
     }
     let refs = g(sec, "references");
     if !vrai(refs) {
-        let pourquoi = if vrai(g(sec, "_a_confirmer")) { en_texte(&sec["_a_confirmer"]) } else { "A relever.".into() };
+        let pourquoi = if vrai(g(sec, "_a_confirmer")) {
+            en_texte(&sec["_a_confirmer"])
+        } else {
+            "Leurs références se saisissent dans Configuration › Organismes et contrats ; elles se lisent sur le certificat \
+d'adhésion de l'assureur."
+                .into()
+        };
         return Err(format!(
-            "Contrat {} : les adhesions prevoyance d'un contrat '{}' ne sont pas confirmees (config/organismes.json, \
-`affiliations_par_nature.{}.references` est `null`).\n  {}\n  Declarer quand meme le rattacherait aux adhesions \
-d'une autre population -- ce que la plate-forme accepte sans rien dire.",
-            nat.libelle, cle, cle, pourquoi
+            "Contrat {} : la DSN rattache chaque salarié à ses contrats de prévoyance et de santé (S21.G00.70.013), et ceux \
+d'un salarié « {} » ne sont pas connus.\n  {}\n  Déclarer quand même le rattacherait aux contrats d'une autre \
+population, ce que la plate-forme accepte sans rien dire. Rien n'est écrit.",
+            nat.libelle, cle, pourquoi
         ));
     }
     let mut out: Vec<String> = Vec::new();
@@ -3091,8 +3099,9 @@ fn valeur_ctp(somme: &HashMap<String, Decimal>, ctp: &Value) -> Resultat<(Decima
     match somme.get(&k) {
         Some(v) => Ok((*v, par_montant)),
         None if k.starts_with(&plafonnee("")) => Err(format!(
-            "config/organismes.json : le CTP {} sous le qualifiant {} (assiette plafonnee, cahier technique 2026.1, p. 168) \
-lit l'assiette « {} », qui n'a pas de forme plafonnee. Rien n'est ecrit.",
+            "La table des CTP livrée avec le logiciel (donnees/organismes-base.json, `ctp_urssaf`) : le CTP {} sous le \
+qualifiant {} (assiette plafonnée, cahier technique 2026.1, p. 168) lit l'assiette « {} », qui n'a pas de forme \
+plafonnée. Aucune saisie de la compagnie ne le corrige. Rien n'est écrit.",
             txt(g(ctp, "code")),
             QUALIFIANT_PLAFONNEE,
             &k[plafonnee("").len()..]
@@ -3142,7 +3151,7 @@ impl Seuils {
         let seuil = |k: &str| -> Resultat<Option<i64>> {
             match g(ctp, k) {
                 Value::Null => Ok(None),
-                v => v.as_i64().map(Some).ok_or_else(|| format!("config/organismes.json : `{}` du CTP {} n'est pas un entier. Rien n'est ecrit.", k, txt(g(ctp, "code")))),
+                v => v.as_i64().map(Some).ok_or_else(|| format!("La table des CTP livrée avec le logiciel (donnees/organismes-base.json) : `{}` du CTP {} n'est pas un entier. Rien n'est écrit.", k, txt(g(ctp, "code")))),
             }
         };
         Ok(seuil("effectif_au_moins")?.map_or(true, |s| self.atteint(s)) && seuil("effectif_sous")?.map_or(true, |s| !self.atteint(s)))
@@ -3165,10 +3174,10 @@ fn lignes_bordereau(
     let ctps = ctps.as_slice();
     if !somme["brut_permanent"].is_zero() && !ctps.iter().any(|c| txt(g(c, "nature")) == "permanent") {
         return Err(format!(
-            "La DSN de {} porte {} EUR de brut de salaries permanents, et config/organismes.json n'a aucun CTP marque \
-\"nature\": \"permanent\". Le bordereau Urssaf serait faux : un permanent releve du regime general (CTP 100 et \
-suivants) et son assurance chomage est recouvree par l'Urssaf, contrairement a celle d'un intermittent. Relever les \
-CTP dans la table de l'Urssaf et les ajouter avant de declarer. Rien n'est ecrit.",
+            "La DSN de {} porte {} EUR de brut de salariés permanents, et la table des CTP livrée avec le logiciel \
+(donnees/organismes-base.json, `ctp_urssaf`) n'a aucun CTP des permanents. Le bordereau Urssaf serait faux : un \
+permanent relève du régime général (CTP 100 et suivants) et son assurance chômage est recouvrée par l'Urssaf, \
+contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le corrige. Rien n'est écrit.",
             mois,
             mt(somme["brut_permanent"])
         ));
@@ -3370,8 +3379,9 @@ pub fn reference_versement(v: &Value, ent: &Value) -> Resultat<Option<String>> {
     if let (Some(fi), Some(r)) = (&fiche, &reference) {
         if fi != r {
             return Err(format!(
-                "Deux dossiers de recouvrement France Travail : {} dans la fiche Entreprise, {} dans \
-config/organismes.json. Rien n'est ecrit : corrigez celui qui est faux.",
+                "Deux dossiers de recouvrement France Travail : {} dans la fiche Entreprise (Configuration › Entreprise), {} \
+dans la table livrée des organismes (donnees/organismes-base.json). Rien n'est écrit : le dossier de la fiche est \
+celui que la compagnie a reçu de France Travail ; s'il est juste, c'est la table livrée qui est en défaut.",
                 fi, r
             ));
         }
@@ -3521,8 +3531,8 @@ n'est ecrit.",
                     format!(
                         "Salarie {} : le contrat se rattache a l'adhesion {} (S21.G00.70.013), que la declaration ne declare \
 pas en bloc S21.G00.15. Le code d'affectation (S21.G00.55.003) doit etre un contrat declare en bloc 15 (norme p. 260, \
-CCH-11) : il ne se devine pas. Voir config/organismes.json, `adhesions_prevoyance` (et sa date `depuis`). Rien n'est \
-ecrit.",
+CCH-11) : il ne se devine pas. Ce contrat doit figurer, avec sa référence, dans Configuration › Organismes et \
+contrats ouvert sur le mois déclaré. Rien n'est écrit.",
                         nom, reference
                     )
                 })?;
@@ -4780,9 +4790,10 @@ affiliation (S21.G00.78.005). Rien n'est ecrit.",
     if let Some(c) = composants.iter().find(|c| !places_oc.iter().any(|(_, v)| en_texte(g(v, "siret")) == c.organisme)) {
         if !sans_individu {
             return Err(format!(
-                "Des cotisations sont declarees sous l'adhesion {} de l'organisme {} (S21.G00.15.002), et \
-config/organismes.json n'a pas de versement a cet organisme (`versements`, \"siret\": \"{}\") : le bloc 20 qui les \
-paie ne se devine pas. Rien n'est ecrit.",
+                "Des cotisations sont déclarées sous l'adhésion {} de l'organisme {} (S21.G00.15.002), et le logiciel ne \
+sait pas payer cet organisme : la table livrée des versements (donnees/organismes-base.json) n'en a aucun à {}, et le \
+bloc S21.G00.20 qui les paie ne se devine pas. Si ce code d'organisme a été saisi dans Configuration › Organismes et \
+contrats, le vérifier sur le certificat d'adhésion. Rien n'est écrit.",
                 c.code, c.organisme, c.organisme
             ));
         }
