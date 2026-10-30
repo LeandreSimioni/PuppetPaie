@@ -59,6 +59,9 @@ fn jour_iso(t: &str) -> Option<Jour> {
 /// figee). Deux annonces :
 /// - `{"taux_pas": {"salarie": "<cle de la fiche>", "taux": "7.50"}}` : la DGFiP connait ce taux pour ce salarie a
 ///   partir de ce jour ; elle le communique en retour de chaque DSN mensuelle reelle qui le declare ensuite ;
+/// - `{"taux_atmp": {"code_risque": "923AD", "taux": "1.60", "date_effet": "AAAA-MM-JJ", "bureau": "B"?, "code_ctn": ..?,
+///   "section": ..?}}` : la CARSAT notifie ce taux a l'etablissement ; la notification (nature 34) suit une fois la
+///   prochaine DSN mensuelle reelle deposee a partir de ce jour (`crm_atmp`) ;
 /// - `{"refus": {"code": "...", "message": "...", "rubrique": "S21.G00.xx.xxx"?, "mois": "AAAA-MM"?}}` : la prochaine DSN
 ///   reelle deposee a partir de ce jour (du mois dit, s'il l'est) recoit un bilan non conforme portant cette anomalie.
 /// Hors d'une compagnie fictive, refus : le monde ne s'annonce pas.
@@ -80,6 +83,27 @@ pub fn annoncer(racine: &Path, branchement: Branchement, annonce: &Value) -> R<(
             }
             propre.insert("taux_pas".into(), json!({"salarie": salarie, "taux": format!("{:.2}", n)}));
         }
+        (None, None) if o.len() == 1 && o.contains_key("taux_atmp") => {
+            let t = &o["taux_atmp"];
+            let code = texte(t, "code_risque").replace(['.', ' '], "").to_uppercase();
+            let taux = texte(t, "taux").replace(',', ".");
+            let n: f64 = taux.parse().map_err(|_| erreur("ValueError", format!("taux_atmp : taux illisible ({:?}).", taux)))?;
+            let effet = texte(t, "date_effet");
+            if code.len() != 5 || !(0.0..20.0).contains(&n) || n == 0.0 || jour_iso(&effet).is_none() {
+                return Err(erreur("ValueError", "taux_atmp : un code risque de 5 caractères, un taux en pourcentage et une date d'effet AAAA-MM-JJ sont attendus."));
+            }
+            let mut m = Map::new();
+            m.insert("code_risque".into(), json!(code));
+            m.insert("taux".into(), json!(format!("{:.2}", n)));
+            m.insert("date_effet".into(), json!(effet));
+            for k in ["bureau", "code_ctn", "section"] {
+                let v = texte(t, k);
+                if !v.is_empty() {
+                    m.insert(k.into(), json!(v));
+                }
+            }
+            propre.insert("taux_atmp".into(), Value::Object(m));
+        }
         (None, Some(r)) if o.len() == 1 => {
             let (code, message) = (texte(r, "code"), texte(r, "message"));
             if code.is_empty() || message.is_empty() {
@@ -100,7 +124,7 @@ pub fn annoncer(racine: &Path, branchement: Branchement, annonce: &Value) -> R<(
             }
             propre.insert("refus".into(), Value::Object(m));
         }
-        _ => return Err(erreur("ValueError", "Une annonce porte `taux_pas` ou `refus`, et rien d'autre.")),
+        _ => return Err(erreur("ValueError", "Une annonce porte `taux_pas`, `taux_atmp` ou `refus`, et rien d'autre.")),
     }
     let mut v = charger(racine)?;
     v["annonces"].as_array_mut().expect("liste").push(Value::Object(propre));
@@ -378,6 +402,58 @@ fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Value, octets: &[u8], flux: &str
     Ok(Some(Piece { retour: r, contenu: xml.into_bytes() }))
 }
 
+/// La notification du taux AT/MP de nature 34 (la CNAM) d'une DSN mensuelle reelle : chaque annonce `taux_atmp` faite au
+/// plus tard le jour du depot et pas encore rendue, rattachee a cette declaration (« la dernière déclaration mensuelle
+/// disponible », guide de l'API DSN v6.8, §5.26.1), dans la forme du schema des bilans : `declaration_identification`
+/// (`nature`, `type`, `mois`, `SIREN`, `nic_affectation`), puis `declaration_bilan` et un `taux_AT` par annonce
+/// (`code_ctn`, `section`, `code_risque`, `temoin_bureau`, `taux`, `date_effet`, `date_calcul` ;
+/// `atelier/reference/sources/gip-mds-api-dsn/`, LISEZ-MOI, « La notification du taux AT/MP »). Le `type` du rapport
+/// n'est ecrit par aucun texte depose : la piece n'en porte pas. `None` quand la CARSAT n'a rien a notifier.
+fn crm_atmp(memoire: &mut Value, l: &Value, octets: &[u8], flux: &str, publication: &str) -> Option<Piece> {
+    let depot = l.get("quand").and_then(Value::as_str).and_then(jour_iso);
+    let rubriques = rubriques(octets);
+    let r = |code: &str| rubriques.iter().find(|(c, _)| c == code).map(|(_, v)| v.clone()).unwrap_or_default();
+    let calcul = socle::paris::maintenant().chars().take(10).collect::<String>().replace('-', "");
+    let mut taux = String::new();
+    for a in memoire["annonces"].as_array_mut().into_iter().flatten() {
+        let Some(t) = a.get("taux_atmp").cloned() else { continue };
+        let le = a.get("le").and_then(Value::as_str).and_then(jour_iso);
+        if a.get("rendue").is_some() || le.is_none() || le > depot {
+            continue;
+        }
+        let x = |k: &str| t.get(k).map(valeur_en_texte).unwrap_or_default();
+        let facultatif = |k: &str, balise: &str| if x(k).is_empty() { String::new() } else { format!("<{}>{}</{}>", balise, echappe(&x(k)), balise) };
+        taux.push_str(&format!(
+            "<taux_AT>{}{}<code_risque>{}</code_risque>{}<taux>{}</taux><date_effet>{}</date_effet><date_calcul>{}</date_calcul></taux_AT>",
+            facultatif("code_ctn", "code_ctn"),
+            facultatif("section", "section"),
+            echappe(&x("code_risque")),
+            facultatif("bureau", "temoin_bureau"),
+            echappe(&x("taux")),
+            x("date_effet").replace('-', ""),
+            calcul
+        ));
+        a["rendue"] = json!(flux);
+    }
+    if taux.is_empty() {
+        return None;
+    }
+    let xml = format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><ns2:rapport xmlns:ns2=\"http://www.gip-mds.fr/\" profil=\"DSN\" version=\"v02r02\">\
+         <envoi><envoi_identification><idflux>{}</idflux></envoi_identification></envoi><declaration><declaration_identification>\
+         <rang>1</rang><nature>{}</nature><type>{}</type><mois>{}</mois><SIREN>{}</SIREN><nic_affectation>{}</nic_affectation>\
+         </declaration_identification><declaration_bilan><etat>OK</etat>{}</declaration_bilan></declaration></ns2:rapport>",
+        echappe(flux),
+        echappe(&r("S20.G00.05.001")),
+        echappe(&r("S20.G00.05.002")),
+        echappe(&r("S20.G00.05.005")),
+        echappe(&r("S21.G00.06.001")),
+        echappe(&r("S21.G00.11.001")),
+        taux
+    );
+    Some(Piece { retour: retour(crate::retours::NATURE_TAUX_ATMP, flux, publication, "Compte-rendu metier taux AT/MP, notification de la Carsat (compagnie fictive)"), contenu: xml.into_bytes() })
+}
+
 /// Les DSN mensuelles reelles de l'annee `an` que l'Urssaf a recues et acceptees, par mois : pour chaque mois et chaque
 /// etablissement, la derniere deposee ; une DSN dont le bilan est non conforme n'en est pas une.
 fn dsn_de_l_annee(racine: &Path, lignes: &[Value], an: i32) -> BTreeMap<u32, Vec<Vec<u8>>> {
@@ -444,6 +520,7 @@ pub fn reponses_dsn(ctx: &Contexte, memoire: &mut Value, lignes: &[Value], l: &V
     }
     if let Some(octets) = fichier_depose(&ctx.racine, l) {
         pieces.extend(crm_pas(ctx, memoire, l, &octets, flux, publication)?);
+        pieces.extend(crm_atmp(memoire, l, &octets, flux, publication));
     }
     let an: Option<i32> = l.get("mois").map(valeur_en_texte).and_then(|m| m.get(..4).and_then(|a| a.parse().ok()));
     if let Some(an) = an {

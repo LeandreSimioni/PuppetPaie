@@ -84,6 +84,7 @@ fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std:
     let (siren, nic) = (texte("siren"), texte("nic"));
     for (retour, chemin) in notifications {
         let le = envois::releve_retours::date_publication(retour);
+        let le_iso = socle::date::Jour::lire(&le).map(|j| j.iso()).unwrap_or_default();
         let archive = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let source = format!("Notification AT/MP de la CARSAT reçue le {} (retour DSN de nature 34, archive retours/{})", le, archive);
         let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
@@ -117,7 +118,7 @@ fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std:
             }
             for t in &taux {
                 let source = format!("{}, effet au {}.", source, t.date_effet.jj_mm_aaaa());
-                if let Some(pourquoi) = crate::routes::atmp::poser_notifie(ctx, t, &le, &source)? {
+                if let Some(pourquoi) = crate::routes::atmp::poser_notifie(ctx, t, &le_iso, &source)? {
                     a_faire.push(pourquoi);
                 }
             }
