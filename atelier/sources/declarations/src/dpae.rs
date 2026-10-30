@@ -370,6 +370,9 @@ fn ecrire_zone(buf: &mut [char], a: usize, b: usize, valeur: &str) {
 pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resultat<String> {
     let mut buf: Vec<char> = gabarit.to_vec();
     if let Some(ent) = p.ent {
+        // « N° SIRET de l'établissement » (N_SIRET, `norme-dpae/v5.3_FormatDPAE_EMAIL.txt` l. 235-243) : celui ou le salarie
+        // est rattache (`dsn::etablissement_du_salarie`), avec son adresse.
+        let ent = &crate::dsn::etablissement_du_salarie(ent, &e.salarie)?;
         for (nom, v) in employeur(ent, gabarit)? {
             let (a, b) = zone_employeur(nom);
             ecrire_zone(&mut buf, a, b, &v);

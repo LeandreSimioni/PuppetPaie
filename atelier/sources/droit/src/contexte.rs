@@ -646,7 +646,7 @@ fn cle_siret(siret: &str) -> bool {
 }
 
 /// Les etablissements de la fiche se tiennent-ils (SIRET, NIC, une fois chacun) ?
-fn controler_etablissements(fiche: &Value, bareme: &Value) -> Resultat<()> {
+pub fn controler_etablissements(fiche: &Value, bareme: &Value) -> Resultat<()> {
     let siren = texte_ou_vide(fiche.get("siren"));
     let mut vus = vec![principal(fiche)];
     let mut griefs: Vec<String> = Vec::new();
@@ -673,15 +673,14 @@ fn controler_etablissements(fiche: &Value, bareme: &Value) -> Resultat<()> {
                 griefs.push(format!("{} : `{}` manque", nom, cle));
             }
         }
-        let atmp = e.get("taux_atmp");
-        let atmp_juste = match atmp {
-            Some(a) if a.is_object() => a.get("valeur").map_or(false, |v| !v.is_null()) && vrai_opt(a.get("code_risque")),
-            _ => false,
-        };
+        // Le code risque se dit toujours ; le taux, sauf quand l'arrete de l'annee le fixe (`bareme::taux_atmp_applique`).
+        let atmp = e.get("taux_atmp").cloned().unwrap_or(Value::Null);
+        let atmp_juste = vrai_opt(atmp.get("code_risque"))
+            && crate::bareme::taux_atmp_applique(bareme, &atmp, crate::bareme::en_alsace_moselle(&texte_ou_vide(e.get("code_postal")))).is_some();
         if !atmp_juste {
             griefs.push(format!(
-                "{} : son taux AT/MP (`taux_atmp` : valeur et \
-code_risque), notifie pour CET etablissement",
+                "{} : son code risque AT/MP et son taux, tels que la CARSAT les notifie a CET etablissement (Configuration › \
+Entreprise › Avancé, « Établissements »)",
                 nom
             ));
         }

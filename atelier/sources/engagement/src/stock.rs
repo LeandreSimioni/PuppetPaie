@@ -61,10 +61,10 @@ pub const PARTAGES: [&str; 4] = ["salarie", "debut", "fin", "numero"];
 
 /// Ce qu'un mois reconduit au suivant : ce qui definit le contrat (sa nature, son motif, sa duree du travail, son
 /// salaire, son emploi, et ce que son contrat ecrit dit en plus, `CHAMPS_DU_CONTRAT_ECRIT` : un mois compare a un autre
-/// pour un avenant lit les memes termes), son spectacle, son lieu et son metier. Ni ses lignes (celles d'un contrat paye
-/// au mois se composent chaque mois), ni ce qui n'appartient qu'a un mois (conges pris, absences, primes, rupture, date
-/// de paiement, avenant date).
-pub const RECONDUITS: [&str; 24] = [
+/// pour un avenant lit les memes termes), son spectacle, son lieu, son etablissement et son metier. Ni ses lignes
+/// (celles d'un contrat paye au mois se composent chaque mois), ni ce qui n'appartient qu'a un mois (conges pris,
+/// absences, primes, rupture, date de paiement, avenant date).
+pub const RECONDUITS: [&str; 25] = [
     "salarie",
     "spectacle",
     "debut",
@@ -73,6 +73,7 @@ pub const RECONDUITS: [&str; 24] = [
     "metier",
     "cadre",
     "lieu",
+    "etablissement",
     "nature",
     "motif_recours",
     "quotite_contrat",

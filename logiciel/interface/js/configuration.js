@@ -467,6 +467,7 @@ function vueEtatImportation(e) {
   const quoi = [
     compte(de("bulletins").nombre || 0, "bulletin"),
     compte((de("DSN").declarations || 0) + (de("AEM").nombre || 0), "déclaration"),
+    compte(de("certificats").nombre || 0, "certificat"),
     compte(e.contrats || 0, "contrat"),
   ].filter((x) => x).join(", ");
   const bornes = [e.du, e.au, ...reprises.flatMap((r) => [r.du, r.au])]
@@ -588,8 +589,13 @@ async function ouvrirFicheImportee(nom, cle) {
   document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
 }
 
-/* D'où vient une valeur : la DSN d'un mois, ou un bulletin (fichier, page). */
+/* D'où vient une valeur : la DSN d'un mois, un bulletin (fichier, page), ou
+   un certificat Congés Spectacles (son mois, son fichier). */
 function origineImport(e) {
+  if (e.source === "certificat" || e.source === "AEM") {
+    return `${e.source === "AEM" ? "l'AEM" : "le certificat Congés Spectacles"}${e.mois ? ` de ${echapper(moisEnClair(e.mois))}` : ""}${
+      e.fichier ? ` (${echapper(e.fichier)}${e.page ? `, page ${e.page}` : ""})` : ""}`;
+  }
   return e.source === "bulletin" || "bulletin" in e
     ? `le bulletin${e.fichier ? ` (${echapper(e.fichier)}${e.page ? `, page ${e.page}` : ""})` : ""}`
     : `la DSN ${echapper(deMois(e.mois))}`;
@@ -605,20 +611,24 @@ function valeurImportee(v) {
 }
 
 /* Une fiche que l'import crée, complète, laisse, ou sur laquelle il a à
-   redire. Un écart vient d'une DSN (`dsn`, `mois`) ou d'un bulletin
+   redire. Un écart vient d'une DSN (`dsn`, `mois`), d'un bulletin ou d'un certificat
    (`bulletin`, `fichier`, `page`) : la fiche fait foi, il est seulement
    signalé. Une case vide est complétée, et la page dit d'où. */
 function fichesImportees(fiches, titre) {
   const lignes = (fiches || []).filter((f) => f).map((f) => {
     const etat = pastilleDeLEtat(f.pastille);
+    // Une fiche que seuls des certificats ou des AEM créent : d'où elle vient (`lu_dans`).
+    const luDans = f.lu_dans ? `<div class="acte-dernier">Lu dans ${origineImport(f.lu_dans)}</div>` : "";
     const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
       `<div class="acte-dernier"><b>${echapper(champ)}</b> ${f.etat === "completee" ? "a reçu" : "recevra"}
          « ${echapper(valeurImportee(e.valeur))} », lu dans ${origineImport(e)} — la case était vide</div>`).join("");
     const ecarts = Object.entries(f.ecarts || {}).map(([champ, e]) => {
-      const ou = "bulletin" in e
+      const ou = "certificat" in e || "aem" in e
+        ? `${"aem" in e ? "l'AEM" : "le certificat"} (${echapper(e.fichier || "")}${e.page ? `, page ${e.page}` : ""}) disait`
+        : "bulletin" in e
         ? `le bulletin (${echapper(e.fichier || "")}${e.page ? `, page ${e.page}` : ""}) disait`
         : `la DSN ${echapper(deMois(e.mois))} disait`;
-      const lu = "bulletin" in e ? e.bulletin : e.dsn;
+      const lu = "certificat" in e ? e.certificat : "aem" in e ? e.aem : "bulletin" in e ? e.bulletin : e.dsn;
       return `<div class="acte-dernier">${ou} <b>${echapper(champ)}</b> = « ${echapper(lu)} »,
          la fiche dit « ${echapper(e.fiche)} » — la fiche fait foi</div>`;
     }).join("");
@@ -640,7 +650,7 @@ function fichesImportees(fiches, titre) {
     return `<div class="rang import">
       <span class="rang-nom">${echapper(f.libelle)}</span>
       ${etat}
-      <span class="rang-infos">${completes}${ecarts}${reste}</span></div>`;
+      <span class="rang-infos">${luDans}${completes}${ecarts}${reste}</span></div>`;
   });
   if (!lignes.length) return "";
   return `<h3>${titre}</h3>${lignes.join("")}`;
@@ -684,6 +694,26 @@ function bulletinsImportes(b, ecrit) {
       ${b.lus} bulletin${b.lus > 1 ? "s" : ""} lu${b.lus > 1 ? "s" : ""} sur ${b.pages} page${b.pages > 1 ? "s" : ""}${
         periode} ; ${b.repris} ${ecrit ? `repris` : "à reprendre"}${
         ajouts.length ? ` : ${ajouts.join(", ")}` : ""}.</div>`;
+}
+
+/* Les certificats Congés Spectacles (`certificats`) ou les AEM en PDF
+   (`aem_pdf`) lus : combien, de quand à quand, ce qu'ils ajoutent, ce
+   qu'ils confirment, et, pour une fiche qu'ils créent, ce qu'aucune de ces
+   pièces ne porte (le moteur le nomme). `titre`, `piece` : leurs mots. */
+function piecesImportees(c, ecrit, titre, piece, pieces, aucune) {
+  if (!c || !c.lus) return "";
+  const periode = c.du ? ` du ${echapper(jjmmaaaa(c.du))} au ${echapper(jjmmaaaa(c.au))}` : "";
+  const ajouts = [
+    c.contrats_nouveaux ? `${c.contrats_nouveaux} contrat${c.contrats_nouveaux > 1 ? "s" : ""} attesté${c.contrats_nouveaux > 1 ? "s" : ""}` : "",
+    c.confirmes ? `${c.confirmes} déjà attesté${c.confirmes > 1 ? "s" : ""} par une autre pièce` : "",
+    c.fiches_a_creer ? `${c.fiches_a_creer} fiche${c.fiches_a_creer > 1 ? "s" : ""}${ecrit ? (c.fiches_a_creer > 1 ? " créées" : " créée") : " à créer"}` : "",
+  ].filter((x) => x);
+  const reste = (c.reste_a_saisir || []).length
+    ? `<div class="note">${aucune}, et reste à saisir dans chaque fiche :
+         ${c.reste_a_saisir.map((x) => echapper(x)).join(" ; ")}.</div>` : "";
+  return `<div class="encart"><b>${titre}</b>
+      ${c.lus} ${c.lus > 1 ? pieces : piece} lu${c.lus > 1 ? "s" : ""}${periode}${
+        ajouts.length ? ` : ${ajouts.join(", ")}` : ""}.${reste}</div>`;
 }
 
 /* Les écarts entre un bulletin et ce que la DSN (ou l'historique) disait
@@ -789,7 +819,7 @@ function vueImportation(r) {
     : "aucun contrat attesté par une AEM";
   const declarations = r.dsn || r.aem
     ? `${r.dsn} DSN${periode}, ${r.aem} fichier(s) AEM — ${contrats}`
-    : "aucune DSN ni AEM dans le dossier";
+    : "aucune DSN ni fichier d'AEM déposé dans le dossier";
   const avert = (r.avertissements || []).map((a) => `<div class="encart attention">${echapper(a)}</div>`).join("");
   const b = r.bulletins || {};
   const aEcrire = (f) => f && (f.etat === "a_creer" || (f.etat === "existante" && Object.keys(f.completer || {}).length));
@@ -823,6 +853,8 @@ function vueImportation(r) {
     <div class="encart"><b>Déclarations</b>
       ${declarations}</div>
     ${bulletinsImportes(r.bulletins, r.ecrit)}
+    ${piecesImportees(r.certificats, r.ecrit, "Certificats Congés Spectacles", "certificat", "certificats", "Aucun certificat ne porte")}
+    ${piecesImportees(r.aem_pdf, r.ecrit, "AEM en PDF", "attestation", "attestations", "Aucune AEM ne porte")}
     ${avert}
     ${fichesImportees([r.entreprise], "Entreprise")}
     ${fichesImportees(r.salaries, "Salariés")}
@@ -1011,7 +1043,7 @@ const SECTIONS_FICHE = {
       "pcs_ese", "code_emploi_ft", "date_anciennete", "code_salarie",
       "initiales_contrat", "statut_conventionnel", "statut_boeth", "echelon_ccneac", "classement_conventionnel",
       "poste_depuis", "experimente_3241", "stagiaire_ccneac",
-      "etablissement", "actif"], { avance: true }],
+      "actif"], { avance: true }],
     ["", ["historique"]],
   ],
 };
@@ -1054,17 +1086,14 @@ const FACULTATIFS = {
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
- *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`) ;
- *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,
- *    jamais demande.
+ *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`).
  *
  *  Le code Urssaf et la caisse de retraite, eux, sont de VRAIS choix : ils
  *  vont dans l'avance, vides par defaut -- le moteur prend alors l'Urssaf
  *  du code postal et Audiens. L'editeur : « il ne faut pas enlever de
  *  l'interface les choix que peut faire l'entreprise ». */
 const CACHES = {
-  entreprise: ["siren", "nic",
-               "etablissements"],
+  entreprise: ["siren", "nic"],
   // `sante_svp` se remplit par les trois cases de la complementaire sante ;
   // `taux_pas` n'est plus lu par personne (il vit dans config/pas.json) :
   // gardes tels quels, jamais demandes.
@@ -1159,10 +1188,19 @@ const SOUS_CHAMPS = {
     ["association_1679A", "Association loi 1901, syndicat ou mutuelle ?", "Une association loi 1901, une fondation reconnue d'utilité publique, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due.",
      { booleen: true, choix: { "": "Non", "true": "Oui (abattement de l'article 1679 A)" } }],
   ] },
+  // UN AUTRE ÉTABLISSEMENT : ce qui le fait déclarer à part (son SIRET, son
+  // adresse, le jour où il ouvre) et son risque AT/MP. Le code vide : celui
+  // de la compagnie ; le taux vide : celui de l'arrêté pour un risque
+  // collectif. Le moteur dit, sous la ligne, ce qu'il applique (`taux-atmp`).
   etablissements: { liste: true, ligne: "établissement", champs: [
-    ["nic", "NIC", ""],
+    ["libelle", "Nom", "Atelier, salle…"],
     ["siret", "SIRET", ""],
-    ["libelle", "Nom de l'établissement", ""],
+    ["adresse_affichage", "Adresse", ""],
+    ["code_postal", "Code postal", ""],
+    ["commune_affichage", "Commune", ""],
+    ["ouverture", "Ouvert le", "", { date: true }],
+    ["taux_atmp.code_risque", "Code risque AT/MP", "", { codesAtmp: true }],
+    ["taux_atmp.valeur", "Taux AT/MP (%)", "", { decimal: true }],
   ] },
 };
 
@@ -1413,11 +1451,20 @@ document.addEventListener("input", cocherUnBouton, true);
 function ligneStructure(cle, sous, ligne, i) {
   const o = ligne && typeof ligne === "object" ? ligne : {};
   return `<div class="ligne-structure" data-index="${i}">
-    ${sous.champs.map(([k, lib]) => `
-      <label>${echapper(lib)}
-        <input data-liste-de="${echapper(cle)}" data-liste-index="${i}"
-          data-sous-cle="${echapper(k)}" value="${echapper(o[k] ?? "")}"></label>`).join("")}
+    ${sous.champs.map(([k, lib, aide, genre = {}]) => {
+      const val = valeurEn(o, k);
+      const attrs = `data-liste-de="${echapper(cle)}" data-liste-index="${i}"
+          data-sous-cle="${echapper(k)}" ${aide ? `placeholder="${echapper(aide)}"` : ""}`;
+      const v = echapper(val ?? "");
+      const champ = genre.date && /^(\d{4}-\d{2}-\d{2})?$/.test(String(val ?? ""))
+        ? `<input type="date" ${attrs} value="${v}">`
+        : genre.codesAtmp ? `<input ${attrs} list="codes-atmp" maxlength="7" value="${v}">`
+        : genre.decimal ? `<input ${attrs} inputmode="decimal" value="${v}">`
+        : `<input ${attrs} value="${v}">`;
+      return `<label>${echapper(lib)} ${champ}</label>`;
+    }).join("")}
     <button type="button" class="retirer-ligne" title="retirer cette ligne">✕</button>
+    ${o.nic ? `<p class="aide ligne-dit" data-ligne-nic="${echapper(o.nic)}"></p>` : ""}
   </div>`;
 }
 
@@ -1692,6 +1739,20 @@ async function brancherAtmp() {
     choix.value = connu ? t.code_risque : "";
     if (document.activeElement !== code) code.value = connu ? "" : (t.code_risque || "");
     if (document.activeElement !== valeur) valeur.value = "";
+    // Les codes que les autres établissements proposent, et ce que le
+    // moteur applique à chacun, sous sa ligne.
+    let liste = document.getElementById("codes-atmp");
+    if (!liste) {
+      liste = document.createElement("datalist");
+      liste.id = "codes-atmp";
+      document.body.appendChild(liste);
+    }
+    liste.innerHTML = codes.map((c) =>
+      `<option value="${echapper(c.code)}">${echapper(c.code_arrete || c.code)} — ${echapper(c.libelle)}</option>`).join("");
+    (r.etablissements || []).forEach((e) => {
+      const p = document.querySelector(`[data-ligne-nic="${CSS.escape(String(e.nic || ""))}"]`);
+      if (p) p.innerHTML = `<b>${echapper(e.resume || "")}</b>${e.risque ? ` — « ${echapper(e.risque.libelle)} »` : ""}. ${echapper(e.explication || "")}`;
+    });
   };
   try { peindre(await api("taux-atmp", { annee })); } catch (e) { /* rien à montrer */ }
   $("atmp-enregistrer").onclick = async (ev) => {

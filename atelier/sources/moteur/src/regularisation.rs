@@ -47,7 +47,6 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     out.insert("echeance".into(), json!(limite.iso()));
     out.insert("echeance_depot".into(), echeance.en_json());
     out.insert("echeance_passee".into(), json!(passee));
-    out.insert("mois_courant".into(), json!(ctx.aujourdhui.iso().chars().take(7).collect::<String>()));
     out.insert("regularisable".into(), json!(false));
     out.insert("raison".into(), json!(""));
     if !deposee {
@@ -234,8 +233,10 @@ pub(crate) fn de_mois_en_clair(mois: &str) -> String {
 ///
 /// * tant que l'annule-et-remplace est admis (jusqu'a la veille de l'echeance, minuit) : une phrase, rien a confirmer ;
 /// * apres : `confirmer`, et l'avertissement que la page montre a la premiere modification. Il dit ce qui est VRAI : la DSN
-///   deposee ne change plus ; la correction se declare dans la DSN du mois courant, des que l'engagement modifie est
-///   revalide (`produire_regularisations::regularisations_pour`).
+///   deposee ne change plus ; la correction se declare dans la DSN qui porte (`dsn_qui_porte` : la premiere d'un mois
+///   suivant qui n'est pas partie), des que l'engagement modifie est revalide
+///   (`produire_regularisations::regularisations_pour`). `porteur` : son mois, que l'avertissement de « Modifier
+///   l'engagement » et le panneau des etapes nomment aussi.
 ///
 /// Un mois dont l'ancien logiciel a depose la DSN se dit avec la phrase du panneau et du rappel
 /// (`import::mois::dsn_de_l_ancien_logiciel`) : cette DSN ne se remplace jamais ici (regle 4), ce que la saisie y ajoute
@@ -254,7 +255,7 @@ pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str
 /// `modification_de_la_paie`, sans la couleur de son avis.
 fn ce_que_la_modification_fait(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(ctx, mois)? {
-        let mut r = json!({"confirmer": false, "mois_courant": d["porteur"], "phrase": d["phrase"]});
+        let mut r = json!({"confirmer": false, "porteur": d["porteur"], "phrase": d["phrase"]});
         if saisie_declaree(ctx, mois)?.is_some() {
             r["confirmer"] = json!(true);
             r["avertissement"] = json!(format!(
@@ -282,11 +283,12 @@ fn ce_que_la_modification_fait(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<
             ),
         }));
     }
-    let porteur = de_mois_en_clair(&valeur_en_texte(&etat["mois_courant"]));
+    let porteur_iso = dsn_qui_porte(ctx, mois)?;
+    let porteur = de_mois_en_clair(&porteur_iso);
     Ok(json!({
         "confirmer": true,
         "limite": veille.iso(),
-        "mois_courant": etat["mois_courant"],
+        "porteur": porteur_iso,
         "phrase": format!(
             "La DSN {} est déposée et ne peut plus être remplacée : modifier cet engagement se confirme, et la correction se déclare dans la DSN {}.",
             de, porteur

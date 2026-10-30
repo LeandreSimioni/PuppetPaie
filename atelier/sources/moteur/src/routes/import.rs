@@ -6,9 +6,8 @@
 //! `import::bulletins`) : le tri, les DSN et AEM qu'il trouve (`import/dsn_aem.rs`, par `apercu_lu`), puis
 //! les bulletins de paie.
 //!
-//! `contrats_nouveaux` : un contrat atteste que l'historique (les engagements importes) porte deja
-//! -- meme salarie, memes dates, meme objet, memes heures, cachets, jours et meme brut (`str`) -- n'est
-//! pas nouveau (`_cle_engagement`).
+//! `contrats_nouveaux` : les contrats des AEM deposees que le registre de l'import retient (`import::attestes`) : un
+//! contrat du meme salarie dont les dates chevauchent les siennes l'atteste deja.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -17,7 +16,7 @@ use serde_json::{json, Map, Value};
 
 use crate::import::dsn_aem::{self, SalarieDeclare};
 use droit::contexte::Contexte;
-use envois::etats::{self, get};
+use envois::etats::get;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::vrai;
 use socle::valeur::{nom_type, valeur_en_texte};
@@ -246,9 +245,13 @@ pub(crate) struct Apercu {
     pub(crate) contrats: Vec<dsn_aem::ContratAtteste>,
     /// Les versements declares par les DSN, rattaches a une fiche (ou `<a creer>`).
     pub(crate) paies: Vec<Value>,
-    /// Les contrats que les bulletins attestent (`import::bulletins`), contrats d'engagements importes
-    /// pretes a ecrire, chacune avec le NIR qui la rattache (`salarie` vaut `<a creer>` tant que la fiche n'existe pas).
-    pub(crate) engagements_bulletins: Vec<(String, Value)>,
+    /// LES CONTRATS QUE L'IMPORT RETIENT, de toutes les pieces (AEM deposees, AEM en PDF, bulletins, certificats) : le
+    /// registre de l'import les a dits nouveaux (`import::attestes`). Chacun avec le NIR qui le rattache (`salarie` vaut
+    /// `<a creer>` tant que la fiche n'existe pas) et le bloc du compte rendu qui le compte.
+    pub(crate) contrats_attestes: Vec<crate::import::attestes::Retenu>,
+    /// CE QUE L'IMPORT CHANGE AUX CONTRATS DE L'HISTORIQUE : le contrat qu'un certificat atteste, reduit aux mois qu'il atteste
+    /// seul ou retire, celui d'une AEM que le bulletin remplace (`import::attestes`).
+    pub(crate) contrats_changes: Vec<crate::import::attestes::Change>,
     /// La suite des licences que les pieces donnent (mois `AAAA-MM`, numero), la plus ancienne d'abord (`poser_licence`).
     pub(crate) licences: Vec<(String, String)>,
 }
@@ -266,38 +269,6 @@ pub(crate) fn garder_le_nom(ctx: &Contexte, e: &mut Map<String, Value>) {
 
 /// La cle `_cle_engagement` : (salarie, debut, fin, numero_objet, heures, cachets, jours, str(brut)).
 pub(crate) type CleEngagement = (String, String, String, String, i128, i128, i128, String);
-
-/// `deja` : les contrats que les engagements importes attestent deja (`engagement::importe::contrats_lus`). Une valeur
-/// qui n'est pas un texte ne peut egaler un texte : l'entree ne retrouvera aucun contrat.
-pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
-    let engagements = Value::Array(engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?);
-    let mut deja: HashSet<CleEngagement> = HashSet::new();
-    for e in etats::items(&engagements)? {
-        // `_cle_engagement(e)` : les cles qu'elle lit doivent y etre, et les nombres se lire.
-        for k in ["salarie", "debut", "fin"] {
-            if e.get(k).is_none() {
-                return Err(erreur("KeyError", socle::fichiers::absent(k)));
-            }
-        }
-        let mut nombres = [0i128; 3];
-        for (i, k) in ["heures", "cachets", "jours"].iter().enumerate() {
-            nombres[i] = entier_de(e.get(*k).unwrap_or(&json!(0)))?;
-        }
-        let texte = |v: Option<&Value>| match v {
-            Some(Value::String(t)) => Some(t.clone()),
-            _ => None,
-        };
-        let objet = match e.get("numero_objet") {
-            None => Some(String::new()),
-            autre => texte(autre),
-        };
-        let brut = e.get("brut").map_or("0".to_string(), valeur_en_texte);
-        if let (Some(a), Some(b), Some(c), Some(d)) = (texte(e.get("salarie")), texte(e.get("debut")), texte(e.get("fin")), objet) {
-            deja.insert((a, b, c, d, nombres[0], nombres[1], nombres[2], brut));
-        }
-    }
-    Ok(deja)
-}
 
 /// Les paies versees des engagements importes, une ligne par mois (`engagement::importe::paies_lues`).
 pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<Value>> {
@@ -475,18 +446,12 @@ pub(crate) fn apercu_lu(
         a_creer += 1;
     }
 
-    // 4. L'historique : les contrats attestes, rattaches par NIR aux fiches -- existantes ou a creer.
-    let deja = cles_historique(ctx)?;
-    let mut contrats_nouveaux = 0usize;
+    // 4. L'historique : les contrats attestes, rattaches par NIR aux fiches -- existantes ou a creer. Lesquels sont
+    // nouveaux, c'est le registre de l'import qui le dit (`import::attestes`).
     let mut sans_fiche = 0usize;
     for c in &contrats {
         if !par_nir.contains_key(&c.nir) && !cles_a_venir.contains(&c.nir) {
             sans_fiche += 1;
-            continue;
-        }
-        let cle = par_nir.get(&c.nir).cloned().unwrap_or_else(|| "<a creer>".to_string());
-        if !deja.contains(&(cle, c.debut.iso(), c.fin.iso(), c.numero_objet.clone(), c.heures, c.cachets, c.jours, c.brut.clone())) {
-            contrats_nouveaux += 1;
         }
     }
     let contrats_du = contrats.iter().map(|c| c.debut).min().map(|d| d.iso()).unwrap_or_default();
@@ -511,7 +476,7 @@ pub(crate) fn apercu_lu(
             paies_nouvelles += 1;
         }
     }
-    let rien_a_faire = a_creer == 0 && a_completer.is_empty() && contrats_nouveaux == 0 && paies_nouvelles == 0;
+    let rien_a_faire = a_creer == 0 && a_completer.is_empty() && paies_nouvelles == 0;
     // `_paies_declarees` : DEUX SOURCES POUR UNE LIGNE -- les montants viennent de la DSN, le numero d'objet peut
     // venir de l'AEM (rapprochee sur salarie, debut, fin).
     let objets_aem: HashMap<(String, String, String), String> = contrats
@@ -555,7 +520,7 @@ pub(crate) fn apercu_lu(
         "salaries": salaries,
         "spectacles": spectacles,
         "contrats": contrats.len(),
-        "contrats_nouveaux": contrats_nouveaux,
+        "contrats_nouveaux": 0,
         "contrats_du": contrats_du,
         "contrats_au": contrats_au,
         "contrats_sans_fiche": sans_fiche,
@@ -567,21 +532,7 @@ pub(crate) fn apercu_lu(
     }) else {
         unreachable!("un objet")
     };
-    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, engagements_bulletins: Vec::new(), licences: lecture.licences.clone() })
-}
-
-/// `int(x)` d'une valeur JSON : un entier, un reel, un texte qui se lit comme un entier.
-fn entier_de(v: &Value) -> R<i128> {
-    match v {
-        Value::Number(n) => Ok(n.as_i64().map(i128::from).unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i128)),
-        Value::Bool(b) => Ok(i128::from(*b)),
-        Value::String(s) => socle::num::entier_lu(s)
-            .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
-        autre => Err(erreur(
-            "TypeError",
-            socle::fichiers::attendu("un nombre entier", nom_type(autre)),
-        )),
-    }
+    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, contrats_attestes: Vec::new(), contrats_changes: Vec::new(), licences: lecture.licences.clone() })
 }
 
 /// Le nombre de valeurs distinctes (`len({...})`) : `1`, `1.0` et `True` ne font
@@ -665,14 +616,19 @@ struct Reprise {
     le: Option<String>,
 }
 
-/// `reprises` de `importation-etat` : DSN, AEM, bulletins, dans cet ordre, celles qui ont repris quelque chose.
+/// `reprises` de `importation-etat` : DSN, AEM, certificats Congés Spectacles, bulletins, dans cet ordre, celles qui ont
+/// repris quelque chose.
 fn reprises_faites(racine: &Path, engagements: &[&Value], paies: &[Value]) -> Vec<Value> {
     let le_de = |o: &Map<String, Value>| o.get("importe_le").filter(|v| v.as_str().is_some_and(|s| !s.is_empty())).cloned();
-    let (mut aem, mut contrats_bulletins) = (Reprise::default(), Reprise::default());
+    let (mut aem, mut contrats_bulletins, mut certificats) = (Reprise::default(), Reprise::default(), Reprise::default());
     for e in engagements {
         let Some(o) = e.as_object() else { continue };
         let le = le_de(o);
-        let cible = if o.get("atteste_par").and_then(Value::as_str) == Some("bulletin") { &mut contrats_bulletins } else { &mut aem };
+        let cible = match o.get("atteste_par").and_then(Value::as_str) {
+            Some("bulletin") => &mut contrats_bulletins,
+            Some("certificat") => &mut certificats,
+            _ => &mut aem,
+        };
         cible.voir(o.get("debut"), o.get("fin"), le.as_ref());
     }
     let (mut dsn, mut bulletins) = (Reprise::default(), Reprise::default());
@@ -711,6 +667,9 @@ fn reprises_faites(racine: &Path, engagements: &[&Value], paies: &[Value]) -> Ve
     }
     if aem.nombre > 0 {
         out.push(base("AEM", "contrats attestés", &aem));
+    }
+    if certificats.nombre > 0 {
+        out.push(base("certificats", "certificats Congés Spectacles", &certificats));
     }
     if bulletins.nombre > 0 || contrats_bulletins.nombre > 0 || copies > 0 {
         let mut b = base("bulletins", "bulletins de paie", &bulletins);

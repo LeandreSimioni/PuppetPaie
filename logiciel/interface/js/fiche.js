@@ -592,6 +592,23 @@ function brancherAide() {
   });
 }
 
+/* Une case d'une ligne de liste : son chemin (« taux_atmp.code_risque »)
+ * dit où sa valeur va dans la ligne. */
+function poserEnChemin(o, chemin, v) {
+  const ks = chemin.split(".");
+  ks.slice(0, -1).forEach((k) => {
+    if (!o[k] || typeof o[k] !== "object") o[k] = {};
+    o = o[k];
+  });
+  o[ks[ks.length - 1]] = v;
+}
+
+/* Une ligne qui dit quelque chose, à quelque profondeur que ce soit. */
+function ligneRemplie(v) {
+  if (v && typeof v === "object") return Object.values(v).some(ligneRemplie);
+  return String(v ?? "").trim() !== "";
+}
+
 /* Le « + » et la croix des listes (licences, etablissements). On redessine
  * la liste seule, a partir de ce qui est tape : rien n'est perdu en route. */
 function brancherListes(fiche) {
@@ -601,7 +618,7 @@ function brancherListes(fiche) {
       `#config-formulaire [data-liste-de="${CSS.escape(cle)}"]`).forEach((c) => {
       const i = +c.dataset.listeIndex;
       l[i] = l[i] || {};
-      l[i][c.dataset.sousCle] = c.value;
+      poserEnChemin(l[i], c.dataset.sousCle, c.value);
     });
     return l.filter(Boolean);
   };
@@ -1170,11 +1187,10 @@ function lireFormulaire() {
     // ajoutee ou retiree decale les index, et on recopierait la valeur cachee
     // de la ligne d'a cote. Ces listes n'ont pas de clef masquee.
     listes[p][i] = listes[p][i] || {};
-    listes[p][i][c.dataset.sousCle] = c.value;
+    poserEnChemin(listes[p][i], c.dataset.sousCle, c.value);
   });
   Object.keys(listes).forEach((p) => {
-    const propres = listes[p].filter((l) => l &&
-      Object.values(l).some((v) => String(v ?? "").trim() !== ""));
+    const propres = listes[p].filter((l) => l && ligneRemplie(l));
     d[p] = propres.length ? propres : null;
   });
   return d;

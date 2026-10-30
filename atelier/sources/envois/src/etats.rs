@@ -250,8 +250,50 @@ pub fn paie_du_contrat(
         .map(|k| des_jours[k].0))
 }
 
+/// LE PREMIER JOUR SOUS LEQUEL LE JOURNAL RANGE LE CONTRAT n° `numero` du salarie que l'engagement dit commencer le
+/// `debut`. Un contrat parti garde son numero (`engagement::numeros` : des qu'un envoi l'a porte, il ne change plus) ; une
+/// date de debut changee depuis se fait signer en avenant de ce contrat, et tout ce que le journal en dit (sa demande, sa
+/// signature, ses avenants) reste sous le jour ou il est parti. `debut` quand le journal le connait sous lui, ou ne le
+/// connait pas (ou que le numero est vide).
+pub fn debut_au_journal(lignes: &[Value], salarie: &str, debut: &str, numero: &str) -> R<String> {
+    if numero.is_empty() {
+        return Ok(debut.to_string());
+    }
+    let mut autre: Option<String> = None;
+    let mut voir = |c: &Value| -> R<bool> {
+        if !est(get(c, "salarie")?, salarie) || valeur_en_texte(&numero_de_cle(get(c, "numero")?)) != numero {
+            return Ok(false);
+        }
+        let d = valeur_en_texte(get(c, "debut")?);
+        if d == debut {
+            return Ok(true);
+        }
+        if !d.is_empty() {
+            autre = Some(d);
+        }
+        Ok(false)
+    };
+    for l in lignes {
+        if !accepte(l)? {
+            continue;
+        }
+        let quoi = get(l, "quoi")?;
+        if est(quoi, SIGNATURE) {
+            for c in detail_ou_liste(l, "contrats")? {
+                if voir(&c)? {
+                    return Ok(debut.to_string());
+                }
+            }
+        } else if est(quoi, CONTRAT_RECU) && voir(ou(get(l, "detail")?, objet_vide()))? {
+            return Ok(debut.to_string());
+        }
+    }
+    Ok(autre.unwrap_or_else(|| debut.to_string()))
+}
+
 /// Les cles sous lesquelles chaque paie (salarie, debut, numero propre) d'un mois retrouve son contrat dans le journal :
-/// d'abord celle du contrat demande qui lui correspond (`apparier`), puis la sienne, puis celle d'une ligne sans numero.
+/// d'abord celle du contrat demande qui lui correspond (`apparier`), puis la sienne, puis celle du jour sous lequel le
+/// journal range ce numero quand la date de debut a change depuis (`debut_au_journal`), puis celle d'une ligne sans numero.
 pub fn cles_des_paies(lignes: &[Value], paies: &[Cle3]) -> R<Vec<Vec<Cle3>>> {
     let mut sortie: Vec<Vec<Cle3>> = vec![Vec::new(); paies.len()];
     let mut vus: Vec<(String, String)> = Vec::new();
@@ -267,17 +309,22 @@ pub fn cles_des_paies(lignes: &[Value], paies: &[Cle3]) -> R<Vec<Vec<Cle3>>> {
         let appariees = apparier(&propres, &demandes);
         for (j, &i) in rangs.iter().enumerate() {
             let mut cles: Vec<Cle3> = Vec::new();
-            let mut ajouter = |n: &str| {
-                let k = (s.clone(), d.clone(), n.to_string());
+            let mut ajouter = |jour: &str, n: &str| {
+                let k = (s.clone(), jour.to_string(), n.to_string());
                 if !cles.contains(&k) {
                     cles.push(k);
                 }
             };
             if let Some(n) = &appariees[j] {
-                ajouter(n);
+                ajouter(d, n);
             }
-            ajouter(&propres[j]);
-            ajouter("");
+            ajouter(d, &propres[j]);
+            let n = appariees[j].as_deref().unwrap_or(&propres[j]);
+            let range = debut_au_journal(lignes, s, d, n)?;
+            if range != *d {
+                ajouter(&range, n);
+            }
+            ajouter(d, "");
             sortie[i] = cles;
         }
     }

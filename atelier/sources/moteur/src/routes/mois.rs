@@ -2324,7 +2324,7 @@ pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> 
     // Le bordereau montre est celui du PRINCIPAL quand la compagnie a plusieurs
     // etablissements ; chacun des autres a le sien, dans sa DSN.
     let principal = droit::bareme::nic_principal(&ctx.entreprise);
-    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise_du_mois(mois).map_err(|m| erreur("ValueError", m))?).is_empty();
     let mut paies_p: Vec<Paie> = Vec::new();
     for p in paies {
         if !plusieurs || droit::bareme::etablissement_du_salarie(&ctx.entreprise, &p.salarie).map_err(|m| erreur("ValueError", m))? == principal {

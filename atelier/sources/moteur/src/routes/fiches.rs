@@ -369,6 +369,45 @@ fn deriver_siren_nic(donnees: &mut Map<String, Value>) -> Map<String, Value> {
     faits
 }
 
+/// LES AUTRES ETABLISSEMENTS S'ECRIVENT COMME LE SIEGE : le NIC se lit dans le SIRET (ses cinq derniers chiffres),
+/// l'adresse et la commune declarees se fabriquent depuis leur forme lisible comme celles du siege (`deriver`), le code
+/// risque s'ecrit sans point ni blanc (S21.G00.40.040, « 923AD »), le taux saisi en nombre (`atmp::taux_saisi`).
+fn deriver_etablissements(donnees: &mut Map<String, Value>) -> R<()> {
+    let Some(Value::Array(liste)) = donnees.get("etablissements").cloned() else { return Ok(()) };
+    let fiche = champs::fiche("entreprise")?;
+    let derive = |cle: &str, lisible: &Value| -> R<Option<Value>> {
+        let Some(c) = fiche.iter().find(|c| c.cle == cle) else { return Ok(None) };
+        Ok(Some(champs::normaliser(c, lisible)?))
+    };
+    let mut sortie = Vec::new();
+    for e in liste {
+        let Value::Object(mut o) = e else { continue };
+        let siret: String = texte_ou_vide(o.get("siret")).chars().filter(|c| !c.is_whitespace()).collect();
+        o.insert("siret".into(), Value::String(siret.clone()));
+        if siret.chars().count() == 14 && siret.chars().all(|c| c.is_ascii_digit()) {
+            o.insert("nic".into(), Value::String(siret[9..].to_string()));
+        }
+        for (declare, lisible) in [("adresse", "adresse_affichage"), ("commune", "commune_affichage")] {
+            if let Some(v) = o.get(lisible).filter(|v| vrai(v)).cloned() {
+                if let Some(d) = derive(declare, &v)? {
+                    o.insert(declare.into(), d);
+                }
+            }
+        }
+        if let Some(Value::Object(t)) = o.get_mut("taux_atmp") {
+            let code = texte_ou_vide(t.get("code_risque")).trim_matches(socle::texte::blanc).replace(['.', ' '], "").to_uppercase();
+            t.insert("code_risque".into(), Value::String(code));
+            match crate::routes::atmp::taux_saisi(t.get("valeur"))? {
+                Some(v) => t.insert("valeur".into(), json!(v.to_string().parse::<f64>().unwrap_or(0.0))),
+                None => t.shift_remove("valeur"),
+            };
+        }
+        sortie.push(Value::Object(o));
+    }
+    donnees.insert("etablissements".into(), Value::Array(sortie));
+    Ok(())
+}
+
 /// Fabrique les formes declarees depuis les formes lisibles.
 /// Sans `forcer`, on ne remplit que ce qui est vide ou indeclarable. Rend
 /// `{cle: [avant, apres]}` : ce que le programme a fabrique tout seul.
@@ -406,6 +445,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
         }
         faits.extend(deriver_personnes(donnees, forcer));
         faits.extend(deriver_siren_nic(donnees));
+        deriver_etablissements(donnees)?;
     }
     // LE COMPTE BANCAIRE S'ECRIT COMPACT : l'IBAN et le BIC sans blancs, en majuscules -- « FR76 3000 6000 … » est le
     // meme compte que « FR763000 6000… » (`socle::iban::iban_compact`, communique IBAN de la Banque centrale de Turquie,
@@ -1245,6 +1285,8 @@ pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<Str
             let avant = ancienne.get(k.as_str()).filter(|a| !a.is_null()).or_else(|| defauts.get(k.as_str()));
             !k.starts_with('_')
                 && !FAITS_SANS_DATE.contains(&(nom, k.as_str()))
+                // Les autres etablissements se datent chacun a son ouverture (`ecrire_etablissements`).
+                && !(nom == "entreprise" && k.as_str() == "etablissements")
                 && !avant.is_some_and(|a| meme(a, v))
                 && !(sans_valeur(avant) && sans_valeur(Some(v)))
                 && (cases_vides || !vide(ancienne.get(k.as_str())))
@@ -1314,6 +1356,83 @@ pub(crate) fn depuis_de(depuis: &Value) -> R<Option<Jour>> {
     } else {
         Ok(None)
     }
+}
+
+/// LES AUTRES ETABLISSEMENTS DE LA COMPAGNIE (`etablissements` de la fiche entreprise), tels que l'ecran les donne : chacun
+/// vaut a partir de sa date d'ouverture (`ouverture`), la liste se date d'elle-meme (une valeur par ouverture, chacune avec
+/// les etablissements deja ouverts) : une DSN, une paie d'avant l'ouverture ne le connaissent pas. Chacun dit son SIRET (du
+/// SIREN de la compagnie), son adresse et son code risque AT/MP : le taux est determine par etablissement et le classement
+/// suit l'activite qui y est exercee (D. 242-6-1, `atelier/reference/sources/code-de-la-securite-sociale/xml/D242-6-1.xml` ;
+/// arrete du 17/10/1995, art. 1, I, 1°, `tarification-atmp/`). Un code laisse vide prend celui que la compagnie a pour
+/// l'annee de l'ouverture (INFERENCE : l'activite de l'etablissement est celle de la compagnie tant que la notification
+/// de la CARSAT ne dit pas autre chose), et l'ecran le dit (`atmp::lire`). Le taux laisse vide est celui de l'arrete pour
+/// un risque « TC » (`droit::bareme::taux_atmp_applique`) ; sinon il se refuse (`droit::contexte`, le controle des
+/// etablissements).
+fn ecrire_etablissements(ctx: &Contexte, contenu: &mut Map<String, Value>, donnees: &Map<String, Value>, liste: &Value) -> R<()> {
+    let siren = texte_ou_vide(donnees.get("siren")).trim().to_string();
+    let mut entrees: Vec<(Jour, Value)> = Vec::new();
+    let mut griefs: Vec<String> = Vec::new();
+    for (i, e) in liste.as_array().into_iter().flatten().enumerate() {
+        let Value::Object(o) = e else { continue };
+        let mut o = o.clone();
+        let nom = Some(texte_ou_vide(o.get("libelle"))).filter(|l| !l.trim().is_empty()).unwrap_or_else(|| format!("Établissement {}", i + 1));
+        let siret = texte_ou_vide(o.get("siret"));
+        if siret.chars().count() != 14 || !siret.chars().all(|c| c.is_ascii_digit()) {
+            griefs.push(format!("{} : son SIRET (quatorze chiffres, sur l'avis de situation Sirene)", nom));
+        } else if !siren.is_empty() && siret[..9] != siren {
+            griefs.push(format!("{} : le SIRET {} n'est pas de la compagnie (son SIREN est {})", nom, siret, siren));
+        }
+        for (cle, mot) in [("adresse", "son adresse"), ("code_postal", "son code postal"), ("commune", "sa commune")] {
+            if texte_ou_vide(o.get(cle)).trim().is_empty() {
+                griefs.push(format!("{} : {}", nom, mot));
+            }
+        }
+        let ouverture = match o.get("ouverture").filter(|v| vrai(v)).map(socle::date::d) {
+            Some(Ok(j)) => j,
+            _ => {
+                griefs.push(format!("{} : sa date d'ouverture", nom));
+                continue;
+            }
+        };
+        let mut atmp = o.get("taux_atmp").and_then(Value::as_object).cloned().unwrap_or_default();
+        let du_siege = ctx.taux_atmp_de(ouverture.an).and_then(Result::ok).and_then(|t| t.get("code_risque").filter(|c| vrai(c)).map(valeur_en_texte));
+        let code = texte_ou_vide(atmp.get("code_risque")).trim().to_string();
+        if code.is_empty() {
+            match du_siege {
+                Some(code) => {
+                    atmp.insert("code_risque".into(), Value::String(code));
+                    atmp.insert("_code_de_la_compagnie".into(), Value::Bool(true));
+                }
+                None => griefs.push(format!("{} : son code risque AT/MP, tel que la CARSAT le notifie", nom)),
+            }
+        } else if du_siege.as_deref() != Some(code.as_str()) {
+            // Un autre code que celui de la compagnie : celui que la CARSAT a notifie.
+            atmp.shift_remove("_code_de_la_compagnie");
+        }
+        o.insert("taux_atmp".into(), Value::Object(atmp));
+        entrees.push((ouverture, Value::Object(o)));
+    }
+    if !griefs.is_empty() {
+        return Err(refus(format!(
+            "Autres établissements : il manque {}. Rien n'a été enregistré.",
+            griefs.join(" ; ")
+        )));
+    }
+    entrees.sort_by_key(|(j, _)| *j);
+    let mut datee = vec![json!({"valeur": []})];
+    let mut dates: Vec<Jour> = entrees.iter().map(|(j, _)| *j).collect();
+    dates.dedup();
+    for j in dates {
+        let ouverts: Vec<Value> = entrees.iter().filter(|(o, _)| *o <= j).map(|(_, e)| e.clone()).collect();
+        datee.push(json!({"depuis": j.iso(), "valeur": ouverts}));
+    }
+    // Le controle que toute lecture de la configuration fait (`droit::contexte`), sur la liste entiere, avant d'ecrire.
+    let fiche = json!({"siren": siren, "nic": texte_ou_vide(donnees.get("nic")), "etablissements": entrees.iter().map(|(_, e)| e.clone()).collect::<Vec<_>>()});
+    if let Ok(bar) = ctx.bareme(&ctx.aujourdhui) {
+        droit::contexte::controler_etablissements(&fiche, &bar).map_err(refus)?;
+    }
+    contenu.insert("etablissements".into(), Value::Array(datee));
+    Ok(())
 }
 
 /// POSER UN CHAMP DE LA FICHE ENTREPRISE (une route qui ne touche qu'une case : le modele de bulletin, la case des
@@ -1627,8 +1746,13 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
     let cases_vides = dernier_mois_parti(ctx, nom, cle.as_deref().filter(|k| !k.is_empty()))?.is_some();
     let mut contenu = objet_du_fichier(&chemin)?;
     if nom == "entreprise" {
-        // La fiche entreprise est le fichier entier.
-        ecrire_datee(&mut contenu, nom, ancienne, &donnees, cases_vides, depuis, note.as_deref(), &ctx.lue_au)?;
+        // La fiche entreprise est le fichier entier. Les autres etablissements se datent chacun a son ouverture.
+        let mut sans_etablissements = donnees.clone();
+        let etablissements = sans_etablissements.shift_remove("etablissements");
+        ecrire_datee(&mut contenu, nom, ancienne, &sans_etablissements, cases_vides, depuis, note.as_deref(), &ctx.lue_au)?;
+        if let Some(l) = etablissements {
+            ecrire_etablissements(ctx, &mut contenu, &donnees, &l)?;
+        }
         return finir_fiche(None, &chemin, contenu, donnees, anomalies, derives);
     }
     if cle.as_deref().map_or(true, str::is_empty) {

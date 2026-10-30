@@ -116,8 +116,10 @@ pub(crate) fn contrat_recu_avec(
     // La ligne porte le numero du contrat tel que le journal le connait (celui de sa demande), a defaut le sien.
     let numero_note = if cles[rang][0].2.is_empty() { Value::Null } else { json!(cles[rang][0].2) };
     let nom = socle::texte::salarie_nomme_ou(Some(&p.salarie), &salarie);
+    // Sous le jour ou le contrat est parti : une date de debut changee depuis ne fait pas un autre contrat.
+    let range = envois::etats::debut_au_journal(&lignes, salarie, debut, &cles[rang][0].2)?;
     let mut detail = json!({
-        "salarie": salarie, "debut": debut, "recu": recu,
+        "salarie": salarie, "debut": range, "recu": recu,
         "numero": numero_note, "nom": nom,
     });
     if vrai(avenant) {
@@ -640,6 +642,8 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_voulu = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
     let parti = match (salarie_v.as_str(), debut_v.as_str()) {
         (Some(s), Some(d)) => {
+            // Le contrat se lit sous le jour ou il est parti, sa date de debut eut-elle change depuis.
+            let d = &envois::etats::debut_au_journal(&lignes, s, d, numero_voulu.as_deref().unwrap_or(""))?;
             let j = numero_du_contrat(ctx, &lignes, s, d, numero_voulu.as_deref(), mois_voulu.as_deref())?;
             // Un contrat dont le numero est donne et que le journal ne connait pas n'est jamais parti (le jumeau qui n'est pas parti).
             if numero_voulu.is_some() && j.is_none() {
@@ -706,7 +710,8 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let p = &paies[i];
     let g = m.globales()?;
-    let deja = envois::etats::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
+    let range = envois::etats::debut_au_journal(&lignes, &salarie, &debut, &numero_parti)?;
+    let deja = envois::etats::avenants_du_contrat(g.avenants.get(&(salarie.clone(), range, numero_parti.clone())), &parti);
     let ent = documents::avenant::ent_du_mois(ctx, &mois_parti)?;
     let modele = documents::avenant::modele_du_contrat(&ent, &ctx.gabarits(), &*p.engagement.nat().map_err(Echec::from)?)?;
     let paie_json = engagement::relire::ecrire(ctx, p)?;
@@ -798,10 +803,14 @@ fn est_cette_paie(c: &Value, salarie: &Value, debut: &Value) -> R<bool> {
 fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = |k: &str| charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
     let salarie = cle("salarie")?;
-    let debut = cle("debut")?;
+    let debut_v = cle("debut")?;
     let racine = ctx.racine.as_path();
     let mut m = Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
+    // Le contrat de ce numero se lit sous le jour ou il est parti, sa date de debut eut-elle change depuis.
+    let numero = charge.get("numero").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
+    let range = json!(envois::etats::debut_au_journal(&lignes, &valeur_en_texte(salarie), &valeur_en_texte(debut_v), &numero)?);
+    let debut = &range;
 
     let mut dpae = Vec::new();
     for l in etats::filtrer(&lignes, Some(DPAE), None, true)? {

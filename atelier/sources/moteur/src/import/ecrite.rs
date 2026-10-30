@@ -24,7 +24,6 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
-use socle::valeur::nom_type;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::Decimal;
@@ -200,41 +199,6 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
 }
 
 // ------------------------------------------------------------------ l'historique
-
-type CleEngagement = (String, String, String, String, i128, i128, i128, String);
-
-/// `_cle_engagement` d'un engagement deja ecrit : `None` quand une colonne n'est pas un texte (elle ne peut
-/// egaler celle d'un contrat neuf).
-fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
-    for k in ["salarie", "debut", "fin"] {
-        if e.get(k).is_none() {
-            return Err(erreur("KeyError", socle::fichiers::absent(k)));
-        }
-    }
-    let entier = |k: &str| -> R<i128> {
-        let v = e.get(k).cloned().unwrap_or_else(|| json!(0));
-        match &v {
-            Value::Number(n) => Ok(n.as_i64().map(i128::from).unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i128)),
-            Value::Bool(b) => Ok(i128::from(*b)),
-            Value::String(s) => socle::num::entier_lu(s).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
-            autre => Err(erreur("TypeError", socle::fichiers::attendu("un nombre entier", nom_type(autre)))),
-        }
-    };
-    let (h, c, j) = (entier("heures")?, entier("cachets")?, entier("jours")?);
-    let texte = |v: Option<&Value>| match v {
-        Some(Value::String(t)) => Some(t.clone()),
-        _ => None,
-    };
-    let objet = match e.get("numero_objet") {
-        None => Some(String::new()),
-        autre => texte(autre),
-    };
-    let brut = e.get("brut").map_or("0".to_string(), valeur_en_texte);
-    Ok(match (texte(e.get("salarie")), texte(e.get("debut")), texte(e.get("fin")), objet) {
-        (Some(a), Some(b), Some(c2), Some(d)) => Some((a, b, c2, d, h, c, j, brut)),
-        _ => None,
-    })
-}
 
 fn cle_paie(x: &Value) -> R<(String, String, String)> {
     let k = |c: &str| x.get(c).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(c)));
@@ -457,6 +421,8 @@ struct Ecrit {
     fichiers: Vec<Value>,
     contrats_aem: usize,
     contrats_bulletins: usize,
+    contrats_certificats: usize,
+    contrats_aem_pdf: usize,
     paies: usize,
     restent_a_creer: usize,
     /// Les fiches existantes completees.
@@ -466,7 +432,7 @@ struct Ecrit {
 
 impl Ecrit {
     fn rien(&self) -> bool {
-        self.restent_a_creer == 0 && self.completees == 0 && self.contrats_aem == 0 && self.contrats_bulletins == 0 && self.paies == 0
+        self.restent_a_creer == 0 && self.completees == 0 && self.contrats_aem == 0 && self.contrats_bulletins == 0 && self.contrats_certificats == 0 && self.contrats_aem_pdf == 0 && self.paies == 0
     }
 }
 
@@ -545,43 +511,32 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     // CE QUE L'IMPORT A DEJA ECRIT, relu de ses engagements importes : les contrats attestes, les paies versees.
     let importes_avant = engagement::importe::tous(&ctx.racine).map_err(Echec::from)?;
     let mut engagements: Vec<Value> = engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?;
-    let mut deja: HashSet<CleEngagement> = HashSet::new();
-    for e in &engagements {
-        if let Some(k) = cle_engagement(e)? {
-            deja.insert(k);
-        }
-    }
     let le = json!(aujourdhui.iso());
-    let mut contrats_aem = 0usize;
-    for c in &imp.contrats {
-        let Some(cle) = par_nir.get(&c.nir) else { continue };
-        let k: CleEngagement = (cle.clone(), c.debut.iso(), c.fin.iso(), c.numero_objet.clone(), c.heures, c.cachets, c.jours, c.brut.clone());
-        if deja.contains(&k) {
-            continue;
+    // LES CONTRATS QUE L'IMPORT RETIENT (`import::attestes` en a decide), rattaches par NIR a la fiche qui existe
+    // maintenant, comptes par bloc du compte rendu.
+    // Ce que le registre change aux contrats de l'historique : reduit, ou retire.
+    for (avant, apres) in &imp.contrats_changes {
+        if let Some(i) = engagements.iter().position(|e| e == avant) {
+            match apres {
+                Some(l) => engagements[i] = l.clone(),
+                None => {
+                    engagements.remove(i);
+                }
+            }
         }
-        deja.insert(k);
-        engagements.push(json!({
-            "salarie": cle, "debut": c.debut.iso(), "fin": c.fin.iso(), "numero_objet": c.numero_objet,
-            "heures": c.heures as i64, "cachets": c.cachets as i64, "jours": c.jours as i64, "brut": c.brut,
-            "atteste_par": "AEM", "numero_attestation": c.numero_attestation,
-            "atteste_le": c.date_attestation, "fichier": c.fichier, "importe_le": le,
-        }));
-        contrats_aem += 1;
     }
-    // Les contrats que les bulletins attestent, rattaches par NIR a la fiche qui existe maintenant.
-    let mut contrats_bulletins = 0usize;
-    for (nir, ligne) in &imp.engagements_bulletins {
+    let mut comptes: HashMap<&str, usize> = HashMap::new();
+    for (nir, ligne, bloc) in &imp.contrats_attestes {
         let Some(cle) = par_nir.get(nir) else { continue };
         let mut e = ligne.clone();
         e["salarie"] = json!(cle);
-        let Some(k) = cle_engagement(&e)? else { continue };
-        if !deja.insert(k) {
-            continue;
-        }
         e["importe_le"] = le.clone();
         engagements.push(e);
-        contrats_bulletins += 1;
+        *comptes.entry(bloc).or_default() += 1;
     }
+    let compte = |bloc: &str| comptes.get(bloc).copied().unwrap_or(0);
+    let (contrats_aem, contrats_bulletins, contrats_certificats, contrats_aem_pdf) =
+        (compte("declarations"), compte("bulletins"), compte("certificats"), compte("aem_pdf"));
 
     // LES PAIES : on remplace ligne a ligne par la cle (mois, salarie, contrat). Une ligne de DSN qui arrive sur une ligne
     // completee par un bulletin garde ce que le bulletin a ecrit ; une paie de bulletin seul s'efface devant la paie
@@ -611,13 +566,13 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     }
     let neuves = par_cle.iter().filter(|(k, v)| avant.get(*k).map(sans_dates_d_import) != Some(sans_dates_d_import(v))).count()
         + avant.keys().filter(|k| !par_cle.contains_key(*k)).count();
-    if contrats_aem + contrats_bulletins + neuves > 0 || importes_avant.is_empty() {
+    if contrats_aem + contrats_bulletins + contrats_certificats + contrats_aem_pdf + neuves > 0 || importes_avant.is_empty() {
         let importes = engagements_importes(engagements, par_cle.into_values().collect());
         for p in engagement::importe::ecrire_tous(&ctx.racine, importes).map_err(Echec::from)? {
             fichiers.push(json!(p.display().to_string()));
         }
     }
-    Ok(Ecrit { fichiers, contrats_aem, contrats_bulletins, paies: neuves, restent_a_creer, completees, avertissements })
+    Ok(Ecrit { fichiers, contrats_aem, contrats_bulletins, contrats_certificats, contrats_aem_pdf, paies: neuves, restent_a_creer, completees, avertissements })
 }
 
 // ------------------------------------------------------------------ la route
@@ -701,12 +656,14 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let aujourdhui = ctx.date;
     let dossier = crate::routes::import::dossier_import(ctx, charge)?;
     // 1. Le dossier tel qu'il est : son compte rendu (pour l'ecran), et la copie de ce qu'il reprend.
-    let (tri, non_repris, copie, noms) = crate::import::bulletins::lire_dossier(ctx, &dossier, |lu| {
+    let (tri, non_repris, copie, noms, deposes) = crate::import::bulletins::lire_dossier(ctx, &dossier, &HashMap::new(), |lu| {
         let (copie, noms) = copier_repris(ctx, &lu)?;
         let tri = lu.ap.reponse.get("tri").cloned().unwrap_or(Value::Null);
         let non_repris: Vec<Value> =
             lu.ap.reponse.get("avertissements").and_then(Value::as_array).into_iter().flatten().filter(|a| dit_les_non_repris(a)).cloned().collect();
-        Ok((tri, non_repris, copie, noms))
+        // La copie se relit sous le nom du fichier depose.
+        let deposes: HashMap<String, String> = lu.copies.iter().map(|(i, nom)| (nom.clone(), lu.tri.fichiers[*i].chemin.clone())).collect();
+        Ok((tri, non_repris, copie, noms, deposes))
     })?;
 
     // 2. D'ABORD LA COPIE, ENSUITE LA LECTURE : l'apercu relu dans les copies de ce dossier (et d'elles seules), prises
@@ -719,7 +676,7 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
             std::fs::copy(copies.join(nom), relu.join(nom)).map_err(|e| en_os(&e, &copies.join(nom)))?;
         }
         let frais_avant = Contexte::nouveau(&ctx.racine, None).map_err(Echec::from)?;
-        crate::import::bulletins::lire_dossier(&frais_avant, &relu, |lu| Ok(lu.ap))
+        crate::import::bulletins::lire_dossier(&frais_avant, &relu, &deposes, |lu| Ok(lu.ap))
     };
     let rendu = relire();
     let _ = std::fs::remove_dir_all(&relu);
@@ -746,6 +703,12 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     reponse["contrats_nouveaux"] = json!(e.contrats_aem);
     if reponse.get("bulletins").is_some_and(Value::is_object) {
         reponse["bulletins"]["contrats_nouveaux"] = json!(e.contrats_bulletins);
+    }
+    if reponse.get("certificats").is_some_and(Value::is_object) {
+        reponse["certificats"]["contrats_nouveaux"] = json!(e.contrats_certificats);
+    }
+    if reponse.get("aem_pdf").is_some_and(Value::is_object) {
+        reponse["aem_pdf"]["contrats_nouveaux"] = json!(e.contrats_aem_pdf);
     }
     reponse["rien_a_faire"] = json!(e.rien());
     reponse["ecrit"] = json!(true);

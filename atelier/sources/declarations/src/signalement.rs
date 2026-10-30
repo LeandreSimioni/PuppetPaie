@@ -381,7 +381,7 @@ annule-et-remplace (type 03)."
     // La configuration du dernier jour travaille : celle de la periode que le signalement declare.
     let ctx = &ctx.au(&jours(a, "dernier_jour_travaille")?)?;
     let ent = &ctx.entreprise;
-    let salarie = ctx.salarie(&en_texte(g(&a.v, "salarie")))?;
+    let salarie = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
