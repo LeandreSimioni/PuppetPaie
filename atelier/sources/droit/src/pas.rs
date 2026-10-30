@@ -45,8 +45,12 @@ pub type Triplet = (Value, Value, Value);
 // ------------------------------------------------------------- peremption
 
 /// Un taux transmis par la DGFiP vaut jusqu'a la fin du deuxieme mois suivant
-/// celui de sa mise a disposition.
-const VALIDITE_MOIS: u32 = 2;
+/// celui de sa mise a disposition : « si le dernier taux de PAS communiqué par la
+/// DGFIP avait plus de 2 mois, le collecteur aurait appliqué le barème légal »
+/// (GIP-MDS et DGFiP, « DSN : données et axes structurants prévus pour le PAS »,
+/// v19, exemple 10, `atelier/reference/sources/suspension-non-remuneree/
+/// net-entreprises-dsn-solution-technique-pas-v19-20170308.txt`).
+pub const VALIDITE_MOIS: u32 = 2;
 
 /// `str(e.get(cle) or "").strip()`.
 fn texte_ou_vide(e: &Value, cle: &str) -> String {
@@ -546,21 +550,41 @@ fn fr(iso: &Value) -> String {
     }
 }
 
-/// Les phrases a dire avant de declarer. Vide si tout va bien.
+/// « Prénom Nom » de la fiche, ou la cle sans fiche.
+fn nom_affiche(ctx: &Contexte, cle: &str) -> String {
+    let Some(f) = ctx.salaries.get(cle).filter(|f| vrai(f)) else { return cle.to_string() };
+    let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(en_texte).unwrap_or_default();
+    let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
+    let nom = format!("{} {}", prenom, t("nom")).trim().to_string();
+    if nom.is_empty() {
+        cle.to_string()
+    } else {
+        nom
+    }
+}
+
+/// Les phrases a dire avant de declarer, une par salarie dont la paie prendrait la grille de l'article 204 H, III
+/// (CGI, art. 1671, 2 : « A défaut de taux transmis par l'administration ») : ce que le magasin sait de lui. Vide si
+/// tout va bien.
 pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>) -> Resultat<Vec<String>> {
     let mut lignes = Vec::new();
     for s in diagnostic(ctx, cles, le)? {
-        if s["situation"] == Value::String(VALIDE.into()) {
-            continue;
-        }
-        let mut ligne = format!("{} : {}", en_texte(&s["salarie"]), en_texte(&s["libelle"]));
-        if s["situation"] == Value::String(PERIME.into()) {
-            ligne += &format!(" (il l'etait jusqu'au {})", fr(&s["valable_jusqu_a"]));
-        }
+        let quoi = s["situation"].as_str().unwrap_or_default();
+        let mut ligne = format!("{} : ", nom_affiche(ctx, &en_texte(&s["salarie"])));
+        ligne += &match quoi {
+            VALIDE => continue,
+            PERIME => format!(
+                "le dernier taux transmis par la DGFiP ({} %) valait jusqu'au {}",
+                en_texte(&s["taux"]).replace('.', ","),
+                fr(&s["valable_jusqu_a"])
+            ),
+            SANS_NIR => "sans NIR dans sa fiche, la DGFiP ne peut transmettre aucun taux".into(),
+            _ => "aucun taux transmis par la DGFiP".into(),
+        };
         let dem = &s["demande"];
         if vrai(dem) {
             ligne += &format!(
-                " -- demande partie le {}, reponse attendue avant le {} : attendre si le calendrier le permet",
+                " ; taux demandé le {}, réponse attendue avant le {}",
                 fr(dem.get("quand").unwrap_or(&Value::Null)),
                 fr(dem.get("reponse_attendue_avant").unwrap_or(&Value::Null))
             );
@@ -568,6 +592,15 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>)
         lignes.push(ligne);
     }
     Ok(lignes)
+}
+
+/// La phrase du bandeau : combien de salaries n'ont pas de taux valide, et ce que la paie applique alors.
+pub fn resume_avertissements(lignes: &[String]) -> String {
+    match lignes.len() {
+        0 => String::new(),
+        1 => "1 salarié sans taux de PAS valide transmis par la DGFiP : sa paie prend la grille de l'article 204 H du CGI.".into(),
+        n => format!("{} salariés sans taux de PAS valide transmis par la DGFiP : leur paie prend la grille de l'article 204 H du CGI.", n),
+    }
 }
 
 

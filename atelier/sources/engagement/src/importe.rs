@@ -85,7 +85,8 @@ impl Importe {
     }
 
     /// Les mois qu'il touche : de son debut a sa fin (au dernier mois verse, s'il continue ici : `continue_apres`), et
-    /// ceux ou il a ete verse.
+    /// ceux ou il a ete verse. Un contrat sans fin (un CDI) ne touche que les mois ou il a ete verse : des mois d'avant
+    /// le premier bulletin repris, les pieces ne disent rien.
     pub fn mois(&self) -> Vec<String> {
         let (debut, fin) = (self.texte("debut"), self.texte("fin"));
         let mut v: Vec<String> = self.paies().into_keys().collect();
@@ -93,6 +94,10 @@ impl Importe {
             let fin = match self.continue_apres() {
                 Some(dernier) => format!("{}-01", dernier),
                 None if fin.len() >= 7 => fin,
+                None if !v.is_empty() => {
+                    v.sort();
+                    return v;
+                }
                 None => debut.clone(),
             };
             let mut m = debut[..7].to_string();

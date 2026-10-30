@@ -148,7 +148,9 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
                 nir = Some(val);
             } else if code.starts_with("S21.G00.50.00") {
                 cur.insert(code.to_string(), val.clone());
-                if code == "S21.G00.50.008" {
+                // « -1 » : un CDD court sans taux personnalise (`norme-dsn/texte/bloc-S21.G00.50.txt`, S21.G00.50.008) ;
+                // aucun taux n'a ete transmis.
+                if code == "S21.G00.50.008" && val != "-1" {
                     if let (Some(cle), Some(m)) = (nir.as_ref().and_then(|n| par_nir.get(n)), mois.as_ref()) {
                         let g = |k: &str| cur.get(k).map_or(Value::Null, |v| json!(v));
                         let rel = json!({"taux": g("S21.G00.50.006"), "type": g("S21.G00.50.007"), "identifiant": val, "periode": m});
@@ -167,8 +169,15 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
     trouve.into_iter().map(|(cle, mm)| (cle, mm.into_values().collect())).collect()
 }
 
-/// Pose l'etat courant a partir de la derniere DSN deposee de chaque salarie.
-fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Echec> {
+/// LE DERNIER TAUX TRANSMIS PAR LA DGFiP QUE LES DSN DEJA DEPOSEES DE `dossier` DECLARENT, par salarie (un releve tel que
+/// `enregistrer` le prend). Une DSN qui declare un taux de type 01 avec son identifiant (S21.G00.50.006 a .008,
+/// `norme-dsn/texte/bloc-S21.G00.50.txt` : « Identifiant du taux porté par le CRM PAS […] transmis par la DGFIP ») dit
+/// que la DGFiP a transmis ce taux a l'employeur, qui l'applique (CGI, art. 1671, 2,
+/// `atelier/reference/sources/code-general-des-impots/articles-20261021.md`). Sa validite court de sa communication
+/// (`droit::pas::VALIDITE_MOIS`), que la DSN ne porte pas : le releve est date du mois de la DSN qui l'applique
+/// (`periode`). Inference : c'est la communication la plus tardive possible ; le compte rendu de la DSN suivante le
+/// remplace.
+pub(crate) fn derniers_taux_des_dsn(ctx: &Contexte, dossier: &std::path::Path) -> Vec<Value> {
     let mut releves = Vec::new();
     for (cle, entrees) in releves_historiques(ctx, dossier) {
         if let Some(dernier) = entrees.last() {
@@ -177,6 +186,12 @@ fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Ech
             releves.push(Value::Object(r));
         }
     }
+    releves
+}
+
+/// Pose l'etat courant a partir de la derniere DSN deposee de chaque salarie.
+fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Echec> {
+    let releves = derniers_taux_des_dsn(ctx, dossier);
     let nom = dossier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     enregistrer(ctx, &releves, &format!("amorcage depuis les DSN deposees ({})", nom))
 }

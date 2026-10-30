@@ -277,7 +277,12 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let novembre = banc.join("sorties/2026-11");
     std::fs::copy(novembre.join("envoi/Bulletin_FULLER_Novembre2026.pdf"), import.join("Bulletin_FULLER_Novembre2026.pdf")).unwrap();
     let dsn = std::fs::read(novembre.join("DSN_Novembre2026.dsn")).unwrap();
-    let dsn = String::from_utf8_lossy(&dsn).replace("S21.G00.40.010,'21112026'", "S21.G00.40.010,'03122026'");
+    // Le taux que la DGFiP a transmis a l'ancien logiciel (S21.G00.50.007 = 01, son identifiant en .008).
+    let fin = if dsn.contains(&b'\r') { "\r\n" } else { "\n" };
+    let dsn = String::from_utf8_lossy(&dsn)
+        .replace("S21.G00.40.010,'21112026'", "S21.G00.40.010,'03122026'")
+        .replace("S21.G00.50.007,'13'", &format!("S21.G00.50.007,'01'{}S21.G00.50.008,'123456789'", fin));
+    assert!(dsn.contains("S21.G00.50.008,'123456789'"), "{}", dsn);
     std::fs::write(import.join("DSN_Novembre2026.dsn"), dsn.as_bytes()).unwrap();
     let jour = "2026-12-20";
     let route = |nom: &str, charge: Value| crate::outils::route(&racine, nom, charge, jour);
@@ -302,7 +307,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     assert_eq!(engagements_ecrits(&racine), avant);
 
     // Decembre se paie ici : le contrat s'y reprend avec son numero et ses dates.
-    for f in ["entreprise.json", "organismes.json", "pas.json", "baremes/2026.json"] {
+    for f in ["entreprise.json", "organismes.json", "baremes/2026.json"] {
         let cible = racine.join("config").join(f);
         std::fs::create_dir_all(cible.parent().unwrap()).unwrap();
         std::fs::copy(banc.join("config").join(f), cible).unwrap();
@@ -327,7 +332,8 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let ecrite = reussi(&route("dsn-a-deposer", json!({"mois": "2026-12"}))).clone();
     let decembre = std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap();
     let decembre = String::from_utf8_lossy(&decembre);
-    for attendu in ["S21.G00.40.001,'20112026'", "S21.G00.40.009,'FU1.26.01'", "S21.G00.40.013,'4.00'"] {
+    // Le taux transmis que la DSN reprise appliquait vaut encore en decembre (CGI, art. 1671, 2) : il continue.
+    for attendu in ["S21.G00.40.001,'20112026'", "S21.G00.40.009,'FU1.26.01'", "S21.G00.40.013,'4.00'", "S21.G00.50.007,'01'", "S21.G00.50.008,'123456789'"] {
         assert!(decembre.contains(attendu), "{} manque :\n{}", attendu, decembre);
     }
     let ctx = droit::contexte::Contexte::nouveau(&racine, None).unwrap();
