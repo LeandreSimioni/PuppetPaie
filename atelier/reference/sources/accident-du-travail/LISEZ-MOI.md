@@ -28,6 +28,8 @@ exemplaire du cerfa n'ont pas pu être relevés.
 | `net-entreprises-actualite-dat-codes-nationalite-20260608.txt` | Sa transcription | — | `f7983e5c…a5f9` |
 | `net-entreprises-actualite-ajout-reserves-dat-20230118.html` | L'actualité « Ajout de réserves aux DAT » de net-entreprises (18/01/2023), relevée le 20/10/2026 | https://www.net-entreprises.fr/ajout-de-reserves-aux-dat/ | `ea3fcc54…6de6` |
 | `net-entreprises-actualite-ajout-reserves-dat-20230118.txt` | Sa transcription | — | `b321a3f7…d89` |
+| `ameli-reglementation-atmp-1er-novembre-2026-20261030.pdf` | L'actualité « Réglementation AT/MP : ce qui change au 1er novembre 2026 » d'ameli.fr (Entreprise, publiée le 22/10/2026), imprimée par Léandre le 30/10/2026 : le plafond des indemnités journalières AT/MP abaissé à 0,226 % du plafond annuel (décret n° 2026-909 du 30/09/2026, R. 433-2 CSS) ; deux taux d'incapacité permanente (professionnel, fonctionnel). **Où le moteur s'en sert : nulle part** : les indemnités journalières viennent de la caisse, le moteur ne les calcule pas (`engagement/src/imprevus.rs`, le complément « que la caisse communique ») | https://www.ameli.fr/entreprise/actualites/reglementation-atmp-ce-qui-change-au-1er-novembre-2026 | `7b0f0a18…f961e9a` |
+| `ameli-reglementation-atmp-1er-novembre-2026-20261030.md` | Sa transcription, à la main (le PDF n'a pas de couche de texte lisible) | — | `73849944…6b0d9894` |
 
 ## Le canal ouvert aux logiciels (relevé le 20/10/2026, ticket #205)
 

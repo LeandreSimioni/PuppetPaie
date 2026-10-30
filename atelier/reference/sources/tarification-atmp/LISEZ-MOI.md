@@ -13,6 +13,8 @@ la sécurité sociale qu'ils appliquent (D. 242-6-2, D. 242-6-14) sont relevés 
 | `legifrance-arrete-tarification-atmp-2025-complet-20261029.txt` | Sa transcription | — | `0937b0f1…6e73a1` |
 | `legifrance-arrete-tarification-atmp-1995-20261029.pdf` | Arrêté du 17 octobre 1995 relatif à la tarification des risques AT/MP (NOR SANS9502262A), version consolidée en vigueur au 29/10/2026 : règles de classement et nomenclature | https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000555723 (par son NOR, à vérifier au prochain relevé) | `21a84c1e…ea20499` |
 | `legifrance-arrete-tarification-atmp-1995-20261029.txt` | Sa transcription | — | `8820081a…c9c57e33` |
+| `legifrance-decret-2026-951-atmp-niveau-entreprise-20261030.pdf` | Décret n° 2026-951 du 13 octobre 2026 généralisant le calcul des taux de cotisation AT/MP au niveau de l'entreprise (NOR TRSS2625216D, JORF n°0240 du 14/10/2026), version initiale, relevé par Léandre le 30/10/2026 | https://www.legifrance.gouv.fr/eli/decret/2026/10/13/TRSS2625216D/jo/texte | `5faecc11…0d445cde8` |
+| `legifrance-decret-2026-951-atmp-niveau-entreprise-20261030.md` | Sa transcription, à la main (le PDF n'a pas de couche de texte lisible) | — | `7bdae1eb…bd88cca0` |
 
 ## Ce qu'on en lit
 
@@ -74,3 +76,11 @@ la sécurité sociale qu'ils appliquent (D. 242-6-2, D. 242-6-14) sont relevés 
   propre, un risque sans TC, 999ZZ, l'Alsace-Moselle, une année dont l'arrêté n'est pas déposé), le taux notifié de
   l'année se demande, en disant pourquoi.
 - `moteur::import::parametrage` : le code risque et le taux qu'une DSN importée déclare (S21.G00.40.040, .043).
+- **Le décret n° 2026-951 du 13/10/2026** (transcription `legifrance-decret-2026-951-atmp-niveau-entreprise-20261030.md`) :
+  pour les cotisations dues **à compter de 2027**, une entreprise en tarification individuelle ou mixte a un taux
+  déterminé au niveau de l'entreprise « pour chaque établissement ou groupe d'établissements appartenant à la même
+  catégorie de risque » (art. 1, D. 242-6-1 ; art. 5) ; un établissement nouvellement créé dans une catégorie de risque
+  que l'entreprise n'a pas encore, et toute entreprise en tarification collective, ont les **taux nets collectifs**
+  l'année de la création et les deux années civiles suivantes (art. 4, D. 242-6-17). **Le moteur ne s'en sert pas
+  encore** : le taux par établissement est au ticket #311 ; D. 242-6-17 dit le taux d'un établissement nouveau, pas ce
+  que le bulletin cotise sous 999ZZ avant la notification (ticket #307).
