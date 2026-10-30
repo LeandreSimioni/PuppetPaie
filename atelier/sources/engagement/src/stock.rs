@@ -987,31 +987,58 @@ impl Objet {
     }
 
     /// LE CHANGEMENT « A PARTIR DE `depuis` » d'un contrat paye au mois : `self` est l'engagement modifie, `ancien` ce
-    /// qu'il disait a sa validation. Les mois d'avant `depuis` reprennent les termes d'`ancien` (`RECONDUITS`) et gardent
-    /// ce qui n'appartient qu'a eux ; les mois a partir de `depuis` sont ceux de `self`. Le mois `depuis`, s'il n'est
-    /// pas le premier, porte la date de l'avenant (`date_modification`, le 1er du mois, quand la saisie n'en dit pas) :
-    /// le document qui dit la modification la date de sa prise d'effet (code du travail R1221-40, `atelier/reference/
-    /// sources/code-du-travail/articles-20261029.md`, l. 856), et la DSN date de meme le bloc S21.G00.41 (41.001).
+    /// qu'il disait a sa validation. Le changement, c'est chaque terme du contrat (`RECONDUITS`) que `self` dit autrement
+    /// qu'`ancien`, avec la valeur qu'il prend au premier mois ou il differe. Les mois d'avant `depuis` reprennent les
+    /// termes d'`ancien` ; `depuis` et tous les mois d'apres prennent les termes d'`ancien` et le changement par-dessus,
+    /// meme quand `ancien` y portait deja un autre chiffre : ce qui vaut « a partir de » vaut jusqu'au terme. Chaque mois
+    /// garde ce qui n'appartient qu'a lui (conges, primes). Le mois `depuis`, s'il n'est pas le premier, porte la date
+    /// de l'avenant (`date_modification`, le 1er du mois, quand la saisie n'en dit pas) : le document qui dit la
+    /// modification la date de sa prise d'effet (code du travail R1221-40, `atelier/reference/sources/code-du-travail/
+    /// articles-20261029.md`, l. 856), et la DSN date de meme le bloc S21.G00.41 (41.001). Un mois d'apres dont les
+    /// termes ne changent plus perd la date d'un avenant qui n'y a plus lieu.
     pub fn a_partir_du(&self, ancien: &Objet, depuis: &str) -> Resultat<Objet> {
+        let termes: Vec<&str> = RECONDUITS.iter().copied().filter(|k| !PARTAGES.contains(k)).collect();
         let mut mois: Vec<String> = self.mois_saisis();
         mois.extend(ancien.mois_saisis());
         mois.push(depuis.to_string());
         mois.sort();
         mois.dedup();
+        // Le changement : chaque terme, a sa valeur au premier mois ou il differe (`None` : retire).
+        let mut change: BTreeMap<&str, Option<Value>> = BTreeMap::new();
+        for m in &mois {
+            let (Some(n), Some(a)) = (self.vue(m)?, ancien.vue(m)?) else { continue };
+            for k in &termes {
+                if !change.contains_key(k) && n.get(*k).map(canonique) != a.get(*k).map(canonique) {
+                    change.insert(k, n.get(*k).cloned());
+                }
+            }
+        }
         let mut cibles: Vec<(String, Map<String, Value>)> = Vec::new();
         for m in mois {
             let Some(mut v) = self.vue(&m)? else { continue };
-            if m.as_str() < depuis {
-                if let Some(a) = ancien.vue(&m)? {
-                    for k in RECONDUITS.iter().filter(|k| !PARTAGES.contains(*k)) {
-                        match a.get(*k) {
-                            Some(x) => v.insert(k.to_string(), x.clone()),
-                            None => v.remove(*k),
-                        };
-                    }
+            if let Some(a) = ancien.vue(&m)? {
+                for k in &termes {
+                    match a.get(*k) {
+                        Some(x) => v.insert(k.to_string(), x.clone()),
+                        None => v.remove(*k),
+                    };
                 }
-            } else if m.as_str() == depuis && m != self.fichier && !v.get("date_modification").is_some_and(vrai) {
+            }
+            if m.as_str() >= depuis {
+                for (k, x) in &change {
+                    match x {
+                        Some(x) => v.insert(k.to_string(), x.clone()),
+                        None => v.remove(*k),
+                    };
+                }
+            }
+            if m.as_str() == depuis && m != self.fichier && !v.get("date_modification").is_some_and(vrai) {
                 v.insert("date_modification".into(), Value::String(premier_du_mois(&m)?.iso()));
+            } else if m.as_str() > depuis {
+                let memes = |x: &Map<String, Value>, y: &Map<String, Value>| termes.iter().all(|k| x.get(*k).map(canonique) == y.get(*k).map(canonique));
+                if cibles.last().is_some_and(|(_, p)| memes(p, &v)) {
+                    v.remove("date_modification");
+                }
             }
             cibles.push((m, v));
         }

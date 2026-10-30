@@ -1887,7 +1887,10 @@ fn changements_dates_a_la_validation(ctx: &Contexte, mois: &str, actuelle: &Valu
         }
         seul(&e)
     };
-    avant.iter().zip(&apres).enumerate().filter(|(_, (a, n))| seul(a) != seul(n)).all(|(i, (a, n))| {
+    // Un engagement valide ne change pas par l'ecriture de la saisie (`engagement::stock::ecrire_vue_du_mois`) : ce que
+    // l'ecran en renvoie (ses noms resolus) ne compte pas.
+    let valide = |a: &Value| a.get("valide").is_some_and(Value::is_object);
+    avant.iter().zip(&apres).enumerate().filter(|(_, (a, n))| !valide(a) && seul(a) != seul(n)).all(|(i, (a, n))| {
         hors_termes(a) == hors_termes(n) && n.as_object().is_some_and(|n| engagement::etats::se_datera_a_la_validation(ctx, mois, i, n).unwrap_or(false))
     })
 }

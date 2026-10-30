@@ -4,7 +4,8 @@
 //! janvier ; repondu fevrier, la paie de janvier reste celle qui est partie, fevrier prend le nouveau salaire, date du
 //! 01/02 (le document qui dit la modification la date de sa prise d'effet : code du travail R1221-40,
 //! `atelier/reference/sources/code-du-travail/articles-20261029.md`, l. 856), et la carte de janvier ne dit pas
-//! « Modifié le… ».
+//! « Modifié le… ». Ce qui vaut « a partir d'un mois » vaut pour ce mois et tous ceux d'apres, meme quand ils portaient
+//! deja un autre chiffre.
 
 use serde_json::{json, Value};
 
@@ -71,4 +72,17 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
     let ligne = etapes["engagements"].as_array().and_then(|l| l.iter().find(|x| x["salarie"] == "SVOBODA")).cloned().unwrap_or(Value::Null);
     assert!(ligne.is_object(), "{}", etapes);
     assert!(ligne["versions"].is_null(), "janvier n'a pas change : {}", ligne["versions"]);
+
+    // Rouvert encore : 3 800 tape dans l'ecran de janvier, « a partir de fevrier », remplace les 3 600 que fevrier
+    // portait. Rien de ce qui est tape ne se perd.
+    reussi(&route(&c, "valider-engagement", avec(json!({"valide": false, "confirme": true})), jour));
+    let saisie = reussi(&route(&c, "saisie", json!({"mois": "2026-01"}), jour))["saisie"].clone();
+    let mut nouvelle = saisie.clone();
+    nouvelle["engagements"][0]["salaire_mensuel"] = json!(3800);
+    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-01", "saisie": nouvelle}), jour));
+    reussi(&route(&c, "valider-engagement", avec(json!({"valide": true, "a_partir_du": "2026-02"})), jour));
+    let e = lire();
+    assert_eq!(e["valide"]["paies"]["2026-01"]["paie"], paie_de_janvier, "janvier a change");
+    assert_eq!(e["salaire_mensuel"], json!(3400));
+    assert_eq!(e["mois_suivants"]["2026-02"]["salaire_mensuel"], json!(3800), "{}", e);
 }
