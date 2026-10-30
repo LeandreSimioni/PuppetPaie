@@ -921,7 +921,11 @@ function confirmerModification(mois, texte, renvoyer) {
     CONFIRMATION_OUVERTE = null;
     if (remettre) remettre();
     if (confirme) return;
-    noteSaisie("Modification annulée : la saisie reste telle qu'elle est enregistrée.");
+    // Ce qui était à l'écran et pas confirmé (un engagement ajouté, une ligne changée) s'en va : ça se dit, en clair,
+    // pas seulement au pied de la saisie.
+    const phrase = `${moisEnClair(mois)} : modification non confirmée, rien n'est enregistré — la saisie revient à ce qui l'était.`;
+    noteSaisie(phrase);
+    dire(phrase, "erreur");
     if (MOIS_AFFICHE === mois) await chargerMois(mois, true);
   };
   ouvrirBoite(`
