@@ -40,15 +40,19 @@ pub const SUITE: &str = "mois_suivants";
 pub const TENUS_PAR_LE_MOTEUR: [&str; 9] =
     [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF, A_COMPLETER, crate::importe::IMPORTE, DE_COTE];
 
-/// CE QUE LA NATURE DU MOMENT N'UTILISE PAS, dans un engagement en saisie : `{"spectacle", "lignes"}`, ceux qu'il disait
-/// avant de passer a une nature payee au mois (un permanent n'a ni spectacle, S21.G00.40.050 et CCH-11, ni ligne de
-/// cachet : sa paie se compose du mois). Ils ne se lisent dans aucun calcul ni aucun document (la vue ne les porte pas) ;
-/// l'ecran les montre a part (`vue_a_l_ecran`), et ils redeviennent les siens quand l'ecran les renvoie sous une nature
-/// qui s'en sert. La validation les oublie.
+/// CE QUE LA NATURE DU MOMENT N'UTILISE PAS, dans un engagement en saisie : ce qu'il disait sous l'autre forme de paie
+/// avant que sa nature change. Passe a une nature payee au mois, il garde son spectacle et ses lignes de paie (un
+/// permanent n'a ni spectacle, S21.G00.40.050 et CCH-11, ni ligne de cachet : sa paie se compose du mois). Revenu a un
+/// contrat d'usage, il garde les bornes, le salaire, la quotite et le motif de recours de son contrat au mois (un contrat
+/// d'usage tire ses bornes de ses jours joues, et son contrat est autre). Ils ne se lisent dans aucun calcul ni aucun
+/// document (la vue ne les porte pas) ; l'ecran les montre a part (`vue_a_l_ecran`), et ils redeviennent les siens quand
+/// l'ecran les renvoie sous une nature qui s'en sert. La validation les oublie.
 pub const DE_COTE: &str = "de_cote";
 
-/// Ce que `DE_COTE` garde : le spectacle et les lignes de paie.
-const MIS_DE_COTE: [&str; 2] = ["spectacle", "lignes"];
+/// Ce que `DE_COTE` garde sous une nature payee au mois : le spectacle et les lignes de paie.
+const MIS_DE_COTE_AU_MOIS: [&str; 2] = ["spectacle", "lignes"];
+/// Ce que `DE_COTE` garde sous un contrat d'usage : ce que le contrat au mois disait de lui-meme.
+const MIS_DE_COTE_A_L_USAGE: [&str; 5] = ["debut", "fin", "salaire_mensuel", "quotite_contrat", "motif_recours"];
 
 /// UN ENGAGEMENT EN SAISIE AUQUEL IL MANQUE UN FAIT (un salaire, une duree du travail, une anciennete, un spectacle,
 /// des jours) : `{"mois", "manque"}`, le mois dont l'ecriture l'a trouve incomplet et ce que le calcul en dit ; l'ecran
@@ -889,22 +893,24 @@ fn meme_spectacle(ctx: &Contexte, a: &Value, b: &Value) -> bool {
     cle(a).is_some_and(|x| Some(x) == cle(b))
 }
 
-/// CE QUE `saisie` GARDE DE COTE (`DE_COTE`), ou `None`. Sous une nature payee au mois, ce que la saisie ne dit pas du
-/// spectacle et des lignes se reprend de ce qui etait deja de cote (`cote`), sinon de la vue que l'ecran montrait
-/// (`avant` : la nature vient de changer). Sous une nature qui s'en sert, rien ne reste de cote : l'ecran les renvoie
-/// dans la saisie, comme siens.
+/// CE QUE `saisie` GARDE DE COTE (`DE_COTE`), ou `None`. Ce que la nature de la saisie n'utilise pas
+/// (`MIS_DE_COTE_AU_MOIS` sous une nature payee au mois, `MIS_DE_COTE_A_L_USAGE` sous un contrat d'usage), et que la
+/// saisie ne dit pas, se reprend de ce qui etait deja de cote (`cote`), sinon de la vue que l'ecran montrait (`avant`)
+/// quand elle etait de l'autre forme de paie : la nature vient de changer. Sous une nature qui s'en sert, rien ne reste
+/// de cote : l'ecran les renvoie dans la saisie, comme siens.
 fn mettre_de_cote(saisie: &Map<String, Value>, cote: Option<&Value>, avant: &Value) -> Option<Map<String, Value>> {
-    let mensuelle = droit::natures::nature(saisie.get("nature").and_then(Value::as_str)).is_ok_and(|n| n.mensuelle());
-    if !mensuelle {
-        return None;
-    }
+    let au_mois = |v: Option<&Value>| droit::natures::nature(v.and_then(Value::as_str)).is_ok_and(|n| n.mensuelle());
+    let mensuelle = au_mois(saisie.get("nature"));
+    let changee = mensuelle != au_mois(avant.get("nature"));
+    let cles: &[&str] = if mensuelle { &MIS_DE_COTE_AU_MOIS } else { &MIS_DE_COTE_A_L_USAGE };
     let dit = |v: &Value| vrai(v) && v.as_array().is_none_or(|l| !l.is_empty());
     let mut garde = Map::new();
-    for k in MIS_DE_COTE {
-        if saisie.get(k).is_some_and(dit) {
+    for k in cles {
+        if saisie.get(*k).is_some_and(dit) {
             continue;
         }
-        if let Some(x) = cote.and_then(|c| c.get(k)).or_else(|| avant.get(k)).filter(|x| dit(x)) {
+        let de_l_ecran = avant.get(*k).filter(|_| changee);
+        if let Some(x) = cote.and_then(|c| c.get(*k)).or(de_l_ecran).filter(|x| dit(x)) {
             garde.insert(k.to_string(), x.clone());
         }
     }
