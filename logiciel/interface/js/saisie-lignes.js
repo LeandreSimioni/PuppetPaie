@@ -1387,7 +1387,8 @@ function majNature(div) {
 function majRupture(div) {
   const nat = natureDe(div.querySelector(".e-nature").value);
   const bloc = div.querySelector(".e-rupture");
-  const fin = div.querySelector(".e-fin").value;
+  // Un contrat aux cachets n'écrit pas sa fin : le moteur la donne (`contrat.rupture`).
+  const fin = div.querySelector(".e-fin").value || (div._rupture && div._rupture.fin) || "";
   const motifs = nat.motifs_rupture || [];
   // LA FIN NE SE DEMANDE QUE LE MOIS OÙ ELLE A LIEU : un CDD de janvier à
   // juin n'a rien à dire de sa fin en janvier. Elle paraît quand la fin du

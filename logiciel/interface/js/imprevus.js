@@ -252,15 +252,11 @@ function carteDe(div) {
   };
 }
 
-/** La rupture a-t-elle un sens d'ici ? Seulement quand la carte sait déjà la dire : une nature qui a des motifs de
- *  rupture (le moteur les donne, `natures`), une fin qu'on peut écrire (un contrat payé au mois, ou des bornes déjà
- *  écrites), et un engagement ouvert. Sinon on ne l'invente pas. */
+/** La rupture se propose quand le moteur dit qu'elle a un sens pour cet engagement (`contrat.rupture` de l'aperçu, posé
+ *  sur la carte) ; elle se saisit dans une carte ouverte. */
 function ruptureOuverte(div) {
   if (carteFermee(div) || div.classList.contains("validee")) return null;    // une carte fermée, un engagement validé
-  const nat = natureDe(div.querySelector(".e-nature").value);
-  if (!(nat.motifs_rupture || []).length) return null;
-  if (!nat.mensuelle && !div.querySelector(".e-fin").value) return null;
-  return nat.duree_indeterminee ? "La fin du contrat (licenciement, démission…)" : "Une rupture avant terme";
+  return div._rupture ? div._rupture.porte : null;
 }
 
 let MENU_IMPREVU = null;
@@ -311,7 +307,7 @@ function ouvrirRupture(div) {
   const contrat = div.querySelector(".e-contrat");
   contrat.open = true;
   const fin = div.querySelector(".e-fin");
-  const cible = fin.value ? div.querySelector(".e-motif-rupture") : fin;
+  const cible = fin.value || (div._rupture && div._rupture.fin) ? div.querySelector(".e-motif-rupture") : fin;
   cible.scrollIntoView({ block: "center" });
   cible.focus();
 }
