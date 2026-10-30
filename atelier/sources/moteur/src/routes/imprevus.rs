@@ -20,10 +20,10 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::routes::{brut, maintenant, qui_de, salarie};
-use declarations::signalement::{self, ARRET};
+use declarations::signalement;
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
-use engagement::imprevus::{self, SUSPENSION};
+use engagement::imprevus::{self, ARRET, SUSPENSION};
 use envois::etats::{get, getd, items, objet_vide, ou, Dico};
 use socle::date::{d, en_texte, repr_texte, Jour};
 use socle::echec::{erreur, Echec, Refus, R};
@@ -753,7 +753,7 @@ pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) ->
 /// Ce que la norme refuse (`SignalementImpossible`, une
 /// `ValueError`) ; les avertissements ne servent pas ici.
 pub(crate) fn verifier(arret: &Value) -> R<()> {
-    match signalement::verifier(&declarations::dsn::Arret { v: arret.clone() }, ARRET, None) {
+    match signalement::verifier(&declarations::dsn::Arret { v: arret.clone() }, signalement::ARRET, None) {
         Ok(_) => Ok(()),
         Err(signalement::Echec::Impossible(m)) => Err(erreur("ValueError", m)),
         Err(signalement::Echec::Autre(m)) => Err(Echec { classe: None, message: m }),

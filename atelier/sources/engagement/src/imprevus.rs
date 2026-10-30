@@ -564,7 +564,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 
 /// LES LIGNES QU'UN IMPREVU DONNE AU MOIS D'UN PERMANENT -- le seul endroit qui les tire. Chaque imprevu du contrat
 /// retire le salaire de ses heures d'absence dans le mois (bornees par le contrat) ; un arret le retire sous
-/// `absence_maladie` (le catalogue la marque `arret_de_travail`), une suspension non remuneree sous
+/// la rubrique de son motif (`arrets-base.json`, `rubrique` ; le catalogue la marque `arret_de_travail`), une suspension non remuneree sous
 /// `absence_non_remuneree`. Une suspension que `permanents-base.json` dit remuneree (637 : C. trav. L3142-2, « n'entrainent
 /// pas de reduction de la remuneration ») ne retire rien. Le maintien de salaire d'un arret est celui SAISI SUR L'ARRET
 /// pour ce mois (`maintien`) : la loi le dit (`maintien_possible`), elle ne le verse pas -- les indemnites journalieres a
@@ -606,7 +606,21 @@ salaire du mois",
         let code = s(&imp, "motif");
         if est_un_arret(&imp) {
             let motif = motif_d_arret(&code)?.unwrap_or(Value::Null);
-            lignes.extend(retenue("absence_maladie"));
+            // Le bulletin nomme l'absence d'apres le motif de l'arret (S21.G00.60.001) : sa rubrique est celle du motif
+            // (`arrets-base.json`, `rubrique`).
+            let rubrique = s(&motif, "rubrique");
+            if rubrique.is_empty() {
+                return Err(format!(
+                    "{} : l'arret du {} au {} a pour motif {} ({}), que le logiciel ne paie pas : aucune ligne de bulletin ne \
+nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
+                    qui,
+                    premier.jj_mm_aaaa(),
+                    dernier.jj_mm_aaaa(),
+                    code,
+                    en_texte(g(&motif, "libelle"))
+                ));
+            }
+            lignes.extend(retenue(&rubrique));
             avert.push(info(format!(
                 "{} : arret de travail ({}) du {} au {}, saisi une fois : {} ; le bloc S21.G00.60 part dans la DSN de \
 chaque mois qu'il traverse.",
