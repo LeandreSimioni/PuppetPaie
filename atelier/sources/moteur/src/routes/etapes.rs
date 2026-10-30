@@ -400,6 +400,36 @@ pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String,
         .collect())
 }
 
+/// LA DPAE PARTIE pour une version passee de cet engagement (`brut` : ses `versions` et sa version validee) qui disait
+/// un autre salarie ou un autre premier jour que `(cle, debut)` : la phrase de l'ecart et le jour du depot. Une DPAE
+/// refusee ne declare rien. La DPAE declare l'identite du salarie et la date d'embauche (R. 1221-1 du code du travail) :
+/// une autre personne ou un autre jour, ce n'est pas cette embauche.
+fn dpae_d_un_autre(ctx: &Contexte, brut: &Map<String, Value>, cle: &str, debut: &str, dpae: &HashMap<Paire, Value>) -> Option<(String, Value)> {
+    let passees = brut
+        .get("versions")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .chain(brut.get("valide"))
+        .filter_map(|v| v.get("saisie"));
+    for s in passees {
+        let Some(autre) = engagement::cle_de_l_engagement(ctx, s) else { continue };
+        let jour = engagement::debut_brut(s);
+        if (autre.as_str(), jour.as_str()) == (cle, debut) {
+            continue;
+        }
+        let Some(d) = dpae.get(&(autre.clone(), jour.clone())).filter(|d| vrai(&d["quand"]) && !vrai(&d["refusee"])) else { continue };
+        let phrase = if autre != cle {
+            let nom = ctx.salarie(&autre).ok().map_or_else(|| autre.clone(), |f| super::nom_a_l_ecran(&f));
+            format!("salarié : la DPAE déclare {}", nom.trim())
+        } else {
+            format!("premier jour : la DPAE déclare {}", le_jour(&json!(jour)))
+        };
+        return Some((phrase, d["quand"].clone()));
+    }
+    None
+}
+
 /// La date d'embauche que la DPAE partie a declaree, quand elle n'est plus celle de l'engagement (`ARefaire::Dpae`).
 pub(crate) fn debut_declare(refaire: &[ARefaire]) -> Option<String> {
     refaire.iter().find_map(|a| match a {
@@ -860,8 +890,19 @@ impl<'a> Moteur<'a> {
             } else {
                 Value::Null
             };
+            // UNE DPAE PARTIE POUR CET ENGAGEMENT QUAND IL DISAIT UN AUTRE SALARIE, OU UN AUTRE PREMIER JOUR (une de ses
+            // versions, validee ou en cours de modification) : elle ne declare pas cette embauche. Dit tant que la DPAE de
+            // l'embauche telle qu'elle est n'est pas partie.
+            let (ecart, ecart_depuis) = match (vrai(&ecart), vrai(get(dpae_v, "quand")?), vrai(&date_changee)) {
+                (false, false, false) => match etats_eng.get(i).and_then(|e| dpae_d_un_autre(self.ctx, &e.objet().brut, &cle, &debut, &g.dpae)) {
+                    Some((phrase, quand)) => (json!(phrase), quand),
+                    None => (Value::Null, Value::Null),
+                },
+                _ => (ecart, get(dpae_v, "quand")?.clone()),
+            };
             let dpae = json!({
                 "ecart": ecart,
+                "ecart_depuis": ecart_depuis,
                 "date_changee": date_changee,
                 "fait": get(dpae_v, "quand")?,
                 "passee": vrai(get(dpae_v, "passee")?),

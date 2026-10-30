@@ -247,11 +247,6 @@ function peindreEtats() {
       const ligne = lignes[0];
       // Un contrat sur plusieurs mois : son chevron est au bord de la case.
       div._ligne = ligne;
-      const dp = ligne.etats.dpae || {};
-      if (dp.fait && !dp.refusee) {
-        div._dpaeFaite = { salarie: ligne.salarie, debut: ligne.debut,
-                           nom: ligne.nom, quand: dp.fait };
-      }
       poserEtats(cible, `<span class="etats-qui">${echapper(ligne.nom)}
           <span class="discret">— ${echapper(pourQuoi(ligne))}</span></span>`
         + bandeauEtats(ligne) + bandeauValidation(ligne));
@@ -602,24 +597,16 @@ const URSSAF_DPAE = "https://www.urssaf.fr/accueil/employeur/embaucher-gerer-sal
 function avisDpaeDeplacee(div, ps, ligne) {
   const cible = div.querySelector(".etats");
   let avis = div.querySelector(".avis-dpae");
-  const d = div._dpaeFaite;
-  const ecarts = [];
-  if (d && !ps.some((p) => p.salarie === d.salarie && p.debut === d.debut)) {
-    ecarts.push(ps.some((p) => p.salarie === d.salarie)
-      ? `premier jour : la DPAE déclare le ${jjmmaaaa(d.debut)}`
-      : `salarié : la DPAE déclare ${d.nom}`);
-  }
+  // L'écart, le moteur le dit (`etats.dpae.ecart`) : la fin, le salarié ou le premier jour que la DPAE partie déclare.
   const dp = ligne && ligne.etats && ligne.etats.dpae;
-  if (dp && dp.ecart) ecarts.push(dp.ecart);
-  if (!ecarts.length) { if (avis) avis.remove(); return; }
+  if (!(dp && dp.ecart)) { if (avis) avis.remove(); return; }
   if (!avis) {
     avis = document.createElement("div");
     avis.className = "encart attention avis-dpae";
     cible.parentNode.insertBefore(avis, cible);
   }
-  const quandDpae = d ? d.quand : dp.fait;
-  avis.innerHTML = `<b>L'engagement ne correspond plus à la DPAE déposée le ${echapper(quand(quandDpae))}</b>
-    <ul>${ecarts.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>
+  avis.innerHTML = `<b>L'engagement ne correspond plus à la DPAE déposée le ${echapper(quand(dp.ecart_depuis || dp.fait))}</b>
+    <ul><li>${echapper(dp.ecart)}</li></ul>
     Selon l'Urssaf, les informations relatives au contrat de travail se
     modifient dans son espace en ligne (Compte › Embauche › Modifier une
     DPAE) ; pour toute autre modification, on dépose une nouvelle DPAE ou on
