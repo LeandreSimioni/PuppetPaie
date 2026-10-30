@@ -1114,7 +1114,7 @@
                     "existe racine:config/pas.json": "oui",
                     "existe racine:config/rubriques-compagnie.json": "non",
                     "fiches": "9b984b7b3c575bbe1c616b6634916956b4f8919fa2395025849b8b66075dd973",
-                    "fichier code:baremes/2026.json": "b6a9085a16551f5976fb738ba7bd60977e8490b2ce2d1e49938c2e5c1d75387b",
+                    "fichier code:baremes/2026.json": "6265acfbfe8d2d492c4ebe9472ad5924b9fbfa289f99ba1fb9e1f3268b20f744",
                     "fichier code:contrats-base.json": "a0c431f9a396fe2a4e29edbbe235ad7b6e31f757547295ed1b87252b2e1c6f64",
                     "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",
                     "fichier code:minima-conventionnels.json": "2ef600adf478c5c235821d4847555f8b469acfbd29fae8cb863d38369535e882",
