@@ -886,7 +886,7 @@ pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<Value>> 
     let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
         &nat,
         eng.motif_recours.as_deref(),
-        &format!("Contrat {} de {}", eng.numero.as_deref().unwrap_or("sans numero"), eng.salarie),
+        &droit::cpf_cdd::le_contrat(eng.numero.as_deref(), &eng.salarie),
     )?;
     bareme_du_salarie(ctx, &p.salarie, &nat, &eng.fin_periode()?, caisse, cpf_cdd)
 }
@@ -1064,7 +1064,7 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
     let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
         &nat,
         eng.motif_recours.as_deref(),
-        &format!("Contrat {} de {}", eng.numero.as_deref().unwrap_or("sans numero"), eng.salarie),
+        &droit::cpf_cdd::le_contrat(eng.numero.as_deref(), &eng.salarie),
     )?;
     let bar = bareme_du_salarie(ctx, &sal, &nat, &fin_periode, caisse, cpf_cdd)?;
     let rubriques_bulletin: Vec<&Value> = requis(&bar, "rubriques_bulletin")?

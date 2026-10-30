@@ -628,7 +628,7 @@ fn bareme_de(p: &Paie, bar: &Value) -> Resultat<Value> {
     let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
         &nat,
         p.engagement.motif_recours.as_deref(),
-        &format!("Contrat {} de {}", p.engagement.numero.as_deref().unwrap_or("sans numero"), p.engagement.salarie),
+        &droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &p.engagement.salarie),
     )?;
     bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), p.declaree_a_la_caisse_des_conges()?, cpf_cdd)
 }
@@ -1399,10 +1399,10 @@ fn motif_recours(p: &Paie, nat: &Nature) -> Resultat<String> {
     match e.motif_recours.as_deref().filter(|m| !m.is_empty()) {
         Some(m) => Ok(m.to_string()),
         None => Err(format!(
-            "Contrat {} ({}) : dites pourquoi ce CDD est conclu (« Motif du CDD », sur la carte de l'engagement).\n\
+            "Dites pourquoi ce CDD est conclu (« Motif du CDD », sur la carte de l'engagement) : {} ({}) n'en dit pas le motif.\n\
 C'est le motif qui rend le contrat licite (code du travail, L. 1242-2 : remplacement d'un salarié, accroissement \
 temporaire d'activité, emploi saisonnier…) ; la DSN le déclare, il y est obligatoire (S21.G00.40.021, SIG-11).",
-            e.numero.clone().unwrap_or_else(|| "None".into()),
+            droit::cpf_cdd::le_contrat(e.numero.as_deref(), &e.salarie),
             nat.libelle
         )),
     }
