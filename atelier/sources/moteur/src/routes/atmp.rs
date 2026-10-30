@@ -149,6 +149,60 @@ pub(crate) fn poser(ctx: &Contexte, an: i64, code: &str, valeur: Option<Decimal>
     ecrire(&ctx.racine, an, m)
 }
 
+/// LE CODE ET LE TAUX QUE LA CARSAT NOTIFIE (retour DSN de nature 34, `envois::retours::taux_atmp_d_octets`) se posent
+/// d'eux-memes dans la surcouche de l'annee de leur date d'effet : la compagnie n'a rien a recopier. Effet au 1er janvier :
+/// le taux de l'annee. Effet en cours d'annee : `valeur` devient la liste datee `[{depuis, valeur}]`, le taux d'avant
+/// (dit pour l'annee, ou repris) jusqu'a la date d'effet (`droit::bareme::taux_atmp_au`, et le bareme a la date). `_notification`
+/// garde le jour de la notification et la date d'effet ; une notification plus ancienne que celle deja posee ne remplace
+/// rien. `Ok(Some(phrase))` : rien n'est pose, et la phrase dit pourquoi et quoi faire (un changement de code en cours
+/// d'annee, que la configuration ne date pas).
+pub(crate) fn poser_notifie(ctx: &Contexte, n: &envois::retours::TauxAtmpNotifie, le: &str, source: &str) -> R<Option<String>> {
+    let an = n.date_effet.an as i64;
+    let code = n.code_risque.clone();
+    if !code_risque_valide(&code) || code == bareme::SANS_NOTIFICATION || n.taux <= Decimal::ZERO || n.taux >= Decimal::from(20) {
+        return Ok(Some(format!("{} : code risque {} et taux {} illisibles ; rien n'est posé. Le code et le taux se lisent sur la notification (compte AT/MP sur net-entreprises) et se saisissent dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».", source, code, n.taux)));
+    }
+    let deja = crate::routes::fiches::lire_tolerant(&surcouche(&ctx.racine, an))?.and_then(|v| v.get("taux_atmp").and_then(Value::as_object).cloned());
+    let calcul = n.date_calcul.map(|j| j.iso()).unwrap_or_default();
+    if let Some(avant) = deja.as_ref().and_then(|t| t.get("_notification")).and_then(|x| x.get("calcul")).and_then(Value::as_str) {
+        if !calcul.is_empty() && avant > calcul.as_str() {
+            return Ok(None);
+        }
+    }
+    let premier_janvier = n.date_effet.mois == 1 && n.date_effet.jour == 1;
+    let valeur = if premier_janvier {
+        nombre(n.taux)
+    } else {
+        // Le taux d'avant la date d'effet : celui que l'annee dit, sinon celui qu'elle reprend.
+        let avant = match &deja {
+            Some(t) => Some(t.clone()),
+            None => ctx.taux_atmp_de(an as i32).and_then(Result::ok),
+        };
+        let code_avant = avant.as_ref().and_then(|t| t.get("code_risque")).filter(|c| vrai(c)).map(valeur_en_texte);
+        if code_avant.as_deref().is_some_and(|c| c != code) {
+            return Ok(Some(format!(
+                "{} : le code risque passe de {} à {} au {} ; rien n'est posé, car la configuration ne date pas le code risque. Saisissez le code et le taux notifiés dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».",
+                source, code_avant.unwrap_or_default(), code, n.date_effet.jj_mm_aaaa()
+            )));
+        }
+        let effet = n.date_effet.iso();
+        let mut liste: Vec<Value> = match avant.as_ref().and_then(|t| t.get("valeur")) {
+            Some(Value::Array(a)) => a.iter().filter(|e| e.get("depuis").and_then(Value::as_str).is_some_and(|d| d < effet.as_str())).cloned().collect(),
+            Some(v) if !v.is_null() => vec![json!({"depuis": format!("{}-01-01", an), "valeur": v})],
+            _ => vec![],
+        };
+        liste.push(json!({"depuis": effet, "valeur": nombre(n.taux)}));
+        Value::Array(liste)
+    };
+    let mut m = Map::new();
+    m.insert("valeur".into(), valeur);
+    m.insert("code_risque".into(), json!(code));
+    m.insert("_source".into(), json!(source));
+    m.insert("_notification".into(), json!({"le": le, "calcul": calcul, "effet": n.date_effet.iso()}));
+    ecrire(&ctx.racine, an, m)?;
+    Ok(None)
+}
+
 /// Un taux saisi : `1,5`, `1.50`, `1,50 %` ; vide : rien.
 pub(crate) fn taux_saisi(v: Option<&Value>) -> R<Option<Decimal>> {
     let Some(v) = v.filter(|v| vrai(v)) else { return Ok(None) };
@@ -183,7 +237,19 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
         None => (None, None, None),
     };
     let code = pose.as_ref().and_then(|t| t.get("code_risque")).filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
-    let valeur = pose.as_ref().and_then(|t| t.get("valeur")).filter(|v| !v.is_null()).cloned();
+    // Le taux en vigueur aujourd'hui, ramene dans l'annee (une liste datee : celui de sa date d'effet).
+    let jour = match ctx.aujourdhui.an as i64 {
+        a if a < an => socle::date::Jour::nouveau(an as i32, 1, 1),
+        a if a > an => socle::date::Jour::nouveau(an as i32, 12, 31),
+        _ => Some(ctx.aujourdhui),
+    };
+    let valeur = pose
+        .as_ref()
+        .and_then(|t| t.get("valeur"))
+        .zip(jour)
+        .and_then(|(v, j)| bareme::taux_atmp_au(v, &j))
+        .map(nombre);
+    let notification = pose.as_ref().and_then(|t| t.get("_notification")).cloned();
     let a_la_creation = pose.as_ref().is_some_and(|t| t.get(POSE_A_LA_CREATION).is_some_and(vrai));
     let socle = socle_de(an);
     let risques = socle.as_ref().map(bareme::risques_atmp).unwrap_or_default();
@@ -224,8 +290,19 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
         "resume": if code.is_empty() { String::new() } else { format!("Code risque {}{}", connu.map(nom).unwrap_or_else(|| code.clone()), taux_dit.as_ref().map(|t| format!(", taux {}", t)).unwrap_or_default()) },
         "pose_a_la_creation": a_la_creation,
         "reporte_de": reporte,
-        "explication": match (connu.and_then(|r| r.alsace_moselle.map(|g| (r, g))), en_alsace_moselle(ctx)) {
-            (Some((r, (groupe, t))), true) => format!(
+        "notification": notification,
+        "explication": match (connu.and_then(|r| r.alsace_moselle.map(|g| (r, g))), en_alsace_moselle(ctx), &notification) {
+            (_, _, Some(n)) => {
+                let date = |k: &str| n.get(k).and_then(Value::as_str).and_then(|d| socle::date::Jour::lire(d).ok()).map(|j| j.jj_mm_aaaa());
+                format!(
+                    "Code risque {}{}, notifiés par la CARSAT{} et en vigueur depuis le {} : le logiciel les a lus dans la notification reçue avec les retours de la DSN, et posés de lui-même.",
+                    connu.map(nom).unwrap_or_else(|| code.clone()),
+                    taux_dit.as_ref().map(|t| format!(", taux {}", t)).unwrap_or_default(),
+                    date("calcul").or_else(|| date("le")).map(|d| format!(" (notification du {})", d)).unwrap_or_default(),
+                    date("effet").unwrap_or_default()
+                )
+            }
+            (Some((r, (groupe, t))), true, None) => format!(
                 "L'établissement est en Alsace-Moselle : l'annexe 3 de {} classe {} au groupe {}, à {} en {}. Le logiciel ne pose pas ce taux de lui-même (l'article D. 242-35, qui dit à quelles compagnies il s'applique, n'est pas relevé) : celui de la paie est celui que vous saisissez, tel que la notification de la CARSAT le dit. {}",
                 arrete.clone().unwrap_or_else(|| format!("l'arrêté de tarification de {}", an)), nom(r), groupe, en_pourcent(t), an, taux_dit.as_ref().map(|t| format!("Taux saisi : {}.", t)).unwrap_or_default()
             ),

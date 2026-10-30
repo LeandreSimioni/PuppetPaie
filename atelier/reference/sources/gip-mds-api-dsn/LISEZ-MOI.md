@@ -22,6 +22,8 @@ brut de ce que l'archive ne contient pas (la fiche 692, deux pages de net-entrep
 | `ctip-crm-dsn-oc-p3-v1.1.4-schema-20230915.xsd` | `CRM-DSN-OC-P3-V1.1.4-15092023.xsd`, déplié de l'archive de la fiche 692 | tel quel (ISO-8859-1, CRLF) |
 | `net-entreprises-page-comptes-rendus-metiers-dsn-20211130.html` (+ `.txt`, le texte des balises) | la page « Les Comptes Rendus Métiers DSN » (`https://www.net-entreprises.fr/declaration/comptes-rendus-metiers-dsn/`, « Modifié le 30 novembre 2021 »), relevée le 20/10/2026 | telle que servie |
 | `net-entreprises-page-api-dsn-20261020.html` | la page « API DSN » (`https://www.net-entreprises.fr/declaration/api-dsn/`), relevée le 20/10/2026 : son seul document est l'archive du guide | telle que servie |
+| `gip-mds-specifications-schema-bilans-vt2.2-declaration-resultat-type-20201118.png` | l'image `word/media/image12.png` de `DSN-NormalisationBilans-Spécifications du schéma-VT2.2.docx` (dans l'archive du guide v6.8 déposée ; la même, octet pour octet, dans l'archive v6.9 servie le 30/10/2026 par `https://www.net-entreprises.fr/media/documentation/dsn-guide-implementation-API.zip`, Last-Modified 04/09/2026), SHA-256 `fe301f07…aee498` : le diagramme XMLSpy de `declaration_resultat_type`, avec `taux_AT` et son type `taux_AT_identification_type` | extraite telle quelle, le 30/10/2026 |
+| `gip-mds-specifications-schema-bilans-vt2.2-communication-type-20201118.png`, `…-information-diff-type-20201118.png` | les images `image18.png` et `image19.png` du même document (§2.6, `communication_type`, `information_diff_type`) | extraites telles quelles, le 30/10/2026 |
 
 ## Ce qu'on en lit
 
@@ -87,6 +89,36 @@ pas de format de CRM ; DSN-FIAB) ; le kit `ArchitectureDSN/dsn-api` sur GitHub ;
 (`ctip.asso.fr`) ne présente pas de certificat valide pour son nom. Ces comptes rendus gardent donc leur statut et leur
 pièce brute.
 
+**La notification du taux AT/MP (nature 34, la CNAM ; relu le 30/10/2026).**
+- Le guide v6.8, §5.26.1 « Communication de nouveaux taux ATMP » (`gip-mds-guide-implementation-api-dsn-v6.8-20260706.txt`
+  l. 4589-4596) : nature **34**, « CR métier taux AT », OPS non renseigné, statut OK, URL renseignée ; « Ce
+  compte-rendu est rattaché à la dernière déclaration mensuelle disponible. » Tableau des retours (p. 11-13, l. 625) :
+  « Compte-rendu métier AT », CNAM, **format DSN harmonisé**. §6.5 « Comptes-Rendus Métier CNAM » (l. 4902-4911) nomme
+  deux exemples, `exemple_retour_34_CRM_CNAM.xml` et `exemple_retour_34_CRM_CNAM_taux_multiples.xml`, **qu'aucune archive
+  servie ne contient** (ni la v6.8 déposée ni la v6.9 du 04/09/2026 ; la page « API DSN » n'a pas d'autre document).
+- La spécification du schéma des bilans (VT2.2), version 1.9 (20/12/2019, `dsn_bilans_v01r09.xsd`) : « Ajout du taux_AT
+  à l'élément déclaration » ; le groupe « Bilan » : « **taux_AT** — Code CTN, Section, Code risque, Témoin bureau, Taux,
+  Date effet, Date calcul. A terme ces informations seront remontées dans le bloc communication »
+  (`gip-mds-specifications-schema-bilans-vt2.2-20201118.txt` l. 228-229). Le diagramme
+  (`…-declaration-resultat-type-20201118.png`) donne les noms : `declaration_bilan` (type `declaration_resultat_type`)
+  porte de 0 à n `taux_AT` (type `taux_AT_identification_type`), chacun : `code_ctn` (« Code CTN sur 2 caractères
+  maximum »), `section` (« Section sur 2 caractères maximum »), `code_risque` (« Code risque sur 5 caractères
+  maximum »), `temoin_bureau` (« Témoin de modulation bureau sur 1 caractère maximum, optionnel » : le seul en
+  pointillés), `taux` (« Taux AT »), `date_effet` (« Date d'effet du taux AT, au format YYYYMMDD »), `date_calcul`
+  (« Date de calcul du taux AT, au format YYYYMMDD »). L'établissement est celui de la déclaration :
+  `declaration_identification` (`declaration_identification_type`, image `image11.png` du même document), `SIREN`
+  (S21.G00.06.001) et `nic_affectation` (S21.G00.11.001).
+- Le §2.6 (version 2.1, `dsn_bilans_v02r02.xsd`) ajoute le bloc `communication` « pour les remontées d'information
+  comme pour le taux BM contribution chômage ou le taux AT » : `information_collective` (attribut `type` : « atmp »),
+  `calcul` (`date_calcul`, `phase`), `information` (`donnees_clefs`, `donnees_paie` avec `taux`, `donnees_declaration`,
+  `donnees_complement`), chacun de `rubriques` génériques (`rubrique_string`, `rubrique_decimal`… à attribut `name`).
+  **Les valeurs de `name` d'une notification AT/MP ne sont écrites nulle part** (elles seraient dans les deux exemples
+  absents) : une notification qui ne porterait que ce bloc ne se lit pas (règle 1), elle se dit.
+- **Inférences**, à éprouver sur une vraie notification : `taux` est en pourcentage, comme S21.G00.40.043 (1.50 pour
+  1,50 %), avec un point ou une virgule ; `temoin_bureau` vaut « B » quand le taux est celui des fonctions support (la
+  norme : le « B » s'ajoute au code risque S21.G00.40.040, `norme-dsn/texte/bloc-S21.G00.40.txt` l. 1229-1240) ; une
+  autre valeur ne se lit pas.
+
 ## Où le moteur s'en sert
 
 - `paie/src/retours.rs`, `declarations_du_bilan` : ce qu'un nature 11 identifie d'une déclaration (nature, type, ordre,
@@ -109,3 +141,9 @@ pièce brute.
   phrases (organisme producteur, code retour global, complément, mandats SEPA à créer, contact) et en anomalies (chaque
   retour métier, son salarié lu dans le contexte). Test : `paie/tests/routes/historique_mois.rs`,
   `les_comptes_rendus_neores_et_des_organismes_complementaires_se_traduisent` (un CRC fabriqué en fictif).
+- `envois/src/retours.rs`, `taux_atmp_d_octets` (30/10/2026) : la notification de nature 34 lue d'après `taux_AT` (ci-dessus,
+  « La notification du taux AT/MP ») ; `moteur/src/compagnie/suites.rs`, `appliquer_taux_atmp`, et
+  `moteur/src/routes/atmp.rs`, `poser_notifie` : le code risque et le taux de l'établissement de la compagnie se posent
+  dans la surcouche de l'année de la date d'effet (`config/baremes/<année>.json`, `taux_atmp`), avec la notification pour
+  source ; un autre établissement, une notification illisible ou à plusieurs codes se disent, sans rien poser.
+  `envois/src/organismes_simules.rs`, `crm_atmp` : la même pièce, jouée pour une compagnie fictive (annonce `taux_atmp`).

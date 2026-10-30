@@ -33,6 +33,12 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
             faites.incidents.push(format!("Taux de PAS recus mais non appliques : {}", e.message));
         }
     }
+    if !s.taux_atmp.is_empty() {
+        match appliquer_taux_atmp(ctx, &s.taux_atmp) {
+            Ok(a_faire) => faites.a_faire.extend(a_faire),
+            Err(e) => faites.incidents.push(format!("Notification du taux AT/MP reçue mais non posée : {}", e.message)),
+        }
+    }
     if !s.aer.is_empty() {
         match crate::routes::documents::ranger_aer(ctx, None, Some(&s.aer)) {
             Ok(a_faire) => faites.a_faire.extend(a_faire),
@@ -64,6 +70,61 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
     }
     crate::commandes::pas::enregistrer(ctx, &tous, "CRM DGFiP nature 94")?;
     Ok(())
+}
+
+/// LES NOTIFICATIONS DU TAUX AT/MP (nature 34) : le code risque et le taux se lisent de la notification (regle 1 ;
+/// `envois::retours::taux_atmp_d_octets`, `atelier/reference/sources/gip-mds-api-dsn/`) et se posent dans la surcouche de
+/// l'annee de leur date d'effet (`routes::atmp::poser_notifie`). Seul l'etablissement de la fiche entreprise (son SIREN et
+/// son NIC) a un taux dans la configuration : une notification pour un autre, illisible, ou qui donne plusieurs codes
+/// risques pour la meme annee ne pose rien et se dit, dans ce qu'il reste a faire.
+fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std::path::PathBuf)]) -> R<Vec<String>> {
+    use std::collections::BTreeMap;
+    let mut a_faire = Vec::new();
+    let texte = |k: &str| ctx.entreprise.get(k).map(socle::valeur::valeur_en_texte).unwrap_or_default();
+    let (siren, nic) = (texte("siren"), texte("nic"));
+    for (retour, chemin) in notifications {
+        let le = envois::releve_retours::date_publication(retour);
+        let le_iso = socle::date::Jour::lire(&le).map(|j| j.iso()).unwrap_or_default();
+        let archive = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let source = format!("Notification AT/MP de la CARSAT reçue le {} (retour DSN de nature 34, archive retours/{})", le, archive);
+        let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+        let lus = match envois::retours::taux_atmp_d_octets(&octets) {
+            Ok(l) => l,
+            Err(e) => {
+                a_faire.push(format!("{} : {} Rien n'est posé ; le code et le taux de la notification (compte AT/MP sur net-entreprises) se saisissent dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».", source, e.message));
+                continue;
+            }
+        };
+        let mut par_annee: BTreeMap<i32, Vec<envois::retours::TauxAtmpNotifie>> = BTreeMap::new();
+        for t in lus {
+            if t.siren != siren || t.nic != nic {
+                a_faire.push(format!(
+                    "{} : le taux {} (code risque {}) est celui de l'établissement {}{}, qui n'est pas celui de la fiche Entreprise ({}{}). Rien n'est posé.",
+                    source, t.taux, t.code_risque, t.siren, t.nic, siren, nic
+                ));
+                continue;
+            }
+            par_annee.entry(t.date_effet.an).or_default().push(t);
+        }
+        for (an, mut taux) in par_annee {
+            taux.sort_by_key(|t| t.date_effet);
+            let codes: std::collections::BTreeSet<&str> = taux.iter().map(|t| t.code_risque.as_str()).collect();
+            if codes.len() > 1 {
+                a_faire.push(format!(
+                    "{} : plusieurs codes risques pour {} ({}). La configuration n'en porte qu'un par année : rien n'est posé ; saisissez celui de l'activité principale dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».",
+                    source, an, codes.into_iter().collect::<Vec<_>>().join(", ")
+                ));
+                continue;
+            }
+            for t in &taux {
+                let source = format!("{}, effet au {}.", source, t.date_effet.jj_mm_aaaa());
+                if let Some(pourquoi) = crate::routes::atmp::poser_notifie(ctx, t, &le_iso, &source)? {
+                    a_faire.push(pourquoi);
+                }
+            }
+        }
+    }
+    Ok(a_faire)
 }
 
 /// Un depot refuse s'ecrit au journal des incidents, test comme reel. LE CAS URGENT SE DISTINGUE ICI : un refus en REEL
