@@ -9,7 +9,7 @@ use droit::clauses;
 use droit::conges::jours_ouvrables;
 use crate::conges::{
     avertir, compteur_conges, dec_ou, indemnite_des_jours, info, jours_ouvrables_de, nature_de,
-    numero, flot, remuneration_du_mois, sub,
+    qui, flot, remuneration_du_mois, sub,
 };
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::Nature;
@@ -224,7 +224,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     };
     let fin = d(fin)?;
     let salaire = dec_ou(e.get("salaire_mensuel"), Decimal::ZERO)?;
-    let numero = numero(e);
+    let qui = qui(e);
     let motif = motif_de(e);
     let ent = &ctx.entreprise;
     let premier = premier_du_mois(mois)?;
@@ -256,7 +256,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
         stc.avertissements.push(info(format!(
             "{} : {} jour(s) de conges acquis et non pris, payes {} ({}) -- \
              art. L3141-28, due quelle que soit la cause de la rupture.",
-            numero,
+            qui,
             arrondir_jours(solde),
             ind.retenu,
             ind.regle
@@ -267,7 +267,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
              a pris plus que ce qu'il a acquis. La retenue sur le solde de \
              tout compte n'est pas calculee : elle se decide, et elle est \
              encadree. A regler a la main.",
-            numero,
+            qui,
             arrondir_jours(solde)
         )));
     }
@@ -278,7 +278,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
             if e.get("precarite_due") == Some(&Value::Bool(false)) {
                 stc.avertissements.push(info(format!(
                     "{} : indemnite de precarite ecartee a la main ({}).",
-                    numero,
+                    qui,
                     ou_texte(get(e, "precarite_pourquoi"), "sans raison dite")
                 )));
             } else {
@@ -295,7 +295,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                     stc.avertissements.push(info(format!(
                         "{} : indemnite de fin de contrat {} % sur {} EUR de \
                          remuneration totale = {} (L1243-8).",
-                        numero, pour_cent, total, montant
+                        qui, pour_cent, total, montant
                     )));
                 } else {
                     // Une indemnite nulle ne s'ecrit pas : la norme refuse `0.00`.
@@ -305,7 +305,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                          contrat a paye quelque chose, ce sont ses mois \
                          precedents dont la saisie manque : l'assiette de \
                          L1243-8 est la remuneration de TOUT le contrat.",
-                        numero, total
+                        qui, total
                     )));
                 }
             }
@@ -314,7 +314,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
             if !nat.duree_indeterminee {
                 stc.avertissements.push(info(format!(
                     "{} : pas d'indemnite de fin de contrat -- {}",
-                    numero, pourquoi
+                    qui, pourquoi
                 )));
             }
         }
@@ -337,7 +337,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
         stc.avertissements.push(avertir(format!(
             "{} : preavis declare non effectue, et AUCUNE indemnite compensatrice de preavis n'est due pour ce motif : \
              le moteur n'ecrit pas de ligne.{} -- {}",
-            numero, saisi, texte
+            qui, saisi, texte
         )));
     } else if let Some(indemnite) = &indemnite {
         let duree = duree_du_preavis(ctx, e, anciennete, motif)?;
@@ -350,13 +350,13 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                         "{} : preavis de {} mois saisi, et {} en donne {}. Un \
                          contrat peut accorder plus que la loi et la convention, \
                          jamais moins.",
-                        numero, saisi, duree.qui, m
+                        qui, saisi, duree.qui, m
                     ));
                 }
             }
             mois_preavis = Some(saisi);
         } else if mois_preavis.is_none() {
-            return Err(format!("{} : preavis non effectue, et {}", numero, texte_ou_none(&duree.pourquoi)));
+            return Err(format!("{} : preavis non effectue, et {}", qui, texte_ou_none(&duree.pourquoi)));
         }
         match mois_preavis.filter(|m| !m.is_zero()) {
             Some(m) => {
@@ -377,7 +377,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                      (L1234-5) -- {}. Ce preavis OUVRE DES CONGES PAYES -- \
                      l'article dit \"indemnite de conges payes comprise\" -- et le \
                      moteur ne les a PAS ajoutes au compteur : a verifier.{}",
-                    numero,
+                    qui,
                     m,
                     eur2(mul(m, salaire)),
                     duree.dit,
@@ -393,14 +393,14 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                 stc.avertissements.push(info(format!(
                     "{} : preavis declare non effectue, et il n'y a PAS de \
                      preavis a payer -- {}",
-                    numero, raison
+                    qui, raison
                 )));
             }
         }
     }
 
     // --- le delai de prevenance d'une fin d'essai a l'initiative de l'employeur (L1221-25)
-    delai_de_prevenance(e, &fin, salaire, motif, &nat, &numero, &mut stc)?;
+    delai_de_prevenance(e, &fin, salaire, motif, &nat, &qui, &mut stc)?;
 
     // --- l'indemnite de rupture, et laquelle depend du motif
     indemnite_de_rupture(ctx, e, mois, anciennete, motif, &nat, &mut stc)?;
@@ -419,7 +419,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
         if let Some(pourquoi) = droit::preavis::desaccord_du_preavis(&type_preavis, &versees)? {
             stc.avertissements.push(avertir(format!(
                 "{} : {} Le signalement de fin de contrat le refusera tel quel.",
-                numero, pourquoi
+                qui, pourquoi
             )));
         }
     }
@@ -430,7 +430,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
          contrat », « Les deux papiers… »). L'attestation France \
          Travail, elle, part d'elle-meme avec le signalement de fin de \
          contrat.",
-        numero
+        qui
     )));
     Ok((stc.lignes, stc.avertissements))
 }
@@ -440,7 +440,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
 /// jusqu'a l'expiration du delai (`preavis.delai_de_prevenance`, ses lectures dans `_lecture`). La ligne : la part du
 /// delai apres la fin du contrat, chaque jour au prorata de son mois, au salaire mensuel ; DSN 52 « 017 ».
 fn delai_de_prevenance(
-    e: &Value, fin: &socle::date::Jour, salaire: Decimal, motif: Option<&str>, nat: &Nature, numero: &str, stc: &mut Solde,
+    e: &Value, fin: &socle::date::Jour, salaire: Decimal, motif: Option<&str>, nat: &Nature, qui: &str, stc: &mut Solde,
 ) -> Resultat<()> {
     let Some(regle) = permanents::regle_du_delai_de_prevenance(motif)? else {
         return Ok(());
@@ -453,14 +453,14 @@ fn delai_de_prevenance(
                 "{} : fin de periode d'essai a l'initiative de l'employeur (034) d'un contrat a duree determinee : L1221-25 \
                  ne donne un delai de prevenance que si le contrat stipule une periode d'essai d'au moins une semaine. \
                  La saisie ne dit pas celle du contrat (`periode_essai_jours`, en jours) ; le moteur ne la devine pas.",
-                numero
+                qui
             ));
         };
         if dec_avec_echelle(essai)? < minimum {
             stc.avertissements.push(info(format!(
                 "{} : periode d'essai stipulee de {} jour(s), moins d'une semaine : pas de delai de prevenance (L1221-25), \
                  rien a payer.",
-                numero,
+                qui,
                 t(essai)
             )));
             return Ok(());
@@ -470,7 +470,7 @@ fn delai_de_prevenance(
         stc.avertissements.push(info(format!(
             "{} : fin de periode d'essai pour faute grave : pas d'indemnite du delai de prevenance (L1221-25, « sauf s'il a \
              commis une faute grave »).",
-            numero
+            qui
         )));
         return Ok(());
     }
@@ -479,7 +479,7 @@ fn delai_de_prevenance(
             "{} : fin de periode d'essai a l'initiative de l'employeur (034) : la date de notification de la rupture n'est \
              pas dite (`notification_rupture`). Le delai de prevenance de L1221-25 se compte depuis elle, selon la presence \
              du salarie ; le moteur ne la devine pas.",
-            numero
+            qui
         ));
     };
     let notification = d(notification)?;
@@ -487,7 +487,7 @@ fn delai_de_prevenance(
     if notification < debut || notification > *fin {
         return Err(format!(
             "{} : la notification de la rupture ({}) doit tomber entre le debut ({}) et la fin ({}) du contrat.",
-            numero,
+            qui,
             notification.iso(),
             debut.iso(),
             fin.iso()
@@ -504,7 +504,7 @@ fn delai_de_prevenance(
     if delai.expiration <= *fin {
         stc.avertissements.push(info(format!(
             "{} : {} ; le contrat finit le {} : delai respecte, rien a payer.",
-            numero,
+            qui,
             dit,
             fin.jj_mm_aaaa()
         )));
@@ -524,7 +524,7 @@ fn delai_de_prevenance(
          jour au prorata de son mois (L1221-25, indemnite compensatrice ; DSN 52 : 017). Elle comprend les avantages et \
          l'indemnite compensatrice de conges payes de ces jours : le moteur ne les a PAS ajoutes, a verifier. Le decompte \
          de la presence et du delai est une lecture (permanents-base.json, `preavis.delai_de_prevenance._lecture`).",
-        numero,
+        qui,
         dit,
         fin.jj_mm_aaaa(),
         jours,
@@ -544,7 +544,7 @@ fn indemnite_de_rupture(
     nat: &Nature,
     stc: &mut Solde,
 ) -> Resultat<()> {
-    let numero = numero(e);
+    let qui = qui(e);
     let Some(sec) = permanents::rupture(motif)? else {
         return indemnite_de_licenciement(ctx, e, mois, anciennete, motif, nat, stc);
     };
@@ -554,7 +554,7 @@ fn indemnite_de_rupture(
             "{} : motif de rupture {} ({}) sur un {}. Ces ruptures-la sont \
              celles d'un contrat a duree INDETERMINEE -- leurs articles sont \
              au titre III du livre II, qui ne traite que de lui.",
-            numero,
+            qui,
             motif.unwrap_or("None"),
             cle_sec.replace('_', " "),
             nat.libelle
@@ -588,7 +588,7 @@ fn indemnite_de_rupture(
              securite sociale). Si elle n'est pas remplie, << la rupture du \
              contrat de travail par l'employeur constitue un licenciement >> \
              (L1237-8), et ce qui est declare ici serait faux.",
-            numero
+            qui
         )));
         c = clauses::indemnite_mise_a_la_retraite(idcc, anciennete, retenu)?;
         let cdd = get(&c, "cadre_de_direction");
@@ -604,7 +604,7 @@ fn indemnite_de_rupture(
                      mois de salaires minimum >>, et le texte ne dit pas quel \
                      salaire. Saisir le montant retenu (`{}`) : le moteur \
                      l'accepte a partir du minimum legal.",
-                    numero,
+                    qui,
                     clauses::nom(idcc),
                     t(cle(cdd, "article")?),
                     rubrique
@@ -674,7 +674,7 @@ fn indemnite_de_rupture(
                  convention ne donnent de montant a quoi la comparer -- {}. \
                  Le moteur ne declare pas une indemnite dont il ne sait pas \
                  dire ce qu'elle supporte.",
-                numero,
+                qui,
                 quoi,
                 montant,
                 t(get(&legale, "pourquoi"))
@@ -685,7 +685,7 @@ fn indemnite_de_rupture(
                 "{} : indemnite de {} de {} EUR, INFERIEURE au minimum de {} \
                  EUR (loi, {} : {} EUR ; {}). Ce n'est pas au moteur de la \
                  corriger.",
-                numero, quoi, montant, bas, article, m_legal, phrase
+                qui, quoi, montant, bas, article, m_legal, phrase
             ));
         }
         if montant > haut && !ouvert {
@@ -696,7 +696,7 @@ fn indemnite_de_rupture(
                  le montant legal ou conventionnel -- et le moteur ne sait pas \
                  l'assujettir sur une seule ligne : il refuse plutot que de la \
                  declarer de travers.",
-                numero, quoi, montant, m_legal, article, phrase
+                qui, quoi, montant, m_legal, article, phrase
             ));
         }
     } else if let (Some(cb), Some(ch)) = (conv_bas, conv_haut) {
@@ -704,7 +704,7 @@ fn indemnite_de_rupture(
             return Err(format!(
                 "{} : {} se lit de deux facons, de {} a {} EUR ; la loi donne {} \
                  EUR. Saisir le montant retenu (`{}`).",
-                numero,
+                qui,
                 t(&conv_article),
                 cb,
                 ch,
@@ -720,7 +720,7 @@ fn indemnite_de_rupture(
     if !du {
         stc.avertissements.push(info(format!(
             "{} : pas d'indemnite legale de {} -- {} Et {}.",
-            numero,
+            qui,
             quoi,
             t(get(&legale, "pourquoi")),
             phrase
@@ -735,7 +735,7 @@ fn indemnite_de_rupture(
              signee, que le moteur n'a pas. Le plancher legal est de {} EUR \
              ({}) ; {}. Ajouter a la paie une ligne « {} » avec le montant \
              convenu.",
-            numero,
+            qui,
             m_legal,
             article,
             phrase,
@@ -755,7 +755,7 @@ fn indemnite_de_rupture(
                  imposable (CGI 80 duodecies 6°) ; s'il l'est, elle l'est. \
                  Le dire sur l'engagement (`en_droit_a_la_retraite`, vrai ou \
                  faux).",
-                numero
+                qui
             ));
         };
         if vrai(droit) {
@@ -766,14 +766,14 @@ fn indemnite_de_rupture(
     if montant <= Decimal::ZERO {
         stc.avertissements.push(info(format!(
             "{} : pas d'indemnite de {} -- {} Et {}.",
-            numero,
+            qui,
             quoi,
             ou_texte(get(&legale, "pourquoi"), ""),
             phrase
         )));
         return Ok(());
     }
-    verifier_les_plafonds(ctx, mois, montant, quoi, &numero)?;
+    verifier_les_plafonds(ctx, mois, montant, quoi, &qui)?;
     let part_legale = plus_petit(montant, m_legal);
     let supplement = sub(montant, part_legale);
     if part_legale > Decimal::ZERO {
@@ -794,7 +794,7 @@ fn indemnite_de_rupture(
                  securite sociale, au profit de la CNAV). Le moteur ne la \
                  calcule PAS : elle n'est dans aucune section du bareme. Sur {} \
                  EUR exoneres, elle vaut {} EUR.",
-                numero,
+                qui,
                 taux,
                 montant,
                 eur2(div(mul(montant, taux), Decimal::ONE_HUNDRED))
@@ -812,7 +812,7 @@ fn indemnite_de_rupture(
     stc.avertissements.push(info(format!(
         "{} : indemnite de {} {} EUR ({} mois d'anciennete, salaire de \
          reference {} par {}){} -- loi ({}) : {} EUR ; {}.{}",
-        numero,
+        qui,
         quoi,
         montant,
         arrondir_jours(anciennete),
@@ -834,7 +834,7 @@ fn indemnite_de_rupture(
             "{} : {} impose un DELAI DE PREVENANCE de {} mois, par lettre \
              recommandee, a qui prend l'initiative du depart a la retraite. \
              Le moteur ne le verifie pas.",
-            numero,
+            qui,
             t(&conv_article),
             t(prevenance)
         )));
@@ -875,7 +875,7 @@ fn phrase_de_la_convention(
 }
 
 /// Les deux plafonds de L242-1 II 7° : au-dela, le moteur refuse.
-fn verifier_les_plafonds(ctx: &Contexte, mois: &str, montant: Decimal, quoi: &str, numero: &str) -> Resultat<()> {
+fn verifier_les_plafonds(ctx: &Contexte, mois: &str, montant: Decimal, quoi: &str, qui: &str) -> Resultat<()> {
     let regles = permanents::regles()?;
     let regles_plafonds = cle(cle(&regles, "regime_des_indemnites_de_rupture")?, "plafonds")?;
     let an: i32 = mois.chars().take(4).collect::<String>().parse().map_err(|_| format!("nombre entier illisible : {}", mois))?;
@@ -896,7 +896,7 @@ fn verifier_les_plafonds(ctx: &Contexte, mois: &str, montant: Decimal, quoi: &st
                  en entier (L242-1 II 7° du code de la securite sociale) et \
                  le moteur ne sait pas partager une ligne entre une part \
                  exoneree et une part soumise : il refuse.",
-                numero,
+                qui,
                 quoi,
                 montant,
                 t(combien),
@@ -919,7 +919,7 @@ fn indemnite_de_licenciement(
     nat: &Nature,
     stc: &mut Solde,
 ) -> Resultat<()> {
-    let numero = numero(e);
+    let qui = qui(e);
     let saisi = e.get("indemnite_licenciement").filter(|x| !x.is_null());
     if saisi.is_none() && !(nat.duree_indeterminee && motif.is_some_and(|m| !m.is_empty())) {
         return Ok(());
@@ -943,7 +943,7 @@ fn indemnite_de_licenciement(
                  dues au-dela, cotisations au premier euro au-dela de dix \
                  plafonds annuels) et le moteur ne sait pas l'assujettir : il \
                  refuse plutot que de la declarer de travers.",
-                numero,
+                qui,
                 montant,
                 m_legal,
                 dit_conventionnel(&conv)?
@@ -953,7 +953,7 @@ fn indemnite_de_licenciement(
             return Err(format!(
                 "{} : indemnite de licenciement de {} EUR, INFERIEURE a ce \
                  qui est du ({} EUR : loi {} EUR{}).",
-                numero,
+                qui,
                 montant,
                 bas,
                 m_legal,
@@ -967,7 +967,7 @@ fn indemnite_de_licenciement(
                  montant : {}. La loi donne {} EUR. Ajouter a la paie une \
                  ligne « Indemnite de licenciement » avec le montant retenu, \
                  entre {} et {} EUR.",
-                numero,
+                qui,
                 t(cle(&conv, "article")?),
                 lectures(&conv)?,
                 m_legal,
@@ -980,11 +980,11 @@ fn indemnite_de_licenciement(
     if montant <= Decimal::ZERO {
         let pourquoi = if vrai(get(&legale, "pourquoi")) { get(&legale, "pourquoi") } else { get(&conv, "pourquoi") };
         if vrai(pourquoi) {
-            stc.avertissements.push(info(format!("{} : pas d'indemnite de licenciement -- {}", numero, t(pourquoi))));
+            stc.avertissements.push(info(format!("{} : pas d'indemnite de licenciement -- {}", qui, t(pourquoi))));
         }
         return Ok(());
     }
-    verifier_les_plafonds(ctx, mois, montant, "licenciement", &numero)?;
+    verifier_les_plafonds(ctx, mois, montant, "licenciement", &qui)?;
     let part_legale = plus_petit(montant, m_legal);
     if part_legale > Decimal::ZERO {
         let mut ligne = json!({"rubrique": "indemnite_licenciement", "quantite": 1, "taux": flot(part_legale)});
@@ -1000,7 +1000,7 @@ fn indemnite_de_licenciement(
     stc.avertissements.push(info(format!(
         "{} : indemnite de licenciement {} EUR ({} mois d'anciennete, salaire \
          de reference {} par {}) -- loi (L1234-9 et R1234-2) : {} EUR ; {}.{}",
-        numero,
+        qui,
         montant,
         arrondir_jours(anciennete),
         t(get(&reference, "retenu")),
@@ -1019,7 +1019,7 @@ fn indemnite_de_licenciement(
              logiciel a pris les bruts des derniers mois. S'ils comptent des \
              primes, ajouter a la paie une ligne « Indemnite de \
              licenciement » avec le montant recalcule.",
-            numero,
+            qui,
             t(cle(&conv, "article")?)
         )));
     }

@@ -36,9 +36,9 @@ fn requis<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
     v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
-/// `e.get("numero") or "?"`.
-pub(crate) fn numero(e: &Value) -> String {
-    e.get("numero").filter(|x| vrai(x)).map_or_else(|| "?".to_string(), en_texte)
+/// Le salarie que nomme en tete ce que le moteur dit d'un engagement paye au mois (`crate::salarie_nomme`).
+pub(crate) fn qui(e: &Value) -> String {
+    crate::salarie_nomme(e.get("salarie"))
 }
 
 /// Le flottant d'un decimal, correctement arrondi, par le texte.
@@ -957,10 +957,10 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     // imprevu, saisi une fois sur le salarie (`imprevus`), dont le moteur tire la ligne de chaque mois qu'il traverse.
     if e.get("absences").is_some() {
         return Err(format!(
-            "Contrat {} : la saisie du mois porte des `absences`. Un arret de travail ou une suspension (conge parental, \
+            "{} : la saisie du mois porte des `absences`. Un arret de travail ou une suspension (conge parental, \
              sabbatique, sans solde...) se saisit une fois, comme un imprevu du salarie, et le moteur en tire la ligne de \
              chaque mois qu'il traverse. Saisir l'imprevu, puis enregistrer ce mois sans ses absences.",
-            numero(e)
+            qui(e)
         ));
     }
     // Une saisie qui ecrit ses lignes les garde : un imprevu du contrat n'y retire rien, et cela se dit.
@@ -970,7 +970,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             dit.push(avertir(format!(
                 "{} : ses lignes sont ecrites a la main, et l'imprevu ({}) du {} au {} n'en retire rien. Le retirer des \
                  lignes, ou laisser le moteur les tirer de la saisie.",
-                numero(e),
+                qui(e),
                 crate::imprevus::genre(&imp),
                 crate::imprevus::premier_jour(&imp)?.jj_mm_aaaa(),
                 crate::imprevus::dernier_jour(&imp)?.jj_mm_aaaa()
@@ -982,8 +982,9 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         Some(s) => s,
         None => {
             return Err(format!(
-                "{} : quel salaire mensuel brut ? Il se lit sur le contrat signé, et se tape dans la case \
-                 « Salaire mensuel brut » de l'engagement.",
+                "{} : saisissez le salaire mensuel brut de son {}, dans la case « Salaire mensuel brut ».\n\
+                 Il se lit sur le contrat signé.",
+                qui(e),
                 nat.libelle
             ))
         }
@@ -998,9 +999,9 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     // debut ne refuse pas sur « champ 'debut' absent »).
     let Some(debut) = e.get("debut").filter(|x| vrai(x)) else {
         return Err(format!(
-            "Contrat {} ({}) : la date de debut du contrat n'est pas dite. Elle part en DSN (S21.G00.40.001) et identifie \
-             le contrat : elle ne se deduit de rien.",
-            numero(e),
+            "{} : saisissez la date de début de son {}, celle du contrat signé, sous « Contrat ».\n\
+             Elle identifie le contrat dans la déclaration (S21.G00.40.001) : elle ne se déduit de rien.",
+            qui(e),
             nat.libelle
         ));
     };
@@ -1016,8 +1017,8 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     let mut avert = Vec::new();
     if fraction != Decimal::ONE {
         avert.push(info(format!(
-            "{} : mois incomplet ({} jours sur {}), salaire calcule au prorata des jours calendaires.",
-            numero(e),
+            "{} : mois incomplet ({} jours sur {}), salaire calculé au prorata des jours calendaires.",
+            qui(e),
             jours_payes,
             jours_du_mois
         )));
@@ -1060,7 +1061,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             "{} : {} jour(s) ouvrable(s) de conges. Indemnite retenue : {} \
              ({}) -- le dixieme donnait {}, le maintien {} (L3141-24). \
              Solde apres ce mois : {} jours.",
-            numero(e),
+            qui(e),
             pris,
             ind.retenu,
             ind.regle,
@@ -1073,7 +1074,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
                 "{} : {} jours de conges pris pour un solde de {}. Le \
                  logiciel ne refuse pas -- une avance sur conges se decide --, \
                  mais le compteur passera en negatif.",
-                numero(e),
+                qui(e),
                 pris,
                 arrondir_jours(cpt.solde())
             )));
@@ -1128,7 +1129,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         let Some(base_conv) = pa.get("base").filter(|b| !b.is_null()).map(dec).transpose()? else {
             return Err(format!(
                 "{} : prime d'anciennete ({}) -- {}.",
-                numero(e),
+                qui(e),
                 en_texte(&pa["article"]),
                 en_texte(&pa["pourquoi"])
             ));
@@ -1142,7 +1143,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         avert.push(info(format!(
             "{} : prime d'anciennete {} % ({} an(s) de presence) du salaire \
              conventionnel de {} EUR{} = {} EUR -- {}.",
-            numero(e),
+            qui(e),
             pourcentage,
             en_texte(&pa["annees"]),
             base_conv,
@@ -1170,7 +1171,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
 /// pas pu retirer : a chaque mois qui porte un ferie.
 fn avertir_feries(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Resultat<Vec<Avis>> {
     let ent = Some(&ctx.entreprise);
-    let numero = numero(e);
+    let qui = qui(e);
     let tous = feries::chomes_entre(debut, fin, Some(&json!({"jours_feries_chomes": "tous"})))?;
     if tous.is_empty() {
         return Ok(vec![]);
@@ -1186,7 +1187,7 @@ fn avertir_feries(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Result
         out.push(info(format!(
             "{} : {} ferie(s) chome(s) dans ce mois, retire(s) du decompte \
              des jours ouvrables -- {}.",
-            numero,
+            qui,
             chomes.len(),
             liste(&chomes).iter().map(|(j, n)| format!("{} le {}", n, j)).collect::<Vec<_>>().join(", ")
         )));
@@ -1198,7 +1199,7 @@ fn avertir_feries(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Result
              la fiche Entreprise ne dit pas quels jours feries la compagnie \
              chome. A regler une fois pour toutes : Configuration › \
              Entreprise, « Jours feries chomes ».",
-            numero,
+            qui,
             liste(&restants).iter().map(|(j, n)| format!("{} ({})", n, j)).collect::<Vec<_>>().join(", ")
         )));
     }

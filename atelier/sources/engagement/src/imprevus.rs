@@ -581,7 +581,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 /// classique, du lundi au vendredi, est une inference nommee). La retenue est le salaire du mois fois ces heures sur les
 /// heures du mois, au taux exact (`taux_exact`) : un mois entier d'absence retire exactement le salaire du mois.
 pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<Value>, Vec<Avis>)> {
-    let numero = crate::conges::numero(e);
+    let qui = crate::conges::qui(e);
     let ent = &ctx.entreprise;
     let (mut lignes, mut avert) = (Vec::new(), Vec::new());
     // Le taux de l'heure d'absence : le salaire du mois sur ses heures de travail (Cass. soc. 11/02/1982).
@@ -609,7 +609,7 @@ salaire du mois",
             avert.push(info(format!(
                 "{} : arret de travail ({}) du {} au {}, saisi une fois : {} ; le bloc S21.G00.60 part dans la DSN de \
 chaque mois qu'il traverse.",
-                numero,
+                qui,
                 en_texte(g(&motif, "libelle")),
                 premier.jj_mm_aaaa(),
                 dernier.jj_mm_aaaa(),
@@ -625,12 +625,12 @@ chaque mois qu'il traverse.",
                 lignes.push(json!({"rubrique": "maintien_salaire", "quantite": flot(q), "taux": t}));
             }
         } else {
-            let motif = verifier_motif_de_suspension(&code, &numero)?;
+            let motif = verifier_motif_de_suspension(&code, &qui)?;
             let libelle = en_texte(g(&motif, "libelle"));
             if vrai(g(&motif, "remunere")) {
                 avert.push(info(format!(
                     "{} : suspension {} ({}) du {} au {} : un conge remunere, rien n'est retire du salaire ({}).",
-                    numero,
+                    qui,
                     code,
                     libelle,
                     premier.jj_mm_aaaa(),
@@ -642,7 +642,7 @@ chaque mois qu'il traverse.",
                 avert.push(info(format!(
                     "{} : suspension {} ({}) du {} au {}, saisie une fois : {} ; le bloc S21.G00.65 la declare entiere \
 dans la DSN de chaque mois qu'elle traverse.",
-                    numero,
+                    qui,
                     code,
                     libelle,
                     premier.jj_mm_aaaa(),
@@ -671,7 +671,7 @@ pub fn origine(imp: &Value) -> Resultat<(bool, bool)> {
 /// tranches, les jours deja indemnises dans les douze mois, saisis sur l'arret), sur l'arret entier.
 fn maintien_possible(ctx: &Contexte, e: &Value, imp: &Value, mois: &str, remuneration_journaliere: Decimal) -> Resultat<Vec<Avis>> {
     use droit::permanents::{anciennete_mois, droit_au_maintien, maintien_de_salaire, OptionsMaintien};
-    let numero = crate::conges::numero(e);
+    let qui = crate::conges::qui(e);
     let nat = crate::conges::nature_de(e.get("nature"))?;
     let premier = premier_jour(imp)?;
     let fiche = ctx.salarie(&en_texte(g(e, "salarie")))?;
@@ -684,7 +684,7 @@ fn maintien_possible(ctx: &Contexte, e: &Value, imp: &Value, mois: &str, remuner
     let anciennete = anciennete_mois(&depuis, &premier);
     if let Some(refus) = droit_au_maintien(Some(&nat), anciennete)? {
         let mut dit = sur_l_anciennete;
-        dit.push(avertir(format!("{} : pas de maintien de salaire pour cet arret -- {}", numero, refus)));
+        dit.push(avertir(format!("{} : pas de maintien de salaire pour cet arret -- {}", qui, refus)));
         return Ok(dit);
     }
     let jours = dernier_jour(imp)?.moins(&premier) + 1;
@@ -711,7 +711,7 @@ fn maintien_possible(ctx: &Contexte, e: &Value, imp: &Value, mois: &str, remuner
     let mut dit = vec![info(format!(
         "{} : arret de {} jour(s) en tout. La loi donne {} apres {} jour(s) de carence ({}) -- soit {} EUR bruts AVANT \
 deduction des indemnites journalieres (L1226-1, D1226-1 a D1226-3).",
-        numero,
+        qui,
         jours,
         tranches,
         carence,
@@ -722,18 +722,18 @@ deduction des indemnites journalieres (L1226-1, D1226-1 a D1226-3).",
     if au_dela != 0 {
         dit.push(avertir(format!(
             "{} : {} jour(s) de cet arret depassent la duree d'indemnisation a laquelle l'anciennete donne droit (D1226-2).",
-            numero, au_dela
+            qui, au_dela
         )));
     }
     if let Some(conv) = droit::clauses::maintien(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), anciennete, at)? {
-        dit.push(avertir(format!("{} : {}", numero, conv)));
+        dit.push(avertir(format!("{} : {}", qui, conv)));
     }
     if !g(imp, "maintien").get(mois).is_some_and(vrai) {
         dit.push(avertir(format!(
             "{} : le maintien de salaire de {} n'est pas saisi sur l'arret, donc rien n'est verse a ce titre. Le \
 complement du est le brut ci-dessus moins les indemnites journalieres et la prevoyance, que la caisse communique : le \
 porter sur l'arret, maintien du mois.",
-            numero,
+            qui,
             crate::libelle_mois(mois)
         )));
     }
