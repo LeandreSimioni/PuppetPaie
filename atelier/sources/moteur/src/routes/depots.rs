@@ -32,7 +32,7 @@ pub const ECRITURES: &[&str] = &["dpae", "deposer", "suivre-depot", "bilan-repet
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    match nom {
+    let mut v = match nom {
         "dpae" => dpae(ctx, charge),
         "depot-apercu" => depot_apercu(ctx, charge),
         "deposer" => deposer(ctx, charge),
@@ -41,6 +41,38 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "filet-preparer" => filet_preparer(ctx, charge),
         "dsn-a-deposer" => crate::compagnie::depart::dsn_a_deposer(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
+    }?;
+    poser_les_pastilles(&mut v);
+    Ok(v)
+}
+
+/// LES PASTILLES DE CE QUE CES ROUTES RENDENT (`routes::pastille`) : la ligne d'un certificat de conformite DPAE
+/// (`enregistree`), enregistree, faite ; deja existante, une information ; refusee, refusee ; une embauche qu'une DPAE
+/// va declarer (`deja_declaree`), deja declaree, a voir (elle partirait deux fois) ; a declarer, une information.
+fn poser_les_pastilles(v: &mut Value) {
+    match v {
+        Value::Object(o) => {
+            if let Some(enregistree) = o.get("enregistree").and_then(Value::as_bool) {
+                let texte = |k: &str| o.get(k).filter(|x| vrai(x)).map(valeur_en_texte);
+                let p = if enregistree {
+                    crate::routes::pastille("fait", &texte("dossier").map_or_else(|| "enregistrée".to_string(), |d| format!("enregistrée — dossier {}", d)))
+                } else if o.get("deja_existante").is_some_and(vrai) {
+                    crate::routes::pastille("information", "déjà existante")
+                } else {
+                    crate::routes::pastille("refuse", &texte("libelle").or_else(|| texte("code")).unwrap_or_else(|| "refusée".into()))
+                };
+                o.insert("pastille".into(), p);
+            }
+            if let Some(deja) = o.get("deja_declaree").and_then(Value::as_bool) {
+                let p = if deja { crate::routes::pastille("a_faire", "déjà déclarée") } else { crate::routes::pastille("information", "à déclarer") };
+                o.insert("pastille".into(), p);
+            }
+            for x in o.values_mut() {
+                poser_les_pastilles(x);
+            }
+        }
+        Value::Array(a) => a.iter_mut().for_each(poser_les_pastilles),
+        _ => {}
     }
 }
 
@@ -600,8 +632,8 @@ fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
 // ------------------------------------------------------------------ suivre-depot
 
 /// `suivre_le_depot` : juste apres un depot REEL, relever ses retours et dire s'il est tranche. Une LECTURE.
-/// `{"fini", "passe", "refuse", "incident"}`. Fini quand chaque embauche du depot est passee ou refusee (DPAE),
-/// quand le bilan du mois est la (DSN).
+/// `{"fini", "passe", "refuse", "incident", "phrase", "couleur"}`. Fini quand chaque embauche du depot est passee ou
+/// refusee (DPAE), quand le bilan du mois est la (DSN).
 fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
     let flux = charge.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
@@ -648,7 +680,17 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
         passe = e.get("passee").is_some_and(vrai);
         refuse = e.get("refusee").is_some_and(vrai);
     }
-    Ok(json!({"fini": passe || refuse, "passe": passe, "refuse": refuse, "incident": incident}))
+    // Ce que l'ecran en dit, et en quelle couleur, une fois le depot tranche.
+    let nom = if dpae { "La DPAE" } else { "La DSN" };
+    let (phrase, etat) = if passe {
+        (format!("{} est passée — retour de l'organisme reçu.", nom), "fait")
+    } else if refuse {
+        (format!("{} est refusée — voir le motif dans l'étape.", nom), "refuse")
+    } else {
+        (String::new(), "en_attente")
+    };
+    Ok(json!({"fini": passe || refuse, "passe": passe, "refuse": refuse, "incident": incident,
+              "phrase": phrase, "couleur": crate::routes::couleur_de_l_etat(etat)}))
 }
 
 // ------------------------------------------------------------------ bilan-repetition

@@ -24,7 +24,7 @@ async function dessinerRegularisation() {
         ${m.corrections.map((c) => `
           <div class="rang">
             <span class="rang-nom">${echapper(c.nom)}</span>
-            <span class="pastille ${c.portee_par ? "bien" : "alerte"}">${echapper(c.etat)}</span>
+            ${pastilleDeLEtat(c.pastille)}
             <span class="rang-infos">contrat ${echapper(c.numero || "")}, ${echapper(jjmmaaaa(c.debut))} —
               brut ${echapper(c.avant.brut)} → ${echapper(c.apres.brut)},
               net ${echapper(c.avant.net_a_payer)} → ${echapper(c.apres.net_a_payer)}

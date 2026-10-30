@@ -236,6 +236,17 @@ fn documents(ctx: &Contexte, mois: &str, lignes: &[Value]) -> R<Vec<Value>> {
         let chemin = if dans_l_envoi { format!("sorties/{}/envoi/{}", mois, nom) } else { format!("sorties/{}/{}", mois, nom) };
         out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": "", "chemin": chemin}));
     }
+    // LES BULLETINS QUE L'ANCIEN LOGICIEL A FAITS, tels que l'import les garde : ce sont les bulletins du mois.
+    for b in crate::import::mois::bulletins_repris(&ctx.racine, mois) {
+        let cle = valeur_en_texte(&b["salarie"]);
+        let qui = ctx.salaries.get(&cle).map(|s| {
+            let t = |k: &str| s.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+            let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
+            format!("{} {}", t("nom"), prenom).trim().to_string()
+        });
+        let nom = format!("Bulletin de {} (ancien logiciel)", qui.filter(|q| !q.is_empty()).unwrap_or(cle.clone()));
+        out.push(json!({"nom": nom, "sorte": "Bulletins de paie", "salarie": cle, "chemin": b["chemin"]}));
+    }
     let rang = |v: &Value| SORTES.iter().position(|(s, _)| v["sorte"] == json!(s)).unwrap_or(SORTES.len());
     out.sort_by_key(|v| rang(v));
     Ok(out)
@@ -781,8 +792,13 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
     // L'organisme que la piece nomme passe devant celui de la nature (« l'organisme complementaire » : lequel).
     let organisme = if lu_organisme.is_empty() { organisme.to_string() } else { lu_organisme };
     let verdict = if lu_verdict.is_empty() { r.get("verdict").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default() } else { lu_verdict };
+    // Sa pastille : OK fait, KO refuse, ANO a corriger (la compagnie le peut), le reste une information.
+    let lu = if verdict.is_empty() { statut.clone() } else { verdict.clone() };
+    let pastille = (!lu.is_empty()).then(|| {
+        crate::routes::pastille(match lu.as_str() { "OK" => "fait", "KO" => "refuse", "ANO" => "a_faire", _ => "information" }, &lu)
+    });
     json!({
-        "nature": nature, "libelle": libelle, "organisme": organisme, "statut": statut, "verdict": verdict,
+        "nature": nature, "libelle": libelle, "organisme": organisme, "statut": statut, "verdict": verdict, "pastille": pastille,
         "quand": quand_publication(&publication), "titre": titre, "phrases": phrases, "anomalies": anomalies, "traduite": traduite,
         "piece": piece.and_then(|p| p.strip_prefix(racine).ok().map(|x| x.to_string_lossy().replace('\\', "/"))),
     })

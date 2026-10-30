@@ -36,6 +36,28 @@ fn importes_du_mois(racine: &Path, mois: &str) -> R<Vec<Importe>> {
     engagement::importe::du_mois(racine, mois).map_err(Echec::from)
 }
 
+/// LES BULLETINS REPRIS DE `mois` : la copie que l'import garde de chaque fichier lu (`historique/bulletins/`, le nom que
+/// porte la paie importee), un par fichier, avec le salarie qu'il paie (`[{chemin, salarie}]`, chemin relatif a la
+/// compagnie). Un fichier qui manque ne se liste pas. Ne leve jamais.
+pub(crate) fn bulletins_repris(racine: &Path, mois: &str) -> Vec<Value> {
+    let mut out: Vec<Value> = Vec::new();
+    for p in engagement::importe::paies_lues(racine).unwrap_or_default() {
+        if texte(&p, "mois") != mois {
+            continue;
+        }
+        let fichier = p.get("bulletin").map(|b| texte(b, "fichier")).filter(|f| !f.is_empty()).unwrap_or_default();
+        if fichier.is_empty() || fichier.contains(['/', '\\']) || fichier.contains("..") {
+            continue;
+        }
+        let chemin = format!("historique/bulletins/{}", fichier);
+        if !racine.join(&chemin).is_file() || out.iter().any(|x| x["chemin"] == json!(chemin)) {
+            continue;
+        }
+        out.push(json!({"chemin": chemin, "salarie": texte(&p, "salarie")}));
+    }
+    out
+}
+
 /// Le mois est-il tenu avant ce logiciel : aucun engagement de la saisie ne le touche, et un engagement importe le touche.
 pub(crate) fn importe(racine: &Path, mois: &str) -> R<bool> {
     if engagement::stock::a_une_saisie(racine, mois).map_err(Echec::from)? {
@@ -199,15 +221,15 @@ fn manque(champ: &str, libelle: &str, phrase: String) -> Value {
 /// L'etat de la DPAE d'une embauche tenue avant : le journal (reel accepte), puis les certificats de `retours/dpae/`.
 fn dpae_de(journal: &etats::Dico<Value>, certifiees: &[Value], salarie: &str, debut: &str) -> Value {
     if let Ok(Some(q)) = journal.get(&[json!(salarie), json!(debut)]) {
-        return json!({"couleur": "bien", "courte": "DPAE faite", "phrase": format!("DPAE déposée le {}", etats::quand_lisible(q))});
+        return json!({"couleur": "vert", "courte": "DPAE faite", "phrase": format!("DPAE déposée le {}", etats::quand_lisible(q))});
     }
     let certifiee = certifiees.iter().find(|c| {
         c.get("embauches").and_then(Value::as_array).is_some_and(|l| l.iter().any(|e| texte(e, "salarie") == salarie && texte(e, "debut") == debut))
     });
     if let Some(c) = certifiee {
-        return json!({"couleur": "bien", "courte": "DPAE faite", "phrase": format!("DPAE certifiée par l'Urssaf ({})", etats::quand_lisible(c.get("quand").unwrap_or(&Value::Null)))});
+        return json!({"couleur": "vert", "courte": "DPAE faite", "phrase": format!("DPAE certifiée par l'Urssaf ({})", etats::quand_lisible(c.get("quand").unwrap_or(&Value::Null)))});
     }
-    json!({"couleur": "", "courte": "avant PuppetPaie", "phrase": "DPAE faite avant PuppetPaie : aucun certificat de l'Urssaf n'est relevé pour cette embauche"})
+    json!({"couleur": "gris", "courte": "avant PuppetPaie", "phrase": "DPAE faite avant PuppetPaie : aucun certificat de l'Urssaf n'est relevé pour cette embauche"})
 }
 
 /// Une carte : une paie importee (et le contrat atteste qui va avec), ou un contrat atteste seul.
@@ -310,11 +332,11 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
     }
 
     let documents = match &bulletin {
-        Some(b) => json!({"couleur": "bien", "courte": "bulletin importé", "phrase": format!("bulletin de l'ancien logiciel{}, copié dans historique/bulletins/", {
+        Some(b) => json!({"couleur": "vert", "courte": "bulletin importé", "phrase": format!("bulletin de l'ancien logiciel{}, copié dans historique/bulletins/", {
             let n = texte(b, "numero");
             if n.is_empty() { String::new() } else { format!(" n° {}", n) }
         })}),
-        None => json!({"couleur": "", "courte": "avant PuppetPaie", "phrase": "documents remis avant PuppetPaie : aucun bulletin importé pour cette paie"}),
+        None => json!({"couleur": "gris", "courte": "avant PuppetPaie", "phrase": "documents remis avant PuppetPaie : aucun bulletin importé pour cette paie"}),
     };
     json!({
         "salarie": salarie,
@@ -340,7 +362,7 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
         "bulletin": bulletin.unwrap_or(Value::Null),
         "etats": {
             "dpae": dpae,
-            "signature": {"couleur": "", "courte": "avant PuppetPaie", "phrase": "contrat fait avant PuppetPaie : sa signature n'est pas suivie ici"},
+            "signature": {"couleur": "gris", "courte": "avant PuppetPaie", "phrase": "contrat fait avant PuppetPaie : sa signature n'est pas suivie ici"},
             "documents": documents,
         },
         "manque": manques,
@@ -354,7 +376,7 @@ pub(crate) fn etapes(vue: &Value) -> Value {
     let cartes = vue["paies"].as_array().map_or(&[][..], |a| &a[..]);
     let n = cartes.len();
     let pl = |n: usize| if n > 1 { "s" } else { "" };
-    let dpae_faites = cartes.iter().filter(|c| c["etats"]["dpae"]["couleur"] == json!("bien")).count();
+    let dpae_faites = cartes.iter().filter(|c| c["etats"]["dpae"]["couleur"] == json!("vert")).count();
     let bulletins = cartes.iter().filter(|c| c["bulletin"].is_object()).count();
     let ailleurs = n - dpae_faites;
     let retrouvees = format!("{} DPAE retrouvée{} dans le journal ou les certificats de l'Urssaf", dpae_faites, pl(dpae_faites));
@@ -377,18 +399,20 @@ pub(crate) fn etapes(vue: &Value) -> Value {
     let dsn = &vue["dsn"];
     let sans_trace = dsn["etat"] == json!("sans_trace") || dsn["etat"] == json!("refusee");
     json!({
-        "dpae": {"couleur": "bien", "vide": true, "courte": "avant PuppetPaie", "phrase": dpae},
-        "contrat-signature": {"couleur": "bien", "vide": true, "courte": "avant PuppetPaie",
+        "dpae": {"couleur": "vert", "vide": true, "courte": "avant PuppetPaie", "phrase": dpae},
+        "contrat-signature": {"couleur": "vert", "vide": true, "courte": "avant PuppetPaie",
             "phrase": signature},
         "dsn": {
-            "couleur": if dsn["etat"] == json!("refusee") { "refus" } else if sans_trace { "alerte" } else { "bien" },
+            // La couleur de chaque etape (`routes::couleur_de_l_etat`) : faite ailleurs, verte ; refusee, rouge ; sans trace
+            // ici, tenue par l'ancien logiciel, une information.
+            "couleur": if dsn["etat"] == json!("refusee") { "rouge" } else if sans_trace { "gris" } else { "vert" },
             "vide": true,
             "importe": true,
             "etat": dsn["etat"].clone(),
             "courte": dsn["courte"].clone(),
             "phrase": dsn["phrase"].clone(),
         },
-        "documents": {"couleur": "bien", "vide": true, "courte": "avant PuppetPaie",
+        "documents": {"couleur": "vert", "vide": true, "courte": "avant PuppetPaie",
             "phrase": documents},
     })
 }

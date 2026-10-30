@@ -243,6 +243,53 @@ pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
 /// (IDCC, libellé) de la convention d'un contrat, pour ce qui s'imprime : le libellé se lit au catalogue des conventions
 /// du barème de l'année de `jour` (`droit::bareme::libelle_convention`), la 1734, qui n'a pas de couche de barème, à
 /// son titre KALI (`sources.json`, KALICONT000005635286).
+/// LA POSITION DU SALARIE DANS LA CLASSIFICATION DE SA CONVENTION, telle que le bulletin l'imprime : « le nom et l'emploi
+/// du salarie ainsi que sa position dans la classification conventionnelle qui lui est applicable. La position du
+/// salarie est notamment definie par le niveau ou le coefficient hierarchique qui lui est attribue » (art. R. 3243-1, 4°,
+/// du code du travail, `atelier/reference/sources/code-du-travail/articles-20261028.md`). La categorie de la convention
+/// (`droit::clauses::profil` : la fiche, sinon le metier, jamais devinee) dite par le libelle de la convention, puis le
+/// classement que la fiche porte dans la grille (`classement_conventionnel`) ; `None` quand ni l'une ni l'autre ne se
+/// lisent.
+fn classification(idcc: &str, sal: &Value) -> Resultat<Option<String>> {
+    let idcc_v = Value::String(idcc.to_string());
+    let profil = droit::clauses::profil(&idcc_v, sal, None)?;
+    let table = droit::clauses::table()?;
+    let categorie = profil.get("categorie").and_then(Value::as_str).map(|c| {
+        let dit = table.pointer(&format!("/conventions/{}/categories/valeurs/{}", idcc, c)).and_then(Value::as_str);
+        dit.map_or_else(|| c.replace('_', " "), |l| l.split(". ").next().unwrap_or(l).trim_end_matches('.').to_string())
+    });
+    let classement = sal.get("classement_conventionnel").filter(|v| vrai(v)).map(en_texte).filter(|t| !t.trim().is_empty());
+    Ok(match (categorie, classement) {
+        (Some(c), Some(k)) => Some(format!("{}, {}", c, k)),
+        (Some(c), None) => Some(c),
+        (None, Some(k)) => Some(k),
+        (None, None) => None,
+    })
+}
+
+/// Le nom du salarie tel que le bulletin l'imprime : son nom d'usage avec ses accents (`nom_affichage`, sinon `nom`), en
+/// capitales, puis son prenom (`prenom_affichage`, sinon `prenom`). La DSN et la DPAE declarent le nom sans accents ;
+/// le bulletin est lu par le salarie, sous son nom.
+fn nom_imprime(sal: &Value) -> Resultat<String> {
+    let lu = |cles: [&str; 2]| -> Option<String> {
+        cles.iter().filter_map(|c| sal.get(*c).filter(|v| vrai(v))).map(en_texte).find(|t| !t.trim().is_empty())
+    };
+    let nom = lu(["nom_affichage", "nom"]).ok_or_else(|| socle::fichiers::absent("nom"))?;
+    let prenom = lu(["prenom_affichage", "prenom"]).ok_or_else(|| socle::fichiers::absent("prenom"))?;
+    Ok(format!("{} {}", nom.to_uppercase(), prenom))
+}
+
+/// L'emploi tel que le bulletin l'imprime : celui que l'engagement choisit, lisible et accorde a la fiche
+/// (`emploi_affichage`), sinon celui de la fiche, sinon le libelle que la DSN declare (`emploi`, S21.G00.40.006).
+fn emploi_imprime(e: &engagement::Engagement, sal: &Value) -> Resultat<String> {
+    let lisible = e.emploi_affichage.clone().filter(|t| !t.trim().is_empty())
+        .or_else(|| sal.get("emploi_affichage").filter(|v| vrai(v)).map(en_texte).filter(|t| !t.trim().is_empty()));
+    match lisible {
+        Some(t) => Ok(t),
+        None => texte(sal, "emploi"),
+    }
+}
+
 pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value, jour: &Jour) -> Resultat<(String, String)> {
     let idcc = droit::minima::idcc_du_contrat(ent, sp, sal)?;
     if idcc.is_empty() {
@@ -771,13 +818,12 @@ fn blocs_annexe(p: &Paie, numero: Option<&str>) -> Resultat<Vec<Value>> {
         para(vec![m("Détail des cotisations et contributions", true, None)], 11.0, Some(ROUGE), 0.0, 1.0),
         para(
             vec![mt(format!(
-                "Document annexe au bulletin n° {} — {} {} — du {} au {}.\nIl détaille, sous chaque ligne du bulletin \
+                "Document annexe au bulletin n° {} — {} — du {} au {}.\nIl détaille, sous chaque ligne du bulletin \
                  qui les regroupe, les cotisations et contributions de la paie : leur base, le taux et le montant de la \
                  part salariale et de la part employeur. Il ne remplace aucune ligne du bulletin ; les totaux sont les \
                  siens.",
                 numero.unwrap_or_default(),
-                texte(sal, "nom")?,
-                texte(sal, "prenom")?,
+                nom_imprime(sal)?,
                 p.engagement.debut_periode()?.jj_mm_aaaa(),
                 p.engagement.fin_periode()?.jj_mm_aaaa(),
             ))],
@@ -963,17 +1009,19 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         _ => "en cours d'immatriculation".to_string(),
     };
     let mut salarie = vec![
-        m(format!("{} {}", texte(sal, "nom")?, texte(sal, "prenom")?), true, None),
+        m(nom_imprime(sal)?, true, None),
         mt(format!("\n{}\n{} {}\n\n", texte(sal, "adresse")?, texte(sal, "code_postal")?, texte(sal, "commune")?)),
         k("N° Sécurité sociale :"),
         mt(format!(" {}\n", nir_affiche)),
         k("Date de naissance :"),
         mt(format!(" {}\n", jj_mm_aaaa(requis(sal, "date_naissance")?)?)),
         k("Emploi :"),
-        mt(format!(" {} {} ", texte(sal, "emploi")?, NBSP)),
-        k("Statut :"),
-        mt(format!(" {}\n", texte(sal, "statut")?)),
+        mt(format!(" {}\n", emploi_imprime(e, sal)?)),
     ];
+    if let Some(c) = classification(&conv.0, sal)? {
+        salarie.push(k("Classification :"));
+        salarie.push(mt(format!(" {}\n", c)));
+    }
     salarie.extend(ligne_caisse);
     salarie.push(k("Abattement :"));
     salarie.push(mt(" 0 %"));

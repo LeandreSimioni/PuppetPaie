@@ -26,7 +26,7 @@ async function montrerRappels(lu = api) {
   try { r = await lu("rappels"); } catch (e) { return; }
   try { ech = await lu("echeancier"); } catch (e) { ech = null; }
   let manques = [];
-  try { manques = (await lu("pour-demarrer")).manques || []; } catch (e) { manques = []; }
+  try { const pd = await lu("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { manques = []; }
   const liste = r.rappels || [];
   // L'ÉCHÉANCIER : « un pop-up au démarrage : on est le…,
   // bienvenue sur PuppetPaie, n'oublie pas de faire la DSN ». Elle s'ouvrait
@@ -49,7 +49,7 @@ async function rafraichirRappels(lu) {
   let r, ech = null, manques = [];
   try { r = await lu("rappels"); } catch (e) { return; }
   try { ech = await lu("echeancier"); } catch (e) { ech = null; }
-  try { manques = (await lu("pour-demarrer")).manques || []; } catch (e) { manques = []; }
+  try { const pd = await lu("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { manques = []; }
   const liste = r.rappels || [];
   const neuf = { liste, ech, manques };
   if (JSON.stringify(neuf) === JSON.stringify(RAPPELS_MONTRES)) return;
@@ -62,12 +62,27 @@ async function rafraichirRappels(lu) {
   boiteRappels(liste, ech, manques);
 }
 
+/* CE QUE LE MOTEUR A POSÉ DE LUI-MÊME (`pour-demarrer`, `poses`) : dit avec
+ * ce qui manque, en information, avec le lien vers sa case. */
+let POSES_DEMARRAGE = [];
+function htmlPoses() {
+  if (!POSES_DEMARRAGE.length) return "";
+  return `<div class="rappel demarrage-poses">
+    <h3>Posé pour vous</h3>
+    <ul class="rappel-liste">${POSES_DEMARRAGE.map((p) => `
+      <li>${pastilleDeLEtat(p.pastille)}
+        <button type="button" class="lien" data-manque-champ="${echapper(p.champ || "")}"
+          data-manque-ou="${echapper(p.ou || "")}"><b>${echapper(p.libelle)}</b></button>
+        <div class="note">${echapper(p.texte)}</div></li>`).join("")}</ul>
+  </div>`;
+}
+
 /* POUR DÉMARRER. Une compagnie neuve découvrait ce qui lui
  * manquait un refus après l'autre. Le moteur (`pour-demarrer`) rend tout
  * d'un coup : ce que chaque manque bloque, où il se saisit, où la compagnie
  * trouve la valeur. La page ne fait que l'afficher. */
 function htmlDemarrage(manques) {
-  if (!manques || !manques.length) return "";
+  if (!manques || !manques.length) return htmlPoses();
   // CHAQUE CHOSE MÈNE À SA CASE : le libellé conduit au champ que le
   // moteur nomme (`champ`, celui que l'écran montre : `demarrage::a_l_ecran`),
   // ou à l'onglet qu'il nomme (`ou`) quand ce n'est pas une case.
@@ -85,7 +100,7 @@ function htmlDemarrage(manques) {
       <p class="note">Tant qu'elles manquent, ce qu'elles bloquent sera refusé. Elles se trouvent toutes sur les courriers des organismes.</p>
       <ul class="rappel-liste">${manques.map(ligne).join("")}</ul>
       <div class="actions"><button class="petit" data-aller-configuration>Ouvrir la configuration</button></div>
-    </div>`;
+    </div>${htmlPoses()}`;
 }
 
 /** Aller à ce qui manque : l'onglet, puis la case (son tiroir ouvert, le
@@ -135,7 +150,7 @@ function peindreDemarrage(conteneur) {
 }
 async function peindreDemarrageDans(conteneur) {
   let manques = [];
-  try { manques = (await api("pour-demarrer")).manques || []; } catch (e) { return; }
+  try { const pd = await api("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { return; }
   conteneur.innerHTML = htmlDemarrage(manques);
   const b = conteneur.querySelector("[data-aller-configuration]");
   if (b) b.remove();
@@ -146,12 +161,7 @@ async function peindreDemarrageDans(conteneur) {
  * : la page ne sait pas ce qu'est une échéance. */
 function htmlEcheancier(ech) {
   if (!ech) return "";
-  const pastille = (x) => ({
-    en_retard: `<span class="pastille alerte">en retard</span>`,
-    a_faire: `<span class="pastille alerte">à faire</span>`,
-    fait: `<span class="pastille bien">fait</span>`,
-    information: `<span class="pastille">pour info</span>`,
-  }[x.etat] || "");
+  const pastille = (x) => pastilleDeLEtat(x.pastille);
   const avant = (x) => x.date && x.etat !== "fait"
     ? ` <span class="discret">— avant le ${echapper(jjmmaaaa(String(x.date || "").slice(0, 10)))}</span>` : "";
   const ligne = (x) => `
@@ -191,7 +201,7 @@ function htmlEcheancier(ech) {
 function boiteRappels(liste, ech, manques = []) {
   const html = htmlDemarrage(manques) + htmlEcheancier(ech) + liste.map((r, i) => `
     <div class="rappel ${r.en_retard ? "retard" : ""}">
-      <h3>${echapper(r.titre)}${r.en_retard ? ` <span class="pastille alerte">en retard</span>` : ""}${r.echeance_depot && r.echeance_depot.jour
+      <h3>${echapper(r.titre)}${r.pastille ? ` ${pastilleDeLEtat(r.pastille)}` : ""}${r.echeance_depot && r.echeance_depot.jour
         ? ` <span class="discret">— avant le ${echapper(jjmmaaaa(r.echeance_depot.jour))}</span>` : ""}</h3>
       <p class="rappel-question">${echapper(r.question)}</p>
       ${r.detail ? `<p class="note">${echapper(r.detail)}</p>` : ""}
@@ -349,7 +359,7 @@ async function dessinerExercices() {
     return `
     <div class="rang exercice">
       <span class="rang-nom">${echapper(x.annee)}</span>
-      <span class="pastille ${clos ? "bien" : "alerte"}">${clos ? "clos" : "ouvert"}</span>
+      ${pastilleDeLEtat(x.pastille)}
       <span class="rang-infos">
         ${x.mois.length} mois · ${x.dsn_acceptees.length} DSN acceptée${x.dsn_acceptees.length === 1 ? "" : "s"}
         ${clos ? ` · clos le ${echapper(quand(clos.le))}, ${echapper(clos.archive)}` : ""}

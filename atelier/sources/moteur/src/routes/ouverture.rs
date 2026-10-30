@@ -64,7 +64,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
                 &crate::routes::qui_de(charge),
                 &socle::paris::iso_secondes(socle::temps::secondes()),
             ),
-        ),
+        ).map(pastilles_de_la_reprise),
         "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
         autre => Err(plain(format!("route inconnue : {}", autre))),
     }
@@ -135,9 +135,23 @@ fn fiche_verifiee(nom: &str, cle: Option<&str>, donnees: &Value) -> R<Value> {
 pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Value>, anomalies: Vec<Value>, derives: &Map<String, Value>) -> R<Value> {
     let comble = champs::combler_affichage(nom, donnees)?;
     let declare = champs::apercu_derive(nom, &comble)?;
+    // Sa pastille : archivee (une information), ses erreurs (a corriger, la compagnie le peut), ce qui est a verifier,
+    // ou complete.
+    let erreurs = anomalies.iter().filter(|a| a["gravite"] == "erreur").count();
+    let a_verifier = anomalies.len() - erreurs;
+    let pluriel = |n: usize| if n > 1 { "s" } else { "" };
+    let pastille = if comble.get("actif") == Some(&Value::Bool(false)) {
+        super::pastille("information", "archivé")
+    } else if erreurs > 0 {
+        super::pastille("a_faire", &format!("{} erreur{}", erreurs, pluriel(erreurs)))
+    } else if a_verifier > 0 {
+        super::pastille("a_faire", &format!("{} à vérifier", a_verifier))
+    } else {
+        super::pastille("fait", "complet")
+    };
     Ok(json!({
         "nom": nom, "cle": cle, "donnees": brut(&Value::Object(comble)),
-        "declare": declare, "anomalies": anomalies, "derives": derives,
+        "declare": declare, "anomalies": anomalies, "derives": derives, "pastille": pastille,
     }))
 }
 
@@ -393,12 +407,22 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         .iter()
         .map(|(k, v)| fiche_verifiee("spectacle", Some(k), &avec_historique(v, ctx.spectacle_brut(k))?))
         .collect::<R<Vec<_>>>()?;
+    // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre : une erreur a corriger, que la
+    // compagnie peut corriger (orange) ; un champ obligatoire vide n'en est pas une, il reste a remplir.
+    let erreurs = std::iter::once(&entreprise)
+        .chain(salaries.iter())
+        .chain(spectacles.iter())
+        .flat_map(|f| f["anomalies"].as_array().cloned().unwrap_or_default())
+        .filter(|a| a["gravite"] == "erreur" && a["message"] != "obligatoire")
+        .count();
+    let erreurs = if erreurs > 0 { super::pastille("a_faire", &format!("{} erreur{} de configuration", erreurs, if erreurs > 1 { "s" } else { "" })) } else { Value::Null };
     let permanents = ctx.emploie_des_permanents();
     Ok(json!({
         "entreprise": entreprise,
         "salaries": salaries,
         "spectacles": spectacles,
         "compteurs": compteurs(&ctx.racine)?,
+        "erreurs": erreurs,
         "description": {
             "entreprise": champs::description("entreprise")?,
             "salarie": champs::description("salarie")?,
@@ -466,7 +490,7 @@ pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
 /// `bilan_des_mois` : chaque mois connu, du plus recent au plus ancien, avec ou
 /// en est sa DSN (en mots), s'il se corrige, et quelles SORTES de documents il
 /// a. L'etat de la DSN : « passee » (bilan OK), « refusee », « attente »,
-/// « a_deposer », « en_retard » ; la meme lecture que les
+/// « a_deposer », « a_venir » (avant son premier jour de depot), « en_retard » ; la meme lecture que les
 /// rappels : le journal des depots, et lui seul.
 fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]) -> R<Value> {
     let mut out = Vec::new();
@@ -497,14 +521,20 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             None
         };
         let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
+        // Un mois tenu avant : ses bulletins sont ceux de l'ancien logiciel, que l'import garde.
+        if importe && !crate::import::mois::bulletins_repris(&ctx.racine, nom).is_empty() {
+            sortes.insert(0, "bulletins repris");
+        }
         // LES AER DE FRANCE TRAVAIL : rangees avec les documents des salaries (`sorties/<mois>/envoi/`), pas a la
         // racine du mois ; elles se nomment avec les autres sortes.
         if crate::routes::documents::un_nom_commence_et_finit(&ctx.racine.join("sorties").join(nom).join("envoi"), "AER_", ".pdf") {
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
             sortes.insert(rang, "attestations AER");
         }
-        // Une DSN qui n'est pas partie est a deposer : elle se fabrique a son depot.
-        let etat = etat.unwrap_or("a_deposer");
+        // Une DSN qui n'est pas partie est a deposer : elle se fabrique a son depot. Avant son premier jour de depot (un
+        // mois avant l'echeance, `Echeance::premier_depot`), elle est a venir : rien a faire encore.
+        let a_venir = echeance.premier_depot().map_err(|m| erreur("ValueError", m))?.ordinal() > ctx.aujourdhui.ordinal();
+        let etat = etat.unwrap_or(if a_venir { "a_venir" } else { "a_deposer" });
         // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a deposer, refusee ou en
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
@@ -514,11 +544,24 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             // suivante (`import::mois::dsn_de_l_ancien_logiciel`).
             "importee" => crate::import::mois::dsn_de_l_ancien_logiciel(ctx, nom)?.is_some_and(|d| d["engagements"].as_u64().is_some_and(|n| n > 0)),
             "passee" => vrai(&m.etat_remplacement(nom, &Value::Null)?["a_envoyer"]),
-            "attente" => false,
+            "attente" | "a_venir" => false,
             _ => true,
+        };
+        // CE QUE LA PASTILLE DIT, et sa couleur (`routes::couleur_de_l_etat`) : une DSN qui attend son bilan, ou dont
+        // l'ancien logiciel garde la trace, n'est rien que la compagnie ait a faire -- une information, en gris.
+        let (couleur, mots) = match etat {
+            "passee" => ("vert", "DSN passée"),
+            "attente" => ("gris", "DSN partie, bilan attendu"),
+            "refusee" => ("rouge", "DSN refusée"),
+            "en_retard" => ("orange", "DSN en retard"),
+            "importee" => ("vert", "DSN déclarée avant PuppetPaie"),
+            "sans_trace" => ("gris", "tenu avant PuppetPaie — sa DSN est celle de l'ancien logiciel"),
+            "a_venir" => ("gris", "DSN à venir"),
+            _ => ("orange", "DSN à déposer"),
         };
         out.push(json!({
             "mois": nom, "produit": !noms.is_empty(), "dsn": etat,
+            "pastille": {"couleur": couleur, "mots": mots},
             "depose_le": if vrai(&e) { e.get("quand").cloned().unwrap_or(Value::Null) } else { Value::Null },
             "echeance": limite.iso(),
             "echeance_depot": echeance.en_json(),
@@ -915,6 +958,9 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "supprimable": crate::interface::suppression::genre(&crate::compagnie::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),
         // UNE COMPAGNIE CREEE EN DEMO PUIS GARDEE : sa mention, et les mois saisis en demo, ou la page la montre.
         "demo": crate::interface::suppression::mention(&ctx.racine),
+        // UNE COMPAGNIE VENUE D'UN LOGICIEL PRECEDENT, DONT RIEN N'EST ENCORE REPRIS : la page s'ouvre sur l'import et
+        // son guide (`import::guide::commencer_par_l_import`) ; ce qui manque pour demarrer se dit apres lui.
+        "commencer_par_l_import": crate::import::guide::commencer_par_l_import(&ctx.racine),
         "historique": historique,
         "salaries": salaries,
         "spectacles": spectacles,
@@ -1065,4 +1111,16 @@ fn en_os(m: String) -> Echec {
 /// `Path.mkdir(parents=True, exist_ok=True)`.
 fn creer_dossier(d: &std::path::Path) -> R<()> {
     std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
+}
+
+/// La pastille de chaque depot que la reprise du journal remet (`ajoutes`) : un depot reel accepte, fait ; refuse,
+/// refuse ; un depot de test, une information.
+fn pastilles_de_la_reprise(mut v: Value) -> Value {
+    for d in v.get_mut("ajoutes").and_then(Value::as_array_mut).into_iter().flatten() {
+        let reel = d.get("mode").and_then(Value::as_str) == Some("reel");
+        let accepte = d.get("accepte").is_some_and(vrai);
+        let mots = format!("{}{}", if reel { "dépôt réel" } else { "test" }, if accepte { "" } else { " — refusé" });
+        d["pastille"] = super::pastille(if !reel { "information" } else if accepte { "fait" } else { "refuse" }, &mots);
+    }
+    v
 }

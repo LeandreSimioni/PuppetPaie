@@ -53,8 +53,7 @@ async function dessinerReprise() {
         <div class="choix"><span>
           <b>${echapper(quand(v.quand))}</b>
           — ${echapper(v.mois ? moisEnClair(v.mois) : "mois inconnu")}
-          <span class="pastille ${v.mode === "reel" ? (v.accepte ? "bien" : "erreur") : "alerte"}">
-            ${v.mode === "reel" ? "dépôt réel" : "test"}${v.accepte ? "" : " — refusé"}</span>
+          ${pastilleDeLEtat(v.pastille)}
           <br><span class="discret">déposé par ${echapper(v.logiciel || "logiciel inconnu")}
             · flux ${echapper(v.flux)}</span>
         </span></div>`).join("")}

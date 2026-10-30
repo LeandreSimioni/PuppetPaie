@@ -1,0 +1,277 @@
+[Main Page]
+
+The primary objective of the Bank is to achieve price stability.
+
+Filter sub sontent
+
+Filter sub sontent
+
+About the BankCore FunctionsStatisticsResearch and PublicationsAnnouncements and SpeechesBanknotes
+
+[About the Bank]
+
+About the Bank At a Glance Organization Legal Framework History International Relations Investor Relations Education & Academic Turkish Lira Sign FAQ Cultural and Artistic Activities Contact Us
+
+[Core Functions]
+
+Core Functions Monetary Policy Market Operations Treasury Operations Exchange Rate Policy Reserve Management Payment Systems Payment Services Banknote Printing
+
+[Statistics]
+
+Statistics Statistical Data Data Release Calendar Inflation Data Balance of Payments and Related Statistics Monetary and Financial Statistics Interest and Profit Rate Statistics Real Sector Statistics Tendency Surveys Banking Data Markets Data Exchange Rates CBRT Analytical Balance Sheet
+
+[Research and Publications]
+
+Research and Publications Reports Monetary Policy Texts Research Agenda and Data Research Center Central Bank Review Research CBRT Blog Books, Booklets and Factsheets
+
+[Announcements and Speeches]
+
+Announcements and Speeches Remarks by the Governor Press Releases Visual Library Social Media Live Webcast Press Briefings Calendar
+
+[Banknotes]
+
+Banknotes General Information on Banknotes Banknotes of the Republic of Türkiye Banknotes in Circulation and Their Security Features Counterfeit Banknotes
+
+TR
+
+Ana Sayfa Bottom Menu IBAN Communique
+
+Communique
+
+Information Booklet
+
+Communique
+
+COMMUNIQUE ON THE INTERNATIONAL BANK ACCOUNT NUMBER^(*)
+
+(No:2008/6)
+
+-Published in the Official Gazette No.27020 dated October 10, 2008-
+
+Purpose and scope
+
+ARTICLE 1- (1) The purpose of this Communique to establish the principles and procedures regarding the implementation of the International Bank Account Number by banks.
+
+Basis
+
+ARTICLE 2- (1) This Communique is issued on the basis of the subparagraph (f) of paragraph (I) of Article 4 of the Law No.1211 on the Central Bank of the Republic of Turkey dated 14/01/1970
+
+Definitions
+
+ARTICLE 3- (1) In this Communique;
+
+a) "Bank" means the banks defined in Article 3 of the Banking Law No. 5411 dated 19/10/2005,
+
+b)"Customer" means the real and legal persons receiving service from the banks,
+
+c) "IBAN" means the International Bank Account Number generated according to the standard ISO 13616,
+
+d) "ISO" means the International Organization for Standardization,
+
+e) (As amended by Communique No. 2012/14 of December 21, 2012] "Electronic Funds Transfer (EFT) System" means inter bank Turkish Lira transfer system and inter customer Turkish Lira transfer system.
+
+Structure of the IBAN
+
+ARTICLE 4- (1) The IBAN to be assigned by the banks to the customers is made up of 26 alphanumeric characters that refers to a single account. The sequence of the characters from left to right is generated as shown in the Appendix 1 of this Communique in accordance with the following rules.
+
+  ---------------------- -------------------------- ---------------------
+  Number of Charecters       Type of Characters     Explanation
+  2                        Alpha Characters (A-Z)   Country Code
+  2                       Numeric Characters (0-9)  IBAN check digits
+  5                       Numeric Characters (0-9)  Bank Code
+  1                       Numeric Characters (0-9)  Reserved Field
+  16                      Alphanumeric Characters   Bank Account Number
+  ---------------------- -------------------------- ---------------------
+
+(2) The IBAN, shall not contain the letters "İ,Ç,Ğ,Ö,Ş,Ü" and lower case letters,
+
+(3) The country code of Turkey is "TR" according to ISO 3166,
+
+(4) Bank codes are determined and announced by the Central Bank of the Republic of Turkey.
+
+(5) There is no standard format for the bank account number. However, the 16 digits determined as the bank account number shall be right aligned and, if any, the blank spaces on its left shall be filled with zeros.
+
+(6) The Reserved Field is zero for all IBAN.
+
+(7) The calculation and validation of check digits shall be made by using the MOD 97-10 method developed according to the ISO 7064 as shown in the Appendix 2 and 3 of this Communique.
+
+Generation of the IBAN
+
+ARTICLE 5- (1) Banks shall generate an IBAN based on the principles of this Communique for each customer account which is subject to money transfer and communicate the generated IBAN to the owner of the account.
+
+Presentation format of the IBAN
+
+ARTICLE 6- (1) The IBAN should be indicated on each document, related to the accounts which are subject to written and electronic form of money transfer and which are required to include account number, that is generated for customers.
+
+(2) In the electronic form, the IBAN shall contain adjoining characters. There shall be no separators or blank spaces between characters.
+
+(3) On written documents, the IBAN shall be shown in groups of 4 characters starting from left and separated by blank spaces.
+
+Use and validation of the IBAN and exceptions (As amended by Communique No. 2012/14 of December 21, 2012)
+
+ARTICLE 7- (1) (As amended by Communique No. 2009/10 of December 19, 2009) It is mandatory to validate and use beneficiary’s IBAN for the money transfers that are made to the accounts in the countries within the European Economic Area. However, this requirement shall not apply to the transactions between banks and the institutions executing cross border payments that are conducted on behalf and account of their own and to the transactions containing the customer’s declaration indicating that the beneficiary’s IBAN will not be notified though it is demanded.
+
+(2) IBAN shall be validated for the incoming money transfers where the beneficiary’s account number is specified as IBAN.
+
+(3) Banks shall use the sender’s IBAN for the money transfers made from the customer’s account.
+
+(4) (As amended by Communique No. 2009/10 of December 19, 2009) It is mandatory to validate and use the beneficiary’s IBAN for the money transfers made to the account through EFT system, except for the transactions containing the customer’s declaration indicating that the beneficiary’s IBAN will not be notified though it is demanded.
+
+(5) (As added by Communique No. 2012/14 of December 21, 2012) The use of IBAN is not mandatory for money transfers executed from the accounts of non-resident banks and other financial institutions held with the correspondent banks in Turkey.
+
+ARTICLE 8- (1) Banks may return or reject the transfer orders that are detected to have an invalid IBAN after the controls done according to the provisions of the seventh paragraph of Article 4 of this Communique.
+
+PROVISIONAL ARTICLE 1 – (Repealed by Communique No. 2012/14 of December 21, 2012)
+
+Enforcement
+
+ARTICLE 9- (1) Article 6 and the first paragraph of Article 7 of this Communique shall enter into force on 01/01/2009, the second, third and fourth paragraphs of Article 7 and Article 8 shall enter into force on 01/01/2010, and the other articles shall enter into force on the date of publication.
+
+Execution
+
+ARTICLE 10- (1) The provisions of this Communique shall be executed by the Governor of the Central Bank of the Republic of Turkey.
+
+ 
+
+(*) As amended by Communiques No. 2009/10, 2011/17 and 2012/14 published in the Official Gazettes No. 27437, 28150 and 28504 dated December 19, 2009, December 22, 2011 and December 21, 2012.
+
+ 
+
+Appendix no. 1
+
+The Structure of the IBAN in Turkey
+
+[The Structure of the IBAN in Turkey]
+
+ 
+
+Appendix no. 2
+
+Calculation of the IBAN Check Digits
+
+Preliminary step
+
+An artificial number is created starting with country code (ISO 3166) and “00”, and continuing with the bank account number that is to be converted to IBAN. There shall be no non alphanumeric characters and blank spaces in this number.
+
+Example: The account number “0100000350930001” with the Ankara Branch of Central Bank of the Republic of Turkey (00001) becomes TR000000100100000350930001.
+
+Step 1
+
+The first four characters are moved to the end of the IBAN:
+Result: 0000100100000350930001TR00.
+
+Step 2
+
+Letters are converted into numeric characters in accordance with the “Conversion Table” as shown below.
+Result: 0000100100000350930001292700.
+
+Step 3
+
+The MOD 97-10 (ISO 7064) algorithm is applied.
+The result is divided by 97 and the remainder (MOD 97-10) is subtracted from 98. If the result has one digit, then a zero will be inserted to the beginning.
+98 - 51 = 47, then the IBAN becomes:
+IBAN = TR470000100100000350930001.
+
+CONVERSION TABLE
+
+  ------ ------ ------ ------ ------
+  A=10   G=16   M=22   S=28   Y=34
+  B=11   H=17   N=23   T=29   Z=35
+  C=12   I=18   O=24   U=30   
+  D=13   J=19   P=25   V=31   
+  E=14   K=20   Q=26   W=32   
+  F=15   L=21   R=27   X=33   
+  ------ ------ ------ ------ ------
+
+ 
+
+Appendix no. 3
+
+Validation of the IBAN Check Digits
+
+Preliminary step
+
+If there are any non alphanumeric characters and blank spaces in the IBAN, they are deleted.
+Example: The IBAN, “TR47 0000 1001 0000 0350 9300 01”, becomes “TR470000100100000350930001” by removing all blank spaces.
+
+Step 1
+
+The first four characters of the IBAN are moved to the right of the IBAN
+Result: 0000100100000350930001TR47.
+
+Step 2
+
+Letters in the IBAN are converted into numeric characters in accordance with the “Conversion Table” that is provided in Appendix 2.
+Result: 0000100100000350930001292747.
+
+Step 3
+
+Mod 97-10 (ISO 7064) method is applied to control the validity of the check digits.
+
+In order for the check digits to be correct, the remainder (MOD 97-10) of dividing the result by 97 must be 1.
+
+The remainder of dividing 0000100100000350930001292747 by 97 is 1.
+
+In this way, the validity of the check digits within the IBAN is proven.
+
+If the number that is subject to the mod calculation is too long for the relevant software (32-bit or 64-bit data represents 9 or 18 digit number), the mod calculation may be done by breaking the number into 9 or 18 digits.
+
+Example:
+
+-   The remainder of 0000100100000350930001292747 divided by 97 is 1.
+-   The MOD 97-10 value of the first 9 (or 18) digits of the number is calculated.
+-   The MOD 97-10 of 000010010 is 19
+-   The remaining numbers are written down at the end of the result number in order to complete digit number to 9 (18) and then MOD 97-10 is calculated
+-   The MOD 97-10 of 19000035093 is 43
+-   The previous step is repeated with the remaining numbers.
+-   The MOD 97-10 of 430001292747 is 1. (The same result is obtained.)
+
+ 
+
+ 
+
+Central Bank of the Republic of Türkiye Head Office
+
+Hacı Bayram Mah. İstiklal Cad. No:10 06050 Ulus Altındağ Ankara
+
+Phone : (+90 312) 507 50 00
+
+|
+
+Fax : (+90 312) 507 56 40
+
+CBRT © 2026 All rights reserved.
+
+Disclaimer Site Map E-alert RSS Privacy Policy
+
+[]
+
+Accessibility Menu
+
+❌
+
+[] Highlight Links
+
+[] Bigger Text
+
+[] Cursor
+
+[] Reading Guide
+
+[] Reading Mask
+
+[] Align Left
+
+[] Dyslexia Friendly
+
+[] High Contrast
+
+[] Desaturate
+
+[] Low Saturation
+
+[] High Saturation
+
+[] Hide Images
+
+Reset Settings

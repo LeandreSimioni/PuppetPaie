@@ -30,7 +30,7 @@ async function dessinerModelesBulletin(cible) {
     return `<div class="modele-bulletin" style="flex:1 1 320px;min-width:0">
       <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
         <b>${echapper(x.nom)}</b>
-        ${choisi ? `<span class="pastille bien">${m.par_defaut ? "celui de la compagnie (par défaut)" : "celui de la compagnie"}</span>` : ""}
+        ${pastilleDeLEtat(x.pastille)}
       </div>
       <p class="discret">${echapper(x.description)}</p>
       <iframe class="fictive-pdf-cadre" style="height:560px" title="Aperçu du modèle ${echapper(x.nom)}"

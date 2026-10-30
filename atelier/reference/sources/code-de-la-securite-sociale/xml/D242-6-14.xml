@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006735892</ID>
+<ANCIEN_ID>SSAXXXXXXXX3X242D06OXXAA</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/73/58/LEGIARTI000006735892.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D242-6-14</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2010-07-08</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106031">Partie réglementaire - Décrets simples</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126849">Livre II : Organisation du régime général - Action sanitaire et sociale des caisses</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141518">Titre IV : Ressources</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006155797">Chapitre 2 : Assiette, taux et calcul des cotisations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006172139">Section 1 : Cotisations assises sur les rémunérations ou gains versés aux travailleurs salariés ou assimilés</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006185515">Sous-section 2 : Dispositions propres à chaque branche</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006194234">Paragraphe 4 : Assurance accidents du travail et maladies professionnelles.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="TRANSFERE">
+<LIEN_ART debut="1996-01-01" etat="TRANSFERE" fin="2010-07-08" id="LEGIARTI000025784967" num="D242-6-14" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2010-07-08" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000006735892" num="D242-6-14" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>   I. - Les établissements exerçant une activité dont la liste est fixée par arrêté du ministre chargé de la sécurité sociale conservent un taux de cotisation collectif quel que soit leur effectif de salariés ou celui de l'entreprise dont ils relèvent.<br/>
+<br/>   II. - Les travailleurs à domicile des entreprises constituent des établissements distincts auxquels sont applicables les taux collectifs.<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000507924" datesignatexte="1985-12-17" id="JORFTEXT000000507924" naturetexte="DECRET" nortexte="" num="" numtexte="85-1354" sens="source" typelien="CODIFICATION">Décret 85-1354 1985-12-17</LIEN>
+<LIEN cidtexte="JORFTEXT000000190742" datesignatexte="1995-10-16" id="LEGIARTI000006770979" naturetexte="DECRET" nortexte="SANS9502260D" num="2" numtexte="95-1109" sens="source" typelien="CREATION">Décret n°95-1109 du 16 octobre 1995 - art. 2 () JORF 17 octobre 1995 en vigueur le 1er janvier 1996</LIEN>
+<LIEN cidtexte="JORFTEXT000000555144" datesignatexte="1995-10-17" id="LEGIARTI000042710957" naturetexte="ARRETE" nortexte="SANS9502262A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 octobre 1995 - art. 1 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000000555144" datesignatexte="1995-10-17" id="LEGIARTI000042710954" naturetexte="ARRETE" nortexte="SANS9502262A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 octobre 1995 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000555144" datesignatexte="1995-10-17" id="LEGIARTI000038108328" naturetexte="ARRETE" nortexte="SANS9502262A" num="6" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 octobre 1995 - art. 6 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000557536" datesignatexte="1995-12-06" id="LEGIARTI000025127953" naturetexte="ARRETE" nortexte="TASS9523413A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 6 décembre 1995 - art. 2 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000017756013" datesignatexte="2007-12-21" id="LEGIARTI000017771898" naturetexte="ARRETE" nortexte="MTSS0774388A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 21 décembre 2007 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000019994990" datesignatexte="2008-12-22" id="LEGITEXT000020032853" naturetexte="ARRETE" nortexte="MTSS0830898A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 22 décembre 2008 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000019994990" datesignatexte="2008-12-22" id="LEGIARTI000020032869" naturetexte="ARRETE" nortexte="MTSS0830898A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 22 décembre 2008 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000022443571" datesignatexte="2010-07-05" id="LEGIARTI000022444567" naturetexte="DECRET" nortexte="MTSS1009684D" num="1" numtexte="2010-753" sens="cible" typelien="MODIFIE">Décret n°2010-753 du 5 juillet 2010 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000022443571" datesignatexte="2010-07-05" id="LEGIARTI000022444567" naturetexte="DECRET" nortexte="MTSS1009684D" num="1" numtexte="2010-753" sens="cible" typelien="TRANSFERE">Décret n°2010-753 du 5 juillet 2010 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000023311484" datesignatexte="2010-12-27" id="LEGIARTI000023420417" naturetexte="ARRETE" nortexte="ETSS1032825A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 décembre 2010 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000025055638" datesignatexte="2011-12-29" id="LEGITEXT000025084889" naturetexte="ARRETE" nortexte="ETSS1135540A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 29 décembre 2011 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000025055638" datesignatexte="2011-12-29" id="LEGIARTI000025084914" naturetexte="ARRETE" nortexte="ETSS1135540A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 29 décembre 2011 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000026805280" datesignatexte="2012-12-17" id="LEGITEXT000026806439" naturetexte="ARRETE" nortexte="AFSS1242492A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 décembre 2012 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000026863382" datesignatexte="2012-12-24" id="LEGITEXT000026909524" naturetexte="ARRETE" nortexte="AFSS1243347A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 24 décembre 2012 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000026863382" datesignatexte="2012-12-24" id="LEGIARTI000026909547" naturetexte="ARRETE" nortexte="AFSS1243347A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 24 décembre 2012 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000028312607" datesignatexte="2013-11-29" id="LEGITEXT000028315796" naturetexte="ARRETE" nortexte="AFSS1329463A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 29 novembre 2013 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000028396619" datesignatexte="2013-12-20" id="LEGITEXT000028432763" naturetexte="ARRETE" nortexte="AFSS1331700A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 20 décembre 2013 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000028396619" datesignatexte="2013-12-20" id="LEGIARTI000028432773" naturetexte="ARRETE" nortexte="AFSS1331700A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 20 décembre 2013 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000029993109" datesignatexte="2014-12-24" id="LEGITEXT000030111035" naturetexte="ARRETE" nortexte="AFSS1431047A" num="" numtexte="" sens="cible" typelien="CITATION">ARRÊTÉ du 24 décembre 2014 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000029993109" datesignatexte="2014-12-24" id="LEGIARTI000030111082" naturetexte="ARRETE" nortexte="AFSS1431047A" num="2" numtexte="" sens="cible" typelien="CITATION">ARRÊTÉ du 24 décembre 2014 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000031585534" datesignatexte="2015-12-01" id="LEGITEXT000031587570" naturetexte="ARRETE" nortexte="AFSS1529568A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 1er décembre 2015 (V)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000033507490" datesignatexte="2016-11-23" id="LEGITEXT000033508678" naturetexte="ARRETE" nortexte="AFSS1633405A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 23 novembre 2016 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000033665049" datesignatexte="2016-12-19" id="LEGITEXT000033667768" naturetexte="ARRETE" nortexte="AFSS1635543A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 19 décembre 2016 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000033735824" datesignatexte="2016-12-27" id="LEGITEXT000034049661" naturetexte="ARRETE" nortexte="AFSS1636408A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 décembre 2016 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000033735824" datesignatexte="2016-12-27" id="LEGIARTI000034049670" naturetexte="ARRETE" nortexte="AFSS1636408A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 décembre 2016 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000036127127" datesignatexte="2017-11-24" id="LEGITEXT000036130088" naturetexte="ARRETE" nortexte="SSAS1732376A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 24 novembre 2017 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000036341681" datesignatexte="2017-12-30" id="LEGITEXT000036524141" naturetexte="ARRETE" nortexte="SSAS1733524A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 30 décembre 2017 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000036341681" datesignatexte="2017-12-30" id="LEGIARTI000036524157" naturetexte="ARRETE" nortexte="SSAS1733524A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 30 décembre 2017 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000037865039" datesignatexte="2018-12-26" id="LEGITEXT000038098545" naturetexte="ARRETE" nortexte="SSAS1830839A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 26 décembre 2018 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000037865039" datesignatexte="2018-12-26" id="LEGIARTI000038098559" naturetexte="ARRETE" nortexte="SSAS1830839A" num="3" numtexte="" sens="cible" typelien="CITATION">Arrêté du 26 décembre 2018 - art. 3</LIEN>
+<LIEN cidtexte="JORFTEXT000039684705" datesignatexte="2019-12-27" id="LEGIARTI000039795661" naturetexte="ARRETE" nortexte="SSAS1933575A" num="5" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 décembre 2019 - art. 5 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000042709205" datesignatexte="2020-12-14" id="LEGIARTI000042709702" naturetexte="ARRETE" nortexte="SSAS2035832A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 14 décembre 2020 - art. 1</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000048708740" datesignatexte="2023-12-27" id="LEGIARTI000048720744" naturetexte="ARRETE" nortexte="SPRS2330243A" num="5" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 décembre 2023 - art. 5 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000051533180" datesignatexte="2025-04-29" id="LEGIARTI000051536047" naturetexte="ARRETE" nortexte="TSSS2510229A" num="5" numtexte="" sens="cible" typelien="CITATION">Arrêté du 29 avril 2025 - art. 5 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000053228984" datesignatexte="2025-12-30" id="LEGIARTI000053266175" naturetexte="ARRETE" nortexte="SFHS2536273A" num="5" numtexte="" sens="cible" typelien="CITATION">Arrêté du 30 décembre 2025 - art. 5 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000022446651" naturetexte="CODE" nortexte="" num="D242-41" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-41 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006735887" naturetexte="CODE" nortexte="" num="D242-6-10" numtexte="" sens="cible" typelien="CONCORDE">Code de la sécurité sociale. - art. D242-6-10 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000022446507" naturetexte="CODE" nortexte="" num="D242-6-18" numtexte="" sens="source" typelien="CONCORDE">Code de la sécurité sociale. - art. D242-6-18 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006736110" naturetexte="CODE" nortexte="" num="D242-6-4" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. D242-6-4</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741979" naturetexte="CODE" nortexte="" num="L242-5" numtexte="" sens="source" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. L242-5 (M)</LIEN>
+</LIENS>
+</ARTICLE>

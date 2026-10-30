@@ -154,6 +154,12 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     let mut nics: Vec<String> = Vec::new();
     // Les versements aux organismes (bloc 20) : identifiant, entite d'affectation, BIC, IBAN.
     let mut blocs20: Vec<[String; 4]> = Vec::new();
+    // Les contacts chez le declare (bloc S20.G00.07), le contact de l'emetteur (S10.G00.02), les adhesions prevoyance
+    // (S21.G00.15) : ce que `parametrage` en tire.
+    let mut contacts: Vec<Map<String, Value>> = Vec::new();
+    let mut contact_emetteur: Map<String, Value> = Map::new();
+    let mut adhesions: Vec<Map<String, Value>> = Vec::new();
+    let mut spst = String::new();
     for l in &lignes {
         let Some((k, v)) = l.split_once(',') else { continue };
         let v = v.trim_matches(blanc).trim_matches('\'');
@@ -167,6 +173,26 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
                     b[k[k.len() - 1..].parse::<usize>().unwrap_or(1) - 1] = v.to_string();
                 }
             }
+            _ => {}
+        }
+        match k {
+            "S20.G00.07.001" => contacts.push(Map::from_iter([("nom_prenom".to_string(), texte(v))])),
+            "S20.G00.07.002" | "S20.G00.07.003" | "S20.G00.07.004" => {
+                let cle = match k { "S20.G00.07.002" => "tel", "S20.G00.07.003" => "email", _ => "qualite" };
+                if let Some(c) = contacts.last_mut() {
+                    c.insert(cle.into(), texte(v));
+                }
+            }
+            "S10.G00.02.001" => { contact_emetteur.insert("civilite".into(), texte(v)); }
+            "S10.G00.02.002" => { contact_emetteur.insert("nom_prenom".into(), texte(v)); }
+            "S21.G00.15.001" => adhesions.push(Map::from_iter([("libelle".to_string(), texte(v))])),
+            "S21.G00.15.002" | "S21.G00.15.005" => {
+                let cle = if k == "S21.G00.15.002" { "organisme" } else { "reference" };
+                if let Some(a) = adhesions.last_mut() {
+                    a.insert(cle.into(), texte(v));
+                }
+            }
+            "S21.G00.11.025" => spst = v.to_string(),
             _ => {}
         }
         if k == "S21.G00.11.001" && !nics.iter().any(|n| n == v) {
@@ -233,6 +259,10 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
             c.insert("fin".into(), Value::String(jjmmaaaa(v)));
         } else if let (true, Some(c)) = (k == "S21.G00.40.050", contrats.last_mut()) {
             c.insert("objet".into(), texte(v));
+        } else if let (true, Some(c)) = (k == "S21.G00.40.040", contrats.last_mut()) {
+            c.insert("code_risque".into(), texte(v));
+        } else if let (true, Some(c)) = (k == "S21.G00.40.043", contrats.last_mut()) {
+            c.insert("taux_at".into(), texte(v));
         }
     }
     if mois.is_empty() {
@@ -273,6 +303,33 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     if let Some(b) = blocs20.iter().find(|b| b[0] == declarations::dsn::SIRET_FRANCE_TRAVAIL && !b[1].is_empty()) {
         entreprise.entry("france_travail_dossier_recouvrement").or_insert_with(|| texte(&b[1]));
     }
+    // QUI LES ORGANISMES CONTACTENT : le contact chez le declare (S20.G00.07 : « nom et prenom » en une rubrique, .001 ;
+    // telephone .002 ; courriel .003 ; type .004 ; cahier technique 2026.1, p. 139, `bloc-S20.G00.07.txt` l. 63-84), celui de
+    // type 04 (« recouvrant, entre autres, des cotisations de Securite sociale ») s'il y en a plusieurs, sinon le premier :
+    // le `declarant_dsn` de la fiche, que le moteur ecrit la (`dsn.rs`, `type_du_contact`). Sa civilite n'est pas dans ce
+    // bloc : elle se lit dans celle du contact de l'emetteur (S10.G00.02.001, `bloc-S10.G00.02.txt` l. 33-40) quand
+    // l'emetteur est l'entreprise (meme Siren, comme pour la raison sociale) et que son contact porte le meme nom et prenom
+    // (S10.G00.02.002) -- une inference : c'est alors la meme personne.
+    let contact = contacts.iter().find(|c| lu(c, "qualite").as_deref() == Some(declarations::dsn::TYPE_CONTACT_ORDINAIRE)).or(contacts.first());
+    if let Some(c) = contact.filter(|c| lu(c, "nom_prenom").is_some()) {
+        let mut d = c.clone();
+        if let Some(n) = lu(c, "nom_prenom") {
+            d.insert("nom_prenom_affichage".into(), texte(&n));
+        }
+        let emetteur_est_l_entreprise = lu(&autres, "emetteur_siren").is_some() && lu(&autres, "emetteur_siren") == lu(&entreprise, "siren");
+        if emetteur_est_l_entreprise && lu(&contact_emetteur, "nom_prenom") == lu(c, "nom_prenom") {
+            if let Some(civ) = lu(&contact_emetteur, "civilite").filter(|x| x == "01" || x == "02") {
+                d.insert("civilite".into(), texte(&civ));
+            }
+        }
+        entreprise.insert("declarant_dsn".into(), Value::Object(d));
+    }
+    // LA MEDECINE DU TRAVAIL INTERNE : « MT01 - MEDECINE INTERNE ETABLISSEMENT » en S21.G00.11.025 (norme 2027,
+    // `dsn::spst_ecrit`), le code que la fiche garde (`medecine_travail`). L'identifiant d'un service externe ne se reprend
+    // pas : sa definition est dans une fiche consigne non deposee, et qu'il soit le code de la DPAE serait une inference.
+    if spst == "MT01" {
+        entreprise.insert("medecine_travail".into(), texte(&spst));
+    }
     let versements: Vec<Value> = versements
         .into_iter()
         .filter(|v| v.get("contrat").and_then(Value::as_str).is_some_and(|c| !c.is_empty()))
@@ -287,6 +344,7 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     out.insert("versements".into(), Value::Array(versements));
     out.insert("etablissements".into(), json!(nics));
     out.insert("nic_siege".into(), json!(lu(&autres, "nic_siege").unwrap_or_default()));
+    out.insert("adhesions".into(), Value::Array(adhesions.into_iter().map(Value::Object).collect()));
     out.insert("fichier".into(), Value::String(chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()));
     Some(Value::Object(out))
 }
@@ -326,6 +384,11 @@ pub(crate) struct LectureDsn {
     pub(crate) etablissements: std::collections::BTreeSet<String>,
     pub(crate) nics_siege: std::collections::BTreeSet<String>,
     pub(crate) paies: std::collections::BTreeMap<(String, String, String), Map<String, Value>>,
+    /// Le code risque et le taux AT/MP que les contrats declarent (S21.G00.40.040, .043), par annee : ceux de la derniere DSN
+    /// de l'annee (son mois, le code, le taux ; aucun taux pour 999ZZ), quand tous ses contrats disent le meme.
+    pub(crate) atmp: std::collections::BTreeMap<i32, (String, String, Option<String>)>,
+    /// Les adhesions prevoyance de la derniere DSN (S21.G00.15 : `libelle` .001, `organisme` .002, `reference` .005).
+    pub(crate) adhesions: Vec<Value>,
 }
 
 /// `Path.suffix.lower()`.
@@ -424,6 +487,19 @@ pub(crate) fn lire_dsn(dossier: &Path) -> LectureDsn {
             }
         }
         let contrats: &[Value] = info["contrats"].as_array().map(Vec::as_slice).unwrap_or(&[]);
+        // Le code risque de la DSN : un seul pour tous ses contrats, sinon rien (on ne choisit pas).
+        let risques: std::collections::BTreeSet<(String, String)> = contrats
+            .iter()
+            .filter(|c| !texte_de(c, "code_risque").is_empty())
+            .map(|c| (texte_de(c, "code_risque").to_string(), texte_de(c, "taux_at").to_string()))
+            .collect();
+        if let (1, Ok(an)) = (risques.len(), mois.get(..4).unwrap_or("").parse::<i32>()) {
+            let (code, taux) = risques.into_iter().next().unwrap_or_default();
+            out.atmp.insert(an, (mois.clone(), code, Some(taux).filter(|t| !t.is_empty())));
+        }
+        if let Some(a) = info["adhesions"].as_array().filter(|a| !a.is_empty()) {
+            out.adhesions = a.clone();
+        }
         let mut dernier_contrat: std::collections::HashMap<&str, &Value> = std::collections::HashMap::new();
         let mut par_numero: std::collections::HashMap<&str, &Value> = std::collections::HashMap::new();
         for c in contrats {
@@ -712,3 +788,34 @@ pub(crate) fn verdict_entreprise(aem: bool, e: &Employeur, reference: Option<&st
     Ok((e.illisibles > 0).then(|| AEM_SANS_SIRET.to_string()))
 }
 
+
+#[cfg(test)]
+mod tests_parametrage {
+    /// Ce que l'import lit d'une DSN pour la configuration : le contact chez le declare, « nom et prenom » en une rubrique
+    /// (S20.G00.07.001 a .004, `norme-dsn/texte/bloc-S20.G00.07.txt` l. 63-84), sa civilite par le contact de l'emetteur
+    /// quand l'emetteur est l'entreprise et le nom le meme (S10.G00.02.001-002) ; le code risque et le taux AT/MP du contrat
+    /// (S21.G00.40.040, .043, `bloc-S21.G00.40.txt` l. 1224-1315) ; les adhesions prevoyance (S21.G00.15.001, .002, .005).
+    #[test]
+    fn la_dsn_dit_son_contact_son_code_risque_et_ses_adhesions() {
+        let d = std::env::temp_dir().join(format!("puppetpaie-dsn-parametrage-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let f = d.join("essai.dsn");
+        let lignes = [
+            "S10.G00.00.001,'PuppetPaie'", "S10.G00.01.001,'123456873'", "S10.G00.01.003,'LE FIL TENDU'",
+            "S10.G00.02.001,'02'", "S10.G00.02.002,'FONTAINE CLAIRE'",
+            "S20.G00.05.005,'01122025'", "S20.G00.07.001,'FONTAINE CLAIRE'", "S20.G00.07.002,'0478000000'",
+            "S20.G00.07.003,'contact@exemple.invalid'", "S20.G00.07.004,'04'",
+            "S21.G00.06.001,'123456873'", "S21.G00.11.001,'00017'",
+            "S21.G00.15.001,'PREV SPECT VIVANT PRIV'", "S21.G00.15.002,'P0983'", "S21.G00.15.005,'104'",
+            "S21.G00.30.001,'2930899999999'", "S21.G00.40.001,'01012025'", "S21.G00.40.040,'923AD'", "S21.G00.40.043,'1.65'",
+        ];
+        std::fs::write(&f, lignes.join("\n")).unwrap();
+        let lu = super::lire_dsn(&d);
+        std::fs::remove_dir_all(&d).ok();
+        let c = &lu.entreprise["declarant_dsn"];
+        assert_eq!((c["nom_prenom"].as_str(), c["tel"].as_str(), c["civilite"].as_str()), (Some("FONTAINE CLAIRE"), Some("0478000000"), Some("02")));
+        assert_eq!(lu.atmp.get(&2025), Some(&("2025-12".to_string(), "923AD".to_string(), Some("1.65".to_string()))));
+        assert_eq!(lu.adhesions[0]["libelle"], "PREV SPECT VIVANT PRIV");
+        assert_eq!(lu.adhesions[0]["organisme"], "P0983");
+    }
+}

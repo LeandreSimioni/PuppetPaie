@@ -129,6 +129,16 @@ impl Echeance {
         self.jour.plus_jours(-1)
     }
 
+    /// LE PREMIER JOUR OU LA DSN DU MOIS PEUT PARTIR : un mois avant son echeance. Cahier technique DSN 2026.1, § 1.4.2
+    /// (`atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt`) : « le dépôt initial de la DSN « normale » peut être
+    /// émis jusqu'à 1 mois à l'avance et 3 mois en retard ». INFERENCE : le mois d'avance se compte depuis l'echeance
+    /// nominale (le 5 ou le 15 du mois suivant), soit le meme jour du mois declare ; le cahier ne dit pas d'ou il se
+    /// compte. Avant ce jour, la DSN est a venir.
+    pub fn premier_depot(&self) -> Resultat<Jour> {
+        let (an, mois) = if self.nominale.mois == 1 { (self.nominale.an - 1, 12) } else { (self.nominale.an, self.nominale.mois - 1) };
+        Jour::nouveau(an, mois, self.nominale.jour).ok_or_else(|| socle::date::jour_impossible(an, mois, self.nominale.jour))
+    }
+
     /// Pourquoi la date a bouge, ou `None`.
     pub fn pourquoi(&self) -> Option<String> {
         if !self.reportee() {

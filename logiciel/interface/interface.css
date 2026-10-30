@@ -327,6 +327,8 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 .engagement .e-cadre-bloc { display: flex; align-items: center; height: 30px; white-space: nowrap; font-size: 12px; gap: 4px; }
 .engagement .e-cadre-bloc input { width: auto; margin: 0; }
 .engagement .e-cadre-bloc[hidden] { display: none; }
+.engagement .e-ecrit [hidden] { display: none; }
+.engagement .e-ecrit textarea { width: 100%; }
 /* L'avis du moteur sur CET engagement (minimum conventionnel...) : un encart
    orange sous le bloc, non bloquant, qui dit quelle grille il a lue. */
 .engagement .avis .avis-engagement { margin-top: 6px; font-size: 12px; }
@@ -469,6 +471,7 @@ details.relire[open] > summary { margin-bottom: 8px; }
 .pastille.erreur { background: var(--erreur-fond); color: var(--erreur); }
 .pastille.alerte { background: var(--alerte-fond); color: var(--alerte); }
 .pastille.bien { background: var(--succes-fond); color: var(--succes); }
+.pastille.info { background: var(--archive-fond); color: var(--archive-texte); }
 
 .champs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 .champ.pleine { grid-column: 1 / -1; }
@@ -722,6 +725,8 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   border-radius: 4px; z-index: 60; font-size: 13px; max-width: 70vw; overflow-wrap: anywhere;
 }
 .message.erreur { background: var(--erreur); }
+/* Ce que le moteur dit en orange : à vérifier, à confirmer. */
+.message.alerte { background: var(--alerte); }
 /* Ce qui est parti : en vert, coché. */
 .message.envoye { background: var(--succes); }
 .message.envoye::before { content: "✓ "; font-weight: 600; }
@@ -754,6 +759,21 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   .etat { margin-left: 0; text-align: left; width: 100%; }
   .grille-mois { grid-template-columns: 1fr; }
   .engagement .ligne1 { grid-template-columns: 1fr 1fr; }
+}
+/* UN TÉLÉPHONE : l'en-tête tient en deux lignes — la maison, le nom et sa version, le signalement ; puis les onglets.
+   Le sous-titre et l'étiquette de la maison se taisent, le logo se resserre. */
+@media (max-width: 480px) {
+  .bandeau { gap: 4px 8px; padding: 6px 10px; }
+  .marque { gap: 6px; }
+  .marque .sous:not(.version) { display: none; }
+  .marque strong { font-size: 14px; }
+  .logo { width: 28px; height: 18px; }
+  body.accueil-possible .bandeau .retour-accueil { font-size: 0; padding: 2px 4px; margin-right: 0; }
+  .retour-accueil .maison { width: 20px; height: 20px; }
+  .bandeau button.signaler { margin-left: auto; font-size: 11px; }
+  .onglets { order: 5; width: 100%; justify-content: space-between; }
+  .onglets button { padding: 5px 6px; }
+  .etat { order: 6; }
 }
 
 /* ------------------------------------------------- les lignes de paie
@@ -1112,6 +1132,8 @@ pre.reponse {
 .etat-acte.cliquable:hover { text-decoration: underline dotted; }
 #config-nouvelle { float: right; font-size: 13px; padding: 4px 10px; }
 .etat-acte.orange { color: var(--texte); }
+.etat-acte .reste { color: var(--alerte); }
+.etat-acte.rouge .reste { color: var(--erreur); }
 /* Le contrat parti, pas revenu : moitié faite, moitié attendue, comme la case du mois. */
 .etat-acte.en-attente .carre { background: linear-gradient(135deg, var(--succes) 50%, var(--alerte) 50%); }
 .etat-acte.en-attente { color: var(--texte); }
@@ -1237,7 +1259,7 @@ pre.reponse {
 /* UN ENGAGEMENT VALIDÉ DONT LA PAIE S'EST RECALCULÉE D'ELLE-MÊME : la carte dit quand et pourquoi. */
 .carte-recalcul { grid-column: 1 / -1; margin-top: 4px; }
 .engagement:not(.validee) .resolu,
-.engagement:not(.validee) .etats-qui { display: none; }
+.engagement:not(.validee) .etats-qui:not(.plusieurs) { display: none; }
 @media (max-width: 780px) {
   .engagement:not(.validee) .ligne1 { grid-template-columns: 1fr; }
   .engagement:not(.validee) .rubrique { grid-template-columns: 1fr 1fr; }
@@ -1523,6 +1545,9 @@ section.bloc > .encart { margin-bottom: 10px; }
 .kase.rouge { background: var(--erreur-fond); border-color: var(--erreur); }
 .kase.rouge .etape-rond { border-color: var(--erreur); color: var(--erreur); }
 .kase.rouge .compte, .kase.rouge .quoi, .kase.rouge .ech { color: var(--erreur); }
+.kase.gris { background: var(--archive-fond); border-color: var(--bord); color: var(--discret); }
+.kase.gris .etape-rond { border-color: var(--bord); color: var(--discret); }
+.kase.gris .quoi { color: var(--discret); }
 /* sur le côté, la place manque : le nom de l'étape est déjà dans la grande case ; restent le compte et l'échéance. */
 .kase.cote .ligne1, .kase.cote .etape-rond { display: none; }
 .kase.cote { gap: 6px; }
@@ -1786,3 +1811,15 @@ details.pourquoi p, details.pourquoi ul { margin: 4px 0; }
    recouvrait le net d'une carte. Toujours en bas à gauche (#210) ; l'accueil
    des compagnies, qui ne lit pas cette feuille, le garde flottant. */
 body > .maj { position: static; flex: none; align-self: flex-start; margin: 0 0 4px 12px; padding: 2px 8px; background: none; }
+
+/* Le guide de l'import (`vueGuideImport`) : une pièce, ce qu'elle est, où la trouver, ce qui s'en lit. */
+.guide-pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin: 0 0 12px; }
+.guide-piece { border: 1px solid var(--bord); border-radius: 4px; padding: 10px 12px; background: var(--carte, #fff); }
+.guide-piece ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.guide-piece li { margin: 2px 0; }
+/* Configuration › Modèles de contrat (`modeles-contrat.js`) : un bloc par modèle ; le choix du fichier se fait par
+   son lien, la case du navigateur ne se montre pas. */
+.modele-contrat { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid var(--bord); border-radius: 6px; }
+.modele-contrat input[type=file] { display: none; }
+.modele-contrat .modele-editeur[hidden] { display: none; }
+.modele-champs table code { white-space: nowrap; }

@@ -363,7 +363,7 @@ fn conclure(m: &mut Map<String, Value>, aujourdhui: Jour, depart: Option<&Depart
         ),
         None => (EN_RETARD, format!("En retard de {} jour{} : c'était à faire au plus tard {}.", -restants, s(-restants), quand_butoir)),
     };
-    m.insert("etat".into(), json!(etat));
+    poser_l_etat(m, etat);
     m.insert("jours_restants".into(), if fait.is_some() { Value::Null } else { json!(restants) });
     m.insert(
         "fait".into(),
@@ -381,8 +381,27 @@ fn conclure(m: &mut Map<String, Value>, aujourdhui: Jour, depart: Option<&Depart
     m.insert("phrase".into(), json!(phrase));
 }
 
+
+/// Ce que l'ecran dit d'une obligation dans l'etat `etat` : est-elle DUE par la compagnie (en retard, a faire, un delai
+/// qui ne se compte pas encore faute d'un fait), et sa pastille (`routes::pastille`).
+fn poser_l_etat(m: &mut Map<String, Value>, etat: &str) {
+    let (du, couleur, mots) = match etat {
+        EN_RETARD => (true, EN_RETARD, "en retard"),
+        A_FAIRE => (true, A_FAIRE, "à faire"),
+        INDETERMINE => (true, A_FAIRE, "délai à préciser"),
+        FAIT => (false, FAIT, "fait"),
+        A_VENIR => (false, "information", "à venir"),
+        _ => (false, "information", "à la charge du salarié"),
+    };
+    m.insert("etat".into(), json!(etat));
+    m.insert("du".into(), json!(du));
+    m.insert("pastille".into(), crate::routes::pastille(couleur, mots));
+    // Le plus presse d'abord, la ou on le montre : ce qui est en retard, puis le reste (par date butoir).
+    m.insert("priorite".into(), json!(if etat == EN_RETARD { 0 } else { 1 }));
+}
+
 fn indetermine(mut m: Map<String, Value>, pourquoi: String) -> Value {
-    m.insert("etat".into(), json!(INDETERMINE));
+    poser_l_etat(&mut m, INDETERMINE);
     m.insert("butoir".into(), Value::Null);
     m.insert("butoir_heure".into(), Value::Null);
     m.insert("jours_restants".into(), Value::Null);
@@ -634,7 +653,7 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
                 m.insert("butoir_heure".into(), Value::Null);
                 m.insert("jours_restants".into(), Value::Null);
                 m.insert("fait".into(), Value::Null);
-                m.insert("etat".into(), json!(A_LA_CHARGE_DU_SALARIE));
+                poser_l_etat(&mut m, A_LA_CHARGE_DU_SALARIE);
                 m.insert(
                     "phrase".into(),
                     json!(format!(

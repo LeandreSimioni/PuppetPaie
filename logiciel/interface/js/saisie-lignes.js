@@ -605,6 +605,33 @@ function raresDuBloc(div, e) {
   });
 }
 
+/* LES CASES DU CONTRAT ÉCRIT (`.e-ecrit`) : la valeur que l'engagement porte.
+ * Une case se montre quand le moteur la demande pour cet engagement
+ * (`montrerEcrit`, après chaque aperçu), ou quand elle a déjà une valeur :
+ * rien de saisi ne devient invisible. */
+function poserEcrit(div, e) {
+  div.querySelectorAll(".e-ecrit-champ").forEach((c) => {
+    c.value = e[c.dataset.cle] ?? "";
+    c.onchange = rafraichirApercu;
+  });
+  montrerEcrit(div, []);
+}
+
+function montrerEcrit(div, demandes) {
+  div.querySelectorAll(".e-ecrit [data-ecrit]").forEach((l) => {
+    const c = l.querySelector(".e-ecrit-champ");
+    l.hidden = !(demandes || []).includes(l.dataset.ecrit) && c.value.trim() === "";
+  });
+}
+
+/** Ce que les cases du contrat écrit écrivent. */
+function ecritDuBloc(div, e) {
+  div.querySelectorAll(".e-ecrit-champ").forEach((c) => {
+    const v = c.value.trim();
+    if (v !== "") e[c.dataset.cle] = c.dataset.type === "number" ? +v : v;
+  });
+}
+
 /* LES TERMES DU CONTRAT AVANT UN AVENANT EN COURS DE MOIS (`avant`,
  * periodes.rs : le salaire mensuel et la quotité d'avant, sur lesquels se paie
  * la période d'avant l'avenant). Ils se montrent quand l'engagement les porte,
@@ -767,6 +794,9 @@ function ouvrirCarte(div) {
   const intacte = DERNIERE_ECRITE !== null && JSON.stringify(saisieCourante()) === DERNIERE_ECRITE;
   construireCarte(div, { ...(lus[0] || {}), salaries: lus.map((x) => x.salarie) });
   if (div._paies) peindreChiffres(div, div._total);
+  // Les cases du contrat écrit que le moteur a demandées pour cet engagement, au dernier aperçu.
+  const p = (div._paies || [])[0];
+  montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
   if (intacte) DERNIERE_ECRITE = JSON.stringify(saisieCourante());
 }
 
@@ -846,8 +876,9 @@ function construireCarte(div, e) {
         <label>Salaire mensuel brut
           <input type="number" step="0.01" min="0" class="e-salaire"
                  placeholder="celui du contrat signé"></label>
-        <label title="la quotité de travail du contrat (S21.G00.40.013)">Quotité
-          <input type="number" step="0.01" min="0" class="e-quotite"></label>
+        <label title="la durée du travail du contrat, en heures par mois (S21.G00.40.013)">Heures par mois
+          <input type="number" step="0.01" min="0" class="e-quotite">
+          <button type="button" class="lien e-temps-plein" hidden></button></label>
         <!-- UN AVENANT SE DATE. Ce que cette saisie change au
              contrat (quotité, nature, motif, date de début) se déclare avec
              l'ancienne valeur dans le bloc Changements contrat de la DSN, daté
@@ -955,6 +986,22 @@ function construireCarte(div, e) {
            se saisit comme un CDD d'usage, avec tout ce qui va avec. -->
       <label class="e-recours-bloc" hidden>Motif de recours
         <select class="e-recours"></select></label>
+      <!-- CE QUE LE CONTRAT ÉCRIT DE CET ENGAGEMENT DIT EN PLUS (le modèle
+           le remplit avec le reste). Le moteur dit quelles cases cet
+           engagement appelle (\`contrat.ecrits\` de l'aperçu,
+           routes/mois.rs) : la période d'essai et les clauses de tout
+           contrat écrit, la personne remplacée d'un remplacement, la
+           répartition des horaires d'un temps partiel. -->
+      <div class="e-ecrit">
+        <label data-ecrit="periode_essai_jours" hidden title="la durée de la période d'essai que le contrat prévoit ; vide : aucune">Période d'essai (jours)
+          <input type="number" min="0" step="1" class="e-ecrit-champ" data-cle="periode_essai_jours" data-type="number"></label>
+        <label data-ecrit="personne_remplacee" hidden title="le contrat d'un remplacement nomme la personne remplacée et sa qualification (L. 1242-12, 1°)">Personne remplacée
+          <input type="text" class="e-ecrit-champ" data-cle="personne_remplacee" placeholder="nom, qualification"></label>
+        <label data-ecrit="repartition_horaire" hidden title="à temps partiel, le contrat dit la répartition des heures entre les jours de la semaine ou les semaines du mois (L. 3123-6)">Répartition des horaires
+          <input type="text" class="e-ecrit-champ" data-cle="repartition_horaire" placeholder="ex. lundi, mardi et jeudi, de 9 h à 17 h"></label>
+        <label data-ecrit="clauses_particulieres" hidden title="à la place des clauses particulières de la compagnie (Configuration › Modèles de contrat)">Clauses particulières de ce contrat
+          <textarea rows="2" class="e-ecrit-champ" data-cle="clauses_particulieres" placeholder="vide : celles de la compagnie"></textarea></label>
+      </div>
       <!-- LA FIN D'UN CONTRAT QUI SE SIGNALE (19/09/2026). Trois faits que
            le moteur ne devine pas, et il a raison de ne pas les deviner :
            une date de notification ne se déduit pas d'un salaire, et le
@@ -1101,6 +1148,7 @@ function construireCarte(div, e) {
   div.querySelector(".e-date-modification").value = e.date_modification || "";
   poserAvant(div, e);
   poserRares(div, e);
+  poserEcrit(div, e);
   remplirFaits(div, e);
   div.querySelectorAll(".ajouter-fait").forEach((b) => {
     b.onclick = (ev) => {
@@ -1178,6 +1226,7 @@ function construireCarte(div, e) {
   const nat = natureDe(selNat.value);
   div.querySelector(".e-options").hidden = !(e.metier || e.cadre != null
     || CHAMPS_RARES.some((c) => aUneValeur(e[c.cle]))
+    || ["periode_essai_jours", "personne_remplacee", "repartition_horaire", "clauses_particulieres"].some((c) => aUneValeur(e[c]))
     || nat.mensuelle || e.debut && e.debut.slice(0, 7) < (document.getElementById("mois").value || "")
     || e.motif_recours || e.motif_rupture);
   return div;
@@ -1242,8 +1291,22 @@ function majNature(div) {
       + " suivant (le mois venu, le contrat y est repris, ses jours cochés) ;"
       + " la DPAE et le contrat imprimé ne partent qu'avec ce mois-ci, le"
       + " certificat Congés Spectacles à la fin du contrat.";
+  // LA DURÉE DU CONTRAT se tape, elle ne se devine pas : la durée de
+  // référence d'un temps plein que le moteur donne (`quotite_defaut`) se
+  // propose d'un clic, jamais en grisé dans la case, où elle passerait pour
+  // une valeur saisie.
   const quotite = div.querySelector(".e-quotite");
-  quotite.placeholder = nat.quotite_defaut != null ? String(nat.quotite_defaut) : "";
+  const pleine = div.querySelector(".e-temps-plein");
+  pleine.hidden = nat.quotite_defaut == null;
+  if (nat.quotite_defaut != null) {
+    pleine.textContent = `temps plein : ${String(nat.quotite_defaut).replace(".", ",")} h`;
+    pleine.onclick = (ev) => {
+      ev.preventDefault();
+      quotite.value = nat.quotite_defaut;
+      quotite.dispatchEvent(new Event("change"));
+      quotite.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+  }
   // Le motif de recours : proposé seulement par les natures qui en ont un.
   const recours = nat.motifs_recours || [];
   div.querySelector(".e-recours-bloc").hidden = !recours.length;
@@ -1271,7 +1334,14 @@ function majRupture(div) {
   const bloc = div.querySelector(".e-rupture");
   const fin = div.querySelector(".e-fin").value;
   const motifs = nat.motifs_rupture || [];
-  bloc.hidden = !(fin && (nat.signalement_fctu || motifs.length));
+  // LA FIN NE SE DEMANDE QUE LE MOIS OÙ ELLE A LIEU : un CDD de janvier à
+  // juin n'a rien à dire de sa fin en janvier. Elle paraît quand la fin du
+  // contrat tombe dans le mois affiché (ou avant : une fin avancée), ou
+  // quand un motif est déjà dit.
+  const moisAffiche = (document.getElementById("mois") || {}).value || "";
+  const finCeMois = fin && (!moisAffiche || fin.slice(0, 7) <= moisAffiche);
+  const dejaDit = !!(div.querySelector(".e-motif-rupture").value || div.dataset.motifRupture);
+  bloc.hidden = !(fin && (finCeMois || dejaDit) && (nat.signalement_fctu || motifs.length));
   // Les motifs sont ceux de CETTE nature : un CDD peut finir à son terme
   // (031), un CDI ne le peut pas — il ne finit jamais tout seul. Le choix
   // vide d'une nature dont la fin par défaut ne se signale pas (le CDDU)
@@ -1450,11 +1520,9 @@ function nouvelleFiche(nom) {
   CLE_ACTIVE = null;
   FICHE_NEUVE = true;
   dessinerConfig();
-  // L'ancienneté d'une fiche neuve : le jour du moteur (le moteur la pose
-  // aussi à l'enregistrement si elle est vide), à changer au besoin.
-  const donnees = nom === "salarie"
-    ? { actif: true, date_anciennete: aujourdhuiIso() }
-    : { actif: true };
+  // L'ancienneté d'une fiche neuve : celle de son embauche, que le moteur
+  // pose à la validation de son premier engagement (à changer, dans Avancé).
+  const donnees = { actif: true };
   dessinerFormulaire({ nom, cle: null, donnees, anomalies: [] });
   document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
 }

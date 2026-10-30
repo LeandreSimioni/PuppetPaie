@@ -118,7 +118,8 @@ pub fn ouvrir(chemin: &Path) -> Result<String, String> {
     let r = Command::new("xdg-open").arg(chemin).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
     match r {
         Ok(_) if chemin.is_dir() => Ok(format!("Dossier ouvert : {}", chemin.display())),
-        Ok(_) => Ok(String::new()),
+        // Ce qui s'ouvre se nomme : si le poste n'a pas de programme pour le montrer, on sait ou le prendre.
+        Ok(_) => Ok(format!("Ouvert : {}", chemin.display())),
         Err(e) => pas_ouvert(chemin, &e),
     }
 }

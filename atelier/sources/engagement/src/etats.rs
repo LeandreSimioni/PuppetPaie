@@ -846,6 +846,11 @@ fn nouvelle_version(o: &mut Objet, actuelle: &Value, n: u64, siens: &[Depart], l
 /// une validation qui ne change rien garde le numero. Refus : un mois qui ne se calcule pas ; rien n'est ecrit.
 pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
     let mut o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
+    // La saisie que l'ecran montre lui fait manquer un fait (`stock::A_COMPLETER`) : c'est elle qui se valide, et elle
+    // ne se calcule pas. Le refus est ce qui manque.
+    if let Some(manque) = o.a_completer() {
+        return Err(manque);
+    }
     // Le numero du contrat d'abord : la paie de chaque mois le porte, et le calcul lit l'engagement ecrit. Un calcul
     // refuse rend l'engagement tel qu'il etait.
     let avant = o.clone();

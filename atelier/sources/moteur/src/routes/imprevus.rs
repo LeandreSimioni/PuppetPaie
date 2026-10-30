@@ -1569,6 +1569,14 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         let salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("salarie")))?;
         // La cle de la fiche : celle que porte le nom du fichier du signalement (`fin-contrat-signaler`).
         let cle = ctx.salarie(&valeur_en_texte(salarie)).ok().and_then(|f| f.get("_cle").map(valeur_en_texte));
+        let a_saisir = ce_qui_manque(ctx, e)?;
+        // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`).
+        let obligation = crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal, aujourdhui)?;
+        // Due : il manque de quoi signaler, aucun delai ne se lit, ou le delai court. Sa pastille : ce qui manque, sinon
+        // celle du delai.
+        let incomplet = !a_saisir.is_empty();
+        let du = incomplet || obligation.is_null() || obligation.get("du").is_some_and(vrai);
+        let pastille = if incomplet { super::pastille("a_faire", "à compléter") } else { obligation.get("pastille").cloned().unwrap_or(Value::Null) };
         out.push(json!({
             "salarie": salarie,
             "numero": get(e, "numero")?,
@@ -1576,9 +1584,10 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
             "nature": nat.libelle,
             "motif_rupture": get(e, "motif_rupture")?,
             "preavis": get(e, "preavis")?,
-            "a_saisir": ce_qui_manque(ctx, e)?,
-            // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`, 15/10/2026) : un champ de plus.
-            "obligation": crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal, aujourdhui)?,
+            "a_saisir": a_saisir,
+            "du": du,
+            "pastille": pastille,
+            "obligation": obligation,
         }));
     }
     Ok(out)

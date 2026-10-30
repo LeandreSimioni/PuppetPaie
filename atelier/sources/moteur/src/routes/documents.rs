@@ -604,6 +604,8 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
                            // Un renvoi : le jour du premier envoi, et ce que le courriel dira avoir change.
                            "renvoi": renvoi.is_some(),
                            "envoye_le": renvoi.map(|r| r.envoye_le.clone()),
+                           // Un renvoi : des documents corriges, qui remplacent ceux deja partis (a faire partir).
+                           "pastille": renvoi.map_or(Value::Null, |r| super::pastille("a_faire", &format!("documents corrigés — remplacent ceux du {}", r.envoye_le))),
                            "changements": renvoi.map(|r| if r.changements.is_empty() {
                                vec![envois::envoi::RIEN_DANS_LE_RESUME.trim_start_matches([' ', '-']).to_string()]
                            } else {

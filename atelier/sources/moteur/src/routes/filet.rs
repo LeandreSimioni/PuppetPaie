@@ -54,7 +54,79 @@ pub const ROUTES: &[&str] = &[
 pub const ROUTE_OUBLIER: &str = "incidents-oublier";
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    let mut v = route_seule(o, ctx, nom, charge)?;
+    poser_les_pastilles(nom, &mut v);
+    Ok(v)
+}
+
+/// LES PASTILLES DE CE QUE CES ROUTES RENDENT (`routes::pastille`). Le filet DPAE : desactive, une information ; actif,
+/// fait ; une adresse a confirmer, a faire. Le diagnostic : coupe par la compagnie, une information ; rien de note ou
+/// tout parti, fait ; des incidents en attente, une information (ils partent d'eux-memes). Un message a l'editeur : en
+/// cours ou pas encore parti, une information.
+fn poser_les_pastilles(nom: &str, v: &mut Value) {
+    let Some(o) = v.as_object_mut() else { return };
+    let nombre = |o: &serde_json::Map<String, Value>, k: &str| o.get(k).and_then(Value::as_u64).unwrap_or(0);
+    match nom {
+        "filet-etat" | "filet-verifier" | "filet-activer" | "filet-desactiver" => {
+            let p = if !o.get("actif").is_some_and(vrai) {
+                super::pastille("information", "désactivé")
+            } else if o.get("confirme").is_some_and(vrai) {
+                super::pastille("fait", "actif")
+            } else {
+                super::pastille("a_faire", "adresse à confirmer")
+            };
+            o.insert("pastille".into(), p);
+        }
+        "diagnostic-etat" | "diagnostic-envoyer" | "diagnostic-regler" => {
+            let attente = nombre(o, "en_attente");
+            let p = if o.get("envoi") == Some(&Value::Bool(false)) {
+                super::pastille("information", "désactivé")
+            } else if nombre(o, "total") == 0 {
+                super::pastille("fait", "rien à signaler")
+            } else if attente > 0 {
+                super::pastille("information", &format!("{} en attente", attente))
+            } else {
+                super::pastille("fait", "tout est parti")
+            };
+            o.insert("pastille".into(), p);
+            for g in o.get_mut("groupes").and_then(Value::as_array_mut).into_iter().flatten() {
+                let Some(g) = g.as_object_mut() else { continue };
+                let attente = nombre(g, "en_attente");
+                let p = if attente > 0 {
+                    super::pastille("information", &format!("{} en attente", attente))
+                } else {
+                    let le = g.get("parti_le").map(valeur_en_texte).unwrap_or_default();
+                    super::pastille("fait", &format!("parti le {}", super::quand(&le)))
+                };
+                g.insert("pastille".into(), p);
+            }
+        }
+        "signalements" | "signalement-envoyer" => {
+            for s in o.get_mut("signalements").and_then(Value::as_array_mut).into_iter().flatten() {
+                let Some(s) = s.as_object_mut() else { continue };
+                let etat = s.get("etat").and_then(Value::as_str).map(String::from);
+                let p = match etat.as_deref() {
+                    Some("en-cours") => super::pastille("information", "en cours d'envoi"),
+                    Some("pas-parti") => super::pastille("information", "pas encore parti"),
+                    _ => Value::Null,
+                };
+                s.insert("pastille".into(), p);
+                // Son depart, que la boite du message dit juste apres l'envoi : PuppetPaie renvoie de lui-meme ce qui
+                // n'est pas parti, rien n'est a faire (une information).
+                let depart = match etat.as_deref() {
+                    Some("en-cours") => super::pastille("information", "Envoi en cours…"),
+                    Some("pas-parti") => super::pastille("information", "Pas encore parti"),
+                    _ => super::pastille("fait", "Message envoyé."),
+                };
+                s.insert("depart".into(), depart);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let racine = ctx.racine.as_path();
     match nom {
         "filet-etat" => etat_filet(racine),
@@ -72,7 +144,10 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "diagnostic-envoyer" => {
             let bilan = incidents::envoyer(racine);
             let mut etat = diagnostic_etat(racine)?;
+            // La couleur du message qui le dit : un envoi impossible est refuse, sinon parti.
+            let couleur = crate::routes::couleur_de_l_etat(if vrai(&bilan["erreur"]) { "refuse" } else { "fait" });
             etat.as_object_mut().expect("un objet").insert("bilan".into(), bilan);
+            etat["couleur"] = json!(couleur);
             Ok(etat)
         }
         "incidents-envoyer" => Ok(incidents::envoyer(racine)),

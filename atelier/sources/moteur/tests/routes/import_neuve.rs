@@ -312,6 +312,10 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let saisie = json!({"mois": "2026-12", "taux_cachet": 150, "date_paiement": "2026-12-31", "engagements": [e]});
     reussi(&route("enregistrer-saisie", json!({"mois": "2026-12", "saisie": saisie, "forcer": false, "modifier_apres_echeance": false})));
     reussi(&route("valider-engagement", json!({"mois": "2026-12", "salarie": "FULLER", "debut": "2026-11-20", "valide": true})));
+    // Le contrat a ete signe dans l'ancien logiciel : il ne se refait pas signer ici.
+    let signature = reussi(&route("signature-apercu", json!({"mois": "2026-12"}))).clone();
+    let a_signer: Vec<&Value> = signature["contrats"].as_array().into_iter().flatten().filter(|c| c["salarie"] == "FULLER").collect();
+    assert!(a_signer.is_empty(), "le contrat repris se fait signer : {:?}", a_signer);
     // Le bulletin de decembre suit le 1/2026 que le bulletin importe imprime : deux bulletins de l'annee n'ont jamais le
     // meme numero.
     let apercu = reussi(&route("apercu", json!({"saisie": saisie, "lignes": false, "urssaf": false}))).clone();

@@ -144,6 +144,7 @@ function engagementsDuBloc(div, mois) {
     // de paiement propre au contrat, son lieu, l'emploi et les statuts
     // déclarés… (`CHAMPS_RARES`).
     raresDuBloc(div, e);
+    ecritDuBloc(div, e);
     return e;
   });
 }
@@ -208,14 +209,31 @@ async function calculerApercu(lu) {
     // la lecture du mois les rend pour une carte par engagement.
     const blocs = [...document.querySelectorAll(".engagement")];
     const tailles = blocs.map((div) => salariesDuBloc(div).length);
-    const a = lu && tailles.every((n) => n === 1) ? structuredClone(lireReponse(lu))
-      : await api("apercu", { saisie, blocs: tailles });
+    // La lecture du mois ne calcule que les engagements qui se calculent : elle ne sert que si elle les a tous.
+    let deLu = null;
+    if (lu && tailles.every((n) => n === 1)) {
+      try { deLu = lireReponse(lu); } catch (e) { deLu = null; }
+      if (deLu && (deLu.paies || []).length !== saisie.engagements.length) deLu = null;
+    }
+    const a = deLu ? structuredClone(deLu) : await api("apercu", { saisie, blocs: tailles });
     cible.innerHTML = vueApercu(a);
     // Les dates resolues, sous chaque engagement : ce que le moteur a compris.
     const parBloc = engagementsParBloc(a, blocs);
     blocs.forEach((div, i) => {
       const part = parBloc[i];
       const p = part[0];
+      // Un engagement auquel il manque un fait est enregistré tel quel : la carte dit ce qui manque, sans montant.
+      const manques = part.filter((x) => x && x.a_completer);
+      if (manques.length) {
+        div._total = null;
+        peindreChiffres(div, null);
+        div._paies = [];
+        peindreCarte(div);
+        div.querySelector(".resolu").innerHTML = "";
+        div.querySelector(".avis").innerHTML = `<div class="encart attention avis-engagement"><b>À compléter avant de valider</b>${
+          manques.map((x) => `<div>${erreurEnClair(x.a_completer)}</div>`).join("")}</div>`;
+        return;
+      }
       div._total = part.length ? (a.blocs || [])[i] : null;
       peindreChiffres(div, div._total);
       div._paies = part;
@@ -234,6 +252,8 @@ async function calculerApercu(lu) {
       // UN CONTRAT SUR PLUSIEURS MOIS : le chevron au bord de
       // la case, d'après ce que le moteur rend (`poserChevrons`).
       if (p) poserChevrons(div, p.contrat, p.debut, p.fin);
+      // Les cases du contrat écrit que le moteur demande pour cet engagement.
+      montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
       div.querySelector(".resolu").innerHTML = p
         ? `${p.contrat && p.contrat.sans_paie
              ? `<b>aucun cachet ce mois-ci</b> — pas de bulletin, la DSN porte le contrat`
@@ -365,7 +385,8 @@ function peindreCarte(div) {
     </div>
     <div class="carte-qui" title="${echapper(detail)}">
       <span class="carte-nom"><b>${echapper(ligne.nom)}</b></span>
-      <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}</span>
+      <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}${
+        ligne.contrat && ligne.contrat.repris ? " · contrat repris de votre ancien logiciel" : ""}</span>
     </div>
     <div class="carte-actes">${bandeauEtats(ligne)}</div>
     <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>
@@ -614,7 +635,7 @@ function vueApercu(a) {
     </div>
     <ul class="mois-salaries">${groupes.map((g) => `
       <li title="coût employeur ${echapper(euros(g.cout_employeur))} · brut ${echapper(euros(g.brut))}">
-        <span>${echapper(g.salarie.nom)} ${echapper(g.salarie.prenom)}
+        <span>${echapper(g.nom)}
           <span class="discret">· ${g.engagements} engagement${g.engagements > 1 ? "s" : ""}</span></span>
         <b>${euros(g.net_a_payer)}</b>
       </li>`).join("")}
@@ -875,7 +896,7 @@ function majAvisDsn(mois) {
   const d = !IMPORTE && MOIS_AFFICHE === mois ? DSN_DEPOSEE : null;
   avis.hidden = !d;
   if (!d) return;
-  avis.className = "encart " + (d.confirmer ? "attention" : "info");
+  avis.className = "encart " + (ENCART_DE_COULEUR[d.couleur] ?? "");
   avis.textContent = d.phrase;
 }
 
@@ -906,7 +927,7 @@ function confirmerModification(mois, texte, renvoyer) {
     if (MOIS_AFFICHE === mois) await chargerMois(mois, true);
   };
   ouvrirBoite(`
-    <h3>Modifier les engagements de ${echapper(deMois(mois))} ?</h3>
+    <h3>Modifier les engagements ${echapper(deMois(mois))} ?</h3>
     <div class="encart grave"><b>Ce mois est déjà déclaré</b>${echapper(texte)}</div>
     <div class="actions">
       <button class="secondaire" id="mc-annuler">Annuler</button>
@@ -992,7 +1013,7 @@ function carteImportee(p, i, moisCourt) {
     p.heures ? `${p.heures} h` : ""].filter(Boolean).join(" · ");
   const pastille = (cle, titre) => {
     const e = p.etats[cle] || {};
-    return `<span class="etat-acte ${e.couleur === "bien" ? "vert" : "gris"}" title="${echapper(e.phrase || "")}">
+    return `<span class="etat-acte ${e.couleur || "gris"}" title="${echapper(e.phrase || "")}">
       <i class="carre"></i>${echapper(titre)}</span>`;
   };
   // LE MONTANT : le net à payer ; sans lui (une DSN seule ne le déclare pas), le brut, et la carte le dit.
@@ -1094,11 +1115,11 @@ async function enregistrerEnPartant({ s, confirme }, chargement) {
     if (e.detail?.type === "ModificationApresEcheance") {
       confirmerModification(s.mois, e.message, async () => {
         try { await ecrire(true); dire(`${moisEnClair(s.mois)} : modification enregistrée.`); }
-        catch (e2) { dire(`${moisEnClair(s.mois)} : PAS enregistré — ${e2.message}`, "erreur"); }
+        catch (e2) { dire(`${moisEnClair(s.mois)} : non enregistré — ${e2.message}`, "erreur"); }
       });
       return;
     }
-    if (e.detail?.type !== "SaisieIncomplete") dire(`${moisEnClair(s.mois)} : PAS enregistré — ${e.message}`, "erreur");
+    if (e.detail?.type !== "SaisieIncomplete") dire(`${moisEnClair(s.mois)} : non enregistré — ${e.message}`, "erreur");
     return;
   }
   // Le mois affiché se vérifie quand il est peint (la vérification part tout de suite : le moteur refait l'état).
@@ -1270,7 +1291,11 @@ async function enregistrerSaisieSeule(silencieux) {
     if (r && "dsn_deposee" in r && MOIS_AFFICHE === s.mois) { DSN_DEPOSEE = r.dsn_deposee; majAvisDsn(s.mois); }
     oublierCouts();
     // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé.
-    noteSaisie("Enregistré à " + r.enregistre_a.slice(11, 16) + ".");
+    // Un engagement auquel il manque un fait s'enregistre aussi : sa carte dit ce qui manque.
+    const aCompleter = (r.a_completer || []).filter(Boolean).length;
+    noteSaisie("Enregistré à " + r.enregistre_a.slice(11, 16) + (aCompleter
+      ? ` — ${aCompleter > 1 ? `${aCompleter} engagements à compléter avant de les valider` : "un engagement à compléter avant de le valider"}.`
+      : "."));
     ETAT.historique = await api("etat").then((e) => e.historique);
     // Ce qui vient d'etre enregistre devient declarable : les blocs qui
     // disaient << pas dans la saisie enregistree >> doivent cesser de le dire,
@@ -1293,7 +1318,7 @@ async function enregistrerSaisieSeule(silencieux) {
     if (e.detail?.type === "ModificationNonDeclarable") {
       dire(e.message, "erreur");
       if (MOIS_AFFICHE === s.mois) await chargerMois(s.mois, true);
-      noteSaisie("PAS enregistré — " + e.message);
+      noteSaisie("Non enregistré — " + e.message);
       return false;
     }
     if (e.detail?.type === "ModificationApresEcheance") {
@@ -1309,7 +1334,7 @@ async function enregistrerSaisieSeule(silencieux) {
     }
     // Un échec d'enregistrement ne peut pas rester discret : c'est du travail
     // qu'on croit posé et qui ne l'est pas.
-    noteSaisie("PAS enregistré — " + e.message);
+    noteSaisie("Non enregistré — " + e.message);
     if (!silencieux) dire(e.message, "erreur");
     return false;
   }

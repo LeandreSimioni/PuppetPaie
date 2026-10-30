@@ -187,7 +187,7 @@ fn mois_de(j: &Jour) -> String {
 }
 
 /// Un texte compare sans casse, sans accents, sans espaces ni ponctuation de bord (`bulletin_lu::jetons`).
-fn compare(t: &str) -> String {
+pub(crate) fn compare(t: &str) -> String {
     bulletin_lu::jetons(t).concat()
 }
 
@@ -1242,7 +1242,9 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
     f.insert("nir_cle".into(), json!(cle));
     let statut = ls.iter().rev().find_map(|l| l.b.salarie.statut.as_deref());
     let emploi = f.get("emploi").map(valeur_en_texte);
-    f.extend(statut_et_metier(statut, emploi.as_deref())?);
+    // Une salariee recoit le metier au feminin, comme dans sa fiche (`routes::mois::emploi`) : le sexe que porte son NIR.
+    let femme = declarations::ntt::sexe(&json!({"nir": nir})) == "2";
+    f.extend(statut_et_metier(statut, emploi.as_deref(), femme)?);
     if let Some(premier) = ls.iter().map(|l| l.b.debut).min() {
         f.insert("date_anciennete".into(), json!(premier.iso()));
     }
@@ -1264,7 +1266,7 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
 /// statut conventionnel), comme si on l'avait choisi dans la liste. Le statut et la qualite de cadre imprimes priment
 /// sur ceux du catalogue. Un intitule qui ne nomme aucun metier, ou plusieurs, reste tel quel : le metier se choisit
 /// dans la fiche apres l'import, et l'apercu le dit.
-pub(crate) fn statut_et_metier(statut: Option<&str>, emploi: Option<&str>) -> R<Map<String, Value>> {
+pub(crate) fn statut_et_metier(statut: Option<&str>, emploi: Option<&str>, femme: bool) -> R<Map<String, Value>> {
     let mut f = Map::new();
     let intitule = emploi.map(str::trim).unwrap_or_default();
     if !intitule.is_empty() {
@@ -1280,7 +1282,7 @@ pub(crate) fn statut_et_metier(statut: Option<&str>, emploi: Option<&str>) -> R<
     }
     if let Some((code, feminin)) = droit::emplois::par_intitule(intitule, compare).map_err(|m| erreur("ErreurOperation", m))? {
         let cadre = f.get("statut_categoriel_rc").map(valeur_en_texte).map(|s| s == "01");
-        let r = droit::emplois::resoudre(&code, cadre, feminin).map_err(|m| erreur("ErreurOperation", m))?;
+        let r = droit::emplois::resoudre(&code, cadre, feminin || femme).map_err(|m| erreur("ErreurOperation", m))?;
         for (k, v) in r.as_object().into_iter().flatten() {
             if v.is_null() || (k == "statut" && f.contains_key("statut")) {
                 continue;
@@ -1396,7 +1398,7 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
     poser("cotisations", v["cotisations"].clone());
     // Le statut et l'emploi que CE bulletin imprime : un salarie artiste un mois peut etre technicien, ou non cadre au
     // regime general, un autre ; la comparaison des calculs lit celui de la paie (`engagement::ecarts`), pas la fiche.
-    let imprime = statut_et_metier(b.salarie.statut.as_deref(), b.salarie.emploi.as_deref()).unwrap_or_default();
+    let imprime = statut_et_metier(b.salarie.statut.as_deref(), b.salarie.emploi.as_deref(), false).unwrap_or_default();
     if !imprime.is_empty() {
         poser("emploi_imprime", Value::Object(imprime));
     }
@@ -1493,4 +1495,30 @@ fn sans_l_objet(k: &CleEngagement) -> CleEngagement {
     let mut k = k.clone();
     k.3 = String::new();
     k
+}
+
+/// LA PASTILLE DE CHAQUE SORT (`SORTS`), telle que la page la dessine (`routes::pastille`) : repris, une information ;
+/// repris sous reserve (un libelle que la table ne connait pas), a voir ; non repris parce que quelque chose manque ou
+/// se contredit (`non_repris`), refuse ; laisse expres (deja saisi, annexe, doublon, archive ouverte), une information.
+pub fn pastilles_des_sorts() -> Value {
+    let mut m = serde_json::Map::new();
+    for s in SORTS {
+        let (etat, mots) = match s {
+            "repris" => ("fait", "repris"),
+            "deja_repris" => ("fait", "déjà repris"),
+            "libelle_inconnu" => ("a_faire", "libellé inconnu"),
+            "deja_saisi" => ("information", "déjà saisi"),
+            "incoherent" => ("refuse", "incohérent"),
+            "incomplet" => ("refuse", "incomplet"),
+            "sans_texte" => ("refuse", "sans texte"),
+            "sans_entetes" => ("refuse", "tableau introuvable"),
+            "ambigu" => ("refuse", "ambigu"),
+            "annexe" => ("information", "annexe"),
+            "non_reconnu" => ("refuse", "non reconnu"),
+            "doublon" => ("information", "doublon"),
+            _ => ("information", "archive"),
+        };
+        m.insert(s.to_string(), crate::routes::pastille(etat, mots));
+    }
+    Value::Object(m)
 }

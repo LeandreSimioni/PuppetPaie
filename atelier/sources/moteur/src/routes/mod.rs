@@ -35,7 +35,9 @@ pub mod dossier_salarie;
 pub mod coffre;
 pub mod engagement;
 pub mod contrats;
+pub mod modeles_contrat;
 pub mod fiches;
+pub mod atmp;
 pub mod import;
 pub mod imprevus;
 pub mod filet;
@@ -137,6 +139,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if etapes::ROUTES.contains(&r) => etapes::route(o, &ctx, route, &charge),
         r if engagement::ROUTES.contains(&r) => engagement::route(o, &ctx, route, &charge),
         r if contrats::ROUTES.contains(&r) => contrats::route(o, &ctx, route, &charge),
+        r if modeles_contrat::ROUTES.contains(&r) => modeles_contrat::route(o, &ctx, route, &charge),
         r if documents::ROUTES.contains(&r) => documents::route(o, &ctx, route, &charge),
         // Un refus du depot qui porte une donnee pour la page (`etat`) la rend a cote de `erreur` et `classe`.
         r if depots::ROUTES.contains(&r) => match depots::route(o, &ctx, route, &charge) {
@@ -166,7 +169,13 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if dossier_salarie::ROUTES.contains(&r) => dossier_salarie::route(o, &ctx, route, &charge),
         r if ouverture::ROUTES.contains(&r) => ouverture::route(o, &ctx, route, &charge),
         // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
-        declarations::demarrage::ROUTE => declarations::demarrage::route(&ctx),
+        // Ce que le moteur a pose de lui-meme se dit en information (gris).
+        declarations::demarrage::ROUTE => declarations::demarrage::route(&ctx).map(|mut v| {
+            if let Some(Value::Array(p)) = v.get_mut("poses") {
+                p.iter_mut().for_each(|x| x["pastille"] = pastille("information", "posé pour vous"));
+            }
+            v
+        }),
         // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
         r if crate::compagnie::conseils::ROUTES.contains(&r) => crate::compagnie::conseils::route(&ctx, route, &charge),
         // Supprimer la compagnie : ce que la boite demande (`interface::suppression::question`) ; la suppression elle-meme
@@ -186,6 +195,13 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if crate::compagnie::administrateur::ROUTES.contains(&r) => crate::compagnie::administrateur::route(o, &ctx, r, &charge),
         autre => return Err(format!("route inconnue : {}", autre)),
     };
+    // UN FAIT QUI MANQUAIT A UN ENGAGEMENT a pu se dire ailleurs que dans sa saisie (une fiche, l'entreprise) : apres une
+    // ecriture, ce qui manque se relit (`mois::relire_les_manques`), sous une configuration relue. La saisie l'a deja dit.
+    if rendu.is_ok() && route != "enregistrer-saisie" && (est_une_ecriture(route) || route == crate::compagnie::organismes::ROUTE_ECRIRE) {
+        if let Ok(base) = contexte(o) {
+            let _ = mois::relire_les_manques(&base);
+        }
+    }
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     let rendu = match rendu {
         Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes::engagement::CLASSE_DOCUMENTS_PARTIS) && classe != Some(crate::routes::engagement::CLASSE_ENGAGEMENT_PARTI) && !message.trim_start().starts_with('{') => {
@@ -213,7 +229,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 pub fn est_une_ecriture(route: &str) -> bool {
     [mois::ECRITURES, engagement::ECRITURES, contrats::ECRITURES, documents::ECRITURES, depots::ECRITURES, imprevus::ECRITURES]
         .iter()
-        .chain(&[fiches::ECRITURES, coffre::ECRITURES, import::ECRITURES, archives::ECRITURES, ouverture::ECRITURES])
+        .chain(&[fiches::ECRITURES, coffre::ECRITURES, import::ECRITURES, archives::ECRITURES, ouverture::ECRITURES, modeles_contrat::ECRITURES])
         .any(|l| l.contains(&route))
         || crate::obligations::ROUTES.contains(&route)
         || crate::compagnie::releve_signatures::ROUTES.contains(&route)
@@ -254,6 +270,46 @@ pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
         };
         erreur("KeyError", m)
     })
+}
+
+/// LA COULEUR D'UN ETAT, la meme sur tout l'ecran : `vert` ce qui est fait, `orange` ce qui reste a faire et que la
+/// compagnie peut faire (une signature attendue se relance), `rouge` ce qui est refuse, `gris` ce qui n'est qu'une
+/// information (rien a faire). La page dessine la couleur qu'on lui donne ; elle n'en choisit aucune.
+pub(crate) fn couleur_de_l_etat(etat: &str) -> &'static str {
+    match etat {
+        "fait" => "vert",
+        "a_faire" | "en_attente" | "en_retard" => "orange",
+        "refuse" => "rouge",
+        _ => "gris",
+    }
+}
+
+/// LA PASTILLE D'UN ETAT, telle que la page la dessine : sa couleur (`couleur_de_l_etat`) et ses mots.
+pub(crate) fn pastille(etat: &str, mots: &str) -> Value {
+    json!({"couleur": couleur_de_l_etat(etat), "mots": mots})
+}
+
+/// « 12/09/2026 à 18:18 » : un horodatage ISO tel que l'ecran le dit ; ce qui n'en est pas un, tel quel.
+pub(crate) fn quand(iso: &str) -> String {
+    let b = iso.as_bytes();
+    if b.len() < 10 || b[4] != b'-' || b[7] != b'-' {
+        return iso.to_string();
+    }
+    let jour = format!("{}/{}/{}", &iso[8..10], &iso[5..7], &iso[..4]);
+    match iso.get(11..16) {
+        Some(h) => format!("{} à {}", jour, h),
+        None => jour,
+    }
+}
+
+/// LE NOM D'UN SALARIE TEL QU'UN ECRAN LE MONTRE : le nom de famille en capitales, sous sa forme lisible (`nom_affichage`,
+/// accents compris : « SÉRAPHIN »), puis le prenom lisible. La forme declaree (`nom`, sans accents) reste celle de la DSN
+/// et de la DPAE ; une fiche qui n'a que celle-la la montre.
+pub(crate) fn nom_a_l_ecran(sal: &Value) -> String {
+    let lu = |cles: [&str; 2]| {
+        cles.iter().filter_map(|c| sal.get(*c).filter(|v| vrai(v))).map(valeur_en_texte).find(|t| !t.trim().is_empty()).unwrap_or_default()
+    };
+    format!("{} {}", lu(["nom_affichage", "nom"]).to_uppercase(), lu(["prenom_affichage", "prenom"])).trim().to_string()
 }
 
 /// `sortie_json.brut` d'une valeur lue d'un fichier : un dictionnaire perd ses

@@ -102,7 +102,14 @@ pub struct Engagement {
     /// Une periode elementaire de paie : les bornes de CE calcul quand la paie du mois est decoupee
     /// (`periodes`) ; `None` : la periode de paie entiere (le contrat borne au mois).
     pub periode: Option<(Jour, Jour)>,
+    /// Ce que la saisie dit du contrat ECRIT et que rien d'autre ne porte (`CHAMPS_DU_CONTRAT_ECRIT`) : la periode
+    /// d'essai (L1242-12, 6° ; R1221-34, 7°), la personne remplacee (L1242-12, 1°), la repartition des horaires d'un
+    /// temps partiel (L3123-6, 1°), les clauses particulieres de ce contrat. Vide : rien n'est dit.
+    pub ecrit: Map<String, Value>,
 }
+
+/// Les champs de la saisie que seul le contrat ecrit lit (`Engagement::ecrit`).
+pub const CHAMPS_DU_CONTRAT_ECRIT: [&str; 4] = ["periode_essai_jours", "personne_remplacee", "repartition_horaire", "clauses_particulieres"];
 
 // ------------------------------------------------------------------ lecture
 
@@ -548,6 +555,10 @@ impl Engagement {
             suspensions: liste(get("suspensions"), "suspensions")?.to_vec(),
             avant: get("avant").filter(|x| !x.is_null()).cloned(),
             periode: None,
+            ecrit: CHAMPS_DU_CONTRAT_ECRIT
+                .iter()
+                .filter_map(|k| get(k).filter(|x| truthy(Some(x))).map(|x| (k.to_string(), x.clone())))
+                .collect(),
         })
     }
 
@@ -580,11 +591,9 @@ impl Engagement {
         match self.quotite_contrat {
             Some(q) => dec_f64(q),
             None => Err(format!(
-                "Contrat {} ({}) : la duree contractuelle de travail \
-                 (S21.G00.40.013, en heures par mois) n'est pas dite. Elle \
-                 figure au contrat signe -- 151,67 h pour un temps plein a \
-                 35 h -- et la DSN la declare : elle ne se devine pas.",
-                self.numero_ou_point(),
+                "{} : combien d'heures par mois ? La durée du travail se lit sur le contrat signé \
+                 (151,67 h pour un temps plein à 35 h) et la DSN la déclare. À taper dans la case « Heures par \
+                 mois » de l'engagement.",
                 nat.libelle
             )),
         }
@@ -668,13 +677,6 @@ impl Engagement {
             None => self.fin_mois()?,
         };
         Ok(mois_entre(&self.debut, &fin))
-    }
-
-    fn numero_ou_point(&self) -> String {
-        match &self.numero {
-            Some(n) if !n.is_empty() => n.clone(),
-            _ => "?".to_string(),
-        }
     }
 
     // ------------------------------------------------------------ les lieux
@@ -784,6 +786,10 @@ impl Engagement {
         );
         m.insert("transaction".into(), texte(&self.transaction));
         m.insert("suspensions".into(), canon_valeur(&Value::Array(self.suspensions.clone()))?);
+        // Ecrit seulement quand la saisie le dit.
+        if !self.ecrit.is_empty() {
+            m.insert("contrat_ecrit".into(), canon_valeur(&Value::Object(self.ecrit.clone()))?);
+        }
         // Ce qui se deduit de l'engagement : sa periode, sa quotite, ses mois.
         m.insert("debut_periode".into(), iso(&self.debut_periode()?));
         m.insert("fin_periode".into(), iso(&self.fin_periode()?));
@@ -1047,6 +1053,9 @@ pub(crate) fn engagements(
         poser("dernier_jour_paye", e.get("dernier_jour_paye"));
         poser("date_modification", e.get("date_modification"));
         poser("avant", e.get("avant"));
+        for k in CHAMPS_DU_CONTRAT_ECRIT {
+            poser(k, e.get(k));
+        }
         let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs))?;
         // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
@@ -1169,6 +1178,18 @@ fn qui_de(fiche: &Value) -> Resultat<String> {
 /// « (n° FA1.26.13) » quand le contrat porte son numero ; rien sinon.
 fn numero_dit(eng: &Engagement) -> String {
     eng.numero.as_deref().filter(|n| !n.is_empty()).map_or_else(String::new, |n| format!(" (n° {})", n))
+}
+
+/// LE CONTRAT DE CET ENGAGEMENT SE FAIT-IL SIGNER PAR LE LOGICIEL ? Oui quand sa nature a un contrat ecrit (`contrat_ecrit`
+/// de `contrats-base.json` : le CDD « est etabli par ecrit », L1242-12 ; tout salarie recoit l'ecrit de L1221-5-1). Un
+/// contrat repris d'un ancien logiciel -- celui d'un permanent, ou le contrat d'usage qui continue ici un contrat importe --
+/// a ete signe la-bas (`importe::vient_d_un_ancien_logiciel`) : il ne se refait pas signer ici.
+pub fn contrat_a_signer(racine: &Path, eng: &Engagement) -> Resultat<bool> {
+    let nat = eng.nat()?;
+    if nat.modele_contrat().is_none() {
+        return Ok(false);
+    }
+    Ok(!importe::vient_d_un_ancien_logiciel(racine, &eng.salarie, &eng.debut.iso(), eng.numero.as_deref().unwrap_or("")))
 }
 
 /// UN NUMERO DE CONTRAT NE SE DONNE QU'AU PREMIER MOIS : le numero identifie le contrat en DSN (S21.G00.40.009), il se

@@ -60,7 +60,7 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let dossier = crate::routes::import::dossier_import(ctx, charge)?;
     let proposition = ib::lire_dossier(ctx, &dossier, |lu| Ok(proposer(ctx, &lu)))?;
     match nom {
-        "importation-incident" => Ok(proposition.json()),
+        "importation-incident" => Ok(crate::routes::import::avec_les_pastilles(proposition.json())),
         _ => Ok(envoyer(&ctx.racine, &proposition)),
     }
 }

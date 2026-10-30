@@ -65,6 +65,12 @@ function dessinerConfig() {
     dessinerModelesBulletin(liste);
     return;
   }
+  // Les modèles de contrat et les clauses particulières : `modeles-contrat.js`.
+  if (FICHE_ACTIVE === "contrats") {
+    document.getElementById("config-formulaire").innerHTML = "";
+    dessinerModelesContrat(liste);
+    return;
+  }
   const fiches = fichesDe(FICHE_ACTIVE);
   if (FICHE_ACTIVE === "entreprise") {
     liste.innerHTML = "";
@@ -127,11 +133,9 @@ function dessinerConfig() {
   // lettres, là où le clic sur toute la carte archivait sans prévenir.
   const rangHtml = (f, trouve) => {
     const d = f.donnees;
-    const err = f.anomalies.filter((a) => a.gravite === "erreur").length;
-    const av = f.anomalies.length - err;
     const archive = d.actif === false;
     const titre = salarie
-      ? `${d.nom || ""} ${d.prenom_affichage || d.prenom || ""}`.trim()
+      ? `${String(d.nom_affichage || d.nom || "").toUpperCase()} ${d.prenom_affichage || d.prenom || ""}`.trim()
       : String(d.titre || "").trim();
     // Un numero d'objet importe de CoolPaie n'a pas de titre : le moteur
     // pose « A COMPLETER », que la ligne dit en minuscules.
@@ -142,10 +146,7 @@ function dessinerConfig() {
     const autresNumeros = !salarie && !archive && !trouve ? (passees[titreDe(d)] || [])
       .slice().sort((a, b) => String(b.donnees.numero_objet || "").localeCompare(
         String(a.donnees.numero_objet || ""))) : [];
-    const etat = archive ? `<span class="pastille archive">archivé</span>`
-      : err ? `<span class="pastille erreur">${err} erreur${err > 1 ? "s" : ""}</span>`
-      : av ? `<span class="pastille alerte">${av} à vérifier</span>`
-      : `<span class="pastille bien">complet</span>`;
+    const etat = pastilleDeLEtat(f.pastille);
     return `<div class="rang fiche${archive ? " archivee" : ""}${f.cle === CLE_ACTIVE ? " selectionnee" : ""}"
         data-cle="${echapper(f.cle)}">
       <div class="rang-infos">
@@ -325,27 +326,10 @@ function dessinerConfig() {
    qui ne l'est pas et pourquoi, c'est le moteur qui le dit. */
 let IMPORT_DOSSIER = "";
 
-/* Le sort d'un fichier ou d'une page (`import::bulletins::SORTS`) : son
-   mot, et la couleur de sa pastille. Vert : repris ; orange : repris avec une
-   réserve, ou laissé exprès ; rouge : pas repris, quelque chose manque. */
-const SORTS_IMPORT = {
-  repris: ["repris", "bien"],
-  deja_repris: ["déjà repris", "bien"],
-  libelle_inconnu: ["libellé inconnu", "alerte"],
-  deja_saisi: ["déjà saisi", ""],
-  incoherent: ["incohérent", "erreur"],
-  incomplet: ["incomplet", "erreur"],
-  sans_texte: ["sans texte", "erreur"],
-  sans_entetes: ["tableau introuvable", "erreur"],
-  ambigu: ["ambigu", "erreur"],
-  annexe: ["annexe", ""],
-  non_reconnu: ["non reconnu", "erreur"],
-  doublon: ["doublon", ""],
-  archive: ["archive", ""],
-};
-function pastilleSort(sort) {
-  const [mot, classe] = SORTS_IMPORT[sort] || [String(sort || "?").replace(/_/g, " "), ""];
-  return `<span class="pastille ${classe}">${echapper(mot)}</span>`;
+/* Le sort d'un fichier ou d'une page (`import::bulletins::SORTS`) : sa pastille,
+   telle que la réponse du moteur la donne (`pastilles`). */
+function pastilleSort(sort, pastilles) {
+  return pastilleDeLEtat((pastilles || {})[sort] || { couleur: "gris", mots: String(sort || "?") });
 }
 
 /* « Ouvrir le dossier » n'a de sens que si la page tourne sur le poste,
@@ -368,10 +352,8 @@ async function dessinerImportation(cible) {
   let e = null;
   try { e = await api("importation-etat"); } catch (err) { e = null; }
   if (!IMPORT_DOSSIER && e && e.dossier) IMPORT_DOSSIER = e.dossier;
-  const formulaire = `<p class="intro">Mettez dans ce dossier tout ce que votre ancien logiciel vous a
-      laissé — bulletins de paie en PDF, DSN, AEM, archives zip —, puis « Voir ce qui serait repris ».
-      Rien n'est écrit avant « Reprendre ».</p>
-    <div class="e-contrat-champs">
+  const deja = e && ((e.reprises && e.reprises.length) || e.contrats);
+  const dossier = `<div class="e-contrat-champs">
       <label style="flex:1">Le dossier
         <span style="display:flex;gap:6px">
           <input type="text" id="import-dossier" style="flex:1" placeholder="vide : le dossier import/ de la compagnie"
@@ -380,21 +362,38 @@ async function dessinerImportation(cible) {
           ${fenetreDuPoste() ? `<button type="button" class="secondaire" id="import-ouvrir">Ouvrir le dossier</button>` : ""}
         </span>
       </label>
-      <button class="secondaire" id="import-apercu">Voir ce qui serait repris</button>
-    </div>
-    <div id="import-resultat"></div>`;
-  const deja = e && ((e.reprises && e.reprises.length) || e.contrats);
-  cible.innerHTML = `
+      ${deja ? `<button class="secondaire" id="import-apercu">Voir ce qui serait repris</button>` : ""}
+    </div>`;
+  if (deja) {
+    cible.innerHTML = `
     <div class="carte">
       <div id="import-etat">${vueEtatImportation(e)}</div>
-      ${deja ? `<details class="relire"><summary>Relire un dossier — un fichier ajouté depuis, un
+      <details class="relire"><summary>Relire un dossier — un fichier ajouté depuis, un
           salarié ou une année qui manquait</summary>
           <p class="note">Les fiches qui existent déjà ne sont pas touchées ; ce que les DSN ou les
             bulletins disaient autrement est seulement signalé. Ce qui est déjà repris ne se double pas.</p>
-          ${formulaire}
-        </details>`
-      : formulaire}
+          <p class="intro">Mettez dans ce dossier ce qui manquait, puis « Voir ce qui serait repris ».
+            Rien n'est écrit avant « Reprendre ».</p>
+          ${dossier}
+          <div id="import-resultat"></div>
+        </details>
     </div>`;
+  } else {
+    // RIEN N'EST ENCORE REPRIS : le guide (`importation-etat`, `guide`, du moteur), le dossier, et « Importer », qui
+    // reprend tout d'un geste. Ce qui reste à dire (`import-etat`, `import-demarrage`) se peint au-dessus après lui.
+    cible.innerHTML = `
+    <div class="carte">
+      <div id="import-etat">${vueEtatImportation(e)}</div>
+      <div id="import-demarrage"></div>
+      <div id="import-guide">${vueGuideImport(e && e.guide)}
+        ${dossier}
+        <p><button class="primaire" id="import-tout">Importer</button>
+          <button type="button" class="lien" id="import-apercu">ou voir d'abord ce qui serait repris</button></p>
+      </div>
+      <div id="import-resultat"></div>
+    </div>`;
+    document.getElementById("import-tout").onclick = () => importerDepuisLeGuide();
+  }
   document.getElementById("import-apercu").onclick = () => apercuImportation();
   // L'EXPLORATEUR : la boîte du système, ouverte par le poste.
   document.getElementById("import-parcourir").onclick = async () => {
@@ -413,6 +412,45 @@ async function dessinerImportation(cible) {
       } catch (err) { dire(err.message, "erreur"); }
     };
   }
+}
+
+/* LE GUIDE DE L'IMPORT (`import::guide`, du moteur) : ce qu'on met dans le
+   dossier, ce que le logiciel lit de chaque pièce, ce qui restera à dire. La
+   page le montre tel quel. */
+function vueGuideImport(g) {
+  if (!g) return "";
+  const pieces = (g.pieces || []).map((p) => `<div class="guide-piece">
+      <b>${echapper(p.quoi)}</b>
+      <div class="note">${echapper(p.ou)}</div>
+      ${(p.lu || []).length ? `<ul>${p.lu.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>` : ""}
+    </div>`).join("");
+  return `<h3>Reprendre votre passé</h3>
+    <p class="intro">Mettez dans le dossier ci-dessous tout ce que votre ancien logiciel vous a laissé, puis
+      « Importer » : PuppetPaie crée la fiche de la compagnie, ses salariés, ses spectacles et leurs contrats
+      avec ce que les pièces disent.</p>
+    <div class="guide-pieces">${pieces}</div>
+    <p class="note">${echapper(g.reste || "")}</p>
+    <p class="note">${echapper(g.rien_n_est_perdu || "")}</p>`;
+}
+
+/* « IMPORTER », D'UN GESTE : le moteur reprend tout (`importer`), puis la page
+   montre, au-dessus, ce qui reste à dire — la nature des contrats repris, les
+   congés à reprendre (`importation-etat`) et ce qui manque encore pour
+   démarrer (`pour-demarrer`) — et, dessous, ce qui a été repris. */
+async function importerDepuisLeGuide() {
+  IMPORT_DOSSIER = document.getElementById("import-dossier").value.trim();
+  const rendre = occupe(document.getElementById("import-tout"), "Import en cours : les fiches, les contrats, puis chaque bulletin…");
+  await ecrireImportation();
+  rendre();
+  // Rien de repris (un dossier vide, des pièces illisibles) : le guide reste, avec ce que le moteur en a dit.
+  let etat = null;
+  try { etat = await api("importation-etat"); } catch (e) { return; }
+  if (!((etat.reprises || []).length || etat.contrats)) return;
+  const guide = document.getElementById("import-guide");
+  if (guide) guide.hidden = true;
+  const demarrage = document.getElementById("import-demarrage");
+  if (demarrage) await peindreDemarrage(demarrage);
+  document.getElementById("import-etat").scrollIntoView({ block: "start" });
 }
 
 /* L'ÉTAT (`importation-etat`), en une ligne et sans nommer de logiciel :
@@ -439,16 +477,31 @@ function vueEtatImportation(e) {
   const repris = quoi ? `<div class="rang">
       <div class="rang-infos"><b class="rang-nom">Historique repris${le ? ` le ${echapper(jjmmaaaa(le))}` : ""}</b>
         ${echapper(quoi + periode)}</div>
-      <div class="rang-etat"><span class="pastille bien">fait</span></div>
+      <div class="rang-etat">${pastilleDeLEtat(e.pastille_repris)}</div>
     </div>` : "";
   const editeur = (e.editeur || []).map((x) => `<div class="rang">
       <div class="rang-infos"><b class="rang-nom">${x.canal === "signalement" ? "Message à l'éditeur" : "Incident"}${
         x.quand ? ` du ${echapper(quand(x.quand))}` : ""}</b>${echapper(x.resume || "")}</div>
-      <div class="rang-etat">${x.repondu ? `<span class="pastille bien">réponse reçue</span>`
-        : x.parti ? `<span class="pastille alerte">attend l'éditeur</span>`
-        : `<span class="pastille">pas encore parti</span>`}</div>
+      <div class="rang-etat">${pastilleDeLEtat(x.pastille)}</div>
     </div>`).join("");
-  return repris + vueNaturesADire(e.a_dire) + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
+  return repris + vueNaturesADire(e.a_dire) + vueCongesADire(e.conges_a_dire)
+    + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
+}
+
+/* LES CONGÉS À LA REPRISE D'UN PERMANENT DONT LE CONTRAT CONTINUE
+   (`conges_a_dire`, du moteur) : aucun bulletin repris ne les dit, ils se
+   recopient du dernier bulletin de l'ancien logiciel, sur sa fiche. */
+function vueCongesADire(liste) {
+  if (!liste || !liste.length) return "";
+  const lignes = liste.map((x) => `<div class="rang">
+      <div class="rang-infos"><b class="rang-nom">${echapper(x.nom)}</b>
+        ses congés payés acquis et pris dans votre ancien logiciel ne sont sur aucun bulletin repris.
+        Recopiez-les de son dernier bulletin dans sa fiche (« Congés payés à la reprise »), à partir du
+        ${echapper(jjmmaaaa(x.depuis))} : sans eux, ses congés repartent de zéro.</div>
+      <div class="rang-etat"><button type="button" class="petit" data-ouvrir-fiche="salarie"
+        data-ouvrir-cle="${echapper(x.salarie)}">Ouvrir sa fiche</button></div>
+    </div>`).join("");
+  return `<h3>Les congés payés à reprendre</h3>${lignes}`;
 }
 
 /* LA NATURE DES CONTRATS REPRIS QU'AUCUN BULLETIN NE DIT
@@ -574,12 +627,7 @@ function valeurImportee(v) {
    signalé. Une case vide est complétée, et la page dit d'où. */
 function fichesImportees(fiches, titre) {
   const lignes = (fiches || []).filter((f) => f).map((f) => {
-    const aCompleter = Object.keys(f.completer || {}).length;
-    const etat = f.etat === "completee" ? `<span class="pastille bien">complétée</span>`
-      : f.etat === "existante" && aCompleter ? `<span class="pastille alerte">à compléter</span>`
-      : f.etat === "existante" ? `<span class="pastille bien">existe déjà</span>`
-      : f.etat === "creee" ? `<span class="pastille bien">créée</span>`
-      : `<span class="pastille alerte">à créer</span>`;
+    const etat = pastilleDeLEtat(f.pastille);
     const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
       `<div class="acte-dernier"><b>${echapper(champ)}</b> ${f.etat === "completee" ? "a reçu" : "recevra"}
          « ${echapper(valeurImportee(e.valeur))} », lu dans ${origineImport(e)} — la case était vide</div>`).join("");
@@ -617,18 +665,18 @@ function fichesImportees(fiches, titre) {
 
 /* Le compte rendu, fichier par fichier (`tri.fichiers`) : le chemin dans le
    dossier, le sort, la raison. Un PDF de plusieurs pages déplie ses pages. */
-function compteRenduImport(tri) {
+function compteRenduImport(tri, pastilles) {
   if (!tri || !tri.fichiers) return "";
   const comptes = Object.entries(tri.comptes || {}).filter(([, n]) => n > 0)
-    .map(([s, n]) => `${pastilleSort(s)} ${n}`).join(" &nbsp; ");
+    .map(([s, n]) => `${pastilleSort(s, pastilles)} ${n}`).join(" &nbsp; ");
   const lignes = tri.fichiers.map((f) => {
     const pages = f.pages && f.pages.length > 1
       ? `<details class="relire"><summary>${f.pages.length} pages</summary>${f.pages.map((p) =>
           `<div class="acte-dernier">page ${p.page}${p.mois ? ` (${echapper(moisEnClair(p.mois))})` : ""}
-             ${pastilleSort(p.sort)} ${echapper(p.raison || "")}</div>`).join("")}</details>` : "";
+             ${pastilleSort(p.sort, pastilles)} ${echapper(p.raison || "")}</div>`).join("")}</details>` : "";
     const de = f.doublon_de ? ` <span class="discret">(copie de ${echapper(f.doublon_de)})</span>`
       : f.archive ? ` <span class="discret">(dans ${echapper(f.archive)})</span>` : "";
-    return `<tr><td>${echapper(f.chemin)}${de}</td><td style="white-space:nowrap">${pastilleSort(f.sort)}</td>
+    return `<tr><td>${echapper(f.chemin)}${de}</td><td style="white-space:nowrap">${pastilleSort(f.sort, pastilles)}</td>
       <td>${echapper(f.raison || "")}${pages}</td></tr>`;
   }).join("");
   return `<h3>Le dossier, fichier par fichier</h3>
@@ -669,8 +717,7 @@ function ecartsBulletinDsn(tri) {
           <td>${echapper(CHAMPS_PAIE[e.champ] || e.champ)}</td>
           <td class="nombre">${echapper(e.valeur == null ? "" : e.valeur)}</td>
           <td class="nombre">${echapper(e.bulletin == null ? "" : e.bulletin)}</td>
-          <td>${e.le_bulletin_l_emporte ? `<span class="pastille alerte">le bulletin l'emporte</span>`
-            : `<span class="pastille">noté</span>`}</td></tr>`);
+          <td>${pastilleDeLEtat(e.pastille)}</td></tr>`);
       }
     }
   }
@@ -712,7 +759,7 @@ async function preparerIncidentImport() {
         <span class="note">Rien ne part avant ce clic.</span></p>`
     : `<p class="note">Rien à envoyer.</p>`;
   cible.innerHTML = `<div class="encart attention"><b>Ces documents n'ont pas pu être repris.</b>
-      ${laisses.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort)}
+      ${laisses.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort, r.pastilles)}
         ${echapper(f.raison || "")}</div>`).join("")}
       <p>Un message peut partir chez le développeur ; Léandre s'en occupe et vous répond.</p>
       <div id="import-incident-envoi">${envoi}</div>
@@ -762,25 +809,33 @@ function vueImportation(r) {
     : "aucune DSN ni AEM dans le dossier";
   const avert = (r.avertissements || []).map((a) => `<div class="encart attention">${echapper(a)}</div>`).join("");
   const b = r.bulletins || {};
-  const nb = [r.entreprise, ...(r.salaries || []), ...(r.spectacles || [])].filter((f) => f && (f.etat === "a_creer"
-    || (f.etat === "existante" && Object.keys(f.completer || {}).length))).length;
+  const aEcrire = (f) => f && (f.etat === "a_creer" || (f.etat === "existante" && Object.keys(f.completer || {}).length));
+  const ns = (r.salaries || []).filter(aEcrire).length, nsp = (r.spectacles || []).filter(aEcrire).length;
   const nc = (r.contrats_nouveaux || 0) + (b.contrats_nouveaux || 0);
   const np = (b.paies_nouvelles || 0) + (b.paies_completees || 0);
   const quoi = [
-    nb ? `${nb} fiche${nb > 1 ? "s" : ""}` : "",
+    aEcrire(r.entreprise) ? "la fiche de la compagnie" : "",
+    ns ? `${ns} salarié${ns > 1 ? "s" : ""}` : "",
+    nsp ? `${nsp} spectacle${nsp > 1 ? "s" : ""}` : "",
     nc ? `${nc} contrat${nc > 1 ? "s" : ""}` : "",
     np ? `${np} bulletin${np > 1 ? "s" : ""}` : "",
   ].filter((x) => x);
+  // La couleur de l'encart, et ce que l'import a posé de la configuration,
+  // viennent du moteur (`encart`, `parametrage`).
+  const couleur = ENCART_DE_COULEUR[(r.encart || {}).couleur] || "";
+  const pose = (r.parametrage || []).length
+    ? `<p class="note">Posé dans la configuration :</p><ul>${r.parametrage.map((p) => `<li>${echapper(p)}</li>`).join("")}</ul>` : "";
   const bouton = r.ecrit
-    ? `<div class="encart bien"><b>Repris.</b> ${(r.fichiers || []).map((f) => echapper(f)).join("<br>")}
+    ? `<div class="encart ${couleur}"><b>Repris.</b> ${(r.fichiers || []).map((f) => echapper(f)).join("<br>")}
+        ${pose}
         <p class="note">Les fichiers lus sont copiés dans l'historique de la compagnie ; vous pouvez vider
           le dossier <code>import/</code>.</p></div>`
     : r.rien_a_faire
-      ? `<div class="encart bien"><b>Rien à reprendre</b> : tout est déjà là.</div>`
+      ? `<div class="encart ${couleur}"><b>Rien à reprendre</b> : tout est déjà là.</div>`
       : `<p><button class="primaire" id="import-ecrire">Reprendre${quoi.length ? " " + quoi.join(", ") : ""}</button>
          <span class="note">Rien n'est écrit avant ce clic.</span></p>`;
   return `<div id="import-incident"></div>
-    ${compteRenduImport(r.tri)}
+    ${compteRenduImport(r.tri, r.pastilles)}
     <h3>${r.ecrit ? "Ce qui a été repris" : "Ce qui serait repris"}</h3>
     <div class="encart"><b>Déclarations</b>
       ${declarations}</div>
@@ -802,19 +857,24 @@ function brancherImportation() {
 async function apercuImportation() {
   IMPORT_DOSSIER = document.getElementById("import-dossier").value.trim();
   const cible = document.getElementById("import-resultat");
-  cible.innerHTML = `<p class="discret">Lecture du dossier…</p>`;
+  // LE GESTE QUI ATTEND SE VOIT : le bouton dit qu'il lit, la page qu'elle travaille.
+  const rendre = occupe(document.getElementById("import-apercu"), "Lecture des fichiers…");
+  cible.innerHTML = `<p class="discret">Lecture du dossier, fichier par fichier…</p>`;
   try {
     const r = await api("importation-apercu", { dossier: IMPORT_DOSSIER });
     cible.innerHTML = vueImportation(r);
     brancherImportation();
   } catch (e) {
     cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`;
+  } finally {
+    rendre();
   }
 }
 
 async function ecrireImportation() {
   const cible = document.getElementById("import-resultat");
   cible.classList.add("attente");
+  occupe(document.getElementById("import-ecrire"), "Reprise en cours : les fiches, les contrats, puis chaque bulletin…");
   try {
     const r = await api("importer", { dossier: IMPORT_DOSSIER });
     cible.innerHTML = vueImportation(r);
@@ -946,6 +1006,8 @@ const SECTIONS_FICHE = {
       "pays_nationalite_hors_liste", "code_nationalite_dsn"]],
     ["Coordonnées", ["adresse_affichage", "code_postal", "commune_affichage",
                      "email"]],
+    // LE COMPTE OÙ LE SALAIRE EST VIRÉ : l'IBAN, dont le moteur contrôle la clé, et le BIC.
+    ["Paiement du salaire", ["banque"]],
     // LE MÉTIER SE CHOISIT, SES CODES SE DÉDUISENT. La liste
     // des métiers cochés (Configuration › Métiers) se pose en tête du bloc
     // (`METIER_HTML`) ; l'intitulé reste à portée de main — c'est lui que
@@ -1058,19 +1120,17 @@ const SOUS_CHAMPS = {
   declarant_dsn: { champs: [
     ["civilite", "Civilité", "Celle de la personne que les organismes contactent : elle s'écrit dans chaque DSN.",
      { choix: { "": "—", "02": "Madame", "01": "Monsieur" } }],
-    ["prenom_affichage", "Prénom", ""],
-    ["nom_affichage", "Nom", ""],
+    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
     ["tel", "Téléphone", ""],
     ["email", "Courriel", ""],
   ] },
   contact_sante_travail: { champs: [
-    ["prenom_affichage", "Prénom", ""],
-    ["nom_affichage", "Nom", ""],
+    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
     ["tel", "Téléphone", ""],
     ["email", "Courriel", ""],
   ] },
   banque: { champs: [
-    ["iban", "IBAN", "Sur votre relevé d'identité bancaire (RIB) : 27 caractères commençant par FR."],
+    ["iban", "IBAN", "Sur le relevé d'identité bancaire (RIB) : 27 caractères commençant par FR pour un compte en France, de 15 à 34 ailleurs. Les espaces ne comptent pas."],
     ["bic", "BIC", "Sur le même RIB, 8 ou 11 caractères."],
   ] },
   // LA PREVOYANCE ET LA SANTE DES PERMANENTS.
@@ -1170,7 +1230,15 @@ const LIBELLES_CHOIX = {
   },
   statut: {
     "artiste": "Artiste",
-    "technicien": "Technicien, ou autre emploi non artistique",
+    "technicien": "Autre emploi : technicien, administration, production, diffusion…",
+  },
+  categorie_conventionnelle: {
+    "artiste": "Artiste",
+    "employe": "Employé",
+    "technicien": "Technicien",
+    "agent_de_maitrise": "Agent de maîtrise",
+    "cadre": "Cadre",
+    "cadre_de_direction": "Cadre de direction",
   },
   statut_categoriel_rc: {
     "04": "Non cadre",
@@ -1555,23 +1623,34 @@ async function dessinerOrganismes(cible) {
   };
 }
 
-/* LE TAUX AT/MP, en tête du bloc « Vos numéros chez les
- * organismes ». Il n'est pas un champ de la fiche : il vit dans le barème
- * de la compagnie (`config/baremes/<année>.json`), s'enregistre seul, à la
- * sortie de la case, et ne marque pas la fiche « modifiée ». Sans lui, le
- * premier mois d'une compagnie neuve ne se calculait pas. */
+/* LE CODE RISQUE ET LE TAUX AT/MP, en tête du bloc « Vos numéros chez les
+ * organismes ». Ils ne sont pas des champs de la fiche : ils vivent dans le
+ * barème de la compagnie (`config/baremes/<année>.json`). Le moteur
+ * (`taux-atmp`) dit ce qui est posé, le risque tel que l'arrêté l'écrit,
+ * pourquoi, où le lire, où le changer, et les codes qu'il connaît ; la page
+ * les affiche. « Avancé » les change : le moteur refuse ce qui ne va pas. */
 function ATMP_HTML() {
   const an = anneeDuJour();
   return `<div class="encart" id="config-atmp" data-annee="${an}">
-    <div class="ligne-champs">
-      <label>Taux accident du travail (AT/MP) ${an}
-        <input id="atmp-valeur" class="hors-fiche" inputmode="decimal" placeholder="1,25"></label>
-      <label>Code risque
-        <input id="atmp-code" class="hors-fiche" placeholder="923AD" maxlength="5"></label>
-    </div>
-    <div class="aide">En pourcentage, tel que l'Assurance Maladie le notifie
-      chaque année (compte AT/MP sur net-entreprises). Nécessaire pour
-      calculer la paie. <span id="atmp-etat"></span></div>
+    <h4>Accidents du travail (AT/MP) ${an}</h4>
+    <p id="atmp-resume"></p>
+    <p class="note" id="atmp-libelle"></p>
+    <p class="aide" id="atmp-explication"></p>
+    <p class="aide" id="atmp-ou"></p>
+    <details id="atmp-avance"><summary>Avancé</summary>
+      <div class="ligne-champs">
+        <label>Code risque notifié
+          <select id="atmp-choix" class="hors-fiche"></select></label>
+        <label id="atmp-autre-l">Autre code (s'il n'est pas dans la liste)
+          <input id="atmp-code" class="hors-fiche" maxlength="7"></label>
+        <label>Taux notifié (%)
+          <input id="atmp-valeur" class="hors-fiche" inputmode="decimal"></label>
+      </div>
+      <div class="aide">Le taux vide : celui de l'arrêté de l'année, quand il s'applique au code choisi.
+        Avec 999ZZ, pas de taux.</div>
+      <div class="actions"><button class="petit" id="atmp-enregistrer">Enregistrer</button>
+        <span id="atmp-etat"></span></div>
+    </details>
   </div>`;
 }
 
@@ -1579,25 +1658,32 @@ async function brancherAtmp() {
   const bloc = document.getElementById("config-atmp");
   if (!bloc) return;
   const annee = Number(bloc.dataset.annee);
-  const valeur = document.getElementById("atmp-valeur");
-  const code = document.getElementById("atmp-code");
-  const etat = document.getElementById("atmp-etat");
-  // Repeindre n'efface jamais ce qu'on est en train de taper : la réponse
-  // d'un premier enregistrement (le taux) arrivait pendant qu'on tapait le
-  // code risque, et le vidait.
-  const peindre = (t) => {
-    if (!t) return;
-    if (document.activeElement !== valeur) valeur.value = String(t.valeur).replace(".", ",");
-    if (t.code_risque && document.activeElement !== code) code.value = t.code_risque;
+  const $ = (id) => document.getElementById(id);
+  const [choix, code, valeur, etat] = ["atmp-choix", "atmp-code", "atmp-valeur", "atmp-etat"].map($);
+  // Ces cases ne sont pas la fiche : elles ne la marquent pas modifiée.
+  [choix, code, valeur].forEach((c) => { c.oninput = null; });
+  const peindre = (r) => {
+    if (!r) return;
+    const t = r.taux || {};
+    $("atmp-resume").innerHTML = r.resume ? `<b>${echapper(r.resume)}</b>` : "";
+    $("atmp-libelle").textContent = r.risque ? `« ${r.risque.libelle} »` : "";
+    $("atmp-explication").textContent = r.explication || "";
+    $("atmp-ou").textContent = [r.ou_le_lire, r.ou_le_changer].filter(Boolean).join(" ");
+    const codes = r.codes || [];
+    const connu = codes.some((c) => c.code === t.code_risque);
+    choix.innerHTML = codes.map((c) =>
+      `<option value="${echapper(c.code)}">${echapper(c.code_arrete || c.code)} — ${echapper(c.libelle)}</option>`).join("")
+      + `<option value="">Un autre code notifié</option>`;
+    choix.value = connu ? t.code_risque : "";
+    if (document.activeElement !== code) code.value = connu ? "" : (t.code_risque || "");
+    if (document.activeElement !== valeur) valeur.value = "";
   };
-  // Ces deux cases ne sont pas la fiche : elles ne la marquent pas modifiée.
-  [valeur, code].forEach((c) => { c.oninput = null; });
-  try { peindre((await api("taux-atmp", { annee })).taux); } catch (e) { /* rien à montrer */ }
-  const poser = async () => {
-    if (!valeur.value.trim()) return;
+  try { peindre(await api("taux-atmp", { annee })); } catch (e) { /* rien à montrer */ }
+  $("atmp-enregistrer").onclick = async (ev) => {
+    ev.preventDefault();
     try {
-      peindre((await api("taux-atmp", { annee, valeur: valeur.value,
-                                        code_risque: code.value })).taux);
+      peindre(await api("taux-atmp", { annee, code_risque: choix.value || code.value,
+                                       valeur: valeur.value }));
       etat.textContent = "Enregistré.";
       valeur.classList.remove("faute");
     } catch (e) {
@@ -1605,8 +1691,6 @@ async function brancherAtmp() {
       valeur.classList.add("faute");
     }
   };
-  valeur.onchange = poser;
-  code.onchange = poser;
 }
 
 /* LA COMPLÉMENTAIRE SANTÉ D'UN PERMANENT, en tete du bloc
@@ -1664,7 +1748,7 @@ function enteteSalarie(fiche) {
       <h3>La faire remplir par la personne</h3>
       <p class="aide">Elle reçoit un courriel avec un bouton : une réponse
         s'ouvre avec les questions (identité, naissance, numéro de sécurité
-        sociale, adresse), elle y répond et l'envoie. Sa fiche se crée
+        sociale, adresse, compte bancaire), elle y répond et l'envoie. Sa fiche se crée
         seule à l'arrivée de la réponse ; il vous restera l'emploi à
         choisir.</p>
       ${lie ? `<div class="champs">

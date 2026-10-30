@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000034668407</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/34/66/84/LEGIARTI000034668407.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D242-6-2</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2018-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106031">Partie réglementaire - Décrets simples</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126849">Livre II : Organisation du régime général - Action sanitaire et sociale des caisses</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141518">Titre IV : Ressources</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006155797">Chapitre 2 : Assiette, taux et calcul des cotisations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006172139">Section 1 : Cotisations assises sur les rémunérations ou gains versés aux travailleurs salariés ou assimilés</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006185515">Sous-section 2 : Dispositions propres à chaque branche</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006194234">Paragraphe 4 : Assurance accidents du travail et maladies professionnelles.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-01-01" etat="MODIFIE" fin="2012-01-01" id="LEGIARTI000006735878" num="D242-6-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-01-01" etat="MODIFIE" fin="2017-03-17" id="LEGIARTI000022446580" num="D242-6-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2017-03-17" etat="MODIFIE" fin="2018-01-01" id="LEGIARTI000034197480" num="D242-6-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2018-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000034668407" num="D242-6-2" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Le mode de tarification est déterminé en fonction de l'effectif global de l'entreprise, tel que défini à l'article R. 130-1, que celle-ci comporte un ou plusieurs établissements : </p>
+<p>1° La tarification collective est applicable aux entreprises dont l'effectif est inférieur à 20 salariés ; </p>
+<p>2° La tarification individuelle est applicable aux entreprises dont l'effectif est au moins égal à 150 salariés ; </p>
+<p>3° La tarification mixte est applicable aux entreprises dont l'effectif est au moins égal à 20 et inférieur à 150.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000555144" datesignatexte="1995-10-17" id="LEGIARTI000042710957" naturetexte="ARRETE" nortexte="SANS9502262A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 octobre 1995 - art. 1 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000000556780" datesignatexte="1995-12-14" id="LEGIARTI000006790255" naturetexte="ARRETE" nortexte="TASS9523475A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 14 décembre 1995 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000198151" datesignatexte="1996-12-27" id="LEGIARTI000006790723" naturetexte="ARRETE" nortexte="TASS9611842A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 décembre 1996 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000570947" datesignatexte="1998-03-06" id="LEGIARTI000006791094" naturetexte="ARRETE" nortexte="MESS9821090A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 6 mars 1998 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000377737" datesignatexte="1998-12-09" id="LEGIARTI000006791235" naturetexte="ARRETE" nortexte="MESS9823869A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 9 décembre 1998 - art. 1 (P)</LIEN>
+<LIEN cidtexte="JORFTEXT000000249216" datesignatexte="2004-03-26" id="LEGIARTI000006229885" naturetexte="DECRET" nortexte="SOCS0420709D" num="1" numtexte="2004-298" sens="cible" typelien="CITATION">Décret n°2004-298 du 26 mars 2004 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000017756006" datesignatexte="2007-12-21" id="LEGIARTI000017771568" naturetexte="ARRETE" nortexte="MTSS0774376A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 21 décembre 2007 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000019982181" datesignatexte="2008-12-18" id="LEGIARTI000019983819" naturetexte="ARRETE" nortexte="MTSS0830521A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 18 décembre 2008 - art. 1 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000020676146" datesignatexte="2009-05-26" id="LEGIARTI000020676571" naturetexte="ARRETE" nortexte="MTSS0911937A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 26 mai 2009 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000021572216" datesignatexte="2009-12-28" id="LEGIARTI000021679176" naturetexte="ARRETE" nortexte="MTSS0931690A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 28 décembre 2009 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000023311509" datesignatexte="2010-12-27" id="LEGIARTI000023314162" naturetexte="ARRETE" nortexte="ETSS1032797A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 décembre 2010 - art. 1 (V)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000034632416" datesignatexte="2017-05-09" id="LEGIARTI000034648005" naturetexte="DECRET" nortexte="ECFS1625149D" num="1" numtexte="2017-858" sens="cible" typelien="MODIFIE">Décret n°2017-858 du 9 mai 2017 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000042410602" datesignatexte="2020-10-08" id="LEGIARTI000043667843" naturetexte="ARRETE" nortexte="SSAS2011506A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 8 octobre 2020 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000044947248" datesignatexte="2022-01-12" id="LEGIARTI000044963808" naturetexte="DECRET" nortexte="SSAS2129766D" num="1" numtexte="2022-26" sens="cible" typelien="CITATION">Décret n°2022-26 du 12 janvier 2022 - art. 1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054980972" naturetexte="CODE" nortexte="" num="D242-6-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-6-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054060377" naturetexte="CODE" nortexte="" num="D242-6-19" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-6-19 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000023796206" naturetexte="CODE" nortexte="" num="D242-6-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-6-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000023381652" naturetexte="CODE" nortexte="" num="D242-6-4" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-6-4 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006736853" naturetexte="CODE" nortexte="" num="D412-99" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D412-99 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006736856" naturetexte="CODE" nortexte="" num="D412-99-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D412-99-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006746964" naturetexte="CODE" nortexte="" num="R130-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. R130-1</LIEN>
+</LIENS>
+</ARTICLE>

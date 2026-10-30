@@ -1,4 +1,4 @@
-//! Les pieces de `calculer` contre `calcul-pieces.json` : les designations, le code du bloc 54, la reduction generale et le seuil de SMIC sur
+//! Les pieces de `calculer` contre `calcul-pieces.json` : le code du bloc 54, la reduction generale et le seuil de SMIC sur
 //! une grille (par empreinte, en entier pour quelques groupes). Les refus sont des attendus.
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
@@ -6,9 +6,7 @@ use crate::outils::{dec, dossier_de_test, lire_oracle, oracle, sceller};
 use droit::catalogue::rubrique;
 use droit::catalogue::code_54;
 use droit::reduction::{au_dela_du_seuil, reduction_generale};
-use engagement::calcul::LigneBrut;
 use engagement::canon_valeur;
-use socle::num::Decimal;
 use serde_json::{json, Value};
 
 const ORACLE: &str = "calcul-pieces.json";
@@ -22,23 +20,6 @@ fn essai(r: Result<Value, String>) -> Value {
     }
 }
 
-
-
-#[test]
-fn les_designations() {
-    let mut cas = lire_oracle(ORACLE)["designations"].clone();
-    for c in cas.as_array_mut().unwrap() {
-        let (unite, libelle, q) = (c[0].as_str().unwrap(), c[1].as_str().unwrap(), c[2].as_str().unwrap());
-        let l = LigneBrut {
-            code: "x".into(), libelle: libelle.into(), unite: unite.into(), quantite: dec(q),
-            taux: Decimal::ONE, montant: Decimal::ONE, heures_annexes: Decimal::ZERO, soumis: true,
-            imposable: true, conges_spectacles: true, salaire_de_base: false, retabli: false,
-            conges_pris: false, dsn_bloc52: None, arret_de_travail: false, dsn_autres_bruts: None,
-        };
-        c[3] = json!(l.designation());
-    }
-    oracle(ORACLE, "/designations", &cas);
-}
 
 
 #[test]

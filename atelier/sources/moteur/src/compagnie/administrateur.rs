@@ -228,6 +228,12 @@ pub fn etat(inst: &Path, racine: Option<&Path>, poste: &Poste) -> Value {
     v["peut_rattacher"] = json!(!fictive && !rattachee && !autres.is_empty() && !crate::compagnie::bridage::est_bride_de(inst));
     v["question"] = json!(!fictive && !rattachee && !autres.is_empty() && !exigee(poste, racine) && !crate::compagnie::bridage::est_bride_de(inst));
     v["mot_de_passe_pose"] = json!(exigee(poste, racine));
+    // La pastille de la compagnie pour l'administrateur : rattachee, faite ; son propre mot de passe, une information.
+    v["pastille"] = if rattachee {
+        crate::routes::pastille("fait", "rattachée")
+    } else {
+        crate::routes::pastille("information", "son propre mot de passe")
+    };
     v
 }
 

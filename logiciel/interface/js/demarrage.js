@@ -34,12 +34,11 @@ function peindreEtatGlobal() {
   // d'objet qui part en DSN. Un mois porte d'ailleurs plusieurs spectacles :
   // c'est l'engagement qui dit le sien, pas le mois.
   const c = ETAT.configuration;
-  const err = [c.entreprise, ...c.salaries, ...c.spectacles]
-    .reduce((n, f) => n + f.anomalies.filter((a) => a.gravite === "erreur" && !aRemplir(a)).length, 0);
   const annees = Object.entries(c.compteurs).filter(([k]) => /^\d{4}$/.test(k));
   const compteurs = annees.slice(-1)[0];
+  // Les erreurs de configuration, comptées par le moteur (`configuration`, `erreurs`).
   const html = `
-    ${err ? `<span class="pastille erreur">${err} erreur(s) de configuration</span>` : ""}
+    ${pastilleDeLEtat(c.erreurs)}
     ${compteurs ? `<div>compteurs ${echapper(compteurs[0])} :
        bulletin <b>${compteurs[1].bulletin ?? "?"}</b> ·
        AEM <b>${compteurs[1].aem ?? "?"}</b> ·
@@ -81,9 +80,18 @@ async function demarrer() {
   await chargerMois(o.mois);
   finirChargement();
 
-  // Ce qui attend : la DSN du mois d'avant, la clôture en janvier. Une
-  // boîte, avec la page, tant que ce n'est pas fait.
-  montrerRappels((r) => lectureDe(o, r));
+  // UNE COMPAGNIE QUI COMMENCE PAR L'IMPORT (`commencer_par_l_import`, du
+  // moteur) : la page s'ouvre sur lui et son guide ; ce qui manque pour
+  // démarrer se dit après lui, sous ce qu'il a repris.
+  if (ETAT.commencer_par_l_import) {
+    document.querySelector('.onglets button[data-vue="configuration"]').click();
+    const sous = document.querySelector('.sous-onglets button[data-fiche="importer"]');
+    if (sous) sous.click();
+  } else {
+    // Ce qui attend : la DSN du mois d'avant, la clôture en janvier. Une
+    // boîte, avec la page, tant que ce n'est pas fait.
+    montrerRappels((r) => lectureDe(o, r));
+  }
 
   if (o.perime) rafraichirOuverture();
 
@@ -105,7 +113,7 @@ async function rafraichirOuverture() {
   if (o.aujourdhui) AUJOURDHUI = o.aujourdhui;
   try { ETAT = lectureDe(o, "etat"); peindreEtatGlobal(); } catch (e) { /* l'état d'avant reste */ }
   dessinerConseils(conseilsDe(o));
-  rafraichirRappels((r) => lectureDe(o, r));
+  if (!ETAT.commencer_par_l_import) rafraichirRappels((r) => lectureDe(o, r));
   const intact = MOIS_AFFICHE === OUVERTURE.mois && DEMANDE_MOIS === OUVERTURE.mois
     && JSON.stringify(saisieCourante()) === DERNIERE_ECRITE;
   if (o.mois !== OUVERTURE.mois && intact) allerAuMois(o.mois);

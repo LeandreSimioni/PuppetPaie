@@ -7,6 +7,7 @@ pub mod bordereau;
 pub mod bulletin;
 pub mod conges_spectacles;
 pub mod contrat;
+pub mod contrat_ecrit;
 pub mod ecritures_comptables;
 pub mod etats_compta;
 pub mod ecrire_documents;

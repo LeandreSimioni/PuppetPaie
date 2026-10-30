@@ -44,7 +44,7 @@ pub fn code_fiche() -> String {
 }
 
 /// Les questions : (cle de la reponse, libelle, facultatif).
-pub const QUESTIONS: [(&str, &str, bool); 13] = [
+pub const QUESTIONS: [(&str, &str, bool); 15] = [
     ("prenom", "Prénom", false),
     ("nom", "Nom de famille (de naissance)", false),
     ("naissance", "Date de naissance (JJ/MM/AAAA)", false),
@@ -58,6 +58,10 @@ pub const QUESTIONS: [(&str, &str, bool); 13] = [
     ("commune", "Commune", false),
     ("conges", "Numéro Congés Spectacles", true),
     ("anniversaire", "Date anniversaire de vos droits France Travail (JJ/MM/AAAA)", true),
+    // Le compte ou le salaire est vire ; le BIC est facultatif (reglement (UE) 260/2012, art. 5, 7 :
+    // `atelier/reference/sources/iban/eurlex-reglement-260-2012-sepa-20261029.txt`, l. 459).
+    ("iban", "IBAN (le compte où verser le salaire, sur le RIB)", false),
+    ("bic", "BIC (sur le même RIB)", true),
 ];
 
 pub const SUJET: &str = "Ta fiche pour {compagnie}";
@@ -422,6 +426,24 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
                 None => illisible.push(format!("nationalité : « {} »", reponse("nationalite"))),
             },
         }
+    }
+    // LE COMPTE BANCAIRE : l'IBAN compact (sans blancs, en majuscules) ; un IBAN dont la forme ou la cle est fausse ne
+    // s'ecrit pas, il se dit a completer avec sa raison (`socle::iban::faute_iban`) ; le BIC de meme (`faute_bic`).
+    let mut banque = Map::new();
+    for (q, cle, faute) in [("iban", "IBAN", socle::iban::faute_iban as fn(&str) -> Option<String>), ("bic", "BIC", socle::iban::faute_bic)] {
+        let brut = strip(reponse(q));
+        if brut.is_empty() {
+            continue;
+        }
+        match faute(brut) {
+            None => {
+                banque.insert(q.to_string(), json!(socle::iban::iban_compact(brut)));
+            }
+            Some(f) => illisible.push(format!("{} : « {} » ({})", cle, brut, f)),
+        }
+    }
+    if !banque.is_empty() {
+        d.insert("banque".into(), Value::Object(banque));
     }
     for (cle, valeur) in naissance_depuis_nir(d.get("nir")) {
         if !d.contains_key(cle) {

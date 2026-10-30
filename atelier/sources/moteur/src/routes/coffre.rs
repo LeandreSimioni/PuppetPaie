@@ -467,6 +467,15 @@ fn google_etat(ctx: &Contexte) -> R<Value> {
         o.insert("compte".into(), compte);
         o.insert("verifie".into(), json!(verifie));
         o.insert("probleme".into(), json!(probleme));
+        // Sa pastille : aucun Drive lie, a faire (la sauvegarde attend) ; lie et l'autorisation tient, fait ; lie mais
+        // l'autorisation ne repond pas, a faire.
+        o.insert("pastille".into(), if !vrai(&o["compte"]) {
+            super::pastille("a_faire", "aucun Drive lié")
+        } else if verifie {
+            super::pastille("fait", "lié")
+        } else {
+            super::pastille("a_faire", "lié, mais")
+        });
         Value::Object(o)
     };
     // `autorise` : un jeton illisible ou sans rafraichissement, c'est « pas autorise ».
@@ -549,14 +558,29 @@ fn coffre_etat(ctx: &Contexte) -> R<Value> {
 pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
     let coffre = crate::compagnie::coffre::Coffre::du_poste(racine, "");
     let secrets = coffre.etat().map_err(vers_route)?;
+    // UNE COMPAGNIE DONT LES ENVOIS SONT JOUES n'a rien a poser : chaque pastille le dit, en gris.
+    let simule = crate::compagnie::bridage::branchement(racine).joue();
     let mut services = Vec::new();
     for s in &secrets {
         let nom = s["service"].as_str().unwrap_or("");
+        // Sa pastille : simule, une information ; fourni par l'environnement (il passe devant le coffre), a voir ; pose,
+        // fait ; absent, a poser.
+        let pastille = if simule {
+            super::pastille("information", "simulé")
+        } else if vrai(&s["dans_environnement"]) {
+            super::pastille("a_faire", "fourni par l'environnement")
+        } else if vrai(&s["pose"]) {
+            let le = s["pose_le"].as_str().and_then(|t| t.get(..10)).and_then(|t| socle::date::Jour::lire(t).ok()).map(|j| j.jj_mm_aaaa());
+            super::pastille("fait", &le.map_or_else(|| "posé".to_string(), |l| format!("posé le {}", l)))
+        } else {
+            super::pastille("a_faire", "absent")
+        };
         services.push(json!({
             "service": s["service"], "libelle": s["libelle"], "sert_a": s["sert_a"],
             "pose": s["pose"], "pose_le": s["pose_le"], "environnement": s["dans_environnement"],
             "compte": s["compte"], "avec_compte": s["avec_compte"],
             "identifiant": identifiant_du_compte(entreprise, nom)?,
+            "pastille": pastille,
         }));
     }
     let mot_de_passe_pose = coffre.ouverture_exigee().map_err(vers_route)?;
@@ -566,5 +590,15 @@ pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
         "mot_de_passe_pose": mot_de_passe_pose,
         "cle_poste": cle_poste,
         "chemin_cle": coffre.chemin_cle().display().to_string(),
+        // Ce que montrent le filet et le compte Google d'une compagnie fictive, ou rien ne se branche : une information.
+        "fictive": {"filet": super::pastille("information", "désactivé"), "google": super::pastille("information", "non lié")},
+        // La pastille du mot de passe du logiciel (rattache a l'administrateur, la page dit a combien de compagnies).
+        "pastille_mot_de_passe": if simule {
+            super::pastille("information", "simulé")
+        } else if mot_de_passe_pose {
+            super::pastille("fait", "posé")
+        } else {
+            super::pastille("a_faire", "aucun")
+        },
     }))
 }

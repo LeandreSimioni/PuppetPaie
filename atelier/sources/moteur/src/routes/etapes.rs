@@ -72,11 +72,30 @@ fn noter_recu(libelle: &str, avenant: Value) -> Value {
     json!({"geste": "contrat_recu", "libelle": libelle, "recu": true, "avenant": avenant})
 }
 
-/// Marque `suivante` la premiere etape qui a quelque chose a faire de notre cote (a faire, ou refuse).
+/// Un mois sans aucun engagement : l'etape n'a rien a faire, elle n'est pas faite pour autant. Elle se dit en gris.
+fn rien_ce_mois() -> Value {
+    json!({"etat": "rien", "compte": null, "compte_texte": "", "quoi": "rien ce mois-ci", "phrase": "rien ce mois-ci", "echeance": null, "action": null})
+}
+
+/// `n` engagements auxquels il manque un fait (`A_COMPLETER`) : ce qui reste a faire, en orange, sans geste ; la carte
+/// de chacun dit ce qui lui manque.
+fn a_completer(n: usize) -> Value {
+    groupe("a_faire", json!(n), n.to_string(), "à compléter".into(), Value::Null, Value::Null)
+}
+
+/// Marque `suivante` la premiere etape qui a quelque chose a faire de notre cote (a faire, ou refuse), et donne a chaque
+/// groupe sa couleur (`couleur_de_l_etat`).
 fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
     let i = etapes.iter().position(|e| e["groupes"].as_array().is_some_and(|g| g.iter().any(|x| est(&x["etat"], "a_faire") || est(&x["etat"], "refuse"))));
     for (j, e) in etapes.iter_mut().enumerate() {
         e["suivante"] = json!(Some(j) == i);
+        if let Some(gs) = e["groupes"].as_array_mut() {
+            for g in gs {
+                g["couleur"] = json!(super::couleur_de_l_etat(&valeur_en_texte(&g["etat"])));
+                // Une attente se dessine coupee : la moitie faite (partie), la moitie qui attend (le retour).
+                g["coupee"] = json!(est(&g["etat"], "en_attente"));
+            }
+        }
     }
     etapes
 }
@@ -91,6 +110,12 @@ fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
 /// Ou en est un engagement, ligne par ligne. Une ligne qui ne le concerne pas (la DPAE d'un contrat qui a commence un
 /// mois d'avant, la signature d'un salarie au mois) est faite pour lui. `dsn` : la classe de son etablissement
 /// (`groupes_dsn`).
+/// Le point d'un engagement auquel il manque un fait, sur chacune de ses lignes.
+const A_COMPLETER: &str = "a_completer";
+
+/// Le point des documents d'un mois dont le jour du paiement n'est pas venu (`etats.documents.a_venir`).
+const A_VENIR: &str = "a_venir";
+
 #[derive(Clone, Copy)]
 struct Point {
     dpae: &'static str,
@@ -102,6 +127,17 @@ struct Point {
 impl Point {
     fn de(p: &Value, dsn: usize) -> Point {
         let embauche = vrai(&p["contrat"]["premier_mois"]);
+        // UN ENGAGEMENT A COMPLETER, jamais valide (`ligne_a_completer`) : rien n'est parti de lui, et tout ce qui partira
+        // attend qu'il soit complet. Il reste a faire, en orange, pour qu'on ne l'oublie pas.
+        if vrai(&p["non_calcule"]) {
+            let spectacle = vrai(&p["spectacle"]);
+            return Point {
+                dpae: if embauche { A_COMPLETER } else { "fait" },
+                contrat: if embauche && spectacle { A_COMPLETER } else { "fait" },
+                documents: A_COMPLETER,
+                dsn,
+            };
+        }
         let d = &p["etats"]["dpae"];
         let dpae = if !embauche {
             "fait"
@@ -113,7 +149,7 @@ impl Point {
             "a_faire"
         };
         let s = &p["etats"]["signature"];
-        let contrat = if !(embauche && vrai(&p["spectacle"])) {
+        let contrat = if !(embauche && vrai(&p["contrat"]["ecrit"])) {
             "fait"
         } else if !vrai(&s["fait"]) {
             "a_envoyer"
@@ -129,6 +165,8 @@ impl Point {
             "a_renvoyer"
         } else if vrai(&o["fait"]) {
             "fait"
+        } else if vrai(&o["a_venir"]) {
+            A_VENIR
         } else {
             "a_envoyer"
         };
@@ -144,7 +182,7 @@ impl Point {
 
     /// Combien de ses lignes sont faites de notre cote : l'ordre des colonnes, la plus avancee en G.
     fn avance(&self, dsn_fait: &[bool]) -> usize {
-        [self.dpae != "a_faire", matches!(self.contrat, "fait" | "en_attente"), self.documents == "fait", dsn_fait.get(self.dsn).copied().unwrap_or(false)]
+        [!matches!(self.dpae, "a_faire" | A_COMPLETER), matches!(self.contrat, "fait" | "en_attente"), self.documents == "fait", dsn_fait.get(self.dsn).copied().unwrap_or(false)]
             .iter()
             .filter(|x| **x)
             .count()
@@ -730,7 +768,7 @@ impl<'a> Moteur<'a> {
             let fin = p.engagement.fin.map_or(Value::Null, |f| Value::String(f.iso()));
             let mut ligne = Map::new();
             ligne.insert("salarie".into(), Value::String(cle.clone()));
-            ligne.insert("nom".into(), Value::String(format!("{} {}", nom_famille, prenom)));
+            ligne.insert("nom".into(), Value::String(super::nom_a_l_ecran(sal)));
             ligne.insert("spectacle".into(), spectacle);
             ligne.insert("nature".into(), Value::String(nat.libelle.clone()));
             ligne.insert("numero".into(), p.engagement.numero.clone().map_or(Value::Null, Value::String));
@@ -768,10 +806,14 @@ impl<'a> Moteur<'a> {
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
             let recalcul = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| v.recalcul(mois)).and_then(engagement::etats::phrase_du_recalcul);
             ligne.insert("recalcul".into(), recalcul.map_or(Value::Null, Value::String));
+            // REPRIS D'UN ANCIEN LOGICIEL : la carte le dit (`engagement::importe::vient_d_un_ancien_logiciel`).
+            let repris = engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref().unwrap_or(""));
             ligne.insert(
                 "contrat".into(),
+                // ECRIT : le contrat de cet engagement se fait signer ici (`engagement::contrat_a_signer`).
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
-                       "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
+                       "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last(),
+                       "repris": repris, "ecrit": engagement::contrat_a_signer(&self.ctx.racine, &p.engagement).map_err(plain)?}),
             );
             // CE QUE CE SALARIE RECOIT POUR CETTE PAIE : le bulletin s'il y a une paie, le certificat Conges Spectacles
             // du contrat d'usage qui finit (`crate::routes::dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
@@ -840,7 +882,21 @@ impl<'a> Moteur<'a> {
                 };
                 signature["cdi_en_cours"] = json!({"depuis": depuis, "signe_en": signe_en});
             }
-            let documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
+            let mut documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
+            // LES DOCUMENTS SE REMETTENT AU PAIEMENT : « Lors du paiement du salaire, l'employeur remet [...] une piece
+            // justificative dite bulletin de paie » (C. trav., art. L. 3243-2,
+            // atelier/reference/sources/code-du-travail/xml/L3243-2.xml). Le jour du paiement est celui que le bulletin
+            // imprime (`date_paiement`, a defaut la fin de la periode) ; avant lui, ce qui n'est pas parti est a venir.
+            if !vrai(&documents["fait"]) {
+                let paye_le = match p.engagement.date_paiement.as_deref().filter(|d| !d.is_empty()) {
+                    Some(d) => Jour::lire(d).map_err(plain)?,
+                    None => p.engagement.fin_periode().map_err(plain)?,
+                };
+                if paye_le.ordinal() > self.ctx.aujourdhui.ordinal() {
+                    let source = "Code du travail, art. L. 3243-2 (atelier/reference/sources/code-du-travail/xml/L3243-2.xml)";
+                    documents["a_venir"] = droit::echeances::Echeance { jour: paye_le, mots: "à remettre le", heure: "", source: source.into() }.en_json();
+                }
+            }
             ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents}));
             let vue = Value::Object(ligne.clone());
             ligne.insert("carres".into(), carres(&vue));
@@ -850,7 +906,69 @@ impl<'a> Moteur<'a> {
             ligne.insert("versions".into(), frise.unwrap_or(Value::Null));
             out.push(Value::Object(ligne));
         }
+        self.avec_les_engagements_a_completer(mois, out)
+    }
+
+    /// LES ENGAGEMENTS AUXQUELS IL MANQUE UN FAIT (`engagement::stock::A_COMPLETER`), a leur place dans l'ordre de
+    /// l'ecran : chacun dit ce qui lui manque (`a_completer`) ; celui qui n'a jamais ete valide, hors de toutes les
+    /// lectures du mois, a sa ligne a lui (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre.
+    fn avec_les_engagements_a_completer(&self, mois: &str, lignes: Vec<Value>) -> R<Vec<Value>> {
+        let a_l_ecran = engagement::stock::objets_a_l_ecran(self.racine(), mois).map_err(plain)?;
+        if !a_l_ecran.iter().any(|o| o.a_completer().is_some()) {
+            return Ok(lignes);
+        }
+        let mut calculees = lignes.into_iter();
+        let mut out: Vec<Value> = Vec::new();
+        for o in &a_l_ecran {
+            let mut ligne = if o.est_a_completer() {
+                self.ligne_a_completer(mois, o)?
+            } else {
+                match calculees.next() {
+                    Some(l) => l,
+                    None => continue,
+                }
+            };
+            if let Some(m) = o.a_completer() {
+                ligne["a_completer"] = json!(m);
+            }
+            out.push(ligne);
+        }
+        out.extend(calculees);
+        // Le rang de chacun parmi les engagements du meme salarie et du meme jour, dans l'ordre de l'ecran, ceux a
+        // completer compris : celui que la page lui donne, et que `valider-engagement` lit dans le meme ordre
+        // (`routes/engagement.rs`, `designe_a_l_ecran`).
+        for i in 0..out.len() {
+            let rang = out[..i].iter().filter(|l| l["salarie"] == out[i]["salarie"] && l["debut"] == out[i]["debut"]).count();
+            out[i]["rang"] = json!(rang);
+        }
         Ok(out)
+    }
+
+    /// LA LIGNE D'UN ENGAGEMENT JAMAIS VALIDE AUQUEL IL MANQUE UN FAIT : rien ne se calcule sur lui, rien n'est parti ;
+    /// il dit qui, quand, et ce qui lui manque. Ses carres disent « à compléter » (`Point::de`).
+    fn ligne_a_completer(&self, mois: &str, o: &engagement::stock::Objet) -> R<Value> {
+        let vue = o.a_l_ecran_tel_quel().vue(mois).map_err(plain)?.unwrap_or_default();
+        let e = Value::Object(vue);
+        let cle = engagement::cle_de_l_engagement(self.ctx, &e).unwrap_or_else(|| e.get("salarie").map(valeur_en_texte).unwrap_or_default());
+        let nom = self.ctx.salarie(&cle).ok().map(|f| super::nom_a_l_ecran(&f)).unwrap_or_else(|| cle.clone());
+        let spectacle = match e.get("spectacle").filter(|s| vrai(s)) {
+            Some(s) => self.ctx.spectacle(&valeur_en_texte(s)).ok().and_then(|f| f.get("titre").cloned()).unwrap_or_else(|| s.clone()),
+            None => Value::Null,
+        };
+        let nature = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map(|n| n.libelle.clone()).unwrap_or_default();
+        let premier_mois = o.premier_mois() == mois;
+        let mut ligne = json!({
+            "salarie": cle, "nom": nom, "spectacle": spectacle, "nature": nature,
+            "numero": e.get("numero").filter(|n| vrai(n)).cloned().unwrap_or(Value::Null),
+            "debut": engagement::debut_brut(&e), "fin": e.get("fin").filter(|f| vrai(f)).cloned().unwrap_or(Value::Null),
+            "valide": Value::Null, "recalcul": Value::Null, "versions": Value::Null, "pieces": [], "rang": 0,
+            "a_completer": o.a_completer(), "non_calcule": true,
+            "contrat": {"premier_mois": premier_mois, "repris": false},
+            "etats": {"dpae": {}, "signature": {}, "documents": {}},
+        });
+        ligne["carres"] = carres(&ligne);
+        ligne["dpae_choix"] = choix_dpae(&ligne);
+        Ok(ligne)
     }
 
     // ------------------------------------------------------ les fichiers deposables
@@ -1138,6 +1256,8 @@ impl<'a> Moteur<'a> {
     /// LE GESTE d'une case orange qui depose (DPAE, DSN) : le chemin du fichier deja ecrit s'il y en a un, sinon `defaut`.
     fn action_de_depot(&mut self, mois: &str, quoi: &str, nic: &Value, defaut: Value) -> R<(Value, Option<String>)> {
         let Some((etape, fichier, refus)) = self.chemin_de_depot(mois, quoi, nic)? else { return Ok((defaut, None)) };
+        // Le geste ouvre le recapitulatif du depot (`depot-apercu`), qui prend le chemin du fichier.
+        let fichier = fichier["chemin"].clone();
         let nom = if quoi == DSN { "la DSN" } else { "la DPAE" };
         let action = match etape {
             // Le fichier ecrit ne declare plus la paie : la DSN se refait depuis les engagements valides, et repasse par
@@ -1165,10 +1285,10 @@ impl<'a> Moteur<'a> {
                 .iter()
                 .map(|(cle, nom)| {
                     let x = &b[*cle];
-                    let mut g = if est(&x["couleur"], "bien") {
+                    let mut g = if est(&x["couleur"], "vert") {
                         fait()
                     } else {
-                        groupe(if est(&x["couleur"], "refus") { "refuse" } else { "a_faire" }, Value::Null, String::new(), valeur_en_texte(&x["courte"]), Value::Null, Value::Null)
+                        groupe(if est(&x["couleur"], "rouge") { "refuse" } else { "information" }, Value::Null, String::new(), valeur_en_texte(&x["courte"]), Value::Null, Value::Null)
                     };
                     g["colonnes"] = json!(["G"]);
                     json!({"cle": cle, "nom": nom, "groupes": [g], "phrase": x["phrase"].clone()})
@@ -1198,7 +1318,7 @@ impl<'a> Moteur<'a> {
 
         // --- DPAE : par embauche du mois. Partie, elle est faite tant qu'aucun retour ne revient KO.
         let mut dpae = Vec::new();
-        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.dpae, &["a_faire", "refuse"])) {
+        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.dpae, &["a_faire", "refuse", A_COMPLETER])) {
             let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].dpae == point).map(|(p, _)| p).collect();
             let n = siens.len();
             let g = match point.as_str() {
@@ -1208,15 +1328,16 @@ impl<'a> Moteur<'a> {
                     let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
                     groupe("a_faire", json!(n), n.to_string(), quoi, echeance_de(&siens, DPAE), a)
                 }
+                A_COMPLETER => a_completer(n),
                 _ => fait(),
             };
             dpae.push(avec(g, &noms));
         }
 
-        // --- Contrats : un par embauche sur un spectacle ; un salarie au mois n'a pas de contrat a faire signer ici.
+        // --- Contrats : un par embauche dont la nature a un contrat ecrit (`engagement::contrat_a_signer`).
         let sig = |p: &Value| p["etats"]["signature"].clone();
         let mut contrats = Vec::new();
-        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.contrat, &["a_envoyer", "a_refaire", "en_attente"])) {
+        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.contrat, &["a_envoyer", "a_refaire", "en_attente", A_COMPLETER])) {
             let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].contrat == point).map(|(p, _)| p).collect();
             let n = siens.len();
             let g = match point.as_str() {
@@ -1248,6 +1369,7 @@ impl<'a> Moteur<'a> {
                 // date celle d'un avenant (regle 1 : rien ne se devine).
                 "a_refaire" => groupe("a_faire", json!(n), n.to_string(), "à refaire signer".into(), Value::Null, action("faire_signer", "Demander la signature…".into())),
                 "a_envoyer" => groupe("a_faire", json!(n), n.to_string(), "à envoyer".into(), echeance_de(&siens, "contrat"), action("faire_signer", "Demander la signature…".into())),
+                A_COMPLETER => a_completer(n),
                 _ => fait(),
             };
             contrats.push(avec(g, &noms));
@@ -1258,12 +1380,19 @@ impl<'a> Moteur<'a> {
 
         // --- Documents : par salarie du mois, des que son engagement est valide.
         let mut documents = Vec::new();
-        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.documents, &["a_renvoyer", "a_envoyer"])) {
+        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.documents, &["a_renvoyer", "a_envoyer", A_COMPLETER, A_VENIR])) {
             let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].documents == point).map(|(p, _)| p).collect();
             let n = siens.iter().map(|p| valeur_en_texte(&p["salarie"])).collect::<BTreeSet<String>>().len();
             let g = match point.as_str() {
+                // Le jour du paiement n'est pas venu : rien a faire encore, le premier jour le dit.
+                A_VENIR => {
+                    let jour = siens.iter().map(|p| &p["etats"]["documents"]["a_venir"]).filter(|e| e.is_object()).min_by_key(|e| valeur_en_texte(&e["jour"])).cloned().unwrap_or(Value::Null);
+                    groupe(A_VENIR, Value::Null, String::new(), "à venir".into(), jour, Value::Null)
+                }
                 "a_renvoyer" => groupe("a_faire", json!(n), n.to_string(), "à renvoyer".into(), Value::Null, action("envoyer_documents", format!("Renvoyer les documents corrigés ({})…", n))),
                 "a_envoyer" => groupe("a_faire", json!(n), n.to_string(), "à envoyer".into(), Value::Null, action("envoyer_documents", "Envoyer les documents…".into())),
+                // Ce qui reste a completer se compte en engagements, comme a la DPAE.
+                A_COMPLETER => a_completer(siens.len()),
                 _ => fait(),
             };
             documents.push(avec(g, &noms));
@@ -1276,11 +1405,19 @@ impl<'a> Moteur<'a> {
             .map(|(_, n)| *n)
             .collect();
 
+        // UN MOIS SANS ENGAGEMENT n'a rien de fait : ce qui n'a rien a faire s'y dit « rien ce mois-ci », en gris. Ce que le
+        // moteur demande quand meme (une DSN due sans salarie) garde son etat.
+        let vide = paies.is_empty();
+        let rien = |gs: Vec<Value>| -> Vec<Value> {
+            gs.into_iter()
+                .map(|g| if vide && est(&g["etat"], "fait") { let mut r = rien_ce_mois(); r["colonnes"] = g["colonnes"].clone(); r } else { g })
+                .collect()
+        };
         let etapes = vec![
-            json!({"cle": DPAE, "nom": "DPAE", "groupes": dpae}),
-            json!({"cle": SIGNATURE, "nom": "Contrats", "groupes": contrats}),
-            json!({"cle": DSN, "nom": "DSN", "groupes": dsn, "second": second}),
-            json!({"cle": DOCUMENTS, "nom": "Documents", "groupes": documents, "detail": presentes.join(", ")}),
+            json!({"cle": DPAE, "nom": "DPAE", "groupes": rien(dpae)}),
+            json!({"cle": SIGNATURE, "nom": "Contrats", "groupes": rien(contrats)}),
+            json!({"cle": DSN, "nom": "DSN", "groupes": rien(dsn), "second": second}),
+            json!({"cle": DOCUMENTS, "nom": "Documents", "groupes": rien(documents), "detail": presentes.join(", ")}),
         ];
         let noms: Vec<String> = cols.iter().map(|c| c.nom.clone()).collect();
         Ok(json!({"mois": mois, "colonnes": noms, "etapes": suivante(etapes)}))
@@ -1350,6 +1487,10 @@ impl<'a> Moteur<'a> {
         if !vrai(&e) {
             if !self.dsn_a_declarer(mois, nic)? {
                 return Ok((fait(), Value::Null));
+            }
+            // AVANT SON PREMIER JOUR DE DEPOT (un mois avant l'echeance, `Echeance::premier_depot`), elle est a venir.
+            if echeance.premier_depot().map_err(|m| erreur("ValueError", m))?.ordinal() > self.ctx.aujourdhui.ordinal() {
+                return Ok((groupe("a_venir", Value::Null, String::new(), "à venir".into(), au_depot, Value::Null), Value::Null));
             }
             let (a, refus) = self.action_de_depot(mois, DSN, nic, action("deposer_dsn", "Déposer la DSN…".into()))?;
             let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
@@ -1539,14 +1680,10 @@ impl<'a> Moteur<'a> {
                     }
                     None => Value::Null,
                 };
-                let prenom = match p.salarie.get("prenom_affichage").filter(|v| vrai(v)) {
-                    Some(v) => texte_de(v),
-                    None => texte_de(requis(&p.salarie, "prenom")?),
-                };
                 let titre = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).cloned() } else { None };
                 let mut due = json!({
                     "mois": m, "salarie": cle,
-                    "nom": format!("{} {}", texte_de(requis(&p.salarie, "nom")?), prenom),
+                    "nom": super::nom_a_l_ecran(&p.salarie),
                     "spectacle": titre.unwrap_or_else(|| json!("salarié au mois")),
                     "debut": debut, "fin": p.engagement.fin.map(|f| f.iso()),
                 });
@@ -1592,6 +1729,19 @@ fn le_jour(v: &Value) -> String {
 /// geste qu'ouvre un clic. Le contrat ou l'avenant parti et pas revenu se note signe d'un clic (`contrat_recu`).
 fn carres(p: &Value) -> Value {
     let pt = Point::de(p, 0);
+    if vrai(&p["non_calcule"]) {
+        let manque = valeur_en_texte(&p["a_completer"]);
+        let carre = |cle: &str, nom: &str, point: &str| {
+            if point == A_COMPLETER {
+                json!({"cle": cle, "nom": nom, "etat": "a_faire", "phrase": format!("À compléter avant de valider : {}", manque),
+                       "action": null, "couleur": super::couleur_de_l_etat("a_faire"), "reste": "à compléter"})
+            } else {
+                json!({"cle": cle, "nom": nom, "etat": "fait", "phrase": "Rien à faire ici pour cet engagement", "action": null,
+                       "couleur": super::couleur_de_l_etat("fait"), "reste": ""})
+            }
+        };
+        return json!([carre(DPAE, "DPAE", pt.dpae), carre(SIGNATURE, "Contrat", pt.contrat), carre(DOCUMENTS, "Documents", pt.documents)]);
+    }
     let d = &p["etats"]["dpae"];
     let s = &p["etats"]["signature"];
     let o = &p["etats"]["documents"];
@@ -1635,7 +1785,7 @@ fn carres(p: &Value) -> Value {
         ),
         _ if vrai(cdi) => ("fait", format!("CDI en cours depuis {}, sans terme : rien à envoyer", depuis), Value::Null),
         _ if !embauche => ("fait", format!("Contrat signé en {}", depuis), Value::Null),
-        _ if !vrai(&p["spectacle"]) => ("fait", "Pas de contrat à faire signer ici".to_string(), Value::Null),
+        _ if !vrai(&p["contrat"]["ecrit"]) => ("fait", "Pas de contrat à faire signer ici".to_string(), Value::Null),
         _ => ("fait", format!("Contrat signé {}", le_jour(&s["recu"])), Value::Null),
     };
     let contrat = json!({"cle": SIGNATURE, "nom": nom_contrat, "etat": etat, "phrase": phrase, "action": geste, "pieces": pieces_du_contrat(s)});
@@ -1643,10 +1793,23 @@ fn carres(p: &Value) -> Value {
     let (etat, phrase, geste) = match pt.documents {
         "a_renvoyer" => ("a_faire", format!("Documents à renvoyer : {}", valeur_en_texte(&o["pourquoi"])), action("envoyer_documents", "Renvoyer les documents corrigés…".into())),
         "a_envoyer" => ("a_faire", "Documents à envoyer".to_string(), action("envoyer_documents", "Envoyer les documents…".into())),
+        A_VENIR => (A_VENIR, format!("Documents {}, jour du paiement", valeur_en_texte(&o["a_venir"]["texte"])), Value::Null),
         _ => ("fait", format!("Documents partis {}", le_jour(&o["fait"])), Value::Null),
     };
     let documents = json!({"cle": DOCUMENTS, "nom": "Documents", "etat": etat, "phrase": phrase, "action": geste});
-    json!([dpae, contrat, documents])
+    // CE QUI RESTE, EN UN MOT, sur le carre meme (la phrase entiere est l'infobulle), et la couleur de son etat.
+    let restes = [
+        match pt.dpae { "refuse" => "refusée", "a_faire" => "à déposer", _ => "" },
+        match pt.contrat { "a_envoyer" => "à envoyer", "a_refaire" => "à refaire signer", "en_attente" => "signature attendue", _ => "" },
+        match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", A_VENIR => "à venir", _ => "" },
+    ];
+    let mut tous = [dpae, contrat, documents];
+    for (c, reste) in tous.iter_mut().zip(restes) {
+        c["couleur"] = json!(super::couleur_de_l_etat(&valeur_en_texte(&c["etat"])));
+        c["coupee"] = json!(est(&c["etat"], "en_attente"));
+        c["reste"] = json!(reste);
+    }
+    json!(tous)
 }
 
 /// CE QUE MONTRE LE DETAIL DU CONTRAT d'un engagement (les pieces parties, ouvertes depuis la ligne) : la phrase quand
@@ -1692,7 +1855,11 @@ fn pieces_du_contrat(s: &Value) -> Value {
 /// (`fait`, `a_faire`, `en_attente`, `refuse`) avec sa phrase.
 fn choix_dpae(p: &Value) -> Value {
     let d = &p["etats"]["dpae"];
-    let choix = |cochable: bool, cochee: bool, etat: &str, phrase: String| json!({"cochable": cochable, "cochee": cochee, "etat": etat, "phrase": phrase});
+    let choix = |cochable: bool, cochee: bool, etat: &str, phrase: String| json!({"cochable": cochable, "cochee": cochee, "etat": etat, "couleur": super::couleur_de_l_etat(etat), "phrase": phrase});
+    // Il lui manque un fait : sa DPAE attend qu'il soit complet.
+    if vrai(&p["non_calcule"]) {
+        return choix(false, false, "a_faire", format!("à compléter avant de valider : {}", valeur_en_texte(&p["a_completer"])));
+    }
     if !vrai(&p["contrat"]["premier_mois"]) {
         let depuis = engagement::libelle_mois(&valeur_en_texte(&p["contrat"]["depuis"]));
         return choix(false, false, "fait", format!("contrat en cours depuis {} — sa DPAE a été faite ce mois-là", depuis));
@@ -1849,7 +2016,7 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
         let nom = ctx
             .salarie(&cle)
             .ok()
-            .map(|f| format!("{} {}", f.get("nom").map(valeur_en_texte).unwrap_or_default(), f.get("prenom_affichage").filter(|v| vrai(v)).or_else(|| f.get("prenom")).map(valeur_en_texte).unwrap_or_default()))
+            .map(|f| super::nom_a_l_ecran(&f))
             .unwrap_or_else(|| cle.clone());
         out.push(json!({
             "salarie": cle,

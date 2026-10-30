@@ -599,15 +599,14 @@ fn mois_puppetpaie(
         cles_contrats.sort();
         cles_contrats.dedup();
         for cle in &cles_contrats {
-            // Un permanent n'a pas de contrat d'usage : le sien se redige a part, et
-            // `contrat.ecrire` n'ecrit que le CDDU d'un spectacle.
+            // Les contrats ecrits de ce salarie (`engagement::contrat_a_signer`), quelle que soit leur nature.
             let a_lui: Vec<Paie> = indices
                 .iter()
                 .map(|i| &source[*i])
                 .filter(|p| {
                     cle_de(p) == *cle
                         && p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty())
-                        && vrai(&p.spectacle)
+                        && engagement::contrat_a_signer(&ctx.racine, &p.engagement).unwrap_or(false)
                         && !contrats_vus.contains(p.engagement.numero.as_deref().unwrap_or(""))
                 })
                 .cloned()
@@ -616,7 +615,7 @@ fn mois_puppetpaie(
             let sans = indices
                 .iter()
                 .map(|i| &source[*i])
-                .filter(|p| cle_de(p) == *cle && vrai(&p.spectacle) && p.engagement.numero.as_deref().map_or(true, str::is_empty))
+                .filter(|p| cle_de(p) == *cle && engagement::contrat_a_signer(&ctx.racine, &p.engagement).unwrap_or(false) && p.engagement.numero.as_deref().map_or(true, str::is_empty))
                 .count();
             if sans > 0 {
                 d.refus.push(format!("{}, {} : {} contrat(s) sans numéro lu, non réédité(s).", lib, cle, sans));

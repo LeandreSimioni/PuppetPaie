@@ -661,6 +661,20 @@ fn explication_nir(nir: &str) -> R<Option<String>> {
     Ok(None)
 }
 
+/// LE DEPARTEMENT DE NAISSANCE QUE LE NIR DIT : ses 6e et 7e caracteres (`SAAMMDDCCCNNN`, DD « département de naissance »,
+/// 01 a 99, 2A ou 2B ; 99 pour une personne nee a l'etranger : S21.G00.30.001 et .014,
+/// `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.30.txt`). `None` pour un NIR qui n'a pas cette forme.
+pub fn departement_du_nir(nir: &str) -> Option<String> {
+    let n = strip(nir).to_uppercase();
+    if n.chars().count() != 13 || !matches!(tranche(&n, 0, 1).as_str(), "1" | "2") {
+        return None;
+    }
+    let dd = tranche(&n, 5, 7);
+    let autres = format!("{}{}", tranche(&n, 0, 5), tranche(&n, 7, 13));
+    let lisible = (dd.chars().all(|c| c.is_ascii_digit()) && dd != "00") || dd == "2A" || dd == "2B";
+    (lisible && autres.chars().all(|c| c.is_ascii_digit())).then_some(dd)
+}
+
 /// `cle_nir` : 97 - (NIR mod 97), sur deux chiffres (`reference/sources/insee-nir-siret/`, INSEE, schema NIR, 4.1). En Corse,
 /// 2A et 2B au 6e-7e rang valent 19 et 18 (equivalent, par inference, au zero moins 1 000 000 ou 2 000 000 du texte).
 pub fn cle_nir(nir: &str) -> Option<String> {
@@ -716,6 +730,12 @@ pub fn luhn(numero: &str) -> bool {
         pair = !pair;
     }
     total % 10 == 0
+}
+
+/// LE COMPTE BANCAIRE D'UNE FICHE (`banque`, de l'entreprise ou d'un salarie) : la faute de son IBAN, puis de son BIC.
+fn faute_banque(o: &Map<String, Value>) -> Option<String> {
+    let texte = |k: &str| o.get(k).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty());
+    texte("iban").and_then(socle::iban::faute_iban).or_else(|| texte("bic").and_then(socle::iban::faute_bic))
 }
 
 /// `forme_declarative` : la valeur telle qu'elle PARTIRA. Une date se saisit
@@ -813,6 +833,12 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     };
     if vide {
         return Ok(if c.obligatoire { Some("obligatoire".into()) } else { None });
+    }
+    if c.cle == "banque" {
+        return Ok(match valeur {
+            Some(Value::Object(o)) => faute_banque(o),
+            _ => None,
+        });
     }
     let Some(Value::String(brut)) = valeur else { return Ok(None) };
     // La signature des courriels est du HTML colle : sa seule regle est son poids (150 Ko, images comprises).
@@ -976,7 +1002,12 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     }
 
     if nom == "spectacle" {
-        let code = strip(&d.get("code_analytique").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
+        // LE TITRE QUE L'IMPORT N'A PAS TROUVE : un numero d'objet seul (la DSN ne porte pas le titre) recoit « A COMPLETER ».
+        // Ce n'est pas un titre : le contrat et le bulletin l'imprimeraient tel quel.
+        if strip(&texte_de(d, "titre")?).eq_ignore_ascii_case("A COMPLETER") {
+            out.push(anomalie("titre", "avertissement", "à compléter : aucune pièce reprise ne porte le titre de ce spectacle, et le contrat l'imprime."));
+        }
+        let code =strip(&d.get("code_analytique").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !code.is_empty() && !code.chars().all(|c| c.is_ascii() && (c.is_alphanumeric() || c == '-' || c == '_')) {
             out.push(anomalie(
                 "code_analytique",
@@ -1049,6 +1080,33 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
                     format!("le NIR annonce {}/{}, la date de naissance dit {}/{}", mo, an, valeur_en_texte(&n57), valeur_en_texte(&n24)),
                 ));
             }
+        }
+        // LE LIEU DE NAISSANCE ET LE NIR SE CONTREDISENT : le departement de naissance est celui que le NIR porte, et 99
+        // veut dire « ne a l'etranger » (S21.G00.30.001 et .014, `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.30.txt`).
+        // La DPAE et la DSN declarent les deux ; ce qui ne va pas ensemble se dit, sans rien remplacer.
+        let dep = strip(&texte_de(d, "departement_naissance")?).to_uppercase();
+        let pays = strip(&texte_de(d, "pays_naissance")?).to_uppercase();
+        let du_nir = departement_du_nir(&nir);
+        if let Some(lu) = du_nir.as_ref().filter(|lu| !dep.is_empty() && **lu != dep) {
+            out.push(anomalie(
+                "departement_naissance",
+                "avertissement",
+                format!("le NIR dit né dans le département {}, cette case dit {}. Les deux partent dans la DPAE et la DSN : l'un des deux est faux.", lu, dep),
+            ));
+        }
+        let dep_vu = if dep.is_empty() { du_nir.clone().unwrap_or_default() } else { dep.clone() };
+        if dep_vu == "99" && pays == "FR" {
+            out.push(anomalie(
+                "pays_naissance",
+                "avertissement",
+                "le département de naissance 99 veut dire « né à l'étranger », et le pays de naissance dit la France. Si la personne est née en France, son NIR ou son département est faux ; sinon, choisir son pays de naissance.",
+            ));
+        } else if !dep_vu.is_empty() && !["97", "98", "99"].contains(&dep_vu.as_str()) && !pays.is_empty() && pays != "FR" {
+            out.push(anomalie(
+                "pays_naissance",
+                "avertissement",
+                format!("le département de naissance {} veut dire « né en France métropolitaine », et le pays de naissance dit un autre pays. Une personne née à l'étranger a le département 99.", dep_vu),
+            ));
         }
         // LA CODIFICATION UE (S21.G00.30.013) : un ancien 03 sans pays de nationalite, ou un pays qui contredit
         // la case, se dit ici, avant la DSN qui le refuserait. La regle est dans `codification_ue`, pas ici.
@@ -1149,9 +1207,24 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
     // salarie (ses codes emploi, PCS-ESE, statut), son nom, sa naissance, son adresse, le numero d'objet d'un spectacle
     // partent dans la DPAE et la DSN, qui ne se font pas sans eux, et rien ne se devine (regle 1). La fiche entreprise se
     // remplit en plusieurs fois (« Pour demarrer » dit ce qui manque) : ses manques restent forcables.
+    // CE QUE L'ECRAN DIT D'UNE ERREUR, d'apres le champ : s'il part dans une declaration (`declare` ; un champ lisible,
+    // par la forme declaree qui s'en deduit), et s'il se force.
+    let mut declares: std::collections::HashMap<&str, bool> = std::collections::HashMap::new();
+    for c in &champs {
+        for cle in [Some(c.cle.as_str()), c.derive_de.as_deref().filter(|d| !d.is_empty())].into_iter().flatten() {
+            *declares.entry(cle).or_insert(false) |= c.declare;
+        }
+    }
     for a in anomalies.iter_mut() {
         let manque = a["gravite"] == "erreur" && a["message"] == "obligatoire" && nom != "entreprise";
         a["forcable"] = json!(!manque);
+        let declare = a["champ"].as_str().and_then(|k| declares.get(k)).copied().unwrap_or(false);
+        a["pourquoi"] = json!(match (manque, declare) {
+            (true, true) => "Sans ces valeurs, ni la DPAE ni la DSN ne peuvent se faire : elles se remplissent avant d'enregistrer.",
+            (true, false) => "Ces valeurs se remplissent avant d'enregistrer.",
+            (false, true) => "Ces champs partent dans des déclarations. Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir.",
+            (false, false) => "Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir.",
+        });
     }
     // Une fiche mise de cote ne doit pas crier. Ses manques restent visibles --
     // et redeviennent bloquants a la reactivation, ce que le message dit.

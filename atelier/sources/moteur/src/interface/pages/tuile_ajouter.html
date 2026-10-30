@@ -1,6 +1,29 @@
 
 <div class="tuile ajouter">
   <div class="invite"><div class="plus">+</div><b>Ajouter une compagnie</b></div>
-  <form><input placeholder="Nom de la compagnie" autocomplete="off">
-  <button type="submit">Cr&eacute;er et ouvrir</button></form>
+</div>
+<!-- LES DEUX CHEMINS DU « + » (`compagnies::Venue`) : une compagnie neuve, ou d'un logiciel precedent. Le nom ne se
+     demande qu'une fois le chemin choisi. La boite est hors de la tuile : une tuile survolee se deplace, et ce qui est
+     fixe a l'interieur la suivrait. -->
+<div class="avis-ajouter" id="choix-venue" hidden>
+  <div class="carte-avis" role="dialog" aria-labelledby="choix-venue-titre">
+    <p id="choix-venue-titre"><b>Ajouter une compagnie</b></p>
+    <div class="venues">
+      <button type="button" class="venue" data-venue="neuve">
+        <b>Une compagnie neuve</b>
+        <span>Elle commence ses paies ici : vous la configurez, puis vous engagez vos salari&eacute;s.</span>
+      </button>
+      <button type="button" class="venue" data-venue="logiciel_precedent">
+        <b>D'un logiciel pr&eacute;c&eacute;dent</b>
+        <span>Vous faisiez vos paies ailleurs : vous mettez dans un dossier ce que votre ancien logiciel vous a
+          laiss&eacute; (bulletins, d&eacute;clarations), et PuppetPaie se param&egrave;tre avec.</span>
+      </button>
+    </div>
+    <form id="choix-venue-nom" hidden>
+      <label>Nom de la compagnie <input placeholder="Nom de la compagnie" autocomplete="off"></label>
+      <p class="erreur" id="venue-erreur"></p>
+      <div class="barre"><button type="button" class="second" id="venue-retour">Retour</button><button type="submit">Cr&eacute;er et ouvrir</button></div>
+    </form>
+    <div class="barre" id="venue-barre"><button type="button" class="second" id="venue-annuler">Annuler</button></div>
+  </div>
 </div>

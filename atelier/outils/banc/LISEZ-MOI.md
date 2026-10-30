@@ -39,7 +39,8 @@ simulé, et, si l'accueil s'affiche, clique la tuile de `compagnie`. Un script c
 lancée entre deux scripts. Le modèle complet, du « + » à la DSN : `exemple.js` (à côté).
 
 **3. Créer sa compagnie par « + »**, comme un testeur : la tuile « Ajouter une compagnie » (`.tuile.ajouter .invite`), le
-message (« Continuer », `#avis-continuer`), le nom (`.tuile.ajouter input`), « Créer et ouvrir ». Elle est alors une
+message (« Continuer », `#avis-continuer`), le chemin (« Une compagnie neuve », `#choix-venue .venue[data-venue=neuve]`, ou
+« D'un logiciel précédent », `[data-venue=logiciel_precedent]`), le nom (`#choix-venue-nom input`), « Créer et ouvrir ». Elle est alors une
 **fictive ajoutée** : tout s'y fait, mais ses envois (DPAE, DSN, contrats) sont refusés.
 
 **4. Rendre ses envois simulés** — le geste d'atelier, une fois, la compagnie ouverte dans la page :
@@ -114,7 +115,11 @@ que l'import sait lire, un PDF par bulletin (`moteur/src/atelier/fabriquer_bulle
 moteur-atelier fabriquer-bulletins description.json /tmp/banc-<nom>/bulletins --gabarit spaiectacle
 ```
 
-Puis le joueur les dépose dans le dossier que la page désigne (`import/` de la compagnie, ou le champ du dossier), comme
+La compagnie ajoutée par ce chemin s'ouvre sur Configuration › Reprendre l'historique, et son guide (ce qu'on met dans le
+dossier, ce qui s'en lit : `moteur/src/import/guide.rs`) tant que rien n'est repris. Le joueur dépose les bulletins dans le
+dossier que la page désigne (`import/` de la compagnie, ou le champ du dossier), puis « Importer » (`#import-tout`) : tout
+se reprend d'un geste, et la page dit au-dessus ce qui reste à dire (la nature des contrats, les congés, « Pour
+démarrer »). Le dépôt se fait comme
 tout fichier (règle 7 ci-dessus). L'outil calcule ce qu'un ancien logiciel aurait imprimé : le brut (quantité × taux),
 des cotisations **vraisemblables** (taux d'un faux bulletin, ni relevés ni recalculés : l'import ne recalcule rien, le
 bulletin fait foi) mais **cohérentes** (brut − cotisations salariales + non soumis = net avant impôt ; − PAS = net à

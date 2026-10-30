@@ -142,7 +142,7 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
         let dsn = etapes.iter().find(|e| e["cle"] == json!("dsn")).expect("la ligne DSN").clone();
         dsn["groupes"].as_array().unwrap().iter().map(|g| g["etat"].as_str().unwrap().to_string()).collect()
     };
-    assert_eq!(dsn_de_decembre(), ["fait"], "un mois sans rien a declarer");
+    assert_eq!(dsn_de_decembre(), ["rien"], "un mois sans rien a declarer");
     let charge = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "numero": "FU1.26.01", "non_actif": true});
     outils::reussi(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
     assert_eq!(dsn_de_decembre(), ["a_faire"], "la DSN de decembre porte la correction de novembre");

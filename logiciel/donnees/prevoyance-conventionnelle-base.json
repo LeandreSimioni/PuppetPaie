@@ -51,7 +51,7 @@
         "_qui": "Tous les salaries permanents, cadres et non cadres, en CDD, CDI ou CDII, a temps plein ou partiel, apprentis compris. Pas les intermittents : leur prevoyance est celle de l'accord interbranches, et elle est dans le bareme.",
         "ouverture_cadre_mois": 0,
         "ouverture_non_cadre_mois": 12,
-        "_ouverture": "La cotisation est due des l'embauche pour un cadre, et apres UN AN d'anciennete DANS LA BRANCHE pour un non cadre -- dans la branche, pas dans l'entreprise : un salarie qui arrive d'une autre compagnie du spectacle vivant prive apporte son anciennete. Le moteur ne peut pas la deviner : quand un non cadre a moins d'un an dans l'entreprise, il DEMANDE `prevoyance_branche_depuis` sur sa fiche plutot que de supposer. Source : fiche produit Audiens, page 3."
+        "_ouverture": "La cotisation est due des l'embauche pour un cadre, et apres UN AN d'anciennete DANS LA BRANCHE pour un non cadre -- dans la branche, pas dans l'entreprise : un salarie qui arrive d'une autre compagnie du spectacle vivant prive apporte son anciennete. Le moteur ne peut pas la deviner : quand un non cadre a moins d'un an dans l'entreprise, il DEMANDE `prevoyance_branche_depuis` sur sa fiche plutot que de supposer. Source : fiche produit Audiens, page 3, « Quand la cotisation est-elle due ? » (`atelier/reference/sources/audiens-3090-prevoyance-sante-fiche-produit-2021.txt`, l. 102-106 ; l'original dans `reference-privee/sources/`)."
       },
       "options": {
         "extension_t2": {

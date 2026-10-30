@@ -10,6 +10,7 @@ mod catalogue;
 mod clauses;
 mod contexte;
 mod emplois;
+mod essai;
 mod natures;
 mod pas;
 mod permanents;

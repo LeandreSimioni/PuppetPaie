@@ -237,7 +237,7 @@ pub fn paie_du_contrat(
     let mut des_jours: Vec<(usize, String)> = Vec::new();
     for (i, x) in paies.iter().enumerate() {
         let cle = x.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
-        if est(cle, salarie) && x.engagement.debut.iso() == debut && vrai(&x.spectacle) {
+        if est(cle, salarie) && x.engagement.debut.iso() == debut && x.engagement.nat().map_err(Echec::from)?.modele_contrat().is_some() {
             des_jours.push((i, x.engagement.numero.clone().unwrap_or_default()));
         }
     }
@@ -1262,9 +1262,17 @@ pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R
         Some(c) if vrai(c) => compte_rendu_du_depot(c)?,
         _ => "",
     };
+    // LA COULEUR DE L'ENCART qui le dit (la charte des etats, `moteur::routes::couleur_de_l_etat`) : teste conforme, vert ;
+    // essaye et rate (ou un test d'un contenu d'avant), a corriger, orange ; en test, ou jamais essaye, une information.
+    let couleur = match conforme {
+        Some(_) if compte_rendu == "ok" => "vert",
+        Some(_) => "gris",
+        None if !ratees.is_empty() || !perimees.is_empty() => "orange",
+        None => "gris",
+    };
     Ok(json!({
         "empreinte": empreinte, "fichier": nom, "conforme": conforme, "compte_rendu": compte_rendu,
-        "ratees": ratees, "perimees": perimees,
+        "ratees": ratees, "perimees": perimees, "couleur": couleur,
     }))
 }
 

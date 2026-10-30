@@ -1,0 +1,44 @@
+# Modèle d'avenant au contrat de travail d'un permanent (CDD ou CDI).
+#
+# CE FICHIER EST UNE DONNÉE, PAS DU CODE, comme avenant-cddu.modele : même
+# format, mêmes marqueurs que le contrat (contrat-cdd.modele,
+# contrat-cdi.modele), et chaque compagnie peut garder sa version dans son
+# dossier gabarits/.
+#
+# L'avenant dit ce qui change (code du travail R. 1221-40 : « un document
+# indiquant ces modifications »), article par article : le bloc
+# MODIFICATION: s'écrit une fois par article modifié, l'ancien texte et le
+# nouveau.
+
+TITRE: Avenant n° {{avenant.numero}} au contrat de travail
+
+SOUSTITRE: Contrat n° {{contrat.numero}} du {{avenant.date_contrat}}
+
+PREAMBULE:
+**Entre les soussignés,**
+
+L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, représentée par {{employeur.signataire}}, en qualité {{employeur.qualite_de}}{{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,
+
+**Et**
+
+Le salarié : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à {{salarie.lieu_naissance}}, ci-après dénommé(e) **le salarié**,
+
+Les parties sont liées par le contrat de travail n° {{contrat.numero}} du {{avenant.date_contrat}}. Elles conviennent de le modifier comme suit.
+
+MODIFICATION:
+L'article {{modification.numero}} « {{modification.article}} » du contrat stipulait :
+
+« {{modification.avant}} »
+
+Il est désormais rédigé ainsi :
+
+« {{modification.apres}} »
+
+ARTICLE: Autres clauses
+Les autres clauses du contrat n° {{contrat.numero}} demeurent inchangées, notamment la convention collective applicable — {{employeur.convention}}, IDCC {{employeur.idcc}}.
+
+ARTICLE: Date d'effet
+Le présent avenant prend effet le **{{avenant.effet}}**.
+
+SIGNATURES:
+Fait en double exemplaire à {{employeur.commune}}, le {{avenant.date}}.

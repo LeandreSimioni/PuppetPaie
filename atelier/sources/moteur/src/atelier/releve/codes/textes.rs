@@ -124,7 +124,7 @@ pub static TEXTES: &[Texte] = &[
             // une heure supplementaire) : la quotite de reference 2027
             // (S21.G00.40.012) << ne doit pas inclure les heures
             // supplementaires structurelles >>.
-            Domaine { cle: "temps_partiel", titre: "Le temps partiel, la duree legale et les heures complementaires et supplementaires", numeros: &["L3121-27", "L3121-28", "L3123-1", "L3123-8", "L3123-20", "L3123-21", "L3123-28"] },
+            Domaine { cle: "temps_partiel", titre: "Le temps partiel, la duree legale et les heures complementaires et supplementaires", numeros: &["L3121-27", "L3121-28", "L3123-1", "L3123-6", "L3123-8", "L3123-20", "L3123-21", "L3123-28"] },
             // LES CONGES POUR EVENEMENTS FAMILIAUX : ils
             // << n'entrainent pas de reduction de la remuneration >> (L3142-2).
             // C'est ce que dit `remunere` du motif 637 (`permanents-base.json`),
@@ -146,6 +146,15 @@ pub static TEXTES: &[Texte] = &[
             // l'embauche apres la declaration (L1221-10), la date d'embauche dans la declaration (R1221-1, 3°), la date
             // previsible (R1221-4).
             Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-4"] },
+            // LE CONTRAT ECRIT D'UN PERMANENT : l'information ecrite que tout salarie recoit (L1221-5-1, R1221-34 pour ses
+            // mentions, R1221-35 pour ses delais et le renvoi aux textes, R1221-39 pour sa forme, R1221-40 pour ce qui change :
+            // l'avenant) ; `documents::contrat` en tire les mentions obligatoires d'un CDI et de son avenant.
+            // L6321-1 : la formation que l'employeur assure, a laquelle le contrat renvoie (R1221-34, 8°).
+            Domaine { cle: "information_ecrite", titre: "L'information ecrite du salarie sur sa relation de travail", numeros: &["L1221-5-1", "R1221-34", "R1221-35", "R1221-38", "R1221-39", "R1221-40", "L6321-1"] },
+            // LA PERIODE D'ESSAI ET SA DUREE MAXIMALE : celle d'un CDD (L1242-10 : un jour par semaine, deux semaines ou un
+            // mois au plus), celle d'un CDI (L1221-19 par categorie, L1221-21 son renouvellement, L1221-22 ce que la
+            // convention peut y changer, L1221-23 son ecrit) ; `droit::essai` refuse au-dela.
+            Domaine { cle: "periode_essai", titre: "La periode d'essai et sa duree maximale", numeros: &["L1242-10", "L1221-19", "L1221-20", "L1221-21", "L1221-22", "L1221-23", "L1221-24"] },
             // LA FIN D'UN CDD : L1243-5 la fait cesser de
             // plein droit a l'echeance du terme (aucun preavis : L1234-1 est
             // celui du licenciement) ; L1243-1 et L1243-2 disent les ruptures
@@ -234,6 +243,9 @@ pub static TEXTES: &[Texte] = &[
             // en donne le decompte (jours du mois, temps partiel, mois sans
             // salarie, centieme) : `envois::organismes_simules`.
             Domaine { cle: "effectif", titre: "L'effectif au sens de la securite sociale", numeros: &["L130-1", "R130-1"] },
+            // LE MODE DE TARIFICATION DES AT/MP : les seuils d'effectif (D242-6-2) et le taux collectif quel que soit
+            // l'effectif pour les activites que l'arrete annuel marque << TC >> (D242-6-14, I).
+            Domaine { cle: "atmp_tarification", titre: "Le mode de tarification des accidents du travail et maladies professionnelles", numeros: &["D242-6-2", "D242-6-14"] },
             // LE PLAFOND : la vieillesse plafonnee
             // (L241-3, et son taux D242-4), le FNAL et le chomage d'un
             // intermittent s'assoient sur LE plafond de sa periode. R242-2 dit

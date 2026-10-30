@@ -44,13 +44,13 @@ pub const ROUTES: &[&str] = &[
     "identite", "permanents", "taxe-sur-les-salaires-regime", "verifier-fiche", "changements-declares", "taux-atmp",
     "metiers-catalogue", "bulletin-modeles", "bulletin-modele-apercu", "bulletin-modele-choisir",
     "activer-fiche", "enregistrer-fiche", "fiche-oublier-demande", "poser-identite", "retirer-identite", "metier-retenu",
-    "metiers-ajoutes", "fiche-demander", "fiches-relever",
+    "metiers-ajoutes", "fiche-demander", "fiches-relever", "poser-courriel",
 ];
 
 /// Celles qui ecrivent.
 pub const ECRITURES: &[&str] = &[
     "activer-fiche", "enregistrer-fiche", "fiche-oublier-demande", "poser-identite", "retirer-identite", "metier-retenu",
-    "metiers-ajoutes", "fiche-demander", "fiches-relever",
+    "metiers-ajoutes", "fiche-demander", "fiches-relever", "poser-courriel",
 ];
 
 /// Une route de ce module.
@@ -62,7 +62,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "taxe-sur-les-salaires-regime" => taxe_sur_les_salaires_regime(ctx, charge),
         "verifier-fiche" => verifier_fiche(charge),
         "changements-declares" => changements_declares(ctx, charge),
-        "taux-atmp" => taux_atmp(ctx, charge),
+        "taux-atmp" => crate::routes::atmp::route(ctx, charge),
         "metiers-catalogue" => metiers_catalogue(ctx),
         "bulletin-modeles" => modeles(ctx),
         "bulletin-modele-apercu" => {
@@ -73,6 +73,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "bulletin-modele-choisir" => choisir(ctx, charge),
         "activer-fiche" => activer_fiche_route(o, ctx, charge),
         "enregistrer-fiche" => enregistrer_fiche(o, ctx, charge),
+        "poser-courriel" => poser_courriel(ctx, charge),
         "fiche-oublier-demande" => oublier_demande(o, ctx, charge),
         "poser-identite" => poser_identite(ctx, charge),
         "retirer-identite" => retirer_identite(ctx, charge),
@@ -230,31 +231,6 @@ pub(crate) fn lire_tolerant(p: &Path) -> R<Option<Value>> {
     Ok(String::from_utf8(octets).ok().and_then(|t| serde_json::from_str(&t).ok()))
 }
 
-/// `taux_atmp` : le taux AT/MP d'une annee, lu ; pose d'abord si `valeur` est donnee.
-fn taux_atmp(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let an = entier(exiger(charge, "annee")?)?;
-    // `valeur` donnee : on POSE d'abord (`poser_taux_atmp`), puis on relit.
-    if let Some(v) = charge.get("valeur").filter(|v| !v.is_null() && v.as_str() != Some("")) {
-        let vide = json!("");
-        crate::routes::fiches::poser_taux_atmp(ctx, an, v, charge.get("code_risque").unwrap_or(&vide))?;
-    }
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
-    let taux = match lire_tolerant(&p)? {
-        None => Value::Null,
-        Some(Value::Object(o)) => match o.get("taux_atmp") {
-            Some(Value::Object(t)) if t.get("valeur").map_or(false, |v| !v.is_null()) => {
-                let code = t.get("code_risque").filter(|c| vrai(c)).cloned().unwrap_or_else(|| json!(""));
-                json!({"valeur": t["valeur"], "code_risque": code})
-            }
-            _ => Value::Null,
-        },
-        Some(autre) => {
-            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&autre))));
-        }
-    };
-    Ok(json!({"annee": an, "taux": taux}))
-}
-
 // ------------------------------------------------------------ verifier-fiche
 
 /// Un objet, de ce qu'un JSON porte : un objet se copie ; une liste
@@ -340,12 +316,13 @@ fn capitales(v: &Value) -> String {
 /// rend `{cle: [avant, apres]}` pour les structures modifiees.
 fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<String, Value> {
     let mut faits = Map::new();
-    // Le contact de la medecine du travail interne (S20.G00.07 de type 17, `dsn::contact_sante_travail`) s'ecrit comme
-    // celui de la DSN : « NOM PRENOM ».
-    let personnes: [(&str, &[&str], Option<(&str, [&str; 2])>); 3] = [
+    // LE CONTACT DSN ET CELUI DE LA MEDECINE DU TRAVAIL INTERNE : la norme les ecrit en « nom et prenom » en une seule
+    // rubrique (S20.G00.07.001, `norme-dsn/texte/bloc-S20.G00.07.txt` l. 63-71) ; la fiche les saisit en une case
+    // (`nom_prenom_affichage`), dont la forme declaree est la meme en capitales sans accents.
+    let personnes: [(&str, &[&str], Option<(&str, &[&str])>); 3] = [
         ("signataire", &["nom", "prenom"], None),
-        ("declarant_dsn", &[], Some(("nom_prenom", ["nom", "prenom"]))),
-        ("contact_sante_travail", &[], Some(("nom_prenom", ["nom", "prenom"]))),
+        ("declarant_dsn", &[], Some(("nom_prenom", &["nom_prenom"]))),
+        ("contact_sante_travail", &[], Some(("nom_prenom", &["nom_prenom"]))),
     ];
     for (cle, officiels, compose) in personnes {
         let Some(Value::Object(p)) = donnees.get(cle) else { continue };
@@ -430,6 +407,29 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
         faits.extend(deriver_personnes(donnees, forcer));
         faits.extend(deriver_siren_nic(donnees));
     }
+    // LE COMPTE BANCAIRE S'ECRIT COMPACT : l'IBAN et le BIC sans blancs, en majuscules -- « FR76 3000 6000 … » est le
+    // meme compte que « FR763000 6000… » (`socle::iban::iban_compact`, communique IBAN de la Banque centrale de Turquie,
+    // annexe 3 : `reference/sources/iban/`).
+    if let Some(Value::Object(b)) = donnees.get_mut("banque") {
+        for k in ["iban", "bic"] {
+            if let Some(Value::String(brut)) = b.get(k).cloned() {
+                let forme = socle::iban::iban_compact(&brut);
+                if forme != brut {
+                    b.insert(k.into(), Value::String(forme));
+                }
+            }
+        }
+    }
+    // LE DEPARTEMENT DE NAISSANCE SE LIT DANS LE NIR (regle 2 : la page le montre, le moteur l'ecrit) : ses 6e et 7e
+    // caracteres sont le departement de naissance, 99 pour une personne nee a l'etranger (S21.G00.30.001 et .014,
+    // `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.30.txt`). Il ne s'ecrit que dans une case vide : une
+    // valeur saisie qui le contredit se dit (`champs::controles_croises`), elle ne se remplace pas.
+    if nom == "salarie" && socle::texte::strip(&texte_ou_vide(donnees.get("departement_naissance"))).is_empty() {
+        if let Some(dep) = champs::departement_du_nir(&texte_ou_vide(donnees.get("nir"))) {
+            faits.insert("departement_naissance".into(), json!([donnees.get("departement_naissance").cloned().unwrap_or(Value::Null), dep]));
+            donnees.insert("departement_naissance".into(), Value::String(dep));
+        }
+    }
     if nom == "salarie" && socle::texte::strip(&texte_ou_vide(donnees.get("initiales_contrat"))).is_empty() {
         let lettres: String = texte_ou_vide(donnees.get("nom")).chars().filter(|c| c.is_ascii_uppercase()).collect();
         if !lettres.is_empty() {
@@ -480,19 +480,14 @@ pub(crate) fn urssaf_du_code_postal(cp: Option<&Value>) -> R<String> {
 fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     let mut propose = Map::new();
     if nom == "salarie" {
-        let nir = socle::texte::strip(&texte_ou_vide(donnees.get("nir"))).to_string();
-        let c: Vec<char> = nir.chars().collect();
-        if c.len() == 13 && champs::tous_chiffres(&nir) && (c[0] == '1' || c[0] == '2') {
-            let dep: String = c[5..7].iter().collect();
-            if dep != "20" {
-                let mut trouvees = vec![("departement_naissance", dep.clone())];
-                if dep != "99" {
-                    trouvees.push(("pays_naissance", "FR".to_string()));
-                }
-                for (cle, valeur) in trouvees {
-                    if socle::texte::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
-                        propose.insert(cle.into(), json!({"valeur": valeur, "pourquoi": "lu dans le numéro de sécurité sociale"}));
-                    }
+        if let Some(dep) = champs::departement_du_nir(&texte_ou_vide(donnees.get("nir"))) {
+            let mut trouvees = vec![("departement_naissance", dep.clone())];
+            if dep != "99" {
+                trouvees.push(("pays_naissance", "FR".to_string()));
+            }
+            for (cle, valeur) in trouvees {
+                if socle::texte::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
+                    propose.insert(cle.into(), json!({"valeur": valeur, "pourquoi": "lu dans le numéro de sécurité sociale"}));
                 }
             }
         }
@@ -739,78 +734,6 @@ pub(crate) fn chiffre_lu(c: char) -> Option<u32> {
     DEBUTS.iter().find(|d| u >= **d && u < **d + 10).map(|d| u - d)
 }
 
-/// Le jour d'aujourd'hui a Paris, `JJ/MM/AAAA`.
-fn aujourdhui_jj_mm_aaaa() -> String {
-    let t = socle::temps::secondes();
-    let iso = socle::paris::iso_secondes(t);
-    format!("{}/{}/{}", &iso[8..10], &iso[5..7], &iso[..4])
-}
-
-/// Pose le taux AT/MP de l'annee dans la surcouche de la
-/// compagnie (`config/baremes/<annee>.json`), le reste de la surcouche est garde.
-pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risque: &Value) -> R<()> {
-    let brut = valeur_en_texte(valeur).replace(',', ".").replace('%', "");
-    let Some(v) = socle::num::decimal_lu(&brut) else {
-        return Err(erreur("ErreurOperation", format!("Taux AT/MP illisible : {}.", valeur_ecrite(valeur))));
-    };
-    if v <= socle::num::Decimal::ZERO || v >= socle::num::Decimal::from(20) {
-        return Err(erreur(
-            "ErreurOperation",
-            format!("Taux AT/MP de {} % : il se donne en pourcentage, par exemple 1,25 pour 1,25 %.", v.normalize()),
-        ));
-    }
-    let code = match code_risque {
-        Value::String(s) => s.trim_matches(socle::texte::blanc).to_uppercase(),
-        autre if !vrai(autre) => String::new(),
-        autre => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(autre)))),
-    };
-    if !code.is_empty() && !code_risque_valide(&code) {
-        return Err(erreur(
-            "ErreurOperation",
-            format!(
-                "Code risque « {} » : trois chiffres et deux caractères, comme 923AD, tel qu'il figure sur la notification.",
-                code
-            ),
-        ));
-    }
-    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
-    let lu = if p.exists() { lire_saisie(&p)? } else { json!({}) };
-    let mut data = if vrai(&lu) { lu } else { json!({"annee": an, "socle": an}) };
-    let Value::Object(d) = &mut data else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&data))));
-    };
-    let ancien: Map<String, Value> = match d.get("taux_atmp") {
-        Some(Value::Object(a)) => a.clone(),
-        _ => Map::new(),
-    };
-    let mut nouveau: Map<String, Value> = ancien.iter().filter(|(k, _)| k.starts_with('_')).map(|(k, w)| (k.clone(), w.clone())).collect();
-    let ancien_code = ancien.get("code_risque").filter(|c| vrai(c)).cloned();
-    let code_final = if !code.is_empty() {
-        Value::String(code)
-    } else {
-        ancien_code.unwrap_or_else(|| json!(""))
-    };
-    nouveau.insert("valeur".into(), serde_json::Number::from_f64(v.to_string().parse::<f64>().unwrap_or(0.0)).map_or(Value::Null, Value::Number));
-    nouveau.insert("code_risque".into(), code_final.clone());
-    nouveau.insert("_source".into(), json!(format!("Saisi dans PuppetPaie le {} (notification AT/MP).", aujourdhui_jj_mm_aaaa())));
-    if !vrai(&code_final) {
-        nouveau.shift_remove("code_risque");
-    }
-    d.insert("taux_atmp".into(), Value::Object(nouveau));
-    if let Some(parent) = p.parent() {
-        creer_dossier(parent)?;
-    }
-    if p.exists() {
-        crate::routes::mois::sauver_avant(&p)?;
-    }
-    ecrire_json(&p, &data, 2).map_err(en_os)
-}
-
-/// `re.fullmatch(r"\d{3}[0-9A-Z]{2}", code)`.
-fn code_risque_valide(code: &str) -> bool {
-    let c: Vec<char> = code.chars().collect();
-    c.len() == 5 && c[..3].iter().all(|x| x.is_ascii_digit()) && c[3..].iter().all(|x| x.is_ascii_digit() || x.is_ascii_uppercase())
-}
 
 /// L'onglet
 /// Metiers, tout le catalogue, chaque metier coche ou non.
@@ -1071,7 +994,20 @@ fn retirer_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 fn identite(ctx: &Contexte) -> R<Value> {
-    Ok(json!({"identite": crate::routes::ouverture::identite(ctx, &ctx.gabarits())?}))
+    let mut v = crate::routes::ouverture::identite(ctx, &ctx.gabarits())?;
+    // La pastille de chaque image : la sienne, posee, ou celle que le logiciel dessine, faites ; rien de pose, a faire.
+    for e in v.as_object_mut().into_iter().flat_map(|o| o.values_mut()) {
+        let Some(o) = e.as_object_mut() else { continue };
+        let p = if o.get("pose").is_some_and(vrai) {
+            super::pastille("fait", "le vôtre")
+        } else if o.get("automatique").is_some_and(vrai) {
+            super::pastille("fait", "celui du logiciel")
+        } else {
+            super::pastille("a_faire", "rien de posé")
+        };
+        o.insert("pastille".into(), p);
+    }
+    Ok(json!({"identite": v}))
 }
 
 // ---------------------------------------------------------------- les metiers
@@ -1151,15 +1087,18 @@ fn metiers_ajoutes(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------- enregistrer-fiche
 
-/// Le prochain matricule : le plus grand code salarie du fichier, plus un.
+/// Le prochain matricule (S21.G00.30.019, que l'employeur choisit : `norme-dsn/texte-2027/bloc-S21.G00.30.txt`) : le
+/// plus grand code salarie que le fichier ait jamais porte, plus un. Le fichier est date : chaque fiche porte la suite
+/// de ses valeurs (`[{"valeur"}, {"depuis", "valeur"}]`), et chacune compte.
 fn matricule_suivant(salaries: &Map<String, Value>) -> i64 {
+    let lire = |v: &Value| entier(&Value::String(valeur_en_texte(v).trim().to_string())).ok();
     let codes: Vec<i64> = salaries
         .iter()
         .filter(|(k, _)| !k.starts_with('_'))
-        .filter_map(|(_, s)| {
-            let s = s.as_object()?;
-            let texte = s.get("code_salarie").map_or_else(String::new, valeur_en_texte);
-            entier(&Value::String(texte.trim().to_string())).ok()
+        .filter_map(|(_, s)| s.as_object()?.get("code_salarie"))
+        .flat_map(|c| match c {
+            Value::Array(versions) => versions.iter().filter_map(|x| x.get("valeur").and_then(lire)).collect::<Vec<_>>(),
+            autre => lire(autre).into_iter().collect(),
         })
         .collect();
     codes.into_iter().max().map_or(1, |m| m + 1)
@@ -1244,8 +1183,10 @@ fn coercer_booleens(nom: &str, donnees: &mut Map<String, Value>) -> R<()> {
 
 // ------------------------------------------------ ecrire une valeur datee
 
+/// Une case vide : absente, nulle, un texte vide, ou le titre « A COMPLETER » que l'import pose sur un spectacle dont il
+/// ne connait que le numero d'objet (`import::completer::A_COMPLETER`) -- le remplir n'est pas un changement a dater.
 fn vide(v: Option<&Value>) -> bool {
-    v.map_or(true, |v| v.is_null() || v.as_str() == Some(""))
+    v.map_or(true, |v| v.is_null() || v.as_str() == Some("") || v.as_str().is_some_and(|s| s.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)))
 }
 
 /// La meme valeur, a la forme pres : un nombre saisi en texte (100 et « 100 »), une personne et sa forme lisible (les
@@ -1260,6 +1201,9 @@ fn meme(a: &Value, b: &Value) -> bool {
         || (!a.is_object() && !a.is_array() && valeur_en_texte(a) == valeur_en_texte(b))
 }
 
+/// Les cases d'un metier : quatre ecritures d'un seul fait, choisies ensemble dans le catalogue.
+const METIER: [&str; 4] = ["emploi_affichage", "emploi", "pcs_ese", "code_emploi_ft"];
+
 /// Les champs de `donnees` qui CHANGENT une valeur existante de `ancienne` (la fiche telle que l'ecran l'a montree) :
 /// ceux-la demandent leur date d'effet. Remplir un champ vide n'en est pas un : c'est sa premiere valeur. Sauf le NIR qui
 /// arrive sur une fiche qui existait : la premiere DSN qui le porte porte aussi le NTT sous lequel le salarie etait
@@ -1267,10 +1211,14 @@ fn meme(a: &Value, b: &Value) -> bool {
 pub(crate) fn changements_a_dater(ancienne: &Value, donnees: &Map<String, Value>) -> Vec<String> {
     let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !k.starts_with('_')));
     let nir_qui_arrive = |k: &str, v: &Value| existait && k == "nir" && vide(ancienne.get(k)) && !vide(Some(v));
+    // UN METIER QUI N'ETAIT PAS ENCORE CHOISI SE COMPLETE, IL NE CHANGE PAS : sans code PCS-ESE, l'intitule lu sur un
+    // ancien bulletin n'a rien pu declarer (la DSN l'exige, S21.G00.40.004), et choisir le metier n'a pas de date d'effet.
+    let metier_a_completer = vide(ancienne.get("pcs_ese"));
     donnees
         .iter()
         .filter(|(k, v)| {
             !k.starts_with('_')
+                && !(metier_a_completer && METIER.contains(&k.as_str()))
                 && (nir_qui_arrive(k, v) || (!vide(ancienne.get(k.as_str())) && !ancienne.get(k.as_str()).is_some_and(|a| meme(a, v))))
         })
         .map(|(k, _)| k.clone())
@@ -1296,6 +1244,44 @@ pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depui
     ecrire_datee(&mut contenu, "entreprise", &ctx.entreprise, &donnees, depuis, None, &ctx.lue_au)?;
     sauver_avant(&chemin)?;
     ecrire(&chemin, Value::Object(contenu))
+}
+
+/// L'ANCIENNETE D'UN SALARIE PART DE SON EMBAUCHE (S21.G00.86.003, l'anciennete dans l'entreprise :
+/// `norme-dsn/texte/bloc-S21.G00.86.txt`) : la validation de son premier engagement la pose sur sa fiche, au premier jour
+/// de ce contrat (`debut`), quand la fiche ne la dit pas ; elle se change ensuite dans « Avancé » de la fiche. Une fiche
+/// qui la dit la garde. Rend vrai si elle a ete posee. INFERENCE : l'anciennete commence a l'entree dans l'entreprise.
+pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut: &str) -> R<bool> {
+    let chemin = ctx.racine.join("config").join("salaries.json");
+    let mut contenu = objet_du_fichier(&chemin)?;
+    let Some(Value::Object(fiche)) = contenu.get_mut(salarie) else { return Ok(false) };
+    let dite = fiche.get("date_anciennete").and_then(Value::as_array).is_some_and(|v| v.iter().any(|x| x.get("valeur").is_some_and(vrai)));
+    if dite {
+        return Ok(false);
+    }
+    fiche.insert("date_anciennete".into(), json!([{"valeur": debut}]));
+    sauver_avant(&chemin)?;
+    ecrire(&chemin, Value::Object(contenu))?;
+    Ok(true)
+}
+
+/// L'ANCIENNETE D'UN SALARIE REPRIS QUE SON CONTRAT FAIT REMONTER : l'import la pose au premier bulletin lu
+/// (`import::bulletins`) ; un contrat repris qui a commence avant (`debut`, celui que la DSN de l'ancien logiciel
+/// declare, S21.G00.40.001) dit qu'il etait dans l'entreprise des ce jour-la (S21.G00.86.003, l'anciennete dans
+/// l'entreprise : `norme-dsn/texte/bloc-S21.G00.86.txt` ; inference : un contrat en cours dans l'entreprise y compte).
+/// Seule la valeur que l'import a posee, `pose_le`, se remplace, de tout temps : elle n'a jamais ete declaree. Une date
+/// saisie depuis reste la sienne. Rend vrai si elle a ete remplacee.
+pub(crate) fn reprendre_anciennete(ctx: &Contexte, salarie: &str, pose_le: &str, debut: &str) -> R<bool> {
+    let chemin = ctx.racine.join("config").join("salaries.json");
+    let mut contenu = objet_du_fichier(&chemin)?;
+    let Some(Value::Array(versions)) = contenu.get_mut(salarie).and_then(|f| f.get_mut("date_anciennete")) else { return Ok(false) };
+    let [seule] = versions.as_mut_slice() else { return Ok(false) };
+    if seule.get("valeur").map(valeur_en_texte).as_deref() != Some(pose_le) || debut >= pose_le {
+        return Ok(false);
+    }
+    seule["valeur"] = json!(debut);
+    sauver_avant(&chemin)?;
+    ecrire(&chemin, Value::Object(contenu))?;
+    Ok(true)
 }
 
 /// ECRIRE UNE FICHE DATEE : chaque valeur de `donnees` qui differe de `ancienne` (la fiche lue a `lue_au`, celle que
@@ -1338,7 +1324,10 @@ pub(crate) fn ecrire_datee(
             continue;
         }
         let avant = ancienne.get(k.as_str());
-        if (vide(avant) && vide(Some(v))) || avant.is_some_and(|a| meme(a, v)) {
+        // « A COMPLETER » est une case vide a remplir, pas rien : il s'ecrit (une fiche importee le porte, et la fiche
+        // d'un spectacle sans titre ne se lit pas).
+        let rien = v.is_null() || v.as_str() == Some("");
+        if (vide(avant) && rien) || avant.is_some_and(|a| meme(a, v)) {
             continue;
         }
         let nir_qui_arrive = k == "nir" && !brute.contains_key("nir") && depuis.is_some();
@@ -1431,6 +1420,21 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
 }
 
+/// `poser-courriel` : `{"salarie", "email"}`, le courriel d'un salarie, saisi la ou il manque (la boite des contrats a
+/// faire signer). La fiche entiere s'ecrit comme depuis l'ecran (`ecrire_fiche`), seul le courriel y change : il se
+/// verifie avec elle, et une fiche qui refuse le dit.
+fn poser_courriel(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let cle = texte_requis(charge, "salarie")?;
+    let email = texte_requis(charge, "email")?;
+    let Some(Value::Object(fiche)) = ctx.salaries.get(cle) else {
+        return Err(refus(format!("Salarié {} inconnu.", socle::fichiers::repr(cle))));
+    };
+    let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), v.clone())).collect();
+    donnees.insert("email".into(), Value::String(email.trim().to_string()));
+    ecrire_fiche(ctx, "salarie", Some(cle.to_string()), &Value::Object(donnees), Forcer::Rien, &Value::Null, &Value::Null)?;
+    Ok(json!({"salarie": cle, "email": email.trim()}))
+}
+
 /// Verifie, date ce qui change, sauvegarde l'ancien fichier et
 /// ecrit. Rend ce qui a ete ecrit, sans la page : l'import s'en sert fiche par fiche.
 pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donnees: &Value, forcer: Forcer, depuis: &Value, note: &Value) -> R<FicheEcrite> {
@@ -1497,10 +1501,8 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
             let existants = objet_du_fichier(&chemin)?;
             donnees.insert("code_salarie".into(), Value::String(matricule_suivant(&existants).to_string()));
         }
-        // L'ANCIENNETE PART DU JOUR DE LA FICHE ; une date saisie est gardee telle quelle.
-        if donnees.get("date_anciennete").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
-            donnees.insert("date_anciennete".into(), Value::String(ctx.aujourdhui.iso()));
-        }
+        // L'ANCIENNETE PART DE L'EMBAUCHE, pas du jour de la fiche : la validation du premier engagement la pose
+        // (`poser_anciennete_a_l_embauche`) ; une date saisie est gardee telle quelle.
     }
     let derives = crate::routes::fiches::deriver(nom, &mut donnees, true)?;
 
@@ -1944,6 +1946,8 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
         ("adresse", "12 rue du Temple".to_string()),
         ("code_postal", "75003".to_string()),
         ("commune", "Paris".to_string()),
+        // Le compte fabrique des fictives, a la cle juste (`socle::iban::faute_iban`).
+        ("iban", "FR7630001007941234567890185".to_string()),
     ]);
     let mut lignes: Vec<String> =
         fq::QUESTIONS.iter().map(|(cle, lib, fac)| format!("{}{} : {}", lib, if *fac { " (facultatif)" } else { "" }, reponses.get(cle).map(String::as_str).unwrap_or(""))).collect();
@@ -2017,7 +2021,9 @@ fn modeles(ctx: &Contexte) -> R<Value> {
     }
     let liste: Vec<Value> = Modele::TOUS
         .iter()
-        .map(|m| json!({"cle": m.cle(), "nom": m.nom(), "description": m.description(), "apercu": adresse_apercu(*m)}))
+        .map(|m| json!({"cle": m.cle(), "nom": m.nom(), "description": m.description(), "apercu": adresse_apercu(*m),
+            // Le modele de la compagnie : sa pastille, celle d'un choix fait.
+            "pastille": if *m == modele { super::pastille("fait", if choisi.is_none() { "celui de la compagnie (par défaut)" } else { "celui de la compagnie" }) } else { Value::Null }}))
         .collect();
     Ok(json!({
         "choisi": modele.cle(),

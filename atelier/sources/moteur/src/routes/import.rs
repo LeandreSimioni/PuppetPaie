@@ -30,14 +30,57 @@ pub const ROUTES: &[&str] = &["importation-apercu", "importation-etat", "importe
 /// Celles qui ecrivent.
 pub const ECRITURES: &[&str] = &["importer", crate::import::nature::ROUTE];
 
+/// UNE REPONSE DE L'IMPORT, AVEC SES PASTILLES (`routes::pastille`) : celle de chaque sort
+/// (`import::bulletins::pastilles_des_sorts`), celle de chaque fiche que l'import cree, complete ou laisse
+/// (`fiche_importee` : creee, completee ou deja la, faite ; a creer ou a completer, a faire), celle de chaque ecart entre
+/// un bulletin et une DSN (le bulletin l'emporte, a voir ; sinon note, une information).
+pub(crate) fn avec_les_pastilles(mut v: Value) -> Value {
+    poser_les_pastilles(&mut v);
+    if let Some(o) = v.as_object_mut() {
+        o.insert("pastilles".into(), crate::import::bulletins::pastilles_des_sorts());
+        // L'encart de ce qui est repris, ou qu'il n'y a rien a reprendre : fait.
+        if o.get("ecrit").is_some_and(vrai) || o.get("rien_a_faire").is_some_and(vrai) {
+            o.insert("encart".into(), super::pastille("fait", "repris"));
+        }
+    }
+    v
+}
+
+fn poser_les_pastilles(v: &mut Value) {
+    match v {
+        Value::Object(o) => {
+            let fiche = ["salarie", "spectacle", "entreprise"].contains(&o.get("nom").and_then(Value::as_str).unwrap_or("")) && o.contains_key("libelle");
+            if fiche {
+                let a_completer = o.get("completer").and_then(Value::as_object).is_some_and(|c| !c.is_empty());
+                let p = match o.get("etat").and_then(Value::as_str).unwrap_or("") {
+                    "completee" => super::pastille("fait", "complétée"),
+                    "existante" if a_completer => super::pastille("a_faire", "à compléter"),
+                    "existante" => super::pastille("fait", "existe déjà"),
+                    "creee" => super::pastille("fait", "créée"),
+                    _ => super::pastille("a_faire", "à créer"),
+                };
+                o.insert("pastille".into(), p);
+            }
+            if let Some(l) = o.get("le_bulletin_l_emporte").map(vrai) {
+                o.insert("pastille".into(), if l { super::pastille("a_faire", "le bulletin l'emporte") } else { super::pastille("information", "noté") });
+            }
+            for x in o.values_mut() {
+                poser_les_pastilles(x);
+            }
+        }
+        Value::Array(a) => a.iter_mut().for_each(poser_les_pastilles),
+        _ => {}
+    }
+}
+
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         // `{"dossier": ...}` (vide ou absent : `import/` de la compagnie) : la boite aux lettres entiere, bulletins
         // compris (`import::bulletins`).
-        "importation-apercu" => Ok(Value::Object(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse)),
+        "importation-apercu" => Ok(avec_les_pastilles(Value::Object(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse))),
         "importation-etat" => etat_importation(&ctx.racine),
-        "importer" => crate::import::ecrite::importer(ctx, charge),
+        "importer" => crate::import::ecrite::importer(ctx, charge).map(avec_les_pastilles),
         // La nature des contrats repris qu'aucun bulletin ne dit.
         crate::import::nature::ROUTE => crate::import::nature::dire(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
@@ -134,6 +177,22 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
         None => json!(if f.get("pcs_ese").map_or(String::new(), valeur_en_texte).starts_with("354") { "artiste" } else { "technicien" }),
     };
     f.insert("statut".into(), statut);
+    // L'EMPLOI EN CLAIR d'un metier du catalogue : son libelle, au feminin pour une salariee (le sexe que porte son NIR),
+    // comme quand on le choisit dans la fiche (`routes::mois::emploi`) ; la forme declaree reste celle de la DSN. Le metier
+    // est celui du code emploi, sinon celui que nomme l'intitule declare (S21.G00.40.006), s'il en nomme un seul
+    // (`emplois::par_intitule`, comme pour un bulletin).
+    let intitule = f.get("emploi").map_or(String::new(), valeur_en_texte);
+    let du_catalogue = if m.get("libelle").is_some_and(vrai) {
+        Some(code.clone())
+    } else {
+        droit::emplois::par_intitule(&intitule, crate::import::bulletins::compare)?.map(|(c, _)| c)
+    };
+    if let Some(c) = du_catalogue {
+        let femme = declarations::ntt::sexe(&json!({"nir": decl.nir})) == "2";
+        if let Some(l) = droit::emplois::resoudre(&c, None, femme)?.get("emploi_affichage").filter(|l| vrai(l)) {
+            f.insert("emploi_affichage".into(), l.clone());
+        }
+    }
     let mut f = declarations::champs::combler_affichage("salarie", &f)?;
     f.insert("actif".into(), json!(true));
     Ok(f)
@@ -573,9 +632,15 @@ fn etat_importation(racine: &Path) -> R<Value> {
         "dossier": racine.join("import").display().to_string(),
         "reprises": reprises_faites(racine, &engagements, &paies),
         "editeur": editeur,
+        // La pastille de l'historique repris.
+        "pastille_repris": super::pastille("fait", "fait"),
         "attend_editeur": attend,
         // Les contrats repris dont la nature reste a dire, par salarie.
         "a_dire": crate::import::nature::a_dire(racine),
+        // Les permanents dont le contrat continue et dont la fiche ne dit pas les conges a la reprise.
+        "conges_a_dire": crate::import::nature::conges_a_dire(racine),
+        // Ce qu'on met dans la boite aux lettres, ce qui s'en lit, ce qui restera a dire (`import::guide`).
+        "guide": crate::import::guide::guide(),
     }))
 }
 
@@ -659,6 +724,10 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
     let mut out = Vec::new();
     for l in crate::compagnie::incidents::lire(racine, None, false).unwrap_or_default() {
         let (ou_, genre, resume) = (texte(&l, "ou"), texte(&l, "genre"), texte(&l, "resume"));
+        // Les ecarts de calcul de l'import sont l'etude de l'editeur (`import::ecarts`) : rien n'y attend la compagnie.
+        if ou_ == crate::import::ecarts::OU {
+            continue;
+        }
         // Un refus (un dossier mal tape, un export absent) se dit a l'ecran ; il n'attend pas l'editeur.
         if l.get("quoi").and_then(Value::as_str) == Some(crate::compagnie::incidents::REFUS) || !parle_d_import(&format!("{} {}", ou_, genre)) {
             continue;
@@ -683,6 +752,16 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
             "numero": s.get("numero").cloned().unwrap_or(Value::Null),
             "parti": s.get("etat").and_then(Value::as_str) == Some("arrive"), "repondu": s.get("reponse").is_some_and(vrai),
         }));
+    }
+    // Sa pastille : la reponse recue, faite ; le reste attend l'editeur, rien que la compagnie ait a faire.
+    for x in out.iter_mut() {
+        x["pastille"] = if x["repondu"] == true {
+            super::pastille("fait", "réponse reçue")
+        } else if x["parti"] == true {
+            super::pastille("information", "attend l'éditeur")
+        } else {
+            super::pastille("information", "pas encore parti")
+        };
     }
     out
 }

@@ -28,18 +28,14 @@ function dessinerHistorique() {
     cible.innerHTML = `<p class="discret">Aucun mois pour l'instant.</p>`;
     return;
   }
-  // L'état de la DSN, en mots : c'est ce qu'on cherche en premier dans un
-  // mois passé. La décision est au moteur (`bilan_des_mois`).
-  const DSN_ETATS = {
-    passee: ["bien", "DSN passée"], attente: ["alerte", "DSN partie, bilan attendu"],
-    refusee: ["erreur", "DSN refusée"], a_deposer: ["alerte", "DSN à déposer"],
-    a_ecrire: ["", "saisi, pas encore écrit"], en_retard: ["erreur", "DSN en retard"],
-    // Un mois tenu avant PuppetPaie : sa DSN est celle de l'ancien logiciel, ou il n'en a pas trace ici.
-    importee: ["bien", "DSN déclarée avant PuppetPaie"], sans_trace: ["alerte", "tenu avant PuppetPaie — aucune trace de DSN"],
-  };
+  // L'état de la DSN, en mots et en couleur : c'est ce qu'on cherche en
+  // premier dans un mois passé. Mots et couleur sont au moteur
+  // (`bilan_des_mois`, `pastille`).
   const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   cible.innerHTML = ETAT.historique.map((m) => {
-    const [couleur, mots] = DSN_ETATS[m.dsn] || ["", m.produit ? "écrit" : "saisi"];
+    const p = m.pastille;
+    const couleur = CLASSE_DE_COULEUR[p.couleur] ?? "";
+    const mots = p.mots;
     const depose = m.depose_le && m.dsn !== "a_deposer" ? ` le ${quand(m.depose_le).slice(0, 10)}` : "";
     return `
     <details class="mois-hist" data-mois="${echapper(m.mois)}" data-retard="${m.dsn === "en_retard" ? 1 : 0}"
@@ -71,7 +67,6 @@ async function ouvrirMoisHistorique(mois) {
   d.scrollIntoView({ block: "start" });
 }
 
-const STATUTS = { OK: "bien", KO: "erreur", ANO: "alerte", "EN COURS": "" };
 
 /** La vue technique d'un mois : ses documents, ses envois et leurs retours, tels que le moteur les lit. */
 async function dessinerMoisHistorique(d) {
@@ -145,8 +140,6 @@ function dessinerEnvoi(e) {
 
 /** Un retour, lu : l'organisme, ce que dit sa pièce, ses anomalies ; la pièce elle-même en dernier recours. */
 function dessinerRetour(r) {
-  const couleur = STATUTS[r.verdict || r.statut] ?? "";
-  const statut = r.verdict || r.statut;
   const titre = r.titre || r.libelle || `retour de nature ${r.nature}`;
   const anomalies = (r.anomalies || []).length ? `
     <table class="anomalies"><tr><th>code</th><th>message</th><th>rubrique</th><th>salarié</th></tr>
@@ -159,7 +152,7 @@ function dessinerRetour(r) {
     <details class="retour">
       <summary><span class="discret">${echapper(r.quand ? quand(r.quand) : "")}</span>
         ${r.organisme ? `${echapper(r.organisme)} — ` : ""}${echapper(titre)}
-        ${statut ? `<span class="pastille ${couleur}">${echapper(statut)}</span>` : ""}</summary>
+        ${pastilleDeLEtat(r.pastille)}</summary>
       <div class="retour-corps">
         <p class="discret">Nature ${echapper(r.nature)} : ${echapper(r.libelle || "")}</p>
         ${(r.phrases || []).map((p) => `<p>${echapper(p)}</p>`).join("")}

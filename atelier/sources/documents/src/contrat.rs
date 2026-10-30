@@ -1,10 +1,11 @@
-//! Le contrat d'engagement a duree determinee d'usage, tel qu'il s'ecrit.
+//! Le contrat ecrit, tel qu'il s'ecrit : le contrat d'engagement d'un spectacle, le CDD et le CDI d'un permanent, et
+//! leurs avenants.
 //!
-//! Le texte du contrat n'est PAS dans ce module : il vit dans `contrat-cddu.modele`, un fichier de
-//! donnees. Ce module envoie a la fabrique le TEXTE du modele (lu maintenant : `fabrique.figer`)
-//! et les VALEURS de la paie (`avenant::valeurs_de_la_paie`, `contrat.marqueurs`) ; c'est elle qui
-//! le met en page. Le contrat des contrats de la compagnie vit a cote : `ecrire` n'ecrit que le
-//! CDDU d'un spectacle.
+//! Le texte du contrat n'est PAS dans ce module : il vit dans le modele de sa nature (`contrat_ecrit.modele` de
+//! `contrats-base.json` : `contrat-cddu.modele`, `contrat-cdd.modele`, `contrat-cdi.modele`), un fichier de donnees, que la
+//! compagnie remplace par le sien dans son dossier `gabarits/`. Ce module envoie a la fabrique le TEXTE du modele (lu
+//! maintenant : `fabrique.figer`) et les VALEURS de la paie (`avenant::valeurs_de_la_paie`) ; c'est elle qui le met en
+//! page. Un modele qui tairait une mention que la loi exige se refuse (`contrat_ecrit::refuser_les_mentions_absentes`).
 
 use std::path::Path;
 
@@ -20,8 +21,6 @@ use fabrique_pdf::modele::Valeurs;
 
 type R<T> = Result<T, Refus>;
 
-/// `contrat.MODELE.name`.
-const MODELE: &str = "contrat-cddu.modele";
 
 /// Le haut d'une description : le format, le style, le logo de la compagnie.
 pub fn enveloppe(style: &str, ent: &Value) -> Map<String, Value> {
@@ -52,7 +51,7 @@ pub fn lire_modele_texte(chemin: &Path) -> R<String> {
 
 /// L'ordre des cles de `contrat.marqueurs` : celui du modele. `Valeurs` est trie ; la description
 /// gardee a cote du PDF (`fabrique.garder_description`) se relit, et s'ecrit dans le meme ordre.
-const ORDRE_MARQUEURS: [&str; 37] = [
+const ORDRE_MARQUEURS: [&str; 38] = [
     "employeur.raison_sociale",
     "employeur.adresse",
     "employeur.code_postal",
@@ -65,6 +64,7 @@ const ORDRE_MARQUEURS: [&str; 37] = [
     "employeur.congesspectacles",
     "employeur.signataire",
     "employeur.signataire_fonction",
+    "employeur.qualite_de",
     "salarie.nom",
     "salarie.prenom",
     "salarie.nom_complet",
@@ -131,11 +131,13 @@ pub type Remplacements = [((String, String, String), (String, String))];
 /// paie, le modele en texte. `remplacements` : ces contrats-la annulent et remplacent celui qui est parti avant
 /// eux, et le disent en tete.
 pub fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacements: &Remplacements) -> R<Value> {
-    let modele = socle::fichiers::modele_de(MODELE, ent, &ctx.gabarits());
     let mut d = enveloppe("contrat", ent);
     let signature = identite_de(ent, "signature");
     let mut documents = Vec::new();
     for p in paies {
+        let nat = p.engagement.nat()?;
+        let modele = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, ent, &ctx.gabarits());
+        let texte = lire_modele_texte(&modele)?;
         let v = valeurs_de_paie(ctx, ent, p)?;
         if v.values().any(|t| t.contains("VALEUR-SANS-TEXTE")) {
             return Err(Refus::from("description illisible : une valeur du modele de contrat n'est pas un texte"));
@@ -153,14 +155,11 @@ pub fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacements: &
         if let Some(s) = &signature {
             un.insert("signature".into(), json!(chemin_texte(s)));
         }
+        refuser_ce_que_le_modele_tairait(&modele, &texte, &un["valeurs"])?;
+        crate::contrat_ecrit::refuser_les_mentions_absentes(&modele, &texte, &nat, &un["valeurs"])
+            .map_err(|m| Refus { classe: Some("ModeleIncomplet"), message: m })?;
+        un.insert("texte".into(), json!(texte));
         documents.push(json!({ "modele": Value::Object(un) }));
-    }
-    let texte = lire_modele_texte(&modele)?;
-    for doc in documents.iter_mut() {
-        if let Some(m) = doc.get_mut("modele").and_then(Value::as_object_mut) {
-            refuser_ce_que_le_modele_tairait(&modele, &texte, &m["valeurs"])?;
-            m.insert("texte".into(), json!(texte));
-        }
     }
     d.insert("documents".into(), Value::Array(documents));
     Ok(Value::Object(d))
@@ -171,7 +170,7 @@ pub fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacements: &
 const A_CITER: [&str; 1] = ["remuneration.hors_brut"];
 
 /// Le modele porte-t-il le marqueur `cle` hors de ses commentaires (les lignes en `#`, que la fabrique saute) ?
-fn cite(texte: &str, cle: &str) -> bool {
+pub(crate) fn cite(texte: &str, cle: &str) -> bool {
     texte.lines().filter(|l| !l.trim_start().starts_with('#')).any(|l| {
         l.match_indices("{{").any(|(i, _)| fabrique_pdf::modele::marqueur_en(l, i).is_some_and(|(k, _)| k == cle))
     })
@@ -264,13 +263,17 @@ pub fn ecrire_et_garder(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Pa
     Ok(())
 }
 
-/// `avenant.MODELE.name`.
-const MODELE_AVENANT: &str = "avenant-cddu.modele";
+
+/// Le modele livre de l'avenant du contrat ecrit de cette nature (`contrat_ecrit.avenant` de `contrats-base.json`).
+fn nom_de_l_avenant(nat: &droit::natures::Nature) -> R<String> {
+    nat.modele_avenant().ok_or_else(|| Refus::from(format!("La nature {} n'a pas d'avenant écrit.", nat.libelle)))
+}
 
 /// `avenant.description` puis `fabrique.figer` : le modele de l'avenant en texte, les valeurs du contrat et les
 /// siennes, et les articles modifies avec l'ancien texte et le nouveau.
 fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], extra: &[(&str, String)]) -> R<Value> {
-    let modele = socle::fichiers::modele_de(MODELE_AVENANT, ent, &ctx.gabarits());
+    let nat = p.engagement.nat()?;
+    let modele = socle::fichiers::modele_de(&nom_de_l_avenant(&nat)?, ent, &ctx.gabarits());
     let mut d = enveloppe("avenant", ent);
     let v = valeurs_de_paie(ctx, ent, p)?;
     // Les memes refus que le contrat : ses articles modifies sont ceux du modele de CONTRAT de la compagnie,
@@ -280,8 +283,10 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     }
     let mut un = Map::new();
     un.insert("valeurs".into(), valeurs_en_ordre(&v, extra));
-    let contrat = socle::fichiers::modele_de(MODELE, ent, &ctx.gabarits());
-    refuser_ce_que_le_modele_tairait(&contrat, &lire_modele_texte(&contrat)?, &un["valeurs"])?;
+    let contrat = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, ent, &ctx.gabarits());
+    let texte_contrat = lire_modele_texte(&contrat)?;
+    refuser_ce_que_le_modele_tairait(&contrat, &texte_contrat, &un["valeurs"])?;
+    crate::contrat_ecrit::refuser_les_mentions_absentes(&contrat, &texte_contrat, &nat, &un["valeurs"]).map_err(|m| Refus { classe: Some("ModeleIncomplet"), message: m })?;
     let articles: Vec<Value> = modifs
         .iter()
         .map(|m| json!({"numero": m["numero"], "article": m["article"], "avant": m["avant"], "apres": m["apres"]}))
@@ -312,10 +317,11 @@ pub fn ecrire_avenant(
     if modifs.is_empty() {
         return Err(Refus { classe: Some("ValueError"), message: "Rien n'a changé : pas d'avenant à écrire.".into() });
     }
-    let fichier = socle::fichiers::modele_de(MODELE_AVENANT, ent, &ctx.gabarits());
+    let nom = nom_de_l_avenant(&*p.engagement.nat()?)?;
+    let fichier = socle::fichiers::modele_de(&nom, ent, &ctx.gabarits());
     let m = fabrique_pdf::modele::lire_fichier(&fichier.to_string_lossy()).map_err(|r| Refus { classe: Some("ValueError"), message: r.0 })?;
     if m.modification.is_empty() {
-        return Err(Refus { classe: Some("ValueError"), message: format!("{} n'a pas de bloc MODIFICATION:.", MODELE_AVENANT) });
+        return Err(Refus { classe: Some("ValueError"), message: format!("{} n'a pas de bloc MODIFICATION:.", nom) });
     }
     let extra = [
         ("avenant.numero", numero.to_string()),

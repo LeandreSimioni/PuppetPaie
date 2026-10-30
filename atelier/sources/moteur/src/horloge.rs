@@ -789,10 +789,15 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
         let objets = engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(Echec::from)?;
         let mut fait = false;
         for (i, o) in objets.iter().enumerate() {
-            if o.est_valide() || o.est_importe() || engagement::debut_brut(&Value::Object(o.brut.clone())) > jusqu_au.iso() {
+            // Un engagement auquel il manque un fait attend qu'on le complete (`engagement::stock::A_COMPLETER`).
+            if o.est_valide() || o.est_importe() || o.a_completer().is_some() || engagement::debut_brut(&Value::Object(o.brut.clone())) > jusqu_au.iso() {
                 continue;
             }
             engagement::etats::valider(ctx, mois, i).map_err(Echec::from)?;
+            let brut = Value::Object(o.brut.clone());
+            if let Some(cle) = engagement::cle_de_l_engagement(ctx, &brut) {
+                crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(&brut))?;
+            }
             fait = true;
         }
         Ok(fait)
