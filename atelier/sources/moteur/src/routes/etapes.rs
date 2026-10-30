@@ -886,7 +886,7 @@ impl<'a> Moteur<'a> {
             ligne.insert("carres".into(), carres(&vue));
             ligne.insert("dpae_choix".into(), choix_dpae(&vue));
             // LA FRISE : un engagement modifie apres un envoi dit quand, et ce qui a change de version en version.
-            let frise = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| engagement::versions::frise(self.ctx, v, &departs));
+            let frise = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| engagement::versions::frise(self.ctx, v, &departs, mois));
             ligne.insert("versions".into(), frise.unwrap_or(Value::Null));
             out.push(Value::Object(ligne));
         }

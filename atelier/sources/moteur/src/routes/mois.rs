@@ -1850,7 +1850,7 @@ fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, c
                 }
             }
         }
-        if change && !confirme {
+        if change && !confirme && !actuelle.as_ref().is_some_and(|a| changements_dates_a_la_validation(ctx, mois, a, &donnees)) {
             let texte = declaree.get("avertissement").map(valeur_en_texte).unwrap_or_default();
             return Err(erreur(crate::regularisation::CLASSE_A_CONFIRMER, texte));
         }
@@ -1865,6 +1865,31 @@ fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, c
     // UN MOIS FAIT EN DEMO, retravaille dans la compagnie gardee : il cesse d'etre « de demo » (`suppression::sortir_de_la_demo`).
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     Ok(engagement::stock::chemin(&ctx.racine, mois))
+}
+
+/// Tout ce qui change de la saisie `actuelle` a `nouvelle` (meme nombre d'engagements, compares un a un) tient a des
+/// contrats au mois rouverts dont un mois est parti (`engagement::etats::se_datera_a_la_validation`) : leur validation
+/// demandera « a partir de quel mois ? » et dira ce qui arrive a chaque mois parti. L'ecriture n'a rien a confirmer
+/// d'avance : une seule question, celle qui dit ce qui arrivera.
+fn changements_dates_a_la_validation(ctx: &Contexte, mois: &str, actuelle: &Value, nouvelle: &Value) -> bool {
+    let es = |v: &Value| v.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    let (avant, apres) = (es(actuelle), es(nouvelle));
+    if avant.len() != apres.len() {
+        return false;
+    }
+    let seul = |e: &Value| crate::routes::etapes::empreinte_de(&json!({"engagements": [e]}));
+    // Ce qui change hors des termes reconduits (une prime, un conge du mois) n'est pas « a partir d'un mois » : il change
+    // ce mois, et se confirme.
+    let hors_termes = |e: &Value| {
+        let mut e = e.clone();
+        if let Some(o) = e.as_object_mut() {
+            o.retain(|k, _| !engagement::stock::RECONDUITS.contains(&k.as_str()) || engagement::stock::PARTAGES.contains(&k.as_str()));
+        }
+        seul(&e)
+    };
+    avant.iter().zip(&apres).enumerate().filter(|(_, (a, n))| seul(a) != seul(n)).all(|(i, (a, n))| {
+        hors_termes(a) == hors_termes(n) && n.as_object().is_some_and(|n| engagement::etats::se_datera_a_la_validation(ctx, mois, i, n).unwrap_or(false))
+    })
 }
 
 /// CE QUI MANQUE A CHAQUE ENGAGEMENT DE LA SAISIE `data` pour se calculer, dans son ordre (`None` : rien). Une saisie
