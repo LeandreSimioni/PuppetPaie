@@ -9,7 +9,8 @@
 //!
 //! A LA CREATION d'une compagnie, le risque par defaut du socle de l'annee (`risques_atmp.par_defaut`, 92.3AD : « tout
 //! intermittent du spectacle ») et son taux de l'arrete se posent d'eux-memes (`poser_a_la_creation`) ; l'ecran les dit
-//! une fois, avec le libelle de l'arrete, l'explication, ou les lire et ou les changer (`lire`). L'avance de l'ecran propose
+//! une fois, avec le libelle de l'arrete, l'explication, ou les lire et ou les changer (`lire`). Une annee que la compagnie
+//! n'a pas dite reprend son code, et le taux de l'arrete de l'annee pour un risque TC (`Contexte::taux_atmp_reporte`). L'avance de l'ecran propose
 //! les codes que le socle connait, ou un autre code notifie.
 
 use std::path::Path;
@@ -177,6 +178,18 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
         Some(autre) => return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&autre)))),
         None => None,
     };
+    // L'annee que la compagnie n'a pas dite : le taux qui se reprend d'une annee d'avant, ou pourquoi il ne se reprend pas.
+    let (pose, reporte, manque) = match pose {
+        Some(p) if !p.is_empty() => (Some(p), None, None),
+        _ => match ctx.taux_atmp_reporte(an as i32) {
+            Some(Ok(t)) => {
+                let de = t.get("_reporte_de").and_then(Value::as_i64);
+                (Some(t), de, None)
+            }
+            Some(Err(m)) => (None, None, Some(m)),
+            None => (None, None, None),
+        },
+    };
     let code = pose.as_ref().and_then(|t| t.get("code_risque")).filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let valeur = pose.as_ref().and_then(|t| t.get("valeur")).filter(|v| !v.is_null()).cloned();
     let a_la_creation = pose.as_ref().is_some_and(|t| t.get(POSE_A_LA_CREATION).is_some_and(vrai));
@@ -205,7 +218,11 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
         ),
         (_, Some(t)) => format!("Taux de {} en {}, tel que la notification de la CARSAT le dit.", t, an),
         (_, None) if !code.is_empty() => format!("Code risque {} : le taux de {} manque ; il est sur la notification de la CARSAT.", code, an),
-        _ => format!("Le code risque et le taux AT/MP de {} ne sont pas encore dits.", an),
+        _ => manque.unwrap_or_else(|| format!("Le code risque et le taux AT/MP de {} ne sont pas encore dits.", an)),
+    };
+    let explication = match reporte {
+        Some(de) => format!("Le code risque est celui que la compagnie a dit pour {}. {}", de, explication),
+        None => explication,
     };
     Ok(json!({
         "annee": an,
@@ -214,6 +231,7 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
         "nom": connu.map(nom).unwrap_or_else(|| code.clone()),
         "resume": if code.is_empty() { String::new() } else { format!("Code risque {}{}", connu.map(nom).unwrap_or_else(|| code.clone()), taux_dit.as_ref().map(|t| format!(", taux {}", t)).unwrap_or_default()) },
         "pose_a_la_creation": a_la_creation,
+        "reporte_de": reporte,
         "explication": match (connu.and_then(|r| r.alsace_moselle.map(|g| (r, g))), en_alsace_moselle(ctx)) {
             (Some((r, (groupe, t))), true) => format!(
                 "L'établissement est en Alsace-Moselle : l'annexe 3 de {} classe {} au groupe {}, à {} en {}. Le logiciel ne pose pas ce taux de lui-même (l'article D. 242-35, qui dit à quelles compagnies il s'applique, n'est pas relevé) : celui de la paie est celui que vous saisissez, tel que la notification de la CARSAT le dit. {}",
