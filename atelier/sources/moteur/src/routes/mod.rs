@@ -66,7 +66,7 @@ pub const ROUTE_QUI_TOMBE: &str = "essai-defaut-du-logiciel";
 pub(crate) fn remettre_le_fil() {
     crate::compagnie::coffre::oublier_mot_de_passe_tape();
     socle::num::ECHELLE_GARDEE.with(|f| f.set(false));
-    let _ = socle::fichiers::rendre();
+    socle::fichiers::fermer_tout();
 }
 
 /// UNE ROUTE SERVIE DANS LA FENETRE, ET CE QU'ELLE LAISSE SUR SON FIL. La fenetre sert ses routes dans son
