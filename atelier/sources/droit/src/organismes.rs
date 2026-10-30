@@ -53,8 +53,11 @@ pub fn base(ctx: &Contexte) -> Resultat<Value> {
     lire_json(&ctx.code.join("organismes-base.json"))
 }
 
-/// Ce que la compagnie a saisi, a la date du contexte (`{}` si rien), et les identifiants d'adhesion qu'une periode
-/// quelconque du fichier porte.
+/// Ce que la compagnie a saisi, a la date du contexte (`{"adhesions_prevoyance": [...]}`, ou `{}` si rien), et les
+/// identifiants d'adhesion qu'une periode quelconque du fichier porte. Le fichier ne porte que ce qu'aucun texte ne
+/// donne : de lui ne se lisent que les adhesions, et une adhesion qui recopie un contrat qu'un texte donne entier
+/// (`donnes_par_un_texte`) n'est pas une saisie, sous quelque convention qu'on lise. Son identifiant reste pris : il a
+/// pu partir dans une DSN.
 pub fn saisis(ctx: &Contexte) -> Resultat<(Value, Vec<u32>)> {
     let p = ctx.racine.join("config").join(ORGANISMES);
     if !p.is_file() {
@@ -66,7 +69,41 @@ pub fn saisis(ctx: &Contexte) -> Resultat<(Value, Vec<u32>)> {
         .flat_map(liste)
         .filter_map(|a| txt(g(&a, "reference")).parse::<u32>().ok())
         .collect();
-    Ok((fiche_au(&brut, &ctx.lue_au, &format!("config/{}", ORGANISMES))?, prises))
+    let au = fiche_au(&brut, &ctx.lue_au, &format!("config/{}", ORGANISMES))?;
+    let textes = donnes_par_un_texte(ctx)?;
+    let adhesions: Vec<Value> = liste(g(&au, "adhesions_prevoyance"))
+        .into_iter()
+        .filter(|a| {
+            let libelle = txt(g(a, "libelle")).to_uppercase();
+            let contribution = txt(g(a, "contribution")).to_uppercase();
+            !textes.contains(&libelle) && !(!contribution.is_empty() && libelle == contribution)
+        })
+        .collect();
+    if adhesions.is_empty() {
+        return Ok((json!({}), prises));
+    }
+    Ok((json!({ "adhesions_prevoyance": adhesions }), prises))
+}
+
+/// Les references de contrat (S21.G00.15.001) qu'un texte livre donne entieres, toutes conventions confondues : les
+/// `libelle` des contrats de `organismes-base.json` et celui de la CASC-SVP (`casc-svp-base.json`). Une contribution de
+/// branche se reconnait a son nom (`saisis`).
+fn donnes_par_un_texte(ctx: &Contexte) -> Resultat<Vec<String>> {
+    let base = base(ctx)?;
+    let mut out: Vec<String> = g(&base, "contrats")
+        .as_object()
+        .into_iter()
+        .flat_map(|m| m.values())
+        .flat_map(liste)
+        .map(|c| txt(g(&c, "libelle")).to_uppercase())
+        .filter(|l| !l.is_empty())
+        .collect();
+    let casc = lire_json(&ctx.code.join("casc-svp-base.json"))?;
+    let l = txt(g(g(&casc, "dsn"), "contrat")).to_uppercase();
+    if !l.is_empty() {
+        out.push(l);
+    }
+    Ok(out)
 }
 
 /// Les contrats que cette compagnie declare a la date du contexte, dans l'ordre ou ils se presentent.

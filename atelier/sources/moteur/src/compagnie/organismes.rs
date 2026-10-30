@@ -129,7 +129,9 @@ pub fn enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
         .collect();
     let adhesions = Value::Array(adhesions);
     let (en_vigueur, _) = saisis(&du_mois.au(&periode.0).map_err(plain)?).map_err(plain)?;
+    // Le fichier ne garde que la saisie : tout autre cle se recompose des textes (`droit::organismes`).
     let mut date = fichier_date(ctx)?;
+    date.retain(|k, _| k == "adhesions_prevoyance");
     date.insert(
         "_quoi".into(),
         json!("Ce que la compagnie a saisi dans Configuration › Organismes et contrats, et les identifiants d'adhesion \
