@@ -980,15 +980,12 @@ enum EtatDsn {
     Acceptee,
 }
 
-/// L'etat de la DSN mensuelle du mois au journal (`envois::etats::dsn_du_mois`).
+/// L'etat de la DSN mensuelle du mois au journal (`import::mois::dsn_avant`).
 fn etat_de_la_dsn(ctx: &Contexte, mois: &str) -> R<EtatDsn> {
-    let e = Moteur::nouveau(ctx).dsn_du_mois(mois)?;
-    Ok(if !vrai(&e) {
-        EtatDsn::Absente
-    } else if vrai(&e["refusee"]) {
-        EtatDsn::Refusee
-    } else {
-        EtatDsn::Acceptee
+    Ok(match crate::import::mois::dsn_avant(ctx, mois)?["etat"].as_str() {
+        Some("refusee") => EtatDsn::Refusee,
+        Some("passee" | "attente") => EtatDsn::Acceptee,
+        _ => EtatDsn::Absente,
     })
 }
 
