@@ -151,30 +151,36 @@ function engagementsDuBloc(div, mois) {
     return e;
   });
 }
-
-/* UNE CARTE OUVERTE POUR ÊTRE MODIFIÉE (`ouvrirEnModification`) ne s'écrit pas : la saisie du mois garde son
- * engagement tel qu'il est enregistré. L'aperçu et le montant visé, qui n'écrivent rien, la lisent telle qu'elle est. */
+/* UNE CARTE OUVERTE POUR ÊTRE MODIFIÉE (`ouvrirEnModification`) ne s'écrit pas avant « Modifier l'engagement ».
+ * L'aperçu et le montant visé, qui n'écrivent rien, la lisent telle qu'elle est. */
 let LIRE_LES_MODIFICATIONS = false;
 
-/** Les engagements validés ouverts pour être modifiés : chacun désigné, avec ce que sa carte montre (`mois_designe`). */
-function modifieesDeLaPage(mois) {
+/** LES CARTES QUE L'APERÇU ET LE MONTANT VISÉ CALCULENT À LA PLACE DE CE QUI EST ÉCRIT : chacune que l'écran montre
+ *  autrement (tapée et pas encore écrite, ou ouverte pour être modifiée), avec ce qu'elle porte et sa place dans
+ *  l'écran du mois (`null` : pas encore écrite). `aussi` : une carte à compter même écrite (celle dont on vise le
+ *  montant). Le moteur calcule le reste du mois tel qu'il est écrit (`mois_designe`). */
+function cartesAuMoteur(aussi) {
+  const mois = document.getElementById("mois").value;
+  const cartes = [];
+  let rang = -1;
   LIRE_LES_MODIFICATIONS = true;
   try {
-    return [...document.querySelectorAll(".engagement.en-modification")].filter((c) => c._ligne)
-      .map((c) => ({ ...contratDe(c._ligne), saisies: engagementsDuBloc(c, mois) }));
+    document.querySelectorAll("#engagements .engagement").forEach((div) => {
+      const enModification = div.classList.contains("en-modification");
+      const c = enModification ? null : chargeDeLaCarte(div, mois);
+      const ecrite = !enModification && (!c || JSON.stringify(c) === div._ecrite);
+      if (ecrite && div !== aussi) return;
+      const saisie = engagementsDuBloc(div, mois)[0];
+      if (!saisie) return;
+      if (div === aussi) rang = cartes.length;
+      cartes.push({ place: div.dataset.place ? +div.dataset.place : null, saisie });
+    });
   } finally { LIRE_LES_MODIFICATIONS = false; }
+  return { cartes, rang };
 }
 
-/* L'APERÇU ET LE MONTANT VISÉ CALCULENT LE MOIS ENREGISTRÉ, et les cartes ouvertes pour être modifiées : ce qui est
- * tapé s'enregistre d'abord, sans attendre la seconde de l'enregistrement automatique. */
-async function enregistrerAvantDeCalculer() {
-  if (MINUTEUR_SAISIE) { clearTimeout(MINUTEUR_SAISIE); MINUTEUR_SAISIE = null; }
-  await enregistrerSaisie(true);
-}
-
-async function apercuDuMois(mois, blocs) {
-  await enregistrerAvantDeCalculer();
-  return api("apercu", { mois, modifiees: modifieesDeLaPage(mois), blocs });
+async function apercuDuMois(mois) {
+  return api("apercu", { mois, cartes: cartesAuMoteur().cartes });
 }
 /** Les engagements que les cartes du mois affiché montrent, celles ouvertes pour être modifiées telles qu'on les a
  *  tapées : ce que l'aperçu compte. Rien ne s'écrit d'elles (chaque carte écrit son engagement). */
@@ -219,22 +225,22 @@ async function calculerApercu(lu) {
   }
   cible.classList.add("attente");
   try {
-    // Les trois nombres de chaque carte, sommés par le moteur (`blocs` : combien d'engagements chaque carte porte) ;
-    // la lecture du mois les rend pour une carte par engagement.
+    // Une carte, un engagement : le moteur rend les paies et les trois nombres (`blocs`) dans l'ordre des cartes qui
+    // nomment leur salarié.
     const blocs = [...document.querySelectorAll(".engagement")];
-    const tailles = blocs.map((div) => salariesDuBloc(div).length);
     // La lecture du mois ne calcule que les engagements qui se calculent : elle ne sert que si elle les a tous.
     let deLu = null;
-    if (lu && tailles.every((n) => n === 1)) {
+    if (lu) {
       try { deLu = lireReponse(lu); } catch (e) { deLu = null; }
       if (deLu && (deLu.paies || []).length !== engagements.length) deLu = null;
     }
-    const a = deLu ? structuredClone(deLu) : await apercuDuMois(document.getElementById("mois").value, tailles);
+    const a = deLu ? structuredClone(deLu) : await apercuDuMois(document.getElementById("mois").value);
     cible.innerHTML = vueApercu(a);
     // Les dates resolues, sous chaque engagement : ce que le moteur a compris.
-    const parBloc = engagementsParBloc(a, blocs);
+    let rang = 0;
+    const rangs = blocs.map((div) => (salariesDuBloc(div).length ? rang++ : null));
     blocs.forEach((div, i) => {
-      const part = parBloc[i];
+      const part = rangs[i] == null ? [] : [(a.paies || [])[rangs[i]]].filter(Boolean);
       const p = part[0];
       // Un engagement auquel il manque un fait est enregistré tel quel : la carte dit ce qui manque, sans montant.
       const manques = part.filter((x) => x && x.a_completer);
@@ -253,7 +259,7 @@ async function calculerApercu(lu) {
           manques.map((x) => `<div>${erreurEnClair(x.a_completer)}</div>`).join("")}</div>`;
         return;
       }
-      div._total = part.length ? (a.blocs || [])[i] : null;
+      div._total = part.length ? (a.blocs || [])[rangs[i]] : null;
       peindreChiffres(div, div._total);
       div._paies = part;
       // La rupture que le moteur propose pour cet engagement (`contrat.rupture`) : la porte « Un imprévu… » et la fin.
@@ -343,17 +349,6 @@ function avisDuBloc(part, liste = "avertissements") {
     if (g.noms.length < 2) return g.texte;
     const noms = g.noms.slice(0, -1).join(", ") + " et " + g.noms[g.noms.length - 1];
     return noms + cle;
-  });
-}
-
-/* LES ENGAGEMENTS D'UN APERÇU, RENDUS À LEUR CARTE : une carte sans salarié n'en a pas, les autres un chacune. */
-function engagementsParBloc(a, blocs) {
-  let rang = 0;
-  return blocs.map((div) => {
-    const combien = salariesDuBloc(div).length;
-    const part = (a.paies || []).slice(rang, rang + combien);
-    rang += combien;
-    return part;
   });
 }
 
@@ -464,8 +459,7 @@ function peindreChiffres(div, total) {
     // carte (`blocs` de l'aperçu). Le brut reste dans l'aperçu.
     net.innerHTML = total
       ? `Net <b>${echapper(euros(total.net_paye))}</b>
-         <span class="e-cout">Coût employeur <b>${echapper(euros(total.cout_employeur))}</b></span>${total.engagements > 1
-          ? ` <span class="discret">pour ${total.engagements} salariés</span>` : ""}`
+         <span class="e-cout">Coût employeur <b>${echapper(euros(total.cout_employeur))}</b></span>`
       : `<span class="discret">Le net s'affiche dès que l'engagement est complet.</span>`;
   }
   div.querySelectorAll(".e-vise").forEach((c) => {
@@ -478,38 +472,22 @@ function peindreChiffres(div, total) {
  *
  * L'enveloppe vient avant la paie : on sait qu'on a 500 € pour ce plateau,
  * et on cherche ce que ça fait de cachet. La page ne calcule rien elle-même
- * — le passage du brut au coût n'est pas un pourcentage — : elle désigne les engagements du bloc, et le moteur
- * rejoue leur paie, telle qu'elle est enregistrée ou ouverte pour être modifiée, jusqu'à tomber juste.
- *
- * Le bloc entier est visé, tous ses salariés cochés compris : « 500 € pour
- * payer les gens », c'est 500 € en tout, répartis au prorata de ce qui est
- * déjà saisi. */
+ * — le passage du brut au coût n'est pas un pourcentage — : elle envoie la carte telle qu'elle est, et le moteur
+ * rejoue sa paie jusqu'à tomber juste. */
 async function ajusterBloc(div, champ) {
   const note = div.querySelector(".e-chiffres-note");
   const montant = (champ.value || "").trim();
   // Vidée : on ne vise plus rien, et l'aperçu remettra le nombre calculé.
   if (montant === "") { rafraichirApercu(); return; }
-  const blocs = [...document.querySelectorAll(".engagement")];
-  let debut = 0;
-  for (const b of blocs) {
-    if (b === div) break;
-    debut += salariesDuBloc(b).length;
-  }
-  const combien = salariesDuBloc(div).length;
-  if (!combien) {
-    note.innerHTML = `<span class="rouge">Cocher d'abord qui est payé.</span>`;
+  const { cartes, rang } = cartesAuMoteur(div);
+  if (rang < 0) {
+    note.innerHTML = `<span class="rouge">Choisir d'abord qui est payé.</span>`;
     return;
   }
-  const engagements = [];
-  for (let k = 0; k < combien; k++) engagements.push(debut + k);
   note.textContent = "calcul…";
   const mois = document.getElementById("mois").value;
   try {
-    await enregistrerAvantDeCalculer();
-    const r = await api("ajuster", {
-      mois, modifiees: modifieesDeLaPage(mois), engagements,
-      cible: champ.dataset.cible, montant: Number(montant),
-    });
+    const r = await api("ajuster", { mois, cartes, carte: rang, cible: champ.dataset.cible, montant: Number(montant) });
     appliquerAjustement(div, r);
     // LA CASE MONTRE CE QU'ON ATTEINT, PAS CE QU'ON A TAPÉ. Un montant visé
     // qu'on laisse à l'écran, c'est un chiffre faux de deux centimes qui
@@ -522,8 +500,7 @@ async function ajusterBloc(div, champ) {
   }
 }
 
-/** Les taux que le moteur a trouvés, réécrits dans les cases. Les
- *  engagements d'un même bloc portent les mêmes lignes : le premier suffit. */
+/** Les taux que le moteur a trouvés, réécrits dans les cases. */
 function appliquerAjustement(div, r) {
   const e = (r.engagements || [])[0];
   if (!e) return;

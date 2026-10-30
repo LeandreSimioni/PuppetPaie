@@ -41,7 +41,7 @@ use socle::valeur::{nom_type, nombre, valeur_en_texte, valeurs_egales};
 pub const ROUTES: &[&str] = &["saisie", "apercu", "echeancier", "contrats-en-cours", "contrats-passes", "emploi", "enregistrer-saisie", "ajuster"];
 
 /// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["enregistrer-saisie", "ajuster"];
+pub const ECRITURES: &[&str] = &["enregistrer-saisie"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -1908,10 +1908,9 @@ fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> Value {
     Value::Object(d)
 }
 
-/// Le taux qu'il faudrait, pour que les engagements `engagements` (leurs rangs dans l'ordre de l'ecran du mois que
-/// `mois_designe` lit) coutent CE montant. N'ecrit rien.
+/// Le taux qu'il faudrait, pour que l'engagement d'une carte (`carte` : son rang dans `cartes`, `mois_designe`) coute
+/// CE montant. N'ecrit rien.
 fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let engagements = exiger(charge, "engagements")?;
     let cible = texte_requis(charge, "cible")?;
     let montant = exiger(charge, "montant")?;
     let cible_visee = match cible {
@@ -1924,32 +1923,14 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
     if vise <= Decimal::ZERO {
         return Err(refus(format!("Un montant vise se dit en euros et il est positif (recu : {}).", vise)));
     }
-    let data = mois_designe(ctx, charge)?;
-    let mut rangs: Vec<i64> = Vec::new();
-    for i in envois::etats::items(engagements)? {
-        rangs.push(crate::routes::fiches::entier(&i)?);
-    }
-    rangs.sort_unstable();
-    rangs.dedup();
-    let total = data.get("engagements").and_then(Value::as_array).map_or(0, Vec::len);
-    if rangs.is_empty() || rangs[0] < 0 || rangs[rangs.len() - 1] >= total as i64 {
-        let noms: Vec<String> = rangs.iter().map(i64::to_string).collect();
-        return Err(refus(format!(
-            "Engagement(s) {} : le mois en porte {}.",
-            if noms.is_empty() { "aucun".to_string() } else { noms.join(", ") },
-            total
-        )));
-    }
-    let rangs: Vec<usize> = rangs.into_iter().map(|i| i as usize).collect();
-    let v = engagement::viser::viser(ctx, &data, &rangs, cible_visee, vise).map_err(|r| match r {
+    let (data, places) = mois_designe(ctx, charge)?;
+    let k = charge.get("carte").and_then(Value::as_u64).ok_or_else(|| erreur("TypeError", "`carte` : un entier est attendu"))? as usize;
+    let i = *places.get(k).ok_or_else(|| refus(format!("La carte {} n'est pas dans `cartes`.", k + 1)))?;
+    let v = engagement::viser::viser(ctx, &data, &[i], cible_visee, vise).map_err(|r| match r {
         engagement::viser::RefusVisee::Refus(m) => refus(m),
         engagement::viser::RefusVisee::Calcul(m) => refus_du_calcul(ctx, &data, m),
     })?;
-    // Les paies de ces engagements, telles que la page les montre.
-    let mut vues = Vec::new();
-    for &i in &rangs {
-        vues.push(vue_paie(ctx, &v.paies[i], &v.saisie["engagements"][i], &v.saisie, false).map_err(Echec::from)?);
-    }
+    let vue = vue_paie(ctx, &v.paies[i], &v.saisie["engagements"][i], &v.saisie, false).map_err(Echec::from)?;
     let atteint = centimes(v.atteint);
     let mut f = v.facteur.round_dp(6);
     f.rescale(6);
@@ -1958,8 +1939,8 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
         "vise": vise.to_string(), "atteint": atteint.to_string(), "depart": centimes(v.depart).to_string(),
         "ecart": (atteint - vise).to_string(),
         "facteur": f.to_string(), "tours": v.tours,
-        "engagements": rangs.iter().map(|&i| ce_qui_a_change(&data["engagements"][i], &v.saisie["engagements"][i], i)).collect::<Vec<_>>(),
-        "paies": vues,
+        "engagements": [ce_qui_a_change(&data["engagements"][i], &v.saisie["engagements"][i], i)],
+        "paies": [vue],
     }))
 }
 
@@ -1982,12 +1963,11 @@ pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> 
     Echec::from(message)
 }
 
-/// LE MOIS QUE L'APERCU ET LE MONTANT VISE CALCULENT : ses engagements tels qu'ils sont enregistres, dans l'ordre de
-/// l'ecran (`vue_a_l_ecran`), et, a la place de chaque engagement valide ouvert pour etre modifie (`modifiees` :
-/// `salarie`, `debut`, et, si deux contrats du salarie commencent ce jour-la, `numero` ou `rang`), les saisies que sa
-/// carte montre (`saisies`), que rien n'ecrit avant « Modifier l'engagement ». Un engagement ne se recoit pas autrement :
-/// le reste du mois est celui du disque.
-pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<Value> {
+/// LE MOIS QUE L'APERCU ET LE MONTANT VISE CALCULENT : ses engagements tels qu'ils sont ecrits, dans l'ordre de l'ecran
+/// (`vue_a_l_ecran`), et chaque carte que l'ecran montre autrement (`cartes` : `{place, saisie}`, ce que la carte porte ;
+/// `place` est sa place dans l'ecran du mois, absente pour une carte qui n'est pas encore ecrite) : a sa place, ou a la
+/// suite. Rend ce mois et la place de chaque carte dans ses engagements. Rien ne s'ecrit.
+pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usize>)> {
     let mois = texte_requis(charge, "mois")?;
     let mut v = engagement::stock::vue_a_l_ecran(&ctx.racine, mois)
         .map_err(Echec::from)?
@@ -1999,33 +1979,29 @@ pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<Value> {
             o.remove(engagement::stock::A_COMPLETER);
         }
     }
-    let mut remplacements: Vec<(usize, Vec<Value>)> = Vec::new();
-    for m in charge.get("modifiees").and_then(Value::as_array).into_iter().flatten() {
-        let (salarie, debut) = (texte_requis(m, "salarie")?, texte_requis(m, "debut")?);
-        let numero = m.get("numero").filter(|n| vrai(n)).map(valeur_en_texte);
-        let rang = m.get("rang").and_then(Value::as_u64).unwrap_or(0) as usize;
-        let du_jour: Vec<usize> = (0..tous.len())
-            .filter(|&i| engagement::cle_de_l_engagement(ctx, &tous[i]).as_deref() == Some(salarie) && engagement::debut_brut(&tous[i]) == debut)
-            .collect();
-        let i = numero
-            .as_ref()
-            .and_then(|n| du_jour.iter().copied().find(|&i| jumeaux::numero_pose(&tous[i]).as_ref() == Some(n)))
-            .or_else(|| du_jour.get(rang).copied())
-            .ok_or_else(|| refus(format!("{} : aucun engagement de {} ne commence le {} ; la page se recharge.", mois, salarie, debut)))?;
-        let Some(saisies) = m.get("saisies").and_then(Value::as_array).filter(|s| s.iter().all(Value::is_object)) else {
-            return Err(erreur("TypeError", "`saisies` : une liste d'engagements est attendue pour chaque engagement modifie"));
+    let mut places = Vec::new();
+    for c in charge.get("cartes").and_then(Value::as_array).into_iter().flatten() {
+        let Some(saisie) = c.get("saisie").filter(|s| s.is_object()) else {
+            return Err(erreur("TypeError", "`cartes` : chaque carte porte `saisie`, un objet"));
         };
-        if remplacements.iter().any(|(j, _)| *j == i) {
-            return Err(refus(format!("{} : l'engagement de {} du {} est designe deux fois.", mois, salarie, debut)));
-        }
-        remplacements.push((i, saisies.clone()));
-    }
-    remplacements.sort_by(|a, b| b.0.cmp(&a.0));
-    for (i, saisies) in remplacements {
-        tous.splice(i..=i, saisies);
+        let i = match c.get("place").filter(|p| !p.is_null()) {
+            None => {
+                tous.push(saisie.clone());
+                tous.len() - 1
+            }
+            Some(p) => {
+                let i = p.as_u64().ok_or_else(|| erreur("TypeError", "`place` : un entier est attendu"))? as usize;
+                let place = tous.get_mut(i).ok_or_else(|| {
+                    refus(format!("{} : l'écran ne montre pas d'engagement à la place {} ; rechargez le mois.", engagement::libelle_mois(mois), i + 1))
+                })?;
+                *place = saisie.clone();
+                i
+            }
+        };
+        places.push(i);
     }
     v["engagements"] = Value::Array(tous);
-    Ok(v)
+    Ok((v, places))
 }
 
 /// Une paie que l'ecran montre, et pourquoi elle s'est recalculee d'elle-meme (`{"le", "raison"}`), s'il y a lieu.
@@ -2307,10 +2283,9 @@ fn annee_de(mois: &str) -> R<i32> {
     Ok(mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", socle::fichiers::repr(mois)))?)
 }
 
-/// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur. Charge : `mois`, `modifiees`
-/// (les engagements valides ouverts pour etre modifies, `mois_designe`), `blocs` (combien d'engagements porte chaque
-/// carte), `lignes` (vrai : les lignes de cotisation de chaque paie, pour le bulletin affiche), `urssaf` (vrai : le
-/// bordereau Urssaf du mois).
+/// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur. Charge : `mois`, `cartes`
+/// (les cartes que l'ecran montre autrement qu'elles ne sont ecrites, `mois_designe`), `lignes` (vrai : les lignes de
+/// cotisation de chaque paie, pour le bulletin affiche), `urssaf` (vrai : le bordereau Urssaf du mois).
 ///
 /// Un engagement valide montre la paie qu'il a ecrite, avec ses numeros du moment ; s'il s'est recalcule de lui-meme,
 /// ses informations disent quand et pourquoi (`etats::phrase_du_recalcul`). Un engagement en saisie se calcule, et
@@ -2319,7 +2294,7 @@ fn annee_de(mois: &str) -> R<i32> {
 /// calculent, et chacun de ceux-la tient sa place dans `paies` avec ce qui lui manque (`a_completer`), sans montant ;
 /// la carte qui en porte un n'a pas de total. Une saisie dont aucun refus ne se rapporte a un engagement refuse.
 fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let data = mois_designe(ctx, charge)?;
+    let (data, _) = mois_designe(ctx, charge)?;
     let refus = match apercu_de(ctx, charge, &data) {
         Ok(v) => return Ok(v),
         Err(refus) => refus,
@@ -2331,11 +2306,7 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut complete = data.clone();
     complete["engagements"] = Value::Array(tous.iter().zip(&manques).filter(|(_, m)| m.is_none()).map(|(e, _)| e.clone()).collect());
-    let mut sans_blocs = charge.clone();
-    if let Some(c) = sans_blocs.as_object_mut() {
-        c.remove("blocs");
-    }
-    let mut r = apercu_de(ctx, &sans_blocs, &complete)?;
+    let mut r = apercu_de(ctx, charge, &complete)?;
     let mut calculees = r["paies"].as_array().cloned().unwrap_or_default().into_iter();
     let paies: Vec<Value> = tous
         .iter()
@@ -2349,33 +2320,9 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             }),
         })
         .collect();
-    let tailles: Vec<usize> = match charge.get("blocs").and_then(Value::as_array) {
-        Some(a) => a.iter().map(|x| x.as_u64().unwrap_or(0) as usize).collect(),
-        None => vec![1; paies.len()],
-    };
-    let mut blocs = Vec::new();
-    let (mut rang, mut rang_calcule) = (0, 0);
-    let blocs_calcules = r["blocs"].as_array().cloned().unwrap_or_default();
-    for n in tailles {
-        let fin = (rang + n).min(paies.len());
-        let part = &manques[rang..fin];
-        if part.iter().any(Option::is_some) || part.is_empty() {
-            blocs.push(Value::Null);
-        } else {
-            // Une carte toute calculee : la somme de ses engagements, calcules un par un.
-            let vs = &blocs_calcules[rang_calcule..(rang_calcule + part.len()).min(blocs_calcules.len())];
-            let somme = |cle: &str| -> R<String> {
-                let mut t = Decimal::new(0, 2);
-                for v in vs {
-                    t += dec(v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
-                }
-                Ok(q2(t).to_string())
-            };
-            blocs.push(json!({"net_paye": somme("net_paye")?, "brut": somme("brut")?, "cout_employeur": somme("cout_employeur")?, "engagements": part.len()}));
-        }
-        rang_calcule += part.iter().filter(|m| m.is_none()).count();
-        rang = fin;
-    }
+    // Les trois nombres de chaque carte : ceux de son engagement calcule ; une carte a completer n'en a pas.
+    let mut calcules = r["blocs"].as_array().cloned().unwrap_or_default().into_iter();
+    let blocs: Vec<Value> = manques.iter().map(|m| if m.is_some() { Value::Null } else { calcules.next().unwrap_or(Value::Null) }).collect();
     let aucun_chiffre = r["par_salarie"].as_array().is_none_or(Vec::is_empty);
     r["phrase_du_mois"] = json!(phrase_du_mois(&paies, aucun_chiffre));
     r["paies"] = Value::Array(paies);
@@ -2434,8 +2381,7 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
         Ok(q2(t))
     };
     let (total_brut, total_cout, total_net) = (somme("brut")?, somme("cout_employeur")?, somme("net_paye")?);
-    // LES TROIS NOMBRES, sommes ici : par bloc de l'ecran (`blocs` : combien d'engagements chaque carte porte, dans
-    // l'ordre ; sans lui, une carte par engagement) et par salarie (la colonne « Le mois »).
+    // LES TROIS NOMBRES, sommes ici : par carte (une carte, un engagement) et par salarie (la colonne « Le mois »).
     let trois = |vs: &[&Value]| -> R<Value> {
         let mut t = [Decimal::new(0, 2), Decimal::new(0, 2), Decimal::new(0, 2)];
         for v in vs {
@@ -2445,17 +2391,7 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
         }
         Ok(json!({"net_paye": q2(t[0]).to_string(), "brut": q2(t[1]).to_string(), "cout_employeur": q2(t[2]).to_string(), "engagements": vs.len()}))
     };
-    let tailles: Vec<usize> = match charge.get("blocs").and_then(Value::as_array) {
-        Some(a) => a.iter().map(|x| x.as_u64().unwrap_or(0) as usize).collect(),
-        None => vec![1; vues.len()],
-    };
-    let mut blocs = Vec::new();
-    let mut rang = 0;
-    for n in tailles {
-        let fin = (rang + n).min(vues.len());
-        blocs.push(trois(&vues[rang..fin].iter().collect::<Vec<_>>())?);
-        rang = fin;
-    }
+    let blocs = vues.iter().map(|v| trois(&[v])).collect::<R<Vec<_>>>()?;
     let mut salaries: Vec<(String, Value, String, Vec<&Value>)> = Vec::new();
     for (v, p) in vues.iter().zip(&paies) {
         let s = v.get("salarie").cloned().unwrap_or(Value::Null);
