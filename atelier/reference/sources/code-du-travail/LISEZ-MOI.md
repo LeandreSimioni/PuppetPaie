@@ -306,7 +306,10 @@ l'arrêté du 25 février 2016 (`../montant-net-social/legi-arrete-20160225-bull
 `atelier/sources/moteur/src/import/bulletin_lu.rs`, le lecteur des bulletins importés : il trouve ces mentions par leurs
 libellés (`logiciel/donnees/bulletins-lecture-base.json`, `mentions`), refuse une page où le salarié, la période, le brut
 ou la somme reçue ne se trouvent pas, et lit un taux de colonne qui ne dit pas sa part comme celui du salarié, le seul que
-le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`.
+le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`. Le 1° dit aussi « le cas échéant, la
+désignation de l'établissement dont dépend le salarié », et le 2° le code APE « de l'établissement d'emploi » :
+`atelier/sources/documents/src/bulletin.rs` (`blocs_un`) imprime, pour un contrat d'un autre établissement que le siège,
+« Établissement : » et le SIRET de cet établissement dans le cadre EMPLOYEUR (`droit::bareme::entreprise_du_salarie`).
 
 ## Le contrat écrit : L1242-12 (CDD), L1221-5-1 et R1221-34 à R1221-40 (tout salarié), L3123-6 (temps partiel) (relevé du 29/10/2026, #285)
 
