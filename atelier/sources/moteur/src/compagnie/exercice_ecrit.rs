@@ -78,25 +78,10 @@ fn entier(v: &Value) -> R<i64> {
 
 // ------------------------------------------------------------------ le journal des depots
 
-/// Le journal des depots, relu une fois, quand il faut dire si la DSN d'un mois est partie.
-struct Depots<'a> {
-    ctx: &'a Contexte,
-    lignes: Option<Vec<Value>>,
-}
-
-impl<'a> Depots<'a> {
-    fn nouveau(ctx: &'a Contexte) -> Self {
-        Depots { ctx, lignes: None }
-    }
-
-    /// Une DSN reelle acceptee est-elle partie pour ce mois ?
-    fn dsn_acceptee(&mut self, mois: &str) -> R<bool> {
-        if self.lignes.is_none() {
-            self.lignes = Some(etats::charger(&self.ctx.racine)?);
-        }
-        let l = self.lignes.as_ref().unwrap();
-        Ok(vrai(&etats::etat_dsn_du_mois(l, mois, &Value::Null, &nic_principal(self.ctx))?))
-    }
+/// Une DSN reelle acceptee est-elle partie pour ce mois ? (`envois::journal::lu`, `etats::etat_dsn_du_mois`)
+fn dsn_acceptee(ctx: &Contexte, mois: &str) -> R<bool> {
+    let journal = envois::journal::lu(&ctx.racine)?;
+    Ok(vrai(&etats::etat_dsn_du_mois(&journal.lignes, mois, &Value::Null, &nic_principal(ctx))?))
 }
 
 // ------------------------------------------------------------------ l'export compta
@@ -136,7 +121,7 @@ fn dossier_exercices(ctx: &Contexte) -> PathBuf {
 /// Les mois pris sont ceux qui ont une saisie.
 fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) -> R<ExportCompta> {
     let plan = plan_comptable(ctx)?;
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let propre = ctx.racine.join("config").join("plan-comptable.json");
     let origine = if propre.exists() { "config/plan-comptable.json" } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
     let mois: Vec<String> = mois_de_l_annee(ctx, annee)
@@ -153,13 +138,12 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
             if (du, au) == (1, 12) { String::new() } else { format!(" entre les mois {} et {}", du, au) }
         )));
     }
-    let mut depots = Depots::nouveau(ctx);
     let mut avert: Vec<String> = Vec::new();
     let mut ecritures: Vec<Ecriture> = Vec::new();
     for m in &mois {
         if !ctx.racine.join("sorties").join(m).is_dir() {
             avert.push(format!("{} : saisi mais jamais écrit (pas de bulletin) -- pris quand même, depuis la saisie.", m));
-        } else if !depots.dsn_acceptee(m)? {
+        } else if !dsn_acceptee(ctx, m)? {
             avert.push(format!("{} : pas de DSN réelle acceptée au journal.", m));
         }
         ecritures.extend(ecritures_du_mois(ctx, m, &plan, &departs)?);
@@ -285,10 +269,9 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
         return Err(refus(format!("L'exercice {} n'est pas fini : on clôture une année passée.", annee)));
     }
     let mois = mois_de_l_annee(ctx, annee);
-    let mut depots = Depots::nouveau(ctx);
     let mut sans_dsn: Vec<String> = Vec::new();
     for m in &mois {
-        if engagement::stock::a_une_saisie(&ctx.racine, m).unwrap_or(false) && !depots.dsn_acceptee(m)? {
+        if engagement::stock::a_une_saisie(&ctx.racine, m).unwrap_or(false) && !dsn_acceptee(ctx, m)? {
             sans_dsn.push(m.clone());
         }
     }

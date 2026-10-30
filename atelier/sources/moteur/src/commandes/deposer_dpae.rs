@@ -104,8 +104,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     // ------------------------------------------------------------- relecture
     let nom_fichier = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     dire!("\n{} -- {} declaration(s), {} octets\n{}", nom_fichier, enregistrements.len(), contenu.len(), "-".repeat(66));
-    let aujourdhui = cadre.aujourdhui;
-    let mut hors_delai = 0usize;
     for e in &enregistrements {
         let debut = match jour_de(&champ(e, "date_embauche"), "Date d'embauche") {
             Ok(j) => j,
@@ -115,20 +113,11 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             Ok(j) => j,
             Err(r) => return Ok(super::actes::reponse_metier("deposer-dpae", false, &r, &[])),
         };
-        let reste = debut.ordinal() - aujourdhui.ordinal();
-        let etat = if reste < 0 {
-            hors_delai += 1;
-            "EMBAUCHE PASSEE - hors delai".to_string()
-        } else if reste > 0 {
-            format!("dans {} jour(s)", reste)
-        } else {
-            "aujourd'hui".to_string()
-        };
         let heure = champ(e, "heure_embauche");
         let (h, m) = (heure.chars().take(2).collect::<String>(), heure.chars().skip(2).collect::<String>());
         // Le type de contrat se LIT dans le fichier : c'est ce qui separe la DPAE d'un permanent de celle d'un intermittent.
         dire!(
-            "  {:<22} {:<12} ne(e) le {}   {} embauche le {} a {}h{}   {}",
+            "  {:<22} {:<12} ne(e) le {}   {} embauche le {} a {}h{}",
             champ(e, "nom").trim(),
             champ(e, "prenom").trim(),
             naissance.jj_mm_aaaa(),
@@ -136,7 +125,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             debut.jj_mm_aaaa(),
             h,
             m,
-            etat
         );
     }
     dire!("{}", "-".repeat(66));
@@ -169,10 +157,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         .collect();
     mois.sort();
     mois.dedup();
-    if hors_delai > 0 {
-        dire!("\n>>> {} embauche(s) deja commencee(s) : la declaration est en retard.", hors_delai);
-        dire!(">>> La deposer quand meme, telle quelle, sans antidater.");
-    }
 
     // ------------------------------------------------------------ essai a blanc
     if !reel && !test {

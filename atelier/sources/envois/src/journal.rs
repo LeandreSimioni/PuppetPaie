@@ -1,6 +1,6 @@
 //! LE JOURNAL DE CE QUI EST PARTI : `journal/depots.json`, une liste a laquelle on n'ajoute qu'a la fin (`noter`) et
 //! qu'on relit filtree (`lire`), l'empreinte d'un fichier, et ce qui est parti de chaque engagement, sur quelle version
-//! (`departs`), que `moteur` passe a l'engagement. Les etats du mois, les resumes et le rattachement des retours sont dans
+//! (`lu` : une lecture, d'ou `departs`, que `moteur` passe a l'engagement). Les etats du mois, les resumes et le rattachement des retours sont dans
 //! `etats`.
 
 use std::path::{Path, PathBuf};
@@ -52,25 +52,39 @@ pub fn empreinte_fichier(chemin: &Path) -> Resultat<String> {
     std::fs::read(chemin).map(|b| empreinte(&b)).map_err(|e| format!("{} : {}", chemin.display(), e))
 }
 
-/// Les lignes du journal `p`, lues une fois tant qu'il ne change pas (`socle::fichiers::json_partage`) : chaque etat de
-/// mois, chaque envoi le relit, et il grandit avec la compagnie. Un calcul suivi le note comme toute lecture.
-fn lignes_du_fichier(p: &Path) -> Resultat<Vec<Value>> {
-    let v = socle::fichiers::json_partage(p)?.ok_or_else(|| format!("{} : fichier introuvable", p.display()))?;
-    socle::fichiers::noter_si_besoin(p);
-    match v.as_ref() {
-        Value::Array(a) => Ok(a.clone()),
-        _ => Err(format!("{} : une liste etait attendue", p.display())),
+/// LE JOURNAL LU : ses lignes (ce qui est parti et ce qui en est revenu : bilans, contrats signes, anomalies), et ce qui
+/// est parti de chaque engagement, sur quelle version (`departs`), la part que le moteur passe a l'engagement. Une seule
+/// lecture : tiree une fois par contenu du fichier (`socle::fichiers::json_partage`), la meme valeur partagee pour
+/// chaque lecteur d'un geste tant que le journal ne change pas.
+#[derive(Debug, Clone, Default)]
+pub struct Journal {
+    pub lignes: std::sync::Arc<Vec<Value>>,
+    pub departs: engagement::departs::Departs,
+}
+
+/// `journal/depots.json` lu (`Journal`) ; vide s'il n'existe pas.
+pub fn lu(racine: &Path) -> Resultat<Journal> {
+    type Tires = std::sync::Mutex<std::collections::HashMap<PathBuf, (std::sync::Arc<Value>, Journal)>>;
+    static TIRES: std::sync::OnceLock<Tires> = std::sync::OnceLock::new();
+    let p = chemin(racine);
+    let Some(v) = socle::fichiers::json_partage(&p)? else { return Ok(Journal::default()) };
+    socle::fichiers::noter_si_besoin(&p);
+    let tires = TIRES.get_or_init(Default::default);
+    if let Some((vu, j)) = tires.lock().unwrap_or_else(|e| e.into_inner()).get(&p) {
+        if std::sync::Arc::ptr_eq(vu, &v) {
+            return Ok(j.clone());
+        }
     }
+    let Value::Array(lignes) = v.as_ref() else { return Err(format!("{} : une liste etait attendue", p.display())) };
+    let j = Journal { departs: departs_des_lignes(lignes), lignes: std::sync::Arc::new(lignes.clone()) };
+    socle::fichiers::ranger(tires, p, (v.clone(), j.clone()));
+    Ok(j)
 }
 
 /// Les lignes, les plus recentes en dernier. Un filtre vide
 /// ne filtre pas.
 pub fn lire(racine: &Path, quoi: Option<&str>, mois: Option<&str>, reel_seulement: bool) -> Resultat<Vec<Value>> {
-    let p = chemin(racine);
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let mut lignes = lignes_du_fichier(&p)?;
+    let mut lignes = (*lu(racine)?.lignes).clone();
     let egal = |l: &Value, c: &str, v: &str| l.get(c).and_then(Value::as_str) == Some(v);
     if let Some(q) = quoi.filter(|q| !q.is_empty()) {
         lignes.retain(|l| egal(l, "quoi", q));
@@ -148,33 +162,10 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
     }
     let ligne = Value::Object(l);
     let p = chemin(racine);
-    let mut lignes = if p.exists() { lignes_du_fichier(&p)? } else { Vec::new() };
+    let mut lignes = (*lu(racine)?.lignes).clone();
     lignes.push(ligne.clone());
     ecrire_json(&p, &Value::Array(lignes), 2)?;
     Ok(ligne)
-}
-
-/// CE QUI EST PARTI, pour l'engagement (`engagement::departs`) : chaque ligne d'envoi acceptee porte, pour chaque
-/// engagement qu'elle couvre, la version sur laquelle elle est partie (`versions` : `[{"salarie", "numero",
-/// "version", "mois"?}]` ; `mois`, pour la correction d'un mois passe qu'une DSN porte : le mois corrige). Une DSN ou une DPAE de test ne part pas : seules les lignes reelles comptent.
-/// Tires une fois par contenu du journal (la meme valeur partagee, `socle::fichiers::json_partage`) : chaque lecture d'un
-/// mois les demande.
-pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
-    type Tires = std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, (std::sync::Arc<Value>, engagement::departs::Departs)>>;
-    static TIRES: std::sync::OnceLock<Tires> = std::sync::OnceLock::new();
-    let p = chemin(racine);
-    let Some(v) = socle::fichiers::json_partage(&p)? else { return Ok(Default::default()) };
-    socle::fichiers::noter_si_besoin(&p);
-    let tires = TIRES.get_or_init(Default::default);
-    if let Some((vu, d)) = tires.lock().unwrap_or_else(|e| e.into_inner()).get(&p) {
-        if std::sync::Arc::ptr_eq(vu, &v) {
-            return Ok(d.clone());
-        }
-    }
-    let Value::Array(lignes) = v.as_ref() else { return Err(format!("{} : une liste etait attendue", p.display())) };
-    let d = departs_des_lignes(lignes);
-    socle::fichiers::ranger(tires, p, (v.clone(), d.clone()));
-    Ok(d)
 }
 
 /// Ce que les lignes `lignes` du journal disent de ce qui est parti (`departs`) : les lignes qui precedent un envoi

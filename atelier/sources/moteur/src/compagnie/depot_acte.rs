@@ -267,7 +267,7 @@ fn versions_du_signalement(ctx: &Contexte, evenement: &str, octets: &[u8]) -> R<
     let texte = String::from_utf8_lossy(octets);
     let numeros: Vec<String> =
         texte.lines().filter_map(|l| l.strip_prefix("S21.G00.40.009,")).map(|v| v.trim().trim_matches('\'').to_string()).collect();
-    envois::journal::versions_du_mois(ctx, mois, &envois::journal::departs(&ctx.racine)?, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
+    envois::journal::versions_du_mois(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
 }
 
 /// La derniere porte -- une copie de developpement ne declare rien en reel.
@@ -493,7 +493,7 @@ pub fn deposer_dsn_dans(
     }
     let nic: Value = if apercu.champ("etablissement").is_empty() { Value::Null } else { json!(apercu.champ("etablissement")) };
     let principal = etats::nic_principal(&ctx.entreprise);
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
 
     let (mut forme, mut repetition) = (String::new(), Value::Null);
     // UN SIGNALEMENT REEL PART A UN ORDRE QUE PERSONNE N'A ENCORE PRIS : la sequence ne se remet jamais a zero
@@ -581,11 +581,11 @@ pub fn deposer_dsn_dans(
         versions_du_signalement(ctx, &mois, &octets)?
     } else {
         let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
-        let mut v = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::departs(&ctx.racine)?, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
+        let mut v = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
         // Et la version presente de l'engagement de chaque mois passe dont la DSN porte la correction.
         if let Value::Array(a) = &mut v {
-            a.extend(declarations::produire_regularisations::versions_portees(ctx, &mois, &nic, &envois::journal::departs(&ctx.racine)?)?);
+            a.extend(declarations::produire_regularisations::versions_portees(ctx, &mois, &nic, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?);
         }
         v
     };
@@ -648,7 +648,7 @@ pub fn deposer_dpae_avec(
         forme = verifier_preuve(ctx, preuve, &mois, "depot REEL d'une DPAE", "l'Urssaf (declaration d'embauche)")?;
         // LA REPETITION, apres la preuve : le fichier sur le disque porte toujours l'indicateur reel, et c'est
         // NOUS qui le basculons en test juste en dessous.
-        let lignes = etats::charger(&ctx.racine)?;
+        let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
         repetition = exiger_repetition(ctx, &lignes, "dpae", &chemin, contournement)?;
     }
 
@@ -685,7 +685,7 @@ pub fn deposer_dpae_avec(
         .unwrap_or_default();
     // La version de chaque engagement dont l'embauche part : une date d'embauche qui change ensuite le dit.
     let declare = |cle: &str, e: &Value| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["debut"].as_str() == Some(engagement::debut_brut(e).as_str()));
-    let versions = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::departs(&ctx.racine)?, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
+    let versions = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
     let d = envois::depot_acte::Depot { chemin: &chemin, octets: &octets, mois: &mois, reel, qui, preuve: &forme, repetition: &repetition, motdepasse: None, versions: &versions };
     let c = match donne.as_deref_mut() {
         Some(c) => Some(c),

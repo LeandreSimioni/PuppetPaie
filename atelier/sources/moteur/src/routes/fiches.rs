@@ -938,7 +938,7 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
 
 fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let code = charge.get("code").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
-    let lignes = envois::etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let attendues = crate::routes::ouverture::attendues(&lignes)?;
     if !attendues.iter().any(|a| a.get("code").and_then(Value::as_str) == Some(code.as_str())) {
         return Err(refus(format!("Aucune demande de fiche en attente sous le code {}.", code)));
@@ -1340,7 +1340,7 @@ pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -
         return Ok(None);
     }
     let sien = |c: &str| nom == "entreprise" || Some(c) == cle;
-    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     let partis = departs
         .engagements()
         .filter(|(c, _)| sien(c))
@@ -1936,7 +1936,7 @@ pub struct Attendue {
 /// `fiches_attendues` : les demandes parties et pas encore revenues, les plus anciennes d'abord. Une demande a
 /// laquelle on renonce se retire (`fiche-oublier-demande`, `fiches`).
 pub fn fiches_attendues(ctx: &Contexte) -> R<Vec<Attendue>> {
-    let lignes = envois::etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let detail = |l: &Value| -> Value { l.get("detail").filter(|d| vrai(d)).cloned().unwrap_or_else(|| json!({})) };
     let closes: Vec<Value> = envois::etats::filtrer(&lignes, Some("fiche-recue"), None, false)?.iter().map(|l| detail(l).get("code").cloned().unwrap_or(Value::Null)).collect();
     let mut sortie = Vec::new();

@@ -544,7 +544,7 @@ pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Result
     };
     let ordre = rubrique("S20.G00.05.004");
     let remplace = matches!(rubrique("S20.G00.05.002").as_str(), "03" | "05").then_some(ordre.as_str());
-    let lignes = crate::etats::charger(&ctx.racine).map_err(|e| e.message)?;
+    let lignes = crate::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let ent = &ctx.entreprise;
     let siret = ent.get("siret").map(en_texte).unwrap_or_default();
     let idcc = ent.get("idcc").map(en_texte).unwrap_or_default();

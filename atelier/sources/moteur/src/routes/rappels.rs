@@ -225,7 +225,7 @@ pub(super) fn brut_valeur(v: &Value) -> Value {
 pub(crate) struct Etat<'a> {
     pub(crate) ctx: &'a Contexte,
     pub(crate) aujourdhui: Jour,
-    pub(crate) journal: Vec<Value>,
+    pub(crate) journal: std::sync::Arc<Vec<Value>>,
     pub(crate) principal: String,
 }
 
@@ -264,7 +264,7 @@ fn rappels(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
         Some(v) => Jour::lire(&en_texte(v))?,
         None => ctx.aujourdhui,
     };
-    let st = Etat { ctx: &ctx, aujourdhui, journal: etats::charger(&ctx.racine)?, principal: nic_principal(&ctx) };
+    let st = Etat { ctx: &ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine).map(|j| j.lignes)?, principal: nic_principal(&ctx) };
     let out = lister(&st)?;
     Ok(json!({ "rappels": out.iter().map(Rappel::json).collect::<Vec<_>>() }))
 }

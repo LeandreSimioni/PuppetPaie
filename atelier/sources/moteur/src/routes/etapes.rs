@@ -264,10 +264,6 @@ fn point_de(c: &Colonne, points: &[Point], ligne: fn(&Point) -> &'static str, or
 
 // ------------------------------------------------------------ petits outils
 
-fn dupliquer(e: &Echec) -> Echec {
-    Echec { classe: e.classe, message: e.message.clone() }
-}
-
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
@@ -386,7 +382,7 @@ pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat
 /// Les contrats de `mois` dont l'avenant est a faire signer : `(cle du salarie, numero)` des engagements dont les clauses
 /// ont change depuis la version sur laquelle le contrat est parti (`a_refaire_du_mois`).
 pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String, String)>> {
-    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     let etats = engagement::etats::du_mois(ctx, mois, &departs).map_err(plain)?;
     let refaire = a_refaire_du_mois(ctx, &etats, &departs)?;
     Ok(etats
@@ -615,7 +611,6 @@ pub(crate) struct Globales {
 /// Tout ce qu'une route lit, lu une fois.
 pub struct Moteur<'a> {
     ctx: &'a Contexte,
-    journal: Option<Result<std::sync::Arc<Vec<Value>>, Echec>>,
     globales: Option<Rc<Globales>>,
     fichiers: HashMap<String, Value>,
     /// LES ENGAGEMENTS TELS QU'ILS SONT ECRITS, sans recalcul d'eux-memes (`engagement::etats::tels_qu_ecrits`) : ce que
@@ -625,13 +620,13 @@ pub struct Moteur<'a> {
 
 impl<'a> Moteur<'a> {
     pub fn nouveau(ctx: &'a Contexte) -> Moteur<'a> {
-        Moteur { ctx, journal: None, globales: None, fichiers: HashMap::new(), ecrit: false }
+        Moteur { ctx, globales: None, fichiers: HashMap::new(), ecrit: false }
     }
 
-    /// Ce qui est parti (`envois::journal::departs`, tire une fois par contenu du journal) : ce que le moteur passe a
+    /// Ce qui est parti (`envois::journal::lu`, tire une fois par contenu du journal) : ce que le moteur passe a
     /// l'engagement, qui ne lit pas le journal.
     pub(crate) fn departs(&self) -> R<engagement::departs::Departs> {
-        envois::journal::departs(&self.ctx.racine).map_err(plain)
+        envois::journal::lu(&self.ctx.racine).map(|j| j.departs).map_err(plain)
     }
 
     /// Les engagements de `mois`, dans l'ordre de l'ecran : recalcules d'eux-memes s'il le faut (`du_mois`), ou tels
@@ -648,15 +643,9 @@ impl<'a> Moteur<'a> {
         &self.ctx.racine
     }
 
-    /// Les lignes de `journal/depots.json`, lues une fois (et le refus aussi).
-    pub(crate) fn lignes(&mut self) -> R<std::sync::Arc<Vec<Value>>> {
-        if self.journal.is_none() {
-            self.journal = Some(etats::charger_partage(self.racine()));
-        }
-        match self.journal.as_ref().unwrap() {
-            Ok(l) => Ok(l.clone()),
-            Err(e) => Err(dupliquer(e)),
-        }
+    /// Les lignes de `journal/depots.json` (`envois::journal::lu`, la lecture qui donne aussi `departs`).
+    pub(crate) fn lignes(&self) -> R<std::sync::Arc<Vec<Value>>> {
+        envois::journal::lu(self.racine()).map(|j| j.lignes).map_err(plain)
     }
 
     fn nic(&self) -> String {
@@ -1929,7 +1918,7 @@ fn motif_dpae(d: &Value) -> String {
 }
 
 pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::etats::Etat], lignes: &[Value]) -> R<HashMap<String, Value>> {
-    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let resumes = etats::resumes_des_documents(lignes, mois)?;
     let mut out: HashMap<String, Value> = HashMap::new();
     // Les documents d'un salarie partent ensemble, pour tous ses engagements valides du mois : un engagement valide dont
@@ -2035,7 +2024,7 @@ pub(crate) fn mois_de(charge: &Value) -> R<(Value, String)> {
 /// LES ENGAGEMENTS NON ACTIFS que `mois` montrerait (`engagement::etats::non_actifs_du_mois`), pour qu'ils se lisent :
 /// le salarie, son nom, le contrat, depuis quand, et ce que leur desactivation rend a faire (`a_faire`).
 fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
-    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     let mut out = Vec::new();
     for n in engagement::etats::non_actifs_du_mois(ctx, mois).map_err(plain)? {
         let b = Value::Object(n.objet().brut.clone());

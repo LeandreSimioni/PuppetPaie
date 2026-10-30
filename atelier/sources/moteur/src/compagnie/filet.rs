@@ -22,7 +22,7 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use socle::ecriture::ecrire_json;
 use crate::compagnie::editeur::Client;
-use envois::etats::{self, get};
+use envois::etats::get;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -262,16 +262,11 @@ pub fn verifier(racine: &Path) -> R<Value> {
 // ------------------------------------------------------- les embauches suivies
 
 /// Le journal des depots, ou un refus qui le dit (un fichier qui ne se lit pas en JSON).
-fn journal_lisible(racine: &Path) -> R<Vec<Value>> {
-    etats::charger(racine).map_err(|e| match e.classe {
-        Some("JSONDecodeError" | "UnicodeDecodeError" | "AttributeError" | "TypeError") => erreur(
-            "ErreurOperation",
-            format!("Le journal des depots (journal/depots.json) est illisible : {}.\nLe corriger, ou le deplacer, avant de relancer.", e.message),
-        ),
-        _ => e,
+fn journal_lisible(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
+    envois::journal::lu(racine).map(|j| j.lignes).map_err(|e| {
+        erreur("ErreurOperation", format!("Le journal des depots (journal/depots.json) est illisible : {e}.\nLe corriger, ou le deplacer, avant de relancer."))
     })
 }
-
 /// Les embauches suivies : les DPAE a faire (`etapes::Moteur::embauches_a_declarer`), le journal des depots lisible.
 pub fn suivies(ctx: &Contexte) -> R<Vec<Value>> {
     journal_lisible(&ctx.racine)?;

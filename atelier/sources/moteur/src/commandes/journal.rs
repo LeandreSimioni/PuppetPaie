@@ -37,7 +37,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let (quoi, mois) = (args.texte("quoi"), args.texte("mois"));
-    let toutes = envois::etats::charger(&cadre.racine)?;
+    let toutes = envois::journal::lu(&cadre.racine).map(|j| j.lignes)?;
     let lignes = envois::etats::filtrer(&toutes, quoi, mois, false)?;
     if lignes.is_empty() {
         if quoi.is_some() || mois.is_some() {

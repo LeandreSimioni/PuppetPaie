@@ -329,24 +329,19 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
             }
         }
     }
-    let mois: Vec<String> = std::fs::read_dir(ctx.racine.join("engagements"))
-        .into_iter()
-        .flatten()
-        .filter_map(|e| e.ok()?.file_name().into_string().ok())
-        .filter_map(|n| n.strip_suffix(".json").filter(|m| m.len() == 7 && m.as_bytes()[4] == b'-').map(str::to_string))
-        .collect::<std::collections::BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    for m in mois {
-        let Ok(f) = socle::fichiers::lire_json(&ctx.racine.join("engagements").join(format!("{}.json", m))) else { continue };
-        for e in f.get("engagements").and_then(Value::as_array).into_iter().flatten() {
-            let (salarie, debut) = (t(e, "salarie"), t(e, "debut"));
-            if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) || !mensuel(&t(e, "nature")) {
-                continue;
-            }
-            vus.push(salarie.clone());
-            contrats.push((salarie, debut, format!("{}-01", m)));
+    // Les engagements valides et actifs, chacun dans le mois de son fichier (`engagement::stock::objets`) : un brouillon
+    // n'engage rien.
+    for o in engagement::stock::objets(&ctx.racine).unwrap_or_default() {
+        if !o.est_valide() || o.est_non_actif() {
+            continue;
         }
+        let e = Value::Object(o.brut.clone());
+        let (salarie, debut) = (t(&e, "salarie"), t(&e, "debut"));
+        if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) || !mensuel(&t(&e, "nature")) {
+            continue;
+        }
+        vus.push(salarie.clone());
+        contrats.push((salarie, debut, format!("{}-01", o.premier_mois())));
     }
     let mut out = Vec::new();
     for (salarie, debut, premier) in contrats {

@@ -291,8 +291,9 @@ fn deposer_les_dsn(
 ) -> R<bool> {
     let f = Moteur::nouveau(ctx).fichiers_deposables(mois)?;
     let chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| valeur_en_texte(&x["chemin"])).collect()).unwrap_or_default();
-    let lignes: Vec<Value> = etats::charger(&ctx.racine)?
-        .into_iter()
+    let journal = envois::journal::lu(&ctx.racine)?;
+    let lignes: Vec<&Value> = journal.lignes
+        .iter()
         .filter(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("accepte").is_some_and(vrai))
         .collect();
     let mut fait = false;
@@ -825,7 +826,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
 fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi: &str, quand: &str) -> Vec<String> {
     pas(d, quoi, quand, |ctx| {
         let objets = engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(Echec::from)?;
-        let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+        let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
         let mut fait = false;
         for (i, o) in objets.iter().enumerate() {
             // Un engagement auquel il manque un fait attend qu'on le complete (`engagement::stock::A_COMPLETER`).

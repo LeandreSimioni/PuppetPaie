@@ -105,7 +105,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
     }
     let i = rang_calcule(ctx, mois, &o)?;
-    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
     let le = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
     let e = &data["engagements"][i];
@@ -266,7 +266,7 @@ fn modifier_puis_revalider(
             return Err(erreur(crate::regularisation::CLASSE_NON_DECLARABLE, texte));
         }
     }
-    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let en_valeur = |qui: String, c: Vec<String>| json!([{"qui": qui, "consequences": c}]);
     // « A PARTIR DE QUEL MOIS ? » : un contrat au mois dont un mois est parti et dont les termes changent. Sans reponse
     // parmi ses choix, la question vient dans l'avertissement ; un seul choix vaut reponse.
@@ -421,7 +421,7 @@ fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     let o = a_la_place(ctx, mois, place_de(charge)?)?;
-    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     if !booleen(charge, "non_actif", false) {
         return match engagement::etats::supprimer(ctx, &o, &departs) {
             Ok(()) => Ok(json!({"retire": "supprime"})),
