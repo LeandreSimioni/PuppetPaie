@@ -237,12 +237,12 @@ fn ligne_de(e: &Ecriture, plan: &Map<String, Value>) -> R<Ligne> {
 
 /// `_ecritures` : les ecritures de la periode, numerotees -- une ecriture (une piece) par mois, ses lignes dans
 /// l'ordre de `ecritures_du_mois`.
-fn ecritures_de(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<(Vec<Ecriture>, Map<String, Value>, &'static str)> {
+fn ecritures_de(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<(Vec<Ecriture>, Map<String, Value>, &'static str)> {
     let (plan, origine) = crate::plan_comptable::plan(ctx)?;
     let mut out = Vec::new();
     let mois = ecarter_declares(p, avert, "la répartition des cotisations — donc pas d'écriture équilibrée")?;
     for (n, m) in mois.iter().enumerate() {
-        for mut e in ecritures_du_mois(ctx, m, &plan)? {
+        for mut e in ecritures_du_mois(ctx, m, &plan, departs)? {
             e.piece = format!("PAIE-{}", m);
             e.numero = n as i64 + 1;
             out.push(e);
@@ -881,7 +881,7 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     if format.is_empty() {
         format = "csv".to_string();
     }
-    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert)?;
+    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert, &d.departs)?;
     let mut t = Tableau::nouveau("ecritures-comptables", "Journal de paie — écritures comptables", p.libelle.clone());
     t.mois = p.saisis();
     t.avertissements = avert;
@@ -976,7 +976,7 @@ fn solde(d: &Ligne) -> String {
 pub fn grand_livre(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
-    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert)?;
+    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert, &d.departs)?;
     let mut par: BTreeMap<String, Vec<Ligne>> = BTreeMap::new();
     let mut libelles: BTreeMap<String, String> = BTreeMap::new();
     for e in &ecr {
@@ -1017,7 +1017,7 @@ pub fn grand_livre(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 pub fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
-    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert)?;
+    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert, &d.departs)?;
     let zero = zero2();
     // compte -> (libelle, debit, credit)
     let mut par: BTreeMap<String, (String, Decimal, Decimal)> = BTreeMap::new();
@@ -1098,9 +1098,9 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let fin = socle::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
     let mut avert: Vec<String> = Vec::new();
     // Ce qui a ete paye ce mois-la : les paies ecrites de ses engagements valides, la saisie au meme rang.
-    let (saisie, paies) = charger_mois(ctx, &m)?;
+    let (saisie, paies) = charger_mois(ctx, &m, &d.departs)?;
     let toutes = Periode::nouvelle(ctx, None, None, true, true)?;
-    let livre = lignes_livre(ctx, &toutes, &mut Vec::new())?;
+    let livre = lignes_livre(ctx, &toutes, &mut Vec::new(), &d.departs)?;
     let zero = zero2();
     let mut lignes: Vec<Ligne> = Vec::new();
     let mut vus: BTreeSet<String> = BTreeSet::new();
@@ -1280,7 +1280,7 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut ordre: Vec<String> = Vec::new();
     let mut par: BTreeMap<String, (String, Decimal, Decimal, BTreeSet<String>)> = BTreeMap::new();
     for m in p.saisis_sans_les_importes(&mut avert, "l'assiette de la CSG d'où se calcule la taxe")? {
-        let paies = match charger_mois(ctx, &m) {
+        let paies = match charger_mois(ctx, &m, &d.departs) {
             Ok((_, paies)) => paies,
             Err(e) if matches!(e.classe, Some("ErreurOperation") | Some("ValueError") | Some("KeyError") | Some("FileNotFoundError")) => {
                 avert.push(format!("{} : le mois ne se charge pas ({}) — écarté.", m, e.message));

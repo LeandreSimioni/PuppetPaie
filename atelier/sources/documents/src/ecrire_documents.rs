@@ -68,14 +68,14 @@ pub fn prendre_le_verrou(ctx: &Contexte, qui: &str) -> R<Verrou> {
 /// Les numeros de contrat (FA1.26.13) et de bulletin (17/2026) que les paies porteraient (`engagement::numeros::numeroter`), en
 /// memoire : l'apercu n'ecrit rien. Un engagement qui PORTE DEJA son numero de contrat le garde (`engagement::numeros`),
 /// une paie partie son numero de bulletin (`engagement::etats::Valide::bulletin`).
-pub fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32) -> Result<(), Refus> {
-    numeroter_en_attente(ctx, paies, annee, &mut HashMap::new())
+pub fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32, departs: &engagement::departs::Departs) -> Result<(), Refus> {
+    numeroter_en_attente(ctx, paies, annee, &mut HashMap::new(), departs)
 }
 
 /// La meme, avec les numeros de bulletin deja RESERVES par un appel precedent du meme processus : `(annee, "bulletin")
 /// -> dernier numero`, sinon a la suite du compteur de l'annee (`config/compteurs.json`) et des bulletins importes de
 /// l'annee (`engagement::numeros::dernier_bulletin_importe`).
-pub fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, attente: &mut HashMap<(String, String), i64>) -> Result<(), Refus> {
+pub fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, attente: &mut HashMap<(String, String), i64>, departs: &engagement::departs::Departs) -> Result<(), Refus> {
     let p = ctx.racine.join("config").join("compteurs.json");
     let compteurs = if p.exists() { lire_json(&p)? } else { Value::Null };
     let an = annee.to_string();
@@ -87,7 +87,7 @@ pub fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, atte
             _ => None,
         }).unwrap_or(0).max(engagement::numeros::dernier_bulletin_importe(&ctx.racine, annee.into())?) + 1,
     };
-    let n_bull = engagement::numeros::numeroter(ctx, paies, annee, n_bull)?;
+    let n_bull = engagement::numeros::numeroter(ctx, paies, annee, n_bull, departs)?;
     attente.insert((an, "bulletin".to_string()), n_bull - 1);
     Ok(())
 }
@@ -132,8 +132,8 @@ impl Reserves {
     }
 
     /// Les numeros de bulletin des paies, reserves ; leurs numeros de contrat, ceux qu'elles porteraient.
-    pub fn numeroter(&mut self, ctx: &Contexte, paies: &mut [Paie], annee: i32) -> R<()> {
-        numeroter_en_attente(ctx, paies, annee, &mut self.valeurs)?;
+    pub fn numeroter(&mut self, ctx: &Contexte, paies: &mut [Paie], annee: i32, departs: &engagement::departs::Departs) -> R<()> {
+        numeroter_en_attente(ctx, paies, annee, &mut self.valeurs, departs)?;
         let k = (annee.to_string(), "bulletin".to_string());
         if !self.ordre.contains(&k) {
             self.ordre.push(k);
@@ -166,15 +166,15 @@ impl Reserves {
 /// validation (`engagement::numeros`), chaque bulletin sous le sien (ecrit dans la paie a son depart, ou celui que le
 /// compteur propose). `reserves` : les numeros de bulletin qu'un envoi propose, que la route d'envoi ecrit plus loin. Un
 /// mois sans engagement valide n'a rien.
-pub fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut Reserves>) -> Result<(Value, Vec<Paie>), Refus> {
-    let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois)? else {
+pub fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut Reserves>, departs: &engagement::departs::Departs) -> Result<(Value, Vec<Paie>), Refus> {
+    let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois, departs)? else {
         return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
     };
     let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
     let annee = entier_lu(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
     match reserves {
-        Some(r) => r.numeroter(ctx, &mut paies, annee)?,
-        None => numeroter(ctx, &mut paies, annee)?,
+        Some(r) => r.numeroter(ctx, &mut paies, annee, departs)?,
+        None => numeroter(ctx, &mut paies, annee, departs)?,
     }
     Ok((data, paies))
 }

@@ -1269,6 +1269,7 @@ pub fn jeux_et_description(
     paies_du_mois: Option<&[Paie]>,
     borne_au_mois: bool,
     rectificatifs: &HashMap<usize, Value>,
+    departs: &engagement::departs::Departs,
 ) -> Resultat<Value> {
     // La licence est DATEE : l'appelant la resout au mois du bulletin.
     if let Some(l) = ent.get("licence_spectacle") {
@@ -1283,13 +1284,13 @@ pub fn jeux_et_description(
     if numeros.len() != paies.len() {
         return Err(format!("{} numeros de bulletin pour {} paies.", numeros.len(), paies.len()));
     }
-    let pas_par_paie = crate::prelevement::des_paies(ctx, paies)?;
+    let pas_par_paie = crate::prelevement::des_paies(ctx, paies, departs)?;
     let mut colonnes_par_salarie: HashMap<String, Vec<Colonne>> = HashMap::new();
     if !mois.is_empty() {
         // Tout ce que la compagnie a declare jusqu'a ce mois, ce mois-ci compris : les paies
         // qu'on imprime remplacent le fichier de leur mois.
         let courantes = paies_du_mois.filter(|p| !p.is_empty()).unwrap_or(paies);
-        let mut engagements = lire_engagements_jusqu_au(ctx, Some(courantes), Some(mois))?;
+        let mut engagements = lire_engagements_jusqu_au(ctx, Some(courantes), Some(mois), departs)?;
         if borne_au_mois {
             let fin = dernier_du_mois(mois)?;
             engagements.retain(|e| e.debut <= fin);

@@ -136,6 +136,7 @@ fn dossier_exercices(ctx: &Contexte) -> PathBuf {
 /// Les mois pris sont ceux qui ont une saisie.
 fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) -> R<ExportCompta> {
     let plan = plan_comptable(ctx)?;
+    let departs = envois::journal::departs(&ctx.racine)?;
     let propre = ctx.racine.join("config").join("plan-comptable.json");
     let origine = if propre.exists() { "config/plan-comptable.json" } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
     let mois: Vec<String> = mois_de_l_annee(ctx, annee)
@@ -161,7 +162,7 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
         } else if !depots.dsn_acceptee(m)? {
             avert.push(format!("{} : pas de DSN réelle acceptée au journal.", m));
         }
-        ecritures.extend(ecritures_du_mois(ctx, m, &plan)?);
+        ecritures.extend(ecritures_du_mois(ctx, m, &plan, &departs)?);
     }
     if !propre.exists() {
         avert.push("Plan comptable : celui livré avec le logiciel, à faire valider par le comptable (config/plan-comptable.json pour le remplacer).".to_string());

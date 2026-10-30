@@ -96,7 +96,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
     let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
     let departs = envois::journal::departs(&ctx.racine)?;
     let mut n = 0;
-    for e in engagement::etats::du_mois(ctx, mois)? {
+    for e in engagement::etats::du_mois(ctx, mois, &departs)? {
         let a_declarer = match e.valide() {
             Some(v) => engagement::etats::correction_due(ctx, v, &departs, mois, &porteur).map_err(Echec::from)?.is_some(),
             None => true,

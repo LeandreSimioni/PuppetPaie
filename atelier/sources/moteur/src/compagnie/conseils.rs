@@ -531,13 +531,14 @@ fn gain_heures(ctx: &Contexte, p: &Paie, seuil: Decimal) -> Resultat<Option<Gain
 struct Declares<'a> {
     ctx: &'a Contexte,
     paies: &'a [Paie],
+    departs: &'a engagement::departs::Departs,
     lus: Option<Vec<Declare>>,
 }
 
 impl<'a> Declares<'a> {
     fn tous(&mut self) -> Resultat<&[Declare]> {
         if self.lus.is_none() {
-            self.lus = Some(engagement::cumul::lire_engagements(self.ctx, Some(self.paies))?);
+            self.lus = Some(engagement::cumul::lire_engagements(self.ctx, Some(self.paies), self.departs)?);
         }
         Ok(self.lus.as_deref().unwrap_or(&[]))
     }
@@ -582,7 +583,8 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         x.0 += e.heures.unwrap_or(0.0).round_ties_even() as i64 + e.cachets * c.heures_par_cachet;
         x.1 += e.cachets;
     }
-    let mut declares = Declares { ctx, paies, lus: None };
+    let departs = envois::journal::departs(&ctx.racine)?;
+    let mut declares = Declares { ctx, paies, departs: &departs, lus: None };
     let mut assurees: HashMap<String, Option<(i64, String)>> = HashMap::new();
     for (i, p) in paies.iter().enumerate() {
         let e = &p.engagement;
@@ -755,7 +757,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let engs = engagement::cumul::lire_engagements(ctx, None)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None, &envois::journal::departs(&ctx.racine)?)?;
     let (pos, anniv) = position(ctx, cle, &engs, jour)?;
     if pos.engagements.is_empty() {
         return Ok(Vec::new());
@@ -849,7 +851,7 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let engs = engagement::cumul::lire_engagements(ctx, None)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None, &envois::journal::departs(&ctx.racine)?)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     // Les salaries par leur prenom ; deux du meme prenom, par leur prenom et leur nom (sinon on ne saurait lequel).
     let mut fiches = Vec::new();

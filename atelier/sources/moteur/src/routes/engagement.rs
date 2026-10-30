@@ -128,7 +128,8 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let le = match data["engagements"][i].get("valide").and_then(|v| v.get("le")).cloned() {
         Some(le) => le,
         None => {
-            let le = engagement::etats::valider(ctx, mois, i).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
+            let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+            let le = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
             let cle = engagement::cle_de_l_engagement(ctx, &data["engagements"][i]).unwrap_or_else(|| salarie.to_string());
             crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, debut)?;
             Value::String(le)
@@ -346,10 +347,10 @@ fn modifier_puis_revalider(
     // parmi ses choix, la question vient dans l'avertissement ; un seul choix vaut reponse.
     let mut question = Value::Null;
     for i in rangs {
-        let Some(q) = engagement::etats::question_a_partir_du(ctx, mois, *i).map_err(Echec::from)? else { continue };
+        let Some(q) = engagement::etats::question_a_partir_du(ctx, mois, *i, &departs).map_err(Echec::from)? else { continue };
         let depuis = a_partir_du.filter(|m| q.choix.iter().any(|c| c == m)).map(String::from).or_else(|| (q.choix.len() == 1).then(|| q.choix[0].clone()));
         match depuis {
-            Some(d) => engagement::etats::poser_a_partir_du(ctx, mois, *i, &d, le).map_err(refus)?,
+            Some(d) => engagement::etats::poser_a_partir_du(ctx, mois, *i, &d, le, &departs).map_err(refus)?,
             None => {
                 let o = engagement::stock::objet_du_mois(&ctx.racine, mois, *i).map_err(Echec::from)?;
                 let avenant = o.as_ref().is_some_and(|o| contrat_parti(ctx, o, &departs));
@@ -368,7 +369,7 @@ fn modifier_puis_revalider(
     }
     let mut faits = Vec::new();
     for i in rangs {
-        let v = engagement::etats::valider(ctx, mois, *i).map_err(|m| {
+        let v = engagement::etats::valider(ctx, mois, *i, &departs).map_err(|m| {
             let data = engagement::stock::vue_a_l_ecran(&ctx.racine, mois).ok().flatten().unwrap_or(Value::Null);
             crate::routes::mois::refus_du_calcul(ctx, &data, m)
         })?;
@@ -563,14 +564,14 @@ fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let charge = &designe;
     let (_, i) = engagement_designe(ctx, charge)?;
+    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
     if !booleen(charge, "non_actif", false) {
-        return match engagement::etats::supprimer(ctx, mois, i) {
+        return match engagement::etats::supprimer(ctx, mois, i, &departs) {
             Ok(()) => Ok(json!({"retire": "supprime"})),
             Err(m) => Err(erreur(CLASSE_ENGAGEMENT_PARTI, m)),
         };
     }
-    let n = engagement::etats::desactiver(ctx, mois, i).map_err(Echec::from)?;
-    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let n = engagement::etats::desactiver(ctx, mois, i, &departs).map_err(Echec::from)?;
     Ok(json!({"retire": "non_actif", "le": n.le(), "a_faire": a_faire_en_phrases(&n.a_refaire(ctx, &departs))}))
 }
 

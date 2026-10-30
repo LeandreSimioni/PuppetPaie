@@ -126,7 +126,7 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut avert: Vec<String> = Vec::new();
     let orgs = organismes(ctx)?;
     let org_de = |id: &str| orgs.iter().find(|(k, _)| k == id).map(|(_, v)| v.clone());
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let mut cumul: Vec<Cumul> = Vec::new();
     let mut manque: BTreeSet<String> = BTreeSet::new();
     let zero = zero2();
@@ -239,10 +239,10 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 /// Les paies declarees de chaque mois de la periode (`dsn::paies_declarees_du_mois` : la version sur laquelle la DSN est
 /// partie, ou la paie ecrite si rien n'est parti), tous etablissements. Un mois sans paie validee est dit.
-fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(String, Vec<engagement::calcul::Paie>)>> {
+fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<Vec<(String, Vec<engagement::calcul::Paie>)>> {
     let (mut out, mut sans) = (Vec::new(), Vec::new());
     for m in &p.mois {
-        let paies = crate::dsn::paies_declarees_du_mois(ctx, m, None).map_err(refus)?;
+        let paies = crate::dsn::paies_declarees_du_mois(ctx, m, None, departs).map_err(refus)?;
         if paies.is_empty() {
             sans.push(m.clone());
         } else {
@@ -527,7 +527,7 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut par_an: Vec<(String, i64, Decimal)> = Vec::new();
     let zero = zero2();
     let orgs = ctx.organismes().map_err(refus)?;
-    for (m, paies) in paies_des_mois(ctx, &p, &mut avert)? {
+    for (m, paies) in paies_des_mois(ctx, &p, &mut avert, &d.departs)? {
         // La tranche A : la base 02 (« assiette brute plafonnee ») que la DSN declare pour chaque contrat (`dsn::cotisations`).
         let mut ta = zero;
         for q in &paies {
@@ -615,7 +615,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let zero = zero2();
     // Un permanent est une nature MENSUELLE du catalogue des contrats.
     let mensuelles: Vec<String> = droit::natures::natures().map_err(|m| erreur("ErreurOperation", m))?.iter().filter(|n| n.mensuelle()).map(|n| n.libelle.clone()).collect();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         let Some(brut) = l.brut else { continue };
         let an: String = l.mois.chars().take(4).collect();
         let i = match par_an.iter().position(|(a, _, _)| *a == an) {
@@ -708,7 +708,7 @@ pub fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut avert: Vec<String> = Vec::new();
     let mut par_an: Vec<(String, Decimal)> = Vec::new();
     let zero = zero2();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         let Some(brut) = l.brut else { continue };
         let an: String = l.mois.chars().take(4).collect();
         match par_an.iter_mut().find(|(a, _)| *a == an) {

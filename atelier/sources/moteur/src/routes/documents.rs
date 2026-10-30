@@ -215,7 +215,8 @@ fn aer_manquantes(ctx: &Contexte, mois: &str) -> R<Vec<String>> {
 /// Les paies de `periode`, sous les numeros de contrat que la DSN a DECLARES (regle 4 : un numero se lit --
 /// `ecrire_documents::paies_aux_numeros_declares`), sans rien dire de ce qui les fait echouer (vide).
 fn paies_de_la_periode(ctx: &Contexte, periode: &str) -> Vec<engagement::calcul::Paie> {
-    documents::ecrire_documents::paies_aux_numeros_declares(ctx, periode, None).map(|t| t.1).unwrap_or_default()
+    let Ok(departs) = envois::journal::departs(&ctx.racine) else { return Vec::new() };
+    documents::ecrire_documents::paies_aux_numeros_declares(ctx, periode, None, &departs).map(|t| t.1).unwrap_or_default()
 }
 
 /// `mois_suivant("2026-12")` = `"2027-01"`.
@@ -524,11 +525,11 @@ fn capitaliser(t: &str) -> String {
 /// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois` : la saisie des engagements valides et leurs paies
 /// ecrites), numerote. L'envoi des documents (`envoyer_documents`) prepare ses messages sur les memes paies que l'apercu.
 pub(crate) fn charger_le_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<engagement::calcul::Paie>)> {
-    let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois)? else {
+    let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois, &envois::journal::departs(&ctx.racine)?)? else {
         return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
     };
     let annee: i32 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
-    documents::ecrire_documents::numeroter(ctx, &mut paies, annee)?;
+    documents::ecrire_documents::numeroter(ctx, &mut paies, annee, &envois::journal::departs(&ctx.racine)?)?;
     Ok((data, paies))
 }
 
@@ -804,7 +805,7 @@ pub(crate) fn documents_imprimer(ctx: &Contexte, charge: &Value, qui: &str) -> R
     if pieces.is_empty() {
         return Err(refus(format!("Aucun document écrit pour {} : rien à imprimer.", engagement::libelle_mois(&mois))));
     }
-    let versions = journal::versions_du_mois(ctx, &mois, |cle, _, _| cles.iter().any(|c| c == cle)).map_err(Echec::from)?;
+    let versions = journal::versions_du_mois(ctx, &mois, &envois::journal::departs(&ctx.racine)?, |cle, _, _| cles.iter().any(|c| c == cle)).map_err(Echec::from)?;
     let impression = envois::envois_signature::reunir_pour_imprimer(&dossier, "documents", &etiq, &pieces)?;
     let avertissements = documents.avertissements.clone();
     documents.engager(ctx, &mois_saisie)?;
@@ -865,7 +866,7 @@ impl Choix {
 pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str) -> R<HashMap<String, Vec<String>>> {
     let departs = envois::journal::departs(&ctx.racine)?;
     let mut par_salarie: HashMap<String, Vec<(String, Vec<String>)>> = HashMap::new();
-    for e in engagement::etats::du_mois(ctx, mois)? {
+    for e in engagement::etats::du_mois(ctx, mois, &envois::journal::departs(&ctx.racine)?)? {
         let Some(v) = e.valide() else { continue };
         let depuis = engagement::etats::a_refaire(ctx, v, &departs).into_iter().find_map(|a| match a {
             engagement::etats::ARefaire::Bulletin { mois: m, depuis } if m == mois => Some(depuis),
@@ -894,7 +895,7 @@ pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str) -> R<HashMap<Strin
 /// Le choix, pour le mois `mois`, sur ses paies validees (`crate::routes::documents::charger_le_mois`).
 pub(crate) fn choisir(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::Paie]) -> R<Choix> {
     let lignes = envois::etats::charger(&ctx.racine)?;
-    let partis = crate::routes::etapes::documents_partis(ctx, mois, &engagement::etats::du_mois(ctx, mois).map_err(Echec::from)?, &lignes)?;
+    let partis = crate::routes::etapes::documents_partis(ctx, mois, &engagement::etats::du_mois(ctx, mois, &envois::journal::departs(&ctx.racine)?).map_err(Echec::from)?, &lignes)?;
     let cles: Vec<String> = paies.iter().map(|p| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()).collect();
     let mut resumes: HashMap<String, Value> = HashMap::new();
     for cle in &cles {
@@ -1015,7 +1016,7 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
     let a_qui = format!("{} salarie(s) : {}", messages.len(), messages.iter().map(|m| m.nom.as_str()).collect::<Vec<_>>().join(", "));
     // LA VERSION SUR LAQUELLE ILS PARTENT, engagement par engagement des salaries servis.
     let servis: Vec<&str> = messages.iter().map(|m| m.cle.as_str()).collect();
-    let versions = journal::versions_du_mois(ctx, mois, |cle, _, _| servis.contains(&cle)).map_err(Echec::from)?;
+    let versions = journal::versions_du_mois(ctx, mois, &envois::journal::departs(&ctx.racine)?, |cle, _, _| servis.contains(&cle)).map_err(Echec::from)?;
     // LA DUREE DE CHAQUE ETAPE (08/10/2026 : un envoi de deux courriels a pris quatre minutes, sans qu'on sache ou).
     let t_preuve = std::time::Instant::now();
     verifier_preuve(ctx, Some(preuve), mois, "envoi des documents du mois aux salaries", &a_qui)?;

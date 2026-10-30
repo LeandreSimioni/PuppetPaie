@@ -1,14 +1,10 @@
 //! CE QUI EST PARTI, tel que la couche des envois le dit a l'engagement. L'engagement ne lit pas le journal des envois :
-//! il est du cote des envois, au-dessus de lui. La couche du dessus pose une fois son lecteur (`poser_lecteur`), qui rend,
-//! pour chaque engagement (la cle de la fiche de son salarie et son numero de contrat), ce qui en est parti et sur quelle
-//! version (`Depart`). L'engagement s'en sert pour savoir ce qui est fige (les documents d'un mois partis), quand garder
-//! une version datee, et ce qui est a refaire (`etats::a_refaire`).
+//! il est du cote des envois, au-dessus de lui. Le moteur lit le journal (`envois::journal::departs`) et passe a chaque
+//! fonction de l'engagement qui en a besoin ce qui est parti de chaque engagement (la cle de la fiche de son salarie et
+//! son numero de contrat), et sur quelle version (`Depart`). L'engagement s'en sert pour savoir ce qui est fige (les
+//! documents d'un mois partis), quand garder une version datee, et ce qui est a refaire (`etats::a_refaire`).
 
 use std::collections::BTreeMap;
-use std::path::Path;
-use std::sync::OnceLock;
-
-use socle::num::Resultat;
 
 /// Ce qui part d'un engagement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,19 +58,3 @@ impl Departs {
     }
 }
 
-/// Qui lit ce qui est parti pour une compagnie (sa racine).
-pub type Lecteur = fn(&Path) -> Resultat<Departs>;
-
-static LECTEUR: OnceLock<Lecteur> = OnceLock::new();
-
-/// Pose le lecteur de ce qui est parti, une fois pour le processus.
-pub fn poser_lecteur(l: Lecteur) {
-    let _ = LECTEUR.set(l);
-}
-
-/// Ce qui est parti pour la compagnie `racine`. Refus si aucun lecteur n'est pose : sans lui, rien ne dirait ce qui est
-/// fige, et un document parti se recalculerait.
-pub fn lire(racine: &Path) -> Resultat<Departs> {
-    let l = LECTEUR.get().ok_or("Ce qui est parti ne se lit pas : la couche des envois n'a pas pose son lecteur (`departs::poser_lecteur`).")?;
-    l(racine)
-}

@@ -64,7 +64,7 @@ pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Valu
     let ctx = contexte(o)?;
     let (mois, aujourdhui) = (texte(&d, "mois")?, Jour::lire(texte(&d, "aujourdhui")?)?);
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let engs = lire_engagements(&ctx, None)?;
+    let engs = lire_engagements(&ctx, None, &envois::journal::departs(&ctx.racine)?)?;
     let cles: std::collections::BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     let mut positions = Vec::new();
     for cle in cles {

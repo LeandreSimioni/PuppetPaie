@@ -367,8 +367,7 @@ pub(crate) fn contrats_des_paies(paies: &[Paie]) -> Vec<Cle3> {
 
 /// Ce qui est a refaire pour chaque engagement de `etats` (ceux d'un mois, dans l'ordre de l'ecran) : le present compare
 /// a la version sur laquelle chaque envoi est parti (`engagement::etats::a_refaire`) ; rien pour un engagement en saisie.
-pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat]) -> R<Vec<Vec<ARefaire>>> {
-    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs) -> R<Vec<Vec<ARefaire>>> {
     // Un contrat rompu n'a pas d'avenant (`contrats::seule_la_rupture`).
     let saisie = |x: Option<&Value>| x.and_then(|x| x.get("saisie")).cloned().unwrap_or(Value::Null);
     Ok(etats
@@ -376,7 +375,7 @@ pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat
         .map(|e| {
             let Some(v) = e.valide() else { return Vec::new() };
             let presente = saisie(v.objet().brut.get("valide"));
-            let mut r = engagement::etats::a_refaire(ctx, v, &departs);
+            let mut r = engagement::etats::a_refaire(ctx, v, departs);
             r.retain(|a| !matches!(a, ARefaire::Avenant { depuis } if crate::routes::contrats::seule_la_rupture(&saisie(v.version_numero(*depuis)), &presente)));
             r
         })
@@ -387,8 +386,9 @@ pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat
 /// Les contrats de `mois` dont l'avenant est a faire signer : `(cle du salarie, numero)` des engagements dont les clauses
 /// ont change depuis la version sur laquelle le contrat est parti (`a_refaire_du_mois`).
 pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String, String)>> {
-    let etats = engagement::etats::du_mois(ctx, mois).map_err(plain)?;
-    let refaire = a_refaire_du_mois(ctx, &etats)?;
+    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    let etats = engagement::etats::du_mois(ctx, mois, &departs).map_err(plain)?;
+    let refaire = a_refaire_du_mois(ctx, &etats, &departs)?;
     Ok(etats
         .iter()
         .zip(&refaire)
@@ -628,14 +628,20 @@ impl<'a> Moteur<'a> {
         Moteur { ctx, journal: None, globales: None, fichiers: HashMap::new(), ecrit: false }
     }
 
+    /// Ce qui est parti (`envois::journal::departs`, tire une fois par contenu du journal) : ce que le moteur passe a
+    /// l'engagement, qui ne lit pas le journal.
+    pub(crate) fn departs(&self) -> R<engagement::departs::Departs> {
+        envois::journal::departs(&self.ctx.racine).map_err(plain)
+    }
+
     /// Les engagements de `mois`, dans l'ordre de l'ecran : recalcules d'eux-memes s'il le faut (`du_mois`), ou tels
     /// qu'ils sont ecrits (`ecrit`).
     pub(crate) fn etats_du_mois(&self, mois: &str) -> R<Vec<engagement::etats::Etat>> {
+        let departs = self.departs()?;
         if self.ecrit {
-            let departs = envois::journal::departs(&self.ctx.racine).map_err(plain)?;
             return engagement::etats::tels_qu_ecrits(self.ctx, mois, &departs).map_err(plain);
         }
-        engagement::etats::du_mois(self.ctx, mois).map_err(plain)
+        engagement::etats::du_mois(self.ctx, mois, &departs).map_err(plain)
     }
 
     fn racine(&self) -> &Path {
@@ -673,7 +679,7 @@ impl<'a> Moteur<'a> {
         let annee: i32 = mois_dit.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| {
             erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(mois_dit.get(..4).unwrap_or(&mois_dit))))
         })?;
-        engagement::numeros::numeroter_les_contrats(self.ctx, &mut paies, annee).map_err(plain)?;
+        engagement::numeros::numeroter_les_contrats(self.ctx, &mut paies, annee, &self.departs()?).map_err(plain)?;
         Ok(SaisieMois { data, paies })
     }
 
@@ -714,7 +720,7 @@ impl<'a> Moteur<'a> {
     /// Le `brut` de chaque engagement du mois, dans l'ordre de l'ecran : celui de sa paie ecrite s'il est valide, celui
     /// du calcul de la saisie sinon (un calcul seulement si un engagement est en saisie).
     fn brut_du_mois(&mut self, mois: &str, s: &SaisieMois) -> R<Vec<String>> {
-        let etats = engagement::etats::du_mois(self.ctx, mois).map_err(plain)?;
+        let etats = self.etats_du_mois(mois)?;
         let ecrits: Vec<Option<Value>> = etats
             .iter()
             .map(|e| e.valide().and_then(|v| v.paie_ecrite(mois)).and_then(|p| p.pointer("/paie/brut")).cloned())
@@ -751,9 +757,9 @@ impl<'a> Moteur<'a> {
         let cles_paies = etats::cles_des_paies(&lignes, &contrats_des_paies(&s.paies))?;
         let docs = documents_partis(self.ctx, mois, &etats_eng, &lignes)?;
         // CE QUI EST A REFAIRE, engagement par engagement : le present compare a la version sur laquelle chaque envoi est parti.
-        let refaire = a_refaire_du_mois(self.ctx, &etats_eng)?;
+        let departs = self.departs()?;
+        let refaire = a_refaire_du_mois(self.ctx, &etats_eng, &departs)?;
         let bulletins = bulletins_a_refaire(self.ctx, mois, &etats_eng, &refaire);
-        let departs = envois::journal::departs(&self.ctx.racine).map_err(Echec::from)?;
 
         let mut out = Vec::new();
         for (i, p) in s.paies.iter().enumerate() {
@@ -1018,7 +1024,7 @@ impl<'a> Moteur<'a> {
     /// saisie ni correction.
     pub(crate) fn empreinte_saisie(&self, mois: &str) -> R<Option<String>> {
         let vue = engagement::stock::vue_du_mois(self.racine(), mois).map_err(plain)?;
-        let portees: Vec<Value> = match declarations::produire_regularisations::regularisations_pour(self.ctx, mois) {
+        let portees: Vec<Value> = match declarations::produire_regularisations::regularisations_pour(self.ctx, mois, &self.departs()?) {
             Ok(regs) => regs.iter().map(|r| json!([r.mois, valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)), r.apres.engagement.numero, r.version])).collect(),
             Err(e) => vec![json!(e.message)],
         };
@@ -1099,7 +1105,7 @@ impl<'a> Moteur<'a> {
         let mut modifiee = false;
         if derniere.get("versions").is_some() {
             let etats_eng = self.etats_du_mois(mois)?;
-            let refaire = a_refaire_du_mois(self.ctx, &etats_eng)?;
+            let refaire = a_refaire_du_mois(self.ctx, &etats_eng, &self.departs()?)?;
             modifiee = dsn_a_refaire(self.ctx, mois, derniere, &etats_eng, &refaire);
             out.insert("saisie_modifiee".into(), json!(modifiee));
         }
@@ -1109,7 +1115,7 @@ impl<'a> Moteur<'a> {
         let corriges = if admis {
             0
         } else {
-            let departs = envois::journal::departs(&self.ctx.racine).map_err(plain)?;
+            let departs = self.departs()?;
             let plusieurs = !droit::bareme::secondaires(&self.ctx.entreprise_du_mois(mois).map_err(plain)?).is_empty();
             let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
             let mut n = 0;
@@ -1539,7 +1545,7 @@ impl<'a> Moteur<'a> {
                 return Ok(true);
             }
         }
-        let departs = envois::journal::departs(&self.ctx.racine).map_err(plain)?;
+        let departs = self.departs()?;
         for m in engagement::stock::mois_saisis(self.racine()).unwrap_or_default() {
             if m.as_str() >= mois {
                 break;
@@ -1635,8 +1641,8 @@ impl<'a> Moteur<'a> {
                 continue;
             }
             let Ok(s) = self.charger_saisie(&m) else { continue };
-            let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &envois::journal::departs(&self.ctx.racine).map_err(plain)?).map_err(plain)?;
-            let refaire = a_refaire_du_mois(self.ctx, &etats_m)?;
+            let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &self.departs()?).map_err(plain)?;
+            let refaire = a_refaire_du_mois(self.ctx, &etats_m, &self.departs()?)?;
             for (i, p) in s.paies.iter().enumerate() {
                 let cle = texte_de(requis(&p.salarie, "_cle")?);
                 let debut = p.engagement.debut.iso();

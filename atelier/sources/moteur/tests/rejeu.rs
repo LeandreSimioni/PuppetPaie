@@ -176,7 +176,7 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
     outils::ecrire(&racine, "journal/depots.json", &journal);
     let a_refaire = na.a_refaire(&ctx("2027-01-20"), &envois::journal::departs(&racine).unwrap());
     assert!(!a_refaire.iter().any(|a| matches!(a, ARefaire::Dsn { .. })), "{:?}", a_refaire);
-    assert!(declarations::produire_regularisations::regularisations_pour(&ctx("2027-01-20"), "2027-01").unwrap().is_empty());
+    assert!(declarations::produire_regularisations::regularisations_pour(&ctx("2027-01-20"), "2027-01", &envois::journal::departs(&racine).unwrap()).unwrap().is_empty());
 }
 
 /// UN ENGAGEMENT AJOUTE A UN MOIS DEJA DECLARE A UN SEUL BULLETIN ET UN SEUL PAIEMENT. Aux Treteaux, apres la veille de

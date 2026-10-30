@@ -111,17 +111,18 @@ pub fn identite_du_mois(salarie: &Value, brute: &Value, fin: &Jour) -> Resultat<
 /// Les identites declarees des mois anterieurs au mois declare, lues a la demande, du plus recent au plus ancien.
 pub struct Declarations<'a> {
     ctx: &'a Contexte,
+    departs: &'a engagement::departs::Departs,
     mois: Vec<String>,
     lus: BTreeMap<usize, Vec<Declaree>>,
 }
 
 impl<'a> Declarations<'a> {
     /// Les mois saisis avant `mois`.
-    pub fn avant(ctx: &'a Contexte, mois: &str) -> Resultat<Declarations<'a>> {
+    pub fn avant(ctx: &'a Contexte, mois: &str, departs: &'a engagement::departs::Departs) -> Resultat<Declarations<'a>> {
         let mut avant: Vec<String> = engagement::stock::mois_saisis(&ctx.racine)?.into_iter().filter(|m| m.as_str() < mois).collect();
         avant.sort();
         avant.reverse();
-        Ok(Declarations { ctx, mois: avant, lus: BTreeMap::new() })
+        Ok(Declarations { ctx, departs, mois: avant, lus: BTreeMap::new() })
     }
 
     /// Les individus que les paies declarees du `i`-ieme mois portent (`dsn::paies_declarees_du_mois`), avec la fiche
@@ -130,7 +131,7 @@ impl<'a> Declarations<'a> {
         if !self.lus.contains_key(&i) {
             let mois = &self.mois[i];
             let mut tous = Vec::new();
-            for p in crate::dsn::paies_declarees_du_mois(self.ctx, mois, None)? {
+            for p in crate::dsn::paies_declarees_du_mois(self.ctx, mois, None, self.departs)? {
                 let s = &p.salarie;
                 let nir = crate::ntt::nir_de(s);
                 tous.push(Declaree {

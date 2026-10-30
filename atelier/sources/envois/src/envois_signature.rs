@@ -316,7 +316,8 @@ pub fn reunir_pour_imprimer(dossier: &std::path::Path, quoi: &str, etiq: &str, p
 /// la ligne du journal.
 pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, avenants: &[(String, Vec<UnAvenant>)], qui: &str) -> R<Value> {
     let mois = mois.to_string();
-    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None)?;
+    let departs = crate::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &departs)?;
     let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let par_salarie = match choisis {
         Some(c) => contrats_choisis(ctx, c, &mois, &paies)?,
@@ -343,7 +344,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     let mut lignes_avenants: Vec<Value> = Vec::new();
     for (salarie, aa) in avenants {
         for a in aa {
-            let (pdf, c, _) = avenant_ecrit(ctx, salarie, a, &mut saisies, &lignes_j, &aujourdhui_jj)?;
+            let (pdf, c, _) = avenant_ecrit(ctx, salarie, a, &mut saisies, &lignes_j, &departs, &aujourdhui_jj)?;
             fichiers.push(json!(pdf.to_string_lossy()));
             lignes_avenants.push(Value::Object(c));
         }
@@ -353,13 +354,13 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     let mut lignes = Vec::new();
     if !contrats.is_empty() {
         let detail = json!({"contrats": contrats, "main_propre": true});
-        let versions = crate::journal::versions_des_contrats(ctx, &contrats).map_err(Echec::from)?;
+        let versions = crate::journal::versions_des_contrats(ctx, &contrats, &departs).map_err(Echec::from)?;
         let reponse = format!("{} contrat(s) imprime(s) pour une remise en main propre", contrats.len());
         lignes.push(noter_envoi(ctx, "contrat-signature", Some(&mois), qui, true, "", &reponse, Some(&detail), Some(&versions))?);
     }
     if !lignes_avenants.is_empty() {
         let detail = json!({"contrats": lignes_avenants, "main_propre": true, "acte": "avenant"});
-        let versions = crate::journal::versions_des_contrats(ctx, &lignes_avenants).map_err(Echec::from)?;
+        let versions = crate::journal::versions_des_contrats(ctx, &lignes_avenants, &departs).map_err(Echec::from)?;
         let reponse = format!(
             "{} imprime(s) pour une remise en main propre",
             lignes_avenants.iter().map(|c| format!("avenant n° {} au contrat {}", valeur_en_texte(&c["avenant"]), valeur_en_texte(&c["numero"]))).collect::<Vec<_>>().join("; ")
@@ -384,7 +385,8 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
 pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut dyn Courriel) -> R<Value> {
     let (mois, relance, remplace) = (d.mois.to_string(), d.relance, d.remplace);
     // Chaque contrat sous le numero qu'il porte, ou celui qui lui serait donne : c'est celui-la qui part.
-    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None)?;
+    let departs = crate::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &departs)?;
     let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
     let etiq = socle::date::etiquette_du_mois(&s_mois).map_err(|m| erreur("ValueError", m))?;
@@ -527,7 +529,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
         return Err(refus(format!("Aucun contrat a envoyer pour {}.", mois)));
     }
     // La version de l'engagement sur laquelle chaque contrat part, lue avant l'envoi.
-    let versions = crate::journal::versions_des_contrats(ctx, &contrats).map_err(Echec::from)?;
+    let versions = crate::journal::versions_des_contrats(ctx, &contrats, &departs).map_err(Echec::from)?;
     let mut identifiants: Vec<String> = Vec::new();
     let partis = match envoi::envoyer_suivi(&messages, &expediteur, client, Some(&mut identifiants), None) {
         Ok(p) => p,
@@ -623,7 +625,8 @@ pub fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<()> {
     if d.relance && d.remplace {
         return Err(refus("Une relance renvoie le même contrat : elle n'en remplace aucun."));
     }
-    let (_, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, d.mois, None)?;
+    let departs = crate::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let (_, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, d.mois, None, &departs)?;
     let (par_salarie, _) = avec_et_sans_courriel(contrats_choisis(ctx, &d.choisis, d.mois, &paies)?)?;
     if !d.relance {
         return Ok(());
@@ -709,11 +712,12 @@ fn avenant_ecrit(
     a: &UnAvenant,
     saisies: &mut HashMap<String, (Value, Vec<Paie>)>,
     lignes_j: &[Value],
+    departs: &engagement::departs::Departs,
     aujourdhui_jj: &str,
 ) -> R<(PathBuf, Map<String, Value>, Value)> {
     let mois_a = a.texte("mois");
     if !saisies.contains_key(&mois_a) {
-        let (d, p) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_a, None)?;
+        let (d, p) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_a, None, departs)?;
         saisies.insert(mois_a.clone(), (d, p));
     }
     let (_, paies) = &saisies[&mois_a];
@@ -782,6 +786,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
     // La saisie de chaque mois, lue une fois : rien ne l'ecrit pendant l'envoi.
     let mut saisies: HashMap<String, (Value, Vec<Paie>)> = HashMap::new();
     let lignes_j = crate::etats::charger(&ctx.racine)?;
+    let departs = crate::journal::departs_des_lignes(&lignes_j);
     let (mut partis, mut lignes, mut faits): (Vec<String>, Vec<Value>, Vec<Value>) = (Vec::new(), Vec::new(), Vec::new());
     for (salarie, aa) in par_salarie {
         let mois = aa[0].texte("mois");
@@ -790,7 +795,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
         let mut lignes_contrats: Vec<Value> = Vec::new();
         let mut sal: Option<Value> = None;
         for a in aa {
-            let (pdf, mut c, s) = avenant_ecrit(ctx, salarie, a, &mut saisies, &lignes_j, &aujourdhui_jj)?;
+            let (pdf, mut c, s) = avenant_ecrit(ctx, salarie, a, &mut saisies, &lignes_j, &departs, &aujourdhui_jj)?;
             sal = Some(s);
             c.insert("adresse".into(), json!(a.texte("destinataire").trim().to_lowercase()));
             c.insert("relance".into(), json!(a.relance()));
@@ -878,7 +883,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
                 m.insert("code".into(), json!(code));
             }
         }
-        let versions = crate::journal::versions_des_contrats(ctx, &lignes_contrats).map_err(Echec::from)?;
+        let versions = crate::journal::versions_des_contrats(ctx, &lignes_contrats, &departs).map_err(Echec::from)?;
         let mut identifiants: Vec<String> = Vec::new();
         let partis_ici = match envoi::envoyer_suivi(std::slice::from_ref(&message), &expediteur, client, Some(&mut identifiants), None) {
             Ok(p) => p,

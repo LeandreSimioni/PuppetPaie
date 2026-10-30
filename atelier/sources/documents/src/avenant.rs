@@ -472,39 +472,6 @@ pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
     Ok(ent)
 }
 
-/// La paie validee de ce contrat (`engagement::etats::validees_du_mois`), dans sa forme ecrite. `rang` : la paie de ce
-/// rang parmi celles de ce salarie qui commencent ce jour-la (0 : la premiere).
-fn paie_calculee(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, rang: usize) -> Resultat<Option<Value>> {
-    let Some((_, paies)) = engagement::etats::validees_du_mois(ctx, mois)? else { return Ok(None) };
-    let Some(p) = paies
-        .iter()
-        .filter(|p| p.salarie.get("_cle").and_then(Value::as_str) == Some(salarie) && p.engagement.debut.iso() == debut)
-        .nth(rang)
-    else {
-        return Ok(None);
-    };
-    engagement::relire::ecrire(ctx, p).map(Some)
-}
-
-/// Les valeurs que le modele de contrat lit dans la paie d'aujourd'hui de ce contrat (`contrat.marqueurs`) :
-/// de quoi ecrire le contrat tel que la paie le dirait. `None` quand la paie n'a pas ce contrat, ou que sa nature n'a
-/// pas de contrat ecrit. Les montants viennent de la paie validee de l'engagement, sans calcul.
-pub fn valeurs_du_contrat(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> Resultat<Option<Valeurs>> {
-    valeurs_du_rang(ctx, mois, salarie, debut, 0)
-}
-
-/// `valeurs_du_contrat` de la paie de ce `rang` parmi celles du salarie qui commencent ce jour-la.
-pub fn valeurs_du_rang(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, rang: usize) -> Resultat<Option<Valeurs>> {
-    let Some(paie) = paie_calculee(ctx, mois, salarie, debut, rang)? else {
-        return Ok(None);
-    };
-    if crate::contrat_ecrit::nature_de_la_paie(&paie)?.modele_contrat().is_none() {
-        return Ok(None);
-    }
-    let ent = ent_du_mois(ctx, mois)?;
-    valeurs_de_la_paie(ctx, &ent, &paie, None).map(Some)
-}
-
 /// `contrat.marqueurs(p, ent)` pour une paie calculee (`paie`, sa forme JSON). `numero` : le numero
 /// de contrat que la paie porte VRAIMENT (lu dans l'archive, ou celui de l'engagement), quand il
 /// differe de celui de la reponse du calcul. Le contrat d'un spectacle lit ses dates, ses cachets et son spectacle ;

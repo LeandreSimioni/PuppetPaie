@@ -336,7 +336,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
         assert!(decembre.contains(attendu), "{} manque :\n{}", attendu, decembre);
     }
     let ctx = droit::contexte::Contexte::nouveau(&racine, None).unwrap();
-    let declares = engagement::cumul::lire_engagements(&ctx, None).unwrap();
+    let declares = engagement::cumul::lire_engagements(&ctx, None, &envois::journal::departs(&ctx.racine).unwrap()).unwrap();
     assert_eq!(declares.iter().map(|e| e.cachets).sum::<i64>(), 4, "{:?}", declares);
 }
 
@@ -389,7 +389,7 @@ fn le_mois_saisi_puis_importe_declare_la_saisie_dans_la_dsn_suivante() {
     // que ses pieces attestent, le saisi avec sa paie validee.
     let ctx = droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     let cumules: BTreeSet<(String, i64)> =
-        engagement::cumul::lire_engagements(&ctx, None).unwrap().iter().map(|e| (e.debut.iso(), e.cachets)).collect();
+        engagement::cumul::lire_engagements(&ctx, None, &envois::journal::departs(&ctx.racine).unwrap()).unwrap().iter().map(|e| (e.debut.iso(), e.cachets)).collect();
     assert_eq!(cumules, BTreeSet::from([("2026-11-20".to_string(), 2), ("2026-11-27".to_string(), 1)]));
     let livre = reussi(&route("exporter", json!({"etat": "livre-de-paie", "mois": "2026-11", "apercu": true}))).clone();
     let contrats: BTreeSet<String> =

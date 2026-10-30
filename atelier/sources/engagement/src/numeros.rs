@@ -21,6 +21,7 @@ use socle::date::en_texte;
 use socle::fichiers::vrai;
 use socle::num::Resultat;
 
+use crate::departs::Departs;
 use crate::stock::{self, Objet};
 
 /// Pour qui le numero a ete donne : la cle du salarie et le debut du contrat a ce moment-la, et quand.
@@ -48,12 +49,12 @@ pub fn former(fiche: &Value, annee: i32, seq: i64) -> Resultat<String> {
 
 /// Le dernier rang pris en `annee`, par salarie (la cle de sa fiche) : le plus grand des numeros de cette annee que
 /// portent ses engagements, ou sous lesquels quelque chose est parti pour lui (`departs`).
-pub fn derniers_pris(ctx: &Contexte, annee: i32) -> Resultat<HashMap<String, i64>> {
-    derniers_pris_sauf(ctx, annee, None)
+pub fn derniers_pris(ctx: &Contexte, annee: i32, departs: &Departs) -> Resultat<HashMap<String, i64>> {
+    derniers_pris_sauf(ctx, annee, None, departs)
 }
 
 /// La meme, sans l'engagement `sauf` (son fichier et son rang) : celui qui recoit un nouveau numero.
-fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>) -> Resultat<HashMap<String, i64>> {
+fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>, departs: &Departs) -> Resultat<HashMap<String, i64>> {
     let mut pris: HashMap<String, i64> = HashMap::new();
     let mut noter = |cle: &str, numero: &str| {
         if let Some((a, seq)) = annee_et_rang(numero) {
@@ -71,7 +72,7 @@ fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>) -
         let (Some(cle), Some(n)) = (crate::cle_de_l_engagement(ctx, &e), o.brut.get("numero").filter(|n| vrai(n))) else { continue };
         noter(&cle, &en_texte(n));
     }
-    for (cle, n) in crate::departs::lire(&ctx.racine)?.engagements() {
+    for (cle, n) in departs.engagements() {
         noter(cle, n);
     }
     Ok(pris)
@@ -98,11 +99,11 @@ pub fn dernier_bulletin_importe(racine: &std::path::Path, annee: i64) -> Resulta
 
 /// Un envoi a-t-il porte le numero `n` de l'engagement `o` (du salarie `cle`) ? Ce qui est parti sous lui (`departs`),
 /// ou une version de lui gardee parce qu'un envoi l'avait emportee.
-fn porte_par_un_envoi(ctx: &Contexte, o: &Objet, cle: &str, n: &str) -> Resultat<bool> {
+fn porte_par_un_envoi(o: &Objet, cle: &str, n: &str, departs: &Departs) -> bool {
     if o.brut.get("versions").and_then(Value::as_array).is_some_and(|v| !v.is_empty()) {
-        return Ok(true);
+        return true;
     }
-    Ok(!crate::departs::lire(&ctx.racine)?.de(cle, n).is_empty())
+    !departs.de(cle, n).is_empty()
 }
 
 
@@ -126,7 +127,7 @@ fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
 /// LE NUMERO A LA VALIDATION de l'engagement `o` (`etats::valider`), pose sur lui ; `le` : l'instant de la validation.
 /// Il garde celui qu'il porte, sauf si son salarie ou son debut a change depuis qu'il l'a recu et qu'aucun envoi ne l'a
 /// porte : il en recoit alors un nouveau, comme un engagement qui n'en a pas.
-pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str) -> Resultat<()> {
+pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: &Departs) -> Resultat<()> {
     let e = Value::Object(o.brut.clone());
     let fiche = ctx.salarie(&e.get("salarie").map(en_texte).unwrap_or_default())?;
     let cle = fiche.get("_cle").map(en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
@@ -135,7 +136,7 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str) -> Result
         let garde = match o.brut.get(POUR) {
             Some(p) => {
                 let meme = p.get("salarie").map(en_texte).as_deref() == Some(cle.as_str()) && p.get("debut").map(en_texte) == Some(debut.clone());
-                meme || porte_par_un_envoi(ctx, o, &cle, &n)?
+                meme || porte_par_un_envoi(o, &cle, &n, departs)
             }
             // Un numero venu avec la saisie (un contrat repris d'un autre logiciel, sous la forme qu'il avait) : le sien,
             // sauf s'il est la copie d'un engagement plus ancien.
@@ -146,7 +147,7 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str) -> Result
         }
     }
     let annee: i32 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("date illisible : {}", debut))?;
-    let dernier = derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)))?.get(&cle).copied().unwrap_or(0);
+    let dernier = derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)), departs)?.get(&cle).copied().unwrap_or(0);
     o.brut.insert("numero".into(), Value::String(former(&fiche, annee, dernier + 1)?));
     o.brut.insert(POUR.into(), json!({"salarie": cle, "debut": debut, "le": le}));
     Ok(())
@@ -154,10 +155,10 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str) -> Result
 
 /// Le numero de contrat que la paie `p`, sans numero, porterait : la suite des numeros `pris` pour son salarie
 /// (`derniers_pris`, lus une fois), en memoire.
-fn proposer(ctx: &Contexte, p: &mut crate::calcul::Contenu, annee: i32, pris: &mut Option<HashMap<String, i64>>) -> Resultat<()> {
+fn proposer(ctx: &Contexte, p: &mut crate::calcul::Contenu, annee: i32, pris: &mut Option<HashMap<String, i64>>, departs: &Departs) -> Resultat<()> {
     let pris = match pris {
         Some(x) => x,
-        None => pris.insert(derniers_pris(ctx, annee)?),
+        None => pris.insert(derniers_pris(ctx, annee, departs)?),
     };
     let cle = p.salarie.get("_cle").map(en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
     let dernier = pris.entry(cle).or_insert(0);
@@ -169,13 +170,13 @@ fn proposer(ctx: &Contexte, p: &mut crate::calcul::Contenu, annee: i32, pris: &m
 /// LES NUMEROS DE CONTRAT QUE DES PAIES PORTERAIENT, en memoire : un engagement qui porte deja le sien le garde ; au
 /// premier mois de son contrat, un autre prend la suite des numeros pris pour son salarie (`derniers_pris`). Un mois qui
 /// n'est pas le premier n'en recoit pas : son numero est celui de l'engagement, ecrit a sa validation.
-pub fn numeroter_les_contrats(ctx: &Contexte, paies: &mut [crate::calcul::Paie], annee: i32) -> Resultat<()> {
+pub fn numeroter_les_contrats(ctx: &Contexte, paies: &mut [crate::calcul::Paie], annee: i32, departs: &Departs) -> Resultat<()> {
     let mut pris = None;
     for paie in paies.iter_mut() {
         if paie.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) || !paie.engagement.premier_mois()? {
             continue;
         }
-        proposer(ctx, paie.ecrire(), annee, &mut pris)?;
+        proposer(ctx, paie.ecrire(), annee, &mut pris, departs)?;
     }
     Ok(())
 }
@@ -184,14 +185,14 @@ pub fn numeroter_les_contrats(ctx: &Contexte, paies: &mut [crate::calcul::Paie],
 /// n'est pas le premier de son contrat, sans numero, refuse : `refus_sans_numero`) ; une paie dont le bulletin est parti
 /// garde son numero de bulletin, une autre recoit le `prochain` (`N/AAAA`), puis le suivant. Un mois sans paie n'a pas de
 /// bulletin. Rend le prochain numero de bulletin libre.
-pub fn numeroter(ctx: &Contexte, paies: &mut [crate::calcul::Paie], annee: i32, prochain: i64) -> Resultat<i64> {
+pub fn numeroter(ctx: &Contexte, paies: &mut [crate::calcul::Paie], annee: i32, prochain: i64, departs: &Departs) -> Resultat<i64> {
     let mut n_bull = prochain;
     let mut pris = None;
     for paie in paies.iter_mut() {
         let p = paie.ecrire();
         if p.engagement.numero.as_deref().map_or(true, str::is_empty) {
             crate::refus_sans_numero(ctx, &p.engagement)?;
-            proposer(ctx, p, annee, &mut pris)?;
+            proposer(ctx, p, annee, &mut pris, departs)?;
         }
         if p.engagement.sans_paie() || p.numero_bulletin.as_deref().is_some_and(|n| !n.is_empty()) {
             continue;
@@ -233,7 +234,7 @@ mod tests {
             {"salarie": "ZOE", "nature": "cdi", "debut": "2024-01-15", "numero": "00042", "salaire_mensuel": 2400, "quotite_contrat": 151.67}]}));
         let ctx = Contexte::nouveau(&racine, socle::date::Jour::lire("2025-06-05").ok()).unwrap();
         let mut o = stock::objet_du_mois(&racine, "2025-06", 0).unwrap().unwrap();
-        a_la_validation(&ctx, &mut o, "2025-06-05T09:00:00").unwrap();
+        a_la_validation(&ctx, &mut o, "2025-06-05T09:00:00", &Departs::default()).unwrap();
         assert_eq!(o.brut.get("numero"), Some(&json!("00042")), "{:?}", o.brut);
         let _ = std::fs::remove_dir_all(&racine);
     }

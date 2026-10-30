@@ -121,7 +121,7 @@ fn contrats_de(ctx: &Contexte, p: &Periode, lecture: &mut Lecture) -> R<Vec<Cont
 pub fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let contrats = contrats_de(ctx, &p, &mut lecture)?;
     let mut lignes = Vec::new();
     for c in &contrats {
@@ -185,7 +185,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut avert = Vec::new();
     let mut vus: BTreeSet<(String, String, String, String)> = BTreeSet::new();
     let mut lignes: Vec<Ligne> = Vec::new();
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     for c in contrats_de(ctx, &p, &mut lecture)? {
         // Un contrat qui deborde du mois apparait une fois par mois de paie : c'est UNE embauche.
         if !vus.insert((c.cle.clone(), c.contrat.clone(), c.debut.clone(), c.fin.clone())) {

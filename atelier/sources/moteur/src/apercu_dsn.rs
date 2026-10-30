@@ -41,7 +41,8 @@ fn flottant(d: Decimal) -> f64 {
 
 /// La meme, sans le detail du refus : le moindre refus, quel qu'il soit, rend `Err`.
 fn saisie_aux_numeros_declares(ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, String> {
-    paies_aux_numeros_declares(ctx, mois, None).map(|t| t.1).map_err(|r| r.message)
+    let departs = envois::journal::departs(&ctx.racine)?;
+    paies_aux_numeros_declares(ctx, mois, None, &departs).map(|t| t.1).map_err(|r| r.message)
 }
 
 // ------------------------------------------------------------------ recapitulatif_dsn

@@ -92,7 +92,7 @@ pub(crate) fn contrat_recu_avec(
     courriel: Option<&Map<String, Value>>,
 ) -> R<Value> {
     // Les paies telles que la DSN les a declarees, sans rien ecrire.
-    let paies = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None).map_err(en_echec)?.1;
+    let paies = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None, &envois::journal::departs(&ctx.racine)?).map_err(en_echec)?.1;
     // LE CONTRAT, pas le salarie : `numero` est celui sous lequel le journal le connait (la releve), ou celui que l'ecran affiche.
     let numero = numero.filter(|n| !n.is_empty());
     let lignes = envois::etats::charger(&ctx.racine)?;
@@ -394,7 +394,7 @@ pub(crate) fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve
 pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
-    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None)?;
+    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &envois::journal::departs(&ctx.racine)?)?;
     let mut m = Moteur::nouveau(ctx);
     let g = m.globales()?;
     let lignes = m.lignes()?;
@@ -620,7 +620,7 @@ pub(crate) fn numero_du_contrat(
         return Ok(Some(n.to_string()));
     }
     if let Some(m) = mois.filter(|m| !m.is_empty()) {
-        let (_d, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, m, None)?;
+        let (_d, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, m, None, &envois::journal::departs(&ctx.racine)?)?;
         let propres = numeros_du_jour(ctx, &paies, salarie, debut)?;
         if let Some(i) = propres.iter().position(|x| x == n) {
             return Ok(etats::apparier(&propres, &parti)[i].clone());
@@ -663,7 +663,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (salarie, debut) = (valeur_en_texte(salarie_v), valeur_en_texte(debut_v));
     // `_paie_du_contrat(ctx, parti["mois"], salarie, debut)`.
     let mois_parti = valeur_en_texte(&parti.mois);
-    let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_parti, None)?;
+    let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_parti, None, &envois::journal::departs(&ctx.racine)?)?;
     // La paie de CE contrat : celle dont le journal connait le numero (`apparier`), sinon celle qui le porte.
     let numero_parti = valeur_en_texte(&etats::numero_de_cle(&parti.numero));
     let trouvee = etats::paie_du_contrat(&paies, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
@@ -678,7 +678,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     // contrat au mois qui change a partir d'un mois d'apres celui ou il est parti se compare ce mois-la, et l'avenant
     // prend effet le premier jour de ce mois (ou a la date de l'avenant que la saisie de ce mois dit).
     let departs = envois::journal::departs(&ctx.racine)?;
-    let siens = engagement::etats::du_mois(ctx, &mois_parti)?.into_iter().find_map(|e| {
+    let siens = engagement::etats::du_mois(ctx, &mois_parti, &envois::journal::departs(&ctx.racine)?)?.into_iter().find_map(|e| {
         let v = e.valide()?.clone();
         let b = Value::Object(v.objet().brut.clone());
         (engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie.as_str()) && b.get("numero").map(valeur_en_texte) == paies[i].engagement.numero).then_some(v)
@@ -690,7 +690,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let (paies, i, mois_compare) = match &mois_effet {
         Some(me) => {
-            let (_d, ps) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, me, None)?;
+            let (_d, ps) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, me, None, &envois::journal::departs(&ctx.racine)?)?;
             let j = etats::paie_du_contrat(&ps, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?.ok_or_else(|| {
                 erreur("ErreurOperation", format!("Aucune paie de {} en {} pour le contrat n° {}.", salarie, engagement::libelle_mois(me), numero_parti))
             })?;

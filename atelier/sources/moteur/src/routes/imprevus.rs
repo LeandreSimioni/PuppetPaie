@@ -924,7 +924,8 @@ fn jour_le(charge: &Value) -> R<Option<Jour>> {
 /// Ce qui peut partir du mois : la saisie de ses engagements valides (`engagement::etats::validees_du_mois`), et leurs
 /// paies ecrites ; refus si aucun engagement ne le touche.
 fn saisie_du_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    engagement::etats::validees_du_mois(ctx, mois).map_err(plain)?.ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
+    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
 }
 
 /// Le mois en toutes lettres (« mai 2026 ») pour une phrase ; tel quel s'il n'a pas la forme AAAA-MM.
@@ -989,7 +990,8 @@ fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mo
 fn paie_de_l_engagement(ctx: &Contexte, paies: &[Paie], rang: usize, cle: &str, nom: &str, mois: &str) -> R<Paie> {
     let annee = mois.chars().take(4).collect::<String>().parse::<i32>().map_err(|_| erreur("ValueError", format!("mois illisible : {}", repr_texte(mois))))?;
     let mut paies = paies.to_vec();
-    documents::ecrire_documents::numeroter(ctx, &mut paies, annee).map_err(en_echec)?;
+    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    documents::ecrire_documents::numeroter(ctx, &mut paies, annee, &departs).map_err(en_echec)?;
     paies
         .into_iter()
         .nth(rang)

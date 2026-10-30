@@ -237,9 +237,9 @@ pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
 /// LES VERSIONS QU'UN ENVOI EMPORTE : pour chaque engagement valide que `mois` montre et que `garder` retient (la cle du
 /// salarie, le numero du contrat, l'engagement), `{"salarie", "numero", "version"}`. Ce que la ligne du journal de l'envoi
 /// porte : elles se lisent AVANT l'envoi, qui ne part pas d'un engagement a revalider (`Valide::a_revalider`).
-pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: impl Fn(&str, &str, &Value) -> bool) -> Resultat<Value> {
+pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, departs: &engagement::departs::Departs, garder: impl Fn(&str, &str, &Value) -> bool) -> Resultat<Value> {
     let mut out = Vec::new();
-    for e in engagement::etats::du_mois(ctx, mois)? {
+    for e in engagement::etats::du_mois(ctx, mois, departs)? {
         let Some(v) = e.valide() else { continue };
         let brut = Value::Object(v.objet().brut.clone());
         let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
@@ -255,7 +255,7 @@ pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: imp
 }
 
 /// `versions_du_mois` des contrats qui partent (`[{"salarie", "numero", "mois"}]`, chacun lu dans le mois qu'il nomme).
-pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value]) -> Resultat<Value> {
+pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value], departs: &engagement::departs::Departs) -> Resultat<Value> {
     let mut mois: Vec<String> = contrats.iter().filter_map(|c| c.get("mois").and_then(Value::as_str).map(String::from)).collect();
     mois.sort();
     mois.dedup();
@@ -264,7 +264,7 @@ pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value]
         let siens = |cle: &str, n: &str, _: &Value| {
             contrats.iter().any(|c| c["mois"].as_str() == Some(m.as_str()) && c["salarie"].as_str() == Some(cle) && c["numero"].as_str() == Some(n))
         };
-        if let Value::Array(v) = versions_du_mois(ctx, &m, siens)? {
+        if let Value::Array(v) = versions_du_mois(ctx, &m, departs, siens)? {
             for x in v {
                 if !out.contains(&x) {
                     out.push(x);

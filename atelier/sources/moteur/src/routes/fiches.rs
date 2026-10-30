@@ -1304,7 +1304,7 @@ pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -
         return Ok(None);
     }
     let sien = |c: &str| nom == "entreprise" || Some(c) == cle;
-    let departs = engagement::departs::lire(&ctx.racine).map_err(plain)?;
+    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
     let partis = departs
         .engagements()
         .filter(|(c, _)| sien(c))
@@ -2318,7 +2318,7 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     // Une paie de l'ecran n'a pas de numero de bulletin (il se reserve au depart) : l'apercu montre celui d'un premier
     // bulletin de l'annee.
     let numeros: Vec<Option<String>> = (1..=s.paies.len()).map(|n| Some(format!("{}/{}", n, &mois[..4]))).collect();
-    jeux_et_description(&ctx, &s.paies, &numeros, &ent, &mois, None, false, &HashMap::new())
+    jeux_et_description(&ctx, &s.paies, &numeros, &ent, &mois, None, false, &HashMap::new(), &engagement::departs::Departs::default())
 }
 
 /// Le PDF de la paie fictive sous `modele`.

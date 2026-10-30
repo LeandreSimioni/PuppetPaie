@@ -491,7 +491,7 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
         a_porter.push(avant_apres(mois, d.declarees.last().map(|x| &x.paie), &apres)?);
     }
     let mut portees = Vec::new();
-    for e in engagement::etats::du_mois(ctx, mois)? {
+    for e in engagement::etats::du_mois(ctx, mois, &departs)? {
         let Some(v) = e.valide() else { continue };
         let declarees = engagement::etats::paies_declarees(ctx, v.objet(), &departs, mois, "9999-12").map_err(refus)?;
         for (i, x) in declarees.iter().enumerate() {

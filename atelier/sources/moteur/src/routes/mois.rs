@@ -2084,7 +2084,8 @@ pub(crate) struct PaieMontree {
 pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Vec<PaieMontree>> {
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let disque = engagement::stock::vue_du_mois(&ctx.racine, mois)?;
-    let etats = if disque.is_some() { engagement::etats::du_mois(ctx, mois)? } else { Vec::new() };
+    let departs = envois::journal::departs(&ctx.racine)?;
+    let etats = if disque.is_some() { engagement::etats::du_mois(ctx, mois, &departs)? } else { Vec::new() };
     let mut pris = vec![false; etats.len()];
     let mut lues: Vec<Option<PaieMontree>> = Vec::new();
     for e in &tous {
@@ -2333,7 +2334,7 @@ pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> 
     }
     let mut avert: Vec<String> = Vec::new();
     // L'apercu n'a pas a refuser : c'est la production qui le fera.
-    let urssaf = match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
+    let urssaf = match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None, &envois::journal::departs(&ctx.racine)?) {
         Ok(m) => Value::String(m.to_string()),
         Err(e) => {
             avert.push(format!("Bordereau Urssaf non calculable : {}", e));
@@ -2444,7 +2445,7 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
     let annee = annee_de(&mois)?;
     let montrees = paies_de_l_ecran(ctx, &data, &mois)?;
     let mut paies: Vec<Paie> = montrees.iter().map(|m| m.paie.clone()).collect();
-    documents::ecrire_documents::numeroter(ctx, &mut paies, annee)?;
+    documents::ecrire_documents::numeroter(ctx, &mut paies, annee, &envois::journal::departs(&ctx.racine)?)?;
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut vues = Vec::new();
     for (i, p) in paies.iter().enumerate() {

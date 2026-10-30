@@ -47,6 +47,9 @@ pub struct Demande {
     pub ecrire: bool,
     pub logiciel: Option<String>,
     pub analytique: Option<bool>,
+    /// Ce qui est parti, que le moteur lit (`envois::journal::departs`) : le prelevement d'une paie declaree se lit dans la
+    /// paie que la DSN a declaree (`prelevement::des_paies`).
+    pub departs: engagement::departs::Departs,
 }
 
 /// Le nom du mois `i` abrege de quatre lettres, avec son point : « Janv. ». Les appelants parcourent les douze colonnes
@@ -234,8 +237,8 @@ pub fn ecarter_declares(p: &Periode, avert: &mut Vec<String>, ce_qui_manque: &st
 
 /// La saisie de `mois` reduite a ses engagements valides, et leurs paies telles qu'elles ont ete validees : ce que
 /// lisent les etats et les exports.
-pub fn charger_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    engagement::etats::validees_du_mois(ctx, mois)
+pub fn charger_mois(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> R<(Value, Vec<Paie>)> {
+    engagement::etats::validees_du_mois(ctx, mois, departs)
         .map_err(|m| erreur("ErreurOperation", m))?
         .ok_or_else(|| erreur("ErreurOperation", format!("{} : aucun engagement ne touche ce mois.", mois)))
 }
@@ -243,19 +246,20 @@ pub fn charger_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
 /// Les paies validees d'un mois, lues une fois par export.
 pub struct Lecture<'a> {
     ctx: &'a Contexte,
+    departs: &'a engagement::departs::Departs,
     paies: HashMap<String, Rc<Vec<Paie>>>,
     pas: HashMap<String, Rc<Vec<Option<Versement>>>>,
 }
 
 impl<'a> Lecture<'a> {
-    pub fn nouvelle(ctx: &'a Contexte) -> Self {
-        Lecture { ctx, paies: HashMap::new(), pas: HashMap::new() }
+    pub fn nouvelle(ctx: &'a Contexte, departs: &'a engagement::departs::Departs) -> Self {
+        Lecture { ctx, departs, paies: HashMap::new(), pas: HashMap::new() }
     }
 
     /// Les paies du mois qui ont un bulletin (un engagement sans paie n'en a pas).
     pub fn paies(&mut self, mois: &str) -> R<Rc<Vec<Paie>>> {
         if !self.paies.contains_key(mois) {
-            let (_, toutes) = charger_mois(self.ctx, mois)?;
+            let (_, toutes) = charger_mois(self.ctx, mois, self.departs)?;
             self.paies.insert(mois.to_string(), Rc::new(toutes.into_iter().filter(|p| !p.engagement.sans_paie()).collect()));
         }
         Ok(Rc::clone(&self.paies[mois]))
@@ -265,7 +269,7 @@ impl<'a> Lecture<'a> {
     pub fn pas(&mut self, mois: &str) -> R<Rc<Vec<Option<Versement>>>> {
         if !self.pas.contains_key(mois) {
             let paies = self.paies(mois)?;
-            let v = crate::prelevement::des_paies(self.ctx, &paies).map_err(|m| erreur("ErreurOperation", m))?;
+            let v = crate::prelevement::des_paies(self.ctx, &paies, self.departs).map_err(|m| erreur("ErreurOperation", m))?;
             self.pas.insert(mois.to_string(), Rc::new(v));
         }
         Ok(Rc::clone(&self.pas[mois]))
@@ -502,15 +506,15 @@ fn lignes_importees(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<Vec<Lign
 /// `_lignes_du_mois` : les lignes du livre pour un mois (celles des engagements valides de la saisie, puis celles des
 /// engagements importes payes ce mois-la), ce qu'il a fallu taire, et si ses numeros de contrat sont tous ecrits. Les
 /// paies sont celles que la validation a ecrites, ou celles que l'import a lues ; aucun numero n'est invente.
-fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<LigneLivre>, Vec<String>, bool)> {
+fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool, departs: &engagement::departs::Departs) -> R<(Vec<LigneLivre>, Vec<String>, bool)> {
     let importees = lignes_importees(ctx, mois, coordonnees)?;
-    let toutes = match engagement::etats::validees_du_mois(ctx, mois).map_err(|m| erreur("ErreurOperation", m))? {
+    let toutes = match engagement::etats::validees_du_mois(ctx, mois, departs).map_err(|m| erreur("ErreurOperation", m))? {
         Some((_, toutes)) => toutes,
         None if !importees.is_empty() => Vec::new(),
         None => return Err(erreur("ErreurOperation", format!("{} : aucun engagement ne touche ce mois.", mois))),
     };
     let paies: Vec<Paie> = toutes.into_iter().filter(|p| !p.engagement.sans_paie()).collect();
-    let pas = crate::prelevement::des_paies(ctx, &paies).map_err(|m| erreur("ErreurOperation", m))?;
+    let pas = crate::prelevement::des_paies(ctx, &paies, departs).map_err(|m| erreur("ErreurOperation", m))?;
     let (mut lignes, mut sans_pas) = (Vec::new(), Vec::new());
     for (p, r) in paies.iter().zip(pas.iter()) {
         if r.is_none() {
@@ -600,7 +604,7 @@ pub fn livre_de_paie(ctx: &Contexte, d: &Demande) -> R<LivreDePaie> {
     let pris = mois_pris(&dispo, &mois, &annee, d.toutes)?;
     let (mut lignes, mut avert, mut sans_pas, mut sans_numeros) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
     for m in &pris {
-        let (l_m, sans, figes) = lignes_du_mois(ctx, m, d.coordonnees)?;
+        let (l_m, sans, figes) = lignes_du_mois(ctx, m, d.coordonnees, &d.departs)?;
         lignes.extend(l_m);
         sans_pas.extend(sans);
         if !figes {
@@ -885,13 +889,14 @@ fn dec_val(v: Option<Decimal>) -> Option<Val> {
 
 /// `_lignes_livre` : les lignes du livre de paie, et ses avertissements -- les etats de synthese se
 /// construisent dessus, pour tomber sur le livre.
-pub fn lignes_livre(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<LigneLivre>> {
+pub fn lignes_livre(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<Vec<LigneLivre>> {
     let d = Demande {
         mois: p.un_mois.clone(),
         annee: p.annee.clone(),
         toutes: p.toutes,
         regroupement: "salarie".to_string(),
         format: "csv".to_string(),
+        departs: departs.clone(),
         ..Demande::default()
     };
     let livre = livre_de_paie(ctx, &d)?;
@@ -916,7 +921,7 @@ fn cle_tri(l: &Ligne, cles: &[&str]) -> Vec<String> {
 pub fn livre_detaille(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let mut sections = Vec::new();
     for m in ecarter_declares(&p, &mut avert, "le détail des lignes du bulletin")? {
         let paies = lecture.paies(&m)?;
@@ -1001,7 +1006,7 @@ pub fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     }
     let p = Periode::nouvelle(ctx, None, d.annee.as_deref(), d.toutes, true)?;
     let mut avert = Vec::new();
-    let lignes = lignes_livre(ctx, &p, &mut avert)?;
+    let lignes = lignes_livre(ctx, &p, &mut avert, &d.departs)?;
     let mut ordre: Vec<(String, String)> = Vec::new();
     let mut par: HashMap<(String, String), (Ligne, i64)> = HashMap::new();
     let zero = zero2();
@@ -1069,7 +1074,7 @@ pub fn masse_salariale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut ordre: Vec<String> = Vec::new();
     let mut par: HashMap<String, (Ligne, BTreeSet<String>, i64)> = HashMap::new();
     let zero = zero2();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         if !par.contains_key(&l.mois) {
             ordre.push(l.mois.clone());
             let mut n = Ligne::nouvelle();
@@ -1142,7 +1147,7 @@ pub fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut avert = Vec::new();
     let mut lignes = Vec::new();
     let mut sans_date = BTreeSet::new();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         if l.verse_le.is_empty() {
             sans_date.insert(l.mois.clone());
         }
@@ -1197,7 +1202,7 @@ fn type_de_taux(code: &str) -> &'static str {
 pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let (mut avert, mut lignes, mut sans) = (Vec::new(), Vec::new(), Vec::new());
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let coord = d.coordonnees;
     for m in p.saisis_sans_les_importes(&mut avert, "le taux ni le type du prélèvement")? {
         let r_pas = lecture.pas(&m)?;
@@ -1269,7 +1274,7 @@ fn ou_zero(x: Decimal) -> Decimal {
 pub fn reduction_generale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let (mut avert, mut lignes) = (Vec::new(), Vec::new());
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     for m in ecarter_declares(&p, &mut avert, "la réduction générale")? {
         for paie in lecture.paies(&m)?.iter() {
             let Some(rg) = &paie.reduction_generale else { continue };
@@ -1333,7 +1338,7 @@ const ASSIETTES: [(&str, &str); 10] = [
 pub fn assiettes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let (mut avert, mut lignes) = (Vec::new(), Vec::new());
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let mut vues: BTreeSet<String> = BTreeSet::new();
     for m in ecarter_declares(&p, &mut avert, "les assiettes de cotisation")? {
         for paie in lecture.paies(&m)?.iter() {
@@ -1383,7 +1388,7 @@ pub fn assiettes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, false)?;
     let mut lignes = Vec::new();
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let mut avert = Vec::new();
     for m in p.saisis_sans_les_importes(&mut avert, "les heures ni les cachets de chaque mois")? {
         for paie in lecture.paies(&m)?.iter() {
@@ -1443,7 +1448,7 @@ pub fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut ordre: Vec<(String, String)> = Vec::new();
     let mut par: HashMap<(String, String), (Ligne, i64)> = HashMap::new();
     let zero = zero2();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         let sp = if l.spectacle.is_empty() { "(sans spectacle)".to_string() } else { l.spectacle.clone() };
         let cle = (sp.clone(), l.cle_salarie.clone());
         if !par.contains_key(&cle) {

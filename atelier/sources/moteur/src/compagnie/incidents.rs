@@ -424,9 +424,8 @@ fn recalcul_refuse(racine: &Path, mois: &str, refus: &str) {
 }
 
 /// Branche l'engagement sur ce qui l'entoure, a l'entree de toute commande du moteur : le temoin des recalculs refuses
-/// (`recalcul_refuse`), et le lecteur de ce qui est parti (`journal::departs`).
+/// (`recalcul_refuse`).
 pub fn brancher_l_engagement() {
-    engagement::departs::poser_lecteur(envois::journal::departs);
     engagement::etats::poser_temoin(recalcul_refuse);
 }
 

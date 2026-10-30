@@ -68,7 +68,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let _ = o;
     let annee = valeur_en_texte(exiger(charge, "annee")?);
-    let mut r = documents::fiche_recapitulative::Recapitulatifs::nouveau(ctx, None, Some(annee), false);
+    let mut r = documents::fiche_recapitulative::Recapitulatifs::nouveau(ctx, None, Some(annee), false, envois::journal::departs(&ctx.racine)?);
     r.couts_de_l_annee().map_err(|e| Echec { classe: e.classe, message: e.message })
 }
 
@@ -505,6 +505,7 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         ecrire: !charge.get("apercu").is_some_and(vrai),
         logiciel: texte_ou_rien(charge, "logiciel"),
         analytique: charge.get("analytique").map(vrai),
+        departs: envois::journal::departs(&ctx.racine)?,
     };
     if etat == "regularisation-casc-svp" {
         let demande = crate::import::casc::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes::ouverture::boite_liee(ctx).unwrap_or(false), ..Default::default() };
