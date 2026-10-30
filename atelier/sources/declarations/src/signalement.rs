@@ -435,7 +435,7 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.11.005", req(&etab, "commune")?)?;
 
     // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let jour = jours(a, "dernier_jour_travaille")?;
     for ad in req(&orgs, "adhesions_prevoyance")?.as_array().map(Vec::as_slice).unwrap_or(&[]) {
         if !droit::adhesions::en_vigueur(ad, &jour, &jour)? {

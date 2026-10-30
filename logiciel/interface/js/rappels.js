@@ -90,14 +90,14 @@ function htmlDemarrage(manques) {
     <li>
       <button type="button" class="lien" data-manque-champ="${echapper(m.champ || "")}"
         data-manque-ou="${echapper(m.ou || "")}" data-manque-salarie="${echapper(m.salarie || "")}"><b>${echapper(m.libelle)}</b></button>
-      <span class="discret">— bloque ${echapper(m.bloque)}</span>
+      <span class="discret">— ${m.bloque ? `bloque ${echapper(m.bloque)}` : `sinon, ${echapper(m.sinon || "")}`}</span>
       <div class="note">À saisir dans ${echapper(m.ou)}.</div>
       ${m.trouver ? `<details><summary>Où le trouver</summary><p class="note">${echapper(m.trouver)}</p></details>` : ""}
     </li>`;
   return `
     <div class="rappel retard demarrage">
       <h3>Pour démarrer, il manque encore ${manques.length === 1 ? "une chose" : manques.length + " choses"}</h3>
-      <p class="note">Tant qu'elles manquent, ce qu'elles bloquent sera refusé. Elles se trouvent toutes sur les courriers des organismes.</p>
+      ${manques.some((m) => m.bloque) ? `<p class="note">Tant qu'elles manquent, ce qu'elles bloquent sera refusé.</p>` : ""}
       <ul class="rappel-liste">${manques.map(ligne).join("")}</ul>
       <div class="actions"><button class="petit" data-aller-configuration>Ouvrir la configuration</button></div>
     </div>${htmlPoses()}`;

@@ -575,7 +575,7 @@ ou un annule."
     }
     // Les adhesions prevoyance, sans S21.G00.15.004 : la rubrique « personnel
     // couvert » est interdite dans un signalement.
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     // Le numero de licence EN VIGUEUR a la fin du contrat, pas la liste.
     let mut ent_licence = etab.as_object().cloned().unwrap_or_default();
     ent_licence.insert("licence_spectacle".into(), Value::String(ctx.licence(&fin_jour)?));

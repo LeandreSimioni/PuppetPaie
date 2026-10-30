@@ -484,24 +484,8 @@ function vueEtatImportation(e) {
         x.quand ? ` du ${echapper(quand(x.quand))}` : ""}</b>${echapper(x.resume || "")}</div>
       <div class="rang-etat">${pastilleDeLEtat(x.pastille)}</div>
     </div>`).join("");
-  return repris + vueNaturesADire(e.a_dire) + vueCongesADire(e.conges_a_dire)
+  return repris + vueNaturesADire(e.a_dire)
     + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
-}
-
-/* LES CONGÉS À LA REPRISE D'UN PERMANENT DONT LE CONTRAT CONTINUE
-   (`conges_a_dire`, du moteur) : aucun bulletin repris ne les dit, ils se
-   recopient du dernier bulletin de l'ancien logiciel, sur sa fiche. */
-function vueCongesADire(liste) {
-  if (!liste || !liste.length) return "";
-  const lignes = liste.map((x) => `<div class="rang">
-      <div class="rang-infos"><b class="rang-nom">${echapper(x.nom)}</b>
-        ses congés payés acquis et pris dans votre ancien logiciel ne sont sur aucun bulletin repris.
-        Recopiez-les de son dernier bulletin dans sa fiche (« Congés payés à la reprise »), à partir du
-        ${echapper(jjmmaaaa(x.depuis))} : sans eux, ses congés repartent de zéro.</div>
-      <div class="rang-etat"><button type="button" class="petit" data-ouvrir-fiche="salarie"
-        data-ouvrir-cle="${echapper(x.salarie)}">Ouvrir sa fiche</button></div>
-    </div>`).join("");
-  return `<h3>Les congés payés à reprendre</h3>${lignes}`;
 }
 
 /* LA NATURE DES CONTRATS REPRIS QU'AUCUN BULLETIN NE DIT
@@ -1570,7 +1554,7 @@ async function dessinerMetiers(cible) {
 /* LES ORGANISMES ET LES CONTRATS DE LA DSN. Une ligne par
  * contrat que la convention exige ; le moteur (`organismes-contrats`) dit ce
  * qui est fixé par la branche et ce que la compagnie saisit. Enregistrer
- * compose config/organismes.json (`organismes-enregistrer`) : la page ne
+ * écrit ce que la compagnie saisit (`organismes-enregistrer`) : la page ne
  * décide rien. */
 async function dessinerOrganismes(cible) {
   let r;
@@ -1603,7 +1587,7 @@ async function dessinerOrganismes(cible) {
         (organismes payés, Urssaf, taux AT/MP, compte France Travail) vient de la loi,
         de la convention et de la fiche Entreprise.</p>
       ${r.mois ? `<p class="note">Les contrats en vigueur en ${echapper(moisEnClair(r.mois))}.</p>` : ""}
-      ${r.compose ? "" : `<p class="rappel retard">Pas encore enregistré : la DSN est refusée tant que ces contrats ne le sont pas.</p>`}
+      ${r.a_saisir ? `<p class="rappel retard">Une référence de contrat manque : la DSN refuse les salariés que ce contrat couvre tant qu'elle n'est pas enregistrée.</p>` : ""}
       <table class="tableau">
         <thead><tr><th>Contrat</th><th>Bénéficiaires</th><th>Organisme</th><th>Référence du contrat</th></tr></thead>
         <tbody>${r.contrats.map(ligne).join("")}</tbody>
