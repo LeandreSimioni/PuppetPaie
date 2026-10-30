@@ -74,7 +74,7 @@ function ruptureDuBloc(div, nat, fin, e) {
   }
 }
 
-/** Les engagements qu'un bloc écrit : un par salarié coché. */
+/** L'engagement qu'une carte écrit (aucun tant qu'elle n'a pas de salarié). */
 function engagementsDuBloc(div, mois) {
   // Une carte fermée, ou ouverte pour être modifiée : ce qu'on y tape ne s'écrit qu'à « Modifier l'engagement » ; seuls
   // l'aperçu et le montant visé la lisent (`LIRE_LES_MODIFICATIONS`).
@@ -82,12 +82,7 @@ function engagementsDuBloc(div, mois) {
     return engagementsLus(div).map((e) => JSON.parse(JSON.stringify(e)));
   // L'ENGAGEMENT N'ÉCRIT PLUS DE `dates` : chacune de ses lignes porte les
   // siennes, avec son lieu, et le moteur en fait la réunion
-  // (`operations.dates_engagement`).
-  //
-  // UN ENGAGEMENT PAR SALARIÉ COCHÉ. Le bloc en porte plusieurs à l'écran
-  // pour aller vite ; le fichier, lui, garde le format du moteur — un
-  // salarié, un engagement. Chacun reçoit sa copie de ce que le formulaire
-  // dit : un bloc ne regroupe que des engagements identiques (`regrouper`).
+  // (`operations.dates_engagement`). Une carte porte un salarié : elle écrit son engagement.
   const spectacle = div.querySelector(".e-spectacle").value;
   const etablissement = div.querySelector(".e-etablissement").value;
   const lignes = lignesDuBloc(div, mois);
@@ -181,21 +176,14 @@ async function apercuDuMois(mois, blocs) {
   await enregistrerAvantDeCalculer();
   return api("apercu", { mois, modifiees: modifieesDeLaPage(mois), blocs });
 }
-function saisieAvecLesModifications() {
-  LIRE_LES_MODIFICATIONS = true;
-  try { return saisieCourante(); } finally { LIRE_LES_MODIFICATIONS = false; }
-}
-
-function saisieCourante() {
+/** Les engagements que les cartes du mois affiché montrent, celles ouvertes pour être modifiées telles qu'on les a
+ *  tapées : ce que l'aperçu compte. Rien ne s'écrit d'elles (chaque carte écrit son engagement). */
+function engagementsALEcran() {
   const mois = document.getElementById("mois").value;
-  const engagements = [...document.querySelectorAll(".engagement")]
-    .flatMap((div) => engagementsDuBloc(div, mois));
-  // `taux_cachet` et `date_paiement` ne se saisissent plus mais restent
-  // ÉCRITS : le moteur s'en sert — l'un comme défaut d'un engagement qui ne
-  // dit pas son taux, l'autre comme date de paiement du mois (rappelée sous
-  // le mois). Le spectacle et le lieu du mois, le moteur les pose sur chaque
-  // engagement à la lecture (route `saisie`) : rien d'autre ne s'écrit ici.
-  return { mois, taux_cachet: DERNIER_TAUX, date_paiement: SAISIE_DATE_PAIEMENT, engagements };
+  LIRE_LES_MODIFICATIONS = true;
+  try {
+    return [...document.querySelectorAll(".engagement")].flatMap((div) => engagementsDuBloc(div, mois));
+  } finally { LIRE_LES_MODIFICATIONS = false; }
 }
 
 function rafraichirApercu() {
@@ -214,7 +202,7 @@ function rafraichirApercu() {
 
 /** `lu` : l'aperçu tel que la lecture du mois le porte (la saisie enregistrée) ; sans lui, on le demande au moteur. */
 async function calculerApercu(lu) {
-  const saisie = saisieAvecLesModifications();
+  const engagements = engagementsALEcran();
   const cible = document.getElementById("apercu");
   document.getElementById("apercu-sous-titre").textContent = IMPORTE ? "tenu avant PuppetPaie" : "";
   if (IMPORTE) {
@@ -226,7 +214,7 @@ async function calculerApercu(lu) {
     return;
   }
   // Dès qu'un engagement nomme son salarié, le moteur dit ce que le mois en compte et ce qui lui manque (`apercu`).
-  if (!saisie.engagements.length) {
+  if (!engagements.length) {
     // Le permanent ne se nomme qu'à une compagnie qui en emploie.
     const perm = !!(ETAT.configuration || {}).permanents;
     cible.innerHTML = `<p class="discret">Ajouter un engagement, une ligne de
@@ -243,9 +231,9 @@ async function calculerApercu(lu) {
     let deLu = null;
     if (lu && tailles.every((n) => n === 1)) {
       try { deLu = lireReponse(lu); } catch (e) { deLu = null; }
-      if (deLu && (deLu.paies || []).length !== saisie.engagements.length) deLu = null;
+      if (deLu && (deLu.paies || []).length !== engagements.length) deLu = null;
     }
-    const a = deLu ? structuredClone(deLu) : await apercuDuMois(saisie.mois, tailles);
+    const a = deLu ? structuredClone(deLu) : await apercuDuMois(document.getElementById("mois").value, tailles);
     cible.innerHTML = vueApercu(a);
     // Les dates resolues, sous chaque engagement : ce que le moteur a compris.
     const parBloc = engagementsParBloc(a, blocs);
@@ -362,11 +350,7 @@ function avisDuBloc(part, liste = "avertissements") {
   });
 }
 
-/* LES ENGAGEMENTS D'UN APERÇU, RENDUES À LEUR BLOC. Un bloc qui porte trois
- * salariés cochés a produit TROIS engagements — `saisieCourante` les
- * démultiplie, parce que le moteur ne connaît qu'un salarié par engagement.
- * Compter un par bloc décalait donc tout ce qui suit dès le deuxième, et
- * l'écran posait la ligne « bulletin … » du voisin sous le mauvais nom. */
+/* LES ENGAGEMENTS D'UN APERÇU, RENDUS À LEUR CARTE : une carte sans salarié n'en a pas, les autres un chacune. */
 function engagementsParBloc(a, blocs) {
   let rang = 0;
   return blocs.map((div) => {
@@ -605,42 +589,8 @@ function vueApercu(a) {
 /* ------------------------------------------------------- charger un mois */
 let MOIS_AFFICHE = null;        // le mois REELLEMENT charge dans l'ecran
 let AVANT_EMBAUCHE = null;      // la premiere embauche, quand ce mois passe la precede (rien n'y est dû), ou null
-/* UN MOIS DONT LA DSN NE SE REMPLACE PLUS : ses engagements se modifient, mais la première modification
- * demande confirmation, une fois par séance d'édition du mois. Le moteur refuse l'enregistrement sans elle
- * (`ModificationApresEcheance`) et dit ce qu'il faut savoir (`dsn_deposee` de la route `saisie`). */
 let DSN_DEPOSEE = null;         // ce que le moteur dit du mois déclaré (`dsn_deposee`), ou null
-let MOIS_CONFIRME = null;       // le mois dont on a confirmé la modification, pour cette séance d'édition
-let CONFIRMATION_OUVERTE = null; // le mois dont la boîte de confirmation est ouverte
 
-/** Le fichier en blocs : ce qui a été saisi d'un coup pour plusieurs
- *  salariés (saisieCourante) revient d'un coup — même spectacle, mêmes
- *  lignes, qui se suivent, et AUCUN validé. Un engagement validé, lui, est
- *  déjà démultiplié : il a son bloc, fermé, et n'absorbe rien. */
-function regrouper(engagements) {
-  const groupes = [];
-  // UN BLOC NE REGROUPE QUE DES ENGAGEMENTS IDENTIQUES, au salarié près : le
-  // formulaire montre un engagement et l'écrit pour chaque salarié coché.
-  // Deux engagements qui diffèrent en quoi que ce soit — le motif de
-  // recours de deux CDD aux mêmes bornes, un salaire, un numéro, un lieu
-  // propre à un jour — ont chacun leur bloc. Ni un engagement validé. Ce qui
-  // manque (`a_completer`) nomme son salarié : il ne sépare pas le bloc.
-  const empreinteDe = (e) => {
-    const { salarie, a_completer, ...reste } = e;
-    return JSON.stringify(Object.keys(reste).sort().map((k) => [k, reste[k]]));
-  };
-  engagements.forEach((e, rang) => {
-    const empreinte = empreinteDe(e);
-    const dernier = groupes[groupes.length - 1];
-    if (dernier && !e.valide && !dernier.valide && dernier.empreinte === empreinte
-        && !dernier.salaries.includes(e.salarie)) {
-      dernier.salaries.push(e.salarie);
-      dernier.rangs.push(rang);
-    } else {
-      groupes.push({ ...e, salaries: [e.salarie], rangs: [rang], empreinte });
-    }
-  });
-  return groupes;
-}
 
 function afficherRappelsMois() {
   document.getElementById("rappels-mois").innerHTML =
@@ -711,7 +661,8 @@ async function chargerMois(mois, repeint = false) {
     ETATS_ENGAGEMENTS = null;
   }
   cible.innerHTML = "";
-  const groupes = regrouper(SAISIE.engagements || []);
+  // Une carte par engagement : une carte porte un salarié.
+  const groupes = (SAISIE.engagements || []).map((e, rang) => ({ ...e, salaries: [e.salarie], rangs: [rang] }));
   const ouvertes = avant.length === groupes.length ? avant.map((div) => !carteFermee(div)) : [];
   groupes.forEach((g, i) => cible.appendChild(ligneEngagement(g, { fermee: !ouvertes[i] })));
   if (deplies) {
@@ -727,14 +678,13 @@ async function chargerMois(mois, repeint = false) {
   // on le note, pour que l'enregistrement automatique ne reecrive pas un
   // fichier identique a chaque fois qu'on effleure un champ.
   clearTimeout(MINUTEUR_SAISIE);
-  DERNIERE_ECRITE = JSON.stringify(saisieCourante());
+  cible.querySelectorAll(".engagement").forEach(marquerEcrite);
   // Un repeint montre ses cartes tout de suite : les états qu'on a déjà de
   // ce mois s'y posent, une coque ne reste pas vide le temps de les relire.
   if (repeint && ETATS_ENGAGEMENTS) peindreEtats();
     AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
   DSN_DEPOSEE = r.dsn_deposee || null;
   // Une confirmation ne vaut que pour LE mois confirmé : on la redonne en revenant.
-  if (MOIS_CONFIRME !== mois) MOIS_CONFIRME = null;
   // Les blocs se montrent quand leurs états sont posés -- ou, quoi qu'il
   // arrive, au bout de quelques secondes : une lecture qui traîne ne doit
   // pas cacher la saisie.
@@ -791,7 +741,7 @@ async function repeindreLeMois(mois, ancien, frais) {
   const memes = (k) => JSON.stringify(ancien.lectures[k]) === JSON.stringify(frais.lectures[k]);
   const cles = new Set([...Object.keys(ancien.lectures), ...Object.keys(frais.lectures)]);
   if ([...cles].every(memes)) return;
-  const enCours = JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE;
+  const enCours = !toutEstEcrit();
   const saisieDe = (lu) => JSON.stringify(((lu.lectures.saisie || {}).resultat || {}).saisie);
   if (!enCours && (saisieDe(ancien) !== saisieDe(frais) || !memes("contrats-en-cours"))) {
     await chargerMois(mois, true);
@@ -868,43 +818,6 @@ function majAvisDemo(mois) {
   const d = ETAT && ETAT.demo;
   avis.hidden = !(d && (d.mois || []).includes(mois));
   if (!avis.hidden) avis.textContent = d.phrase;
-}
-
-/** LA BOÎTE QUI DEMANDE CONFIRMATION : le texte est celui du refus du moteur. « Modifier quand même »
- *  renvoie la même saisie avec la confirmation (`renvoyer`), et la séance d'édition du mois n'en redemande plus ;
- *  « Annuler » remet la saisie telle qu'elle est enregistrée. */
-function confirmerModification(mois, texte, renvoyer) {
-  if (CONFIRMATION_OUVERTE === mois) return;
-  CONFIRMATION_OUVERTE = mois;
-  clearTimeout(MINUTEUR_SAISIE);
-  // Une boîte déjà ouverte (l'accueil du jour…) se met de côté, et revient après la réponse.
-  const remettre = mettreDeCote();
-  let confirme = false;
-  const annuler = async () => {
-    CONFIRMATION_OUVERTE = null;
-    if (remettre) remettre();
-    if (confirme) return;
-    // Ce qui était à l'écran et pas confirmé (un engagement ajouté, une ligne changée) s'en va : ça se dit, en clair,
-    // pas seulement au pied de la saisie.
-    const phrase = `${moisEnClair(mois)} : modification non confirmée, rien n'est enregistré — la saisie revient à ce qui l'était.`;
-    noteSaisie(phrase);
-    dire(phrase, "erreur");
-    if (MOIS_AFFICHE === mois) await chargerMois(mois, true);
-  };
-  ouvrirBoite(`
-    <h3>Modifier les engagements ${echapper(deMois(mois))} ?</h3>
-    <div class="encart grave"><b>Ce mois est déjà déclaré</b>${echapper(texte)}</div>
-    <div class="actions">
-      <button class="secondaire" id="mc-annuler">Annuler</button>
-      <button class="primaire" id="mc-modifier">Modifier quand même</button>
-    </div>`, annuler);
-  document.getElementById("mc-annuler").onclick = () => fermerBoite();
-  document.getElementById("mc-modifier").onclick = async () => {
-    confirme = true;
-    MOIS_CONFIRME = mois;
-    fermerBoite();
-    await renvoyer();
-  };
 }
 
 /* UN MOIS IMPORTÉ EST UN MOIS COMME LES AUTRES : ses paies ont leurs cases.
@@ -1033,63 +946,39 @@ function carteImportee(p, i, moisCourt) {
     </div>`;
 }
 
-/* Changer de mois enregistre d'abord CE QUI EST À L'ÉCRAN, et sous son vrai
- * mois. La case a déjà changé quand on arrive ici : on y remet l'ancien mois
- * le temps de l'écriture, sans quoi les engagements d'août partiraient dans le
- * fichier de septembre — la case du mois est ce qui date les jours joués. */
+/* Changer de mois écrit d'abord LES CARTES CHANGÉES, sous leur vrai mois. La case a déjà changé quand on arrive ici :
+ * on y remet l'ancien mois le temps de les lire, sans quoi les engagements d'août partiraient dans le fichier de
+ * septembre — la case du mois est ce qui date les jours joués. */
 document.getElementById("mois").onchange = (e) => {
   fermerCalendriers();
   const neuf = e.target.value;
-  let ecrite = null;
+  let attente = [];
   if (MOIS_AFFICHE && MOIS_AFFICHE !== neuf) {
     clearTimeout(MINUTEUR_SAISIE);
     e.target.value = MOIS_AFFICHE;
-    ecrite = saisieAEcrire();
+    attente = ecrituresEnAttente();
     e.target.value = neuf;
-    // Partie : un autre clic avant que le nouveau mois soit peint ne la renvoie pas.
-    if (ecrite) DERNIERE_ECRITE = JSON.stringify(ecrite.s);
   }
-  // LE NOUVEAU MOIS N'ATTEND PAS L'ÉCRITURE DE L'ANCIEN : la saisie quittée est prise telle qu'elle est
-  // (`saisieAEcrire`, sous son vrai mois), part au moteur, et le nouveau mois s'affiche en même temps. Une fois
-  // l'écriture faite, le mois affiché se vérifie : elle a pu le changer (un contrat en cours, une numérotation).
+  // LE NOUVEAU MOIS N'ATTEND PAS L'ÉCRITURE DE L'ANCIEN : les cartes quittées partent au moteur, et le nouveau mois
+  // s'affiche en même temps. Une fois écrites, le mois affiché se vérifie : elles ont pu le changer (un contrat en cours).
   const chargement = chargerMois(neuf);
-  if (ecrite) enregistrerEnPartant(ecrite, chargement);
+  if (attente.length) enregistrerEnPartant(attente, chargement);
 };
 
-/** Ce que l'écran porte et qui n'est pas encore écrit (le mois de la case), ou `null`. */
-function saisieAEcrire() {
-  const s = saisieCourante();
-  if (!s.mois) return null;
-  const empreinte = JSON.stringify(s);
-  if (empreinte === DERNIERE_ECRITE) return null;
-  return { s, confirme: MOIS_CONFIRME === s.mois };
-}
-
-/** La saisie d'un mois qu'on vient de quitter : écrite sans repeindre (l'écran montre déjà un autre mois), puis le mois
- *  affiché vérifié. Un échec se dit : c'est du travail qu'on croit posé. */
-async function enregistrerEnPartant({ s, confirme }, chargement) {
-  const ecrire = (oui) => appelerMoteur("enregistrer-saisie",
-    { mois: s.mois, saisie: s, modifier_apres_echeance: oui });
+/** Les cartes d'un mois qu'on vient de quitter : écrites sans repeindre (l'écran montre déjà un autre mois), puis le
+ *  mois affiché vérifié. Un échec se dit : c'est du travail qu'on croit posé. */
+async function enregistrerEnPartant(attente, chargement) {
+  const mois = attente[0][1].mois;
   try {
-    await ecrire(confirme);
+    for (const [div, charge] of attente) await ecrireLaCarte(div, charge, appelerMoteur);
     oublierCouts();
     appelerMoteur("etat").then((e) => { ETAT.historique = e.historique; }, () => {});
   } catch (e) {
-    // Le mois quitté était déclaré et sa DSN ne se remplace plus : on le demande ici aussi ; « Annuler » le laisse
-    // tel qu'il est enregistré.
-    if (e.detail?.type === "ModificationApresEcheance") {
-      confirmerModification(s.mois, e.message, async () => {
-        try { await ecrire(true); dire(`${moisEnClair(s.mois)} : modification enregistrée.`); }
-        catch (e2) { dire(`${moisEnClair(s.mois)} : non enregistré — ${e2.message}`, "erreur"); }
-      });
-      return;
-    }
-    if (e.detail?.type !== "SaisieIncomplete") dire(`${moisEnClair(s.mois)} : non enregistré — ${e.message}`, "erreur");
+    dire(`${moisEnClair(mois)} : non enregistré — ${e.message}`, "erreur");
     return;
   }
   // Le mois affiché se vérifie quand il est peint (la vérification part tout de suite : le moteur refait l'état).
-  const mois = DEMANDE_MOIS;
-  if (mois) verifierLeMois(mois, chargement.catch(() => {}));
+  if (DEMANDE_MOIS) verifierLeMois(DEMANDE_MOIS, chargement.catch(() => {}));
 }
 
 /* LE CHOIX DU MOIS. « Un truc simple, qu'on puisse cliquer sur
@@ -1222,87 +1111,100 @@ document.addEventListener("visibilitychange", () => {
    3. RIEN NE PART POUR AUTANT. Enregistrer, c'est écrire les engagements (`engagements/`)
       et rien d'autre : ce qui part se fabrique à son départ. */
 let MINUTEUR_SAISIE = null;
-let DERNIERE_ECRITE = null;      // le JSON tel qu'il a été enregistré
 
 function noteSaisie(texte) {
   document.getElementById("note-saisie").textContent = texte;
 }
 
-/** Enregistre si quelque chose a changé. Rend true si le fichier a été écrit.
+/* UNE CARTE ÉCRIT SON ENGAGEMENT, ET LUI SEUL (`enregistrer-saisie`). Elle est désignée par sa place dans l'écran du
+ * mois (`data-place`), que le moteur a rendue : la lecture du mois pour une carte lue, la première écriture pour une
+ * carte neuve. Ce qu'elle a écrit en dernier (`_ecrite`) dit si elle a changé depuis. */
+
+/** Une carte en saisie : son formulaire est construit, et son engagement n'est pas validé (un engagement validé se
+ *  modifie d'un geste, « Modifier l'engagement »). */
+function carteEnSaisie(div) {
+  return !carteFermee(div) && !div.classList.contains("en-modification") && !(div._ligne && div._ligne.valide);
+}
+
+/** Ce que la carte écrit (`{mois, saisie, place}`), ou `null` : une carte qui n'est pas en saisie, ou sans salarié. */
+function chargeDeLaCarte(div, mois) {
+  if (!mois || !carteEnSaisie(div)) return null;
+  const saisie = engagementsDuBloc(div, mois)[0];
+  if (!saisie) return null;
+  const charge = { mois, saisie };
+  if (div.dataset.place) charge.place = +div.dataset.place;
+  return charge;
+}
+
+/** La carte telle qu'elle est est celle qui est écrite (une carte qu'on vient d'ouvrir sur ce qui est enregistré). */
+function marquerEcrite(div) {
+  const c = chargeDeLaCarte(div, document.getElementById("mois").value);
+  div._ecrite = c ? JSON.stringify(c) : undefined;
+}
+
+/** Les cartes du mois affiché qui ont changé depuis leur dernière écriture, chacune avec ce qu'elle écrit. */
+function ecrituresEnAttente() {
+  const mois = document.getElementById("mois").value;
+  return [...document.querySelectorAll("#engagements .engagement")]
+    .map((div) => [div, chargeDeLaCarte(div, mois)])
+    .filter(([div, c]) => c && JSON.stringify(c) !== div._ecrite);
+}
+
+/** Tout ce qui est à l'écran est-il écrit ? */
+function toutEstEcrit() {
+  return !ecrituresEnAttente().length;
+}
+
+/** Écrit une carte. Rend la réponse du moteur ; la carte garde sa place et ce qu'elle a écrit. */
+async function ecrireLaCarte(div, charge, appel = api) {
+  const r = await appel("enregistrer-saisie", charge);
+  div.dataset.place = String(r.place);
+  div._ecrite = JSON.stringify({ ...charge, place: r.place });
+  return r;
+}
+
+/** Écrit les cartes qui ont changé. Rend true si une carte a été écrite.
  *
- *  UN ENREGISTREMENT À LA FOIS. L'enregistrement part une
- *  seconde après la dernière frappe ; un mois long met plus d'une seconde à se
- *  calculer, et le suivant partait pendant que le précédent tournait encore.
- *  Ils se suivent : chacun attend la fin du précédent, puis compare ce qui est
- *  à l'écran à ce qui vient d'être écrit — rien ne repart pour rien. */
+ *  UN ENREGISTREMENT À LA FOIS. L'enregistrement part une seconde après la dernière frappe ; les écritures se suivent :
+ *  chacune attend la fin de la précédente, puis compare ce qui est à l'écran à ce qui vient d'être écrit — rien ne
+ *  repart pour rien. */
 let ENREGISTREMENT = Promise.resolve(false);
 function enregistrerSaisie(silencieux) {
-  const tour = ENREGISTREMENT.then(() => enregistrerSaisieSeule(silencieux));
+  const tour = ENREGISTREMENT.then(() => enregistrerLesCartes(silencieux));
   ENREGISTREMENT = tour.catch(() => false);
   return tour;
 }
 
-async function enregistrerSaisieSeule(silencieux) {
-  const s = saisieCourante();
-  if (!s.mois) return false;
-  // La boîte de confirmation est ouverte : on attend sa réponse, on ne la redemande pas à chaque frappe.
-  if (CONFIRMATION_OUVERTE === s.mois) return false;
-  const empreinte = JSON.stringify(s);
-  if (empreinte === DERNIERE_ECRITE) return false;
-  try {
-    const r = await api("enregistrer-saisie", { mois: s.mois, saisie: s,
-                                      modifier_apres_echeance: MOIS_CONFIRME === s.mois });
-    DERNIERE_ECRITE = empreinte;
-    if (r && "dsn_deposee" in r && MOIS_AFFICHE === s.mois) { DSN_DEPOSEE = r.dsn_deposee; majAvisDsn(s.mois); }
-    oublierCouts();
-    // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé.
-    // Un engagement auquel il manque un fait s'enregistre aussi : sa carte dit ce qui manque.
-    const aCompleter = (r.a_completer || []).filter(Boolean).length;
-    noteSaisie("Enregistré à " + r.enregistre_a.slice(11, 16) + (aCompleter
-      ? ` — ${aCompleter > 1 ? `${aCompleter} engagements à compléter avant de les valider` : "un engagement à compléter avant de le valider"}.`
-      : "."));
-    ETAT.historique = await api("etat").then((e) => e.historique);
-    // Ce qui vient d'etre enregistre devient declarable : les blocs qui
-    // disaient << pas dans la saisie enregistree >> doivent cesser de le dire,
-    // et la colonne << ce qui part >> compte cet engagement (elle
-    // dirait << aucun engagement ce mois-ci >> jusqu'au rechargement).
-    await rafraichirActions();
-    // La fin d'un contrat se lit sur la saisie ENREGISTRÉE : tant qu'elle
-    // n'était pas relue ici, on tapait le motif de rupture et le bloc
-    // continuait d'annoncer qu'il manquait. Les jours payés pendant un
-    // imprévu aussi : un jour retiré de la ligne doit cesser d'être nommé.
-    await dessinerImprevus(s.mois);
-    return true;
-  } catch (e) {
-    // Un engagement dont on n'a pas encore choisi les jours n'est pas une faute :
-    // c'est la saisie en cours. On le dit en une ligne, sans la règle du
-    // fichier (« lignes: [] ») ni d'alerte.
-    // Ce que la norme ne permet pas de déclarer après la limite (un contrat déclaré retiré, des dates qui le sortent
-    // d'un autre mois où il est saisi) : le
-    // moteur dit pourquoi et quoi faire, et la saisie revient telle qu'elle est enregistrée.
-    if (e.detail?.type === "ModificationNonDeclarable") {
-      dire(e.message, "erreur");
-      if (MOIS_AFFICHE === s.mois) await chargerMois(s.mois, true);
+async function enregistrerLesCartes(silencieux) {
+  const attente = ecrituresEnAttente();
+  if (!attente.length) return false;
+  const mois = attente[0][1].mois;
+  let aCompleter = 0;
+  let heure = "";
+  for (const [div, charge] of attente) {
+    try {
+      const r = await ecrireLaCarte(div, charge);
+      if (r.a_completer) aCompleter += 1;
+      heure = r.enregistre_a.slice(11, 16);
+    } catch (e) {
+      // Un échec d'enregistrement ne peut pas rester discret : c'est du travail qu'on croit posé et qui ne l'est pas.
       noteSaisie("Non enregistré — " + e.message);
+      if (!silencieux) dire(e.message, "erreur");
       return false;
     }
-    if (e.detail?.type === "ModificationApresEcheance") {
-      noteSaisie("Pas encore enregistré : la modification est à confirmer.");
-      confirmerModification(s.mois, e.message, () => enregistrerSaisie(silencieux));
-      return false;
-    }
-    if (e.detail?.type === "SaisieIncomplete") {
-      noteSaisie(/spectacle/.test(e.message)
-        ? "Pas encore enregistré : choisir le spectacle."
-        : "Pas encore enregistré : choisir les jours travaillés.");
-      return false;
-    }
-    // Un échec d'enregistrement ne peut pas rester discret : c'est du travail
-    // qu'on croit posé et qui ne l'est pas.
-    noteSaisie("Non enregistré — " + e.message);
-    if (!silencieux) dire(e.message, "erreur");
-    return false;
   }
+  oublierCouts();
+  // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé. Un engagement auquel il
+  // manque un fait s'enregistre aussi : sa carte dit ce qui manque.
+  noteSaisie("Enregistré à " + heure + (aCompleter
+    ? ` — ${aCompleter > 1 ? `${aCompleter} engagements à compléter avant de les valider` : "un engagement à compléter avant de le valider"}.`
+    : "."));
+  ETAT.historique = await api("etat").then((e) => e.historique);
+  // Ce qui vient d'être enregistré compte dans la colonne « ce qui part », et la fin d'un contrat comme les jours payés
+  // pendant un imprévu se lisent sur ce qui est enregistré.
+  await rafraichirActions();
+  await dessinerImprevus(mois);
+  return true;
 }
 
 /** Appelée à chaque frappe. Enregistre une seconde après la dernière. */
@@ -1312,20 +1214,18 @@ function enregistrerPlusTard() {
   MINUTEUR_SAISIE = setTimeout(() => { MINUTEUR_SAISIE = null; enregistrerSaisie(true); }, 1000);
 }
 
-/* LA PAGE QU'ON QUITTE (recharger, fermer) dans la seconde qui suit une frappe : ce qui est à l'écran part au moteur
- * tout de suite, et la requête survit à la page (`keepalive`). Sans elle, une ligne changée juste avant de partir (une
- * nature de ligne, des jours cochés) revenait telle qu'elle était enregistrée avant. Un mois déclaré qui demande sa
- * confirmation n'est pas confirmé ici : il refuse, comme à l'écran. */
+/* LA PAGE QU'ON QUITTE (recharger, fermer) dans la seconde qui suit une frappe : chaque carte changée part au moteur tout
+ * de suite, et la requête survit à la page (`keepalive`). */
 window.addEventListener("pagehide", () => {
   if (!MINUTEUR_SAISIE) return;
   clearTimeout(MINUTEUR_SAISIE);
   MINUTEUR_SAISIE = null;
-  const s = saisieCourante();
-  if (!s.mois || JSON.stringify(s) === DERNIERE_ECRITE) return;
-  fetch("/api/enregistrer-saisie?jeton=" + encodeURIComponent(JETON), {
-    method: "POST", keepalive: true,
-    headers: { "Content-Type": "application/json", "X-Jeton": JETON },
-    body: JSON.stringify({ mois: s.mois, saisie: s, modifier_apres_echeance: MOIS_CONFIRME === s.mois }),
-  }).catch(() => {});
+  ecrituresEnAttente().forEach(([, charge]) => {
+    fetch("/api/enregistrer-saisie?jeton=" + encodeURIComponent(JETON), {
+      method: "POST", keepalive: true,
+      headers: { "Content-Type": "application/json", "X-Jeton": JETON },
+      body: JSON.stringify(charge),
+    }).catch(() => {});
+  });
 });
 

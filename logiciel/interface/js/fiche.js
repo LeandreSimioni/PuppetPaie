@@ -374,7 +374,7 @@ function dessinerFormulaire(fiche) {
         // (le refus ne doit pas envoyer sur un tiroir replié).
         let enCours = false;
         try {
-          enCours = (saisieCourante().engagements || []).some((x) => x.salarie === fiche.cle
+          enCours = engagementsALEcran().some((x) => x.salarie === fiche.cle
             && natureDe(x.nature).mensuelle);
         } catch (e) { enCours = false; }
         const auMois = ((ETAT.configuration || {}).salaries_au_mois || []).includes(fiche.cle) || enCours;

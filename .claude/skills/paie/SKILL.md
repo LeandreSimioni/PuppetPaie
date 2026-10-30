@@ -15,8 +15,7 @@ les chemins `paies/…` et `sorties/…` se lisent depuis elle, et un mois nu (`
 ## Marche à suivre
 
 1. **Comprendre** : qui, quelles dates jouées, quel spectacle, quel cachet.
-2. **Créer la saisie** : `moteur nouveau 2026-12` écrit `paies/2026-12.json` (`--reprendre` y reporte les contrats en
-   cours des mois d'avant, bornes et numéro). Puis l'éditer :
+2. **Écrire les engagements** : une carte par salarié dans la fenêtre, ou la route `enregistrer-saisie` (`{"mois", "saisie": <un engagement>}`, une carte à la fois) ; ils vont dans `engagements/2026-12.json`, de cette forme :
 
 ```json
 {

@@ -549,7 +549,7 @@ document.querySelectorAll(".onglets button").forEach((b) => {
       // suite ; c'est lui qui dit si elle passe. Rien d'autre à écrire : on
       // relit seulement ce que le moteur dit du mois.
       if (MOIS_AFFICHE) {
-        const enAttente = JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE;
+        const enAttente = !toutEstEcrit();
         if (enAttente) await enregistrerSaisie(true);
         else await rafraichirActions();
       }

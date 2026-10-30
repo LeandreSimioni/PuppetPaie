@@ -333,9 +333,7 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
    orange sous le bloc, non bloquant, qui dit quelle grille il a lue. */
 .engagement .avis .avis-engagement { margin-top: 6px; font-size: 12px; }
 .engagement.validee .avis { display: none; }
-/* Le salarié : une liste à cocher qui a l'air d'un menu -- on coche qui on
-   veut, un seul bloc pour tous, et il se démultiplie à la validation
-   (etats-engagements.js, validerPlusieurs). */
+/* Le salarié : une liste qui a l'air d'un menu, un salarié par carte. */
 .engagement .champ { display: block; font-size: 12px; color: var(--discret); }
 .e-qui { position: relative; margin-top: 3px; }
 .e-qui summary {
@@ -1264,7 +1262,7 @@ pre.reponse {
 /* UN ENGAGEMENT VALIDÉ DONT LA PAIE S'EST RECALCULÉE D'ELLE-MÊME : la carte dit quand et pourquoi. */
 .carte-recalcul { grid-column: 1 / -1; margin-top: 4px; }
 .engagement:not(.validee) .resolu,
-.engagement:not(.validee) .etats-qui:not(.plusieurs) { display: none; }
+.engagement:not(.validee) .etats-qui { display: none; }
 @media (max-width: 780px) {
   .engagement:not(.validee) .ligne1 { grid-template-columns: 1fr; }
   .engagement:not(.validee) .rubrique { grid-template-columns: 1fr 1fr; }

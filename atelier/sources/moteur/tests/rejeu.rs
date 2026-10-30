@@ -118,7 +118,7 @@ fn les_documents_d_un_mois_qui_n_est_pas_parti_ne_partent_pas() {
 fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "parti"));
     let avant = std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
-    let charge = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "numero": "FU1.26.01"});
+    let charge = json!({"mois": "2026-11", "place": 0});
     outils::refus(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
     assert!(std::fs::read(racine.join("engagements/2026-11.json")).unwrap() == avant, "le refus a ecrit l'engagement");
 }
@@ -143,7 +143,7 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
         dsn["groupes"].as_array().unwrap().iter().map(|g| g["etat"].as_str().unwrap().to_string()).collect()
     };
     assert_eq!(dsn_de_decembre(), ["rien"], "un mois sans rien a declarer");
-    let charge = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "numero": "FU1.26.01", "non_actif": true});
+    let charge = json!({"mois": "2026-11", "place": 0, "non_actif": true});
     outils::reussi(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
     assert_eq!(dsn_de_decembre(), ["a_faire"], "la DSN de decembre porte la correction de novembre");
 
@@ -191,18 +191,6 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "ajoute"));
     let jour = "2026-12-16";
     let lignes = |q: u32, dates: &[&str]| json!([{"rubrique": "cachet", "quantite": q, "taux": 150, "lieu": "Salle fictive de Rezé", "dates": dates}]);
-    let saisie = |second: Value| {
-        json!({"mois": "2026-11", "saisie": {"mois": "2026-11", "taux_cachet": 150, "date_paiement": "2026-11-30", "engagements": [
-            {"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.01", "lignes": lignes(2, &["2026-11-20", "2026-11-21"])},
-            second,
-        ]}, "forcer": false, "modifier_apres_echeance": true})
-    };
-    let second = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-27"});
-    let avec = |x: Value| {
-        let mut f = second.clone();
-        f.as_object_mut().unwrap().extend(x.as_object().unwrap().clone());
-        f
-    };
     let documents = || -> Vec<String> {
         let r = outils::route(&racine, "etat-du-mois", json!({"mois": "2026-11"}), jour);
         let etapes = outils::reussi(&r)["etapes"].as_array().unwrap().clone();
@@ -227,8 +215,8 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
         e["valide"]["paies"]["2026-11"].clone()
     };
 
-    outils::reussi(&outils::route(&racine, "enregistrer-saisie", saisie(json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])})), jour));
-    outils::reussi(&outils::route(&racine, "valider-engagement", avec(json!({"valide": true})), jour));
+    let second = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])});
+    outils::reussi(&outils::route(&racine, "valider-engagement", json!({"mois": "2026-11", "saisie": second}), jour));
     assert_eq!(documents(), ["a_faire"], "le bulletin du contrat ajoute est a envoyer");
     outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), jour));
     let dsn = std::fs::read(racine.join("sorties/2026-12/DSN_Decembre2026.dsn")).unwrap().iter().map(|&o| o as char).collect::<String>();
@@ -243,7 +231,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     let modifier = |lignes: Value, confirme: bool| {
         let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.02", "lignes": lignes});
         outils::route(&racine, "modifier-engagement", json!({"mois": "2026-11", "confirme": confirme,
-            "engagements": [{"salarie": "FULLER", "debut": "2026-11-27", "numero": "FU1.26.02", "saisie": saisie}]}), jour)
+            "place": outils::place(&racine, "2026-11", "FULLER", Some("FU1.26.02")), "saisie": saisie}), jour)
     };
     let ecrits = || std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
     let avant = ecrits();

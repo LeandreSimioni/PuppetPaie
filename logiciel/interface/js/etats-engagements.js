@@ -10,9 +10,7 @@ let ETATS_ENGAGEMENTS = null;      // "clé|début|rang" → les quatre actes ; 
 /* LES JUMEAUX : deux contrats du même salarié qui commencent le
    même jour ne se confondent pas. Le moteur les identifie par leur numéro
    quand il est posé, sinon par leur RANG parmi ceux du même salarié et du
-   même jour, dans l'ordre du fichier (`jumeaux.rs`) — et le fichier suit
-   l'ordre des blocs à l'écran (`saisieCourante`). Chaque ligne
-   d'`etat-par-engagement` porte ce rang ; la page le rend à `valider-engagement`. */
+   même jour, dans l'ordre du fichier (`jumeaux.rs`). Chaque ligne d'`etat-par-engagement` porte ce rang. */
 const cleEngagement = (salarie, debut, rang) => salarie + "|" + debut + "|" + (rang || 0);
 
 /** Les (salarié, premier jour) d'un bloc, sans leur rang.
@@ -190,7 +188,6 @@ function poserEtats(cible, html) {
 /** Peint les états sur les blocs. Rappelée après chaque frappe : changer le
  *  salarié ou les jours change l'engagement que le bloc désigne. */
 function peindreEtats() {
-  let refaire = false;
   document.querySelectorAll(".engagement").forEach((div) => {
     const cible = div.querySelector(".etats");
     if (!cible) return;
@@ -236,72 +233,21 @@ function peindreEtats() {
       // Une carte à valider dont on vient de retaper un fait (son début, son salarié) garde son bouton jusqu'à la
       // relecture qui suit l'enregistrement : le clic qui quitte le champ doit le trouver (`validerLaCarte`).
       if (div._ligne && !div._ligne.valide && cible.querySelector(".v-basculer[data-valide='1']")
-          && JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE) return;
+          && !toutEstEcrit()) return;
       poserEtats(cible, `<div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`);
       brancherRetirer(div);
       return;
     }
-    if (lignes.length === 1) {
-      const ligne = lignes[0];
-      // Un contrat sur plusieurs mois : son chevron est au bord de la case.
-      div._ligne = ligne;
-      poserEtats(cible, `<span class="etats-qui">${echapper(ligne.nom)}
-          <span class="discret">— ${echapper(pourQuoi(ligne))}</span></span>`
-        + bandeauEtats(ligne) + bandeauValidation(ligne));
-      brancherValidation(div, ligne);
-      brancherRecu(div);
-      fermerEdition(div, !!ligne.valide);
-      return;
-    }
-    // PLUSIEURS ENGAGEMENTS DANS UN BLOC : pas encore validées, sinon le bloc
-    // aurait été démultiplié. Si l'une l'a été ailleurs (un autre onglet),
-    // on démultiplie maintenant et on repeint.
-    if (lignes.some((l) => l.valide)) { dedoubler(div); refaire = true; return; }
-    poserEtats(cible, lignes.map((l) =>
-      `<span class="etats-qui plusieurs">${echapper(l.nom)}
-         <span class="discret">— ${echapper(pourQuoi(l))}</span></span>` + bandeauEtats(l))
-      .join("")
-      + `<div class="validation">
-           <span class="discret">${lignes.length} salariés dans cet engagement</span>
-           <span class="boutons">
-             ${BOUTON_RETIRER}
-             <button class="secondaire v-valider-tout">Valider pour les ${lignes.length}</button>
-           </span>
-         </div>`);
-    cible.querySelector(".v-valider-tout").onclick = (ev) => {
-      ev.preventDefault();
-      validerPlusieurs(div, lignes);
-    };
-    brancherRetirer(div);
+    const ligne = lignes[0];
+    // Un contrat sur plusieurs mois : son chevron est au bord de la case.
+    div._ligne = ligne;
+    poserEtats(cible, `<span class="etats-qui">${echapper(ligne.nom)}
+        <span class="discret">— ${echapper(pourQuoi(ligne))}</span></span>`
+      + bandeauEtats(ligne) + bandeauValidation(ligne));
+    brancherValidation(div, ligne);
     brancherRecu(div);
-    fermerEdition(div, false);
+    fermerEdition(div, !!ligne.valide);
   });
-  if (refaire) return peindreEtats();
-}
-
-/** Valide chaque engagement du bloc, PUIS le démultiplie : « il faut le bouton
- *  valider, et une fois validé ça se démultiplie ».
- *  Chaque bloc né ici se repeint validé, fermé, avec son propre
- *  carte qui s'ouvre d'un clic. Si une validation échoue, on s'arrête là : ce qui est
- *  validé l'est, le reste se voit au repeint. */
-async function validerPlusieurs(div, lignes) {
-  const mois = document.getElementById("mois").value;
-  let faites = 0;
-  const avis = [];
-  try {
-    for (const l of lignes) {
-      const r = await validerEngagement(mois, l, true);
-      if (r === null) break;
-      avis.push(...((r && r.avis) || []));
-      faites += 1;
-    }
-    dire(`${faites} engagements validés.` + avis.map((a) => " " + a.phrase).join(""), avis.length ? avis[0].couleur : undefined);
-  } catch (e) {
-    dire(e.message + (faites ? ` (${faites} validé(s) avant)` : ""),
-         "erreur");
-  }
-  if (faites) dedoubler(div);
-  await rafraichirActions();
 }
 
 /** Lit `etat-par-engagement` et repeint. Pendant la lecture, les cartes gardent les états qu'elles montrent : une
@@ -327,7 +273,7 @@ async function dessinerEtatsDesEngagements(mois) {
 /* ------------------------------------------------ valider un engagement
    Validé, l'engagement est vert, sur le bloc entier, et ses champs sont en lecture seule pour de vrai (`disabled`).
    Un clic sur sa carte l'ouvre, toutes ses cases modifiables ; ce qui est parti et ce que le changement entraîne, le
-   moteur le dit à « Modifier l'engagement » (`modifierLesCartes`). */
+   moteur le dit à « Modifier l'engagement » (`modifierLaCarte`). */
 
 /** Ferme ou ouvre les champs d'un bloc. Le bouton de validation, lui, reste
  *  actif — sinon on ne pourrait plus rouvrir. */
@@ -384,10 +330,10 @@ function brancherValidation(div, ligne) {
   const b = div.querySelector(".v-basculer");
   if (b) b.onclick = (ev) => {
     ev.preventDefault();
-    validerLaCarte(div, ligne);
+    validerLaCarte(div);
   };
   const m = div.querySelector(".v-modifier");
-  if (m) m.onclick = (ev) => { ev.preventDefault(); modifierLesCartes(div); };
+  if (m) m.onclick = (ev) => { ev.preventDefault(); modifierLaCarte(div); };
   const a = div.querySelector(".v-annuler");
   if (a) a.onclick = (ev) => { ev.preventDefault(); annulerLaModification(div); };
   div.querySelectorAll(".v-pieces").forEach((p) => {
@@ -398,45 +344,54 @@ function brancherValidation(div, ligne) {
   brancherRetirer(div);
 }
 
-/** « Valider l'engagement » valide ce que la carte montre : ce qu'on vient d'y taper s'enregistre d'abord (l'écriture
- *  part une seconde après la frappe), les états se relisent avec, puis la carte dit quel engagement elle désigne
- *  (un début retapé en change). Une saisie que le moteur n'enregistre pas ne se valide pas : la note de la saisie dit
- *  pourquoi. */
-async function validerLaCarte(div, ligne) {
+/** « Valider l'engagement », UN GESTE : la carte part au moteur telle qu'elle est (`valider-engagement` l'écrit, puis la
+ *  valide), sans attendre l'enregistrement automatique. Il lui manque un fait : elle reste écrite, et le moteur dit
+ *  lequel. */
+async function validerLaCarte(div) {
   clearTimeout(MINUTEUR_SAISIE);
-  await enregistrerSaisie(false);
-  if (JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE) {
-    dire(document.getElementById("note-saisie").textContent, "erreur");
-    return;
-  }
-  const ps = engagementsSaisisDuBloc(div);
-  return basculerValidation((ps.length === 1 && etatDEngagement(ps[0])) || ligne, true);
+  const charge = chargeDeLaCarte(div, document.getElementById("mois").value);
+  if (!charge) { dire("Choisir qui est engagé.", "erreur"); return; }
+  // Une écriture automatique de cette carte déjà en route se finit d'abord : sa place en vient.
+  await ENREGISTREMENT;
+  if (div.dataset.place) charge.place = +div.dataset.place;
+  try {
+    const r = await api("valider-engagement", charge);
+    div.dataset.place = String(r.place);
+    div._ecrite = JSON.stringify({ ...charge, place: r.place });
+    // Ce que le moteur dit sans refuser (un contrat qui ne pourra pas partir) se dit, à sa couleur.
+    const avis = (r && r.avis) || [];
+    if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
+    else dire("Engagement validé.");
+  } catch (e) { dire(e.message, "erreur"); }
+  await rafraichirActions();
 }
 
-/** Le bouton « Retirer cet engagement » d'un bloc, quel que soit son état. Le moteur
- *  décide (`retirer-engagement`) : rien de parti, l'engagement s'efface ; un
- *  envoi parti, il refuse (`EngagementParti`), la page montre sa phrase et
- *  propose de rendre l'engagement non actif. Un bloc pas encore enregistré
- *  n'a rien dans le moteur : il s'efface de l'écran. */
+/** Le bouton « Retirer cet engagement » d'une carte, quel que soit son état. Le moteur décide (`retirer-engagement`,
+ *  la carte désignée par sa place) : rien de parti, l'engagement s'efface ; un envoi parti, il refuse
+ *  (`EngagementParti`), la page montre sa phrase et propose de rendre l'engagement non actif. Une carte jamais écrite
+ *  n'a rien dans le moteur : elle s'efface de l'écran. Les places des cartes suivantes changent : ce qui attend s'écrit
+ *  d'abord, puis le mois se relit. */
 function brancherRetirer(div) {
   const b = div.querySelector(".retirer-engagement");
   if (!b) return;
   b.onclick = async (ev) => {
     ev.preventDefault();
     const mois = document.getElementById("mois").value;
-    const lignes = engagementsSaisisDuBloc(div).map(etatDEngagement).filter(Boolean);
-    if (!lignes.length) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
+    clearTimeout(MINUTEUR_SAISIE);
+    await enregistrerSaisie(true);
+    if (!div.dataset.place) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
+    const charge = { mois, place: +div.dataset.place };
     try {
-      for (const l of lignes) {
-        try {
-          await api("retirer-engagement", { mois, ...contratDe(l) });
-        } catch (e) {
-          if (e.detail?.type !== "EngagementParti") throw e;
-          if (!await boiteNonActif(e.message)) return;
-          const r = await api("retirer-engagement", { mois, ...contratDe(l), non_actif: true });
-          if (r.a_faire?.length) dire(`${l.nom} : non actif. À faire : ${r.a_faire.join(", ")}.`);
-        }
+      try {
+        await api("retirer-engagement", charge);
+        dire("Engagement retiré.");
+      } catch (e) {
+        if (e.detail?.type !== "EngagementParti") throw e;
+        if (!await boiteNonActif(e.message)) return;
+        const r = await api("retirer-engagement", { ...charge, non_actif: true });
+        dire("Engagement non actif." + (r.a_faire?.length ? ` À faire : ${r.a_faire.join(", ")}.` : ""));
       }
+      div.remove();
       await chargerMois(mois, true);
     } catch (e) { dire(e.message, "erreur"); }
   };
@@ -478,93 +433,39 @@ function peindreNonActifs(liste) {
   });
 }
 
-/** « Valider l'engagement » : le moteur valide, ou dit ce qui manque. */
-async function validerEngagement(mois, ligne) {
-  return api("valider-engagement", { mois, ...contratDe(ligne) });
-}
 
-async function basculerValidation(ligne) {
-  const mois = document.getElementById("mois").value;
-  try {
-    const r = await validerEngagement(mois, ligne);
-    // Ce que le moteur dit sans refuser (un contrat qui ne pourra pas partir) se dit, à sa couleur.
-    const avis = (r && r.avis) || [];
-    if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
-    else dire("Engagement validé.");
-    await rafraichirActions();
-  } catch (e) { dire(e.message, "erreur"); }
-}
-
-/* LES ENGAGEMENTS VALIDÉS ENSEMBLE SE MODIFIENT ENSEMBLE. « Valider
- * ces 2 engagements » les valide d'un geste, au même instant, puis l'écran les
- * sépare en un bloc par salarié. Sœurs : même spectacle, mêmes bornes,
- * validés à la même seconde. Un même salarié n'est qu'une fois dans un
- * bloc : son jumeau (un autre contrat du même jour) n'est jamais une
- * sœur, même validé à la même seconde. */
-function engagementsSoeurs(ligne) {
-  const toutes = Object.values(ETATS_ENGAGEMENTS || {});
-  const soeurs = toutes.filter((l) => l.valide && l.valide === ligne.valide
-    && l.spectacle === ligne.spectacle && l.debut === ligne.debut && l.fin === ligne.fin
-    && (l.salarie !== ligne.salarie || l.rang === ligne.rang));
-  return soeurs.length ? soeurs : [ligne];
-}
-
-/** Les cartes de l'écran qui montrent un des engagements `lignes`. */
-function cartesDe(lignes) {
-  const meme = (a, b) => a && b && a.salarie === b.salarie && a.debut === b.debut && (a.rang || 0) === (b.rang || 0);
-  return [...document.querySelectorAll("#engagements .engagement")]
-    .filter((div) => lignes.some((l) => meme(div._ligne, l)));
-}
-
-/* UN CLIC SUR LA CARTE D'UN ENGAGEMENT VALIDÉ L'OUVRE, toutes ses cases modifiables, avec celles de ses sœurs. Rien
- * ne s'écrit tant qu'on n'a pas cliqué « Modifier l'engagement » : la carte reste ouverte avec ce qu'on y a tapé,
- * « Annuler » la referme telle qu'elle est enregistrée. */
+/* UN CLIC SUR LA CARTE D'UN ENGAGEMENT VALIDÉ L'OUVRE, toutes ses cases modifiables. Rien ne s'écrit tant qu'on n'a
+ * pas cliqué « Modifier l'engagement » : la carte reste ouverte avec ce qu'on y a tapé, « Annuler » la referme telle
+ * qu'elle est enregistrée. */
 function ouvrirEnModification(div) {
   if (!div._ligne || !div._ligne.valide) return;
-  cartesDe(engagementsSoeurs(div._ligne)).forEach((c) => {
-    c.classList.add("en-modification");
-    fermerEdition(c, false);
-  });
+  div.classList.add("en-modification");
+  fermerEdition(div, false);
   peindreEtats();
 }
 
-/** Les cartes ouvertes pour être modifiées avec celle-ci. */
-function cartesEnModification(div) {
-  return cartesDe(engagementsSoeurs(div._ligne)).filter((c) => c.classList.contains("en-modification"));
-}
-
-/** Referme les cartes telles qu'elles sont enregistrées : le mois se relit, ce qu'on y a tapé s'efface. */
-async function refermerLesCartes(cartes) {
+/** Referme la carte telle qu'elle est enregistrée : le mois se relit, ce qu'on y a tapé s'efface. */
+async function refermerLaCarte(div) {
   const mois = document.getElementById("mois").value;
-  cartes.forEach((c) => c.classList.remove("en-modification"));
+  div.classList.remove("en-modification");
   clearTimeout(MINUTEUR_SAISIE);
   await enregistrerSaisie(true);
   await chargerMois(mois, true);
 }
 
 async function annulerLaModification(div) {
-  await refermerLesCartes(cartesEnModification(div));
+  await refermerLaCarte(div);
 }
 
-/* « MODIFIER L'ENGAGEMENT » : la page envoie ce que les cartes ouvertes montrent ; le moteur dit si rien n'a changé
+/* « MODIFIER L'ENGAGEMENT » : la page envoie ce que la carte ouverte montre ; le moteur dit si rien n'a changé
  * (la carte se referme), écrit ce qui a changé, ou rend son avertissement quand ce qui est parti le demande. La page
- * le montre tel quel ; « Annuler » revient aux cartes avec ce qu'on y a tapé, la confirmation renvoie la demande. */
-async function modifierLesCartes(div) {
+ * le montre tel quel ; « Annuler » revient à la carte avec ce qu'on y a tapé, la confirmation renvoie la demande. */
+async function modifierLaCarte(div) {
   const mois = document.getElementById("mois").value;
-  const cartes = cartesEnModification(div);
-  let engagements;
+  let saisie;
   LIRE_LES_MODIFICATIONS = true;
-  try {
-    // Toute la carte, comme elle se montre : l'engagement qu'elle désigne, et chaque salarié coché en plus, que le
-    // moteur ajoute au mois (une entrée sans engagement désigné).
-    engagements = cartes.flatMap((c) => {
-      const saisies = engagementsDuBloc(c, mois);
-      const k = Math.max(0, saisies.findIndex((s) => s.salarie === c._ligne.salarie));
-      if (!saisies.length) return [{ ...contratDe(c._ligne), saisie: {} }];
-      return saisies.map((s, j) => (j === k ? { ...contratDe(c._ligne), saisie: s } : { saisie: s }));
-    });
-  } finally { LIRE_LES_MODIFICATIONS = false; }
-  const charge = { mois, engagements };
+  try { saisie = engagementsDuBloc(div, mois)[0] || {}; } finally { LIRE_LES_MODIFICATIONS = false; }
+  const charge = { mois, place: +div.dataset.place, saisie };
   try {
     let r = await api("modifier-engagement", charge);
     while (r && r.avertissement) {
@@ -575,10 +476,9 @@ async function modifierLesCartes(div) {
     }
     if (r && r.change) {
       const avis = r.avis || [];
-      dire((engagements.length > 1 ? "Engagements modifiés." : "Engagement modifié.") + avis.map((a) => " " + a.phrase).join(""),
-           avis.length ? avis[0].couleur : undefined);
+      dire("Engagement modifié." + avis.map((a) => " " + a.phrase).join(""), avis.length ? avis[0].couleur : undefined);
     }
-    await refermerLesCartes(cartes);
+    await refermerLaCarte(div);
     await rafraichirActions();
   } catch (e) { dire(e.message, "erreur"); }
 }
@@ -641,7 +541,7 @@ async function boiteDpae(mois) {
   if (ecran && ecran.value === mois && typeof enregistrerSaisie === "function") {
     clearTimeout(MINUTEUR_SAISIE);
     await enregistrerSaisie(true);
-    if (JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE) {
+    if (!toutEstEcrit()) {
       pasEnregistre = document.getElementById("note-saisie").textContent
         || "La saisie à l'écran n'est pas enregistrée.";
     }

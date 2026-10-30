@@ -696,14 +696,31 @@ fn mois_lu(data: &Value) -> Value {
     Value::Object(m)
 }
 
+///
+/// UNE PAIE ECRITE NE LIT QUE DES ENGAGEMENTS VALIDES : le calcul se fait sur les engagements valides du mois et ceux
+/// de `rangs`, comptes comme valides (`stock::empreinte_de_saisie` ne compte que ceux-la) ; un engagement en saisie
+/// n'entre ni dans le calcul ni dans l'empreinte d'une paie ecrite.
 fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<Vec<Value>> {
-    let data = stock::vue_du_mois(&ctx.racine, mois)?.ok_or_else(|| format!("{} : aucune saisie", mois))?;
+    let mut data = stock::vue_du_mois(&ctx.racine, mois)?.ok_or_else(|| format!("{} : aucune saisie", mois))?;
+    let tous: Vec<Value> = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    let mut gardes = Vec::new();
+    let mut places = vec![None; tous.len()];
+    for (i, mut e) in tous.into_iter().enumerate() {
+        if rangs.contains(&i) && e.get("valide").is_none() {
+            e["valide"] = json!({});
+        }
+        if e.get("valide").is_some() {
+            places[i] = Some(gardes.len());
+            gardes.push(e);
+        }
+    }
+    data["engagements"] = Value::Array(gardes);
     let (calculees, entrees) = empreinte::suivre(ctx, &data, || {
         let s = crate::charger_donnees(ctx, &data)?;
         rangs
             .iter()
             .map(|i| {
-                let p = s.paies.get(*i).ok_or("le calcul du mois n'a pas cette paie")?;
+                let p = places.get(*i).copied().flatten().and_then(|j| s.paies.get(j)).ok_or("le calcul du mois n'a pas cette paie")?;
                 let conges = crate::conges::compteur_ecrit(ctx, p, mois)?;
                 let config = empreinte::configuration(ctx, &p.engagement.fin_periode()?, &p.engagement.salarie, p.engagement.spectacle.as_deref())?;
                 Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?.map(|v| v.canon()), conges, p.engagement.fin_periode()?, config))
@@ -1125,21 +1142,20 @@ pub fn ce_qui_est_parti(ctx: &Contexte, o: &Objet, departs: &Departs) -> Vec<Str
     out
 }
 
-/// SUPPRIMER L'ENGAGEMENT de rang `rang` dans l'ecran de `mois` : tant que rien n'est parti de lui (`ce_qui_est_parti`
-/// vide), il s'efface, meme valide, et rend son numero (`numeros` : le suivant se tire de ce que portent les
+/// SUPPRIMER L'ENGAGEMENT `o` (celui qu'une carte montre, en saisie ou valide) : tant que rien n'est parti de lui
+/// (`ce_qui_est_parti` vide), il s'efface, meme valide, et rend son numero (`numeros` : le suivant se tire de ce que portent les
 /// engagements et ce qui est parti). Refus des qu'un envoi est parti : il ne se supprime plus, il peut ne plus etre
 /// actif (`desactiver`) ; rien n'est ecrit.
-pub fn supprimer(ctx: &Contexte, mois: &str, rang: usize, departs: &Departs) -> Resultat<()> {
-    let o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
-    let partis = ce_qui_est_parti(ctx, &o, departs);
+pub fn supprimer(ctx: &Contexte, o: &Objet, departs: &Departs) -> Resultat<()> {
+    let partis = ce_qui_est_parti(ctx, o, departs);
     if !partis.is_empty() {
         return Err(format!(
             "{} : déjà parti : {}. Il ne se supprime plus ; il peut devenir non actif : il reste dans la compagnie, avec ses versions, et ne compte plus dans aucune paie ni aucune déclaration. Rien n'est effacé.",
-            qui_de(ctx, &o),
+            qui_de(ctx, o),
             partis.join(" ; "),
         ));
     }
-    stock::effacer(&ctx.racine, &o)?;
+    stock::effacer(&ctx.racine, o)?;
     Ok(())
 }
 

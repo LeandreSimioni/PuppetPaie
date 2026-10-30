@@ -183,12 +183,6 @@ logiciel, et que deux installations s'ouvrent côte à côte sur un poste — et
 exige un jeton. Les dépôts et les envois se font depuis l'interface, mot de
 passe du logiciel retapé à chaque acte.
 
-**En ligne de commande.**
-
-```bash
-moteur nouveau 2026-10
-```
-
 Saisir les engagements d'octobre dans la fenêtre (`engagements/2026-10.json` : noms, dates, spectacle) et les valider
 (« Valider l'engagement »). Chaque document se fabrique au moment où il part, depuis les engagements validés :
 
