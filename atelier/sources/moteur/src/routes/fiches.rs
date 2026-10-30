@@ -1496,8 +1496,8 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
                 .collect();
             if !autres.is_empty() {
                 return Err(refus(format!(
-                    "Le NIR {} est deja celui de la fiche {}. Un NIR designe une personne et une seule : completer ou reactiver cette \
-                     fiche-la plutot que d'en creer une seconde.",
+                    "Le NIR {} est déjà celui de la fiche {}. Un NIR désigne une personne et une seule : complétez ou réactivez cette \
+                     fiche-là plutôt que d'en créer une seconde.",
                     nir,
                     autres.join(", ")
                 )));

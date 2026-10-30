@@ -1042,9 +1042,6 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   font-size: 30px; line-height: 1.1; font-weight: bold;
   color: var(--action); text-transform: capitalize;
 }
-.mois-gros .iso {
-  font-family: Consolas, monospace; font-size: 15px; color: var(--discret);
-}
 
 /* Les ordres de télépaiement, en entier et un par ligne. Résumés en « 5
    versements », ils ne se relisent plus — et un dépôt réel les déclenche
