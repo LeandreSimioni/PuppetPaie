@@ -812,7 +812,7 @@ fn natures(ctx: &Contexte) -> R<Value> {
             signales.insert(valeur_en_texte(&code), json!(n.signalement_fctu(Some(&valeur_en_texte(&code)))));
         }
         sortie.push(json!({
-            "cle": n.cle, "libelle": n.libelle,
+            "cle": n.cle, "libelle": n.libelle, "aide": n.aide,
             "mensuelle": n.mensuelle(), "duree_indeterminee": n.duree_indeterminee,
             // Un permanent ne se rattache a AUCUN spectacle : le numero d'objet
             // (S21.G00.40.050) est INTERDIT hors des natures 02 et 10 (CCH-11).

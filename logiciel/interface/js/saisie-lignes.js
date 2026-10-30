@@ -202,7 +202,8 @@ function ligneRubrique(l = {}, nat) {
   div.querySelector(".r-taux").oninput = () => {
     const v = div.querySelector(".r-taux").value;
     const r = div.querySelector(".r-code").value;
-    if (v !== "" && +v > 0) {
+    // Une carte ouverte pour être modifiée ne s'écrit pas : son taux ne devient pas celui du mois.
+    if (v !== "" && +v > 0 && !div.closest(".en-modification")) {
       if (r === "cachet") { DERNIER_TAUX = +v; afficherRappelsMois(); }
       else TAUX_PAR_RUBRIQUE[r] = +v;
     }
@@ -871,7 +872,7 @@ function construireCarte(div, e) {
            donnees/contrats-base.json le savait tout seul. Elle change la
            forme du bloc : un permanent n'a ni spectacle ni cachets, il a un
            salaire au mois et des faits. -->
-      <label class="e-nature-bloc" title="ce que la DSN écrira de la structure de ce contrat">Nature
+      <label class="e-nature-bloc">Nature
         <select class="e-nature"></select></label>
       <label class="e-spectacle-bloc">Spectacle
         <select class="e-spectacle"></select></label>
@@ -1112,7 +1113,9 @@ function construireCarte(div, e) {
   // --- la nature du contrat, et la forme du bloc qu'elle décide
   const selNat = div.querySelector(".e-nature");
   poserListe(selNat, "natures", [ETAT.natures], () => (ETAT.natures || []).map(
-    (n) => `<option value="${echapper(n.cle)}">${echapper(n.libelle)}</option>`).join(""));
+    (n) => `<option value="${echapper(n.cle)}" title="${echapper(n.aide || "")}">${echapper(n.libelle)}</option>`).join(""));
+  // Le nom court se lit ; ce qu'il veut dire est dans l'aide du champ, nature par nature.
+  div.querySelector(".e-nature-bloc").title = (ETAT.natures || []).filter((n) => n.aide).map((n) => `${n.libelle} : ${n.aide}`).join("\n");
   selNat.value = e.nature || ETAT.nature_defaut || "";
   selNat.onchange = () => { viderBornes(div); majNature(div); rafraichirApercu(); };
   const selSpec = div.querySelector(".e-spectacle");

@@ -22,6 +22,8 @@ pub type Jour = (i32, u32, u32);
 pub struct Nature {
     pub cle: String,
     pub libelle: String,
+    /// Ce que le nom court veut dire, pour qui hesite en choisissant (`aide` de `contrats-base.json`).
+    pub aide: String,
     /// `"activite"` (cachets, heures) ou `"mensuelle"`.
     pub paie: String,
     pub duree_indeterminee: bool,
@@ -343,6 +345,7 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
     Ok(Nature {
         cle: cle.to_string(),
         libelle: texte(&d["libelle"]).unwrap_or_default(),
+        aide: texte(&d["aide"]).unwrap_or_default(),
         paie,
         duree_indeterminee: d.get("duree_indeterminee").map_or(false, vrai),
         unite_quotite: texte(valeur_uq).unwrap_or_default(),

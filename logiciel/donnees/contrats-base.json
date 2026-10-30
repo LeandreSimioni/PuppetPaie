@@ -26,6 +26,8 @@
 
     "cddu_spectacle": {
       "libelle": "CDDU",
+      "aide": "Contrat à durée déterminée d'usage : un artiste ou un technicien du spectacle, engagé le temps d'un spectacle ou d'une production (code du travail L. 1242-2, 3°).",
+      "_source_aide": "atelier/reference/sources/code-du-travail/xml/L1242-2.xml (3°).",
       "contrat_ecrit": {
         "_quoi": "Le contrat d'engagement : un CDD (L. 1242-2, 3°), donc les mentions de L. 1242-12, et l'information écrite de tout salarié (R. 1221-34). Mêmes règles que celui du CDD (voir `cdd.contrat_ecrit._quoi`) ; ses dates jouées disent sa durée du travail, sa date de paiement la périodicité.",
         "_source": "Code du travail L. 1242-12 (atelier/reference/sources/code-du-travail/xml/L1242-12.xml), L. 1221-5-1, R. 1221-34 et R. 1221-35 (xml/L1221-5-1.xml, xml/R1221-34.xml, xml/R1221-35.xml).",
@@ -233,6 +235,7 @@
 
     "cdi": {
       "libelle": "CDI",
+      "aide": "Contrat à durée indéterminée : un permanent, sans terme.",
       "contrat_ecrit": {
         "_quoi": "Le contrat écrit d'un CDI : le document qui porte les informations principales de la relation de travail (L. 1221-5-1). Mêmes règles que celui du CDD (voir `cdd.contrat_ecrit._quoi`), sans motif ni terme.",
         "_source": "Code du travail L. 1221-5-1 et R. 1221-34 (atelier/reference/sources/code-du-travail/xml/L1221-5-1.xml, xml/R1221-34.xml), R. 1221-35 pour le renvoi aux textes ; L. 3123-6 pour le temps partiel (xml/L3123-6.xml). L'avenant : R. 1221-40, un document qui dit ce qui change (xml/R1221-40.xml).",
@@ -415,6 +418,8 @@
 
     "cdd": {
       "libelle": "CDD",
+      "aide": "Contrat à durée déterminée ordinaire, hors contrat d'usage : un remplacement, un accroissement temporaire d'activité (code du travail L. 1242-2, 1° et 2°).",
+      "_source_aide": "atelier/reference/sources/code-du-travail/xml/L1242-2.xml (1° et 2°).",
       "contrat_ecrit": {
         "_quoi": "Le contrat écrit de cette nature : son modèle livré, celui de son avenant, et les MENTIONS que la loi exige, chacune par son marqueur. Un modèle, livré ou propre à la compagnie (son dossier gabarits/), qui ne cite pas l'un de ces marqueurs ne fait pas de contrat (`documents::contrat_ecrit::refuser_les_mentions_absentes`). `si_dite` : la mention n'est due que si la saisie la dit (la personne remplacée, pour un remplacement).",
         "_source": "Le CDD « est établi par écrit » avec ses mentions (code du travail L. 1242-12, atelier/reference/sources/code-du-travail/xml/L1242-12.xml) ; tout salarié reçoit par écrit les informations principales de sa relation de travail (L. 1221-5-1, R. 1221-34 pour leur liste, R. 1221-35 pour le renvoi aux textes permis aux 7° à 12° et 14° ; xml/L1221-5-1.xml, xml/R1221-34.xml, xml/R1221-35.xml) ; le temps partiel est écrit avec sa durée et sa répartition (L. 3123-6, xml/L3123-6.xml).",
