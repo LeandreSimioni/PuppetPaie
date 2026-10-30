@@ -15,6 +15,7 @@ pub mod cachet;
 pub mod calcul;
 pub mod conges;
 pub mod cumul;
+pub mod duree;
 pub mod departs;
 pub mod ecarts;
 pub mod empreinte;
@@ -1092,7 +1093,9 @@ const PAS_DE_SPECTACLE: &str = " : choisissez le spectacle que joue cet engageme
 const PAS_DE_JOUR: &str = " : cochez les jours joués sur sa ligne de paie.";
 const LIGNE_A_DIRE: &str = " : saisissez ";
 const QUANTITE_SANS_COMPTE: &str = " : saisissez un nombre plus grand que zéro";
-const SAISIE_INCOMPLETE: [&str; 4] = [PAS_DE_SPECTACLE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE];
+/// Une journee de plus de 24 heures (`duree::plus_d_une_journee`) : une faute de frappe, a corriger comme une saisie pas finie.
+pub(crate) const JOURNEE_DE_PLUS_DE_24: &str = ", et une journée n'a que 24 heures";
+const SAISIE_INCOMPLETE: [&str; 5] = [PAS_DE_SPECTACLE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE, JOURNEE_DE_PLUS_DE_24];
 
 /// Chaque ligne de paie saisie dit sa quantite et son taux (ou sa base et son pourcentage) : la saisie s'enregistre
 /// sans eux, en saisie, et ce refus dit ce qui manque, ligne par ligne, avec le salarie (`qui`).
@@ -1119,13 +1122,25 @@ fn lignes_dites(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
             && l.get("planning").and_then(Value::as_array).is_some_and(|p| !p.is_empty());
         if n.is_some_and(|n| n < 0.0 || (n == 0.0 && !a_venir_seulement)) {
             let quoi = if pourcentage { "la base" } else { "la quantité" };
+            // La ligne dit ses jours et le mois ou elle se saisit : la ligne d'un mois suivant d'un contrat a cheval
+            // (`stock::reconduire`) porte les jours de son planning, et ses heures se disent sur la carte de ce mois.
+            let jours: Vec<Jour> = l.get("dates").and_then(Value::as_array).into_iter().flatten().filter_map(|x| d(x.get("jour").unwrap_or(x)).ok()).collect();
+            let (ou, carte) = match jours.first() {
+                Some(j) => (
+                    format!(", {} {}", if jours.len() > 1 { "les" } else { "le" }, jours.iter().map(Jour::jj_mm_aaaa).collect::<Vec<_>>().join(", ")),
+                    format!(" sur sa carte {}", socle::texte::de(&libelle_mois(&j.mois_iso()))),
+                ),
+                None => (String::new(), String::new()),
+            };
             return Err(format!(
-                "{} : {} de {} est {}{}, ou retirez la ligne (×).",
+                "{} : {} de {}{} est {}{}{}, ou retirez la ligne (×).",
                 qui,
                 quoi,
-                ligne,
+                ligne.trim_end_matches(')'),
+                if ou.is_empty() { ")".to_string() } else { format!("{})", ou) },
                 en_texte(l.get(quantite).unwrap_or(&Value::Null)),
-                QUANTITE_SANS_COMPTE
+                QUANTITE_SANS_COMPTE,
+                carte
             ));
         }
         if vide(l.get(taux)) {
@@ -1133,7 +1148,10 @@ fn lignes_dites(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
             return Err(format!("{}{}{} de {}.", qui, LIGNE_A_DIRE, quoi, ligne));
         }
     }
-    Ok(())
+    match duree::plus_d_une_journee(ctx, e, qui)? {
+        Some(refus) => Err(refus),
+        None => Ok(()),
+    }
 }
 
 /// Ce refus de `engagements` dit-il une saisie pas encore finie ([`SAISIE_INCOMPLETE`]) ? Sa premiere ligne le dit.
@@ -1270,13 +1288,13 @@ pub fn refus_sans_numero(ctx: &Contexte, eng: &Engagement) -> Resultat<()> {
 
 fn numero_inconnu(qui: &str, contrat: &str, premier: &str) -> String {
     format!(
-        "{}, {} : en cours depuis {}, mais son numero n'est pas connu -- l'engagement n'est pas valide. Le numero \
-         identifie le contrat en DSN (S21.G00.40.009) et s'ecrit a la validation : valider l'engagement de {} d'abord. \
-         Un contrat repris d'un autre logiciel dit le sien, lu sur sa DSN, dans Configuration > Reprendre l'historique.",
+        "{}, {} : en cours depuis {}, mais son numéro n'est pas connu : l'engagement n'est pas validé. Le numéro \
+         identifie le contrat en DSN (S21.G00.40.009) et s'écrit à la validation : validez d'abord l'engagement {}. \
+         Un contrat repris d'un autre logiciel dit le sien, lu sur sa DSN, dans Configuration › Reprendre l'historique.",
         qui,
         contrat,
         libelle_mois(premier),
-        libelle_mois(premier)
+        socle::texte::de(&libelle_mois(premier))
     )
 }
 
@@ -1293,8 +1311,8 @@ fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>>
             texte: format!(
                 "{} : {}{}, dernier mois (fin le {}). Le bulletin porte le \
                  solde de tout compte ; ensuite, signaler la fin de contrat dans \
-                 les cinq jours et remettre au salarie son certificat de travail \
-                 et son recu pour solde de tout compte (Fin de contrat).",
+                 les cinq jours et remettre au salarié son certificat de travail \
+                 et son reçu pour solde de tout compte (Fin de contrat).",
                 qui,
                 libelle,
                 numero_dit(eng),
@@ -1325,7 +1343,7 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
         avis.push(Avis {
             info: true,
             texte: format!(
-                "{} : contrat {} en cours depuis {}{} -- le contrat et \
+                "{} : contrat {} en cours depuis {}{} ; le contrat et \
                  la DPAE sont faits avec son premier mois, ce mois-ci n'a que son bulletin.",
                 qui,
                 bornes,
@@ -1339,9 +1357,9 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
         let suivant = mois_du_contrat.get(place + 1).ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?;
         let fin_de_phrase = if eng.premier_mois()? {
             if eng.planning_connu() {
-                " Le contrat imprime couvre toutes les dates."
+                " Le contrat imprimé couvre toutes les dates."
             } else {
-                " Le contrat imprime chiffre ce mois-ci et renvoie au planning pour la suite."
+                " Le contrat imprimé chiffre ce mois-ci et renvoie au planning pour la suite."
             }
         } else {
             ""
@@ -1349,9 +1367,9 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
         avis.push(Avis {
             info: true,
             texte: format!(
-                "{} : contrat {}, se poursuit en {} -- ce mois-ci est paye \
-                 maintenant, la suite le sera avec {}. Le certificat Conges \
-                 Spectacles partira a la fin du contrat, pour le contrat \
+                "{} : contrat {}, se poursuit en {} ; ce mois-ci est payé \
+                 maintenant, la suite le sera avec {}. Le certificat Congés \
+                 Spectacles partira à la fin du contrat, pour le contrat \
                  entier.{}",
                 qui,
                 bornes,
@@ -1455,6 +1473,10 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> 
                 libelle
             );
             p.ecrire().avertissements.push(Avis { info: false, texte: msg });
+        }
+        // Une journee au-dela de la duree quotidienne maximale : on le dit, l'employeur en repond.
+        if let Some(texte) = duree::au_dela_du_maximum(ctx, e, &qui_de(&p.salarie)?)? {
+            p.ecrire().avertissements.push(Avis { info: false, texte });
         }
     }
     // Les contrats qui debordent du mois.

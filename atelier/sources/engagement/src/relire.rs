@@ -184,6 +184,7 @@ fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) 
             dsn_bloc52: texte_opt(l, "dsn_bloc52"),
             arret_de_travail: drapeau(l, "arret_de_travail"),
             dsn_autres_bruts: texte_opt(l, "dsn_autres_bruts"),
+            precision: texte_opt(l, "precision"),
         });
     }
     if let Some(Value::Object(b)) = v.get("bases") {

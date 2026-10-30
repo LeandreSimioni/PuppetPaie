@@ -467,12 +467,13 @@ function vueEtatImportation(e) {
   const quoi = [
     compte(de("bulletins").nombre || 0, "bulletin"),
     compte((de("DSN").declarations || 0) + (de("AEM").nombre || 0), "déclaration"),
+    compte(de("certificats").nombre || 0, "certificat"),
     compte(e.contrats || 0, "contrat"),
   ].filter((x) => x).join(", ");
   const bornes = [e.du, e.au, ...reprises.flatMap((r) => [r.du, r.au])]
     .filter((x) => x).map((x) => String(x).slice(0, 7)).sort();
   const [du, au] = [bornes[0], bornes[bornes.length - 1]];
-  const periode = !du ? "" : du === au ? `, en ${moisEnClair(du)}` : `, de ${moisEnClair(du)} à ${moisEnClair(au)}`;
+  const periode = !du ? "" : du === au ? `, en ${moisEnClair(du)}` : `, ${deMois(du)} à ${moisEnClair(au)}`;
   const le = [e.importe_le, ...reprises.map((r) => r.le)].filter((x) => x).sort().pop();
   const repris = quoi ? `<div class="rang">
       <div class="rang-infos"><b class="rang-nom">Historique repris${le ? ` le ${echapper(jjmmaaaa(le))}` : ""}</b>
@@ -500,7 +501,7 @@ function vueNaturesADire(liste) {
     debut: (x) => `<label>Début du contrat <input type="date" data-nature-champ="debut"></label>`,
     fin: (x) => `<label>Fin prévue <input type="date" data-nature-champ="fin"></label>`,
     numero: (x) => `<label title="rubrique S21.G00.40.009 de la DSN">Numéro du contrat
-        <input type="text" data-nature-champ="numero" placeholder="sur la DSN de ${echapper(moisEnClair(String(x.au).slice(0, 7)))}"></label>`,
+        <input type="text" data-nature-champ="numero" placeholder="sur la DSN ${echapper(deMois(String(x.au).slice(0, 7)))}"></label>`,
     salaire: (x) => `<label>Salaire mensuel brut <input type="number" step="0.01" min="0" data-nature-champ="salaire"
         placeholder="celui du contrat signé"></label>`,
     quotite: (x) => `<label title="rubrique S21.G00.40.013 de la DSN">Durée du travail (heures par mois)
@@ -588,11 +589,16 @@ async function ouvrirFicheImportee(nom, cle) {
   document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
 }
 
-/* D'où vient une valeur : la DSN d'un mois, ou un bulletin (fichier, page). */
+/* D'où vient une valeur : la DSN d'un mois, un bulletin (fichier, page), ou
+   un certificat Congés Spectacles (son mois, son fichier). */
 function origineImport(e) {
+  if (e.source === "certificat" || e.source === "AEM") {
+    return `${e.source === "AEM" ? "l'AEM" : "le certificat Congés Spectacles"}${e.mois ? ` de ${echapper(moisEnClair(e.mois))}` : ""}${
+      e.fichier ? ` (${echapper(e.fichier)}${e.page ? `, page ${e.page}` : ""})` : ""}`;
+  }
   return e.source === "bulletin" || "bulletin" in e
     ? `le bulletin${e.fichier ? ` (${echapper(e.fichier)}${e.page ? `, page ${e.page}` : ""})` : ""}`
-    : `la DSN de ${echapper(moisEnClair(e.mois))}`;
+    : `la DSN ${echapper(deMois(e.mois))}`;
 }
 
 /* Ce que l'import met dans une case vide ou « A COMPLETER » d'une fiche
@@ -605,20 +611,24 @@ function valeurImportee(v) {
 }
 
 /* Une fiche que l'import crée, complète, laisse, ou sur laquelle il a à
-   redire. Un écart vient d'une DSN (`dsn`, `mois`) ou d'un bulletin
+   redire. Un écart vient d'une DSN (`dsn`, `mois`), d'un bulletin ou d'un certificat
    (`bulletin`, `fichier`, `page`) : la fiche fait foi, il est seulement
    signalé. Une case vide est complétée, et la page dit d'où. */
 function fichesImportees(fiches, titre) {
   const lignes = (fiches || []).filter((f) => f).map((f) => {
     const etat = pastilleDeLEtat(f.pastille);
+    // Une fiche que seuls des certificats ou des AEM créent : d'où elle vient (`lu_dans`).
+    const luDans = f.lu_dans ? `<div class="acte-dernier">Lu dans ${origineImport(f.lu_dans)}</div>` : "";
     const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
       `<div class="acte-dernier"><b>${echapper(champ)}</b> ${f.etat === "completee" ? "a reçu" : "recevra"}
          « ${echapper(valeurImportee(e.valeur))} », lu dans ${origineImport(e)} — la case était vide</div>`).join("");
     const ecarts = Object.entries(f.ecarts || {}).map(([champ, e]) => {
-      const ou = "bulletin" in e
+      const ou = "certificat" in e || "aem" in e
+        ? `${"aem" in e ? "l'AEM" : "le certificat"} (${echapper(e.fichier || "")}${e.page ? `, page ${e.page}` : ""}) disait`
+        : "bulletin" in e
         ? `le bulletin (${echapper(e.fichier || "")}${e.page ? `, page ${e.page}` : ""}) disait`
-        : `la DSN de ${echapper(moisEnClair(e.mois))} disait`;
-      const lu = "bulletin" in e ? e.bulletin : e.dsn;
+        : `la DSN ${echapper(deMois(e.mois))} disait`;
+      const lu = "certificat" in e ? e.certificat : "aem" in e ? e.aem : "bulletin" in e ? e.bulletin : e.dsn;
       return `<div class="acte-dernier">${ou} <b>${echapper(champ)}</b> = « ${echapper(lu)} »,
          la fiche dit « ${echapper(e.fiche)} » — la fiche fait foi</div>`;
     }).join("");
@@ -640,7 +650,7 @@ function fichesImportees(fiches, titre) {
     return `<div class="rang import">
       <span class="rang-nom">${echapper(f.libelle)}</span>
       ${etat}
-      <span class="rang-infos">${completes}${ecarts}${reste}</span></div>`;
+      <span class="rang-infos">${luDans}${completes}${ecarts}${reste}</span></div>`;
   });
   if (!lignes.length) return "";
   return `<h3>${titre}</h3>${lignes.join("")}`;
@@ -684,6 +694,26 @@ function bulletinsImportes(b, ecrit) {
       ${b.lus} bulletin${b.lus > 1 ? "s" : ""} lu${b.lus > 1 ? "s" : ""} sur ${b.pages} page${b.pages > 1 ? "s" : ""}${
         periode} ; ${b.repris} ${ecrit ? `repris` : "à reprendre"}${
         ajouts.length ? ` : ${ajouts.join(", ")}` : ""}.</div>`;
+}
+
+/* Les certificats Congés Spectacles (`certificats`) ou les AEM en PDF
+   (`aem_pdf`) lus : combien, de quand à quand, ce qu'ils ajoutent, ce
+   qu'ils confirment, et, pour une fiche qu'ils créent, ce qu'aucune de ces
+   pièces ne porte (le moteur le nomme). `titre`, `piece` : leurs mots. */
+function piecesImportees(c, ecrit, titre, piece, pieces, aucune) {
+  if (!c || !c.lus) return "";
+  const periode = c.du ? ` du ${echapper(jjmmaaaa(c.du))} au ${echapper(jjmmaaaa(c.au))}` : "";
+  const ajouts = [
+    c.contrats_nouveaux ? `${c.contrats_nouveaux} contrat${c.contrats_nouveaux > 1 ? "s" : ""} attesté${c.contrats_nouveaux > 1 ? "s" : ""}` : "",
+    c.confirmes ? `${c.confirmes} déjà attesté${c.confirmes > 1 ? "s" : ""} par une autre pièce` : "",
+    c.fiches_a_creer ? `${c.fiches_a_creer} fiche${c.fiches_a_creer > 1 ? "s" : ""}${ecrit ? (c.fiches_a_creer > 1 ? " créées" : " créée") : " à créer"}` : "",
+  ].filter((x) => x);
+  const reste = (c.reste_a_saisir || []).length
+    ? `<div class="note">${aucune}, et reste à saisir dans chaque fiche :
+         ${c.reste_a_saisir.map((x) => echapper(x)).join(" ; ")}.</div>` : "";
+  return `<div class="encart"><b>${titre}</b>
+      ${c.lus} ${c.lus > 1 ? pieces : piece} lu${c.lus > 1 ? "s" : ""}${periode}${
+        ajouts.length ? ` : ${ajouts.join(", ")}` : ""}.${reste}</div>`;
 }
 
 /* Les écarts entre un bulletin et ce que la DSN (ou l'historique) disait
@@ -789,7 +819,7 @@ function vueImportation(r) {
     : "aucun contrat attesté par une AEM";
   const declarations = r.dsn || r.aem
     ? `${r.dsn} DSN${periode}, ${r.aem} fichier(s) AEM — ${contrats}`
-    : "aucune DSN ni AEM dans le dossier";
+    : "aucune DSN ni fichier d'AEM déposé dans le dossier";
   const avert = (r.avertissements || []).map((a) => `<div class="encart attention">${echapper(a)}</div>`).join("");
   const b = r.bulletins || {};
   const aEcrire = (f) => f && (f.etat === "a_creer" || (f.etat === "existante" && Object.keys(f.completer || {}).length));
@@ -823,6 +853,8 @@ function vueImportation(r) {
     <div class="encart"><b>Déclarations</b>
       ${declarations}</div>
     ${bulletinsImportes(r.bulletins, r.ecrit)}
+    ${piecesImportees(r.certificats, r.ecrit, "Certificats Congés Spectacles", "certificat", "certificats", "Aucun certificat ne porte")}
+    ${piecesImportees(r.aem_pdf, r.ecrit, "AEM en PDF", "attestation", "attestations", "Aucune AEM ne porte")}
     ${avert}
     ${fichesImportees([r.entreprise], "Entreprise")}
     ${fichesImportees(r.salaries, "Salariés")}

@@ -1226,6 +1226,11 @@ fn sans_valeur(v: Option<&Value>) -> bool {
 /// cochee en fevrier ne vaut pas pour janvier ; la reponse a la question que la taxe sur les salaires pose apres la TVA,
 /// a sa date). Sans mois parti, la remplir est sa premiere valeur : aucun passe ne la lit. Une fiche neuve n'a rien a
 /// dater.
+/// LES FAITS QUI NE SE DATENT PAS : une case qui dit un fait du passe, vrai de tout temps, et non une valeur qui vaut a
+/// partir d'un jour. La date de la premiere embauche de la compagnie (CSS L. 130-1, II, l'effectif d'une entreprise de
+/// moins de cinq ans) : la changer la corrige, elle ne change pas a une date. Elle s'ecrit sans date d'effet.
+const FAITS_SANS_DATE: [(&str, &str); 1] = [("entreprise", "premiere_embauche")];
+
 pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<String, Value>, cases_vides: bool) -> R<Vec<String>> {
     let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !k.starts_with('_')));
     if !existait {
@@ -1239,6 +1244,7 @@ pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<Str
         .filter(|(k, v)| {
             let avant = ancienne.get(k.as_str()).filter(|a| !a.is_null()).or_else(|| defauts.get(k.as_str()));
             !k.starts_with('_')
+                && !FAITS_SANS_DATE.contains(&(nom, k.as_str()))
                 && !avant.is_some_and(|a| meme(a, v))
                 && !(sans_valeur(avant) && sans_valeur(Some(v)))
                 && (cases_vides || !vide(ancienne.get(k.as_str())))
@@ -1409,7 +1415,7 @@ pub(crate) fn ecrire_datee(
             continue;
         }
         let remplit_un_absent = depuis.is_some() && a_dater.contains(k) && !brute.contains_key(k.as_str());
-        let jour = if depuis.is_some() {
+        let jour = if depuis.is_some() && !FAITS_SANS_DATE.contains(&(nom, k.as_str())) {
             depuis
         } else {
             droit::contexte::valeurs_datees(&Value::Object(brute.clone()), k)

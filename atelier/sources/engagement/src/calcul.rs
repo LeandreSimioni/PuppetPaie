@@ -58,42 +58,64 @@ pub struct LigneBrut {
     pub dsn_bloc52: Option<String>,
     pub arret_de_travail: bool,
     pub dsn_autres_bruts: Option<String>,
+    /// Ce que la ligne dit d'elle-meme sur le bulletin quand sa quantite ne suffit pas : la part payee d'un mois incomplet
+    /// (`droit::periodes::PartDuMois::sur_le_bulletin`).
+    pub precision: Option<String>,
 }
 
 impl LigneBrut {
-    /// La ligne en francais : « 2 Cachets », « 1 Journee de travail »,
-    /// « 6 h de Masterclass ».
+    /// La ligne en francais, telle qu'une personne la lit : « 2 Cachets », « 1 Journée de travail », « 6 h de
+    /// masterclass / action culturelle », « 154 h d'absence non rémunérée », « Indemnité compensatrice de congés payés
+    /// (4,92 jours) », « Indemnité de fin de contrat (précarité) ». Un nombre se dit au centieme. La quantite se compte
+    /// devant le libelle quand son premier mot nomme l'unite (un cachet, une journee, un service, une semaine) ; sinon
+    /// elle se dit apres lui, dans son unite. Un forfait et un pourcentage se disent par leur seul libelle : leur
+    /// quantite n'est pas un nombre de choses.
     pub fn designation(&self) -> String {
-        let q = self.quantite.normalize();
-        let entier = q == q.trunc();
-        let nb = if entier { q.trunc().to_string() } else { q.to_string().replace('.', ",") };
+        let q = self.quantite.round_dp(2).normalize();
+        let nb = q.to_string().replace('.', ",");
+        if matches!(self.unite.as_str(), "forfait" | "pourcentage") {
+            return self.libelle.clone();
+        }
         // UN SALAIRE MENSUEL se paie au mois : sa quantite est la fraction du mois payee (`rubriques-base.json`, `mois`).
         // Un mois entier se dit seul ; une fraction se dit en part du mois, pas en decimales.
         if self.unite == "mois" {
-            if q == Decimal::ONE {
+            if self.quantite == Decimal::ONE {
                 return self.libelle.clone();
             }
-            let part = (q * Decimal::from(100)).round_dp(2).normalize().to_string().replace('.', ",");
+            if let Some(p) = &self.precision {
+                return format!("{} ({})", self.libelle, p);
+            }
+            let part = (self.quantite * Decimal::from(100)).round_dp(2).normalize().to_string().replace('.', ",");
             return format!("{} ({} % du mois)", self.libelle, part);
         }
-        if self.unite == "heure" && !self.libelle.to_lowercase().starts_with("heure") {
-            return format!("{} h de {}", nb, self.libelle);
-        }
-        // Le pluriel porte sur le premier mot.
-        let texte = if q <= Decimal::ONE {
-            self.libelle.clone()
-        } else {
-            let (tete, reste) = match self.libelle.split_once(' ') {
-                Some((t, r)) => (t, Some(r)),
-                None => (self.libelle.as_str(), None),
-            };
-            let tete = if tete.ends_with('s') { tete.to_string() } else { format!("{}s", tete) };
-            match reste {
-                Some(r) => format!("{} {}", tete, r),
-                None => tete,
-            }
+        let (tete, reste) = match self.libelle.split_once(' ') {
+            Some((t, r)) => (t, Some(r)),
+            None => (self.libelle.as_str(), None),
         };
-        format!("{} {}", nb, texte)
+        let compte = match self.unite.as_str() {
+            "heure" => ["heure"].as_slice(),
+            "jour" => ["jour", "journée"].as_slice(),
+            "cachet" => ["cachet"].as_slice(),
+            "service" => ["service"].as_slice(),
+            "semaine" => ["semaine"].as_slice(),
+            _ => [].as_slice(),
+        };
+        // Au singulier jusqu'a deux exclus (« 1,5 journée »).
+        let pluriel = q >= Decimal::TWO;
+        if !compte.contains(&tete.to_lowercase().as_str()) {
+            if self.unite == "heure" {
+                let mut l = self.libelle.chars();
+                let minuscule = l.next().map_or(String::new(), |c| c.to_lowercase().chain(l).collect());
+                return format!("{} h {}", nb, socle::texte::de(&minuscule));
+            }
+            return format!("{} ({} {}{})", self.libelle, nb, self.unite, if pluriel { "s" } else { "" });
+        }
+        // Le pluriel porte sur le premier mot : il nomme ce qui se compte.
+        let tete = if pluriel && !tete.ends_with('s') { format!("{}s", tete) } else { tete.to_string() };
+        match reste {
+            Some(r) => format!("{} {} {}", nb, tete, r),
+            None => format!("{} {}", nb, tete),
+        }
     }
 
     /// La forme canonique de l'oracle (les champs de la dataclass, dans l'ordre).
@@ -116,6 +138,9 @@ impl LigneBrut {
         m.insert("dsn_bloc52".into(), texte(&self.dsn_bloc52));
         m.insert("arret_de_travail".into(), Value::Bool(self.arret_de_travail));
         m.insert("dsn_autres_bruts".into(), texte(&self.dsn_autres_bruts));
+        if let Some(p) = &self.precision {
+            m.insert("precision".into(), Value::String(p.clone()));
+        }
         Value::Object(m)
     }
 }
@@ -154,6 +179,7 @@ pub(crate) fn lignes_brut(eng: &Engagement, ctx: &Contexte) -> Resultat<Vec<Lign
             dsn_bloc52: r.dsn_bloc52,
             arret_de_travail: r.arret_de_travail,
             dsn_autres_bruts,
+            precision: l.get("precision").and_then(Value::as_str).map(str::to_string),
         });
     }
     Ok(out)

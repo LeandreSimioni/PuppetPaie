@@ -26,5 +26,7 @@ mod case_de_depot;
 mod notification_atmp;
 mod engagement_seul;
 mod a_partir_du;
+mod net_a_virer;
+mod duree_du_travail;
 mod carte_ouverte;
 mod arret_prolonge;

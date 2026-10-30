@@ -24,4 +24,12 @@ Lu aussi, sans le republier : l'article des Éditions Lamy Liaisons « Jurisprud
 
 ## Où le moteur s'en sert
 
-Pas encore : `engagement/src/conges.rs` calcule un mois incomplet au prorata des jours calendaires, sans texte (#315).
+- `droit::periodes::part_du_mois` : la part du salaire mensuel qu'une période payée porte (une entrée, une sortie, un
+  avenant au jour) ; le quotient des heures de la période sur celles du mois, comptées en jours ouvrés du lundi au
+  vendredi, fériés compris (`droit::conges::jours_ouvres` ; fiche DSN 2693, exemple 4, dans `../suspension-non-remuneree/`).
+  **Inférence nommée** : la saisie ne dit pas les jours de la semaine travaillés ; l'horaire est pris du lundi au vendredi.
+- `droit::periodes::regle_du_mois_incomplet` : la CCN 1285, art. X.3, pour le premier ou le dernier mois d'un artiste.
+- Ce qui l'emploie : la ligne « mois » de `engagement::conges::lignes_du_mois` et les périodes d'un mois coupé par un
+  avenant (`engagement::periodes::engagements_des_periodes`) ; la ligne du bulletin dit la part (« 105 h sur les 154 h
+  du mois »), l'aperçu cite l'arrêt.
+- Le plafond de la sécurité sociale d'un mois incomplet reste aux jours calendaires (R. 242-2) : ce n'est pas le salaire.

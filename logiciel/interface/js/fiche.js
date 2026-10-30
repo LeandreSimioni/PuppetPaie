@@ -1378,6 +1378,17 @@ function valeurLisible(v) {
   return String(v);
 }
 
+/* UNE STRUCTURE DITE PAR SES CASES (« Prénom : Claire · Nom : Fontaine · Fonction : Présidente ») : celles que la
+ * fiche montre (`SOUS_CHAMPS`), remplies, avec leur libellé et le mot d'un choix ; jamais ses clés. */
+function structureLisible(champ, v) {
+  return (SOUS_CHAMPS[champ].champs || []).map(([k, libelle, , opts]) => {
+    const x = k.split(".").reduce((o, p) => (o && typeof o === "object" ? o[p] : undefined), v);
+    if (x === undefined || x === null || String(x).trim() === "") return "";
+    const mot = opts && opts.choix ? opts.choix[String(x)] : null;
+    return `${libelle} : ${mot || valeurLisible(x)}`;
+  }).filter(Boolean).join(" · ");
+}
+
 /* L'HISTORIQUE D'UN BLOC. `declarant_dsn` est une structure :
  * l'historique affichait « [object Object] » quand on avait seulement passe
  * le courriel en minuscules. On ne montre que ce qui a CHANGE, avec le
@@ -1415,6 +1426,9 @@ function demanderDateDEffet(changements, propose, pourquoi) {
   // Une case à choix se dit par le libellé que la fiche montre (« Régisseur de théâtre »), pas par son code.
   const lisible = (c, cote) => {
     const v = c[cote + "_lisible"] ?? c[cote];
+    if (v && typeof v === "object" && !Array.isArray(v) && SOUS_CHAMPS[c.champ]) {
+      return structureLisible(c.champ, v);
+    }
     const nom = (LIBELLES_CHOIX[c.champ] || {})[String(v ?? "")];
     return nom && String(v ?? "") ? nom : valeurLisible(v);
   };

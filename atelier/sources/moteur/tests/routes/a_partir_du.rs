@@ -5,7 +5,7 @@
 //! 01/02 (le document qui dit la modification la date de sa prise d'effet : code du travail R1221-40,
 //! `atelier/reference/sources/code-du-travail/articles-20261029.md`, l. 856), et la carte de janvier ne dit pas
 //! « Modifié le… ». Ce qui vaut « a partir d'un mois » vaut pour ce mois et tous ceux d'apres, meme quand ils portaient
-//! deja un autre chiffre.
+//! deja un autre chiffre. Le jour se dit quand ce n'est pas le 1er : le mois se coupe alors a ce jour.
 
 use serde_json::{json, Value};
 
@@ -82,4 +82,23 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
     assert_eq!(e["valide"]["paies"]["2026-01"]["paie"], paie_de_janvier, "janvier a change");
     assert_eq!(e["salaire_mensuel"], json!(3400));
     assert_eq!(e["mois_suivants"]["2026-02"]["salaire_mensuel"], json!(3800), "{}", e);
+
+    // L'AVENANT AU JOUR : 4 000 « a partir de fevrier, le 16 ». L'avenant se date du 16/02 (R1221-40, ci-dessus), et
+    // fevrier se coupe en deux parts, chacune payee pour ses heures (Cass. soc., 20/01/1999, n° 96-45.042 :
+    // `atelier/reference/sources/mois-incomplet/legifrance-cass-soc-19990120-96-45042-20261030.md`) : 10 des 20 jours
+    // ouvres de fevrier 2026 aux 3 800 d'avant, les 10 autres aux 4 000.
+    reussi(&modifier(4000, json!({"confirme": true, "a_partir_du": "2026-02", "a_partir_du_jour": 16})));
+    let e = lire();
+    assert_eq!(e["valide"]["paies"]["2026-01"]["paie"], paie_de_janvier, "janvier a change");
+    let fevrier = &e["mois_suivants"]["2026-02"];
+    assert_eq!(fevrier["date_modification"], json!("2026-02-16"), "{}", e);
+    assert_eq!(fevrier["avant"]["salaire_mensuel"], json!(3800), "{}", e);
+    let montants: Vec<&str> = e["valide"]["paies"]["2026-02"]["paie"]["remuneration"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|l| l["code"] == "mois")
+        .map(|l| l["montant"].as_str().unwrap())
+        .collect();
+    assert_eq!(montants, ["1900", "2000"], "{}", e["valide"]["paies"]["2026-02"]["paie"]["remuneration"]);
 }

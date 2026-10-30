@@ -125,6 +125,10 @@ pub static TEXTES: &[Texte] = &[
             // (S21.G00.40.012) << ne doit pas inclure les heures
             // supplementaires structurelles >>.
             Domaine { cle: "temps_partiel", titre: "Le temps partiel, la duree legale et les heures complementaires et supplementaires", numeros: &["L3121-27", "L3121-28", "L3123-1", "L3123-6", "L3123-8", "L3123-20", "L3123-21", "L3123-28"] },
+            // LA DUREE MAXIMALE DU TRAVAIL ET LE REPOS QUOTIDIEN : une journee saisie au-dela de la duree quotidienne
+            // maximale (L3121-18, ses derogations L3121-19 ; la semaine, L3121-20) ou qui ne laisse pas les onze heures
+            // de repos (L3131-1) se dit a la saisie, sans se refuser (`engagement::duree`).
+            Domaine { cle: "duree_maximale", titre: "La duree maximale du travail et le repos quotidien", numeros: &["L3121-18", "L3121-19", "L3121-20", "L3131-1", "L3131-2"] },
             // LES CONGES POUR EVENEMENTS FAMILIAUX : ils
             // << n'entrainent pas de reduction de la remuneration >> (L3142-2).
             // C'est ce que dit `remunere` du motif 637 (`permanents-base.json`),

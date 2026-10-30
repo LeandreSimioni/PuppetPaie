@@ -570,7 +570,8 @@ async function modifierLesCartes(div) {
     while (r && r.avertissement) {
       const reponse = await boiteAvertissement(r.avertissement);
       if (!reponse) return;
-      r = await api("modifier-engagement", { ...charge, confirme: true, a_partir_du: reponse.a_partir_du });
+      r = await api("modifier-engagement", { ...charge, confirme: true, a_partir_du: reponse.a_partir_du,
+                                             a_partir_du_jour: reponse.a_partir_du_jour });
     }
     if (r && r.change) {
       const avis = r.avis || [];
@@ -583,8 +584,8 @@ async function modifierLesCartes(div) {
 }
 
 /** L'avertissement du moteur : chaque engagement nommé une fois, une ligne par ce que le changement entraîne, et la
- *  question « à partir de quel mois ? » quand elle se pose. Rend la réponse (`{a_partir_du}`) à la confirmation,
- *  `null` à « Annuler ». */
+ *  question « à partir de quel mois ? » quand elle se pose, avec le jour, le 1er tant qu'on n'en dit pas d'autre.
+ *  Rend la réponse (`{a_partir_du, a_partir_du_jour}`) à la confirmation, `null` à « Annuler ». */
 function boiteAvertissement(a) {
   const q = a.a_partir_du;
   return new Promise((repondre) => {
@@ -594,7 +595,8 @@ function boiteAvertissement(a) {
       ${q ? `<p>${echapper(q.phrase)}</p>
         ${(q.si || []).length ? `<ul class="discret">${q.si.map((s) => `<li>${echapper(s)}</li>`).join("")}</ul>` : ""}
         <label>À partir de <select id="av-mois">${q.choix.map((c) =>
-          `<option value="${echapper(c.mois)}">${echapper(c.libelle)}${c.partis ? " (déjà parti)" : ""}</option>`).join("")}</select></label>` : ""}
+          `<option value="${echapper(c.mois)}">${echapper(c.libelle)}${c.partis ? " (déjà parti)" : ""}</option>`).join("")}</select></label>
+        <label>le <input id="av-jour" class="jour-du-mois" type="number" min="1" max="31" step="1" value="1"></label>` : ""}
       <div class="actions">
         <button class="secondaire" id="av-non">Annuler</button>
         <button class="primaire" id="av-oui">Modifier l'engagement</button>
@@ -602,7 +604,8 @@ function boiteAvertissement(a) {
     document.getElementById("av-non").onclick = () => fermerBoite();
     document.getElementById("av-oui").onclick = () => {
       const choix = document.getElementById("av-mois");
-      repondre({ a_partir_du: choix ? choix.value : null });
+      const jour = document.getElementById("av-jour");
+      repondre({ a_partir_du: choix ? choix.value : null, a_partir_du_jour: jour ? jour.value : null });
       fermerBoite();
     };
   });

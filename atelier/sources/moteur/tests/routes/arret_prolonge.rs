@@ -48,7 +48,7 @@ fn un_accident_du_travail_se_prolonge_puis_se_reprend_plus_tot() {
 
     // Le bulletin de fevrier retire les jours d'arret sous le nom de l'accident du travail.
     let saisie = reussi(&route(&c, "saisie", json!({"mois": "2026-02"}), jour))["saisie"].clone();
-    let apercu = reussi(&route(&c, "apercu", json!({"saisie": saisie, "lignes": true}), jour)).to_string();
-    assert!(apercu.contains("Absence accident du travail"), "{}", apercu);
-    assert!(!apercu.contains("Absence maladie"), "{}", apercu);
+    let apercu = reussi(&route(&c, "apercu", json!({"saisie": saisie, "lignes": true}), jour)).to_string().to_lowercase();
+    assert!(apercu.contains("absence accident du travail"), "{}", apercu);
+    assert!(!apercu.contains("absence maladie"), "{}", apercu);
 }
