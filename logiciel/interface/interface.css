@@ -1787,7 +1787,8 @@ body:has(#voile:not(.cachee) #signaler-voile) #signaler { visibility: hidden; }
 .du-butoir { font-size: 12px; color: var(--discret); }
 .du-gestes { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 .du-manque { margin-top: 4px; }
-.du-manque > summary { color: var(--alerte); }
+.du-manque p { margin: 2px 0; }
+.du-manque > p:first-child { color: var(--alerte); }
 details.pourquoi { flex-basis: 100%; font-size: 12px; color: var(--discret); }
 details.pourquoi > summary { cursor: pointer; display: inline; list-style: none; text-decoration: underline dotted; }
 details.pourquoi > summary::-webkit-details-marker { display: none; }

@@ -632,36 +632,40 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Rappel>> {
     let mut out = Vec::new();
 
     // LES FINS DE CONTRAT : celles du mois passe et du mois en cours, deja finies (`crate::routes::imprevus::fins_a_signaler`, la
-    // meme liste que la colonne du mois). Un CDD d'usage du spectacle arrive a son terme (031) n'en fait pas partie.
+    // meme liste que la colonne du mois), et celles d'avant dont le signalement est en retard (`fins_en_retard_avant`). Un CDD
+    // d'usage du spectacle arrive a son terme (031) n'en fait pas partie.
     let mois = mois_de(&st.aujourdhui);
+    let mut fins = crate::routes::imprevus::fins_en_retard_avant(st.ctx, &mois_precedent(&mois), st.aujourdhui)?;
     for m in [mois_precedent(&mois), mois.clone()] {
-        for f in crate::routes::imprevus::fins_a_signaler(st.ctx, &m, st.aujourdhui)? {
-            let fin = Jour::lire(&en_texte(&f["fin"]))?;
-            if fin > st.aujourdhui {
-                continue; // il n'a pas encore pris fin
-            }
-            let o = &f["obligation"];
-            if !du(o) {
-                continue;
-            }
-            let salarie = en_texte(&f["salarie"]);
-            let a_saisir: Vec<String> = f["a_saisir"].as_array().map(|l| l.iter().map(en_texte).collect()).unwrap_or_default();
-            let mut r = rappel_d_obligation(
-                o,
-                format!("fin-contrat:{}:{}", salarie, en_texte(&f["fin"])),
-                format!("Signaler la fin du contrat de {}", salarie),
-                format!("Le contrat {} s'est terminé le {}.", texte(f.get("numero")), en_texte(&f["fin"])),
-                f.clone(),
-            );
-            r.mois = Some(m.clone());
-            r.salarie = Some(salarie.clone());
-            r.etat = if a_saisir.is_empty() { A_PRODUIRE } else { A_SAISIR }.into();
-            if !a_saisir.is_empty() {
-                r.detail.push_str(&format!(" À saisir d'abord, dans la carte du contrat : {}", a_saisir.join(" ")));
-            }
-            r.a_saisir = a_saisir;
-            out.push(r);
+        fins.extend(crate::routes::imprevus::fins_a_signaler(st.ctx, &m, st.aujourdhui)?);
+    }
+    for f in fins {
+        let m = en_texte(&f["mois"]);
+        let fin = Jour::lire(&en_texte(&f["fin"]))?;
+        if fin > st.aujourdhui {
+            continue; // il n'a pas encore pris fin
         }
+        let o = &f["obligation"];
+        if !du(o) {
+            continue;
+        }
+        let salarie = en_texte(&f["salarie"]);
+        let a_saisir: Vec<String> = f["a_saisir"].as_array().map(|l| l.iter().map(crate::routes::imprevus::phrase_du_manque).collect()).unwrap_or_default();
+        let mut r = rappel_d_obligation(
+            o,
+            format!("fin-contrat:{}:{}", salarie, en_texte(&f["fin"])),
+            format!("Signaler la fin du contrat de {}", salarie),
+            format!("Le contrat {} s'est terminé le {}.", texte(f.get("numero")), fin.jj_mm_aaaa()),
+            f.clone(),
+        );
+        r.mois = Some(m.clone());
+        r.salarie = Some(salarie.clone());
+        r.etat = if a_saisir.is_empty() { A_PRODUIRE } else { A_SAISIR }.into();
+        if !a_saisir.is_empty() {
+            r.detail.push_str(&format!(" À saisir d'abord, dans la carte du contrat : {}", a_saisir.join(" ")));
+        }
+        r.a_saisir = a_saisir;
+        out.push(r);
     }
 
     // CE QU'UN ARRET FAIT NAITRE : tous les arrets du magasin des imprevus (`crate::routes::imprevus::tous_les_arrets`), leurs
