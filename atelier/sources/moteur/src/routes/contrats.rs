@@ -492,6 +492,17 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("commence".into(), json!(debut <= aujourdhui));
         contrats.push(Value::Object(l));
     }
+    // Les contrats a faire partir dont le salarie n'a pas de courriel : ce que la demande de signature en dira.
+    let mut sans: Vec<String> = Vec::new();
+    for c in &contrats {
+        if boite_liee && vrai(&c["a_envoyer"]) && !vrai(&c["en_avenant"]) && valeur_en_texte(&c["destinataire"]).trim().is_empty() {
+            let nom = valeur_en_texte(&c["nom"]);
+            if !sans.contains(&nom) {
+                sans.push(nom);
+            }
+        }
+    }
+    let avertissements: Vec<String> = if sans.is_empty() { Vec::new() } else { vec![envois::envois_signature::sans_courriel_dit(&sans)] };
     let dossier = ctx.racine.join("sorties").join(&mois);
     let envoi = dossier.join("envoi");
     let produit = dossier.exists()
@@ -507,6 +518,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         "mois": mois_v,
         "contrats": contrats,
         "boite_liee": boite_liee,
+        "avertissements": avertissements,
         "attendues": n_attendues,
         "dossier": dossier.to_string_lossy(),
         "produit": produit,
