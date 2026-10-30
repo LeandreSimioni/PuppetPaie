@@ -653,54 +653,13 @@ function ecritDuBloc(div, e) {
   });
 }
 
-/* LES TERMES DU CONTRAT AVANT UN AVENANT EN COURS DE MOIS (`avant`,
- * periodes.rs : le salaire mensuel et la quotité d'avant, sur lesquels se paie
- * la période d'avant l'avenant). Ils se montrent quand l'engagement les porte,
- * ou quand l'avenant est daté : c'est ce fait-là qui les appelle. */
-function poserAvant(div, e) {
-  const avant = e.avant || {};
-  div.querySelector(".e-avant-salaire").value = avant.salaire_mensuel ?? "";
-  div.querySelector(".e-avant-quotite").value = avant.quotite_contrat ?? "";
-  const majAvant = () => {
-    const dit = div.querySelector(".e-avant-salaire").value !== "" || div.querySelector(".e-avant-quotite").value !== "";
-    div.querySelector(".e-avant").hidden = !avenantSurLaCarte(div) || (!dit && !div.querySelector(".e-date-modification").value);
-  };
-  div.querySelector(".e-date-modification").addEventListener("change", majAvant);
-  div.querySelectorAll(".e-avant input").forEach((c) => { c.oninput = rafraichirApercu; });
-  majAvant();
-  div.querySelector(".e-debut").addEventListener("change", () => majAvenant(div));
-  majAvenant(div);
-}
-
-/* L'AVENANT NE SE PROPOSE QU'À UN CONTRAT QUI EXISTE DÉJÀ ET QUI SE SAISIT.
- * Un CDI saisi pour la première fois montrait « Avenant à compter du » : rien
- * à remplir, puisque ce qu'on tape ce mois-ci, ce sont les termes du contrat.
- * La case paraît quand le contrat a commencé avant le mois affiché — c'est ce
- * fait-là qui l'appelle —, ou quand elle porte déjà une date. Un engagement
- * validé, ouvert pour être modifié, ne la montre pas, ni les termes d'avant :
- * la date du changement, le moteur la demande à « Modifier l'engagement »
- * (« À partir de quel mois ? »), quand ce qui est parti l'appelle. */
-function avenantSurLaCarte(div) {
-  return !(div._ligne && div._ligne.valide);
-}
-
-function majAvenant(div) {
-  const case_ = div.querySelector(".e-date-modification");
-  const debut = div.querySelector(".e-debut").value;
-  const mois = document.getElementById("mois").value || "";
-  const cachee = !avenantSurLaCarte(div) || (!case_.value && !(debut && mois && debut.slice(0, 7) < mois));
-  const l = case_.closest("label");
-  l.hidden = cachee;
-  l.style.display = cachee ? "none" : "";   // la feuille de style pose `display` sur ces étiquettes
-}
-
-function avantDuBloc(div) {
-  const s = div.querySelector(".e-avant-salaire").value, q = div.querySelector(".e-avant-quotite").value;
-  if (s === "" && q === "") return null;
-  const a = {};
-  if (s !== "") a.salaire_mensuel = +s;
-  if (q !== "") a.quotite_contrat = +q;
-  return a;
+/* L'AVENANT D'UN MOIS (`date_modification`, et `avant`, les termes qui paient
+ * ses jours d'avant : periodes.rs) ne se saisit pas sur la carte : sa date se
+ * dit à un seul endroit, la question « À partir de » que le moteur pose à
+ * « Modifier l'engagement ». La carte garde ce que le mois porte et le rend tel
+ * quel à l'enregistrement. */
+function poserAvenant(div, e) {
+  div._avenant = { date_modification: e.date_modification || "", avant: e.avant || null };
 }
 
 /** Les jours d'une ligne qui disent leur propre lieu, un champ chacun. */
@@ -907,16 +866,6 @@ function construireCarte(div, e) {
         <label title="la durée du travail du contrat, en heures par mois (S21.G00.40.013)">Heures par mois
           <input type="number" step="0.01" min="0" class="e-quotite">
           <button type="button" class="lien e-temps-plein" hidden></button></label>
-        <!-- UN AVENANT SE DATE. Ce que cette saisie change au
-             contrat (quotité, nature, motif, date de début) se déclare avec
-             l'ancienne valeur dans le bloc Changements contrat de la DSN, daté
-             du jour où il prend effet (S21.G00.41.001) : le moteur le lit ici,
-             il ne le devine pas. Il ne se recopie pas au mois suivant. -->
-        <label title="le jour où prend effet ce que cette saisie change au contrat — la date que la DSN déclare (S21.G00.41.001)">Avenant à compter du
-          <input type="date" class="e-date-modification"></label>
-        <span class="e-avant" hidden><span class="discret">avant l'avenant :</span>
-          <label>salaire <input type="number" step="0.01" min="0" class="e-avant-salaire"></label>
-          <label>quotité <input type="number" step="0.01" min="0" class="e-avant-quotite"></label></span>
       </div>
       <div class="e-faits">
         <div class="e-fait-groupe">
@@ -1177,8 +1126,7 @@ function construireCarte(div, e) {
   // permanent repris d'un autre logiciel n'a pas d'autre case qui fasse sa
   // paie). `onchange` : pas un calcul par touche d'un montant.
   div.querySelectorAll(".e-salaire, .e-quotite").forEach((c) => { c.onchange = rafraichirApercu; });
-  div.querySelector(".e-date-modification").value = e.date_modification || "";
-  poserAvant(div, e);
+  poserAvenant(div, e);
   poserRares(div, e);
   poserEcrit(div, e);
   remplirFaits(div, e);
@@ -1333,7 +1281,6 @@ function majNature(div) {
   }
   if (nat.mensuelle) {
     majContrat(div);
-    majAvenant(div);
   }
   div.querySelector(".e-contrat-note").textContent = bornes
     ? "Un contrat payé au mois n'a pas de jour coché : ses bornes se disent ici."

@@ -60,7 +60,7 @@ salaire mensuel ET la duree du travail (S21.G00.40.013) ; le logiciel ne les dev
     }
     let Some(texte) = date_modification else {
         return Err(format!(
-            "{} : `avant` dit les termes du contrat avant un avenant, et `date_modification` (« Avenant a compter du ») \
+            "{} : `avant` dit les termes du contrat avant un avenant, et `date_modification` (« Modifier l'engagement », « A partir de ») \
 ne dit pas quand il prend effet. Le dater.",
             qui
         ));

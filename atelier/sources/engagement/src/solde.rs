@@ -438,7 +438,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
 /// L1221-25 : l'employeur qui met fin a l'essai (034) previent le salarie dans un delai qui depend de sa presence ; s'il
 /// ne l'a pas respecte, le salarie a droit, sauf faute grave, a une indemnite egale aux salaires qu'il aurait percus
 /// jusqu'a l'expiration du delai (`preavis.delai_de_prevenance`, ses lectures dans `_lecture`). La ligne : la part du
-/// delai apres la fin du contrat, chaque jour au prorata de son mois, au salaire mensuel ; DSN 52 « 017 ».
+/// delai apres la fin du contrat, le salaire de chaque mois pour ses heures (`droit::periodes::part_du_mois`) ; DSN 52 « 017 ».
 fn delai_de_prevenance(
     e: &Value, fin: &socle::date::Jour, salaire: Decimal, motif: Option<&str>, nat: &Nature, qui: &str, stc: &mut Solde,
 ) -> Resultat<()> {
@@ -510,18 +510,22 @@ fn delai_de_prevenance(
         )));
         return Ok(());
     }
-    // La part non effectuee : du lendemain de la fin au dernier jour du delai, chaque jour au prorata de son mois.
+    // La part non effectuee : du lendemain de la fin au dernier jour du delai, le salaire de chaque mois traverse pour ses
+    // heures (`droit::periodes::part_du_mois`, l'horaire reel du mois).
     let (mut fraction, mut jours, mut j) = (Decimal::ZERO, 0i64, fin.plus_jours(1)?);
     while j <= delai.expiration {
-        fraction = add(fraction, div(Decimal::ONE, Decimal::from(j.jours_du_mois())));
-        jours += 1;
-        j = j.plus_jours(1)?;
+        let fin_mois = socle::date::Jour { an: j.an, mois: j.mois, jour: j.jours_du_mois() };
+        let f = fin_mois.min(delai.expiration);
+        let part = droit::periodes::part_du_mois(&j, &f, &fin_mois, droit::periodes::RegleDuMoisIncomplet::HoraireReel)?;
+        fraction = add(fraction, part.fraction);
+        jours += part.jours;
+        j = f.plus_jours(1)?;
     }
     let rubrique = t(cle(&regle, "rubrique")?);
     stc.lignes.push(json!({"rubrique": rubrique, "quantite": flot(fraction), "taux": flot(salaire)}));
     stc.avertissements.push(avertir(format!(
-        "{} : {} ; le contrat finit le {} : {} jour(s) du delai non effectue(s), payes {} EUR au salaire mensuel, chaque \
-         jour au prorata de son mois (L1221-25, indemnite compensatrice ; DSN 52 : 017). Elle comprend les avantages et \
+        "{} : {} ; le contrat finit le {} : {} jour(s) ouvre(s) du delai non effectue(s), payes {} EUR au salaire mensuel, pour \
+         leurs heures (L1221-25, indemnite compensatrice ; Cass. soc., 20/01/1999 ; DSN 52 : 017). Elle comprend les avantages et \
          l'indemnite compensatrice de conges payes de ces jours : le moteur ne les a PAS ajoutes, a verifier. Le decompte \
          de la presence et du delai est une lecture (permanents-base.json, `preavis.delai_de_prevenance._lecture`).",
         qui,

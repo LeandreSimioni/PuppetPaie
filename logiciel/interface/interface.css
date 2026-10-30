@@ -1245,9 +1245,8 @@ pre.reponse {
                    margin-bottom: 6px; }
 .e-options-ligne .e-metier-bloc { font-size: 12px; color: var(--discret); min-width: 16rem; }
 /* Ce que l'engagement porte sans que la saisie courante le demande (`CHAMPS_RARES`) : seulement quand il a une valeur. */
-.e-rares[hidden], .e-avant[hidden] { display: none; }
+.e-rares[hidden] { display: none; }
 .e-rares label { font-size: 12px; color: var(--discret); }
-.e-avant { display: inline-flex; gap: 8px; align-items: end; flex-wrap: wrap; }
 /* Le lieu propre à un jour, sous sa ligne de paie, quand une date en dit un. */
 .rubrique .r-lieux-jours { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline;
                            font-size: 12px; }
