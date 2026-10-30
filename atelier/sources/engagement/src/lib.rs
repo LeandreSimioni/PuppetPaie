@@ -254,8 +254,9 @@ fn liste<'a>(v: Option<&'a Value>, nom: &str) -> Resultat<&'a [Value]> {
 impl Engagement {
     /// `Engagement(**v)` : `v` porte les champs de la dataclass (`salarie`,
     /// `spectacle`, `dates_travail`, `lignes`, `debut`, ...). `racine` est
-    /// celle des donnees de la compagnie, pour le catalogue des rubriques.
-    pub fn nouveau(racine: &Path, v: &Value) -> Resultat<Engagement> {
+    /// celle des donnees de la compagnie, pour le catalogue des rubriques. `qui` : le salarie tel qu'un refus le nomme
+    /// (`salarie_nomme`).
+    pub fn nouveau(racine: &Path, v: &Value, qui: &str) -> Resultat<Engagement> {
         let o = v.as_object().ok_or("un engagement est un objet")?;
         let get = |k: &str| o.get(k);
 
@@ -282,7 +283,7 @@ impl Engagement {
         let lignes: Vec<Value> = lignes_brutes.iter().map(ligne_en_pourcentage).collect::<Resultat<_>>()?;
 
         // Un refus nomme le salarie : c'est lui que la personne voit sur la carte.
-        let qui = salarie_nomme(o.get("salarie"));
+        let qui = qui.to_string();
         let mois_saisi = ou(get("mois"), None).unwrap_or_default();
         let debut_saisi = truthy(get("debut"));
         let fin_saisie = truthy(get("fin"));
@@ -876,15 +877,15 @@ pub fn jours_du_contrat(e: &Value) -> usize {
     vus.len()
 }
 
-/// Le salarie qu'un refus nomme en tete : la cle de sa fiche, telle que la carte la montre ; « Cet engagement » quand
-/// la carte n'a pas encore de salarie.
-pub(crate) fn salarie_nomme(salarie: Option<&Value>) -> String {
-    chaine(salarie).filter(|s| !s.trim().is_empty()).unwrap_or_else(|| "Cet engagement".to_string())
+/// Le salarie qu'un refus nomme en tete, tel que l'ecran le nomme partout (`Contexte::nomme` : « NOM Prénom ») ;
+/// « Cet engagement » quand la carte n'a pas encore de salarie.
+pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&Value>) -> String {
+    chaine(salarie).filter(|s| !s.trim().is_empty()).map(|c| ctx.nomme(&c)).unwrap_or_else(|| "Cet engagement".to_string())
 }
 
 /// La nature de l'engagement `e` (`e.get("nature")`) ; un refus nomme son salarie.
-fn nature_de(e: &Value) -> Resultat<Arc<Nature>> {
-    natures::nature(chaine(e.get("nature")).as_deref()).map_err(|m| format!("{} : {}", salarie_nomme(e.get("salarie")), m))
+fn nature_de(ctx: &Contexte, e: &Value) -> Resultat<Arc<Nature>> {
+    natures::nature(chaine(e.get("nature")).as_deref()).map_err(|m| format!("{} : {}", salarie_nomme(ctx, e.get("salarie")), m))
 }
 
 /// Ce que `conges::lignes_du_mois` rend pour un engagement paye
@@ -907,8 +908,8 @@ pub(crate) fn engagements(
     let tous = data.get("engagements").ok_or_else(|| socle::fichiers::absent("engagements"))?;
     let tous = tous.as_array().ok_or("`engagements` : une liste est attendue")?;
     for e in tous {
-        let qui = salarie_nomme(e.get("salarie"));
-        let nat = nature_de(e)?;
+        let qui = salarie_nomme(ctx, e.get("salarie"));
+        let nat = nature_de(ctx, e)?;
         let mut spectacle = ou(e.get("spectacle"), data.get("spectacle"));
         if nat.mensuelle() {
             // Employer des permanents se declare.
@@ -1040,7 +1041,7 @@ pub(crate) fn engagements(
         for k in CHAMPS_DU_CONTRAT_ECRIT {
             poser(k, e.get(k));
         }
-        let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs))?;
+        let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
         // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
         if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
@@ -1199,12 +1200,9 @@ pub fn debut_brut(e: &Value) -> String {
     jours.into_iter().next().unwrap_or_default()
 }
 
-/// « NOM Prenom » d'une fiche.
+/// Le salarie d'une fiche, tel que l'ecran le nomme (`socle::texte::salarie_nomme`).
 fn qui_de(fiche: &Value) -> Resultat<String> {
-    let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte);
-    let nom = texte("nom").ok_or_else(|| socle::fichiers::absent("nom"))?;
-    let prenom = texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| socle::fichiers::absent("prenom"))?;
-    Ok(format!("{} {}", nom, prenom))
+    socle::texte::salarie_nomme(fiche).ok_or_else(|| socle::fichiers::absent("nom"))
 }
 
 /// « (n° FA1.26.13) » quand le contrat porte son numero ; rien sinon.

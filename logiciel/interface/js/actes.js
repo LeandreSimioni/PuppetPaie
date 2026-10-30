@@ -905,6 +905,7 @@ async function boiteSignature(mois, seulement) {
         const av = await api("avenants-envoyer", { avenants, motdepasse: mdp });
         r.partis.push(...av.partis);
         r.contrats.push(...av.avenants.map((x) => ({ fichier: x.fichier })));
+        r.avertissements = [...(r.avertissements || []), ...(av.avertissements || [])];
       }
       fermerBoite();
       dire((r.avertissements || []).length ? r.contrats.length + " contrat(s) envoyé(s) à la signature. " + r.avertissements.join(" ")

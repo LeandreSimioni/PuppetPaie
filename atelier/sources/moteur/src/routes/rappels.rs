@@ -677,7 +677,7 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Rappel>> {
             }
             let mut resume = crate::routes::imprevus::resume(st.ctx, &n, a)?;
             resume["obligations"] = Value::Array(obligations.clone());
-            let salarie = nom_affiche(st.ctx, &en_texte(&a["salarie"]));
+            let salarie = st.ctx.nomme(&en_texte(&a["salarie"]));
             for o in obligations.iter().filter(|o| du(o)) {
                 let mut r = rappel_d_obligation(
                     o,
@@ -719,15 +719,6 @@ fn rappel_d_obligation(o: &Value, cle: String, titre: String, question: String, 
     r
 }
 
-/// Le nom d'un salarie tel que les listes le montrent (`ouverture` : « NOM Prenom ») ; sa cle a defaut.
-fn nom_affiche(ctx: &Contexte, cle: &str) -> String {
-    let Ok(f) = ctx.salarie(cle) else { return cle.to_string() };
-    let prenom = f.get("prenom_affichage").filter(|p| vrai(p)).or(f.get("prenom")).map(en_texte).unwrap_or_default();
-    match f.get("nom").map(en_texte) {
-        Some(nom) if !nom.is_empty() => format!("{} {}", nom, prenom).trim().to_string(),
-        _ => cle.to_string(),
-    }
-}
 
 /// « Arrêt de travail (accident du travail) » : ce qu'est l'arret, avec le libelle de son motif.
 fn arret_en_clair(resume: &Value) -> String {

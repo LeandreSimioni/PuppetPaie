@@ -104,14 +104,6 @@ fn heures_texte(x: Decimal) -> String {
     t.trim_end_matches('0').trim_end_matches('.').replace('.', ",")
 }
 
-pub(crate) fn qui(sal: &Value) -> String {
-    let nom = sal.get("nom").map(en_texte).unwrap_or_default();
-    let prenom = match g(sal, "prenom_affichage") {
-        p if vrai(p) => en_texte(p),
-        _ => sal.get("prenom").map(en_texte).unwrap_or_default(),
-    };
-    format!("{} {}", nom, prenom)
-}
 
 /// La duree du contrat en jours calendaires, bornes comprises.
 fn jours_du_contrat(eng: &Engagement) -> Option<i64> {
@@ -1035,7 +1027,7 @@ pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>>
     let avis = avec_cx(ctx, paie, |cx| {
         let t = cx.t;
         let idcc = cx.idcc;
-        let qui = qui(cx.sal);
+        let qui = socle::texte::salarie_nomme(cx.sal).unwrap_or_default();
         let texte_source = premiere_partie(cle(t, idcc)?)?;
         let mut avis = Vec::new();
         for (l, saisie) in paie.remuneration.iter().zip(saisies_de(paie)) {
@@ -1115,7 +1107,7 @@ pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>>
 /// Les lignes visees portent des heures reellement faites (pas un forfait) ;
 /// la comparaison porte sur le total, pas sur un taux reconstitue.
 pub(crate) fn sous_le_smic(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
-    let qui = qui(&paie.salarie);
+    let qui = socle::texte::salarie_nomme(&paie.salarie).unwrap_or_default();
     let jour = paie.engagement.fin_periode()?;
     let smic = dec_f64(ctx.smic(&jour)?)?;
     let mut avis = Vec::new();

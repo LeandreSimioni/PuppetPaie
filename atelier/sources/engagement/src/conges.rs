@@ -37,8 +37,8 @@ fn requis<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
 }
 
 /// Le salarie que nomme en tete ce que le moteur dit d'un engagement paye au mois (`crate::salarie_nomme`).
-pub(crate) fn qui(e: &Value) -> String {
-    crate::salarie_nomme(e.get("salarie"))
+pub(crate) fn qui(ctx: &Contexte, e: &Value) -> String {
+    crate::salarie_nomme(ctx, e.get("salarie"))
 }
 
 /// Le flottant d'un decimal, correctement arrondi, par le texte.
@@ -960,7 +960,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             "{} : la saisie du mois porte des `absences`. Un arret de travail ou une suspension (conge parental, \
              sabbatique, sans solde...) se saisit une fois, comme un imprevu du salarie, et le moteur en tire la ligne de \
              chaque mois qu'il traverse. Saisir l'imprevu, puis enregistrer ce mois sans ses absences.",
-            qui(e)
+            qui(ctx, e)
         ));
     }
     // Une saisie qui ecrit ses lignes les garde : un imprevu du contrat n'y retire rien, et cela se dit.
@@ -970,7 +970,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             dit.push(avertir(format!(
                 "{} : ses lignes sont ecrites a la main, et l'imprevu ({}) du {} au {} n'en retire rien. Le retirer des \
                  lignes, ou laisser le moteur les tirer de la saisie.",
-                qui(e),
+                qui(ctx, e),
                 crate::imprevus::genre(&imp),
                 crate::imprevus::premier_jour(&imp)?.jj_mm_aaaa(),
                 crate::imprevus::dernier_jour(&imp)?.jj_mm_aaaa()
@@ -984,7 +984,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             return Err(format!(
                 "{} : saisissez le salaire mensuel brut de son {}, dans la case « Salaire mensuel brut ».\n\
                  Il se lit sur le contrat signé.",
-                qui(e),
+                qui(ctx, e),
                 nat.libelle
             ))
         }
@@ -1001,7 +1001,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         return Err(format!(
             "{} : saisissez la date de début de son {}, celle du contrat signé, sous « Contrat ».\n\
              Elle identifie le contrat dans la déclaration (S21.G00.40.001) : elle ne se déduit de rien.",
-            qui(e),
+            qui(ctx, e),
             nat.libelle
         ));
     };
@@ -1018,7 +1018,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     if fraction != Decimal::ONE {
         avert.push(info(format!(
             "{} : mois incomplet ({} jours sur {}), salaire calculé au prorata des jours calendaires.",
-            qui(e),
+            qui(ctx, e),
             jours_payes,
             jours_du_mois
         )));
@@ -1061,7 +1061,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             "{} : {} jour(s) ouvrable(s) de conges. Indemnite retenue : {} \
              ({}) -- le dixieme donnait {}, le maintien {} (L3141-24). \
              Solde apres ce mois : {} jours.",
-            qui(e),
+            qui(ctx, e),
             pris,
             ind.retenu,
             ind.regle,
@@ -1074,7 +1074,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
                 "{} : {} jours de conges pris pour un solde de {}. Le \
                  logiciel ne refuse pas -- une avance sur conges se decide --, \
                  mais le compteur passera en negatif.",
-                qui(e),
+                qui(ctx, e),
                 pris,
                 arrondir_jours(cpt.solde())
             )));
@@ -1129,7 +1129,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         let Some(base_conv) = pa.get("base").filter(|b| !b.is_null()).map(dec).transpose()? else {
             return Err(format!(
                 "{} : prime d'anciennete ({}) -- {}.",
-                qui(e),
+                qui(ctx, e),
                 en_texte(&pa["article"]),
                 en_texte(&pa["pourquoi"])
             ));
@@ -1143,7 +1143,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         avert.push(info(format!(
             "{} : prime d'anciennete {} % ({} an(s) de presence) du salaire \
              conventionnel de {} EUR{} = {} EUR -- {}.",
-            qui(e),
+            qui(ctx, e),
             pourcentage,
             en_texte(&pa["annees"]),
             base_conv,
@@ -1171,7 +1171,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
 /// pas pu retirer : a chaque mois qui porte un ferie.
 fn avertir_feries(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Resultat<Vec<Avis>> {
     let ent = Some(&ctx.entreprise);
-    let qui = qui(e);
+    let qui = qui(ctx, e);
     let tous = feries::chomes_entre(debut, fin, Some(&json!({"jours_feries_chomes": "tous"})))?;
     if tous.is_empty() {
         return Ok(vec![]);

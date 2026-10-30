@@ -558,18 +558,6 @@ fn fr(iso: &Value) -> String {
     }
 }
 
-/// « Prénom Nom » de la fiche, ou la cle sans fiche.
-fn nom_affiche(ctx: &Contexte, cle: &str) -> String {
-    let Some(f) = ctx.salaries.get(cle).filter(|f| vrai(f)) else { return cle.to_string() };
-    let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(en_texte).unwrap_or_default();
-    let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
-    let nom = format!("{} {}", prenom, t("nom")).trim().to_string();
-    if nom.is_empty() {
-        cle.to_string()
-    } else {
-        nom
-    }
-}
 
 /// Les phrases a dire avant de declarer, une par salarie dont la paie prendrait la grille de l'article 204 H, III
 /// (CGI, art. 1671, 2 : « A défaut de taux transmis par l'administration ») : ce que le magasin sait de lui. Vide si
@@ -578,7 +566,7 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>)
     let mut lignes = Vec::new();
     for s in diagnostic(ctx, cles, le)? {
         let quoi = s["situation"].as_str().unwrap_or_default();
-        let mut ligne = format!("{} : ", nom_affiche(ctx, &en_texte(&s["salarie"])));
+        let mut ligne = format!("{} : ", ctx.nomme(&en_texte(&s["salarie"])));
         ligne += &match quoi {
             VALIDE => continue,
             PERIME => format!(

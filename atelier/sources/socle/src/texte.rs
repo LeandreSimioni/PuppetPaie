@@ -148,3 +148,33 @@ pub fn capitaliser(t: &str) -> String {
         None => String::new(),
     }
 }
+
+/// LE SALARIE TEL QUE L'ECRAN LE NOMME, partout ou le moteur parle de lui (refus, avis, listes, phrases d'un envoi) :
+/// « NOM Prénom », le nom de sa fiche puis son prénom d'usage (`prenom_affichage`) ou son prénom, comme ses cartes.
+/// Une fiche datée (`[{"valeur"}, {"depuis", "valeur"}]`, telle que `config/salaries.json` l'écrit) se lit à sa
+/// dernière valeur. `None` si la fiche ne porte ni nom ni prénom.
+pub fn salarie_nomme(fiche: &serde_json::Value) -> Option<String> {
+    use serde_json::Value;
+    let t = |k: &str| -> String {
+        let v = match fiche.get(k) {
+            Some(Value::Array(versions)) => versions.last().and_then(|v| v.get("valeur")),
+            autre => autre,
+        };
+        match v {
+            Some(Value::String(s)) => strip(s).to_string(),
+            Some(Value::Null) | None => String::new(),
+            Some(autre) => crate::valeur::valeur_en_texte(autre).trim().to_string(),
+        }
+    };
+    let prenom = match t("prenom_affichage") {
+        p if p.is_empty() => t("prenom"),
+        p => p,
+    };
+    let tout = format!("{} {}", t("nom"), prenom).trim().to_string();
+    (!tout.is_empty()).then_some(tout)
+}
+
+/// `salarie_nomme`, ou la clé de sa fiche quand elle ne nomme personne (ou qu'il n'y a pas de fiche).
+pub fn salarie_nomme_ou(fiche: Option<&serde_json::Value>, cle: &str) -> String {
+    fiche.and_then(salarie_nomme).unwrap_or_else(|| cle.to_string())
+}
