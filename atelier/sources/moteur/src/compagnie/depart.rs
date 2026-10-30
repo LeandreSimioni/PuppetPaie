@@ -291,7 +291,7 @@ fn paie_de_la_version(ctx: &Contexte, o: &engagement::stock::Objet, cle: &str, n
 /// Le jour ou la version `n` de l'engagement `o` a ete validee (`le` de la presente, `valide_le` d'une passee).
 fn valide_le(o: &engagement::stock::Objet, n: u64) -> Option<socle::date::Jour> {
     let passees = o.brut.get("versions").and_then(Value::as_array).into_iter().flatten();
-    let v = [o.brut.get("valide"), o.brut.get("precedente")].into_iter().flatten().chain(passees).find(|v| v.get("version").and_then(Value::as_u64) == Some(n))?;
+    let v = o.brut.get("valide").into_iter().chain(passees).find(|v| v.get("version").and_then(Value::as_u64) == Some(n))?;
     let le = v.get("valide_le").or_else(|| v.get("le")).and_then(Value::as_str)?;
     socle::date::Jour::lire(le.get(..10)?).ok()
 }
@@ -1406,9 +1406,8 @@ fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, pdf: &Path)
 /// La paie ecrite de `mois` que porte la version de l'engagement `o` dont le bulletin a le numero `numero`.
 fn paie_ecrite_au_bulletin<'a>(o: &'a engagement::stock::Objet, mois: &str, numero: &str) -> Option<&'a Value> {
     let passees = o.brut.get("versions").and_then(Value::as_array).into_iter().flatten();
-    [o.brut.get("valide"), o.brut.get("precedente")]
+    o.brut.get("valide")
         .into_iter()
-        .flatten()
         .chain(passees)
         .filter_map(|v| v.get("paies").and_then(|p| p.get(mois)))
         .find(|p| p.get(engagement::etats::BULLETIN).and_then(Value::as_str) == Some(numero))

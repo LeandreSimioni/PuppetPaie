@@ -486,13 +486,13 @@ fn brut_en_texte(v: &Value) -> R<String> {
 }
 
 /// La saisie en JSON, sans les cles
-/// `_...`, ni `valide` ni `rouverte` -- ce qui change dans une saisie sans
+/// `_...`, ni `valide` -- ce qui change dans une saisie sans
 /// changer la paie.
 pub(crate) fn sans_bruit(x: &Value) -> Value {
     match x {
         Value::Object(o) => Value::Object(
             o.iter()
-                .filter(|(k, _)| !k.starts_with('_') && *k != "valide" && *k != "rouverte")
+                .filter(|(k, _)| !k.starts_with('_') && *k != "valide")
                 .map(|(k, v)| (k.clone(), sans_bruit(v)))
                 .collect(),
         ),
@@ -892,8 +892,8 @@ impl<'a> Moteur<'a> {
     }
 
     /// LES ENGAGEMENTS AUXQUELS IL MANQUE UN FAIT (`engagement::stock::A_COMPLETER`), a leur place dans l'ordre de
-    /// l'ecran : chacun dit ce qui lui manque (`a_completer`) ; celui qui n'a jamais ete valide, hors de toutes les
-    /// lectures du mois, a sa ligne a lui (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre.
+    /// l'ecran : hors de toutes les lectures du mois, chacun a sa ligne a lui, qui dit ce qui lui manque
+    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre.
     fn avec_les_engagements_a_completer(&self, mois: &str, lignes: Vec<Value>) -> R<Vec<Value>> {
         let a_l_ecran = engagement::stock::objets_a_l_ecran(self.racine(), mois).map_err(plain)?;
         if !a_l_ecran.iter().any(|o| o.a_completer().is_some()) {
@@ -902,7 +902,7 @@ impl<'a> Moteur<'a> {
         let mut calculees = lignes.into_iter();
         let mut out: Vec<Value> = Vec::new();
         for o in &a_l_ecran {
-            let mut ligne = if o.est_a_completer() {
+            let ligne = if o.est_a_completer() {
                 self.ligne_a_completer(mois, o)?
             } else {
                 match calculees.next() {
@@ -910,9 +910,6 @@ impl<'a> Moteur<'a> {
                     None => continue,
                 }
             };
-            if let Some(m) = o.a_completer() {
-                ligne["a_completer"] = json!(m);
-            }
             out.push(ligne);
         }
         out.extend(calculees);
@@ -929,7 +926,7 @@ impl<'a> Moteur<'a> {
     /// LA LIGNE D'UN ENGAGEMENT JAMAIS VALIDE AUQUEL IL MANQUE UN FAIT : rien ne se calcule sur lui, rien n'est parti ;
     /// il dit qui, quand, et ce qui lui manque. Ses carres disent « à compléter » (`Point::de`).
     fn ligne_a_completer(&self, mois: &str, o: &engagement::stock::Objet) -> R<Value> {
-        let vue = o.a_l_ecran_tel_quel().vue(mois).map_err(plain)?.unwrap_or_default();
+        let vue = o.vue(mois).map_err(plain)?.unwrap_or_default();
         let e = Value::Object(vue);
         let cle = engagement::cle_de_l_engagement(self.ctx, &e).unwrap_or_else(|| e.get("salarie").map(valeur_en_texte).unwrap_or_default());
         let nom = self.ctx.salarie(&cle).ok().map(|f| super::nom_a_l_ecran(&f)).unwrap_or_else(|| cle.clone());

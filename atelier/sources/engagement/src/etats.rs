@@ -1188,9 +1188,8 @@ pub fn desactiver(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<NonActif>
         return Err(format!("{} : rien n'est parti de cet engagement ; il se supprime, il ne devient pas non actif. Rien n'est écrit.", qui_de(ctx, &o)));
     }
     let le = maintenant();
-    // La validation presente, ou celle que « Modifier… » a mise de cote : la derniere version, gardee telle quelle.
-    let derniere = o.brut.remove("valide").or_else(|| o.brut.remove(PRECEDENTE));
-    o.brut.remove(PRECEDENTE);
+    // La validation presente : la derniere version, gardee telle quelle.
+    let derniere = o.brut.remove("valide");
     // Sa version suit la derniere validee : son present, rien de paye, est une version de plus.
     let version = o.brut.get(VERSIONS).and_then(Value::as_array).into_iter().flatten().chain(derniere.as_ref()).filter_map(|v| version_de(Some(v))).max().unwrap_or(0) + 1;
     if let Some(v) = derniere.filter(|v| version_de(Some(v)).is_some()) {

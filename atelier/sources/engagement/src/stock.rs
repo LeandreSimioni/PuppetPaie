@@ -42,14 +42,9 @@ pub const TENUS_PAR_LE_MOTEUR: [&str; 8] =
 
 /// UN ENGAGEMENT EN SAISIE AUQUEL IL MANQUE UN FAIT (un salaire, une duree du travail, une anciennete, un spectacle,
 /// des jours) : `{"mois", "manque"}`, le mois dont l'ecriture l'a trouve incomplet et ce que le calcul en dit ; l'ecran
-/// le montre avec ce qui lui manque (`vue_a_l_ecran`), et sa validation dit ce qui manque.
-///
-/// - Un engagement qui n'a jamais ete valide est ecrit tel que l'ecran l'a saisi ; il ne touche aucun mois
-///   (`Objet::couvre`) : rien ne le calcule, rien ne part de lui.
-/// - Un engagement deja valide une fois, remis en saisie (`etats::modifier`), garde ce qu'il disait de complet : les
-///   lectures du mois le voient en saisie, tel qu'il etait (rien ne part d'un engagement en saisie, et ce qui est parti
-///   pour lui se relit sur lui) ; la saisie de l'ecran se garde a cote, dans `saisie`, et l'ecran la montre. Elle devient
-///   la sienne quand elle se calcule.
+/// le montre avec ce qui lui manque (`vue_a_l_ecran`), et sa validation dit ce qui manque. Seul un engagement jamais
+/// valide le porte (un engagement valide ne change que d'un geste qui le revalide, `etats::modifier`) : il est ecrit
+/// tel que l'ecran l'a saisi et ne touche aucun mois (`Objet::couvre`) : rien ne le calcule, rien ne part de lui.
 pub const A_COMPLETER: &str = "a_completer";
 
 /// Dans un engagement qui n'est plus actif (`etats::desactiver`) : `{"le", "version"}`, quand, et sa version (celle qui
@@ -222,27 +217,9 @@ impl Objet {
         self.brut.get(A_COMPLETER)?.get("manque").map(en_texte)
     }
 
-    /// Hors de toutes les lectures du mois : un engagement jamais valide auquel il manque un fait (`A_COMPLETER`).
+    /// Hors de toutes les lectures du mois : un engagement auquel il manque un fait (`A_COMPLETER`).
     pub fn est_a_completer(&self) -> bool {
-        self.brut.get(A_COMPLETER).is_some_and(Value::is_object) && self.jamais_valide()
-    }
-
-    /// L'engagement tel que l'ecran le montre : la saisie gardee a cote (`A_COMPLETER`, `saisie`) d'un engagement deja
-    /// valide une fois, posee sur son mois ; sinon tel qu'il est ecrit.
-    pub fn a_l_ecran_tel_quel(&self) -> Objet {
-        let mut o = self.clone();
-        let gardee = self.brut.get(A_COMPLETER).and_then(|a| Some((a.get("mois")?.as_str()?.to_string(), a.get("saisie")?.as_object()?.clone())));
-        if let Some((mois, saisie)) = gardee {
-            if poser_le_mois(&mut o, &mois, &saisie).is_err() {
-                return self.clone();
-            }
-        }
-        o
-    }
-
-    /// N'a-t-il jamais ete valide (ni validation, ni validation remplacee, ni version) ?
-    pub fn jamais_valide(&self) -> bool {
-        ["valide", "precedente", "versions"].iter().all(|k| self.brut.get(*k).is_none_or(Value::is_null))
+        self.brut.get(A_COMPLETER).is_some_and(Value::is_object)
     }
 
     /// Est-il importe (`importe::IMPORTE`) ?
@@ -549,7 +526,7 @@ pub fn vue_du_mois(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
 }
 
 /// LE MOIS TEL QUE L'ECRAN LE MONTRE ET LE SAISIT : `vue_du_mois`, et, a leur place, les engagements auxquels il manque
-/// un fait (`A_COMPLETER`), chacun avec `a_completer` : ce qui lui manque, et la saisie qu'il garde a cote (`Objet::a_l_ecran_tel_quel`). Rien ne se calcule sur elle : un calcul lit
+/// un fait (`A_COMPLETER`), chacun avec `a_completer` : ce qui lui manque. Rien ne se calcule sur elle : un calcul lit
 /// `vue_du_mois`.
 pub fn vue_a_l_ecran(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
     Ok(saisie_du_mois(racine, mois, true)?.map(|s| s.0.clone()))
@@ -596,7 +573,7 @@ fn saisie_du_mois(racine: &Path, mois: &str, ecran: bool) -> Resultat<Option<std
         data.insert("mois".into(), Value::String(mois.to_string()));
         let mut engagements = Vec::new();
         for o in &objets {
-            let vu = if ecran { o.a_l_ecran_tel_quel().vue(mois)? } else { o.vue(mois)? };
+            let vu = o.vue(mois)?;
             let Some(mut v) = vu else { continue };
             if let Some(le) = o.brut.get("valide").and_then(|x| x.get("le")) {
                 v.insert("valide".into(), serde_json::json!({ "le": le }));
@@ -705,8 +682,7 @@ fn identite(ctx: &Contexte, e: &Value) -> Option<droit::jumeaux::Ident> {
 /// `valide` ne compte jamais.
 ///
 /// `manques` : pour chaque engagement de la vue, dans son ordre, ce qui lui manque pour se calculer (`None` : rien) ;
-/// l'engagement s'ecrit avec (`A_COMPLETER` ; celui qui a deja ete valide une fois garde la saisie a cote). Un engagement
-/// complet en `mois` perd ce que `mois` lui faisait manquer.
+/// l'engagement s'ecrit avec (`A_COMPLETER`). Un engagement complet en `mois` perd ce que `mois` lui faisait manquer.
 ///
 /// Refus, et rien n'est ecrit : un engagement dont les nouvelles bornes laisseraient hors du contrat un mois ou il a des
 /// jours payes ; un engagement du salarie et du premier jour d'un engagement importe qui touche `mois` (il se lit, il ne
@@ -731,7 +707,7 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Op
     }
     // Telles que l'ecran les montre : c'est elles qu'il renvoie.
     let vues_actuelles: Vec<Value> =
-        du_mois.iter().map(|i| tous[*i].a_l_ecran_tel_quel().vue(mois).map(|v| Value::Object(v.unwrap_or_default()))).collect::<Resultat<_>>()?;
+        du_mois.iter().map(|i| tous[*i].vue(mois).map(|v| Value::Object(v.unwrap_or_default()))).collect::<Resultat<_>>()?;
     let ids_entrants: Vec<Option<droit::jumeaux::Ident>> = entrants.iter().map(|e| identite(ctx, e)).collect();
     let ids_actuels: Vec<Option<droit::jumeaux::Ident>> = vues_actuelles.iter().map(|e| identite(ctx, e)).collect();
     let mut paires = droit::jumeaux::apparier_meme_numero(&ids_entrants, &ids_actuels);
@@ -769,7 +745,7 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Op
     for (i, e) in entrants.iter().enumerate() {
         let Value::Object(e) = e else { continue };
         let mut saisie = e.clone();
-        for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()).chain(["rouverte"].iter()) {
+        for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
             saisie.remove(*k);
         }
         match paires[i] {
@@ -791,10 +767,6 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Op
                     }
                 }
                 match manques.get(i).cloned().flatten() {
-                    // Deja valide une fois : il garde ce qu'il disait de complet, la saisie de l'ecran se garde a cote.
-                    Some(m) if !o.jamais_valide() => {
-                        o.brut.insert(A_COMPLETER.into(), serde_json::json!({ "mois": mois, "manque": m, "saisie": saisie }));
-                    }
                     Some(m) => {
                         poser_le_mois(o, mois, &saisie)?;
                         o.brut.insert(A_COMPLETER.into(), serde_json::json!({ "mois": mois, "manque": m }));

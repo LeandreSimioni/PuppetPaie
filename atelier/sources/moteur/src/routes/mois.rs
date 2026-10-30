@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::routes::fiches::{maintenant, refus, texte_requis};
-use crate::routes::rappels::{self, brut_valeur, texte, Etat};
+use crate::routes::rappels::{self, texte, Etat};
 use engagement::calcul::Paie;
 use engagement::Avis;
 use droit::catalogue;
@@ -2127,44 +2127,6 @@ pub(crate) fn q2(x: Decimal) -> Decimal {
     r
 }
 
-/// Une ligne de la saisie, avec ce que la rubrique en dit.
-fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
-    let rubrique = l.get("rubrique");
-    let infos = || -> Option<(String, String, f64)> {
-        let r = droit::catalogue::rubrique(&ctx.racine, l.get("rubrique")?.as_str()?, &ctx.lue_au).ok()?;
-        let quantite = match l.get("quantite") {
-            None | Some(Value::Null) => 0.0,
-            Some(q) if !vrai(q) => 0.0,
-            Some(q) => flottant(q).ok()?,
-        };
-        let saisies = match l.get("heures") {
-            None | Some(Value::Null) => None,
-            Some(Value::Number(n)) => n.as_f64(),
-            Some(_) => return None,
-        };
-        let total = r.heures(quantite, saisies);
-        Some((r.libelle, r.unite, total))
-    };
-    let (libelle, unite, total) = match infos() {
-        Some((l, u, t)) => (Value::String(l), Value::String(u), Some(t)),
-        None => (rubrique.cloned().unwrap_or(Value::Null), Value::Null, None),
-    };
-    let jours = |cle: &str| -> Value {
-        Value::Array(l.get(cle).and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().map(brut_valeur).collect()))
-    };
-    json!({
-        "rubrique": rubrique.cloned().unwrap_or(Value::Null),
-        "libelle": libelle, "unite": unite,
-        "quantite": l.get("quantite").cloned().unwrap_or(Value::Null),
-        "taux": l.get("taux").cloned().unwrap_or(Value::Null),
-        "heures_par_unite": l.get("heures").cloned().unwrap_or(Value::Null),
-        "heures": total.filter(|t| *t != 0.0).map_or(Value::Null, nombre_f),
-        "lieu": match l.get("lieu") { Some(x) if vrai(x) => x.clone(), _ => Value::String(String::new()) },
-        "dates": jours("dates"),
-        "planning": jours("planning"),
-    })
-}
-
 /// LA RUPTURE de cet engagement, telle que la page la propose (« Un imprévu… ») : `null` quand elle n'a pas de sens ici
 /// -- une nature sans motif de rupture (S21.G00.62.002, CCH-11 : `Nature::motifs_rupture`), ou un contrat a terme qui ne
 /// finit pas ce mois-ci -- ; sinon le libelle de la porte et la fin du contrat (celle qu'il dit, ou son dernier jour
@@ -2291,7 +2253,6 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
             "rubrique": l.code, "designation": l.designation(),
             "quantite": l.quantite.to_string(), "taux": l.taux.to_string(), "montant": q2(l.montant).to_string(),
         })).collect::<Vec<_>>(),
-        "lignes_saisies": e.lignes.iter().map(|l| ligne_saisie(ctx, l)).collect::<Vec<_>>(),
         "jours": jours, "lieu": lieu,
         "brut": q2(p.brut).to_string(), "base_csg": q2(p.base_csg).to_string(),
         "plafond": q2(p.plafond).to_string(), "smic": nombre_f(p.smic),

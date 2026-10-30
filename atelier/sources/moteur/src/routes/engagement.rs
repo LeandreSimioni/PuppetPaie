@@ -62,8 +62,7 @@ pub(super) fn maintenant() -> String {
 
 /// Ce que la page designe, lu dans l'ordre de l'ecran.
 enum Designe {
-    /// Un engagement auquel il manque un fait (`engagement::stock::A_COMPLETER`), tel que l'ecran le montre (sa saisie,
-    /// `Objet::a_l_ecran_tel_quel`).
+    /// Un engagement auquel il manque un fait (`engagement::stock::A_COMPLETER`), hors de la saisie enregistree.
     ACompleter(engagement::stock::Objet),
     /// Un engagement de la saisie enregistree : la charge a donner a `engagement_designe`, son rang compte parmi les
     /// engagements de `vue_du_mois`.
@@ -80,7 +79,7 @@ fn designe_a_l_ecran(ctx: &Contexte, charge: &Value) -> R<Designe> {
     let du_jour: Vec<(engagement::stock::Objet, Option<String>)> = objets
         .into_iter()
         .filter_map(|o| {
-            let e = Value::Object(o.a_l_ecran_tel_quel().brut);
+            let e = Value::Object(o.brut.clone());
             let la = engagement::cle_de_l_engagement(ctx, &e).as_deref() == Some(salarie) && engagement::debut_brut(&e) == debut;
             la.then(|| (o, droit::jumeaux::numero_pose(&e)))
         })
@@ -531,14 +530,12 @@ pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
 /// (`a_faire`, en phrases : la DPAE a annuler, la DSN d'un mois a corriger). Rien ne part de lui-meme.
 fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
-    // Un engagement auquel il manque un fait et qui n'a jamais ete valide : rien n'est parti de lui, il s'efface. Deja
-    // valide une fois, il se retire comme les autres, tel qu'il est ecrit.
+    // Un engagement auquel il manque un fait n'a jamais ete valide : rien n'est parti de lui, il s'efface.
     let designe = match designe_a_l_ecran(ctx, charge)? {
-        Designe::ACompleter(o) if o.jamais_valide() => {
+        Designe::ACompleter(o) => {
             engagement::stock::effacer(&ctx.racine, &o).map_err(Echec::from)?;
             return Ok(json!({"retire": "supprime"}));
         }
-        Designe::ACompleter(o) => tel_qu_il_est_ecrit(ctx, charge, &o)?,
         Designe::DansLaVue(c) => c,
     };
     let charge = &designe;
@@ -552,27 +549,6 @@ fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let n = engagement::etats::desactiver(ctx, mois, i).map_err(Echec::from)?;
     let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
     Ok(json!({"retire": "non_actif", "le": n.le(), "a_faire": a_faire_en_phrases(&n.a_refaire(ctx, &departs))}))
-}
-
-/// La charge qui designe dans `vue_du_mois` l'engagement deja valide une fois et remis en saisie `o` : son debut et son
-/// rang tels qu'il est ecrit, pas tels que sa saisie gardee a cote les montre.
-fn tel_qu_il_est_ecrit(ctx: &Contexte, charge: &Value, o: &engagement::stock::Objet) -> R<Value> {
-    let mois = texte_requis(charge, "mois")?;
-    let ident = |x: &engagement::stock::Objet| {
-        let e = Value::Object(x.brut.clone());
-        (engagement::cle_de_l_engagement(ctx, &e), engagement::debut_brut(&e))
-    };
-    let (cle, debut) = ident(o);
-    let objets = engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?;
-    let rang = objets
-        .iter()
-        .filter(|x| !x.est_a_completer() && ident(x) == (cle.clone(), debut.clone()))
-        .position(|x| x.fichier == o.fichier && x.rang == o.rang)
-        .unwrap_or(0);
-    let mut c = charge.clone();
-    c["debut"] = json!(debut);
-    c["rang"] = json!(rang);
-    Ok(c)
 }
 
 /// Ce qu'un engagement non actif rend a faire, en phrases pour l'ecran.
