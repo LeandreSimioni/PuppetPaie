@@ -1894,7 +1894,7 @@ pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &Value) -> Vec<Option<S
     }
     let mut gardes: Vec<Value> = Vec::new();
     let mut manques = Vec::new();
-    for (i, e) in tous.iter().enumerate() {
+    for e in tous.iter() {
         let mut essai = data.clone();
         essai["engagements"] = Value::Array(gardes.iter().cloned().chain(std::iter::once(e.clone())).collect());
         match engagement::pour_l_ecran(ctx, &essai) {
@@ -1902,8 +1902,7 @@ pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &Value) -> Vec<Option<S
                 gardes.push(e.clone());
                 manques.push(None);
             }
-            // Le refus nomme l'engagement par son rang dans l'essai : c'est son rang dans la saisie.
-            Err(m) => manques.push(Some(m.replacen(&format!("L'engagement {} de", gardes.len() + 1), &format!("L'engagement {} de", i + 1), 1))),
+            Err(m) => manques.push(Some(m)),
         }
     }
     manques

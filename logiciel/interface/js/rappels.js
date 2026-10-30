@@ -34,7 +34,22 @@ async function montrerRappels(lu = api) {
   // « elle apparaît seulement s'il y a des trucs à faire ».
   if (!liste.length && !(ech && ech.a_faire) && !manques.length) return;
   RAPPELS_MONTRES = { liste, ech, manques };
+  if (dejaMontres(RAPPELS_MONTRES)) return;
   boiteRappels(liste, ech, manques);
+}
+
+/* UNE FOIS, PUIS PLUS : la boîte s'ouvre à l'ouverture du logiciel ; la page
+ * rechargée pendant qu'il tourne ne la rouvre pas tant qu'elle dirait la même
+ * chose (le même jour, les mêmes choses à faire). La mémoire est celle de la
+ * fenêtre (`sessionStorage`) : le logiciel rouvert la montre de nouveau. */
+function dejaMontres(montres) {
+  const cle = "rappels-montres:" + ((montres.ech && montres.ech.compagnie) || "");
+  const empreinte = JSON.stringify(montres);
+  try {
+    if (sessionStorage.getItem(cle) === empreinte) return true;
+    sessionStorage.setItem(cle, empreinte);
+  } catch (e) { /* sans mémoire, la boîte s'ouvre */ }
+  return false;
 }
 
 /** L'ÉTAT FRAIS DE L'OUVERTURE : la boîte des rappels, si elle

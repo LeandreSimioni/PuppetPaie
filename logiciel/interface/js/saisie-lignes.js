@@ -1108,7 +1108,7 @@ function construireCarte(div, e) {
   poserListe(selNat, "natures", [ETAT.natures], () => (ETAT.natures || []).map(
     (n) => `<option value="${echapper(n.cle)}">${echapper(n.libelle)}</option>`).join(""));
   selNat.value = e.nature || ETAT.nature_defaut || "";
-  selNat.onchange = () => { majNature(div); rafraichirApercu(); };
+  selNat.onchange = () => { echangerBornes(div); majNature(div); rafraichirApercu(); };
   const selSpec = div.querySelector(".e-spectacle");
   poserSpectacles(selSpec);
   // Ce que la nature du moment ne prend pas, le moteur le garde de côté (`de_cote`) : les cases cachées le
@@ -1153,12 +1153,14 @@ function construireCarte(div, e) {
   // --- le contrat
   div.querySelector(".e-debut").value = e.debut || "";
   div.querySelector(".e-fin").value = e.fin || "";
+  div.dataset.forme = formeDePaie(div);
+  if (deCote.debut || deCote.fin) div._bornes = { [formeDePaie(div) === "mois" ? "usage" : "mois"]: { debut: deCote.debut, fin: deCote.fin } };
   div.querySelectorAll(".e-debut, .e-fin").forEach((c) => {
     c.onchange = () => { majContrat(div); majRupture(div); rafraichirApercu(); };
   });
   // --- le mois payé d'un permanent, et ses faits
-  div.querySelector(".e-salaire").value = e.salaire_mensuel ?? "";
-  div.querySelector(".e-quotite").value = e.quotite_contrat ?? "";
+  div.querySelector(".e-salaire").value = e.salaire_mensuel ?? deCote.salaire_mensuel ?? "";
+  div.querySelector(".e-quotite").value = e.quotite_contrat ?? deCote.quotite_contrat ?? "";
   // Le salaire et la quotité tapés recalculent et s'enregistrent (un
   // permanent repris d'un autre logiciel n'a pas d'autre case qui fasse sa
   // paie). `onchange` : pas un calcul par touche d'un montant.
@@ -1191,7 +1193,7 @@ function construireCarte(div, e) {
         echapper(t.libelle)}</option>`).join(""));
   const preavis = e.preavis || {};
   div.dataset.motifRupture = e.motif_rupture || "";
-  div.dataset.motifRecours = e.motif_recours || "";
+  div.dataset.motifRecours = e.motif_recours || deCote.motif_recours || "";
   div.querySelector(".e-preavis-type").value = preavis.type || "";
   div.querySelector(".e-preavis-debut").value = preavis.debut || "";
   div.querySelector(".e-preavis-fin").value = preavis.fin || "";
@@ -1259,6 +1261,34 @@ function natureDe(cle) {
       || natures.find((n) => n.cle === ETAT.nature_defaut)
       || { cle: "", libelle: "", mensuelle: false, spectacle: true,
            signalement_fctu: false, signalement_par_motif: {}, motifs_rupture: [] };
+}
+
+/** La forme de paie de la nature choisie : au mois, ou à l'usage (cachets,
+ *  heures, jours joués). */
+function formeDePaie(div) {
+  return natureDe(div.querySelector(".e-nature").value).mensuelle ? "mois" : "usage";
+}
+
+/** LES BORNES D'UN CONTRAT SONT CELLES DE SA FORME DE PAIE. Les cases « Début »
+ *  et « Fin » servent aux deux : quand la nature passe d'une forme à l'autre,
+ *  celles de la forme quittée se rangent, et celles de la forme retrouvée (ou
+ *  rien) reviennent. Le moteur garde de côté celles qu'il ne lit pas
+ *  (`de_cote`) ; la carte les reprend d'elles. */
+function echangerBornes(div) {
+  const forme = formeDePaie(div);
+  const quittee = div.dataset.forme;
+  if (quittee && quittee !== forme) {
+    const debut = div.querySelector(".e-debut");
+    const fin = div.querySelector(".e-fin");
+    div._bornes = div._bornes || {};
+    div._bornes[quittee] = { debut: debut.value, fin: fin.value };
+    const retrouvees = div._bornes[forme] || {};
+    debut.value = retrouvees.debut || "";
+    fin.value = retrouvees.fin || "";
+    majContrat(div);
+    majRupture(div);
+  }
+  div.dataset.forme = forme;
 }
 
 /** Ce que la nature change à l'écran. Un permanent n'a ni spectacle (le
