@@ -90,20 +90,24 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 /// Le dossier a trier : `charge.dossier`, ou `import/` a la racine de la compagnie s'il est vide ou absent.
 ///
 /// LA BOITE AUX LETTRES DE LA COMPAGNIE SE CREE VIDE : `import/` qui n'existe pas encore est
-/// cree, et l'apercu (ou l'import) n'a rien a reprendre, au lieu de refuser « dossier absent ». Un dossier DONNE
-/// (`charge.dossier`) qui n'existe pas reste refuse (`import::tri::trier`).
+/// cree, et l'apercu (ou l'import) n'a rien a reprendre, au lieu de refuser « dossier absent » ; de meme quand l'ecran le
+/// nomme (`charge.dossier`, le chemin que `importation-etat` lui a donne). Un AUTRE dossier donne qui n'existe pas reste
+/// refuse (`import::tri::trier`).
 pub(crate) fn dossier_import(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
-    Ok(match charge.get("dossier").filter(|v| vrai(v)) {
-        None => {
-            let d = ctx.racine.join("import");
-            if !d.exists() {
-                std::fs::create_dir_all(&d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
-            }
-            d
-        }
+    let boite = ctx.racine.join("import");
+    let d = match charge.get("dossier").filter(|v| vrai(v)) {
+        None => boite.clone(),
         Some(Value::String(s)) => PathBuf::from(crate::routes::depots::normaliser(s)),
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un chemin en texte", nom_type(autre)))),
-    })
+    };
+    let la_boite = |p: &Path| {
+        p.file_name() == boite.file_name()
+            && p.parent().and_then(|x| x.canonicalize().ok()).is_some_and(|x| ctx.racine.canonicalize().is_ok_and(|r| r == x))
+    };
+    if la_boite(&d) && !d.exists() {
+        std::fs::create_dir_all(&d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
+    }
+    Ok(d)
 }
 
 /// Un dossier de travail temporaire du systeme, propre a cet appel (a effacer avant de rendre).

@@ -317,3 +317,57 @@ pub(crate) fn repris_en_cours(racine: &Path, mois: &str) -> Vec<Repris> {
         .filter(|r| droit::natures::nature(Some(&r.nature)).is_ok_and(|n| n.mensuelle() && (n.duree_indeterminee || !r.fin.is_empty())))
         .collect()
 }
+
+/// CE QUE LA DSN REPRISE DIT DEJA NE SE DEMANDE PAS. Pour chaque salarie dont des contrats repris attendent leur nature
+/// (`a_dire`), le contrat que sa derniere DSN reprise declare la donne (S21.G00.40.007, la nature du contrat ;
+/// `norme-dsn/texte/bloc-S21.G00.40.txt`), avec ce que `demande` exige d'un contrat qui court encore : le debut (.001),
+/// le numero (.009), la duree du travail (.013), la fin s'il a un terme (.010) et le salaire du contrat, « la remuneration
+/// brute habituelle du salarie » (S21.G00.51, type 010 ; `bloc-S21.G00.51.txt`). Tout y est : la nature se dit comme a
+/// l'ecran (`dire`). Il en manque, ou la nature declaree n'est pas d'un permanent : rien ne se choisit, l'ecran le
+/// demande. Rend ce que chaque nature dite a fait, en phrases.
+pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
+    let lecture = crate::import::dsn_aem::lire_dsn(&racine.join("historique").join("bulletins"));
+    let Ok(permises) = natures_permanentes() else { return Vec::new() };
+    let mut faits = Vec::new();
+    for x in a_dire(racine) {
+        let salarie = texte(&x, "salarie");
+        let Ok(ctx) = Contexte::nouveau(racine, Some(*quand)) else { break };
+        let nir = ctx.salaries.get(&salarie).and_then(|f| f.get("nir")).map(valeur_en_texte).unwrap_or_default();
+        if nir.is_empty() {
+            continue;
+        }
+        // Sa derniere paie declaree : le contrat tel que la derniere DSN le dit.
+        let Some(((_, _, numero), p)) = lecture.paies.iter().filter(|((_, n, _), _)| *n == nir).last() else { continue };
+        let code = texte(&json!(p), "nature_dsn");
+        let Some(nat) = permises.iter().find(|n| n.codes.get("S21.G00.40.007").and_then(|c| c.get("valeur")).and_then(Value::as_str) == Some(code.as_str()))
+        else {
+            continue;
+        };
+        let en_cours = x.get("en_cours").is_some_and(vrai);
+        let lu = |k: &str| p.get(k).map(valeur_en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+        let mut charge = Map::new();
+        charge.insert("salarie".into(), json!(salarie));
+        charge.insert("nature".into(), json!(nat.cle));
+        let mut complet = true;
+        for champ in demande(nat, en_cours) {
+            let v = match champ {
+                "numero" => Some(numero.clone()).filter(|n| !n.is_empty()),
+                "salaire" => lu("salaire_base"),
+                autre => lu(autre),
+            };
+            match v {
+                Some(v) => {
+                    charge.insert(champ.into(), json!(v));
+                }
+                None => complet = false,
+            }
+        }
+        if !complet {
+            continue;
+        }
+        if let Ok(r) = dire(&ctx, &Value::Object(charge)) {
+            faits.push(format!("{} : {}, lu dans sa DSN reprise. {}", nom_du_salarie(racine, &salarie), nat.libelle, texte(&r, "phrase")));
+        }
+    }
+    faits
+}

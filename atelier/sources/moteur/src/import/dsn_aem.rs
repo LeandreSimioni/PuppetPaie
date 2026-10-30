@@ -239,8 +239,16 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
         } else if let (true, Some(i)) = (k == "S21.G00.51.013", versement) {
             // Seul le type 001 est le brut.
             let type_ = versements[i].shift_remove("_type");
-            if type_.as_ref().and_then(Value::as_str) == Some("001") {
-                versements[i].insert("brut".into(), texte(v));
+            match type_.as_ref().and_then(Value::as_str) {
+                Some("001") => {
+                    versements[i].insert("brut".into(), texte(v));
+                }
+                // « La remuneration brute habituelle du salarie » (`bloc-S21.G00.51.txt`, type 010) : le salaire du
+                // contrat d'un permanent.
+                Some("010") => {
+                    versements[i].insert("salaire_base".into(), texte(v));
+                }
+                _ => {}
             }
         } else if let (true, Some(i)) = (k == "S21.G00.50.006", cur) {
             individus[i].insert("taux_pas".into(), texte(v));
@@ -253,6 +261,8 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
             c.insert(champ.to_string(), texte(v));
         } else if let (true, Some(c)) = (k == "S21.G00.40.009", contrats.last_mut()) {
             c.insert("numero".into(), texte(v));
+        } else if let (true, Some(c)) = (k == "S21.G00.40.007", contrats.last_mut()) {
+            c.insert("nature_dsn".into(), texte(v));
         } else if let (true, Some(c)) = (k == "S21.G00.40.013", contrats.last_mut()) {
             c.insert("quotite".into(), texte(v));
         } else if let (true, Some(c)) = (k == "S21.G00.40.010", contrats.last_mut()) {
@@ -531,6 +541,9 @@ pub(crate) fn lire_dsn(dossier: &Path) -> LectureDsn {
             m.insert("objet".into(), Value::String(ici("objet")));
             m.insert("debut".into(), Value::String(ici("debut")));
             m.insert("fin".into(), Value::String(ici("fin")));
+            if !ici("nature_dsn").is_empty() {
+                m.insert("nature_dsn".into(), Value::String(ici("nature_dsn")));
+            }
             if !ici("quotite").is_empty() {
                 m.insert("quotite".into(), Value::String(ici("quotite")));
             }
