@@ -30,10 +30,11 @@
 //! regle datee) : le recalcul fait alors une version datee, comme une modification, et la paie refaite rectifie le
 //! bulletin parti.
 //!
-//! MODIFIER (`modifier`) repasse l'engagement en saisie ; sa validation se garde (`precedente`) jusqu'a la suivante, qui
-//! en reprend telles quelles les paies des mois dont les documents sont partis tant que la saisie de leur mois n'a pas
-//! change, et qui en fait une version si quelque chose est parti sur elle. Si les documents d'un de ses mois sont partis,
-//! le moteur pose d'abord la question (`question_avant_de_modifier`).
+//! MODIFIER UN ENGAGEMENT VALIDE se fait d'un geste, dans une seule ecriture de la route : il repasse en saisie
+//! (`modifier`), sa validation mise de cote (`precedente`), prend sa saisie nouvelle (`stock::poser_la_saisie`) et se
+//! revalide aussitot ; la validation reprend telles quelles les paies des mois dont les documents sont partis tant que la
+//! saisie de leur mois n'a pas change, et fait une version si quelque chose est parti sur elle. Il ne reste jamais
+//! rouvert.
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -62,10 +63,6 @@ pub const SAISIE_DU_MOIS: &str = "saisie du mois modifiée";
 /// La raison d'un recalcul : la configuration de la compagnie a change sans valeur datee nouvelle (une fiche corrigee, les
 /// contrats d'organismes).
 pub const CONFIGURATION: &str = "configuration de la compagnie modifiée";
-
-/// La question que le moteur pose avant de modifier un engagement dont des documents sont partis.
-pub const QUESTION_DOCUMENTS_PARTIS: &str = "Les bulletins de salaire sont déjà partis. Êtes-vous sûr de vouloir changer \
-l'engagement maintenant ? Cela entraînera l'édition d'un nouveau bulletin de salaire.";
 
 /// Dans l'engagement : la validation qu'une modification va remplacer, et les versions passees.
 const PRECEDENTE: &str = "precedente";
@@ -284,12 +281,6 @@ impl Etat {
             Etat::Partis(p) => Some(&p.valide),
         }
     }
-
-    /// Rouvert par « Modifier… » et pas encore revalide : sa validation est mise de cote (`precedente`). Tant qu'il
-    /// n'est pas revalide, rien de ce qui est parti sur elle n'a change.
-    pub fn en_modification(&self) -> bool {
-        matches!(self, Etat::EnSaisie(e) if e.objet.brut.get(PRECEDENTE).is_some_and(|p| !p.is_null()))
-    }
 }
 
 /// La cle de la fiche du salarie d'un engagement (`None` s'il ne nomme aucune fiche).
@@ -298,7 +289,7 @@ fn cle_du_salarie(ctx: &Contexte, o: &Objet) -> Option<String> {
 }
 
 /// Qui est l'engagement `o`, pour une phrase de l'ecran : « MARTIN Lou (contrat du 20/11/2026) » (`crate::salarie_nomme`).
-fn qui_de(ctx: &Contexte, o: &Objet) -> String {
+pub fn qui_de(ctx: &Contexte, o: &Objet) -> String {
     let debut = crate::debut_brut(&Value::Object(o.brut.clone()));
     let debut = Jour::lire(&debut).map(|j| j.jj_mm_aaaa()).unwrap_or(debut);
     format!("{} (contrat du {})", crate::salarie_nomme(ctx, o.brut.get("salarie")), debut)
@@ -953,13 +944,11 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, precedente: Option<&Va
     Ok(paies)
 }
 
-/// LA QUESTION AVANT DE MODIFIER : si les documents d'un des mois de l'engagement sont partis, la phrase que le moteur
-/// pose (`QUESTION_DOCUMENTS_PARTIS`) ; sinon `None`.
-pub fn question_avant_de_modifier(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Option<String>> {
-    let Some(o) = stock::objet_du_mois(&ctx.racine, mois, rang)? else { return Ok(None) };
-    let departs = departs::lire(&ctx.racine)?;
-    let documents = ses_departs(ctx, &o, &departs).iter().any(|d| d.envoi == Envoi::Documents);
-    Ok(documents.then(|| QUESTION_DOCUMENTS_PARTIS.to_string()))
+/// La saisie de l'engagement de rang `rang` de l'ecran de `mois`, rouvert (`modifier`), dit-elle autre chose que sa
+/// validation mise de cote ? Faux pour un engagement qui n'a pas ete rouvert.
+pub fn saisie_changee(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<bool> {
+    let Some(o) = stock::objet_du_mois(&ctx.racine, mois, rang)? else { return Ok(false) };
+    Ok(o.brut.get(PRECEDENTE).and_then(|p| p.get("saisie")).is_some_and(|s| *s != saisie_de(&o)))
 }
 
 /// « A PARTIR DE QUEL MOIS ? » : ce que le moteur demande avant de revalider un contrat paye au mois (CDD, CDI) de
@@ -1032,16 +1021,6 @@ fn contrat_au_mois_parti(ctx: &Contexte, ecrit: &Objet, nouveau: &Objet, mois: &
         return Ok(None);
     }
     Ok(Some((ancien, partis, couverts)))
-}
-
-/// UN CHANGEMENT QUI SE DATERA A LA VALIDATION : l'engagement de rang `rang` de l'ecran de `mois`, rouvert, deviendrait
-/// `nouveau` (tel que la saisie l'ecrit) et serait un contrat au mois dont un mois est parti (`contrat_au_mois_parti`).
-/// Sa validation posera la question « a partir de quel mois ? » et dira ce qui arrive aux mois partis : l'ecriture de
-/// la saisie n'a rien a en demander d'avance.
-pub fn se_datera_a_la_validation(ctx: &Contexte, mois: &str, rang: usize, nouveau: &Map<String, Value>) -> Resultat<bool> {
-    let Some(o) = stock::objet_du_mois(&ctx.racine, mois, rang)? else { return Ok(false) };
-    let n = o.d_apres_la_saisie(nouveau);
-    Ok(contrat_au_mois_parti(ctx, &o, &n, mois)?.is_some())
 }
 
 /// La reponse : le changement vaut a partir de `depuis` (`stock::Objet::a_partir_du`), ecrit dans l'engagement. Refus :

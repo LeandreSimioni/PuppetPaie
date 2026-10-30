@@ -446,13 +446,11 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
     let paire = |v: &Value| (valeur_en_texte(&v["salarie"]), valeur_en_texte(&v["numero"]));
     // Les corrections de mois passes que la ligne porte ne sont pas des engagements de ce mois.
     let mut emportes: Vec<(String, String)> = emportes.iter().filter(|v| v.get("mois").is_none()).map(paire).collect();
-    // Un engagement rouvert par « Modifier… » et pas encore revalide reste celui que la DSN a declare : seule sa
-    // revalidation dit s'il a change (`engagement::etats::valider`).
     let mut presents: Vec<(String, String)> = etats
         .iter()
         .zip(&siens)
         .filter(|(_, s)| **s)
-        .filter(|(e, _)| e.valide().is_some() || e.en_modification())
+        .filter(|(e, _)| e.valide().is_some())
         .map(|(e, _)| e.objet())
         .filter_map(|o| {
             let b = Value::Object(o.brut.clone());
@@ -1887,15 +1885,14 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
     let resumes = etats::resumes_des_documents(lignes, mois)?;
     let mut out: HashMap<String, Value> = HashMap::new();
     // Les documents d'un salarie partent ensemble, pour tous ses engagements valides du mois : un engagement valide dont
-    // ils ne sont pas partis (valide apres leur envoi) les rend a envoyer, avec son bulletin. Un engagement rouvert et pas
-    // encore revalide garde ce qui est parti sur sa validation (`Etat::en_modification`).
+    // ils ne sont pas partis (valide apres leur envoi) les rend a envoyer, avec son bulletin.
     let a_envoyer: HashSet<String> = etats
         .iter()
         .filter(|e| matches!(e, engagement::etats::Etat::Valide(_)))
         .filter_map(|e| engagement::cle_de_l_engagement(ctx, &Value::Object(e.objet().brut.clone())))
         .collect();
     for e in etats {
-        if !matches!(e, engagement::etats::Etat::Partis(_)) && !e.en_modification() {
+        if !matches!(e, engagement::etats::Etat::Partis(_)) {
             continue;
         }
         let brut = Value::Object(e.objet().brut.clone());

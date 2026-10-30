@@ -1,11 +1,11 @@
-//! Les routes de l'engagement : le valider, ou le remettre en saisie (« Modifier l'engagement… ») (`valider-engagement`),
-//! et le retirer (`retirer-engagement` : supprime s'il n'en est rien parti, sinon rendu non actif). Un refus garde sa
-//! phrase quand elle est utile a la page.
-
+//! Les routes de l'engagement : le valider (`valider-engagement`), modifier un engagement valide d'un geste
+//! (`modifier-engagement`), et le retirer (`retirer-engagement` : supprime s'il n'en est rien parti, sinon rendu non
+//! actif). Un refus garde sa phrase quand elle est utile a la page.
 
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, Refus, R};
@@ -16,7 +16,7 @@ use socle::valeur::valeur_en_texte;
 
 /// Les routes de ce module. `etat-par-engagement` se lit dans l'etat garde (`etat_garde`), que la fenetre refait apres
 /// chaque ecriture.
-pub const ROUTES: &[&str] = &["valider-engagement", "retirer-engagement"];
+pub const ROUTES: &[&str] = &["valider-engagement", "modifier-engagement", "retirer-engagement"];
 
 /// Celles qui ecrivent.
 pub const ECRITURES: &[&str] = ROUTES;
@@ -25,6 +25,7 @@ pub const ECRITURES: &[&str] = ROUTES;
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "valider-engagement" => valider_engagement(ctx, charge),
+        "modifier-engagement" => modifier_engagement(ctx, charge),
         "retirer-engagement" => retirer_engagement(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -106,31 +107,18 @@ fn designe_a_l_ecran(ctx: &Contexte, charge: &Value) -> R<Designe> {
     })
 }
 
-/// La classe du refus qui pose la question avant de modifier un engagement dont des documents sont partis
-/// (`engagement::etats::QUESTION_DOCUMENTS_PARTIS`) : la page la montre, et renvoie la demande avec `confirme`.
-pub const CLASSE_DOCUMENTS_PARTIS: &str = "DocumentsPartis";
-
-/// « Valider l'engagement » (`valide` vrai, par defaut) ou « Modifier… » (`valide` faux). L'engagement se designe
-/// dans la saisie enregistree de `mois` : `salarie`, `debut`, et, si deux contrats du salarie commencent ce jour-la,
-/// `numero` ou `rang` (son rang parmi eux). Refus : un engagement absent de la saisie enregistree (valider ce qui
-/// n'est pas enregistre poserait une pastille verte sur un formulaire qu'un rechargement effacerait).
-///
-/// VALIDER ecrit les paies de l'engagement, une par mois qu'il couvre (`engagement::etats::valider`) ; un engagement
-/// deja valide le reste, tel quel. MODIFIER le remet en saisie (`engagement::etats::modifier`) ; si les documents d'un
-/// de ses mois sont partis, le moteur pose d'abord sa question (`CLASSE_DOCUMENTS_PARTIS`) et ne modifie qu'avec
-/// `confirme`.
+/// « VALIDER L'ENGAGEMENT » : l'engagement se designe dans la saisie enregistree de `mois` : `salarie`, `debut`, et, si
+/// deux contrats du salarie commencent ce jour-la, `numero` ou `rang` (son rang parmi eux). Il ecrit ses paies, une par
+/// mois qu'il couvre (`engagement::etats::valider`) ; un engagement deja valide le reste, tel quel (il se modifie par
+/// `modifier-engagement`). Refus : un engagement absent de la saisie enregistree (valider ce qui n'est pas enregistre
+/// poserait une pastille verte sur un formulaire qu'un rechargement effacerait), ou auquel il manque un fait.
 fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
-    let valide = booleen(charge, "valide", true);
-    let confirme = booleen(charge, "confirme", false);
-    // Il lui manque un fait : la validation dit lequel, et rien n'est ecrit. Il n'a jamais ete valide : rien a modifier.
-    // Ce qui manquait se relit d'abord : le fait a pu se dire depuis, sur sa fiche.
+    // Il lui manque un fait : la validation dit lequel, et rien n'est ecrit. Ce qui manquait se relit d'abord : le fait a
+    // pu se dire depuis, sur sa fiche.
     crate::routes::mois::relire_les_manques(ctx)?;
     let charge = match designe_a_l_ecran(ctx, charge)? {
         Designe::ACompleter(o) => {
-            if !valide {
-                return Ok(json!({"salarie": salarie, "debut": debut, "valide": Value::Null}));
-            }
             let manque = o.a_completer().unwrap_or_default();
             let data = engagement::stock::vue_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
             return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
@@ -138,72 +126,294 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         Designe::DansLaVue(c) => c,
     };
     let (data, i) = engagement_designe(ctx, &charge)?;
-    let deja = data["engagements"][i].get("valide").and_then(|v| v.get("le")).cloned();
-    let rendu = if valide {
-        let le = match deja {
-            Some(le) => le,
-            None => {
-                // UN CONTRAT AU MOIS DONT UN MOIS EST PARTI, ET DONT LES TERMES CHANGENT : « a partir de quel mois ? ».
-                // Sans reponse (`a_partir_du`), la question revient, avec ses choix ; un seul choix vaut reponse.
-                if let Some(q) = engagement::etats::question_a_partir_du(ctx, mois, i).map_err(Echec::from)? {
-                    let depuis = match charge.get("a_partir_du").filter(|v| vrai(v)).map(valeur_en_texte) {
-                        Some(m) => m,
-                        None if q.choix.len() == 1 => q.choix[0].clone(),
-                        None => {
-                            let choix: Vec<Value> = q
-                                .choix
-                                .iter()
-                                .map(|m| json!({"mois": m, "libelle": engagement::libelle_mois(m), "partis": q.partis.contains(m)}))
-                                .collect();
-                            let phrase = [q.phrase()].into_iter().chain(ce_qui_arrive_aux_mois_partis(ctx, &q)?).collect::<Vec<_>>().join(" ");
-                            return Ok(json!({"salarie": salarie, "debut": debut, "valide": Value::Null,
-                                "a_partir_du": {"phrase": phrase, "choix": choix}}));
-                        }
-                    };
-                    engagement::etats::poser_a_partir_du(ctx, mois, i, &depuis).map_err(refus)?;
-                }
-                let le = engagement::etats::valider(ctx, mois, i).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
-                let cle = engagement::cle_de_l_engagement(ctx, &data["engagements"][i]).unwrap_or_else(|| salarie.to_string());
-                crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, debut)?;
-                Value::String(le)
-            }
-        };
-        let avis = avis_de_validation(ctx, mois, i)?;
-        return Ok(json!({"salarie": salarie, "debut": debut, "valide": le, "avis": avis}));
-    } else {
-        if !confirme {
-            if let Some(q) = engagement::etats::question_avant_de_modifier(ctx, mois, i).map_err(Echec::from)? {
-                return Err(erreur(CLASSE_DOCUMENTS_PARTIS, q));
+    let le = match data["engagements"][i].get("valide").and_then(|v| v.get("le")).cloned() {
+        Some(le) => le,
+        None => {
+            let le = engagement::etats::valider(ctx, mois, i).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
+            let cle = engagement::cle_de_l_engagement(ctx, &data["engagements"][i]).unwrap_or_else(|| salarie.to_string());
+            crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, debut)?;
+            Value::String(le)
+        }
+    };
+    let avis = avis_de_validation(ctx, mois, i)?;
+    Ok(json!({"salarie": salarie, "debut": debut, "valide": le, "avis": avis}))
+}
+
+// ------------------------------------------------------------------ modifier-engagement
+
+/// Les fichiers des engagements tels qu'ils sont avant une modification : une modification qui n'aboutit pas (rien n'a
+/// change, l'avertissement n'est pas encore confirme, un refus) les remet octet pour octet.
+struct Photo {
+    dossier: PathBuf,
+    fichiers: Vec<(PathBuf, Vec<u8>)>,
+}
+
+impl Photo {
+    fn prendre(racine: &Path) -> R<Photo> {
+        let dossier = racine.join(engagement::stock::DOSSIER);
+        let mut fichiers = Vec::new();
+        for p in Photo::presents(&dossier) {
+            let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+            fichiers.push((p, octets));
+        }
+        Ok(Photo { dossier, fichiers })
+    }
+
+    fn presents(dossier: &Path) -> Vec<PathBuf> {
+        std::fs::read_dir(dossier).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.is_file()).collect()
+    }
+
+    fn remettre(&self) -> R<()> {
+        let io = |p: &Path, e: std::io::Error| erreur("OSError", format!("{} : {}", p.display(), e));
+        for p in Photo::presents(&self.dossier) {
+            if !self.fichiers.iter().any(|(q, _)| *q == p) {
+                std::fs::remove_file(&p).map_err(|e| io(&p, e))?;
             }
         }
-        engagement::etats::modifier(ctx, mois, i).map_err(Echec::from)?;
-        Value::Null
+        for (p, octets) in &self.fichiers {
+            if std::fs::read(p).ok().as_ref() != Some(octets) {
+                std::fs::write(p, octets).map_err(|e| io(p, e))?;
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Ce que la modification a donne.
+enum Issue {
+    /// Rien n'a change.
+    Rien,
+    /// Ce qui est parti le demande : l'avertissement, a confirmer.
+    Avertir(Value),
+    /// Ecrite : pour chaque engagement, son rang et la date de sa validation.
+    Ecrite(Vec<(usize, String)>),
+}
+
+/// « MODIFIER L'ENGAGEMENT » : les valeurs que la carte ouverte d'un engagement valide montre, ecrites d'un geste.
+/// `engagements` : chaque engagement modifie ensemble (ceux de plusieurs salaries valides ensemble), designe comme pour
+/// `valider-engagement` (`salarie`, `debut`, `numero`, `rang`), avec `saisie`, ce que sa carte ecrit pour `mois`.
+///
+/// - Rien n'a change : rien ne s'ecrit, la reponse le dit (`change` faux).
+/// - Quelque chose a change, et rien de ce qui est parti ne le demande : la modification s'ecrit, l'engagement reste valide.
+/// - Ce qui est parti le demande : la reponse porte l'avertissement (`avertissement` : ses phrases, et, pour un contrat
+///   au mois dont un mois est parti, la question « a partir de quel mois ? » avec ses choix), et rien n'est ecrit ; la
+///   page le montre et renvoie la demande avec `confirme` (et `a_partir_du`, le mois choisi). Les phrases disent ce que
+///   le changement entraine pour chaque envoi parti sur la version d'avant (`engagement::etats::a_refaire`) : un avenant
+///   a faire signer, une DPAE a deposer pour une embauche avancee, un bulletin rectificatif, la DSN qui se corrige.
+///
+/// Refus, et rien n'est ecrit : un engagement qui n'est pas valide (il se saisit sur sa carte), importe, d'un mois tenu
+/// avant PuppetPaie, d'un exercice clos ; un changement que la norme ne permet plus de declarer
+/// (`crate::regularisation::refus_non_declarable`) ; une saisie qui ne se calcule pas.
+fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let mois = texte_requis(charge, "mois")?;
+    let liste = charge.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    if liste.is_empty() {
+        return Err(erreur("TypeError", "`engagements` : une liste d'engagements est attendue"));
+    }
+    let confirme = booleen(charge, "confirme", false);
+    let a_partir_du = charge.get("a_partir_du").filter(|v| vrai(v)).map(valeur_en_texte);
+    crate::routes::mois::refuser_si_importe(ctx, mois)?;
+    crate::routes::mois::refuser_si_clos(ctx, mois)?;
+    crate::routes::mois::refuser_si_avant_la_premiere_embauche(ctx, mois)?;
+    let _une_a_la_fois = crate::routes::mois::une_ecriture_a_la_fois();
+    let mut rangs = Vec::new();
+    let mut saisies = Vec::new();
+    for e in &liste {
+        let mut c = e.clone();
+        c["mois"] = json!(mois);
+        let (data, i) = engagement_designe(ctx, &c)?;
+        if !data["engagements"][i].get("valide").is_some_and(Value::is_object) {
+            return Err(refus(format!(
+                "{} : cet engagement n'est pas validé ; il se saisit sur sa carte, puis « Valider l'engagement ». Rien n'est écrit.",
+                valeur_en_texte(&data["engagements"][i]["salarie"])
+            )));
+        }
+        let Some(Value::Object(s)) = e.get("saisie") else {
+            return Err(erreur("TypeError", "`saisie` : un objet est attendu pour chaque engagement"));
+        };
+        rangs.push(i);
+        saisies.push(s.clone());
+    }
+    // Ce qu'une DSN deposee dont la limite est passee a declare : la base de ce que la norme permet encore.
+    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
+    let declaree = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
+    let base = if declaree.get("confirmer").is_some_and(vrai) {
+        crate::regularisation::saisie_declaree(ctx, mois)?.or(engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?)
+    } else {
+        None
     };
-    Ok(json!({"salarie": salarie, "debut": debut, "valide": rendu}))
+    let photo = Photo::prendre(&ctx.racine)?;
+    let issue = modifier_puis_revalider(ctx, mois, &rangs, &saisies, base.as_ref(), confirme, a_partir_du.as_deref());
+    let faits = match issue {
+        Ok(Issue::Ecrite(faits)) => faits,
+        Ok(Issue::Rien) => {
+            photo.remettre()?;
+            return Ok(json!({"change": false}));
+        }
+        Ok(Issue::Avertir(a)) => {
+            photo.remettre()?;
+            return Ok(json!({"change": true, "avertissement": a}));
+        }
+        Err(e) => {
+            photo.remettre()?;
+            return Err(e);
+        }
+    };
+    let mut avis = Vec::new();
+    for (i, _) in &faits {
+        let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+        let e = &data["engagements"][*i];
+        if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
+            crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(e))?;
+        }
+        avis.extend(avis_de_validation(ctx, mois, *i)?);
+    }
+    crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
+    Ok(json!({"change": true, "valide": faits.first().map(|(_, le)| le.clone()), "avis": avis}))
+}
+
+/// La modification elle-meme, sur les fichiers : chaque engagement se rouvre, prend sa saisie et se revalide. Ce qu'elle
+/// rend dit si elle reste ecrite (`Issue::Ecrite`) ; sinon la route remet les fichiers.
+fn modifier_puis_revalider(
+    ctx: &Contexte,
+    mois: &str,
+    rangs: &[usize],
+    saisies: &[Map<String, Value>],
+    base: Option<&Value>,
+    confirme: bool,
+    a_partir_du: Option<&str>,
+) -> R<Issue> {
+    for (i, s) in rangs.iter().zip(saisies) {
+        engagement::etats::modifier(ctx, mois, *i).map_err(Echec::from)?;
+        engagement::stock::poser_la_saisie(ctx, mois, *i, s).map_err(refus)?;
+    }
+    let mut changes = false;
+    for i in rangs {
+        changes |= engagement::etats::saisie_changee(ctx, mois, *i).map_err(Echec::from)?;
+    }
+    if !changes {
+        return Ok(Issue::Rien);
+    }
+    if let Some(base) = base {
+        let nouvelle = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+        if let Some(texte) = crate::regularisation::refus_non_declarable(ctx, mois, base, &nouvelle)? {
+            return Err(erreur(crate::regularisation::CLASSE_NON_DECLARABLE, texte));
+        }
+    }
+    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let mut phrases: Vec<String> = Vec::new();
+    // « A PARTIR DE QUEL MOIS ? » : un contrat au mois dont un mois est parti et dont les termes changent. Sans reponse
+    // parmi ses choix, la question vient dans l'avertissement ; un seul choix vaut reponse.
+    let mut question = Value::Null;
+    for i in rangs {
+        let Some(q) = engagement::etats::question_a_partir_du(ctx, mois, *i).map_err(Echec::from)? else { continue };
+        let depuis = a_partir_du.filter(|m| q.choix.iter().any(|c| c == m)).map(String::from).or_else(|| (q.choix.len() == 1).then(|| q.choix[0].clone()));
+        match depuis {
+            Some(d) => engagement::etats::poser_a_partir_du(ctx, mois, *i, &d).map_err(refus)?,
+            None => {
+                let o = engagement::stock::objet_du_mois(&ctx.racine, mois, *i).map_err(Echec::from)?;
+                if o.as_ref().is_some_and(|o| contrat_parti(ctx, o, &departs)) {
+                    phrases.push(format!("{} : le contrat est déjà parti ; ce changement le modifie, un avenant sera à faire signer.", q.qui));
+                }
+                let choix: Vec<Value> =
+                    q.choix.iter().map(|m| json!({"mois": m, "libelle": engagement::libelle_mois(m), "partis": q.partis.contains(m)})).collect();
+                let phrase = [q.phrase()].into_iter().chain(ce_qui_arrive_aux_mois_partis(ctx, &q)?).collect::<Vec<_>>().join(" ");
+                question = json!({"phrase": phrase, "choix": choix});
+            }
+        }
+    }
+    if !question.is_null() {
+        return Ok(Issue::Avertir(json!({"phrases": phrases, "a_partir_du": question})));
+    }
+    let mut faits = Vec::new();
+    for i in rangs {
+        let v = engagement::etats::valider(ctx, mois, *i).map_err(|m| {
+            let data = engagement::stock::vue_a_l_ecran(&ctx.racine, mois).ok().flatten().unwrap_or(Value::Null);
+            crate::routes::mois::refus_du_calcul(ctx, &data, m)
+        })?;
+        phrases.extend(ce_que_le_changement_entraine(ctx, &v, &departs)?);
+        faits.push((*i, v.le().to_string()));
+    }
+    if !confirme && !phrases.is_empty() {
+        return Ok(Issue::Avertir(json!({"phrases": phrases, "a_partir_du": Value::Null})));
+    }
+    Ok(Issue::Ecrite(faits))
+}
+
+/// Le contrat (ou un avenant) de l'engagement `o` est-il parti ?
+fn contrat_parti(ctx: &Contexte, o: &engagement::stock::Objet, departs: &engagement::departs::Departs) -> bool {
+    let b = Value::Object(o.brut.clone());
+    let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b), b.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else {
+        return false;
+    };
+    departs.de(&cle, &numero).iter().any(|d| d.envoi == engagement::departs::Envoi::Contrat)
+}
+
+/// CE QUE LE CHANGEMENT ENTRAINE, en phrases, pour l'engagement revalide `v` : chaque envoi parti sur une version qui
+/// n'est plus la sienne (`engagement::etats::a_refaire`, sans l'avenant d'un contrat rompu :
+/// `crate::routes::contrats::seule_la_rupture`). Une embauche reportee ne refait pas la DPAE
+/// (`crate::regularisation::dpae_d_une_date_changee`).
+fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Vec<String>> {
+    use engagement::etats::ARefaire;
+    let saisie = |x: Option<&Value>| x.and_then(|x| x.get("saisie")).cloned().unwrap_or(Value::Null);
+    let presente = saisie(v.objet().brut.get("valide"));
+    let qui = engagement::etats::qui_de(ctx, v.objet());
+    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
+    let mut out = Vec::new();
+    for a in engagement::etats::a_refaire(ctx, v, departs) {
+        match a {
+            ARefaire::Avenant { depuis } => {
+                if !crate::routes::contrats::seule_la_rupture(&saisie(v.version_numero(depuis)), &presente) {
+                    out.push(format!("{} : le contrat est déjà parti ; ce changement le modifie, un avenant sera à faire signer.", qui));
+                }
+            }
+            ARefaire::Dpae { debut_declare, .. } => {
+                let (rien_a_refaire, phrase) = crate::regularisation::dpae_d_une_date_changee(&debut_declare, &engagement::debut_brut(&presente));
+                if !rien_a_refaire {
+                    out.push(format!("{} : {}", qui, phrase));
+                }
+            }
+            ARefaire::Bulletin { mois, .. } => out.push(format!(
+                "{} : les documents de {} sont déjà partis ; un bulletin rectificatif sera à envoyer.",
+                qui,
+                engagement::libelle_mois(&mois)
+            )),
+            ARefaire::Dsn { mois, .. } => out.push(format!("{} : {}.", qui, la_dsn_qui_change(&mut m, ctx, &mois)?)),
+        }
+    }
+    Ok(out)
+}
+
+/// Ce qui arrive a la DSN deposee de `mois` quand sa paie change, comme toute modification d'un mois declare
+/// (`crate::regularisation::modification_de_la_paie`) : un annule-et-remplace jusqu'a la limite, ensuite la correction
+/// dans la DSN du mois en cours.
+fn la_dsn_qui_change(m: &mut crate::routes::etapes::Moteur, ctx: &Contexte, mois: &str) -> R<String> {
+    let de = engagement::libelle_mois(mois);
+    let d = crate::regularisation::modification_de_la_paie(m, ctx, mois)?;
+    Ok(if d.get("confirmer").is_some_and(vrai) {
+        format!(
+            "la DSN de {}, déposée, ne se remplace plus : la correction se déclarera dans la DSN {}",
+            de,
+            crate::regularisation::de_mois_en_clair(&valeur_en_texte(&d["mois_courant"]))
+        )
+    } else if d.is_null() {
+        format!("la DSN de {} est partie : elle se corrigera", de)
+    } else {
+        let limite = socle::date::Jour::lire(&valeur_en_texte(&d["limite"])).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
+        format!("la DSN de {}, déposée, sera remplacée par un annule-et-remplace, admis jusqu'au {} à minuit", de, limite)
+    })
 }
 
 /// CE QUI ARRIVE A UN MOIS PARTI que le changement toucherait, pour chaque mois parti parmi les choix de la question
 /// « a partir de quel mois ? » : sa paie se refait (bulletin rectificatif), et sa DSN, si elle est deposee, se corrige
-/// comme toute modification d'un mois declare (`crate::regularisation::modification_de_la_paie`) : par un
-/// annule-et-remplace jusqu'a la limite, ensuite dans la DSN du mois en cours. C'est la seule question posee : l'ecriture
-/// de la saisie ne la demande pas d'avance (`engagement::etats::se_datera_a_la_validation`).
+/// (`la_dsn_qui_change`).
 fn ce_qui_arrive_aux_mois_partis(ctx: &Contexte, q: &engagement::etats::APartirDu) -> R<Vec<String>> {
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let mut out = Vec::new();
     for mois in q.choix.iter().filter(|c| q.partis.contains(c)) {
         let de = engagement::libelle_mois(mois);
         let d = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
-        let dsn = if d.is_null() {
-            String::new()
-        } else if d.get("confirmer").is_some_and(vrai) {
-            format!(
-                " ; sa DSN, déposée, ne se remplace plus : la correction se déclarera dans la DSN {}",
-                crate::regularisation::de_mois_en_clair(&valeur_en_texte(&d["mois_courant"]))
-            )
-        } else {
-            let limite = socle::date::Jour::lire(&valeur_en_texte(&d["limite"])).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
-            format!(" ; sa DSN déposée sera remplacée par un annule-et-remplace, admis jusqu'au {} à minuit", limite)
-        };
+        let dsn = if d.is_null() { String::new() } else { format!(" ; {}", la_dsn_qui_change(&mut m, ctx, mois)?) };
         out.push(format!("Si le changement vaut dès {} : {} a un bulletin rectificatif{}.", de, de, dsn));
     }
     Ok(out)

@@ -868,6 +868,35 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Op
     Ok(ecrits)
 }
 
+/// LA SAISIE D'UN ENGAGEMENT, POSEE SUR SON MOIS : l'engagement de rang `rang` de l'ecran de `mois` prend `saisie` (ce que
+/// sa carte ecrit pour `mois`), comme l'ecriture de la saisie du mois le fait pour un engagement en saisie
+/// (`ecrire_vue_du_mois`) : ce que le moteur tient seul ne se prend pas de la saisie, le numero du contrat et le nom du
+/// spectacle ecrits se gardent. Refus : un engagement valide (il se rouvre d'abord, `etats::modifier`), ou des bornes qui
+/// laisseraient hors du contrat un mois ou il a des jours payes ; rien n'est ecrit.
+pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Map<String, Value>) -> Resultat<()> {
+    let mut o = objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
+    if o.est_valide() {
+        return Err(format!("{} : l'engagement de rang {} est valide, il ne prend pas de saisie", mois, rang + 1));
+    }
+    let mut saisie = saisie.clone();
+    for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
+        saisie.remove(*k);
+    }
+    if !saisie.get("numero").is_some_and(vrai) {
+        if let Some(n) = o.brut.get("numero").filter(|n| vrai(n)).cloned() {
+            saisie.insert("numero".into(), n);
+        }
+    }
+    if let Some(ecrit) = o.vue(mois)?.and_then(|v| v.get("spectacle").filter(|s| vrai(s)).cloned()) {
+        if saisie.get("spectacle").is_some_and(|s| *s != ecrit && meme_spectacle(ctx, s, &ecrit)) {
+            saisie.insert("spectacle".into(), ecrit);
+        }
+    }
+    poser_le_mois(&mut o, mois, &saisie)?;
+    reecrire(&ctx.racine, &o)?;
+    Ok(())
+}
+
 /// `a` et `b` nomment-ils la meme fiche de spectacle (`Contexte::spectacle`) ?
 fn meme_spectacle(ctx: &Contexte, a: &Value, b: &Value) -> bool {
     let cle = |v: &Value| ctx.spectacle(&en_texte(v)).ok().and_then(|f| f.get("_cle").cloned());

@@ -205,7 +205,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     // Les mots de passe et les comptes (`routes::coffre`) ne dependent d'aucun de ces manques : leur refus se dit seul.
     let rendu = match rendu {
-        Err(Echec { classe, message }) if est_une_ecriture(route) && !crate::routes::coffre::ROUTES.contains(&route) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes::engagement::CLASSE_DOCUMENTS_PARTIS) && classe != Some(crate::routes::engagement::CLASSE_ENGAGEMENT_PARTI) && !message.trim_start().starts_with('{') => {
+        Err(Echec { classe, message }) if est_une_ecriture(route) && !crate::routes::coffre::ROUTES.contains(&route) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes::engagement::CLASSE_ENGAGEMENT_PARTI) && !message.trim_start().starts_with('{') => {
             let suite = declarations::demarrage::a_la_suite(&ctx, &message).unwrap_or_default();
             Err(Echec { classe, message: message + &suite })
         }
