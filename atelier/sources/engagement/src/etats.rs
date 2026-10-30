@@ -584,7 +584,7 @@ fn rang_dans(racine: &Path, o: &Objet, mois: &str) -> Resultat<usize> {
         .ok_or_else(|| format!("{} ne touche pas {}", qui_de(o), mois))
 }
 
-/// Le prelevement a la source de la paie `p`, au taux que la DGFiP a transmis et qui vaut a la fin de sa periode
+/// Le prelevement a la source de la paie `p`, au taux que la DGFiP a transmis et qui vaut le jour de son paiement
 /// (`droit::pas::taux_dgfip`), sinon a la grille de l'article 204 H ; `None` pour un mois sans paie. Un bareme sans
 /// grille refuse le calcul : un prelevement ne se devine pas (regle 1), et aucun document ne le calcule a la place.
 pub(crate) fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<droit::pas::Versement>> {
@@ -594,7 +594,10 @@ pub(crate) fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<droit::pa
     }
     let cle = en_texte(p.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
     let fin = e.fin_periode()?;
-    let taux = droit::pas::taux_dgfip(ctx, &cle, Some(fin))?;
+    // Le taux qui vaut le jour du paiement (CGI, art. 204 A, 2, 1° : la retenue est faite « lors du paiement ») ; sans
+    // date de paiement dite, la fin de la periode.
+    let paye_le = e.date_paiement.as_deref().and_then(|d| Jour::lire(d.get(..10).unwrap_or(d)).ok()).unwrap_or(fin);
+    let taux = droit::pas::taux_dgfip(ctx, &cle, Some(paye_le))?;
     let bareme = ctx.bareme(&Jour { an: fin.an, mois: fin.mois, jour: 1 })?;
     let t = |j: Jour| (j.an, j.mois, j.jour);
     let court = droit::natures::contrat_court(&*e.nat()?, t(e.debut), e.fin.map(t), t(fin));
@@ -811,12 +814,13 @@ fn lu(p: &Value) -> (Option<&Value>, Option<&Value>) {
     (p.get("fiches"), p.get(MOIS_LU))
 }
 
-/// Les paies `a` et `b` (`{<mois>: <paie ecrite>}`) disent-elles les memes chiffres, lus sur les memes fiches et la meme
-/// saisie du mois, mois par mois ?
+/// Les paies `b` (`{<mois>: <paie ecrite>}`) disent-elles, pour chaque mois de `a`, les memes chiffres, lus sur les memes
+/// fiches et la meme saisie du mois ? Un mois que `b` ajoute (un contrat sans terme qui entre dans un mois de plus) ne
+/// change rien de ce que disait `a`.
 fn memes_chiffres(a: Option<&Value>, b: Option<&Value>) -> bool {
     let vide = Map::new();
     let (a, b) = (a.and_then(Value::as_object).unwrap_or(&vide), b.and_then(Value::as_object).unwrap_or(&vide));
-    a.len() == b.len() && a.iter().all(|(m, p)| b.get(m).is_some_and(|q| chiffres(p) == chiffres(q) && lu(p) == lu(q)))
+    a.iter().all(|(m, p)| b.get(m).is_some_and(|q| chiffres(p) == chiffres(q) && lu(p) == lu(q)))
 }
 
 /// LA VERSION QUE PREND LE PRESENT quand la validation `actuelle` de `o` est remplacee le `le` : si un envoi est parti

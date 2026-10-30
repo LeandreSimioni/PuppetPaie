@@ -189,6 +189,33 @@ fn presente(e: Option<&Value>) -> Option<&Value> {
     e.filter(|v| vrai(v))
 }
 
+/// LE TAUX DU SALARIE `cle` AU JOUR `le` : de ceux que le magasin a recus pour lui (le present, `salaries`, et ceux
+/// qu'il a remplaces, `journal`), le dernier mis a disposition au plus tard ce jour-la. La retenue est « effectuée par le
+/// débiteur lors du paiement » (CGI, art. 204 A, 2, 1°, `atelier/reference/sources/code-general-des-impots/xml/
+/// 204_A.xml`) : un taux transmis apres le paiement d'un salaire ne vaut pas pour lui. Aucun taux recu avant ce jour :
+/// aucun (la grille de l'article 204 H s'applique). Le present qu'on ne sait pas dater reste le taux du salarie (il est
+/// alors perime, `est_perime`).
+fn en_vigueur<'a>(magasin: &'a Value, cle: &str, le: Jour) -> Option<&'a Value> {
+    let present = presente(entree(magasin, cle))?;
+    let Some(depuis) = mise_a_disposition(present) else {
+        return Some(present);
+    };
+    if depuis <= le {
+        return Some(present);
+    }
+    let anciens = magasin.get("journal").and_then(Value::as_array).into_iter().flatten();
+    anciens
+        .filter(|e| e.get("salarie").and_then(Value::as_str) == Some(cle))
+        .filter_map(|e| Some((mise_a_disposition(e)?, e)))
+        .filter(|(d, _)| *d <= le)
+        // A jour egal, le dernier recu.
+        .fold(None, |garde: Option<(Jour, &Value)>, (d, e)| match garde {
+            Some((g, _)) if g > d => garde,
+            _ => Some((d, e)),
+        })
+        .map(|(_, e)| e)
+}
+
 // ------------------------------------------ la grille de l'article 204 H du CGI
 
 pub const ZONE_DEFAUT: &str = "metropole";
@@ -451,7 +478,7 @@ fn libelle(situation: &str) -> &'static str {
 pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>) -> Resultat<Value> {
     let le = le_jour(ctx, le);
     let magasin = charger(ctx)?;
-    let e = presente(entree(&magasin, cle));
+    let e = en_vigueur(&magasin, cle, le);
     let fin = e.and_then(fin_de_validite);
     let quoi = match e {
         None if sans_nir(ctx, cle) => SANS_NIR,
@@ -543,3 +570,25 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>)
     Ok(lignes)
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    /// CGI, art. 204 A, 2, 1° (`atelier/reference/sources/code-general-des-impots/xml/204_A.xml`) : la retenue se fait
+    /// « lors du paiement ». Le taux transmis le 17/02 (compte rendu de la DSN de janvier) ne vaut pas pour le salaire de
+    /// janvier paye le 31/01 : c'est celui du 02/01 ; il vaut pour celui de fevrier. Sans taux recu avant le paiement :
+    /// aucun, la grille s'applique.
+    #[test]
+    fn un_taux_transmis_apres_le_paiement_ne_vaut_pas_pour_lui() {
+        let taux = |id: &str, le: &str| json!({"taux": "4.10", "type": "01", "identifiant": id, "mis_a_disposition": le});
+        let mut ancien = taux("250004", "20250102090000");
+        ancien["salarie"] = json!("MARCHAL");
+        let magasin = json!({"salaries": {"MARCHAL": taux("993918841", "20250217100000")}, "journal": [ancien]});
+        let id = |le: &str| en_vigueur(&magasin, "MARCHAL", Jour::lire(le).unwrap()).map(|e| e["identifiant"].clone());
+        assert_eq!(id("2025-01-31"), Some(json!("250004")));
+        assert_eq!(id("2025-02-28"), Some(json!("993918841")));
+        assert_eq!(id("2024-12-31"), None);
+    }
+}
