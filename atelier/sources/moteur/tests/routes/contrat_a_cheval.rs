@@ -92,3 +92,41 @@ fn la_date_de_debut_changee_se_declare_avec_l_ancienne() {
     let bloc = "S21.G00.41.001,'31122026'\r\nS21.G00.41.021,'20112026'";
     assert!(decembre.contains("S21.G00.40.001,'19112026'") && decembre.contains(bloc), "{}", decembre);
 }
+
+/// UNE DATE DE DEBUT CHANGEE APRES LE DEPART DU CONTRAT SE FAIT SIGNER EN AVENANT de ce contrat, pas en contrat neuf (un
+/// bug qui a echappe : le contrat se lisait au journal sous sa date de debut ; changee, il passait pour jamais parti,
+/// « Contrat à envoyer », et l'horloge en faisait partir un neuf, alors que l'avertissement annoncait un avenant). Le
+/// numero ne change plus des qu'un envoi l'a porte (`engagement::numeros`) : c'est lui qui retrouve le contrat parti, et
+/// l'avenant comme sa signature se rangent sous le jour ou le contrat est parti.
+#[test]
+fn la_date_de_debut_changee_se_fait_signer_en_avenant() {
+    let c = fuller_a_cheval("debut_en_avenant");
+    let jour = "2026-12-16";
+    let mut fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
+    let (debut, numero) = (engagement::debut_brut(&fuller), fuller["numero"].clone());
+    fuller["debut"] = json!("2026-11-19");
+    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true, "engagements": [
+        {"salarie": "FULLER", "debut": debut, "numero": numero, "rang": 0, "saisie": fuller}]}), jour);
+    assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
+
+    let contrat = |c: &PathBuf| -> Value {
+        let a = reussi(&route(c, "signature-apercu", json!({"mois": "2026-11"}), jour)).clone();
+        a["contrats"].as_array().and_then(|l| l.iter().find(|x| x["salarie"] == "FULLER")).cloned().unwrap_or(a)
+    };
+    let x = contrat(&c);
+    assert!(x["recu_le"].is_string() && x["en_avenant"] == json!(true), "le contrat signe passe pour jamais parti : {}", x);
+
+    // L'avenant dit l'ancienne date et la nouvelle ; imprime puis note signe, le contrat est a jour.
+    let charge = json!({"salarie": "FULLER", "debut": "2026-11-19", "numero": numero, "mois": "2026-11"});
+    let a = reussi(&route(&c, "avenant-apercu", charge.clone(), jour)).clone();
+    let m = a["modifications"].to_string();
+    assert!(m.contains("20/11/2026") && m.contains("19/11/2026"), "{}", a);
+    reussi(&route(&c, "contrats-imprimer", json!({"mois": "2026-11", "avenants": [charge]}), jour));
+    let x = contrat(&c);
+    assert_eq!(x["avenant_attendu"], json!(true), "{}", x);
+    let mut recu = x["recu"]["charge"].clone();
+    recu["recu"] = json!(true);
+    reussi(&route(&c, "contrat-recu", recu, jour));
+    let x = contrat(&c);
+    assert!(x["caduc"] != json!(true) && x["en_attente"] != json!(true) && x["a_envoyer"] != json!(true), "{}", x);
+}

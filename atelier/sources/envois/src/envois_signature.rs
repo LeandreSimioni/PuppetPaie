@@ -407,7 +407,8 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
             for (p, r) in ps.iter().zip(rs) {
                 let debut = p.engagement.debut.iso();
                 // Le contrat qui part est remplace, lui : le jumeau du meme jour qui n'est pas parti n'a rien a remplacer.
-                let Some(parti) = crate::etats::contrat_parti(&lignes, k, &debut, Some(cles_j[*r][0].2.as_str()))? else {
+                let n = cles_j[*r][0].2.as_str();
+                let Some(parti) = crate::etats::contrat_parti(&lignes, k, &crate::etats::debut_au_journal(&lignes, k, &debut, n)?, Some(n))? else {
                     return Err(refus(format!("Le contrat de {} du {} n'est jamais parti : il n'a rien à remplacer, il s'envoie. Rien n'est parti.", k, jj(&debut)?)));
                 };
                 if debut <= aujourdhui {
@@ -744,7 +745,8 @@ fn avenant_ecrit(
     let modifie: Vec<Value> = a.modifications().iter().map(|m| m["article"].clone()).collect();
     let mut c = Map::new();
     c.insert("salarie".into(), json!(salarie));
-    c.insert("debut".into(), json!(debut));
+    // L'avenant se range sous le jour ou son contrat est parti, meme quand il en change la date de debut.
+    c.insert("debut".into(), json!(crate::etats::debut_au_journal(lignes_j, salarie, &debut, &numero_j)?));
     c.insert("fin".into(), a.apercu["fin"].clone());
     c.insert("numero".into(), a.apercu["contrat"].clone());
     c.insert("fichier".into(), json!(nom_du(&pdf)));
