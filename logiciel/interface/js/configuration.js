@@ -562,9 +562,7 @@ document.addEventListener("click", async (ev) => {
       charge[c.dataset.natureChamp] = c.value;
     });
     const r = await api("importation-nature", charge);
-    dire(`Nature enregistrée sur ${r.ecrits} contrat${r.ecrits > 1 ? "s" : ""} repris.${r.permanents_declares
-      ? " La compagnie emploie donc des salariés au mois : Configuration › Entreprise dit ce que cela demande encore." : ""}${
-      (r.parametrage || []).map((p) => ` ${p}`).join("")}`, "ok");
+    dire(r.phrase, r.couleur);
     // Les natures au mois s'ouvrent alors dans la saisie (`etat.natures`).
     ETAT = await api("etat");
     rafraichirReferentiels();
@@ -872,10 +870,7 @@ async function ecrireImportation() {
     await rafraichirEtatImportation();
     const aDire = document.querySelector("[data-nature-rang]");
     if (aDire) aDire.scrollIntoView({ block: "center" });
-    const b = r.bulletins || {};
-    dire(`Repris : ${(r.contrats_nouveaux || 0) + (b.contrats_nouveaux || 0)} contrat(s), ${
-      (b.paies_nouvelles || 0) + (b.paies_completees || 0)} bulletin(s), ${
-      [r.entreprise, ...(r.salaries || []), ...(r.spectacles || [])].filter((f) => f && (f.etat === "creee" || f.etat === "completee")).length} fiche(s).`, "ok");
+    dire(r.phrase, r.couleur);
   } catch (e) {
     cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`;
   } finally {
