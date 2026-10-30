@@ -278,7 +278,8 @@ async function validerPlusieurs(div, lignes) {
   const avis = [];
   try {
     for (const l of lignes) {
-      const r = await api("valider-engagement", { mois, ...contratDe(l), valide: true });
+      const r = await validerEngagement(mois, l, true);
+      if (r === null) break;
       avis.push(...((r && r.avis) || []));
       faites += 1;
     }
@@ -471,7 +472,28 @@ function peindreNonActifs(liste) {
  *  question (`DocumentsPartis`) : la page la montre telle quelle, et ne renvoie qu'avec la réponse. */
 async function validerEngagement(mois, ligne, valide) {
   const charge = { mois, ...contratDe(ligne), valide };
-  try { return await api("valider-engagement", charge); } catch (e) {
+  try {
+    const r = await api("valider-engagement", charge);
+    if (!r || !r.a_partir_du) return r;
+    // « À partir de quel mois ? » : le moteur la pose et donne les mois ; la page la montre et renvoie la réponse.
+    const q = r.a_partir_du;
+    const depuis = await new Promise((repondre) => {
+      ouvrirBoite(`<h3>À partir de quel mois ?</h3>
+        <p>${echapper(q.phrase)}</p>
+        <label>À partir de <select id="apd-mois">${q.choix.map((c) =>
+          `<option value="${echapper(c.mois)}">${echapper(c.libelle)}${c.partis ? " (déjà parti)" : ""}</option>`).join("")}</select></label>
+        <div class="actions">
+          <button class="secondaire" id="apd-non">Annuler</button>
+          <button class="primaire" id="apd-oui">Valider l'engagement</button>
+        </div>`, () => repondre(null));
+      document.getElementById("apd-non").onclick = () => fermerBoite();
+      document.getElementById("apd-oui").onclick = () => {
+        const m = document.getElementById("apd-mois").value; repondre(m); fermerBoite();
+      };
+    });
+    if (!depuis) return null;
+    return api("valider-engagement", { ...charge, a_partir_du: depuis });
+  } catch (e) {
     if (e.detail?.type !== "DocumentsPartis") throw e;
     const oui = await new Promise((repondre) => {
       ouvrirBoite(`<p>${echapper(e.message)}</p>
