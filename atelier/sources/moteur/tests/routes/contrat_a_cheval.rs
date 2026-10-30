@@ -4,7 +4,7 @@
 //! engagee les 20 et 21/11 avec deux jours planifies les 02 et 03/12, vit jusqu'au 16/12 : decembre ne refait ni DPAE ni
 //! contrat, et sa DSN dit le contrat du 20/11.
 
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::outils::rejeu::{rejouer_dossier, scenario};
 use crate::outils::{dossier_de_test, noms, reussi, route};
@@ -32,4 +32,40 @@ fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
     for attendu in ["S21.G00.40.001,'20112026'", "S21.G00.40.009,'FU1.26.01'", "S21.G00.40.010,'03122026'", "S21.G00.40.013,'4.00'"] {
         assert!(decembre.contains(attendu), "{} manque :\n{}", attendu, decembre);
     }
+}
+
+/// DES HEURES A CHEVAL SUR DEUX MOIS : chaque mois paie ses jours (le planning est paye dans son mois), et des heures ne
+/// se deduisent pas d'un nombre de jours. La validation demande celles du mois suivant en disant ses jours et la carte ou
+/// elles se saisissent ; dites la, l'engagement se valide, et chaque mois paie les siennes.
+#[test]
+fn des_heures_a_cheval_se_disent_sur_la_carte_de_leur_mois() {
+    let d = dossier_de_test("contrat_a_cheval", "heures");
+    let sc = d.join("scenario");
+    std::fs::create_dir_all(&sc).unwrap();
+    let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
+    let debut: Vec<&str> = gestes.lines().take_while(|l| !l.contains("\"geste\":\"jour\"")).collect();
+    std::fs::write(sc.join("gestes.jsonl"), debut.join("\n") + "\n").unwrap();
+    let (_, c) = rejouer_dossier(&sc, &d);
+    let jour = "2026-11-02";
+    let s = crate::outils::saisie(&c, "2026-11");
+    let spectacle = s["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").unwrap()["spectacle"].clone();
+    let regie = json!({"salarie": "FULLER", "spectacle": spectacle, "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 19, "dates": ["2026-11-29", "2026-11-30"], "planning": ["2026-12-01"]}]});
+    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": {"engagements": [regie]}}), jour));
+    let rang = crate::outils::saisie(&c, "2026-11")["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "FULLER" && e["valide"].is_null()).unwrap();
+    let valider = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-29", "numero": "", "rang": rang, "valide": true});
+
+    let (_, refus) = crate::outils::refus(&route(&c, "valider-engagement", valider.clone(), jour));
+    assert!(refus.contains("01/12/2026") && refus.contains("carte de décembre 2026"), "le refus ne dit ni le jour ni la carte : {}", refus);
+
+    let mut decembre = crate::outils::saisie(&c, "2026-12");
+    for e in decembre["engagements"].as_array_mut().unwrap().iter_mut().filter(|e| e["salarie"] == "FULLER" && e["debut"] == "2026-11-29") {
+        e["lignes"][0]["quantite"] = json!(8);
+    }
+    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-12", "saisie": decembre}), jour));
+    assert!(reussi(&route(&c, "valider-engagement", valider, jour))["valide"].is_string());
+    let heures = |mois: &str| -> Vec<Value> {
+        let a = route(&c, "apercu", json!({"saisie": crate::outils::saisie(&c, mois)}), jour);
+        reussi(&a)["paies"].as_array().unwrap().iter().filter(|p| p["debut"] == "2026-11-29").map(|p| p["remuneration"][0]["quantite"].clone()).collect()
+    };
+    assert_eq!((heures("2026-11"), heures("2026-12")), (vec![json!("16")], vec![json!("8")]));
 }
