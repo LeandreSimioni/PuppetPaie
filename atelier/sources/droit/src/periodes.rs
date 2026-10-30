@@ -169,7 +169,7 @@ impl PartDuMois {
         };
         Some(match self.feries_non_payes.as_slice() {
             [] => part,
-            f => format!("{}, férié du {} non payé", part, dates_en_mots(f)),
+            f => format!("{}, férié du {} non payé", part, f.iter().map(|(j, _)| j.jj_mm_aaaa()).collect::<Vec<_>>().join(", ")),
         })
     }
 

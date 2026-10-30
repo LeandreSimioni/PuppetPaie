@@ -41,7 +41,9 @@ impl JoursTravailles {
     /// Les jours que dit la fiche `fiche` (sa valeur au jour lu). Refus : une liste vide, ou un nom qui n'est pas un jour.
     pub fn de_la_fiche(fiche: &Value) -> Resultat<Self> {
         let v = match fiche.get("jours_travailles") {
+            // Une fiche datee ecrit "" pour ce qu'elle ne disait pas avant sa premiere valeur (`contexte::dater`).
             None | Some(Value::Null) => return Ok(Self::du_lundi_au_vendredi()),
+            Some(Value::String(s)) if s.trim().is_empty() => return Ok(Self::du_lundi_au_vendredi()),
             Some(v) => v,
         };
         let qui = fiche.get("_cle").and_then(Value::as_str).unwrap_or("le salarie");

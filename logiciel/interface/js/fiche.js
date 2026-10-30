@@ -247,12 +247,12 @@ function dessinerFormulaire(fiche) {
     // LES JOURS TRAVAILLÉS : une case par jour de la semaine. Sans valeur, celles
     // que le moteur compte (`droit::conges::JoursTravailles`) : du lundi au vendredi.
     if (c.cle === "jours_travailles" && FICHE_ACTIVE === "salarie") {
-      const coches = Array.isArray(v) ? v : JOURS_SEMAINE.slice(0, 5);
+      const coches = Array.isArray(v) ? v : JOURS_DE_LA_SEMAINE.slice(0, 5);
       return `<div class="champ pleine${c.si_permanents ? " champ-permanents" : ""}"${
           c.si_permanents && !avecPermanents ? " hidden" : ""}>
         <label>${echapper(c.libelle)} ${aideHtml(c.cle, c.aide)}</label>
         <div class="jours-semaine" data-cle="${c.cle}" data-jours="1">
-          ${JOURS_SEMAINE.map((j) => `<label class="coche"><input type="checkbox"
+          ${JOURS_DE_LA_SEMAINE.map((j) => `<label class="coche"><input type="checkbox"
               data-jour="${j}"${coches.includes(j) ? " checked" : ""}> ${j}</label>`).join("")}
         </div>
         ${aideCorps(c.cle, c.aide)}
@@ -382,7 +382,7 @@ function dessinerFormulaire(fiche) {
           const v = fiche.donnees[c.cle];
           // Les jours du lundi au vendredi sont la valeur que la case montre.
           if (c.cle === "jours_travailles" && Array.isArray(v)
-              && v.join() === JOURS_SEMAINE.slice(0, 5).join()) return false;
+              && v.join() === JOURS_DE_LA_SEMAINE.slice(0, 5).join()) return false;
           return v !== null && v !== undefined && v !== "";
         }) || !!fiche.donnees.sante_svp;
         return `<details class="bloc avance" data-bloc-permanents="1"${auMois || rempli ? " open" : ""}>

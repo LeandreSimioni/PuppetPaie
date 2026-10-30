@@ -1016,11 +1016,11 @@ const SECTIONS_FICHE = {
   ],
 };
 
+/* Les jours de la semaine, tels que la fiche d'un permanent les ecrit (`droit::conges::JOURS_DE_LA_SEMAINE`). */
+const JOURS_DE_LA_SEMAINE = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+
 /* Ce qui, dans le tiroir « Avancé », vaut le cas ordinaire et ne l'ouvre
  * donc pas. Une case absente d'ici ouvre le tiroir des qu'elle est remplie. */
-/* Les jours de la semaine, tels que la fiche les ecrit (`droit::conges::JOURS_DE_LA_SEMAINE`). */
-const JOURS_SEMAINE = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
-
 const ORDINAIRE = {
   code_urssaf: (v) => String(v) === String(ETAT.urssaf_deduit || ""),
   retraite_complementaire: (v) => String(v).trim().toUpperCase() === "AUDIENS",
