@@ -149,15 +149,9 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
 /// fenetre, il vaut confirmation), puis le coffre. Ce qui autorise a y puiser pour un depot REEL, c'est la
 /// preuve verifiee juste avant par l'appelant. Ce qui SORT d'ici est un secret : il va directement au client.
 pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Option<&str>) -> R<Option<String>> {
-    let variable = if service == "net-entreprises" { envois::releve_retours::VARIABLE_MOTDEPASSE } else { envois::releve_retours::VARIABLE_MOTDEPASSE_DPAE };
-    if let Ok(v) = std::env::var(variable) {
-        if !v.is_empty() {
-            return Ok(Some(v));
-        }
-    }
     let coffre = crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "");
     let vers = crate::routes::vers_route;
-    if !coffre.pose(service).map_err(vers)? {
+    if !coffre.disponible(service).map_err(vers)? {
         return Err(erreur(
             "ErreurOperation",
             format!("Mot de passe {} absent : ni dans l'environnement, ni au coffre.\n  moteur coffre poser {}", service, service),

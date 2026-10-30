@@ -4,8 +4,8 @@
 //! n'est applique. L'archive brute est la piece justificative : elle est ecrite avant toute analyse. Un 404
 //! sur une tranche veut dire << rien sur cette tranche >>, tout autre refus arrete (CLAUDE.md, regle 5).
 //!
-//! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, ou lit la variable d'environnement
-//! du service ; c'est `moteur` qui le prend au coffre. Le mot de passe sert le temps de l'authentification
+//! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, que `moteur` prend a
+//! la variable d'environnement du service ou au coffre. Le mot de passe sert le temps de l'authentification
 //! (`transport::authentifier`), n'est ni journalise, ni affiche, ni renvoye.
 //!
 //! La releve obeit au branchement : le simulateur pose les retours des depots joues, sans reseau (`rattacher_simulation`) ;
@@ -213,9 +213,10 @@ impl Client {
         }
     }
 
-    /// Le mot de passe a verifier avant l'envoi : celui qu'on a donne, sinon la variable d'environnement.
+    /// Le mot de passe que l'appelant a donne (le moteur le prend a l'environnement ou au coffre) : le client n'en
+    /// cherche aucun.
     fn secret(&self) -> Option<String> {
-        self.motdepasse.clone().filter(|m| !m.is_empty()).or_else(|| std::env::var(self.variable).ok().filter(|m| !m.is_empty()))
+        self.motdepasse.clone().filter(|m| !m.is_empty())
     }
 
     /// `ClientDpae.verifier_identifiants` : ce qui ferait echouer la connexion MtoM. Le mot de passe ne
