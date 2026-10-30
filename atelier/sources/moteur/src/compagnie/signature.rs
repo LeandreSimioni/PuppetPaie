@@ -726,7 +726,7 @@ fn avenant_ecrit(
     let (_, paies) = &saisies[&mois_a];
     let debut = a.texte("debut");
     let numero_j = valeur_en_texte(&envois::etats::numero_de_cle(&a.apercu["contrat"]));
-    let Some(rang_p) = envois::etats::paie_du_contrat(paies, lignes_j, salarie, &debut, &numero_j, false)? else {
+    let Some(rang_p) = envois::etats::paie_du_contrat(paies, salarie, &debut, &numero_j, false)? else {
         return Err(refus(format!("Aucun contrat de {} commençant le {} dans les engagements de {}.", salarie, jj(&debut)?, mois_a)));
     };
     let p = &paies[rang_p];
