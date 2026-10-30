@@ -514,31 +514,6 @@ impl Engagement {
                 ));
             }
         }
-        // La rupture se notifie pendant le contrat : « La date de notification de la rupture de contrat doit être
-        // supérieure ou égale à la date de début de contrat de travail et inférieure ou égale à la date de fin de contrat
-        // de travail » (CCH-11 de S21.G00.62.003, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt`). La fin d'un
-        // contrat aux cachets qui ne la dit pas est son dernier jour joue.
-        if let Some(t) = chaine(get("notification_rupture")).filter(|t| !t.trim().is_empty()) {
-            let n = Jour::lire(&t).map_err(|_| format!("Notifiée le : « {} » n'est pas une date.", t))?;
-            let derniere = fin.or_else(|| jours_joues.last().copied());
-            if n < debut || derniere.is_some_and(|f| n > f) {
-                return Err(match derniere {
-                    Some(f) => format!(
-                        "Notifiée le {} : la rupture se notifie pendant le contrat, entre son premier jour, le {}, et sa \
-                         fin, le {}. La date de notification se corrige dans la carte, sous « Contrat ».",
-                        n.jj_mm_aaaa(),
-                        debut.jj_mm_aaaa(),
-                        f.jj_mm_aaaa()
-                    ),
-                    None => format!(
-                        "Notifiée le {} : la rupture se notifie pendant le contrat, au plus tôt son premier jour, le {}. \
-                         La date de notification se corrige dans la carte, sous « Contrat ».",
-                        n.jj_mm_aaaa(),
-                        debut.jj_mm_aaaa()
-                    ),
-                });
-            }
-        }
 
         Ok(Engagement {
             salarie: chaine(get("salarie")).unwrap_or_default(),
@@ -1065,7 +1040,6 @@ pub(crate) fn engagements(
         poser("modalite_temps_travail_saisie", e.get("modalite_temps_travail"));
         poser("motif_recours", e.get("motif_recours"));
         poser("motif_rupture", e.get("motif_rupture"));
-        poser("notification_rupture", e.get("notification_rupture"));
         // La fin du contrat telle que la saisie la dit : la mensuelle et le FCTU en tirent le meme S21.G00.62.006
         // (`fctu::dernier_jour_paye`).
         poser("preavis", e.get("preavis"));
@@ -1076,6 +1050,7 @@ pub(crate) fn engagements(
             poser(k, e.get(k));
         }
         let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
+        notifiee_pendant_le_contrat(e, &eng)?;
         // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
         if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
@@ -1084,6 +1059,28 @@ pub(crate) fn engagements(
         out.push(eng);
     }
     Ok((out, dits))
+}
+
+/// La rupture se notifie pendant le contrat : « La date de notification de la rupture de contrat doit être supérieure
+/// ou égale à la date de début de contrat de travail et inférieure ou égale à la date de fin de contrat de travail »
+/// (CCH-11 de S21.G00.62.003, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt`). La saisie `e` qui la dit
+/// (`notification_rupture`) se refuse, en disant les bornes du contrat `eng` ; un contrat sans fin ne borne que le debut.
+fn notifiee_pendant_le_contrat(e: &Value, eng: &Engagement) -> Resultat<()> {
+    let Some(t) = e.get("notification_rupture").and_then(Value::as_str).filter(|t| !t.trim().is_empty()) else { return Ok(()) };
+    let n = Jour::lire(t).map_err(|_| format!("{} : « Notifiée le » {} n'est pas une date.", eng.nom, t))?;
+    if n >= eng.debut && eng.fin.map_or(true, |f| n <= f) {
+        return Ok(());
+    }
+    let bornes = match eng.fin {
+        Some(f) => format!("entre son premier jour, le {}, et sa fin, le {}", eng.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
+        None => format!("au plus tôt son premier jour, le {}", eng.debut.jj_mm_aaaa()),
+    };
+    Err(format!(
+        "{} : notifiée le {}, la rupture doit l'être pendant le contrat, {}. La date se corrige dans sa carte, sous « Contrat ».",
+        eng.nom,
+        n.jj_mm_aaaa(),
+        bornes
+    ))
 }
 
 /// Ce que disent les refus d'une saisie pas encore finie, et non un defaut du logiciel : un spectacle pas encore
