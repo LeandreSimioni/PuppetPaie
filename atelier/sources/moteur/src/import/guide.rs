@@ -10,7 +10,7 @@
 //! - les archives : `tri` (un zip s'ouvre, son contenu se trie comme le reste ; un PDF sans texte ne se lit pas).
 //!
 //! Ce qui restera a dire : ce qu'aucune de ces lectures ne donne -- la nature d'un contrat de permanent
-//! (`nature`), les conges d'un permanent repris (`nature::conges_a_dire`), et ce que « Pour demarrer » demande encore
+//! (`nature`), et ce que « Pour demarrer » demande encore (les conges d'un permanent repris compris)
 //! (`declarations::demarrage`), que la page montre apres l'import.
 
 use std::path::Path;

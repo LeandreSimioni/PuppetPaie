@@ -157,7 +157,8 @@ fn champ_exige(ent: &Value, cle: &str) -> bool {
     crate::champs::champ("entreprise", cle).ok().flatten().is_some_and(|c| c.exige(ent))
 }
 
-/// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque.
+/// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque. Une ligne dit ce qu'elle bloque
+/// (`bloque`), ou, quand rien ne se refuse sans elle, ce qui se passe sinon (`sinon`).
 pub fn manques(ctx: &Contexte) -> Vec<Value> {
     let ent = &ctx.entreprise;
     let mut out: Vec<Value> = Vec::new();
@@ -287,12 +288,13 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // LES CONGES PAYES ACQUIS AVANT PUPPETPAIE : un permanent dont le contrat commence avant le premier mois ou PuppetPaie
     // le paie a acquis des jours ailleurs (L3141-3 du code du travail, `atelier/reference/sources/code-du-travail/
     // articles-20260919.md`) ; un solde ne se devine pas (regle 1). Sa fiche les dit (`conges_reprise`, que
-    // `engagement::conges::reprise_conges` lit), la meme question que l'import pose (`moteur::import::nature::conges_a_dire`).
+    // `engagement::conges::reprise_conges` lit). Rien ne se refuse sans eux : la ligne dit ce qui se passe sinon (`sinon`),
+    // et non ce qu'elle bloque. C'est ici seulement que la question se pose, contrat repris d'un import compris.
     for (salarie, nom, depuis) in conges_a_reprendre(ctx) {
         out.push(json!({
             "cle": format!("conges_reprise.{}", salarie),
             "libelle": format!("Les congés payés de {} acquis avant le {}", nom, socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
-            "bloque": "le compteur de congés payés de ses bulletins (sans eux, il part de zéro)",
+            "sinon": "son compteur de congés payés part de zéro",
             "ou": format!("la fiche de {}, « Congés payés à la reprise »", nom),
             "champ": "conges_reprise",
             "salarie": salarie,
@@ -302,47 +304,66 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     out
 }
 
-/// Les permanents dont un contrat commence avant le premier mois ou PuppetPaie le paie (le premier `engagements/AAAA-MM.json`
-/// qui le porte), et dont la fiche ne dit pas les conges a la reprise (`conges_reprise.date`) : `(salarie, nom, premier
-/// jour paye ici)`. Un intermittent n'en est pas (ses conges sont ceux des Conges Spectacles) ; un contrat ne d'ici n'a
-/// rien d'avant.
+/// Les permanents dont un contrat commence avant le premier mois ou PuppetPaie le paie, et dont la fiche ne dit pas les
+/// conges a la reprise (`conges_reprise.date`) : `(salarie, nom, premier jour paye ici)`. Le premier mois paye ici est,
+/// pour un contrat repris d'un ancien logiciel (`engagement::importe`), celui qui suit le dernier mois repris (le contrat
+/// court encore ce mois-la, et sa nature est dite) ; sinon le premier `engagements/AAAA-MM.json` qui porte le salarie.
+/// Un intermittent n'en est pas (ses conges sont ceux des Conges Spectacles) ; un contrat ne d'ici n'a rien d'avant.
 fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
-    let Ok(lus) = std::fs::read_dir(ctx.racine.join("engagements")) else { return Vec::new() };
-    let mut mois: Vec<String> = lus
-        .filter_map(|e| e.ok()?.file_name().into_string().ok())
-        .filter_map(|n| n.strip_suffix(".json").filter(|m| m.len() == 7 && m.as_bytes()[4] == b'-').map(str::to_string))
-        .collect();
-    mois.sort();
+    let t = |e: &Value, k: &str| e.get(k).filter(|v| vrai(v)).map(socle::date::en_texte).unwrap_or_default();
+    let mensuel = |nature: &str| droit::natures::nature(Some(nature)).is_ok_and(|n| n.mensuelle());
+    // (salarie, debut du contrat, premier jour paye ici)
+    let mut contrats: Vec<(String, String, String)> = Vec::new();
     let mut vus: Vec<String> = Vec::new();
-    let mut out = Vec::new();
-    for m in mois {
-        let Ok(f) = socle::fichiers::lire_json(&ctx.racine.join("engagements").join(format!("{}.json", m))) else { continue };
-        let premier = format!("{}-01", m);
-        for e in f.get("engagements").and_then(Value::as_array).into_iter().flatten() {
-            let t = |k: &str| e.get(k).filter(|v| vrai(v)).map(socle::date::en_texte).unwrap_or_default();
-            let (salarie, debut) = (t("salarie"), t("debut"));
-            if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) {
-                continue;
-            }
-            let Ok(nat) = droit::natures::nature(Some(&t("nature"))) else { continue };
-            if !nat.mensuelle() {
+    let repris = engagement::importe::contrats_lus(&ctx.racine).unwrap_or_default();
+    if let Some(dernier) = repris.iter().map(|e| t(e, "fin")).filter(|f| f.len() >= 7).map(|f| f[..7].to_string()).max() {
+        let suite = socle::date::dernier_du_mois(&dernier).and_then(|j| j.plus_jours(1)).map(|j| j.iso()).unwrap_or_default();
+        for e in &repris {
+            let (salarie, debut, fin) = (t(e, "salarie"), t(e, "contrat_debut"), t(e, "contrat_fin"));
+            if salarie.is_empty() || debut.is_empty() || suite.is_empty() || !mensuel(&t(e, "nature")) {
                 continue;
             }
             vus.push(salarie.clone());
-            let fiche = ctx.salaries.get(&salarie);
-            let dit = fiche.and_then(|f| f.get("conges_reprise")).and_then(|c| c.get("date")).is_some_and(vrai);
-            if debut < premier && !dit {
-                let nom = fiche
-                    .map(|f| {
-                        let v = |k: &str| f.get(k).filter(|x| vrai(x)).map(socle::date::en_texte).unwrap_or_default();
-                        let prenom = if v("prenom_affichage").is_empty() { v("prenom") } else { v("prenom_affichage") };
-                        format!("{} {}", v("nom"), prenom).trim().to_string()
-                    })
-                    .filter(|n| !n.is_empty())
-                    .unwrap_or_else(|| salarie.clone());
-                out.push((salarie, nom, premier.clone()));
+            if debut < suite && (fin.is_empty() || fin >= suite) && !contrats.iter().any(|c| c.0 == salarie) {
+                contrats.push((salarie, debut, suite.clone()));
             }
         }
+    }
+    let mois: Vec<String> = std::fs::read_dir(ctx.racine.join("engagements"))
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .filter_map(|n| n.strip_suffix(".json").filter(|m| m.len() == 7 && m.as_bytes()[4] == b'-').map(str::to_string))
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    for m in mois {
+        let Ok(f) = socle::fichiers::lire_json(&ctx.racine.join("engagements").join(format!("{}.json", m))) else { continue };
+        for e in f.get("engagements").and_then(Value::as_array).into_iter().flatten() {
+            let (salarie, debut) = (t(e, "salarie"), t(e, "debut"));
+            if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) || !mensuel(&t(e, "nature")) {
+                continue;
+            }
+            vus.push(salarie.clone());
+            contrats.push((salarie, debut, format!("{}-01", m)));
+        }
+    }
+    let mut out = Vec::new();
+    for (salarie, debut, premier) in contrats {
+        let fiche = ctx.salaries.get(&salarie);
+        let dit = fiche.and_then(|f| f.get("conges_reprise")).and_then(|c| c.get("date")).is_some_and(vrai);
+        if debut >= premier || dit {
+            continue;
+        }
+        let nom = fiche
+            .map(|f| {
+                let v = |k: &str| f.get(k).filter(|x| vrai(x)).map(socle::date::en_texte).unwrap_or_default();
+                let prenom = if v("prenom_affichage").is_empty() { v("prenom") } else { v("prenom_affichage") };
+                format!("{} {}", v("nom"), prenom).trim().to_string()
+            })
+            .filter(|n| !n.is_empty())
+            .unwrap_or_else(|| salarie.clone());
+        out.push((salarie, nom, premier));
     }
     out
 }
@@ -377,14 +398,14 @@ pub fn route(ctx: &Contexte) -> R<Value> {
 
 /// Ce qui suit le refus d'un acte quand la compagnie n'a pas fini de demarrer : toute la liste, d'un coup.
 pub fn a_la_suite(ctx: &Contexte) -> Option<String> {
-    let m = manques(ctx);
-    if m.is_empty() {
-        return None;
-    }
-    let lignes: Vec<String> = m
+    let lignes: Vec<String> = manques(ctx)
         .iter()
+        .filter(|x| x.get("bloque").is_some())
         .map(|x| format!("  - {} : bloque {} ({})", x["libelle"].as_str().unwrap_or(""), x["bloque"].as_str().unwrap_or(""), x["ou"].as_str().unwrap_or("")))
         .collect();
+    if lignes.is_empty() {
+        return None;
+    }
     Some(format!("\n\nPour démarrer, il manque encore :\n{}", lignes.join("\n")))
 }
 

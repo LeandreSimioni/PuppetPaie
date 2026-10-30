@@ -253,37 +253,6 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares}))
 }
 
-/// LES CONGES PAYES D'UN PERMANENT DONT LE CONTRAT CONTINUE : il a acquis des jours dans l'ancien logiciel (L3141-3 du
-/// code du travail, `atelier/reference/sources/code-du-travail/articles-20260919.md`) et en a peut-etre pris ; aucun
-/// gabarit de bulletin repris ne les imprime, et un solde ne se devine
-/// pas (regle 1). Ils se recopient de son dernier bulletin sur sa fiche (`conges_reprise`, que
-/// `engagement::conges::reprise_conges` lit) ; sans eux, ses conges partiraient de zero au premier mois paye ici. Rend
-/// `[{salarie, nom, depuis}]` (`depuis` : le premier jour paye ici), pour ceux dont la fiche ne les dit pas. Ne leve
-/// jamais.
-pub(crate) fn conges_a_dire(racine: &Path) -> Vec<Value> {
-    let engs = engagements(racine);
-    let dernier = dernier_mois(&engs);
-    if dernier.is_empty() {
-        return Vec::new();
-    }
-    let suite = mois_suivant(&dernier);
-    let fiches = crate::routes::lire_json_ou_vide(&racine.join("config").join("salaries.json")).unwrap_or(Value::Null);
-    let dit = |cle: &str| -> bool {
-        let Some(c) = fiches.get(cle).and_then(|f| f.get("conges_reprise")) else { return false };
-        let a_une_date = |v: &Value| v.get("date").is_some_and(vrai);
-        match c {
-            Value::Array(versions) => versions.iter().any(|x| x.get("valeur").is_some_and(a_une_date)),
-            autre => a_une_date(autre),
-        }
-    };
-    let mut vus = std::collections::BTreeSet::new();
-    repris_en_cours(racine, &suite)
-        .into_iter()
-        .filter(|r| !dit(&r.salarie) && vus.insert(r.salarie.clone()))
-        .map(|r| json!({"salarie": r.salarie, "nom": nom_du_salarie(racine, &r.salarie), "depuis": format!("{}-01", suite)}))
-        .collect()
-}
-
 /// Un contrat de permanent repris des bulletins qui court en `mois` : le salarie, le debut, la fin (vide sans terme),
 /// le numero, la nature, et le dernier mois repris.
 pub(crate) struct Repris {
