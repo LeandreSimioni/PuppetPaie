@@ -2816,7 +2816,7 @@ fn sert_a_un_versement(orgs: &Value, code: &str) -> bool {
     })
 }
 
-/// Les cles de totalisation d'un versement 20 (`codes81` de `config/organismes.json`). Agirc-Arrco y porte 131 et 132
+/// Les cles de totalisation d'un versement 20 (`codes81` de `organismes-base.json`). Agirc-Arrco y porte 131 et 132
 /// (« Cotisation regime unifie Agirc-Arrco », « Cotisation Apec »), et 105 (« y compris Apec »), que la norme 2026.1 ne
 /// garde que « pour regularisation des periodes anterieures a 2025 » (cahier technique 2026.1, p. 302 et 305 ;
 /// `atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, lignes 79-81).
@@ -2904,9 +2904,8 @@ fn taux_at_du_ctp(ctp: &Value, bar: &Value) -> Resultat<String> {
     if !vrai(g(ctp, "taux_at")) {
         return Ok(String::new());
     }
-    // LE TAUX DU BAREME DU MOIS DECLARE, et non celui recopie dans config/organismes.json : celui-la
-    // restait fige quand le taux changeait a l'ecran (1,25 garde, 1,40 pose le 03/10), ou en cours d'annee (1,69 puis
-    // 1,65 au 01/06/2025). `taux_at` du CTP ne dit plus que « cette ligne porte le taux AT » ("bareme").
+    // LE TAUX DU BAREME DU MOIS DECLARE : il peut changer en cours d'annee (1,69 puis 1,65 au 01/06/2025) ; `taux_at` du CTP
+    // dit seulement « cette ligne porte le taux AT » ("bareme"), le taux ne se recopie pas.
     if !vrai(g(g(bar, "taux_atmp"), "valeur")) {
         if txt(g(ctp, "taux_at")) == "bareme" {
             return Err("Le bareme du mois n'a pas de taux AT/MP (`taux_atmp.valeur`), et un CTP de la DSN le porte. C'est \
@@ -3040,7 +3039,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decim
     out.insert("brut_x115_artiste".into(), somme(&art, &|i| b[i]["brut_x115"]));
     out.insert("reduction_generale_urssaf".into(), rg_tech);
     // Sous le qualifiant 921 (« Assiette plafonnee », cahier technique 2026.1, p. 168), une population porte son assiette
-    // PLAFONNEE : celle du bulletin et de la base 02 de chaque contrat (point 22). La cle de config/organismes.json reste
+    // PLAFONNEE : celle du bulletin et de la base 02 de chaque contrat (point 22). La cle de la table des CTP reste
     // celle de la population (`brut_artiste` sous 312/921) ; c'est le qualifiant qui dit plafonnee.
     let base = |i: usize, k: &str| b[i].get(k).copied().ok_or_else(|| socle::fichiers::absent(k));
     let plaf = |f: &dyn Fn(usize) -> bool, k: &str| -> Resultat<Decimal> {
@@ -3119,8 +3118,7 @@ const CODE81_CPF_CDD: &str = "129";
 const CODE81_CFP: &str = "128";
 const ASSIETTE_CFP_PERMANENT: &str = "cfp_permanent";
 
-/// La table des CTP de `config/organismes.json`, telle que `organismes::composer` l'ecrit depuis
-/// `donnees/organismes-base.json`.
+/// La table des CTP des organismes composes (`organismes::composer`), depuis `donnees/organismes-base.json`.
 fn ctp_urssaf(orgs: &Value) -> Resultat<Vec<Value>> {
     Ok(liste(req(orgs, "ctp_urssaf")?).to_vec())
 }
@@ -3376,16 +3374,6 @@ pub fn reference_versement(v: &Value, ent: &Value) -> Resultat<Option<String>> {
         return Ok(reference);
     }
     let fiche = Some(txt(g(ent, "france_travail_dossier_recouvrement")).trim().to_string()).filter(|s| !s.is_empty());
-    if let (Some(fi), Some(r)) = (&fiche, &reference) {
-        if fi != r {
-            return Err(format!(
-                "Deux dossiers de recouvrement France Travail : {} dans la fiche Entreprise (Configuration › Entreprise), {} \
-dans la table livrée des organismes (donnees/organismes-base.json). Rien n'est écrit : le dossier de la fiche est \
-celui que la compagnie a reçu de France Travail ; s'il est juste, c'est la table livrée qui est en défaut.",
-                fi, r
-            ));
-        }
-    }
     Ok(fiche.or(reference))
 }
 
@@ -4925,8 +4913,6 @@ mod tests {
             .as_deref(),
             Some("X")
         );
-        let e = reference_versement(&ft, &json!({"france_travail_dossier_recouvrement": "CS00000002"})).unwrap_err();
-        assert!(e.contains("CS00000002") && e.contains("CS00012345"), "{}", e);
         assert_eq!(SIRET_FRANCE_TRAVAIL, "13000548100010");
     }
 
