@@ -598,8 +598,10 @@ fn cochees(ctx: &Contexte) -> R<Map<String, Value>> {
 /// Le taux AT/MP de l'annee est-il pose ?
 fn atmp_pose(ctx: &Contexte, annee: i32) -> R<bool> {
     let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", annee));
+    // Un taux collectif que l'annee reprend d'elle-meme (`Contexte::taux_atmp_reporte`) n'a rien a relever.
+    let reporte = || matches!(ctx.taux_atmp_reporte(annee), Some(Ok(_)));
     if !p.exists() {
-        return Ok(false);
+        return Ok(reporte());
     }
     let v = match lire_saisie(&p) {
         Ok(v) => v,
@@ -609,7 +611,7 @@ fn atmp_pose(ctx: &Contexte, annee: i32) -> R<bool> {
     let Some(o) = v.as_object() else { return Err(pas_de_get(&v)) };
     Ok(match o.get("taux_atmp") {
         Some(Value::Object(t)) => t.get("valeur").map_or(false, |x| !x.is_null()),
-        _ => false,
+        _ => reporte(),
     })
 }
 
