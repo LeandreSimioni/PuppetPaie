@@ -185,7 +185,7 @@ impl Organisme {
 /// Les organismes de la compagnie : ses versements et ses adhesions (`config/organismes.json`, `Contexte::organismes`),
 /// et la partie normative livree (`organismes-base.json`), qui porte les adresses.
 struct Organismes {
-    compagnie: Option<Value>,
+    compagnie: Value,
     base: Value,
     idcc: String,
 }
@@ -200,7 +200,7 @@ impl Organismes {
         fn de(v: &Value) -> Vec<&Value> {
             v.get("versements").and_then(Value::as_array).map(|a| a.iter().collect()).unwrap_or_default()
         }
-        let mut tous = self.compagnie.as_ref().map(de).unwrap_or_default();
+        let mut tous = de(&self.compagnie);
         tous.extend(de(&self.base));
         tous
     }
@@ -223,7 +223,7 @@ impl Organismes {
     /// L'organisme de l'adhesion `cle` (la prevoyance, la sante) : celui que la compagnie a enregistre, sinon celui que
     /// la branche designe (`organisme_fixe` des contrats de `organismes-base.json`). `None` : elle n'a pas ce contrat.
     fn adhesion(&self, cle: &str) -> Option<Organisme> {
-        let enregistre = self.compagnie.as_ref().and_then(|c| c.get("adhesions_prevoyance")).and_then(Value::as_array).and_then(|a| {
+        let enregistre = self.compagnie.get("adhesions_prevoyance").and_then(Value::as_array).and_then(|a| {
             a.iter().find(|x| x.get("cle").and_then(Value::as_str) == Some(cle)).and_then(|x| x.get("delegataire").and_then(Value::as_str))
         });
         let designe = || {

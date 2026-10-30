@@ -1276,11 +1276,10 @@ d'affiliation par contrat). Rien n'est ecrit.",
     Ok(Some(Value::Object(out)))
 }
 
-/// La DSN de `mois` porte-t-elle la CASC-SVP ? La regle qui l'y met (`casc_svp`) le dit ; sans organismes enregistres,
-/// elle ne la porte pas.
+/// La DSN de `mois` porte-t-elle la CASC-SVP ? La regle qui l'y met (`casc_svp`) le dit.
 pub fn porte_la_casc(ctx: &Contexte, mois: &str) -> Resultat<bool> {
     let ctx = ctx.du_mois(mois)?;
-    let Some(orgs) = ctx.organismes()? else { return Ok(false) };
+    let orgs = ctx.organismes()?;
     Ok(matches!(casc_svp(&ctx, &ctx.entreprise, &orgs, mois), Ok(Some(_))))
 }
 
@@ -1309,9 +1308,8 @@ fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar:
             Some(a) => a,
             None => {
                 return Err(format!(
-                    "Convention {} : le {} se declare en DSN depuis {}, sous une adhesion Audiens de la compagnie, et \
-config/organismes.json n'en a pas (`adhesions_prevoyance`, une entree avec \"contribution\": \"{}\", sa \"reference\" et \
-son \"libelle\" tels que la fiche de parametrage Audiens les donne). Elle ne se devine pas. Rien n'est ecrit.",
+                    "Convention {} : le {} se declare en DSN depuis {}, sous une adhesion Audiens, et les organismes \
+du mois n'ont pas l'adhesion \"contribution\": \"{}\" que `droit::organismes` compose depuis le bareme. Rien n'est ecrit.",
                     socle::date::forme_ecrite(g(ent, "idcc")).trim_matches('\''),
                     nom,
                     en_texte(g(spec, "en_dsn_depuis")),
@@ -2269,7 +2267,7 @@ pub fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Verseme
     let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
     let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
     let ent_e = fiche_de(ent, &nic)?;
     let e = &p.engagement;
@@ -3249,7 +3247,7 @@ pub fn bordereau_du_mois(ctx: &Contexte, paies: &[Paie], mois: &str, etablisseme
     let ent = &ctx.entreprise;
     let principal = bareme::nic_principal(ent);
     let nic = etablissement.filter(|n| !n.is_empty()).map_or_else(|| principal.clone(), str::to_string);
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let debut = premier(mois)?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
     let doeth = if nic == principal { crate::oeth::declaration(ctx, mois)? } else { None };
@@ -3728,7 +3726,7 @@ pub fn assiettes_des_ctp(ctx: &Contexte, paies: &[Paie], mois: &str, nic: &str, 
     }
     let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, nic, mois)?;
     let refs: Vec<&Paie> = paies.iter().flat_map(|p| p.elementaires()).collect();
     let lignes = lignes_bordereau(&refs, &orgs, ent, &bar, None, None, None, mois, &Seuils::du_mois(ctx, mois)?)?;
@@ -4159,7 +4157,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
     let departs = engagement::departs::lire(&ctx.racine)?;
     let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, &departs)?;
-    let orgs = ctx.organismes_exiges()?;
+    let orgs = ctx.organismes()?;
     let an: i32 = mois[..4].parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mo: u32 = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let debut_mois = premier(mois)?;

@@ -368,8 +368,8 @@ s'écrit `[{"valeur": …}, {"depuis": "AAAA-MM-JJ", "valeur": …}]` : la premi
 valeur, sans `depuis`, vaut **de tout temps** (un contrat commencé avant la
 saisie de la fiche, un mois repris d'un autre logiciel la trouvent), chacune des
 suivantes à partir de sa date ; les clés `_…` sont des notes. Les organismes
-et contrats de la DSN (`config/organismes.json`, chaque clé, lus par
-`Contexte::organismes` ; enregistrer pour un mois écrit à partir de son premier
+et contrats saisis par la compagnie (`config/organismes.json`, le reste se composant des textes à la date lue :
+`droit::organismes`, `Contexte::organismes` ; enregistrer pour un mois écrit à partir de son premier
 jour) et les rubriques propres à la compagnie (`config/rubriques-compagnie.json`,
 lues par `catalogue::catalogue(racine, jour)`) sont datés de même. Une seule
 lecture, `contexte::fiche_au`, sur la même `valeur_au` que les barèmes ; une
@@ -628,7 +628,7 @@ Ce que le moteur écrit, d'après la norme déposée (`atelier/reference/norme-d
   `date_anciennete` de la fiche jusqu'à la fin du mois déclaré, jamais zéro
   (CCH-12, p. 322 ; `dsn::anciennete_du_mois`). Une fiche qui ne la porte pas
   refuse.
-- `S21.G00.23` : une ligne par CTP de `config/organismes.json` (composé depuis
+- `S21.G00.23` : une ligne par CTP des organismes de la compagnie (composés depuis
   `ctp_urssaf` de `logiciel/donnees/organismes-base.json`), sur l'assiette que
   la ligne nomme (`brut`, `csg`, `brut_artiste`, `brut_x115_artiste`,
   `ta_principale`, `chomage_permanent`…), sommée sur les paies du mois
@@ -927,8 +927,8 @@ ses nombres sont relevés, pas confirmés, et le refus dit ce qu'il reste à rel
 - `contributions_dsn` : les contributions que la DSN déclare sous une
   **adhésion Audiens** de la compagnie, comme la CASC-SVP de la 3090 — le
   FNAS et le FCAP de la CCNEAC. `dsn::contributions_dsn` les résout mois par
-  mois (l'adhésion se lit dans `organismes.json`, `"contribution": "FNAS"`,
-  et le moteur refuse sans elle), et `dsn::places_par_contrat` réserve autant
+  mois (l'adhésion, `"contribution": "FNAS"`, se compose du barème du mois, `droit::organismes`,
+  sans rien de la compagnie), et `dsn::places_par_contrat` réserve autant
   d'identifiants d'affiliation de plus : trois pour la 3090, quatre pour la 1285.
 
 `droit::contexte::fusionner` empile les trois, et `Contexte::bareme_brut` (`droit/src/contexte.rs`) est

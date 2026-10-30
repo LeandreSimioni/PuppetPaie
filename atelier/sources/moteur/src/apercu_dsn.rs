@@ -269,7 +269,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
     // LES ORDRES DE PAIEMENT EN CLAIR : a qui, pour quoi, combien, pour quand -- ceux de la DSN fabriquee
     // depuis les paies qu'elle couvre (`depart::refabriquer`) ; un fichier qui ne dit plus ce que disent les paies n'en
     // montre aucun.
-    let organismes = ctx.du_mois(&mois)?.organismes()?.unwrap_or(Value::Null);
+    let organismes = ctx.du_mois(&mois)?.organismes()?;
     let (ordres, ordres_erreur) = if signalement {
         (Vec::new(), Value::Null)
     } else {

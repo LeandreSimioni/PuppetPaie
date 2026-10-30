@@ -2357,21 +2357,11 @@ pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> 
     }
     let mut avert: Vec<String> = Vec::new();
     // L'apercu n'a pas a refuser : c'est la production qui le fera.
-    let urssaf = if !ctx.racine.join("config").join("organismes.json").is_file() {
-        // Une compagnie neuve n'a pas encore ses organismes : le bordereau
-        // attend, la paie non.
-        avert.push(
-            "Bordereau Urssaf pas encore calculable : les organismes de la compagnie (France Travail, Audiens, Urssaf) ne sont pas encore renseignés."
-                .to_string(),
-        );
-        Value::Null
-    } else {
-        match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
-            Ok(m) => Value::String(m.to_string()),
-            Err(e) => {
-                avert.push(format!("Bordereau Urssaf non calculable : {}", e));
-                Value::Null
-            }
+    let urssaf = match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
+        Ok(m) => Value::String(m.to_string()),
+        Err(e) => {
+            avert.push(format!("Bordereau Urssaf non calculable : {}", e));
+            Value::Null
         }
     };
 

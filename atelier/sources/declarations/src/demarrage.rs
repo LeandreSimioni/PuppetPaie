@@ -270,10 +270,9 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         let (libelle, _) = champ(cle);
         out.push(manque(cle, libelle, "la DSN de décembre", ENTREPRISE, Some(cle), m));
     }
-    // LES CONTRATS DES PERMANENTS : une compagnie qui dit employer des salaries au mois APRES avoir enregistre ses
-    // organismes n'a pas leurs adhesions de prevoyance et de sante, et le mois d'un permanent se refuse alors
-    // (`dsn::affiliations`, « affiliations_par_nature.permanent.references est null »). Rien ne le disait d'avance.
-    if let (true, Ok(Some(orgs))) = (ctx.emploie_des_permanents(), ctx.organismes()) {
+    // LES CONTRATS DES PERMANENTS : c'est tout ce que la compagnie a a saisir des organismes (le reste, les textes le
+    // donnent : `droit::organismes`). Sans eux, le mois d'un permanent se refuse (`dsn::affiliations`).
+    if let (true, Ok(orgs)) = (ctx.emploie_des_permanents(), ctx.organismes()) {
         if !orgs.pointer("/affiliations_par_nature/permanent/references").is_some_and(vrai) {
             out.push(manque(
                 "organismes_permanents",
@@ -299,17 +298,6 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
             "salarie": salarie,
             "trouver": format!("Son contrat a commencé avant que PuppetPaie le paie : recopiez de son dernier bulletin de votre ancien logiciel les jours acquis et pris, avec le {} pour date de reprise.", socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
         }));
-    }
-    // Les organismes de la DSN : la compagnie ne les a pas encore enregistres.
-    if !ctx.racine.join("config").join(droit::contexte::ORGANISMES).is_file() {
-        out.push(manque(
-            "organismes",
-            "Les organismes et les contrats de la DSN".into(),
-            "la DSN, donc l'écriture du mois",
-            "Configuration › Organismes et contrats",
-            None,
-            "Les comptes que la DSN paie (Urssaf, France Travail Spectacle, Congés Spectacles, retraite complémentaire) et vos contrats de prévoyance et de santé : l'organisme, la référence du contrat et la population couverte se lisent sur le certificat d'adhésion de l'assureur et sur sa fiche de paramétrage DSN.".into(),
-        ));
     }
     out
 }

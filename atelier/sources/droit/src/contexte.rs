@@ -1601,39 +1601,12 @@ PSS_H_METROP).",
         self.spectacles_bruts.get(cle)
     }
 
-    /// LES ORGANISMES ET CONTRATS DE LA DSN (`config/organismes.json`), lus a `lue_au` : un fichier date comme les
-    /// fiches, chaque cle une liste `{depuis, valeur}` (`moteur::compagnie::organismes` l'ecrit, par `dater`). `None` : la compagnie
-    /// ne les a pas encore enregistres. L'adhesion CASC-SVP d'une compagnie de la 3090 y est toujours, que le fichier la
-    /// nomme ou non : un texte la donne entiere, la compagnie n'en saisit rien (`adhesions::casc_svp`).
-    pub fn organismes(&self) -> Resultat<Option<Value>> {
-        let p = self.racine.join("config").join(ORGANISMES);
-        if !p.is_file() {
-            return Ok(None);
-        }
-        let mut orgs = fiche_au(&lire_json(&p)?, &self.lue_au, &format!("config/{}", ORGANISMES))?;
-        if let Some(casc) = crate::adhesions::casc_svp(&self.code, &self.entreprise)? {
-            let libelle = en_texte(&casc["libelle"]);
-            if let Some(o) = orgs.as_object_mut() {
-                let adh = o.entry("adhesions_prevoyance").or_insert_with(|| Value::Array(Vec::new()));
-                if let Some(liste) = adh.as_array_mut() {
-                    if !liste.iter().any(|a| en_texte(a.get("libelle").unwrap_or(&Value::Null)).trim() == libelle) {
-                        liste.insert(0, casc);
-                    }
-                }
-            }
-        }
-        Ok(Some(orgs))
-    }
-
-    /// `organismes`, exiges : la DSN et les signalements ne se font pas sans eux.
-    pub fn organismes_exiges(&self) -> Resultat<Value> {
-        self.organismes()?.ok_or_else(|| {
-            format!(
-                "config/{} manque : les organismes et contrats de la compagnie s'enregistrent dans Configuration › \
-Organismes et contrats. Rien n'est ecrit.",
-                ORGANISMES
-            )
-        })
+    /// LES ORGANISMES ET CONTRATS DE LA DSN a `lue_au`, composes depuis les textes livres et la configuration de cette
+    /// date (convention, bareme, `config/organismes.json` pour ce que la compagnie a saisi) : `organismes::composer`.
+    /// Ce qu'un texte donne entier vaut sans que la compagnie ait rien enregistre.
+    pub fn organismes(&self) -> Resultat<Value> {
+        let (saisi, prises) = crate::organismes::saisis(self)?;
+        crate::organismes::composer(self, &saisi, prises, &Map::new(), None)
     }
 
     // -------------------------------------------------------------- recherche

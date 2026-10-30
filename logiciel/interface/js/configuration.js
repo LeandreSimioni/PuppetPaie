@@ -1570,7 +1570,7 @@ async function dessinerMetiers(cible) {
 /* LES ORGANISMES ET LES CONTRATS DE LA DSN. Une ligne par
  * contrat que la convention exige ; le moteur (`organismes-contrats`) dit ce
  * qui est fixé par la branche et ce que la compagnie saisit. Enregistrer
- * compose config/organismes.json (`organismes-enregistrer`) : la page ne
+ * écrit ce que la compagnie saisit (`organismes-enregistrer`) : la page ne
  * décide rien. */
 async function dessinerOrganismes(cible) {
   let r;
@@ -1603,7 +1603,7 @@ async function dessinerOrganismes(cible) {
         (organismes payés, Urssaf, taux AT/MP, compte France Travail) vient de la loi,
         de la convention et de la fiche Entreprise.</p>
       ${r.mois ? `<p class="note">Les contrats en vigueur en ${echapper(moisEnClair(r.mois))}.</p>` : ""}
-      ${r.compose ? "" : `<p class="rappel retard">Pas encore enregistré : la DSN est refusée tant que ces contrats ne le sont pas.</p>`}
+      ${r.a_saisir ? `<p class="rappel retard">Une référence de contrat manque : la DSN refuse les salariés que ce contrat couvre tant qu'elle n'est pas enregistrée.</p>` : ""}
       <table class="tableau">
         <thead><tr><th>Contrat</th><th>Bénéficiaires</th><th>Organisme</th><th>Référence du contrat</th></tr></thead>
         <tbody>${r.contrats.map(ligne).join("")}</tbody>

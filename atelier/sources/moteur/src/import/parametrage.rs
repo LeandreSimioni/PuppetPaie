@@ -90,19 +90,16 @@ fn poser_organismes(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String
     }
     let Ok(ecran) = crate::compagnie::organismes::lire(ctx, &json!({})) else { return };
     let lignes: Vec<Value> = ecran["contrats"].as_array().cloned().unwrap_or_default();
-    let fixes: Vec<String> = lignes.iter().filter(|l| vrai(&l["libelle_fixe"])).map(|l| texte(l, "libelle").to_uppercase()).collect();
-    let a_saisir: Vec<&Value> = lignes.iter().filter(|l| !vrai(&l["libelle_fixe"])).collect();
+    let fixes: Vec<String> = lignes.iter().map(|l| texte(l, "libelle").to_uppercase()).filter(|l| !l.is_empty()).collect();
+    let a_saisir: Vec<&Value> = lignes.iter().filter(|l| texte(l, "libelle").is_empty()).collect();
     let libres: Vec<&Value> = lecture
         .adhesions
         .iter()
         .filter(|a| !texte(a, "libelle").is_empty() && !fixes.contains(&texte(a, "libelle").to_uppercase()))
         .collect();
+    let ([l], [a]) = (a_saisir.as_slice(), libres.as_slice()) else { return };
     let mut saisies = Map::new();
-    if let ([l], [a]) = (a_saisir.as_slice(), libres.as_slice()) {
-        saisies.insert(texte(l, "cle"), json!({"libelle": texte(a, "libelle"), "organisme": texte(a, "organisme")}));
-    } else if !a_saisir.is_empty() {
-        return;
-    }
+    saisies.insert(texte(l, "cle"), json!({"libelle": texte(a, "libelle"), "organisme": texte(a, "organisme")}));
     if crate::compagnie::organismes::enregistrer(ctx, &json!({"contrats": saisies})).is_ok() {
         faits.push(format!(
             "Organismes et contrats de la DSN : enregistrés d'après la DSN reprise ({} adhésion(s), S21.G00.15).",
