@@ -147,3 +147,9 @@ pièce brute.
   dans la surcouche de l'année de la date d'effet (`config/baremes/<année>.json`, `taux_atmp`), avec la notification pour
   source ; un autre établissement, une notification illisible ou à plusieurs codes se disent, sans rien poser.
   `envois/src/organismes_simules.rs`, `crm_atmp` : la même pièce, jouée pour une compagnie fictive (annonce `taux_atmp`).
+
+**Un courrier réel de notification** (celui d'une compagnie, daté du 01/01/2026, dans `reference-privee/atmp/` du dépôt
+privé ; le public n'en garde que la forme, sans identifiant) confirme deux des inférences ci-dessus pour les **valeurs** :
+le taux s'écrit en pourcentage à deux décimales (« 1,50 % »), le code risque sans point (« 923AD »), avec une date
+d'effet, pour « la section 01 » d'un établissement ; sans témoin bureau pour un risque collectif. Les noms des éléments
+du fichier de nature 34 restent à éprouver sur un vrai retour.
