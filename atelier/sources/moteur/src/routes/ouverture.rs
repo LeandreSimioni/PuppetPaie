@@ -980,6 +980,8 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "transaction": transaction,
         // Les niveaux de complementaire sante, pour la fiche d'un permanent.
         "niveaux_sante": niveaux_sante(ctx)?,
+        // Ou, quand la convention ne la fait pas choisir sur la fiche, d'ou elle vient (`bareme::sante_hors_fiche`).
+        "sante_hors_fiche": droit::bareme::sante_hors_fiche(&ctx.entreprise).map_err(plain)?,
         // Les conventions collectives servies, pour la fiche entreprise.
         "conventions": conventions(ctx)?,
         "organismes_urssaf": organismes,

@@ -1684,10 +1684,17 @@ async function brancherAtmp() {
  * champ `sante_svp` reste dans la fiche, en case cachée, et ces cases
  * l'écrivent (`brancherSante`). */
 function SANTE_HTML() {
+  // Sous une convention qui ne la fait pas choisir sur la fiche, le moteur dit
+  // d'où elle vient (`sante_hors_fiche`) : rien à remplir ici.
+  if (ETAT.sante_hors_fiche) {
+    return `<div class="encart" id="config-sante">
+      <div class="aide">${echapper(ETAT.sante_hors_fiche)}</div>
+    </div>`;
+  }
   return `<div class="encart" id="config-sante">
     <label>Complémentaire santé — le contrat souscrit par ce salarié
       <select id="config-sante-niveau">
-        <option value="">— aucune (intermittent) —</option>
+        <option value="">— pas encore dite —</option>
         ${(ETAT.niveaux_sante || []).map((n) =>
           `<option value="${echapper(n.niveau)}">niveau ${echapper(n.niveau)}
              — ${echapper(n.assure)} % du PMSS pour l'assuré seul</option>`).join("")}
