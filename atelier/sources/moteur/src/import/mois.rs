@@ -112,7 +112,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
     Ok(Some(json!({"porteur": porteur, "engagements": n, "quoi": quoi, "phrase": phrase})))
 }
 
-/// L'etat de la DSN d'un mois tenu avant ce logiciel, en mots : `etat` (« passee », « attente », « refusee » : le
+/// L'etat de la DSN d'un mois, en mots, lu une fois (l'accueil et le mois tenu avant le lisent) : `etat` (« passee », « attente », « refusee » : le
 /// journal ; « importee » : la DSN de l'ancien logiciel ; « sans_trace »), `courte`, `phrase`, `quand`.
 pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str) -> R<Value> {
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;

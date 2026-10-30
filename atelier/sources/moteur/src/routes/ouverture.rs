@@ -562,31 +562,20 @@ pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
 fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]) -> R<Value> {
     let mut out = Vec::new();
     for (nom, noms) in mois {
-        let e = m.dsn_du_mois(nom)?;
         let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
         let limite = echeance.jour;
         let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
-        let drapeau = |k: &str| e.get(k).is_some_and(vrai);
-        // UN MOIS TENU AVANT CE LOGICIEL n'est jamais « en retard » ni « a ecrire » : sa DSN est au
-        // journal (un depot que les retours attestent y entre seul), ou c'est celle que l'import a lue (« importee »), ou
-        // il n'en a aucune trace (« sans_trace ») -- et rien ne se refait ici.
+        // L'ETAT DE LA DSN, lu une fois (`import::mois::dsn_avant`) : le journal (passee, attente, refusee), puis la DSN
+        // de l'ancien logiciel (importee), sinon aucune trace. UN MOIS TENU AVANT CE LOGICIEL n'est jamais « en retard »
+        // ni « a deposer » : sans trace, il reste « sans_trace », et rien ne se refait ici.
         let importe = crate::import::mois::importe(&ctx.racine, nom)?;
-        let importee = !vrai(&e) && crate::import::mois::dsn_importee(&ctx.racine, nom)?.is_some();
-        let etat: Option<&str> = if vrai(&e) && drapeau("refusee") {
-            Some("refusee")
-        } else if vrai(&e) && drapeau("passee") {
-            Some("passee")
-        } else if vrai(&e) {
-            Some("attente")
-        } else if importee {
-            Some("importee")
-        } else if importe {
-            Some("sans_trace")
-        } else if en_retard {
-            Some("en_retard")
-        } else {
-            None
+        let lu = crate::import::mois::dsn_avant(ctx, nom)?;
+        let etat = match lu["etat"].as_str().unwrap_or("sans_trace") {
+            "sans_trace" if !importe && en_retard => "en_retard",
+            "sans_trace" if !importe => "a_deposer",
+            autre => autre,
         };
+        let depose = matches!(etat, "passee" | "attente" | "refusee");
         let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
         // Un mois tenu avant : ses bulletins sont ceux de l'ancien logiciel, que l'import garde.
         if importe && !crate::import::mois::bulletins_repris(&ctx.racine, nom).is_empty() {
@@ -598,9 +587,6 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
             sortes.insert(rang, "attestations AER");
         }
-        // Une DSN qui n'est pas partie est a deposer : elle se fabrique a son depot, qui dit le jour ou elle peut partir
-        // (`compagnie::depart::dsn_a_deposer`).
-        let etat = etat.unwrap_or("a_deposer");
         // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a deposer, refusee ou en
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
@@ -627,12 +613,12 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         out.push(json!({
             "mois": nom, "produit": !noms.is_empty(), "dsn": etat,
             "pastille": {"couleur": couleur, "mots": mots},
-            "depose_le": if vrai(&e) { e.get("quand").cloned().unwrap_or(Value::Null) } else { Value::Null },
+            "depose_le": if depose { lu["quand"].clone() } else { Value::Null },
             "echeance": limite.iso(),
             "echeance_depot": echeance.en_json(),
             // Deposee, passee, et l'echeance derriere : la correction part dans
             // la DSN du mois courant.
-            "corrigeable": vrai(&e) && !drapeau("refusee") && en_retard && !importe,
+            "corrigeable": matches!(etat, "passee" | "attente") && en_retard && !importe,
             "importe": importe,
             "a_faire": a_faire,
             "sortes": sortes, "fichiers": noms,
