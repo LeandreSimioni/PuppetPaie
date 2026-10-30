@@ -930,13 +930,32 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     let code_postal = texte(ent, "code_postal")?;
     let commune_defaut = texte(ent, "commune")?;
     let commune = ent.get("commune_affichage").map_or(commune_defaut, en_texte);
-    let (siret, naf, licence) = (texte(ent, "siret")?, texte(ent, "naf")?, texte(ent, "licence_spectacle")?);
+    let licence = texte(ent, "licence_spectacle")?;
+    // « Le nom et l'adresse de l'employeur ainsi que, le cas echeant, la designation de l'etablissement dont depend le
+    // salarie » et l'activite « de l'etablissement d'emploi » (code du travail, R. 3243-1, 1° et 2°,
+    // `atelier/reference/sources/code-du-travail/xml/R3243-1.xml`) : l'en-tete dit l'employeur, le cadre EMPLOYEUR
+    // l'etablissement du contrat, celui sous lequel la DSN le declare (`droit::bareme::entreprise_du_salarie`).
+    let vue = droit::bareme::entreprise_du_salarie(ent, sal)?;
+    let (siret, naf) = (texte(&vue, "siret")?, texte(&vue, "naf")?);
+    let etablissement = vue.get("_etablissement").filter(|v| vrai(v)).and_then(|n| {
+        let l = droit::bareme::entree(ent, &en_texte(n))?;
+        let lieu = [l.get("adresse_affichage").filter(|v| vrai(v)).or(l.get("adresse")), l.get("code_postal"), l.get("commune_affichage").filter(|v| vrai(v)).or(l.get("commune"))]
+            .into_iter()
+            .flatten()
+            .map(en_texte)
+            .filter(|s| !s.trim().is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let nom = l.get("libelle").filter(|v| vrai(v)).map(en_texte).unwrap_or_default();
+        Some(if nom.trim().is_empty() { lieu } else { format!("{}, {}", nom, lieu) })
+    });
+    let (siret_siege, naf_siege) = (texte(ent, "siret")?, texte(ent, "naf")?);
     let mut blocs = vec![
         para(vec![m(nom_affichage, true, None)], 13.0, Some(ARDOISE), 0.0, 0.0),
         para(
             vec![mt(format!(
                 "{} — {} {}\nSiret {} {}·{} APE {} {}·{} Licence {}",
-                adresse, code_postal, commune, siret, NBSP, NBSP, naf, NBSP, NBSP, licence
+                adresse, code_postal, commune, siret_siege, NBSP, NBSP, naf_siege, NBSP, NBSP, licence
             ))],
             6.6,
             Some(GRIS),
@@ -1037,9 +1056,12 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         ),
         None => " 0 %".to_string(),
     }));
-    let employeur = vec![
-        m("EMPLOYEUR", true, None),
-        mt("\n\n"),
+    let mut employeur = vec![m("EMPLOYEUR", true, None), mt("\n\n")];
+    if let Some(e) = &etablissement {
+        employeur.push(k("Établissement :"));
+        employeur.push(mt(format!(" {}\n", e)));
+    }
+    employeur.extend([
         k("N° Siret :"),
         mt(format!(" {}\n", siret)),
         k("NAF (APE) :"),
@@ -1057,7 +1079,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         mt(format!(" IDCC {} - {}\n", conv.0, conv.1)),
         k("Licence spec. :"),
         mt(format!(" {}", licence)),
-    ];
+    ]);
     blocs.push(json!({
         "type": "tableau", "taille": 7, "interligne": 1.27,
         "colonnes": [{"largeur": 0.5}, {"largeur": 0.5}],

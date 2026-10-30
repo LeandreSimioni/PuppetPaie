@@ -184,9 +184,9 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
     // La rubrique qui fait tout le message : sans elle, le point de depot ne
     // sait pas a qui transmettre le signalement (fiche 2984).
     f.add("S20.G00.05.011", &o.motif);
-    // L'etablissement est celui du salarie, comme dans ses mensuelles (`dsn::etablissement_du_salarie`) : le NIC est
+    // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = crate::dsn::etablissement_du_salarie(ent, s)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent, s)?;
     // Le changement de logiciel nomme l'etablissement qui declarait le dernier contrat connu du salarie (S20.G00.05.012,
     // p. 138) : le sien.
     let changement = o.motif == CHANGEMENT_DE_LOGICIEL;

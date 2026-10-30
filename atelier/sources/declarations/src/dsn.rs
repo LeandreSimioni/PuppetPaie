@@ -331,41 +331,6 @@ pub fn nics(fiche: &Value) -> Vec<String> {
     out
 }
 
-/// L'entreprise vue depuis l'etablissement `nic`.
-fn fiche_de(fiche: &Value, nic: &str) -> Resultat<Value> {
-    if nic.is_empty() || nic == bareme::nic_principal(fiche) {
-        return Ok(fiche.clone());
-    }
-    let e = bareme::entree(fiche, nic).ok_or_else(|| format!("Etablissement inconnu : {}.", nic))?;
-    let mut vue = fiche.as_object().cloned().unwrap_or_default();
-    let n = en_texte(req(&e, "nic")?);
-    vue.insert("nic".into(), Value::String(n.clone()));
-    vue.insert("siret".into(), Value::String(txt(g(fiche, "siren")) + &n));
-    for cle in ["adresse", "code_postal", "commune", "naf", "adresse_affichage", "commune_affichage", "complement_adresse"] {
-        if vrai(g(&e, cle)) {
-            vue.insert(cle.into(), e[cle].clone());
-        }
-    }
-    vue.insert("_etablissement".into(), Value::String(n));
-    let mut siege = Map::new();
-    siege.insert("nic".into(), Value::String(bareme::nic_principal(fiche)));
-    siege.insert("siret".into(), g(fiche, "siret").clone());
-    vue.insert("_siege".into(), Value::Object(siege));
-    Ok(Value::Object(vue))
-}
-
-/// L'etablissement sous lequel un salarie se declare : la fiche entreprise vue depuis l'etablissement de rattachement
-/// que dit SA fiche (`etablissement`, sinon le principal ; un NIC que la fiche entreprise ne porte pas refuse).
-///
-/// « Dans le cadre d'un contrat de travail, il s'agit de l'etablissement de rattachement administratif du salarie »
-/// (S21.G00.11.001, cahier technique DSN 2026.1, p. 144, `atelier/reference/norme-dsn/texte/bloc-S21.G00.11.txt`). Le
-/// NIC est une donnee identifiante : un signalement porte « les memes valeurs que celles portees dans la derniere DSN
-/// mensuelle deposee » (§ 2.1.1, p. 18 ; § 2.5.1, p. 67, `chapitre-2-principes-de-constitution.txt`). La mensuelle
-/// (une DSN par etablissement, qui refuse un salarie d'un autre, `generer`) et les signalements (arret, reprise, FCTU,
-/// amorcage) le lisent donc au meme endroit : `bareme::etablissement_du_salarie`, puis `fiche_de`.
-pub fn etablissement_du_salarie(ent: &Value, salarie: &Value) -> Resultat<Value> {
-    fiche_de(ent, &bareme::etablissement_du_salarie(ent, salarie)?)
-}
 
 // ----------------------------------------------------- les entrees
 
@@ -2277,7 +2242,7 @@ pub fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Verseme
     let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
     let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
-    let ent_e = fiche_de(ent, &nic)?;
+    let ent_e = bareme::fiche_de_l_etablissement(ent, &nic)?;
     let e = &p.engagement;
     let refs = affiliations(&orgs, &*e.nat()?, g(&bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
     let affiliations = rattachements(p, &orgs, bareme::entreprise_du(&bar, &ent_e), refs)?
@@ -3936,7 +3901,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
             let bar = bar_du(&ctx_m, &ctx_m.entreprise, orgs, &nic, &m)?;
             let mut ent = ctx_m.entreprise.as_object().cloned().unwrap_or_default();
             ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&premier(&m)?)?));
-            let ent_e = fiche_de(&Value::Object(ent), &nic)?;
+            let ent_e = bareme::fiche_de_l_etablissement(&Value::Object(ent), &nic)?;
             let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(&m)?);
             let refs: Vec<&Paie> = autres.iter().collect();
             bloc_contrat(&mut f, &declaree, &ent_e, orgs, 1, &bar, true, &[], "01", emplois_multiples(&declaree, &refs))?;
@@ -4179,7 +4144,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     let mut ent = ent0.as_object().cloned().unwrap_or_default();
     ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&debut_mois)?));
     let ent = Value::Object(ent);
-    let ent_e = fiche_de(&ent, &nic)?;
+    let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
 
     let mut arrets_du_mois = Vec::new();
     for a in arrets {

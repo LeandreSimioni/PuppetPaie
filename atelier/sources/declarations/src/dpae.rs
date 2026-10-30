@@ -390,8 +390,8 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     let mut code_urssaf = p.code_urssaf.clone();
     if let Some(ent) = p.ent {
         // « N° SIRET de l'établissement » (N_SIRET, `norme-dpae/v5.3_FormatDPAE_EMAIL.txt` l. 235-243) : celui ou le salarie
-        // est rattache (`dsn::etablissement_du_salarie`), avec son adresse.
-        let ent = &crate::dsn::etablissement_du_salarie(ent, &e.salarie)?;
+        // est rattache (`droit::bareme::entreprise_du_salarie`), avec son adresse.
+        let ent = &droit::bareme::entreprise_du_salarie(ent, &e.salarie)?;
         for (nom, v) in employeur(ent, gabarit)? {
             let (a, b) = zone_employeur(nom);
             ecrire_zone(&mut buf, a, b, &v);
