@@ -99,6 +99,8 @@ pub struct EnSaisie {
 pub struct Valide {
     objet: Objet,
     le: String,
+    /// Pourquoi la paie du mois lu ne s'est pas ecrite : le refus du recalcul (`du_mois`), quand elle manque.
+    refus: Option<String>,
 }
 
 /// Un engagement valide dont les documents du mois `mois` sont partis le `le`.
@@ -120,7 +122,7 @@ pub enum Etat {
 impl Valide {
     fn de(objet: Objet) -> Option<Valide> {
         let le = objet.brut.get("valide")?.get("le").map(en_texte)?;
-        Some(Valide { objet, le })
+        Some(Valide { objet, le, refus: None })
     }
 
     /// L'engagement tel qu'il est ecrit.
@@ -174,8 +176,13 @@ impl Valide {
     /// (`stock::vue_du_mois`), `i` : le rang de l'engagement dans cette saisie.
     pub fn paie(&self, ctx: &Contexte, data: &Value, i: usize) -> Resultat<Paie> {
         let mois = data.get("mois").and_then(Value::as_str).ok_or_else(|| socle::fichiers::absent("mois"))?;
-        let ecrite = self.paie_ecrite(mois).and_then(|p| p.get("paie")).ok_or_else(|| {
-            format!("{} : l'engagement valide le {} n'a pas de paie ecrite pour {}. Le revalider.", qui_de(&self.objet), self.le, mois)
+        let ecrite = self.paie_ecrite(mois).and_then(|p| p.get("paie")).ok_or_else(|| match &self.refus {
+            Some(refus) => format!("{} : la paie de {} ne se calcule pas. {}", qui_de(&self.objet), socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee), refus),
+            None => format!(
+                "{} : la paie de {} n'est pas calculée. Revalidez l'engagement (« Modifier… », puis « Valider l'engagement »).",
+                qui_de(&self.objet),
+                socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
+            ),
         })?;
         let une = relire::saisie_d_un_engagement(data, i);
         let mut paie = relire::paies(ctx, &une, &[ecrite])?.pop().ok_or("paie ecrite illisible")?;
@@ -350,7 +357,9 @@ fn a_revalider(o: &Objet, v: &Value) -> Option<String> {
 ///
 /// UN RECALCUL QUE LE MOTEUR REFUSE n'est pas l'affaire de l'utilisateur : ce qui releve de lui (une saisie incomplete)
 /// se refuse a la validation, avant tout calcul. L'engagement garde la paie validee, et le refus va au temoin que la
-/// couche du dessus a pose (`poser_temoin`), qui le note pour l'editeur.
+/// couche du dessus a pose (`poser_temoin`), qui le note pour l'editeur. Une paie que ce refus empeche d'ecrire (le mois
+/// qu'un contrat sans terme n'avait pas encore) le porte : ce qui la lit dit pourquoi elle manque (le taux AT/MP de
+/// l'annee, un bareme), et quoi faire.
 pub fn du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
     match rafraichir(ctx, mois) {
         // Rien ne s'est reecrit : les etats lus pour la verification sont ceux du mois.
@@ -360,6 +369,20 @@ pub fn du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
             if let Some(temoin) = TEMOIN.get() {
                 temoin(&ctx.racine, mois, &refus);
             }
+            // Une paie qui manque (un contrat sans terme qui entre dans le mois) ne s'est pas ecrite a cause de ce refus :
+            // qui la lit le dit, avec sa cause (`Valide::paie`).
+            let mut etats = ecrits(ctx, mois)?;
+            for e in etats.iter_mut() {
+                let v = match e {
+                    Etat::Valide(v) => v,
+                    Etat::Partis(p) => &mut p.valide,
+                    Etat::EnSaisie(_) => continue,
+                };
+                if v.paie_ecrite(mois).is_none() {
+                    v.refus = Some(refus.clone());
+                }
+            }
+            return Ok(etats);
         }
     }
     ecrits(ctx, mois)
