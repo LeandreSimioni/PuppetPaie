@@ -1887,14 +1887,15 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
     let resumes = etats::resumes_des_documents(lignes, mois)?;
     let mut out: HashMap<String, Value> = HashMap::new();
     // Les documents d'un salarie partent ensemble, pour tous ses engagements valides du mois : un engagement valide dont
-    // ils ne sont pas partis (valide apres leur envoi) les rend a envoyer, avec son bulletin.
+    // ils ne sont pas partis (valide apres leur envoi) les rend a envoyer, avec son bulletin. Un engagement rouvert et pas
+    // encore revalide garde ce qui est parti sur sa validation (`Etat::en_modification`).
     let a_envoyer: HashSet<String> = etats
         .iter()
         .filter(|e| matches!(e, engagement::etats::Etat::Valide(_)))
         .filter_map(|e| engagement::cle_de_l_engagement(ctx, &Value::Object(e.objet().brut.clone())))
         .collect();
     for e in etats {
-        if !matches!(e, engagement::etats::Etat::Partis(_)) {
+        if !matches!(e, engagement::etats::Etat::Partis(_)) && !e.en_modification() {
             continue;
         }
         let brut = Value::Object(e.objet().brut.clone());

@@ -39,7 +39,14 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
         f.as_object_mut().unwrap().extend(x.as_object().unwrap().clone());
         f
     };
+    let ligne_de_janvier = || -> Value {
+        let l = reussi(&route(&c, "etat-par-engagement", json!({"mois": "2026-01"}), jour)).clone();
+        l["engagements"].as_array().and_then(|l| l.iter().find(|x| x["salarie"] == "SVOBODA")).cloned().unwrap_or(l)
+    };
+    assert!(!ligne_de_janvier()["etats"]["documents"]["fait"].is_null(), "{}", ligne_de_janvier());
     reussi(&route(&c, "valider-engagement", avec(json!({"valide": false, "confirme": true})), jour));
+    // Rouvert sans rien changer : ses documents de janvier restent partis.
+    assert!(!ligne_de_janvier()["etats"]["documents"]["fait"].is_null(), "{}", ligne_de_janvier()["etats"]);
     let saisie = reussi(&route(&c, "saisie", json!({"mois": "2026-01"}), jour))["saisie"].clone();
     let mut nouvelle = saisie.clone();
     nouvelle["engagements"][0]["salaire_mensuel"] = json!(3600);
