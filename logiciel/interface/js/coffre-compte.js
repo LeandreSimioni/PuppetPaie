@@ -337,17 +337,10 @@ async function dessinerCoffre(cible) {
       const s = c.services.find((x) => x.service === service);
       const compteChange = nom && (nom.value !== s.identifiant.nom
         || prenom.value !== s.identifiant.prenom);
-      if (!valeur && !compteChange) {
-        dire(nom ? "Rien n'a changé : ni le compte, ni le mot de passe."
-          : "Tapez le mot de passe " + service + " à poser.", "erreur");
-        return;
-      }
-      if (!valeur && !s.pose && !s.environnement) {
-        dire("Le compte est à enregistrer avec son mot de passe : tapez-le aussi.");
-        return;
-      }
+      // Rien de tapé : le moteur le refuse lui-même, avant tout mot de passe du logiciel.
+      const rien = !valeur && !compteChange;
       const compte = carte.querySelector(".k-compte");
-      const p = await preuve(valeur ? "poser le mot de passe " + service
+      const p = rien ? { motdepasse: null } : await preuve(valeur ? "poser le mot de passe " + service
         : "changer le compte qui dépose les DPAE");
       if (!p) return;
       let etat;
@@ -355,7 +348,7 @@ async function dessinerCoffre(cible) {
         if (compteChange) {
           etat = await api("coffre-compte-dpae", { nom: nom.value, prenom: prenom.value, ...p });
         }
-        if (valeur) {
+        if (valeur || rien) {
           etat = await api("coffre-poser", { service, valeur, compte: compte ? compte.value : null, ...p });
         }
       } catch (e) { raté(e); return; }
