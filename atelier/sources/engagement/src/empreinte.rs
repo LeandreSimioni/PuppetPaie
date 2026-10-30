@@ -72,17 +72,24 @@ pub fn tient(ctx: &Contexte, entrees: &BTreeMap<String, String>, relues: &mut Re
 /// Une decision de l'editeur rend-elle l'empreinte ecrite `ecrite` (d'une paie de `mois`) fausse ? Le code qui calcule
 /// a change (`MOTEUR`, ou un fichier livre avec le code), ou une regle datee s'applique au mois qu'elle n'avait pas.
 /// Rien ne se calcule.
+///
+/// LE CODE SEUL : un code qui a change ne refait la paie que si tout le reste de ce qu'elle a lu vaut encore ce qu'il
+/// valait (les fiches, la configuration, les autres saisies et paies). Sinon, le recalcul melerait a la correction du
+/// code une configuration modifiee depuis le depart -- une fiche corrigee sans date nouvelle, un taux de PAS recu --, qui
+/// ne touche pas un mois parti : la paie partie reste celle qui est partie.
 pub fn code_ou_regle_change(ctx: &Contexte, ecrite: &Value, mois: &str, relues: &mut Relues) -> bool {
     let code = |k: &str| k == "moteur" || k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:"));
-    let entrees: BTreeMap<String, String> = entrees_de(ecrite).unwrap_or_default().into_iter().filter(|(k, _)| code(k)).collect();
-    if !tient(ctx, &entrees, relues) {
-        return true;
-    }
     let ecrites = regles_de(ecrite);
-    socle::date::dernier_du_mois(mois)
+    let regle_nouvelle = socle::date::dernier_du_mois(mois)
         .ok()
         .and_then(|fin| regles(ctx, &fin).ok())
-        .is_some_and(|r| r.iter().any(|x| !ecrites.contains(x)))
+        .is_some_and(|r| r.iter().any(|x| !ecrites.contains(x)));
+    if regle_nouvelle {
+        return true;
+    }
+    let (du_code, le_reste): (BTreeMap<String, String>, BTreeMap<String, String>) =
+        entrees_de(ecrite).unwrap_or_default().into_iter().partition(|(k, _)| code(k));
+    !tient(ctx, &du_code, relues) && tient(ctx, &le_reste, relues)
 }
 
 fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
