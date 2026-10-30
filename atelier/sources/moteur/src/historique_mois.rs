@@ -95,7 +95,7 @@ fn nature_dsn(nature: &str, type_: &str) -> String {
         "04" => "Signalement arrêt de travail",
         "05" => "Signalement reprise suite à arrêt de travail",
         "07" => "Signalement fin du contrat de travail unique",
-        "08" => "Signalement amorçage des données variables",
+        "08" => "Demande de taux de prélèvement à la source",
         "09" => "DSN de substitution",
         _ => "DSN",
     };
@@ -228,6 +228,30 @@ fn nom_lisible(ctx: &Contexte, nom: &str) -> String {
         return format!("Taux de {}, demandé le {}", qui.filter(|q| !q.is_empty()).unwrap_or_else(|| cle.to_string()), j);
     }
     nom.to_string()
+}
+
+/// CE QUI DIT QUEL ENVOI C'EST, en mots : pour qui (une demande de taux nomme son salarie), le numero de depot que
+/// l'organisme lui a donne (celui qu'on cite pour le retrouver chez lui), et ou il est parti. Le nom du fichier n'y
+/// figure pas : la piece s'ouvre depuis « Les documents ».
+fn identite(ctx: &Contexte, l: &Value) -> String {
+    let t = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let mut morceaux: Vec<String> = Vec::new();
+    let fichier = t("fichier");
+    let lisible = nom_lisible(ctx, &fichier);
+    if lisible != fichier {
+        morceaux.push(lisible);
+    }
+    let flux = t("flux");
+    if !flux.is_empty() {
+        morceaux.push(format!("numéro de dépôt {}", flux));
+    }
+    match t("destinataire").as_str() {
+        "" => {}
+        "net-entreprises" => morceaux.push("sur net-entreprises".into()),
+        "urssaf" => morceaux.push("à l'Urssaf".into()),
+        autre => morceaux.push(format!("à {}", autre)),
+    }
+    morceaux.join(" · ")
 }
 
 fn sorte_de(nom: &str) -> &'static str {
@@ -875,7 +899,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
         };
         envois.push(json!({
             "quoi": t("quoi"), "acte": acte(ctx, l, defaites.contains(&rang)), "mode": t("mode"), "quand": t("quand"), "fichier": t("fichier"), "flux": t("flux"),
-            "destinataire": t("destinataire"), "accepte": vrai(&l["accepte"]), "resume": resume,
+            "destinataire": t("destinataire"), "identite": identite(ctx, l), "accepte": vrai(&l["accepte"]), "resume": resume,
             "attend_retour": !recu && !t("flux").is_empty(), "retours": retours,
         }));
     }
