@@ -786,7 +786,12 @@ fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Map<String, Val
             saisie.insert("numero".into(), n);
         }
     }
-    if let Some(ecrit) = o.vue(mois)?.and_then(|v| v.get("spectacle").filter(|s| vrai(s)).cloned()) {
+    let vue = o.vue(mois)?;
+    // Le debut qu'un mois suivant d'un contrat d'usage deduit de son premier jour (`Objet::vue`) n'est pas une saisie.
+    if mois != o.fichier && !o.brut.contains_key("debut") && saisie.get("debut").is_some_and(|d| vue.as_ref().and_then(|v| v.get("debut")) == Some(d)) {
+        saisie.remove("debut");
+    }
+    if let Some(ecrit) = vue.and_then(|v| v.get("spectacle").filter(|s| vrai(s)).cloned()) {
         if saisie.get("spectacle").is_some_and(|s| *s != ecrit && meme_spectacle(ctx, s, &ecrit)) {
             saisie.insert("spectacle".into(), ecrit);
         }

@@ -106,6 +106,18 @@ fn l_avenant_a_faire_signer_se_voit_au_second_mois() {
     }
 }
 
+/// LA CARTE DU SECOND MOIS RENVOYEE TELLE QUE LE MOTEUR LA REND NE CHANGE RIEN (un bug qui a echappe : le debut qu'un
+/// contrat d'usage deduit de son premier jour, rendu au second mois, revenait comme une saisie et faisait « un avenant à
+/// faire signer » sans que rien n'ait change).
+#[test]
+fn la_carte_du_second_mois_renvoyee_telle_quelle_ne_change_rien() {
+    let c = fuller_a_cheval("aller_retour");
+    let jour = "2026-12-16";
+    let fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
+    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "place": crate::outils::place(&c, "2026-12", "FULLER", None), "saisie": fuller}), jour);
+    assert_eq!(reussi(&r)["change"], json!(false), "{}", r);
+}
+
 /// LA DATE DE DEBUT D'UN CONTRAT DEJA DECLARE, CHANGEE AU SECOND MOIS : la DSN de decembre declare la nouvelle et, dans
 /// un bloc Changements contrat, l'ancienne (41.021, § 2.1.2.3.2 de `norme-dsn/texte/chapitre-2-principes-de-
 /// constitution.txt`, p. 21). Ce bloc se date de tout jour pour un identifiant (meme paragraphe), au plus tard le dernier
