@@ -18,8 +18,8 @@
 //! CE QUI SE DEDUIT ET CE QUI SE SAISIT (regle 1 : rien ne se devine ; ce que le moteur sait deja ne se saisit pas une
 //! seconde fois). Les textes sont deposes sous `atelier/reference/sources/` (LISEZ-MOI de `bloc-44-assujettissement/`) :
 //! - taxe d'apprentissage (001/002) et CFP (007/008) : elles se paient a l'Urssaf, au bordereau de chaque mois, et c'est
-//!   le moteur qui les y met (CTP 992, ou 993 en Alsace-Moselle ; CTP 983, 959 ou 971 de `config/organismes.json`,
-//!   compose depuis `donnees/organismes-base.json`). Le bloc 44 dit ce que le bordereau paie : 001 si le CTP 992 ou 993
+//!   le moteur qui les y met (CTP 992, ou 993 en Alsace-Moselle ; CTP 983, 959 ou 971 de `donnees/organismes-base.json`
+//!   que `Contexte::organismes` compose). Le bloc 44 dit ce que le bordereau paie : 001 si le CTP 992 ou 993
 //!   y est, 007 si un CTP de formation y est (008 sinon). Sans la taxe d'apprentissage au bordereau : 002, avec le motif
 //!   de la table MNATA (44.004) que la fiche entreprise dit (`taxe_apprentissage_motif_non_assujettissement`), sinon
 //!   refus. Le motif 007 « Associations sans but lucratif » ne vaut que jusqu'au millesime 2025 : L. 6241-1,
@@ -249,10 +249,11 @@ fn taxe_d_apprentissage(ent: &Value, ctp: &[String], an: i32) -> Resultat<Bloc44
             return Ok(Bloc44 { code: "001", montant: None, motif: None });
         }
         return Err(format!(
-            "DSN de decembre {} : config/organismes.json ne paie pas la taxe d'apprentissage (ni CTP {} ni CTP {} dans \
-`ctp_urssaf`), et le bloc S21.G00.44 declare donc « 002 - Non assujettissement », qui exige son motif (S21.G00.44.004, \
-table MNATA de la norme). La fiche ne le dit pas : {}. Si la compagnie doit la taxe (code du travail L. 6241-1), \
-recomposer les organismes (Configuration › Organismes et contrats). Rien n'est ecrit.",
+            "DSN de décembre {} : la table des CTP livrée avec le logiciel (donnees/organismes-base.json, `ctp_urssaf`) \
+ne paie pas la taxe d'apprentissage (ni CTP {} ni CTP {}), et le bloc S21.G00.44 déclare donc « 002 - Non \
+assujettissement », qui exige son motif (S21.G00.44.004, table MNATA de la norme). La fiche ne le dit pas : {}. Si la \
+compagnie doit la taxe (code du travail L. 6241-1), c'est la table livrée qui est en défaut : aucune saisie de la \
+compagnie ne la corrige. Rien n'est écrit.",
             an, CTP_TAXE_APPRENTISSAGE[0], CTP_TAXE_APPRENTISSAGE[1], champ
         ));
     };
@@ -260,16 +261,16 @@ recomposer les organismes (Configuration › Organismes et contrats). Rien n'est
         return Err(format!(
             "DSN de decembre {} : la fiche dit la compagnie non assujettie a la taxe d'apprentissage au motif {} « {} ». \
 Depuis le 21/02/2026, le code du travail (L. 6241-1, I) dit qu'« en sont également redevables les associations [...] à \
-activités non lucratives » : pour le millesime {}, l'association la doit. Effacer le motif ({}) et recomposer les \
-organismes (Configuration › Organismes et contrats) pour que le bordereau la paie. Rien n'est ecrit.",
+activités non lucratives » : pour le millesime {}, l'association la doit. Effacer le motif ({}) : le bordereau la paie alors de lui-même. \
+Rien n'est écrit.",
             an, code, libelle, an, champ
         ));
     }
     if paye {
         return Err(format!(
             "DSN de decembre {} : la fiche dit la compagnie non assujettie a la taxe d'apprentissage (motif MNATA {}), et le \
-bordereau la paie (CTP {} ou {} de config/organismes.json). L'un des deux est faux : {}, ou les organismes. Rien \
-n'est ecrit.",
+bordereau la paie (CTP {} ou {} de la table livrée, donnees/organismes-base.json). L'un des deux est faux : {}, \
+ou la table livrée. Rien n'est écrit.",
             an, code, CTP_TAXE_APPRENTISSAGE[0], CTP_TAXE_APPRENTISSAGE[1], champ
         ));
     }
