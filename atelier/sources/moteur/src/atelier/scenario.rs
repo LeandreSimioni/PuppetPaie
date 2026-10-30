@@ -10,9 +10,9 @@
 //!     et le rejeu verifie qu'il cree le meme ;
 //!   - `{"geste": "simuler"}` : le geste d'atelier qui fait d'une fictive ajoutee une fictive aux envois simules
 //!     (`rendre_simulee`) -- sans lui, ses envois sont refuses et elle ne peut pas vivre sa vie ;
-//!   - `{"geste": "jour", "jour"}` : le calendrier avance, et chaque compagnie du scenario s'ouvre ce jour-la : son
-//!     horloge joue ce qui etait du (`horloge::rattraper`, comme a l'ouverture). Au banc, la route `ouverture` qui suit
-//!     ne trouve alors plus rien a jouer ;
+//!   - `{"geste": "jour", "jour", "veille"}` : le calendrier avance, et chaque compagnie du scenario s'ouvre ce jour-la :
+//!     son horloge joue ce qui etait du (`horloge::rattraper`, comme a l'ouverture). `veille` (le banc, quand une
+//!     compagnie est ouverte) : sa veille passe, et son horloge joue dans la route `ouverture` qui suit, pas ici ;
 //!   - `{"geste": "etat", "cle"}` : l'etat d'un mois (ou de l'ouverture) que la fenetre a refait en fond et qui a ecrit
 //!     (`Enregistreur::fond`) ; le rejeu le refait (`etat_garde::lire`) ;
 //!   - `{"route", "charge"}` : une route du moteur, telle que la fenetre l'a servie (la page, la veille, le fil de fond :
@@ -376,6 +376,9 @@ fn rejouer_les_gestes(
                     r.ecarts.push(format!("geste {} ({}) : l'etat de {} refuse au rejeu : {}", n, heure(t), cle, e.message));
                 }
             }
+            // Au banc, la compagnie ouverte joue son horloge dans sa veille, la route `ouverture` qui suit (`veille`) : le
+            // jour ne la joue pas une fois de plus, ce qu'un pas refuse se rejouant a chaque passage.
+            Some("jour") if g.get("veille") == Some(&Value::Bool(true)) => {}
             Some("jour") => {
                 for (_, racine) in &r.compagnies {
                     match crate::horloge::rattraper(racine, Some(jour), true) {

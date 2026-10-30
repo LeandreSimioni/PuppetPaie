@@ -802,6 +802,7 @@ async function boiteSignature(mois, seulement) {
     ${a.boite_liee && enFictive() ? noteFictive("les salariés").replace("sa réponse arrive comme la vraie",
       "la signature revient comme la vraie") : ""}
     ${noteDpaeAvance()}
+    ${(a.avertissements || []).map((x) => `<div class="encart info">${echapper(x)}</div>`).join("")}
     ${!contrats.length ? `<p class="discret">Aucun contrat à faire partir ce mois-ci.</p>` : `<div class="liste-choix">
       ${contrats.map((c) => `
         <label class="choix">
@@ -906,9 +907,10 @@ async function boiteSignature(mois, seulement) {
         r.contrats.push(...av.avenants.map((x) => ({ fichier: x.fichier })));
       }
       fermerBoite();
-      dire(quoi + " envoyé(s) à la signature.", "envoye");
+      dire((r.avertissements || []).length ? r.contrats.length + " contrat(s) envoyé(s) à la signature. " + r.avertissements.join(" ")
+                                           : quoi + " envoyé(s) à la signature.", "envoye");
       afficherEnvoi("Contrats à signer", mois, [...new Set(r.partis)],
-                    r.contrats.map((c) => c.fichier));
+                    [...(r.avertissements || []), ...r.contrats.map((c) => c.fichier)]);
       if (enFictive()) {
         attendreSignaturesFictives();
         fenetreCourrielsFictifs("signature", repere);

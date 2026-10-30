@@ -690,6 +690,11 @@ impl Fenetre {
                     let _ = e.geste("jour", || {
                         let mut m = serde_json::Map::new();
                         m.insert("jour".into(), json!(jour.iso()));
+                        // La compagnie ouverte passe sa veille : l'horloge joue dans la route `ouverture` qui suit, et
+                        // seulement la (`scenario::rejouer`).
+                        if ouverte.is_some() {
+                            m.insert("veille".into(), json!(true));
+                        }
                         Ok(((), m))
                     });
                 }

@@ -485,7 +485,8 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
 }
 
 /// LES PAS D'UN MOIS jusqu'au jour joue, chacun a son instant :
-/// - le jour de chaque embauche du mois : ses engagements se valident a 5 h, ses contrats partent a la signature a 6 h,
+/// - le jour de chaque embauche du mois : ses engagements se valident a 5 h, ses contrats partent a la signature a 6 h
+///   (imprimes, sans courriel dans la fiche),
 ///   sa DPAE a 7 h, ses contrats reviennent signes a 8 h ;
 /// - l'avenant d'un contrat, a l'instant ou son engagement a ete valide en dernier ;
 /// - les signalements dus, le jour de leur date butoir, a 9 h 30 ;
@@ -606,16 +607,34 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
     let (quand, quoi) = (p.quand.as_str(), p.quoi.as_str());
     match &p.geste {
         Geste::Valider { mois, jusqu_au } => valider_les_engagements(d, mois, *jusqu_au, quoi, quand),
-        Geste::Contrats { mois, debut } => pas(d, quoi, quand, |ctx| {
-            let a_demander: Vec<Value> = signables(ctx, mois)?.into_iter().filter(|c| c.debut == *debut && c.a_envoyer).map(|c| c.charge()).collect();
-            if a_demander.is_empty() {
-                return Ok(false);
+        Geste::Contrats { mois, debut } => {
+            // Ceux qui ont un courriel partent a la signature ; un contrat sans courriel dans la fiche s'imprime et se
+            // remet en main propre : l'impression est son depart.
+            let mut imprimes: Vec<Signable> = Vec::new();
+            let mut fait = pas(d, quoi, quand, |ctx| {
+                let (par_courriel, sans): (Vec<Signable>, Vec<Signable>) =
+                    signables(ctx, mois)?.into_iter().filter(|c| c.debut == *debut && c.a_envoyer).partition(|c| c.courriel);
+                imprimes = sans;
+                if par_courriel.is_empty() {
+                    return Ok(false);
+                }
+                // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
+                let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
+                let contrats: Vec<Value> = par_courriel.iter().map(Signable::charge).collect();
+                crate::routes::contrats::demander_signature(ctx, &json!({"mois": mois, "contrats": contrats}), &mut ouvrir)?;
+                Ok(true)
+            });
+            if !imprimes.is_empty() {
+                let noms = imprimes.iter().map(|c| c.nom.as_str()).collect::<Vec<_>>().join(", ");
+                let quoi = format!("contrats de l'embauche du {} imprimés pour {} (pas de courriel dans sa fiche), remis en main propre", le(debut), noms);
+                fait.extend(pas(d, &quoi, quand, |ctx| {
+                    let contrats: Vec<Value> = imprimes.iter().map(Signable::charge).collect();
+                    crate::routes::contrats::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": contrats}), QUI_HORLOGE)?;
+                    Ok(true)
+                }));
             }
-            // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
-            let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-            crate::routes::contrats::demander_signature(ctx, &json!({"mois": mois, "contrats": a_demander}), &mut ouvrir)?;
-            Ok(true)
-        }),
+            fait
+        }
         Geste::Dpae { mois, debut } => pas(d, quoi, quand, |ctx| {
             let a_declarer = Moteur::nouveau(ctx).embauches_a_declarer(Some(mois))?;
             let attente: Vec<&Value> =
@@ -637,13 +656,9 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             deposer_les_dsn(d, ctx, mois, |a| a.champ("nature") == "08", &mut Vec::new())?;
             Ok(true)
         }),
-        // Un contrat qui n'a pas pu partir par courriel s'imprime et se remet en main propre : l'impression est son depart.
+        // UN CONTRAT REVIENT SIGNE S'IL EST PARTI (par courriel ou imprime) : jamais un retour sans son depart.
         Geste::Signes { mois, debut } => pas(d, quoi, quand, |ctx| {
-            let a_imprimer: Vec<Value> = signables(ctx, mois)?.into_iter().filter(|c| c.debut == *debut && c.a_envoyer).map(|c| c.charge()).collect();
-            if !a_imprimer.is_empty() {
-                crate::routes::contrats::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": a_imprimer}), QUI_HORLOGE)?;
-            }
-            let manquent: Vec<Signable> = signables(ctx, mois)?.into_iter().filter(|c| c.debut == *debut).collect();
+            let manquent: Vec<Signable> = signables(ctx, mois)?.into_iter().filter(|c| c.debut == *debut && !c.a_envoyer).collect();
             if manquent.is_empty() {
                 return Ok(false);
             }
@@ -736,31 +751,47 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             fait.extend(a_faire.into_iter().map(|p| format!("Le {} : {}", le(quand), p)));
             fait
         }
-        Geste::Documents { mois } => pas(d, quoi, quand, |ctx| {
-            // LES DOCUMENTS D'UN MOIS DONT LA DSN N'EST PAS ACCEPTEE ne partent pas : ils suivent sa DSN, jamais avant.
-            if etat_de_la_dsn(ctx, mois)? != EtatDsn::Acceptee {
-                return Ok(false);
+        Geste::Documents { mois } => {
+            // Ceux qui n'ont pas de courriel : leurs documents s'impriment et se remettent en main propre (l'impression
+            // est leur depart) ; ils n'empechent pas les autres de partir.
+            let mut sans: Vec<(String, String)> = Vec::new();
+            let mut fait = pas(d, quoi, quand, |ctx| {
+                // LES DOCUMENTS D'UN MOIS DONT LA DSN N'EST PAS ACCEPTEE ne partent pas : ils suivent sa DSN, jamais avant.
+                if etat_de_la_dsn(ctx, mois)? != EtatDsn::Acceptee {
+                    return Ok(false);
+                }
+                let bilan = Moteur::nouveau(ctx).bilan_du_mois(mois)?;
+                let a_envoyer = bilan["etapes"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter(|e| e["cle"] == json!(envois::etats::DOCUMENTS))
+                    .flat_map(|e| e["groupes"].as_array().cloned().unwrap_or_default())
+                    .any(|g| g["etat"] == json!("a_faire"));
+                if !a_envoyer {
+                    return Ok(false);
+                }
+                sans = crate::routes::documents::sans_courriel(ctx, mois)?;
+                // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
+                let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
+                match crate::routes::documents::envoyer_documents_de(ctx, mois, &Preuve::de_la_charge(&json!({})), QUI_HORLOGE, &mut ouvrir) {
+                    Ok(_) => Ok(true),
+                    // Un mois sans documents a remettre par courriel.
+                    Err(e) if est_une_erreur_d_operation(&e) => Ok(false),
+                    Err(e) => Err(e),
+                }
+            });
+            if !sans.is_empty() {
+                let noms = sans.iter().map(|(_, n)| n.as_str()).collect::<Vec<_>>().join(", ");
+                let cles: Vec<&str> = sans.iter().map(|(c, _)| c.as_str()).collect();
+                let quoi = format!("documents de {} imprimés pour {} (pas de courriel dans sa fiche), remis en main propre", mois_fr(mois), noms);
+                fait.extend(pas(d, &quoi, quand, |ctx| {
+                    crate::routes::documents::documents_imprimer(ctx, &json!({"mois": mois, "salaries": cles}), QUI_HORLOGE)?;
+                    Ok(true)
+                }));
             }
-            let bilan = Moteur::nouveau(ctx).bilan_du_mois(mois)?;
-            let a_envoyer = bilan["etapes"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .filter(|e| e["cle"] == json!(envois::etats::DOCUMENTS))
-                .flat_map(|e| e["groupes"].as_array().cloned().unwrap_or_default())
-                .any(|g| g["etat"] == json!("a_faire"));
-            if !a_envoyer {
-                return Ok(false);
-            }
-            // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
-            let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-            match crate::routes::documents::envoyer_documents_de(ctx, mois, &Preuve::de_la_charge(&json!({})), QUI_HORLOGE, &mut ouvrir) {
-                Ok(_) => Ok(true),
-                // Un mois sans documents a remettre.
-                Err(e) if est_une_erreur_d_operation(&e) => Ok(false),
-                Err(e) => Err(e),
-            }
-        }),
+            fait
+        }
         Geste::Cloture { annee } => pas(d, quoi, quand, |ctx| {
             let a_des_paies = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.starts_with(&format!("{}-", annee)));
             if Moteur::nouveau(ctx).exercice_clos(&annee.to_string())? || !a_des_paies {
@@ -809,6 +840,10 @@ struct Signable {
     salarie: String,
     debut: String,
     numero: String,
+    /// « NOM Prenom ».
+    nom: String,
+    /// Sa fiche a un courriel : il part a la signature par courriel ; sinon il s'imprime.
+    courriel: bool,
     /// Jamais parti, ou parti puis rendu faux par l'engagement avant d'etre revenu signe : il part dans sa version presente.
     a_envoyer: bool,
 }
@@ -831,6 +866,8 @@ fn signables(ctx: &Contexte, mois: &str) -> R<Vec<Signable>> {
                 .map(|x| Signable {
                     salarie: valeur_en_texte(&x["salarie"]),
                     debut: valeur_en_texte(&x["debut"]),
+                    nom: valeur_en_texte(&x["nom"]),
+                    courriel: x.get("destinataire").is_some_and(vrai),
                     numero: valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"])),
                     a_envoyer: x.get("a_envoyer").is_some_and(vrai),
                 })

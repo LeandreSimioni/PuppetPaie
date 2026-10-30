@@ -471,21 +471,30 @@ impl DsnFabriquee {
 /// La route `dsn-a-deposer` : `{"mois"}`. La DSN du mois, fabriquee depuis ses engagements valides, prete a deposer.
 pub fn dsn_a_deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = valeur_en_texte(charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
-    // AVANT SON PREMIER JOUR DE DEPOT, la DSN ne s'ecrit pas : « le dépôt initial de la DSN "normale" peut être émis
-    // jusqu'à 1 mois à l'avance » (cahier technique DSN 2026.1, § 1.4.2,
-    // `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt` ; `Echeance::premier_depot`). La reponse dit le jour.
-    let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, &mois).map_err(|m| erreur("ValueError", m))?;
-    let premier = echeance.premier_depot().map_err(|m| erreur("ValueError", m))?;
-    if premier.ordinal() > ctx.aujourdhui.ordinal() {
-        let phrase = format!(
-            "La DSN de {} se dépose à partir du {} : la norme admet un dépôt au plus un mois avant l'échéance (cahier technique DSN 2026.1, § 1.4.2). Son échéance : {}.",
-            socle::date::libelle_du_mois_ou_tel_quel(&mois, socle::date::Graphie::Accentuee),
-            premier.jj_mm_aaaa(),
-            echeance.phrase()
-        );
+    // AVANT SON PREMIER JOUR DE DEPOT, la DSN ne s'ecrit pas (`pas_avant`) : la reponse dit le jour.
+    if let Some((premier, phrase, echeance)) = pas_avant(ctx, &mois)? {
         return Ok(json!({"mois": mois, "pas_avant": {"jour": premier.iso(), "phrase": phrase, "echeance": echeance.en_json()}}));
     }
     Ok(fabriquer_dsn(ctx, &mois, "interface")?.en_json(&mois))
+}
+
+/// LA DSN DE `mois` NE PART PAS AVANT SON PREMIER JOUR DE DEPOT : « le dépôt initial de la DSN "normale" peut être émis
+/// jusqu'à 1 mois à l'avance » (cahier technique DSN 2026.1, § 1.4.2,
+/// `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt` ; `Echeance::premier_depot`). `Some` avant ce jour : le
+/// jour, la phrase qui le dit, l'echeance.
+pub(crate) fn pas_avant(ctx: &Contexte, mois: &str) -> R<Option<(socle::date::Jour, String, declarations::echeance_dsn::Echeance)>> {
+    let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
+    let premier = echeance.premier_depot().map_err(|m| erreur("ValueError", m))?;
+    if premier.ordinal() <= ctx.aujourdhui.ordinal() {
+        return Ok(None);
+    }
+    let phrase = format!(
+        "La DSN de {} se dépose à partir du {} : la norme admet un dépôt au plus un mois avant l'échéance (cahier technique DSN 2026.1, § 1.4.2). Son échéance : {}.",
+        socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee),
+        premier.jj_mm_aaaa(),
+        echeance.phrase()
+    );
+    Ok(Some((premier, phrase, echeance)))
 }
 
 /// LA DSN DU MOIS, A SON DEPOT : une par etablissement, depuis les paies ecrites des engagements valides du mois, avec
