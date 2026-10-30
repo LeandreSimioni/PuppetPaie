@@ -19,7 +19,6 @@ use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
 use droit::contexte::Contexte;
-use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -28,7 +27,7 @@ use socle::echec::Echec;
 use crate::routes::dossier_salarie::{entree_ecrite, entree_fichier, zip, Entree};
 use documents::ecritures_comptables::{csv_compta, ecritures_du_mois, Ecriture};
 use documents::plan_comptable::plan_comptable;
-use crate::routes::rappels::{mois_de_l_annee, nic_principal};
+use crate::routes::rappels::mois_de_l_annee;
 
 type R<T> = Result<T, Echec>;
 
@@ -78,10 +77,9 @@ fn entier(v: &Value) -> R<i64> {
 
 // ------------------------------------------------------------------ le journal des depots
 
-/// Une DSN reelle acceptee est-elle partie pour ce mois ? (`envois::journal::lu`, `etats::etat_dsn_du_mois`)
+/// Une DSN reelle acceptee est-elle partie pour ce mois ? (`import::mois::dsn_avant`)
 fn dsn_acceptee(ctx: &Contexte, mois: &str) -> R<bool> {
-    let journal = envois::journal::lu(&ctx.racine)?;
-    Ok(vrai(&etats::etat_dsn_du_mois(&journal.lignes, mois, &Value::Null, &nic_principal(ctx))?))
+    Ok(matches!(crate::import::mois::dsn_avant(ctx, mois)?["etat"].as_str(), Some("passee" | "attente" | "refusee")))
 }
 
 // ------------------------------------------------------------------ l'export compta

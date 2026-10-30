@@ -15,6 +15,7 @@ use droit::contexte::{archivee, Contexte};
 use socle::date::{en_texte, Jour};
 use engagement;
 use envois::etats;
+use crate::import::mois::dsn_avant;
 use socle::fichiers::{lire_json, vrai};
 use socle::num::Resultat;
 
@@ -113,10 +114,6 @@ fn mois_de(j: &Jour) -> String {
     format!("{:04}-{:02}", j.an, j.mois)
 }
 
-/// `str(ctx.entreprise.get("nic") or "")`.
-pub(crate) fn nic_principal(ctx: &Contexte) -> String {
-    texte_ou_vide(&ctx.entreprise, "nic")
-}
 
 /// Ce que `journal.lire(ctx, quoi, reel_seulement=...)` rend, sur des lignes deja lues.
 fn lire_journal<'a>(lignes: &'a [Value], quoi: &str, reel: bool) -> R<Vec<&'a Value>> {
@@ -226,33 +223,11 @@ pub(crate) struct Etat<'a> {
     pub(crate) ctx: &'a Contexte,
     pub(crate) aujourdhui: Jour,
     pub(crate) journal: std::sync::Arc<Vec<Value>>,
-    pub(crate) principal: String,
 }
 
 impl Etat<'_> {
     fn racine(&self) -> &Path {
         &self.ctx.racine
-    }
-
-    /// `Null` ou l'etat.
-    /// UN MOIS TENU AVANT CE LOGICIEL NE SE RECLAME JAMAIS : sans ligne au journal, la DSN que l'import
-    /// a lue pour lui (`import::mois::dsn_importee`) le dit declare, meme quand la saisie y ajoute des engagements : ils
-    /// se declarent dans la DSN suivante, et son rappel le dit (`ajouter_les_mois_de_l_ancien_logiciel`) ; sans aucune
-    /// trace, il n'est pas reclame non plus (`sans_trace`) -- sa DSN, faite ou a faire, releve du logiciel qui a calcule
-    /// ses paies, et PuppetPaie ne la refait pas (regle 4). C'est ICI, et seulement ici, que rappels et echeancier
-    /// l'apprennent : ni rappel, ni « en retard ». La page Paie et l'Historique, eux, disent « aucune trace » (`import::mois::dsn_avant`).
-    pub(crate) fn etat_dsn(&self, mois: &str) -> R<Value> {
-        let e = etats::etat_dsn_du_mois(&self.journal, mois, &Value::Null, &self.principal)?;
-        if !e.is_null() {
-            return Ok(e);
-        }
-        if let Some(d) = crate::import::mois::dsn_importee(self.racine(), mois)? {
-            return Ok(d);
-        }
-        if crate::import::mois::importe(self.racine(), mois)? {
-            return Ok(json!({"importee": true, "sans_trace": true, "passee": false, "refusee": false}));
-        }
-        Ok(Value::Null)
     }
 }
 
@@ -264,7 +239,7 @@ fn rappels(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
         Some(v) => Jour::lire(&en_texte(v))?,
         None => ctx.aujourdhui,
     };
-    let st = Etat { ctx: &ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine).map(|j| j.lignes)?, principal: nic_principal(&ctx) };
+    let st = Etat { ctx: &ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine).map(|j| j.lignes)? };
     let out = lister(&st)?;
     Ok(json!({ "rappels": out.iter().map(Rappel::json).collect::<Vec<_>>() }))
 }
@@ -301,8 +276,8 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
     if !vrai_opt(exercice_clos(st.ctx, &precedent.to_string())?.as_ref()) && !mois_de_l_annee(st.ctx, &precedent.to_string()).is_empty() {
         // La cloture vient APRES la DSN de decembre : tant qu'elle manque, c'est
         // son rappel qui parle, pas celui-ci.
-        let e = st.etat_dsn(&decembre)?;
-        if vrai(&e) && !vrai_opt(e.get("sans_trace")) {
+        let e = dsn_avant(st.ctx, &decembre)?;
+        if matches!(e["etat"].as_str(), Some("passee" | "attente" | "refusee" | "importee")) {
             let mut r = Rappel::nouveau(
                 CLOTURE,
                 format!("cloture:{}", precedent),
@@ -429,8 +404,8 @@ fn derniere_dsn_passee(st: &Etat) -> R<Option<String>> {
     }
     let mut passes = Vec::new();
     for m in mois {
-        let e = st.etat_dsn(&m)?;
-        if vrai(&e) && !vrai_opt(e.get("refusee")) {
+        let e = dsn_avant(st.ctx, &m)?;
+        if !matches!(e["etat"].as_str(), Some("refusee" | "a_deposer")) {
             passes.push(m);
         }
     }
@@ -479,8 +454,8 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
     }
     let (mut out, mut m) = (Vec::new(), premier);
     while m <= dernier {
-        let e = st.etat_dsn(&m)?;
-        if !vrai(&e) || vrai_opt(e.get("refusee")) {
+        let e = dsn_avant(st.ctx, &m)?;
+        if matches!(e["etat"].as_str(), Some("refusee" | "a_deposer")) {
             out.push(m.clone());
         }
         m = mois_suivant(&m);
@@ -552,8 +527,8 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
     r.engagements = engagements;
     r.validees = validees;
 
-    let etat = st.etat_dsn(mois)?;
-    if vrai(&etat) && vrai_opt(etat.get("refusee")) {
+    let etat = dsn_avant(st.ctx, mois)?;
+    if etat["etat"] == "refusee" {
         r.etat = A_CORRIGER.into();
         let anomalies: Vec<String> = etat.get("anomalies").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default();
         r.detail = format!(

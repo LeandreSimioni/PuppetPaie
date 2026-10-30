@@ -565,14 +565,11 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
         let limite = echeance.jour;
         let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
-        // L'ETAT DE LA DSN, lu une fois (`import::mois::dsn_avant`) : le journal (passee, attente, refusee), puis la DSN
-        // de l'ancien logiciel (importee), sinon aucune trace. UN MOIS TENU AVANT CE LOGICIEL n'est jamais « en retard »
-        // ni « a deposer » : sans trace, il reste « sans_trace », et rien ne se refait ici.
+        // L'ETAT DE LA DSN, lu une fois (`import::mois::dsn_avant`) ; une DSN a deposer passee l'echeance est en retard.
         let importe = crate::import::mois::importe(&ctx.racine, nom)?;
         let lu = crate::import::mois::dsn_avant(ctx, nom)?;
-        let etat = match lu["etat"].as_str().unwrap_or("sans_trace") {
-            "sans_trace" if !importe && en_retard => "en_retard",
-            "sans_trace" if !importe => "a_deposer",
+        let etat = match lu["etat"].as_str().unwrap_or("a_deposer") {
+            "a_deposer" if en_retard => "en_retard",
             autre => autre,
         };
         let depose = matches!(etat, "passee" | "attente" | "refusee");

@@ -548,8 +548,8 @@ fn date_en_clair(j: &Jour) -> String {
 fn dsn(st: &Etat, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> {
     let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
-    let e = st.etat_dsn(mois).map_err(en_echec)?;
-    let etat = if vrai(&e) && !vrai_opt(e.get("refusee")) {
+    let e = crate::import::mois::dsn_avant(st.ctx, mois)?;
+    let etat = if !matches!(e["etat"].as_str(), Some("refusee" | "a_deposer")) {
         FAIT
     } else if *aujourdhui > limite {
         EN_RETARD
@@ -720,7 +720,7 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let faites = cochees(ctx)?;
     let courant = format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois);
     let annuelles = annuelles_de(&base, ctx.entreprise.get("idcc"))?;
-    let st = Etat { ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine).map(|j| j.lignes)?, principal: rappels::nic_principal(ctx) };
+    let st = Etat { ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine).map(|j| j.lignes)? };
     let modele = base.get("dsn").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("dsn")))?;
 
     let mut toutes: Vec<Echeance> = Vec::new();
