@@ -501,7 +501,7 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
             }
         );
         messages.push(Message {
-            nom: format!("{} {}", valeur_en_texte(get_requis(s, "prenom_affichage")?), valeur_en_texte(get_requis(s, "nom")?)),
+            nom: ctx.nomme(&cle),
             // Une fiche sans courriel se montre : ses documents s'impriment ; c'est l'envoi par courriel qui la refuse.
             destinataire: s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase(),
             cle,
@@ -780,8 +780,7 @@ pub(crate) fn documents_imprimer(ctx: &Contexte, charge: &Value, qui: &str) -> R
         if cles.contains(&cle) || seulement.as_ref().is_some_and(|s| !s.contains(&cle)) {
             continue;
         }
-        let prenom = vrai_ou(&p.salarie, "prenom_affichage").or_else(|| vrai_ou(&p.salarie, "prenom")).unwrap_or_default();
-        noms.insert(cle.clone(), format!("{} {}", prenom, vrai_ou(&p.salarie, "nom").unwrap_or_default()).trim().to_string());
+        noms.insert(cle.clone(), socle::texte::salarie_nomme_ou(Some(&p.salarie), &cle));
         cles.push(cle);
     }
     if cles.is_empty() {
@@ -1078,8 +1077,7 @@ fn nom_de_la_paie(paies: &[engagement::calcul::Paie], cle: &str) -> String {
         .iter()
         .find(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle))
         .map(|p| {
-            let prenom = vrai_ou(&p.salarie, "prenom_affichage").or_else(|| vrai_ou(&p.salarie, "prenom")).unwrap_or_default();
-            format!("{} {}", vrai_ou(&p.salarie, "nom").unwrap_or_default(), prenom).trim().to_string()
+            socle::texte::salarie_nomme_ou(Some(&p.salarie), cle)
         })
         .unwrap_or_else(|| cle.to_string())
 }

@@ -153,13 +153,9 @@ pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str) -> R<Value> {
 
 // ------------------------------------------------------------------ les cartes
 
-/// Le nom d'un salarie, comme les cartes le montrent : « prenom NOM » de sa fiche, ou `None` sans fiche.
+/// Le nom d'un salarié à l'écran, ou `None` sans fiche.
 fn nom_du_salarie(ctx: &Contexte, cle: &str) -> Option<String> {
-    let s = ctx.salaries.get(cle).filter(|s| vrai(s))?;
-    let prenom = if vrai(s.get("prenom_affichage").unwrap_or(&Value::Null)) { texte(s, "prenom_affichage") } else { texte(s, "prenom") };
-    let nom = texte(s, "nom");
-    let tout = format!("{} {}", prenom, nom).trim().to_string();
-    (!tout.is_empty()).then_some(tout)
+    ctx.salaries.get(cle).filter(|s| vrai(s)).and_then(socle::texte::salarie_nomme)
 }
 
 /// La fiche du spectacle de ce numero d'objet : `(cle, titre)` ; le titre est vide s'il est « A COMPLETER ».

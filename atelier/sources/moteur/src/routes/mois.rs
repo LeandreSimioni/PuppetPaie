@@ -1107,7 +1107,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                 continue;
             }
             vus.poser(ident.clone(), ())?;
-            let Ok(sal) = ctx.salarie(&cle) else { continue };
+            let Ok(_) = ctx.salarie(&cle) else { continue };
             // La nature d'abord : un contrat paye au mois ne se rattache a aucun spectacle
             // (S21.G00.40.050, CCH-11) et se reprend avec ce qui le definit, pas en cachets.
             let nature = match e.get("nature") {
@@ -1134,11 +1134,6 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                     Err(_) => continue,
                 },
             };
-            let texte_de = |k: &str| -> R<Value> { sal.get(k).cloned().ok_or_else(|| cle_manquante(k)) };
-            let prenom = match sal.get("prenom_affichage").filter(|x| vrai(x)) {
-                Some(p) => p.clone(),
-                None => texte_de("prenom")?,
-            };
             let taux_cachet = e
                 .get("lignes")
                 .filter(|x| vrai(x))
@@ -1151,7 +1146,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                 .unwrap_or(Value::Null);
             out.push(EnCours {
                 salarie: cle.clone(),
-                nom: format!("{} {}", valeur_en_texte(&texte_de("nom")?), valeur_en_texte(&prenom)),
+                nom: ctx.nomme(&cle),
                 spectacle: spec,
                 debut: debut.clone(),
                 fin,
@@ -1181,9 +1176,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             continue;
         }
         vus.poser(ident, ())?;
-        let Ok(sal) = ctx.salarie(&r.salarie) else { continue };
-        let t = |k: &str| sal.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
-        let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
+        let Ok(_) = ctx.salarie(&r.salarie) else { continue };
         let mut mensuel = Map::new();
         mensuel.insert("nature".into(), json!(r.nature));
         if let Some(s) = &r.salaire_mensuel {
@@ -1194,7 +1187,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
         }
         out.push(EnCours {
             salarie: r.salarie.clone(),
-            nom: format!("{} {}", t("nom"), prenom),
+            nom: ctx.nomme(&r.salarie),
             spectacle: Value::Null,
             debut: r.debut,
             fin: r.fin,
@@ -1221,7 +1214,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             continue;
         }
         vus.poser(ident, ())?;
-        let Ok(sal) = ctx.salarie(&salarie) else { continue };
+        let Ok(_) = ctx.salarie(&salarie) else { continue };
         let paies = i.paies();
         let derniere = paies.values().last().copied().cloned().unwrap_or_default();
         let objet_du = |x: &Map<String, Value>| ["numero_objet", "objet"].iter().map(|k| t(x, k)).find(|o| !o.is_empty()).unwrap_or_default();
@@ -1240,11 +1233,9 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             .find(|l| l.get("rubrique").and_then(Value::as_str) == Some("cachet"))
             .and_then(|l| l.get("taux").and_then(|x| valeur_en_texte(x).parse::<f64>().ok()))
             .map_or(Value::Null, nombre_f);
-        let ts = |k: &str| sal.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
-        let prenom = if ts("prenom_affichage").is_empty() { ts("prenom") } else { ts("prenom_affichage") };
         out.push(EnCours {
             salarie: salarie.clone(),
-            nom: format!("{} {}", ts("nom"), prenom),
+            nom: ctx.nomme(&salarie),
             spectacle,
             debut,
             fin,
@@ -1470,24 +1461,17 @@ fn titre_de(spec: Option<&Value>, numero: &Value) -> Value {
     }
 }
 
-/// `_nom` : « NOM Prenom » d'une cle de salarie (la cle elle-meme si elle est inconnue).
+/// « NOM Prénom » d'une clé de salarié (la clé elle-même si elle est inconnue).
 fn nom_de(ctx: &Contexte, cle: &Value) -> R<String> {
     let sal = match cle {
         Value::String(s) => ctx.salaries.get(s).filter(|x| vrai(x)),
         Value::Array(_) | Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(cle)))),
         _ => None,
     };
-    let (nom, prenom) = match sal {
-        Some(s) => (
-            s.get("nom").map(valeur_en_texte).unwrap_or_else(|| valeur_en_texte(cle)),
-            match s.get("prenom_affichage").filter(|x| vrai(x)) {
-                Some(p) => valeur_en_texte(p),
-                None => s.get("prenom").map(valeur_en_texte).unwrap_or_default(),
-            },
-        ),
-        None => (valeur_en_texte(cle), String::new()),
-    };
-    Ok(format!("{} {}", nom, prenom))
+    Ok(match sal {
+        Some(s) => socle::texte::salarie_nomme_ou(Some(s), &valeur_en_texte(cle)),
+        None => valeur_en_texte(cle),
+    })
 }
 
 /// Une quantite saisie, en flottant.
@@ -2321,16 +2305,10 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
     let mut out = Vec::new();
     for p in paies {
         if archivee(&p.salarie) {
-            let nom = p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
-            let prenom = match p.salarie.get("prenom_affichage") {
-                Some(x) if vrai(x) => x.clone(),
-                _ => p.salarie.get("prenom").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom")))?,
-            };
             out.push(format!(
-                "{} {} : sa fiche est archivee. Pour refaire une paie passee, rien a faire ; pour une nouvelle embauche, la \
+                "{} : sa fiche est archivee. Pour refaire une paie passee, rien a faire ; pour une nouvelle embauche, la \
                  reactiver (Configuration › Salaries, « Reactiver »).",
-                en_texte(nom),
-                en_texte(&prenom)
+                socle::texte::salarie_nomme_ou(Some(&p.salarie), "Ce salarié")
             ));
         }
         // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit

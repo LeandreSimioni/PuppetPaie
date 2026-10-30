@@ -16,13 +16,10 @@ use crate::{Avis, Engagement};
 use socle::fichiers::vrai;
 use socle::num::{dec, eur2, Decimal, Resultat};
 
-fn qui(eng: &Engagement) -> String {
-    format!("Contrat {} de {}", eng.numero.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans numero"), eng.salarie)
-}
 
 /// Le jour ou l'avenant de la saisie du mois decoupe la paie (`droit::periodes::jour_de_l_avenant`).
 fn jour_de_l_avenant(eng: &Engagement) -> Resultat<Option<Jour>> {
-    droit::periodes::jour_de_l_avenant(eng.avant.as_ref(), eng.date_modification.as_deref(), eng.debut_periode()?, eng.fin_periode()?, &qui(eng))
+    droit::periodes::jour_de_l_avenant(eng.avant.as_ref(), eng.date_modification.as_deref(), eng.debut_periode()?, eng.fin_periode()?, &eng.qui())
 }
 
 /// Les bornes des periodes elementaires de la paie de `eng` : une seule (la periode payee) pour un mois d'un seul
@@ -65,7 +62,7 @@ pub(crate) fn engagements_des_periodes(ctx: &Contexte, eng: &Engagement, bornes:
 duree du travail le {}), et elle porte {} en plus du salaire mensuel. A quelle periode une telle ligne se rattache (avant \
 le changement, apres, ou les deux) ne se lit nulle part dans la saisie, et le logiciel ne decoupe encore que le salaire \
 mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au premier jour d'un mois.",
-                qui(eng),
+                eng.qui(),
                 bornes.get(1).map_or_else(|| "?".to_string(), |b| b.0.jj_mm_aaaa()),
                 if autres.is_empty() { "des lignes saisies a la main".to_string() } else { format!("les lignes {}", autres.join(", ")) }
             ));
@@ -142,7 +139,7 @@ pub(crate) fn assembler(ctx: &Contexte, eng: &Engagement, mut parts: Vec<Paie>) 
             "{} : le statut du salarie passe de << {} >> a << {} >> en cours de mois. Artiste et technicien n'ont pas les \
 memes assiettes (taux reduits, plafond, CSS L. 242-10) : la paie d'un tel mois n'est pas decoupee par le logiciel. \
 Dater le changement au premier jour d'un mois sur la fiche.",
-            qui(eng),
+            eng.qui(),
             statut(p),
             statut_du_mois
         ));
@@ -156,7 +153,7 @@ Dater le changement au premier jour d'un mois sur la fiche.",
             "{} : la paie de ce mois se decoupe en periodes elementaires, et la periode du {} porte une deduction \
 forfaitaire specifique. Ni la reduction generale sous deduction (bornee a 130 %), ni le plafond annuel de 7 600 EUR ne se \
 partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
-            qui(eng),
+            eng.qui(),
             p.engagement.debut_periode().map(|d| d.jj_mm_aaaa()).unwrap_or_default()
         ));
     }
@@ -283,7 +280,7 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
             "{} : le statut, la categorie ou la duree du travail change en cours de mois ; la paie se decoupe en {} periodes \
 elementaires, chacune sur ses cotisations et sa part du plafond : {}. La DSN declare les remunerations et les bases de \
 chacune (norme DSN, § 2.1.3.2).",
-            qui(eng),
+            eng.qui(),
             parts.len(),
             decrites.join(" ; ")
         ),

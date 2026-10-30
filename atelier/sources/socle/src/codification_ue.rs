@@ -60,12 +60,7 @@ fn texte(fiche: &Value, cle: &str) -> Option<String> {
 }
 
 fn qui(fiche: &Value) -> String {
-    let n = [texte(fiche, "prenom"), texte(fiche, "nom")].into_iter().flatten().collect::<Vec<_>>().join(" ");
-    if n.is_empty() {
-        "ce salarié".to_string()
-    } else {
-        n
-    }
+    crate::texte::salarie_nomme(fiche).unwrap_or_else(|| "ce salarié".to_string())
 }
 
 /// Ce qui ne va pas dans le pays de nationalite ecrit hors de la liste (`pays_nationalite_hors_liste`), avant toute

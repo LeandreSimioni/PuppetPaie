@@ -604,9 +604,8 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
         let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
         let Some(email) = s.get("email").filter(|v| vrai(v)).map(valeur_en_texte) else {
             return Err(refus(format!(
-                "Pas d'adresse e-mail pour {} {} : compléter sa fiche avant d'envoyer. Rien n'est parti.",
-                valeur_en_texte(requis(s, "nom")?),
-                valeur_en_texte(requis(s, "prenom")?)
+                "Pas d'adresse e-mail pour {} : compléter sa fiche avant d'envoyer. Rien n'est parti.",
+                ctx.nomme(cle)
             )));
         };
         let prenom = match vrai_ou(s, "prenom_affichage") {
@@ -635,7 +634,7 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
         );
         messages.push(Message {
             cle: cle.clone(),
-            nom: format!("{} {}", prenom, valeur_en_texte(requis(s, "nom")?)),
+            nom: ctx.nomme(cle),
             destinataire: email.to_lowercase(),
             sujet: format!("Ton dossier de salarié — {}", d.periode),
             corps,

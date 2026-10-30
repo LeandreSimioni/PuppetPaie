@@ -159,15 +159,9 @@ fn mensuelle(nat: Option<&Nature>) -> bool {
 }
 
 fn nom_du_salarie(sal: &Value, defaut: &str) -> String {
-    let nom = g(sal, "nom");
-    if vrai(nom) {
-        return en_texte(nom);
-    }
-    let cle = g(sal, "_cle");
-    if vrai(cle) {
-        return en_texte(cle);
-    }
-    defaut.to_string()
+    socle::texte::salarie_nomme(sal)
+        .or_else(|| Some(en_texte(g(sal, "_cle"))).filter(|_| vrai(g(sal, "_cle"))))
+        .unwrap_or_else(|| defaut.to_string())
 }
 
 // ---------------------------------------------------------------- le statut

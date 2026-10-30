@@ -1649,13 +1649,8 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
             if !(debut.as_str() <= jour && (fin.is_empty() || jour <= fin.as_str())) {
                 continue;
             }
-            let s = salarie(ctx, cle)?;
-            let champ = |k: &str| -> R<Value> { s.get(k).cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k))) };
-            let prenom = match s.get("prenom_affichage").filter(|x| vrai(x)) {
-                Some(p) => p.clone(),
-                None => champ("prenom")?,
-            };
-            let nom = format!("{} {}", valeur_en_texte(&champ("nom")?), valeur_en_texte(&prenom));
+            salarie(ctx, cle)?;
+            let nom = ctx.nomme(&valeur_en_texte(cle));
             let ou_vide = |k: &str| e.get(k).filter(|x| vrai(x)).cloned().unwrap_or_else(|| json!(""));
             let mut o = Map::new();
             o.insert("salarie".into(), cle.clone());

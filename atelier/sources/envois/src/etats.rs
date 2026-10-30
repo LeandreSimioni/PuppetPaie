@@ -840,7 +840,6 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
                         }
                     };
                     let prenom = ou(get(fiche, "prenom_affichage")?, getd(fiche, "prenom", texte_vide())?).clone();
-                    let nom_aff = ou(get(fiche, "nom_affichage")?, getd(fiche, "nom", salarie)?);
                     demandes.push(Demande {
                         code: code.clone(),
                         mois: get(l, "mois")?.clone(),
@@ -853,7 +852,7 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
                         rang: i,
                         apres_signature: false,
                         envoyes: Dico::nouveau(),
-                        nom: format!("{} {}", valeur_en_texte(&prenom), valeur_en_texte(nom_aff)),
+                        nom: socle::texte::salarie_nomme_ou(Some(fiche), &valeur_en_texte(salarie)),
                         prenom,
                         contrats: Vec::new(),
                     });
@@ -1946,7 +1945,7 @@ mod tests {
         let l = vec![envoi1, envoi2, recu("ALPHA", "courriel")];
         let a = signatures_attendues(&l, None, &json!({"BETA": {"prenom": "Beta", "nom": "Bêta"}})).unwrap();
         assert_eq!(a.as_array().unwrap().len(), 1);
-        assert_eq!((&a[0]["code"], &a[0]["nom"], &a[0]["envoyes"], &a[0]["rang"]), (&json!("C2"), &json!("Beta Bêta"), &json!(["m1"]), &json!(1)));
+        assert_eq!((&a[0]["code"], &a[0]["nom"], &a[0]["envoyes"], &a[0]["rang"]), (&json!("C2"), &json!("Bêta Beta"), &json!(["m1"]), &json!(1)));
         assert_eq!(contrats_recus(&l, Maille::Paire).unwrap().sortie(Clone::clone), json!([["ALPHA", "2026-06-04", "2026-06-12T10:00:00"]]));
         assert_eq!(contrats_recus_comment(&l, Maille::Paire).unwrap(), json!([["ALPHA", "2026-06-04", "courriel"]]));
         assert_eq!(contrats_demandes(&l, Maille::Paire).unwrap().as_array().unwrap().len(), 2);
