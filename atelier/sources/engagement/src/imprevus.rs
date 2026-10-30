@@ -345,7 +345,7 @@ pub fn verifier_motif_de_suspension(code: &str, qui: &str) -> Resultat<Value> {
 pub fn suspensions_du_mois(ctx: &Contexte, paie: &crate::calcul::Paie, mois: &str) -> Resultat<Vec<Value>> {
     let cle = en_texte(g(&paie.salarie, "_cle"));
     let e = &paie.engagement;
-    let numero = e.numero.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| "?".into());
+    let qui = ctx.nomme(&cle);
     let mut out = Vec::new();
     let mut siennes = Vec::new();
     for imp in du_mois(&ctx.racine, mois, Some(SUSPENSION))? {
@@ -356,15 +356,16 @@ pub fn suspensions_du_mois(ctx: &Contexte, paie: &crate::calcul::Paie, mois: &st
     siennes.sort_by_key(|i| s(i, "debut"));
     for imp in siennes {
         let code = s(&imp, "motif");
-        verifier_motif_de_suspension(&code, &format!("Contrat {}", numero))?;
+        let motif = verifier_motif_de_suspension(&code, &qui)?;
         let (debut, fin) = (premier_jour(&imp)?, dernier_jour(&imp)?);
         if fin < debut {
             return Err(format!(
-                "Contrat {} : suspension {} du {} au {} -- elle finit avant de commencer.",
-                numero,
-                code,
-                debut.jj_mm_aaaa(),
-                fin.jj_mm_aaaa()
+                "{} : corrigez les dates de son absence « {} », dans « Les imprévus » : elle finit le {}, avant son \
+                 premier jour, le {}.",
+                qui,
+                en_texte(g(&motif, "libelle")),
+                fin.jj_mm_aaaa(),
+                debut.jj_mm_aaaa()
             ));
         }
         out.push(json!({"motif": code, "debut": debut.iso(), "fin": fin.iso()}));
@@ -581,7 +582,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 /// classique, du lundi au vendredi, est une inference nommee). La retenue est le salaire du mois fois ces heures sur les
 /// heures du mois, au taux exact (`taux_exact`) : un mois entier d'absence retire exactement le salaire du mois.
 pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<Value>, Vec<Avis>)> {
-    let qui = crate::conges::qui(e);
+    let qui = crate::conges::qui(ctx, e);
     let ent = &ctx.entreprise;
     let (mut lignes, mut avert) = (Vec::new(), Vec::new());
     // Le taux de l'heure d'absence : le salaire du mois sur ses heures de travail (Cass. soc. 11/02/1982).
@@ -671,7 +672,7 @@ pub fn origine(imp: &Value) -> Resultat<(bool, bool)> {
 /// tranches, les jours deja indemnises dans les douze mois, saisis sur l'arret), sur l'arret entier.
 fn maintien_possible(ctx: &Contexte, e: &Value, imp: &Value, mois: &str, remuneration_journaliere: Decimal) -> Resultat<Vec<Avis>> {
     use droit::permanents::{anciennete_mois, droit_au_maintien, maintien_de_salaire, OptionsMaintien};
-    let qui = crate::conges::qui(e);
+    let qui = crate::conges::qui(ctx, e);
     let nat = crate::conges::nature_de(e.get("nature"))?;
     let premier = premier_jour(imp)?;
     let fiche = ctx.salarie(&en_texte(g(e, "salarie")))?;

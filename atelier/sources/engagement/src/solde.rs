@@ -224,7 +224,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     };
     let fin = d(fin)?;
     let salaire = dec_ou(e.get("salaire_mensuel"), Decimal::ZERO)?;
-    let qui = qui(e);
+    let qui = qui(ctx, e);
     let motif = motif_de(e);
     let ent = &ctx.entreprise;
     let premier = premier_du_mois(mois)?;
@@ -544,7 +544,7 @@ fn indemnite_de_rupture(
     nat: &Nature,
     stc: &mut Solde,
 ) -> Resultat<()> {
-    let qui = qui(e);
+    let qui = qui(ctx, e);
     let Some(sec) = permanents::rupture(motif)? else {
         return indemnite_de_licenciement(ctx, e, mois, anciennete, motif, nat, stc);
     };
@@ -919,7 +919,7 @@ fn indemnite_de_licenciement(
     nat: &Nature,
     stc: &mut Solde,
 ) -> Resultat<()> {
-    let qui = qui(e);
+    let qui = qui(ctx, e);
     let saisi = e.get("indemnite_licenciement").filter(|x| !x.is_null());
     if saisi.is_none() && !(nat.duree_indeterminee && motif.is_some_and(|m| !m.is_empty())) {
         return Ok(());

@@ -14,6 +14,7 @@ use droit::natures::Nature;
 use droit::catalogue::{code_54, rubrique, HorsAssiette};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
+use socle::texte::salarie_nomme;
 use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::{Avis, Engagement};
 use socle::num::nombre;
@@ -463,14 +464,6 @@ pub struct OptionDfs {
     pub frais_cumulables: bool,
 }
 
-fn qui_salarie(sal: &Value) -> String {
-    let nom = sal.get("nom").map_or(String::new(), en_texte);
-    let prenom = match sal.get("prenom_affichage") {
-        Some(p) if vrai(p) => en_texte(p),
-        _ => sal.get("prenom").map_or(String::new(), en_texte),
-    };
-    format!("{} {}", nom, prenom).trim().to_string()
-}
 
 fn texte_de(v: &Value, cle: &str) -> String {
     match v.get(cle) {
@@ -490,7 +483,7 @@ pub(crate) fn deduction_forfaitaire(bar: &Value, sal: &Value, ent: &Value) -> Re
     if profession.is_empty() {
         return Ok(None);
     }
-    let qui = qui_salarie(sal);
+    let qui = salarie_nomme(sal).unwrap_or_default();
     let annee = bar.get("annee").map_or("?".to_string(), en_texte);
     let dfs = bar.get("deduction_forfaitaire").filter(|d| vrai(d));
     let professions = dfs.and_then(|d| d.get("professions")).and_then(Value::as_object);
@@ -606,7 +599,7 @@ fn dfs_applicable(
     eng: &Engagement, nat: &Nature, sal: &Value, o: &OptionDfs, lb: &[LigneBrut], rubriques_bulletin: &[&Value], racine: &std::path::Path,
     jour: &Jour,
 ) -> Resultat<()> {
-    let qui = format!("Contrat {} de {}", eng.numero.clone().unwrap_or_else(|| "?".into()), qui_salarie(sal));
+    let qui = format!("Contrat {} de {}", eng.numero.clone().unwrap_or_else(|| "?".into()), salarie_nomme(sal).unwrap_or_default());
     if nat.mensuelle() {
         return Err(format!(
             "{} : une deduction forfaitaire specifique sur un contrat paye au mois ({}). Le logiciel ne la porte que sur \
@@ -1039,7 +1032,7 @@ fn essai_dans_son_plafond(ctx: &Contexte, eng: &Engagement, nat: &Nature, sal: &
     let idcc = ctx.entreprise.get("idcc").map(en_texte).unwrap_or_default();
     let artiste = lu("statut").as_deref() == Some("artiste");
     let plafond = droit::essai::plafond(nat, &eng.debut, eng.fin.as_ref(), lu("statut_conventionnel").as_deref(), artiste, &idcc)?;
-    droit::essai::refuser_au_dela(jours, plafond.as_ref(), &format!("{} ({})", qui_salarie(sal), nat.libelle))
+    droit::essai::refuser_au_dela(jours, plafond.as_ref(), &format!("{} ({})", salarie_nomme(sal).unwrap_or_default(), nat.libelle))
 }
 
 /// La paie d'un engagement sur sa periode (la periode de paie, ou une periode elementaire), dans l'ordre du §7. La
