@@ -1346,6 +1346,23 @@ async function enregistrerSaisieSeule(silencieux) {
 function enregistrerPlusTard() {
   clearTimeout(MINUTEUR_SAISIE);
   noteSaisie("Modifié…");
-  MINUTEUR_SAISIE = setTimeout(() => enregistrerSaisie(true), 1000);
+  MINUTEUR_SAISIE = setTimeout(() => { MINUTEUR_SAISIE = null; enregistrerSaisie(true); }, 1000);
 }
+
+/* LA PAGE QU'ON QUITTE (recharger, fermer) dans la seconde qui suit une frappe : ce qui est à l'écran part au moteur
+ * tout de suite, et la requête survit à la page (`keepalive`). Sans elle, une ligne changée juste avant de partir (une
+ * nature de ligne, des jours cochés) revenait telle qu'elle était enregistrée avant. Un mois déclaré qui demande sa
+ * confirmation n'est pas confirmé ici : il refuse, comme à l'écran. */
+window.addEventListener("pagehide", () => {
+  if (!MINUTEUR_SAISIE) return;
+  clearTimeout(MINUTEUR_SAISIE);
+  MINUTEUR_SAISIE = null;
+  const s = saisieCourante();
+  if (!s.mois || JSON.stringify(s) === DERNIERE_ECRITE) return;
+  fetch("/api/enregistrer-saisie?jeton=" + encodeURIComponent(JETON), {
+    method: "POST", keepalive: true,
+    headers: { "Content-Type": "application/json", "X-Jeton": JETON },
+    body: JSON.stringify({ mois: s.mois, saisie: s, modifier_apres_echeance: MOIS_CONFIRME === s.mois }),
+  }).catch(() => {});
+});
 
