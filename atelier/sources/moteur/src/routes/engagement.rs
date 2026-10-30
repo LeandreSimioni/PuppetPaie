@@ -140,7 +140,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (data, i) = engagement_designe(ctx, &charge)?;
     let deja = data["engagements"][i].get("valide").and_then(|v| v.get("le")).cloned();
     let rendu = if valide {
-        match deja {
+        let le = match deja {
             Some(le) => le,
             None => {
                 let le = engagement::etats::valider(ctx, mois, i).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
@@ -148,7 +148,9 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
                 crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, debut)?;
                 Value::String(le)
             }
-        }
+        };
+        let avis = avis_de_validation(ctx, mois, i)?;
+        return Ok(json!({"salarie": salarie, "debut": debut, "valide": le, "avis": avis}));
     } else {
         if !confirme {
             if let Some(q) = engagement::etats::question_avant_de_modifier(ctx, mois, i).map_err(Echec::from)? {
@@ -159,6 +161,33 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         Value::Null
     };
     Ok(json!({"salarie": salarie, "debut": debut, "valide": rendu}))
+}
+
+/// CE QUE LA VALIDATION DIT SANS REFUSER, pour l'engagement de rang `i` de la saisie de `mois` : un contrat que le
+/// logiciel fait signer (`engagement::contrat_a_signer`) part a la signature par courriel, a l'adresse de la fiche ; sans
+/// elle, il ne partira pas (`envois::envois_signature`, qui le refuse au depart). Il s'imprime, ou le courriel se saisit.
+fn avis_de_validation(ctx: &Contexte, mois: &str, i: usize) -> R<Vec<Value>> {
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else { return Ok(Vec::new()) };
+    let e = &data["engagements"][i];
+    let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Ok(Vec::new()) };
+    let nature = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_err(Echec::from)?;
+    let numero = e.get("numero").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
+    if nature.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &engagement::debut_brut(e), &numero) {
+        return Ok(Vec::new());
+    }
+    let fiche = ctx.salarie(&cle).map_err(Echec::from)?;
+    if fiche.get("email").map(valeur_en_texte).is_some_and(|m| !m.trim().is_empty()) {
+        return Ok(Vec::new());
+    }
+    let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(valeur_en_texte);
+    let qui = [texte("nom"), texte("prenom_affichage").or_else(|| texte("prenom"))].into_iter().flatten().collect::<Vec<_>>().join(" ");
+    // Orange : a faire, et la compagnie peut le faire.
+    Ok(vec![json!({"couleur": "orange", "phrase": format!(
+        "{} n'a pas de courriel dans sa fiche : son contrat ne pourra pas partir à la signature par courriel. Imprimez-le \
+         pour le faire signer, ou saisissez son courriel (étape « Contrats » de la paie, ou sa fiche dans Configuration › \
+         Salariés).",
+        if qui.is_empty() { cle } else { qui }
+    )})])
 }
 
 /// L'ENGAGEMENT QUE LA PAGE DESIGNE dans la saisie enregistree de `mois` : `salarie`, `debut`, et, si deux contrats du

@@ -140,12 +140,33 @@ pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Valu
     let erreurs = anomalies.iter().filter(|a| a["gravite"] == "erreur").count();
     let a_verifier = anomalies.len() - erreurs;
     let pluriel = |n: usize| if n > 1 { "s" } else { "" };
+    // Ce qui est a corriger ou a verifier se nomme (le libelle de la case), et sa raison se lit au survol (`detail`).
+    let nommer = |grave: bool| -> R<(String, String)> {
+        let siennes: Vec<&Value> = anomalies.iter().filter(|a| (a["gravite"] == "erreur") == grave).collect();
+        let mut cases: Vec<String> = Vec::new();
+        for a in &siennes {
+            let cle = valeur_en_texte(&a["champ"]);
+            let libelle = champs::champ(nom, &cle)?.map(|c| c.libelle).filter(|l| !l.is_empty()).unwrap_or(cle);
+            let libelle = libelle.chars().next().map(|p| p.to_lowercase().chain(libelle.chars().skip(1)).collect()).unwrap_or_default();
+            if !cases.contains(&libelle) {
+                cases.push(libelle);
+            }
+        }
+        let detail = siennes.iter().map(|a| valeur_en_texte(&a["message"])).collect::<Vec<_>>().join(" ");
+        Ok((cases.join(", "), detail))
+    };
     let pastille = if comble.get("actif") == Some(&Value::Bool(false)) {
         super::pastille("information", "archivé")
     } else if erreurs > 0 {
-        super::pastille("a_faire", &format!("{} erreur{}", erreurs, pluriel(erreurs)))
+        let (cases, detail) = nommer(true)?;
+        let mut p = super::pastille("a_faire", &format!("{} erreur{} : {}", erreurs, pluriel(erreurs), cases));
+        p["detail"] = Value::String(detail);
+        p
     } else if a_verifier > 0 {
-        super::pastille("a_faire", &format!("{} à vérifier", a_verifier))
+        let (cases, detail) = nommer(false)?;
+        let mut p = super::pastille("a_faire", &format!("à vérifier : {}", cases));
+        p["detail"] = Value::String(detail);
+        p
     } else {
         super::pastille("fait", "complet")
     };

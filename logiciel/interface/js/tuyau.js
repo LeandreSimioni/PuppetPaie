@@ -515,7 +515,7 @@ const echapper = (s) => String(s ?? "").replace(/[&<>"]/g,
  * les dessine, sans choisir. */
 const CLASSE_DE_COULEUR = { vert: "bien", orange: "alerte", rouge: "erreur", gris: "info" };
 const pastilleDeLEtat = (p) => p && p.mots
-  ? `<span class="pastille ${CLASSE_DE_COULEUR[p.couleur] ?? ""}">${echapper(p.mots)}</span>` : "";
+  ? `<span class="pastille ${CLASSE_DE_COULEUR[p.couleur] ?? ""}"${p.detail ? ` title="${echapper(p.detail)}"` : ""}>${echapper(p.mots)}</span>` : "";
 /* Un encart de la même couleur : `.encart` a ses propres classes. */
 const ENCART_DE_COULEUR = { vert: "bien", orange: "attention", rouge: "erreur", gris: "info" };
 

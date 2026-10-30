@@ -2199,6 +2199,24 @@ fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &dro
     Ok(v)
 }
 
+/// `champs_du_contrat_ecrit` d'un engagement qui ne se calcule pas encore (`a_completer`), lu sur sa saisie `e` : la
+/// periode d'essai et les clauses se disent avant que le reste soit complet. La repartition des horaires attend la
+/// duree du travail calculee.
+fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &Value) -> Vec<&'static str> {
+    let Ok(nat) = droit::natures::nature(e.get("nature").and_then(Value::as_str)) else { return Vec::new() };
+    let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Vec::new() };
+    let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_default();
+    if nat.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &engagement::debut_brut(e), &numero) {
+        return Vec::new();
+    }
+    let mut v = vec!["periode_essai_jours"];
+    if e.get("motif_recours").and_then(Value::as_str).is_some_and(|m| nat.motif_de_remplacement(m)) {
+        v.push("personne_remplacee");
+    }
+    v.push("clauses_particulieres");
+    v
+}
+
 /// Une paie pour l'ecran. `brut` : l'engagement tel qu'il
 /// est ecrit dans la saisie ; `mois` : le mois du fichier (pour `lieu` et
 /// `taux_cachet`, gardes tels qu'ecrits).
@@ -2397,6 +2415,7 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             Some(m) => json!({
                 "a_completer": m, "salarie": {"_cle": e.get("salarie").cloned().unwrap_or(Value::Null)},
                 "avertissements": [], "informations": [],
+                "contrat": {"ecrits": champs_du_contrat_ecrit_en_saisie(ctx, e)},
             }),
         })
         .collect();
@@ -2427,9 +2446,23 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         rang_calcule += part.iter().filter(|m| m.is_none()).count();
         rang = fin;
     }
+    let aucun_chiffre = r["par_salarie"].as_array().is_none_or(Vec::is_empty);
+    r["phrase_du_mois"] = json!(phrase_du_mois(&paies, aucun_chiffre));
     r["paies"] = Value::Array(paies);
     r["blocs"] = Value::Array(blocs);
     Ok(r)
+}
+
+/// CE QUE LES CHIFFRES DU MOIS NE COMPTENT PAS, en une phrase sous eux (`None` : rien) : un engagement a completer ne
+/// se calcule pas, mais il est la ; un mois sans aucun engagement se dit aussi.
+fn phrase_du_mois(paies: &[Value], aucun_chiffre: bool) -> Option<String> {
+    let attendent = paies.iter().filter(|v| v.get("a_completer").is_some_and(vrai)).count();
+    match (attendent, aucun_chiffre) {
+        (0, true) => Some("Aucun engagement ce mois-ci.".to_string()),
+        (0, false) => None,
+        (1, vide) => Some(format!("1 engagement à compléter{} : il compte quand il est complet.", if vide { "" } else { ", pas encore compté" })),
+        (k, vide) => Some(format!("{} engagements à compléter{} : ils comptent quand ils sont complets.", k, if vide { "" } else { ", pas encore comptés" })),
+    }
 }
 
 /// L'apercu de la saisie `data` : chaque engagement se calcule.
@@ -2519,6 +2552,7 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
     }
     let n: usize = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", socle::fichiers::repr(&mois)))?;
     Ok(json!({
+        "phrase_du_mois": phrase_du_mois(&vues, par_salarie.is_empty()),
         "mois": mois,
         "libelle": format!("{} {}", socle::date::nom_du_mois(n as i64, socle::date::Graphie::Titre)?, annee),
         "paies": vues,

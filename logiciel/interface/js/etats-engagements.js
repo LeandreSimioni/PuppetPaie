@@ -280,12 +280,14 @@ function peindreEtats() {
 async function validerPlusieurs(div, lignes) {
   const mois = document.getElementById("mois").value;
   let faites = 0;
+  const avis = [];
   try {
     for (const l of lignes) {
-      await api("valider-engagement", { mois, ...contratDe(l), valide: true });
+      const r = await api("valider-engagement", { mois, ...contratDe(l), valide: true });
+      avis.push(...((r && r.avis) || []));
       faites += 1;
     }
-    dire(`${faites} engagements validés.`);
+    dire(`${faites} engagements validés.` + avis.map((a) => " " + a.phrase).join(""), avis.length ? avis[0].couleur : undefined);
   } catch (e) {
     dire(e.message + (faites ? ` (${faites} validé(s) avant)` : ""),
          "erreur");
@@ -493,8 +495,12 @@ async function validerEngagement(mois, ligne, valide) {
 async function basculerValidation(ligne, valide) {
   const mois = document.getElementById("mois").value;
   try {
-    if (await validerEngagement(mois, ligne, valide) === null) return;
-    dire(valide ? "Engagement validé." : "Engagement ouvert à la modification : le revalider ensuite.");
+    const r = await validerEngagement(mois, ligne, valide);
+    if (r === null) return;
+    // Ce que le moteur dit sans refuser (un contrat qui ne pourra pas partir) se dit, à sa couleur.
+    const avis = (r && r.avis) || [];
+    if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
+    else dire(valide ? "Engagement validé." : "Engagement ouvert à la modification : le revalider ensuite.");
     await dessinerEtatsDesEngagements(mois);
   } catch (e) { dire(e.message, "erreur"); }
 }

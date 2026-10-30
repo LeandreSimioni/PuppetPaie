@@ -622,6 +622,21 @@ function montrerEcrit(div, demandes) {
     const c = l.querySelector(".e-ecrit-champ");
     l.hidden = !(demandes || []).includes(l.dataset.ecrit) && c.value.trim() === "";
   });
+  nommerLesCases(div);
+}
+
+/** La ligne repliée du contrat nomme ce qu'il y a à dire dedans (le motif
+ *  d'un CDD, la période d'essai…) : ce qui se remplit se trouve sans
+ *  chercher. */
+function nommerLesCases(div) {
+  const d = div.querySelector(".e-contrat");
+  if (!d) return;
+  const noms = [...d.querySelectorAll(".e-recours-bloc, .e-ecrit [data-ecrit]")]
+    .filter((l) => !l.hidden)
+    .map((l) => (l.firstChild.textContent || "").trim().toLowerCase())
+    .filter(Boolean);
+  if (noms.length) d.dataset.cases = noms.join(", ");
+  else delete d.dataset.cases;
 }
 
 /** Ce que les cases du contrat écrit écrivent. */
@@ -796,7 +811,7 @@ function ouvrirCarte(div) {
   if (div._paies) peindreChiffres(div, div._total);
   // Les cases du contrat écrit que le moteur a demandées pour cet engagement, au dernier aperçu.
   const p = (div._paies || [])[0];
-  montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
+  montrerEcrit(div, p && p.contrat ? p.contrat.ecrits : div._ecrits);
   if (intacte) DERNIERE_ECRITE = JSON.stringify(saisieCourante());
 }
 
@@ -984,7 +999,7 @@ function construireCarte(div, e) {
            au regard de L1242-2, et la plate-forme le contrôle (SIG-11). Un
            CDD d'usage n'apparaît pas dans cette liste et c'est délibéré — il
            se saisit comme un CDD d'usage, avec tout ce qui va avec. -->
-      <label class="e-recours-bloc" hidden>Motif de recours
+      <label class="e-recours-bloc" hidden title="pourquoi ce CDD est conclu : la DSN le déclare (motif de recours)">Motif du CDD
         <select class="e-recours"></select></label>
       <!-- CE QUE LE CONTRAT ÉCRIT DE CET ENGAGEMENT DIT EN PLUS (le modèle
            le remplit avec le reste). Le moteur dit quelles cases cet
@@ -1096,7 +1111,10 @@ function construireCarte(div, e) {
   selNat.onchange = () => { majNature(div); rafraichirApercu(); };
   const selSpec = div.querySelector(".e-spectacle");
   poserSpectacles(selSpec);
-  selSpec.value = e.spectacle || "";
+  // Ce que la nature du moment ne prend pas, le moteur le garde de côté (`de_cote`) : les cases cachées le
+  // portent, et il revient avec la nature qui s'en sert.
+  const deCote = e.de_cote || {};
+  selSpec.value = e.spectacle || deCote.spectacle || "";
   selSpec.onchange = rafraichirApercu;
   // --- le métier
   const selMet = div.querySelector(".e-metier");
@@ -1113,7 +1131,7 @@ function construireCarte(div, e) {
   cadre.onchange = rafraichirApercu;
   // --- les lignes de paie
   const cible = div.querySelector(".rubriques");
-  lignesDe(e).forEach((l) => cible.appendChild(ligneRubrique(l, natureDe(selNat.value))));
+  lignesDe(deCote.lignes ? { lignes: deCote.lignes } : e).forEach((l) => cible.appendChild(ligneRubrique(l, natureDe(selNat.value))));
   div.querySelector(".ajouter-rubrique").onclick = (ev) => {
     ev.preventDefault();
     cible.appendChild(ligneRubrique({}, natureDe(selNat.value)));
@@ -1316,6 +1334,13 @@ function majNature(div) {
     + recours.map((m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${
       echapper(m.libelle)}</option>`).join(""));
   sel.value = recours.some((m) => m.code === voulu) ? voulu : "";
+  // UN CDD DIT SON MOTIF, et le moteur refuse sans lui : tant qu'il manque,
+  // le contrat s'ouvre de lui-même, comme pour ses bornes.
+  if (recours.length && !sel.value) {
+    div.querySelector(".e-options").hidden = false;
+    div.querySelector(".e-contrat").open = true;
+  }
+  nommerLesCases(div);
   majRupture(div);
 }
 
@@ -1573,13 +1598,18 @@ function dedoubler(div) {
 }
 
 /** Les lignes de paie d'un bloc, telles qu'elles sont saisies. */
-/* VISER UN MONTANT SANS TAUX. Une ligne sans taux ne part pas
- * dans la saisie -- elle est incomplete. Sauf pour « Viser un montant » :
- * le taux est justement ce qu'on cherche, et le moteur le trouve seul quand
- * il n'y a qu'une ligne de salaire (`_poser_taux_provisoires`). */
-let GARDER_SANS_TAUX = false;
-const ligneEnvoyee = (r) => r.querySelector(".r-quantite").value !== ""
-  && (GARDER_SANS_TAUX || r.querySelector(".r-taux").value !== "");
+/* CE QU'UNE LIGNE DIT PART DANS LA SAISIE, même incomplète : ses jours, sa
+ * quantité, son taux ou ses heures. Le moteur l'enregistre en saisie et dit
+ * ce qui lui manque. Pour « Viser un montant », seules partent les lignes
+ * qui disent leur quantité : le taux est ce qu'on cherche, et le moteur le
+ * trouve seul quand il n'y a qu'une ligne de salaire. */
+let POUR_VISER = false;
+const ligneEnvoyee = (r) => {
+  const dit = (s) => r.querySelector(s).value.trim() !== "";
+  if (POUR_VISER) return dit(".r-quantite");
+  return dit(".r-quantite") || dit(".r-taux") || dit(".r-heures")
+    || joursDe(r.querySelector(".r-jours")).length > 0;
+};
 
 function lignesDuBloc(div, mois) {
   mois = mois || document.getElementById("mois").value;
@@ -1592,9 +1622,9 @@ function lignesDuBloc(div, mois) {
     // Une ligne en pourcentage s'écrit comme le moteur la lit : sa base et
     // son pourcentage (`calcul._ligne_en_pourcentage`).
     if (rr && rr.saisie.includes("taux_majoration")) {
-      return { rubrique: rr.code, base: +q, taux_majoration: t === "" ? "" : +t };
+      return { rubrique: rr.code, base: q === "" ? "" : +q, taux_majoration: t === "" ? "" : +t };
     }
-    const l = { rubrique: r.querySelector(".r-code").value, quantite: +q,
+    const l = { rubrique: r.querySelector(".r-code").value, quantite: q === "" ? "" : +q,
                 taux: t === "" ? "" : +t };
     // Les heures s'écrivent dès qu'elles sont dites : leur champ se montre
     // alors, quelle que soit la rubrique (`majAffichage`).

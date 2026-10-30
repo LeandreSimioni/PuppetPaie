@@ -812,6 +812,7 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .e-contrat > summary::-webkit-details-marker { display: none; }
 .e-contrat > summary::before { content: "▸ "; }
 .e-contrat[open] > summary::before { content: "▾ "; }
+.e-contrat[data-cases]:not([open]) > summary::after { content: " · " attr(data-cases); color: var(--discret); font-weight: normal; }
 .e-contrat.a-cheval > summary { color: var(--alerte); font-weight: bold; }
 .e-contrat-champs { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin: 4px 0; }
 .e-contrat-champs label { font-size: 12px; color: var(--discret); }

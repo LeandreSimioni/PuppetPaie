@@ -179,14 +179,6 @@ function rafraichirApercu() {
 async function calculerApercu(lu) {
   const saisie = saisieCourante();
   const cible = document.getElementById("apercu");
-  // Les jours sont sur les lignes de paie : un engagement « a des jours » dès
-  // qu'une de ses lignes en porte.
-  const aDesJours = (e) => (e.lignes || []).some((l) => (l.dates || []).length);
-  // UN PERMANENT N'A PAS DE JOURS, et c'est normal : il est payé au mois.
-  // La première version de ce garde-fou ne connaissait que les cachets, et
-  // un CDI saisi en entier restait devant « ajouter des jours joués »
-  // pendant que sa paie, elle, était calculable.
-  const aDeQuoiPayer = (e) => aDesJours(e) || e.salaire_mensuel != null;
   document.getElementById("apercu-sous-titre").textContent = IMPORTE ? "tenu avant PuppetPaie" : "";
   if (IMPORTE) {
     // Un mois tenu avant PuppetPaie ne se calcule pas ici : ses paies sont celles de l'ancien logiciel.
@@ -196,7 +188,8 @@ async function calculerApercu(lu) {
       ? ` ${IMPORTE.incompletes} carte${IMPORTE.incompletes > 1 ? "s disent" : " dit"} ce que l'import n'a pas pu lire.` : ""}</p>`;
     return;
   }
-  if (!saisie.engagements.length || !saisie.engagements.some(aDeQuoiPayer)) {
+  // Dès qu'un engagement nomme son salarié, le moteur dit ce que le mois en compte et ce qui lui manque (`apercu`).
+  if (!saisie.engagements.length) {
     // Le permanent ne se nomme qu'à une compagnie qui en emploie.
     const perm = !!(ETAT.configuration || {}).permanents;
     cible.innerHTML = `<p class="discret">Ajouter un engagement, une ligne de
@@ -230,6 +223,9 @@ async function calculerApercu(lu) {
         div._paies = [];
         peindreCarte(div);
         div.querySelector(".resolu").innerHTML = "";
+        // Les cases du contrat écrit se disent avant que le reste soit complet (la période d'essai d'un CDD).
+        div._ecrits = p && p.contrat && p.contrat.ecrits;
+        montrerEcrit(div, div._ecrits);
         div.querySelector(".avis").innerHTML = `<div class="encart attention avis-engagement"><b>À compléter avant de valider</b>${
           manques.map((x) => `<div>${erreurEnClair(x.a_completer)}</div>`).join("")}</div>`;
         return;
@@ -560,9 +556,9 @@ async function ajusterBloc(div, champ) {
   const engagements = [];
   for (let k = 0; k < combien; k++) engagements.push(debut + k);
   note.textContent = "calcul…";
-  GARDER_SANS_TAUX = true;
+  POUR_VISER = true;
   let saisie;
-  try { saisie = saisieCourante(); } finally { GARDER_SANS_TAUX = false; }
+  try { saisie = saisieCourante(); } finally { POUR_VISER = false; }
   try {
     const r = await api("ajuster", {
       saisie, engagements,
@@ -588,10 +584,10 @@ function appliquerAjustement(div, r) {
   // Les mêmes lignes que `lignesDuBloc` a envoyées pour viser, dans le même
   // ordre : une ligne sans quantité n'est pas partie, donc elle ne compte
   // pas dans les rangs ; une ligne sans taux, si.
-  GARDER_SANS_TAUX = true;
+  POUR_VISER = true;
   let rangs;
   try { rangs = [...div.querySelectorAll(".rubrique")].filter(ligneEnvoyee); }
-  finally { GARDER_SANS_TAUX = false; }
+  finally { POUR_VISER = false; }
   (e.lignes || []).forEach((l) => {
     const cible = rangs[l.rang];
     if (cible) cible.querySelector(".r-taux").value = l.taux;
@@ -627,7 +623,9 @@ function designation(p) {
  * son net, le coût et le brut au survol. Le moteur les somme (`total_net`, `total_cout`, `par_salarie` de l'aperçu). */
 function vueApercu(a) {
   const groupes = a.par_salarie || [];
-  if (!groupes.length) return `<p class="discret">Aucun engagement ce mois-ci.</p>`;
+  // Ce que les chiffres ne comptent pas (un engagement à compléter, ou aucun), le moteur le dit (`phrase_du_mois`).
+  const phrase = a.phrase_du_mois ? `<p class="discret">${echapper(a.phrase_du_mois)}</p>` : "";
+  if (!groupes.length) return phrase;
   return `
     <div class="mois-chiffres">
       <div><span>Net à virer</span><b>${euros(a.total_net)}</b></div>
@@ -639,7 +637,7 @@ function vueApercu(a) {
           <span class="discret">· ${g.engagements} engagement${g.engagements > 1 ? "s" : ""}</span></span>
         <b>${euros(g.net_a_payer)}</b>
       </li>`).join("")}
-    </ul>`;
+    </ul>${phrase}`;
 }
 
 /* ------------------------------------------------------- charger un mois */
@@ -662,9 +660,10 @@ function regrouper(engagements) {
   // formulaire montre un engagement et l'écrit pour chaque salarié coché.
   // Deux engagements qui diffèrent en quoi que ce soit — le motif de
   // recours de deux CDD aux mêmes bornes, un salaire, un numéro, un lieu
-  // propre à un jour — ont chacun leur bloc. Ni un engagement validé.
+  // propre à un jour — ont chacun leur bloc. Ni un engagement validé. Ce qui
+  // manque (`a_completer`) nomme son salarié : il ne sépare pas le bloc.
   const empreinteDe = (e) => {
-    const { salarie, ...reste } = e;
+    const { salarie, a_completer, ...reste } = e;
     return JSON.stringify(Object.keys(reste).sort().map((k) => [k, reste[k]]));
   };
   engagements.forEach((e, rang) => {

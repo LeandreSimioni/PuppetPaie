@@ -35,21 +35,21 @@ static GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::
 /// La cle des caches qui ne notent pas : le numero du registre ouvert SUR CE FIL, 0 sans registre. Un calcul suivi ne
 /// sert ainsi que ce qu'il a compose lui-meme (tout ce qu'il lit se note), meme si un autre fil compose en meme temps.
 pub fn generation() -> u64 {
-    REGISTRE.with(|r| r.borrow().as_ref().map_or(0, |g| g.numero))
+    REGISTRE.with(|r| r.borrow().last().map_or(0, |g| g.numero))
 }
 
 thread_local! {
-    static REGISTRE: RefCell<Option<Registre>> = const { RefCell::new(None) };
+    static REGISTRE: RefCell<Vec<Registre>> = const { RefCell::new(Vec::new()) };
 }
 
-/// Ouvre le registre : les chemins sous `racine` ou `code` s'y notent relatifs.
+/// Ouvre un registre : les chemins sous `racine` ou `code` s'y notent relatifs. Un calcul suivi peut en faire un autre
+/// (la paie d'un mois lit celle du mois d'avant, qui se calcule alors) : le registre neuf se pose au-dessus de celui qui
+/// est ouvert, et `rendre` redonne celui-ci a son calcul.
 pub fn suivre(racine: &Path, code: &Path) {
     // Un registre neuf, c'est un calcul « a froid » : les caches de bareme (qui ne notent rien quand ils servent)
     // ne lui servent que ce qu'il compose, pour que la liste des entrees soit celle d'un processus neuf.
     let numero = GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
-    REGISTRE.with(|r| {
-        *r.borrow_mut() = Some(Registre { racine: racine.to_path_buf(), code: code.to_path_buf(), entrees: BTreeMap::new(), numero })
-    });
+    REGISTRE.with(|r| r.borrow_mut().push(Registre { racine: racine.to_path_buf(), code: code.to_path_buf(), entrees: BTreeMap::new(), numero }));
 }
 
 /// Un registre est-il ouvert sur ce fil ?
@@ -70,20 +70,35 @@ pub fn ranger<K: Eq + std::hash::Hash, V>(cache: &Mutex<HashMap<K, V>>, cle: K, 
     c.insert(cle, v);
 }
 
-/// Ferme le registre et rend ce qu'il a note, trie par cle.
+/// Ferme le dernier registre ouvert et rend ce qu'il a note, trie par cle. Ce qu'un calcul fait au milieu d'un autre a
+/// lu, celui qui l'a demande en depend aussi : ses entrees s'ajoutent au registre d'en dessous.
 pub fn rendre() -> BTreeMap<String, String> {
-    REGISTRE.with(|r| r.borrow_mut().take().map(|g| g.entrees).unwrap_or_default())
+    REGISTRE.with(|r| {
+        let mut pile = r.borrow_mut();
+        let entrees = pile.pop().map(|g| g.entrees).unwrap_or_default();
+        if let Some(dessous) = pile.last_mut() {
+            for (k, v) in &entrees {
+                dessous.entrees.entry(k.clone()).or_insert_with(|| v.clone());
+            }
+        }
+        entrees
+    })
+}
+
+/// Ferme tous les registres de ce fil : un calcul tombe a pu en laisser d'ouverts.
+pub fn fermer_tout() {
+    REGISTRE.with(|r| r.borrow_mut().clear());
 }
 
 fn suivi() -> bool {
-    REGISTRE.with(|r| r.borrow().is_some())
+    REGISTRE.with(|r| !r.borrow().is_empty())
 }
 
 /// `genre racine:chemin` / `genre code:chemin` / `genre abs:chemin`.
 fn cle_de(genre: &str, chemin: &Path) -> String {
     REGISTRE.with(|r| {
         let r = r.borrow();
-        let r = r.as_ref().expect("registre ouvert");
+        let r = r.last().expect("registre ouvert");
         for (nom, base) in [("racine", &r.racine), ("code", &r.code)] {
             if let Ok(rel) = chemin.strip_prefix(base) {
                 return format!("{} {}:{}", genre, nom, chemin_en_barres(rel));
@@ -117,7 +132,7 @@ fn noter(genre: &str, chemin: &Path, valeur: String) {
     if suivi() {
         let k = cle_de(genre, chemin);
         REGISTRE.with(|r| {
-            if let Some(g) = r.borrow_mut().as_mut() {
+            if let Some(g) = r.borrow_mut().last_mut() {
                 g.entrees.insert(k, valeur);
             }
         });
@@ -127,7 +142,7 @@ fn noter(genre: &str, chemin: &Path, valeur: String) {
 /// Note une entree qui n'est pas un fichier (`fiches`, `moteur`, `aujourdhui`).
 pub fn noter_valeur(cle: &str, valeur: String) {
     REGISTRE.with(|r| {
-        if let Some(g) = r.borrow_mut().as_mut() {
+        if let Some(g) = r.borrow_mut().last_mut() {
             g.entrees.insert(cle.to_string(), valeur);
         }
     });
@@ -180,7 +195,7 @@ pub fn empreinte_dossier(chemin: &Path) -> String {
 pub fn noter_si_besoin(chemin: &Path) {
     if suivi() {
         let k = cle_de("fichier", chemin);
-        let connu = REGISTRE.with(|r| r.borrow().as_ref().is_some_and(|g| g.entrees.contains_key(&k)));
+        let connu = REGISTRE.with(|r| r.borrow().last().is_some_and(|g| g.entrees.contains_key(&k)));
         if !connu {
             noter("fichier", chemin, empreinte_fichier(chemin));
         }
@@ -578,4 +593,27 @@ pub fn lire_json_echec(p: &Path) -> Result<Value, crate::echec::Echec> {
 /// Le nom d'un chemin, ou son texte entier s'il n'en a pas.
 pub fn nom_du(chemin: &std::path::Path) -> String {
     chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| chemin.to_string_lossy().into_owned())
+}
+
+#[cfg(test)]
+mod essais {
+    use super::*;
+
+    /// Un calcul suivi qui en fait un autre (la paie de juin d'un contrat sans terme lit celle de mai, qui se calcule) :
+    /// le calcul de dessous garde son registre, et ce que celui du dessus a lu s'y ajoute ; sinon la paie s'ecrirait avec
+    /// la seule marque du moteur, et ne se recalculerait plus quand ce qu'elle lit change.
+    #[test]
+    fn un_calcul_dans_un_autre_rend_son_registre_a_celui_qui_l_a_demande() {
+        let (racine, code) = (Path::new("/compagnie"), Path::new("/code"));
+        suivre(racine, code);
+        noter_valeur("saisie 2026-06", "a".into());
+        suivre(racine, code);
+        noter_valeur("saisie 2026-05", "b".into());
+        let dessus = rendre();
+        noter_valeur("fiches", "c".into());
+        let dessous = rendre();
+        assert_eq!(dessus.keys().collect::<Vec<_>>(), ["saisie 2026-05"]);
+        assert_eq!(dessous.keys().collect::<Vec<_>>(), ["fiches", "saisie 2026-05", "saisie 2026-06"]);
+        assert!(!registre_ouvert());
+    }
 }
