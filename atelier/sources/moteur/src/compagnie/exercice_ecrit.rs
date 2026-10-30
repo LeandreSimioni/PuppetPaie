@@ -81,7 +81,7 @@ fn entier(v: &Value) -> R<i64> {
 /// Le journal des depots, relu une fois, quand il faut dire si la DSN d'un mois est partie.
 struct Depots<'a> {
     ctx: &'a Contexte,
-    lignes: Option<Vec<Value>>,
+    lignes: Option<std::sync::Arc<Vec<Value>>>,
 }
 
 impl<'a> Depots<'a> {
@@ -92,7 +92,7 @@ impl<'a> Depots<'a> {
     /// Une DSN reelle acceptee est-elle partie pour ce mois ?
     fn dsn_acceptee(&mut self, mois: &str) -> R<bool> {
         if self.lignes.is_none() {
-            self.lignes = Some(etats::charger(&self.ctx.racine)?);
+            self.lignes = Some(envois::journal::lu(&self.ctx.racine).map(|j| j.lignes)?);
         }
         let l = self.lignes.as_ref().unwrap();
         Ok(vrai(&etats::etat_dsn_du_mois(l, mois, &Value::Null, &nic_principal(self.ctx))?))
@@ -136,7 +136,7 @@ fn dossier_exercices(ctx: &Contexte) -> PathBuf {
 /// Les mois pris sont ceux qui ont une saisie.
 fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) -> R<ExportCompta> {
     let plan = plan_comptable(ctx)?;
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let propre = ctx.racine.join("config").join("plan-comptable.json");
     let origine = if propre.exists() { "config/plan-comptable.json" } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
     let mois: Vec<String> = mois_de_l_annee(ctx, annee)

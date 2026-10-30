@@ -98,7 +98,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
 /// mois n'y est pas. `None` : aucune DSN n'a declare ce mois.
 pub(crate) fn saisie_declaree(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     let Some(mut saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let mut declares = Vec::new();
     let mut lu: Option<Value> = None;
     for o in engagement::stock::objets_du_mois(&ctx.racine, mois)? {
@@ -350,7 +350,7 @@ pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nou
     let (Some(avant), Some(apres)) = (identifies(ctx, base), identifies(ctx, nouvelle)) else { return Ok(None) };
     let paires = droit::jumeaux::apparier_meme_numero(&avant, &apres);
     let e_avant = base.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     for (i, j) in paires.iter().enumerate() {
         let Some(Some(id)) = avant.get(i) else { continue };
         let nom = e_avant.get(i).and_then(|e| e.get("salarie")).map(valeur_en_texte).unwrap_or_else(|| id.0.clone());
@@ -479,7 +479,7 @@ fn avant_apres(mois: &str, avant: Option<&Paie>, apres: &Paie) -> R<Value> {
 /// celles deja portees par la DSN d'un mois suivant (chaque paie declaree par une correction, comparee a celle qu'elle
 /// corrigeait). Vide quand le mois ne se corrige pas ailleurs que dans sa DSN (`se_corrige_ailleurs`).
 pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, Vec<Value>)> {
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     if !declarations::produire_regularisations::se_corrige_ailleurs(ctx, &departs, mois)? {
         return Ok((Vec::new(), Vec::new()));
     }
@@ -509,7 +509,7 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
 /// l'ancien logiciel, `engagement::importe::dsn_deposee`). Une correction se declare dans la DSN suivante (cahier
 /// technique DSN 2026.1, § 2.1.2.1, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`).
 pub(crate) fn dsn_qui_porte(ctx: &Contexte, mois: &str) -> R<String> {
-    let lignes = envois::etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let partie = |m: &str| -> R<bool> {
         let e = envois::etats::dsn_du_mois(&lignes, &ctx.entreprise, m)?;
         Ok((vrai(&e) && !e.get("refusee").is_some_and(vrai)) || engagement::importe::dsn_deposee(&ctx.racine, m).map_err(Echec::from)?.is_some())

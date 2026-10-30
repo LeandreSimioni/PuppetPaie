@@ -342,42 +342,6 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
     erreur(classe, format!("{} : {}", p.display(), e))
 }
 
-/// Toutes les lignes de `journal/depots.json` (aucune si le fichier n'existe pas).
-pub fn charger(racine: &Path) -> R<Vec<Value>> {
-    Ok((*charger_partage(racine)?).clone())
-}
-
-/// Les lignes de `journal/depots.json`, PARTAGEES : lues une fois tant que le fichier ne change pas (chemin, date,
-/// taille ; il s'ecrit toujours d'un coup, `ecriture::ecrire_json`), et servies a chaque route qui les relit -- la
-/// fenetre garde le moteur charge. Un refus ne se garde pas.
-pub fn charger_partage(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
-    type Cache = std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, (Option<(u128, u64)>, std::sync::Arc<Vec<Value>>)>>;
-    static CACHE: std::sync::OnceLock<Cache> = std::sync::OnceLock::new();
-    let cache = CACHE.get_or_init(Default::default);
-    let p = chemin(racine);
-    let sig = socle::fichiers::signature(&p);
-    if let Some((s, l)) = sig.and_then(|_| cache.lock().unwrap_or_else(|e| e.into_inner()).get(&p).cloned()) {
-        if s == sig {
-            return Ok(l);
-        }
-    }
-    let l = std::sync::Arc::new(charger_du_disque(&p)?);
-    if sig.is_some() {
-        socle::fichiers::ranger(cache, p, (sig, l.clone()));
-    }
-    Ok(l)
-}
-
-fn charger_du_disque(p: &Path) -> R<Vec<Value>> {
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let octets = std::fs::read(&p).map_err(|e| erreur_io(&e, &p))?;
-    let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))?;
-    let v: Value = serde_json::from_str(&texte).map_err(|e| erreur("JSONDecodeError", e.to_string()))?;
-    Ok(items(&v)?.into_iter().map(Cow::into_owned).collect())
-}
-
 /// `journal.lire` sur des lignes deja lues.
 pub fn filtrer<'a>(lignes: &'a [Value], quoi: Option<&str>, mois: Option<&str>, reel: bool) -> R<Vec<&'a Value>> {
     let mut v: Vec<&Value> = lignes.iter().collect();
@@ -1719,7 +1683,7 @@ fn rattacher_retours(racine: &Path, retours: &Value, contenus: &Dico<Vec<u8>>, i
     if !p.exists() {
         return Ok(0);
     }
-    let mut lignes = charger(racine)?;
+    let mut lignes = (*crate::journal::lu(racine)?.lignes).clone();
     let mut par_flux: Dico<Vec<usize>> = Dico::nouveau();
     for (i, l) in lignes.iter().enumerate() {
         let f = get(l, "flux")?;
@@ -2063,7 +2027,7 @@ mod tests {
         assert_eq!(inc[0]["detail"]["anomalies"][0]["rubrique"], "S21.G00.20.001");
         // ni le nom du salarie ni la valeur ne partent chez l'editeur
         assert!(!inc[0].to_string().contains("FAVART"));
-        let fichier = charger(&r).unwrap();
+        let fichier = crate::journal::lu(&r).unwrap().lignes;
         let pose = &fichier[0]["retours"][0];
         assert_eq!(pose["verdict"], "KO");
         assert_eq!(pose["anomalies"], json!(["Code URSSAF invalide (bloquant) -- FAVART"]));

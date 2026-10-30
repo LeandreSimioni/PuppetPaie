@@ -128,7 +128,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let le = match data["engagements"][i].get("valide").and_then(|v| v.get("le")).cloned() {
         Some(le) => le,
         None => {
-            let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+            let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
             let le = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
             let cle = engagement::cle_de_l_engagement(ctx, &data["engagements"][i]).unwrap_or_else(|| salarie.to_string());
             crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, debut)?;
@@ -335,7 +335,7 @@ fn modifier_puis_revalider(
             return Err(erreur(crate::regularisation::CLASSE_NON_DECLARABLE, texte));
         }
     }
-    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     // L'AVERTISSEMENT : chaque engagement que le changement touche, nomme une fois (`qui`), et une ligne par ce que le
     // changement entraine pour lui (`consequences`).
     let mut touches: Vec<(String, Vec<String>)> = Vec::new();
@@ -564,7 +564,7 @@ fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let charge = &designe;
     let (_, i) = engagement_designe(ctx, charge)?;
-    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     if !booleen(charge, "non_actif", false) {
         return match engagement::etats::supprimer(ctx, mois, i, &departs) {
             Ok(()) => Ok(json!({"retire": "supprime"})),

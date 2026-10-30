@@ -595,7 +595,7 @@ pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value
         }
         None => Value::Null,
     };
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let mut declarations = Vec::new();
     for r in rappels.get("rappels").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
         if let Some(d) = declaration(ctx, &lignes, r)? {

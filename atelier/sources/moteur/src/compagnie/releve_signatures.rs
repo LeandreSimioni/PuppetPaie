@@ -66,7 +66,7 @@ pub fn route_avec(ctx: &Contexte, nom: &str, charge: &Value, client: Option<&mut
 /// renvoie au salarie.
 pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
     let mut boite = BoiteQuiRepond::nouvelle(ctx);
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let attendues = etats::signatures_attendues(&lignes, None, &crate::routes::contrats::salaries_d_identite(ctx))?;
     let maintenant_naif = socle::paris::maintenant_naif();
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
@@ -158,7 +158,7 @@ fn boite_de_la_releve(ctx: &Contexte) -> R<Result<Box<dyn Courriel>, String>> {
 /// en `Err`.
 pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, mois: Option<&str>, qui: &str) -> R<ReleveSignatures> {
     let mut r = ReleveSignatures::nouvelle();
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let attendues = etats::signatures_attendues(&lignes, mois, &crate::routes::contrats::salaries_d_identite(ctx))?;
     let attendues: Vec<Value> = attendues.as_array().cloned().unwrap_or_default();
     r.attendues = attendues.len();

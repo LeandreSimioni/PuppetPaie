@@ -94,7 +94,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
         return Ok(None);
     }
     let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let mut n = 0;
     for e in engagement::etats::du_mois(ctx, mois, &departs)? {
         let a_declarer = match e.valide() {
@@ -115,7 +115,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
 /// L'etat de la DSN d'un mois tenu avant ce logiciel, en mots : `etat` (« passee », « attente », « refusee » : le
 /// journal ; « importee » : la DSN de l'ancien logiciel ; « sans_trace »), `courte`, `phrase`, `quand`.
 pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str) -> R<Value> {
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let e = etats::dsn_du_mois(&lignes, &ctx.entreprise, mois)?;
     let quand = |e: &Value| etats::quand_lisible(e.get("quand").unwrap_or(&Value::Null));
     if vrai(&e) {
@@ -421,7 +421,7 @@ pub(crate) fn cartes(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     if importes.is_empty() {
         return Ok(Vec::new());
     }
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let embauches = etats::embauches_par_depot(&lignes)?;
     let (certifiees, _) = envois::reprise_journal::embauches_attestees(ctx);
     let mut cartes = Vec::new();

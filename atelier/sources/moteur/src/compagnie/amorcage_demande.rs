@@ -132,7 +132,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
     // UN NUMERO D'ORDRE PAR FICHIER, a la suite de tous les signalements deja partis : la sequence ne se remet
     // jamais a zero (cahier technique DSN, p. 136), et deux signalements au meme ordre ne passent pas (p. 14).
     let premier = envois::journal::dernier_ordre_des_signalements(&ctx.racine)? + 1;
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let mut fichiers = Vec::new();
     for (rang, l) in retenus.iter().enumerate() {
         let nom = format!("Amorcage{}_{}_{}.dsn", d.motif, l.salarie, jour);

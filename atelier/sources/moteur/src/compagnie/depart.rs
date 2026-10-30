@@ -195,7 +195,7 @@ impl Forme {
 /// LA DSN DE `mois` TELLE QU'ELLE PARTIRAIT, sous la forme `forme` : depuis les paies ecrites des engagements valides du
 /// mois de son etablissement, avec ce que `fabriquer_dsn` lui donne (les corrections a porter, les arrets du mois).
 fn fabriquer_du_present(ctx: &Contexte, mois: &str, forme: &Forme) -> R<(declarations::dsn::Fabriquee, bool)> {
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let fiche = ctx.entreprise_du_mois(mois).map_err(valeur)?;
     let nic = forme.etablissement.clone();
     let du_nic = |sal: &Value| -> R<bool> {
@@ -372,7 +372,7 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
         }
         arrets.push(declarations::dsn::Arret { v: a });
     }
-    declarations::dsn::fabriquer(ctx, &paies, &mois, &regs, &arrets, &forme.options(), &envois::journal::departs(&ctx.racine)?).map_err(valeur)
+    declarations::dsn::fabriquer(ctx, &paies, &mois, &regs, &arrets, &forme.options(), &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(valeur)
 }
 
 /// LES DSN MENSUELLES PARTIES de `mois` pour l'etablissement `nic` (`Null` : le principal), reelles et acceptees, dans
@@ -497,7 +497,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
     socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
     crate::routes::mois::refuser_si_clos(ctx, mois)?;
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     // LA DSN QUE L'ANCIEN LOGICIEL A DEPOSEE ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se declare
     // dans la DSN suivante.
     if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(ctx, mois)? {
@@ -815,7 +815,7 @@ fn numero_en_nom(n: &str) -> String {
 pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], qui: &str) -> R<DocumentsFabriques> {
     let verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     let mut faits = DocumentsFabriques { _verrou: verrou, reserves: Reserves::default(), a_poser: Vec::new(), avertissements: Vec::new() };
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let Some((_data, paies)) = engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(Echec::from)? else { return Ok(faits) };
     let ecrits = engagement::etats::numeros_des_documents(ctx, mois, &departs).map_err(Echec::from)?;
     let an = annee_de(mois)?;
@@ -962,7 +962,7 @@ fn imprimer(ctx: &Contexte, mois: &str, ent: &Value, imp: &Impression, cles: &[S
         let imprimees: Vec<Paie> = rangs.iter().map(|i| paies[*i].clone()).collect();
         let rectifs: HashMap<usize, Value> = rangs.iter().enumerate().filter_map(|(k, i)| imp.rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
         let leurs_numeros: Vec<Option<String>> = rangs.iter().map(|i| imp.numeros[*i].clone()).collect();
-        documents::bulletin::jeux_et_description(ctx, &imprimees, &leurs_numeros, ent, mois, toutes, false, &rectifs, &envois::journal::departs(&ctx.racine)?).map_err(valeur)
+        documents::bulletin::jeux_et_description(ctx, &imprimees, &leurs_numeros, ent, mois, toutes, false, &rectifs, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(valeur)
     };
 
     // UN JEU DE DOCUMENTS PAR SALARIE QUI LES RECOIT.
@@ -1316,7 +1316,7 @@ fn refaire_le_signalement(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -
                     envoi_test: false,
                     date_constitution: Some(jour),
                 };
-                let texte = declarations::amorcage::generer(&ctx_j, paie, &options, &envois::journal::departs(&ctx.racine)?).map_err(|e| valeur(e.message().to_string()))?;
+                let texte = declarations::amorcage::generer(&ctx_j, paie, &options, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(|e| valeur(e.message().to_string()))?;
                 declarations::dsn::ecrire(&texte, cible).map_err(valeur)
             }
             declarations::fctu::NATURE => route("fin-contrat-signaler", json!({"mois": mois, "salarie": premier, "ordre": ordre, "le": jour.iso()})),
@@ -1421,7 +1421,7 @@ fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usi
         let mut numeros: Vec<Option<String>> = Vec::new();
         let mut premiers_ce: Vec<Option<i64>> = Vec::new();
         let mut rectificatifs: HashMap<usize, Value> = HashMap::new();
-        for e in engagement::etats::du_mois(&ctx, mois, &envois::journal::departs(&ctx.racine)?).map_err(Echec::from)? {
+        for e in engagement::etats::du_mois(&ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(Echec::from)? {
             let Some(v) = e.valide() else { continue };
             let Some(p) = engagement::etats::paie_partie(&ctx, v.objet(), &jusqu_a, mois).map_err(Echec::from)? else { continue };
             let ecrite = p.numero_bulletin.as_deref().and_then(|n| paie_ecrite_au_bulletin(v.objet(), mois, n));

@@ -339,8 +339,8 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
         Vec::new()
     } else {
         // Un journal illisible ne doit pas empecher la trace (l'ouverture n'echoue jamais).
-        etats::charger(&ctx.racine)
-            .and_then(|l| etats::flux_de_test(&l))
+        envois::journal::lu(&ctx.racine).map(|j| j.lignes)
+            .and_then(|l| etats::flux_de_test(&l).map_err(|e| e.message))
             .ok()
             .and_then(|v| v.as_array().cloned())
             .unwrap_or_default()

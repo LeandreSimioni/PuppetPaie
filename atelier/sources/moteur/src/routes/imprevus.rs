@@ -924,7 +924,7 @@ fn jour_le(charge: &Value) -> R<Option<Jour>> {
 /// Ce qui peut partir du mois : la saisie de ses engagements valides (`engagement::etats::validees_du_mois`), et leurs
 /// paies ecrites ; refus si aucun engagement ne le touche.
 fn saisie_du_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
 }
 
@@ -990,7 +990,7 @@ fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mo
 fn paie_de_l_engagement(ctx: &Contexte, paies: &[Paie], rang: usize, cle: &str, nom: &str, mois: &str) -> R<Paie> {
     let annee = mois.chars().take(4).collect::<String>().parse::<i32>().map_err(|_| erreur("ValueError", format!("mois illisible : {}", repr_texte(mois))))?;
     let mut paies = paies.to_vec();
-    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     documents::ecrire_documents::numeroter(ctx, &mut paies, annee, &departs).map_err(en_echec)?;
     paies
         .into_iter()
@@ -1201,7 +1201,7 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         .into_iter()
         .map(|v| declarations::dsn::Arret { v })
         .collect();
-    let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets, &envois::journal::departs(&ctx.racine).map_err(plain)?).map_err(echec_fctu)?;
+    let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?).map_err(echec_fctu)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
     crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
     Ok(json!({
@@ -1628,7 +1628,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
     let mut out = Vec::new();
-    let journal = envois::etats::charger(&ctx.racine)?;
+    let journal = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     for e in liste {
         let e: &Value = &avec_ses_bornes(&e);
         let nat = nature_de(get(e, "nature")?)?;

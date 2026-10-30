@@ -349,7 +349,7 @@ pub(crate) fn cle_de(p: &Paie) -> String {
 /// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois`) : la saisie des engagements valides et leurs paies
 /// ecrites, sans numeros ; un mois sans saisie n'a rien.
 pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    Ok(engagement::etats::validees_du_mois(ctx, mois, &envois::journal::departs(&ctx.racine)?).map_err(Echec::from)?.unwrap_or_else(|| (json!({"mois": mois, "engagements": []}), Vec::new())))
+    Ok(engagement::etats::validees_du_mois(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(Echec::from)?.unwrap_or_else(|| (json!({"mois": mois, "engagements": []}), Vec::new())))
 }
 
 /// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
@@ -358,7 +358,7 @@ fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut Has
     let mois = data.get("mois").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
     let annee = socle::num::entier_lu(&mois.chars().take(4).collect::<String>())
         .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
-    documents::ecrire_documents::numeroter_en_attente(ctx, paies, annee as i32, attente, &envois::journal::departs(&ctx.racine)?)
+    documents::ecrire_documents::numeroter_en_attente(ctx, paies, annee as i32, attente, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)
 }
 
 /// `etiquette(mois)`, ses refus sous leur classe.
@@ -423,7 +423,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
     let mut bruts = Decimal::new(0, 2);
     let mut jours = 0i64;
     for m in mois_du.iter().filter(|m| **m < eng.mois) {
-        let ecrite = engagement::etats::paie_ecrite_de(ctx, m, &cle, &debut, &envois::journal::departs(&ctx.racine).map_err(|e| avec("ValueError", e))?).map_err(|e| avec("ValueError", e))?;
+        let ecrite = engagement::etats::paie_ecrite_de(ctx, m, &cle, &debut, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(|e| avec("ValueError", e))?).map_err(|e| avec("ValueError", e))?;
         let Some(paie) = ecrite.as_ref().and_then(|x| x.get("paie")) else {
             match importe.as_ref().and_then(|i| verse_par_l_ancien_logiciel(i, m)) {
                 Some((brut, l, j)) => {
@@ -636,7 +636,7 @@ fn mois_puppetpaie(
     if categories.contains(CERTIFICATS_CS) && ecrit {
         let (pour_cs, avert) = certificats_dus(ctx, &paies)?;
         d.avertissements.extend(avert.into_iter().map(|a| format!("{} : {}", lib, a)));
-        let ecrits = engagement::etats::numeros_des_documents(ctx, mois, &envois::journal::departs(&ctx.racine)?).map_err(Echec::from)?;
+        let ecrits = engagement::etats::numeros_des_documents(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(Echec::from)?;
         let trouve = |cle: &str, debut: &str| pour_cs.iter().find(|(c, de, _)| c == cle && de == debut).and_then(|(_, _, v)| v.as_ref());
         // Chaque certificat parti, et tous les N CE de l'archive du mois.
         let mut tous: Vec<i64> = Vec::new();
@@ -1161,7 +1161,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
         pages.extend(pages_importees(ctx, &ensemble_cles, &p, &mut d));
     }
     if cats.contains(&RECAPITULATIF) {
-        let mut recaps = Recapitulatifs::nouveau(ctx, p.mois.clone(), p.annee.clone(), p.toutes, envois::journal::departs(&ctx.racine)?);
+        let mut recaps = Recapitulatifs::nouveau(ctx, p.mois.clone(), p.annee.clone(), p.toutes, envois::journal::lu(&ctx.racine).map(|j| j.departs)?);
         for cle in &cles {
             if let Some(r) = recaps.pdf(cle, tmp)? {
                 for i in 0..pages_pdf(&r)? {

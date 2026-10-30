@@ -400,7 +400,7 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> 
     // Ce que les organismes rendent de plus (refus, taux du PAS, effectif) : archive puis range par le meme chemin
     // qu'un retour reel (`rattacher_retours_avec_contenus`), qui en lit le verdict.
     let mut pieces: Vec<crate::organismes_simules::Piece> = Vec::new();
-    let mut lignes = crate::etats::charger(&ctx.racine)?;
+    let mut lignes = crate::journal::lu(&ctx.racine).map(|j| j.lignes.to_vec())?;
     let avant = crate::organismes_simules::memoire(&ctx.racine)?;
     let mut memoire = avant.clone();
     let maintenant = maintenant_naif();

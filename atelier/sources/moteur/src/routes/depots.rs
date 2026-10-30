@@ -277,7 +277,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
 
     // Les engagements valides du mois (rien ne part d'un engagement en saisie), vus comme des embauches, sans relire leur
     // paie.
-    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     let data = engagement::etats::validees_du_mois(ctx, mois_demande, &departs).map_err(plain)?.map(|(d, _)| d)
         .ok_or_else(|| erreur("FileNotFoundError", format!("Aucune saisie pour {}.", mois_demande)))?;
     let paies: Vec<Paie> = {
@@ -380,7 +380,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     }
 
     // PAS DEUX FOIS : une embauche deja partie en DPAE reelle ne se reecrit pas.
-    let lignes_journal = etats::charger(&ctx.racine)?;
+    let lignes_journal = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let etat = etats::etat_des_embauches(&lignes_journal)?;
     let mut deja: HashMap<(String, String), Value> = HashMap::new();
     for entree in etat.as_array().map(Vec::as_slice).unwrap_or(&[]) {
@@ -652,7 +652,7 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
         Ok(r) => releve_retours::incidents_en_phrase(&r),
         Err(e) => phrase_de(&e),
     };
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let (passe, refuse);
     if dpae {
         let ligne = lignes.iter().rev().find(|l| l.get("quoi").and_then(Value::as_str) == Some("dpae") && l.get("flux").and_then(Value::as_str) == Some(flux.as_str()));
@@ -851,7 +851,7 @@ fn tester_les_dpae(
             let p = std::path::Path::new(&f);
             let octets = std::fs::read(p).map_err(|x| erreur("OSError", format!("{} : {}", p.display(), x)))?;
             let nom = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            let lignes = etats::charger(&ctx.racine)?;
+            let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
             let deja = etats::repetition(&lignes, "dpae", &envois::journal::empreinte(&octets), &nom)?;
             if !vrai(&deja["conforme"]) {
                 depot_acte::deposer_dpae_avec(ctx, &json!(f), false, None, qui, false, "", client.as_deref_mut())?;
@@ -1034,7 +1034,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let contenu = lire_octets(&chemin)?;
     let texte: String = contenu.iter().map(|&b| b as char).collect();
     let enrs = declarations::dpae::relire(&texte);
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
+    let m = crate::routes::etapes::Moteur::nouveau(ctx);
     let lignes_journal = m.lignes()?;
     let faites = etats::embauches_par_depot(&lignes_journal)?;
     let mut par_nir: HashMap<String, (&String, &Value)> = HashMap::new();
@@ -1119,7 +1119,7 @@ pub(crate) fn bilan_de_la_repetition(ctx: &Contexte, charge: &Value) -> R<Value>
     let chemin = resoudre(&ctx.racine, fichier)?;
     let empreinte = empreinte_du_fichier(&chemin)?;
     let nom = nom_du_chemin(&chemin);
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
+    let m = crate::routes::etapes::Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
     let Some(quoi) = quoi.as_str() else {
         return Err(Echec { classe: None, message: "demande illisible : il faut `quoi`".to_string() });
