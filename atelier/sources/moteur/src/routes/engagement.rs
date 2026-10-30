@@ -198,7 +198,8 @@ enum Issue {
 /// - Rien n'a change : rien ne s'ecrit, la reponse le dit (`change` faux).
 /// - Quelque chose a change, et rien de ce qui est parti ne le demande : la modification s'ecrit, l'engagement reste valide.
 /// - Ce qui est parti le demande : la reponse porte l'avertissement, et rien n'est ecrit ; la page le montre et renvoie
-///   la demande avec `confirme` (et `a_partir_du`, le mois choisi). `avertissement` : `engagements`, chaque engagement
+///   la demande avec `confirme` (et `a_partir_du`, le mois choisi, `a_partir_du_jour`, son jour quand ce n'est pas le
+///   1er). `avertissement` : `engagements`, chaque engagement
 ///   touche nomme une fois (`qui`) avec une ligne par ce que le changement entraine pour un envoi parti sur la version
 ///   d'avant (`consequences`, `engagement::etats::a_refaire`) : un avenant a faire signer, une DPAE a deposer pour une
 ///   embauche avancee, un bulletin rectificatif, la DSN qui se corrige ; et, pour un contrat au mois dont un mois est
@@ -216,6 +217,13 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let confirme = booleen(charge, "confirme", false);
     let a_partir_du = charge.get("a_partir_du").filter(|v| vrai(v)).map(valeur_en_texte);
+    // Le jour du mois choisi ou le changement prend effet, quand on le dit (le 1er sinon).
+    let le = match charge.get("a_partir_du_jour").filter(|v| vrai(v)) {
+        None => None,
+        Some(v) => Some(valeur_en_texte(v).trim().parse::<u32>().map_err(|_| {
+            refus(format!("« le {} » : un jour du mois est attendu, de 1 à 31. Rien n'est écrit.", valeur_en_texte(v)))
+        })?),
+    };
     crate::routes::mois::refuser_si_importe(ctx, mois)?;
     crate::routes::mois::refuser_si_clos(ctx, mois)?;
     crate::routes::mois::refuser_si_avant_la_premiere_embauche(ctx, mois)?;
@@ -258,7 +266,7 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         None
     };
     let photo = Photo::prendre(&ctx.racine)?;
-    let issue = modifier_puis_revalider(ctx, mois, &rangs, &saisies, &nouvelles, base.as_ref(), confirme, a_partir_du.as_deref());
+    let issue = modifier_puis_revalider(ctx, mois, &rangs, &saisies, &nouvelles, base.as_ref(), confirme, a_partir_du.as_deref(), le);
     let faits = match issue {
         Ok(Issue::Ecrite(faits)) => faits,
         Ok(Issue::Rien) => {
@@ -300,6 +308,7 @@ fn modifier_puis_revalider(
     base: Option<&Value>,
     confirme: bool,
     a_partir_du: Option<&str>,
+    le: Option<u32>,
 ) -> R<Issue> {
     for (i, s) in rangs.iter().zip(saisies) {
         engagement::etats::modifier(ctx, mois, *i).map_err(Echec::from)?;
@@ -340,7 +349,7 @@ fn modifier_puis_revalider(
         let Some(q) = engagement::etats::question_a_partir_du(ctx, mois, *i).map_err(Echec::from)? else { continue };
         let depuis = a_partir_du.filter(|m| q.choix.iter().any(|c| c == m)).map(String::from).or_else(|| (q.choix.len() == 1).then(|| q.choix[0].clone()));
         match depuis {
-            Some(d) => engagement::etats::poser_a_partir_du(ctx, mois, *i, &d).map_err(refus)?,
+            Some(d) => engagement::etats::poser_a_partir_du(ctx, mois, *i, &d, le).map_err(refus)?,
             None => {
                 let o = engagement::stock::objet_du_mois(&ctx.racine, mois, *i).map_err(Echec::from)?;
                 let avenant = o.as_ref().is_some_and(|o| contrat_parti(ctx, o, &departs));

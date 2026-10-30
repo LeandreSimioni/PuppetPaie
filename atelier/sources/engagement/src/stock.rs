@@ -1033,7 +1033,11 @@ impl Objet {
     /// modification la date de sa prise d'effet (code du travail R1221-40, `atelier/reference/sources/code-du-travail/
     /// articles-20261029.md`, l. 856), et la DSN date de meme le bloc S21.G00.41 (41.001). Un mois d'apres dont les
     /// termes ne changent plus perd la date d'un avenant qui n'y a plus lieu.
-    pub fn a_partir_du(&self, ancien: &Objet, depuis: &str) -> Resultat<Objet> {
+    ///
+    /// `le` : le jour du mois `depuis` ou le changement prend effet, quand ce n'est pas le premier. Le mois porte alors
+    /// l'avenant a cette date, et les termes d'avant (`avant` : le salaire et la duree du travail d'`ancien`) qui paient
+    /// ses jours d'avant (`periodes::bornes`, chaque part par `droit::periodes::part_du_mois`).
+    pub fn a_partir_du(&self, ancien: &Objet, depuis: &str, le: Option<Jour>) -> Resultat<Objet> {
         let termes: Vec<&str> = RECONDUITS.iter().copied().filter(|k| !PARTAGES.contains(k)).collect();
         let mut mois: Vec<String> = self.mois_saisis();
         mois.extend(ancien.mois_saisis());
@@ -1069,7 +1073,22 @@ impl Objet {
                     };
                 }
             }
-            if m.as_str() == depuis && m != self.fichier && !v.get("date_modification").is_some_and(vrai) {
+            let au_jour = le.filter(|j| m.as_str() == depuis && j.jour > 1);
+            if let Some(j) = au_jour {
+                v.insert("date_modification".into(), Value::String(j.iso()));
+                match termes_d_avant(ancien, &m, &v)? {
+                    Some(a) => v.insert("avant".into(), Value::Object(a)),
+                    None => v.remove("avant"),
+                };
+            } else if m.as_str() == depuis && le.is_some() {
+                // Le changement vaut du premier jour du mois : rien ne s'y coupe.
+                v.remove("avant");
+                if m == self.fichier {
+                    v.remove("date_modification");
+                } else {
+                    v.insert("date_modification".into(), Value::String(premier_du_mois(&m)?.iso()));
+                }
+            } else if m.as_str() == depuis && m != self.fichier && !v.get("date_modification").is_some_and(vrai) {
                 v.insert("date_modification".into(), Value::String(premier_du_mois(&m)?.iso()));
             } else if m.as_str() > depuis {
                 let memes = |x: &Map<String, Value>, y: &Map<String, Value>| termes.iter().all(|k| x.get(*k).map(canonique) == y.get(*k).map(canonique));
@@ -1100,6 +1119,33 @@ impl Objet {
         }
         Ok(r)
     }
+}
+
+/// Les termes du contrat qu'`ancien` disait en `mois` (`droit::periodes::TERMES_D_AVANT` : le salaire mensuel et la duree
+/// du travail, celle de la nature quand la saisie n'en dit pas), quand la vue `v` du mois les change ; `None` quand ils
+/// ne changent pas (l'avenant change autre chose : il se date, rien ne se coupe).
+fn termes_d_avant(ancien: &Objet, mois: &str, v: &Map<String, Value>) -> Resultat<Option<Map<String, Value>>> {
+    let Some(a) = ancien.vue(mois)? else { return Ok(None) };
+    let terme = |x: &Map<String, Value>, k: &str| -> Resultat<Option<Value>> {
+        match x.get(k).filter(|y| !y.is_null()) {
+            Some(y) => Ok(Some(y.clone())),
+            None if k == "quotite_contrat" => {
+                let nat = crate::conges::nature_de(x.get("nature"))?;
+                Ok(nat.quotite_reference_defaut.map(Value::from))
+            }
+            None => Ok(None),
+        }
+    };
+    let mut avant = Map::new();
+    let mut change = false;
+    for k in droit::periodes::TERMES_D_AVANT {
+        let (x, y) = (terme(&a, k)?, terme(v, k)?);
+        change |= x.as_ref().map(canonique) != y.as_ref().map(canonique);
+        if let Some(x) = x {
+            avant.insert(k.to_string(), x);
+        }
+    }
+    Ok(change.then_some(avant))
 }
 
 /// Le mois qui precede `AAAA-MM`.

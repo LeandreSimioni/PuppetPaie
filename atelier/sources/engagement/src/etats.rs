@@ -970,7 +970,8 @@ impl APartirDu {
         format!(
             "Les documents ou la DSN de {} sont déjà partis. À partir de quel mois ce changement vaut-il ? Les mois \
 d'avant gardent leurs chiffres ; à partir du mois choisi, la paie prend le nouveau chiffre, et l'avenant le dit à compter \
-du premier jour de ce mois.",
+du jour dit, le 1er si rien d'autre n'est dit. Un changement en cours de mois coupe ce mois en deux : l'ancien chiffre \
+jusqu'à la veille, le nouveau à partir de ce jour, chaque part payée pour ses heures.",
             partis.join(", ")
         )
     }
@@ -1023,9 +1024,10 @@ fn contrat_au_mois_parti(ctx: &Contexte, ecrit: &Objet, nouveau: &Objet, mois: &
     Ok(Some((ancien, partis, couverts)))
 }
 
-/// La reponse : le changement vaut a partir de `depuis` (`stock::Objet::a_partir_du`), ecrit dans l'engagement. Refus :
-/// la question ne se pose pas, ou `depuis` n'est pas un de ses choix ; rien n'est ecrit.
-pub fn poser_a_partir_du(ctx: &Contexte, mois: &str, rang: usize, depuis: &str) -> Resultat<()> {
+/// La reponse : le changement vaut a partir de `depuis` (`stock::Objet::a_partir_du`), le jour `le` de ce mois quand il
+/// est dit (le 1er sinon), ecrit dans l'engagement. Refus : la question ne se pose pas, `depuis` n'est pas un de ses
+/// choix, ou le jour n'est pas un jour du contrat dans ce mois ; rien n'est ecrit.
+pub fn poser_a_partir_du(ctx: &Contexte, mois: &str, rang: usize, depuis: &str, le: Option<u32>) -> Resultat<()> {
     let q = question_a_partir_du(ctx, mois, rang)?.ok_or_else(|| "Rien ne change d'un mois à l'autre dans cet engagement : la question « à partir de quel mois ? » ne se pose pas. Rien n'est écrit.".to_string())?;
     if !q.choix.iter().any(|m| m == depuis) {
         return Err(format!(
@@ -1036,8 +1038,30 @@ pub fn poser_a_partir_du(ctx: &Contexte, mois: &str, rang: usize, depuis: &str) 
         ));
     }
     let o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
+    let jour = match le {
+        None => None,
+        Some(n) => {
+            let premier = socle::date::premier_du_mois(depuis)?;
+            let j = socle::date::Jour::nouveau(premier.an, premier.mois, n).ok_or_else(|| {
+                format!("{} : « le {} {} » n'est pas un jour de ce mois. Rien n'est écrit.", q.qui, n, crate::libelle_mois(depuis))
+            })?;
+            let debut = socle::date::d(o.brut.get("debut").unwrap_or(&Value::Null))?;
+            let fin = o.brut.get("fin").filter(|f| vrai(f)).map(socle::date::d).transpose()?;
+            if j < debut || fin.is_some_and(|f| j > f) {
+                return Err(format!(
+                    "{} : le contrat court du {}{} ; un changement au {} n'en est pas un jour. Rien n'est écrit.",
+                    q.qui,
+                    debut.jj_mm_aaaa(),
+                    fin.map(|f| format!(" au {}", f.jj_mm_aaaa())).unwrap_or_default(),
+                    j.jj_mm_aaaa()
+                ));
+            }
+            // Le premier jour du contrat dans le mois : le changement couvre tout ce que le mois en paie.
+            (j > debut).then_some(j).or(Some(premier))
+        }
+    };
     let saisie = o.brut.get(PRECEDENTE).and_then(|p| p.get("saisie")).and_then(Value::as_object).cloned().unwrap_or_default();
-    let r = o.a_partir_du(&o.d_apres_la_saisie(&saisie), depuis)?;
+    let r = o.a_partir_du(&o.d_apres_la_saisie(&saisie), depuis, jour)?;
     stock::reecrire(&ctx.racine, &r)?;
     Ok(())
 }

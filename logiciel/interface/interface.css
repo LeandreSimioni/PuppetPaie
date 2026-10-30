@@ -841,6 +841,7 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .fait label { font-size: 12px; color: var(--discret); }
 .fait input, .fait select { display: block; padding: .3rem .4rem; }
 .fait input[type="number"] { width: 7rem; }
+input.jour-du-mois { width: 4rem; }
 .fait .f-rubrique { width: 10rem; }
 .fait .retirer-fait { align-self: center; }
 
