@@ -36,7 +36,9 @@ function finSeSignale(nat, motif) {
  *  signale, les faits que le moteur ne devine pas, plus le dernier jour payé
  *  qui ne s'écrit que s'il s'écarte de la fin du contrat. */
 function ruptureDuBloc(div, nat, fin, e) {
-  if (!fin || (!(nat.motifs_rupture || []).length && !nat.signalement_fctu)) return;
+  // Un contrat aux cachets n'écrit pas sa fin : le moteur la donne (`contrat.rupture`, son dernier jour travaillé).
+  if (!(fin || (div._rupture && div._rupture.fin))) return;
+  if (!(nat.motifs_rupture || []).length && !nat.signalement_fctu) return;
   const dans = (s) => div.querySelector(s).value;
   if (dans(".e-motif-rupture")) e.motif_rupture = dans(".e-motif-rupture");
   // Le reste ne part que si cette fin SE SIGNALE : le moteur le dit, motif
@@ -221,6 +223,7 @@ async function calculerApercu(lu) {
         div._total = null;
         peindreChiffres(div, null);
         div._paies = [];
+        div._rupture = null;
         peindreCarte(div);
         div.querySelector(".resolu").innerHTML = "";
         // Les cases du contrat écrit se disent avant que le reste soit complet (la période d'essai d'un CDD).
@@ -233,6 +236,9 @@ async function calculerApercu(lu) {
       div._total = part.length ? (a.blocs || [])[i] : null;
       peindreChiffres(div, div._total);
       div._paies = part;
+      // La rupture que le moteur propose pour cet engagement (`contrat.rupture`) : la porte « Un imprévu… » et la fin.
+      div._rupture = (p && p.contrat && p.contrat.rupture) || null;
+      if (div.querySelector(".e-nature") && div.querySelector(".e-rupture")) majRupture(div);
       peindreCarte(div);
       // Ce qui a été numéroté : un contrat en cours garde le numéro de son
       // premier mois, et c'est ici qu'il revient à l'écran quand la saisie
@@ -493,8 +499,8 @@ function boiteDetail(ligne, ps) {
     ${recalculDe(ligne)}
     ${ps.length ? ps.map(bloc).join("") : `<p class="discret">Le détail n'est pas encore calculé.</p>`}
     <div class="actions">
-      <button class="lien d-pieces" data-acte="dpae">La DPAE partie</button>
-      <button class="lien d-pieces" data-acte="contrat-signature">Le contrat parti</button>
+      ${(ligne.carres || []).filter((c) => c.lien).map((c) =>
+        `<button class="lien d-pieces" data-acte="${echapper(c.cle)}">${echapper(c.lien)}</button>`).join("")}
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
       <button class="modifier" id="d-modifier">${CRAYON}Modifier l'engagement…</button>
     </div>`);

@@ -2162,6 +2162,31 @@ fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
     })
 }
 
+/// LA RUPTURE de cet engagement, telle que la page la propose (« Un imprévu… ») : `null` quand elle n'a pas de sens ici
+/// -- une nature sans motif de rupture (S21.G00.62.002, CCH-11 : `Nature::motifs_rupture`), ou un contrat a terme qui ne
+/// finit pas ce mois-ci -- ; sinon le libelle de la porte et la fin du contrat (celle qu'il dit, ou son dernier jour
+/// travaille quand il est aux cachets). Les motifs et ce que chacun demande viennent de `natures`.
+fn rupture_de(e: &engagement::Engagement, nat: &droit::natures::Nature) -> R<Value> {
+    if nat.motifs_rupture().is_empty() {
+        return Ok(Value::Null);
+    }
+    let porte = if nat.duree_indeterminee { "La fin du contrat (licenciement, démission…)" } else { "Une rupture avant terme" };
+    // Un contrat paye au mois (CDI, CDD) dit sa fin dans sa case : elle se tape, le mois ou elle a lieu.
+    if nat.duree_indeterminee || nat.mensuelle() {
+        return Ok(json!({"porte": porte, "fin": e.fin.map_or(Value::Null, |f| json!(f.iso()))}));
+    }
+    // Un contrat aux cachets finit son dernier jour travaille ; le bloc 62 s'ecrit ce mois-la et lui seul (fiche n° 3344,
+    // `fin_de_contrat` de `contrats-base.json`) : sa rupture se dit ce mois-la.
+    if !e.dernier_mois()? {
+        return Ok(Value::Null);
+    }
+    let fin = match e.fin {
+        Some(f) => f,
+        None => e.fin_periode()?,
+    };
+    Ok(json!({"porte": porte, "fin": fin.iso()}))
+}
+
 /// LES CASES DU CONTRAT ECRIT QUE CET ENGAGEMENT APPELLE (`engagement::CHAMPS_DU_CONTRAT_ECRIT`), et elles seules : la
 /// periode d'essai et les clauses particulieres de tout contrat ecrit ; la personne remplacee d'un CDD de remplacement
 /// (L1242-12, 1° ; `Nature::motif_de_remplacement`) ; la repartition des horaires d'un temps partiel (L3123-6, 1° : la
@@ -2254,6 +2279,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
             "jusqu_a": mois_du_contrat.last().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
             "periode": { "debut": iso(&e.debut_periode()?), "fin": iso(&e.fin_periode()?) },
             "ecrits": champs_du_contrat_ecrit(ctx, e, &nat)?,
+            "rupture": rupture_de(e, &nat)?,
         },
         "dates_travail": e.dates_travail.iter().map(iso).collect::<Vec<_>>(),
         "cachets": e.cachets, "taux_cachet": taux_cachet,

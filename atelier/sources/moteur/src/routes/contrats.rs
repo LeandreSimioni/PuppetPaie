@@ -195,6 +195,31 @@ fn choisis_de(charge: &Value) -> R<Choisis> {
     Ok(Choisis { salaries, contrats })
 }
 
+/// UN CONTRAT PARTI PUIS CHANGE NE REPART PAS EN CONTRAT : signe ou non, commence ou non, il se modifie par un avenant
+/// (`signature-apercu` le dit, `en_avenant`). Refus quand un contrat vise expressement (`contrats`, `salaries`) en est un ;
+/// rien n'est ecrit.
+fn refuser_les_contrats_partis(ctx: &Contexte, mois: &str, choisis: &envois::envois_signature::Choisis) -> R<()> {
+    if choisis.contrats.is_none() && choisis.salaries.is_none() {
+        return Ok(());
+    }
+    let apercu = signature_apercu(ctx, &json!({"mois": mois}))?;
+    for c in apercu["contrats"].as_array().into_iter().flatten().filter(|c| vrai(&c["en_avenant"])) {
+        let (salarie, debut) = (valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["debut"]));
+        let numero = valeur_en_texte(&etats::numero_de_cle(&c["numero"]));
+        let vise = choisis.salaries.as_ref().is_some_and(|l| l.contains(&salarie))
+            || choisis.contrats.as_ref().is_some_and(|l| {
+                l.iter().any(|(s, d, n)| *s == salarie && *d == debut && n.as_ref().map_or(true, |n| *n == numero))
+            });
+        if vise {
+            return Err(refus(format!(
+                "Le contrat de {} est déjà parti et l'engagement a changé depuis : il se modifie par un avenant, que la boîte « Faire signer les contrats » propose. Rien n'est parti.",
+                valeur_en_texte(&c["nom"])
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// La route `contrats-imprimer` (`envois_signature::contrats_imprimer`), `qui` donne (l'horloge d'une compagnie fictive
 /// passe le sien).
 /// `avenants` : les avenants des contrats signes qui ont change ([{"salarie", "debut", "numero", "mois", "effet"}]),
@@ -207,6 +232,7 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
     }
     let contrats_choisis = ["contrats", "salaries"].iter().any(|k| charge.get(*k).is_some_and(vrai));
     let choisis = choisis_de(charge)?;
+    refuser_les_contrats_partis(ctx, &charge_texte(charge, "mois")?, &choisis)?;
     let choisis = (contrats_choisis || avenants.is_empty()).then_some(&choisis);
     envois::envois_signature::contrats_imprimer(ctx, &charge_texte(charge, "mois")?, choisis, &avenants, qui)
 }
@@ -228,6 +254,9 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
     } else {
         Vec::new()
     };
+    if !relance && !remplace {
+        refuser_les_contrats_partis(ctx, &mois, &choisis)?;
+    }
     let demande = envois::envois_signature::DemandeDeSignature { mois: &mois, relance, remplace, choisis, etats_des_contrats };
     // Un refus se dit d'abord : la boite et la preuve ne se demandent que pour ce qui part.
     envois::envois_signature::verifier_demande(ctx, &demande)?;
@@ -426,7 +455,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("numero".into(), numero);
         l.insert("demande_le".into(), premier(&demandes, cles).cloned().unwrap_or(Value::Null));
         // CE QUE LA BOITE EN FAIT : un contrat a envoyer (jamais parti, ou caduc) se coche, et part en avenant s'il est
-        // deja revenu signe (`en_avenant`) ; un contrat ou un avenant parti et pas revenu attend : il se note reçu signe
+        // deja parti, signe ou non (`en_avenant`) ; un contrat ou un avenant parti et pas revenu attend : il se note reçu signe
         // (`recu`), et seul celui parti par courriel se relance (`relancer`), quand la boite est posee. Les deux gestes
         // sont des routes et leurs charges : la page n'en compose aucun.
         let parti = l["demande_le"].clone();
@@ -460,14 +489,12 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         } else {
             (Value::Null, Value::Null)
         };
-        // Sa pastille : un contrat change depuis qu'il est revenu signe part en avenant ; change depuis son envoi, il est
-        // a refaire partir ; parti et pas revenu, il attend sa signature. Toutes a faire : la compagnie le peut.
+        // Sa pastille : un contrat parti puis change part en avenant, signe ou non, commence ou non ; parti et pas revenu,
+        // il attend sa signature. Toutes a faire : la compagnie le peut.
         let pourquoi_dit = etat["pourquoi"].as_str().filter(|t| !t.is_empty()).map(String::from);
-        let pastille = if a_envoyer && caduc && recu {
-            super::pastille("a_faire", &format!("{} — signé : partira en avenant", pourquoi_dit.unwrap_or_else(|| "l'engagement a changé depuis la signature".into())))
-        } else if caduc {
-            let parti_le = l["demande_le"].as_str().map_or(String::new(), |q| format!(" (parti le {})", super::quand(q)));
-            super::pastille("a_faire", &format!("{}{} — ce contrat est à refaire partir", pourquoi_dit.unwrap_or_else(|| "l'engagement a changé depuis l'envoi".into()), parti_le))
+        let pastille = if caduc {
+            let quand = if recu { " (signé)".to_string() } else { l["demande_le"].as_str().map_or(String::new(), |q| format!(" (parti le {})", super::quand(q))) };
+            super::pastille("a_faire", &format!("{}{}", pourquoi_dit.unwrap_or_else(|| crate::routes::etapes::CONTRAT_A_REFAIRE.into()), quand))
         } else if en_attente {
             super::pastille("en_attente", &attente)
         } else {
@@ -476,7 +503,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("pastille".into(), pastille);
         l.insert("par".into(), par.clone());
         l.insert("a_envoyer".into(), json!(a_envoyer));
-        l.insert("en_avenant".into(), json!(a_envoyer && caduc && recu));
+        l.insert("en_avenant".into(), json!(caduc));
         l.insert("en_attente".into(), json!(en_attente));
         l.insert(
             "attente".into(),

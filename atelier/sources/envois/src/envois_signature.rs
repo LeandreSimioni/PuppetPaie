@@ -654,7 +654,7 @@ fn verifier_relance(etats: &[Value], cles: &[(String, String, String)]) -> R<()>
         let pb = match c {
             None => "n'a jamais ete demande : il s'envoie",
             Some(c) if !vrai(&c["demande_le"]) => "n'a jamais ete demande : il s'envoie",
-            Some(c) if vrai(&c["caduc"]) => "a change depuis son envoi : il se renvoie a jour",
+            Some(c) if vrai(&c["caduc"]) => "a change depuis son envoi : il se modifie par un avenant",
             Some(c) if vrai(&c["recu_le"]) => "est deja revenu signe",
             // Un contrat imprime n'a pas de courriel a renvoyer : il se remet en main propre.
             Some(c) if c["par"].as_str() == Some("imprime") => "est parti imprime, a remettre en main propre",

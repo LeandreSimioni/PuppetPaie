@@ -1776,11 +1776,18 @@ fn carres(p: &Value) -> Value {
         match pt.contrat { "a_envoyer" => "à envoyer", "a_refaire" => "à refaire signer", "en_attente" => "signature attendue", _ => "" },
         match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", _ => "" },
     ];
+    // LE LIEN DU DETAIL vers ce qui est parti : seulement quand une piece est passee par le logiciel.
+    let liens = [
+        vrai(&d["fait"]).then_some("La DPAE partie"),
+        vrai(&s["fait"]).then_some("Le contrat parti"),
+        None,
+    ];
     let mut tous = [dpae, contrat, documents];
-    for (c, reste) in tous.iter_mut().zip(restes) {
+    for ((c, reste), lien) in tous.iter_mut().zip(restes).zip(liens) {
         c["couleur"] = json!(super::couleur_de_l_etat(&valeur_en_texte(&c["etat"])));
         c["coupee"] = json!(est(&c["etat"], "en_attente"));
         c["reste"] = json!(reste);
+        c["lien"] = json!(lien);
     }
     json!(tous)
 }
@@ -1788,7 +1795,7 @@ fn carres(p: &Value) -> Value {
 /// CE QUE MONTRE LE DETAIL DU CONTRAT d'un engagement (les pieces parties, ouvertes depuis la ligne) : la phrase quand
 /// aucune piece n'est passee par le logiciel, l'encart d'un contrat qui n'est plus le bon, et les gestes, chacun son
 /// libelle, son geste et s'il est le principal. Un contrat parti ou recu se note signe (ou ne l'est plus) ; un contrat
-/// parti se modifie par un avenant ; un contrat a envoyer, ou parti et plus le bon sans etre signe, part a la signature.
+/// parti se modifie par un avenant, signe ou non, commence ou non ; un contrat jamais parti part a la signature.
 fn pieces_du_contrat(s: &Value) -> Value {
     let (fait, recu, caduc) = (vrai(&s["fait"]), vrai(&s["recu"]), vrai(&s["caduc"]));
     // Un contrat ou un avenant parti (`fait`, imprime ou par courriel) est une piece : le detail la nomme, il n'a pas de
@@ -1805,8 +1812,7 @@ fn pieces_du_contrat(s: &Value) -> Value {
             Some(p) => format!("{}{}.", p.to_uppercase(), c.as_str()),
             None => "L'engagement a changé depuis qu'il est parti.".to_string(),
         };
-        let suite = if recu { "Il est signé : il se modifie par un avenant, que le salarié signe à son tour." } else { "Le salarié doit recevoir le contrat à jour, et le signer à nouveau." };
-        json!({"titre": "Ce contrat n'est plus le bon", "texte": format!("{} {}", pourquoi, suite)})
+        json!({"titre": "Ce contrat n'est plus le bon", "texte": format!("{} Il se modifie par un avenant, que le salarié signe à son tour.", pourquoi)})
     });
     let mut gestes = Vec::new();
     if fait || recu {
@@ -1814,11 +1820,10 @@ fn pieces_du_contrat(s: &Value) -> Value {
         gestes.push(json!({"libelle": libelle, "action": {"geste": "contrat_recu", "recu": !recu}, "principal": false}));
     }
     if fait {
-        gestes.push(json!({"libelle": "Avenant…", "titre": "Modifier le contrat parti : l'ancien texte et le nouveau, article par article", "action": {"geste": "avenant"}, "principal": caduc && recu}));
+        gestes.push(json!({"libelle": "Avenant…", "titre": "Modifier le contrat parti : l'ancien texte et le nouveau, article par article", "action": {"geste": "avenant"}, "principal": caduc}));
     }
-    if (caduc || !fait) && !(caduc && recu) {
-        let libelle = if caduc { "Renvoyer le contrat à jour…" } else { "Envoyer à la signature…" };
-        gestes.push(json!({"libelle": libelle, "action": {"geste": "faire_signer"}, "principal": true}));
+    if !fait {
+        gestes.push(json!({"libelle": "Envoyer à la signature…", "action": {"geste": "faire_signer"}, "principal": true}));
     }
     json!({"vide": vide, "encart": encart, "gestes": gestes})
 }
