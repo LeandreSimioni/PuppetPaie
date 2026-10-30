@@ -1284,8 +1284,8 @@ pub fn etablissement_du_salarie(fiche: &Value, sal: &Value) -> Resultat<String> 
         let mut connus = vec![nic_principal(fiche)];
         connus.extend(secondaires(fiche).iter().map(|e| en_texte(g(e, "nic"))));
         return Err(format!(
-            "{} : la fiche salarie le rattache a l'etablissement {}, que la \
-fiche entreprise ne porte pas (connus : {}).",
+            "{} : l'engagement le rattache a l'etablissement {}, que la \
+fiche entreprise ne porte pas a cette date (Configuration › Entreprise › Avancé, « Autres établissements » : son ouverture ; connus : {}).",
             nom_ou(sal, "Ce salarie"),
             nic,
             connus.join(", ")
