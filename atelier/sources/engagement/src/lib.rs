@@ -1102,7 +1102,7 @@ fn lignes_dites(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
             let (ou, carte) = match jours.first() {
                 Some(j) => (
                     format!(", {} {}", if jours.len() > 1 { "les" } else { "le" }, jours.iter().map(Jour::jj_mm_aaaa).collect::<Vec<_>>().join(", ")),
-                    format!(" sur sa carte de {}", libelle_mois(&j.mois_iso())),
+                    format!(" sur sa carte {}", socle::texte::de(&libelle_mois(&j.mois_iso()))),
                 ),
                 None => (String::new(), String::new()),
             };
@@ -1259,13 +1259,13 @@ pub fn refus_sans_numero(ctx: &Contexte, eng: &Engagement) -> Resultat<()> {
 
 fn numero_inconnu(qui: &str, contrat: &str, premier: &str) -> String {
     format!(
-        "{}, {} : en cours depuis {}, mais son numero n'est pas connu -- l'engagement n'est pas valide. Le numero \
-         identifie le contrat en DSN (S21.G00.40.009) et s'ecrit a la validation : valider l'engagement de {} d'abord. \
-         Un contrat repris d'un autre logiciel dit le sien, lu sur sa DSN, dans Configuration > Reprendre l'historique.",
+        "{}, {} : en cours depuis {}, mais son numéro n'est pas connu : l'engagement n'est pas validé. Le numéro \
+         identifie le contrat en DSN (S21.G00.40.009) et s'écrit à la validation : validez d'abord l'engagement {}. \
+         Un contrat repris d'un autre logiciel dit le sien, lu sur sa DSN, dans Configuration › Reprendre l'historique.",
         qui,
         contrat,
         libelle_mois(premier),
-        libelle_mois(premier)
+        socle::texte::de(&libelle_mois(premier))
     )
 }
 
@@ -1282,8 +1282,8 @@ fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>>
             texte: format!(
                 "{} : {}{}, dernier mois (fin le {}). Le bulletin porte le \
                  solde de tout compte ; ensuite, signaler la fin de contrat dans \
-                 les cinq jours et remettre au salarie son certificat de travail \
-                 et son recu pour solde de tout compte (Fin de contrat).",
+                 les cinq jours et remettre au salarié son certificat de travail \
+                 et son reçu pour solde de tout compte (Fin de contrat).",
                 qui,
                 libelle,
                 numero_dit(eng),
@@ -1314,7 +1314,7 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
         avis.push(Avis {
             info: true,
             texte: format!(
-                "{} : contrat {} en cours depuis {}{} -- le contrat et \
+                "{} : contrat {} en cours depuis {}{} ; le contrat et \
                  la DPAE sont faits avec son premier mois, ce mois-ci n'a que son bulletin.",
                 qui,
                 bornes,
@@ -1328,9 +1328,9 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
         let suivant = mois_du_contrat.get(place + 1).ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?;
         let fin_de_phrase = if eng.premier_mois()? {
             if eng.planning_connu() {
-                " Le contrat imprime couvre toutes les dates."
+                " Le contrat imprimé couvre toutes les dates."
             } else {
-                " Le contrat imprime chiffre ce mois-ci et renvoie au planning pour la suite."
+                " Le contrat imprimé chiffre ce mois-ci et renvoie au planning pour la suite."
             }
         } else {
             ""
@@ -1338,9 +1338,9 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
         avis.push(Avis {
             info: true,
             texte: format!(
-                "{} : contrat {}, se poursuit en {} -- ce mois-ci est paye \
-                 maintenant, la suite le sera avec {}. Le certificat Conges \
-                 Spectacles partira a la fin du contrat, pour le contrat \
+                "{} : contrat {}, se poursuit en {} ; ce mois-ci est payé \
+                 maintenant, la suite le sera avec {}. Le certificat Congés \
+                 Spectacles partira à la fin du contrat, pour le contrat \
                  entier.{}",
                 qui,
                 bornes,

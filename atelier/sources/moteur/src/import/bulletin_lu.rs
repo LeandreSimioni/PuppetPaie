@@ -374,6 +374,21 @@ fn taux_du_libelle(libelle: &str) -> (String, Option<Decimal>) {
     (libelle.to_string(), None)
 }
 
+/// La quantite qu'un libelle dit apres lui, dans son unite (« Indemnité compensatrice de congés payés (4,92 jours) ») :
+/// le libelle sans elle, et elle.
+fn quantite_du_libelle(libelle: &str) -> (String, Option<Decimal>) {
+    let lu = libelle.trim_end().strip_suffix(')').and_then(|t| t.rsplit_once(" (")).and_then(|(tete, dedans)| {
+        let (n, unite) = dedans.split_once(' ')?;
+        let unite = unite.trim_end_matches('s');
+        ["jour", "semaine", "heure", "cachet", "service"].contains(&unite).then_some(())?;
+        Some((tete.to_string(), lire_nombre(n)?))
+    });
+    match lu {
+        Some((tete, q)) => (tete, Some(q)),
+        None => (libelle.to_string(), None),
+    }
+}
+
 /// Un libelle canonique est-il l'un de ces resumes, seul ou joint a un autre par « / » (« NET SOCIAL / NET A PAYER
 /// AVANT IMPÔT ») ?
 fn resume(canon: &str, liste: &[String]) -> bool {
@@ -1853,6 +1868,10 @@ impl<'a> Lecteur<'a> {
         // libelle (« Cachets à 150,00 »).
         let ligne = |libelle: &str, quantite: Option<Decimal>, r: &RangCorps, soumis: bool, avertissements: &mut Vec<String>| {
             let (libelle, taux_ecrit) = taux_du_libelle(libelle);
+            let (libelle, quantite) = match quantite {
+                Some(q) => (libelle, Some(q)),
+                None => quantite_du_libelle(&libelle),
+            };
             let cl = canon(&libelle);
             // Une ligne hors de l'assiette (un defraiement) n'est pas dans le brut, ou que le bulletin l'imprime.
             let (rubrique, heures, soumis) = match table.lignes.iter().find(|x| x.canon == cl) {

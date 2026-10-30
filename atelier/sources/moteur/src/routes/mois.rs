@@ -527,9 +527,7 @@ fn libelle(mois: &str) -> R<String> {
 
 /// « de septembre 2026 », « d'août 2026 », « d'octobre 2026 ».
 fn de(mois: &str) -> R<String> {
-    let l = libelle(mois)?;
-    let voyelle = l.chars().next().map_or(false, |c| "aeiouy".contains(c));
-    Ok(format!("{}{}", if voyelle { "d'" } else { "de " }, l))
+    Ok(socle::texte::de(&libelle(mois)?))
 }
 
 /// `_mois_plus` : `mois` decale de `n` mois.
