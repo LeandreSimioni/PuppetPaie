@@ -897,6 +897,40 @@ pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Map<Str
     Ok(())
 }
 
+/// UN ENGAGEMENT NEUF, AJOUTE A L'ECRAN DE `mois` : `saisie` (ce que sa carte ecrit pour `mois`) commence dans le fichier
+/// du mois, comme un nouveau de l'ecriture de la saisie (`ecrire_vue_du_mois`) ; ce que le moteur tient seul ne se prend
+/// pas de la saisie. Rend son rang dans l'ecran de `mois`. Refus : un engagement du salarie et du premier jour d'un
+/// engagement importe qui touche `mois`, ou un engagement que l'ecran de `mois` ne montrerait pas ; rien n'est ecrit.
+pub fn ajouter_au_mois(ctx: &Contexte, mois: &str, saisie: &Map<String, Value>) -> Resultat<usize> {
+    let racine = &ctx.racine;
+    let e = Value::Object(saisie.clone());
+    if let Some(cle) = crate::cle_de_l_engagement(ctx, &e) {
+        let debut = crate::debut_brut(&e);
+        if crate::importe::celui_de(racine, mois, &cle, &debut)?.is_some() {
+            return Err(crate::importe::refus(&e.get("salarie").map(en_texte).unwrap_or(cle), &debut));
+        }
+    }
+    let mut saisie = saisie.clone();
+    for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
+        saisie.remove(*k);
+    }
+    let p = chemin(racine, mois);
+    let mut contenu = lire_fichier(racine, mois)?.unwrap_or_default();
+    contenu.insert("mois".into(), Value::String(mois.to_string()));
+    let es = contenu.entry("engagements").or_insert_with(|| Value::Array(Vec::new()));
+    let Value::Array(es) = es else { return Err(format!("{} : `engagements` n'est pas une liste", mois)) };
+    let rang = es.len();
+    es.push(Value::Object(saisie));
+    if let Some(d) = p.parent() {
+        std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
+    }
+    socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
+    objets_du_mois(racine, mois)?
+        .iter()
+        .position(|o| o.fichier == mois && o.rang == rang)
+        .ok_or_else(|| format!("{} : l'engagement ajouté ne tombe pas dans ce mois (ses dates le placent ailleurs).", crate::libelle_mois(mois)))
+}
+
 /// `a` et `b` nomment-ils la meme fiche de spectacle (`Contexte::spectacle`) ?
 fn meme_spectacle(ctx: &Contexte, a: &Value, b: &Value) -> bool {
     let cle = |v: &Value| ctx.spectacle(&en_texte(v)).ok().and_then(|f| f.get("_cle").cloned());

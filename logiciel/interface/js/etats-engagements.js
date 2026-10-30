@@ -555,7 +555,14 @@ async function modifierLesCartes(div) {
   let engagements;
   LIRE_LES_MODIFICATIONS = true;
   try {
-    engagements = cartes.map((c) => ({ ...contratDe(c._ligne), saisie: engagementsDuBloc(c, mois)[0] || {} }));
+    // Toute la carte, comme elle se montre : l'engagement qu'elle désigne, et chaque salarié coché en plus, que le
+    // moteur ajoute au mois (une entrée sans engagement désigné).
+    engagements = cartes.flatMap((c) => {
+      const saisies = engagementsDuBloc(c, mois);
+      const k = Math.max(0, saisies.findIndex((s) => s.salarie === c._ligne.salarie));
+      if (!saisies.length) return [{ ...contratDe(c._ligne), saisie: {} }];
+      return saisies.map((s, j) => (j === k ? { ...contratDe(c._ligne), saisie: s } : { saisie: s }));
+    });
   } finally { LIRE_LES_MODIFICATIONS = false; }
   const charge = { mois, engagements };
   try {

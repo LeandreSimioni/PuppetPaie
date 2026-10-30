@@ -191,7 +191,10 @@ enum Issue {
 
 /// « MODIFIER L'ENGAGEMENT » : les valeurs que la carte ouverte d'un engagement valide montre, ecrites d'un geste.
 /// `engagements` : chaque engagement modifie ensemble (ceux de plusieurs salaries valides ensemble), designe comme pour
-/// `valider-engagement` (`salarie`, `debut`, `numero`, `rang`), avec `saisie`, ce que sa carte ecrit pour `mois`.
+/// `valider-engagement` (`salarie`, `debut`, `numero`, `rang`), avec `saisie`, ce que sa carte ecrit pour `mois`. Un
+/// salarie coche en plus sur la carte ouverte n'a pas d'engagement a designer : son entree ne porte que `saisie`, et il
+/// s'ajoute au mois, valide avec les autres (`engagement::stock::ajouter_au_mois`) ; il faut au moins un engagement
+/// designe.
 ///
 /// - Rien n'a change : rien ne s'ecrit, la reponse le dit (`change` faux).
 /// - Quelque chose a change, et rien de ce qui est parti ne le demande : la modification s'ecrit, l'engagement reste valide.
@@ -218,7 +221,15 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let _une_a_la_fois = crate::routes::mois::une_ecriture_a_la_fois();
     let mut rangs = Vec::new();
     let mut saisies = Vec::new();
+    let mut nouvelles = Vec::new();
     for e in &liste {
+        if e.get("salarie").is_none() {
+            let Some(Value::Object(s)) = e.get("saisie") else {
+                return Err(erreur("TypeError", "`saisie` : un objet est attendu pour chaque engagement"));
+            };
+            nouvelles.push(s.clone());
+            continue;
+        }
         let mut c = e.clone();
         c["mois"] = json!(mois);
         let (data, i) = engagement_designe(ctx, &c)?;
@@ -234,6 +245,9 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         rangs.push(i);
         saisies.push(s.clone());
     }
+    if rangs.is_empty() {
+        return Err(erreur("TypeError", "`engagements` : au moins un engagement valide a designer (`salarie`, `debut`) est attendu"));
+    }
     // Ce qu'une DSN deposee dont la limite est passee a declare : la base de ce que la norme permet encore.
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let declaree = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
@@ -243,7 +257,7 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         None
     };
     let photo = Photo::prendre(&ctx.racine)?;
-    let issue = modifier_puis_revalider(ctx, mois, &rangs, &saisies, base.as_ref(), confirme, a_partir_du.as_deref());
+    let issue = modifier_puis_revalider(ctx, mois, &rangs, &saisies, &nouvelles, base.as_ref(), confirme, a_partir_du.as_deref());
     let faits = match issue {
         Ok(Issue::Ecrite(faits)) => faits,
         Ok(Issue::Rien) => {
@@ -272,13 +286,16 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"change": true, "valide": faits.first().map(|(_, le)| le.clone()), "avis": avis}))
 }
 
-/// La modification elle-meme, sur les fichiers : chaque engagement se rouvre, prend sa saisie et se revalide. Ce qu'elle
-/// rend dit si elle reste ecrite (`Issue::Ecrite`) ; sinon la route remet les fichiers.
+/// La modification elle-meme, sur les fichiers : chaque engagement se rouvre, prend sa saisie et se revalide ; chaque
+/// saisie `nouvelles` s'ajoute au mois et se valide avec eux. Ce qu'elle rend dit si elle reste ecrite
+/// (`Issue::Ecrite`) ; sinon la route remet les fichiers.
+#[allow(clippy::too_many_arguments)]
 fn modifier_puis_revalider(
     ctx: &Contexte,
     mois: &str,
     rangs: &[usize],
     saisies: &[Map<String, Value>],
+    nouvelles: &[Map<String, Value>],
     base: Option<&Value>,
     confirme: bool,
     a_partir_du: Option<&str>,
@@ -287,10 +304,17 @@ fn modifier_puis_revalider(
         engagement::etats::modifier(ctx, mois, *i).map_err(Echec::from)?;
         engagement::stock::poser_la_saisie(ctx, mois, *i, s).map_err(refus)?;
     }
-    let mut changes = false;
+    let mut changes = !nouvelles.is_empty();
     for i in rangs {
         changes |= engagement::etats::a_revalider_rouvert(ctx, mois, *i).map_err(Echec::from)?;
     }
+    // Les nouveaux s'ajoutent apres les autres, au bout du fichier du mois, le dernier de son ecran : les rangs des
+    // engagements designes ne bougent pas.
+    let mut rangs = rangs.to_vec();
+    for s in nouvelles {
+        rangs.push(engagement::stock::ajouter_au_mois(ctx, mois, s).map_err(refus)?);
+    }
+    let rangs = &rangs[..];
     if !changes {
         return Ok(Issue::Rien);
     }
