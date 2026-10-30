@@ -80,6 +80,9 @@ pub struct Engagement {
     pub statut: Option<String>,
     pub statut_conventionnel: Option<String>,
     pub statut_categoriel_rc: Option<String>,
+    /// L'etablissement (NIC) ou le salarie est rattache pour CE contrat, quand la compagnie en a plusieurs ; `None` : le
+    /// principal. La fiche du salarie le porte pour la paie et les declarations du contrat (`calcul::fiche_de_l_engagement`).
+    pub etablissement: Option<String>,
     pub nature: Option<String>,
     pub quotite_contrat: Option<f64>,
     pub quotite_reference_saisie: Option<f64>,
@@ -543,6 +546,7 @@ impl Engagement {
             statut: chaine(get("statut")),
             statut_conventionnel: chaine(get("statut_conventionnel")),
             statut_categoriel_rc: chaine(get("statut_categoriel_rc")),
+            etablissement: chaine(get("etablissement")).filter(|t| !t.trim().is_empty()),
             nature,
             quotite_contrat: flottant_opt(get("quotite_contrat"))?,
             quotite_reference_saisie: flottant_opt(get("quotite_reference_saisie"))?,
@@ -772,6 +776,10 @@ impl Engagement {
         m.insert("statut".into(), texte(&self.statut));
         m.insert("statut_conventionnel".into(), texte(&self.statut_conventionnel));
         m.insert("statut_categoriel_rc".into(), texte(&self.statut_categoriel_rc));
+        // Ecrit seulement quand il est dit.
+        if let Some(n) = &self.etablissement {
+            m.insert("etablissement".into(), Value::String(n.clone()));
+        }
         m.insert("nature".into(), Value::String(self.nat()?.cle.clone()));
         m.insert("quotite_contrat".into(), optionnel(self.quotite_contrat)?);
         m.insert("quotite_reference_saisie".into(), optionnel(self.quotite_reference_saisie)?);
@@ -1040,6 +1048,7 @@ pub(crate) fn engagements(
         poser("quotite_reference_saisie", q);
         poser("modalite_temps_travail_saisie", e.get("modalite_temps_travail"));
         poser("motif_recours", e.get("motif_recours"));
+        poser("etablissement", e.get("etablissement"));
         poser("motif_rupture", e.get("motif_rupture"));
         // La fin du contrat telle que la saisie la dit : la mensuelle et le FCTU en tirent le meme S21.G00.62.006
         // (`fctu::dernier_jour_paye`).
@@ -1051,6 +1060,7 @@ pub(crate) fn engagements(
             poser(k, e.get(k));
         }
         let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
+        notifiee_pendant_le_contrat(e, &eng)?;
         // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
         if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
@@ -1059,6 +1069,28 @@ pub(crate) fn engagements(
         out.push(eng);
     }
     Ok((out, dits))
+}
+
+/// La rupture se notifie pendant le contrat : « La date de notification de la rupture de contrat doit être supérieure
+/// ou égale à la date de début de contrat de travail et inférieure ou égale à la date de fin de contrat de travail »
+/// (CCH-11 de S21.G00.62.003, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt`). La saisie `e` qui la dit
+/// (`notification_rupture`) se refuse, en disant les bornes du contrat `eng` ; un contrat sans fin ne borne que le debut.
+fn notifiee_pendant_le_contrat(e: &Value, eng: &Engagement) -> Resultat<()> {
+    let Some(t) = e.get("notification_rupture").and_then(Value::as_str).filter(|t| !t.trim().is_empty()) else { return Ok(()) };
+    let n = Jour::lire(t).map_err(|_| format!("{} : « Notifiée le » {} n'est pas une date.", eng.nom, t))?;
+    if n >= eng.debut && eng.fin.map_or(true, |f| n <= f) {
+        return Ok(());
+    }
+    let bornes = match eng.fin {
+        Some(f) => format!("entre son premier jour, le {}, et sa fin, le {}", eng.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
+        None => format!("au plus tôt son premier jour, le {}", eng.debut.jj_mm_aaaa()),
+    };
+    Err(format!(
+        "{} : notifiée le {}, la rupture doit l'être pendant le contrat, {}. La date se corrige dans sa carte, sous « Contrat ».",
+        eng.nom,
+        n.jj_mm_aaaa(),
+        bornes
+    ))
 }
 
 /// Ce que disent les refus d'une saisie pas encore finie, et non un defaut du logiciel : un spectacle pas encore

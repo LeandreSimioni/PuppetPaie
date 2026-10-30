@@ -89,6 +89,7 @@ function engagementsDuBloc(div, mois) {
   // salarié, un engagement. Chacun reçoit sa copie de ce que le formulaire
   // dit : un bloc ne regroupe que des engagements identiques (`regrouper`).
   const spectacle = div.querySelector(".e-spectacle").value;
+  const etablissement = div.querySelector(".e-etablissement").value;
   const lignes = lignesDuBloc(div, mois);
   const metier = div.querySelector(".e-metier").value;
   const cadre = div.querySelector(".e-cadre").checked;
@@ -115,6 +116,8 @@ function engagementsDuBloc(div, mois) {
     if (debut) e.debut = debut;
     if (fin) e.fin = fin;
     if (numero) e.numero = numero;
+    // L'établissement ne s'écrit que s'il n'est pas le siège.
+    if (etablissement) e.etablissement = etablissement;
     if (nat.mensuelle) {
       // LES FAITS, PAS LES LIGNES : `lignes_du_mois` en fait des lignes de
       // bulletin — le prorata d'un mois incomplet, l'indemnité de congés et
@@ -234,7 +237,8 @@ async function calculerApercu(lu) {
         div._total = null;
         peindreChiffres(div, null);
         div._paies = [];
-        div._rupture = null;
+        // La rupture que le dernier aperçu calculé a dite reste : un fait refusé (une date de notification hors du
+        // contrat) ne fait pas disparaître de la saisie le motif et les dates de la fin.
         peindreCarte(div);
         div.querySelector(".resolu").innerHTML = "";
         // Les cases du contrat écrit se disent avant que le reste soit complet (la période d'essai d'un CDD).

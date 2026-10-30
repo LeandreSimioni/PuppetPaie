@@ -1043,7 +1043,7 @@ const SECTIONS_FICHE = {
       "pcs_ese", "code_emploi_ft", "date_anciennete", "code_salarie",
       "initiales_contrat", "statut_conventionnel", "statut_boeth", "echelon_ccneac", "classement_conventionnel",
       "poste_depuis", "experimente_3241", "stagiaire_ccneac",
-      "etablissement", "actif"], { avance: true }],
+      "actif"], { avance: true }],
     ["", ["historique"]],
   ],
 };
@@ -1083,17 +1083,14 @@ const FACULTATIFS = {
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
- *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`) ;
- *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,
- *    jamais demande.
+ *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`).
  *
  *  Le code Urssaf et la caisse de retraite, eux, sont de VRAIS choix : ils
  *  vont dans l'avance, vides par defaut -- le moteur prend alors l'Urssaf
  *  du code postal et Audiens. L'editeur : « il ne faut pas enlever de
  *  l'interface les choix que peut faire l'entreprise ». */
 const CACHES = {
-  entreprise: ["siren", "nic",
-               "etablissements"],
+  entreprise: ["siren", "nic"],
   // `sante_svp` se remplit par les trois cases de la complementaire sante ;
   // `taux_pas` n'est plus lu par personne (il vit dans config/pas.json) :
   // gardes tels quels, jamais demandes.
@@ -1188,10 +1185,19 @@ const SOUS_CHAMPS = {
     ["association_1679A", "Association loi 1901, syndicat ou mutuelle ?", "Une association loi 1901, une fondation reconnue d'utilité publique, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due.",
      { booleen: true, choix: { "": "Non", "true": "Oui (abattement de l'article 1679 A)" } }],
   ] },
+  // UN AUTRE ÉTABLISSEMENT : ce qui le fait déclarer à part (son SIRET, son
+  // adresse, le jour où il ouvre) et son risque AT/MP. Le code vide : celui
+  // de la compagnie ; le taux vide : celui de l'arrêté pour un risque
+  // collectif. Le moteur dit, sous la ligne, ce qu'il applique (`taux-atmp`).
   etablissements: { liste: true, ligne: "établissement", champs: [
-    ["nic", "NIC", ""],
+    ["libelle", "Nom", "Atelier, salle…"],
     ["siret", "SIRET", ""],
-    ["libelle", "Nom de l'établissement", ""],
+    ["adresse_affichage", "Adresse", ""],
+    ["code_postal", "Code postal", ""],
+    ["commune_affichage", "Commune", ""],
+    ["ouverture", "Ouvert le", "", { date: true }],
+    ["taux_atmp.code_risque", "Code risque AT/MP", "", { codesAtmp: true }],
+    ["taux_atmp.valeur", "Taux AT/MP (%)", "", { decimal: true }],
   ] },
 };
 
@@ -1442,11 +1448,20 @@ document.addEventListener("input", cocherUnBouton, true);
 function ligneStructure(cle, sous, ligne, i) {
   const o = ligne && typeof ligne === "object" ? ligne : {};
   return `<div class="ligne-structure" data-index="${i}">
-    ${sous.champs.map(([k, lib]) => `
-      <label>${echapper(lib)}
-        <input data-liste-de="${echapper(cle)}" data-liste-index="${i}"
-          data-sous-cle="${echapper(k)}" value="${echapper(o[k] ?? "")}"></label>`).join("")}
+    ${sous.champs.map(([k, lib, aide, genre = {}]) => {
+      const val = valeurEn(o, k);
+      const attrs = `data-liste-de="${echapper(cle)}" data-liste-index="${i}"
+          data-sous-cle="${echapper(k)}" ${aide ? `placeholder="${echapper(aide)}"` : ""}`;
+      const v = echapper(val ?? "");
+      const champ = genre.date && /^(\d{4}-\d{2}-\d{2})?$/.test(String(val ?? ""))
+        ? `<input type="date" ${attrs} value="${v}">`
+        : genre.codesAtmp ? `<input ${attrs} list="codes-atmp" maxlength="7" value="${v}">`
+        : genre.decimal ? `<input ${attrs} inputmode="decimal" value="${v}">`
+        : `<input ${attrs} value="${v}">`;
+      return `<label>${echapper(lib)} ${champ}</label>`;
+    }).join("")}
     <button type="button" class="retirer-ligne" title="retirer cette ligne">✕</button>
+    ${o.nic ? `<p class="aide ligne-dit" data-ligne-nic="${echapper(o.nic)}"></p>` : ""}
   </div>`;
 }
 
@@ -1721,6 +1736,20 @@ async function brancherAtmp() {
     choix.value = connu ? t.code_risque : "";
     if (document.activeElement !== code) code.value = connu ? "" : (t.code_risque || "");
     if (document.activeElement !== valeur) valeur.value = "";
+    // Les codes que les autres établissements proposent, et ce que le
+    // moteur applique à chacun, sous sa ligne.
+    let liste = document.getElementById("codes-atmp");
+    if (!liste) {
+      liste = document.createElement("datalist");
+      liste.id = "codes-atmp";
+      document.body.appendChild(liste);
+    }
+    liste.innerHTML = codes.map((c) =>
+      `<option value="${echapper(c.code)}">${echapper(c.code_arrete || c.code)} — ${echapper(c.libelle)}</option>`).join("");
+    (r.etablissements || []).forEach((e) => {
+      const p = document.querySelector(`[data-ligne-nic="${CSS.escape(String(e.nic || ""))}"]`);
+      if (p) p.innerHTML = `<b>${echapper(e.resume || "")}</b>${e.risque ? ` — « ${echapper(e.risque.libelle)} »` : ""}. ${echapper(e.explication || "")}`;
+    });
   };
   try { peindre(await api("taux-atmp", { annee })); } catch (e) { /* rien à montrer */ }
   $("atmp-enregistrer").onclick = async (ev) => {

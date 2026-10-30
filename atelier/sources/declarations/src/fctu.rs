@@ -352,11 +352,11 @@ preavis de L1234-1."
         let nt_j = d(nt)?;
         if !(e.debut <= nt_j && nt_j <= d(&fin.fin)?) {
             return Err(Echec::Impossible(format!(
-                "La notification de la rupture ({}) doit tomber entre le debut ({}) et la fin ({}) du contrat -- \
-CCH-11 de S21.G00.62.003.",
-                nt,
-                e.debut.iso(),
-                fin.fin
+                "Notifiée le {} : la rupture se notifie pendant le contrat, entre son premier jour, le {}, et sa fin, le \
+{} -- CCH-11 de S21.G00.62.003.",
+                nt_j.jj_mm_aaaa(),
+                e.debut.jj_mm_aaaa(),
+                d(&fin.fin)?.jj_mm_aaaa()
             )));
         }
     }

@@ -318,9 +318,11 @@ async function agirSurRappel(r) {
     if (geste === "signaler-fin") return boiteSignalerFin(r.mois, r.objet);
     if (geste === "signaler") return boiteSignalerArret(r.objet, SIGNALEMENTS_DSN[r.obligation.cle]);
     if (geste === "faite") return boiteObligationFaite(r.objet, r.obligation);
-    // Ce qui manque au contrat se tape dans sa carte, sous « Contrat » : on va au mois.
     document.querySelector('.onglets button[data-vue="paie"]').click();
-    return chargerMois(r.mois);
+    // Ce qui manque au contrat se tape dans sa carte, sous « Contrat » : la carte s'ouvre sur la première case à dire.
+    const fin = r.objet || {};
+    await chargerMois(fin.mois || r.mois);
+    if (geste === "carte" && (fin.a_saisir || []).length) return allerALaCase({ ...fin, mois: fin.mois || r.mois }, fin.a_saisir[0].champ);
   }
   if (r.quoi === "cloture") return boiteCloture(r.annee);
   if (r.quoi === "export-compta") return lancerExportCompta(r.annee);

@@ -427,7 +427,14 @@ pub(crate) fn nic_de_l_engagement(ctx: &Contexte, mois: &str, e: &engagement::et
 pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, mois: &str, brut: &Value) -> Option<String> {
     let fiche = match brut.pointer(&format!("/valide/paies/{}", mois)) {
         Some(ecrite) => ecrite.pointer("/fiches/paie").filter(|f| f.is_object()).cloned()?,
-        None => ctx.salarie(&engagement::cle_de_l_engagement(ctx, brut)?).ok()?,
+        None => {
+            let mut f = ctx.salarie(&engagement::cle_de_l_engagement(ctx, brut)?).ok()?;
+            let nic = brut.get("etablissement").and_then(Value::as_str).filter(|n| !n.trim().is_empty());
+            if let (Some(o), Some(n)) = (f.as_object_mut(), nic) {
+                o.insert("etablissement".into(), Value::String(n.to_string()));
+            }
+            f
+        }
     };
     droit::bareme::etablissement_du_salarie(&ctx.entreprise, &fiche).ok()
 }
@@ -1103,7 +1110,7 @@ impl<'a> Moteur<'a> {
             0
         } else {
             let departs = envois::journal::departs(&self.ctx.racine).map_err(plain)?;
-            let plusieurs = !droit::bareme::secondaires(&self.ctx.entreprise).is_empty();
+            let plusieurs = !droit::bareme::secondaires(&self.ctx.entreprise_du_mois(mois).map_err(plain)?).is_empty();
             let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
             let mut n = 0;
             for e in self.etats_du_mois(mois)? {
@@ -1411,7 +1418,7 @@ impl<'a> Moteur<'a> {
     /// nomme ses etablissements (« Lyon refusée · l'éditeur est prévenu »). Rend les classes (leurs NIC, leur case), le
     /// principal dans la premiere, et le geste de plus (un annule-et-remplace admis sans necessite) du principal.
     fn groupes_dsn(&mut self, mois: &str) -> R<(Vec<(Vec<String>, Value)>, Value)> {
-        let ent = self.ctx.entreprise.clone();
+        let ent = self.ctx.entreprise_du_mois(mois).map_err(plain)?;
         if droit::bareme::secondaires(&ent).is_empty() {
             let (g, second) = self.groupes_dsn_de(mois, &Value::Null)?;
             return Ok((vec![(vec![etats::nic_principal(&ent)], g)], second));
@@ -1493,8 +1500,9 @@ impl<'a> Moteur<'a> {
             return Ok((groupe("a_faire", Value::Null, String::new(), quoi, veille, a), Value::Null));
         }
         if vrai(&r["saisie_modifiee"]) {
-            // Apres la veille : la correction part dans la DSN du mois suivant, qui la porte d'elle-meme.
-            let suivant = socle::date::Jour::lire(&format!("{}-01", mois)).map_err(plain)?.mois_suivant();
+            // Apres la veille : la correction part dans la DSN qui porte (la premiere d'un mois suivant qui n'est pas
+            // partie), celle que l'avertissement de « Modifier l'engagement » nomme aussi.
+            let suivant = crate::regularisation::dsn_qui_porte(self.ctx, mois)?;
             let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &suivant).map_err(|m| erreur("ValueError", m))?;
             let mut a = action("deposer_dsn", format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)));
             a["mois"] = json!(suivant);
@@ -1523,7 +1531,7 @@ impl<'a> Moteur<'a> {
     /// correction dans la DSN suivante » ; `produire_regularisations::regularisations_pour`). Sinon, rien n'est a faire.
     /// Ne lit que ce qui est ecrit.
     fn dsn_a_declarer(&mut self, mois: &str, nic: &Value) -> R<bool> {
-        let plusieurs = !droit::bareme::secondaires(&self.ctx.entreprise).is_empty();
+        let plusieurs = !droit::bareme::secondaires(&self.ctx.entreprise_du_mois(mois).map_err(plain)?).is_empty();
         let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
         let de_l_etablissement = |ctx: &Contexte, m: &str, brut: &Value| !plusieurs || nic_de_l_engagement_ecrit(ctx, m, brut).as_deref() == Some(voulu.as_str());
         for e in self.etats_du_mois(mois)? {

@@ -3900,7 +3900,7 @@ fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
 /// regularise et le nominatif (`bar_du`), et l'apercu du montant Urssaf (`montant_urssaf`), passent par elle. (La pile
 /// d'un salarie, `bareme::bareme_applique`, surcharge de meme par l'etablissement du salarie.)
 fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat<Value> {
-    bareme::surcharger(ctx.bareme(&premier(mois)?)?, ent, nic)
+    Ok(bareme::taux_atmp_resolu(bareme::surcharger(ctx.bareme(&premier(mois)?)?, ent, nic)?).0)
 }
 
 /// LE BLOC 40 DECLARE du contrat de `p` (regle 4 : il se lit, il ne se recalcule pas), pour le bloc Changements contrat
@@ -4226,7 +4226,7 @@ saisir`), ou retirer la ligne. Rien n'est ecrit.",
     // declaree nulle part : refus, comme pour l'arret.
     let mut suspendus_absents = Vec::new();
     for imp in engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::SUSPENSION))? {
-        let fiche = ctx.salarie(&txt(g(&imp, "salarie")))?;
+        let fiche = engagement::imprevus::fiche_du_salarie(ctx, &imp)?;
         if bareme::etablissement_du_salarie(&ent0, &fiche)? != nic {
             continue;
         }

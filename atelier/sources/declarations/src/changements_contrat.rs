@@ -320,23 +320,18 @@ p. 217).",
     // la mutation (« la datation precise du changement de SIRET est impactante », p. 21).
     if decl.nic != nics[0] {
         let fin_b = dernier_du_mois(&decl.mois)?;
-        let mut dates: Vec<Jour> = changements_dates(&crate::ntt::brute(ctx, &p.salarie), &["etablissement"])?
-            .into_iter()
-            .map(|(j, _)| j)
-            .filter(|j| *j > fin_b && *j <= fin_m)
-            .collect();
-        dates.sort();
-        dates.dedup();
-        let [date] = dates.as_slice() else {
+        // L'etablissement est celui que l'engagement dit (`engagement::calcul::etablissement_du_contrat`) ; le jour ou il
+        // change est celui de l'avenant (`date_modification`).
+        let date = p.engagement.date_modification.as_deref().and_then(|d| Jour::lire(d).ok()).filter(|j| *j > fin_b && *j <= fin_m);
+        let Some(date) = date.as_ref() else {
             return Err(format!(
                 "{} : le contrat etait declare par l'etablissement {} (DSN de {}) et l'est maintenant par l'etablissement {}. \
 Le SIRET de l'ancien etablissement se declare dans un bloc Changements contrat (S21.G00.41.012) date du jour de la \
-mutation (cahier technique DSN, p. 21) ; la fiche du salarie {} . Dater le changement d'etablissement sur la fiche.",
+mutation (cahier technique DSN, p. 21) : ouvrir la carte de l'engagement, changer l'établissement, « Modifier l'engagement », et dire dans l'avertissement le mois et le jour où il change.",
                 qui(p),
                 decl.siret,
                 libelle_mois(&decl.mois),
-                nics[0],
-                if dates.is_empty() { "ne le date pas" } else { "date plusieurs changements depuis" }
+                nics[0]
             ));
         };
         identifiants.push(vec![("S21.G00.41.001".to_string(), date.jjmmaaaa()), ("S21.G00.41.012".to_string(), decl.siret.clone())]);

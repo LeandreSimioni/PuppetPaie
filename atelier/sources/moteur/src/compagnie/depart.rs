@@ -209,7 +209,7 @@ impl Forme {
 /// LA DSN DE `mois` TELLE QU'ELLE PARTIRAIT, sous la forme `forme` : depuis les paies ecrites des engagements valides du
 /// mois de son etablissement, avec ce que `fabriquer_dsn` lui donne (les corrections a porter, les arrets du mois).
 fn fabriquer_du_present(ctx: &Contexte, mois: &str, forme: &Forme) -> R<(declarations::dsn::Fabriquee, bool)> {
-    let fiche = ctx.entreprise.clone();
+    let fiche = ctx.entreprise_du_mois(mois).map_err(valeur)?;
     let nic = forme.etablissement.clone();
     let du_nic = |sal: &Value| -> R<bool> {
         match &nic {
@@ -234,7 +234,7 @@ fn fabriquer_du_present(ctx: &Contexte, mois: &str, forme: &Forme) -> R<(declara
     let regs_dsn = regularisations::pour_la_dsn(&regs_e);
     let mut arrets: Vec<declarations::dsn::Arret> = Vec::new();
     for a in crate::compagnie::marques_depot::arrets_pour(ctx, mois)? {
-        let sal = ctx.salarie(&valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null))).map_err(valeur)?;
+        let sal = engagement::imprevus::fiche_du_salarie(ctx, &a).map_err(valeur)?;
         if du_nic(&sal)? {
             arrets.push(declarations::dsn::Arret { v: a });
         }
@@ -252,7 +252,7 @@ pub(crate) fn refabriquer(ctx: &Contexte, chemin: &Path, mois: &str, nic: Option
     let entete = envois::depot::lire(&octets);
     let type_dsn = entete.champ("type_declaration").to_string();
     let Ok(ordre) = entete.champ("ordre").trim().parse::<i64>() else { return Ok(None) };
-    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise_du_mois(mois).map_err(valeur)?).is_empty();
     let nic = nic.filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
     let nic_v = if plusieurs { Value::String(nic.clone()) } else { Value::Null };
     let remplacee_versait_pas = if type_dsn == "03" || type_dsn == "05" {
@@ -308,7 +308,7 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
     let detail = l.get("detail").cloned().unwrap_or(Value::Null);
     let champ = |k: &str| detail.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let type_dsn = Some(champ("type")).filter(|t| !t.is_empty()).unwrap_or_else(|| "01".into());
-    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise_du_mois(&mois).map_err(valeur)?).is_empty();
     let nic = Some(champ("etablissement")).filter(|n| !n.is_empty()).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
     // Constituee le jour ou son fichier a ete ecrit (le journal des ecritures), sinon le jour de son depot.
     let ecrite = journal_des_ecritures(&ctx.racine)
@@ -378,7 +378,7 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
     let mut arrets: Vec<declarations::dsn::Arret> = Vec::new();
     for a in crate::compagnie::marques_depot::arrets_pour(ctx, &mois)? {
         if let Some(n) = &forme.etablissement {
-            let sal = ctx.salarie(&valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null))).map_err(valeur)?;
+            let sal = engagement::imprevus::fiche_du_salarie(ctx, &a).map_err(valeur)?;
             if droit::bareme::etablissement_du_salarie(&ctx.entreprise, &sal).map_err(valeur)? != *n {
                 continue;
             }
@@ -413,7 +413,7 @@ fn dsn_parties(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R<Vec
 /// `None` : rien n'est parti et rien n'est a declarer pour cet etablissement (ni paie validee, ni correction).
 pub(crate) fn dsn_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>) -> R<Option<(declarations::dsn::Fabriquee, bool)>> {
     let mut m = Moteur::nouveau(ctx);
-    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise_du_mois(mois).map_err(valeur)?).is_empty();
     let nic = nic.filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
     let nic_v = if plusieurs { Value::String(nic.clone()) } else { Value::Null };
     if let Some(f) = dsn_parties(ctx, &mut m, mois, &nic_v)?.pop() {
@@ -558,7 +558,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         }
     }
 
-    let fiche = ctx.entreprise.clone();
+    let fiche = ctx.entreprise_du_mois(mois).map_err(valeur)?;
     let principal = droit::bareme::nic_principal(&fiche);
     let secondaires: Vec<String> = droit::bareme::secondaires(&fiche).iter().map(|e| valeur_en_texte(e.get("nic").unwrap_or(&Value::Null))).collect();
     let plusieurs = !secondaires.is_empty();
@@ -658,7 +658,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
                 }
             }
             for a in &arrets {
-                let sal = ctx.salarie(&valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null))).map_err(valeur)?;
+                let sal = engagement::imprevus::fiche_du_salarie(ctx, &a).map_err(valeur)?;
                 if du_nic(&sal)? {
                     lot.arrets.push(a.clone());
                 }
@@ -1199,7 +1199,7 @@ fn refaire_la_dsn(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize,
     let l = &lignes[rang];
     let mois = valeur_en_texte(l.get("mois").unwrap_or(&Value::Null));
     let nic = l.pointer("/detail/etablissement").filter(|v| vrai(v)).map(valeur_en_texte);
-    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise_du_mois(&mois).map_err(valeur)?).is_empty();
     let nic_v = match (plusieurs, nic) {
         (true, Some(n)) => Value::String(n),
         (true, None) => Value::String(droit::bareme::nic_principal(&ctx.entreprise)),

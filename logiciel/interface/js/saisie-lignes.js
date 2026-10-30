@@ -842,6 +842,12 @@ function construireCarte(div, e) {
         <select class="e-nature"></select></label>
       <label class="e-spectacle-bloc">Spectacle
         <select class="e-spectacle"></select></label>
+      <!-- L'ÉTABLISSEMENT où la personne travaille, quand la compagnie en a
+           d'autres que le siège (Configuration › Entreprise › Avancé) : la
+           DSN, le signalement d'arrêt et le taux AT/MP sont les siens. Une
+           compagnie d'un seul établissement ne voit pas la case. -->
+      <label class="e-etablissement-bloc" hidden>Établissement
+        <select class="e-etablissement"></select></label>
     </div>
     <!-- Les jours et le lieu sont sur chaque ligne de
          paie, qui porte la phrase entière — « 4 cachets à 130 € au
@@ -1078,6 +1084,13 @@ function construireCarte(div, e) {
   poserSpectacles(selSpec);
   selSpec.value = e.spectacle || "";
   selSpec.onchange = rafraichirApercu;
+  // --- l'établissement, s'il y a à choisir (le moteur dit lesquels)
+  const selEtab = div.querySelector(".e-etablissement");
+  const etabs = Array.isArray((ETAT.configuration || {}).etablissements) ? ETAT.configuration.etablissements : [];
+  div.querySelector(".e-etablissement-bloc").hidden = !etabs.length;
+  selEtab.innerHTML = etabs.map((x) => `<option value="${echapper(x.nic || "")}">${echapper(x.nom)}${x.ouverture ? ` (ouvert le ${echapper(x.ouverture.split("-").reverse().join("/"))})` : ""}</option>`).join("");
+  selEtab.value = e.etablissement || "";
+  selEtab.onchange = rafraichirApercu;
   // --- le métier
   const selMet = div.querySelector(".e-metier");
   poserMetiers(selMet, e.metier);
@@ -1177,7 +1190,7 @@ function construireCarte(div, e) {
   // saisissent. `verrou` : fermerEdition ne les rouvre pas. (La classe
   // `en-cours` est posée dès la coque, ligneEngagement.)
   if (div.classList.contains("en-cours")) {
-    div.querySelectorAll(".e-debut, .e-fin, .e-spectacle, .e-metier, .e-cadre, .e-qui-case, .e-nature")
+    div.querySelectorAll(".e-debut, .e-fin, .e-spectacle, .e-etablissement, .e-metier, .e-cadre, .e-qui-case, .e-nature")
       .forEach((c) => { c.disabled = true; c.classList.add("verrou"); });
   }
   majContrat(div);

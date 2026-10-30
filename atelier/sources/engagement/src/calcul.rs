@@ -856,7 +856,21 @@ pub(crate) fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resulta
     } else {
         emploi_de(&ctx.salarie_au(&cle, &eng.debut)?, &emploi)?
     };
-    Ok(anciennete_a_l_embauche(fiche, eng))
+    Ok(anciennete_a_l_embauche(etablissement_du_contrat(fiche, eng), eng))
+}
+
+/// L'ETABLISSEMENT DE RATTACHEMENT du salarie pour ce contrat (S21.G00.11.001, « l'etablissement de rattachement
+/// administratif du salarie », `norme-dsn/texte/bloc-S21.G00.11.txt`) : celui que l'engagement dit, quand la compagnie en a
+/// plusieurs ; sinon le principal. La fiche le porte en `etablissement`, que la DSN, les signalements et le bareme lisent
+/// (`droit::bareme::etablissement_du_salarie`).
+pub fn etablissement_du_contrat(mut fiche: Value, eng: &Engagement) -> Value {
+    if let Some(o) = fiche.as_object_mut() {
+        match &eng.etablissement {
+            Some(n) => o.insert("etablissement".into(), Value::String(n.clone())),
+            None => o.remove("etablissement"),
+        };
+    }
+    fiche
 }
 
 /// L'ANCIENNETE DANS L'ENTREPRISE (S21.G00.86.003, `norme-dsn/texte/bloc-S21.G00.86.txt`) d'une fiche qui ne la date pas
