@@ -2552,6 +2552,28 @@ mod tests_risques_atmp {
         assert_eq!(taux_de_l_arrete(&sans, Some(true), false), None);
     }
 
+    /// Le taux est determine par etablissement (D. 242-6-1, `code-de-la-securite-sociale/xml/D242-6-1.xml`) : un autre
+    /// etablissement classe en 92.3AD, « TC », a le taux collectif de l'arrete de l'annee sans le saisir (1,50 % en 2026,
+    /// D. 242-6-14), lu par `bareme_atmp` comme celui de la compagnie et ecrit pour la DSN ; un taux notifie saisi vaut ;
+    /// en Alsace-Moselle, le taux se saisit (art. 4 de l'arrete).
+    #[test]
+    fn le_taux_d_un_etablissement_en_risque_tc_est_celui_de_l_arrete() {
+        let socle = socle::fichiers::lire_json(&dossier_du_code().join("baremes").join("2026.json")).unwrap();
+        let mut bar = socle.clone();
+        bar["nic"] = serde_json::json!("00017");
+        let fiche = serde_json::json!({"nic": "00017", "etablissements": [
+            {"nic": "00025", "code_postal": "44000", "taux_atmp": {"code_risque": "923AD"}},
+            {"nic": "00033", "code_postal": "67000", "taux_atmp": {"code_risque": "923AD"}},
+            {"nic": "00041", "code_postal": "44000", "taux_atmp": {"code_risque": "921CC", "valeur": 2.4}}]});
+        let taux = |nic: &str| {
+            let b = taux_atmp_resolu(surcharger(bar.clone(), &fiche, nic).unwrap()).0;
+            b["taux_atmp"]["valeur"].as_f64()
+        };
+        assert_eq!(taux("00025"), Some(1.5));
+        assert_eq!(taux("00033"), None);
+        assert_eq!(taux("00041"), Some(2.4));
+    }
+
     /// L'annee que la compagnie n'a pas dite : 92.3AD, « TC », prend le taux de l'arrete de l'annee (1,65 % en 2025, annexe 1
     /// de `legifrance-arrete-tarification-atmp-2025-complet-20261029.txt` ; 1,50 % en 2026), quel que soit l'effectif
     /// (D. 242-6-14, I). Un taux notifie propre a la compagnie, un risque sans TC (92.1CC, D. 242-6-2) ou une annee dont
