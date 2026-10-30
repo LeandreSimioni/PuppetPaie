@@ -77,9 +77,9 @@ fn entier(v: &Value) -> R<i64> {
 
 // ------------------------------------------------------------------ le journal des depots
 
-/// Une DSN reelle acceptee est-elle partie pour ce mois ? (`import::mois::dsn_avant`)
+/// Une DSN reelle est-elle partie pour ce mois, et pas refusee au bilan ? (`import::mois::dsn_avant`)
 fn dsn_acceptee(ctx: &Contexte, mois: &str) -> R<bool> {
-    Ok(matches!(crate::import::mois::dsn_avant(ctx, mois, &Value::Null)?["etat"].as_str(), Some("passee" | "attente" | "refusee")))
+    Ok(matches!(crate::import::mois::dsn_avant(ctx, mois, &Value::Null)?["etat"].as_str(), Some("passee" | "attente")))
 }
 
 // ------------------------------------------------------------------ l'export compta
