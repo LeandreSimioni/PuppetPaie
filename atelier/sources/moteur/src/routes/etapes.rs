@@ -446,13 +446,16 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
     let paire = |v: &Value| (valeur_en_texte(&v["salarie"]), valeur_en_texte(&v["numero"]));
     // Les corrections de mois passes que la ligne porte ne sont pas des engagements de ce mois.
     let mut emportes: Vec<(String, String)> = emportes.iter().filter(|v| v.get("mois").is_none()).map(paire).collect();
+    // Un engagement rouvert par « Modifier… » et pas encore revalide reste celui que la DSN a declare : seule sa
+    // revalidation dit s'il a change (`engagement::etats::valider`).
     let mut presents: Vec<(String, String)> = etats
         .iter()
         .zip(&siens)
         .filter(|(_, s)| **s)
-        .filter_map(|(e, _)| e.valide())
-        .filter_map(|v| {
-            let b = Value::Object(v.objet().brut.clone());
+        .filter(|(e, _)| e.valide().is_some() || e.en_modification())
+        .map(|(e, _)| e.objet())
+        .filter_map(|o| {
+            let b = Value::Object(o.brut.clone());
             Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
         })
         .collect();

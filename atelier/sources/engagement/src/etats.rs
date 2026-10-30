@@ -284,6 +284,12 @@ impl Etat {
             Etat::Partis(p) => Some(&p.valide),
         }
     }
+
+    /// Rouvert par « Modifier… » et pas encore revalide : sa validation est mise de cote (`precedente`). Tant qu'il
+    /// n'est pas revalide, rien de ce qui est parti sur elle n'a change.
+    pub fn en_modification(&self) -> bool {
+        matches!(self, Etat::EnSaisie(e) if e.objet.brut.get(PRECEDENTE).is_some_and(|p| !p.is_null()))
+    }
 }
 
 /// La cle de la fiche du salarie d'un engagement (`None` s'il ne nomme aucune fiche).
