@@ -24,7 +24,8 @@
 //! LA DATE SE LIT AUSSI, elle ne se pose jamais au 1er du mois par defaut : le lendemain de la fenetre de l'historique
 //! de la fiche (salarie ou entreprise) qui a change le champ, la `date_modification` de la saisie du mois (un avenant),
 //! le 1er janvier d'un bareme annuel (le code risque AT), ou le premier jour de la periode payee pour ce que le moteur
-//! calcule periode par periode (les emplois multiples, 40.036). Un changement sans date refuse ; un changement anterieur
+//! calcule periode par periode (les emplois multiples, 40.036). La date de debut, identifiant que la norme laisse dater
+//! de tout jour, se date sans cela du dernier jour du mois declare (`blocs_41`). Un changement sans date refuse ; un changement anterieur
 //! au mois (des mois deja declares avec l'ancienne valeur, que la paie n'a pas recalcules) refuse ; un changement en
 //! cours de mois refuse sauf pour ce qui ne change pas la paie (statut BOETH), pour les identifiants, et pour ce que la
 //! paie decoupee en periodes elementaires porte au jour du changement (`periodes`).
@@ -213,8 +214,8 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
     let ou_dater = {
         let mut o = Vec::new();
         if md.saisie {
-            o.push("la `date_modification` de l'engagement dans la saisie du mois (a l'ecran : « Avenant a compter du », le jour ou \
-l'avenant prend effet)"
+            o.push("la date de l'avenant (a l'ecran : ouvrir la carte de l'engagement, « Modifier l'engagement », puis le mois a \
+partir duquel le changement vaut, que l'avertissement demande ; l'avenant prend effet le premier jour de ce mois)"
                 .to_string());
         }
         if !md.fiche.is_empty() || !md.entreprise.is_empty() {
@@ -296,24 +297,15 @@ pub fn blocs_41(ctx: &Contexte, p: &Paie, mois: &str, nics: &[String], ecrit: &[
     let Some(decl) = declare else { return Ok(Vec::new()) };
     let fin_m = dernier_du_mois(mois)?;
     let mut identifiants = Vec::new();
-    // L'IDENTIFIANT : la date de debut. Sans date explicite, il ne change pas en silence (les organismes verraient un
-    // nouveau contrat, § 2.1.2.3).
+    // L'IDENTIFIANT : la date de debut. Il ne change jamais en silence : l'ancienne se declare dans un bloc Changements
+    // contrat (41.021), sans quoi les organismes verraient un nouveau contrat (§ 2.1.2.3, p. 20-21). Ce bloc se date du
+    // jour que la saisie du mois donne a son avenant ; sinon du dernier jour du mois declare : pour un identifiant autre
+    // que le SIRET, « la date de modification du bloc changement peut correspondre a toute date » (§ 2.1.2.3.2, p. 21,
+    // `chapitre-2-principes-de-constitution.txt`), au plus tard ce jour-la (CCH-15 de 41.001, p. 217).
     let (avant, apres) = (valeur(&decl.bloc, "S21.G00.40.001").unwrap_or(""), valeur(ecrit, "S21.G00.40.001").unwrap_or(""));
     if avant != apres {
         let date = e.date_modification.as_deref().map(|t| Jour::lire(t).map_err(|_| format!("{} : `date_modification` illisible : {}.", qui(p), t)));
-        let Some(date) = date.transpose()? else {
-            return Err(format!(
-                "{} : la date de debut du contrat (S21.G00.40.001, donnee identifiante) passe du {} (declare en {}) au {}. \
-Un identifiant change ne se declare qu'avec l'ancien dans un bloc Changements contrat (S21.G00.41.021), sans quoi les \
-organismes voient un nouveau contrat (cahier technique DSN, § 2.1.2.3, p. 20-21) ; ce bloc se date, et la date ne se \
-devine pas. Poser `date_modification` sur l'engagement dans la saisie du mois (a l'ecran : « Avenant a compter du », le \
-jour de la correction), ou remettre la date de debut declaree.",
-                qui(p),
-                ddmmaaaa(avant).map_or_else(|| avant.to_string(), |j| j.jj_mm_aaaa()),
-                libelle_mois(&decl.mois),
-                ddmmaaaa(apres).map_or_else(|| apres.to_string(), |j| j.jj_mm_aaaa())
-            ));
-        };
+        let date = date.transpose()?.unwrap_or(fin_m);
         if date > fin_m {
             return Err(format!(
                 "{} : `date_modification` ({}) apres la fin du mois declare ; la norme l'interdit (CCH-15 de S21.G00.41.001, \

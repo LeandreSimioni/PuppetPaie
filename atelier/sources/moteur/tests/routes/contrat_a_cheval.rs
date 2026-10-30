@@ -71,3 +71,24 @@ fn l_avenant_a_faire_signer_se_voit_au_second_mois() {
         assert!(carre["phrase"].as_str().is_some_and(|p| p.contains("avenant")), "{} : {}", mois, carre);
     }
 }
+
+/// LA DATE DE DEBUT D'UN CONTRAT DEJA DECLARE, CHANGEE AU SECOND MOIS : la DSN de decembre declare la nouvelle et, dans
+/// un bloc Changements contrat, l'ancienne (41.021, § 2.1.2.3.2 de `norme-dsn/texte/chapitre-2-principes-de-
+/// constitution.txt`, p. 21). Ce bloc se date de tout jour pour un identifiant (meme paragraphe), au plus tard le dernier
+/// du mois declare (CCH-15 de 41.001, `bloc-S21.G00.41.txt`, p. 217) : sans avenant date, ce dernier jour.
+#[test]
+fn la_date_de_debut_changee_se_declare_avec_l_ancienne() {
+    let c = fuller_a_cheval("date_de_debut");
+    let jour = "2026-12-16";
+    let mut fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
+    let debut = engagement::debut_brut(&fuller);
+    fuller["debut"] = json!("2026-11-19");
+    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true, "engagements": [
+        {"salarie": "FULLER", "debut": debut, "numero": fuller["numero"], "rang": 0, "saisie": fuller}]}), jour);
+    assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
+
+    let ecrite = reussi(&route(&c, "dsn-a-deposer", json!({"mois": "2026-12"}), "2026-12-20")).clone();
+    let decembre = String::from_utf8_lossy(&std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap()).to_string();
+    let bloc = "S21.G00.41.001,'31122026'\r\nS21.G00.41.021,'20112026'";
+    assert!(decembre.contains("S21.G00.40.001,'19112026'") && decembre.contains(bloc), "{}", decembre);
+}
