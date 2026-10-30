@@ -13,9 +13,10 @@ use socle::fichiers::{repr, vrai};
 use socle::num::Resultat;
 
 /// Les actes que l'on note ; un autre est refuse.
-pub const ACTES: [&str; 10] = [
+pub const ACTES: [&str; 11] = [
     "dsn",
     "dpae",
+    "dpae-corrigee",
     "documents",
     "contrat-signature",
     "contrat-recu",

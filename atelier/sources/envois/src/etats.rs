@@ -29,6 +29,8 @@ pub const DSN: &str = "dsn";
 pub const DPAE: &str = "dpae";
 pub const DOCUMENTS: &str = "documents";
 pub const SIGNATURE: &str = "contrat-signature";
+/// La correction d'une DPAE partie, faite aupres de l'Urssaf et notee par la compagnie.
+pub const DPAE_CORRIGEE: &str = "dpae-corrigee";
 pub const CONTRAT_RECU: &str = "contrat-recu";
 const CONTRESIGNE: &str = "contrat-contresigne";
 const CASC: &str = "regularisation-casc";
@@ -557,6 +559,16 @@ pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
                     "retours": retours_json, "dossier": dossier, "deja_existante": existante,
                 }),
             )?;
+        }
+    }
+    // UNE DPAE CORRIGEE aupres de l'Urssaf (son espace en ligne : la compagnie le note, `dpae-corrigee`) declare
+    // desormais la fin que la ligne dit.
+    for l in filtrer(lignes, Some(DPAE_CORRIGEE), None, true)? {
+        let d = get(l, "detail")?;
+        let cle = paire(d, "salarie", "debut")?;
+        if let Some(mut v) = etat.get(&cle)?.cloned() {
+            v["fin"] = get(d, "fin")?.clone();
+            etat.poser(cle, v)?;
         }
     }
     Ok(etat.sortie(Clone::clone))

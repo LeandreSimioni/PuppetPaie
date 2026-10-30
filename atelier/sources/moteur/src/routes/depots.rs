@@ -25,15 +25,16 @@ use socle::valeur::{nom_type, valeur_en_texte};
 
 
 /// Les routes de ce module.
-pub const ROUTES: &[&str] = &["dpae", "depot-apercu", "deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
+pub const ROUTES: &[&str] = &["dpae", "dpae-corrigee", "depot-apercu", "deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
 
 /// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["dpae", "deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
+pub const ECRITURES: &[&str] = &["dpae", "dpae-corrigee", "deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let mut v = match nom {
         "dpae" => dpae(ctx, charge),
+        "dpae-corrigee" => dpae_corrigee(ctx, charge),
         "depot-apercu" => depot_apercu(ctx, charge),
         "deposer" => deposer(ctx, charge),
         "suivre-depot" => suivre_depot(ctx, charge),
@@ -1126,4 +1127,25 @@ pub(crate) fn bilan_de_la_repetition(ctx: &Contexte, charge: &Value) -> R<Value>
     let mut r = etats::repetition(&lignes, quoi, &empreinte, &nom)?;
     r["incident"] = json!("");
     Ok(r)
+}
+
+/// LA DPAE CORRIGEE : la compagnie dit qu'elle a corrige, aupres de l'Urssaf (son espace en ligne), la DPAE partie qui
+/// ne disait plus la fin de l'engagement de `salarie` commencant le `debut` (la saisie enregistree de `mois`). Une ligne
+/// de journal (`dpae-corrigee`), qui date un fait du monde : la DPAE declare desormais la fin que dit l'engagement. Rien
+/// ne part.
+fn dpae_corrigee(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let texte = |k: &str| charge.get(k).filter(|v| vrai(v)).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
+    let (mois, salarie, debut) = (texte("mois")?, texte("salarie")?, texte("debut")?);
+    let paies = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None)?.1;
+    let tous = crate::routes::etapes::contrats_des_paies(&paies);
+    let Some(i) = (0..paies.len()).find(|&i| tous[i].0 == salarie && tous[i].1 == debut) else {
+        return Err(Echec::from(format!("Aucun engagement de {} commençant le {} dans les engagements de {}. Rien n'est noté.", salarie, debut, mois)));
+    };
+    let p = &paies[i];
+    let fin = p.engagement.fin.map(|f| f.iso());
+    let nom = socle::texte::salarie_nomme_ou(Some(&p.salarie), &salarie);
+    let detail = json!({"salarie": salarie, "debut": debut, "fin": fin, "nom": nom});
+    let reponse = format!("DPAE de {} corrigée auprès de l'Urssaf", nom);
+    let ligne = envois::ligne_d_envoi::noter_envoi(ctx, etats::DPAE_CORRIGEE, Some(&mois), "interface", true, "", &reponse, Some(&detail), None)?;
+    Ok(json!({"phrase": format!("Noté : la DPAE de {} est corrigée.", nom), "ligne": ligne}))
 }

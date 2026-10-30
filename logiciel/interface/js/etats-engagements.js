@@ -89,6 +89,7 @@ function brancherRecu(div) {
       if (!c || !c.action) return;
       const mois = document.getElementById("mois").value;
       if (c.action.geste === "contrat_recu") return noterSigne(mois, ligne, c.action.recu, c.action.avenant);
+      if (c.action.geste === "pieces") return boitePieces(ligne, c.cle);
       ouvrirGeste(c.action, mois);
     };
     s.onclick = agir;
@@ -120,6 +121,17 @@ async function noterRecu(mois, charge) {
   annuler.textContent = "Annuler";
   annuler.onclick = () => { el.classList.add("cachee"); noterRecu(mois, r.annuler.charge); };
   el.append(" — ", annuler);
+}
+
+/** La DPAE corrigée auprès de l'Urssaf : la compagnie le note, le moteur l'écrit au journal. */
+async function noterDpaeCorrigee(mois, ligne) {
+  let r;
+  try {
+    r = await api("dpae-corrigee", { mois, salarie: ligne.salarie, debut: ligne.debut });
+  } catch (e) { dire(e.message, "erreur"); return; }
+  await dessinerEtatsDesEngagements(mois);
+  await rafraichirActions();
+  dire(r.phrase);
 }
 
 /** Les pièces parties d'un engagement pour un acte (`dpae`, `contrat-signature` : la clé de son carré). */
@@ -165,6 +177,7 @@ async function boitePieces(ligne, acte) {
       if (a.geste === "contrat_recu") noterSigne(mois, ligne, a.recu);
       else if (a.geste === "avenant") boiteAvenant(mois, ligne.salarie, ligne.debut, ligne.numero);
       else if (a.geste === "faire_signer") boiteSignature(mois, [ligne.salarie]);
+      else if (a.geste === "dpae_corrigee") noterDpaeCorrigee(mois, ligne);
     };
   });
   document.querySelectorAll(".p-ouvrir").forEach((b) => {
@@ -598,10 +611,7 @@ function avisDpaeDeplacee(div, ps, ligne) {
       : `salarié : la DPAE déclare ${d.nom}`);
   }
   const dp = ligne && ligne.etats && ligne.etats.dpae;
-  if (dp && dp.fait && !dp.refusee && dp.fin_declaree && dp.fin_declaree !== ligne.fin) {
-    ecarts.push(`fin du contrat : la DPAE déclare le ${jjmmaaaa(dp.fin_declaree)},
-      l'engagement dit le ${jjmmaaaa(ligne.fin)}`);
-  }
+  if (dp && dp.ecart) ecarts.push(dp.ecart);
   if (!ecarts.length) { if (avis) avis.remove(); return; }
   if (!avis) {
     avis = document.createElement("div");
