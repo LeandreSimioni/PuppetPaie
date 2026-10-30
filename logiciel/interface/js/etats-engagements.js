@@ -532,20 +532,6 @@ function boiteAvertissement(a) {
  * horodaté, à côté du fichier complet du mois, jamais par-dessus. */
 async function boiteDpae(mois) {
   if (!mois) { dire("Choisir un mois."); return; }
-  // LA SAISIE À L'ÉCRAN D'ABORD. Cette boîte lit la
-  // saisie ENREGISTRÉE : un engagement tapé il y a moins d'une seconde, ou qu'un
-  // spectacle manquant empêche d'enregistrer, n'y figurerait pas -- et sa
-  // DPAE ne partirait pas, sans que rien ne le dise.
-  let pasEnregistre = "";
-  const ecran = document.getElementById("mois");
-  if (ecran && ecran.value === mois && typeof enregistrerSaisie === "function") {
-    clearTimeout(MINUTEUR_SAISIE);
-    await enregistrerSaisie(true);
-    if (!toutEstEcrit()) {
-      pasEnregistre = document.getElementById("note-saisie").textContent
-        || "La saisie à l'écran n'est pas enregistrée.";
-    }
-  }
   let r;
   try {
     r = await api("etat-par-engagement", { mois });
@@ -562,10 +548,6 @@ async function boiteDpae(mois) {
   ouvrirBoite(`
     <h3>Envoyer les DPAE</h3>
     ${moisEnGros(mois)}
-    ${pasEnregistre ? `<div class="encart attention"><b>Une partie de l'écran
-      n'est pas enregistrée</b> ${echapper(pasEnregistre)} Les engagements qui ne
-      figurent pas ci-dessous n'auront pas leur DPAE : compléter la saisie,
-      puis rouvrir cette fenêtre.</div>` : ""}
     <p class="note">Cochées d'avance : les embauches sans DPAE, ou dont la
       DPAE a été refusée. Une DPAE déjà passée ne se redéclare pas : l'Urssaf
       recevrait deux déclarations pour un seul contrat.</p>

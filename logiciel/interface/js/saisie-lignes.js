@@ -196,16 +196,13 @@ function ligneRubrique(l = {}, nat) {
   };
   div.querySelector(".supprimer").onclick = () => { div.remove(); rafraichirApercu(); };
   div.querySelectorAll("input").forEach((c) => { c.oninput = rafraichirApercu; });
-  // Taper un taux ici, c'est décider du prochain DE LA MÊME RUBRIQUE : le
-  // cachet par défaut ne bouge que sur une ligne de cachets (25/09/2026 : un
-  // taux horaire était devenu « cachet à 200 € par défaut »).
+  // Taper un taux ici, c'est donner celui de la prochaine ligne DE LA MÊME RUBRIQUE.
   div.querySelector(".r-taux").oninput = () => {
     const v = div.querySelector(".r-taux").value;
     const r = div.querySelector(".r-code").value;
-    // Une carte ouverte pour être modifiée ne s'écrit pas : son taux ne devient pas celui du mois.
-    if (v !== "" && +v > 0 && !div.closest(".en-modification")) {
-      if (r === "cachet") { DERNIER_TAUX = +v; afficherRappelsMois(); }
-      else TAUX_PAR_RUBRIQUE[r] = +v;
+    if (v !== "" && +v > 0) {
+      TAUX_PAR_RUBRIQUE[r] = +v;
+      if (r === "cachet") afficherRappelsMois();
     }
     rafraichirApercu();
   };
@@ -511,22 +508,12 @@ function lignesDe(e) {
   return (e.lignes && e.lignes.length) ? e.lignes : [{}];
 }
 
-/* LE DERNIER TAUX DONNÉ, et c'est tout ce qui reste du « par défaut du mois ».
-   « Pas besoin de taux de cachet : on met de base le dernier taux donné.
-   Simple et efficace » (12/09/2026). Il se reprend de la saisie chargée, et
-   il suit ce qu'on tape : la ligne de paie suivante, et le mois suivant,
-   partent de là. Il continue d'être écrit dans le fichier — le moteur s'en
-   sert comme défaut d'un engagement qui ne dit pas son taux — mais plus
-   personne n'a à le saisir. Sa valeur de départ, c'est le MOTEUR qui la dit
-   (route `saisie`, `defauts.taux_cachet`) : la page n'en choisit pas. */
-let DERNIER_TAUX = null;
-/* Le dernier taux donné pour chaque AUTRE rubrique (heure, service de
- * répétition…). Le cachet garde le sien dans DERNIER_TAUX, qui s'enregistre. */
+/* LE DERNIER TAUX DONNÉ À CHAQUE RUBRIQUE : celui d'une ligne neuve de la même rubrique, à l'écran seulement ; rien
+   ne l'enregistre. Celui du cachet part de ce que le MOTEUR dit (route `saisie`, `defauts.taux_cachet`). */
 const TAUX_PAR_RUBRIQUE = {};
 function tauxParDefaut(code) {
-  return code === "cachet" ? (DERNIER_TAUX ?? "") : (TAUX_PAR_RUBRIQUE[code] ?? "");
+  return TAUX_PAR_RUBRIQUE[code] ?? "";
 }
-let SAISIE_DATE_PAIEMENT = "";   // celle du fichier, ou celle que le moteur propose
 
 /* =======================================================================
    LE LIEU ET LES JOURS SONT SUR LA LIGNE DE PAIE

@@ -399,7 +399,6 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             }
             r
         }
-        "apercu" => route(racine, nom, &json!({"mois": charge.get("mois").cloned().unwrap_or(Value::Null), "modifiees": charge.get("modifiees").cloned().unwrap_or(Value::Null), "lignes": charge.get("lignes").cloned().unwrap_or(Value::Bool(false)), "urssaf": charge.get("urssaf").cloned().unwrap_or(Value::Bool(false)), "blocs": charge.get("blocs").cloned().unwrap_or(Value::Null)})),
         "rappels" => route(racine, nom, &json!({})),
         // L'ECRAN D'UN MOIS SE LIT ICI, SANS PROCESSUS : le dernier etat connu du
         // mois, tout de suite, meme perime (marque `perime`, et refait en fond) ; `attendre` : l'etat frais.
