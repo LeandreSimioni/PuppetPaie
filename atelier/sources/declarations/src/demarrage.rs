@@ -285,6 +285,21 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
             ));
         }
     }
+    // LES CONGES PAYES ACQUIS AVANT PUPPETPAIE : un permanent dont le contrat commence avant le premier mois ou PuppetPaie
+    // le paie a acquis des jours ailleurs (L3141-3 du code du travail, `atelier/reference/sources/code-du-travail/
+    // articles-20260919.md`) ; un solde ne se devine pas (regle 1). Sa fiche les dit (`conges_reprise`, que
+    // `engagement::conges::reprise_conges` lit), la meme question que l'import pose (`moteur::import::nature::conges_a_dire`).
+    for (salarie, nom, depuis) in conges_a_reprendre(ctx) {
+        out.push(json!({
+            "cle": format!("conges_reprise.{}", salarie),
+            "libelle": format!("Les congés payés de {} acquis avant le {}", nom, socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
+            "bloque": "le compteur de congés payés de ses bulletins (sans eux, il part de zéro)",
+            "ou": format!("la fiche de {}, « Congés payés à la reprise »", nom),
+            "champ": "conges_reprise",
+            "salarie": salarie,
+            "trouver": format!("Son contrat a commencé avant que PuppetPaie le paie : recopiez de son dernier bulletin de votre ancien logiciel les jours acquis et pris, avec le {} pour date de reprise.", socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
+        }));
+    }
     // Les organismes de la DSN : la compagnie ne les a pas encore enregistres.
     if !ctx.racine.join("config").join(droit::contexte::ORGANISMES).is_file() {
         out.push(manque(
@@ -295,6 +310,51 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
             None,
             "Les comptes que la DSN paie (Urssaf, France Travail Spectacle, Congés Spectacles, retraite complémentaire) et vos contrats de prévoyance et de santé : l'organisme, la référence du contrat et la population couverte se lisent sur le certificat d'adhésion de l'assureur et sur sa fiche de paramétrage DSN.".into(),
         ));
+    }
+    out
+}
+
+/// Les permanents dont un contrat commence avant le premier mois ou PuppetPaie le paie (le premier `engagements/AAAA-MM.json`
+/// qui le porte), et dont la fiche ne dit pas les conges a la reprise (`conges_reprise.date`) : `(salarie, nom, premier
+/// jour paye ici)`. Un intermittent n'en est pas (ses conges sont ceux des Conges Spectacles) ; un contrat ne d'ici n'a
+/// rien d'avant.
+fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
+    let Ok(lus) = std::fs::read_dir(ctx.racine.join("engagements")) else { return Vec::new() };
+    let mut mois: Vec<String> = lus
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .filter_map(|n| n.strip_suffix(".json").filter(|m| m.len() == 7 && m.as_bytes()[4] == b'-').map(str::to_string))
+        .collect();
+    mois.sort();
+    let mut vus: Vec<String> = Vec::new();
+    let mut out = Vec::new();
+    for m in mois {
+        let Ok(f) = socle::fichiers::lire_json(&ctx.racine.join("engagements").join(format!("{}.json", m))) else { continue };
+        let premier = format!("{}-01", m);
+        for e in f.get("engagements").and_then(Value::as_array).into_iter().flatten() {
+            let t = |k: &str| e.get(k).filter(|v| vrai(v)).map(socle::date::en_texte).unwrap_or_default();
+            let (salarie, debut) = (t("salarie"), t("debut"));
+            if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) {
+                continue;
+            }
+            let Ok(nat) = droit::natures::nature(Some(&t("nature"))) else { continue };
+            if !nat.mensuelle() {
+                continue;
+            }
+            vus.push(salarie.clone());
+            let fiche = ctx.salaries.get(&salarie);
+            let dit = fiche.and_then(|f| f.get("conges_reprise")).and_then(|c| c.get("date")).is_some_and(vrai);
+            if debut < premier && !dit {
+                let nom = fiche
+                    .map(|f| {
+                        let v = |k: &str| f.get(k).filter(|x| vrai(x)).map(socle::date::en_texte).unwrap_or_default();
+                        let prenom = if v("prenom_affichage").is_empty() { v("prenom") } else { v("prenom_affichage") };
+                        format!("{} {}", v("nom"), prenom).trim().to_string()
+                    })
+                    .filter(|n| !n.is_empty())
+                    .unwrap_or_else(|| salarie.clone());
+                out.push((salarie, nom, premier.clone()));
+            }
+        }
     }
     out
 }

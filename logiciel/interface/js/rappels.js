@@ -89,7 +89,7 @@ function htmlDemarrage(manques) {
   const ligne = (m) => `
     <li>
       <button type="button" class="lien" data-manque-champ="${echapper(m.champ || "")}"
-        data-manque-ou="${echapper(m.ou || "")}"><b>${echapper(m.libelle)}</b></button>
+        data-manque-ou="${echapper(m.ou || "")}" data-manque-salarie="${echapper(m.salarie || "")}"><b>${echapper(m.libelle)}</b></button>
       <span class="discret">— bloque ${echapper(m.bloque)}</span>
       <div class="note">À saisir dans ${echapper(m.ou)}.</div>
       ${m.trouver ? `<details><summary>Où le trouver</summary><p class="note">${echapper(m.trouver)}</p></details>` : ""}
@@ -105,8 +105,9 @@ function htmlDemarrage(manques) {
 
 /** Aller à ce qui manque : l'onglet, puis la case (son tiroir ouvert, le
  *  curseur dedans). Le taux AT/MP n'est pas une case de la fiche
- *  (`ATMP_HTML`) ; les organismes ont leur onglet. */
-function allerAuManque(champ, ou) {
+ *  (`ATMP_HTML`) ; les organismes ont leur onglet ; ce qui se dit sur la
+ *  fiche d'un salarié (`salarie`, du moteur) ouvre sa fiche. */
+async function allerAuManque(champ, ou, salarie) {
   if (!document.getElementById("voile").classList.contains("cachee")) fermerBoite();
   // Déjà dans la configuration : on n'y retourne pas. Recliquer l'onglet
   // redessinait la fiche et, sur une fiche en cours de saisie, ouvrait « Vous
@@ -115,10 +116,13 @@ function allerAuManque(champ, ou) {
   if (document.getElementById("vue-configuration").classList.contains("cachee")) {
     document.querySelector('.onglets button[data-vue="configuration"]').click();
   }
-  const fiche = /Organismes/.test(ou) ? "organismes" : "entreprise";
-  const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
-  if (sous && !sous.classList.contains("actif")) sous.click();
-  if (fiche !== "entreprise" || !champ) return;
+  const fiche = salarie ? "salarie" : /Organismes/.test(ou) ? "organismes" : "entreprise";
+  if (salarie) await ouvrirFicheImportee("salarie", salarie);
+  else {
+    const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
+    if (sous && !sous.classList.contains("actif")) sous.click();
+  }
+  if (fiche === "organismes" || !champ) return;
   const trouver = () => champ === "taux_atmp" ? document.getElementById("atmp-valeur")
     : document.querySelector(`#config-formulaire [data-cle="${CSS.escape(champ)}"]:not([type="hidden"])`)
       || document.querySelector(`#config-formulaire [data-sous-de="${CSS.escape(champ)}"]:not([type="hidden"])`);
@@ -139,7 +143,7 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-manque-champ]");
   if (!b) return;
   e.preventDefault();
-  allerAuManque(b.dataset.manqueChamp, b.dataset.manqueOu);
+  allerAuManque(b.dataset.manqueChamp, b.dataset.manqueOu, b.dataset.manqueSalarie);
 });
 
 /** La liste « Pour démarrer », en tête de Configuration › Entreprise. */
