@@ -136,6 +136,10 @@ fn au(frise: &Frise, jour: &Jour) -> Option<Value> {
 pub(crate) fn ecrire(
     ctx: &Contexte, contenu: &mut Map<String, Value>, donnees: &Map<String, Value>, liste_ecran: &Value, depuis: Option<Jour>, note: Option<&str>,
 ) -> R<()> {
+    if !contenu.contains_key("etablissements") && liste(Some(liste_ecran)).is_empty() {
+        // Une compagnie qui n'en a jamais eu : rien a dater.
+        return Ok(());
+    }
     let siren = texte(donnees.get("siren")).trim().to_string();
     let mut nouvelles: Vec<(Jour, Value)> = Vec::new();
     let mut griefs: Vec<String> = Vec::new();
