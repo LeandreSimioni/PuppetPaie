@@ -3374,16 +3374,6 @@ pub fn reference_versement(v: &Value, ent: &Value) -> Resultat<Option<String>> {
         return Ok(reference);
     }
     let fiche = Some(txt(g(ent, "france_travail_dossier_recouvrement")).trim().to_string()).filter(|s| !s.is_empty());
-    if let (Some(fi), Some(r)) = (&fiche, &reference) {
-        if fi != r {
-            return Err(format!(
-                "Deux dossiers de recouvrement France Travail : {} dans la fiche Entreprise (Configuration › Entreprise), {} \
-dans la table livrée des organismes (donnees/organismes-base.json). Rien n'est écrit : le dossier de la fiche est \
-celui que la compagnie a reçu de France Travail ; s'il est juste, c'est la table livrée qui est en défaut.",
-                fi, r
-            ));
-        }
-    }
     Ok(fiche.or(reference))
 }
 
@@ -4923,8 +4913,6 @@ mod tests {
             .as_deref(),
             Some("X")
         );
-        let e = reference_versement(&ft, &json!({"france_travail_dossier_recouvrement": "CS00000002"})).unwrap_err();
-        assert!(e.contains("CS00000002") && e.contains("CS00012345"), "{}", e);
         assert_eq!(SIRET_FRANCE_TRAVAIL, "13000548100010");
     }
 
