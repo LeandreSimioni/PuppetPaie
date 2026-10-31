@@ -230,7 +230,7 @@ pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str
     }
     let donnees = json_ascii(corps);
     let url = format!("{}/{}", serveur.trim_end_matches('/'), action);
-    // Les en-tetes d'urllib : il ne demande aucun codage.
+    // Aucun codage demandé.
     let mut en_tetes: Vec<(&str, &str)> = vec![("User-Agent", "PuppetPaie-filet"), ("Accept-Encoding", "identity")];
     en_tetes.extend_from_slice(entetes);
     let r = Requete {
@@ -277,7 +277,7 @@ pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str
         }
         Err(Panne::Reseau(raison)) => Err(ErreurFilet::filet(format!("Filet DPAE injoignable : {}", raison), 0)),
         Err(Panne::Brute { classe, message, .. }) => match classe {
-            // Ce qu'urllib laissait sortir sous `OSError`.
+            // Une connexion rompue ou qui ne répond plus : le filet est injoignable.
             "TimeoutError" | "ConnectionResetError" | "RemoteDisconnected" | "BadGzipFile" => {
                 Err(ErreurFilet::filet(format!("Filet DPAE injoignable : {}", message), 0))
             }

@@ -74,7 +74,7 @@ enum Noeud {
     Rep(Box<Noeud>, usize, usize),
 }
 
-/// Une expression compilee ; `fullmatch` comme `re.fullmatch`.
+/// Une expression compilee, qui doit couvrir toute la valeur.
 pub struct Regex {
     pub motif: String,
     alts: Vec<Vec<Noeud>>,
@@ -293,7 +293,7 @@ impl Regex {
         Ok(Regex { motif: motif.to_string(), alts })
     }
 
-    /// `re.fullmatch(valeur)` est-il non nul ?
+    /// L'expression couvre-t-elle toute la valeur ?
     pub fn fullmatch(&self, valeur: &str) -> bool {
         let s: Vec<char> = valeur.chars().collect();
         let n = s.len();

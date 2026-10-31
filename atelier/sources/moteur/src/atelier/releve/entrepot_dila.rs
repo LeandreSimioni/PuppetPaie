@@ -496,7 +496,7 @@ impl<L: Read> LecteurTar<L> {
 
 use socle::texte::blanc;
 
-/// `str.strip()`.
+/// Le texte sans ses blancs de tête et de queue.
 pub fn sans_blancs(t: &str) -> &str {
     t.trim_matches(blanc)
 }
@@ -574,7 +574,7 @@ pub fn premiers_caracteres(s: &str, n: usize) -> &str {
     }
 }
 
-/// `str(v)` d'une valeur lue dans un JSON.
+/// Une valeur lue dans un JSON, en texte.
 pub fn texte(v: &Value) -> String {
     socle::valeur::valeur_en_texte(v)
 }

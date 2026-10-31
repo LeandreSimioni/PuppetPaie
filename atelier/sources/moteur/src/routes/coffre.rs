@@ -401,7 +401,7 @@ fn courtes<'a>(ps: impl IntoIterator<Item = &'a Value>) -> R<Vec<Value>> {
         .collect()
 }
 
-/// `list(x)` de ce que le jeton enregistre comme permissions.
+/// La liste de ce que le jeton enregistre comme permissions.
 fn liste(v: &Value) -> R<Vec<Value>> {
     match v {
         Value::Array(a) => Ok(a.clone()),

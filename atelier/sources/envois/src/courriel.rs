@@ -573,7 +573,7 @@ impl BoiteSimulee {
     }
 }
 
-/// `re.search(rb"^Message-ID:\s*(<[^>\r\n]+>)", brut, re.I | re.M)`.
+/// Le `Message-ID` d'un message brut (l'en-tête, sans égard à la casse, en début de ligne).
 fn message_id_de(brut: &[u8]) -> Option<String> {
     let blanc = |c: u8| matches!(c, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c);
     let mut debut = 0;

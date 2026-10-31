@@ -104,7 +104,7 @@ pub(crate) fn dec_ou(v: Option<&Value>, defaut: Decimal) -> Resultat<Decimal> {
     }
 }
 
-/// `int(x)` d'une valeur JSON.
+/// L'entier d'une valeur JSON ; refus sinon.
 pub(crate) fn entier(v: &Value) -> Resultat<i64> {
     match v {
         Value::Number(n) => n

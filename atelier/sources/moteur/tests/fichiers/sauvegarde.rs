@@ -47,7 +47,7 @@ fn monde(nom: &str) -> PathBuf {
     r
 }
 
-/// Ce que la premiere passe fait, dossier par dossier (dans l'ordre de `sorted(par_dossier.items())`).
+/// Ce que la premiere passe fait, dossier par dossier (dans l'ordre des noms de dossier).
 const DOSSIERS: [(&str, &[&str]); 8] = [
     (".", &["notes.txt"]),
     ("config", &["entreprise.json"]),

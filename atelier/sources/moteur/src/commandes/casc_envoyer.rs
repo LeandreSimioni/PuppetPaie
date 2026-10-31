@@ -35,7 +35,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 }
 
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
-    // `dict(v.split("=", 1) for v in args.vire_le)` : la derniere date d'une annee l'emporte.
+    // Chaque `annee=date` : la derniere date d'une annee l'emporte.
     let mut dates = Map::new();
     for v in args.liste("vire-le") {
         match v.split_once('=') {

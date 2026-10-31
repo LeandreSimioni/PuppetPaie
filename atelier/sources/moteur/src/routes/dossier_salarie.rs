@@ -288,7 +288,7 @@ fn contrats_signes_de(dossier: &Path, cle: &str) -> Vec<String> {
         .collect()
 }
 
-/// `re.findall(r"[A-Z]+\d+\.\d\d\.\d+", nom)`.
+/// Les numéros de contrat d'un nom de fichier : des capitales, des chiffres, un point, deux chiffres, un point, des chiffres.
 fn numeros_de_contrat(nom: &str) -> Vec<String> {
     let c: Vec<char> = nom.chars().collect();
     let chiffres = |de: usize| c.get(de..).map_or(0, |r| r.iter().take_while(|x| x.is_ascii_digit()).count());

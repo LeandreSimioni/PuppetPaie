@@ -1,12 +1,11 @@
 //! CE QUE DIT LE JOURNAL DES ENVOIS : les etats du mois, les resumes, la repetition d'un depot, le rattachement des
 //! retours, les contrats partis, les signatures attendues, les embauches declarees. Rien n'y calcule de paie.
 //!
-//! Les lignes du journal restent des `serde_json::Value`, lues comme des
-//! dictionnaires : une cle absente vaut `None`, une valeur fausse
-//! (`None`, `0`, `""`, `[]`, `{}`) cede sa place a un `or`, et ce qui n'a pas la
-//! forme attendue (un `.get` sur autre chose qu'un objet, une boucle sur
-//! `None`) est refuse sous un nom d'exception (`AttributeError`,
-//! `TypeError`, `KeyError`). Les cles de dictionnaire (`(salarie,
+//! Les lignes du journal restent des `serde_json::Value` : une cle absente vaut
+//! `null`, une valeur vide (`null`, `0`, `""`, `[]`, `{}`) laisse sa place a la
+//! suivante, et ce qui n'a pas la forme attendue (une cle lue sur autre chose
+//! qu'un objet, une liste qui est `null`) est refuse sous une classe
+//! (`AttributeError`, `TypeError`, `KeyError`). Les cles composees (`(salarie,
 //! debut)`) se rendent en listes `[salarie, debut, valeur]`, dans l'ordre
 //! d'insertion.
 
@@ -64,7 +63,7 @@ pub fn s(t: &str) -> Value {
 
 // ---------------------------------------------------- les dictionnaires
 
-/// La cle de hachage d'une valeur : `1`, `1.0` et `True` ne font qu'une ;
+/// La cle de hachage d'une valeur : `1`, `1.0` et `true` ne font qu'une ;
 /// une liste ou un dictionnaire ne se hache pas.
 fn cle_de_hachage(v: &Value) -> R<String> {
     match v {
@@ -79,7 +78,7 @@ fn cle_de_hachage(v: &Value) -> R<String> {
     }
 }
 
-/// Un `dict` (ou un `set`) a cle composee, dans l'ordre d'insertion : reposer
+/// Une table (ou un ensemble) a cle composee, dans l'ordre d'insertion : reposer
 /// une cle change la valeur et garde la place.
 pub struct Dico<V> {
     pub index: HashMap<String, usize>,

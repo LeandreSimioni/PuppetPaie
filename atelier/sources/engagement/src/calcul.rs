@@ -118,7 +118,7 @@ impl LigneBrut {
         }
     }
 
-    /// La forme canonique de l'oracle (les champs de la dataclass, dans l'ordre).
+    /// La forme canonique de l'oracle (ses champs, dans l'ordre).
     pub fn canon(&self) -> Value {
         let texte = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
         let mut m = Map::new();

@@ -163,7 +163,7 @@ fn sans_accents(t: &str) -> String {
 /// Sans accents ni casse, les parentheses (des consignes) retirees, les mots de `a-z` seulement.
 fn cle_libelle(texte: &str) -> String {
     let t: Vec<char> = socle::texte::sans_accent(texte).to_lowercase().chars().collect();
-    // `re.sub(r"\(.*?\)", " ", t)` : de la parenthese ouvrante a la premiere fermante, sans passer a la ligne.
+    // Chaque parenthèse, de l'ouvrante à la première fermante sans passer à la ligne, devient un espace.
     let mut sans = String::new();
     let mut i = 0;
     while i < t.len() {

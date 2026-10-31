@@ -240,7 +240,7 @@ fn lignes_affichees(ctx: &Contexte, p: &engagement::calcul::Paie, brutes: &[Valu
     Ok(jours_sur_les_lignes(ctx, &p.engagement, lignes, brutes)?.into_iter().map(Value::Object).collect())
 }
 
-/// `list(x)` d'une valeur de saisie.
+/// Une valeur de saisie en liste.
 fn liste_lue(v: &Value) -> R<Vec<Value>> {
     match v {
         Value::Array(a) => Ok(a.clone()),
@@ -399,7 +399,7 @@ struct Echeance {
 }
 
 impl Echeance {
-    /// `dataclasses.asdict`.
+    /// L'échéance en objet JSON, champ par champ.
     fn json(&self) -> Value {
         json!({
             "cle": self.cle, "quoi": self.quoi, "mois": self.mois, "titre": self.titre, "detail": self.detail,
@@ -798,7 +798,7 @@ fn parcourir(v: Option<&Value>) -> R<Vec<Value>> {
     }
 }
 
-/// Les cles d'un dictionnaire de fiche (`dict.get` sur une valeur qui n'en est pas un : `AttributeError`).
+/// Les cles d'une fiche ; refus (`AttributeError`) si ce n'est pas un objet.
 fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
     v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
 }
@@ -1846,7 +1846,7 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Ve
     Ok(out)
 }
 
-/// `Decimal.quantize(Decimal("0.01"))` : deux decimales, la moitie au pair.
+/// Deux décimales, la moitié au pair.
 pub(crate) fn q2(x: Decimal) -> Decimal {
     let mut r = x.round_dp(2);
     r.rescale(2);

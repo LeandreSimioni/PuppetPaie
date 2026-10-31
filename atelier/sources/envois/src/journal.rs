@@ -45,7 +45,7 @@ pub fn empreinte(contenu: &[u8]) -> String {
     h.iter().take(8).map(|o| format!("{:02x}", o)).collect()
 }
 
-/// `journal.empreinte(chemin)`.
+/// L'empreinte d'un fichier, comme le journal l'écrit.
 pub fn empreinte_fichier(chemin: &Path) -> Resultat<String> {
     std::fs::read(chemin).map(|b| empreinte(&b)).map_err(|e| format!("{} : {}", chemin.display(), e))
 }

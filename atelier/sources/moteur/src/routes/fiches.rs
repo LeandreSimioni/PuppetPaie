@@ -1785,7 +1785,7 @@ fn finir_fiche(
 /// Secondes entre une demande de fiche et la reponse de la personne fictive de la compagnie fictive (`DELAI_SIGNATURE`).
 pub const DELAI_FICTIVE: i64 = 20;
 
-/// `re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", adresse)`.
+/// Une adresse courriel de forme `x@y.z`, sans blanc ni second `@`.
 fn adresse_valide(adresse: &str) -> bool {
     let blanc = socle::texte::blanc;
     if adresse.chars().any(blanc) || adresse.matches('@').count() != 1 {

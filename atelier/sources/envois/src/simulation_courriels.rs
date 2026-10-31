@@ -75,7 +75,7 @@ fn decoder_qp(o: &[u8]) -> Vec<u8> {
     b
 }
 
-/// `part.get_content()` d'une feuille texte : le corps decode, sans toucher aux fins de ligne.
+/// Le corps décodé d'une feuille texte, sans toucher aux fins de ligne.
 pub fn texte_de(f: &ParsedMail) -> String {
     use mailparse::body::Body;
     let charset = f.ctype.charset.to_lowercase();
@@ -214,7 +214,7 @@ fn deseschapper(t: &str) -> String {
     out
 }
 
-/// `urllib.parse.unquote_plus`.
+/// Le texte d'une URL décodé : `+` en espace, `%XX` en octet.
 fn decoder(t: &str) -> String {
     let o = t.as_bytes();
     let mut b: Vec<u8> = Vec::with_capacity(o.len());

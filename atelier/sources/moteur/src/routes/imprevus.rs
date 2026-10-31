@@ -1320,7 +1320,7 @@ fn entier(t: &str) -> R<i64> {
     t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
 }
 
-/// `dict.get(cle)` d'une dataclass construite : `None` pour un champ absent.
+/// Le champ `k` d'une valeur, `defaut` s'il manque.
 fn champ(v: &Value, k: &str, defaut: Value) -> Value {
     v.get(k).cloned().unwrap_or(defaut)
 }

@@ -263,7 +263,7 @@ impl Engagement {
         format!("{}, contrat {}", self.nom, self.numero.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans numero"))
     }
 
-    /// `Engagement(**v)` : `v` porte les champs de la dataclass (`salarie`,
+    /// L'engagement que `v` décrit (`salarie`,
     /// `spectacle`, `dates_travail`, `lignes`, `debut`, ...). `racine` est
     /// celle des donnees de la compagnie, pour le catalogue des rubriques. `qui` : le salarie tel qu'un refus le nomme
     /// (`salarie_nomme`).

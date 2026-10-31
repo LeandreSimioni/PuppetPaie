@@ -301,7 +301,7 @@ fn mois_de_constitution(jjmmaaaa: &str, aujourdhui: &socle::date::Jour) -> Strin
     aujourdhui.iso().chars().take(7).collect()
 }
 
-/// `re.search(rb"S20\.G00\.05\.004,'(\d+)'", octets)`.
+/// Le rang lu après `S20.G00.05.004,'` (des chiffres jusqu'au guillemet), s'il y en a un.
 fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
     let motif = b"S20.G00.05.004,'";
     let mut i = 0;

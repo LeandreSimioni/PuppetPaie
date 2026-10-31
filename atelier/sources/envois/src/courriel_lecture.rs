@@ -251,7 +251,7 @@ pub fn texte_propre(m: &ParsedMail) -> String {
     let (mut texte, mut html) = (String::new(), String::new());
     for f in fs {
         let (principal, sous) = f.ctype.mimetype.split_once('/').unwrap_or(("text", "plain"));
-        // `part.get_content_maintype() != "text" or part.get_filename()`.
+        // Une feuille qui n'est pas du texte, ou qui porte un nom de fichier, est une pièce jointe.
         if principal != "text" || nom_de_fichier(f).is_some_and(|n| !socle::texte::strip(&n).is_empty()) {
             continue;
         }
@@ -273,7 +273,7 @@ pub fn texte_propre(m: &ParsedMail) -> String {
     }
 }
 
-/// `re.sub(r"<[^>]+>", " ", html)`.
+/// Le HTML, chaque balise remplacée par un espace.
 fn sans_balises(html: &str) -> String {
     let c: Vec<char> = html.chars().collect();
     let mut sortie = String::with_capacity(html.len());
@@ -295,8 +295,8 @@ fn sans_balises(html: &str) -> String {
 
 // ------------------------------------------------------------------ la citation
 
-/// L'indice (en octets) de la premiere ligne qui commence une citation, `_DEBUT_CITATION.search(texte)`. Les lignes
-/// se coupent sur `\n` seulement : c'est le `^` de `re.MULTILINE`.
+/// L'indice (en octets) de la premiere ligne qui commence une citation. Les lignes
+/// se coupent sur `\n` seulement.
 fn debut_de_citation(texte: &str) -> Option<usize> {
     let mut debut = 0;
     for ligne in texte.split('\n') {

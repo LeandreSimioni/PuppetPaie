@@ -966,7 +966,7 @@ fn frontiere_au_hasard() -> String {
     format!("{}{:019}==", "=".repeat(15), jeton)
 }
 
-/// `utils.make_msgid(domain=...)`.
+/// Un identifiant de message (`Message-ID`) neuf, sur le domaine donné.
 pub fn nouveau_message_id(domaine: &str) -> String {
     let maintenant = std::time::Duration::from_secs_f64(socle::temps::secondes());
     let centiemes = maintenant.as_millis() / 10;
@@ -975,7 +975,7 @@ pub fn nouveau_message_id(domaine: &str) -> String {
     format!("<{}.{}.{}@{}>", centiemes, socle::temps::numero_de_processus(), u64::from_le_bytes(o), domaine)
 }
 
-/// `utils.formatdate(localtime=True)`, a l'heure de Paris.
+/// La date d'un en-tête de courriel, maintenant, à l'heure de Paris.
 fn date_locale() -> String {
     let t = socle::temps::secondes().floor() as i64;
     date_de(t)
@@ -1250,12 +1250,12 @@ fn plier_insecable(nom: &str, valeur: &str) -> String {
     }
 }
 
-/// `utils.quote`.
+/// Une valeur entre guillemets, `\` et `"` échappés.
 fn guillemets(v: &str) -> String {
     format!("\"{}\"", v.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
-/// `urllib.parse.quote(s, safe='')`.
+/// Le texte encodé pour une URL : tout octet hors des lettres, chiffres et `_.-~` en `%XX`.
 fn pourcent(s: &str) -> String {
     let mut o = String::new();
     for b in s.bytes() {

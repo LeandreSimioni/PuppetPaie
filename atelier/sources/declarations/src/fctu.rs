@@ -102,7 +102,7 @@ pub struct FinDeContrat {
 }
 
 impl FinDeContrat {
-    /// Depuis le dictionnaire de `dataclasses.asdict(FinDeContrat)`.
+    /// Depuis l'objet JSON de ses champs.
     pub fn lire(v: &Value) -> Resultat<FinDeContrat> {
         let t = |k: &str| -> Resultat<String> { req(v, k).map(en_texte) };
         let o = |k: &str| -> Option<String> {

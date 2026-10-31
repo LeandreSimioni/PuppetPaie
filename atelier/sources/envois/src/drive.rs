@@ -121,7 +121,7 @@ pub struct Depose {
     pub id: Option<String>,
     pub nom: Option<String>,
     pub lien: Option<String>,
-    /// `True` quand le contenu d'un fichier de meme nom a ete remplace au lieu d'un second depot.
+    /// Vrai quand le contenu d'un fichier de meme nom a ete remplace au lieu d'un second depot.
     pub remplace: bool,
 }
 
@@ -431,7 +431,7 @@ fn attente(base: u64, n: u32) -> u64 {
     base.saturating_mul(1 << n.min(6)) + hasard
 }
 
-/// `secrets.token_hex(16)`.
+/// Seize octets tirés au hasard, en hexadécimal.
 fn hasard_hex() -> String {
     let mut o = [0u8; 16];
     if getrandom::fill(&mut o).is_err() {

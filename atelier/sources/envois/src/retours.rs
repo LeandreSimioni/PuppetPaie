@@ -543,7 +543,7 @@ fn controle_expat(s: &str) -> Resultat<()> {
     Ok(())
 }
 
-/// `ET.fromstring(texte)` pour un `str` : la declaration d'encodage est sans effet.
+/// Un XML déjà en texte : sa déclaration d'encodage est sans effet.
 fn lire_texte(s: &str) -> Resultat<Arbre> {
     lire_texte_nu(s.strip_prefix('\u{feff}').unwrap_or(s))
 }
@@ -792,7 +792,7 @@ fn bilan_depuis(champs: &[(String, String)], type_rapport: &str) -> Option<Value
     Some(Value::Object(m))
 }
 
-/// `parse_bilan_depot` : un rapport AEE, CCO ou BAN, ou `None` si ce n'en est pas un.
+/// Un rapport AEE, CCO ou BAN lu, ou `null` si ce n'en est pas un.
 fn parse_bilan_depot(o: &[u8]) -> Value {
     parse_bilan_depot_lu(o).unwrap_or(Value::Null)
 }
@@ -1228,7 +1228,7 @@ fn pas_par_nom_metier(a: &Arbre) -> Vec<Value> {
     releves.iter().filter(|r| r.complete()).map(Entree94::json).collect()
 }
 
-/// `re.fullmatch(r"[0-9]{1,2}\.[0-9]{2}", v)`
+/// Un taux : un ou deux chiffres, un point, deux chiffres.
 fn est_taux(v: &str) -> bool {
     let c: Vec<char> = v.chars().collect();
     let Some(p) = c.iter().position(|&x| x == '.') else {
