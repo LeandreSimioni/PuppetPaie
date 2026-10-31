@@ -828,23 +828,31 @@ fn reponse(ctx: &Contexte, a: &Value) -> R<Value> {
 /// `arret-connaissance` : `{salarie, dernier_jour, de: "arret"|"accident", jour, heure?}` -- le jour (et l'heure) ou la
 /// compagnie a connu l'arret ou l'accident ; un `jour` vide efface ce qui etait dit (le moteur reprend sa presomption).
 fn arret_connaissance(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let (cle, a) = l_arret(ctx, charge)?;
+    let (_, a) = l_arret(ctx, charge)?;
     let de = en_texte(requis(charge, "de")?);
-    let champ = match de.as_str() {
+    let (champ, valeur) = connaissance_saisie(ctx, &a, &de, charge)?;
+    connaissance_ecrire(ctx, &a, champ, valeur)?;
+    reponse(ctx, &a)
+}
+
+/// Ce que la compagnie dit avoir connu de l'arret `a` (`de` : "arret" ou "accident"), d'apres `{jour, heure?}` : le champ
+/// de la fiche de suivi et sa valeur, controles sans rien ecrire (un jour vide efface).
+pub(crate) fn connaissance_saisie(ctx: &Contexte, a: &Value, de: &str, saisie: &Value) -> R<(&'static str, Value)> {
+    let champ = match de {
         "arret" => "connaissance_arret",
         "accident" => "connaissance_accident",
         autre => return Err(refus(format!("`de` vaut \"arret\" ou \"accident\", pas {}. Rien n'est ecrit.", repr(autre)))),
     };
-    if de == "accident" && !motif_appelle_la_declaration(&texte(&a, "motif"))? {
+    if de == "accident" && !motif_appelle_la_declaration(&texte(a, "motif"))? {
         return Err(refus(format!(
             "L'arret de {} (motif {}) n'est pas un accident du travail ou de trajet : il n'y a pas de declaration d'accident, ni de connaissance de l'accident a dire. Rien n'est ecrit.",
-            cle,
-            texte(&a, "motif")
+            texte(a, "salarie"),
+            texte(a, "motif")
         )));
     }
-    let j = jour_saisi(ctx, requis(charge, "jour")?, "La connaissance")?;
-    let heure = heure_saisie(charge)?;
-    if let (Some(j), "accident", Some(acc)) = (j, de.as_str(), jour(a.get("date_accident").unwrap_or(&Value::Null))) {
+    let j = jour_saisi(ctx, requis(saisie, "jour")?, "La connaissance")?;
+    let heure = heure_saisie(saisie)?;
+    if let (Some(j), "accident", Some(acc)) = (j, de, jour(a.get("date_accident").unwrap_or(&Value::Null))) {
         if j < acc {
             return Err(refus(format!(
                 "Connu le {}, avant l'accident lui-meme (le {}) : ce n'est pas possible. Rien n'est ecrit.",
@@ -857,9 +865,12 @@ fn arret_connaissance(ctx: &Contexte, charge: &Value) -> R<Value> {
         None => Value::Null,
         Some(j) => json!({"jour": j.iso(), "heure": heure, "saisi_le": crate::routes::maintenant()}),
     };
-    let mut suivi = Suivi::lire(ctx)?;
-    suivi.ecrire(ctx, &cle, &texte(&a, "dernier_jour_travaille"), champ, valeur)?;
-    reponse(ctx, &a)
+    Ok((champ, valeur))
+}
+
+/// Ecrit dans la fiche de suivi de l'arret `a` ce que `connaissance_saisie` a controle.
+pub(crate) fn connaissance_ecrire(ctx: &Contexte, a: &Value, champ: &str, valeur: Value) -> R<()> {
+    Suivi::lire(ctx)?.ecrire(ctx, &texte(a, "salarie"), &texte(a, "dernier_jour_travaille"), champ, valeur)
 }
 
 /// `accident-declare` : `{salarie, dernier_jour, le, depot, heure?, reference?}` -- la declaration d'accident du travail

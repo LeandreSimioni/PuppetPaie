@@ -460,9 +460,10 @@ function brancherGestesImprevu(r, i, mois, apres) {
   if (b("fin")) b("fin").onclick = () => boiteFinAbsence(i, apres);
   if (b("retirer")) b("retirer").onclick = async () => {
     try {
-      if (i.genre === "arret") await api("arret-oublier", { salarie: i.salarie, dernier_jour: i.dernier_jour_travaille });
-      else await api("suspension-oublier", { salarie: i.salarie, debut: i.debut });
-      dire(`${quoiDeLImprevu(i)} retiré : aucune déclaration ne l'avait porté.`);
+      const r = i.genre === "arret"
+        ? await api("arret-oublier", { salarie: i.salarie, dernier_jour: i.dernier_jour_travaille })
+        : await api("suspension-oublier", { salarie: i.salarie, debut: i.debut });
+      dire(r.phrase);
       await apres();
     } catch (e) { dire(e.message, "erreur"); }
   };
@@ -629,17 +630,11 @@ async function boiteArret(ou) {
       charge.subrogation_fin = val("ar-sub-fin");
     }
     if (val("ar-note").trim()) charge.note = val("ar-note").trim();
+    if (avecDeclaration && val("ar-connu")) charge.connu = { jour: val("ar-connu"), heure: val("ar-connu-heure") };
     let r;
     try { r = await api("arret-enregistrer", charge); }
     catch (e) { dire(e.message, "erreur"); return; }
-    // Le jour où la compagnie a su l'accident : le point de départ des 48 heures.
-    if (avecDeclaration && val("ar-connu")) {
-      try {
-        await api("arret-connaissance", { salarie: p.salarie, dernier_jour: charge.dernier_jour,
-          de: "accident", jour: val("ar-connu"), heure: val("ar-connu-heure") });
-      } catch (e) { dire("Arrêt enregistré, mais pas le jour où l'accident a été su : " + e.message, "erreur"); }
-    }
-    await etapeSuite(r.arret, p, "Arrêt enregistré.");
+    await etapeSuite(r.arret, p, r.phrase);
   };
 }
 
@@ -689,7 +684,7 @@ async function boiteAbsence(ou) {
     let r;
     try { r = await api("suspension-enregistrer", charge); }
     catch (e) { dire(e.message, "erreur"); return; }
-    await etapeSuite(r.suspension, p, "Absence enregistrée. Chaque mois qu'elle traverse la déclarera.");
+    await etapeSuite(r.suspension, p, r.phrase);
   };
 }
 
@@ -775,12 +770,13 @@ async function boiteReprise(a, apres) {
       <button class="primaire" id="re-ok">Enregistrer</button>
     </div>`);
   document.getElementById("re-ok").onclick = async () => {
+    let r;
     try {
-      await api("arret-reprise", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
+      r = await api("arret-reprise", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
         reprise: document.getElementById("re-date").value, motif_reprise: document.getElementById("re-motif").value });
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire("Reprise notée.");
+    dire(r.phrase);
     await apres();
   };
 }
@@ -804,8 +800,8 @@ function boiteProlonger(a, apres) {
       r = await api("arret-prolonger", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
         fin: document.getElementById("pr-fin").value });
     } catch (e) { dire(e.message, "erreur"); return; }
-    dire((r.avertissements || []).join("  ·  ") || "Arrêt prolongé.");
-    if (r.subrogation_a_revoir) { boiteSubrogationProlongee(r.arret, r.phrase, apres); return; }
+    dire(r.phrase);
+    if (r.subrogation_a_revoir) { boiteSubrogationProlongee(r.arret, r.subrogation_a_revoir, apres); return; }
     fermerBoite();
     await apres();
   };
@@ -831,7 +827,7 @@ function boiteSubrogationProlongee(a, phrase, apres) {
         subrogation_fin: document.getElementById("ps-fin").value });
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire((r.avertissements || []).join("  ·  ") || "Subrogation notée.");
+    dire(r.phrase);
     await apres();
   };
 }
@@ -853,12 +849,13 @@ function boiteMaintien(a, mois, apres) {
     </div>`);
   document.getElementById("ma-ok").onclick = async () => {
     const deja = document.getElementById("ma-deja");
+    let r;
     try {
-      await api("arret-maintien", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille, mois,
+      r = await api("arret-maintien", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille, mois,
         montant: document.getElementById("ma-montant").value, ...(deja ? { jours_deja_indemnises: deja.value } : {}) });
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire("Maintien noté : la paie du mois le portera.");
+    dire(r.phrase);
     await apres();
   };
 }
@@ -873,10 +870,11 @@ function boiteFinAbsence(s, apres) {
       <button class="primaire" id="af-ok">Enregistrer</button>
     </div>`);
   document.getElementById("af-ok").onclick = async () => {
-    try { await api("suspension-modifier", { salarie: s.salarie, debut: s.debut, fin: document.getElementById("af-fin").value }); }
+    let r;
+    try { r = await api("suspension-modifier", { salarie: s.salarie, debut: s.debut, fin: document.getElementById("af-fin").value }); }
     catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire("Fin de l'absence changée.");
+    dire(r.phrase);
     await apres();
   };
 }
@@ -914,7 +912,7 @@ function boiteSignalerArret(a, nature) {
     } catch (e) { rendre(); dire(e.message, "erreur"); return; }
     fermerBoite();
     // Les avis du signalement suivent le message, sur la même ligne.
-    dire(["Signalement écrit : " + r.nom + ". Rien n'est parti."].concat(r.avertissements || []).join("  ·  "));
+    dire(r.phrase);
     await rafraichirImprevus();
     boiteDepot("dsn", r.fichier);
   };
@@ -1008,8 +1006,7 @@ function boiteSignalerFin(mois, f) {
                                               remplace: document.getElementById("fi-remplace").value.trim() });
     } catch (e) { rendre(); dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire(["Signalement écrit : " + r.nom + " (préavis : " + r.preavis + "). Rien n'est parti."]
-      .concat(r.avertissements || []).join("  ·  "));
+    dire(r.phrase);
     await rafraichirImprevus();
     boiteDepot("dsn", r.fichier);
   };
@@ -1022,7 +1019,7 @@ async function boitePapiersDeFin(mois, salarie) {
   catch (e) { dire(e.message, "erreur"); return; }
   ouvrirBoite(`
     <h3>Le certificat de travail et le reçu pour solde de tout compte</h3>
-    <p class="discret">Écrits pour ${echapper(nomDuSalarie(salarie))} : ${r.noms.map((x) => echapper(x)).join(", ")}.</p>
+    <p class="discret">${echapper(r.phrase)}</p>
     ${(r.avertissements || []).map((m) => `<div class="encart attention">${echapper(m)}</div>`).join("")}
     <div class="actions">
       <button class="secondaire" id="fp-dossier">Ouvrir le dossier</button>
