@@ -517,17 +517,11 @@ fn radical(nom: &str) -> &str {
 pub(crate) struct SaisieMois {
     pub(crate) data: Value,
     pub(crate) paies: Vec<Paie>,
+    /// L'identite de chaque engagement de `paies` (`engagement::stock::identites`, sur tous les engagements du mois).
+    pub(crate) identites: Vec<Value>,
     /// Ce qui manque a chaque engagement du mois (`None` : rien), dans l'ordre de `stock::objets_du_mois` : `data` et
     /// `paies` ne portent que ceux qui ne manquent de rien.
     pub(crate) manques: Vec<Option<String>>,
-}
-
-/// LA PAIE DE L'ENGAGEMENT QUE DESIGNE `id` (`engagement::stock::identites`) parmi `paies` : son salarie, son premier jour,
-/// et son rang parmi celles-la.
-fn paie_de<'p>(paies: &'p [Paie], id: &Value) -> Option<&'p Paie> {
-    let (salarie, debut) = (id.get("salarie")?.as_str()?, id.get("debut")?.as_str()?);
-    let rang = usize::try_from(id.get("rang")?.as_u64()?).ok()?;
-    paies.iter().filter(|p| p.engagement.salarie == salarie && p.engagement.debut.iso() == debut).nth(rang)
 }
 
 fn texte_de(v: &Value) -> String {
@@ -596,6 +590,10 @@ impl<'a> Moteur<'a> {
     fn charger_saisie(&mut self, mois: &str) -> R<SaisieMois> {
         let mut data = engagement::saisie_du_mois(self.racine(), mois).map_err(classer_saisie)?;
         let manques = super::mois::manques_de_la_saisie(self.ctx, &data);
+        let objets = engagement::stock::objets_du_mois(self.racine(), mois).map_err(plain)?;
+        let mut identites = engagement::stock::identites(&objets);
+        let mut m = manques.iter();
+        identites.retain(|_| m.next().is_some_and(Option::is_none));
         if let Some(Value::Array(es)) = data.get_mut("engagements") {
             let mut m = manques.iter();
             es.retain(|_| m.next().is_some_and(Option::is_none));
@@ -606,7 +604,7 @@ impl<'a> Moteur<'a> {
             erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(mois_dit.get(..4).unwrap_or(&mois_dit))))
         })?;
         engagement::numeros::numeroter_les_contrats(self.ctx, &mut paies, annee, &self.departs()?).map_err(plain)?;
-        Ok(SaisieMois { data, paies, manques })
+        Ok(SaisieMois { data, paies, identites, manques })
     }
 
     // --------------------------------------------- ce que le journal et la saisie disent
@@ -662,11 +660,8 @@ impl<'a> Moteur<'a> {
                 out.push(ligne);
                 continue;
             }
-            let jumeaux_a_completer = (0..j).filter(|&x| s.manques.get(x).is_some_and(Option::is_some) && ids[x]["salarie"] == id["salarie"] && ids[x]["debut"] == id["debut"]).count();
-            let mut id_calcule = id.clone();
-            id_calcule["rang"] = json!(id["rang"].as_u64().unwrap_or_default() as usize - jumeaux_a_completer);
-            let id_calcule = &id_calcule;
-            let Some(p) = paie_de(&s.paies, id_calcule) else { continue };
+            let Some(k) = s.identites.iter().position(|x| x == id) else { continue };
+            let p = &s.paies[k];
             let cle = texte_de(requis(&p.salarie, "_cle")?);
             let debut = p.engagement.debut.iso();
             // CE QUI EST A REFAIRE : le present compare a la version sur laquelle chaque envoi est parti.
@@ -713,7 +708,7 @@ impl<'a> Moteur<'a> {
             if avec_brut {
                 // Le brut de sa paie ecrite s'il est valide, celui du calcul de la saisie sinon. Qu'il manque est un defaut du
                 // logiciel, jamais la saisie de l'utilisateur, et la phrase le lui dit.
-                let calcule = calcul.as_ref().and_then(|c| paie_de(&c.paies, id_calcule)).map(|x| Value::String(x.brut.to_string()));
+                let calcule = calcul.as_ref().and_then(|c| c.paies.get(k)).map(|x| Value::String(x.brut.to_string()));
                 let brut = brut_ecrit(e).or(calcule).ok_or_else(|| Echec {
                     classe: Some("DefautDuLogiciel"),
                     message: format!(
