@@ -8,7 +8,7 @@
 //! UN FICHIER PAR GESTE DE L'ECRAN : `mois` (la saisie et l'apercu), `etapes` (le panneau et les carres de
 //! l'engagement), `engagement` (valider, modifier, retirer), `contrats`, `documents`, `depots`, `imprevus`, `fiches`,
 //! `coffre`, `filet`, `import`, `archives` (l'Historique, les exports, la cloture), `dossier_salarie`, `ouverture`,
-//! `rappels`. Chacun dit ses routes (`ROUTES`) et celles qui ecrivent (`ECRITURES`) ; l'aiguillage ne fait rien
+//! `rappels`. Chacun dit ses routes (`ROUTES` : leurs fiches, `catalogue::FICHES`, ou leurs noms et `ECRITURES`) ; l'aiguillage ne fait rien
 //! d'autre que les servir, avec les routes des autres modules (le banc, l'horloge, les obligations...). `rappels` fait
 //! son propre Contexte, et son refus classe voyage dans le texte de l'erreur (`rappels::decoder`). Ce que les routes
 //! partagent (lire un fichier, le salarie d'une charge, `qui_de`) est ici.
@@ -138,10 +138,10 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     };
     let rendu: Result<Value, Echec> = match route {
         // L'etat d'un mois : l'etat garde, ecrit apres chaque ecriture, lu tel quel (`etat_garde`).
-        r if crate::etat_garde::ROUTES.contains(&r) => crate::etat_garde::route(o, &ctx, route, &charge),
+        r if catalogue::dans(crate::etat_garde::ROUTES, r).is_some() => crate::etat_garde::route(o, &ctx, route, &charge),
         // Un geste de l'ecran, une route : un module par geste.
-        r if mois::ROUTES.contains(&r) => mois::route(o, &ctx, route, &charge),
-        r if etapes::ROUTES.contains(&r) => etapes::route(o, &ctx, route, &charge),
+        r if catalogue::dans(mois::ROUTES, r).is_some() => mois::route(o, &ctx, route, &charge),
+        r if catalogue::dans(etapes::ROUTES, r).is_some() => etapes::route(o, &ctx, route, &charge),
         r if catalogue::dans(engagement::ROUTES, r).is_some() => engagement::route(o, &ctx, route, &charge),
         r if contrats::ROUTES.contains(&r) => contrats::route(o, &ctx, route, &charge),
         r if modeles_contrat::ROUTES.contains(&r) => modeles_contrat::route(o, &ctx, route, &charge),
@@ -154,7 +154,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
             }
             autre => autre,
         },
-        r if imprevus::ROUTES.contains(&r) => imprevus::route(o, &ctx, route, &charge),
+        r if catalogue::dans(imprevus::ROUTES, r).is_some() => imprevus::route(o, &ctx, route, &charge),
         // Les obligations d'un arret : le jour ou la compagnie l'a su, la declaration d'accident faite.
         r if crate::obligations::ROUTES.contains(&r) || crate::obligations::ROUTES_LECTURE.contains(&r) => crate::obligations::route(&ctx, route, &charge),
         r if fiches::ROUTES.contains(&r) => fiches::route(o, &ctx, route, &charge),
@@ -168,7 +168,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if archives::ROUTES.contains(&r) => archives::route(o, &ctx, route, &charge),
         // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
         crate::historique_mois::ROUTE => crate::historique_mois::route(&ctx, &charge),
-        r if dossier_salarie::ROUTES.contains(&r) => dossier_salarie::route(o, &ctx, route, &charge),
+        r if catalogue::dans(dossier_salarie::ROUTES, r).is_some() => dossier_salarie::route(o, &ctx, route, &charge),
         r if ouverture::ROUTES.contains(&r) => ouverture::route(o, &ctx, route, &charge),
         // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
         // Ce que le moteur a pose de lui-meme se dit en information (gris).
@@ -223,14 +223,14 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 /// Les routes qui ecrivent (les lots d'ecritures, d'actes, d'envois et de releves) : apres elles, la fenetre verifie les
 /// etats des mois (`interface/api.rs`).
 pub fn est_une_ecriture(route: &str) -> bool {
-    [mois::ECRITURES, contrats::ECRITURES, documents::ECRITURES, depots::ECRITURES, imprevus::ECRITURES]
+    [contrats::ECRITURES, documents::ECRITURES, depots::ECRITURES]
         .iter()
         .chain(&[fiches::ECRITURES, coffre::ECRITURES, import::ECRITURES, archives::ECRITURES, ouverture::ECRITURES, modeles_contrat::ECRITURES])
         .any(|l| l.contains(&route))
         || crate::obligations::ROUTES.contains(&route)
         || crate::compagnie::releve_signatures::ROUTES.contains(&route)
         || crate::compagnie::administrateur::ROUTES.contains(&route)
-        || catalogue::dans(engagement::ROUTES, route).is_some_and(|f| f.acte != catalogue::Acte::Lit)
+        || catalogue::FICHES.iter().any(|l| catalogue::dans(l, route).is_some_and(|f| f.acte != catalogue::Acte::Lit))
 }
 
 /// `socle::paris::maintenant` a la minute, `AAAA-MM-JJ HH:MM` : l'heure d'une saisie.

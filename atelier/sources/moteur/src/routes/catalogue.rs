@@ -63,6 +63,14 @@ pub struct Fiche {
 /// La longueur d'un geste.
 pub const GESTE_MAX: usize = 80;
 
+/// Ce que bien des fiches partagent : le mois de l'ecran, et les refus de la forme de la charge.
+pub const MOIS: Champ = Champ { nom: "mois", sens: "le mois de l'écran, AAAA-MM", avance: false };
+pub const SALARIE: Champ = Champ { nom: "salarie", sens: "la clé de la fiche du salarié (ou son nom)", avance: false };
+pub const MANQUE: Refus = Refus { classe: "KeyError", corriger: "le champ de la charge, ou la fiche, que la phrase nomme" };
+pub const ILLISIBLE: Refus = Refus { classe: "ValueError", corriger: "la date ou la valeur que la phrase dit illisible" };
+pub const FORME: Refus = Refus { classe: "TypeError", corriger: "le champ de la charge que la phrase nomme" };
+pub const OPERATION: Refus = Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit ; rien n'est écrit" };
+
 impl Fiche {
     /// La fiche d'une route qui n'est pas encore ecrite : le catalogue la nomme, sans rien en dire.
     pub const fn a_ecrire(nom: &'static str) -> Fiche {
@@ -116,18 +124,24 @@ pub fn dans(fiches: &[Fiche], nom: &str) -> Option<Fiche> {
     fiches.iter().find(|f| f.nom == nom).copied()
 }
 
+/// Les modules dont les routes portent leur fiche, dans l'ordre du catalogue.
+pub const FICHES: [&[Fiche]; 6] = [
+    crate::routes::engagement::ROUTES,
+    crate::etat_garde::ROUTES,
+    crate::routes::mois::ROUTES,
+    crate::routes::etapes::ROUTES,
+    crate::routes::imprevus::ROUTES,
+    crate::routes::dossier_salarie::ROUTES,
+];
+
 /// LE CATALOGUE : toutes les routes d'une compagnie, chacune une fois, dans l'ordre des modules.
 pub fn catalogue() -> Vec<Fiche> {
     use crate::routes::*;
     let noms: Vec<&[&'static str]> = vec![
-        &crate::etat_garde::ROUTES,
-        mois::ROUTES,
-        &etapes::ROUTES,
         contrats::ROUTES,
         modeles_contrat::ROUTES,
         documents::ROUTES,
         depots::ROUTES,
-        imprevus::ROUTES,
         &crate::obligations::ROUTES,
         &crate::obligations::ROUTES_LECTURE,
         fiches::ROUTES,
@@ -139,14 +153,13 @@ pub fn catalogue() -> Vec<Fiche> {
         import::ROUTES,
         archives::ROUTES,
         &[crate::historique_mois::ROUTE],
-        &dossier_salarie::ROUTES,
         ouverture::ROUTES,
         &[declarations::demarrage::ROUTE, COMPAGNIE_SUPPRESSION, rappels::ROUTE],
         &crate::compagnie::conseils::ROUTES,
         &crate::compagnie::releve_signatures::ROUTES,
         &crate::compagnie::ouverture::ROUTES,
     ];
-    let mut v: Vec<Fiche> = engagement::ROUTES.to_vec();
+    let mut v: Vec<Fiche> = FICHES.iter().flat_map(|l| l.iter().copied()).collect();
     for n in noms.into_iter().flatten() {
         if !v.iter().any(|f| f.nom == *n) {
             v.push(Fiche::a_ecrire(n));

@@ -31,9 +31,20 @@ use socle::echec::erreur;
 use socle::fichiers::{sha256_hex, vrai};
 use socle::num::Decimal;
 use socle::echec::Echec;
+use crate::routes::catalogue::{Acte, Fiche};
 
-/// Les routes que ce module sert.
-pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois-a-ouvrir"];
+/// La route de ce module, et sa fiche ; les deux etats d'un mois se servent de l'etat garde (`etat_garde::ROUTES`).
+pub const ROUTES: &[Fiche] = &[Fiche {
+    nom: "mois-a-ouvrir",
+    geste: "Dire quel mois ouvrir : le plus ancien dont une étape reste à faire.",
+    charge: &[],
+    exemple: "{}",
+    rend: "mois (celui à ouvrir), courant, reste (les étapes qui restent)",
+    refus: &[crate::routes::catalogue::ILLISIBLE],
+    acte: Acte::Lit,
+    avance: false,
+    phrase: 0,
+}];
 
 pub(crate) type Paire = (String, String);
 

@@ -64,7 +64,10 @@ fn treteaux(test: &str) -> PathBuf {
 #[test]
 fn l_exemple_de_chaque_fiche_est_accepte() {
     let c = treteaux("exemples");
-    for f in catalogue().iter().filter(|f| f.remplie()) {
+    // Le retrait de l'engagement en dernier : les exemples des imprevus portent sur celui que valider-engagement pose.
+    let mut fiches: Vec<_> = catalogue().into_iter().filter(|f| f.remplie()).collect();
+    fiches.sort_by_key(|f| f.nom == "retirer-engagement");
+    for f in &fiches {
         let r = route(&c, f.nom, serde_json::from_str(f.exemple).unwrap(), "2026-11-02");
         assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom, r);
         if f.phrase > 0 {

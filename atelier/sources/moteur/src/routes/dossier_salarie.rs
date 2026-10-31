@@ -36,8 +36,27 @@ use socle::echec::Refus;
 
 type R<T> = Result<T, Refus>;
 
-/// Les routes que ce module sert.
-pub const ROUTES: [&str; 1] = ["dossier-salarie"];
+use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, OPERATION};
+
+/// La route de ce module, et sa fiche.
+pub const ROUTES: &[Fiche] = &[Fiche {
+    nom: "dossier-salarie",
+    geste: "Assembler les documents de salariés sur une période, en PDF ou en ZIP.",
+    charge: &[
+        Champ { nom: "salaries", sens: "les clés des salariés", avance: false },
+        Champ { nom: "mois", sens: "un mois AAAA-MM ; ou annee, ou toutes_les_annees", avance: false },
+        Champ { nom: "categories", sens: "les sortes de documents (bulletins, contrats…) ; toutes par défaut", avance: true },
+        Champ { nom: "ensemble", sens: "vrai : un seul fichier pour tous", avance: true },
+        Champ { nom: "apercu", sens: "vrai : dire ce qui serait assemblé, sans rien écrire", avance: true },
+    ],
+    exemple: r#"{"salaries":["FULLER"],"mois":"2026-11","apercu":true}"#,
+    rend: "les fichiers écrits (ou à écrire, en aperçu), par salarié et par sorte",
+    refus: &[OPERATION, MANQUE, ILLISIBLE, FORME],
+    acte: Acte::Ecrit,
+    avance: false,
+    phrase: 0,
+}];
+
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> Result<Value, Echec> {

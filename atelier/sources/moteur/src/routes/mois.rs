@@ -35,12 +35,116 @@ use socle::num::{dec, flottant, Decimal};
 use socle::valeur::{nom_type, nombre, valeur_en_texte, valeurs_egales};
 
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION};
+use crate::routes::engagement::SAISIE_INCOMPLETE;
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &["saisie", "apercu", "echeancier", "contrats-en-cours", "contrats-passes", "emploi", "enregistrer-saisie", "ajuster"];
+const CARTES: Champ = Champ {
+    nom: "cartes",
+    sens: "les cartes non écrites de l'écran : [{engagement (son identité, ou null pour une neuve), saisie}]",
+    avance: false,
+};
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["enregistrer-saisie"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "saisie",
+        geste: "Lire les engagements d'un mois, leurs identités et le cachet par défaut.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "saisie (les engagements du mois), identites, importes, defauts",
+        refus: &[MANQUE, ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "apercu",
+        geste: "Calculer sans rien écrire les paies du mois, avec les cartes en cours.",
+        charge: &[MOIS, CARTES],
+        exemple: r#"{"mois":"2026-11","cartes":[]}"#,
+        rend: "paies (une par engagement, ou ce qui lui manque : a_completer), les trois nombres de chaque carte, le mois",
+        refus: &[SAISIE_INCOMPLETE, MANQUE, FORME],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "echeancier",
+        geste: "Lire les échéances du mois et de l'année.",
+        charge: &[],
+        exemple: "{}",
+        rend: "les échéances, chacune avec sa date et ce qu'elle demande",
+        refus: &[ILLISIBLE],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "contrats-en-cours",
+        geste: "Lire les contrats d'un mois passé qui courent encore ce mois.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "contrats : chacun avec l'engagement qui le reprend",
+        refus: &[MANQUE, ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "contrats-passes",
+        geste: "Lire les contrats déclarés d'un mois importé.",
+        charge: &[MOIS, Champ { nom: "salarie", sens: "la clé d'un salarié, pour ne lire que les siens", avance: true }],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "contrats : ceux que les engagements importés attestent",
+        refus: &[MANQUE],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "emploi",
+        geste: "Traduire un métier du catalogue en champs de la fiche salarié.",
+        charge: &[Champ { nom: "metier", sens: "le code du métier au catalogue (COM010…)", avance: false }],
+        exemple: r#"{"metier":"COM010"}"#,
+        rend: "les champs de la fiche que le métier remplit (emploi, statut, catégorie…)",
+        refus: &[MANQUE, OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "enregistrer-saisie",
+        geste: "Écrire la carte d'un engagement en saisie, et elle seule.",
+        charge: &[
+            MOIS,
+            Champ { nom: "engagement", sens: "l'identité de la carte ; absente pour une carte neuve", avance: false },
+            Champ { nom: "saisie", sens: "ce que la carte porte : salarie, spectacle, lignes [{rubrique, quantite, taux, dates}]…", avance: false },
+        ],
+        exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}}"#,
+        rend: "engagement (l'identité écrite), a_completer (ce qui lui manque, ou null), enregistre_a",
+        refus: &[OPERATION, FORME, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "ajuster",
+        geste: "Trouver le taux qui donne un net, un brut ou un coût voulu.",
+        charge: &[
+            MOIS,
+            CARTES,
+            Champ { nom: "carte", sens: "le rang, dans cartes, de la carte à ajuster", avance: false },
+            Champ { nom: "cible", sens: "net, brut ou cout", avance: false },
+            Champ { nom: "montant", sens: "le montant voulu, en euros", avance: false },
+        ],
+        exemple: r#"{"mois":"2026-11","cartes":[{"engagement":null,"saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-21"]}]}}],"carte":0,"cible":"brut","montant":200}"#,
+        rend: "le taux qu'il faudrait ; rien n'est écrit",
+        refus: &[OPERATION, FORME, SAISIE_INCOMPLETE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {

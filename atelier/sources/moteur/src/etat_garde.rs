@@ -45,8 +45,45 @@ type R<T> = Result<T, Echec>;
 /// engagements non actifs (`non_actifs`).
 const FORMAT: u64 = 4;
 
-/// Les routes que l'etat d'un mois sert.
-pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois"];
+use crate::routes::catalogue::{Acte, Fiche, ILLISIBLE, MOIS};
+
+/// Les routes que l'etat d'un mois sert, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "mois",
+        geste: "Lire tout l'écran d'un mois d'un coup : engagements, étapes, imprévus.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "lectures : la réponse de chaque route de l'écran du mois (saisie, etat-par-engagement, etat-du-mois…)",
+        refus: &[ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "etat-par-engagement",
+        geste: "Lire l'état de chaque engagement du mois : ses carrés DPAE, Contrat, Documents.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "engagements (une ligne chacun : ses carrés, ce qui est à refaire), non_actifs",
+        refus: &[ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "etat-du-mois",
+        geste: "Lire les quatre étapes du mois : DPAE, Contrats, DSN, Documents.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "les groupes de chaque étape : état, compte, phrase, échéance, et le geste d'un clic",
+        refus: &[ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+];
+
 
 /// Les lectures de l'ecran d'un mois qui ne sont pas les deux etats : la route, et si sa charge est `{"mois"}` (sinon
 /// `{}`). La page les demandait une a une, chacune dans un processus ; elles sont faites ici, une fois, avec les memes

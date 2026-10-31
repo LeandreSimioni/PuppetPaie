@@ -32,19 +32,69 @@ use socle::num::{eur2, Decimal};
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
 
+const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", sens: "le dernier jour travaillé avant l'arrêt, qui le désigne", avance: false };
+const DEBUT: Champ = Champ { nom: "debut", sens: "le premier jour de l'absence, qui la désigne", avance: false };
+const UN_ARRET: &str = r#"{"salarie":"FULLER","dernier_jour":"2026-11-27"}"#;
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "imprevus", "arrets", "fins-de-contrat", "arret-contrats",
-    "arret-enregistrer", "arret-reprise", "arret-oublier", "arret-maintien", "arret-prolonger", "arret-signaler",
-    "suspension-enregistrer", "suspension-modifier", "suspension-oublier", "fin-contrat-signaler", "fin-contrat-documents",
-];
+/// Une fiche de ce module : `rend` et les refus que toutes partagent.
+const fn fiche(nom: &'static str, geste: &'static str, charge: &'static [Champ], exemple: &'static str, rend: &'static str, acte: Acte, avance: bool) -> Fiche {
+    Fiche { nom, geste, charge, exemple, rend, refus: &[OPERATION, MANQUE, ILLISIBLE, FORME], acte, avance, phrase: 0 }
+}
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &[
-    "arret-enregistrer", "arret-reprise", "arret-oublier", "arret-maintien", "arret-prolonger", "arret-signaler",
-    "suspension-enregistrer", "suspension-modifier", "suspension-oublier", "fin-contrat-signaler", "fin-contrat-documents",
+/// Les routes de ce module, et leurs fiches, dans l'ordre d'un arrêt : il s'enregistre, se suit, se signale, s'oublie.
+pub const ROUTES: &[Fiche] = &[
+    fiche("imprevus", "Lire les imprévus d'un mois ou d'un salarié, et ce qu'on peut en saisir.",
+        &[MOIS, Champ { nom: "salarie", sens: "à la place du mois : les imprévus de ce salarié", avance: true }],
+        r#"{"mois":"2026-11"}"#, "imprevus (chacun résumé, un arrêt avec ses obligations), nomenclatures", Acte::Lit, false),
+    fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "arrets : chacun résumé", Acte::Lit, true),
+    fiche("fins-de-contrat", "Lire les fins de contrat dues ce mois, et ce qui manque à chacune.", &[MOIS],
+        r#"{"mois":"2026-11"}"#, "fins : chacune avec ce qui est fait et ce qui manque", Acte::Lit, false),
+    fiche("arret-contrats", "Lire les contrats qu'un arrêt suspendrait à ce jour.",
+        &[SALARIE, Champ { nom: "jour", sens: "le dernier jour travaillé", avance: false }],
+        r#"{"salarie":"FULLER","jour":"2026-11-27"}"#, "contrats : ceux du salarié qui couvrent ce jour", Acte::Lit, false),
+    fiche("arret-enregistrer", "Enregistrer un arrêt de travail, et le jour où l'accident a été su.",
+        &[
+            SALARIE, DERNIER_JOUR,
+            Champ { nom: "fin", sens: "la fin prescrite", avance: false },
+            Champ { nom: "motif", sens: "le code du motif d'arrêt (nomenclatures de imprevus)", avance: false },
+            Champ { nom: "date_accident", sens: "le jour de l'accident, quand le motif l'appelle", avance: true },
+            Champ { nom: "connu", sens: "{jour, heure} : quand la compagnie a su l'accident, quand le motif l'appelle", avance: true },
+            Champ { nom: "subrogation", sens: "01 la compagnie est subrogée (alors subrogation_debut et subrogation_fin), 02 non", avance: false },
+            Champ { nom: "contrat", sens: "le contrat suspendu, quand plusieurs couvrent le jour", avance: true },
+            Champ { nom: "jours_deja_indemnises", sens: "pour le maintien d'un permanent", avance: true },
+            Champ { nom: "note", sens: "une note libre", avance: true },
+        ],
+        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-11-30","motif":"01","subrogation":"02"}"#,
+        "arret : l'arrêt résumé", Acte::Ecrit, false),
+    fiche("arret-prolonger", "Prolonger un arrêt : sa nouvelle fin, ou la fin de la subrogation.",
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "fin", sens: "la nouvelle fin prescrite", avance: false }, Champ { nom: "subrogation_fin", sens: "la nouvelle fin de subrogation", avance: true }],
+        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-12-04"}"#, "arret, et subrogation_a_revoir", Acte::Ecrit, false),
+    fiche("arret-reprise", "Poser ou effacer la reprise d'un arrêt.",
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "reprise", sens: "le jour de la reprise ; vide l'efface", avance: false }, Champ { nom: "motif_reprise", sens: "le motif de la reprise", avance: true }],
+        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","reprise":"2026-12-03"}"#, "arret : l'arrêt résumé", Acte::Ecrit, false),
+    // Le maintien ne vaut que pour un permanent : la compagnie des exemples (Les Treteaux du Banc) n'en a pas.
+    Fiche { acte: Acte::Ecrit, ..Fiche::a_ecrire("arret-maintien") },
+    fiche("arret-signaler", "Fabriquer le signalement d'un arrêt, sans le déposer.",
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "nature", sens: "04 arrêt (par défaut), ou 05 reprise", avance: true }, Champ { nom: "remplace", sens: "le signalement qu'il remplace", avance: true }],
+        UN_ARRET, "le fichier écrit dans sorties/AAAA-MM/", Acte::Ecrit, false),
+    fiche("arret-oublier", "Retirer un arrêt qui n'a pas été déclaré.", &[SALARIE, DERNIER_JOUR],
+        UN_ARRET, "arret : l'arrêt retiré, résumé", Acte::Ecrit, false),
+    fiche("suspension-enregistrer", "Enregistrer une absence qui suspend un contrat.",
+        &[SALARIE, DEBUT, Champ { nom: "fin", sens: "son dernier jour", avance: false }, Champ { nom: "motif", sens: "le code du motif (nomenclatures de imprevus)", avance: false }, Champ { nom: "contrat", sens: "le contrat, quand plusieurs couvrent le jour", avance: true }, Champ { nom: "note", sens: "une note libre", avance: true }],
+        r#"{"salarie":"FULLER","debut":"2026-11-27","fin":"2026-11-27","motif":"501"}"#, "suspension : l'absence résumée", Acte::Ecrit, true),
+    fiche("suspension-modifier", "Changer la fin ou le motif d'une absence.",
+        &[SALARIE, DEBUT, Champ { nom: "fin", sens: "sa nouvelle fin", avance: false }, Champ { nom: "motif", sens: "son nouveau motif", avance: true }],
+        r#"{"salarie":"FULLER","debut":"2026-11-27","fin":"2026-11-27"}"#, "suspension : l'absence résumée", Acte::Ecrit, true),
+    fiche("suspension-oublier", "Retirer une absence qui n'a pas été déclarée.", &[SALARIE, DEBUT],
+        r#"{"salarie":"FULLER","debut":"2026-11-27"}"#, "suspension : l'absence retirée, résumée", Acte::Ecrit, true),
+    fiche("fin-contrat-signaler", "Fabriquer le signalement d'une fin de contrat, sans le déposer.",
+        &[MOIS, SALARIE, Champ { nom: "remplace", sens: "le signalement qu'il remplace", avance: true }, Champ { nom: "ordre", sens: "son numéro d'ordre", avance: true }],
+        r#"{"mois":"2026-11","salarie":"FULLER"}"#, "le fichier écrit dans sorties/AAAA-MM/", Acte::Ecrit, true),
+    fiche("fin-contrat-documents", "Fabriquer le certificat de travail et le reçu pour solde de tout compte.",
+        &[MOIS, SALARIE, Champ { nom: "le", sens: "le jour où ils s'établissent (aujourd'hui par défaut)", avance: true }],
+        r#"{"mois":"2026-11","salarie":"FULLER"}"#, "certificat, recu (leurs chemins), noms, avertissements", Acte::Ecrit, false),
 ];
 
 /// Une route de ce module.

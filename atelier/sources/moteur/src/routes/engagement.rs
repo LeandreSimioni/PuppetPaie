@@ -10,9 +10,8 @@ use socle::echec::{erreur, Echec, Refus, R};
 use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus as RefusDit};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus as RefusDit, FORME, MOIS};
 
-const MOIS: Champ = Champ { nom: "mois", sens: "le mois de l'écran, AAAA-MM", avance: false };
 const IDENTITE: Champ = Champ {
     nom: "engagement",
     sens: "l'identité de la carte, telle que le moteur l'a rendue : {salarie, debut, rang}",
@@ -23,12 +22,11 @@ const SAISIE: Champ = Champ {
     sens: "ce que la carte porte : salarie (la clé de sa fiche), spectacle, lignes [{rubrique, quantite, taux, dates}], nature…",
     avance: false,
 };
-const SAISIE_INCOMPLETE: RefusDit = RefusDit { classe: "SaisieIncomplete", corriger: "le fait que la phrase nomme, sur la carte ou la fiche du salarié" };
+pub(crate) const SAISIE_INCOMPLETE: RefusDit = RefusDit { classe: "SaisieIncomplete", corriger: "le fait que la phrase nomme, sur la carte ou la fiche du salarié" };
 const OPERATION: RefusDit = RefusDit {
     classe: "ErreurOperation",
     corriger: "ce que la phrase dit : un mois importé ou clos, une carte que l'écran ne montre pas, une saisie hors de ses bornes",
 };
-const FORME: RefusDit = RefusDit { classe: "TypeError", corriger: "le champ de la charge que la phrase nomme" };
 
 /// Les routes de ce module, et leurs fiches. Toutes ecrivent.
 pub const ROUTES: &[Fiche] = &[
