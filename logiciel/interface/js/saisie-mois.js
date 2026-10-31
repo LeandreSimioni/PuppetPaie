@@ -660,7 +660,7 @@ async function chargerMois(mois, repeint = false) {
     throw e;
   }
   if (DEMANDE_MOIS !== mois) return;
-  majAvisDuMois(mois, r.existe);
+  majAvisDuMois(mois, r.phrase);
   dessinerMoisImporte(r.ferme_aux_neufs);
   document.getElementById("resultat").innerHTML = "";
   // L'aperçu de la saisie enregistrée est dans la lecture : il ne se recalcule que quand on modifie la saisie.
@@ -709,7 +709,7 @@ async function repeindreLeMois(mois, ancien, frais) {
     if (defauts.taux_cachet != null) TAUX_PAR_RUBRIQUE.cachet = +defauts.taux_cachet;
     afficherRappelsMois();
     IMPORTES = r.importes || [];
-    majAvisDuMois(mois, r.existe);
+    majAvisDuMois(mois, r.phrase);
     dessinerMoisImporte(r.ferme_aux_neufs);
   } catch (e) { /* la saisie se lit telle quelle : rien à changer */ }
   if (!enCours) calculerApercu(frais.lectures.apercu);
@@ -720,13 +720,11 @@ async function repeindreLeMois(mois, ancien, frais) {
   ]);
 }
 
-/** Ce que l'écran dit d'un mois, au-dessus de ses engagements. Ce que le moteur refuse d'y écrire (un mois qui
- *  porte des engagements importés, un mois d'avant la première embauche), il le dit à l'écriture. */
-function majAvisDuMois(mois, existe) {
+/** Ce que l'écran dit d'un mois, au-dessus de ses engagements : la phrase que le moteur rend (`saisie`), rien pour un
+ *  mois importé. Ce que le moteur refuse d'y écrire, il le dit à l'écriture. */
+function majAvisDuMois(mois, phrase) {
   majAvisDemo(mois);
-  noteSaisie(existe
-    ? "Saisie chargée. L'enregistrement est automatique."
-    : "Nouveau mois — l'enregistrement est automatique dès la première saisie.");
+  noteSaisie(phrase || "");
 }
 
 /** UN MOIS SAISI EN DÉMO, dans une compagnie gardée au déblocage : la mention du moteur (route `etat`,

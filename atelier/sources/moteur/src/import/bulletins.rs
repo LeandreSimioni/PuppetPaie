@@ -1324,7 +1324,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                             format!(
                                 "{} pages : {}",
                                 ps.len(),
-                                par.iter().map(|(g, n)| format!("{} {}", n, g.replace('_', " "))).collect::<Vec<_>>().join(", ")
+                                par.iter().map(|(g, n)| format!("{} {}", n, sort_en_mots(g).1)).collect::<Vec<_>>().join(", ")
                             )
                         }
                     };
@@ -1888,26 +1888,26 @@ fn libelle_champ(champ: &str) -> &str {
 /// repris sous reserve (un libelle que la table ne connait pas), a voir ; non repris parce que quelque chose manque ou
 /// se contredit (`non_repris`), refuse ; laisse expres (deja saisi, annexe, doublon, archive ouverte), une information.
 pub fn pastilles_des_sorts() -> Value {
-    let mut m = serde_json::Map::new();
-    for s in SORTS {
-        let (etat, mots) = match s {
-            "repris" => ("fait", "repris"),
-            "deja_repris" => ("fait", "déjà repris"),
-            "libelle_inconnu" => ("a_faire", "libellé inconnu"),
-            "deja_saisi" => ("information", "déjà saisi"),
-            "incoherent" => ("refuse", "incohérent"),
-            "incomplet" => ("refuse", "incomplet"),
-            "sans_texte" => ("refuse", "sans texte"),
-            "sans_entetes" => ("refuse", "tableau introuvable"),
-            "ambigu" => ("refuse", "ambigu"),
-            "annexe" => ("information", "annexe"),
-            "non_reconnu" => ("refuse", "non reconnu"),
-            "doublon" => ("information", "doublon"),
-            _ => ("information", "archive"),
-        };
-        m.insert(s.to_string(), crate::routes::pastille(etat, mots));
+    Value::Object(SORTS.iter().map(|s| (s.to_string(), crate::routes::pastille(sort_en_mots(s).0, sort_en_mots(s).1))).collect::<serde_json::Map<_, _>>())
+}
+
+/// L'etat d'un sort (sa couleur) et ses mots, tels qu'on les lit : sur la pastille et dans le resume d'un PDF.
+fn sort_en_mots(s: &str) -> (&'static str, &'static str) {
+    match s {
+        "repris" => ("fait", "repris"),
+        "deja_repris" => ("fait", "déjà repris"),
+        "libelle_inconnu" => ("a_faire", "libellé inconnu"),
+        "deja_saisi" => ("information", "déjà saisi"),
+        "incoherent" => ("refuse", "incohérent"),
+        "incomplet" => ("refuse", "incomplet"),
+        "sans_texte" => ("refuse", "sans texte"),
+        "sans_entetes" => ("refuse", "tableau introuvable"),
+        "ambigu" => ("refuse", "ambigu"),
+        "annexe" => ("information", "annexe"),
+        "non_reconnu" => ("refuse", "non reconnu"),
+        "doublon" => ("information", "doublon"),
+        _ => ("information", "archive"),
     }
-    Value::Object(m)
 }
 
 // --------------------------------------------------------------------------------------------- les certificats et les AEM en PDF

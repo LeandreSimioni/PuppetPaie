@@ -126,12 +126,14 @@ fn spectacle_de(ctx: &Contexte, numero: &str) -> Option<(String, String)> {
 
 /// LA PERIODE D'UN CONTRAT IMPORTE DANS `mois`, en clair, quand le bulletin ne dit pas ses jours : « 20–27 » pour un
 /// contrat qui commence et finit dans le mois (le 1er quand il a commence avant), « 20/11 – 03/12 » pour un contrat a
-/// cheval sur un autre mois, « … » pour une borne que l'import n'a pas lue.
+/// cheval sur un autre mois (« 01/09/2022 – 31/12 » quand il a commence une autre annee), « … » pour une borne que
+/// l'import n'a pas lue.
 fn periode_en_clair(debut: &str, fin: &str, mois: &str) -> String {
     let (d, f) = (socle::date::Jour::lire(debut).ok(), socle::date::Jour::lire(fin).ok());
     let dans = |j: &socle::date::Jour| j.iso().starts_with(mois);
     let dehors = d.as_ref().is_some_and(|j| !dans(j)) || f.as_ref().is_some_and(|j| !dans(j));
     let borne = |j: Option<&socle::date::Jour>, defaut: &str| match j {
+        Some(j) if dehors && !j.iso().starts_with(mois.get(..4).unwrap_or(mois)) => j.jj_mm_aaaa(),
         Some(j) if dehors => j.jj_mm(),
         Some(j) => j.jour.to_string(),
         None => defaut.to_string(),

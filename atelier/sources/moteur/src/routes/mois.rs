@@ -51,7 +51,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Lire les engagements d'un mois, leurs identités et le cachet par défaut.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
-        rend: "saisie (les engagements du mois), identites, importes, defauts",
+        rend: "saisie (les engagements du mois), identites, importes, ferme_aux_neufs, defauts, phrase (ce que l'écran dit de la saisie)",
         refus: &[MANQUE, ILLISIBLE],
         acte: Acte::Lit,
         avance: false,
@@ -463,11 +463,18 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     // (`import::mois`). Un mois qui en porte ne recoit pas d'engagement neuf : `ferme_aux_neufs` est la phrase qui le
     // dit (`null` : le mois en recoit).
     let importes = crate::import::mois::cartes(ctx, &mois)?;
+    let ferme = ferme_aux_neufs(ctx, &mois)?;
+    // CE QUE L'ECRAN DIT DE LA SAISIE : rien pour un mois importe (sa phrase est `ferme_aux_neufs`).
+    let phrase = match (ferme.is_none(), existe) {
+        (false, _) => Value::Null,
+        (true, true) => json!("Saisie chargée. L'enregistrement est automatique."),
+        (true, false) => json!("Nouveau mois — l'enregistrement est automatique dès la première saisie."),
+    };
     Ok(json!({
         "mois": brut,
-        "existe": existe,
+        "phrase": phrase,
         "importes": importes,
-        "ferme_aux_neufs": ferme_aux_neufs(ctx, &mois)?,
+        "ferme_aux_neufs": ferme,
         "defauts": defauts,
         "saisie": resoudre_noms(ctx, &saisie)?,
         // L'identite de chaque engagement de `saisie.engagements`, dans son ordre : ce par quoi sa carte le designe.
