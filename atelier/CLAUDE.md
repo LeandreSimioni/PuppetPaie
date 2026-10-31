@@ -102,7 +102,12 @@ qu'elle rend, ses refus et quoi corriger, si elle lit, écrit ou engage, si elle
 le catalogue ; `moteur route … --texte` imprime les phrases que la page affiche. **« Avancé » est le même pour les deux** :
 la marque de la fiche range l'écran et le catalogue (le chemin simple d'abord). Un acte réel, des deux côtés, demande le
 mot de passe du logiciel tapé par un humain (la page, ou la fenêtre que le moteur ouvre) ; le LLM ne voit ni le mot de
-passe ni le coffre. Le LLM écrit au développeur comme une personne (`signalement-envoyer`). **Rien du métier ne s'écrit à
+passe ni le coffre. **Tout ce qui se fait à l'écran se fait en ligne de commande, et l'inverse, sans exception**
+(Léandre, 31/10/2026 : « il faut que ce soit inviolable ») : il n'y a qu'un catalogue de routes, aucune n'est « pour la
+page » ou « pour le LLM » ; écrire au développeur (`signalement-envoyer`) est une route comme une autre ; ce qui diffère
+d'un acteur à l'autre est une donnée de la charge (une capture d'écran, ou ce que le LLM a tenté), jamais un chemin ; un
+test de structure le garde (chaque route que la page appelle est au catalogue, chaque route du catalogue se sert par
+`moteur route`). **Rien du métier ne s'écrit à
 côté** : le moteur dit ce qui est à faire (le panneau des étapes, les rappels, « Pour démarrer ») ; la skill dit seulement
 comment le lui demander ; un manque du LLM est un manque du moteur. Le détail : `SEANCE-1-ECRANS-ET-MODELE.md`, « Le
 second acteur ».
