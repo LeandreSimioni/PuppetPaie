@@ -107,8 +107,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         if m.cle == documents::conges_spectacles::CLE_ADHERENT && !intermittents {
             continue;
         }
-        let ou = if m.ou.is_empty() { ENTREPRISE.to_string() } else { m.ou.clone() };
-        out.push(ligne(m, ou, None));
+        out.push(ligne(m, ENTREPRISE.to_string(), None));
     }
     for (cle, s) in ctx.salaries.iter().filter(|(_, s)| s.get("actif") != Some(&json!(false))) {
         let nom = socle::texte::salarie_nomme_ou(Some(s), cle);

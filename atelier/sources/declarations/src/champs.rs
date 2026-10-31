@@ -77,8 +77,6 @@ pub struct Champ {
     /// (`refus_des_manques`) lisent.
     pub exige_par: Vec<String>,
     /// Ce qui se passe sans lui, quand rien ne se refuse (`sinon`) : « Pour demarrer » le dit en facultatif.
-    /// Ou il se saisit, quand ce n'est pas sa fiche (`ou`).
-    pub ou: String,
     pub sinon: String,
     /// Les cases d'une structure (`champs`), decrites comme les champs ; une autre cle s'y refuse.
     pub champs: Vec<Champ>,
@@ -115,7 +113,6 @@ impl Champ {
             ecran: drapeau("ecran", true),
             exige_par: v.get("exige_par").and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default(),
             sinon: texte("sinon"),
-            ou: texte("ou"),
             champs: v.get("champs").and_then(Value::as_array).map(|a| a.iter().map(Champ::lire).collect()).unwrap_or_default(),
         }
     }
@@ -138,7 +135,7 @@ impl Champ {
             "si_entreprise": self.si_entreprise,
             "exige_si": self.exige_si,
             "booleen_defaut": self.booleen_defaut, "ecran": self.ecran,
-            "exige_par": self.exige_par, "bloque": actes_en_clair(&self.exige_par), "sinon": self.sinon, "ou": self.ou,
+            "exige_par": self.exige_par, "bloque": actes_en_clair(&self.exige_par), "sinon": self.sinon,
             "champs": self.champs.iter().map(Champ::description).collect::<Vec<_>>(),
         });
         if !self.champs.is_empty() {
@@ -158,7 +155,6 @@ fn acte_en_clair(acte: &str) -> &str {
     match acte {
         "dsn" => "la DSN",
         "dpae" => "la DPAE",
-        "depot_dpae" => "le dépôt de la DPAE",
         "contrat" => "les contrats",
         "bulletin" => "les bulletins",
         "certificat" => "les certificats Congés Spectacles",
@@ -189,8 +185,6 @@ pub struct Manquant {
     pub aide: String,
     pub actes: Vec<String>,
     pub sinon: String,
-    /// Ou il se saisit, quand ce n'est pas la fiche (`ou` de sa structure ou de lui).
-    pub ou: String,
 }
 
 /// CE QUI MANQUE A LA FICHE `donnees` (`entreprise`, `salarie`) pour les actes de la compagnie : chaque champ, et chaque
@@ -203,20 +197,20 @@ pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
     }
     let tous = fiche(nom)?;
     let mut out = Vec::new();
-    let mut voir = |c: &Champ, m: &Champ, ou: &str, chemin: (String, String), libelle: String, v: Option<&Value>| {
+    let mut voir = |c: &Champ, m: &Champ, chemin: (String, String), libelle: String, v: Option<&Value>| {
         if (c.exige_par.is_empty() && c.sinon.is_empty()) || v.is_some_and(vrai) {
             return;
         }
-        out.push(Manquant { cle: chemin.0, ecran: chemin.1, libelle, aide: m.aide.clone(), actes: c.exige_par.clone(), sinon: c.sinon.clone(), ou: ou.to_string() });
+        out.push(Manquant { cle: chemin.0, ecran: chemin.1, libelle, aide: m.aide.clone(), actes: c.exige_par.clone(), sinon: c.sinon.clone() });
     };
     for c in tous.iter().filter(|c| c.applicable(donnees)) {
         let m = montre(&tous, c);
-        voir(c, m, &c.ou, (c.cle.clone(), m.cle.clone()), m.libelle.clone(), donnees.get(&c.cle));
+        voir(c, m, (c.cle.clone(), m.cle.clone()), m.libelle.clone(), donnees.get(&c.cle));
         for s in &c.champs {
             let ms = montre(&c.champs, s);
             let chemin = (format!("{}.{}", c.cle, s.cle), format!("{}.{}", c.cle, ms.cle));
             let m = if ms.aide.is_empty() { c } else { ms };
-            voir(s, m, &c.ou, chemin, format!("{} ({})", c.libelle, en_minuscule(&ms.libelle)), donnees.get(&c.cle).and_then(|o| o.get(&s.cle)));
+            voir(s, m, chemin, format!("{} ({})", c.libelle, en_minuscule(&ms.libelle)), donnees.get(&c.cle).and_then(|o| o.get(&s.cle)));
         }
     }
     Ok(out)

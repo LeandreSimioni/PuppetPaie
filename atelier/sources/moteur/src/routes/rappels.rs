@@ -104,12 +104,19 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "revue-spectacles" => revue_spectacles(o, ctx, charge),
         "echeance-faite" => echeance_faite(ctx, charge),
         // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup ; ce que le moteur a pose de lui-meme se dit
-        // en information (gris).
-        "pour-demarrer" => declarations::demarrage::route(ctx).map(|mut v| {
+        // en information (gris) ; les acces aux organismes se proposent (`acces_proposes`).
+        "pour-demarrer" => declarations::demarrage::route(ctx).and_then(|mut v| {
             if let Some(Value::Array(p)) = v.get_mut("poses") {
                 p.iter_mut().for_each(|x| x["pastille"] = super::pastille("information", "posé pour vous"));
             }
-            v
+            let (proposes, simules) = acces_proposes(ctx)?;
+            if let Some(Value::Array(m)) = v.get_mut("manques") {
+                m.extend(proposes);
+            }
+            if let (Some(Value::Array(p)), Some(s)) = (v.get_mut("poses"), simules) {
+                p.push(s);
+            }
+            Ok(v)
         }),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -810,4 +817,35 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
         out.push(r);
     }
     Ok(out)
+}
+
+/// LES ACCES AUX ORGANISMES (les mots de passe et les comptes du coffre, `coffre::coffre_etat_de`) : aucun ne bloque.
+/// On configure, on saisit, on fabrique la DPAE et la DSN sans eux ; ils servent a envoyer depuis le logiciel, et chacun
+/// est un choix. « Pour demarrer » propose ceux qui ne sont pas poses, avec ce qu'ils permettent (`sinon` : ce qui se
+/// fait sans eux) ; une compagnie aux envois simules (`bridage::branchement`) n'en propose aucun et le dit, une fois.
+fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)> {
+    const OU: &str = "Configuration › Mots de passe";
+    if crate::compagnie::bridage::branchement(&ctx.racine).joue() {
+        return Ok((Vec::new(), Some(json!({
+            "cle": "acces", "libelle": "Les accès aux organismes", "ou": OU, "champ": null,
+            "texte": "Les envois de cette compagnie sont simulés : rien ne part, ses mots de passe et ses comptes ne se demandent pas.",
+            "pastille": super::pastille("information", "simulé"),
+        }))));
+    }
+    let etat = super::coffre::coffre_etat_de(&ctx.racine, &ctx.entreprise)?;
+    let mut out = Vec::new();
+    for s in etat["services"].as_array().into_iter().flatten() {
+        let pose = vrai(&s["pose"]) || vrai(&s["environnement"]);
+        let compte_dit = s["identifiant"]["manque"].as_array().is_none_or(Vec::is_empty);
+        if pose && compte_dit {
+            continue;
+        }
+        out.push(json!({
+            "cle": format!("acces.{}", s["service"].as_str().unwrap_or("")),
+            "libelle": format!("{} : pour {} depuis le logiciel", s["libelle"].as_str().unwrap_or(""), s["sert_a"].as_str().unwrap_or("")),
+            "sinon": "vous le faites vous-même, hors du logiciel",
+            "ou": OU, "champ": null, "trouver": "",
+        }));
+    }
+    Ok((out, None))
 }
