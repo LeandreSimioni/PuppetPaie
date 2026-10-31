@@ -56,7 +56,7 @@ pub const ROUTES: &[Fiche] = &[
     fiche("imprevus", "Lire les imprévus d'un mois ou d'un salarié, et ce qu'on peut en saisir.",
         &[MOIS, Champ { nom: "salarie", sens: "à la place du mois : les imprévus de ce salarié", avance: true }],
         r#"{"mois":"2026-11"}"#, "imprevus (chacun résumé, un arrêt avec ses obligations), nomenclatures", Acte::Lit, false),
-    Fiche { ecran: Ecran::Auto(Place::Exports), ..fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "phrases (qui, quand, le motif, ce qui reste à signaler), arrets : chacun résumé", Acte::Lit, true) },
+    Fiche { ecran: Ecran::Auto(Place::Exports), ..fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "phrase, phrases (qui, quand, le motif, ce qui reste à signaler), arrets : chacun résumé", Acte::Lit, true) },
     fiche("fins-de-contrat", "Lire les fins de contrat dues ce mois, et ce qui manque à chacune.", &[MOIS],
         r#"{"mois":"2026-11"}"#, "fins : chacune avec ce qui est fait et ce qui manque", Acte::Lit, false),
     fiche("arret-contrats", "Lire les contrats qu'un arrêt suspendrait à ce jour.",
@@ -1442,6 +1442,7 @@ fn arrets(ctx: &Contexte) -> R<Value> {
         })
         .collect();
     Ok(json!({
+        "phrase": format!("{} arrêt(s) de travail, {} à signaler.", resumes.len(), a_signaler.len()),
         "phrases": phrases,
         "arrets": resumes,
         "a_signaler": a_signaler,

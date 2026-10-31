@@ -17,12 +17,12 @@ function valeurTapee(t) {
   return v;
 }
 
-/** Ce que la réponse dit à lire : sa phrase, puis ses lignes. */
+/** Ce que la réponse dit à lire : sa phrase, puis ses lignes (chaque route automatique rend sa phrase). */
 function phrasesDe(r) {
   const p = [];
   if (r && r.phrase) p.push(r.phrase);
   if (r && Array.isArray(r.phrases)) p.push(...r.phrases);
-  return p.length ? p : ["Fait."];
+  return p;
 }
 
 /** Dessine dans `cible` (porteuse de `data-auto`, le nom d'une place) les routes automatiques de cette place. */

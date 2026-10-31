@@ -151,7 +151,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Lire les incidents gardés sur le poste.",
         charge: &[QUOI, Champ { nom: "en_attente", sens: "vrai : seulement ceux qui ne sont pas partis", avance: true }],
         exemple: r#"{}"#,
-        rend: "phrases (une par incident), lignes (les plus récentes en dernier)",
+        rend: "phrase, phrases (une par incident), lignes (les plus récentes en dernier)",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: true,
@@ -163,7 +163,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Regrouper les incidents gardés, le plus fréquent en tête.",
         charge: &[QUOI],
         exemple: r#"{}"#,
-        rend: "phrases (une par paquet), paquets",
+        rend: "phrase, phrases (une par paquet), paquets",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: true,
@@ -289,11 +289,11 @@ fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: 
         "incidents-lire" => {
             let (nature, en_attente) = (nature_voulue(charge), vrai(&charge["en_attente"]));
             let lignes = incidents::lire(racine, nature.as_deref(), en_attente)?;
-            Ok(json!({"phrases": lignes.iter().map(phrase_d_incident).collect::<Vec<_>>(), "lignes": lignes}))
+            Ok(json!({"phrase": format!("{} incident(s) gardé(s) sur ce poste.", lignes.len()), "phrases": lignes.iter().map(phrase_d_incident).collect::<Vec<_>>(), "lignes": lignes}))
         }
         "incidents-regrouper" => {
             let paquets = incidents::regrouper(racine, nature_voulue(charge).as_deref())?;
-            Ok(json!({"phrases": paquets.iter().map(phrase_de_paquet).collect::<Vec<_>>(), "paquets": paquets}))
+            Ok(json!({"phrase": format!("{} sorte(s) d'incident gardée(s) sur ce poste.", paquets.len()), "phrases": paquets.iter().map(phrase_de_paquet).collect::<Vec<_>>(), "paquets": paquets}))
         }
         "incidents-oublier" => {
             let n = incidents::oublier(racine, nature_voulue(charge).as_deref());
