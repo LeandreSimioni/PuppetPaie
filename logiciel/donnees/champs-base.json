@@ -21,6 +21,7 @@
   },
   {
    "cle": "raison_sociale",
+   "exige_par": ["dsn"],
    "libelle": "Raison sociale déclarée",
    "forme": "officiel",
    "aide": "",
@@ -78,6 +79,7 @@
   },
   {
    "cle": "siret",
+   "exige_par": ["dsn", "dpae"],
    "libelle": "SIRET",
    "forme": "chiffres",
    "aide": "Les 14 chiffres, sans espaces. Ils figurent sur votre avis de situation Sirene et sur vos bordereaux Urssaf.",
@@ -97,6 +99,7 @@
   },
   {
    "cle": "naf",
+   "exige_par": ["dsn", "dpae"],
    "libelle": "Code APE (NAF)",
    "forme": "texte",
    "aide": "Quatre chiffres et une lettre, sans point, sur votre avis de situation Sirene. Une compagnie de spectacle vivant est le plus souvent en 9001Z (arts du spectacle vivant). Au 1er janvier 2027, la NAF 2025 remplace ce code : saisir celui que l'INSEE notifie (9020Y, activités de spectacle, ou 9039G, production de spectacle).",
@@ -136,6 +139,7 @@
   },
   {
    "cle": "adresse",
+   "exige_par": ["dsn", "dpae"],
    "libelle": "Adresse déclarée",
    "forme": "officiel",
    "aide": "",
@@ -174,6 +178,7 @@
   },
   {
    "cle": "code_postal",
+   "exige_par": ["dsn", "dpae"],
    "libelle": "Code postal",
    "forme": "chiffres",
    "aide": "",
@@ -193,6 +198,7 @@
   },
   {
    "cle": "commune",
+   "exige_par": ["dsn", "dpae"],
    "libelle": "Commune déclarée",
    "forme": "officiel",
    "aide": "",
@@ -232,6 +238,7 @@
   {
    "_note": "La DSN la déclare deux fois : convention collective principale de l'établissement (S21.G00.11.022, « Table IDCC », atelier/reference/norme-dsn/texte/bloc-S21.G00.11.txt) et convention du contrat (S21.G00.40.017), qui en diffère pour la 1734 (`droit::minima::idcc_du_contrat`).",
    "cle": "idcc",
+   "exige_par": ["paie"],
    "libelle": "Convention collective",
    "forme": "chiffres",
    "aide": "Celle qui figure sur les bulletins de vos salariés. Une compagnie privée relève de la 3090 ; une structure principalement subventionnée par l'État ou les collectivités, de la 1285 (CCNEAC).",
@@ -393,6 +400,7 @@
   },
   {
    "cle": "urssaf_compte",
+   "exige_par": ["bulletin"],
    "libelle": "Compte Urssaf",
    "forme": "chiffres",
    "aide": "Votre numéro de compte employeur : en haut des courriers de l'Urssaf et dans votre espace employeur. Il s'imprime sur les bulletins.",
@@ -432,6 +440,12 @@
   {
    "_note": "LE CONTACT DE LA MEDECINE DU TRAVAIL INTERNE. Norme DSN 2027 (cahier technique 2027.1.1, `norme-dsn/texte-2027/bloc-S20.G00.07.txt` l. 46-65 et 81, CCH-11 de S20.G00.07.004) : si la declaration porte en S21.G00.11.025 l'identifiant de SPST « MT01 - MEDECINE INTERNE ETABLISSEMENT », un bloc « Contact chez le declare » de type « 17 - Contact au sein du service de medecine du travail interne a l'etablissement » (le medecin du travail ou une personne sous sa responsabilite, pour la transmission des arrets de travail, L315-4 CSS) doit obligatoirement etre present ; dans le cas contraire, il est interdit. La norme 2026 n'a ni l'identifiant de SPST ni le type 17. `si` et `exige_si` : le code du service de sante au travail vaut MT01. `dsn.rs` (`contact_sante_travail`) l'ecrit, `demarrage::manques` le demande.",
    "cle": "contact_sante_travail",
+   "champs": [
+    {"cle": "nom_prenom_affichage", "libelle": "Nom et prénom", "forme": "affichage", "aide": "En une seule case, comme la DSN l'écrit.", "exemple": "Paul Durand"},
+    {"cle": "nom_prenom", "libelle": "Nom et prénom déclarés", "forme": "officiel", "derive_de": "nom_prenom_affichage", "ecran": false, "exige_par": ["dsn"]},
+    {"cle": "tel", "libelle": "Téléphone", "forme": "texte", "exemple": "0102030405", "exige_par": ["dsn"]},
+    {"cle": "email", "libelle": "Courriel", "forme": "email", "exemple": "medecin@compagnie.fr", "exige_par": ["dsn"]}
+   ],
    "libelle": "Qui répond pour la médecine du travail interne",
    "forme": "structure",
    "aide": "Le médecin du travail de la compagnie, ou une personne placée sous sa responsabilité : les organismes lui transmettent les arrêts de travail. Il s'écrit dans chaque DSN, à côté de la personne que les organismes contactent.",
@@ -516,6 +530,7 @@
   {
    "_note": "UN SEUL NUMERO CONGES SPECTACLES. « 97 puis le numero d'adherent a la caisse Conges spectacles (10 chiffres + 1 lettre). Ces 2 identifiants doivent etre accoles, sans espaces, ni tiret, etc... EX : 970000000001A » (Audiens, fiche de specificites, atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt, l. 80-81). La compagnie ne saisit que ce numero ; le moteur ecrit S21.G00.40.022 = 97 + ce numero (`conges_spectacles::code_dsn`) l'ecrit sans blancs ni tirets, lettre en capitale (`conges_spectacles::forme_adherent`), et controle sa forme (`conges_spectacles::faute_adherent`).",
    "cle": "congesspectacles_adherent",
+   "exige_par": ["dsn", "certificat"],
    "libelle": "Numéro d'adhérent Congés Spectacles",
    "forme": "texte",
    "aide": "Dix chiffres suivis d'une lettre, accolés. Il figure sur les courriers et dans l'espace employeur d'Audiens (Congés Spectacles). Il s'imprime sur les certificats d'emploi, et la DSN le déclare pour chaque contrat d'intermittent, précédé de 97.",
@@ -986,6 +1001,15 @@
   },
   {
    "cle": "signataire",
+   "champs": [
+    {"cle": "prenom_affichage", "libelle": "Prénom", "forme": "affichage", "exemple": "Claire"},
+    {"cle": "nom_affichage", "libelle": "Nom", "forme": "affichage", "exemple": "Martin"},
+    {"cle": "prenom", "libelle": "Prénom déclaré", "forme": "officiel", "derive_de": "prenom_affichage", "ecran": false, "exige_par": ["dsn", "contrat"]},
+    {"cle": "nom", "libelle": "Nom déclaré", "forme": "officiel", "derive_de": "nom_affichage", "ecran": false, "exige_par": ["dsn", "contrat"]},
+    {"cle": "fonction", "libelle": "Fonction", "forme": "texte", "aide": "Président, présidente, gérant, directrice… Le contrat l'imprime sous la signature.", "exemple": "Présidente", "exige_par": ["contrat"]},
+    {"cle": "tel", "libelle": "Téléphone", "forme": "texte", "exemple": "0102030405"},
+    {"cle": "email", "libelle": "Courriel", "forme": "email", "exemple": "presidence@compagnie.fr"}
+   ],
    "libelle": "Qui signe",
    "forme": "structure",
    "aide": "La personne qui signe les contrats et les attestations au nom de la compagnie : le plus souvent son président ou sa présidente.",
@@ -1005,6 +1029,14 @@
   },
   {
    "cle": "declarant_dsn",
+   "champs": [
+    {"cle": "civilite", "libelle": "Civilité", "forme": "choix", "choix": ["01", "02"], "aide": "Celle de la personne que les organismes contactent : 01 monsieur, 02 madame (S10.G00.02.001). Elle s'écrit dans chaque DSN.", "exemple": "02", "exige_par": ["dsn"]},
+    {"cle": "nom_prenom_affichage", "libelle": "Nom et prénom", "forme": "affichage", "aide": "En une seule case, comme la DSN l'écrit.", "exemple": "Claire Martin"},
+    {"cle": "nom_prenom", "libelle": "Nom et prénom déclarés", "forme": "officiel", "derive_de": "nom_prenom_affichage", "ecran": false, "exige_par": ["dsn"]},
+    {"cle": "tel", "libelle": "Téléphone", "forme": "texte", "exemple": "0102030405", "exige_par": ["dsn"]},
+    {"cle": "email", "libelle": "Courriel", "forme": "email", "exemple": "paie@compagnie.fr", "exige_par": ["dsn"]},
+    {"cle": "qualite", "libelle": "Qualité", "forme": "chiffres", "aide": "S20.G00.07.004 : le moteur l'écrit seul (`dsn::type_du_contact`).", "ecran": false}
+   ],
    "libelle": "Qui les organismes contactent",
    "forme": "structure",
    "aide": "La personne que l'Urssaf ou France Travail appellera en cas de question sur une déclaration.",
@@ -1024,6 +1056,10 @@
   },
   {
    "cle": "banque",
+   "champs": [
+    {"cle": "iban", "libelle": "IBAN", "forme": "texte", "aide": "Sur le relevé d'identité bancaire (RIB) : 27 caractères commençant par FR pour un compte en France, de 15 à 34 ailleurs. Les espaces ne comptent pas.", "exige_par": ["dsn"]},
+    {"cle": "bic", "libelle": "BIC", "forme": "texte", "aide": "Sur le même RIB, 8 ou 11 caractères.", "exemple": "AGRIFRPPXXX", "exige_par": ["dsn"]}
+   ],
    "libelle": "Compte bancaire",
    "forme": "structure",
    "aide": "Le compte sur lequel l'Urssaf prélève les cotisations déclarées chaque mois. Il sert aussi quand la compagnie maintient le salaire d'un salarié en arrêt maladie et touche ses indemnités journalières à sa place.",
@@ -1225,6 +1261,7 @@
   },
   {
    "cle": "nom",
+   "exige_par": ["dpae", "dsn", "contrat"],
    "libelle": "Nom déclaré",
    "forme": "officiel",
    "aide": "",
@@ -1263,6 +1300,7 @@
   },
   {
    "cle": "prenom",
+   "exige_par": ["dpae", "dsn", "contrat"],
    "libelle": "Prénom déclaré",
    "forme": "officiel",
    "aide": "",
@@ -1322,6 +1360,8 @@
   {
    "_note": "LE SEXE NE SE DECLARE NULLE PART TEL QUEL : aucune rubrique du bloc 30\nne le porte. Il voyage dans le premier caractere du NIR -- et, quand il\nn'y a pas de NIR, dans celui du numero technique temporaire, dont il\nest le premier morceau (`declarations/src/ntt.rs`). D'ou une case qui ne\nsert qu'a ce cas-la, et que l'ecran ne montre que sans NIR : le\ndedoubler serait s'exposer a ce que les deux se contredisent.",
    "cle": "sexe",
+   "exige_par": ["dpae", "dsn"],
+   "exige_si": {"nir": [""]},
    "libelle": "Sexe",
    "forme": "choix",
    "aide": "Seulement pour un salarié sans numéro de sécurité sociale : le numéro temporaire que le logiciel déclare commence par lui. Avec un numéro, c'est son premier chiffre qui fait foi.",
@@ -1344,6 +1384,7 @@
   },
   {
    "cle": "date_naissance",
+   "exige_par": ["dpae", "dsn"],
    "libelle": "Date de naissance",
    "forme": "date",
    "aide": "",
@@ -1363,6 +1404,7 @@
   },
   {
    "cle": "lieu_naissance",
+   "exige_par": ["dpae", "dsn"],
    "libelle": "Lieu de naissance déclaré",
    "forme": "officiel",
    "aide": "",
@@ -1402,6 +1444,7 @@
   {
    "_note": "DEPARTEMENT ET PAYS SE LISENT DANS LE NIR : ses 6e et 7e\nchiffres sont le departement de naissance, 99 a l'etranger. L'ecran\nles propose (`routes/fiches.rs`, `suggestions`) et ne les ecrit\nque dans une case vide.",
    "cle": "departement_naissance",
+   "exige_par": ["dpae", "dsn"],
    "libelle": "Département de naissance",
    "forme": "texte",
    "aide": "Deux caractères : 75, 2A… 99 pour une naissance à l'étranger. Il se lit dans le numéro de sécurité sociale (6e et 7e chiffres) : le logiciel le remplit quand il le peut.",
@@ -1421,6 +1464,7 @@
   },
   {
    "cle": "pays_naissance",
+   "exige_par": ["dsn"],
    "libelle": "Pays de naissance",
    "forme": "pays",
    "aide": "Le pays se choisit dans la liste : la table « Pays » de la DSN, dont la DSN déclare le code à deux lettres (le Kosovo, l'URSS, la Yougoslavie et les autres États disparus y sont). Rempli tout seul (France) quand le numéro de sécurité sociale dit une naissance en France.",
@@ -1440,6 +1484,8 @@
   },
   {
    "cle": "code_nationalite_dsn",
+   "exige_par": ["dsn"],
+   "exige_si": {"pays_nationalite": [""], "pays_nationalite_hors_liste": [""]},
    "libelle": "Nationalité",
    "forme": "choix",
    "aide": "Ce que la DSN demande (S21.G00.30.013) : française, d'un pays de l'Union européenne, de l'Espace économique européen hors Union (Islande, Liechtenstein, Norvège), ou du reste du monde (Royaume-Uni et Suisse compris). Avec un pays de nationalité de la liste, elle se déduit et ne se choisit plus ; avec un pays absent de la liste, elle se choisit.",
@@ -1503,6 +1549,7 @@
   },
   {
    "cle": "adresse",
+   "exige_par": ["dsn"],
    "libelle": "Adresse déclarée",
    "forme": "officiel",
    "aide": "",
@@ -1541,6 +1588,7 @@
   },
   {
    "cle": "code_postal",
+   "exige_par": ["dsn"],
    "libelle": "Code postal",
    "forme": "chiffres",
    "aide": "",
@@ -1560,6 +1608,7 @@
   },
   {
    "cle": "commune",
+   "exige_par": ["dsn"],
    "libelle": "Commune déclarée",
    "forme": "officiel",
    "aide": "",
@@ -1599,6 +1648,7 @@
   {
    "_note": "DECLARE : il part en DSN (S21.G00.30.018). Le 12/09/2026 il a ete\nchange sans etre date, et le rejeu de juillet a cesse d'etre identique.",
    "cle": "email",
+   "sinon": "ses contrats et ses documents ne lui partent pas par courriel : ils s'impriment et se remettent en main propre",
    "libelle": "Courriel",
    "forme": "email",
    "aide": "C'est là que partent le contrat à signer, le bulletin, le certificat Congés Spectacles et l'attestation France Travail. Il est aussi déclaré en DSN.",
@@ -1619,6 +1669,10 @@
   {
    "_note": "LE COMPTE OU LE SALAIRE EST VIRE : l'IBAN, controle par sa cle (ISO 13616, MOD 97-10 : atelier/reference/sources/iban/), et le BIC, facultatif (reglement (UE) 260/2012, art. 5, 7). Il ne part dans aucune declaration.",
    "cle": "banque",
+   "champs": [
+    {"cle": "iban", "libelle": "IBAN", "forme": "texte", "aide": "Sur le relevé d'identité bancaire (RIB) : 27 caractères commençant par FR pour un compte en France, de 15 à 34 ailleurs. Les espaces ne comptent pas."},
+    {"cle": "bic", "libelle": "BIC", "forme": "texte", "aide": "Sur le même RIB, 8 ou 11 caractères.", "exemple": "AGRIFRPPXXX"}
+   ],
    "libelle": "Compte bancaire",
    "forme": "structure",
    "aide": "Le compte sur lequel la compagnie lui vire son salaire : sur son relevé d'identité bancaire (RIB).",

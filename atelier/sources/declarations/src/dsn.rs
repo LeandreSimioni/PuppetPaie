@@ -3937,6 +3937,22 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
     vus
 }
 
+/// CE QUE LA DSN EXIGE DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit) : tout ce qui
+/// manque, d'un coup, avant d'ecrire ; le numero d'adherent Conges Spectacles, seulement quand un contrat est declare a la
+/// caisse (`caisse_conges`). La DSN mensuelle et l'amorcage (`amorcage::generer`) declarent le meme individu.
+pub fn exiges<'a>(ent: &Value, salaries: impl Iterator<Item = &'a Value>, caisse_conges: bool) -> Resultat<()> {
+    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
+    for s in salaries {
+        if !fiches.iter().any(|(_, _, f)| g(f, "_cle") == g(s, "_cle")) {
+            fiches.push(("salarie", format!("la fiche de {}", socle::texte::salarie_nomme_ou(Some(s), &txt(g(s, "_cle")))), s));
+        }
+    }
+    match crate::champs::refus_des_manques("dsn", &fiches, if caisse_conges { &[] } else { &[documents::conges_spectacles::CLE_ADHERENT] }).map_err(|e| e.message)? {
+        Some(m) => Err(m),
+        None => Ok(()),
+    }
+}
+
 /// La DSN mensuelle de `mois` (AAAA-MM) : toutes les paies du mois de cet etablissement.
 ///
 /// Ce que la norme et les depots de test nous ont appris. Les parametres sont `o.etablissement`, `arrets`,
@@ -4098,6 +4114,8 @@ etablissement, chacun avec ses salaries. Rien n'est ecrit.",
             if n > 1 { "nent" } else { "t" }
         ));
     }
+    let caisse = paies.iter().any(|p| p.declaree_a_la_caisse_des_conges().unwrap_or(false));
+    exiges(&ent0, paies.iter().map(|p| &p.salarie).chain(regs.iter().map(|r| &r.apres.salarie)), caisse)?;
     // La correction d'un mois decoupe en periodes elementaires : le declare relu (`versement_declare`) et le
     // corrige se comparent base par base, et un mois decoupe en a une par periode. Un chantier a part.
     if let Some(r) = regs.iter().find(|r| !r.apres.periodes.is_empty() || !r.avant.periodes.is_empty()) {

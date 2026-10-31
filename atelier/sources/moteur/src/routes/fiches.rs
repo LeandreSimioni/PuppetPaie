@@ -33,7 +33,7 @@ use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
 const NOM_FICHE: Champ = Champ { nom: "nom", sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
 const CLE_FICHE: Champ = Champ { nom: "cle", sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
-const DONNEES: Champ = Champ { nom: "donnees", sens: "les cases de la fiche, telles que l'écran les montre", avance: false };
+const DONNEES: Champ = Champ { nom: "donnees", sens: "les cases de la fiche ; à l'écriture, une case non donnée garde sa valeur, une structure s'écrit entière", avance: false };
 pub(crate) const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
 const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
@@ -96,7 +96,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "forcer", sens: "vrai : écrire malgré une erreur de forme", avance: true },
         ],
         exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics","numero_objet":"266Z00952012"}}"#,
-        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi), rien n'est écrit ; sinon : cle, etat (relu), enregistre_a (vide si rien n'a changé), phrase (écrite, ou rien n'a changé)",
+        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi), rien n'est écrit ; sinon : cle, ecrits (les champs changés), enregistre_a (vide si rien n'a changé), phrase",
         refus: &[REFUSEE, OPERATION, MANQUE, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
         avance: false,
@@ -232,7 +232,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "verifier-fiche" => verifier_fiche(charge),
         "taux-atmp" => crate::routes::atmp::route(ctx, charge),
         "activer-fiche" => activer_fiche_route(o, ctx, charge),
-        "enregistrer-fiche" => enregistrer_fiche(o, ctx, charge),
+        "enregistrer-fiche" => enregistrer_fiche(ctx, charge),
         "fiche-oublier-demande" => oublier_demande(o, ctx, charge),
         "fiche-demander" => {
             let d = demander_fiche(ctx, &texte("adresse"), &texte("prenom"), &preuve_de(charge), "interface", None)?;
@@ -1472,17 +1472,18 @@ fn fiche_refusee(anomalies: &[Value]) -> Echec {
 }
 
 /// Ce que l'ecriture d'une fiche a fait : sa cle (celle d'une fiche neuve est fabriquee ici), les anomalies, et si le
-/// fichier a change (une fiche enregistree telle qu'elle est n'ecrit rien).
+/// fichier a change (une fiche enregistree telle qu'elle est n'ecrit rien), et les champs qui ont change.
 pub(crate) struct FicheEcrite {
     pub(crate) cle: Option<String>,
     pub(crate) anomalies: Vec<Value>,
     pub(crate) ecrit: bool,
+    pub(crate) champs: Vec<String>,
 }
 
 /// `enregistrer-fiche` : une fiche de l'ecran, ecrite (`ecrire_fiche`). Une valeur existante qui change demande sa date
 /// d'effet : sans `confirme`, la route rend l'avertissement (`avertissement_de_fiche`) et n'ecrit rien ; la meme charge
 /// avec `confirme` ecrit, a partir de `depuis` (la date proposee, s'il manque).
-fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom = texte_requis(charge, "nom")?;
     let cle: Option<String> = match charge.get("cle") {
         None | Some(Value::Null) => None,
@@ -1511,7 +1512,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
         (true, false, false) => "Enregistré.",
     };
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
-    Ok(json!({"cle": e.cle, "etat": etat_relu(o, ctx)?, "enregistre_a": e.ecrit.then(maintenant), "phrase": phrase}))
+    Ok(json!({"cle": e.cle, "ecrits": e.champs, "enregistre_a": e.ecrit.then(maintenant), "phrase": phrase}))
 }
 
 
@@ -1611,7 +1612,16 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
     }
     crate::routes::fiches::deriver(nom, &mut donnees, true)?;
 
-    let anomalies = crate::routes::fiches::verifier(nom, &donnees)?;
+    // UNE CHARGE PARTIELLE ne change que les champs qu'elle nomme : les autres gardent leur valeur (`ecrire_datee` n'ecrit
+    // que ceux-la), et la fiche se verifie entiere, telle qu'elle sera. Une structure s'ecrit entiere.
+    let mut entiere = donnees.clone();
+    if let Value::Object(a) = ancienne {
+        for (k, v) in a {
+            entiere.entry(k.clone()).or_insert_with(|| v.clone());
+        }
+    }
+    let mut anomalies = crate::routes::fiches::verifier(nom, &entiere)?;
+    anomalies.extend(champs::cases_inconnues(nom, &donnees, ancienne)?);
     if forcer.refuse(&anomalies) {
         return Err(fiche_refusee(&anomalies));
     }
@@ -1684,12 +1694,19 @@ pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, Stri
 }
 
 fn finir_fiche(cle: Option<String>, chemin: &Path, contenu: Map<String, Value>, anomalies: Vec<Value>) -> R<FicheEcrite> {
-    let ecrit = objet_du_fichier(chemin)? != contenu;
+    let avant = Value::Object(objet_du_fichier(chemin)?);
+    let apres = Value::Object(contenu.clone());
+    let ecrit = avant != apres;
+    let (a, n) = match cle.as_deref() {
+        Some(k) => (avant.get(k).cloned().unwrap_or(Value::Null), apres.get(k).cloned().unwrap_or(Value::Null)),
+        None => (avant, apres),
+    };
+    let champs: Vec<String> = n.as_object().into_iter().flatten().filter(|(k, v)| !k.starts_with('_') && a.get(k.as_str()) != Some(*v)).map(|(k, _)| k.clone()).collect();
     if ecrit {
         sauver_avant(chemin)?;
         ecrire(chemin, Value::Object(contenu))?;
     }
-    Ok(FicheEcrite { cle, anomalies, ecrit })
+    Ok(FicheEcrite { cle, anomalies, ecrit, champs })
 }
 
 // ------------------------------------------------------------------ la fiche demandee par courriel

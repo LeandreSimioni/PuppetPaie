@@ -141,6 +141,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     let e = &paie.engagement;
     let s = &paie.salarie;
     let ent = &ctx.entreprise;
+    crate::dsn::exiges(ent, std::iter::once(s), paie.declaree_a_la_caisse_des_conges()?)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -261,6 +262,12 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
         ("S21.G00.30.018", "email"),
         ("S21.G00.30.019", "code_salarie"),
     ] {
+        // L'adresse mel est conditionnelle (usage « C » dans chaque nature, et « conditionne a l'accord explicite » de
+        // l'individu : `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, `texte/bloc-S21.G00.30.txt`) : une fiche
+        // sans courriel n'en declare pas.
+        if k == "email" && !s.get(k).is_some_and(vrai) {
+            continue;
+        }
         // Le pays de naissance se lit dans la liste livree (`pays.rs`) : un code inconnu refuse.
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;

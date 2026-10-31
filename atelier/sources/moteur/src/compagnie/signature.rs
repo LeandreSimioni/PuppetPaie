@@ -265,6 +265,15 @@ fn contrats_choisis(ctx: &Contexte, choisis: &Choisis, mois: &str, paies: &[Paie
             )));
         }
     }
+    // CE QUE LE CONTRAT EXIGE DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit) : tout ce
+    // qui manque, d'un coup, avant d'ecrire le moindre PDF.
+    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".into(), &ctx.entreprise)];
+    for (cle, ps, _) in &par_salarie {
+        fiches.push(("salarie", format!("la fiche de {}", socle::texte::salarie_nomme_ou(Some(&ps[0].salarie), cle)), &ps[0].salarie));
+    }
+    if let Some(m) = declarations::champs::refus_des_manques("contrat", &fiches, &[])? {
+        return Err(refus(m));
+    }
     Ok(par_salarie)
 }
 

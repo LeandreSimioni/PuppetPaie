@@ -1057,36 +1057,8 @@ const SOUS_CHAMPS = {
     ["pris", "Jours déjà pris sur la période en cours", "Les jours pris sur ceux de la période en cours, avant cette date. Sur le bulletin : « pris N »."],
     ["remuneration_periode", "Brut gagné depuis le début de la période en cours (€)", "Le brut versé sur la période en cours, avant cette date. Sur le bulletin : « base N »."],
   ] },
-  signataire: { champs: [
-    ["prenom_affichage", "Prénom", ""],
-    ["nom_affichage", "Nom", ""],
-    ["fonction", "Fonction", "Président, présidente, gérant, directrice…"],
-    ["tel", "Téléphone", ""],
-    ["email", "Courriel", ""],
-  ] },
-  // LA QUALITE DU DECLARANT NE S'AFFICHE PAS. C'est
-  // S20.G00.07.004, et elle vaut 04 : << la personne qui etablit la paie
-  // dans l'entreprise >>. La valeur reste dans la fiche et repart telle
-  // quelle (STRUCTURES_ORIGINE) ; `dsn.rs` la lit.
-  // LA CIVILITE DU CONTACT : S10.G00.02.001, 01 monsieur ou
-  // 02 madame (cahier technique DSN, p. 132). Le moteur la lit ici et refuse
-  // une DSN sans elle ; vide, la case est retiree a l'enregistrement.
-  declarant_dsn: { champs: [
-    ["civilite", "Civilité", "Celle de la personne que les organismes contactent : elle s'écrit dans chaque DSN.",
-     { choix: { "": "—", "02": "Madame", "01": "Monsieur" } }],
-    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
-    ["tel", "Téléphone", ""],
-    ["email", "Courriel", ""],
-  ] },
-  contact_sante_travail: { champs: [
-    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
-    ["tel", "Téléphone", ""],
-    ["email", "Courriel", ""],
-  ] },
-  banque: { champs: [
-    ["iban", "IBAN", "Sur le relevé d'identité bancaire (RIB) : 27 caractères commençant par FR pour un compte en France, de 15 à 34 ailleurs. Les espaces ne comptent pas."],
-    ["bic", "BIC", "Sur le même RIB, 8 ou 11 caractères."],
-  ] },
+  // Le signataire, le contact DSN, celui de la médecine du travail et la banque : leurs cases viennent de la description
+  // du moteur (`champs`), posées par `dessinerFormulaire`.
   // LA PREVOYANCE ET LA SANTE DES PERMANENTS.
   // Elles se saisissaient en JSON dans une zone de texte : un administrateur
   // n'avait pas a lire des accolades. Une case vide est RETIREE a
@@ -1150,6 +1122,7 @@ const SOUS_CHAMPS = {
 /* Les valeurs d'une liste de choix, dites en clair. Le moteur garde ses
  * codes (`cse_adherent_fnas`), l'ecran montre une phrase. */
 const LIBELLES_CHOIX = {
+  civilite: { "01": "Monsieur", "02": "Madame" },
   // La table MNATA de la DSN, telle que `donnees/mnata-base.json`
   // la livre : l'ecran la dit en clair, le moteur la lit et la controle.
   taxe_apprentissage_motif_non_assujettissement: {

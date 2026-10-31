@@ -5,9 +5,9 @@
 //! compagnie TROUVE la valeur (l'aide du champ, `champs-base.json`).
 //!
 //! Les regles ne sont pas recopiees : le bareme de l'annee se demande au contexte (`Contexte::bareme` : le taux AT/MP,
-//! l'effectif, la premiere embauche), l'employeur de la DPAE a la DPAE (`dpae::employeur_manques`). La table `FICHE` ne fait
-//! que nommer les champs que la DSN et le bulletin lisent sans valeur par defaut (`dsn.rs`, en-tete S10/S20 et bloc 40 ;
-//! `bulletin.rs`) : un champ qu'on y ajoute sans qu'un document le lise serait un faux manque.
+//! l'effectif, la premiere embauche), l'employeur de la DPAE a la DPAE (`dpae::employeur_manques`), ce que
+//! chaque acte exige des fiches a `champs-base.json` (`exige_par`), que l'acte lit aussi (`champs::refus_des_manques`) :
+//! un champ qu'on y marque sans qu'un acte le lise serait un faux manque.
 
 use serde_json::{json, Value};
 
@@ -21,86 +21,14 @@ pub const ROUTE: &str = "pour-demarrer";
 
 const ENTREPRISE: &str = "Configuration › Entreprise";
 
-/// (chemin dans la fiche entreprise, ce que son absence bloque). Le SIRET avant le SIREN et le NIC : ils s'en deduisent
-/// (`moteur::routes::fiches::deriver`) et se disent sur sa ligne. La qualite du contact (S20.G00.07.004) n'y est pas : le moteur
-/// l'ecrit seul (`dsn::type_du_contact`).
-const FICHE: [(&str, &str); 22] = [
-    ("raison_sociale", "la DSN"),
-    ("siret", "la DSN et la DPAE"),
-    ("siren", "la DSN"),
-    ("nic", "la DSN"),
-    ("naf", "la DSN et la DPAE"),
-    ("adresse", "la DSN et la DPAE"),
-    ("code_postal", "la DSN et la DPAE"),
-    ("commune", "la DSN et la DPAE"),
-    ("idcc", "toute paie"),
-    ("urssaf_compte", "les bulletins"),
-    ("signataire.nom", "la DSN et les contrats"),
-    ("signataire.prenom", "la DSN et les contrats"),
-    ("declarant_dsn.civilite", "la DSN"),
-    ("declarant_dsn.nom_prenom", "la DSN"),
-    ("declarant_dsn.tel", "la DSN"),
-    ("declarant_dsn.email", "la DSN"),
-    // Seulement quand la medecine du travail est interne (code MT01) : le champ est alors exige (`exige_si`), et la DSN
-    // de 2027 l'ecrit en S20.G00.07 de type 17 (`dsn::contact_sante_travail`).
-    ("contact_sante_travail.nom_prenom", "la DSN"),
-    ("contact_sante_travail.tel", "la DSN"),
-    ("contact_sante_travail.email", "la DSN"),
-    ("banque.iban", "la DSN (le paiement des cotisations)"),
-    ("banque.bic", "la DSN (le paiement des cotisations)"),
-    // Le SEUL numero Conges Spectacles demande : la DSN le declare precede de 97 (`conges_spectacles::code_dsn`, fiche de
-    // specificites d'Audiens, l. 80-81), les certificats l'impriment dans leur case COMPTE.
-    ("congesspectacles_adherent", "la DSN des intermittents et les certificats Congés Spectacles"),
-];
-
-/// LE CHAMP QUE L'ECRAN MONTRE pour une valeur de la fiche : chaque chose demandee se remplit la ou elle
-/// envoie, sans champ cache. Une valeur que l'on deduit d'une autre se demande par celle-la : le SIREN et le NIC par
-/// le SIRET (`moteur::routes::fiches::deriver`), la forme declaree (`raison_sociale`, `adresse`, `commune`) par sa forme lisible
-/// (`derive_de` de `champs-base.json`).
-pub fn a_l_ecran(racine: &str) -> String {
-    match racine {
-        "siren" | "nic" => return "siret".to_string(),
-        _ => {}
-    }
-    crate::champs::fiche("entreprise")
-        .ok()
-        .and_then(|v| v.into_iter().find(|c| c.cle == racine))
-        .and_then(|c| c.derive_de.filter(|d| !d.is_empty()))
-        .unwrap_or_else(|| racine.to_string())
-}
-
-/// Le nom en clair d'une case d'un champ a plusieurs cases.
-fn en_clair(sous: &str) -> &str {
-    match sous {
-        "civilite" => "civilité",
-        "nom_prenom" => "nom et prénom",
-        "nom" => "nom",
-        "prenom" => "prénom",
-        "tel" => "téléphone",
-        "email" => "courriel",
-        "qualite" => "qualité",
-        "iban" => "IBAN",
-        "bic" => "BIC",
-        autre => autre,
-    }
-}
-
 fn valeur<'a>(ent: &'a Value, chemin: &str) -> Option<&'a Value> {
     chemin.split('.').try_fold(ent, |v, k| v.get(k))
 }
 
-/// Le libelle et l'aide du champ (`champs-base.json`), le premier segment du chemin.
+/// Le libelle et l'aide du champ `cle` de la fiche entreprise (`champs-base.json`).
 fn champ(cle: &str) -> (String, String) {
-    let racine = cle.split('.').next().unwrap_or(cle);
-    let c = crate::champs::fiche("entreprise").ok().and_then(|v| v.into_iter().find(|c| c.cle == racine));
-    match c {
-        Some(c) => {
-            let precision = match cle.split_once('.') {
-                Some((_, sous)) => format!(" ({})", en_clair(sous)),
-                None => String::new(),
-            };
-            (format!("{}{}", c.libelle, precision), c.aide)
-        }
+    match crate::champs::champ("entreprise", cle).ok().flatten() {
+        Some(c) => (c.libelle, c.aide),
         None => (cle.to_string(), String::new()),
     }
 }
@@ -152,50 +80,41 @@ fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
     })
 }
 
-/// Le champ `cle` de la fiche entreprise est-il exige de la compagnie `ent` (`exige_si` de `champs-base.json`) ?
-fn champ_exige(ent: &Value, cle: &str) -> bool {
-    crate::champs::champ("entreprise", cle).ok().flatten().is_some_and(|c| c.exige(ent))
-}
-
 /// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque. Une ligne dit ce qu'elle bloque
 /// (`bloque`), ou, quand rien ne se refuse sans elle, ce qui se passe sinon (`sinon`).
 pub fn manques(ctx: &Contexte) -> Vec<Value> {
     let ent = &ctx.entreprise;
     let mut out: Vec<Value> = Vec::new();
     let intermittents = a_des_spectacles(ctx);
-    // Un champ a plusieurs cases (le declarant : civilite, nom, telephone, courriel) fait UNE ligne, qui nomme ce qui manque.
-    let mut vus: Vec<String> = Vec::new();
-    for (cle, bloque) in FICHE {
-        if cle == documents::conges_spectacles::CLE_ADHERENT && !intermittents {
+    // CE QUE LES ACTES EXIGENT DES FICHES (`exige_par` de `champs-base.json`, que chaque acte lit aussi :
+    // `champs::refus_des_manques`) : l'entreprise, puis chaque salarie actif ; ce qui ne bloque rien dit ce qui se passe
+    // sans lui (`sinon`).
+    let ligne = |m: crate::champs::Manquant, ou: String, salarie: Option<&str>| {
+        let racine = m.ecran.split('.').next().unwrap_or(&m.ecran).to_string();
+        let mut l = json!({ "cle": m.ecran, "libelle": m.libelle, "ou": ou, "champ": racine, "trouver": m.aide });
+        if m.actes.is_empty() {
+            l["sinon"] = json!(m.sinon);
+        } else {
+            l["bloque"] = json!(crate::champs::actes_en_clair(&m.actes));
+        }
+        if let Some(s) = salarie {
+            l["salarie"] = json!(s);
+            l["cle"] = json!(format!("{}.{}", m.ecran, s));
+        }
+        l
+    };
+    for m in crate::champs::manquants("entreprise", ent).unwrap_or_default() {
+        if m.cle == documents::conges_spectacles::CLE_ADHERENT && !intermittents {
             continue;
         }
-        if cle.starts_with("contact_sante_travail.") && !champ_exige(ent, "contact_sante_travail") {
-            continue;
+        out.push(ligne(m, ENTREPRISE.to_string(), None));
+    }
+    for (cle, s) in ctx.salaries.iter().filter(|(_, s)| s.get("actif") != Some(&json!(false))) {
+        let nom = socle::texte::salarie_nomme_ou(Some(s), cle);
+        for mut m in crate::champs::manquants("salarie", s).unwrap_or_default() {
+            m.libelle = format!("{} : {}", nom, m.libelle);
+            out.push(ligne(m, format!("Configuration › Salariés, la fiche de {}", nom), Some(cle)));
         }
-        if valeur(ent, cle).is_some_and(vrai) {
-            continue;
-        }
-        // Ce qui manque se dit par le champ que l'ecran montre (`a_l_ecran`) : SIREN, NIC et SIRET font une ligne.
-        let racine = a_l_ecran(cle.split('.').next().unwrap_or(cle));
-        let sous_cle = cle.split_once('.').map(|(_, s)| s);
-        let cle_ecran = match sous_cle {
-            Some(s) => format!("{}.{}", racine, s),
-            None => racine.clone(),
-        };
-        let sous = sous_cle.map(|s| en_clair(s).to_string());
-        if let Some(i) = vus.iter().position(|r| *r == racine) {
-            if let (Some(sous), Some(l)) = (sous, out[i]["libelle"].as_str().map(str::to_string)) {
-                let l = match l.strip_suffix(')') {
-                    Some(debut) => format!("{}, {})", debut, sous),
-                    None => format!("{} ({})", l, sous),
-                };
-                out[i]["libelle"] = json!(l);
-            }
-            continue;
-        }
-        let (libelle, aide) = champ(&cle_ecran);
-        out.push(manque(&cle_ecran, libelle, bloque, ENTREPRISE, Some(&racine), aide));
-        vus.push(racine);
     }
     // La licence d'entrepreneur de spectacles : la DSN l'ecrit dans chaque contrat (S21.G00.40.049) et refuse sans elle
     // QUAND ELLE EST EXIGEE de la compagnie (`exige_si` de `champs-base.json`, lu par `dsn::licence_du_contrat` aussi) :

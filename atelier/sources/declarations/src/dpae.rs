@@ -432,30 +432,6 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         "2" => "F",
         _ => "",
     };
-    if sexe.is_empty() {
-        return Err(format!(
-            "La DPAE de {} {} ne peut pas partir : elle declare le sexe (zone SEXE, position 731), et la fiche ne le dit ni par le NIR ni par sa case `sexe`.",
-            en_texte(cle(s, "nom")?),
-            en_texte(cle(s, "prenom")?)
-        ));
-    }
-    // LA NAISSANCE EST OBLIGATOIRE (zones D_NAISSANCE_SAL, L_LIEU_NAISS_SAL et le code du departement de naissance,
-    // « O » ; l'Urssaf rejette « Date de naissance salarié invalide », « Lieu de naissance invalide », « Département de
-    // naissance invalide - non renseigné » : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`). Ce qui manque se
-    // dit avec la personne et la case de sa fiche, avant le gabarit.
-    let manque: Vec<&str> = [("date_naissance", "sa date de naissance"), ("lieu_naissance", "sa commune de naissance"), ("departement_naissance", "son département de naissance")]
-        .into_iter()
-        .filter(|(k, _)| s.get(*k).map_or(true, |v| strip(&en_texte(v)).is_empty()))
-        .map(|(_, l)| l)
-        .collect();
-    if !manque.is_empty() {
-        return Err(format!(
-            "La DPAE de {} {} ne peut pas partir : sa fiche ne dit pas {} (Configuration › Salariés).",
-            en_texte(s.get("prenom_affichage").filter(|v| vrai(v)).map_or(cle(s, "prenom"), Ok)?),
-            en_texte(cle(s, "nom")?),
-            manque.join(" ni ")
-        ));
-    }
     poser(&mut buf, "horodatage", p.horodatage)?;
     poser(&mut buf, "nom", &txt(cle(s, "nom")?, 32))?;
     poser(&mut buf, "prenom", &txt(cle(s, "prenom")?, 32))?;
@@ -504,6 +480,16 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
 /// Les enregistrements de ces embauches, dans l'ordre. Le gabarit n'est lu
 /// qu'a la premiere (une liste vide ne lit rien).
 pub fn enregistrements(embauches: &[Embauche], p: &Parametres) -> Resultat<Vec<String>> {
+    // CE QUE LA DPAE EXIGE DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit : la naissance,
+    // zones D_NAISSANCE_SAL, L_LIEU_NAISS_SAL et le departement de naissance, « O », et le sexe sans NIR, zone SEXE,
+    // `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`) : tout ce qui manque, d'un coup, avant d'ecrire.
+    let mut fiches: Vec<(&str, String, &Value)> = p.ent.map(|e| ("entreprise", "la fiche entreprise".to_string(), e)).into_iter().collect();
+    for e in embauches {
+        fiches.push(("salarie", format!("la fiche de {}", socle::texte::salarie_nomme_ou(Some(&e.salarie), "")), &e.salarie));
+    }
+    if let Some(m) = crate::champs::refus_des_manques("dpae", &fiches, &[]).map_err(|e| e.message)? {
+        return Err(m);
+    }
     let mut out = Vec::new();
     let mut gabarit: Option<Vec<char>> = None;
     for e in embauches {

@@ -72,6 +72,14 @@ pub struct Champ {
     pub exige_si: Value,
     pub booleen_defaut: bool,
     pub ecran: bool,
+    /// Les actes qui ne se font pas sans lui (`exige_par` : `dsn`, `dpae`, `contrat`, `bulletin`, `certificat`, `paie`) :
+    /// LA SEULE LISTE de ce qu'un acte exige d'une fiche, que « Pour demarrer » (`demarrage::manques`) et l'acte
+    /// (`refus_des_manques`) lisent.
+    pub exige_par: Vec<String>,
+    /// Ce qui se passe sans lui, quand rien ne se refuse (`sinon`) : « Pour demarrer » le dit en facultatif.
+    pub sinon: String,
+    /// Les cases d'une structure (`champs`), decrites comme les champs ; une autre cle s'y refuse.
+    pub champs: Vec<Champ>,
 }
 
 impl Champ {
@@ -103,12 +111,15 @@ impl Champ {
             exige_si: v.get("exige_si").cloned().unwrap_or(Value::Null),
             booleen_defaut: drapeau("booleen_defaut", true),
             ecran: drapeau("ecran", true),
+            exige_par: v.get("exige_par").and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default(),
+            sinon: texte("sinon"),
+            champs: v.get("champs").and_then(Value::as_array).map(|a| a.iter().map(Champ::lire).collect()).unwrap_or_default(),
         }
     }
 
     /// Une ligne de `description` : ce que l'interface consomme.
     fn description(&self) -> Value {
-        json!({
+        let mut d = json!({
             "cle": self.cle, "libelle": self.libelle, "forme": self.forme,
             "aide": self.aide, "obligatoire": self.obligatoire,
             "longueur": self.longueur, "exemple": self.exemple, "choix": self.choix,
@@ -124,8 +135,106 @@ impl Champ {
             "si_entreprise": self.si_entreprise,
             "exige_si": self.exige_si,
             "booleen_defaut": self.booleen_defaut, "ecran": self.ecran,
-        })
+            "exige_par": self.exige_par, "bloque": actes_en_clair(&self.exige_par), "sinon": self.sinon,
+            "champs": self.champs.iter().map(Champ::description).collect::<Vec<_>>(),
+        });
+        if !self.champs.is_empty() {
+            d["forme_libelle"] = json!("sous-objet : ses cases sont dans `champs`, une autre cle se refuse");
+        }
+        d
     }
+
+    /// Le champ s'applique-t-il a la fiche `donnees` : sa condition `si`, et `exige_si` quand il en a une.
+    fn applicable(&self, donnees: &Value) -> bool {
+        condition_remplie(&self.si, donnees) && (self.exige_si.is_null() || self.exige(donnees))
+    }
+}
+
+/// Le nom en clair d'un acte de `exige_par`.
+fn acte_en_clair(acte: &str) -> &str {
+    match acte {
+        "dsn" => "la DSN",
+        "dpae" => "la DPAE",
+        "contrat" => "les contrats",
+        "bulletin" => "les bulletins",
+        "certificat" => "les certificats Congés Spectacles",
+        "paie" => "toute paie",
+        autre => autre,
+    }
+}
+
+/// « la DSN, la DPAE et les contrats ».
+pub fn actes_en_clair(actes: &[String]) -> String {
+    let noms: Vec<&str> = actes.iter().map(|a| acte_en_clair(a)).collect();
+    match noms.split_last() {
+        None => String::new(),
+        Some((dernier, [])) => dernier.to_string(),
+        Some((dernier, debut)) => format!("{} et {}", debut.join(", "), dernier),
+    }
+}
+
+/// Une case vide d'une fiche qu'un acte exige (`exige_par`) ou dont l'absence se dit (`sinon`).
+#[derive(Debug, Clone)]
+pub struct Manquant {
+    /// Son chemin dans la fiche (`signataire.fonction`).
+    pub cle: String,
+    /// La case que l'ecran montre (la forme lisible d'un champ declare : `derive_de`).
+    pub ecran: String,
+    /// « Qui signe (fonction) ».
+    pub libelle: String,
+    pub aide: String,
+    pub actes: Vec<String>,
+    pub sinon: String,
+}
+
+/// CE QUI MANQUE A LA FICHE `donnees` (`entreprise`, `salarie`) pour les actes de la compagnie : chaque champ, et chaque
+/// case de structure, qui porte `exige_par` ou `sinon`, s'il s'applique (`si`, `exige_si` ; une case suit sa
+/// structure) et qu'il est vide. Un champ declare se dit par sa forme lisible (`derive_de`).
+pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
+    // La case que l'ecran montre pour `c` : celle dont il se deduit, s'il se deduit.
+    fn montre<'a>(liste: &'a [Champ], c: &'a Champ) -> &'a Champ {
+        c.derive_de.as_deref().and_then(|d| liste.iter().find(|x| x.cle == d)).unwrap_or(c)
+    }
+    let tous = fiche(nom)?;
+    let mut out = Vec::new();
+    let mut voir = |c: &Champ, m: &Champ, chemin: (String, String), libelle: String, v: Option<&Value>| {
+        if (c.exige_par.is_empty() && c.sinon.is_empty()) || v.is_some_and(vrai) {
+            return;
+        }
+        out.push(Manquant { cle: chemin.0, ecran: chemin.1, libelle, aide: m.aide.clone(), actes: c.exige_par.clone(), sinon: c.sinon.clone() });
+    };
+    for c in tous.iter().filter(|c| c.applicable(donnees)) {
+        let m = montre(&tous, c);
+        voir(c, m, (c.cle.clone(), m.cle.clone()), m.libelle.clone(), donnees.get(&c.cle));
+        for s in &c.champs {
+            let ms = montre(&c.champs, s);
+            let chemin = (format!("{}.{}", c.cle, s.cle), format!("{}.{}", c.cle, ms.cle));
+            voir(s, ms, chemin, format!("{} ({})", c.libelle, en_minuscule(&ms.libelle)), donnees.get(&c.cle).and_then(|o| o.get(&s.cle)));
+        }
+    }
+    Ok(out)
+}
+
+/// LE REFUS D'UN ACTE quand une fiche qu'il lit n'a pas ce qu'il exige (`exige_par`) : tout ce qui manque, d'un coup,
+/// fiche par fiche. `fiches` : (`entreprise` ou `salarie`, qui, la fiche) ; `sauf` : les cases qu'un fait de l'acte ne demande
+/// pas. `None` : rien ne manque.
+pub fn refus_des_manques(acte: &str, fiches: &[(&str, String, &Value)], sauf: &[&str]) -> R<Option<String>> {
+    let mut lignes = Vec::new();
+    for (nom, qui, donnees) in fiches {
+        let manque: Vec<String> =
+            manquants(nom, donnees)?.into_iter().filter(|m| m.actes.iter().any(|a| a == acte) && !sauf.contains(&m.cle.as_str())).map(|m| m.libelle).collect();
+        if !manque.is_empty() {
+            lignes.push(format!("  - {} : {}", qui, manque.join(", ")));
+        }
+    }
+    if lignes.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(format!(
+        "Pour {}, il manque, dans Configuration :\n{}\nRien n'est écrit.",
+        acte_en_clair(acte),
+        lignes.join("\n")
+    )))
 }
 
 /// Les trois fiches : `FICHES`.
@@ -1386,5 +1495,32 @@ mod tests {
         // insee-nir-siret : la somme des chiffres (rang impair doubles) est un multiple de 10.
         assert!(luhn("73282932000074"));
         assert!(!luhn("73282932000075"));
+    }
+}
+
+/// LES CASES QU'UNE STRUCTURE NE DECRIT PAS (`champs`) et que l'ecriture `donnees` ajouterait a la fiche `ancienne` :
+/// personne ne les lirait. Une case que la fiche porte deja se garde. Cela ne se force pas.
+pub fn cases_inconnues(nom: &str, donnees: &Map<String, Value>, ancienne: &Value) -> R<Vec<Value>> {
+    let mut out = Vec::new();
+    for c in fiche(nom)?.iter().filter(|c| !c.champs.is_empty()) {
+        let Some(Value::Object(o)) = donnees.get(&c.cle) else { continue };
+        let admises: Vec<&str> = c.champs.iter().map(|s| s.cle.as_str()).collect();
+        let deja = ancienne.get(&c.cle);
+        for k in o.keys().filter(|k| !k.starts_with('_') && !admises.contains(&k.as_str()) && deja.and_then(|d| d.get(k.as_str())).is_none()) {
+            let mut a = anomalie(&c.cle, "erreur", format!("la case « {} » n'existe pas ; ses cases sont : {}", k, admises.join(", ")));
+            a["forcable"] = json!(false);
+            a["pourquoi"] = json!("Cette case n'existe pas : la retirer, ou la nommer comme le dit la liste.");
+            out.push(a);
+        }
+    }
+    Ok(out)
+}
+
+/// « Prénom » devient « prénom » dans une phrase ; « IBAN » reste « IBAN ».
+fn en_minuscule(libelle: &str) -> String {
+    let mut c = libelle.chars();
+    match (c.next(), c.next()) {
+        (Some(p), Some(s)) if s.is_lowercase() => p.to_lowercase().chain(libelle.chars().skip(1)).collect(),
+        _ => libelle.to_string(),
     }
 }

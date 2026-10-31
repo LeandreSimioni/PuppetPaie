@@ -33,6 +33,14 @@ function dessinerFormulaire(fiche) {
   // l'utilisateur la forme de la DSN. L'editeur : « ça, les gens s'en
   // fichent ». Le moteur la fabrique, et ne revient vers l'humain que si
   // elle ne peut pas partir.
+  // LES CASES D'UNE STRUCTURE QUE LE MOTEUR DÉCRIT (`champs` de la description) : celles qu'on saisit, avec leur libellé
+  // et leur aide ; une case déclarée qui se déduit d'une autre (`ecran: false`) ne se montre pas.
+  desc.forEach((c) => {
+    if (!(c.champs || []).length) return;
+    SOUS_CHAMPS[c.cle] = { champs: c.champs.filter((s) => s.ecran !== false).map((s) => [s.cle, s.libelle, s.aide,
+      ...(s.choix.length ? [{ choix: Object.fromEntries([["", "—"],
+        ...s.choix.map((v) => [v, (LIBELLES_CHOIX[s.cle] || {})[v] || v])]) }] : [])]) };
+  });
 
   // CE QU'ON N'AFFICHE PAS, ON LE GARDE. Le signataire porte un `nom_aem` et
   // une note ; la banque porte un avertissement de diffusion. Ces clefs ne
@@ -1469,7 +1477,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
       }
       return ecrireFiche(fiche, donnees, { ...réponse, confirme: true }, forcer);
     }
-    ETAT = r.etat;
+    ETAT = await api("etat");
     // Une fiche neuve : le moteur a fabriqué sa clé, c'est elle qu'on ouvre.
     if (!fiche.cle && r.cle) { CLE_ACTIVE = r.cle; FICHE_NEUVE = false; }
     dire(r.phrase);
