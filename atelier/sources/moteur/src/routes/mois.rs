@@ -185,19 +185,6 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
     let Some(objet) = saisie.as_object() else { return Ok(saisie.clone()) };
     let Ok(paies) = engagement::lue_sans_paie(ctx, saisie) else { return Ok(saisie.clone()) };
     let mut sortie = objet.clone();
-    // Le spectacle du MOIS n'est resolu que si la saisie en nommait un.
-    if vrai_opt(objet.get("spectacle")) {
-        let resolu = match paies.first() {
-            Some(p) => {
-                if !vrai(&p.spectacle) {
-                    return Err(erreur("TypeError", format!("'spectacle' : {}", socle::fichiers::attendu("un objet", nom_type(&p.spectacle)))));
-                }
-                p.spectacle.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?
-            }
-            None => objet["spectacle"].clone(),
-        };
-        sortie.insert("spectacle".into(), resolu);
-    }
     let tous = elements(objet.get("engagements"))?;
     let mut engagements = Vec::new();
     for (e, p) in tous.iter().zip(&paies) {
@@ -355,30 +342,6 @@ fn defauts_de_la_saisie(ctx: &Contexte, saisie: &Value) -> Value {
     json!({"taux_cachet": taux})
 }
 
-/// LE SPECTACLE ET LE LIEU DU MOIS DESCENDENT SUR CHAQUE ENGAGEMENT. Une saisie peut les ecrire au niveau
-/// du mois, comme defaut de ses engagements (`engagement::engagements` : `ou(e.spectacle, data.spectacle)`,
-/// `e.lieu or data.lieu`) ; l'ecran, lui, montre le spectacle d'un engagement et le lieu d'un contrat, et n'ecrit que ce
-/// qu'il montre. Ils sont donc poses sur chaque engagement qui ne dit pas le sien -- le spectacle seulement sur un
-/// contrat d'usage : un permanent n'en a pas (CCH-11) --, et retires du mois. Le calcul lit la meme chose.
-fn descendre_le_mois(saisie: Value) -> Value {
-    let Value::Object(mut m) = saisie else { return saisie };
-    let spectacle = m.remove("spectacle").filter(vrai);
-    let lieu = m.remove("lieu").filter(vrai);
-    if let Some(Value::Array(engagements)) = m.get_mut("engagements") {
-        for e in engagements.iter_mut() {
-            let Value::Object(e) = e else { continue };
-            let mensuel = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_or(false, |n| n.mensuelle());
-            if let Some(s) = spectacle.as_ref().filter(|_| !mensuel && !e.get("spectacle").is_some_and(vrai)) {
-                e.insert("spectacle".into(), s.clone());
-            }
-            if let Some(l) = lieu.as_ref().filter(|_| !e.get("lieu").is_some_and(vrai)) {
-                e.insert("lieu".into(), l.clone());
-            }
-        }
-    }
-    Value::Object(m)
-}
-
 /// La route `saisie`.
 fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
@@ -392,7 +355,6 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
             saisie[k] = v;
         }
     }
-    let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &saisie);
     // LES ENGAGEMENTS IMPORTES QUI TOUCHENT LE MOIS, en cartes fermees : ils se lisent, rien ne les calcule
     // (`import::mois`). Un mois qui en porte ne recoit pas d'engagement neuf (`refuser_si_importe`).
@@ -2034,7 +1996,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
         Some(j) if !j.is_null() => j.clone(),
         _ => Value::from(e.jours),
     };
-    let lieu = brut.get("lieu").or_else(|| data.get("lieu")).cloned().unwrap_or_else(|| Value::String(String::new()));
+    let lieu = brut.get("lieu").cloned().unwrap_or_else(|| Value::String(String::new()));
     let avis: Vec<&Avis> = p.avertissements.iter().collect();
     let prelevement = p.pas.as_ref().map_or(Decimal::new(0, 2), |v| v.prelevement);
     let mut d = json!({
