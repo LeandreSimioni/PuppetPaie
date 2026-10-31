@@ -1601,13 +1601,16 @@ impl<'a> Moteur<'a> {
             }
             let Ok(s) = self.charger_saisie(&m) else { continue };
             let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &departs).map_err(plain)?;
-            let refaire = a_refaire_du_mois(self.ctx, &etats_m, &departs)?;
-            for (i, p) in s.paies.iter().enumerate() {
-                // La DPAE part de l'engagement valide : un engagement en saisie n'a rien a declarer.
-                if etats_m.get(i).and_then(|e| e.valide()).is_none() {
+            // La DPAE part de l'engagement valide : un engagement en saisie n'a rien a declarer. Chacun retrouve son embauche
+            // par son identite (salarie, numero du contrat).
+            for e in &etats_m {
+                let Some(v) = e.valide() else { continue };
+                let brut = Value::Object(v.objet().brut.clone());
+                let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(self.ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
+                let Some(p) = s.paies.iter().find(|p| p.salarie.get("_cle").and_then(Value::as_str) == Some(cle.as_str()) && p.engagement.numero.as_deref() == Some(numero)) else {
                     continue;
-                }
-                let cle = texte_de(requis(&p.salarie, "_cle")?);
+                };
+                let refaire = a_refaire_du_mois(self.ctx, std::slice::from_ref(e), &departs)?.pop().unwrap_or_default();
                 let debut = p.engagement.debut.iso();
                 // UNE DPAE PAR EMBAUCHE, reconnue a sa date : « L'embauche d'un salarié ne peut intervenir qu'après
                 // déclaration nominative » (code du travail, L. 1221-10), et la DPAE porte la « Date et heure
@@ -1617,8 +1620,8 @@ impl<'a> Moteur<'a> {
                 // depose n'en demande une nouvelle quand la duree (R. 1221-1, 4°) s'allonge. Une date d'embauche avancee,
                 // elle, en appelle une (`dpae_d_une_date_changee`, plus bas).
                 // La DPAE de cet engagement est partie (`departs`) ; sa date d'embauche n'a pas change depuis (`ARefaire::Dpae`).
-                let partie = p.engagement.numero.as_deref().is_some_and(|n| departs.de(&cle, n).iter().any(|d| d.envoi == engagement::departs::Envoi::Dpae));
-                let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
+                let partie = departs.de(&cle, numero).iter().any(|d| d.envoi == engagement::departs::Envoi::Dpae);
+                let ancienne = debut_declare(&refaire);
                 if partie && ancienne.is_none() {
                     continue;
                 }
