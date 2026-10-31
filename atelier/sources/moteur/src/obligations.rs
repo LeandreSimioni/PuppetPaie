@@ -527,11 +527,10 @@ fn connaissance(suivi: &Value, champ: &str, quoi: &str) -> Option<Depart> {
 
 // ------------------------------------------------------------- les arrets
 
-/// Les obligations d'un arret (`a` : l'arret tel que `imprevus/AAAA-MM.json` le porte), dans l'ordre ou elles se font.
-pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) -> R<Vec<Value>> {
-    // Un signalement refuse au bilan n'est pas recu (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt` §4.2) :
-    // il reste du. Un envoi trace sur l'arret ne compte que si la ligne du journal de son depot (meme fichier, meme heure)
-    // n'est pas refusee.
+/// L'ARRET `a` ET CE QUI EN EST PARTI : un signalement refuse au bilan n'est pas recu (cahier technique DSN,
+/// `norme-dsn/texte/chapitre-4-controles.txt` §4.2) et reste du. Un envoi trace sur l'arret (`envois`) ne compte que si la
+/// ligne du journal de son depot (meme fichier, meme heure) n'est pas refusee.
+pub(crate) fn sans_les_refuses(ctx: &Contexte, a: &Value) -> R<Value> {
     let journal = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
     let refuse = |e: &Value| {
         let nom = std::path::Path::new(&texte(e, "fichier")).file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
@@ -543,7 +542,12 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
     if let Some(Value::Array(envois)) = a.get_mut("envois") {
         envois.retain(|e| !refuse(e));
     }
-    let a = &a;
+    Ok(a)
+}
+
+/// Les obligations d'un arret (`a` : l'arret tel que `imprevus/AAAA-MM.json` le porte), dans l'ordre ou elles se font.
+pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) -> R<Vec<Value>> {
+    let a = &sans_les_refuses(ctx, a)?;
     let n = base()?;
     let mut cal = Calendrier::nouveau(Some(&ctx.entreprise));
     let mut out = Vec::new();

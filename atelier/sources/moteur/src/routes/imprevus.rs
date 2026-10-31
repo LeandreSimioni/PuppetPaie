@@ -218,9 +218,11 @@ fn reporte_par(imp: &Value) -> Vec<Value> {
     })
 }
 
-/// Un signalement de cette nature (04, 05) est-il parti pour cet arret (un `envois` que `marques_depot` a trace) ?
-fn envoye(imp: &Value, nature: &str) -> bool {
-    imp["envois"].as_array().is_some_and(|e| e.iter().any(|x| x.get("nature").and_then(Value::as_str) == Some(nature)))
+/// Un signalement de cette nature (04, 05) est-il parti pour cet arret (un `envois` que `marques_depot` a trace, et que
+/// son bilan n'a pas refuse : `obligations::sans_les_refuses`) ?
+fn envoye(ctx: &Contexte, imp: &Value, nature: &str) -> R<bool> {
+    let imp = crate::obligations::sans_les_refuses(ctx, imp)?;
+    Ok(imp["envois"].as_array().is_some_and(|e| e.iter().any(|x| x.get("nature").and_then(Value::as_str) == Some(nature))))
 }
 
 /// UN ARRET EN COURS : celui dont on peut encore apprendre qu'il se prolonge ou que le salarie a repris plus
@@ -283,7 +285,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         o.insert("en_cours".into(), json!(cours));
         o.insert("peut_prolonger".into(), json!(cours));
         o.insert("peut_reprendre_plus_tot".into(), json!(cours));
-        o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(imp, declarations::signalement::REPRISE)));
+        o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(ctx, imp, declarations::signalement::REPRISE)?));
         return Ok(r);
     }
     let motif = magasin(imprevus::motif_de_suspension(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
@@ -557,7 +559,7 @@ tombent, est à corriger.",
         }
     }
     let sub_change = sub_fin.is_some() && a["subrogation_fin"] != avant["subrogation_fin"];
-    if sub_change && envoye(&avant, declarations::signalement::ARRET) {
+    if sub_change && envoye(ctx, &avant, declarations::signalement::ARRET)? {
         avertissements.push(json!(
             "Le signalement d'arrêt est déjà parti avec l'ancienne fin de subrogation : un signalement d'arrêt annule et \
 remplace porte la nouvelle, le plus vite possible (fiche net-entreprises 1983). Il paraît dans ce qui est dû."
