@@ -148,133 +148,30 @@ fn paire(l: &Value, a: &str, b: &str) -> R<Vec<Value>> {
     Ok(vec![get(l, a)?.clone(), get(l, b)?.clone()])
 }
 
-/// (salarie, premier jour, numero) : la cle d'un contrat, hors du journal. Deux contrats du meme salarie qui commencent le
-/// meme jour ont chacun leur etat, leur relance, leur avenant.
-pub type Cle3 = (String, String, String);
+/// (salarie, numero) : la cle d'un contrat, hors du journal. Le numero est pose a la validation de l'engagement et ne
+/// change plus des qu'un envoi l'a porte (regle 4) : deux contrats du meme salarie ont chacun leur etat, leur relance,
+/// leur avenant, quels que soient leurs premiers jours.
+pub type CleContrat = (String, String);
 
 /// Le numero d'une ligne de contrat, tel qu'il sert de cle : son texte, ou `""`.
 pub fn numero_de_cle(v: &Value) -> Value {
     Value::String(if vrai(v) { valeur_en_texte(v) } else { String::new() })
 }
 
-/// La cle d'une ligne de contrat (une entree de `detail.contrats`, ou le `detail` d'un `contrat-recu`) : (salarie, premier
-/// jour, numero).
+/// La cle d'une ligne de contrat (une entree de `detail.contrats`, ou le `detail` d'un `contrat-recu`) : (salarie, numero).
 pub fn cle_contrat(l: &Value) -> R<Vec<Value>> {
-    let mut k = paire(l, "salarie", "debut")?;
-    k.push(numero_de_cle(get(l, "numero")?));
-    Ok(k)
+    Ok(vec![get(l, "salarie")?.clone(), numero_de_cle(get(l, "numero")?)])
 }
 
-/// Les numeros distincts, dans l'ordre du journal, sous lesquels le journal connait un contrat de ce salarie et de ce debut : parti
-/// a la signature (avenants compris : un avenant porte le numero de son contrat) ou note recu.
-pub fn numeros_demandes(lignes: &[Value], salarie: &str, debut: &str) -> R<Vec<String>> {
-    let mut out: Vec<String> = Vec::new();
-    for l in lignes {
-        // Un contrat note « recu » a la main sans avoir ete demande par courriel est connu du journal sous son numero aussi.
-        if est(get(l, "quoi")?, CONTRAT_RECU) && accepte(l)? {
-            let d = ou(get(l, "detail")?, objet_vide());
-            if est(get(d, "salarie")?, salarie) && est(get(d, "debut")?, debut) {
-                let n = valeur_en_texte(&numero_de_cle(get(d, "numero")?));
-                if !out.contains(&n) {
-                    out.push(n);
-                }
-            }
-            continue;
-        }
-        if !est(get(l, "quoi")?, SIGNATURE) || !accepte(l)? {
-            continue;
-        }
-        for c in detail_ou_liste(l, "contrats")? {
-            if est(get(&c, "salarie")?, salarie) && est(get(&c, "debut")?, debut) {
-                let n = valeur_en_texte(&numero_de_cle(get(&c, "numero")?));
-                if !out.contains(&n) {
-                    out.push(n);
-                }
-            }
-        }
-    }
-    Ok(out)
-}
-
-/// L'indice, dans `paies`, de la paie du contrat n° `numero` de ce salarie et de ce debut : un contrat garde son numero
-/// des qu'un envoi l'a porte (regle 4), il se lit. Sinon, si `a_defaut_la_premiere`, la premiere paie du jour.
-pub fn paie_du_contrat(
-    paies: &[engagement::calcul::Paie],
-    salarie: &str,
-    debut: &str,
-    numero: &str,
-    a_defaut_la_premiere: bool,
-) -> R<Option<usize>> {
-    let mut des_jours: Vec<(usize, String)> = Vec::new();
+/// L'indice, dans `paies`, de la paie du contrat n° `numero` de ce salarie.
+pub fn paie_du_contrat(paies: &[engagement::calcul::Paie], salarie: &str, numero: &str) -> R<Option<usize>> {
     for (i, x) in paies.iter().enumerate() {
         let cle = x.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
-        if est(cle, salarie) && x.engagement.debut.iso() == debut && x.engagement.nat().map_err(Echec::from)?.modele_contrat().is_some() {
-            des_jours.push((i, x.engagement.numero.clone().unwrap_or_default()));
+        if est(cle, salarie) && x.engagement.numero.as_deref() == Some(numero) && x.engagement.nat().map_err(Echec::from)?.modele_contrat().is_some() {
+            return Ok(Some(i));
         }
     }
-    Ok(des_jours
-        .iter()
-        .find(|(_, n)| n == numero)
-        .or(if a_defaut_la_premiere { des_jours.first() } else { None })
-        .map(|(i, _)| *i))
-}
-
-/// LE PREMIER JOUR SOUS LEQUEL LE JOURNAL RANGE LE CONTRAT n° `numero` du salarie que l'engagement dit commencer le
-/// `debut`. Un contrat parti garde son numero (`engagement::numeros` : des qu'un envoi l'a porte, il ne change plus) ; une
-/// date de debut changee depuis se fait signer en avenant de ce contrat, et tout ce que le journal en dit (sa demande, sa
-/// signature, ses avenants) reste sous le jour ou il est parti. `debut` quand le journal le connait sous lui, ou ne le
-/// connait pas (ou que le numero est vide).
-pub fn debut_au_journal(lignes: &[Value], salarie: &str, debut: &str, numero: &str) -> R<String> {
-    if numero.is_empty() {
-        return Ok(debut.to_string());
-    }
-    let mut autre: Option<String> = None;
-    let mut voir = |c: &Value| -> R<bool> {
-        if !est(get(c, "salarie")?, salarie) || valeur_en_texte(&numero_de_cle(get(c, "numero")?)) != numero {
-            return Ok(false);
-        }
-        let d = valeur_en_texte(get(c, "debut")?);
-        if d == debut {
-            return Ok(true);
-        }
-        if !d.is_empty() {
-            autre = Some(d);
-        }
-        Ok(false)
-    };
-    for l in lignes {
-        if !accepte(l)? {
-            continue;
-        }
-        let quoi = get(l, "quoi")?;
-        if est(quoi, SIGNATURE) {
-            for c in detail_ou_liste(l, "contrats")? {
-                if voir(&c)? {
-                    return Ok(debut.to_string());
-                }
-            }
-        } else if est(quoi, CONTRAT_RECU) && voir(ou(get(l, "detail")?, objet_vide()))? {
-            return Ok(debut.to_string());
-        }
-    }
-    Ok(autre.unwrap_or_else(|| debut.to_string()))
-}
-
-/// Les cles sous lesquelles chaque paie (salarie, debut, numero) d'un mois retrouve son contrat dans le journal : la
-/// sienne (le numero ne change plus des qu'un envoi l'a porte, regle 4), puis celle du jour sous lequel le journal range
-/// ce numero quand la date de debut a change depuis (`debut_au_journal`).
-pub fn cles_des_paies(lignes: &[Value], paies: &[Cle3]) -> R<Vec<Vec<Cle3>>> {
-    paies
-        .iter()
-        .map(|(s, d, n)| {
-            let mut cles = vec![(s.clone(), d.clone(), n.clone())];
-            let range = debut_au_journal(lignes, s, d, n)?;
-            if range != *d {
-                cles.push((s.clone(), range, n.clone()));
-            }
-            Ok(cles)
-        })
-        .collect()
+    Ok(None)
 }
 
 // ------------------------------------------------------------ lire le journal
@@ -585,7 +482,7 @@ pub fn renvoyes_depuis_la_signature(lignes: &[Value]) -> R<Dico<()>> {
     Ok(renvoye)
 }
 
-/// `contrats_recus` : (salarie, debut) -> quand, pour ceux dont le dernier mot est « recu ».
+/// `contrats_recus` : (salarie, numero) -> quand, pour ceux dont le dernier mot est « recu ».
 pub fn contrats_recus(lignes: &[Value]) -> R<Dico<Value>> {
     let mut etat: Dico<Value> = Dico::nouveau();
     for l in filtrer(lignes, Some(CONTRAT_RECU), None, false)? {
@@ -634,7 +531,7 @@ pub fn contrats_recus_comment(lignes: &[Value]) -> R<Value> {
 }
 
 pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Value) -> R<Value> {
-    // Par CONTRAT (salarie, debut, numero) : une reponse ne releve que le contrat qu'elle signe (Retours Windows, B, suite).
+    // Par CONTRAT (salarie, numero) : une reponse ne releve que le contrat qu'elle signe (Retours Windows, B, suite).
     let recus = contrats_recus(lignes)?;
     let renvoyes = renvoyes_depuis_la_signature(lignes)?;
     let mut derniere_recue: Dico<usize> = Dico::nouveau();
@@ -749,12 +646,7 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
         let mut attendue = false;
         for c in &e.contrats {
             let k = cle_contrat(c)?;
-            let mut lu = releve(&e.code, c)?;
-            let deja_lu = deja_releves.contient(&lu)? || {
-                lu[3] = s("");
-                deja_releves.contient(&lu)?
-            };
-            let revenu = deja_lu || if e.apres_signature {
+            let revenu = deja_releves.contient(&releve(&e.code, c)?)? || if e.apres_signature {
                 derniere_recue.get(&k)?.is_some_and(|&rang| rang > e.rang)
             } else {
                 recus.get(&k)?.is_some()
@@ -1685,11 +1577,10 @@ impl Parti {
     }
 }
 
-/// Le contrat parti. `numero` : le numero SOUS LEQUEL LE JOURNAL parle du contrat (deux contrats du meme salarie qui
-/// commencent le meme jour sont deux contrats) ; `None` : tous ceux de ce salarie a ce debut (le dernier l'emporte).
-pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Option<&str>) -> Result<Option<Parti>, Echec> {
+/// Le contrat n° `numero` de ce salarie, tel qu'il est parti a la signature.
+pub fn contrat_parti(lignes: &[Value], salarie: &str, numero: &str) -> Result<Option<Parti>, Echec> {
     let du_contrat = |l: &Value| -> Result<bool, Echec> {
-        Ok(numero.map_or(true, |n| valeur_en_texte(&numero_de_cle(get(l, "numero").unwrap_or(&Value::Null))) == n))
+        Ok(est(get(l, "salarie")?, salarie) && valeur_en_texte(&numero_de_cle(get(l, "numero")?)) == numero)
     };
     let mut parti: Option<Parti> = None;
     for l in lignes {
@@ -1700,7 +1591,7 @@ pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Optio
         let quoi = get(l, "quoi")?;
         if est(quoi, SIGNATURE) {
             for c in items(getd(d, "contrats", &LISTE_VIDE)?)? {
-                if !(est(get(&c, "salarie")?, salarie) && est(get(&c, "debut")?, debut) && du_contrat(&c)?) {
+                if !du_contrat(&c)? {
                     continue;
                 }
                 if est(get(&c, "acte")?, "avenant") {
@@ -1716,7 +1607,7 @@ pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Optio
             }
         } else if est(quoi, CONTRAT_RECU) {
             if let Some(p) = parti.as_mut() {
-                if vrai(get(d, "recu")?) && est(get(d, "salarie")?, salarie) && est(get(d, "debut")?, debut) && du_contrat(d)? && p.signe.is_null() {
+                if vrai(get(d, "recu")?) && du_contrat(d)? && p.signe.is_null() {
                     p.signe = get(l, "quand")?.clone();
                 }
             }
@@ -1783,7 +1674,7 @@ mod tests {
     }
 
     fn recu(sal: &str, origine: &str) -> Value {
-        ligne("contrat-recu", "2026-06", "reel", "2026-06-12T10:00:00", json!({"salarie": sal, "debut": "2026-06-04", "recu": true, "origine": origine}), json!([]))
+        ligne("contrat-recu", "2026-06", "reel", "2026-06-12T10:00:00", json!({"salarie": sal, "debut": "2026-06-04", "numero": "N1", "recu": true, "origine": origine}), json!([]))
     }
 
     fn signature(quand: &str, c: Value) -> Value {

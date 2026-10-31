@@ -36,7 +36,6 @@ use socle::echec::Echec;
 pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois-a-ouvrir"];
 
 pub(crate) type Paire = (String, String);
-pub(crate) use envois::etats::Cle3;
 
 // ------------------------------------------------------------ les groupes
 
@@ -300,13 +299,12 @@ fn requis<'a>(d: &'a Value, cle: &str) -> R<&'a Value> {
     d.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
-fn paire(cle: &Value, debut: &Value) -> Option<Paire> {
-    Some((cle.as_str()?.to_string(), debut.as_str()?.to_string()))
+fn paire(cle: &Value, numero: &Value) -> Option<Paire> {
+    Some((cle.as_str()?.to_string(), numero.as_str()?.to_string()))
 }
 
-/// Les `[a, b, valeur]` rendus par `etats.rs` pour un dictionnaire a cle
-/// (salarie, premier jour), en table. Une cle qui n'est pas faite de deux
-/// textes ne peut egaler aucune cle (salarie, debut) de la saisie.
+/// Les `[salarie, numero, valeur]` rendus par `etats.rs` pour un dictionnaire a cle de contrat, en table. Une cle qui
+/// n'est pas faite de deux textes ne peut egaler aucun engagement.
 fn en_table(v: Value) -> HashMap<Paire, Value> {
     let mut out = HashMap::new();
     for t in v.as_array().cloned().unwrap_or_default() {
@@ -319,25 +317,12 @@ fn en_table(v: Value) -> HashMap<Paire, Value> {
     out
 }
 
-/// Les `[salarie, debut, numero, valeur]` rendus par `etats.rs` pour un dictionnaire a cle de CONTRAT.
-fn en_table3(v: Value) -> HashMap<Cle3, Value> {
-    let mut out = HashMap::new();
-    for t in v.as_array().cloned().unwrap_or_default() {
-        if let [a, b, c, x] = t.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-            if let (Some(a), Some(b), Some(c)) = (a.as_str(), b.as_str(), c.as_str()) {
-                out.insert((a.to_string(), b.to_string(), c.to_string()), x.clone());
-            }
-        }
-    }
-    out
-}
-
-fn cles_en_ensemble3(v: Value) -> HashSet<Cle3> {
+fn cles_en_ensemble(v: Value) -> HashSet<Paire> {
     let mut out = HashSet::new();
     for t in v.as_array().cloned().unwrap_or_default() {
-        if let [a, b, c] = t.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-            if let (Some(a), Some(b), Some(c)) = (a.as_str(), b.as_str(), c.as_str()) {
-                out.insert((a.to_string(), b.to_string(), c.to_string()));
+        if let [a, b] = t.as_array().map(Vec::as_slice).unwrap_or(&[]) {
+            if let Some(k) = paire(a, b) {
+                out.insert(k);
             }
         }
     }
@@ -349,23 +334,6 @@ fn cles_en_ensemble3(v: Value) -> HashSet<Cle3> {
 pub(crate) fn contrat_parti_le(departs: &engagement::departs::Departs, cle: &str, numero: Option<&str>) -> Value {
     let Some(n) = numero else { return Value::Null };
     departs.de(cle, n).iter().rev().find(|d| d.envoi == engagement::departs::Envoi::Contrat).map_or(Value::Null, |d| Value::String(d.le.clone()))
-}
-
-/// Le premier etat que le journal donne a l'une de ces cles (celles d'une paie : `etats::cles_des_paies`).
-pub(crate) fn premier<'a, V>(table: &'a HashMap<Cle3, V>, cles: &[Cle3]) -> Option<&'a V> {
-    cles.iter().find_map(|k| table.get(k))
-}
-
-pub(crate) fn dans_l_ensemble(ensemble: &HashSet<Cle3>, cles: &[Cle3]) -> bool {
-    cles.iter().any(|k| ensemble.contains(k))
-}
-
-/// Le (salarie, debut, numero propre) de chaque paie de la saisie, dans l'ordre.
-pub(crate) fn contrats_des_paies(paies: &[Paie]) -> Vec<Cle3> {
-    paies
-        .iter()
-        .map(|p| (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default()))
-        .collect()
 }
 
 /// Ce qui est a refaire pour chaque engagement de `etats` (ceux d'un mois, dans l'ordre de l'ecran) : le present compare
@@ -578,12 +546,12 @@ fn texte_de(v: &Value) -> String {
 /// Les etats du journal et de la saisie, calcules une fois par processus.
 pub(crate) struct Globales {
     pub(crate) dpae: HashMap<Paire, Value>,
-    pub(crate) recus: HashMap<Cle3, Value>,
-    pub(crate) recus_par: HashMap<Cle3, Value>,
-    pub(crate) renvoyes: HashSet<Cle3>,
-    pub(crate) avenants: HashMap<Cle3, Value>,
+    pub(crate) recus: HashMap<Paire, Value>,
+    pub(crate) recus_par: HashMap<Paire, Value>,
+    pub(crate) renvoyes: HashSet<Paire>,
+    pub(crate) avenants: HashMap<Paire, Value>,
     /// Comment chaque contrat est parti la derniere fois : `imprime` ou `courriel`.
-    pub(crate) par: HashMap<Cle3, Value>,
+    pub(crate) par: HashMap<Paire, Value>,
 }
 
 /// Tout ce qu'une route lit, lu une fois.
@@ -653,11 +621,11 @@ impl<'a> Moteur<'a> {
         let lignes = self.lignes()?;
         let dpae = en_table(etats::etat_des_embauches(&lignes)?);
         let recus = etats::contrats_recus(&lignes)?;
-        let recus = en_table3(recus.sortie(Clone::clone));
-        let recus_par = en_table3(etats::contrats_recus_comment(&lignes)?);
-        let renvoyes = cles_en_ensemble3(etats::renvoyes_depuis_la_signature(&lignes)?.cles());
-        let avenants = en_table3(etats::avenants(&lignes)?);
-        let par = en_table3(etats::contrats_partis_par(&lignes)?);
+        let recus = en_table(recus.sortie(Clone::clone));
+        let recus_par = en_table(etats::contrats_recus_comment(&lignes)?);
+        let renvoyes = cles_en_ensemble(etats::renvoyes_depuis_la_signature(&lignes)?.cles());
+        let avenants = en_table(etats::avenants(&lignes)?);
+        let par = en_table(etats::contrats_partis_par(&lignes)?);
         let g = Rc::new(Globales { dpae, recus, recus_par, renvoyes, avenants, par });
         self.globales = Some(g.clone());
         Ok(g)
@@ -696,8 +664,6 @@ impl<'a> Moteur<'a> {
         // Valide, ou parti : la date de la validation (`engagement::etats`), engagement par engagement.
         let etats_eng = self.etats_du_mois(mois)?;
         let g = self.globales()?;
-        let lignes = self.lignes()?;
-        let cles_paies = etats::cles_des_paies(&lignes, &contrats_des_paies(&s.paies))?;
         // CE QUI EST A REFAIRE, engagement par engagement : le present compare a la version sur laquelle chaque envoi est parti.
         let departs = self.departs()?;
         let refaire = a_refaire_du_mois(self.ctx, &etats_eng, &departs)?;
@@ -817,21 +783,21 @@ impl<'a> Moteur<'a> {
                 "fin_declaree": if nat.date_fin_dpae() { get(dpae_v, "fin")?.clone() } else { Value::Null },
                 "maille": "paie",
             });
-            let cles = &cles_paies[i];
+            let k = (cle.clone(), numero.clone());
             let nul = Value::Null;
             let avenant = refaire.get(i).is_some_and(|r| r.iter().any(|a| matches!(a, ARefaire::Avenant { .. })));
             let mut signature = etat_signature(
                 &contrat_parti_le(&departs, &cle, p.engagement.numero.as_deref()),
-                premier(&g.par, cles).unwrap_or(&nul),
-                premier(&g.recus, cles).unwrap_or(&nul),
-                premier(&g.recus_par, cles).unwrap_or(&nul),
-                dans_l_ensemble(&g.renvoyes, cles),
-                premier(&g.avenants, cles).unwrap_or(&nul),
+                g.par.get(&k).unwrap_or(&nul),
+                g.recus.get(&k).unwrap_or(&nul),
+                g.recus_par.get(&k).unwrap_or(&nul),
+                g.renvoyes.contains(&k),
+                g.avenants.get(&k).unwrap_or(&nul),
                 avenant,
             );
             // UN CDI EN COURS N'A PAS D'ETAT DE CONTRAT MENSUEL.
             if nat.mensuelle() && nat.duree_indeterminee && !premier_mois {
-                let recu = premier(&g.recus, cles).filter(|r| vrai(r));
+                let recu = g.recus.get(&k).filter(|r| vrai(r));
                 let depuis = mois_du_contrat.first().cloned().unwrap_or_default();
                 let signe_en = match recu {
                     Some(r) => valeur_en_texte(r).chars().take(7).collect::<String>(),

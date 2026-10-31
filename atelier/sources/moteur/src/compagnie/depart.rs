@@ -1310,7 +1310,7 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, 
     let ecrire = || -> R<()> {
         if texte(premier, "acte") == "avenant" {
             let numero_av = premier.get("avenant").and_then(Value::as_i64).ok_or_else(|| valeur(format!("journal : {} sans numero d'avenant", nom)))?;
-            let parti = envois::etats::contrat_parti(&lignes[..rang], &texte(premier, "salarie"), &texte(premier, "debut"), Some(&texte(premier, "numero")))?
+            let parti = envois::etats::contrat_parti(&lignes[..rang], &texte(premier, "salarie"), &texte(premier, "numero"))?
                 .ok_or_else(|| valeur(format!("journal : {} modifie un contrat qui n'est pas parti avant lui", nom)))?;
             let modifs: Vec<Value> = premier["modifications"].as_array().cloned().unwrap_or_default();
             return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, vers, &modifs, numero_av, &jj(&parti.date())?, &jj(&texte(premier, "effet"))?, &jour.jj_mm_aaaa(), mention)
@@ -1320,7 +1320,7 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, 
         if nom.ends_with("_remplace.pdf") {
             for c in &contrats {
                 let (cle, debut) = (texte(c, "salarie"), texte(c, "debut"));
-                let parti = envois::etats::contrat_parti(&lignes[..rang], &cle, &debut, Some(&texte(c, "numero")))?
+                let parti = envois::etats::contrat_parti(&lignes[..rang], &cle, &texte(c, "numero"))?
                     .ok_or_else(|| valeur(format!("journal : {} remplace un contrat qui n'est pas parti avant lui", nom)))?;
                 let numero = if vrai(&parti.numero) { valeur_en_texte(&parti.numero) } else { "(sans numéro)".to_string() };
                 remplacements.push(((cle, debut, texte(c, "numero")), (numero, jj(&parti.date())?)));
