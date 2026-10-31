@@ -76,11 +76,11 @@ function ruptureDuBloc(div, nat, fin, e) {
 }
 
 /** L'engagement qu'une carte écrit (aucun tant qu'elle n'a pas de salarié). */
-function engagementsDuBloc(div, mois) {
+function engagementDuBloc(div, mois) {
   // Une carte fermée, ou ouverte pour être modifiée : ce qu'on y tape ne s'écrit qu'à « Modifier l'engagement » ; seuls
   // l'aperçu et le montant visé la lisent (`LIRE_LES_MODIFICATIONS`).
   if (carteFermee(div) || (div.classList.contains("en-modification") && !LIRE_LES_MODIFICATIONS))
-    return [engagementLu(div)].filter(Boolean).map((e) => JSON.parse(JSON.stringify(e)));
+    return engagementLu(div) && JSON.parse(JSON.stringify(engagementLu(div)));
   // L'ENGAGEMENT N'ÉCRIT PLUS DE `dates` : chacune de ses lignes porte les
   // siennes, avec son lieu, et le moteur en fait la réunion
   // (`operations.dates_engagement`). Une carte porte un salarié : elle écrit son engagement.
@@ -97,60 +97,57 @@ function engagementsDuBloc(div, mois) {
   const salaire = div.querySelector(".e-salaire").value;
   const quotite = div.querySelector(".e-quotite").value;
   const avenant = div._avenant || {};
-  return salariesDuBloc(div).map((salarie) => {
-    // LE NUMÉRO EST CELUI D'UN CONTRAT, DONC D'UN SALARIÉ : celui du
-    // bloc s'il est le sien. Un salarié coché en plus n'hérite pas du
-    // contrat d'un autre — il recevra le sien à la production (le moteur
-    // refuse un numéro sur deux salariés).
-    const numero = div.dataset.numeroDe === salarie ? numeroDuBloc : "";
-    // UN PERMANENT N'A PAS DE SPECTACLE, et ce n'est pas un détail de mise
-    // en page : le numéro d'objet lui est interdit (CCH-11).
-    const e = nat.mensuelle ? { salarie } : { salarie, spectacle };
-    // La nature ne s'écrit que si elle s'écarte du défaut : un engagement
-    // muet est un CDDU du spectacle.
-    if (nat.cle && nat.cle !== ETAT.nature_defaut) e.nature = nat.cle;
-    if (debut) e.debut = debut;
-    if (fin) e.fin = fin;
-    if (numero) e.numero = numero;
-    // L'établissement ne s'écrit que s'il n'est pas le siège.
-    if (etablissement) e.etablissement = etablissement;
-    if (nat.mensuelle) {
-      // LES FAITS, PAS LES LIGNES : `lignes_du_mois` en fait des lignes de
-      // bulletin — le prorata d'un mois incomplet, l'indemnité de congés et
-      // la retenue qui la couvre, les imprévus, le solde de tout compte.
-      // Écrire `lignes` ici couperait tout ce calcul.
-      const recours = div.querySelector(".e-recours").value;
-      if (recours) e.motif_recours = recours;
-      if (salaire !== "") e.salaire_mensuel = +salaire;
-      if (quotite !== "") e.quotite_contrat = +quotite;
-      // L'avenant du mois, tel que le moteur l'a posé (« À partir de ») : la carte ne le saisit pas.
-      if (avenant.date_modification) e.date_modification = avenant.date_modification;
-      if (avenant.avant) e.avant = avenant.avant;
-      if (faits.conges.length) e.conges_pris = faits.conges;
-      if (faits.primes.length) e.primes = faits.primes;
-    } else {
-      // UN MOIS DU CONTRAT SANS CACHET : un contrat aux bornes
-      // dites, et aucune ligne remplie, s'écrit `lignes: []` — la DSN porte
-      // le contrat avec un versement à zéro, sans bulletin.
-      if (lignes.length) e.lignes = JSON.parse(JSON.stringify(lignes));
-      else if (debut && fin) e.lignes = [];
-    }
-    ruptureDuBloc(div, nat, fin, e);
-    // Le métier ne s'écrit que s'il est choisi : un engagement sans `metier`
-    // prend celui de la fiche. `cadre` voyage avec lui, seulement quand il
-    // s'écarte du défaut du catalogue.
-    if (metier) {
-      e.metier = metier;
-      const m = metierDe(metier);
-      if (!m || cadre !== !!m.cadre_par_defaut) e.cadre = cadre;
-    }
-    // Ce que le formulaire montre parce que l'engagement le porte : la date
-    // de paiement propre au contrat, son lieu, l'emploi et les statuts
-    // déclarés… (`CHAMPS_RARES`).
-    raresDuBloc(div, e);
-    ecritDuBloc(div, e);
-    return e;
-  });
+  const salarie = salarieDuBloc(div);
+  if (!salarie) return undefined;
+  // LE NUMÉRO EST CELUI D'UN CONTRAT, DONC D'UN SALARIÉ : celui de la carte s'il est le sien.
+  const numero = div.dataset.numeroDe === salarie ? numeroDuBloc : "";
+  // UN PERMANENT N'A PAS DE SPECTACLE, et ce n'est pas un détail de mise
+  // en page : le numéro d'objet lui est interdit (CCH-11).
+  const e = nat.mensuelle ? { salarie } : { salarie, spectacle };
+  // La nature ne s'écrit que si elle s'écarte du défaut : un engagement
+  // muet est un CDDU du spectacle.
+  if (nat.cle && nat.cle !== ETAT.nature_defaut) e.nature = nat.cle;
+  if (debut) e.debut = debut;
+  if (fin) e.fin = fin;
+  if (numero) e.numero = numero;
+  // L'établissement ne s'écrit que s'il n'est pas le siège.
+  if (etablissement) e.etablissement = etablissement;
+  if (nat.mensuelle) {
+    // LES FAITS, PAS LES LIGNES : `lignes_du_mois` en fait des lignes de
+    // bulletin — le prorata d'un mois incomplet, l'indemnité de congés et
+    // la retenue qui la couvre, les imprévus, le solde de tout compte.
+    // Écrire `lignes` ici couperait tout ce calcul.
+    const recours = div.querySelector(".e-recours").value;
+    if (recours) e.motif_recours = recours;
+    if (salaire !== "") e.salaire_mensuel = +salaire;
+    if (quotite !== "") e.quotite_contrat = +quotite;
+    // L'avenant du mois, tel que le moteur l'a posé (« À partir de ») : la carte ne le saisit pas.
+    if (avenant.date_modification) e.date_modification = avenant.date_modification;
+    if (avenant.avant) e.avant = avenant.avant;
+    if (faits.conges.length) e.conges_pris = faits.conges;
+    if (faits.primes.length) e.primes = faits.primes;
+  } else {
+    // UN MOIS DU CONTRAT SANS CACHET : un contrat aux bornes
+    // dites, et aucune ligne remplie, s'écrit `lignes: []` — la DSN porte
+    // le contrat avec un versement à zéro, sans bulletin.
+    if (lignes.length) e.lignes = JSON.parse(JSON.stringify(lignes));
+    else if (debut && fin) e.lignes = [];
+  }
+  ruptureDuBloc(div, nat, fin, e);
+  // Le métier ne s'écrit que s'il est choisi : un engagement sans `metier`
+  // prend celui de la fiche. `cadre` voyage avec lui, seulement quand il
+  // s'écarte du défaut du catalogue.
+  if (metier) {
+    e.metier = metier;
+    const m = metierDe(metier);
+    if (!m || cadre !== !!m.cadre_par_defaut) e.cadre = cadre;
+  }
+  // Ce que le formulaire montre parce que l'engagement le porte : la date
+  // de paiement propre au contrat, son lieu, l'emploi et les statuts
+  // déclarés… (`CHAMPS_RARES`).
+  raresDuBloc(div, e);
+  ecritDuBloc(div, e);
+  return e;
 }
 /* UNE CARTE OUVERTE POUR ÊTRE MODIFIÉE (`ouvrirEnModification`) ne s'écrit pas avant « Modifier l'engagement ».
  * L'aperçu et le montant visé, qui n'écrivent rien, la lisent telle qu'elle est. */
@@ -171,7 +168,7 @@ function cartesAuMoteur(aussi) {
       const c = enModification ? null : chargeDeLaCarte(div, mois);
       const ecrite = !enModification && (!c || JSON.stringify(c) === div._ecrite);
       if (ecrite && div !== aussi) return;
-      const saisie = engagementsDuBloc(div, mois)[0];
+      const saisie = engagementDuBloc(div, mois);
       if (!saisie) return;
       if (div === aussi) rang = cartes.length;
       cartes.push({ engagement: div.dataset.engagement ? JSON.parse(div.dataset.engagement) : null, saisie });
@@ -189,7 +186,7 @@ function engagementsALEcran() {
   const mois = document.getElementById("mois").value;
   LIRE_LES_MODIFICATIONS = true;
   try {
-    return [...document.querySelectorAll(".engagement")].flatMap((div) => engagementsDuBloc(div, mois));
+    return [...document.querySelectorAll(".engagement")].flatMap((div) => [engagementDuBloc(div, mois)].filter(Boolean));
   } finally { LIRE_LES_MODIFICATIONS = false; }
 }
 
@@ -243,7 +240,7 @@ async function calculerApercu(lu) {
     const neuves = ids.flatMap((id, j) => (id == null ? [j] : []));
     const rangs = blocs.map((div) => {
       if (div.dataset.engagement) { const j = ids.indexOf(div.dataset.engagement); return j < 0 ? null : j; }
-      return salariesDuBloc(div).length && neuves.length ? neuves.shift() : null;
+      return salarieDuBloc(div) && neuves.length ? neuves.shift() : null;
     });
     blocs.forEach((div, i) => {
       const part = rangs[i] == null ? [] : [(a.paies || [])[rangs[i]]].filter(Boolean);
@@ -278,7 +275,7 @@ async function calculerApercu(lu) {
       if (p && p.numero_contrat && p.contrat && !p.contrat.premier_mois
           && !div.dataset.numero) {
         div.dataset.numero = p.numero_contrat;
-        div.dataset.numeroDe = salariesDuBloc(div)[0] || "";
+        div.dataset.numeroDe = salarieDuBloc(div);
         majContrat(div);
       }
       // Un mois du contrat sans cachet n'a pas de bulletin : on le dit à la
@@ -1037,7 +1034,7 @@ function carteEnSaisie(div) {
 /** Ce que la carte écrit (`{mois, saisie, engagement}`), ou `null` : une carte qui n'est pas en saisie, ou sans salarié. */
 function chargeDeLaCarte(div, mois) {
   if (!mois || !carteEnSaisie(div)) return null;
-  const saisie = engagementsDuBloc(div, mois)[0];
+  const saisie = engagementDuBloc(div, mois);
   if (!saisie) return null;
   const charge = { mois, saisie };
   if (div.dataset.engagement) charge.engagement = JSON.parse(div.dataset.engagement);

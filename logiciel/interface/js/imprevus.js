@@ -267,7 +267,7 @@ async function allerALaCase(f, champ) {
   const carte = () => {
     if (f.mois && (MOIS_AFFICHE !== f.mois || document.getElementById("engagements").classList.contains("en-lecture"))) return null;
     const siennes = [...document.querySelectorAll("#engagements .engagement")]
-      .filter((d) => salariesDuBloc(d).some((x) => x.toUpperCase() === String(f.salarie).toUpperCase()));
+      .filter((d) => salarieDuBloc(d).toUpperCase() === String(f.salarie).toUpperCase());
     return siennes.find((d) => carteDe(d).numero === f.numero || (f.debut && carteDe(d).debut === f.debut)) || siennes[0] || null;
   };
   let div = await attendre(carte, 15000);
@@ -291,12 +291,12 @@ async function allerALaCase(f, champ) {
    validé. */
 function majPorteImprevu(div) {
   const b = div.querySelector(".e-imprevu-btn");
-  if (b) b.hidden = salariesDuBloc(div).length !== 1;
+  if (b) b.hidden = !salarieDuBloc(div);
 }
 
 /** Ce que la carte sait de son contrat : le salarié, le numéro s'il est figé, le début. */
 function carteDe(div) {
-  const salarie = salariesDuBloc(div)[0] || "";
+  const salarie = salarieDuBloc(div);
   return {
     div, salarie,
     numero: div.dataset.numeroDe === salarie ? div.dataset.numero || "" : "",
@@ -374,7 +374,7 @@ function peindreImprevusDesCartes() {
   const cartes = [...document.querySelectorAll("#engagements .engagement")];
   const parCarte = new Map(cartes.map((d) => [d, []]));
   ((IMPREVUS && IMPREVUS.imprevus) || []).forEach((i) => {
-    const siennes = cartes.filter((d) => salariesDuBloc(d).some((x) => x.toUpperCase() === String(i.salarie).toUpperCase()));
+    const siennes = cartes.filter((d) => salarieDuBloc(d).toUpperCase() === String(i.salarie).toUpperCase());
     const c = siennes.find((d) => {
       const x = carteDe(d);
       return (i.contrat && x.numero === i.contrat) || (i.contrat_debut && x.debut === i.contrat_debut);
