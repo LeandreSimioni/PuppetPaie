@@ -9,50 +9,52 @@ const ORDINAIRE_VIDE = {
   plafond_temps_partiel: "vide : proratisé à la durée du contrat, la règle",
 };
 
-function dessinerFormulaire(fiche) {
-  if (!fiche) return;
-  FICHE_COURANTE = fiche;
-  const desc = ETAT.configuration.description[FICHE_ACTIVE];
+/* LES CASES D'UNE STRUCTURE, telles que le moteur les décrit (`champs` de la description) : `{champs: [[clé, libellé,
+ * aide, genre]], liste, ligne}`, ou null. Une case déclarée qui se déduit d'une autre (`ecran: false`) ne se montre pas ;
+ * le genre (`caseSousChamp`, `ligneStructure`) se lit de la forme : un choix et ses libellés, un oui/non, un nombre, une
+ * date, un code risque AT/MP, une case que la configuration montre (`si_configuration`). */
+function sousChamps(c) {
+  if (!c || !(c.champs || []).length) return null;
+  const genre = (s) => {
+    const lib = s.libelles || {};
+    const g = {};
+    if ((s.choix || []).length) {
+      const vide = "" in lib || !s.choix.includes("") ? [["", lib[""] ?? "—"]] : [];
+      g.choix = Object.fromEntries([...vide, ...s.choix.filter((v) => v !== "").map((v) => [v, lib[v] ?? v])]);
+    }
+    if (s.forme === "booleen") g.booleen = true;
+    if (s.boutons) g.boutons = true;
+    if (s.forme === "montant") { g.nombre = true; g.decimal = true; }
+    if (s.forme === "date") g.date = true;
+    if (s.forme === "code_atmp") g.codesAtmp = true;
+    if (s.si_configuration) g.si = s.si_configuration;
+    return g;
+  };
+  return { liste: !!c.ligne, ligne: c.ligne,
+    champs: c.champs.filter((s) => s.ecran !== false).map((s) => [s.cle, s.libelle, s.aide, genre(s)]) };
+}
+
+/* La structure `cle` de la fiche `nom` (par défaut, celle qu'on montre), case par case (`sousChamps`). */
+function structureDecrite(cle, nom = FICHE_ACTIVE) {
+  return sousChamps(((ETAT.configuration || {}).description[nom] || []).find((c) => c.cle === cle));
+}
+
+/* UN CHAMP DE FICHE, DESSINÉ : celui que la fiche montre (`dessinerFormulaire`) et celui que « Pour démarrer » propose,
+ * le même dessin. `c` : sa description ; `fiche` : `{donnees, anomalies}` ; `nom` : entreprise, salarie, spectacle. */
+function champDeFiche(c, fiche, nom) {
+  const desc = ETAT.configuration.description[nom];
   // CE QUE LA CASE « Emploie des permanents » OUVRE. Les
   // champs qui ne servent qu'aux permanents restent dans le formulaire —
   // avec leur valeur, qui repart à l'enregistrement — mais ne se montrent
-  // qu'à qui a dit en employer. Une case affichée est une case à remplir, à
-  // relire et à ne pas se tromper : celle de la complémentaire santé d'un
-  // cachetier n'a jamais rien à dire.
+  // qu'à qui a dit en employer.
   const avecPermanents = !!(ETAT.configuration || {}).permanents;
   // Une compagnie à un seul établissement ne voit pas la case « Établissement »
   // du salarié : la question ne se pose pas.
   const avecEtablissements = !!(ETAT.configuration || {}).etablissements;
   // Une case obligatoire encore vide n'est pas une faute tant qu'on n'a pas
   // essayé d'enregistrer : l'astérisque le dit (`aRemplir`).
-  const anomalie = (cle) => fiche.anomalies.find((a) => a.champ === cle && !aRemplir(a));
-
-  // Les champs CALCULES ne sont pas proposes a la saisie : c'est le
-  // programme qui les fabrique. ET ILS NE SE MONTRENT PLUS :
-  // `COMPAGNIE DU FIL` sous « Compagnie du Fil », c'etait faire lire a
-  // l'utilisateur la forme de la DSN. L'editeur : « ça, les gens s'en
-  // fichent ». Le moteur la fabrique, et ne revient vers l'humain que si
-  // elle ne peut pas partir.
-  // LES CASES D'UNE STRUCTURE QUE LE MOTEUR DÉCRIT (`champs` de la description) : celles qu'on saisit, avec leur libellé
-  // et leur aide ; une case déclarée qui se déduit d'une autre (`ecran: false`) ne se montre pas.
-  desc.forEach((c) => {
-    if (!(c.champs || []).length) return;
-    SOUS_CHAMPS[c.cle] = { champs: c.champs.filter((s) => s.ecran !== false).map((s) => [s.cle, s.libelle, s.aide,
-      ...(s.choix.length ? [{ choix: Object.fromEntries([["", "—"],
-        ...s.choix.map((v) => [v, (LIBELLES_CHOIX[s.cle] || {})[v] || v])]) }] : [])]) };
-  });
-
-  // CE QU'ON N'AFFICHE PAS, ON LE GARDE. Le signataire porte un `nom_aem` et
-  // une note ; la banque porte un avertissement de diffusion. Ces clefs ne
-  // sont pas des cases a remplir, mais les effacer serait perdre une valeur
-  // que quelqu'un a posee exprès. `lireFormulaire` repart de ces originaux.
-  STRUCTURES_ORIGINE = {};
-  desc.forEach((c) => {
-    const v = fiche.donnees[c.cle];
-    if (SOUS_CHAMPS[c.cle] && v && typeof v === "object") STRUCTURES_ORIGINE[c.cle] = v;
-  });
-
-  const caches = CACHES[FICHE_ACTIVE] || [];
+  const anomalie = (cle) => (fiche.anomalies || []).find((a) => a.champ === cle && !aRemplir(a));
+  const caches = CACHES[nom] || [];
   // UN CHAMP QUI DÉPEND D'UN AUTRE (`si`) se replie quel que soit
   // le chemin qui l'a dessiné — liste de choix, convention, champ simple :
   // la marque se pose ici, sur ce que chacun rend, et `brancherConditions`
@@ -69,7 +71,7 @@ function dessinerFormulaire(fiche) {
   const champHtml = (c) => {
     const html = champHtmlBrut(c);
     if (!html) return html;
-    const horsEntreprise = c.si_entreprise && FICHE_ACTIVE !== "entreprise"
+    const horsEntreprise = c.si_entreprise && nom !== "entreprise"
       && !conditionRemplie(c.si_entreprise, (k) => entreprise[k]);
     if (!c.si && !horsEntreprise && !c.si_permanents && !c.si_etablissements) return html;
     const ok = !horsEntreprise && conditionRemplie(c.si, (k) => fiche.donnees[k])
@@ -102,7 +104,7 @@ function dessinerFormulaire(fiche) {
       return `<input type="hidden" data-cle="${c.cle}" data-forme="${c.forme}"
                 value="${echapper(v ?? "")}">`;
     }
-    const sous = SOUS_CHAMPS[c.cle];
+    const sous = sousChamps(c);
     if (sous) return structureHtml(c, v, sous, a, avecPermanents);
     // LA CONVENTION SE CHOISIT, ELLE NE SE TAPE PAS : l'IDCC seul ; son
     // libelle et le code convention DSN, le moteur les tire de lui (voir
@@ -194,7 +196,7 @@ function dessinerFormulaire(fiche) {
       const v2 = String(v ?? "").trim();
       const connu = liste.some((p) => p.code === v2.toUpperCase());
       return `<div class="champ">
-        <label>${echapper(c.libelle)}${facultatif(c)}
+        <label>${echapper(c.libelle)}${facultatif(c, nom)}
           ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="pays"
@@ -213,7 +215,7 @@ function dessinerFormulaire(fiche) {
     // a la main, le CSE « cse_adherent_fnas ».
     // La fiche salarie a suivi le meme jour : le sexe s'ecrivait « 2 », la
     // nationalite « 01 », le statut cadre « 04 ».
-    if (["entreprise", "salarie"].includes(FICHE_ACTIVE) && c.forme === "choix"
+    if (["entreprise", "salarie"].includes(nom) && c.forme === "choix"
         && (c.choix || []).length) {
       const lib = LIBELLES_CHOIX[c.cle] || {};
       const v1 = String(v ?? "");
@@ -223,8 +225,8 @@ function dessinerFormulaire(fiche) {
       const ordre = [...(c.choix.includes("") ? [""] : []),
         ...Object.keys(lib).filter((x) => x && c.choix.includes(x)),
         ...c.choix.filter((x) => x && !(x in lib))];
-      return `<div class="champ${FICHE_ACTIVE === "entreprise" ? " pleine" : ""}">
-        <label>${echapper(c.libelle)}${facultatif(c)}
+      return `<div class="champ${nom === "entreprise" ? " pleine" : ""}">
+        <label>${echapper(c.libelle)}${facultatif(c, nom)}
           ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="choix">
@@ -242,10 +244,10 @@ function dessinerFormulaire(fiche) {
     // LES AUTRES NOMS D'UN SPECTACLE : une liste de mots, qui
     // s'affichait en JSON, crochets et guillemets compris. Une ligne, les
     // noms separes par des virgules ; `lireFormulaire` refait la liste.
-    if (c.cle === "alias" && FICHE_ACTIVE === "spectacle"
+    if (c.cle === "alias" && nom === "spectacle"
         && (v == null || (Array.isArray(v) && v.every((x) => typeof x === "string")))) {
       return `<div class="champ pleine">
-        <label>${echapper(c.libelle)}${facultatif(c)} ${aideHtml(c.cle, c.aide)}
+        <label>${echapper(c.libelle)}${facultatif(c, nom)} ${aideHtml(c.cle, c.aide)}
           <input data-cle="${c.cle}" data-liste-textes="1" value="${echapper((v || []).join(", "))}"
                  placeholder="ex. zerbinette, aaah">
         </label>
@@ -255,7 +257,7 @@ function dessinerFormulaire(fiche) {
     }
     // LES JOURS TRAVAILLÉS : une case par jour de la semaine, cochée si la fiche le dit. Ce que le moteur compte quand
     // elle ne dit rien, l'aide du champ le dit ; les cases ne partent que si on les touche (`data-absent`, `lireFormulaire`).
-    if (c.cle === "jours_travailles" && FICHE_ACTIVE === "salarie") {
+    if (c.cle === "jours_travailles" && nom === "salarie") {
       const coches = Array.isArray(v) ? v : [];
       return `<div class="champ pleine${c.si_permanents ? " champ-permanents" : ""}"${
           c.si_permanents && !avecPermanents ? " hidden" : ""}>
@@ -294,14 +296,14 @@ function dessinerFormulaire(fiche) {
             class="${a ? (a.gravite === "erreur" ? "faute" : "suspect") : ""}">`;
     // L'adresse et le nom prennent la ligne entiere : le code postal et la
     // commune tiennent ensuite cote a cote, comme sur une enveloppe.
-    const large = structure || (FICHE_ACTIVE === "entreprise"
+    const large = structure || (nom === "entreprise"
       && ["adresse_affichage", "nom_affichage"].includes(c.cle))
-      || (FICHE_ACTIVE === "salarie" && ["adresse_affichage", "emploi_affichage"].includes(c.cle));
+      || (nom === "salarie" && ["adresse_affichage", "emploi_affichage"].includes(c.cle));
     return `<div class="champ ${large ? "pleine" : ""}${
         c.si_permanents ? " champ-permanents" : ""}"${
         (c.si_permanents && !avecPermanents)
           || (c.si_etablissements && !avecEtablissements) ? " hidden" : ""}>
-      <label>${echapper(c.libelle)}${facultatif(c)}
+      <label>${echapper(c.libelle)}${facultatif(c, nom)}
         ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
         ${aideHtml(c.cle, c.aide)}
         ${controle}
@@ -310,6 +312,30 @@ function dessinerFormulaire(fiche) {
       ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
     </div>`;
   };
+
+  return champHtml(c);
+}
+
+function dessinerFormulaire(fiche) {
+  if (!fiche) return;
+  FICHE_COURANTE = fiche;
+  const desc = ETAT.configuration.description[FICHE_ACTIVE];
+  const avecPermanents = !!(ETAT.configuration || {}).permanents;
+
+  // CE QU'ON N'AFFICHE PAS, ON LE GARDE. Le signataire porte un `nom_aem` et
+  // une note ; la banque porte un avertissement de diffusion. Ces clefs ne
+  // sont pas des cases a remplir, mais les effacer serait perdre une valeur
+  // que quelqu'un a posee exprès. `lireFormulaire` repart de ces originaux.
+  STRUCTURES_ORIGINE = {};
+  desc.forEach((c) => {
+    const v = fiche.donnees[c.cle];
+    if (sousChamps(c) && v && typeof v === "object") STRUCTURES_ORIGINE[c.cle] = v;
+  });
+
+  const caches = CACHES[FICHE_ACTIVE] || [];
+  // Les champs CALCULES ne sont pas proposes a la saisie : c'est le programme qui les fabrique, et ils ne se montrent
+  // pas (`saisissables`).
+  const champHtml = (c) => champDeFiche(c, fiche, FICHE_ACTIVE);
 
   // LES SECTIONS. Une fiche qui n'en declare pas garde sa liste plate ;
   // un champ oublie d'une table de sections s'affiche dans la derniere.
@@ -576,11 +602,11 @@ function brancherUrssaf() {
 }
 
 /* Le « ? » de chaque champ : il ouvre et referme son aide, et rien d'autre. */
-function brancherAide() {
-  document.querySelectorAll("#config-formulaire .aide-bouton").forEach((b) => {
+function brancherAide(racine = "#config-formulaire") {
+  document.querySelectorAll(`${racine} .aide-bouton`).forEach((b) => {
     b.onclick = () => {
       const corps = document.querySelector(
-        `#config-formulaire [data-aide-corps="${CSS.escape(b.dataset.aide)}"]`);
+        `${racine} [data-aide-corps="${CSS.escape(b.dataset.aide)}"]`);
       if (!corps) return;
       corps.hidden = !corps.hidden;
       b.classList.toggle("ouvert", !corps.hidden);
@@ -619,7 +645,7 @@ function brancherListes(fiche) {
     return l.filter(Boolean);
   };
   const redessiner = (cle, lignes) => {
-    const sous = SOUS_CHAMPS[cle];
+    const sous = structureDecrite(cle);
     const boite = document.querySelector(
       `#config-formulaire [data-liste="${CSS.escape(cle)}"]`);
     boite.innerHTML = lignes.map((l, i) => ligneStructure(cle, sous, l, i)).join("");
@@ -891,9 +917,9 @@ function brancherConditions() {
  *  TVA ; le moteur (route `taxe-sur-les-salaires-regime`, CGI art. 231) dit
  *  quelles cases suivent et ce qui en découle, écrit sous les cases. La page
  *  ne montre que ce qu'il nomme, et ne conclut rien. */
-function brancherTaxeSalaires() {
+function brancherTaxeSalaires(racine = "#config-formulaire") {
   const cases = [...document.querySelectorAll(
-    '#config-formulaire [data-sous-de="taxe_sur_les_salaires"]')];
+    `${racine} [data-sous-de="taxe_sur_les_salaires"]`)];
   if (!cases.length) return;
   const bloc = cases[0].closest(".structure");
   let dit = bloc.querySelector(".taxe-consequence");
@@ -1070,9 +1096,9 @@ function euros(v) {
                                       maximumFractionDigits: 2 }) + " €";
 }
 
-function lireFormulaire() {
+function lireFormulaire(racine = "#config-formulaire", origine = STRUCTURES_ORIGINE) {
   const d = {};
-  document.querySelectorAll("#config-formulaire [data-cle]").forEach((c) => {
+  document.querySelectorAll(`${racine} [data-cle]`).forEach((c) => {
     // Une case que la fiche ne disait pas, et que personne n'a touchée, ne part pas : rien ne se devine.
     if (c.dataset.absent) return;
     if (c.dataset.jours) {
@@ -1094,10 +1120,10 @@ function lireFormulaire() {
   // la banque un avertissement de diffusion. Ne relire que les cases
   // affichees, ce serait les effacer au premier enregistrement.
   const types = new Set();
-  document.querySelectorAll("#config-formulaire [data-sous-de]").forEach((c) => {
+  document.querySelectorAll(`${racine} [data-sous-de]`).forEach((c) => {
     const p = c.dataset.sousDe;
     if (!d[p] || typeof d[p] !== "object" || Array.isArray(d[p])) {
-      d[p] = JSON.parse(JSON.stringify(STRUCTURES_ORIGINE[p] || {}));
+      d[p] = JSON.parse(JSON.stringify(origine[p] || {}));
     }
     const chemin = c.dataset.sousCle.split(".");
     let o = d[p];
@@ -1132,7 +1158,7 @@ function lireFormulaire() {
   // compte pas : le « + » en pose une avant qu'on la remplisse, et une liste
   // sans rien dedans vaut « rien », pas « une ligne vide ».
   const listes = {};
-  document.querySelectorAll("#config-formulaire [data-liste-de]").forEach((c) => {
+  document.querySelectorAll(`${racine} [data-liste-de]`).forEach((c) => {
     const p = c.dataset.listeDe, i = +c.dataset.listeIndex;
     listes[p] = listes[p] || [];
     // Pas de reprise de l'original ici, contrairement aux objets : une ligne
@@ -1143,7 +1169,7 @@ function lireFormulaire() {
   });
   // Une liste dont on a retiré toutes les lignes n'a plus de case : elle vaut
   // « rien », et le moteur le lit (un établissement retiré ferme).
-  document.querySelectorAll("#config-formulaire [data-liste]").forEach((b) => {
+  document.querySelectorAll(`${racine} [data-liste]`).forEach((b) => {
     listes[b.dataset.liste] = listes[b.dataset.liste] || [];
   });
   Object.keys(listes).forEach((p) => {
@@ -1355,9 +1381,9 @@ function valeurLisible(v) {
 }
 
 /* UNE STRUCTURE DITE PAR SES CASES (« Prénom : Claire · Nom : Fontaine · Fonction : Présidente ») : celles que la
- * fiche montre (`SOUS_CHAMPS`), remplies, avec leur libellé et le mot d'un choix ; jamais ses clés. */
+ * fiche montre (`structureDecrite`), remplies, avec leur libellé et le mot d'un choix ; jamais ses clés. */
 function structureLisible(champ, v) {
-  return (SOUS_CHAMPS[champ].champs || []).map(([k, libelle, , opts]) => {
+  return ((structureDecrite(champ) || {}).champs || []).map(([k, libelle, , opts]) => {
     const x = k.split(".").reduce((o, p) => (o && typeof o === "object" ? o[p] : undefined), v);
     if (x === undefined || x === null || String(x).trim() === "") return "";
     const mot = opts && opts.choix ? opts.choix[String(x)] : null;
@@ -1378,7 +1404,7 @@ function valeurHistorique(champ, avant, apres) {
     return valeurLisible(avant);
   }
   const libelles = Object.fromEntries(
-    ((SOUS_CHAMPS[champ] || {}).champs || []).map(([k, l]) => [k, l]));
+    ((structureDecrite(champ) || {}).champs || []).map(([k, l]) => [k, l]));
   const courant = apres && typeof apres === "object" ? apres : {};
   const cles = Object.keys(avant).filter((k) => !k.startsWith("_"));
   const changees = cles.filter((k) =>
@@ -1402,7 +1428,7 @@ function demanderDateDEffet(changements, propose, pourquoi) {
   // Une case à choix se dit par le libellé que la fiche montre (« Régisseur de théâtre »), pas par son code.
   const lisible = (c, cote) => {
     const v = c[cote + "_lisible"] ?? c[cote];
-    if (v && typeof v === "object" && !Array.isArray(v) && SOUS_CHAMPS[c.champ]) {
+    if (v && typeof v === "object" && !Array.isArray(v) && structureDecrite(c.champ)) {
       return structureLisible(c.champ, v);
     }
     const nom = (LIBELLES_CHOIX[c.champ] || {})[String(v ?? "")];

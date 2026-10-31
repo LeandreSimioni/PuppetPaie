@@ -26,7 +26,7 @@ async function montrerRappels(lu = api) {
   try { r = await lu("rappels"); } catch (e) { return; }
   try { ech = await lu("echeancier"); } catch (e) { ech = null; }
   let manques = [];
-  try { const pd = await lu("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { manques = []; }
+  try { manques = await lireDemarrage(lu); } catch (e) { manques = []; }
   const liste = r.rappels || [];
   // L'ÉCHÉANCIER : « un pop-up au démarrage : on est le…,
   // bienvenue sur PuppetPaie, n'oublie pas de faire la DSN ». Elle s'ouvrait
@@ -67,30 +67,167 @@ function htmlPoses() {
   </div>`;
 }
 
-/* POUR DÉMARRER. Une compagnie neuve découvrait ce qui lui
- * manquait un refus après l'autre. Le moteur (`pour-demarrer`) rend tout
- * d'un coup : ce que chaque manque bloque, où il se saisit, où la compagnie
- * trouve la valeur. La page ne fait que l'afficher. */
+/* POUR DÉMARRER. Le moteur (`pour-demarrer`) rend d'un coup ce que la
+ * compagnie peut remplir d'avance : chaque ligne, sa case (`case`), ce
+ * qu'elle servira (`phrase`), où elle vit (`ou`), et pour qui (`qui`, une
+ * ligne d'un salarié). Rien n'y est obligatoire. Chaque case se remplit sur
+ * place, dessinée comme dans sa fiche (`champDeFiche`), et s'enregistre
+ * seule (`enregistrer-fiche`) ; la liste se relit ensuite. La page ne fait
+ * que la mise en page. */
+let DEMARRAGE = { titre: "", note: "", manques: [] };
+
+/* La case qu'une ligne propose, telle que sa fiche la décrit : `{nom, fiche,
+ * c}`, ou null quand elle ne se remplit pas ici (un organisme, le barème, le
+ * taux AT/MP, un accès : la ligne mène à sa place). Une case de structure se
+ * dessine seule, dans sa structure. */
+function caseDuManque(m) {
+  const conf = ETAT.configuration || {};
+  const nom = m.salarie ? "salarie" : /^Configuration › Entreprise/.test(m.ou || "") ? "entreprise" : null;
+  if (!nom || !m.case) return null;
+  const fiche = nom === "salarie" ? (conf.salaries || []).find((f) => f.cle === m.salarie) : conf.entreprise;
+  if (!fiche) return null;
+  const [racine, ...reste] = m.case.split(".");
+  let c = ((conf.description || {})[nom] || []).find((x) => x.cle === racine);
+  if (!c || c.calcule || c.ecran === false) return null;
+  if (reste.length) {
+    const sous = (c.champs || []).find((s) => s.cle === reste.join("."));
+    if (!sous) return null;
+    c = { ...c, champs: [sous] };
+  }
+  return { nom, fiche, c, racine };
+}
+
+/* Le dessin de la case : celui de la fiche. Le métier se choisit dans la
+ * liste des métiers, comme dans la fiche (`METIER_HTML`) : le code s'en lit. */
+function caseDemarrageHtml(k) {
+  if (k.racine === "code_emploi_ft") {
+    return `<div class="champ"><label>Métier
+      <select data-cle="code_emploi_ft">${optionsMetiers(k.fiche.donnees.code_emploi_ft || "", "— choisir —")}</select></label></div>`;
+  }
+  return champDeFiche(k.c, k.fiche, k.nom).replace(/^(\s*<div class="champ[^"]*"[^>]*?)\s+hidden(?=[\s>])/, "$1");
+}
+
 function htmlDemarrage(manques) {
   if (!manques || !manques.length) return htmlPoses();
-  // CHAQUE CHOSE MÈNE À SA CASE : le libellé conduit au champ que le
-  // moteur nomme (`champ`, celui que l'écran montre),
-  // ou à l'onglet qu'il nomme (`ou`) quand ce n'est pas une case.
-  const ligne = (m) => `
-    <li>
-      <button type="button" class="lien" data-manque-champ="${echapper(m.champ || "")}"
-        data-manque-ou="${echapper(m.ou || "")}" data-manque-salarie="${echapper(m.salarie || "")}"><b>${echapper(m.libelle)}</b></button>
-      <span class="discret">— ${m.bloque ? `bloque ${echapper(m.bloque)}` : `sinon, ${echapper(m.sinon || "")}`}</span>
-      <div class="note">À saisir dans ${echapper(m.ou)}.</div>
-      ${m.trouver ? `<details><summary>Où le trouver</summary><p class="note">${echapper(m.trouver)}</p></details>` : ""}
+  // CHAQUE CHOSE MÈNE À SA PLACE : `ou` est un lien qui y conduit (la fiche,
+  // l'onglet), à côté de la case.
+  const lien = (m) => `<button type="button" class="lien" data-manque-champ="${echapper(m.champ || "")}"
+        data-manque-ou="${echapper(m.ou || "")}" data-manque-salarie="${echapper(m.salarie || "")}">${echapper(m.ou || "")}</button>`;
+  const ligne = (m) => {
+    const i = manques.indexOf(m);
+    const k = caseDuManque(m);
+    if (!k) {
+      return `<li class="demarrage-ligne">
+        <b>${echapper(m.libelle)}</b> <span class="discret">— ${echapper(m.phrase || "")}</span> ${lien(m)}
+        ${m.trouver ? `<details><summary>Où le trouver</summary><p class="note">${echapper(m.trouver)}</p></details>` : ""}
+      </li>`;
+    }
+    return `<li class="demarrage-ligne" data-demarrage="${i}">
+      <div class="demarrage-case">${caseDemarrageHtml(k)}</div>
+      <div class="actions">
+        <button type="button" class="petit" data-demarrage-enregistrer="${i}">Enregistrer</button>
+        <span class="discret">${echapper(m.phrase || "")}</span> ${lien(m)}
+      </div>
+      <div class="anomalie" data-demarrage-dit hidden></div>
     </li>`;
+  };
+  const entreprise = manques.filter((m) => !m.qui);
+  const qui = [...new Set(manques.filter((m) => m.qui).map((m) => m.qui))];
   return `
-    <div class="rappel retard demarrage">
-      <h3>Pour démarrer, il manque encore ${manques.length === 1 ? "une chose" : manques.length + " choses"}</h3>
-      ${manques.some((m) => m.bloque) ? `<p class="note">Tant qu'elles manquent, ce qu'elles bloquent sera refusé.</p>` : ""}
-      <ul class="rappel-liste">${manques.map(ligne).join("")}</ul>
+    <div class="rappel demarrage demarrage-liste">
+      ${DEMARRAGE.titre ? `<h3>${echapper(DEMARRAGE.titre)}</h3>` : ""}
+      ${DEMARRAGE.note ? `<p class="note">${echapper(DEMARRAGE.note)}</p>` : ""}
+      ${entreprise.length ? `<ul class="rappel-liste">${entreprise.map(ligne).join("")}</ul>` : ""}
+      ${qui.map((q) => `<h4>${echapper(q)}</h4>
+        <ul class="rappel-liste">${manques.filter((m) => m.qui === q).map(ligne).join("")}</ul>`).join("")}
       <div class="actions"><button class="petit" data-aller-configuration>Ouvrir la configuration</button></div>
     </div>${htmlPoses()}`;
+}
+
+/* Les cases dessinées d'une liste : leur aide, et la taxe sur les salaires
+ * qui dit, sous ses cases, ce que le moteur en conclut. */
+function brancherDemarrage(conteneur) {
+  conteneur.querySelectorAll("[data-demarrage]").forEach((li) => {
+    const sel = `[data-demarrage="${li.dataset.demarrage}"]`;
+    brancherAide(sel);
+    brancherTaxeSalaires(sel);
+  });
+}
+
+/* ENREGISTRER UNE CASE DE « POUR DÉMARRER » : le seul champ qu'elle porte
+ * (une structure, entière : ce qu'elle disait, plus la case), par la route
+ * de la fiche ; puis la liste se relit. */
+async function enregistrerDemarrage(i, bouton) {
+  const m = DEMARRAGE.manques[i];
+  const k = m && caseDuManque(m);
+  if (!k) return;
+  const li = bouton.closest("[data-demarrage]");
+  const dit = li.querySelector("[data-demarrage-dit]");
+  const avant = k.fiche.donnees[k.racine];
+  const origine = avant && typeof avant === "object" && !Array.isArray(avant) ? { [k.racine]: avant } : {};
+  const lu = lireFormulaire(`[data-demarrage="${i}"] .demarrage-case`, origine);
+  const charge = { nom: k.nom, ...(k.nom === "salarie" ? { cle: k.fiche.cle } : {}), donnees: { [k.racine]: lu[k.racine] } };
+  bouton.disabled = true;
+  try {
+    let r = await api("enregistrer-fiche", charge);
+    if (r.avertissement) {
+      const { changements, depuis, pourquoi } = r.avertissement;
+      const reponse = await demanderDateDEffet(changements, depuis, pourquoi);
+      if (!reponse) { bouton.disabled = false; return; }
+      r = await api("enregistrer-fiche", { ...charge, ...reponse, confirme: true });
+    }
+    ETAT = await api("etat");
+    dire(r.phrase);
+    await repeindreDemarrage();
+  } catch (e) {
+    bouton.disabled = false;
+    const anomalies = ((e.detail || {}).anomalies || []).filter((a) => a.gravite === "erreur");
+    dit.textContent = anomalies.length ? anomalies.map((a) => a.message).join(" ; ") : e.message;
+    dit.hidden = false;
+  }
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest("[data-demarrage-enregistrer]");
+  if (b) enregistrerDemarrage(+b.dataset.demarrageEnregistrer, b);
+});
+
+/* La liste relue, partout où elle est peinte ; la fiche Entreprise, si elle
+ * est ouverte et qu'on n'y a rien tapé, montre ce qui vient de s'écrire. */
+async function repeindreDemarrage() {
+  try { await lireDemarrage(api); } catch (e) { return; }
+  document.querySelectorAll(".demarrage-liste").forEach((l) => {
+    const neuf = document.createElement("div");
+    neuf.innerHTML = htmlDemarrage(DEMARRAGE.manques);
+    const pose = l.nextElementSibling && l.nextElementSibling.classList.contains("demarrage-poses") ? l.nextElementSibling : null;
+    if (pose) pose.remove();
+    l.replaceWith(...neuf.childNodes);
+  });
+  document.querySelectorAll("[data-aller-configuration]").forEach((b) => {
+    if (b.closest("#config-liste, #import-demarrage")) b.remove();
+  });
+  brancherDemarrage(document);
+  if (FICHE_ACTIVE === "entreprise" && !FICHE_MODIFIEE
+      && !document.getElementById("vue-configuration").classList.contains("cachee")) {
+    dessinerFormulaire(fichesDe("entreprise")[0]);
+  }
+}
+
+/* « Ouvrir la configuration », sous la liste de la boîte de l'ouverture. */
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest("[data-aller-configuration]");
+  if (!b) return;
+  fermerBoite();
+  document.querySelector('.onglets button[data-vue="configuration"]').click();
+  const sous = document.querySelector('.sous-onglets button[data-fiche="entreprise"]');
+  if (sous && !sous.classList.contains("actif")) sous.click();
+});
+
+/* `pour-demarrer`, lu : la liste et ce que le moteur a posé. */
+async function lireDemarrage(lu) {
+  const pd = await lu("pour-demarrer");
+  DEMARRAGE = { titre: pd.titre || "", note: pd.note || "", manques: pd.manques || [] };
+  POSES_DEMARRAGE = pd.poses || [];
+  return DEMARRAGE.manques;
 }
 
 /** Aller à ce qui manque : l'onglet, puis la case (son tiroir ouvert, le
@@ -144,10 +281,11 @@ function peindreDemarrage(conteneur) {
 }
 async function peindreDemarrageDans(conteneur) {
   let manques = [];
-  try { const pd = await api("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { return; }
+  try { manques = await lireDemarrage(api); } catch (e) { return; }
   conteneur.innerHTML = htmlDemarrage(manques);
   const b = conteneur.querySelector("[data-aller-configuration]");
   if (b) b.remove();
+  brancherDemarrage(conteneur);
 }
 
 /* L'en-tête de la boîte : la date, la bienvenue, ce qui est à faire ce
@@ -217,13 +355,7 @@ function boiteRappels(liste, ech, manques = []) {
     const b = document.getElementById("rappel-" + i);
     if (b) b.onclick = () => agirSurRappel(r);
   });
-  const conf = document.querySelector("[data-aller-configuration]");
-  if (conf) conf.onclick = () => {
-    fermerBoite();
-    document.querySelector('.onglets button[data-vue="configuration"]').click();
-    const sous = document.querySelector('.sous-onglets button[data-fiche="entreprise"]');
-    if (sous && !sous.classList.contains("actif")) sous.click();
-  };
+  brancherDemarrage(document.getElementById("boite"));
   document.querySelectorAll("[data-echeance]").forEach((b) => {
     b.onclick = async () => {
       try {

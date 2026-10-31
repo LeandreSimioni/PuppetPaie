@@ -865,7 +865,7 @@ async function ecrireImportation() {
  *
  *   - des SECTIONS (SECTIONS_FICHE) : on cherche « ma banque », pas « le
  *     champ 27 » ;
- *   - les structures se saisissent en SOUS-CHAMPS (SOUS_CHAMPS), une case
+ *   - les structures se saisissent case par case (`structureDecrite`), une case
  *     par valeur, un « + » pour une liste. Les clefs qu'on ne montre pas
  *     (`_note`, `nom_aem`...) sont relues telles quelles a l'enregistrement
  *     — voir `lireFormulaire` : on ne perd pas ce qu'on n'affiche pas ;
@@ -1039,90 +1039,9 @@ const CACHES = {
   salarie: ["sante_svp"],
 };
 
-/* Une structure, case par case. `liste: true` = plusieurs lignes, avec un
- * « + ». Ce qui n'est pas nomme ici est CONSERVE tel quel.
- *
- * LES PERSONNES SE SAISISSENT COMME ON LES ECRIT. Le nom et le
- * prenom en capitales sans accents, c'est la forme de l'AEM et de la DSN :
- * le moteur la fabrique (`champs.deriver_personnes`), on ne la demande plus. */
-const SOUS_CHAMPS = {
-  // Le solde de congés d'un salarié au mois arrivé d'un autre logiciel :
-  // ce que son dernier bulletin disait.
-  conges_reprise: { champs: [
-    ["date", "PuppetPaie compte à partir du", "Le premier jour du premier mois produit par PuppetPaie", { date: true }],
-    ["report", "Jours qui restent de la période passée", "Les jours de congés acquis sur la période de référence passée et pas encore pris. Le dernier bulletin de l'ancien logiciel les écrit souvent « N-1 », « reliquat » ou « solde N-1 »."],
-    ["acquis_report", "Jours acquis sur la période passée, en tout", "Souvent 30, pour une période entière : il sert à payer un jour au dixième. Sur le bulletin : « acquis N-1 »."],
-    ["remuneration_report", "Brut gagné pendant la période passée (€)", "Le brut de toute la période de référence passée, qui sert à calculer le dixième. Sur le bulletin : « base N-1 », ou dans votre ancien logiciel."],
-    ["acquis", "Jours acquis depuis le début de la période en cours", "Les jours acquis sur la période en cours, avant cette date. Sur le bulletin : « acquis N »."],
-    ["pris", "Jours déjà pris sur la période en cours", "Les jours pris sur ceux de la période en cours, avant cette date. Sur le bulletin : « pris N »."],
-    ["remuneration_periode", "Brut gagné depuis le début de la période en cours (€)", "Le brut versé sur la période en cours, avant cette date. Sur le bulletin : « base N »."],
-  ] },
-  // Le signataire, le contact DSN, celui de la médecine du travail et la banque : leurs cases viennent de la description
-  // du moteur (`champs`), posées par `dessinerFormulaire`.
-  // LA PREVOYANCE ET LA SANTE DES PERMANENTS.
-  // Elles se saisissaient en JSON dans une zone de texte : un administrateur
-  // n'avait pas a lire des accolades. Une case vide est RETIREE a
-  // l'enregistrement, et le moteur applique alors la convention. Le format
-  // des donnees ne change pas : « taux.t1_cadre » est la case `t1_cadre` du
-  // bloc `taux`.
-  prevoyance_permanents: { champs: [
-    ["regime", "Régime", "Le cas ordinaire : celui de la convention, que le logiciel applique seul. Un contrat d'entreprise ne se choisit que s'il a été réellement souscrit, et plus favorable.",
-     { choix: { "": "Celui de la convention (le cas ordinaire)",
-                "contrat": "Un contrat d'entreprise plus favorable" } }],
-    ["taux.t1_non_cadre", "Taux non-cadres (%)", "Seulement pour un contrat d'entreprise : son taux sur la tranche A, pour les non-cadres.", { nombre: true }],
-    ["taux.t1_cadre", "Taux cadres (%)", "Seulement pour un contrat d'entreprise : son taux sur la tranche A, pour les cadres (au moins 1,50 %).", { nombre: true }],
-    ["taux.part_patronale", "Part employeur (%)", "Seulement pour un contrat d'entreprise. 100 % pour les cadres, obligatoirement.", { nombre: true }],
-    ["extension_t2", "Extension sur la tranche 2", "Facultative, si elle a été souscrite.",
-     { choix: { "": "Aucune (le cas ordinaire)", "tous": "Pour tous les permanents",
-                "cadres": "Pour les cadres seulement" } }],
-    ["adhesion", "Organisme et numéro d'adhésion", "Pour mémoire : il ne part dans aucun calcul."],
-  ] },
-  sante_permanents: { champs: [
-    ["taux_contrat", "Taux du contrat (% du plafond mensuel)", "Seulement pour une convention sans régime de santé (production audiovisuelle 2642) : le taux de votre contrat, pour le salarié seul. Il est sur votre contrat ou votre appel de cotisation.", { nombre: true }],
-    ["part_patronale", "Part employeur (%)", "Au moins 50 %. Vide : 50 %.", { nombre: true }],
-  ] },
-  // LA TAXE SUR LES SALAIRES. On demande ce que la
-  // compagnie sait de sa TVA, pas la conclusion du droit : le moteur conclut
-  // (route `taxe-sur-les-salaires-regime`, CGI art. 231), dit quelles cases
-  // suivent et écrit la conséquence sous elles (`brancherTaxeSalaires`). Les
-  // oui/non s'enregistrent en vrai et faux (`booleen`).
-  taxe_sur_les_salaires: { champs: [
-    ["tva", "La compagnie et la TVA", "Assujettie : elle facture la TVA sur ses ventes (billetterie, cessions…) et la déclare. Exonérée : elle ne facture pas de TVA, ou ses activités n'y entrent pas — c'est le cas de beaucoup d'associations.",
-     { choix: { "": "— à dire —", "assujettie": "Assujettie à la TVA", "exoneree": "Exonérée de TVA (ou hors de son champ)" } }],
-    ["part_tva", "Part de vos recettes de l'an dernier soumise à la TVA (%)", "Vos recettes soumises à la TVA, divisées par toutes vos recettes et produits de l'année, subventions et dons compris. Votre comptable la connaît. À 90 % ou plus, pas de taxe sur les salaires.", { nombre: true }],
-    // Les montants des plafonds, l'aide et les deux réponses viennent du
-    // moteur (`franchise` de la route, barème de l'année) :
-    // ce qui suit n'est que ce qu'on lit avant sa réponse. Des
-    // boutons à cocher : chaque réponse est une phrase entière.
-    ["sous_franchise", "Vos recettes de l'an dernier", "Sous les deux plafonds de la franchise en base de TVA (les spectacles vendus, et les recettes en tout, subventions comprises), la compagnie ne doit pas la taxe sur les salaires.",
-     { booleen: true, boutons: true, choix: { "": "— à dire —", "true": "Sous les deux plafonds", "false": "Au-dessus d'un des plafonds" } }],
-    ["association_1679A", "Association loi 1901, syndicat ou mutuelle ?", "Une association loi 1901, une fondation reconnue d'utilité publique, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due.",
-     { booleen: true, choix: { "": "Non", "true": "Oui (abattement de l'article 1679 A)" } }],
-  ] },
-  // UN AUTRE ÉTABLISSEMENT : ce qui le fait déclarer à part (son SIRET, son
-  // adresse, le jour où il ouvre) et son risque AT/MP. Le code vide : celui
-  // de la compagnie ; le taux vide : celui de l'arrêté pour un risque
-  // collectif. Le moteur dit, sous la ligne, ce qu'il applique (`taux-atmp`).
-  etablissements: { liste: true, ligne: "établissement", champs: [
-    ["libelle", "Nom", "Atelier, salle…"],
-    ["siret", "SIRET", ""],
-    ["adresse_affichage", "Adresse", ""],
-    ["code_postal", "Code postal", ""],
-    ["commune_affichage", "Commune", ""],
-    ["ouverture", "Ouvert le", "", { date: true }],
-    ["taux_atmp.code_risque", "Code risque AT/MP", "", { codesAtmp: true }],
-    ["taux_atmp.valeur", "Taux AT/MP (%)", "", { decimal: true }],
-    // Le versement mobilité de sa commune, quand le siège en paie un (le
-    // moteur le dit : `versement_mobilite_des_etablissements`) ; 0 : aucun.
-    ["versement_mobilite.taux", "Versement mobilité (%)", "0 si aucun", { decimal: true, si: "versement_mobilite_des_etablissements" }],
-    ["versement_mobilite.code_insee", "Code INSEE de la commune", "", { si: "versement_mobilite_des_etablissements" }],
-  ] },
-};
-
 /* Les valeurs d'une liste de choix, dites en clair. Le moteur garde ses
  * codes (`cse_adherent_fnas`), l'ecran montre une phrase. */
 const LIBELLES_CHOIX = {
-  civilite: { "01": "Monsieur", "02": "Madame" },
   // La table MNATA de la DSN, telle que `donnees/mnata-base.json`
   // la livre : l'ecran la dit en clair, le moteur la lit et la controle.
   taxe_apprentissage_motif_non_assujettissement: {

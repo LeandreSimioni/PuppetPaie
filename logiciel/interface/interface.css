@@ -1335,6 +1335,12 @@ pre.reponse {
 .rappel-question { font-size: 14px; margin: 4px 0; }
 .rappel .actions { margin-top: 10px; }
 .rappel-liste { margin: 6px 0 0 18px; font-size: 13px; }
+/* « Pour démarrer » : une case par ligne, remplie sur place (`rappels.js`). */
+.demarrage-liste .rappel-liste { list-style: none; margin-left: 0; padding-left: 0; }
+.demarrage-ligne { margin: 0 0 12px; }
+.demarrage-ligne .demarrage-case .champ { margin: 0; }
+.demarrage-ligne .actions { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.demarrage-liste h4 { margin: 14px 0 6px; }
 
 /* L'échéancier de l'ouverture (23/09/2026) : la date, la bienvenue, ce qui
  * est à faire ce mois-ci, l'année qui vient repliée. Sobre, comme les fiches. */
