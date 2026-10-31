@@ -304,8 +304,7 @@ fn contrat_parti(ctx: &Contexte, o: &engagement::stock::Objet, departs: &engagem
 const UN_AVENANT: &str = "un avenant à faire signer";
 
 /// CE QUE LE CHANGEMENT ENTRAINE, une ligne par consequence, pour l'engagement revalide `v` : chaque envoi parti sur une
-/// version qui n'est plus la sienne (`engagement::etats::a_refaire`, sans l'avenant d'un contrat rompu :
-/// `crate::routes::contrats::seule_la_rupture`). Une embauche reportee ne refait pas la DPAE
+/// version qui n'est plus la sienne (`engagement::etats::a_refaire`). Une embauche reportee ne refait pas la DPAE
 /// (`crate::regularisation::dpae_d_une_date_changee`).
 fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Vec<String>> {
     use engagement::etats::ARefaire;
@@ -315,11 +314,7 @@ fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etats::Valide, 
     let mut out = Vec::new();
     for a in engagement::etats::a_refaire(ctx, v, departs) {
         match a {
-            ARefaire::Avenant { depuis } => {
-                if !crate::routes::contrats::seule_la_rupture(&saisie(v.version_numero(depuis)), &presente) {
-                    out.push(UN_AVENANT.to_string());
-                }
-            }
+            ARefaire::Avenant { .. } => out.push(UN_AVENANT.to_string()),
             ARefaire::Dpae { debut_declare, .. } => {
                 let (rien_a_refaire, phrase) = crate::regularisation::dpae_d_une_date_changee(&debut_declare, &engagement::debut_brut(&presente));
                 if !rien_a_refaire {

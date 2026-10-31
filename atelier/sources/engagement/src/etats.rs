@@ -1477,7 +1477,8 @@ pub fn a_refaire(ctx: &Contexte, v: &Valide, departs: &Departs) -> Vec<ARefaire>
         let paie = |x: &Value, m: &str| x.get("paies").and_then(|p| p.get(m)).map(chiffres);
         match d.envoi {
             Envoi::Contrat => {
-                if clauses(&saisie(passee), mensuel) != clauses(&saisie(&actuelle), mensuel) {
+                let (partie, presente) = (saisie(passee), saisie(&actuelle));
+                if clauses(&partie, mensuel) != clauses(&presente, mensuel) && !seule_la_rupture(&partie, &presente) {
                     out.push(ARefaire::Avenant { depuis: d.version });
                 }
             }
@@ -1502,6 +1503,80 @@ pub fn a_refaire(ctx: &Contexte, v: &Valide, departs: &Departs) -> Vec<ARefaire>
         }
     }
     out
+}
+
+/// Ce qu'une rupture ecrit dans la saisie d'un engagement : sa fin, son motif, son preavis et ses dates.
+const DE_LA_RUPTURE: &[&str] =
+    &["debut", "fin", "motif_rupture", "preavis", "notification_rupture", "signature_convention", "engagement_licenciement", "transaction", "numero", "lignes"];
+
+/// UN CONTRAT ROMPU N'A PAS D'AVENANT. Code du travail L. 1243-1 (`atelier/reference/sources/code-du-travail/
+/// articles-20261028.md`) : le CDD se rompt avant l'echeance de son terme (accord des parties, faute grave, force
+/// majeure, inaptitude) ; la rupture met fin au contrat signe, elle ne le modifie pas, et rien ne se refait signer. Vrai
+/// quand la saisie `presente` ne differe de la saisie `partie` (celle sur laquelle le contrat est parti) que par la rupture
+/// qu'elle porte : son motif (`motif_rupture`, absent de la partie), la fin et le preavis qu'il appelle, et les jours de
+/// travail d'apres la fin retires (une ligne garde ses jours jusqu'a la fin, et sa quantite ne croit pas).
+fn seule_la_rupture(partie: &Value, presente: &Value) -> bool {
+    let texte = |v: &Value, k: &str| v.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
+    let fin = texte(presente, "fin");
+    if texte(presente, "motif_rupture").is_empty() || !texte(partie, "motif_rupture").is_empty() || fin.len() != 10 {
+        return false;
+    }
+    let reste = |v: &Value| -> Map<String, Value> {
+        v.as_object().map(|o| o.iter().filter(|(k, _)| !DE_LA_RUPTURE.contains(&k.as_str())).map(|(k, x)| (k.clone(), x.clone())).collect()).unwrap_or_default()
+    };
+    if reste(partie) != reste(presente) {
+        return false;
+    }
+    let dates = |l: &Value| -> Vec<String> { l.get("dates").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default() };
+    let quantite = |l: &Value| l.get("quantite").and_then(Value::as_f64).unwrap_or(0.0);
+    let sans = |l: &Value, k: &[&str]| -> Map<String, Value> {
+        l.as_object().map(|o| o.iter().filter(|(c, _)| !k.contains(&c.as_str())).map(|(c, x)| (c.clone(), x.clone())).collect()).unwrap_or_default()
+    };
+    let lignes = |v: &Value| v.get("lignes").and_then(Value::as_array).cloned().unwrap_or_default();
+    // Les lignes de la partie, arretees a la fin : celles qui n'ont plus aucun jour disparaissent.
+    let mut attendues: Vec<(Value, bool)> = Vec::new();
+    for l in lignes(partie) {
+        let jours = dates(&l);
+        let gardes: Vec<String> = jours.iter().filter(|j| **j <= fin).cloned().collect();
+        if !jours.is_empty() && gardes.is_empty() {
+            continue;
+        }
+        let mut l = l.clone();
+        let coupee = gardes.len() != jours.len();
+        if coupee {
+            l["dates"] = json!(gardes);
+        }
+        attendues.push((l, coupee));
+    }
+    let presentes = lignes(presente);
+    presentes.len() == attendues.len()
+        && presentes.iter().zip(&attendues).all(|(p, (a, coupee))| {
+            if *coupee {
+                sans(p, &["quantite"]) == sans(a, &["quantite"]) && quantite(p) <= quantite(a)
+            } else {
+                p == a
+            }
+        })
+}
+
+#[cfg(test)]
+mod tests_rupture {
+    use super::*;
+
+    /// Code du travail L. 1243-1 (`atelier/reference/sources/code-du-travail/articles-20261028.md`) : rompre un CDD avant
+    /// son terme ne modifie pas le contrat signe, rien ne se refait signer ; changer en meme temps ce qu'il paie, si.
+    #[test]
+    fn un_contrat_rompu_n_a_pas_d_avenant() {
+        let jours = |n: usize| json!(["2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08"][..n].to_vec());
+        let ligne = |n: usize, taux: i64| json!({"rubrique": "cachet", "quantite": n, "taux": taux, "lieu": "Salle", "dates": jours(n)});
+        let partie = json!({"salarie": "X", "spectacle": "s", "lignes": [ligne(5, 150)], "numero": "X1.26.01"});
+        let rompu = |taux: i64| json!({"salarie": "X", "spectacle": "s", "debut": "2026-05-04", "fin": "2026-05-06", "motif_rupture": "084",
+            "preavis": {"type": "90"}, "lignes": [ligne(3, taux)], "numero": "X1.26.01"});
+        assert!(seule_la_rupture(&partie, &rompu(150)));
+        assert!(!seule_la_rupture(&partie, &rompu(180)), "un taux change avec la rupture se refait signer");
+        let raccourci = json!({"salarie": "X", "spectacle": "s", "lignes": [ligne(3, 150)], "numero": "X1.26.01"});
+        assert!(!seule_la_rupture(&partie, &raccourci), "sans motif de rupture, des jours retires sont un avenant");
+    }
 }
 
 /// La version (`saisie`, `paies`) sur laquelle le dernier envoi `envoi` de l'engagement `v` est parti, telle qu'elle est

@@ -2137,32 +2137,6 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
     Ok(out)
 }
 
-/// Le bordereau Urssaf que l'apercu montre (celui du PRINCIPAL quand la compagnie a plusieurs etablissements ;
-/// chacun des autres a le sien, dans sa DSN), et l'avertissement quand il ne se calcule pas. Partage avec `produire`.
-pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> R<(Value, Vec<String>)> {
-    // Le bordereau montre est celui du PRINCIPAL quand la compagnie a plusieurs
-    // etablissements ; chacun des autres a le sien, dans sa DSN.
-    let principal = droit::bareme::nic_principal(&ctx.entreprise);
-    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise_du_mois(mois).map_err(|m| erreur("ValueError", m))?).is_empty();
-    let mut paies_p: Vec<Paie> = Vec::new();
-    for p in paies {
-        if !plusieurs || droit::bareme::etablissement_du_salarie(&ctx.entreprise, &p.salarie).map_err(|m| erreur("ValueError", m))? == principal {
-            paies_p.push(p.clone());
-        }
-    }
-    let mut avert: Vec<String> = Vec::new();
-    // L'apercu n'a pas a refuser : c'est la production qui le fera.
-    let urssaf = match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?) {
-        Ok(m) => Value::String(m.to_string()),
-        Err(e) => {
-            avert.push(format!("Bordereau Urssaf non calculable : {}", e));
-            Value::Null
-        }
-    };
-
-    Ok((urssaf, avert))
-}
-
 fn annee_de(mois: &str) -> R<i32> {
     Ok(mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", socle::fichiers::repr(mois)))?)
 }
