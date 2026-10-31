@@ -13,6 +13,7 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::coffre::{Coffre, Echec as EchecCoffre};
 use crate::compagnie::filet::exiger_mot_de_passe;
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
 use droit::contexte::Contexte;
 use super::{ou_texte, vers_route};
 use envois::etats::{get, joindre, objet_vide, ou};
@@ -21,15 +22,102 @@ use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{vrai, MARQUEUR_COPIE};
 use socle::valeur::{nom_type, valeur_en_texte};
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "coffre-etat", "google-etat",
-    "coffre-poser", "coffre-oublier", "mot-de-passe-changer", "mot-de-passe-retirer", "google-oublier",
-];
+const SERVICE: Champ = Champ { nom: "service", sens: "net-entreprises, urssaf ou courriel", avance: false };
+const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, s'il est posé ; sans lui, le moteur le demande à un humain", avance: false };
+const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est modifié" };
+const ETAT: &str = "l'état du coffre : ce qui est posé, depuis quand, jamais les valeurs";
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] =
-    &["coffre-poser", "coffre-oublier", "mot-de-passe-changer", "mot-de-passe-retirer", "google-oublier"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "coffre-etat",
+        geste: "Dire quels mots de passe sont posés, et depuis quand ; jamais leur valeur.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: ETAT,
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "google-etat",
+        geste: "Dire si le compte Google de la sauvegarde est lié.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "lie, compte, et ce que la page en montre",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "coffre-poser",
+        geste: "Poser le mot de passe d'un organisme ; pour l'Urssaf, avec le compte des DPAE.",
+        charge: &[
+            SERVICE,
+            Champ { nom: "valeur", sens: "le mot de passe à poser", avance: false },
+            Champ { nom: "compte", sens: "l'identifiant du compte (l'adresse, pour la boîte courriel)", avance: false },
+            Champ { nom: "nom", sens: "Urssaf : le nom du compte qui dépose les DPAE", avance: false },
+            Champ { nom: "prenom", sens: "Urssaf : son prénom", avance: false },
+            MOT_DE_PASSE,
+        ],
+        exemple: r#"{"service":"urssaf","valeur":"exemple","nom":"FULLER","prenom":"Ada"}"#,
+        rend: ETAT,
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "coffre-oublier",
+        geste: "Retirer du coffre le mot de passe d'un organisme.",
+        charge: &[SERVICE, MOT_DE_PASSE],
+        exemple: r#"{"service":"urssaf"}"#,
+        rend: ETAT,
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "mot-de-passe-changer",
+        geste: "Poser ou changer le mot de passe du logiciel.",
+        charge: &[
+            MOT_DE_PASSE,
+            Champ { nom: "nouveau", sens: "le nouveau mot de passe", avance: false },
+            Champ { nom: "confirmation", sens: "le même, retapé", avance: false },
+        ],
+        exemple: r#"{"nouveau":"exemple","confirmation":"exemple"}"#,
+        rend: ETAT,
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "mot-de-passe-retirer",
+        geste: "Retirer le mot de passe du logiciel.",
+        charge: &[MOT_DE_PASSE],
+        exemple: r#"{"motdepasse":"exemple"}"#,
+        rend: ETAT,
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "google-oublier",
+        geste: "Délier le compte Google de la sauvegarde : le jeton du poste s'efface.",
+        charge: &[MOT_DE_PASSE],
+        exemple: r#"{}"#,
+        rend: "l'état du compte Google",
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {

@@ -143,11 +143,11 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if catalogue::dans(mois::ROUTES, r).is_some() => mois::route(o, &ctx, route, &charge),
         r if catalogue::dans(etapes::ROUTES, r).is_some() => etapes::route(o, &ctx, route, &charge),
         r if catalogue::dans(engagement::ROUTES, r).is_some() => engagement::route(o, &ctx, route, &charge),
-        r if contrats::ROUTES.contains(&r) => contrats::route(o, &ctx, route, &charge),
-        r if modeles_contrat::ROUTES.contains(&r) => modeles_contrat::route(o, &ctx, route, &charge),
-        r if documents::ROUTES.contains(&r) => documents::route(o, &ctx, route, &charge),
+        r if catalogue::dans(contrats::ROUTES, r).is_some() => contrats::route(o, &ctx, route, &charge),
+        r if catalogue::dans(modeles_contrat::ROUTES, r).is_some() => modeles_contrat::route(o, &ctx, route, &charge),
+        r if catalogue::dans(documents::ROUTES, r).is_some() => documents::route(o, &ctx, route, &charge),
         // Un refus du depot qui porte une donnee pour la page (`etat`) la rend a cote de `erreur` et `classe`.
-        r if depots::ROUTES.contains(&r) => match depots::route(o, &ctx, route, &charge) {
+        r if catalogue::dans(depots::ROUTES, r).is_some() => match depots::route(o, &ctx, route, &charge) {
             Err(Echec { classe: Some(c), message }) if matches!(c, "RepetitionManquante" | "DsnDejaDeposee") => {
                 let d: Value = serde_json::from_str(&message).unwrap_or_else(|_| json!({"message": message}));
                 return Ok(json!({"ok": false, "erreur": d["message"], "classe": c, "etat": d["etat"]}));
@@ -161,11 +161,11 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Les organismes et les contrats de la DSN : lus, et composes quand la compagnie les enregistre (`organismes`).
         crate::compagnie::organismes::ROUTE_LIRE => crate::compagnie::organismes::lire(&ctx, &charge),
         crate::compagnie::organismes::ROUTE_ECRIRE => crate::compagnie::organismes::enregistrer(&ctx, &charge),
-        r if coffre::ROUTES.contains(&r) => coffre::route(o, &ctx, route, &charge),
+        r if catalogue::dans(coffre::ROUTES, r).is_some() => coffre::route(o, &ctx, route, &charge),
         crate::compagnie::coffre_verifier::ROUTE => crate::compagnie::coffre_verifier::route(&ctx, &charge),
         r if filet::ROUTES.contains(&r) || r == filet::ROUTE_OUBLIER => filet::route(o, &ctx, route, &charge),
         r if import::ROUTES.contains(&r) => import::route(o, &ctx, route, &charge),
-        r if archives::ROUTES.contains(&r) => archives::route(o, &ctx, route, &charge),
+        r if catalogue::dans(archives::ROUTES, r).is_some() => archives::route(o, &ctx, route, &charge),
         // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
         crate::historique_mois::ROUTE => crate::historique_mois::route(&ctx, &charge),
         r if catalogue::dans(dossier_salarie::ROUTES, r).is_some() => dossier_salarie::route(o, &ctx, route, &charge),
@@ -200,7 +200,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     // Les mots de passe et les comptes (`routes::coffre`) ne dependent d'aucun de ces manques : leur refus se dit seul.
     let rendu = match rendu {
-        Err(Echec { classe, message }) if est_une_ecriture(route) && !crate::routes::coffre::ROUTES.contains(&route) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) && !message.trim_start().starts_with('{') => {
+        Err(Echec { classe, message }) if est_une_ecriture(route) && catalogue::dans(crate::routes::coffre::ROUTES, route).is_none() && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) && !message.trim_start().starts_with('{') => {
             let suite = declarations::demarrage::a_la_suite(&ctx, &message).unwrap_or_default();
             Err(Echec { classe, message: message + &suite })
         }
@@ -223,9 +223,8 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 /// Les routes qui ecrivent (les lots d'ecritures, d'actes, d'envois et de releves) : apres elles, la fenetre verifie les
 /// etats des mois (`interface/api.rs`).
 pub fn est_une_ecriture(route: &str) -> bool {
-    [contrats::ECRITURES, documents::ECRITURES, depots::ECRITURES]
+    [fiches::ECRITURES, import::ECRITURES, ouverture::ECRITURES]
         .iter()
-        .chain(&[fiches::ECRITURES, coffre::ECRITURES, import::ECRITURES, archives::ECRITURES, ouverture::ECRITURES, modeles_contrat::ECRITURES])
         .any(|l| l.contains(&route))
         || crate::obligations::ROUTES.contains(&route)
         || crate::compagnie::releve_signatures::ROUTES.contains(&route)

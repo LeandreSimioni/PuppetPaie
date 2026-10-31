@@ -8,6 +8,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
 use crate::routes::qui_de;
 use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, requis, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
@@ -28,17 +29,107 @@ use socle::fichiers::{nom_du, repr, vrai};
 use socle::html::courriel_en_html;
 use socle::valeur::{nom_type, valeur_en_texte, valeurs_egales};
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "exercices", "dossier-formes", "exports-periodes", "regularisations", "couts",
-    "revue-spectacles", "cloture", "export-compta", "retenir-logiciel", "casc-regularise", "exporter", "dossier-envoyer",
-    "casc-envoyer",
-];
+const ANNEE: Champ = Champ { nom: "annee", sens: "l'année, AAAA", avance: false };
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &[
-    "couts", "revue-spectacles", "cloture", "export-compta", "retenir-logiciel", "casc-regularise", "exporter",
-    "dossier-envoyer", "casc-envoyer",
+/// Une lecture sans charge de l'Historique ou des Exports.
+const fn lecture(nom: &'static str, geste: &'static str, rend: &'static str) -> Fiche {
+    Fiche { nom, geste, charge: &[], exemple: "{}", rend, refus: &[OPERATION], acte: Acte::Lit, avance: false, phrase: 0 }
+}
+
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    lecture("exercices", "Lister les années : leurs DSN, leur clôture, leur export comptable.", "annees (chacune : DSN, clôture, export)"),
+    lecture("dossier-formes", "Dire ce que peut porter le dossier d'un salarié : catégories, périodes.", "salaries, categories, periodes"),
+    lecture("exports-periodes", "Dire ce qui s'exporte : mois, années, états, formats, logiciel comptable.", "mois, annees, etats, formats, logiciel retenu"),
+    lecture("regularisations", "Lister les corrections à porter et portées, par mois d'origine.", "les corrections, mois par mois"),
+    Fiche {
+        nom: "couts",
+        geste: "Dire le coût de l'année, spectacle par spectacle.",
+        charge: &[ANNEE],
+        exemple: r#"{"annee":"2026"}"#,
+        rend: "le coût de l'année par spectacle",
+        refus: &[MANQUE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "revue-spectacles",
+        geste: "Archiver les spectacles qui ne continuent pas, et noter la revue faite.",
+        charge: &[ANNEE, Champ { nom: "continuent", sens: "les spectacles qui continuent (leurs clés) ; les autres s'archivent", avance: false }],
+        exemple: r#"{"annee":2026,"continuent":["le-banc-des-menteurs"]}"#,
+        rend: "archives, gardes",
+        refus: &[MANQUE, FORME],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche { acte: Acte::Ecrit, ..Fiche::a_ecrire("cloture") },
+    Fiche {
+        nom: "export-compta",
+        geste: "Écrire l'export comptable d'une année, du mois du au mois au.",
+        charge: &[
+            ANNEE,
+            Champ { nom: "du", sens: "le premier mois, 1 à 12", avance: true },
+            Champ { nom: "au", sens: "le dernier mois, 1 à 12", avance: true },
+            Champ { nom: "apercu", sens: "vrai : dire ce qui s'écrirait, sans écrire", avance: true },
+        ],
+        exemple: r#"{"annee":"2026","apercu":true}"#,
+        rend: "les fichiers de l'export, ou ce qu'ils porteraient",
+        refus: &[MANQUE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "retenir-logiciel",
+        geste: "Retenir le logiciel du comptable, dont les écritures prennent le format.",
+        charge: &[Champ { nom: "logiciel", sens: "son nom, parmi ceux que exports-periodes connaît ; absent : aucun", avance: false }, Champ { nom: "analytique", sens: "vrai : par spectacle", avance: true }],
+        exemple: r#"{}"#,
+        rend: "le logiciel retenu",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche { acte: Acte::Ecrit, avance: true, ..Fiche::a_ecrire("casc-regularise") },
+    Fiche {
+        nom: "exporter",
+        geste: "Exporter un état (livre de paie, charges…) en tableau ou en fichier.",
+        charge: &[
+            Champ { nom: "etat", sens: "l'état, parmi ceux que exports-periodes dit", avance: false },
+            MOIS,
+            ANNEE,
+            Champ { nom: "format", sens: "le format du fichier", avance: true },
+            Champ { nom: "apercu", sens: "vrai : le tableau, sans écrire de fichier", avance: true },
+        ],
+        exemple: r#"{"etat":"livre-de-paie","mois":"2026-11","apercu":true}"#,
+        rend: "le tableau, ou le fichier écrit",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "dossier-envoyer",
+        geste: "Refaire le dossier de chaque salarié choisi et le lui envoyer par courriel.",
+        charge: &[
+            Champ { nom: "salaries", sens: "les clés de leurs fiches", avance: false },
+            MOIS,
+            ANNEE,
+            Champ { nom: "categories", sens: "ce que le dossier porte ; tout sinon", avance: true },
+        ],
+        exemple: r#"{"salaries":["FULLER"],"mois":"2026-11"}"#,
+        rend: "le dossier, et envoi (partis)",
+        refus: &[
+            Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain au moment de l'envoi ; rien n'est écrit" },
+            OPERATION,
+        ],
+        acte: Acte::Engage,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche { acte: Acte::Engage, avance: true, ..Fiche::a_ecrire("casc-envoyer") },
 ];
 
 /// Une route de ce module.

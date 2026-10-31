@@ -91,9 +91,9 @@ async function dessinerModelesContrat(cible) {
   document.getElementById("clauses-enregistrer").onclick = async (ev) => {
     ev.target.disabled = true;
     try {
-      await api("clauses-particulieres", { texte: document.getElementById("clauses-compagnie").value });
+      const r = await api("clauses-particulieres", { texte: document.getElementById("clauses-compagnie").value });
       ETAT.configuration = await api("configuration", {});
-      dire("Clauses particulières enregistrées.");
+      dire(r.phrase);
     } catch (e) {
       dire(e.message, "erreur");
     } finally {

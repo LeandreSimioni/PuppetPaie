@@ -125,33 +125,33 @@ pub fn dans(fiches: &[Fiche], nom: &str) -> Option<Fiche> {
 }
 
 /// Les modules dont les routes portent leur fiche, dans l'ordre du catalogue.
-pub const FICHES: [&[Fiche]; 6] = [
+pub const FICHES: [&[Fiche]; 12] = [
     crate::routes::engagement::ROUTES,
     crate::etat_garde::ROUTES,
     crate::routes::mois::ROUTES,
     crate::routes::etapes::ROUTES,
     crate::routes::imprevus::ROUTES,
     crate::routes::dossier_salarie::ROUTES,
+    crate::routes::contrats::ROUTES,
+    crate::routes::modeles_contrat::ROUTES,
+    crate::routes::depots::ROUTES,
+    crate::routes::documents::ROUTES,
+    crate::routes::coffre::ROUTES,
+    crate::routes::archives::ROUTES,
 ];
 
 /// LE CATALOGUE : toutes les routes d'une compagnie, chacune une fois, dans l'ordre des modules.
 pub fn catalogue() -> Vec<Fiche> {
     use crate::routes::*;
     let noms: Vec<&[&'static str]> = vec![
-        contrats::ROUTES,
-        modeles_contrat::ROUTES,
-        documents::ROUTES,
-        depots::ROUTES,
         &crate::obligations::ROUTES,
         &crate::obligations::ROUTES_LECTURE,
         fiches::ROUTES,
         &[crate::compagnie::organismes::ROUTE_LIRE, crate::compagnie::organismes::ROUTE_ECRIRE],
-        coffre::ROUTES,
         &[crate::compagnie::coffre_verifier::ROUTE],
         filet::ROUTES,
         &[filet::ROUTE_OUBLIER],
         import::ROUTES,
-        archives::ROUTES,
         &[crate::historique_mois::ROUTE],
         ouverture::ROUTES,
         &[declarations::demarrage::ROUTE, COMPAGNIE_SUPPRESSION, rappels::ROUTE],

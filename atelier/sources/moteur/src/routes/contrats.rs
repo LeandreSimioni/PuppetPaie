@@ -8,6 +8,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
 use crate::routes::documents::{charge_texte, client_courriel, cle, liste_de, nul, preuve_de, refus, requis, un_nom_commence_et_finit, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
 use crate::routes::etapes::Moteur;
@@ -22,14 +23,88 @@ use socle::valeur::{nom_type, valeur_en_texte, valeurs_egales};
 
 
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "signature-apercu", "avenant-apercu", "pieces-parties",
-    "demander-signature", "contrats-imprimer", "contrat-recu",
-];
+const CONTRATS: Champ = Champ { nom: "contrats", sens: "les contrats choisis : [{salarie, debut, numero}]", avance: false };
+const DEBUT: Champ = Champ { nom: "debut", sens: "le premier jour de l'engagement, AAAA-MM-JJ", avance: false };
+const NUMERO: Champ = Champ { nom: "numero", sens: "le numéro du contrat, quand deux commencent le même jour", avance: true };
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["demander-signature", "contrats-imprimer", "contrat-recu"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "signature-apercu",
+        geste: "Montrer les contrats du mois : à envoyer, en attente de signature, en avenant.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "contrats (chacun : son état, et ses gestes recu et relancer, route et charge), boite_liee",
+        refus: &[MANQUE, ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "demander-signature",
+        geste: "Faire signer par courriel les contrats et les avenants cochés.",
+        charge: &[
+            MOIS,
+            CONTRATS,
+            Champ { nom: "avenants", sens: "les avenants cochés : [{salarie, debut, numero, mois, effet}]", avance: false },
+            Champ { nom: "salaries", sens: "tous les contrats de ces salariés", avance: true },
+            Champ { nom: "relance", sens: "vrai : relancer ceux qui attendent leur signature", avance: true },
+            Champ { nom: "remplace", sens: "vrai : un contrat refait qui annule et remplace le précédent", avance: true },
+        ],
+        exemple: r#"{"mois":"2026-11","contrats":[{"salarie":"FULLER","debut":"2026-11-27"}]}"#,
+        rend: "phrase, partis, contrats (les fichiers partis), avertissements (ceux sans courriel)",
+        refus: &[
+            Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain au moment de l'envoi ; rien n'est parti" },
+            Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe), ou imprimer" },
+            OPERATION,
+            MANQUE,
+        ],
+        acte: Acte::Engage,
+        avance: false,
+        phrase: 600,
+    },
+    Fiche {
+        nom: "pieces-parties",
+        geste: "Lister ce qui est parti pour un contrat : DPAE, contrat envoyé, signé, preuve.",
+        charge: &[SALARIE, NUMERO],
+        exemple: r#"{"salarie":"FULLER"}"#,
+        rend: "dpae, contrat, signe, preuve : les fichiers partis, lus au journal",
+        refus: &[MANQUE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche { acte: Acte::Lit, ..Fiche::a_ecrire("avenant-apercu") },
+    Fiche {
+        nom: "contrats-imprimer",
+        geste: "Réunir en un PDF les contrats et avenants cochés, à remettre en main propre.",
+        charge: &[MOIS, CONTRATS, Champ { nom: "avenants", sens: "les avenants cochés : [{salarie, debut, numero, mois, effet}]", avance: false }],
+        exemple: r#"{"mois":"2026-11","contrats":[{"salarie":"SVOBODA","debut":"2026-11-02"}]}"#,
+        rend: "impression (le PDF), contrats",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "contrat-recu",
+        geste: "Noter qu'un contrat (ou un avenant) est revenu signé, ou retirer la note.",
+        charge: &[
+            MOIS,
+            SALARIE,
+            DEBUT,
+            NUMERO,
+            Champ { nom: "recu", sens: "faux : retirer la note", avance: true },
+            Champ { nom: "avenant", sens: "le numéro de l'avenant revenu signé", avance: true },
+        ],
+        exemple: r#"{"mois":"2026-11","salarie":"FULLER","debut":"2026-11-27"}"#,
+        rend: "phrase, recu (quand), annuler (la route et la charge qui défont la note)",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 200,
+    },
+];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {

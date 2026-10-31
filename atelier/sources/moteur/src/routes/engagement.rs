@@ -68,7 +68,7 @@ pub const ROUTES: &[Fiche] = &[
         nom: "retirer-engagement",
         geste: "Retirer l'engagement d'une carte, ou le rendre non actif si un envoi est parti.",
         charge: &[MOIS, IDENTITE, Champ { nom: "confirme", sens: "vrai : l'avertissement rendu a été lu, et l'engagement devient non actif", avance: false }],
-        exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0}}"#,
+        exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"confirme":true}"#,
         rend: "phrase : retiré, ou non actif et ce que cela rend à faire ; un envoi est parti : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit",
         refus: &[OPERATION, FORME],
         acte: Acte::Ecrit,

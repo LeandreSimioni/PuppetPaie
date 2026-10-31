@@ -13,17 +13,64 @@ use std::path::PathBuf;
 
 use serde_json::{json, Value};
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, MANQUE, OPERATION};
 use crate::routes::engagement::texte_requis;
 use droit::contexte::Contexte;
 use droit::natures::Nature;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &["modeles-contrat", "modele-contrat-livre", "poser-modele-contrat", "retirer-modele-contrat", "clauses-particulieres"];
+const NATURE: Champ = Champ { nom: "nature", sens: "la nature du contrat : cddu_spectacle, cdd, cdi…", avance: false };
+const QUOI: Champ = Champ { nom: "quoi", sens: "contrat ou avenant", avance: false };
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["poser-modele-contrat", "retirer-modele-contrat", "clauses-particulieres"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "modeles-contrat",
+        geste: "Lister les modèles de contrat et d'avenant, livrés ou propres.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "natures (chacune : ses modèles, livrés ou propres), champs permis, clauses de la compagnie",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "modele-contrat-livre",
+        geste: "Lire le texte d'un modèle livré, pour en partir.",
+        charge: &[NATURE, QUOI],
+        exemple: r#"{"nature":"cddu_spectacle","quoi":"contrat"}"#,
+        rend: "texte",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche { acte: Acte::Ecrit, avance: true, ..Fiche::a_ecrire("poser-modele-contrat") },
+    Fiche {
+        nom: "retirer-modele-contrat",
+        geste: "Remettre le modèle livré à la place de celui de la compagnie.",
+        charge: &[NATURE, QUOI],
+        exemple: r#"{"nature":"cddu_spectacle","quoi":"contrat"}"#,
+        rend: "les modèles, comme modeles-contrat",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "clauses-particulieres",
+        geste: "Écrire les clauses particulières que chaque contrat reprend dès aujourd'hui.",
+        charge: &[Champ { nom: "texte", sens: "les clauses ; vide : aucune", avance: false }],
+        exemple: r#"{"texte":"Les répétitions ont lieu au théâtre."}"#,
+        rend: "phrase",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 60,
+    },
+];
 
 /// La case de la fiche entreprise des clauses particulieres de la compagnie.
 const CLAUSES: &str = "clauses_particulieres";
@@ -199,6 +246,5 @@ fn retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
 fn clauses(ctx: &Contexte, charge: &Value) -> R<Value> {
     let texte = charge.get("texte").and_then(Value::as_str).unwrap_or_default().trim().to_string();
     crate::routes::fiches::poser_entreprise(ctx, CLAUSES, json!(texte), Some(ctx.aujourdhui))?;
-    let neuf = Contexte::nouveau(&ctx.racine, None).map_err(Echec::from)?;
-    modeles(&neuf)
+    Ok(json!({"phrase": "Clauses particulières enregistrées."}))
 }

@@ -12,6 +12,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION};
 use crate::routes::etapes::Moteur;
 use crate::routes::qui_de;
 use droit::contexte::Contexte;
@@ -30,11 +31,60 @@ pub(crate) type R<T> = Result<T, Echec>;
 /// boite simulee ; une route ouvre la vraie (`client_courriel`).
 pub type Ouvrir<'a> = &'a mut dyn FnMut() -> R<Box<dyn Courriel>>;
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &["envoi-apercu", "envoyer-documents", "documents-imprimer", "piece-partie"];
+const SALARIES: Champ = Champ { nom: "salaries", sens: "seulement ceux-ci (les clés de leurs fiches) ; tous sinon", avance: false };
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["envoyer-documents", "documents-imprimer"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "envoi-apercu",
+        geste: "Montrer les documents du mois de chaque salarié, et à qui ils partiraient.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "pret, empechements, informations, avertissements, boite_liee, expediteur, messages (cle, nom, destinataire, pieces, renvoi, changements), deja",
+        refus: &[MANQUE, ILLISIBLE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "envoyer-documents",
+        geste: "Envoyer à chaque salarié ses documents du mois par courriel ; la paie se fige.",
+        charge: &[MOIS, SALARIES],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "phrase, partis (les salariés servis), avertissements (ceux sans courriel, la boîte qui envoie)",
+        refus: &[
+            Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain au moment de l'envoi ; rien n'est écrit" },
+            Refus { classe: "AucunDocument", corriger: "valider un engagement du mois" },
+            Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe), ou imprimer" },
+            OPERATION,
+        ],
+        acte: Acte::Engage,
+        avance: false,
+        phrase: 40,
+    },
+    Fiche {
+        nom: "documents-imprimer",
+        geste: "Imprimer les documents du mois, à remettre en main propre ; la paie se fige.",
+        charge: &[MOIS, SALARIES],
+        exemple: r#"{"mois":"2026-11","salaries":["SVOBODA"]}"#,
+        rend: "impression (le PDF, dans sorties/<mois>/), salaries, avertissements",
+        refus: &[Refus { classe: "AucunDocument", corriger: "valider un engagement du mois" }, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "piece-partie",
+        geste: "Dire où est une pièce partie d'un mois, refaite à l'identique si elle manque.",
+        charge: &[MOIS, Champ { nom: "fichier", sens: "le nom de la pièce, tel que le journal le dit", avance: false }],
+        exemple: r#"{"mois":"2026-11","fichier":"DPAE_Novembre2026.txt"}"#,
+        rend: "chemin (relatif à la compagnie)",
+        refus: &[MANQUE, OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {

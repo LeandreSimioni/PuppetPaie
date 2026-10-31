@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{self, phrase_de, Preuve};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, MOIS, FORME, OPERATION};
 use declarations::dpae::{Chemins, Embauche, Parametres};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
@@ -23,11 +24,99 @@ use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &["dpae", "depot-apercu", "deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
+/// Le fichier d'une DPAE ou d'une DSN, tel que la route qui l'a ecrit le rend.
+const FICHIER: Champ = Champ { nom: "fichier", sens: "le fichier écrit (chemin, ou relatif à la compagnie)", avance: false };
+const QUOI: Champ = Champ { nom: "quoi", sens: "dpae ou dsn", avance: false };
+/// Le fichier de l'exemple : la DPAE de novembre que l'exemple de `dpae` ecrit.
+const DPAE_DE_L_EXEMPLE: &str = r#"{"quoi":"dpae","fichier":"sorties/2026-11/DPAE_Novembre2026.txt"}"#;
+const ILLISIBLE_FICHIER: Refus = Refus { classe: "FileNotFoundError", corriger: "le fichier : celui que dpae ou dsn-a-deposer a rendu" };
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["dpae", "deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "dpae",
+        geste: "Écrire la DPAE des embauches du mois qui n'en ont pas, et la demande de taux.",
+        charge: &[
+            MOIS,
+            Champ { nom: "engagements", sens: "seulement ceux-ci : [{salarie, numero}]", avance: true },
+            Champ { nom: "heure", sens: "l'heure d'embauche, HHMM (0800 par défaut)", avance: true },
+        ],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "fichiers (la DPAE, son .zip, son récapitulatif, les demandes de taux), lignes (salarié, début), dossier",
+        refus: &[OPERATION, MANQUE, FORME],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "depot-apercu",
+        geste: "Dire ce que déclare un fichier DPAE ou DSN, et s'il est testé ou déposé.",
+        charge: &[QUOI, FICHIER],
+        exemple: DPAE_DE_L_EXEMPLE,
+        rend: "ce que le fichier déclare (embauches, ou mois et salariés), deja_depose, repetition (où en est son test)",
+        refus: &[ILLISIBLE_FICHIER, MANQUE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "deposer",
+        geste: "Déposer un fichier DPAE ou DSN : en test, ou en réel après son test.",
+        charge: &[
+            QUOI,
+            FICHIER,
+            Champ { nom: "reel", sens: "vrai : le dépôt réel (le mot de passe du logiciel, tapé par un humain au moment de l'acte)", avance: false },
+            Champ { nom: "forcer", sens: "vrai : l'annule-et-remplace d'une DSN déjà déposée, après l'avertissement", avance: true },
+            Champ { nom: "contournement", sens: "le motif écrit d'un dépôt réel sans test", avance: true },
+        ],
+        exemple: DPAE_DE_L_EXEMPLE,
+        rend: "le dépôt : accepté ou non, le retour de l'organisme, ce qu'est devenue chaque demande de taux",
+        refus: &[
+            Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est parti" },
+            Refus { classe: "RepetitionManquante", corriger: "déposer d'abord ce fichier en test" },
+            Refus { classe: "DsnDejaDeposee", corriger: "rien, ou renvoyer avec forcer si l'annule-et-remplace est voulu" },
+            ILLISIBLE_FICHIER,
+            OPERATION,
+        ],
+        acte: Acte::Engage,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "suivre-depot",
+        geste: "Après un dépôt réel, relever les retours et dire s'il est passé ou refusé.",
+        charge: &[QUOI, Champ { nom: "flux", sens: "le flux du dépôt, tel que deposer le rend", avance: false }, MOIS],
+        exemple: r#"{"quoi":"dpae"}"#,
+        rend: "fini, passe, refuse, incident (le relevé qui n'a pu se faire), phrase et couleur",
+        refus: &[MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 80,
+    },
+    Fiche {
+        nom: "bilan-repetition",
+        geste: "Dire où en est le test d'un fichier, et aller chercher son compte rendu.",
+        charge: &[QUOI, FICHIER],
+        exemple: DPAE_DE_L_EXEMPLE,
+        rend: "conforme (le test qui vaut pour ce fichier), compte_rendu, incident",
+        refus: &[ILLISIBLE_FICHIER, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "filet-preparer",
+        geste: "Tester les DPAE à venir et armer le filet ; la veille le fait d'elle-même.",
+        charge: &[Champ { nom: "tester", sens: "faux : armer sans tester", avance: true }],
+        exemple: r#"{}"#,
+        rend: "testees, armes, desarmes, incidents, occupe (un autre passage est en cours)",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche { acte: Acte::Ecrit, ..Fiche::a_ecrire("dsn-a-deposer") },
+];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
