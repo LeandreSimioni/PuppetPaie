@@ -312,8 +312,15 @@ fn deposer_les_dsn(
         if deja {
             continue;
         }
+        // Un signalement qui ne part pas se nomme : le pas est celui de la DSN du mois.
+        let signalement = envois::depot::lire(&octets).champ("nature").trim() != "01";
         for reel in [false, true] {
-            deposer_dsn_joue(d, ctx, &chemin, reel)?;
+            deposer_dsn_joue(d, ctx, &chemin, reel).map_err(|mut e| {
+                if signalement {
+                    e.message = format!("le signalement {} ne part pas : {}", nom, depot_acte::phrase_de(&e));
+                }
+                e
+            })?;
             a_faire.extend(rattacher(d, ctx)?);
         }
         fait = true;
