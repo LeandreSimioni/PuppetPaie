@@ -706,7 +706,6 @@ impl<'a> Moteur<'a> {
         let mut out = Vec::new();
         for (i, p) in s.paies.iter().enumerate() {
             let (cle, debut) = rangs[i].clone();
-            let k = (cle.clone(), debut.clone());
             let sal = &p.salarie;
             let nat = p.engagement.nat().map_err(plain)?;
             let nom_famille = texte_de(requis(sal, "nom")?);
@@ -787,23 +786,30 @@ impl<'a> Moteur<'a> {
                 pieces.push("aer");
             }
             ligne.insert("pieces".into(), json!(pieces));
-            let mut dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
+            // LA DPAE DE CET ENGAGEMENT : partie (`departs`), et ce qui en est revenu (la ligne qui la porte, par le numero du
+            // contrat). Refusee au bilan, elle n'est pas partie ; la ligne dit quand elle a ete refusee.
+            let numero = p.engagement.numero.clone().unwrap_or_default();
+            let mut dpae_v = g.dpae.get(&(cle.clone(), numero.clone())).filter(|v| vrai(v)).unwrap_or(objet_vide());
+            let mut partie_le = departs.de(&cle, &numero).iter().filter(|d| d.envoi == engagement::departs::Envoi::Dpae).map(|d| d.le.clone()).max();
             // UNE DATE D'EMBAUCHE CHANGEE depuis la version sur laquelle la DPAE est partie (`ARefaire::Dpae`) : la DPAE de
             // l'ancienne date vaut-elle (`crate::regularisation::dpae_d_une_date_changee`) ?
             let mut date_changee = Value::Null;
-            if !vrai(dpae_v) {
-                let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
-                if let Some((avant, deposee)) = ancienne.and_then(|a| g.dpae.get(&(cle.clone(), a.clone())).filter(|v| vrai(v)).map(|v| (a, v))) {
-                    let (vaut, phrase) = crate::regularisation::dpae_d_une_date_changee(&avant, &debut);
-                    if vaut {
-                        dpae_v = deposee;
-                    }
-                    date_changee = json!({"avant": avant, "vaut": vaut, "phrase": phrase});
+            if let Some(avant) = refaire.get(i).and_then(|r| debut_declare(r)) {
+                let (vaut, phrase) = crate::regularisation::dpae_d_une_date_changee(&avant, &debut);
+                if !vaut {
+                    dpae_v = objet_vide();
+                    partie_le = None;
                 }
+                date_changee = json!({"avant": avant, "vaut": vaut, "phrase": phrase});
             }
+            let fait = match partie_le {
+                Some(le) => Value::String(le),
+                None if vrai(get(dpae_v, "refusee")?) => get(dpae_v, "quand")?.clone(),
+                None => Value::Null,
+            };
             let dpae = json!({
                 "date_changee": date_changee,
-                "fait": get(dpae_v, "quand")?,
+                "fait": fait,
                 "passee": vrai(get(dpae_v, "passee")?),
                 "refusee": vrai(get(dpae_v, "refusee")?),
                 "anomalies": ou(get(dpae_v, "anomalies")?, &LISTE_VIDE),

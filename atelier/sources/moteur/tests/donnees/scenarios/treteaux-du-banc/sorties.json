@@ -1265,6 +1265,7 @@
           "embauches": [
             {
               "salarie": "FULLER",
+              "numero": "FU1.26.01",
               "debut": "2026-11-20",
               "fin": "2026-11-21"
             }
@@ -1322,6 +1323,7 @@
           "embauches": [
             {
               "salarie": "FULLER",
+              "numero": "FU1.26.01",
               "debut": "2026-11-20",
               "fin": "2026-11-21"
             }

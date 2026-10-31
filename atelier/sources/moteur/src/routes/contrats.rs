@@ -746,25 +746,22 @@ fn piece(racine: &Path, quoi: &str, quand: &Value, mois: &Value, fichier: &Value
     Ok(json!({"quoi": quoi, "quand": quand, "mois": mois, "fichier": fichier, "existe": piece_existe(racine, mois, fichier)?}))
 }
 
-/// `(c.get("salarie"), c.get("debut")) == (salarie, debut)`.
-fn est_cette_paie(c: &Value, salarie: &Value, debut: &Value) -> R<bool> {
-    Ok(valeurs_egales(get(c, "salarie")?, salarie) && valeurs_egales(get(c, "debut")?, debut))
+/// La ligne `c` (une embauche d'une DPAE, un contrat parti, un contrat revenu) est-elle celle du contrat n° `numero` de ce
+/// salarie ?
+fn est_ce_contrat(c: &Value, salarie: &Value, numero: &Value) -> R<bool> {
+    Ok(vrai(numero) && valeurs_egales(get(c, "salarie")?, salarie) && valeurs_egales(getd(c, "numero", &Value::Null)?, numero))
 }
 
-/// `pieces_parties` : les FICHIERS partis pour une paie -- la DPAE deposee, le
+/// `pieces_parties` : les FICHIERS partis pour le contrat n° `numero` d'un salarie -- la DPAE deposee, le
 /// contrat envoye a la signature, le contrat revenu signe et la preuve de la
 /// signature. Lu au journal ; rien ne part.
 fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = |k: &str| charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
     let salarie = cle("salarie")?;
-    let debut_v = cle("debut")?;
+    let numero = &charge.get("numero").filter(|n| vrai(n)).map(|n| json!(valeur_en_texte(n))).unwrap_or(Value::Null);
     let racine = ctx.racine.as_path();
     let m = Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
-    // Le contrat de ce numero se lit sous le jour ou il est parti, sa date de debut eut-elle change depuis.
-    let numero = charge.get("numero").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
-    let range = json!(envois::etats::debut_au_journal(&lignes, &valeur_en_texte(salarie), &valeur_en_texte(debut_v), &numero)?);
-    let debut = &range;
 
     let mut dpae = Vec::new();
     for l in etats::filtrer(&lignes, Some(DPAE), None, true)? {
@@ -774,7 +771,7 @@ fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
         let embauches = items(getd(ou(get(l, "detail")?, objet_vide()), "embauches", &etats::LISTE_VIDE)?)?;
         let mut trouve = false;
         for e in &embauches {
-            if est_cette_paie(e, salarie, debut)? {
+            if est_ce_contrat(e, salarie, numero)? {
                 trouve = true;
                 break;
             }
@@ -791,7 +788,7 @@ fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
         let parti = if l.pointer("/detail/main_propre").is_some_and(vrai) { "imprimé" } else { "envoyé à la signature" };
         for c in items(getd(ou(get(l, "detail")?, objet_vide()), "contrats", &etats::LISTE_VIDE)?)? {
-            if !(est_cette_paie(&c, salarie, debut)? && vrai(get(&c, "fichier")?)) {
+            if !(est_ce_contrat(&c, salarie, numero)? && vrai(get(&c, "fichier")?)) {
                 continue;
             }
             let quoi = if est(get(&c, "acte")?, "avenant") {
@@ -807,7 +804,7 @@ fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     for l in etats::filtrer(&lignes, Some(CONTRAT_RECU), None, false)? {
         let d = ou(get(l, "detail")?, objet_vide());
-        if !vrai(get(l, "accepte")?) || !est_cette_paie(d, salarie, debut)? {
+        if !vrai(get(l, "accepte")?) || !est_ce_contrat(d, salarie, numero)? {
             continue;
         }
         if vrai(get(d, "fichier_signe")?) {

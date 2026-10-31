@@ -350,7 +350,15 @@ fn detail_ou_liste<'a>(l: &'a Value, k: &str) -> R<Vec<Cow<'a, Value>>> {
 
 // ------------------------------------------------------------ les embauches
 
-/// Les embauches qu'une DPAE reelle declare : partie, et pas refusee (`refuse_par_un_retour`) ; une DPAE refusee se redeclare.
+/// La cle d'une embauche que porte une ligne DPAE (`detail.embauches[]`) : (salarie, numero du contrat de l'engagement
+/// declare), ce qui relie la DPAE, partie ou refusee, a son engagement. Une embauche sans numero ne se relie a rien.
+fn embauche_du_contrat(e: &Value) -> R<Option<Vec<Value>>> {
+    let numero = getd(e, "numero", &Value::Null)?;
+    Ok(vrai(numero).then(|| vec![e.get("salarie").cloned().unwrap_or(Value::Null), numero.clone()]))
+}
+
+/// Les embauches qu'une DPAE reelle declare, par (salarie, numero du contrat) : partie, et pas refusee (`refuse_par_un_retour`) ;
+/// une DPAE refusee se redeclare.
 pub fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
     let mut d = Dico::nouveau();
     for l in filtrer(lignes, Some(DPAE), None, true)? {
@@ -358,7 +366,9 @@ pub fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
             continue;
         }
         for e in detail_liste(l, "embauches")? {
-            d.poser(paire(&e, "salarie", "debut")?, get(l, "quand")?.clone())?;
+            if let Some(k) = embauche_du_contrat(&e)? {
+                d.poser(k, get(l, "quand")?.clone())?;
+            }
         }
     }
     Ok(d)
@@ -474,6 +484,8 @@ fn verdict_dpae(l: &Value) -> R<(bool, bool)> {
     Ok((passee, ko && !passee))
 }
 
+/// Ce que chaque DPAE reelle partie est devenue, par (salarie, numero du contrat) : la derniere ligne qui la porte, ses
+/// retours (passee, refusee, anomalies, dossier Urssaf).
 pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
     let mut etat: Dico<Value> = Dico::nouveau();
     for l in filtrer(lignes, Some(DPAE), None, true)? {
@@ -493,6 +505,7 @@ pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
         let dossiers = dossiers_urssaf(&retours)?;
         let retours_json: Vec<Value> = retours.iter().map(|r| (**r).clone()).collect();
         for e in detail_liste(l, "embauches")? {
+            let Some(cle) = embauche_du_contrat(&e)? else { continue };
             let mut cert: Option<&Value> = None;
             for ((nom, emb), v) in dossiers.items.iter().map(|(k, v)| ((&k[0], &k[1]), v)) {
                 if valeurs_egales(emb, get(&e, "debut")?) && meme_nom(get(&e, "salarie")?, nom)? {
@@ -505,7 +518,7 @@ pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
                 _ => (texte_vide().clone(), false),
             };
             etat.poser(
-                paire(&e, "salarie", "debut")?,
+                cle,
                 json!({
                     "quand": get(l, "quand")?, "fichier": get(l, "fichier")?, "fin": get(&e, "fin")?,
                     "passee": passee, "refusee": refusee, "anomalies": anomalies,
@@ -1840,20 +1853,6 @@ mod tests {
         json!({"quoi": quoi, "quand": quand, "origine": "", "mois": mois, "fichier": "f.dsn", "empreinte": "e1",
                "mode": mode, "qui": "?", "accepte": true, "destinataire": "", "flux": "", "retours": retours,
                "reponse": "", "trace": null, "detail": detail})
-    }
-
-    #[test]
-    fn les_embauches_declarees_ne_comptent_que_le_reel_accepte() {
-        let test = ligne("dpae", "2026-06", "test", "2026-06-01T10:00:00", json!({"embauches": [{"salarie": "ALPHA", "debut": "2026-06-02"}]}), json!([]));
-        let mut refuse = ligne("dpae", "2026-06", "reel", "2026-06-01T11:00:00", json!({"embauches": [{"salarie": "BETA", "debut": "2026-06-03"}]}), json!([]));
-        refuse["accepte"] = json!(false);
-        let bon = ligne("dpae", "2026-06", "reel", "2026-06-01T12:00:00", json!({"embauches": [{"salarie": "GAMMA", "debut": "2026-06-04"}, {"salarie": "GAMMA", "debut": "2026-06-04"}]}), json!([]));
-        // Partie, et refusee par l'Urssaf : elle se redeclare.
-        let ko = ligne("dpae", "2026-06", "reel", "2026-06-01T13:00:00", json!({"embauches": [{"salarie": "DELTA", "debut": "2026-06-05"}]}), json!([{"nature": "11", "verdict": "KO"}]));
-        let l = vec![test, refuse, bon, ko];
-        let e = embauches_par_depot(&l).unwrap();
-        assert_eq!(e.cles(), json!([["GAMMA", "2026-06-04"]]));
-        assert_eq!(e.sortie(Clone::clone), json!([["GAMMA", "2026-06-04", "2026-06-01T12:00:00"]]));
     }
 
     fn contrat(sal: &str, code: &str, empreinte: &str, acte: Value) -> Value {

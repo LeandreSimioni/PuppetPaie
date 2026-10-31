@@ -649,11 +649,11 @@ pub fn deposer_dpae_avec(
 
     let embauches: Vec<Value> = apercu["embauches"]
         .as_array()
-        .map(|a| a.iter().map(|l| json!({"salarie": l["salarie"], "debut": l["debut"], "fin": l["fin"]})).collect())
+        .map(|a| a.iter().map(|l| json!({"salarie": l["salarie"], "numero": l["numero"], "debut": l["debut"], "fin": l["fin"]})).collect())
         .unwrap_or_default();
     // La version de chaque engagement dont l'embauche part : une date d'embauche qui change ensuite le dit.
-    let declare = |cle: &str, e: &Value| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["debut"].as_str() == Some(engagement::debut_brut(e).as_str()));
-    let versions = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
+    let declare = |cle: &str, n: &str| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["numero"].as_str() == Some(n));
+    let versions = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |cle, n, _| declare(cle, n)).map_err(Echec::from)?;
     let d = envois::depot_acte::Depot { chemin: &chemin, octets: &octets, mois: &mois, reel, qui, preuve: &forme, repetition: &repetition, motdepasse: None, versions: &versions };
     let c = match donne.as_deref_mut() {
         Some(c) => Some(c),

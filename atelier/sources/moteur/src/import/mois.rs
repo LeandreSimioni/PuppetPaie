@@ -224,9 +224,10 @@ fn manque(champ: &str, libelle: &str, phrase: String) -> Value {
     json!({"champ": champ, "libelle": libelle, "phrase": phrase})
 }
 
-/// L'etat de la DPAE d'une embauche tenue avant : le journal (reel accepte), puis les certificats de `retours/dpae/`.
-fn dpae_de(journal: &etats::Dico<Value>, certifiees: &[Value], salarie: &str, debut: &str) -> Value {
-    if let Ok(Some(q)) = journal.get(&[json!(salarie), json!(debut)]) {
+/// L'etat de la DPAE d'une embauche tenue avant : le journal (reel accepte, par le numero du contrat), puis les certificats
+/// de `retours/dpae/` (par le salarie et le jour d'embauche qu'ils attestent).
+fn dpae_de(journal: &etats::Dico<Value>, certifiees: &[Value], salarie: &str, numero: &str, debut: &str) -> Value {
+    if let Ok(Some(q)) = journal.get(&[json!(salarie), json!(numero)]) {
         return json!({"couleur": "vert", "courte": "DPAE faite", "phrase": format!("DPAE déposée le {}", etats::quand_lisible(q))});
     }
     let certifiee = certifiees.iter().find(|c| {
@@ -440,7 +441,7 @@ pub(crate) fn cartes(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
         let paie = i.lignes_des_paies().into_iter().find(|p| texte(p, "mois") == mois);
         let brut = Value::Object(i.objet().brut.clone());
         let (s, d) = (texte(&brut, "salarie"), texte(&brut, "debut"));
-        let dpae = dpae_de(&embauches, &certifiees, &s, &d);
+        let dpae = dpae_de(&embauches, &certifiees, &s, &texte(&brut, "numero"), &d);
         cartes.push(carte(ctx, mois, paie.as_ref(), contrat.as_ref(), dpae));
     }
     cartes.sort_by(|a, b| (texte(a, "debut"), texte(a, "nom")).cmp(&(texte(b, "debut"), texte(b, "nom"))));

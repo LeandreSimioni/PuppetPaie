@@ -570,7 +570,7 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
             .and_then(|l| l.get("detail"))
             .and_then(|d| d.get("embauches"))
             .and_then(Value::as_array)
-            .map(|a| a.iter().map(|e| par_cle.get(&(valeur_en_texte(e.get("salarie").unwrap_or(&Value::Null)), valeur_en_texte(e.get("debut").unwrap_or(&Value::Null)))).copied().unwrap_or(&vide)).collect())
+            .map(|a| a.iter().map(|e| par_cle.get(&(valeur_en_texte(e.get("salarie").unwrap_or(&Value::Null)), valeur_en_texte(e.get("numero").unwrap_or(&Value::Null)))).copied().unwrap_or(&vide)).collect())
             .unwrap_or_default();
         passe = !embauches.is_empty() && embauches.iter().all(|x| x.get("passee").is_some_and(vrai));
         refuse = embauches.iter().any(|x| x.get("refusee").is_some_and(vrai));
@@ -954,8 +954,27 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
             _ => {}
         }
     }
+    // LE NUMERO DU CONTRAT DE CHAQUE EMBAUCHE : celui de l'engagement valide du salarie qui commence ce jour-la. C'est lui
+    // qui relie la DPAE, partie ou refusee, a son engagement.
+    let departs = m.departs()?;
+    let mut numeros: HashMap<(String, String), String> = HashMap::new();
+    let mut mois_vus: Vec<String> = Vec::new();
     let vide = json!({});
     let mut lignes = Vec::new();
+    for e in &enrs {
+        let champ = |k: &str| e.iter().find(|(n, _)| *n == k).map(|(_, v)| v.as_str()).unwrap_or("");
+        let m_e: String = iso_depuis_jjmmaaaa(champ("date_embauche")).chars().take(7).collect();
+        if m_e.len() == 7 && !mois_vus.contains(&m_e) {
+            for etat in engagement::etats::tels_qu_ecrits(ctx, &m_e, &departs).map_err(Echec::from)? {
+                let Some(v) = etat.valide() else { continue };
+                let brut = Value::Object(v.objet().brut.clone());
+                if let (Some(cle), Some(n)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) {
+                    numeros.insert((cle, engagement::debut_brut(&brut)), n.to_string());
+                }
+            }
+            mois_vus.push(m_e);
+        }
+    }
     for e in &enrs {
         let champ = |k: &str| e.iter().find(|(n, _)| *n == k).map(|(_, v)| v.as_str()).unwrap_or("");
         let trouve = par_nir.get(champ("nir"));
@@ -974,11 +993,16 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
             _ => format!("type {}", champ("type_contrat")),
         };
         let cle_json = cle.map_or(Value::Null, |c| json!(c));
-        let deja = faites.contient(&[cle_json, json!(debut)])?;
+        let numero = cle.and_then(|c| numeros.get(&(c.clone(), debut.clone()))).cloned();
+        let deja = match &numero {
+            Some(n) => faites.contient(&[cle_json, json!(n)])?,
+            None => false,
+        };
         lignes.push(json!({
             "salarie": cle.map_or("?", |c| c.as_str()),
             "nom": nom,
             "debut": debut,
+            "numero": numero,
             "fin": iso_depuis_jjmmaaaa(champ("date_fin")),
             "type_contrat": type_contrat,
             "heure": champ("heure_embauche"),
