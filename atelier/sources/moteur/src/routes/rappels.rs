@@ -822,14 +822,20 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
 /// LES ACCES AUX ORGANISMES (les mots de passe et les comptes du coffre, `coffre::coffre_etat_de`) : aucun ne bloque.
 /// On configure, on saisit, on fabrique la DPAE et la DSN sans eux ; ils servent a envoyer depuis le logiciel, et chacun
 /// est un choix. « Pour demarrer » propose ceux qui ne sont pas poses, avec ce qu'ils permettent (`sinon` : ce qui se
-/// fait sans eux) ; une compagnie aux envois simules (`bridage::branchement`) n'en propose aucun et le dit, une fois.
+/// fait sans eux) ; une compagnie dont rien ne part (envois simules, ou la demo : `bridage::branchement`) n'en propose
+/// aucun et le dit, une fois.
 fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)> {
     const OU: &str = "Configuration › Mots de passe";
-    if crate::compagnie::bridage::branchement(&ctx.racine).joue() {
+    use envois::branchement::Branchement;
+    let (texte, mots) = match crate::compagnie::bridage::branchement(&ctx.racine) {
+        Branchement::Monde => ("", ""),
+        Branchement::Simulateur => ("Les envois de cette compagnie sont simulés : rien ne part, ses mots de passe et ses comptes ne se demandent pas.", "simulé"),
+        Branchement::Message(_) => ("Dans la démo, rien ne part de cette compagnie : ses mots de passe et ses comptes ne se demandent pas.", "démo"),
+    };
+    if !mots.is_empty() {
         return Ok((Vec::new(), Some(json!({
-            "cle": "acces", "libelle": "Les accès aux organismes", "ou": OU, "champ": null,
-            "texte": "Les envois de cette compagnie sont simulés : rien ne part, ses mots de passe et ses comptes ne se demandent pas.",
-            "pastille": super::pastille("information", "simulé"),
+            "cle": "acces", "libelle": "Les accès aux organismes", "ou": OU, "champ": null, "texte": texte,
+            "pastille": super::pastille("information", mots),
         }))));
     }
     let etat = super::coffre::coffre_etat_de(&ctx.racine, &ctx.entreprise)?;
