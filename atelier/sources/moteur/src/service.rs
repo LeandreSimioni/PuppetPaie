@@ -101,7 +101,8 @@ fn sans_mot_de_passe(entree: &str) -> Resultat<String> {
     Ok(d.to_string())
 }
 
-/// `--texte` : ce que la page lit de la reponse, sans la composer. Une reussite : chaque `phrase` du resultat, dans
+/// `--texte` : ce que la page lit de la reponse, sans la composer. Une reussite : chaque `phrase` du resultat (et les lignes
+/// d'une liste `phrases`), dans
 /// l'ordre ou la route les rend (le resultat entier s'il n'en porte aucune) ; un refus : sa phrase, et ce que la fiche de
 /// cette route dit de corriger pour sa classe.
 fn en_texte(route: &str, rep: &Value) -> String {
@@ -131,6 +132,7 @@ fn phrases_de(v: &Value, phrases: &mut Vec<String>) {
             for (k, x) in m {
                 match x {
                     Value::String(s) if k == "phrase" && !s.is_empty() => phrases.push(s.clone()),
+                    Value::Array(a) if k == "phrases" => phrases.extend(a.iter().filter_map(Value::as_str).map(String::from)),
                     _ => phrases_de(x, phrases),
                 }
             }

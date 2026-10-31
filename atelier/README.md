@@ -21,9 +21,13 @@ Claude sert à parler à ce moteur en français, pas à calculer la paie.
 ## L'arrivée d'une compagnie
 
 ```
-echo '{"route":"pour-demarrer","charge":{}}' | moteur route --racine <compagnie>
+echo '{"route":"compagnies","charge":{}}' | moteur route                                              # celles de l'installation, et leur chemin
+echo '{"route":"compagnie-ajouter","charge":{"nom":"Les Tréteaux"}}' | moteur route                   # en ajouter une
+echo '{"route":"pour-demarrer","charge":{}}' | moteur route --racine <son chemin>
 ```
 
+Sans `--racine`, une route de l'installation (l'accueil des compagnies : les lister, en ajouter une, l'administrateur)
+porte sur l'installation où le moteur est posé. `pour-demarrer`
 dit d'un coup tout ce qui manque à la compagnie (la fiche de l'entreprise,
 l'effectif, le taux AT/MP, l'employeur de la DPAE…), ce que chaque manque
 bloque et où il se saisit ; l'écran le montre dans ses rappels. Rien n'est
@@ -275,7 +279,7 @@ Sécurité › Vos connexions à des applications tierces.
 salarié appuie dessus : sa messagerie s'ouvre sur une réponse toute écrite
 (« Je soussigné(e)… Code de signature : SIG-XXXXXX »), il l'envoie. À
 l'ouverture du logiciel et toutes les vingt minutes ensuite — ou par
-la route `signatures-relever` — la réponse est relevée dans la boîte : le
+« relever maintenant » — la réponse est relevée dans la boîte : le
 journal note le contrat **signé, à l'heure du message**, le message est
 archivé tel quel dans `sorties/<mois>/envoi/` (`Signature_*.eml`, c'est la
 preuve), et le contrat **contresigné** — la case de l'artiste porte qui,
@@ -428,7 +432,6 @@ par l'état du coffre, ni en clair sur le disque (`tests/fichiers/coffre.rs`) ; 
 
 ```bash
 route sauvegarde-maintenant  # les différences
-route sauvegarde-derniere    # où en est la dernière, sans réseau
 moteur restaurer [DOSSIER]  # le retour : redescendre prive/ du Drive (vérifié, rien d'effacé)
 ```
 
@@ -450,7 +453,9 @@ qui ment ailleurs), et le rebut (`*.tmp`).
 
 ## La ligne de commande : les mêmes routes que l'écran
 
-Tout ce que fait la fenêtre passe par une route, et toute route se sert en ligne de commande :
+Tout ce que fait la fenêtre passe par une route, et toute route se sert en ligne de commande. La page ne parle au
+moteur que par ces routes ; la fenêtre ne garde que ses propres gestes (montrer une compagnie, la déverrouiller par son
+mot de passe, ouvrir un fichier, choisir un dossier, se fermer) et celui qui débride la démo, qui n'existe qu'à l'écran :
 
 ```
 moteur routes                     # le catalogue : le geste de chaque route, sa charge, un exemple (--avance : tout)
