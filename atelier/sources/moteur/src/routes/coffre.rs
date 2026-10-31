@@ -63,11 +63,11 @@ pub const ROUTES: &[Fiche] = &[
             MOT_DE_PASSE,
         ],
         exemple: r#"{"service":"urssaf","valeur":"exemple","nom":"FULLER","prenom":"Ada"}"#,
-        rend: ETAT,
+        rend: "l'état du coffre, et ce qu'une tentative de connexion en dit : phrase, couleur",
         refus: &[PREUVE, OPERATION],
         acte: Acte::Ecrit,
         avance: false,
-        phrase: 0,
+        phrase: 400,
     },
     Fiche {
         nom: "coffre-verifier",
@@ -210,7 +210,28 @@ fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     if a_poser {
         coffre(ctx).poser(service.nom, valeur, chaine(charge, "compte")).map_err(en_operation)?;
     }
-    coffre_etat_de(&ctx.racine, &entreprise)
+    let mut etat = coffre_etat_de(&ctx.racine, &entreprise)?;
+    // PUIS UNE TENTATIVE, UNE SEULE (`coffre_verifier`) : un mot de passe faux se voit maintenant, pas au depot. Pas si
+    // l'identifiant est incomplet : l'echec serait certain, et chaque echec rapproche du blocage du compte.
+    let quoi = format!("{} {} enregistré", if a_poser { "Mot de passe" } else { "Compte" }, service.nom);
+    let incomplet = etat["services"].as_array().into_iter().flatten().filter(|s| s["service"] == service.nom).any(|s| {
+        s["identifiant"]["manque"].as_array().is_some_and(|m| !m.is_empty())
+    });
+    let (phrase, couleur) = if incomplet {
+        (format!("{}. Identifiant incomplet : pas de vérification.", quoi), "gris")
+    } else {
+        match crate::compagnie::coffre_verifier::route(ctx, &json!({"service": service.nom})) {
+            Ok(v) if v["ok"] == true => (format!("{}, et vérifié : la connexion passe.", quoi), "vert"),
+            Ok(v) => {
+                let conseil = v["conseil"].as_str().filter(|c| !c.is_empty()).map(|c| format!(" — {}", c)).unwrap_or_default();
+                (format!("{} ; connexion refusée : {}{}", quoi, v["message"].as_str().unwrap_or(""), conseil), "rouge")
+            }
+            Err(e) => (format!("{} ; vérification impossible : {}", quoi, e.message), "rouge"),
+        }
+    };
+    etat["phrase"] = json!(phrase);
+    etat["couleur"] = json!(couleur);
+    Ok(etat)
 }
 
 /// `coffre-oublier` : retire un secret du coffre.
@@ -221,25 +242,29 @@ fn coffre_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     etat_du_coffre(ctx)
 }
 
-/// Le nom et le prenom du compte Urssaf qui depose les DPAE, tels que la charge les dit, s'ils changent ceux de la fiche.
-/// SANS ACCENTS, DANS LA CASSE TAPEE : la DUE MtoM refuse les accents.
+/// Le nom et le prenom du compte Urssaf qui depose les DPAE, tels que la charge les dit, s'ils changent ceux de la fiche ;
+/// `None` s'ils sont ceux de la fiche (vides compris). SANS ACCENTS, DANS LA CASSE TAPEE : la DUE MtoM refuse les accents.
 fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static str, String)>>> {
     let actuel = ctx.entreprise.get("api_dpae").cloned().unwrap_or(Value::Null);
-    let mut propres: Vec<(&'static str, String)> = Vec::new();
-    for cle in ["nom", "prenom"] {
-        let v = optionnel(charge, cle);
-        let brut = if vrai(v) { valeur_en_texte(v) } else { String::new() };
-        let sans = declarations::champs::sans_accents(&brut);
-        let net = sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
-        if net.is_empty() {
-            return Err(refus(format!(
-                "Le {} du compte Urssaf manque. Il est celui du compte ouvert sur urssaf.fr pour la DPAE -- pas forcement celui de la personne qui signe. Rien n'a ete modifie.",
-                cle
-            )));
-        }
-        propres.push((cle, net));
+    let propres: Vec<(&'static str, String)> = ["nom", "prenom"]
+        .into_iter()
+        .map(|cle| {
+            let v = optionnel(charge, cle);
+            let brut = if vrai(v) { valeur_en_texte(v) } else { String::new() };
+            let sans = declarations::champs::sans_accents(&brut);
+            (cle, sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" "))
+        })
+        .collect();
+    if propres.iter().all(|(k, v)| actuel.get(*k).and_then(Value::as_str).unwrap_or("") == v) {
+        return Ok(None);
     }
-    Ok((!propres.iter().all(|(k, v)| actuel.get(*k).and_then(Value::as_str) == Some(v.as_str()))).then_some(propres))
+    if let Some((cle, _)) = propres.iter().find(|(_, v)| v.is_empty()) {
+        return Err(refus(format!(
+            "Le {} du compte Urssaf manque. Il est celui du compte ouvert sur urssaf.fr pour la DPAE -- pas forcement celui de la personne qui signe. Rien n'a ete modifie.",
+            cle
+        )));
+    }
+    Ok(Some(propres))
 }
 
 /// Ecrit le compte DPAE dans la fiche entreprise, par l'ecrivain de la fiche (`fiches::poser_entreprise`), date du jour ;
