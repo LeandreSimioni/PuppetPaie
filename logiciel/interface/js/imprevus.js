@@ -914,7 +914,7 @@ function boiteSignalerArret(a, nature) {
     // Les avis du signalement suivent le message, sur la même ligne.
     dire(r.phrase);
     await rafraichirImprevus();
-    boiteDepot("dsn", r.fichier);
+    boiteDepot({ quoi: "dsn", fichier: r.fichier });
   };
 }
 
@@ -1008,7 +1008,7 @@ function boiteSignalerFin(mois, f) {
     fermerBoite();
     dire(r.phrase);
     await rafraichirImprevus();
-    boiteDepot("dsn", r.fichier);
+    boiteDepot({ quoi: "dsn", fichier: r.fichier });
   };
 }
 

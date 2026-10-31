@@ -116,7 +116,7 @@ async function dessinerMoisHistorique(d) {
       document.querySelector('.onglets button[data-vue="paie"]').click();
       await chargerMois(mois);
       // Un mois dont la DSN est en retard : elle se fabrique et part, en retard.
-      if (d.dataset.retard === "1") deposerLaDsn(mois);
+      if (d.dataset.retard === "1") boiteDepot({ quoi: "dsn", mois }, { testerDabord: true });
     };
   });
 }

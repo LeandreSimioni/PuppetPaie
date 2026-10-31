@@ -694,7 +694,7 @@ pub fn tableau(o: &HashMap<String, String>, inst: &Path, relever: bool) -> Value
             if let Ok(t) = refaire_compagnie(o, &r) {
                 for d in t.get("declarations").and_then(Value::as_array).into_iter().flatten() {
                     if d.get("etape").and_then(Value::as_str) == Some("en_test") {
-                        let charge = json!({"quoi": "dsn", "fichier": d["fichier"]});
+                        let charge = designation(&d);
                         let _ = crate::routes::commande(&o_de(o, &r), &json!({"route": "bilan-repetition", "charge": charge}).to_string());
                     }
                 }
@@ -765,7 +765,8 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
         mdp = Some(m);
     }
     for (racine, nom, d) in &a_faire {
-        let mut charge = json!({"quoi": "dsn", "fichier": d["fichier"], "reel": reel});
+        let mut charge = designation(d);
+        charge["reel"] = json!(reel);
         if let Some(m) = &mdp {
             charge["motdepasse"] = json!(m);
         }
@@ -824,5 +825,14 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             deposer(o, &inst, reel, mdp)
         }
         autre => Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),
+    }
+}
+
+/// La charge de depot qui designe la declaration `d` du tableau : la DSN de son mois, ou le signalement ecrit.
+fn designation(d: &Value) -> Value {
+    if d["genre"] == "dsn" {
+        json!({"quoi": "dsn", "mois": d["mois"]})
+    } else {
+        json!({"quoi": "dsn", "fichier": d["fichier"]})
     }
 }

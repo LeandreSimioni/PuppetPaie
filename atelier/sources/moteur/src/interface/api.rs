@@ -383,7 +383,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             c.insert("pdf".into(), Value::Bool(true));
             route(racine, nom, &Value::Object(c))
         }
-        "dsn-a-deposer" | "demander-signature" => {
+        "depot-apercu" | "demander-signature" => {
             let r = route(racine, nom, charge);
             if r.is_ok() {
                 filet_en_fond(racine);

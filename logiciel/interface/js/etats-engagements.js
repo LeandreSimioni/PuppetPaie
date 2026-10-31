@@ -463,11 +463,10 @@ function boiteAvertissement(a) {
  * en cours depuis un mois précédent n'a pas de DPAE ce mois-ci : il se voit,
  * grisé, avec le mois où elle a été faite.
  *
- * DEUX TEMPS, ET C'EST VOULU : on ÉCRIT le fichier des embauches cochées,
- * puis on ouvre le récapitulatif de dépôt habituel. Écrire n'envoie rien et
- * ne consomme aucun compteur ; le dépôt reste le même geste, avec la même
- * relecture ligne à ligne et le même mot de passe. Le fichier prend un nom
- * horodaté, à côté du fichier complet du mois, jamais par-dessus. */
+ * LES EMBAUCHES COCHÉES SE DÉSIGNENT : le récapitulatif de dépôt habituel
+ * (`boiteDepot`) écrit leur DPAE, ou reprend celle qui dit la même chose,
+ * à côté du fichier complet du mois, jamais par-dessus. Écrire n'envoie rien ;
+ * le dépôt reste le même geste, avec la même relecture et le même mot de passe. */
 async function boiteDpae(mois) {
   if (!mois) { dire("Choisir un mois."); return; }
   let r;
@@ -525,22 +524,10 @@ async function boiteDpae(mois) {
       .map((c) => lignes[+c.dataset.i]);
     if (!choisies.length) return;
     const rendre = occupe(bouton, "Fabrication du fichier en cours…");
-    try {
-      const w = await api("dpae", {
-        mois, engagements: choisies.map((l) => ({ salarie: l.salarie, numero: l.numero })),
-      });
-      fermerBoite();
-      // Le dossier porte le fichier à déposer et son récapitulatif ; c'est le
-      // premier qui se dépose.
-      const f = (w.fichiers || []).find(
-        (x) => /\.txt$/i.test(x.nom) && !/recapitulatif/i.test(x.nom));
-      dire(w.phrase);
-      await rafraichirActions();
-      if (f) boiteDepot("dpae", f.chemin, { testerDabord: true });
-    } catch (e) {
-      rendre();
-      dire(e.message, "erreur");
-    }
+    await boiteDepot({ quoi: "dpae", mois,
+                       engagements: choisies.map((l) => ({ salarie: l.salarie, numero: l.numero })) },
+                     { testerDabord: true });
+    rendre();
   };
 }
 

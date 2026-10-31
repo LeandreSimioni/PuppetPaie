@@ -329,8 +329,8 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     // meme numero.
     let apercu = reussi(&route("apercu", json!({"mois": "2026-12", "lignes": false, "urssaf": false}))).clone();
     assert_eq!(apercu["paies"][0]["numero_bulletin"], json!("2/2026"), "{}", apercu["paies"][0]);
-    let ecrite = reussi(&route("dsn-a-deposer", json!({"mois": "2026-12"}))).clone();
-    let decembre = std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap();
+    let ecrite = reussi(&route("depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}))).clone();
+    let decembre = std::fs::read(ecrite["fichier"].as_str().unwrap()).unwrap();
     let decembre = String::from_utf8_lossy(&decembre);
     // Le taux transmis que la DSN reprise appliquait vaut encore en decembre (CGI, art. 1671, 2) : il continue.
     let identifiant = format!("S21.G00.50.008,{}", identifiant);

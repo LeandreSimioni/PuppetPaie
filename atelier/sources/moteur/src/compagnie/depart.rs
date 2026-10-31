@@ -1,6 +1,6 @@
 //! CE QUI PART SE FABRIQUE A SON DEPART, depuis l'engagement valide (`engagement::etats::validees_du_mois`) :
 //!
-//! - la DSN du mois, quand on la depose (`fabriquer_dsn`, la route `dsn-a-deposer`) : des qu'un engagement du mois est
+//! - la DSN du mois, quand on la depose (`fabriquer_dsn`, que la route `depot-apercu` appelle) : des qu'un engagement du mois est
 //!   valide, sans attendre ni DPAE ni contrat. Le moteur dit si c'est un depot initial ou un annule-et-remplace ; apres la
 //!   veille de l'echeance, un mois deja declare ne se redepose plus (`AnnuleRemplaceHorsDelai`, cahier technique DSN
 //!   §1.4.2) : sa correction part dans la DSN d'un mois suivant (`produire_regularisations::regularisations_pour`) ;
@@ -412,40 +412,15 @@ pub(crate) fn dsn_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>) -> R<Op
 pub(crate) struct DsnFabriquee {
     /// Une DSN par etablissement, le principal d'abord.
     pub(crate) fichiers: Vec<PathBuf>,
-    pub(crate) type_dsn: String,
-    pub(crate) ordre: i64,
-    /// Rien n'a change depuis la DSN deja ecrite : c'est elle qui part.
-    pub(crate) reprise: bool,
     pub(crate) avertissements: Vec<Avis>,
 }
 
 impl DsnFabriquee {
-    pub(crate) fn en_json(&self, mois: &str) -> Value {
-        let decrire = |f: &PathBuf| {
-            json!({
-                "nom": f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                "chemin": f.to_string_lossy(),
-                "octets": std::fs::metadata(f).ok().map(|m| m.len()),
-            })
-        };
-        json!({
-            "mois": mois,
-            "chemin": self.fichiers.first().map(|f| f.to_string_lossy().into_owned()),
-            "fichiers": self.fichiers.iter().map(decrire).collect::<Vec<_>>(),
-            "type": self.type_dsn,
-            "ordre": self.ordre,
-            "remplace": self.type_dsn == "03",
-            "reprise": self.reprise,
-            "avertissements": self.avertissements.iter().filter(|a| !a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
-            "informations": self.avertissements.iter().filter(|a| a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
-        })
+    /// Ce que la fabrique dit avant le depot : les avertissements, et les informations.
+    pub(crate) fn avis(&self) -> Value {
+        let de = |info: bool| self.avertissements.iter().filter(|a| a.info == info).map(|a| a.texte.clone()).collect::<Vec<_>>();
+        json!({"avertissements": de(false), "informations": de(true)})
     }
-}
-
-/// La route `dsn-a-deposer` : `{"mois"}`. La DSN du mois, fabriquee depuis ses engagements valides, prete a deposer.
-pub fn dsn_a_deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = valeur_en_texte(charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
-    Ok(fabriquer_dsn(ctx, &mois, "interface")?.en_json(&mois))
 }
 
 /// LA DSN DE `mois` NE S'ECRIT NI NE PART AVANT SON PREMIER JOUR DE DEPOT : « le dépôt initial de la DSN "normale" peut
@@ -629,8 +604,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     // sienne, sans individu : une DSN est due chaque mois, par SIRET.
     let mut a_ecrire: Vec<(PathBuf, String)> = Vec::new();
     let mut fichiers: Vec<PathBuf> = Vec::new();
-    let (mut type_principal, mut ordre_principal) = ("01".to_string(), 1);
-    for (rang, nic) in nics.iter().enumerate() {
+    for nic in &nics {
         let n = nic.as_str().map(str::to_string);
         let mut nom = match &n {
             Some(x) if *x != principal => format!("DSN_{}_{}.dsn", etiq, x),
@@ -648,9 +622,6 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
                 m.limite(mois)?.jj_mm_aaaa()
             )));
         }
-        if rang == 0 {
-            (type_principal, ordre_principal) = (type_dsn.clone(), ordre);
-        }
         let f_dsn = sortie.join(&nom);
         // LE FICHIER DEJA ECRIT QUI DIT LA MEME CHOSE se reprend (`refabriquer`) : meme declaration, au jour ou il a ete
         // constitue.
@@ -660,8 +631,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         }
         fichiers.push(f_dsn);
     }
-    let reprise = a_ecrire.is_empty();
-    if !reprise {
+    if !a_ecrire.is_empty() {
         std::fs::create_dir_all(&sortie).map_err(|e| os(&sortie, e))?;
         for (f, texte) in &a_ecrire {
             declarations::dsn::ecrire(texte, f).map_err(|m| erreur("OSError", m))?;
@@ -672,7 +642,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             noter_piece_ecrite(&ctx.racine, &cle_de_piece(f), Some(json!(empreinte)))?;
         }
     }
-    Ok(DsnFabriquee { fichiers, type_dsn: type_principal, ordre: ordre_principal, reprise, avertissements })
+    Ok(DsnFabriquee { fichiers, avertissements })
 }
 
 // ------------------------------------------------------------- les documents, a leur envoi

@@ -19,8 +19,8 @@ fn un_engagement_en_saisie_ne_change_pas_la_dsn() {
     let jour = "2026-12-01";
     reussi(&valider_la_carte(&c, "2026-11", "FULLER", jour));
     let dsn = || {
-        let r = route(&c, "dsn-a-deposer", json!({"mois": "2026-11"}), jour);
-        std::fs::read_to_string(reussi(&r)["chemin"].as_str().unwrap()).unwrap()
+        let r = route(&c, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-11"}), jour);
+        std::fs::read_to_string(reussi(&r)["fichier"].as_str().unwrap()).unwrap()
     };
     let seule = dsn();
 

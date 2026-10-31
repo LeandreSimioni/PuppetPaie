@@ -262,7 +262,7 @@ function boutonRappel(r, i) {
     "cloture": "Clôturer " + (r.annee || ""),
     "export-compta": "Exporter pour la compta",
     "revue-spectacles": "Choisir les spectacles",
-    "dpae": r.fichier ? "Envoyer la DPAE" : "Préparer la DPAE",
+    "dpae": r.objet ? "Envoyer la DPAE" : "Préparer la DPAE",
   }[r.quoi] || "Voir";
   return `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>`;
 }
@@ -276,13 +276,13 @@ async function agirSurRappel(r) {
     // cachet passe par là aussi.
     document.querySelector('.onglets button[data-vue="paie"]').click();
     await chargerMois(r.mois);
-    return deposerLaDsn(r.mois);
+    return boiteDepot({ quoi: "dsn", mois: r.mois }, { testerDabord: true });
   }
   if (r.quoi === "dpae") {
     // LA DPAE PRÉPARÉE D'AVANCE : son test est passé, le bouton
-    // ouvre le dépôt de CE fichier — le réel, avec le mot de passe. Sans
+    // ouvre son dépôt (la charge que le moteur rend) — le réel, avec le mot de passe. Sans
     // fichier testé, on va au mois et à la boîte des embauches.
-    if (r.fichier) return boiteDepot("dpae", r.fichier);
+    if (r.objet) return boiteDepot(r.objet);
     document.querySelector('.onglets button[data-vue="paie"]').click();
     await chargerMois(r.mois);
     return boiteDpae(r.mois);

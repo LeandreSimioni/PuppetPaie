@@ -1104,20 +1104,29 @@ impl<'a> Moteur<'a> {
         Ok(Some((etape, premier, refus)))
     }
 
-    /// LE GESTE d'une case orange qui depose (DPAE, DSN) : le chemin du fichier deja ecrit s'il y en a un, sinon `defaut`.
+    /// LE GESTE d'une case orange qui depose (DPAE, DSN), une fois sa declaration ecrite : la charge du depot qui la
+    /// designe (`depots::designee` : le mois, l'etablissement, les embauches que le fichier ecrit declare) ; sinon `defaut`.
     fn action_de_depot(&mut self, mois: &str, quoi: &str, nic: &Value, defaut: Value) -> R<(Value, Option<String>)> {
         let Some((etape, fichier, refus)) = self.chemin_de_depot(mois, quoi, nic)? else { return Ok((defaut, None)) };
-        // Le geste ouvre le recapitulatif du depot (`depot-apercu`), qui prend le chemin du fichier.
-        let fichier = fichier["chemin"].clone();
+        let mut charge = json!({"quoi": quoi, "mois": mois});
+        if quoi == DSN && vrai(nic) {
+            charge["etablissement"] = nic.clone();
+        }
+        if quoi == DPAE {
+            let a = crate::routes::depots::apercu_depot_dpae(self.ctx, &fichier["chemin"])?;
+            let embauches: Vec<Value> = a["embauches"].as_array().into_iter().flatten().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
+            charge["engagements"] = json!(embauches);
+        }
         let nom = if quoi == DSN { "la DSN" } else { "la DPAE" };
+        let deposer = |libelle: String| json!({"geste": "deposer", "libelle": libelle, "charge": charge});
         let action = match etape {
             // Le fichier ecrit ne declare plus la paie : la DSN se refait depuis les engagements valides, et repasse par
             // le test.
             "paie_changee" => action("deposer_dsn", format!("Réécrire {} et la tester…", nom)),
-            "ecrite" => json!({"geste": "deposer_fichier", "libelle": format!("Tester {}…", nom), "fichier": fichier, "quoi": quoi}),
-            "en_test" => json!({"geste": "deposer_fichier", "libelle": "Voir le test en cours…", "fichier": fichier, "quoi": quoi}),
-            "testee" => json!({"geste": "deposer_fichier", "libelle": format!("Envoyer {} testée…", nom), "fichier": fichier, "quoi": quoi}),
-            _ => json!({"geste": "deposer_fichier", "libelle": "Voir le refus du test…", "fichier": fichier, "quoi": quoi}),
+            "ecrite" => deposer(format!("Tester {}…", nom)),
+            "en_test" => deposer("Voir le test en cours…".into()),
+            "testee" => deposer(format!("Envoyer {} testée…", nom)),
+            _ => deposer("Voir le refus du test…".into()),
         };
         Ok((action, refus.map(|r| format!("test refusé : {}", r))))
     }
@@ -1333,7 +1342,7 @@ impl<'a> Moteur<'a> {
                 return Ok((fait(), Value::Null));
             }
             // Avant son premier jour de depot, la case reste a deposer : c'est le depot qui dit le jour
-            // (`compagnie::depart::dsn_a_deposer`).
+            // (`compagnie::depart::fabriquer_dsn`).
             let (a, refus) = self.action_de_depot(mois, DSN, nic, action("deposer_dsn", "Déposer la DSN…".into()))?;
             let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
             return Ok((groupe("a_faire", Value::Null, String::new(), quoi, au_depot, a), Value::Null));

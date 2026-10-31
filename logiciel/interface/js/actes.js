@@ -27,8 +27,8 @@ function ouvrirGeste(action, mois) {
     case "declarer_embauches": return boiteDpae(m);
     case "faire_signer": return boiteSignature(m);
     case "contrats_en_attente": return boiteContratsEnAttente(m);
-    case "deposer_dsn": return deposerLaDsn(m);
-    case "deposer_fichier": return boiteDepot(action.quoi, action.fichier);
+    case "deposer_dsn": return boiteDepot({ quoi: "dsn", mois: m }, { testerDabord: true });
+    case "deposer": return boiteDepot(action.charge);
     case "envoyer_documents": return boiteEnvoi(m);
     case "historique": return ouvrirMoisHistorique(m);
   }
@@ -296,25 +296,19 @@ function corpsDpae(a) {
       déclarations pour un seul contrat.</div>` : ""}`;
 }
 
-/** LA DSN DU MOIS SE FABRIQUE À SON DÉPÔT : le moteur l'écrit depuis les
- *  engagements validés (`dsn-a-deposer`), puis la boîte de dépôt s'ouvre sur
- *  elle, en test d'abord. Ce que le moteur en dit se lit sous la barre. */
-async function deposerLaDsn(mois) {
-  let r;
-  try {
-    r = await api("dsn-a-deposer", { mois });
-  } catch (e) { dire(e.message, "erreur"); return; }
-  const dit = (r.avertissements || []).concat(r.informations || []);
-  if (dit.length) dire(dit.join("  ·  "));
-  await rafraichirActions();
-  if (r.chemin) await boiteDepot("dsn", r.chemin, { testerDabord: true });
-}
-
-async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
+/** LA DÉCLARATION SE DÉSIGNE, ELLE NE SE NOMME PAS PAR SON FICHIER : `charge`
+ *  est ce que le moteur rend pour elle (`{quoi, mois, etablissement?,
+ *  engagements?}`, ou le signalement écrit). Le moteur l'écrit ou la reprend
+ *  (`depot-apercu`), et ce qu'il en dit se lit sous la barre. */
+async function boiteDepot(charge, { testerDabord = false } = {}) {
+  const quoi = charge.quoi;
   let a;
   try {
-    a = await api("depot-apercu", { quoi, fichier });
+    a = await api("depot-apercu", charge);
   } catch (e) { dire(e.message, "erreur"); return; }
+  const dit = [a.phrase, ...(a.avertissements || []), ...(a.informations || [])].filter(Boolean);
+  if (dit.length) dire(dit.join("  ·  "));
+  rafraichirActions();
 
   ouvrirBoite(`
     <h3>Déposer ${quoi === "dsn" ? "la DSN" : "la DPAE"}</h3>
@@ -357,7 +351,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
     const rendre = occupe(document.getElementById(reel ? "d-reel" : "d-test"),
                           reel ? "Dépôt réel en cours…" : "Envoi du test en cours…");
     try {
-      const r = await api("deposer", { quoi, fichier, reel, motdepasse: mdp,
+      const r = await api("deposer", { ...charge, reel, motdepasse: mdp,
                                        forcer, contournement });
       rendre();
       if (!reel) {
@@ -433,7 +427,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
     // « conforme » (le moteur refuse le réel sans lui, DSN comme DPAE).
     for (let tour = 0; tour < 30; tour++) {
       let r = null;
-      try { r = await api("bilan-repetition", { quoi, fichier }); } catch (e) { /* on réessaie */ }
+      try { r = await api("bilan-repetition", charge); } catch (e) { /* on réessaie */ }
       if (r && r.conforme && r.compte_rendu === "ok") {
         ecrire(encartRepetition(r, quoi, a));
         libre();

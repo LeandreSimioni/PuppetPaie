@@ -122,7 +122,7 @@ function poserLeMois(mois, ecran) {
  * qui engagent attendent (`GESTES_QUI_ENGAGENT`) : on ne valide, ne fabrique,
  * ne dépose ni n'envoie sur un écran que le moteur n'a pas confirmé. */
 let VERIF = null;         // { mois, promesse } : la vérification en route
-const GESTES_QUI_ENGAGENT = new Set(["valider-engagement", "contrat-recu", "contrats-imprimer", "dsn-a-deposer", "deposer", "dpae",
+const GESTES_QUI_ENGAGENT = new Set(["valider-engagement", "contrat-recu", "contrats-imprimer", "depot-apercu", "deposer", "dpae",
   "demander-signature", "envoyer-documents", "documents-imprimer",
   "dossier-envoyer", "casc-envoyer", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents",
   "cloture"]);

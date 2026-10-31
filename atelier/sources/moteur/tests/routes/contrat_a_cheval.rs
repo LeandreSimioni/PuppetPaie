@@ -38,8 +38,8 @@ fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
     let ctx = droit::contexte::Contexte::nouveau(&c, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     assert_eq!(moteur::routes::etapes::Moteur::nouveau(&ctx).embauches_a_declarer(None).unwrap(), json!([]));
 
-    let ecrite = reussi(&route(&c, "dsn-a-deposer", json!({"mois": "2026-12"}), jour)).clone();
-    let decembre = String::from_utf8_lossy(&std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap()).to_string();
+    let ecrite = reussi(&route(&c, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), jour)).clone();
+    let decembre = String::from_utf8_lossy(&std::fs::read(ecrite["fichier"].as_str().unwrap()).unwrap()).to_string();
     for attendu in ["S21.G00.40.001,'20112026'", "S21.G00.40.009,'FU1.26.01'", "S21.G00.40.010,'03122026'", "S21.G00.40.013,'4.00'"] {
         assert!(decembre.contains(attendu), "{} manque :\n{}", attendu, decembre);
     }
@@ -71,8 +71,8 @@ fn la_date_de_debut_changee_se_declare_avec_l_ancienne() {
         "engagement": crate::outils::identite(&c, "2026-12", "FULLER", None), "saisie": fuller}), jour);
     assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
 
-    let ecrite = reussi(&route(&c, "dsn-a-deposer", json!({"mois": "2026-12"}), "2026-12-20")).clone();
-    let decembre = String::from_utf8_lossy(&std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap()).to_string();
+    let ecrite = reussi(&route(&c, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), "2026-12-20")).clone();
+    let decembre = String::from_utf8_lossy(&std::fs::read(ecrite["fichier"].as_str().unwrap()).unwrap()).to_string();
     let bloc = "S21.G00.41.001,'31122026'\r\nS21.G00.41.021,'20112026'";
     assert!(decembre.contains("S21.G00.40.001,'19112026'") && decembre.contains(bloc), "{}", decembre);
 }

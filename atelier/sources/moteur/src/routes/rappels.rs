@@ -694,8 +694,8 @@ fn pourquoi_rate(ligne: &Value) -> String {
 
 
 /// Les DPAE a envoyer : celles des engagements valides (`etapes::Moteur::embauches_a_declarer`), a toute distance de
-/// l'embauche, celles en retard comprises. Une par jour d'embauche, avec le fichier
-/// teste s'il y en a un -- le bouton ouvre alors directement son depot. Se tait
+/// l'embauche, celles en retard comprises. Une par jour d'embauche, avec la charge de
+/// son depot si elle est testee -- le bouton ouvre alors directement ce depot. Se tait
 /// des que la DPAE reelle est au journal.
 fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
     let aujourdhui = st.aujourdhui;
@@ -722,7 +722,7 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
             })
             .collect();
         let fichiers: BTreeSet<String> = essais.iter().map(|t| texte(t.get("fichier"))).collect();
-        let (mut fichier, mut pret) = (None, String::new());
+        let (mut teste, mut pret) = (false, String::new());
         if fichiers.len() == 1 {
             let f = essais[0].get("fichier").cloned().unwrap_or(Value::Null);
             if vrai(&f) {
@@ -732,7 +732,7 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
                     let nom = Path::new(&f).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
                     let rep = etats::repetition(&st.journal, DPAE, &empreinte, &nom)?;
                     if vrai_opt(rep.get("conforme")) {
-                        fichier = Some(f);
+                        teste = true;
                         pret = "La DPAE est prête et son test est passé : il reste à l'envoyer.".to_string();
                     } else if let Some(ratee) = rep.get("ratees").and_then(Value::as_array).and_then(|r| r.last()) {
                         pret = format!("Le test automatique a été refusé : {}. À corriger avant l'envoi.", pourquoi_rate(ratee));
@@ -770,7 +770,11 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
         r.mois = Some(mois);
         r.jour = Some(debut);
         r.detail = format!("{} {}", pret, quand);
-        r.fichier = fichier;
+        // Testee : la charge du depot qui la designe (`depots::designee`), que le bouton ouvre.
+        r.objet = teste.then(|| {
+            let engagements: Vec<Value> = groupe.iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
+            json!({"quoi": DPAE, "mois": r.mois, "engagements": engagements})
+        });
         r.en_retard = retard;
         r.engagements = groupe.len() as i64;
         out.push(r);
