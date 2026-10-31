@@ -530,6 +530,9 @@ fn radical(nom: &str) -> &str {
 pub(crate) struct SaisieMois {
     pub(crate) data: Value,
     pub(crate) paies: Vec<Paie>,
+    /// Ce qui manque a chaque engagement du mois (`None` : rien), dans l'ordre de `stock::objets_du_mois` : `data` et
+    /// `paies` ne portent que ceux qui ne manquent de rien.
+    pub(crate) manques: Vec<Option<String>>,
 }
 
 /// LA PAIE DE L'ENGAGEMENT QUE DESIGNE `id` (`engagement::stock::identites`) parmi `paies` : son salarie, son premier jour,
@@ -601,16 +604,22 @@ impl<'a> Moteur<'a> {
 
     // ------------------------------------------------------ la saisie du mois
 
-    /// La saisie d'un mois, chargee sans calculer la paie.
+    /// La saisie d'un mois, chargee sans calculer la paie : ses engagements qui ne manquent de rien
+    /// (`mois::manques_de_la_saisie`), et ce qui manque a chacun de ses engagements, dans son ordre.
     fn charger_saisie(&mut self, mois: &str) -> R<SaisieMois> {
-        let data = engagement::saisie_du_mois(self.racine(), mois).map_err(classer_saisie)?;
+        let mut data = engagement::saisie_du_mois(self.racine(), mois).map_err(classer_saisie)?;
+        let manques = super::mois::manques_de_la_saisie(self.ctx, &data);
+        if let Some(Value::Array(es)) = data.get_mut("engagements") {
+            let mut m = manques.iter();
+            es.retain(|_| m.next().is_some_and(Option::is_none));
+        }
         let mois_dit = data.get("mois").map(en_texte).ok_or_else(|| plain(socle::fichiers::absent("mois")))?;
         let mut paies = engagement::embauches_suivies(self.ctx, &data).map_err(classer_saisie)?;
         let annee: i32 = mois_dit.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| {
             erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(mois_dit.get(..4).unwrap_or(&mois_dit))))
         })?;
         engagement::numeros::numeroter_les_contrats(self.ctx, &mut paies, annee, &self.departs()?).map_err(plain)?;
-        Ok(SaisieMois { data, paies })
+        Ok(SaisieMois { data, paies, manques })
     }
 
     // --------------------------------------------- ce que le journal et la saisie disent
@@ -656,9 +665,21 @@ impl<'a> Moteur<'a> {
         let g = self.globales()?;
         let departs = self.departs()?;
 
+        // Chaque ligne porte `engagement` : l'identite par laquelle sa carte le designe. Un engagement auquel il manque un
+        // fait a sa ligne a lui (`ligne_a_completer`) ; les autres retrouvent leur paie parmi ceux qui ne manquent de rien.
         let mut out = Vec::new();
-        for (e, id) in etats_eng.iter().zip(&ids) {
-            let Some(p) = paie_de(&s.paies, id) else { continue };
+        for (j, (e, id)) in etats_eng.iter().zip(&ids).enumerate() {
+            if let Some(Some(manque)) = s.manques.get(j) {
+                let mut ligne = self.ligne_a_completer(mois, e.objet(), manque)?;
+                ligne["engagement"] = id.clone();
+                out.push(ligne);
+                continue;
+            }
+            let jumeaux_a_completer = (0..j).filter(|&x| s.manques.get(x).is_some_and(Option::is_some) && ids[x]["salarie"] == id["salarie"] && ids[x]["debut"] == id["debut"]).count();
+            let mut id_calcule = id.clone();
+            id_calcule["rang"] = json!(id["rang"].as_u64().unwrap_or_default() as usize - jumeaux_a_completer);
+            let id_calcule = &id_calcule;
+            let Some(p) = paie_de(&s.paies, id_calcule) else { continue };
             let cle = texte_de(requis(&p.salarie, "_cle")?);
             let debut = p.engagement.debut.iso();
             // CE QUI EST A REFAIRE : le present compare a la version sur laquelle chaque envoi est parti.
@@ -705,7 +726,7 @@ impl<'a> Moteur<'a> {
             if avec_brut {
                 // Le brut de sa paie ecrite s'il est valide, celui du calcul de la saisie sinon. Qu'il manque est un defaut du
                 // logiciel, jamais la saisie de l'utilisateur, et la phrase le lui dit.
-                let calcule = calcul.as_ref().and_then(|c| paie_de(&c.paies, id)).map(|x| Value::String(x.brut.to_string()));
+                let calcule = calcul.as_ref().and_then(|c| paie_de(&c.paies, id_calcule)).map(|x| Value::String(x.brut.to_string()));
                 let brut = brut_ecrit(e).or(calcule).ok_or_else(|| Echec {
                     classe: Some("DefautDuLogiciel"),
                     message: format!(
@@ -811,38 +832,15 @@ impl<'a> Moteur<'a> {
             // LA FRISE : un engagement modifie apres un envoi dit quand, et ce qui a change de version en version.
             let frise = e.valide().and_then(|v| engagement::versions::frise(self.ctx, v, &departs, mois));
             ligne.insert("versions".into(), frise.unwrap_or(Value::Null));
+            ligne.insert("engagement".into(), id.clone());
             out.push(Value::Object(ligne));
-        }
-        self.avec_les_engagements_a_completer(mois, out)
-    }
-
-    /// LES ENGAGEMENTS AUXQUELS IL MANQUE UN FAIT (`engagement::stock::A_COMPLETER`), a leur place dans l'ordre de
-    /// l'ecran : hors de toutes les lectures du mois, chacun a sa ligne a lui, qui dit ce qui lui manque
-    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre. Chaque ligne porte `engagement` :
-    /// l'identite de l'engagement, celle par laquelle sa carte le designe (`stock::identites`).
-    fn avec_les_engagements_a_completer(&self, mois: &str, lignes: Vec<Value>) -> R<Vec<Value>> {
-        let a_l_ecran = engagement::stock::objets_a_l_ecran(self.racine(), mois).map_err(plain)?;
-        let ids = engagement::stock::identites(&a_l_ecran);
-        let mut calculees = lignes.into_iter();
-        let mut out: Vec<Value> = Vec::new();
-        for (o, id) in a_l_ecran.iter().zip(ids) {
-            let mut ligne = if o.est_a_completer() {
-                self.ligne_a_completer(mois, o)?
-            } else {
-                match calculees.next() {
-                    Some(l) => l,
-                    None => continue,
-                }
-            };
-            ligne["engagement"] = id;
-            out.push(ligne);
         }
         Ok(out)
     }
 
     /// LA LIGNE D'UN ENGAGEMENT JAMAIS VALIDE AUQUEL IL MANQUE UN FAIT : rien ne se calcule sur lui, rien n'est parti ;
     /// il dit qui, quand, et ce qui lui manque. Ses carres disent « à compléter » (`Point::de`).
-    fn ligne_a_completer(&self, mois: &str, o: &engagement::stock::Objet) -> R<Value> {
+    fn ligne_a_completer(&self, mois: &str, o: &engagement::stock::Objet, manque: &str) -> R<Value> {
         let vue = o.vue(mois).map_err(plain)?.unwrap_or_default();
         let e = Value::Object(vue);
         let cle = engagement::cle_de_l_engagement(self.ctx, &e).unwrap_or_else(|| e.get("salarie").map(valeur_en_texte).unwrap_or_default());
@@ -858,7 +856,7 @@ impl<'a> Moteur<'a> {
             "numero": e.get("numero").filter(|n| vrai(n)).cloned().unwrap_or(Value::Null),
             "debut": engagement::debut_brut(&e), "fin": e.get("fin").filter(|f| vrai(f)).cloned().unwrap_or(Value::Null),
             "valide": Value::Null, "recalcul": Value::Null, "versions": Value::Null, "pieces": [],
-            "a_completer": o.a_completer(), "non_calcule": true,
+            "a_completer": manque, "non_calcule": true,
             "contrat": {"premier_mois": premier_mois, "repris": false},
             "etats": {"dpae": {}, "signature": {}, "documents": {}},
         });

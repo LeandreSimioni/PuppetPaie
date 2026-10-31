@@ -432,7 +432,7 @@ pub fn validees_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Result
 /// validee qui change fait recalculer les mois qui l'ont lue ; la saisie de son mois ne se note pas (sa validation
 /// reecrit ses paies avec elle, et un brouillon n'y est pas).
 pub fn paies_validees(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
-    let Some(saisie) = stock::saisie_du_mois(&ctx.racine, mois, false)? else { return Ok(Vec::new()) };
+    let Some(saisie) = stock::saisie_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
     let data = &saisie.0;
     let valides = valides_lues(ctx, mois)?;
     socle::fichiers::noter_valeur(&format!("paies {}", mois), empreinte_des_paies(&valides, mois));
@@ -886,11 +886,6 @@ fn nouvelle_version(o: &mut Objet, actuelle: &Value, n: u64, siens: &[Depart], l
 /// une validation qui ne change rien garde le numero. Refus : un mois qui ne se calcule pas ; rien n'est ecrit.
 pub fn valider(ctx: &Contexte, mois: &str, rang: usize, departs: &Departs) -> Resultat<Valide> {
     let mut o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
-    // La saisie que l'ecran montre lui fait manquer un fait (`stock::A_COMPLETER`) : c'est elle qui se valide, et elle
-    // ne se calcule pas. Le refus est ce qui manque.
-    if let Some(manque) = o.a_completer() {
-        return Err(manque);
-    }
     // Le numero du contrat d'abord : la paie de chaque mois le porte, et le calcul lit l'engagement ecrit. Un calcul
     // refuse rend l'engagement tel qu'il etait.
     let avant = o.clone();

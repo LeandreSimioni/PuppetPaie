@@ -834,11 +834,13 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
 /// manque un fait attend qu'on le complete, et un refus du moteur arrete le pas, qui le dit.
 fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi: &str, quand: &str) -> Vec<String> {
     pas(d, quoi, quand, |ctx| {
-        let objets = engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?;
+        let objets = engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(Echec::from)?;
         let ids = engagement::stock::identites(&objets);
+        let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+        let manques = crate::routes::mois::manques_de_la_saisie(ctx, &vue);
         let mut fait = false;
-        for (o, id) in objets.iter().zip(ids) {
-            if o.est_valide() || o.est_importe() || o.a_completer().is_some() || engagement::debut_brut(&Value::Object(o.brut.clone())) > jusqu_au.iso() {
+        for ((o, id), manque) in objets.iter().zip(ids).zip(manques) {
+            if o.est_valide() || o.est_importe() || manque.is_some() || engagement::debut_brut(&Value::Object(o.brut.clone())) > jusqu_au.iso() {
                 continue;
             }
             let saisie = o.vue(mois).map_err(Echec::from)?.unwrap_or_default();

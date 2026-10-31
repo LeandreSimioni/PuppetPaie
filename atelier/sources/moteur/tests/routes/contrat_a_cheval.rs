@@ -67,7 +67,7 @@ fn des_heures_a_cheval_se_disent_sur_la_carte_de_leur_mois() {
     let (_, refus) = crate::outils::refus(&route(&c, "valider-engagement", valider.clone(), jour));
     assert!(refus.contains("01/12/2026") && refus.contains("carte de décembre 2026"), "le refus ne dit ni le jour ni la carte : {}", refus);
 
-    let decembre = engagement::stock::vue_a_l_ecran(&c, "2026-12").unwrap().unwrap();
+    let decembre = engagement::stock::vue_du_mois(&c, "2026-12").unwrap().unwrap();
     let k = decembre["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "FULLER" && e["debut"] == "2026-11-29").unwrap();
     let mut carte = decembre["engagements"][k].clone();
     carte["lignes"][0]["quantite"] = json!(8);
