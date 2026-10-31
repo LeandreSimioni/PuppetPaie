@@ -1078,6 +1078,22 @@
    "ecran": true
   },
   {
+   "_note": "LE COMPTE QUI DEPOSE LES DPAE : la connexion MtoM de l'Urssaf identifie le declarant par son SIRET, son nom et son prenom, sans accent (`envois::depot::identifiants`). Il se pose avec le mot de passe Urssaf (route `coffre-poser`), pas dans la fiche.",
+   "cle": "api_dpae",
+   "libelle": "Le compte Urssaf qui dépose les DPAE",
+   "forme": "structure",
+   "aide": "Le nom et le prénom du compte ouvert sur urssaf.fr pour la DPAE : ils se saisissent avec son mot de passe.",
+   "ou": "Configuration › Mots de passe, ligne Urssaf (DPAE)",
+   "declare": false,
+   "ecran": false,
+   "champs": [
+    {"cle": "siret", "libelle": "SIRET", "forme": "chiffres"},
+    {"cle": "nom", "libelle": "Nom", "forme": "texte", "exige_par": ["depot_dpae"]},
+    {"cle": "prenom", "libelle": "Prénom", "forme": "texte", "exige_par": ["depot_dpae"]},
+    {"cle": "service", "libelle": "Service", "forme": "texte"}
+   ]
+  },
+  {
    "cle": "courriel_nom",
    "libelle": "Nom affiché dans les courriels",
    "forme": "affichage",

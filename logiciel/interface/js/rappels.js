@@ -74,7 +74,7 @@ function htmlPoses() {
 function htmlDemarrage(manques) {
   if (!manques || !manques.length) return htmlPoses();
   // CHAQUE CHOSE MÈNE À SA CASE : le libellé conduit au champ que le
-  // moteur nomme (`champ`, celui que l'écran montre : `demarrage::a_l_ecran`),
+  // moteur nomme (`champ`, celui que l'écran montre),
   // ou à l'onglet qu'il nomme (`ou`) quand ce n'est pas une case.
   const ligne = (m) => `
     <li>
@@ -106,13 +106,13 @@ async function allerAuManque(champ, ou, salarie) {
   if (document.getElementById("vue-configuration").classList.contains("cachee")) {
     document.querySelector('.onglets button[data-vue="configuration"]').click();
   }
-  const fiche = salarie ? "salarie" : /Organismes/.test(ou) ? "organismes" : "entreprise";
+  const fiche = salarie ? "salarie" : /Organismes/.test(ou) ? "organismes" : /Mots de passe/.test(ou) ? "coffre" : "entreprise";
   if (salarie) await ouvrirFicheImportee("salarie", salarie);
   else {
     const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
     if (sous && !sous.classList.contains("actif")) sous.click();
   }
-  if (fiche === "organismes" || !champ) return;
+  if (fiche === "organismes" || fiche === "coffre" || !champ) return;
   const trouver = () => champ === "taux_atmp" ? document.getElementById("atmp-valeur")
     : document.querySelector(`#config-formulaire [data-cle="${CSS.escape(champ)}"]:not([type="hidden"])`)
       || document.querySelector(`#config-formulaire [data-sous-de="${CSS.escape(champ)}"]:not([type="hidden"])`);
