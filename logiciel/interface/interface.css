@@ -1577,7 +1577,6 @@ section.bloc > .encart { margin-bottom: 10px; }
 .etapes .arbre .vert { stroke: var(--succes); }
 .etapes .arbre .orange { stroke: var(--alerte); }
 /* l'annule-et-remplace qu'aucune modification n'exige : un lien discret sous le panneau, hors de l'arbre. */
-.etape-second { display: block; margin: -10px 0 18px; padding: 0 2px; font-size: 12px; text-align: left; }
 .reprise { margin: 0 0 14px; font-size: 12px; }
 .reprise > summary { cursor: pointer; color: var(--discret); padding: 6px 0;
                      border-top: 1px solid var(--bord); }

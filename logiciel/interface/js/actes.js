@@ -92,12 +92,7 @@ async function dessinerActions(mois) {
     const cases = (et.groupes || []).map((g) => dessinerCase(et, k, g, colonnes, neuves, gestes)).join("");
     return `<li class="rangee"><div class="kases" style="grid-template-columns:${gabarit}">${cases}</div></li>`;
   }).join("");
-  // Le geste second d'une étape (l'annule-et-remplace sans nécessité) : un lien sous le panneau, hors de l'arbre.
-  const seconds = (e.etapes || []).filter((et) => et.second).map((et) => {
-    gestes.push(et.second);
-    return `<button class="lien etape-second" data-geste="${gestes.length - 1}">${echapper(et.second.libelle)}</button>`;
-  }).join("");
-  cible.innerHTML = `<ol class="etapes">${rangees}<svg class="arbre" aria-hidden="true"></svg></ol>${seconds}`;
+  cible.innerHTML = `<ol class="etapes">${rangees}<svg class="arbre" aria-hidden="true"></svg></ol>`;
 
   cible.querySelectorAll("[data-geste]").forEach((d) => {
     const ouvrir = (ev) => { ev.preventDefault(); ouvrirGeste(gestes[Number(d.dataset.geste)], mois); };

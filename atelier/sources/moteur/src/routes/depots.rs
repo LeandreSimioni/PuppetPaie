@@ -527,7 +527,8 @@ fn requis<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 
 /// LA DECLARATION QUE LA CHARGE DESIGNE (son chemin), et ce que son ecriture a dit. `{quoi:"dsn", mois, etablissement?}` :
 /// la DSN du mois, fabriquee depuis les engagements valides (`fabriquer_dsn`, qui reprend tel quel le fichier qui dit la
-/// meme chose : le test vaut pour le reel, regle 10). `{quoi:"dpae", mois, engagements?}` : la DPAE de ces embauches, ou
+/// meme chose : le test vaut pour le reel, regle 10) ; partie en reel, celle qui est partie, sauf si elle est a corriger.
+/// `{quoi:"dpae", mois, engagements?}` : la DPAE de ces embauches, ou
 /// de celles qui restent a declarer (`dpae`, meme reprise) ; une fois partie, il n'en reste aucune a declarer, et c'est
 /// celle qui est partie (`partie`), jamais refaite (regle 4). `{quoi, fichier}` : un signalement ecrit.
 pub(crate) fn designee(ctx: &Contexte, charge: &Value) -> R<(Value, Value)> {
@@ -536,6 +537,16 @@ pub(crate) fn designee(ctx: &Contexte, charge: &Value) -> R<(Value, Value)> {
         return Ok((requis(charge, "fichier")?.clone(), json!({})));
     };
     if etats::est(quoi, "dsn") {
+        // UNE DSN PARTIE EN REEL NE SE REFAIT QUE SI CE QU'ELLE A EMPORTE EST A CORRIGER (regle 4) : un engagement du
+        // mois change depuis, ajoute ou retire (`Moteur::etat_remplacement`, `a_envoyer`) ; sinon, c'est celle qui est
+        // partie. Une DSN refusee au bilan n'est pas partie (regle 5).
+        let nic = charge.get("etablissement").filter(|n| vrai(n)).cloned().unwrap_or(Value::Null);
+        let e = crate::compagnie::etat_dsn::du_mois(ctx, &mois, &nic)?;
+        if e.deposee() && !e.refusee() && !vrai(&crate::routes::etapes::Moteur::nouveau(ctx).etat_remplacement(&mois, &nic)?["a_envoyer"]) {
+            if let Some(c) = partie(ctx, charge)? {
+                return Ok((c, json!({})));
+            }
+        }
         let dsn = crate::compagnie::depart::fabriquer_dsn(ctx, &mois, "interface")?;
         let chemin = match charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte) {
             Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),

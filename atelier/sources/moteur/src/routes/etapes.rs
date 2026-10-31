@@ -1168,7 +1168,7 @@ impl<'a> Moteur<'a> {
         };
 
         // --- Les colonnes : chaque engagement a son point, la DSN celui de son etablissement.
-        let (classes, second) = self.groupes_dsn(mois)?;
+        let classes = self.groupes_dsn(mois)?;
         let classe_de = |p: &Value| -> usize {
             let nic = valeur_en_texte(&p["etablissement"]);
             classes.iter().position(|(nics, _)| nics.contains(&nic)).unwrap_or(0)
@@ -1282,7 +1282,7 @@ impl<'a> Moteur<'a> {
         let etapes = vec![
             json!({"cle": DPAE, "nom": "DPAE", "groupes": rien(dpae)}),
             json!({"cle": SIGNATURE, "nom": "Contrats", "groupes": rien(contrats)}),
-            json!({"cle": DSN, "nom": "DSN", "groupes": rien(dsn), "second": second}),
+            json!({"cle": DSN, "nom": "DSN", "groupes": rien(dsn)}),
             json!({"cle": DOCUMENTS, "nom": "Documents", "groupes": rien(documents), "detail": presentes.join(", ")}),
         ];
         let noms: Vec<String> = cols.iter().map(|c| c.nom.clone()).collect();
@@ -1294,21 +1294,17 @@ impl<'a> Moteur<'a> {
     /// etablissement a la sienne (`groupes_dsn_de`). Les etablissements au meme point (meme etat, phrase et echeance)
     /// forment une classe, une case ; quand ils ne sont pas tous au meme point, la case d'une classe qui n'est pas faite
     /// nomme ses etablissements (« Lyon refusée · l'éditeur est prévenu »). Rend les classes (leurs NIC, leur case), le
-    /// principal dans la premiere, et le geste de plus (un annule-et-remplace admis sans necessite) du principal.
-    fn groupes_dsn(&mut self, mois: &str) -> R<(Vec<(Vec<String>, Value)>, Value)> {
+    /// principal dans la premiere.
+    fn groupes_dsn(&mut self, mois: &str) -> R<Vec<(Vec<String>, Value)>> {
         let ent = self.ctx.entreprise_du_mois(mois).map_err(plain)?;
         if droit::bareme::secondaires(&ent).is_empty() {
-            let (g, second) = self.groupes_dsn_de(mois, &Value::Null)?;
-            return Ok((vec![(vec![droit::bareme::nic_principal(&ent)], g)], second));
+            let g = self.groupes_dsn_de(mois, &Value::Null)?;
+            return Ok(vec![(vec![droit::bareme::nic_principal(&ent)], g)]);
         }
         let point = |g: &Value| (valeur_en_texte(&g["etat"]), valeur_en_texte(&g["phrase"]), valeur_en_texte(&g["echeance"]["jour"]));
         let mut classes: Vec<(Vec<String>, Value)> = Vec::new();
-        let mut second = Value::Null;
-        for (rang, nic) in declarations::dsn::nics(&ent).into_iter().enumerate() {
-            let (g, s) = self.groupes_dsn_de(mois, &json!(nic))?;
-            if rang == 0 {
-                second = s;
-            }
+        for nic in declarations::dsn::nics(&ent) {
+            let g = self.groupes_dsn_de(mois, &json!(nic))?;
             match classes.iter_mut().find(|(_, x)| point(x) == point(&g)) {
                 Some((nics, _)) => nics.push(nic),
                 None => classes.push((vec![nic], g)),
@@ -1321,37 +1317,34 @@ impl<'a> Moteur<'a> {
                 g["phrase"] = json!(format!("{} {}", noms.join(", "), valeur_en_texte(&g["quoi"])));
             }
         }
-        Ok((classes, second))
+        Ok(classes)
     }
 
-    /// LES GROUPES DE LA DSN de l'etablissement `nic` (`Null` : la compagnie n'en a qu'un), et le geste de plus qu'elle
-    /// offre (un annule-et-remplace encore admis alors que rien ne l'exige). L'echeance : celle du depot (`echeance_dsn`, le jour meme a midi) ; la veille a minuit pour un
+    /// LES GROUPES DE LA DSN de l'etablissement `nic` (`Null` : la compagnie n'en a qu'un). Une DSN partie ne se refait que
+    /// si ce qu'elle a emporte est a corriger. L'echeance : celle du depot (`echeance_dsn`, le jour meme a midi) ; la veille a minuit pour un
     /// annule-et-remplace ; apres un refus, celle du depot qui la reprend.
     ///
     /// LA DSN REFUSEE n'est pas integree : celle qui la reprend est un depot initial (cahier technique DSN 2026.1,
     /// § 1.4.2, `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt` : le depot initial va jusqu'au jour de
     /// l'echeance a midi, l'annule-et-remplace jusqu'a la veille a minuit). INFERENCE : un depot refuse n'ouvre pas
     /// l'annule-et-remplace, puisqu'il n'y a rien a annuler ; l'echeance de la reprise est celle du depot initial.
-    fn groupes_dsn_de(&mut self, mois: &str, nic: &Value) -> R<(Value, Value)> {
+    fn groupes_dsn_de(&mut self, mois: &str, nic: &Value) -> R<Value> {
         let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         let au_depot = echeance_dsn(echeance.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)");
         let e = crate::compagnie::etat_dsn::du_mois(self.ctx, mois, nic)?;
         let partie = e.deposee();
         if !partie {
             if !self.dsn_a_declarer(mois, nic)? {
-                return Ok((fait(), Value::Null));
+                return Ok(fait());
             }
             // Avant son premier jour de depot, la case reste a deposer : c'est le depot qui dit le jour
             // (`compagnie::depart::fabriquer_dsn`).
             let (a, refus) = self.action_de_depot(mois, DSN, nic, action("deposer_dsn", "Déposer la DSN…".into()))?;
             let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
-            return Ok((groupe("a_faire", Value::Null, String::new(), quoi, au_depot, a), Value::Null));
+            return Ok(groupe("a_faire", Value::Null, String::new(), quoi, au_depot, a));
         }
         if e.refusee() {
-            return Ok((
-                groupe("refuse", Value::Null, String::new(), "refusée · l'éditeur est prévenu".into(), au_depot, action("historique", "Voir le bilan…".into())),
-                Value::Null,
-            ));
+            return Ok(groupe("refuse", Value::Null, String::new(), "refusée · l'éditeur est prévenu".into(), au_depot, action("historique", "Voir le bilan…".into())));
         }
         // Partie : faite, tant qu'aucun retour ne revient KO. Ce qui la rouvre : une paie modifiee depuis.
         let r = self.etat_remplacement(mois, nic)?;
@@ -1362,7 +1355,7 @@ impl<'a> Moteur<'a> {
             let ecrit = self.chemin_de_depot(mois, DSN, nic)?.is_some();
             let (a, refus) = if ecrit { self.action_de_depot(mois, DSN, nic, Value::Null)? } else { (action("deposer_dsn", libelle), None) };
             let quoi = refus.map_or_else(|| "à refaire".to_string(), |x| format!("à refaire · {}", x));
-            return Ok((groupe("a_faire", Value::Null, String::new(), quoi, veille, a), Value::Null));
+            return Ok(groupe("a_faire", Value::Null, String::new(), quoi, veille, a));
         }
         if vrai(&r["saisie_modifiee"]) {
             // Apres la veille : la correction part dans la DSN qui porte (la premiere d'un mois suivant qui n'est pas
@@ -1371,20 +1364,16 @@ impl<'a> Moteur<'a> {
             let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &suivant).map_err(|m| erreur("ValueError", m))?;
             let mut a = action("deposer_dsn", format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)));
             a["mois"] = json!(suivant);
-            return Ok((
-                groupe(
-                    "a_faire",
-                    Value::Null,
-                    String::new(),
-                    format!("à corriger dans la DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)),
-                    echeance_dsn(e2.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"),
-                    a,
-                ),
+            return Ok(groupe(
+                "a_faire",
                 Value::Null,
+                String::new(),
+                format!("à corriger dans la DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)),
+                echeance_dsn(e2.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"),
+                a,
             ));
         }
-        let second = if vrai(&r["admis"]) { action("deposer_dsn", libelle) } else { Value::Null };
-        Ok((fait(), second))
+        Ok(fait())
     }
 
     /// LA DSN DE `mois` A-T-ELLE QUELQUE CHOSE A DECLARER pour l'etablissement `nic` (`Null` : le seul) ? Elle est a
