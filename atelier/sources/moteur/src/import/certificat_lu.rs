@@ -128,19 +128,6 @@ impl Certificat {
         }
         (!m.is_empty()).then(|| format!("certificat Congés Spectacles dont {} ne se lit pas", m.join(", ")))
     }
-
-    /// Ce qu'il dit du salarie, sous la forme qu'un bulletin lu donne (pour caviarder ce qui partirait chez l'editeur).
-    pub fn salarie(&self) -> crate::import::bulletin_lu::Salarie {
-        crate::import::bulletin_lu::Salarie {
-            nom_complet: self.nom_complet.clone(),
-            nom: self.nom.clone(),
-            prenom: self.prenom.clone(),
-            nir: self.nir.as_ref().map(|n| format!("{}{}", n, self.cle_nir.clone().unwrap_or_default())),
-            adresse: self.adresse.clone(),
-            emploi: self.emploi.clone(),
-            ..Default::default()
-        }
-    }
 }
 
 /// Une page de certificat : ce qui s'en lit, ou pourquoi ce n'est pas repris (et ce qui s'en est lu quand meme).
