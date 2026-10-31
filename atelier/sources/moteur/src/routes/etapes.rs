@@ -268,7 +268,6 @@ fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
 }
 
-/// `un if k == 1 else des` : le pluriel de `_pluriel`, qui compte zero au pluriel.
 /// Le nom d'un etablissement dans une case : sa commune (celle de la fiche entreprise pour le principal), sinon son NIC.
 fn nom_de_l_etablissement(ent: &Value, nic: &str) -> String {
     let fiche = if nic == droit::bareme::nic_principal(ent) { Some(ent.clone()) } else { droit::bareme::entree(ent, nic) };

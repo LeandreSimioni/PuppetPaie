@@ -48,7 +48,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let attendues = r.get("attendues").and_then(Value::as_i64).unwrap_or(0);
     let code = if incidents.is_empty() { 0 } else { 1 };
     if json {
-        // `_signatures_json` : sans le `resume`, que la route ajoute pour l'ouverture.
+        // Sans le `resume`, que la route ajoute pour l'ouverture.
         if let Value::Object(o) = &mut r {
             o.remove("resume");
         }

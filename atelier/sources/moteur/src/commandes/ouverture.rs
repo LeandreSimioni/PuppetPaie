@@ -127,7 +127,7 @@ fn en_json(r: &Value) -> Value {
     })
 }
 
-/// `_dire_ouverture`, sans les lignes `Sources` et `Version` (non portees).
+/// Le bilan d'ouverture, sans les lignes `Sources` et `Version` (non portees).
 fn dire_ouverture(r: &Value) {
     let secondes = r.get("secondes").and_then(Value::as_f64).unwrap_or(0.0);
     dire!("Ouverture du {} ({:.1} s)", champ(r, "quand"), secondes);

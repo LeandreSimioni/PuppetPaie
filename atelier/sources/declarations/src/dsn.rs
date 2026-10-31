@@ -1535,7 +1535,7 @@ profession intermediaire, 06 employe, 07 ouvrier), et {}. Il ne se devine pas : 
     Ok((sc, rc))
 }
 
-/// Les blocs 40 a 71 d'un contrat (`_bloc_contrat`). `emplois` : le code emplois multiples (`40.036`) du contrat,
+/// Les blocs 40 a 71 d'un contrat. `emplois` : le code emplois multiples (`40.036`) du contrat,
 /// que `emplois_multiples` tire des autres contrats de la periode.
 #[allow(clippy::too_many_arguments)]
 pub fn bloc_contrat(
@@ -1545,7 +1545,7 @@ pub fn bloc_contrat(
     bloc_contrat_fctu(f, p, ent, orgs, rang, bar, fin_de_contrat, arrets, nature_dsn, None, emplois)
 }
 
-/// `_bloc_contrat` avec `fin_fctu` : la fin du contrat d'un signalement de
+/// Les blocs d'un contrat avec `fin_fctu` : la fin du contrat d'un signalement de
 /// fin de contrat (blocs 62 et 63, `fctu::bloc_62_63`) a la place de celle
 /// d'une mensuelle.
 #[allow(clippy::too_many_arguments)]

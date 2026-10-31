@@ -1389,7 +1389,7 @@ pub fn lancer_relais(inst: &Path, version: &str) -> R<bool> {
 }
 
 /// Attend la fin du processus `pid` (60 s au plus). Vrai s'il est parti. Sous Windows, le processus lui-meme (son numero,
-/// qui ne se confond avec aucun autre) ; `_inst` n'y sert pas.
+/// qui ne se confond avec aucun autre) ; le dossier d'installation n'y sert pas.
 #[cfg(windows)]
 fn attendre_fin(pid: u32, _inst: &Path) -> bool {
     extern "system" {

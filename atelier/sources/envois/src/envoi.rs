@@ -1268,7 +1268,7 @@ fn pourcent(s: &str) -> String {
     o
 }
 
-/// `Message.set_param` / `_formatparam` : le parametre tel qu'il est range dans l'en-tete.
+/// Le parametre d'un en-tete (`nom=valeur`) tel qu'il est range, entre guillemets si la valeur le demande.
 fn parametre_range(nom: &str, valeur: &str) -> String {
     if valeur.is_empty() {
         nom.to_string()
@@ -1290,7 +1290,7 @@ fn plier_params(nom: &str, principal: &str, params: &[(String, String)]) -> Stri
     if nom.len() + 2 + range.len() <= limite || params.is_empty() {
         return format!("{}: {}\n", nom, range);
     }
-    // Le tout ne tient pas : `_fold_mime_parameters`, un parametre apres l'autre.
+    // Le tout ne tient pas : un parametre apres l'autre.
     let mut lignes: Vec<String> = vec![format!("{}: {};", nom, principal)];
     let mut max = MAXLEN;
     for (n, v) in params {
@@ -1344,7 +1344,7 @@ fn plier_params(nom: &str, principal: &str, params: &[(String, String)]) -> Stri
     lignes.join("\n") + "\n"
 }
 
-// ----------------------------------------------------- un en-tete libre : `get_unstructured` et `_refold_parse_tree`
+// ----------------------------------------------------- un en-tete libre 
 
 #[derive(Clone, Debug)]
 enum Jeton {
@@ -1369,9 +1369,9 @@ fn est_blanc(c: char) -> bool {
 
 use socle::texte::blanc as est_espace_unicode;
 
-/// `get_unstructured`, sans mots codes : des blancs et des mots. Un blanc COMMENCE par un espace ou une tabulation
-/// et `get_fws` (`value.lstrip()`) l'etend a tous les blancs d'Unicode qui suivent, l'espace insecable compris ;
-/// un mot va jusqu'au premier espace ou a la premiere tabulation (`_wsp_splitter`), l'espace insecable y compris.
+/// Un en-tete libre decoupe, sans mots codes, en blancs et en mots. Un blanc COMMENCE par un espace ou une tabulation
+/// et s'etend a tous les blancs d'Unicode qui suivent, l'espace insecable compris ;
+/// un mot va jusqu'au premier espace ou a la premiere tabulation, l'espace insecable y compris.
 fn jetons_de(valeur: &str) -> Vec<Jeton> {
     let mut jetons = Vec::new();
     let mut reste = valeur;
@@ -1427,7 +1427,7 @@ fn mot_code(s: &[char]) -> String {
     }
 }
 
-/// `str(get_unstructured(texte))` : les mots codes sont decodes, le blanc entre deux mots codes s'efface.
+/// Le texte d'un en-tete libre : les mots codes sont decodes, le blanc entre deux mots codes s'efface.
 fn decoder_libre(s: &str) -> String {
     enum Piece {
         Blanc(String, bool),
@@ -1592,7 +1592,7 @@ enum Morceau {
     Seul(Jeton),
 }
 
-/// L'en-tete `nom: valeur` d'un texte libre, plie comme `_refold_parse_tree` (nom et `: ` compris, \n final).
+/// L'en-tete `nom: valeur` d'un texte libre, plie (nom et `: ` compris, \n final).
 fn plier_libre(nom: &str, valeur: &str) -> Result<String, String> {
     let mut lignes: Vec<String> = vec![format!("{}:", nom)];
     let jetons = jetons_de(valeur);

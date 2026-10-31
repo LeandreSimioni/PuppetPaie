@@ -135,7 +135,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     Ok(0)
 }
 
-/// `pas --demander` (`_demander_les_taux`) : ecrire les signalements d'amorcage (nature 08). RIEN N'EST DEPOSE ici : le depot est un
+/// `pas --demander` : ecrire les signalements d'amorcage (nature 08). RIEN N'EST DEPOSE ici : le depot est un
 /// acte a part (`moteur depot-dsn`), avec sa preuve et son mot de passe -- et c'est lui qui fait courir les cinq jours ouvres, donc lui
 /// qui note la demande. Un refus de la norme ou de la demande est une phrase (code 1), jamais une trace.
 fn demander(cadre: &Cadre, args: &Args) -> i32 {

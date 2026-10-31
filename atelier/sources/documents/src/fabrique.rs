@@ -75,7 +75,7 @@ pub fn fusion_pieces(pieces: &[(PathBuf, Option<Vec<usize>>)]) -> Result<Vec<u8>
     })
 }
 
-/// `_fusion_fabrique` de PDF en memoire : chacun va dans un fichier de `tmp` le temps de la fusion.
+/// La fusion de PDF en memoire : chacun va dans un fichier de `tmp` le temps de la fusion.
 pub fn fusion_octets(morceaux: &[Vec<u8>], tmp: &Path) -> Result<Vec<u8>, Refus> {
     let dossier = Temporaire::nouveau_dans(tmp, "assemblage")?;
     let mut pieces = Vec::new();

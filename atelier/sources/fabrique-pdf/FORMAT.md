@@ -552,8 +552,7 @@ les pages dont `/Rotate` change le sens de lecture ne sont pas retraités. Mesur
 (contrats, avenants, bulletins, certificats, y compris verrouillés) ont **le même texte que
 PyMuPDF, espaces ramenés à un** ; les quatre autres (des attestations France Travail, avec
 leurs cases et leurs pointillés) diffèrent par quelques espaces et le nombre de points d'un
-pointillé. Les expressions que lit le Python (`numeros_archives`, `_a_qui`,
-`_date_page`, `_categorie_page`, `_cle_page`, la normalisation de l'avenant) donnent les mêmes
+pointillé. Les expressions que le moteur lit sur ce texte (numéros archivés, catégorie et date de page, clé de page, normalisation de l'avenant) donnent les mêmes
 résultats avec l'un et l'autre texte.
 
 ## Inspecter un PDF : `--inspecter`
@@ -670,14 +669,12 @@ fabrique-pdf --marquer entree.pdf sortie.pdf "texte"
 ```
 
 Pose `texte` en pied de **chaque page** de `entree.pdf` et écrit `sortie.pdf` (qui peut être
-le même fichier : l'entrée est lue en entier avant). C'était `_marquer` de
-`moteur/operations_dossier.py` (Python, retiré ; `page.insert_text((34, hauteur − 12), texte, fontname="helv",
-fontsize=6, color=(0.45, 0.45, 0.45))`) : **à 34 pt du bord gauche, ligne de base à 12 pt du
+le même fichier : l'entrée est lue en entier avant) : **à 34 pt du bord gauche, ligne de base à 12 pt du
 bas de la page** (la `CropBox`, dans la `MediaBox`), **corps 6**, gris `#737373`
 (0,45 / 0,45 / 0,45), aligné à gauche, **sur une ligne** (les sauts de ligne du texte deviennent
 des espaces) et sans retour à la ligne : un texte trop long sort de la page. Une page tournée
 (`/Rotate` 90, 180, 270) reçoit la marque **dans son sens de lecture**, à 34 pt du bord gauche
-et 12 pt du bas *tels qu'on les voit* (PyMuPDF, lui, la posait dans le repère non tourné).
+et 12 pt du bas *tels qu'on les voit*.
 
 - *La police* est Liberation Sans (les métriques d'Helvetica) **en sous-ensemble** (les glyphes du
   texte seulement : quelques kilo-octets), avec sa table `ToUnicode` : le texte extrait de la

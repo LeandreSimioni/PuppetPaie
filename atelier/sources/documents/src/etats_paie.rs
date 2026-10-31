@@ -650,7 +650,7 @@ pub fn livre_de_paie(ctx: &Contexte, d: &Demande) -> R<LivreDePaie> {
     Ok(livre)
 }
 
-/// `_ecrire` du livre : `exports/AAAA/livre-de-paie-<periode>-<regroupement>[-coordonnees].<ext>`.
+/// Ecrit le livre dans `exports/AAAA/livre-de-paie-<periode>-<regroupement>[-coordonnees].<ext>`.
 fn ecrire_livre(ctx: &Contexte, livre: &LivreDePaie, mois: &Option<String>, annee: &Option<String>, toutes: bool) -> R<PathBuf> {
     let (dossier, periode) = if toutes {
         (dossier_exports(ctx, None), "toutes-les-annees".to_string())

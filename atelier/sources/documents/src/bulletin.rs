@@ -132,7 +132,7 @@ fn mt(texte: impl Into<String>) -> Value {
     m(texte, false, None)
 }
 
-/// `_para`.
+/// Un paragraphe du bulletin : ses morceaux, sa taille, sa couleur, l'espace avant et apres.
 fn para(morceaux: Vec<Value>, taille: f64, couleur: Option<&str>, avant: f64, apres: f64) -> Value {
     let mut o = Map::new();
     o.insert("type".into(), "paragraphe".into());
@@ -152,7 +152,7 @@ fn para(morceaux: Vec<Value>, taille: f64, couleur: Option<&str>, avant: f64, ap
     Value::Object(o)
 }
 
-/// `_cell`.
+/// Une cellule du bulletin : son texte, sur combien de colonnes, en gras ou non, sa couleur.
 fn cell(texte: impl Into<String>, etendue: i64, gras: bool, couleur: Option<&str>) -> Value {
     let mut o = Map::new();
     o.insert("texte".into(), Value::String(texte.into()));
@@ -224,7 +224,7 @@ fn ligne_net(libelle: &str, montant: Decimal, colonnes: i64) -> Value {
 
 // ------------------------------------------------------------ ce que le bulletin dit
 
-/// `_smic_de_la_reduction`, apres `html.unescape` : le SMIC de la reduction
+/// Le SMIC de la reduction
 /// generale, celui du CALCUL (gele a 12,02 en 2026), pas le SMIC du jour.
 pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
     if let Some(rg) = &p.reduction_generale {
@@ -894,7 +894,7 @@ fn blocs_annexe(p: &Paie, numero: Option<&str>) -> Resultat<Vec<Value>> {
 
 // ------------------------------------------------------------ un bulletin
 
-/// Les arguments de `_blocs_un` pour une paie : ce que le bulletin dit en plus d'elle.
+/// Les arguments des blocs d'un bulletin : ce que le bulletin dit en plus d'elle.
 pub struct Jeu<'a> {
     pub paie: &'a Paie,
     /// Le numero du bulletin (`N/AAAA`), tel que l'engagement le porte (`engagement::numeros`) ou que le depart le
@@ -1280,7 +1280,7 @@ pub fn remboursements(ctx: &Contexte, p: &Paie) -> Resultat<Vec<usize>> {
 /// plafond ; les mois sans paie sont ecartes. `paies_du_mois` : TOUTES les
 /// paies du mois quand on n'en imprime qu'une ; `borne_au_mois` : les cumuls
 /// ne lisent que les contrats commences avant la fin du mois ; `rectificatifs` :
-/// indice dans `paies` -> ce que `_bloc_rectificatif` imprime ; `numeros` : le numero du bulletin de chaque paie, au
+/// indice dans `paies` -> ce que le bloc rectificatif imprime ; `numeros` : le numero du bulletin de chaque paie, au
 /// meme rang.
 pub fn jeux_et_description(
     ctx: &Contexte,

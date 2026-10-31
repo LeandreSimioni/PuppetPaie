@@ -92,7 +92,7 @@ fn cle_dsn(mois: &str) -> String {
     format!("dsn|{}", mois)
 }
 
-/// `_maintenant` puis `_iso` : `AAAA-MM-JJTHH:MM`, l'heure de Paris.
+/// `AAAA-MM-JJTHH:MM`, l'heure de Paris.
 fn maintenant() -> String {
     socle::paris::maintenant()[..16].to_string()
 }
@@ -290,7 +290,7 @@ pub fn echeance_du_reveil(debut: &str, maintenant: &str) -> R<Option<String>> {
 
 // ------------------------------------------------------------- le passage
 
-/// Ce que `_reveils` a fait.
+/// Ce que les reveils ont fait.
 #[derive(Default)]
 pub struct Reveils {
     pub armes: Vec<String>,

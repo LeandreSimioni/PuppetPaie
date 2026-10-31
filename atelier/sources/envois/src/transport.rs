@@ -111,7 +111,7 @@ pub fn sans_secret(url: &str) -> &str {
     url.split('?').next().unwrap_or("")
 }
 
-/// `_echapper`.
+/// Les trois caracteres que le HTML reserve (`&`, `<`, `>`) echappes.
 pub fn echapper(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
@@ -723,8 +723,7 @@ pub fn depot(url: &str, jeton: &str, corps_gzip: &[u8], forme: &str, delai: u64)
     };
     envoyer(&r).map_err(|p| match (forme, p) {
         ("dsn", Panne::Statut { code, corps }) => match corps {
-            // `MESSAGES.get(str(code))` : les cles sont des entiers, le detail
-            // n'a donc jamais ete affiche ; le corps passe par `_sans_secret`.
+            // Le corps de la reponse passe par `sans_secret`.
             Ok(c) => echec(
                 "DepotRefuse",
                 format!("Le point de depot a repondu {}.\n{}", code, sans_secret(&debut(&utf8_remplace(&c), 800))),

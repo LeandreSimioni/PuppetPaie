@@ -1591,7 +1591,7 @@ impl Contexte {
     }
 
     pub fn bareme(&self, jour: &Jour) -> Resultat<Value> {
-        // Le bareme resolu a ce jour est garde, comme `_baremes_resolus` ; on en
+        // Le bareme resolu a ce jour est garde ; on en
         // rend une copie, que l'appelant peut modifier.
         Ok((*self.bareme_partage(jour)?).clone())
     }

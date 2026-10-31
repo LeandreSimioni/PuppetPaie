@@ -465,7 +465,7 @@ fn ligne_json(l: &Ligne) -> Value {
 }
 
 fn ligne_json_brute(l: &Ligne) -> Value {
-    // `_v` du fichier JSON ne retire pas les cles en `_` ; il n'y en a pas a ce stade.
+    // Le fichier JSON garde toutes les cles : aucune n'est en `_` a ce stade.
     Value::Object(l.champs.iter().map(|(k, v)| (k.clone(), v.as_ref().map_or(Value::Null, Val::json))).collect())
 }
 
@@ -891,7 +891,7 @@ pub fn qui(fiche: &Value) -> R<String> {
     Ok(format!("{} {}", valeur_en_texte(nom), prenom))
 }
 
-/// `_qui` d'une fiche qui n'a peut-etre pas de nom (`.get("nom", "")`).
+/// Le « qui » d'une fiche qui n'a peut-etre pas de nom.
 pub fn qui_souple(fiche: &Value) -> String {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
         Some(v) => valeur_en_texte(v),

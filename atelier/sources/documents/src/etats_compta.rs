@@ -218,7 +218,7 @@ fn compte_de(e: &Ecriture) -> String {
     }
 }
 
-/// `_libelle`.
+/// Le libelle d'une ecriture : celui de son compte, complete de ce qui la distingue.
 fn libelle_de(plan: &Map<String, Value>, e: &Ecriture) -> R<String> {
     let lib = libelle_compte(plan, &e.compte)?;
     Ok(if e.auxiliaire.is_empty() { lib } else { format!("{} — {}", lib, e.auxiliaire_libelle) })
@@ -431,7 +431,7 @@ fn piece_courte(e: &Ecriture) -> String {
     debut(&format!("PAIE{}", e.mois.replace('-', "")), 10)
 }
 
-/// `_sens`.
+/// Le sens (D ou C) et le montant d'une ecriture.
 fn sens(e: &Ecriture) -> (&'static str, Decimal) {
     if e.debit.is_zero() {
         ("C", e.credit)
@@ -440,7 +440,7 @@ fn sens(e: &Ecriture) -> (&'static str, Decimal) {
     }
 }
 
-/// `_jjmmaa`.
+/// La date JJMMAA d'un jour ISO.
 fn jjmmaa(date: &str) -> String {
     format!("{}{}{}", tranche(date, 8, 10), tranche(date, 5, 7), tranche(date, 2, 4))
 }
@@ -450,7 +450,7 @@ fn csv_propre(s: &str) -> String {
     blancs(&s.replace(';', ","))
 }
 
-/// `_virgule`.
+/// Un montant a deux decimales, la virgule pour separateur ; vide s'il est nul.
 fn virgule(v: Decimal) -> String {
     if v.is_zero() {
         String::new()
@@ -958,7 +958,7 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ------------------------------------------------------------------ le grand livre
 
-/// `_solde`.
+/// Le solde d'une ligne, dit « débiteur », « créditeur » ou « nul ».
 fn solde(d: &Ligne) -> String {
     let zero = zero2();
     let v = sub(d.decimal("debit").unwrap_or(zero), d.decimal("credit").unwrap_or(zero));

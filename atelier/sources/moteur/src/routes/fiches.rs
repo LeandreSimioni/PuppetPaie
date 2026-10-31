@@ -211,7 +211,7 @@ pub(crate) fn entier(v: &Value) -> R<i64> {
     }
 }
 
-/// `p.read_text` puis `json.loads`, comme `_lire_json` sous un `except ValueError` :
+/// Le JSON d'un fichier :
 /// `None` quand le fichier est absent, illisible comme texte ou comme JSON ;
 /// un refus du disque se leve.
 pub(crate) fn lire_tolerant(p: &Path) -> R<Option<Value>> {

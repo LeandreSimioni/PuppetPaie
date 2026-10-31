@@ -911,7 +911,7 @@ pub fn client_du_poste(ou: &Path, serveur: &str) -> R<Result<Client, ErreurFilet
     Ok(Ok(Client::du_poste(serveur, &numero, &cle)))
 }
 
-/// Le serveur de l'editeur de cette compagnie (`_configuration_propre`) :
+/// Le serveur de l'editeur de cette compagnie :
 /// `config/filet-dpae.json`, `serveur`, sinon celui du compte du filet.
 fn serveur_propre(racine: &Path) -> R<String> {
     let e = crate::compagnie::filet::lire_etat(racine)?;

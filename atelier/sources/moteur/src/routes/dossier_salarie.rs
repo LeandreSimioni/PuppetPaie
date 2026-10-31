@@ -319,7 +319,7 @@ fn numeros_de_contrat(nom: &str) -> Vec<String> {
     out
 }
 
-/// `_nom_salarie`.
+/// Le nom d'un salarie pour un nom de fichier : ce qui n'est ni chiffre, ni lettre ASCII, ni tiret devient un tiret.
 fn nom_salarie(cle: &str) -> String {
     let mut sortie = String::new();
     let mut dans_un_trou = false;
@@ -1000,7 +1000,7 @@ fn contenu_de<'a>(contenus: &'a Contenus, cle: &str) -> Option<&'a Vec<(&'static
     contenus.iter().find(|(c, _)| c == cle).map(|(_, v)| v)
 }
 
-/// `_ecrire_un`.
+/// Ecrit le dossier d'un salarie (un fichier par categorie, ou un seul PDF) et rend son chemin.
 fn ecrire_un(dossier: &Path, cle: &str, contenus: &[(&'static str, Vec<u8>)], preuves: &[PathBuf], cats: &[&'static str], p: &Periode, un_seul: bool) -> R<PathBuf> {
     let base = format!("Dossier_{}_{}", nom_salarie(cle), p.nom());
     if un_seul && !(cats == [CONTRATS_SIGNES] && !preuves.is_empty()) {

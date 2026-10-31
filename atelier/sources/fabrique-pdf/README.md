@@ -30,16 +30,13 @@ fabrique-pdf --verrouiller entree.pdf sortie.pdf      # chiffrement AES-256, ouv
 fabrique-pdf --version                                # « fabrique-pdf 3 »
 ```
 
-Les modes de lecture et de retouche (version 3, 01/10/2026) remplacent PyMuPDF
-côté Python : le nombre de pages, `page.get_text()`, `_marquer` (`insert_text`
-en pied de page) et `verrouiller` (`encryption=PDF_ENCRYPT_AES_256`) ; puis
-`--champs` et `--remplir` (le formulaire AER : lecture des champs, remplissage
+Les modes de lecture et de retouche : le nombre de pages, le texte d'une page, le pied de page (`--marquer`), le verrouillage
+(AES-256), puis `--champs` et `--remplir` (le formulaire AER : lecture des champs, remplissage
 avec apparence régénérée, signature et cachet posés). Leur contrat
 exact — arguments, sortie, codes de sortie, règles — est dans `FORMAT.md`.
 
 Le moteur n'envoie que le chemin du `.modele` et les valeurs : la fabrique lit
-le modèle elle-même (`src/modele.rs`, `src/style_contrat.rs`). Il ne reste plus
-rien à PyMuPDF ni à PyPDF (01/10/2026) : l'AER passe par `--champs` et
+le modèle elle-même (`src/modele.rs`, `src/style_contrat.rs`). L'AER passe par `--champs` et
 `--remplir`, et l'aperçu d'une compagnie fictive montre le PDF dans le lecteur
 du navigateur.
 
@@ -69,17 +66,6 @@ vides de l'export ne s'ouvrent ni avec l'un ni avec l'autre). Les écarts typiqu
   de Wingdings (zone privée, que MuPDF traduit) ;
 - une page des formulaires d'impôts où MuPDF écarte un « 4 » au bord de la page.
 
-Ce qui sert au Python — retrouver numéros, période, brut et net d'un bulletin
-(`bulletin.numeros_archives`), rattacher une page CoolPaie à un salarié et une date
-(`_categorie_page`, `_debut_de_document`, `_date_page`, les 13 chiffres d'un NIR, les mots
-d'un nom), dédoublonner par empreinte du texte (`_cle_page`), comparer des textes de contrat
-(`avenant._normaliser`) — a été vérifié en appliquant ces fonctions aux deux textes : mêmes
-résultats sur les 139 pages CoolPaie du dossier (la seule page qui diffère est celle du
-formulaire d'impôt ci-dessus), mêmes numéros sur les bulletins archivés, même partition de ces
-139 pages en classes de doublons (124 classes de part et d'autre), même texte normalisé sur
-46 des 50 PDF de `sorties/` (les 4 autres sont les AER ci-dessus).
-
-Robustesse : 3 600 lancements des quatre modes sur des PDF abîmés (octets changés, coupés,
 effacés, insérés) n'ont donné ni plantage ni boucle (codes 0 ou 1 seulement) ; un `>` isolé
 dans une table `ToUnicode` bouclait, c'est corrigé (`tests/lecture.rs`).
 

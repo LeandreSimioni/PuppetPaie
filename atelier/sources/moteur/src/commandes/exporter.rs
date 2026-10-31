@@ -159,7 +159,7 @@ fn liste(json_: bool) -> i32 {
     0
 }
 
-/// `_afficher_livre`.
+/// Le livre de paie, dit a l'ecran.
 fn livre(l: &documents::etats_paie::LivreDePaie) {
     let regroupement = match l.regroupement.as_str() {
         "salarie" => "par salarié",

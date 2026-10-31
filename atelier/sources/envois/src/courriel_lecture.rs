@@ -94,7 +94,7 @@ pub fn date_de(m: &ParsedMail, maintenant: &str) -> String {
     }
 }
 
-/// Les mois de `_monthnames` (les abreges, puis les noms entiers).
+/// Les mois en anglais (les abreges, puis les noms entiers).
 const MOIS: [&str; 24] = [
     "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec", "january", "february", "march", "april", "may", "june",
     "july", "august", "september", "october", "november", "december",

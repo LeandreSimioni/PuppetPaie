@@ -1467,7 +1467,7 @@ fn arrets(ctx: &Contexte) -> R<Value> {
 
 // ----------------------------------------------------------- fins de contrat
 
-/// `calendar.monthrange(an, mo)[1]` pour `_fin_mois`.
+/// Le dernier jour du mois.
 fn fin_du_mois(mois: &str) -> R<Jour> {
     let an = entier(&mois.chars().take(4).collect::<String>())?;
     let mo = entier(&mois.chars().skip(5).take(2).collect::<String>())?;

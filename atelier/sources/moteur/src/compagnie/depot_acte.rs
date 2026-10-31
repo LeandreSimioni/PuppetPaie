@@ -53,7 +53,7 @@ impl Preuve {
 
 // -------------------------------------------------------------------- la preuve
 
-/// `_cle` lit une version en entiers separes par des points (illisible : `(0,)`).
+/// Une version lue en entiers separes par des points (illisible : `(0,)`), pour la comparer.
 fn cle_de_version(v: &str) -> Vec<i64> {
     let lu: Option<Vec<i64>> = v.trim().split('.').map(|x| x.trim().parse::<i64>().ok()).collect();
     lu.unwrap_or_else(|| vec![0])
