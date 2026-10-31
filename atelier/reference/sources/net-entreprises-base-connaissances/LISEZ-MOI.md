@@ -497,3 +497,16 @@ privé).
 assujettie (S21.G00.78, type 28) mal datée s'annule en négatif sur sa période d'origine et se redéclare sur la vraie
 période, avec la cotisation (S21.G00.81) de même, dans la DSN du mois où l'erreur est constatée. **Où le moteur s'en
 sert** : nulle part (pas d'Ircantec dans le spectacle vivant privé) ; déposée parce que lue.
+
+## Fiche 1821 — DSN - Rectification de l'assiette fiscale
+
+- URL : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1821/
+- Transmise par Léandre le 31/10/2026 en PDF (`.pdf`, la page imprimée) ; transcription `pdftotext -layout` (`.txt`) ;
+  « Date de modification : 11/08/2026 ».
+
+**Ce qu'on en lit** : une erreur sur l'assiette fiscale (RNF, montant soumis au PAS) se rectifie dans une DSN suivante
+par un bloc « Régularisation du prélèvement à la source » (S21.G00.56) de type « 01 - Rectification sur rémunération
+nette fiscale », le mois de l'erreur en S21.G00.56.001 ; la rectification de l'exercice N est admise jusqu'à la DSN de
+janvier N+1, rejetée au-delà. C'est le bloc que la fiche 898 demande pour annuler la RNF et le PAS d'un contrat déclaré à
+tort. **Où le moteur s'en sert** : la régularisation du PAS existante (`declarations/`) ; le ticket #324 du privé
+(contrat déclaré à tort).
