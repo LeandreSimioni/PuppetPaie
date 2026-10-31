@@ -1,6 +1,7 @@
 //! LES OS, GARDES QUOI QU'ON CHANGE DESSUS : chaque route dit en une phrase breve ce qu'elle fait, et l'exemple de sa
 //! fiche est accepte ; la page et la ligne de commande ont le meme catalogue ; une crate ne prend qu'a celles du
-//! dessous ; l'engagement ne lit pas le journal ; un seul endroit ecrit un fichier d'engagements.
+//! dessous ; l'engagement ne lit pas le journal ; une seule fonction date une valeur de fiche ; un seul endroit
+//! ecrit un fichier d'engagements.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -181,6 +182,25 @@ fn l_engagement_ne_lit_pas_le_journal() {
         for (n, l) in std::fs::read_to_string(&p).unwrap().lines().enumerate() {
             let code = l.split("//").next().unwrap();
             assert!(!code.contains("\"journal"), "{}:{} lit le journal : {}", p.display(), n + 1, l.trim());
+        }
+    }
+}
+
+/// Une valeur d'une fiche (entreprise, salarie, spectacle) se date a un seul endroit : `routes::fiches::ecrire_datee`,
+/// que l'ecran, les gestes d'une case et l'import appellent. Ailleurs dans le moteur, `contexte::dater` ne date que le
+/// fichier des organismes et la fiche d'une compagnie d'essai, posee neuve sous une autre identite.
+#[test]
+fn une_seule_fonction_date_une_valeur_de_fiche() {
+    const AUTRES: [&str; 2] = ["moteur/src/compagnie/organismes.rs", "moteur/src/compagnie/essai.rs"];
+    let fiches = espace().join("moteur/src/routes/fiches.rs");
+    let texte = std::fs::read_to_string(&fiches).unwrap();
+    let debut = texte.find("pub(crate) fn ecrire_datee(").unwrap();
+    let fin = debut + texte[debut..].find("\n}\n").unwrap();
+    assert_eq!(texte[..debut].matches("contexte::dater(").count() + texte[fin..].matches("contexte::dater(").count(), 0, "fiches.rs ne date que par `ecrire_datee`");
+    for p in sources(&espace().join("moteur/src")).into_iter().filter(|p| *p != fiches) {
+        let rel = p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned();
+        if std::fs::read_to_string(&p).unwrap().contains("contexte::dater(") {
+            assert!(AUTRES.contains(&rel.as_str()), "{} date une valeur de fiche : il passe par `fiches::ecrire_datee`", rel);
         }
     }
 }

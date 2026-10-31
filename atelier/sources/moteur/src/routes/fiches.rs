@@ -1114,28 +1114,13 @@ fn fichier_de(nom: &str) -> Option<&'static str> {
     }
 }
 
-/// Seul `actif` change, a partir d.aujourd.hui (archiver, c.est ne plus proposer a
-/// partir de ce jour ; ce qui precede reste ce qu.il etait) ; la copie horodatee du fichier est faite avant.
+/// Seul `actif` change, a partir d'aujourd'hui (archiver, c'est ne plus proposer a partir de ce jour ; ce qui precede
+/// reste ce qu'il etait), par l'ecrivain de la fiche (`poser_champs`).
 pub(crate) fn activer_fiche(ctx: &Contexte, nom: &str, cle: &str, actif: bool) -> R<()> {
-    let fichier = match nom {
-        "salarie" | "spectacle" => fichier_de(nom).unwrap(),
-        _ => return Err(refus(format!("Seuls un salarie ou un spectacle s'activent : {}.", socle::fichiers::repr(nom)))),
-    };
-    let chemin = ctx.racine.join("config").join(fichier);
-    let mut contenu = objet_du_fichier(&chemin)?;
-    match contenu.get_mut(cle) {
-        Some(Value::Object(f)) => {
-            // Une fiche sans `actif` etait active de tout temps.
-            if !f.contains_key("actif") {
-                droit::contexte::dater(f, "actif", Value::Bool(true), None, None);
-            }
-            droit::contexte::dater(f, "actif", Value::Bool(actif), Some(&ctx.aujourdhui), None);
-        }
-        Some(_) => return Err(erreur("TypeError", format!("la fiche {} n'est pas un objet", cle))),
-        None => return Err(refus(format!("Fiche introuvable : {}.", cle))),
+    if !matches!(nom, "salarie" | "spectacle") {
+        return Err(refus(format!("Seuls un salarie ou un spectacle s'activent : {}.", socle::fichiers::repr(nom))));
     }
-    sauver_avant(&chemin)?;
-    ecrire(&chemin, Value::Object(contenu))
+    poser_champs(ctx, nom, Some(cle), un_champ("actif", Value::Bool(actif)), Some(ctx.aujourdhui), None)
 }
 
 fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
@@ -1454,11 +1439,9 @@ fn coercer_booleens(nom: &str, donnees: &mut Map<String, Value>) -> R<()> {
 
 // ------------------------------------------------ ecrire une valeur datee
 
-/// Une case vide : absente, nulle, un texte vide, ou le titre « A COMPLETER » que l'import pose sur un spectacle dont il
-/// ne connait que le numero d'objet (`import::completer::A_COMPLETER`) -- le remplir n'est pas un changement a dater.
-fn vide(v: Option<&Value>) -> bool {
-    v.map_or(true, |v| v.is_null() || v.as_str() == Some("") || v.as_str().is_some_and(|s| s.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)))
-}
+/// Une case vide (`import::completer::vide` : le titre « A COMPLETER » compris) : la remplir n'est pas un changement a
+/// dater.
+use crate::import::completer::vide;
 
 /// La meme valeur, a la forme pres : un nombre saisi en texte (100 et « 100 »), une personne et sa forme lisible (les
 /// cles `_affichage` que l'ecran comble, `champs::combler_affichage`, ne se declarent pas).
@@ -1495,21 +1478,26 @@ pub(crate) fn sans_valeur(v: Option<&Value>) -> bool {
 /// dater.
 /// LES FAITS QUI NE SE DATENT PAS : une case qui dit un fait du passe, vrai de tout temps, et non une valeur qui vaut a
 /// partir d'un jour. La date de la premiere embauche de la compagnie (CSS L. 130-1, II, l'effectif d'une entreprise de
-/// moins de cinq ans) : la changer la corrige, elle ne change pas a une date. Elle s'ecrit sans date d'effet.
-const FAITS_SANS_DATE: [(&str, &str); 1] = [("entreprise", "premiere_embauche")];
+/// moins de cinq ans) : la changer la corrige, elle ne change pas a une date. De meme l'anciennete d'un salarie, le jour
+/// ou il est entre dans l'entreprise (« Dans la compagnie depuis », d'ou se compte S21.G00.86.003 a la fin de chaque mois
+/// declare : `norme-dsn/texte-2027/bloc-S21.G00.86.txt`, l. 91-95). Elles s'ecrivent sans date d'effet.
+const FAITS_SANS_DATE: [(&str, &str); 2] = [("entreprise", "premiere_embauche"), ("salarie", "date_anciennete")];
 
 pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<String, Value>, cases_vides: bool) -> R<Vec<String>> {
     let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !k.starts_with('_')));
     if !existait {
         return Ok(Vec::new());
     }
-    // Une case a cocher que la fiche ne dit pas se montre a son defaut (`booleen_defaut`) : la laisser ainsi ne change rien.
-    let defauts: HashMap<String, Value> =
+    // Une case que la fiche ne dit pas se montre a ce que le moteur lit alors : une case a cocher a son defaut
+    // (`booleen_defaut`), les jours travailles du lundi au vendredi (`droit::conges::JoursTravailles`). La laisser ainsi
+    // ne change rien.
+    let mut defauts: HashMap<String, Value> =
         champs::fiche(nom)?.into_iter().filter(|c| c.forme == "booleen").map(|c| (c.cle, Value::Bool(c.booleen_defaut))).collect();
+    defauts.insert("jours_travailles".into(), json!(droit::conges::JOURS_DE_LA_SEMAINE[..5]));
     let mut cles: Vec<String> = donnees
         .iter()
         .filter(|(k, v)| {
-            let avant = ancienne.get(k.as_str()).filter(|a| !a.is_null()).or_else(|| defauts.get(k.as_str()));
+            let avant = ancienne.get(k.as_str()).filter(|a| !vide(Some(a))).or_else(|| defauts.get(k.as_str()));
             !k.starts_with('_')
                 && !FAITS_SANS_DATE.contains(&(nom, k.as_str()))
                 // Les autres etablissements : ligne par ligne (`etablissements::a_dater`).
@@ -1592,65 +1580,69 @@ pub(crate) fn depuis_de(depuis: &Value) -> R<Option<Jour>> {
     }
 }
 
-/// POSER UN CHAMP D'UNE FICHE (une route qui ne touche qu'une case : le modele de bulletin, la case des permanents, le
-/// compte des DPAE, l'anciennete d'un salarie) : comme une fiche de l'ecran (`ecrire_datee`), l'ancien fichier
+/// POSER DES CHAMPS D'UNE FICHE (un geste qui ne touche que quelques cases : le modele de bulletin, la case des
+/// permanents, le compte des DPAE, l'anciennete d'un salarie, une fiche archivee, ce que l'import complete) : comme une
+/// fiche de l'ecran (`ecrire_datee`), face a la fiche telle qu'elle est sur le disque a `lue_au`, l'ancien fichier
 /// sauvegarde. `cle` : celle d'un salarie ou d'un spectacle, `None` pour l'entreprise.
-fn poser_champ(ctx: &Contexte, nom: &str, cle: Option<&str>, champ: &str, valeur: Value, depuis: Option<Jour>) -> R<()> {
+fn poser_champs(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: Map<String, Value>, depuis: Option<Jour>, note: Option<&str>) -> R<()> {
     let Some(fichier) = fichier_de(nom) else {
         return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
     let chemin = ctx.racine.join("config").join(fichier);
     let mut contenu = objet_du_fichier(&chemin)?;
-    let mut donnees = Map::new();
-    donnees.insert(champ.to_string(), valeur);
-    match cle {
-        None => ecrire_datee(&mut contenu, nom, &ctx.entreprise, &donnees, false, depuis, None, &ctx.lue_au)?,
-        Some(k) => {
-            let magasin = if nom == "salarie" { &ctx.salaries } else { &ctx.spectacles };
-            let (Some(ancienne), Some(Value::Object(brute))) = (magasin.get(k), contenu.get_mut(k)) else {
-                return Err(refus(format!("La fiche {} {} n'existe pas : rien n'est écrit.", nom, k)));
-            };
-            ecrire_datee(brute, nom, ancienne, &donnees, false, depuis, None, &ctx.lue_au)?;
-        }
-    }
+    let brute = match cle {
+        None => &mut contenu,
+        Some(k) => match contenu.get_mut(k) {
+            Some(Value::Object(m)) => m,
+            _ => return Err(refus(format!("La fiche {} {} n'existe pas : rien n'est écrit.", nom, k))),
+        },
+    };
+    let ancienne = droit::contexte::fiche_au(&Value::Object(brute.clone()), &ctx.lue_au, &format!("config/{}", fichier)).map_err(plain)?;
+    ecrire_datee(brute, nom, &ancienne, &donnees, false, depuis, note, &ctx.lue_au)?;
     sauver_avant(&chemin)?;
     ecrire(&chemin, Value::Object(contenu))
 }
 
-/// Un champ de la fiche entreprise (`poser_champ`).
+/// Un seul champ, pour `poser_champs`.
+fn un_champ(champ: &str, valeur: Value) -> Map<String, Value> {
+    let mut m = Map::new();
+    m.insert(champ.to_string(), valeur);
+    m
+}
+
+/// Un champ de la fiche entreprise (`poser_champs`).
 pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depuis: Option<Jour>) -> R<()> {
-    poser_champ(ctx, "entreprise", None, champ, valeur, depuis)
+    poser_champs(ctx, "entreprise", None, un_champ(champ, valeur), depuis, None)
 }
 
 /// L'ANCIENNETE D'UN SALARIE PART DE SON EMBAUCHE (S21.G00.86.003, l'anciennete dans l'entreprise :
 /// `norme-dsn/texte/bloc-S21.G00.86.txt`) : la validation de son premier engagement la pose sur sa fiche, au premier jour
-/// de ce contrat (`debut`), quand la fiche ne la dit pas, par l'ecrivain de la fiche (`poser_champ`) ; elle se change
+/// de ce contrat (`debut`), quand la fiche ne la dit pas, par l'ecrivain de la fiche (`poser_champs`) ; elle se change
 /// ensuite dans « Avancé » de la fiche. Une fiche qui la dit la garde. INFERENCE : l'anciennete commence a l'entree dans
 /// l'entreprise.
 pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut: &str) -> R<()> {
     if ctx.salaries.get(salarie).is_none_or(|f| f.get("date_anciennete").is_some_and(vrai)) {
         return Ok(());
     }
-    poser_champ(ctx, "salarie", Some(salarie), "date_anciennete", json!(debut), None)
+    poser_champs(ctx, "salarie", Some(salarie), un_champ("date_anciennete", json!(debut)), None, None)
 }
 
 /// L'ANCIENNETE D'UN SALARIE REPRIS QUE SON CONTRAT FAIT REMONTER : l'import la pose au premier bulletin lu
 /// (`import::bulletins`) ; un contrat repris qui a commence avant (`debut`, celui que la DSN de l'ancien logiciel
 /// declare, S21.G00.40.001) dit qu'il etait dans l'entreprise des ce jour-la (S21.G00.86.003, l'anciennete dans
 /// l'entreprise : `norme-dsn/texte/bloc-S21.G00.86.txt` ; inference : un contrat en cours dans l'entreprise y compte).
-/// Seule la valeur que l'import a posee, `pose_le`, se remplace, de tout temps : elle n'a jamais ete declaree. Une date
-/// saisie depuis reste la sienne. Rend vrai si elle a ete remplacee.
+/// Seule la valeur que l'import a posee, `pose_le`, se remplace : l'anciennete est un fait du passe (`FAITS_SANS_DATE`),
+/// elle se corrige. Une date saisie depuis reste la sienne. Rend vrai si elle a ete remplacee.
 pub(crate) fn reprendre_anciennete(ctx: &Contexte, salarie: &str, pose_le: &str, debut: &str) -> R<bool> {
-    let chemin = ctx.racine.join("config").join("salaries.json");
-    let mut contenu = objet_du_fichier(&chemin)?;
-    let Some(Value::Array(versions)) = contenu.get_mut(salarie).and_then(|f| f.get_mut("date_anciennete")) else { return Ok(false) };
-    let [seule] = versions.as_mut_slice() else { return Ok(false) };
+    let contenu = objet_du_fichier(&ctx.racine.join("config").join("salaries.json"))?;
+    let Some(Value::Array(versions)) = contenu.get(salarie).and_then(|f| f.get("date_anciennete")) else { return Ok(false) };
+    let [seule] = versions.as_slice() else { return Ok(false) };
     if seule.get("valeur").map(valeur_en_texte).as_deref() != Some(pose_le) || debut >= pose_le {
         return Ok(false);
     }
-    seule["valeur"] = json!(debut);
-    sauver_avant(&chemin)?;
-    ecrire(&chemin, Value::Object(contenu))?;
+    // La note de l'import (d'ou vient la valeur) reste : la valeur vient toujours des pieces importees.
+    let note = seule.get("note").map(valeur_en_texte);
+    poser_champs(ctx, "salarie", Some(salarie), un_champ("date_anciennete", json!(debut)), None, note.as_deref())?;
     Ok(true)
 }
 
@@ -1953,50 +1945,31 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
 /// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (`import::completer`) : chaque champ de `champs` va dans la fiche
 /// telle qu'elle est sur le disque, s'il y est vide ou « A COMPLETER » -- et seulement alors : un champ rempli depuis
 /// l'apercu reste ce qu'il est. Une case vide n'avait rien declare : la valeur qui la remplit vaut depuis elle (un champ
-/// absent : de tout temps) ; rien d'autre ne bouge ; l'ancien fichier est sauvegarde comme pour une fiche
-/// de l'ecran. Rend les champs ecrits.
+/// absent : de tout temps), par l'ecrivain de la fiche (`poser_champs`). Rend les champs ecrits.
 pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, champs: &Map<String, Value>) -> R<Map<String, Value>> {
     let Some(fichier) = fichier_de(nom) else {
         return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
-    let chemin = ctx.racine.join("config").join(fichier);
-    let mut contenu = objet_du_fichier(&chemin)?;
-    let cible: &mut Map<String, Value> = if nom == "entreprise" {
-        &mut contenu
-    } else {
-        match cle.and_then(|k| contenu.get_mut(k)) {
-            Some(Value::Object(m)) => m,
-            _ => return Err(refus(format!("La fiche {} {} n'existe plus : rien n'est complete.", nom, cle.unwrap_or("?")))),
-        }
+    let contenu = Value::Object(objet_du_fichier(&ctx.racine.join("config").join(fichier))?);
+    let brute = match cle {
+        None => &contenu,
+        Some(k) => contenu.get(k).filter(|f| f.is_object()).ok_or_else(|| refus(format!("La fiche {} {} n'existe plus : rien n'est complete.", nom, k)))?,
     };
-    let mut ecrits = Map::new();
-    for (k, v) in champs {
-        let en_vigueur = droit::contexte::valeurs_datees(&Value::Object(cible.clone()), k)
-            .map_err(plain)?
-            .into_iter()
-            .filter(|(j, _)| j.map_or(true, |j| j <= ctx.lue_au))
-            .last()
-            .map(|(j, v)| (j, v.clone()));
-        if crate::import::completer::vide(en_vigueur.as_ref().map(|(_, v)| v)) {
-            droit::contexte::dater(cible, k, v.clone(), en_vigueur.and_then(|(j, _)| j).as_ref(), None);
-            ecrits.insert(k.clone(), v.clone());
-        }
-    }
+    let au = droit::contexte::fiche_au(brute, &ctx.lue_au, &format!("config/{}", fichier)).map_err(plain)?;
+    let ecrits: Map<String, Value> = champs.iter().filter(|(k, _)| vide(au.get(k.as_str()))).map(|(k, v)| (k.clone(), v.clone())).collect();
     if !ecrits.is_empty() {
-        sauver_avant(&chemin)?;
-        ecrire(&chemin, Value::Object(contenu))?;
+        poser_champs(ctx, nom, cle, ecrits.clone(), None, None)?;
     }
     Ok(ecrits)
 }
 
 /// LES LICENCES QUI SUIVENT LA PREMIERE (`routes::import::poser_licence`) : chacune vaut a partir du premier jour du mois
-/// ou les pieces importees la portent, comme un numero renouvele saisi « a partir du ». Seulement quand la fiche, sur le
-/// disque, porte pour seule licence la premiere que les pieces donnent : une licence saisie autrement reste ce qu'elle est.
+/// ou les pieces importees la portent, comme un numero renouvele saisi « a partir du » (`poser_champs`). Seulement quand
+/// la fiche, sur le disque, porte pour seule licence la premiere que les pieces donnent : une licence saisie autrement
+/// reste ce qu'elle est.
 pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, String)], note: &Value) -> R<()> {
     let Some(((_, premiere), suivantes)) = licences.split_first().filter(|(_, s)| !s.is_empty()) else { return Ok(()) };
-    let chemin = ctx.racine.join("config").join("entreprise.json");
-    let mut contenu = objet_du_fichier(&chemin)?;
-    let fiche = Value::Object(contenu.clone());
+    let fiche = Value::Object(objet_du_fichier(&ctx.racine.join("config").join("entreprise.json"))?);
     let portees = droit::contexte::valeurs_datees(&fiche, "licence_spectacle").map_err(plain)?;
     if !matches!(portees.as_slice(), [(None, v)] if valeur_en_texte(v) == *premiere) {
         return Ok(());
@@ -2004,9 +1977,9 @@ pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, Stri
     let note = Some(valeur_en_texte(note)).filter(|n| !n.trim().is_empty());
     for (mois, numero) in suivantes {
         let jour = socle::date::premier_du_mois(mois).map_err(plain)?;
-        droit::contexte::dater(&mut contenu, "licence_spectacle", json!(numero), Some(&jour), note.as_deref());
+        poser_champs(ctx, "entreprise", None, un_champ("licence_spectacle", json!(numero)), Some(jour), note.as_deref())?;
     }
-    ecrire(&chemin, Value::Object(contenu))
+    Ok(())
 }
 
 fn finir_fiche(
