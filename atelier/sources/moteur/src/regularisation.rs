@@ -1,6 +1,6 @@
 //! Les corrections des mois deja declares : l'etat d'un mois depose (`etat_mois` : se corrige-t-il par regularisation),
 //! la liste des corrections (`corrections_par_mois`, route `regularisations`) ; et ce que la saisie d'un mois declare
-//! en dit (`modification_de_la_paie`). Rien n'est ecrit.
+//! en dit (`modification_de_l_engagement`). Rien n'est ecrit.
 //!
 //! Corriger, c'est modifier l'engagement et le revalider. Ce qui est a corriger se tire de la comparaison entre la
 //! version presente de l'engagement valide et celle sur laquelle la DSN est partie
@@ -196,7 +196,7 @@ pub(crate) fn de_mois_en_clair(mois: &str) -> String {
 /// (`import::mois::dsn_de_l_ancien_logiciel`) : cette DSN ne se remplace jamais ici (regle 4), ce que la saisie y ajoute
 /// se declare dans la DSN qui porte (`dsn_qui_porte`). Se confirme seulement la modification d'un engagement de la
 /// saisie qu'une DSN partie ici a deja declare pour ce mois (le journal des envois, `departs`).
-pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
+pub(crate) fn modification_de_l_engagement(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(ctx, mois)? {
         let mut r = json!({"confirmer": false, "porteur": d["porteur"], "phrase": d["phrase"]});
         let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
@@ -273,7 +273,7 @@ pub(crate) fn bornes_en_clair(b: &Bornes) -> String {
 /// S21.G00.40) ; un contrat qui n'a pas eu lieu garde son bloc et voit ses montants annules (ses quantites a zero).
 ///
 /// `avant` : l'engagement tel qu'il est ecrit ; `apres` : ce qu'il devient. Refus : un mois que sa DSN a declare pour
-/// lui (`departs`) et dont la DSN ne se remplace plus (`modification_de_la_paie`, `confirmer`), qu'il ne couvre plus --
+/// lui (`departs`) et dont la DSN ne se remplace plus (`modification_de_l_engagement`, `confirmer`), qu'il ne couvre plus --
 /// ou tous, quand le contrat change de salarie. Le refus nomme la DSN qui a declare le contrat pour ce mois : la sienne,
 /// ou celle d'un mois suivant qui a porte sa correction (`Depart::par`). `Ok(None)` : rien d'indeclarable.
 pub(crate) fn refus_non_declarable(
@@ -294,7 +294,7 @@ pub(crate) fn refus_non_declarable(
         if meme_salarie && apres.couvre(mois).map_err(Echec::from)? {
             continue;
         }
-        if !modification_de_la_paie(m, ctx, mois)?.get("confirmer").is_some_and(vrai) {
+        if !modification_de_l_engagement(m, ctx, mois)?.get("confirmer").is_some_and(vrai) {
             continue;
         }
         let nom = b_avant.get("salarie").map(valeur_en_texte).unwrap_or_else(|| cle.clone());

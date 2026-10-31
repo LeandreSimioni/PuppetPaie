@@ -272,11 +272,11 @@ fn un_bulletin_rectificatif(mois: &str) -> String {
 }
 
 /// Ce qui arrive a la DSN deposee de `mois` quand sa paie change, comme toute modification d'un mois declare
-/// (`crate::regularisation::modification_de_la_paie`) : un annule-et-remplace jusqu'a la limite, ensuite la correction
+/// (`crate::regularisation::modification_de_l_engagement`) : un annule-et-remplace jusqu'a la limite, ensuite la correction
 /// dans la DSN qui porte (`crate::regularisation::dsn_qui_porte`).
 fn la_dsn_qui_change(m: &mut crate::routes::etapes::Moteur, ctx: &Contexte, mois: &str) -> R<String> {
     let de = crate::regularisation::de_mois_en_clair(mois);
-    let d = crate::regularisation::modification_de_la_paie(m, ctx, mois)?;
+    let d = crate::regularisation::modification_de_l_engagement(m, ctx, mois)?;
     Ok(if d.get("confirmer").is_some_and(vrai) {
         format!(
             "la correction dans la DSN {} (celle {}, déposée, ne se remplace plus)",
@@ -298,7 +298,7 @@ fn ce_qui_arrive_aux_mois_partis(ctx: &Contexte, q: &engagement::etats::APartirD
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let mut out = Vec::new();
     for mois in q.choix.iter().filter(|c| q.partis.contains(c)) {
-        let d = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
+        let d = crate::regularisation::modification_de_l_engagement(&mut m, ctx, mois)?;
         let dsn = if d.is_null() { String::new() } else { format!(" ; {}", la_dsn_qui_change(&mut m, ctx, mois)?) };
         out.push(format!("dès {} : {}{}", engagement::libelle_mois(mois), un_bulletin_rectificatif(mois), dsn));
     }
