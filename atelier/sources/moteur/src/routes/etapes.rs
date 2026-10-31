@@ -410,15 +410,6 @@ pub(crate) fn debut_declare(refaire: &[ARefaire]) -> Option<String> {
         _ => None,
     })
 }
-/// Les salaries de `mois` dont un engagement a un bulletin rectificatif a faire (`a_refaire_du_mois`, au meme rang).
-pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str, etats: &[engagement::etats::Etat], refaire: &[Vec<ARefaire>]) -> HashSet<String> {
-    etats
-        .iter()
-        .zip(refaire)
-        .filter(|(_, r)| r.iter().any(|a| matches!(a, ARefaire::Bulletin { mois: m, .. } if m == mois)))
-        .filter_map(|(e, _)| engagement::cle_de_l_engagement(ctx, &Value::Object(e.objet().brut.clone())))
-        .collect()
-}
 
 /// L'etablissement (NIC) dont releve l'engagement `e` pour `mois` : celui de la fiche de son salarie telle que le calcul
 /// de sa paie du mois l'a lue (`fiches`) ; sans paie ecrite du mois, de sa fiche d'aujourd'hui.
@@ -708,11 +699,9 @@ impl<'a> Moteur<'a> {
         let g = self.globales()?;
         let lignes = self.lignes()?;
         let cles_paies = etats::cles_des_paies(&lignes, &contrats_des_paies(&s.paies))?;
-        let docs = documents_partis(self.ctx, mois, &etats_eng, &lignes)?;
         // CE QUI EST A REFAIRE, engagement par engagement : le present compare a la version sur laquelle chaque envoi est parti.
         let departs = self.departs()?;
         let refaire = a_refaire_du_mois(self.ctx, &etats_eng, &departs)?;
-        let bulletins = bulletins_a_refaire(self.ctx, mois, &etats_eng, &refaire);
 
         let mut out = Vec::new();
         for (i, p) in s.paies.iter().enumerate() {
@@ -845,7 +834,12 @@ impl<'a> Moteur<'a> {
                 };
                 signature["cdi_en_cours"] = json!({"depuis": depuis, "signe_en": signe_en});
             }
-            let documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
+            // LES DOCUMENTS DE CET ENGAGEMENT, pour ce mois : son dernier envoi (`departs`), et son bulletin a refaire.
+            let documents_le = p.engagement.numero.as_deref().and_then(|n| {
+                departs.de(&cle, n).iter().filter(|d| d.envoi == engagement::departs::Envoi::Documents && d.mois.as_deref() == Some(mois) && d.par.is_none()).map(|d| d.le.clone()).max()
+            });
+            let bulletin = refaire.get(i).is_some_and(|r| r.iter().any(|a| matches!(a, ARefaire::Bulletin { mois: m, .. } if m == mois)));
+            let documents = etat_documents(documents_le, bulletin);
             ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents}));
             let vue = Value::Object(ligne.clone());
             ligne.insert("carres".into(), carres(&vue));
@@ -1909,13 +1903,13 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
 /// La phrase de la pastille Documents d'un salarie dont la paie a change depuis l'envoi.
 pub(crate) const DOCUMENTS_CADUCS: &str = "la paie a changé depuis l'envoi";
 
-/// LA PASTILLE DOCUMENTS d'un salarie. `parti` : son dernier envoi de documents (`documents_partis`) ;
-/// `caduc` : ses documents sont partis, et la paie d'un de ses engagements a change depuis la version sur laquelle ils
-/// sont partis (`engagement::etats::a_refaire`) -- ils ne sont plus les bons, ils sont a renvoyer.
-pub(crate) fn etat_documents(parti: Option<&Value>, caduc: bool) -> Value {
-    let fait = parti.and_then(|p| p.get("quand")).cloned().unwrap_or(Value::Null);
+/// LA PASTILLE DOCUMENTS d'un engagement pour un mois. `parti_le` : le dernier envoi de ses documents ; `caduc` : ils
+/// sont partis, et sa paie a change depuis la version sur laquelle ils sont partis (`engagement::etats::a_refaire`) --
+/// ils ne sont plus les bons, ils sont a renvoyer.
+pub(crate) fn etat_documents(parti_le: Option<String>, caduc: bool) -> Value {
+    let fait = parti_le.map_or(Value::Null, Value::String);
     let caduc = vrai(&fait) && caduc;
-    json!({"fait": fait, "maille": "salarie", "caduc": caduc, "pourquoi": if caduc { DOCUMENTS_CADUCS } else { "" }})
+    json!({"fait": fait, "maille": "engagement", "caduc": caduc, "pourquoi": if caduc { DOCUMENTS_CADUCS } else { "" }})
 }
 
 /// `DSN_[^\W\d_]+\d{4}(_AR\d+)?\.dsn` : le nom d'une DSN mensuelle.
