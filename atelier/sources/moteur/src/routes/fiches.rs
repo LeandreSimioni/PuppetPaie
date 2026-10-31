@@ -46,7 +46,7 @@ const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que 
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
 const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
 const IDENTITE_REND: &str = "signature, cachet et logo : chacun posé ou dessiné par le logiciel, et sa pastille";
-const CONFIGURATION_REND: &str = "configuration (les fiches, relues après l'écriture)";
+const ETAT_REND: &str = "etat : ce que la page lit de la compagnie (la route etat), relu après l'écriture";
 const METIERS_REND: &str = "emplois (les métiers proposés) et emplois_autres (ceux des autres conventions)";
 
 /// Les routes de ce module, et leurs fiches.
@@ -133,7 +133,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "forcer", sens: "vrai : écrire malgré une erreur de forme", avance: true },
         ],
         exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics","numero_objet":"266Z00952012"}}"#,
-        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi), rien n'est écrit ; écrite : fiche, configuration, enregistre_a",
+        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi), rien n'est écrit ; écrite : cle, etat (relu), enregistre_a",
         refus: &[REFUSEE, OPERATION, MANQUE, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
         avance: false,
@@ -144,7 +144,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Archiver une fiche de salarié ou de spectacle, ou la réactiver.",
         charge: &[NOM_FICHE, CLE_FICHE, Champ { nom: "actif", sens: "vrai : réactiver ; faux : archiver", avance: false }],
         exemple: r#"{"nom":"spectacle","cle":"le-banc-des-menteurs","actif":true}"#,
-        rend: CONFIGURATION_REND,
+        rend: ETAT_REND,
         refus: &[OPERATION, MANQUE],
         acte: Acte::Ecrit,
         avance: false,
@@ -1087,9 +1087,10 @@ fn ecrire(chemin: &Path, v: Value) -> R<()> {
 }
 
 /// La configuration, relue apres l'ecriture (`web._configuration(Contexte(racine))`).
-pub(crate) fn configuration(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
+/// Ce que la page lit de la compagnie (la route `etat`), relu apres une ecriture : la page n'a rien d'autre a relire.
+pub(crate) fn etat_relu(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(plain)?;
-    crate::routes::ouverture::route(o, &neuf, "configuration", &json!({}))
+    crate::routes::ouverture::route(o, &neuf, "etat", &json!({}))
 }
 
 /// L'heure de Paris, a la seconde.
@@ -1126,7 +1127,7 @@ pub(crate) fn activer_fiche(ctx: &Contexte, nom: &str, cle: &str, actif: bool) -
 fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let (nom, cle) = (texte_requis(charge, "nom")?, texte_requis(charge, "cle")?);
     activer_fiche(ctx, nom, cle, charge.get("actif").is_some_and(vrai))?;
-    Ok(json!({"configuration": configuration(o, ctx)?}))
+    Ok(json!({"etat": etat_relu(o, ctx)?}))
 }
 
 // ----------------------------------------------------- fiche-oublier-demande
@@ -1761,13 +1762,11 @@ fn fiche_refusee(anomalies: &[Value]) -> Echec {
     Echec { classe: Some("FicheRefusee"), message: json!({"message": message, "anomalies": anomalies}).to_string() }
 }
 
-/// Ce que l'ecriture d'une fiche a fait : sa cle (celle d'une fiche neuve est fabriquee ici), ce
-/// qui a ete ecrit apres derivation, les anomalies, et les valeurs derivees.
+/// Ce que l'ecriture d'une fiche a fait : sa cle (celle d'une fiche neuve est fabriquee ici)
+/// et les anomalies.
 pub(crate) struct FicheEcrite {
     pub(crate) cle: Option<String>,
-    pub(crate) donnees: Map<String, Value>,
     pub(crate) anomalies: Vec<Value>,
-    pub(crate) derives: Map<String, Value>,
 }
 
 /// `enregistrer-fiche` : une fiche de l'ecran, ecrite (`ecrire_fiche`). Une valeur existante qui change demande sa date
@@ -1793,9 +1792,8 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
         }
     }
     let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), &depuis, note)?;
-    let fiche = crate::routes::ouverture::vue_fiche(nom, e.cle.as_deref(), &e.donnees, e.anomalies, &e.derives)?;
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
-    Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
+    Ok(json!({"cle": e.cle, "etat": etat_relu(o, ctx)?, "enregistre_a": maintenant()}))
 }
 
 /// `poser-courriel` : `{"salarie", "email"}`, le courriel d'un salarie, saisi la ou il manque (la boite des contrats a
@@ -1908,7 +1906,7 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         // L'ANCIENNETE PART DE L'EMBAUCHE, pas du jour de la fiche : la validation du premier engagement la pose
         // (`poser_anciennete_a_l_embauche`) ; une date saisie est gardee telle quelle.
     }
-    let derives = crate::routes::fiches::deriver(nom, &mut donnees, true)?;
+    crate::routes::fiches::deriver(nom, &mut donnees, true)?;
 
     let anomalies = crate::routes::fiches::verifier(nom, &donnees)?;
     if forcer.refuse(&anomalies) {
@@ -1926,7 +1924,7 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         if let Some(l) = etablissements {
             crate::routes::etablissements::ecrire(ctx, &mut contenu, &donnees, &l, depuis, note.as_deref())?;
         }
-        return finir_fiche(None, &chemin, contenu, donnees, anomalies, derives);
+        return finir_fiche(None, &chemin, contenu, anomalies);
     }
     if cle.as_deref().map_or(true, str::is_empty) {
         // UNE FICHE NEUVE : la cle se fabrique ici et nulle part ailleurs.
@@ -1939,7 +1937,7 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
     };
     ecrire_datee(&mut brute, nom, ancienne, &donnees, cases_vides, depuis, note.as_deref(), &ctx.lue_au)?;
     contenu.insert(k, Value::Object(brute));
-    finir_fiche(cle, &chemin, contenu, donnees, anomalies, derives)
+    finir_fiche(cle, &chemin, contenu, anomalies)
 }
 
 /// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (`import::completer`) : chaque champ de `champs` va dans la fiche
@@ -1982,17 +1980,10 @@ pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, Stri
     Ok(())
 }
 
-fn finir_fiche(
-    cle: Option<String>,
-    chemin: &Path,
-    contenu: Map<String, Value>,
-    donnees: Map<String, Value>,
-    anomalies: Vec<Value>,
-    derives: Map<String, Value>,
-) -> R<FicheEcrite> {
+fn finir_fiche(cle: Option<String>, chemin: &Path, contenu: Map<String, Value>, anomalies: Vec<Value>) -> R<FicheEcrite> {
     sauver_avant(chemin)?;
     ecrire(chemin, Value::Object(contenu))?;
-    Ok(FicheEcrite { cle, donnees, anomalies, derives })
+    Ok(FicheEcrite { cle, anomalies })
 }
 
 // ------------------------------------------------------------------ la fiche demandee par courriel

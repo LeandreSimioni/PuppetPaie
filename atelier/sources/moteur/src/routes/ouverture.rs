@@ -242,7 +242,7 @@ fn fiche_verifiee(nom: &str, cle: Option<&str>, donnees: &Value) -> R<Value> {
 
 /// La fiche telle que l'ecran la montre, avec les anomalies et les derivations que
 /// l'appelant a deja calculees (`derives` : `{cle: [avant, apres]}`).
-pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Value>, anomalies: Vec<Value>, derives: &Map<String, Value>) -> R<Value> {
+fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Value>, anomalies: Vec<Value>, derives: &Map<String, Value>) -> R<Value> {
     let comble = champs::combler_affichage(nom, donnees)?;
     let declare = champs::apercu_derive(nom, &comble)?;
     // Sa pastille : archivee (une information), ses erreurs (a corriger, la compagnie le peut), ce qui est a verifier,

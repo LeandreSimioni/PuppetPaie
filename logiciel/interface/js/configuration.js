@@ -279,8 +279,7 @@ function dessinerConfig() {
       r.querySelector("[data-activer]").onclick = async (e) => {
         const activer = e.currentTarget.dataset.activer === "oui";
         try {
-          await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer });
-          ETAT = await api("etat");
+          ETAT = (await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer })).etat;
           dire(`${nom} : ${activer ? "réactivé" : "archivé"}.`);
           dessinerConfig();
         } catch (err) { dire(err.message, "erreur"); }

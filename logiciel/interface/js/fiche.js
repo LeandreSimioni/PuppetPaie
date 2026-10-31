@@ -158,12 +158,13 @@ function dessinerFormulaire(fiche) {
           ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="chiffres">
+            ${String(v ?? "") ? "" : `<option value="" selected>— à choisir —</option>`}
             ${cv.map((x) => `<option value="${echapper(x.idcc)}"${
                 String(x.idcc) === String(v ?? "") ? " selected" : ""}
               >IDCC ${echapper(x.idcc)} — ${echapper(x.libelle)}${
                 x.applicable ? "" : " (taux non relevés : le calcul refuse)"}</option>`).join("")}
-            ${connue ? "" : `<option value="${echapper(v ?? "")}" selected
-              >IDCC ${echapper(v ?? "(vide)")} — non servie par le barème</option>`}
+            ${connue || !String(v ?? "") ? "" : `<option value="${echapper(v)}" selected
+              >IDCC ${echapper(v)} — non servie par le barème</option>`}
           </select></label>
         ${aideCorps(c.cle, c.aide)}
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
@@ -245,13 +246,14 @@ function dessinerFormulaire(fiche) {
       </div>`;
     }
     // LES JOURS TRAVAILLÉS : une case par jour de la semaine. Sans valeur, celles
-    // que le moteur compte (`droit::conges::JoursTravailles`) : du lundi au vendredi.
+    // que le moteur compte (`droit::conges::JoursTravailles`) : du lundi au vendredi ;
+    // elles ne partent que si on les touche (`data-absent`, `lireFormulaire`).
     if (c.cle === "jours_travailles" && FICHE_ACTIVE === "salarie") {
       const coches = Array.isArray(v) ? v : JOURS_DE_LA_SEMAINE.slice(0, 5);
       return `<div class="champ pleine${c.si_permanents ? " champ-permanents" : ""}"${
           c.si_permanents && !avecPermanents ? " hidden" : ""}>
         <label>${echapper(c.libelle)} ${aideHtml(c.cle, c.aide)}</label>
-        <div class="jours-semaine" data-cle="${c.cle}" data-jours="1">
+        <div class="jours-semaine" data-cle="${c.cle}" data-jours="1"${Array.isArray(v) ? "" : " data-absent=\"1\""}>
           ${JOURS_DE_LA_SEMAINE.map((j) => `<label class="coche"><input type="checkbox"
               data-jour="${j}"${coches.includes(j) ? " checked" : ""}> ${j}</label>`).join("")}
         </div>
@@ -259,31 +261,22 @@ function dessinerFormulaire(fiche) {
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
       </div>`;
     }
-    // UNE CASE A COCHER SE LIT COMME UNE PHRASE : la case, puis ce qu'elle dit.
+    // UNE CASE A COCHER SE LIT COMME UNE PHRASE : la case, puis ce qu'elle dit. Une
+    // case que la fiche ne dit pas montre ce que le moteur lit (`booleen_defaut`) et
+    // ne part que si on la touche.
     if (c.forme === "booleen") {
       const coche = v == null ? c.booleen_defaut !== false : v !== false;
       return `<div class="champ pleine case${c.si_permanents ? " champ-permanents" : ""}"${
           c.si_permanents && !avecPermanents ? " hidden" : ""}>
         <label class="coche"><input type="checkbox" data-cle="${c.cle}"
-            data-forme="booleen"${coche ? " checked" : ""}>
+            data-forme="booleen"${coche ? " checked" : ""}${v == null ? " data-absent=\"1\"" : ""}>
           ${echapper(c.libelle)} ${aideHtml(c.cle, c.aide)}</label>
         ${aideCorps(c.cle, c.aide)}
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
       </div>`;
     }
     const structure = c.forme === "structure" || (v !== null && typeof v === "object");
-    // Un booleen se coche. Ecrit en toutes lettres, il partait en texte : et
-    // « false » est une chaine VRAIE, donc la fiche serait restee active en
-    // paraissant archivee.
-    // Un booléen ABSENT ne vaut pas la même chose partout : `actif` absent
-    // vaut vrai (aucune fiche existante n'a à être modifiée pour rester
-    // active), `emploie_des_permanents` absent vaut faux. C'est le champ qui
-    // le dit — la page cochait d'office, et écrivait donc l'inverse de ce que
-    // le moteur lisait.
-    const controle = c.forme === "booleen"
-      ? `<input type="checkbox" data-cle="${c.cle}" data-forme="booleen"
-            ${(v == null ? c.booleen_defaut !== false : v !== false) ? "checked" : ""}>`
-      : structure
+    const controle = structure
       ? `<textarea rows="4" data-cle="${c.cle}" data-structure="1">${echapper(JSON.stringify(v ?? null, null, 1))}</textarea>`
       : `<input data-cle="${c.cle}" data-forme="${c.forme}" value="${echapper(v ?? "")}"${
             // Une date se choisit dans un calendrier, dans toutes les fiches ;
@@ -440,7 +433,7 @@ function dessinerFormulaire(fiche) {
   // c'est CE champ-la qui portera son bouton, pas le formulaire entier.
   document.querySelectorAll(
     "#config-formulaire input, #config-formulaire textarea, #config-formulaire select")
-    .forEach((c) => { c.oninput = () => { marquerModifie();
+    .forEach((c) => { c.oninput = () => { c.closest("[data-absent]")?.removeAttribute("data-absent"); marquerModifie();
       clearTimeout(verifierFormulaire._t);
       verifierFormulaire._t = setTimeout(verifierFormulaire, 400); }; });
   document.getElementById("config-enregistrer").onclick = () => enregistrerFiche(fiche);
@@ -1123,6 +1116,8 @@ function euros(v) {
 function lireFormulaire() {
   const d = {};
   document.querySelectorAll("#config-formulaire [data-cle]").forEach((c) => {
+    // Une case que la fiche ne disait pas, et que personne n'a touchée, ne part pas : rien ne se devine.
+    if (c.dataset.absent) return;
     if (c.dataset.jours) {
       d[c.dataset.cle] = [...c.querySelectorAll("[data-jour]")].filter((x) => x.checked)
         .map((x) => x.dataset.jour);
@@ -1525,9 +1520,9 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
       }
       return ecrireFiche(fiche, donnees, { ...réponse, confirme: true }, forcer);
     }
-    ETAT = await api("etat");
+    ETAT = r.etat;
     // Une fiche neuve : le moteur a fabriqué sa clé, c'est elle qu'on ouvre.
-    if (!fiche.cle && r.fiche && r.fiche.cle) { CLE_ACTIVE = r.fiche.cle; FICHE_NEUVE = false; }
+    if (!fiche.cle && r.cle) { CLE_ACTIVE = r.cle; FICHE_NEUVE = false; }
     // Le mot suffit, sans la clé technique. La fiche Entreprise n'a pas de
     // clé et existe dès que la compagnie existe : elle s'enregistre, elle ne
     // se crée pas.
