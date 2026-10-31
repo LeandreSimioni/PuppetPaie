@@ -954,7 +954,7 @@ fn signalements_dus(ctx: &Contexte, mois: &str, jour: Jour) -> Vec<Pas> {
 /// L'empreinte de ce qui fait un mois : sa saisie (`stock::empreinte_de_la_saisie_du_mois`) et ses imprevus. Un mois
 /// fait dont l'empreinte change se rejoue.
 fn empreinte_du_mois(racine: &Path, mois: &str) -> String {
-    let saisie = engagement::stock::empreinte_de_la_saisie_du_mois(racine, mois).ok().flatten().unwrap_or_default();
+    let saisie = engagement::stock::empreinte_de_la_saisie_du_mois(racine, mois, None).ok().flatten().unwrap_or_default();
     let imprevus = std::fs::read(engagement::imprevus::dossier(racine).join(format!("{}.json", mois))).unwrap_or_default();
     let suivi = std::fs::read(engagement::imprevus::dossier(racine).join("obligations.json")).unwrap_or_default();
     let mut tout = saisie.into_bytes();

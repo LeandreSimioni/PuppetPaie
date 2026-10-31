@@ -3,7 +3,7 @@
 //! - EN SAISIE (`EnSaisie`) : il se calcule a mesure pour l'ecran ; rien ne peut partir de lui ;
 //! - VALIDE (`Valide`) : « Valider l'engagement » a ecrit, dans l'engagement, `valide` : la date, le numero de sa
 //!   version, sa saisie telle qu'elle etait, ses paies calculees, une par mois qu'il couvre, et pour chacune l'empreinte
-//!   de ce dont son calcul depend (`empreinte`). Tout ce qui part part d'elles (`paies_du_mois`, `Valide::paie`) ;
+//!   de ce dont son calcul depend (`empreinte`). Tout ce qui part part d'elles (`validees_du_mois`, `Valide::paie`) ;
 //! - DOCUMENTS PARTIS (`Partis`) : les documents du mois (bulletin, certificat Conges Spectacles, AER) sont partis au
 //!   salarie ; ce mois ne se recalcule plus de lui-meme, sauf par une decision de l'editeur. La couche des envois le dit
 //!   (`departs`).
@@ -22,8 +22,8 @@
 //! paie validee : l'ecran, les exports, les declarations, les documents, les envois), la paie de chaque engagement
 //! valide se compare a son empreinte. Si elle ne tient plus, la paie se recalcule et se reecrit ; si un chiffre a change,
 //! elle dit pourquoi (`raison`) : « taux de PAS reçu » (seul le prelevement change), « règle du JJ/MM/AAAA » (une regle
-//! datee s'applique : du bareme, ou une valeur datee de la compagnie, son taux AT/MP de l'annee), « calcul corrigé » (le code qui calcule a change), « un autre engagement du mois a changé » (un
-//! engagement que son calcul lit), « saisie du mois modifiée » (le taux du cachet, la date de paiement), « la paie de
+//! datee s'applique : du bareme, ou une valeur datee de la compagnie, son taux AT/MP de l'annee), « calcul corrigé » (le code qui calcule a change), « un autre engagement du salarié a changé » (un
+//! engagement de son salarie dans le mois), « saisie du mois modifiée » (le taux du cachet, la date de paiement), « la paie de
 //! <mois> a changé » (une paie validee d'un autre mois que son calcul lit : conges, cumuls), « configuration de la
 //! compagnie modifiée » (une fiche corrigee sans date nouvelle, les contrats d'organismes). Un changement qui ne change aucun chiffre ne laisse aucune trace.
 //! Un mois dont les documents sont partis ne se recalcule que par une decision de l'editeur (« calcul corrigé », une
@@ -55,8 +55,9 @@ use socle::num::{dec_avec_echelle, pct, Decimal, Resultat};
 pub const TAUX_DE_PAS: &str = "taux de PAS reçu";
 /// La raison d'un recalcul : le code qui calcule a change (le moteur, ou les baremes et catalogues qu'il livre).
 pub const CALCUL_CORRIGE: &str = "calcul corrigé";
-/// La raison d'un recalcul : la saisie d'un autre engagement que le calcul lit a change (plafond, cumuls, conges).
-pub const AUTRE_ENGAGEMENT: &str = "un autre engagement du mois a changé";
+/// La raison d'un recalcul : un autre engagement valide du meme salarie dans le mois, que le calcul lit, a change (la
+/// deduction forfaitaire specifique deja retenue, `calcul::dfs_deja_deduite`).
+pub const AUTRE_ENGAGEMENT: &str = "un autre engagement du salarié a changé";
 /// La raison d'un recalcul : ce que la saisie du mois pose pour tous ses engagements (taux du cachet, date de paiement) a
 /// change.
 pub const SAISIE_DU_MOIS: &str = "saisie du mois modifiée";
@@ -404,24 +405,6 @@ pub fn paie_ecrite_de(ctx: &Contexte, mois: &str, cle: &str, debut: &str, depart
     }))
 }
 
-/// RIEN NE PART SANS VALIDATION : les paies validees de `mois`, une par engagement qu'il montre, dans l'ordre de
-/// l'ecran, telles qu'elles ont ete ecrites. Refus si un engagement du mois est encore en saisie : il se valide d'abord.
-pub fn paies_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Vec<Paie>> {
-    let etats = du_mois(ctx, mois, departs)?;
-    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
-    let en_saisie: Vec<String> = etats.iter().filter(|e| e.valide().is_none()).map(|e| qui_de(ctx, e.objet())).collect();
-    if !en_saisie.is_empty() {
-        return Err(format!(
-            "{} : {} engagement(s) ne sont pas encore valides ({}). Rien ne part d'un engagement en saisie : le valider \
-             d'abord (« Valider l'engagement »).",
-            crate::libelle_mois(mois),
-            en_saisie.len(),
-            en_saisie.join(", ")
-        ));
-    }
-    etats.iter().enumerate().map(|(i, e)| e.valide().ok_or("engagement en saisie")?.paie(ctx, &data, i)).collect()
-}
-
 /// CE QUI PEUT PARTIR DE `mois` : sa saisie reduite aux engagements valides (dans l'ordre de l'ecran), et la paie ecrite
 /// de chacun, au meme rang. Un engagement en saisie n'y est pas : aucun document ne part de lui. `None` : aucune saisie.
 pub fn validees_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<(Value, Vec<Paie>)>> {
@@ -445,13 +428,15 @@ pub fn validees_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Result
 /// Un engagement en saisie n'y est pas : ce qui n'est pas valide n'est pas paye. Rien ne se calcule ni ne se reecrit.
 /// Pendant une validation, les mois que son engagement a deja calcules s'y lisent comme ecrits (`EnValidation`).
 ///
-/// Le calcul qui les lit note leur empreinte (`paies <mois>`, `empreinte_des_paies_validees`) : une paie validee qui
-/// change fait recalculer les mois qui l'ont lue.
+/// Le calcul qui les lit note leur empreinte (`paies <mois>`, `empreinte_des_paies_validees`), et elle seule : une paie
+/// validee qui change fait recalculer les mois qui l'ont lue ; la saisie de son mois ne se note pas (sa validation
+/// reecrit ses paies avec elle, et un brouillon n'y est pas).
 pub fn paies_validees(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
-    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
+    let Some(saisie) = stock::saisie_du_mois(&ctx.racine, mois, false)? else { return Ok(Vec::new()) };
+    let data = &saisie.0;
     let valides = valides_lues(ctx, mois)?;
     socle::fichiers::noter_valeur(&format!("paies {}", mois), empreinte_des_paies(&valides, mois));
-    valides.iter().map(|(i, v)| v.paie(ctx, &data, *i)).collect()
+    valides.iter().map(|(i, v)| v.paie(ctx, data, *i)).collect()
 }
 
 /// L'empreinte des paies validees de `mois` telles qu'un calcul les lit (`paies_validees`) ; `None` si elles ne se lisent pas.
@@ -682,26 +667,28 @@ pub(crate) fn calculer(ctx: &Contexte, o: &Objet, mois: &str) -> Resultat<Value>
     calculer_les_rangs(ctx, mois, &[i])?.pop().ok_or_else(|| "le calcul du mois n'a pas cette paie".to_string())
 }
 
-/// Les paies des engagements de rangs `rangs` dans l'ecran de `mois`, d'un seul calcul du mois : chacune
-/// `{"paie", "fiches", "saisie_du_mois", "pas", "empreinte"}`, dans l'ordre de `rangs`. Le calcul d'un mois lit tous ses engagements (plafonds,
-/// cumuls, conges) : il se fait une fois, et chaque paie en garde l'empreinte et les fiches du salarie telles qu'il les a lues.
 /// Ce que la saisie `data` d'un mois pose pour tous ses engagements : elle-meme, sans ses engagements ni ce que le moteur
 /// tient (comme `stock::empreinte_de_saisie` la separe).
 fn mois_lu(data: &Value) -> Value {
     let mut m = data.as_object().cloned().unwrap_or_default();
-    for k in ["engagements", "_origine", "numeros_figes", "mois"] {
+    for k in ["engagements", "_origine", "mois"] {
         m.remove(k);
     }
     Value::Object(m)
 }
 
+/// Les paies des engagements de rangs `rangs` dans l'ecran de `mois`, d'un seul calcul du mois, au contexte du mois :
+/// chacune `{"paie", "fiches", "saisie_du_mois", "pas", "empreinte"}`, dans l'ordre de `rangs`, avec l'empreinte de ce
+/// dont son calcul depend.
 ///
 /// UNE PAIE ECRITE NE LIT QUE DES ENGAGEMENTS VALIDES : le calcul se fait sur les engagements valides du mois et ceux
 /// de `rangs`, comptes comme valides (`stock::empreinte_de_saisie` ne compte que ceux-la) ; un engagement en saisie
 /// n'entre ni dans le calcul ni dans l'empreinte d'une paie ecrite.
 fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<Vec<Value>> {
+    let ctx = &ctx.du_mois(mois)?;
     let mut data = stock::vue_du_mois(&ctx.racine, mois)?.ok_or_else(|| format!("{} : aucune saisie", mois))?;
     let tous: Vec<Value> = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    let salaries: Vec<String> = rangs.iter().map(|i| tous.get(*i).and_then(|e| e.get("salarie")).map(en_texte).unwrap_or_default()).collect();
     let mut gardes = Vec::new();
     let mut places = vec![None; tous.len()];
     for (i, mut e) in tous.into_iter().enumerate() {
@@ -714,7 +701,7 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
         }
     }
     data["engagements"] = Value::Array(gardes);
-    let (calculees, entrees) = empreinte::suivre(ctx, &data, || {
+    let (calculees, mut entrees) = empreinte::suivre(ctx, &data, || {
         let s = crate::charger_donnees(ctx, &data)?;
         rangs
             .iter()
@@ -726,12 +713,18 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
             })
             .collect::<Resultat<Vec<_>>>()
     })?;
+    // DES AUTRES ENGAGEMENTS DE SON MOIS, UNE PAIE NE LIT QUE CEUX DE SON SALARIE (`calcul::dfs_deja_deduite`, sur
+    // `precedentes`) ; `un_numero_un_salarie` refuse sans changer un chiffre.
+    entrees.remove(&stock::cle_de_saisie(mois, None));
     let mois_lu = mois_lu(&data);
     calculees
         .into_iter()
-        .map(|(paie, fiches, pas, conges, fin, config)| {
+        .zip(salaries)
+        .map(|((paie, fiches, pas, conges, fin, config), salarie)| {
             let regles = empreinte::regles(ctx, &fin)?;
-            let mut v = json!({ "paie": paie, "fiches": fiches, MOIS_LU: mois_lu.clone(), "empreinte": empreinte::en_json(&entrees, &regles, &config) });
+            let mut siennes = entrees.clone();
+            siennes.insert(stock::cle_de_saisie(mois, Some(&salarie)), stock::empreinte_de_saisie(&data, Some(&salarie)));
+            let mut v = json!({ "paie": paie, "fiches": fiches, MOIS_LU: mois_lu.clone(), "empreinte": empreinte::en_json(&siennes, &regles, &config) });
             if let Some(pas) = pas {
                 v["pas"] = pas;
             }
@@ -791,8 +784,9 @@ fn raison(avant: &Value, apres: &Value, parti: bool) -> String {
     if code && parti {
         return CALCUL_CORRIGE.to_string();
     }
-    // La saisie d'un mois : `<le mois>:<ses engagements>` (`stock::empreinte_de_saisie`).
-    let saisies: Vec<&String> = changees.iter().copied().filter(|k| k.starts_with("saisie ")).collect();
+    // La saisie dont la paie depend : `<le mois>:<les engagements de son salarie>` (`stock::empreinte_de_saisie`), lue
+    // des deux cotes ; une saisie que l'une des deux paies n'a pas lue ne dit pas qu'un engagement a change.
+    let saisies: Vec<&String> = changees.iter().copied().filter(|k| k.starts_with("saisie ") && ea.contains_key(*k) && eb.contains_key(*k)).collect();
     let part = |e: &BTreeMap<String, String>, k: &str, i: usize| e.get(k).and_then(|v| v.split(':').nth(i).map(String::from));
     if saisies.iter().any(|k| part(&ea, k, 1) != part(&eb, k, 1)) {
         return AUTRE_ENGAGEMENT.to_string();
@@ -942,8 +936,9 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, precedente: Option<&Va
     for m in o.mois_couverts(mois)? {
         let partis = documents_partis(siens, &m).is_some();
         let garde = anciennes.get(&m).filter(|f| {
-            let saisie = stock::empreinte_de_la_saisie_du_mois(&ctx.racine, &m).ok().flatten();
-            let ecrite = f.get("empreinte").and_then(empreinte::entrees_de).and_then(|e| e.get(&stock::cle_de_saisie(&m)).cloned());
+            let salarie = o.brut.get("salarie").map(en_texte);
+            let saisie = stock::empreinte_de_la_saisie_du_mois(&ctx.racine, &m, salarie.as_deref()).ok().flatten();
+            let ecrite = f.get("empreinte").and_then(empreinte::entrees_de).and_then(|e| e.get(&stock::cle_de_saisie(&m, salarie.as_deref())).cloned());
             partis && saisie.is_some() && saisie == ecrite
         });
         let p = match garde {
@@ -1271,11 +1266,27 @@ fn decision_de_l_editeur(raison: &str) -> bool {
 /// datee : `empreinte::code_ou_regle_change`, puis la raison du recalcul), et la paie refaite rectifie le bulletin parti.
 /// Un taux de PAS recu, une configuration, une autre saisie ne touchent pas un mois parti.
 fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<Vec<Etat>>> {
+    // Au contexte du mois, quel que soit le jour de celui qui lit : ce que l'empreinte relit (les fiches) vaut au mois paye.
+    let ctx = &ctx.du_mois(mois)?;
     // Ce qui ne tient plus : le rang dans l'ecran, l'engagement, sa paie ecrite du mois, et si ses documents sont partis.
     let mut a_refaire: Vec<(usize, Objet, Option<Value>, bool)> = Vec::new();
     let mut relues = empreinte::Relues::default();
     let mut reecrit = false;
-    let etats = tels_qu_ecrits(ctx, mois, departs)?;
+    let mut etats = tels_qu_ecrits(ctx, mois, departs)?;
+    // CE DONT UNE PAIE DEPEND SE MET A JOUR AVANT ELLE : les mois d'avant que ses paies ont lus (`paies <mois>`) se relisent
+    // d'abord, du plus ancien au plus recent ; la lecture de `mois` ne depend pas de l'ordre des lectures.
+    let mut avant: Vec<String> = etats
+        .iter()
+        .filter_map(|e| e.valide()?.paie_ecrite(mois)?.get("empreinte").and_then(empreinte::entrees_de))
+        .flat_map(|en| en.into_keys().filter_map(|k| k.strip_prefix("paies ").map(String::from)))
+        .filter(|m| m.as_str() < mois)
+        .collect();
+    avant.sort();
+    avant.dedup();
+    if !avant.is_empty() {
+        avant.iter().try_for_each(|m| du_mois(ctx, m, departs).map(|_| ()))?;
+        etats = tels_qu_ecrits(ctx, mois, departs)?;
+    }
     for (i, e) in etats.iter().enumerate() {
         let (v, parti) = match e {
             Etat::Valide(v) => (v, false),
