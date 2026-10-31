@@ -432,7 +432,7 @@ pub fn validees_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Result
 /// validee qui change fait recalculer les mois qui l'ont lue ; la saisie de son mois ne se note pas (sa validation
 /// reecrit ses paies avec elle, et un brouillon n'y est pas).
 pub fn paies_validees(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
-    let Some(saisie) = stock::saisie_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
+    let Some(saisie) = stock::vue_et_empreinte(&ctx.racine, mois)? else { return Ok(Vec::new()) };
     let data = &saisie.0;
     let valides = valides_lues(ctx, mois)?;
     socle::fichiers::noter_valeur(&format!("paies {}", mois), empreinte_des_paies(&valides, mois));

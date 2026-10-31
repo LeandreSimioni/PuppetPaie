@@ -134,9 +134,9 @@ pub mod compagnie {
 }
 
 
-/// La saisie de `mois` telle que ses engagements la montrent (`engagement::saisie_du_mois`).
+/// La saisie de `mois` telle que ses engagements la montrent (`engagement::vue_requise`).
 pub fn saisie(racine: &Path, mois: &str) -> Value {
-    let mut v = engagement::saisie_du_mois(racine, mois).unwrap();
+    let mut v = engagement::vue_requise(racine, mois).unwrap();
     v["mois"] = Value::String(mois.to_string());
     v
 }

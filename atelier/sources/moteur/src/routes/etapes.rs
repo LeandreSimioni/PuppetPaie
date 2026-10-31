@@ -588,7 +588,7 @@ impl<'a> Moteur<'a> {
     /// La saisie d'un mois, chargee sans calculer la paie : ses engagements qui ne manquent de rien
     /// (`mois::manques_de_la_saisie`), et ce qui manque a chacun de ses engagements, dans son ordre.
     fn charger_saisie(&mut self, mois: &str) -> R<SaisieMois> {
-        let mut data = engagement::saisie_du_mois(self.racine(), mois).map_err(classer_saisie)?;
+        let mut data = engagement::vue_requise(self.racine(), mois).map_err(classer_saisie)?;
         let manques = super::mois::manques_de_la_saisie(self.ctx, &data);
         let objets = engagement::stock::objets_du_mois(self.racine(), mois).map_err(plain)?;
         let mut identites = engagement::stock::identites(&objets);

@@ -916,7 +916,7 @@ fn jour_le(charge: &Value) -> R<Option<Jour>> {
 
 /// Ce qui peut partir du mois : la saisie de ses engagements valides (`engagement::etats::validees_du_mois`), et leurs
 /// paies ecrites ; refus si aucun engagement ne le touche.
-fn saisie_du_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
+fn validees(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
 }
@@ -978,7 +978,7 @@ fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mo
     Ok(siens.into_iter().nth(i).expect("rang lu dans la meme liste"))
 }
 
-/// La paie validee de l'engagement de rang `rang` (`paies` : celles de `saisie_du_mois`, au meme rang que sa saisie),
+/// La paie validee de l'engagement de rang `rang` (`paies` : celles de `validees`, au meme rang que sa saisie),
 /// numerotee (les numeros ne sont que reserves).
 fn paie_de_l_engagement(ctx: &Contexte, paies: &[Paie], rang: usize, cle: &str, nom: &str, mois: &str) -> R<Paie> {
     let annee = mois.chars().take(4).collect::<String>().parse::<i32>().map_err(|_| erreur("ValueError", format!("mois illisible : {}", repr_texte(mois))))?;
@@ -1068,7 +1068,7 @@ fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent:
 /// tout compte. Deux PAPIERS : rien ne part nulle part.
 fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?);
-    let (saisie, paies) = saisie_du_mois(ctx, mois)?;
+    let (saisie, paies) = validees(ctx, mois)?;
     let cle = cle_du_nom(ctx, salarie)?;
     let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
     let p = paie_de_l_engagement(ctx, &paies, rang, &cle, salarie, mois)?;
@@ -1168,7 +1168,7 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let envoi_test = facultatif(charge, "test").is_some();
 
-    let (saisie, paies) = saisie_du_mois(ctx, mois)?;
+    let (saisie, paies) = validees(ctx, mois)?;
     let cle = cle_du_nom(ctx, salarie)?;
     let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
     let fin = fin_de_contrat_declaree(ctx, &e, mois)?;

@@ -566,7 +566,7 @@ pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
 /// LE MOIS DE L'ECRAN : `{"mois", <defauts du mois>, "engagements": [la vue de chacun]}`, ou `None` quand aucun
 /// engagement ne le touche et qu'il n'a pas de fichier. Un engagement valide y dit quand (`valide` : `{"le"}`).
 pub fn vue_du_mois(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
-    Ok(saisie_du_mois(racine, mois)?.map(|s| {
+    Ok(vue_et_empreinte(racine, mois)?.map(|s| {
         socle::fichiers::noter_valeur(&cle_de_saisie(mois, None), s.1.clone());
         s.0.clone()
     }))
@@ -575,13 +575,13 @@ pub fn vue_du_mois(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
 /// L'empreinte de la saisie de `mois` (`empreinte_de_saisie`) : celle que `vue_du_mois` note, ou, pour `salarie`, celle
 /// que la paie de ses engagements du mois note ; `None` sans saisie.
 pub fn empreinte_de_la_saisie_du_mois(racine: &Path, mois: &str, salarie: Option<&str>) -> Resultat<Option<String>> {
-    Ok(saisie_du_mois(racine, mois)?.map(|s| if salarie.is_none() { s.1.clone() } else { empreinte_de_saisie(&s.0, salarie) }))
+    Ok(vue_et_empreinte(racine, mois)?.map(|s| if salarie.is_none() { s.1.clone() } else { empreinte_de_saisie(&s.0, salarie) }))
 }
 
 /// La vue de `mois` et son empreinte, faites une fois pour les memes fichiers aux memes octets (`memes`) :
 /// chaque paie qui se verifie relit la saisie des mois qu'elle a lus. La vue d'une ligne lit aussi l'unite de sa rubrique
 /// (`droit::catalogue::rubrique`) : les deux catalogues en font partie.
-pub(crate) fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(Value, String)>>> {
+pub(crate) fn vue_et_empreinte(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(Value, String)>>> {
     type Saisie = Option<std::sync::Arc<(Value, String)>>;
     type Vues = std::sync::Mutex<std::collections::HashMap<(PathBuf, String), (Lus, Saisie)>>;
     static VUES: std::sync::OnceLock<Vues> = std::sync::OnceLock::new();

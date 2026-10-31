@@ -1231,19 +1231,6 @@ pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
     let nom = e.get("salarie").and_then(Value::as_str)?;
     ctx.salarie(nom).ok()?.get("_cle").and_then(Value::as_str).map(str::to_string)
 }
-/// Les engagements que le mois montre (`stock::vue_du_mois`), bruts, avec la cle du salarie ; vide si aucun ne le
-/// touche.
-pub fn engagements_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<(String, Value)>> {
-    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
-    let mut out = Vec::new();
-    for e in data.get("engagements").and_then(|x| x.as_array()).map_or(&[][..], |a| &a[..]) {
-        if let Some(cle) = cle_de_l_engagement(ctx, e) {
-            out.push((cle, e.clone()));
-        }
-    }
-    Ok(out)
-}
-
 /// Le debut d'un engagement brut, comme `Engagement` le deduirait : `debut` s'il le dit, sinon son premier jour joue.
 pub fn debut_brut(e: &Value) -> String {
     let cle = |j: &Value| match j {
@@ -1400,7 +1387,7 @@ pub struct Saisie {
 }
 
 /// La saisie de `mois` telle que l'ecran la montre (`stock::vue_du_mois`) ; refus quand aucun engagement ne le touche.
-pub fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Value> {
+pub fn vue_requise(racine: &Path, mois: &str) -> Resultat<Value> {
     stock::vue_du_mois(racine, mois)?.ok_or_else(|| format!("{} : aucun engagement ne touche ce mois ({}/).", mois, stock::DOSSIER))
 }
 
@@ -1516,7 +1503,7 @@ pub fn pour_l_ecran(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
 /// `pour_l_ecran` de la saisie de `mois` telle que ses engagements la montrent.
 #[cfg(feature = "ecran")]
 pub fn mois_pour_l_ecran(ctx: &Contexte, mois: &str) -> Resultat<Saisie> {
-    charger_donnees(ctx, &saisie_du_mois(&ctx.racine, mois)?)
+    charger_donnees(ctx, &vue_requise(&ctx.racine, mois)?)
 }
 
 /// Les engagements de la saisie `data`, lus tels que l'ecran les montre (les lignes d'un permanent deduites de ses
