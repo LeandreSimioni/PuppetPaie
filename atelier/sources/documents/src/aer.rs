@@ -477,3 +477,28 @@ pub fn remplir(donnees: &[u8], valeurs: &Map<String, Value>, images: &[Value]) -
     let texte = serde_json::to_string(&description).map_err(|e| Echec::Autre(e.to_string()))?;
     fabrique(fabrique_pdf::formulaire::remplir(donnees, &texte))
 }
+
+/// Toutes les periodes que l'AER de `cle` pour `periode` doit porter (`ecarts`) : chaque contrat dont l'AER est due ce
+/// mois-ci (`due`), mois par mois depuis son debut, chacun lu dans la paie de son mois (`paies_du_mois`).
+pub fn periodes_attendues(periode: &str, cle: &str, paies_du_mois: &mut dyn FnMut(&str) -> Vec<engagement::calcul::Paie>) -> Resultat<Vec<PaieAer>> {
+    let de_lui = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).as_deref() == Some(cle);
+    let mut out = Vec::new();
+    for p in paies_du_mois(periode).iter().filter(|p| de_lui(p)) {
+        let e = &p.engagement;
+        if !due(e)? {
+            continue;
+        }
+        let numero = e.numero.clone().unwrap_or_default();
+        let mut m = e.debut.iso()[..7].to_string();
+        while m.as_str() < periode {
+            for q in paies_du_mois(&m).iter().filter(|q| de_lui(q) && q.engagement.numero.as_deref() == Some(numero.as_str()) && !q.engagement.sans_paie()) {
+                out.push(PaieAer::du_mois(&q.engagement)?);
+            }
+            m = socle::date::premier_du_mois(&m)?.mois_suivant();
+        }
+        if !e.sans_paie() {
+            out.push(PaieAer::du_mois(e)?);
+        }
+    }
+    Ok(out)
+}

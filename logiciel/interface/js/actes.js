@@ -723,7 +723,7 @@ async function boiteEnvoi(mois) {
     try {
       const r = await api("envoyer-documents", { mois, salaries, motdepasse: mdp });
       fermerBoite();
-      dire(r.partis.length + " message(s) envoyé(s).", "envoye");
+      dire(r.phrase, "envoye");
       afficherEnvoi("Documents aux salariés", mois, r.partis, r.avertissements);
       fenetreCourrielsFictifs("documents", repere);
       await rafraichirActions();
