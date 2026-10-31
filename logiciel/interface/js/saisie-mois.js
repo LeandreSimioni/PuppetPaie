@@ -104,9 +104,7 @@ function engagementDuBloc(div, mois) {
   // UN PERMANENT N'A PAS DE SPECTACLE, et ce n'est pas un détail de mise
   // en page : le numéro d'objet lui est interdit (CCH-11).
   const e = nat.mensuelle ? { salarie } : { salarie, spectacle };
-  // La nature ne s'écrit que si elle s'écarte du défaut : un engagement
-  // muet est un CDDU du spectacle.
-  if (nat.cle && nat.cle !== ETAT.nature_defaut) e.nature = nat.cle;
+  if (nat.cle) e.nature = nat.cle;
   if (debut) e.debut = debut;
   if (fin) e.fin = fin;
   if (numero) e.numero = numero;
@@ -134,13 +132,10 @@ function engagementDuBloc(div, mois) {
     else if (debut && fin) e.lignes = [];
   }
   ruptureDuBloc(div, nat, fin, e);
-  // Le métier ne s'écrit que s'il est choisi : un engagement sans `metier`
-  // prend celui de la fiche. `cadre` voyage avec lui, seulement quand il
-  // s'écarte du défaut du catalogue.
+  // Un engagement sans `metier` prend celui de la fiche ; `cadre` voyage avec lui.
   if (metier) {
     e.metier = metier;
-    const m = metierDe(metier);
-    if (!m || cadre !== !!m.cadre_par_defaut) e.cadre = cadre;
+    e.cadre = cadre;
   }
   // Ce que le formulaire montre parce que l'engagement le porte : la date
   // de paiement propre au contrat, son lieu, l'emploi et les statuts

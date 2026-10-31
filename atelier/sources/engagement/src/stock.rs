@@ -746,10 +746,7 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
             (o.fichier, o.rang)
         }
         None => {
-            let mut saisie = saisie.clone();
-            for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
-                saisie.remove(*k);
-            }
+            let saisie = en_forme(saisie)?;
             let p = chemin(racine, mois);
             let mut contenu = match lire_fichier(racine, mois)? {
                 Some(c) => c,
@@ -792,10 +789,7 @@ pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Map<Str
 /// le numero du contrat ecrit se garde, un spectacle nomme autrement que celui qui est ecrit (sa cle, son titre, son
 /// numero d'objet) garde son nom ecrit.
 fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resultat<()> {
-    let mut saisie = saisie.clone();
-    for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
-        saisie.remove(*k);
-    }
+    let mut saisie = en_forme(saisie)?;
     if !saisie.get("numero").is_some_and(vrai) {
         if let Some(n) = o.brut.get("numero").filter(|n| vrai(n)).cloned() {
             saisie.insert("numero".into(), n);
@@ -813,6 +807,29 @@ fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Map<String, Val
     }
     poser_le_mois(o, mois, &saisie)
 }
+
+/// CE QU'UNE CARTE ECRIT, DANS LA FORME ECRITE : ni ce que le moteur tient seul ni ce qu'il deduit ; la nature
+/// seulement si elle n'est pas celle par defaut (un engagement muet a la nature par defaut, `natures::defaut`) ; `cadre`
+/// seulement s'il s'ecarte du defaut du metier au catalogue (`emplois::metier`). Une carte ecrite deux fois a
+/// l'identique s'ecrit donc de meme, et sa relecture ne voit aucun changement.
+fn en_forme(saisie: &Map<String, Value>) -> Resultat<Map<String, Value>> {
+    let mut saisie = saisie.clone();
+    for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
+        saisie.remove(*k);
+    }
+    if saisie.get("nature").is_none_or(|n| !vrai(n)) || saisie.get("nature").map(en_texte) == Some(droit::natures::defaut()?) {
+        saisie.remove("nature");
+    }
+    let catalogue = match saisie.get("metier").filter(|m| vrai(m)) {
+        Some(m) => droit::emplois::metier(&en_texte(m)).ok().flatten().map(|f| f.get("cadre_par_defaut").is_some_and(vrai)),
+        None => None,
+    };
+    if catalogue.is_some() && saisie.get("cadre").and_then(Value::as_bool) == catalogue {
+        saisie.remove("cadre");
+    }
+    Ok(saisie)
+}
+
 /// `a` et `b` nomment-ils la meme fiche de spectacle (`Contexte::spectacle`) ?
 fn meme_spectacle(ctx: &Contexte, a: &Value, b: &Value) -> bool {
     let cle = |v: &Value| ctx.spectacle(&en_texte(v)).ok().and_then(|f| f.get("_cle").cloned());
