@@ -117,7 +117,21 @@ pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Ve
     if !changements.is_empty() || soldees {
         ecrire(ctx, &data)?;
     }
+    if !changements.is_empty() {
+        refaire_les_paies(ctx)?;
+    }
     Ok(changements)
+}
+
+/// UN TAUX RECU REFAIT, DANS LE MEME GESTE, LES PAIES QU'IL TOUCHE (le recalcul de lui-meme, « taux de PAS reçu ») :
+/// chaque mois saisi se relit (`engagement::etats::du_mois`), et ses paies validees dont l'empreinte ne tient plus se
+/// reecrivent. Un mois dont les documents sont partis ne bouge pas. Aucune lecture ulterieure n'a donc a le decouvrir.
+fn refaire_les_paies(ctx: &Contexte) -> Result<(), Echec> {
+    let departs = envois::journal::lu(&ctx.racine).map_err(ko)?.departs;
+    for mois in engagement::stock::mois_saisis(&ctx.racine).map_err(ko)? {
+        engagement::etats::du_mois(ctx, &mois, &departs).map_err(ko)?;
+    }
+    Ok(())
 }
 
 /// Par salarie, l'historique des taux declares dans les DSN deja deposees (une lecture, pas un calcul).
