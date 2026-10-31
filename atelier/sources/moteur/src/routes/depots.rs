@@ -510,11 +510,7 @@ fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let fabriquee;
     let fichier = match (charge.get("fichier").filter(|f| vrai(f)), charge.get("mois").filter(|m| vrai(m))) {
         (None, Some(mois)) if etats::est(quoi, "dsn") => {
-            // Avant son premier jour de depot, la DSN ne s'ecrit pas (`depart::pas_avant`).
-            if let Some((_, phrase, _)) = crate::compagnie::depart::pas_avant(ctx, &valeur_en_texte(mois))? {
-                return Err(erreur("ErreurOperation", format!("{} Rien n'est parti.", phrase)));
-            }
-            let dsn =crate::compagnie::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
+            let dsn = crate::compagnie::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
             let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte);
             let chemin = match nic {
                 Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
