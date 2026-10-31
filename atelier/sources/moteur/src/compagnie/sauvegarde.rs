@@ -339,7 +339,7 @@ fn parcourir(racine: &Path, dossier: &Path, sortie: &mut Vec<PathBuf>) {
     }
 }
 
-/// `inventaire` : les fichiers dans l'ordre de `sorted(racine.rglob("*"))` (composante par
+/// `inventaire` : les fichiers triés par chemin (composante par
 /// composante, pas en texte : `a/x` passe avant `a b/x`), et le nombre d'ecartes. Ne lit aucun
 /// contenu.
 pub fn inventaire(racine: &Path) -> (Vec<(String, Etat)>, usize) {

@@ -252,7 +252,7 @@ pub(crate) fn dossier_json(d: &Dossier) -> Value {
 
 // ------------------------------------------------------------------ les noms de fichier
 
-/// `Path.glob("<debut>*<fin>")` d'un dossier : les noms qui commencent et finissent ainsi, dans
+/// Les noms d'un dossier qui commencent par `debut` et finissent par `fin`, dans
 /// l'ordre des noms.
 fn noms_commencant_finissant(dossier: &Path, debut: &str, fin: &str) -> Vec<String> {
     let Ok(lecture) = std::fs::read_dir(dossier) else { return Vec::new() };

@@ -146,7 +146,7 @@ fn capitaliser(s: &str) -> String {
     }
 }
 
-/// `str.format` a champs nommes : chaque `{nom}` est remplace, une seule fois (la valeur n'est pas relue).
+/// Un modèle à champs nommés : chaque `{nom}` est remplacé, une seule fois (la valeur n'est pas relue).
 pub fn formater(modele: &str, champs: &[(&str, String)]) -> String {
     let mut sortie = String::new();
     let mut reste = modele;
@@ -169,7 +169,7 @@ fn cle_absente(cle: &str) -> String {
     socle::fichiers::absent(cle)
 }
 
-/// L'annee et le mois d'un « AAAA-MM » (`int(mois[:4]), int(mois[5:7])`).
+/// L'année et le mois d'un « AAAA-MM » ; refus s'ils ne se lisent pas.
 fn an_mois(mois: &str) -> Result<(i32, usize), String> {
     let lire = |t: Option<&str>| -> Result<i64, String> {
         let t = t.unwrap_or("");
@@ -937,7 +937,7 @@ fn ecrire_noeud(n: &Noeud, frontiere: &mut dyn FnMut() -> String) -> Result<Vec<
     Ok(sortie)
 }
 
-/// `_make_boundary(text)` : la frontiere ne doit apparaitre seule sur aucune ligne du texte.
+/// Une frontière MIME qui n'apparaît seule sur aucune ligne du texte.
 fn frontiere_libre(base: String, texte: &[u8]) -> String {
     let mut b = base.clone();
     let mut compteur = 0;
@@ -1007,7 +1007,7 @@ pub fn date_de(t: i64) -> String {
     )
 }
 
-/// `len(value.splitlines())`, pour le refus d'un en-tete a plusieurs lignes.
+/// Le nombre de lignes d'un texte, pour le refus d'un en-tête à plusieurs lignes.
 fn compte_lignes(s: &str) -> usize {
     let mut n = 0;
     let mut en_cours = false;

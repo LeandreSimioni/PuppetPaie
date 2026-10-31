@@ -136,7 +136,7 @@ fn normal(p: PathBuf) -> PathBuf {
     sortie
 }
 
-/// `Path.resolve()` : absolu, liens suivis aussi loin que le chemin existe.
+/// Le chemin absolu, liens suivis aussi loin que le chemin existe.
 fn resoudre(p: &Path) -> PathBuf {
     let absolu = if p.is_absolute() { p.to_path_buf() } else { std::env::current_dir().unwrap_or_default().join(p) };
     let mut reste: Vec<std::ffi::OsString> = Vec::new();

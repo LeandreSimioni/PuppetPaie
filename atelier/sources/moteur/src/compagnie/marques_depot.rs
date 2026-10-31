@@ -11,7 +11,7 @@ use socle::date::Jour;
 use socle::echec::R;
 use socle::echec::erreur;
 
-/// Un fichier lu comme `Path.read_text(encoding="latin-1")` : un octet, un caractere, et les fins de ligne
+/// Un fichier lu en latin-1 : un octet, un caractère, et les fins de ligne
 /// `\r\n` et `\r` lues comme `\n`.
 fn lire_latin1(chemin: &Path) -> R<String> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;

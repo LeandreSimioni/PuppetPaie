@@ -252,7 +252,7 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
             incr(g, "en_attente");
         }
     }
-    // `sorted(..., key=derniere or "", reverse=True)` : stable.
+    // Les plus récents d'abord ; tri stable.
     let cle_de = |g: &Map<String, Value>| if vrai(&g["derniere"]) { valeur_en_texte(&g["derniere"]) } else { String::new() };
     let mut liste: Vec<Map<String, Value>> = groupes.into_iter().map(|(_, g)| g).collect();
     liste.sort_by(|a, b| cle_de(b).cmp(&cle_de(a)));

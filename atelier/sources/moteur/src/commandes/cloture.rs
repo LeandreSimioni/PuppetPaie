@@ -35,7 +35,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
-/// Le nom d'un chemin (`Path.name`).
+/// Le dernier nom d'un chemin.
 fn nom_de(chemin: &str) -> String {
     chemin.rsplit(['/', '\\']).next().unwrap_or(chemin).to_string()
 }

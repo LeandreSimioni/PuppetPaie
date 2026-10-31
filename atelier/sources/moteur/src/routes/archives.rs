@@ -81,12 +81,12 @@ fn sous_sorties(ctx: &Contexte, mois: &Value) -> R<std::path::PathBuf> {
     }
 }
 
-/// `sorted(d.glob("*.pdf"))` : les noms (sensible a la casse, fichiers caches compris),
+/// Les noms des PDF d'un dossier (sensible à la casse, fichiers cachés compris),
 /// en ordre de points de code.
 fn pdf_de(d: &Path) -> R<Vec<String>> {
     let mut noms = Vec::new();
-    // `Path.glob` ne leve rien pour ce qui n'est pas un dossier ni pour un dossier
-    // interdit : elle ne rend rien.
+    // Ce qui n'est pas un dossier, ou un dossier interdit, n'a aucun PDF :
+    // rien ne se refuse.
     let lecture = match std::fs::read_dir(d) {
         Ok(l) => l,
         Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied || e.raw_os_error() == Some(20) => return Ok(noms),
@@ -187,7 +187,7 @@ fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 // -------------------------------------------------------------- dossier-formes
 
 
-/// `sorted({m[:4] for m in mois}, reverse=True)`.
+/// Les années des mois, de la plus récente à la plus ancienne.
 fn annees_de(dispo: &[String]) -> Vec<String> {
     let mut annees: Vec<String> = dispo.iter().map(|m| m.chars().take(4).collect::<String>()).collect::<HashSet<_>>().into_iter().collect();
     annees.sort();

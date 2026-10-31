@@ -61,7 +61,7 @@ pub fn traiter(o: &HashMap<String, String>, route: &str, charge: &Value) -> Opti
 
 // ------------------------------------------------------------------ outils
 
-/// `str(x)` d'une valeur facultative (`None` si absente).
+/// Une valeur facultative en texte (`None` si absente).
 pub(super) fn texte(v: Option<&Value>) -> String {
     v.map_or("None".to_string(), en_texte)
 }
@@ -70,7 +70,7 @@ fn vrai_opt(v: Option<&Value>) -> bool {
     v.map_or(false, vrai)
 }
 
-/// `str(x.get(cle) or "")`.
+/// La valeur de `cle` en texte, vide si elle manque ou est vide.
 fn texte_ou_vide(v: &Value, cle: &str) -> String {
     match v.get(cle) {
         Some(x) if vrai(x) => en_texte(x),

@@ -124,7 +124,7 @@ pub(crate) fn brut(v: &Value) -> Value {
     }
 }
 
-/// `str.title()` d'un texte, `""` s'il manque.
+/// Chaque mot d'un texte avec sa première lettre en capitale, `""` s'il manque.
 pub(crate) fn titre_de(v: Option<&Value>) -> String {
     match v.filter(|x| vrai(x)) {
         Some(x) => declarations::champs::titre(&valeur_en_texte(x)),
@@ -535,7 +535,7 @@ pub(crate) fn apercu_lu(
     Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, contrats_attestes: Vec::new(), contrats_changes: Vec::new(), licences: lecture.licences.clone() })
 }
 
-/// Le nombre de valeurs distinctes (`len({...})`) : `1`, `1.0` et `True` ne font
+/// Le nombre de valeurs distinctes : `1`, `1.0` et `true` ne font
 /// qu'une ; une liste ou un dictionnaire ne se hache pas.
 fn distincts(engagements: &[&Value], cle: &str) -> R<usize> {
     let mut vus: HashSet<String> = HashSet::new();

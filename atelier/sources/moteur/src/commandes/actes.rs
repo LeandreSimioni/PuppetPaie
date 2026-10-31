@@ -236,7 +236,7 @@ pub fn refuser_si_pas_redirige(_cadre: &super::Cadre, _organisme: Organisme, _qu
     Ok(())
 }
 
-/// Les services du coffre, dans l'ordre alphabetique (`sorted(coffre.SERVICES)`).
+/// Les services du coffre, dans l'ordre alphabétique.
 pub fn services_connus() -> Vec<&'static str> {
     let mut noms: Vec<&str> = crate::compagnie::coffre::SERVICES.iter().map(|s| s.nom).collect();
     noms.sort_unstable();

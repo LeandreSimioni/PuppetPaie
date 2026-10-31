@@ -177,7 +177,7 @@ pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Valu
 }
 
 
-/// `str(x or "")`.
+/// Une valeur en texte, vide si elle manque ou est vide.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
         Some(x) if vrai(x) => valeur_en_texte(x),
@@ -1102,7 +1102,7 @@ fn en_os(m: String) -> Echec {
     erreur("OSError", m)
 }
 
-/// `Path.mkdir(parents=True, exist_ok=True)`.
+/// Crée le dossier et ses parents ; rien s'il existe.
 fn creer_dossier(d: &std::path::Path) -> R<()> {
     std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
 }

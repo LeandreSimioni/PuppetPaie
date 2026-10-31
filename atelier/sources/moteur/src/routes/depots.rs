@@ -97,7 +97,7 @@ fn maintenant() -> f64 {
     socle::temps::secondes()
 }
 
-/// `datetime.now()` a l'heure de Paris, en `AAAA-MM-JJTHH:MM:SS`.
+/// L'heure de Paris, en `AAAA-MM-JJTHH:MM:SS`.
 fn maintenant_iso() -> String {
     socle::paris::iso_secondes(maintenant())
 }
@@ -123,7 +123,7 @@ fn ecrire_texte(chemin: &Path, texte: &str) -> R<()> {
 // ------------------------------------------------------------------ dpae
 
 /// Les noms `DPAE_<etiquette>_AAAAMMJJ-HHMM.txt` d'un dossier, du plus grand au plus petit
-/// (`sorted(sortie.glob("DPAE_%s_????????-????.txt" % etiq), reverse=True)`).
+/// (le plus récent d'abord).
 fn fichiers_partiels(dossier: &Path, etiq: &str) -> Vec<PathBuf> {
     let debut = format!("DPAE_{}_", etiq);
     let Ok(lecture) = std::fs::read_dir(dossier) else { return Vec::new() };
@@ -791,7 +791,7 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
 
 // ------------------------------------------------------------------ les chemins
 
-/// `str(PurePosixPath(t))` : les `//` et les `.` intermediaires s'en vont, un `/`
+/// Un chemin POSIX normalisé : les `//` et les `.` intermédiaires s'en vont, un `/`
 /// de tete reste (deux, s'il y en a exactement deux).
 pub(crate) fn normaliser(t: &str) -> String {
     let tete = if t.starts_with("//") && !t.starts_with("///") {
@@ -824,7 +824,7 @@ fn existe(t: &str) -> bool {
 
 /// Un chemin tape a la main, tel quel
 /// s'il existe, sinon sous les donnees, un mois nu designant sa saisie. Rend
-/// le texte du chemin, ecrit comme `str(Path)`.
+/// le texte du chemin, normalisé.
 pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
     let vide = match chemin {
         Value::Null => true,
@@ -873,7 +873,7 @@ fn empreinte_du_fichier(chemin: &str) -> R<String> {
 
 // ------------------------------------------------------------------ depot-apercu, la DPAE
 
-/// `Path.read_bytes()`.
+/// Le contenu d'un fichier, en octets.
 pub(crate) fn lire_octets(chemin: &str) -> R<Vec<u8>> {
     if chemin.contains('\0') {
         return Err(erreur("ValueError", "embedded null byte"));

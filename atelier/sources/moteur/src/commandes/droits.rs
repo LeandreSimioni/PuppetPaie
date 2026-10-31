@@ -28,7 +28,7 @@ fn refus(m: String) -> Echec {
     Echec { classe: None, message: m }
 }
 
-/// `int(v)` pour un nombre que le moteur rend en chaine.
+/// L'entier d'un nombre que le moteur rend en chaîne.
 fn entier(v: &Value, cle: &str) -> i64 {
     match v.get(cle) {
         Some(Value::String(s)) => s.trim().parse().unwrap_or(0),

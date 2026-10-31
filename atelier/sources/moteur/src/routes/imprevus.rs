@@ -1315,7 +1315,7 @@ fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
     crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
 }
 
-/// `int(texte)` pour un morceau de nom de mois.
+/// Le nombre d'un morceau de nom de mois ; refus s'il ne se lit pas.
 fn entier(t: &str) -> R<i64> {
     t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
 }

@@ -86,7 +86,7 @@ pub fn libelle_nature(code: &str) -> String {
 
 // ------------------------------------------------------ le texte
 
-/// `str.strip()`.
+/// Le texte sans ses blancs de tête et de queue.
 fn nettoye(s: &str) -> &str {
     s.trim_matches(blanc)
 }
@@ -596,7 +596,7 @@ fn normaliser(nom: &str) -> String {
     out
 }
 
-/// Ce que `pyexpat` fait d'un encodage declare.
+/// Ce que la lecture XML fait d'un encodage déclaré (les classes de `tables_retours`).
 #[derive(PartialEq)]
 enum Codage {
     Utf8,
@@ -1151,7 +1151,7 @@ fn pas_rapport_crm(a: &Arbre) -> Vec<Value> {
 fn pas_par_code(a: &Arbre) -> Vec<Value> {
     let elements = a_plat(a);
     const RUB: &str = "S21.G00.50.008";
-    // `str(attribs) + texte` : le dictionnaire s'ecrit avec ses cles et ses valeurs.
+    // Les attributs (clés et valeurs) puis le texte de chaque élément.
     let present = elements
         .iter()
         .any(|p| p.texte.contains(RUB) || p.attribs.iter().any(|(k, v)| k.contains(RUB) || v.contains(RUB)));
@@ -1725,12 +1725,12 @@ fn lire_membre(b: &[u8], m: &Membre) -> Resultat<Vec<u8>> {
     Ok(donnees)
 }
 
-/// `Path(nom).name` d'un chemin POSIX.
+/// Le dernier nom d'un chemin POSIX.
 fn nom_de_fichier(nom: &str) -> &str {
     nom.split('/').rfind(|p| !p.is_empty() && *p != ".").unwrap_or("")
 }
 
-/// `Path(nom).stem`
+/// Le nom d'un fichier sans sa dernière extension.
 fn radical(nom: &str) -> &str {
     let n = nom_de_fichier(nom);
     match n.rfind('.') {

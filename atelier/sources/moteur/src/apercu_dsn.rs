@@ -34,7 +34,7 @@ type R<T> = Result<T, Echec>;
 
 const TYPES: [(&str, &str); 5] = depot::TYPES;
 
-/// `float(d)`.
+/// Le décimal en flottant.
 fn flottant(d: Decimal) -> f64 {
     d.to_string().parse::<f64>().unwrap_or(0.0)
 }

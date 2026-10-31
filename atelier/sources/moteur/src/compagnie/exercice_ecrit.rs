@@ -51,7 +51,7 @@ fn maintenant() -> String {
     socle::paris::iso_secondes(t)
 }
 
-/// `str(annee)` d'une valeur de la charge.
+/// L'année d'une valeur de la charge, en texte.
 fn texte_de(v: &Value) -> String {
     valeur_en_texte(v)
 }
@@ -60,7 +60,7 @@ fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
     charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
-/// `int(x)` d'une valeur JSON.
+/// L'entier d'une valeur JSON ; refus sinon.
 fn entier(v: &Value) -> R<i64> {
     match v {
         Value::Number(n) => Ok(n.as_i64().unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i64)),
@@ -238,7 +238,7 @@ fn ecrire_exercices(ctx: &Contexte, tous: &Map<String, Value>) -> R<()> {
     socle::ecriture::ecrire_json(&chemin, &Value::Object(tous.clone()), 1).map_err(|m| erreur("OSError", m))
 }
 
-/// Les fichiers sous `d`, dans l'ordre de `sorted(d.rglob("*"))` (les chemins se comparent composant par composant).
+/// Les fichiers sous `d`, triés par chemin (les chemins se comparent composant par composant).
 fn fichiers_sous(d: &Path, out: &mut Vec<PathBuf>) {
     let Ok(rd) = std::fs::read_dir(d) else { return };
     for e in rd.flatten() {

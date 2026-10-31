@@ -425,7 +425,7 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
     emportes != presents
 }
 
-/// `str(Decimal(str(x)).quantize(Decimal("0.01")))` : un montant a deux decimales.
+/// Un montant à deux décimales.
 fn brut_en_texte(v: &Value) -> R<String> {
     let t = valeur_en_texte(v);
     let mut d = Decimal::from_str(t.trim())
@@ -495,7 +495,7 @@ fn sans_annule_et_remplace(nom: &str) -> (String, Option<i64>) {
     (nom.to_string(), None)
 }
 
-/// `Path.suffix`.
+/// L'extension d'un nom de fichier.
 fn suffixe(nom: &str) -> &str {
     match nom.rfind('.') {
         Some(i) if i > 0 && i + 1 < nom.len() => &nom[i..],
@@ -503,7 +503,7 @@ fn suffixe(nom: &str) -> &str {
     }
 }
 
-/// `Path.stem`.
+/// Le nom d'un fichier sans sa dernière extension.
 fn radical(nom: &str) -> &str {
     match nom.rfind('.') {
         Some(i) if i > 0 && i + 1 < nom.len() => &nom[..i],

@@ -87,7 +87,7 @@ fn edition_bridee(quoi: &str) -> String {
     )
 }
 
-/// `http.client.responses[code]` (le texte de `str(HTTPError)`).
+/// La phrase HTTP d'un code de réponse.
 fn phrase(code: u16) -> &'static str {
     match code {
         100 => "Continue",

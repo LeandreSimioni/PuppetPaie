@@ -172,7 +172,7 @@ impl Apercu {
     }
 }
 
-/// `Path.read_text(encoding="latin-1")` : un octet, un caractere, et les fins de
+/// Des octets lus en latin-1 : un octet, un caractère, et les fins de
 /// ligne `\r\n` et `\r` lues comme `\n`.
 fn texte_latin1(o: &[u8]) -> String {
     let mut s = String::with_capacity(o.len());

@@ -429,7 +429,7 @@ pub fn brancher_l_engagement() {
     engagement::etats::poser_temoin(recalcul_refuse);
 }
 
-/// `str(x)` (`None` n'est pas ici un texte : voir l'appelant).
+/// Une valeur en texte (`null` n'est pas ici un texte : voir l'appelant).
 fn texte_de(v: &Value) -> String {
     valeur_en_texte(v)
 }
@@ -620,7 +620,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
             }
         }
     }
-    // `sorted(..., key=(combien, derniere or ""), reverse=True)` : stable.
+    // Les plus fréquents d'abord, puis les plus récents ; tri stable.
     let cle_de = |p: &Map<String, Value>| (p["combien"].as_i64().unwrap_or(0), if vrai(&p["derniere"]) { texte_de(&p["derniere"]) } else { String::new() });
     let mut v: Vec<Map<String, Value>> = paquets.into_iter().map(|(_, p)| p).collect();
     v.sort_by(|a, b| cle_de(b).cmp(&cle_de(a)));

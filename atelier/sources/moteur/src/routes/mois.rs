@@ -107,7 +107,7 @@ fn fin_du_mois(mois: &str) -> R<String> {
     Ok(format!("{}-{:02}-{:02}", an, mo, jours_du_mois(an, mo as u32)))
 }
 
-/// `float(v)` d'une valeur de saisie, quand elle est vraie (hors `try`).
+/// Le flottant d'une valeur de saisie, quand elle est vraie.
 fn flottant_de(v: &Value) -> R<f64> {
     match v {
         Value::Bool(b) => Ok(if *b { 1.0 } else { 0.0 }),
@@ -174,7 +174,7 @@ fn taux_d_une_ligne(ctx: &Contexte, l: &Value) -> Option<f64> {
 }
 
 
-/// `float(Decimal)` : la valeur la plus proche, par sa representation.
+/// Le décimal en flottant : la valeur la plus proche, par sa représentation.
 fn decimal_en_f64(d: socle::num::Decimal) -> f64 {
     d.to_string().parse().unwrap_or(0.0)
 }
@@ -763,7 +763,7 @@ fn pas_comparable(a: &Value, b: &Value) -> Echec {
     erreur("TypeError", socle::fichiers::incomparables(nom_type(a), nom_type(b)))
 }
 
-/// `sorted(valeurs)`.
+/// Les valeurs triées ; refus si elles ne se comparent pas.
 fn trier(mut v: Vec<Value>) -> R<Vec<Value>> {
     let mut refus = None;
     v.sort_by(|a, b| match comparer(a, b) {

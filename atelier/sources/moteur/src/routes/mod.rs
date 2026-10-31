@@ -246,11 +246,7 @@ pub(crate) fn qui_de(charge: &Value) -> String {
     }
 }
 
-/// `Contexte.salarie(nom)` : le refus est un `KeyError`. Rust rend le texte
-/// du refus tel quel pour une phrase (`Salarie ...`), et deja entre guillemets
-/// pour une cle manquante d'une fiche ; `str(KeyError(phrase))` est la phrase
-/// entre guillemets. Un `nom` qui n'est pas un texte se lit `str(nom)` et se
-/// montre `repr(nom)` dans la phrase.
+/// Le salarié que `nom` désigne (`Contexte::salarie`) ; refus (`KeyError`) avec la phrase de `Contexte::salarie`.
 pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
     let texte = valeur_en_texte(nom);
     ctx.salarie(&texte).map_err(|m| {
@@ -326,7 +322,7 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
     erreur(classe, format!("{} : {}", p.display(), e))
 }
 
-/// `p.read_text(encoding="utf-8")`.
+/// Un fichier lu en UTF-8.
 fn lire_texte(p: &Path) -> R<String> {
     let octets = std::fs::read(p).map_err(|e| erreur_io(&e, p))?;
     String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))
@@ -356,7 +352,7 @@ fn lire_json_tolerant(p: &Path) -> R<Option<Value>> {
     Ok(String::from_utf8(octets).ok().and_then(|t| serde_json::from_str(&t).ok()))
 }
 
-/// `len(v)`.
+/// La longueur d'un texte, d'une liste ou d'un objet.
 fn longueur(v: &Value) -> R<usize> {
     match v {
         Value::Array(a) => Ok(a.len()),

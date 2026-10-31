@@ -106,7 +106,7 @@ fn table(t: &[(&'static str, &'static str)], k: &str) -> Option<&'static str> {
     t.iter().find(|(c, _)| *c == k).map(|(_, v)| *v)
 }
 
-/// `str.isdigit()` pour un caractere latin-1 : les chiffres, et `²`, `³`, `¹`.
+/// Un chiffre d'un texte latin-1 : les chiffres, et `²`, `³`, `¹`.
 fn chiffre(c: char) -> bool {
     c.is_ascii_digit() || matches!(c, '\u{b2}' | '\u{b3}' | '\u{b9}')
 }
@@ -401,7 +401,7 @@ pub(crate) struct LectureDsn {
     pub(crate) adhesions: Vec<Value>,
 }
 
-/// `Path.suffix.lower()`.
+/// L'extension d'un nom de fichier, en minuscules.
 fn suffixe_minuscule(nom: &str) -> String {
     match nom.rfind('.') {
         Some(i) if i > 0 && i < nom.len() - 1 => nom[i..].to_lowercase(),
@@ -601,7 +601,7 @@ fn tranche(ligne: &[char], a: usize, b: usize) -> String {
 /// `19900723` -> `1990-07-23` (les dates de l'AEM), le reste tel quel.
 fn aaaammjj(v: &str) -> String {
     let c: Vec<char> = v.chars().collect();
-    // `str.isdigit()` : les chiffres ASCII et les exposants de Latin-1 (qu'une AEM lue en latin-1 peut porter).
+    // Des chiffres : les chiffres ASCII et les exposants de Latin-1 (qu'une AEM lue en latin-1 peut porter).
     if c.len() == 8 && c.iter().all(|x| x.is_ascii_digit() || matches!(x, '\u{b2}' | '\u{b3}' | '\u{b9}')) {
         return format!("{}-{}-{}", c[0..4].iter().collect::<String>(), c[4..6].iter().collect::<String>(), c[6..8].iter().collect::<String>());
     }
@@ -622,7 +622,7 @@ pub(crate) struct ContratAtteste {
     /// Les cachets, et les cachets « groupes » (la case que le gabarit garde a 00).
     pub(crate) cachets: i128,
     pub(crate) jours: i128,
-    /// `str(c.brut)` : le brut en euros, deux decimales (`Decimal` quantifie).
+    /// Le brut en euros, deux décimales.
     pub(crate) brut: String,
     /// Le numero de l'attestation (zone 36..42), et sa date de signature (858..866, AAAA-MM-JJ si c'en est une).
     pub(crate) numero_attestation: String,

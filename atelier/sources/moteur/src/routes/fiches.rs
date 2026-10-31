@@ -262,7 +262,7 @@ pub(crate) fn copie_en_objet(v: &Value) -> R<Map<String, Value>> {
     Ok(sortie)
 }
 
-/// `str(v or "")`.
+/// Une valeur en texte, vide si elle manque ou est vide.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
         Some(x) if vrai(x) => valeur_en_texte(x),

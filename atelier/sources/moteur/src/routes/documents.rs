@@ -53,7 +53,7 @@ pub(super) fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
     charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
 }
 
-/// `Path.glob("<prefixe>*<suffixe>")` sur un dossier : y a-t-il un nom qui s'y accorde ? Un dossier
+/// Y a-t-il dans le dossier un nom qui commence par `prefixe` et finit par `suffixe` ? Un dossier
 /// qui n'en est pas un, ou qu'on ne peut lire, ne rend rien.
 pub(crate) fn un_nom_commence_et_finit(dossier: &Path, prefixe: &str, suffixe: &str) -> bool {
     let Ok(lecture) = std::fs::read_dir(dossier) else { return false };
@@ -77,7 +77,7 @@ pub(super) fn get_requis<'a>(d: &'a Value, k: &str) -> R<&'a Value> {
 
 // ------------------------------------------------------------------ envoi-apercu
 
-/// `int(texte)` d'un morceau de `mois` : `ValueError` sinon.
+/// Le nombre d'un morceau de `mois` ; refus (`ValueError`) sinon.
 fn entier(t: &str) -> R<i64> {
     let s = t.trim();
     let (neg, chiffres) = match s.strip_prefix('-') {
@@ -505,7 +505,7 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
     Ok(messages)
 }
 
-/// `str.capitalize()`.
+/// La première lettre en capitale, le reste en minuscules.
 fn capitaliser(t: &str) -> String {
     let mut c = t.chars();
     match c.next() {
