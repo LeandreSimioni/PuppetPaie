@@ -7,9 +7,9 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
-use crate::routes::documents::{charge_texte, client_courriel, cle, get_requis, jj_mm_aaaa, liste_de, nul, preuve_de, refus, requis, un_nom_commence_et_finit, vrai_ou, Ouvrir};
+use crate::routes::documents::{charge_texte, client_courriel, cle, jj_mm_aaaa, liste_de, nul, preuve_de, refus, requis, un_nom_commence_et_finit, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
-use crate::routes::etapes::{dans_l_ensemble, premier, Moteur, SaisieMois};
+use crate::routes::etapes::{dans_l_ensemble, premier, Moteur};
 use droit::contexte::Contexte;
 use crate::compagnie::signature::{Choisis, UnAvenant};
 use envois::etats::{self, est, get, getd, items, objet_vide, ou, LISTE_VIDE, DPAE, SIGNATURE};
@@ -394,20 +394,15 @@ pub(crate) fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve
 pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
-    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
+    let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
     let mut m = Moteur::nouveau(ctx);
     let g = m.globales()?;
     let lignes = m.lignes()?;
-    // `numeros_saisis` : `{}` quand le mois ne se lit pas ; ici il s'est lu.
     let rangs: Vec<(String, String)> = paies
         .iter()
         .map(|p| Ok((valeur_en_texte(get(&p.salarie, "_cle")?), p.engagement.debut.iso())))
         .collect::<R<_>>()?;
-    // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur numero.
-    let uniques: Vec<(String, String)> = rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), format!("{}#{}", d, i))).collect();
-    let saisie = SaisieMois { data, paies: Vec::new() };
     let avenants = crate::routes::etapes::avenants_a_faire(ctx, &mois)?;
-    let saisis = Moteur::numeros_saisis(&saisie, &uniques);
     let cles_paies = etats::cles_des_paies(&lignes, &crate::routes::etapes::contrats_des_paies(&paies))?;
 
     // Quand chaque CONTRAT a ete demande (ce mois-ci).
@@ -439,8 +434,6 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             premier(&g.recus, cles).unwrap_or(nul()),
             premier(&g.recus_par, cles).unwrap_or(nul()),
             dans_l_ensemble(&g.renvoyes, cles),
-            premier(&g.numeros_partis, cles).unwrap_or(nul()),
-            saisis.get(&uniques[i]).unwrap_or(nul()),
             premier(&g.avenants, cles).unwrap_or(nul()),
             avenants.contains(&(cle_s.clone(), p.engagement.numero.clone().unwrap_or_default())),
         );
@@ -577,30 +570,11 @@ pub(crate) fn salaries_d_identite(ctx: &Contexte) -> Value {
     Value::Object(salaries)
 }
 
-/// Les numeros propres des paies de ce salarie qui commencent ce jour-la (celles dont le contrat se fait signer ici), dans
-/// l'ordre de la saisie.
-pub(crate) fn numeros_du_jour(ctx: &Contexte, paies: &[engagement::calcul::Paie], salarie: &str, debut: &str) -> R<Vec<String>> {
-    let mut v = Vec::new();
-    for x in paies {
-        if est(get_requis(&x.salarie, "_cle")?, salarie) && x.engagement.debut.iso() == debut && engagement::contrat_a_signer(&ctx.racine, &x.engagement).map_err(Echec::from)? {
-            v.push(x.engagement.numero.clone().unwrap_or_default());
-        }
-    }
-    Ok(v)
-}
-
-/// Le numero SOUS LEQUEL LE JOURNAL parle du contrat que la page vise (Retours Windows, B, suite : deux contrats du meme salarie
-/// qui commencent le meme jour sont deux contrats). `numero` : celui que l'ecran affiche (`signature-apercu`), `mois` : le mois de
-/// l'ecran, qui donne les paies jumelles. `None` : ce contrat n'est jamais parti. Sans `numero`, le contrat est celui qui est
-/// parti ; s'il y en a plusieurs, l'appelant doit preciser lequel (refus).
-pub(crate) fn numero_du_contrat(
-    ctx: &Contexte,
-    lignes: &[Value],
-    salarie: &str,
-    debut: &str,
-    numero: Option<&str>,
-    mois: Option<&str>,
-) -> R<Option<String>> {
+/// Le numero SOUS LEQUEL LE JOURNAL parle du contrat que la page vise : deux contrats du meme salarie qui commencent le
+/// meme jour sont deux contrats. `numero` : celui que l'ecran affiche (`signature-apercu`) ; un contrat parti garde son
+/// numero (regle 4), il se lit tel quel. `None` : ce contrat n'est jamais parti. Sans `numero`, le contrat est celui qui
+/// est parti ; s'il y en a plusieurs, l'appelant doit preciser lequel (refus).
+pub(crate) fn numero_du_contrat(lignes: &[Value], salarie: &str, debut: &str, numero: Option<&str>) -> R<Option<String>> {
     let parti = etats::numeros_demandes(lignes, salarie, debut)?;
     let Some(n) = numero else {
         if parti.len() > 1 {
@@ -619,13 +593,6 @@ pub(crate) fn numero_du_contrat(
     if parti.iter().any(|x| x == n) {
         return Ok(Some(n.to_string()));
     }
-    if let Some(m) = mois.filter(|m| !m.is_empty()) {
-        let (_d, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, m, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
-        let propres = numeros_du_jour(ctx, &paies, salarie, debut)?;
-        if let Some(i) = propres.iter().position(|x| x == n) {
-            return Ok(etats::apparier(&propres, &parti)[i].clone());
-        }
-    }
     Ok(parti.iter().find(|x| x.is_empty()).cloned())
 }
 
@@ -637,14 +604,13 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut m = Moteur::nouveau(ctx);
     // `contrat_parti` : le dernier contrat parti a la signature pour cette paie.
     let lignes = m.lignes()?;
-    // Le contrat que la page vise : son numero (que `signature-apercu` rend) et le mois de l'ecran, facultatifs.
+    // Le contrat que la page vise : son numero (que `signature-apercu` rend), facultatif.
     let numero_voulu = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
-    let mois_voulu = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
     let parti = match (salarie_v.as_str(), debut_v.as_str()) {
         (Some(s), Some(d)) => {
             // Le contrat se lit sous le jour ou il est parti, sa date de debut eut-elle change depuis.
             let d = &envois::etats::debut_au_journal(&lignes, s, d, numero_voulu.as_deref().unwrap_or(""))?;
-            let j = numero_du_contrat(ctx, &lignes, s, d, numero_voulu.as_deref(), mois_voulu.as_deref())?;
+            let j = numero_du_contrat(&lignes, s, d, numero_voulu.as_deref())?;
             // Un contrat dont le numero est donne et que le journal ne connait pas n'est jamais parti (le jumeau qui n'est pas parti).
             if numero_voulu.is_some() && j.is_none() {
                 None
@@ -664,9 +630,9 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     // `_paie_du_contrat(ctx, parti["mois"], salarie, debut)`.
     let mois_parti = valeur_en_texte(&parti.mois);
     let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_parti, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
-    // La paie de CE contrat : celle dont le journal connait le numero (`apparier`), sinon celle qui le porte.
+    // La paie de CE contrat : celle dont le journal connait le numero : celle qui porte son numero.
     let numero_parti = valeur_en_texte(&etats::numero_de_cle(&parti.numero));
-    let trouvee = etats::paie_du_contrat(&paies, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
+    let trouvee = etats::paie_du_contrat(&paies, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
     let Some(i) = trouvee else {
         return Err(erreur(
             "ErreurOperation",
@@ -691,7 +657,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (paies, i, mois_compare) = match &mois_effet {
         Some(me) => {
             let (_d, ps) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, me, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
-            let j = etats::paie_du_contrat(&ps, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?.ok_or_else(|| {
+            let j = etats::paie_du_contrat(&ps, &salarie, &debut, &numero_parti, numero_voulu.is_none())?.ok_or_else(|| {
                 erreur("ErreurOperation", format!("Aucune paie de {} en {} pour le contrat n° {}.", salarie, engagement::libelle_mois(me), numero_parti))
             })?;
             (ps, j, me.clone())

@@ -695,13 +695,15 @@ pub fn de_la_fin(ctx: &Contexte, cle: Option<&str>, fin: Jour, journal: &[Value]
     Ok(Value::Object(m))
 }
 
-/// Le premier depot REEL accepte du signalement de fin de ce contrat : une ligne `dsn` du journal, au jour de la fin
+/// Le premier depot REEL, non refuse au bilan, du signalement de fin de ce contrat : une ligne `dsn` du journal, au jour de la fin
 /// (`Apercu::evenement_lisible`), dont le fichier est celui que `fin-contrat-signaler` ecrit pour ce salarie.
 fn fctu_depose(journal: &[Value], cle: &str, fin: &Jour) -> Option<Fait> {
     let nom = format!("SignalementFinContrat_{}_{}.dsn", cle.to_uppercase(), fin.aaaammjj());
     journal
         .iter()
         .filter(|l| texte(l, "quoi") == "dsn" && texte(l, "mode") == envois::journal::REEL && l.get("accepte").is_some_and(vrai))
+        // Un signalement refuse au bilan n'est pas recu (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt` §4.2) : il reste du.
+        .filter(|l| !envois::etats::refuse_par_un_retour(l).unwrap_or(false))
         .filter(|l| texte(l, "mois") == fin.iso() && texte(l, "fichier").to_uppercase() == nom.to_uppercase())
         .filter_map(|l| {
             let quand = texte(l, "quand");

@@ -206,32 +206,13 @@ pub fn numeros_demandes(lignes: &[Value], salarie: &str, debut: &str) -> R<Vec<S
     Ok(out)
 }
 
-/// Pour les paies d'UN meme (salarie, debut), dans l'ordre de la saisie, le numero SOUS LEQUEL LE JOURNAL parle de chacune :
-/// `propres` = les numeros que la saisie leur donne, `demandes` = ceux sous lesquels des contrats sont partis.
-/// 1. une paie dont le numero est parmi les demandes garde le sien ;
-/// 2. les paies restantes et les numeros demandes que personne ne reclame se jumellent dans l'ordre, SI elles sont aussi
-///    nombreuses (un contrat renumerote depuis son envoi retrouve ainsi sa demande) ;
-/// 3. sinon une paie reste sans demande : le contrat jumeau qui n'est pas parti ne prend pas la place de celui qui est parti.
-pub fn apparier(propres: &[String], demandes: &[String]) -> Vec<Option<String>> {
-    let mut sortie: Vec<Option<String>> = propres.iter().map(|n| demandes.contains(n).then(|| n.clone())).collect();
-    let libres: Vec<&String> = demandes.iter().filter(|d| !propres.contains(d)).collect();
-    let restantes: Vec<usize> = (0..propres.len()).filter(|&i| sortie[i].is_none()).collect();
-    if !libres.is_empty() && libres.len() == restantes.len() {
-        for (i, d) in restantes.iter().zip(libres) {
-            sortie[*i] = Some(d.clone());
-        }
-    }
-    sortie
-}
-
-/// L'indice, dans `paies`, de la paie du contrat que le journal connait sous `numero_j` : celle qui lui est appariee
-/// (`apparier`), sinon celle qui porte ce numero ; sinon, si `a_defaut_la_premiere`, la premiere paie du jour.
+/// L'indice, dans `paies`, de la paie du contrat n° `numero` de ce salarie et de ce debut : un contrat garde son numero
+/// des qu'un envoi l'a porte (regle 4), il se lit. Sinon, si `a_defaut_la_premiere`, la premiere paie du jour.
 pub fn paie_du_contrat(
     paies: &[engagement::calcul::Paie],
-    lignes: &[Value],
     salarie: &str,
     debut: &str,
-    numero_j: &str,
+    numero: &str,
     a_defaut_la_premiere: bool,
 ) -> R<Option<usize>> {
     let mut des_jours: Vec<(usize, String)> = Vec::new();
@@ -241,13 +222,11 @@ pub fn paie_du_contrat(
             des_jours.push((i, x.engagement.numero.clone().unwrap_or_default()));
         }
     }
-    let propres: Vec<String> = des_jours.iter().map(|(_, n)| n.clone()).collect();
-    let appariees = apparier(&propres, &numeros_demandes(lignes, salarie, debut)?);
-    Ok((0..des_jours.len())
-        .find(|&k| appariees[k].as_deref() == Some(numero_j))
-        .or_else(|| (0..des_jours.len()).find(|&k| propres[k] == numero_j))
-        .or(if a_defaut_la_premiere && !des_jours.is_empty() { Some(0) } else { None })
-        .map(|k| des_jours[k].0))
+    Ok(des_jours
+        .iter()
+        .find(|(_, n)| n == numero)
+        .or(if a_defaut_la_premiere { des_jours.first() } else { None })
+        .map(|(i, _)| *i))
 }
 
 /// LE PREMIER JOUR SOUS LEQUEL LE JOURNAL RANGE LE CONTRAT n° `numero` du salarie que l'engagement dit commencer le
@@ -291,44 +270,24 @@ pub fn debut_au_journal(lignes: &[Value], salarie: &str, debut: &str, numero: &s
     Ok(autre.unwrap_or_else(|| debut.to_string()))
 }
 
-/// Les cles sous lesquelles chaque paie (salarie, debut, numero propre) d'un mois retrouve son contrat dans le journal :
-/// d'abord celle du contrat demande qui lui correspond (`apparier`), puis la sienne, puis celle du jour sous lequel le
-/// journal range ce numero quand la date de debut a change depuis (`debut_au_journal`), puis celle d'une ligne sans numero.
+/// Les cles sous lesquelles chaque paie (salarie, debut, numero) d'un mois retrouve son contrat dans le journal : la
+/// sienne (le numero ne change plus des qu'un envoi l'a porte, regle 4), puis celle du jour sous lequel le journal range
+/// ce numero quand la date de debut a change depuis (`debut_au_journal`), puis celle d'une ligne sans numero.
 pub fn cles_des_paies(lignes: &[Value], paies: &[Cle3]) -> R<Vec<Vec<Cle3>>> {
-    let mut sortie: Vec<Vec<Cle3>> = vec![Vec::new(); paies.len()];
-    let mut vus: Vec<(String, String)> = Vec::new();
-    for (s, d, _) in paies {
-        let sd = (s.clone(), d.clone());
-        if vus.contains(&sd) {
-            continue;
-        }
-        vus.push(sd);
-        let rangs: Vec<usize> = (0..paies.len()).filter(|&i| paies[i].0 == *s && paies[i].1 == *d).collect();
-        let propres: Vec<String> = rangs.iter().map(|&i| paies[i].2.clone()).collect();
-        let demandes = numeros_demandes(lignes, s, d)?;
-        let appariees = apparier(&propres, &demandes);
-        for (j, &i) in rangs.iter().enumerate() {
-            let mut cles: Vec<Cle3> = Vec::new();
-            let mut ajouter = |jour: &str, n: &str| {
-                let k = (s.clone(), jour.to_string(), n.to_string());
-                if !cles.contains(&k) {
-                    cles.push(k);
-                }
-            };
-            if let Some(n) = &appariees[j] {
-                ajouter(d, n);
-            }
-            ajouter(d, &propres[j]);
-            let n = appariees[j].as_deref().unwrap_or(&propres[j]);
+    paies
+        .iter()
+        .map(|(s, d, n)| {
+            let mut cles = vec![(s.clone(), d.clone(), n.clone())];
             let range = debut_au_journal(lignes, s, d, n)?;
             if range != *d {
-                ajouter(&range, n);
+                cles.push((s.clone(), range, n.clone()));
             }
-            ajouter(d, "");
-            sortie[i] = cles;
-        }
-    }
-    Ok(sortie)
+            if !n.is_empty() {
+                cles.push((s.clone(), d.clone(), String::new()));
+            }
+            Ok(cles)
+        })
+        .collect()
 }
 
 // ------------------------------------------------------------ lire le journal
@@ -636,22 +595,6 @@ pub fn contrats_partis_par(lignes: &[Value], m: Maille) -> R<Value> {
         let par = if l.pointer("/detail/main_propre").is_some_and(vrai) { "imprime" } else { "courriel" };
         for c in detail_liste(l, "contrats")? {
             d.poser(cle_contrat(&c, m)?, s(par))?;
-        }
-    }
-    Ok(d.sortie(Clone::clone))
-}
-
-pub fn numeros_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
-    let lignes = &*normalisees(lignes, m);
-    let mut d = Dico::nouveau();
-    for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        for c in detail_ou_liste(l, "contrats")? {
-            if vrai(get(&c, "numero")?) {
-                d.poser(cle_contrat(&c, m)?, get(&c, "numero")?.clone())?;
-            }
         }
     }
     Ok(d.sortie(Clone::clone))
@@ -1793,12 +1736,6 @@ pub fn nic_principal(entreprise: &Value) -> String {
     }
 }
 
-/// Le dernier depot REEL accepte de DSN du mois (`etat_dsn_du_mois`), `Null`
-/// si rien de reel n'est parti : le mois est « parti » des qu'il existe.
-pub fn dsn_du_mois(lignes: &[Value], entreprise: &Value, mois: &str) -> R<Value> {
-    etat_dsn_du_mois(lignes, mois, &Value::Null, &nic_principal(entreprise))
-}
-
 // Les etats et resumes sur un journal invente (noms et numeros fictifs).
 // ------------------------------------------------------ le journal
 
@@ -1958,7 +1895,6 @@ mod tests {
         assert_eq!(contrats_recus(&l, Maille::Paire).unwrap().sortie(Clone::clone), json!([["ALPHA", "2026-06-04", "2026-06-12T10:00:00"]]));
         assert_eq!(contrats_recus_comment(&l, Maille::Paire).unwrap(), json!([["ALPHA", "2026-06-04", "courriel"]]));
         assert_eq!(contrats_demandes(&l, Maille::Paire).unwrap().as_array().unwrap().len(), 2);
-        assert_eq!(numeros_contrats_partis(&l, Maille::Paire).unwrap()[0][2], "N1");
     }
 
     #[test]

@@ -114,7 +114,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
 
 /// L'ETAT DE LA DSN D'UN MOIS, composé ici et nulle part ailleurs (l'accueil, le mois tenu avant, les rappels, la
 /// clôture, l'échéancier, le panneau, le suivi d'un dépôt et le dépôt réel le lisent) : `etat` (« passee », « attente », « refusee » : le journal, et `anomalies` pour
-/// une refusée ; « importee » : la DSN de l'ancien logiciel ; « sans_trace » : un mois tenu avant dont rien ne garde la
+/// une refusée, `aer_recue` ce que France Travail en a renvoyé ; « importee » : la DSN de l'ancien logiciel ; « sans_trace » : un mois tenu avant dont rien ne garde la
 /// DSN, qui ne se réclame pas ; « a_deposer » : un mois de ce logiciel dont la DSN n'est pas partie, sans mots ici),
 /// `courte`, `phrase`, `quand`. `nic` : l'etablissement (`Null` : le principal ; les etats du journal sont les siens).
 pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str, nic: &Value) -> R<Value> {
@@ -134,6 +134,7 @@ pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str, nic: &Value) -> R<Value> {
         return Ok(json!({
             "etat": etat, "courte": courte, "phrase": phrase, "quand": e.get("quand").cloned().unwrap_or(Value::Null),
             "anomalies": e.get("anomalies").cloned().unwrap_or(Value::Null),
+            "aer_recue": e.get("aer_recue").cloned().unwrap_or(Value::Null),
         }));
     }
     if let Some(d) = dsn_importee(&ctx.racine, mois)? {

@@ -583,11 +583,6 @@ impl SaisieMois {
     pub(crate) fn rangs(&self) -> R<Vec<Paire>> {
         self.paies.iter().map(|p| Ok((texte_de(requis(&p.salarie, "_cle")?), p.engagement.debut.iso()))).collect()
     }
-
-    /// `data.get("engagements", [])`.
-    pub(crate) fn engagements(&self) -> &[Value] {
-        self.data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[])
-    }
 }
 
 fn texte_de(v: &Value) -> String {
@@ -602,7 +597,6 @@ pub(crate) struct Globales {
     pub(crate) recus: HashMap<Cle3, Value>,
     pub(crate) recus_par: HashMap<Cle3, Value>,
     pub(crate) renvoyes: HashSet<Cle3>,
-    pub(crate) numeros_partis: HashMap<Cle3, Value>,
     pub(crate) avenants: HashMap<Cle3, Value>,
     /// Comment chaque contrat est parti la derniere fois : `imprime` ou `courriel`.
     pub(crate) par: HashMap<Cle3, Value>,
@@ -652,12 +646,6 @@ impl<'a> Moteur<'a> {
         etats::nic_principal(&self.ctx.entreprise)
     }
 
-    /// Le dernier depot reel accepte, ou `Null`.
-    pub(crate) fn dsn_du_mois(&mut self, mois: &str) -> R<Value> {
-        let lignes = self.lignes()?;
-        etats::dsn_du_mois(&lignes, &self.ctx.entreprise, mois)
-    }
-
     // ------------------------------------------------------ la saisie du mois
 
     /// La saisie d'un mois, chargee sans calculer la paie.
@@ -686,24 +674,11 @@ impl<'a> Moteur<'a> {
         let recus = en_table3(recus.sortie(Clone::clone));
         let recus_par = en_table3(etats::contrats_recus_comment(&lignes, c)?);
         let renvoyes = cles_en_ensemble3(etats::renvoyes_depuis_la_signature(&lignes, c)?.cles());
-        let numeros_partis = en_table3(etats::numeros_contrats_partis(&lignes, c)?);
         let avenants = en_table3(etats::avenants(&lignes, c)?);
         let par = en_table3(etats::contrats_partis_par(&lignes, c)?);
-        let g = Rc::new(Globales { dpae, contrats, recus, recus_par, renvoyes, numeros_partis, avenants, par });
+        let g = Rc::new(Globales { dpae, contrats, recus, recus_par, renvoyes, avenants, par });
         self.globales = Some(g.clone());
         Ok(g)
-    }
-
-    /// `numeros_saisis` : le numero de contrat ECRIT dans la saisie, et lui seul.
-    pub(crate) fn numeros_saisis(s: &SaisieMois, rangs: &[Paire]) -> HashMap<Paire, Value> {
-        let eng = s.engagements();
-        let mut out = HashMap::new();
-        for (i, cle) in rangs.iter().enumerate() {
-            if let Some(n) = eng.get(i).and_then(|e| e.get("numero")).filter(|n| vrai(n)) {
-                out.insert(cle.clone(), n.clone());
-            }
-        }
-        out
     }
 
     /// Le `brut` de chaque engagement du mois, dans l'ordre de l'ecran : celui de sa paie ecrite s'il est valide, celui
@@ -739,9 +714,6 @@ impl<'a> Moteur<'a> {
         // Valide, ou parti : la date de la validation (`engagement::etats`), engagement par engagement.
         let etats_eng = self.etats_du_mois(mois)?;
         let g = self.globales()?;
-        // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur empreinte et leur numero.
-        let uniques: Vec<Paire> = rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), format!("{}#{}", d, i))).collect();
-        let saisis = Self::numeros_saisis(&s, &uniques);
         let lignes = self.lignes()?;
         let cles_paies = etats::cles_des_paies(&lignes, &contrats_des_paies(&s.paies))?;
         let docs = documents_partis(self.ctx, mois, &etats_eng, &lignes)?;
@@ -860,10 +832,6 @@ impl<'a> Moteur<'a> {
                 "maille": "paie",
             });
             let cles = &cles_paies[i];
-            let rang_du_jour = rangs[..i].iter().filter(|r| **r == rangs[i]).count();
-            // Son rang parmi les contrats du meme salarie et du meme jour : ce que l'ecran rend a `valider-engagement` quand
-            // le contrat n'a pas encore de numero (`jumeaux`).
-            ligne.insert("rang".into(), json!(rang_du_jour));
             let nul = Value::Null;
             let avenant = refaire.get(i).is_some_and(|r| r.iter().any(|a| matches!(a, ARefaire::Avenant { .. })));
             let mut signature = etat_signature(
@@ -872,8 +840,6 @@ impl<'a> Moteur<'a> {
                 premier(&g.recus, cles).unwrap_or(&nul),
                 premier(&g.recus_par, cles).unwrap_or(&nul),
                 dans_l_ensemble(&g.renvoyes, cles),
-                premier(&g.numeros_partis, cles).unwrap_or(&nul),
-                saisis.get(&uniques[i]).unwrap_or(&nul),
                 premier(&g.avenants, cles).unwrap_or(&nul),
                 avenant,
             );
@@ -902,12 +868,10 @@ impl<'a> Moteur<'a> {
 
     /// LES ENGAGEMENTS AUXQUELS IL MANQUE UN FAIT (`engagement::stock::A_COMPLETER`), a leur place dans l'ordre de
     /// l'ecran : hors de toutes les lectures du mois, chacun a sa ligne a lui, qui dit ce qui lui manque
-    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre.
+    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre. Chaque ligne porte sa `place` :
+    /// l'identite de l'engagement a l'ecran, celle par laquelle une carte se lit et s'ecrit (`stock::objets_a_l_ecran`).
     fn avec_les_engagements_a_completer(&self, mois: &str, lignes: Vec<Value>) -> R<Vec<Value>> {
         let a_l_ecran = engagement::stock::objets_a_l_ecran(self.racine(), mois).map_err(plain)?;
-        if !a_l_ecran.iter().any(|o| o.a_completer().is_some()) {
-            return Ok(lignes);
-        }
         let mut calculees = lignes.into_iter();
         let mut out: Vec<Value> = Vec::new();
         for o in &a_l_ecran {
@@ -922,12 +886,8 @@ impl<'a> Moteur<'a> {
             out.push(ligne);
         }
         out.extend(calculees);
-        // Le rang de chacun parmi les engagements du meme salarie et du meme jour, dans l'ordre de l'ecran, ceux a
-        // completer compris : celui que la page lui donne, et que `valider-engagement` lit dans le meme ordre
-        // (`routes/engagement.rs`, `designe_a_l_ecran`).
-        for i in 0..out.len() {
-            let rang = out[..i].iter().filter(|l| l["salarie"] == out[i]["salarie"] && l["debut"] == out[i]["debut"]).count();
-            out[i]["rang"] = json!(rang);
+        for (place, l) in out.iter_mut().enumerate() {
+            l["place"] = json!(place);
         }
         Ok(out)
     }
@@ -949,7 +909,7 @@ impl<'a> Moteur<'a> {
             "salarie": cle, "nom": nom, "spectacle": spectacle, "nature": nature,
             "numero": e.get("numero").filter(|n| vrai(n)).cloned().unwrap_or(Value::Null),
             "debut": engagement::debut_brut(&e), "fin": e.get("fin").filter(|f| vrai(f)).cloned().unwrap_or(Value::Null),
-            "valide": Value::Null, "recalcul": Value::Null, "versions": Value::Null, "pieces": [], "rang": 0,
+            "valide": Value::Null, "recalcul": Value::Null, "versions": Value::Null, "pieces": [],
             "a_completer": o.a_completer(), "non_calcule": true,
             "contrat": {"premier_mois": premier_mois, "repris": false},
             "etats": {"dpae": {}, "signature": {}, "documents": {}},
@@ -1991,26 +1951,18 @@ pub(crate) const CONTRAT_A_REFAIRE: &str = "l'engagement a changé depuis l'envo
 /// que celui que la DSN declare. Un contrat renvoye attend une NOUVELLE signature : celle de l'ancien ne compte plus.
 #[allow(clippy::too_many_arguments)]
 pub fn etat_signature(
-    fait: &Value, par: &Value, recu: &Value, recu_par: &Value, renvoye: bool, numero_parti: &Value, numero_saisi: &Value, avenants: &Value,
+    fait: &Value, par: &Value, recu: &Value, recu_par: &Value, renvoye: bool, avenants: &Value,
     a_refaire_signer: bool,
 ) -> Value {
     let (recu, recu_par) = if renvoye { (&Value::Null, &Value::Null) } else { (recu, recu_par) };
     let nul = Value::Null;
-    let mut pourquoi: Vec<String> = Vec::new();
-    if vrai(fait) && a_refaire_signer {
-        pourquoi.push(CONTRAT_A_REFAIRE.into());
-    }
-    // LE NUMERO : le contrat signe porte le sien, la DSN declarera celui de l'engagement. S'ils different, ce n'est pas
-    // celui qui est declare.
-    if vrai(fait) && vrai(numero_parti) && vrai(numero_saisi) && !socle::valeur::valeurs_egales(numero_parti, numero_saisi) {
-        pourquoi.push(format!("il porte le n° {}, l'engagement dit le n° {}", valeur_en_texte(numero_parti), valeur_en_texte(numero_saisi)));
-    }
+    let caduc = vrai(fait) && a_refaire_signer;
     // L'AVENANT : le dernier parti. Pas encore revenu, il laisse la pastille orange.
     let dernier = avenants.as_array().and_then(|a| a.last()).cloned().unwrap_or(Value::Null);
     let attendu = vrai(&dernier) && !vrai(dernier.get("signe").unwrap_or(&nul));
     json!({"fait": fait, "par": if vrai(fait) { par } else { &nul }, "recu": recu, "recu_par": recu_par,
-           "caduc": !pourquoi.is_empty(), "pourquoi": pourquoi.join(" ; "),
-           "numero_parti": numero_parti, "maille": "paie",
+           "caduc": caduc, "pourquoi": if caduc { CONTRAT_A_REFAIRE } else { "" },
+           "maille": "paie",
            "avenant": dernier,
            "avenant_attendu": attendu})
 }
