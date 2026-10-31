@@ -507,7 +507,7 @@ fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Reche
     let sha = condensat(&octets);
     let attendu = a["sha256"].as_str().unwrap_or_default();
     if sha != attendu {
-        return Err((ALTEREE, format!("archive alteree (condensat {}… attendu {}…)", &sha[..12], attendu.chars().take(12).collect::<String>())));
+        return Err((ALTEREE, format!("archive alteree (condensat {}, attendu {})", sha, attendu)));
     }
     let signature = a.get("signature").and_then(Value::as_str).ok_or((SIGNATURE_REFUSEE, "archive non signee : derniere.json n'a pas de « signature »".to_string()))?;
     if !signee_par_l_une(&octets, signature, cles) {

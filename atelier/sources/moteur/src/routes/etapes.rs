@@ -1085,22 +1085,11 @@ impl<'a> Moteur<'a> {
         let r = etats::repetition(&lignes, quoi, &empreinte, &nom)?;
         let etape = if quoi == DSN && self.paie_changee_depuis_l_ecriture(mois, &chemin)?.is_some() {
             "paie_changee"
-        } else if vrai(&r["conforme"]) {
-            if est(&r["compte_rendu"], "ok") {
-                "testee"
-            } else {
-                "en_test"
-            }
-        } else if vrai(&r["ratees"]) {
-            "test_refuse"
         } else {
-            "ecrite"
+            etats::etat_du_test(&r)
         };
         // UN TEST REFUSE SE DIT AVEC SES ANOMALIES, la ou l'on propose d'envoyer : le code et le message du bilan.
-        let refus = match r["ratees"].as_array().and_then(|l| l.last()) {
-            Some(l) if etape == "test_refuse" => Some(crate::compagnie::depot_acte::pourquoi_rate(l).trim_end_matches('.').to_string()),
-            _ => None,
-        };
+        let refus = r["motif"].as_str().filter(|_| etape == "test_refuse").map(|m| m.trim_end_matches('.').to_string());
         Ok(Some((etape, premier, refus)))
     }
 

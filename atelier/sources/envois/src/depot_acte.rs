@@ -134,7 +134,7 @@ fn noter(
 fn echec(ctx: &Contexte, quoi: &str, d: &Depot, destinataire: &str, detail: Value, e: Echec, suites: &mut Suites) -> Echec {
     let classe = e.classe.unwrap_or("Exception");
     let phrase = phrase_de(&e);
-    let _ = noter(ctx, quoi, d, false, destinataire, "", &phrase.chars().take(600).collect::<String>(), None, &detail, None);
+    let _ = noter(ctx, quoi, d, false, destinataire, "", &phrase, None, &detail, None);
     suites.depot_refuse = Some(DepotRefuse { quoi: quoi.into(), reel: d.reel, classe: classe.into(), message: phrase, repetition: d.repetition.clone() });
     e
 }

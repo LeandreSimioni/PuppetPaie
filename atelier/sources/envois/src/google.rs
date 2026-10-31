@@ -57,7 +57,7 @@ pub fn encoder(champs: &[(&str, String)]) -> String {
 
 /// Le message lisible d'une reponse d'erreur de Google.
 pub fn traduire(code: u16, corps: &str) -> String {
-    let mut detail: String = corps.chars().take(500).collect();
+    let mut detail: String = corps.to_string();
     let mut code_g = String::new();
     if let Ok(Value::Object(o)) = serde_json::from_str::<Value>(corps) {
         match o.get("error") {

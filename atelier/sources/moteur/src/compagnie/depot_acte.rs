@@ -168,29 +168,6 @@ pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Opt
 
 // -------------------------------------------------------- la repetition avant l'irreversible
 
-/// Ce qui a fait echouer un depot de test, en une phrase.
-pub(crate) fn pourquoi_rate(ligne: &Value) -> String {
-    let mut anomalies: Vec<String> = Vec::new();
-    for r in ligne.get("retours").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-        if r.get("verdict").and_then(Value::as_str) == Some("KO") {
-            for a in r.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-                let t = valeur_en_texte(a);
-                if !anomalies.contains(&t) {
-                    anomalies.push(t);
-                }
-            }
-        }
-    }
-    if !anomalies.is_empty() {
-        return anomalies.join(" ; ");
-    }
-    let rep: String = ligne.get("reponse").filter(|r| vrai(r)).map(valeur_en_texte).unwrap_or_default().trim().chars().take(200).collect();
-    if rep.is_empty() {
-        "motif non lu".into()
-    } else {
-        rep
-    }
-}
 
 fn quand_a(v: &Value) -> String {
     etats::quand_lisible(v).replace(" à ", " a ")
@@ -214,7 +191,7 @@ fn phrase_repetition(ctx: &Contexte, quoi: &str, chemin: &Path, etat: &Value) ->
         format!(
             "Ce contenu a ete essaye en test le {}, et l'essai a ECHOUE : {}.\nC'est cela qu'il faut corriger : le meme refus attend en reel.",
             quand_a(&l["quand"]),
-            pourquoi_rate(&l)
+            etats::pourquoi_rate(&l)
         )
     } else if let Some(l) = dernier("perimees") {
         format!(
@@ -244,7 +221,7 @@ fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path
     // general dans les dix minutes » (la reponse du point de depot). Pour une DPAE, le bilan 11 ou le certificat 41 :
     // celui d'un test revient bel et bien (constate sur des DPAE de test : le certificat 41 les dit enregistrees,
     // code 99).
-    if vrai(&etat["conforme"]) && etats::est(&etat["compte_rendu"], "ok") {
+    if etats::etat_du_test(&etat) == "testee" {
         let l = &etat["conforme"];
         return Ok(json!({
             "test": l.get("quand").cloned().unwrap_or(Value::Null),

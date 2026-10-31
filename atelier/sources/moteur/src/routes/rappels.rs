@@ -642,29 +642,6 @@ fn periode_de_l_arret(resume: &Value) -> String {
 }
 
 // ------------------------------------------------------------- les DPAE
-/// Ce qui a fait echouer un depot de test, en une phrase.
-fn pourquoi_rate(ligne: &Value) -> String {
-    let mut anomalies: Vec<String> = Vec::new();
-    if let Some(Value::Array(retours)) = ligne.get("retours") {
-        for r in retours {
-            if texte_ou_vide(r, "verdict") == "KO" {
-                if let Some(Value::Array(a)) = r.get("anomalies") {
-                    for x in a {
-                        let t = en_texte(x);
-                        if !anomalies.contains(&t) {
-                            anomalies.push(t);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if !anomalies.is_empty() {
-        return anomalies.join(" ; ");
-    }
-    let reponse: String = texte_ou_vide(ligne, "reponse").trim().chars().take(200).collect();
-    if reponse.is_empty() { "motif non lu".to_string() } else { reponse }
-}
 
 
 /// Les DPAE a envoyer : celles des engagements valides (`etapes::Moteur::embauches_a_declarer`), a toute distance de
@@ -708,8 +685,8 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
                     if vrai_opt(rep.get("conforme")) {
                         teste = true;
                         pret = "La DPAE est prête et son test est passé : il reste à l'envoyer.".to_string();
-                    } else if let Some(ratee) = rep.get("ratees").and_then(Value::as_array).and_then(|r| r.last()) {
-                        pret = format!("Le test automatique a été refusé : {}. À corriger avant l'envoi.", pourquoi_rate(ratee));
+                    } else if let Some(motif) = rep.get("motif").and_then(Value::as_str) {
+                        pret = format!("Le test automatique a été refusé : {}. À corriger avant l'envoi.", motif);
                     }
                 }
             }

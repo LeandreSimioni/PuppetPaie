@@ -423,7 +423,7 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
     for (let tour = 0; tour < 30; tour++) {
       let r = null;
       try { r = await api("bilan-repetition", charge); } catch (e) { /* on réessaie */ }
-      if (r && r.conforme && r.compte_rendu === "ok") {
+      if (r && r.etat === "testee") {
         ecrire(encartRepetition(r, quoi, a));
         libre();
         if (ici()) boutonReel(true);
@@ -431,19 +431,16 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
         rafraichirActions();
         return;
       }
-      if (r && !r.conforme && (r.ratees || []).length) {
-        const l = r.ratees[r.ratees.length - 1];
-        const anos = (l.retours || []).flatMap((x) => x.anomalies || []);
-        const motif = anos.join(" ; ") || l.reponse || "motif non lu";
+      if (r && r.etat === "test_refuse") {
         ecrire(`<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}"><b>Le test est refusé</b>
-          ${echapper(motif)}
+          ${echapper(r.motif)}
           Le même refus attendrait le dépôt réel : c'est cela qu'il faut corriger.</div>`);
         libre();
-        if (!ici()) dire(`Le test de ${nom.toLowerCase()} est refusé : ${motif}`, r.couleur);
+        if (!ici()) dire(`Le test de ${nom.toLowerCase()} est refusé : ${r.motif}`, r.couleur);
         rafraichirActions();
         return;
       }
-      ecrire((r && r.conforme ? encartRepetition(r, quoi, a)
+      ecrire((r && r.etat === "en_test" ? encartRepetition(r, quoi, a)
         : `<div class="encart"><b>Test envoyé — son compte rendu est attendu</b> Le dépôt réel se fait
             ici, une fois le test revenu conforme.</div>`)
         + (r && r.incident ? `<p class="discret">${echapper(r.incident)}</p>` : ""));
@@ -467,10 +464,9 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
   // Un test déjà fait pour ce contenu : s'il attend encore son compte rendu,
   // on l'attend ici ; s'il est arrivé, le réel est le bouton principal.
   const rep = a.repetition;
-  if (rep && rep.conforme) {
-    if (rep.compte_rendu === "ok") boutonReel(true);
-    else attendreBilan();
-  } else {
+  if (rep && rep.etat === "testee") boutonReel(true);
+  else if (rep && rep.etat === "en_test") attendreBilan();
+  else {
     // Pas de test pour ce contenu : c'est lui qui vient d'abord.
     document.getElementById("d-test").className = "primaire";
     document.getElementById("d-reel").className = "secondaire";
@@ -539,14 +535,14 @@ function encartRepetition(r, quoi, a) {
     + (quoi === "dsn" ? "" : echapper(embauchesDe(a)));
   // Deux cas : déjà testée et conforme (l'envoyer ?), ou envoyée en test et
   // ses retours attendus.
-  if (r.conforme && r.compte_rendu === "ok") {
+  if (r.etat === "testee") {
     return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
       <b>${cette} est testée — conforme. Voulez-vous l'envoyer ?</b>
       Testée le ${echapper(quand(r.conforme.quand))} : le même contenu est
       passé au bac à sable sans anomalie. ${enFictive() ? "L'envoi, simulé, est le bouton « Envoyer — simulé »." : "Le dépôt réel est le bouton « Envoyer le réel »."}
       ${certificatParPersonne(r.conforme)}</div>`;
   }
-  if (r.conforme) {
+  if (r.etat === "en_test") {
     return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
       <b>${cette} est en test — son compte rendu est attendu</b>
       Envoyée en test le ${echapper(quand(r.conforme.quand))}. ${enFictive() ? "L'envoi simulé se" : "Le dépôt réel se"}
@@ -563,10 +559,8 @@ function encartRepetition(r, quoi, a) {
 function situationRepetition(etat) {
   const ratees = etat.ratees || [], perimees = etat.perimees || [];
   if (ratees.length) {
-    const l = ratees[ratees.length - 1];
-    const anos = (l.retours || []).filter((x) => x.verdict === "KO").flatMap((x) => x.anomalies || []);
-    return `Ce contenu a été essayé en test le ${quand(l.quand)}`
-      + ` et l'essai a échoué${anos.length ? ` : ${anos.join(" ; ").replace(/\.$/, "")}` : ""}.`
+    return `Ce contenu a été essayé en test le ${quand(ratees[ratees.length - 1].quand)}`
+      + ` et l'essai a échoué : ${String(etat.motif || "").replace(/\.$/, "")}.`
       + ` C'est cela qu'il faut corriger, le même refus attend en réel.`;
   }
   if (perimees.length) {

@@ -46,7 +46,7 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::coffre::Coffre;
 use droit::contexte::Contexte;
-use envois::etats::{self, est};
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -450,16 +450,9 @@ fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: 
     }
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let r = etats::repetition(lignes, "dsn", &empreinte, &nom)?;
-    Ok(if vrai(&r["conforme"]) {
-        if est(&r["compte_rendu"], "ok") {
-            "testee"
-        } else {
-            "en_test"
-        }
-    } else if vrai(&r["ratees"]) {
-        "test_refuse"
-    } else {
-        "a_tester"
+    Ok(match etats::etat_du_test(&r) {
+        "ecrite" => "a_tester",
+        autre => autre,
     })
 }
 

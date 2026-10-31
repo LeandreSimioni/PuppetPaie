@@ -802,8 +802,8 @@ pub fn resume(ligne: &Value, recus: &Dico<()>, avenants: &Dico<Vec<Value>>) -> R
     if !accepte(ligne)? {
         let rep = ou(get(ligne, "reponse")?, texte_vide());
         let debut = match rep {
-            Value::String(t) => t.chars().take(120).collect::<String>(),
-            Value::Array(a) => valeur_ecrite(&Value::Array(a.iter().take(120).cloned().collect())),
+            Value::String(t) => t.clone(),
+            Value::Array(a) => valeur_ecrite(&Value::Array(a.clone())),
             autre => return Err(erreur("TypeError", format!("'reponse' : {}", socle::fichiers::attendu("un texte", nom_type(autre))))),
         };
         return Ok(format!("envoi du {} refusé au dépôt — {}", quand, debut));
@@ -1002,6 +1002,43 @@ pub fn deja_depose(lignes: &[Value], quoi: &str, empreinte: &str) -> R<Value> {
     Ok(Value::Null)
 }
 
+/// OU EN EST LE TEST d'une repetition (`repetition`), dit une fois : teste et conforme (le reel peut partir), en test
+/// (son compte rendu est attendu), refuse (ses anomalies : `motif`), ou a faire (jamais essaye, ou un test d'un contenu
+/// d'avant).
+pub fn etat_du_test(r: &Value) -> &'static str {
+    if vrai(&r["conforme"]) {
+        if est(&r["compte_rendu"], "ok") { "testee" } else { "en_test" }
+    } else if vrai(&r["ratees"]) {
+        "test_refuse"
+    } else {
+        "ecrite"
+    }
+}
+
+/// Ce qui a fait echouer un depot de test, en une phrase : les anomalies des retours refuses, sinon la reponse du depot.
+pub fn pourquoi_rate(ligne: &Value) -> String {
+    let mut anomalies: Vec<String> = Vec::new();
+    for r in ligne.get("retours").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
+        if r.get("verdict").and_then(Value::as_str) == Some("KO") {
+            for a in r.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
+                let t = valeur_en_texte(a);
+                if !anomalies.contains(&t) {
+                    anomalies.push(t);
+                }
+            }
+        }
+    }
+    if !anomalies.is_empty() {
+        return anomalies.join(" ; ");
+    }
+    let rep = ligne.get("reponse").filter(|r| vrai(r)).map(valeur_en_texte).unwrap_or_default();
+    if rep.trim().is_empty() {
+        "motif non lu".into()
+    } else {
+        rep.trim().to_string()
+    }
+}
+
 pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R<Value> {
     let mut conforme: Option<&Value> = None;
     let (mut ratees, mut perimees) = (Vec::new(), Vec::new());
@@ -1023,6 +1060,7 @@ pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R
         Some(c) if vrai(c) => compte_rendu_du_depot(c)?,
         _ => "",
     };
+    let motif = ratees.last().map(pourquoi_rate);
     // LA COULEUR DE L'ENCART qui le dit (la charte des etats, `moteur::routes::couleur_de_l_etat`) : teste conforme, vert ;
     // essaye et rate (ou un test d'un contenu d'avant), a corriger, orange ; en test, ou jamais essaye, une information.
     let couleur = match conforme {
@@ -1031,10 +1069,12 @@ pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R
         None if !ratees.is_empty() || !perimees.is_empty() => "orange",
         None => "gris",
     };
-    Ok(json!({
+    let mut r = json!({
         "empreinte": empreinte, "fichier": nom, "conforme": conforme, "compte_rendu": compte_rendu,
-        "ratees": ratees, "perimees": perimees, "couleur": couleur,
-    }))
+        "ratees": ratees, "perimees": perimees, "couleur": couleur, "motif": motif,
+    });
+    r["etat"] = json!(etat_du_test(&r));
+    Ok(r)
 }
 
 // -------------------------------------------------------------------- flux_de

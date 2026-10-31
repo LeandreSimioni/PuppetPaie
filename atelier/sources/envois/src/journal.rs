@@ -149,7 +149,7 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
     l.insert("destinataire".into(), json!(n.destinataire));
     l.insert("flux".into(), json!(n.flux));
     l.insert("retours".into(), json!([]));
-    l.insert("reponse".into(), json!(n.reponse.chars().take(600).collect::<String>()));
+    l.insert("reponse".into(), json!(n.reponse));
     l.insert("trace".into(), json!(n.trace.filter(|t| !t.is_empty())));
     l.insert("detail".into(), match n.detail {
         Some(d) if vrai(d) => d.clone(),

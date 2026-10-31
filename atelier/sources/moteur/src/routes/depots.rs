@@ -88,7 +88,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Dire où en est le test de la DSN ou de la DPAE ; chercher son compte rendu.",
         charge: &[QUOI, MOIS, ETABLISSEMENT, ENGAGEMENTS, SIGNALEMENT],
         exemple: DPAE_DE_L_EXEMPLE,
-        rend: "conforme (le test qui vaut pour ce fichier), compte_rendu, incident",
+        rend: "etat (testee : le réel peut partir ; en_test ; test_refuse, et son motif ; ecrite), conforme, incident",
         refus: &[ILLISIBLE_FICHIER, MANQUE, OPERATION],
         acte: Acte::Ecrit,
         avance: false,
@@ -680,7 +680,7 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// pas pu se faire (le test reste ce qu'il est ; on le redira au passage suivant).
 fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut r = bilan_de_la_repetition(ctx, charge)?;
-    if vrai(&r["conforme"]) && etats::est(&r["compte_rendu"], "attendu") {
+    if etats::etat_du_test(&r) == "en_test" {
         let (debut, fin) = releve_retours::derniere_journee();
         let quoi = requis(charge, "quoi")?;
         let releve = if etats::est(quoi, "dpae") {
