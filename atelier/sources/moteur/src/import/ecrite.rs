@@ -341,7 +341,13 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
                         && (f.is_empty() || g.fin <= f)
                 })
                 .collect();
-            if let [i] = candidats.as_slice() {
+            // UN CONTRAT PAR MOIS : les bulletins d'un permanent attestent chacun le mois qu'ils paient, du meme contrat
+            // (`import::nature`) ; la paie declaree du mois va a celui de son mois, qui garde ses dates.
+            let (mois, numero) = (t(&p, "mois"), t(&p, "contrat"));
+            let du_contrat = |g: &Groupe| g.salarie == s && !numero.is_empty() && g.contrat.as_ref().is_some_and(|c| t(c, "atteste_par") == "bulletin" && t(c, "numero_contrat") == numero);
+            if groupes.iter().filter(|g| du_contrat(g)).count() > 1 {
+                candidats.retain(|&i| du_contrat(&groupes[i]) && groupes[i].debut.starts_with(&mois));
+            } else if let [i] = candidats.as_slice() {
                 groupes[*i].debut = d.clone();
                 groupes[*i].fin = f.clone();
             }
