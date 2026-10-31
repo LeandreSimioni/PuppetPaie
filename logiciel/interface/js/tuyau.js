@@ -123,7 +123,7 @@ function poserLeMois(mois, ecran) {
  * ne dépose ni n'envoie sur un écran que le moteur n'a pas confirmé. */
 let VERIF = null;         // { mois, promesse } : la vérification en route
 const GESTES_QUI_ENGAGENT = new Set(["valider-engagement", "contrat-recu", "contrats-imprimer", "dsn-a-deposer", "deposer", "dpae",
-  "demander-signature", "envoyer-documents", "documents-imprimer", "avenant-envoyer", "avenants-envoyer",
+  "demander-signature", "envoyer-documents", "documents-imprimer",
   "dossier-envoyer", "casc-envoyer", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents",
   "cloture"]);
 

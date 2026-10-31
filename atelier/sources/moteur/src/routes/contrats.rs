@@ -25,11 +25,11 @@ use socle::valeur::{nom_type, valeur_en_texte, valeurs_egales};
 /// Les routes de ce module.
 pub const ROUTES: &[&str] = &[
     "signature-apercu", "avenant-apercu", "pieces-parties",
-    "demander-signature", "contrats-imprimer", "avenant-envoyer", "avenants-envoyer", "contrat-recu",
+    "demander-signature", "contrats-imprimer", "contrat-recu",
 ];
 
 /// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["demander-signature", "contrats-imprimer", "avenant-envoyer", "avenants-envoyer", "contrat-recu"];
+pub const ECRITURES: &[&str] = &["demander-signature", "contrats-imprimer", "contrat-recu"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -39,8 +39,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "pieces-parties" => pieces_parties(ctx, charge),
         "demander-signature" => demander_signature(ctx, charge, &mut || client_courriel(ctx)),
         "contrats-imprimer" => contrats_imprimer_par(ctx, charge, "interface"),
-        "avenant-envoyer" => avenant_envoyer(ctx, charge, &mut || client_courriel(ctx)),
-        "avenants-envoyer" => avenants_envoyer(ctx, charge, &mut || client_courriel(ctx)),
         "contrat-recu" => contrat_recu(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -239,56 +237,60 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
     crate::compagnie::signature::contrats_imprimer(ctx, &charge_texte(charge, "mois")?, choisis, &avenants, qui)
 }
 
-/// La route `demander-signature` : la boite, la preuve, puis `signature::demander_signature`. `relance` : l'etat
-/// des contrats du mois (`signature-apercu`) dit lesquels peuvent se relancer.
+/// La route `demander-signature` : faire signer, en un geste, les contrats choisis (`contrats`, `salaries`) et les
+/// avenants coches (`avenants`). Tous les refus d'abord, puis la boite et UNE preuve, puis les contrats
+/// (`signature::demander_signature`) et les avenants (`envoyer_avenants`, un courriel par salarie). `relance` : l'etat des
+/// contrats du mois (`signature-apercu`) dit lesquels peuvent se relancer.
 pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let mois = charge_texte(charge, "mois")?;
     let relance = charge.get("relance").is_some_and(vrai);
     let remplace = charge.get("remplace").is_some_and(vrai);
-    let choisis = choisis_de(charge)?;
-    let a_qui = match &choisis.salaries {
-        Some(l) if !l.is_empty() => format!("{} salarie(s) : {}", l.len(), l.join(", ")),
-        _ => "les salaries du mois qui ont un contrat a signer".to_string(),
-    };
-    let etats_des_contrats = if relance {
-        let apercu = crate::routes::contrats::signature_apercu(ctx, &json!({"mois": mois}))?;
-        apercu.get("contrats").and_then(Value::as_array).cloned().unwrap_or_default()
-    } else {
-        Vec::new()
-    };
-    if !relance && !remplace {
-        refuser_les_contrats_partis(ctx, &mois, &choisis)?;
+    let avenants = liste_de(charge, "avenants")?.cloned().unwrap_or_default();
+    let des_contrats = avenants.is_empty() || ["contrats", "salaries"].iter().any(|k| charge.get(*k).is_some_and(vrai));
+    // Un avenant sans objet ou une date d'effet illisible refuse le tout, avant que rien ne parte.
+    avenants_voulus(ctx, &avenants)?;
+    let mut preuve = preuve_de(charge);
+    let mut r = json!({"partis": [], "contrats": [], "avertissements": []});
+    if des_contrats {
+        let choisis = choisis_de(charge)?;
+        let a_qui = match &choisis.salaries {
+            Some(l) if !l.is_empty() => format!("{} salarie(s) : {}", l.len(), l.join(", ")),
+            _ => "les salaries du mois qui ont un contrat a signer".to_string(),
+        };
+        let etats_des_contrats = if relance {
+            let apercu = crate::routes::contrats::signature_apercu(ctx, &json!({"mois": mois}))?;
+            apercu.get("contrats").and_then(Value::as_array).cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        if !relance && !remplace {
+            refuser_les_contrats_partis(ctx, &mois, &choisis)?;
+        }
+        let demande = crate::compagnie::signature::DemandeDeSignature { mois: &mois, relance, remplace, choisis, etats_des_contrats };
+        // Un refus se dit d'abord : la boite et la preuve ne se demandent que pour ce qui part.
+        crate::compagnie::signature::verifier_demande(ctx, &demande)?;
+        let mut client = ouvrir()?;
+        let quoi = if relance { "relance de demande de signature de contrat" } else if remplace { "contrat refait, a signer (il annule et remplace le precedent)" } else { "demande de signature de contrat" };
+        preuve = Preuve { donnee: Some(verifier_preuve(ctx, Some(&preuve), &mois, quoi, &a_qui)?), ..Preuve::default() };
+        r = crate::compagnie::signature::demander_signature(ctx, &demande, client.as_mut())?;
     }
-    let demande = crate::compagnie::signature::DemandeDeSignature { mois: &mois, relance, remplace, choisis, etats_des_contrats };
-    // Un refus se dit d'abord : la boite et la preuve ne se demandent que pour ce qui part.
-    crate::compagnie::signature::verifier_demande(ctx, &demande)?;
-    let mut client = ouvrir()?;
-    let quoi = if relance { "relance de demande de signature de contrat" } else if remplace { "contrat refait, a signer (il annule et remplace le precedent)" } else { "demande de signature de contrat" };
-    verifier_preuve(ctx, Some(&preuve_de(charge)), &mois, quoi, &a_qui)?;
-    crate::compagnie::signature::demander_signature(ctx, &demande, client.as_mut())
-}
-
-/// La route `avenant-envoyer` : un seul avenant. La reponse : `partis`, `fichier`, `numero`, `ligne`.
-fn avenant_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
-    let voulu = json!({
-        "salarie": requis(charge, "salarie")?, "debut": requis(charge, "debut")?, "effet": charge.get("effet").cloned().unwrap_or(Value::Null),
-        "numero": charge.get("numero").cloned().unwrap_or(Value::Null), "mois": charge.get("mois").cloned().unwrap_or(Value::Null),
-    });
-    let (r, avertissements) = envoyer_avenants(ctx, &[voulu], &preuve_de(charge), ouvrir)?;
-    let a = r.avenants.first().ok_or_else(|| erreur("ValueError", "aucun avenant n'est parti"))?;
-    Ok(json!({"partis": r.partis, "fichier": a["fichier"], "numero": a["numero"], "ligne": r.lignes.first().cloned().unwrap_or(Value::Null), "avertissements": avertissements}))
-}
-
-/// La route `avenants-envoyer` : les avenants coches, UN COURRIEL PAR SALARIE. La reponse : `partis`, `avenants`,
-/// `avertissements` (les salaries sans courriel, dont les avenants ne sont pas partis).
-fn avenants_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
-    let voulus: Vec<Value> = match requis(charge, "avenants")? {
-        Value::Array(a) => a.clone(),
-        Value::Null => Vec::new(),
-        autre => return Err(erreur("TypeError", format!("`avenants` : une liste est attendue, pas {}", socle::valeur::nom_type(autre)))),
-    };
-    let (r, avertissements) = envoyer_avenants(ctx, &voulus, &preuve_de(charge), ouvrir)?;
-    Ok(json!({"partis": r.partis, "avenants": r.avenants, "avertissements": avertissements}))
+    let n_contrats = r["contrats"].as_array().map_or(0, Vec::len);
+    let mut n_avenants = 0;
+    if !avenants.is_empty() {
+        let (av, avertissements) = envoyer_avenants(ctx, &avenants, &preuve, ouvrir)?;
+        n_avenants = av.avenants.len();
+        if let (Some(p), Some(c), Some(a)) = (r["partis"].as_array().cloned(), r["contrats"].as_array().cloned(), r["avertissements"].as_array().cloned()) {
+            r["partis"] = json!(p.into_iter().chain(av.partis.iter().map(|x| json!(x))).collect::<Vec<_>>());
+            r["contrats"] = json!(c.into_iter().chain(av.avenants.iter().map(|x| json!({"fichier": x["fichier"]}))).collect::<Vec<_>>());
+            r["avertissements"] = json!(a.into_iter().chain(avertissements.into_iter().map(Value::String)).collect::<Vec<_>>());
+        }
+    }
+    let quoi = [(n_contrats, "contrat(s)"), (n_avenants, "avenant(s)")].iter().filter(|(n, _)| *n > 0).map(|(n, m)| format!("{} {}", n, m)).collect::<Vec<_>>().join(" et ");
+    let avertissements = r["avertissements"].as_array().into_iter().flatten().filter_map(Value::as_str).collect::<Vec<_>>().join(" ");
+    let relancee = relance || (!des_contrats && avenants.iter().all(|a| a.get("relance").is_some_and(vrai)));
+    let fait = if relancee { "relancé(s)" } else { "envoyé(s) à la signature" };
+    r["phrase"] = json!(format!("{} {}.{}{}", quoi, fait, if avertissements.is_empty() { "" } else { " " }, avertissements));
+    Ok(r)
 }
 
 /// LES AVENANTS VOULUS, verifies avant que rien ne parte : chacun a son apercu (`avenant-apercu`), qui dit ce qui change
@@ -457,7 +459,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             let relancer = if !(est(&par, "courriel") && boite_liee) {
                 Value::Null
             } else if avenant_en_attente {
-                json!({"route": "avenants-envoyer", "pourquoi": pourquoi, "charge": {"avenants": [{"salarie": cle_s, "debut": debut, "numero": numero_charge, "mois": mois, "relance": true}]}})
+                json!({"route": "demander-signature", "pourquoi": pourquoi, "charge": {"mois": mois, "avenants": [{"salarie": cle_s, "debut": debut, "numero": numero_charge, "mois": mois, "relance": true}]}})
             } else {
                 json!({"route": "demander-signature", "pourquoi": pourquoi, "charge": {"mois": mois, "relance": true, "contrats": [{"salarie": cle_s, "debut": debut, "numero": numero_charge}]}})
             };

@@ -867,19 +867,11 @@ async function boiteSignature(mois, seulement) {
     const rendre = occupe(envoyer, "Envoi de " + quoi + " en cours…");
     const repere = await repereCourrielsFictifs();
     try {
-      const r = choisis.length
-        ? await api("demander-signature", { mois, contrats: choisis, motdepasse: mdp })
-        : { partis: [], contrats: [] };
-      // Les avenants d'un même salarié partent ensemble, dans un seul courriel, comme ses contrats.
-      if (avenants.length) {
-        const av = await api("avenants-envoyer", { avenants, motdepasse: mdp });
-        r.partis.push(...av.partis);
-        r.contrats.push(...av.avenants.map((x) => ({ fichier: x.fichier })));
-        r.avertissements = [...(r.avertissements || []), ...(av.avertissements || [])];
-      }
+      const r = await api("demander-signature", choisis.length
+        ? { mois, contrats: choisis, avenants, motdepasse: mdp }
+        : { mois, avenants, motdepasse: mdp });
       fermerBoite();
-      dire((r.avertissements || []).length ? r.contrats.length + " contrat(s) envoyé(s) à la signature. " + r.avertissements.join(" ")
-                                           : quoi + " envoyé(s) à la signature.", "envoye");
+      dire(r.phrase, "envoye");
       afficherEnvoi("Contrats à signer", mois, [...new Set(r.partis)],
                     [...(r.avertissements || []), ...r.contrats.map((c) => c.fichier)]);
       if (enFictive()) {
@@ -958,7 +950,7 @@ async function boiteContratsEnAttente(mois, fait) {
       try {
         const r = await api(c.relancer.route, { ...c.relancer.charge, motdepasse: mdp });
         fermerBoite();
-        dire("Relance partie : " + r.partis.join(", ") + ".", "envoye");
+        dire(r.phrase, "envoye");
         await rafraichirActions();
       } catch (e) { rendre(); dire(e.message, "erreur"); }
     };
@@ -1023,10 +1015,10 @@ async function boiteAvenant(mois, salarie, debut, numero) {
     if (!mdp) return;
     const rendre = occupe(envoyer, "Envoi de l'avenant…");
     try {
-      const r = await api("avenant-envoyer", { salarie, debut, numero: numero || "", mois, effet, motdepasse: mdp });
+      const r = await api("demander-signature", { mois, avenants: [{ salarie, debut, numero: numero || "", mois, effet }], motdepasse: mdp });
       fermerBoite();
-      dire("Avenant n° " + r.numero + " envoyé à la signature : " + r.partis.join(", ") + ".", "envoye");
-      afficherEnvoi("Avenant à signer", a.mois, r.partis, [r.fichier]);
+      dire(r.phrase, "envoye");
+      afficherEnvoi("Avenant à signer", a.mois, r.partis, r.contrats.map((c) => c.fichier));
       await rafraichirActions();
     } catch (e) {
       rendre();

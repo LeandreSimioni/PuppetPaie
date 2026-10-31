@@ -1,5 +1,5 @@
 //! Les contrats qui partent : `demander-signature` (par courriel, avec le bouton « Je signe »), `contrats-imprimer`
-//! (pour une remise en main propre), `avenant-envoyer` et `avenants-envoyer`.
+//! (pour une remise en main propre), et les avenants que `demander-signature` fait signer avec eux.
 //!
 //! Un courriel par salarie, un PDF par courriel (le contrat, ou les avenants), le bouton « Je signe » (un lien `mailto:`
 //! vers la boite de la compagnie, objet et corps deja ecrits) et un CODE UNIQUE (`SIG-XXXXXX`) par courriel, garde au
