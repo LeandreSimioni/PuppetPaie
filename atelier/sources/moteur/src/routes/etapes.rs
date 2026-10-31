@@ -479,18 +479,6 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
     emportes != presents
 }
 
-fn cles_en_ensemble(v: Value) -> HashSet<Paire> {
-    let mut out = HashSet::new();
-    for t in v.as_array().cloned().unwrap_or_default() {
-        if let [a, b] = t.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-            if let Some(k) = paire(a, b) {
-                out.insert(k);
-            }
-        }
-    }
-    out
-}
-
 /// `str(Decimal(str(x)).quantize(Decimal("0.01")))` : un montant a deux decimales.
 fn brut_en_texte(v: &Value) -> R<String> {
     let t = valeur_en_texte(v);
@@ -1604,8 +1592,7 @@ impl<'a> Moteur<'a> {
         // permanent y lisent les paies validees des mois d'avant (`conges::paies_du_mois`) une fois pour toute la route.
         // Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
         let _derivation = engagement::conges::Derivation::ouvrir();
-        let lignes = self.lignes()?;
-        let faites = cles_en_ensemble(etats::embauches_par_depot(&lignes)?.cles());
+        let departs = self.departs()?;
         let mois: Vec<String> = match mois.filter(|m| !m.is_empty()) {
             Some(m) => vec![m.to_string()],
             None => {
@@ -1620,8 +1607,8 @@ impl<'a> Moteur<'a> {
                 continue;
             }
             let Ok(s) = self.charger_saisie(&m) else { continue };
-            let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &self.departs()?).map_err(plain)?;
-            let refaire = a_refaire_du_mois(self.ctx, &etats_m, &self.departs()?)?;
+            let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &departs).map_err(plain)?;
+            let refaire = a_refaire_du_mois(self.ctx, &etats_m, &departs)?;
             for (i, p) in s.paies.iter().enumerate() {
                 // La DPAE part de l'engagement valide : un engagement en saisie n'a rien a declarer.
                 if etats_m.get(i).and_then(|e| e.valide()).is_none() {
@@ -1636,7 +1623,10 @@ impl<'a> Moteur<'a> {
                 // meme engagement (un avenant) ; l'embauche et sa date ne changent pas, aucune DPAE ne ressort -- aucun texte
                 // depose n'en demande une nouvelle quand la duree (R. 1221-1, 4°) s'allonge. Une date d'embauche avancee,
                 // elle, en appelle une (`dpae_d_une_date_changee`, plus bas).
-                if faites.contains(&(cle.clone(), debut.clone())) {
+                // La DPAE de cet engagement est partie (`departs`) ; sa date d'embauche n'a pas change depuis (`ARefaire::Dpae`).
+                let partie = p.engagement.numero.as_deref().is_some_and(|n| departs.de(&cle, n).iter().any(|d| d.envoi == engagement::departs::Envoi::Dpae));
+                let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
+                if partie && ancienne.is_none() {
                     continue;
                 }
                 // Un contrat en cours se declare avec son premier mois.
@@ -1645,8 +1635,7 @@ impl<'a> Moteur<'a> {
                 }
                 // UNE DATE D'EMBAUCHE CHANGEE depuis la version sur laquelle la DPAE est partie : reculee, la DPAE de l'ancienne
                 // date vaut ; avancee, une DPAE est a deposer, et la phrase dit pourquoi (`dpae_d_une_date_changee`).
-                let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
-                let pourquoi = match ancienne.filter(|a| faites.contains(&(cle.clone(), a.clone()))) {
+                let pourquoi = match ancienne {
                     Some(a) => {
                         let (vaut, phrase) = crate::regularisation::dpae_d_une_date_changee(&a, &debut);
                         if vaut {
