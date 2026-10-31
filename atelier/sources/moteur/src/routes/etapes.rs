@@ -859,7 +859,7 @@ impl<'a> Moteur<'a> {
     /// (`produire_regularisations::regularisations_pour`) : une correction validee apres l'ecriture du fichier le rend
     /// perime comme une paie du mois qui change. `None` si rien ne se lit ni ne se corrige.
     pub(crate) fn empreinte_saisie(&self, mois: &str) -> R<Option<String>> {
-        let vue = engagement::etats::empreinte_des_paies_validees(self.ctx, mois);
+        let vue = engagement::etats::empreinte_des_paies_validees(self.ctx, mois, None);
         let portees: Vec<Value> = match declarations::produire_regularisations::regularisations_pour(self.ctx, mois, &self.departs()?) {
             Ok(regs) => regs.iter().map(|r| json!([r.mois, valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)), r.apres.engagement.numero, r.version])).collect(),
             Err(e) => vec![json!(e.message)],
