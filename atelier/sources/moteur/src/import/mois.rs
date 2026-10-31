@@ -322,7 +322,7 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
 }
 
 /// LES ETAPES D'UN MOIS TENU AVANT (`bilan_du_mois`, le panneau du mois) : tout s'est fait ailleurs,
-/// aucune etape n'a de bouton (`vide`) -- ni « Fermer le mois », ni « Deposer la DSN » (regle 4). La DSN dit ce qu'on en
+/// aucune etape n'a de bouton -- ni « Fermer le mois », ni « Deposer la DSN » (regle 4). La DSN dit ce qu'on en
 /// sait (`compagnie::etat_dsn`) ; sans trace, elle reste en alerte, sans geste.
 pub(crate) fn etapes(vue: &Value) -> Value {
     let cartes = vue["paies"].as_array().map_or(&[][..], |a| &a[..]);
@@ -351,20 +351,17 @@ pub(crate) fn etapes(vue: &Value) -> Value {
     let dsn = &vue["dsn"];
     let sans_trace = dsn["etat"] == json!("sans_trace") || dsn["etat"] == json!("refusee");
     json!({
-        "dpae": {"couleur": "vert", "vide": true, "courte": "avant PuppetPaie", "phrase": dpae},
-        "contrat-signature": {"couleur": "vert", "vide": true, "courte": "avant PuppetPaie",
+        "dpae": {"couleur": "vert", "phrase": dpae},
+        "contrat-signature": {"couleur": "vert",
             "phrase": signature},
         "dsn": {
             // La couleur de chaque etape (`routes::couleur_de_l_etat`) : faite ailleurs, verte ; refusee, rouge ; sans trace
             // ici, tenue par l'ancien logiciel, une information.
             "couleur": if dsn["etat"] == json!("refusee") { "rouge" } else if sans_trace { "gris" } else { "vert" },
-            "vide": true,
-            "importe": true,
-            "etat": dsn["etat"].clone(),
             "courte": dsn["courte"].clone(),
             "phrase": dsn["phrase"].clone(),
         },
-        "documents": {"couleur": "vert", "vide": true, "courte": "avant PuppetPaie",
+        "documents": {"couleur": "vert",
             "phrase": documents},
     })
 }

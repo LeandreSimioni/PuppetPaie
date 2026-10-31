@@ -1170,18 +1170,20 @@ impl<'a> Moteur<'a> {
     /// chaque groupe nomme celles qu'il couvre, les memes d'une etape a l'autre. L'etape `suivante` est la premiere qui a
     /// quelque chose a faire de notre cote. Aucun montant : le brut n'est jamais lu.
     pub fn bilan_du_mois(&mut self, mois: &str) -> R<Value> {
-        // UN MOIS TENU AVANT CE LOGICIEL : ses etapes se sont faites ailleurs ; elles le disent, sans geste.
+        // UN MOIS TENU AVANT CE LOGICIEL : ses etapes se sont faites ailleurs ; chaque case le dit (« mois importé »),
+        // sans geste.
         if let Some(vue) = crate::import::mois::vue(self.ctx, mois)? {
             let b = crate::import::mois::etapes(&vue);
             let etapes = ORDRE
                 .iter()
                 .map(|(cle, nom)| {
                     let x = &b[*cle];
-                    let mut g = if est(&x["couleur"], "vert") {
-                        fait()
+                    let (etat, quoi) = if est(&x["couleur"], "vert") {
+                        ("fait", "mois importé".to_string())
                     } else {
-                        groupe(if est(&x["couleur"], "rouge") { "refuse" } else { "information" }, Value::Null, String::new(), valeur_en_texte(&x["courte"]), Value::Null, Value::Null)
+                        (if est(&x["couleur"], "rouge") { "refuse" } else { "information" }, format!("mois importé · {}", valeur_en_texte(&x["courte"])))
                     };
+                    let mut g = groupe(etat, Value::Null, String::new(), quoi, Value::Null, Value::Null);
                     g["colonnes"] = json!(["G"]);
                     json!({"cle": cle, "nom": nom, "groupes": [g], "phrase": x["phrase"].clone()})
                 })
@@ -1358,20 +1360,6 @@ impl<'a> Moteur<'a> {
         let au_depot = echeance_dsn(echeance.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)");
         let e = crate::compagnie::etat_dsn::du_mois(self.ctx, mois, nic)?;
         let partie = e.deposee();
-        // LA DSN DEPOSEE PAR L'ANCIEN LOGICIEL ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se
-        // declare dans la DSN suivante qui n'est pas partie, et la case le dit (`import::mois::dsn_de_l_ancien_logiciel`).
-        if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(self.ctx, mois)?.filter(|_| !partie) {
-            let mut g = fait();
-            if d["engagements"].as_u64().is_some_and(|n| n > 0) {
-                let porteur = valeur_en_texte(&d["porteur"]);
-                let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &porteur).map_err(|m| erreur("ValueError", m))?;
-                let mut a = action("deposer_dsn", format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&porteur, socle::date::Graphie::Accentuee)));
-                a["mois"] = json!(porteur);
-                g = groupe("a_faire", Value::Null, String::new(), valeur_en_texte(&d["quoi"]), echeance_dsn(e2.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"), a);
-            }
-            g["phrase"] = d["phrase"].clone();
-            return Ok((g, Value::Null));
-        }
         if !partie {
             if !self.dsn_a_declarer(mois, nic)? {
                 return Ok((fait(), Value::Null));

@@ -64,7 +64,7 @@ function dessinerCase(et, k, g, colonnes, neuves, gestes) {
       <span class="moitie attend"><span class="kase-texte">${quoi}${limite}</span></span>` : `
       <span class="etape-rond">${fini ? "✓" : k + 1}</span>
       <span class="kase-texte">
-        <span class="ligne1"><b>${echapper(et.nom)}</b></span>${fini ? "" : quoi}${limite}
+        <span class="ligne1"><b>${echapper(et.nom)}</b></span>${fini && !g.quoi ? "" : quoi}${limite}
       </span>`;
   return `<div class="kase ${classe}${cote ? " cote" : ""}${neuf ? " neuf" : ""}${bouton ? " cliquable" : ""}"
       data-k="${k}" style="grid-column:${de} / ${a}" title="${echapper(titre)}" ${bouton}>${corps}</div>`;
