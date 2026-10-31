@@ -4,7 +4,7 @@
 //! `depot_acte::verifier_preuve` et `filet::exiger_mot_de_passe` gardent --, le moteur demande LUI-MEME le mot de
 //! passe, par un canal qu'un agent ne tient pas :
 //!
-//!   1. s'il y a un ecran : une petite fenetre du moteur, qui dit ce qui va partir (quoi, quel mois, a qui) ; la
+//!   1. s'il y a un ecran : la boite de dialogue du systeme (`fenetre_native`), qui dit ce qui va partir (quoi, quel mois, a qui) ; la
 //!      fermer, c'est refuser ;
 //!   2. sinon, si un humain est au terminal : la question dans le terminal, SANS ECHO ;
 //!   3. sinon (un agent seul, un conteneur) : REFUS, avec une phrase qui dit pourquoi et quoi faire.
