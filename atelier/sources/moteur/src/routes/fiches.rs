@@ -1691,7 +1691,8 @@ pub(crate) fn ecrire_datee(
         let avant = ancienne.get(k.as_str());
         // « A COMPLETER » est une case vide a remplir, pas rien : il s'ecrit (une fiche importee le porte, et la fiche
         // d'un spectacle sans titre ne se lit pas).
-        let rien = v.is_null() || v.as_str() == Some("");
+        // Une structure dont aucune case n'est remplie (la banque, les congés à la reprise) ne dit rien non plus.
+        let rien = v.is_null() || v.as_str() == Some("") || (v.is_object() && sans_valeur(Some(v)));
         if (vide(avant) && rien) || avant.is_some_and(|a| meme(a, v)) {
             continue;
         }

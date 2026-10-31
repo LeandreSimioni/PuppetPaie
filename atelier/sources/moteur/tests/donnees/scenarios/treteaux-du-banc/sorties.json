@@ -670,19 +670,6 @@
             "valeur": true
           }
         ],
-        "conges_reprise": [
-          {
-            "valeur": {
-              "date": "",
-              "report": "",
-              "acquis_report": "",
-              "remuneration_report": "",
-              "acquis": "",
-              "pris": "",
-              "remuneration_periode": ""
-            }
-          }
-        ],
         "nom": [
           {
             "valeur": "FULLER"
@@ -1104,15 +1091,6 @@
                     "statut_conventionnel": "05",
                     "experimente_3241": true,
                     "actif": true,
-                    "conges_reprise": {
-                      "date": "",
-                      "report": "",
-                      "acquis_report": "",
-                      "remuneration_report": "",
-                      "acquis": "",
-                      "pris": "",
-                      "remuneration_periode": ""
-                    },
                     "nom": "FULLER",
                     "prenom": "LOIE",
                     "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
@@ -1137,7 +1115,7 @@
                     "existe racine:config/effectifs.json": "non",
                     "existe racine:config/pas.json": "oui",
                     "existe racine:config/rubriques-compagnie.json": "non",
-                    "fiches": "9b984b7b3c575bbe1c616b6634916956b4f8919fa2395025849b8b66075dd973",
+                    "fiches": "8688de00b4e754c6cd009cff3ea423b6dd82f482c6f557071fb8b3035170e886",
                     "fichier code:baremes/2026.json": "6265acfbfe8d2d492c4ebe9472ad5924b9fbfa289f99ba1fb9e1f3268b20f744",
                     "fichier code:contrats-base.json": "fa6e9d4099fd495aa0ac87b0edbb5d88bdbf0242823427702cff8fb188b0d9b0",
                     "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",
