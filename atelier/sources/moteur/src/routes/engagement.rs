@@ -3,7 +3,6 @@
 //! actif). Un refus garde sa phrase quand elle est utile a la page.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
@@ -113,44 +112,6 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------------ modifier-engagement
 
-/// Les fichiers des engagements tels qu'ils sont avant une modification : une modification qui n'aboutit pas (rien n'a
-/// change, l'avertissement n'est pas encore confirme, un refus) les remet octet pour octet.
-struct Photo {
-    dossier: PathBuf,
-    fichiers: Vec<(PathBuf, Vec<u8>)>,
-}
-
-impl Photo {
-    fn prendre(racine: &Path) -> R<Photo> {
-        let dossier = racine.join(engagement::stock::DOSSIER);
-        let mut fichiers = Vec::new();
-        for p in Photo::presents(&dossier) {
-            let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-            fichiers.push((p, octets));
-        }
-        Ok(Photo { dossier, fichiers })
-    }
-
-    fn presents(dossier: &Path) -> Vec<PathBuf> {
-        std::fs::read_dir(dossier).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.is_file()).collect()
-    }
-
-    fn remettre(&self) -> R<()> {
-        let io = |p: &Path, e: std::io::Error| erreur("OSError", format!("{} : {}", p.display(), e));
-        for p in Photo::presents(&self.dossier) {
-            if !self.fichiers.iter().any(|(q, _)| *q == p) {
-                std::fs::remove_file(&p).map_err(|e| io(&p, e))?;
-            }
-        }
-        for (p, octets) in &self.fichiers {
-            if std::fs::read(p).ok().as_ref() != Some(octets) {
-                std::fs::write(p, octets).map_err(|e| io(p, e))?;
-            }
-        }
-        Ok(())
-    }
-}
-
 /// Ce que la modification a donne.
 enum Issue {
     /// Rien n'a change.
@@ -201,31 +162,15 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         )));
     }
     let i = rang_calcule(ctx, mois, &o)?;
-    // Ce qu'une DSN deposee dont la limite est passee a declare : la base de ce que la norme permet encore.
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
-    let declaree = crate::regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
-    let base = if declaree.get("confirmer").is_some_and(vrai) {
-        crate::regularisation::saisie_declaree(ctx, mois)?.or(engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?)
-    } else {
-        None
+    // LA MODIFICATION SE FAIT DANS UN BROUILLON (`engagement::stock::Brouillon`) : calculee en memoire, elle ne s'ecrit
+    // sur le disque que quand elle est faite ; rien n'a change, un avertissement a confirmer, un refus : rien n'est ecrit.
+    let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
+    let valide = match modifier_puis_revalider(ctx, mois, i, &o, saisie, confirme, a_partir_du.as_deref(), le)? {
+        Issue::Ecrite(valide) => valide,
+        Issue::Rien => return Ok(json!({"change": false})),
+        Issue::Avertir(a) => return Ok(json!({"change": true, "avertissement": a})),
     };
-    let photo = Photo::prendre(&ctx.racine)?;
-    let issue = modifier_puis_revalider(ctx, mois, i, saisie, base.as_ref(), confirme, a_partir_du.as_deref(), le);
-    let valide = match issue {
-        Ok(Issue::Ecrite(valide)) => valide,
-        Ok(Issue::Rien) => {
-            photo.remettre()?;
-            return Ok(json!({"change": false}));
-        }
-        Ok(Issue::Avertir(a)) => {
-            photo.remettre()?;
-            return Ok(json!({"change": true, "avertissement": a}));
-        }
-        Err(e) => {
-            photo.remettre()?;
-            return Err(e);
-        }
-    };
+    brouillon.ecrire().map_err(Echec::from)?;
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
     let e = &data["engagements"][i];
     if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
@@ -237,15 +182,15 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"change": true, "valide": valide.le(), "avis": avis}))
 }
 
-/// La modification elle-meme, sur les fichiers : l'engagement de rang `i` se rouvre, prend sa saisie et se revalide. Ce
-/// qu'elle rend dit si elle reste ecrite (`Issue::Ecrite`) ; sinon la route remet les fichiers.
+/// La modification elle-meme, dans le brouillon ouvert : l'engagement `o`, de rang `i`, se rouvre, prend sa saisie et
+/// se revalide. Ce qu'elle rend dit si elle s'ecrit (`Issue::Ecrite`).
 #[allow(clippy::too_many_arguments)]
 fn modifier_puis_revalider(
     ctx: &Contexte,
     mois: &str,
     i: usize,
+    o: &engagement::stock::Objet,
     saisie: &Map<String, Value>,
-    base: Option<&Value>,
     confirme: bool,
     a_partir_du: Option<&str>,
     le: Option<u32>,
@@ -255,13 +200,14 @@ fn modifier_puis_revalider(
     if !engagement::etats::a_revalider_rouvert(ctx, mois, i).map_err(Echec::from)? {
         return Ok(Issue::Rien);
     }
-    if let Some(base) = base {
-        let nouvelle = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
-        if let Some(texte) = crate::regularisation::refus_non_declarable(ctx, mois, base, &nouvelle)? {
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
+    let devenu = engagement::stock::objets(&ctx.racine).map_err(Echec::from)?.into_iter().find(|x| x.fichier == o.fichier && x.rang == o.rang);
+    if let Some(devenu) = devenu {
+        let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
+        if let Some(texte) = crate::regularisation::refus_non_declarable(&mut m, ctx, o, &devenu, &departs)? {
             return Err(erreur(crate::regularisation::CLASSE_NON_DECLARABLE, texte));
         }
     }
-    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let en_valeur = |qui: String, c: Vec<String>| json!([{"qui": qui, "consequences": c}]);
     // « A PARTIR DE QUEL MOIS ? » : un contrat au mois dont un mois est parti et dont les termes changent. Sans reponse
     // parmi ses choix, la question vient dans l'avertissement ; un seul choix vaut reponse.

@@ -1548,23 +1548,6 @@ fn vue_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<
     declare.vue(mois)
 }
 
-/// L'ENGAGEMENT DECLARE pour `mois` : ce que la saisie de la version sur laquelle la derniere DSN qui a declare ce mois
-/// est partie dit de ce mois (`Objet::vue`) ; `None` si aucune DSN n'a declare ce mois pour l'engagement `o`.
-pub fn engagement_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Map<String, Value>>> {
-    match version_de_la_dsn(ctx, o, departs, mois)? {
-        Some(v) => vue_de_la_version(o, v, mois),
-        None => Ok(None),
-    }
-}
-
-/// LA SAISIE DU MOIS DECLAREE : ce que la saisie de `mois` posait pour tous ses engagements (le taux du cachet, la date
-/// de paiement) quand la paie que la derniere DSN de ce mois a declaree pour `o` a ete calculee (`MOIS_LU`) ; `None` si
-/// aucune DSN n'a declare ce mois pour lui.
-pub fn mois_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Value>> {
-    let Some(v) = version_de_la_dsn(ctx, o, departs, mois)? else { return Ok(None) };
-    Ok(v.get("paies").and_then(|p| p.get(mois)).and_then(|p| p.get(MOIS_LU)).cloned())
-}
-
 /// La paie de `mois` que la version `version` de `o` a ecrite, relue (`relire`) sur la saisie de cette version, la fiche
 /// du salarie et la saisie du mois telles que son calcul les a lues (`fiches`, `MOIS_LU`) ; `None` si cette version n'a
 /// pas de paie pour ce mois. Elle porte le numero de son bulletin quand ses documents sont partis.

@@ -89,45 +89,6 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     Ok(Value::Object(out))
 }
 
-/// LE NUMERO SOUS LEQUEL CHAQUE CONTRAT A ETE DECLARE : l'engagement le porte depuis sa validation (regle 4 : un numero de
-
-/// LA SAISIE DE `mois` TELLE QUE DECLAREE : ce que le mois posait pour tous ses engagements quand leurs paies declarees
-/// ont ete calculees (`engagement::etats::mois_declare` : le taux du cachet, la date de paiement), et ses engagements
-/// tels que la version sur laquelle la derniere DSN qui a declare ce mois est partie pour chacun les a ecrits
-/// (`engagement::etats::engagement_declare`), dans l'ordre de l'ecran ; un engagement qu'aucune DSN n'a declare pour ce
-/// mois n'y est pas. `None` : aucune DSN n'a declare ce mois.
-pub(crate) fn saisie_declaree(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
-    let Some(mut saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
-    let mut declares = Vec::new();
-    let mut lu: Option<Value> = None;
-    for o in engagement::stock::objets_du_mois(&ctx.racine, mois)? {
-        if let Some(e) = engagement::etats::engagement_declare(ctx, &o, &departs, mois)? {
-            declares.push(Value::Object(e));
-            if lu.is_none() {
-                lu = engagement::etats::mois_declare(ctx, &o, &departs, mois)?;
-            }
-        }
-    }
-    if declares.is_empty() {
-        return Ok(None);
-    }
-    let Some(Value::Object(lu)) = lu else {
-        return Err(non_regularisable(format!(
-            "{} : la version sur laquelle la DSN de ce mois est partie ne porte pas la saisie du mois que sa paie a lue. Revalider les engagements du mois.",
-            mois
-        )));
-    };
-    let origine = saisie.get("_origine").cloned();
-    saisie = Value::Object(lu);
-    saisie["mois"] = json!(mois);
-    if let Some(o) = origine {
-        saisie["_origine"] = o;
-    }
-    saisie["engagements"] = Value::Array(declares);
-    Ok(Some(saisie))
-}
-
 /// `_resume`.
 fn resume(p: &Paie) -> Value {
     let e = &p.engagement;
@@ -234,11 +195,13 @@ pub(crate) fn de_mois_en_clair(mois: &str) -> String {
 /// Un mois dont l'ancien logiciel a depose la DSN se dit avec la phrase du panneau et du rappel
 /// (`import::mois::dsn_de_l_ancien_logiciel`) : cette DSN ne se remplace jamais ici (regle 4), ce que la saisie y ajoute
 /// se declare dans la DSN qui porte (`dsn_qui_porte`). Se confirme seulement la modification d'un engagement de la
-/// saisie qu'une DSN partie ici a deja declare pour ce mois (`saisie_declaree`).
+/// saisie qu'une DSN partie ici a deja declare pour ce mois (le journal des envois, `departs`).
 pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(ctx, mois)? {
         let mut r = json!({"confirmer": false, "porteur": d["porteur"], "phrase": d["phrase"]});
-        if saisie_declaree(ctx, mois)?.is_some() {
+        let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+        let declare_ici = departs.engagements().any(|(c, n)| departs.de(c, n).iter().any(|x| x.envoi == engagement::departs::Envoi::Dsn && x.mois.as_deref() == Some(mois)));
+        if declare_ici {
             r["confirmer"] = json!(true);
             r["avertissement"] = json!(format!(
                 "La DSN {} a été déposée par l'ancien logiciel : elle ne se remplace pas. La correction se déclarera dans la DSN {}. Êtes-vous sûr de vouloir modifier cet engagement ?",
@@ -300,68 +263,54 @@ pub(crate) fn bornes_en_clair(b: &Bornes) -> String {
     }
 }
 
-/// Les engagements d'une saisie, identifies (`jumeaux`) ; `None` s'ils ne s'identifient pas.
-fn identifies(ctx: &Contexte, d: &Value) -> Option<Vec<Option<droit::jumeaux::Ident>>> {
-    crate::routes::fiches::identifiants(ctx, d).ok().map(|v| v.into_iter().map(Some).collect())
-}
-
-/// Ce qui a change dans LA PAIE de `mois` depuis que sa DSN est partie : pour chaque engagement du mois, la paie que la
-/// version sur laquelle la DSN est partie a ecrite (`engagement::etats::paie_declaree`) comparee a celle d'aujourd'hui
-/// -- la paie validee, ou, pour un engagement en saisie, son calcul -- par ce qu'elles declarent (`resume`, les
-/// bornes) ; un engagement dont aucune DSN du mois n'est partie est un contrat ajoute. `None` : aucune DSN du mois n'est
-
-/// UN CONTRAT DECLARE NE SE RETIRE PAS APRES LA LIMITE. Ce que la norme permet apres la date
-/// d'exigibilite (cahier technique DSN 2026.1, §2.2.2.5 et §2.1.3.6,
-/// `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`) : des rappels de paie dans une DSN
-/// suivante, et, pour un contrat, le changement d'une donnee par bloc « Changements contrat » (S21.G00.41). Rien
-/// n'annule un contrat declare : seule une FIN de contrat s'annule (motif S21.G00.62.002 = 099, fiche net-entreprises
-/// 1722, `atelier/reference/sources/net-entreprises-base-connaissances/`). Un contrat qui n'a pas eu lieu garde donc son
-/// bloc 40 et voit ses montants annules (ses quantites a zero : la correction les declare en negatif).
+/// UN CONTRAT DECLARE NE SE RETIRE PAS D'UN MOIS DONT LA DSN NE SE REMPLACE PLUS. Passe la date d'exigibilite, une DSN
+/// ne se remplace plus : « il convient de corriger les informations erronees dans la DSN du mois suivant » (fiche
+/// net-entreprises 1722, `atelier/reference/sources/net-entreprises-base-connaissances/
+/// net-entreprises-fiche1722-annulation-fin-de-contrat-transmise-a-tort-20250326.txt`). Ce qui s'y corrige : la paie,
+/// par rappel, en approche differentielle ou par annulation et remplacement des montants (cahier technique DSN 2026.1,
+/// §2.1.3.6, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`, l. 607) ; et, d'un contrat,
+/// sa fin, que le motif 099 annule (fiche 1722). INFERENCE : aucun de ces textes n'annule un contrat declare (son bloc
+/// S21.G00.40) ; un contrat qui n'a pas eu lieu garde son bloc et voit ses montants annules (ses quantites a zero).
 ///
-/// SES DATES SE CORRIGENT : le contrat garde son numero, il se retrouve a ses nouvelles dates
-/// (`jumeaux::apparier_meme_numero`), et sa correction les declare : l'ancienne date de debut en bloc 41 (fiche
-/// net-entreprises 1952), la fin en bloc 62 (fiche 1722), un versement par mois civil (§2.2.2.5). Les autres mois du
-/// contrat suivent (`propager_les_bornes`).
-///
-/// Le refus nomme la DSN qui a declare le contrat pour `mois` (`qui_a_declare`) : celle du mois, ou celle d'un mois
-/// suivant qui a porte sa correction (un contrat ajoute apres la limite, ou le mois dont l'ancien logiciel a depose la
-/// DSN).
-///
-/// `base` : la saisie telle que declaree ; `nouvelle` : ce qu'on veut ecrire. `Ok(None)` : rien d'indeclarable.
-pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nouvelle: &Value) -> R<Option<String>> {
-    let (Some(avant), Some(apres)) = (identifies(ctx, base), identifies(ctx, nouvelle)) else { return Ok(None) };
-    let paires = droit::jumeaux::apparier_meme_numero(&avant, &apres);
-    let e_avant = base.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
-    for (i, j) in paires.iter().enumerate() {
-        let Some(Some(id)) = avant.get(i) else { continue };
-        let nom = e_avant.get(i).and_then(|e| e.get("salarie")).map(valeur_en_texte).unwrap_or_else(|| id.0.clone());
-        let debut = socle::date::Jour::lire(&id.1).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| id.1.clone());
-        if j.is_none() {
-            let dsn = match qui_a_declare(&departs, id, mois) {
-                Some(par) => format!("dans la DSN {}, qui a porté la correction {}", de_mois_en_clair(&par), de_mois_en_clair(mois)),
-                None => format!("dans la DSN {}, dont l'annule-et-remplace est passé", de_mois_en_clair(mois)),
-            };
-            return Ok(Some(format!(
-                "Le contrat de {} du {} est déclaré {} : il ne se retire plus. La norme DSN n'annule pas un contrat déclaré (seule une fin de contrat s'annule, motif 099, fiche net-entreprises 1722). S'il n'a pas eu lieu, gardez-le et mettez ses quantités à zéro : la DSN suivante déclarera l'annulation de ses montants (rappel de paie, cahier technique DSN §2.1.3.6). Rien n'est enregistré.",
-                nom, debut, dsn
-            )));
+/// `avant` : l'engagement tel qu'il est ecrit ; `apres` : ce qu'il devient. Refus : un mois que sa DSN a declare pour
+/// lui (`departs`) et dont la DSN ne se remplace plus (`modification_de_la_paie`, `confirmer`), qu'il ne couvre plus --
+/// ou tous, quand le contrat change de salarie. Le refus nomme la DSN qui a declare le contrat pour ce mois : la sienne,
+/// ou celle d'un mois suivant qui a porte sa correction (`Depart::par`). `Ok(None)` : rien d'indeclarable.
+pub(crate) fn refus_non_declarable(
+    m: &mut Moteur,
+    ctx: &Contexte,
+    avant: &engagement::stock::Objet,
+    apres: &engagement::stock::Objet,
+    departs: &engagement::departs::Departs,
+) -> R<Option<String>> {
+    let brut = |o: &engagement::stock::Objet| Value::Object(o.brut.clone());
+    let (b_avant, b_apres) = (brut(avant), brut(apres));
+    let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b_avant), b_avant.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else {
+        return Ok(None);
+    };
+    let meme_salarie = engagement::cle_de_l_engagement(ctx, &b_apres).as_deref() == Some(cle.as_str());
+    for d in departs.de(&cle, &numero).iter().filter(|d| d.envoi == engagement::departs::Envoi::Dsn) {
+        let Some(mois) = d.mois.as_deref() else { continue };
+        if meme_salarie && apres.couvre(mois).map_err(Echec::from)? {
+            continue;
         }
+        if !modification_de_la_paie(m, ctx, mois)?.get("confirmer").is_some_and(vrai) {
+            continue;
+        }
+        let nom = b_avant.get("salarie").map(valeur_en_texte).unwrap_or_else(|| cle.clone());
+        let debut = socle::date::Jour::lire(&engagement::debut_brut(&b_avant)).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
+        let dsn = match departs.de(&cle, &numero).iter().find(|x| x.envoi == engagement::departs::Envoi::Dsn && x.mois.as_deref() == Some(mois)).and_then(|x| x.par.clone()) {
+            Some(par) => format!("dans la DSN {}, qui a porté la correction {}", de_mois_en_clair(&par), de_mois_en_clair(mois)),
+            None => format!("dans la DSN {}, qui ne se remplace plus", de_mois_en_clair(mois)),
+        };
+        return Ok(Some(format!(
+            "Le contrat de {} du {} est déclaré {} : il ne se retire plus. La DSN corrige la paie d'un mois passé (rappel de paie, cahier technique DSN §2.1.3.6) et annule une fin de contrat (motif 099, fiche net-entreprises 1722), pas un contrat. S'il n'a pas eu lieu, gardez-le et mettez ses quantités à zéro : la DSN suivante déclarera l'annulation de ses montants. Rien n'est enregistré.",
+            nom, debut, dsn
+        )));
     }
     Ok(None)
 }
 
-/// Le mois de la DSN qui a declare le contrat `id` pour `mois` quand ce n'est pas la sienne : la premiere DSN partie
-/// pour ce mois et ce contrat, telle que le journal des envois la note (`Depart::par`) ; les corrections qui l'ont
-/// suivie ne changent pas la DSN qui l'a declare. `None` : la DSN du mois elle-meme.
-fn qui_a_declare(departs: &engagement::departs::Departs, id: &droit::jumeaux::Ident, mois: &str) -> Option<String> {
-    let numero = id.2.as_deref()?;
-    departs
-        .de(&id.0, numero)
-        .iter()
-        .find(|d| d.envoi == engagement::departs::Envoi::Dsn && d.mois.as_deref() == Some(mois))
-        .and_then(|d| d.par.clone())
-}
 
 /// La DPAE d'un contrat dont la date d'embauche a change (`crate::routes::etapes::debut_declare`), deposee pour l'ancienne date `avant` :
 /// vaut-elle pour la nouvelle `apres`, et la phrase qui le dit. Code du travail, `atelier/reference/sources/code-du-travail/`
