@@ -159,7 +159,6 @@ fn acte(ctx: &Contexte, l: &Value) -> String {
         "regularisation-casc" => "Régularisation Congés Spectacles".into(),
         "dossier-salarie" => "Dossier d'un salarié".into(),
         "fiche-demande" => "Fiche demandée à un salarié".into(),
-        "fiche-recue" => "Fiche reçue d'un salarié".into(),
         autre => autre.to_string(),
     }
 }
@@ -851,22 +850,22 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let mut envois = Vec::new();
     for l in lignes.iter() {
-        let lu = |r: &Value| if l["quoi"] == json!("contrat-signature") { revenu_lu(ctx, l, r) } else { retour_lu(&ctx.racine, l, r) };
+        // Ce qui est revenu, sur la ligne de chaque envoi : un contrat signe, une fiche remplie (ou la demande abandonnee),
+        // un retour d'organisme.
+        let lu = |r: &Value| match l["quoi"].as_str() {
+            Some("contrat-signature") => revenu_lu(ctx, l, r),
+            Some("fiche-demande") => json!({"titre": if vrai(&r["abandon"]) { "Demande abandonnée" } else { "Fiche reçue" }, "quand": r["quand"]}),
+            _ => retour_lu(&ctx.racine, l, r),
+        };
         let mut retours: Vec<Value> = l["retours"].as_array().into_iter().flatten().map(lu).collect();
         retours.sort_by(|a, b| valeur_en_texte(&a["quand"]).cmp(&valeur_en_texte(&b["quand"])));
         let t = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-        // Ce qui REVIENT (une fiche remplie) n'a pas ete « envoye » et n'attend rien ; un depot attend ses retours par son
-        // flux (`journal.rattacher_retours`).
-        let recu = t("quoi") == "fiche-recue";
-        let quand = etats::quand_lisible(&l["quand"]);
-        let resume = match t("quoi").as_str() {
-            _ if recu => format!("reçu le {}", quand),
-            _ => etats::resume(l, &cles, &avenants)?,
-        };
+        // Un depot attend ses retours par son flux (`journal.rattacher_retours`).
+        let resume = etats::resume(l, &cles, &avenants)?;
         envois.push(json!({
             "quoi": t("quoi"), "acte": acte(ctx, l), "mode": t("mode"), "quand": t("quand"), "fichier": t("fichier"), "flux": t("flux"),
             "destinataire": t("destinataire"), "identite": identite(ctx, l), "accepte": vrai(&l["accepte"]), "resume": resume,
-            "attend_retour": !recu && !t("flux").is_empty(), "retours": retours,
+            "attend_retour": !t("flux").is_empty(), "retours": retours,
         }));
     }
     // Le plus recent en premier : c'est le dernier envoi qu'on vient lire ; a la meme heure, le reel devant son test.
