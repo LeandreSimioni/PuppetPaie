@@ -64,9 +64,9 @@ pub fn commande(args: &[String]) -> i32 {
     match r {
         Ok(faits) => {
             for f in &faits {
-                println!("{}", f);
+                dire!("{}", f);
             }
-            println!("{} bulletin(s) fabrique(s) dans {}", faits.len(), dossier);
+            dire!("{} bulletin(s) fabrique(s) dans {}", faits.len(), dossier);
             0
         }
         Err(m) => {

@@ -268,25 +268,25 @@ pub fn commande(args: &[String]) -> i32 {
             return 2;
         };
         if json {
-            println!("{}", f.en_json());
+            dire!("{}", f.en_json());
         } else {
-            print!("{}", f.en_texte());
+            dire_sans_ligne!("{}", f.en_texte());
         }
         return 0;
     }
     if json {
-        println!("{}", en_json(true));
+        dire!("{}", en_json(true));
         return 0;
     }
     let montrees: Vec<&Fiche> = tout.iter().filter(|f| avance || !f.avance).collect();
-    println!("Les routes (echo '{{\"route\":NOM,\"charge\":{{…}}}}' | moteur route ; la fiche : moteur routes NOM ; toutes : --avance)\n");
+    dire!("Les routes (echo '{{\"route\":NOM,\"charge\":{{…}}}}' | moteur route ; la fiche : moteur routes NOM ; toutes : --avance)\n");
     let large = montrees.iter().map(|f| f.nom.len()).max().unwrap_or(0);
     for f in &montrees {
-        println!("  {:<large$}  {:<5}  {}  [{}]", f.nom, match f.acte { Acte::Lit => "lit", Acte::Ecrit => "écrit", Acte::Engage => "engage" }, f.geste, f.ecran.texte());
+        dire!("  {:<large$}  {:<5}  {}  [{}]", f.nom, match f.acte { Acte::Lit => "lit", Acte::Ecrit => "écrit", Acte::Engage => "engage" }, f.geste, f.ecran.texte());
     }
     let cachees = tout.len() - montrees.len();
     if cachees > 0 {
-        println!("\n{} routes avancées ne sont pas montrées : moteur routes --avance", cachees);
+        dire!("\n{} routes avancées ne sont pas montrées : moteur routes --avance", cachees);
     }
     0
 }

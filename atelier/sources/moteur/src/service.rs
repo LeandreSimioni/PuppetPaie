@@ -79,9 +79,9 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
         Value::Object(m)
     });
     if texte_seul {
-        print!("{}", en_texte(&nom, &corps));
+        dire_sans_ligne!("{}", en_texte(&nom, &corps));
     } else {
-        println!("{}", corps);
+        dire!("{}", corps);
     }
     Some(0)
 }

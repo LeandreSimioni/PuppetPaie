@@ -23,8 +23,7 @@ macro_rules! dire {
     }};
 }
 
-/// Ecrit sans saut de ligne (l'equivalent de `print(..., end="")`).
-#[allow(unused_macros)]
+/// Ecrit sans saut de ligne, comme `dire!`.
 macro_rules! dire_sans_ligne {
     ($($arg:tt)*) => {{
         use std::io::Write;

@@ -448,7 +448,7 @@ pub fn commande(args: &[String]) -> i32 {
     match it.next().map(String::as_str) {
         Some("monter") => {}
         Some("-h" | "--help" | "--aide" | "aide") => {
-            println!("{}", AIDE);
+            dire!("{}", AIDE);
             return 0;
         }
         _ => {
@@ -460,7 +460,7 @@ pub fn commande(args: &[String]) -> i32 {
     while let Some(a) = it.next() {
         match a.as_str() {
             "-h" | "--help" | "--aide" => {
-                println!("{}", AIDE);
+                dire!("{}", AIDE);
                 return 0;
             }
             "--depuis" => match it.next() {
@@ -488,16 +488,16 @@ pub fn commande(args: &[String]) -> i32 {
         Ok(m) => {
             let d = m.dossier.display();
             if m.neuf {
-                println!("Compagnie d'essai montee dans {}, depuis la compagnie fictive {}.", d, m.depuis);
+                dire!("Compagnie d'essai montee dans {}, depuis la compagnie fictive {}.", d, m.depuis);
             } else {
-                println!("Compagnie d'essai {} (depuis {}) : identite reecrite ; journal, DSN et retours gardes.", d, m.depuis);
+                dire!("Compagnie d'essai {} (depuis {}) : identite reecrite ; journal, DSN et retours gardes.", d, m.depuis);
             }
-            println!("Identite : {} (posee ; ses valeurs ne s'affichent pas). Tout depot reel y est refuse.", VARIABLE);
-            println!();
-            println!("La suite, avec PUPPETPAIE_DONNEES={} :", d);
-            println!("  echo '{{\"route\":\"deposer\",\"charge\":{{\"quoi\":\"dsn\",\"mois\":\"AAAA-MM\"}}}}' | moteur route --texte");
-            println!("  puis les retours : echo '{{\"route\":\"ouverture\",\"charge\":{{\"sauvegarder\":false,\"signatures\":false}}}}' | moteur route --texte");
-            println!("(atelier/docs/COMPAGNIE-D-ESSAI.md : l'ordre d'un essai deja fait d'ailleurs, les signalements)");
+            dire!("Identite : {} (posee ; ses valeurs ne s'affichent pas). Tout depot reel y est refuse.", VARIABLE);
+            dire!();
+            dire!("La suite, avec PUPPETPAIE_DONNEES={} :", d);
+            dire!("  echo '{{\"route\":\"deposer\",\"charge\":{{\"quoi\":\"dsn\",\"mois\":\"AAAA-MM\"}}}}' | moteur route --texte");
+            dire!("  puis les retours : echo '{{\"route\":\"ouverture\",\"charge\":{{\"sauvegarder\":false,\"signatures\":false}}}}' | moteur route --texte");
+            dire!("(atelier/docs/COMPAGNIE-D-ESSAI.md : l'ordre d'un essai deja fait d'ailleurs, les signalements)");
             0
         }
         Err(m) => {

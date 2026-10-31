@@ -461,7 +461,7 @@ pub fn commande(args: &[String]) -> i32 {
                     eprintln!("{} : {}", chemin.display(), e);
                     return 1;
                 }
-                println!("{}", chemin.display());
+                dire!("{}", chemin.display());
             }
             0
         }

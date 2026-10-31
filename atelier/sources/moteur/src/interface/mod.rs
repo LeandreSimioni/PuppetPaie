@@ -1128,7 +1128,7 @@ pub fn commande(args: &[String]) -> i32 {
     let prise = match instance {
         Instance::Tenue(p) => p,
         Instance::Devant => {
-            println!("PuppetPaie est deja ouvert depuis cette installation : sa fenetre revient devant.");
+            dire!("PuppetPaie est deja ouvert depuis cette installation : sa fenetre revient devant.");
             return 0;
         }
     };
@@ -1157,7 +1157,7 @@ pub fn commande(args: &[String]) -> i32 {
     }));
     let url = f.adresse("puppetpaie.localhost", port);
     *devant.lock().unwrap_or_else(|e| e.into_inner()) = Some((url.clone(), f.dossier_local().join("navigateur")));
-    println!("{}", url);
+    dire!("{}", url);
     let navigateur = if options.sans_navigateur { None } else { navigateur::ouvrir(&url, &f.dossier_local().join("navigateur"), &|t| f.ecrire(t)) };
     // Le navigateur a nous : sa fermeture arrete PuppetPaie. Sinon, plus aucune page depuis cinq minutes l'arrete
     // (la page interroge la veille chaque minute).

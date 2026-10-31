@@ -587,12 +587,12 @@ pub fn commande(args: &[String]) -> i32 {
             match rejouer(Path::new(sc), inst, &options) {
                 Ok(r) => {
                     for p in &r.horloge {
-                        println!("      {}", p);
+                        dire!("      {}", p);
                     }
                     for (nom, racine) in &r.compagnies {
-                        println!("{} -> {}", nom, racine.display());
+                        dire!("{} -> {}", nom, racine.display());
                     }
-                    println!(
+                    dire!(
                         "{} route(s) rejouee(s), {} lecture(s) ecartee(s), {} geste(s) sur une autre compagnie, en {:.1} s.",
                         r.routes_rejouees,
                         r.lectures_ecartees,
@@ -600,7 +600,7 @@ pub fn commande(args: &[String]) -> i32 {
                         debut.elapsed().as_secs_f64()
                     );
                     for e in &r.ecarts {
-                        println!("ECART  {}", e);
+                        dire!("ECART  {}", e);
                     }
                     i32::from(!r.ecarts.is_empty())
                 }
@@ -612,12 +612,12 @@ pub fn commande(args: &[String]) -> i32 {
         }
         ["verifier", sc, inst, travail] => match verifier(Path::new(sc), Path::new(inst), Path::new(travail)) {
             Ok(e) if e.is_empty() => {
-                println!("Le rejeu refait la compagnie du banc, fichier pour fichier ({:.1} s).", debut.elapsed().as_secs_f64());
+                dire!("Le rejeu refait la compagnie du banc, fichier pour fichier ({:.1} s).", debut.elapsed().as_secs_f64());
                 0
             }
             Ok(e) => {
                 for x in &e {
-                    println!("DIFFERENCE  {}", x);
+                    dire!("DIFFERENCE  {}", x);
                 }
                 1
             }
@@ -628,7 +628,7 @@ pub fn commande(args: &[String]) -> i32 {
         },
         ["elaguer", sc, vers] => match elaguer(Path::new(sc), Path::new(vers)) {
             Ok((n, o)) => {
-                println!("{} geste(s) garde(s), {} lecture(s) otee(s) : {}", n, o, vers);
+                dire!("{} geste(s) garde(s), {} lecture(s) otee(s) : {}", n, o, vers);
                 0
             }
             Err(m) => {

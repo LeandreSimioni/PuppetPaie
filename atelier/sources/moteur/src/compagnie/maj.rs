@@ -1493,11 +1493,11 @@ pub fn commande(args: &[String]) -> i32 {
     if let Some(r) = github {
         return match r {
             Ok(t) => {
-                println!("{}", t);
+                dire!("{}", t);
                 0
             }
             Err(e) => {
-                println!("! {}", e);
+                dire!("! {}", e);
                 2
             }
         };
@@ -1533,11 +1533,11 @@ pub fn commande(args: &[String]) -> i32 {
     };
     match r {
         Ok(t) => {
-            println!("{}", t);
+            dire!("{}", t);
             0
         }
         Err(e) => {
-            println!("! {}", e);
+            dire!("! {}", e);
             2
         }
     }

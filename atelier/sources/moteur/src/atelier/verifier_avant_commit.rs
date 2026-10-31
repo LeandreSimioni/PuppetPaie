@@ -501,7 +501,7 @@ pub fn commande(args: &[String]) -> i32 {
         match a.as_str() {
             "--indexes" => indexes = true,
             "--aide" | "--help" | "-h" => {
-                print!("{}", USAGE);
+                dire_sans_ligne!("{}", USAGE);
                 return 0;
             }
             _ => {
@@ -513,7 +513,7 @@ pub fn commande(args: &[String]) -> i32 {
     let r = std::env::current_dir().map_err(|e| e.to_string()).and_then(|d| racine_du_depot(&d)).and_then(|r| verifier(&r, indexes));
     match r {
         Ok(t) => {
-            print!("{}", rapport(&t));
+            dire_sans_ligne!("{}", rapport(&t));
             i32::from(!t.is_empty())
         }
         Err(m) => {

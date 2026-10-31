@@ -58,7 +58,7 @@ La sortie se nomme toujours ; un fichier deja la ne se remplace qu'avec --rempla
 /// `moteur extraire ...` : rend le code de sortie (2 : la commande est mal formee, 1 : le releve refuse, 0 : ecrit).
 pub fn commande(args: &[String]) -> i32 {
     if args.iter().any(|a| matches!(a.as_str(), "-h" | "--help" | "--aide")) {
-        println!("{}", USAGE);
+        dire!("{}", USAGE);
         return 0;
     }
     let remplacer = args.iter().any(|a| a == "--remplacer");
@@ -111,9 +111,9 @@ pub fn commande(args: &[String]) -> i32 {
         return 1;
     }
     for l in &releve.bilan {
-        println!("{}", l);
+        dire!("{}", l);
     }
-    println!("-> {}", sortie.display());
+    dire!("-> {}", sortie.display());
     0
 }
 
@@ -258,7 +258,7 @@ fn transcrire(args: &[&str], remplacer: bool) -> i32 {
             eprintln!("{} : {}", sortie.display(), e);
             return 1;
         }
-        println!("-> {}", sortie.display());
+        dire!("-> {}", sortie.display());
     }
     0
 }
