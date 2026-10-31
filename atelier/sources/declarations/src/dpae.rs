@@ -43,9 +43,8 @@ pub const HEURE_EMBAUCHE: &str = "0800";
 /// (Format 120, `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf`) compte a
 /// partir de 1 : sa position 122 est notre 121.
 ///
-/// LE PIEGE DE L'HORODATAGE, trouve le 12/09/2026 apres quatre refus
-/// << Code URSSAF invalide >>. Le gabarit de CoolPaie porte `28082026` `1512`
-/// `11` `7...` puis le SIRET, et on y avait lu JJMMAAAAHHMMSS puis le SIRET.
+/// LE PIEGE DE L'HORODATAGE (le refus « Code URSSAF invalide »). Le gabarit de CoolPaie porte `28082026` `1512`
+/// `11` `7...` puis le SIRET : il ne se lit pas JJMMAAAAHHMMSS puis le SIRET.
 /// Faux : le dessin dit D_CREATION (122-129, JJMMAAAA), H_CREATION (130-133,
 /// HHMM), puis **C_URSSAF (134-136)** -- le code de l'Urssaf receptrice, 117
 /// pour l'Ile-de-France -- puis le SIRET a 137. `151211` n'etait pas
@@ -761,8 +760,7 @@ pub fn relire(contenu: &str) -> Vec<Vec<(&'static str, String)>> {
 /// ecrit : deux ecritures des memes embauches a deux minutes d'ecart ne
 /// different que par lui. C'est ce qui permet de reprendre le fichier deja
 /// ecrit -- et deja REPETE en test -- au lieu d'en poser un neuf, que la
-/// repetition ne couvrirait plus (25/09/2026 : on ecrivait, testait, revenait,
-/// reecrivait, et le reel redemandait un test sans fin).
+/// repetition ne couvrirait plus.
 pub fn meme_declaration(a: &str, b: &str) -> bool {
     let (x, y) = (lire_enregistrements(a), lire_enregistrements(b));
     if x.len() != y.len() || x.is_empty() {
@@ -820,7 +818,7 @@ pub const CODES_RETOUR_AR: [(&str, &str); 26] = [
 // d'essai (N_JJ_ESSAI) laissee a blanc : un CDDU l'ecrit `000` et rend `00`.
 // Un CDI ou un CDD, dont l'essai n'est pas connu, reste en 99.
 // Le `98` dit qu'une DPAE identique existait deja : rien n'a ete cree, et les
-// formalites restent a N -- vu le 12/09/2026 sur le second TEST des memes
+// formalites restent a N -- sur le second TEST des memes
 // embauches. L'embauche est declaree quand meme, par la premiere.
 pub const CODES_ENREGISTREE: [&str; 2] = ["00", "99"];
 pub const CODE_DEJA_EXISTANTE: &str = "98";

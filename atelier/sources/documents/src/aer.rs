@@ -64,9 +64,8 @@ pub const CHAMPS_TEXTE: [&str; 10] = [
     "EMPLOYEUR_CORRES_EMAIL",
 ];
 pub const CHAMP_SIGNATURE: &str = "EMPLOYEUR_SIGNATURE";
-/// LA CASE D'A COTE, laissee vide jusqu'au 22/09/2026. Voir `cachet.rs` :
-/// ce qu'on posait dans la case SIGNATURE etait un tampon, et celle-ci
-/// restait blanche. Chacun chez soi.
+/// LA CASE D'A COTE de la signature : elle porte le cachet (voir `cachet.rs`) ; le tampon ne se pose pas
+/// dans la case SIGNATURE. Chacun chez soi.
 pub const CHAMP_CACHET: &str = "EMPLOYEUR_CACHET";
 
 // Quantites imprimees par France Travail, par rang de contrat (01 a 05).

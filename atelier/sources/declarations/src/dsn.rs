@@ -530,7 +530,7 @@ fn base<'a>(bases: &'a HashMap<String, Decimal>, cle: &Value) -> Resultat<Decima
     bases.get(&k).copied().ok_or_else(|| socle::fichiers::absent(&k))
 }
 
-/// Les bases assujetties que la deduction forfaitaire specifique abat (11/10/2026 ;
+/// Les bases assujetties que la deduction forfaitaire specifique abat (
 /// `atelier/reference/sources/dfs/LISEZ-MOI.md`, « La DSN ») : 02 et 03, l'assiette des cotisations de securite sociale
 /// (CSS R. 242-1, al. 3 ; arrete du 4 septembre 2025 relatif aux frais professionnels, art. 1er et 9), et 23 et 43,
 /// celles d'Agirc-Arrco (cahier d'aide a la codification Agirc-Arrco CT2026, l. 3490-3498 : « La solution ainsi retenue
@@ -1456,8 +1456,8 @@ p. 322). Corriger la date sur la fiche : le jour ou la personne est entree dans 
 /// Ils se LISENT, jamais ne se devinent (regle 1) : d'abord la fiche telle que l'engagement l'a faite (`emploi_de` :
 /// le metier choisi sur la ligne les a resolus, sinon la fiche les porte) ; a defaut, le metier de la fiche s'il est
 /// au CATALOGUE (`emplois-base.json`), par la meme regle que `emplois::resoudre`. Un metier hors catalogue (la
-/// nomenclature France Travail seule) ne dit rien du classement. Jusqu'au 10/10/2026, 05 et 04 se posaient par
-/// defaut : faux pour un ouvrier (07), un employe (06), un cadre (04 / 01).
+/// nomenclature France Travail seule) ne dit rien du classement : 05 et 04 ne se posent pas par
+/// defaut, ce serait faux pour un ouvrier (07), un employe (06), un cadre (04 / 01).
 ///
 /// Un metier cadre au catalogue, sur une fiche qui ne dit pas cadre ou non cadre, refuse aussi : la paie s'est
 /// calculee non cadre (`bareme::est_cadre` ne lit que la fiche), le catalogue dit cadre, et ni 01 ni 04 ne se lit.
@@ -2422,7 +2422,7 @@ fn bloc_regularisation(
     let (avant, apres) = (&r.avant, &r.apres);
     let debut = avant.engagement.debut_periode()?;
     let fin = avant.engagement.fin_periode()?;
-    // La paie corrigee se rattache a la periode du contrat corrige : ses dates ont pu changer (21/10/2026, fiche
+    // La paie corrigee se rattache a la periode du contrat corrige : ses dates ont pu changer (fiche
     // net-entreprises 1952 ; cahier technique DSN 2026.1, §2.1.3.6). L'annulation recopie le declare, a ses dates.
     let (debut_c, fin_c) = (apres.engagement.debut_periode()?, apres.engagement.fin_periode()?);
     // Le prelevement du versement de la correction est celui que l'engagement rend (`prelevement_de_la_correction`) :
@@ -4014,7 +4014,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// Le jour ou un signalement sera ecrit, cette porte est deja la -- et le
 /// commentaire dit pourquoi elle etait fermee.
 ///
-/// LE NUMERO D'ORDRE EST LE SEUL RATTACHEMENT -- etabli le 10/09/2026 en
+/// LE NUMERO D'ORDRE EST LE SEUL RATTACHEMENT -- etabli en
 /// deposant en test, et lisible dans une troisieme anomalie :
 ///
 /// ```text
@@ -4033,8 +4033,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// lit sur le certificat de conformite du depot precedent (`moteur retours`).
 ///
 /// IL REMPLACE, IL N'AJOUTE PAS -- Y COMPRIS LES ORDRES DE TELEPAIEMENT.
-/// Question posee le 10/09/2026, tranchee le 11 par le cahier technique
-/// 2026.1, p. 15 : « lorsque la derniere DSN mensuelle transmise pour une date
+/// Le cahier technique 2026.1, p. 15 : « lorsque la derniere DSN mensuelle transmise pour une date
 /// d'exigibilite donnee est de type "Annule et remplace integral", elle doit
 /// porter les elements de cotisations destines aux organismes de recouvrement,
 /// MEME SI ces elements ont deja ete transmis dans une DSN mensuelle relative
