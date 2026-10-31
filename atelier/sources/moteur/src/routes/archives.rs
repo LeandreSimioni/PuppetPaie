@@ -498,20 +498,39 @@ const REEDITION_CONTRATS: &str = "Les contrats ont été réédités par notre l
 /// (`dossier_json`) et, sous `envoi`, ce que l'envoi a fait.
 fn dossier_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let qui = qui_de(charge);
-    // `ops.dossier_salarie(salaries=..., mois=..., annee=..., toutes_les_annees=..., categories=..., ensemble=False, ecrire=True)`.
     let mut demande = Map::new();
     for cle in ["salaries", "mois", "annee", "toutes_les_annees", "categories"] {
         if let Some(v) = charge.get(cle) {
             demande.insert(cle.to_string(), v.clone());
         }
     }
+    // CE QUI PARTIRAIT, SANS RIEN ECRIRE : chacun a son adresse, puis la preuve ; le dossier ne s'ecrit qu'ensuite.
+    let mut apercu = demande.clone();
+    apercu.insert("apercu".into(), json!(true));
+    let vu = crate::routes::dossier_salarie::construire(ctx, &Value::Object(apercu))?;
+    adresses_de(ctx, &vu.salaries)?;
+    let a_qui = format!("{} salarie(s) : {}", vu.salaries.len(), vu.salaries.iter().map(|c| ctx.nomme(c)).collect::<Vec<_>>().join(", "));
+    let aujourdhui = crate::routes::dossier_salarie::aujourdhui_reel();
+    let forme = verifier_preuve(ctx, Some(&preuve_de(charge)), &format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois), "envoi du dossier aux salaries", &a_qui)?;
     let d = crate::routes::dossier_salarie::construire(ctx, &Value::Object(demande))?;
     let mut r = crate::routes::dossier_salarie::dossier_json(&d);
-    let envoi = envoyer_dossier(ctx, &d, &preuve_de(charge), &qui, ouvrir)?;
+    let envoi = envoyer_dossier(ctx, &d, &Preuve { donnee: Some(forme), ..Preuve::default() }, &qui, ouvrir)?;
     if let Value::Object(o) = &mut r {
         o.insert("envoi".into(), envoi);
     }
     Ok(r)
+}
+
+/// Chacun de `cles` a une adresse dans sa fiche ; sinon le refus qui le nomme. Rien n'est parti.
+fn adresses_de(ctx: &Contexte, cles: &[String]) -> R<Vec<String>> {
+    cles.iter()
+        .map(|cle| {
+            let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
+            s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).ok_or_else(|| {
+                refus(format!("Pas d'adresse e-mail pour {} : compléter sa fiche avant d'envoyer. Rien n'est parti.", ctx.nomme(cle)))
+            })
+        })
+        .collect()
 }
 
 /// Envoie a chaque salarie SON dossier, par la boite de la compagnie.
@@ -526,14 +545,9 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
         return Err(refus("Le dossier n'a pas été écrit : rien à envoyer."));
     }
     let mut messages: Vec<Message> = Vec::new();
-    for (cle, f) in d.salaries.iter().zip(&d.fichiers) {
+    let adresses = adresses_de(ctx, &d.salaries)?;
+    for ((cle, f), email) in d.salaries.iter().zip(&d.fichiers).zip(adresses) {
         let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
-        let Some(email) = s.get("email").filter(|v| vrai(v)).map(valeur_en_texte) else {
-            return Err(refus(format!(
-                "Pas d'adresse e-mail pour {} : compléter sa fiche avant d'envoyer. Rien n'est parti.",
-                ctx.nomme(cle)
-            )));
-        };
         let prenom = match vrai_ou(s, "prenom_affichage") {
             Some(p) => p,
             None => valeur_en_texte(requis(s, "prenom")?),
@@ -604,8 +618,8 @@ fn jjmmaaaa(iso: &str) -> String {
 /// Irreversible. `vire_le` : {annee: AAAA-MM-JJ}, une date par virement fait ; le dossier envoye est celui de ces
 /// annees-la, exactement.
 ///
-/// Dans cet ordre : le dossier (ecrit, pour que la liste nominative jointe soit celle du jour), la boite, la
-/// preuve, l'envoi, puis ce qui s'en garde -- les deux `.eml` dans `exports/casc-svp/envoyes/`, la ligne de
+/// Dans cet ordre : la boite, la preuve, le dossier (ecrit, pour que la liste nominative jointe soit celle du jour),
+/// l'envoi, puis ce qui s'en garde -- les deux `.eml` dans `exports/casc-svp/envoyes/`, la ligne de
 /// journal, et les annees notees regularisees. Rien de tout cela ne s'ecrit si l'envoi casse.
 fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let qui = qui_de(charge);
@@ -641,13 +655,18 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let mut annees_voulues: Vec<String> = dates.iter().map(|(a, _)| a.clone()).collect();
     annees_voulues.sort();
 
-    // Le dossier, ecrit : la liste nominative jointe est celle du jour.
+    // La boite et la preuve, puis le dossier, ecrit : la liste nominative jointe est celle du jour.
     let mut r = regularisation(ctx, &Demande { toutes_les_annees: true, annees: annees_voulues.clone(), vire_le: dates.clone(), ..Default::default() })?;
     let mut manquent: Vec<String> = annees_voulues.iter().filter(|a| !r.annees.iter().any(|x| &x.annee == *a)).cloned().collect();
     manquent.sort();
     if !manquent.is_empty() {
         return Err(refus(format!("Rien a regulariser pour {} (deja fait, ou aucune DSN deposee). Rien n'est parti.", manquent.join(", "))));
     }
+
+    let mut client = ouvrir()?;
+    let dernier_mois = r.mois.last().map(|m| m.mois.clone()).ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("les mois de la régularisation")))?;
+    verifier_preuve(ctx, Some(&preuve_de(charge)), &dernier_mois, "envoi a Audiens et au CASC-SVP (liste nominative)", "Audiens et CASC-SVP")?;
+
     ecrire(ctx, &mut r)?;
     let classeur = std::path::Path::new(&r.dossier).join("CASC-SVP_liste-nominative.xlsx");
     if !classeur.exists() {
@@ -656,10 +675,6 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
             r.avertissements.last().cloned().unwrap_or_default()
         )));
     }
-
-    let mut client = ouvrir()?;
-    let dernier_mois = r.mois.last().map(|m| m.mois.clone()).ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("les mois de la régularisation")))?;
-    verifier_preuve(ctx, Some(&preuve_de(charge)), &dernier_mois, "envoi a Audiens et au CASC-SVP (liste nominative)", "Audiens et CASC-SVP")?;
 
     let messages = vec![
         Message {
