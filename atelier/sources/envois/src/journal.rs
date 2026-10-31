@@ -196,7 +196,20 @@ pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
         }
         let mois = matches!(envoi, Envoi::Documents | Envoi::Dsn).then(|| l.get("mois").and_then(Value::as_str).map(String::from)).flatten();
         let le = l.get("quand").and_then(Value::as_str).unwrap_or_default().to_string();
-        for v in l.get("versions").and_then(Value::as_array).into_iter().flatten() {
+        // Un contrat parti sans que sa ligne dise sur quelle version (une ligne qui ne porte pas `versions`) est parti sur
+        // la premiere : une validation qui ne dit pas sa version s'ecrit en version 1 (`engagement::etats`). Il se range par
+        // le numero que la ligne nomme, comme les autres.
+        let sans_versions: Vec<Value> = match (envoi, l.get("versions")) {
+            (Envoi::Contrat, None) => l
+                .pointer("/detail/contrats")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .map(|c| json!({"salarie": c.get("salarie"), "numero": c.get("numero").map(socle::valeur::valeur_en_texte), "version": 1}))
+                .collect(),
+            _ => Vec::new(),
+        };
+        for v in l.get("versions").and_then(Value::as_array).into_iter().flatten().chain(&sans_versions) {
             let (Some(cle), Some(numero), Some(version)) =
                 (v.get("salarie").and_then(Value::as_str), v.get("numero").and_then(Value::as_str), v.get("version").and_then(Value::as_u64))
             else {

@@ -344,6 +344,13 @@ fn cles_en_ensemble3(v: Value) -> HashSet<Cle3> {
     out
 }
 
+/// Quand le contrat (ou son dernier avenant) de l'engagement `numero` du salarie `cle` est parti (`departs`) ; `null` s'il
+/// n'est pas parti.
+pub(crate) fn contrat_parti_le(departs: &engagement::departs::Departs, cle: &str, numero: Option<&str>) -> Value {
+    let Some(n) = numero else { return Value::Null };
+    departs.de(cle, n).iter().rev().find(|d| d.envoi == engagement::departs::Envoi::Contrat).map_or(Value::Null, |d| Value::String(d.le.clone()))
+}
+
 /// Le premier etat que le journal donne a l'une de ces cles (celles d'une paie : `etats::cles_des_paies`).
 pub(crate) fn premier<'a, V>(table: &'a HashMap<Cle3, V>, cles: &[Cle3]) -> Option<&'a V> {
     cles.iter().find_map(|k| table.get(k))
@@ -592,8 +599,6 @@ fn texte_de(v: &Value) -> String {
 /// Les etats du journal et de la saisie, calcules une fois par processus.
 pub(crate) struct Globales {
     pub(crate) dpae: HashMap<Paire, Value>,
-    // Les etats du contrat, rangés par CONTRAT (salarie, debut, numero) : deux contrats du meme jour ne se partagent rien.
-    pub(crate) contrats: HashMap<Cle3, Value>,
     pub(crate) recus: HashMap<Cle3, Value>,
     pub(crate) recus_par: HashMap<Cle3, Value>,
     pub(crate) renvoyes: HashSet<Cle3>,
@@ -669,14 +674,13 @@ impl<'a> Moteur<'a> {
         let lignes = self.lignes()?;
         let dpae = en_table(etats::etat_des_embauches(&lignes)?);
         let c = etats::Maille::Contrat;
-        let contrats = en_table3(etats::contrats_demandes(&lignes, c)?);
         let recus = etats::contrats_recus(&lignes, c)?;
         let recus = en_table3(recus.sortie(Clone::clone));
         let recus_par = en_table3(etats::contrats_recus_comment(&lignes, c)?);
         let renvoyes = cles_en_ensemble3(etats::renvoyes_depuis_la_signature(&lignes, c)?.cles());
         let avenants = en_table3(etats::avenants(&lignes, c)?);
         let par = en_table3(etats::contrats_partis_par(&lignes, c)?);
-        let g = Rc::new(Globales { dpae, contrats, recus, recus_par, renvoyes, avenants, par });
+        let g = Rc::new(Globales { dpae, recus, recus_par, renvoyes, avenants, par });
         self.globales = Some(g.clone());
         Ok(g)
     }
@@ -835,7 +839,7 @@ impl<'a> Moteur<'a> {
             let nul = Value::Null;
             let avenant = refaire.get(i).is_some_and(|r| r.iter().any(|a| matches!(a, ARefaire::Avenant { .. })));
             let mut signature = etat_signature(
-                premier(&g.contrats, cles).unwrap_or(&nul),
+                &contrat_parti_le(&departs, &cle, p.engagement.numero.as_deref()),
                 premier(&g.par, cles).unwrap_or(&nul),
                 premier(&g.recus, cles).unwrap_or(&nul),
                 premier(&g.recus_par, cles).unwrap_or(&nul),

@@ -12,7 +12,7 @@ use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
 use crate::routes::etapes::{dans_l_ensemble, premier, Moteur};
 use droit::contexte::Contexte;
 use crate::compagnie::signature::{Choisis, UnAvenant};
-use envois::etats::{self, est, get, getd, items, objet_vide, ou, LISTE_VIDE, DPAE, SIGNATURE};
+use envois::etats::{self, est, get, getd, items, objet_vide, ou, DPAE, SIGNATURE};
 use envois::journal::{self, Note};
 use socle::date::jour_iso;
 use socle::echec::{erreur, Echec, R};
@@ -394,7 +394,8 @@ pub(crate) fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve
 pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
-    let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &departs)?;
     let mut m = Moteur::nouveau(ctx);
     let g = m.globales()?;
     let lignes = m.lignes()?;
@@ -405,19 +406,6 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let avenants = crate::routes::etapes::avenants_a_faire(ctx, &mois)?;
     let cles_paies = etats::cles_des_paies(&lignes, &crate::routes::etapes::contrats_des_paies(&paies))?;
 
-    // Quand chaque CONTRAT a ete demande (ce mois-ci).
-    let mut demandes: HashMap<etats::Cle3, Value> = HashMap::new();
-    for l in etats::filtrer(&lignes, Some(SIGNATURE), Some(&mois), false)? {
-        if !etats::accepte(l)? {
-            continue;
-        }
-        let contrats = getd(getd(l, "detail", objet_vide())?, "contrats", &LISTE_VIDE)?;
-        for c in items(contrats)? {
-            if let [Value::String(a), Value::String(b), Value::String(n)] = etats::cle_contrat(&c, etats::Maille::Contrat)?.as_slice() {
-                demandes.insert((a.clone(), b.clone(), n.clone()), get(l, "quand")?.clone());
-            }
-        }
-    }
     let aujourdhui = ctx.aujourdhui.iso();
     let boite_liee = crate::routes::ouverture::boite_liee(ctx)?;
     let mut contrats = Vec::new();
@@ -429,7 +417,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         let (cle_s, debut) = rangs[i].clone();
         let cles = &cles_paies[i];
         let etat = crate::routes::etapes::etat_signature(
-            premier(&g.contrats, cles).unwrap_or(nul()),
+            &crate::routes::etapes::contrat_parti_le(&departs, &cle_s, p.engagement.numero.as_deref()),
             premier(&g.par, cles).unwrap_or(nul()),
             premier(&g.recus, cles).unwrap_or(nul()),
             premier(&g.recus_par, cles).unwrap_or(nul()),
@@ -448,7 +436,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("debut".into(), json!(debut));
         l.insert("fin".into(), json!(fin));
         l.insert("numero".into(), numero);
-        l.insert("demande_le".into(), premier(&demandes, cles).cloned().unwrap_or(Value::Null));
+        l.insert("demande_le".into(), etat["fait"].clone());
         // CE QUE LA BOITE EN FAIT : un contrat a envoyer (jamais parti, ou caduc) se coche, et part en avenant s'il est
         // deja parti, signe ou non (`en_avenant`) ; un contrat ou un avenant parti et pas revenu attend : il se note reçu signe
         // (`recu`), et seul celui parti par courriel se relance (`relancer`), quand la boite est posee. Les deux gestes

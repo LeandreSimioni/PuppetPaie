@@ -569,20 +569,6 @@ pub fn avec_repli<'a, V>(d: &'a Dico<V>, k: &[Value]) -> R<Option<&'a V>> {
     Ok(None)
 }
 
-pub fn contrats_demandes(lignes: &[Value], m: Maille) -> R<Value> {
-    let lignes = &*normalisees(lignes, m);
-    let mut d = Dico::nouveau();
-    for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        for c in detail_liste(l, "contrats")? {
-            d.poser(cle_contrat(&c, m)?, get(l, "quand")?.clone())?;
-        }
-    }
-    Ok(d.sortie(Clone::clone))
-}
-
 /// Comment chaque contrat est parti la derniere fois : `imprime` (remis en main propre, `detail.main_propre`) ou
 /// `courriel`. Un contrat imprime ne se relance pas : il n'y a pas de courriel a renvoyer.
 pub fn contrats_partis_par(lignes: &[Value], m: Maille) -> R<Value> {
@@ -1894,7 +1880,6 @@ mod tests {
         assert_eq!((&a[0]["code"], &a[0]["nom"], &a[0]["envoyes"], &a[0]["rang"]), (&json!("C2"), &json!("BÊTA Beta"), &json!(["m1"]), &json!(1)));
         assert_eq!(contrats_recus(&l, Maille::Paire).unwrap().sortie(Clone::clone), json!([["ALPHA", "2026-06-04", "2026-06-12T10:00:00"]]));
         assert_eq!(contrats_recus_comment(&l, Maille::Paire).unwrap(), json!([["ALPHA", "2026-06-04", "courriel"]]));
-        assert_eq!(contrats_demandes(&l, Maille::Paire).unwrap().as_array().unwrap().len(), 2);
     }
 
     #[test]
