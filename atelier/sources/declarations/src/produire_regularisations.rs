@@ -249,7 +249,7 @@ pub fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
         let s = &r.apres.salarie;
         let nom = s.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
         out.push(format!(
-            "{} {}, contrat {} ({}) : brut {} € → {} €, net {} € → {} €",
+            "{} {}, contrat {} ({}) : brut {}\u{a0}€ → {}\u{a0}€, net {}\u{a0}€ → {}\u{a0}€",
             valeur_en_texte(nom),
             prenom_de(s),
             r.apres.engagement.numero.as_deref().unwrap_or("None"),
