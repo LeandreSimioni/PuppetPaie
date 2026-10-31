@@ -224,11 +224,6 @@ fn nom_dossier(p: &Path) -> String {
     p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
 }
 
-/// Ce que propose l'accueil, dans l'ordre des tuiles : les vraies, puis les fictives.
-pub fn liste() -> Vec<Compagnie> {
-    liste_de(&base())
-}
-
 /// Les compagnies de l'installation `b` (le dossier qui porte `logiciel/`, `prive/`, `compagnies/`, `fictives/`), dans
 /// l'ordre des tuiles. L'administrateur (`administrateur.rs`) lit celles de l'installation qu'on lui donne.
 pub fn liste_de(b: &Path) -> Vec<Compagnie> {
@@ -259,19 +254,19 @@ pub fn a_tenir_a_jour(b: &Path) -> Vec<PathBuf> {
 }
 
 /// Le dossier d'une tuile -- et seulement d'une tuile : l'identifiant ne designe jamais un chemin qu'on n'a pas propose.
-pub fn racine_choisie(id: &str) -> Result<PathBuf, String> {
-    liste()
+pub fn racine_choisie(inst: &Path, id: &str) -> Result<PathBuf, String> {
+    liste_de(inst)
         .into_iter()
         .find(|c| c.id == id)
         .map(|c| c.racine)
         .ok_or_else(|| format!("Compagnie inconnue ou absente de cette version : {}", id))
 }
 
-pub fn poser_couleur(id: &str, valeur: &str) -> Result<String, String> {
+pub fn poser_couleur(inst: &Path, id: &str, valeur: &str) -> Result<String, String> {
     if !couleur_valide(valeur) {
         return Err(format!("Couleur attendue sous la forme #RRGGBB : '{}'", valeur));
     }
-    let c = liste().into_iter().find(|c| c.id == id && c.reelle).ok_or("Seule une compagnie reelle a une couleur a choisir.")?;
+    let c = liste_de(inst).into_iter().find(|c| c.id == id && c.reelle).ok_or("Seule une compagnie reelle a une couleur a choisir.")?;
     let v = valeur.to_uppercase();
     ecrire(&c.racine.join("config").join("affichage.json"), &json!({"couleur": v}))?;
     Ok(v)
@@ -360,20 +355,16 @@ pub fn vient_d_un_logiciel_precedent(racine: &Path) -> bool {
         == Some(Venue::LogicielPrecedent)
 }
 
-/// « Ajouter une compagnie » : le dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
-///
-/// LOGICIEL BRIDE : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
-/// un dossier `ajoutee-…`, avec le marqueur d'une fictive et sa marque. Debloque : une compagnie reelle, sous `compagnies/`.
-pub fn ajouter(nom: &str, venue: Venue) -> Result<Compagnie, String> {
-    ajouter_venant(&base(), nom, venue)
-}
-
-/// `ajouter`, dans l'installation `inst` (le dossier qui porte `logiciel/`) : une compagnie neuve.
+/// `ajouter_venant`, une compagnie neuve.
 pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     ajouter_venant(inst, nom, Venue::Neuve)
 }
 
-/// `ajouter`, dans l'installation `inst`, par le chemin `venue`.
+/// « Ajouter une compagnie » (la route `compagnie-ajouter`) dans l'installation `inst`, par le chemin `venue` : le
+/// dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
+///
+/// LOGICIEL BRIDE : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
+/// un dossier `ajoutee-…`, avec le marqueur d'une fictive et sa marque. Debloque : une compagnie reelle, sous `compagnies/`.
 pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie, String> {
     let nom = nom.split_whitespace().collect::<Vec<_>>().join(" ");
     if nom.chars().count() < 2 {
@@ -467,8 +458,8 @@ pub fn figer_origine(racine: &Path) -> Result<(), String> {
 }
 
 /// La fictive revient a sa photo d'origine ; ce qui appartient au poste est garde. Rend (nom, deja).
-pub fn remettre_a_zero(id: &str) -> Result<(String, bool), String> {
-    let c = liste()
+pub fn remettre_a_zero(inst: &Path, id: &str) -> Result<(String, bool), String> {
+    let c = liste_de(inst)
         .into_iter()
         .find(|c| c.id == id && !c.reelle && est_fictive_livree(&c.racine))
         .ok_or("Seule une compagnie fictive livrée se remet à zéro.")?;

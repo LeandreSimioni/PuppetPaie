@@ -46,7 +46,7 @@ impl Veille {
     }
 
     fn derniere(&self) -> Value {
-        route(&self.racine, "ouverture-derniere", &json!({})).unwrap_or_else(|_| json!({}))
+        crate::compagnie::ouverture::derniere_ouverture(&self.racine)
     }
 
     /// Ou en est le passage, sans rien lancer (`veille-etape`) : une lecture de drapeaux et d'un petit fichier, que la page
@@ -70,7 +70,7 @@ impl Veille {
             "prochain_dans": self.prochain_dans(),
             "dernier": dernier,
             "erreur": self.erreur.lock().map(|e| e.clone()).unwrap_or_default(),
-            "sauvegarde": route(&self.racine, "sauvegarde-derniere", &json!({})).unwrap_or(Value::Null),
+            "sauvegarde": crate::compagnie::sauvegarde::derniere(&self.racine).en_json(),
             "coffre": coffre.get("services").cloned().unwrap_or_else(|| json!([])),
             "mot_de_passe_pose": coffre.get("mot_de_passe_pose").cloned().unwrap_or(Value::Bool(false)),
         })

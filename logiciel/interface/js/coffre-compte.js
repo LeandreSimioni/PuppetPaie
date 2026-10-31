@@ -45,14 +45,9 @@ async function dessinerCoffre(cible) {
   const fictive = enFictive();
   const c = await api("coffre-etat");
   const exige = c.mot_de_passe_pose;
-  // L'ADMINISTRATEUR : ce que le moteur dit de cette compagnie pour lui (rattachée, ou à rattacher), par
-  // le geste de la fenêtre. Une compagnie fictive n'en a pas.
-  const geste = window.pywebview && window.pywebview.api;
-  let adm = {};
-  if (!fictive && geste && typeof geste.administrateur === "function") {
-    const r = await geste.administrateur();
-    if (r && r.ok) adm = r.etat || {};
-  }
+  // L'ADMINISTRATEUR : ce que le moteur dit de cette compagnie pour lui (rattachée, ou à rattacher). Une compagnie
+  // fictive n'en a pas.
+  const adm = fictive ? {} : await api("administrateur-etat");
   const enListe = (n) => n.length > 1 ? n.slice(0, -1).join(", ") + " et " + n[n.length - 1] : (n[0] || "");
   // UNE LIGNE PAR SECRET, comme les mois de l'Historique : ce
   // qu'il sert à faire, où il en est, et les gestes. Les cases de saisie ne
@@ -254,39 +249,36 @@ async function dessinerCoffre(cible) {
   };
   const ok = (texte) => { dire(texte); dessinerCoffre(cible); };
   const raté = (e) => dire(e.message, "erreur");
-
   document.getElementById("k-changer").onclick = async () => {
     const nouveau = document.getElementById("k-nouveau").value;
     const confirmation = document.getElementById("k-confirmation").value;
     if (!nouveau) { dire("Tapez le nouveau mot de passe."); return; }
     const p = actuelSaisi("changer");
     if (!p) return;
-    // UNE COMPAGNIE DE L'ADMINISTRATEUR : le nouveau mot de passe remplace l'actuel dans toutes ses compagnies d'un coup
-    // (le moteur prépare tout, puis remplace ; si une seule refuse, aucune ne change), et la fenêtre le retient.
-    if (adm.rattachee) {
-      const r = await geste.changer_administrateur(p.motdepasse, nouveau, confirmation);
-      if (r && r.ok) ok(`Mot de passe de l'administrateur changé dans ${r.compagnies.length} compagnies : ${enListe(r.compagnies)}.`);
-      else dire((r && r.erreur) || "Rien n'a changé.", "erreur");
-      return;
-    }
+    // UNE COMPAGNIE DE L'ADMINISTRATEUR : le moteur remplace l'actuel dans toutes ses compagnies d'un coup (il prépare
+    // tout, puis remplace ; si une seule refuse, aucune ne change).
     try {
       await api("mot-de-passe-changer", { nouveau, confirmation, ...p });
-      ok(exige ? "Mot de passe du logiciel changé." : "Mot de passe du logiciel posé : il sera demandé à la prochaine ouverture.");
+      ok(adm.rattachee ? "Mot de passe de l'administrateur changé dans toutes ses compagnies."
+        : exige ? "Mot de passe du logiciel changé." : "Mot de passe du logiciel posé : il sera demandé à la prochaine ouverture.");
     } catch (e) { raté(e); }
   };
   const detacher = document.getElementById("k-detacher");
   if (detacher) detacher.onclick = async () => {
-    const r = await geste.detacher(document.getElementById("k-adm-actuel").value,
-      document.getElementById("k-adm-nouveau").value, document.getElementById("k-adm-confirmation").value);
-    if (r && r.ok) ok("Compagnie détachée : elle s'ouvre désormais avec son propre mot de passe.");
-    else dire((r && r.erreur) || "Rien n'a changé.", "erreur");
+    try {
+      const r = await api("administrateur-detacher", { administrateur: document.getElementById("k-adm-actuel").value,
+        nouveau: document.getElementById("k-adm-nouveau").value, confirmation: document.getElementById("k-adm-confirmation").value });
+      ok(r.phrase);
+    } catch (e) { raté(e); }
   };
   const rattacher = document.getElementById("k-rattacher");
   if (rattacher) rattacher.onclick = async () => {
     const propre = document.getElementById("k-adm-propre");
-    const r = await geste.rattacher(document.getElementById("k-adm-mdp").value, propre ? propre.value : "");
-    if (r && r.ok) ok(`Compagnie rattachée à l'administrateur : ${enListe(r.compagnies)} s'ouvrent avec le même mot de passe.`);
-    else dire((r && r.erreur) || "Rien n'a changé.", "erreur");
+    try {
+      const r = await api("administrateur-rattacher", { administrateur: document.getElementById("k-adm-mdp").value,
+        motdepasse: propre ? propre.value : "" });
+      ok(r.phrase);
+    } catch (e) { raté(e); }
   };
   const retirer = document.getElementById("k-retirer");
   if (retirer) retirer.onclick = async () => {

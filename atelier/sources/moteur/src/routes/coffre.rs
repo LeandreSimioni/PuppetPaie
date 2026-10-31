@@ -1,7 +1,8 @@
 //! Les routes du coffre et des mots de passe : ce qui est pose (`coffre-etat`, `google-etat`), poser ou oublier un
 //! secret (`coffre-poser`, avec le compte DPAE pour l'Urssaf, `coffre-oublier`), lier ou delier le compte Google
 //! (`google-autoriser`, `google-oublier`), changer ou retirer le mot de
-//! passe du logiciel (`mot-de-passe-changer`, `mot-de-passe-retirer`).
+//! passe du logiciel (`mot-de-passe-changer`, `mot-de-passe-retirer`), et ce que l'administrateur est pour la compagnie
+//! (`administrateur-etat`, `administrateur-rattacher`, `administrateur-detacher` ; `compagnie/administrateur.rs`).
 //!
 //! Aucune valeur de secret ne sort : la reponse est l'etat du coffre, des presences et des dates. Ces routes passent
 //! par la porte du mot de passe du logiciel s'il est pose (`exiger_mot_de_passe`) ; le coffre lui-meme est
@@ -18,6 +19,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::coffre::{Coffre, Echec as EchecCoffre};
+use crate::compagnie::administrateur::Poste;
 use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
 use droit::contexte::Contexte;
 use super::{ou_texte, vers_route};
@@ -30,12 +32,13 @@ use crate::routes::catalogue::{Ecran, Place};
 
 const SERVICE: Champ = Champ { nom: "service", sens: "net-entreprises, urssaf ou courriel", avance: false };
 const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false };
+const ADMINISTRATEUR: Champ = Champ { nom: "administrateur", sens: "le mot de passe de l'administrateur, tapé dans la page ; par moteur route, le moteur le demande à un humain", avance: false };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est modifié" };
 const ETAT: &str = "l'état du coffre : ce qui est posé, depuis quand, jamais les valeurs";
 
 /// Les secrets qu'une charge de ce module peut porter, retires de celle qui arrive par `moteur route` (le mot de passe
 /// du logiciel, `motdepasse`, l'est de toutes).
-pub const SECRETS: [&str; 3] = ["valeur", "nouveau", "confirmation"];
+pub const SECRETS: [&str; 4] = ["valeur", "nouveau", "confirmation", "administrateur"];
 
 /// Un secret a poser : celui de la charge (la page), sinon tape deux fois par un humain (`demande::saisir_deux_fois`).
 fn secret_a_poser(charge: &Value, cle: &str, titre: &str, lignes: &[String]) -> R<String> {
@@ -175,6 +178,49 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
         ecran: ECRAN,
     },
+    Fiche {
+        nom: "administrateur-etat",
+        geste: "Dire ce que l'administrateur est pour cette compagnie.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "compagnies (celles de l'administrateur), rattachee, autres, peut_rattacher, question (« même administrateur ? »), mot_de_passe_pose, pastille",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+        ecran: Ecran::Lecture,
+    },
+    Fiche {
+        nom: "administrateur-rattacher",
+        geste: "Rattacher cette compagnie à l'administrateur : son mot de passe l'ouvre aussi.",
+        charge: &[
+            ADMINISTRATEUR,
+            Champ { nom: "motdepasse", sens: "le mot de passe actuel de cette compagnie, s'il est posé ; par moteur route, le moteur le demande à un humain", avance: false },
+        ],
+        exemple: r#"{}"#,
+        rend: "compagnies (celles de l'administrateur), etat, phrase",
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 200,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "administrateur-detacher",
+        geste: "Détacher cette compagnie : elle reçoit son propre mot de passe.",
+        charge: &[
+            ADMINISTRATEUR,
+            Champ { nom: "nouveau", sens: "son propre mot de passe, tapé dans la page ; par moteur route, le moteur le fait taper deux fois à un humain", avance: false },
+            Champ { nom: "confirmation", sens: "le même, retapé dans la page", avance: false },
+        ],
+        exemple: r#"{}"#,
+        rend: "etat, phrase",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 120,
+        ecran: ECRAN,
+    },
 ];
 
 /// Une route de ce module.
@@ -189,8 +235,61 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge),
         "google-oublier" => google_oublier(ctx, charge),
         "google-autoriser" => google_autoriser(ctx, charge),
+        "administrateur-etat" => Ok(administrateur_etat(&ctx.racine)),
+        "administrateur-rattacher" | "administrateur-detacher" => administrateur(&ctx.racine, nom, charge, &Poste::de_ce_poste()),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
+}
+
+// ------------------------------------------------------------------ l'administrateur
+
+/// Ce que l'administrateur de l'installation est pour la compagnie `racine` (`administrateur::etat`).
+pub fn administrateur_etat(racine: &Path) -> Value {
+    let inst = crate::compagnie::administrateur::installation_de(racine);
+    crate::compagnie::administrateur::etat(&inst, Some(racine), &Poste::de_ce_poste())
+}
+
+/// `administrateur-rattacher` et `administrateur-detacher`, sur le coffre de `poste` : tout se decide dans
+/// `administrateur.rs`. Le mot de passe de l'administrateur vient de la charge (la page), sinon il est tape par un humain.
+pub fn administrateur(racine: &Path, nom: &str, charge: &Value, poste: &Poste) -> R<Value> {
+    use crate::compagnie::administrateur as adm;
+    let inst = adm::installation_de(racine);
+    let admin = match chaine(charge, "administrateur") {
+        Some(m) => m.to_string(),
+        None => crate::compagnie::demande::saisir_secret(
+            "PuppetPaie : le mot de passe de l'administrateur",
+            &["Celui qui ouvre les compagnies de l'administrateur.".to_string(), "La frappe ne s'affiche pas.".to_string()],
+            "mot de passe (rien ne s'affiche) : ",
+        )
+        .map_err(refus)?,
+    };
+    let en_liste = |n: &[String]| match n.len() {
+        0 => String::new(),
+        1 => n[0].clone(),
+        k => format!("{} et {}", n[..k - 1].join(", "), n[k - 1]),
+    };
+    if nom == "administrateur-rattacher" {
+        // Une compagnie qui a deja son mot de passe le donne aussi : c'est lui que celui de l'administrateur remplace.
+        let actuel = if charge.get("motdepasse").is_some() {
+            chaine(charge, "motdepasse").map(String::from)
+        } else if poste.coffre(racine).ouverture_exigee().map_err(en_operation)? {
+            exiger_mot_de_passe(racine, optionnel(charge, "motdepasse"), "rattacher cette compagnie à l'administrateur")?;
+            actuel(charge)
+        } else {
+            None
+        };
+        let noms = adm::rattacher(&inst, racine, &admin, actuel.as_deref(), poste).map_err(refus)?;
+        let phrase = format!("Compagnie rattachée à l'administrateur : {} s'ouvrent avec le même mot de passe.", en_liste(&noms));
+        return Ok(json!({"compagnies": noms, "etat": adm::etat(&inst, Some(racine), poste), "phrase": phrase}));
+    }
+    let lignes = ["Le NOUVEAU mot de passe de cette compagnie, à elle seule.".to_string(), "La frappe ne s'affiche pas.".to_string()];
+    let nouveau = secret_a_poser(charge, "nouveau", "PuppetPaie : son propre mot de passe", &lignes)?;
+    let confirmation = match charge.get("confirmation") {
+        Some(_) => chaine(charge, "confirmation").unwrap_or("").to_string(),
+        None => nouveau.clone(),
+    };
+    adm::detacher(&inst, racine, &admin, &nouveau, &confirmation, poste).map_err(refus)?;
+    Ok(json!({"etat": adm::etat(&inst, Some(racine), poste), "phrase": "Compagnie détachée : elle s'ouvre désormais avec son propre mot de passe."}))
 }
 
 // ------------------------------------------------------------------ outils

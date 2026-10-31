@@ -53,47 +53,11 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::interface::compagnies::{self, Compagnie};
 use socle::echec::Echec;
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
-use crate::routes::catalogue::{Ecran, Place};
 
 /// Le registre de l'administrateur, a la racine de l'installation.
 pub const FICHIER: &str = "administrateur.json";
 /// Le dernier tableau connu d'une compagnie (hors de l'empreinte des etats des mois : `etat_garde::HORS_DE_L_ECRAN`).
 pub const TABLEAU: &str = "config/.tableau.json";
-
-/// Ou ces routes se voient a l'ecran (une place par module).
-const ECRAN: Ecran = Ecran::Dessine(Place::Accueil);
-
-/// Les routes de l'administrateur, et leurs fiches.
-pub const ROUTES: &[Fiche] = &[
-    Fiche {
-        nom: "administrateur-tableau",
-        geste: "Dire les déclarations à faire de chaque compagnie de l'administrateur.",
-        charge: &[Champ { nom: "relever", sens: "vrai : refaire le tableau de chaque compagnie", avance: false }],
-        exemple: r#"{}"#,
-        rend: "compagnies (chacune ses déclarations triées par urgence, et où en est leur fichier)",
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: true,
-        phrase: 0,
-        ecran: ECRAN,
-    },
-    Fiche {
-        nom: "administrateur-deposer",
-        geste: "Déposer d'un geste ce qui est prêt dans chaque compagnie de l'administrateur.",
-        charge: &[
-            Champ { nom: "reel", sens: "vrai : en réel (les fichiers testés conformes) ; en test sinon", avance: false },
-            Champ { nom: "motdepasse", sens: "le mot de passe de l'administrateur ; sans lui, le moteur le demande à un humain", avance: false },
-        ],
-        exemple: r#"{}"#,
-        rend: "partis, refuses, resultats (par dépôt : la compagnie, ce qui est parti ou le refus), tableau ; rien de prêt : phrase",
-        refus: &[Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe, tapé par un humain ; rien n'est déposé" }, OPERATION],
-        acte: Acte::Engage,
-        avance: true,
-        phrase: 0,
-        ecran: ECRAN,
-    },
-];
 
 // ------------------------------------------------------------------ le poste
 
@@ -824,25 +788,6 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
         "resultats": resultats,
         "tableau": tableau(o, inst, false),
     }))
-}
-
-// ------------------------------------------------------------------ les routes
-
-/// `administrateur-tableau` (`{"relever"?}`) et `administrateur-deposer` (`{"reel", "motdepasse"?}`), depuis n'importe
-/// quelle compagnie de l'installation (`moteur route --racine <une compagnie>`) : elles portent sur toutes celles de
-/// l'administrateur. Un agent peut tout preparer et deposer en test ; un depot reel demande le mot de passe tape par un
-/// humain.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    let inst = installation_de(&ctx.racine);
-    match nom {
-        "administrateur-tableau" => Ok(tableau(o, &inst, charge.get("relever").is_some_and(vrai))),
-        "administrateur-deposer" => {
-            let reel = charge.get("reel").is_some_and(vrai);
-            let mdp = charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte);
-            deposer(o, &inst, reel, mdp)
-        }
-        autre => Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),
-    }
 }
 
 /// La charge de depot qui designe la declaration `d` du tableau : la DSN de son mois, ou le signalement ecrit.

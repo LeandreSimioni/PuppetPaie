@@ -178,7 +178,7 @@ pub const ROUTES: &[Fiche] = &[
         exemple: r#"{"annee":"2026"}"#,
         rend: "le coût de l'année par spectacle",
         refus: &[MANQUE, OPERATION],
-        acte: Acte::Ecrit,
+        acte: Acte::Lit,
         avance: false,
         phrase: 0,
         ecran: Ecran::Dessine(Place::Fiches),

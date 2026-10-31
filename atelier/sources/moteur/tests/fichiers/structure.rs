@@ -12,6 +12,8 @@ use serde_json::{json, Value};
 use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, pdf};
 use crate::outils::rejeu::{rejouer_dossier, scenario};
 use crate::outils::{dossier_de_test, route, route_avec};
+use moteur::compagnie::administrateur::Poste;
+use moteur::interface::compagnies::ajouter_dans;
 use moteur::compagnie::demande::VARIABLE_ESSAIS;
 
 fn espace() -> PathBuf {
@@ -111,7 +113,7 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
     let inst = c.parent().unwrap().parent().unwrap();
     let registre = json!({"compagnies": [{"dossier": c.strip_prefix(inst).unwrap().to_string_lossy()}]});
     for f in &fiches {
-        if f.nom.starts_with("administrateur-") && !inst.join("administrateur.json").exists() {
+        if (f.nom == "administrateur-tableau" || f.nom == "administrateur-deposer") && !inst.join("administrateur.json").exists() {
             std::fs::write(inst.join("administrateur.json"), registre.to_string()).unwrap();
         }
         // Un secret ne se lit jamais dans la charge : la fausse demande des essais le tape (`demande::canal_de_la_route`).
@@ -127,6 +129,10 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
                 assert!(!autre.exists(), "compagnie-supprimer : la compagnie est encore la");
                 r
             }
+            // Ce qui ne porte que sur une compagnie reelle, une fictive livree ou une compagnie creee en demo se joue dans
+            // une installation a part.
+            "compagnie-couleur" | "compagnie-remettre-a-zero" | "compagnies-garder" => route(&installation_a_part(&c, f.nom).1, f.nom, exemple, "2026-11-02"),
+            "administrateur-rattacher" | "administrateur-detacher" => administrateur(&c, f.nom, exemple),
             _ => route_avec(&c, f.nom, exemple, "2026-11-02", &[(VARIABLE_ESSAIS, "exemple")]),
         };
         assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom, r);
@@ -179,14 +185,64 @@ fn google_autoriser(c: &Path, exemple: Value) -> Value {
     serde_json::from_slice(&sortie).unwrap()
 }
 
-/// LES ROUTES QU'AUCUNE PAGE N'ATTEINT, chacune avec ce qu'elle fait aujourd'hui : elles attendent la decision de
-/// l'editeur (une place a l'ecran, ou leur suppression). La liste ne fait que diminuer.
-const SANS_PLACE: [(&str, &str); 1] = [
-    ("signatures-relever", "la veille releve les signatures (route ouverture) ; aucune page ne l'appelle seule"),
-];
+/// Une installation debloquee a part, montee pour un exemple : une compagnie creee en demo (`fictive:ajoutee-demo`), une
+/// fictive livree (`fictive:fictive-essai`), une compagnie reelle (`cie:la-compagnie`). Rend l'installation et la reelle.
+fn installation_a_part(c: &Path, test: &str) -> (PathBuf, PathBuf) {
+    let inst = crate::outils::installation(&dossier_de_test("structure", test), "2026.10.22");
+    ajouter_dans(&inst, "Demo").unwrap();
+    crate::outils::debloquer(&inst);
+    let reelle = ajouter_dans(&inst, "La Compagnie").unwrap().racine;
+    let livree = inst.join("fictives").join("fictive-essai");
+    crate::outils::copier(&c.join("config"), &livree.join("config"));
+    std::fs::write(livree.join("COPIE-DE-DEVELOPPEMENT.json"), json!({"copie_de": "compagnie fictive essai"}).to_string()).unwrap();
+    (inst, reelle)
+}
 
-/// Les fichiers de la page qui servent chaque place (depuis la racine du depot). L'accueil des compagnies joue ses routes
-/// par la fenetre (`Fenetre::lanceur`).
+/// Les exemples de `administrateur-rattacher` et `administrateur-detacher`, dans une installation a part : la compagnie
+/// reelle porte le mot de passe de l'administrateur, une seconde se rattache (puis se detache). Une compagnie reelle n'a
+/// que le canal du poste (`demande::canal_de_la_route`) : les mots de passe que l'humain taperait sont ceux de la charge,
+/// comme la page les donne, sur le coffre d'un poste de test.
+fn administrateur(c: &Path, nom: &str, exemple: Value) -> Value {
+    const ADMIN: &str = "administrateur-essai-1";
+    let (inst, a) = installation_a_part(c, nom);
+    let poste = Poste { dossier_cle: inst.join("cle-du-poste"), maintenant: "2026-11-02T10:00".into() };
+    poste.coffre(&a).poser_ouverture(ADMIN, None).unwrap();
+    let b = ajouter_dans(&inst, "Seconde").unwrap().racine;
+    let mut charge = exemple;
+    charge["administrateur"] = json!(ADMIN);
+    if nom == "administrateur-detacher" {
+        moteur::routes::coffre::administrateur(&b, "administrateur-rattacher", &json!({"administrateur": ADMIN}), &poste).unwrap();
+        charge["nouveau"] = json!("propre-essai-1");
+        charge["confirmation"] = json!("propre-essai-1");
+    }
+    match moteur::routes::coffre::administrateur(&b, nom, &charge, &poste) {
+        Ok(v) => json!({"ok": true, "resultat": v}),
+        Err(e) => json!({"ok": false, "erreur": e.message}),
+    }
+}
+
+/// LES GESTES DE LA FENETRE ELLE-MEME (`window.pywebview.api.<nom>`, servis par `Fenetre::lanceur` : `NOMS_ACCUEIL` et
+/// `NOMS_LOGICIEL` de `interface/mod.rs`) : aucun n'est un geste du logiciel, chacun avec ce qu'il fait. Fixe : un geste
+/// de plus dans la fenetre fait echouer le test ; s'il est du logiciel, c'est une route.
+const FENETRE: [(&str, &str); 11] = [
+    ("choisir", "montrer la compagnie d'une tuile ; en ligne de commande, --racine"),
+    ("verifier", "la deverrouiller dans cette fenetre ; en ligne de commande, la seance du coffre"),
+    ("accueil", "revenir aux tuiles"),
+    ("fermer", "fermer la fenetre"),
+    ("redemarrer", "rouvrir la fenetre sur la version prete"),
+    ("maj", "ou en est la recherche que la fenetre mene en fond (la version : maj-etat)"),
+    ("ouvrir", "ouvrir dans le poste le chemin qu'une route a rendu"),
+    ("choisir_dossier", "la boite du systeme qui choisit un dossier"),
+    ("veille", "l'etat de la veille de la fenetre"),
+    ("veille_etape", "l'etape de son passage en cours"),
+    ("veille_maintenant", "un passage tout de suite : il appelle la route ouverture"),
+];
+/// Le seul geste qui n'existe qu'a l'ecran : brider ou debloquer le logiciel (la demo) ; la ligne de commande n'a pas de
+/// bridage.
+const ECRAN_SEUL: &str = "basculer";
+
+/// Les fichiers de la page qui servent chaque place (depuis la racine du depot). L'accueil des compagnies, ses pages et
+/// celles du mot de passe sont servies par la fenetre (`interface/pages/`).
 fn fichiers_de(p: Place) -> &'static [&'static str] {
     match p {
         Place::Paie => &[
@@ -199,7 +255,7 @@ fn fichiers_de(p: Place) -> &'static [&'static str] {
         Place::Bulletin => &["logiciel/interface/js/modeles-bulletin.js"],
         Place::ModelesContrat => &["logiciel/interface/js/modeles-contrat.js"],
         Place::Identite => &["logiciel/interface/js/identite.js"],
-        Place::Coffre => &["logiciel/interface/js/coffre-compte.js"],
+        Place::Coffre => &["logiciel/interface/js/coffre-compte.js", "atelier/sources/moteur/src/interface/pages/choix_mot_de_passe.html"],
         Place::Historique => &[
             "logiciel/interface/js/historique.js", "logiciel/interface/js/rappels.js", "logiciel/interface/js/exports.js",
             "logiciel/interface/js/corrections.js", "logiciel/interface/js/reprise-journal.js",
@@ -207,7 +263,10 @@ fn fichiers_de(p: Place) -> &'static [&'static str] {
         Place::Exports => &["logiciel/interface/js/exports.js"],
         Place::Signaler => &["logiciel/interface/js/filet.js", "logiciel/interface/js/tuyau.js"],
         Place::Bandeau => &["logiciel/interface/js/demarrage.js", "logiciel/interface/js/veille.js", "logiciel/interface/js/mise-a-jour.js"],
-        Place::Accueil => &["atelier/sources/moteur/src/interface/mod.rs"],
+        Place::Accueil => &[
+            "atelier/sources/moteur/src/interface/pages/accueil.html", "atelier/sources/moteur/src/interface/pages/garder.html",
+            "atelier/sources/moteur/src/interface/pages/choix_mot_de_passe.html",
+        ],
     }
 }
 
@@ -226,10 +285,12 @@ fn appels_de_la_page(t: &str) -> Vec<String> {
     v
 }
 
-/// L'ECRAN ET LE MOTEUR SONT EQUIVALENTS, sans exception : chaque route que la page appelle est au catalogue ; chaque
-/// route du catalogue a sa place (une place de la liste du moteur, qui existe dans la page) et la page de sa place
-/// l'appelle, ou l'affiche sous « Avancé » depuis sa fiche ; une lecture des ecrans est lue par la page ou par la
-/// fenetre ; les routes qui ecrivent d'un module ont une seule place ; et chaque route se sert par `moteur route`.
+/// L'ECRAN ET LE MOTEUR SONT EQUIVALENTS, sans exception : la page (`js/`, et les pages que sert la fenetre : l'accueil,
+/// le mot de passe) ne parle au moteur que par une route du catalogue, ou par un geste de la fenetre elle-meme (`FENETRE`,
+/// et `basculer`, le seul qui n'existe qu'a l'ecran) ; chaque route du catalogue a sa place (une place de la liste du
+/// moteur, qui existe dans la page) et la page de sa place l'appelle, ou l'affiche sous « Avancé » depuis sa fiche ; une
+/// lecture des ecrans est lue par la page ou par la fenetre ; les routes qui ecrivent d'un module ont une seule place ; et
+/// chaque route se sert par `moteur route`.
 #[test]
 fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
     let depot = espace().join("../..");
@@ -237,10 +298,33 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
     let tout = catalogue();
     let noms: BTreeSet<&str> = tout.iter().map(|f| f.nom).collect();
     let mut page = String::new();
-    for e in std::fs::read_dir(depot.join("logiciel/interface/js")).unwrap().flatten() {
-        let t = std::fs::read_to_string(e.path()).unwrap();
+    let mut fichiers: Vec<PathBuf> = std::fs::read_dir(depot.join("logiciel/interface/js")).unwrap().flatten().map(|e| e.path()).collect();
+    fichiers.extend(std::fs::read_dir(espace().join("moteur/src/interface/pages")).unwrap().flatten().map(|e| e.path()));
+    let fenetre_rs = lu("atelier/sources/moteur/src/interface/mod.rs");
+    let gestes = |cle: &str| -> Vec<String> {
+        let liste = fenetre_rs.split(&format!("const {}: &str = r#\"", cle)).nth(1).and_then(|s| s.split("\"#").next()).unwrap();
+        serde_json::from_str(liste).unwrap()
+    };
+    let mut de_la_fenetre: BTreeSet<String> = gestes("NOMS_ACCUEIL").into_iter().chain(gestes("NOMS_LOGICIEL")).collect();
+    assert!(de_la_fenetre.remove(ECRAN_SEUL), "{} : le geste qui débride est celui de l'accueil", ECRAN_SEUL);
+    let attendus: BTreeSet<String> = FENETRE.iter().map(|(n, _)| n.to_string()).collect();
+    assert_eq!(
+        de_la_fenetre, attendus,
+        "la fenêtre ne sert que ses propres gestes (FENETRE) : un geste du logiciel est une route du catalogue, que la page appelle par `api(…)` ou `appel(…)`"
+    );
+    for p in &fichiers {
+        let t = std::fs::read_to_string(p).unwrap();
+        let nom_du_fichier = p.file_name().unwrap().to_string_lossy();
         for nom in appels_de_la_page(&t) {
-            assert!(noms.contains(nom.as_str()), "{} appelle {}, absente du catalogue : mets ce geste au catalogue", e.file_name().to_string_lossy(), nom);
+            assert!(noms.contains(nom.as_str()), "{} appelle {}, absente du catalogue : mets ce geste au catalogue", nom_du_fichier, nom);
+        }
+        for morceau in t.split("pywebview.api.").skip(1) {
+            let geste: String = morceau.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '_').collect();
+            assert!(
+                geste == ECRAN_SEUL || attendus.contains(&geste),
+                "{} appelle le geste {} de la fenêtre : un geste du logiciel est une route du catalogue (fiche, place), que la page appelle par api(…) ou appel(…)",
+                nom_du_fichier, geste
+            );
         }
         page.push_str(&t);
     }
@@ -273,11 +357,7 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
                 assert!(f.acte == Acte::Lit, "{} écrit : donne à cette route sa place à l'écran (fiche, champ ecran)", f.nom);
                 assert!(appelee(f.nom, &page) || appelee(f.nom, &fenetre), "{} : ni la page ni la fenêtre ne la lisent : donne-lui sa place à l'écran, ou retire-la", f.nom);
             }
-            Ecran::SansPlace => assert!(SANS_PLACE.iter().any(|(n, _)| *n == f.nom), "{} n'a pas de place : donne à cette route sa place à l'écran (fiche, champ ecran) et appelle-la depuis cette page", f.nom),
         }
-    }
-    for (n, _) in SANS_PLACE {
-        assert!(tout.iter().any(|f| f.nom == n && f.ecran == Ecran::SansPlace), "{} a reçu sa place (ou n'existe plus) : elle sort de SANS_PLACE", n);
     }
     for module in FICHES {
         let places: BTreeSet<&str> = module.iter().filter(|f| f.acte != Acte::Lit).filter_map(|f| f.ecran.place()).map(Place::nom).collect();

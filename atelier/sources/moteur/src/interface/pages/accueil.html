@@ -159,7 +159,7 @@
     c.addEventListener("click", (e) => e.stopPropagation());
     c.addEventListener("input", () => tuile.style.setProperty("--cie", c.value));
     c.addEventListener("change", async () => {
-      const r = await window.pywebview.api.couleur(tuile.dataset.id, c.value);
+      const r = await appel("compagnie-couleur", { compagnie: tuile.dataset.id, couleur: c.value });
       err.textContent = r.ok ? "" : r.erreur;
     });
   }
@@ -170,8 +170,8 @@
       const nom = tuile.querySelector(".nom").textContent;
       if (!confirm("Remettre « " + nom + " » à zéro ?\n\nTout ce qui a été fait "
                    + "dans cette compagnie fictive sera effacé.")) return;
-      const r = await window.pywebview.api.remettre_a_zero(tuile.dataset.id);
-      err.textContent = r.ok ? r.message : r.erreur;
+      const r = await appel("compagnie-remettre-a-zero", { compagnie: tuile.dataset.id });
+      err.textContent = r.ok ? r.resultat.phrase : r.erreur;
     });
   }
   // LE GESTE (l'editeur, 02/10/2026) : cinq secondes d'appui sur le filet
@@ -232,7 +232,9 @@
     }
     form.addEventListener("submit", async (e) => {
       e.preventDefault(); e.stopPropagation();
-      const r = await window.pywebview.api.ajouter(nom.value, venue);
+      // La compagnie se crée par sa route ; la fenêtre l'ouvre ensuite, comme une tuile.
+      let r = await appel("compagnie-ajouter", { nom: nom.value, venue: venue || "neuve" });
+      if (r.ok) r = await window.pywebview.api.choisir(r.resultat.id);
       document.getElementById("venue-erreur").textContent = r.ok ? "" : r.erreur;
     });
   }
@@ -321,13 +323,13 @@
     async function deposer(reel, motdepasse, bouton) {
       bouton.disabled = true;
       bouton.textContent = reel ? "Dépôts en cours…" : "Tests en cours…";
-      const r = await api.deposer_groupe(reel, motdepasse);
+      const r = await appel("administrateur-deposer", reel ? { reel, motdepasse } : { reel });
       if (!r || !r.ok) {
         resultats = `<p class="refus">${esc((r && r.erreur) || "Rien n'est parti.")}</p>`;
         dessiner(dernier);
         return;
       }
-      const d = r.depot;
+      const d = r.resultat;
       resultats = d.phrase ? `<p>${esc(d.phrase)}</p>` : `<p><b>${d.partis} ${pluriel(d.partis, "déclaration partie", "déclarations parties")}${d.refuses ? `, ${d.refuses} ${pluriel(d.refuses, "refusée", "refusées")}` : ""}.</b></p>
         <ul>${(d.resultats || []).map((x) => `<li class="${x.parti ? "" : "refus"}"><b>${esc(x.compagnie)}</b>${x.titre ? " — " + esc(x.titre) : ""} :
           ${esc(x.parti ? x.phrase : x.refus)}</li>`).join("")}</ul>`;
@@ -335,12 +337,12 @@
     }
 
     (async () => {
-      if (typeof api.tableau !== "function") return;
-      const r = await api.tableau();
-      if (r && r.ok) dessiner(r.tableau);
-      if (!r || !r.ok || !(r.tableau.compagnies || []).length) return;
-      const frais = await api.tableau_rafraichir();
-      if (frais && frais.ok) dessiner(frais.tableau);
+      // Le tableau gardé, tout de suite ; puis refait.
+      const r = await appel("administrateur-tableau", { garde: true });
+      if (r && r.ok) dessiner(r.resultat);
+      if (!r || !r.ok || !(r.resultat.compagnies || []).length) return;
+      const frais = await appel("administrateur-tableau", {});
+      if (frais && frais.ok) dessiner(frais.resultat);
     })();
   })();
 </script>

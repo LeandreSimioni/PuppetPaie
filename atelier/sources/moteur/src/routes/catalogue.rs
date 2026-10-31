@@ -1,8 +1,8 @@
 //! LA FICHE D'UNE ROUTE ET LE CATALOGUE (`moteur routes`). Chaque route porte sa fiche dans la liste `ROUTES` de son
 //! module : le geste qu'elle sert, sa charge et un exemple, ce qu'elle rend, ses refus et quoi corriger, si elle lit,
 //! ecrit ou engage, si elle est « avancee », et la place des phrases qu'elle rend. La page et le LLM passent par les memes
-//! routes ; le catalogue est leur documentation, tiree du code. Les routes de l'atelier (l'horloge du banc, la fenetre
-//! de l'administrateur, la route d'essai qui tombe) n'y sont pas.
+//! routes ; le catalogue est leur documentation, tiree du code : celles d'une compagnie et celles de l'installation
+//! (`accueil`). Les routes de l'atelier (l'horloge du banc, la route d'essai qui tombe) n'y sont pas.
 
 use serde_json::{json, Value};
 
@@ -83,15 +83,13 @@ pub enum Ecran {
     Auto(Place),
     /// Une lecture qui nourrit les ecrans (l'etat, la configuration, le mois) : elle n'a pas de place.
     Lecture,
-    /// Aucune page ne l'atteint : elle attend la decision de l'editeur (une place, ou sa suppression).
-    SansPlace,
 }
 
 impl Ecran {
     pub fn place(self) -> Option<Place> {
         match self {
             Ecran::Dessine(p) | Ecran::Auto(p) => Some(p),
-            Ecran::Lecture | Ecran::SansPlace => None,
+            Ecran::Lecture => None,
         }
     }
 
@@ -100,7 +98,6 @@ impl Ecran {
             Ecran::Dessine(_) => "dessine",
             Ecran::Auto(_) => "auto",
             Ecran::Lecture => "lecture",
-            Ecran::SansPlace => "sans_place",
         }
     }
 
@@ -110,7 +107,6 @@ impl Ecran {
             Ecran::Dessine(p) => p.nom().to_string(),
             Ecran::Auto(p) => format!("{} › Avancé", p.nom()),
             Ecran::Lecture => "(une lecture des écrans)".to_string(),
-            Ecran::SansPlace => "(sans place)".to_string(),
         }
     }
 }
@@ -222,7 +218,7 @@ pub fn en_json(avance: bool) -> Value {
 }
 
 /// Les modules dont les routes portent leur fiche, dans l'ordre du catalogue : l'ordre ou leurs exemples se jouent.
-pub const FICHES: [&[Fiche]; 29] = [
+pub const FICHES: [&[Fiche]; 28] = [
     crate::routes::engagement::ROUTES,
     crate::etat_garde::ROUTES,
     crate::routes::mois::ROUTES,
@@ -247,14 +243,13 @@ pub const FICHES: [&[Fiche]; 29] = [
     crate::routes::ouverture::ROUTES,
     crate::routes::rappels::ROUTES,
     crate::compagnie::conseils::ROUTES,
-    crate::compagnie::releve_signatures::ROUTES,
     crate::compagnie::ouverture::ROUTES,
     crate::obligations::ROUTES,
-    crate::compagnie::administrateur::ROUTES,
+    crate::routes::accueil::ROUTES,
     ROUTES,
 ];
 
-/// LE CATALOGUE : toutes les routes d'une compagnie, chacune une fois, dans l'ordre des modules.
+/// LE CATALOGUE : toutes les routes, d'une compagnie et de l'installation, chacune une fois, dans l'ordre des modules.
 pub fn catalogue() -> Vec<Fiche> {
     FICHES.iter().flat_map(|l| l.iter().copied()).collect()
 }

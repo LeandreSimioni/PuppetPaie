@@ -1,6 +1,6 @@
 //! Les lectures que les ecrans partagent : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration
 //! verifiee, l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
-//! `maj-etat`, `sauvegarde-derniere` et `courriels-fictifs`.
+//! `maj-etat` et `courriels-fictifs`.
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le
@@ -80,18 +80,6 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Auto(Place::Fiches),
     },
     Fiche {
-        nom: "sauvegarde-derniere",
-        geste: "Dire la dernière sauvegarde dans le Drive, sans réseau.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: "le dernier passage de la sauvegarde (quand, ce qui est parti)",
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: true,
-        phrase: 0,
-        ecran: ECRAN,
-    },
-    Fiche {
         nom: "courriels-fictifs",
         geste: "Dire les courriels joués d'une compagnie fictive.",
         charge: &[Champ { nom: "apres", sens: "seulement ceux d'après cet instant", avance: true }],
@@ -116,8 +104,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             v["phrase"] = json!(format!("Version installée : {}.{}", valeur_en_texte(&v["courante"]), prete));
             v
         }),
-        // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
-        "sauvegarde-derniere" => Ok(crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json()),
         "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
         autre => Err(plain(format!("route inconnue : {}", autre))),
     }

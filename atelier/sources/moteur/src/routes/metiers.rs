@@ -1,18 +1,18 @@
 //! Configuration › Métiers : les metiers que la compagnie coche, ceux de sa convention et ceux qu'elle prend aux autres.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 
 use serde_json::{json, Map, Value};
 
-use crate::routes::catalogue::{Acte, Champ, Ecran, Fiche, Place, FORME, MANQUE, OPERATION};
-use crate::routes::fiches::{creer_dossier, ecrire, exiger, plain, refus, texte_requis};
+use crate::routes::catalogue::{Acte, Champ, Ecran, Fiche, Place, MANQUE, OPERATION};
+use crate::routes::fiches::{creer_dossier, ecrire, plain, refus, texte_requis};
 use droit::contexte::Contexte;
 use droit::emplois;
 use envois::etats;
 use crate::routes::mois::sauver_avant;
 use crate::routes::ouverture::{metier_visible, preferences_metiers};
-use socle::echec::{erreur, Echec, R};
+use socle::echec::{Echec, R};
 use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;
 
@@ -47,18 +47,6 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
         ecran: ECRAN,
     },
-    Fiche {
-        nom: "metiers-ajoutes",
-        geste: "Ajouter des métiers d'une autre convention aux listes, ou les retirer.",
-        charge: &[Champ { nom: "codes", sens: "les codes des métiers au catalogue", avance: false }, Champ { nom: "retirer", sens: "vrai : les retirer", avance: false }],
-        exemple: r#"{"codes":["CRE010"]}"#,
-        rend: METIERS_REND,
-        refus: &[OPERATION, FORME, MANQUE],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-        ecran: Ecran::Auto(Place::Metiers),
-    },
 ];
 
 /// Une route de ce module.
@@ -66,7 +54,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
     match nom {
         "metiers-catalogue" => metiers_catalogue(ctx),
         "metier-retenu" => metier_retenu(ctx, charge),
-        "metiers-ajoutes" => metiers_ajoutes(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -142,40 +129,5 @@ fn metier_retenu(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     ecrire_preferences(ctx, &ajoutes, &retires)?;
     emplois_rendus(ctx)
-}
-
-fn metiers_ajoutes(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let codes: Vec<Value> = match exiger(charge, "codes")? {
-        Value::Array(a) => a.clone(),
-        _ => return Err(erreur("TypeError", "`codes` : une liste est attendue")),
-    };
-    let retirer = charge.get("retirer").is_some_and(vrai);
-    let connus: HashSet<String> = emplois::catalogue()
-        .map_err(plain)?
-        .iter()
-        .filter_map(|m| m.get("code").and_then(Value::as_str).map(str::to_string))
-        .collect();
-    let inconnus: Vec<String> = codes.iter().filter(|c| !c.as_str().is_some_and(|s| connus.contains(s))).map(valeur_en_texte).collect();
-    if !inconnus.is_empty() {
-        return Err(refus(format!("Metier(s) hors catalogue : {}.", inconnus.join(", "))));
-    }
-    let codes: Vec<String> = codes.iter().filter_map(|c| c.as_str().map(str::to_string)).collect();
-    let n = codes.len();
-    let (avant, retires) = crate::routes::ouverture::preferences_metiers(&ctx.racine)?;
-    let apres: Vec<String> = if retirer {
-        avant.into_iter().filter(|c| !codes.contains(c)).collect()
-    } else {
-        let mut v = avant;
-        for c in codes {
-            if !v.contains(&c) {
-                v.push(c);
-            }
-        }
-        v
-    };
-    ecrire_preferences(ctx, &apres, &retires)?;
-    let mut v = emplois_rendus(ctx)?;
-    v["phrase"] = json!(format!("{} métier(s) {} la liste des métiers.", n, if retirer { "retiré(s) de" } else { "ajouté(s) à" }));
-    Ok(v)
 }
 

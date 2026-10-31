@@ -74,7 +74,9 @@
   f.addEventListener("submit", async (e) => {
     e.preventDefault();
     ok.disabled = true; err.textContent = "";
-    const r = await window.pywebview.api.poser(mdp.value, mdp2.value);
+    // Le mot de passe se pose par sa route ; la fenêtre ouvre ensuite la compagnie avec lui.
+    let r = await appel("mot-de-passe-changer", { nouveau: mdp.value, confirmation: mdp2.value });
+    if (r.ok) r = await window.pywebview.api.verifier(mdp.value);
     if (r.ok) { mdp.value = mdp2.value = ""; ok.textContent = "D\u00e9marrage\u2026"; return; }
     err.textContent = r.erreur; ok.disabled = false; mdp.focus();
   });
@@ -95,7 +97,8 @@
     const champ = document.getElementById("a-mdp"), bouton = document.getElementById("a-ok"),
           errA = document.getElementById("a-erreur");
     bouton.disabled = true; errA.textContent = "";
-    const r = await window.pywebview.api.rattacher_nouvelle(champ.value);
+    let r = await appel("administrateur-rattacher", { administrateur: champ.value });
+    if (r.ok) r = await window.pywebview.api.verifier(champ.value);
     champ.value = "";
     if (r.ok) { bouton.textContent = "Démarrage…"; return; }
     errA.textContent = r.erreur; bouton.disabled = false; champ.focus();

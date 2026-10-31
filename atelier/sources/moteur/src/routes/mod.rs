@@ -8,9 +8,9 @@
 //! UN MODULE PAR PLACE DE L'ECRAN (`catalogue::Place`) : la Paie (`mois`, `etapes`, `engagement`, `contrats`,
 //! `documents`, `depots`, `imprevus`, `rappels`), la Configuration (`fiches`, `metiers`, `identite`, `bulletin`,
 //! `modeles_contrat`, `coffre`, `import`), l'Historique (`historique`), les Exports (`archives`, `dossier_salarie`),
-//! « Un probleme, une idee ? » (`filet`), et les lectures que les ecrans partagent (`ouverture`). Chacun dit ses routes et
+//! « Un probleme, une idee ? » (`filet`), l'accueil des compagnies (`accueil` : les routes de l'installation), et les lectures que les ecrans partagent (`ouverture`). Chacun dit ses routes et
 //! leurs fiches (`ROUTES`, `catalogue::FICHES`), comme les modules des obligations,
-//! des conseils, de l'ouverture et de l'administrateur ; l'aiguillage ne fait rien d'autre que les servir (et l'horloge
+//! des conseils et de l'ouverture ; l'aiguillage ne fait rien d'autre que les servir (et l'horloge
 //! du banc, hors catalogue). Ce que les routes partagent (lire un fichier, le salarie d'une charge, `qui_de`) est ici.
 
 use std::collections::HashMap;
@@ -49,6 +49,7 @@ pub mod filet;
 pub mod etapes;
 pub mod rappels;
 pub mod mois;
+pub mod accueil;
 pub mod catalogue;
 
 /// Supprimer la compagnie : avertir, puis effacer (`interface::suppression::route`).
@@ -125,6 +126,10 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
         panic!("la route d'essai tombe expres");
     }
+    // UNE ROUTE DE L'INSTALLATION (l'accueil des compagnies) ne porte sur aucune compagnie : elle se sert sans contexte.
+    if catalogue::dans(accueil::ROUTES, route).is_some() {
+        return reponse(accueil::route(o, route, &charge));
+    }
     // UNE ROUTE QUI PORTE UN MOIS LIT LA CONFIGURATION DE CE MOIS (`Contexte::du_mois`) : sa paie, sa DSN et ses documents
     // se font sous les valeurs qui valaient alors, jamais sous celles d'aujourd'hui.
     let ctx = match charge.get("mois").and_then(Value::as_str).filter(|m| socle::date::premier_du_mois(m).is_ok()) {
@@ -171,15 +176,10 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         _ if dans(rappels::ROUTES) => rappels::route(o, &ctx, route, &charge),
         // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
         _ if dans(crate::compagnie::conseils::ROUTES) => crate::compagnie::conseils::route(&ctx, route, &charge),
-        // La releve des reponses « Je signe » : cherche les codes attendus dans la boite (la vraie, ou celle d'une
-        // compagnie fictive), note les signatures, archive la preuve, contresigne et renvoie le contrat.
-        _ if dans(crate::compagnie::releve_signatures::ROUTES) => crate::compagnie::releve_signatures::route(&ctx, route, &charge),
         // L'ouverture du logiciel et la veille : sauvegarder, relever les retours, les signatures et les fiches, sans
         // jamais echouer. ATTENTION : hors d'une compagnie fictive, cette route va au reseau (net-entreprises, Urssaf,
         // boite courriel, Drive, serveur des incidents).
         _ if dans(crate::compagnie::ouverture::ROUTES) => crate::compagnie::ouverture::route(o, &ctx, route, &charge),
-        // La fenetre de l'administrateur : le tableau de ses compagnies, le depot groupe.
-        _ if dans(crate::compagnie::administrateur::ROUTES) => crate::compagnie::administrateur::route(o, &ctx, route, &charge),
         // Le banc : l'horloge de la compagnie fictive (rattraper ce qui etait du, ce que le bandeau « pendant votre
         // absence » lit ; `horloge::HorlogeFictive`).
         r if crate::horloge::ROUTES.contains(&r) => crate::horloge::route(o, &ctx, route, &charge),
@@ -199,11 +199,16 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     };
     // Les etats des mois se refont dans la fenetre, dans son processus, apres chaque ecriture
     // (`etat_garde::FileDesEtats`) ; hors de la fenetre, un etat perime se refait a sa lecture.
+    if let Ok(v) = &rendu {
+        phrase_a_sa_place(&ctx.racine, route, v);
+    }
+    reponse(rendu)
+}
+
+/// La reponse de `moteur route` a ce que la route a rendu : `{"ok", "resultat"}`, ou son refus et sa classe.
+fn reponse(rendu: Result<Value, Echec>) -> Resultat<Value> {
     match rendu {
-        Ok(v) => {
-            phrase_a_sa_place(&ctx.racine, route, &v);
-            Ok(json!({"ok": true, "resultat": v}))
-        }
+        Ok(v) => Ok(json!({"ok": true, "resultat": v})),
         // Une fiche refusee porte ses anomalies : la page les montre.
         Err(Echec { classe: Some("FicheRefusee"), message }) => {
             let d: Value = serde_json::from_str(&message).unwrap_or_else(|_| json!({"message": message}));

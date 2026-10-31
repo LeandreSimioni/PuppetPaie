@@ -68,22 +68,36 @@ const CALE: &str = r#"<script>
   const api = {};
   for (const nom of {{NOMS}}) api[nom] = (...args) => appel(nom, args);
   window.pywebview = { api };
+  // UNE ROUTE DU CATALOGUE, par la porte de toute la page (`/api/<route>`) : `{ok, resultat}`, ou `{ok: false, erreur}`
+  // avec la phrase du refus.
+  window.appel = (nom, charge) => fetch("/api/" + nom, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Jeton": JETON },
+      body: JSON.stringify(charge || {}),
+    }).then(lire, () => ({ ok: false, erreur: "PuppetPaie ne répond plus : relancez le logiciel." }))
+      .then((d) => {
+        if (d && d.erreur && typeof d.erreur === "object") d.erreur = d.erreur.message || "Refusé.";
+        return d;
+      });
   document.addEventListener("DOMContentLoaded", () => window.dispatchEvent(new Event("pywebviewready")));
 })();
 </script>
 "#;
 
-/// Les pages du mot de passe sont servies avec ces noms : leur « Retour » (et Echap) appelle `accueil`. Absent de la
-/// liste, la cale ne le definirait pas et le bouton ne ferait rien.
-/// L'administrateur : `rattacher_nouvelle` (la question « meme administrateur ? » d'une compagnie neuve),
-/// `tableau`, `tableau_rafraichir` et `deposer_groupe` (le tableau de bord de l'accueil).
-const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "garder", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer", "rattacher_nouvelle", "tableau", "tableau_rafraichir", "deposer_groupe"]"#;
-/// Dans la page du logiciel : revenir aux compagnies ; et, comme a l'accueil, lire ou en est la mise a
-/// jour et redemarrer pour l'installer (`js/mise-a-jour.js`). L'administrateur, dans la Configuration
-/// (`js/coffre-compte.js`) : ce qu'il est pour cette compagnie, la rattacher, la detacher, changer son mot
-/// de passe. Les gestes du poste (`poste.rs` : ouvrir ce qu'une route a rendu, choisir un dossier) et la veille de la
-/// fenetre (`js/veille.js`).
-const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "administrateur", "rattacher", "detacher", "changer_administrateur", "ouvrir", "choisir_dossier", "veille", "veille_etape", "veille_maintenant"]"#;
+/// LES GESTES DE LA FENETRE ELLE-MEME (`window.pywebview.api.<nom>`, servis par `Fenetre::lanceur`) : aucun n'est un geste
+/// du logiciel, chacun dit ce que la fenetre montre ou fait d'elle-meme. Tout le reste passe par la porte de la page, les
+/// routes du catalogue (`window.appel`, `/api/<route>`). A l'accueil et aux pages du mot de passe :
+/// - `choisir` : montrer la compagnie d'une tuile (sa page, ou d'abord son mot de passe) ; `verifier` : la deverrouiller dans
+///   cette fenetre par son mot de passe (en ligne de commande, `--racine` et la seance du coffre) ; `accueil` : revenir
+///   aux tuiles ;
+/// - `fermer`, `redemarrer` : fermer la fenetre, la rouvrir sur la version prete ; `maj` : ou en est la recherche que la
+///   fenetre mene en fond (la version, elle, est la route `maj-etat`) ;
+/// - `basculer` : brider ou debloquer le logiciel (la demo), le seul geste qui n'existe qu'a l'ecran : la ligne de commande
+///   n'a pas de bridage.
+const NOMS_ACCUEIL: &str = r#"["choisir", "verifier", "accueil", "fermer", "redemarrer", "maj", "basculer"]"#;
+/// Dans la page d'une compagnie : revenir aux compagnies, la mise a jour (`js/mise-a-jour.js`), ouvrir ce qu'une route a
+/// rendu et choisir un dossier (`poste.rs`), la veille de la fenetre (`js/veille.js`).
+const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "ouvrir", "choisir_dossier", "veille", "veille_etape", "veille_maintenant"]"#;
 
 #[derive(Clone)]
 enum Phase {
@@ -248,8 +262,8 @@ fn page(corps: &str, jeton: &str, noms: &str) -> String {
     )
 }
 
-fn logo_en_ligne(racine: &Path) -> String {
-    match compagnies::logo(racine) {
+fn logo_en_ligne(logo: Option<&str>) -> String {
+    match logo.map(Path::new) {
         Some(p) => {
             let mime = if p.extension().is_some_and(|e| e == "svg") { "image/svg+xml" } else { "image/png" };
             std::fs::read(&p).map(|o| format!("data:{};base64,{}", mime, socle::base64::ecrire(&o))).unwrap_or_default()
@@ -258,40 +272,43 @@ fn logo_en_ligne(racine: &Path) -> String {
     }
 }
 
+/// L'accueil : les tuiles des compagnies, telles que la route `compagnies` les dit.
 fn page_accueil() -> String {
-    let choix = compagnies::liste();
+    let lu = api::route_de_l_installation("compagnies", &json!({}));
+    let r = &lu["resultat"];
+    let t = |c: &Value, k: &str| c.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
     let mut tuiles = Vec::new();
-    for c in &choix {
-        let logo = logo_en_ligne(&c.racine);
+    for c in r["compagnies"].as_array().into_iter().flatten() {
+        let (nom, couleur, reelle) = (t(c, "nom"), t(c, "couleur"), c["reelle"] == json!(true));
+        let logo = logo_en_ligne(c.get("logo").and_then(Value::as_str));
         let medaillon = if logo.is_empty() {
-            format!("<span class=\"initiale\">{}</span>", echapper(&c.nom.chars().take(1).collect::<String>()))
+            format!("<span class=\"initiale\">{}</span>", echapper(&nom.chars().take(1).collect::<String>()))
         } else {
             format!("<img src=\"{}\" alt=\"\">", logo)
         };
         tuiles.push((
-            c.reelle,
+            reelle,
             format!(
                 "<div class=\"tuile{}\" data-id=\"{}\"{}><div class=\"tete\"><div class=\"medaillon\">{}</div>{}</div><div class=\"corps\"><span class=\"nom\">{}</span><span class=\"lieu\">{}</span></div></div>",
-                if c.reelle { "" } else { " fictive" },
-                echapper(&c.id),
-                if c.reelle { format!(" style=\"--cie:{}\"", c.couleur) } else { String::new() },
+                if reelle { "" } else { " fictive" },
+                echapper(&t(c, "id")),
+                if reelle { format!(" style=\"--cie:{}\"", couleur) } else { String::new() },
                 medaillon,
-                // Une fictive AJOUTEE n'a pas de photo d'origine : pas de remise a zero.
-                if c.reelle {
-                    CRAYON.replace("%s", &c.couleur)
-                } else if compagnies::est_fictive_livree(&c.racine) {
+                if reelle {
+                    CRAYON.replace("%s", &couleur)
+                } else if c["remise_a_zero"] == json!(true) {
                     ZERO.to_string()
                 } else {
                     String::new()
                 },
-                echapper(&c.nom),
-                echapper(&c.lieu)
+                echapper(&nom),
+                echapper(&t(c, "lieu"))
             ),
         ));
     }
-    let bride = crate::compagnie::bridage::est_bride();
+    let bride = r["bride"] == json!(true);
     let grille = if bride {
-        // BRIDE, LE « + » AUSSI : il ajoute une fictive (`compagnies::ajouter`), apres le message.
+        // BRIDE, LE « + » AUSSI : il ajoute une fictive (la route `compagnie-ajouter`), apres le message.
         format!("<div class=\"grille\">{}{}</div>{}", tuiles.iter().map(|(_, t)| t.as_str()).collect::<String>(), TUILE_AJOUTER, AVIS_AJOUTER)
     } else {
         let reelles: String = tuiles.iter().filter(|(r, _)| *r).map(|(_, t)| t.as_str()).collect::<String>() + TUILE_AJOUTER;
@@ -307,13 +324,13 @@ fn page_accueil() -> String {
         g
     };
     // AU DEBLOCAGE : tant qu'il reste des compagnies creees en demo, la question se pose a chaque accueil.
-    let a_garder = suppression::a_garder(&compagnies::base());
+    let a_garder = r["a_garder"].as_array().cloned().unwrap_or_default();
     let grille = if a_garder.is_empty() {
         grille
     } else {
         let liste: String = a_garder
             .iter()
-            .map(|c| format!("<li><label><input type=\"checkbox\" value=\"{}\" checked> {}</label></li>", echapper(&c.id), echapper(&c.nom)))
+            .map(|c| format!("<li><label><input type=\"checkbox\" value=\"{}\" checked> {}</label></li>", echapper(&t(c, "id")), echapper(&t(c, "nom"))))
             .collect();
         format!("{}{}", grille, GARDER.replace("{{LISTE}}", &liste))
     };
@@ -520,87 +537,6 @@ impl Fenetre {
         }
     }
 
-    /// Les gestes de l'administrateur : tout se decide dans `administrateur.rs`, la fenetre ne fait que
-    /// passer la saisie et retenir, pour sa seance, le mot de passe qui vient d'etre verifie.
-    fn geste_administrateur(&self, nom: &str, args: &[Value]) -> Option<Value> {
-        let a = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or("").to_string();
-        let refus = |m: String| json!({"ok": false, "erreur": m});
-        let inst = compagnies::base();
-        let poste = crate::compagnie::administrateur::Poste::de_ce_poste();
-        let ouverte = match self.phase() {
-            Phase::Ouverte { racine, .. } => Some(racine),
-            _ => None,
-        };
-        let premiere_racine = || crate::compagnie::administrateur::rattachees(&inst).into_iter().next();
-        Some(match nom {
-            "administrateur" => json!({"ok": true, "etat": crate::compagnie::administrateur::etat(&inst, ouverte.as_deref(), &poste)}),
-            "rattacher" => {
-                let Some(racine) = ouverte else { return Some(refus("Aucune compagnie n'est ouverte.".into())) };
-                match crate::compagnie::administrateur::rattacher(&inst, &racine, &a(0), Some(&a(1)), &poste) {
-                    Ok(noms) => {
-                        self.retenir_administrateur(&racine, &a(0));
-                        self.ecrire("Compagnie rattachee a l'administrateur.\n");
-                        json!({"ok": true, "compagnies": noms, "etat": crate::compagnie::administrateur::etat(&inst, Some(&racine), &poste)})
-                    }
-                    Err(m) => refus(m),
-                }
-            }
-            "detacher" => {
-                let Some(racine) = ouverte else { return Some(refus("Aucune compagnie n'est ouverte.".into())) };
-                match crate::compagnie::administrateur::detacher(&inst, &racine, &a(0), &a(1), &a(2), &poste) {
-                    Ok(()) => {
-                        self.ecrire("Compagnie detachee de l'administrateur.\n");
-                        json!({"ok": true, "etat": crate::compagnie::administrateur::etat(&inst, Some(&racine), &poste)})
-                    }
-                    Err(m) => refus(m),
-                }
-            }
-            "changer_administrateur" => match crate::compagnie::administrateur::changer(&inst, &a(0), &a(1), &a(2), &poste) {
-                Ok(noms) => {
-                    *self.administrateur.lock().unwrap_or_else(|e| e.into_inner()) = Some(a(1));
-                    self.ecrire("Mot de passe de l'administrateur change.\n");
-                    json!({"ok": true, "compagnies": noms})
-                }
-                Err(m) => refus(m),
-            },
-            // Le tableau de bord : ce qui est garde, tout de suite ; puis refait (et les comptes rendus attendus releves).
-            "tableau" => json!({"ok": true, "tableau": crate::compagnie::administrateur::tableau_garde(&inst)}),
-            // AVANT LE MOT DE PASSE (aucun n'a encore ete tape dans cette fenetre) : le tableau de chaque compagnie, refait
-            // par le fil de la fenetre (calcul local, rien ne sort : `prechauffer`). APRES : comme la veille, la releve
-            // des comptes rendus attendus d'abord (le reseau, le coffre), par la route de l'administrateur.
-            "tableau_rafraichir" => {
-                let rattachees = crate::compagnie::administrateur::rattachees(&inst);
-                let mot_tape = self.administrateur.lock().unwrap_or_else(|e| e.into_inner()).is_some();
-                match rattachees.first() {
-                    None => json!({"ok": true, "tableau": crate::compagnie::administrateur::tableau_garde(&inst)}),
-                    Some(r) if mot_tape => match api::route(r, "administrateur-tableau", &json!({"relever": true})) {
-                        Ok(t) => json!({"ok": true, "tableau": t}),
-                        Err(e) => refus(e.message),
-                    },
-                    Some(_) => {
-                        let par = rattachees.iter().map(|r| (r.clone(), self.file_de(r).tableau().map_err(|e| e.message))).collect();
-                        json!({"ok": true, "tableau": crate::compagnie::administrateur::tableau_de(&inst, par)})
-                    }
-                }
-            }
-            // LE DEPOT GROUPE : la route de l'administrateur, qui depose chaque compagnie par sa route `deposer`. Le mot de
-            // passe (reel) est celui que la page vient de faire taper, au moment de l'acte.
-            "deposer_groupe" => {
-                let reel = args.first().and_then(Value::as_bool).unwrap_or(false);
-                let Some(r) = premiere_racine() else { return Some(refus("Ce logiciel n'a pas d'administrateur.".into())) };
-                let mut charge = json!({"reel": reel});
-                if reel {
-                    charge["motdepasse"] = json!(a(1));
-                }
-                match api::route(&r, "administrateur-deposer", &charge) {
-                    Ok(v) => json!({"ok": true, "depot": v}),
-                    Err(e) => refus(e.message),
-                }
-            }
-            _ => return None,
-        })
-    }
-
     fn ouvrir(&self, racine: PathBuf) {
         // La mise a jour ne se fait pas ici : le logiciel la cherche au lancement (`maj::chercher_en_fond`) et l'applique
         // au lancement suivant, avant toute fenetre (`maj::au_lancement`), sans qu'aucune compagnie soit ouverte.
@@ -628,26 +564,6 @@ impl Fenetre {
         if let Some(f) = self.fermer.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
             f();
         }
-    }
-
-    /// « Ajouter une compagnie » (le « + » de l'accueil), par l'un de ses deux chemins (`compagnies::Venue`). Au banc
-    /// d'essai de l'atelier, le geste entre dans le scenario : c'est le decor de depart que le rejeu refait
-    /// (`scenario::rejouer`).
-    fn ajouter(&self, nom: &str, venue: compagnies::Venue) -> Result<compagnies::Compagnie, String> {
-        #[cfg(feature = "atelier")]
-        if let Some(e) = crate::atelier::scenario::enregistreur_actif() {
-            return e.geste("ajouter", || {
-                let c = compagnies::ajouter(nom, venue)?;
-                let mut m = serde_json::Map::new();
-                m.insert("nom".into(), json!(nom));
-                if venue != compagnies::Venue::Neuve {
-                    m.insert("venue".into(), json!(venue.mot()));
-                }
-                m.insert("compagnie".into(), json!(e.compagnie(&c.racine)));
-                Ok((c, m))
-            });
-        }
-        compagnies::ajouter(nom, venue)
     }
 
     /// LES GESTES DU BANC D'ESSAI (l'atelier seulement ; `atelier/outils/banc/`) : `/atelier/<geste>`, avec le jeton.
@@ -731,47 +647,43 @@ impl Fenetre {
         }
     }
 
-    /// Les gestes de l'accueil (`window.pywebview.api.<nom>(...)`).
+    /// UNE ROUTE DE L'INSTALLATION, demandee par la page (`routes::accueil`). La fenetre n'y ajoute que ce qui la regarde :
+    /// avant que les compagnies creees en demo soient gardees ou supprimees, elle lache ce qu'elle en tient (`lacher`) ;
+    /// le tableau de l'administrateur se lit, comme l'ecran d'un mois, dans ce que son fil a deja refait (`prechauffer`),
+    /// et ne releve les comptes rendus (le reseau, le coffre) qu'une fois le mot de passe de l'administrateur tape ici.
+    fn route_de_l_installation(&self, nom: &str, charge: &Value) -> Value {
+        let inst = compagnies::base();
+        if nom == "compagnies-garder" {
+            for c in suppression::a_garder(&inst) {
+                self.lacher(&c.racine);
+            }
+        }
+        let vrai = |k: &str| charge.get(k).is_some_and(socle::fichiers::vrai);
+        if nom == "administrateur-tableau" && !vrai("garde") && !vrai("relever") {
+            if self.administrateur.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
+                return api::route_de_l_installation(nom, &json!({"relever": true}));
+            }
+            let rattachees = crate::compagnie::administrateur::rattachees(&inst);
+            let par = rattachees.iter().map(|r| (r.clone(), self.file_de(r).tableau().map_err(|e| e.message))).collect();
+            return json!({"ok": true, "resultat": crate::compagnie::administrateur::tableau_de(&inst, par)});
+        }
+        api::route_de_l_installation(nom, charge)
+    }
+
+    /// Les gestes de la fenetre elle-meme (`window.pywebview.api.<nom>(...)`, `NOMS_ACCUEIL`, `NOMS_LOGICIEL`).
     fn lanceur(&self, nom: &str, args: &[Value]) -> Value {
         let a = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or("").to_string();
         let ok = |recharger: bool| json!({"ok": true, "recharger": recharger});
         let refus = |m: String| json!({"ok": false, "erreur": m});
         match (nom, self.phase()) {
-            ("choisir", Phase::Accueil) => match compagnies::racine_choisie(&a(0)).and_then(|r| self.prendre(r)) {
+            ("choisir", Phase::Accueil) => match compagnies::racine_choisie(&compagnies::base(), &a(0)).and_then(|r| self.prendre(r)) {
                 Ok(()) => ok(true),
-                Err(m) => refus(m),
-            },
-            ("couleur", _) => match compagnies::poser_couleur(&a(0), &a(1)) {
-                Ok(c) => json!({"ok": true, "couleur": c}),
                 Err(m) => refus(m),
             },
             ("basculer", Phase::Accueil) => match crate::compagnie::bridage::basculer() {
                 Ok(()) => ok(true),
                 Err(m) => refus(m),
             },
-            ("remettre_a_zero", _) => match compagnies::remettre_a_zero(&a(0)) {
-                Ok((n, deja)) => json!({"ok": true, "message": format!("{} est {}.", n, if deja { "déjà dans son état d'origine" } else { "revenue à son état d'origine" })}),
-                Err(m) => refus(m),
-            },
-            ("ajouter", Phase::Accueil) => match self.ajouter(&a(0), compagnies::Venue::lire(&a(1))).and_then(|c| self.prendre(c.racine)) {
-                Ok(()) => ok(true),
-                Err(m) => refus(m),
-            },
-            // AU DEBLOCAGE : les fictives ajoutees gardees deviennent reelles, les autres sont supprimees
-            // (`suppression::repondre`). `garder` et `ne_pas_garder` : des identifiants de tuile.
-            ("garder", Phase::Accueil) => {
-                let ids = |i: usize| -> Vec<String> {
-                    args.get(i).and_then(Value::as_array).map(|v| v.iter().filter_map(Value::as_str).map(String::from).collect()).unwrap_or_default()
-                };
-                let poste = crate::compagnie::administrateur::Poste::de_ce_poste();
-                match suppression::repondre(&compagnies::base(), &ids(0), &ids(1), &poste, &|r| self.lacher(r)) {
-                    Ok(v) => {
-                        self.ecrire(&format!("Au deblocage : {}\n", v));
-                        json!({"ok": true, "recharger": true, "reponse": v})
-                    }
-                    Err(m) => refus(m),
-                }
-            }
             ("verifier", Phase::MotDePasse { racine, .. }) => match crate::compagnie::coffre::Coffre::du_poste(&racine, "").verifier_ouverture(&a(0)) {
                 Ok(true) => {
                     self.retenir_administrateur(&racine, &a(0));
@@ -781,34 +693,6 @@ impl Fenetre {
                 Ok(false) => refus("Mot de passe refusé.".into()),
                 Err(e) => refus(e.message),
             },
-            // « Meme administrateur ? » -- oui : le mot de passe de l'administrateur, tape une fois pour le
-            // verifier, scelle aussi cette compagnie neuve.
-            ("rattacher_nouvelle", Phase::MotDePasse { racine, premiere: true }) => {
-                match crate::compagnie::administrateur::rattacher(&compagnies::base(), &racine, &a(0), None, &crate::compagnie::administrateur::Poste::de_ce_poste()) {
-                    Ok(_) => {
-                        self.retenir_administrateur(&racine, &a(0));
-                        self.ecrire("Compagnie neuve rattachee a l'administrateur.\n");
-                        self.ouvrir(racine);
-                        ok(true)
-                    }
-                    Err(m) => refus(m),
-                }
-            }
-            ("poser", Phase::MotDePasse { racine, premiere: true }) => {
-                if a(0) != a(1) {
-                    return refus("Les deux saisies diffèrent.".into());
-                }
-                // L'heure est due : le coffre note quand le mot de passe a ete pose (`pose_le`). Sans elle, une compagnie
-                // neuve ne pouvait pas poser son premier mot de passe (« il faut `maintenant` »).
-                let maintenant = socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string();
-                match crate::compagnie::coffre::Coffre::du_poste(&racine, &maintenant).poser_ouverture(&a(0), None) {
-                    Ok(_) => {
-                        self.ouvrir(racine);
-                        ok(true)
-                    }
-                    Err(e) => refus(e.message),
-                }
-            }
             ("accueil", _) => {
                 self.ecrire("Retour a l'accueil.\n");
                 self.poser_phase(Phase::Accueil);
@@ -848,7 +732,7 @@ impl Fenetre {
                 }
                 Err(m) => refus(m),
             },
-            _ => self.geste_administrateur(nom, args).unwrap_or_else(|| refus(format!("Geste inconnu ici : {}.", nom))),
+            _ => refus(format!("Geste inconnu ici : {}.", nom)),
         }
     }
 
@@ -883,8 +767,19 @@ impl Fenetre {
                 return Reponse::json(200, &self.atelier(nom, &charge));
             }
             if let Some(nom) = r.chemin.strip_prefix("/api/") {
-                let Phase::Ouverte { racine, veille, etats } = self.phase() else {
-                    return Reponse::json(200, &json!({"ok": false, "erreur": {"type": "ErreurOperation", "message": "Aucune compagnie n'est ouverte."}}));
+                // LA SEULE PORTE DE LA PAGE VERS LE MOTEUR : une route du catalogue. Celle de l'installation se sert a tout
+                // moment ; celle d'une compagnie, quand la compagnie est ouverte -- ou quand elle n'a pas encore de mot de
+                // passe (rien a deverrouiller : la page du premier mot de passe le pose par sa route).
+                if crate::routes::catalogue::dans(crate::routes::accueil::ROUTES, nom).is_some() {
+                    let debut = Instant::now();
+                    let rendu = self.route_de_l_installation(nom, &charge);
+                    self.ecrire(&ligne_de_route(nom, debut.elapsed(), &rendu));
+                    return Reponse::json(200, &rendu);
+                }
+                let (racine, veille, etats) = match self.phase() {
+                    Phase::Ouverte { racine, veille, etats } => (racine, Some(veille), Some(etats)),
+                    Phase::MotDePasse { racine, premiere: true } => (racine, None, None),
+                    _ => return Reponse::json(200, &json!({"ok": false, "erreur": {"type": "ErreurOperation", "message": "Aucune compagnie n'est ouverte."}})),
                 };
                 // LE JOURNAL DE L'INTERFACE note chaque route et sa duree (de quoi mesurer l'ouverture sur le poste) :
                 // l'heure, le nom, les millisecondes, et la classe d'un refus. Jamais la charge : elle peut porter un mot
@@ -901,7 +796,7 @@ impl Fenetre {
                 // des etats, son journal), et ne note rien apres dans un dossier qui n'est plus. Un passage de la veille en
                 // cours ecrit dans ce dossier : on attend qu'il finisse.
                 if nom == crate::routes::COMPAGNIE_SUPPRIMER && charge.get("confirme").is_some_and(socle::fichiers::vrai) {
-                    let rendu = if veille.occupee() {
+                    let rendu = if veille.as_ref().is_some_and(|v| v.occupee()) {
                         Err(api::Refus::simple("ErreurOperation", "Un relevé ou une sauvegarde de cette compagnie est en cours : attendez qu'il se termine, puis recommencez. Rien n'a été supprimé."))
                     } else {
                         suppression::route(&racine, &charge, &|r| self.lacher(r)).map_err(|m| api::Refus::simple("ErreurOperation", m))
@@ -912,7 +807,7 @@ impl Fenetre {
                     return Reponse::json(200, &api::en_page(rendu));
                 }
                 let debut = Instant::now();
-                let rendu = api::repondre(&racine, nom, &charge, Some(&veille), Some(&etats));
+                let rendu = api::repondre(&racine, nom, &charge, veille.as_deref(), etats.as_deref());
                 self.ecrire(&ligne_de_route(nom, debut.elapsed(), &rendu));
                 return Reponse::json(200, &rendu);
             }
@@ -932,8 +827,9 @@ impl Fenetre {
                 let html = match self.phase() {
                     Phase::Accueil => page(&page_accueil(), &self.jeton, NOMS_ACCUEIL),
                     Phase::MotDePasse { racine, premiere } => {
-                        // Ce que l'administrateur est pour cette compagnie : la page le lit, sans rien decider.
-                        let etat = crate::compagnie::administrateur::etat(&compagnies::base(), Some(&racine), &crate::compagnie::administrateur::Poste::de_ce_poste());
+                        // Ce que l'administrateur est pour cette compagnie (la route `administrateur-etat`) : la page le lit,
+                        // sans rien decider.
+                        let etat = api::route(&racine, "administrateur-etat", &json!({})).unwrap_or_else(|_| json!({}));
                         let gabarit = if premiere { CHOIX_MOT_DE_PASSE } else { MOT_DE_PASSE };
                         page(&gabarit.replace("{{ADMINISTRATEUR}}", &json_dans_la_page(&etat)), &self.jeton, NOMS_ACCUEIL)
                     }

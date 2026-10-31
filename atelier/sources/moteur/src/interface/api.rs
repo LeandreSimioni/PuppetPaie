@@ -232,6 +232,32 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
     reponse
 }
 
+/// UNE ROUTE DE L'INSTALLATION (`routes::accueil` : l'accueil des compagnies), servie sans compagnie : l'installation est
+/// celle du programme. La reponse au format que la page attend.
+pub fn route_de_l_installation(nom: &str, charge: &Value) -> Value {
+    let o = std::collections::HashMap::new();
+    // LE BANC D'ESSAI (l'atelier seulement) : une compagnie ajoutee entre dans le scenario comme le decor de depart que le
+    // rejeu refait (`scenario::rejouer`, le geste `ajouter`).
+    #[cfg(feature = "atelier")]
+    if nom == "compagnie-ajouter" {
+        if let Some(e) = crate::atelier::scenario::enregistreur_actif() {
+            let rendu = e.geste("ajouter", || {
+                let v = depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge)).map_err(|r| r.message)?;
+                let mut m = Map::new();
+                m.insert("nom".into(), charge.get("nom").cloned().unwrap_or(Value::Null));
+                if let Some(venue) = charge.get("venue").filter(|v| v.as_str() != Some("neuve")) {
+                    m.insert("venue".into(), venue.clone());
+                }
+                let racine = std::path::PathBuf::from(v.get("chemin").and_then(Value::as_str).unwrap_or_default());
+                m.insert("compagnie".into(), json!(e.compagnie(&racine)));
+                Ok((v, m))
+            });
+            return en_page(rendu.map_err(|m| Refus::simple("ErreurOperation", m)));
+        }
+    }
+    en_page(depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge)))
+}
+
 /// Un resultat ou un refus, au format que la page attend (`{"ok", "resultat"}` ou `{"ok": false, "erreur": {"type", "message", ...}}`).
 pub fn en_page(r: Result<Value, Refus>) -> Value {
     match r {

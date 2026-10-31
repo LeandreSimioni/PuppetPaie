@@ -168,7 +168,7 @@ fn signer_dossier(h: &mut Sha256, base: &Path, dossier: &Path, profond: bool, ga
 /// route `mois` sur cinq mois de la grande fictive 3090 : aucun de ces fichiers n'est ouvert ni teste) et par le code
 /// (chacun n'a de lecteur que hors des lectures du mois : `LECTURES`, `etat-par-engagement`, `etat-du-mois`, l'apercu) :
 /// - `config/.ouverture.json` : la trace de la veille (`ouverture.rs`, `chemin_trace`), reecrite a chaque tour ; lue par
-///   `ouverture-derniere` seulement ;
+///   la veille de la fenetre seulement (`interface::veille`) ;
 /// - `config/.sauvegarde.json` : l'index de la sauvegarde (`sauvegarde::chemin_index`), reecrit a chaque sauvegarde ; lu
 ///   par la sauvegarde et la restauration seulement ;
 /// - `config/diagnostic.json` : l'identite du poste chez l'editeur (`incidents.rs`, `POSTE_FICHIER`), ecrite par la

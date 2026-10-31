@@ -65,18 +65,6 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
         ecran: ECRAN,
     },
-    Fiche {
-        nom: "ouverture-derniere",
-        geste: "Dire ce que la dernière ouverture a fait, sans réseau.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: "la trace de la dernière ouverture ; {} sans elle",
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: true,
-        phrase: 0,
-        ecran: Ecran::Lecture,
-    },
 ];
 
 /// `compagnies.MARQUEUR`.
@@ -297,12 +285,9 @@ impl Ouverture {
 /// - `ouverture` : `{"sauvegarder"?, "retours"?, "signatures"?, "filet"?, "jours"?, "racine_drive"?, "pas_avant"?, "veille"?,
 ///   "incidents_editeur"?}` -> `Ouverture::en_json`. **Hors d'une compagnie fictive, elle va au
 ///   reseau.** Elle ne rend jamais d'erreur : une panne est une phrase de `incidents`.
-/// - `ouverture-derniere` : la trace de la derniere ouverture (`config/.ouverture.json`), `{}` si elle manque ou ne se lit
-///   pas. Sans reseau.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "ouverture" => Ok(ouverture(ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json()),
-        "ouverture-derniere" => Ok(derniere_ouverture(ctx)),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -343,8 +328,8 @@ fn chemin_trace(ctx: &Contexte) -> std::path::PathBuf {
 
 /// `derniere_ouverture` : la trace, ou `{}` si elle est absente ou ne se lit pas (JSON invalide, octets invalides, fichier
 /// illisible).
-pub fn derniere_ouverture(ctx: &Contexte) -> Value {
-    let p = chemin_trace(ctx);
+pub fn derniere_ouverture(racine: &std::path::Path) -> Value {
+    let p = racine.join("config").join(TRACE);
     if !p.exists() {
         return json!({});
     }
@@ -550,7 +535,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
     let mut signatures = opt.signatures;
     // La trace d'avant ce passage : `pas_avant` la lit, la seconde moitie de la
     // veille la complete.
-    let precedente = derniere_ouverture(ctx);
+    let precedente = derniere_ouverture(&ctx.racine);
 
     if opt.sauvegarde_seule {
         return sauvegarder_seulement(ctx, opt, clients, r, debut, &precedente);

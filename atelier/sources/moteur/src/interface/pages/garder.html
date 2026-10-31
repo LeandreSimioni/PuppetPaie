@@ -1,6 +1,6 @@
 <!-- AU DEBLOCAGE (ticket #236, Leandre 22/10/2026) : les compagnies creees en demo, a garder ou non. Le moteur sert cette
      boite tant qu'il en reste (`suppression::a_garder`) ; la fermer sans repondre la fait revenir a l'accueil suivant.
-     Le choix part au moteur (`garder`), qui garde ou supprime. -->
+     Le choix part au moteur (la route `compagnies-garder`), qui garde ou supprime. -->
 <div class="avis-ajouter" id="garder">
   <form class="carte-avis" role="dialog" aria-labelledby="garder-titre">
     <p id="garder-titre"><b>Vous venez de débloquer le logiciel. Voulez-vous garder les compagnies créées ?</b></p>
@@ -20,7 +20,8 @@
       const cases = [...boite.querySelectorAll("input[type=checkbox]")];
       const garder = cases.filter((c) => c.checked).map((c) => c.value);
       const nePas = cases.filter((c) => !c.checked).map((c) => c.value);
-      const r = await window.pywebview.api.garder(garder, nePas);
+      const r = await appel("compagnies-garder", { garder, ne_pas_garder: nePas });
+      if (r && r.ok) { location.replace("/"); return; }
       if (!r || !r.ok) document.getElementById("erreur").textContent = (r && r.erreur) || "Rien n'a changé.";
     });
   })();
