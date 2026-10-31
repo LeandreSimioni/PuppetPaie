@@ -3,8 +3,7 @@
 //! certificats numerotes, une ligne au journal, la paie figee). Et ce que les envois partagent avec `contrats` et
 //! `archives` : la boite qui envoie (`client_courriel`), la preuve (`preuve_de`), les lectures de la charge.
 //!
-//! L'apercu ecrit ce qu'il montre : les AER revenues rangees (`ranger_aer`) et les documents du mois fabriques dans
-//! `sorties/<mois>/envoi/` (leurs numeros ne s'ecrivent qu'a l'envoi).
+//! L'apercu ne fait que lire : il nomme les pieces dues a chacun, que l'envoi fabrique.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -42,7 +41,7 @@ pub const ROUTES: &[Fiche] = &[
         exemple: r#"{"mois":"2026-11"}"#,
         rend: "pret, empechements, informations, avertissements, boite_liee, expediteur, messages (cle, nom, destinataire, pieces, renvoi, changements), deja",
         refus: &[MANQUE, ILLISIBLE],
-        acte: Acte::Ecrit,
+        acte: Acte::Lit,
         avance: false,
         phrase: 0,
     },
@@ -456,10 +455,11 @@ struct Message {
     pieces: Vec<std::path::PathBuf>,
 }
 
-/// Un message par salarie, a partir des pieces individuelles deja ecrites. Le corps n'est pas compose : seuls ses refus
-/// (`KeyError` d'une fiche entreprise sans nom d'affichage ou sans signataire) sont gardes.
+/// Un message par salarie, et les pieces qui lui sont DUES, nommees sans etre fabriquees : le bulletin d'une paie qui a des
+/// cachets, le certificat Conges Spectacles d'un contrat qui finit (`certificats_dus`), l'AER que France Travail a rendue
+/// et qui est rangee. Le corps n'est pas compose : seuls ses refus (`KeyError` d'une fiche entreprise sans nom
+/// d'affichage ou sans signataire) sont gardes.
 fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path) -> R<Vec<Message>> {
-    const PIECES: [&str; 3] = ["Bulletin", "CertificatCS", "AER"];
     let etiq = etiquette(mois)?;
     let ent = &ctx.entreprise;
     get_requis(ent, "nom_affichage")?;
@@ -467,13 +467,25 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
     if !sg.get("prenom_affichage").is_some_and(vrai) {
         get_requis(sg, "prenom")?;
     }
+    let (certificats, _) = crate::routes::dossier_salarie::certificats_dus(ctx, paies)?;
     let mut messages: Vec<Message> = Vec::new();
     for s in paies.iter().map(|p| &p.salarie) {
         let cle = valeur_en_texte(get_requis(s, "_cle")?);
         if messages.iter().any(|m| m.cle == cle) {
             continue;
         }
-        let pieces = PIECES.iter().map(|prefixe| dossier.join(nom_fichier(prefixe, &cle, &etiq))).filter(|c| c.exists()).collect();
+        let de_lui = |p: &&engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle.as_str());
+        let mut pieces = Vec::new();
+        if paies.iter().filter(de_lui).any(|p| !p.engagement.sans_paie()) {
+            pieces.push(dossier.join(nom_fichier("Bulletin", &cle, &etiq)));
+        }
+        if certificats.iter().any(|(c, _, pc)| *c == cle && pc.is_some()) {
+            pieces.push(dossier.join(nom_fichier("CertificatCS", &cle, &etiq)));
+        }
+        let aer = dossier.join(nom_fichier("AER", &cle, &etiq));
+        if aer.exists() {
+            pieces.push(aer);
+        }
         messages.push(Message {
             nom: ctx.nomme(&cle),
             // Une fiche sans courriel se montre : ses documents s'impriment ; c'est l'envoi par courriel qui la refuse.
@@ -500,39 +512,21 @@ pub(crate) fn charger_le_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<engag
 fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
-    // LE RATTRAPAGE : une AER relevee avant que la releve ne sache la ranger se range ici.
-    if !aer_manquantes(ctx, &mois)?.is_empty() {
-        let _ = ranger_aer(ctx, Some(&mois), None)?;
-    }
     // Ce qui peut partir du mois, numerote.
-    let (data, paies) = charger_le_mois(ctx, &mois)?;
+    let (_, paies) = charger_le_mois(ctx, &mois)?;
     let m = Moteur::nouveau(ctx);
     let prets = documents_prets(ctx, &mois, &paies)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
     // A QUI ILS PARTENT : le meme choix que l'envoi (`crate::routes::documents::choisir`).
     let choix = crate::routes::documents::choisir(ctx, &mois, &paies)?;
-    // CE QUI PARTIRA, FABRIQUE TEL QUEL pour etre montre : leurs numeros ne s.ecrivent qu.a l.envoi (`envoyer_documents`).
-    let messages = if prets.get("pret").is_some_and(vrai) {
-        let mut cles: Vec<String> = Vec::new();
-        for p in &paies {
-            let c = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
-            if !cles.contains(&c) {
-                cles.push(c);
-            }
-        }
-        let cles = choix.garder(cles, |c| c.as_str());
-        crate::compagnie::depart::fabriquer_documents(ctx, &mois, &cles, "interface")?;
-        preparer(ctx, &paies, &mois, &dossier)?
-    } else {
-        Vec::new()
-    };
+    // CE QUI PARTIRA, nomme sans etre fabrique : les documents s'ecrivent, numerotes, a l'envoi (`envoyer_documents`).
+    let messages = if prets.get("pret").is_some_and(vrai) { preparer(ctx, &paies, &mois, &dossier)? } else { Vec::new() };
     let tous_a_jour = messages.iter().all(|x| choix.a_jour.contains(&x.cle));
     let messages = choix.garder(messages, |x| x.cle.as_str());
     let (mut expediteur, mut avertissements) = (String::new(), Vec::<String>::new());
     if prets.get("boite_liee").is_some_and(vrai) {
-        // La boite qui enverrait, une fois des documents ecrits pour le mois.
-        let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-        if ctx.racine.join("sorties").join(&mois_saisie).join("envoi").exists() {
+        // La boite qui enverrait, quand des documents sont dus.
+        if !messages.is_empty() {
             expediteur = compte_de_la_boite(ctx)?.to_lowercase();
             let sg = get_requis(&ctx.entreprise, "signataire")?;
             let signataire = sg.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase();
