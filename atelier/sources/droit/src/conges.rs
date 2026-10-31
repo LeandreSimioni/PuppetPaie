@@ -19,7 +19,7 @@ pub const JOURS_DE_LA_SEMAINE: [&str; 7] = ["lundi", "mardi", "mercredi", "jeudi
 
 /// LES JOURS TRAVAILLES D'UN PERMANENT : les jours de la semaine que son horaire programme, lus sur sa fiche
 /// (`jours_travailles`, datee comme toute la fiche), du lundi au vendredi tant qu'elle n'en dit pas d'autres -- la valeur
-/// que la case montre, cochee, sur la fiche (`champs-base.json`). C'est l'horaire de l'entreprise pour ce salarie : les
+/// que l'aide du champ annonce (`champs-base.json`). C'est l'horaire de l'entreprise pour ce salarie : les
 /// heures du mois s'y comptent (`jours_entre`, `periodes::part_du_mois`), et les heures d'un jour sont la duree
 /// hebdomadaire sur leur nombre (`heures_par_jour`). Fiche DSN 2640 (`atelier/reference/sources/suspension-non-remuneree/
 /// net-entreprises-fiche2640-volumes-activite-s21g00-53-20260929.txt`, « Le decompte et calcul des absences au reel ») :
@@ -28,7 +28,7 @@ pub const JOURS_DE_LA_SEMAINE: [&str; 7] = ["lundi", "mardi", "mercredi", "jeudi
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct JoursTravailles {
     jours: [bool; 7],
-    /// La fiche les dit (sinon : du lundi au vendredi, la valeur que la case montre).
+    /// La fiche les dit (sinon : du lundi au vendredi, ce que l'aide du champ annonce).
     pub dits: bool,
 }
 

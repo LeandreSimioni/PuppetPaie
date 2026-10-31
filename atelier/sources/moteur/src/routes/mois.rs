@@ -76,7 +76,7 @@ pub const ROUTES: &[Fiche] = &[
         rend: "les échéances, chacune avec sa date et ce qu'elle demande",
         refus: &[ILLISIBLE],
         acte: Acte::Lit,
-        avance: true,
+        avance: false,
         phrase: 0,
     },
     Fiche {

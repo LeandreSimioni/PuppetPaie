@@ -314,7 +314,7 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
       Le ${echapper(quand(a.deja_depose.quand))}, en mode
       ${echapper(a.deja_depose.mode)}. Redéposer le même fichier ne remplace
       rien : un annule-et-remplace se produit, il ne se redépose pas.</div>` : ""}
-    <div id="d-bilan">${encartRepetition(a.repetition, quoi, a)}</div>
+    <div id="d-bilan">${encartRepetition(a.repetition)}</div>
     ${enFictive() ? noteFictive(quoi === "dsn" ? "net-entreprises" : "l'Urssaf")
       : `<p class="note">Un dépôt réel demande le mot de passe <b>du logiciel</b>,
       qui ne sert qu'à prouver que quelqu'un est là. Celui de l'organisme ne
@@ -416,31 +416,21 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
     boutonReel(false);
     if (test) test.disabled = true;
     const libre = () => { if (ici() && test) test.disabled = false; };
-    const nom = quoi === "dsn" ? "La DSN" : "La DPAE";
     // Seul le bilan du test (le certificat, ou le bilan d'anomalies) ouvre le
     // réel ou le ferme ; l'accusé d'enregistrement dit « envoi reçu », pas
     // « conforme » (le moteur refuse le réel sans lui, DSN comme DPAE).
     for (let tour = 0; tour < 30; tour++) {
       let r = null;
       try { r = await api("bilan-repetition", charge); } catch (e) { /* on réessaie */ }
-      if (r && r.etat === "testee") {
-        ecrire(encartRepetition(r, quoi, a));
+      if (r && (r.etat === "testee" || r.etat === "test_refuse")) {
+        ecrire(encartRepetition(r));
         libre();
-        if (ici()) boutonReel(true);
-        else dire(`${nom} est testée — conforme. Le dépôt réel est prêt.`);
+        if (!ici()) dire(`${r.titre} · ${r.phrase}`, r.couleur);
+        else if (r.etat === "testee") boutonReel(true);
         rafraichirActions();
         return;
       }
-      if (r && r.etat === "test_refuse") {
-        ecrire(`<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}"><b>Le test est refusé</b>
-          ${echapper(r.motif)}
-          Le même refus attendrait le dépôt réel : c'est cela qu'il faut corriger.</div>`);
-        libre();
-        if (!ici()) dire(`Le test de ${nom.toLowerCase()} est refusé : ${r.motif}`, r.couleur);
-        rafraichirActions();
-        return;
-      }
-      ecrire((r && r.etat === "en_test" ? encartRepetition(r, quoi, a)
+      ecrire((r ? encartRepetition(r)
         : `<div class="encart"><b>Test envoyé — son compte rendu est attendu</b> Le dépôt réel se fait
             ici, une fois le test revenu conforme.</div>`)
         + (r && r.incident ? `<p class="discret">${echapper(r.incident)}</p>` : ""));
@@ -510,16 +500,6 @@ async function suivreDepot(quoi, flux, mois) {
   }
 }
 
-/** Où en est la répétition de CE contenu — avant de proposer le dépôt réel.
- *  Un bouton qui refusera au clic est un bouton qui ment. */
-/** Les embauches que porte une DPAE, nommées : un seul dépôt peut en porter
- *  plusieurs, et l'écran dit pour qui chacune est partie. */
-function embauchesDe(a) {
-  const l = (a && a.embauches) || [];
-  if (!l.length) return "";
-  return ` (${l.length} embauche${l.length > 1 ? "s" : ""} : ${l.map((x) => x.nom).join(", ")})`;
-}
-
 /** Ce que le certificat de conformité (nature 41) dit de chaque personne. */
 function certificatParPersonne(ligne) {
   const dpae = ((ligne && ligne.retours) || []).flatMap((x) => x.dpae || []);
@@ -529,45 +509,11 @@ function certificatParPersonne(ligne) {
       ${pastilleDeLEtat(x.pastille)}</li>`).join("")}</ul>`;
 }
 
-function encartRepetition(r, quoi, a) {
+/** Où en est le test de CE contenu, tel que le moteur le dit (`titre`, `phrase`, `couleur` de la répétition). */
+function encartRepetition(r) {
   if (!r) return "";
-  const cette = (quoi === "dsn" ? "Cette DSN" : "Cette DPAE")
-    + (quoi === "dsn" ? "" : echapper(embauchesDe(a)));
-  // Deux cas : déjà testée et conforme (l'envoyer ?), ou envoyée en test et
-  // ses retours attendus.
-  if (r.etat === "testee") {
-    return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
-      <b>${cette} est testée — conforme. Voulez-vous l'envoyer ?</b>
-      Testée le ${echapper(quand(r.conforme.quand))} : le même contenu est
-      passé au bac à sable sans anomalie. ${enFictive() ? "L'envoi, simulé, est le bouton « Envoyer — simulé »." : "Le dépôt réel est le bouton « Envoyer le réel »."}
-      ${certificatParPersonne(r.conforme)}</div>`;
-  }
-  if (r.etat === "en_test") {
-    return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
-      <b>${cette} est en test — son compte rendu est attendu</b>
-      Envoyée en test le ${echapper(quand(r.conforme.quand))}. ${enFictive() ? "L'envoi simulé se" : "Le dépôt réel se"}
-      fait ici, une fois ce compte rendu revenu conforme.</div>`;
-  }
-  // Jamais essayé : ce n'est pas une mise en garde, c'est l'étape suivante
-  const rate = (r.ratees || []).length || (r.perimees || []).length;
-  return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
-    <b>${rate ? "Pas de test valable pour ce contenu" : "D'abord, le dépôt de test"}</b>
-    ${echapper(situationRepetition(r))} ${enFictive() ? "L'envoi simulé se fait une fois le" : "Le dépôt réel se fait une fois le"}
-    test revenu conforme.</div>`;
-}
-
-function situationRepetition(etat) {
-  const ratees = etat.ratees || [], perimees = etat.perimees || [];
-  if (ratees.length) {
-    return `Ce contenu a été essayé en test le ${quand(ratees[ratees.length - 1].quand)}`
-      + ` et l'essai a échoué : ${String(etat.motif || "").replace(/\.$/, "")}.`
-      + ` C'est cela qu'il faut corriger, le même refus attend en réel.`;
-  }
-  if (perimees.length) {
-    return `Un fichier du même nom a bien été essayé le ${quand(perimees[perimees.length - 1].quand)},`
-      + ` mais son contenu a changé depuis : un octet qui bouge rend le test caduc.`;
-  }
-  return "Ce contenu n'a jamais été déposé en test.";
+  return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}"><b>${echapper(r.titre)}</b>
+    ${echapper(r.phrase)}${r.etat === "testee" ? certificatParPersonne(r.conforme) : ""}</div>`;
 }
 
 /** Le verrou test → réel. Deux issues, et la première est la bonne : faire
@@ -579,7 +525,7 @@ function boiteRepetition(etat, quoi, repeter, quandMeme) {
     <h3>Ce contenu n'a pas été répété</h3>
     <div class="encart attention">
       <b>Aucun dépôt de test ne répond de ce fichier</b>
-      ${echapper(situationRepetition(etat))}
+      ${echapper(etat.phrase)}
     </div>
     <p class="note">Un dépôt de test exécute les mêmes contrôles et rend le
       même bilan, sans rien conserver et sans rien déclarer. C'est la seule

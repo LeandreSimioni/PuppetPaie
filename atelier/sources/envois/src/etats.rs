@@ -1074,7 +1074,46 @@ pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R
         "ratees": ratees, "perimees": perimees, "couleur": couleur, "motif": motif,
     });
     r["etat"] = json!(etat_du_test(&r));
+    let (titre, phrase) = phrase_du_test(&r, quoi);
+    r["titre"] = json!(titre);
+    r["phrase"] = json!(phrase);
     Ok(r)
+}
+
+/// CE QUE L'ENCART DU TEST DIT, titre et phrase, d'apres ou il en est (`etat_du_test`) : la page et `moteur route` les
+/// lisent tels quels.
+fn phrase_du_test(r: &Value, quoi: &str) -> (String, String) {
+    let cette = if quoi.eq_ignore_ascii_case(DPAE) { "Cette DPAE" } else { "Cette DSN" };
+    let quand = |l: &Value| quand_lisible(&l["quand"]);
+    let derniere = |k: &str| r[k].as_array().and_then(|l| l.last()).map(quand).unwrap_or_default();
+    const ENSUITE: &str = "Le dépôt réel se fait une fois le test revenu conforme.";
+    match etat_du_test(r) {
+        "testee" => (
+            format!("{} est testée — conforme. Voulez-vous l'envoyer ?", cette),
+            format!("Testée le {} : le même contenu est passé au bac à sable sans anomalie.", quand(&r["conforme"])),
+        ),
+        "en_test" => (
+            format!("{} est en test — son compte rendu est attendu", cette),
+            format!("Envoyée en test le {}. {}", quand(&r["conforme"]), ENSUITE),
+        ),
+        "test_refuse" => (
+            "Le test est refusé".into(),
+            format!(
+                "Essayé le {} : {}. Le même refus attendrait le dépôt réel : c'est cela qu'il faut corriger.",
+                derniere("ratees"),
+                valeur_en_texte(&r["motif"]).trim_end_matches('.')
+            ),
+        ),
+        _ if vrai(&r["perimees"]) => (
+            "Pas de test valable pour ce contenu".into(),
+            format!(
+                "Un fichier du même nom a été essayé le {}, mais son contenu a changé depuis : le test ne vaut plus. {}",
+                derniere("perimees"),
+                ENSUITE
+            ),
+        ),
+        _ => ("D'abord, le dépôt de test".into(), format!("Ce contenu n'a jamais été déposé en test. {}", ENSUITE)),
+    }
 }
 
 // -------------------------------------------------------------------- flux_de

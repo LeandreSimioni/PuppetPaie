@@ -48,12 +48,13 @@ function serveurPerdu() {
  * seule demande `mois` les rend toutes, gardées en mémoire
  * par la fenêtre elle-même, sans calcul. Le calcul s'est fait avant, quand
  * quelque chose a changé. Chaque lecture garde sa forme (résultat ou refus) :
- * les fonctions qui dessinent n'ont pas changé.
+ * les fonctions qui dessinent n'ont pas changé. Les routes que la demande `mois` sert sont celles qu'elle rend (les
+ * clés de `lectures`), retenues à chaque lecture.
  *
  * Une route qui écrit le dit dans sa réponse (`ecrit`) : ce qui a été lu part
  * alors — on n'affiche jamais un état qu'on aurait pu changer soi-même. */
-const LECTURES_DU_MOIS = new Set(["saisie", "contrats-en-cours", "etat-du-mois",
-  "fins-de-contrat", "etat-par-engagement", "imprevus"]);
+const LECTURES_DU_MOIS = new Set();
+function retenirLesLectures(lectures) { Object.keys(lectures || {}).forEach((k) => LECTURES_DU_MOIS.add(k)); }
 /* LE CATALOGUE DES ROUTES (`routes`), lu au démarrage : la fiche de chaque route, son acte (`lit`, `ecrit`, `engage`) et ce
  * qui est « avancé ». Le même que `moteur routes --json --avance`. */
 let CATALOGUE = {};
@@ -89,6 +90,7 @@ function lireLeMois(mois, perimeAdmis = false) {
   const generation = LU_GENERATION;
   const promesse = appelerMoteur("mois", perimeAdmis ? { mois } : { mois, attendre: true }).then((r) => {
     const lu = { mois, lectures: r.lectures || {}, perime: !!r.perime };
+    retenirLesLectures(lu.lectures);
     if (generation === LU_GENERATION) LU = lu;
     if (LU_EN_COURS && LU_EN_COURS.promesse === promesse) LU_EN_COURS = null;
     return lu;
@@ -106,6 +108,7 @@ function oublierLeMois() { LU = null; LU_EN_COURS = null; LU_GENERATION++; }
  *  aurait faite, servie de même (dernier état connu, `perime` s'il l'est). */
 function poserLeMois(mois, ecran) {
   LU = { mois, lectures: (ecran && ecran.lectures) || {}, perime: !!(ecran && ecran.perime) };
+  retenirLesLectures(LU.lectures);
   LU_EN_COURS = null;
 }
 
@@ -137,6 +140,7 @@ function verifierLeMois(mois, peint) {
     if (!VERIF || VERIF.promesse !== promesse) return;
     const ancien = LU && LU.mois === mois ? LU : null;
     const frais = { mois, lectures: r.lectures || {}, perime: false };
+    retenirLesLectures(frais.lectures);
     LU = frais;
     if (ancien) await repeindreLeMois(mois, ancien, frais);
   }).catch((e) => {
@@ -167,7 +171,7 @@ async function api(route, charge = {}) {
   const mois = moisDeLaLecture(route, charge);
   if (mois) {
     const lu = await lireLeMois(mois);
-    return structuredClone(lireReponse(lu.lectures[route]));
+    if (route in lu.lectures) return structuredClone(lireReponse(lu.lectures[route]));
   }
   if (acteDe(route) && acteDe(route) !== "lit") { await attendreLeMoisFrais(); oublierLeMois(); }
   return appelerMoteur(route, charge);

@@ -106,7 +106,7 @@ pub const ROUTES: &[Fiche] = &[
         rend: "franchise (la question et ses plafonds), champs à montrer, consequence en clair, complet, due, part_taxee",
         refus: &[FORME, ILLISIBLE],
         acte: Acte::Lit,
-        avance: true,
+        avance: false,
         phrase: 0,
     },
     Fiche {
@@ -133,11 +133,11 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "forcer", sens: "vrai : écrire malgré une erreur de forme", avance: true },
         ],
         exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics","numero_objet":"266Z00952012"}}"#,
-        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi), rien n'est écrit ; écrite : cle, etat (relu), enregistre_a",
+        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi), rien n'est écrit ; sinon : cle, etat (relu), enregistre_a (vide si rien n'a changé), phrase (écrite, ou rien n'a changé)",
         refus: &[REFUSEE, OPERATION, MANQUE, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
         avance: false,
-        phrase: 0,
+        phrase: 60,
     },
     Fiche {
         nom: "activer-fiche",
@@ -1762,11 +1762,12 @@ fn fiche_refusee(anomalies: &[Value]) -> Echec {
     Echec { classe: Some("FicheRefusee"), message: json!({"message": message, "anomalies": anomalies}).to_string() }
 }
 
-/// Ce que l'ecriture d'une fiche a fait : sa cle (celle d'une fiche neuve est fabriquee ici)
-/// et les anomalies.
+/// Ce que l'ecriture d'une fiche a fait : sa cle (celle d'une fiche neuve est fabriquee ici), les anomalies, et si le
+/// fichier a change (une fiche enregistree telle qu'elle est n'ecrit rien).
 pub(crate) struct FicheEcrite {
     pub(crate) cle: Option<String>,
     pub(crate) anomalies: Vec<Value>,
+    pub(crate) ecrit: bool,
 }
 
 /// `enregistrer-fiche` : une fiche de l'ecran, ecrite (`ecrire_fiche`). Une valeur existante qui change demande sa date
@@ -1791,9 +1792,17 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
             depuis = a["depuis"].clone();
         }
     }
+    let neuve = nom != "entreprise" && cle.as_deref().map_or(true, str::is_empty);
     let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), &depuis, note)?;
+    let en_erreur = e.anomalies.iter().any(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur"));
+    let phrase = match (e.ecrit, neuve, forcer && en_erreur) {
+        (false, _, _) => "Rien n'a changé : rien n'est écrit.",
+        (true, _, true) => "Enregistré malgré les erreurs.",
+        (true, true, false) => "Fiche créée.",
+        (true, false, false) => "Enregistré.",
+    };
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
-    Ok(json!({"cle": e.cle, "etat": etat_relu(o, ctx)?, "enregistre_a": maintenant()}))
+    Ok(json!({"cle": e.cle, "etat": etat_relu(o, ctx)?, "enregistre_a": e.ecrit.then(maintenant), "phrase": phrase}))
 }
 
 /// `poser-courriel` : `{"salarie", "email"}`, le courriel d'un salarie, saisi la ou il manque (la boite des contrats a
@@ -1981,9 +1990,12 @@ pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, Stri
 }
 
 fn finir_fiche(cle: Option<String>, chemin: &Path, contenu: Map<String, Value>, anomalies: Vec<Value>) -> R<FicheEcrite> {
-    sauver_avant(chemin)?;
-    ecrire(chemin, Value::Object(contenu))?;
-    Ok(FicheEcrite { cle, anomalies })
+    let ecrit = objet_du_fichier(chemin)? != contenu;
+    if ecrit {
+        sauver_avant(chemin)?;
+        ecrire(chemin, Value::Object(contenu))?;
+    }
+    Ok(FicheEcrite { cle, anomalies, ecrit })
 }
 
 // ------------------------------------------------------------------ la fiche demandee par courriel

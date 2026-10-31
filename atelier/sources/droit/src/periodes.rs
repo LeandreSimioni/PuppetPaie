@@ -194,7 +194,7 @@ art. X.3 : le premier ou le dernier mois incomplet d'un artiste)",
             ),
         };
         if !self.jours_travailles.dits {
-            dit.push_str(". La fiche ne dit pas ses jours travaillés : ceux que sa case montre, du lundi au vendredi");
+            dit.push_str(". La fiche ne dit pas ses jours travaillés : le logiciel compte du lundi au vendredi");
         }
         if self.regle == RegleDuMoisIncomplet::Ccneac1285Artiste && self.fraction > Decimal::ONE {
             dit.push_str(

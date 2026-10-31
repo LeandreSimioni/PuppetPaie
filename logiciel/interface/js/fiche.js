@@ -98,7 +98,7 @@ function dessinerFormulaire(fiche) {
     if (sous) return structureHtml(c, v, sous, a, avecPermanents);
     // LA CONVENTION SE CHOISIT, ELLE NE SE TAPE PAS : l'IDCC seul ; son
     // libelle et le code convention DSN, le moteur les tire de lui (voir
-    // `brancherConvention`). La liste vient du moteur
+    // `routes::fiches::deriver`). Les champs propres a une convention suivent leur condition (`si`). La liste vient du moteur
     // (`web._conventions`, section `par_convention` du socle) : l'ecran
     // n'invente ni un numero ni un libelle, et il DIT quand une convention
     // existe sans que ses taux soient releves -- le calcul la refuse.
@@ -245,11 +245,10 @@ function dessinerFormulaire(fiche) {
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
       </div>`;
     }
-    // LES JOURS TRAVAILLÉS : une case par jour de la semaine. Sans valeur, celles
-    // que le moteur compte (`droit::conges::JoursTravailles`) : du lundi au vendredi ;
-    // elles ne partent que si on les touche (`data-absent`, `lireFormulaire`).
+    // LES JOURS TRAVAILLÉS : une case par jour de la semaine, cochée si la fiche le dit. Ce que le moteur compte quand
+    // elle ne dit rien, l'aide du champ le dit ; les cases ne partent que si on les touche (`data-absent`, `lireFormulaire`).
     if (c.cle === "jours_travailles" && FICHE_ACTIVE === "salarie") {
-      const coches = Array.isArray(v) ? v : JOURS_DE_LA_SEMAINE.slice(0, 5);
+      const coches = Array.isArray(v) ? v : [];
       return `<div class="champ pleine${c.si_permanents ? " champ-permanents" : ""}"${
           c.si_permanents && !avecPermanents ? " hidden" : ""}>
         <label>${echapper(c.libelle)} ${aideHtml(c.cle, c.aide)}</label>
@@ -373,9 +372,6 @@ function dessinerFormulaire(fiche) {
         const auMois = ((ETAT.configuration || {}).salaries_au_mois || []).includes(fiche.cle) || enCours;
         const rempli = dedans.some((c) => {
           const v = fiche.donnees[c.cle];
-          // Les jours du lundi au vendredi sont la valeur que la case montre.
-          if (c.cle === "jours_travailles" && Array.isArray(v)
-              && v.join() === JOURS_DE_LA_SEMAINE.slice(0, 5).join()) return false;
           return v !== null && v !== undefined && v !== "";
         }) || !!fiche.donnees.sante_svp;
         return `<details class="bloc avance" data-bloc-permanents="1"${auMois || rempli ? " open" : ""}>
@@ -465,7 +461,6 @@ function dessinerFormulaire(fiche) {
   peindreCoutAnnee();
   brancherListes(fiche);
   brancherNationalite();
-  brancherConvention();
   brancherUrssaf();
   brancherSignatureCourriel();
   brancherSante(fiche);
@@ -677,47 +672,6 @@ function brancherNationalite() {
   poser();
 }
 
-/*  UN SEUL CHOIX POUR LA CONVENTION
- *
- *  L'IDCC se choisit, et rien d'autre : le code convention DSN de
- *  l'etablissement (S21.G00.11.022), le moteur le tire de l'IDCC
- *  (`routes::fiches::deriver`) ; le libelle de la convention, le bulletin
- *  et le contrat le lisent au catalogue par l'IDCC
- *  (`droit::bareme::libelle_convention`).
- *
- *  Et l'ANNEXE ne se montre que pour la 3090 : les six annexes sont les
- *  siennes, elles ne veulent rien dire ailleurs. Elle ne se declare nulle
- *  part -- elle sert aux minima conventionnels.
- */
-function brancherConvention() {
-  const idcc = document.querySelector('#config-formulaire [data-cle="idcc"]');
-  if (!idcc) return;
-  const annexe = document.querySelector('#config-formulaire [data-cle="annexe_convention"]');
-  const poser = () => {
-    const v = String(idcc.value || "");
-    const champAnnexe = annexe && annexe.closest(".champ");
-    if (champAnnexe) champAnnexe.hidden = v !== "3090";
-    // CE QUI NE CONCERNE QU'UNE CONVENTION, ET QU'UNE GRANDE STRUCTURE.
-    // Le CSE decide du FNAS de la CCNEAC ; l'exemption de la
-    // CASC-SVP n'existe que dans la 3090, et seulement a cinquante salaries
-    // avec un CSE -- qui se dit alors dans le meme champ. Une petite
-    // compagnie ne voit ni l'un ni l'autre, sauf s'ils sont deja remplis.
-    const casc = document.querySelector('#config-formulaire [data-cle="casc_svp_exemptee"]');
-    const cse = document.querySelector('#config-formulaire [data-cle="representation_personnel"]');
-    const champCasc = casc && casc.closest(".champ");
-    const champCse = cse && cse.closest(".champ");
-    if (champCasc) champCasc.hidden = v !== "3090";
-    if (champCse) {
-      champCse.hidden = !(v === "1285" || (v === "3090" && casc && casc.checked)
-                          || String(cse.value || "").trim());
-    }
-  };
-  idcc.addEventListener("change", poser);
-  const casc = document.querySelector('#config-formulaire [data-cle="casc_svp_exemptee"]');
-  if (casc) casc.addEventListener("change", poser);
-  poser();
-}
-
 /*  LE NUMERO DE SECURITE SOCIALE SE COLLE D'UN COUP
  *
  *  Il s'ecrit en quinze chiffres sur la carte Vitale ; la fiche le garde en
@@ -745,7 +699,6 @@ function brancherNir() {
 
 /*  CE QUE LA FICHE SALARIE BRANCHE DE PLUS
  *
- *  - l'echelon CCNEAC ne se montre que pour une compagnie de la CCNEAC ;
  *  - « Exporter ses documents » mene a l'onglet Exports, le dossier de ce
  *    salarie deja choisi, sur l'annee la plus recente ;
  *  - une fiche neuve peut partir chez la personne, par courriel ;
@@ -753,11 +706,6 @@ function brancherNir() {
  */
 function brancherSalarie(fiche) {
   if (FICHE_ACTIVE !== "salarie") return;
-  const idcc = String((((ETAT.configuration || {}).entreprise || {}).donnees || {}).idcc || "");
-  const echelon = document.querySelector('#config-formulaire [data-cle="echelon_ccneac"]');
-  if (echelon && idcc !== "1285" && !String(echelon.value || "").trim()) {
-    echelon.closest(".champ").hidden = true;
-  }
   const exporter = document.getElementById("config-exporter");
   if (exporter) exporter.onclick = () => exporterSalarie(fiche.cle);
   const inviter = document.getElementById("invitation-envoyer");
@@ -891,8 +839,9 @@ function brancherPermanents() {
 }
 
 /** La condition d'un champ (`si`, `si_entreprise` du moteur) : chaque clé
- *  doit valoir l'une des valeurs dites ; "*" veut dire « remplie ». */
+ *  doit valoir l'une des valeurs dites ; "*" veut dire « remplie ». Une liste : l'une des conditions. */
 function conditionRemplie(si, lire) {
+  if (Array.isArray(si)) return si.some((s) => conditionRemplie(s, lire));
   return Object.entries(si || {}).every(([k, vals]) => {
     const v = String(lire(k) ?? "").trim();
     return vals.includes(v) || (vals.includes("*") && v !== "" && v !== "false");
@@ -921,7 +870,7 @@ function brancherConditions() {
   form.appliquerConditions = appliquer;
   const cles = new Set();
   form.querySelectorAll("[data-si]").forEach((el) => {
-    try { Object.keys(JSON.parse(el.dataset.si)).forEach((k) => cles.add(k)); } catch (e) { /* rien */ }
+    try { [JSON.parse(el.dataset.si)].flat().forEach((s) => Object.keys(s).forEach((k) => cles.add(k))); } catch (e) { /* rien */ }
   });
   cles.forEach((k) => {
     const c = form.querySelector(`[data-cle="${CSS.escape(k)}"]`);
@@ -1523,11 +1472,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
     ETAT = r.etat;
     // Une fiche neuve : le moteur a fabriqué sa clé, c'est elle qu'on ouvre.
     if (!fiche.cle && r.cle) { CLE_ACTIVE = r.cle; FICHE_NEUVE = false; }
-    // Le mot suffit, sans la clé technique. La fiche Entreprise n'a pas de
-    // clé et existe dès que la compagnie existe : elle s'enregistre, elle ne
-    // se crée pas.
-    const neuve = !fiche.cle && FICHE_ACTIVE !== "entreprise";
-    dire(forcer ? "Enregistré malgré les erreurs." : neuve ? "Fiche créée." : "Enregistré.");
+    dire(r.phrase);
     FICHE_MODIFIEE = false;
     // ENREGISTRER REFERME LA FICHE. Elle se redessinait ouverte,
     // identique : rien ne distinguait une fiche enregistree d'une fiche qui
@@ -1540,7 +1485,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
     if (FICHE_ACTIVE === "entreprise") {
       // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé.
       const note = document.getElementById("config-modifie");
-      if (note) { note.hidden = false; note.textContent = `enregistré à ${r.enregistre_a.slice(11, 16)}`; }
+      if (note && r.enregistre_a) { note.hidden = false; note.textContent = `enregistré à ${r.enregistre_a.slice(11, 16)}`; }
     } else if (enregistree) {
       const rang = document.querySelector(`#config-liste .rang.fiche[data-cle="${CSS.escape(enregistree)}"]`);
       if (rang) {

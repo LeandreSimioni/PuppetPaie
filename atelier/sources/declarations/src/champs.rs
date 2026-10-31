@@ -565,9 +565,12 @@ fn comme_la_page(v: Option<&Value>) -> String {
 /// UNE CONDITION DE `champs-base.json` (`si`, `exige_si`) remplie par la fiche `donnees` : chaque cle de la condition
 /// vaut l'une des valeurs listees ; `"*"` admet toute valeur non vide (et pas `false`). LA MEME REGLE que la page applique
 /// pour replier un champ (`fiche.js`, `conditionRemplie`) : un manque de « Pour demarrer » et un refus de la DSN se
-/// jugent sur ce que l'ecran montre. Une condition absente est
+/// jugent sur ce que l'ecran montre. Une liste de conditions est remplie quand l'une l'est ; une condition absente est
 /// remplie.
 pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
+    if let Some(l) = si.as_array() {
+        return l.iter().any(|s| condition_remplie(s, donnees));
+    }
     let Some(o) = si.as_object() else { return true };
     o.iter().all(|(k, vals)| {
         let v = comme_la_page(donnees.get(k));

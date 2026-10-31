@@ -728,7 +728,7 @@
    "ecran": true
   },
   {
-   "_note": "LA REPRESENTATION DU PERSONNEL, que la CCNEAC lit (23/09/2026) : son\nFNAS en depend (article III.3.1). Sans objet pour la 3090 et sous onze\nsalaries ; au-dela, `droit::bareme::representation_du_personnel` la demande\nplutot que de supposer une carence.",
+   "_note": "LA REPRESENTATION DU PERSONNEL, que la CCNEAC lit (23/09/2026) : son\nFNAS en depend (article III.3.1). En 3090, il ne sert qu'a l'exemption de la CASC-SVP\n(`droit::bareme::casc_exemptee`). Sous onze salaries, sans objet ; au-dela, `droit::bareme::representation_du_personnel` la demande\nplutot que de supposer une carence.",
    "cle": "representation_personnel",
    "libelle": "Comité social et économique (CSE)",
    "forme": "choix",
@@ -746,11 +746,21 @@
    "derive_de": null,
    "rubrique": null,
    "si_permanents": false,
-   "si": {
-    "idcc": [
-     "1285"
-    ]
-   },
+   "si": [
+    {
+     "idcc": [
+      "1285"
+     ]
+    },
+    {
+     "idcc": [
+      "3090"
+     ],
+     "casc_svp_exemptee": [
+      "true"
+     ]
+    }
+   ],
    "si_etablissements": false,
    "si_entreprise": null,
    "booleen_defaut": true,
@@ -2049,7 +2059,7 @@
    "cle": "jours_travailles",
    "libelle": "Jours travaillés",
    "forme": "structure",
-   "aide": "Les jours de la semaine où il travaille, d'après son contrat. Ses heures du mois s'y comptent : le salaire d'un mois commencé ou fini en cours de route, ce qu'une absence retire.",
+   "aide": "Les jours de la semaine où il travaille, d'après son contrat. Ses heures du mois s'y comptent : le salaire d'un mois commencé ou fini en cours de route, ce qu'une absence retire. Sans réponse, le logiciel compte du lundi au vendredi.",
    "obligatoire": false,
    "longueur": null,
    "exemple": "",
