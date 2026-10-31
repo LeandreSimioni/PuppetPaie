@@ -379,11 +379,11 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
 
     let nom_f = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let nom_recap = recap.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let mut etapes = vec![json!({
+    let etapes = vec![json!({
         "cle": "depot",
         "titre": "Depot",
         "detail": format!(
-            "Deposer {}.zip sur net-entreprises.fr, rubrique DPAE, AVANT le debut du contrat. Pour la saisie en ligne, recopier {}. Le moteur depose lui-meme : en test, sans rien demander ; en reel, avec le mot de passe du logiciel, tape par l'utilisateur au moment du depot. Le geste : dans la fenetre, l'action « Envoyer les DPAE… » du mois (le test d'abord, puis l'envoi du fichier teste).",
+            "Deposer {}.zip sur net-entreprises.fr, rubrique DPAE, AVANT le debut du contrat. Pour la saisie en ligne, recopier {}. Le moteur depose lui-meme : en test, sans rien demander ; en reel, avec le mot de passe du logiciel, tape par l'utilisateur au moment du depot. Le geste : dans la fenetre, l'action « Envoyer les DPAE… » du mois (le test d'abord, puis l'envoi du fichier teste) ; la demande de taux de PAS des embauches qui n'en ont pas part avec elle.",
             nom_f, nom_recap
         ),
         "commande": Value::Null,
@@ -400,15 +400,6 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let _ = ecrits;
     let mut fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
     if let Some(a) = &amorce {
-        etapes.push(json!({
-            "cle": "amorcage",
-            "titre": "Demander les taux de PAS",
-            "detail": format!(
-                "Deposer aussi {} signalement(s) d'amorcage (nature 08), un par salarie : ils demandent a la DGFiP le taux de prelevement a la source de ces embauches, qui repond sous cinq jours ouvres. Meme site, meme mot de passe, rubrique DSN. Le geste : le depot depuis la fenetre (boite « Deposer la DSN », le test d'abord). Sans eux, la premiere paie partira sur la grille de l'article 204 H, qui preleve le plus souvent PLUS que le taux du salarie.",
-                a.fichiers.len()
-            ),
-            "commande": Value::Null,
-        }));
         fichiers.extend(a.fichiers.iter().map(|p| fichier_json(p)));
     }
     let json = json!({

@@ -654,15 +654,12 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             let engagements: Vec<Value> = attente.iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
             let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": engagements}))?;
             let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
+            // La DPAE emporte la demande de taux de PAS de ses embauches (`depot_acte::deposer_dpae`).
             for reel in [false, true] {
                 deposer_dpae_joue(d, ctx, &fichier, reel)?;
                 // LE BILAN DU TEST AVANT LE REEL (`depot_acte::exiger_repetition`) ; puis celui du reel.
                 rattacher(d, ctx)?;
             }
-            // LE SIGNALEMENT D'AMORCAGE (nature 08, motif 01 « embauche effective ») part AVEC LA DPAE, dans le meme
-            // geste (atelier/README.md, « Demander un taux » ; `crate::routes::depots::dpae` produit les deux) : pas a
-            // l'echeance de la DSN. Un signalement ne recoit pas d'AER : son rangement n'a rien a dire.
-            deposer_les_dsn(d, ctx, mois, |a| a.champ("nature") == "08", &mut Vec::new())?;
             Ok(true)
         }),
         // UN CONTRAT REVIENT SIGNE S'IL EST PARTI (par courriel ou imprime) : jamais un retour sans son depart.

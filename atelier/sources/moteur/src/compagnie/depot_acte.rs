@@ -660,7 +660,55 @@ pub fn deposer_dpae_avec(
         None => client.as_mut(),
     };
     let mut suites = Suites::default();
-    let fait = envois::depot_acte::deposer_dpae(ctx, branchement, &d, &contenu, embauches, c, apercu["deja_depose"].clone(), &mut suites);
+    let fait = envois::depot_acte::deposer_dpae(ctx, branchement, &d, &contenu, embauches.clone(), c, apercu["deja_depose"].clone(), &mut suites);
     crate::compagnie::suites::faire(ctx, suites)?;
-    fait
+    let fait = fait?;
+    if let Some(dossier) = chemin.parent() {
+        deposer_les_amorcages(ctx, dossier, &embauches, reel, preuve, qui, contournement);
+    }
+    Ok(fait)
+}
+
+/// LA DEMANDE DE TAUX DE PAS PART AVEC LA DPAE : le signalement d'amorcage (nature 08, motif 01) que la production de la
+/// DPAE a ecrit a cote d'elle pour chaque embauche dont le taux manque (`amorcage_demande::produire`) part dans le meme
+/// geste, dans le meme mode, sous la meme preuve, par le chemin de tout signalement (`deposer_dsn`). La DGFiP repond sous
+/// cinq jours ouvres (compte rendu de nature 94). Il ne fait jamais echouer la DPAE, deja partie : un signalement qui ne
+/// part pas reste a demander, et la veille le dit (`droit::pas::situation`).
+/// Un signalement deja parti dans ce mode ne repart pas. Le reel ne part que sur le bilan lu de son test : s'il n'est pas
+/// encore releve, les retours de la journee se relevent une fois avant.
+fn deposer_les_amorcages(ctx: &Contexte, dossier: &Path, embauches: &[Value], reel: bool, preuve: Option<&Preuve>, qui: &str, contournement: &str) {
+    let prefixe = format!("Amorcage{}_", declarations::amorcage::EMBAUCHE);
+    let Ok(lus) = std::fs::read_dir(dossier) else { return };
+    let noms: Vec<String> = lus.filter_map(|e| e.ok()).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.starts_with(&prefixe) && n.ends_with(".dsn")).collect();
+    let mut fichiers: Vec<PathBuf> = Vec::new();
+    for cle in embauches.iter().filter_map(|e| e["salarie"].as_str()) {
+        let du_salarie = format!("{}{}_", prefixe, cle);
+        if let Some(nom) = noms.iter().filter(|n| n.starts_with(&du_salarie) && n[du_salarie.len()..].len() == "AAAAMMJJ.dsn".len()).max() {
+            let f = dossier.join(nom);
+            if !fichiers.contains(&f) {
+                fichiers.push(f);
+            }
+        }
+    }
+    let parti = |f: &Path| -> bool {
+        let (Ok(octets), Ok(lignes)) = (std::fs::read(f), envois::journal::lu(&ctx.racine).map(|j| j.lignes)) else { return false };
+        let empreinte = envois::journal::empreinte(&octets);
+        if reel {
+            return etats::deja_depose(&lignes, "dsn", &empreinte).is_ok_and(|l| vrai(&l));
+        }
+        let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        etats::repetition(&lignes, "dsn", &empreinte, &nom).is_ok_and(|r| vrai(&r["conforme"]))
+    };
+    let mut releve = false;
+    for f in fichiers.iter().filter(|f| !parti(f)) {
+        let fichier = json!(f.to_string_lossy());
+        let mut fait = deposer_dsn(ctx, &fichier, reel, preuve, qui, false, contournement);
+        if !releve && matches!(&fait, Err(e) if e.classe == Some("RepetitionManquante")) {
+            releve = true;
+            let (debut, fin) = envois::releve_retours::derniere_journee();
+            let _ = crate::compagnie::releve::relever_retours(ctx, debut, fin, false, "production", None, "");
+            fait = deposer_dsn(ctx, &fichier, reel, preuve, qui, false, contournement);
+        }
+        let _ = fait;
+    }
 }

@@ -624,7 +624,9 @@ arrive solde la demande.
   `--demander` ;
 - **motif 01**, embauche effective. Il part **avec la DPAE**, dans le même
   geste et le même mot de passe : `moteur dpae` produit les deux, et
-  dit ce qu'il a demandé — ou pourquoi il n'a rien demandé.
+  dit ce qu'il a demandé — ou pourquoi il n'a rien demandé ; le dépôt de la
+  DPAE (`deposer-dpae`, ou la fenêtre) dépose aussi ses signalements, en test
+  avec le test, en réel avec le réel.
 
 Il n'existe **aucun motif « mon taux a expiré »**. Un intermittent déjà sous
 contrat dont le taux périme sans nouvelle embauche n'a aucun levier : c'est la

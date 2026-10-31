@@ -1291,6 +1291,58 @@
         ]
       },
       {
+        "quoi": "dsn",
+        "quand": "2026-11-20T07:00:00",
+        "origine": "compagnie fictive : joue par l'horloge",
+        "mois": "2026-11-20",
+        "fichier": "Amorcage01_FULLER_20261120.dsn",
+        "empreinte": "f1c77fe343b0ea67",
+        "mode": "test",
+        "qui": "horloge",
+        "accepte": true,
+        "destinataire": "net-entreprises",
+        "flux": "FICTIF-D55D3CBC382F",
+        "retours": [
+          {
+            "statut": "fictive",
+            "publication": "20261120070000",
+            "anomalies": [],
+            "nature": "10",
+            "verdict": "OK",
+            "libelle": "Accuse de reception (compagnie fictive)"
+          },
+          {
+            "statut": "fictive",
+            "publication": "20261120070000",
+            "anomalies": [],
+            "nature": "11",
+            "verdict": "OK",
+            "libelle": "Bilan de conformite (compagnie fictive)"
+          }
+        ],
+        "reponse": "<idflux>FICTIF-D55D3CBC382F</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
+        "trace": "retours/depots/20261120-070000_depot-dsn_20261120.txt",
+        "detail": {
+          "preuve": "",
+          "type": "01",
+          "nature": "08",
+          "ordre": "1",
+          "versements": [],
+          "salaries": 1,
+          "pas_bareme": 0,
+          "repetition": null,
+          "ordre_test": null,
+          "etablissement": "00011"
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
+      },
+      {
         "quoi": "dpae",
         "quand": "2026-11-20T07:00:00",
         "origine": "compagnie fictive : joue par l'horloge",
@@ -1301,7 +1353,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "urssaf",
-        "flux": "FICTIF-D55D3CBC382F",
+        "flux": "FICTIF-52757D01254D",
         "retours": [
           {
             "statut": "fictive",
@@ -1321,7 +1373,7 @@
             "dpae": []
           }
         ],
-        "reponse": "<idflux>FICTIF-D55D3CBC382F</idflux>\nCompagnie fictive : DPAE reelle jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-52757D01254D</idflux>\nCompagnie fictive : DPAE reelle jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-070000_depot-dpae_202611-2.txt",
         "detail": {
           "preuve": "fictive",
@@ -1339,58 +1391,6 @@
               "fin": "2026-11-21"
             }
           ]
-        },
-        "versions": [
-          {
-            "salarie": "FULLER",
-            "numero": "FU1.26.01",
-            "version": 1
-          }
-        ]
-      },
-      {
-        "quoi": "dsn",
-        "quand": "2026-11-20T07:00:00",
-        "origine": "compagnie fictive : joue par l'horloge",
-        "mois": "2026-11-20",
-        "fichier": "Amorcage01_FULLER_20261120.dsn",
-        "empreinte": "f1c77fe343b0ea67",
-        "mode": "test",
-        "qui": "horloge",
-        "accepte": true,
-        "destinataire": "net-entreprises",
-        "flux": "FICTIF-52757D01254D",
-        "retours": [
-          {
-            "statut": "fictive",
-            "publication": "20261120070000",
-            "anomalies": [],
-            "nature": "10",
-            "verdict": "OK",
-            "libelle": "Accuse de reception (compagnie fictive)"
-          },
-          {
-            "statut": "fictive",
-            "publication": "20261120070000",
-            "anomalies": [],
-            "nature": "11",
-            "verdict": "OK",
-            "libelle": "Bilan de conformite (compagnie fictive)"
-          }
-        ],
-        "reponse": "<idflux>FICTIF-52757D01254D</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
-        "trace": "retours/depots/20261120-070000_depot-dsn_20261120.txt",
-        "detail": {
-          "preuve": "",
-          "type": "01",
-          "nature": "08",
-          "ordre": "1",
-          "versements": [],
-          "salaries": 1,
-          "pas_bareme": 0,
-          "repetition": null,
-          "ordre_test": null,
-          "etablissement": "00011"
         },
         "versions": [
           {
@@ -1448,7 +1448,7 @@
           "pas_bareme": 0,
           "repetition": {
             "test": "2026-11-20T07:00:00",
-            "flux": "FICTIF-52757D01254D",
+            "flux": "FICTIF-D55D3CBC382F",
             "empreinte": "f1c77fe343b0ea67",
             "compte_rendu": "ok"
           },
@@ -1779,7 +1779,7 @@
       "empreinte": "b9d6d3e8504d7e18059b47d774ff8493034de500eeb7770c5150e9b7afef75be"
     },
     "retours/depots/20261120-070000_depot-dpae_202611-2.txt": [
-      "<idflux>FICTIF-D55D3CBC382F</idflux>",
+      "<idflux>FICTIF-52757D01254D</idflux>",
       "Compagnie fictive : DPAE reelle jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-070000_depot-dpae_202611.txt": [
@@ -1791,7 +1791,7 @@
       "Compagnie fictive : DSN reelle jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-070000_depot-dsn_20261120.txt": [
-      "<idflux>FICTIF-52757D01254D</idflux>",
+      "<idflux>FICTIF-D55D3CBC382F</idflux>",
       "Compagnie fictive : DSN de test jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261215-100000_depot-dsn_202611-2.txt": [
