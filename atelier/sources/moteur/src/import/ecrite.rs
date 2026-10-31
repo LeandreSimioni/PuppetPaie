@@ -636,25 +636,18 @@ fn copier_repris(ctx: &Contexte, lu: &crate::import::bulletins::DossierLu) -> R<
     Ok((json!({"copies": copies, "identiques": identiques, "differents": differents, "dossier": dossier.display().to_string()}), noms))
 }
 
-/// L'avertissement de l'apercu qui compte les fichiers non repris du dossier.
-fn dit_les_non_repris(a: &Value) -> bool {
-    a.as_str().is_some_and(|t| t.ends_with("dit pourquoi, fichier par fichier."))
-}
-
 /// `importer` avec `{"dossier": ...}` : la copie de ce qui est repris, l'apercu relu dans la copie, l'ecriture.
 fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let aujourdhui = ctx.date;
     let dossier = crate::routes::import::dossier_import(ctx, charge)?;
     // 1. Le dossier tel qu'il est : son compte rendu (pour l'ecran), et la copie de ce qu'il reprend.
-    let (tri, non_repris, copie, noms, deposes) = crate::import::bulletins::lire_dossier(ctx, &dossier, &HashMap::new(), |lu| {
+    let (tri, copie, noms, deposes) = crate::import::bulletins::lire_dossier(ctx, &dossier, &HashMap::new(), |lu| {
         let (copie, noms) = copier_repris(ctx, &lu)?;
         crate::import::incident::noter_les_non_lus(ctx, &lu);
-        let tri =lu.ap.reponse.get("tri").cloned().unwrap_or(Value::Null);
-        let non_repris: Vec<Value> =
-            lu.ap.reponse.get("avertissements").and_then(Value::as_array).into_iter().flatten().filter(|a| dit_les_non_repris(a)).cloned().collect();
+        let tri = lu.ap.reponse.get("tri").cloned().unwrap_or(Value::Null);
         // La copie se relit sous le nom du fichier depose.
         let deposes: HashMap<String, String> = lu.copies.iter().map(|(i, nom)| (nom.clone(), lu.tri.fichiers[*i].chemin.clone())).collect();
-        Ok((tri, non_repris, copie, noms, deposes))
+        Ok((tri, copie, noms, deposes))
     })?;
 
     // 2. D'ABORD LA COPIE, ENSUITE LA LECTURE : l'apercu relu dans les copies de ce dossier (et d'elles seules), prises
@@ -674,10 +667,9 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut imp = rendu?;
 
     let mut reponse = Value::Object(std::mem::take(&mut imp.reponse));
-    // Le compte rendu est celui du dossier lu : ses chemins, ses fichiers non repris (la relecture ne les voit pas).
+    // Le compte rendu est celui du dossier lu (`tri`) : ses chemins, ses fichiers non repris (la relecture ne les voit pas).
     let mut avertissements: Vec<Value> =
-        reponse["avertissements"].as_array().into_iter().flatten().filter(|a| !dit_les_non_repris(a)).cloned().collect();
-    avertissements.extend(non_repris);
+        reponse["avertissements"].as_array().into_iter().flatten().cloned().collect();
     let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
     if !differents.is_empty() {
         avertissements.push(json!(avertissement_differents(&differents, "ce dossier")));

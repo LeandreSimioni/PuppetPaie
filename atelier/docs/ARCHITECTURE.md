@@ -56,7 +56,7 @@ L'espace Cargo `atelier/sources/` a une crate par partie ; chaque flèche descen
 | `routes/` | `moteur route` : une route par geste de l'écran, derrière un aiguillage (`mod.rs`) ; seules à décider, la ligne de commande et la page ne font que les appeler (règle 2) |
 | `interface/` | le serveur local de la page (127.0.0.1, un jeton par appel), l'accueil et ses compagnies, une fenêtre par installation, la veille |
 | `compagnie/` | ce qui garde la compagnie et la fait vivre à côté de ses engagements : le coffre et ses deux mots de passe, la demande d'un acte réel et ses portes (`depot_acte`), le départ des pièces (`depart`), la sauvegarde et la restauration, la mise à jour (`maj`), le bridage, l'ouverture, l'administrateur, le filet, les incidents, les conseils, la clôture et l'export compta (`exercice_ecrit`) |
-| `import/` | le passé d'une compagnie tenu dans un autre logiciel : le tri de la boîte aux lettres, les DSN et AEM (`dsn_aem`), le lecteur unique des bulletins (`bulletin_lu`), les engagements importés (`ecrite`), la nature à dire, la CASC-SVP des mois importés, les écarts de calcul, le caviardage et l'incident d'import |
+| `import/` | le passé d'une compagnie tenu dans un autre logiciel : le tri de la boîte aux lettres, les DSN et AEM (`dsn_aem`), le lecteur unique des bulletins (`bulletin_lu`), les engagements importés (`ecrite`), la nature à dire, la CASC-SVP des mois importés, les écarts de calcul, le caviardage des écarts et le document pas lu |
 | `atelier/` | les outils de l'éditeur, jamais à l'écran : le relevé des textes (`releve/` : LEGI, KALI), les référentiels extraits (`extraire/`), les tables Unicode, la vérification avant commit, le guet, les scénarios du banc, la publication des versions et la clé de l'éditeur (`publier`) ; la redirection vers de faux serveurs et les bulletins fictifs n'existent que dans le binaire de l'atelier (`--features atelier`) |
 | `commandes/` | la ligne de commande `moteur`, mince, au-dessus des parties |
 
@@ -572,10 +572,11 @@ bulletins en PDF, zip, doublons) ; l'import en tire ses fiches et ses **engageme
   le taux AT/MP, le logiciel reconnu, les deux taux et l'écart relatif), et le texte passe quand même par le
   caviardage. Une paie se compare une fois. Ce qui ne se compare pas le dit (une période sans barème, une convention
   sans couche, une ligne sans rubrique).
-- **L'incident d'import** (`import/incident.rs`, `import/caviardage.rs`) : quand des fichiers n'ont pas pu être repris,
-  `importation-incident` montre ce qui partirait chez l'éditeur (le compte rendu de chaque fichier non repris, et le
-  texte des pages caviardé de tout ce qui désigne une personne) ; rien ne part sans le clic « Envoyer »
-  (`importation-incident-envoyer`), et jamais le fichier d'origine.
+- **Le document accepté mais pas lu** (`import/incident.rs`) : à chaque import, un PDF à texte que l'import n'a pas repris
+  part en incident, en silence, un seul par famille (même suite de mots du vocabulaire sur sa première page, même
+  logiciel) ; son texte, masqué par liste blanche (les mots de la table de lecture et des pièces, les codes de rubrique
+  DSN restent ; toute autre lettre devient `X`, tout chiffre `9`), jamais le fichier. Un scan et un fichier qui n'est
+  ni PDF, ni DSN, ni AEM se refusent à l'écran avec leur raison (`import/tri.rs`), sans incident.
 
 ## La DSN
 

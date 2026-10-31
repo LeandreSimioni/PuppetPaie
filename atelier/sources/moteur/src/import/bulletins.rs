@@ -104,6 +104,9 @@ pub(crate) fn non_repris(sort: &str) -> bool {
     matches!(sort, "incoherent" | "incomplet" | "ambigu" | "sans_entetes" | "sans_texte" | "non_reconnu")
 }
 
+/// Ce que l'encart dit d'un import qui laisse des documents : il n'est pas bloquant, et se rejoue.
+pub const REESSAYER: &str = "Le logiciel s'améliore sans cesse : réessayez ces documents plus tard ; ce qui sera repris s'ajoutera à votre historique.";
+
 const A_CREER: &str = "<a creer>";
 
 
@@ -1340,7 +1343,12 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         *comptes.entry(sort).or_default() += 1;
         fichiers.push(Value::Object(m));
     }
-    let non_repris_n = fichiers.iter().filter(|f| f.get("sort").and_then(Value::as_str).is_some_and(non_repris)).count();
+    // CE QUI N'EST PAS REPRIS, pour l'encart : chaque fichier et sa raison ; un import qui en laisse se rejoue.
+    let non_repris_fichiers: Vec<Value> = fichiers
+        .iter()
+        .filter(|f| f.get("sort").and_then(Value::as_str).is_some_and(non_repris))
+        .map(|f| json!({"chemin": f["chemin"], "sort": f["sort"], "raison": f.get("raison").cloned().unwrap_or(json!(""))}))
+        .collect();
     let ordre = |c: &BTreeMap<&str, usize>| -> Map<String, Value> {
         SORTS.iter().filter_map(|s| c.get(s).map(|n| (s.to_string(), json!(n)))).collect()
     };
@@ -1352,6 +1360,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             "comptes": ordre(&comptes),
             "comptes_pages": ordre(&comptes_pages),
             "total": tri.fichiers.len(),
+            "non_repris": if non_repris_fichiers.is_empty() { Value::Null } else { json!({"fichiers": non_repris_fichiers, "phrase": REESSAYER}) },
         }),
     );
     let lus_n: usize = par_logiciel.values().sum();
@@ -1406,14 +1415,6 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                 "reste_a_saisir": reste,
             }),
         );
-    }
-    if non_repris_n > 0 {
-        if let Some(Value::Array(a)) = reponse.get_mut("avertissements") {
-            a.push(json!(format!(
-                "{} fichier(s) du dossier ne sont pas repris : le tableau du dossier dit pourquoi, fichier par fichier.",
-                non_repris_n
-            )));
-        }
     }
     if pages_incoherentes > 0 {
         if let Some(Value::Array(a)) = reponse.get_mut("avertissements") {

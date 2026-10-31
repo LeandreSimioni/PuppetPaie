@@ -424,6 +424,8 @@ function vueGuideImport(g) {
     <p class="intro">Mettez dans le dossier ci-dessous tout ce que votre ancien logiciel vous a laissé, puis
       « Importer » : PuppetPaie crée la fiche de la compagnie, ses salariés, ses spectacles et leurs contrats
       avec ce que les pièces disent.</p>
+    ${(g.a_quoi_sert || []).length ? `<ul>${g.a_quoi_sert.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>` : ""}
+    <p class="note">${echapper(g.accepte || "")}</p>
     <div class="guide-pieces">${pieces}</div>
     <p class="note">${echapper(g.reste || "")}</p>
     <p class="note">${echapper(g.rien_n_est_perdu || "")}</p>`;
@@ -738,63 +740,15 @@ function ecartsBulletinDsn(tri) {
       <tbody>${lignes.join("")}</tbody></table>`;
 }
 
-/* Les fichiers qui n'ont pas pu être repris : la phrase qui les dit, et le
-   message qui partirait chez l'éditeur, montré tel qu'il partirait (caviardé
-   par le moteur, `importation-incident`). Rien ne part sans le clic sur
-   « Envoyer » (`importation-incident-envoyer`). Quels fichiers n'ont pas
-   été repris, c'est le moteur qui le dit (`fichiers` de la route) : la page
-   ne fait que le montrer. */
-async function preparerIncidentImport() {
-  const cible = document.getElementById("import-incident");
-  if (!cible) return;
-  let r;
-  try {
-    r = await api("importation-incident", { dossier: IMPORT_DOSSIER });
-  } catch (e) {
-    cible.innerHTML = `<div class="encart erreur">Le message à l'éditeur ne se prépare pas : ${echapper(e.message)}</div>`;
-    return;
-  }
-  const laisses = r.fichiers || [];
-  if (!laisses.length && !r.a_envoyer) {
-    cible.innerHTML = "";
-    return;
-  }
-  const envoi = r.a_envoyer
-    ? `<p class="note"><strong>Les noms, prénoms, numéros de sécurité sociale, dates de naissance et adresses
-        ont été enlevés</strong>${r.resume ? ` (${echapper(r.resume)})` : ""}. Les fichiers eux-mêmes ne
-        partent pas. Voici le message, tel qu'il partirait :</p>
-      <pre class="reponse">${echapper(r.texte || "")}</pre>
-      <p><button class="primaire" id="import-incident-envoyer">Envoyer</button>
-        <span class="note">Rien ne part avant ce clic.</span></p>`
-    : `<p class="note">Rien à envoyer.</p>`;
-  cible.innerHTML = `<div class="encart attention"><b>Ces documents n'ont pas pu être repris.</b>
-      ${laisses.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort, r.pastilles)}
+/* Les documents qui ne sont pas repris, et pourquoi (`tri.non_repris`, du
+   moteur), avec la phrase qui dit que l'import se rejoue. */
+function vueNonRepris(nr, pastilles) {
+  if (!nr || !(nr.fichiers || []).length) return "";
+  return `<div class="encart attention"><b>Ces documents ne sont pas repris.</b>
+      ${nr.fichiers.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort, pastilles)}
         ${echapper(f.raison || "")}</div>`).join("")}
-      <p>Un message peut partir chez le développeur ; Léandre s'en occupe et vous répond.</p>
-      <div id="import-incident-envoi">${envoi}</div>
+      <p>${echapper(nr.phrase || "")}</p>
     </div>`;
-  const b = document.getElementById("import-incident-envoyer");
-  if (b) b.onclick = () => envoyerIncidentImport();
-}
-
-async function envoyerIncidentImport() {
-  const cible = document.getElementById("import-incident-envoi");
-  const b = document.getElementById("import-incident-envoyer");
-  if (b) b.disabled = true;
-  try {
-    const r = await api("importation-incident-envoyer", { dossier: IMPORT_DOSSIER });
-    if (r.envoye) {
-      cible.innerHTML = `<div class="encart bien"><b>Le message est parti.</b>${
-        echapper(r.message || "Léandre s'en occupe et vous répond.")}</div>`;
-      rafraichirEtatImportation();
-    } else {
-      cible.insertAdjacentHTML("beforeend", `<div class="encart erreur">${echapper(r.message || "Le message n'est pas parti.")}</div>`);
-      if (b) b.disabled = false;
-    }
-  } catch (e) {
-    cible.insertAdjacentHTML("beforeend", `<div class="encart erreur">${echapper(e.message)}</div>`);
-    if (b) b.disabled = false;
-  }
 }
 
 async function rafraichirEtatImportation() {
@@ -843,7 +797,7 @@ function vueImportation(r) {
       ? `<div class="encart ${couleur}"><b>Rien à reprendre</b> : tout est déjà là.</div>`
       : `<p><button class="primaire" id="import-ecrire">Reprendre${quoi.length ? " " + quoi.join(", ") : ""}</button>
          <span class="note">Rien n'est écrit avant ce clic.</span></p>`;
-  return `<div id="import-incident"></div>
+  return `${vueNonRepris((r.tri || {}).non_repris, r.pastilles)}
     ${compteRenduImport(r.tri, r.pastilles)}
     <h3>${r.ecrit ? "Ce qui a été repris" : "Ce qui serait repris"}</h3>
     <div class="encart"><b>Déclarations</b>
@@ -862,7 +816,6 @@ function vueImportation(r) {
 function brancherImportation() {
   const b = document.getElementById("import-ecrire");
   if (b) b.onclick = () => ecrireImportation();
-  if (document.getElementById("import-incident")) preparerIncidentImport();
 }
 
 async function apercuImportation() {

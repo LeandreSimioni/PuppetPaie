@@ -22,6 +22,12 @@ use serde_json::{json, Value};
 /// Le guide, tel que la page le montre.
 pub fn guide() -> Value {
     json!({
+        "a_quoi_sert": [
+            "Les bulletins de paie complets suffisent : ils recréent votre historique dans le logiciel.",
+            "Une AEM ou une AER Cinéma Spectacle remplace un bulletin qui manque.",
+            "Au moins une DSN déposée pré-remplit la configuration de la compagnie.",
+        ],
+        "accepte": crate::import::tri::ACCEPTE,
         "pieces": [
             {
                 "quoi": "Les bulletins de paie, en PDF",
@@ -75,7 +81,7 @@ pub fn guide() -> Value {
             },
         ],
         "reste": "Ce qu'aucune pièce ne porte se demande ensuite, une fois, avec l'endroit où le trouver : par exemple qui signe les contrats, la date de la première embauche de la compagnie, ou, pour un salarié payé au mois, si son contrat est un CDI ou un CDD, ce qu'un bulletin n'imprime pas.",
-        "rien_n_est_perdu": "Un fichier que le logiciel ne sait pas lire est dit, avec sa raison ; il ne change rien au reste. Les noms des fichiers ne comptent pas : le logiciel lit leur contenu.",
+        "rien_n_est_perdu": "Un document que le logiciel ne sait pas lire est dit, avec sa raison ; il ne change rien au reste, et l'import se rejoue sans rien effacer ni doubler. Les noms des fichiers ne comptent pas : le logiciel lit leur contenu.",
     })
 }
 

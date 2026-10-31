@@ -56,7 +56,7 @@ const LECTURES_DU_MOIS = new Set(["saisie", "contrats-en-cours", "etat-du-mois",
   "fins-de-contrat", "etat-par-engagement", "imprevus"]);
 // Des lectures que la page fait souvent, sans rien changer : elles ne vident pas ce qui a été lu.
 const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organismes-contrats", "incident-navigateur", "diagnostic-etat",
-  "verifier-fiche", "emploi", "signalements", "apercu", "importation-incident", "arret-obligations",
+  "verifier-fiche", "emploi", "signalements", "apercu", "arret-obligations",
   // Les imprévus d'un salarié (son dossier), les contrats qu'un imprévu suspendrait : des lectures.
   "imprevus", "arret-contrats",
   // Les contrats déclarés avant PuppetPaie (l'historique importé) : une lecture, que l'écran d'un mois passé fait en se peignant.
