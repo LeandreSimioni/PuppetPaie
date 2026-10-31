@@ -1,4 +1,4 @@
-//! `moteur deposer-dpae FICHIER [--test | --reel] [--confirmer AAAA-MM] [--majuscules] [--sans-repetition MOTIF] [--fenetre]` :
+//! `moteur deposer-dpae FICHIER|AAAA-MM [--test | --reel] [--confirmer AAAA-MM] [--majuscules] [--sans-repetition MOTIF] [--fenetre]` :
 //! deposer une DPAE deja produite. ESSAI A BLANC par defaut : sans `--test` ni
 //! `--reel`, la commande relit le fichier, affiche chaque personne declaree, verifie les delais, et s'arrete.
 //!
@@ -69,7 +69,9 @@ fn jour_de(t: &str, quoi: &str) -> Result<socle::date::Jour, Echec> {
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let (test, reel) = (args.drapeau("test"), args.drapeau("reel"));
     let fichier = args.texte("fichier").unwrap_or("");
-    let chemin = match crate::routes::depots::resoudre(&cadre.racine, &json!(fichier)) {
+    // Un mois : la DPAE que la designation donne (`depots::designee`) : ecrite, ou reprise telle qu'elle a ete testee.
+    let designee = if socle::date::mois_valide(fichier) { crate::routes::depots::designee(&cadre.ctx, &json!({"quoi": "dpae", "mois": fichier}))?.0 } else { json!(fichier) };
+    let chemin = match crate::routes::depots::resoudre(&cadre.racine, &designee) {
         Ok(c) => c,
         Err(e) => {
             dire!("Fichier introuvable : {}", e.message);

@@ -561,7 +561,7 @@ fn requis<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 /// meme chose : le test vaut pour le reel, regle 10). `{quoi:"dpae", mois, engagements?}` : la DPAE de ces embauches, ou
 /// de celles qui restent a declarer (`dpae`, meme reprise) ; une fois partie, il n'en reste aucune a declarer, et c'est
 /// celle qui est partie (`partie`), jamais refaite (regle 4). `{quoi, fichier}` : un signalement ecrit.
-fn designee(ctx: &Contexte, charge: &Value) -> R<(Value, Value)> {
+pub(crate) fn designee(ctx: &Contexte, charge: &Value) -> R<(Value, Value)> {
     let quoi = requis(charge, "quoi")?;
     let Some(mois) = charge.get("mois").filter(|m| vrai(m)).map(valeur_en_texte) else {
         return Ok((requis(charge, "fichier")?.clone(), json!({})));

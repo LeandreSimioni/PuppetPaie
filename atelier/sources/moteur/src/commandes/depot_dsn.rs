@@ -144,15 +144,9 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         dire!("{}", "-".repeat(62));
         return Ok(0);
     }
-    let fabriquee;
-    let fichier = if socle::date::mois_valide(fichier) {
-        let dsn = crate::compagnie::depart::fabriquer_dsn(&cadre.ctx, fichier, "cli")?;
-        fabriquee = dsn.fichiers.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
-        fabriquee.as_str()
-    } else {
-        fichier
-    };
-    let chemin = crate::routes::depots::resoudre(&cadre.racine, &json!(fichier))?;
+    // Un mois : la DSN que la designation donne (`depots::designee`), celle du depot de la page.
+    let designee = if socle::date::mois_valide(fichier) { crate::routes::depots::designee(&cadre.ctx, &json!({"quoi": "dsn", "mois": fichier}))?.0 } else { json!(fichier) };
+    let chemin = crate::routes::depots::resoudre(&cadre.racine, &designee)?;
     let octets = match crate::routes::depots::lire_octets(&chemin) {
         Ok(o) => o,
         Err(e) => {
