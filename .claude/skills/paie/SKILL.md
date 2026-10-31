@@ -8,7 +8,7 @@ description: Fabrique les paies du spectacle vivant avec PuppetPaie - bulletins,
 Le LLM est un second écran : il passe par les mêmes routes que la page. Le moteur décide, calcule, refuse et dit ce qui est à faire ; cette compétence dit seulement comment le lui demander. Ne calcule rien de tête, n'invente aucune valeur.
 
 - Le moteur : `atelier/sources/moteur/bin/<système>/moteur` dans le dépôt, `moteur` dans une installation (avec `PUPPETPAIE_CODE=logiciel/donnees` pour un exécutable livré).
-- `moteur routes` : le catalogue (chaque route : son geste, sa charge, un exemple, ce qu'elle rend, ses refus et quoi corriger, si elle lit, écrit ou engage, « avancé »). `moteur routes NOM` : une fiche.
+- `moteur routes` : le catalogue (chaque route : son geste, sa charge, un exemple, ce qu'elle rend, ses refus et quoi corriger, si elle lit, écrit ou engage, « avancé »). Le chemin simple seul ; `--avance` les montre toutes. `moteur routes NOM` : une fiche.
 - Jouer une route : `echo '{"route":"NOM","charge":{…}}' | moteur route [--racine <dossier de la compagnie>] [--texte]` (`--texte` : la phrase que la page affiche).
 - Sans compagnie : la route `compagnies` (liste, `chemin`), puis `compagnie-ajouter`.
 - Ce qui est à faire, le moteur le dit : routes `pour-demarrer`, `rappels`, `etat-du-mois` (le panneau des étapes).

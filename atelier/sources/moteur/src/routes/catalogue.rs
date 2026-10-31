@@ -283,5 +283,9 @@ pub fn commande(args: &[String]) -> i32 {
     for f in &montrees {
         println!("  {:<large$}  {:<5}  {}  [{}]", f.nom, match f.acte { Acte::Lit => "lit", Acte::Ecrit => "écrit", Acte::Engage => "engage" }, f.geste, f.ecran.texte());
     }
+    let cachees = tout.len() - montrees.len();
+    if cachees > 0 {
+        println!("\n{} routes avancées ne sont pas montrées : moteur routes --avance", cachees);
+    }
     0
 }
