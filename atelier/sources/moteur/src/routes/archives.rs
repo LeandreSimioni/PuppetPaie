@@ -64,7 +64,21 @@ pub const ROUTES: &[Fiche] = &[
         avance: false,
         phrase: 0,
     },
-    Fiche { acte: Acte::Ecrit, ..Fiche::a_ecrire("cloture") },
+    Fiche {
+        nom: "cloture",
+        geste: "Clore une année passée : archiver ses engagements, documents et déclarations.",
+        charge: &[
+            ANNEE,
+            Champ { nom: "forcer", sens: "vrai : clore malgré un mois sans DSN réelle acceptée", avance: true },
+            Champ { nom: "rouvrir", sens: "vrai : rouvrir l'année close (son archive reste)", avance: true },
+        ],
+        exemple: r#"{"annee":"2025"}"#,
+        rend: "annee, archive, fichiers, empreinte, manques (ce qui n'a pu s'archiver) ; rouverte : etait_clos_depuis",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
     Fiche {
         nom: "export-compta",
         geste: "Écrire l'export comptable d'une année, du mois du au mois au.",
@@ -758,14 +772,10 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let dernier_mois = r.mois.last().map(|m| m.mois.clone()).ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("les mois de la régularisation")))?;
     verifier_preuve(ctx, Some(&preuve_de(charge)), &dernier_mois, "envoi a Audiens et au CASC-SVP (liste nominative)", "Audiens et CASC-SVP")?;
 
+    // La liste nominative est la premiere chose qu'ecrit le dossier (`casc::ecrire`) : si elle ne peut s'ecrire, le refus
+    // tombe avant tout autre fichier, et rien ne part.
     ecrire(ctx, &mut r)?;
     let classeur = std::path::Path::new(&r.dossier).join("CASC-SVP_liste-nominative.xlsx");
-    if !classeur.exists() {
-        return Err(refus(format!(
-            "La liste nominative n'a pas pu etre remplie ({}) : le courriel au CASC-SVP la promet en piece jointe. Rien n'est parti.",
-            r.avertissements.last().cloned().unwrap_or_default()
-        )));
-    }
 
     let messages = vec![
         Message {

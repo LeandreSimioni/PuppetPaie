@@ -74,7 +74,21 @@ pub const ROUTES: &[Fiche] = &[
         avance: false,
         phrase: 0,
     },
-    Fiche { acte: Acte::Lit, ..Fiche::a_ecrire("avenant-apercu") },
+    Fiche {
+        nom: "avenant-apercu",
+        geste: "Montrer l'avenant d'un contrat parti : ce qui change, article par article.",
+        charge: &[
+            SALARIE,
+            DEBUT,
+            Champ { nom: "numero", sens: "le numéro du contrat parti, tel que signature-apercu le rend", avance: false },
+        ],
+        exemple: r#"{"salarie":"FULLER","debut":"2026-11-27","numero":"FU1.26.01"}"#,
+        rend: "le contrat parti (contrat, date_contrat, signe), numero de l'avenant, effet, modifications (article, avant, apres), avenants, destinataire",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "le salarié, le début et le numéro d'un contrat parti à la signature" }, MANQUE, ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
     Fiche {
         nom: "contrats-imprimer",
         geste: "Réunir en un PDF les contrats et avenants cochés, à remettre en main propre.",
