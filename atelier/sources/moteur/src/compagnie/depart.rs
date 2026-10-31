@@ -584,7 +584,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     let jour = |v: &Value| -> R<String> { documents::bulletin::jj_mm_aaaa(v).map_err(valeur) };
     let mut non_signales = 0;
     for a in &arrets {
-        let resume = crate::routes::imprevus::resume_arret(&nomenclature, a)?;
+        let resume = crate::routes::imprevus::resume_arret(ctx, &nomenclature, a)?;
         let reprise = a.get("reprise").filter(|r| vrai(r));
         let fin = match reprise {
             Some(r) => r.clone(),

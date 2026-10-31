@@ -42,17 +42,17 @@ pub const DOSSIER: &str = "imprevus";
 /// permanent (D1226-4 ; le complement verse, mois par mois : `{"AAAA-MM": montant}`) ; `prolongations` garde chaque avis de
 /// prolongation saisi (`moteur::routes::imprevus::arret_prolonger` : quand, la fin et la fin de subrogation d'avant et d'apres),
 /// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`).
-pub const CHAMPS_ARRET: [&str; 20] = [
+pub const CHAMPS_ARRET: [&str; 19] = [
     "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "fin_previsionnelle",
     "subrogation", "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident",
-    "jours_deja_indemnises", "maintien", "prolongations", "saisi_le", "qui", "note", "envois",
+    "jours_deja_indemnises", "maintien", "prolongations", "saisi_le", "qui", "note",
 ];
 const REQUIS_ARRET: usize = 7;
 
 /// Les champs d'une suspension (bloc 65 : motif, debut, fin), dans l'ordre ou ils s'ecrivent ; les `REQUIS_SUSPENSION`
 /// premiers sont obligatoires.
-pub const CHAMPS_SUSPENSION: [&str; 11] =
-    ["genre", "salarie", "contrat_debut", "contrat_numero", "motif", "debut", "fin", "saisi_le", "qui", "note", "envois"];
+pub const CHAMPS_SUSPENSION: [&str; 10] =
+    ["genre", "salarie", "contrat_debut", "contrat_numero", "motif", "debut", "fin", "saisi_le", "qui", "note"];
 const REQUIS_SUSPENSION: usize = 7;
 
 const NUL: Value = Value::Null;
@@ -118,15 +118,11 @@ suspension du contrat, bloc S21.G00.65).",
         let defaut = match *k {
             "qui" => json!("?"),
             "note" => json!(""),
-            "envois" => json!([]),
             "maintien" => json!({}),
             "prolongations" => json!([]),
             _ => Value::Null,
         };
-        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "envois" | "maintien" | "prolongations" | "note"))).unwrap_or(defaut));
-    }
-    if !o["envois"].is_array() {
-        return Err(format!("Imprevu ({}) : `envois` n'est pas une liste", genre));
+        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "maintien" | "prolongations" | "note"))).unwrap_or(defaut));
     }
     if genre == ARRET && !o["maintien"].is_object() {
         return Err("Arret : `maintien` est un objet {\"AAAA-MM\": montant}.".into());
@@ -910,7 +906,7 @@ mod tests {
         let mut attendus: Vec<String> = CHAMPS_ARRET.iter().map(|c| c.to_string()).collect();
         attendus.sort();
         assert_eq!(champs, attendus, "un arret complete porte tous ses champs");
-        assert_eq!((a["qui"].clone(), a["maintien"].clone(), a["envois"].clone()), (json!("?"), json!({}), json!([])));
+        assert_eq!((a["qui"].clone(), a["maintien"].clone()), (json!("?"), json!({})));
         assert_eq!(a["prolongations"], json!([]));
         assert!(complet(&json!({"genre": "arret", "salarie": "X"})).unwrap_err().contains("champ manquant"));
         assert!(complet(&json!({"genre": "autre"})).unwrap_err().contains("genre"));
