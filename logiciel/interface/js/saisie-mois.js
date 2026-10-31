@@ -237,9 +237,14 @@ async function calculerApercu(lu) {
     }
     const a = deLu ? structuredClone(deLu) : await apercuDuMois(document.getElementById("mois").value);
     cible.innerHTML = vueApercu(a);
-    // Les dates resolues, sous chaque engagement : ce que le moteur a compris.
-    let rang = 0;
-    const rangs = blocs.map((div) => (salariesDuBloc(div).length ? rang++ : null));
+    // Les dates resolues, sous chaque engagement : ce que le moteur a compris. Chaque paie porte l'identité de son
+    // engagement (`engagement`, `null` pour une carte pas encore écrite) : une carte prend celle de son identité.
+    const ids = (a.paies || []).map((p) => (p && p.engagement ? JSON.stringify(p.engagement) : null));
+    const neuves = ids.flatMap((id, j) => (id == null ? [j] : []));
+    const rangs = blocs.map((div) => {
+      if (div.dataset.engagement) { const j = ids.indexOf(div.dataset.engagement); return j < 0 ? null : j; }
+      return salariesDuBloc(div).length && neuves.length ? neuves.shift() : null;
+    });
     blocs.forEach((div, i) => {
       const part = rangs[i] == null ? [] : [(a.paies || [])[rangs[i]]].filter(Boolean);
       const p = part[0];
