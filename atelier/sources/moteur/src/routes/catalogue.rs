@@ -198,7 +198,8 @@ pub fn dans(fiches: &[Fiche], nom: &str) -> Option<Fiche> {
     fiches.iter().find(|f| f.nom == nom).copied()
 }
 
-/// La route du catalogue : ce que `moteur routes --json` imprime, pour la page (l'acte d'une route, ce qui est avance).
+/// La route du catalogue, pour la page (l'acte d'une route, ce qui est avance) : avec `avance`, ce que
+/// `moteur routes --json` imprime.
 pub const ROUTES: &[Fiche] = &[Fiche {
     nom: "routes",
     geste: "Dire les routes : leur fiche, le chemin simple d'abord.",
@@ -254,8 +255,8 @@ pub fn catalogue() -> Vec<Fiche> {
     FICHES.iter().flat_map(|l| l.iter().copied()).collect()
 }
 
-/// `moteur routes [NOM] [--avance] [--json]` : le catalogue (le chemin simple ; toutes avec `--avance`), ou la fiche
-/// entiere d'une route.
+/// `moteur routes [NOM] [--avance] [--json]` : le catalogue en texte (le chemin simple ; toutes avec `--avance`), en JSON
+/// (toutes : chaque fiche porte `avance`), ou la fiche entiere d'une route.
 pub fn commande(args: &[String]) -> i32 {
     let json = args.iter().any(|a| a == "--json");
     let avance = args.iter().any(|a| a == "--avance");
@@ -274,7 +275,7 @@ pub fn commande(args: &[String]) -> i32 {
         return 0;
     }
     if json {
-        println!("{}", en_json(avance));
+        println!("{}", en_json(true));
         return 0;
     }
     let montrees: Vec<&Fiche> = tout.iter().filter(|f| avance || !f.avance).collect();

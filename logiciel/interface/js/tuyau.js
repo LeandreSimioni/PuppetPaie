@@ -56,7 +56,7 @@ function serveurPerdu() {
 const LECTURES_DU_MOIS = new Set();
 function retenirLesLectures(lectures) { Object.keys(lectures || {}).forEach((k) => LECTURES_DU_MOIS.add(k)); }
 /* LE CATALOGUE DES ROUTES (`routes`), lu au démarrage : la fiche de chaque route, son acte (`lit`, `ecrit`, `engage`) et ce
- * qui est « avancé ». Le même que `moteur routes --json --avance`. */
+ * qui est « avancé ». Le même que `moteur routes --json`. */
 let CATALOGUE = {};
 const acteDe = (route) => (CATALOGUE[route] || {}).acte || "";
 /** « AVANCÉ » EST LE MÊME POUR LES DEUX ACTEURS : une porte de l'écran (`data-route`, la route qu'elle ouvre) dont la fiche
