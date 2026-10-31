@@ -1062,7 +1062,7 @@ pub(crate) fn piece_partie(ctx: &Contexte, mois: &str, nom: &str) -> R<PathBuf> 
     // LE CONTRAT ET L'AVENANT : la derniere ligne qui les a fait partir.
     if nom.starts_with("Contrat") || nom.starts_with("Avenant") {
         // Le contrat contresigne vient du salarie : il se lit la ou la signature l'a range, il ne se refait pas.
-        let signe = lignes.iter().any(|l| texte(l, "quoi") == "contrat-recu" && texte(l, "mois") == mois && texte(&l["detail"], "fichier_signe").split(", ").any(|f| f == nom));
+        let signe = lignes.iter().filter(|l| texte(l, "mois") == mois).flat_map(|l| envois::etats::revenus(l).unwrap_or_default()).any(|r| texte(&r, "fichier_signe").split(", ").any(|f| f == nom));
         if signe {
             return Err(refus(format!("{} est le contrat contresigné que le salarié a renvoyé : il ne se refait pas ; le fichier a été déplacé ou effacé.", nom)));
         }

@@ -1,8 +1,8 @@
 //! La releve des reponses « Je signe ». La demande de signature (`crate::compagnie::signature::demander_signature`) a garde,
 //! au journal, un CODE (`SIG-XXXXXX`) par courriel parti. Cette releve cherche chaque code attendu dans la boite
 //! (`envois::releve_signatures::chercher_reponse`, le tri strict) et fait tout ce qui suit : la preuve archivee
-//! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`depart::refaire_le_contrat`, la mention de l'artiste dans sa case), le journal (une ligne
-//! `contrat-recu` par contrat, datee de la SIGNATURE, `crate::routes::contrats::contrat_recu_avec`), et le renvoi du
+//! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`depart::refaire_le_contrat`, la mention de l'artiste dans sa case), le journal (sur la ligne de
+//! l'envoi, par contrat, date de la SIGNATURE, `crate::routes::contrats::contrat_recu_avec`), et le renvoi du
 //! contresigne au salarie (`envois::releve_signatures::renvoyer_contresigne`).
 //!
 //! NE LEVE PAS pour une boite absente : c'est un travail de fond, il dit ce qui l'empeche dans `incidents` et rend la

@@ -13,7 +13,7 @@ use crate::routes::etapes::Moteur;
 use droit::contexte::Contexte;
 use crate::compagnie::signature::{Choisis, UnAvenant};
 use envois::etats::{self, est, get, getd, items, objet_vide, ou, DPAE, SIGNATURE};
-use envois::journal::{self, Note};
+use envois::journal;
 use socle::date::jour_iso;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{repr, vrai};
@@ -126,7 +126,7 @@ pub(crate) fn contrat_recu_avec(
     let ce = if vrai(avenant) { format!("avenant n° {}", valeur_en_texte(avenant)) } else { "contrat".to_string() };
     let courriel = courriel.filter(|c| !c.is_empty());
     let texte_du_courriel = |cle: &str, defaut: &str| courriel.and_then(|c| c.get(cle)).map_or_else(|| defaut.to_string(), valeur_en_texte);
-    let (reponse, quand, origine) = match courriel {
+    let (reponse, quand) = match courriel {
         Some(c) => {
             detail["origine"] = json!("courriel");
             for (cle, valeur) in c {
@@ -135,32 +135,33 @@ pub(crate) fn contrat_recu_avec(
             (
                 format!("contrat signe par courriel ({}, {})", texte_du_courriel("code", "?"), texte_du_courriel("adresse", "?")),
                 c.get("quand").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default(),
-                format!("courriel {}", texte_du_courriel("message", "?")),
             )
         }
         None => (
             if recu { format!("{} signe recu, range a la main", ce) } else { format!("mention retiree : le {} signe n'est pas la", ce) },
             String::new(),
-            String::new(),
         ),
     };
-    let note = Note {
-        quoi: "contrat-recu",
-        mois: Some(mois),
-        fichier: None,
-        mode: journal::REEL,
-        qui,
-        accepte: true,
-        destinataire: "",
-        flux: "",
-        reponse: &reponse,
-        trace: None,
-        detail: Some(&detail),
-        versions: None,
-        quand: &quand,
-        origine: &origine,
+    // CE QUI REVIENT SE RANGE SUR LA LIGNE DE L'ENVOI : la derniere qui a fait partir ce contrat (ou cet avenant).
+    detail["quand"] = json!(if quand.is_empty() { maintenant() } else { quand });
+    detail["qui"] = json!(qui);
+    detail["reponse"] = json!(reponse);
+    let av = detail.get("avenant").filter(|a| vrai(a)).cloned();
+    let porte = |l: &Value| -> bool {
+        est(&l["quoi"], SIGNATURE)
+            && l.get("accepte").is_some_and(vrai)
+            && items(&l["detail"]["contrats"]).unwrap_or_default().iter().any(|c| {
+                c["salarie"] == json!(salarie)
+                    && valeur_en_texte(&etats::numero_de_cle(&c["numero"])) == valeur_en_texte(&etats::numero_de_cle(&numero_note))
+                    && match &av {
+                        Some(a) => est(&c["acte"], "avenant") && valeurs_egales(&c["avenant"], a),
+                        None => !est(&c["acte"], "avenant"),
+                    }
+            })
     };
-    let ligne = journal::noter(&ctx.racine, &note, &maintenant()).map_err(Echec::from)?;
+    let Some(ligne) = journal::rattacher(&ctx.racine, porte, detail.clone()).map_err(Echec::from)? else {
+        return Err(refus(format!("Le {} de {} n'est jamais parti : rien ne peut en revenir. Rien n'est écrit.", ce, nom)));
+    };
     // Ce que l'ecran dit de la note.
     let phrase = format!(
         "{} de {} {}.",
@@ -171,7 +172,7 @@ pub(crate) fn contrat_recu_avec(
     Ok(json!({
         "salarie": salarie, "debut": debut,
         "phrase": phrase,
-        "recu": if recu { ligne["quand"].clone() } else { Value::Null },
+        "recu": if recu { detail["quand"].clone() } else { Value::Null },
         // De quoi revenir sur la note : la meme route, le mot contraire.
         "annuler": {"route": "contrat-recu", "charge": {"mois": mois, "salarie": salarie, "debut": debut, "numero": numero_note, "avenant": avenant, "recu": !recu}},
         "ligne": ligne,
@@ -679,9 +680,6 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     }))
 }
 
-/// `journal.CONTRAT_RECU`.
-const CONTRAT_RECU: &str = "contrat-recu";
-
 /// `_chemin_piece` : le fichier d'une piece partie existe-t-il, dans
 /// `sorties/<mois>/` ou son `envoi/` ? Un NOM, jamais un chemin.
 fn piece_existe(racine: &Path, mois: &Value, fichier: &Value) -> R<bool> {
@@ -759,24 +757,28 @@ fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
             contrat.push(piece(racine, &quoi, get(l, "quand")?, mois, get(&c, "fichier")?)?);
         }
     }
-    for l in etats::filtrer(&lignes, Some(CONTRAT_RECU), None, false)? {
-        let d = ou(get(l, "detail")?, objet_vide());
-        if !vrai(get(l, "accepte")?) || !est_ce_contrat(d, salarie, numero)? {
+    // CE QUI EN EST REVENU, sur la ligne de chaque envoi.
+    for l in etats::filtrer(&lignes, Some(SIGNATURE), None, false)? {
+        if !vrai(get(l, "accepte")?) {
             continue;
         }
-        if vrai(get(d, "fichier_signe")?) {
-            let quoi = if est(get(d, "acte")?, "avenant") {
-                format!("Avenant n° {} signé, contresigné", valeur_en_texte(get(d, "avenant")?))
-            } else {
-                "Contrat signé, contresigné".to_string()
-            };
-            contrat.push(piece(racine, &quoi, get(l, "quand")?, get(l, "mois")?, get(d, "fichier_signe")?)?);
-        }
-        if vrai(get(d, "preuve")?) {
-            contrat.push(piece(racine, "Réponse « Je signe » du salarié (preuve)", get(l, "quand")?, get(l, "mois")?, get(d, "preuve")?)?);
+        for d in items(getd(l, "retours", &etats::LISTE_VIDE)?)? {
+            if !est_ce_contrat(&d, salarie, numero)? {
+                continue;
+            }
+            if vrai(get(&d, "fichier_signe")?) {
+                let quoi = if est(get(&d, "acte")?, "avenant") {
+                    format!("Avenant n° {} signé, contresigné", valeur_en_texte(get(&d, "avenant")?))
+                } else {
+                    "Contrat signé, contresigné".to_string()
+                };
+                contrat.push(piece(racine, &quoi, get(&d, "quand")?, get(l, "mois")?, get(&d, "fichier_signe")?)?);
+            }
+            if vrai(get(&d, "preuve")?) {
+                contrat.push(piece(racine, "Réponse « Je signe » du salarié (preuve)", get(&d, "quand")?, get(l, "mois")?, get(&d, "preuve")?)?);
+            }
         }
     }
-    // `contrat.sort(key=lambda x: x["quand"] or "")` : stable.
     contrat.sort_by_key(|x| if vrai(&x["quand"]) { valeur_en_texte(&x["quand"]) } else { String::new() });
     Ok(json!({"dpae": dpae, "contrat": contrat}))
 }

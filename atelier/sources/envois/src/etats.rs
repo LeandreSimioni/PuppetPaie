@@ -29,7 +29,6 @@ pub const DSN: &str = "dsn";
 pub const DPAE: &str = "dpae";
 pub const DOCUMENTS: &str = "documents";
 pub const SIGNATURE: &str = "contrat-signature";
-pub const CONTRAT_RECU: &str = "contrat-recu";
 const CONTRESIGNE: &str = "contrat-contresigne";
 const CASC: &str = "regularisation-casc";
 const TEST: &str = "test";
@@ -158,7 +157,7 @@ pub fn numero_de_cle(v: &Value) -> Value {
     Value::String(if vrai(v) { valeur_en_texte(v) } else { String::new() })
 }
 
-/// La cle d'une ligne de contrat (une entree de `detail.contrats`, ou le `detail` d'un `contrat-recu`) : (salarie, numero).
+/// La cle d'une ligne de contrat (une entree de `detail.contrats`, ou ce qui en est revenu, `revenus`) : (salarie, numero).
 pub fn cle_contrat(l: &Value) -> R<Vec<Value>> {
     Ok(vec![get(l, "salarie")?.clone(), numero_de_cle(get(l, "numero")?)])
 }
@@ -432,6 +431,15 @@ pub fn contrats_partis_par(lignes: &[Value]) -> R<Value> {
     Ok(d.sortie(Clone::clone))
 }
 
+/// CE QUI EST REVENU D'UN CONTRAT PARTI (signe, ou la mention retiree), sur la ligne de son envoi (`journal::rattacher`),
+/// dans l'ordre ou c'est revenu : chacun dit son contrat (`cle_contrat`), son avenant, `recu`, `quand`, `origine`.
+pub fn revenus(l: &Value) -> R<Vec<Value>> {
+    if !est(get(l, "quoi")?, SIGNATURE) || !accepte(l)? {
+        return Ok(Vec::new());
+    }
+    Ok(items(getd(l, "retours", &LISTE_VIDE)?)?.into_iter().map(Cow::into_owned).collect())
+}
+
 /// Les contrats repartis apres leur signature sur une autre version de l'engagement que celle signee : ils attendent une
 /// nouvelle signature. Un avenant n'en fait pas un.
 pub fn renvoyes_depuis_la_signature(lignes: &[Value]) -> R<Dico<()>> {
@@ -462,8 +470,8 @@ pub fn renvoyes_depuis_la_signature(lignes: &[Value]) -> R<Dico<()>> {
                 }
                 envoye.poser(k, e)?;
             }
-        } else if est(get(l, "quoi")?, CONTRAT_RECU) {
-            let d = ou(get(l, "detail")?, objet_vide());
+        }
+        for d in &revenus(l)? {
             if vrai(get(d, "recu")?) {
                 let k = cle_contrat(d)?;
                 let v = envoye.get(&k)?.cloned().unwrap_or(Value::Null);
@@ -485,17 +493,13 @@ pub fn renvoyes_depuis_la_signature(lignes: &[Value]) -> R<Dico<()>> {
 /// `contrats_recus` : (salarie, numero) -> quand, pour ceux dont le dernier mot est « recu ».
 pub fn contrats_recus(lignes: &[Value]) -> R<Dico<Value>> {
     let mut etat: Dico<Value> = Dico::nouveau();
-    for l in filtrer(lignes, Some(CONTRAT_RECU), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        let d = getd(l, "detail", objet_vide())?;
+    for d in &lignes.iter().map(revenus).collect::<R<Vec<_>>>()?.concat() {
         // La note d'un avenant (signe, ou defait) ne dit rien du contrat lui-meme.
         if vrai(get(d, "avenant")?) {
             continue;
         }
         let k = cle_contrat(d)?;
-        let v = if vrai(get(d, "recu")?) { get(l, "quand")?.clone() } else { Value::Null };
+        let v = if vrai(get(d, "recu")?) { get(d, "quand")?.clone() } else { Value::Null };
         etat.poser(k, v)?;
     }
     garder_vrais(etat)
@@ -513,11 +517,7 @@ fn garder_vrais(d: Dico<Value>) -> R<Dico<Value>> {
 
 pub fn contrats_recus_comment(lignes: &[Value]) -> R<Value> {
     let mut etat: Dico<Value> = Dico::nouveau();
-    for l in filtrer(lignes, Some(CONTRAT_RECU), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        let d = getd(l, "detail", objet_vide())?;
+    for d in &lignes.iter().map(revenus).collect::<R<Vec<_>>>()?.concat() {
         // La note d'un avenant (signe, ou defait) ne dit rien du contrat lui-meme.
         if vrai(get(d, "avenant")?) {
             continue;
@@ -536,9 +536,10 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
     let renvoyes = renvoyes_depuis_la_signature(lignes)?;
     let mut derniere_recue: Dico<usize> = Dico::nouveau();
     for (i, l) in lignes.iter().enumerate() {
-        let d = ou(get(l, "detail")?, objet_vide());
-        if est(get(l, "quoi")?, CONTRAT_RECU) && accepte(l)? && vrai(get(d, "recu")?) {
-            derniere_recue.poser(cle_contrat(d)?, i)?;
+        for d in &revenus(l)? {
+            if vrai(get(d, "recu")?) {
+                derniere_recue.poser(cle_contrat(d)?, i)?;
+            }
         }
     }
     // Les reponses deja relevees, par envoi (son code) et par contrat ou avenant : une reponse ne se note qu'une fois.
@@ -552,9 +553,8 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
         Ok(k)
     };
     let mut deja_releves: Dico<()> = Dico::nouveau();
-    for l in lignes {
-        let d = ou(get(l, "detail")?, objet_vide());
-        if est(get(l, "quoi")?, CONTRAT_RECU) && accepte(l)? && vrai(get(d, "recu")?) && est(get(d, "origine")?, "courriel") && vrai(get(d, "code")?) {
+    for d in &lignes.iter().map(revenus).collect::<R<Vec<_>>>()?.concat() {
+        if vrai(get(d, "recu")?) && est(get(d, "origine")?, "courriel") && vrai(get(d, "code")?) {
             deja_releves.poser(releve(get(d, "code")?, d)?, ())?;
         }
     }
@@ -647,7 +647,7 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
         for c in &e.contrats {
             let k = cle_contrat(c)?;
             let revenu = deja_releves.contient(&releve(&e.code, c)?)? || if e.apres_signature {
-                derniere_recue.get(&k)?.is_some_and(|&rang| rang > e.rang)
+                derniere_recue.get(&k)?.is_some_and(|&rang| rang >= e.rang)
             } else {
                 recus.get(&k)?.is_some()
             };
@@ -703,20 +703,20 @@ pub fn avenants_par_contrat(lignes: &[Value]) -> R<Dico<Vec<Value>>> {
                     "signe": null,
                 }));
             }
-        } else if est(get(l, "quoi")?, CONTRAT_RECU) {
-            let recu = vrai(get(d, "recu")?);
-            // La note d'UN avenant (`detail.avenant`) ne vaut que pour lui, et se defait (`recu: false`) ; sans numero
-            // d'avenant, « recu » vaut pour tous ceux qui attendent.
+        }
+        for d in &revenus(l)? {
+            // Le retour d'UN avenant (`avenant`) ne vaut que pour lui, et se defait (`recu: false`).
             let un = get(d, "avenant")?;
-            if !recu && !vrai(un) {
+            if !vrai(un) {
                 continue;
             }
+            let recu = vrai(get(d, "recu")?);
             if let Some(liste) = out.get_mut(&cle_contrat(d)?)? {
-                for a in liste.iter_mut().filter(|a| !vrai(un) || valeurs_egales(&a["numero"], un)) {
+                for a in liste.iter_mut().filter(|a| valeurs_egales(&a["numero"], un)) {
                     if !recu {
                         a["signe"] = Value::Null;
                     } else if a["signe"].is_null() {
-                        a["signe"] = get(l, "quand")?.clone();
+                        a["signe"] = get(d, "quand")?.clone();
                     }
                 }
             }
@@ -1605,10 +1605,11 @@ pub fn contrat_parti(lignes: &[Value], salarie: &str, numero: &str) -> Result<Op
                     signe: Value::Null,
                 });
             }
-        } else if est(quoi, CONTRAT_RECU) {
+        }
+        for d in &revenus(l)? {
             if let Some(p) = parti.as_mut() {
                 if vrai(get(d, "recu")?) && du_contrat(d)? && p.signe.is_null() {
-                    p.signe = get(l, "quand")?.clone();
+                    p.signe = get(d, "quand")?.clone();
                 }
             }
         }
@@ -1674,7 +1675,7 @@ mod tests {
     }
 
     fn recu(sal: &str, origine: &str) -> Value {
-        ligne("contrat-recu", "2026-06", "reel", "2026-06-12T10:00:00", json!({"salarie": sal, "debut": "2026-06-04", "numero": "N1", "recu": true, "origine": origine}), json!([]))
+        json!({"salarie": sal, "debut": "2026-06-04", "numero": "N1", "recu": true, "origine": origine, "quand": "2026-06-12T10:00:00"})
     }
 
     fn signature(quand: &str, c: Value) -> Value {
@@ -1684,10 +1685,12 @@ mod tests {
     #[test]
     fn une_reponse_deja_relevee_ne_se_renote_pas_apres_la_mention_retiree() {
         let mut lue = recu("ALPHA", "courriel");
-        lue["detail"]["code"] = json!("C1");
+        lue["code"] = json!("C1");
         let mut retiree = recu("ALPHA", "");
-        retiree["detail"]["recu"] = json!(false);
-        let mut l = vec![signature("2026-06-05T10:00:00", contrat("ALPHA", "C1", "e1", Value::Null)), lue, retiree];
+        retiree["recu"] = json!(false);
+        let mut envoi = signature("2026-06-05T10:00:00", contrat("ALPHA", "C1", "e1", Value::Null));
+        envoi["retours"] = json!([lue, retiree]);
+        let mut l = vec![envoi];
         assert_eq!(signatures_attendues(&l, None, &json!({})).unwrap(), json!([]));
         l.push(signature("2026-06-13T10:00:00", contrat("ALPHA", "C3", "e1", Value::Null)));
         assert_eq!(signatures_attendues(&l, None, &json!({})).unwrap()[0]["code"], "C3");

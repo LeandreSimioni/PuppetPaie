@@ -13,12 +13,11 @@ use socle::fichiers::{repr, vrai};
 use socle::num::Resultat;
 
 /// Les actes que l'on note ; un autre est refuse.
-pub const ACTES: [&str; 10] = [
+pub const ACTES: [&str; 9] = [
     "dsn",
     "dpae",
     "documents",
     "contrat-signature",
-    "contrat-recu",
     "contrat-contresigne",
     "regularisation-casc",
     "dossier-salarie",
@@ -166,6 +165,20 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
     lignes.push(ligne.clone());
     ecrire_json(&p, &Value::Array(lignes), 2)?;
     Ok(ligne)
+}
+
+/// CE QUI REVIENT D'UN ENVOI (un contrat signe, la mention retiree) : `retour` se range dans les `retours` de la derniere
+/// ligne que `envoi` reconnait, et la rend. `None` : aucune ligne ne la porte, rien n'est ecrit.
+pub fn rattacher(racine: &Path, envoi: impl Fn(&Value) -> bool, retour: Value) -> Resultat<Option<Value>> {
+    let mut lignes = (*lu(racine)?.lignes).clone();
+    let Some(l) = lignes.iter_mut().rev().find(|l| envoi(l)) else { return Ok(None) };
+    let Some(Value::Array(retours)) = l.as_object_mut().map(|o| o.entry("retours").or_insert_with(|| json!([]))) else {
+        return Err("journal : une ligne dont les retours ne sont pas une liste".to_string());
+    };
+    retours.push(retour);
+    let ligne = l.clone();
+    ecrire_json(&chemin(racine), &Value::Array(lignes), 2)?;
+    Ok(Some(ligne))
 }
 
 /// Ce que les lignes `lignes` du journal disent de ce qui est parti (`departs`) : les lignes qui precedent un envoi

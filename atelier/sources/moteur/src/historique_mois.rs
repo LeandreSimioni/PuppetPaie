@@ -17,7 +17,6 @@
 //!
 //! Lecture seule : rien ne s'ecrit, rien ne part.
 
-use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
@@ -122,52 +121,33 @@ fn qui_du_contrat(ctx: &Contexte, d: &Value) -> String {
     if nom.is_empty() { cle } else { nom }
 }
 
-/// Le contrat d'une ligne `contrat-recu` en mots : son numero et son debut (`detail.numero`, `detail.debut`).
-fn contrat_en_mots(d: &Value) -> String {
-    let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-    let numero = if t("numero").is_empty() { String::new() } else { format!(" n° {}", t("numero")) };
-    let debut = if t("debut").is_empty() { String::new() } else { format!(" commençant le {}", etats::quand_lisible(&json!(t("debut")))) };
-    format!("contrat{}{}", numero, debut)
+/// CE QUI EST REVENU D'UN CONTRAT PARTI (`envois::etats::revenus`), lu : le contrat ou l'avenant, de qui, et comment (une
+/// reponse « Je signe », une mention a la main, ou son retrait) ; la piece signee s'il y en a une.
+fn revenu_lu(ctx: &Contexte, ligne: &Value, r: &Value) -> Value {
+    let t = |k: &str| r.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let piece = if t("avenant").is_empty() { format!("Contrat n° {}", t("numero")) } else { format!("Avenant n° {} au contrat n° {}", t("avenant"), t("numero")) };
+    let quand = etats::quand_lisible(&r["quand"]);
+    let (titre, phrase) = if r["recu"] == json!(false) {
+        (format!("{} : mention « signé » retirée", piece), format!("Mention retirée le {}.", quand))
+    } else if r["origine"] == json!("courriel") {
+        (format!("{} revenu signé", piece), format!("Signé d'un clic le {}.", quand))
+    } else {
+        (format!("{} revenu signé", piece), format!("Reçu signé le {}, noté à la main.", quand))
+    };
+    let mois = ligne.get("mois").cloned().unwrap_or(Value::Null);
+    let signe = envois::etats::chemin_piece(&ctx.racine, &mois, &r["fichier_signe"]);
+    json!({
+        "titre": format!("{} — {}", titre, qui_du_contrat(ctx, r)), "quand": r["quand"], "phrases": [phrase],
+        "pastille": crate::routes::pastille(if r["recu"] == json!(false) { "information" } else { "fait" }, "signé"),
+        "piece": signe.and_then(|p| p.strip_prefix(&ctx.racine).ok().map(|x| x.to_string_lossy().replace('\\', "/"))),
+    })
 }
 
-/// La piece qu'une ligne `contrat-recu` note recue (ou plus) : le salarie, le contrat, son debut, l'avenant.
-fn piece_de_la_mention(l: &Value) -> Option<String> {
-    if l.get("quoi").and_then(Value::as_str) != Some("contrat-recu") {
-        return None;
-    }
-    let d = &l["detail"];
-    Some(["salarie", "numero", "debut", "avenant"].iter().map(|k| d.get(*k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).collect::<Vec<_>>().join("|"))
-}
-
-/// Les lignes `contrat-recu` (leurs rangs dans `lignes`) dont la mention « reçu » a ete retiree ensuite : la mention qui
-/// suit, pour la meme piece, est un retrait (`recu: false`).
-fn mentions_defaites(lignes: &[Value]) -> HashSet<usize> {
-    let mut ordre: Vec<usize> = (0..lignes.len()).filter(|i| piece_de_la_mention(&lignes[*i]).is_some()).collect();
-    ordre.sort_by(|a, b| valeur_en_texte(&lignes[*a]["quand"]).cmp(&valeur_en_texte(&lignes[*b]["quand"])).then(a.cmp(b)));
-    let mut derniere: HashMap<String, usize> = HashMap::new();
-    let mut defaites = HashSet::new();
-    for i in ordre {
-        let piece = piece_de_la_mention(&lignes[i]).unwrap_or_default();
-        let retrait = lignes[i]["detail"]["recu"] == json!(false);
-        if let Some(&avant) = derniere.get(&piece) {
-            if retrait && lignes[avant]["detail"]["recu"] != json!(false) {
-                defaites.insert(avant);
-            }
-        }
-        derniere.insert(piece, i);
-    }
-    defaites
-}
-
-/// L'acte d'une ligne du journal, en mots ; un contrat qui revient ou repart dit de qui il est. Une mention « reçu »
-/// retiree ensuite (`defaite`), ou son retrait, ne dit pas « revenu signé » : la piece ne l'est pas.
-fn acte(ctx: &Contexte, l: &Value, defaite: bool) -> String {
+/// L'acte d'une ligne du journal, en mots ; un contrat qui repart dit de qui il est.
+fn acte(ctx: &Contexte, l: &Value) -> String {
     let d = l.get("detail").cloned().unwrap_or(Value::Null);
     let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-    let piece = if t("avenant").is_empty() { "Contrat".to_string() } else { format!("Avenant n° {}", t("avenant")) };
     match l.get("quoi").and_then(Value::as_str).unwrap_or("") {
-        "contrat-recu" if d["recu"] == json!(false) => format!("{} : mention « signé » retirée — {}", piece, qui_du_contrat(ctx, &d)),
-        "contrat-recu" if defaite => format!("{} noté signé, mention retirée ensuite — {}", piece, qui_du_contrat(ctx, &d)),
         "dsn" => nature_dsn(&t("nature"), &t("type")),
         "dpae" => "DPAE".into(),
         "documents" => "Documents aux salariés".into(),
@@ -175,8 +155,6 @@ fn acte(ctx: &Contexte, l: &Value, defaite: bool) -> String {
         "contrat-signature" if d.get("main_propre").is_some_and(vrai) => "Contrat imprimé, à remettre en main propre".into(),
         "contrat-signature" if t("acte") == "avenant" => "Avenant envoyé à la signature".into(),
         "contrat-signature" => "Contrat envoyé à la signature".into(),
-        "contrat-recu" if !t("avenant").is_empty() => format!("Avenant n° {} revenu signé — {}", t("avenant"), qui_du_contrat(ctx, &d)),
-        "contrat-recu" => format!("Contrat revenu signé — {}", qui_du_contrat(ctx, &d)),
         "contrat-contresigne" => format!("Contrat contresigné renvoyé — {}", qui_du_contrat(ctx, &d)),
         "regularisation-casc" => "Régularisation Congés Spectacles".into(),
         "dossier-salarie" => "Dossier d'un salarié".into(),
@@ -872,33 +850,21 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
         cles.poser(k.clone(), ())?;
     }
     let mut envois = Vec::new();
-    let defaites = mentions_defaites(&lignes);
-    for (rang, l) in lignes.iter().enumerate() {
-        let mut retours: Vec<Value> = l["retours"].as_array().into_iter().flatten().map(|r| retour_lu(&ctx.racine, l, r)).collect();
+    for l in lignes.iter() {
+        let lu = |r: &Value| if l["quoi"] == json!("contrat-signature") { revenu_lu(ctx, l, r) } else { retour_lu(&ctx.racine, l, r) };
+        let mut retours: Vec<Value> = l["retours"].as_array().into_iter().flatten().map(lu).collect();
         retours.sort_by(|a, b| valeur_en_texte(&a["quand"]).cmp(&valeur_en_texte(&b["quand"])));
         let t = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-        // Ce qui REVIENT (un contrat signe, une fiche remplie) n'a pas ete « envoye » et n'attend rien ; un depot attend
-        // ses retours par son flux (`journal.rattacher_retours`).
-        let recu = ["contrat-recu", "fiche-recue"].contains(&t("quoi").as_str());
+        // Ce qui REVIENT (une fiche remplie) n'a pas ete « envoye » et n'attend rien ; un depot attend ses retours par son
+        // flux (`journal.rattacher_retours`).
+        let recu = t("quoi") == "fiche-recue";
         let quand = etats::quand_lisible(&l["quand"]);
         let resume = match t("quoi").as_str() {
-            // Le contrat revenu : lequel, et comment il est revenu (une reponse « Je signe » ou une mention a la main).
-            "contrat-recu" => {
-                let d = &l["detail"];
-                let comment = if d["recu"] == json!(false) {
-                    format!("mention « reçu » retirée le {}", quand)
-                } else if d["origine"] == json!("courriel") {
-                    format!("signé d'un clic le {}", quand)
-                } else {
-                    format!("reçu signé le {}, noté à la main", quand)
-                };
-                format!("{} — {}", contrat_en_mots(d), comment)
-            }
             _ if recu => format!("reçu le {}", quand),
             _ => etats::resume(l, &cles, &avenants)?,
         };
         envois.push(json!({
-            "quoi": t("quoi"), "acte": acte(ctx, l, defaites.contains(&rang)), "mode": t("mode"), "quand": t("quand"), "fichier": t("fichier"), "flux": t("flux"),
+            "quoi": t("quoi"), "acte": acte(ctx, l), "mode": t("mode"), "quand": t("quand"), "fichier": t("fichier"), "flux": t("flux"),
             "destinataire": t("destinataire"), "identite": identite(ctx, l), "accepte": vrai(&l["accepte"]), "resume": resume,
             "attend_retour": !recu && !t("flux").is_empty(), "retours": retours,
         }));

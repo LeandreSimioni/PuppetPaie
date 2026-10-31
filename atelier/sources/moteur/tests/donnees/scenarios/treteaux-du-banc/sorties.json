@@ -1186,7 +1186,18 @@
         "accepte": true,
         "destinataire": "loie.fuller@exemple.invalid",
         "flux": "",
-        "retours": [],
+        "retours": [
+          {
+            "salarie": "FULLER",
+            "debut": "2026-11-20",
+            "recu": true,
+            "numero": "FU1.26.01",
+            "nom": "FULLER Loïe",
+            "quand": "2026-11-20T08:00:00",
+            "qui": "horloge",
+            "reponse": "contrat signe recu, range a la main"
+          }
+        ],
         "reponse": "1 contrat(s) envoye(s) a la signature",
         "trace": null,
         "detail": {
@@ -1451,29 +1462,6 @@
             "version": 1
           }
         ]
-      },
-      {
-        "quoi": "contrat-recu",
-        "quand": "2026-11-20T08:00:00",
-        "origine": "compagnie fictive : joue par l'horloge",
-        "mois": "2026-11",
-        "fichier": null,
-        "empreinte": null,
-        "mode": "reel",
-        "qui": "horloge",
-        "accepte": true,
-        "destinataire": "",
-        "flux": "",
-        "retours": [],
-        "reponse": "contrat signe recu, range a la main",
-        "trace": null,
-        "detail": {
-          "salarie": "FULLER",
-          "debut": "2026-11-20",
-          "recu": true,
-          "numero": "FU1.26.01",
-          "nom": "FULLER Loïe"
-        }
       },
       {
         "quoi": "dsn",

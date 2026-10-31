@@ -326,7 +326,6 @@ fn acte_lisible(quoi: &str) -> Option<&'static str> {
         "dpae" => "DPAE",
         "documents" => "Documents au salarié",
         "contrat-signature" => "Contrat envoyé à la signature",
-        "contrat-recu" => "Contrat signé reçu",
         "contrat-contresigne" => "Contrat contresigné renvoyé",
         "regularisation-casc" => "Régularisation CASC-SVP",
         "dossier-salarie" => "Dossier envoyé au salarié",
