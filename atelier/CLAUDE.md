@@ -172,6 +172,11 @@ montre que celui qui a lieu.
 a une différence entre l'affichage et ce en quoi il est explicité ; l'affichage doit être le plus simple possible »).
 Une carte, une liste, une pastille, un titre disent le mot qu'un utilisateur reconnaît (« CDDU », « CDD », « CDI ») ; le
 sens long va dans l'aide d'un champ, un conseil ou le document qui doit le dire en toutes lettres (le contrat écrit).
+**On ne coupe jamais un texte** (Léandre, 31/10/2026 : « je préfère que ça ait une sale gueule et qu'on puisse tout
+lire ») : ni points de suspension, ni `overflow: hidden`, ni texte tronqué à N caractères, à l'écran comme dans un
+message ou une phrase du moteur. Une phrase plus longue que sa place donne une **alerte au développeur** (un incident
+silencieux, comme les autres), pour qu'on aille à la cause : écrire plus bref, dans le moteur — ce qui sert l'écran et le
+LLM à la fois.
 
 ## Les sous-agents : Opus pour coder, Sonnet ou Haiku pour lire
 
