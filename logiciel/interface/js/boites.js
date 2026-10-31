@@ -125,9 +125,8 @@ document.getElementById("voile").onclick = (e) => {
 /* LE MOT DE PASSE DU LOGICIEL : UN POPUP, TOUJOURS LE MÊME.
    Chaque acte qui engage — dépôt réel, envoi, signature, écrire dans le
    coffre — passe par ici : on clique le bouton de l'acte, le popup demande
-   le mot de passe, Entrée, et l'acte part. Plus de champ posé dans chaque
-   écran (l'éditeur : « la logique c'est un popup, toujours, où je tape le
-   mot de passe, pas des champs cachés »). Le popup vit dans index.html
+   le mot de passe, Entrée, et l'acte part ; aucun écran n'a de champ à lui
+   pour le mot de passe. Le popup vit dans index.html
    (`#voile-mdp`), au-dessus de la boîte courante, et rend une promesse :
    le mot de passe, ou null si on annule (Échap, Annuler, clic à côté).
 

@@ -293,7 +293,7 @@ function dessinerConfig() {
         dessinerFormulaire(rangees.find((f) => f.cle === c));
         document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
       };
-      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE : plus de bouton « Modifier ».
+      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE.
       rendreOuvrable(r, () => ouvrir(cle), "Ouvrir la fiche");
       r.querySelectorAll("[data-ouvrir]").forEach((b) => { b.onclick = () => ouvrir(b.dataset.ouvrir); });
     });

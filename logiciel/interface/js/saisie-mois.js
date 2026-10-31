@@ -188,8 +188,7 @@ function rafraichirApercu() {
   enregistrerPlusTard();
   // Les etats, eux, ne coutent rien : ils sont deja lus. On les repeint tout
   // de suite, parce que changer le salarie ou les jours change l'engagement que ce
-  // bloc DESIGNE -- et laisser 350 ms l'ancien etat sous le nouveau nom, c'est
-  // exactement le mensonge qu'on veut eviter.
+  // bloc DESIGNE : l'etat d'avant ne reste pas 350 ms sous le nouveau nom.
   peindreEtats();
 }
 

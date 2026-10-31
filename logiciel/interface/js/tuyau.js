@@ -440,9 +440,7 @@ window.addEventListener("error", (ev) => {
  * là où elle a été levée. Chromium (WebView2) écrit « at f (http://hôte/js/
  * x.js?v=…:12:5) », WebKit « f@http://hôte/js/x.js?v=…:12:5 ». La requête
  * reste derrière (le moteur la coupe aussi, `fichier_court`). Sans pile
- * lisible, rien : le moteur écrit alors « interface:? ». Il écrivait
- * « interface.js », un fichier qui n'existe plus depuis que la page est
- * coupée en vingt, et tous les rejets s'y regroupaient. */
+ * lisible, rien : le moteur écrit alors « interface:? ». */
 function sourceDeLaPile(pile) {
   const m = String(pile || "").match(/(https?:\/\/[^\s()]+?\.js)(?:\?[^\s():]*)?:(\d+):(\d+)/);
   return m ? { fichier: m[1], ligne: +m[2], colonne: +m[3] } : { fichier: "", ligne: 0 };

@@ -176,14 +176,9 @@ function peindreEtats() {
         return;
       }
       // Le cas courant et normal : un engagement qu'on vient d'ajouter ou de
-      // changer. Pas de pastille grise — une pastille, même grise, se lit
-      // comme un état connu. Le message ne dit plus « Enregistrer la saisie
-      // d'abord » : le bouton n'existe plus, l'enregistrement se fait tout
-      // seul une seconde après la frappe, et il n'y a donc rien à faire —
-      // seulement à attendre que l'écran se rattrape.
-      // Plus de message ici : « Pas encore dans la saisie
-      // enregistrée… » s'affichait en orange sur chaque carte à l'ouverture,
-      // le temps d'un aller-retour, et se lisait comme un souci.
+      // changer. Pas de pastille, ni de message : une pastille, même grise, se
+      // lit comme un état connu, et l'enregistrement se fait tout seul une
+      // seconde après la frappe : il n'y a rien à faire qu'attendre la relecture.
       // Une carte à valider dont on vient de retaper un fait (son début, son salarié) garde son bouton jusqu'à la
       // relecture qui suit l'enregistrement : le clic qui quitte le champ doit le trouver (`validerLaCarte`).
       if (div._ligne && !div._ligne.valide && cible.querySelector(".v-basculer[data-valide='1']")
@@ -240,7 +235,7 @@ function fermerEdition(div, ferme) {
     if (c.classList.contains("verrou")) return;    // un contrat en cours
     if (c.closest(".e-resume")) return;            // la ligne de l'engagement validé
     if (c.closest(".e-imprevus")) return;          // ses imprévus : la reprise, le maintien se disent après la paie
-    if (c.classList.contains("chevron-pluri")) return;  // le chevron du contrat sur plusieurs mois (#127)
+    if (c.classList.contains("chevron-pluri")) return;  // le chevron du contrat sur plusieurs mois
     c.disabled = ferme;
   });
   // Ses imprévus se redisent : sur un engagement validé, un jour payé pendant

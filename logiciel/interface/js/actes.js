@@ -548,9 +548,8 @@ function encartRepetition(r, quoi, a) {
   if (!r) return "";
   const cette = (quoi === "dsn" ? "Cette DSN" : "Cette DPAE")
     + (quoi === "dsn" ? "" : echapper(embauchesDe(a)));
-  // Les deux phrases de l'éditeur : « cette DPAE est déjà
-  // testée, voulez-vous l'envoyer » — ou « elle est déjà envoyée en test,
-  // on attend les retours, qui arrivent bientôt ».
+  // Deux cas : déjà testée et conforme (l'envoyer ?), ou envoyée en test et
+  // ses retours attendus.
   if (r.conforme && r.compte_rendu === "ok") {
     return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
       <b>${cette} est testée — conforme. Voulez-vous l'envoyer ?</b>

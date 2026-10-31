@@ -1240,11 +1240,9 @@ function appliquerSuggestions(suggestions) {
 
 /*  CE QU'ON A TAPÉ ET PAS ENREGISTRÉ
  *
- *  La page disait, sous les boutons, que l'ancienne version est copiee dans
- *  `config/avant/` — de la plomberie, affichee a quelqu'un qui n'a rien
- *  demande. Elle ne disait pas, en revanche, ce qui compte vraiment :
- *  quitter l'onglet perdait la saisie, en silence. C'est l'inverse
- *  maintenant. Rien si on n'a rien touche.
+ *  Quitter l'onglet avec une saisie non enregistree se dit ; la copie de
+ *  l'ancienne version dans `config/avant/` ne se montre pas. Rien si on n'a
+ *  rien touche.
  */
 let FICHE_MODIFIEE = false;
 // LA FICHE TELLE QU'ELLE S'EST OUVERTE. Taper un « a » puis

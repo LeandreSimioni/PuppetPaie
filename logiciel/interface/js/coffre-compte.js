@@ -246,7 +246,7 @@ async function dessinerCoffre(cible) {
     b.onclick = () => document.querySelector(
       `.sous-onglets button[data-fiche="${b.dataset.allerFiche}"]`).click();
   });
-  // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE : plus de « Modifier… ».
+  // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE.
   // Elle ouvre ses cases et met le curseur dans la première ; un second clic
   // la referme. « Poser… » (rien n'est posé : il y a à faire) fait de même.
   const basculer = (rang) => {
