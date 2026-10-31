@@ -1426,8 +1426,8 @@ Trois garde-fous, tous dans le moteur (`moteur/src/compagnie/depot_acte.rs`, `mo
   Une version exigée et pas encore installée bloque tout dépôt réel
   (`depot_acte::exigee_en_attente`).
 - **Pas deux fois.** Une DSN réelle déjà partie pour le mois ne repart pas
-  (`DsnDejaDeposee`), une embauche déjà déclarée ne se redéclare pas
-  (`DpaeDejaDeclaree`). Une déclaration **refusée** repart sans forcer —
+  (`DsnDejaDeposee`), une embauche déjà déclarée n'est plus à déclarer.
+  Une déclaration **refusée** repart sans forcer —
   c'est la seule raison de la refaire.
 - **Un dépôt n'est pas fini quand il est parti.** `envois/src/journal.rs` écrit une ligne
   par acte sortant dans `journal/depots.json` (dépôt, courriel, demande de

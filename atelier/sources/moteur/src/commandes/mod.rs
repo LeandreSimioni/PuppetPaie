@@ -150,13 +150,13 @@ impl Cadre {
 
 /// La classe d'un refus rendue en `&'static str` pour `Echec` (une classe inconnue devient `RuntimeError`).
 fn classe_connue(c: &str) -> &'static str {
-    const CONNUES: [&str; 37] = [
+    const CONNUES: [&str; 33] = [
         "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "KeyError", "ValueError",
         "FileNotFoundError", "PermissionError", "OSError", "UnicodeDecodeError", "JSONDecodeError", "TypeError", "AttributeError",
         "ErreurApi", "ErreurCoffre", "ErreurGoogle", "DepotRefuse", "VersionExigee", "EditionBridee", "CompteursVerrouilles", "CalculRefuse",
         // Les classes des actes : un depot, une correction, un arret.
-        "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai", "MoisNonRegularisable",
-        "ExerciceClos", "ClotureRefusee", "MoisHorsDelai", "ActeReelRefuse", "ArretIntrouvable",
+        "DsnDejaDeposee", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai", "MoisNonRegularisable",
+        "ExerciceClos", "ActeReelRefuse",
         // Les envois (theme 2) : une sortie absente, une boite absente ou en panne.
         "SortieAbsente", "BoiteAbsente", "ErreurCourriel",
         // Le refus d'un envoi depuis une fictive ajoutee (`bridage::branchement`).

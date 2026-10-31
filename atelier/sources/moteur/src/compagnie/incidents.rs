@@ -379,11 +379,11 @@ fn ecart_secondes(a: &str, b: &str) -> Option<i64> {
 /// `FileNotFoundError` et leurs filles.
 // `ErreurCoffre` et `ErreurGoogle` y sont : un coffre ferme ou un refus de Google est une situation d'usage, pas un
 // defaut du logiciel.
-const REFUS_PAR_CLASSE: [&str; 22] = [
+const REFUS_PAR_CLASSE: [&str; 20] = [
     "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "CalculRefuse", "FabriqueRefus", "FicheRefusee",
-    "DsnDejaDeposee", "MoisPasPret", "RepetitionManquante", "DpaeDejaDeclaree", "VersionExigee", "CompteursVerrouilles",
+    "DsnDejaDeposee", "MoisPasPret", "RepetitionManquante", "VersionExigee", "CompteursVerrouilles",
     "KeyError", "ValueError", "FileNotFoundError", "UnicodeDecodeError", "JSONDecodeError", "UnicodeEncodeError",
-    "ErreurCoffre", "ErreurGoogle", "ModificationApresEcheance", "ModificationNonDeclarable",
+    "ErreurCoffre", "ErreurGoogle", "ModificationNonDeclarable",
 ];
 
 /// `nature_de` d'apres le NOM de la classe de l'exception.
