@@ -1,10 +1,11 @@
 //! CE DONT UNE PAIE DEPEND : l'empreinte est celle d'un engagement, pas d'un mois. Le calcul d'un mois note tout ce qu'il
 //! lit (`socle::fichiers::suivre`) : le contenu de chaque fichier (baremes du socle et de la compagnie, catalogues livres,
-//! effectifs, imprevus, taux de prelevement a la source...), les fichiers absents, les dossiers parcourus, les fiches
-//! telles qu'elles valent au dernier jour du mois paye, le jour s'il le lit, et les paies validees des autres mois qu'il
+//! effectifs, imprevus, taux de prelevement a la source...), les fichiers absents, les dossiers parcourus, le jour s'il le
+//! lit, et les paies validees des autres mois qu'il
 //! lit (`paies <mois>`, `etats::paies_validees`). De la saisie de son mois, chaque paie ne garde que ce dont elle depend :
-//! ce que le mois pose pour tous et les engagements valides de son salarie (`saisie <mois> <salarie>`,
-//! `etats::calculer_les_rangs`). S'y ajoutent la marque du code qui calcule (`MOTEUR`) et les regles datees qui
+//! ce que le mois pose pour tous, les engagements valides de son salarie (`saisie <mois> <salarie>`,
+//! `etats::calculer_les_rangs`) et les fiches de l'entreprise, de son salarie et de son spectacle au dernier jour du mois
+//! (`fiches`). S'y ajoutent la marque du code qui calcule (`MOTEUR`) et les regles datees qui
 //! s'appliquent a la periode payee (`regles`).
 //!
 //! L'empreinte TIENT quand chacune de ses entrees vaut encore ce qu'elle valait (`tient`) : aucun calcul, une relecture
@@ -26,10 +27,27 @@ use crate::stock;
 /// (`build.rs`). Un autre code recalcule ce qui n'est pas parti.
 pub const MOTEUR: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("ENGAGEMENT_SOURCES"));
 
-/// Les fiches telles qu'elles valent a la date du contexte.
-fn empreinte_fiches(ctx: &Contexte) -> String {
-    let v = Value::Array(vec![ctx.entreprise.clone(), Value::Object(ctx.salaries.clone()), Value::Object(ctx.spectacles.clone())]);
+/// L'entree des fiches dont depend la paie de `salarie` pour `mois`, sur `spectacle` : l'entreprise, la fiche du salarie
+/// et celle du spectacle, telles qu'elles valent au dernier jour du mois (`Contexte::du_mois`). La fiche d'un autre
+/// salarie, une valeur datee apres le mois n'en sont pas : elles ne font pas recalculer cette paie.
+pub(crate) fn fiches(ctx: &Contexte, mois: &str, salarie: &str, spectacle: Option<&str>) -> Resultat<(String, String)> {
+    let cle = Value::Array(vec![mois.into(), salarie.into(), spectacle.map_or(Value::Null, Value::from)]);
+    Ok((format!("fiches {}", cle), empreinte_fiches(&ctx.du_mois(mois)?, salarie, spectacle)))
+}
+
+fn empreinte_fiches(ctx: &Contexte, salarie: &str, spectacle: Option<&str>) -> String {
+    let fiche = |m: &Map<String, Value>, k: Option<&str>| k.and_then(|k| m.get(k)).cloned().unwrap_or(Value::Null);
+    let v = Value::Array(vec![ctx.entreprise.clone(), fiche(&ctx.salaries, Some(salarie)), fiche(&ctx.spectacles, spectacle)]);
     fichiers::sha256_hex(v.to_string().as_bytes())
+}
+
+/// L'entree `fiches [mois, salarie, spectacle]` tient-elle encore ?
+fn fiches_tiennent(ctx: &Contexte, cle: &str, v: &str) -> bool {
+    let Ok(Value::Array(c)) = serde_json::from_str::<Value>(cle) else { return false };
+    match (c.first().and_then(Value::as_str), c.get(1).and_then(Value::as_str)) {
+        (Some(mois), Some(salarie)) => fiches(ctx, mois, salarie, c.get(2).and_then(Value::as_str)).is_ok_and(|(_, e)| e == v),
+        _ => false,
+    }
 }
 
 /// Une entree de fichier qui est la saisie d'un mois : elle se compte par la saisie (`stock::cle_de_saisie`), pas par
@@ -38,15 +56,10 @@ fn est_un_fichier_d_engagements(cle: &str) -> bool {
     cle.split_once(' ').is_some_and(|(_, c)| c.starts_with(&format!("racine:{}/", stock::DOSSIER)) || c == format!("racine:{}", stock::DOSSIER))
 }
 
-/// `f`, qui calcule depuis la saisie `data` d'un mois, et tout ce qu'il a lu. Les fiches s'y comptent telles qu'elles
-/// valent au dernier jour de ce mois (`Contexte::du_mois`), quel que soit le jour du contexte qui calcule : la meme paie a
-/// la meme empreinte, quel que soit le mois que l'ecran regarde.
-pub(crate) fn suivre<T>(ctx: &Contexte, data: &Value, f: impl FnOnce() -> Resultat<T>) -> Resultat<(T, BTreeMap<String, String>)> {
-    let mois = data.get("mois").and_then(Value::as_str).ok_or_else(|| fichiers::absent("mois"))?;
-    let fiches = empreinte_fiches(&ctx.du_mois(mois)?);
+/// `f`, et tout ce qu'il a lu. Les fiches s'y ajoutent paie par paie (`fiches`).
+pub(crate) fn suivre<T>(ctx: &Contexte, f: impl FnOnce() -> Resultat<T>) -> Resultat<(T, BTreeMap<String, String>)> {
     fichiers::suivre(&ctx.racine, &dossier_du_code());
     let r = f();
-    fichiers::noter_valeur("fiches", fiches);
     let mut entrees = fichiers::rendre();
     entrees.retain(|k, _| !est_un_fichier_d_engagements(k));
     entrees.insert("moteur".into(), MOTEUR.into());
@@ -91,7 +104,7 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
     let (racine, code) = (&ctx.racine, dossier_du_code());
     match k {
         "moteur" => v == MOTEUR,
-        "fiches" => v == empreinte_fiches(ctx),
+        k if k.starts_with("fiches ") => fiches_tiennent(ctx, &k["fiches ".len()..], v),
         "date" => v == ctx.date.iso(),
         "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| v == j.iso()),
         _ => {

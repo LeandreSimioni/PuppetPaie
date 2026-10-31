@@ -240,11 +240,11 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "valeur", sens: "le taux net notifié, en %", avance: false },
         ],
         exemple: r#"{"annee":2026}"#,
-        rend: "le code, le taux, leur libellé et d'où ils viennent, les codes que le socle connaît",
+        rend: "le code, le taux, leur libellé et d'où ils viennent, les codes que le socle connaît ; phrase : ce que le geste a écrit",
         refus: &[OPERATION, MANQUE, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
         avance: true,
-        phrase: 0,
+        phrase: 60,
     },
     Fiche {
         nom: "bulletin-modeles",

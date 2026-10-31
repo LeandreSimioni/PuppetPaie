@@ -372,12 +372,21 @@ pub(crate) fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
         None => None,
     };
+    let demande = charge.get("code_risque").is_some() || charge.get("valeur").is_some();
+    let pose = code.is_some();
     if let Some(code) = code {
         let valeur = taux_saisi(charge.get("valeur"))?;
         let source = format!("Saisi dans PuppetPaie le {} (notification AT/MP).", aujourdhui_jj_mm_aaaa());
         poser(ctx, an, &code, valeur, &source)?;
     }
-    lire(ctx, an)
+    let mut r = lire(ctx, an)?;
+    // Ce que le geste a fait, tel que la page le dit.
+    r["phrase"] = json!(match (pose, demande) {
+        (true, _) => "Enregistré.",
+        (false, true) => "Ni code ni taux : rien n'est écrit.",
+        (false, false) => "",
+    });
+    Ok(r)
 }
 
 /// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`, par son code postal) ?

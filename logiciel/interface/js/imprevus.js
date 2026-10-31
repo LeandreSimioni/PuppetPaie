@@ -406,11 +406,11 @@ function peindreImprevusDeLaCarte(div, liste) {
     const r = cible.querySelector(`[data-imprevu="${k}"]`);
     brancherGestesImprevu(r, i, MOIS_AFFICHE, rafraichirImprevus);
     r.querySelectorAll("[data-retirer]").forEach((b) => {
-      b.onclick = () => {
-        if (retirerJour(div, b.dataset.rubrique, b.dataset.retirer)) {
-          dire(`Le ${jjmmaaaa(b.dataset.retirer)} est retiré de la ligne de paie. La saisie s'enregistre.`);
-        } else {
+      b.onclick = async () => {
+        if (!retirerJour(div, b.dataset.rubrique, b.dataset.retirer)) {
           dire(`Le ${jjmmaaaa(b.dataset.retirer)} n'est sur aucune ligne ouverte de cette carte : le décocher au calendrier.`, "erreur");
+        } else if (await avantDeQuitter()) {
+          dire(`Le ${jjmmaaaa(b.dataset.retirer)} est retiré de la ligne de paie.`);
         }
       };
     });
@@ -744,7 +744,7 @@ async function etapeSuite(i, p, phrase) {
       const c = jours[+x.dataset.jour];
       if (retirerJour(div, c.rubrique, x.value)) retires++;
     });
-    if (retires) dire(`${retires} jour${retires > 1 ? "s" : ""} retiré${retires > 1 ? "s" : ""} de l'engagement. La saisie s'enregistre.`);
+    if (retires && await avantDeQuitter()) dire(`${retires} jour${retires > 1 ? "s" : ""} retiré${retires > 1 ? "s" : ""} de l'engagement.`);
     await finir();
   };
 }

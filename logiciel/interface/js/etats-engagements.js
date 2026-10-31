@@ -175,16 +175,11 @@ function peindreEtats() {
         brancherRetirer(div);
         return;
       }
-      // Le cas courant et normal : un engagement qu'on vient d'ajouter ou de
-      // changer. Pas de pastille, ni de message : une pastille, même grise, se
-      // lit comme un état connu, et l'enregistrement se fait tout seul une
-      // seconde après la frappe : il n'y a rien à faire qu'attendre la relecture.
-      // Une carte à valider dont on vient de retaper un fait (son début, son salarié) garde son bouton jusqu'à la
-      // relecture qui suit l'enregistrement : le clic qui quitte le champ doit le trouver (`validerLaCarte`).
-      if (div._ligne && !div._ligne.valide && cible.querySelector(".v-basculer[data-valide='1']")
-          && !toutEstEcrit()) return;
-      poserEtats(cible, `<div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`);
-      brancherRetirer(div);
+      // Un engagement qu'on vient d'ajouter ou de changer : pas de pastille (une pastille, même grise, se lit comme un
+      // état connu), mais le geste « Valider l'engagement » tout de suite : `valider-engagement` écrit la carte et la
+      // valide, ou dit le fait qui lui manque sans rien écrire.
+      poserEtats(cible, bandeauValidation({}));
+      brancherValidation(div, {});
       return;
     }
     // Un contrat sur plusieurs mois : son chevron est au bord de la case.

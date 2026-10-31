@@ -1012,6 +1012,8 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     // qui relie la DPAE, partie ou refusee, a son engagement.
     let departs = m.departs()?;
     let mut numeros: HashMap<(String, String), String> = HashMap::new();
+    // La nature de chaque embauche, par son nom court (« CDDU ») : le fichier ne dit que CDD, CDI ou CTT (Format 120).
+    let mut natures: HashMap<(String, String), String> = HashMap::new();
     let mut mois_vus: Vec<String> = Vec::new();
     let vide = json!({});
     let mut lignes = Vec::new();
@@ -1022,8 +1024,13 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
             for etat in engagement::etats::tels_qu_ecrits(ctx, &m_e, &departs).map_err(Echec::from)? {
                 let Some(v) = etat.valide() else { continue };
                 let brut = Value::Object(v.objet().brut.clone());
-                if let (Some(cle), Some(n)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) {
-                    numeros.insert((cle, engagement::debut_brut(&brut)), n.to_string());
+                let Some(cle) = engagement::cle_de_l_engagement(ctx, &brut) else { continue };
+                let id = (cle, engagement::debut_brut(&brut));
+                if let Ok(nat) = droit::natures::nature(brut.get("nature").and_then(Value::as_str)) {
+                    natures.insert(id.clone(), nat.libelle.clone());
+                }
+                if let Some(n) = brut.get("numero").and_then(Value::as_str) {
+                    numeros.insert(id, n.to_string());
                 }
             }
             mois_vus.push(m_e);
@@ -1040,12 +1047,10 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
         let nom = socle::texte::salarie_nomme(s).unwrap_or_else(|| "salarie inconnu de la configuration".to_string());
         let nom = nom.as_str();
         let type_brut = champ("type_contrat").trim_matches(socle::texte::blanc);
-        let type_contrat = match type_brut {
-            "1" => "CDD".to_string(),
-            "2" => "CDI".to_string(),
-            "3" => "CTT".to_string(),
-            _ => format!("type {}", champ("type_contrat")),
-        };
+        let type_contrat = cle.and_then(|c| natures.get(&(c.clone(), debut.clone()))).cloned().unwrap_or_else(|| {
+            let t = droit::natures::TYPES_CONTRAT_DPAE.iter().find(|(k, _)| *k == type_brut);
+            t.map_or_else(|| format!("type {}", type_brut), |(_, l)| l.to_string())
+        });
         let cle_json = cle.map_or(Value::Null, |c| json!(c));
         let numero = cle.and_then(|c| numeros.get(&(c.clone(), debut.clone()))).cloned();
         let deja = match &numero {

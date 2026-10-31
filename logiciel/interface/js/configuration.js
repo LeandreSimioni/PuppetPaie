@@ -1699,19 +1699,21 @@ async function brancherAtmp() {
       if (p) p.innerHTML = `<b>${echapper(e.resume || "")}</b>${e.risque ? ` — « ${echapper(e.risque.libelle)} »` : ""}. ${echapper(e.explication || "")}`;
     });
   };
-  try { peindre(await api("taux-atmp", { annee })); } catch (e) { /* rien à montrer */ }
   $("atmp-enregistrer").onclick = async (ev) => {
     ev.preventDefault();
     try {
-      peindre(await api("taux-atmp", { annee, code_risque: choix.value || code.value,
-                                       valeur: valeur.value }));
-      etat.textContent = "Enregistré.";
+      const r = await api("taux-atmp", { annee, code_risque: choix.value || code.value,
+                                         valeur: valeur.value });
+      peindre(r);
+      etat.textContent = r.phrase;
       valeur.classList.remove("faute");
     } catch (e) {
       etat.textContent = e.message;
       valeur.classList.add("faute");
     }
   };
+  // La fiche quittée avant la réponse n'a plus ces cases : rien à peindre.
+  try { const r = await api("taux-atmp", { annee }); if (bloc.isConnected) peindre(r); } catch (e) { /* rien à montrer */ }
 }
 
 /* LA COMPLÉMENTAIRE SANTÉ D'UN PERMANENT, en tete du bloc

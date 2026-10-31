@@ -701,15 +701,17 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
         }
     }
     data["engagements"] = Value::Array(gardes);
-    let (calculees, mut entrees) = empreinte::suivre(ctx, &data, || {
+    let (calculees, mut entrees) = empreinte::suivre(ctx, || {
         let s = crate::charger_donnees(ctx, &data)?;
         rangs
             .iter()
             .map(|i| {
                 let p = places.get(*i).copied().flatten().and_then(|j| s.paies.get(j)).ok_or("le calcul du mois n'a pas cette paie")?;
                 let conges = crate::conges::compteur_ecrit(ctx, p, mois)?;
-                let config = empreinte::configuration(ctx, &p.engagement.fin_periode()?, &p.engagement.salarie, p.engagement.spectacle.as_deref())?;
-                Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?.map(|v| v.canon()), conges, p.engagement.fin_periode()?, config))
+                let (salarie, spectacle) = (&p.engagement.salarie, p.engagement.spectacle.as_deref());
+                let config = empreinte::configuration(ctx, &p.engagement.fin_periode()?, salarie, spectacle)?;
+                let entree_fiches = empreinte::fiches(ctx, mois, salarie, spectacle)?;
+                Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?.map(|v| v.canon()), conges, p.engagement.fin_periode()?, config, entree_fiches))
             })
             .collect::<Resultat<Vec<_>>>()
     })?;
@@ -720,10 +722,11 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
     calculees
         .into_iter()
         .zip(salaries)
-        .map(|((paie, fiches, pas, conges, fin, config), salarie)| {
+        .map(|((paie, fiches, pas, conges, fin, config, (cle_fiches, entree_fiches)), salarie)| {
             let regles = empreinte::regles(ctx, &fin)?;
             let mut siennes = entrees.clone();
             siennes.insert(stock::cle_de_saisie(mois, Some(&salarie)), stock::empreinte_de_saisie(&data, Some(&salarie)));
+            siennes.insert(cle_fiches, entree_fiches);
             let mut v = json!({ "paie": paie, "fiches": fiches, MOIS_LU: mois_lu.clone(), "empreinte": empreinte::en_json(&siennes, &regles, &config) });
             if let Some(pas) = pas {
                 v["pas"] = pas;
@@ -1388,18 +1391,19 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<
 /// les fiches). `None` : il tient. Sinon, la paie ecrite avec l'etat refait, et ce qu'il a lu dans son empreinte.
 fn conges_avant_a_jour(ctx: &Contexte, o: &Objet, ancienne: &Value, mois: &str, relues: &mut empreinte::Relues) -> Resultat<Option<Value>> {
     let entrees = ancienne.get("empreinte").and_then(empreinte::entrees_de).unwrap_or_default();
-    let de_lui = |k: &str| k.starts_with("paies ") || k == "fiches";
+    let de_lui = |k: &str| k.starts_with("paies ") || k.starts_with("fiches ");
     let siennes: BTreeMap<String, String> = entrees.iter().filter(|(k, _)| de_lui(k)).map(|(k, v)| (k.clone(), v.clone())).collect();
     if empreinte::tient(ctx, &siennes, relues) {
         return Ok(None);
     }
     let cle = o.brut.get("salarie").map(en_texte).unwrap_or_default();
-    let data = stock::vue_du_mois(&ctx.racine, mois)?.ok_or_else(|| format!("{} : aucune saisie", mois))?;
     let fin = socle::date::dernier_du_mois(mois)?;
-    let (avant, lues) = empreinte::suivre(ctx, &data, || crate::conges::avant_le_mois(ctx, &cle, &fin, mois))?;
+    let (avant, mut lues) = empreinte::suivre(ctx, || crate::conges::avant_le_mois(ctx, &cle, &fin, mois))?;
+    let spectacle = o.brut.get("spectacle").and_then(Value::as_str);
+    lues.extend([empreinte::fiches(ctx, mois, &cle, spectacle)?]);
     let mut nouvelle = ancienne.clone();
     nouvelle[CONGES_AVANT] = avant.en_json();
-    let mut entrees: Map<String, Value> = entrees.into_iter().filter(|(k, _)| !k.starts_with("paies ")).map(|(k, v)| (k, Value::String(v))).collect();
+    let mut entrees: Map<String, Value> = entrees.into_iter().filter(|(k, _)| !de_lui(k)).map(|(k, v)| (k, Value::String(v))).collect();
     for (k, v) in lues.into_iter().filter(|(k, _)| de_lui(k)) {
         entrees.insert(k, Value::String(v));
     }
