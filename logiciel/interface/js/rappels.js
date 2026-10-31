@@ -7,7 +7,7 @@
    « Quand le mois est fini, le logiciel s'ouvre sur le mois suivant, et là
    il faut un pop-up : il est temps d'envoyer la DSN du mois précédent. Avez-
    vous bien fini les paies du mois précédent ? Et un bouton vérifier et
-   envoyer. » (16/09/2026). Puis, en janvier : clôturer l'exercice, exporter
+   envoyer. ». Puis, en janvier : clôturer l'exercice, exporter
    les chiffres pour la compta, saisir les numéros d'objet de l'année.
 
    La page ne décide de rien : /api/rappels rend la liste, déjà dans l'ordre,

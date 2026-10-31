@@ -86,7 +86,7 @@ function ligneRubrique(l = {}, nat) {
        4 cachets à 130 €  Théâtre 71            le 14 15 17 18
 
      « Pour moi tout est sur la même ligne : les dates, les lieux et le
-     cachet » (12/09/2026). C'est la bonne maille, et elle règle le lieu par
+     cachet ». C'est la bonne maille, et elle règle le lieu par
      cachet d'un seul coup : une ligne de paie EST un groupe de cachets, à un
      taux, à un endroit, à des dates. Le lieu n'a plus à être rattaché à une
      date d'un côté et à un engagement de l'autre — il est là, sur la ligne
@@ -97,7 +97,7 @@ function ligneRubrique(l = {}, nat) {
      sont une constante du règlement. Ce qui reste en mots : « à » et « € »,
      les deux seuls qui disent lequel des nombres est le taux. */
   div.innerHTML = `
-    <!-- LES JOURS D'ABORD (23/09/2026) : ce sont eux qui situent l'engagement et
+    <!-- LES JOURS D'ABORD : ce sont eux qui situent l'engagement et
          qui comptent les cachets. -->
     <button type="button" class="r-jours-btn" title="cocher les jours dans le calendrier">—</button>
     <input class="r-quantite" type="number" min="0" step="0.5" placeholder="qté"
@@ -234,7 +234,7 @@ function ligneRubrique(l = {}, nat) {
    « J'aime bien l'idée de pouvoir cocher les dates dans un petit planning,
    plus esthétique et clair que de taper 12, 24, 26. Du coup avec une flèche
    on pourrait aller au mois suivant. Avec un petit avertissement : vous êtes
-   en train de créer un contrat sur plusieurs mois. Valider ? » (15/09/2026)
+   en train de créer un contrat sur plusieurs mois. Valider ? »
 
    Un mois à la fois, sous la ligne de paie. Les jours du mois de la saisie
    se cochent comme jours joués (ils comptent les cachets) ; ceux des mois
@@ -740,7 +740,7 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
     <!-- L'ENGAGEMENT VALIDÉ, EN UNE LIGNE : quand, qui, pour
          quoi, ce qui reste à faire, le net. Voir peindreCarte(). -->
     <div class="e-resume"></div>
-    <!-- SES IMPRÉVUS DU MOIS (15/10/2026) : une ligne par arrêt ou absence
+    <!-- SES IMPRÉVUS DU MOIS : une ligne par arrêt ou absence
          qui touche ce contrat, avec ses gestes et les jours payés pendant
          l'imprévu. Vide le plus souvent. Visible aussi sur un engagement validé. -->
     <div class="e-imprevus"></div>
@@ -802,14 +802,14 @@ function construireCarte(div, e) {
     <div class="ligne1">
       <!-- Pas de « + » ici : une fiche neuve se crée dans Configuration.
            La saisie d'un engagement doit rester simple et agréable ; on y choisit,
-           on n'y administre pas (13/09/2026). -->
+           on n'y administre pas. -->
       <div class="champ">Salarié
         <details class="e-qui">
           <summary class="vide">— choisir —</summary>
           <div class="e-qui-liste"></div>
         </details>
       </div>
-      <!-- LA NATURE DU CONTRAT (19/09/2026). Elle ne se devine pas : un
+      <!-- LA NATURE DU CONTRAT. Elle ne se devine pas : un
            engagement muet est un CDDU du spectacle, et c'est ce qu'ont été
            les 146 contrats de l'historique. Ce qui manquait, c'était de
            pouvoir dire AUTRE CHOSE — tant qu'elle n'était pas ici, un
@@ -870,7 +870,7 @@ function construireCarte(div, e) {
          « J'aimerais voir pour chaque engagement le net pour le salarié, le
          brut et le coût entreprise. Et qu'une fois les cases remplies, on
          puisse mettre par exemple le coût pour l'entreprise et il recalcule
-         le brut du cachet » (l'éditeur, 22/09/2026).
+         le brut du cachet ».
 
          Les voir, d'abord : un brut tout seul ne dit ni ce que le salarié
          touche, ni ce que ça coûte — et ce sont les deux nombres dont on a
@@ -891,7 +891,7 @@ function construireCarte(div, e) {
          jamais ce qui a été demandé : deux cachets ne tombent pas toujours
          sur 500,00 € pile, et à égalité c'est le taux qui ne dépasse PAS
          l'enveloppe qui gagne. -->
-    <!-- LA SAISIE, PENSÉE DANS L'ORDRE OÙ L'ON REMPLIT (23/09/2026). Qui et
+    <!-- LA SAISIE, PENSÉE DANS L'ORDRE OÙ L'ON REMPLIT. Qui et
          quel spectacle en tête ; les lignes de paie, jours d'abord ; puis le
          RÉSULTAT en une ligne — le net, ce qu'on vire. Viser un montant est
          un outil, pas une lecture : il se replie. Le métier, la case cadre,
@@ -902,7 +902,7 @@ function construireCarte(div, e) {
       <span class="e-suite"></span>
       <button type="button" class="lien e-viser-btn">Viser un montant</button>
       <button type="button" class="lien e-options-btn">Plus d'options</button>
-      <!-- LA PORTE DES IMPRÉVUS (15/10/2026) : un arrêt de travail, une
+      <!-- LA PORTE DES IMPRÉVUS : un arrêt de travail, une
            absence, une rupture avant terme, pour le salarié de cette carte.
            Discrète : les imprévus sont rares. js/imprevus.js. -->
       <button type="button" class="lien e-imprevu-btn" hidden>Un imprévu…</button>
@@ -964,7 +964,7 @@ function construireCarte(div, e) {
         <label data-ecrit="clauses_particulieres" hidden title="à la place des clauses particulières de la compagnie (Configuration › Modèles de contrat)">Clauses particulières de ce contrat
           <textarea rows="2" class="e-ecrit-champ" data-cle="clauses_particulieres" placeholder="vide : celles de la compagnie"></textarea></label>
       </div>
-      <!-- LA FIN D'UN CONTRAT QUI SE SIGNALE (19/09/2026). Trois faits que
+      <!-- LA FIN D'UN CONTRAT QUI SE SIGNALE. Trois faits que
            le moteur ne devine pas, et il a raison de ne pas les deviner :
            une date de notification ne se déduit pas d'un salaire, et le
            motif de rupture change les droits du salarié à l'assurance
@@ -1006,7 +1006,7 @@ function construireCarte(div, e) {
           <select class="e-transaction"></select></label>
         <label title="le dernier jour payé au salaire habituel — la fin du contrat, sauf préavis non effectué">Dernier jour payé
           <input type="date" class="e-dernier-paye" placeholder="la fin du contrat"></label>
-        <!-- LES FAITS DU MOTIF (30/09/2026) : le moteur dit, motif par motif,
+        <!-- LES FAITS DU MOTIF : le moteur dit, motif par motif,
              ce qu'il doit savoir (permanents.faits_de_rupture) ; la page ne
              montre que ceux-là. Sans eux, une rupture conventionnelle était
              refusée sans qu'on puisse répondre d'ici. -->
@@ -1026,7 +1026,7 @@ function construireCarte(div, e) {
           <input class="e-precarite-pourquoi" placeholder="refus d'un CDI, emploi de vacances…"></label>
       </div>
       <!-- LES BORNES NE SE SAISISSENT PLUS POUR UN CONTRAT D'USAGE
-           (22/09/2026). L'éditeur : « il y a marqué date de début et fin de
+          . L'éditeur : « il y a marqué date de début et fin de
            contrat, mais en fait c'est plus nécessaire puisqu'on clique dans
            le calendrier les dates pour lesquelles on fait les heures ou les
            cachets » — et, sur le contrat qui déborde du mois : « on pourrait

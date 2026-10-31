@@ -165,7 +165,7 @@ function dessinerConfig() {
     </div>`;
   };
 
-  // CACHÉES PAR DÉFAUT (l'éditeur, 23/09/2026) : un spectacle archivé ne
+  // CACHÉES PAR DÉFAUT : un spectacle archivé ne
   // se joue plus. Une case les montre ; elle reste
   // cochée tant qu'on ne la décoche pas, et une fiche archivée ouverte les
   // montre d'office.
@@ -185,7 +185,7 @@ function dessinerConfig() {
     <div id="config-rangs"></div>`
     + (salarie ? fichesAttenduesHtml() : "");
 
-  // LA RECHERCHE DANS TOUS LES CHAMPS (l'éditeur, 24/09/2026). Chaque valeur
+  // LA RECHERCHE DANS TOUS LES CHAMPS. Chaque valeur
   // de la fiche, les anciennes valeurs datées comprises (un courriel changé
   // retrouve encore la personne), sans accents, sans majuscules, sans
   // espaces (« 2 93 08 » trouve le NIR) ; une date se cherche aussi comme
@@ -1818,7 +1818,7 @@ function enteteSalarie(fiche) {
         >Exporter ses documents</button>
     </div>
     <div class="cout-annee" data-cote="salaries" data-cle="${echapper(fiche.cle)}"></div>
-    <!-- SES IMPRÉVUS (15/10/2026) : ses arrêts et ses absences, passés et en
+    <!-- SES IMPRÉVUS : ses arrêts et ses absences, passés et en
          cours, ce qui en est parti, et la porte « Un imprévu… ». js/imprevus.js. -->
     <div class="fiche-imprevus" id="fiche-imprevus"></div>
     <!-- CE QUE VOS CONTRATS FONT POUR SES DROITS : les conseils sur

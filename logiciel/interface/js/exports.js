@@ -69,7 +69,7 @@ async function dessinerExports() {
 
 /* ------------------------------------------- le dossier d'un salarié */
 
-/** TOUS SES DOCUMENTS, EN UNE FOIS (l'éditeur, 23/09/2026). On coche ce qu'on
+/** TOUS SES DOCUMENTS, EN UNE FOIS. On coche ce qu'on
  *  sort : une catégorie donne un PDF, plusieurs un ZIP d'un PDF par
  *  catégorie. Le moteur réédite ce qui se recrée — aux numéros lus, jamais
  *  neufs — et prend tel quel ce qui ne se recrée pas (contrat signé, AER,
@@ -85,7 +85,7 @@ async function dessinerDossier() {
   cible.innerHTML = `
     <div class="champs">
       <div class="champ">
-        <!-- QUI SE COCHE, COMME DANS LES PAIES (Leandre, 08/10/2026) : une
+        <!-- QUI SE COCHE, COMME DANS LES PAIES : une
              case par salarié, et une case « Tous ». Un dossier chacun. -->
         <label>Qui</label>
         <div class="d-qui-liste" style="display:flex;flex-direction:column;gap:2px;max-height:12em;overflow:auto">
@@ -407,7 +407,7 @@ async function lancerExport(apercu) {
 }
 
 /** LA RÉGULARISATION CASC-SVP. Deux étapes, dans l'ordre où on les vit
- *  (l'éditeur, 23/09/2026) : faire les virements, puis envoyer — par la boîte
+ *  : faire les virements, puis envoyer — par la boîte
  *  de la compagnie si elle est posée, c'est le premier choix et il se voit ;
  *  sinon à la main, les fichiers sont là. Le détail des mois se déplie. */
 function dessinerCasc(r) {
