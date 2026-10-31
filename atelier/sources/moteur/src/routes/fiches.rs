@@ -1167,6 +1167,14 @@ fn meme(a: &Value, b: &Value) -> bool {
         || (!a.is_object() && !a.is_array() && valeur_en_texte(a) == valeur_en_texte(b))
 }
 
+/// La structure `apres` garde chaque case de `avant` qui a une valeur (elle n'en remplit que des vides).
+fn seulement_completee(avant: &Value, apres: &Value) -> bool {
+    match (avant.as_object(), apres.as_object()) {
+        (Some(a), Some(b)) => a.iter().filter(|(k, x)| !k.starts_with('_') && !sans_valeur(Some(x))).all(|(k, x)| b.get(k).is_some_and(|y| meme(x, y))),
+        _ => false,
+    }
+}
+
 /// Sans valeur : une case vide (`vide`), une case a cocher non cochee, une liste vide, une structure dont aucune case
 /// n'a de valeur. La fiche les montre vides ; un enregistrement qui les laisse ainsi ne change rien.
 pub(crate) fn sans_valeur(v: Option<&Value>) -> bool {
@@ -1214,6 +1222,9 @@ pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<Str
                 && !avant.is_some_and(|a| meme(a, v))
                 && !(sans_valeur(avant) && sans_valeur(Some(v)))
                 && (cases_vides || !vide(ancienne.get(k.as_str())))
+                // Une structure dont on remplit des cases vides sans changer celles qui ont une valeur : sans mois
+                // parti, c'est leur premiere valeur, comme une case vide.
+                && (cases_vides || !avant.is_some_and(|a| seulement_completee(a, v)))
         })
         .map(|(k, _)| k.clone())
         .collect();
@@ -1621,6 +1632,9 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         }
     }
     let mut anomalies = crate::routes::fiches::verifier(nom, &entiere)?;
+    // Une case vide que l'ecriture ne touche pas ne la refuse pas : on remplit une fiche case par case (« Pour
+    // demarrer »), et l'acte qui l'exige la refuse a son heure (`exige_par`).
+    anomalies.retain(|a| !(a["message"] == json!("obligatoire") && a["champ"].as_str().is_some_and(|c| !donnees.contains_key(c))));
     anomalies.extend(champs::cases_inconnues(nom, &donnees, ancienne)?);
     if forcer.refuse(&anomalies) {
         return Err(fiche_refusee(&anomalies));

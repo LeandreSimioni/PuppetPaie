@@ -265,16 +265,27 @@ fn contrats_choisis(ctx: &Contexte, choisis: &Choisis, mois: &str, paies: &[Paie
             )));
         }
     }
-    // CE QUE LE CONTRAT EXIGE DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit) : tout ce
-    // qui manque, d'un coup, avant d'ecrire le moindre PDF.
-    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".into(), &ctx.entreprise)];
-    for (cle, ps, _) in &par_salarie {
-        fiches.push(("salarie", format!("la fiche de {}", socle::texte::salarie_nomme_ou(Some(&ps[0].salarie), cle)), &ps[0].salarie));
-    }
-    if let Some(m) = declarations::champs::refus_des_manques("contrat", &fiches, &[])? {
-        return Err(refus(m));
-    }
+    controler_contrat(ctx, par_salarie.iter().map(|(cle, ps, _)| (cle.as_str(), &ps[0].salarie)))?;
     Ok(par_salarie)
+}
+
+/// CE QUE LE CONTRAT EXIGE DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit), pour la
+/// compagnie et ces `salaries` (`(cle, fiche)`) : tout ce qui manque, d'un coup, avant d'ecrire le moindre PDF. Un
+/// avenant est un contrat : il passe par le meme controle.
+fn controler_contrat<'a>(ctx: &'a Contexte, salaries: impl Iterator<Item = (&'a str, &'a Value)>) -> R<()> {
+    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".into(), &ctx.entreprise)];
+    for (cle, s) in salaries {
+        fiches.push(("salarie", format!("la fiche de {}", socle::texte::salarie_nomme_ou(Some(s), cle)), s));
+    }
+    match declarations::champs::refus_des_manques("contrat", &fiches, &[])? {
+        Some(m) => Err(refus(m)),
+        None => Ok(()),
+    }
+}
+
+/// Le controle du contrat (`controler_contrat`) pour ces avenants : la fiche de chaque salarie qui en recoit un.
+pub(crate) fn controler_avenants(ctx: &Contexte, avenants: &[(String, Vec<UnAvenant>)]) -> R<()> {
+    controler_contrat(ctx, avenants.iter().filter_map(|(k, _)| ctx.salaries.get(k).map(|s| (k.as_str(), s))))
 }
 
 /// Le contrat tel qu'il part, pour le journal : qui, quand, sous quel numero, dans quel fichier, et ce qu'il dit, clause
@@ -334,6 +345,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     if par_salarie.is_empty() && avenants.is_empty() {
         return Err(refus(format!("Aucun contrat a imprimer pour {}.", mois)));
     }
+    controler_avenants(ctx, avenants)?;
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
     let etiq = socle::date::etiquette_du_mois(&s_mois).map_err(|m| erreur("ValueError", m))?;
     let ent = documents::avenant::ent_du_mois(ctx, &s_mois)?;

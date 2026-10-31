@@ -872,9 +872,21 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     }
     for e in &enrs {
         let champ = |k: &str| e.iter().find(|(n, _)| *n == k).map(|(_, v)| v.as_str()).unwrap_or("");
-        let trouve = par_nir.get(champ("nir"));
+        // Sans NIR, la DPAE declare un numero temporaire (zone a blanc) : l'embauche se reconnait a l'identite qu'elle
+        // porte, nom, prenom et date de naissance (`dpae::enregistrement`).
+        let identite = |s: &Value| {
+            let t = |k: &str| s.get(k).map(socle::date::en_texte).unwrap_or_default().trim().to_uppercase();
+            let n = s.get("date_naissance").and_then(Value::as_str).and_then(|d| socle::date::Jour::lire(d).ok()).map(|j| j.jjmmaaaa());
+            t("nom") == champ("nom").trim() && t("prenom") == champ("prenom").trim() && n.as_deref() == Some(champ("date_naissance"))
+        };
+        let trouve = par_nir.get(champ("nir").trim()).copied().or_else(|| {
+            if !champ("nir").trim().is_empty() {
+                return None;
+            }
+            ctx.salaries.iter().find(|(_, s)| identite(s))
+        });
         let (cle, s) = match trouve {
-            Some((c, s)) => (Some(*c), *s),
+            Some((c, s)) => (Some(c), s),
             None => (None, &vide),
         };
         let debut = iso_depuis_jjmmaaaa(champ("date_embauche"));

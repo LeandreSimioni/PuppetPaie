@@ -420,6 +420,7 @@
   },
   {
    "cle": "medecine_travail",
+   "exige_par": ["dpae"],
    "libelle": "Code du service de santé au travail",
    "forme": "texte",
    "aide": "Le code de votre service de prévention et de santé au travail (la médecine du travail), tel que la DPAE le demande. Il figure sur l'attestation d'adhésion que ce service vous a remise. Chaque DPAE le porte : sans lui, aucune embauche ne se déclare. MT01 : la compagnie assure elle-même la médecine du travail (service interne).",
@@ -654,6 +655,14 @@
   {
    "_note": "LA PREVOYANCE DES PERMANENTS (19/09/2026). Rien a saisir dans le cas\nordinaire : le taux est celui de la convention collective (catalogue de\nbranche, moteur/prevoyance-conventionnelle-base.json), il est\nobligatoire, et le moteur l'applique sans demander. Ce champ ne sert\nqu'a DIRE CE QU'ON A EN PLUS -- une extension facultative, un contrat\nd'entreprise plus favorable. Une compagnie qui ne le remplit pas est\ncorrectement couverte ; une compagnie qui y ecrit moins que la branche\nest refusee.",
    "cle": "prevoyance_permanents",
+   "champs": [
+    {"cle": "regime", "libelle": "Régime", "forme": "choix", "choix": ["", "contrat"], "libelles": {"": "Celui de la convention (le cas ordinaire)", "contrat": "Un contrat d'entreprise plus favorable"}, "aide": "Le cas ordinaire : celui de la convention, que le logiciel applique seul. Un contrat d'entreprise ne se choisit que s'il a été réellement souscrit, et plus favorable."},
+    {"cle": "taux.t1_non_cadre", "libelle": "Taux non-cadres (%)", "forme": "montant", "aide": "Seulement pour un contrat d'entreprise : son taux sur la tranche A, pour les non-cadres."},
+    {"cle": "taux.t1_cadre", "libelle": "Taux cadres (%)", "forme": "montant", "aide": "Seulement pour un contrat d'entreprise : son taux sur la tranche A, pour les cadres (au moins 1,50 %)."},
+    {"cle": "taux.part_patronale", "libelle": "Part employeur (%)", "forme": "montant", "aide": "Seulement pour un contrat d'entreprise. 100 % pour les cadres, obligatoirement."},
+    {"cle": "extension_t2", "libelle": "Extension sur la tranche 2", "forme": "choix", "choix": ["", "tous", "cadres"], "libelles": {"": "Aucune (le cas ordinaire)", "tous": "Pour tous les permanents", "cadres": "Pour les cadres seulement"}, "aide": "Facultative, si elle a été souscrite."},
+    {"cle": "adhesion", "libelle": "Organisme et numéro d'adhésion", "forme": "texte", "aide": "Pour mémoire : il ne part dans aucun calcul."}
+   ],
    "libelle": "Prévoyance des permanents",
    "forme": "structure",
    "aide": "Rien à remplir dans le cas ordinaire : le logiciel applique la prévoyance de la convention (pour la 3090, 1,20 % de la tranche A, 1,50 % pour un cadre, payés par l'employeur). Ne remplir que ce qui a réellement été souscrit en plus : un contrat d'entreprise plus favorable, une extension sur la tranche 2.",
@@ -808,6 +817,10 @@
   {
    "_note": "LA PART PATRONALE DE LA SANTE DES PERMANENTS, quand la convention fixe\nle taux (la CCNEAC, XII.2.1.10) : au moins la moitie, davantage si\nl'entreprise l'a decide.",
    "cle": "sante_permanents",
+   "champs": [
+    {"cle": "taux_contrat", "libelle": "Taux du contrat (% du plafond mensuel)", "forme": "montant", "aide": "Seulement pour une convention sans régime de santé (production audiovisuelle 2642) : le taux de votre contrat, pour le salarié seul. Il est sur votre contrat ou votre appel de cotisation."},
+    {"cle": "part_patronale", "libelle": "Part employeur (%)", "forme": "montant", "aide": "Au moins 50 %. Vide : 50 %."}
+   ],
    "libelle": "Santé des permanents",
    "forme": "structure",
    "aide": "CCNEAC : la part de la complémentaire santé payée par l'employeur (vide : 50 %, le minimum) ; le taux est celui de la convention. Production audiovisuelle (2642) et toute convention sans régime de santé : le taux de VOTRE contrat, en % du plafond mensuel pour le salarié seul, et la part employeur (au moins 50 %). Rien à remplir sous la 3090.",
@@ -898,6 +911,12 @@
   {
    "_note": "LE BLOC S21.G00.44. La DSN de decembre declare chaque annee si la compagnie\ndoit la taxe sur les salaires (009, avec ses assiettes au taux normal et aux taux majores 015 et\n016) ou non (010). Cela depend de sa TVA, que le moteur ne connait pas : la fiche le dit, et une\nfiche muette fait refuser la DSN de decembre (`assujettissement.rs`). La fiche dit\nle FAIT (`tva` : assujettie ou exoneree ; `part_tva` ; `sous_franchise` ;\n`association_1679A`) et le moteur en conclut si la taxe est due, et sur quelle part\n(`documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art. 231, 1) : la DSN de decembre, l'etat\n« taxe sur les salaires » et l'ecran (route `taxe-sur-les-salaires-regime`) lisent la meme conclusion.",
    "cle": "taxe_sur_les_salaires",
+   "champs": [
+    {"cle": "tva", "libelle": "La compagnie et la TVA", "forme": "choix", "choix": ["assujettie", "exoneree"], "libelles": {"": "— à dire —", "assujettie": "Assujettie à la TVA", "exoneree": "Exonérée de TVA (ou hors de son champ)"}, "aide": "Assujettie : elle facture la TVA sur ses ventes (billetterie, cessions…) et la déclare. Exonérée : elle ne facture pas de TVA, ou ses activités n'y entrent pas — c'est le cas de beaucoup d'associations."},
+    {"cle": "part_tva", "libelle": "Part de vos recettes de l'an dernier soumise à la TVA (%)", "forme": "montant", "aide": "Vos recettes soumises à la TVA, divisées par toutes vos recettes et produits de l'année, subventions et dons compris. Votre comptable la connaît. À 90 % ou plus, pas de taxe sur les salaires."},
+    {"cle": "sous_franchise", "libelle": "Vos recettes de l'an dernier", "forme": "booleen", "boutons": true, "choix": ["true", "false"], "libelles": {"": "— à dire —", "true": "Sous les deux plafonds", "false": "Au-dessus d'un des plafonds"}, "aide": "Sous les deux plafonds de la franchise en base de TVA (les spectacles vendus, et les recettes en tout, subventions comprises), la compagnie ne doit pas la taxe sur les salaires."},
+    {"cle": "association_1679A", "libelle": "Association loi 1901, syndicat ou mutuelle ?", "forme": "booleen", "choix": ["true"], "libelles": {"": "Non", "true": "Oui (abattement de l'article 1679 A)"}, "aide": "Une association loi 1901, une fondation reconnue d'utilité publique, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due."}
+   ],
    "libelle": "Taxe sur les salaires",
    "forme": "structure",
    "aide": "Dites ce que vous savez de votre TVA : le logiciel en déduit si la compagnie doit la taxe sur les salaires, et sur quelle part (code général des impôts, art. 231), et l'écrit sous les cases. La DSN de décembre le déclare chaque année ; sans réponse, elle ne se fait pas.",
@@ -982,6 +1001,19 @@
   {
    "_note": "LES AUTRES ETABLISSEMENTS que le siege (celui du `nic` ci-dessus) : chacun son SIRET, son adresse, sa date d'ouverture, son code risque et son taux AT/MP (`taux_atmp`, D. 242-6-1 du code de la securite sociale : le taux est determine par etablissement). Chacun a sa DSN (S21.G00.11) ; un engagement dit le sien (`engagement::Engagement::etablissement`). La liste se date a chaque ouverture, modification et fermeture (`moteur::routes::etablissements`).",
    "cle": "etablissements",
+   "ligne": "établissement",
+   "champs": [
+    {"cle": "libelle", "libelle": "Nom", "forme": "texte", "aide": "Atelier, salle…"},
+    {"cle": "siret", "libelle": "SIRET", "forme": "texte"},
+    {"cle": "adresse_affichage", "libelle": "Adresse", "forme": "texte"},
+    {"cle": "code_postal", "libelle": "Code postal", "forme": "texte"},
+    {"cle": "commune_affichage", "libelle": "Commune", "forme": "texte"},
+    {"cle": "ouverture", "libelle": "Ouvert le", "forme": "date"},
+    {"cle": "taux_atmp.code_risque", "libelle": "Code risque AT/MP", "forme": "code_atmp"},
+    {"cle": "taux_atmp.valeur", "libelle": "Taux AT/MP (%)", "forme": "montant"},
+    {"cle": "versement_mobilite.taux", "libelle": "Versement mobilité (%)", "forme": "montant", "aide": "0 si aucun", "si_configuration": "versement_mobilite_des_etablissements"},
+    {"cle": "versement_mobilite.code_insee", "libelle": "Code INSEE de la commune", "forme": "texte", "si_configuration": "versement_mobilite_des_etablissements"}
+   ],
    "libelle": "Autres établissements",
    "forme": "structure",
    "aide": "Un autre lieu où la compagnie emploie des salariés, avec son propre SIRET (un atelier, une salle) : il a sa DSN et son taux AT/MP. Le siège n'y figure pas. Un engagement dit alors dans quel établissement la personne travaille. Une ligne changée vaut à partir de la date que vous direz ; une ligne retirée ferme l’établissement à cette date.",
@@ -1030,7 +1062,7 @@
   {
    "cle": "declarant_dsn",
    "champs": [
-    {"cle": "civilite", "libelle": "Civilité", "forme": "choix", "choix": ["01", "02"], "aide": "Celle de la personne que les organismes contactent : 01 monsieur, 02 madame (S10.G00.02.001). Elle s'écrit dans chaque DSN.", "exemple": "02", "exige_par": ["dsn"]},
+    {"cle": "civilite", "libelle": "Civilité", "forme": "choix", "choix": ["01", "02"], "libelles": {"01": "Monsieur", "02": "Madame"}, "aide": "Celle de la personne que les organismes contactent : 01 monsieur, 02 madame (S10.G00.02.001). Elle s'écrit dans chaque DSN.", "exemple": "02", "exige_par": ["dsn"]},
     {"cle": "nom_prenom_affichage", "libelle": "Nom et prénom", "forme": "affichage", "aide": "En une seule case, comme la DSN l'écrit.", "exemple": "Claire Martin"},
     {"cle": "nom_prenom", "libelle": "Nom et prénom déclarés", "forme": "officiel", "derive_de": "nom_prenom_affichage", "ecran": false, "exige_par": ["dsn"]},
     {"cle": "tel", "libelle": "Téléphone", "forme": "texte", "exemple": "0102030405", "exige_par": ["dsn"]},
@@ -1768,6 +1800,8 @@
   },
   {
    "cle": "code_emploi_ft",
+   "exige_par": ["dsn"],
+   "exige_si": {"statut_categoriel_rc": [""]},
    "libelle": "Code emploi France Travail",
    "forme": "texte",
    "aide": "Le code de l'emploi pour France Travail Spectacle (ART120 pour un artiste dramatique). Rempli par la liste des métiers.",
@@ -2277,6 +2311,15 @@
   {
    "_note": "LES CONGES A LA REPRISE. Le compteur se\nderive des mois produits ; pour un permanent deja la avant PuppetPaie,\nil partait de zero. Ce qui vient d'avant se lit sur le DERNIER\nBULLETIN de l'ancien logiciel, et se saisit une fois.",
    "cle": "conges_reprise",
+   "champs": [
+    {"cle": "date", "libelle": "PuppetPaie compte à partir du", "forme": "date", "aide": "Le premier jour du premier mois produit par PuppetPaie"},
+    {"cle": "report", "libelle": "Jours qui restent de la période passée", "forme": "texte", "aide": "Les jours de congés acquis sur la période de référence passée et pas encore pris. Le dernier bulletin de l'ancien logiciel les écrit souvent « N-1 », « reliquat » ou « solde N-1 »."},
+    {"cle": "acquis_report", "libelle": "Jours acquis sur la période passée, en tout", "forme": "texte", "aide": "Souvent 30, pour une période entière : il sert à payer un jour au dixième. Sur le bulletin : « acquis N-1 »."},
+    {"cle": "remuneration_report", "libelle": "Brut gagné pendant la période passée (€)", "forme": "texte", "aide": "Le brut de toute la période de référence passée, qui sert à calculer le dixième. Sur le bulletin : « base N-1 », ou dans votre ancien logiciel."},
+    {"cle": "acquis", "libelle": "Jours acquis depuis le début de la période en cours", "forme": "texte", "aide": "Les jours acquis sur la période en cours, avant cette date. Sur le bulletin : « acquis N »."},
+    {"cle": "pris", "libelle": "Jours déjà pris sur la période en cours", "forme": "texte", "aide": "Les jours pris sur ceux de la période en cours, avant cette date. Sur le bulletin : « pris N »."},
+    {"cle": "remuneration_periode", "libelle": "Brut gagné depuis le début de la période en cours (€)", "forme": "texte", "aide": "Le brut versé sur la période en cours, avant cette date. Sur le bulletin : « base N »."}
+   ],
    "libelle": "Congés payés à la reprise",
    "forme": "structure",
    "aide": "Seulement pour un salarié au mois déjà employé avant PuppetPaie. Recopier le dernier bulletin de l'ancien logiciel : à partir de quel jour PuppetPaie compte, les jours restants de l'année précédente (N-1), les jours acquis et pris sur l'année en cours (N). Les rémunérations servent au dixième (L3141-24) ; vides, le maintien de salaire s'applique seul, et le logiciel le dit.",

@@ -68,10 +68,10 @@ pub const ROUTES: &[Fiche] = &[
     },
     Fiche {
         nom: "pour-demarrer",
-        geste: "Dire ce qui manque à la compagnie pour ses premiers actes.",
+        geste: "Dire ce que la compagnie peut remplir d'avance pour ses premiers actes.",
         charge: &[],
         exemple: r#"{}"#,
-        rend: "manques (chacun ce qu'il bloque et où le dire), poses (ce que le moteur a posé, en information)",
+        rend: "titre, note, manques (chacun sa case, sa phrase, où il vit ; une ligne d'un salarié dit qui), poses (ce que le moteur a posé, en information)",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: false,
@@ -103,21 +103,17 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "rappels" => rappels(ctx),
         "revue-spectacles" => revue_spectacles(o, ctx, charge),
         "echeance-faite" => echeance_faite(ctx, charge),
-        // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup ; ce que le moteur a pose de lui-meme se dit
-        // en information (gris) ; les acces aux organismes se proposent (`acces_proposes`).
-        "pour-demarrer" => declarations::demarrage::route(ctx).and_then(|mut v| {
-            if let Some(Value::Array(p)) = v.get_mut("poses") {
-                p.iter_mut().for_each(|x| x["pastille"] = super::pastille("information", "posé pour vous"));
-            }
+        // Ce que la compagnie peut remplir d'avance, d'un coup ; ce que le moteur a pose de lui-meme se dit en information
+        // (gris) ; les acces aux organismes et le Drive se proposent (`acces_proposes`).
+        "pour-demarrer" => {
             let (proposes, simules) = acces_proposes(ctx)?;
-            if let Some(Value::Array(m)) = v.get_mut("manques") {
-                m.extend(proposes);
-            }
-            if let (Some(Value::Array(p)), Some(s)) = (v.get_mut("poses"), simules) {
-                p.push(s);
-            }
-            Ok(v)
-        }),
+            declarations::demarrage::route(ctx, proposes, simules).map(|mut v| {
+                if let Some(Value::Array(p)) = v.get_mut("poses") {
+                    p.iter_mut().filter(|x| x.get("pastille").is_none()).for_each(|x| x["pastille"] = super::pastille("information", "posé pour vous"));
+                }
+                v
+            })
+        }
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -850,6 +846,14 @@ fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)
             "cle": format!("acces.{}", s["service"].as_str().unwrap_or("")),
             "libelle": format!("{} : pour {} depuis le logiciel", s["libelle"].as_str().unwrap_or(""), s["sert_a"].as_str().unwrap_or("")),
             "sinon": "vous le faites vous-même, hors du logiciel",
+            "ou": OU, "champ": null, "trouver": "",
+        }));
+    }
+    // Le Drive de la sauvegarde : se lie au meme endroit (« Lier le Drive »), sans reseau pour le savoir.
+    if super::coffre::compte_autorise(&ctx.racine).is_none() {
+        out.push(json!({
+            "cle": "acces.google", "libelle": "Google Drive : pour sauvegarder la compagnie dans votre Drive",
+            "sinon": "rien ne se sauvegarde hors de ce poste",
             "ou": OU, "champ": null, "trouver": "",
         }));
     }

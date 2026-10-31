@@ -1,13 +1,13 @@
-//! POUR DEMARRER : ce qui manque a une compagnie neuve, d'un coup.
+
+//! POUR DEMARRER : ce qu'une compagnie neuve peut remplir d'avance, d'un coup.
 //!
 //! Une compagnie neuve ne decouvre pas ce qui lui manque un refus apres l'autre (le taux AT/MP, l'effectif, la medecine
-//! du travail, le compte Urssaf...) : tout ce qui manque se dit d'un coup, ce que chaque manque BLOQUE, OU il se saisit, et ou la
-//! compagnie TROUVE la valeur (l'aide du champ, `champs-base.json`).
+//! du travail, le compte Urssaf...) : tout se dit d'un coup, ce que chaque case servira, OU elle vit, et ou la compagnie
+//! TROUVE la valeur (l'aide du champ, `champs-base.json`). Rien n'y est obligatoire : le refus reste a l'acte.
 //!
 //! Les regles ne sont pas recopiees : le bareme de l'annee se demande au contexte (`Contexte::bareme` : le taux AT/MP,
-//! l'effectif, la premiere embauche), l'employeur de la DPAE a la DPAE (`dpae::employeur_manques`), ce que
-//! chaque acte exige des fiches a `champs-base.json` (`exige_par`), que l'acte lit aussi (`champs::refus_des_manques`) :
-//! un champ qu'on y marque sans qu'un acte le lise serait un faux manque.
+//! l'effectif, la premiere embauche), ce que chaque acte exige des fiches a `champs-base.json` (`exige_par`), que l'acte
+//! lit aussi (`champs::refus_des_manques`) : un champ qu'on y marque sans qu'un acte le lise serait un faux manque.
 
 use serde_json::{json, Value};
 
@@ -34,7 +34,7 @@ fn champ(cle: &str) -> (String, String) {
 }
 
 fn manque(cle: &str, libelle: String, bloque: &str, ou: &str, champ: Option<&str>, trouver: String) -> Value {
-    json!({ "cle": cle, "libelle": libelle, "bloque": bloque, "ou": ou, "champ": champ, "trouver": trouver })
+    json!({ "cle": cle, "libelle": libelle, "bloque": bloque, "ou": ou, "champ": champ, "case": champ, "trouver": trouver })
 }
 
 /// LA LICENCE D'ENTREPRENEUR DE SPECTACLES est-elle exigee de la compagnie `ent` ? « Est entrepreneur de spectacles
@@ -89,16 +89,19 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // CE QUE LES ACTES EXIGENT DES FICHES (`exige_par` de `champs-base.json`, que chaque acte lit aussi :
     // `champs::refus_des_manques`) : l'entreprise, puis chaque salarie actif ; ce qui ne bloque rien dit ce qui se passe
     // sans lui (`sinon`).
-    let ligne = |m: crate::champs::Manquant, ou: String, salarie: Option<&str>| {
+    // Une ligne dit la case a remplir (`case`, son chemin dans la fiche, que l'ecran dessine) ; celle d'un salarie dit
+    // aussi qui (`qui`), sous le nom duquel elle se range.
+    let ligne = |m: crate::champs::Manquant, ou: String, salarie: Option<(&str, &str)>| {
         let racine = m.ecran.split('.').next().unwrap_or(&m.ecran).to_string();
-        let mut l = json!({ "cle": m.ecran, "libelle": m.libelle, "ou": ou, "champ": racine, "trouver": m.aide });
+        let mut l = json!({ "cle": m.ecran, "case": m.ecran, "libelle": m.libelle, "ou": ou, "champ": racine, "trouver": m.aide });
         if m.actes.is_empty() {
             l["sinon"] = json!(m.sinon);
         } else {
             l["bloque"] = json!(crate::champs::actes_en_clair(&m.actes));
         }
-        if let Some(s) = salarie {
+        if let Some((s, nom)) = salarie {
             l["salarie"] = json!(s);
+            l["qui"] = json!(nom);
             l["cle"] = json!(format!("{}.{}", m.ecran, s));
         }
         l
@@ -111,9 +114,8 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     }
     for (cle, s) in ctx.salaries.iter().filter(|(_, s)| s.get("actif") != Some(&json!(false))) {
         let nom = socle::texte::salarie_nomme_ou(Some(s), cle);
-        for mut m in crate::champs::manquants("salarie", s).unwrap_or_default() {
-            m.libelle = format!("{} : {}", nom, m.libelle);
-            out.push(ligne(m, format!("Configuration › Salariés, la fiche de {}", nom), Some(cle)));
+        for m in crate::champs::manquants("salarie", s).unwrap_or_default() {
+            out.push(ligne(m, format!("Configuration › Salariés, la fiche de {}", nom), Some((cle, &nom))));
         }
     }
     // La licence d'entrepreneur de spectacles : la DSN l'ecrit dans chaque contrat (S21.G00.40.049) et refuse sans elle
@@ -158,21 +160,6 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
             out.push(manque("bareme", format!("Le barème {}", an), "toute paie", ENTREPRISE, None, m));
         }
     }
-    // L'employeur de la DPAE : la DPAE elle-meme dit ce qui lui manque, champ par champ (`dpae::employeur_manques`). Un
-    // SIRET deja demande plus haut ne se redemande pas ; il dit seulement qu'il bloque aussi la DPAE.
-    match crate::dpae::employeur_manques(ent, &ctx.gabarits()) {
-        Ok(manques_dpae) => {
-            for (cle, phrase) in manques_dpae {
-                if out.iter().any(|m| m["champ"] == json!(cle)) {
-                    continue;
-                }
-                let (libelle, aide) = champ(cle);
-                let trouver = if aide.is_empty() { phrase } else { aide };
-                out.push(manque(cle, libelle, "la DPAE", ENTREPRISE, Some(cle), trouver));
-            }
-        }
-        Err(m) => out.push(manque("dpae", "L'employeur de la DPAE".into(), "la DPAE", ENTREPRISE, None, m)),
-    }
     // La sante d'un permanent suspendu sans indemnisation tout un mois : hors de la 3090, aucun texte ne la dit, et le mois
     // refuse tant que la fiche ne repond pas (`calcul::sante_de_la_suspension`). Elle ne se demande que si une suspension
     // non remuneree est saisie : un champ n'apparait que parce qu'un fait l'exige.
@@ -212,10 +199,12 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     for (salarie, nom, depuis) in conges_a_reprendre(ctx) {
         out.push(json!({
             "cle": format!("conges_reprise.{}", salarie),
-            "libelle": format!("Les congés payés de {} acquis avant le {}", nom, socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
+            "libelle": format!("Ses congés payés acquis avant le {}", socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
             "sinon": "son compteur de congés payés part de zéro",
             "ou": format!("la fiche de {}, « Congés payés à la reprise »", nom),
             "champ": "conges_reprise",
+            "case": "conges_reprise",
+            "qui": nom,
             "salarie": salarie,
             "trouver": format!("Son contrat a commencé avant que PuppetPaie le paie : recopiez de son dernier bulletin de votre ancien logiciel les jours acquis et pris, avec le {} pour date de reprise.", socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
         }));
@@ -334,9 +323,31 @@ pub fn poses(ctx: &Contexte) -> Vec<Value> {
     })]
 }
 
-/// `pour-demarrer` : `{"manques": [...], "poses": [...]}`.
-pub fn route(ctx: &Contexte) -> R<Value> {
-    Ok(json!({ "manques": manques(ctx), "poses": poses(ctx) }))
+/// `pour-demarrer` : `{"titre", "note", "manques": [...], "poses": [...]}`. `proposes` : les propositions qui ne se
+/// tirent pas des fiches (les acces aux organismes, que le moteur lit dans le coffre), a la suite ; `pose` : ce qui se
+/// dit en information a leur place. Rien n'y est obligatoire : chaque ligne dit ce qu'elle servira (`phrase`), et ce qui
+/// est rempli d'avance ne se demandera plus au moment d'un acte ; le refus reste a l'acte (`champs::refus_des_manques`).
+pub fn route(ctx: &Contexte, proposes: Vec<Value>, pose: Option<Value>) -> R<Value> {
+    let mut lignes = manques(ctx);
+    lignes.extend(proposes);
+    for l in lignes.iter_mut() {
+        l["phrase"] = json!(match l.get("bloque").and_then(Value::as_str) {
+            Some(b) => format!("Pour {}.", b),
+            None => format!("Facultatif : sinon, {}.", l["sinon"].as_str().unwrap_or("")),
+        });
+    }
+    let n = lignes.iter().filter(|l| l.get("bloque").is_some()).count();
+    let (titre, note) = match (n, lignes.is_empty()) {
+        (0, true) => (String::new(), ""),
+        (0, false) => ("Pour démarrer : tout est rempli".to_string(), "Ce qui suit est facultatif."),
+        (n, _) => (
+            format!("Pour démarrer : {} à remplir d'avance", if n == 1 { "une chose".to_string() } else { format!("{} choses", n) }),
+            "Rien n'est obligatoire ici : ce qui est rempli d'avance ne se demandera plus au moment d'un envoi.",
+        ),
+    };
+    let mut poses = poses(ctx);
+    poses.extend(pose);
+    Ok(json!({ "titre": titre, "note": note, "manques": lignes, "poses": poses }))
 }
 
 /// Ce qui suit le refus d'un acte quand la compagnie n'a pas fini de demarrer : toute la liste, d'un coup, sans ce que
@@ -346,8 +357,13 @@ pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> Option<String> {
         .iter()
         .filter(|x| x.get("bloque").is_some())
         .filter(|x| !x["trouver"].as_str().map(str::trim).is_some_and(|t| !t.is_empty() && deja_dit.contains(t)))
-        .filter(|x| !x["libelle"].as_str().is_some_and(|l| deja_dit.contains(l)))
-        .map(|x| format!("  - {} : bloque {} ({})", x["libelle"].as_str().unwrap_or(""), x["bloque"].as_str().unwrap_or(""), x["ou"].as_str().unwrap_or("")))
+        .filter(|x| {
+            !(x["libelle"].as_str().is_some_and(|l| deja_dit.contains(l)) && x["qui"].as_str().is_none_or(|q| deja_dit.contains(q)))
+        })
+        .map(|x| {
+            let qui = x["qui"].as_str().map(|q| format!("{} : ", q)).unwrap_or_default();
+            format!("  - {}{} : bloque {} ({})", qui, x["libelle"].as_str().unwrap_or(""), x["bloque"].as_str().unwrap_or(""), x["ou"].as_str().unwrap_or(""))
+        })
         .collect();
     if lignes.is_empty() {
         return None;

@@ -221,22 +221,6 @@ fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
     Ok(gab)
 }
 
-/// Ce que la DPAE refuserait de l'employeur de cette fiche, sans rien ecrire : `(champ de la fiche, phrase du refus)`,
-/// TOUS d'un coup (un SIRET faux n'empeche pas de dire que le code de medecine du travail manque aussi). La liste « Pour
-/// demarrer » s'en sert, champ par champ : la meme regle que le depot (`employeur`), au meme endroit.
-pub fn employeur_manques(ent: &Value, gabarits: &Path) -> Resultat<Vec<(&'static str, String)>> {
-    let chemins = Chemins { defaut: dossier_du_code().join("modeles").join(NOM_GABARIT), poste: gabarits.to_path_buf() };
-    let gabarit = gabarit_lu(Some(ent), &chemins)?;
-    let mut out = Vec::new();
-    if let Err(m) = siret_de(ent) {
-        out.push(("siret", m));
-    }
-    if let Err(m) = medecine_de(ent, &gabarit) {
-        out.push(("medecine_travail", m));
-    }
-    Ok(out)
-}
-
 /// Le SIRET de la fiche, 14 chiffres, ou le refus de la DPAE.
 fn siret_de(ent: &Value) -> Resultat<String> {
     let siret = chaine(ent.get("siret"));
@@ -247,33 +231,23 @@ fn siret_de(ent: &Value) -> Resultat<String> {
     Ok(siret)
 }
 
-/// Le code du centre de medecine du travail (C_MT_DCL, obligatoire hors travail temporaire) : `medecine_travail` ; faute
-/// de lui, il n'est repris du gabarit QUE si le gabarit est un enregistrement de la meme compagnie (meme SIRET) -- jamais
-/// celui d'une autre.
-fn medecine_de(ent: &Value, gabarit: &[char]) -> Resultat<String> {
-    let mt = chaine(ent.get("medecine_travail"));
-    let mt = strip(&mt).to_string();
-    if !mt.is_empty() {
-        return Ok(mt);
+/// Le code du centre de medecine du travail (C_MT_DCL, obligatoire hors travail temporaire) : `medecine_travail` de la
+/// fiche, que la DPAE exige (`exige_par` de `champs-base.json`) ; il ne se devine pas.
+fn medecine_de(ent: &Value) -> Resultat<String> {
+    let mt = strip(&chaine(ent.get("medecine_travail"))).to_string();
+    if mt.is_empty() {
+        return Err("DPAE : la fiche entreprise ne dit pas le code du centre de medecine du travail (`medecine_travail`, C_MT_DCL, obligatoire). Il se lit sur l'adhesion au service de sante au travail.".to_string());
     }
-    let (a, b) = zone_employeur("siret");
-    let du_gabarit: String = gabarit[a..b].iter().collect();
-    let siret = strip(&chaine(ent.get("siret"))).to_string();
-    if du_gabarit != siret || siret.is_empty() {
-        return Err("DPAE : la fiche entreprise ne dit pas le code du centre de medecine du travail (`medecine_travail`, C_MT_DCL, obligatoire). Il se lit sur l'adhesion au service de sante au travail ; il ne se devine pas, et celui du gabarit est celui d'une autre compagnie.".to_string());
-    }
-    let (ma, mb) = zone_employeur("medecine_travail");
-    let du_gabarit: String = gabarit[ma..mb].iter().collect();
-    Ok(strip(&du_gabarit).to_string())
+    Ok(mt)
 }
 
 // -------------------------------------------------------- l'employeur
 
 /// Les zones employeur de la DPAE, lues dans la fiche `ent` (le SIRET : `siret_de` ; la medecine du travail :
 /// `medecine_de`).
-pub fn employeur(ent: &Value, gabarit: &[char]) -> Resultat<Vec<(&'static str, String)>> {
+pub fn employeur(ent: &Value) -> Resultat<Vec<(&'static str, String)>> {
     let siret = siret_de(ent)?;
-    let mt = medecine_de(ent, gabarit)?;
+    let mt = medecine_de(ent)?;
     // Le telephone : celui du declarant DSN, sinon celui de l'entreprise, sinon celui du signataire, sinon rien.
     let tel_de = |k: &str| -> Option<&Value> { ent.get(k).filter(|v| vrai(v)).and_then(|v| v.get("tel")).filter(|v| vrai(v)) };
     let tel = tel_de("declarant_dsn")
@@ -389,7 +363,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         // « N° SIRET de l'établissement » (N_SIRET, `norme-dpae/v5.3_FormatDPAE_EMAIL.txt` l. 235-243) : celui ou le salarie
         // est rattache (`droit::bareme::entreprise_du_salarie`), avec son adresse.
         let ent = &droit::bareme::entreprise_du_salarie(ent, &e.salarie)?;
-        for (nom, v) in employeur(ent, gabarit)? {
+        for (nom, v) in employeur(ent)? {
             let (a, b) = zone_employeur(nom);
             ecrire_zone(&mut buf, a, b, &v);
         }
@@ -945,23 +919,6 @@ mod tests {
     }
 
     // ---- les zones du Format 120 (`atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`)
-
-    #[test]
-    fn une_dpae_sans_medecine_du_travail_ne_reprend_pas_celle_d_un_autre() {
-        let gab = neutre();
-        let mut autre: Vec<char> = gab.clone();
-        let (a, b) = zone_employeur("siret");
-        autre.splice(a..b, "12345678900017".chars());
-        let (ma, mb) = zone_employeur("medecine_travail");
-        autre.splice(ma..mb, "     MT176".chars());
-        let mut ent = json!({"siret": "12345691500016", "raison_sociale": "CIE"});
-        let e = employeur(&ent, &autre).unwrap_err();
-        assert!(e.contains("medecine du travail"), "{}", e);
-        // Le gabarit de la MEME compagnie, lui, le prete.
-        ent["siret"] = json!("12345678900017");
-        let z = employeur(&ent, &autre).unwrap();
-        assert_eq!(z.iter().find(|(k, _)| *k == "medecine_travail").unwrap().1.trim(), "MT176");
-    }
 
     #[test]
     fn un_cdd_sans_terme_est_refuse_ici_et_non_par_l_urssaf() {

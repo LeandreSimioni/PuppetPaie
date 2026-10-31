@@ -44,6 +44,7 @@ fn forme_libelle(forme: &str) -> &'static str {
         "choix" => "une valeur de la liste",
         "pays" => "un pays de la liste (code ISO a deux lettres)",
         "booleen" => "oui ou non",
+        "code_atmp" => "un code risque AT/MP de l'arrete de l'annee",
         "structure" => "sous-objet ou liste : edition libre",
         "histoire" => "ce que ce champ valait avant, et jusqu'a quand",
         _ => "",
@@ -78,8 +79,17 @@ pub struct Champ {
     pub exige_par: Vec<String>,
     /// Ce qui se passe sans lui, quand rien ne se refuse (`sinon`) : « Pour demarrer » le dit en facultatif.
     pub sinon: String,
-    /// Les cases d'une structure (`champs`), decrites comme les champs ; une autre cle s'y refuse.
+    /// Les cases d'une structure (`champs`), decrites comme les champs ; une autre cle s'y refuse. Une case peut etre un
+    /// chemin (`taux.t1_cadre` : la case `t1_cadre` du bloc `taux`).
     pub champs: Vec<Champ>,
+    /// Ce que l'ecran dit de chaque valeur d'une liste de choix (`libelles`, `""` : la ligne vide).
+    pub libelles: Value,
+    /// Les choix se montrent en boutons a cocher, chacun une phrase entiere (`boutons`).
+    pub boutons: bool,
+    /// La case ne se montre que si la configuration le dit (`si_configuration` : un drapeau de la route `etat`).
+    pub si_configuration: String,
+    /// Une structure en lignes (`ligne` : le nom d'une ligne, « établissement ») ; vide : un seul objet.
+    pub ligne: String,
 }
 
 impl Champ {
@@ -114,6 +124,10 @@ impl Champ {
             exige_par: v.get("exige_par").and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default(),
             sinon: texte("sinon"),
             champs: v.get("champs").and_then(Value::as_array).map(|a| a.iter().map(Champ::lire).collect()).unwrap_or_default(),
+            libelles: v.get("libelles").cloned().unwrap_or_else(|| json!({})),
+            boutons: drapeau("boutons", false),
+            si_configuration: texte("si_configuration"),
+            ligne: texte("ligne"),
         }
     }
 
@@ -137,6 +151,8 @@ impl Champ {
             "booleen_defaut": self.booleen_defaut, "ecran": self.ecran,
             "exige_par": self.exige_par, "bloque": actes_en_clair(&self.exige_par), "sinon": self.sinon,
             "champs": self.champs.iter().map(Champ::description).collect::<Vec<_>>(),
+            "libelles": self.libelles, "boutons": self.boutons,
+            "si_configuration": self.si_configuration, "ligne": self.ligne,
         });
         if !self.champs.is_empty() {
             d["forme_libelle"] = json!("sous-objet : ses cases sont dans `champs`, une autre cle se refuse");
@@ -592,7 +608,7 @@ pub fn normaliser(c: &Champ, valeur: &Value) -> R<Value> {
 
 /// `PERSONNES` : le signataire et le contact DSN, avec les cles declarees qui
 /// ont une forme lisible `<cle>_affichage`.
-const PERSONNES: [(&str, &[&str]); 3] = [("signataire", &["nom", "prenom"]), ("declarant_dsn", &[]), ("contact_sante_travail", &[])];
+const PERSONNES: [(&str, &[&str]); 3] = [("signataire", &["nom", "prenom"]), ("declarant_dsn", &["nom_prenom"]), ("contact_sante_travail", &["nom_prenom"])];
 
 fn faux_ou_absent(d: &Map<String, Value>, k: &str) -> bool {
     d.get(k).map_or(true, |v| !vrai(v))
@@ -621,16 +637,6 @@ pub fn combler_affichage(nom: &str, donnees: &Map<String, Value>) -> R<Map<Strin
         for (cle, officiels) in PERSONNES {
             let Some(Value::Object(p)) = sortie.get(cle) else { continue };
             let mut p = p.clone();
-            if (cle == "declarant_dsn" || cle == "contact_sante_travail") && faux_ou_absent(&p, "nom_affichage") && faux_ou_absent(&p, "prenom_affichage") {
-                // << NOM PRENOM >> en un seul champ : le premier mot fait le nom,
-                // le reste le prenom.
-                let np = p.get("nom_prenom").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-                let mots: Vec<&str> = np.split(espace).filter(|m| !m.is_empty()).collect();
-                if !mots.is_empty() {
-                    p.insert("nom_affichage".into(), Value::String(titre(mots[0])));
-                    p.insert("prenom_affichage".into(), Value::String(titre(&mots[1..].join(" "))));
-                }
-            }
             for k in officiels {
                 let lisible = format!("{}_affichage", k);
                 if faux_ou_absent(&p, &lisible) {
@@ -1505,7 +1511,8 @@ pub fn cases_inconnues(nom: &str, donnees: &Map<String, Value>, ancienne: &Value
     let mut out = Vec::new();
     for c in fiche(nom)?.iter().filter(|c| !c.champs.is_empty()) {
         let Some(Value::Object(o)) = donnees.get(&c.cle) else { continue };
-        let admises: Vec<&str> = c.champs.iter().map(|s| s.cle.as_str()).collect();
+        let mut admises: Vec<&str> = c.champs.iter().map(|s| s.cle.split('.').next().unwrap_or(&s.cle)).collect();
+        admises.dedup();
         let deja = ancienne.get(&c.cle);
         for k in o.keys().filter(|k| !k.starts_with('_') && !admises.contains(&k.as_str()) && deja.and_then(|d| d.get(k.as_str())).is_none()) {
             let mut a = anomalie(&c.cle, "erreur", format!("la case « {} » n'existe pas ; ses cases sont : {}", k, admises.join(", ")));
