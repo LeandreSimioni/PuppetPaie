@@ -1902,25 +1902,21 @@ pub(crate) struct PaieMontree {
 /// un engagement en saisie se calcule, sans rien ecrire. Un mois tout valide ne calcule rien.
 ///
 /// L'ecran rend chaque engagement valide tel que le moteur le lui a montre (`valide` pose) : il retrouve le sien, sur le
-/// disque, par le salarie et le premier jour, dans l'ordre.
+/// disque, par son salarie et son numero de contrat (ecrit a la validation).
 pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Vec<PaieMontree>> {
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let disque = engagement::stock::vue_du_mois(&ctx.racine, mois)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let etats = if disque.is_some() { engagement::etats::du_mois(ctx, mois, &departs)? } else { Vec::new() };
-    let mut pris = vec![false; etats.len()];
+    let qui = |b: &Map<String, Value>| (b.get("salarie").map(en_texte), b.get("numero").filter(|n| vrai(n)).map(valeur_en_texte));
     let mut lues: Vec<Option<PaieMontree>> = Vec::new();
     for e in &tous {
         let mut lue = None;
-        if engagement::etats::est_validee(e) {
-            let qui = (e.get("salarie").map(en_texte), engagement::debut_brut(e));
-            let trouve = etats.iter().enumerate().find(|(j, x)| {
-                let b = Value::Object(x.objet().brut.clone());
-                !pris[*j] && x.valide().is_some() && (b.get("salarie").map(en_texte), engagement::debut_brut(&b)) == qui
-            });
+        if let (true, Some(b)) = (engagement::etats::est_validee(e), e.as_object()) {
+            let sien = qui(b);
+            let trouve = etats.iter().enumerate().find(|(_, x)| x.valide().is_some() && sien.1.is_some() && qui(&x.objet().brut) == sien);
             if let (Some((j, x)), Some(d)) = (trouve, disque.as_ref()) {
                 let v = x.valide().ok_or("engagement en saisie")?;
-                pris[j] = true;
                 lue = Some(PaieMontree { paie: v.paie(ctx, d, j)?, recalcul: v.recalcul(mois).cloned() });
             }
         }
