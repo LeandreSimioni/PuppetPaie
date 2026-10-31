@@ -725,9 +725,9 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
 pub(crate) struct DocumentsFabriques {
     _verrou: socle::verrou::Verrou,
     reserves: Reserves,
-    /// `(cle du salarie, debut, jumeau, numero de bulletin, premier et dernier N CE)` : ce qui s'ecrit dans les paies au
+    /// `(cle du salarie, numero du contrat, numero de bulletin, premier et dernier N CE)` : ce qui s'ecrit dans les paies au
     /// depart.
-    a_poser: Vec<(String, String, usize, Option<String>, Option<(i64, i64)>)>,
+    a_poser: Vec<(String, String, Option<String>, Option<(i64, i64)>)>,
     pub(crate) avertissements: Vec<String>,
 }
 
@@ -736,8 +736,8 @@ impl DocumentsFabriques {
     /// au-dessus.
     pub(crate) fn engager(self, ctx: &Contexte, mois: &str) -> R<()> {
         self.reserves.valider(ctx)?;
-        for (cle, debut, jumeau, bulletin, ce) in &self.a_poser {
-            engagement::etats::poser_numeros_des_documents(ctx, mois, cle, debut, *jumeau, bulletin.as_deref(), ce.map(|c| c.0)).map_err(Echec::from)?;
+        for (cle, numero, bulletin, ce) in &self.a_poser {
+            engagement::etats::poser_numeros_des_documents(ctx, mois, cle, numero, bulletin.as_deref(), ce.map(|c| c.0)).map_err(Echec::from)?;
         }
         Ok(())
     }
@@ -749,14 +749,14 @@ impl DocumentsFabriques {
         let mut bornes = Reserves::default();
         let (mut bulletin_max, mut ce_max): (Option<(i64, i64)>, Option<i64>) = (None, None);
         let an = annee_de(mois)?;
-        for (cle, debut, jumeau, bulletin, ce) in self.a_poser.iter().filter(|a| servis.contains(&a.0.as_str())) {
+        for (cle, numero, bulletin, ce) in self.a_poser.iter().filter(|a| servis.contains(&a.0.as_str())) {
             if let Some(n) = bulletin.as_deref().and_then(|b| b.split('/').next()).and_then(|n| n.trim().parse::<i64>().ok()) {
                 bulletin_max = Some((an, bulletin_max.map_or(n, |(_, m)| m.max(n))));
             }
             if let Some((_, dernier)) = ce {
                 ce_max = Some(ce_max.map_or(*dernier, |m| m.max(*dernier)));
             }
-            engagement::etats::poser_numeros_des_documents(ctx, mois, cle, debut, *jumeau, bulletin.as_deref(), ce.map(|c| c.0)).map_err(Echec::from)?;
+            engagement::etats::poser_numeros_des_documents(ctx, mois, cle, numero, bulletin.as_deref(), ce.map(|c| c.0)).map_err(Echec::from)?;
         }
         if let Some((an, n)) = bulletin_max {
             bornes.enregistrer(an, "bulletin", n);
@@ -825,8 +825,6 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     std::fs::create_dir_all(&dossier).map_err(|e| os(&dossier, e))?;
     let ent = ctx.entreprise_du_mois(mois).map_err(valeur)?;
     let part = |p: &Paie| cles.contains(&cle_de(p));
-    let jumeau = |i: usize| (0..i).filter(|j| cle_de(&paies[*j]) == cle_de(&paies[i]) && paies[*j].engagement.debut == paies[i].engagement.debut).count();
-    let jumeaux: Vec<usize> = (0..paies.len()).map(jumeau).collect();
     let mut a_poser: HashMap<usize, (Option<String>, Option<(i64, i64)>)> = HashMap::new();
 
     // LES BULLETINS : un numero par paie qui a des cachets, ecrit dans la paie a son depart.
@@ -932,7 +930,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     imprimer(ctx, mois, &ent, &impression, cles, false)?;
     let mut poses: Vec<(usize, (Option<String>, Option<(i64, i64)>))> = a_poser.into_iter().collect();
     poses.sort_by_key(|(i, _)| *i);
-    faits.a_poser = poses.into_iter().map(|(i, (b, ce))| (cle_de(&paies[i]), paies[i].engagement.debut.iso(), jumeaux[i], b, ce)).collect();
+    faits.a_poser = poses.into_iter().map(|(i, (b, ce))| (cle_de(&paies[i]), paies[i].engagement.numero.clone().unwrap_or_default(), b, ce)).collect();
     Ok(faits)
 }
 

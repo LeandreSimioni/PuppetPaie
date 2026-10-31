@@ -221,21 +221,20 @@ pub const CONGES: &str = "conges";
 /// le reprend et n'y ajoute que ce mois-ci, sans relire les mois d'avant.
 pub const CONGES_AVANT: &str = "conges_avant";
 
-/// LES NUMEROS DES DOCUMENTS QUI PARTENT, ecrits dans la paie de `mois` de l'engagement du salarie `cle` qui commence le
-/// `debut` (le `jumeau`-ieme de ceux-la, dans l'ordre de l'ecran) : le numero de son bulletin, le premier N CE de son
-/// certificat. Ils se relisent ensuite (`Valide::bulletin`, `Valide::premier_ce`) : un document reparti a l'identique
-/// garde ses numeros. Une paie deja numerotee ne change pas de numero.
-pub fn poser_numeros_des_documents(ctx: &Contexte, mois: &str, cle: &str, debut: &str, jumeau: usize, bulletin: Option<&str>, ce: Option<i64>) -> Resultat<()> {
-    let siens: Vec<Objet> = stock::objets_du_mois(&ctx.racine, mois)?
+/// LES NUMEROS DES DOCUMENTS QUI PARTENT, ecrits dans la paie de `mois` de l'engagement du salarie `cle` au contrat
+/// `numero` : le numero de son bulletin, le premier N CE de son certificat. Ils se relisent ensuite (`Valide::bulletin`,
+/// `Valide::premier_ce`) : un document reparti a l'identique garde ses numeros. Une paie deja numerotee ne change pas de
+/// numero.
+pub fn poser_numeros_des_documents(ctx: &Contexte, mois: &str, cle: &str, numero: &str, bulletin: Option<&str>, ce: Option<i64>) -> Resultat<()> {
+    let mut o = stock::objets_du_mois(&ctx.racine, mois)?
         .into_iter()
-        .filter(|o| {
+        .find(|o| {
             let e = Value::Object(o.brut.clone());
-            crate::cle_de_l_engagement(ctx, &e).as_deref() == Some(cle) && crate::debut_brut(&e) == debut
+            crate::cle_de_l_engagement(ctx, &e).as_deref() == Some(cle) && e.get("numero").and_then(Value::as_str) == Some(numero)
         })
-        .collect();
-    let mut o = siens.into_iter().nth(jumeau).ok_or_else(|| format!("{} : pas d'engagement de {} au {}", mois, cle, debut))?;
+        .ok_or_else(|| format!("{} : pas d'engagement de {} au contrat {}", mois, cle, numero))?;
     let Some(p) = o.brut.get_mut("valide").and_then(|v| v.get_mut("paies")).and_then(|p| p.get_mut(mois)).and_then(Value::as_object_mut) else {
-        return Err(format!("{} : l'engagement de {} au {} n'a pas de paie validee", mois, cle, debut));
+        return Err(format!("{} : l'engagement de {} au contrat {} n'a pas de paie validee", mois, cle, numero));
     };
     let mut change = false;
     if let Some(b) = bulletin {
