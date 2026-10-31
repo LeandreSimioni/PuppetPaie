@@ -292,8 +292,8 @@ async function calculerApercu(lu) {
              ? ` · ${echapper(p.emploi.libelle.toLowerCase())}${p.emploi.cadre ? " (cadre)" : ""}` : ""}
            · brut <b>${echapper(euros(p.brut))}</b>`
         : "";
-      // Ce que le moteur a à dire de CET engagement, en deux tons (24/09/2026,
-      // engagement.rs, Avis) : en orange ce qui demande quelque chose -- un
+      // Ce que le moteur a à dire de CET engagement, en deux tons
+      // (engagement.rs, Avis) : en orange ce qui demande quelque chose -- un
       // taux sous le SMIC --, en gris ce qui renseigne seulement -- un
       // contrat qui se poursuit le mois suivant, ou le minimum que notre
       // lecture de la convention donne, avec son lien. Rien
@@ -676,8 +676,8 @@ async function chargerMois(mois, repeint = false) {
   // contient : un ecran qui montrerait la saisie sans l'etat du journal
   // laisserait rejouer un depot deja fait.
   // Les lectures partent ensemble et on RENVOIE leur fin : le demarrage
-  // l'attend pour ne montrer la page qu'une fois peinte (« je vois les paies
-  // ouvertes qui se ferment », 22/09/2026). Les autres appelants l'ignorent.
+  // l'attend pour ne montrer la page qu'une fois peinte, sans engagements qui s'ouvrent puis se ferment.
+  // Les autres appelants l'ignorent.
   const lectures = [
     dessinerActions(mois),
     // Les imprévus et les fins de contrat : ce qui est dû, et la ligne de
@@ -884,7 +884,7 @@ async function enregistrerEnPartant(attente, chargement) {
 /* LE CHOIX DU MOIS. « Un truc simple, qu'on puisse cliquer sur
  * toute la case pour arriver aux choix, et que le défilement soit plus
  * rapide. » Une case : ‹ Octobre 2026 ›. Un clic sur une flèche charge le mois
- * TOUT DE SUITE (16/10/2026 : plus d'attente pour voir si un autre clic
+ * TOUT DE SUITE, sans attendre de voir si un autre clic
  * suit) ; un clic qui arrive pendant le chargement le fait abandonner
  * (`DEMANDE_MOIS`, chargerMois), et c'est le dernier mois demandé qui se
  * peint. Un clic sur le nom ouvre l'année : douze mois, un clic pour y
@@ -906,8 +906,8 @@ function allerAuMois(v) {
   const c = document.getElementById("mois");
   c.value = v;
   afficherMoisChoisi();
-  // LE NOM ET LES CARTES DISENT LE MÊME MOIS (09/10/2026 : « quand je change de
-  // mois on reste sur septembre ») : dès que le nom change, les cartes de
+  // LE NOM ET LES CARTES DISENT LE MÊME MOIS : dès que le nom change,
+  // les cartes de
   // l'ancien mois s'effacent ; elles reviennent si l'on revient dessus.
   document.getElementById("engagements").classList.toggle("en-lecture", v !== MOIS_AFFICHE);
   // Revenir au mois affiché pendant qu'un autre se charge, c'est aussi le

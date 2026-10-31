@@ -2,8 +2,8 @@
 "use strict";
 
 /* ------------------------------------------------ LES IMPRÉVUS
-   Léandre : « simple pour les gens qui ont besoin de simple, compliqué pour
-   les gens qui ont besoin de compliqué ». Quelqu'un qui fait des paies
+   Simple pour qui a besoin de simple, compliqué pour qui a besoin de compliqué.
+   Quelqu'un qui fait des paies
    apprend qu'un salarié est malade : il va sur la ligne de ce salarié, pas
    dans une section du mois qui dirait « Arrêts de travail » tous les mois
    pour rien. Les imprévus sont rares, et rien ici ne doit laisser croire

@@ -11,8 +11,7 @@ function rubriqueDe(code) {
 
 /** Le déroulant des rubriques, dans l'ordre où le moteur les rend. */
 function optionsRubriques(choisie, nat) {
-  // CE QUI S'APPLIQUE À LA NATURE DU CONTRAT (30/09/2026, « si compagnie
-  // simple, interface simple »). Le moteur dit à quelle forme de paie chaque
+  // CE QUI S'APPLIQUE À LA NATURE DU CONTRAT : le moteur dit à quelle forme de paie chaque
   // rubrique s'adresse (`reservee_a`, lu sur les champs que le calcul
   // applique) ; la page compare, elle ne connaît aucune rubrique. Sans
   // nature (`nat` absent) rien ne se filtre, et la rubrique DÉJÀ choisie
@@ -73,7 +72,7 @@ function ligneRubrique(l = {}, nat) {
   // Une ligne neuve part du dernier taux donné, pas d'un champ vide : c'est
   // là que « on met de base le dernier taux » se voit. Le dernier taux DE SA
   // RUBRIQUE : « le cachet c'est le cachet, les heures c'est les heures ».
-  // UNE LIGNE EN POURCENTAGE (majoration, précarité — 30/09/2026) : le
+  // UNE LIGNE EN POURCENTAGE (majoration, précarité) : le
   // fichier dit `base` et `taux_majoration` ; les deux mêmes champs les
   // montrent, « 120 € à 25 % ».
   if (l.base !== undefined || l.taux_majoration !== undefined) {
@@ -114,8 +113,8 @@ function ligneRubrique(l = {}, nat) {
          et ses valeurs viennent du moteur (« genres »). Vide : celui de la
          rubrique, qui n'est écrit nulle part. -->
     <select class="r-genre cachee" title="genre de l'avantage en nature (bloc 54)"></select>
-    <!-- LES JOURS SE COCHENT DANS UN CALENDRIER (15/09/2026 : « plus
-         esthétique et clair que de taper 12, 24, 26 »). Le bouton dit les
+    <!-- LES JOURS SE COCHENT DANS UN CALENDRIER, plus
+         clair que de taper 12, 24, 26. Le bouton dit les
          jours cochés ; le champ caché garde l'écriture « 14 15 17 18 » que
          tout le reste de la page lit (joursDe). Les jours cochés dans un
          mois SUIVANT sont le planning de la ligne (data-planning). -->
@@ -141,8 +140,8 @@ function ligneRubrique(l = {}, nat) {
     // qui est dans le fichier se voit (le moteur dit si elles y ont leur place).
     const h = div.querySelector(".r-heures");
     h.classList.toggle("cachee", !veutHeures && h.value === "");
-    // UNE LIGNE « MONTANT » (prime, acompte, indemnité, défraiement réel —
-    // 30/09/2026) : ni quantité, ni jours, ni lieu. On tape la somme ; la
+    // UNE LIGNE « MONTANT » (prime, acompte, indemnité, défraiement réel) :
+    // ni quantité, ni jours, ni lieu. On tape la somme ; la
     // quantité vaut 1 et reste écrite, le moteur lit quantité × taux.
     const montant = !!r && r.saisie.includes("montant") && !r.saisie.includes("quantite");
     const q = div.querySelector(".r-quantite");
@@ -241,9 +240,8 @@ function ligneRubrique(l = {}, nat) {
    suivants sont le PLANNING de la ligne — pas payés ce mois-ci, mais connus :
    le contrat imprimé les liste, la fin du contrat se cale sur le dernier, et
    le mois venu, le contrat repris d'office les retrouve déjà cochés.
-   On remonte AUSSI avant le mois de la saisie, mais pour LIRE (16/09/2026,
-   « j'aimerais pouvoir accéder à l'historique au moins des contrats dans le
-   calendrier ») : les mois passés montrent les contrats déclarés des
+   On remonte AUSSI avant le mois de la saisie, mais pour LIRE :
+   les mois passés montrent les contrats déclarés des
    salariés du bloc — en plage grisée quand on ne connaît que début, fin et
    nombre de cachets (l'historique importé des AEM), en jours pleins quand le
    mois a été produit ici. Rien ne s'y coche : un cachet d'octobre se paie
@@ -518,23 +516,12 @@ function tauxParDefaut(code) {
 /* =======================================================================
    LE LIEU ET LES JOURS SONT SUR LA LIGNE DE PAIE
    =======================================================================
-   Décidé le 11/09/2026 sur un exemple réel — quatre Zerbinette dans le
-   mois, un à Berlin, un à Paris, deux à Avallon — écrit le 12, puis recadré par
-   lui le même jour, et c'est le recadrage qui a tout simplifié :
+   Une ligne de paie EST un groupe de cachets, à un taux, à un endroit, à des
+   dates : « 1 cachet à 130 € au Théâtre de la Ville le 12 », « 4 cachets à
+   130 € au Théâtre 71 le 14, 15, 17, 18 ». Deux villes, deux lignes. Le lieu
+   se tape sur la ligne : il n'y a rien à hériter, rien à déplier.
 
-     « Pour moi tout est sur la même ligne : les dates, les lieux et le
-       cachet. Du coup on peut faire 1 cachet à 130 € au Théâtre de la Ville
-       le 12. Ou 4 cachets à 130 € au Théâtre 71 le 14, 15, 17, 18. »
-
-   La première version posait le lieu sur la DATE, avec un héritage à trois
-   étages (la date, l'engagement, le mois) et une zone dépliante sous chaque
-   engagement pour les cas où les villes diffèrent. Ça marchait, et c'était
-   une mécanique à expliquer. Sa maille à lui n'a pas besoin d'héritage : une
-   ligne de paie EST un groupe de cachets, à un taux, à un endroit, à des
-   dates. Deux villes, deux lignes. Rien à hériter, rien à déplier, rien à
-   trancher entre « ce qui est tapé » et « ce qui est repris ».
-
-   C'est TOUJOURS UNE SEULE PAIE : même spectacle, donc même numéro d'objet,
+   C'est TOUJOURS UN SEUL ENGAGEMENT : même spectacle, donc même numéro d'objet,
    donc un contrat, un bulletin, une AEM. Les jours de l'engagement sont la
    réunion des jours de ses lignes — `joursDuBloc` ici, `dates_engagement`
    dans le moteur, et les deux composent la même liste.
@@ -932,7 +919,7 @@ function construireCarte(div, e) {
     <!-- LE CONTRAT, replié : « du 12/10/2026 au 20/12/2026 », préréglé sur
          le premier et le dernier jour joué. On l'ouvre pour une seule chose :
          allonger la date de fin quand le contrat se poursuit le mois suivant
-         (contrats sur plusieurs mois, 15/09/2026). Le numéro y apparaît, en
+         (contrats sur plusieurs mois). Le numéro y apparaît, en
          lecture seule, une fois le mois produit. -->
     <details class="e-contrat">
       <summary></summary>
@@ -984,8 +971,8 @@ function construireCarte(div, e) {
         <label class="e-motif-l">Motif de la rupture
           <select class="e-motif-rupture"></select></label>
         <p class="discret e-motif-dit" hidden></p>
-        <!-- Les dates et la transaction selon le motif (30/09/2026,
-             permanents.faits_de_rupture) : notifiée pour une rupture que
+        <!-- Les dates et la transaction selon le motif
+             (permanents.faits_de_rupture) : notifiée pour une rupture que
              l'un décide, engagée pour un licenciement, signée pour une
              rupture conventionnelle, la transaction après un litige. -->
         <label data-fait="engagement_licenciement" hidden
@@ -1470,7 +1457,7 @@ function majContrat(div) {
   const sePoursuit = !!(fin && mois && fin.slice(0, 7) > mois);
   d.classList.toggle("a-cheval", enCours || sePoursuit);
   // UN CONTRAT SANS TERME (un CDI) n'a pas de dernier jour joué : il se
-  // dit par son début (26/09/2026 — la phrase des cachets s'y affichait).
+  // dit par son début.
   if (debut && !fin && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
     s.textContent = `Contrat depuis le ${jjmmaaaa(debut)}, sans terme${
       numero ? ` · n° ${numero}` : ""}`;
