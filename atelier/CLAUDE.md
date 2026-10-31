@@ -242,8 +242,11 @@ LLM à la fois.
   commande de tests à la fois, rien en fond ; **aucun acte réel lancé à la main**, même sur une fictive (un dépôt qu'on
   lance soi-même est de test ; le réel se voit par l'horloge de la fictive) ; un texte en PDF se transcrit une fois et
   ne se relit qu'à sa nouvelle version.
-- **Le relais** : un Opus travaille au plus 1 h 15 environ, ou moins si ses notifications montrent qu'il dépasse
-  500 000 jetons ; au relais, il laisse finir sa commande, commite, écrit sa passation, et un Opus neuf reprend. **On
+- **Le relais** (Léandre, 31/10/2026) : un Opus mène son lot jusqu'au bout ; **sa consigne ne lui donne aucune limite
+  de temps** (il ne mesure pas le temps, et un relais trop tôt fait relire à l'Opus neuf tout ce que le premier savait).
+  **L'orchestrateur seul décide du relais**, d'après les notifications : quand le contexte de l'Opus approche
+  500 000 jetons, ou une heure sans commit ; il le lui demande, l'Opus laisse finir sa commande, commite, écrit sa
+  passation, et un Opus neuf reprend. **On
   n'écrit jamais à un Opus qui a fini** : un message le réveille et lui fait relire tout son contexte. Une décision
   envoyée en cours de lot se vérifie dans le commit qui suit.
 - **Parler à Léandre** : une décision qui touche le fonctionnement se présente entière, en trois lignes — ce qui se passe,
