@@ -20,15 +20,15 @@ fn une_journee_de_plus_de_24_heures_se_refuse_et_plus_de_10_heures_se_dit() {
     let jour = "2026-11-02";
     let spectacle = saisie(&c, "2026-11")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").unwrap()["spectacle"].clone();
     let regie = |heures: i64| json!({"salarie": "FULLER", "spectacle": spectacle, "lignes": [{"rubrique": "heure", "quantite": heures, "taux": 19, "dates": ["2026-11-28"]}]});
-    let carte = |heures: i64, place: Option<u64>| json!({"mois": "2026-11", "saisie": regie(heures), "place": place});
+    let carte = |heures: i64, id: &Value| json!({"mois": "2026-11", "saisie": regie(heures), "engagement": id});
 
-    let place = reussi(&route(&c, "enregistrer-saisie", carte(25, None), jour))["place"].as_u64();
-    let (_, r) = refus(&route(&c, "valider-engagement", carte(25, place), jour));
+    let id = reussi(&route(&c, "enregistrer-saisie", carte(25, &Value::Null), jour))["engagement"].clone();
+    let (_, r) = refus(&route(&c, "valider-engagement", carte(25, &id), jour));
     assert!(r.contains("25 h") && r.contains("24 heures"), "{}", r);
 
-    reussi(&route(&c, "enregistrer-saisie", carte(11, place), jour));
+    reussi(&route(&c, "enregistrer-saisie", carte(11, &id), jour));
     let a = route(&c, "apercu", json!({"mois": "2026-11"}), jour);
     let dits: Vec<Value> = reussi(&a)["paies"].as_array().unwrap().iter().filter(|p| p["debut"] == "2026-11-28").flat_map(|p| p["avertissements"].as_array().cloned().unwrap_or_default()).collect();
     assert!(dits.iter().any(|t| t.as_str().is_some_and(|t| t.contains("11 h le 28/11") && t.contains("L. 3121-18"))), "{:?}", dits);
-    assert!(reussi(&route(&c, "valider-engagement", carte(11, place), jour))["valide"].is_string());
+    assert!(reussi(&route(&c, "valider-engagement", carte(11, &id), jour))["valide"].is_string());
 }

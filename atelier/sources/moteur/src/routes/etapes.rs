@@ -854,14 +854,15 @@ impl<'a> Moteur<'a> {
 
     /// LES ENGAGEMENTS AUXQUELS IL MANQUE UN FAIT (`engagement::stock::A_COMPLETER`), a leur place dans l'ordre de
     /// l'ecran : hors de toutes les lectures du mois, chacun a sa ligne a lui, qui dit ce qui lui manque
-    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre. Chaque ligne porte sa `place` :
-    /// l'identite de l'engagement a l'ecran, celle par laquelle une carte se lit et s'ecrit (`stock::objets_a_l_ecran`).
+    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre. Chaque ligne porte `engagement` :
+    /// l'identite de l'engagement, celle par laquelle sa carte le designe (`stock::identites`).
     fn avec_les_engagements_a_completer(&self, mois: &str, lignes: Vec<Value>) -> R<Vec<Value>> {
         let a_l_ecran = engagement::stock::objets_a_l_ecran(self.racine(), mois).map_err(plain)?;
+        let ids = engagement::stock::identites(&a_l_ecran);
         let mut calculees = lignes.into_iter();
         let mut out: Vec<Value> = Vec::new();
-        for o in &a_l_ecran {
-            let ligne = if o.est_a_completer() {
+        for (o, id) in a_l_ecran.iter().zip(ids) {
+            let mut ligne = if o.est_a_completer() {
                 self.ligne_a_completer(mois, o)?
             } else {
                 match calculees.next() {
@@ -869,11 +870,8 @@ impl<'a> Moteur<'a> {
                     None => continue,
                 }
             };
+            ligne["engagement"] = id;
             out.push(ligne);
-        }
-        out.extend(calculees);
-        for (place, l) in out.iter_mut().enumerate() {
-            l["place"] = json!(place);
         }
         Ok(out)
     }

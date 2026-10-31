@@ -489,6 +489,37 @@ pub fn objets_a_l_ecran(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
     Ok(tous(racine)?.1.du_mois(mois, true)?.into_iter().cloned().collect())
 }
 
+/// L'IDENTITE DE CHAQUE ENGAGEMENT D'UNE LISTE (le plan) : son salarie, son premier jour et son rang parmi ceux du meme
+/// salarie qui commencent le meme jour (l'ordre de leur fichier, qui est le meme pour tous : le fichier de leur
+/// premier mois). C'est elle que l'ecran tient pour designer une carte.
+pub fn identites(objets: &[Objet]) -> Vec<Value> {
+    let paires: Vec<(String, String)> = objets
+        .iter()
+        .map(|o| {
+            let e = Value::Object(o.brut.clone());
+            (e.get("salarie").map(en_texte).unwrap_or_default(), crate::debut_brut(&e))
+        })
+        .collect();
+    paires
+        .iter()
+        .enumerate()
+        .map(|(i, (s, d))| {
+            let rang = paires[..i].iter().filter(|(s2, d2)| s2 == s && d2 == d).count();
+            serde_json::json!({"salarie": s, "debut": d, "rang": rang})
+        })
+        .collect()
+}
+
+/// L'ENGAGEMENT QUE DESIGNE L'IDENTITE `id` (`identites`) dans l'ecran de `mois`, et sa place dans cet ecran (l'ordre
+/// de `vue_a_l_ecran`). Refus : une identite que l'ecran ne montre pas.
+pub fn designe(racine: &Path, mois: &str, id: &Value) -> Resultat<(usize, Objet)> {
+    let objets = objets_a_l_ecran(racine, mois)?;
+    let k = identites(&objets).iter().position(|x| x == id).ok_or_else(|| {
+        format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois. Rien n'est écrit.", crate::libelle_mois(mois))
+    })?;
+    Ok((k, objets.into_iter().nth(k).expect("la place vient de la liste")))
+}
+
 /// Les engagements non actifs (`NON_ACTIF`) qui toucheraient `mois` s'ils l'etaient encore : ce qui se lit d'eux.
 pub fn non_actifs_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
     let t = tous(racine)?.1;
@@ -674,17 +705,17 @@ pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
 
 // ------------------------------------------------------------------ l'ecriture
 
-/// L'ECRITURE D'UNE CARTE : l'engagement en saisie que l'ecran de `mois` montre a la place `place`
-/// (`objets_a_l_ecran`) prend `saisie`, ce que sa carte ecrit pour `mois` ; sans place, l'engagement est neuf et commence
-/// dans le fichier du mois (le fichier se cree avec ce que le mois dit par defaut, `defauts`). C'est la seule ecriture
-/// qui cree un engagement. Rend la place de l'engagement ecrit dans l'ecran de `mois`.
+/// L'ECRITURE D'UNE CARTE : l'engagement en saisie que designe l'identite `id` dans l'ecran de `mois` (`designe`)
+/// prend `saisie`, ce que sa carte ecrit pour `mois` ; sans identite, l'engagement est neuf et commence dans le fichier
+/// du mois (le fichier se cree avec ce que le mois dit par defaut, `defauts`). C'est la seule ecriture qui cree un
+/// engagement. Rend l'identite de l'engagement ecrit (`identites`).
 ///
 /// Ce que le moteur tient seul ne se prend pas de la saisie ; le numero du contrat et le nom du spectacle ecrits se
 /// gardent (`poser_sur`). Refus, et rien n'est ecrit : un engagement valide (il se modifie d'un geste,
-/// `etats::modifier`), une place que l'ecran ne montre pas, un engagement du salarie et du premier jour d'un engagement
+/// `etats::modifier`), une identite que l'ecran ne montre pas, un engagement du salarie et du premier jour d'un engagement
 /// importe, des bornes qui laisseraient hors du contrat un mois ou il a des jours payes, un engagement neuf que l'ecran
 /// de `mois` ne montrerait pas.
-pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, place: Option<usize>, saisie: &Map<String, Value>, defauts: &Map<String, Value>) -> Resultat<usize> {
+pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &Map<String, Value>, defauts: &Map<String, Value>) -> Resultat<Value> {
     let racine = &ctx.racine;
     let e = Value::Object(saisie.clone());
     if let Some(cle) = crate::cle_de_l_engagement(ctx, &e) {
@@ -693,11 +724,9 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, place: Option<usize>, saisie:
             return Err(crate::importe::refus(&e.get("salarie").map(en_texte).unwrap_or(cle), &debut));
         }
     }
-    let (fichier, rang) = match place {
-        Some(k) => {
-            let mut o = objets_a_l_ecran(racine, mois)?.into_iter().nth(k).ok_or_else(|| {
-                format!("{} : l'écran ne montre pas d'engagement à la place {} ; rechargez le mois. Rien n'est écrit.", crate::libelle_mois(mois), k + 1)
-            })?;
+    let (fichier, rang) = match id {
+        Some(id) => {
+            let (_, mut o) = designe(racine, mois, id)?;
             if o.est_valide() {
                 return Err(format!("{} : cet engagement est validé, il se modifie d'un geste. Rien n'est écrit.", crate::libelle_mois(mois)));
             }
@@ -727,10 +756,12 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, place: Option<usize>, saisie:
             (mois.to_string(), rang)
         }
     };
-    objets_a_l_ecran(racine, mois)?
+    let objets = objets_a_l_ecran(racine, mois)?;
+    let k = objets
         .iter()
         .position(|o| o.fichier == fichier && o.rang == rang)
-        .ok_or_else(|| format!("{} : l'engagement écrit ne tombe pas dans ce mois (ses dates le placent ailleurs).", crate::libelle_mois(mois)))
+        .ok_or_else(|| format!("{} : l'engagement écrit ne tombe pas dans ce mois (ses dates le placent ailleurs).", crate::libelle_mois(mois)))?;
+    Ok(identites(&objets).swap_remove(k))
 }
 
 /// CE QUI MANQUE A CHAQUE ENGAGEMENT DE L'ECRAN DE `mois` (`manques`, dans l'ordre de `objets_a_l_ecran` ; `None` :
