@@ -304,7 +304,7 @@ pub fn restaurer(cible: &Path, racine_drive: &str, client: &mut dyn Drive) -> Re
             }
         }
     }
-    let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0);
+    let maintenant = socle::temps::secondes();
     let index = json!({
         "quand": socle::paris::iso_minutes(maintenant).replacen('T', " ", 1),
         "racine_drive": racine_drive,

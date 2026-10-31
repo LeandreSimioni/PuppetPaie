@@ -1,7 +1,7 @@
 //! LE TEMPS DU MOTEUR : l'horloge de la machine, ou un temps SIMULE, et les aleas qui vont avec.
 //!
 //! Tout ce que le moteur ECRIT avec l'heure dedans -- le « quand » d'une ligne du journal, l'horodatage d'une DSN ou d'une
-//! DPAE, le nom d'un courriel joue, la sauvegarde d'une saisie dans `paies/avant/` -- lit l'heure ICI (`secondes`), et le
+//! DPAE, le nom d'un courriel joue -- lit l'heure ICI (`secondes`), et le
 //! jour qu'on est aussi (`contexte::aujourdhui`, `contexte::jour_reel`). Sur un poste, c'est l'horloge de la machine, au
 //! jour de Paris que la commande pose (`PUPPETPAIE_AUJOURDHUI`, le jour meme), pour le prix d'un verrou libre puis de
 //! `SystemTime::now`.

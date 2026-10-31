@@ -32,3 +32,4 @@ pub mod restauration;
 pub mod sauvegarde;
 pub mod signature;
 pub mod suites;
+pub mod taux_pas;

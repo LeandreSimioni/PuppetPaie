@@ -68,7 +68,7 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
             tous.push(Value::Object(m));
         }
     }
-    crate::commandes::pas::enregistrer(ctx, &tous, "CRM DGFiP nature 94")?;
+    crate::compagnie::taux_pas::enregistrer(ctx, &tous, "CRM DGFiP nature 94")?;
     Ok(())
 }
 

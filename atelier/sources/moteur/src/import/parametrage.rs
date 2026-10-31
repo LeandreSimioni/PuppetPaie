@@ -130,7 +130,7 @@ pub(crate) fn parametrer(ctx: &Contexte) -> Vec<String> {
 fn poser_taux_pas(ctx: &Contexte, faits: &mut Vec<String>) {
     let dossier = ctx.racine.join("historique").join("bulletins");
     let releves = crate::commandes::pas::derniers_taux_des_dsn(ctx, &dossier);
-    let Ok(changes) = crate::commandes::pas::enregistrer(ctx, &releves, "DSN reprises par l'import") else { return };
+    let Ok(changes) = crate::compagnie::taux_pas::enregistrer(ctx, &releves, "DSN reprises par l'import") else { return };
     for r in &releves {
         let cle = texte(r, "salarie");
         if !changes.iter().any(|c| c.starts_with(&format!("{} :", cle))) {
