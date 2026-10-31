@@ -1,4 +1,4 @@
-//! `moteur route` : la demande JSON sur l'entree standard, la reponse en une ligne de JSON sur la sortie standard ; un
+//! `moteur route` : la demande JSON sur l'entree standard, la reponse en une ligne de JSON sur la sortie standard (`--texte` : ses phrases) ; un
 //! refus : `{"ok": false, "erreur": "..."}`. Et ce dont les routes ont besoin pour lire la compagnie (`contexte`) et la
 //! position des droits (`droits`).
 
@@ -89,20 +89,29 @@ pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Valu
     Ok(Value::Object(m))
 }
 
-/// `moteur route [--racine R] [--date D]` : la demande sur l'entree standard. `None` : usage.
+/// `moteur route [--racine R] [--date D] [--texte]` : la demande sur l'entree standard. `None` : usage.
+///
+/// UN ACTE REEL PAR `moteur route` : la demande du mot de passe du logiciel est celle du moteur (`demande::Reel` : sa
+/// fenetre, sinon le terminal de l'humain, sans echo, sinon un refus). L'entree standard est celle d'un programme (un LLM,
+/// un script) : le `motdepasse` d'un acte reel qui y arrive est retire de la charge, il ne prouve rien.
 pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
     if quoi != "route" {
         return None;
     }
-    let o = options(args)?;
+    let texte_seul = args.iter().any(|a| a == "--texte");
+    let args: Vec<String> = args.iter().filter(|a| *a != "--texte").cloned().collect();
+    let o = options(&args)?;
     // `--date D` est l'aujourd'hui de la route : le jour du contexte, et celui de l'horloge (`socle::temps`, le jour pose)
     // qui date ce qu'elle ecrit. Une seule horloge : chaque ligne du journal porte le jour de la route.
     if let Some(d) = o.get("date").filter(|d| Jour::lire(d).is_ok()) {
         std::env::set_var("PUPPETPAIE_AUJOURDHUI", d);
     }
+    let _canaux = crate::compagnie::demande::installer(std::rc::Rc::new(crate::compagnie::demande::Reel::du_poste()));
     let mut entree = String::new();
-    let corps = match std::io::stdin().read_to_string(&mut entree) {
-        Ok(_) => crate::routes::commande(&o, entree.trim_start_matches('\u{feff}')),
+    let lu = std::io::stdin().read_to_string(&mut entree);
+    let nom = demande(entree.trim_start_matches('\u{feff}')).ok().and_then(|d| d.get("route").and_then(Value::as_str).map(String::from)).unwrap_or_default();
+    let corps = match lu {
+        Ok(_) => sans_mot_de_passe(entree.trim_start_matches('\u{feff}')).and_then(|e| crate::routes::commande(&o, &e)),
         Err(e) => Err(format!("lecture de l'entree standard impossible : {}", e)),
     };
     let corps = corps.unwrap_or_else(|e| {
@@ -111,6 +120,62 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
         m.insert("erreur".into(), Value::String(e));
         Value::Object(m)
     });
-    println!("{}", corps);
+    if texte_seul {
+        print!("{}", en_texte(&nom, &corps));
+    } else {
+        println!("{}", corps);
+    }
     Some(0)
+}
+
+/// La demande d'un acte reel (une route qui engage), sans le `motdepasse` de sa charge.
+fn sans_mot_de_passe(entree: &str) -> Resultat<String> {
+    use crate::routes::catalogue::{catalogue, Acte};
+    let mut d = demande(entree)?;
+    let nom = d.get("route").and_then(Value::as_str).unwrap_or("").to_string();
+    if catalogue().iter().any(|f| f.nom == nom && f.acte == Acte::Engage) {
+        if let Some(c) = d.get_mut("charge").and_then(Value::as_object_mut) {
+            c.remove("motdepasse");
+        }
+    }
+    Ok(d.to_string())
+}
+
+/// `--texte` : ce que la page lit de la reponse, sans la composer. Une reussite : chaque `phrase` du resultat, dans
+/// l'ordre ou la route les rend (le resultat entier s'il n'en porte aucune) ; un refus : sa phrase, et ce que la fiche de
+/// cette route dit de corriger pour sa classe.
+fn en_texte(route: &str, rep: &Value) -> String {
+    if rep.get("ok").and_then(Value::as_bool) == Some(true) {
+        let mut phrases = Vec::new();
+        phrases_de(&rep["resultat"], &mut phrases);
+        if phrases.is_empty() {
+            return format!("{}\n", serde_json::to_string_pretty(&rep["resultat"]).unwrap_or_default());
+        }
+        return phrases.iter().map(|p| format!("{}\n", p)).collect();
+    }
+    let phrase = rep.get("erreur").map(socle::valeur::valeur_en_texte).unwrap_or_default();
+    let classe = rep.get("classe").and_then(Value::as_str).unwrap_or("");
+    let corriger = crate::routes::catalogue::catalogue()
+        .into_iter()
+        .filter(|f| f.nom == route)
+        .flat_map(|f| f.refus.iter().copied())
+        .find(|r| r.classe == classe)
+        .map(|r| format!("A corriger : {}\n", r.corriger))
+        .unwrap_or_default();
+    format!("Refus{} : {}\n{}", if classe.is_empty() { String::new() } else { format!(" ({})", classe) }, phrase, corriger)
+}
+
+fn phrases_de(v: &Value, phrases: &mut Vec<String>) {
+    match v {
+        Value::Object(m) => {
+            for (k, x) in m {
+                match x {
+                    Value::String(s) if k == "phrase" && !s.is_empty() => phrases.push(s.clone()),
+                    _ => phrases_de(x, phrases),
+                }
+            }
+        }
+        Value::Array(a) => a.iter().for_each(|x| phrases_de(x, phrases)),
+        _ => {}
+    }
 }
