@@ -64,6 +64,27 @@ fn treteaux(test: &str) -> PathBuf {
 #[test]
 fn l_exemple_de_chaque_fiche_est_accepte() {
     let c = treteaux("exemples");
+    // Un permanent en CDI, arrete : ce que seul un contrat paye au mois appelle (le maintien de salaire).
+    let svoboda = json!({"nom": "salarie", "cle": null, "donnees": {"prenom_affichage": "Josef",
+        "nom_affichage": "Svoboda", "nir": "1750544999001", "nir_cle": "19", "date_naissance": "1975-05-10", "lieu_naissance_affichage": "Villeneuve-sur-Loire",
+        "departement_naissance": "44", "pays_naissance": "FR", "code_nationalite_dsn": "01", "adresse_affichage": "4 rue Kervégan", "code_postal": "44000",
+        "commune_affichage": "Nantes", "email": "josef.svoboda@exemple.invalid", "emploi_affichage": "Directeur technique", "code_emploi_ft": "DIR210",
+        "pcs_ese": "353C", "statut": "technicien", "statut_conventionnel": "04", "statut_categoriel_rc": "01", "date_anciennete": "2026-11-02", "sante_svp": {"niveau": "1"}, "actif": true}});
+    let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
+    let fiche_entreprise = gestes.lines().filter(|l| l.contains("\"route\":\"enregistrer-fiche\"") && l.contains("\"nom\":\"entreprise\"")).last().unwrap();
+    let mut entreprise = serde_json::from_str::<Value>(fiche_entreprise).unwrap()["charge"].clone();
+    entreprise["donnees"]["emploie_des_permanents"] = json!(true);
+    entreprise["depuis"] = json!("2026-11-01");
+    for (nom, charge) in [
+        ("enregistrer-fiche", entreprise),
+        ("organismes-enregistrer", json!({"contrats": {"prevoyance_permanents": {"libelle": "PREVOYANCE", "organisme": "P0983"}, "sante_permanents": {"libelle": "SANTE", "organisme": "P0983"}}})),
+        ("enregistrer-fiche", svoboda),
+        ("valider-engagement", json!({"mois": "2026-11", "saisie": {"salarie": "SVOBODA", "nature": "cdi", "debut": "2026-11-02", "salaire_mensuel": 3400, "quotite_contrat": 151.67}})),
+        ("arret-enregistrer", json!({"salarie": "SVOBODA", "dernier_jour": "2026-11-02", "fin": "2026-11-10", "motif": "01", "subrogation": "02"})),
+    ] {
+        let r = route(&c, nom, charge, "2026-11-02");
+        assert_eq!(r["ok"], json!(true), "le permanent des exemples : {} : {}", nom, r);
+    }
     // Le retrait de l'engagement en dernier : les exemples des imprevus portent sur celui que valider-engagement pose.
     let mut fiches: Vec<_> = catalogue().into_iter().filter(|f| f.remplie()).collect();
     fiches.sort_by_key(|f| f.nom == "retirer-engagement");
