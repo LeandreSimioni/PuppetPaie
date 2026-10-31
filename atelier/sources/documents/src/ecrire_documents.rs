@@ -26,25 +26,32 @@ fn valeur(m: String) -> Echec {
     erreur("ValueError", m)
 }
 
+/// `config/compteurs.json` (`{"AAAA": {"bulletin": n, ...}}`, la suite des numeros de chaque annee), ou `{}` s'il
+/// n'existe pas. La seule lecture du fichier.
+pub fn compteurs(racine: &std::path::Path) -> R<Value> {
+    let p = racine.join("config").join("compteurs.json");
+    if !p.exists() {
+        return Ok(json!({}));
+    }
+    lire_json(&p).map_err(valeur)
+}
+
 /// `Contexte.prochain_continu` : une sequence qui ne repart pas a 1 chaque an. La LECTURE balaie toutes les
 /// annees de `compteurs.json` et retient le maximum.
 pub fn prochain_continu(ctx: &Contexte, cle: &str, defaut: i64) -> R<i64> {
-    let p = ctx.racine.join("config").join("compteurs.json");
     let mut vu = defaut - 1;
-    if p.exists() {
-        let c = lire_json(&p).map_err(|m| Echec::from(m))?;
-        if let Value::Object(annees) = &c {
-            for valeurs in annees.values() {
-                if let Some(v) = valeurs.as_object().and_then(|o| o.get(cle)) {
-                    let n = match v {
-                        Value::Number(n) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)),
-                        Value::String(s) => s.trim().parse().ok(),
-                        Value::Bool(b) => Some(*b as i64),
-                        _ => None,
-                    }
-                    .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr_valeur(v))))?;
-                    vu = vu.max(n);
+    let c = compteurs(&ctx.racine)?;
+    if let Value::Object(annees) = &c {
+        for valeurs in annees.values() {
+            if let Some(v) = valeurs.as_object().and_then(|o| o.get(cle)) {
+                let n = match v {
+                    Value::Number(n) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)),
+                    Value::String(s) => s.trim().parse().ok(),
+                    Value::Bool(b) => Some(*b as i64),
+                    _ => None,
                 }
+                .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr_valeur(v))))?;
+                vu = vu.max(n);
             }
         }
     }
@@ -76,8 +83,7 @@ pub fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32, departs: &engag
 /// -> dernier numero`, sinon a la suite du compteur de l'annee (`config/compteurs.json`) et des bulletins importes de
 /// l'annee (`engagement::numeros::dernier_bulletin_importe`).
 pub fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, attente: &mut HashMap<(String, String), i64>, departs: &engagement::departs::Departs) -> Result<(), Refus> {
-    let p = ctx.racine.join("config").join("compteurs.json");
-    let compteurs = if p.exists() { lire_json(&p)? } else { Value::Null };
+    let compteurs = compteurs(&ctx.racine)?;
     let an = annee.to_string();
     let n_bull = match attente.get(&(an.clone(), "bulletin".to_string())) {
         Some(v) => v + 1,
@@ -109,8 +115,7 @@ impl Reserves {
         if let Some(v) = self.valeurs.get(&(an.clone(), cle.to_string())) {
             return Ok(v + 1);
         }
-        let p = ctx.racine.join("config").join("compteurs.json");
-        let c = if p.exists() { lire_json(&p).map_err(valeur)? } else { Value::Null };
+        let c = compteurs(&ctx.racine)?;
         let lu = match c.get(&an).and_then(|a| a.get(cle)) {
             None => 0,
             Some(Value::Number(n)) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)).unwrap_or(0),
@@ -147,7 +152,7 @@ impl Reserves {
             return Ok(());
         }
         let p = ctx.racine.join("config").join("compteurs.json");
-        let mut c = if p.exists() { lire_json(&p).map_err(valeur)? } else { json!({}) };
+        let mut c = compteurs(&ctx.racine)?;
         let lu = socle::valeur::nom_type(&c);
         let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", format!("config/compteurs.json : {}", socle::fichiers::attendu("un objet", lu))))?;
         for (an, cle) in &self.ordre {
