@@ -122,9 +122,13 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
         lignes.retain(|l| voulus.contains(&l.salarie));
     }
     let (retenus, ecartes): (Vec<Ligne>, Vec<Ligne>) = lignes.into_iter().partition(|l| l.pourquoi_pas.is_empty());
+    // Aucun taux a demander : rien ne s'ecrit, et il n'y a rien a dire.
+    if retenus.is_empty() && ecartes.is_empty() {
+        return Ok(Lot { motif: d.motif.to_string(), dossier: PathBuf::new(), fichiers: Vec::new(), lignes: Vec::new(), ecartes, recapitulatif: PathBuf::new() });
+    }
     if retenus.is_empty() {
         let raisons: Vec<String> = ecartes.iter().map(|l| format!("{} ({})", l.salarie, l.pourquoi_pas)).collect();
-        return Err(format!("Aucun signalement a produire : {}", if raisons.is_empty() { "tous les taux sont valides.".to_string() } else { raisons.join("; ") }));
+        return Err(format!("Taux de PAS non demandé : {}.", raisons.join(" ; ")));
     }
     let mois = if d.mois.is_empty() { d.constitution.mois_iso() } else { d.mois.to_string() };
     let dossier = ctx.racine.join("sorties").join(&mois);

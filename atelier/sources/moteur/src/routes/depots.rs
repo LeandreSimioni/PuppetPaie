@@ -1,4 +1,4 @@
-//! Les routes des declarations : ecrire la DPAE (`dpae`), ecrire ou reprendre la DSN ou la DPAE du mois et dire ce
+//! Les routes des declarations : ecrire ou reprendre la DSN ou la DPAE du mois et dire ce
 //! qu'elle declare (`depot-apercu`), la deposer (`deposer`), suivre un depot (`suivre-depot`), le bilan de son test (`bilan-repetition`), et
 //! preparer le filet DPAE (`filet-preparer`).
 //!
@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{self, phrase_de, Preuve};
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, MOIS, FORME, OPERATION};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, MOIS, OPERATION};
 use declarations::dpae::{Chemins, Embauche, Parametres};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
@@ -29,27 +29,12 @@ const QUOI: Champ = Champ { nom: "quoi", sens: "dpae ou dsn", avance: false };
 const ETABLISSEMENT: Champ = Champ { nom: "etablissement", sens: "le NIC de l'établissement (DSN), le principal sinon", avance: true };
 const ENGAGEMENTS: Champ = Champ { nom: "engagements", sens: "seulement ces embauches (DPAE) : [{salarie, numero}]", avance: true };
 const SIGNALEMENT: Champ = Champ { nom: "fichier", sens: "un signalement écrit, tel que sa route le rend, à la place du mois", avance: true };
-/// L'exemple : la DPAE de novembre, celle que l'exemple de `dpae` ecrit.
+/// L'exemple : la DPAE de novembre, que `depot-apercu` ecrit.
 const DPAE_DE_L_EXEMPLE: &str = r#"{"quoi":"dpae","mois":"2026-11"}"#;
 const ILLISIBLE_FICHIER: Refus = Refus { classe: "FileNotFoundError", corriger: "le signalement : le fichier que sa route a rendu" };
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
-    Fiche {
-        nom: "dpae",
-        geste: "Écrire la DPAE des embauches du mois qui n'en ont pas, et la demande de taux.",
-        charge: &[
-            MOIS,
-            Champ { nom: "engagements", sens: "seulement ceux-ci : [{salarie, numero}]", avance: true },
-            Champ { nom: "heure", sens: "l'heure d'embauche, HHMM (0800 par défaut)", avance: true },
-        ],
-        exemple: r#"{"mois":"2026-11"}"#,
-        rend: "fichiers (la DPAE, son .zip, son récapitulatif, les demandes de taux), lignes (salarié, début), dossier, phrase (les embauches déclarées et la demande de taux)",
-        refus: &[OPERATION, MANQUE, FORME],
-        acte: Acte::Ecrit,
-        avance: false,
-        phrase: 300,
-    },
     Fiche {
         nom: "depot-apercu",
         geste: "Écrire ou reprendre la DSN ou la DPAE du mois ; dire ce qu'elle déclare.",
@@ -125,7 +110,6 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let mut v = match nom {
-        "dpae" => dpae(ctx, charge),
         "depot-apercu" => depot_apercu(ctx, charge),
         "deposer" => deposer(ctx, charge),
         "suivre-depot" => suivre_depot(ctx, charge),
@@ -307,7 +291,8 @@ fn fichier_json(f: &Path) -> Value {
 /// La phrase rendue dit combien d'embauches elle declare et ce qu'est devenue la demande de taux de PAS.
 pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_demande = texte_requis(charge, "mois")?;
-    let heure: Value = charge.get("heure").cloned().unwrap_or_else(|| json!("0800"));
+    // L'heure d'embauche que la DPAE declare.
+    let heure = json!("0800");
     let selection: Option<&Vec<Value>> = match charge.get("engagements") {
         None | Some(Value::Null) => None,
         Some(Value::Array(a)) => Some(a),
@@ -457,39 +442,23 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     };
 
-    let mut lignes = Vec::new();
-    for p in &retenues {
-        lignes.push(json!({
-            "salarie": socle::texte::salarie_nomme_ou(Some(&p.salarie), p.salarie.get("_cle").and_then(Value::as_str).unwrap_or("")),
-            "debut": p.engagement.debut.iso(),
-            "heure": heure,
-        }));
-    }
-
     // LE SIGNALEMENT D'AMORCAGE, DANS LE MEME GESTE : il ne fait jamais echouer la DPAE ; ce qui l'empeche se dit dans la
     // phrase, et les fichiers deja ecrits restent.
     let retenues_owned: Vec<Paie> = retenues.iter().map(|p| (*p).clone()).collect();
     let mut ecrits = Vec::new();
     let amorce = produire_amorcage(ctx, &mois, &retenues_owned, aujourdhui, &mut ecrits);
     let mut fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
-    let n = lignes.len();
+    let n = retenues.len();
     let mut phrase = format!("DPAE de {} écrite : {} embauche{}.", libelle, n, if n > 1 { "s" } else { "" });
     match &amorce {
         Ok(a) if a.demandes > 0 => phrase.push_str(&format!(" Taux de PAS demandé pour {}.", a.demandes)),
-        Ok(_) => phrase.push_str(" Aucun taux de PAS à demander."),
-        Err(m) => phrase.push_str(&format!(" Aucune demande de taux de PAS : {}", m)),
+        Ok(_) => {}
+        Err(m) => phrase.push_str(&format!(" {}", m)),
     }
     if let Ok(a) = &amorce {
         fichiers.extend(a.fichiers.iter().map(|p| fichier_json(p)));
     }
-    Ok(json!({
-        "mois": mois,
-        "libelle": libelle,
-        "dossier": sortie.to_string_lossy(),
-        "lignes": lignes,
-        "fichiers": fichiers,
-        "phrase": phrase,
-    }))
+    Ok(json!({ "fichiers": fichiers, "phrase": phrase }))
 }
 
 /// LES FICHIERS D'UNE DPAE : l'enregistrement de chaque embauche de `retenues` dans `cible` (et son `.zip`), horodate

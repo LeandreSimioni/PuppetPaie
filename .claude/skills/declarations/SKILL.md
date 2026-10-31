@@ -19,11 +19,11 @@ Ce qui reste à faire : `moteur rappels`, `moteur echeancier`. Ce qui est parti 
 
 - **Quand** : dans les 8 jours qui précèdent l'embauche, et **avant** le premier jour de travail. En retard, c'est
   une infraction : le dire franchement.
-- **Produire** : `moteur dpae 2026-12` (`--heure 0800` par défaut). Elle n'écrit que la DPAE (`sorties/<mois>/DPAE_*.txt`,
+- **Produire** : `moteur deposer-dpae 2026-12` (`--heure 0800` par défaut). Elle n'écrit que la DPAE (`sorties/<mois>/DPAE_*.txt`,
   son `.zip` et son `_recapitulatif.txt`) et, au besoin, les demandes de taux de PAS. Code de sortie 3 : embauche déjà
   passée, DPAE hors délai.
 - **Vérifier** : `moteur deposer-dpae sorties/2026-12/DPAE_Decembre2026.txt` (essai à blanc : relit, contrôle les délais,
-  n'envoie rien). Des embauches à plus de 8 jours sont refusées : `moteur dpae 2026-12 --seulement BRIOCHE:2026-12-14`
+  n'envoie rien). Des embauches à plus de 8 jours sont refusées : `moteur deposer-dpae 2026-12 --seulement BRIOCHE:2026-12-14`
   pour les seules dates proches.
 - **Test** : `moteur deposer-dpae <fichier> --test`. **Réel** : l'utilisateur. Retours à part : `moteur retours --dpae`
   (`retours/dpae/`, nature 41 = certificat de conformité).

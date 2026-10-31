@@ -188,7 +188,7 @@ Saisir les engagements d'octobre dans la fenêtre (`engagements/2026-10.json` : 
 
 | Document | Quand il se fabrique |
 |---|---|
-| la DPAE (`moteur dpae`) | avant le début du contrat |
+| la DPAE (`moteur deposer-dpae`) | avant le début du contrat |
 | le contrat | à son envoi à la signature, ou à son impression pour la main propre ; son numéro est celui que la validation a posé |
 | `DSN_Octobre2026.dsn` | à son dépôt : `moteur depot-dsn 2026-10 --test`, lecture du bilan, puis `--reel` |
 | bulletin et certificat Congés Spectacles | à l'envoi des documents aux salariés : le numéro du bulletin s'écrit dans la paie |
@@ -480,7 +480,7 @@ travaillé**, donc bien avant la paie. Elle se produit seule, sans montant
 Urssaf et sans consommer de numéro de bulletin :
 
 ```bash
-moteur dpae 2026-09 --heure 0800
+moteur deposer-dpae 2026-09
 ```
 
 Elle dit si une embauche est déjà passée : la DPAE est alors hors délai, et elle s'écrit quand même, sans antidater
@@ -623,7 +623,7 @@ arrive solde la demande.
   de tout le monde sans attendre une embauche. C'est le défaut de
   `--demander` ;
 - **motif 01**, embauche effective. Il part **avec la DPAE**, dans le même
-  geste et le même mot de passe : `moteur dpae` produit les deux, et
+  geste et le même mot de passe : `moteur deposer-dpae` produit les deux, et
   dit ce qu'il a demandé — ou pourquoi il n'a rien demandé ; le dépôt de la
   DPAE (`deposer-dpae`, ou la fenêtre) dépose aussi ses signalements, en test
   avec le test, en réel avec le réel.

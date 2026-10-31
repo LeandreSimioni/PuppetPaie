@@ -47,7 +47,6 @@ pub mod compagnie;
 pub mod depot_dsn;
 pub mod depots;
 pub mod deposer_dpae;
-pub mod dpae;
 pub mod dossier;
 pub mod envoi;
 pub mod export_compta;
@@ -193,7 +192,6 @@ fn commandes() -> Vec<Commande> {
         // L'outil de l'editeur, avant chaque publication : refuse ailleurs que sur son poste (le reglage de l'installation, `maj::reglage`).
         Commande { nom: "sources", aide: "les sources des donnees livrees, et leur veille (poste de l'editeur)", cachee: true, spec: &sources::SPEC, executer: sources::executer },
         Commande { nom: "fiche", aide: "rappeler les donnees de reference", cachee: false, spec: &fiche::SPEC, executer: fiche::executer },
-        Commande { nom: "dpae", aide: "produire la seule DPAE, avant l embauche", cachee: false, spec: &dpae::SPEC, executer: dpae::executer },
         Commande { nom: "fin-contrat", aide: "le signalement de fin de contrat de travail unique (nature 07)", cachee: false, spec: &fin_contrat::SPEC, executer: fin_contrat::executer },
         Commande { nom: "arret", aide: "les arrets de travail : saisir, signaler, reporter", cachee: false, spec: &arret::SPEC, executer: arret::executer },
         Commande { nom: "suspension", aide: "les suspensions du contrat (conge parental, sabbatique, sans solde...) : saisies une fois", cachee: false, spec: &suspension::SPEC, executer: suspension::executer },

@@ -70,7 +70,15 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let (test, reel) = (args.drapeau("test"), args.drapeau("reel"));
     let fichier = args.texte("fichier").unwrap_or("");
     // Un mois : la DPAE que la designation donne (`depots::designee`) : ecrite, ou reprise telle qu'elle a ete testee.
-    let designee = if socle::date::mois_valide(fichier) { crate::routes::depots::designee(&cadre.ctx, &json!({"quoi": "dpae", "mois": fichier}))?.0 } else { json!(fichier) };
+    let designee = if socle::date::mois_valide(fichier) {
+        let (chemin, dit) = crate::routes::depots::designee(&cadre.ctx, &json!({"quoi": "dpae", "mois": fichier}))?;
+        if let Some(p) = dit.get("phrase").and_then(serde_json::Value::as_str) {
+            dire!("{}", p);
+        }
+        chemin
+    } else {
+        json!(fichier)
+    };
     let chemin = match crate::routes::depots::resoudre(&cadre.racine, &designee) {
         Ok(c) => c,
         Err(e) => {
@@ -81,7 +89,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let p = std::path::Path::new(&chemin);
     if !p.exists() {
         dire!("Fichier introuvable : {}", chemin);
-        dire!("Le produire d'abord :  moteur dpae AAAA-MM");
+        dire!("Le produire d'abord :  moteur deposer-dpae AAAA-MM");
         return Ok(1);
     }
     if p.extension().is_some_and(|e| e.eq_ignore_ascii_case("zip")) {

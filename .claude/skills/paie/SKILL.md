@@ -38,7 +38,7 @@ les chemins `paies/…` et `sorties/…` se lisent depuis elle, et un mois nu (`
 3. **Montrer les chiffres avant tout acte** (brut, net, coût, sans rien écrire) :
    `echo '{"route":"apercu","charge":{"saisie": <contenu du fichier>}}' | moteur route --racine prive`
    (un `moteur` livré veut aussi `PUPPETPAIE_CODE` = le dossier `logiciel/donnees`).
-4. **Avant le premier jour** : la DPAE (`moteur dpae 2026-12`, voir la compétence `declarations`) et le contrat envoyé
+4. **Avant le premier jour** : la DPAE (`moteur deposer-dpae 2026-12`, voir la compétence `declarations`) et le contrat envoyé
    à la signature (compétence `contrat`). Ce sont deux actes réels : c'est l'utilisateur qui les fait partir.
 5. **Fermer le mois** : `moteur mois 2026-12`. Il écrit dans `sorties/2026-12/` les bulletins, les certificats Congés
    Spectacles et la DSN, et les pièces de chaque salarié dans `sorties/2026-12/envoi/`.
