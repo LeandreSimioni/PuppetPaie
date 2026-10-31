@@ -111,19 +111,6 @@ impl Cadre {
         }
     }
 
-    /// Comme `route`, mais la reponse ENTIERE du moteur : `{"ok": true, "resultat"}` ou `{"ok": false, "erreur", "classe",
-    /// <donnee du refus>}` (`manques` d'un mois pas pret, `etat` d'une DSN deja deposee). Pour qui doit rendre cette donnee.
-    pub fn route_entiere(&self, nom: &str, charge: Value) -> Result<Value, Echec> {
-        let entree = json!({"route": nom, "charge": charge}).to_string();
-        match crate::routes::commande(&self.o, &entree) {
-            Ok(r) => Ok(r),
-            Err(m) => {
-                let (classe, message) = crate::routes::rappels::decoder(&m);
-                Err(Echec { classe: classe.map(classe_connue), message: message.to_string() })
-            }
-        }
-    }
-
     /// Un plantage : une ligne dans le journal des incidents (sa classe et sa nature), puis la phrase seule a l'ecran
     /// (sortie d'erreur), code 1.
     pub fn plantage(&self, e: Echec) -> i32 {

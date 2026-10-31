@@ -49,12 +49,6 @@ impl Panne {
         self.classe == "ErreurApi" || self.classe == "DepotRefuse"
     }
 
-    /// Une panne du RESEAU (injoignable, coupe, delai depasse : `URLError`, `RemoteDisconnected`, `TimeoutError`...).
-    /// Les commandes la disent en une phrase.
-    pub fn est_reseau(&self) -> bool {
-        matches!(self.classe.as_str(), "URLError" | "TimeoutError" | "RemoteDisconnected" | "IncompleteRead" | "HTTPException")
-    }
-
     /// La panne comme un refus de route : sa classe et sa phrase.
     pub fn en_echec(self) -> Echec {
         Echec { classe: Some(classe_connue(&self.classe)), message: self.message }

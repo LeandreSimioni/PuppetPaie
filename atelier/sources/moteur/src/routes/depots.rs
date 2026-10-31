@@ -22,8 +22,6 @@ use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
 
-
-
 /// Les routes de ce module.
 pub const ROUTES: &[&str] = &["dpae", "depot-apercu", "deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
 
@@ -83,7 +81,6 @@ fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }
 
-
 #[track_caller]
 fn plain(m: String) -> Echec {
     socle::echec::noter_et(None, m)
@@ -93,8 +90,6 @@ fn plain(m: String) -> Echec {
 fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
     crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
 }
-
-
 
 /// Les secondes unix de l'horloge.
 fn maintenant() -> f64 {
@@ -116,11 +111,6 @@ fn mois_en_toutes_lettres(mois: &str) -> R<(String, String)> {
     let annee: i64 = an.parse().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(an))))?;
     Ok((format!("{}{}", nom, annee), format!("{} {}", nom, annee)))
 }
-
-
-
-
-
 
 fn ecrire_texte(chemin: &Path, texte: &str) -> R<()> {
     if let Some(d) = chemin.parent() {
@@ -814,11 +804,6 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
     erreur(classe, socle::fichiers::panne_fichier(e, p))
 }
 
-// ------------------------------------------------------------------ les documents du mois
-
-
-
-
 // ------------------------------------------------------------------ les chemins
 
 /// `str(PurePosixPath(t))` : les `//` et les `.` intermediaires s'en vont, un `/`
@@ -900,9 +885,6 @@ fn empreinte_du_fichier(chemin: &str) -> R<String> {
     let octets = std::fs::read(p).map_err(|e| erreur_io(&e, p))?;
     Ok(envois::journal::empreinte(&octets))
 }
-
-// ------------------------------------------------------------------ bilan-repetition
-
 
 // ------------------------------------------------------------------ depot-apercu, la DPAE
 

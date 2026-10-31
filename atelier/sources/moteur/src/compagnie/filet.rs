@@ -17,7 +17,7 @@
 
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use socle::ecriture::ecrire_json;
@@ -498,7 +498,3 @@ pub fn cle_du_reveil(charge: &Value) -> String {
     }
 }
 
-/// Les cles des `tests` de l'etat (pour les appelants qui en ont besoin).
-pub fn tests_de_l_etat(racine: &Path) -> R<Map<String, Value>> {
-    Ok(lire_etat(racine)?["tests"].as_object().cloned().unwrap_or_default())
-}

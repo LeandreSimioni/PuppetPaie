@@ -21,8 +21,6 @@ use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{vrai, MARQUEUR_COPIE};
 use socle::valeur::{nom_type, valeur_en_texte};
 
-
-
 /// Les routes de ce module.
 pub const ROUTES: &[&str] = &[
     "coffre-etat", "google-etat",
@@ -217,9 +215,6 @@ fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     Ok(json!({ "efface": efface }))
 }
-
-// ------------------------------------------------------------------ la mise a jour
-
 
 // ------------------------------------------------------------------ le compte Google
 
@@ -503,7 +498,6 @@ fn google_etat(ctx: &Contexte) -> R<Value> {
         Some(probleme) => Ok(etat(compte, false, Some(probleme), accordees)),
     }
 }
-
 
 /// `identifiant_du_compte` : le compte que ce mot de passe ouvre, en clair ; ce
 /// qui en manque ; et s'il se saisit sur cette ligne (`ici`).

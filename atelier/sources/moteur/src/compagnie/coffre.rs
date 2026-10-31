@@ -550,12 +550,6 @@ pub fn oublier_mot_de_passe_tape() {
     TAPE.with(|t| *t.borrow_mut() = None);
 }
 
-/// Un mot de passe tape est-il retenu sur ce fil ? (Rien de plus : jamais sa valeur.) Les essais de la fenetre s'en
-/// servent : un mot de passe ne survit pas a sa route.
-pub fn mot_de_passe_retenu() -> bool {
-    TAPE.with(|t| t.borrow().is_some())
-}
-
 /// Le mot de passe tape pour cette commande : celui de la demande, sinon `PUPPETPAIE_MOTDEPASSE`.
 fn mot_de_passe_tape() -> Option<String> {
     TAPE.with(|t| t.borrow().clone()).or_else(|| env_non_vide("PUPPETPAIE_MOTDEPASSE"))

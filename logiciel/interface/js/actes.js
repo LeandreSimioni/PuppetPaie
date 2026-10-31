@@ -740,13 +740,6 @@ async function boiteEnvoi(mois) {
 
 /* --------------------------------------------- les contrats à faire signer */
 
-/** « signé par courriel le … » ou « signé, reçu le … » : le journal sait
- *  d'où vient la mention (contrats_recus_comment), l'écran ne fait que
- *  l'écrire. */
-function signeLe(quandRecu, par) {
-  return (par === "courriel" ? "signé d'un clic le " : "signé, reçu le ") + quand(quandRecu);
-}
-
 /** LE PDF À IMPRIMER s'ouvre : le moteur l'a écrit (`impression`), la fenêtre l'ouvre,
  *  et le message dit ce qui est à imprimer (`quoi`) et où est le PDF (la phrase du moteur). */
 async function ouvrirImpression(mois, fichier, quoi) {

@@ -1094,10 +1094,8 @@ const FACULTATIFS = {
  *  l'interface les choix que peut faire l'entreprise ». */
 const CACHES = {
   entreprise: ["siren", "nic"],
-  // `sante_svp` se remplit par les trois cases de la complementaire sante ;
-  // `taux_pas` n'est plus lu par personne (il vit dans config/pas.json) :
-  // gardes tels quels, jamais demandes.
-  salarie: ["sante_svp", "taux_pas"],
+  // `sante_svp` se remplit par les trois cases de la complementaire sante : gardé tel quel, jamais demandé.
+  salarie: ["sante_svp"],
 };
 
 /* Une structure, case par case. `liste: true` = plusieurs lignes, avec un

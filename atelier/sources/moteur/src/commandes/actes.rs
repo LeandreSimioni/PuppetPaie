@@ -68,14 +68,6 @@ pub fn mois_valide(t: &str) -> bool {
     matches!(t[5..7].parse::<u32>(), Ok(1..=12))
 }
 
-/// `util.fmt_eur` d'un montant que le JSON porte en chaine (`"1234.50"`) : `1 234,50`.
-pub fn fmt_eur_texte(v: &Value) -> String {
-    match socle::num::dec(v) {
-        Ok(d) => documents::bulletin::fmt_eur(d),
-        Err(_) => super::rendu::texte(v),
-    }
-}
-
 /// Une ligne de `etapes` (`A faire ensuite :`) : `  N. TITRE     detail`, puis la commande s'il y en a une.
 pub fn afficher_etapes(etapes: &[Value], titre: &str) {
     dire!("\n{}", titre);

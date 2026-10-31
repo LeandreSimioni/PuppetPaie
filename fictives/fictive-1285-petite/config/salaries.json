@@ -28,7 +28,6 @@
     "statut": "artiste",
     "statut_conventionnel": "05",
     "statut_categoriel_rc": "04",
-    "taux_pas": "",
     "deduction_forfaitaire": "",
     "date_anciennete": "2024-01-08",
     "actif": true
@@ -62,7 +61,6 @@
     "statut": "artiste",
     "statut_conventionnel": "05",
     "statut_categoriel_rc": "04",
-    "taux_pas": "",
     "deduction_forfaitaire": "",
     "date_anciennete": "2024-01-08",
     "actif": true
@@ -96,7 +94,6 @@
     "statut": "technicien",
     "statut_conventionnel": "05",
     "statut_categoriel_rc": "04",
-    "taux_pas": "",
     "deduction_forfaitaire": "",
     "date_anciennete": "2024-01-08",
     "actif": true

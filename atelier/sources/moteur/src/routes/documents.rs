@@ -23,8 +23,6 @@ use socle::echec::{erreur, Echec};
 use socle::fichiers::{nom_du, vrai};
 use socle::valeur::valeur_en_texte;
 
-
-
 pub(crate) type R<T> = Result<T, Echec>;
 
 /// De quoi ouvrir la boite : appele UNE fois par envoi. Les tests passent un faux client du trait `Courriel`, ou la
@@ -72,8 +70,6 @@ pub(super) fn nul() -> &'static Value {
 
 // ------------------------------------------------------------------ signature-apercu
 
-
-
 /// `d["cle"]` sur une fiche : `KeyError` si elle manque.
 pub(super) fn get_requis<'a>(d: &'a Value, k: &str) -> R<&'a Value> {
     d.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
@@ -85,9 +81,6 @@ pub(super) fn get_requis<'a>(d: &'a Value, k: &str) -> R<&'a Value> {
 pub(super) fn jj_mm_aaaa(v: &Value) -> R<String> {
     Ok(socle::date::d(v).map_err(|m| erreur("ValueError", m))?.jj_mm_aaaa())
 }
-
-
-
 
 // ------------------------------------------------------------------ envoi-apercu
 
@@ -676,15 +669,6 @@ pub(super) fn liste_de<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Vec<Val
     }
 }
 
-
-
-
-
-
-
-
-
-
 // ------------------------------------------------------------------ ce que toutes les routes partagent
 
 /// `ErreurOperation` : un refus ordinaire, avec sa phrase.
@@ -929,7 +913,6 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::P
     Ok(choix)
 }
 
-
 /// LA CORRECTION D'UN MOIS DONT L'ANNULE-ET-REMPLACE EST PASSE : le courriel de renvoi ajoute une phrase, la correction
 /// sera declaree avec la paie d'un mois suivant. La DSN du mois ne se refait pas (`se_corrige_ailleurs` : sa DSN est
 /// partie et l'annule-et-remplace n'est plus admis, ou c'est celle de l'ancien logiciel) ; une correction deja portee
@@ -1122,14 +1105,4 @@ fn refus_de_preparation(m: &str) -> Echec {
         Echec::from(m.to_string())
     }
 }
-
-// ------------------------------------------------------------------ dossier-envoyer
-
-
-
-
-
-// ------------------------------------------------------------------ casc-envoyer
-
-
 

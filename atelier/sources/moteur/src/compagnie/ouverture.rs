@@ -78,7 +78,7 @@ pub struct Options {
     pub veille: bool,
     /// Envoyer chez l'editeur ce que le journal des incidents a note, et relever ses reponses, avant de rendre la main ;
     /// un processus `moteur route` ne peut pas attendre un fil. Mettre `false` quand l'appelant le lance lui-meme
-    /// (routes `incidents-envoyer` et `signalements-reponses`, dans son propre fil).
+    /// (route `incidents-envoyer`, dans son propre fil).
     pub incidents_editeur: bool,
     /// La SECONDE moitie de la veille : ne fait que la sauvegarde, et met la trace du premier appel a
     /// jour (sauvegarde, hors ligne, incidents, manque `google`) sans rien effacer de ce qu'il a ecrit. Le premier appel

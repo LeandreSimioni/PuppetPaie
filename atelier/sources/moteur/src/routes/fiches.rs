@@ -36,8 +36,6 @@ use socle::html::{html_echapper, mailto};
 use socle::texte::{capitaliser, strip};
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
-
-
 /// Les routes de ce module.
 pub const ROUTES: &[&str] = &[
     "identite", "permanents", "taxe-sur-les-salaires-regime", "verifier-fiche", "changements-declares", "taux-atmp",
@@ -805,7 +803,6 @@ pub(crate) fn chiffre_lu(c: char) -> Option<u32> {
     }
     DEBUTS.iter().find(|d| u >= **d && u < **d + 10).map(|d| u - d)
 }
-
 
 /// L'onglet
 /// Metiers, tout le catalogue, chaque metier coche ou non.
@@ -1784,13 +1781,6 @@ fn finir_fiche(
     ecrire(chemin, Value::Object(contenu))?;
     Ok(FicheEcrite { cle, donnees, anomalies, derives })
 }
-
-// ----------------------------------------------------------------------- ajuster
-
-
-
-
-
 
 // ------------------------------------------------------------------ la fiche demandee par courriel
 

@@ -28,8 +28,6 @@ use socle::fichiers::{nom_du, repr, vrai};
 use socle::html::courriel_en_html;
 use socle::valeur::{nom_type, valeur_en_texte, valeurs_egales};
 
-
-
 /// Les routes de ce module.
 pub const ROUTES: &[&str] = &[
     "exercices", "dossier-formes", "exports-periodes", "regularisations", "couts",
@@ -185,12 +183,6 @@ fn regularisations(ctx: &Contexte) -> R<Value> {
 fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
     charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
-
-// -------------------------------------------------------------- arret-contrats
-
-
-
-
 
 // -------------------------------------------------------------- dossier-formes
 

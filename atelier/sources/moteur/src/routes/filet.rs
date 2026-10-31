@@ -4,7 +4,7 @@
 //! - `diagnostic-etat`, `diagnostic-envoyer`, `diagnostic-regler` : ce qui est parti chez l'editeur, et l'envoi de ce
 //!   qui attend ;
 //! - `signalements`, `signalement-apercu`, `signalement-envoyer` (enregistre, ne part pas), `signalements-partir` (le
-//!   depart, en fond), `signalements-lus`, `signalements-reponses` : « Un probleme, une idee ? » ;
+//!   depart, en fond), `signalements-lus` : « Un probleme, une idee ? » ;
 //! - `filet-etat`, `filet-verifier`, `filet-activer`, `filet-desactiver`, `filet-suivies` : le filet DPAE (activer et
 //!   desactiver exigent le mot de passe du logiciel s'il est pose : le moteur le verifie, jamais la page) ;
 //! - `incidents-lire`, `incidents-regrouper`, `incidents-oublier`, `incidents-envoyer` : les incidents gardes, pour la
@@ -40,7 +40,6 @@ pub const ROUTES: &[&str] = &[
     "signalement-envoyer",
     "signalements-lus",
     "signalements-partir",
-    "signalements-reponses",
     "filet-verifier",
     "filet-activer",
     "filet-desactiver",
@@ -166,7 +165,6 @@ fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: 
         "signalement-envoyer" => problemes::envoyer(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
         "signalements-lus" => Ok(json!({"lues": problemes::signalements_lus(racine)?})),
         "signalements-partir" => Ok(problemes::partir(racine)),
-        "signalements-reponses" => Ok(json!({"nouvelles": problemes::relever_reponses(racine)?})),
         "filet-verifier" => filet::verifier(racine),
         "filet-activer" => filet::activer(racine, &ou_vide(charge, "adresse"), &champ(charge, "motdepasse")),
         "filet-desactiver" => filet::desactiver(racine, &champ(charge, "motdepasse")),

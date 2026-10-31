@@ -70,7 +70,7 @@ pub const QUI_HORLOGE: &str = "horloge";
 /// La memoire de l'horloge, dans `config/`.
 pub const FICHIER_HORLOGE: &str = "horloge.json";
 /// Les routes de ce module.
-pub const ROUTES: [&str; 2] = ["horloge-rattraper", "horloge-derniere"];
+pub const ROUTES: [&str; 1] = ["horloge-rattraper"];
 
 const ORIGINE: &str = "compagnie fictive : joue par l'horloge";
 const QUOI: &str = "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).";
@@ -998,8 +998,7 @@ fn etat_de_la_dsn(ctx: &Contexte, mois: &str) -> R<EtatDsn> {
 
 // ------------------------------------------------------------------ les routes
 
-/// Une route de l'horloge : `horloge-rattraper` (`{"aujourdhui"?, "retenir"?}` -> les phrases jouees) et
-/// `horloge-derniere` (`{"aujourdhui"?}` -> ce que le bandeau lit).
+/// La route de l'horloge : `horloge-rattraper` (`{"aujourdhui"?, "retenir"?}` -> les phrases jouees).
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let jour = match charge.get("aujourdhui").filter(|v| vrai(v)) {
         Some(v) => Some(Jour::lire(&valeur_en_texte(v)).map_err(Echec::from)?),
@@ -1010,7 +1009,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let retenir = charge.get("retenir").map_or(true, vrai);
             Ok(json!(rattraper(&ctx.racine, jour, retenir)?))
         }
-        "horloge-derniere" => Ok(json!(dernier_rattrapage(&ctx.racine, jour)?)),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

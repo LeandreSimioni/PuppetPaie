@@ -229,12 +229,6 @@ impl Client {
         self
     }
 
-    /// Pour la preuve : un delai d'appel plus court que les 120 s (une panne de delai se prouve vite).
-    pub fn avec_delai(mut self, secondes: u64) -> Client {
-        self.delai = secondes;
-        self
-    }
-
     /// Pour la preuve : une attente avant la premiere nouvelle tentative plus courte que la seconde de Google.
     pub fn avec_attente(mut self, millisecondes: u64) -> Client {
         self.attente_ms = millisecondes;

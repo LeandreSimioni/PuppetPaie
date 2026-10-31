@@ -783,7 +783,6 @@ impl<'a> Moteur<'a> {
                 "dossier": ou(get(dpae_v, "dossier")?, texte_vide()),
                 "deja_existante": vrai(get(dpae_v, "deja_existante")?),
                 "fin_declaree": if nat.date_fin_dpae() { get(dpae_v, "fin")?.clone() } else { Value::Null },
-                "maille": "paie",
             });
             let k = (cle.clone(), numero.clone());
             let nul = Value::Null;
@@ -1609,10 +1608,6 @@ impl<'a> Moteur<'a> {
     }
 }
 
-
-/// LES DOCUMENTS PARTIS DU MOIS, par salarie : ce que l'engagement sait de ce qui est parti (`journal::departs`, une
-/// seule source) -- `quand` le dernier envoi des documents du mois l'a atteint --, et ce que ses documents disaient
-/// (`resume`, lu dans la ligne de cet envoi). `etats` : les engagements que le mois montre.
 /// « le 05/11/2026 » d'un instant du journal.
 fn le_jour(v: &Value) -> String {
     let t = valeur_en_texte(v);
@@ -1843,7 +1838,7 @@ pub(crate) const DOCUMENTS_CADUCS: &str = "la paie a changé depuis l'envoi";
 pub(crate) fn etat_documents(parti_le: Option<String>, caduc: bool) -> Value {
     let fait = parti_le.map_or(Value::Null, Value::String);
     let caduc = vrai(&fait) && caduc;
-    json!({"fait": fait, "maille": "engagement", "caduc": caduc, "pourquoi": if caduc { DOCUMENTS_CADUCS } else { "" }})
+    json!({"fait": fait, "caduc": caduc, "pourquoi": if caduc { DOCUMENTS_CADUCS } else { "" }})
 }
 
 /// `DSN_[^\W\d_]+\d{4}(_AR\d+)?\.dsn` : le nom d'une DSN mensuelle.
@@ -1884,7 +1879,6 @@ pub fn etat_signature(
     let attendu = vrai(&dernier) && !vrai(dernier.get("signe").unwrap_or(&nul));
     json!({"fait": fait, "par": if vrai(fait) { par } else { &nul }, "recu": recu, "recu_par": recu_par,
            "caduc": caduc, "pourquoi": if caduc { CONTRAT_A_REFAIRE } else { "" },
-           "maille": "paie",
            "avenant": dernier,
            "avenant_attendu": attendu})
 }

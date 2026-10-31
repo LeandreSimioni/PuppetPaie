@@ -221,9 +221,6 @@ pub fn jour_de_rangement(imp: &Value) -> Resultat<Jour> {
     }
 }
 
-pub fn mois_de_rangement(imp: &Value) -> Resultat<String> {
-    Ok(jour_de_rangement(imp)?.mois_iso())
-}
 
 // ------------------------------------------------------------------ les jours
 

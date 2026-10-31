@@ -51,7 +51,6 @@ fn verrou<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|p| p.into_inner())
 }
 
-
 fn demarrage() -> &'static Instant {
     static D: OnceLock<Instant> = OnceLock::new();
     D.get_or_init(Instant::now)
@@ -651,12 +650,6 @@ pub fn fil(maintenant: u64) -> Vec<String> {
             l
         })
         .collect()
-}
-
-/// Vide le fil (les essais).
-pub fn oublier_le_fil() {
-    verrou(le_fil()).clear();
-    verrou(les_ecritures()).clear();
 }
 
 /// Une route servie par la fenetre : `source` « page » (la page l'a demandee) ou « fond » (la veille, le filet, l'etat des

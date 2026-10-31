@@ -1251,12 +1251,6 @@ d'affiliation par contrat). Rien n'est ecrit.",
     Ok(Some(Value::Object(out)))
 }
 
-/// La DSN de `mois` porte-t-elle la CASC-SVP ? La regle qui l'y met (`casc_svp`) le dit.
-pub fn porte_la_casc(ctx: &Contexte, mois: &str) -> Resultat<bool> {
-    let ctx = ctx.du_mois(mois)?;
-    let orgs = ctx.organismes()?;
-    Ok(matches!(casc_svp(&ctx, &ctx.entreprise, &orgs, mois), Ok(Some(_))))
-}
 
 /// `contributions_dsn` : les contributions declarees sous une adhesion Audiens.
 fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar: &Value) -> Resultat<Vec<Value>> {
