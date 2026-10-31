@@ -1,8 +1,8 @@
 //! OU VIVENT LES ENGAGEMENTS : `engagements/AAAA-MM.json`, le fichier du mois ou chaque engagement commence. Un
 //! engagement est UN objet, qu'il dure un jour ou six mois ; il n'est ecrit que la.
 //!
-//! Le fichier d'un mois : `{"mois", <ce que le mois dit par defaut>, "engagements": [...]}`. Les defauts du mois
-//! (`taux_cachet`, `date_paiement`, `spectacle`, `lieu`) valent pour tous les engagements que le mois montre.
+//! Le fichier d'un mois : `{"mois", "taux_cachet", "date_paiement", "engagements": [...]}` : le cachet par defaut
+//! et la date de paiement du mois, que le calcul lit pour chaque engagement du mois ; le mois ne porte rien d'autre.
 //!
 //! Un engagement porte la saisie de son premier mois, telle que l'ecran l'ecrit (salarie, spectacle, dates, lignes,
 //! nature, metier...), et, s'il deborde, `mois_suivants` : pour chaque mois d'apres que la saisie a touche, ce qu'il y
