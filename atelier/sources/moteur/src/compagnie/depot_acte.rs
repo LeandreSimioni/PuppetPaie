@@ -43,11 +43,14 @@ pub(crate) fn avec_donnee(classe: &'static str, message: impl Into<String>, cle:
 pub struct Preuve {
     pub motdepasse: Option<String>,
     pub mois_recopie: Option<String>,
+    /// La preuve deja donnee pour ce geste (sa forme), quand un acte en emporte d'autres : la demande de taux de PAS part
+    /// avec la DPAE sous la meme preuve, sans redemander. Jamais lue d'une charge.
+    pub(crate) donnee: Option<String>,
 }
 
 impl Preuve {
     pub fn de_la_charge(charge: &Value) -> Preuve {
-        Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte), mois_recopie: None }
+        Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte), mois_recopie: None, donnee: None }
     }
 }
 
@@ -88,6 +91,9 @@ pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
 pub(crate) fn verifier_preuve(ctx: &Contexte, preuve: Option<&Preuve>, mois_attendu: &str, quoi: &str, a_qui: &str) -> R<String> {
     // Le binaire de l'ATELIER refuse tout acte reel, avant toute autre question (`atelier::redirection`). Un depot reel, un envoi,
     // une signature passent tous par ici.
+    if let Some(forme) = preuve.and_then(|p| p.donnee.clone()) {
+        return Ok(forme);
+    }
     #[cfg(feature = "atelier")]
     return refus_atelier(ctx, preuve, mois_attendu, quoi, a_qui);
     #[cfg(not(feature = "atelier"))]
@@ -664,7 +670,9 @@ pub fn deposer_dpae_avec(
     crate::compagnie::suites::faire(ctx, suites)?;
     let mut fait = fait?;
     if let Some(dossier) = chemin.parent() {
-        fait.demandes_de_taux = deposer_les_amorcages(ctx, dossier, &embauches, reel, preuve, qui, contournement);
+        // UN ACTE, UNE PREUVE : la demande de taux part sous celle de la DPAE.
+        let meme = reel.then(|| Preuve { donnee: Some(forme.clone()), ..preuve.cloned().unwrap_or_default() });
+        fait.demandes_de_taux = deposer_les_amorcages(ctx, dossier, &embauches, reel, meme.as_ref().or(preuve), qui, contournement);
     }
     Ok(fait)
 }
