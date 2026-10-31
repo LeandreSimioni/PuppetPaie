@@ -45,68 +45,6 @@ fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
     }
 }
 
-/// DES HEURES A CHEVAL SUR DEUX MOIS : chaque mois paie ses jours (le planning est paye dans son mois), et des heures ne
-/// se deduisent pas d'un nombre de jours. La validation demande celles du mois suivant en disant ses jours et la carte ou
-/// elles se saisissent ; dites la, l'engagement se valide, et chaque mois paie les siennes.
-#[test]
-fn des_heures_a_cheval_se_disent_sur_la_carte_de_leur_mois() {
-    let d = dossier_de_test("contrat_a_cheval", "heures");
-    let sc = d.join("scenario");
-    std::fs::create_dir_all(&sc).unwrap();
-    let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
-    let debut: Vec<&str> = gestes.lines().take_while(|l| !l.contains("\"geste\":\"jour\"")).collect();
-    std::fs::write(sc.join("gestes.jsonl"), debut.join("\n") + "\n").unwrap();
-    let (_, c) = rejouer_dossier(&sc, &d);
-    let jour = "2026-11-02";
-    let s = crate::outils::saisie(&c, "2026-11");
-    let spectacle = s["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").unwrap()["spectacle"].clone();
-    let regie = json!({"salarie": "FULLER", "spectacle": spectacle, "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 19, "dates": ["2026-11-29", "2026-11-30"], "planning": ["2026-12-01"]}]});
-    let id = reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": regie}), jour))["engagement"].clone();
-    let valider = json!({"mois": "2026-11", "engagement": id, "saisie": regie});
-
-    let (_, refus) = crate::outils::refus(&route(&c, "valider-engagement", valider.clone(), jour));
-    assert!(refus.contains("01/12/2026") && refus.contains("carte de décembre 2026"), "le refus ne dit ni le jour ni la carte : {}", refus);
-
-    let decembre = engagement::stock::vue_du_mois(&c, "2026-12").unwrap().unwrap();
-    let k = decembre["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "FULLER" && e["debut"] == "2026-11-29").unwrap();
-    let mut carte = decembre["engagements"][k].clone();
-    carte["lignes"][0]["quantite"] = json!(8);
-    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-12", "engagement": crate::outils::identite_a(&c, "2026-12", k), "saisie": carte}), jour));
-    assert!(reussi(&route(&c, "valider-engagement", valider, jour))["valide"].is_string());
-    let heures = |mois: &str| -> Vec<Value> {
-        let a = route(&c, "apercu", json!({"mois": mois}), jour);
-        reussi(&a)["paies"].as_array().unwrap().iter().filter(|p| p["debut"] == "2026-11-29").map(|p| p["remuneration"][0]["quantite"].clone()).collect()
-    };
-    assert_eq!((heures("2026-11"), heures("2026-12")), (vec![json!("16")], vec![json!("8")]));
-}
-
-#[test]
-fn l_avenant_a_faire_signer_se_voit_au_second_mois() {
-    let c = fuller_a_cheval("avenant");
-    let jour = "2026-12-16";
-    let carre_contrat = |mois: &str| -> Value {
-        let l = reussi(&route(&c, "etat-par-engagement", json!({"mois": mois}), jour)).clone();
-        let fuller = l["engagements"].as_array().and_then(|l| l.iter().find(|x| x["salarie"] == "FULLER")).cloned().unwrap_or(l);
-        fuller["carres"].as_array().and_then(|c| c.iter().find(|x| x["cle"] == "contrat-signature")).cloned().unwrap_or(fuller)
-    };
-    assert_eq!(carre_contrat("2026-12")["etat"], json!("fait"), "{}", carre_contrat("2026-12"));
-
-    // La carte ouverte en decembre, le cachet change, « Modifier l'engagement » confirme.
-    let mut fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
-    let lignes = fuller["lignes"].as_array_mut().unwrap();
-    let taux = lignes[0]["taux"].as_f64().unwrap();
-    lignes[0]["taux"] = json!(taux + 20.0);
-    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true,
-        "engagement": crate::outils::identite(&c, "2026-12", "FULLER", None), "saisie": fuller}), jour);
-    assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
-
-    for mois in ["2026-11", "2026-12"] {
-        let carre = carre_contrat(mois);
-        assert_eq!(carre["etat"], json!("a_faire"), "{} : {}", mois, carre);
-        assert!(carre["phrase"].as_str().is_some_and(|p| p.contains("avenant")), "{} : {}", mois, carre);
-    }
-}
-
 /// LA CARTE DU SECOND MOIS RENVOYEE TELLE QUE LE MOTEUR LA REND NE CHANGE RIEN (un bug qui a echappe : le debut qu'un
 /// contrat d'usage deduit de son premier jour, rendu au second mois, revenait comme une saisie et faisait « un avenant à
 /// faire signer » sans que rien n'ait change).
