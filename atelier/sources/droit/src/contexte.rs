@@ -21,7 +21,7 @@ fn vrai_opt(v: Option<&Value>) -> bool {
     v.map_or(false, vrai)
 }
 
-/// `str(x or "")`.
+/// Une valeur en texte, vide si elle manque ou est vide.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
         Some(x) if vrai(x) => en_texte(x),
@@ -34,12 +34,12 @@ fn exiger<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
     v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
-/// `str(x["cle"])`.
+/// La valeur de `cle` en texte ; refus si elle manque.
 fn exiger_texte(v: &Value, cle: &str) -> Resultat<String> {
     Ok(en_texte(exiger(v, cle)?))
 }
 
-/// `int(x)` : le texte, le flottant tronque, le booleen.
+/// L'entier d'une valeur : le texte, le flottant tronque, le booleen.
 fn entier(v: &Value) -> Resultat<i64> {
     match v {
         Value::Number(n) => n
@@ -615,7 +615,7 @@ confirmee, le moteur ne paie donc pas.\n  {}",
     })
 }
 
-/// `str(x.get(cle, defaut))` : le defaut ne sert que si la cle manque (un `None` s'ecrit `None`).
+/// Une valeur en texte : le defaut ne sert que si la cle manque (`null` s'ecrit `None`).
 fn texte_ou_vide_defaut(v: Option<&Value>, defaut: &str) -> String {
     v.map_or_else(|| defaut.to_string(), en_texte)
 }
@@ -1924,7 +1924,7 @@ France Travail.",
     }
 }
 
-/// `re.fullmatch(r"[12]\d{4}(\d{2}|2A|2B)\d{6}(\d{2})?", brut)`.
+/// Un NIR : 1 ou 2, quatre chiffres, le département (deux chiffres, 2A ou 2B), six chiffres, et la clé facultative.
 fn forme_de_nir(s: &str) -> bool {
     let c: Vec<char> = s.chars().collect();
     if !(c.len() == 13 || c.len() == 15) || !matches!(c[0], '1' | '2') {

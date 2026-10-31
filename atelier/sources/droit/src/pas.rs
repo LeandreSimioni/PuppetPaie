@@ -55,7 +55,7 @@ pub type Triplet = (Value, Value, Value);
 /// BOI-IR-PAS-30-10-20-20181203.html`).
 pub const VALIDITE_MOIS: u32 = 2;
 
-/// `str(e.get(cle) or "").strip()`.
+/// La valeur de `cle` en texte, sans blancs autour, vide si elle manque ou est vide.
 fn texte_ou_vide(e: &Value, cle: &str) -> String {
     match e.get(cle) {
         Some(v) if vrai(v) => en_texte(v).trim().to_string(),
@@ -251,7 +251,7 @@ fn str_iso(v: &Value) -> Resultat<Jour> {
     depuis_iso(&en_texte(v))
 }
 
-/// `str(le)` d'un `Optional[date]`.
+/// Une date en AAAA-MM-JJ, `None` s'il n'y en a pas.
 fn le_texte(le: Option<Jour>) -> String {
     le.map_or("None".to_string(), |j| j.iso())
 }

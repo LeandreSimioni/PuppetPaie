@@ -140,7 +140,7 @@ pub fn ascii_nfkd(v: &str) -> String {
     }
     ascii
 }
-/// `str.capitalize()`.
+/// La première lettre en capitale, le reste en minuscules.
 pub fn capitaliser(t: &str) -> String {
     let mut c = t.chars();
     match c.next() {

@@ -39,7 +39,7 @@ fn exiger<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
     v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
-/// Les elements de `x or []`.
+/// Les éléments d'une liste ; aucun si ce n'en est pas une.
 fn liste(v: &Value) -> &[Value] {
     v.as_array().map(Vec::as_slice).unwrap_or(&[])
 }
@@ -62,7 +62,7 @@ fn en_map(v: Value) -> Map<String, Value> {
     }
 }
 
-/// `str(v or "")`.
+/// Une valeur en texte, vide si elle manque ou est vide.
 fn txt(v: &Value) -> String {
     if vrai(v) {
         en_texte(v)
@@ -75,12 +75,12 @@ fn texte(s: &str) -> Value {
     Value::String(s.to_string())
 }
 
-/// `float(x)` en valeur JSON.
+/// Le flottant d'une valeur JSON.
 fn nf(x: f64) -> Value {
     Number::from_f64(x).map(Value::Number).unwrap_or(Value::Null)
 }
 
-/// `float(Decimal)`.
+/// Le décimal en flottant.
 fn flt(x: Decimal) -> f64 {
     x.to_string().parse().unwrap_or(f64::NAN)
 }
@@ -109,7 +109,7 @@ fn annee(bar: &Value) -> String {
     bar.get("annee").map(en_texte).unwrap_or_else(|| "?".to_string())
 }
 
-/// `int(x or 0)`.
+/// L'entier d'une valeur, 0 si elle manque ou est vide.
 fn entier(v: &Value) -> i64 {
     if !vrai(v) {
         return 0;
@@ -136,7 +136,7 @@ fn mettre_a_jour(cible: &mut Map<String, Value>, source: &Value) {
     }
 }
 
-/// `str(fin_periode or "")[:10]`.
+/// La date de fin de période (ses dix premiers caractères), vide si elle manque.
 fn jour_texte(fin: Option<&Jour>) -> String {
     fin.map(Jour::iso).unwrap_or_default()
 }

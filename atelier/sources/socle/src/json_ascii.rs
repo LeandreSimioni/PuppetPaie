@@ -6,7 +6,7 @@
 use serde_json::Value;
 
 
-/// `repr(float)` : le plus court qui se relit, notation scientifique hors de
+/// Un flottant en texte : le plus court qui se relit, notation scientifique hors de
 /// 1e-4 .. 1e16.
 pub fn repr_flottant(f: f64) -> String {
     if f.is_nan() {

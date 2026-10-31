@@ -55,7 +55,7 @@ fn tab(v: &Value) -> Resultat<&Vec<Value>> {
     v.as_array().ok_or_else(|| format!("liste attendue, lu {}", v))
 }
 
-/// `int(x)`.
+/// L'entier d'une valeur ; refus sinon.
 fn entier(v: &Value) -> Resultat<i64> {
     match v {
         Value::Number(n) => n
@@ -119,7 +119,7 @@ fn texte(v: &Value) -> String {
     en_texte(v)
 }
 
-/// `str(x or "").strip()` d'un IDCC ou d'une annexe.
+/// Un IDCC ou une annexe en texte, sans blancs autour, vide s'il manque.
 fn lu(v: &Value) -> String {
     if vrai(v) {
         texte(v).trim().to_string()
@@ -277,7 +277,7 @@ pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Result
         "source": format!("ni la fiche, ni le métier ({}) ne disent la catégorie", code_dit)}))
 }
 
-/// `str(x or "")`, sans `strip`.
+/// Une valeur en texte, vide si elle manque ou est vide, blancs gardés.
 fn lu_brut(v: &Value) -> String {
     if vrai(v) {
         texte(v)
