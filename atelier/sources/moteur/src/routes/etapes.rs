@@ -532,11 +532,12 @@ pub(crate) struct SaisieMois {
     pub(crate) paies: Vec<Paie>,
 }
 
-impl SaisieMois {
-    /// `(cle du salarie, premier jour)` de chaque paie, dans l'ordre du fichier.
-    pub(crate) fn rangs(&self) -> R<Vec<Paire>> {
-        self.paies.iter().map(|p| Ok((texte_de(requis(&p.salarie, "_cle")?), p.engagement.debut.iso()))).collect()
-    }
+/// LA PAIE DE L'ENGAGEMENT QUE DESIGNE `id` (`engagement::stock::identites`) parmi `paies` : son salarie, son premier jour,
+/// et son rang parmi celles-la.
+fn paie_de<'p>(paies: &'p [Paie], id: &Value) -> Option<&'p Paie> {
+    let (salarie, debut) = (id.get("salarie")?.as_str()?, id.get("debut")?.as_str()?);
+    let rang = usize::try_from(id.get("rang")?.as_u64()?).ok()?;
+    paies.iter().filter(|p| p.engagement.salarie == salarie && p.engagement.debut.iso() == debut).nth(rang)
 }
 
 fn texte_de(v: &Value) -> String {
@@ -631,23 +632,6 @@ impl<'a> Moteur<'a> {
         Ok(g)
     }
 
-    /// Le `brut` de chaque engagement du mois, dans l'ordre de l'ecran : celui de sa paie ecrite s'il est valide, celui
-    /// du calcul de la saisie sinon (un calcul seulement si un engagement est en saisie).
-    fn brut_du_mois(&mut self, mois: &str, s: &SaisieMois) -> R<Vec<String>> {
-        let etats = self.etats_du_mois(mois)?;
-        let ecrits: Vec<Option<Value>> = etats
-            .iter()
-            .map(|e| e.valide().and_then(|v| v.paie_ecrite(mois)).and_then(|p| p.pointer("/paie/brut")).cloned())
-            .collect();
-        let calcules = if ecrits.iter().any(Option::is_none) {
-            let c = engagement::pour_l_ecran(self.ctx, &s.data).map_err(classer_saisie)?;
-            c.paies.iter().map(|p| Some(Value::String(p.brut.to_string()))).collect()
-        } else {
-            vec![None; ecrits.len()]
-        };
-        ecrits.into_iter().zip(calcules.into_iter().chain(std::iter::repeat(None))).map(|(e, c)| brut_en_texte(&e.or(c).unwrap_or(Value::Null))).collect()
-    }
-
     // ------------------------------------------------------------ etat_par_engagement
 
     /// `etat_par_engagement` : ou en est CHAQUE engagement du mois. `avec_brut` : le
@@ -659,18 +643,26 @@ impl<'a> Moteur<'a> {
             return Ok(Vec::new());
         }
         let s = self.charger_saisie(mois)?;
-        let bruts = if avec_brut { Some(self.brut_du_mois(mois, &s)?) } else { None };
-        let rangs = s.rangs()?;
-        // Valide, ou parti : la date de la validation (`engagement::etats`), engagement par engagement.
+        // Valide, ou parti : la date de la validation (`engagement::etats`), engagement par engagement ; chacun retrouve son
+        // embauche par son identite (`engagement::stock::identites`).
         let etats_eng = self.etats_du_mois(mois)?;
+        let ids = engagement::stock::identites(&etats_eng.iter().map(|e| e.objet().clone()).collect::<Vec<_>>());
+        let brut_ecrit = |e: &engagement::etats::Etat| e.valide().and_then(|v| v.paie_ecrite(mois)).and_then(|p| p.pointer("/paie/brut")).cloned();
+        let calcul = if avec_brut && etats_eng.iter().any(|e| brut_ecrit(e).is_none()) {
+            Some(engagement::pour_l_ecran(self.ctx, &s.data).map_err(classer_saisie)?)
+        } else {
+            None
+        };
         let g = self.globales()?;
-        // CE QUI EST A REFAIRE, engagement par engagement : le present compare a la version sur laquelle chaque envoi est parti.
         let departs = self.departs()?;
-        let refaire = a_refaire_du_mois(self.ctx, &etats_eng, &departs)?;
 
         let mut out = Vec::new();
-        for (i, p) in s.paies.iter().enumerate() {
-            let (cle, debut) = rangs[i].clone();
+        for (e, id) in etats_eng.iter().zip(&ids) {
+            let Some(p) = paie_de(&s.paies, id) else { continue };
+            let cle = texte_de(requis(&p.salarie, "_cle")?);
+            let debut = p.engagement.debut.iso();
+            // CE QUI EST A REFAIRE : le present compare a la version sur laquelle chaque envoi est parti.
+            let refaire = a_refaire_du_mois(self.ctx, std::slice::from_ref(e), &departs)?.pop().unwrap_or_default();
             let sal = &p.salarie;
             let nat = p.engagement.nat().map_err(plain)?;
             let nom_famille = texte_de(requis(sal, "nom")?);
@@ -685,7 +677,7 @@ impl<'a> Moteur<'a> {
             }
             let premier_mois = p.engagement.premier_mois().map_err(plain)?;
             let dernier_mois = p.engagement.dernier_mois().map_err(plain)?;
-            let valide = etats_eng.get(i).and_then(|e| e.valide()).map_or(Value::Null, |v| Value::String(v.le().to_string()));
+            let valide = e.valide().map_or(Value::Null, |v| Value::String(v.le().to_string()));
             // Un CDI n'a pas de fin : `null`, comme `Engagement::canon`.
             let fin = p.engagement.fin.map_or(Value::Null, |f| Value::String(f.iso()));
             let mut ligne = Map::new();
@@ -699,7 +691,7 @@ impl<'a> Moteur<'a> {
             ligne.insert("emploi".into(), sal.get("emploi").cloned().unwrap_or(Value::Null));
             ligne.insert("statut".into(), sal.get("statut").cloned().unwrap_or(Value::Null));
             // Son etablissement (NIC) : la DSN qui le porte.
-            let nic = etats_eng.get(i).and_then(|e| nic_de_l_engagement(self.ctx, mois, e));
+            let nic = nic_de_l_engagement(self.ctx, mois, e);
             ligne.insert("etablissement".into(), nic.map_or(Value::Null, Value::String));
             // LES ECHEANCES de l'engagement : sa DPAE (L. 1221-10) et la remise de son contrat (L. 1242-13, ou la couche
             // de la convention), `droit::echeances`. Les documents n'en ont pas : chaque compagnie les envoie quand elle
@@ -710,10 +702,11 @@ impl<'a> Moteur<'a> {
                 let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &idcc, &code_emploi, Some(&self.ctx.entreprise)).map_err(plain)?;
                 ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json()}));
             }
-            if let Some(b) = &bruts {
-                // Une paie par engagement de la saisie : qu'il en manque une est un defaut du logiciel, jamais la saisie de
-                // l'utilisateur, et la phrase le lui dit.
-                let brut = b.get(i).cloned().ok_or_else(|| Echec {
+            if avec_brut {
+                // Le brut de sa paie ecrite s'il est valide, celui du calcul de la saisie sinon. Qu'il manque est un defaut du
+                // logiciel, jamais la saisie de l'utilisateur, et la phrase le lui dit.
+                let calcule = calcul.as_ref().and_then(|c| paie_de(&c.paies, id)).map(|x| Value::String(x.brut.to_string()));
+                let brut = brut_ecrit(e).or(calcule).ok_or_else(|| Echec {
                     classe: Some("DefautDuLogiciel"),
                     message: format!(
                         "Le montant de la paie de {} {} ne se lit pas : le calcul de {} ne correspond pas à la saisie \
@@ -722,11 +715,11 @@ impl<'a> Moteur<'a> {
                         nom_famille, prenom, mois
                     ),
                 })?;
-                ligne.insert("brut".into(), Value::String(brut));
+                ligne.insert("brut".into(), Value::String(brut_en_texte(&brut)?));
             }
             ligne.insert("valide".into(), valide);
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
-            let recalcul = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| v.recalcul(mois)).and_then(engagement::etats::phrase_du_recalcul);
+            let recalcul = e.valide().and_then(|v| v.recalcul(mois)).and_then(engagement::etats::phrase_du_recalcul);
             ligne.insert("recalcul".into(), recalcul.map_or(Value::Null, Value::String));
             // REPRIS D'UN ANCIEN LOGICIEL : la carte le dit (`engagement::importe::vient_d_un_ancien_logiciel`).
             let repris = engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref().unwrap_or(""));
@@ -759,7 +752,7 @@ impl<'a> Moteur<'a> {
             // UNE DATE D'EMBAUCHE CHANGEE depuis la version sur laquelle la DPAE est partie (`ARefaire::Dpae`) : la DPAE de
             // l'ancienne date vaut-elle (`crate::regularisation::dpae_d_une_date_changee`) ?
             let mut date_changee = Value::Null;
-            if let Some(avant) = refaire.get(i).and_then(|r| debut_declare(r)) {
+            if let Some(avant) = debut_declare(&refaire) {
                 let (vaut, phrase) = crate::regularisation::dpae_d_une_date_changee(&avant, &debut);
                 if !vaut {
                     dpae_v = objet_vide();
@@ -785,7 +778,7 @@ impl<'a> Moteur<'a> {
             });
             let k = (cle.clone(), numero.clone());
             let nul = Value::Null;
-            let avenant = refaire.get(i).is_some_and(|r| r.iter().any(|a| matches!(a, ARefaire::Avenant { .. })));
+            let avenant = refaire.iter().any(|a| matches!(a, ARefaire::Avenant { .. }));
             let mut signature = etat_signature(
                 &contrat_parti_le(&departs, &cle, p.engagement.numero.as_deref()),
                 g.par.get(&k).unwrap_or(&nul),
@@ -809,14 +802,14 @@ impl<'a> Moteur<'a> {
             let documents_le = p.engagement.numero.as_deref().and_then(|n| {
                 departs.de(&cle, n).iter().filter(|d| d.envoi == engagement::departs::Envoi::Documents && d.mois.as_deref() == Some(mois) && d.par.is_none()).map(|d| d.le.clone()).max()
             });
-            let bulletin = refaire.get(i).is_some_and(|r| r.iter().any(|a| matches!(a, ARefaire::Bulletin { mois: m, .. } if m == mois)));
+            let bulletin = refaire.iter().any(|a| matches!(a, ARefaire::Bulletin { mois: m, .. } if m == mois));
             let documents = etat_documents(documents_le, bulletin);
             ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents}));
             let vue = Value::Object(ligne.clone());
             ligne.insert("carres".into(), carres(&vue));
             ligne.insert("dpae_choix".into(), choix_dpae(&vue));
             // LA FRISE : un engagement modifie apres un envoi dit quand, et ce qui a change de version en version.
-            let frise = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| engagement::versions::frise(self.ctx, v, &departs, mois));
+            let frise = e.valide().and_then(|v| engagement::versions::frise(self.ctx, v, &departs, mois));
             ligne.insert("versions".into(), frise.unwrap_or(Value::Null));
             out.push(Value::Object(ligne));
         }
