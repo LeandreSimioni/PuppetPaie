@@ -57,6 +57,12 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
 - **Le nombre de tests ne monte pas.** Une fonctionnalité n'apporte pas de tests d'office. Ne s'écrivent que : un test par
   règle tirée d'un texte déposé, un test par bug réel qui a échappé, quelques parcours de bout en bout sur les fictives.
   Un test de l'ancien parcours meurt avec lui.
+  Ce n'est pas un interdit, c'est un coût (Léandre, 31/10/2026 : « je ne veux pas que la graisse empêche de réparer les
+  os ») : un test qui fige un détail (une phrase, une forme, un ordre, un montant d'un cas particulier) se met en travers
+  du changement qu'on veut faire et fait tourner pour rien. **Les tests de structure sont les bienvenus**, ceux qui
+  gardent les os quoi qu'on change dessus : une crate ne prend qu'à celles du dessous ; l'engagement ne lit pas le
+  journal ; une seule fonction écrit un engagement ; chaque route a sa fiche et son exemple est accepté ; aucun texte de
+  la page n'est coupé ; rien ne sort de la machine.
 
 ## Les os, les muscles, la graisse (Léandre, 30-31/10/2026)
 
