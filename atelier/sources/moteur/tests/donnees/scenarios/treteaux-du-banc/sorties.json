@@ -523,7 +523,7 @@
         {
           "taux": "8.30",
           "type": "01",
-          "identifiant": "320888446",
+          "identifiant": "314021955",
           "periode": "202611",
           "mis_a_disposition": "20261120070000",
           "source": "CRM DGFiP nature 94",
@@ -1144,7 +1144,7 @@
                     "fichier code:minima-conventionnels.json": "2ef600adf478c5c235821d4847555f8b469acfbd29fae8cb863d38369535e882",
                     "fichier code:rubriques-base.json": "faf0d6faff799cec7df68fc000cd3c6b0da3fa882b4cac44d6665349f80df31b",
                     "fichier racine:config/baremes/2026.json": "18a1fd29e339afc1246fcefd6720bad48221693ac22780a790259021e260d045",
-                    "fichier racine:config/pas.json": "987e18b7273bfa5f4182d94cc50bc79d545211def693efb02c7ad669018d84a7",
+                    "fichier racine:config/pas.json": "1e5976ea13bbc3279a8ede7036911239da2ea6ea3d991f2b18e7cb4cb8c518df",
                     "moteur": "<moteur>",
                     "saisie 2026-11 FULLER": "2202b17c97d8c24bd45434b7d8ed6626e4ee9ea705cb1f93039b93a3b1d28294:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
                   },
@@ -1156,7 +1156,7 @@
                 "pas": {
                   "taux": "8.30",
                   "type": "01",
-                  "identifiant": "320888446",
+                  "identifiant": "314021955",
                   "abattement": "0",
                   "montant_soumis": "240.94",
                   "prelevement": "20"
@@ -1209,10 +1209,10 @@
                 "remuneration.brut": "300,00",
                 "remuneration.hors_brut": ""
               },
-              "code": "SIG-P2P99Z",
+              "code": "SIG-PXJEKG",
               "adresse": "loie.fuller@exemple.invalid",
               "relance": false,
-              "message": "<9b97d89e2146cbc8@fictive.puppetpaie>"
+              "message": "<d852419153486c50@fictive.puppetpaie>"
             }
           ],
           "expediteur": "fictive@puppetpaie.invalid",
@@ -1237,7 +1237,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "urssaf",
-        "flux": "FICTIF-7DC8EBD60849",
+        "flux": "FICTIF-5401A25D96F0",
         "retours": [
           {
             "statut": "fictive",
@@ -1257,7 +1257,7 @@
             "dpae": []
           }
         ],
-        "reponse": "<idflux>FICTIF-7DC8EBD60849</idflux>\nCompagnie fictive : DPAE de test jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-5401A25D96F0</idflux>\nCompagnie fictive : DPAE de test jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-070000_depot-dpae_202611.txt",
         "detail": {
           "preuve": "",
@@ -1289,7 +1289,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "urssaf",
-        "flux": "FICTIF-74FB32171894",
+        "flux": "FICTIF-D55D3CBC382F",
         "retours": [
           {
             "statut": "fictive",
@@ -1309,13 +1309,13 @@
             "dpae": []
           }
         ],
-        "reponse": "<idflux>FICTIF-74FB32171894</idflux>\nCompagnie fictive : DPAE reelle jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-D55D3CBC382F</idflux>\nCompagnie fictive : DPAE reelle jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-070000_depot-dpae_202611-2.txt",
         "detail": {
           "preuve": "fictive",
           "repetition": {
             "test": "2026-11-20T07:00:00",
-            "flux": "FICTIF-7DC8EBD60849",
+            "flux": "FICTIF-5401A25D96F0",
             "empreinte": "5937ebb05f57ae9d",
             "compte_rendu": "ok"
           },
@@ -1346,7 +1346,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "net-entreprises",
-        "flux": "FICTIF-836E04EBC199",
+        "flux": "FICTIF-52757D01254D",
         "retours": [
           {
             "statut": "fictive",
@@ -1365,7 +1365,7 @@
             "libelle": "Bilan de conformite (compagnie fictive)"
           }
         ],
-        "reponse": "<idflux>FICTIF-836E04EBC199</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-52757D01254D</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-070000_depot-dsn_20261120.txt",
         "detail": {
           "preuve": "",
@@ -1398,7 +1398,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "net-entreprises",
-        "flux": "FICTIF-72F3139B75DB",
+        "flux": "FICTIF-97604AE3C15F",
         "retours": [
           {
             "statut": "fictive",
@@ -1423,7 +1423,7 @@
             "publication": "20261120070000"
           }
         ],
-        "reponse": "<idflux>FICTIF-72F3139B75DB</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-97604AE3C15F</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-070000_depot-dsn_20261120-2.txt",
         "detail": {
           "preuve": "fictive",
@@ -1435,7 +1435,7 @@
           "pas_bareme": 0,
           "repetition": {
             "test": "2026-11-20T07:00:00",
-            "flux": "FICTIF-836E04EBC199",
+            "flux": "FICTIF-52757D01254D",
             "empreinte": "f1c77fe343b0ea67",
             "compte_rendu": "ok"
           },
@@ -1479,7 +1479,7 @@
         "origine": "compagnie fictive : joue par l'horloge",
         "mois": "2026-11",
         "fichier": "DSN_Novembre2026.dsn",
-        "empreinte": "29c0560777c5035c",
+        "empreinte": "bb76fa29568e0967",
         "mode": "test",
         "qui": "horloge",
         "accepte": true,
@@ -1538,7 +1538,7 @@
         "origine": "compagnie fictive : joue par l'horloge",
         "mois": "2026-11",
         "fichier": "DSN_Novembre2026.dsn",
-        "empreinte": "29c0560777c5035c",
+        "empreinte": "bb76fa29568e0967",
         "mode": "reel",
         "qui": "horloge",
         "accepte": true,
@@ -1595,7 +1595,7 @@
           "repetition": {
             "test": "2026-12-15T10:00:00",
             "flux": "FICTIF-1777C84CD67B",
-            "empreinte": "29c0560777c5035c",
+            "empreinte": "bb76fa29568e0967",
             "compte_rendu": "ok"
           },
           "ordre_test": null,
@@ -1684,8 +1684,8 @@
         "empreinte_saisie": "247189879fc12aa5"
       }
     },
-    "retours/20261120-070000_nature94_FICTIF-72F3139B75DB.xml": {
-      "empreinte": "23b56724699833cb7b5923f801ef36716615a06cfdfa8cc2e295cdef9fd00051"
+    "retours/20261120-070000_nature94_FICTIF-97604AE3C15F.xml": {
+      "empreinte": "48160ccb3b4a79d785d2dfde468109e894e2cdd4d4a80c9bd5a31c1b2a564863"
     },
     "retours/20261215-100000_nature46_FICTIF-265B91C07802.txt": [
       "PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\u0000\u0000!\u0000\u001bx£+Ïi\u0000\u0000Ü«\u0000\u0000D\u0000\u0000\u0000AER_32520440200011__112026_FICTIVE_15122026_FULLER_LOIE_1_900001.pdf´|\u0005XÍº¶ H)¥°èÕt7\bHK°@º»Dé\u000e)\téîî.\u0001\u0001iîÿ\u0012øöþöÞßÙgÿÿ9?ÃµwÍ<sÏÌ3ó¾óÌÜk^j9aQf \u000b\u0018\u0003\b`\u0003¿5Âàæf\u0015°µygnEGÏ*dÐ±147\u0013Ö±AÐ\ts\u00029àll@6 ÛÍ\u001f#\u001b\u001b-\u001b\u001bíÖ¾¢¶°¨ª2ÂÊÚÐÜUB\u000fafc¨oø,p´7·Ò³¦£g}i®÷ïAå¬Ìõluo²)Ø¾5BèÚÐÑ³*\u001aÚ è\u0004ll\u0010Ö67\u0015\u0003 L-LÌ\u001d\u0011¶V\u0000\u001d33\u0003Â\u001aÀ\u000e@Ø\u0000l\u0000:]sS\u000b\u001d\u00033C\u0004@ßP×ÆÐ\u000eA\u000f\u001f\u0001\u0010U\u0016\u0007HËJÐ³*ZéXX ôXEuL¬\u0011¼¼\u0018\b3½ß6\u0000ýÝ\u0016²BrVæ\u0016\b+\u001bC577«ðï(\u0019u0\r \u000fÝ|Âj²ÊZé!¬þ*A^PÌÊÜÖÂZ]UVHÌú/~§ØÚ\u0018Ý4\r Ï*§cÖq4·µa5C\bØÝD¾4×C°*Y#dÌÍ\u00107\u0011Ö\u0000\u001c\u0016\bV!\u001d\u001b\u001d\u0013s\u0003V\u0001]+sQs+S\u0000øw[äÿÞ4ðß&af0³\u0001@nrËè\"è¤u\u001c\u0011V\u0000 ý-¬\u0018«µ\u0001\u0002\u0000ýGß9~KuVeC=«0ÂÚÐÀLóTèßK¸\u001b\u0019\u0012fúæÿF' gþ\u0016\u000101±µ¶±ú\u001d\u0003\u0000BXØnúÙæw¹\u0002V6öæVÆ¼¼«Æßý/T\u001fþ¿Áþ§FÛÙ\u0000Øî2Üõâß59þY\u0013Ì*e¨g­\u000ed»éÐMÙ\u0000ÐÝ`¹\u0001¹éÕ¿#Ühþ\râ¦ÆÖ\u0000àïûUUÈÊÜBÐÜAý·",
@@ -1789,19 +1789,19 @@
       "empreinte": "b9d6d3e8504d7e18059b47d774ff8493034de500eeb7770c5150e9b7afef75be"
     },
     "retours/depots/20261120-070000_depot-dpae_202611-2.txt": [
-      "<idflux>FICTIF-74FB32171894</idflux>",
+      "<idflux>FICTIF-D55D3CBC382F</idflux>",
       "Compagnie fictive : DPAE reelle jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-070000_depot-dpae_202611.txt": [
-      "<idflux>FICTIF-7DC8EBD60849</idflux>",
+      "<idflux>FICTIF-5401A25D96F0</idflux>",
       "Compagnie fictive : DPAE de test jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-070000_depot-dsn_20261120-2.txt": [
-      "<idflux>FICTIF-72F3139B75DB</idflux>",
+      "<idflux>FICTIF-97604AE3C15F</idflux>",
       "Compagnie fictive : DSN reelle jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-070000_depot-dsn_20261120.txt": [
-      "<idflux>FICTIF-836E04EBC199</idflux>",
+      "<idflux>FICTIF-52757D01254D</idflux>",
       "Compagnie fictive : DSN de test jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261215-100000_depot-dsn_202611-2.txt": [
@@ -2146,7 +2146,7 @@
       "S21.G00.50.004,'232.30'",
       "S21.G00.50.006,'8.30'",
       "S21.G00.50.007,'01'",
-      "S21.G00.50.008,'320888446'",
+      "S21.G00.50.008,'314021955'",
       "S21.G00.50.009,'20.00'",
       "S21.G00.50.013,'240.94'",
       "S21.G00.51.001,'20112026'",

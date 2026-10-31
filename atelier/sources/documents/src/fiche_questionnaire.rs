@@ -25,14 +25,18 @@ pub fn code_au_hasard(prefixe: &str) -> String {
     let alphabet = ALPHABET_CODE.as_bytes();
     let limite = 256 - 256 % alphabet.len();
     let mut code = String::from(prefixe);
+    // UN TIRAGE PAR CODE, jamais un par signe : un octet rejete ne decale pas la suite des aleas qui suivent (au rejeu,
+    // `socle::temps::aleas` est une suite fixe, que chaque tirage fait avancer).
     while code.len() < prefixe.len() + 6 {
-        let mut b = [0u8; 1];
+        let mut b = [0u8; 32];
         if socle::temps::aleas(&mut b).is_err() {
             let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.subsec_nanos()).unwrap_or(7);
-            b[0] = (t >> (code.len() % 3)) as u8;
+            for (i, x) in b.iter_mut().enumerate() {
+                *x = (t >> (i % 24)) as u8;
+            }
         }
-        if (b[0] as usize) < limite {
-            code.push(alphabet[b[0] as usize % alphabet.len()] as char);
+        for x in b.iter().filter(|x| (**x as usize) < limite).take(prefixe.len() + 6 - code.len()) {
+            code.push(alphabet[*x as usize % alphabet.len()] as char);
         }
     }
     code
