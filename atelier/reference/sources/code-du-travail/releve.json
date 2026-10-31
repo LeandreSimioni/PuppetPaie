@@ -57,7 +57,7 @@
    "texte": "travail"
   }
  ],
- "_releve_le": "2026-10-29",
+ "_releve_le": "2026-10-30",
  "articles": {
   "D1221-23": {
    "debut": "2008-05-01",
@@ -504,6 +504,21 @@
    "en_vigueur": true,
    "id": "LEGIARTI000036761916"
   },
+  "L3121-18": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033020428"
+  },
+  "L3121-19": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033020422"
+  },
+  "L3121-20": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033020414"
+  },
   "L3121-27": {
    "debut": "2016-08-10",
    "en_vigueur": true,
@@ -543,6 +558,16 @@
    "debut": "2016-08-10",
    "en_vigueur": true,
    "id": "LEGIARTI000033020061"
+  },
+  "L3131-1": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033020918"
+  },
+  "L3131-2": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033020914"
   },
   "L3133-1": {
    "debut": "2016-08-10",
@@ -863,6 +888,11 @@
    "debut": "2017-09-01",
    "en_vigueur": true,
    "id": "LEGIARTI000035492419"
+  },
+  "R1221-3": {
+   "debut": "2020-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000039809055"
   },
   "R1221-34": {
    "debut": "2023-11-01",

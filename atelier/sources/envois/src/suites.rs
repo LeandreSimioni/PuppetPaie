@@ -31,7 +31,7 @@ pub struct DepotReel {
     pub joue: bool,
     /// Un signalement (DSN de nature 04, 05, 07, 08) : sa nature, son ordre, son type, son evenement.
     pub signalement: Option<Signalement>,
-    /// Les embauches d'une DPAE (`salarie`, `debut`, `fin`).
+    /// Les embauches d'une DPAE (`salarie`, `numero`, `debut`, `fin`).
     pub embauches: Vec<Value>,
 }
 

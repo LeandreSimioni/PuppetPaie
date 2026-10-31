@@ -142,7 +142,7 @@ fn mois_suivant(m: &str) -> String {
 
 /// La DSN reelle deposee pour `m` (le journal), lue ; `None` si le mois n'en a pas.
 fn dsn_deposee(ctx: &Contexte, lignes: &[Value], m: &str) -> Option<Vec<Individu>> {
-    let l = crate::etats::dsn_du_mois(lignes, &ctx.entreprise, m).ok()?;
+    let l = crate::etats::etat_dsn_du_mois(lignes, m, &Value::Null, &droit::bareme::nic_principal(&ctx.entreprise)).ok()?;
     let fichier = l.get("fichier").map(socle::valeur::valeur_en_texte).filter(|f| !f.is_empty() && f != "None")?;
     let p = std::path::Path::new(&fichier);
     let chemin = if p.is_absolute() { p.to_path_buf() } else { ctx.racine.join("sorties").join(m).join(&fichier) };
@@ -165,7 +165,11 @@ fn periodes(ctx: &Contexte, lignes: &[Value], mois: &str, nir: &str, c: &Contrat
         }
         m = mois_suivant(&m);
     }
-    out.push(periode(c, debut, fin, mois, paiement, out.is_empty())?);
+    // Un contrat que ce fichier ne porte que pour le rappel d'un mois deja declare (`recap_dsn::Contrat::rappel`) n'a pas
+    // de periode ce mois-ci.
+    if c.mois.remunere || out.is_empty() {
+        out.push(periode(c, debut, fin, mois, paiement, out.is_empty())?);
+    }
     Ok(out)
 }
 
@@ -175,10 +179,10 @@ fn periode(x: &Contrat, debut: Jour, fin: Jour, m: &str, paiement: &str, premier
         contrat: premiere.then(|| (x.numero.clone(), debut.jj_mm_aaaa(), fin.jj_mm_aaaa(), x.objet.clone())),
         debut: if debut > d { debut } else { d },
         fin: if fin < f { fin } else { f },
-        heures: x.heures,
-        cachets: x.cachets,
-        jours: x.jours,
-        brut: x.brut,
+        heures: x.mois.heures,
+        cachets: x.mois.cachets,
+        jours: x.mois.jours,
+        brut: x.mois.brut,
         paiement: Jour::lire(paiement).map(|j| j.jj_mm_aaaa()).unwrap_or_default(),
     })
 }
@@ -544,7 +548,7 @@ pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Result
     };
     let ordre = rubrique("S20.G00.05.004");
     let remplace = matches!(rubrique("S20.G00.05.002").as_str(), "03" | "05").then_some(ordre.as_str());
-    let lignes = crate::etats::charger(&ctx.racine).map_err(|e| e.message)?;
+    let lignes = crate::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let ent = &ctx.entreprise;
     let siret = ent.get("siret").map(en_texte).unwrap_or_default();
     let idcc = ent.get("idcc").map(en_texte).unwrap_or_default();

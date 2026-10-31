@@ -125,6 +125,10 @@ pub static TEXTES: &[Texte] = &[
             // (S21.G00.40.012) << ne doit pas inclure les heures
             // supplementaires structurelles >>.
             Domaine { cle: "temps_partiel", titre: "Le temps partiel, la duree legale et les heures complementaires et supplementaires", numeros: &["L3121-27", "L3121-28", "L3123-1", "L3123-6", "L3123-8", "L3123-20", "L3123-21", "L3123-28"] },
+            // LA DUREE MAXIMALE DU TRAVAIL ET LE REPOS QUOTIDIEN : une journee saisie au-dela de la duree quotidienne
+            // maximale (L3121-18, ses derogations L3121-19 ; la semaine, L3121-20) ou qui ne laisse pas les onze heures
+            // de repos (L3131-1) se dit a la saisie, sans se refuser (`engagement::duree`).
+            Domaine { cle: "duree_maximale", titre: "La duree maximale du travail et le repos quotidien", numeros: &["L3121-18", "L3121-19", "L3121-20", "L3131-1", "L3131-2"] },
             // LES CONGES POUR EVENEMENTS FAMILIAUX : ils
             // << n'entrainent pas de reduction de la remuneration >> (L3142-2).
             // C'est ce que dit `remunere` du motif 637 (`permanents-base.json`),
@@ -144,8 +148,8 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "registre", titre: "Le registre unique du personnel", numeros: &["L1221-13", "D1221-23", "D1221-24"] },
             // La DPAE quand la date d'embauche d'un contrat declare change (`crate::routes::etapes::etat_par_engagement`) :
             // l'embauche apres la declaration (L1221-10), la date d'embauche dans la declaration (R1221-1, 3°), la date
-            // previsible (R1221-4).
-            Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-4"] },
+            // previsible (R1221-4) ; l'Urssaf qui la recoit, celle du territoire de l'etablissement (R1221-3, `declarations::dpae`).
+            Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-3", "R1221-4"] },
             // LE CONTRAT ECRIT D'UN PERMANENT : l'information ecrite que tout salarie recoit (L1221-5-1, R1221-34 pour ses
             // mentions, R1221-35 pour ses delais et le renvoi aux textes, R1221-39 pour sa forme, R1221-40 pour ce qui change :
             // l'avenant) ; `documents::contrat` en tire les mentions obligatoires d'un CDI et de son avenant.
@@ -245,7 +249,9 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "effectif", titre: "L'effectif au sens de la securite sociale", numeros: &["L130-1", "R130-1"] },
             // LE MODE DE TARIFICATION DES AT/MP : les seuils d'effectif (D242-6-2) et le taux collectif quel que soit
             // l'effectif pour les activites que l'arrete annuel marque << TC >> (D242-6-14, I).
-            Domaine { cle: "atmp_tarification", titre: "Le mode de tarification des accidents du travail et maladies professionnelles", numeros: &["D242-6-2", "D242-6-14"] },
+            // D242-6-1 : le taux est determine par etablissement, le classement suit l'activite ; D242-6-17 : le taux d'un
+            // etablissement nouvellement cree ; D242-6-15 : le taux notifie l'est pour une annee (`bareme::taux_atmp_d_un_etablissement`) ; D242-6-17 : un etablissement neuf a le taux collectif.
+            Domaine { cle: "atmp_tarification", titre: "Le mode de tarification des accidents du travail et maladies professionnelles", numeros: &["D242-6-1", "D242-6-2", "D242-6-14", "D242-6-15", "D242-6-17"] },
             // LE PLAFOND : la vieillesse plafonnee
             // (L241-3, et son taux D242-4), le FNAL et le chomage d'un
             // intermittent s'assoient sur LE plafond de sa periode. R242-2 dit

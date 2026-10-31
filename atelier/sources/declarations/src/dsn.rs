@@ -81,7 +81,7 @@ impl Fichier {
         }
     }
 
-    /// `f.add(rubrique, v)` pour une valeur JSON : `str(v)`, refus sur `None`.
+    /// Pose `rubrique` d'une valeur JSON écrite en texte ; refus sur `null`.
     pub fn add_v(&mut self, rubrique: &str, valeur: &Value) -> Resultat<()> {
         if valeur.is_null() {
             return Err(absente(rubrique));
@@ -222,7 +222,7 @@ fn contact_sante_travail(f: &mut Fichier, ent_e: &Value) -> Resultat<()> {
     Ok(())
 }
 
-/// `str(v or "")`.
+/// Une valeur en texte, vide si elle est vide.
 pub fn txt(v: &Value) -> String {
     if vrai(v) {
         en_texte(v)
@@ -245,7 +245,7 @@ fn fmt_f(x: Decimal, n: usize) -> String {
     format!("{:.*}", n, f)
 }
 
-/// `_mt` : deux decimales, jamais « -0.00 ».
+/// Deux decimales, jamais « -0.00 ».
 pub fn mt(x: Decimal) -> String {
     if x.is_zero() {
         "0.00".into()
@@ -254,7 +254,7 @@ pub fn mt(x: Decimal) -> String {
     }
 }
 
-/// `_ms` : un montant signe.
+/// Un montant signe.
 pub fn ms(x: Decimal, signe: i64) -> String {
     mt(mul(x, Decimal::from(signe)))
 }
@@ -297,18 +297,20 @@ fn emploi_declare(p: &Paie) -> (String, String, String) {
     (txt(g(s, "pcs_ese")), txt(g(s, "code_emploi_ft")), txt(g(s, "emploi")))
 }
 
-/// Les contrats enregistres d'une periode de paie (les engagements du mois, sans montants) ; rien si le mois n'a pas de
-/// saisie. Ils completent ceux qu'une declaration porte : la DSN d'un etablissement ne porte pas les contrats d'un
-/// autre, un signalement n'en porte qu'un.
-pub fn contrats_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
-    Ok(engagement::embauches_du_mois(ctx, mois)?.unwrap_or_default())
+/// Les contrats d'une periode de paie : la paie ecrite de chaque engagement valide du mois
+/// (`engagement::etats::validees_du_mois`), dans l'ordre de l'ecran ; rien si le mois n'a pas de saisie. Un engagement
+/// en saisie n'y est pas : une declaration ne lit que l'engagement valide. Ils completent ceux qu'une declaration
+/// porte : la DSN d'un etablissement ne porte pas les contrats d'un autre, un signalement n'en porte qu'un.
+pub fn contrats_du_mois(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> Resultat<Vec<Paie>> {
+    Ok(engagement::etats::validees_du_mois(ctx, mois, departs)?.map(|(_, paies)| paies).unwrap_or_default())
 }
 
 /// `S21.G00.40.036` (code emplois multiples) du contrat `p` : « 02 - emplois multiples » si le salarie tient plus
 /// d'un emploi chez la compagnie dans la periode de paie, « 01 - emploi unique » sinon. Cahier technique DSN 2026.1,
 /// p. 199 (`norme-dsn/texte/bloc-S21.G00.40.txt`, lignes 1174-1183) : « Cette rubrique précise si le salarié a
 /// plusieurs emplois chez un même employeur au cours d'une même période de paie. » `autres` : les contrats de la
-/// meme periode (ceux de la declaration et ceux de la saisie), de tous les salaries ; seuls ceux de `p` comptent.
+/// meme periode (ceux de la declaration et ceux des engagements valides du mois), de tous les salaries ; seuls ceux de
+/// `p` comptent.
 /// INFERENCE, ecrite comme telle : un emploi est ce que le bloc 40 decrit (PCS, code, libelle), la norme ne le
 /// definit pas autrement ; c'est ce que CoolPaie ecrivait (02 si et seulement si deux codes emploi distincts le meme
 /// mois, 148 contrats de son historique, fiche N1 de la relecture).
@@ -331,41 +333,6 @@ pub fn nics(fiche: &Value) -> Vec<String> {
     out
 }
 
-/// L'entreprise vue depuis l'etablissement `nic`.
-fn fiche_de(fiche: &Value, nic: &str) -> Resultat<Value> {
-    if nic.is_empty() || nic == bareme::nic_principal(fiche) {
-        return Ok(fiche.clone());
-    }
-    let e = bareme::entree(fiche, nic).ok_or_else(|| format!("Etablissement inconnu : {}.", nic))?;
-    let mut vue = fiche.as_object().cloned().unwrap_or_default();
-    let n = en_texte(req(&e, "nic")?);
-    vue.insert("nic".into(), Value::String(n.clone()));
-    vue.insert("siret".into(), Value::String(txt(g(fiche, "siren")) + &n));
-    for cle in ["adresse", "code_postal", "commune", "naf", "adresse_affichage", "commune_affichage", "complement_adresse"] {
-        if vrai(g(&e, cle)) {
-            vue.insert(cle.into(), e[cle].clone());
-        }
-    }
-    vue.insert("_etablissement".into(), Value::String(n));
-    let mut siege = Map::new();
-    siege.insert("nic".into(), Value::String(bareme::nic_principal(fiche)));
-    siege.insert("siret".into(), g(fiche, "siret").clone());
-    vue.insert("_siege".into(), Value::Object(siege));
-    Ok(Value::Object(vue))
-}
-
-/// L'etablissement sous lequel un salarie se declare : la fiche entreprise vue depuis l'etablissement de rattachement
-/// que dit SA fiche (`etablissement`, sinon le principal ; un NIC que la fiche entreprise ne porte pas refuse).
-///
-/// « Dans le cadre d'un contrat de travail, il s'agit de l'etablissement de rattachement administratif du salarie »
-/// (S21.G00.11.001, cahier technique DSN 2026.1, p. 144, `atelier/reference/norme-dsn/texte/bloc-S21.G00.11.txt`). Le
-/// NIC est une donnee identifiante : un signalement porte « les memes valeurs que celles portees dans la derniere DSN
-/// mensuelle deposee » (§ 2.1.1, p. 18 ; § 2.5.1, p. 67, `chapitre-2-principes-de-constitution.txt`). La mensuelle
-/// (une DSN par etablissement, qui refuse un salarie d'un autre, `generer`) et les signalements (arret, reprise, FCTU,
-/// amorcage) le lisent donc au meme endroit : `bareme::etablissement_du_salarie`, puis `fiche_de`.
-pub fn etablissement_du_salarie(ent: &Value, salarie: &Value) -> Resultat<Value> {
-    fiche_de(ent, &bareme::etablissement_du_salarie(ent, salarie)?)
-}
 
 // ----------------------------------------------------- les entrees
 
@@ -563,7 +530,7 @@ fn base<'a>(bases: &'a HashMap<String, Decimal>, cle: &Value) -> Resultat<Decima
     bases.get(&k).copied().ok_or_else(|| socle::fichiers::absent(&k))
 }
 
-/// Les bases assujetties que la deduction forfaitaire specifique abat (11/10/2026 ;
+/// Les bases assujetties que la deduction forfaitaire specifique abat (
 /// `atelier/reference/sources/dfs/LISEZ-MOI.md`, « La DSN ») : 02 et 03, l'assiette des cotisations de securite sociale
 /// (CSS R. 242-1, al. 3 ; arrete du 4 septembre 2025 relatif aux frais professionnels, art. 1er et 9), et 23 et 43,
 /// celles d'Agirc-Arrco (cahier d'aide a la codification Agirc-Arrco CT2026, l. 3490-3498 : « La solution ainsi retenue
@@ -958,7 +925,7 @@ fn bornes_du_mois(mois: &str) -> Resultat<(Jour, Jour)> {
     Ok((socle::date::premier_du_mois(mois)?, socle::date::dernier_du_mois(mois)?))
 }
 
-/// `_affiliations` : les references d'adhesion auxquelles cette nature rattache, parmi celles qui valent pour la
+/// Les references d'adhesion auxquelles cette nature rattache, parmi celles qui valent pour la
 /// periode `debut`..=`fin`.
 pub fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, (debut, fin): (Jour, Jour)) -> Resultat<Vec<String>> {
     let cle = nat.bareme.clone().unwrap_or_else(|| "intermittent".into());
@@ -1284,12 +1251,6 @@ d'affiliation par contrat). Rien n'est ecrit.",
     Ok(Some(Value::Object(out)))
 }
 
-/// La DSN de `mois` porte-t-elle la CASC-SVP ? La regle qui l'y met (`casc_svp`) le dit.
-pub fn porte_la_casc(ctx: &Contexte, mois: &str) -> Resultat<bool> {
-    let ctx = ctx.du_mois(mois)?;
-    let orgs = ctx.organismes()?;
-    Ok(matches!(casc_svp(&ctx, &ctx.entreprise, &orgs, mois), Ok(Some(_))))
-}
 
 /// `contributions_dsn` : les contributions declarees sous une adhesion Audiens.
 fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar: &Value) -> Resultat<Vec<Value>> {
@@ -1495,8 +1456,8 @@ p. 322). Corriger la date sur la fiche : le jour ou la personne est entree dans 
 /// Ils se LISENT, jamais ne se devinent (regle 1) : d'abord la fiche telle que l'engagement l'a faite (`emploi_de` :
 /// le metier choisi sur la ligne les a resolus, sinon la fiche les porte) ; a defaut, le metier de la fiche s'il est
 /// au CATALOGUE (`emplois-base.json`), par la meme regle que `emplois::resoudre`. Un metier hors catalogue (la
-/// nomenclature France Travail seule) ne dit rien du classement. Jusqu'au 10/10/2026, 05 et 04 se posaient par
-/// defaut : faux pour un ouvrier (07), un employe (06), un cadre (04 / 01).
+/// nomenclature France Travail seule) ne dit rien du classement : 05 et 04 ne se posent pas par
+/// defaut, ce serait faux pour un ouvrier (07), un employe (06), un cadre (04 / 01).
 ///
 /// Un metier cadre au catalogue, sur une fiche qui ne dit pas cadre ou non cadre, refuse aussi : la paie s'est
 /// calculee non cadre (`bareme::est_cadre` ne lit que la fiche), le catalogue dit cadre, et ni 01 ni 04 ne se lit.
@@ -1574,7 +1535,7 @@ profession intermediaire, 06 employe, 07 ouvrier), et {}. Il ne se devine pas : 
     Ok((sc, rc))
 }
 
-/// Les blocs 40 a 71 d'un contrat (`_bloc_contrat`). `emplois` : le code emplois multiples (`40.036`) du contrat,
+/// Les blocs 40 a 71 d'un contrat. `emplois` : le code emplois multiples (`40.036`) du contrat,
 /// que `emplois_multiples` tire des autres contrats de la periode.
 #[allow(clippy::too_many_arguments)]
 pub fn bloc_contrat(
@@ -1584,7 +1545,7 @@ pub fn bloc_contrat(
     bloc_contrat_fctu(f, p, ent, orgs, rang, bar, fin_de_contrat, arrets, nature_dsn, None, emplois)
 }
 
-/// `_bloc_contrat` avec `fin_fctu` : la fin du contrat d'un signalement de
+/// Les blocs d'un contrat avec `fin_fctu` : la fin du contrat d'un signalement de
 /// fin de contrat (blocs 62 et 63, `fctu::bloc_62_63`) a la place de celle
 /// d'une mensuelle.
 #[allow(clippy::too_many_arguments)]
@@ -2277,7 +2238,7 @@ pub fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Verseme
     let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
     let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
-    let ent_e = fiche_de(ent, &nic)?;
+    let ent_e = bareme::fiche_de_l_etablissement(ent, &nic)?;
     let e = &p.engagement;
     let refs = affiliations(&orgs, &*e.nat()?, g(&bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
     let affiliations = rattachements(p, &orgs, bareme::entreprise_du(&bar, &ent_e), refs)?
@@ -2461,7 +2422,7 @@ fn bloc_regularisation(
     let (avant, apres) = (&r.avant, &r.apres);
     let debut = avant.engagement.debut_periode()?;
     let fin = avant.engagement.fin_periode()?;
-    // La paie corrigee se rattache a la periode du contrat corrige : ses dates ont pu changer (21/10/2026, fiche
+    // La paie corrigee se rattache a la periode du contrat corrige : ses dates ont pu changer (fiche
     // net-entreprises 1952 ; cahier technique DSN 2026.1, §2.1.3.6). L'annulation recopie le declare, a ses dates.
     let (debut_c, fin_c) = (apres.engagement.debut_periode()?, apres.engagement.fin_periode()?);
     // Le prelevement du versement de la correction est celui que l'engagement rend (`prelevement_de_la_correction`) :
@@ -2948,7 +2909,7 @@ fn statut(p: &Paie) -> String {
     if s.is_empty() { "artiste".into() } else { s }
 }
 
-/// `_assiettes_ctp` : les assiettes agregees du bordereau Urssaf.
+/// Les assiettes agregees du bordereau Urssaf.
 fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decimal>> {
     // Sous deduction forfaitaire specifique, les assiettes de la securite sociale sont celles des bases abattues
     // (`cle_abattue`, la base 03 ; le 51 de type 001, `brut_du_51`) ; la CSG garde la sienne.
@@ -3249,7 +3210,7 @@ contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le co
 /// (`lignes_bordereau`, `bordereau::montant`) : ses lignes 23, valorisees a la table des CTP, et son total (22.005). Les
 /// corrections des mois deja declares n'y sont pas : elles ont leurs propres bordereaux. `etablissement` : le NIC, le
 /// principal sans lui.
-pub fn bordereau_du_mois(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>) -> Resultat<(Vec<LigneBordereau>, Decimal)> {
+pub fn bordereau_du_mois(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>, departs: &engagement::departs::Departs) -> Resultat<(Vec<LigneBordereau>, Decimal)> {
     let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
     let principal = bareme::nic_principal(ent);
@@ -3258,8 +3219,8 @@ pub fn bordereau_du_mois(ctx: &Contexte, paies: &[Paie], mois: &str, etablisseme
     let debut = premier(mois)?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
     let doeth = if nic == principal { crate::oeth::declaration(ctx, mois)? } else { None };
-    let csa = if nic == principal { crate::csa::declaration(ctx, mois)? } else { None };
-    let solde_ta = solde_taxe_apprentissage(ctx, mois, &orgs, &bar, &nic)?;
+    let csa = if nic == principal { crate::csa::declaration(ctx, mois, departs)? } else { None };
+    let solde_ta = solde_taxe_apprentissage(ctx, mois, &orgs, &bar, &nic, departs)?;
     let refs: Vec<&Paie> = paies.iter().flat_map(|p| p.elementaires()).collect();
     let effectif = Seuils::du_mois(ctx, mois)?;
     let lignes = lignes_bordereau(&refs, &orgs, ent, &bar, solde_ta.as_ref(), doeth.as_ref(), csa.as_ref(), mois, &effectif)?;
@@ -3268,8 +3229,8 @@ pub fn bordereau_du_mois(ctx: &Contexte, paies: &[Paie], mois: &str, etablisseme
 }
 
 /// Le total du bordereau Urssaf d'un mois (22.005), pour l'apercu, avant de produire (`bordereau_du_mois`).
-pub fn montant_urssaf(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>) -> Resultat<Decimal> {
-    Ok(bordereau_du_mois(ctx, paies, mois, etablissement)?.1)
+pub fn montant_urssaf(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>, departs: &engagement::departs::Departs) -> Resultat<Decimal> {
+    Ok(bordereau_du_mois(ctx, paies, mois, etablissement, departs)?.1)
 }
 
 /// Le bordereau Urssaf d'un mois d'origine que la DSN courante regularise : par CTP, la difference « corrige moins
@@ -3694,14 +3655,13 @@ pub struct SoldeTa {
 /// derniere DSN qui a declare ce mois a portee (`engagement::etats::paie_declaree`, regle 4 : ce qui est declare se lit
 /// dans la version sur laquelle la DSN est partie), ou sa paie ecrite si aucune DSN ne l'a encore declaree. Un
 /// engagement en saisie n'y est pas : rien ne part de lui. `nic` : les seuls salaries de cet etablissement.
-pub fn paies_declarees_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>) -> Resultat<Vec<Paie>> {
+pub fn paies_declarees_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>, departs: &engagement::departs::Departs) -> Resultat<Vec<Paie>> {
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
-    let departs = engagement::departs::lire(&ctx.racine)?;
     let ctx_m = ctx.du_mois(mois)?;
     let mut out = Vec::new();
-    for (i, e) in engagement::etats::du_mois(ctx, mois)?.iter().enumerate() {
+    for (i, e) in engagement::etats::du_mois(ctx, mois, departs)?.iter().enumerate() {
         let Some(v) = e.valide() else { continue };
-        let p = match engagement::etats::paie_declaree(&ctx_m, v.objet(), &departs, mois)? {
+        let p = match engagement::etats::paie_declaree(&ctx_m, v.objet(), departs, mois)? {
             Some(p) => p,
             None => v.paie(ctx, &data, i)?,
         };
@@ -3732,11 +3692,11 @@ pub fn assiettes_des_ctp(ctx: &Contexte, paies: &[Paie], mois: &str, nic: &str, 
 }
 
 /// Les assiettes des CTP `codes` que les DSN de l'annee `annee` declarent pour l'etablissement `nic`, une par code.
-pub fn assiettes_de_l_annee(ctx: &Contexte, annee: i32, nic: &str, codes: &[&str]) -> Resultat<Vec<Decimal>> {
+pub fn assiettes_de_l_annee(ctx: &Contexte, annee: i32, nic: &str, codes: &[&str], departs: &engagement::departs::Departs) -> Resultat<Vec<Decimal>> {
     let mut total = vec![zero(); codes.len()];
     for m in 1..=12 {
         let mois = format!("{}-{:02}", annee, m);
-        let paies = paies_declarees_du_mois(ctx, &mois, Some(nic))?;
+        let paies = paies_declarees_du_mois(ctx, &mois, Some(nic), departs)?;
         for (t, a) in total.iter_mut().zip(assiettes_des_ctp(ctx, &paies, &mois, nic, codes)?) {
             *t = add(*t, a);
         }
@@ -3744,7 +3704,7 @@ pub fn assiettes_de_l_annee(ctx: &Contexte, annee: i32, nic: &str, codes: &[&str
     Ok(total)
 }
 
-fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Value, nic: &str) -> Resultat<Option<SoldeTa>> {
+fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Value, nic: &str, departs: &engagement::departs::Departs) -> Resultat<Option<SoldeTa>> {
     if &mois[5..7] != "04" {
         return Ok(None);
     }
@@ -3757,7 +3717,7 @@ fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Valu
     if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise, annee)? {
         return Ok(None);
     }
-    let assiette = assiettes_de_l_annee(ctx, annee, nic, &["992"])?[0];
+    let assiette = assiettes_de_l_annee(ctx, annee, nic, &["992"], departs)?[0];
     if assiette.is_zero() {
         return Ok(None);
     }
@@ -3886,8 +3846,8 @@ pub struct Fabriquee {
 }
 
 /// Le texte de la DSN (`fabriquer`).
-pub fn generer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisation], arrets: &[Arret], o: &Options) -> Resultat<String> {
-    Ok(fabriquer(ctx, paies, mois, regs, arrets, o)?.texte)
+pub fn generer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisation], arrets: &[Arret], o: &Options, departs: &engagement::departs::Departs) -> Resultat<String> {
+    Ok(fabriquer(ctx, paies, mois, regs, arrets, o, departs)?.texte)
 }
 
 fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
@@ -3900,7 +3860,7 @@ fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
 /// regularise et le nominatif (`bar_du`), et l'apercu du montant Urssaf (`montant_urssaf`), passent par elle. (La pile
 /// d'un salarie, `bareme::bareme_applique`, surcharge de meme par l'etablissement du salarie.)
 fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat<Value> {
-    bareme::surcharger(ctx.bareme(&premier(mois)?)?, ent, nic)
+    Ok(bareme::taux_atmp_resolu(bareme::surcharger(ctx.bareme(&premier(mois)?)?, ent, nic)?).0)
 }
 
 /// LE BLOC 40 DECLARE du contrat de `p` (regle 4 : il se lit, il ne se recalcule pas), pour le bloc Changements contrat
@@ -3936,7 +3896,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
             let bar = bar_du(&ctx_m, &ctx_m.entreprise, orgs, &nic, &m)?;
             let mut ent = ctx_m.entreprise.as_object().cloned().unwrap_or_default();
             ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&premier(&m)?)?));
-            let ent_e = fiche_de(&Value::Object(ent), &nic)?;
+            let ent_e = bareme::fiche_de_l_etablissement(&Value::Object(ent), &nic)?;
             let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(&m)?);
             let refs: Vec<&Paie> = autres.iter().collect();
             bloc_contrat(&mut f, &declaree, &ent_e, orgs, 1, &bar, true, &[], "01", emplois_multiples(&declaree, &refs))?;
@@ -4054,7 +4014,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// Le jour ou un signalement sera ecrit, cette porte est deja la -- et le
 /// commentaire dit pourquoi elle etait fermee.
 ///
-/// LE NUMERO D'ORDRE EST LE SEUL RATTACHEMENT -- etabli le 10/09/2026 en
+/// LE NUMERO D'ORDRE EST LE SEUL RATTACHEMENT -- etabli en
 /// deposant en test, et lisible dans une troisieme anomalie :
 ///
 /// ```text
@@ -4073,8 +4033,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// lit sur le certificat de conformite du depot precedent (`moteur retours`).
 ///
 /// IL REMPLACE, IL N'AJOUTE PAS -- Y COMPRIS LES ORDRES DE TELEPAIEMENT.
-/// Question posee le 10/09/2026, tranchee le 11 par le cahier technique
-/// 2026.1, p. 15 : « lorsque la derniere DSN mensuelle transmise pour une date
+/// Le cahier technique 2026.1, p. 15 : « lorsque la derniere DSN mensuelle transmise pour une date
 /// d'exigibilite donnee est de type "Annule et remplace integral", elle doit
 /// porter les elements de cotisations destines aux organismes de recouvrement,
 /// MEME SI ces elements ont deja ete transmis dans une DSN mensuelle relative
@@ -4111,7 +4070,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// remplace en test (la repetition). Il passe alors les memes controles
 /// qu'en reel, rattachement compris : le test vaut le reel. Ce que le test ne controle pas, c'est
 /// le montant.
-pub fn fabriquer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisation], arrets: &[Arret], o: &Options) -> Resultat<Fabriquee> {
+pub fn fabriquer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisation], arrets: &[Arret], o: &Options, departs: &engagement::departs::Departs) -> Resultat<Fabriquee> {
     let ctx = &ctx.du_mois(mois)?;
     let ent0 = ctx.entreprise.clone();
     let principal_nic = bareme::nic_principal(&ent0);
@@ -4153,8 +4112,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     // Les etablissements, celui de cette DSN d'abord : un contrat declare ailleurs a change d'etablissement (bloc 41).
     let nics_courant_d_abord: Vec<String> = std::iter::once(nic.clone()).chain(nics(&ent0).into_iter().filter(|n| *n != nic)).collect();
     // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
-    let departs = engagement::departs::lire(&ctx.racine)?;
-    let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, &departs)?;
+    let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, departs)?;
     let orgs = ctx.organismes()?;
     let an: i32 = mois[..4].parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mo: u32 = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", mois))?;
@@ -4179,7 +4137,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     let mut ent = ent0.as_object().cloned().unwrap_or_default();
     ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&debut_mois)?));
     let ent = Value::Object(ent);
-    let ent_e = fiche_de(&ent, &nic)?;
+    let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
 
     let mut arrets_du_mois = Vec::new();
     for a in arrets {
@@ -4226,7 +4184,7 @@ saisir`), ou retirer la ligne. Rien n'est ecrit.",
     // declaree nulle part : refus, comme pour l'arret.
     let mut suspendus_absents = Vec::new();
     for imp in engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::SUSPENSION))? {
-        let fiche = ctx.salarie(&txt(g(&imp, "salarie")))?;
+        let fiche = engagement::imprevus::fiche_du_salarie(ctx, &imp)?;
         if bareme::etablissement_du_salarie(&ent0, &fiche)? != nic {
             continue;
         }
@@ -4344,7 +4302,7 @@ certificat de conformite du depot precedent.",
     let doeth = if principal { crate::oeth::declaration(ctx, mois)? } else { None };
     // La contribution supplementaire a l'apprentissage, sur l'etablissement principal seul (fiches 2588 et 2963 :
     // « sur un seul établissement »).
-    let csa = if principal { crate::csa::declaration(ctx, mois)? } else { None };
+    let csa = if principal { crate::csa::declaration(ctx, mois, departs)? } else { None };
     if let Some(d) = &doeth {
         if let Some(a) = d.accord.as_deref().filter(|a| !a.is_empty()) {
             f.add("S21.G00.13.001", a);
@@ -4389,7 +4347,7 @@ certificat de conformite du depot precedent.",
         f.add_v("S21.G00.15.005", &a["reference"])?;
     }
 
-    let solde_ta = solde_taxe_apprentissage(ctx, mois, &orgs, &bar, &nic)?;
+    let solde_ta = solde_taxe_apprentissage(ctx, mois, &orgs, &bar, &nic, departs)?;
     if let Some(s) = &solde_ta {
         f.add("S21.G00.82.001", mt(s.montant));
         f.add("S21.G00.82.002", "076");
@@ -4594,7 +4552,7 @@ certificat de conformite du depot precedent.",
     // L'assujettissement fiscal : une fois l'an, dans la DSN de decembre, apres les bordereaux et avant les
     // individus (arborescence de la norme, p. 118, `chapitre-8-arborescences.txt` : 20, 55, 22, 23, 44, 30) ;
     // `assujettissement.rs` dit d'ou vient chaque code.
-    for b in crate::assujettissement::blocs(ctx, &ent0, &ent_e, &orgs, &bar, &nic, mois, paies)? {
+    for b in crate::assujettissement::blocs(ctx, &ent0, &ent_e, &orgs, &bar, &nic, mois, paies, departs)? {
         f.add("S21.G00.44.001", b.code);
         if let Some(m) = b.montant {
             f.add("S21.G00.44.002", mt(m));
@@ -4614,16 +4572,16 @@ certificat de conformite du depot precedent.",
     }
     let date_ref = premier(mois)?;
     // LES CONTRATS DE CHAQUE PERIODE DE PAIE, pour les emplois multiples (`40.036`) : ceux de la declaration et ceux de
-    // la saisie du mois ; pour un contrat regularise, ceux de son mois d'origine.
-    let du_mois = contrats_du_mois(ctx, mois)?;
+    // ses engagements valides (`contrats_du_mois`) ; pour un contrat regularise, ceux de son mois d'origine.
+    let du_mois = contrats_du_mois(ctx, mois, departs)?;
     let periode: Vec<&Paie> = paies.iter().chain(du_mois.iter()).collect();
     let mut des_mois_regularises: HashMap<String, Vec<Paie>> = HashMap::new();
     for r in regs {
         if !des_mois_regularises.contains_key(&r.mois) {
-            des_mois_regularises.insert(r.mois.clone(), contrats_du_mois(ctx, &r.mois)?);
+            des_mois_regularises.insert(r.mois.clone(), contrats_du_mois(ctx, &r.mois, departs)?);
         }
     }
-    let mut declarations = crate::changements_individu::Declarations::avant(ctx, mois)?;
+    let mut declarations = crate::changements_individu::Declarations::avant(ctx, mois, departs)?;
     for cle in &ordre {
         let lot: Vec<&Paie> = paies.iter().filter(|p| &cle_salarie(p) == cle).collect();
         let corrections: Vec<&Regularisation> = regs.iter().filter(|r| &cle_salarie(&r.apres) == cle).collect();
@@ -4687,7 +4645,7 @@ certificat de conformite du depot precedent.",
             let debut_bloc = f.lignes.len();
             bloc_contrat(&mut f, p, &ent_e, &orgs, i as i64 + 1, &bar, true, &siens, "01", emplois_multiples(p, &periode))?;
             // Ce qui a change depuis la derniere DSN deposee du contrat : le bloc S21.G00.41, sous son bloc 40.
-            let declare = bloc_40_declare(ctx, p, mois, &etats_du_mois, &departs, &orgs)?;
+            let declare = bloc_40_declare(ctx, p, mois, &etats_du_mois, departs, &orgs)?;
             crate::changements_contrat::poser(&mut f.lignes, debut_bloc, ctx, p, mois, &nics_courant_d_abord, declare.as_ref())?;
         }
         let mut rangs_regs = Vec::new();
@@ -5015,7 +4973,7 @@ mod tests {
             v: json!({
                 "salarie": "Audinot", "contrat_debut": "2025-09-01", "contrat_numero": "AU.25.01", "motif": "01",
                 "dernier_jour_travaille": "2026-06-20", "fin_previsionnelle": fin_previsionnelle, "subrogation": "02",
-                "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null, "envois": [],
+                "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null,
             }),
         }
     }

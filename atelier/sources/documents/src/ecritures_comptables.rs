@@ -89,8 +89,8 @@ fn ou_texte(v: Option<&Value>, defaut: &str) -> String {
 /// Le brut par spectacle, la charge patronale et le tiers par ligne de bulletin, le prelevement a la source retenu
 /// (une dette envers l'Etat, au compte `pas` du plan), le net par salarie -- le net PAYE, apres l'impot, celui du
 /// bulletin. Un identifiant de ligne absent du plan fait refuser : on ne devine pas un compte.
-pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) -> R<Vec<Ecriture>> {
-    let (_, paies) = crate::etats_paie::charger_mois(ctx, mois)?;
+pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>, departs: &engagement::departs::Departs) -> R<Vec<Ecriture>> {
+    let (_, paies) = crate::etats_paie::charger_mois(ctx, mois, departs)?;
     let (date, lib_mois) = date_et_libelle(mois)?;
     let jrn = ou_texte(plan.get("journal"), "OD");
     let jrn = if plan.contains_key("journal") { valeur_en_texte(&plan["journal"]) } else { jrn };
@@ -108,7 +108,7 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) 
     // comptable general, atelier/reference/sources/plan-comptable-general/LISEZ-MOI.md), tel que la paie le porte. Le PAS d'un
     // mois declare est celui de la paie declaree (`engagement::etats::paie_declaree`), lu et non recalcule au taux du
     // jour (CGI art. 1671 : `prelevement::des_paies`).
-    let pas_des_paies = crate::prelevement::des_paies(ctx, &paies).map_err(refus)?;
+    let pas_des_paies = crate::prelevement::des_paies(ctx, &paies, departs).map_err(refus)?;
     let mut pas_du_mois = zero;
     // LES RETENUES (une ligne hors assiette de nature `retenue` : acompte, avance, saisie) ne sont pas une charge : un
     // acompte solde une avance deja versee (425 « Personnel - Avances et acomptes et autres comptes debiteurs »), une

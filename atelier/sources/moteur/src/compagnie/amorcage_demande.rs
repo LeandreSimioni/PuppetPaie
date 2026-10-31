@@ -2,8 +2,8 @@
 //! `recapitulatif`).
 //!
 //! Deux usages : le motif 07 (changement de logiciel declaratif, une fois, pour tout le monde) et le motif 01 (embauche
-//! effective, qui part avec la DPAE : `crate::routes::depots::dpae` y passe aussi). UN SIGNALEMENT, UN INDIVIDU, UN FICHIER.
-//! RIEN N'EST DEPOSE ici : le depot est un acte a part (`depot-dsn`), et c'est lui qui note la demande.
+//! effective, qui part avec la DPAE : `crate::routes::depots::dpae` le produit, `depot_acte::deposer_dpae` le depose). UN SIGNALEMENT, UN INDIVIDU, UN FICHIER.
+//! RIEN N'EST DEPOSE ici ; c'est le depot reel qui note la demande.
 //!
 //! Ce qui ne se demande pas : un salarie sans NIR, et un salarie dont la demande est deja partie et dont la reponse n'est pas
 //! echue (`forcer` : le signalement rejete par la plate-forme, pas l'ordinaire).
@@ -122,9 +122,13 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
         lignes.retain(|l| voulus.contains(&l.salarie));
     }
     let (retenus, ecartes): (Vec<Ligne>, Vec<Ligne>) = lignes.into_iter().partition(|l| l.pourquoi_pas.is_empty());
+    // Aucun taux a demander : rien ne s'ecrit, et il n'y a rien a dire.
+    if retenus.is_empty() && ecartes.is_empty() {
+        return Ok(Lot { motif: d.motif.to_string(), dossier: PathBuf::new(), fichiers: Vec::new(), lignes: Vec::new(), ecartes, recapitulatif: PathBuf::new() });
+    }
     if retenus.is_empty() {
         let raisons: Vec<String> = ecartes.iter().map(|l| format!("{} ({})", l.salarie, l.pourquoi_pas)).collect();
-        return Err(format!("Aucun signalement a produire : {}", if raisons.is_empty() { "tous les taux sont valides.".to_string() } else { raisons.join("; ") }));
+        return Err(format!("Taux de PAS non demandé : {}.", raisons.join(" ; ")));
     }
     let mois = if d.mois.is_empty() { d.constitution.mois_iso() } else { d.mois.to_string() };
     let dossier = ctx.racine.join("sorties").join(&mois);
@@ -132,6 +136,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
     // UN NUMERO D'ORDRE PAR FICHIER, a la suite de tous les signalements deja partis : la sequence ne se remet
     // jamais a zero (cahier technique DSN, p. 136), et deux signalements au meme ordre ne passent pas (p. 14).
     let premier = envois::journal::dernier_ordre_des_signalements(&ctx.racine)? + 1;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let mut fichiers = Vec::new();
     for (rang, l) in retenus.iter().enumerate() {
         let nom = format!("Amorcage{}_{}_{}.dsn", d.motif, l.salarie, jour);
@@ -143,7 +148,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
             envoi_test: d.envoi_test,
             date_constitution: Some(d.constitution),
         };
-        let texte = am::generer(ctx, &paies[l.indice], &options).map_err(|e| e.message().to_string())?;
+        let texte = am::generer(ctx, &paies[l.indice], &options, &departs).map_err(|e| e.message().to_string())?;
         let cible = dossier.join(&nom);
         declarations::dsn::ecrire(&texte, &cible)?;
         crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None).map_err(|e| e.message)?;

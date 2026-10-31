@@ -46,6 +46,12 @@ const DECOMPRESSE_MAX: u64 = 2 * 1024 * 1024 * 1024;
 const AEM_LONGUEUR: usize = 1000;
 const AEM_MARQUE: &str = "AEMEDIC2";
 
+/// Ce que l'import accepte, dit a l'ecran (le guide) et a chaque fichier refuse.
+pub const ACCEPTE: &str = "L'import accepte les PDF de bulletins de paie, d'AEM, de certificats Congés Spectacles et d'AER Cinéma Spectacle, et les fichiers DSN et AEM déposés.";
+
+/// La raison d'un PDF sans texte : une image ne se lit pas.
+pub const IMAGE: &str = "ce document est une image ; déposez le PDF d'origine";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Sorte {
     Dsn,
@@ -299,10 +305,7 @@ impl Trieur {
         } else if apres_bom(&octets).starts_with(b"AEMEDI") {
             lire_aem(&mut f, &octets);
         } else {
-            f.raison = Some(match f.extension.as_str() {
-                "" => "ni DSN, ni AEM, ni PDF, ni archive zip (pas d'extension)".to_string(),
-                e => format!("ni DSN, ni AEM, ni PDF, ni archive zip (extension .{})", e),
-            });
+            f.raison = Some(format!("ce fichier n'est ni un PDF, ni une DSN, ni une AEM, ni une archive zip. {}", ACCEPTE));
         }
         self.fichiers.push(f);
     }
@@ -451,14 +454,7 @@ fn lire_pdf(f: &mut Fichier) {
         raisons.push("PDF sans aucune page".into());
     } else if avec == 0 {
         f.sorte = Sorte::PdfSansTexte;
-        let somme = |g: fn(&PageLue) -> usize| f.pages.iter().map(g).sum::<usize>();
-        raisons.push(format!(
-            "aucun mot sur {} page(s) ({} police(s), {} image(s), {} trait(s)) : des lettres en traces ou une page scannee ne se lisent pas sans OCR",
-            total,
-            somme(|p| p.polices),
-            somme(|p| p.images),
-            somme(|p| p.traits)
-        ));
+        raisons.push(IMAGE.into());
     } else {
         f.sorte = Sorte::PdfTexte;
         if avec < total {

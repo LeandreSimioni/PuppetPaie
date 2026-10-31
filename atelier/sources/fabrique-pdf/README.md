@@ -30,72 +30,40 @@ fabrique-pdf --verrouiller entree.pdf sortie.pdf      # chiffrement AES-256, ouv
 fabrique-pdf --version                                # « fabrique-pdf 3 »
 ```
 
-Les modes de lecture et de retouche (version 3, 01/10/2026) remplacent PyMuPDF
-côté Python : le nombre de pages, `page.get_text()`, `_marquer` (`insert_text`
-en pied de page) et `verrouiller` (`encryption=PDF_ENCRYPT_AES_256`) ; puis
-`--champs` et `--remplir` (le formulaire AER : lecture des champs, remplissage
+Les modes de lecture et de retouche : le nombre de pages, le texte d'une page, le pied de page (`--marquer`), le verrouillage
+(AES-256), puis `--champs` et `--remplir` (le formulaire AER : lecture des champs, remplissage
 avec apparence régénérée, signature et cachet posés). Leur contrat
 exact — arguments, sortie, codes de sortie, règles — est dans `FORMAT.md`.
 
 Le moteur n'envoie que le chemin du `.modele` et les valeurs : la fabrique lit
-le modèle elle-même (`src/modele.rs`, `src/style_contrat.rs`). Il ne reste plus
-rien à PyMuPDF ni à PyPDF (01/10/2026) : l'AER passe par `--champs` et
+le modèle elle-même (`src/modele.rs`, `src/style_contrat.rs`). L'AER passe par `--champs` et
 `--remplir`, et l'aperçu d'une compagnie fictive montre le PDF dans le lecteur
 du navigateur.
 
-## Le texte d'un PDF, mesuré contre PyMuPDF
+## Le texte d'un PDF
 
 `--texte` est écrit sur lopdf (`src/texte.rs`) : un interpréteur du flux de contenu, les
-polices, puis la règle de mise en lignes de MuPDF (`FORMAT.md`, « Lire un PDF »). Mesure faite
-le 01/10/2026 avec un script jetable (hors du dépôt) qui compare, page par page, le texte de la
-fabrique à `page.get_text()` de PyMuPDF 1.28 sur tous les PDF de `prive/`, après réduction de
-toute suite de blancs à un espace :
-
-| ensemble | pages | texte identique (blancs réduits) | identique à l'octet |
-|---|---|---|---|
-| exports de CoolPaie (`export-coolpaie/`) | 255 | **254** (99,6 %) | 248 |
-| PDF de PuppetPaie (`sorties/` : contrats, avenants, bulletins, AER, certificats, y compris verrouillés) | 124 | **120** (96,8 %) | 120 |
-| PDF fabriqués par la fabrique (`exemples/`) | 2 | 2 | 2 |
-| documents publics des organismes (notices, circulaires, guides : 1 519 pages de mise en page libre) | 1 519 | 1 427 (93,9 %) | 951 |
-
-Le nombre de pages est le même sur tous les fichiers lisibles par les deux (dix fichiers
-vides de l'export ne s'ouvrent ni avec l'un ni avec l'autre). Les écarts typiques :
+polices, puis la règle de mise en lignes de MuPDF (`FORMAT.md`, « Lire un PDF »). Le texte
+rendu est celui de `page.get_text()` de PyMuPDF, à ces écarts près :
 
 - un espace de plus ou de moins près d'un glyphe de symbole (case, puce) : MuPDF avance du
-  glyphe du fichier de police, la fabrique de `/Widths` ; sans aucun blanc, 1 835 pages sur
-  1 898 hors exports sont identiques ;
+  glyphe du fichier de police, la fabrique de `/Widths` ;
 - le nombre de points d'un pointillé en bord de page ;
 - des polices en petites capitales (MuPDF lit la capitale dans le nom du glyphe), et les flèches
   de Wingdings (zone privée, que MuPDF traduit) ;
 - une page des formulaires d'impôts où MuPDF écarte un « 4 » au bord de la page.
 
-Ce qui sert au Python — retrouver numéros, période, brut et net d'un bulletin
-(`bulletin.numeros_archives`), rattacher une page CoolPaie à un salarié et une date
-(`_categorie_page`, `_debut_de_document`, `_date_page`, les 13 chiffres d'un NIR, les mots
-d'un nom), dédoublonner par empreinte du texte (`_cle_page`), comparer des textes de contrat
-(`avenant._normaliser`) — a été vérifié en appliquant ces fonctions aux deux textes : mêmes
-résultats sur les 139 pages CoolPaie du dossier (la seule page qui diffère est celle du
-formulaire d'impôt ci-dessus), mêmes numéros sur les bulletins archivés, même partition de ces
-139 pages en classes de doublons (124 classes de part et d'autre), même texte normalisé sur
-46 des 50 PDF de `sorties/` (les 4 autres sont les AER ci-dessus).
-
-Robustesse : 3 600 lancements des quatre modes sur des PDF abîmés (octets changés, coupés,
-effacés, insérés) n'ont donné ni plantage ni boucle (codes 0 ou 1 seulement) ; un `>` isolé
-dans une table `ToUnicode` bouclait, c'est corrigé (`tests/lecture.rs`).
+Un fichier abîmé (octets effacés, insérés) ne fait ni planter ni boucler la lecture (codes 0 ou
+1 seulement) ; une table `ToUnicode` qui porte un `>` isolé est lue sans boucle (`tests/lecture.rs`).
 
 ## Poids
 
-Programme : **4,4 Mo** (Linux, `opt-level = "z"`, LTO, `strip` : 4 401 600 octets) ; il
-était de 4,1 Mo (4 060 616) avant les modes de lecture et de retouche (+0,34 Mo : la lecture
-du texte, `aes`, `cbc`, `sha2` et `getrandom` pour `--verrouiller`) et de
-3,6 Mo avant l'étape 8. Les huit fichiers de Liberation, comprimés, pèsent
-1,4 Mo (romain, gras, italique et gras italique de Sans ; romain et gras de
-Serif et de Mono), contre 1,0 Mo pour les cinq d'avant : `build.rs` en retire
-crénage, substitutions et noms de glyphes, que rien ne lit. Le découpage des
-polices est du code à nous (`genpdfi/src/pdf_subset.rs`) : la crate
-`subsetter` et ses 330 Ko de dépendances sont retirées. Un contrat de la
-démonstration : 32 Ko par page, dont 21 Ko de polices (les glyphes imprimés,
-hinting compris), contre 6 Ko avant l'étape 8 et 13 Ko par PyMuPDF.
+Programme : **4,4 Mo** (Linux, `opt-level = "z"`, LTO, `strip` : 4 401 600 octets), dont la lecture du
+texte, `aes`, `cbc`, `sha2` et `getrandom` pour `--verrouiller`. Les huit fichiers de Liberation, comprimés,
+pèsent 1,4 Mo (romain, gras, italique et gras italique de Sans ; romain et gras de Serif et de Mono) :
+`build.rs` en retire crénage, substitutions et noms de glyphes, que rien ne lit. Le découpage des
+polices est du code à nous (`genpdfi/src/pdf_subset.rs`), sans dépendance. Un contrat de la
+démonstration : 32 Ko par page, dont 21 Ko de polices (les glyphes imprimés, hinting compris).
 
 ## Licences
 

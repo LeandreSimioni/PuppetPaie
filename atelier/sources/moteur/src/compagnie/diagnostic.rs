@@ -51,7 +51,6 @@ fn verrou<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|p| p.into_inner())
 }
 
-
 fn demarrage() -> &'static Instant {
     static D: OnceLock<Instant> = OnceLock::new();
     D.get_or_init(Instant::now)
@@ -653,12 +652,6 @@ pub fn fil(maintenant: u64) -> Vec<String> {
         .collect()
 }
 
-/// Vide le fil (les essais).
-pub fn oublier_le_fil() {
-    verrou(le_fil()).clear();
-    verrou(les_ecritures()).clear();
-}
-
 /// Une route servie par la fenetre : `source` « page » (la page l'a demandee) ou « fond » (la veille, le filet, l'etat des
 /// mois...) ; sa charge mise en forme, sa duree, son issue.
 pub fn noter_route(racine: &Path, source: &str, nom: &str, charge: &Value, duree: Duration, issue: Result<(), (&str, &str)>) {
@@ -1001,7 +994,8 @@ pub fn etat_du_mois(racine: &Path, mois: &str) -> Value {
     m.insert("saisie".into(), json!(!objets.is_empty()));
     m.insert("engagements".into(), json!(objets.len()));
     m.insert("valides".into(), json!(objets.iter().filter(|o| o.est_valide()).count()));
-    if let Some(Value::Array(depots)) = lire_json(&racine.join("journal").join("depots.json")) {
+    if let Ok(journal) = envois::journal::lu(racine) {
+        let depots = &journal.lignes;
         let du_mois: Vec<Value> = depots
             .iter()
             .filter(|d| d.get("mois").and_then(Value::as_str) == Some(mois))

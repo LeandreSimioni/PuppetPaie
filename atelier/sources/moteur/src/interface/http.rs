@@ -202,7 +202,7 @@ pub fn ecouter(port: u16) -> std::io::Result<(TcpListener, u16)> {
 
 /// Une prise d'ecoute ne passe jamais a un processus enfant (une route, le relais de la mise a jour). La bibliotheque
 /// standard la cree deja non heritable, mais un fournisseur reseau intercale (un antivirus) peut perdre ce drapeau : un
-/// enfant la gardait alors ouverte apres la mort de la fenetre (mesure le 09/10/2026, port tenu par un PID mort).
+/// enfant la gardait alors ouverte apres la mort de la fenetre (port tenu par un PID mort).
 pub fn sans_heritage(l: &TcpListener) {
     #[cfg(windows)]
     {

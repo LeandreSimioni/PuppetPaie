@@ -140,13 +140,19 @@ pub fn ascii_nfkd(v: &str) -> String {
     }
     ascii
 }
-/// `str.capitalize()`.
+/// La première lettre en capitale, le reste en minuscules.
 pub fn capitaliser(t: &str) -> String {
     let mut c = t.chars();
     match c.next() {
         Some(p) => p.to_uppercase().collect::<String>() + &c.as_str().to_lowercase(),
         None => String::new(),
     }
+}
+
+/// « de » devant `mot`, elide devant une voyelle : « de mars 2026 », « d'avril 2026 », « d'absence non rémunérée ».
+pub fn de(mot: &str) -> String {
+    let voyelle = mot.chars().next().is_some_and(|c| "aàâeéèêëiîïoôuùûyAÀÂEÉÈÊIÎOÔUÛY".contains(c));
+    format!("{}{}", if voyelle { "d'" } else { "de " }, mot)
 }
 
 /// LE SALARIE TEL QUE L'ECRAN LE NOMME, partout ou le moteur parle de lui (refus, avis, listes, phrases d'un envoi) :

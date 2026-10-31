@@ -47,7 +47,7 @@ fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
     v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
-/// `str(x or "")`.
+/// Une valeur en texte, vide si elle manque ou est vide.
 fn txt(v: &Value) -> String {
     if vrai(v) {
         en_texte(v)
@@ -60,22 +60,22 @@ fn texte_de(v: &Value, k: &str) -> String {
     txt(g(v, k))
 }
 
-/// `x or None`, lu comme texte.
+/// Une valeur en texte, rien si elle est vide.
 fn ou_rien(v: &Value) -> Option<String> {
     vrai(v).then(|| en_texte(v))
 }
 
-/// `Decimal.quantize(Decimal("0.01"), ROUND_DOWN)`.
+/// Au centime, vers zéro.
 fn bas(x: Decimal) -> Decimal {
     x.round_dp_with_strategy(2, RoundingStrategy::ToZero)
 }
 
-/// `Decimal.quantize(Decimal("0.01"))` : au pair sur le demi.
+/// Au centime, au pair sur le demi.
 fn pair(x: Decimal) -> Decimal {
     x.round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven)
 }
 
-/// `float(x)` d'un `Decimal`, correctement arrondi.
+/// Le décimal en flottant, correctement arrondi.
 fn flottant(x: Decimal) -> f64 {
     x.to_string().parse().unwrap_or(0.0)
 }

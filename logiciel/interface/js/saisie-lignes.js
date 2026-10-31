@@ -11,8 +11,7 @@ function rubriqueDe(code) {
 
 /** Le déroulant des rubriques, dans l'ordre où le moteur les rend. */
 function optionsRubriques(choisie, nat) {
-  // CE QUI S'APPLIQUE À LA NATURE DU CONTRAT (30/09/2026, « si compagnie
-  // simple, interface simple »). Le moteur dit à quelle forme de paie chaque
+  // CE QUI S'APPLIQUE À LA NATURE DU CONTRAT : le moteur dit à quelle forme de paie chaque
   // rubrique s'adresse (`reservee_a`, lu sur les champs que le calcul
   // applique) ; la page compare, elle ne connaît aucune rubrique. Sans
   // nature (`nat` absent) rien ne se filtre, et la rubrique DÉJÀ choisie
@@ -73,7 +72,7 @@ function ligneRubrique(l = {}, nat) {
   // Une ligne neuve part du dernier taux donné, pas d'un champ vide : c'est
   // là que « on met de base le dernier taux » se voit. Le dernier taux DE SA
   // RUBRIQUE : « le cachet c'est le cachet, les heures c'est les heures ».
-  // UNE LIGNE EN POURCENTAGE (majoration, précarité — 30/09/2026) : le
+  // UNE LIGNE EN POURCENTAGE (majoration, précarité) : le
   // fichier dit `base` et `taux_majoration` ; les deux mêmes champs les
   // montrent, « 120 € à 25 % ».
   if (l.base !== undefined || l.taux_majoration !== undefined) {
@@ -86,7 +85,7 @@ function ligneRubrique(l = {}, nat) {
        4 cachets à 130 €  Théâtre 71            le 14 15 17 18
 
      « Pour moi tout est sur la même ligne : les dates, les lieux et le
-     cachet » (12/09/2026). C'est la bonne maille, et elle règle le lieu par
+     cachet ». C'est la bonne maille, et elle règle le lieu par
      cachet d'un seul coup : une ligne de paie EST un groupe de cachets, à un
      taux, à un endroit, à des dates. Le lieu n'a plus à être rattaché à une
      date d'un côté et à un engagement de l'autre — il est là, sur la ligne
@@ -97,7 +96,7 @@ function ligneRubrique(l = {}, nat) {
      sont une constante du règlement. Ce qui reste en mots : « à » et « € »,
      les deux seuls qui disent lequel des nombres est le taux. */
   div.innerHTML = `
-    <!-- LES JOURS D'ABORD (23/09/2026) : ce sont eux qui situent l'engagement et
+    <!-- LES JOURS D'ABORD : ce sont eux qui situent l'engagement et
          qui comptent les cachets. -->
     <button type="button" class="r-jours-btn" title="cocher les jours dans le calendrier">—</button>
     <input class="r-quantite" type="number" min="0" step="0.5" placeholder="qté"
@@ -114,8 +113,8 @@ function ligneRubrique(l = {}, nat) {
          et ses valeurs viennent du moteur (« genres »). Vide : celui de la
          rubrique, qui n'est écrit nulle part. -->
     <select class="r-genre cachee" title="genre de l'avantage en nature (bloc 54)"></select>
-    <!-- LES JOURS SE COCHENT DANS UN CALENDRIER (15/09/2026 : « plus
-         esthétique et clair que de taper 12, 24, 26 »). Le bouton dit les
+    <!-- LES JOURS SE COCHENT DANS UN CALENDRIER, plus
+         clair que de taper 12, 24, 26. Le bouton dit les
          jours cochés ; le champ caché garde l'écriture « 14 15 17 18 » que
          tout le reste de la page lit (joursDe). Les jours cochés dans un
          mois SUIVANT sont le planning de la ligne (data-planning). -->
@@ -141,8 +140,8 @@ function ligneRubrique(l = {}, nat) {
     // qui est dans le fichier se voit (le moteur dit si elles y ont leur place).
     const h = div.querySelector(".r-heures");
     h.classList.toggle("cachee", !veutHeures && h.value === "");
-    // UNE LIGNE « MONTANT » (prime, acompte, indemnité, défraiement réel —
-    // 30/09/2026) : ni quantité, ni jours, ni lieu. On tape la somme ; la
+    // UNE LIGNE « MONTANT » (prime, acompte, indemnité, défraiement réel) :
+    // ni quantité, ni jours, ni lieu. On tape la somme ; la
     // quantité vaut 1 et reste écrite, le moteur lit quantité × taux.
     const montant = !!r && r.saisie.includes("montant") && !r.saisie.includes("quantite");
     const q = div.querySelector(".r-quantite");
@@ -196,15 +195,13 @@ function ligneRubrique(l = {}, nat) {
   };
   div.querySelector(".supprimer").onclick = () => { div.remove(); rafraichirApercu(); };
   div.querySelectorAll("input").forEach((c) => { c.oninput = rafraichirApercu; });
-  // Taper un taux ici, c'est décider du prochain DE LA MÊME RUBRIQUE : le
-  // cachet par défaut ne bouge que sur une ligne de cachets (25/09/2026 : un
-  // taux horaire était devenu « cachet à 200 € par défaut »).
+  // Taper un taux ici, c'est donner celui de la prochaine ligne DE LA MÊME RUBRIQUE.
   div.querySelector(".r-taux").oninput = () => {
     const v = div.querySelector(".r-taux").value;
     const r = div.querySelector(".r-code").value;
     if (v !== "" && +v > 0) {
-      if (r === "cachet") { DERNIER_TAUX = +v; afficherRappelsMois(); }
-      else TAUX_PAR_RUBRIQUE[r] = +v;
+      TAUX_PAR_RUBRIQUE[r] = +v;
+      if (r === "cachet") afficherRappelsMois();
     }
     rafraichirApercu();
   };
@@ -236,16 +233,15 @@ function ligneRubrique(l = {}, nat) {
    « J'aime bien l'idée de pouvoir cocher les dates dans un petit planning,
    plus esthétique et clair que de taper 12, 24, 26. Du coup avec une flèche
    on pourrait aller au mois suivant. Avec un petit avertissement : vous êtes
-   en train de créer un contrat sur plusieurs mois. Valider ? » (15/09/2026)
+   en train de créer un contrat sur plusieurs mois. Valider ? »
 
    Un mois à la fois, sous la ligne de paie. Les jours du mois de la saisie
    se cochent comme jours joués (ils comptent les cachets) ; ceux des mois
    suivants sont le PLANNING de la ligne — pas payés ce mois-ci, mais connus :
    le contrat imprimé les liste, la fin du contrat se cale sur le dernier, et
    le mois venu, le contrat repris d'office les retrouve déjà cochés.
-   On remonte AUSSI avant le mois de la saisie, mais pour LIRE (16/09/2026,
-   « j'aimerais pouvoir accéder à l'historique au moins des contrats dans le
-   calendrier ») : les mois passés montrent les contrats déclarés des
+   On remonte AUSSI avant le mois de la saisie, mais pour LIRE :
+   les mois passés montrent les contrats déclarés des
    salariés du bloc — en plage grisée quand on ne connaît que début, fin et
    nombre de cachets (l'historique importé des AEM), en jours pleins quand le
    mois a été produit ici. Rien ne s'y coche : un cachet d'octobre se paie
@@ -335,11 +331,11 @@ function ouvrirCalendrier(ligne, moisForce) {
   // Les contrats passés, par mois affiché, chargés à la demande. `null`
   // tant qu'on attend le serveur : la grille se dessine sans, puis se redessine.
   const passes = new Map();
-  const salaries = bloc ? salariesDuBloc(bloc) : [];
+  const salarie = (bloc && salarieDuBloc(bloc)) || null;
   const chargerPasses = (m) => {
     if (passes.has(m)) return;
     passes.set(m, null);
-    api("contrats-passes", { mois: m, salaries }).then((r) => {
+    api("contrats-passes", { mois: m, salarie }).then((r) => {
       passes.set(m, r.contrats || []);
       if (vue === m && cal.isConnected) dessiner();
     }).catch(() => passes.set(m, []));
@@ -369,8 +365,8 @@ function ouvrirCalendrier(ligne, moisForce) {
     const listePasses = !passe ? "" : (passes.get(vue) === null
       ? `<div class="c-passes discret">…</div>`
       : `<div class="c-passes">${contrats.length
-          ? contrats.map((c) => ligneContratPasse(c, salaries.length !== 1)).join("")
-          : `<span class="discret">${salaries.length ? "aucun contrat déclaré ce mois-là" : "cocher un salarié pour voir ses contrats"}</span>`}
+          ? contrats.map((c) => ligneContratPasse(c, !salarie)).join("")
+          : `<span class="discret">${salarie ? "aucun contrat déclaré ce mois-là" : "cocher un salarié pour voir ses contrats"}</span>`}
         </div>`);
     cal.innerHTML = `
       <div class="c-tete">
@@ -379,7 +375,7 @@ function ouvrirCalendrier(ligne, moisForce) {
         <button type="button" class="c-suiv" title="mois suivant">›</button>
       </div>
       <div class="c-grille">
-        ${passe ? casesMoisPasse(vue, contrats, salaries.length !== 1)
+        ${passe ? casesMoisPasse(vue, contrats, !salarie)
                 : JOURS_SEMAINE.map((x) => `<span class="c-sem">${x}</span>`).join("") + cases}
       </div>
       ${listePasses}
@@ -387,7 +383,7 @@ function ouvrirCalendrier(ligne, moisForce) {
         <div class="c-avert">
           <b>Vous êtes en train de créer un contrat sur plusieurs mois</b>
           — du ${echapper(jjmmaaaa(debutDuBloc(bloc) || mois + "-01"))} au
-          ${echapper(jjmmaaaa(attente))}. Les cachets de ${echapper(moisEnClair(attente.slice(0, 7)))}
+          ${echapper(jjmmaaaa(attente))}. Les cachets ${echapper(deMois(attente.slice(0, 7)))}
           se paieront dans le fichier de ce mois-là (« reprendre un contrat en
           cours » les retrouvera cochés) ; ce mois-ci partent le contrat et la
           DPAE pour le contrat entier. Valider ?
@@ -492,7 +488,7 @@ function planningDuBloc(bloc) {
 function debutDuBloc(bloc) {
   if (!bloc) return "";
   const jours = joursDuBloc(bloc);
-  const ecrit = carteFermee(bloc) ? (engagementsLus(bloc)[0] || {}).debut : bloc.querySelector(".e-debut").value;
+  const ecrit = carteFermee(bloc) ? (engagementLu(bloc) || {}).debut : bloc.querySelector(".e-debut").value;
   return ecrit || jours[0] || "";
 }
 
@@ -510,43 +506,22 @@ function lignesDe(e) {
   return (e.lignes && e.lignes.length) ? e.lignes : [{}];
 }
 
-/* LE DERNIER TAUX DONNÉ, et c'est tout ce qui reste du « par défaut du mois ».
-   « Pas besoin de taux de cachet : on met de base le dernier taux donné.
-   Simple et efficace » (12/09/2026). Il se reprend de la saisie chargée, et
-   il suit ce qu'on tape : la ligne de paie suivante, et le mois suivant,
-   partent de là. Il continue d'être écrit dans le fichier — le moteur s'en
-   sert comme défaut d'un engagement qui ne dit pas son taux — mais plus
-   personne n'a à le saisir. Sa valeur de départ, c'est le MOTEUR qui la dit
-   (route `saisie`, `defauts.taux_cachet`) : la page n'en choisit pas. */
-let DERNIER_TAUX = null;
-/* Le dernier taux donné pour chaque AUTRE rubrique (heure, service de
- * répétition…). Le cachet garde le sien dans DERNIER_TAUX, qui s'enregistre. */
+/* LE DERNIER TAUX DONNÉ À CHAQUE RUBRIQUE : celui d'une ligne neuve de la même rubrique, à l'écran seulement ; rien
+   ne l'enregistre. Celui du cachet part de ce que le MOTEUR dit (route `saisie`, `defauts.taux_cachet`). */
 const TAUX_PAR_RUBRIQUE = {};
 function tauxParDefaut(code) {
-  return code === "cachet" ? (DERNIER_TAUX ?? "") : (TAUX_PAR_RUBRIQUE[code] ?? "");
+  return TAUX_PAR_RUBRIQUE[code] ?? "";
 }
-let SAISIE_DATE_PAIEMENT = "";   // celle du fichier, ou celle que le moteur propose
 
 /* =======================================================================
    LE LIEU ET LES JOURS SONT SUR LA LIGNE DE PAIE
    =======================================================================
-   Décidé le 11/09/2026 sur un exemple réel — quatre Zerbinette dans le
-   mois, un à Berlin, un à Paris, deux à Avallon — écrit le 12, puis recadré par
-   lui le même jour, et c'est le recadrage qui a tout simplifié :
+   Une ligne de paie EST un groupe de cachets, à un taux, à un endroit, à des
+   dates : « 1 cachet à 130 € au Théâtre de la Ville le 12 », « 4 cachets à
+   130 € au Théâtre 71 le 14, 15, 17, 18 ». Deux villes, deux lignes. Le lieu
+   se tape sur la ligne : il n'y a rien à hériter, rien à déplier.
 
-     « Pour moi tout est sur la même ligne : les dates, les lieux et le
-       cachet. Du coup on peut faire 1 cachet à 130 € au Théâtre de la Ville
-       le 12. Ou 4 cachets à 130 € au Théâtre 71 le 14, 15, 17, 18. »
-
-   La première version posait le lieu sur la DATE, avec un héritage à trois
-   étages (la date, l'engagement, le mois) et une zone dépliante sous chaque
-   engagement pour les cas où les villes diffèrent. Ça marchait, et c'était
-   une mécanique à expliquer. Sa maille à lui n'a pas besoin d'héritage : une
-   ligne de paie EST un groupe de cachets, à un taux, à un endroit, à des
-   dates. Deux villes, deux lignes. Rien à hériter, rien à déplier, rien à
-   trancher entre « ce qui est tapé » et « ce qui est repris ».
-
-   C'est TOUJOURS UNE SEULE PAIE : même spectacle, donc même numéro d'objet,
+   C'est TOUJOURS UN SEUL ENGAGEMENT : même spectacle, donc même numéro d'objet,
    donc un contrat, un bulletin, une AEM. Les jours de l'engagement sont la
    réunion des jours de ses lignes — `joursDuBloc` ici, `dates_engagement`
    dans le moteur, et les deux composent la même liste.
@@ -652,47 +627,13 @@ function ecritDuBloc(div, e) {
   });
 }
 
-/* LES TERMES DU CONTRAT AVANT UN AVENANT EN COURS DE MOIS (`avant`,
- * periodes.rs : le salaire mensuel et la quotité d'avant, sur lesquels se paie
- * la période d'avant l'avenant). Ils se montrent quand l'engagement les porte,
- * ou quand l'avenant est daté : c'est ce fait-là qui les appelle. */
-function poserAvant(div, e) {
-  const avant = e.avant || {};
-  div.querySelector(".e-avant-salaire").value = avant.salaire_mensuel ?? "";
-  div.querySelector(".e-avant-quotite").value = avant.quotite_contrat ?? "";
-  const majAvant = () => {
-    const dit = div.querySelector(".e-avant-salaire").value !== "" || div.querySelector(".e-avant-quotite").value !== "";
-    div.querySelector(".e-avant").hidden = !dit && !div.querySelector(".e-date-modification").value;
-  };
-  div.querySelector(".e-date-modification").addEventListener("change", majAvant);
-  div.querySelectorAll(".e-avant input").forEach((c) => { c.oninput = rafraichirApercu; });
-  majAvant();
-  div.querySelector(".e-debut").addEventListener("change", () => majAvenant(div));
-  majAvenant(div);
-}
-
-/* L'AVENANT NE SE PROPOSE QU'À UN CONTRAT QUI EXISTE DÉJÀ.
- * Un CDI saisi pour la première fois montrait « Avenant à compter du » : rien
- * à remplir, puisque ce qu'on tape ce mois-ci, ce sont les termes du contrat.
- * La case paraît quand le contrat a commencé avant le mois affiché — c'est ce
- * fait-là qui l'appelle —, ou quand elle porte déjà une date. */
-function majAvenant(div) {
-  const case_ = div.querySelector(".e-date-modification");
-  const debut = div.querySelector(".e-debut").value;
-  const mois = document.getElementById("mois").value || "";
-  const cachee = !case_.value && !(debut && mois && debut.slice(0, 7) < mois);
-  const l = case_.closest("label");
-  l.hidden = cachee;
-  l.style.display = cachee ? "none" : "";   // la feuille de style pose `display` sur ces étiquettes
-}
-
-function avantDuBloc(div) {
-  const s = div.querySelector(".e-avant-salaire").value, q = div.querySelector(".e-avant-quotite").value;
-  if (s === "" && q === "") return null;
-  const a = {};
-  if (s !== "") a.salaire_mensuel = +s;
-  if (q !== "") a.quotite_contrat = +q;
-  return a;
+/* L'AVENANT D'UN MOIS (`date_modification`, et `avant`, les termes qui paient
+ * ses jours d'avant : periodes.rs) ne se saisit pas sur la carte : sa date se
+ * dit à un seul endroit, la question « À partir de » que le moteur pose à
+ * « Modifier l'engagement ». La carte garde ce que le mois porte et le rend tel
+ * quel à l'enregistrement. */
+function poserAvenant(div, e) {
+  div._avenant = { date_modification: e.date_modification || "", avant: e.avant || null };
 }
 
 /** Les jours d'une ligne qui disent leur propre lieu, un champ chacun. */
@@ -769,11 +710,11 @@ function poserSpectacles(select) {
  * Une carte lue dans le fichier du mois (`chargerMois`) naît COQUE : ce qui se
  * voit d'un engagement validé (`.e-resume`, ses imprévus, ses états) et ce que
  * l'aperçu y peint — la carte figée que le moteur rend pour un engagement validé.
- * Elle sait seulement quels engagements du fichier elle montre (`data-rangs`) :
+ * Elle sait seulement quels engagements du fichier elle montre (`data-engagement`) :
  * tant que son formulaire n'existe pas, rien ne la modifie, et elle les écrit
- * tels quels (`engagementsDuBloc`). Son formulaire se construit à la première
+ * tels quels (`engagementDuBloc`). Son formulaire se construit à la première
  * occasion qui l'ouvre — l'état de son engagement dit qu'il n'est pas validé, on
- * la rouvre par « Modifier… », les états tardent (`fermerEdition`,
+ * on l'ouvre d'un clic pour la modifier, les états tardent (`fermerEdition`,
  * `ouvrirCarte`) — et il reste construit tant que la carte vit ; dès lors
  * c'est lui qui écrit. Naissent ouvertes : une carte neuve (« Ajouter un
  * engagement »), un contrat en cours repris, une carte dédoublée, et celle qui
@@ -786,7 +727,7 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
     <!-- L'ENGAGEMENT VALIDÉ, EN UNE LIGNE : quand, qui, pour
          quoi, ce qui reste à faire, le net. Voir peindreCarte(). -->
     <div class="e-resume"></div>
-    <!-- SES IMPRÉVUS DU MOIS (15/10/2026) : une ligne par arrêt ou absence
+    <!-- SES IMPRÉVUS DU MOIS : une ligne par arrêt ou absence
          qui touche ce contrat, avec ses gestes et les jours payés pendant
          l'imprévu. Vide le plus souvent. Visible aussi sur un engagement validé. -->
     <div class="e-imprevus"></div>
@@ -799,8 +740,9 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
   div.dataset.numeroDe = e.numero ? (e.salarie || "") : "";
   const mois = document.getElementById("mois").value;
   if (e.debut && mois && e.debut.slice(0, 7) < mois) div.classList.add("en-cours");
-  if (e.rangs) div.dataset.rangs = e.rangs.join(",");
-  if (fermee && e.rangs) return div;
+  // Son identité, que le moteur a rendue : ce qui la désigne quand elle s'écrit.
+  if (e.id) div.dataset.engagement = JSON.stringify(e.id);
+  if (fermee && e.id) return div;
   construireCarte(div, e);
   return div;
 }
@@ -810,60 +752,51 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
  *  reste : l'enregistrement automatique ne réécrit pas le fichier pour rien. */
 function ouvrirCarte(div) {
   if (!carteFermee(div)) return;
-  const lus = engagementsLus(div);
-  const intacte = DERNIERE_ECRITE !== null && JSON.stringify(saisieCourante()) === DERNIERE_ECRITE;
-  construireCarte(div, { ...(lus[0] || {}), salaries: lus.map((x) => x.salarie) });
+  const lu = engagementLu(div) || {};
+  construireCarte(div, lu);
   if (div._paies) peindreChiffres(div, div._total);
   // Les cases du contrat écrit que le moteur a demandées pour cet engagement, au dernier aperçu.
   const p = (div._paies || [])[0];
   montrerEcrit(div, p && p.contrat ? p.contrat.ecrits : div._ecrits);
-  if (intacte) DERNIERE_ECRITE = JSON.stringify(saisieCourante());
+  marquerEcrite(div);
 }
 
-/** Les salariés à cocher d'une carte : la liste commune, cochée pour `voulus`,
+/** Le salarié d'une carte, à choisir dans la liste commune (un bouton radio par carte), choisi pour `voulu`,
  *  et un salarié du fichier absent des actifs (fiche mise de côté) garde sa
- *  case, cochée : on ne perd pas un engagement parce qu'on a archivé quelqu'un. */
-function poserQui(liste, voulus) {
+ *  case, choisie : on ne perd pas un engagement parce qu'on a archivé quelqu'un. */
+let LISTES_QUI = 0;
+function poserQui(liste, voulu) {
   const actifs = ETAT.salaries || [];
   const connus = new Set(actifs.map((s) => s.cle));
   poserListe(liste, "salaries", [actifs], () => actifs.map(
-    (s) => `<label><input type="checkbox" class="e-qui-case" value="${echapper(s.cle)}"> ${
+    (s) => `<label><input type="radio" class="e-qui-case" value="${echapper(s.cle)}"> ${
       echapper(s.libelle)}</label>`).join(""));
-  liste.querySelectorAll(".e-qui-case").forEach((c) => { c.checked = c.defaultChecked = voulus.has(c.value); });
-  liste.insertAdjacentHTML("beforeend", [...voulus].filter((c) => !connus.has(c)).map(
-    (c) => `<label><input type="checkbox" class="e-qui-case" value="${echapper(c)}"
+  if (!liste.dataset.nom) liste.dataset.nom = "qui-" + (++LISTES_QUI);
+  liste.querySelectorAll(".e-qui-case").forEach((c) => {
+    c.name = liste.dataset.nom;
+    c.checked = c.defaultChecked = c.value === voulu;
+  });
+  liste.insertAdjacentHTML("beforeend", [voulu].filter((c) => c && !connus.has(c)).map(
+    (c) => `<label><input type="radio" class="e-qui-case" name="${liste.dataset.nom}" value="${echapper(c)}"
        checked> ${echapper(c)} <span class="discret">(fiche mise de côté)</span></label>`).join(""));
 }
 
 /** Le formulaire d'une carte, posé devant sa coque et branché. */
 function construireCarte(div, e) {
-  // QUI : une liste à COCHER, pas un menu, et UN bloc pour tous les cochés.
-  //
-  // L'ancienne option « Les deux » qui dédoublait le bloc à la sélection
-  // était taillée pour une compagnie à deux têtes, et dédoublait trop tôt.
-  // La demande : « il faut pouvoir cocher dedans, x Célimène
-  // x Marin, pas d'option les deux d'un coup » ; puis : « le dédoublement
-  // doit se faire une fois validé, pas avant — c'est ce qui va me faire
-  // aller vite quand j'ai plusieurs employés pour le même spectacle avec la
-  // même paye ». Donc : on coche qui on veut, on saisit UNE fois, on valide
-  // — et LÀ le bloc se démultiplie, un bloc par salarié (validerPlusieurs).
-  //
-  // Le moteur, lui, ne connaît toujours qu'un salarié par engagement : c'est
-  // saisieCourante qui écrit un engagement par salarié coché, et chargerMois
-  // qui regroupe au retour ce qui est identique et pas encore validé.
-  const voulus = new Set(e.salaries || (e.salarie ? [e.salarie] : []));
+  // QUI : un salarié. Une carte porte un engagement, et un engagement un salarié.
+  const voulu = e.salarie || "";
   div.insertAdjacentHTML("afterbegin", `
     <div class="ligne1">
       <!-- Pas de « + » ici : une fiche neuve se crée dans Configuration.
            La saisie d'un engagement doit rester simple et agréable ; on y choisit,
-           on n'y administre pas (13/09/2026). -->
+           on n'y administre pas. -->
       <div class="champ">Salarié
         <details class="e-qui">
-          <summary class="vide">— cocher —</summary>
+          <summary class="vide">— choisir —</summary>
           <div class="e-qui-liste"></div>
         </details>
       </div>
-      <!-- LA NATURE DU CONTRAT (19/09/2026). Elle ne se devine pas : un
+      <!-- LA NATURE DU CONTRAT. Elle ne se devine pas : un
            engagement muet est un CDDU du spectacle, et c'est ce qu'ont été
            les 146 contrats de l'historique. Ce qui manquait, c'était de
            pouvoir dire AUTRE CHOSE — tant qu'elle n'était pas ici, un
@@ -871,10 +804,16 @@ function construireCarte(div, e) {
            donnees/contrats-base.json le savait tout seul. Elle change la
            forme du bloc : un permanent n'a ni spectacle ni cachets, il a un
            salaire au mois et des faits. -->
-      <label class="e-nature-bloc" title="ce que la DSN écrira de la structure de ce contrat">Nature
+      <label class="e-nature-bloc">Nature
         <select class="e-nature"></select></label>
       <label class="e-spectacle-bloc">Spectacle
         <select class="e-spectacle"></select></label>
+      <!-- L'ÉTABLISSEMENT où la personne travaille, quand la compagnie en a
+           d'autres que le siège (Configuration › Entreprise › Avancé) : la
+           DSN, le signalement d'arrêt et le taux AT/MP sont les siens. Une
+           compagnie d'un seul établissement ne voit pas la case. -->
+      <label class="e-etablissement-bloc" hidden>Établissement
+        <select class="e-etablissement"></select></label>
     </div>
     <!-- Les jours et le lieu sont sur chaque ligne de
          paie, qui porte la phrase entière — « 4 cachets à 130 € au
@@ -899,16 +838,6 @@ function construireCarte(div, e) {
         <label title="la durée du travail du contrat, en heures par mois (S21.G00.40.013)">Heures par mois
           <input type="number" step="0.01" min="0" class="e-quotite">
           <button type="button" class="lien e-temps-plein" hidden></button></label>
-        <!-- UN AVENANT SE DATE. Ce que cette saisie change au
-             contrat (quotité, nature, motif, date de début) se déclare avec
-             l'ancienne valeur dans le bloc Changements contrat de la DSN, daté
-             du jour où il prend effet (S21.G00.41.001) : le moteur le lit ici,
-             il ne le devine pas. Il ne se recopie pas au mois suivant. -->
-        <label title="le jour où prend effet ce que cette saisie change au contrat — la date que la DSN déclare (S21.G00.41.001)">Avenant à compter du
-          <input type="date" class="e-date-modification"></label>
-        <span class="e-avant" hidden><span class="discret">avant l'avenant :</span>
-          <label>salaire <input type="number" step="0.01" min="0" class="e-avant-salaire"></label>
-          <label>quotité <input type="number" step="0.01" min="0" class="e-avant-quotite"></label></span>
       </div>
       <div class="e-faits">
         <div class="e-fait-groupe">
@@ -928,7 +857,7 @@ function construireCarte(div, e) {
          « J'aimerais voir pour chaque engagement le net pour le salarié, le
          brut et le coût entreprise. Et qu'une fois les cases remplies, on
          puisse mettre par exemple le coût pour l'entreprise et il recalcule
-         le brut du cachet » (l'éditeur, 22/09/2026).
+         le brut du cachet ».
 
          Les voir, d'abord : un brut tout seul ne dit ni ce que le salarié
          touche, ni ce que ça coûte — et ce sont les deux nombres dont on a
@@ -949,7 +878,7 @@ function construireCarte(div, e) {
          jamais ce qui a été demandé : deux cachets ne tombent pas toujours
          sur 500,00 € pile, et à égalité c'est le taux qui ne dépasse PAS
          l'enveloppe qui gagne. -->
-    <!-- LA SAISIE, PENSÉE DANS L'ORDRE OÙ L'ON REMPLIT (23/09/2026). Qui et
+    <!-- LA SAISIE, PENSÉE DANS L'ORDRE OÙ L'ON REMPLIT. Qui et
          quel spectacle en tête ; les lignes de paie, jours d'abord ; puis le
          RÉSULTAT en une ligne — le net, ce qu'on vire. Viser un montant est
          un outil, pas une lecture : il se replie. Le métier, la case cadre,
@@ -960,7 +889,7 @@ function construireCarte(div, e) {
       <span class="e-suite"></span>
       <button type="button" class="lien e-viser-btn">Viser un montant</button>
       <button type="button" class="lien e-options-btn">Plus d'options</button>
-      <!-- LA PORTE DES IMPRÉVUS (15/10/2026) : un arrêt de travail, une
+      <!-- LA PORTE DES IMPRÉVUS : un arrêt de travail, une
            absence, une rupture avant terme, pour le salarié de cette carte.
            Discrète : les imprévus sont rares. js/imprevus.js. -->
       <button type="button" class="lien e-imprevu-btn" hidden>Un imprévu…</button>
@@ -990,7 +919,7 @@ function construireCarte(div, e) {
     <!-- LE CONTRAT, replié : « du 12/10/2026 au 20/12/2026 », préréglé sur
          le premier et le dernier jour joué. On l'ouvre pour une seule chose :
          allonger la date de fin quand le contrat se poursuit le mois suivant
-         (contrats sur plusieurs mois, 15/09/2026). Le numéro y apparaît, en
+         (contrats sur plusieurs mois). Le numéro y apparaît, en
          lecture seule, une fois le mois produit. -->
     <details class="e-contrat">
       <summary></summary>
@@ -1022,7 +951,7 @@ function construireCarte(div, e) {
         <label data-ecrit="clauses_particulieres" hidden title="à la place des clauses particulières de la compagnie (Configuration › Modèles de contrat)">Clauses particulières de ce contrat
           <textarea rows="2" class="e-ecrit-champ" data-cle="clauses_particulieres" placeholder="vide : celles de la compagnie"></textarea></label>
       </div>
-      <!-- LA FIN D'UN CONTRAT QUI SE SIGNALE (19/09/2026). Trois faits que
+      <!-- LA FIN D'UN CONTRAT QUI SE SIGNALE. Trois faits que
            le moteur ne devine pas, et il a raison de ne pas les deviner :
            une date de notification ne se déduit pas d'un salaire, et le
            motif de rupture change les droits du salarié à l'assurance
@@ -1042,8 +971,8 @@ function construireCarte(div, e) {
         <label class="e-motif-l">Motif de la rupture
           <select class="e-motif-rupture"></select></label>
         <p class="discret e-motif-dit" hidden></p>
-        <!-- Les dates et la transaction selon le motif (30/09/2026,
-             permanents.faits_de_rupture) : notifiée pour une rupture que
+        <!-- Les dates et la transaction selon le motif
+             (permanents.faits_de_rupture) : notifiée pour une rupture que
              l'un décide, engagée pour un licenciement, signée pour une
              rupture conventionnelle, la transaction après un litige. -->
         <label data-fait="engagement_licenciement" hidden
@@ -1064,7 +993,7 @@ function construireCarte(div, e) {
           <select class="e-transaction"></select></label>
         <label title="le dernier jour payé au salaire habituel — la fin du contrat, sauf préavis non effectué">Dernier jour payé
           <input type="date" class="e-dernier-paye" placeholder="la fin du contrat"></label>
-        <!-- LES FAITS DU MOTIF (30/09/2026) : le moteur dit, motif par motif,
+        <!-- LES FAITS DU MOTIF : le moteur dit, motif par motif,
              ce qu'il doit savoir (permanents.faits_de_rupture) ; la page ne
              montre que ceux-là. Sans eux, une rupture conventionnelle était
              refusée sans qu'on puisse répondre d'ici. -->
@@ -1084,7 +1013,7 @@ function construireCarte(div, e) {
           <input class="e-precarite-pourquoi" placeholder="refus d'un CDI, emploi de vacances…"></label>
       </div>
       <!-- LES BORNES NE SE SAISISSENT PLUS POUR UN CONTRAT D'USAGE
-           (22/09/2026). L'éditeur : « il y a marqué date de début et fin de
+          . L'éditeur : « il y a marqué date de début et fin de
            contrat, mais en fait c'est plus nécessaire puisqu'on clique dans
            le calendrier les dates pour lesquelles on fait les heures ou les
            cachets » — et, sur le contrat qui déborde du mois : « on pourrait
@@ -1107,18 +1036,28 @@ function construireCarte(div, e) {
     </div>`);
   // (Sous le formulaire, la coque : `.resolu`, `.e-resume`, `.e-imprevus`,
   // `.avis`, `.etats` — voir ligneEngagement.)
-  poserQui(div.querySelector(".e-qui-liste"), voulus);
+  poserQui(div.querySelector(".e-qui-liste"), voulu);
 
   // --- la nature du contrat, et la forme du bloc qu'elle décide
   const selNat = div.querySelector(".e-nature");
   poserListe(selNat, "natures", [ETAT.natures], () => (ETAT.natures || []).map(
-    (n) => `<option value="${echapper(n.cle)}">${echapper(n.libelle)}</option>`).join(""));
+    (n) => `<option value="${echapper(n.cle)}" title="${echapper(n.aide || "")}">${echapper(n.libelle)}</option>`).join(""));
+  // Le nom court se lit ; ce qu'il veut dire est dans l'aide du champ, nature par nature.
+  div.querySelector(".e-nature-bloc").title = (ETAT.natures || []).filter((n) => n.aide).map((n) => `${n.libelle} : ${n.aide}`).join("\n");
   selNat.value = e.nature || ETAT.nature_defaut || "";
   selNat.onchange = () => { viderBornes(div); majNature(div); rafraichirApercu(); };
   const selSpec = div.querySelector(".e-spectacle");
   poserSpectacles(selSpec);
   selSpec.value = e.spectacle || "";
   selSpec.onchange = rafraichirApercu;
+  // --- l'établissement, s'il y a à choisir (le moteur dit lesquels)
+  const selEtab = div.querySelector(".e-etablissement");
+  const etabs = Array.isArray((ETAT.configuration || {}).etablissements) ? ETAT.configuration.etablissements : [];
+  div.querySelector(".e-etablissement-bloc").hidden = !etabs.length;
+  const jj = (iso) => echapper(iso.split("-").reverse().join("/"));
+  selEtab.innerHTML = etabs.map((x) => `<option value="${echapper(x.nic || "")}">${echapper(x.nom)}${x.ouverture ? ` (ouvert le ${jj(x.ouverture)}${x.fermeture ? `, jusqu’au ${jj(x.fermeture)}` : ""})` : ""}</option>`).join("");
+  selEtab.value = e.etablissement || "";
+  selEtab.onchange = rafraichirApercu;
   // --- le métier
   const selMet = div.querySelector(".e-metier");
   poserMetiers(selMet, e.metier);
@@ -1167,8 +1106,7 @@ function construireCarte(div, e) {
   // permanent repris d'un autre logiciel n'a pas d'autre case qui fasse sa
   // paie). `onchange` : pas un calcul par touche d'un montant.
   div.querySelectorAll(".e-salaire, .e-quotite").forEach((c) => { c.onchange = rafraichirApercu; });
-  div.querySelector(".e-date-modification").value = e.date_modification || "";
-  poserAvant(div, e);
+  poserAvenant(div, e);
   poserRares(div, e);
   poserEcrit(div, e);
   remplirFaits(div, e);
@@ -1219,7 +1157,7 @@ function construireCarte(div, e) {
   // saisissent. `verrou` : fermerEdition ne les rouvre pas. (La classe
   // `en-cours` est posée dès la coque, ligneEngagement.)
   if (div.classList.contains("en-cours")) {
-    div.querySelectorAll(".e-debut, .e-fin, .e-spectacle, .e-metier, .e-cadre, .e-qui-case, .e-nature")
+    div.querySelectorAll(".e-debut, .e-fin, .e-spectacle, .e-etablissement, .e-metier, .e-cadre, .e-qui-case, .e-nature")
       .forEach((c) => { c.disabled = true; c.classList.add("verrou"); });
   }
   majContrat(div);
@@ -1323,7 +1261,6 @@ function majNature(div) {
   }
   if (nat.mensuelle) {
     majContrat(div);
-    majAvenant(div);
   }
   div.querySelector(".e-contrat-note").textContent = bornes
     ? "Un contrat payé au mois n'a pas de jour coché : ses bornes se disent ici."
@@ -1520,7 +1457,7 @@ function majContrat(div) {
   const sePoursuit = !!(fin && mois && fin.slice(0, 7) > mois);
   d.classList.toggle("a-cheval", enCours || sePoursuit);
   // UN CONTRAT SANS TERME (un CDI) n'a pas de dernier jour joué : il se
-  // dit par son début (26/09/2026 — la phrase des cachets s'y affichait).
+  // dit par son début.
   if (debut && !fin && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
     s.textContent = `Contrat depuis le ${jjmmaaaa(debut)}, sans terme${
       numero ? ` · n° ${numero}` : ""}`;
@@ -1552,7 +1489,7 @@ function rafraichirReferentiels() {
     // Une carte fermée n'a pas de listes : elle les prendra de l'ETAT du
     // moment où elle s'ouvrira.
     if (carteFermee(div)) return;
-    poserQui(div.querySelector(".e-qui-liste"), new Set(salariesDuBloc(div)));
+    poserQui(div.querySelector(".e-qui-liste"), salarieDuBloc(div));
     div.querySelectorAll(".e-qui-case").forEach((c) => {
       c.onchange = () => { majQui(div); rafraichirApercu(); };
     });
@@ -1584,20 +1521,19 @@ function nouvelleFiche(nom) {
   document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
 }
 
-/** Les salariés cochés d'un bloc, dans l'ordre de la liste. */
-function salariesDuBloc(div) {
-  if (carteFermee(div)) return engagementsLus(div).map((e) => e.salarie);   // une carte fermée : les siens
-  return [...div.querySelectorAll(".e-qui-case:checked")].map((c) => c.value);
+/** Le salarié de la carte (`""` : aucun choisi). */
+function salarieDuBloc(div) {
+  if (carteFermee(div)) return (engagementLu(div) || {}).salarie || "";   // une carte fermée : le sien
+  return (div.querySelector(".e-qui-case:checked") || {}).value || "";
 }
 
-/** Le résumé de la liste refermée : les noms cochés, ou l'invitation. */
+/** Le résumé de la liste refermée : le nom choisi, ou l'invitation. */
 function majQui(div) {
   const resume = div.querySelector(".e-qui summary");
-  const noms = [...div.querySelectorAll(".e-qui-case:checked")]
-    .map((c) => c.parentNode.textContent.replace(/\s+/g, " ").trim());
-  resume.textContent = noms.length ? noms.join(" + ") : "— cocher —";
-  resume.classList.toggle("vide", !noms.length);
-  // Un imprévu se dit d'UN salarié : la porte ne s'ouvre que sur une carte qui n'en porte qu'un.
+  const c = div.querySelector(".e-qui-case:checked");
+  resume.textContent = c ? c.parentNode.textContent.replace(/\s+/g, " ").trim() : "— choisir —";
+  resume.classList.toggle("vide", !c);
+  // Un imprévu se dit d'un salarié : la porte ne s'ouvre que sur une carte qui en porte un.
   majPorteImprevu(div);
 }
 
@@ -1609,36 +1545,12 @@ document.addEventListener("click", (ev) => {
   });
 });
 
-/** Plusieurs salariés cochés : le bloc devient un bloc par salarié.
- *
- *  Appelé APRÈS la validation (validerPlusieurs), pas avant : tant qu'on
- *  saisit, un seul bloc pour tous — c'est ça qui va vite. Le moteur, lui, ne
- *  connaît qu'un salarié par engagement, un contrat, un bulletin ; ici on ne
- *  fait que montrer à l'écran ce que le fichier contient déjà. Rien à faire
- *  pour zéro ou une case. */
-function dedoubler(div) {
-  const cles = salariesDuBloc(div);
-  if (cles.length < 2) return;
-  // Chaque bloc né ici part de ce que l'écran écrit pour SON salarié — les
-  // lignes, lieux et jours compris (les salariés jouent les mêmes dates aux
-  // mêmes endroits), la nature, le métier, tout ce que le formulaire dit.
-  const engagements = engagementsDuBloc(div, document.getElementById("mois").value);
-  const parent = div.parentNode;
-  const suivant = div.nextSibling;
-  div.remove();
-  engagements.forEach((e) => parent.insertBefore(ligneEngagement(e), suivant));
-}
-
 /** Les lignes de paie d'un bloc, telles qu'elles sont saisies. */
 /* CE QU'UNE LIGNE DIT PART DANS LA SAISIE, même incomplète : ses jours, sa
  * quantité, son taux ou ses heures. Le moteur l'enregistre en saisie et dit
- * ce qui lui manque. Pour « Viser un montant », seules partent les lignes
- * qui disent leur quantité : le taux est ce qu'on cherche, et le moteur le
- * trouve seul quand il n'y a qu'une ligne de salaire. */
-let POUR_VISER = false;
+ * ce qui lui manque. */
 const ligneEnvoyee = (r) => {
   const dit = (s) => r.querySelector(s).value.trim() !== "";
-  if (POUR_VISER) return dit(".r-quantite");
   return dit(".r-quantite") || dit(".r-taux") || dit(".r-heures")
     || joursDe(r.querySelector(".r-jours")).length > 0;
 };
@@ -1689,7 +1601,7 @@ function joursDuBloc(div, mois) {
   const vus = new Set();
   // Une carte fermée : les jours des lignes de ses engagements (un bloc porte
   // les mêmes lignes pour tous ses salariés).
-  const lignes = carteFermee(div) ? ((engagementsLus(div)[0] || {}).lignes || []) : lignesDuBloc(div, mois);
+  const lignes = carteFermee(div) ? ((engagementLu(div) || {}).lignes || []) : lignesDuBloc(div, mois);
   lignes.forEach((l) => (l.dates || []).forEach((j) => vus.add(jourDe(j))));
   return [...vus].sort();
 }
@@ -1742,9 +1654,9 @@ async function poserContratsEnCours(mois) {
   // se dit dans son bloc).
   const auMois = restants.every((c) => natureDe((c.engagement || {}).nature).mensuelle);
   dire(restants.length === 1
-    ? `Contrat en cours repris : ${restants[0].nom}${auMois ? "" : ` — poser ses jours de ${moisEnClair(mois)}`}.`
+    ? `Contrat en cours repris : ${restants[0].nom}${auMois ? "" : ` — poser ses jours ${deMois(mois)}`}.`
     : `${restants.length} contrats en cours repris (${restants.map((c) => c.nom).join(", ")})`
-      + (auMois ? "." : ` — poser leurs jours de ${moisEnClair(mois)}.`));
+      + (auMois ? "." : ` — poser leurs jours ${deMois(mois)}.`));
 }
 
 /** Ce qu'un engagement dit de lui-même en une ligne : son spectacle, ou — quand

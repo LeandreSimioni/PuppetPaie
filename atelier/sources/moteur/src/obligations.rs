@@ -46,11 +46,79 @@ use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use declarations::signalement::sauf_motifs;
 
-/// Les routes qui ecrivent ce que la compagnie dit d'une obligation.
-pub const ROUTES: [&str; 3] = ["arret-connaissance", "accident-declare", "attestation-declare"];
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, OPERATION};
 
-/// La route qui ne fait que lire : ce qu'un arret en cours de saisie ferait naitre.
-pub const ROUTES_LECTURE: [&str; 1] = ["arret-obligations"];
+const SALARIE_ARRETE: Champ = Champ { nom: "salarie", sens: "la clé de la fiche du salarié arrêté", avance: false };
+const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", sens: "le dernier jour travaillé de l'arrêt, AAAA-MM-JJ (il désigne l'arrêt)", avance: false };
+const FAITE: &[Champ] = &[
+    SALARIE_ARRETE,
+    DERNIER_JOUR,
+    Champ { nom: "le", sens: "le jour où elle a été faite ; vide : la retirer", avance: false },
+    Champ { nom: "depot", sens: "où elle a été faite (un des lieux que l'obligation propose)", avance: false },
+    Champ { nom: "heure", sens: "l'heure, HH:MM", avance: true },
+    Champ { nom: "reference", sens: "la référence de l'accusé", avance: true },
+];
+const OBLIGATIONS_REND: &str = "obligations (chacune son échéance, son état et ce qui reste à faire)";
+const NON_ECRIT: Refus = Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit (l'arrêt, le jour, le lieu) ; rien n'est écrit" };
+
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "arret-obligations",
+        geste: "Dire ce qu'un arrêt en cours de saisie fera naître (signalement…).",
+        charge: &[
+            Champ { nom: "motif", sens: "le motif de l'arrêt (code DSN)", avance: false },
+            Champ { nom: "dernier_jour", sens: "le dernier jour travaillé", avance: false },
+            Champ { nom: "fin", sens: "la fin prescrite", avance: false },
+            Champ { nom: "date_accident", sens: "le jour de l'accident", avance: true },
+        ],
+        exemple: r#"{"motif":"01","dernier_jour":"2026-11-02","fin":"2026-11-10"}"#,
+        rend: OBLIGATIONS_REND,
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "arret-connaissance",
+        geste: "Dire le jour où la compagnie a connu un arrêt ou un accident.",
+        charge: &[
+            SALARIE_ARRETE,
+            DERNIER_JOUR,
+            Champ { nom: "de", sens: "arret ou accident", avance: false },
+            Champ { nom: "jour", sens: "le jour ; vide : le moteur reprend sa présomption", avance: false },
+            Champ { nom: "heure", sens: "l'heure, HH:MM", avance: true },
+        ],
+        exemple: r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","de":"arret","jour":"2026-11-02"}"#,
+        rend: OBLIGATIONS_REND,
+        refus: &[NON_ECRIT, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "accident-declare",
+        geste: "Dire faite la déclaration d'un accident du travail ou de trajet.",
+        charge: FAITE,
+        exemple: r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","le":"2026-11-02","depot":"net-entreprises"}"#,
+        rend: OBLIGATIONS_REND,
+        refus: &[NON_ECRIT, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "attestation-declare",
+        geste: "Dire faite l'attestation de salaire d'un arrêt que la DSN ne porte pas.",
+        charge: FAITE,
+        exemple: r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-16","le":"","depot":"net-entreprises-ecran"}"#,
+        rend: OBLIGATIONS_REND,
+        refus: &[NON_ECRIT, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+];
 
 pub const A_FAIRE: &str = "a_faire";
 pub const EN_RETARD: &str = "en_retard";
@@ -272,7 +340,7 @@ impl Suivi {
         // Une fiche qui ne dit plus rien s'en va.
         self.fiches.retain(|f| f.as_object().is_some_and(|o| o.keys().any(|k| k != "salarie" && k != "dernier_jour_travaille")));
         let doc = json!({
-            "_quoi": "Ce que la compagnie a dit des obligations de ses arrets de travail : le jour ou elle a connu l'arret ou l'accident, la declaration d'accident du travail faite et l'attestation de salaire faite (hors DSN, le deuil d'enfant). Ecrit par les routes `arret-connaissance`, `accident-declare` et `attestation-declare` (`atelier/sources/moteur/src/obligations.rs`) ; les arrets eux-memes sont dans `AAAA-MM.json`.",
+            "_quoi": "Ce que la compagnie a dit des obligations de ses arrets de travail : le jour ou elle a connu l'arret ou l'accident, la declaration d'accident du travail faite et l'attestation de salaire faite (hors DSN, le deuil d'enfant). Ecrit par les routes `arret-enregistrer` (avec `connu`), `arret-connaissance`, `accident-declare` et `attestation-declare` (`atelier/sources/moteur/src/obligations.rs`) ; les arrets eux-memes sont dans `AAAA-MM.json`.",
             "arrets": self.fiches,
         });
         socle::ecriture::ecrire_json(&chemin(ctx), &doc, 2).map_err(|m| erreur("OSError", m))
@@ -410,7 +478,7 @@ fn indetermine(mut m: Map<String, Value>, pourquoi: String) -> Value {
     Value::Object(m)
 }
 
-/// Le premier envoi de cette nature trace sur l'arret (`marques_depot::marquer_envoye_depuis`, apres un depot REEL).
+/// Le premier envoi de cette nature parti pour l'arret (`avec_ce_qui_est_parti`).
 fn envoi(a: &Value, nature: &str) -> Option<Fait> {
     let mut premier: Option<(String, Value)> = None;
     for e in a.get("envois").and_then(Value::as_array).into_iter().flatten() {
@@ -527,8 +595,47 @@ fn connaissance(suivi: &Value, champ: &str, quoi: &str) -> Option<Depart> {
 
 // ------------------------------------------------------------- les arrets
 
+/// L'IMPREVU `a` ET CE QUI EN EST PARTI (`envois`), lu au journal des envois : les signalements de l'arret (une ligne `dsn`
+/// de nature 04 ou 05 dont l'evenement, `mois`, est le dernier jour travaille de l'arret et qui couvre un engagement du
+/// salarie, `versions`) et les DSN mensuelles des mois qu'il traverse deposees apres sa saisie (elles le reportent). Seul
+/// compte un depot reel accepte : un signalement refuse au bilan n'est pas recu (cahier technique DSN,
+/// `norme-dsn/texte/chapitre-4-controles.txt` §4.2) et reste du.
+pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
+    let lignes = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
+    let salarie = texte(a, "salarie");
+    let dj = texte(a, "dernier_jour_travaille");
+    let traverses: Vec<String> = match (engagement::imprevus::premier_jour(a), engagement::imprevus::dernier_jour(a)) {
+        (Ok(p), Ok(d)) if p <= d => socle::date::mois_entre(&p, &d),
+        _ => Vec::new(),
+    };
+    let saisi = texte(a, "saisi_le");
+    let mut partis = Vec::new();
+    for l in lignes.iter() {
+        let accepte = l.get("accepte") == Some(&Value::Bool(true)) && !envois::etats::refuse_par_un_retour(l).unwrap_or(false);
+        if texte(l, "quoi") != "dsn" || texte(l, "mode") != envois::journal::REEL || !accepte {
+            continue;
+        }
+        let (nom, mois, quand) = (texte(l, "fichier"), texte(l, "mois"), texte(l, "quand"));
+        let d = l.get("detail").cloned().unwrap_or(Value::Null);
+        let (nature, type_dsn) = (texte(&d, "nature"), texte(&d, "type"));
+        let ordre = texte(&d, "ordre").trim().parse::<i64>().unwrap_or(0);
+        let du_salarie = l.get("versions").and_then(Value::as_array).is_some_and(|v| v.iter().any(|x| texte(x, "salarie") == salarie));
+        if matches!(nature.as_str(), "04" | "05") && dj.len() == 10 && mois == dj && du_salarie {
+            partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "fichier": format!("sorties/{}/{}", &dj[..7], nom), "quand": quand}));
+        } else if nature == "01" && traverses.contains(&mois) && quand.replace('T', " ") >= saisi {
+            partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "mois": mois, "fichier": format!("sorties/{}/{}", mois, nom), "quand": quand}));
+        }
+    }
+    let mut a = a.clone();
+    if let Some(o) = a.as_object_mut() {
+        o.insert("envois".into(), Value::Array(partis));
+    }
+    Ok(a)
+}
+
 /// Les obligations d'un arret (`a` : l'arret tel que `imprevus/AAAA-MM.json` le porte), dans l'ordre ou elles se font.
 pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) -> R<Vec<Value>> {
+    let a = &avec_ce_qui_est_parti(ctx, a)?;
     let n = base()?;
     let mut cal = Calendrier::nouveau(Some(&ctx.entreprise));
     let mut out = Vec::new();
@@ -695,13 +802,15 @@ pub fn de_la_fin(ctx: &Contexte, cle: Option<&str>, fin: Jour, journal: &[Value]
     Ok(Value::Object(m))
 }
 
-/// Le premier depot REEL accepte du signalement de fin de ce contrat : une ligne `dsn` du journal, au jour de la fin
+/// Le premier depot REEL, non refuse au bilan, du signalement de fin de ce contrat : une ligne `dsn` du journal, au jour de la fin
 /// (`Apercu::evenement_lisible`), dont le fichier est celui que `fin-contrat-signaler` ecrit pour ce salarie.
 fn fctu_depose(journal: &[Value], cle: &str, fin: &Jour) -> Option<Fait> {
     let nom = format!("SignalementFinContrat_{}_{}.dsn", cle.to_uppercase(), fin.aaaammjj());
     journal
         .iter()
         .filter(|l| texte(l, "quoi") == "dsn" && texte(l, "mode") == envois::journal::REEL && l.get("accepte").is_some_and(vrai))
+        // Un signalement refuse au bilan n'est pas recu (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt` §4.2) : il reste du.
+        .filter(|l| !envois::etats::refuse_par_un_retour(l).unwrap_or(false))
         .filter(|l| texte(l, "mois") == fin.iso() && texte(l, "fichier").to_uppercase() == nom.to_uppercase())
         .filter_map(|l| {
             let quand = texte(l, "quand");
@@ -787,23 +896,31 @@ fn reponse(ctx: &Contexte, a: &Value) -> R<Value> {
 /// `arret-connaissance` : `{salarie, dernier_jour, de: "arret"|"accident", jour, heure?}` -- le jour (et l'heure) ou la
 /// compagnie a connu l'arret ou l'accident ; un `jour` vide efface ce qui etait dit (le moteur reprend sa presomption).
 fn arret_connaissance(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let (cle, a) = l_arret(ctx, charge)?;
+    let (_, a) = l_arret(ctx, charge)?;
     let de = en_texte(requis(charge, "de")?);
-    let champ = match de.as_str() {
+    let (champ, valeur) = connaissance_saisie(ctx, &a, &de, charge)?;
+    connaissance_ecrire(ctx, &a, champ, valeur)?;
+    reponse(ctx, &a)
+}
+
+/// Ce que la compagnie dit avoir connu de l'arret `a` (`de` : "arret" ou "accident"), d'apres `{jour, heure?}` : le champ
+/// de la fiche de suivi et sa valeur, controles sans rien ecrire (un jour vide efface).
+pub(crate) fn connaissance_saisie(ctx: &Contexte, a: &Value, de: &str, saisie: &Value) -> R<(&'static str, Value)> {
+    let champ = match de {
         "arret" => "connaissance_arret",
         "accident" => "connaissance_accident",
         autre => return Err(refus(format!("`de` vaut \"arret\" ou \"accident\", pas {}. Rien n'est ecrit.", repr(autre)))),
     };
-    if de == "accident" && !motif_appelle_la_declaration(&texte(&a, "motif"))? {
+    if de == "accident" && !motif_appelle_la_declaration(&texte(a, "motif"))? {
         return Err(refus(format!(
             "L'arret de {} (motif {}) n'est pas un accident du travail ou de trajet : il n'y a pas de declaration d'accident, ni de connaissance de l'accident a dire. Rien n'est ecrit.",
-            cle,
-            texte(&a, "motif")
+            texte(a, "salarie"),
+            texte(a, "motif")
         )));
     }
-    let j = jour_saisi(ctx, requis(charge, "jour")?, "La connaissance")?;
-    let heure = heure_saisie(charge)?;
-    if let (Some(j), "accident", Some(acc)) = (j, de.as_str(), jour(a.get("date_accident").unwrap_or(&Value::Null))) {
+    let j = jour_saisi(ctx, requis(saisie, "jour")?, "La connaissance")?;
+    let heure = heure_saisie(saisie)?;
+    if let (Some(j), "accident", Some(acc)) = (j, de, jour(a.get("date_accident").unwrap_or(&Value::Null))) {
         if j < acc {
             return Err(refus(format!(
                 "Connu le {}, avant l'accident lui-meme (le {}) : ce n'est pas possible. Rien n'est ecrit.",
@@ -816,9 +933,12 @@ fn arret_connaissance(ctx: &Contexte, charge: &Value) -> R<Value> {
         None => Value::Null,
         Some(j) => json!({"jour": j.iso(), "heure": heure, "saisi_le": crate::routes::maintenant()}),
     };
-    let mut suivi = Suivi::lire(ctx)?;
-    suivi.ecrire(ctx, &cle, &texte(&a, "dernier_jour_travaille"), champ, valeur)?;
-    reponse(ctx, &a)
+    Ok((champ, valeur))
+}
+
+/// Ecrit dans la fiche de suivi de l'arret `a` ce que `connaissance_saisie` a controle.
+pub(crate) fn connaissance_ecrire(ctx: &Contexte, a: &Value, champ: &str, valeur: Value) -> R<()> {
+    Suivi::lire(ctx)?.ecrire(ctx, &texte(a, "salarie"), &texte(a, "dernier_jour_travaille"), champ, valeur)
 }
 
 /// `accident-declare` : `{salarie, dernier_jour, le, depot, heure?, reference?}` -- la declaration d'accident du travail
@@ -928,7 +1048,7 @@ fn arret_obligations(ctx: &Contexte, charge: &Value) -> R<Value> {
     let a = json!({
         "salarie": "", "motif": champ("motif"), "dernier_jour_travaille": champ("dernier_jour"),
         "fin_previsionnelle": champ("fin"), "subrogation": champ("subrogation"), "date_accident": champ("date_accident"),
-        "reprise": champ("reprise"), "envois": [],
+        "reprise": champ("reprise"),
     });
     let mut fiche = json!({"salarie": "", "dernier_jour_travaille": champ("dernier_jour")});
     if !champ("connaissance_accident").trim().is_empty() {
@@ -950,5 +1070,18 @@ mod essais {
         assert_eq!(lire_heure("10:30"), Some(630));
         assert_eq!(lire_heure("24:00"), None);
         assert_eq!(lire_heure("9h"), None);
+    }
+
+    /// Bug reel : un signalement de fin de contrat accepte au transport puis refuse au bilan se disait fait. Le bilan
+    /// tranche (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt` §4.2) : refuse, il reste du.
+    #[test]
+    fn un_signalement_de_fin_refuse_au_bilan_reste_du() {
+        let fin = Jour::lire("2026-03-13").unwrap();
+        let ligne = |verdict: &str| {
+            json!([{"quoi": "dsn", "mode": "reel", "accepte": true, "mois": "2026-03-13", "quand": "2026-03-14T10:00:00",
+                    "fichier": "SignalementFinContrat_FANCHON_20260313.dsn", "retours": [{"nature": "11", "verdict": verdict}]}])
+        };
+        assert!(fctu_depose(ligne("KO").as_array().unwrap(), "fanchon", &fin).is_none());
+        assert!(fctu_depose(ligne("OK").as_array().unwrap(), "fanchon", &fin).is_some());
     }
 }

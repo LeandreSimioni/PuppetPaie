@@ -14,6 +14,7 @@ pub mod ecrire_documents;
 pub mod etats_paie;
 pub mod etats_personnel;
 pub mod fabrique;
+pub mod fin_de_contrat;
 pub mod fiche_questionnaire;
 pub mod fiche_recapitulative;
 pub mod plan_comptable;

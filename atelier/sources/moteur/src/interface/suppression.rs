@@ -98,10 +98,13 @@ pub fn genre(inst: &Path, racine: &Path) -> Result<Genre, String> {
 
 /// LA QUESTION de la suppression, telle que la page la pose (route `compagnie-suppression`) : le nom, le genre, et pour
 /// une compagnie reelle le rappel de la conservation et la sauvegarde a proposer (un Drive lie : la date du dernier
-/// passage). Refuse ce qui ne se supprime pas.
+/// passage). Une compagnie qui ne se supprime pas rend, sans genre, la phrase qui dit pourquoi.
 pub fn question(racine: &Path) -> Result<Value, String> {
     let inst = crate::compagnie::administrateur::installation_de(racine);
-    let g = genre(&inst, racine)?;
+    let g = match genre(&inst, racine) {
+        Ok(g) => g,
+        Err(phrase) => return Ok(json!({"nom": compagnies::nom_de(racine), "phrase": phrase})),
+    };
     let mut v = json!({"nom": compagnies::nom_de(racine), "genre": if g == Genre::Ajoutee { "ajoutee" } else { "reelle" }, "mot_de_passe": g == Genre::Reelle});
     if g == Genre::Reelle {
         v["conservation"] = json!(CONSERVATION);
@@ -280,7 +283,7 @@ pub fn mention(racine: &Path) -> Option<Value> {
 }
 
 /// UN MOIS DE DEMO RETRAVAILLE apres que la compagnie a ete gardee (sa saisie enregistree, une paie validee ou modifiee :
-/// `crate::routes::mois::ecrire_saisie_confirmee`, le seul endroit ou la saisie d'un mois s'ecrit) est un mois qu'on entend
+/// `engagement::stock::poser_la_saisie`, `ecrire_la_carte`) est un mois qu'on entend
 /// declarer : il sort de la mention (`config/demo.json`, `mois`), et la page ne le dit plus « fait en demo ». Rien a faire
 /// pour une compagnie sans mention, ni pour un mois qui n'y est pas.
 pub fn sortir_de_la_demo(racine: &Path, mois: &str) -> Result<(), String> {

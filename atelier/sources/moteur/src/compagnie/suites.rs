@@ -68,7 +68,7 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
             tous.push(Value::Object(m));
         }
     }
-    crate::commandes::pas::enregistrer(ctx, &tous, "CRM DGFiP nature 94")?;
+    crate::compagnie::taux_pas::enregistrer(ctx, &tous, "CRM DGFiP nature 94")?;
     Ok(())
 }
 
@@ -144,13 +144,12 @@ fn noter_incident_depot(ctx: &Contexte, d: &envois::suites::DepotRefuse) {
     );
 }
 
-/// Ce qu'un depot reel accepte laisse derriere lui : la trace sur l'arret qu'un signalement a declare (et sur la demande
-/// de taux d'un signalement d'amorcage), les arrets qu'une mensuelle a reportes, et le reveil du filet qui se tait.
+/// Ce qu'un depot reel accepte laisse derriere lui : la demande de taux d'un signalement d'amorcage, et le reveil du
+/// filet qui se tait. Ce qu'un signalement ou une mensuelle declare d'un arret se lit au journal (`obligations::avec_ce_qui_est_parti`).
 fn marquer_depot_reel(ctx: &Contexte, d: &envois::suites::DepotReel) -> R<()> {
     if d.quoi == "dsn" {
         match &d.signalement {
             Some(s) => {
-                crate::compagnie::marques_depot::marquer_envoye_depuis(ctx, &d.chemin, &s.nature, &s.ordre, &s.type_declaration, &s.evenement, &d.quand)?;
                 // Sans la trace d'une demande de taux, le moteur redirait « aucun taux connu, il faut demander ».
                 if s.nature == declarations::amorcage::NATURE {
                     crate::compagnie::marques_depot::marquer_demande_depuis(ctx, &d.chemin, &d.quand)?;
@@ -161,12 +160,11 @@ fn marquer_depot_reel(ctx: &Contexte, d: &envois::suites::DepotReel) -> R<()> {
                     // Ne leve jamais.
                     let _ = crate::compagnie::filet::desarmer(&ctx.racine, &format!("dsn|{}", d.mois));
                 }
-                crate::compagnie::marques_depot::marquer_reportes(ctx, &d.mois, &d.chemin, &d.quand)?;
             }
         }
     } else if !d.joue {
         for e in &d.embauches {
-            let _ = crate::compagnie::filet::desarmer(&ctx.racine, &crate::compagnie::filet::cle_du_reveil(&json!({"salarie": e["salarie"], "debut": e["debut"]})));
+            let _ = crate::compagnie::filet::desarmer(&ctx.racine, &crate::compagnie::filet::cle_dpae(&socle::valeur::valeur_en_texte(&e["salarie"]), &socle::valeur::valeur_en_texte(&e["numero"])));
         }
     }
     Ok(())

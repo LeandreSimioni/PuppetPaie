@@ -103,10 +103,7 @@ function dessinerConfig() {
   const sansTitre = (d) => titreDe(d) === "a completer";
   // L'année qu'écrivent les deux premiers chiffres d'un numéro d'objet
   // (266Z… : 2026), pour dire de quelles années datent les numéros sans titre
-  // (`archivesHtml`). Elle était définie ici avant le 30/09/2026 (d7c2590,
-  // « le numéro d'objet n'est plus annuel ») : retirée avec ses autres
-  // usages, la phrase des archives l'appelait encore — ReferenceError dès
-  // qu'on affichait un numéro archivé sans titre.
+  // (`archivesHtml`).
   const anDe = (d) => /^\d{2}/.test(String(d.numero_objet || ""))
     ? 2000 + Number(String(d.numero_objet).slice(0, 2)) : null;
   const passees = {};
@@ -127,8 +124,7 @@ function dessinerConfig() {
       || titreDe(a.donnees).localeCompare(titreDe(b.donnees))
       || String(b.donnees.numero_objet || "").localeCompare(String(a.donnees.numero_objet || "")));
 
-  // UNE LIGNE PAR FICHE (l'éditeur, 24/09/2026 : « j'aime bien les lignes pour
-  // les salariés »). Elle remplace la grille de cartes : le nom, ce qui
+  // UNE LIGNE PAR FICHE : le nom, ce qui
   // l'identifie, son état, puis les gestes -- « Archiver » dit en toutes
   // lettres, là où le clic sur toute la carte archivait sans prévenir.
   const rangHtml = (f, trouve) => {
@@ -165,7 +161,7 @@ function dessinerConfig() {
     </div>`;
   };
 
-  // CACHÉES PAR DÉFAUT (l'éditeur, 23/09/2026) : un spectacle archivé ne
+  // CACHÉES PAR DÉFAUT : un spectacle archivé ne
   // se joue plus. Une case les montre ; elle reste
   // cochée tant qu'on ne la décoche pas, et une fiche archivée ouverte les
   // montre d'office.
@@ -185,7 +181,7 @@ function dessinerConfig() {
     <div id="config-rangs"></div>`
     + (salarie ? fichesAttenduesHtml() : "");
 
-  // LA RECHERCHE DANS TOUS LES CHAMPS (l'éditeur, 24/09/2026). Chaque valeur
+  // LA RECHERCHE DANS TOUS LES CHAMPS. Chaque valeur
   // de la fiche, les anciennes valeurs datées comprises (un courriel changé
   // retrouve encore la personne), sans accents, sans majuscules, sans
   // espaces (« 2 93 08 » trouve le NIR) ; une date se cherche aussi comme
@@ -283,8 +279,7 @@ function dessinerConfig() {
       r.querySelector("[data-activer]").onclick = async (e) => {
         const activer = e.currentTarget.dataset.activer === "oui";
         try {
-          await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer });
-          ETAT = await api("etat");
+          ETAT = (await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer })).etat;
           dire(`${nom} : ${activer ? "réactivé" : "archivé"}.`);
           dessinerConfig();
         } catch (err) { dire(err.message, "erreur"); }
@@ -297,7 +292,7 @@ function dessinerConfig() {
         dessinerFormulaire(rangees.find((f) => f.cle === c));
         document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
       };
-      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE : plus de bouton « Modifier ».
+      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE.
       rendreOuvrable(r, () => ouvrir(cle), "Ouvrir la fiche");
       r.querySelectorAll("[data-ouvrir]").forEach((b) => { b.onclick = () => ouvrir(b.dataset.ouvrir); });
     });
@@ -428,6 +423,8 @@ function vueGuideImport(g) {
     <p class="intro">Mettez dans le dossier ci-dessous tout ce que votre ancien logiciel vous a laissé, puis
       « Importer » : PuppetPaie crée la fiche de la compagnie, ses salariés, ses spectacles et leurs contrats
       avec ce que les pièces disent.</p>
+    ${(g.a_quoi_sert || []).length ? `<ul>${g.a_quoi_sert.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>` : ""}
+    <p class="note">${echapper(g.accepte || "")}</p>
     <div class="guide-pieces">${pieces}</div>
     <p class="note">${echapper(g.reste || "")}</p>
     <p class="note">${echapper(g.rien_n_est_perdu || "")}</p>`;
@@ -467,12 +464,13 @@ function vueEtatImportation(e) {
   const quoi = [
     compte(de("bulletins").nombre || 0, "bulletin"),
     compte((de("DSN").declarations || 0) + (de("AEM").nombre || 0), "déclaration"),
+    compte(de("certificats").nombre || 0, "certificat"),
     compte(e.contrats || 0, "contrat"),
   ].filter((x) => x).join(", ");
   const bornes = [e.du, e.au, ...reprises.flatMap((r) => [r.du, r.au])]
     .filter((x) => x).map((x) => String(x).slice(0, 7)).sort();
   const [du, au] = [bornes[0], bornes[bornes.length - 1]];
-  const periode = !du ? "" : du === au ? `, en ${moisEnClair(du)}` : `, de ${moisEnClair(du)} à ${moisEnClair(au)}`;
+  const periode = !du ? "" : du === au ? `, en ${moisEnClair(du)}` : `, ${deMois(du)} à ${moisEnClair(au)}`;
   const le = [e.importe_le, ...reprises.map((r) => r.le)].filter((x) => x).sort().pop();
   const repris = quoi ? `<div class="rang">
       <div class="rang-infos"><b class="rang-nom">Historique repris${le ? ` le ${echapper(jjmmaaaa(le))}` : ""}</b>
@@ -500,7 +498,7 @@ function vueNaturesADire(liste) {
     debut: (x) => `<label>Début du contrat <input type="date" data-nature-champ="debut"></label>`,
     fin: (x) => `<label>Fin prévue <input type="date" data-nature-champ="fin"></label>`,
     numero: (x) => `<label title="rubrique S21.G00.40.009 de la DSN">Numéro du contrat
-        <input type="text" data-nature-champ="numero" placeholder="sur la DSN de ${echapper(moisEnClair(String(x.au).slice(0, 7)))}"></label>`,
+        <input type="text" data-nature-champ="numero" placeholder="sur la DSN ${echapper(deMois(String(x.au).slice(0, 7)))}"></label>`,
     salaire: (x) => `<label>Salaire mensuel brut <input type="number" step="0.01" min="0" data-nature-champ="salaire"
         placeholder="celui du contrat signé"></label>`,
     quotite: (x) => `<label title="rubrique S21.G00.40.013 de la DSN">Durée du travail (heures par mois)
@@ -588,11 +586,16 @@ async function ouvrirFicheImportee(nom, cle) {
   document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
 }
 
-/* D'où vient une valeur : la DSN d'un mois, ou un bulletin (fichier, page). */
+/* D'où vient une valeur : la DSN d'un mois, un bulletin (fichier, page), ou
+   un certificat Congés Spectacles (son mois, son fichier). */
 function origineImport(e) {
+  if (e.source === "certificat" || e.source === "AEM") {
+    return `${e.source === "AEM" ? "l'AEM" : "le certificat Congés Spectacles"}${e.mois ? ` de ${echapper(moisEnClair(e.mois))}` : ""}${
+      e.fichier ? ` (${echapper(e.fichier)}${e.page ? `, page ${e.page}` : ""})` : ""}`;
+  }
   return e.source === "bulletin" || "bulletin" in e
     ? `le bulletin${e.fichier ? ` (${echapper(e.fichier)}${e.page ? `, page ${e.page}` : ""})` : ""}`
-    : `la DSN de ${echapper(moisEnClair(e.mois))}`;
+    : `la DSN ${echapper(deMois(e.mois))}`;
 }
 
 /* Ce que l'import met dans une case vide ou « A COMPLETER » d'une fiche
@@ -605,20 +608,24 @@ function valeurImportee(v) {
 }
 
 /* Une fiche que l'import crée, complète, laisse, ou sur laquelle il a à
-   redire. Un écart vient d'une DSN (`dsn`, `mois`) ou d'un bulletin
+   redire. Un écart vient d'une DSN (`dsn`, `mois`), d'un bulletin ou d'un certificat
    (`bulletin`, `fichier`, `page`) : la fiche fait foi, il est seulement
    signalé. Une case vide est complétée, et la page dit d'où. */
 function fichesImportees(fiches, titre) {
   const lignes = (fiches || []).filter((f) => f).map((f) => {
     const etat = pastilleDeLEtat(f.pastille);
+    // Une fiche que seuls des certificats ou des AEM créent : d'où elle vient (`lu_dans`).
+    const luDans = f.lu_dans ? `<div class="acte-dernier">Lu dans ${origineImport(f.lu_dans)}</div>` : "";
     const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
       `<div class="acte-dernier"><b>${echapper(champ)}</b> ${f.etat === "completee" ? "a reçu" : "recevra"}
          « ${echapper(valeurImportee(e.valeur))} », lu dans ${origineImport(e)} — la case était vide</div>`).join("");
     const ecarts = Object.entries(f.ecarts || {}).map(([champ, e]) => {
-      const ou = "bulletin" in e
+      const ou = "certificat" in e || "aem" in e
+        ? `${"aem" in e ? "l'AEM" : "le certificat"} (${echapper(e.fichier || "")}${e.page ? `, page ${e.page}` : ""}) disait`
+        : "bulletin" in e
         ? `le bulletin (${echapper(e.fichier || "")}${e.page ? `, page ${e.page}` : ""}) disait`
-        : `la DSN de ${echapper(moisEnClair(e.mois))} disait`;
-      const lu = "bulletin" in e ? e.bulletin : e.dsn;
+        : `la DSN ${echapper(deMois(e.mois))} disait`;
+      const lu = "certificat" in e ? e.certificat : "aem" in e ? e.aem : "bulletin" in e ? e.bulletin : e.dsn;
       return `<div class="acte-dernier">${ou} <b>${echapper(champ)}</b> = « ${echapper(lu)} »,
          la fiche dit « ${echapper(e.fiche)} » — la fiche fait foi</div>`;
     }).join("");
@@ -640,7 +647,7 @@ function fichesImportees(fiches, titre) {
     return `<div class="rang import">
       <span class="rang-nom">${echapper(f.libelle)}</span>
       ${etat}
-      <span class="rang-infos">${completes}${ecarts}${reste}</span></div>`;
+      <span class="rang-infos">${luDans}${completes}${ecarts}${reste}</span></div>`;
   });
   if (!lignes.length) return "";
   return `<h3>${titre}</h3>${lignes.join("")}`;
@@ -686,6 +693,26 @@ function bulletinsImportes(b, ecrit) {
         ajouts.length ? ` : ${ajouts.join(", ")}` : ""}.</div>`;
 }
 
+/* Les certificats Congés Spectacles (`certificats`) ou les AEM en PDF
+   (`aem_pdf`) lus : combien, de quand à quand, ce qu'ils ajoutent, ce
+   qu'ils confirment, et, pour une fiche qu'ils créent, ce qu'aucune de ces
+   pièces ne porte (le moteur le nomme). `titre`, `piece` : leurs mots. */
+function piecesImportees(c, ecrit, titre, piece, pieces, aucune) {
+  if (!c || !c.lus) return "";
+  const periode = c.du ? ` du ${echapper(jjmmaaaa(c.du))} au ${echapper(jjmmaaaa(c.au))}` : "";
+  const ajouts = [
+    c.contrats_nouveaux ? `${c.contrats_nouveaux} contrat${c.contrats_nouveaux > 1 ? "s" : ""} attesté${c.contrats_nouveaux > 1 ? "s" : ""}` : "",
+    c.confirmes ? `${c.confirmes} déjà attesté${c.confirmes > 1 ? "s" : ""} par une autre pièce` : "",
+    c.fiches_a_creer ? `${c.fiches_a_creer} fiche${c.fiches_a_creer > 1 ? "s" : ""}${ecrit ? (c.fiches_a_creer > 1 ? " créées" : " créée") : " à créer"}` : "",
+  ].filter((x) => x);
+  const reste = (c.reste_a_saisir || []).length
+    ? `<div class="note">${aucune}, et reste à saisir dans chaque fiche :
+         ${c.reste_a_saisir.map((x) => echapper(x)).join(" ; ")}.</div>` : "";
+  return `<div class="encart"><b>${titre}</b>
+      ${c.lus} ${c.lus > 1 ? pieces : piece} lu${c.lus > 1 ? "s" : ""}${periode}${
+        ajouts.length ? ` : ${ajouts.join(", ")}` : ""}.${reste}</div>`;
+}
+
 /* Les écarts entre un bulletin et ce que la DSN (ou l'historique) disait
    de la même paie : le bulletin fait foi sur les montants, l'écart est
    noté (`tri.fichiers[].pages[].ecarts`). */
@@ -712,63 +739,15 @@ function ecartsBulletinDsn(tri) {
       <tbody>${lignes.join("")}</tbody></table>`;
 }
 
-/* Les fichiers qui n'ont pas pu être repris : la phrase qui les dit, et le
-   message qui partirait chez l'éditeur, montré tel qu'il partirait (caviardé
-   par le moteur, `importation-incident`). Rien ne part sans le clic sur
-   « Envoyer » (`importation-incident-envoyer`). Quels fichiers n'ont pas
-   été repris, c'est le moteur qui le dit (`fichiers` de la route) : la page
-   ne fait que le montrer. */
-async function preparerIncidentImport() {
-  const cible = document.getElementById("import-incident");
-  if (!cible) return;
-  let r;
-  try {
-    r = await api("importation-incident", { dossier: IMPORT_DOSSIER });
-  } catch (e) {
-    cible.innerHTML = `<div class="encart erreur">Le message à l'éditeur ne se prépare pas : ${echapper(e.message)}</div>`;
-    return;
-  }
-  const laisses = r.fichiers || [];
-  if (!laisses.length && !r.a_envoyer) {
-    cible.innerHTML = "";
-    return;
-  }
-  const envoi = r.a_envoyer
-    ? `<p class="note"><strong>Les noms, prénoms, numéros de sécurité sociale, dates de naissance et adresses
-        ont été enlevés</strong>${r.resume ? ` (${echapper(r.resume)})` : ""}. Les fichiers eux-mêmes ne
-        partent pas. Voici le message, tel qu'il partirait :</p>
-      <pre class="reponse">${echapper(r.texte || "")}</pre>
-      <p><button class="primaire" id="import-incident-envoyer">Envoyer</button>
-        <span class="note">Rien ne part avant ce clic.</span></p>`
-    : `<p class="note">Rien à envoyer.</p>`;
-  cible.innerHTML = `<div class="encart attention"><b>Ces documents n'ont pas pu être repris.</b>
-      ${laisses.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort, r.pastilles)}
+/* Les documents qui ne sont pas repris, et pourquoi (`tri.non_repris`, du
+   moteur), avec la phrase qui dit que l'import se rejoue. */
+function vueNonRepris(nr, pastilles) {
+  if (!nr || !(nr.fichiers || []).length) return "";
+  return `<div class="encart attention"><b>Ces documents ne sont pas repris.</b>
+      ${nr.fichiers.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort, pastilles)}
         ${echapper(f.raison || "")}</div>`).join("")}
-      <p>Un message peut partir chez le développeur ; Léandre s'en occupe et vous répond.</p>
-      <div id="import-incident-envoi">${envoi}</div>
+      <p>${echapper(nr.phrase || "")}</p>
     </div>`;
-  const b = document.getElementById("import-incident-envoyer");
-  if (b) b.onclick = () => envoyerIncidentImport();
-}
-
-async function envoyerIncidentImport() {
-  const cible = document.getElementById("import-incident-envoi");
-  const b = document.getElementById("import-incident-envoyer");
-  if (b) b.disabled = true;
-  try {
-    const r = await api("importation-incident-envoyer", { dossier: IMPORT_DOSSIER });
-    if (r.envoye) {
-      cible.innerHTML = `<div class="encart bien"><b>Le message est parti.</b>${
-        echapper(r.message || "Léandre s'en occupe et vous répond.")}</div>`;
-      rafraichirEtatImportation();
-    } else {
-      cible.insertAdjacentHTML("beforeend", `<div class="encart erreur">${echapper(r.message || "Le message n'est pas parti.")}</div>`);
-      if (b) b.disabled = false;
-    }
-  } catch (e) {
-    cible.insertAdjacentHTML("beforeend", `<div class="encart erreur">${echapper(e.message)}</div>`);
-    if (b) b.disabled = false;
-  }
 }
 
 async function rafraichirEtatImportation() {
@@ -789,7 +768,7 @@ function vueImportation(r) {
     : "aucun contrat attesté par une AEM";
   const declarations = r.dsn || r.aem
     ? `${r.dsn} DSN${periode}, ${r.aem} fichier(s) AEM — ${contrats}`
-    : "aucune DSN ni AEM dans le dossier";
+    : "aucune DSN ni fichier d'AEM déposé dans le dossier";
   const avert = (r.avertissements || []).map((a) => `<div class="encart attention">${echapper(a)}</div>`).join("");
   const b = r.bulletins || {};
   const aEcrire = (f) => f && (f.etat === "a_creer" || (f.etat === "existante" && Object.keys(f.completer || {}).length));
@@ -817,12 +796,14 @@ function vueImportation(r) {
       ? `<div class="encart ${couleur}"><b>Rien à reprendre</b> : tout est déjà là.</div>`
       : `<p><button class="primaire" id="import-ecrire">Reprendre${quoi.length ? " " + quoi.join(", ") : ""}</button>
          <span class="note">Rien n'est écrit avant ce clic.</span></p>`;
-  return `<div id="import-incident"></div>
+  return `${vueNonRepris((r.tri || {}).non_repris, r.pastilles)}
     ${compteRenduImport(r.tri, r.pastilles)}
     <h3>${r.ecrit ? "Ce qui a été repris" : "Ce qui serait repris"}</h3>
     <div class="encart"><b>Déclarations</b>
       ${declarations}</div>
     ${bulletinsImportes(r.bulletins, r.ecrit)}
+    ${piecesImportees(r.certificats, r.ecrit, "Certificats Congés Spectacles", "certificat", "certificats", "Aucun certificat ne porte")}
+    ${piecesImportees(r.aem_pdf, r.ecrit, "AEM en PDF", "attestation", "attestations", "Aucune AEM ne porte")}
     ${avert}
     ${fichesImportees([r.entreprise], "Entreprise")}
     ${fichesImportees(r.salaries, "Salariés")}
@@ -834,7 +815,6 @@ function vueImportation(r) {
 function brancherImportation() {
   const b = document.getElementById("import-ecrire");
   if (b) b.onclick = () => ecrireImportation();
-  if (document.getElementById("import-incident")) preparerIncidentImport();
 }
 
 async function apercuImportation() {
@@ -905,9 +885,8 @@ async function ecrireImportation() {
  *  pas s'affiche quand meme, dans la derniere section.
  */
 const SECTIONS_FICHE = {
-  // LA FICHE ENTREPRISE, RELUE LE 23/09/2026. L'editeur : « on demande le
-  // minimum d'information aux gens, après on traite l'information pour que
-  // ça rentre dans la DSN ». Six blocs, dans l'ordre ou l'on cherche : qui
+  // LA FICHE ENTREPRISE : on demande le minimum d'information aux gens, puis on traite l'information pour qu'elle rentre
+  // dans la DSN. Six blocs, dans l'ordre ou l'on cherche : qui
   // l'on est, ou l'on est, sous quelle convention, ses numeros, qui signe,
   // le compte. Les cases que le moteur deduit sont nommees ici pour que
   // leur case cachee soit posee dans le bloc de la valeur dont elles
@@ -971,11 +950,11 @@ const SECTIONS_FICHE = {
     // Sans titre : l'historique se replie derriere un lien (`histoireDuChamp`).
     ["", ["historique"]],
   ],
-  // LA FICHE SALARIE, RELUE LE 23/09/2026 sur le modele de l'entreprise.
+  // LA FICHE SALARIE, sur le modele de l'entreprise.
   // Dans l'ordre ou on la remplit, papiers en main : la carte Vitale, la
   // piece d'identite, l'adresse ; puis ce que l'employeur decide, l'emploi.
-  // Chaque champ a ete confronte a ce qui le lit dans le moteur : le taux de
-  // PAS de la fiche n'etait lu par personne, il ne se montre plus ; le sexe
+  // Chaque champ est lu par le moteur : le taux de
+  // PAS de la fiche ne se montre pas ; le sexe
   // ne sert que sans NIR, il ne se montre que dans ce cas (`brancherSexe`).
   salarie: [
     // Le numero et sa cle cote a cote, comme sur la carte Vitale.
@@ -996,7 +975,7 @@ const SECTIONS_FICHE = {
     ["Emploi", ["emploi_affichage"], { metier: true }],
     ["Intermittence", ["num_conges_spectacles", "anniversaire_droits"]],
     // Rien a remplir tant que la compagnie n'emploie pas de salarie au mois.
-    ["Salarié au mois", ["sante_dispense", "sante_dispense_depuis",
+    ["Salarié au mois", ["jours_travailles", "sante_dispense", "sante_dispense_depuis",
                          "sante_dispense_jusqu_au", "prevoyance_branche_depuis",
                          "categorie_conventionnelle", "conges_reprise",
                          "forfait_jours"],
@@ -1011,10 +990,13 @@ const SECTIONS_FICHE = {
       "pcs_ese", "code_emploi_ft", "date_anciennete", "code_salarie",
       "initiales_contrat", "statut_conventionnel", "statut_boeth", "echelon_ccneac", "classement_conventionnel",
       "poste_depuis", "experimente_3241", "stagiaire_ccneac",
-      "etablissement", "actif"], { avance: true }],
+      "actif"], { avance: true }],
     ["", ["historique"]],
   ],
 };
+
+/* Les jours de la semaine, tels que la fiche d'un permanent les ecrit (`droit::conges::JOURS_DE_LA_SEMAINE`). */
+const JOURS_DE_LA_SEMAINE = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
 
 /* Ce qui, dans le tiroir « Avancé », vaut le cas ordinaire et ne l'ouvre
  * donc pas. Une case absente d'ici ouvre le tiroir des qu'elle est remplie. */
@@ -1037,8 +1019,7 @@ const ORDINAIRE = {
 
 /* Les champs qu'on peut laisser vides : l'ecran le dit a cote du libelle,
  * plutot que de laisser croire qu'il manque quelque chose. L'editeur,
- * 23/09/2026 : « il y a des champs facultatifs, par exemple la date
- * anniversaire ». */
+ * Les champs facultatifs : un champ ne se montre que si un fait l'exige. */
 const FACULTATIFS = {
   salarie: ["num_conges_spectacles", "anniversaire_droits", "sante_dispense",
             "sante_dispense_depuis", "sante_dispense_jusqu_au",
@@ -1051,21 +1032,16 @@ const FACULTATIFS = {
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
- *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`) ;
- *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,
- *    jamais demande.
+ *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`).
  *
  *  Le code Urssaf et la caisse de retraite, eux, sont de VRAIS choix : ils
  *  vont dans l'avance, vides par defaut -- le moteur prend alors l'Urssaf
  *  du code postal et Audiens. L'editeur : « il ne faut pas enlever de
  *  l'interface les choix que peut faire l'entreprise ». */
 const CACHES = {
-  entreprise: ["siren", "nic",
-               "etablissements"],
-  // `sante_svp` se remplit par les trois cases de la complementaire sante ;
-  // `taux_pas` n'est plus lu par personne (il vit dans config/pas.json) :
-  // gardes tels quels, jamais demandes.
-  salarie: ["sante_svp", "taux_pas"],
+  entreprise: ["siren", "nic"],
+  // `sante_svp` se remplit par les trois cases de la complementaire sante : gardé tel quel, jamais demandé.
+  salarie: ["sante_svp"],
 };
 
 /* Une structure, case par case. `liste: true` = plusieurs lignes, avec un
@@ -1097,7 +1073,7 @@ const SOUS_CHAMPS = {
   // S20.G00.07.004, et elle vaut 04 : << la personne qui etablit la paie
   // dans l'entreprise >>. La valeur reste dans la fiche et repart telle
   // quelle (STRUCTURES_ORIGINE) ; `dsn.rs` la lit.
-  // LA CIVILITE DU CONTACT (V1h, 10/10/2026) : S10.G00.02.001, 01 monsieur ou
+  // LA CIVILITE DU CONTACT : S10.G00.02.001, 01 monsieur ou
   // 02 madame (cahier technique DSN, p. 132). Le moteur la lit ici et refuse
   // une DSN sans elle ; vide, la case est retiree a l'enregistrement.
   declarant_dsn: { champs: [
@@ -1156,10 +1132,23 @@ const SOUS_CHAMPS = {
     ["association_1679A", "Association loi 1901, syndicat ou mutuelle ?", "Une association loi 1901, une fondation reconnue d'utilité publique, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due.",
      { booleen: true, choix: { "": "Non", "true": "Oui (abattement de l'article 1679 A)" } }],
   ] },
+  // UN AUTRE ÉTABLISSEMENT : ce qui le fait déclarer à part (son SIRET, son
+  // adresse, le jour où il ouvre) et son risque AT/MP. Le code vide : celui
+  // de la compagnie ; le taux vide : celui de l'arrêté pour un risque
+  // collectif. Le moteur dit, sous la ligne, ce qu'il applique (`taux-atmp`).
   etablissements: { liste: true, ligne: "établissement", champs: [
-    ["nic", "NIC", ""],
+    ["libelle", "Nom", "Atelier, salle…"],
     ["siret", "SIRET", ""],
-    ["libelle", "Nom de l'établissement", ""],
+    ["adresse_affichage", "Adresse", ""],
+    ["code_postal", "Code postal", ""],
+    ["commune_affichage", "Commune", ""],
+    ["ouverture", "Ouvert le", "", { date: true }],
+    ["taux_atmp.code_risque", "Code risque AT/MP", "", { codesAtmp: true }],
+    ["taux_atmp.valeur", "Taux AT/MP (%)", "", { decimal: true }],
+    // Le versement mobilité de sa commune, quand le siège en paie un (le
+    // moteur le dit : `versement_mobilite_des_etablissements`) ; 0 : aucun.
+    ["versement_mobilite.taux", "Versement mobilité (%)", "0 si aucun", { decimal: true, si: "versement_mobilite_des_etablissements" }],
+    ["versement_mobilite.code_insee", "Code INSEE de la commune", "", { si: "versement_mobilite_des_etablissements" }],
   ] },
 };
 
@@ -1269,9 +1258,8 @@ const LIBELLES_CHOIX = {
 };
 
 /* Ou aller chercher une valeur qu'on n'a pas sous la main : une phrase et
- * un lien, derriere le « ? » du champ. VIDE DEPUIS LE 23/09/2026 : les
- * liens menaient a la page d'accueil d'un organisme, ce qui n'apprend rien.
- * L'aide de chaque champ (`donnees/champs-base.json`) dit maintenant ou lire la
+ * un lien, derriere le « ? » du champ. VIDE : les liens menaient a la page d'accueil d'un organisme, ce qui n'apprend rien.
+ * L'aide de chaque champ (`donnees/champs-base.json`) dit ou lire la
  * valeur. Un lien ne revient ici que s'il mene a la page qui la donne. */
 const OU_TROUVER = {};
 
@@ -1410,11 +1398,20 @@ document.addEventListener("input", cocherUnBouton, true);
 function ligneStructure(cle, sous, ligne, i) {
   const o = ligne && typeof ligne === "object" ? ligne : {};
   return `<div class="ligne-structure" data-index="${i}">
-    ${sous.champs.map(([k, lib]) => `
-      <label>${echapper(lib)}
-        <input data-liste-de="${echapper(cle)}" data-liste-index="${i}"
-          data-sous-cle="${echapper(k)}" value="${echapper(o[k] ?? "")}"></label>`).join("")}
+    ${sous.champs.filter(([, , , genre = {}]) => !genre.si || (ETAT.configuration || {})[genre.si]).map(([k, lib, aide, genre = {}]) => {
+      const val = valeurEn(o, k);
+      const attrs = `data-liste-de="${echapper(cle)}" data-liste-index="${i}"
+          data-sous-cle="${echapper(k)}" ${aide ? `placeholder="${echapper(aide)}"` : ""}`;
+      const v = echapper(val ?? "");
+      const champ = genre.date && /^(\d{4}-\d{2}-\d{2})?$/.test(String(val ?? ""))
+        ? `<input type="date" ${attrs} value="${v}">`
+        : genre.codesAtmp ? `<input ${attrs} list="codes-atmp" maxlength="7" value="${v}">`
+        : genre.decimal ? `<input ${attrs} inputmode="decimal" value="${v}">`
+        : `<input ${attrs} value="${v}">`;
+      return `<label>${echapper(lib)} ${champ}</label>`;
+    }).join("")}
     <button type="button" class="retirer-ligne" title="retirer cette ligne">✕</button>
+    ${o.nic ? `<p class="aide ligne-dit" data-ligne-nic="${echapper(o.nic)}"></p>` : ""}
   </div>`;
 }
 
@@ -1429,10 +1426,8 @@ function facultatif(c) {
     ? ' <span class="facultatif">facultatif</span>' : "";
 }
 
-/* LE MÉTIER, en tête du bloc « Emploi » (revu le 30/09/2026). Un seul
- * déroulant, qui montre le métier de la fiche (son code France Travail) —
- * il affichait « — celui de la fiche — », emprunté à l'engagement, et ne
- * disait jamais ce qui était choisi. La liste est celle des métiers cochés ;
+/* LE MÉTIER, en tête du bloc « Emploi ». Un seul
+ * déroulant, qui montre le métier de la fiche (son code France Travail). La liste est celle des métiers cochés ;
  * on en ajoute dans l'onglet Métiers, pas ici. */
 function METIER_HTML(fiche) {
   const code = ((fiche || {}).donnees || {}).code_emploi_ft || "";
@@ -1689,20 +1684,36 @@ async function brancherAtmp() {
     choix.value = connu ? t.code_risque : "";
     if (document.activeElement !== code) code.value = connu ? "" : (t.code_risque || "");
     if (document.activeElement !== valeur) valeur.value = "";
+    // Les codes que les autres établissements proposent, et ce que le
+    // moteur applique à chacun, sous sa ligne.
+    let liste = document.getElementById("codes-atmp");
+    if (!liste) {
+      liste = document.createElement("datalist");
+      liste.id = "codes-atmp";
+      document.body.appendChild(liste);
+    }
+    liste.innerHTML = codes.map((c) =>
+      `<option value="${echapper(c.code)}">${echapper(c.code_arrete || c.code)} — ${echapper(c.libelle)}</option>`).join("");
+    (r.etablissements || []).forEach((e) => {
+      const p = document.querySelector(`[data-ligne-nic="${CSS.escape(String(e.nic || ""))}"]`);
+      if (p) p.innerHTML = `<b>${echapper(e.resume || "")}</b>${e.risque ? ` — « ${echapper(e.risque.libelle)} »` : ""}. ${echapper(e.explication || "")}`;
+    });
   };
-  try { peindre(await api("taux-atmp", { annee })); } catch (e) { /* rien à montrer */ }
   $("atmp-enregistrer").onclick = async (ev) => {
     ev.preventDefault();
     try {
-      peindre(await api("taux-atmp", { annee, code_risque: choix.value || code.value,
-                                       valeur: valeur.value }));
-      etat.textContent = "Enregistré.";
+      const r = await api("taux-atmp", { annee, code_risque: choix.value || code.value,
+                                         valeur: valeur.value });
+      peindre(r);
+      etat.textContent = r.phrase;
       valeur.classList.remove("faute");
     } catch (e) {
       etat.textContent = e.message;
       valeur.classList.add("faute");
     }
   };
+  // La fiche quittée avant la réponse n'a plus ces cases : rien à peindre.
+  try { const r = await api("taux-atmp", { annee }); if (bloc.isConnected) peindre(r); } catch (e) { /* rien à montrer */ }
 }
 
 /* LA COMPLÉMENTAIRE SANTÉ D'UN PERMANENT, en tete du bloc
@@ -1752,7 +1763,7 @@ function enteteSalarie(fiche) {
         >Exporter ses documents</button>
     </div>
     <div class="cout-annee" data-cote="salaries" data-cle="${echapper(fiche.cle)}"></div>
-    <!-- SES IMPRÉVUS (15/10/2026) : ses arrêts et ses absences, passés et en
+    <!-- SES IMPRÉVUS : ses arrêts et ses absences, passés et en
          cours, ce qui en est parti, et la porte « Un imprévu… ». js/imprevus.js. -->
     <div class="fiche-imprevus" id="fiche-imprevus"></div>
     <!-- CE QUE VOS CONTRATS FONT POUR SES DROITS : les conseils sur
@@ -1807,6 +1818,8 @@ async function boiteSuppression() {
   let q;
   try { q = await api("compagnie-suppression"); }
   catch (e) { dire(e.message, "erreur"); return; }
+  // Une compagnie qui ne se supprime pas : le moteur dit pourquoi.
+  if (!q.genre) { dire(q.phrase, "erreur"); return; }
   const reelle = q.genre === "reelle";
   const s = q.sauvegarde || {};
   const sauvegarde = reelle && s.liee

@@ -42,17 +42,17 @@ pub const DOSSIER: &str = "imprevus";
 /// permanent (D1226-4 ; le complement verse, mois par mois : `{"AAAA-MM": montant}`) ; `prolongations` garde chaque avis de
 /// prolongation saisi (`moteur::routes::imprevus::arret_prolonger` : quand, la fin et la fin de subrogation d'avant et d'apres),
 /// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`).
-pub const CHAMPS_ARRET: [&str; 20] = [
+pub const CHAMPS_ARRET: [&str; 19] = [
     "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "fin_previsionnelle",
     "subrogation", "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident",
-    "jours_deja_indemnises", "maintien", "prolongations", "saisi_le", "qui", "note", "envois",
+    "jours_deja_indemnises", "maintien", "prolongations", "saisi_le", "qui", "note",
 ];
 const REQUIS_ARRET: usize = 7;
 
 /// Les champs d'une suspension (bloc 65 : motif, debut, fin), dans l'ordre ou ils s'ecrivent ; les `REQUIS_SUSPENSION`
 /// premiers sont obligatoires.
-pub const CHAMPS_SUSPENSION: [&str; 11] =
-    ["genre", "salarie", "contrat_debut", "contrat_numero", "motif", "debut", "fin", "saisi_le", "qui", "note", "envois"];
+pub const CHAMPS_SUSPENSION: [&str; 10] =
+    ["genre", "salarie", "contrat_debut", "contrat_numero", "motif", "debut", "fin", "saisi_le", "qui", "note"];
 const REQUIS_SUSPENSION: usize = 7;
 
 const NUL: Value = Value::Null;
@@ -118,15 +118,11 @@ suspension du contrat, bloc S21.G00.65).",
         let defaut = match *k {
             "qui" => json!("?"),
             "note" => json!(""),
-            "envois" => json!([]),
             "maintien" => json!({}),
             "prolongations" => json!([]),
             _ => Value::Null,
         };
-        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "envois" | "maintien" | "prolongations" | "note"))).unwrap_or(defaut));
-    }
-    if !o["envois"].is_array() {
-        return Err(format!("Imprevu ({}) : `envois` n'est pas une liste", genre));
+        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "maintien" | "prolongations" | "note"))).unwrap_or(defaut));
     }
     if genre == ARRET && !o["maintien"].is_object() {
         return Err("Arret : `maintien` est un objet {\"AAAA-MM\": montant}.".into());
@@ -155,12 +151,6 @@ fn chemin(racine: &Path, mois: &str) -> PathBuf {
     dossier(racine).join(format!("{}.json", mois))
 }
 
-/// `AAAA-MM.json`, et rien d'autre, est un fichier du magasin.
-fn est_un_mois(nom: &str) -> bool {
-    let b = nom.as_bytes();
-    b.len() == 12 && b[4] == b'-' && nom.ends_with(".json") && b[..4].iter().chain(&b[5..7]).all(u8::is_ascii_digit)
-}
-
 /// Les imprevus d'un fichier deja lu.
 fn du_contenu(contenu: &Value, chemin: &Path) -> Resultat<Vec<Value>> {
     let Value::Object(m) = contenu else {
@@ -181,7 +171,7 @@ pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();
     for f in fichiers {
         let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        if !est_un_mois(&nom) {
+        if !nom.strip_suffix(".json").is_some_and(socle::date::mois_valide) {
             continue;
         }
         out.extend(du_contenu(&socle::fichiers::lire_json(&f)?, &f)?);
@@ -223,10 +213,6 @@ pub fn jour_de_rangement(imp: &Value) -> Resultat<Jour> {
     } else {
         d(g(imp, "debut"))
     }
-}
-
-pub fn mois_de_rangement(imp: &Value) -> Resultat<String> {
-    Ok(jour_de_rangement(imp)?.mois_iso())
 }
 
 // ------------------------------------------------------------------ les jours
@@ -516,15 +502,18 @@ pub fn arrets_du_contrat(ctx: &Contexte, paie: &crate::calcul::Paie, debut: &Jou
 // ------------------------------------------------------ les lignes d'un permanent
 
 /// Ce que le mois d'un contrat paye au mois donne pour mesurer une absence (`conges::lignes_du_mois`) : les bornes du
-/// contrat dans le mois, le salaire que la ligne « mois » paie, les heures d'un jour oeuvre et celles du mois au reel
-/// (`conges::heures_par_jour_oeuvre`, `conges::jours_oeuvres`), et ce que vaut un jour ouvrable (l'assiette du maintien de
-/// salaire que la loi donne, dit sans etre applique).
-pub struct MoisDuContrat {
+/// contrat dans le mois, le salaire que la ligne « mois » paie et les jours travailles payes qu'elle porte
+/// (`droit::periodes::part_du_mois`), l'horaire du salarie qui les compte et les heures d'un jour
+/// (`droit::conges::heures_par_jour`), et ce que vaut un jour ouvrable (l'assiette du maintien de salaire que la loi
+/// donne, dit sans etre applique).
+pub struct MoisDuContrat<'a> {
     pub debut: Jour,
     pub fin: Jour,
+    pub fin_mois: Jour,
     pub salaire_du_mois: Decimal,
     pub heures_par_jour: Decimal,
-    pub heures_du_mois: Decimal,
+    pub jours_payes: i64,
+    pub horaire: &'a droit::periodes::Horaire,
     pub taux_jour_ouvrable: Decimal,
 }
 
@@ -535,6 +524,35 @@ pub struct MoisDuContrat {
 /// l'arrondit (Cass. soc. 11/02/1982, ci-dessous, est un quotient).
 fn taux_exact(montant: Decimal, quantite: Decimal) -> Value {
     Value::String(div(montant, quantite).normalize().to_string())
+}
+
+/// LA FICHE DU SALARIE D'UN IMPREVU, rattachee a l'etablissement du contrat qu'il suspend (`calcul::etablissement_du_contrat`) :
+/// un signalement d'arret porte l'etablissement de la derniere DSN mensuelle du contrat (cahier technique DSN 2026.1,
+/// § 2.5.1, p. 67). Le contrat se lit dans la saisie du mois ou il commence ; introuvable, la fiche telle quelle.
+pub fn fiche_du_salarie(ctx: &Contexte, imp: &Value) -> Resultat<Value> {
+    let fiche = ctx.salarie(&s(imp, "salarie"))?;
+    let cle = en_texte(g(&fiche, "_cle"));
+    let Some(debut) = Some(g(imp, "contrat_debut")).filter(|v| vrai(v)).map(d).transpose()? else { return Ok(fiche) };
+    let mois = format!("{:04}-{:02}", debut.an, debut.mois);
+    let Some(data) = crate::stock::vue_du_mois(&ctx.racine, &mois)? else { return Ok(fiche) };
+    for e in g(&data, "engagements").as_array().into_iter().flatten() {
+        if !vrai(g(e, "debut")) || d(g(e, "debut"))? != debut || cle_de(ctx, e).ok().as_deref() != Some(cle.as_str()) {
+            continue;
+        }
+        let (n_imp, n) = (s(imp, "contrat_numero"), s(e, "numero"));
+        if !n_imp.is_empty() && !n.is_empty() && n_imp != n {
+            continue;
+        }
+        let mut f = fiche;
+        if let Some(o) = f.as_object_mut() {
+            match g(e, "etablissement").as_str().map(str::trim).filter(|n| !n.is_empty()) {
+                Some(n) => o.insert("etablissement".into(), Value::String(n.to_string())),
+                None => o.remove("etablissement"),
+            };
+        }
+        return Ok(f);
+    }
+    Ok(fiche)
 }
 
 /// La cle de la fiche du salarie d'un engagement de saisie.
@@ -564,7 +582,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 
 /// LES LIGNES QU'UN IMPREVU DONNE AU MOIS D'UN PERMANENT -- le seul endroit qui les tire. Chaque imprevu du contrat
 /// retire le salaire de ses heures d'absence dans le mois (bornees par le contrat) ; un arret le retire sous
-/// `absence_maladie` (le catalogue la marque `arret_de_travail`), une suspension non remuneree sous
+/// la rubrique de son motif (`arrets-base.json`, `rubrique` ; le catalogue la marque `arret_de_travail`), une suspension non remuneree sous
 /// `absence_non_remuneree`. Une suspension que `permanents-base.json` dit remuneree (637 : C. trav. L3142-2, « n'entrainent
 /// pas de reduction de la remuneration ») ne retire rien. Le maintien de salaire d'un arret est celui SAISI SUR L'ARRET
 /// pour ce mois (`maintien`) : la loi le dit (`maintien_possible`), elle ne le verse pas -- les indemnites journalieres a
@@ -577,21 +595,27 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 /// `cass-soc-19870514-84-43854-JURITEXT000007018764.xml` ; la DDETS en tire « salaire mensualise / heures programmees sur
 /// le mois », `dreets-limousin-qr-assmat-retenues-absence-20150101.txt`). Les heures d'absence se comptent au reel
 /// (fiche DSN 2640, « sans application d'une regle de trois visant a rapprocher le volume d'absence a la quotite de
-/// travail mensualisee » ; fiche 2693, exemple 10 : septembre 2026 entier, 154 h = 22 x 7 h ; meme dossier) : les jours
-/// oeuvres de l'absence fois les heures d'un jour (`conges::jours_oeuvres`, `conges::heures_par_jour_oeuvre` : l'hypothese
-/// classique, du lundi au vendredi, est une inference nommee). La retenue est le salaire du mois fois ces heures sur les
-/// heures du mois, au taux exact (`taux_exact`) : un mois entier d'absence retire exactement le salaire du mois.
+/// travail mensualisee » ; fiche 2693, exemple 10 : septembre 2026 entier, 154 h = 22 x 7 h ; exemple 4 : les jours
+/// feries comptent parmi les heures du mois ; meme dossier) : les jours travailles de l'absence, comptes comme ceux du
+/// salaire du mois (`droit::periodes::part_du_mois`, sur l'horaire du salarie : ses jours travailles, les feries qu'il ne
+/// voit pas payes deja hors de son salaire), fois les heures d'un jour (`droit::conges::heures_par_jour`). La retenue est
+/// le salaire du mois fois ces heures sur les heures payees du mois, au taux exact (`taux_exact`) : un mois entier
+/// d'absence retire exactement le salaire du mois.
 pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<Value>, Vec<Avis>)> {
     let qui = crate::conges::qui(ctx, e);
-    let ent = &ctx.entreprise;
     let (mut lignes, mut avert) = (Vec::new(), Vec::new());
     // Le taux de l'heure d'absence : le salaire du mois sur ses heures de travail (Cass. soc. 11/02/1982).
-    let taux_horaire = if m.heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, m.heures_du_mois)) } else { None };
+    let heures_du_mois = eur2(mul(m.heures_par_jour, Decimal::from(m.jours_payes)));
+    let taux_horaire = if heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, heures_du_mois)) } else { None };
     for imp in du_contrat_dans_le_mois(ctx, e, mois)? {
         let (premier, dernier) = (premier_jour(&imp)?, dernier_jour(&imp)?);
         let (debut, fin) = (premier.max(m.debut), dernier.min(m.fin));
-        let oeuvres = if debut <= fin { Decimal::from(droit::conges::jours_oeuvres(&debut, &fin, Some(ent))?) } else { Decimal::ZERO };
-        let heures = eur2(mul(m.heures_par_jour, oeuvres));
+        let jours = if debut <= fin {
+            droit::periodes::part_du_mois(&debut, &fin, &m.fin_mois, droit::periodes::RegleDuMoisIncomplet::HoraireReel, m.horaire)?.jours
+        } else {
+            0
+        };
+        let heures = eur2(mul(m.heures_par_jour, Decimal::from(jours)));
         let retenue = |rubrique: &str| -> Option<Value> {
             match &taux_horaire {
                 Some(t) if heures > Decimal::ZERO => Some(json!({"rubrique": rubrique, "quantite": flot(heures), "taux": t})),
@@ -599,14 +623,28 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) 
             }
         };
         let au_reel = format!(
-            "{} jour(s) oeuvre(s) d'absence ce mois-ci, {} h au reel sur {} h de travail du mois, retirees au quotient du \
+            "{} jour(s) travaille(s) d'absence ce mois-ci, {} h au reel sur {} h de travail du mois, retirees au quotient du \
 salaire du mois",
-            oeuvres, heures, m.heures_du_mois
+            jours, heures, heures_du_mois
         );
         let code = s(&imp, "motif");
         if est_un_arret(&imp) {
             let motif = motif_d_arret(&code)?.unwrap_or(Value::Null);
-            lignes.extend(retenue("absence_maladie"));
+            // Le bulletin nomme l'absence d'apres le motif de l'arret (S21.G00.60.001) : sa rubrique est celle du motif
+            // (`arrets-base.json`, `rubrique`).
+            let rubrique = s(&motif, "rubrique");
+            if rubrique.is_empty() {
+                return Err(format!(
+                    "{} : l'arret du {} au {} a pour motif {} ({}), que le logiciel ne paie pas : aucune ligne de bulletin ne \
+nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
+                    qui,
+                    premier.jj_mm_aaaa(),
+                    dernier.jj_mm_aaaa(),
+                    code,
+                    en_texte(g(&motif, "libelle"))
+                ));
+            }
+            lignes.extend(retenue(&rubrique));
             avert.push(info(format!(
                 "{} : arret de travail ({}) du {} au {}, saisi une fois : {} ; le bloc S21.G00.60 part dans la DSN de \
 chaque mois qu'il traverse.",
@@ -858,7 +896,7 @@ mod tests {
         let mut attendus: Vec<String> = CHAMPS_ARRET.iter().map(|c| c.to_string()).collect();
         attendus.sort();
         assert_eq!(champs, attendus, "un arret complete porte tous ses champs");
-        assert_eq!((a["qui"].clone(), a["maintien"].clone(), a["envois"].clone()), (json!("?"), json!({}), json!([])));
+        assert_eq!((a["qui"].clone(), a["maintien"].clone()), (json!("?"), json!({})));
         assert_eq!(a["prolongations"], json!([]));
         assert!(complet(&json!({"genre": "arret", "salarie": "X"})).unwrap_err().contains("champ manquant"));
         assert!(complet(&json!({"genre": "autre"})).unwrap_err().contains("genre"));

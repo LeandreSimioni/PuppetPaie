@@ -7,7 +7,7 @@
    « Quand le mois est fini, le logiciel s'ouvre sur le mois suivant, et là
    il faut un pop-up : il est temps d'envoyer la DSN du mois précédent. Avez-
    vous bien fini les paies du mois précédent ? Et un bouton vérifier et
-   envoyer. » (16/09/2026). Puis, en janvier : clôturer l'exercice, exporter
+   envoyer. ». Puis, en janvier : clôturer l'exercice, exporter
    les chiffres pour la compta, saisir les numéros d'objet de l'année.
 
    La page ne décide de rien : /api/rappels rend la liste, déjà dans l'ordre,
@@ -30,8 +30,8 @@ async function montrerRappels(lu = api) {
   const liste = r.rappels || [];
   // L'ÉCHÉANCIER : « un pop-up au démarrage : on est le…,
   // bienvenue sur PuppetPaie, n'oublie pas de faire la DSN ». Elle s'ouvrait
-  // aussi une fois par jour quand rien n'attendait ; l'éditeur, 01/10/2026 :
-  // « elle apparaît seulement s'il y a des trucs à faire ».
+  // aussi une fois par jour quand rien n'attendait : elle n'apparaît
+  // que s'il y a quelque chose à faire.
   if (!liste.length && !(ech && ech.a_faire) && !manques.length) return;
   RAPPELS_MONTRES = { liste, ech, manques };
   if (dejaMontres(RAPPELS_MONTRES)) return;
@@ -50,31 +50,6 @@ function dejaMontres(montres) {
     sessionStorage.setItem(cle, empreinte);
   } catch (e) { /* sans mémoire, la boîte s'ouvre */ }
   return false;
-}
-
-/** L'ÉTAT FRAIS DE L'OUVERTURE : la boîte des rappels, si elle
- *  est encore ouverte et que le moteur dit autre chose, se repeint en place ;
- *  s'il n'y en avait pas et qu'il y a maintenant quelque chose à faire, elle
- *  s'ouvre (par-dessus la page : rien ne bouge dessous). Fermée par la
- *  personne, elle ne revient pas avant la prochaine ouverture. */
-async function rafraichirRappels(lu) {
-  const ouverte = !document.getElementById("voile").classList.contains("cachee")
-    && document.querySelector("#boite .boite-rappels");
-  if (RAPPELS_MONTRES && !ouverte) return;
-  let r, ech = null, manques = [];
-  try { r = await lu("rappels"); } catch (e) { return; }
-  try { ech = await lu("echeancier"); } catch (e) { ech = null; }
-  try { const pd = await lu("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { manques = []; }
-  const liste = r.rappels || [];
-  const neuf = { liste, ech, manques };
-  if (JSON.stringify(neuf) === JSON.stringify(RAPPELS_MONTRES)) return;
-  if (!liste.length && !(ech && ech.a_faire) && !manques.length) {
-    if (ouverte) fermerBoite();
-    return;
-  }
-  if (!RAPPELS_MONTRES && !document.getElementById("voile").classList.contains("cachee")) return; // une autre boîte est ouverte
-  RAPPELS_MONTRES = neuf;
-  boiteRappels(liste, ech, manques);
 }
 
 /* CE QUE LE MOTEUR A POSÉ DE LUI-MÊME (`pour-demarrer`, `poses`) : dit avec
@@ -196,9 +171,8 @@ function htmlEcheancier(ech) {
     <li><b>${echapper(moisEnClair(m))}</b>
       <ul>${parMois[m].map((x) => `<li>${echapper(x.titre)}${x.etat === "fait" ? " ✓" : ""}</li>`).join("")}</ul>
     </li>`).join("");
-  // CE QUI EST FAIT NE SE RAPPELLE PAS (01/10/2026, « pourquoi il me dit
-  // ça alors que je l'ai déjà fait, pas besoin ») : la DSN de septembre,
-  // déposée, s'affichait encore « fait ». Une échéance cochable reste, pour
+  // CE QUI EST FAIT NE SE RAPPELLE PAS : la DSN de septembre,
+  // déposée, ne s'affiche plus « fait ». Une échéance cochable reste, pour
   // pouvoir la décocher ; les autres faites se taisent.
   // UNE CHOSE SE DIT UNE FOIS : la DSN qu'un rappel réclame
   // (`rappel`, le moteur le dit) se dit dans ce rappel, sous l'en-tête, avec
@@ -288,7 +262,7 @@ function boutonRappel(r, i) {
     "cloture": "Clôturer " + (r.annee || ""),
     "export-compta": "Exporter pour la compta",
     "revue-spectacles": "Choisir les spectacles",
-    "dpae": r.fichier ? "Envoyer la DPAE" : "Préparer la DPAE",
+    "dpae": r.objet ? "Envoyer la DPAE" : "Préparer la DPAE",
   }[r.quoi] || "Voir";
   return `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>`;
 }
@@ -302,13 +276,13 @@ async function agirSurRappel(r) {
     // cachet passe par là aussi.
     document.querySelector('.onglets button[data-vue="paie"]').click();
     await chargerMois(r.mois);
-    return deposerLaDsn(r.mois);
+    return boiteDepot({ quoi: "dsn", mois: r.mois }, { testerDabord: true });
   }
   if (r.quoi === "dpae") {
     // LA DPAE PRÉPARÉE D'AVANCE : son test est passé, le bouton
-    // ouvre le dépôt de CE fichier — le réel, avec le mot de passe. Sans
+    // ouvre son dépôt (la charge que le moteur rend) — le réel, avec le mot de passe. Sans
     // fichier testé, on va au mois et à la boîte des embauches.
-    if (r.fichier) return boiteDepot("dpae", r.fichier);
+    if (r.objet) return boiteDepot(r.objet);
     document.querySelector('.onglets button[data-vue="paie"]').click();
     await chargerMois(r.mois);
     return boiteDpae(r.mois);
@@ -318,9 +292,11 @@ async function agirSurRappel(r) {
     if (geste === "signaler-fin") return boiteSignalerFin(r.mois, r.objet);
     if (geste === "signaler") return boiteSignalerArret(r.objet, SIGNALEMENTS_DSN[r.obligation.cle]);
     if (geste === "faite") return boiteObligationFaite(r.objet, r.obligation);
-    // Ce qui manque au contrat se tape dans sa carte, sous « Contrat » : on va au mois.
     document.querySelector('.onglets button[data-vue="paie"]').click();
-    return chargerMois(r.mois);
+    // Ce qui manque au contrat se tape dans sa carte, sous « Contrat » : la carte s'ouvre sur la première case à dire.
+    const fin = r.objet || {};
+    await chargerMois(fin.mois || r.mois);
+    if (geste === "carte" && (fin.a_saisir || []).length) return allerALaCase({ ...fin, mois: fin.mois || r.mois }, fin.a_saisir[0].champ);
   }
   if (r.quoi === "cloture") return boiteCloture(r.annee);
   if (r.quoi === "export-compta") return lancerExportCompta(r.annee);

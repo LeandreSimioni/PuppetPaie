@@ -2,7 +2,7 @@
 //!
 //! L'etat d'un mois porte TOUT ce que l'ecran d'un mois lit : l'etat de chaque engagement (`etat-par-engagement`), celui
 //! du mois (`etat-du-mois`), et les lectures que la page faisait une a une (`LECTURES` : la saisie, les contrats en
-//! cours, les embauches, les fins, les imprevus, l'apercu de la saisie enregistree). Il se fait dans le processus de la
+//! cours, les fins, les imprevus, l'apercu de la saisie enregistree). Il se fait dans le processus de la
 //! fenetre, par UNE file (`FileDesEtats`) -- des le lancement pour les compagnies de l'installation (`Fil`) --, puis
 //! apres chaque ecriture, a l'ouverture d'une compagnie et apres chaque tour de veille, le mois affiche et ses voisins
 //! d'abord. Il ne s'ecrit pas : la file le garde en memoire, sous l'EMPREINTE de tout ce dont il est tire (`empreinte`),
@@ -24,8 +24,8 @@
 //! ouvrir, l'echeancier, les rappels, ce qui manque pour demarrer, les conseils) ; lui s'ecrit, pour qu'une compagnie
 //! s'ouvre tout de suite au lancement suivant. Meme empreinte (dates et tailles), mais de TOUTE la compagnie ; meme
 //! file, qui le refait a l'ouverture, apres chaque ecriture et chaque tour de veille ; meme service sans processus
-//! (`FileDesEtats::ouverture`, route `ouverture` de `interface/api.rs`) : le dernier etat connu, tout de suite, avec
-//! l'ecran du mois a ouvrir, chacun marque `perime` s'il l'est. Sans etat connu, la fenetre le fait faire et dit ce que
+//! (`FileDesEtats::ouverture`, route `ouverture` de `interface/api.rs`) : ses lectures justes (refaites si besoin), avec
+//! l'ecran du mois a ouvrir, marque `perime` s'il l'est. Ce qui se refait, la fenetre le fait faire et dit ce que
 //! fait le moteur (`phrase`), au lieu d'une roue muette.
 
 use std::collections::{HashMap, VecDeque};
@@ -45,18 +45,54 @@ type R<T> = Result<T, Echec>;
 /// engagements non actifs (`non_actifs`).
 const FORMAT: u64 = 4;
 
-/// Les routes que l'etat d'un mois sert.
-pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois"];
+use crate::routes::catalogue::{Acte, Fiche, ILLISIBLE, MOIS};
+
+/// Les routes que l'etat d'un mois sert, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "mois",
+        geste: "Lire tout l'écran d'un mois d'un coup : engagements, étapes, imprévus.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "lectures : la réponse de chaque route de l'écran du mois (saisie, etat-par-engagement, etat-du-mois…)",
+        refus: &[ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "etat-par-engagement",
+        geste: "Lire l'état de chaque engagement du mois : ses carrés DPAE, Contrat, Documents.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "engagements (une ligne chacun : ses carrés, ce qui est à refaire), non_actifs",
+        refus: &[ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "etat-du-mois",
+        geste: "Lire les quatre étapes du mois : DPAE, Contrats, DSN, Documents.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "les groupes de chaque étape : état, compte, phrase, échéance, et le geste d'un clic",
+        refus: &[ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+];
+
 
 /// Les lectures de l'ecran d'un mois qui ne sont pas les deux etats : la route, et si sa charge est `{"mois"}` (sinon
 /// `{}`). La page les demandait une a une, chacune dans un processus ; elles sont faites ici, une fois, avec les memes
 /// routes, et rendues telles quelles (resultat ou refus).
 /// Les arrets n'y sont plus : la page lit les imprevus du mois, chaque arret avec ses obligations. La reprise
 /// du journal non plus : elle se montre dans l'Historique, avec les envois et leurs retours.
-const LECTURES: [(&str, bool); 5] = [
+const LECTURES: [(&str, bool); 4] = [
     ("saisie", true),
     ("contrats-en-cours", true),
-    ("embauches-a-declarer", true),
     ("fins-de-contrat", true),
     ("imprevus", true),
 ];
@@ -83,11 +119,6 @@ pub fn chemin(racine: &Path) -> PathBuf {
     racine.join("ouverture.etat.json")
 }
 
-/// Un mois `AAAA-MM`, rien d'autre : il nomme un fichier.
-fn mois_valide(mois: &str) -> bool {
-    let b = mois.as_bytes();
-    b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
-}
 
 /// Le dossier, absolu et comparable (sous Windows, sans le `\\?\` de `canonicalize`).
 fn absolu(p: &Path) -> String {
@@ -226,9 +257,9 @@ fn lectures(o: &HashMap<String, String>, mois: &str) -> Value {
         l.insert(route.to_string(), lecture(o, route, charge));
     }
     // L'APERCU : ce que la page demande des qu'un mois s'affiche (`calculerApercu`), sur la saisie qu'elle vient de lire
-    // (`{"saisie": mois}`, la saisie enregistree) ; la page ne le redemande que quand on modifie la saisie.
+    // (`{"mois": mois}`, le mois enregistre) ; la page ne le redemande que quand on modifie la saisie.
     if l.get("saisie").and_then(|s| s.pointer("/resultat/existe")).is_some_and(|e| e == &Value::Bool(true)) {
-        l.insert("apercu".into(), lecture(o, "apercu", json!({"saisie": mois, "lignes": false})));
+        l.insert("apercu".into(), lecture(o, "apercu", json!({"mois": mois})));
     }
     Value::Object(l)
 }
@@ -272,7 +303,9 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
         // Le mois que l'ouverture montre se lit avec elle : ses paies validees se recalculent ici (`engagement::etats::du_mois`),
         // pas apres l'ecriture de l'etat, qui serait aussitot perime.
         if let Some(m) = etat.pointer("/lectures/mois-a-ouvrir/resultat/mois").and_then(Value::as_str).filter(|_| mois == OUVERTURE) {
-            let _ = engagement::etats::du_mois(ctx, m);
+            if let Ok(departs) = envois::journal::lu(&ctx.racine).map(|j| j.departs) {
+                let _ = engagement::etats::du_mois(ctx, m, &departs);
+            }
         }
         if empreinte(ctx, mois) == avant {
             if mois == OUVERTURE {
@@ -378,7 +411,7 @@ fn mois_a_ouvrir(ouverture: &Value, jour: &str) -> String {
     ouverture
         .pointer("/lectures/mois-a-ouvrir/resultat/mois")
         .and_then(Value::as_str)
-        .filter(|m| mois_valide(m))
+        .filter(|m| socle::date::mois_valide(m))
         .map(String::from)
         .unwrap_or_else(|| jour.get(..7).unwrap_or_default().to_string())
 }
@@ -686,7 +719,7 @@ impl FileDesEtats {
         let _code = socle::fichiers::code_fige();
         let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
-            crate::compagnie::administrateur::tableau_compagnie(o, &ctx)
+            crate::compagnie::administrateur::tableau_compagnie(&ctx)
         }));
         // Comme apres un mois (`faire`) : le travail suivant, d'une autre compagnie peut-etre, repart d'un fil propre.
         crate::routes::remettre_le_fil();
@@ -785,7 +818,7 @@ impl FileDesEtats {
     /// `perime`, et refait aussitot, devant tous les autres. `attendre` (la page qui veut l'etat frais) ou aucun etat
     /// garde : l'etat frais, une fois refait.
     pub fn ecran(&self, mois: &str, attendre: bool) -> R<Value> {
-        if !mois_valide(mois) {
+        if !socle::date::mois_valide(mois) {
             return Err(Echec { classe: Some("ErreurOperation"), message: format!("Mois illisible : {}.", mois) });
         }
         self.verrou().affiche = Some(mois.to_string());
@@ -802,13 +835,18 @@ impl FileDesEtats {
         Ok(Self::marquer(pour_la_page(&self.racine, &etat, &brut), false))
     }
 
-    /// L'etat garde `cle`, juste ou non, s'il y en a un ; sinon il est demande devant et attendu jusqu'a `limite` --
-    /// `Ok(None)` si elle passe avant lui. Le passage rend l'etat (juste) ou son refus.
-    fn obtenir(&self, cle: &str, jour: &str, limite: Instant) -> R<Option<(Value, bool)>> {
-        if let Some(x) = self.connu(cle, jour) {
+    /// L'etat garde `cle`, s'il y en a un (juste, si `juste` l'exige) ; sinon il est demande devant et attendu jusqu'a
+    /// `limite` -- `Ok(None)` si elle passe avant lui. Le passage rend l'etat (juste) ou son refus.
+    fn obtenir(&self, cle: &str, jour: &str, limite: Instant, juste: bool) -> R<Option<(Value, bool)>> {
+        if let Some(x) = self.connu(cle, jour).filter(|(_, j)| *j || !juste) {
             return Ok(Some(x));
         }
-        let n = self.demander(cle, true);
+        // Deja en route (la page qui redemande) : on attend ce passage-la, sans en demander un de plus.
+        let en_route = {
+            let e = self.verrou();
+            (e.en_cours.as_deref() == Some(cle) || e.attente.iter().any(|m| m == cle)).then(|| e.voulu.get(cle).copied()).flatten()
+        };
+        let n = en_route.unwrap_or_else(|| self.demander(cle, true));
         let mut e = self.verrou();
         loop {
             if let Some((fait, rendu)) = e.fait.get(cle) {
@@ -840,14 +878,14 @@ impl FileDesEtats {
 
     /// L'OUVERTURE D'UNE COMPAGNIE (la route `ouverture` de la fenetre) : d'un coup, ce que la page lit en
     /// s'ouvrant -- les lectures de l'ouverture (`lectures`, une entree par route, au format d'une reponse de la page), le
-    /// mois a ouvrir (`mois`) et l'ecran de ce mois (`ecran`, celui de la route `mois`). Le DERNIER ETAT CONNU, tout de
-    /// suite : chacun marque `perime` s'il l'est (`perime` pour les lectures, `ecran.perime` pour le mois), et refait
-    /// aussitot, le mois devant. `pret: true`.
+    /// mois a ouvrir (`mois`) et l'ecran de ce mois (`ecran`, celui de la route `mois`). Les lectures sont JUSTES : la
+    /// page ne les lit qu'une fois. L'ecran du mois est le dernier connu, tout de suite, marque `perime` s'il l'est
+    /// (`ecran.perime`), et refait aussitot. `pret: true`.
     ///
-    /// Sans etat connu de l'un ou de l'autre (compagnie neuve, etat illisible ou d'un autre moteur) : il se fait, et l'on
-    /// attend au plus `patienter` ; passe ce delai, `{"pret": false, "phrase"}` dit ce que fait le moteur, et la page
-    /// redemande. `frais` : les lectures de l'ouverture une fois refaites (la page qui a peint un etat perime), sans
-    /// l'ecran du mois (la page attend celui-ci par la route `mois`).
+    /// Sans lectures justes ou sans etat connu du mois (compagnie neuve, etat illisible ou d'un autre moteur, une
+    /// ecriture depuis) : il se fait, et l'on attend au plus `patienter` ; passe ce delai, `{"pret": false, "phrase"}` dit
+    /// ce que fait le moteur, et la page redemande. `frais` : les lectures de l'ouverture une fois refaites, sans l'ecran
+    /// du mois (l'Historique qui se relit).
     ///
     /// `aujourdhui` : LE JOUR DU MOTEUR, celui que la page prend pour tout ce qu'elle date ou presente au jour (une
     /// date d'effet proposee, l'annee du taux AT/MP, le mois en cours de la grille) -- jamais l'horloge du navigateur :
@@ -857,25 +895,21 @@ impl FileDesEtats {
         if frais {
             let v = self.attendre(OUVERTURE)?;
             let mois = mois_a_ouvrir(&v, &jour);
-            return Ok(json!({"pret": true, "perime": false, "mois": mois, "aujourdhui": jour, "lectures": v.get("lectures").cloned().unwrap_or(Value::Null), "ecran": Value::Null}));
+            return Ok(json!({"pret": true, "mois": mois, "aujourdhui": jour, "lectures": v.get("lectures").cloned().unwrap_or(Value::Null), "ecran": Value::Null}));
         }
         let limite = Instant::now() + patienter;
         let attente = || json!({"pret": false, "phrase": self.phrase()});
-        let Some((ouv, juste)) = self.obtenir(OUVERTURE, &jour, limite)? else { return Ok(attente()) };
+        let Some((ouv, _)) = self.obtenir(OUVERTURE, &jour, limite, true)? else { return Ok(attente()) };
         let mois = mois_a_ouvrir(&ouv, &jour);
         self.verrou().affiche = Some(mois.clone());
-        let Some((etat, mois_juste)) = self.obtenir(&mois, &jour, limite)? else { return Ok(attente()) };
-        // Refaits en fond, le mois devant : ses cartes sont ce qui se voit le plus.
-        if !juste {
-            self.demander(OUVERTURE, true);
-        }
+        let Some((etat, mois_juste)) = self.obtenir(&mois, &jour, limite, false)? else { return Ok(attente()) };
+        // Refait en fond, devant : ses cartes sont ce qui se voit le plus.
         if !mois_juste {
             self.demander(&mois, true);
         }
         let ecran = Self::marquer(pour_la_page(&self.racine, &etat, &Value::String(mois.clone())), !mois_juste);
         Ok(json!({
             "pret": true,
-            "perime": !juste,
             "mois": mois,
             "aujourdhui": jour,
             "lectures": ouv.get("lectures").cloned().unwrap_or(Value::Null),

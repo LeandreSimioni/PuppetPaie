@@ -130,3 +130,38 @@ est le taux collectif de l'arrêté, quel que soit l'effectif. Hors « TC », so
 est aussi collectif.
 
 **Où le moteur s'en sert** : nulle part encore (déposés pour que la règle du taux AT/MP s'écrive dessus).
+
+## Le taux AT/MP d'un établissement (relevé du 30/10/2026)
+
+`articles-20261030.md`, section « Le mode de tarification des accidents du travail et maladies professionnelles »
+(`xml/D242-6-1.xml`, `xml/D242-6-17.xml`, versions issues du décret n° 2026-951, en vigueur au 15/10/2026 et applicables aux
+cotisations dues à compter de 2027 : `../tarification-atmp/`).
+
+- **D. 242-6-1** : « Le taux de la cotisation due au titre des accidents du travail et des maladies professionnelles est
+  déterminé par établissement » ; « Le classement d'un établissement dans une catégorie de risque est effectué en fonction de
+  l'activité exercée » (la nomenclature et les modalités : arrêté du 17/10/1995, `../tarification-atmp/`).
+- **D. 242-6-17** : un établissement nouvellement créé d'une entreprise en tarification collective, ou dans une catégorie de
+  risque que l'entreprise n'avait pas, a les taux nets collectifs l'année de sa création et les deux années civiles
+  suivantes (version du décret, cotisations de 2027 et après : le moteur ne s'en sert pas). **La version applicable aux
+  cotisations jusqu'à 2026** (`xml-anterieur/D242-6-17.xml`, `LEGIARTI000022446511`, en vigueur du 01/01/2012 au
+  15/10/2026, relevée le 30/10/2026 par `moteur releve-codes comparer` dans l'archive globale LEGI) : « Les taux nets
+  collectifs sont applicables aux établissements nouvellement créés durant l'année de leur création et les deux années
+  civiles suivantes, quel que soit leur effectif ou celui de l'entreprise dont ils relèvent », sauf le taux unique d'une
+  entreprise qui l'a choisi, et sauf un établissement issu d'un précédent (même activité, mêmes moyens, la moitié du
+  personnel repris).
+
+- **D. 242-6-15** (`xml/D242-6-15.xml`, version du même décret, cotisations de 2027 et après ; la version applicable
+  jusqu'à 2026 : `xml-anterieur/D242-6-15.xml`, `LEGIARTI000028429426`, relevée le 30/10/2026) : « le taux net notifié ne
+  peut varier d'une année sur l'autre » — le taux notifié l'est pour une année.
+
+**Où le moteur s'en sert (D. 242-6-15, D. 242-6-17 de 2012)** : `droit/src/bareme.rs` (`taux_atmp_d_un_etablissement`) :
+le taux saisi d'un établissement ne vaut que pour l'année de sa date d'effet ; sans taux saisi, un établissement ouvert dans
+l'année ou les deux précédentes a, jusqu'en 2026, le taux collectif de l'arrêté pour son risque (TC ou non) ; ce que
+l'article excepte se dit par le taux notifié, qui se saisit.
+
+**Où le moteur s'en sert** : `moteur/src/routes/etablissements.rs` (`ecrire` : la ligne d'un établissement se date ; son
+taux saisi porte l'année de sa date d'effet), `droit/src/bareme.rs` (`taux_atmp_d_un_etablissement` : il ne vaut que pour cette
+année, D. 242-6-15), `moteur/src/routes/atmp.rs`
+(`d_un_etablissement`), `droit/src/bareme.rs` (`taux_atmp_applique`) : chaque établissement a son code risque et son taux,
+lus au même endroit que ceux de la compagnie (`bareme_atmp`) ; un code « TC » prend le taux de l'arrêté de l'année
+(D. 242-6-14).

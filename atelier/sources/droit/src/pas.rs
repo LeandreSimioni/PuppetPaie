@@ -55,7 +55,7 @@ pub type Triplet = (Value, Value, Value);
 /// BOI-IR-PAS-30-10-20-20181203.html`).
 pub const VALIDITE_MOIS: u32 = 2;
 
-/// `str(e.get(cle) or "").strip()`.
+/// La valeur de `cle` en texte, sans blancs autour, vide si elle manque ou est vide.
 fn texte_ou_vide(e: &Value, cle: &str) -> String {
     match e.get(cle) {
         Some(v) if vrai(v) => en_texte(v).trim().to_string(),
@@ -80,7 +80,7 @@ fn nombre_de(c: &[u32]) -> u32 {
 /// D'ou court la validite, de la source la plus sure a la moins sure :
 /// `mis_a_disposition` (AAAAMMJJHHMMSS, la date du compte rendu), puis
 /// `applique_le` (AAAA-MM-JJ, le jour du versement ou une DSN l'applique, que sa
-/// mise a disposition precede : voir `commandes::pas::derniers_taux_des_dsn`),
+/// mise a disposition precede : voir `compagnie::taux_pas::derniers_taux_des_dsn`),
 /// puis `periode` (AAAAMM ou AAAA-MM), puis `releve_le`.
 pub fn mise_a_disposition(e: &Value) -> Option<Jour> {
     let v = texte_ou_vide(e, "mis_a_disposition");
@@ -130,7 +130,7 @@ pub fn fin_de_validite(e: &Value) -> Option<Jour> {
     Jour::nouveau(an, m, jours_du_mois(an, m))
 }
 
-/// `str(e.get("type"))`.
+/// Le type, en texte.
 fn type_texte(e: &Value) -> String {
     en_texte(e.get("type").unwrap_or(&Value::Null))
 }
@@ -251,7 +251,7 @@ fn str_iso(v: &Value) -> Resultat<Jour> {
     depuis_iso(&en_texte(v))
 }
 
-/// `str(le)` d'un `Optional[date]`.
+/// Une date en AAAA-MM-JJ, `None` s'il n'y en a pas.
 fn le_texte(le: Option<Jour>) -> String {
     le.map_or("None".to_string(), |j| j.iso())
 }

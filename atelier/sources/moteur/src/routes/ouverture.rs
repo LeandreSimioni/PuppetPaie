@@ -1,6 +1,7 @@
 //! Les routes de l'ouverture : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration verifiee,
 //! l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
-//! `maj-etat`, `sauvegarde-derniere`, `echeance-faite`, `journal-reprise` et `courriels-fictifs`.
+//! `pour-demarrer` (ce qui manque pour les premiers actes), `maj-etat`, `sauvegarde-derniere`, `echeance-faite`,
+//! `journal-reprise`, `courriels-fictifs` et `compagnie-suppression` (ce que la suppression demande).
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le
@@ -11,6 +12,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, OPERATION};
 use crate::routes::etapes::Moteur;
 use crate::routes::fiches::exiger;
 use crate::routes::mois::lire_saisie;
@@ -37,14 +39,111 @@ fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
 }
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "etat", "configuration", "maj-etat", "sauvegarde-derniere",
-    "echeance-faite", "journal-reprise", "courriels-fictifs",
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "etat",
+        geste: "Dire tout ce que la page lit en s'ouvrant : configuration, Historique, listes.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "configuration (les fiches vérifiées), historique (les mois), les listes où l'on choisit, les référentiels",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "configuration",
+        geste: "Dire les fiches de la compagnie, vérifiées.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "entreprise, salaries, spectacles, leurs anomalies, l'identité, la description des cases",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "pour-demarrer",
+        geste: "Dire ce qui manque à la compagnie pour ses premiers actes.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "manques (chacun ce qu'il bloque et où le dire), poses (ce que le moteur a posé, en information)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "echeance-faite",
+        geste: "Cocher une échéance annuelle que seule la compagnie peut dire faite.",
+        charge: &[
+            Champ { nom: "cle", sens: "l'échéance et son année, « quoi:AAAA » (celle que rappels ou echeancier rendent)", avance: false },
+            Champ { nom: "fait", sens: "faux : la décocher", avance: false },
+        ],
+        exemple: r#"{"cle":"revue-spectacles:2026"}"#,
+        rend: "cle, fait",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "une échéance qui se coche, avec son année" }, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "maj-etat",
+        geste: "Dire la version du logiciel.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "la version installée et ce que la mise à jour en sait",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "sauvegarde-derniere",
+        geste: "Dire la dernière sauvegarde dans le Drive, sans réseau.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "le dernier passage de la sauvegarde (quand, ce qui est parti)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "journal-reprise",
+        geste: "Reprendre le journal des envois d'après les retours relevés.",
+        charge: &[Champ { nom: "ecrire", sens: "vrai : écrire ce qui se reprend ; sinon, le dire seulement", avance: false }],
+        exemple: r#"{}"#,
+        rend: "ce qui se reprend, ligne par ligne, et ses pastilles",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "courriels-fictifs",
+        geste: "Dire les courriels joués d'une compagnie fictive.",
+        charge: &[Champ { nom: "apres", sens: "seulement ceux d'après cet instant", avance: true }],
+        exemple: r#"{}"#,
+        rend: "les courriels joués (à qui, quoi, quand)",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "rien : seulement dans une compagnie fictive" }],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: crate::routes::COMPAGNIE_SUPPRESSION,
+        geste: "Dire ce que la suppression de la compagnie demande.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "le nom, le genre, la conservation à rappeler et la sauvegarde à proposer",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "rien : cette compagnie ne se supprime pas" }],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
 ];
-
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["echeance-faite", "journal-reprise", "courriels-fictifs"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -52,6 +151,17 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "etat" => etat(ctx),
         // La part « configuration » de l'etat, pour les routes qui la rendent apres un enregistrement.
         "configuration" => configuration(ctx),
+        // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup ; ce que le moteur a pose de lui-meme se dit
+        // en information (gris).
+        "pour-demarrer" => declarations::demarrage::route(ctx).map(|mut v| {
+            if let Some(Value::Array(p)) = v.get_mut("poses") {
+                p.iter_mut().for_each(|x| x["pastille"] = super::pastille("information", "posé pour vous"));
+            }
+            v
+        }),
+        // Supprimer la compagnie : ce que la boite demande ; la suppression elle-meme est un geste de la fenetre, qui lache
+        // d'abord ce qu'elle tient de la compagnie.
+        crate::routes::COMPAGNIE_SUPPRESSION => crate::interface::suppression::question(&ctx.racine).map_err(|m| erreur("ErreurOperation", m)),
         "maj-etat" => version(),
         // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
         "sauvegarde-derniere" => Ok(crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json()),
@@ -121,7 +231,7 @@ fn ou_vide<'a>(v: Option<&'a Value>) -> &'a Value {
 
 // ------------------------------------------------------------ la configuration
 
-/// `_fiche_verifiee` : la fiche telle que l'ecran la montre. `donnees` est
+/// La fiche telle que l'ecran la montre. `donnees` est
 /// COMBLEE : une fiche d'avant ne porte que la forme declaree, et l'ecran doit
 /// proposer une forme lisible de depart. Rien n'est ecrit pour autant.
 fn fiche_verifiee(nom: &str, cle: Option<&str>, donnees: &Value) -> R<Value> {
@@ -132,7 +242,7 @@ fn fiche_verifiee(nom: &str, cle: Option<&str>, donnees: &Value) -> R<Value> {
 
 /// La fiche telle que l'ecran la montre, avec les anomalies et les derivations que
 /// l'appelant a deja calculees (`derives` : `{cle: [avant, apres]}`).
-pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Value>, anomalies: Vec<Value>, derives: &Map<String, Value>) -> R<Value> {
+fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Value>, anomalies: Vec<Value>, derives: &Map<String, Value>) -> R<Value> {
     let comble = champs::combler_affichage(nom, donnees)?;
     let declare = champs::apercu_derive(nom, &comble)?;
     // Sa pastille : archivee (une information), ses erreurs (a corriger, la compagnie le peut), ce qui est a verifier,
@@ -177,7 +287,7 @@ pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Valu
 }
 
 
-/// `str(x or "")`.
+/// Une valeur en texte, vide si elle manque ou est vide.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
         Some(x) if vrai(x) => valeur_en_texte(x),
@@ -185,26 +295,48 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
     }
 }
 
-/// La fiche porte-t-elle un etablissement autre
-/// que le principal ?
-fn plusieurs_etablissements(fiche: &Value) -> bool {
-    let principal = texte_ou_vide(fiche.get("nic"));
-    let entrees: Vec<&Value> = match fiche.get("etablissements").filter(|v| vrai(v)) {
-        None => vec![],
-        Some(Value::Array(a)) => a.iter().collect(),
-        Some(autre) => vec![autre],
-    };
-    entrees.iter().any(|e| e.is_object() && texte_ou_vide(e.get("nic")) != principal)
+/// LES AUTRES ETABLISSEMENTS OUVERTS tels que la fiche les dit en dernier (ceux qui ouvrent plus tard compris) : la liste
+/// datee (`etablissements::ecrire`) se montre et se saisit ; un etablissement ferme n'y est plus.
+pub(crate) fn etablissements_dits(ctx: &Contexte) -> Vec<Value> {
+    let derniere = droit::contexte::valeurs_datees(ctx.entreprise_brute(), "etablissements").ok().and_then(|v| v.last().map(|(_, x)| (*x).clone()));
+    let principal = texte_ou_vide(ctx.entreprise.get("nic"));
+    match derniere {
+        Some(Value::Array(a)) => a.into_iter().filter(|e| e.is_object() && texte_ou_vide(e.get("nic")) != principal).collect(),
+        _ => Vec::new(),
+    }
 }
 
-/// `Contexte.compteurs()` : `config/compteurs.json`, ou `{}`.
-fn compteurs(racine: &Path) -> R<Value> {
-    let p = racine.join("config").join("compteurs.json");
-    if p.exists() {
-        lire_objet(&p)
-    } else {
-        Ok(Value::Object(Map::new()))
+/// CE QU'UN ENGAGEMENT CHOISIT quand la compagnie a d'autres etablissements que le siege : le siege (`nic` vide) puis
+/// chacun, nomme par son nom et sa commune, avec son ouverture, et son dernier jour s'il est ferme (un engagement passe
+/// le garde). `Null` : un seul etablissement, rien a choisir.
+fn choix_d_etablissement(ctx: &Contexte) -> Value {
+    let principal = texte_ou_vide(ctx.entreprise.get("nic"));
+    let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(ctx.entreprise_brute())
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|(e, _)| texte_ou_vide(e.get("nic")) != principal)
+        .collect();
+    if autres.is_empty() {
+        return Value::Null;
     }
+    let commune = |f: &Value| texte_ou_vide(f.get("commune_affichage").filter(|v| vrai(v)).or(f.get("commune")));
+    let mut out = vec![json!({"nic": "", "nom": format!("Le siège{}", Some(commune(&ctx.entreprise)).filter(|c| !c.is_empty()).map(|c| format!(", {}", c)).unwrap_or_default())})];
+    for (e, fermeture) in autres {
+        let nom = [texte_ou_vide(e.get("libelle")), commune(&e)].into_iter().filter(|s| !s.trim().is_empty()).collect::<Vec<_>>().join(", ");
+        out.push(json!({
+            "nic": texte_ou_vide(e.get("nic")),
+            "nom": if nom.is_empty() { texte_ou_vide(e.get("nic")) } else { nom },
+            "ouverture": e.get("ouverture").cloned().unwrap_or(Value::Null),
+            "fermeture": fermeture.map(|j| j.iso()),
+        }));
+    }
+    Value::Array(out)
+}
+
+/// Les lignes des autres etablissements demandent-elles leur versement mobilite ? Oui quand le siege en paie un : le
+/// controle des etablissements l'exige alors de chacun (`droit::contexte::controler_etablissements`).
+fn versement_mobilite_des_etablissements(ctx: &Contexte) -> bool {
+    ctx.bareme_fondu(ctx.aujourdhui.an).ok().and_then(|b| b.get("versement_mobilite").cloned()).is_some_and(|v| v.is_object())
 }
 
 /// `salaries_au_mois` : les salaries qui ont, ou ont eu, un contrat paye au mois. Lu dans les engagements : la nature se
@@ -360,39 +492,10 @@ pub fn boite_liee(ctx: &Contexte) -> R<bool> {
     coffre.disponible("courriel").map_err(vers)
 }
 
-/// `fiches_attendues_json` : les demandes de fiche parties et pas encore
-/// revenues, les plus anciennes d'abord.
-fn fiches_attendues(m: &mut Moteur) -> R<Value> {
-    let lignes = m.lignes()?;
-    Ok(Value::Array(attendues(&lignes)?))
-}
-
-/// Les demandes de fiche parties et pas encore revenues, d'apres les lignes du journal.
-pub(crate) fn attendues(lignes: &[Value]) -> R<Vec<Value>> {
-    let filtrees = |quoi: &str| -> R<Vec<&Value>> { envois::etats::filtrer(&lignes, Some(quoi), None, false) };
-    let detail = |l: &Value| -> Value { ou_vide(l.get("detail")).clone() };
-    let closes: Vec<Value> = filtrees("fiche-recue")?.iter().map(|l| detail(l).get("code").cloned().unwrap_or(Value::Null)).collect();
-    let mut out = Vec::new();
-    for l in filtrees("fiche-demande")? {
-        let d = detail(l);
-        let code = d.get("code").cloned().unwrap_or(Value::Null);
-        if !l.get("accepte").is_some_and(vrai) || !vrai(&code) || closes.contains(&code) {
-            continue;
-        }
-        out.push(json!({
-            "code": code, "adresse": d.get("adresse").cloned().unwrap_or_else(|| json!("")),
-            "prenom": d.get("prenom").cloned().unwrap_or_else(|| json!("")),
-            "quand": l.get("quand").cloned().unwrap_or(Value::Null),
-        }));
-    }
-    Ok(out)
-}
-
-/// `_configuration` : toute la configuration, verifiee, et ce que la page en
-/// tire sans un appel de plus.
-fn configuration(ctx: &Contexte) -> R<Value> {
-    let mut m = Moteur::nouveau(ctx);
-    configuration_de(ctx, &mut m)
+/// Les demandes de fiche parties et pas encore revenues, les plus anciennes d'abord, comme la page les lit.
+fn fiches_attendues(ctx: &Contexte) -> R<Value> {
+    let attendues = crate::routes::fiches::fiches_attendues(ctx)?;
+    Ok(Value::Array(attendues.into_iter().map(|a| json!({"code": a.code, "adresse": a.adresse, "prenom": a.prenom, "quand": a.quand})).collect()))
 }
 
 /// La fiche telle qu'elle vaut, avec `historique` : les valeurs qu'une autre a remplacees dans la fiche datee `brute`, et
@@ -416,8 +519,22 @@ fn avec_historique(fiche: &Value, brute: Option<&Value>) -> R<Value> {
     Ok(f)
 }
 
-fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
-    let entreprise = fiche_verifiee("entreprise", None, &avec_historique(&ctx.entreprise, Some(ctx.entreprise_brute()))?)?;
+/// Toute la configuration, verifiee, et ce que la page en tire sans un appel de plus.
+fn configuration(ctx: &Contexte) -> R<Value> {
+    let mut vue = avec_historique(&ctx.entreprise, Some(ctx.entreprise_brute()))?;
+    if let Some(o) = vue.as_object_mut() {
+        let autres = etablissements_dits(ctx);
+        if autres.is_empty() {
+            o.shift_remove("etablissements");
+        } else {
+            o.insert("etablissements".into(), Value::Array(autres));
+        }
+        // Leur histoire est celle de leurs ouvertures, que chacun dit.
+        if let Some(Value::Array(h)) = o.get_mut("historique") {
+            h.retain(|l| l.get("champ").and_then(Value::as_str) != Some("etablissements"));
+        }
+    }
+    let entreprise = fiche_verifiee("entreprise", None, &vue)?;
     let salaries = ctx
         .salaries
         .iter()
@@ -428,13 +545,13 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         .iter()
         .map(|(k, v)| fiche_verifiee("spectacle", Some(k), &avec_historique(v, ctx.spectacle_brut(k))?))
         .collect::<R<Vec<_>>>()?;
-    // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre : une erreur a corriger, que la
-    // compagnie peut corriger (orange) ; un champ obligatoire vide n'en est pas une, il reste a remplir.
+    // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre (orange) : une valeur a corriger, ou un
+    // champ obligatoire vide, a remplir -- les memes que la pastille de chaque fiche.
     let erreurs = std::iter::once(&entreprise)
         .chain(salaries.iter())
         .chain(spectacles.iter())
         .flat_map(|f| f["anomalies"].as_array().cloned().unwrap_or_default())
-        .filter(|a| a["gravite"] == "erreur" && a["message"] != "obligatoire")
+        .filter(|a| a["gravite"] == "erreur")
         .count();
     let erreurs = if erreurs > 0 { super::pastille("a_faire", &format!("{} erreur{} de configuration", erreurs, if erreurs > 1 { "s" } else { "" })) } else { Value::Null };
     let permanents = ctx.emploie_des_permanents();
@@ -442,7 +559,7 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         "entreprise": entreprise,
         "salaries": salaries,
         "spectacles": spectacles,
-        "compteurs": compteurs(&ctx.racine)?,
+        "compteurs": documents::ecrire_documents::compteurs(&ctx.racine)?,
         "erreurs": erreurs,
         "description": {
             "entreprise": champs::description("entreprise")?,
@@ -454,7 +571,8 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         // serait les effacer au premier enregistrement. La page les replie.
         "permanents": permanents,
         // Et ce que la liste des etablissements commande.
-        "etablissements": plusieurs_etablissements(&ctx.entreprise),
+        "etablissements": choix_d_etablissement(ctx),
+        "versement_mobilite_des_etablissements": versement_mobilite_des_etablissements(ctx),
         // Et, parmi les salaries, ceux qui sont payes au mois.
         "salaries_au_mois": if permanents { salaries_au_mois(ctx)? } else { vec![] },
         // CE QUI EST POSE : signature et logo, avec leur date.
@@ -462,7 +580,7 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         // LA FICHE REMPLIE PAR LE SALARIE : sans boite liee, la demande ne peut
         // pas partir. Et ce qui attend encore sa reponse.
         "boite_liee": boite_liee(ctx)?,
-        "fiches_attendues": fiches_attendues(m)?,
+        "fiches_attendues": fiches_attendues(ctx)?,
     }))
 }
 
@@ -481,10 +599,8 @@ pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
     if let Ok(rd) = std::fs::read_dir(&sorties) {
         for e in rd.flatten() {
             let nom = e.file_name().to_string_lossy().into_owned();
-            let b = nom.as_bytes();
             // Les dossiers AAAA-MM seulement : `sorties/exercices/` n'est pas un mois.
-            let est_mois = b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit());
-            if est_mois && e.path().is_dir() {
+            if socle::date::mois_valide(&nom) && e.path().is_dir() {
                 vus.insert(nom.clone());
                 dossiers.insert(nom, e.path());
             }
@@ -516,31 +632,17 @@ pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
 fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]) -> R<Value> {
     let mut out = Vec::new();
     for (nom, noms) in mois {
-        let e = m.dsn_du_mois(nom)?;
         let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
         let limite = echeance.jour;
-        let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
-        let drapeau = |k: &str| e.get(k).is_some_and(vrai);
-        // UN MOIS TENU AVANT CE LOGICIEL n'est jamais « en retard » ni « a ecrire » : sa DSN est au
-        // journal (un depot que les retours attestent y entre seul), ou c'est celle que l'import a lue (« importee »), ou
-        // il n'en a aucune trace (« sans_trace ») -- et rien ne se refait ici.
+        let en_retard = echeance.passee_au(&ctx.aujourdhui);
+        // L'ETAT DE LA DSN, lu une fois (`compagnie::etat_dsn`) ; une DSN a deposer passee l'echeance est en retard.
         let importe = crate::import::mois::importe(&ctx.racine, nom)?;
-        let importee = !vrai(&e) && crate::import::mois::dsn_importee(&ctx.racine, nom)?.is_some();
-        let etat: Option<&str> = if vrai(&e) && drapeau("refusee") {
-            Some("refusee")
-        } else if vrai(&e) && drapeau("passee") {
-            Some("passee")
-        } else if vrai(&e) {
-            Some("attente")
-        } else if importee {
-            Some("importee")
-        } else if importe {
-            Some("sans_trace")
-        } else if en_retard {
-            Some("en_retard")
-        } else {
-            None
+        let lu = crate::compagnie::etat_dsn::du_mois(ctx, nom, &Value::Null)?;
+        let etat = match lu.0["etat"].as_str().unwrap_or("a_deposer") {
+            "a_deposer" if en_retard => "en_retard",
+            autre => autre,
         };
+        let depose = lu.deposee();
         let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
         // Un mois tenu avant : ses bulletins sont ceux de l'ancien logiciel, que l'import garde.
         if importe && !crate::import::mois::bulletins_repris(&ctx.racine, nom).is_empty() {
@@ -552,10 +654,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
             sortes.insert(rang, "attestations AER");
         }
-        // Une DSN qui n'est pas partie est a deposer : elle se fabrique a son depot, qui dit le jour ou elle peut partir
-        // (`compagnie::depart::dsn_a_deposer`).
-        let etat = etat.unwrap_or("a_deposer");
-        // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a deposer, refusee ou en
+        // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique) : une DSN a deposer, refusee ou en
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
         let a_faire = match etat {
@@ -581,12 +680,12 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         out.push(json!({
             "mois": nom, "produit": !noms.is_empty(), "dsn": etat,
             "pastille": {"couleur": couleur, "mots": mots},
-            "depose_le": if vrai(&e) { e.get("quand").cloned().unwrap_or(Value::Null) } else { Value::Null },
+            "depose_le": if depose { lu.0["quand"].clone() } else { Value::Null },
             "echeance": limite.iso(),
             "echeance_depot": echeance.en_json(),
             // Deposee, passee, et l'echeance derriere : la correction part dans
             // la DSN du mois courant.
-            "corrigeable": vrai(&e) && !drapeau("refusee") && en_retard && !importe,
+            "corrigeable": lu.partie() && en_retard && !importe,
             "importe": importe,
             "a_faire": a_faire,
             "sortes": sortes, "fichiers": noms,
@@ -596,7 +695,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
     Ok(Value::Array(out))
 }
 
-/// `_historique` : ce que l'Historique montre de chaque mois.
+/// Ce que l'Historique montre de chaque mois.
 fn historique(m: &mut Moteur, ctx: &Contexte) -> Value {
     let mut mois = mois_connus(&ctx.racine);
     // Les mois tenus avant ce logiciel sont des mois comme les autres : l'Historique les montre aussi.
@@ -675,7 +774,7 @@ pub(crate) fn preferences_metiers(racine: &Path) -> R<(Vec<String>, Vec<String>)
     Ok((liste("codes"), liste("retires")))
 }
 
-/// `_visible` : ce metier est-il dans le deroulant de cette compagnie ? Ceux de
+/// Ce metier est-il dans le deroulant de cette compagnie ? Ceux de
 /// sa convention le sont d'office ; elle en ajoute d'une autre, elle en retire
 /// des siens (Configuration > Metiers).
 pub(crate) fn metier_visible(m: &Value, idcc: &str, ajoutes: &[String], retires: &[String]) -> bool {
@@ -790,7 +889,7 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
     Ok(faits)
 }
 
-/// `_natures` : les natures de contrat, telles que l'ecran doit les proposer.
+/// Les natures de contrat, telles que l'ecran doit les proposer.
 /// Tout vient de `contrats-base.json`. SAUF LES NATURES PAYEES AU MOIS : elles
 /// ne descendent que si la fiche entreprise dit employer des permanents.
 fn natures(ctx: &Contexte) -> R<Value> {
@@ -812,7 +911,7 @@ fn natures(ctx: &Contexte) -> R<Value> {
             signales.insert(valeur_en_texte(&code), json!(n.signalement_fctu(Some(&valeur_en_texte(&code)))));
         }
         sortie.push(json!({
-            "cle": n.cle, "libelle": n.libelle,
+            "cle": n.cle, "libelle": n.libelle, "aide": n.aide,
             "mensuelle": n.mensuelle(), "duree_indeterminee": n.duree_indeterminee,
             // Un permanent ne se rattache a AUCUN spectacle : le numero d'objet
             // (S21.G00.40.050) est INTERDIT hors des natures 02 et 10 (CCH-11).
@@ -833,7 +932,7 @@ fn natures(ctx: &Contexte) -> R<Value> {
     Ok(Value::Array(sortie))
 }
 
-/// `_niveaux_sante` : les niveaux de garantie que le bareme connait, pour la
+/// Les niveaux de garantie que le bareme connait, pour la
 /// fiche salarie. Vide quand le bareme n'en porte pas.
 fn niveaux_sante(ctx: &Contexte) -> R<Value> {
     let Ok(bar) = ctx.bareme(&ctx.aujourdhui) else { return Ok(json!([])) };
@@ -855,7 +954,7 @@ fn niveaux_sante(ctx: &Contexte) -> R<Value> {
     ))
 }
 
-/// `_conventions` : les conventions collectives que le bareme sait servir, pour
+/// Les conventions collectives que le bareme sait servir, pour
 /// la fiche. La page ne les invente pas, et elle n'en invente pas le libelle :
 /// `par_convention` du socle dit lesquelles existent, et si leur couche de taux
 /// est RELEVEE (`applicable`).
@@ -906,7 +1005,7 @@ fn conventions(ctx: &Contexte) -> R<Value> {
 /// La route `etat` : tout ce que la page lit en s'ouvrant.
 pub fn etat(ctx: &Contexte) -> R<Value> {
     let mut m = Moteur::nouveau(ctx);
-    let configuration = configuration_de(ctx, &mut m)?;
+    let configuration = configuration(ctx)?;
     let historique = historique(&mut m, ctx);
 
     // Les listes ou l'on CHOISIT : les fiches courantes seulement. Une archive
@@ -1043,24 +1142,13 @@ pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str)
         ));
     }
     let p = ctx.racine.join("config").join("echeancier.json");
-    let mut d = if p.exists() { lire_saisie(&p)? } else { json!({}) };
-    let Value::Object(m) = &mut d else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&d))));
-    };
-    m.entry("_origine").or_insert_with(|| json!("Les echeances que l'utilisateur a dites faites."));
-    let faits = m.entry("fait").or_insert_with(|| json!({}));
-    let Value::Object(faits) = faits else {
-        return Err(match (faits, fait) {
-            (Value::Array(_), true) => erreur("TypeError", format!("'fait' : {}", socle::fichiers::attendu("un objet", "list"))),
-            (autre, true) => erreur("TypeError", socle::fichiers::non_modifiable(nom_type(autre))),
-            (autre, false) => erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(autre))),
-        });
-    };
+    let mut faits = super::mois::cochees(ctx)?;
     if fait {
         faits.insert(cle.to_string(), json!({"le": ctx.aujourdhui.iso(), "qui": qui}));
     } else {
         faits.shift_remove(cle);
     }
+    let d = json!({"_origine": "Les echeances que l'utilisateur a dites faites.", "fait": faits});
     if let Some(parent) = p.parent() {
         creer_dossier(parent)?;
     }
@@ -1124,7 +1212,7 @@ fn en_os(m: String) -> Echec {
     erreur("OSError", m)
 }
 
-/// `Path.mkdir(parents=True, exist_ok=True)`.
+/// Crée le dossier et ses parents ; rien s'il existe.
 fn creer_dossier(d: &std::path::Path) -> R<()> {
     std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
 }

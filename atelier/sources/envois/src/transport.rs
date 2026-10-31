@@ -50,9 +50,9 @@ pub fn message_du_statut(code: u16) -> &'static str {
 pub enum Panne {
     /// Un statut HTTP hors 2xx ; le corps, lu en entier (ou la panne de sa lecture).
     Statut { code: u16, corps: Result<Vec<u8>, Box<Panne>> },
-    /// Ce qu'urllib rangeait sous `URLError` : la raison.
+    /// La connexion n'a pas abouti (`URLError`) : la raison.
     Reseau(String),
-    /// Une exception brute d'urllib / http.client / gzip, sous son nom.
+    /// Une panne après l'envoi, sous le nom de sa classe.
     Brute { classe: &'static str, message: String, plus: Map<String, Value> },
 }
 
@@ -101,17 +101,17 @@ fn debut(s: &str, n: usize) -> String {
     s.chars().take(n).collect()
 }
 
-/// `bytes.decode("utf-8", "replace")`.
+/// Des octets lus en UTF-8, un caractère de remplacement pour ce qui ne se lit pas.
 fn utf8_remplace(o: &[u8]) -> String {
     String::from_utf8_lossy(o).into_owned()
 }
 
-/// `_sans_secret` : jamais un identifiant dans un message.
+/// Jamais un identifiant dans un message.
 pub fn sans_secret(url: &str) -> &str {
     url.split('?').next().unwrap_or("")
 }
 
-/// `_echapper`.
+/// Les trois caracteres que le HTML reserve (`&`, `<`, `>`) echappes.
 pub fn echapper(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
@@ -280,7 +280,7 @@ fn delai_expire(https: bool) -> &'static str {
     }
 }
 
-/// Une panne de `ureq` dans les mots d'urllib : `URLError` avant la reponse,
+/// Une panne de `ureq` en refus du moteur : `URLError` avant la reponse,
 /// exception brute apres l'envoi.
 fn panne_de(e: ureq::Error, https: bool) -> Panne {
     use std::io::ErrorKind as K;
@@ -292,8 +292,8 @@ fn panne_de(e: ureq::Error, https: bool) -> Panne {
         Error::Io(io) => match io.kind() {
             K::UnexpectedEof => Panne::brute("RemoteDisconnected", "Remote end closed connection without response"),
             // Observe sur le service reel : la connexion est rompue pendant
-            // l'etablissement (mandataire, TLS), ce qu'urllib rangeait sous
-            // `URLError`. ureq ne dit pas a quel moment : on garde cette lecture.
+            // l'etablissement (mandataire, TLS) : la connexion n'a pas abouti
+            // (`URLError`). ureq ne dit pas a quel moment.
             K::ConnectionReset | K::ConnectionAborted => Panne::Reseau(errno_texte(&io)),
             K::TimedOut if io.raw_os_error().is_none() => Panne::Reseau("timed out".into()),
             _ => Panne::Reseau(errno_texte(&io)),
@@ -306,7 +306,7 @@ fn panne_de(e: ureq::Error, https: bool) -> Panne {
     }
 }
 
-/// Le mandataire de l'environnement, comme urllib le lit : `https_proxy` pour
+/// Le mandataire de l'environnement : `https_proxy` pour
 /// une adresse https, `http_proxy` pour une adresse http, et `no_proxy`
 /// (noms, suffixes de domaine, `*`) qui l'ecarte. La machine elle-meme (les faux
 /// serveurs de l'atelier et des essais) ne passe jamais par un mandataire.
@@ -362,7 +362,7 @@ fn agent(delai: u64, url: &str) -> Result<ureq::Agent, Panne> {
     Ok(c.build().into())
 }
 
-/// Lit le corps par morceaux, avec le delai d'urllib : un silence de `delai`
+/// Lit le corps par morceaux : un silence de `delai`
 /// secondes entre deux morceaux, pas une duree totale.
 fn lire_corps(corps: ureq::Body, delai: u64, attendu: Option<u64>, https: bool) -> Result<Vec<u8>, Panne> {
     let (tx, rx) = mpsc::channel::<Result<Vec<u8>, std::io::Error>>();
@@ -417,7 +417,7 @@ fn coupee(lus: usize, attendu: Option<u64>) -> Panne {
     Panne::Brute { classe: "IncompleteRead", message, plus }
 }
 
-/// `urllib.parse.urljoin` pour un `Location` de redirection.
+/// L'adresse d'un `Location` de redirection, lue depuis l'adresse demandée.
 fn joindre(base: &str, loc: &str) -> String {
     let loc = loc.replace(' ', "%20");
     if let Some(i) = loc.find("://") {
@@ -452,7 +452,7 @@ fn en_tetes_de(parts: &http::response::Parts) -> Entetes {
     for (n, val) in parts.headers.iter() {
         let nom = nom_canonique(n.as_str());
         let val = String::from_utf8_lossy(val.as_bytes()).into_owned();
-        // `dict(r.headers)` : le premier l'emporte (`Message.get`).
+        // Un en-tête répété : le premier l'emporte.
         if !v.iter().any(|(k, _)| *k == nom) {
             v.push((nom, val));
         }
@@ -478,7 +478,7 @@ pub struct Requete<'a> {
     pub delai: u64,
     /// Des en-tetes en plus (le canal de l'editeur : `User-Agent`, `X-Filet-Cle`).
     pub entetes: &'a [(&'a str, &'a str)],
-    /// Ne pas demander `gzip` (`urllib` ne le demande pas, le canal de l'editeur non plus).
+    /// Ne pas demander `gzip` (le canal de l'editeur ne le demande pas).
     pub sans_gzip: bool,
     /// Une autre methode que GET ou POST (`PATCH` du Drive) ; elle part avec son corps, meme vide.
     pub methode: Option<&'a str>,
@@ -503,7 +503,7 @@ pub fn envoyer(r: &Requete) -> Result<(Vec<u8>, Entetes), Panne> {
             b = b.header(*nom, *valeur);
         }
         if avec_entetes_du_corps {
-            // urllib pose ce type a un POST qui n'en donne pas.
+            // Un POST sans type de contenu part en formulaire.
             match r.content_type {
                 Some(ct) => b = b.header("Content-Type", ct),
                 None if post => b = b.header("Content-Type", "application/x-www-form-urlencoded"),
@@ -723,8 +723,7 @@ pub fn depot(url: &str, jeton: &str, corps_gzip: &[u8], forme: &str, delai: u64)
     };
     envoyer(&r).map_err(|p| match (forme, p) {
         ("dsn", Panne::Statut { code, corps }) => match corps {
-            // `MESSAGES.get(str(code))` : les cles sont des entiers, le detail
-            // n'a donc jamais ete affiche ; le corps passe par `_sans_secret`.
+            // Le corps de la reponse passe par `sans_secret`.
             Ok(c) => echec(
                 "DepotRefuse",
                 format!("Le point de depot a repondu {}.\n{}", code, sans_secret(&debut(&utf8_remplace(&c), 800))),

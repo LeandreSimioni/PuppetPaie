@@ -33,7 +33,7 @@ fn dec(t: &str) -> R<Decimal> {
     Decimal::from_str(t.trim()).map_err(|_| erreur("InvalidOperation", socle::num::illisible(t)))
 }
 
-/// `_eur` : `1 234,50 €` (deux decimales, espace des milliers, virgule).
+/// `1 234,50 €` (deux decimales, espace des milliers, virgule).
 pub fn eur(v: Decimal) -> String {
     let r = v.round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
     let mut s = format!("{:.2}", r);

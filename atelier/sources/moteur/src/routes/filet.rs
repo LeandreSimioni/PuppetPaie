@@ -4,7 +4,7 @@
 //! - `diagnostic-etat`, `diagnostic-envoyer`, `diagnostic-regler` : ce qui est parti chez l'editeur, et l'envoi de ce
 //!   qui attend ;
 //! - `signalements`, `signalement-apercu`, `signalement-envoyer` (enregistre, ne part pas), `signalements-partir` (le
-//!   depart, en fond), `signalements-lus`, `signalements-reponses` : « Un probleme, une idee ? » ;
+//!   depart, en fond), `signalements-lus` : « Un probleme, une idee ? » ;
 //! - `filet-etat`, `filet-verifier`, `filet-activer`, `filet-desactiver`, `filet-suivies` : le filet DPAE (activer et
 //!   desactiver exigent le mot de passe du logiciel s'il est pose : le moteur le verifie, jamais la page) ;
 //! - `incidents-lire`, `incidents-regrouper`, `incidents-oublier`, `incidents-envoyer` : les incidents gardes, pour la
@@ -21,6 +21,7 @@ use crate::compagnie::incidents::{self, DEPOSE, EN_ATTENTE};
 use crate::compagnie::{filet, problemes};
 use droit::contexte::Contexte;
 use super::{lire_json_tolerant, longueur, objet, valeur};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, OPERATION};
 use envois::etats::{get, objet_vide};
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::vrai;
@@ -28,31 +29,215 @@ use socle::valeur::{valeur_en_texte, valeurs_egales};
 
 
 
-/// Les routes que ce module sert.
-pub const ROUTES: &[&str] = &[
-    "filet-etat",
-    "signalements",
-    "incident-navigateur",
-    "diagnostic-etat",
-    "diagnostic-envoyer",
-    "diagnostic-regler",
-    "signalement-apercu",
-    "signalement-envoyer",
-    "signalements-lus",
-    "signalements-partir",
-    "signalements-reponses",
-    "filet-verifier",
-    "filet-activer",
-    "filet-desactiver",
-    "filet-suivies",
-    "incidents-lire",
-    "incidents-regrouper",
-    "incidents-envoyer",
+const TEXTE: Champ = Champ { nom: "texte", sens: "le message, en mots", avance: false };
+const ECRAN: Champ = Champ { nom: "ecran", sens: "où l'on était (l'écran, ou ce que le LLM a tenté : la route, la charge sans donnée personnelle, la réponse)", avance: false };
+const CAPTURES: Champ = Champ { nom: "captures", sens: "[{type, donnees}] : des images en base64", avance: true };
+const QUOI: Champ = Champ { nom: "quoi", sens: "une seule nature d'incident ; toutes sinon", avance: true };
+const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, s'il est posé", avance: false };
+const FILET_REND: &str = "actif, adresse, confirme, et leur pastille";
+const DIAGNOSTIC_REND: &str = "envoi (vrai : actif), total, en_attente, groupes (ce qui part, mot pour mot), pastille";
+
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "signalement-apercu",
+        geste: "Montrer, mot pour mot, ce qu'un message au développeur emporterait.",
+        charge: &[TEXTE, ECRAN, CAPTURES],
+        exemple: r#"{"texte":"La phrase de la DSN est coupée.","ecran":"Paie, novembre 2026"}"#,
+        rend: "corps (ce qui part), caviarde, serveur, captures, incidents, peut_envoyer, pourquoi",
+        refus: &[OPERATION, FORME],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "signalement-envoyer",
+        geste: "Écrire au développeur (un problème, une idée) ; le message part seul.",
+        charge: &[TEXTE, ECRAN, CAPTURES],
+        exemple: r#"{"texte":"La phrase de la DSN est coupée.","ecran":"Paie, novembre 2026"}"#,
+        rend: "signalements (chacun son état et son départ)",
+        refus: &[OPERATION, FORME],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "signalements",
+        geste: "Dire les messages écrits au développeur, et ses réponses.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "signalements (chacun son état, sa pastille, ses réponses)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "signalements-lus",
+        geste: "Marquer lues les réponses du développeur.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "lues (le nombre marqué)",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "signalements-partir",
+        geste: "Faire partir chez le développeur les messages qui attendent.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "le bilan du passage (partis, reste, erreur) ; ne refuse jamais",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "incident-navigateur",
+        geste: "Noter ce qui a cassé dans la page.",
+        charge: &[Champ { nom: "message", sens: "ce que la page a vu (et genre, fichier, ligne, pile)", avance: false }],
+        exemple: r#"{"message":"exemple","genre":"erreur"}"#,
+        rend: "note (vrai : noté), empreinte",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "diagnostic-etat",
+        geste: "Dire ce qui est parti chez le développeur, et ce qui attend.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: DIAGNOSTIC_REND,
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "diagnostic-envoyer",
+        geste: "Envoyer au développeur les incidents qui attendent.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "ce que diagnostic-etat rend, bilan et couleur",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "diagnostic-regler",
+        geste: "Couper l'envoi des incidents au développeur, ou le rétablir.",
+        charge: &[Champ { nom: "actif", sens: "vrai : les envoyer", avance: false }],
+        exemple: r#"{"actif":true}"#,
+        rend: DIAGNOSTIC_REND,
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "incidents-lire",
+        geste: "Lire les incidents gardés sur le poste.",
+        charge: &[QUOI, Champ { nom: "en_attente", sens: "vrai : seulement ceux qui ne sont pas partis", avance: true }],
+        exemple: r#"{}"#,
+        rend: "lignes (les plus récentes en dernier)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "incidents-regrouper",
+        geste: "Regrouper les incidents gardés, le plus fréquent en tête.",
+        charge: &[QUOI],
+        exemple: r#"{}"#,
+        rend: "paquets",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "incidents-envoyer",
+        geste: "Déposer chez le développeur les incidents qui attendent.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "envoyes, reste, erreur, sans_serveur ; ne refuse jamais",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "incidents-oublier",
+        geste: "Effacer les incidents gardés, tous ou d'une nature.",
+        charge: &[QUOI],
+        exemple: r#"{"quoi":"logiciel"}"#,
+        rend: "retires (le nombre)",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "filet-etat",
+        geste: "Dire si le filet DPAE (un rappel par courriel) est actif.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: FILET_REND,
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "filet-suivies",
+        geste: "Dire les embauches que le filet DPAE suit.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "suivies (les DPAE à faire)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "filet-verifier",
+        geste: "Relire chez le serveur du filet si l'adresse est confirmée.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: FILET_REND,
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "filet-activer",
+        geste: "Inscrire une adresse au filet DPAE : un rappel si une DPAE tarde.",
+        charge: &[Champ { nom: "adresse", sens: "le courriel qui reçoit le rappel", avance: false }, MOT_DE_PASSE],
+        exemple: r#"{"adresse":"compagnie@exemple.invalid"}"#,
+        rend: FILET_REND,
+        refus: &[Refus { classe: "ErreurOperation", corriger: "l'adresse, ou réessayer quand le serveur du filet répond" }, Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel" }],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "filet-desactiver",
+        geste: "Désinscrire la compagnie du filet DPAE.",
+        charge: &[MOT_DE_PASSE],
+        exemple: r#"{}"#,
+        rend: FILET_REND,
+        refus: &[Refus { classe: "ErreurOperation", corriger: "réessayer quand le serveur du filet répond" }, Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel" }],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
 ];
-
-/// `incidents-oublier` est a part : elle efface, et ne se range pas avec les lectures.
-pub const ROUTE_OUBLIER: &str = "incidents-oublier";
-
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let mut v = route_seule(o, ctx, nom, charge)?;
@@ -161,12 +346,11 @@ fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: 
             Ok(json!({"lignes": incidents::lire(racine, nature.as_deref(), en_attente)?}))
         }
         "incidents-regrouper" => Ok(json!({"paquets": incidents::regrouper(racine, nature_voulue(charge).as_deref())?})),
-        ROUTE_OUBLIER => Ok(json!({"retires": incidents::oublier(racine, nature_voulue(charge).as_deref())})),
+        "incidents-oublier" => Ok(json!({"retires": incidents::oublier(racine, nature_voulue(charge).as_deref())})),
         "signalement-apercu" => problemes::apercu(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
         "signalement-envoyer" => problemes::envoyer(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
         "signalements-lus" => Ok(json!({"lues": problemes::signalements_lus(racine)?})),
         "signalements-partir" => Ok(problemes::partir(racine)),
-        "signalements-reponses" => Ok(json!({"nouvelles": problemes::relever_reponses(racine)?})),
         "filet-verifier" => filet::verifier(racine),
         "filet-activer" => filet::activer(racine, &ou_vide(charge, "adresse"), &champ(charge, "motdepasse")),
         "filet-desactiver" => filet::desactiver(racine, &champ(charge, "motdepasse")),
@@ -254,7 +438,7 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
             incr(g, "en_attente");
         }
     }
-    // `sorted(..., key=derniere or "", reverse=True)` : stable.
+    // Les plus récents d'abord ; tri stable.
     let cle_de = |g: &Map<String, Value>| if vrai(&g["derniere"]) { valeur_en_texte(&g["derniere"]) } else { String::new() };
     let mut liste: Vec<Map<String, Value>> = groupes.into_iter().map(|(_, g)| g).collect();
     liste.sort_by(|a, b| cle_de(b).cmp(&cle_de(a)));

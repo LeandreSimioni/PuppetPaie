@@ -27,8 +27,8 @@ function ouvrirGeste(action, mois) {
     case "declarer_embauches": return boiteDpae(m);
     case "faire_signer": return boiteSignature(m);
     case "contrats_en_attente": return boiteContratsEnAttente(m);
-    case "deposer_dsn": return deposerLaDsn(m);
-    case "deposer_fichier": return boiteDepot(action.quoi, action.fichier);
+    case "deposer_dsn": return boiteDepot({ quoi: "dsn", mois: m }, { testerDabord: true });
+    case "deposer": return boiteDepot(action.charge);
     case "envoyer_documents": return boiteEnvoi(m);
     case "historique": return ouvrirMoisHistorique(m);
   }
@@ -64,7 +64,7 @@ function dessinerCase(et, k, g, colonnes, neuves, gestes) {
       <span class="moitie attend"><span class="kase-texte">${quoi}${limite}</span></span>` : `
       <span class="etape-rond">${fini ? "✓" : k + 1}</span>
       <span class="kase-texte">
-        <span class="ligne1"><b>${echapper(et.nom)}</b></span>${fini ? "" : quoi}${limite}
+        <span class="ligne1"><b>${echapper(et.nom)}</b></span>${fini && !g.quoi ? "" : quoi}${limite}
       </span>`;
   return `<div class="kase ${classe}${cote ? " cote" : ""}${neuf ? " neuf" : ""}${bouton ? " cliquable" : ""}"
       data-k="${k}" style="grid-column:${de} / ${a}" title="${echapper(titre)}" ${bouton}>${corps}</div>`;
@@ -92,12 +92,7 @@ async function dessinerActions(mois) {
     const cases = (et.groupes || []).map((g) => dessinerCase(et, k, g, colonnes, neuves, gestes)).join("");
     return `<li class="rangee"><div class="kases" style="grid-template-columns:${gabarit}">${cases}</div></li>`;
   }).join("");
-  // Le geste second d'une étape (l'annule-et-remplace sans nécessité) : un lien sous le panneau, hors de l'arbre.
-  const seconds = (e.etapes || []).filter((et) => et.second).map((et) => {
-    gestes.push(et.second);
-    return `<button class="lien etape-second" data-geste="${gestes.length - 1}">${echapper(et.second.libelle)}</button>`;
-  }).join("");
-  cible.innerHTML = `<ol class="etapes">${rangees}<svg class="arbre" aria-hidden="true"></svg></ol>${seconds}`;
+  cible.innerHTML = `<ol class="etapes">${rangees}<svg class="arbre" aria-hidden="true"></svg></ol>`;
 
   cible.querySelectorAll("[data-geste]").forEach((d) => {
     const ouvrir = (ev) => { ev.preventDefault(); ouvrirGeste(gestes[Number(d.dataset.geste)], mois); };
@@ -152,26 +147,23 @@ function dessinerArbre(liste) {
 }
 
 /* Ce qu'il faut relire après avoir déposé ou envoyé : l'état du mois affiché,
- * et la liste des embauches, qu'un dépôt de DPAE vient de raccourcir. */
+ * et l'état de chaque engagement. */
 async function rafraichirActions() {
   const mois = document.getElementById("mois").value;
   await dessinerActions(mois);
-  await dessinerEmbauches(mois);
   await dessinerEtatsDesEngagements(mois);
 }
 
 /* ---------------------------------------- le récapitulatif d'un dépôt */
 
 /** CE QUE LA DSN DÉCLARE, contrat par contrat, LU DANS LE FICHIER
- *  (30/09/2026, l'éditeur : « ce que l'utilisateur veut voir et vérifier,
- *  c'est que tous les contrats sont dans la DSN »). Comparé aux contrats
+ *  (ce que l'utilisateur veut voir et vérifier : que tous les contrats sont dans la DSN). Comparé aux contrats
  *  saisis du mois : un contrat absent du fichier, ou que l'engagement dit
  *  autrement, se dit en tête. */
 function recapitulatifDsn(r) {
   if (!r) return "";
   if (r.erreur) return `<div class="encart attention"><b>Récapitulatif illisible</b>
     ${echapper(r.erreur)}</div>`;
-  const ecarts = r.salaries.reduce((n, s) => n + s.contrats.filter((c) => c.ecarts.length).length, 0);
   // Un nombre du fichier, à la française ; une correction le signe d'un vrai
   // moins (« −184 h » : ce qui s'ajoute à ce qui a déjà été déclaré).
   const signe = (x) => String(x).replace(/^-/, "−");
@@ -204,13 +196,7 @@ function recapitulatifDsn(r) {
       ${pastilleDeLEtat(c.pastille_ecarts)}</td></tr>` : ""}`).join("")).join("");
   return `
     <div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
-      <b>${r.contrats} contrat${r.contrats > 1 ? "s" : ""} dans ce fichier${r.corrections
-        ? ` (et ${r.corrections} correction${r.corrections > 1 ? "s" : ""} d'un mois déjà déclaré)` : ""}${r.compare
-        ? `, ${r.contrats_saisis} saisi${r.contrats_saisis > 1 ? "s" : ""} dans la paie du mois` : ""}</b>
-      ${r.conforme ? "Tous les contrats de la paie sont dans la DSN, tels que la paie les dit."
-        : r.compare ? `${r.absents.length ? r.absents.length + " contrat(s) de la paie manquent au fichier. " : ""}${ecarts
-          ? ecarts + " contrat(s) du fichier ne disent pas ce que dit la paie : réécrire le mois." : ""}`
-        : "Pas de paie saisie à comparer : le fichier se lit seul."}
+      <b>${echapper(r.titre)}</b> ${echapper(r.phrase)}
     </div>
     ${r.absents.length ? `<ul class="absents">${r.absents.map((x) =>
       `<li>${pastilleDeLEtat(x.pastille)} ${echapper(x.nom)} — contrat
@@ -225,10 +211,7 @@ function recapitulatifDsn(r) {
 function corpsDsn(a) {
   const v = a.ordres || [];
   return `
-    <p class="discret">${echapper(a.nom)} — ${echapper(a.libelle_type)}
-      (type ${echapper(a.type_declaration)}), ordre ${echapper(a.ordre)},
-      fraction ${echapper(a.fraction)}, constituée le ${echapper(a.constitution)}.
-      ${a.salaries} salarié(s), ${a.lignes} lignes, SIREN ${echapper(a.siren)}.</p>
+    <p class="discret">${echapper(a.description)}</p>
     ${a.remplace ? `<div class="encart"><b>Annule et remplace</b>
       Ce fichier remplace la déclaration ${echapper(a.remplace)}.</div>` : ""}
     ${a.remplacement?.fichier_remplace ? `<div class="encart attention">
@@ -298,34 +281,19 @@ function corpsDpae(a) {
       déclarations pour un seul contrat.</div>` : ""}`;
 }
 
-/** LA DSN DU MOIS SE FABRIQUE À SON DÉPÔT : le moteur l'écrit depuis les
- *  engagements validés (`dsn-a-deposer`), puis la boîte de dépôt s'ouvre sur
- *  elle, en test d'abord. Ce que le moteur en dit se lit sous la barre. */
-async function deposerLaDsn(mois) {
-  let r;
-  try {
-    r = await api("dsn-a-deposer", { mois });
-  } catch (e) { dire(e.message, "erreur"); return; }
-  if (r.pas_avant) {
-    // Ce que le moteur dit d'une DSN que la norme ne laisse pas encore partir.
-    ouvrirBoite(`
-      <h3>Déposer la DSN</h3>
-      ${moisEnGros(r.mois)}
-      <p>${echapper(r.pas_avant.phrase)}</p>
-      <div class="actions"><button class="primaire" onclick="fermerBoite()">Fermer</button></div>`);
-    return;
-  }
-  const dit = (r.avertissements || []).concat(r.informations || []);
-  if (dit.length) dire(dit.join("  ·  "));
-  await rafraichirActions();
-  if (r.chemin) await boiteDepot("dsn", r.chemin, { testerDabord: true });
-}
-
-async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
+/** LA DÉCLARATION SE DÉSIGNE, ELLE NE SE NOMME PAS PAR SON FICHIER : `charge`
+ *  est ce que le moteur rend pour elle (`{quoi, mois, etablissement?,
+ *  engagements?}`, ou le signalement écrit). Le moteur l'écrit ou la reprend
+ *  (`depot-apercu`), et ce qu'il en dit se lit sous la barre. */
+async function boiteDepot(charge, { testerDabord = false } = {}) {
+  const quoi = charge.quoi;
   let a;
   try {
-    a = await api("depot-apercu", { quoi, fichier });
+    a = await api("depot-apercu", charge);
   } catch (e) { dire(e.message, "erreur"); return; }
+  const dit = [a.phrase, ...(a.avertissements || []), ...(a.informations || [])].filter(Boolean);
+  if (dit.length) dire(dit.join("  ·  "));
+  rafraichirActions();
 
   ouvrirBoite(`
     <h3>Déposer ${quoi === "dsn" ? "la DSN" : "la DPAE"}</h3>
@@ -336,7 +304,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
       Le ${echapper(quand(a.deja_depose.quand))}, en mode
       ${echapper(a.deja_depose.mode)}. Redéposer le même fichier ne remplace
       rien : un annule-et-remplace se produit, il ne se redépose pas.</div>` : ""}
-    <div id="d-bilan">${encartRepetition(a.repetition, quoi, a)}</div>
+    <div id="d-bilan">${encartRepetition(a.repetition)}</div>
     ${enFictive() ? noteFictive(quoi === "dsn" ? "net-entreprises" : "l'Urssaf")
       : `<p class="note">Un dépôt réel demande le mot de passe <b>du logiciel</b>,
       qui ne sert qu'à prouver que quelqu'un est là. Celui de l'organisme ne
@@ -368,7 +336,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
     const rendre = occupe(document.getElementById(reel ? "d-reel" : "d-test"),
                           reel ? "Dépôt réel en cours…" : "Envoi du test en cours…");
     try {
-      const r = await api("deposer", { quoi, fichier, reel, motdepasse: mdp,
+      const r = await api("deposer", { ...charge, reel, motdepasse: mdp,
                                        forcer, contournement });
       rendre();
       if (!reel) {
@@ -376,13 +344,13 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
         // fenêtre au lieu de rester et d'attendre les retours pour proposer
         // d'envoyer direct ». On reste, on attend le compte rendu, et le
         // bouton du réel s'allume ici même.
-        dire("Dépôt de test envoyé — on attend son compte rendu.", "envoye");
+        dire(["Dépôt de test envoyé — on attend son compte rendu.", ...(r.demandes_de_taux || [])].join(" "), "envoye");
         attendreBilan();
         rafraichirActions();
         return;
       }
       fermerBoite();
-      dire("Dépôt réel effectué — on relève ses retours.", "envoye");
+      dire(["Dépôt réel effectué — on relève ses retours.", ...(r.demandes_de_taux || [])].join(" "), "envoye");
       if (quoi === "dsn") avisDocumentsApresDsn(r.mois);
       await rafraichirActions();
       suivreDepot(quoi, r.flux, r.mois);
@@ -438,34 +406,21 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
     boutonReel(false);
     if (test) test.disabled = true;
     const libre = () => { if (ici() && test) test.disabled = false; };
-    const nom = quoi === "dsn" ? "La DSN" : "La DPAE";
     // Seul le bilan du test (le certificat, ou le bilan d'anomalies) ouvre le
     // réel ou le ferme ; l'accusé d'enregistrement dit « envoi reçu », pas
     // « conforme » (le moteur refuse le réel sans lui, DSN comme DPAE).
     for (let tour = 0; tour < 30; tour++) {
       let r = null;
-      try { r = await api("bilan-repetition", { quoi, fichier }); } catch (e) { /* on réessaie */ }
-      if (r && r.conforme && r.compte_rendu === "ok") {
-        ecrire(encartRepetition(r, quoi, a));
+      try { r = await api("bilan-repetition", charge); } catch (e) { /* on réessaie */ }
+      if (r && (r.etat === "testee" || r.etat === "test_refuse")) {
+        ecrire(encartRepetition(r));
         libre();
-        if (ici()) boutonReel(true);
-        else dire(`${nom} est testée — conforme. Le dépôt réel est prêt.`);
+        if (!ici()) dire(`${r.titre} · ${r.phrase}`, r.couleur);
+        else if (r.etat === "testee") boutonReel(true);
         rafraichirActions();
         return;
       }
-      if (r && !r.conforme && (r.ratees || []).length) {
-        const l = r.ratees[r.ratees.length - 1];
-        const anos = (l.retours || []).flatMap((x) => x.anomalies || []);
-        const motif = anos.join(" ; ") || l.reponse || "motif non lu";
-        ecrire(`<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}"><b>Le test est refusé</b>
-          ${echapper(motif)}
-          Le même refus attendrait le dépôt réel : c'est cela qu'il faut corriger.</div>`);
-        libre();
-        if (!ici()) dire(`Le test de ${nom.toLowerCase()} est refusé : ${motif}`, r.couleur);
-        rafraichirActions();
-        return;
-      }
-      ecrire((r && r.conforme ? encartRepetition(r, quoi, a)
+      ecrire((r ? encartRepetition(r)
         : `<div class="encart"><b>Test envoyé — son compte rendu est attendu</b> Le dépôt réel se fait
             ici, une fois le test revenu conforme.</div>`)
         + (r && r.incident ? `<p class="discret">${echapper(r.incident)}</p>` : ""));
@@ -489,10 +444,9 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
   // Un test déjà fait pour ce contenu : s'il attend encore son compte rendu,
   // on l'attend ici ; s'il est arrivé, le réel est le bouton principal.
   const rep = a.repetition;
-  if (rep && rep.conforme) {
-    if (rep.compte_rendu === "ok") boutonReel(true);
-    else attendreBilan();
-  } else {
+  if (rep && rep.etat === "testee") boutonReel(true);
+  else if (rep && rep.etat === "en_test") attendreBilan();
+  else {
     // Pas de test pour ce contenu : c'est lui qui vient d'abord.
     document.getElementById("d-test").className = "primaire";
     document.getElementById("d-reel").className = "secondaire";
@@ -519,8 +473,7 @@ function avisDocumentsApresDsn(mois) {
     </div>`);
 }
 
-/** L'ÉCOUTE DES RETOURS, JUSTE APRÈS UN DÉPÔT RÉEL (25/09/2026 : « pour que
- *  ça devienne vert le plus vite possible »). Toutes les quinze secondes,
+/** L'ÉCOUTE DES RETOURS, JUSTE APRÈS UN DÉPÔT RÉEL. Toutes les quinze secondes,
  *  dix minutes au plus, sans attendre la veille de vingt minutes ; l'écran
  *  se repeint dès que le dépôt est tranché. */
 async function suivreDepot(quoi, flux, mois) {
@@ -537,16 +490,6 @@ async function suivreDepot(quoi, flux, mois) {
   }
 }
 
-/** Où en est la répétition de CE contenu — avant de proposer le dépôt réel.
- *  Un bouton qui refusera au clic est un bouton qui ment. */
-/** Les embauches que porte une DPAE, nommées : un seul dépôt peut en porter
- *  plusieurs, et l'écran dit pour qui chacune est partie. */
-function embauchesDe(a) {
-  const l = (a && a.embauches) || [];
-  if (!l.length) return "";
-  return ` (${l.length} embauche${l.length > 1 ? "s" : ""} : ${l.map((x) => x.nom).join(", ")})`;
-}
-
 /** Ce que le certificat de conformité (nature 41) dit de chaque personne. */
 function certificatParPersonne(ligne) {
   const dpae = ((ligne && ligne.retours) || []).flatMap((x) => x.dpae || []);
@@ -556,49 +499,11 @@ function certificatParPersonne(ligne) {
       ${pastilleDeLEtat(x.pastille)}</li>`).join("")}</ul>`;
 }
 
-function encartRepetition(r, quoi, a) {
+/** Où en est le test de CE contenu, tel que le moteur le dit (`titre`, `phrase`, `couleur` de la répétition). */
+function encartRepetition(r) {
   if (!r) return "";
-  const cette = (quoi === "dsn" ? "Cette DSN" : "Cette DPAE")
-    + (quoi === "dsn" ? "" : echapper(embauchesDe(a)));
-  // Les deux phrases de l'éditeur : « cette DPAE est déjà
-  // testée, voulez-vous l'envoyer » — ou « elle est déjà envoyée en test,
-  // on attend les retours, qui arrivent bientôt ».
-  if (r.conforme && r.compte_rendu === "ok") {
-    return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
-      <b>${cette} est testée — conforme. Voulez-vous l'envoyer ?</b>
-      Testée le ${echapper(quand(r.conforme.quand))} : le même contenu est
-      passé au bac à sable sans anomalie. ${enFictive() ? "L'envoi, simulé, est le bouton « Envoyer — simulé »." : "Le dépôt réel est le bouton « Envoyer le réel »."}
-      ${certificatParPersonne(r.conforme)}</div>`;
-  }
-  if (r.conforme) {
-    return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
-      <b>${cette} est en test — son compte rendu est attendu</b>
-      Envoyée en test le ${echapper(quand(r.conforme.quand))}. ${enFictive() ? "L'envoi simulé se" : "Le dépôt réel se"}
-      fait ici, une fois ce compte rendu revenu conforme.</div>`;
-  }
-  // Jamais essayé : ce n'est pas une mise en garde, c'est l'étape suivante
-  // (26/09/2026 : l'orange se garde pour ce qui demande de corriger).
-  const rate = (r.ratees || []).length || (r.perimees || []).length;
-  return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
-    <b>${rate ? "Pas de test valable pour ce contenu" : "D'abord, le dépôt de test"}</b>
-    ${echapper(situationRepetition(r))} ${enFictive() ? "L'envoi simulé se fait une fois le" : "Le dépôt réel se fait une fois le"}
-    test revenu conforme.</div>`;
-}
-
-function situationRepetition(etat) {
-  const ratees = etat.ratees || [], perimees = etat.perimees || [];
-  if (ratees.length) {
-    const l = ratees[ratees.length - 1];
-    const anos = (l.retours || []).filter((x) => x.verdict === "KO").flatMap((x) => x.anomalies || []);
-    return `Ce contenu a été essayé en test le ${quand(l.quand)}`
-      + ` et l'essai a échoué${anos.length ? ` : ${anos.join(" ; ").replace(/\.$/, "")}` : ""}.`
-      + ` C'est cela qu'il faut corriger, le même refus attend en réel.`;
-  }
-  if (perimees.length) {
-    return `Un fichier du même nom a bien été essayé le ${quand(perimees[perimees.length - 1].quand)},`
-      + ` mais son contenu a changé depuis : un octet qui bouge rend le test caduc.`;
-  }
-  return "Ce contenu n'a jamais été déposé en test.";
+  return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}"><b>${echapper(r.titre)}</b>
+    ${echapper(r.phrase)}${r.etat === "testee" ? certificatParPersonne(r.conforme) : ""}</div>`;
 }
 
 /** Le verrou test → réel. Deux issues, et la première est la bonne : faire
@@ -610,7 +515,7 @@ function boiteRepetition(etat, quoi, repeter, quandMeme) {
     <h3>Ce contenu n'a pas été répété</h3>
     <div class="encart attention">
       <b>Aucun dépôt de test ne répond de ce fichier</b>
-      ${echapper(situationRepetition(etat))}
+      ${echapper(etat.phrase)}
     </div>
     <p class="note">Un dépôt de test exécute les mêmes contrôles et rend le
       même bilan, sans rien conserver et sans rien déclarer. C'est la seule
@@ -649,20 +554,12 @@ function boiteRepetition(etat, quoi, repeter, quandMeme) {
   };
 }
 
-/** Une DSN réelle est déjà partie pour ce mois. Dire où elle en est, et ne
- *  renvoyer que si on le veut vraiment. */
+/** Une DSN réelle est déjà partie pour ce mois. Dire où elle en est (le moteur
+ *  le dit), et ne renvoyer que si on le veut vraiment. */
 function boiteRenvoiDsn(etat, renvoyer) {
-  const quand = etat && etat.quand ? quand_(etat.quand) : "?";
-  const situation = etat.passee
-    ? `Le bilan de conformité est arrivé : <b>elle est passée</b>, il n'y a
-       rien à faire de notre côté.`
-    : `<b>Son retour n'est pas encore arrivé</b> : on attend, on ne renvoie pas.`;
   ouvrirBoite(`
     <h3>Une DSN est déjà partie pour ce mois</h3>
-    <div class="encart attention">
-      <b>Déposée le ${echapper(quand)}${etat.flux ? ` — flux ${echapper(etat.flux)}` : ""}</b>
-      ${situation}
-    </div>
+    <div class="encart attention"><b>${echapper(etat?.phrase || "")}</b></div>
     <p class="note">Renvoyer quand même fait un <b>annule-et-remplace</b> à
       net-entreprises : la nouvelle DSN remplace la précédente, avec ses ordres
       de télépaiement. À ne faire que si c'est voulu — une paie corrigée, par
@@ -673,7 +570,6 @@ function boiteRenvoiDsn(etat, renvoyer) {
     </div>`);
   document.getElementById("d-renvoyer").onclick = () => { fermerBoite(); renvoyer(); };
 }
-const quand_ = (iso) => quand(iso);
 
 /* ------------------------------------------ les documents aux salariés */
 /** LES DOCUMENTS DU MOIS : chaque salarié à qui ils partent, coché ; on
@@ -746,7 +642,7 @@ async function boiteEnvoi(mois) {
     try {
       const r = await api("envoyer-documents", { mois, salaries, motdepasse: mdp });
       fermerBoite();
-      dire(r.partis.length + " message(s) envoyé(s).", "envoye");
+      dire(r.phrase, "envoye");
       afficherEnvoi("Documents aux salariés", mois, r.partis, r.avertissements);
       fenetreCourrielsFictifs("documents", repere);
       await rafraichirActions();
@@ -758,13 +654,6 @@ async function boiteEnvoi(mois) {
 }
 
 /* --------------------------------------------- les contrats à faire signer */
-
-/** « signé par courriel le … » ou « signé, reçu le … » : le journal sait
- *  d'où vient la mention (contrats_recus_comment), l'écran ne fait que
- *  l'écrire. */
-function signeLe(quandRecu, par) {
-  return (par === "courriel" ? "signé d'un clic le " : "signé, reçu le ") + quand(quandRecu);
-}
 
 /** LE PDF À IMPRIMER s'ouvre : le moteur l'a écrit (`impression`), la fenêtre l'ouvre,
  *  et le message dit ce qui est à imprimer (`quoi`) et où est le PDF (la phrase du moteur). */
@@ -897,19 +786,11 @@ async function boiteSignature(mois, seulement) {
     const rendre = occupe(envoyer, "Envoi de " + quoi + " en cours…");
     const repere = await repereCourrielsFictifs();
     try {
-      const r = choisis.length
-        ? await api("demander-signature", { mois, contrats: choisis, motdepasse: mdp })
-        : { partis: [], contrats: [] };
-      // Les avenants d'un même salarié partent ensemble, dans un seul courriel, comme ses contrats.
-      if (avenants.length) {
-        const av = await api("avenants-envoyer", { avenants, motdepasse: mdp });
-        r.partis.push(...av.partis);
-        r.contrats.push(...av.avenants.map((x) => ({ fichier: x.fichier })));
-        r.avertissements = [...(r.avertissements || []), ...(av.avertissements || [])];
-      }
+      const r = await api("demander-signature", choisis.length
+        ? { mois, contrats: choisis, avenants, motdepasse: mdp }
+        : { mois, avenants, motdepasse: mdp });
       fermerBoite();
-      dire((r.avertissements || []).length ? r.contrats.length + " contrat(s) envoyé(s) à la signature. " + r.avertissements.join(" ")
-                                           : quoi + " envoyé(s) à la signature.", "envoye");
+      dire(r.phrase, "envoye");
       afficherEnvoi("Contrats à signer", mois, [...new Set(r.partis)],
                     [...(r.avertissements || []), ...r.contrats.map((c) => c.fichier)]);
       if (enFictive()) {
@@ -925,7 +806,7 @@ async function boiteSignature(mois, seulement) {
 }
 
 /** LES CONTRATS EN ATTENTE : un contrat ou un avenant parti, pas revenu
- *  signé. Le moteur dit, pour chacun, ce qui est parti et quand (`attente`),
+ *  signé. Le moteur dit, pour chacun, où il en est (`pastille`),
  *  et ses gestes, route et charge : « Reçu signé » (`recu`, pour tous : ce
  *  qui part par courriel peut revenir signé sur papier) et « Relancer »
  *  (`relancer`, parti par courriel, boîte posée). Une note se défait : le
@@ -988,7 +869,7 @@ async function boiteContratsEnAttente(mois, fait) {
       try {
         const r = await api(c.relancer.route, { ...c.relancer.charge, motdepasse: mdp });
         fermerBoite();
-        dire("Relance partie : " + r.partis.join(", ") + ".", "envoye");
+        dire(r.phrase, "envoye");
         await rafraichirActions();
       } catch (e) { rendre(); dire(e.message, "erreur"); }
     };
@@ -1053,10 +934,10 @@ async function boiteAvenant(mois, salarie, debut, numero) {
     if (!mdp) return;
     const rendre = occupe(envoyer, "Envoi de l'avenant…");
     try {
-      const r = await api("avenant-envoyer", { salarie, debut, numero: numero || "", mois, effet, motdepasse: mdp });
+      const r = await api("demander-signature", { mois, avenants: [{ salarie, debut, numero: numero || "", mois, effet }], motdepasse: mdp });
       fermerBoite();
-      dire("Avenant n° " + r.numero + " envoyé à la signature : " + r.partis.join(", ") + ".", "envoye");
-      afficherEnvoi("Avenant à signer", a.mois, r.partis, [r.fichier]);
+      dire(r.phrase, "envoye");
+      afficherEnvoi("Avenant à signer", a.mois, r.partis, r.contrats.map((c) => c.fichier));
       await rafraichirActions();
     } catch (e) {
       rendre();

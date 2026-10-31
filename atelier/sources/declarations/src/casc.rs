@@ -5,7 +5,7 @@ use socle::fichiers::{dossier_du_code, lire_json};
 use socle::num::Resultat;
 use serde_json::Value;
 
-/// `_base` : `casc-svp-base.json`, livre avec le code.
+/// `casc-svp-base.json`, livre avec le code.
 pub fn base() -> Resultat<Value> {
     lire_json(&dossier_du_code().join("casc-svp-base.json"))
 }

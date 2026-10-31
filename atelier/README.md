@@ -21,16 +21,13 @@ Claude sert à parler à ce moteur en français, pas à calculer la paie.
 ## L'arrivée d'une compagnie
 
 ```
-moteur arrivee
+echo '{"route":"pour-demarrer","charge":{}}' | moteur route --racine <compagnie>
 ```
 
-dit, dans l'ordre, ce qui est prêt et ce qui manque — la fiche de
-l'entreprise, la reprise de l'historique (sans objet si la compagnie ne vient
-d'aucun autre logiciel), les fiches des salariés, l'effectif (les CRM de nature 118 de l'Urssaf,
-ou la date de la première embauche), le taux AT/MP notifié, les taux de PAS,
-les accès net-entreprises et Urssaf — avec, pour chaque manque, la commande
-qui le fait avancer. Elle n'écrit rien et sort en erreur tant qu'une étape
-est à faire.
+dit d'un coup tout ce qui manque à la compagnie (la fiche de l'entreprise,
+l'effectif, le taux AT/MP, l'employeur de la DPAE…), ce que chaque manque
+bloque et où il se saisit ; l'écran le montre dans ses rappels. Rien n'est
+écrit.
 
 ## Reprendre l'historique : l'import
 
@@ -186,18 +183,12 @@ logiciel, et que deux installations s'ouvrent côte à côte sur un poste — et
 exige un jeton. Les dépôts et les envois se font depuis l'interface, mot de
 passe du logiciel retapé à chaque acte.
 
-**En ligne de commande.**
-
-```bash
-moteur nouveau 2026-10
-```
-
 Saisir les engagements d'octobre dans la fenêtre (`engagements/2026-10.json` : noms, dates, spectacle) et les valider
 (« Valider l'engagement »). Chaque document se fabrique au moment où il part, depuis les engagements validés :
 
 | Document | Quand il se fabrique |
 |---|---|
-| la DPAE (`moteur dpae`) | avant le début du contrat |
+| la DPAE (`moteur deposer-dpae`) | avant le début du contrat |
 | le contrat | à son envoi à la signature, ou à son impression pour la main propre ; son numéro est celui que la validation a posé |
 | `DSN_Octobre2026.dsn` | à son dépôt : `moteur depot-dsn 2026-10 --test`, lecture du bilan, puis `--reel` |
 | bulletin et certificat Congés Spectacles | à l'envoi des documents aux salariés : le numéro du bulletin s'écrit dans la paie |
@@ -489,7 +480,7 @@ travaillé**, donc bien avant la paie. Elle se produit seule, sans montant
 Urssaf et sans consommer de numéro de bulletin :
 
 ```bash
-moteur dpae 2026-09 --heure 0800
+moteur deposer-dpae 2026-09
 ```
 
 Elle dit si une embauche est déjà passée : la DPAE est alors hors délai, et elle s'écrit quand même, sans antidater
@@ -632,8 +623,10 @@ arrive solde la demande.
   de tout le monde sans attendre une embauche. C'est le défaut de
   `--demander` ;
 - **motif 01**, embauche effective. Il part **avec la DPAE**, dans le même
-  geste et le même mot de passe : `moteur dpae` produit les deux, et
-  dit ce qu'il a demandé — ou pourquoi il n'a rien demandé.
+  geste et le même mot de passe : `moteur deposer-dpae` produit les deux, et
+  dit ce qu'il a demandé — ou pourquoi il n'a rien demandé ; le dépôt de la
+  DPAE (`deposer-dpae`, ou la fenêtre) dépose aussi ses signalements, en test
+  avec le test, en réel avec le réel.
 
 Il n'existe **aucun motif « mon taux a expiré »**. Un intermittent déjà sous
 contrat dont le taux périme sans nouvelle embauche n'a aucun levier : c'est la
@@ -1216,7 +1209,6 @@ pas : sa DSN est celle de l'ancien logiciel.
 
 ```
 moteur rappels                    la même liste, en ligne de commande
-moteur rappels --le 2026-10-02    ... à une autre date
 ```
 
 ### Les conseils « Le saviez-vous ? »

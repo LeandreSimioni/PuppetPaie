@@ -36,6 +36,7 @@ use droit::contexte::Contexte;
 use engagement::ecarts::{Comparaison, Grandeur};
 use socle::date::en_texte;
 use socle::fichiers::vrai;
+use socle::valeur::valeur_en_texte;
 
 /// L'endroit, dans le journal des incidents.
 pub const OU: &str = "ecarts_import";
@@ -96,7 +97,7 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
     let texte = |k: &str| ctx.entreprise.get(k).filter(|v| vrai(v)).map(en_texte);
     let (idcc, annexe, organisation) = (texte("idcc"), texte("annexe_convention"), texte("organisation_patronale"));
     let mut connus = Connus::default();
-    crate::import::incident::ajouter_les_fiches(ctx, &mut connus, std::iter::empty());
+    ajouter_les_fiches(ctx, &mut connus);
     let logiciel = |c: &Comparaison| c.logiciel.clone().unwrap_or_else(|| "autre".into());
     let cas = |c: &Comparaison| json!({"mois": c.mois, "nature": c.nature, "statut": c.statut, "cadre": c.cadre, "taux_atmp": c.taux_atmp});
 
@@ -201,4 +202,48 @@ pub fn noter(ctx: &Contexte) -> usize {
         let _ = socle::ecriture::ecrire_json(&registre(racine), &json!(toutes), 0);
     }
     notes
+}
+
+/// Ce que les fiches de la compagnie disent de ses salaries, ajoute aux valeurs connues ; la compagnie, protegee.
+fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
+    let pousser = |v: &mut Vec<String>, x: Option<String>| {
+        if let Some(x) = x.map(|t| t.trim().to_string()).filter(|t| !t.is_empty()) {
+            if !v.contains(&x) {
+                v.push(x);
+            }
+        }
+    };
+    let fiches = ctx
+        .salaries
+        .iter()
+        .filter(|(k, v)| !k.starts_with('_') && v.is_object())
+        .map(|(_, v)| v.clone());
+    for f in fiches {
+        let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
+        for k in ["nom", "nom_affichage"] {
+            pousser(&mut c.noms, t(k));
+        }
+        pousser(&mut c.noms, t("code_salarie").filter(|x| x.chars().filter(|c| c.is_alphabetic()).count() >= 2));
+        for k in ["prenom", "prenom_affichage"] {
+            pousser(&mut c.prenoms, t(k));
+        }
+        pousser(&mut c.nirs, t("nir"));
+        if let (Some(n), Some(k)) = (t("nir"), t("nir_cle")) {
+            pousser(&mut c.nirs, Some(format!("{}{}", n, k)));
+        }
+        pousser(&mut c.naissances, t("date_naissance"));
+        for k in ["adresse", "adresse_affichage"] {
+            pousser(&mut c.adresses, t(k));
+        }
+        pousser(&mut c.codes_postaux, t("code_postal"));
+        for k in ["commune", "commune_affichage", "lieu_naissance", "lieu_naissance_affichage"] {
+            pousser(&mut c.communes, t(k));
+        }
+        pousser(&mut c.courriels, t("email"));
+        pousser(&mut c.conges_spectacles, t("num_conges_spectacles"));
+    }
+    let e = &ctx.entreprise;
+    for k in ["raison_sociale", "nom_affichage", "adresse", "adresse_affichage", "code_postal", "commune", "commune_affichage"] {
+        pousser(&mut c.entreprise, e.get(k).filter(|v| vrai(v)).map(valeur_en_texte));
+    }
 }

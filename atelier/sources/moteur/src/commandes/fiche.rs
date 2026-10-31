@@ -20,16 +20,6 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
-/// `compteurs.json`, ou `{}` : `Contexte.compteurs`.
-fn compteurs(cadre: &Cadre) -> Result<Value, Echec> {
-    let p = cadre.racine.join("config").join("compteurs.json");
-    if !p.exists() {
-        return Ok(json!({}));
-    }
-    let t = std::fs::read_to_string(&p).map_err(|e| Echec { classe: Some("OSError"), message: format!("{} : {}", p.display(), e) })?;
-    serde_json::from_str(&t).map_err(|e| Echec { classe: Some("JSONDecodeError"), message: e.to_string() })
-}
-
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let archives = args.drapeau("archives");
     let ctx = &cadre.ctx;
@@ -37,7 +27,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let (salaries_archives, spectacles_archives) = (a_part(&ctx.salaries), a_part(&ctx.spectacles));
     let choisir = |m: &Map<String, Value>| -> Map<String, Value> { m.iter().filter(|(_, v)| archives || !archivee(v)).map(|(k, v)| (k.clone(), v.clone())).collect() };
     let (salaries, spectacles) = (choisir(&ctx.salaries), choisir(&ctx.spectacles));
-    let compteurs = compteurs(cadre)?;
+    let compteurs = documents::ecrire_documents::compteurs(&cadre.racine)?;
 
     if args.drapeau("json") {
         let brutes = |m: &Map<String, Value>| Value::Object(m.iter().map(|(k, v)| (k.clone(), brut(v))).collect());

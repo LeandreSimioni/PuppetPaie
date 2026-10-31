@@ -599,7 +599,7 @@ pub fn indemnite_depart_retraite(anciennete: Decimal, reference: Decimal) -> Res
         "palier": entier(cle(palier, "anciennete_annees")?)?, "pourquoi": null}))
 }
 
-/// `str(annees.quantize(Decimal("0.1")))` : un chiffre, au pair sur le demi.
+/// Les années à un chiffre après la virgule, au pair sur le demi, en texte.
 fn annees_lisibles(annees: Decimal) -> String {
     let mut a = annees.round_dp_with_strategy(1, RoundingStrategy::MidpointNearestEven);
     a.rescale(1);

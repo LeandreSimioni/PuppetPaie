@@ -71,12 +71,12 @@ pub fn recouper_les_entetes(brut: &[u8]) -> std::borrow::Cow<'_, [u8]> {
     std::borrow::Cow::Owned(refait)
 }
 
-/// `(message.get("Message-ID") or "").strip()`.
+/// L'identifiant du message (`Message-ID`), sans blancs aux bords ; vide s'il manque.
 pub fn identifiant_de(m: &ParsedMail) -> String {
     socle::texte::strip(&m.headers.get_first_value("Message-ID").unwrap_or_default()).to_string()
 }
 
-/// `_date_de` : la date du message, en heure locale (Paris), ISO a la seconde -- le format du journal. Sans en-tete
+/// La date du message, en heure locale (Paris), ISO a la seconde -- le format du journal. Sans en-tete
 /// `Date` lisible, l'heure de la releve (`maintenant`, deja en ISO).
 ///
 /// `-0000` est une heure UT, comme `+0000` : la RFC 5322, § 3.3 (`atelier/reference/sources/ietf/LISEZ-MOI.md`), ne lui
@@ -94,7 +94,7 @@ pub fn date_de(m: &ParsedMail, maintenant: &str) -> String {
     }
 }
 
-/// Les mois de `_monthnames` (les abreges, puis les noms entiers).
+/// Les mois en anglais (les abreges, puis les noms entiers).
 const MOIS: [&str; 24] = [
     "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec", "january", "february", "march", "april", "may", "june",
     "july", "august", "september", "october", "november", "december",
@@ -243,7 +243,7 @@ fn date_lue(brut: &str) -> Option<i64> {
     }
 }
 
-/// `_texte_propre` : ce que l'auteur de la reponse a ecrit lui-meme, citation exclue. La partie texte ; a defaut,
+/// Ce que l'auteur de la reponse a ecrit lui-meme, citation exclue. La partie texte ; a defaut,
 /// le HTML debarrasse de ses balises (et de sa citation Gmail). Puis on coupe au premier signe de citation.
 pub fn texte_propre(m: &ParsedMail) -> String {
     let mut fs = Vec::new();
@@ -251,7 +251,7 @@ pub fn texte_propre(m: &ParsedMail) -> String {
     let (mut texte, mut html) = (String::new(), String::new());
     for f in fs {
         let (principal, sous) = f.ctype.mimetype.split_once('/').unwrap_or(("text", "plain"));
-        // `part.get_content_maintype() != "text" or part.get_filename()`.
+        // Une feuille qui n'est pas du texte, ou qui porte un nom de fichier, est une pièce jointe.
         if principal != "text" || nom_de_fichier(f).is_some_and(|n| !socle::texte::strip(&n).is_empty()) {
             continue;
         }
@@ -273,7 +273,7 @@ pub fn texte_propre(m: &ParsedMail) -> String {
     }
 }
 
-/// `re.sub(r"<[^>]+>", " ", html)`.
+/// Le HTML, chaque balise remplacée par un espace.
 fn sans_balises(html: &str) -> String {
     let c: Vec<char> = html.chars().collect();
     let mut sortie = String::with_capacity(html.len());
@@ -295,8 +295,8 @@ fn sans_balises(html: &str) -> String {
 
 // ------------------------------------------------------------------ la citation
 
-/// L'indice (en octets) de la premiere ligne qui commence une citation, `_DEBUT_CITATION.search(texte)`. Les lignes
-/// se coupent sur `\n` seulement : c'est le `^` de `re.MULTILINE`.
+/// L'indice (en octets) de la premiere ligne qui commence une citation. Les lignes
+/// se coupent sur `\n` seulement.
 fn debut_de_citation(texte: &str) -> Option<usize> {
     let mut debut = 0;
     for ligne in texte.split('\n') {

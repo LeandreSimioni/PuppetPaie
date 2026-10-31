@@ -57,6 +57,88 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
 - **Le nombre de tests ne monte pas.** Une fonctionnalité n'apporte pas de tests d'office. Ne s'écrivent que : un test par
   règle tirée d'un texte déposé, un test par bug réel qui a échappé, quelques parcours de bout en bout sur les fictives.
   Un test de l'ancien parcours meurt avec lui.
+  Ce n'est pas un interdit, c'est un coût (Léandre, 31/10/2026 : « je ne veux pas que la graisse empêche de réparer les
+  os ») : un test qui fige un détail (une phrase, une forme, un ordre, un montant d'un cas particulier) se met en travers
+  du changement qu'on veut faire et fait tourner pour rien. **Les tests de structure sont les bienvenus**, ceux qui
+  gardent les os quoi qu'on change dessus : une crate ne prend qu'à celles du dessous ; l'engagement ne lit pas le
+  journal ; une seule fonction écrit un engagement ; **chaque route dit, en une phrase brève, ce qu'elle fait** (sa fiche,
+  pour le LLM comme pour qui lit le code : une route sans explication, ou dont l'explication est trop longue, fait
+  échouer le test) et son exemple est accepté ; **chaque phrase affichée tient dans sa place** ; aucun texte de
+  la page n'est coupé ; rien ne sort de la machine.
+
+## Les os, les muscles, la graisse (Léandre, 30-31/10/2026)
+
+« Si on veut un corps solide, il faut des os solides ; après on rajoute les muscles, ce sont les routes, et il faut
+qu'elles soient bien faites ; après on peut rajouter la graisse : les taux, les imports, les petits bidouillages, les
+fonctions avancées. » **L'architecture est la base** : sans elle, « on fera des pansements sur des pansements et on n'aura
+plus accès à la structure ». Le modèle et l'écran sont décrits dans `journal/SEANCE-1-ECRANS-ET-MODELE.md` du privé, qui
+fait foi.
+
+- **Les os : un seul chemin pour chaque chose.** Une chose (écrire un engagement, dire ce qui est parti, composer
+  l'échéance de la DSN, lire le journal) se fait à un seul endroit ; un second chemin se ferme dans le commit qui ouvre le
+  premier. L'engagement est au centre, une identité (salarié, début, rang ; le numéro du contrat, posé à la validation, est
+  la clé de ce qui est parti). **Une carte porte un salarié et écrit son engagement, et lui seul** ; « Valider
+  l'engagement » est un geste ; le mois n'est jamais une unité d'écriture ; **un mois est neuf ou importé** (un mois
+  importé ne reçoit pas d'engagement neuf). L'engagement ne lit pas le journal : le moteur le lit **une fois par geste**
+  (`envois::journal::lu`), ce qui est **parti** (`departs`) et ce qui est **revenu** dans la même valeur ; une déclaration
+  refusée au bilan n'est pas partie (règle 5). L'empreinte qui fait recalculer un engagement est celle de ce dont **son**
+  calcul dépend.
+- **Les muscles : une route par geste de l'écran, bien faite.** Un geste, une route ; la route obéit (elle ne recopie pas
+  une règle du calcul ni n'ajoute d'état, de bouton ou de refus) ; un refus dit quoi corriger et n'écrit rien ; ce qu'elle
+  rend est ce que la page lit ; **la route rend la phrase que l'on lit**, la page ne fait que la mise en page et ne décide
+  rien.
+- **La graisse vient après** : on ne la pose pas sur un os ou un muscle qui n'est pas droit.
+- **Un lot de reconstruction enlève, il n'ajoute pas** : il finit avec moins de lignes et moins de tests ; ce qui
+  demanderait d'ajouter se dit, ne se fait pas. On ne fait rien que Léandre n'a pas validé ; une pause demandée est une
+  pause.
+- **Rien ne se débranche** : chaque appel de la page a sa route, chaque route un appelant, chaque geste va de la page au
+  fichier écrit, chaque acte de la route à l'envoi. Des Sonnets en lecture le vérifient après chaque passe, face au plan.
+
+## Deux acteurs : la personne devant l'écran, et un LLM en ligne de commande (Léandre, 31/10/2026)
+
+**Le LLM est un second écran** : il passe par les mêmes routes, reçoit les mêmes décisions, les mêmes phrases et les mêmes
+refus. Sa documentation sort du code : **chaque route porte sa fiche dans son code** (le geste, la charge et un exemple, ce
+qu'elle rend, ses refus et quoi corriger, si elle lit, écrit ou engage, si elle est « avancée ») ; `moteur routes` en tire
+le catalogue ; `moteur route … --texte` imprime les phrases que la page affiche. **« Avancé » est le même pour les deux** :
+la marque de la fiche range l'écran et le catalogue (le chemin simple d'abord). Un acte réel, des deux côtés, demande le
+mot de passe du logiciel tapé par un humain (la page, ou la fenêtre que le moteur ouvre) ; le LLM ne voit ni le mot de
+passe ni le coffre. **Tout ce qui se fait à l'écran se fait en ligne de commande, et l'inverse, sans exception**
+(Léandre, 31/10/2026 : « il faut que ce soit inviolable ») : il n'y a qu'un catalogue de routes, aucune n'est « pour la
+page » ou « pour le LLM » ; écrire au développeur (`signalement-envoyer`) est une route comme une autre ; ce qui diffère
+d'un acteur à l'autre est une donnée de la charge (une capture d'écran, ou ce que le LLM a tenté), jamais un chemin ; un
+test de structure le garde (chaque route que la page appelle est au catalogue, chaque route du catalogue se sert par
+`moteur route`). **Rien du métier ne s'écrit à
+côté** : le moteur dit ce qui est à faire (le panneau des étapes, les rappels, « Pour démarrer ») ; la skill dit seulement
+comment le lui demander ; un manque du LLM est un manque du moteur. Le détail : `SEANCE-1-ECRANS-ET-MODELE.md`, « Le
+second acteur ».
+
+## La preuve d'un lot (Léandre, 31/10/2026, après la séance 8)
+
+Ce qui n'allait pas pendant la reconstruction : la preuve de chaque lot était un jeu fixe de six gestes (`preuve-r`),
+fait pour l'écriture d'une carte ; des lots qui touchaient l'import, la DPAE, les rappels, le mois importé ou la rupture
+passaient cette preuve « identique » sans qu'elle regarde rien de ce qu'ils avaient changé. Un lot changeait une clé (la
+DPAE rangée par numéro) et un lecteur oublié (le rappel) cassait sans qu'aucun test ne le voie. L'orchestrateur fusionnait
+sur « tests verts, preuve identique » et répétait les passations comme des faits. Le tour de jeu suivant trouvait les
+défauts que les lots avaient eux-mêmes créés. Désormais :
+
+- **Un lot dit ce qu'il touche** : sa passation liste chaque fonction, clé, format ou identité qu'il change, et **chaque
+  lecteur** trouvé par `grep` (appels, chaînes de route, clés JSON lues par la page) ; un lecteur non listé est un
+  lecteur non vérifié.
+- **La preuve couvre ce que le lot touche**, pas un jeu fixe : pour chaque lecteur, un appel de route ou un geste au banc
+  qui le fait passer, avant et après. « Preuve identique » ne vaut que pour ce qu'elle a joué ; la passation dit ce
+  qu'elle n'a pas joué.
+- **Les parcours des fictives sont la preuve commune** : les scénarios des fictives (un à l'écran, un en ligne de
+  commande) couvrent chaque domaine (embauche, DPAE et taux de PAS, mois, contrat et avenant, rupture, arrêt et accident,
+  congé, Congés Spectacles, import et mois importé, DSN, clôture) ; leur rejeu (`banc.js verifier`) tourne après chaque
+  fusion qui touche un domaine, pas seulement à la fin.
+- **L'orchestrateur reproduit avant de répéter** : un point d'une passation ne se dit à Léandre qu'après avoir été vu
+  (un appel de route, une capture, un `grep`) ; un lot se dit « fusionné, vérifié par … », jamais « fini », tant qu'un
+  tour de jeu n'a pas joué son domaine.
+- **Un tour de jeu court après chaque série de lots** sur le domaine touché, plutôt qu'un grand tour à la fin.
+- **Frugal** (Léandre : « il ne faut pas que ça devienne une usine à gaz où on rajoute des tests dans tous les sens ») :
+  la preuve d'un lot **n'est pas un test de plus** ; c'est un geste joué (un appel de route, un geste au banc) et noté
+  dans la passation. Les tests restent ceux de « Le nombre de tests ne monte pas » ; les parcours des deux fictives en
+  sont les « quelques parcours de bout en bout » : un rejeu par fictive, pas un test par domaine.
 
 ## Une séance, par tickets
 
@@ -127,6 +209,15 @@ compliqué pour les gens qui ont besoin de compliqué ») : un champ n'apparaît
 appelle une date, un arrêt qui appelle le maintien), jamais « au cas où » ; le chemin simple ne montre que les faits, le
 chemin compliqué s'ouvre de lui-même quand un fait l'appelle. On prévoit tous les cas dans le moteur, et l'écran n'en
 montre que celui qui a lieu.
+**L'affichage dit le nom le plus court ; l'explication ne vient que là où l'on explique** (Léandre, 30/10/2026 : « il y
+a une différence entre l'affichage et ce en quoi il est explicité ; l'affichage doit être le plus simple possible »).
+Une carte, une liste, une pastille, un titre disent le mot qu'un utilisateur reconnaît (« CDDU », « CDD », « CDI ») ; le
+sens long va dans l'aide d'un champ, un conseil ou le document qui doit le dire en toutes lettres (le contrat écrit).
+**On ne coupe jamais un texte** (Léandre, 31/10/2026 : « je préfère que ça ait une sale gueule et qu'on puisse tout
+lire ») : ni points de suspension, ni `overflow: hidden`, ni texte tronqué à N caractères, à l'écran comme dans un
+message ou une phrase du moteur. Une phrase plus longue que sa place donne une **alerte au développeur** (un incident
+silencieux, comme les autres), pour qu'on aille à la cause : écrire plus bref, dans le moteur — ce qui sert l'écran et le
+LLM à la fois.
 
 ## Les sous-agents : Opus pour coder, Sonnet ou Haiku pour lire
 
@@ -151,8 +242,11 @@ montre que celui qui a lieu.
   commande de tests à la fois, rien en fond ; **aucun acte réel lancé à la main**, même sur une fictive (un dépôt qu'on
   lance soi-même est de test ; le réel se voit par l'horloge de la fictive) ; un texte en PDF se transcrit une fois et
   ne se relit qu'à sa nouvelle version.
-- **Le relais** : un Opus travaille au plus 1 h 15 environ, ou moins si ses notifications montrent qu'il dépasse
-  500 000 jetons ; au relais, il laisse finir sa commande, commite, écrit sa passation, et un Opus neuf reprend. **On
+- **Le relais** (Léandre, 31/10/2026) : un Opus mène son lot jusqu'au bout ; **sa consigne ne lui donne aucune limite
+  de temps** (il ne mesure pas le temps, et un relais trop tôt fait relire à l'Opus neuf tout ce que le premier savait).
+  **L'orchestrateur seul décide du relais**, d'après les notifications : quand le contexte de l'Opus approche
+  500 000 jetons, ou une heure sans commit ; il le lui demande, l'Opus laisse finir sa commande, commite, écrit sa
+  passation, et un Opus neuf reprend. **On
   n'écrit jamais à un Opus qui a fini** : un message le réveille et lui fait relire tout son contexte. Une décision
   envoyée en cours de lot se vérifie dans le commit qui suit.
 - **Parler à Léandre** : une décision qui touche le fonctionnement se présente entière, en trois lignes — ce qui se passe,

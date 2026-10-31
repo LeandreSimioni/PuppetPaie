@@ -4,8 +4,8 @@
 //! n'est applique. L'archive brute est la piece justificative : elle est ecrite avant toute analyse. Un 404
 //! sur une tranche veut dire << rien sur cette tranche >>, tout autre refus arrete (CLAUDE.md, regle 5).
 //!
-//! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, ou lit la variable d'environnement
-//! du service ; c'est `moteur` qui le prend au coffre. Le mot de passe sert le temps de l'authentification
+//! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, que `moteur` prend a
+//! la variable d'environnement du service ou au coffre. Le mot de passe sert le temps de l'authentification
 //! (`transport::authentifier`), n'est ni journalise, ni affiche, ni renvoye.
 //!
 //! La releve obeit au branchement : le simulateur pose les retours des depots joues, sans reseau (`rattacher_simulation`) ;
@@ -27,7 +27,7 @@ use socle::paris::{iso_de_naif, maintenant_naif, naif_de_iso};
 use crate::branchement::{Branchement, ANCIEN_PREFIXE_FLUX_FICTIF, PREFIXE_FLUX_FICTIF};
 use crate::suites::Suites;
 
-/// `strftime("%Y%m%d-%H%M%S")` d'une heure locale naive.
+/// `AAAAMMJJ-HHMMSS` d'une heure locale naive.
 fn horodatage_archive(local: i64) -> String {
     let iso = iso_de_naif(local);
     format!("{}{}{}-{}{}{}", &iso[0..4], &iso[5..7], &iso[8..10], &iso[11..13], &iso[14..16], &iso[17..19])
@@ -47,12 +47,6 @@ pub struct Panne {
 impl Panne {
     pub fn est_api(&self) -> bool {
         self.classe == "ErreurApi" || self.classe == "DepotRefuse"
-    }
-
-    /// Une panne du RESEAU (injoignable, coupe, delai depasse : `URLError`, `RemoteDisconnected`, `TimeoutError`...).
-    /// Les commandes la disent en une phrase.
-    pub fn est_reseau(&self) -> bool {
-        matches!(self.classe.as_str(), "URLError" | "TimeoutError" | "RemoteDisconnected" | "IncompleteRead" | "HTTPException")
     }
 
     /// La panne comme un refus de route : sa classe et sa phrase.
@@ -213,9 +207,10 @@ impl Client {
         }
     }
 
-    /// Le mot de passe a verifier avant l'envoi : celui qu'on a donne, sinon la variable d'environnement.
+    /// Le mot de passe que l'appelant a donne (le moteur le prend a l'environnement ou au coffre) : le client n'en
+    /// cherche aucun.
     fn secret(&self) -> Option<String> {
-        self.motdepasse.clone().filter(|m| !m.is_empty()).or_else(|| std::env::var(self.variable).ok().filter(|m| !m.is_empty()))
+        self.motdepasse.clone().filter(|m| !m.is_empty())
     }
 
     /// `ClientDpae.verifier_identifiants` : ce qui ferait echouer la connexion MtoM. Le mot de passe ne
@@ -376,7 +371,7 @@ fn en_echec(p: Panne) -> Echec {
     p.en_echec()
 }
 
-/// `_tranches` : le SI DSN limite l'etendue d'une recherche, on decoupe par jour.
+/// Le SI DSN limite l'etendue d'une recherche, on decoupe par jour.
 fn tranches(debut: i64, fin: i64) -> Vec<(i64, i64)> {
     let mut v = Vec::new();
     let mut t = debut;
@@ -391,15 +386,12 @@ fn tranches(debut: i64, fin: i64) -> Vec<(i64, i64)> {
 /// depots completes. Ne touche a aucune autre ligne : un vrai depot (flux sans le prefixe) garde ses vrais retours. Les
 /// attestations France Travail jouees s'archivent dans `retours/` comme les vraies, et vont dans les suites, a ranger.
 pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> R<i64> {
-    let p = crate::journal::chemin(&ctx.racine);
-    if !p.exists() {
-        return Ok(0);
-    }
     let mut a_archiver: Vec<(Value, Vec<u8>)> = Vec::new();
     // Ce que les organismes rendent de plus (refus, taux du PAS, effectif) : archive puis range par le meme chemin
     // qu'un retour reel (`rattacher_retours_avec_contenus`), qui en lit le verdict.
     let mut pieces: Vec<crate::organismes_simules::Piece> = Vec::new();
-    let mut lignes = crate::etats::charger(&ctx.racine)?;
+    let mut lignes = crate::journal::lu(&ctx.racine).map(|j| j.lignes.to_vec())?;
+    let p = crate::journal::chemin(&ctx.racine);
     let avant = crate::organismes_simules::memoire(&ctx.racine)?;
     let mut memoire = avant.clone();
     let maintenant = maintenant_naif();

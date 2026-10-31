@@ -40,10 +40,46 @@ use droit::minima::Par;
 use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, OPERATION, SALARIE};
+
 type R<T> = Result<T, Echec>;
 
-/// Les routes de lecture des conseils.
-pub const ROUTES: [&str; 3] = ["conseil-du-jour", "conseils-salarie", "conseils-resume"];
+/// Les routes de lecture des conseils, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "conseil-du-jour",
+        geste: "Dire le conseil du jour (« Le saviez-vous ? »).",
+        charge: &[Champ { nom: "decalage", sens: "un autre conseil : +1 le suivant, -1 le précédent", avance: false }],
+        exemple: r#"{}"#,
+        rend: "le conseil (titre, texte, ce qu'il ouvre)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "conseils-salarie",
+        geste: "Dire les conseils qui valent pour un salarié.",
+        charge: &[SALARIE],
+        exemple: r#"{"salarie":"FULLER"}"#,
+        rend: "conseils",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "conseils-resume",
+        geste: "Dire les conseils qui valent pour la compagnie, en résumé.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "conseils",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+];
 
 /// Les conditions que le moteur sait evaluer : un conseil de la banque dont le `quand` n'est ni « toujours » ni l'une
 /// d'elles ne s'afficherait jamais (le test de la banque le refuse).
@@ -531,13 +567,14 @@ fn gain_heures(ctx: &Contexte, p: &Paie, seuil: Decimal) -> Resultat<Option<Gain
 struct Declares<'a> {
     ctx: &'a Contexte,
     paies: &'a [Paie],
+    departs: &'a engagement::departs::Departs,
     lus: Option<Vec<Declare>>,
 }
 
 impl<'a> Declares<'a> {
     fn tous(&mut self) -> Resultat<&[Declare]> {
         if self.lus.is_none() {
-            self.lus = Some(engagement::cumul::lire_engagements(self.ctx, Some(self.paies))?);
+            self.lus = Some(engagement::cumul::lire_engagements(self.ctx, Some(self.paies), self.departs)?);
         }
         Ok(self.lus.as_deref().unwrap_or(&[]))
     }
@@ -582,7 +619,8 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         x.0 += e.heures.unwrap_or(0.0).round_ties_even() as i64 + e.cachets * c.heures_par_cachet;
         x.1 += e.cachets;
     }
-    let mut declares = Declares { ctx, paies, lus: None };
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    let mut declares = Declares { ctx, paies, departs: &departs, lus: None };
     let mut assurees: HashMap<String, Option<(i64, String)>> = HashMap::new();
     for (i, p) in paies.iter().enumerate() {
         let e = &p.engagement;
@@ -714,16 +752,16 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
 // --------------------------------------------------------------- l'historique
 
 /// Ce que les conseils de saisie auraient change aux paies de ce salarie sur la fenetre : (heures, jours d'allocation,
-/// avant arrondi). Chaque mois saisi de la fenetre se recharge (`engagement::charger`) ; un mois qui ne se charge pas
-/// est laisse de cote.
-fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, annexe: &str) -> Resultat<(Decimal, Decimal)> {
+/// avant arrondi). Chaque mois de la fenetre se lit dans les paies ecrites de ses engagements valides
+/// (`engagement::etats::validees_du_mois`) : rien ne se recalcule ; un mois qui ne se lit pas est laisse de cote.
+fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, annexe: &str, departs: &engagement::departs::Departs) -> Resultat<(Decimal, Decimal)> {
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
     let (debut, fin, _) = f;
     let mut gain = Decimal::ZERO;
     let mut jours = Decimal::ZERO;
     for mois in socle::date::mois_entre(debut, fin) {
-        let Ok(saisie) = engagement::mois_pour_l_ecran(ctx, &mois) else { continue };
-        for p in &saisie.paies {
+        let Ok(Some((_, paies))) = engagement::etats::validees_du_mois(ctx, &mois, departs) else { continue };
+        for p in &paies {
             let e = &p.engagement;
             if texte(&p.salarie, "_cle") != cle || e.sans_paie() || e.nat()?.mensuelle() {
                 continue;
@@ -755,7 +793,8 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let engs = engagement::cumul::lire_engagements(ctx, None)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None, &departs)?;
     let (pos, anniv) = position(ctx, cle, &engs, jour)?;
     if pos.engagements.is_empty() {
         return Ok(Vec::new());
@@ -799,7 +838,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
         pousser("historique:heures-comptees", base(vec![("heures", val_entier(heures)), ("pourcentage", val_nombre(pct))]));
         if let (Some(a), Some(ax)) = (&a30, annexe) {
             let f: Fenetre = (pos.debut, pos.fin, pos.libelle_fenetre.clone());
-            let (gain, jours) = gains_sur_la_fenetre(ctx, cle, &f, a, ax)?;
+            let (gain, jours) = gains_sur_la_fenetre(ctx, cle, &f, a, ax, &departs)?;
             if gain > Decimal::ZERO {
                 let pct = (gain * Decimal::from(100) / Decimal::from(c.seuil_heures)).round_dp(1).normalize();
                 let mut v = vec![("gain", val_nombre(gain)), ("pourcentage", val_nombre(pct))];
@@ -849,7 +888,8 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let engs = engagement::cumul::lire_engagements(ctx, None)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None, &departs)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     // Les salaries par leur prenom ; deux du meme prenom, par leur prenom et leur nom (sinon on ne saurait lequel).
     let mut fiches = Vec::new();

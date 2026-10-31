@@ -6,7 +6,10 @@
 //! - les DSN : `dsn_aem::lire_une_dsn` (`ENTREPRISE`, `IDENTITE`, `EMPLOI`, `VERSEMENT`, le bloc 20, la licence 40.049,
 //!   le numero d'adherent Conges Spectacles 40.022, le contact S20.G00.07) et `parametrage` (le code risque 40.040, les
 //!   adhesions S21.G00.15) ;
-//! - les AEM : `dsn_aem::lire_aem` (`ContratAtteste`) ;
+//! - les certificats Congés Spectacles : `certificat_lu` (`Certificat`), et ce que `bulletins` en tire
+//!   (`fiche_de_certificats`, `entreprise_du_certificat`, `contrat_du_certificat`) ;
+//! - les AEM : `dsn_aem::lire_aem` (`ContratAtteste`) ; en PDF, `aem_lu` (`Aem`), et `bulletins` (`contrat_de_l_aem`) ;
+//! - les AER Cinéma Spectacle : `aem_lu::lire_aer` (par les champs du formulaire, une `Aem` par periode) ;
 //! - les archives : `tri` (un zip s'ouvre, son contenu se trie comme le reste ; un PDF sans texte ne se lit pas).
 //!
 //! Ce qui restera a dire : ce qu'aucune de ces lectures ne donne -- la nature d'un contrat de permanent
@@ -20,6 +23,12 @@ use serde_json::{json, Value};
 /// Le guide, tel que la page le montre.
 pub fn guide() -> Value {
     json!({
+        "a_quoi_sert": [
+            "Les bulletins de paie complets suffisent : ils recréent votre historique dans le logiciel.",
+            "Une AEM ou une AER Cinéma Spectacle remplace un bulletin qui manque.",
+            "Au moins une DSN déposée pré-remplit la configuration de la compagnie.",
+        ],
+        "accepte": crate::import::tri::ACCEPTE,
         "pieces": [
             {
                 "quoi": "Les bulletins de paie, en PDF",
@@ -44,9 +53,36 @@ pub fn guide() -> Value {
                 ],
             },
             {
+                "quoi": "Les certificats d'emploi Congés Spectacles, en PDF",
+                "ou": "Ceux que votre ancien logiciel a édités pour chaque intermittent, à la mise en page d'Audiens. Avec les bulletins, ils complètent sans rien reprendre deux fois ; seuls, ils suffisent à créer les intermittents et leurs contrats.",
+                "lu": [
+                    "la compagnie : son Siret, son nom, son numéro d'adhérent Congés Spectacles",
+                    "chaque salarié : nom, prénom, adresse, numéro de sécurité sociale, emploi, cadre ou non",
+                    "chaque contrat : ses dates, ses cachets (un artiste) ou ses jours (un technicien), son salaire brut arrondi à l'euro",
+                ],
+            },
+            {
                 "quoi": "Les attestations employeur (AEM)",
                 "ou": "Les fichiers d'attestations envoyés à France Travail pour les intermittents.",
                 "lu": ["chaque contrat d'intermittent : ses dates, ses cachets ou ses heures, son salaire, son numéro d'objet"],
+            },
+            {
+                "quoi": "Les attestations employeur (AEM), en PDF",
+                "ou": "Celles que votre ancien logiciel a éditées et remises à chaque intermittent, une par mois. Avec les bulletins, elles complètent sans rien reprendre deux fois ; seules, elles suffisent à créer les intermittents et leurs contrats. Un formulaire rempli à la main dont le texte ne se lit pas est dit tel quel : déposez alors le bulletin ou le certificat du même mois.",
+                "lu": [
+                    "la compagnie : son Siret, son nom, son code APE, sa convention, sa commune, son numéro d'adhérent Congés Spectacles",
+                    "chaque salarié : nom, prénom, date de naissance, adresse, numéro de sécurité sociale, emploi, artiste ou technicien, cadre ou non",
+                    "chaque contrat : ses dates dans le mois, ses heures, ses cachets, ses jours, son salaire brut, son numéro d'objet",
+                ],
+            },
+            {
+                "quoi": "Les AER Cinéma Spectacle, en PDF",
+                "ou": "Les attestations que France Travail a éditées depuis vos DSN, telles que vous les avez reçues. Comme une AEM, chacune remplace un bulletin qui manque, sans rien reprendre deux fois.",
+                "lu": [
+                    "la compagnie : son Siret, son nom, son code APE, sa convention, sa commune",
+                    "chaque salarié : nom, prénom, date de naissance, adresse, numéro de sécurité sociale, emploi",
+                    "chaque période d'emploi : ses dates, ses heures, ses cachets, son salaire brut, le numéro d'objet de son contrat",
+                ],
             },
             {
                 "quoi": "Une archive zip",
@@ -55,7 +91,7 @@ pub fn guide() -> Value {
             },
         ],
         "reste": "Ce qu'aucune pièce ne porte se demande ensuite, une fois, avec l'endroit où le trouver : par exemple qui signe les contrats, la date de la première embauche de la compagnie, ou, pour un salarié payé au mois, si son contrat est un CDI ou un CDD, ce qu'un bulletin n'imprime pas.",
-        "rien_n_est_perdu": "Un fichier que le logiciel ne sait pas lire est dit, avec sa raison ; il ne change rien au reste. Les noms des fichiers ne comptent pas : le logiciel lit leur contenu.",
+        "rien_n_est_perdu": "Un document que le logiciel ne sait pas lire est dit, avec sa raison ; il ne change rien au reste, et l'import se rejoue sans rien effacer ni doubler. Les noms des fichiers ne comptent pas : le logiciel lit leur contenu.",
     })
 }
 

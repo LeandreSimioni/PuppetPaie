@@ -175,7 +175,7 @@ impl P {
         arrondi28(q * (self.m.signum() * o.m.signum()), s)
     }
 
-    /// `x.quantize(Decimal(10) ** -dp)` au pair sur le demi (le contexte).
+    /// Arrondi à `dp` décimales, au pair sur le demi.
     pub fn quantifier(self, dp: i32) -> P {
         if self.e > dp {
             reduire(self, dp)
@@ -247,7 +247,7 @@ impl Ord for P {
     }
 }
 
-/// `str(Decimal)`.
+/// Le décimal en texte.
 impl fmt::Display for P {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let coeff = self.m.unsigned_abs().to_string();

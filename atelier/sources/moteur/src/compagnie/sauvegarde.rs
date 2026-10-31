@@ -296,7 +296,7 @@ pub struct Etat {
     pub mtime: i64,
 }
 
-/// `_ecarte` : un nom ou un suffixe exclu, ou un dossier exclu n'importe ou dans le chemin relatif
+/// Un nom ou un suffixe exclu, ou un dossier exclu n'importe ou dans le chemin relatif
 /// (le nom du fichier compris). La restauration s'en sert aussi : elle ne redescend que ce que la sauvegarde envoie.
 pub(crate) fn ecarte(relatif: &Path) -> bool {
     let nom = relatif.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
@@ -339,7 +339,7 @@ fn parcourir(racine: &Path, dossier: &Path, sortie: &mut Vec<PathBuf>) {
     }
 }
 
-/// `inventaire` : les fichiers dans l'ordre de `sorted(racine.rglob("*"))` (composante par
+/// `inventaire` : les fichiers triés par chemin (composante par
 /// composante, pas en texte : `a/x` passe avant `a b/x`), et le nombre d'ecartes. Ne lit aucun
 /// contenu.
 pub fn inventaire(racine: &Path) -> (Vec<(String, Etat)>, usize) {
@@ -371,7 +371,7 @@ pub fn chemin_index(racine: &Path) -> PathBuf {
     racine.join("config").join(INDEX)
 }
 
-/// `_lire_index` : `{}` si le fichier manque ou ne se lit pas comme du JSON.
+/// `{}` si le fichier manque ou ne se lit pas comme du JSON.
 fn lire_index(racine: &Path) -> Map<String, Value> {
     let Ok(octets) = std::fs::read(chemin_index(racine)) else { return Map::new() };
     match serde_json::from_slice::<Value>(&octets) {
@@ -410,7 +410,7 @@ pub fn rien_n_a_bouge(racine: &Path, racine_drive: &str) -> bool {
     })
 }
 
-/// `etat["x"] != ancien.get("x")` : un nombre JSON egal, entier ou flottant (`5 == 5.0`).
+/// Un nombre JSON egal a `x`, entier ou flottant (`5` et `5.0`).
 fn egal(v: Option<&Value>, x: f64) -> bool {
     v.and_then(Value::as_f64).is_some_and(|a| a == x)
 }
@@ -421,7 +421,7 @@ pub struct Derniere {
     /// Tel que l'index le porte (un texte, en pratique).
     pub quand: Value,
     pub fichiers: usize,
-    /// `index.get("racine_drive", "")`.
+    /// La racine du Drive, vide si l'index n'en dit pas.
     pub racine_drive: Value,
 }
 
@@ -435,7 +435,7 @@ impl Derniere {
 pub fn derniere(racine: &Path) -> Derniere {
     let index = lire_index(racine);
     let brut = |c: &str| index.get(c).cloned().unwrap_or_else(|| json!(""));
-    // `len(index.get("fichiers") or {})`
+    // Le nombre de fichiers de l'index.
     let fichiers = match index.get("fichiers") {
         Some(Value::Object(o)) => o.len(),
         Some(Value::Array(a)) => a.len(),
@@ -603,7 +603,7 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
             fichiers.insert(r.clone(), json!({"octets": e.octets, "mtime": e.mtime}));
         }
     }
-    let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0);
+    let maintenant = socle::temps::secondes();
     let quand = socle::paris::iso_minutes(maintenant).replacen('T', " ", 1);
     let mut nouvel_index = Map::new();
     nouvel_index.insert("quand".into(), json!(quand));

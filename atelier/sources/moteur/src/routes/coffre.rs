@@ -1,5 +1,5 @@
 //! Les routes du coffre et des mots de passe : ce qui est pose (`coffre-etat`, `google-etat`), poser ou oublier un
-//! secret (`coffre-poser`, `coffre-compte-dpae`, `coffre-oublier`, `google-oublier`), changer ou retirer le mot de
+//! secret (`coffre-poser`, avec le compte DPAE pour l'Urssaf, `coffre-oublier`, `google-oublier`), changer ou retirer le mot de
 //! passe du logiciel (`mot-de-passe-changer`, `mot-de-passe-retirer`).
 //!
 //! Aucune valeur de secret ne sort : la reponse est l'etat du coffre, des presences et des dates. Ces routes passent
@@ -13,6 +13,7 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::coffre::{Coffre, Echec as EchecCoffre};
 use crate::compagnie::filet::exiger_mot_de_passe;
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
 use droit::contexte::Contexte;
 use super::{ou_texte, vers_route};
 use envois::etats::{get, joindre, objet_vide, ou};
@@ -21,17 +22,113 @@ use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{vrai, MARQUEUR_COPIE};
 use socle::valeur::{nom_type, valeur_en_texte};
 
+const SERVICE: Champ = Champ { nom: "service", sens: "net-entreprises, urssaf ou courriel", avance: false };
+const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, s'il est posé ; sans lui, le moteur le demande à un humain", avance: false };
+const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est modifié" };
+const ETAT: &str = "l'état du coffre : ce qui est posé, depuis quand, jamais les valeurs";
 
-
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "coffre-etat", "google-etat",
-    "coffre-poser", "coffre-compte-dpae", "coffre-oublier", "mot-de-passe-changer", "mot-de-passe-retirer", "google-oublier",
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "coffre-etat",
+        geste: "Dire quels mots de passe sont posés, et depuis quand ; jamais leur valeur.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: ETAT,
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "google-etat",
+        geste: "Dire si le compte Google de la sauvegarde est lié.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "lie, compte, et ce que la page en montre",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "coffre-poser",
+        geste: "Poser le mot de passe d'un organisme ; pour l'Urssaf, avec le compte des DPAE.",
+        charge: &[
+            SERVICE,
+            Champ { nom: "valeur", sens: "le mot de passe à poser", avance: false },
+            Champ { nom: "compte", sens: "l'identifiant du compte (l'adresse, pour la boîte courriel)", avance: false },
+            Champ { nom: "nom", sens: "Urssaf : le nom du compte qui dépose les DPAE", avance: false },
+            Champ { nom: "prenom", sens: "Urssaf : son prénom", avance: false },
+            MOT_DE_PASSE,
+        ],
+        exemple: r#"{"service":"urssaf","valeur":"exemple","nom":"FULLER","prenom":"Ada"}"#,
+        rend: "l'état du coffre, et ce qu'une tentative de connexion en dit : phrase, couleur",
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 400,
+    },
+    Fiche {
+        nom: "coffre-verifier",
+        geste: "Essayer une fois le mot de passe posé d'un organisme.",
+        charge: &[SERVICE],
+        exemple: r#"{"service":"urssaf"}"#,
+        rend: "service, ok, message (la première ligne de l'erreur), conseil, pastille",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "poser d'abord le mot de passe de ce service" }],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "coffre-oublier",
+        geste: "Retirer du coffre le mot de passe d'un organisme.",
+        charge: &[SERVICE, MOT_DE_PASSE],
+        exemple: r#"{"service":"urssaf"}"#,
+        rend: ETAT,
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "mot-de-passe-changer",
+        geste: "Poser ou changer le mot de passe du logiciel.",
+        charge: &[
+            MOT_DE_PASSE,
+            Champ { nom: "nouveau", sens: "le nouveau mot de passe", avance: false },
+            Champ { nom: "confirmation", sens: "le même, retapé", avance: false },
+        ],
+        exemple: r#"{"nouveau":"exemple","confirmation":"exemple"}"#,
+        rend: ETAT,
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "mot-de-passe-retirer",
+        geste: "Retirer le mot de passe du logiciel.",
+        charge: &[MOT_DE_PASSE],
+        exemple: r#"{"motdepasse":"exemple"}"#,
+        rend: ETAT,
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "google-oublier",
+        geste: "Délier le compte Google de la sauvegarde : le jeton du poste s'efface.",
+        charge: &[MOT_DE_PASSE],
+        exemple: r#"{}"#,
+        rend: "l'état du compte Google",
+        refus: &[PREUVE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
 ];
-
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] =
-    &["coffre-poser", "coffre-compte-dpae", "coffre-oublier", "mot-de-passe-changer", "mot-de-passe-retirer", "google-oublier"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -39,7 +136,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "coffre-etat" => coffre_etat(ctx),
         "google-etat" => google_etat(ctx),
         "coffre-poser" => coffre_poser(ctx, charge),
-        "coffre-compte-dpae" => coffre_compte_dpae(ctx, charge),
+        "coffre-verifier" => crate::compagnie::coffre_verifier::route(ctx, charge),
         "coffre-oublier" => coffre_oublier(ctx, charge),
         "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge),
         "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge),
@@ -71,7 +168,7 @@ fn en_coffre(x: EchecCoffre) -> Echec {
     Echec { classe: Some(x.classe), message: x.message }
 }
 
-/// `datetime.now().isoformat(timespec="minutes")`, a l'heure de Paris : ce que `coffre._maintenant` posait.
+/// L'heure de Paris, a la minute.
 fn maintenant() -> String {
     let t = socle::temps::secondes();
     socle::paris::iso_minutes(t)
@@ -93,18 +190,48 @@ fn chaine<'a>(charge: &'a Value, cle: &str) -> Option<&'a str> {
 
 // ------------------------------------------------------------------ le coffre
 
-/// Range le mot de passe d'un organisme, ou de la boite courriel avec
-/// son adresse (`compte`). Rend l'etat du coffre, sans valeur.
-/// Un mot de passe vide se refuse avant la porte du mot de passe du logiciel : il n'y a rien a autoriser.
+/// Range le mot de passe d'un organisme, ou de la boite courriel avec son adresse (`compte`) ; pour l'Urssaf, avec le
+/// nom et le prenom du compte qui depose les DPAE (`nom`, `prenom`), ecrits dans la fiche entreprise s'ils changent. Un
+/// seul geste, une seule preuve : tout se verifie avant d'ecrire. Rend l'etat du coffre, sans valeur. Rien a poser se
+/// refuse avant la porte du mot de passe du logiciel : il n'y a rien a autoriser.
 fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     let service = crate::compagnie::coffre::service_connu(optionnel(charge, "service")).map_err(en_operation)?;
     let valeur = chaine(charge, "valeur").unwrap_or("");
-    if socle::texte::strip(valeur).is_empty() {
+    let compte = if charge.get("nom").is_some() || charge.get("prenom").is_some() { compte_dpae_change(ctx, charge)? } else { None };
+    let a_poser = !socle::texte::strip(valeur).is_empty();
+    if !a_poser && compte.is_none() {
         return Err(refus(format!("Tapez le mot de passe {} à poser : rien n'a été posé.", service.nom)));
     }
-    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "poser un mot de passe")?;
-    coffre(ctx).poser(service.nom, valeur, chaine(charge, "compte")).map_err(en_operation)?;
-    etat_du_coffre(ctx)
+    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), if a_poser { "poser un mot de passe" } else { "changer le compte qui depose les DPAE" })?;
+    let mut entreprise = ctx.entreprise.clone();
+    if let Some(propres) = compte {
+        entreprise = ecrire_compte_dpae(ctx, propres)?;
+    }
+    if a_poser {
+        coffre(ctx).poser(service.nom, valeur, chaine(charge, "compte")).map_err(en_operation)?;
+    }
+    let mut etat = coffre_etat_de(&ctx.racine, &entreprise)?;
+    // PUIS UNE TENTATIVE, UNE SEULE (`coffre_verifier`) : un mot de passe faux se voit maintenant, pas au depot. Pas si
+    // l'identifiant est incomplet : l'echec serait certain, et chaque echec rapproche du blocage du compte.
+    let quoi = format!("{} {} enregistré", if a_poser { "Mot de passe" } else { "Compte" }, service.nom);
+    let incomplet = etat["services"].as_array().into_iter().flatten().filter(|s| s["service"] == service.nom).any(|s| {
+        s["identifiant"]["manque"].as_array().is_some_and(|m| !m.is_empty())
+    });
+    let (phrase, couleur) = if incomplet {
+        (format!("{}. Identifiant incomplet : pas de vérification.", quoi), "gris")
+    } else {
+        match crate::compagnie::coffre_verifier::route(ctx, &json!({"service": service.nom})) {
+            Ok(v) if v["ok"] == true => (format!("{}, et vérifié : la connexion passe.", quoi), "vert"),
+            Ok(v) => {
+                let conseil = v["conseil"].as_str().filter(|c| !c.is_empty()).map(|c| format!(" — {}", c)).unwrap_or_default();
+                (format!("{} ; connexion refusée : {}{}", quoi, v["message"].as_str().unwrap_or(""), conseil), "rouge")
+            }
+            Err(e) => (format!("{} ; vérification impossible : {}", quoi, e.message), "rouge"),
+        }
+    };
+    etat["phrase"] = json!(phrase);
+    etat["couleur"] = json!(couleur);
+    Ok(etat)
 }
 
 /// `coffre-oublier` : retire un secret du coffre.
@@ -115,33 +242,34 @@ fn coffre_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     etat_du_coffre(ctx)
 }
 
-/// Le nom et le prenom du compte Urssaf qui depose les DPAE.
-/// SANS ACCENTS, DANS LA CASSE TAPEE : la DUE MtoM refuse les accents. Les autres cles d'`api_dpae` sont gardees.
-fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
-    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "changer le compte qui depose les DPAE")?;
-    let mut propres: Vec<(&str, String)> = Vec::new();
-    for cle in ["nom", "prenom"] {
-        let v = optionnel(charge, cle);
-        let brut = if vrai(v) { valeur_en_texte(v) } else { String::new() };
-        let sans = declarations::champs::sans_accents(&brut);
-        let net = sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
-        if net.is_empty() {
-            return Err(refus(format!(
-                "Le {} du compte Urssaf manque. Il est celui du compte ouvert sur urssaf.fr pour la DPAE -- pas forcement celui de la personne qui signe. Rien n'a ete modifie.",
-                cle
-            )));
-        }
-        propres.push((cle, net));
+/// Le nom et le prenom du compte Urssaf qui depose les DPAE, tels que la charge les dit, s'ils changent ceux de la fiche ;
+/// `None` s'ils sont ceux de la fiche (vides compris). SANS ACCENTS, DANS LA CASSE TAPEE : la DUE MtoM refuse les accents.
+fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static str, String)>>> {
+    let actuel = ctx.entreprise.get("api_dpae").cloned().unwrap_or(Value::Null);
+    let propres: Vec<(&'static str, String)> = ["nom", "prenom"]
+        .into_iter()
+        .map(|cle| {
+            let v = optionnel(charge, cle);
+            let brut = if vrai(v) { valeur_en_texte(v) } else { String::new() };
+            let sans = declarations::champs::sans_accents(&brut);
+            (cle, sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" "))
+        })
+        .collect();
+    if propres.iter().all(|(k, v)| actuel.get(*k).and_then(Value::as_str).unwrap_or("") == v) {
+        return Ok(None);
     }
-    let chemin = ctx.racine.join("config").join("entreprise.json");
-    if !chemin.exists() {
-        // `json.loads(chemin.read_text())` : le fichier doit etre la.
-        return Err(erreur("FileNotFoundError", format!("{} : fichier introuvable", chemin.display())));
+    if let Some((cle, _)) = propres.iter().find(|(_, v)| v.is_empty()) {
+        return Err(refus(format!(
+            "Le {} du compte Urssaf manque. Il est celui du compte ouvert sur urssaf.fr pour la DPAE -- pas forcement celui de la personne qui signe. Rien n'a ete modifie.",
+            cle
+        )));
     }
-    let mut contenu = crate::routes::lire_json_ou_vide(&chemin)?;
-    let Value::Object(entreprise) = &mut contenu else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&contenu))));
-    };
+    Ok(Some(propres))
+}
+
+/// Ecrit le compte DPAE dans la fiche entreprise, par l'ecrivain de la fiche (`fiches::poser_entreprise`), date du jour ;
+/// les autres cles d'`api_dpae` sont gardees. Rend la fiche telle qu'elle vaut aujourd'hui.
+fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R<Value> {
     let mut cfg = match ctx.entreprise.get("api_dpae").filter(|v| vrai(v)) {
         Some(Value::Object(o)) => o.clone(),
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
@@ -150,13 +278,9 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     for (cle, v) in propres {
         cfg.insert(cle.to_string(), Value::String(v));
     }
-    // Les identifiants du compte valent a partir du jour ou on les pose (les premiers, de tout temps).
-    droit::contexte::dater(entreprise, "api_dpae", Value::Object(cfg), Some(&ctx.aujourdhui), None);
-    crate::routes::mois::sauver_avant(&chemin)?;
-    socle::ecriture::ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
-    // L'etat se lit sur la fiche qu'on vient d'ecrire : `ctx` l'a lue avant.
-    let relue = droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, "config/entreprise.json").map_err(Echec::from)?;
-    coffre_etat_de(&ctx.racine, &relue)
+    crate::routes::fiches::poser_entreprise(ctx, "api_dpae", Value::Object(cfg), Some(ctx.aujourdhui))?;
+    let contenu = crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("entreprise.json"))?;
+    droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, "config/entreprise.json").map_err(Echec::from)
 }
 
 // ------------------------------------------------------------------ le mot de passe du logiciel
@@ -217,9 +341,6 @@ fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     Ok(json!({ "efface": efface }))
 }
-
-// ------------------------------------------------------------------ la mise a jour
-
 
 // ------------------------------------------------------------------ le compte Google
 
@@ -406,7 +527,7 @@ fn courtes<'a>(ps: impl IntoIterator<Item = &'a Value>) -> R<Vec<Value>> {
         .collect()
 }
 
-/// `list(x)` de ce que le jeton enregistre comme permissions.
+/// La liste de ce que le jeton enregistre comme permissions.
 fn liste(v: &Value) -> R<Vec<Value>> {
     match v {
         Value::Array(a) => Ok(a.clone()),
@@ -503,7 +624,6 @@ fn google_etat(ctx: &Contexte) -> R<Value> {
         Some(probleme) => Ok(etat(compte, false, Some(probleme), accordees)),
     }
 }
-
 
 /// `identifiant_du_compte` : le compte que ce mot de passe ouvre, en clair ; ce
 /// qui en manque ; et s'il se saisit sur cette ligne (`ici`).

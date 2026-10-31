@@ -226,6 +226,12 @@ section « La declaration prealable a l'embauche ») ; domaine `dpae` de `paie/s
 - **L1221-10** (`xml/L1221-10.xml`, `LEGIARTI000006900849`) : « L'embauche d'un salarié ne peut intervenir qu'après
   déclaration nominative accomplie par l'employeur auprès des organismes de protection sociale désignés à cet effet. »
 - **R1221-1** (`xml/R1221-1.xml`, `LEGIARTI000035492419`) : la DPAE comporte, 3°, la « Date et heure d'embauche ».
+- **R1221-3** (`xml/R1221-3.xml`, `LEGIARTI000039809055`, relevé le 30/10/2026) : elle « est adressée par l'employeur [...]
+  à l'organisme de recouvrement des cotisations du régime général de sécurité sociale dans le ressort territorial duquel
+  est situé l'établissement devant employer le salarié ». **Où le moteur s'en sert** : `declarations/src/dpae.rs`
+  (`urssaf_d_un_etablissement`) : la DPAE d'un salarié d'un autre établissement que le siège porte en C_URSSAF l'Urssaf du
+  département de cet établissement (`logiciel/donnees/urssaf-dpae-base.json`, `par_departement`) ; celle du siège, le code
+  de la fiche entreprise.
 - **R1221-4** (`xml/R1221-4.xml`, `LEGIARTI000024214323`) : elle « est adressée au plus
   tôt dans les huit jours précédant la date prévisible de l'embauche ».
 
@@ -300,7 +306,10 @@ l'arrêté du 25 février 2016 (`../montant-net-social/legi-arrete-20160225-bull
 `atelier/sources/moteur/src/import/bulletin_lu.rs`, le lecteur des bulletins importés : il trouve ces mentions par leurs
 libellés (`logiciel/donnees/bulletins-lecture-base.json`, `mentions`), refuse une page où le salarié, la période, le brut
 ou la somme reçue ne se trouvent pas, et lit un taux de colonne qui ne dit pas sa part comme celui du salarié, le seul que
-le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`.
+le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`. Le 1° dit aussi « le cas échéant, la
+désignation de l'établissement dont dépend le salarié », et le 2° le code APE « de l'établissement d'emploi » :
+`atelier/sources/documents/src/bulletin.rs` (`blocs_un`) imprime, pour un contrat d'un autre établissement que le siège,
+« Établissement : » et le SIRET de cet établissement dans le cadre EMPLOYEUR (`droit::bareme::entreprise_du_salarie`).
 
 ## Le contrat écrit : L1242-12 (CDD), L1221-5-1 et R1221-34 à R1221-40 (tout salarié), L3123-6 (temps partiel) (relevé du 29/10/2026, #285)
 
@@ -375,3 +384,53 @@ renouvellement (L1221-21) n'est pas jugé : l'engagement ne porte que la périod
 `engagement/src/calcul.rs` (`essai_dans_son_plafond`) : un engagement dont la période d'essai dépasse son plafond ne se
 calcule pas ; il s'enregistre à compléter, et sa validation refuse en citant le texte. Test :
 `droit/tests/droit/essai.rs`.
+
+## La durée maximale du travail et le repos quotidien (relevé du 30/10/2026, séance 8, lot P2)
+
+`articles-20261030.md`, section « La duree maximale du travail et le repos quotidien » (XML : `xml/L3121-18.xml`,
+`xml/L3121-19.xml`, `xml/L3121-20.xml`, `xml/L3131-1.xml`, `xml/L3131-2.xml`), relevés par `moteur releve-codes moissonner`
+depuis l'entrepôt LEGI (domaine `duree_maximale` de `moteur/src/atelier/releve/codes/textes.rs`).
+
+- **L3121-18** (`LEGIARTI000033020428`, depuis le 10/08/2016) : « La durée quotidienne de travail effectif par salarié ne
+  peut excéder dix heures, sauf : 1° En cas de dérogation accordée par l'inspecteur du travail […] ; 2° En cas d'urgence […] ;
+  3° Dans les cas prévus à l'article L. 3121-19. »
+- **L3121-19** (`LEGIARTI000033020422`) : une convention ou un accord (d'entreprise, d'établissement, à défaut de branche) peut
+  prévoir le dépassement de la durée maximale quotidienne « à condition que ce dépassement n'ait pas pour effet de porter
+  cette durée à plus de douze heures ».
+- **L3121-20** (`LEGIARTI000033020414`) : 48 heures au plus dans une même semaine. **L3131-1** et **L3131-2** : onze heures
+  consécutives de repos quotidien, sauf dérogation par convention ou accord.
+
+**La convention 3090** (spectacle vivant privé), lue dans l'entrepôt KALI (`../kali-entrepot/articles.jsonl.gz`, par
+`moteur releve-conventions chercher atelier/reference/sources 3090 "durée quotidienne"`) : la durée quotidienne dépend de
+l'annexe et de la filière. Par exemple : 10 heures, portées à 12 « dans les cas suivants » pour le personnel technique
+(`KALIARTI000028157685`, titre III, III.3, art. 2) ; 10 heures, portées à 12 « selon les nécessités et spécificités des
+tournées », dans une amplitude de 15 heures (`KALIARTI000028157839`, titre III, 3.2.6) ; 10 heures pour l'artiste-interprète
+(`KALIARTI000028157888`, 3.3.3) ; 8 heures, portées à 12 pour les salariés directement liés au spectacle
+(`KALIARTI000028157882`, 2.2.3) ; 12 heures pour la filière salle et restauration (`KALIARTI000028157805`, 7.1.2) ; 8 heures
+pour un travailleur de nuit (`KALIARTI000028157401`, titre VIII, 8.14). Aucune ne dépasse les 12 heures de L3121-19.
+
+**Où le moteur s'en sert** : `atelier/sources/engagement/src/duree.rs`. Une journée saisie au-delà de 10 heures se dit sur la
+carte de l'engagement (`au_dela_du_maximum`, un avertissement : la phrase cite L3121-18 et L3121-19, sans refuser — c'est
+l'employeur qui en répond, et une annexe de sa convention peut la porter à 12 heures) ; au-delà de 24 heures, la saisie se
+refuse (`plus_d_une_journee` : une journée n'en a que 24, aucun texte n'est nécessaire). **Inférence** : une ligne qui paie
+des heures sur plusieurs jours les répartit également ; la journée la plus chargée en compte au moins cette moyenne.
+Test : `moteur/tests/routes/duree_du_travail.rs`. L3121-20 (la semaine) et L3131-1 (le repos) ne sont pas encore contrôlés :
+la saisie ne dit pas les heures de début et de fin d'une journée.
+
+## Les jours fériés chômés d'un permanent : L3133-3, L3133-5 (relevé LEGI du 29/10/2026, séance 8, lot Q2)
+
+Relevés par `moteur releve-codes` : `articles-20261029.md`, l. 111-124 ; XML : `xml/L3133-3.xml`, `xml/L3133-5.xml`.
+
+- **L3133-3** (`LEGIARTI000033020893`) : « Le chômage des jours fériés ne peut entraîner aucune perte de salaire pour les
+  salariés totalisant au moins trois mois d'ancienneté dans l'entreprise ou l'établissement » ; les saisonniers cumulent
+  leurs contrats ; ni les travailleurs à domicile, ni les intermittents, ni les temporaires.
+- **L3133-5** (`LEGIARTI000033020881`) : « Le chômage du 1er mai ne peut être une cause de réduction de salaire. »
+
+**Lecture** : a contrario, un férié que l'entreprise chôme n'est pas dû à un permanent qui n'a pas trois mois
+d'ancienneté le jour du férié, sauf le 1er mai. Une convention peut faire mieux : celles de la 3090 et de la 1285 sur les
+fériés ne sont pas relevées ici (la 3090, titre VII, dit seulement quand ils sont chômés).
+
+**Où le moteur s'en sert** : `droit::conges::feries_non_payes` (les fériés chômés de l'entreprise, `feries::chomes_entre`,
+qui tombent un jour travaillé du salarié, avant ses trois mois comptés depuis « Dans la compagnie depuis ») ;
+`droit::periodes::part_du_mois` les retire des heures payées du mois, et l'aperçu le dit. Test :
+`droit/tests/droit/mois_incomplet.rs`, `un_ferie_chome_ne_se_paie_qu_apres_trois_mois_d_anciennete`.

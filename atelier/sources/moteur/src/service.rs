@@ -1,6 +1,6 @@
 //! `moteur route` : la demande JSON sur l'entree standard, la reponse en une ligne de JSON sur la sortie standard ; un
-//! refus : `{"ok": false, "erreur": "..."}`. Et ce dont les routes ont besoin pour lire la compagnie (`contexte`), la
-//! position des droits (`droits`) et la provision de conges (`provision_conges_de`).
+//! refus : `{"ok": false, "erreur": "..."}`. Et ce dont les routes ont besoin pour lire la compagnie (`contexte`) et la
+//! position des droits (`droits`).
 
 use std::collections::HashMap;
 use std::io::Read;
@@ -64,7 +64,7 @@ pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Valu
     let ctx = contexte(o)?;
     let (mois, aujourdhui) = (texte(&d, "mois")?, Jour::lire(texte(&d, "aujourdhui")?)?);
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let engs = lire_engagements(&ctx, None)?;
+    let engs = lire_engagements(&ctx, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
     let cles: std::collections::BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     let mut positions = Vec::new();
     for cle in cles {

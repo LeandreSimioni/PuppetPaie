@@ -173,7 +173,7 @@ pub fn tous_chiffres(s: &str) -> bool {
     !s.is_empty() && s.chars().all(est_chiffre)
 }
 
-/// `str.title()`.
+/// Chaque mot avec sa première lettre en capitale, le reste en minuscules.
 pub fn titre(s: &str) -> String {
     let mut out = String::new();
     let mut precedent_cased = false;
@@ -243,7 +243,7 @@ fn tranche(s: &str, a: usize, b: usize) -> String {
     s.chars().skip(a).take(b.saturating_sub(a)).collect()
 }
 
-/// `float(texte)` : est-ce un nombre ? (`nan`, `inf`, `1e5`,
+/// Le texte est-il un nombre flottant ? (`nan`, `inf`, `1e5`,
 /// `1_000` en sont ; une virgule non.)
 fn flottant_valide(t: &str) -> bool {
     let t = strip(t);
@@ -356,7 +356,7 @@ fn equivalent(c: char) -> Option<&'static str> {
     })
 }
 
-/// `_ponctuation_propre` : capitales sans accents, signes ramenes a l'ASCII,
+/// Capitales sans accents, signes ramenes a l'ASCII,
 /// separateurs isoles.
 fn ponctuation_propre(texte: &str, identite: bool) -> String {
     let mut v: String = String::new();
@@ -433,7 +433,7 @@ fn ponctuation_propre(texte: &str, identite: bool) -> String {
     strip(&v).to_string()
 }
 
-/// `_sans_caracteres_refuses` : retire de la forme declaree ce que SA rubrique
+/// Retire de la forme declaree ce que SA rubrique
 /// n'admet pas -- par une espace d'abord, par rien ensuite -- et rend la forme
 /// naive si rien ne passe.
 fn sans_caracteres_refuses(c: &Champ, v: String) -> R<String> {
@@ -565,9 +565,12 @@ fn comme_la_page(v: Option<&Value>) -> String {
 /// UNE CONDITION DE `champs-base.json` (`si`, `exige_si`) remplie par la fiche `donnees` : chaque cle de la condition
 /// vaut l'une des valeurs listees ; `"*"` admet toute valeur non vide (et pas `false`). LA MEME REGLE que la page applique
 /// pour replier un champ (`fiche.js`, `conditionRemplie`) : un manque de « Pour demarrer » et un refus de la DSN se
-/// jugent sur ce que l'ecran montre. Une condition absente est
+/// jugent sur ce que l'ecran montre. Une liste de conditions est remplie quand l'une l'est ; une condition absente est
 /// remplie.
 pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
+    if let Some(l) = si.as_array() {
+        return l.iter().any(|s| condition_remplie(s, donnees));
+    }
     let Some(o) = si.as_object() else { return true };
     o.iter().all(|(k, vals)| {
         let v = comme_la_page(donnees.get(k));
@@ -621,7 +624,7 @@ const MORCEAUX_NIR: [(usize, usize, &str, &str, &str); 6] = [
     (10, 13, "le numero d'ordre a l'etat civil", "001 a 999", "ordre a l'etat civil"),
 ];
 
-/// `_morceau_de_nir_va` : les bornes du cahier technique, morceau par morceau.
+/// Les bornes du cahier technique, morceau par morceau.
 fn morceau_de_nir_va(debut: usize, morceau: &str) -> bool {
     match debut {
         0 => morceau == "1" || morceau == "2",
@@ -815,7 +818,7 @@ pub fn faute_de_norme(c: &Champ, valeur: &str) -> R<Option<String>> {
     Ok(Some(format!("{} (rubrique {} du cahier technique NEODeS) : le point de depot refuserait la declaration", pourquoi, rubrique)))
 }
 
-/// `_faute_de_forme_officielle` : les regles de position du cahier technique
+/// Les regles de position du cahier technique
 /// DSN, section 4.
 fn faute_de_forme_officielle(v: &str) -> Option<String> {
     let c: Vec<char> = v.chars().collect();
@@ -882,6 +885,13 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
             Some(Value::Object(o)) => faute_banque(o),
             _ => None,
         });
+    }
+    // Les jours travailles d'un permanent : ceux que le calcul lira (`droit::conges::JoursTravailles`).
+    if c.cle == "jours_travailles" {
+        let fiche = serde_json::json!({ "jours_travailles": valeur });
+        return Ok(droit::conges::JoursTravailles::de_la_fiche(&fiche).err().map(|e| {
+            e.split_once(" : ").map_or(e.clone(), |(_, m)| m.to_string())
+        }));
     }
     let Some(Value::String(brut)) = valeur else { return Ok(None) };
     // La signature des courriels est du HTML colle : sa seule regle est son poids (150 Ko, images comprises).
@@ -1019,7 +1029,7 @@ fn anomalie(champ: &str, gravite: &str, message: impl Into<String>) -> Value {
     json!({"champ": champ, "gravite": gravite, "message": message.into()})
 }
 
-/// `_controles_croises` : ce qu'aucun champ ne peut verifier seul.
+/// Ce qu'aucun champ ne peut verifier seul.
 fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     let mut out = Vec::new();
 

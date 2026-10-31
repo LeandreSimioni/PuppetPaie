@@ -12,9 +12,8 @@
 //! l'engagement, sa nature, et rend les octets. Une cle absente d'une fiche est
 //! refusee sous la forme `'cle'`.
 //!
-//! Deux commandes (`service`) : `moteur dpae` (enregistrements, contenu,
-//! ecriture du fichier et de son .zip, recapitulatif) et `moteur dpae-lire` (les
-//! lecteurs : `relire`, `lire_certificat`, `meme_declaration`).
+//! Deux usages : ecrire (enregistrements, contenu, fichier et son .zip, recapitulatif) et relire (`relire`,
+//! `lire_certificat`, `meme_declaration`).
 
 use std::path::{Path, PathBuf};
 
@@ -43,9 +42,8 @@ pub const HEURE_EMBAUCHE: &str = "0800";
 /// (Format 120, `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf`) compte a
 /// partir de 1 : sa position 122 est notre 121.
 ///
-/// LE PIEGE DE L'HORODATAGE, trouve le 12/09/2026 apres quatre refus
-/// << Code URSSAF invalide >>. Le gabarit de CoolPaie porte `28082026` `1512`
-/// `11` `7...` puis le SIRET, et on y avait lu JJMMAAAAHHMMSS puis le SIRET.
+/// LE PIEGE DE L'HORODATAGE (le refus « Code URSSAF invalide »). Le gabarit de CoolPaie porte `28082026` `1512`
+/// `11` `7...` puis le SIRET : il ne se lit pas JJMMAAAAHHMMSS puis le SIRET.
 /// Faux : le dessin dit D_CREATION (122-129, JJMMAAAA), H_CREATION (130-133,
 /// HHMM), puis **C_URSSAF (134-136)** -- le code de l'Urssaf receptrice, 117
 /// pour l'Ile-de-France -- puis le SIRET a 137. `151211` n'etait pas
@@ -111,7 +109,7 @@ fn zone_employeur(nom: &str) -> (usize, usize) {
 
 // ------------------------------------------------------------- les textes
 
-/// `str(v or "")`.
+/// Une valeur en texte, vide si elle manque ou est vide.
 fn chaine(v: Option<&Value>) -> String {
     match v {
         Some(v) if vrai(v) => en_texte(v),
@@ -184,7 +182,7 @@ fn tout_chiffres(t: &str) -> bool {
     !t.is_empty() && t.chars().all(est_chiffre)
 }
 
-/// Les chiffres de `str(tel)`.
+/// Les chiffres d'un numéro de téléphone.
 fn chiffres(t: &str) -> String {
     t.chars().filter(|&c| est_chiffre(c)).collect()
 }
@@ -203,8 +201,8 @@ pub struct Chemins {
 /// Le nom du gabarit livre.
 const NOM_GABARIT: &str = "due_tel_gabarit.txt";
 
-/// Les 990 premiers caracteres du gabarit, lus comme `Path.read_text(
-/// encoding="latin-1")` (les fins de ligne universelles).
+/// Les 990 premiers caractères du gabarit, lus en latin-1 : un octet, un caractère, et les fins de ligne
+/// CR LF et CR lues comme LF.
 fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
     // Le gabarit de la compagnie s'il en a un, celui livre avec le logiciel
     // sinon (`donnees/modeles/`, un enregistrement neutre) : il ne donne plus
@@ -276,8 +274,7 @@ fn medecine_de(ent: &Value, gabarit: &[char]) -> Resultat<String> {
 pub fn employeur(ent: &Value, gabarit: &[char]) -> Resultat<Vec<(&'static str, String)>> {
     let siret = siret_de(ent)?;
     let mt = medecine_de(ent, gabarit)?;
-    // `(ent.get("declarant_dsn") or {}).get("tel") or ent.get("tel") or
-    // (ent.get("signataire") or {}).get("tel") or ""`
+    // Le telephone : celui du declarant DSN, sinon celui de l'entreprise, sinon celui du signataire, sinon rien.
     let tel_de = |k: &str| -> Option<&Value> { ent.get(k).filter(|v| vrai(v)).and_then(|v| v.get("tel")).filter(|v| vrai(v)) };
     let tel = tel_de("declarant_dsn")
         .or_else(|| ent.get("tel").filter(|v| vrai(v)))
@@ -308,6 +305,24 @@ fn urssaf_existe(code: &str) -> Resultat<bool> {
         .get("organismes")
         .and_then(Value::as_array)
         .map_or(false, |o| o.iter().any(|x| x.get("code").map_or(false, |v| en_texte(v) == c))))
+}
+
+/// L'Urssaf qui recoit la DPAE d'un salarie d'un autre etablissement que le siege : celle « dans le ressort territorial
+/// duquel est situe l'etablissement devant employer le salarie » (code du travail, R. 1221-3, 1°,
+/// `atelier/reference/sources/code-du-travail/xml/R1221-3.xml`), lue au departement de son code postal
+/// (`urssaf-dpae-base.json`, `par_departement`). Le code de la fiche entreprise est celui du siege.
+fn urssaf_d_un_etablissement(vue: &Value) -> Resultat<String> {
+    let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json"))?;
+    let code = crate::champs::urssaf_du_code_postal(&base, vue.get("code_postal"));
+    if code.is_empty() {
+        return Err(format!(
+            "La DPAE ne sait pas a quelle Urssaf aller : l'etablissement {} a le code postal {}, qu'aucune Urssaf de la table \
+ne couvre (Configuration › Entreprise › Avancé, « Autres établissements »).",
+            en_texte(vue.get("siret").unwrap_or(&Value::Null)),
+            repr_valeur(vue.get("code_postal").unwrap_or(&Value::Null))
+        ));
+    }
+    Ok(code)
 }
 
 // -------------------------------------------- ce que la DPAE lit d'une embauche
@@ -369,20 +384,27 @@ fn ecrire_zone(buf: &mut [char], a: usize, b: usize, valeur: &str) {
 /// Un enregistrement de 990 caracteres.
 pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resultat<String> {
     let mut buf: Vec<char> = gabarit.to_vec();
+    let mut code_urssaf = p.code_urssaf.clone();
     if let Some(ent) = p.ent {
+        // « N° SIRET de l'établissement » (N_SIRET, `norme-dpae/v5.3_FormatDPAE_EMAIL.txt` l. 235-243) : celui ou le salarie
+        // est rattache (`droit::bareme::entreprise_du_salarie`), avec son adresse.
+        let ent = &droit::bareme::entreprise_du_salarie(ent, &e.salarie)?;
         for (nom, v) in employeur(ent, gabarit)? {
             let (a, b) = zone_employeur(nom);
             ecrire_zone(&mut buf, a, b, &v);
         }
+        if ent.get("_etablissement").is_some_and(vrai) {
+            code_urssaf = json!(urssaf_d_un_etablissement(ent)?);
+        }
     }
-    if vrai(&p.code_urssaf) {
+    if vrai(&code_urssaf) {
         let (a, b) = champ("code_urssaf");
-        let brut = en_texte(&p.code_urssaf);
+        let brut = en_texte(&code_urssaf);
         let v = strip(&brut);
         if v.chars().count() != b - a || !tout_chiffres(v) {
             return Err(format!(
                 "code_urssaf: {}, attendu {} chiffres (annexe II.1)",
-                repr_valeur(&p.code_urssaf),
+                repr_valeur(&code_urssaf),
                 b - a
             ));
         }
@@ -395,7 +417,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         if !urssaf_existe(v)? {
             return Err(format!(
                 "code_urssaf: {} n'est pas un organisme de recouvrement connu.\n  Le point de depot le refuserait (\u{ab} Code URSSAF invalide \u{bb}). Le code se lit sur les bordereaux Urssaf de la compagnie.",
-                repr_valeur(&p.code_urssaf)
+                repr_valeur(&code_urssaf)
             ));
         }
         ecrire_zone(&mut buf, a, b, v);
@@ -493,8 +515,7 @@ pub fn enregistrements(embauches: &[Embauche], p: &Parametres) -> Resultat<Vec<S
     Ok(out)
 }
 
-/// Le texte en latin-1, comme `str.encode("latin-1")` : un caractere hors de
-/// la table donne la phrase de `UnicodeEncodeError`.
+/// Le texte en latin-1 : un caractere hors de la table se refuse, et le refus le nomme.
 pub fn en_latin1(texte: &str) -> Resultat<Vec<u8>> {
     let c: Vec<char> = texte.chars().collect();
     if let Some(i) = c.iter().position(|&x| x as u32 > 255) {
@@ -737,8 +758,7 @@ pub fn relire(contenu: &str) -> Vec<Vec<(&'static str, String)>> {
 /// ecrit : deux ecritures des memes embauches a deux minutes d'ecart ne
 /// different que par lui. C'est ce qui permet de reprendre le fichier deja
 /// ecrit -- et deja REPETE en test -- au lieu d'en poser un neuf, que la
-/// repetition ne couvrirait plus (25/09/2026 : on ecrivait, testait, revenait,
-/// reecrivait, et le reel redemandait un test sans fin).
+/// repetition ne couvrirait plus.
 pub fn meme_declaration(a: &str, b: &str) -> bool {
     let (x, y) = (lire_enregistrements(a), lire_enregistrements(b));
     if x.len() != y.len() || x.is_empty() {
@@ -796,7 +816,7 @@ pub const CODES_RETOUR_AR: [(&str, &str); 26] = [
 // d'essai (N_JJ_ESSAI) laissee a blanc : un CDDU l'ecrit `000` et rend `00`.
 // Un CDI ou un CDD, dont l'essai n'est pas connu, reste en 99.
 // Le `98` dit qu'une DPAE identique existait deja : rien n'a ete cree, et les
-// formalites restent a N -- vu le 12/09/2026 sur le second TEST des memes
+// formalites restent a N -- sur le second TEST des memes
 // embauches. L'embauche est declaree quand meme, par la premiere.
 pub const CODES_ENREGISTREE: [&str; 2] = ["00", "99"];
 pub const CODE_DEJA_EXISTANTE: &str = "98";
@@ -1034,6 +1054,25 @@ mod tests {
         // Sans code, celui du gabarit reste.
         let t = enr(&e, None, json!("")).unwrap();
         assert_eq!(zone(&t, "code_urssaf"), neutre()[133..136].iter().collect::<String>());
+    }
+
+    /// La DPAE d'un salarie d'un autre etablissement va a l'Urssaf « dans le ressort territorial duquel est situe
+    /// l'etablissement devant employer le salarie » (code du travail, R. 1221-3, 1°,
+    /// `atelier/reference/sources/code-du-travail/xml/R1221-3.xml`) ; celle du siege garde le code de la fiche.
+    #[test]
+    fn la_dpae_d_un_autre_etablissement_va_a_l_urssaf_de_son_territoire() {
+        let mut ent = entreprise();
+        ent["siren"] = json!("123456915");
+        ent["nic"] = json!("00016");
+        ent["etablissements"] = json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]);
+        let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).unwrap();
+        let nantes = base["par_departement"]["44"].as_str().unwrap().to_string();
+        let mut s = salarie();
+        s["etablissement"] = json!("00024");
+        let t = enr(&embauche(s, "cdi", Value::Null), Some(&ent), json!("117")).unwrap();
+        assert_eq!(zone(&t, "code_urssaf"), nantes);
+        let t = enr(&embauche(salarie(), "cdi", Value::Null), Some(&ent), json!("117")).unwrap();
+        assert_eq!(zone(&t, "code_urssaf"), "117");
     }
 
     #[test]

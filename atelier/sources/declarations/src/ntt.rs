@@ -17,7 +17,7 @@ pub const RUBRIQUE_NIR: &str = "S21.G00.30.001";
 // sous NTT n'a pas de NIR.
 pub const RUBRIQUE_NOM: &str = "S21.G00.30.002";
 
-/// `str(fiche.get(cle) or "")`.
+/// La valeur de `cle` de la fiche en texte, vide si elle manque ou est vide.
 fn chaine(fiche: &Value, cle: &str) -> String {
     match fiche.get(cle) {
         Some(v) if vrai(v) => en_texte(v),

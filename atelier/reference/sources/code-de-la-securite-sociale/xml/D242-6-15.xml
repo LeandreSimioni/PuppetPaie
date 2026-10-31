@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000054980990</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/54/98/09/LEGIARTI000054980990.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D242-6-15</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2026-10-15</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106031">Partie réglementaire - Décrets simples</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126849">Livre II : Organisation du régime général - Action sanitaire et sociale des caisses</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141518">Titre IV : Ressources</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006155797">Chapitre 2 : Assiette, taux et calcul des cotisations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006172139">Section 1 : Cotisations assises sur les rémunérations ou gains versés aux travailleurs salariés ou assimilés</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006185515">Sous-section 2 : Dispositions propres à chaque branche</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006194234">Paragraphe 4 : Assurance accidents du travail et maladies professionnelles.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-01-01" etat="MODIFIE" fin="2003-01-01" id="LEGIARTI000006735894" num="D242-6-15" origine="LEGI"/>
+</VERSION>
+<VERSION etat="TRANSFERE">
+<LIEN_ART debut="2003-01-01" etat="TRANSFERE" fin="2012-01-01" id="LEGIARTI000006735895" num="D242-6-15" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-01-01" etat="MODIFIE" fin="2014-01-01" id="LEGIARTI000022446520" num="D242-6-15" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-01-01" etat="MODIFIE" fin="2026-10-15" id="LEGIARTI000028429426" num="D242-6-15" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2026-10-15" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000054980990" num="D242-6-15" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément au premier alinéa de l’article 5 du décret n° 2026-951 du 13 octobre 2026, ces dispositions, dans leur rédaction résultant dudit décret s'appliquent pour la détermination des cotisations relatives aux accidents du travail et aux maladies professionnelles dues à compter de l'année 2027.</p>
+<p>Conformément au deuxième alinéa du même article, les variations de taux s'apprécient en 2027 par rapport à un taux net correspondant à la moyenne des taux nets notifiés de ses établissements appartenant à la même catégorie de risque de l'année précédente pondérée par la masse salariale de la dernière année connue des mêmes établissements.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Pour les établissements qui cotisent sur la base d'un taux mixte ou d'un taux individuel, le taux net notifié ne peut varier d'une année sur l'autre :</p>
+<p>1° Soit en augmentation de plus de 25 % si le taux net notifié de l'année précédente est supérieur à 4, ou de plus d'un point si le taux net notifié de l'année précédente est inférieur ou égal à 4 ;</p>
+<p>2° Soit en diminution de plus de 20 % si le taux net notifié de l'année précédente est supérieur à 4, ou de plus de 0,8 point si le taux net notifié de l'année précédente est inférieur ou égal à 4.</p>
+<p>En cas de regroupement de catégories de risque, ces variations s'apprécient la première année par rapport à un taux net unique correspondant à la moyenne des taux nets notifiés de ses établissements appartenant à la même catégorie de risque de l'année précédente pondérée par la masse salariale de la dernière année connue des mêmes établissements.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000555144" datesignatexte="1995-10-17" id="LEGIARTI000006789951" naturetexte="ARRETE" nortexte="SANS9502262A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 octobre 1995 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000234129" datesignatexte="2002-12-31" id="LEGIARTI000006216378" naturetexte="DECRET" nortexte="PRMX0206242D" num="1" numtexte="2002-1613" sens="cible" typelien="CITATION">Décret n°2002-1613 du 31 décembre 2002 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000028408423" datesignatexte="2013-12-27" id="LEGITEXT000028423459" naturetexte="DECRET" nortexte="AFSS1330864D" num="" numtexte="2013-1293" sens="cible" typelien="CITATION">Décret n°2013-1293
+ du 27 décembre 2013 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000034104339" datesignatexte="2017-02-15" id="LEGIARTI000038013464" naturetexte="ARRETE" nortexte="AFSS1637229A" num="4" numtexte="" sens="cible" typelien="CITATION">Arrêté du 15 février 2017 - art. 4 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000037848130" datesignatexte="2018-12-21" id="LEGIARTI000037975166" naturetexte="ARRETE" nortexte="SSAS1832963A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 21 décembre 2018 - art. 1</LIEN>
+
+<LIEN cidtexte="JORFTEXT000054979559" datesignatexte="2026-10-13" id="LEGIARTI000054980515" naturetexte="DECRET" nortexte="TRSS2625216D" num="3" numtexte="2026-951" sens="cible" typelien="MODIFIE">Décret n°2026-951 du 13 octobre 2026 - art. 3</LIEN>
+<LIEN cidtexte="JORFTEXT000054979559" datesignatexte="2026-10-13" id="LEGIARTI000054980519" naturetexte="DECRET" nortexte="TRSS2625216D" num="5" numtexte="2026-951" sens="cible" typelien="CITATION">Décret n°2026-951 du 13 octobre 2026 - art. 5 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006735888" naturetexte="CODE" nortexte="" num="D242-6-11" numtexte="" sens="cible" typelien="CONCORDE">Code de la sécurité sociale. - art. D242-6-11 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006735889" naturetexte="CODE" nortexte="" num="D242-6-12" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-6-12 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000022446499" naturetexte="CODE" nortexte="" num="D242-6-20" numtexte="" sens="source" typelien="CONCORDE">Code de la sécurité sociale. - art. D242-6-20 (V)</LIEN>
+</LIENS>
+</ARTICLE>

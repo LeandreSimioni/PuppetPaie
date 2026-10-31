@@ -85,14 +85,14 @@ pub const CHAMP_CONTRIBUTION_SUPPLEMENTAIRE: &str = "contribution_supplementaire
 enum MoisDeLAnnee {
     /// Les paies du mois : celles de la DSN, ou les paies declarees d'un autre mois quand les montants sont necessaires.
     Calcules(String, Vec<Paie>),
-    /// Les contrats saisis du mois, sans montants (`dsn::contrats_du_mois`).
+    /// Les contrats valides du mois (`dsn::contrats_du_mois`), dont seuls comptent nature, dispositif et motif.
     Contrats(Vec<Paie>),
 }
 
 /// Les douze mois de l'annee de la DSN, pour l'etablissement `nic`. Le mois de la DSN est `paies` (celles qu'elle
 /// declare) ; un autre mois se lit dans ses engagements : leurs paies declarees (`dsn::paies_declarees_du_mois`) si
 /// `montants`, sinon leurs seuls contrats. Un mois sans saisie n'a pas eu de salarie.
-fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[Paie], montants: bool) -> Resultat<Vec<MoisDeLAnnee>> {
+fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[Paie], montants: bool, departs: &engagement::departs::Departs) -> Resultat<Vec<MoisDeLAnnee>> {
     let an = &mois[..4];
     let mut out = Vec::new();
     for m in 1..=12u32 {
@@ -105,11 +105,11 @@ fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[
             continue;
         }
         if montants {
-            let declarees = crate::dsn::paies_declarees_du_mois(ctx, &m, Some(nic)).map_err(|e| format!("{} : {}", m, e))?;
+            let declarees = crate::dsn::paies_declarees_du_mois(ctx, &m, Some(nic), departs).map_err(|e| format!("{} : {}", m, e))?;
             out.push(MoisDeLAnnee::Calcules(m, declarees));
         } else {
             let mut garde = Vec::new();
-            for p in crate::dsn::contrats_du_mois(ctx, &m)? {
+            for p in crate::dsn::contrats_du_mois(ctx, &m, departs)? {
                 if droit::bareme::etablissement_du_salarie(ent, &p.salarie)? == nic {
                     garde.push(p);
                 }
@@ -279,7 +279,7 @@ ou la table livrée. Rien n'est écrit.",
 /// cessation d'activite, seul autre cas de la p. 58). `ent` : la fiche entreprise ; `ent_e` : vue depuis
 /// l'etablissement ; `bar` : le bareme du mois pour l'etablissement ; `paies` : celles que la DSN declare.
 pub fn blocs(
-    ctx: &Contexte, ent: &Value, ent_e: &Value, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie],
+    ctx: &Contexte, ent: &Value, ent_e: &Value, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
 ) -> Resultat<Vec<Bloc44>> {
     if mois.len() != 7 || &mois[5..7] != "12" {
         return Ok(Vec::new());
@@ -335,7 +335,7 @@ pas son assiette. Rien n'est ecrit.",
     // assise sur les salaires de cette annee-la et s'investit l'annee d'apres (BOFiP BOI-TPS-PEEC-20, § 10), et L. 313-1
     // renvoie a L. 130-1 CSS, qui retient l'effectif de l'annee civile precedant l'obligation (INFERENCE).
     let peec = effectif_atteint(ctx, 50, an + 1, "participation des employeurs a l'effort de construction")?;
-    let annee = mois_de_l_annee(ctx, ent, nic, mois, paies, ts.is_some() || peec)?;
+    let annee = mois_de_l_annee(ctx, ent, nic, mois, paies, ts.is_some() || peec, departs)?;
 
     // La PEEC : CCH L. 313-1, cinquante salaries.
     out.push(if peec {

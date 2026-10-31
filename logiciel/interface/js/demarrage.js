@@ -4,22 +4,19 @@
 /* =======================================================================
    DEMARRAGE
    =======================================================================
-   L'OUVERTURE D'UN COUP : en une demi-seconde au plus, la page entière
-   d'un seul geste, jamais petit à petit ni derrière une roue qui tourne
-   sans dire pourquoi. UNE demande, `ouverture`, que la fenêtre sert
-   sans processus ni calcul (`etat_garde::FileDesEtats::ouverture`) : le
-   dernier état connu de tout ce que la page lit en s'ouvrant — l'accueil,
-   le mois à ouvrir et son écran, l'échéancier, les rappels, ce qui manque
-   pour démarrer, les conseils, la veille, la mise à jour, les signalements.
-   La page se peint d'un coup avec, et le voile s'en va.
+   L'OUVERTURE D'UN COUP : la page entière d'un seul geste, jamais petit à
+   petit ni derrière une roue qui tourne sans dire pourquoi. UNE demande,
+   `ouverture`, que la fenêtre sert sans processus
+   (`etat_garde::FileDesEtats::ouverture`) : tout ce que la page lit en
+   s'ouvrant, juste — l'accueil, le mois à ouvrir et son écran,
+   l'échéancier, les rappels, ce qui manque pour démarrer, les conseils, la
+   veille, la mise à jour, les signalements. La page se peint d'un coup
+   avec, et le voile s'en va. L'écran du mois peut arriver périmé
+   (`ecran.perime`) : l'état frais le remplace en place (`verifierLeMois`).
 
-   Ce qui était périmé (le moteur le dit : `perime`, `ecran.perime`) se
-   refait déjà en fond ; l'état frais arrive ensuite et se pose EN PLACE
-   (`rafraichirOuverture` ; le mois, par `verifierLeMois`) : une valeur, un
-   état, un badge — la place de chaque bloc est déjà prise.
-
-   Sans état connu (compagnie neuve, état illisible), le moteur le fait et
-   dit ce qu'il fait (`phrase`) : le voile l'affiche, et la page redemande. */
+   Ce qui se refait (compagnie neuve, une écriture depuis), le moteur le
+   fait et dit ce qu'il fait (`phrase`) : le voile l'affiche, et la page
+   redemande. */
 
 /** Une lecture de l'ouverture : son résultat, ou son refus levé (comme `api`). */
 function lectureDe(o, route) {
@@ -53,12 +50,12 @@ function conseilsDe(o) {
   return { jour: lu("conseil-du-jour"), resume: lu("conseils-resume") };
 }
 
-let OUVERTURE = null;   // { mois } : ce que l'ouverture a peint
-
 async function demarrer() {
+  CATALOGUE = Object.fromEntries((await appelerMoteur("routes", { avance: true })).routes.map((f) => [f.nom, f]));
+  rangerLAvance();
   let o = await appelerMoteur("ouverture");
   while (!o.pret) {
-    // LA SEULE ATTENTE : rien n'est encore connu. Le moteur dit ce qu'il fait.
+    // LA SEULE ATTENTE : ce que la page lit se refait. Le moteur dit ce qu'il fait.
     document.getElementById("chargement-phrase").textContent = o.phrase || "";
     o = await appelerMoteur("ouverture", { patienter: 400 });
   }
@@ -73,9 +70,7 @@ async function demarrer() {
 
   // LE MOIS À OUVRIR, le moteur le dit (`mois-a-ouvrir`, et le mois du jour
   // sans lui) : le mois en cours, sauf un mois passé dont une étape n'est pas
-  // verte (01/10/2026 : « on doit attendre que tout soit vert pour passer au
-  // mois suivant »). Son écran est arrivé avec l'ouverture.
-  OUVERTURE = { mois: o.mois };
+  // verte. Son écran est arrivé avec l'ouverture.
   poserLeMois(o.mois, o.ecran);
   await chargerMois(o.mois);
   finirChargement();
@@ -93,31 +88,11 @@ async function demarrer() {
     montrerRappels((r) => lectureDe(o, r));
   }
 
-  if (o.perime) rafraichirOuverture();
-
   // Le travail de fond : on le regarde toutes les minutes. C'est une lecture
   // d'etat en memoire cote serveur, elle ne coute rien -- surtout pas un
   // appel a Google ou a net-entreprises, qui n'ont lieu que dans le fil de
   // la veille, a son rythme a lui.
   setInterval(suivreVeille, 60000);
-}
-
-/** L'ÉTAT FRAIS DE L'OUVERTURE (ce qui était peint était périmé) : chaque
- *  chose se repose à sa place, rien ne s'ajoute ni ne se retire autour. Le
- *  mois à ouvrir qui change (un nouveau mois a commencé, un mois passé est
- *  redevenu incomplet) n'emmène ailleurs que si l'on n'a encore touché à
- *  rien. */
-async function rafraichirOuverture() {
-  let o;
-  try { o = await appelerMoteur("ouverture", { frais: true }); } catch (e) { return; }
-  if (o.aujourdhui) AUJOURDHUI = o.aujourdhui;
-  try { ETAT = lectureDe(o, "etat"); peindreEtatGlobal(); } catch (e) { /* l'état d'avant reste */ }
-  dessinerConseils(conseilsDe(o));
-  if (!ETAT.commencer_par_l_import) rafraichirRappels((r) => lectureDe(o, r));
-  const intact = MOIS_AFFICHE === OUVERTURE.mois && DEMANDE_MOIS === OUVERTURE.mois
-    && JSON.stringify(saisieCourante()) === DERNIERE_ECRITE;
-  if (o.mois !== OUVERTURE.mois && intact) allerAuMois(o.mois);
-  OUVERTURE = { mois: o.mois };
 }
 
 /** Le voile du demarrage (index.html, #chargement) : rien que le fond tant
@@ -178,9 +153,7 @@ function fenetreNative() {
 async function avantDeQuitter() {
   clearTimeout(MINUTEUR_SAISIE);
   await enregistrerSaisie(false);
-  const s = saisieCourante();
-  const ecrivable = !!s.mois;
-  return !(ecrivable && JSON.stringify(s) !== DERNIERE_ECRITE);
+  return toutEstEcrit();
 }
 window.avantDeQuitter = avantDeQuitter;
 function boutonAccueil(api) {

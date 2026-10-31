@@ -643,9 +643,9 @@ mod tests {
         }
         assert!(proteger_un_acte(&m).unwrap_err().contains("aucun humain"));
         // Et la charge de la route, elle, reste une preuve (la fenetre Tk, la page) : le mot de passe tape y arrive.
-        let preuve = crate::compagnie::depot_acte::Preuve { motdepasse: Some(LOGICIEL.into()), mois_recopie: None };
+        let preuve = crate::compagnie::depot_acte::Preuve { motdepasse: Some(LOGICIEL.into()), mois_recopie: None, ..Default::default() };
         assert!(crate::compagnie::depot_acte::verifier_preuve(&m.ctx(), Some(&preuve), "2026-09", "x", "y").is_ok());
-        let mauvaise = crate::compagnie::depot_acte::Preuve { motdepasse: Some("Pas-le-bon-mot-de-passe-77".into()), mois_recopie: None };
+        let mauvaise = crate::compagnie::depot_acte::Preuve { motdepasse: Some("Pas-le-bon-mot-de-passe-77".into()), mois_recopie: None, ..Default::default() };
         assert!(crate::compagnie::depot_acte::verifier_preuve(&m.ctx(), Some(&mauvaise), "2026-09", "x", "y").is_err());
     }
 

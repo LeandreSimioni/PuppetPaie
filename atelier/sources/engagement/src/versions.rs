@@ -110,10 +110,11 @@ fn nom_du_taux(libelle: &str, unite: &str) -> String {
 }
 
 /// Les clauses de l'engagement hors lignes et bornes : leur nom a l'ecran.
-const CLAUSES: [(&str, &str); 12] = [
+const CLAUSES: [(&str, &str); 13] = [
     ("salarie", "Salarié"),
     ("spectacle", "Spectacle"),
     ("lieu", "Lieu"),
+    ("etablissement", "Établissement"),
     ("nature", "Nature du contrat"),
     ("motif_recours", "Motif de recours"),
     ("salaire_mensuel", "Salaire mensuel"),

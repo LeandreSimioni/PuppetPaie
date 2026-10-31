@@ -61,7 +61,7 @@ fn nature_connue(n: &str) -> bool {
     NATURES.iter().any(|(x, _)| *x == n)
 }
 
-/// `NATURES.get(quoi, {}).get("regroupe", False)`.
+/// Cette nature d'incident se regroupe-t-elle ?
 fn se_regroupe(quoi: &Value) -> bool {
     quoi.as_str().is_some_and(|q| NATURES.iter().any(|(n, r)| *n == q && *r))
 }
@@ -75,8 +75,8 @@ const JS_PILE_MAX: usize = 2000;
 /// passage suivant reprend.
 const LOT: usize = 20;
 const MAX_PAR_PASSAGE: usize = 200;
-/// Un lot, en octets de JSON : le serveur doit en admettre davantage (`MAX_CORPS_RAPPORT` de infra/filet/filet_serveur.py
-/// du site, 1 Mio).
+/// Un lot, en octets de JSON : le serveur doit en admettre davantage (la limite du corps d'un rapport, 1 Mio, `infra/filet/`
+/// du site).
 const LOT_OCTETS: usize = 400_000;
 
 const POSTE_FICHIER: &str = "diagnostic.json";
@@ -236,7 +236,7 @@ pub struct Note<'a> {
     pub sans_contexte: bool,
 }
 
-/// `_lignes` : la liste du fichier ; un fichier absent, illisible ou qui n'est
+/// La liste du fichier ; un fichier absent, illisible ou qui n'est
 /// pas une liste n'en dit aucune.
 fn lignes(p: &Path) -> Vec<Value> {
     if !p.exists() {
@@ -379,11 +379,11 @@ fn ecart_secondes(a: &str, b: &str) -> Option<i64> {
 /// `FileNotFoundError` et leurs filles.
 // `ErreurCoffre` et `ErreurGoogle` y sont : un coffre ferme ou un refus de Google est une situation d'usage, pas un
 // defaut du logiciel.
-const REFUS_PAR_CLASSE: [&str; 22] = [
+const REFUS_PAR_CLASSE: [&str; 18] = [
     "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "CalculRefuse", "FabriqueRefus", "FicheRefusee",
-    "DsnDejaDeposee", "MoisPasPret", "RepetitionManquante", "DpaeDejaDeclaree", "VersionExigee", "CompteursVerrouilles",
-    "KeyError", "ValueError", "FileNotFoundError", "UnicodeDecodeError", "JSONDecodeError", "UnicodeEncodeError",
-    "ErreurCoffre", "ErreurGoogle", "ModificationApresEcheance", "ModificationNonDeclarable",
+    "DsnDejaDeposee", "RepetitionManquante", "VersionExigee", "CompteursVerrouilles",
+    "KeyError", "ValueError", "FileNotFoundError", "UnicodeDecodeError", "JSONDecodeError",
+    "ErreurCoffre", "ErreurGoogle", "ModificationNonDeclarable",
 ];
 
 /// `nature_de` d'apres le NOM de la classe de l'exception.
@@ -424,18 +424,17 @@ fn recalcul_refuse(racine: &Path, mois: &str, refus: &str) {
 }
 
 /// Branche l'engagement sur ce qui l'entoure, a l'entree de toute commande du moteur : le temoin des recalculs refuses
-/// (`recalcul_refuse`), et le lecteur de ce qui est parti (`journal::departs`).
+/// (`recalcul_refuse`).
 pub fn brancher_l_engagement() {
-    engagement::departs::poser_lecteur(envois::journal::departs);
     engagement::etats::poser_temoin(recalcul_refuse);
 }
 
-/// `str(x)` (`None` n'est pas ici un texte : voir l'appelant).
+/// Une valeur en texte (`null` n'est pas ici un texte : voir l'appelant).
 fn texte_de(v: &Value) -> String {
     valeur_en_texte(v)
 }
 
-/// `_fichier_court` : « http://hote:7331/interface.js?v=3 » -> « interface.js ».
+/// « http://hote:7331/interface.js?v=3 » -> « interface.js ».
 /// L'hote et le port varient ; la requete porte le jeton, elle ne se garde jamais.
 fn fichier_court(source: &Value) -> String {
     let s = if vrai(source) { texte_de(source) } else { String::new() };
@@ -561,7 +560,7 @@ pub fn lire(racine: &Path, nature: Option<&str>, en_attente_seulement: bool) -> 
     Ok(out)
 }
 
-/// `(l.get("envoi") or {}).get("etat")`.
+/// L'etat d'envoi d'une ligne du journal, s'il y en a un.
 fn etat_d_envoi(l: &Value) -> R<Option<String>> {
     let envoi = get(l, "envoi")?;
     let envoi = if vrai(envoi) { envoi } else { return Ok(None) };
@@ -621,7 +620,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
             }
         }
     }
-    // `sorted(..., key=(combien, derniere or ""), reverse=True)` : stable.
+    // Les plus fréquents d'abord, puis les plus récents ; tri stable.
     let cle_de = |p: &Map<String, Value>| (p["combien"].as_i64().unwrap_or(0), if vrai(&p["derniere"]) { texte_de(&p["derniere"]) } else { String::new() });
     let mut v: Vec<Map<String, Value>> = paquets.into_iter().map(|(_, p)| p).collect();
     v.sort_by(|a, b| cle_de(b).cmp(&cle_de(a)));
@@ -686,7 +685,7 @@ pub fn oublier(racine: &Path, nature: Option<&str>) -> usize {
 
 // -------------------------------------------------------- ce qui part chez l'editeur
 
-/// `_pour_texte` : ni le chemin du dossier de l'utilisateur (qui porte son nom
+/// Ni le chemin du dossier de l'utilisateur (qui porte son nom
 /// de session), ni une adresse courriel.
 fn pour_texte(v: &Value) -> Value {
     match v {
@@ -710,7 +709,7 @@ pub fn pour_l_editeur(racine: &Path, ligne: &Value) -> R<Value> {
         d.insert(k.to_string(), pour_texte(get(ligne, k)?));
     }
     d.insert("machine".into(), json!(machine()));
-    // Ce que le diagnostic ajoute (`diagnostic`, 23/10/2026) : combien de fois, la derniere, le fil des trois minutes d'avant,
+    // Ce que le diagnostic ajoute (`diagnostic`) : combien de fois, la derniere, le fil des trois minutes d'avant,
     // la machine en entier. Une ligne d'avant ne les a pas : ils partent vides.
     d.insert("fois".into(), ligne.get("fois").cloned().unwrap_or(json!(1)));
     d.insert("derniere".into(), ligne.get("derniere").cloned().unwrap_or_else(|| ligne.get("quand").cloned().unwrap_or(Value::Null)));
@@ -912,7 +911,7 @@ pub fn client_du_poste(ou: &Path, serveur: &str) -> R<Result<Client, ErreurFilet
     Ok(Ok(Client::du_poste(serveur, &numero, &cle)))
 }
 
-/// Le serveur de l'editeur de cette compagnie (`_configuration_propre`) :
+/// Le serveur de l'editeur de cette compagnie :
 /// `config/filet-dpae.json`, `serveur`, sinon celui du compte du filet.
 fn serveur_propre(racine: &Path) -> R<String> {
     let e = crate::compagnie::filet::lire_etat(racine)?;
@@ -976,7 +975,7 @@ pub fn canal(racine: &Path) -> R<Canal> {
     })
 }
 
-/// `_marquer` : passe a `depose` les lignes nommees par (empreinte, quand).
+/// Passe a `depose` les lignes nommees par (empreinte, quand).
 fn marquer(racine: &Path, cles: &[(Value, Value)]) -> R<usize> {
     if cles.is_empty() {
         return Ok(0);

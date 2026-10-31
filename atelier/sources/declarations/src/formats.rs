@@ -74,7 +74,7 @@ enum Noeud {
     Rep(Box<Noeud>, usize, usize),
 }
 
-/// Une expression compilee ; `fullmatch` comme `re.fullmatch`.
+/// Une expression compilee, qui doit couvrir toute la valeur.
 pub struct Regex {
     pub motif: String,
     alts: Vec<Vec<Noeud>>,
@@ -293,7 +293,7 @@ impl Regex {
         Ok(Regex { motif: motif.to_string(), alts })
     }
 
-    /// `re.fullmatch(valeur)` est-il non nul ?
+    /// L'expression couvre-t-elle toute la valeur ?
     pub fn fullmatch(&self, valeur: &str) -> bool {
         let s: Vec<char> = valeur.chars().collect();
         let n = s.len();
@@ -473,7 +473,7 @@ fn dire(norme: &Norme, r: &str, v: &str, pourquoi: &str, libelle: &str, ou: Opti
 
 /// Refuse avant le depot ce que le point de depot refuserait, dans la table de la version que le fichier porte
 /// (S10.G00.00.006) ; puis les valeurs que cette version a retirees de leur liste (`norme::verifier_les_valeurs`). Le
-/// texte de l'erreur est celui de `str(ValeurHorsNorme)`.
+/// texte de l'erreur est celui de `ValeurHorsNorme`.
 pub fn verifier_fichier(texte: &str) -> Resultat<()> {
     let norme = crate::norme::du_fichier(texte)?;
     let mauv = mauvaises(texte, &norme)?;

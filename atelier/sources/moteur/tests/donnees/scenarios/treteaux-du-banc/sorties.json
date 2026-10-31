@@ -486,7 +486,7 @@
       "_quoi": "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).",
       "le": "2026-12-16",
       "mois_faits": {
-        "2026-11": "ba46178625f07859"
+        "2026-11": "0a7d832df1dc86b0"
       },
       "annees_faites": [
         2026
@@ -523,7 +523,7 @@
         {
           "taux": "8.30",
           "type": "01",
-          "identifiant": "320888446",
+          "identifiant": "314021955",
           "periode": "202611",
           "mis_a_disposition": "20261120070000",
           "source": "CRM DGFiP nature 94",
@@ -670,19 +670,6 @@
             "valeur": true
           }
         ],
-        "conges_reprise": [
-          {
-            "valeur": {
-              "date": "",
-              "report": "",
-              "acquis_report": "",
-              "remuneration_report": "",
-              "acquis": "",
-              "pris": "",
-              "remuneration_periode": ""
-            }
-          }
-        ],
         "nom": [
           {
             "valeur": "FULLER"
@@ -741,7 +728,7 @@
     },
     "engagements/2026-11.json": {
       "mois": "2026-11",
-      "taux_cachet": 150,
+      "taux_cachet": null,
       "date_paiement": "2026-11-30",
       "engagements": [
         {
@@ -1104,15 +1091,6 @@
                     "statut_conventionnel": "05",
                     "experimente_3241": true,
                     "actif": true,
-                    "conges_reprise": {
-                      "date": "",
-                      "report": "",
-                      "acquis_report": "",
-                      "remuneration_report": "",
-                      "acquis": "",
-                      "pris": "",
-                      "remuneration_periode": ""
-                    },
                     "nom": "FULLER",
                     "prenom": "LOIE",
                     "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
@@ -1125,7 +1103,7 @@
                 },
                 "saisie_du_mois": {
                   "date_paiement": "2026-11-30",
-                  "taux_cachet": 150
+                  "taux_cachet": null
                 },
                 "empreinte": {
                   "entrees": {
@@ -1137,16 +1115,16 @@
                     "existe racine:config/effectifs.json": "non",
                     "existe racine:config/pas.json": "oui",
                     "existe racine:config/rubriques-compagnie.json": "non",
-                    "fiches": "9b984b7b3c575bbe1c616b6634916956b4f8919fa2395025849b8b66075dd973",
+                    "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "bc3a486c66f94afbfefa8664408b21ed6e1f038886467d765bc8305fbdb47703",
                     "fichier code:baremes/2026.json": "6265acfbfe8d2d492c4ebe9472ad5924b9fbfa289f99ba1fb9e1f3268b20f744",
-                    "fichier code:contrats-base.json": "446aa713f7c9240d67b5a058a6f511dce6568641d3bdb3bd82c8fcb93ee5ef56",
+                    "fichier code:contrats-base.json": "fa6e9d4099fd495aa0ac87b0edbb5d88bdbf0242823427702cff8fb188b0d9b0",
                     "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",
                     "fichier code:minima-conventionnels.json": "2ef600adf478c5c235821d4847555f8b469acfbd29fae8cb863d38369535e882",
-                    "fichier code:rubriques-base.json": "04cf9a717d9c1ebad3492756c0b611493ce68f6ce10447f905aa6757f4af1799",
+                    "fichier code:rubriques-base.json": "faf0d6faff799cec7df68fc000cd3c6b0da3fa882b4cac44d6665349f80df31b",
                     "fichier racine:config/baremes/2026.json": "18a1fd29e339afc1246fcefd6720bad48221693ac22780a790259021e260d045",
-                    "fichier racine:config/pas.json": "987e18b7273bfa5f4182d94cc50bc79d545211def693efb02c7ad669018d84a7",
+                    "fichier racine:config/pas.json": "1e5976ea13bbc3279a8ede7036911239da2ea6ea3d991f2b18e7cb4cb8c518df",
                     "moteur": "<moteur>",
-                    "saisie 2026-11": "f28d3244c6199dbe6399317ea93818581c2939f2a97fc35f21ed8e39db950417:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
+                    "saisie 2026-11 FULLER": "2202b17c97d8c24bd45434b7d8ed6626e4ee9ea705cb1f93039b93a3b1d28294:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
                   },
                   "regles": [
                     "2026-06-01"
@@ -1156,13 +1134,13 @@
                 "pas": {
                   "taux": "8.30",
                   "type": "01",
-                  "identifiant": "320888446",
+                  "identifiant": "314021955",
                   "abattement": "0",
                   "montant_soumis": "240.94",
                   "prelevement": "20"
                 },
                 "recalcul": {
-                  "le": "2026-11-20T08:00:00",
+                  "le": "2026-11-20T07:00:00",
                   "raison": "taux de PAS reçu"
                 },
                 "bulletin": "1/2026",
@@ -1186,7 +1164,18 @@
         "accepte": true,
         "destinataire": "loie.fuller@exemple.invalid",
         "flux": "",
-        "retours": [],
+        "retours": [
+          {
+            "salarie": "FULLER",
+            "debut": "2026-11-20",
+            "recu": true,
+            "numero": "FU1.26.01",
+            "nom": "FULLER Loïe",
+            "quand": "2026-11-20T08:00:00",
+            "qui": "horloge",
+            "reponse": "contrat signe recu, range a la main"
+          }
+        ],
         "reponse": "1 contrat(s) envoye(s) a la signature",
         "trace": null,
         "detail": {
@@ -1209,10 +1198,10 @@
                 "remuneration.brut": "300,00",
                 "remuneration.hors_brut": ""
               },
-              "code": "SIG-P2P99Z",
+              "code": "SIG-PXJEKG",
               "adresse": "loie.fuller@exemple.invalid",
               "relance": false,
-              "message": "<9b97d89e2146cbc8@fictive.puppetpaie>"
+              "message": "<d852419153486c50@fictive.puppetpaie>"
             }
           ],
           "expediteur": "fictive@puppetpaie.invalid",
@@ -1237,7 +1226,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "urssaf",
-        "flux": "FICTIF-7DC8EBD60849",
+        "flux": "FICTIF-5401A25D96F0",
         "retours": [
           {
             "statut": "fictive",
@@ -1257,7 +1246,7 @@
             "dpae": []
           }
         ],
-        "reponse": "<idflux>FICTIF-7DC8EBD60849</idflux>\nCompagnie fictive : DPAE de test jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-5401A25D96F0</idflux>\nCompagnie fictive : DPAE de test jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-070000_depot-dpae_202611.txt",
         "detail": {
           "preuve": "",
@@ -1265,63 +1254,7 @@
           "embauches": [
             {
               "salarie": "FULLER",
-              "debut": "2026-11-20",
-              "fin": "2026-11-21"
-            }
-          ]
-        },
-        "versions": [
-          {
-            "salarie": "FULLER",
-            "numero": "FU1.26.01",
-            "version": 1
-          }
-        ]
-      },
-      {
-        "quoi": "dpae",
-        "quand": "2026-11-20T07:00:00",
-        "origine": "compagnie fictive : joue par l'horloge",
-        "mois": "2026-11",
-        "fichier": "DPAE_Novembre2026_20261120-0700.txt",
-        "empreinte": "5937ebb05f57ae9d",
-        "mode": "reel",
-        "qui": "horloge",
-        "accepte": true,
-        "destinataire": "urssaf",
-        "flux": "FICTIF-74FB32171894",
-        "retours": [
-          {
-            "statut": "fictive",
-            "publication": "20261120070000",
-            "anomalies": [],
-            "nature": "11",
-            "verdict": "OK",
-            "libelle": "Bilan de conformite (compagnie fictive)"
-          },
-          {
-            "statut": "fictive",
-            "publication": "20261120070000",
-            "anomalies": [],
-            "nature": "41",
-            "verdict": "OK",
-            "libelle": "Certificat de conformite des DPAE (compagnie fictive)",
-            "dpae": []
-          }
-        ],
-        "reponse": "<idflux>FICTIF-74FB32171894</idflux>\nCompagnie fictive : DPAE reelle jouee, rien n'a quitte le poste.",
-        "trace": "retours/depots/20261120-070000_depot-dpae_202611-2.txt",
-        "detail": {
-          "preuve": "fictive",
-          "repetition": {
-            "test": "2026-11-20T07:00:00",
-            "flux": "FICTIF-7DC8EBD60849",
-            "empreinte": "5937ebb05f57ae9d",
-            "compte_rendu": "ok"
-          },
-          "embauches": [
-            {
-              "salarie": "FULLER",
+              "numero": "FU1.26.01",
               "debut": "2026-11-20",
               "fin": "2026-11-21"
             }
@@ -1346,7 +1279,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "net-entreprises",
-        "flux": "FICTIF-836E04EBC199",
+        "flux": "FICTIF-D55D3CBC382F",
         "retours": [
           {
             "statut": "fictive",
@@ -1365,7 +1298,7 @@
             "libelle": "Bilan de conformite (compagnie fictive)"
           }
         ],
-        "reponse": "<idflux>FICTIF-836E04EBC199</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-D55D3CBC382F</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-070000_depot-dsn_20261120.txt",
         "detail": {
           "preuve": "",
@@ -1388,6 +1321,64 @@
         ]
       },
       {
+        "quoi": "dpae",
+        "quand": "2026-11-20T07:00:00",
+        "origine": "compagnie fictive : joue par l'horloge",
+        "mois": "2026-11",
+        "fichier": "DPAE_Novembre2026_20261120-0700.txt",
+        "empreinte": "5937ebb05f57ae9d",
+        "mode": "reel",
+        "qui": "horloge",
+        "accepte": true,
+        "destinataire": "urssaf",
+        "flux": "FICTIF-52757D01254D",
+        "retours": [
+          {
+            "statut": "fictive",
+            "publication": "20261120070000",
+            "anomalies": [],
+            "nature": "11",
+            "verdict": "OK",
+            "libelle": "Bilan de conformite (compagnie fictive)"
+          },
+          {
+            "statut": "fictive",
+            "publication": "20261120070000",
+            "anomalies": [],
+            "nature": "41",
+            "verdict": "OK",
+            "libelle": "Certificat de conformite des DPAE (compagnie fictive)",
+            "dpae": []
+          }
+        ],
+        "reponse": "<idflux>FICTIF-52757D01254D</idflux>\nCompagnie fictive : DPAE reelle jouee, rien n'a quitte le poste.",
+        "trace": "retours/depots/20261120-070000_depot-dpae_202611-2.txt",
+        "detail": {
+          "preuve": "fictive",
+          "repetition": {
+            "test": "2026-11-20T07:00:00",
+            "flux": "FICTIF-5401A25D96F0",
+            "empreinte": "5937ebb05f57ae9d",
+            "compte_rendu": "ok"
+          },
+          "embauches": [
+            {
+              "salarie": "FULLER",
+              "numero": "FU1.26.01",
+              "debut": "2026-11-20",
+              "fin": "2026-11-21"
+            }
+          ]
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
+      },
+      {
         "quoi": "dsn",
         "quand": "2026-11-20T07:00:00",
         "origine": "compagnie fictive : joue par l'horloge",
@@ -1398,7 +1389,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "net-entreprises",
-        "flux": "FICTIF-72F3139B75DB",
+        "flux": "FICTIF-97604AE3C15F",
         "retours": [
           {
             "statut": "fictive",
@@ -1423,7 +1414,7 @@
             "publication": "20261120070000"
           }
         ],
-        "reponse": "<idflux>FICTIF-72F3139B75DB</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-97604AE3C15F</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-070000_depot-dsn_20261120-2.txt",
         "detail": {
           "preuve": "fictive",
@@ -1435,7 +1426,7 @@
           "pas_bareme": 0,
           "repetition": {
             "test": "2026-11-20T07:00:00",
-            "flux": "FICTIF-836E04EBC199",
+            "flux": "FICTIF-D55D3CBC382F",
             "empreinte": "f1c77fe343b0ea67",
             "compte_rendu": "ok"
           },
@@ -1451,35 +1442,12 @@
         ]
       },
       {
-        "quoi": "contrat-recu",
-        "quand": "2026-11-20T08:00:00",
-        "origine": "compagnie fictive : joue par l'horloge",
-        "mois": "2026-11",
-        "fichier": null,
-        "empreinte": null,
-        "mode": "reel",
-        "qui": "horloge",
-        "accepte": true,
-        "destinataire": "",
-        "flux": "",
-        "retours": [],
-        "reponse": "contrat signe recu, range a la main",
-        "trace": null,
-        "detail": {
-          "salarie": "FULLER",
-          "debut": "2026-11-20",
-          "recu": true,
-          "numero": "FU1.26.01",
-          "nom": "FULLER Loïe"
-        }
-      },
-      {
         "quoi": "dsn",
         "quand": "2026-12-15T10:00:00",
         "origine": "compagnie fictive : joue par l'horloge",
         "mois": "2026-11",
         "fichier": "DSN_Novembre2026.dsn",
-        "empreinte": "29c0560777c5035c",
+        "empreinte": "bb76fa29568e0967",
         "mode": "test",
         "qui": "horloge",
         "accepte": true,
@@ -1538,7 +1506,7 @@
         "origine": "compagnie fictive : joue par l'horloge",
         "mois": "2026-11",
         "fichier": "DSN_Novembre2026.dsn",
-        "empreinte": "29c0560777c5035c",
+        "empreinte": "bb76fa29568e0967",
         "mode": "reel",
         "qui": "horloge",
         "accepte": true,
@@ -1595,7 +1563,7 @@
           "repetition": {
             "test": "2026-12-15T10:00:00",
             "flux": "FICTIF-1777C84CD67B",
-            "empreinte": "29c0560777c5035c",
+            "empreinte": "bb76fa29568e0967",
             "compte_rendu": "ok"
           },
           "ordre_test": null,
@@ -1681,11 +1649,11 @@
       },
       "2026-11/DSN_Novembre2026.dsn": {
         "quand": "2026-12-15T10:00:00",
-        "empreinte_saisie": "17e96082c6f1f2ec"
+        "empreinte_saisie": "247189879fc12aa5"
       }
     },
-    "retours/20261120-070000_nature94_FICTIF-72F3139B75DB.xml": {
-      "empreinte": "23b56724699833cb7b5923f801ef36716615a06cfdfa8cc2e295cdef9fd00051"
+    "retours/20261120-070000_nature94_FICTIF-97604AE3C15F.xml": {
+      "empreinte": "48160ccb3b4a79d785d2dfde468109e894e2cdd4d4a80c9bd5a31c1b2a564863"
     },
     "retours/20261215-100000_nature46_FICTIF-265B91C07802.txt": [
       "PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\u0000\u0000!\u0000\u001bx£+Ïi\u0000\u0000Ü«\u0000\u0000D\u0000\u0000\u0000AER_32520440200011__112026_FICTIVE_15122026_FULLER_LOIE_1_900001.pdf´|\u0005XÍº¶ H)¥°èÕt7\bHK°@º»Dé\u000e)\téîî.\u0001\u0001iîÿ\u0012øöþöÞßÙgÿÿ9?ÃµwÍ<sÏÌ3ó¾óÌÜk^j9aQf \u000b\u0018\u0003\b`\u0003¿5Âàæf\u0015°µygnEGÏ*dÐ±147\u0013Ö±AÐ\ts\u00029àll@6 ÛÍ\u001f#\u001b\u001b-\u001b\u001bíÖ¾¢¶°¨ª2ÂÊÚÐÜUB\u000fafc¨oø,p´7·Ò³¦£g}i®÷ïAå¬Ìõluo²)Ø¾5BèÚÐÑ³*\u001aÚ è\u0004ll\u0010Ö67\u0015\u0003 L-LÌ\u001d\u0011¶V\u0000\u001d33\u0003Â\u001aÀ\u000e@Ø\u0000l\u0000:]sS\u000b\u001d\u00033C\u0004@ßP×ÆÐ\u000eA\u000f\u001f\u0001\u0010U\u0016\u0007HËJÐ³*ZéXX ôXEuL¬\u0011¼¼\u0018\b3½ß6\u0000ýÝ\u0016²BrVæ\u0016\b+\u001bC577«ðï(\u0019u0\r \u000fÝ|Âj²ÊZé!¬þ*A^PÌÊÜÖÂZ]UVHÌú/~§ØÚ\u0018Ý4\r Ï*§cÖq4·µa5C\bØÝD¾4×C°*Y#dÌÍ\u00107\u0011Ö\u0000\u001c\u0016\bV!\u001d\u001b\u001d\u0013s\u0003V\u0001]+sQs+S\u0000øw[äÿÞ4ðß&af0³\u0001@nrËè\"è¤u\u001c\u0011V\u0000 ý-¬\u0018«µ\u0001\u0002\u0000ýGß9~KuVeC=«0ÂÚÐÀLóTèßK¸\u001b\u0019\u0012fúæÿF' gþ\u0016\u000101±µ¶±ú\u001d\u0003\u0000BXØnúÙæw¹\u0002V6öæVÆ¼¼«Æßý/T\u001fþ¿Áþ§FÛÙ\u0000Øî2Üõâß59þY\u0013Ì*e¨g­\u000ed»éÐMÙ\u0000ÐÝ`¹\u0001¹éÕ¿#Ühþ\râ¦ÆÖ\u0000àïûUUÈÊÜBÐÜAý·",
@@ -1789,19 +1757,19 @@
       "empreinte": "b9d6d3e8504d7e18059b47d774ff8493034de500eeb7770c5150e9b7afef75be"
     },
     "retours/depots/20261120-070000_depot-dpae_202611-2.txt": [
-      "<idflux>FICTIF-74FB32171894</idflux>",
+      "<idflux>FICTIF-52757D01254D</idflux>",
       "Compagnie fictive : DPAE reelle jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-070000_depot-dpae_202611.txt": [
-      "<idflux>FICTIF-7DC8EBD60849</idflux>",
+      "<idflux>FICTIF-5401A25D96F0</idflux>",
       "Compagnie fictive : DPAE de test jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-070000_depot-dsn_20261120-2.txt": [
-      "<idflux>FICTIF-72F3139B75DB</idflux>",
+      "<idflux>FICTIF-97604AE3C15F</idflux>",
       "Compagnie fictive : DSN reelle jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-070000_depot-dsn_20261120.txt": [
-      "<idflux>FICTIF-836E04EBC199</idflux>",
+      "<idflux>FICTIF-D55D3CBC382F</idflux>",
       "Compagnie fictive : DSN de test jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261215-100000_depot-dsn_202611-2.txt": [
@@ -1913,7 +1881,7 @@
       "S90.G00.90.002,'1'"
     ],
     "sorties/2026-11/Bulletins_Novembre2026.pdf": [
-      "Les Tréteaux du Banc 12 quai de la Fosse — 44000 Nantes Siret 32520440200011 · APE 9001Z · Licence PLATESV-D-2024-000352 Bulletin de paie n° 1/2026 Numéro d'objet : 266Z00952011 — Spectacle : Le Banc des menteurs FULLER Loïe 7 RUE DE LA PAIX 44000 NANTES N° Sécurité sociale : 282014499900246 Date de naissance : 15/01/1982 Emploi : Comédien Classification : Artiste-interprète N° Congés Spectacles : -Abattement : 0 % EMPLOYEUR N° Siret : 32520440200011 NAF (APE) : 9001Z Urssaf : 5200000000 Conv. collective : IDCC 3090 - Entreprises du secteur privé du spectacle vivant Licence spec. : PLATESV-D-2024-000352 Période : du 20/11/2026 au 21/11/2026 — Dates travaillées : 20/11/2026, 21/11/2026 LIBELLÉ Base Taux Salarié Employeur 2 Cachets à 150,00 — MONTANT BRUT 300,00 COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES Santé Sécurité Sociale Maladie Maternité Invalidité Décès 300,00 27,30 Accidents du travail & maladies professionnelles 300,00 2,31 Retraite Sécurité Sociale Vieillesse plafonnée 300,00 4,830 14,49 17,97 Sécurité Sociale Vieillesse déplafonnée 300,00 0,280 0,84 4,44 Retraite complémentaire, CEG et CET T1 300,00 5,300 15,90 17,22 Famille 300,00 11,04 Assurance chômage 300,00 2,400 7,20 29,25 Autres charges dues par l'employeur 57,49 Cotisations statutaires ou prévues par la convention collective 1,50 CSG déductible de l'impôt sur le revenu 298,08 6,800 20,27 CSG/CRDS non déductible de l'impôt sur le revenu 298,08 2,900 8,64 TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES 67,34 168,52 COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES Prévoyance, Incapacité, Invalidité, Décès, Autres 300,00 0,120 0,36 3,33 MONTANT NET SOCIAL 232,30 MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU 232,30 IMPÔT SUR LE REVENU Base Taux Salarié Montant net imposable 240,94 IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE 240,94 8,300 20,00 MONTANT NET À PAYER (en Euros) 212,30 TOTAL VERSÉ PAR L'EMPLOYEUR 471,85 CUMULS Période 11/2026 Cumul année 2026 Cachets 2 2 Heures déclarées 0 h 0 h Total heures (cachets × 12 + heures) 24 h 24 h Salaire brut 300,00 € 300,00 € Plafond Urssaf de la période : 720,00 € | SMIC retenu pour la réduction générale : 172,34 € (14 h à 12,31) | Règlement le 30/11/2026 par virement. Contrat n° FU1.26.01 — CDD d'usage du spectacle (intermittent), convention collective IDCC 3090. Conservez ce bulletin sans limitation de durée."
+      "Les Tréteaux du Banc 12 quai de la Fosse — 44000 Nantes Siret 32520440200011 · APE 9001Z · Licence PLATESV-D-2024-000352 Bulletin de paie n° 1/2026 Numéro d'objet : 266Z00952011 — Spectacle : Le Banc des menteurs FULLER Loïe 7 RUE DE LA PAIX 44000 NANTES N° Sécurité sociale : 282014499900246 Date de naissance : 15/01/1982 Emploi : Comédien Classification : Artiste-interprète N° Congés Spectacles : -Abattement : 0 % EMPLOYEUR N° Siret : 32520440200011 NAF (APE) : 9001Z Urssaf : 5200000000 Conv. collective : IDCC 3090 - Entreprises du secteur privé du spectacle vivant Licence spec. : PLATESV-D-2024-000352 Période : du 20/11/2026 au 21/11/2026 — Dates travaillées : 20/11/2026, 21/11/2026 LIBELLÉ Base Taux Salarié Employeur 2 Cachets à 150,00 — MONTANT BRUT 300,00 COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES Santé Sécurité Sociale Maladie Maternité Invalidité Décès 300,00 27,30 Accidents du travail & maladies professionnelles 300,00 2,31 Retraite Sécurité Sociale Vieillesse plafonnée 300,00 4,830 14,49 17,97 Sécurité Sociale Vieillesse déplafonnée 300,00 0,280 0,84 4,44 Retraite complémentaire, CEG et CET T1 300,00 5,300 15,90 17,22 Famille 300,00 11,04 Assurance chômage 300,00 2,400 7,20 29,25 Autres charges dues par l'employeur 57,49 Cotisations statutaires ou prévues par la convention collective 1,50 CSG déductible de l'impôt sur le revenu 298,08 6,800 20,27 CSG/CRDS non déductible de l'impôt sur le revenu 298,08 2,900 8,64 TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES 67,34 168,52 COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES Prévoyance, Incapacité, Invalidité, Décès, Autres 300,00 0,120 0,36 3,33 MONTANT NET SOCIAL 232,30 MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU 232,30 IMPÔT SUR LE REVENU Base Taux Salarié Montant net imposable 240,94 IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE 240,94 8,300 20,00 MONTANT NET À PAYER (en Euros) 212,30 TOTAL VERSÉ PAR L'EMPLOYEUR 471,85 CUMULS Période 11/2026 Cumul année 2026 Cachets 2 2 Heures déclarées 0 h 0 h Total heures (cachets × 12 + heures) 24 h 24 h Salaire brut 300,00 € 300,00 € Plafond Urssaf de la période : 720,00 € | SMIC retenu pour la réduction générale : 172,34 € (14 h à 12,31) | Règlement le 30/11/2026 par virement. Contrat n° FU1.26.01 — CDDU, convention collective IDCC 3090. Conservez ce bulletin sans limitation de durée."
     ],
     "sorties/2026-11/CertificatsCS_Novembre2026.pdf": [
       "CERTIFICAT D'EMPLOI DESTINÉ AU SALARIÉ LES CONGES SPECTACLES Audiens TSA 30400 92177 Vanves Cedex Information des Intermittents www.audiens.org Tél. : 0 173 173 434 de 9h30 à 18 h : accueil sur place et téléphone Si vous n'êtes pas inscrit à notre Caisse, contactez-nous à l'adresse ci-dessus mentionnée afin que nous procédions à votre immatriculation. Votre demande de congé doit être adressée chaque année, quinze jours au moins avant votre départ en congé, dûment complétée et signée. Votre formulaire de demande de congé vous sera adressé automatiquement chaque début d'année en même temps que les sommes à déclarer à l'administration fiscale. Si tel n'est pas le cas, vous pouvez le demander par courrier ou 24h/24h : sur notre site internet ou notre serveur vocal téléphonique. La loi n°2004-801 du 6 août 2004 relative à la protection des personnes physiques à l'égard des traitements de données à caractère personnel s'applique aux informations portées sur ce certificat. Elle garantit un droit d'accès et de rectification auprès du service Information des Intermittents. N° SIRET COMPTE N° CE NIR NOM DE NAISSANCE NOM D'USAGE EMPLOI CADRE PRENOM PSEUDONYME DATES DE TRAVAIL NB JOURS OU CACHETS DEBUT FIN BASE CONGE Arrondie à l'euro le plus proche SALAIRE BRUT Arrondi à l'euro le plus proche Date : Nom du signataire Signature LOIE FULLER 7 rue de la Paix 44000 Nantes France 325204402 00011 0000052000F 1 2820144999002 46 LES TRETEAUX DU BANC FULLER COMEDIEN NON LOIE 20 11 2026 21 11 2026 2 300 300 21/11/26 APPIA N° d'agrément :"
@@ -1939,7 +1907,7 @@
       "FULLER LOIE - ne(e) le 15/01/1982 a VILLENEUVE-SUR-LOIRE (44)",
       "  NIR 282014499900246",
       "  Embauche le 20/11/2026 a 08h00, fin prevue le 21/11/2026",
-      "  Emploi : COMEDIEN - CDD d'usage du spectacle (intermittent) - Le Banc des menteurs"
+      "  Emploi : COMEDIEN - CDDU - Le Banc des menteurs"
     ],
     "sorties/2026-11/DSN_Novembre2026.dsn": [
       "S10.G00.00.001,'PUPPETPAIE'",
@@ -2146,7 +2114,7 @@
       "S21.G00.50.004,'232.30'",
       "S21.G00.50.006,'8.30'",
       "S21.G00.50.007,'01'",
-      "S21.G00.50.008,'320888446'",
+      "S21.G00.50.008,'314021955'",
       "S21.G00.50.009,'20.00'",
       "S21.G00.50.013,'240.94'",
       "S21.G00.51.001,'20112026'",
@@ -2321,77 +2289,11 @@
       "COMPAGNIE FICTIVE — DOCUMENT DE DÉMONSTRATION : aucun organisme ne l'a émis, il n'a aucune valeur Compagnie fictive : imitation de l'attestation que France Travail édite d'après la DSN, pour la démonstration du logiciel. 1/3 Attestation employeur pour les activités relevant des annexes 8 et 10 au règlement d'assurance chômage Issue du processus de déclaration prévue par l'article R.133-14 II 2° du code de la sécurité sociale À SIGNER PAR L'EMPLOYEUR ET À REMETTRE AU SALARIÉ Articles L. 5422-14 et R. 5422-6 du code du travail Cette attestation est destinée au salarié ayant conclu plusieurs contrats à durée déterminée d'usage d'une durée inférieure ou égale à un mois pour la réalisation d'activités relevant des annexes VIII et X au règlement d'assurance chômage et dont le motif de fin de contrat de travail est une fin de CDD. En cas de contrat d'une durée supérieure à 1 mois, une attestation est remise au salarié pour chaque contrat. ATTENTION, cette attestation doit être transmise par le salarié à France Travail : en la téléchargeant sur son espace personnel si, au terme de sa demande d'allocations dématérialisée, il lui est demandé de la transmettre. 1 EMPLOYEUR N° SIRET Code APE/NAF N° IDCC Nom ou raison sociale Adresse Code postal Commune Êtes-vous titulaire d'une licence spectacle ou d'un n° de récépissé de déclaration d'entrepreneur de spectacles vivants valant licence ? Oui, n° Numéro d'affiliation à la caisse de congé spectacle : Oui, N° 2 SALARIÉ Nom de famille (nom de naissance) Nom d'usage (nom d'époux (se)) Prénom(s) Adresse Code postal Commune NIR (n° de Sécurité sociale) Date de naissance Lieu de naissance 3 CONTRAT DE TRAVAIL Emploi occupé Motif de la rupture : Fin de CDD Attestation éditée pour la démonstration (compagnie fictive) le 15/12/2026 — imitation : France Travail n'a rien édité 2820144999002, FULLER LOIE Logiciel utilisé PUPPETPAIE - reconstituée à partir des déclarations DSN de la compagnie fictive 32520440200011 9001Z 3090 LES TRETEAUX DU BANC 12 QUAI DE LA FOSSE 44000 NANTES PLATESV-D-2024-000352 970000052000F FULLER LOIE 7 RUE DE LA PAIX 44000 NANTES 2820144999002 15 01 1982 VILLENEUVE-SUR-LOIRE COMEDIEN Attestation éditée pour la démonstration (compagnie fictive) le 15/12/2026 — imitation : France Travail n'a rien édité 2820144999002, FULLER LOIE COMPAGNIE FICTIVE — DOCUMENT DE DÉMONSTRATION : aucun organisme ne l'a émis, il n'a aucune valeur Compagnie fictive : imitation de l'attestation que France Travail édite d'après la DSN, pour la démonstration du logiciel. 2/3 4 PRESTATIONS DE TRAVAIL ET SALAIRES Numéro de contrat Début du contrat (du) Fin du contrat (au) Numéro d'objet N° IDCC de la prestation (si différent) Début de période (du) Fin de période (au) Heures Cachets* Nombre de jours travaillés Salaire brut (non plafonné) Date de paiement * Uniquement pour les artistes Primes et indemnités Numéro de contrat Intitulé de la prime Date de paiement Montant brut (non plafonné) 01 02 03 04 05 Activité partielle Numéro de contrat Du (JJ/MM/AA) au (JJ/MM/AA) Nombre d'heures Indemnité d'activité partielle 01 02 03 04 05 FU1.26.01 20/11/2026 21/11/2026 266Z00952011 20/11/2026 21/11/2026 2 2 300.00 21/11/2026 Attestation éditée pour la démonstration (compagnie fictive) le 15/12/2026 — imitation : France Travail n'a rien édité 2820144999002, FULLER LOIE COMPAGNIE FICTIVE — DOCUMENT DE DÉMONSTRATION : aucun organisme ne l'a émis, il n'a aucune valeur Compagnie fictive : imitation de l'attestation que France Travail édite d'après la DSN, pour la démonstration du logiciel. 3/3 Périodes d'absence du salarié (congés maladie, maternité, paternité, d'adoption) Numéro de contrat Motif d'absence Du (JJ/MM/AA) au (JJ/MM/AA) 01 02 03 04 05 06 07 08 Si présence d'autres rémunérations : Du (JJ/MM/AA) au (JJ/MM/AA) Date de paiement Autres rémunérations brutes 01 02 03 04 05 06 5 AUTHENTIFICATION PAR L'EMPLOYEUR Je soussigné(e), (Nom) (Prénom) agissant en qualité de certifie que les renseignements indiqués sur la présente attestation sont exacts et notamment, en cas de cessation du contrat, que le motif de la rupture est une fin de contrat à durée déterminée. Le Signature de l'employeur Personne à joindre concernant cette attestation Téléphone E-mail Toute fausse déclaration est passible de deux ans d'emprisonnement et d'une amende pouvant aller jusqu'à 30 000 euros (Art. L. 5429-1 du code du travail) Vous devez conserver cette attestation Cachet de l'entreprise APPIA ADOLPHE Gérant Nantes 15 12 2026 APPIA ADOLPHE 0100000052 direction@les-treteaux.invalid"
     ],
     "sorties/2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf": [
-      "Les Tréteaux du Banc 12 quai de la Fosse — 44000 Nantes Siret 32520440200011 · APE 9001Z · Licence PLATESV-D-2024-000352 Bulletin de paie n° 1/2026 Numéro d'objet : 266Z00952011 — Spectacle : Le Banc des menteurs FULLER Loïe 7 RUE DE LA PAIX 44000 NANTES N° Sécurité sociale : 282014499900246 Date de naissance : 15/01/1982 Emploi : Comédien Classification : Artiste-interprète N° Congés Spectacles : -Abattement : 0 % EMPLOYEUR N° Siret : 32520440200011 NAF (APE) : 9001Z Urssaf : 5200000000 Conv. collective : IDCC 3090 - Entreprises du secteur privé du spectacle vivant Licence spec. : PLATESV-D-2024-000352 Période : du 20/11/2026 au 21/11/2026 — Dates travaillées : 20/11/2026, 21/11/2026 LIBELLÉ Base Taux Salarié Employeur 2 Cachets à 150,00 — MONTANT BRUT 300,00 COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES Santé Sécurité Sociale Maladie Maternité Invalidité Décès 300,00 27,30 Accidents du travail & maladies professionnelles 300,00 2,31 Retraite Sécurité Sociale Vieillesse plafonnée 300,00 4,830 14,49 17,97 Sécurité Sociale Vieillesse déplafonnée 300,00 0,280 0,84 4,44 Retraite complémentaire, CEG et CET T1 300,00 5,300 15,90 17,22 Famille 300,00 11,04 Assurance chômage 300,00 2,400 7,20 29,25 Autres charges dues par l'employeur 57,49 Cotisations statutaires ou prévues par la convention collective 1,50 CSG déductible de l'impôt sur le revenu 298,08 6,800 20,27 CSG/CRDS non déductible de l'impôt sur le revenu 298,08 2,900 8,64 TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES 67,34 168,52 COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES Prévoyance, Incapacité, Invalidité, Décès, Autres 300,00 0,120 0,36 3,33 MONTANT NET SOCIAL 232,30 MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU 232,30 IMPÔT SUR LE REVENU Base Taux Salarié Montant net imposable 240,94 IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE 240,94 8,300 20,00 MONTANT NET À PAYER (en Euros) 212,30 TOTAL VERSÉ PAR L'EMPLOYEUR 471,85 CUMULS Période 11/2026 Cumul année 2026 Cachets 2 2 Heures déclarées 0 h 0 h Total heures (cachets × 12 + heures) 24 h 24 h Salaire brut 300,00 € 300,00 € Plafond Urssaf de la période : 720,00 € | SMIC retenu pour la réduction générale : 172,34 € (14 h à 12,31) | Règlement le 30/11/2026 par virement. Contrat n° FU1.26.01 — CDD d'usage du spectacle (intermittent), convention collective IDCC 3090. Conservez ce bulletin sans limitation de durée."
+      "Les Tréteaux du Banc 12 quai de la Fosse — 44000 Nantes Siret 32520440200011 · APE 9001Z · Licence PLATESV-D-2024-000352 Bulletin de paie n° 1/2026 Numéro d'objet : 266Z00952011 — Spectacle : Le Banc des menteurs FULLER Loïe 7 RUE DE LA PAIX 44000 NANTES N° Sécurité sociale : 282014499900246 Date de naissance : 15/01/1982 Emploi : Comédien Classification : Artiste-interprète N° Congés Spectacles : -Abattement : 0 % EMPLOYEUR N° Siret : 32520440200011 NAF (APE) : 9001Z Urssaf : 5200000000 Conv. collective : IDCC 3090 - Entreprises du secteur privé du spectacle vivant Licence spec. : PLATESV-D-2024-000352 Période : du 20/11/2026 au 21/11/2026 — Dates travaillées : 20/11/2026, 21/11/2026 LIBELLÉ Base Taux Salarié Employeur 2 Cachets à 150,00 — MONTANT BRUT 300,00 COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES Santé Sécurité Sociale Maladie Maternité Invalidité Décès 300,00 27,30 Accidents du travail & maladies professionnelles 300,00 2,31 Retraite Sécurité Sociale Vieillesse plafonnée 300,00 4,830 14,49 17,97 Sécurité Sociale Vieillesse déplafonnée 300,00 0,280 0,84 4,44 Retraite complémentaire, CEG et CET T1 300,00 5,300 15,90 17,22 Famille 300,00 11,04 Assurance chômage 300,00 2,400 7,20 29,25 Autres charges dues par l'employeur 57,49 Cotisations statutaires ou prévues par la convention collective 1,50 CSG déductible de l'impôt sur le revenu 298,08 6,800 20,27 CSG/CRDS non déductible de l'impôt sur le revenu 298,08 2,900 8,64 TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES 67,34 168,52 COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES Prévoyance, Incapacité, Invalidité, Décès, Autres 300,00 0,120 0,36 3,33 MONTANT NET SOCIAL 232,30 MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU 232,30 IMPÔT SUR LE REVENU Base Taux Salarié Montant net imposable 240,94 IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE 240,94 8,300 20,00 MONTANT NET À PAYER (en Euros) 212,30 TOTAL VERSÉ PAR L'EMPLOYEUR 471,85 CUMULS Période 11/2026 Cumul année 2026 Cachets 2 2 Heures déclarées 0 h 0 h Total heures (cachets × 12 + heures) 24 h 24 h Salaire brut 300,00 € 300,00 € Plafond Urssaf de la période : 720,00 € | SMIC retenu pour la réduction générale : 172,34 € (14 h à 12,31) | Règlement le 30/11/2026 par virement. Contrat n° FU1.26.01 — CDDU, convention collective IDCC 3090. Conservez ce bulletin sans limitation de durée."
     ],
     "sorties/2026-11/envoi/CertificatCS_FULLER_Novembre2026.pdf": [
       "CERTIFICAT D'EMPLOI DESTINÉ AU SALARIÉ LES CONGES SPECTACLES Audiens TSA 30400 92177 Vanves Cedex Information des Intermittents www.audiens.org Tél. : 0 173 173 434 de 9h30 à 18 h : accueil sur place et téléphone Si vous n'êtes pas inscrit à notre Caisse, contactez-nous à l'adresse ci-dessus mentionnée afin que nous procédions à votre immatriculation. Votre demande de congé doit être adressée chaque année, quinze jours au moins avant votre départ en congé, dûment complétée et signée. Votre formulaire de demande de congé vous sera adressé automatiquement chaque début d'année en même temps que les sommes à déclarer à l'administration fiscale. Si tel n'est pas le cas, vous pouvez le demander par courrier ou 24h/24h : sur notre site internet ou notre serveur vocal téléphonique. La loi n°2004-801 du 6 août 2004 relative à la protection des personnes physiques à l'égard des traitements de données à caractère personnel s'applique aux informations portées sur ce certificat. Elle garantit un droit d'accès et de rectification auprès du service Information des Intermittents. N° SIRET COMPTE N° CE NIR NOM DE NAISSANCE NOM D'USAGE EMPLOI CADRE PRENOM PSEUDONYME DATES DE TRAVAIL NB JOURS OU CACHETS DEBUT FIN BASE CONGE Arrondie à l'euro le plus proche SALAIRE BRUT Arrondi à l'euro le plus proche Date : Nom du signataire Signature LOIE FULLER 7 rue de la Paix 44000 Nantes France 325204402 00011 0000052000F 1 2820144999002 46 LES TRETEAUX DU BANC FULLER COMEDIEN NON LOIE 20 11 2026 21 11 2026 2 300 300 21/11/26 APPIA N° d'agrément :"
     ],
-    "sorties/2026-11/envoi/Contrat_FULLER_FU1.26.01_Novembre2026.description.json": {
-      "format": 3,
-      "pdf_sha256": "df886913574f17e47fc876b882b648ee34154d11bce3f9e941682d0cdec34988",
-      "description": {
-        "format": 3,
-        "style": "contrat",
-        "documents": [
-          {
-            "modele": {
-              "valeurs": {
-                "employeur.raison_sociale": "LES TRETEAUX DU BANC",
-                "employeur.adresse": "12 quai de la Fosse",
-                "employeur.code_postal": "44000",
-                "employeur.commune": "Nantes",
-                "employeur.siret": "32520440200011",
-                "employeur.naf": "9001Z",
-                "employeur.licence": "PLATESV-D-2024-000352",
-                "employeur.idcc": "3090",
-                "employeur.convention": "Entreprises du secteur privé du spectacle vivant",
-                "employeur.congesspectacles": "0000052000F",
-                "employeur.signataire": "Adolphe Appia",
-                "employeur.signataire_fonction": "Gérant",
-                "employeur.qualite_de": "de ",
-                "salarie.nom": "FULLER",
-                "salarie.prenom": "Loïe",
-                "salarie.nom_complet": "Loïe FULLER",
-                "salarie.date_naissance": "15/01/1982",
-                "salarie.lieu_naissance": "Villeneuve-sur-Loire",
-                "salarie.adresse": "7 rue de la Paix",
-                "salarie.code_postal": "44000",
-                "salarie.commune": "Nantes",
-                "salarie.nir": "282014499900246",
-                "salarie.emploi": "comédien",
-                "salarie.qualite_de": "de ",
-                "contrat.numero": "FU1.26.01",
-                "contrat.debut": "20/11/2026",
-                "contrat.fin": "21/11/2026",
-                "contrat.dates_travail": "20/11/2026, 21/11/2026",
-                "contrat.lieu": "à Salle fictive de Rezé",
-                "contrat.date_paiement": "30/11/2026",
-                "remuneration.detail": "2 cachets à 150,00 €",
-                "remuneration.periode": "",
-                "remuneration.cachets": "2",
-                "remuneration.taux_cachet": "150,00",
-                "remuneration.brut": "300,00",
-                "remuneration.net_estime": "232,30",
-                "spectacle.titre": "Le Banc des menteurs",
-                "spectacle.numero_objet": "266Z00952011",
-                "contrat.clauses_particulieres": "Aucune.",
-                "contrat.motif": "un contrat à durée déterminée d'usage, conclu en application de l'article L. 1242-2, 3° du code du travail, et de l'accord interbranche du 12 octobre 1998 sur le recours au contrat à durée déterminée d'usage dans le spectacle",
-                "contrat.periode_essai": "aucune",
-                "mentions.conges": "Les congés payés sont réglés par la Caisse des Congés Spectacles, à laquelle l'employeur est affilié sous le numéro 0000052000F.",
-                "mentions.formation": "Le salarié bénéficie des actions de formation que l'employeur assure en application de l'article L. 6321-1 du code du travail.",
-                "mentions.protection_sociale": "Le salarié est affilié au régime général de la sécurité sociale ; sa retraite complémentaire est celle du régime Agirc-Arrco, auprès d'Audiens Retraite. Il bénéficie des garanties collectives de prévoyance et de frais de santé auprès d'Audiens Santé Prévoyance, prévues par la convention collective.",
-                "mentions.rupture": "Le contrat cesse de plein droit à l'échéance de son terme (article L. 1243-5 du code du travail). Sauf accord des parties, il ne peut être rompu avant ce terme qu'en cas de faute grave, de force majeure ou d'inaptitude constatée par le médecin du travail (article L. 1243-1), ou à l'initiative du salarié qui justifie de la conclusion d'un contrat à durée indéterminée, avec le préavis de l'article L. 1243-2.",
-                "organismes.prevoyance": "Audiens Santé Prévoyance, 74 rue Jean Bleuzen, 92177 Vanves Cedex",
-                "organismes.retraite": "Audiens Retraite, 74 rue Jean Bleuzen, 92177 Vanves Cedex",
-                "remuneration.hors_brut": "",
-                "salarie.categorie": "profession intermédiaire (technicien, contremaître, agent de maîtrise)"
-              },
-              "texte": "# Modèle de contrat d'engagement à durée déterminée d'usage — artiste du spectacle.\r\n#\r\n# CE FICHIER EST UNE DONNÉE, PAS DU CODE.\r\n# Il s'ouvre et se modifie dans n'importe quel éditeur de texte. Chaque\r\n# compagnie garde sa propre version : le moteur, lui, ne change pas.\r\n#\r\n# Pour SUPPRIMER un article : effacer son bloc ARTICLE en entier.\r\n# Pour en AJOUTER un : copier un bloc et l'écrire où l'on veut.\r\n# L'ordre des articles dans ce fichier est l'ordre dans le contrat imprimé.\r\n#\r\n# Les marqueurs {{...}} sont remplacés à l'édition. La liste complète est en\r\n# bas de ce fichier. Un marqueur inconnu arrête la génération plutôt que\r\n# d'imprimer un trou : on ne signe pas un contrat à moitié rempli.\r\n#\r\n# **texte** met en gras. Une ligne vide sépare deux paragraphes.\r\n\r\nTITRE: Contrat d'engagement à durée déterminée d'usage\r\n\r\nSOUSTITRE: Contrat n° {{contrat.numero}}\r\n\r\n# La phrase posée en tête d'un contrat qui ANNULE ET REMPLACE un contrat déjà\r\n# parti (refait en entier avant que son exécution commence). Sans cette clé,\r\n# le logiciel écrit la même phrase que celle-ci.\r\nANNULE:\r\nLe présent contrat annule et remplace le contrat n° {{remplace.numero}} du {{remplace.date}}, qui est réputé n'avoir jamais produit d'effet.\r\n\r\nPREAMBULE:\r\n**Entre les soussignés,**\r\n\r\nL'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, code APE {{employeur.naf}}, licence d'entrepreneur de spectacles n° {{employeur.licence}}, représentée par {{employeur.signataire}}, en qualité {{employeur.qualite_de}}{{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,\r\n\r\n**Et**\r\n\r\nL'artiste : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à {{salarie.lieu_naissance}}, demeurant {{salarie.adresse}}, {{salarie.code_postal}} {{salarie.commune}}, n° de sécurité sociale {{salarie.nir}}, ci-après dénommé(e) **l'artiste**,\r\n\r\nIl a été convenu et arrêté ce qui suit.\r\n\r\nARTICLE: Objet et nature du contrat\r\nL'artiste est engagé(e) en qualité {{salarie.qualite_de}}**{{salarie.emploi}}** (catégorie d'emploi : {{salarie.categorie}}) pour le spectacle **{{spectacle.titre}}** (numéro d'objet France Travail {{spectacle.numero_objet}}).\r\n\r\nLe présent contrat est {{contrat.motif}}. La convention collective applicable est la convention collective nationale « {{employeur.convention}} » (IDCC {{employeur.idcc}}). L'usage constant exclut le recours au contrat à durée indéterminée pour cet emploi.\r\n\r\nARTICLE: Durée\r\nLe contrat prend effet le **{{contrat.debut}}** et prend fin le **{{contrat.fin}}**. {{mentions.rupture}}\r\n\r\nPériode d'essai : {{contrat.periode_essai}}.\r\n\r\nDates de travail : {{contrat.dates_travail}}.\r\n\r\nARTICLE: Lieu de travail\r\nLes prestations sont exécutées {{contrat.lieu}}, ainsi qu'en tout lieu nécessaire à la préparation et à la représentation du spectacle.\r\n\r\nARTICLE: Rémunération\r\nL'artiste perçoit **{{remuneration.detail}} brut**, soit une rémunération brute totale de **{{remuneration.brut}} €**{{remuneration.periode}}{{remuneration.hors_brut}}, dont le net à payer estimé est de {{remuneration.net_estime}} €.\r\n\r\nLe paiement intervient par virement le {{contrat.date_paiement}}. {{mentions.conges}}\r\n\r\nARTICLE: Protection sociale\r\nL'employeur procède à la déclaration préalable à l'embauche auprès de l'URSSAF et à l'attestation employeur mensuelle auprès de France Travail.\r\n\r\nL'artiste relève des annexes VIII et X du règlement d'assurance chômage. {{mentions.protection_sociale}}\r\n\r\nCaisse de retraite complémentaire : {{organismes.retraite}}. Organisme de prévoyance : {{organismes.prevoyance}}.\r\n\r\nARTICLE: Formation\r\n{{mentions.formation}}\r\n\r\nARTICLE: Absence et maladie\r\nEn cas de maladie ou d'empêchement d'assurer une répétition ou une représentation, l'artiste est tenu(e) d'en aviser l'employeur dans un délai de 24 heures en précisant la durée probable de son absence, et de transmettre dans les plus brefs délais un certificat médical.\r\n\r\nARTICLE: Obligations de l'artiste\r\nL'artiste s'engage à se conformer aux horaires de répétition et de représentation, à respecter les consignes de sécurité et à n'accepter aucun engagement incompatible avec les dates ci-dessus.\r\n\r\nARTICLE: Droit de priorité et d'exclusivité\r\nLe présent contrat donne à l'employeur une priorité sur tout autre engagement que l'artiste pourrait conclure par ailleurs sur la période couverte. Toute dérogation à cette clause fait l'objet d'un accord écrit préalable de l'employeur.\r\n\r\nARTICLE: Médecine du travail\r\nL'artiste déclare avoir satisfait aux obligations relatives à la médecine du travail et communiquera à l'employeur l'attestation annuelle qui lui a été délivrée par cet organisme.\r\n\r\nARTICLE: Assurances\r\nL'artiste est tenu(e) d'assurer contre tous les risques les objets lui appartenant. L'employeur déclare avoir souscrit les assurances nécessaires à la couverture des risques liés aux représentations du spectacle.\r\n\r\nARTICLE: Droits voisins\r\nLa rémunération ci-dessus couvre la seule prestation de travail. Toute fixation, reproduction ou communication au public de l'interprétation fera l'objet d'une autorisation écrite distincte et, le cas échéant, d'une rémunération séparée.\r\n\r\nARTICLE: Clauses particulières\r\n{{contrat.clauses_particulieres}}\r\n\r\nARTICLE: Litiges\r\nEn cas de litige portant sur l'interprétation ou l'application du présent contrat, les parties conviennent de s'en remettre à l'appréciation des tribunaux compétents, après épuisement des voies amiables.\r\n\r\nSIGNATURES:\r\nFait en double exemplaire à {{employeur.commune}}, le {{contrat.debut}}.\r\n\r\n# ---------------------------------------------------------------------------\r\n# MARQUEURS DISPONIBLES\r\n#\r\n#   employeur.raison_sociale      employeur.siret          employeur.idcc\r\n#   employeur.adresse             employeur.naf            employeur.convention\r\n#   employeur.code_postal         employeur.licence        employeur.congesspectacles\r\n#   employeur.commune             employeur.signataire     employeur.signataire_fonction\r\n#   employeur.qualite_de  (« d' » ou « de », selon la fonction qui suit)\r\n#\r\n#   salarie.nom_complet           salarie.date_naissance   salarie.adresse\r\n#   salarie.nom                   salarie.lieu_naissance   salarie.code_postal\r\n#   salarie.prenom                salarie.nir              salarie.commune\r\n#   salarie.emploi                salarie.qualite_de  (« d' » ou « de », selon l'emploi)\r\n#\r\n#   contrat.numero                contrat.debut            contrat.dates_travail\r\n#   contrat.lieu                  contrat.fin              contrat.date_paiement\r\n#   contrat.motif                 contrat.periode_essai    contrat.clauses_particulieres\r\n#   salarie.categorie\r\n#\r\n#   organismes.retraite           organismes.prevoyance\r\n#   mentions.formation            mentions.conges          mentions.rupture\r\n#   mentions.protection_sociale\r\n#     ^ les mentions que la loi exige (code du travail L. 1242-12, R. 1221-34) :\r\n#       un modele qui en perd une est refuse, et le refus dit laquelle. La liste\r\n#       entiere, avec ce que chaque champ imprime : Configuration › Modeles de\r\n#       contrat.\r\n#\r\n#   remplace.numero               remplace.date   (bloc ANNULE: seulement)\r\n#\r\n#   remuneration.detail           remuneration.brut        remuneration.net_estime\r\n#   remuneration.cachets          remuneration.taux_cachet remuneration.periode\r\n#     ^ periode : << pour le mois de mai 2026 >> quand le contrat se poursuit\r\n#       apres le mois (le total et le net sont ceux du mois) ; vide sinon.\r\n#     ^ ces deux-la ne valent que pour un contrat de cachets. `detail` dit\r\n#       la remuneration quelle que soit sa forme -- journee, repetition,\r\n#       masterclass -- et c'est lui qu'il faut employer.\r\n#   remuneration.hors_brut\r\n#     ^ `detail` ne cite que ce qui fait le brut. Ce qui est verse en plus\r\n#       (defraiements, indemnites non soumises) est dans `hors_brut` :\r\n#       << , auxquels s'ajoutent 3 defraiements au forfait a 20,20 EUR hors\r\n#       brut >>, vide sans eux. Un modele qui l'omet est refuse s'il y en a.\r\n# ---------------------------------------------------------------------------\r\n"
-            }
-          }
-        ]
-      }
-    },
     "sorties/2026-11/envoi/Contrat_FULLER_FU1.26.01_Novembre2026.pdf": [
       "Contrat d'engagement à durée déterminée d'usage Contrat n° FU1.26.01 Entre les soussignés, L'employeur : LES TRETEAUX DU BANC, 12 quai de la Fosse, 44000 Nantes — SIRET 32520440200011, code APE 9001Z, licence d'entrepreneur de spectacles n° PLATESV-D-2024-000352, représentée par Adolphe Appia, en qualité de Gérant, ci-après dénommé l'employeur, Et L'artiste : Loïe FULLER, né(e) le 15/01/1982 à Villeneuve-sur-Loire, demeurant 7 rue de la Paix, 44000 Nantes, n° de sécurité sociale 282014499900246, ci-après dénommé(e) l'artiste, Il a été convenu et arrêté ce qui suit. Article 1 — Objet et nature du contrat L'artiste est engagé(e) en qualité de comédien (catégorie d'emploi : profession intermédiaire (technicien, contremaître, agent de maîtrise)) pour le spectacle Le Banc des menteurs (numéro d'objet France Travail 266Z00952011). Le présent contrat est un contrat à durée déterminée d'usage, conclu en application de l'article L. 1242-2, 3° du code du travail, et de l'accord interbranche du 12 octobre 1998 sur le recours au contrat à durée déterminée d'usage dans le spectacle. La convention collective applicable est la convention collective nationale « Entreprises du secteur privé du spectacle vivant » (IDCC 3090). L'usage constant exclut le recours au contrat à durée indéterminée pour cet emploi. Article 2 — Durée Le contrat prend effet le 20/11/2026 et prend fin le 21/11/2026. Le contrat cesse de plein droit à l'échéance de son terme (article L. 1243-5 du code du travail). Sauf accord des parties, il ne peut être rompu avant ce terme qu'en cas de faute grave, de force majeure ou d'inaptitude constatée par le médecin du travail (article L. 1243-1), ou à l'initiative du salarié qui justifie de la conclusion d'un contrat à durée indéterminée, avec le préavis de l'article L. 1243-2. Période d'essai : aucune. Dates de travail : 20/11/2026, 21/11/2026. Article 3 — Lieu de travail Les prestations sont exécutées à Salle fictive de Rezé, ainsi qu'en tout lieu nécessaire à la préparation et à la représentation du spectacle. Article 4 — Rémunération L'artiste perçoit 2 cachets à 150,00 € brut, soit une rémunération brute totale de 300,00 €, dont le net à payer estimé est de 232,30 €. Le paiement intervient par virement le 30/11/2026. Les congés payés sont réglés par la Caisse des Congés Spectacles, à laquelle l'employeur est affilié sous le numéro 0000052000F. Article 5 — Protection sociale L'employeur procède à la déclaration préalable à l'embauche auprès de l'URSSAF et à l'attestation employeur mensuelle auprès de France Travail. L'artiste relève des annexes VIII et X du règlement d'assurance chômage. Le salarié est affilié au régime général de la sécurité sociale ; sa retraite complémentaire est celle du régime Agirc-Arrco, auprès d'Audiens Retraite. Il bénéficie des garanties collectives de prévoyance et de frais de santé auprès d'Audiens Santé Prévoyance, prévues par la convention collective. Caisse de retraite complémentaire : Audiens Retraite, 74 rue Jean Bleuzen, 92177 Vanves Cedex. Organisme de prévoyance : Audiens Santé Prévoyance, 74 rue Jean Bleuzen, 92177 Vanves Cedex. Article 6 — Formation Le salarié bénéficie des actions de formation que l'employeur assure en application de l'article L. 6321-1 du code du travail. Article 7 — Absence et maladie En cas de maladie ou d'empêchement d'assurer une répétition ou une représentation, l'artiste est tenu(e) d'en aviser l'employeur dans un délai de 24 heures en précisant la durée probable de son absence, et de transmettre dans les plus brefs délais un certificat médical. Article 8 — Obligations de l'artiste L'artiste s'engage à se conformer aux horaires de répétition et de représentation, à respecter les consignes de sécurité et à n'accepter aucun engagement incompatible avec les dates ci-dessus. Article 9 — Droit de priorité et d'exclusivité Le présent contrat donne à l'employeur une priorité sur tout autre engagement que l'artiste pourrait conclure par ailleurs sur la période couverte. Toute dérogation à cette clause fait l'objet d'un accord écrit préalable de l'employeur. Article 10 — Médecine du travail L'artiste déclare avoir satisfait aux obligations relatives à la médecine du travail et communiquera à l'employeur l'attestation annuelle qui lui a été délivrée par cet organisme. Article 11 — Assurances L'artiste est tenu(e) d'assurer contre tous les risques les objets lui appartenant. L'employeur déclare avoir souscrit les assurances nécessaires à la couverture des risques liés aux représentations du spectacle. Article 12 — Droits voisins La rémunération ci-dessus couvre la seule prestation de travail. Toute fixation, reproduction ou communication au public de l'interprétation fera l'objet d'une autorisation écrite distincte et, le cas échéant, d'une rémunération séparée. Article 13 — Clauses particulières Aucune. Article 14 — Litiges En cas de litige portant sur l'interprétation ou l'application du présent contrat, les parties conviennent de s'en remettre à l'appréciation des tribunaux compétents, après épuisement des voies amiables. Fait en double exemplaire à Nantes, le 20/11/2026. L'employeur Adolphe Appia Gérant L'artiste Loïe FULLER signature"
     ]

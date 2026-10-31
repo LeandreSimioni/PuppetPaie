@@ -120,7 +120,7 @@ pub const NOTES: [(&str, &str); 3] = [
     ),
 ];
 
-/// Quand l'AER DUE ce mois-ci (`aer::due` : un intermittent dont le contrat finit dans le mois) n'est pas jointe. On le
+/// Quand l'AER DUE ce mois-ci (un intermittent dont le contrat finit dans le mois) n'est pas jointe. On le
 /// DIT, plutot que d'envoyer un message qui laisse croire que le dossier est complet ; on ne promet rien de la suite.
 /// Un salarie a qui aucune AER Cinema Spectacle n'est due (un permanent, un contrat d'usage qui continue le mois
 /// suivant) n'a pas cette phrase.
@@ -146,7 +146,7 @@ fn capitaliser(s: &str) -> String {
     }
 }
 
-/// `str.format` a champs nommes : chaque `{nom}` est remplace, une seule fois (la valeur n'est pas relue).
+/// Un modèle à champs nommés : chaque `{nom}` est remplacé, une seule fois (la valeur n'est pas relue).
 pub fn formater(modele: &str, champs: &[(&str, String)]) -> String {
     let mut sortie = String::new();
     let mut reste = modele;
@@ -169,7 +169,7 @@ fn cle_absente(cle: &str) -> String {
     socle::fichiers::absent(cle)
 }
 
-/// L'annee et le mois d'un « AAAA-MM » (`int(mois[:4]), int(mois[5:7])`).
+/// L'année et le mois d'un « AAAA-MM » ; refus s'ils ne se lisent pas.
 fn an_mois(mois: &str) -> Result<(i32, usize), String> {
     let lire = |t: Option<&str>| -> Result<i64, String> {
         let t = t.unwrap_or("");
@@ -337,12 +337,15 @@ pub const RIEN_DANS_LE_RESUME: &str = "  - le détail de ton bulletin ; tes jour
 /// contrats dans le mois : ses pieces sont ecrites une fois, sous sa cle, et il ne recoit qu'un seul message.
 /// `renvois` (cle -> `Renvoi`) : ceux dont la paie a change depuis l'envoi de leurs documents recoivent le courriel de
 /// renvoi (`CORPS_RENVOI`), qui dit ce qui a change ; les autres, le premier courriel (`CORPS`).
+/// `a_part` (cle -> pieces) : ce qui est du au salarie et ne part pas avec ce courriel, tel que le moteur le decide
+/// (`aer`, `attestation_fctu`) ; le courriel le dit, sans rien promettre.
 pub fn preparer_avec(
     paies: &[Paie],
     ent: &Value,
     mois: &str,
     dossier: &Path,
     renvois: &std::collections::HashMap<String, Renvoi>,
+    a_part: &std::collections::HashMap<String, Vec<&'static str>>,
 ) -> Result<Vec<Message>, String> {
     let (an, mo) = an_mois(mois)?;
     let etiq = socle::date::etiquette_du_mois(mois)?;
@@ -387,15 +390,11 @@ pub fn preparer_avec(
             }
             v
         };
-        let (mut aer_due, mut fctu) = (false, false);
-        for p in &siennes {
-            aer_due |= documents::aer::due(&p.engagement)?;
-            fctu |= documents::aer::attestation_fctu(&p.engagement)?;
-        }
-        if aer_due && !presents.contains(&"aer") {
+        let a_part = a_part.get(&cle).map(Vec::as_slice).unwrap_or(&[]);
+        if a_part.contains(&"aer") && !presents.contains(&"aer") {
             notes.push(NOTE_SANS_AER);
         }
-        if fctu {
+        if a_part.contains(&"attestation_fctu") {
             notes.push(NOTE_SANS_ATTESTATION_FCTU);
         }
         let nom_affichage = en_texte(ent.get("nom_affichage").ok_or_else(|| cle_absente("nom_affichage"))?);
@@ -534,7 +533,7 @@ pub fn envoyer_suivi(
 
 const MAXLEN: usize = 78;
 
-/// Les types qui passent devant `mimetypes` (`envoi.GENRES`).
+/// Les types qui passent devant la table `MIMETYPES`.
 const GENRES: [(&str, &str); 2] = [
     (".pdf", "application/pdf"),
     (".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
@@ -709,7 +708,7 @@ const SUFFIXES: [(&str, &str); 6] = [
     (".txz", ".tar.xz"),
 ];
 
-/// `mimetypes.encodings_map` (sensible a la casse) : un suffixe de compression, que la devinette saute.
+/// Les suffixes de compression (sensibles a la casse), que la devinette du type saute.
 const ENCODAGES: [&str; 5] = [".gz", ".Z", ".bz2", ".xz", ".br"];
 
 /// Le dernier point du nom, sauf s'il ne suit que des points.
@@ -721,7 +720,7 @@ fn couper_extension(nom: &str) -> (&str, &str) {
     (&nom[..point], &nom[point..])
 }
 
-/// `mimetypes.guess_type(nom)[0]`, sans les fichiers du systeme.
+/// Le type de la piece d'apres le suffixe de son nom, sans les fichiers du systeme.
 pub fn type_devine(nom: &str) -> Option<&'static str> {
     let (mut base, mut ext) = couper_extension(nom);
     let mut dernier: String;
@@ -938,7 +937,7 @@ fn ecrire_noeud(n: &Noeud, frontiere: &mut dyn FnMut() -> String) -> Result<Vec<
     Ok(sortie)
 }
 
-/// `_make_boundary(text)` : la frontiere ne doit apparaitre seule sur aucune ligne du texte.
+/// Une frontière MIME qui n'apparaît seule sur aucune ligne du texte.
 fn frontiere_libre(base: String, texte: &[u8]) -> String {
     let mut b = base.clone();
     let mut compteur = 0;
@@ -967,7 +966,7 @@ fn frontiere_au_hasard() -> String {
     format!("{}{:019}==", "=".repeat(15), jeton)
 }
 
-/// `utils.make_msgid(domain=...)`.
+/// Un identifiant de message (`Message-ID`) neuf, sur le domaine donné.
 pub fn nouveau_message_id(domaine: &str) -> String {
     let maintenant = std::time::Duration::from_secs_f64(socle::temps::secondes());
     let centiemes = maintenant.as_millis() / 10;
@@ -976,7 +975,7 @@ pub fn nouveau_message_id(domaine: &str) -> String {
     format!("<{}.{}.{}@{}>", centiemes, socle::temps::numero_de_processus(), u64::from_le_bytes(o), domaine)
 }
 
-/// `utils.formatdate(localtime=True)`, a l'heure de Paris.
+/// La date d'un en-tête de courriel, maintenant, à l'heure de Paris.
 fn date_locale() -> String {
     let t = socle::temps::secondes().floor() as i64;
     date_de(t)
@@ -1008,7 +1007,7 @@ pub fn date_de(t: i64) -> String {
     )
 }
 
-/// `len(value.splitlines())`, pour le refus d'un en-tete a plusieurs lignes.
+/// Le nombre de lignes d'un texte, pour le refus d'un en-tête à plusieurs lignes.
 fn compte_lignes(s: &str) -> usize {
     let mut n = 0;
     let mut en_cours = false;
@@ -1251,12 +1250,12 @@ fn plier_insecable(nom: &str, valeur: &str) -> String {
     }
 }
 
-/// `utils.quote`.
+/// Une valeur entre guillemets, `\` et `"` échappés.
 fn guillemets(v: &str) -> String {
     format!("\"{}\"", v.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
-/// `urllib.parse.quote(s, safe='')`.
+/// Le texte encodé pour une URL : tout octet hors des lettres, chiffres et `_.-~` en `%XX`.
 fn pourcent(s: &str) -> String {
     let mut o = String::new();
     for b in s.bytes() {
@@ -1269,7 +1268,7 @@ fn pourcent(s: &str) -> String {
     o
 }
 
-/// `Message.set_param` / `_formatparam` : le parametre tel qu'il est range dans l'en-tete.
+/// Le parametre d'un en-tete (`nom=valeur`) tel qu'il est range, entre guillemets si la valeur le demande.
 fn parametre_range(nom: &str, valeur: &str) -> String {
     if valeur.is_empty() {
         nom.to_string()
@@ -1291,7 +1290,7 @@ fn plier_params(nom: &str, principal: &str, params: &[(String, String)]) -> Stri
     if nom.len() + 2 + range.len() <= limite || params.is_empty() {
         return format!("{}: {}\n", nom, range);
     }
-    // Le tout ne tient pas : `_fold_mime_parameters`, un parametre apres l'autre.
+    // Le tout ne tient pas : un parametre apres l'autre.
     let mut lignes: Vec<String> = vec![format!("{}: {};", nom, principal)];
     let mut max = MAXLEN;
     for (n, v) in params {
@@ -1345,7 +1344,7 @@ fn plier_params(nom: &str, principal: &str, params: &[(String, String)]) -> Stri
     lignes.join("\n") + "\n"
 }
 
-// ----------------------------------------------------- un en-tete libre : `get_unstructured` et `_refold_parse_tree`
+// ----------------------------------------------------- un en-tete libre 
 
 #[derive(Clone, Debug)]
 enum Jeton {
@@ -1370,9 +1369,9 @@ fn est_blanc(c: char) -> bool {
 
 use socle::texte::blanc as est_espace_unicode;
 
-/// `get_unstructured`, sans mots codes : des blancs et des mots. Un blanc COMMENCE par un espace ou une tabulation
-/// et `get_fws` (`value.lstrip()`) l'etend a tous les blancs d'Unicode qui suivent, l'espace insecable compris ;
-/// un mot va jusqu'au premier espace ou a la premiere tabulation (`_wsp_splitter`), l'espace insecable y compris.
+/// Un en-tete libre decoupe, sans mots codes, en blancs et en mots. Un blanc COMMENCE par un espace ou une tabulation
+/// et s'etend a tous les blancs d'Unicode qui suivent, l'espace insecable compris ;
+/// un mot va jusqu'au premier espace ou a la premiere tabulation, l'espace insecable y compris.
 fn jetons_de(valeur: &str) -> Vec<Jeton> {
     let mut jetons = Vec::new();
     let mut reste = valeur;
@@ -1428,7 +1427,7 @@ fn mot_code(s: &[char]) -> String {
     }
 }
 
-/// `str(get_unstructured(texte))` : les mots codes sont decodes, le blanc entre deux mots codes s'efface.
+/// Le texte d'un en-tete libre : les mots codes sont decodes, le blanc entre deux mots codes s'efface.
 fn decoder_libre(s: &str) -> String {
     enum Piece {
         Blanc(String, bool),
@@ -1527,7 +1526,7 @@ fn lire_mot_code(v: &str) -> Option<(String, &str)> {
     Some((String::from_utf8_lossy(&octets).into_owned(), suite))
 }
 
-/// `_fold_as_ew` : ecrit `a_coder` en mots codes sur les lignes, en le recombinant avec les mots codes qui
+/// Ecrit `a_coder` en mots codes sur les lignes, en le recombinant avec les mots codes qui
 /// terminent deja la ligne. Rend la nouvelle position du premier mot code de la ligne.
 fn plier_en_mot_code(
     a_coder: &str,
@@ -1593,7 +1592,7 @@ enum Morceau {
     Seul(Jeton),
 }
 
-/// L'en-tete `nom: valeur` d'un texte libre, plie comme `_refold_parse_tree` (nom et `: ` compris, \n final).
+/// L'en-tete `nom: valeur` d'un texte libre, plie (nom et `: ` compris, \n final).
 fn plier_libre(nom: &str, valeur: &str) -> Result<String, String> {
     let mut lignes: Vec<String> = vec![format!("{}:", nom)];
     let jetons = jetons_de(valeur);

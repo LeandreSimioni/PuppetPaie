@@ -121,7 +121,7 @@ pub struct Depose {
     pub id: Option<String>,
     pub nom: Option<String>,
     pub lien: Option<String>,
-    /// `True` quand le contenu d'un fichier de meme nom a ete remplace au lieu d'un second depot.
+    /// Vrai quand le contenu d'un fichier de meme nom a ete remplace au lieu d'un second depot.
     pub remplace: bool,
 }
 
@@ -226,12 +226,6 @@ impl Client {
     /// Les memes identifiants et le meme jeton scelle, mais d'autres adresses (un serveur local).
     pub fn avec_adresses(mut self, adresses: Adresses) -> Client {
         self.adresses = adresses;
-        self
-    }
-
-    /// Pour la preuve : un delai d'appel plus court que les 120 s (une panne de delai se prouve vite).
-    pub fn avec_delai(mut self, secondes: u64) -> Client {
-        self.delai = secondes;
         self
     }
 
@@ -437,7 +431,7 @@ fn attente(base: u64, n: u32) -> u64 {
     base.saturating_mul(1 << n.min(6)) + hasard
 }
 
-/// `secrets.token_hex(16)`.
+/// Seize octets tirés au hasard, en hexadécimal.
 fn hasard_hex() -> String {
     let mut o = [0u8; 16];
     if getrandom::fill(&mut o).is_err() {

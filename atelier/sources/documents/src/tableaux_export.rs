@@ -57,7 +57,7 @@ impl Val {
         Val::Num(Value::from(n))
     }
 
-    /// `str(v)`.
+    /// La valeur en texte.
     pub fn en_texte_ecrit(&self) -> String {
         match self {
             Val::Dec(d) => d.to_string(),
@@ -260,8 +260,8 @@ impl Tableau {
 
 }
 
-/// `_sections(lignes, cle, libelle, tri)` : les lignes en sections, une par cle, les cles triees
-/// (`sorted(paquets.items())`), les lignes de chaque section triees par `tri` s'il y en a un (tri stable).
+/// Les lignes en sections, une par clé, les clés triées,
+/// les lignes de chaque section triées par `tri` s'il y en a un (tri stable).
 pub fn sections_de<K: Ord + Clone>(
     lignes: Vec<Ligne>, cle: impl Fn(&Ligne) -> K, libelle: impl Fn(&K) -> String, tri: Option<&dyn Fn(&Ligne) -> Vec<String>>,
 ) -> Vec<Section> {
@@ -282,7 +282,7 @@ pub fn sections_de<K: Ord + Clone>(
 
 // ------------------------------------------------------------------ totaux
 
-/// `_somme` : la somme de ce qui est DECLARE, ou `None` quand aucune ligne ne l'est.
+/// La somme de ce qui est DECLARE, ou `None` quand aucune ligne ne l'est.
 fn somme(lignes: &[&Ligne], cle: &str) -> R<Option<Val>> {
     let mut total: Option<Decimal> = None;
     for l in lignes {
@@ -379,11 +379,6 @@ fn cellule_lisible(l: &Ligne, c: &Colonne, genre: &str) -> String {
 
 /// Le nom de la compagnie, ou rien.
 pub fn nom_compagnie(ctx: &Contexte) -> String {
-    // `fiche(ctx)` lit aussi les compteurs : un fichier abime fait rendre « ».
-    let compteurs = ctx.racine.join("config").join("compteurs.json");
-    if compteurs.exists() && socle::fichiers::lire_json(&compteurs).is_err() {
-        return String::new();
-    }
     for c in ["nom_affichage", "raison_sociale", "nom"] {
         if let Some(v) = ctx.entreprise.get(c).filter(|v| vrai(v)) {
             return valeur_en_texte(v);
@@ -465,7 +460,7 @@ fn ligne_json(l: &Ligne) -> Value {
 }
 
 fn ligne_json_brute(l: &Ligne) -> Value {
-    // `_v` du fichier JSON ne retire pas les cles en `_` ; il n'y en a pas a ce stade.
+    // Le fichier JSON garde toutes les cles : aucune n'est en `_` a ce stade.
     Value::Object(l.champs.iter().map(|(k, v)| (k.clone(), v.as_ref().map_or(Value::Null, Val::json))).collect())
 }
 
@@ -490,7 +485,7 @@ pub fn dict_tableau(t: &Tableau, fichier_ecrit: bool) -> Value {
     })
 }
 
-/// `json_tableau` : `json.dumps(dict_tableau(t), ensure_ascii=False, indent=1)`. Le fichier n'est pas encore nomme quand il s'ecrit.
+/// Le tableau en JSON indente d'une espace. Le fichier n'est pas encore nomme quand il s'ecrit.
 pub fn json_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
     Ok(socle::ecriture::json_indente(&dict_tableau(t, false), 1).into_bytes())
 }
@@ -532,7 +527,7 @@ fn en_f64(d: &Decimal) -> f64 {
     d.to_f64().unwrap_or(0.0)
 }
 
-/// `_montant_classeur` : le nombre d'une colonne de chiffres, le texte sinon.
+/// Le nombre d'une colonne de chiffres, le texte sinon.
 fn cellule_classeur(v: Option<&Val>, c: &Colonne) -> Cel {
     let Some(v) = v else { return Cel::Vide };
     if matches!(v, Val::Txt(s) if s.is_empty()) {
@@ -866,12 +861,12 @@ pub fn nom_du_mois(m: &str) -> R<&'static str> {
     socle::date::nom_du_mois(i64::try_from(n).unwrap_or(0), socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
 }
 
-/// `_libelle_mois` : « Septembre 2026 ».
+/// « Septembre 2026 ».
 pub fn libelle_mois(m: &str) -> R<String> {
     Ok(format!("{} {}", nom_du_mois(m)?, m.chars().take(4).collect::<String>()))
 }
 
-/// `_jj` : AAAA-MM-JJ -> JJ/MM/AAAA ; le reste tel quel.
+/// AAAA-MM-JJ -> JJ/MM/AAAA ; le reste tel quel.
 pub fn jj(iso: &str) -> String {
     let c: Vec<char> = iso.chars().collect();
     if c.len() >= 10 && c[4] == '-' {
@@ -881,7 +876,7 @@ pub fn jj(iso: &str) -> String {
     }
 }
 
-/// `_qui` : « NOM Prenom ».
+/// « NOM Prenom ».
 pub fn qui(fiche: &Value) -> R<String> {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
         Some(v) => valeur_en_texte(v),
@@ -891,7 +886,7 @@ pub fn qui(fiche: &Value) -> R<String> {
     Ok(format!("{} {}", valeur_en_texte(nom), prenom))
 }
 
-/// `_qui` d'une fiche qui n'a peut-etre pas de nom (`.get("nom", "")`).
+/// Le « qui » d'une fiche qui n'a peut-etre pas de nom.
 pub fn qui_souple(fiche: &Value) -> String {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
         Some(v) => valeur_en_texte(v),
@@ -900,7 +895,7 @@ pub fn qui_souple(fiche: &Value) -> String {
     format!("{} {}", fiche.get("nom").map(valeur_en_texte).unwrap_or_default(), prenom)
 }
 
-/// `_montant` : un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).
+/// Un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).
 pub fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
     match v {
         None | Some(Value::Null) => Ok(None),

@@ -89,12 +89,12 @@ pub fn round3(x: f64) -> f64 {
     format!("{:.3}", x).parse().unwrap_or(x)
 }
 
-/// Une somme de montants, a deux decimales comme `sum(..., Decimal("0.00"))`.
+/// Une somme de montants, à deux décimales au moins.
 pub fn somme<I: IntoIterator<Item = Decimal>>(it: I) -> Decimal {
     it.into_iter().fold(Decimal::new(0, 2), add)
 }
 
-/// `eur` avec ses deux decimales toujours ecrites (`quantize`).
+/// `eur` avec ses deux décimales toujours écrites.
 pub fn eur2(x: Decimal) -> Decimal {
     let mut e = eur(x);
     e.rescale(2);
@@ -213,7 +213,7 @@ pub fn entier_lu(t: &str) -> Option<i128> {
     Some(if neg { -n } else { n })
 }
 
-/// `str(d.quantize(Decimal("0.01")))` : deux decimales, la moitie au pair.
+/// Deux décimales, la moitié au pair, en texte.
 pub fn q2(d: Decimal) -> String {
     let mut r = d.round_dp(2);
     r.rescale(2);

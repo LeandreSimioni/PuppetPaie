@@ -40,11 +40,40 @@ use socle::fichiers::vrai;
 use envois::releve_retours::{Client, Releve};
 use crate::compagnie::releve_signatures::{self, ReleveSignatures};
 use socle::echec::Echec;
+use crate::routes::catalogue::{Acte, Champ, Fiche, OPERATION};
 use crate::routes::fiches::ReleveFiches;
 use crate::compagnie::sauvegarde::{self, Sauvegarde};
 
-/// Les routes de ce module.
-pub const ROUTES: [&str; 2] = ["ouverture", "ouverture-derniere"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "ouverture",
+        geste: "Ouvrir la compagnie : sauvegarder, relever retours, signatures et fiches.",
+        charge: &[
+            Champ { nom: "sauvegarder", sens: "faux : ne pas sauvegarder dans le Drive", avance: true },
+            Champ { nom: "retours", sens: "faux : ne pas relever les retours des organismes", avance: true },
+            Champ { nom: "signatures", sens: "faux : ne pas relever les signatures", avance: true },
+            Champ { nom: "veille", sens: "vrai : un tour de veille", avance: true },
+        ],
+        exemple: r#"{}"#,
+        rend: "ce que chaque passage a fait (sauvegarde, retours, signatures, fiches, filet), et les incidents en phrases ; ne refuse jamais",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "ouverture-derniere",
+        geste: "Dire ce que la dernière ouverture a fait, sans réseau.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "la trace de la dernière ouverture ; {} sans elle",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+];
 
 /// `compagnies.MARQUEUR`.
 use socle::fichiers::MARQUEUR_COPIE;
@@ -78,7 +107,7 @@ pub struct Options {
     pub veille: bool,
     /// Envoyer chez l'editeur ce que le journal des incidents a note, et relever ses reponses, avant de rendre la main ;
     /// un processus `moteur route` ne peut pas attendre un fil. Mettre `false` quand l'appelant le lance lui-meme
-    /// (routes `incidents-envoyer` et `signalements-reponses`, dans son propre fil).
+    /// (route `incidents-envoyer`, dans son propre fil).
     pub incidents_editeur: bool,
     /// La SECONDE moitie de la veille : ne fait que la sauvegarde, et met la trace du premier appel a
     /// jour (sauvegarde, hors ligne, incidents, manque `google`) sans rien effacer de ce qu'il a ecrit. Le premier appel
@@ -184,7 +213,7 @@ impl Ouverture {
         self.incidents.is_empty() && self.manquants.is_empty()
     }
 
-    /// `_manque_coffre` : un secret absent -- la phrase du terminal, gardee pour ne pas la redire dans la fenetre.
+    /// Un secret absent -- la phrase du terminal, gardee pour ne pas la redire dans la fenetre.
     fn manque_coffre(&mut self, phrase: &str) {
         self.manquants.push(phrase.to_string());
         self.phrases_coffre.push(phrase.to_string());
@@ -339,8 +368,8 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
         Vec::new()
     } else {
         // Un journal illisible ne doit pas empecher la trace (l'ouverture n'echoue jamais).
-        etats::charger(&ctx.racine)
-            .and_then(|l| etats::flux_de_test(&l))
+        envois::journal::lu(&ctx.racine).map(|j| j.lignes)
+            .and_then(|l| etats::flux_de_test(&l).map_err(|e| e.message))
             .ok()
             .and_then(|v| v.as_array().cloned())
             .unwrap_or_default()
@@ -396,7 +425,7 @@ fn est_copie(racine: &Path) -> bool {
     racine.join(MARQUEUR_COPIE).is_file()
 }
 
-/// `datetime.now().strftime("%d/%m/%Y %H:%M")`, a l'heure de Paris.
+/// L'heure de Paris, `JJ/MM/AAAA HH:MM`.
 fn quand_maintenant() -> String {
     let iso = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
     format!("{}/{}/{} {}:{}", &iso[8..10], &iso[5..7], &iso[0..4], &iso[11..13], &iso[14..16])
@@ -431,7 +460,7 @@ fn coffre_dispo(ctx: &Contexte, service: &str) -> Result<bool, String> {
     crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "").disponible(service).map_err(|e| e.message)
 }
 
-/// `_trier_hors_ligne` : une seule phrase pour l'absence de reseau, pas une erreur par dossier et par organisme. Les erreurs
+/// Une seule phrase pour l'absence de reseau, pas une erreur par dossier et par organisme. Les erreurs
 /// qui ne disent que « pas de reseau » sortent des incidents ; les autres (un mot de passe refuse, un coffre ferme)
 /// restent, elles demandent un geste.
 /// Elles ne se perdent pas pour autant : `injoignables` garde de quoi dire QUI n'a pas repondu.

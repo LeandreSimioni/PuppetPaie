@@ -102,7 +102,7 @@ pub struct FinDeContrat {
 }
 
 impl FinDeContrat {
-    /// Depuis le dictionnaire de `dataclasses.asdict(FinDeContrat)`.
+    /// Depuis l'objet JSON de ses champs.
     pub fn lire(v: &Value) -> Resultat<FinDeContrat> {
         let t = |k: &str| -> Resultat<String> { req(v, k).map(en_texte) };
         let o = |k: &str| -> Option<String> {
@@ -352,11 +352,11 @@ preavis de L1234-1."
         let nt_j = d(nt)?;
         if !(e.debut <= nt_j && nt_j <= d(&fin.fin)?) {
             return Err(Echec::Impossible(format!(
-                "La notification de la rupture ({}) doit tomber entre le debut ({}) et la fin ({}) du contrat -- \
-CCH-11 de S21.G00.62.003.",
-                nt,
-                e.debut.iso(),
-                fin.fin
+                "Notifiée le {} : la rupture se notifie pendant le contrat, entre son premier jour, le {}, et sa fin, le \
+{} -- CCH-11 de S21.G00.62.003.",
+                nt_j.jj_mm_aaaa(),
+                e.debut.jj_mm_aaaa(),
+                d(&fin.fin)?.jj_mm_aaaa()
             )));
         }
     }
@@ -460,9 +460,9 @@ impl Default for Options {
 }
 
 /// Le fichier d'un FCTU, pret a deposer : les suspensions de l'engagement de la paie (bloc 65) ;
-/// `arrets` : les arrets a reporter (bloc 60).
+/// `arrets` : les arrets a reporter (bloc 60) ; `departs` : ce qui est parti, pour lire les engagements valides du mois.
 pub fn generer(
-    ctx: &Contexte, paie: &engagement::calcul::Paie, fin: &FinDeContrat, o: &Options, arrets: &[Arret],
+    ctx: &Contexte, paie: &engagement::calcul::Paie, fin: &FinDeContrat, o: &Options, arrets: &[Arret], departs: &engagement::departs::Departs,
 ) -> Result<String, Echec> {
     let type_declaration = o.type_declaration.as_str();
     let libelle_type = match type_de_declaration(type_declaration) {
@@ -557,9 +557,9 @@ ou un annule."
     f.add_v("S21.G00.06.004", ent("adresse")?)?;
     f.add_v("S21.G00.06.005", ent("code_postal")?)?;
     f.add_v("S21.G00.06.006", ent("commune")?)?;
-    // L'etablissement est celui du salarie, comme dans ses mensuelles (`dsn::etablissement_du_salarie`) : le NIC est
+    // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = crate::dsn::etablissement_du_salarie(ent0, s)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent0, s)?;
     for (rub, k) in [
         ("S21.G00.11.001", "nic"),
         ("S21.G00.11.002", "naf"),
@@ -615,7 +615,7 @@ ou un annule."
     // ------------------------------------------------------------ S21 contrat
     let siens: Vec<&Arret> = arrets.iter().collect();
     // Les emplois multiples (`40.036`) : les autres contrats du salarie dans la periode de paie du signalement.
-    let du_mois = crate::dsn::contrats_du_mois(ctx, &debut_p.mois_iso())?;
+    let du_mois = crate::dsn::contrats_du_mois(ctx, &debut_p.mois_iso(), departs)?;
     let emplois = crate::dsn::emplois_multiples(paie, &du_mois.iter().collect::<Vec<_>>());
     bloc_contrat_fctu(&mut f, paie, &ent_l, &orgs, 1, &bar, true, &siens, NATURE, Some(fin), emplois)?;
 

@@ -64,9 +64,8 @@ pub const CHAMPS_TEXTE: [&str; 10] = [
     "EMPLOYEUR_CORRES_EMAIL",
 ];
 pub const CHAMP_SIGNATURE: &str = "EMPLOYEUR_SIGNATURE";
-/// LA CASE D'A COTE, laissee vide jusqu'au 22/09/2026. Voir `cachet.rs` :
-/// ce qu'on posait dans la case SIGNATURE etait un tampon, et celle-ci
-/// restait blanche. Chacun chez soi.
+/// LA CASE D'A COTE de la signature : elle porte le cachet (voir `cachet.rs`) ; le tampon ne se pose pas
+/// dans la case SIGNATURE. Chacun chez soi.
 pub const CHAMP_CACHET: &str = "EMPLOYEUR_CACHET";
 
 // Quantites imprimees par France Travail, par rang de contrat (01 a 05).
@@ -218,7 +217,7 @@ pub fn entier(v: Option<&str>) -> Resultat<i128> {
 }
 
 /// << 23/08/2026 >> -> date. None si ce n'est pas une date ; une date qui
-/// n'existe pas (31/02) leve, comme `datetime.date`.
+/// n'existe pas (31/02) se refuse.
 pub fn jour(t: &str) -> Resultat<Option<Jour>> {
     let t = t.trim();
     let b = t.as_bytes();
@@ -477,4 +476,29 @@ pub fn remplir(donnees: &[u8], valeurs: &Map<String, Value>, images: &[Value]) -
     let description = json!({"format": fabrique_pdf::FORMAT, "champs": valeurs, "images": images});
     let texte = serde_json::to_string(&description).map_err(|e| Echec::Autre(e.to_string()))?;
     fabrique(fabrique_pdf::formulaire::remplir(donnees, &texte))
+}
+
+/// Toutes les periodes que l'AER de `cle` pour `periode` doit porter (`ecarts`) : chaque contrat dont l'AER est due ce
+/// mois-ci (`due`), mois par mois depuis son debut, chacun lu dans la paie de son mois (`paies_du_mois`).
+pub fn periodes_attendues(periode: &str, cle: &str, paies_du_mois: &mut dyn FnMut(&str) -> Vec<engagement::calcul::Paie>) -> Resultat<Vec<PaieAer>> {
+    let de_lui = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).as_deref() == Some(cle);
+    let mut out = Vec::new();
+    for p in paies_du_mois(periode).iter().filter(|p| de_lui(p)) {
+        let e = &p.engagement;
+        if !due(e)? {
+            continue;
+        }
+        let numero = e.numero.clone().unwrap_or_default();
+        let mut m = e.debut.iso()[..7].to_string();
+        while m.as_str() < periode {
+            for q in paies_du_mois(&m).iter().filter(|q| de_lui(q) && q.engagement.numero.as_deref() == Some(numero.as_str()) && !q.engagement.sans_paie()) {
+                out.push(PaieAer::du_mois(&q.engagement)?);
+            }
+            m = socle::date::premier_du_mois(&m)?.mois_suivant();
+        }
+        if !e.sans_paie() {
+            out.push(PaieAer::du_mois(e)?);
+        }
+    }
+    Ok(out)
 }

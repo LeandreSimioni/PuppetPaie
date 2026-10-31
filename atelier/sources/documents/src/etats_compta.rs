@@ -84,7 +84,7 @@ fn caler(s: String, n: usize, a_droite: bool) -> String {
     }
 }
 
-/// `_zone` : espaces ramenees a une, coupe a `n`, cadre a gauche (`g`) ou a droite (`d`).
+/// Espaces ramenees a une, coupe a `n`, cadre a gauche (`g`) ou a droite (`d`).
 fn zone(v: &str, n: usize, cote: char) -> String {
     caler(debut(&blancs(v), n), n, cote == 'd')
 }
@@ -94,7 +94,7 @@ fn deux(v: Decimal) -> String {
     eur2(v).to_string()
 }
 
-/// `str(x or "")` d'une valeur JSON.
+/// Une valeur JSON en texte, vide si elle manque ou est vide.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
         Some(x) if vrai(x) => valeur_en_texte(x),
@@ -158,7 +158,7 @@ fn cp1252(lignes: &[String]) -> Vec<u8> {
 
 // ------------------------------------------------------------------ les ecritures
 
-/// `_libelle_compte` : le libelle d'un compte, lu dans le plan : tiers, brut, net, PAS, retenues, puis les charges
+/// Le libelle d'un compte, lu dans le plan : tiers, brut, net, PAS, retenues, puis les charges
 /// (le premier libelle de ligne qui le porte).
 fn libelle_compte(plan: &Map<String, Value>, compte: &str) -> R<String> {
     if let Some(Value::Object(tiers)) = plan.get("tiers").filter(|t| vrai(t)) {
@@ -204,12 +204,12 @@ fn libelle_compte(plan: &Map<String, Value>, compte: &str) -> R<String> {
     Ok(String::new())
 }
 
-/// `regle.get("libelle", "")`.
+/// Le texte d'une valeur, vide si elle manque.
 fn texte_brut(v: Option<&Value>) -> String {
     v.map(valeur_en_texte).unwrap_or_default()
 }
 
-/// `_compte` : le sous-compte individuel du salarie quand le plan en tient un, le compte general sinon.
+/// Le sous-compte individuel du salarie quand le plan en tient un, le compte general sinon.
 fn compte_de(e: &Ecriture) -> String {
     if e.auxiliaire.is_empty() {
         e.compte.clone()
@@ -218,13 +218,13 @@ fn compte_de(e: &Ecriture) -> String {
     }
 }
 
-/// `_libelle`.
+/// Le libelle d'une ecriture : celui de son compte, complete de ce qui la distingue.
 fn libelle_de(plan: &Map<String, Value>, e: &Ecriture) -> R<String> {
     let lib = libelle_compte(plan, &e.compte)?;
     Ok(if e.auxiliaire.is_empty() { lib } else { format!("{} — {}", lib, e.auxiliaire_libelle) })
 }
 
-/// `_ligne` : une ligne d'ecriture pour un tableau.
+/// Une ligne d'ecriture pour un tableau.
 fn ligne_de(e: &Ecriture, plan: &Map<String, Value>) -> R<Ligne> {
     let mut l = Ligne::nouvelle();
     l.t("journal", e.journal.clone()).t("date", jj(&e.date)).t("piece", e.piece.clone()).t("compte", compte_de(e));
@@ -235,14 +235,14 @@ fn ligne_de(e: &Ecriture, plan: &Map<String, Value>) -> R<Ligne> {
     Ok(l)
 }
 
-/// `_ecritures` : les ecritures de la periode, numerotees -- une ecriture (une piece) par mois, ses lignes dans
+/// Les ecritures de la periode, numerotees -- une ecriture (une piece) par mois, ses lignes dans
 /// l'ordre de `ecritures_du_mois`.
-fn ecritures_de(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<(Vec<Ecriture>, Map<String, Value>, &'static str)> {
+fn ecritures_de(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<(Vec<Ecriture>, Map<String, Value>, &'static str)> {
     let (plan, origine) = crate::plan_comptable::plan(ctx)?;
     let mut out = Vec::new();
     let mois = ecarter_declares(p, avert, "la répartition des cotisations — donc pas d'écriture équilibrée")?;
     for (n, m) in mois.iter().enumerate() {
-        for mut e in ecritures_du_mois(ctx, m, &plan)? {
+        for mut e in ecritures_du_mois(ctx, m, &plan, departs)? {
             e.piece = format!("PAIE-{}", m);
             e.numero = n as i64 + 1;
             out.push(e);
@@ -275,7 +275,7 @@ impl Envoi<'_> {
     }
 }
 
-/// `_code` : un titre en code -- lettres et chiffres, sans accent, en majuscules, coupe a la largeur de la zone.
+/// Un titre en code -- lettres et chiffres, sans accent, en majuscules, coupe a la largeur de la zone.
 fn code_du_titre(titre: &str, n: usize) -> String {
     let ascii = socle::texte::ascii_nfkd(titre);
     debut(&ascii.to_uppercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>(), n)
@@ -356,7 +356,7 @@ const ZONES_FEC: [&str; 18] = [
     "Credit", "EcritureLet", "DateLet", "ValidDate", "Montantdevise", "Idevise",
 ];
 
-/// `_fec_propre` : ni tabulation ni fin de ligne dans une zone.
+/// Ni tabulation ni fin de ligne dans une zone.
 fn fec_propre(s: &str) -> String {
     blancs(&s.replace('\t', " "))
 }
@@ -399,7 +399,7 @@ fn fec(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ outils communs
 
-/// `_libelle_court` : le libelle d'une ligne dans une zone etroite -- ce qui la distingue (le spectacle ou le
+/// Le libelle d'une ligne dans une zone etroite -- ce qui la distingue (le spectacle ou le
 /// salarie, sinon la nature ; les deux si `nature`) et le mois, qui reste entier.
 fn libelle_court(e: &Ecriture, n: usize, nature: bool) -> String {
     let mm = format!("{}/{}", tranche(&e.date, 5, 7), debut(&e.date, 4));
@@ -426,12 +426,12 @@ fn libelle_court(e: &Ecriture, n: usize, nature: bool) -> String {
     format!("{} {}", tete.trim_end_matches([' ', '—', '-']), mm)
 }
 
-/// `_piece_courte` : PAIE-2026-08 fait 12 caracteres ; Oxygene et Quadra en prennent 10.
+/// PAIE-2026-08 fait 12 caracteres ; Oxygene et Quadra en prennent 10.
 fn piece_courte(e: &Ecriture) -> String {
     debut(&format!("PAIE{}", e.mois.replace('-', "")), 10)
 }
 
-/// `_sens`.
+/// Le sens (D ou C) et le montant d'une ecriture.
 fn sens(e: &Ecriture) -> (&'static str, Decimal) {
     if e.debit.is_zero() {
         ("C", e.credit)
@@ -440,17 +440,17 @@ fn sens(e: &Ecriture) -> (&'static str, Decimal) {
     }
 }
 
-/// `_jjmmaa`.
+/// La date JJMMAA d'un jour ISO.
 fn jjmmaa(date: &str) -> String {
     format!("{}{}{}", tranche(date, 8, 10), tranche(date, 5, 7), tranche(date, 2, 4))
 }
 
-/// `_csv_propre` : ni point-virgule ni fin de ligne dans une zone.
+/// Ni point-virgule ni fin de ligne dans une zone.
 fn csv_propre(s: &str) -> String {
     blancs(&s.replace(';', ","))
 }
 
-/// `_virgule`.
+/// Un montant a deux decimales, la virgule pour separateur ; vide s'il est nul.
 fn virgule(v: Decimal) -> String {
     if v.is_zero() {
         String::new()
@@ -465,7 +465,7 @@ fn limites(format: &str) -> Option<(String, usize, usize)> {
     Some((l["nom"].as_str()?.to_string(), l["compte"].as_u64()? as usize, l["journal"].as_u64()? as usize))
 }
 
-/// `_borne` : le compte et le journal tiennent dans leurs zones, ou on refuse.
+/// Le compte et le journal tiennent dans leurs zones, ou on refuse.
 fn borne(format: &str, compte: &str, journal: &str) -> R<()> {
     let (nom, lc, lj) = limites(format).ok_or_else(|| erreur("KeyError", format!("format inconnu : {}", socle::fichiers::repr(format))))?;
     if compte.chars().count() > lc || journal.chars().count() > lj {
@@ -616,7 +616,7 @@ const POSITIONS_QUADRA_COMPTE: [(&str, usize); 12] = [
     ("type_compte", 1),
 ];
 
-/// `_compte_quadra` : huit caracteres, pas un de plus ; un compte de chiffres plus court est complete de zeros.
+/// Huit caracteres, pas un de plus ; un compte de chiffres plus court est complete de zeros.
 fn compte_quadra(compte: &str) -> R<String> {
     if compte.chars().count() > 8 {
         return Err(refus(format!(
@@ -636,7 +636,7 @@ fn caler_zeros(compte: &str, n: usize) -> String {
     s
 }
 
-/// `_quadra_ligne` : les zones a la suite, cadrees a gauche.
+/// Les zones a la suite, cadrees a gauche.
 fn quadra_ligne(champs: &BTreeMap<&str, String>, positions: &[(&str, usize)]) -> String {
     positions.iter().map(|(k, n)| zone(champs.get(k).map(String::as_str).unwrap_or(""), *n, 'g')).collect()
 }
@@ -679,12 +679,12 @@ fn quadra(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ EBP
 
-/// `_ebp_texte` : entre guillemets, sans guillemet dedans.
+/// Entre guillemets, sans guillemet dedans.
 fn ebp_texte(s: &str, n: usize) -> String {
     format!("\"{}\"", debut(&blancs(&s.replace('"', "'")), n))
 }
 
-/// `_ebp_zone` : une zone sans guillemets ne contient pas de virgule.
+/// Une zone sans guillemets ne contient pas de virgule.
 fn ebp_zone(s: &str) -> String {
     blancs(&s.replace(',', " ").replace('"', "'"))
 }
@@ -881,7 +881,7 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     if format.is_empty() {
         format = "csv".to_string();
     }
-    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert)?;
+    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert, &d.departs)?;
     let mut t = Tableau::nouveau("ecritures-comptables", "Journal de paie — écritures comptables", p.libelle.clone());
     t.mois = p.saisis();
     t.avertissements = avert;
@@ -958,7 +958,7 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ------------------------------------------------------------------ le grand livre
 
-/// `_solde`.
+/// Le solde d'une ligne, dit « débiteur », « créditeur » ou « nul ».
 fn solde(d: &Ligne) -> String {
     let zero = zero2();
     let v = sub(d.decimal("debit").unwrap_or(zero), d.decimal("credit").unwrap_or(zero));
@@ -976,7 +976,7 @@ fn solde(d: &Ligne) -> String {
 pub fn grand_livre(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
-    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert)?;
+    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert, &d.departs)?;
     let mut par: BTreeMap<String, Vec<Ligne>> = BTreeMap::new();
     let mut libelles: BTreeMap<String, String> = BTreeMap::new();
     for e in &ecr {
@@ -1017,7 +1017,7 @@ pub fn grand_livre(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 pub fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
-    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert)?;
+    let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert, &d.departs)?;
     let zero = zero2();
     // compte -> (libelle, debit, credit)
     let mut par: BTreeMap<String, (String, Decimal, Decimal)> = BTreeMap::new();
@@ -1062,7 +1062,7 @@ pub fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ------------------------------------------------------------------ la provision de conges payes
 
-/// `_taux_patronal` : le taux REEL des cotisations patronales d'un salarie -- ses cotisations patronales sur son
+/// Le taux REEL des cotisations patronales d'un salarie -- ses cotisations patronales sur son
 /// brut, sur les douze mois qui finissent a `jusqu_a`. Rend (taux en %, nombre de bulletins lus).
 fn taux_patronal(lignes: &[crate::etats_paie::LigneLivre], cle: &str, jusqu_a: &str) -> R<(Option<Decimal>, i64)> {
     let annee: i64 = debut(jusqu_a, 4).parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
@@ -1098,9 +1098,9 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let fin = socle::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
     let mut avert: Vec<String> = Vec::new();
     // Ce qui a ete paye ce mois-la : les paies ecrites de ses engagements valides, la saisie au meme rang.
-    let (saisie, paies) = charger_mois(ctx, &m)?;
+    let (saisie, paies) = charger_mois(ctx, &m, &d.departs)?;
     let toutes = Periode::nouvelle(ctx, None, None, true, true)?;
-    let livre = lignes_livre(ctx, &toutes, &mut Vec::new())?;
+    let livre = lignes_livre(ctx, &toutes, &mut Vec::new(), &d.departs)?;
     let zero = zero2();
     let mut lignes: Vec<Ligne> = Vec::new();
     let mut vus: BTreeSet<String> = BTreeSet::new();
@@ -1121,7 +1121,7 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             continue;
         }
         let brut_du_mois = paies.iter().filter(|q| cle_de(q) == cle).fold(zero, |a, q| add(a, q.brut));
-        let Some(cpt) = provision_conges_de(pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)? else { continue };
+        let Some(cpt) = engagement::conges::provision_conges_de(pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)? else { continue };
         for a in &cpt.avertissements {
             avert.push(format!("{} : {}", cle, a.texte));
         }
@@ -1280,7 +1280,7 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut ordre: Vec<String> = Vec::new();
     let mut par: BTreeMap<String, (String, Decimal, Decimal, BTreeSet<String>)> = BTreeMap::new();
     for m in p.saisis_sans_les_importes(&mut avert, "l'assiette de la CSG d'où se calcule la taxe")? {
-        let paies = match charger_mois(ctx, &m) {
+        let paies = match charger_mois(ctx, &m, &d.departs) {
             Ok((_, paies)) => paies,
             Err(e) if matches!(e.classe, Some("ErreurOperation") | Some("ValueError") | Some("KeyError") | Some("FileNotFoundError")) => {
                 avert.push(format!("{} : le mois ne se charge pas ({}) — écarté.", m, e.message));
@@ -1398,53 +1398,4 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 #[allow(dead_code)]
 fn _inutilises() {
     let _ = Val::txt("");
-}
-
-/// Le compteur d'un permanent a la fin du mois et l'indemnite de son solde.
-pub struct Provision {
-    pub report_restant: socle::num::Decimal,
-    pub acquis: socle::num::Decimal,
-    pub pris: socle::num::Decimal,
-    pub solde: socle::num::Decimal,
-    pub avertissements: Vec<engagement::Avis>,
-    pub indemnite: Option<droit::conges::IndemniteDesJours>,
-}
-
-/// La provision de conges d'un permanent a la fin de `mois`, lue dans la paie ecrite `paie` de ce mois : le compteur
-/// que son bulletin montre (`Paie::conges`, ecrit a la validation), dont l'assiette du dixieme compte aussi le brut du
-/// mois (`brut_du_mois`, celui des paies ecrites du salarie), et l'indemnite de son solde (le dixieme ou le maintien,
-/// L3141-24) quand il est positif. `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0). `None` : un
-/// contrat sans compteur de l'employeur (declare a la caisse des Conges Spectacles). Refus : une paie validee qui ne
-/// porte pas le compteur qu'elle devrait.
-pub fn provision_conges_de(paie: &engagement::calcul::Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> socle::num::Resultat<Option<Provision>> {
-    use droit::conges::jours_ouvrables;
-
-    use socle::num::{add, dec, div, eur, mul, Decimal};
-    let Some(ecrit) = paie.conges.as_ref() else {
-        if paie.declaree_a_la_caisse_des_conges()? {
-            return Ok(None);
-        }
-        return Err(format!(
-            "{} : la paie validee de {} ne porte pas le compteur de conges que son bulletin montre. Revalider l'engagement.",
-            paie.engagement.salarie, mois
-        ));
-    };
-    let fin = socle::date::dernier_du_mois(mois)?;
-    let mut cpt = ecrit.clone();
-    cpt.remuneration_periode = add(cpt.remuneration_periode, brut_du_mois);
-    let solde = cpt.solde();
-    let salaire = match salaire_mensuel {
-        Some(v) if socle::fichiers::vrai(v) => dec(v)?,
-        _ => Decimal::ZERO,
-    };
-    let ouvrables = match jours_ouvrables(&socle::date::premier_du_mois(mois)?, &fin, None)? {
-        0 => Decimal::ONE,
-        n => Decimal::from(n),
-    };
-    let indemnite = if solde > Decimal::ZERO {
-        Some(cpt.indemnite_des_jours(solde, eur(mul(div(salaire, ouvrables), solde)))?)
-    } else {
-        None
-    };
-    Ok(Some(Provision { report_restant: cpt.report_restant(), acquis: cpt.acquis, pris: cpt.pris, solde, avertissements: cpt.avertissements.clone(), indemnite }))
 }

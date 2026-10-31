@@ -1,4 +1,4 @@
-//! `moteur deposer-dpae FICHIER [--test | --reel] [--confirmer AAAA-MM] [--majuscules] [--sans-repetition MOTIF] [--fenetre]` :
+//! `moteur deposer-dpae FICHIER|AAAA-MM [--test | --reel] [--confirmer AAAA-MM] [--majuscules] [--sans-repetition MOTIF] [--fenetre]` :
 //! deposer une DPAE deja produite. ESSAI A BLANC par defaut : sans `--test` ni
 //! `--reel`, la commande relit le fichier, affiche chaque personne declaree, verifie les delais, et s'arrete.
 //!
@@ -69,7 +69,17 @@ fn jour_de(t: &str, quoi: &str) -> Result<socle::date::Jour, Echec> {
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let (test, reel) = (args.drapeau("test"), args.drapeau("reel"));
     let fichier = args.texte("fichier").unwrap_or("");
-    let chemin = match crate::routes::depots::resoudre(&cadre.racine, &json!(fichier)) {
+    // Un mois : la DPAE que la designation donne (`depots::designee`) : ecrite, ou reprise telle qu'elle a ete testee.
+    let designee = if socle::date::mois_valide(fichier) {
+        let (chemin, dit) = crate::routes::depots::designee(&cadre.ctx, &json!({"quoi": "dpae", "mois": fichier}))?;
+        if let Some(p) = dit.get("phrase").and_then(serde_json::Value::as_str) {
+            dire!("{}", p);
+        }
+        chemin
+    } else {
+        json!(fichier)
+    };
+    let chemin = match crate::routes::depots::resoudre(&cadre.racine, &designee) {
         Ok(c) => c,
         Err(e) => {
             dire!("Fichier introuvable : {}", e.message);
@@ -79,7 +89,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let p = std::path::Path::new(&chemin);
     if !p.exists() {
         dire!("Fichier introuvable : {}", chemin);
-        dire!("Le produire d'abord :  moteur dpae AAAA-MM");
+        dire!("Le produire d'abord :  moteur deposer-dpae AAAA-MM");
         return Ok(1);
     }
     if p.extension().is_some_and(|e| e.eq_ignore_ascii_case("zip")) {
@@ -104,8 +114,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     // ------------------------------------------------------------- relecture
     let nom_fichier = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     dire!("\n{} -- {} declaration(s), {} octets\n{}", nom_fichier, enregistrements.len(), contenu.len(), "-".repeat(66));
-    let aujourdhui = cadre.aujourdhui;
-    let mut hors_delai = 0usize;
     for e in &enregistrements {
         let debut = match jour_de(&champ(e, "date_embauche"), "Date d'embauche") {
             Ok(j) => j,
@@ -115,20 +123,11 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             Ok(j) => j,
             Err(r) => return Ok(super::actes::reponse_metier("deposer-dpae", false, &r, &[])),
         };
-        let reste = debut.ordinal() - aujourdhui.ordinal();
-        let etat = if reste < 0 {
-            hors_delai += 1;
-            "EMBAUCHE PASSEE - hors delai".to_string()
-        } else if reste > 0 {
-            format!("dans {} jour(s)", reste)
-        } else {
-            "aujourd'hui".to_string()
-        };
         let heure = champ(e, "heure_embauche");
         let (h, m) = (heure.chars().take(2).collect::<String>(), heure.chars().skip(2).collect::<String>());
         // Le type de contrat se LIT dans le fichier : c'est ce qui separe la DPAE d'un permanent de celle d'un intermittent.
         dire!(
-            "  {:<22} {:<12} ne(e) le {}   {} embauche le {} a {}h{}   {}",
+            "  {:<22} {:<12} ne(e) le {}   {} embauche le {} a {}h{}",
             champ(e, "nom").trim(),
             champ(e, "prenom").trim(),
             naissance.jj_mm_aaaa(),
@@ -136,7 +135,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             debut.jj_mm_aaaa(),
             h,
             m,
-            etat
         );
     }
     dire!("{}", "-".repeat(66));
@@ -169,10 +167,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         .collect();
     mois.sort();
     mois.dedup();
-    if hors_delai > 0 {
-        dire!("\n>>> {} embauche(s) deja commencee(s) : la declaration est en retard.", hors_delai);
-        dire!(">>> La deposer quand meme, telle quelle, sans antidater.");
-    }
 
     // ------------------------------------------------------------ essai a blanc
     if !reel && !test {
@@ -245,6 +239,9 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     dire!("\nDepot {} recu par le SI DPAE (accuse de transport).", if test { "DE TEST" } else { "REEL" });
     dire!("Reponse archivee : {}", fait.trace.as_ref().map(|t| t.display().to_string()).unwrap_or_else(|| "None".into()));
     dire!("\n{}", fait.reponse.chars().take(2000).collect::<String>());
+    for phrase in &fait.demandes_de_taux {
+        dire!("\n{}", phrase);
+    }
     let bilan = if fait.flux.is_empty() { "moteur retours --dpae".to_string() } else { format!("moteur retours --dpae --flux {}", fait.flux) };
     if test {
         dire!(

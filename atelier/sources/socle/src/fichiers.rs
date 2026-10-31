@@ -372,7 +372,7 @@ pub fn json_partage(chemin: &Path) -> Resultat<Option<Arc<Value>>> {
     Ok(Some(v))
 }
 
-/// `json.loads(p.read_text(encoding="utf-8"))`, sans cache.
+/// Le JSON d'un fichier UTF-8, sans cache.
 pub fn lire_json(chemin: &Path) -> Resultat<Value> {
     let texte = lire_texte(chemin)
         .map_err(|e| format!("{} : {}", chemin.display(), e))?;

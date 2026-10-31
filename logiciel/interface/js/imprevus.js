@@ -2,8 +2,8 @@
 "use strict";
 
 /* ------------------------------------------------ LES IMPRÉVUS
-   Léandre : « simple pour les gens qui ont besoin de simple, compliqué pour
-   les gens qui ont besoin de compliqué ». Quelqu'un qui fait des paies
+   Simple pour qui a besoin de simple, compliqué pour qui a besoin de compliqué.
+   Quelqu'un qui fait des paies
    apprend qu'un salarié est malade : il va sur la ligne de ce salarié, pas
    dans une section du mois qui dirait « Arrêts de travail » tous les mois
    pour rien. Les imprévus sont rares, et rien ici ne doit laisser croire
@@ -209,27 +209,79 @@ function brancherObligation(r, a, o) {
   if (b("connu")) b("connu").onclick = () => boiteConnaissance(a, CONNAISSANCE[o.cle], o);
 }
 
-/* LA FIN D'UN CONTRAT QUI SE SIGNALE (nature 07, 19/09/2026), sous la même
+/* LA FIN D'UN CONTRAT QUI SE SIGNALE (nature 07), sous la même
    forme. Un CDI ou un CDD ordinaire qui se termine fait un signalement à
    part ; un CDD d'usage à son terme (031) n'en fait pas — sa fin part dans la
    mensuelle ; rompu avant (036, 037…), il se signale (fiche 2062). C'est le
    moteur qui tranche (`Nature::signalement_fctu`, route `fins-de-contrat`).
    Ce qui manque au signalement se tape dans la carte, sous « Contrat » :
-   proposer un bouton qui refuse serait pire que ne rien proposer. */
+   proposer un bouton qui refuse serait pire que ne rien proposer. Le
+   moteur dit chaque manque par le nom de sa case et ce qu'on y met
+   (`a_saisir`) ; il se lit sans rien déplier, et « La dire… » mène à la
+   case. Une fin d'un mois passé dont le signalement est en retard paraît
+   aussi (`mois`) : une échéance manquée ne se tait pas. */
 function rangFin(f, k) {
   const manque = f.a_saisir.length;
+  const ailleurs = f.mois && f.mois !== MOIS_AFFICHE ? ` (${moisEnClair(f.mois)})` : "";
   return rangDu(k, pastilleDeLEtat(f.pastille), (f.obligation && f.obligation.libelle) || "Signalement de fin de contrat",
-    `${nomDuSalarie(f.salarie)}, ${f.nature}, fin le ${jjmmaaaa(f.fin)}`, butoirEnClair(f.obligation),
+    `${nomDuSalarie(f.salarie)}, ${f.nature}, fin le ${jjmmaaaa(f.fin)}${ailleurs}`, butoirEnClair(f.obligation),
     `<button class="secondaire petit" data-geste="signaler"${manque ? " disabled" : ""}>Signaler…</button>
      <button class="lien" data-geste="papiers">Les papiers de fin…</button>`,
-    manque ? `<details class="pourquoi du-manque"><summary>${manque} chose${manque > 1 ? "s" : ""} à dire dans sa carte,
-      sous « Contrat », avant de signaler</summary>${f.a_saisir.map((m) => `<p>${echapper(m)}</p>`).join("")}</details>` : "",
+    manque ? `<div class="du-manque"><p>À dire dans sa carte, sous « Contrat », avant de signaler :</p>
+      ${f.a_saisir.map((m, i) => `<p><b>${echapper(m.case)}</b> : ${echapper(m.dire)}
+        <button class="lien" data-case="${i}">La dire…</button></p>`).join("")}</div>` : "",
     pourquoiDu(f.obligation));
 }
 
 function brancherFin(r, mois, f) {
-  r.querySelector('[data-geste="signaler"]').onclick = () => boiteSignalerFin(mois, f);
-  r.querySelector('[data-geste="papiers"]').onclick = () => boitePapiersDeFin(mois, f.salarie);
+  r.querySelector('[data-geste="signaler"]').onclick = () => boiteSignalerFin(f.mois || mois, f);
+  r.querySelector('[data-geste="papiers"]').onclick = () => boitePapiersDeFin(f.mois || mois, f.salarie);
+  r.querySelectorAll("[data-case]").forEach((b) => {
+    b.onclick = () => allerALaCase(f, f.a_saisir[Number(b.dataset.case)].champ);
+  });
+}
+
+/* LA CASE D'UN MANQUE, dans la carte de l'engagement : le mois de la fin,
+   la carte du salarié, rouverte à la modification si elle est validée (le
+   chemin de toujours, « Modifier l'engagement… »), le bloc « Contrat »
+   déplié, la case sous le curseur. */
+const CASES_DE_FIN = {
+  motif_rupture: ".e-motif-rupture",
+  notification_rupture: ".e-notification",
+  preavis: ".e-preavis-type",
+  dernier_jour_paye: ".e-dernier-paye",
+};
+
+/** Attend que `test()` rende quelque chose (au plus `ms`) ; rend ce qu'il rend, ou null. */
+async function attendre(test, ms) {
+  for (let t = 0; t < ms; t += 200) {
+    const v = test();
+    if (v) return v;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return null;
+}
+
+async function allerALaCase(f, champ) {
+  if (f.mois && f.mois !== MOIS_AFFICHE) allerAuMois(f.mois);
+  const carte = () => {
+    if (f.mois && (MOIS_AFFICHE !== f.mois || document.getElementById("engagements").classList.contains("en-lecture"))) return null;
+    const siennes = [...document.querySelectorAll("#engagements .engagement")]
+      .filter((d) => salarieDuBloc(d).toUpperCase() === String(f.salarie).toUpperCase());
+    return siennes.find((d) => carteDe(d).numero === f.numero || (f.debut && carteDe(d).debut === f.debut)) || siennes[0] || null;
+  };
+  let div = await attendre(carte, 15000);
+  if (!div) { dire(`La carte de ${nomDuSalarie(f.salarie)} ne se trouve pas dans ${moisEnClair(f.mois || MOIS_AFFICHE)}.`, "erreur"); return; }
+  if (div.classList.contains("validee") && div._ligne) ouvrirEnModification(div);
+  else ouvrirCarte(div);
+  const options = div.querySelector(".e-options");
+  if (options) options.hidden = false;
+  const contrat = div.querySelector(".e-contrat");
+  if (contrat) contrat.open = true;
+  const cible = (CASES_DE_FIN[champ] && div.querySelector(CASES_DE_FIN[champ])) || div.querySelector(".e-contrat");
+  if (!cible) return;
+  cible.scrollIntoView({ block: "center" });
+  cible.focus();
 }
 
 /* --------------------------------------------------------- LA PORTE
@@ -239,12 +291,12 @@ function brancherFin(r, mois, f) {
    validé. */
 function majPorteImprevu(div) {
   const b = div.querySelector(".e-imprevu-btn");
-  if (b) b.hidden = salariesDuBloc(div).length !== 1;
+  if (b) b.hidden = !salarieDuBloc(div);
 }
 
 /** Ce que la carte sait de son contrat : le salarié, le numéro s'il est figé, le début. */
 function carteDe(div) {
-  const salarie = salariesDuBloc(div)[0] || "";
+  const salarie = salarieDuBloc(div);
   return {
     div, salarie,
     numero: div.dataset.numeroDe === salarie ? div.dataset.numero || "" : "",
@@ -322,7 +374,7 @@ function peindreImprevusDesCartes() {
   const cartes = [...document.querySelectorAll("#engagements .engagement")];
   const parCarte = new Map(cartes.map((d) => [d, []]));
   ((IMPREVUS && IMPREVUS.imprevus) || []).forEach((i) => {
-    const siennes = cartes.filter((d) => salariesDuBloc(d).some((x) => x.toUpperCase() === String(i.salarie).toUpperCase()));
+    const siennes = cartes.filter((d) => salarieDuBloc(d).toUpperCase() === String(i.salarie).toUpperCase());
     const c = siennes.find((d) => {
       const x = carteDe(d);
       return (i.contrat && x.numero === i.contrat) || (i.contrat_debut && x.debut === i.contrat_debut);
@@ -346,7 +398,7 @@ function peindreImprevusDeLaCarte(div, liste) {
         ${jours.length ? `<div class="imprevu-jours">Payé pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"} :
           ${jours.map((c) => c.dates.map((iso) => `${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}
             ${validee ? "" : `<button class="lien" data-retirer="${echapper(iso)}" data-rubrique="${echapper(c.rubrique)}">retirer ce jour</button>`}`).join(" · ")).join(" · ")}
-          ${validee ? `<span class="discret">— l'engagement est validé : cliquer sur la carte, puis « Modifier l'engagement… », pour retirer ces jours.</span>` : ""}
+          ${validee ? `<span class="discret">— l'engagement est validé : cliquer sur sa carte pour l'ouvrir, retirer ces jours, puis « Modifier l'engagement ».</span>` : ""}
         </div>` : ""}
       </div>`;
   }).join("");
@@ -354,11 +406,11 @@ function peindreImprevusDeLaCarte(div, liste) {
     const r = cible.querySelector(`[data-imprevu="${k}"]`);
     brancherGestesImprevu(r, i, MOIS_AFFICHE, rafraichirImprevus);
     r.querySelectorAll("[data-retirer]").forEach((b) => {
-      b.onclick = () => {
-        if (retirerJour(div, b.dataset.rubrique, b.dataset.retirer)) {
-          dire(`Le ${jjmmaaaa(b.dataset.retirer)} est retiré de la ligne de paie. La saisie s'enregistre.`);
-        } else {
+      b.onclick = async () => {
+        if (!retirerJour(div, b.dataset.rubrique, b.dataset.retirer)) {
           dire(`Le ${jjmmaaaa(b.dataset.retirer)} n'est sur aucune ligne ouverte de cette carte : le décocher au calendrier.`, "erreur");
+        } else if (await avantDeQuitter()) {
+          dire(`Le ${jjmmaaaa(b.dataset.retirer)} est retiré de la ligne de paie.`);
         }
       };
     });
@@ -408,9 +460,10 @@ function brancherGestesImprevu(r, i, mois, apres) {
   if (b("fin")) b("fin").onclick = () => boiteFinAbsence(i, apres);
   if (b("retirer")) b("retirer").onclick = async () => {
     try {
-      if (i.genre === "arret") await api("arret-oublier", { salarie: i.salarie, dernier_jour: i.dernier_jour_travaille });
-      else await api("suspension-oublier", { salarie: i.salarie, debut: i.debut });
-      dire(`${quoiDeLImprevu(i)} retiré : aucune déclaration ne l'avait porté.`);
+      const r = i.genre === "arret"
+        ? await api("arret-oublier", { salarie: i.salarie, dernier_jour: i.dernier_jour_travaille })
+        : await api("suspension-oublier", { salarie: i.salarie, debut: i.debut });
+      dire(r.phrase);
       await apres();
     } catch (e) { dire(e.message, "erreur"); }
   };
@@ -577,17 +630,11 @@ async function boiteArret(ou) {
       charge.subrogation_fin = val("ar-sub-fin");
     }
     if (val("ar-note").trim()) charge.note = val("ar-note").trim();
+    if (avecDeclaration && val("ar-connu")) charge.connu = { jour: val("ar-connu"), heure: val("ar-connu-heure") };
     let r;
     try { r = await api("arret-enregistrer", charge); }
     catch (e) { dire(e.message, "erreur"); return; }
-    // Le jour où la compagnie a su l'accident : le point de départ des 48 heures.
-    if (avecDeclaration && val("ar-connu")) {
-      try {
-        await api("arret-connaissance", { salarie: p.salarie, dernier_jour: charge.dernier_jour,
-          de: "accident", jour: val("ar-connu"), heure: val("ar-connu-heure") });
-      } catch (e) { dire("Arrêt enregistré, mais pas le jour où l'accident a été su : " + e.message, "erreur"); }
-    }
-    await etapeSuite(r.arret, p, "Arrêt enregistré.");
+    await etapeSuite(r.arret, p, r.phrase);
   };
 }
 
@@ -637,7 +684,7 @@ async function boiteAbsence(ou) {
     let r;
     try { r = await api("suspension-enregistrer", charge); }
     catch (e) { dire(e.message, "erreur"); return; }
-    await etapeSuite(r.suspension, p, "Absence enregistrée. Chaque mois qu'elle traverse la déclarera.");
+    await etapeSuite(r.suspension, p, r.phrase);
   };
 }
 
@@ -697,7 +744,7 @@ async function etapeSuite(i, p, phrase) {
       const c = jours[+x.dataset.jour];
       if (retirerJour(div, c.rubrique, x.value)) retires++;
     });
-    if (retires) dire(`${retires} jour${retires > 1 ? "s" : ""} retiré${retires > 1 ? "s" : ""} de l'engagement. La saisie s'enregistre.`);
+    if (retires && await avantDeQuitter()) dire(`${retires} jour${retires > 1 ? "s" : ""} retiré${retires > 1 ? "s" : ""} de l'engagement.`);
     await finir();
   };
 }
@@ -723,12 +770,13 @@ async function boiteReprise(a, apres) {
       <button class="primaire" id="re-ok">Enregistrer</button>
     </div>`);
   document.getElementById("re-ok").onclick = async () => {
+    let r;
     try {
-      await api("arret-reprise", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
+      r = await api("arret-reprise", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
         reprise: document.getElementById("re-date").value, motif_reprise: document.getElementById("re-motif").value });
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire("Reprise notée.");
+    dire(r.phrase);
     await apres();
   };
 }
@@ -752,8 +800,8 @@ function boiteProlonger(a, apres) {
       r = await api("arret-prolonger", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
         fin: document.getElementById("pr-fin").value });
     } catch (e) { dire(e.message, "erreur"); return; }
-    dire((r.avertissements || []).join("  ·  ") || "Arrêt prolongé.");
-    if (r.subrogation_a_revoir) { boiteSubrogationProlongee(r.arret, r.phrase, apres); return; }
+    dire(r.phrase);
+    if (r.subrogation_a_revoir) { boiteSubrogationProlongee(r.arret, r.subrogation_a_revoir, apres); return; }
     fermerBoite();
     await apres();
   };
@@ -779,7 +827,7 @@ function boiteSubrogationProlongee(a, phrase, apres) {
         subrogation_fin: document.getElementById("ps-fin").value });
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire((r.avertissements || []).join("  ·  ") || "Subrogation notée.");
+    dire(r.phrase);
     await apres();
   };
 }
@@ -801,12 +849,13 @@ function boiteMaintien(a, mois, apres) {
     </div>`);
   document.getElementById("ma-ok").onclick = async () => {
     const deja = document.getElementById("ma-deja");
+    let r;
     try {
-      await api("arret-maintien", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille, mois,
+      r = await api("arret-maintien", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille, mois,
         montant: document.getElementById("ma-montant").value, ...(deja ? { jours_deja_indemnises: deja.value } : {}) });
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire("Maintien noté : la paie du mois le portera.");
+    dire(r.phrase);
     await apres();
   };
 }
@@ -821,10 +870,11 @@ function boiteFinAbsence(s, apres) {
       <button class="primaire" id="af-ok">Enregistrer</button>
     </div>`);
   document.getElementById("af-ok").onclick = async () => {
-    try { await api("suspension-modifier", { salarie: s.salarie, debut: s.debut, fin: document.getElementById("af-fin").value }); }
+    let r;
+    try { r = await api("suspension-modifier", { salarie: s.salarie, debut: s.debut, fin: document.getElementById("af-fin").value }); }
     catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire("Fin de l'absence changée.");
+    dire(r.phrase);
     await apres();
   };
 }
@@ -862,9 +912,9 @@ function boiteSignalerArret(a, nature) {
     } catch (e) { rendre(); dire(e.message, "erreur"); return; }
     fermerBoite();
     // Les avis du signalement suivent le message, sur la même ligne.
-    dire(["Signalement écrit : " + r.nom + ". Rien n'est parti."].concat(r.avertissements || []).join("  ·  "));
+    dire(r.phrase);
     await rafraichirImprevus();
-    boiteDepot("dsn", r.fichier);
+    boiteDepot({ quoi: "dsn", fichier: r.fichier });
   };
 }
 
@@ -956,10 +1006,9 @@ function boiteSignalerFin(mois, f) {
                                               remplace: document.getElementById("fi-remplace").value.trim() });
     } catch (e) { rendre(); dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire(["Signalement écrit : " + r.nom + " (préavis : " + r.preavis + "). Rien n'est parti."]
-      .concat(r.avertissements || []).join("  ·  "));
+    dire(r.phrase);
     await rafraichirImprevus();
-    boiteDepot("dsn", r.fichier);
+    boiteDepot({ quoi: "dsn", fichier: r.fichier });
   };
 }
 
@@ -970,7 +1019,7 @@ async function boitePapiersDeFin(mois, salarie) {
   catch (e) { dire(e.message, "erreur"); return; }
   ouvrirBoite(`
     <h3>Le certificat de travail et le reçu pour solde de tout compte</h3>
-    <p class="discret">Écrits pour ${echapper(nomDuSalarie(salarie))} : ${r.noms.map((x) => echapper(x)).join(", ")}.</p>
+    <p class="discret">${echapper(r.phrase)}</p>
     ${(r.avertissements || []).map((m) => `<div class="encart attention">${echapper(m)}</div>`).join("")}
     <div class="actions">
       <button class="secondaire" id="fp-dossier">Ouvrir le dossier</button>

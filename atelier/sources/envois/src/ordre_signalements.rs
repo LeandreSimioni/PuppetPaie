@@ -196,7 +196,7 @@ pub struct MensuellesVues {
 /// L'ordre d'une mensuelle « au cours du mois courant », lu sur la plate-forme. Cahier technique DSN 2026.1, p. 136
 /// (`atelier/reference/norme-dsn/texte/bloc-S20.G00.05.txt`) : le numero d'ordre « permet d'identifier le rang de
 /// constitution d'une declaration au cours du mois courant. Pour une Mensuelle, ce numero est remis a zero a chaque
-/// premier jour de mois civil » ; et B1-208-11 (`dsn::generer`, 10/09/2026) compare le rang « AAAAMM + ordre » au
+/// premier jour de mois civil » ; et B1-208-11 (`dsn::generer`) compare le rang « AAAAMM + ordre » au
 /// « dernier ordre accepte ». La plate-forme se souvient de tout ce qui est parti sous le SIREN, d'ou qu'il vienne
 /// (l'atelier, un autre poste) ; le journal du dossier ne sait que ce qu'il a envoye.
 ///

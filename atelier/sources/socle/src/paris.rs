@@ -32,8 +32,7 @@ pub fn decalage(t: i64) -> i64 {
     }
 }
 
-/// `datetime.fromtimestamp(t).isoformat(timespec="seconds")` a l'heure de
-/// Paris : `AAAA-MM-JJTHH:MM:SS`.
+/// L'heure de Paris d'un instant, `AAAA-MM-JJTHH:MM:SS`.
 pub fn iso_secondes(t: f64) -> String {
     let (local, _) = local_de(t);
     let jours = local.div_euclid(86_400);

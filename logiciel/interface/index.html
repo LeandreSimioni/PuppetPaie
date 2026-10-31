@@ -9,13 +9,13 @@
 {{STYLE_COMPAGNIE}}
 </head>
 <body data-jeton="{{JETON}}" data-copie="{{COPIE}}">
-<!-- LE VOILE DU DEMARRAGE (22/09/2026 ; ticket #244, 22/10/2026) : le fond seul, le temps que la page se peigne
+<!-- LE VOILE DU DEMARRAGE : le fond seul, le temps que la page se peigne
      d'un coup avec l'ouverture ; s'il faut attendre (rien n'est encore connu), la phrase du moteur, jamais une roue
      muette. Retire par `finirChargement` dans js/demarrage.js. -->
 <div id="chargement" aria-live="polite"><div id="chargement-phrase"></div></div>
 
 <header class="bandeau">
-  <!-- A GAUCHE, AVANT LE LOGO, AVEC UNE MAISON (Leandre, 08/10/2026) : le
+  <!-- A GAUCHE, AVANT LE LOGO, AVEC UNE MAISON : le
        chemin vers l'accueil se cherche la ou commence la page. -->
   <button type="button" class="retour-accueil" id="fenetre-accueil" title="Fermer cette compagnie et revenir au choix des compagnies"><svg viewBox="0 0 24 24" class="maison" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg> Les compagnies</button>
   <div class="marque">
@@ -26,9 +26,7 @@
     <div>
       <strong>PuppetPaie</strong>
       <span class="sous">paies d'intermittents</span>
-      <!-- La version, sous le nom : elle etait dans la fenetre de lancement
-           (tkinter), qui a disparu avec la fenetre unique du 16/09/2026.
-           « Je vois pas la version » -- la voici, remplie par le serveur. -->
+      <!-- La version, sous le nom, remplie par le serveur. -->
       <span class="sous version">version {{VERSION}}{{EDITION}}</span>
       <span class="copie-dev">{{COPIE_TEXTE}}</span>
     </div>
@@ -37,8 +35,7 @@
     <button data-vue="paie" class="actif">Paie</button>
     <button data-vue="configuration">Configuration</button>
     <button data-vue="historique">Historique</button>
-    <!-- LES EXPORTS (22/09/2026) : « il faut vraiment un endroit où on peut
-         faire des exports, pour les trucs comptables ». Un onglet à part, et
+    <!-- LES EXPORTS : un onglet à part, et
          non un bouton dans Historique : ce qu'on y fait ne regarde pas un
          mois mais une période, et rien n'y part nulle part — un export lit. -->
     <button data-vue="exports">Exports</button>
@@ -47,12 +44,11 @@
   <!-- SIGNALER UN PROBLEME : sur tous les ecrans, discret. La boite est dans
        js/filet.js (boiteSignalement). -->
   <button type="button" class="signaler" id="signaler" title="Écrire à l'éditeur : un problème, une envie, une idée">Un problème, une idée ?</button>
-  <!-- REVENIR A L'ACCUEIL DES COMPAGNIES (ticket #113, 02/10/2026) : « il
-       manque un bouton pour revenir à l'accueil des cies ». C'est le lanceur
+  <!-- REVENIR A L'ACCUEIL DES COMPAGNIES. C'est le lanceur
        qui tient l'accueil : le bouton ne se montre que dans la fenetre
        PuppetPaie dont le lanceur sait y revenir (`fenetreNative`). -->
-  <!-- LES BOUTONS DE LA FENETRE (16/09/2026 ; ticket #195, 15/10/2026). La
-       fenetre PuppetPaie n'a pas de bordure systeme (« pas de barre noire,
+  <!-- LES BOUTONS DE LA FENETRE. La
+       fenetre PuppetPaie n'a pas de bordure systeme : le bandeau EST la
        mais de la meme couleur que le logiciel en haut ») : le bandeau EST la
        barre de titre. On le tire pour deplacer, double-clic pour agrandir, et
        ces trois boutons parlent a la fenetre (`fenetreNative`, js/demarrage.js).
@@ -82,29 +78,15 @@
 
   <div class="colonnes">
     <div class="col-saisie">
-      <!-- IL N'Y A PLUS DE « PAR DÉFAUT POUR LE MOIS », et c'est le
-           12/09/2026 qui l'a vidé, champ par champ :
+      <!-- IL N'Y A PAS DE « PAR DÉFAUT POUR LE MOIS » : un champ affiché est un champ à remplir, à relire et à ne pas se
+           tromper, pour une valeur qui ne change jamais. Le taux se reprend du dernier saisi, la date de paiement est le
+           dernier jour du mois, et le lieu appartient au cachet (chaque engagement a le sien, sous ses lignes).
 
-             « Pas besoin de taux de cachet : on met de base le dernier taux
-               donné. Simple et efficace. »
-             « Pas besoin de date de paiement, c'est juste écrit dans le
-               contrat — la fin du mois, pas besoin de l'afficher. »
-             « Et pas de lieu là-haut : c'est lié au contrat, le lieu. »
-
-           Les trois avaient la même excuse — « ça se répète d'un engagement à
-           l'autre » — et le même défaut : un champ affiché est un champ à
-           remplir, à relire et à ne pas se tromper, pour une valeur qui ne
-           change jamais. Le taux se reprend du dernier saisi, la date de
-           paiement est le dernier jour du mois, et le lieu appartient au
-           cachet (chaque engagement a le sien, sous ses lignes de paie).
-
-           Ce qui n'a jamais été ici, et pourquoi : le spectacle. Un engagement est
-           un spectacle est un numéro d'objet — un contrat ne peut en porter
-           qu'un — et un mois en porte plusieurs. En faire un défaut du mois,
-           c'était laisser un déroulant choisir à notre place ce qui part en
-           DSN. -->
+           Le spectacle n'est pas un défaut du mois non plus : un engagement est un spectacle est un numéro d'objet — un
+           contrat ne peut en porter qu'un — et un mois en porte plusieurs. Un déroulant ne choisit pas à la place de
+           l'utilisateur ce qui part en DSN. -->
       <div class="grille-mois">
-        <!-- LE MOIS (25/09/2026) : une seule case. Les flèches y sont, et un
+        <!-- LE MOIS : une seule case. Les flèches y sont, et un
              clic n'importe où ailleurs ouvre les douze mois de l'année. La
              valeur vit dans le champ caché #mois, que toute la page lit. -->
         <div class="choix-mois" id="choix-mois">
@@ -124,33 +106,26 @@
         <span class="note" id="rappels-mois"></span>
       </div>
 
-      <!-- « Il faut aussi un bouton tout sélectionner en haut, pour pouvoir
-           tout envoyer d'un coup » (12/09/2026). En haut, et pas dans la
-           barre d'actions groupées : celle-ci n'apparaît qu'une fois quelque
+      <!-- Un bouton « tout sélectionner » en haut, pour tout envoyer d'un coup. En haut, et pas dans la
            chose de coché, donc elle ne pouvait pas porter le geste qui coche
            la première. Elle garde « tout décocher », qui n'a de sens qu'une
            fois là. -->
       <h2>Les engagements
         <span class="discret">— chacun porte son état</span></h2>
-      <!-- UN MOIS DONT LA DSN EST DÉPOSÉE : ce qu'une modification de ses engagements entraîne, tel que le moteur le
-           dit (route `saisie`, `dsn_deposee`) — un annule-et-remplace tant qu'il est admis, puis une confirmation et la
-           correction dans la DSN suivante. js/saisie-mois.js, majFermeture(). -->
-      <!-- UN MOIS SAISI EN DÉMO, la compagnie gardée au déblocage (ticket #236) : rien n'en est parti. js/saisie-mois.js,
+      <!-- UN MOIS SAISI EN DÉMO, la compagnie gardée au déblocage : rien n'en est parti. js/saisie-mois.js,
            majAvisDemo(). -->
       <div class="encart attention" id="avis-demo" hidden></div>
-      <div class="encart" id="avis-dsn" hidden></div>
       <div id="engagements"></div>
-      <!-- Un mois tenu avant PuppetPaie (ticket #215) : ses paies, en cartes,
+      <!-- Un mois tenu avant PuppetPaie : ses paies, en cartes,
            lues dans l'historique importe (route `saisie`, `importe`). Lecture
            seule. js/saisie-mois.js, dessinerMoisImporte(). -->
       <div id="mois-importe" hidden></div>
       <button class="secondaire" id="ajouter-engagement">+ un engagement</button>
-      <!-- Un contrat signé un mois précédent et qui court encore (15/09/2026,
-           contrats sur plusieurs mois) : le bloc arrive prérempli et ses
+      <!-- Un contrat signé un mois précédent et qui court encore (contrats sur plusieurs mois) : le bloc arrive prérempli et ses
            bornes verrouillées, il ne reste qu'à poser les jours du mois.
            Le bouton ne se montre que s'il y a quelque chose à reprendre. -->
 
-      <!-- Plus de barre d'actions groupées ni de case par carte (15/09/2026) :
+      <!-- Plus de barre d'actions groupées ni de case par carte :
            les boîtes DPAE et signature de la colonne de droite listent chaque
            contrat avec sa case, cochée d'avance sur ce qui reste à faire. -->
 
@@ -162,7 +137,7 @@
     </div>
 
     <aside class="col-apercu">
-      <h2>Le mois <span class="discret" id="apercu-sous-titre"></span></h2>
+      <h2>Le mois</h2>
       <div id="apercu"></div>
 
       <!-- Les étapes du mois (js/actes.js) : ce qui est parti tient dans la
@@ -172,7 +147,7 @@
       <h2>Les étapes</h2>
       <div id="actions-mois"></div>
 
-      <!-- CE QUI EST DÛ (15/10/2026) : une ligne par obligation à faire ou en
+      <!-- CE QUI EST DÛ : une ligne par obligation à faire ou en
            retard — le signalement d'un arrêt, la déclaration d'un accident,
            le signalement d'une reprise anticipée ou d'une fin de contrat —,
            sa date butoir, son état, et le bouton qui fait l'acte. Vide quand
@@ -182,23 +157,10 @@
            salarié (« Un imprévu… »). js/imprevus.js. -->
       <div id="dus"></div>
 
-      <!-- LE SAVIEZ-VOUS ? (ticket 224) : le conseil du jour et ce que vos contrats
+      <!-- LE SAVIEZ-VOUS ? : le conseil du jour et ce que vos contrats
            font pour les droits de vos salariés, quand l'option « conseils » de la
            fiche Entreprise est cochée ; vide sinon. js/conseils.js. -->
       <div id="conseils-accueil"></div>
-
-      <!-- Les embauches du MOIS AFFICHÉ dont aucun envoi n'a laissé de trace.
-           Du mois affiché seulement, depuis le 12/09/2026 : « je vois octobre
-           dans septembre… chaque mois doit être autonome ». Une colonne qui
-           parle d'un mois et une liste qui en énumère d'autres, ça se lit
-           comme un retard sur le mois qu'on regarde — et on va déposer la
-           mauvaise DPAE. Le journal ne connaît que ce que CE logiciel a
-           déposé : d'où « pas de trace d'envoi », et jamais « pas déclarée ». -->
-      <!-- « Embauches sans trace d'envoi » n'est plus affiché depuis le
-           13/09/2026 : la pastille DPAE de chaque paie et la boîte DPAE
-           ci-dessus disent déjà la même chose (l'éditeur : « c'est visible
-           dans les paies et au-dessus »). dessinerEmbauches() reste, et ne
-           fait rien sans cible. -->
     </aside>
   </div>
 
@@ -207,66 +169,66 @@
 
 <!-- ---------------------------------------------------- CONFIGURATION -->
 <section id="vue-configuration" class="vue cachee">
-  <!-- LES SOUS-ONGLETS, DANS L'ORDRE OU L'ON VIENT (24/09/2026). On ouvre la
+  <!-- LES SOUS-ONGLETS, DANS L'ORDRE OU L'ON VIENT. On ouvre la
        Configuration pour une personne, parfois pour un spectacle, rarement
        pour la compagnie : c'est l'ordre du premier groupe, et la page
        s'ouvre sur les salariés. Le second groupe ne sert qu'a l'installation
        -- une fois, ou quand quelque chose a change (un mot de passe refuse,
        un nouveau signataire). -->
   <nav class="sous-onglets">
-    <!-- DU PLUS GROS AU PLUS PETIT (Leandre, 08/10/2026) : l'entreprise, ses
+    <!-- DU PLUS GROS AU PLUS PETIT : l'entreprise, ses
          salariés, ses spectacles, les métiers. On ouvre toujours sur les
          salariés : c'est la fiche qu'on touche le plus. -->
     <button data-fiche="entreprise">Entreprise</button>
     <button data-fiche="salarie" class="actif">Salariés</button>
     <button data-fiche="spectacle">Spectacles</button>
-    <!-- LES MÉTIERS (30/09/2026) : la liste que la compagnie coche, et que
+    <!-- LES MÉTIERS : la liste que la compagnie coche, et que
          la fiche d'un salarié et un engagement proposent. -->
-    <button data-fiche="metiers">Métiers</button>
-    <!-- LES ORGANISMES ET LES CONTRATS DE LA DSN (09/10/2026) : la référence
+    <button data-fiche="metiers" data-route="metiers-catalogue">Métiers</button>
+    <!-- LES ORGANISMES ET LES CONTRATS DE LA DSN : la référence
          des contrats de prévoyance et de santé, l'organisme quand la branche
          n'en désigne pas. Le moteur compose config/organismes.json. -->
     <button data-fiche="organismes">Organismes et contrats</button>
-    <!-- LE MODÈLE DU BULLETIN (lot R11, 11/10/2026) : simplifié ou complet,
+    <!-- LE MODÈLE DU BULLETIN : simplifié ou complet,
          chacun montré sur une paie fictive ; la compagnie choisit pour tous. -->
     <button data-fiche="bulletin">Modèle de bulletin</button>
-    <button data-fiche="contrats">Modèles de contrat</button>
+    <button data-fiche="contrats" data-route="modeles-contrat">Modèles de contrat</button>
+    <!-- AVANCÉ : ce que la fiche de sa route marque « avancé » (le catalogue, `rangerLAvance`), après le chemin simple. -->
+    <span class="sous-onglets-avance" hidden><span class="discret">Avancé :</span></span>
     <span class="sous-onglets-installation">
-      <!-- Signature et logo (22/09/2026) : la premiere route de fichier du
+      <!-- Signature et logo : la premiere route de fichier du
            logiciel. Le cachet, lui, est DESSINE depuis la fiche Entreprise. -->
       <button data-fiche="identite">Signature &amp; tampon</button>
-      <!-- Les mots de passe (16/09/2026) : celui du logiciel, et ceux des
+      <!-- Les mots de passe : celui du logiciel, et ceux des
            organismes dans le coffre. La page ne voit jamais une valeur posee.
-           Le compte Google y est aussi (18/09/2026), pour la sauvegarde. -->
+           Le compte Google y est aussi, pour la sauvegarde. -->
       <button data-fiche="coffre">Mots de passe</button>
-      <!-- Reprendre ce qui est deja declare (15/09/2026) : les fiches et
+      <!-- Reprendre ce qui est deja declare : les fiches et
            cinq ans de contrats attestes, depuis les DSN de n'importe quel
-           logiciel (23/09/2026). C'est par la qu'une compagnie qui arrive
+           logiciel. C'est par la qu'une compagnie qui arrive
            commence -- et ce qui donne aux droits leur historique. Un seul
-           dossier, tout dedans, aucun logiciel nomme (lot G2, 10/10/2026). -->
-      <!-- « Historique » nommait aussi l'onglet des mois : deux choses sous
-           un seul mot (audit du 30/09/2026). -->
+           dossier, tout dedans, aucun logiciel nomme. -->
+      <!-- « Historique » nomme l'onglet des mois : le mot ne nomme qu'une chose. -->
       <button data-fiche="importer">Reprendre l'historique</button>
     </span>
   </nav>
   <div id="config-liste"></div>
   <div id="config-formulaire"></div>
-  <!-- Supprimer la compagnie (ticket #236), sous la fiche Entreprise, et seulement si elle se supprime (`supprimable`
+  <!-- Supprimer la compagnie, sous la fiche Entreprise, et seulement si elle se supprime (`supprimable`
        du moteur : jamais une fictive livrée, qui se remet à zéro). js/configuration.js, dessinerSuppression(). -->
   <div id="config-suppression"></div>
 </section>
 
 <!-- ------------------------------------------------------- HISTORIQUE -->
 <section id="vue-historique" class="vue cachee">
-  <!-- L'HISTORIQUE, REPENSÉ LE 23/09/2026. On y vient pour retrouver un
+  <!-- L'HISTORIQUE. On y vient pour retrouver un
        mois : où en est sa DSN, qu'a-t-il produit, l'ouvrir, et — rare — le
        corriger. Les mois d'abord, une ligne chacun, « Corriger… » sur le
        mois lui-même quand il se corrige (déposé, échéance passée : la
        correction voyage dans la DSN du mois courant, datée du mois
        d'origine, cahier technique 2026.1 §2.2.2.5). Puis l'année : clôture
        et export compta. Puis les corrections, s'il y en a. -->
-  <!-- TOUS LES ENVOIS ET TOUS LES RETOURS SE LISENT ICI (Leandre, 20/10/2026 ;
-       tickets #219, #220, #222). Un mois se deplie sur sa vue technique : ses
+  <!-- TOUS LES ENVOIS ET TOUS LES RETOURS SE LISENT ICI. Un mois se deplie sur sa vue technique : ses
        documents, chacun ouvrable, puis ses envois (tests de ce logiciel
        compris) et, sous chacun, ses retours dans l'ordre d'arrivee, lus par le
        moteur (`historique-mois`). La page Paie est l'endroit ou l'on fait le
@@ -293,17 +255,16 @@
        formats et des périodes vient du moteur (`exports-periodes`) : la page
        ne devine rien, et un état ajouté demain s'affiche ici sans qu'on
        touche à ce fichier. -->
-  <!-- DEUX INTENTIONS, DEUX CARTES (23/09/2026) : un TABLEAU des paies (pour
+  <!-- DEUX INTENTIONS, DEUX CARTES : un TABLEAU des paies (pour
        le comptable, la banque, une subvention), ou les DOCUMENTS d'un
        salarié. Chacune dit à quoi elle sert en une ligne. -->
-  <!-- REPLIEES A L'ARRIVEE (Leandre, 08/10/2026) : « c'est bizarre que tout
-       soit ouvert direct ». On ouvre la carte dont on a besoin. -->
+  <!-- REPLIEES A L'ARRIVEE : on ouvre la carte dont on a besoin. -->
   <details class="carte-export" id="carte-etat">
     <summary><h2>Un état <span class="discret">— un tableau des paies : pour le comptable, la banque, une subvention</span></h2></summary>
     <div id="exports-formulaire"></div>
     <div id="exports-resultat"></div>
   </details>
-  <!-- LE DOSSIER D'UN SALARIE (23/09/2026) : tous ses documents, on coche ce
+  <!-- LE DOSSIER D'UN SALARIE : tous ses documents, on coche ce
        qu'on sort. Les salaries, les categories et les periodes viennent du
        moteur (`dossier-formes`). -->
   <details class="carte-export" id="carte-dossier">
@@ -340,7 +301,7 @@
   </form>
 </div>
 
-<!-- L'envoi refusé d'une fictive ajoutée (ticket #236) : la phrase du moteur,
+<!-- L'envoi refusé d'une fictive ajoutée : la phrase du moteur,
      la même pour tout geste qui ferait partir quelque chose (js/tuyau.js,
      montrerEnvoiRefuse). -->
 <div class="voile cachee" id="voile-envoi-refuse">

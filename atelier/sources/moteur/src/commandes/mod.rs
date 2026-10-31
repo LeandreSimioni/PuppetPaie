@@ -37,7 +37,6 @@ pub mod aer;
 pub mod casc_envoyer;
 pub mod casc_regularise;
 pub mod analyse;
-pub mod arrivee;
 pub mod archiver;
 pub mod arret;
 pub mod suspension;
@@ -48,7 +47,6 @@ pub mod compagnie;
 pub mod depot_dsn;
 pub mod depots;
 pub mod deposer_dpae;
-pub mod dpae;
 pub mod dossier;
 pub mod envoi;
 pub mod export_compta;
@@ -63,7 +61,6 @@ pub mod importer;
 pub mod google;
 pub mod incidents;
 pub mod journal;
-pub mod nouveau;
 pub mod ouverture;
 pub mod pas;
 pub mod rendu;
@@ -107,21 +104,7 @@ impl Cadre {
                 Err(Echec { classe, message: r.get("erreur").map(rendu::texte).unwrap_or_default() })
             }
             Err(m) => {
-                let (classe, message) = crate::routes::rappels::decoder(&m);
-                Err(Echec { classe: classe.map(classe_connue), message: message.to_string() })
-            }
-        }
-    }
-
-    /// Comme `route`, mais la reponse ENTIERE du moteur : `{"ok": true, "resultat"}` ou `{"ok": false, "erreur", "classe",
-    /// <donnee du refus>}` (`manques` d'un mois pas pret, `etat` d'une DSN deja deposee). Pour qui doit rendre cette donnee.
-    pub fn route_entiere(&self, nom: &str, charge: Value) -> Result<Value, Echec> {
-        let entree = json!({"route": nom, "charge": charge}).to_string();
-        match crate::routes::commande(&self.o, &entree) {
-            Ok(r) => Ok(r),
-            Err(m) => {
-                let (classe, message) = crate::routes::rappels::decoder(&m);
-                Err(Echec { classe: classe.map(classe_connue), message: message.to_string() })
+                Err(Echec { classe: None, message: m })
             }
         }
     }
@@ -165,13 +148,13 @@ impl Cadre {
 
 /// La classe d'un refus rendue en `&'static str` pour `Echec` (une classe inconnue devient `RuntimeError`).
 fn classe_connue(c: &str) -> &'static str {
-    const CONNUES: [&str; 37] = [
-        "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "KeyError", "ValueError",
+    const CONNUES: [&str; 32] = [
+        "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "KeyError", "ValueError",
         "FileNotFoundError", "PermissionError", "OSError", "UnicodeDecodeError", "JSONDecodeError", "TypeError", "AttributeError",
         "ErreurApi", "ErreurCoffre", "ErreurGoogle", "DepotRefuse", "VersionExigee", "EditionBridee", "CompteursVerrouilles", "CalculRefuse",
         // Les classes des actes : un depot, une correction, un arret.
-        "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai", "MoisNonRegularisable",
-        "ExerciceClos", "ClotureRefusee", "MoisHorsDelai", "ActeReelRefuse", "ArretIntrouvable",
+        "DsnDejaDeposee", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai", "MoisNonRegularisable",
+        "ExerciceClos", "ActeReelRefuse",
         // Les envois (theme 2) : une sortie absente, une boite absente ou en panne.
         "SortieAbsente", "BoiteAbsente", "ErreurCourriel",
         // Le refus d'un envoi depuis une fictive ajoutee (`bridage::branchement`).
@@ -202,15 +185,12 @@ fn commandes() -> Vec<Commande> {
         Commande { nom: "journal", aide: "le journal des depots -- le lire", cachee: false, spec: &journal::SPEC, executer: journal::executer },
         Commande { nom: "pas", aide: "taux de prelevement a la source connus", cachee: false, spec: &pas::SPEC, executer: pas::executer },
         Commande { nom: "google", aide: "le compte Google (Drive : sauvegarde, archivage) : son etat", cachee: false, spec: &google::SPEC, executer: google::executer },
-        Commande { nom: "arrivee", aide: "l'arrivee d'une compagnie : ce qui est pret, ce qui manque, quoi lancer (rien n'est ecrit)", cachee: false, spec: &arrivee::SPEC, executer: arrivee::executer },
         Commande { nom: "retours", aide: "recuperer les retours DSN (lecture seule)", cachee: false, spec: &retours::SPEC, executer: retours::executer },
         // L'enquete de l'editeur sur le poste d'une compagnie : elle marche, elle ne figure pas dans l'aide.
         Commande { nom: "depots", aide: "lister les depots vus par net-entreprises (enquete)", cachee: true, spec: &depots::SPEC, executer: depots::executer },
         // L'outil de l'editeur, avant chaque publication : refuse ailleurs que sur son poste (le reglage de l'installation, `maj::reglage`).
         Commande { nom: "sources", aide: "les sources des donnees livrees, et leur veille (poste de l'editeur)", cachee: true, spec: &sources::SPEC, executer: sources::executer },
         Commande { nom: "fiche", aide: "rappeler les donnees de reference", cachee: false, spec: &fiche::SPEC, executer: fiche::executer },
-        Commande { nom: "nouveau", aide: "creer un fichier de saisie pour un mois", cachee: false, spec: &nouveau::SPEC, executer: nouveau::executer },
-        Commande { nom: "dpae", aide: "produire la seule DPAE, avant l embauche", cachee: false, spec: &dpae::SPEC, executer: dpae::executer },
         Commande { nom: "fin-contrat", aide: "le signalement de fin de contrat de travail unique (nature 07)", cachee: false, spec: &fin_contrat::SPEC, executer: fin_contrat::executer },
         Commande { nom: "arret", aide: "les arrets de travail : saisir, signaler, reporter", cachee: false, spec: &arret::SPEC, executer: arret::executer },
         Commande { nom: "suspension", aide: "les suspensions du contrat (conge parental, sabbatique, sans solde...) : saisies une fois", cachee: false, spec: &suspension::SPEC, executer: suspension::executer },

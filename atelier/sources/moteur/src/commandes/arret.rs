@@ -18,7 +18,8 @@
 
 use serde_json::{json, Value};
 
-use super::actes::{est_refus, jj_mm_aaaa, jour_option, reponse_metier};
+use super::actes::{est_refus, jour_option, reponse_metier};
+use socle::date::jj_mm_aaaa;
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{brut, champ, enveloppe, rendre, texte};
 use super::Cadre;
@@ -102,7 +103,7 @@ fn date(args: &Args, nom: &str) -> Result<Option<String>, Echec> {
     }
 }
 
-/// `_oui_non` : « oui »/« non » -> le code de la norme, lu dans `arrets-base.json`.
+/// « oui »/« non » -> le code de la norme, lu dans `arrets-base.json`.
 fn oui_non(cadre: &Cadre, v: &str) -> Result<Value, Echec> {
     let n = crate::routes::imprevus::nomenclatures(&cadre.ctx)?;
     let codes: Vec<Value> = n.get("subrogation").and_then(|s| s.get("codes")).and_then(Value::as_array).cloned().unwrap_or_default();
@@ -118,7 +119,7 @@ fn oui_non(cadre: &Cadre, v: &str) -> Result<Value, Echec> {
     Err(refus(format!("--subrogation : dire « oui » ou « non » ({}).", liste.join(", "))))
 }
 
-/// `_lignes_arret` : un arret en trois ou quatre lignes.
+/// Un arret en trois ou quatre lignes.
 fn lignes_arret(r: &Value) {
     let vrai_de = |k: &str| r.get(k).is_some_and(vrai);
     let fin = if vrai_de("reprise") { champ(r, "reprise") } else { champ(r, "fin_previsionnelle") };
@@ -269,7 +270,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         if json {
             return Ok(rendre_json(&resume));
         }
-        dire!("Arret enregistre. Rien n'est parti.");
+        dire!("{} Rien n'est parti.", texte(&r["phrase"]));
         lignes_arret(&resume);
         dire!(
             "\nEnsuite : `moteur arret signaler {} --dernier-jour {}` produit le signalement, `moteur depot-dsn` le depose.",
@@ -292,7 +293,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         if json {
             return Ok(rendre_json(&resume));
         }
-        dire!("Reprise notee le {}.", jj_mm_aaaa(&champ(&resume, "reprise")));
+        dire!("{}", texte(&r["phrase"]));
         lignes_arret(&resume);
         dire!(
             "\nUne reprise ANTICIPEE se signale (nature 05) : `moteur arret signaler {} --dernier-jour {} --reprise`.",
@@ -316,15 +317,12 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             return Ok(rendre_json(&r));
         }
         let resume = r.get("arret").cloned().unwrap_or(Value::Null);
-        dire!("Arrêt prescrit jusqu'au {}.", jj_mm_aaaa(&champ(&resume, "fin_previsionnelle")));
+        dire!("{}", texte(&r["phrase"]));
         lignes_arret(&resume);
-        for a in r.get("avertissements").and_then(Value::as_array).into_iter().flatten() {
-            dire!("  {}", texte(a));
-        }
         if r.get("subrogation_a_revoir").is_some_and(vrai) {
             dire!(
                 "\n{}\n`moteur arret prolonger {} --dernier-jour {} --subrogation-fin AAAA-MM-JJ` la porte.",
-                texte(&r["phrase"]),
+                texte(&r["subrogation_a_revoir"]),
                 champ(&resume, "salarie"),
                 champ(&resume, "dernier_jour_travaille")
             );
@@ -347,7 +345,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         if json {
             return Ok(rendre_json(&resume));
         }
-        dire!("Maintien note. Rien n'est parti : la paie du mois le portera.");
+        dire!("{}", texte(&r["phrase"]));
         lignes_arret(&resume);
         return Ok(0);
     }
@@ -432,12 +430,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     if quoi == "oublier" {
         let salarie = exiger(args, "oublier", &["dernier-jour"])?;
         let r = cadre.route("arret-oublier", json!({"salarie": salarie, "dernier_jour": date(args, "dernier-jour")?}))?;
-        let resume = r.get("arret").cloned().unwrap_or(Value::Null);
-        dire!(
-            "Arret de {} au {} retire du magasin. Il n'avait jamais ete declare.",
-            champ(&resume, "salarie"),
-            jj_mm_aaaa(&champ(&resume, "dernier_jour_travaille"))
-        );
+        dire!("{}", texte(&r["phrase"]));
         return Ok(0);
     }
 

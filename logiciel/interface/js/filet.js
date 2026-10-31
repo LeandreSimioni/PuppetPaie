@@ -116,8 +116,8 @@ function boiteDiagnostic(d, rang, signales = []) {
 
 /* SIGNALER UN PROBLÈME. Le bouton du bandeau, sur tous les écrans.
  *
- * PAS SEULEMENT UN PROBLÈME (l'éditeur, 01/10/2026 : « ils peuvent aussi
- * émettre une envie, une idée ») : le bouton s'appelle « Un problème, une
+ * PAS SEULEMENT UN PROBLÈME : on peut aussi
+ * émettre une envie, une idée : le bouton s'appelle « Un problème, une
  * idée ? ».
  *
  * L'UTILISATEUR ÉCRIT, JOINT SES CAPTURES ET ENVOIE :
@@ -141,8 +141,7 @@ function ecranCourant() {
 function boiteSignalement() {
   if (SIGNALEMENT_REDUIT) return SIGNALEMENT_REDUIT();
   // Déjà ouverte. Fermée, elle reste dans le nid de la boîte sous le voile
-  // caché : ce n'est pas « ouverte » (02/10/2026 : « quand je clique sur
-  // signaler il ne se rouvre pas »).
+  // caché : ce n'est pas « ouverte ».
   if (document.getElementById("sg-boite")
       && !document.getElementById("voile").classList.contains("cachee")) return;
   const ecran = ecranCourant();
@@ -259,7 +258,7 @@ function boiteSignalement() {
     FERMETURE_BOITE = rendreDessous;
     // Un clic à côté range la boîte ; une fois le message parti, il la ferme.
     // Rien d'écrit ni de capturé : rien à garder, il la ferme aussi
-    // (02/10/2026 : « si on n'a rien modifié, on laisse partir »).
+    // Rien de modifié : on laisse partir.
     const vide = () => !texte.value.trim() && !captures.length;
     CLIC_DEHORS = () => ($("sg-reduire").hidden || vide() ? fermerBoite() : $("sg-reduire").click());
   };

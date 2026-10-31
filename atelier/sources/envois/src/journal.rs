@@ -1,6 +1,6 @@
 //! LE JOURNAL DE CE QUI EST PARTI : `journal/depots.json`, une liste a laquelle on n'ajoute qu'a la fin (`noter`) et
 //! qu'on relit filtree (`lire`), l'empreinte d'un fichier, et ce qui est parti de chaque engagement, sur quelle version
-//! (`departs`), que `moteur` passe a l'engagement. Les etats du mois, les resumes et le rattachement des retours sont dans
+//! (`lu` : une lecture, d'ou `departs`, que `moteur` passe a l'engagement). Les etats du mois, les resumes et le rattachement des retours sont dans
 //! `etats`.
 
 use std::path::{Path, PathBuf};
@@ -13,17 +13,15 @@ use socle::fichiers::{repr, vrai};
 use socle::num::Resultat;
 
 /// Les actes que l'on note ; un autre est refuse.
-pub const ACTES: [&str; 10] = [
+pub const ACTES: [&str; 8] = [
     "dsn",
     "dpae",
     "documents",
     "contrat-signature",
-    "contrat-recu",
     "contrat-contresigne",
     "regularisation-casc",
     "dossier-salarie",
     "fiche-demande",
-    "fiche-recue",
 ];
 
 pub const REEL: &str = "reel";
@@ -47,30 +45,44 @@ pub fn empreinte(contenu: &[u8]) -> String {
     h.iter().take(8).map(|o| format!("{:02x}", o)).collect()
 }
 
-/// `journal.empreinte(chemin)`.
+/// L'empreinte d'un fichier, comme le journal l'écrit.
 pub fn empreinte_fichier(chemin: &Path) -> Resultat<String> {
     std::fs::read(chemin).map(|b| empreinte(&b)).map_err(|e| format!("{} : {}", chemin.display(), e))
 }
 
-/// Les lignes du journal `p`, lues une fois tant qu'il ne change pas (`socle::fichiers::json_partage`) : chaque etat de
-/// mois, chaque envoi le relit, et il grandit avec la compagnie. Un calcul suivi le note comme toute lecture.
-fn lignes_du_fichier(p: &Path) -> Resultat<Vec<Value>> {
-    let v = socle::fichiers::json_partage(p)?.ok_or_else(|| format!("{} : fichier introuvable", p.display()))?;
-    socle::fichiers::noter_si_besoin(p);
-    match v.as_ref() {
-        Value::Array(a) => Ok(a.clone()),
-        _ => Err(format!("{} : une liste etait attendue", p.display())),
+/// LE JOURNAL LU : ses lignes (ce qui est parti et ce qui en est revenu : bilans, contrats signes, anomalies), et ce qui
+/// est parti de chaque engagement, sur quelle version (`departs`), la part que le moteur passe a l'engagement. Une seule
+/// lecture : tiree une fois par contenu du fichier (`socle::fichiers::json_partage`), la meme valeur partagee pour
+/// chaque lecteur d'un geste tant que le journal ne change pas.
+#[derive(Debug, Clone, Default)]
+pub struct Journal {
+    pub lignes: std::sync::Arc<Vec<Value>>,
+    pub departs: engagement::departs::Departs,
+}
+
+/// `journal/depots.json` lu (`Journal`) ; vide s'il n'existe pas.
+pub fn lu(racine: &Path) -> Resultat<Journal> {
+    type Tires = std::sync::Mutex<std::collections::HashMap<PathBuf, (std::sync::Arc<Value>, Journal)>>;
+    static TIRES: std::sync::OnceLock<Tires> = std::sync::OnceLock::new();
+    let p = chemin(racine);
+    let Some(v) = socle::fichiers::json_partage(&p)? else { return Ok(Journal::default()) };
+    socle::fichiers::noter_si_besoin(&p);
+    let tires = TIRES.get_or_init(Default::default);
+    if let Some((vu, j)) = tires.lock().unwrap_or_else(|e| e.into_inner()).get(&p) {
+        if std::sync::Arc::ptr_eq(vu, &v) {
+            return Ok(j.clone());
+        }
     }
+    let Value::Array(lignes) = v.as_ref() else { return Err(format!("{} : une liste etait attendue", p.display())) };
+    let j = Journal { departs: departs_des_lignes(lignes), lignes: std::sync::Arc::new(lignes.clone()) };
+    socle::fichiers::ranger(tires, p, (v.clone(), j.clone()));
+    Ok(j)
 }
 
 /// Les lignes, les plus recentes en dernier. Un filtre vide
 /// ne filtre pas.
 pub fn lire(racine: &Path, quoi: Option<&str>, mois: Option<&str>, reel_seulement: bool) -> Resultat<Vec<Value>> {
-    let p = chemin(racine);
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let mut lignes = lignes_du_fichier(&p)?;
+    let mut lignes = (*lu(racine)?.lignes).clone();
     let egal = |l: &Value, c: &str, v: &str| l.get(c).and_then(Value::as_str) == Some(v);
     if let Some(q) = quoi.filter(|q| !q.is_empty()) {
         lignes.retain(|l| egal(l, "quoi", q));
@@ -137,7 +149,7 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
     l.insert("destinataire".into(), json!(n.destinataire));
     l.insert("flux".into(), json!(n.flux));
     l.insert("retours".into(), json!([]));
-    l.insert("reponse".into(), json!(n.reponse.chars().take(600).collect::<String>()));
+    l.insert("reponse".into(), json!(n.reponse));
     l.insert("trace".into(), json!(n.trace.filter(|t| !t.is_empty())));
     l.insert("detail".into(), match n.detail {
         Some(d) if vrai(d) => d.clone(),
@@ -148,33 +160,24 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
     }
     let ligne = Value::Object(l);
     let p = chemin(racine);
-    let mut lignes = if p.exists() { lignes_du_fichier(&p)? } else { Vec::new() };
+    let mut lignes = (*lu(racine)?.lignes).clone();
     lignes.push(ligne.clone());
     ecrire_json(&p, &Value::Array(lignes), 2)?;
     Ok(ligne)
 }
 
-/// CE QUI EST PARTI, pour l'engagement (`engagement::departs`) : chaque ligne d'envoi acceptee porte, pour chaque
-/// engagement qu'elle couvre, la version sur laquelle elle est partie (`versions` : `[{"salarie", "numero",
-/// "version", "mois"?}]` ; `mois`, pour la correction d'un mois passe qu'une DSN porte : le mois corrige). Une DSN ou une DPAE de test ne part pas : seules les lignes reelles comptent.
-/// Tires une fois par contenu du journal (la meme valeur partagee, `socle::fichiers::json_partage`) : chaque lecture d'un
-/// mois les demande.
-pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
-    type Tires = std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, (std::sync::Arc<Value>, engagement::departs::Departs)>>;
-    static TIRES: std::sync::OnceLock<Tires> = std::sync::OnceLock::new();
-    let p = chemin(racine);
-    let Some(v) = socle::fichiers::json_partage(&p)? else { return Ok(Default::default()) };
-    socle::fichiers::noter_si_besoin(&p);
-    let tires = TIRES.get_or_init(Default::default);
-    if let Some((vu, d)) = tires.lock().unwrap_or_else(|e| e.into_inner()).get(&p) {
-        if std::sync::Arc::ptr_eq(vu, &v) {
-            return Ok(d.clone());
-        }
-    }
-    let Value::Array(lignes) = v.as_ref() else { return Err(format!("{} : une liste etait attendue", p.display())) };
-    let d = departs_des_lignes(lignes);
-    socle::fichiers::ranger(tires, p, (v.clone(), d.clone()));
-    Ok(d)
+/// CE QUI REVIENT D'UN ENVOI (un contrat signe, la mention retiree) : `retour` se range dans les `retours` de la derniere
+/// ligne que `envoi` reconnait, et la rend. `None` : aucune ligne ne la porte, rien n'est ecrit.
+pub fn rattacher(racine: &Path, envoi: impl Fn(&Value) -> bool, retour: Value) -> Resultat<Option<Value>> {
+    let mut lignes = (*lu(racine)?.lignes).clone();
+    let Some(l) = lignes.iter_mut().rev().find(|l| envoi(l)) else { return Ok(None) };
+    let Some(Value::Array(retours)) = l.as_object_mut().map(|o| o.entry("retours").or_insert_with(|| json!([]))) else {
+        return Err("journal : une ligne dont les retours ne sont pas une liste".to_string());
+    };
+    retours.push(retour);
+    let ligne = l.clone();
+    ecrire_json(&chemin(racine), &Value::Array(lignes), 2)?;
+    Ok(Some(ligne))
 }
 
 /// Ce que les lignes `lignes` du journal disent de ce qui est parti (`departs`) : les lignes qui precedent un envoi
@@ -196,15 +199,29 @@ pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
         if l.get("mode").and_then(Value::as_str) != Some(REEL) {
             continue;
         }
-        // Un depot refuse n'a rien depose. Un courriel coupe en route a servi ceux qui l'ont recu : la ligne ne porte que
-        // leurs versions (`ligne_d_envoi::noter_echec_d_envoi`), et ce qui a atteint le salarie est parti.
+        // Une declaration refusee au depot ou au bilan n'a rien depose (`etats::refuse_par_un_retour`). Un courriel coupe en
+        // route a servi ceux qui l'ont recu : la ligne ne porte que leurs versions (`ligne_d_envoi::noter_echec_d_envoi`),
+        // et ce qui a atteint le salarie est parti.
         let au_salarie = matches!(envoi, Envoi::Documents | Envoi::Contrat);
-        if l.get("accepte") == Some(&Value::Bool(false)) && !au_salarie {
+        if !au_salarie && (l.get("accepte") == Some(&Value::Bool(false)) || crate::etats::refuse_par_un_retour(l).unwrap_or(false)) {
             continue;
         }
         let mois = matches!(envoi, Envoi::Documents | Envoi::Dsn).then(|| l.get("mois").and_then(Value::as_str).map(String::from)).flatten();
         let le = l.get("quand").and_then(Value::as_str).unwrap_or_default().to_string();
-        for v in l.get("versions").and_then(Value::as_array).into_iter().flatten() {
+        // Un contrat parti sans que sa ligne dise sur quelle version (une ligne qui ne porte pas `versions`) est parti sur
+        // la premiere : une validation qui ne dit pas sa version s'ecrit en version 1 (`engagement::etats`). Il se range par
+        // le numero que la ligne nomme, comme les autres.
+        let sans_versions: Vec<Value> = match (envoi, l.get("versions")) {
+            (Envoi::Contrat, None) => l
+                .pointer("/detail/contrats")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .map(|c| json!({"salarie": c.get("salarie"), "numero": c.get("numero").map(socle::valeur::valeur_en_texte), "version": 1}))
+                .collect(),
+            _ => Vec::new(),
+        };
+        for v in l.get("versions").and_then(Value::as_array).into_iter().flatten().chain(&sans_versions) {
             let (Some(cle), Some(numero), Some(version)) =
                 (v.get("salarie").and_then(Value::as_str), v.get("numero").and_then(Value::as_str), v.get("version").and_then(Value::as_u64))
             else {
@@ -237,9 +254,9 @@ pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
 /// LES VERSIONS QU'UN ENVOI EMPORTE : pour chaque engagement valide que `mois` montre et que `garder` retient (la cle du
 /// salarie, le numero du contrat, l'engagement), `{"salarie", "numero", "version"}`. Ce que la ligne du journal de l'envoi
 /// porte : elles se lisent AVANT l'envoi, qui ne part pas d'un engagement a revalider (`Valide::a_revalider`).
-pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: impl Fn(&str, &str, &Value) -> bool) -> Resultat<Value> {
+pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, departs: &engagement::departs::Departs, garder: impl Fn(&str, &str, &Value) -> bool) -> Resultat<Value> {
     let mut out = Vec::new();
-    for e in engagement::etats::du_mois(ctx, mois)? {
+    for e in engagement::etats::du_mois(ctx, mois, departs)? {
         let Some(v) = e.valide() else { continue };
         let brut = Value::Object(v.objet().brut.clone());
         let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
@@ -255,7 +272,7 @@ pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: imp
 }
 
 /// `versions_du_mois` des contrats qui partent (`[{"salarie", "numero", "mois"}]`, chacun lu dans le mois qu'il nomme).
-pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value]) -> Resultat<Value> {
+pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value], departs: &engagement::departs::Departs) -> Resultat<Value> {
     let mut mois: Vec<String> = contrats.iter().filter_map(|c| c.get("mois").and_then(Value::as_str).map(String::from)).collect();
     mois.sort();
     mois.dedup();
@@ -264,7 +281,7 @@ pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value]
         let siens = |cle: &str, n: &str, _: &Value| {
             contrats.iter().any(|c| c["mois"].as_str() == Some(m.as_str()) && c["salarie"].as_str() == Some(cle) && c["numero"].as_str() == Some(n))
         };
-        if let Value::Array(v) = versions_du_mois(ctx, &m, siens)? {
+        if let Value::Array(v) = versions_du_mois(ctx, &m, departs, siens)? {
             for x in v {
                 if !out.contains(&x) {
                     out.push(x);
@@ -332,5 +349,27 @@ mod tests {
         assert_eq!(trace_de(r, &json!({"trace": "retours/depots/x.txt"})), Some(r.join("retours/depots/x.txt")));
         assert_eq!(trace_de(r, &json!({"trace": "/ailleurs/fictives/la-cie/retours/depots/x.txt"})), Some(PathBuf::from("/ailleurs/fictives/la-cie/retours/depots/x.txt")));
         assert_eq!(trace_de(r, &json!({"trace": null})), None);
+    }
+
+    /// Bug reel : une DSN ou une DPAE refusee au bilan comptait pour partie ; le mois se figeait et sa correction allait a
+    /// la DSN suivante. Rien n'a ete recu (cahier technique DSN, § 4.2, `norme-dsn/texte/chapitre-4-controles.txt`).
+    #[test]
+    fn une_declaration_refusee_au_bilan_n_est_pas_partie() {
+        let ligne = |quoi: &str, salarie: &str, retours: Value, detail: Value| {
+            json!({"quoi": quoi, "mode": REEL, "accepte": true, "mois": "2026-06", "quand": "2026-07-05T10:00:00", "detail": detail,
+                   "retours": retours, "versions": [{"salarie": salarie, "numero": "N1", "version": 1}]})
+        };
+        let ko = json!([{"nature": "10", "verdict": "OK"}, {"nature": "11", "verdict": "KO"}]);
+        let lignes = vec![
+            ligne("dsn", "ALPHA", ko.clone(), json!({})),
+            ligne("dsn", "BETA", json!([]), json!({"reconstruit": true, "etat_declaration": "KO"})),
+            ligne("dpae", "GAMMA", ko, json!({})),
+            ligne("dsn", "DELTA", json!([{"nature": "11", "verdict": "OK"}]), json!({})),
+        ];
+        let d = departs_des_lignes(&lignes);
+        for refusee in ["ALPHA", "BETA", "GAMMA"] {
+            assert!(d.de(refusee, "N1").is_empty(), "{refusee}");
+        }
+        assert_eq!(d.de("DELTA", "N1").len(), 1);
     }
 }

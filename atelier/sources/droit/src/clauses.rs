@@ -55,7 +55,7 @@ fn tab(v: &Value) -> Resultat<&Vec<Value>> {
     v.as_array().ok_or_else(|| format!("liste attendue, lu {}", v))
 }
 
-/// `int(x)`.
+/// L'entier d'une valeur ; refus sinon.
 fn entier(v: &Value) -> Resultat<i64> {
     match v {
         Value::Number(n) => n
@@ -119,7 +119,7 @@ fn texte(v: &Value) -> String {
     en_texte(v)
 }
 
-/// `str(x or "").strip()` d'un IDCC ou d'une annexe.
+/// Un IDCC ou une annexe en texte, sans blancs autour, vide s'il manque.
 fn lu(v: &Value) -> String {
     if vrai(v) {
         texte(v).trim().to_string()
@@ -191,8 +191,18 @@ pub fn idcc_nomme(nom: &str) -> Resultat<Option<String>> {
     })
 }
 
+/// Une categorie de la convention dite en mots (« agent de maîtrise », « non-cadre »), telle que la fiche la nomme.
+pub fn categorie_en_mots(c: &str) -> String {
+    match c {
+        "employe" => "employé".into(),
+        "agent_de_maitrise" => "agent de maîtrise".into(),
+        "non_cadre" => "non-cadre".into(),
+        autre => autre.replace('_', " "),
+    }
+}
+
 fn non_relevees(idcc: &Value) -> String {
-    format!("les clauses de {} ne sont pas relevees", nom(idcc))
+    format!("les clauses de {} ne sont pas relevées", nom(idcc))
 }
 
 // ------------------------------------------------------------ la categorie
@@ -221,11 +231,11 @@ pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Result
         if vrai(valeurs) && !connue {
             let cles: Vec<&str> = valeurs.as_object().map_or(vec![], |o| o.keys().map(|k| k.as_str()).collect());
             return Ok(json!({"categorie": null, "grille": grille,
-                "source": format!("categorie_conventionnelle {} inconnue de {} (valeurs : {})",
-                    repr_valeur(dit), nom(idcc), cles.join(", "))}));
+                "source": format!("la catégorie dans la convention de la fiche ({}) est inconnue de {} (catégories : {})",
+                    repr_valeur(dit), nom(idcc), cles.iter().map(|c| categorie_en_mots(c)).collect::<Vec<_>>().join(", "))}));
         }
         return Ok(json!({"categorie": dit, "grille": grille,
-            "source": "la fiche (categorie_conventionnelle)"}));
+            "source": "la fiche du salarié (« Catégorie dans la convention »)"}));
     }
 
     let statut = if vrai(get(e, "statut")) {
@@ -250,24 +260,24 @@ pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Result
     }
     if vrai(get(sec, "cadre_ou_non_cadre")) {
         return Ok(json!({"categorie": "non_cadre", "grille": grille,
-            "source": "la case cadre, non cochee"}));
+            "source": "la case cadre, non cochée"}));
     }
     if selon_niveau.as_str() == Some("cadre") {
         return Ok(json!({"categorie": null, "grille": grille,
-            "source": format!("le metier {} est de niveau {} dans la grille 3090, et la fiche le \
-                declare NON cadre : agent de maitrise ou employe, le moteur ne le devine pas",
+            "source": format!("le métier {} est de niveau {} dans la grille 3090, et la fiche le \
+                déclare non cadre : agent de maîtrise ou employé, le logiciel ne le devine pas",
                 texte(code), niveau)}));
     }
     if vrai(selon_niveau) {
         return Ok(json!({"categorie": selon_niveau, "grille": grille,
-            "source": format!("le niveau 3090 du metier {} ({})", texte(code), niveau)}));
+            "source": format!("le niveau 3090 du métier {} ({})", texte(code), niveau)}));
     }
-    let code_dit = if vrai(code) { texte(code) } else { "aucun code metier".to_string() };
+    let code_dit = if vrai(code) { texte(code) } else { "aucun code métier".to_string() };
     Ok(json!({"categorie": null, "grille": grille,
-        "source": format!("ni la fiche, ni le metier ({}) ne disent la categorie", code_dit)}))
+        "source": format!("ni la fiche, ni le métier ({}) ne disent la catégorie", code_dit)}))
 }
 
-/// `str(x or "")`, sans `strip`.
+/// Une valeur en texte, vide si elle manque ou est vide, blancs gardés.
 fn lu_brut(v: &Value) -> String {
     if vrai(v) {
         texte(v)
@@ -306,7 +316,7 @@ pub fn preavis_mois(
     let categorie = categorie.filter(|c| !c.is_empty());
     if categorie.is_none() && !vrai(toutes) {
         return Ok(json!({"mois": null, "article": article,
-            "pourquoi": "la categorie du salarie n'est pas connue"}));
+            "pourquoi": "la catégorie du salarié dans la convention n'est pas connue"}));
     }
     let par_categorie = categorie.map_or(&NUL, |c| get(get(sec, "par_categorie"), c));
     let mut tranches = ou(toutes, par_categorie);
@@ -316,8 +326,8 @@ pub fn preavis_mois(
     }
     if !vrai(tranches) {
         return Ok(json!({"mois": null, "article": article,
-            "pourquoi": format!("{} ne fixe pas de preavis pour la categorie {}",
-                nom(idcc), categorie.unwrap_or("None"))}));
+            "pourquoi": format!("{} ne fixe pas de préavis pour la catégorie {}",
+                nom(idcc), categorie_en_mots(categorie.unwrap_or("")))}));
     }
     let a = anciennete;
     for t in tab(tranches)? {
@@ -339,7 +349,7 @@ pub fn preavis_mois(
             if vrai(supplements) && (!demission || vrai(get(sec, "supplement_age_demission"))) {
                 let Some(age) = age else {
                     return Ok(json!({"mois": null, "article": article,
-                        "pourquoi": format!("le preavis de {} depend de l'age du salarie, et sa \
+                        "pourquoi": format!("le préavis de {} dépend de l'âge du salarié, et sa \
                             date de naissance manque", article)}));
                 };
                 for sup in tab(supplements)? {
@@ -352,7 +362,7 @@ pub fn preavis_mois(
         }
     }
     Ok(json!({"mois": null, "article": article,
-        "pourquoi": format!("aucune tranche de {} ne couvre {} mois", article, a)}))
+        "pourquoi": format!("aucune tranche de {} ne couvre {} mois d'ancienneté", article, a)}))
 }
 
 // ------------------------------------------------------------- les baremes

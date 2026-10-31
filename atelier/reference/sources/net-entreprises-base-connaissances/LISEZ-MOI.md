@@ -77,6 +77,7 @@ net social, intermittents, Agirc-Arrco, identification, contrats, Urssaf, entrep
 | 3369 | Proratisation du plafond de Sécurité sociale pour les salariés à temps partiel et en forfait jour réduit (créée le 10/03/2026, modifiée le 03/04/2026 ; **PDF imprimé par Léandre le 11/10/2026**) | **D9 fait.** « Par défaut, le salarié à temps partiel cotise uniquement à hauteur de la quotité de travail de son contrat. L'employeur peut choisir de ne pas proratiser le plafond […] pour tous les salariés à temps partiel de son établissement » : **la proratisation est la règle, la non-proratisation le choix**, et le choix vaut pour l'établissement entier. En P27V01 : `40.084 = 01` si l'employeur proratise, `02` s'il ne proratise pas, pour un temps partiel (`40.014 = 20`) comme pour un **forfait jour réduit** (qui reste `40.014 = 10` temps plein, `40.011 = 20`, Cass. soc. 12/03/2014) ; les blocs 78 comme en P26V01 (exemple : 80 %, brut 4 100, base 02 = 3 204 proratisée ou 4 005 pleine). Les absences relèvent de la fiche 2713 (53.003 valeur 40). BOSS assiette générale § 830. **Ce que ça change pour V4b** : le moteur fait de la proratisation une option « proratisé » de la fiche entreprise ; la fiche dit l'inverse (proratisé par défaut, le choix est de ne pas le faire) et ajoute le forfait jour réduit, que le moteur n'a pas (règle 0). Q16 (choix par compagnie) : la fiche dit « établissement », sans date. Rien n'est codé. | `net-entreprises-fiche3369-proratisation-plafond-temps-partiel-40-084-20260403` |
 | 1336 | Déclaration de la rubrique « Taux de déduction forfaitaire spécifique pour frais professionnels - S21.G00.40.023 » (modifiée le 22/03/2025 ; **PDF imprimé par Léandre le 11/10/2026** ; le brut `.html` a été relevé le 13/10/2026 par `curl`, même date de modification 22/03/2025) | V2d/D7 : la DFS en DSN. Elle dit : 40.023 porte « systématiquement le taux de l'abattement appliqué ou applicable », la base de calcul est « le montant global des rémunérations, indemnités, primes et le cas échéant des indemnités de remboursement de frais » après déduction ; plafond 7 600 € par an et par salarié ; absence de refus exprès du salarié ; non-cumul avec l'exclusion des frais. **Rien sur les bases 78/81 ni sur le 51 type 001** : D7 reste à moitié ouvert. | `net-entreprises-fiche1336-dfs-taux-40-023-20250322` |
 | 862 | AUDIENS - Caisse des congés spectacles | V2f/V4b : 40.022, 40.086 (Q, population de 40.086) | `net-entreprises-fiche862-audiens-caisse-conges-spectacles-20250322` |
+| 863 | Taux et risque ATMP pour le régime général : « Comment renseigner le code risque et le taux accident de travail (AT) en DSN ? » (créée le 13/07/2016, modifiée le 09/04/2025 ; **PDF imprimé par Léandre le 30/10/2026, marqué « partiel »** : la page imprimée n'a peut-être pas tout) | #307 et lot E : 999ZZ. Elle dit : le code risque « se compose de 3 chiffres, 2 lettres, plus " B " si un taux bureau a été attribué » et « ne peut [être déclaré s'il] ne lui a jamais été notifié » ; **sans notification à la création de l'établissement, « et seulement dans ce cas-là », 40.040 = 999ZZ et rien en 40.043** ; un taux seul qui change ne fait pas de bloc 41, il évolue dans les DSN suivantes (les mois passés se régularisent) ; un code risque qui change fait un bloc 41 (41.001 la date, 41.024 l'ancien code) ; **taux réduits (artistes du spectacle) : en 40.043 le taux notifié, non abattu ; au bloc 23 et en 81.007 le taux abattu**. **Rien sur ce que le bulletin cotise sous 999ZZ** : la question du #307 reste ouverte. Le moteur : `droit/src/bareme.rs` (`SANS_NOTIFICATION`, le refus qui le dit), `declarations/src/dsn.rs` (SIG-11, 40.043 ; `taux_at_du_ctp`, les 70 % de l'artiste), `declarations/src/changements_contrat.rs` (40.040 → 41.024). | `net-entreprises-fiche863-code-risque-taux-atmp-20250409` |
 | 3344 | Spécificités du contrat et des rémunérations des intermittents du spectacle en DSN | N1/V1 : spécificités du contrat et des rémunérations des intermittents | `net-entreprises-fiche3344-intermittents-contrat-remunerations-20251113` |
 | 3327 | Cotisations en DSN des périodes d'arrêt maladie non-professionnelle à AUDIENS (caisse de congés spectacles) | V2a : arrêt maladie d'un intermittent et la caisse des congés | `net-entreprises-fiche3327-arret-maladie-cotisations-audiens-20250804` |
 | 3394 | Gestion de la période de transition P26/P27 pour la déclaration des aménagements du temps de travail | V4a : la transition P26/P27 (bloc 75) ; D1 (bascule), partiellement | `net-entreprises-fiche3394-transition-p26-p27-amenagement-temps-travail-20260902` |
@@ -469,3 +470,43 @@ une nouvelle déclaration.
 **Où le moteur s'en sert** : `atelier/sources/engagement/src/etats.rs` (`a_refaire`) : un engagement rendu non actif
 ne fait ressortir aucune DPAE à annuler, seulement la DSN à corriger ; `atelier/sources/paie/src/routes_regularisation.rs`
 (la phrase d'un engagement non actif).
+
+## Fiche 898 — Individu et/ou contrat déclaré(s) à tort dans une DSN mensuelle
+
+- URL : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/898/
+- Transmise par Léandre le 31/10/2026 (texte copié de la page ; pas de brut `.html`) ; « Date de modification :
+  03/07/2025 ». La première phrase du contexte est coupée telle quelle dans la page.
+
+**Ce qu'on en lit** : un individu ou un contrat déclaré à tort, quand l'annule-et-remplace n'est plus possible, se
+corrige dans une DSN mensuelle suivante : un bloc « Changement de contrat » (S21.G00.41) et un bloc « Contrat »
+(S21.G00.40) qui lui donnent une nature autre que CDD ou CDI (« 90 - Autre nature de contrat, convention, mandat ») ; un
+bloc « Fin de contrat » (S21.G00.62) dont la date de fin est la date de début du contrat déclaré à tort, sans signalement
+de fin ; les montants déclarés à tort annulés en négatif dans des blocs datés du mois de l'erreur (S21.G00.50, sauf la
+RNF et le PAS, qui s'annulent par un bloc S21.G00.56 de type 01, fiche 1821 ; et les blocs 22, 23, 51, 52, 54, 78…).
+
+**Où le moteur s'en sert** : pas encore. Elle montre que le refus `ModificationNonDeclarable` (retirer un contrat déclaré
+d'un mois dont l'annule-et-remplace est passé) refuse du licite : la norme a une cinématique de correction (ticket du
+privé).
+
+## Fiche 2072 — Annuler une date de fin de contrat déclarée à tort (agents affiliés à l'Ircantec)
+
+- URL : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2072/
+- Transmise par Léandre le 31/10/2026 (texte copié de la page) ; « Date de modification : 07/07/2025 ».
+
+**Ce qu'on en lit** : le motif 099 annule une fin de contrat (comme la fiche 1722) ; pour l'Ircantec, la base
+assujettie (S21.G00.78, type 28) mal datée s'annule en négatif sur sa période d'origine et se redéclare sur la vraie
+période, avec la cotisation (S21.G00.81) de même, dans la DSN du mois où l'erreur est constatée. **Où le moteur s'en
+sert** : nulle part (pas d'Ircantec dans le spectacle vivant privé) ; déposée parce que lue.
+
+## Fiche 1821 — DSN - Rectification de l'assiette fiscale
+
+- URL : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1821/
+- Transmise par Léandre le 31/10/2026 en PDF (`.pdf`, la page imprimée) ; transcription `pdftotext -layout` (`.txt`) ;
+  « Date de modification : 11/08/2026 ».
+
+**Ce qu'on en lit** : une erreur sur l'assiette fiscale (RNF, montant soumis au PAS) se rectifie dans une DSN suivante
+par un bloc « Régularisation du prélèvement à la source » (S21.G00.56) de type « 01 - Rectification sur rémunération
+nette fiscale », le mois de l'erreur en S21.G00.56.001 ; la rectification de l'exercice N est admise jusqu'à la DSN de
+janvier N+1, rejetée au-delà. C'est le bloc que la fiche 898 demande pour annuler la RNF et le PAS d'un contrat déclaré à
+tort. **Où le moteur s'en sert** : la régularisation du PAS existante (`declarations/`) ; le ticket #324 du privé
+(contrat déclaré à tort).

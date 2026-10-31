@@ -30,43 +30,6 @@ pub fn ecrire_pdf(description: &Value, chemin: &Path) -> socle::echec::R<()> {
     ecrire(description, chemin).map(|_| ()).map_err(|m| socle::echec::erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))
 }
 
-/// `X.pdf` -> `X.description.json`.
-pub fn chemin_description(pdf: &Path) -> PathBuf {
-    let souche = pdf.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-    pdf.with_file_name(format!("{}.description.json", souche))
-}
-
-/// Ecrit la description a cote du PDF (qui existe deja), avec l'empreinte de ce
-/// PDF : on ne refait un contrat que si le fichier parti est bien celui que cette description a produit.
-/// `json.dumps(..., ensure_ascii=False, indent=1)`, sans saut de ligne final.
-pub fn garder_description(description: &Value, pdf: &Path) -> Resultat<PathBuf> {
-    let octets = std::fs::read(pdf).map_err(|e| format!("{} : {}", pdf.display(), e))?;
-    let empreinte = empreinte_sha256(&octets);
-    let f = chemin_description(pdf);
-    let contenu = serde_json::json!({"format": FORMAT_GARDE, "pdf_sha256": empreinte, "description": description});
-    std::fs::write(&f, socle::ecriture::json_indente(&contenu, 1)).map_err(|e| format!("{} : {}", f.display(), e))?;
-    Ok(f)
-}
-
-/// `hashlib.sha256(...).hexdigest()`.
-fn empreinte_sha256(octets: &[u8]) -> String {
-    use sha2::{Digest, Sha256};
-    Sha256::digest(octets).iter().map(|o| format!("{:02x}", o)).collect()
-}
-
-/// La description gardee de `pdf`, ou `None` -- absente, illisible, d'un autre format, ou
-/// ne decrivant pas ce fichier (empreinte differente). On ne devine rien : `None` veut dire « renvoyez le contrat ».
-pub fn description_gardee(pdf: &Path) -> Option<Value> {
-    let brut: Value = serde_json::from_slice(&std::fs::read(chemin_description(pdf)).ok()?).ok()?;
-    let format = brut.get("format")?.as_f64()?;
-    let empreinte = brut.get("pdf_sha256")?.as_str()?;
-    let description = brut.get("description")?;
-    if format != FORMAT_GARDE as f64 || !description.is_object() || empreinte != empreinte_sha256(&std::fs::read(pdf).ok()?) {
-        return None;
-    }
-    Some(description.clone())
-}
-
 /// La description, avec la mention de signature de l'artiste dans la case de chaque
 /// document (`modele.mention_artiste`). `Err` si la description n'a pas de `documents` ou un document pas de `modele`
 /// (refus sous la forme `'cle'`).
@@ -88,15 +51,12 @@ pub fn fabriquer_octets(description: &Value) -> Result<Vec<u8>, String> {
 
 /// Le PDF verrouille en AES-256 (mot de passe utilisateur vide, impression et copie seules).
 pub fn verrouiller(octets: &[u8]) -> Result<Vec<u8>, String> {
-    fabrique_pdf::chiffrement::verrouiller(octets).map_err(|r| r.0.replace('\n', " "))
+    fabrique_pdf::chiffrement::verrouiller_avec(octets, socle::temps::aleas).map_err(|r| r.0.replace('\n', " "))
 }
-
-/// `fabrique.FORMAT`.
-const FORMAT_GARDE: i64 = 3;
 
 // ------------------------------------------------------------------ l'assemblage
 
-/// `_fusion_fabrique` : des pieces (un PDF, ses pages 0-based ou toutes) fusionnees par la fabrique ;
+/// Des pieces (un PDF, ses pages 0-based ou toutes) fusionnees par la fabrique ;
 /// un refus est une `ErreurOperation`, aucun PDF n'est assemble autrement.
 pub fn fusion_pieces(pieces: &[(PathBuf, Option<Vec<usize>>)]) -> Result<Vec<u8>, Refus> {
     let liste: Vec<Value> = pieces
@@ -115,7 +75,7 @@ pub fn fusion_pieces(pieces: &[(PathBuf, Option<Vec<usize>>)]) -> Result<Vec<u8>
     })
 }
 
-/// `_fusion_fabrique` de PDF en memoire : chacun va dans un fichier de `tmp` le temps de la fusion.
+/// La fusion de PDF en memoire : chacun va dans un fichier de `tmp` le temps de la fusion.
 pub fn fusion_octets(morceaux: &[Vec<u8>], tmp: &Path) -> Result<Vec<u8>, Refus> {
     let dossier = Temporaire::nouveau_dans(tmp, "assemblage")?;
     let mut pieces = Vec::new();

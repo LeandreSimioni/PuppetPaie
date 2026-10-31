@@ -20,7 +20,7 @@
 //! installations posees et debloquees portent ces mots ; les lire autrement les briderait et bloquerait leurs envois.
 //! C'est le contrat avec les installations posees, comme la forme de la mise a jour.
 //!
-//! L'INSTALLATION dont on parle : celle du logiciel qui tourne (`compagnies::base()`), ou celle qu'on nomme (`_de`) --
+//! L'INSTALLATION dont on parle : celle du logiciel qui tourne (`compagnies::base()`), ou celle qu'on nomme --
 //! l'administrateur et la liste des compagnies lisent l'installation qu'on leur donne.
 
 use std::path::Path;

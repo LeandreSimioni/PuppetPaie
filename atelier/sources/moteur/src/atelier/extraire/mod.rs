@@ -265,7 +265,7 @@ fn transcrire(args: &[&str], remplacer: bool) -> i32 {
 
 // ------------------------------------------------------------------ les aides communes
 
-/// Le nom du fichier (`Path(x).name`).
+/// Le nom du fichier.
 pub(crate) fn nom_de(chemin: &Path) -> String {
     chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
 }

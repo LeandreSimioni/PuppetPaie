@@ -12,7 +12,7 @@ mod outils;
 
 use serde_json::{json, Value};
 
-/// LES TRETEAUX DU BANC : le petit scenario de la preuve, joue au banc le 23/10/2026. Une compagnie ajoutee par le « + »
+/// LES TRETEAUX DU BANC : le petit scenario de la preuve, joue au banc. Une compagnie ajoutee par le « + »
 /// d'un logiciel bride, configuree juste assez pour payer (convention 3090), une comedienne, deux cachets les 20 et
 /// 21/11/2026 ; puis le geste d'atelier qui rend ses envois simules, et le calendrier avance au 20/11, au 01/12, au 16/12 :
 /// l'horloge de la fictive valide l'engagement, depose la DPAE (test puis reel), fabrique et depose la DSN de novembre et
@@ -34,7 +34,7 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     for doc in ["sorties/2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf", "sorties/2026-11/envoi/CertificatCS_FULLER_Novembre2026.pdf"] {
         assert!(f.get(doc).is_some(), "{} manque", doc);
     }
-    // Ajoutee le 02/11/2026, la compagnie ne coche aucune echeance de 2026 fermee avant.
+    // La compagnie ajoutee le 02/11/2026 ne coche aucune echeance de 2026 fermee avant.
     let cochees = f["config/echeancier.json"]["fait"].as_object().map(|m| m.keys().cloned().collect::<Vec<_>>()).unwrap_or_default();
     assert!(cochees.is_empty(), "echeances cochees : {:?}", cochees);
     // L'AER CINEMA SPECTACLE (`aer::due`, `aer_fictive`) : la DSN mensuelle de novembre, qui porte la fin du contrat de la
@@ -80,7 +80,6 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
         "2026-11/DPAE_Novembre2026_20261120-0700.txt.zip",
         "2026-11/Amorcage01_FULLER_20261120.dsn",
         "2026-11/envoi/Contrat_FULLER_FU1.26.01_Novembre2026.pdf",
-        "2026-11/envoi/Contrat_FULLER_FU1.26.01_Novembre2026.description.json",
         "2026-11/envoi/AER_FULLER_Novembre2026.pdf",
         "2026-11/DSN_Novembre2026.dsn",
         "2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf",
@@ -113,14 +112,15 @@ fn les_documents_d_un_mois_qui_n_est_pas_parti_ne_partent_pas() {
 }
 
 /// Un engagement dont un envoi reel accepte est parti (la DPAE, la DSN de novembre des Treteaux) ne se supprime
-/// pas. La route refuse et rien n'est ecrit : l'engagement reste tel qu'il etait.
+/// pas. La route avertit et rien n'est ecrit : l'engagement reste tel qu'il etait.
 #[test]
 fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "parti"));
     let avant = std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
-    let charge = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "numero": "FU1.26.01"});
-    outils::refus(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
-    assert!(std::fs::read(racine.join("engagements/2026-11.json")).unwrap() == avant, "le refus a ecrit l'engagement");
+    let charge = json!({"mois": "2026-11", "engagement": outils::identite_a(&racine, "2026-11", 0)});
+    let r = outils::route(&racine, "retirer-engagement", charge, "2026-12-16");
+    assert!(outils::reussi(&r)["avertissement"].is_string(), "{}", r);
+    assert!(std::fs::read(racine.join("engagements/2026-11.json")).unwrap() == avant, "l'avertissement a ecrit l'engagement");
 }
 
 /// L'engagement des Treteaux, sa DPAE et sa DSN de novembre parties, devient non actif apres la veille de
@@ -143,17 +143,17 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
         dsn["groupes"].as_array().unwrap().iter().map(|g| g["etat"].as_str().unwrap().to_string()).collect()
     };
     assert_eq!(dsn_de_decembre(), ["rien"], "un mois sans rien a declarer");
-    let charge = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "numero": "FU1.26.01", "non_actif": true});
+    let charge = json!({"mois": "2026-11", "engagement": outils::identite_a(&racine, "2026-11", 0), "confirme": true});
     outils::reussi(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
     assert_eq!(dsn_de_decembre(), ["a_faire"], "la DSN de decembre porte la correction de novembre");
 
     let ctx = |jour: &str| droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     let na = engagement::etats::non_actifs_du_mois(&ctx("2026-12-16"), "2026-11").unwrap().pop().expect("l'engagement non actif");
-    let a_refaire = na.a_refaire(&ctx("2026-12-16"), &envois::journal::departs(&racine).unwrap());
+    let a_refaire = na.a_refaire(&ctx("2026-12-16"), &envois::journal::lu(&racine).map(|j| j.departs).unwrap());
     assert!(a_refaire.iter().any(|a| matches!(a, ARefaire::Dsn { mois, .. } if mois == "2026-11")), "{:?}", a_refaire);
 
     // La DSN de decembre : le versement de la correction annule celui de novembre, montant pour montant.
-    outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), "2026-12-16"));
+    outils::reussi(&outils::route(&racine, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), "2026-12-16"));
     let lire = |rel: &str| std::fs::read(racine.join(rel)).unwrap().iter().map(|&o| o as char).collect::<String>();
     let (novembre, decembre) = (lire("sorties/2026-11/DSN_Novembre2026.dsn"), lire("sorties/2026-12/DSN_Decembre2026.dsn"));
     let montants = |dsn: &str, rubriques: &[&str]| -> Vec<rust_decimal::Decimal> {
@@ -174,9 +174,9 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
         "versions": [{"salarie": "FULLER", "numero": "FU1.26.01", "version": na.version(), "mois": "2026-11"}],
     }));
     outils::ecrire(&racine, "journal/depots.json", &journal);
-    let a_refaire = na.a_refaire(&ctx("2027-01-20"), &envois::journal::departs(&racine).unwrap());
+    let a_refaire = na.a_refaire(&ctx("2027-01-20"), &envois::journal::lu(&racine).map(|j| j.departs).unwrap());
     assert!(!a_refaire.iter().any(|a| matches!(a, ARefaire::Dsn { .. })), "{:?}", a_refaire);
-    assert!(declarations::produire_regularisations::regularisations_pour(&ctx("2027-01-20"), "2027-01").unwrap().is_empty());
+    assert!(declarations::produire_regularisations::regularisations_pour(&ctx("2027-01-20"), "2027-01", &envois::journal::lu(&racine).map(|j| j.departs).unwrap()).unwrap().is_empty());
 }
 
 /// UN ENGAGEMENT AJOUTE A UN MOIS DEJA DECLARE A UN SEUL BULLETIN ET UN SEUL PAIEMENT. Aux Treteaux, apres la veille de
@@ -191,18 +191,6 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "ajoute"));
     let jour = "2026-12-16";
     let lignes = |q: u32, dates: &[&str]| json!([{"rubrique": "cachet", "quantite": q, "taux": 150, "lieu": "Salle fictive de Rezé", "dates": dates}]);
-    let saisie = |second: Value| {
-        json!({"mois": "2026-11", "saisie": {"mois": "2026-11", "taux_cachet": 150, "date_paiement": "2026-11-30", "engagements": [
-            {"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.01", "lignes": lignes(2, &["2026-11-20", "2026-11-21"])},
-            second,
-        ]}, "forcer": false, "modifier_apres_echeance": true})
-    };
-    let second = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-27"});
-    let avec = |x: Value| {
-        let mut f = second.clone();
-        f.as_object_mut().unwrap().extend(x.as_object().unwrap().clone());
-        f
-    };
     let documents = || -> Vec<String> {
         let r = outils::route(&racine, "etat-du-mois", json!({"mois": "2026-11"}), jour);
         let etapes = outils::reussi(&r)["etapes"].as_array().unwrap().clone();
@@ -227,10 +215,10 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
         e["valide"]["paies"]["2026-11"].clone()
     };
 
-    outils::reussi(&outils::route(&racine, "enregistrer-saisie", saisie(json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])})), jour));
-    outils::reussi(&outils::route(&racine, "valider-engagement", avec(json!({"valide": true})), jour));
-    assert_eq!(documents(), ["a_faire"], "le bulletin du contrat ajoute est a envoyer");
-    outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), jour));
+    let second = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])});
+    outils::reussi(&outils::route(&racine, "valider-engagement", json!({"mois": "2026-11", "saisie": second}), jour));
+    assert_eq!(documents(), ["fait", "a_faire"], "le bulletin du contrat ajoute est a envoyer, celui du premier est parti");
+    outils::reussi(&outils::route(&racine, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), jour));
     let dsn = std::fs::read(racine.join("sorties/2026-12/DSN_Decembre2026.dsn")).unwrap().iter().map(|&o| o as char).collect::<String>();
     assert!(dsn.contains("S21.G00.40.009,'FU1.26.02'"), "la DSN de decembre declare le contrat ajoute");
     assert!(bulletins_hors_du_mois().is_empty(), "la DSN a fabrique un bulletin : {:?}", bulletins_hors_du_mois());
@@ -238,12 +226,26 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     assert_eq!(documents(), ["fait"]);
     assert_eq!(paie_du_second()["bulletin"], json!("2/2026"));
 
-    outils::reussi(&outils::route(&racine, "valider-engagement", avec(json!({"valide": false, "confirme": true})), jour));
-    outils::reussi(&outils::route(&racine, "enregistrer-saisie", saisie(json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.02", "lignes": lignes(2, &["2026-11-27", "2026-11-28"])})), jour));
-    outils::reussi(&outils::route(&racine, "valider-engagement", avec(json!({"valide": true})), jour));
-    assert_eq!(documents(), ["a_faire"], "le bulletin parti est a rectifier");
+    // « Modifier l'engagement » : sans changement, rien ne s'ecrit et rien ne se dit ; son bulletin parti, le changement
+    // vient avec l'avertissement et rien ne s'ecrit sans la confirmation.
+    let modifier = |lignes: Value, confirme: bool| {
+        let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.02", "lignes": lignes});
+        outils::route(&racine, "modifier-engagement", json!({"mois": "2026-11", "confirme": confirme,
+            "engagement": outils::identite(&racine, "2026-11", "FULLER", Some("FU1.26.02")), "saisie": saisie}), jour)
+    };
+    let ecrits = || std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
+    let avant = ecrits();
+    let r = outils::reussi(&modifier(lignes(1, &["2026-11-27"]), false)).clone();
+    assert_eq!((&r["change"], r.get("avertissement")), (&json!(false), None), "{}", r);
+    assert!(ecrits() == avant, "une modification sans changement a ecrit");
+    let r = outils::reussi(&modifier(lignes(2, &["2026-11-27", "2026-11-28"]), false)).clone();
+    let consequences: Vec<Value> = r["avertissement"]["engagements"].as_array().into_iter().flatten().flat_map(|e| e["consequences"].as_array().cloned().unwrap_or_default()).collect();
+    assert!(consequences.iter().any(|p| p.as_str().is_some_and(|p| p.contains("bulletin rectificatif"))), "{}", r);
+    assert!(ecrits() == avant, "une modification non confirmee a ecrit");
+    outils::reussi(&modifier(lignes(2, &["2026-11-27", "2026-11-28"]), true));
+    assert_eq!(documents(), ["fait", "a_faire"], "le bulletin parti du second est a rectifier");
     std::fs::remove_dir_all(racine.join("sorties/2026-12")).unwrap();
-    outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), jour));
+    outils::reussi(&outils::route(&racine, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), jour));
     assert!(bulletins_hors_du_mois().is_empty(), "la DSN a fabrique un bulletin : {:?}", bulletins_hors_du_mois());
     outils::reussi(&outils::route(&racine, "documents-imprimer", json!({"mois": "2026-11"}), jour));
     let p = paie_du_second();
@@ -305,7 +307,7 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     assert_eq!(bilan["verdict"], json!("KO"), "{}", ligne);
     assert!(bilan["anomalies"].to_string().contains("Code URSSAF invalide"), "{}", bilan);
     assert!(!ligne["retours"].as_array().unwrap().iter().any(|x| x["nature"] == json!("94")), "une DSN refusee n'a pas de taux : {}", ligne);
-    let etat = envois::etats::dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), &ctx.entreprise, "2026-11").unwrap();
+    let etat = envois::etats::etat_dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), "2026-11", &json!(null), &droit::bareme::nic_principal(&ctx.entreprise)).unwrap();
     assert_eq!(etat["refusee"], json!(true), "{}", etat);
 
     // UN FICHIER REFUSE NE REPART PAS TOUT SEUL : a l'ouverture suivante, l'horloge refait la DSN a son echeance, octet
@@ -324,7 +326,7 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     std::fs::write(racine.join("config/entreprise.json"), serde_json::to_string_pretty(&entreprise).unwrap()).unwrap();
     ouvrir("2026-12-21");
     assert_eq!(de_novembre(), avant + 2, "le fichier corrige part, en test puis en reel");
-    let etat = envois::etats::dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), &ctx.entreprise, "2026-11").unwrap();
+    let etat = envois::etats::etat_dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), "2026-11", &json!(null), &droit::bareme::nic_principal(&ctx.entreprise)).unwrap();
     assert_eq!(etat["refusee"], json!(false), "{}", etat);
     ouvrir("2026-12-22");
     assert_eq!(de_novembre(), avant + 2, "une DSN acceptee ne repart pas");

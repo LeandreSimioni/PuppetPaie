@@ -35,8 +35,8 @@ pub struct Recapitulatifs<'a> {
 }
 
 impl<'a> Recapitulatifs<'a> {
-    pub fn nouveau(ctx: &'a Contexte, mois: Option<String>, annee: Option<String>, toutes: bool) -> Self {
-        let demande = Demande { mois, annee, toutes, format: "pdf".to_string(), ..Demande::default() };
+    pub fn nouveau(ctx: &'a Contexte, mois: Option<String>, annee: Option<String>, toutes: bool, departs: engagement::departs::Departs) -> Self {
+        let demande = Demande { mois, annee, toutes, format: "pdf".to_string(), departs, ..Demande::default() };
         Recapitulatifs { ctx, demande, etats: [None, None] }
     }
 
@@ -68,7 +68,7 @@ impl<'a> Recapitulatifs<'a> {
         }
         let zero = socle::num::zero2();
         let mut cotes: [Vec<(String, Cumul)>; 2] = [Vec::new(), Vec::new()];
-        for l in etats_paie::lignes_livre(self.ctx, &p, &mut Vec::new())? {
+        for l in etats_paie::lignes_livre(self.ctx, &p, &mut Vec::new(), &self.demande.departs)? {
             for (i, cle) in [&l.spectacle, &l.cle_salarie].into_iter().enumerate() {
                 if cle.is_empty() {
                     continue;

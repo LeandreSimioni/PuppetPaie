@@ -11,7 +11,7 @@ bulletin par construction. On ne le rédige jamais à la main.
 ## Le préparer
 
 1. Écrire l'engagement dans la saisie du mois (compétence `paie`) : salarié, spectacle, lignes avec leurs dates et
-   leur lieu. `moteur nouveau 2026-12` crée le fichier.
+   leur lieu, sur sa carte dans la fenêtre.
 2. Le contrat part **à la signature depuis la fenêtre** : onglet Paie, « Envoyer à la signature… ». Le moteur écrit
    alors le PDF (`sorties/<mois>/envoi/Contrat_<CLE>_<numero>_<Mois><Année>.pdf`) et l'envoie avec un bouton
    « Je signe » ; la réponse est relevée par `moteur signatures` (et à chaque ouverture), puis le contrat contresigné
@@ -39,7 +39,7 @@ Le modèle est `logiciel/donnees/modeles/contrat-cddu.modele`.
   plus souvent une rémunération distincte. Le signaler si l'utilisateur parle de filmer.
 - **Le numéro** (initiales, rang, année : `BR1.26.05`) est tiré par le moteur (`config/compteurs.json`) et repris tel
   quel dans la DSN ; il se fige à la production. Ne jamais le bricoler ; un contrat sur plusieurs mois porte dans
-  chaque mois suivant le `numero` du premier (`moteur nouveau <mois> --reprendre`).
+  chaque mois suivant le `numero` du premier.
 - **Un contrat signé qui change** (dates, lieu, rémunération) part en **avenant**, depuis la même action de la
   fenêtre ; un contrat déjà commencé ne s'annule pas.
 - **Un permanent** (CDI, CDD ordinaire) : le moteur n'imprime que le contrat d'un CDD d'usage ; celui du permanent se

@@ -7,8 +7,8 @@
 //! laisse la case VIDE et le dit (`illisible`) : rien n'est complete au hasard. Le departement et le pays de
 //! naissance se lisent dans le NIR.
 //!
-//! Lecture des chiffres : `\d` et `int()` ne lisent ici que
-//! les chiffres ASCII pour les dates ; la decomposition NFD des accents est celle de `contexte::sans_accent` (latin
+//! Lecture des chiffres : seuls se lisent
+//! les chiffres ASCII, pour les dates ; la decomposition NFD des accents est celle de `contexte::sans_accent` (latin
 //! courant).
 
 use std::collections::HashMap;
@@ -25,14 +25,18 @@ pub fn code_au_hasard(prefixe: &str) -> String {
     let alphabet = ALPHABET_CODE.as_bytes();
     let limite = 256 - 256 % alphabet.len();
     let mut code = String::from(prefixe);
+    // UN TIRAGE PAR CODE, jamais un par signe : un octet rejete ne decale pas la suite des aleas qui suivent (au rejeu,
+    // `socle::temps::aleas` est une suite fixe, que chaque tirage fait avancer).
     while code.len() < prefixe.len() + 6 {
-        let mut b = [0u8; 1];
+        let mut b = [0u8; 32];
         if socle::temps::aleas(&mut b).is_err() {
             let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.subsec_nanos()).unwrap_or(7);
-            b[0] = (t >> (code.len() % 3)) as u8;
+            for (i, x) in b.iter_mut().enumerate() {
+                *x = (t >> (i % 24)) as u8;
+            }
         }
-        if (b[0] as usize) < limite {
-            code.push(alphabet[b[0] as usize % alphabet.len()] as char);
+        for x in b.iter().filter(|x| (**x as usize) < limite).take(prefixe.len() + 6 - code.len()) {
+            code.push(alphabet[*x as usize % alphabet.len()] as char);
         }
     }
     code
@@ -139,10 +143,6 @@ const NATIONALITES: [(&str, &str); 60] = [
 /// code ISO) : (mot sans accent, nom du pays). Le nom va dans `pays_nationalite_hors_liste` ; la zone
 /// (`code_nationalite_dsn`) ne s'en deduit pas, l'administrateur la choisit.
 const NATIONALITES_HORS_LISTE: [(&str, &str); 3] = [("kosovare", "Kosovo"), ("kosovar", "Kosovo"), ("kosovo", "Kosovo")];
-/// `FORME_CODE` : un code de fiche bien forme.
-pub fn est_un_code(t: &str) -> bool {
-    t.len() == 10 && t.starts_with("FIC-") && t[4..].chars().all(|c| ALPHABET_CODE.contains(c))
-}
 
 /// `questionnaire` : ce que le bouton prepare. Les questions, puis le code, en DERNIER, sur sa ligne ; la releve le
 /// cherche dans ce que la personne a ecrit, avant la citation.
@@ -155,15 +155,15 @@ pub fn questionnaire(code: &str) -> String {
 
 // ---------------------------------------------------------------- la lecture
 
-/// `_sans_accents` : sans accents, en minuscules, sans blancs aux bords.
+/// Sans accents, en minuscules, sans blancs aux bords.
 fn sans_accents(t: &str) -> String {
     strip(&socle::texte::sans_accent(t).to_lowercase()).to_string()
 }
 
-/// `_cle_libelle` : sans accents ni casse, les parentheses (des consignes) retirees, les mots de `a-z` seulement.
+/// Sans accents ni casse, les parentheses (des consignes) retirees, les mots de `a-z` seulement.
 fn cle_libelle(texte: &str) -> String {
     let t: Vec<char> = socle::texte::sans_accent(texte).to_lowercase().chars().collect();
-    // `re.sub(r"\(.*?\)", " ", t)` : de la parenthese ouvrante a la premiere fermante, sans passer a la ligne.
+    // Chaque parenthèse, de l'ouvrante à la première fermante sans passer à la ligne, devient un espace.
     let mut sans = String::new();
     let mut i = 0;
     while i < t.len() {
@@ -259,7 +259,7 @@ fn chiffre(c: char) -> bool {
     valeur_chiffre(c).is_some()
 }
 
-/// `int(t)` d'un groupe de chiffres decimaux (toutes ecritures), ou `None`.
+/// Le nombre d'un groupe de chiffres décimaux (toutes écritures), ou `None`.
 fn nombre(t: &str) -> Option<u32> {
     if t.is_empty() {
         return None;
@@ -271,7 +271,7 @@ fn nombre(t: &str) -> Option<u32> {
     Some(v)
 }
 
-/// `_date` : une date lue `AAAA-M-J` ou `J/M/AAAA` (separateurs `/`, `.`, `-`, espace), en ISO ; `None` si elle ne se
+/// Une date lue `AAAA-M-J` ou `J/M/AAAA` (separateurs `/`, `.`, `-`, espace), en ISO ; `None` si elle ne se
 /// lit pas ou n'existe pas.
 pub fn date_lue(texte: &str) -> Option<String> {
     let t = strip(texte);
@@ -307,7 +307,7 @@ pub fn date_lue(texte: &str) -> Option<String> {
 // par leur nom (celui du COG ou le nom officiel, sans accents) ou leur code ISO a deux lettres. Un nom ou un
 // code que la liste ne connait pas laisse la case vide et la note le dit.
 
-/// `_pays` : (code ISO, codification UE) d'un pays de la liste nomme en francais, ou de son code a deux lettres ;
+/// (code ISO, codification UE) d'un pays de la liste nomme en francais, ou de son code a deux lettres ;
 /// `None` pour ce que la liste ne connait pas.
 pub fn pays_lu(texte: &str) -> Option<(String, Option<&'static str>)> {
     let t = sans_accents(texte).replace('\u{2019}', "'");

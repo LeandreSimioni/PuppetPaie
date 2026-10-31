@@ -20,9 +20,8 @@ use crate::compagnie::releve::mot_de_passe_de_consultation;
 use envois::releve_retours::{Client, Panne};
 use socle::echec::Echec;
 
-type R<T> = Result<T, Echec>;
 
-pub const ROUTE: &str = "coffre-verifier";
+type R<T> = Result<T, Echec>;
 
 pub const NET_ENTREPRISES: &str = "net-entreprises";
 pub const URSSAF: &str = "urssaf";

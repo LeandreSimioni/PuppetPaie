@@ -56,7 +56,7 @@ L'espace Cargo `atelier/sources/` a une crate par partie ; chaque flèche descen
 | `routes/` | `moteur route` : une route par geste de l'écran, derrière un aiguillage (`mod.rs`) ; seules à décider, la ligne de commande et la page ne font que les appeler (règle 2) |
 | `interface/` | le serveur local de la page (127.0.0.1, un jeton par appel), l'accueil et ses compagnies, une fenêtre par installation, la veille |
 | `compagnie/` | ce qui garde la compagnie et la fait vivre à côté de ses engagements : le coffre et ses deux mots de passe, la demande d'un acte réel et ses portes (`depot_acte`), le départ des pièces (`depart`), la sauvegarde et la restauration, la mise à jour (`maj`), le bridage, l'ouverture, l'administrateur, le filet, les incidents, les conseils, la clôture et l'export compta (`exercice_ecrit`) |
-| `import/` | le passé d'une compagnie tenu dans un autre logiciel : le tri de la boîte aux lettres, les DSN et AEM (`dsn_aem`), le lecteur unique des bulletins (`bulletin_lu`), les engagements importés (`ecrite`), la nature à dire, la CASC-SVP des mois importés, les écarts de calcul, le caviardage et l'incident d'import |
+| `import/` | le passé d'une compagnie tenu dans un autre logiciel : le tri de la boîte aux lettres, les DSN et AEM (`dsn_aem`), le lecteur unique des bulletins (`bulletin_lu`), les engagements importés (`ecrite`), la nature à dire, la CASC-SVP des mois importés, les écarts de calcul, le caviardage des écarts et le document pas lu |
 | `atelier/` | les outils de l'éditeur, jamais à l'écran : le relevé des textes (`releve/` : LEGI, KALI), les référentiels extraits (`extraire/`), les tables Unicode, la vérification avant commit, le guet, les scénarios du banc, la publication des versions et la clé de l'éditeur (`publier`) ; la redirection vers de faux serveurs et les bulletins fictifs n'existent que dans le binaire de l'atelier (`--features atelier`) |
 | `commandes/` | la ligne de commande `moteur`, mince, au-dessus des parties |
 
@@ -105,7 +105,7 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
   d'après avec les jours que le mois d'avant a mis au planning (une ligne par ligne qui en a). Le fichier d'un mois
   porte aussi les défauts du mois (`taux_cachet`, `date_paiement`).
 - **Le mois de l'écran** (`stock::vue_du_mois`) : le fichier du mois et chaque engagement d'un mois d'avant qui court
-  encore, vu ce mois-là. L'écran lit et écrit cette vue (`stock::ecrire_vue_du_mois`) ; chaque engagement y retrouve
+  encore, vu ce mois-là. L'écran lit et écrit cette vue (`stock::ecrire_la_carte`, `stock::poser_la_saisie`) ; chaque engagement y retrouve
   son objet (numéro, puis salarié). Un engagement validé ne change pas par ce chemin.
 - **Ses états** (`engagement/src/etats.rs`), chacun son type : **en saisie** (`EnSaisie` : calculé à mesure pour
   l'écran, rien ne part de lui) ; **validé** (`Valide` : « Valider l'engagement » écrit sous `valide` la date, le numéro
@@ -131,7 +131,7 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
   bulletin rectificatif, DSN) se tire de la comparaison entre le présent et la version sur laquelle chaque envoi est
   parti. L'engagement ne lit jamais le journal : le moteur lui passe ce qui est parti (`engagement/src/departs.rs`).
 - **Chaque document se fabrique à son départ** (`moteur/src/compagnie/depart.rs`) : la DSN à son dépôt (`fabriquer_dsn`, route
-  `dsn-a-deposer`), dès qu'un engagement du mois est validé, sans attendre DPAE ni contrat ; le bulletin et le certificat
+  `depot-apercu`, la DSN désignée par son mois), dès qu'un engagement du mois est validé, sans attendre DPAE ni contrat ; le bulletin et le certificat
   Congés Spectacles à l'envoi des documents (`fabriquer_documents`), qui écrit dans la paie le numéro du bulletin
   (`N/AAAA`, la suite de l'année, après le plus haut que porte une paie de l'année, importée comprise) et le premier
   N° CE (`etats::poser_numeros_des_documents`). Un bulletin parti dont la paie change ensuite a son rectificatif, sous
@@ -163,7 +163,7 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
 - **Le recalcul de lui-même** (`etats::rafraichir`, à chaque lecture d'un mois, `etats::du_mois`) : une paie validée
   dont l'empreinte ne tient plus et dont les documents ne sont pas partis se recalcule, d'un seul calcul du mois. Si un
   chiffre change, elle dit pourquoi : « taux de PAS reçu », « règle du JJ/MM/AAAA », « calcul corrigé » (le code ou ce
-  qu'il livre), « un autre engagement du mois a changé », « configuration de la compagnie modifiée ». L'écran le montre
+  qu'il livre), « un autre engagement du salarié a changé », « configuration de la compagnie modifiée ». L'écran le montre
   (« Recalculé le JJ/MM/AAAA : … »). Sans chiffre changé, rien ne se dit. Un recalcul que le moteur refuse
   garde la paie validée et se note en incident pour l'éditeur (le témoin des recalculs refusés, `compagnie::incidents`).
 - **Modifier…** (route `valider-engagement`, `valide: false`) repasse l'engagement en saisie. Si les documents d'un de
@@ -572,10 +572,11 @@ bulletins en PDF, zip, doublons) ; l'import en tire ses fiches et ses **engageme
   le taux AT/MP, le logiciel reconnu, les deux taux et l'écart relatif), et le texte passe quand même par le
   caviardage. Une paie se compare une fois. Ce qui ne se compare pas le dit (une période sans barème, une convention
   sans couche, une ligne sans rubrique).
-- **L'incident d'import** (`import/incident.rs`, `import/caviardage.rs`) : quand des fichiers n'ont pas pu être repris,
-  `importation-incident` montre ce qui partirait chez l'éditeur (le compte rendu de chaque fichier non repris, et le
-  texte des pages caviardé de tout ce qui désigne une personne) ; rien ne part sans le clic « Envoyer »
-  (`importation-incident-envoyer`), et jamais le fichier d'origine.
+- **Le document accepté mais pas lu** (`import/incident.rs`) : à chaque import, un PDF à texte que l'import n'a pas repris
+  part en incident, en silence, un seul par famille (même suite de mots du vocabulaire sur sa première page, même
+  logiciel) ; son texte, masqué par liste blanche (les mots de la table de lecture et des pièces, les codes de rubrique
+  DSN restent ; toute autre lettre devient `X`, tout chiffre `9`), jamais le fichier. Un scan et un fichier qui n'est
+  ni PDF, ni DSN, ni AEM se refusent à l'écran avec leur raison (`import/tri.rs`), sans incident.
 
 ## La DSN
 
@@ -1426,8 +1427,8 @@ Trois garde-fous, tous dans le moteur (`moteur/src/compagnie/depot_acte.rs`, `mo
   Une version exigée et pas encore installée bloque tout dépôt réel
   (`depot_acte::exigee_en_attente`).
 - **Pas deux fois.** Une DSN réelle déjà partie pour le mois ne repart pas
-  (`DsnDejaDeposee`), une embauche déjà déclarée ne se redéclare pas
-  (`DpaeDejaDeclaree`). Une déclaration **refusée** repart sans forcer —
+  (`DsnDejaDeposee`), une embauche déjà déclarée n'est plus à déclarer.
+  Une déclaration **refusée** repart sans forcer —
   c'est la seule raison de la refaire.
 - **Un dépôt n'est pas fini quand il est parti.** `envois/src/journal.rs` écrit une ligne
   par acte sortant dans `journal/depots.json` (dépôt, courriel, demande de

@@ -17,12 +17,12 @@
 
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use socle::ecriture::ecrire_json;
 use crate::compagnie::editeur::Client;
-use envois::etats::{self, get};
+use envois::etats::get;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -63,7 +63,7 @@ fn ecrire_etat(racine: &Path, e: &Value) -> R<()> {
     ecrire_json(&chemin(racine), e, 2).map_err(en_os)
 }
 
-/// `_ecrire_etat_si_change` : rien de change, rien d'ecrit.
+/// Rien de change, rien d'ecrit.
 fn ecrire_etat_si_change(racine: &Path, e: &Value) -> R<()> {
     if &lire_etat(racine)? != e {
         ecrire_etat(racine, e)?;
@@ -84,15 +84,16 @@ fn verrouiller(racine: &Path) -> R<Verrou> {
     }
 }
 
-fn cle(salarie: &str, debut: &str) -> String {
-    format!("{}|{}", salarie, debut)
+/// La cle du reveil de la DPAE d'un engagement : son salarie et le numero de son contrat.
+pub(crate) fn cle_dpae(salarie: &str, numero: &str) -> String {
+    format!("{}|{}", salarie, numero)
 }
 
 fn cle_dsn(mois: &str) -> String {
     format!("dsn|{}", mois)
 }
 
-/// `_maintenant` puis `_iso` : `AAAA-MM-JJTHH:MM`, l'heure de Paris.
+/// `AAAA-MM-JJTHH:MM`, l'heure de Paris.
 fn maintenant() -> String {
     socle::paris::maintenant()[..16].to_string()
 }
@@ -261,32 +262,17 @@ pub fn verifier(racine: &Path) -> R<Value> {
 
 // ------------------------------------------------------- les embauches suivies
 
-/// `embauches_suivies` en JSON : les embauches sans trace de DPAE, d'une
-/// semaine en arriere a l'infini, chacune avec son engagement valide ou non.
 /// Le journal des depots, ou un refus qui le dit (un fichier qui ne se lit pas en JSON).
-fn journal_lisible(racine: &Path) -> R<Vec<Value>> {
-    etats::charger(racine).map_err(|e| match e.classe {
-        Some("JSONDecodeError" | "UnicodeDecodeError" | "AttributeError" | "TypeError") => erreur(
-            "ErreurOperation",
-            format!("Le journal des depots (journal/depots.json) est illisible : {}.\nLe corriger, ou le deplacer, avant de relancer.", e.message),
-        ),
-        _ => e,
+fn journal_lisible(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
+    envois::journal::lu(racine).map(|j| j.lignes).map_err(|e| {
+        erreur("ErreurOperation", format!("Le journal des depots (journal/depots.json) est illisible : {e}.\nLe corriger, ou le deplacer, avant de relancer."))
     })
 }
-
+/// Les embauches suivies : les DPAE a faire (`etapes::Moteur::embauches_a_declarer`), le journal des depots lisible.
 pub fn suivies(ctx: &Contexte) -> R<Vec<Value>> {
-    use crate::routes::rappels::{embauches_suivies, nic_principal, Etat};
-    let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
-    let liste = embauches_suivies(&st).map_err(socle::echec::Echec::from)?;
-    Ok(liste
-        .into_iter()
-        .map(|(e, valide)| {
-            json!({
-                "mois": e.mois, "salarie": e.salarie, "debut": e.debut, "fin": e.fin,
-                "nom": e.nom, "spectacle": e.spectacle, "valide": valide, "empreinte": e.empreinte,
-            })
-        })
-        .collect())
+    journal_lisible(&ctx.racine)?;
+    let a_faire = crate::routes::etapes::Moteur::nouveau(ctx).embauches_a_declarer(None)?;
+    Ok(a_faire.as_array().cloned().unwrap_or_default())
 }
 
 /// `echeance_du_reveil` : la veille a 9 h ; passee, le jour meme a 7 h ; passe
@@ -305,7 +291,7 @@ pub fn echeance_du_reveil(debut: &str, maintenant: &str) -> R<Option<String>> {
 
 // ------------------------------------------------------------- le passage
 
-/// Ce que `_reveils` a fait.
+/// Ce que les reveils ont fait.
 #[derive(Default)]
 pub struct Reveils {
     pub armes: Vec<String>,
@@ -313,16 +299,15 @@ pub struct Reveils {
     pub incidents: Vec<String>,
 }
 
-/// `_dsn_a_rappeler` : (mois, jour d'echeance ISO) des DSN dont la boite des
+/// (mois, jour d'echeance ISO) des DSN dont la boite des
 /// rappels parle -- aucun depot REEL accepte, ou un depot refuse.
 fn dsn_a_rappeler(ctx: &Contexte) -> R<Vec<(String, String)>> {
-    use crate::routes::rappels::{mois_a_declarer, nic_principal, Etat};
-    let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
-    let echeance = ctx.echeance_dsn().map_err(socle::echec::Echec::from)?;
+    use crate::routes::rappels::{mois_a_declarer, Etat};
+    let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)? };
     let mut out = Vec::new();
     for m in mois_a_declarer(&st).map_err(socle::echec::Echec::from)? {
         // Le jour de depot, reporte au jour ouvre (`echeance_dsn`) : le reveil sonne la veille et le jour meme, avant midi.
-        let jour = declarations::echeance_dsn::du_mois(&m, echeance).map_err(socle::echec::Echec::from)?.jour;
+        let jour = declarations::echeance_dsn::de_la_compagnie(ctx, &m).map_err(socle::echec::Echec::from)?.jour;
         out.push((m, jour.iso()));
     }
     Ok(out)
@@ -334,7 +319,7 @@ fn nouveau_code() -> R<String> {
     Ok(alea.iter().map(|o| format!("{:02x}", o)).collect())
 }
 
-/// `_reveils` : armer ce qui doit sonner, desarmer ce qui ne doit plus. Une
+/// Armer ce qui doit sonner, desarmer ce qui ne doit plus. Une
 /// panne de reseau arrete le passage (on ne martele pas un serveur absent) ; les
 /// reveils restent notes tels quels, et le passage suivant reprend.
 fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str, bilan: &mut Reveils) -> R<()> {
@@ -364,12 +349,9 @@ fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str
             }
         };
         for e in suivies {
-            if !vrai(get(e, "valide")?) {
-                continue;
-            }
             let debut = valeur_en_texte(get(e, "debut")?);
             if let Some(quand) = echeance_du_reveil(&debut, maintenant)? {
-                poser(cle(&valeur_en_texte(get(e, "salarie")?), &debut), debut, quand, "dpae");
+                poser(cle_dpae(&valeur_en_texte(get(e, "salarie")?), &valeur_en_texte(get(e, "numero")?)), debut, quand, "dpae");
             }
         }
         // LA DSN PAS PARTIE : le meme reveil, la veille de l'echeance a 9 h.
@@ -506,18 +488,3 @@ pub fn desarmer(racine: &Path, k: &str) -> R<bool> {
     Ok(true)
 }
 
-/// La cle d'un reveil de DPAE ou de DSN.
-pub fn cle_du_reveil(charge: &Value) -> String {
-    match charge.get("cle").filter(|c| vrai(c)) {
-        Some(c) => valeur_en_texte(c),
-        None => cle(
-            &charge.get("salarie").map(valeur_en_texte).unwrap_or_else(|| "None".into()),
-            &charge.get("debut").map(valeur_en_texte).unwrap_or_else(|| "None".into()),
-        ),
-    }
-}
-
-/// Les cles des `tests` de l'etat (pour les appelants qui en ont besoin).
-pub fn tests_de_l_etat(racine: &Path) -> R<Map<String, Value>> {
-    Ok(lire_etat(racine)?["tests"].as_object().cloned().unwrap_or_default())
-}

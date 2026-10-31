@@ -13,8 +13,8 @@
 //! - `--confirmer-mois` est verifie ICI, avant toute demande de mot de passe (le moteur ne le lit que lorsqu'un mot de passe est
 //!   donne a l'avance, ce que la commande ne fait jamais) ;
 //! - dans `moteur-atelier`, tout depot reel est refuse par `verifier_preuve` (`ActeReelRefuse`) ;
-//! - un depot REEL n'est possible que sur `production` : la plate-forme `editeur` est un service d'essai, et le journal y
-//!   noterait comme declaree une DSN qui ne l'est pas (voir `depot_acte::deposer_dsn_dans`).
+//! - un depot REEL n'est possible que sur `production` : `depot_acte::deposer_dsn_dans` le refuse, avant la demande du mot
+//!   de passe.
 //!
 //! - `--ordre N` : seulement avec `--test`, sur une mensuelle -- l'essai part en annule-et-remplace a l'ordre N au
 //!   moins, quand la base d'essai a deja retenu des essais de ce SIRET pour ce mois que le journal de ce dossier ignore (un
@@ -57,7 +57,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
-/// Un horodatage ISO a la francaise, avec ` a ` (`util.quand_lisible(x, " a ")`).
+/// Un horodatage ISO a la francaise, avec « a » sans accent.
 pub(crate) fn quand_a(v: &Value) -> String {
     envois::etats::quand_lisible(v).replace(" à ", " a ")
 }
@@ -131,16 +131,22 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
     let environnement = args.texte("environnement").unwrap_or("production");
     let fichier = args.texte("fichier").unwrap_or("");
-    // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides.
-    let fabriquee;
-    let fichier = if est_un_mois(fichier) {
-        let dsn = crate::compagnie::depart::fabriquer_dsn(&cadre.ctx, fichier, "cli")?;
-        fabriquee = dsn.fichiers.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
-        fabriquee.as_str()
-    } else {
-        fichier
-    };
-    let chemin = crate::routes::depots::resoudre(&cadre.racine, &json!(fichier))?;
+    // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides. L'apercu la
+    // lit sans l'ecrire (`depart::dsn_du_mois`) : rien ne se pose sur le disque avant le depot.
+    if apercu_seul && socle::date::mois_valide(fichier) {
+        let Some((f, partie)) = crate::compagnie::depart::dsn_du_mois(&cadre.ctx, fichier, None)? else {
+            dire!("{} : rien n'est a declarer.", fichier);
+            return Ok(1);
+        };
+        let apercu = depot::lire(f.texte.as_bytes());
+        dire!("{}\nCE QUI PARTIRAIT - rien n'est envoye ni ecrit\n{}", "-".repeat(62), "-".repeat(62));
+        afficher_apercu(&format!("la DSN de {}{}", fichier, if partie { ", deja partie" } else { "" }), &apercu, crate::compagnie::essai::est_essai(&cadre.racine));
+        dire!("{}", "-".repeat(62));
+        return Ok(0);
+    }
+    // Un mois : la DSN que la designation donne (`depots::designee`), celle du depot de la page.
+    let designee = if socle::date::mois_valide(fichier) { crate::routes::depots::designee(&cadre.ctx, &json!({"quoi": "dsn", "mois": fichier}))?.0 } else { json!(fichier) };
+    let chemin = crate::routes::depots::resoudre(&cadre.racine, &designee)?;
     let octets = match crate::routes::depots::lire_octets(&chemin) {
         Ok(o) => o,
         Err(e) => {
@@ -168,12 +174,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         dire!("{}", "-".repeat(62));
         dire!("Le fichier est code {} : sans --test, un depot {}.", apercu.champ("nature_envoi"), if apercu.reel() { "DECLARERAIT" } else { "ne declarerait rien" });
         return Ok(0);
-    }
-
-    // UN DEPOT REEL NE PART QUE SUR LA PRODUCTION : refuse avant tout affichage, avant toute demande.
-    if reel && environnement != "production" {
-        dire!("\nRefus : l'environnement '{}' est la plate-forme d'essai de l'editeur : rien n'y est declare. Un depot REEL ne part que sur 'production' ; pour essayer, utiliser --test. Rien n'est parti.", environnement);
-        return Ok(2);
     }
 
     dire!("{}\n{}\n{}", "-".repeat(62), if reel { "DEPOT REEL - LA DECLARATION PART" } else { "DEPOT DE TEST - rien ne sera conserve" }, "-".repeat(62));
@@ -253,8 +253,3 @@ fn dire_la_suite(fait: &DepotFait, reel: bool, apercu: &Apercu) {
     }
 }
 
-/// `AAAA-MM` : un mois, pas un fichier.
-fn est_un_mois(t: &str) -> bool {
-    let b = t.as_bytes();
-    b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
-}

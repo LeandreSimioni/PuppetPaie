@@ -43,9 +43,7 @@ function mettreDeCote() {
   return rendre;
 }
 
-/* TOUT COCHER, D'UN CLIC (l'éditeur, 30/09/2026 : « quand on clique sur
- * DPAE ou sur contrat, un truc tout sélectionné, plutôt que de cliquer à
- * la main » — renvoyer tous les contrats, par exemple). Chaque liste de
+/* TOUT COCHER, D'UN CLIC (renvoyer tous les contrats, par exemple). Chaque liste de
  * choix de plus d'une case reçoit en tête une case « Tout cocher ». Elle
  * passe par l'événement « change » de chaque case : ce que la boîte en
  * déduit (le libellé du bouton, un avenant) suit comme au clic. Une case
@@ -127,9 +125,8 @@ document.getElementById("voile").onclick = (e) => {
 /* LE MOT DE PASSE DU LOGICIEL : UN POPUP, TOUJOURS LE MÊME.
    Chaque acte qui engage — dépôt réel, envoi, signature, écrire dans le
    coffre — passe par ici : on clique le bouton de l'acte, le popup demande
-   le mot de passe, Entrée, et l'acte part. Plus de champ posé dans chaque
-   écran (l'éditeur : « la logique c'est un popup, toujours, où je tape le
-   mot de passe, pas des champs cachés »). Le popup vit dans index.html
+   le mot de passe, Entrée, et l'acte part ; aucun écran n'a de champ à lui
+   pour le mot de passe. Le popup vit dans index.html
    (`#voile-mdp`), au-dessus de la boîte courante, et rend une promesse :
    le mot de passe, ou null si on annule (Échap, Annuler, clic à côté).
 

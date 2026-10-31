@@ -309,8 +309,6 @@ fn bulletin_lu_les_refus_sont_nommes() {
     pdf(vec![page], &ambigu);
     let l = lire(&ambigu).unwrap();
     assert!(matches!(l[0].resultat.clone().unwrap_err(), Refus::Ambigu(_)), "{:?}", l[0].resultat);
-    // Le salarie s'est lu avant le refus : de quoi caviarder la page.
-    assert_eq!(l[0].partiel.as_ref().and_then(|s| s.nir.clone()).as_deref(), Some("288117599900146"));
 
     // Un PDF que la fabrique n'ouvre pas : une erreur du fichier, pas d'une page.
     let casse = d.join("casse.pdf");

@@ -86,7 +86,7 @@ pub fn libelle_nature(code: &str) -> String {
 
 // ------------------------------------------------------ le texte
 
-/// `str.strip()`.
+/// Le texte sans ses blancs de tête et de queue.
 fn nettoye(s: &str) -> &str {
     s.trim_matches(blanc)
 }
@@ -543,7 +543,7 @@ fn controle_expat(s: &str) -> Resultat<()> {
     Ok(())
 }
 
-/// `ET.fromstring(texte)` pour un `str` : la declaration d'encodage est sans effet.
+/// Un XML déjà en texte : sa déclaration d'encodage est sans effet.
 fn lire_texte(s: &str) -> Resultat<Arbre> {
     lire_texte_nu(s.strip_prefix('\u{feff}').unwrap_or(s))
 }
@@ -596,7 +596,7 @@ fn normaliser(nom: &str) -> String {
     out
 }
 
-/// Ce que `pyexpat` fait d'un encodage declare.
+/// Ce que la lecture XML fait d'un encodage déclaré (les classes de `tables_retours`).
 #[derive(PartialEq)]
 enum Codage {
     Utf8,
@@ -792,7 +792,7 @@ fn bilan_depuis(champs: &[(String, String)], type_rapport: &str) -> Option<Value
     Some(Value::Object(m))
 }
 
-/// `parse_bilan_depot` : un rapport AEE, CCO ou BAN, ou `None` si ce n'en est pas un.
+/// Un rapport AEE, CCO ou BAN lu, ou `null` si ce n'en est pas un.
 fn parse_bilan_depot(o: &[u8]) -> Value {
     parse_bilan_depot_lu(o).unwrap_or(Value::Null)
 }
@@ -1098,7 +1098,7 @@ impl Entree94 {
     }
 }
 
-/// `_plat` : (nom local, valeurs des attributs, texte net) de chaque element.
+/// (nom local, valeurs des attributs, texte net) de chaque element.
 struct Plat {
     nom: String,
     attribs: Vec<(String, String)>,
@@ -1151,7 +1151,7 @@ fn pas_rapport_crm(a: &Arbre) -> Vec<Value> {
 fn pas_par_code(a: &Arbre) -> Vec<Value> {
     let elements = a_plat(a);
     const RUB: &str = "S21.G00.50.008";
-    // `str(attribs) + texte` : le dictionnaire s'ecrit avec ses cles et ses valeurs.
+    // Les attributs (clés et valeurs) puis le texte de chaque élément.
     let present = elements
         .iter()
         .any(|p| p.texte.contains(RUB) || p.attribs.iter().any(|(k, v)| k.contains(RUB) || v.contains(RUB)));
@@ -1228,7 +1228,7 @@ fn pas_par_nom_metier(a: &Arbre) -> Vec<Value> {
     releves.iter().filter(|r| r.complete()).map(Entree94::json).collect()
 }
 
-/// `re.fullmatch(r"[0-9]{1,2}\.[0-9]{2}", v)`
+/// Un taux : un ou deux chiffres, un point, deux chiffres.
 fn est_taux(v: &str) -> bool {
     let c: Vec<char> = v.chars().collect();
     let Some(p) = c.iter().position(|&x| x == '.') else {
@@ -1476,7 +1476,7 @@ struct Membre {
     taille_comp: u64,
     taille: u64,
     decalage: i128,
-    /// `_end_offset` : l'octet ou le membre ne peut pas aller plus loin.
+    /// L'octet ou le membre ne peut pas aller plus loin.
     fin: i128,
 }
 
@@ -1631,7 +1631,7 @@ fn repertoire_zip(b: &[u8]) -> Resultat<Vec<Membre>> {
         membres.push(m);
         total += (46 + ln_nom + ln_extra + ln_comm) as i128;
     }
-    // `_end_offset` : chaque membre finit ou le suivant commence (le repertoire pour le dernier).
+    // Chaque membre finit ou le suivant commence (le repertoire pour le dernier).
     let mut ordre: Vec<usize> = (0..membres.len()).collect();
     ordre.sort_by_key(|&i| std::cmp::Reverse(membres[i].decalage));
     let mut fin = debut_cd as i128;
@@ -1725,12 +1725,12 @@ fn lire_membre(b: &[u8], m: &Membre) -> Resultat<Vec<u8>> {
     Ok(donnees)
 }
 
-/// `Path(nom).name` d'un chemin POSIX.
+/// Le dernier nom d'un chemin POSIX.
 fn nom_de_fichier(nom: &str) -> &str {
     nom.split('/').rfind(|p| !p.is_empty() && *p != ".").unwrap_or("")
 }
 
-/// `Path(nom).stem`
+/// Le nom d'un fichier sans sa dernière extension.
 fn radical(nom: &str) -> &str {
     let n = nom_de_fichier(nom);
     match n.rfind('.') {

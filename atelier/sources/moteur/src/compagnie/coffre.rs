@@ -136,7 +136,7 @@ fn normal(p: PathBuf) -> PathBuf {
     sortie
 }
 
-/// `Path.resolve()` : absolu, liens suivis aussi loin que le chemin existe.
+/// Le chemin absolu, liens suivis aussi loin que le chemin existe.
 fn resoudre(p: &Path) -> PathBuf {
     let absolu = if p.is_absolute() { p.to_path_buf() } else { std::env::current_dir().unwrap_or_default().join(p) };
     let mut reste: Vec<std::ffi::OsString> = Vec::new();
@@ -548,12 +548,6 @@ pub fn retenir_mot_de_passe_tape(motdepasse: &str) {
 /// Oublie le mot de passe retenu pour ce fil (la fin d'une commande, ou d'un test).
 pub fn oublier_mot_de_passe_tape() {
     TAPE.with(|t| *t.borrow_mut() = None);
-}
-
-/// Un mot de passe tape est-il retenu sur ce fil ? (Rien de plus : jamais sa valeur.) Les essais de la fenetre s'en
-/// servent : un mot de passe ne survit pas a sa route.
-pub fn mot_de_passe_retenu() -> bool {
-    TAPE.with(|t| t.borrow().is_some())
 }
 
 /// Le mot de passe tape pour cette commande : celui de la demande, sinon `PUPPETPAIE_MOTDEPASSE`.

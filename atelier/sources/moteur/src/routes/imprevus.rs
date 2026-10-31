@@ -20,31 +20,91 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::routes::{brut, maintenant, qui_de, salarie};
-use declarations::signalement::{self, ARRET};
+use declarations::signalement;
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
-use engagement::imprevus::{self, SUSPENSION};
+use engagement::imprevus::{self, ARRET, SUSPENSION};
 use envois::etats::{get, getd, items, objet_vide, ou, Dico};
 use socle::date::{d, en_texte, repr_texte, Jour};
-use socle::echec::{erreur, Echec, Refus, R};
+use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
-use socle::num::{eur2, Decimal};
+use socle::num::Decimal;
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
 
+const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", sens: "le dernier jour travaillé avant l'arrêt, qui le désigne", avance: false };
+const DEBUT: Champ = Champ { nom: "debut", sens: "le premier jour de l'absence, qui la désigne", avance: false };
+const UN_ARRET: &str = r#"{"salarie":"FULLER","dernier_jour":"2026-11-27"}"#;
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "imprevus", "arrets", "fins-de-contrat", "arret-contrats",
-    "arret-enregistrer", "arret-reprise", "arret-oublier", "arret-maintien", "arret-prolonger", "arret-signaler",
-    "suspension-enregistrer", "suspension-modifier", "suspension-oublier", "fin-contrat-signaler", "fin-contrat-documents",
-];
+/// Une fiche de ce module : `rend` et les refus que toutes partagent.
+const fn fiche(nom: &'static str, geste: &'static str, charge: &'static [Champ], exemple: &'static str, rend: &'static str, acte: Acte, avance: bool) -> Fiche {
+    Fiche { nom, geste, charge, exemple, rend, refus: &[OPERATION, MANQUE, ILLISIBLE, FORME], acte, avance, phrase: 0 }
+}
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &[
-    "arret-enregistrer", "arret-reprise", "arret-oublier", "arret-maintien", "arret-prolonger", "arret-signaler",
-    "suspension-enregistrer", "suspension-modifier", "suspension-oublier", "fin-contrat-signaler", "fin-contrat-documents",
+const ORDRE: Champ = Champ { nom: "ordre", sens: "son numéro d'ordre ; sinon le suivant de ceux déjà partis", avance: true };
+const REMPLACE: Champ = Champ { nom: "remplace", sens: "le signalement qu'il remplace", avance: true };
+const TEST: Champ = Champ { nom: "test", sens: "vrai : un fichier d'essai, marqué comme tel", avance: true };
+
+/// Les routes de ce module, et leurs fiches, dans l'ordre d'un arrêt : il s'enregistre, se suit, se signale, s'oublie.
+pub const ROUTES: &[Fiche] = &[
+    fiche("imprevus", "Lire les imprévus d'un mois ou d'un salarié, et ce qu'on peut en saisir.",
+        &[MOIS, Champ { nom: "salarie", sens: "à la place du mois : les imprévus de ce salarié", avance: true }],
+        r#"{"mois":"2026-11"}"#, "imprevus (chacun résumé, un arrêt avec ses obligations), nomenclatures", Acte::Lit, false),
+    fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "arrets : chacun résumé", Acte::Lit, true),
+    fiche("fins-de-contrat", "Lire les fins de contrat dues ce mois, et ce qui manque à chacune.", &[MOIS],
+        r#"{"mois":"2026-11"}"#, "fins : chacune avec ce qui est fait et ce qui manque", Acte::Lit, false),
+    fiche("arret-contrats", "Lire les contrats qu'un arrêt suspendrait à ce jour.",
+        &[SALARIE, Champ { nom: "jour", sens: "le dernier jour travaillé", avance: false }],
+        r#"{"salarie":"FULLER","jour":"2026-11-27"}"#, "contrats : ceux du salarié qui couvrent ce jour", Acte::Lit, false),
+    Fiche { phrase: 40, ..fiche("arret-enregistrer", "Enregistrer un arrêt de travail.",
+        &[
+            SALARIE, DERNIER_JOUR,
+            Champ { nom: "fin", sens: "la fin prescrite", avance: false },
+            Champ { nom: "motif", sens: "le code du motif d'arrêt (nomenclatures de imprevus)", avance: false },
+            Champ { nom: "date_accident", sens: "le jour de l'accident, quand le motif l'appelle", avance: true },
+            Champ { nom: "connu", sens: "{jour, heure} où la compagnie a su l'accident, quand le motif l'appelle", avance: true },
+            Champ { nom: "subrogation", sens: "01 la compagnie est subrogée (alors subrogation_debut et subrogation_fin), 02 non", avance: false },
+            Champ { nom: "contrat", sens: "le contrat suspendu, quand plusieurs couvrent le jour", avance: true },
+            Champ { nom: "jours_deja_indemnises", sens: "pour le maintien d'un permanent", avance: true },
+            Champ { nom: "note", sens: "une note libre", avance: true },
+        ],
+        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-11-30","motif":"01","subrogation":"02"}"#,
+        "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
+    Fiche { phrase: 700, ..fiche("arret-prolonger", "Prolonger un arrêt : sa nouvelle fin, ou la fin de la subrogation.",
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "fin", sens: "la nouvelle fin prescrite", avance: false }, Champ { nom: "subrogation_fin", sens: "la nouvelle fin de subrogation", avance: true }],
+        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-12-04"}"#,
+        "arret, phrase, et subrogation_a_revoir (la question de la fin de subrogation, quand elle se pose)", Acte::Ecrit, false) },
+    Fiche { phrase: 20, ..fiche("arret-reprise", "Poser ou effacer la reprise d'un arrêt.",
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "reprise", sens: "le jour de la reprise ; vide l'efface", avance: false }, Champ { nom: "motif_reprise", sens: "le motif de la reprise", avance: true }],
+        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","reprise":"2026-12-03"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
+    Fiche { phrase: 50, ..fiche("arret-maintien", "Dire le maintien de salaire d'un mois d'arrêt d'un permanent.",
+        &[SALARIE, DERNIER_JOUR,
+            Champ { nom: "mois", sens: "le mois que l'arrêt traverse, AAAA-MM (avec montant)", avance: false },
+            Champ { nom: "montant", sens: "le complément versé ce mois ; vide le retire", avance: false },
+            Champ { nom: "jours_deja_indemnises", sens: "les jours d'arrêt déjà indemnisés dans les douze mois, quand le moteur les attend", avance: true }],
+        r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","mois":"2026-11","montant":"120"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
+    Fiche { phrase: 600, ..fiche("arret-signaler", "Fabriquer le signalement d'un arrêt, sans le déposer.",
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "nature", sens: "04 arrêt (par défaut), ou 05 reprise", avance: true }, REMPLACE, ORDRE, TEST,
+            Champ { nom: "le", sens: "le jour de constitution ; sinon aujourd'hui", avance: true }],
+        UN_ARRET, "fichier (écrit dans sorties/AAAA-MM/), phrase, nature, type, ordre, avertissements", Acte::Ecrit, false) },
+    Fiche { phrase: 60, ..fiche("arret-oublier", "Retirer un arrêt qui n'a pas été déclaré.", &[SALARIE, DERNIER_JOUR],
+        UN_ARRET, "arret (l'arrêt retiré, résumé), phrase", Acte::Ecrit, false) },
+    Fiche { phrase: 80, ..fiche("suspension-enregistrer", "Enregistrer une absence qui suspend un contrat.",
+        &[SALARIE, DEBUT, Champ { nom: "fin", sens: "son dernier jour", avance: false }, Champ { nom: "motif", sens: "le code du motif (nomenclatures de imprevus)", avance: false }, Champ { nom: "contrat", sens: "le contrat, quand plusieurs couvrent le jour", avance: true }, Champ { nom: "note", sens: "une note libre", avance: true }],
+        r#"{"salarie":"FULLER","debut":"2026-11-27","fin":"2026-11-27","motif":"501"}"#, "suspension (l'absence résumée), phrase", Acte::Ecrit, true) },
+    Fiche { phrase: 20, ..fiche("suspension-modifier", "Changer la fin ou le motif d'une absence.",
+        &[SALARIE, DEBUT, Champ { nom: "fin", sens: "sa nouvelle fin", avance: false }, Champ { nom: "motif", sens: "son nouveau motif", avance: true }],
+        r#"{"salarie":"FULLER","debut":"2026-11-27","fin":"2026-11-27"}"#, "suspension (l'absence résumée), phrase", Acte::Ecrit, true) },
+    Fiche { phrase: 60, ..fiche("suspension-oublier", "Retirer une absence qui n'a pas été déclarée.", &[SALARIE, DEBUT],
+        r#"{"salarie":"FULLER","debut":"2026-11-27"}"#, "suspension (l'absence retirée, résumée), phrase", Acte::Ecrit, true) },
+    Fiche { phrase: 600, ..fiche("fin-contrat-signaler", "Fabriquer le signalement d'une fin de contrat, sans le déposer.",
+        &[MOIS, SALARIE, REMPLACE, ORDRE, TEST, Champ { nom: "le", sens: "le jour de constitution ; sinon aujourd'hui", avance: true }],
+        r#"{"mois":"2026-11","salarie":"FULLER"}"#, "fichier (écrit dans sorties/AAAA-MM/), phrase, type, ordre, preavis, avertissements", Acte::Ecrit, true) },
+    Fiche { phrase: 160, ..fiche("fin-contrat-documents", "Fabriquer le certificat de travail et le reçu pour solde de tout compte.",
+        &[MOIS, SALARIE, Champ { nom: "le", sens: "le jour où ils s'établissent ; sinon aujourd'hui", avance: true }],
+        r#"{"mois":"2026-11","salarie":"FULLER"}"#, "phrase, certificat et recu (leurs chemins), avertissements (ce qu'il faut savoir en les remettant)", Acte::Ecrit, false) },
 ];
 
 /// Une route de ce module.
@@ -211,16 +271,18 @@ fn mois_traverses(imp: &Value) -> R<Vec<String>> {
     Ok(if dj < p { Vec::new() } else { socle::date::mois_entre(&p, &dj) })
 }
 
-/// Les DSN mensuelles qui ont reporte l'imprevu (`envois` de nature 01).
-fn reporte_par(imp: &Value) -> Vec<Value> {
-    imp["envois"].as_array().map_or_else(Vec::new, |e| {
+/// Les DSN mensuelles qui ont reporte l'imprevu (`obligations::avec_ce_qui_est_parti`, nature 01).
+fn reporte_par(ctx: &Contexte, imp: &Value) -> R<Vec<Value>> {
+    let imp = crate::obligations::avec_ce_qui_est_parti(ctx, imp)?;
+    Ok(imp["envois"].as_array().map_or_else(Vec::new, |e| {
         e.iter().filter(|x| x.get("nature").and_then(Value::as_str) == Some("01")).map(|x| x.get("mois").cloned().unwrap_or(Value::Null)).collect()
-    })
+    }))
 }
 
-/// Un signalement de cette nature (04, 05) est-il parti pour cet arret (un `envois` que `marques_depot` a trace) ?
-fn envoye(imp: &Value, nature: &str) -> bool {
-    imp["envois"].as_array().is_some_and(|e| e.iter().any(|x| x.get("nature").and_then(Value::as_str) == Some(nature)))
+/// Un signalement de cette nature (04, 05) est-il parti pour cet arret (`obligations::avec_ce_qui_est_parti`) ?
+fn envoye(ctx: &Contexte, imp: &Value, nature: &str) -> R<bool> {
+    let imp = crate::obligations::avec_ce_qui_est_parti(ctx, imp)?;
+    Ok(imp["envois"].as_array().is_some_and(|e| e.iter().any(|x| x.get("nature").and_then(Value::as_str) == Some(nature))))
 }
 
 /// UN ARRET EN COURS : celui dont on peut encore apprendre qu'il se prolonge ou que le salarie a repris plus
@@ -243,7 +305,7 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
     if fin >= ctx.aujourdhui {
         return Ok(true);
     }
-    Ok(!reporte_par(imp).iter().any(|m| valeur_en_texte(m) == fin.mois_iso()))
+    Ok(!reporte_par(ctx, imp)?.iter().any(|m| valeur_en_texte(m) == fin.mois_iso()))
 }
 
 // ------------------------------------------------------------------ le resume
@@ -259,7 +321,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
     let premier = magasin(imprevus::premier_jour(imp))?.iso();
     let dernier = magasin(imprevus::dernier_jour(imp))?.iso();
     if imprevus::est_un_arret(imp) {
-        let mut r = crate::routes::imprevus::resume_arret(n, imp)?;
+        let mut r = crate::routes::imprevus::resume_arret(ctx, n, imp)?;
         let motif = magasin(imprevus::motif_d_arret(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
         let maintien_legal = motif.get("maintien_legal").is_some_and(vrai);
         let ouvert = mensuel(ctx, imp)?;
@@ -283,7 +345,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         o.insert("en_cours".into(), json!(cours));
         o.insert("peut_prolonger".into(), json!(cours));
         o.insert("peut_reprendre_plus_tot".into(), json!(cours));
-        o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(imp, declarations::signalement::REPRISE)));
+        o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(ctx, imp, declarations::signalement::REPRISE)?));
         return Ok(r);
     }
     let motif = magasin(imprevus::motif_de_suspension(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
@@ -293,7 +355,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         "motif": imp["motif"], "motif_libelle": motif.get("libelle").cloned().unwrap_or(json!("?")),
         "remunere": motif.get("remunere").is_some_and(vrai),
         "debut": imp["debut"], "fin": imp["fin"], "premier_jour": premier, "dernier_jour": dernier,
-        "note": imp["note"], "saisi_le": imp["saisi_le"], "reporte_par": reporte_par(imp),
+        "note": imp["note"], "saisi_le": imp["saisi_le"], "reporte_par": reporte_par(ctx, imp)?,
         "cachets": cachets,
     }))
 }
@@ -431,13 +493,13 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
     liste[i] = nouveau.clone();
     ecrire(ctx, &dernier.mois_iso(), liste)?;
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
-    Ok(json!({"arret": resume(ctx, &n, &nouveau)?}))
+    Ok(json!({"arret": resume(ctx, &n, &nouveau)?, "phrase": "Maintien noté : la paie du mois le portera."}))
 }
 
 // ------------------------------------------------------------------ la prolongation
 
-/// `arret-prolonger` : `{salarie, dernier_jour, fin?, subrogation_fin?}` -> `{"arret": resume, "subrogation_a_revoir",
-/// "phrase", "avertissements"}`. L'AVIS DE PROLONGATION D'UN ARRET EN COURS.
+/// `arret-prolonger` : `{salarie, dernier_jour, fin?, subrogation_fin?}` -> `{"arret": resume, "phrase", "subrogation_a_revoir"}`
+/// (la question de la fin de subrogation, quand elle se pose). L'AVIS DE PROLONGATION D'UN ARRET EN COURS.
 ///
 /// CE QUI PART, ET CE QUI NE PART PAS. « En cas de prolongation d'arret, il ne faut pas envoyer de nouveau signalement de
 /// nature " arret de travail ". Il suffit de declarer la nouvelle date de fin de l'arret en DSN mensuelle, au niveau de la
@@ -544,7 +606,7 @@ l'arrêt traverse porte la nouvelle fin prévisionnelle (S21.G00.60.003, fiche n
             nouvelle_fin.jj_mm_aaaa()
         )));
         // Les jours ajoutes qui tombent dans un mois dont la DSN reelle est deja partie : elle portait l'ancienne fin.
-        let declares = reporte_par(&avant);
+        let declares = reporte_par(ctx, &avant)?;
         for m in socle::date::mois_entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin) {
             if declares.iter().any(|x| valeur_en_texte(x) == m) {
                 avertissements.push(json!(format!(
@@ -557,19 +619,24 @@ tombent, est à corriger.",
         }
     }
     let sub_change = sub_fin.is_some() && a["subrogation_fin"] != avant["subrogation_fin"];
-    if sub_change && envoye(&avant, declarations::signalement::ARRET) {
+    if sub_change && envoye(ctx, &avant, declarations::signalement::ARRET)? {
         avertissements.push(json!(
             "Le signalement d'arrêt est déjà parti avec l'ancienne fin de subrogation : un signalement d'arrêt annule et \
 remplace porte la nouvelle, le plus vite possible (fiche net-entreprises 1983). Il paraît dans ce qui est dû."
         ));
     }
-    let (revoir, phrase) = subrogation_a_revoir(&a)?;
+    let phrase = if !avertissements.is_empty() {
+        avertissements.iter().map(valeur_en_texte).collect::<Vec<_>>().join("  ·  ")
+    } else if fin.is_some() {
+        "Arrêt prolongé.".to_string()
+    } else {
+        "Subrogation notée.".to_string()
+    };
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
     Ok(json!({
         "arret": resume(ctx, &n, &a)?,
-        "subrogation_a_revoir": revoir,
         "phrase": phrase,
-        "avertissements": avertissements,
+        "subrogation_a_revoir": subrogation_a_revoir(&a)?,
     }))
 }
 
@@ -583,24 +650,21 @@ fn signalement_subroge(a: &Value) -> R<bool> {
 /// demande. Fiche net-entreprises 1983 (l. 25 et 110) : la fin de subrogation est la « date de fin de subrogation
 /// maximale prevue dans le cadre de la convention collective ou de l'accord de branche » ; si elle « court toujours »,
 /// il n'y a rien a faire.
-fn subrogation_a_revoir(a: &Value) -> R<(bool, Value)> {
+fn subrogation_a_revoir(a: &Value) -> R<Value> {
     if !signalement_subroge(a)? || !vrai(&a["subrogation_fin"]) {
-        return Ok((false, Value::Null));
+        return Ok(Value::Null);
     }
     let (sf, fin) = (jour(&a["subrogation_fin"])?, jour(&a["fin_previsionnelle"])?);
     if sf >= fin {
-        return Ok((false, Value::Null));
+        return Ok(Value::Null);
     }
-    Ok((
-        true,
-        json!(format!(
+    Ok(json!(format!(
             "La subrogation demandée s'arrête le {}, avant la nouvelle fin de l'arrêt (le {}). Elle se déclare jusqu'à son \
 maximum prévu par la convention collective ou l'accord de branche : si ce maximum va plus loin, porter sa fin ici ; s'il est \
 atteint, la garder (fiche net-entreprises 1983).",
             sf.jj_mm_aaaa(),
             fin.jj_mm_aaaa()
-        )),
-    ))
+    )))
 }
 
 // ------------------------------------------------------------------ les suspensions
@@ -662,7 +726,6 @@ fn suspension_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     s.insert("saisi_le".into(), json!(crate::routes::maintenant()));
     s.insert("qui".into(), json!(crate::routes::qui_de(charge)));
     s.insert("note".into(), note_de(charge));
-    s.insert("envois".into(), json!([]));
     let s = Value::Object(s);
     verifier_suspension(&s, &valeur_en_texte(&contrat["fin"]))?;
     if trouver(ctx, SUSPENSION, &cle, &debut)?.is_some() {
@@ -678,7 +741,7 @@ fn suspension_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     liste.push(s.clone());
     ecrire(ctx, &mois, liste)?;
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
-    Ok(json!({"suspension": resume(ctx, &n, &s)?}))
+    Ok(json!({"suspension": resume(ctx, &n, &s)?, "phrase": "Absence enregistrée. Chaque mois qu'elle traverse la déclarera."}))
 }
 
 /// `suspension-modifier` : `{salarie, debut, fin?, motif?, note?}` -> `{"suspension": resume}`. Le debut designe la
@@ -705,7 +768,7 @@ fn suspension_modifier(ctx: &Contexte, charge: &Value) -> R<Value> {
     liste[i] = s.clone();
     ecrire(ctx, &debut.mois_iso(), liste)?;
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
-    Ok(json!({"suspension": resume(ctx, &n, &s)?}))
+    Ok(json!({"suspension": resume(ctx, &n, &s)?, "phrase": "Absence changée."}))
 }
 
 /// `suspension-oublier` : `{salarie, debut}` -> `{"suspension": resume}`. Une suspension qu'une DSN reelle a deja
@@ -716,7 +779,7 @@ fn suspension_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let Some((i, mut liste)) = trouver(ctx, SUSPENSION, &cle, &debut)? else {
         return Err(refus(format!("Aucune suspension de {} qui commence le {}.", cle, debut.jj_mm_aaaa())));
     };
-    let envois = liste[i]["envois"].as_array().map_or(0, Vec::len);
+    let envois = crate::obligations::avec_ce_qui_est_parti(ctx, &liste[i])?["envois"].as_array().map_or(0, Vec::len);
     if envois > 0 {
         return Err(refus(format!(
             "Cette suspension a deja ete declaree ({} DSN). La retirer du magasin n'annule rien aupres des organismes : la \
@@ -727,7 +790,7 @@ reprendre (une fin plus tot), ou corriger les DSN deposees.",
     let s = liste.remove(i);
     ecrire(ctx, &debut.mois_iso(), liste)?;
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
-    Ok(json!({"suspension": resume(ctx, &n, &s)?}))
+    Ok(json!({"suspension": resume(ctx, &n, &s)?, "phrase": "Absence retirée : aucune déclaration ne l'avait portée."}))
 }
 
 /// `x or None`.
@@ -739,10 +802,6 @@ fn ou_rien(v: &Value) -> Value {
     }
 }
 
-/// `jj_mm_aaaa(v)`.
-fn jj_mm_aaaa(v: &Value) -> R<String> {
-    Ok(jour(v)?.jj_mm_aaaa())
-}
 
 /// Ecrit le fichier d'un mois du magasin des imprevus (`imprevus/AAAA-MM.json`) : les arrets ET les suspensions qu'il
 /// range, tels que la liste les donne.
@@ -753,7 +812,7 @@ pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) ->
 /// Ce que la norme refuse (`SignalementImpossible`, une
 /// `ValueError`) ; les avertissements ne servent pas ici.
 pub(crate) fn verifier(arret: &Value) -> R<()> {
-    match signalement::verifier(&declarations::dsn::Arret { v: arret.clone() }, ARRET, None) {
+    match signalement::verifier(&declarations::dsn::Arret { v: arret.clone() }, signalement::ARRET, None) {
         Ok(_) => Ok(()),
         Err(signalement::Echec::Impossible(m)) => Err(erreur("ValueError", m)),
         Err(signalement::Echec::Autre(m)) => Err(Echec { classe: None, message: m }),
@@ -773,7 +832,7 @@ pub(crate) fn trouver_l_arret(ctx: &Contexte, nom: &Value, dernier_jour: &Value)
             return Ok(t);
         }
     }
-    let quand = if vrai(dernier_jour) { jj_mm_aaaa(dernier_jour)? } else { "?".to_string() };
+    let quand = if vrai(dernier_jour) { documents::bulletin::jj_mm_aaaa(dernier_jour).map_err(|m| erreur("ValueError", m))? } else { "?".to_string() };
     Err(refus(format!(
         "Aucun arret de {} dont le dernier jour travaille soit le {}. `moteur arret` les liste.",
         valeur_en_texte(&cle),
@@ -781,10 +840,10 @@ pub(crate) fn trouver_l_arret(ctx: &Contexte, nom: &Value, dernier_jour: &Value)
     )))
 }
 
-/// `{"arret": resume}` : l'arret tel que la page le lit (`crate::routes::imprevus::resume`, avec les cachets qui tombent dedans).
-fn reponse_arret(ctx: &Contexte, arret: &Value) -> R<Value> {
+/// `{"arret": resume, "phrase"}` : l'arret tel que la page le lit (`crate::routes::imprevus::resume`, avec les cachets qui tombent dedans), et ce qui se lit du geste.
+fn reponse_arret(ctx: &Contexte, arret: &Value, phrase: &str) -> R<Value> {
     let n = nomenclatures(ctx)?;
-    Ok(json!({"arret": crate::routes::imprevus::resume(ctx, &n, arret)?}))
+    Ok(json!({"arret": crate::routes::imprevus::resume(ctx, &n, arret)?, "phrase": phrase}))
 }
 
 /// `arret-enregistrer` : `{salarie, dernier_jour, fin, motif, subrogation?, subrogation_debut?, subrogation_fin?,
@@ -848,10 +907,15 @@ ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
     a.insert("saisi_le".into(), json!(maintenant()));
     a.insert("qui".into(), json!(qui_de(charge)));
     a.insert("note".into(), note);
-    a.insert("envois".into(), json!([]));
     let arret = Value::Object(a);
     // On verifie AVANT d'ecrire, avec les regles de la nature 04 -- celles qui partiront.
     verifier(&arret)?;
+    // Le jour où la compagnie a su l'accident, point de départ des 48 heures de la déclaration (R441-3) : contrôlé ici,
+    // écrit avec l'arrêt.
+    let connu = match optionnel(charge, "connu") {
+        v if vrai(v) => Some(crate::obligations::connaissance_saisie(ctx, &arret, "accident", v)?),
+        _ => None,
+    };
 
     let mois = dernier.mois_iso();
     if crate::routes::imprevus::trouver(ctx, engagement::imprevus::ARRET, &valeur_en_texte(&cle), &dernier)?.is_some() {
@@ -865,7 +929,10 @@ ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
     let mut liste = engagement::imprevus::du_fichier(&ctx.racine, &mois).map_err(crate::routes::imprevus::refus_magasin)?;
     liste.push(arret.clone());
     ecrire_arrets(ctx, &mois, liste)?;
-    reponse_arret(ctx, &arret)
+    if let Some((champ, valeur)) = connu {
+        crate::obligations::connaissance_ecrire(ctx, &arret, champ, valeur)?;
+    }
+    reponse_arret(ctx, &arret, "Arrêt enregistré.")
 }
 
 /// `arret-reprise` : `{salarie, dernier_jour, reprise, motif_reprise?}` -> `{"arret": resume}` ; une reprise vide l'efface.
@@ -883,7 +950,7 @@ fn arret_reprise(ctx: &Contexte, charge: &Value) -> R<Value> {
     verifier(&arret)?;
     let mois: String = valeur_en_texte(&arret["dernier_jour_travaille"]).chars().take(7).collect();
     ecrire_arrets(ctx, &mois, liste)?;
-    reponse_arret(ctx, &arret)
+    reponse_arret(ctx, &arret, if vrai(&arret["reprise"]) { "Reprise notée." } else { "Reprise effacée." })
 }
 
 /// `arret-oublier` : `{salarie, dernier_jour}` -> `{"arret": resume}`. Un arret deja declare ne se retire pas.
@@ -891,10 +958,7 @@ fn arret_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom = exiger(charge, "salarie")?;
     let dernier_jour = exiger(charge, "dernier_jour")?;
     let (i, mut liste) = trouver_l_arret(ctx, nom, dernier_jour)?;
-    let envois = match &liste[i]["envois"] {
-        Value::Array(e) => e.len(),
-        _ => 0,
-    };
+    let envois = crate::obligations::avec_ce_qui_est_parti(ctx, &liste[i])?["envois"].as_array().map_or(0, Vec::len);
     if envois > 0 {
         return Err(refus(format!(
             "Cet arret a deja ete declare ({} envoi(s)). Le retirer du magasin n'annule rien aupres des organismes et ferait disparaitre la trace de ce qui est parti : emettre un annule-et-remplace.",
@@ -904,7 +968,7 @@ fn arret_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let arret = liste.remove(i);
     let mois: String = valeur_en_texte(&arret["dernier_jour_travaille"]).chars().take(7).collect();
     ecrire_arrets(ctx, &mois, liste)?;
-    reponse_arret(ctx, &arret)
+    reponse_arret(ctx, &arret, "Arrêt retiré : aucune déclaration ne l'avait porté.")
 }
 
 /// `charge.get(cle)` quand il est vrai (`or None`).
@@ -923,8 +987,9 @@ fn jour_le(charge: &Value) -> R<Option<Jour>> {
 
 /// Ce qui peut partir du mois : la saisie de ses engagements valides (`engagement::etats::validees_du_mois`), et leurs
 /// paies ecrites ; refus si aucun engagement ne le touche.
-fn saisie_du_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    engagement::etats::validees_du_mois(ctx, mois).map_err(plain)?.ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
+fn validees(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
+    engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
 }
 
 /// Le mois en toutes lettres (« mai 2026 ») pour une phrase ; tel quel s'il n'a pas la forme AAAA-MM.
@@ -984,135 +1049,31 @@ fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mo
     Ok(siens.into_iter().nth(i).expect("rang lu dans la meme liste"))
 }
 
-/// La paie validee de l'engagement de rang `rang` (`paies` : celles de `saisie_du_mois`, au meme rang que sa saisie),
-/// numerotee (les numeros ne sont que reserves).
-fn paie_de_l_engagement(ctx: &Contexte, paies: &[Paie], rang: usize, cle: &str, nom: &str, mois: &str) -> R<Paie> {
-    let annee = mois.chars().take(4).collect::<String>().parse::<i32>().map_err(|_| erreur("ValueError", format!("mois illisible : {}", repr_texte(mois))))?;
-    let mut paies = paies.to_vec();
-    documents::ecrire_documents::numeroter(ctx, &mut paies, annee).map_err(en_echec)?;
+/// La paie validee de l'engagement de rang `rang` (`paies` : celles de `validees`, au meme rang que sa saisie).
+fn paie_de_l_engagement(paies: &[Paie], rang: usize, cle: &str, nom: &str, mois: &str) -> R<Paie> {
     paies
-        .into_iter()
-        .nth(rang)
+        .get(rang)
         .filter(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle))
+        .cloned()
         .ok_or_else(|| refus(format!("{} n'a aucune paie validee en {} pour ce contrat.", nom, mois_dit(mois))))
 }
 
-/// Les mentions communes du certificat de travail et du recu (`documents_fin._marqueurs_communs`).
-fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>> {
-    let s = &p.salarie;
-    let e = &p.engagement;
-    let req = |v: &Value, k: &str| -> R<String> { v.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k))) };
-    let ou_vide = |v: &Value, k: &str| -> String { v.get(k).map(en_texte).unwrap_or_default() };
-    let sig = ent.get("signataire").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
-    let aujourdhui = date.jj_mm_aaaa();
-    let mut m = Map::new();
-    let mut poser = |k: &str, v: String| {
-        m.insert(k.to_string(), Value::String(v));
-    };
-    poser("employeur.raison_sociale", req(ent, "raison_sociale")?);
-    poser("employeur.adresse", req(ent, "adresse")?);
-    poser("employeur.code_postal", req(ent, "code_postal")?);
-    poser("employeur.commune", req(ent, "commune")?);
-    poser("employeur.siret", req(ent, "siret")?);
-    poser("employeur.naf", req(ent, "naf")?);
-    poser("employeur.signataire", format!("{} {}", req(sig, "prenom")?, req(sig, "nom")?));
-    poser("employeur.signataire_fonction", ou_vide(sig, "fonction"));
-    poser("salarie.nom_complet", format!("{} {}", req(s, "prenom")?, req(s, "nom")?));
-    poser(
-        "salarie.date_naissance",
-        documents::bulletin::jj_mm_aaaa(s.get("date_naissance").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("date_naissance")))?).map_err(|m| erreur("ValueError", m))?,
-    );
-    poser("salarie.lieu_naissance", ou_vide(s, "lieu_naissance"));
-    poser("salarie.adresse", req(s, "adresse")?);
-    poser("salarie.code_postal", req(s, "code_postal")?);
-    poser("salarie.commune", req(s, "commune")?);
-    poser("contrat.numero", e.numero.clone().unwrap_or_default());
-    poser("contrat.debut", e.debut.jj_mm_aaaa());
-    poser("contrat.fin", e.fin.map(|f| f.jj_mm_aaaa()).unwrap_or_default());
-    poser("contrat.emploi", ou_vide(s, "emploi"));
-    poser("contrat.nature", e.nat().map_err(plain)?.libelle.clone());
-    poser("certificat.date", aujourdhui.clone());
-    poser("recu.date", aujourdhui);
-    Ok(m)
-}
-
-/// Le detail des sommes, ligne a ligne -- pas un total.
-fn inventaire(p: &Paie) -> String {
-    let mut lignes = Vec::new();
-    for l in &p.remuneration {
-        lignes.push(format!("{} : {}", l.libelle, documents::bulletin::fmt_eur(eur2(l.montant))));
-    }
-    for l in &p.lignes {
-        let m = eur2(l.montant_sal);
-        if m != socle::num::Decimal::ZERO {
-            lignes.push(format!("{} : -{}", l.libelle, documents::bulletin::fmt_eur(m)));
-        }
-    }
-    lignes.join("\n")
-}
-
-/// Le papier de fin de contrat de `modele`, par la fabrique (style
-/// « attestation »). `signe` : le certificat s'etablit SIGNE de l'employeur.
-fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent: &Value, signe: bool) -> R<()> {
-    let texte = documents::contrat::lire_modele_texte(modele).map_err(en_echec)?;
-    let mut d = documents::contrat::enveloppe("attestation", ent);
-    let mut un = Map::new();
-    un.insert("texte".into(), json!(texte));
-    un.insert("valeurs".into(), Value::Object(valeurs));
-    if signe {
-        if let Some(s) = documents::bulletin::identite_de(ent, "signature") {
-            un.insert("signature_employeur".into(), json!(documents::conges_spectacles::chemin_texte(&s)));
-        }
-    }
-    d.insert("documents".into(), json!([{ "modele": Value::Object(un) }]));
-    documents::fabrique::ecrire(&Value::Object(d), chemin).map_err(|m| erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))?;
-    Ok(())
-}
-
-/// Le certificat de travail et le recu pour solde de
-/// tout compte. Deux PAPIERS : rien ne part nulle part.
+/// `fin-contrat-documents` : le certificat de travail et le recu pour solde de tout compte (`documents::fin_de_contrat`)
+/// de l'engagement du salarie qui finit ce mois.
 fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?);
-    let (saisie, paies) = saisie_du_mois(ctx, mois)?;
+    let (saisie, paies) = validees(ctx, mois)?;
     let cle = cle_du_nom(ctx, salarie)?;
-    let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
-    let p = paie_de_l_engagement(ctx, &paies, rang, &cle, salarie, mois)?;
-    let ent = ctx.entreprise_et_gabarits();
-    let sortie = ctx.racine.join("sorties").join(mois);
+    let (rang, _) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
+    let p = paie_de_l_engagement(&paies, rang, &cle, salarie, mois)?;
     let date: Jour = jour_le(charge)?.unwrap_or(ctx.aujourdhui);
-    let fin_jj = en_texte(&e["fin"]).replace('-', "");
-    let poste = ctx.gabarits();
-
-    let numero = p.engagement.numero.clone().unwrap_or_else(|| "?".to_string());
-    if p.engagement.fin.is_none() {
-        return Err(erreur(
-            "ValueError",
-            format!(
-                "Certificat de travail : le contrat {} n'a pas de date de fin. Il se delivre A L'EXPIRATION du contrat (L1234-19).",
-                numero
-            ),
-        ));
-    }
-    let nom_cert = format!("CertificatTravail_{}_{}.pdf", cle, fin_jj);
-    let modele = socle::fichiers::modele_de("certificat-travail.modele", &ent, &poste);
-    ecrire_papier(&modele, marqueurs_communs(&date, &p, &ent)?, &sortie.join(&nom_cert), &ent, true)?;
-
-    let nom_recu = format!("RecuSoldeToutCompte_{}_{}.pdf", cle, fin_jj);
-    let mut valeurs = marqueurs_communs(&date, &p, &ent)?;
-    valeurs.insert("solde.inventaire".into(), json!(inventaire(&p)));
-    valeurs.insert("solde.net".into(), json!(documents::bulletin::fmt_eur(eur2(p.net_a_payer))));
-    let modele = socle::fichiers::modele_de("recu-solde-de-tout-compte.modele", &ent, &poste);
-    ecrire_papier(&modele, valeurs, &sortie.join(&nom_recu), &ent, false)?;
-
+    let [certificat, recu] = documents::fin_de_contrat::ecrire(ctx, &p, date, &ctx.racine.join("sorties").join(mois))?;
+    let nom = |c: &Path| socle::fichiers::nom_du(c);
     Ok(json!({
-        "certificat": sortie.join(&nom_cert).to_string_lossy(),
-        "recu": sortie.join(&nom_recu).to_string_lossy(),
-        "noms": [nom_cert, nom_recu],
-        "avertissements": [
-            "Le recu pour solde de tout compte s'etablit en DOUBLE EXEMPLAIRE (D1234-7) : un pour le salarie, un pour la compagnie. Il se signe de sa main, avec la mention << pour solde de tout compte >>.",
-            "Il peut etre denonce par lettre recommandee dans les SIX MOIS (L1234-20 et D1234-8) ; passe ce delai il est liberatoire pour les seules sommes qui y sont inscrites.",
-            "Le certificat de travail ne contient QUE les mentions de D1234-6 : dates d'entree et de sortie, emplois occupes et leurs periodes. Y ajouter autre chose, c'est sortir de ce que la loi autorise."
-        ],
+        "phrase": format!("Écrits pour {} : {}, {}.", crate::routes::nom_a_l_ecran(&p.salarie), nom(&certificat), nom(&recu)),
+        "certificat": certificat.to_string_lossy(),
+        "recu": recu.to_string_lossy(),
+        "avertissements": documents::fin_de_contrat::AVIS,
     }))
 }
 
@@ -1120,11 +1081,12 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// (`fin-contrat-signaler`).
 fn fin_de_contrat_declaree(ctx: &Contexte, e: &Value, mois: &str) -> R<declarations::fctu::FinDeContrat> {
     let manque = crate::routes::imprevus::ce_qui_manque(ctx, e)?;
+    let e = &crate::routes::imprevus::fin_au_terme(e)?;
     if !manque.is_empty() {
         let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_else(|| "?".to_string());
-        let liste: Vec<String> = manque.iter().map(valeur_en_texte).collect();
+        let liste: Vec<String> = manque.iter().map(crate::routes::imprevus::phrase_du_manque).collect();
         return Err(refus(format!(
-            "Contrat {} : le signalement de fin de contrat ne peut pas etre produit, la saisie ne dit pas tout.\n  {}",
+            "Contrat {} : le signalement de fin de contrat ne s'écrit pas encore ; il manque, dans la carte de l'engagement, sous « Contrat » :\n  {}",
             numero,
             liste.join("\n  ")
         )));
@@ -1172,11 +1134,11 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let envoi_test = facultatif(charge, "test").is_some();
 
-    let (saisie, paies) = saisie_du_mois(ctx, mois)?;
+    let (saisie, paies) = validees(ctx, mois)?;
     let cle = cle_du_nom(ctx, salarie)?;
     let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
     let fin = fin_de_contrat_declaree(ctx, &e, mois)?;
-    let paie = paie_de_l_engagement(ctx, &paies, rang, &cle, salarie, mois)?;
+    let paie = paie_de_l_engagement(&paies, rang, &cle, salarie, mois)?;
     let type_declaration = if remplace.is_some() { declarations::fctu::ANNULE_ET_REMPLACE } else { declarations::fctu::NORMALE };
     let mut avertissements = declarations::fctu::verifier(&fin, &paie.engagement, type_declaration).map_err(echec_fctu)?;
     let (ordre, plate_forme) = if ordre != 0 { (ordre, Vec::new()) } else { prochain_ordre(ctx)? };
@@ -1198,17 +1160,23 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         .into_iter()
         .map(|v| declarations::dsn::Arret { v })
         .collect();
-    let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets).map_err(echec_fctu)?;
+    let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?).map_err(echec_fctu)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
     crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
+    let preavis = declarations::fctu::libelle_preavis(&fin.type_preavis).map_err(plain)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
-        "nom": nom,
+        "phrase": phrase_du_signalement(&format!("Signalement écrit : {} (préavis : {}). Rien n'est parti.", nom, preavis), &avertissements),
         "type": type_declaration,
         "ordre": ordre,
-        "preavis": declarations::fctu::libelle_preavis(&fin.type_preavis).map_err(plain)?,
+        "preavis": preavis,
         "avertissements": avertissements,
     }))
+}
+
+/// Ce qui se lit d'un signalement écrit : ce qui est fait, puis ses avis, sur la même ligne.
+fn phrase_du_signalement<T: std::fmt::Display>(fait: &str, avertissements: &[T]) -> String {
+    std::iter::once(fait.to_string()).chain(avertissements.iter().map(|a| a.to_string())).collect::<Vec<_>>().join("  ·  ")
 }
 
 /// L'arret de ce salarie dont c'est le dernier jour travaille, dans le magasin des imprevus.
@@ -1293,15 +1261,13 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let texte = signalement::generer(ctx, &dsn_arret, &options).map_err(echec)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
     crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
-    let nomenclatures = crate::routes::imprevus::nomenclatures(ctx)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
-        "nom": nom,
+        "phrase": phrase_du_signalement(&format!("Signalement écrit : {}. Rien n'est parti.", nom), &avertissements),
         "nature": nature,
         "type": type_declaration,
         "ordre": ordre,
         "avertissements": avertissements,
-        "arret": crate::routes::imprevus::resume_arret(&nomenclatures, &arret)?,
     }))
 }
 
@@ -1310,21 +1276,17 @@ fn plain(m: String) -> Echec {
     socle::echec::noter_et(None, m)
 }
 
-fn en_echec(r: Refus) -> Echec {
-    Echec { classe: r.classe, message: r.message }
-}
-
 /// `charge["cle"]` : un texte requis.
 fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
     crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
 }
 
-/// `int(texte)` pour un morceau de nom de mois.
+/// Le nombre d'un morceau de nom de mois ; refus s'il ne se lit pas.
 fn entier(t: &str) -> R<i64> {
     t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
 }
 
-/// `dict.get(cle)` d'une dataclass construite : `None` pour un champ absent.
+/// Le champ `k` d'une valeur, `defaut` s'il manque.
 fn champ(v: &Value, k: &str, defaut: Value) -> Value {
     v.get(k).cloned().unwrap_or(defaut)
 }
@@ -1367,7 +1329,7 @@ pub(crate) fn saisissables(n: &Value, quoi: &str) -> R<Vec<Value>> {
     Ok(out)
 }
 
-/// `Arret.libelle_motif` : `_codes("motifs_arret").get(motif, {}).get("libelle", "?")`.
+/// Le libelle du motif d'arret dans les codes de la norme, `?` s'il n'y est pas.
 fn libelle_motif(n: &Value, motif: &Value) -> R<Value> {
     if matches!(motif, Value::Array(_) | Value::Object(_)) {
         return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(motif))));
@@ -1394,7 +1356,8 @@ fn envois(a: &Value) -> R<Vec<std::borrow::Cow<'_, Value>>> {
 }
 
 /// Un arret resume pour la liste des imprevus.
-pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
+pub(crate) fn resume_arret(ctx: &Contexte, n: &Value, a: &Value) -> R<Value> {
+    let a = &crate::obligations::avec_ce_qui_est_parti(ctx, a)?;
     let mut signalements = Vec::new();
     for e in envois(a)? {
         if matches!(get(&e, "nature")?.as_str(), Some("04") | Some("05")) {
@@ -1446,7 +1409,7 @@ pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
 fn arrets(ctx: &Contexte) -> R<Value> {
     let tous = tous_les_arrets(ctx)?;
     let n = nomenclatures(ctx)?;
-    // LES OBLIGATIONS de chaque arret (`obligations::de_l_arret`, 15/10/2026) : un champ de plus a son resume.
+    // LES OBLIGATIONS de chaque arret (`obligations::de_l_arret`) : un champ de plus a son resume.
     let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut resumes = Vec::new();
     let mut a_signaler = Vec::new();
@@ -1470,7 +1433,7 @@ fn arrets(ctx: &Contexte) -> R<Value> {
 
 // ----------------------------------------------------------- fins de contrat
 
-/// `calendar.monthrange(an, mo)[1]` pour `_fin_mois`.
+/// Le dernier jour du mois.
 fn fin_du_mois(mois: &str) -> R<Jour> {
     let an = entier(&mois.chars().take(4).collect::<String>())?;
     let mo = entier(&mois.chars().skip(5).take(2).collect::<String>())?;
@@ -1502,24 +1465,67 @@ fn nature_de(cle: &Value) -> R<std::sync::Arc<droit::natures::Nature>> {
     droit::natures::nature(texte.as_deref()).map_err(|m| erreur("KeyError", m))
 }
 
-/// `_ce_qui_manque_au_signalement` : ce qu'un signalement exige et que la
-/// saisie ne dit pas encore.
+/// Ce qui manque a un signalement, tel que l'ecran le dit : `champ` (la donnee de l'engagement, `data-fait` de sa carte),
+/// `case` (le nom de la case, sous « Contrat »), `dire` (ce qu'on y met, en mots d'utilisateur, visible sans rien
+/// deplier) et `pourquoi` (la regle de la norme).
+fn manque(champ: &str, case: &str, dire: impl Into<String>, pourquoi: impl Into<String>) -> Value {
+    json!({"champ": champ, "case": case, "dire": dire.into(), "pourquoi": pourquoi.into()})
+}
+
+/// Le type de preavis « 90 - pas de clause de preavis applicable » (`fctu-base.json`, S21.G00.63.001).
+const SANS_PREAVIS: &str = "90";
+
+/// UN CONTRAT A DUREE DETERMINEE QUI VA A SON TERME n'a rien a dire de sa fin : son motif est celui de sa nature
+/// (`contrats-base.json`, `motif_par_defaut` : 031, « la fin normale d'un CDD arrive a son terme »), et il n'a pas de
+/// preavis -- il « cesse de plein droit a l'echeance du terme » (L1243-5, `permanents-base.json`, `motifs_sans_preavis`,
+/// 031) --, ce que le bloc S21.G00.63 declare en type 90. L'engagement tel que le signalement le lit : sans motif de
+/// rupture saisi, ces deux faits ; avec un motif saisi, tel quel.
+pub(crate) fn fin_au_terme(e: &Value) -> R<Value> {
+    let mut e = e.clone();
+    if vrai(get(&e, "motif_rupture")?) {
+        return Ok(e);
+    }
+    if let Some(m) = nature_de(get(&e, "nature")?)?.motif_rupture_par_defaut() {
+        e["motif_rupture"] = json!(m);
+        if !vrai(get(ou(get(&e, "preavis")?, objet_vide()), "type")?) {
+            e["preavis"] = json!({"type": SANS_PREAVIS});
+        }
+    }
+    Ok(e)
+}
+
+/// La phrase d'un manque (`ce_qui_manque`) : sa case et ce qu'on y met.
+pub(crate) fn phrase_du_manque(m: &Value) -> String {
+    format!("« {} » : {}", valeur_en_texte(&m["case"]), valeur_en_texte(&m["dire"]))
+}
+
+/// Ce qu'un signalement exige et que la saisie ne dit pas encore, un manque par case
+/// de la carte (`manque`).
 pub(crate) fn ce_qui_manque(ctx: &Contexte, e: &Value) -> R<Vec<Value>> {
+    let e = &fin_au_terme(e)?;
     let mut manque = Vec::new();
     let motif = get(e, "motif_rupture")?;
     if !vrai(motif) {
-        manque.push(json!(
-            "`motif_rupture` : le motif de la rupture (S21.G00.62.002) est obligatoire, et un CDI n'en a aucun par defaut."
+        manque.push(self::manque(
+            "motif_rupture",
+            "Motif de la rupture",
+            "pourquoi le contrat a pris fin.",
+            "Le motif de la rupture (S21.G00.62.002) est obligatoire, et un CDI n'en a aucun par défaut.",
         ));
     }
     // CCH-12 de S21.G00.62.003 : la date de notification, obligatoire pour ces motifs (`fctu::notification_exigee`).
     if vrai(motif) && !vrai(get(e, "notification_rupture")?) && declarations::fctu::notification_exigee(&valeur_en_texte(motif)).map_err(plain)? {
-        manque.push(json!(format!(
-            "`notification_rupture` : la date de notification de la rupture (S21.G00.62.003) est obligatoire pour le motif {} \
-(CCH-12, cahier technique DSN p. 275) : l'envoi de la lettre de licenciement ou de rupture, la remise de la demission, la \
-notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans elle.",
-            valeur_en_texte(motif)
-        )));
+        manque.push(self::manque(
+            "notification_rupture",
+            "Notifiée le",
+            "le jour où la rupture a été notifiée : la démission remise, la lettre de rupture ou de licenciement envoyée, la \
+fin de la période d'essai notifiée.",
+            format!(
+                "La date de notification de la rupture (S21.G00.62.003) est obligatoire pour le motif {} (CCH-12, cahier \
+technique DSN p. 275). Le signalement ne s'écrit pas sans elle.",
+                valeur_en_texte(motif)
+            ),
+        ));
     }
     let preavis = ou(get(e, "preavis")?, objet_vide());
     if !vrai(get(preavis, "type")?) {
@@ -1533,11 +1539,11 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
         let mut dit = match (duree, &regle) {
             (Some(m), _) if m != Decimal::ZERO => format!("La loi en donne {} mois (L1234-1).", m),
             (Some(_), _) => format!(
-                "La loi ne donne aucun preavis pour ce motif : {}",
+                "La loi ne donne aucun préavis pour ce motif : {}",
                 droit::permanents::raison_sans_preavis(motif_texte.as_deref(), cdd).map_err(plain)?.unwrap_or_default()
             ),
             (None, Some(r)) => format!("La loi en donne un que le moteur ne compte pas : {}", r),
-            (None, None) => "Sous six mois d'anciennete, la loi renvoie a la convention ou aux usages (L1234-1) : elle ne dit pas de duree.".to_string(),
+            (None, None) => "Sous six mois d'ancienneté, la loi renvoie à la convention ou aux usages (L1234-1) : elle ne dit pas de durée.".to_string(),
         };
         // Ce que dit la convention, a cote, par le moteur (le calcul de `moteur preavis`) ; pas pour un motif sans preavis
         // ni pour la rupture d'un CDD par le salarie (L1243-2), que la convention du licenciement ne regle pas.
@@ -1551,18 +1557,41 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
                 }
             }
         }
-        manque.push(json!(format!(
-            "`preavis` : {{\"type\": \"...\", \"debut\": \"...\", \"fin\": \"...\"}}. Le bloc S21.G00.63 est OBLIGATOIRE dans un \
-             signalement de fin de contrat (cardinalite 1,*) : meme sans preavis, il se declare, avec le type << 90 - pas de clause de \
-             preavis applicable >>. {}",
-            dit
-        )));
-    } else if declarations::fctu::preavis_non_effectue(&valeur_en_texte(get(preavis, "type")?)).map_err(plain)? && !vrai(get(e, "dernier_jour_paye")?) {
-        manque.push(json!(
-            "`dernier_jour_paye` : sur un preavis non effectue, le dernier jour travaille et paye au salaire habituel \
-(S21.G00.62.006) n'est pas la fin du contrat, il precede le debut du preavis (CCH-12, cahier technique DSN p. 275). La \
-mensuelle et le signalement le declarent tous deux."
+        manque.push(self::manque(
+            "preavis",
+            "Préavis",
+            format!("le préavis de la rupture, ses dates s'il y en a un, ou « pas de clause de préavis ». {}", dit),
+            "Le bloc S21.G00.63 est obligatoire dans un signalement de fin de contrat (cardinalité 1,*) : même sans préavis, il \
+se déclare, avec le type « 90 - pas de clause de préavis applicable ».",
         ));
+    } else if declarations::fctu::preavis_non_effectue(&valeur_en_texte(get(preavis, "type")?)).map_err(plain)? && !vrai(get(e, "dernier_jour_paye")?) {
+        manque.push(self::manque(
+            "dernier_jour_paye",
+            "Dernier jour payé",
+            "le dernier jour travaillé et payé au salaire habituel, avant le préavis qui n'est pas effectué.",
+            "Sur un préavis non effectué, le dernier jour travaillé et payé au salaire habituel (S21.G00.62.006) n'est pas la fin \
+du contrat, il précède le début du préavis (CCH-12, cahier technique DSN p. 275). La mensuelle et le signalement le \
+déclarent tous deux.",
+        ));
+    } else if let Some(dernier) = e.get("dernier_jour_paye").filter(|j| vrai(j)).map(valeur_en_texte) {
+        // Hors preavis non effectue, aucun jour de la paie ne vient apres le dernier jour paye.
+        let jour = |j: &Value| j.get("jour").map_or_else(|| valeur_en_texte(j), valeur_en_texte);
+        let apres: Vec<String> = engagement::dates_engagement(e).iter().map(jour).filter(|j| *j > dernier).collect();
+        if !apres.is_empty() {
+            let dire = |j: &str| socle::date::jour_iso(j).map_or_else(|| j.to_string(), |x| x.jj_mm());
+            manque.push(self::manque(
+                "dernier_jour_paye",
+                "Dernier jour payé",
+                format!(
+                    "{} {} après le dernier jour payé, le {} : retirez-le de la paie, ou dites un autre dernier jour payé.",
+                    apres.iter().map(|j| format!("le {}", dire(j))).collect::<Vec<_>>().join(", "),
+                    if apres.len() > 1 { "sont" } else { "est" },
+                    dire(&dernier)
+                ),
+                "Le dernier jour travaillé et payé (S21.G00.62.006) clôt la paie du contrat rompu : un jour payé après lui \
+contredit le signalement.",
+            ));
+        }
     }
     Ok(manque)
 }
@@ -1571,15 +1600,21 @@ mensuelle et le signalement le declarent tous deux."
 /// son obligation (`obligations::de_la_fin`) comptee au jour `aujourdhui`. UN SEUL ENDROIT : la route `fins-de-contrat` (la
 /// colonne du mois) et les rappels de l'ouverture (`rappels`) la lisent.
 pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
+    // Un signalement de fin ne se doit que pour un engagement valide, lu tel qu'il est ecrit (`tels_qu_ecrits`) : un
+    // brouillon ne part pas, et ce qui ne fait que lire ne recalcule rien.
     let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());
     };
+    let journal = envois::journal::lu(&ctx.racine)?;
+    let etats = engagement::etats::tels_qu_ecrits(ctx, mois, &journal.departs).map_err(Echec::from)?;
     let fin_mois = fin_du_mois(mois)?;
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
     let mut out = Vec::new();
-    let journal = envois::etats::charger(&ctx.racine)?;
-    for e in liste {
+    for (i, e) in liste.into_iter().enumerate() {
+        if etats.get(i).and_then(|x| x.valide()).is_none() {
+            continue;
+        }
         let e: &Value = &avec_ses_bornes(&e);
         let nat = nature_de(get(e, "nature")?)?;
         // La regle est celle de la nature et du motif (`Nature::signalement_fctu`) : un CDDU rompu avant son terme se signale.
@@ -1597,14 +1632,23 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         let cle = ctx.salarie(&valeur_en_texte(salarie)).ok().and_then(|f| f.get("_cle").map(valeur_en_texte));
         let a_saisir = ce_qui_manque(ctx, e)?;
         // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`).
-        let obligation = crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal, aujourdhui)?;
-        // Due : il manque de quoi signaler, aucun delai ne se lit, ou le delai court. Sa pastille : ce qui manque, sinon
+        let obligation = crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal.lignes, aujourdhui)?;
+        // Due : il manque de quoi signaler, aucun delai ne se lit, ou le delai court. Sa pastille : celle du delai passe
+        // (« en retard » l'emporte : la date butoir ne se tait pas parce qu'une case manque), sinon ce qui manque, sinon
         // celle du delai.
         let incomplet = !a_saisir.is_empty();
         let du = incomplet || obligation.is_null() || obligation.get("du").is_some_and(vrai);
-        let pastille = if incomplet { super::pastille("a_faire", "à compléter") } else { obligation.get("pastille").cloned().unwrap_or(Value::Null) };
+        let en_retard = obligation.get("etat").and_then(Value::as_str) == Some(crate::obligations::EN_RETARD);
+        let pastille = if incomplet && !en_retard {
+            super::pastille("a_faire", "à compléter")
+        } else {
+            obligation.get("pastille").cloned().unwrap_or(Value::Null)
+        };
         out.push(json!({
             "salarie": salarie,
+            "mois": mois,
+            "debut": e["debut"],
+            "en_retard": en_retard,
             "numero": get(e, "numero")?,
             "fin": e["fin"],
             "nature": nat.libelle,
@@ -1622,8 +1666,32 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
 /// La route `fins-de-contrat`.
 fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let fins = fins_a_signaler(ctx, &valeur_en_texte(brut), ctx.aujourdhui)?;
+    let mois = valeur_en_texte(brut);
+    let mut fins = fins_en_retard_avant(ctx, &mois, ctx.aujourdhui)?;
+    fins.extend(fins_a_signaler(ctx, &mois, ctx.aujourdhui)?);
     Ok(json!({"mois": brut, "fins": fins}))
+}
+
+/// Combien de mois en arriere un signalement de fin en retard se rappelle : une annee de paies.
+pub(crate) const MOIS_EN_ARRIERE: u32 = 12;
+
+/// LES FINS D'AVANT, EN RETARD : celles des mois qui precedent `mois` (sur `MOIS_EN_ARRIERE`) dont le signalement est du
+/// et sa date butoir passee. Une echeance manquee reste due -- le signalement se fait « dans les cinq jours ouvres qui
+/// suivent la survenance de la fin du contrat » (cahier technique DSN 2026.1, p. 107, `fctu-base.json`, `_delai`) -- et
+/// elle se dit sur le mois qu'on regarde, pas seulement sur celui ou le contrat a fini.
+pub(crate) fn fins_en_retard_avant(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
+    let mut out = Vec::new();
+    let mut m = mois.to_string();
+    for _ in 0..MOIS_EN_ARRIERE {
+        m = socle::date::premier_du_mois(&m).and_then(|j| j.plus_jours(-1)).map_err(|e| erreur("ValueError", e))?.mois_iso();
+        let mut celles: Vec<Value> = fins_a_signaler(ctx, &m, aujourdhui)?
+            .into_iter()
+            .filter(|f| f["du"] == json!(true) && f["en_retard"] == json!(true))
+            .collect();
+        celles.extend(out);
+        out = celles;
+    }
+    Ok(out)
 }
 
 // ------------------------------------------------------------ regularisations

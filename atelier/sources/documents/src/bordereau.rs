@@ -156,7 +156,7 @@ fn enregistrements(texte: &str) -> Vec<Vec<String>> {
     out
 }
 
-/// `_lire` : code -> lignes de la table.
+/// Code -> lignes de la table.
 fn lire(chemin: &Path) -> Resultat<Table> {
     let octets = std::fs::read(chemin).map_err(|e| format!("{} : {}", chemin.display(), e))?;
     let texte = String::from_utf8(octets).map_err(|e| format!("{} : {}", chemin.display(), e))?;
@@ -406,7 +406,7 @@ fn euros(x: Decimal) -> String {
 }
 
 /// Ce que devient le credit d'un versement : `reste`, le credit que le versement ne reprend pas ; `deduit`, ce qu'il
-/// reprend (l'Urssaf seulement). `None` quand il n'y a rien a dire. (`_nom` : l'organisme, que l'ecran nomme deja.)
+/// reprend (l'Urssaf seulement). `None` quand il n'y a rien a dire.
 pub fn credit(dest: Destinataire, _nom: &str, reste: Decimal, deduit: Decimal) -> Option<Credit> {
     if reste <= Decimal::ZERO && deduit <= Decimal::ZERO {
         return None;

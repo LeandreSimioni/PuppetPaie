@@ -38,6 +38,7 @@
 //! Ce qui est hors DSN (la declaration d'accident, l'attestation de salaire) s'affiche avec son echeance et la marche a
 //! suivre : rien ne le depose.
 
+use socle::date::jj_mm_aaaa;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -45,21 +46,48 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::coffre::Coffre;
 use droit::contexte::Contexte;
-use envois::etats::{self, est};
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::interface::compagnies::{self, Compagnie};
 use socle::echec::Echec;
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
 
 /// Le registre de l'administrateur, a la racine de l'installation.
 pub const FICHIER: &str = "administrateur.json";
 /// Le dernier tableau connu d'une compagnie (hors de l'empreinte des etats des mois : `etat_garde::HORS_DE_L_ECRAN`).
 pub const TABLEAU: &str = "config/.tableau.json";
 
-/// Les routes de l'administrateur (servies par `routes::commande`).
-pub const ROUTES: [&str; 2] = ["administrateur-tableau", "administrateur-deposer"];
+/// Les routes de l'administrateur, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "administrateur-tableau",
+        geste: "Dire les déclarations à faire de chaque compagnie de l'administrateur.",
+        charge: &[Champ { nom: "relever", sens: "vrai : refaire le tableau de chaque compagnie", avance: false }],
+        exemple: r#"{}"#,
+        rend: "compagnies (chacune ses déclarations triées par urgence, et où en est leur fichier)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "administrateur-deposer",
+        geste: "Déposer d'un geste ce qui est prêt dans chaque compagnie de l'administrateur.",
+        charge: &[
+            Champ { nom: "reel", sens: "vrai : en réel (les fichiers testés conformes) ; en test sinon", avance: false },
+            Champ { nom: "motdepasse", sens: "le mot de passe de l'administrateur ; sans lui, le moteur le demande à un humain", avance: false },
+        ],
+        exemple: r#"{}"#,
+        rend: "partis, refuses, resultats (par dépôt : la compagnie, ce qui est parti ou le refus), tableau ; rien de prêt : phrase",
+        refus: &[Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe, tapé par un humain ; rien n'est déposé" }, OPERATION],
+        acte: Acte::Engage,
+        avance: true,
+        phrase: 0,
+    },
+];
 
 // ------------------------------------------------------------------ le poste
 
@@ -404,12 +432,6 @@ pub fn changer(inst: &Path, actuel: &str, nouveau: &str, confirmation: &str, pos
 
 // ------------------------------------------------------------------ le tableau d'une compagnie
 
-fn jj_mm_aaaa(iso: &str) -> String {
-    match (iso.get(..4), iso.get(5..7), iso.get(8..10)) {
-        (Some(a), Some(m), Some(j)) => format!("{}/{}/{}", j, m, a),
-        _ => iso.to_string(),
-    }
-}
 
 /// Ou en est un fichier DSN ecrit (mensuelle ou signalement), lu du journal : `deposee` (un depot reel accepte de ce
 /// contenu), `paie_changee` (une mensuelle qui ne declare plus la paie), `testee` (test conforme, bilan lu), `en_test`
@@ -428,16 +450,9 @@ fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: 
     }
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let r = etats::repetition(lignes, "dsn", &empreinte, &nom)?;
-    Ok(if vrai(&r["conforme"]) {
-        if est(&r["compte_rendu"], "ok") {
-            "testee"
-        } else {
-            "en_test"
-        }
-    } else if vrai(&r["ratees"]) {
-        "test_refuse"
-    } else {
-        "a_tester"
+    Ok(match etats::etat_du_test(&r) {
+        "ecrite" => "a_tester",
+        autre => autre,
     })
 }
 
@@ -583,19 +598,12 @@ fn cle_d_urgence(d: &Value) -> (bool, String) {
 
 /// LE TABLEAU DE LA COMPAGNIE `ctx` : ses declarations obligatoires, du plus presse au moins presse, chacune avec sa date
 /// limite et, pour ce qui part par la DSN, ou en est son fichier. Ecrit dans `config/.tableau.json` (ce que l'accueil lit).
-pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
+pub fn tableau_compagnie(ctx: &Contexte) -> R<Value> {
     // L'EMPREINTE DE TOUTE LA COMPAGNIE, prise avant (celle de l'etat d'ouverture, `etat_garde::empreinte_de`) : le fil de
     // la fenetre ne le refait pas tant qu'elle n'a pas bouge (`FileDesEtats::faire_le_tableau`).
     let empreinte = crate::etat_garde::empreinte_de(&ctx.racine, crate::etat_garde::OUVERTURE, &ctx.aujourdhui.iso());
-    let rappels = match crate::routes::rappels::traiter(o, "rappels", &json!({})) {
-        Some(Ok(v)) => v,
-        Some(Err(m)) => {
-            let (_, message) = crate::routes::rappels::decoder(&m);
-            return Err(erreur("ErreurOperation", message.to_string()));
-        }
-        None => Value::Null,
-    };
-    let lignes = etats::charger(&ctx.racine)?;
+    let rappels = crate::routes::rappels::rappels(ctx).map_err(|e| erreur("ErreurOperation", e.message))?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let mut declarations = Vec::new();
     for r in rappels.get("rappels").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
         if let Some(d) = declaration(ctx, &lignes, r)? {
@@ -618,7 +626,7 @@ fn o_de(o: &HashMap<String, String>, racine: &Path) -> HashMap<String, String> {
 fn refaire_compagnie(o: &HashMap<String, String>, racine: &Path) -> Result<Value, String> {
     let oc = o_de(o, racine);
     let ctx = crate::service::contexte(&oc)?;
-    tableau_compagnie(&oc, &ctx).map_err(|e| e.message)
+    tableau_compagnie(&ctx).map_err(|e| e.message)
 }
 
 /// LE TABLEAU DE L'ADMINISTRATEUR, a partir du tableau de chaque compagnie (`garde` : celui qui est garde, sans calcul ;
@@ -699,7 +707,7 @@ pub fn tableau(o: &HashMap<String, String>, inst: &Path, relever: bool) -> Value
             if let Ok(t) = refaire_compagnie(o, &r) {
                 for d in t.get("declarations").and_then(Value::as_array).into_iter().flatten() {
                     if d.get("etape").and_then(Value::as_str) == Some("en_test") {
-                        let charge = json!({"quoi": "dsn", "fichier": d["fichier"]});
+                        let charge = designation(&d);
                         let _ = crate::routes::commande(&o_de(o, &r), &json!({"route": "bilan-repetition", "charge": charge}).to_string());
                     }
                 }
@@ -740,15 +748,14 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
             Err(m) => resultats.push(json!({"compagnie": nom, "parti": false, "refus": m})),
         }
     }
+    // RIEN DE PRET : rien ne part, et la phrase dit pourquoi (ce n'est pas un refus : il n'y a rien a corriger).
     if a_faire.is_empty() {
-        return Err(erreur(
-            "ErreurOperation",
-            if reel {
-                "Aucune déclaration n'est prête à partir pour de vrai : une déclaration part en réel après un test revenu conforme. Rien n'est parti."
-            } else {
-                "Aucune déclaration écrite n'attend son dépôt de test. Rien n'est parti."
-            },
-        ));
+        let phrase = if reel {
+            "Aucune déclaration n'est prête à partir pour de vrai : une déclaration part en réel après un test revenu conforme."
+        } else {
+            "Aucune déclaration écrite n'attend son dépôt de test."
+        };
+        return Ok(json!({"reel": reel, "partis": 0, "refuses": resultats.len(), "resultats": resultats, "phrase": phrase, "tableau": tableau(o, inst, false)}));
     }
     let mut mdp: Option<String> = None;
     if reel {
@@ -770,7 +777,8 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
         mdp = Some(m);
     }
     for (racine, nom, d) in &a_faire {
-        let mut charge = json!({"quoi": "dsn", "fichier": d["fichier"], "reel": reel});
+        let mut charge = designation(d);
+        charge["reel"] = json!(reel);
         if let Some(m) = &mdp {
             charge["motdepasse"] = json!(m);
         }
@@ -795,10 +803,9 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
                 sortie["classe"] = v.get("classe").cloned().unwrap_or(Value::Null);
             }
             Err(m) => {
-                let (classe, message) = crate::routes::rappels::decoder(&m);
                 sortie["parti"] = json!(false);
-                sortie["refus"] = json!(message);
-                sortie["classe"] = json!(classe);
+                sortie["refus"] = json!(m);
+                sortie["classe"] = Value::Null;
             }
         }
         resultats.push(sortie);
@@ -829,5 +836,14 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             deposer(o, &inst, reel, mdp)
         }
         autre => Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),
+    }
+}
+
+/// La charge de depot qui designe la declaration `d` du tableau : la DSN de son mois, ou le signalement ecrit.
+fn designation(d: &Value) -> Value {
+    if d["genre"] == "dsn" {
+        json!({"quoi": "dsn", "mois": d["mois"]})
+    } else {
+        json!({"quoi": "dsn", "fichier": d["fichier"]})
     }
 }

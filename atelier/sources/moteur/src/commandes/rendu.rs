@@ -3,20 +3,10 @@
 
 use serde_json::{json, Value};
 
-/// `json.dumps(charge, ensure_ascii=False, indent=2)` suivi d'un saut de ligne, comme `cli._rendre`.
+/// La charge en JSON indente de deux espaces, suivi d'un saut de ligne.
 /// Rend le code de sortie : 0 si `ok`, 2 sinon.
 pub fn rendre(charge: &Value) -> i32 {
     dire!("{}", socle::ecriture::json_indente(charge, 2));
-    if charge.get("ok").and_then(Value::as_bool).unwrap_or(false) {
-        0
-    } else {
-        2
-    }
-}
-
-/// Comme `rendre`, avec l'indentation d'un espace (`arrivee --json`).
-pub fn rendre_indent(charge: &Value, indent: usize) -> i32 {
-    dire!("{}", socle::ecriture::json_indente(charge, indent));
     if charge.get("ok").and_then(Value::as_bool).unwrap_or(false) {
         0
     } else {
@@ -63,12 +53,8 @@ pub fn debut(t: &str, n: usize) -> String {
     t.chars().take(n).collect()
 }
 
-/// `jj_mm_aaaa` d'un `AAAA-MM-JJ` (les dix premiers caracteres).
-pub fn jj_mm_aaaa_de_iso(iso: &str) -> String {
-    socle::date::Jour::lire(&debut(iso, 10)).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string())
-}
 
-/// `x.get("quand")[:16].replace("T", " ")` -- l'heure d'une ligne de journal.
+/// L'heure d'une ligne de journal : `AAAA-MM-JJ HH:MM`.
 pub fn quand_court(v: Option<&Value>) -> String {
     let t = v.filter(|x| socle::fichiers::vrai(x)).map(texte).unwrap_or_default();
     debut(&t, 16).replace('T', " ")

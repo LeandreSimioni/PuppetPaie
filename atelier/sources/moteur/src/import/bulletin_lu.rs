@@ -374,6 +374,21 @@ fn taux_du_libelle(libelle: &str) -> (String, Option<Decimal>) {
     (libelle.to_string(), None)
 }
 
+/// La quantite qu'un libelle dit apres lui, dans son unite (« Indemnité compensatrice de congés payés (4,92 jours) ») :
+/// le libelle sans elle, et elle.
+fn quantite_du_libelle(libelle: &str) -> (String, Option<Decimal>) {
+    let lu = libelle.trim_end().strip_suffix(')').and_then(|t| t.rsplit_once(" (")).and_then(|(tete, dedans)| {
+        let (n, unite) = dedans.split_once(' ')?;
+        let unite = unite.trim_end_matches('s');
+        ["jour", "semaine", "heure", "cachet", "service"].contains(&unite).then_some(())?;
+        Some((tete.to_string(), lire_nombre(n)?))
+    });
+    match lu {
+        Some((tete, q)) => (tete, Some(q)),
+        None => (libelle.to_string(), None),
+    }
+}
+
 /// Un libelle canonique est-il l'un de ces resumes, seul ou joint a un autre par « / » (« NET SOCIAL / NET A PAYER
 /// AVANT IMPÔT ») ?
 fn resume(canon: &str, liste: &[String]) -> bool {
@@ -902,9 +917,6 @@ pub struct Lecture {
     /// La page dans le PDF, a partir de 1.
     pub page: usize,
     pub resultat: Result<BulletinLu, Refus>,
-    /// Une page refusee dont le salarie s'est lu : ce qu'il en a rendu (nom, NIR, adresse...), pour la caviarder.
-    /// `None` pour un bulletin lu, ou quand rien n'a ete reconnu.
-    pub partiel: Option<Salarie>,
 }
 
 impl Lecture {
@@ -1005,10 +1017,8 @@ pub fn lire_avec(chemin: &Path, table: &Table) -> Resultat<Vec<Lecture>> {
         .map(|(i, p)| {
             let prefixe = format!("page {} : ", i + 1);
             let signale: Vec<&str> = avertissements.iter().filter_map(|a| a.strip_prefix(&prefixe)).collect();
-            let (resultat, lu) = lire_page(p, &signale, table);
-            // Un bulletin lu porte son salarie : `partiel` ne sert qu'a une page refusee.
-            let partiel = if resultat.is_ok() { None } else { lu };
-            Lecture { page: i + 1, resultat, partiel }
+            let resultat = lire_page(p, &signale, table);
+            Lecture { page: i + 1, resultat }
         })
         .collect())
 }
@@ -1030,7 +1040,7 @@ fn mots_de(p: &Value) -> Vec<Mot> {
     mots
 }
 
-fn lire_page(p: &Value, signale: &[&str], table: &Table) -> (Result<BulletinLu, Refus>, Option<Salarie>) {
+fn lire_page(p: &Value, signale: &[&str], table: &Table) -> Result<BulletinLu, Refus> {
     let mots = mots_de(p);
     if mots.is_empty() {
         let n = |k: &str| p.get(k).and_then(Value::as_array).map_or(0, Vec::len);
@@ -1038,19 +1048,18 @@ fn lire_page(p: &Value, signale: &[&str], table: &Table) -> (Result<BulletinLu, 
         if !signale.is_empty() {
             detail.push_str(&format!(" ; la fabrique a signale : {}", signale.join(" ; ")));
         }
-        return (Err(Refus::SansTexte(detail)), None);
+        return Err(Refus::SansTexte(detail));
     }
     let page = Page::nouvelle(mots);
     if table.annexe.iter().any(|a| page.present(a)) {
-        return (Err(Refus::Annexe), None);
+        return Err(Refus::Annexe);
     }
     let logiciel = table.logiciels.iter().find(|(_, s)| s.iter().all(|x| page.present(x))).map(|(n, _)| n.clone());
     let debuts = (0..page.mots.len())
         .map(|i| table.mentions.iter().position(|m| page.libelle_en(i, &m.libelles).is_some()))
         .collect();
-    let mut l = Lecteur { t: table, page, debuts, pris: Vec::new(), avertissements: Vec::new(), partiel: None };
-    let r = l.lire(logiciel);
-    (r, l.partiel)
+    let mut l = Lecteur { t: table, page, debuts, pris: Vec::new(), avertissements: Vec::new() };
+    l.lire(logiciel)
 }
 
 /// Une valeur de mention, lue.
@@ -1185,8 +1194,6 @@ struct Lecteur<'a> {
     /// Les mots pris par la valeur d'une mention.
     pris: Vec<usize>,
     avertissements: Vec<String>,
-    /// Ce que l'adresse et les mentions du salarie ont rendu, des qu'ils sont lus (meme si la page est refusee ensuite).
-    partiel: Option<Salarie>,
 }
 
 /// Un rang du corps : son libelle et ses nombres, chacun avec sa colonne.
@@ -1261,9 +1268,6 @@ impl<'a> Lecteur<'a> {
             abattement: nombre(&valeurs, "abattement"),
             conges_spectacles: texte(&valeurs, "conges_spectacles"),
         };
-        if nom_s.is_some() || nir.is_some() {
-            self.partiel = Some(salarie.clone());
-        }
         let Some(tableau) = tableau? else {
             return Err(Refus::SansEntetes(format!(
                 "aucun rang ne titre le tableau des lignes (« {} », suivi de « {} » et des parts) : le brut et les cotisations ne se rangent pas",
@@ -1853,6 +1857,10 @@ impl<'a> Lecteur<'a> {
         // libelle (« Cachets à 150,00 »).
         let ligne = |libelle: &str, quantite: Option<Decimal>, r: &RangCorps, soumis: bool, avertissements: &mut Vec<String>| {
             let (libelle, taux_ecrit) = taux_du_libelle(libelle);
+            let (libelle, quantite) = match quantite {
+                Some(q) => (libelle, Some(q)),
+                None => quantite_du_libelle(&libelle),
+            };
             let cl = canon(&libelle);
             // Une ligne hors de l'assiette (un defraiement) n'est pas dans le brut, ou que le bulletin l'imprime.
             let (rubrique, heures, soumis) = match table.lignes.iter().find(|x| x.canon == cl) {

@@ -404,7 +404,7 @@ fn cases_date(j: &Jour) -> String {
     format!("{:02} {:02} {:04}", j.jour, j.mois, j.an)
 }
 
-/// `_siret_espace` : 12345678900017 -> '123456789 00017'.
+/// 12345678900017 -> '123456789 00017'.
 fn siret_espace(siret: &Value) -> String {
     let s = valeur_en_texte(siret);
     let c: Vec<char> = s.chars().collect();
@@ -520,7 +520,7 @@ fn blocs_certificat(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<Value>> {
     Ok(blocs)
 }
 
-/// `str(Path(...))`.
+/// Un chemin en texte : sans `.` ni séparateur double.
 pub fn chemin_texte(p: &std::path::Path) -> String {
     p.components().collect::<std::path::PathBuf>().to_string_lossy().into_owned()
 }

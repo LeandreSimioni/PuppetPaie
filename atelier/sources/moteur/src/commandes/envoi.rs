@@ -65,7 +65,9 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let mois = mois_du_fichier(cadre, fichier, "L'envoi se prepare")?;
     ouvrir_la_boite(cadre);
     let ctx = &cadre.ctx;
-    let prep = match crate::routes::documents::preparer_envoi(ctx, &mois, None, &mut || crate::routes::documents::client_courriel(ctx)) {
+    // La preuve, demandee par le moteur a un humain, vient avant la fabrique des documents ; `--json` n.envoie rien.
+    let preuve = (!json).then(Preuve::default);
+    let prep = match crate::routes::documents::preparer_envoi(ctx, &mois, None, preuve.as_ref(), &mut || crate::routes::documents::client_courriel(ctx)) {
         Ok(p) => p,
         Err(e) => match preparation_refusee(json, fichier, &e) {
             Some(code) => return Ok(code),

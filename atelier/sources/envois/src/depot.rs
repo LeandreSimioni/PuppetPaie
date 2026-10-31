@@ -172,7 +172,7 @@ impl Apercu {
     }
 }
 
-/// `Path.read_text(encoding="latin-1")` : un octet, un caractere, et les fins de
+/// Des octets lus en latin-1 : un octet, un caractère, et les fins de
 /// ligne `\r\n` et `\r` lues comme `\n`.
 fn texte_latin1(o: &[u8]) -> String {
     let mut s = String::with_capacity(o.len());
@@ -212,7 +212,7 @@ fn rubrique_de(ligne: &str) -> Option<(&str, &str)> {
     Some((&ligne[..14], valeur))
 }
 
-/// `_rubriques` : la premiere valeur de chaque rubrique.
+/// La premiere valeur de chaque rubrique.
 fn rubriques(texte: &str) -> Vec<(&str, &str)> {
     let mut out: Vec<(&str, &str)> = Vec::new();
     for l in lignes(texte) {

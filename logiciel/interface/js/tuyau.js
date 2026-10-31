@@ -19,8 +19,7 @@ let MINUTEUR = null;        // anti-rebond de l'apercu
 
 /* « Failed to fetch » : le serveur ne répond plus.
  *
- * C'est arrivé le 11/09/2026, et le message du navigateur n'apprenait rien —
- * une fiche en cours d'édition n'a pas été enregistrée, sans qu'on sache
+ * Le message du navigateur n'apprend rien : une fiche en cours d'édition n'a pas été enregistrée, sans qu'on sache
  * pourquoi. La page survit à son serveur : elle a l'air de marcher, les
  * champs se remplissent, et seul l'enregistrement échoue.
  *
@@ -49,30 +48,27 @@ function serveurPerdu() {
  * seule demande `mois` les rend toutes, gardées en mémoire
  * par la fenêtre elle-même, sans calcul. Le calcul s'est fait avant, quand
  * quelque chose a changé. Chaque lecture garde sa forme (résultat ou refus) :
- * les fonctions qui dessinent n'ont pas changé.
+ * les fonctions qui dessinent n'ont pas changé. Les routes que la demande `mois` sert sont celles qu'elle rend (les
+ * clés de `lectures`), retenues à chaque lecture.
  *
- * Toute autre route peut écrire : ce qui a été lu part alors, avant ET après
- * elle — on n'affiche jamais un état qu'on aurait pu changer soi-même. */
-const LECTURES_DU_MOIS = new Set(["saisie", "contrats-en-cours", "etat-du-mois",
-  "embauches-a-declarer", "fins-de-contrat", "etat-par-engagement", "imprevus"]);
-// Des lectures que la page fait souvent, sans rien changer : elles ne vident pas ce qui a été lu.
-const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organismes-contrats", "incident-navigateur", "diagnostic-etat",
-  "verifier-fiche", "emploi", "signalements", "apercu", "importation-incident", "arret-obligations",
-  // Les imprévus d'un salarié (son dossier), les contrats qu'un imprévu suspendrait : des lectures.
-  "imprevus", "arret-contrats",
-  // Les contrats déclarés avant PuppetPaie (l'historique importé) : une lecture, que l'écran d'un mois passé fait en se peignant.
-  "contrats-passes",
-  // L'Historique d'un mois (ses documents, ses envois, leurs retours lus) et la pièce qu'on y ouvre : des lectures.
-  "historique-mois", "ouvrir-piece",
-  // Ce que la boîte « Supprimer cette compagnie » demande : une lecture.
-  "compagnie-suppression",
-  // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne.
-  "veille-etape",
-  // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
-  "conseil-du-jour", "conseils-salarie", "conseils-resume",
-  // Les lectures de l'ouverture : l'accueil, le mois à ouvrir, l'échéancier, et l'ouverture d'un coup.
-  // Elles vidaient ce qui avait été lu du mois : l'écran, servi tout de suite, attendait alors l'état frais (~1 s).
-  "etat", "mois-a-ouvrir", "echeancier", "ouverture"]);
+ * Une route qui écrit le dit dans sa réponse (`ecrit`) : ce qui a été lu part
+ * alors — on n'affiche jamais un état qu'on aurait pu changer soi-même. */
+const LECTURES_DU_MOIS = new Set();
+function retenirLesLectures(lectures) { Object.keys(lectures || {}).forEach((k) => LECTURES_DU_MOIS.add(k)); }
+/* LE CATALOGUE DES ROUTES (`routes`), lu au démarrage : la fiche de chaque route, son acte (`lit`, `ecrit`, `engage`) et ce
+ * qui est « avancé ». Le même que `moteur routes --json --avance`. */
+let CATALOGUE = {};
+const acteDe = (route) => (CATALOGUE[route] || {}).acte || "";
+/** « AVANCÉ » EST LE MÊME POUR LES DEUX ACTEURS : une porte de l'écran (`data-route`, la route qu'elle ouvre) dont la fiche
+ *  est marquée avancée va dans le groupe « Avancé » de sa barre, après le chemin simple. */
+function rangerLAvance() {
+  document.querySelectorAll("[data-route]").forEach((porte) => {
+    const groupe = porte.parentElement && porte.parentElement.querySelector(":scope > .sous-onglets-avance");
+    if (!groupe || !(CATALOGUE[porte.dataset.route] || {}).avance) return;
+    groupe.appendChild(porte);
+    groupe.hidden = false;
+  });
+}
 let LU = null;            // { mois, lectures, perime } : la dernière lecture `mois`
 let LU_EN_COURS = null;   // { mois, promesse, perimeAdmis } : celle qui est en route
 let LU_GENERATION = 0;
@@ -94,6 +90,7 @@ function lireLeMois(mois, perimeAdmis = false) {
   const generation = LU_GENERATION;
   const promesse = appelerMoteur("mois", perimeAdmis ? { mois } : { mois, attendre: true }).then((r) => {
     const lu = { mois, lectures: r.lectures || {}, perime: !!r.perime };
+    retenirLesLectures(lu.lectures);
     if (generation === LU_GENERATION) LU = lu;
     if (LU_EN_COURS && LU_EN_COURS.promesse === promesse) LU_EN_COURS = null;
     return lu;
@@ -111,6 +108,7 @@ function oublierLeMois() { LU = null; LU_EN_COURS = null; LU_GENERATION++; }
  *  aurait faite, servie de même (dernier état connu, `perime` s'il l'est). */
 function poserLeMois(mois, ecran) {
   LU = { mois, lectures: (ecran && ecran.lectures) || {}, perime: !!(ecran && ecran.perime) };
+  retenirLesLectures(LU.lectures);
   LU_EN_COURS = null;
 }
 
@@ -120,13 +118,9 @@ function poserLeMois(mois, ecran) {
  * `verifierLeMois` attend l'état frais (`attendre`) pour repeindre l'écran,
  * s'il a changé, sans toucher à une saisie en cours (`repeindreLeMois`). Tant
  * que ce n'est pas fait, la case du mois dit « mise à jour… », et les gestes
- * qui engagent attendent (`GESTES_QUI_ENGAGENT`) : on ne valide, ne fabrique,
+ * qui écrivent ou engagent (l'acte de leur fiche, `CATALOGUE`) attendent : on ne valide, ne fabrique,
  * ne dépose ni n'envoie sur un écran que le moteur n'a pas confirmé. */
 let VERIF = null;         // { mois, promesse } : la vérification en route
-const GESTES_QUI_ENGAGENT = new Set(["valider-engagement", "contrat-recu", "contrats-imprimer", "dsn-a-deposer", "deposer", "dpae",
-  "demander-signature", "envoyer-documents", "documents-imprimer", "avenant-envoyer", "avenants-envoyer",
-  "dossier-envoyer", "casc-envoyer", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents",
-  "cloture"]);
 
 function marquerMiseAJour(oui) {
   const el = document.getElementById("mois-maj");
@@ -146,6 +140,7 @@ function verifierLeMois(mois, peint) {
     if (!VERIF || VERIF.promesse !== promesse) return;
     const ancien = LU && LU.mois === mois ? LU : null;
     const frais = { mois, lectures: r.lectures || {}, perime: false };
+    retenirLesLectures(frais.lectures);
     LU = frais;
     if (ancien) await repeindreLeMois(mois, ancien, frais);
   }).catch((e) => {
@@ -176,12 +171,10 @@ async function api(route, charge = {}) {
   const mois = moisDeLaLecture(route, charge);
   if (mois) {
     const lu = await lireLeMois(mois);
-    return structuredClone(lireReponse(lu.lectures[route]));
+    if (route in lu.lectures) return structuredClone(lireReponse(lu.lectures[route]));
   }
-  if (ROUTES_SANS_EFFET.has(route)) return appelerMoteur(route, charge);
-  if (GESTES_QUI_ENGAGENT.has(route)) await attendreLeMoisFrais();
-  oublierLeMois();
-  try { return await appelerMoteur(route, charge); } finally { oublierLeMois(); }
+  if (acteDe(route) && acteDe(route) !== "lit") { await attendreLeMoisFrais(); oublierLeMois(); }
+  return appelerMoteur(route, charge);
 }
 
 /* LES GESTES DE LA PAGE : un petit historique des actions sur la machine,
@@ -307,6 +300,8 @@ async function appelerMoteur(route, charge = {}) {
     vide.detail = { type: "ReponseIllisible", message: vide.message };
     throw vide;
   }
+  // Une route qui a écrit (même refusée) : ce qui a été lu part.
+  if (d.ecrit) oublierLeMois();
   if (!d.ok) {
     const erreur = typeof d.erreur === "object" && d.erreur ? d.erreur : { message: String(d.erreur || "Refusé.") };
     if (erreur.type === "EnvoiBride") montrerEnvoiRefuse(erreur.message);
@@ -340,8 +335,7 @@ function montrerEnvoiRefuse(message) {
  *
  * Cinq mille lignes de JavaScript dont les exceptions s'imprimaient dans la
  * console du navigateur — que personne n'ouvre, et surtout pas une compagnie
- * à trois cents kilomètres. Le moteur, lui, note tout ce qui casse chez lui
- * depuis le 20/09/2026 ; la page était le dernier endroit d'où une erreur
+ * à trois cents kilomètres. Le moteur, lui, note tout ce qui casse chez lui ; la page était le dernier endroit d'où une erreur
  * pouvait disparaître sans laisser de trace.
  *
  * Elle poste donc ce qui casse à `/api/incident-navigateur`, et c'est
@@ -442,9 +436,7 @@ window.addEventListener("error", (ev) => {
  * là où elle a été levée. Chromium (WebView2) écrit « at f (http://hôte/js/
  * x.js?v=…:12:5) », WebKit « f@http://hôte/js/x.js?v=…:12:5 ». La requête
  * reste derrière (le moteur la coupe aussi, `fichier_court`). Sans pile
- * lisible, rien : le moteur écrit alors « interface:? ». Il écrivait
- * « interface.js », un fichier qui n'existe plus depuis que la page est
- * coupée en vingt, et tous les rejets s'y regroupaient. */
+ * lisible, rien : le moteur écrit alors « interface:? ». */
 function sourceDeLaPile(pile) {
   const m = String(pile || "").match(/(https?:\/\/[^\s()]+?\.js)(?:\?[^\s():]*)?:(\d+):(\d+)/);
   return m ? { fichier: m[1], ligne: +m[2], colonne: +m[3] } : { fichier: "", ligne: 0 };
@@ -488,9 +480,7 @@ function dire(texte, type) {
   dire._t = setTimeout(() => el.classList.add("cachee"), 6000);
 }
 
-/** UN ACTE EN COURS SE VOIT (26/09/2026 : « quand on met envoyer les
- *  contrats, il faut un petit message pour dire envoi des contrats en
- *  cours »). Le bouton cliqué s'éteint et dit ce qui se passe, là où l'on
+/** UN ACTE EN COURS SE VOIT. Le bouton cliqué s'éteint et dit ce qui se passe, là où l'on
  *  regarde — dans la boîte, que le bandeau du bas ne traverse pas. Rend
  *  la fonction qui le rallume (une erreur : on peut réessayer). */
 function occupe(bouton, texte) {
@@ -549,7 +539,7 @@ document.querySelectorAll(".onglets button").forEach((b) => {
       // suite ; c'est lui qui dit si elle passe. Rien d'autre à écrire : on
       // relit seulement ce que le moteur dit du mois.
       if (MOIS_AFFICHE) {
-        const enAttente = JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE;
+        const enAttente = !toutEstEcrit();
         if (enAttente) await enregistrerSaisie(true);
         else await rafraichirActions();
       }

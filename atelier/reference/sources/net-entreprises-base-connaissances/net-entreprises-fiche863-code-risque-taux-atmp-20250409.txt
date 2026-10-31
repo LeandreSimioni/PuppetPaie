@@ -1,0 +1,141 @@
+Taux et risque ATMP pour le régime général
+
+ Comment renseigner le code risque et le taux accident de travail (AT) en DSN ?
+
+ Le contexte
+
+
+
+ A la création de son établissement, l'employeur dont les salariés relèvent du Régime Général Accidents du Travail reçoit de la CARSAT une notification
+ de taux Accidents du Travail.
+
+ Ensuite chaque année, au cours du mois de janvier, il reçoit une notification annuelle de taux Accident du Travail. L'employeur doit extraire les éléments "
+ code risque " et " taux AT " de ces notifications de taux pour alimenter sa DSN.
+
+ Le code risque accident du travail notifié par la CARSAT représente l'activité de chacun des établissements et reflète les risques qui leur sont afférents.
+
+ Il se compose de 3 chiffres, 2 lettres, plus " B " si un taux bureau a été attribué : exemple : 342AB / 342ABB.
+
+ Un taux annuel de cotisation est donc fixé pour chacun des risques. Pour le trouver, il convient de se reporter à la dernière notification adressée par la
+ CARSAT.
+
+ A NOTER   : L'employeur ne peut déclarer un code risque qui ne lui a jamais été notifié même s'il semble mieux lui convenir. Chaque code risque utilisé
+ dans la DSN doit avoir été notifié par la CARSAT.
+
+ Lors de la création de l'établissement, si la notification de taux Accidents du Travail Maladies Professionnelles n'est pas encore reçue au moment de
+ l'établissement de la DSN, et seulement dans ce cas- là, indiquer en rubrique « Code risque accident du travail - S21.G00.40.040" un code risque égal à "
+ 999ZZ " et ne rien saisir dans la rubrique " taux de cotisation accident du travail - S21.G00.40.043".
+
+ A noter également que pour les agents de la Fonction Publique non soumis à cotisations Accident du Travail (AT), il convient pour cette population de
+ renseigner en rubrique « Code risque accident du travail - S21.G00.40.040 » un code risque égal à " 999ZZ " et de ne rien saisir dans la rubrique « Taux de
+ cotisation accident du travail - S21.G00.40.043 ».
+
+
+
+ Prise en compte par la branche Risque Professionnels d'un changement de code risque / taux de cotisation accident du travail
+ Pour la Branche Risques Professionnels le code risque accident du travail est une des données importantes rattachées au contrat de travail et c'est
+ d'ailleurs pourquoi le bloc changement contrat doit être utilisé en cas de changement de ce risque AT. Le taux de cotisation accidents du travail est un
+ élément de fiabilisation supplémentaire mais il ne peut être corrigé via un bloc changement.
+
+
+
+ Déclarer des modifications de code risque AT/MP et/ou du taux de cotisation en cours d'année
+
+         Seul le taux de cotisation accident du travail a changé avec un effet rétroactif ou pas par rapport à la date de clôture de la paie
+
+
+
+ En cas du seul changement du taux de cotisation accident du travail, le déclarant ne doit pas utiliser le bloc changement de contrat mais doit faire
+ uniquement évoluer le taux de cotisation dans ses DSN ultérieures. Par exemple, un établissement a eu depuis janvier un code risque 33.1BC avec un taux
+ de cotisation AT de 1,70, le déclarant a donc fait ses DSN de la façon suivante au niveau du bloc contrat :
+
+         rubrique " Code risque accident du travail - S21.G00.40.040 ": 33.1 BC
+         rubrique " Taux de cotisation accident du travail - S21.G00.40.043 " : 1,70
+
+ Or, la CARSAT lui notifie en novembre un nouveau taux de 2,40 avec effet au 1er janvier.
+
+ En novembre et les mois suivants, le déclarant devra alimenter les rubriques du bloc contrat de la façon suivante :
+
+         rubrique " Code risque accident du travail - S21.G00.40.040 ": 33.1 BC
+         rubrique " Taux de cotisation accident du travail - S21.G00.40.043 " : 2,40
+
+ Si la période de paie de novembre est déjà clôturée, le déclarant devra faire évoluer le taux de cotisation sur le mois déclaré suivant, directement à la
+ rubrique " Taux de cotisation accident du travail - S21.G00.40.043 " du bloc " Contrat (contrat de travail, convention, mandat) - S21.G00.40 ".
+
+ Les déclarations de janvier à novembre incluses ayant été déposées avec le mauvais taux accident du travail, celles-ci devront être régularisées
+ conformément à la documentation Urssaf en vigueur.
+
+ Ces modalités déclaratives des corrections sont à mettre en œuvre à partir du 1er janvier 2021 ; pour les périodes antérieures les corrections de taux
+ AT/MP ne sont pas attendues en DSN.
+
+         Le code risque accident du travail a changé
+
+
+
+ Dès lors que le code risque a changé, avec ou sans changement concomitant du taux, il convient de déclarer le changement en utilisant un bloc
+ "Changements contrat - S21.G00.41"
+
+ Par exemple : un établissement a eu début janvier un code risque accident du travail 33.1BC avec un taux de cotisation accident du travail de 1,70. Le
+ déclarant fait ses DSN de la façon suivante au niveau du bloc "contrat" :
+
+         rubrique "Code risque accident du travail - S21.G00.40.040" : 33.1BC
+         rubrique "Taux de cotisation accident du travail - S21.G00.40.043" : 1,70
+
+ 1er cas : seul le code risque accident du travail change :
+
+ Début février, suite à un reclassement avec effet au 1er janvier la CARSAT a notifié le code risque 92.3FD avec un taux de 1,70 (le taux de cotisation
+ accident du travail n'a pas changé).
+
+ Sur sa DSN de février ou dès qu'il le pourra, le déclarant devra déclarer la nouvelle situation et établir un bloc " changement ". Les rubriques du bloc "
+ contrat " seront à établir ainsi :
+
+         rubrique "Code risque accident du travail - S21.G00.40.040": 92.3FD
+         rubrique "Taux de cotisation accident du travail - S21.G00.40.043" : 1,70
+De plus, il doit signaler qu'un changement du code risque a eu lieu à effet du 1er janvier en créant un bloc changement de contrat en alimentant :
+
+          la rubrique "Date de la modification - S21.G00.41.001" : 010120XX
+          la rubrique "Ancien code risque accident du travail - S21.G00.41.024" : 33.1 BC
+
+2ème cas : le code risque accident du travail et le taux accident du travail changent :
+
+Même exemple que dans le cas n°01, mais avec un taux qui change aussi et passe de 1,70 à 1,90.
+Dans ce cas, il conviendra d'effectuer dès que possible la déclaration suivante :
+
+          rubrique "Code risque accident du travail - S21.G00.40.040": 92.3FD
+          rubrique "Taux de cotisation accident du travail - S21.G00.40.043" : 1,90
+
+Et alimenter un bloc changement de contrat comme ci-dessus :
+
+          rubrique "Date de la modification - S21.G00.41.001" : 010120XX
+          rubrique "Ancien Code risque accident du travail - S21.G00.41.024" : 33.1BC
+
+A noter  : Si la notification de taux accident du travail précisant les modifications de code risque accident du travail et/ou du taux de cotisation accident
+du travail est reçue par le déclarant avant la date de clôture de la paye du mois concerné par la modification, et que la DSN de ce mois a déjà été émise,
+le déclarant peut utiliser une DSN annule et remplace.
+
+
+
+Déclarer en DSN les cas particuliers de taux Accidents du Travail (AT) réduits
+
+L'emploi de certaines professions donne lieu au paiement des cotisations AT à taux réduits. Sont notamment concernés :
+          Les taux de cotisations des artistes du spectacle et des mannequins
+          Les taux de cotisations des journalistes
+          Les taux de cotisations des membres des professions médicales à temps partiel
+
+Au niveau agrégé (en bloc « Cotisation agrégée - S21.G00.23 »), le taux AT à utiliser généralement est celui fixé par la CARSAT. Mais en cas de taux
+réduits, il ne faut pas renseigner le taux qui vous a été communiqué via notification par la CARSAT. Il convient de renseigner le taux abattu.
+
+Au niveau nominatif, le taux AT à renseigner dans la rubrique « Taux de cotisation accident du travail - S21.G00.40.043 » est bien celui notifié par la
+CARSAT, donc non abattu.
+
+Toutefois, au niveau de la rubrique « Taux de cotisation - S21.G00.81.007 » du bloc « Cotisation individuelle - S21.G00.81 » il ne faut pas renseigner le taux
+qui vous a été communiqué via notification par la CARSAT. Comme pour le niveau agrégé, lorsque le taux est réduit, il convient de renseigner
+directement le taux abattu.
+
+
+
+
+Date de cr�ation : 13/07/2016 09:37 AM
+Date de modification : 09/04/2025 11:55 AM
+N� de la fiche : 863
+

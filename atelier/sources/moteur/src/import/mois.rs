@@ -7,12 +7,6 @@
 //!
 //! RIEN NE SE DEVINE (regle 1) : une case qu'aucune piece ne porte reste vide, et la carte DIT pourquoi (`manque` : quel
 //! champ, et ce qui l'aurait donne). Rien ne s'ecrit ici : c'est une lecture.
-//!
-//! LA DSN D'UN MOIS TENU AVANT (`dsn_avant`) : le journal des depots d'abord (un depot que les retours attestent y entre
-//! de lui-meme : `reprise_journal::reprendre_les_depots`) ; a defaut, la DSN que l'import a lue pour ce mois (le fichier
-//! de l'ancien logiciel : `declare_par: "DSN"`) -- le mois est declare, rien ne propose de la refaire (regle 4 : une
-//! declaration deposee ne se regenere pas, et PuppetPaie n'a pas calcule ce mois). Sans aucune trace, il le dit, sans
-//! le dire « en retard » ni proposer de la produire.
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -94,9 +88,9 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
         return Ok(None);
     }
     let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
-    let departs = envois::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let mut n = 0;
-    for e in engagement::etats::du_mois(ctx, mois)? {
+    for e in engagement::etats::du_mois(ctx, mois, &departs)? {
         let a_declarer = match e.valide() {
             Some(v) => engagement::etats::correction_due(ctx, v, &departs, mois, &porteur).map_err(Echec::from)?.is_some(),
             None => true,
@@ -110,45 +104,6 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
         _ => (format!("déposée par l'ancien logiciel ; ces {} engagements se déclarent dans celle de {}", n, lib), format!("DSN déposée par l'ancien logiciel ; ces {} engagements se déclarent dans la DSN de {}.", n, lib)),
     };
     Ok(Some(json!({"porteur": porteur, "engagements": n, "quoi": quoi, "phrase": phrase})))
-}
-
-/// L'etat de la DSN d'un mois tenu avant ce logiciel, en mots : `etat` (« passee », « attente », « refusee » : le
-/// journal ; « importee » : la DSN de l'ancien logiciel ; « sans_trace »), `courte`, `phrase`, `quand`.
-pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str) -> R<Value> {
-    let lignes = etats::charger(&ctx.racine)?;
-    let e = etats::dsn_du_mois(&lignes, &ctx.entreprise, mois)?;
-    let quand = |e: &Value| etats::quand_lisible(e.get("quand").unwrap_or(&Value::Null));
-    if vrai(&e) {
-        let refusee = e.get("refusee").is_some_and(vrai);
-        let passee = e.get("passee").is_some_and(vrai);
-        let (etat, courte, phrase) = if refusee {
-            ("refusee", "refusée".to_string(), format!("DSN déposée le {} — REFUSÉE par la plate-forme", quand(&e)))
-        } else if passee {
-            ("passee", "déposée — passée".to_string(), format!("DSN déposée le {} — passée", quand(&e)))
-        } else {
-            ("attente", "déposée — retour attendu".to_string(), format!("DSN déposée le {} — retour attendu", quand(&e)))
-        };
-        return Ok(json!({"etat": etat, "courte": courte, "phrase": phrase, "quand": e.get("quand").cloned().unwrap_or(Value::Null)}));
-    }
-    if let Some(d) = dsn_importee(&ctx.racine, mois)? {
-        let etablie = texte(&d, "etablie_le");
-        let jour = if etablie.len() == 10 { format!(" (établie le {}/{}/{})", &etablie[8..10], &etablie[5..7], &etablie[..4]) } else { String::new() };
-        return Ok(json!({
-            "etat": "importee",
-            "courte": "déclarée avant PuppetPaie",
-            "phrase": format!(
-                "DSN déclarée avant PuppetPaie : celle de l'ancien logiciel, importée{} — aucun bilan de la plate-forme n'est lu pour elle. Rien n'est à refaire ici.",
-                jour
-            ),
-            "quand": Value::Null,
-        }));
-    }
-    Ok(json!({
-        "etat": "sans_trace",
-        "courte": "aucune trace de sa DSN",
-        "phrase": "Mois tenu avant PuppetPaie : aucune trace de sa DSN — ni au journal, ni dans les retours relevés, ni parmi les DSN importées. Si elle est partie, le relevé des retours ou l'import de la DSN de l'ancien logiciel la retrouvera ; si elle n'est jamais partie, elle se fait dans le logiciel qui a calculé ces paies.",
-        "quand": Value::Null,
-    }))
 }
 
 // ------------------------------------------------------------------ les cartes
@@ -171,12 +126,14 @@ fn spectacle_de(ctx: &Contexte, numero: &str) -> Option<(String, String)> {
 
 /// LA PERIODE D'UN CONTRAT IMPORTE DANS `mois`, en clair, quand le bulletin ne dit pas ses jours : « 20–27 » pour un
 /// contrat qui commence et finit dans le mois (le 1er quand il a commence avant), « 20/11 – 03/12 » pour un contrat a
-/// cheval sur un autre mois, « … » pour une borne que l'import n'a pas lue.
+/// cheval sur un autre mois (« 01/09/2022 – 31/12 » quand il a commence une autre annee), « … » pour une borne que
+/// l'import n'a pas lue.
 fn periode_en_clair(debut: &str, fin: &str, mois: &str) -> String {
     let (d, f) = (socle::date::Jour::lire(debut).ok(), socle::date::Jour::lire(fin).ok());
     let dans = |j: &socle::date::Jour| j.iso().starts_with(mois);
     let dehors = d.as_ref().is_some_and(|j| !dans(j)) || f.as_ref().is_some_and(|j| !dans(j));
     let borne = |j: Option<&socle::date::Jour>, defaut: &str| match j {
+        Some(j) if dehors && !j.iso().starts_with(mois.get(..4).unwrap_or(mois)) => j.jj_mm_aaaa(),
         Some(j) if dehors => j.jj_mm(),
         Some(j) => j.jour.to_string(),
         None => defaut.to_string(),
@@ -214,9 +171,10 @@ fn manque(champ: &str, libelle: &str, phrase: String) -> Value {
     json!({"champ": champ, "libelle": libelle, "phrase": phrase})
 }
 
-/// L'etat de la DPAE d'une embauche tenue avant : le journal (reel accepte), puis les certificats de `retours/dpae/`.
-fn dpae_de(journal: &etats::Dico<Value>, certifiees: &[Value], salarie: &str, debut: &str) -> Value {
-    if let Ok(Some(q)) = journal.get(&[json!(salarie), json!(debut)]) {
+/// L'etat de la DPAE d'une embauche tenue avant : le journal (reel accepte, par le numero du contrat), puis les certificats
+/// de `retours/dpae/` (par le salarie et le jour d'embauche qu'ils attestent).
+fn dpae_de(journal: &etats::Dico<Value>, certifiees: &[Value], salarie: &str, numero: &str, debut: &str) -> Value {
+    if let Ok(Some(q)) = journal.get(&[json!(salarie), json!(numero)]) {
         return json!({"couleur": "vert", "courte": "DPAE faite", "phrase": format!("DPAE déposée le {}", etats::quand_lisible(q))});
     }
     let certifiee = certifiees.iter().find(|c| {
@@ -366,8 +324,8 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
 }
 
 /// LES ETAPES D'UN MOIS TENU AVANT (`bilan_du_mois`, le panneau du mois) : tout s'est fait ailleurs,
-/// aucune etape n'a de bouton (`vide`) -- ni « Fermer le mois », ni « Deposer la DSN » (regle 4). La DSN dit ce qu'on en
-/// sait (`dsn_avant`) ; sans trace, elle reste en alerte, sans geste.
+/// aucune etape n'a de bouton -- ni « Fermer le mois », ni « Deposer la DSN » (regle 4). La DSN dit ce qu'on en
+/// sait (`compagnie::etat_dsn`) ; sans trace, elle reste en alerte, sans geste.
 pub(crate) fn etapes(vue: &Value) -> Value {
     let cartes = vue["paies"].as_array().map_or(&[][..], |a| &a[..]);
     let n = cartes.len();
@@ -395,20 +353,17 @@ pub(crate) fn etapes(vue: &Value) -> Value {
     let dsn = &vue["dsn"];
     let sans_trace = dsn["etat"] == json!("sans_trace") || dsn["etat"] == json!("refusee");
     json!({
-        "dpae": {"couleur": "vert", "vide": true, "courte": "avant PuppetPaie", "phrase": dpae},
-        "contrat-signature": {"couleur": "vert", "vide": true, "courte": "avant PuppetPaie",
+        "dpae": {"couleur": "vert", "phrase": dpae},
+        "contrat-signature": {"couleur": "vert",
             "phrase": signature},
         "dsn": {
             // La couleur de chaque etape (`routes::couleur_de_l_etat`) : faite ailleurs, verte ; refusee, rouge ; sans trace
             // ici, tenue par l'ancien logiciel, une information.
             "couleur": if dsn["etat"] == json!("refusee") { "rouge" } else if sans_trace { "gris" } else { "vert" },
-            "vide": true,
-            "importe": true,
-            "etat": dsn["etat"].clone(),
             "courte": dsn["courte"].clone(),
             "phrase": dsn["phrase"].clone(),
         },
-        "documents": {"couleur": "vert", "vide": true, "courte": "avant PuppetPaie",
+        "documents": {"couleur": "vert",
             "phrase": documents},
     })
 }
@@ -421,7 +376,7 @@ pub(crate) fn cartes(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     if importes.is_empty() {
         return Ok(Vec::new());
     }
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let embauches = etats::embauches_par_depot(&lignes)?;
     let (certifiees, _) = envois::reprise_journal::embauches_attestees(ctx);
     let mut cartes = Vec::new();
@@ -430,7 +385,7 @@ pub(crate) fn cartes(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
         let paie = i.lignes_des_paies().into_iter().find(|p| texte(p, "mois") == mois);
         let brut = Value::Object(i.objet().brut.clone());
         let (s, d) = (texte(&brut, "salarie"), texte(&brut, "debut"));
-        let dpae = dpae_de(&embauches, &certifiees, &s, &d);
+        let dpae = dpae_de(&embauches, &certifiees, &s, &texte(&brut, "numero"), &d);
         cartes.push(carte(ctx, mois, paie.as_ref(), contrat.as_ref(), dpae));
     }
     cartes.sort_by(|a, b| (texte(a, "debut"), texte(a, "nom")).cmp(&(texte(b, "debut"), texte(b, "nom"))));
@@ -462,7 +417,7 @@ pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     let manques = cartes.iter().filter(|c| c["manque"].as_array().is_some_and(|l| !l.is_empty())).count();
     Ok(Some(json!({
         "mois": mois,
-        "dsn": dsn_avant(ctx, mois)?,
+        "dsn": crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.0,
         "paies": cartes,
         "totaux": totaux,
         "incompletes": manques,

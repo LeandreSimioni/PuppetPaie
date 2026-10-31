@@ -814,7 +814,7 @@ impl Fenetre {
                     return refus("Les deux saisies diffèrent.".into());
                 }
                 // L'heure est due : le coffre note quand le mot de passe a ete pose (`pose_le`). Sans elle, une compagnie
-                // neuve ne pouvait pas poser son premier mot de passe (« il faut `maintenant` », trouve le 09/10/2026).
+                // neuve ne pouvait pas poser son premier mot de passe (« il faut `maintenant` »).
                 let maintenant = socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string();
                 match crate::compagnie::coffre::Coffre::du_poste(&racine, &maintenant).poser_ouverture(&a(0), None) {
                     Ok(_) => {

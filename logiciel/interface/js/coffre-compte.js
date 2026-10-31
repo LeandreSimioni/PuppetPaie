@@ -39,7 +39,7 @@ function compteDuService(s) {
  *  regroupé : ce qui est parti, ce qui
  *  attend, et pour chaque groupe le contenu EXACT qui quitte le poste. */
 async function dessinerCoffre(cible) {
-  // LA COMPAGNIE FICTIVE (27/09/2026, l'éditeur) : le même écran, tout grisé —
+  // LA COMPAGNIE FICTIVE : le même écran, tout grisé —
   // on voit ce qui se pose et où, sans rien pouvoir y écrire. Rien ne part,
   // il n'y a donc rien à poser ; la page ne branche aucun geste.
   const fictive = enFictive();
@@ -246,7 +246,7 @@ async function dessinerCoffre(cible) {
     b.onclick = () => document.querySelector(
       `.sous-onglets button[data-fiche="${b.dataset.allerFiche}"]`).click();
   });
-  // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE : plus de « Modifier… ».
+  // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE.
   // Elle ouvre ses cases et met le curseur dans la première ; un second clic
   // la referme. « Poser… » (rien n'est posé : il y a à faire) fait de même.
   const basculer = (rang) => {
@@ -265,8 +265,7 @@ async function dessinerCoffre(cible) {
     const m = await demanderMotDePasse(quoi);
     return m ? { motdepasse: m } : null;
   };
-  // L'ACTUEL EST UN CHAMP, PAS UN POPUP, et seulement ici (21/09/2026,
-  // l'editeur). La regle du 17/09 vaut pour un acte qui ENGAGE : deposer,
+  // L'ACTUEL EST UN CHAMP, PAS UN POPUP, et seulement ici. La regle du popup vaut pour un acte qui ENGAGE : deposer,
   // envoyer, signer, poser un secret d'organisme -- et elle ne bouge pas, le
   // popup reste pour tout cela. Changer le mot de passe du logiciel n'est pas
   // de cette famille : l'ancien n'autorise pas l'acte, il est ce que l'acte
@@ -332,54 +331,24 @@ async function dessinerCoffre(cible) {
   for (const carte of cible.querySelectorAll("[data-service]")) {
     const service = carte.dataset.service, verdict = carte.querySelector(".k-verdict");
     carte.querySelector(".k-poser").onclick = async () => {
-      const valeur = carte.querySelector(".k-valeur").value;
       const nom = carte.querySelector(".k-nom"), prenom = carte.querySelector(".k-prenom");
-      const s = c.services.find((x) => x.service === service);
-      const compteChange = nom && (nom.value !== s.identifiant.nom
-        || prenom.value !== s.identifiant.prenom);
-      // Rien de tapé : le moteur le refuse lui-même, avant tout mot de passe du logiciel.
-      const rien = !valeur && !compteChange;
       const compte = carte.querySelector(".k-compte");
-      const p = rien ? { motdepasse: null } : await preuve(valeur ? "poser le mot de passe " + service
-        : "changer le compte qui dépose les DPAE");
+      const p = await preuve("poser le mot de passe " + service);
       if (!p) return;
-      let etat;
+      // Le moteur dit ce qui change, pose, essaie une fois la connexion et dit ce qu'il en est (`phrase`, `couleur`).
       try {
-        if (compteChange) {
-          etat = await api("coffre-compte-dpae", { nom: nom.value, prenom: prenom.value, ...p });
-        }
-        if (valeur || rien) {
-          etat = await api("coffre-poser", { service, valeur, compte: compte ? compte.value : null, ...p });
-        }
-      } catch (e) { raté(e); return; }
-      // PUIS UNE TENTATIVE, UNE SEULE : vérifier maintenant évite de
-      // découvrir le mot de passe faux au dépôt. Autant le
-      // faire. Pas si l'identifiant est incomplet : l'échec serait certain,
-      // et chaque échec rapproche du blocage du compte.
-      const apres = (etat?.services || []).find((x) => x.service === service);
-      const quoi = compteChange && !valeur ? "Compte " : "Mot de passe ";
-      if (apres?.identifiant?.manque?.length) {
-        ok(quoi + service + " enregistré. Identifiant incomplet : pas de vérification.");
-        return;
-      }
-      dire(quoi + service + " enregistré. Vérification chez l'organisme…");
-      try {
-        const v = await api("coffre-verifier", { service });
+        const etat = await api("coffre-poser", { service, valeur: carte.querySelector(".k-valeur").value,
+          compte: compte ? compte.value : null, ...(nom ? { nom: nom.value, prenom: prenom.value } : {}), ...p });
         await dessinerCoffre(cible);
-        dire(v.ok ? quoi + service + " enregistré, et vérifié : la connexion passe."
-          : quoi + service + " enregistré, mais la connexion est REFUSÉE : " + v.message
-            + (v.conseil ? " — " + v.conseil : ""), v.pastille && v.pastille.couleur);
-      } catch (e) {
-        await dessinerCoffre(cible);
-        dire(quoi + service + " enregistré ; la vérification n'a pas pu se faire : " + e.message, "erreur");
-      }
+        dire(etat.phrase, etat.couleur);
+      } catch (e) { raté(e); }
     };
     const verifier = carte.querySelector(".k-verifier");
     if (verifier) verifier.onclick = async (ev) => {
       ev.target.disabled = true; verdict.textContent = "Connexion…";
       try {
         const v = await api("coffre-verifier", { service });
-        verdict.innerHTML = `${pastilleDeLEtat(v.pastille)} ${v.ok ? echapper(v.message || "session ouverte chez l'organisme.")
+        verdict.innerHTML = `${pastilleDeLEtat(v.pastille)} ${v.ok ? echapper(v.message)
           : `${echapper(v.message)}${v.conseil ? "<br>" + echapper(v.conseil) : ""}`}`;
       } catch (e) { verdict.textContent = e.message; }
       ev.target.disabled = false;

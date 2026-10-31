@@ -157,7 +157,7 @@ compte rendu metier de nature 118 (code A01) : relever les retours. Rien n'est e
 
 /// Ce que la DSN de mars de l'annee N+1 porte au titre de N, ou `None` (un autre mois ; une compagnie qui ne doit pas la
 /// taxe d'apprentissage pour N, ou qui n'atteint pas 250 salaries). Le moteur la porte sur l'etablissement principal.
-pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Csa>> {
+pub fn declaration(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> Resultat<Option<Csa>> {
     if mois.len() != 7 || &mois[5..7] != MOIS_DE_DECLARATION {
         return Ok(None);
     }
@@ -241,7 +241,7 @@ de {}. Rien n'est ecrit.",
     // montant « pour l'ensemble de ses établissements »).
     let (mut assiette, mut alsace) = (Decimal::ZERO, Decimal::ZERO);
     for nic in crate::dsn::nics(&ctx.entreprise) {
-        let a = crate::dsn::assiettes_de_l_annee(ctx, n, &nic, &["992", "993"])?;
+        let a = crate::dsn::assiettes_de_l_annee(ctx, n, &nic, &["992", "993"], departs)?;
         assiette = add(assiette, a[0]);
         alsace = add(alsace, a[1]);
     }

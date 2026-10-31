@@ -7,7 +7,8 @@
 
 use serde_json::{json, Value};
 
-use super::actes::{est_refus, jj_mm_aaaa, jour_option, reponse_metier};
+use super::actes::{est_refus, jour_option, reponse_metier};
+use socle::date::jj_mm_aaaa;
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{brut, champ, enveloppe, rendre};
 use super::Cadre;
@@ -95,18 +96,18 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         Ok(c)
     };
     let route = match quoi {
-        "saisir" => Some(("suspension-enregistrer", charge_du_salarie("saisir", &["debut", "fin", "motif"])?, "Suspension enregistree.")),
-        "modifier" => Some(("suspension-modifier", charge_du_salarie("modifier", &["debut"])?, "Suspension modifiee.")),
-        "oublier" => Some(("suspension-oublier", charge_du_salarie("oublier", &["debut"])?, "Suspension retiree du magasin.")),
+        "saisir" => Some(("suspension-enregistrer", charge_du_salarie("saisir", &["debut", "fin", "motif"])?)),
+        "modifier" => Some(("suspension-modifier", charge_du_salarie("modifier", &["debut"])?)),
+        "oublier" => Some(("suspension-oublier", charge_du_salarie("oublier", &["debut"])?)),
         _ => None,
     };
-    if let Some((nom, charge, phrase)) = route {
+    if let Some((nom, charge)) = route {
         let r = cadre.route(nom, charge)?;
         let s = r.get("suspension").cloned().unwrap_or(Value::Null);
         if json {
             return Ok(rendre(&enveloppe("suspension", brut(&s))));
         }
-        dire!("{} Rien n'est parti : chaque mois traverse la declare (bloc 65).", phrase);
+        dire!("{}", super::rendu::texte(&r["phrase"]));
         ligne(&s);
         return Ok(0);
     }

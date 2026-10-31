@@ -39,7 +39,7 @@ fn numerique(s: &str) -> bool {
         && d.map_or(true, |d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()))
 }
 
-/// `format(Decimal(s).normalize(), "f")` : sans exposant, sans zeros de queue.
+/// Un décimal écrit sans exposant, sans zéros de queue.
 fn normaliser(s: &str) -> String {
     let (signe, s) = s.strip_prefix('-').map_or(("", s), |r| ("-", r));
     let (nombre, exposant) = s.split_once('E').map_or((s, 0i64), |(n, e)| (n, e.parse().unwrap()));

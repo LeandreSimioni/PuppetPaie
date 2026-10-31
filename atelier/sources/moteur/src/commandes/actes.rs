@@ -12,12 +12,11 @@ use super::rendu::{erreur, rendre};
 use socle::echec::Echec;
 
 /// Les classes d'un refus metier : `ErreurOperation` et ses filles.
-const OPERATION: [&str; 28] = [
-    "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "CompteursVerrouilles",
-    "VersionExigee", "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai",
-    "MoisNonRegularisable", "ExerciceClos", "ExerciceOuvert", "ClotureRefusee", "MoisHorsDelai", "SortieAbsente", "BoiteAbsente",
-    "ArretIntrouvable", "ContratIntrouvable", "FichierExistant", "AucunDocument", "FormatIndisponible", "ExportIntrouvable",
-    "ActeReelRefuse", "ModificationApresEcheance", "ModificationNonDeclarable",
+const OPERATION: [&str; 17] = [
+    "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "CompteursVerrouilles",
+    "VersionExigee", "DsnDejaDeposee", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai",
+    "MoisNonRegularisable", "ExerciceClos", "SortieAbsente", "BoiteAbsente", "AucunDocument", "ActeReelRefuse",
+    "ModificationNonDeclarable",
 ];
 
 /// Cette classe est-elle une `ErreurOperation` (ou une de ses filles) ?
@@ -54,38 +53,7 @@ pub fn jour_iso(t: &str) -> Option<socle::date::Jour> {
     socle::date::Jour::lire(t).ok()
 }
 
-/// `JJ/MM/AAAA` d'un `AAAA-MM-JJ` (`util.jj_mm_aaaa`) ; le texte tel quel s'il ne se lit pas.
-pub fn jj_mm_aaaa(iso: &str) -> String {
-    jour_iso(&iso.chars().take(10).collect::<String>()).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|| iso.to_string())
-}
 
-/// `AAAA-MM` : un mois de saisie bien forme (quatre chiffres, un tiret, un mois de 01 a 12).
-pub fn mois_valide(t: &str) -> bool {
-    let b = t.as_bytes();
-    if b.len() != 7 || b[4] != b'-' || !b[..4].iter().chain(&b[5..]).all(u8::is_ascii_digit) {
-        return false;
-    }
-    matches!(t[5..7].parse::<u32>(), Ok(1..=12))
-}
-
-/// `util.fmt_eur` d'un montant que le JSON porte en chaine (`"1234.50"`) : `1 234,50`.
-pub fn fmt_eur_texte(v: &Value) -> String {
-    match socle::num::dec(v) {
-        Ok(d) => documents::bulletin::fmt_eur(d),
-        Err(_) => super::rendu::texte(v),
-    }
-}
-
-/// Une ligne de `etapes` (`A faire ensuite :`) : `  N. TITRE     detail`, puis la commande s'il y en a une.
-pub fn afficher_etapes(etapes: &[Value], titre: &str) {
-    dire!("\n{}", titre);
-    for (i, e) in etapes.iter().enumerate() {
-        dire!("  {}. {:<9} {}", i + 1, super::rendu::champ(e, "titre"), super::rendu::champ(e, "detail"));
-        if e.get("commande").is_some_and(socle::fichiers::vrai) {
-            dire!("     {}", super::rendu::champ(e, "commande"));
-        }
-    }
-}
 
 /// `Fichiers produits dans DOSSIER :` puis `  nom  (N o)` pour chacun.
 pub fn afficher_fichiers(fichiers: &[Value], dossier: &str) {
@@ -149,12 +117,11 @@ pub fn textes_de(v: &Value, cle: &str) -> Vec<String> {
 /// qui le dit) : un autre fichier, ou un mois qu'aucun engagement ne touche.
 pub fn mois_du_fichier(cadre: &super::Cadre, texte: &str, sujet: &str) -> Result<String, Echec> {
     let refus = |m: String| Echec { classe: Some("ErreurOperation"), message: m };
-    let est_un_mois = |s: &str| s.len() == 7 && s.as_bytes()[4] == b'-' && s.chars().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit());
-    let mois = if est_un_mois(texte) {
+    let mois = if socle::date::mois_valide(texte) {
         texte.to_string()
     } else {
         let chemin = std::path::PathBuf::from(crate::routes::depots::resoudre(&cadre.racine, &serde_json::json!(texte))?);
-        let mois = chemin.file_stem().map(|s| s.to_string_lossy().into_owned()).filter(|s| est_un_mois(s)).unwrap_or_default();
+        let mois = chemin.file_stem().map(|s| s.to_string_lossy().into_owned()).filter(|s| socle::date::mois_valide(s)).unwrap_or_default();
         let attendu = engagement::stock::chemin(&cadre.racine, &mois);
         let meme = matches!((std::fs::canonicalize(&chemin), std::fs::canonicalize(&attendu)), (Ok(a), Ok(b)) if a == b);
         if !meme {
@@ -258,14 +225,14 @@ pub fn refuser_si_pas_redirige(_cadre: &super::Cadre, _organisme: Organisme, _qu
     Ok(())
 }
 
-/// Les services du coffre, dans l'ordre alphabetique (`sorted(coffre.SERVICES)`).
+/// Les services du coffre, dans l'ordre alphabétique.
 pub fn services_connus() -> Vec<&'static str> {
     let mut noms: Vec<&str> = crate::compagnie::coffre::SERVICES.iter().map(|s| s.nom).collect();
     noms.sort_unstable();
     noms
 }
 
-/// `datetime.now().isoformat(timespec="minutes")` a l'heure de Paris : ce que le coffre note comme date de pose.
+/// L'heure de Paris, a la minute : ce que le coffre note comme date de pose.
 pub fn maintenant_minutes() -> String {
     let t = socle::temps::secondes();
     socle::paris::iso_minutes(t)

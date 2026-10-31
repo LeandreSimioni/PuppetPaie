@@ -97,6 +97,9 @@ body {
 .sous-onglets button.actif { color: var(--texte); border-bottom-color: var(--action); font-weight: bold; }
 .sous-onglets-installation { display: flex; gap: 2px; margin-left: auto; }
 .sous-onglets-installation button { font-size: 13px; }
+.sous-onglets-avance { display: flex; align-items: flex-end; gap: 2px; margin-left: 12px; }
+.sous-onglets-avance > .discret { padding: 8px 0 7px; font-size: 13px; }
+.sous-onglets-avance[hidden] { display: none; }
 .etat { margin-left: auto; font-size: 12px; color: var(--discret); text-align: right; }
 
 /* La fenetre PuppetPaie (sans bordure systeme, ticket #195) : le bandeau sert
@@ -151,7 +154,7 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
 /* UNE LIGNE, TOUJOURS (ticket #244 : « une fois affichée, rien ne bouge ») : le relevé qui finit, une nouvelle qui
    arrive changent le texte, jamais la hauteur du bandeau ; ce qui dépasse se lit au survol (`title`). Un « + n autres »
    déplié, c'est la personne qui l'a demandé. */
-.veille-texte { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.veille-texte { flex: 1; min-width: 0; }
 .veille-texte details:not([open]) { display: inline; }
 .veille-texte details[open] { white-space: normal; }
 #veille-maintenant { flex: none; }
@@ -294,14 +297,6 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 .grille-mois .note { margin: 0 0 .45rem; }
 
 /* ----------------------------------------------------------- engagements */
-/* Un mois ferme (DSN due) : on lit, on ne touche pas. */
-#engagements.lecture-seule { pointer-events: none; }
-#engagements.lecture-seule .engagement:not(.validee) { opacity: .75; }
-/* ... mais la carte d'un engagement se LIT : elle s'ouvre d'un clic, et les pastilles
-   répondent (30/09/2026). Sans ça, rien d'un mois passé ne s'ouvrait, ni le
-   contrat ni la DPAE ; « Modifier… », dans le détail, reste caché tant que
-   le mois n'est pas rouvert. */
-#engagements.lecture-seule .e-resume { pointer-events: auto; }
 .engagement {
   border: 1px solid var(--bord); border-radius: 4px;
   padding: 12px; margin-bottom: 10px; background: var(--fond);
@@ -333,16 +328,13 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
    orange sous le bloc, non bloquant, qui dit quelle grille il a lue. */
 .engagement .avis .avis-engagement { margin-top: 6px; font-size: 12px; }
 .engagement.validee .avis { display: none; }
-/* Le salarié : une liste à cocher qui a l'air d'un menu -- on coche qui on
-   veut, un seul bloc pour tous, et il se démultiplie à la validation
-   (etats-engagements.js, validerPlusieurs). */
+/* Le salarié : une liste qui a l'air d'un menu, un salarié par carte. */
 .engagement .champ { display: block; font-size: 12px; color: var(--discret); }
 .e-qui { position: relative; margin-top: 3px; }
 .e-qui summary {
   list-style: none; cursor: pointer; padding: 6px 26px 6px 8px;
   font-size: 14px; color: var(--texte); background: var(--carte);
   border: 1px solid var(--bord); border-radius: 3px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .e-qui summary::-webkit-details-marker { display: none; }
 .e-qui summary::after {
@@ -520,11 +512,15 @@ details.relire[open] > summary { margin-bottom: 8px; }
 .boutons-choix label.coche { align-items: flex-start; }
 .boutons-choix label.coche input { margin-top: 3px; }
 .ligne-structure {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) 28px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  position: relative;
   gap: 10px 14px; align-items: end;
   border: 1px solid var(--bord); border-radius: 4px;
-  padding: 10px 12px; margin-bottom: 8px;
+  padding: 10px 48px 10px 12px; margin-bottom: 8px;
 }
+/* Ce que le moteur dit d'une ligne (le risque AT/MP d'un établissement) : sous elle, toute la largeur. */
+.ligne-structure .ligne-dit { grid-column: 1 / -1; margin: 0; }
+.ligne-structure .retirer-ligne { position: absolute; top: 10px; right: 10px; }
 .retirer-ligne {
   width: 26px; height: 30px; padding: 0; border: 1px solid var(--bord);
   border-radius: 3px; background: transparent; color: var(--discret);
@@ -560,6 +556,8 @@ label.coche {
   font-size: 13px; color: var(--texte); padding: 3px 0;
 }
 label.coche input { width: auto; margin: 0; flex: none; }
+/* Les jours travaillés d'un permanent : les sept cases sur une ligne. */
+.jours-semaine { display: flex; flex-wrap: wrap; gap: 0 16px; }
 .espace-haut { margin-top: 12px; }
 /* L'aide depliee : un encart qui se lit, pas une note de bas de page. */
 #config-formulaire .champ .aide:not([hidden]) {
@@ -626,7 +624,7 @@ details.historique-fiche[open] > summary { margin-bottom: 8px; }
 /* Les mois de l'Historique : en grille, pour que leurs états et leurs
    documents tombent en colonne d'un mois à l'autre. */
 .rang.mois { display: grid; grid-template-columns: 11rem auto minmax(0, 1fr) auto; }
-.rang.mois .rang-infos { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rang.mois .rang-infos { min-width: 0; }
 .rang.exercice .rang-infos { font-size: 13px; }
 .rang.import .rang-nom { min-width: 220px; }
 /* Signature, tampon, logo : l'image en place, à gauche. */
@@ -841,6 +839,7 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .fait label { font-size: 12px; color: var(--discret); }
 .fait input, .fait select { display: block; padding: .3rem .4rem; }
 .fait input[type="number"] { width: 7rem; }
+input.jour-du-mois { width: 4rem; }
 .fait .f-rubrique { width: 10rem; }
 .fait .retirer-fait { align-self: center; }
 
@@ -877,8 +876,8 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .rubrique .r-jours-btn {
   font-variant-numeric: tabular-nums; text-align: left; padding: .3rem .5rem;
   border: 1px solid var(--bord); background: var(--carte); color: var(--texte);
-  border-radius: 3px; cursor: pointer; white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; min-width: 0; font-size: 13px;
+  border-radius: 3px; cursor: pointer;
+  min-width: 0; font-size: 13px;
 }
 .rubrique .r-jours-btn.vide { color: var(--discret); }
 .rubrique .r-jours-btn.planning { border-color: var(--alerte); }
@@ -1229,12 +1228,11 @@ pre.reponse {
 /* La case validée ne montre que son résumé -- et ses chevrons (la règle
    `.validee > :not(.e-resume)` cache le reste). */
 .engagement.validee > button.chevron-pluri { display: flex; }
-#engagements.lecture-seule .chevron-pluri { pointer-events: auto; }
 /* Le nom d'abord : quand le nom et le mot de son état (« importé ») ne tiennent pas
    sur une ligne, le mot passe dessous ; le nom ne se coupe que s'il est plus long
    que la case entière. */
 .carte-nom { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; row-gap: 0; min-width: 0; }
-.carte-nom b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.carte-nom b { max-width: 100%; }
 .e-pied .e-viser-btn { margin-left: auto; }
 .e-pied .lien { font-size: 12px; color: var(--discret); }
 .e-chiffres[hidden], .e-options[hidden] { display: none; }
@@ -1244,9 +1242,8 @@ pre.reponse {
                    margin-bottom: 6px; }
 .e-options-ligne .e-metier-bloc { font-size: 12px; color: var(--discret); min-width: 16rem; }
 /* Ce que l'engagement porte sans que la saisie courante le demande (`CHAMPS_RARES`) : seulement quand il a une valeur. */
-.e-rares[hidden], .e-avant[hidden] { display: none; }
+.e-rares[hidden] { display: none; }
 .e-rares label { font-size: 12px; color: var(--discret); }
-.e-avant { display: inline-flex; gap: 8px; align-items: end; flex-wrap: wrap; }
 /* Le lieu propre à un jour, sous sa ligne de paie, quand une date en dit un. */
 .rubrique .r-lieux-jours { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline;
                            font-size: 12px; }
@@ -1258,7 +1255,7 @@ pre.reponse {
 /* UN ENGAGEMENT VALIDÉ DONT LA PAIE S'EST RECALCULÉE D'ELLE-MÊME : la carte dit quand et pourquoi. */
 .carte-recalcul { grid-column: 1 / -1; margin-top: 4px; }
 .engagement:not(.validee) .resolu,
-.engagement:not(.validee) .etats-qui:not(.plusieurs) { display: none; }
+.engagement:not(.validee) .etats-qui { display: none; }
 @media (max-width: 780px) {
   .engagement:not(.validee) .ligne1 { grid-template-columns: 1fr; }
   .engagement:not(.validee) .rubrique { grid-template-columns: 1fr 1fr; }
@@ -1297,8 +1294,7 @@ pre.reponse {
                     letter-spacing: .5px; }
 .carte-qui { display: flex; flex-direction: column; min-width: 0; }
 .carte-qui b { font-size: 14px; }
-.carte-qui .discret { font-size: 12px; white-space: nowrap; overflow: hidden;
-                      text-overflow: ellipsis; }
+.carte-qui .discret { font-size: 12px; }
 .carte-actes .etats-actes { margin: 0; }
 .carte-net { font-size: 15px; font-weight: bold; white-space: nowrap;
              min-width: 88px; text-align: right; }
@@ -1582,7 +1578,6 @@ section.bloc > .encart { margin-bottom: 10px; }
 .etapes .arbre .vert { stroke: var(--succes); }
 .etapes .arbre .orange { stroke: var(--alerte); }
 /* l'annule-et-remplace qu'aucune modification n'exige : un lien discret sous le panneau, hors de l'arbre. */
-.etape-second { display: block; margin: -10px 0 18px; padding: 0 2px; font-size: 12px; text-align: left; }
 .reprise { margin: 0 0 14px; font-size: 12px; }
 .reprise > summary { cursor: pointer; color: var(--discret); padding: 6px 0;
                      border-top: 1px solid var(--bord); }
@@ -1634,7 +1629,7 @@ label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 
   border-radius: 50%; background: var(--bord, #d0d0d0); font-weight: bold; font-size: 12px; }
 .fictive-bulle.actif { border-color: currentColor; font-weight: bold; }
 .fictive-bulle.fait span { background: #2e7d32; color: #fff; }
-.fictive-courriel { border: 1px solid var(--bord, #d0d0d0); border-radius: 6px; overflow: hidden; }
+.fictive-courriel { border: 1px solid var(--bord, #d0d0d0); border-radius: 6px; }
 .fictive-entete { padding: 8px 12px; font-size: 13px; line-height: 1.6; background: rgba(0,0,0,.03);
   border-bottom: 1px solid var(--bord, #d0d0d0); overflow-wrap: anywhere; }
 .fictive-entete span { display: inline-block; min-width: 88px; color: var(--discret, #777); }
@@ -1787,7 +1782,8 @@ body:has(#voile:not(.cachee) #signaler-voile) #signaler { visibility: hidden; }
 .du-butoir { font-size: 12px; color: var(--discret); }
 .du-gestes { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 .du-manque { margin-top: 4px; }
-.du-manque > summary { color: var(--alerte); }
+.du-manque p { margin: 2px 0; }
+.du-manque > p:first-child { color: var(--alerte); }
 details.pourquoi { flex-basis: 100%; font-size: 12px; color: var(--discret); }
 details.pourquoi > summary { cursor: pointer; display: inline; list-style: none; text-decoration: underline dotted; }
 details.pourquoi > summary::-webkit-details-marker { display: none; }

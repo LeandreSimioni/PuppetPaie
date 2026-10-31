@@ -1,12 +1,11 @@
 //! CE QUE DIT LE JOURNAL DES ENVOIS : les etats du mois, les resumes, la repetition d'un depot, le rattachement des
 //! retours, les contrats partis, les signatures attendues, les embauches declarees. Rien n'y calcule de paie.
 //!
-//! Les lignes du journal restent des `serde_json::Value`, lues comme des
-//! dictionnaires : une cle absente vaut `None`, une valeur fausse
-//! (`None`, `0`, `""`, `[]`, `{}`) cede sa place a un `or`, et ce qui n'a pas la
-//! forme attendue (un `.get` sur autre chose qu'un objet, une boucle sur
-//! `None`) est refuse sous un nom d'exception (`AttributeError`,
-//! `TypeError`, `KeyError`). Les cles de dictionnaire (`(salarie,
+//! Les lignes du journal restent des `serde_json::Value` : une cle absente vaut
+//! `null`, une valeur vide (`null`, `0`, `""`, `[]`, `{}`) laisse sa place a la
+//! suivante, et ce qui n'a pas la forme attendue (une cle lue sur autre chose
+//! qu'un objet, une liste qui est `null`) est refuse sous une classe
+//! (`AttributeError`, `TypeError`, `KeyError`). Les cles composees (`(salarie,
 //! debut)`) se rendent en listes `[salarie, debut, valeur]`, dans l'ordre
 //! d'insertion.
 
@@ -29,7 +28,6 @@ pub const DSN: &str = "dsn";
 pub const DPAE: &str = "dpae";
 pub const DOCUMENTS: &str = "documents";
 pub const SIGNATURE: &str = "contrat-signature";
-pub const CONTRAT_RECU: &str = "contrat-recu";
 const CONTRESIGNE: &str = "contrat-contresigne";
 const CASC: &str = "regularisation-casc";
 const TEST: &str = "test";
@@ -43,7 +41,6 @@ pub const NATURES_DPAE: [(&str, &str); 4] = [
     ("41", "certificat de conformite des DPAE"),
 ];
 
-static NUL: Value = Value::Null;
 pub static LISTE_VIDE: Value = Value::Array(Vec::new());
 
 pub fn est(v: &Value, s: &str) -> bool {
@@ -66,7 +63,7 @@ pub fn s(t: &str) -> Value {
 
 // ---------------------------------------------------- les dictionnaires
 
-/// La cle de hachage d'une valeur : `1`, `1.0` et `True` ne font qu'une ;
+/// La cle de hachage d'une valeur : `1`, `1.0` et `true` ne font qu'une ;
 /// une liste ou un dictionnaire ne se hache pas.
 fn cle_de_hachage(v: &Value) -> R<String> {
     match v {
@@ -81,7 +78,7 @@ fn cle_de_hachage(v: &Value) -> R<String> {
     }
 }
 
-/// Un `dict` (ou un `set`) a cle composee, dans l'ordre d'insertion : reposer
+/// Une table (ou un ensemble) a cle composee, dans l'ordre d'insertion : reposer
 /// une cle change la valeur et garde la place.
 pub struct Dico<V> {
     pub index: HashMap<String, usize>,
@@ -149,139 +146,30 @@ fn paire(l: &Value, a: &str, b: &str) -> R<Vec<Value>> {
     Ok(vec![get(l, a)?.clone(), get(l, b)?.clone()])
 }
 
-/// Sous quelle cle le journal range un contrat. `Paire` : (salarie, premier jour), la maille du salarie. `Contrat` : (salarie, premier jour, numero), la maille des ecrans : deux
-/// contrats du meme salarie qui commencent le meme jour ont chacun leur etat, leur relance, leur
-/// avenant. Le numero vaut `""` quand la ligne n'en porte pas.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Maille {
-    Paire,
-    Contrat,
-}
-
-/// (salarie, premier jour, numero) : la cle d'un contrat, hors du journal.
-pub type Cle3 = (String, String, String);
+/// (salarie, numero) : la cle d'un contrat, hors du journal. Le numero est pose a la validation de l'engagement et ne
+/// change plus des qu'un envoi l'a porte (regle 4) : deux contrats du meme salarie ont chacun leur etat, leur relance,
+/// leur avenant, quels que soient leurs premiers jours.
+pub type CleContrat = (String, String);
 
 /// Le numero d'une ligne de contrat, tel qu'il sert de cle : son texte, ou `""`.
 pub fn numero_de_cle(v: &Value) -> Value {
     Value::String(if vrai(v) { valeur_en_texte(v) } else { String::new() })
 }
 
-/// La cle d'une ligne de contrat (une entree de `detail.contrats`, ou le `detail` d'un `contrat-recu`).
-pub fn cle_contrat(l: &Value, m: Maille) -> R<Vec<Value>> {
-    let mut k = paire(l, "salarie", "debut")?;
-    if m == Maille::Contrat {
-        k.push(numero_de_cle(get(l, "numero")?));
-    }
-    Ok(k)
+/// La cle d'une ligne de contrat (une entree de `detail.contrats`, ou ce qui en est revenu, `revenus`) : (salarie, numero).
+pub fn cle_contrat(l: &Value) -> R<Vec<Value>> {
+    Ok(vec![get(l, "salarie")?.clone(), numero_de_cle(get(l, "numero")?)])
 }
 
-/// Les numeros distincts, dans l'ordre du journal, sous lesquels le journal connait un contrat de ce salarie et de ce debut : parti
-/// a la signature (avenants compris : un avenant porte le numero de son contrat) ou note recu.
-pub fn numeros_demandes(lignes: &[Value], salarie: &str, debut: &str) -> R<Vec<String>> {
-    let mut out: Vec<String> = Vec::new();
-    for l in lignes {
-        // Un contrat note « recu » a la main sans avoir ete demande par courriel est connu du journal sous son numero aussi.
-        if est(get(l, "quoi")?, CONTRAT_RECU) && accepte(l)? {
-            let d = ou(get(l, "detail")?, objet_vide());
-            if est(get(d, "salarie")?, salarie) && est(get(d, "debut")?, debut) {
-                let n = valeur_en_texte(&numero_de_cle(get(d, "numero")?));
-                if !out.contains(&n) {
-                    out.push(n);
-                }
-            }
-            continue;
-        }
-        if !est(get(l, "quoi")?, SIGNATURE) || !accepte(l)? {
-            continue;
-        }
-        for c in detail_ou_liste(l, "contrats")? {
-            if est(get(&c, "salarie")?, salarie) && est(get(&c, "debut")?, debut) {
-                let n = valeur_en_texte(&numero_de_cle(get(&c, "numero")?));
-                if !out.contains(&n) {
-                    out.push(n);
-                }
-            }
-        }
-    }
-    Ok(out)
-}
-
-/// Pour les paies d'UN meme (salarie, debut), dans l'ordre de la saisie, le numero SOUS LEQUEL LE JOURNAL parle de chacune :
-/// `propres` = les numeros que la saisie leur donne, `demandes` = ceux sous lesquels des contrats sont partis.
-/// 1. une paie dont le numero est parmi les demandes garde le sien ;
-/// 2. les paies restantes et les numeros demandes que personne ne reclame se jumellent dans l'ordre, SI elles sont aussi
-///    nombreuses (un contrat renumerote depuis son envoi retrouve ainsi sa demande) ;
-/// 3. sinon une paie reste sans demande : le contrat jumeau qui n'est pas parti ne prend pas la place de celui qui est parti.
-pub fn apparier(propres: &[String], demandes: &[String]) -> Vec<Option<String>> {
-    let mut sortie: Vec<Option<String>> = propres.iter().map(|n| demandes.contains(n).then(|| n.clone())).collect();
-    let libres: Vec<&String> = demandes.iter().filter(|d| !propres.contains(d)).collect();
-    let restantes: Vec<usize> = (0..propres.len()).filter(|&i| sortie[i].is_none()).collect();
-    if !libres.is_empty() && libres.len() == restantes.len() {
-        for (i, d) in restantes.iter().zip(libres) {
-            sortie[*i] = Some(d.clone());
-        }
-    }
-    sortie
-}
-
-/// L'indice, dans `paies`, de la paie du contrat que le journal connait sous `numero_j` : celle qui lui est appariee
-/// (`apparier`), sinon celle qui porte ce numero ; sinon, si `a_defaut_la_premiere`, la premiere paie du jour.
-pub fn paie_du_contrat(
-    paies: &[engagement::calcul::Paie],
-    lignes: &[Value],
-    salarie: &str,
-    debut: &str,
-    numero_j: &str,
-    a_defaut_la_premiere: bool,
-) -> R<Option<usize>> {
-    let mut des_jours: Vec<(usize, String)> = Vec::new();
+/// L'indice, dans `paies`, de la paie du contrat n° `numero` de ce salarie.
+pub fn paie_du_contrat(paies: &[engagement::calcul::Paie], salarie: &str, numero: &str) -> R<Option<usize>> {
     for (i, x) in paies.iter().enumerate() {
         let cle = x.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
-        if est(cle, salarie) && x.engagement.debut.iso() == debut && x.engagement.nat().map_err(Echec::from)?.modele_contrat().is_some() {
-            des_jours.push((i, x.engagement.numero.clone().unwrap_or_default()));
+        if est(cle, salarie) && x.engagement.numero.as_deref() == Some(numero) && x.engagement.nat().map_err(Echec::from)?.modele_contrat().is_some() {
+            return Ok(Some(i));
         }
     }
-    let propres: Vec<String> = des_jours.iter().map(|(_, n)| n.clone()).collect();
-    let appariees = apparier(&propres, &numeros_demandes(lignes, salarie, debut)?);
-    Ok((0..des_jours.len())
-        .find(|&k| appariees[k].as_deref() == Some(numero_j))
-        .or_else(|| (0..des_jours.len()).find(|&k| propres[k] == numero_j))
-        .or(if a_defaut_la_premiere && !des_jours.is_empty() { Some(0) } else { None })
-        .map(|k| des_jours[k].0))
-}
-
-/// Les cles sous lesquelles chaque paie (salarie, debut, numero propre) d'un mois retrouve son contrat dans le journal :
-/// d'abord celle du contrat demande qui lui correspond (`apparier`), puis la sienne, puis celle d'une ligne sans numero.
-pub fn cles_des_paies(lignes: &[Value], paies: &[Cle3]) -> R<Vec<Vec<Cle3>>> {
-    let mut sortie: Vec<Vec<Cle3>> = vec![Vec::new(); paies.len()];
-    let mut vus: Vec<(String, String)> = Vec::new();
-    for (s, d, _) in paies {
-        let sd = (s.clone(), d.clone());
-        if vus.contains(&sd) {
-            continue;
-        }
-        vus.push(sd);
-        let rangs: Vec<usize> = (0..paies.len()).filter(|&i| paies[i].0 == *s && paies[i].1 == *d).collect();
-        let propres: Vec<String> = rangs.iter().map(|&i| paies[i].2.clone()).collect();
-        let demandes = numeros_demandes(lignes, s, d)?;
-        let appariees = apparier(&propres, &demandes);
-        for (j, &i) in rangs.iter().enumerate() {
-            let mut cles: Vec<Cle3> = Vec::new();
-            let mut ajouter = |n: &str| {
-                let k = (s.clone(), d.clone(), n.to_string());
-                if !cles.contains(&k) {
-                    cles.push(k);
-                }
-            };
-            if let Some(n) = &appariees[j] {
-                ajouter(n);
-            }
-            ajouter(&propres[j]);
-            ajouter("");
-            sortie[i] = cles;
-        }
-    }
-    Ok(sortie)
+    Ok(None)
 }
 
 // ------------------------------------------------------------ lire le journal
@@ -293,42 +181,6 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
         _ => "OSError",
     };
     erreur(classe, format!("{} : {}", p.display(), e))
-}
-
-/// Toutes les lignes de `journal/depots.json` (aucune si le fichier n'existe pas).
-pub fn charger(racine: &Path) -> R<Vec<Value>> {
-    Ok((*charger_partage(racine)?).clone())
-}
-
-/// Les lignes de `journal/depots.json`, PARTAGEES : lues une fois tant que le fichier ne change pas (chemin, date,
-/// taille ; il s'ecrit toujours d'un coup, `ecriture::ecrire_json`), et servies a chaque route qui les relit -- la
-/// fenetre garde le moteur charge. Un refus ne se garde pas.
-pub fn charger_partage(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
-    type Cache = std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, (Option<(u128, u64)>, std::sync::Arc<Vec<Value>>)>>;
-    static CACHE: std::sync::OnceLock<Cache> = std::sync::OnceLock::new();
-    let cache = CACHE.get_or_init(Default::default);
-    let p = chemin(racine);
-    let sig = socle::fichiers::signature(&p);
-    if let Some((s, l)) = sig.and_then(|_| cache.lock().unwrap_or_else(|e| e.into_inner()).get(&p).cloned()) {
-        if s == sig {
-            return Ok(l);
-        }
-    }
-    let l = std::sync::Arc::new(charger_du_disque(&p)?);
-    if sig.is_some() {
-        socle::fichiers::ranger(cache, p, (sig, l.clone()));
-    }
-    Ok(l)
-}
-
-fn charger_du_disque(p: &Path) -> R<Vec<Value>> {
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let octets = std::fs::read(&p).map_err(|e| erreur_io(&e, &p))?;
-    let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))?;
-    let v: Value = serde_json::from_str(&texte).map_err(|e| erreur("JSONDecodeError", e.to_string()))?;
-    Ok(items(&v)?.into_iter().map(Cow::into_owned).collect())
 }
 
 /// `journal.lire` sur des lignes deja lues.
@@ -368,26 +220,37 @@ pub fn accepte(l: &Value) -> R<bool> {
     Ok(vrai(get(l, "accepte")?))
 }
 
-/// `l.get("detail", {}).get(k, [])`, parcouru.
+/// Les elements du `detail` de la ligne sous la cle `k`, parcourus ; aucun si elle manque.
 fn detail_liste<'a>(l: &'a Value, k: &str) -> R<Vec<Cow<'a, Value>>> {
     items(getd(getd(l, "detail", objet_vide())?, k, &LISTE_VIDE)?)
 }
 
-/// `(l.get("detail") or {}).get(k, [])`, parcouru.
+/// Les elements du `detail` de la ligne sous la cle `k`, parcourus ; aucun si le detail ou la cle manque.
 fn detail_ou_liste<'a>(l: &'a Value, k: &str) -> R<Vec<Cow<'a, Value>>> {
     items(getd(ou(get(l, "detail")?, objet_vide()), k, &LISTE_VIDE)?)
 }
 
 // ------------------------------------------------------------ les embauches
 
+/// La cle d'une embauche que porte une ligne DPAE (`detail.embauches[]`) : (salarie, numero du contrat de l'engagement
+/// declare), ce qui relie la DPAE, partie ou refusee, a son engagement. Une embauche sans numero ne se relie a rien.
+fn embauche_du_contrat(e: &Value) -> R<Option<Vec<Value>>> {
+    let numero = getd(e, "numero", &Value::Null)?;
+    Ok(vrai(numero).then(|| vec![e.get("salarie").cloned().unwrap_or(Value::Null), numero.clone()]))
+}
+
+/// Les embauches qu'une DPAE reelle declare, par (salarie, numero du contrat) : partie, et pas refusee (`refuse_par_un_retour`) ;
+/// une DPAE refusee se redeclare.
 pub fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
     let mut d = Dico::nouveau();
     for l in filtrer(lignes, Some(DPAE), None, true)? {
-        if !accepte(l)? {
+        if !accepte(l)? || refuse_par_un_retour(l)? {
             continue;
         }
         for e in detail_liste(l, "embauches")? {
-            d.poser(paire(&e, "salarie", "debut")?, get(l, "quand")?.clone())?;
+            if let Some(k) = embauche_du_contrat(&e)? {
+                d.poser(k, get(l, "quand")?.clone())?;
+            }
         }
     }
     Ok(d)
@@ -419,44 +282,25 @@ pub fn etat_dsn_du_mois(lignes: &[Value], mois: &str, nic: &Value, principal: &s
         return Ok(Value::Null);
     };
     let retours = items(ou(get(l, "retours")?, &LISTE_VIDE))?;
-    let mut verdicts = Vec::new();
-    let mut refus = Vec::new();
-    let mut aer = false;
+    let (mut bilan_ok, mut aer, mut anomalies) = (false, false, Vec::new());
     for r in &retours {
-        let nature = valeur_en_texte(get(r, "nature")?);
-        if nature == "11" {
-            verdicts.push(ou(get(r, "verdict")?, texte_vide()));
-        }
-    }
-    for r in &retours {
-        if est(ou(get(r, "verdict")?, texte_vide()), "KO") {
-            refus.push(r);
-        }
-    }
-    for r in &retours {
-        if valeur_en_texte(get(r, "nature")?) == "46" {
-            aer = true;
-        }
-    }
-    let mut anomalies = Vec::new();
-    for r in &refus {
-        for a in items(ou(get(r, "anomalies")?, &LISTE_VIDE))? {
-            anomalies.push(a.into_owned());
+        let (nature, verdict) = (valeur_en_texte(get(r, "nature")?), ou(get(r, "verdict")?, texte_vide()));
+        bilan_ok |= nature == "11" && est(verdict, "OK");
+        aer |= nature == "46";
+        if est(verdict, "KO") {
+            anomalies.extend(items(ou(get(r, "anomalies")?, &LISTE_VIDE))?.into_iter().map(Cow::into_owned));
         }
     }
     // UN DEPOT REPRIS DES RETOURS (`reprise_journal`) : sa piece EST le bilan de la plate-forme, et la ligne
-    // en garde le verdict (`detail.etat_declaration`) -- tant qu'aucun retour n'est range en face, c'est lui qui dit.
+    // en garde le verdict (`detail.etat_declaration`) -- tant qu'aucun bilan n'est range en face, c'est lui qui dit.
     let detail = ou(get(l, "detail")?, objet_vide());
-    let repris = if verdicts.is_empty() && vrai(getd(detail, "reconstruit", &Value::Null)?) {
-        Some(valeur_en_texte(getd(detail, "etat_declaration", texte_vide())?).to_uppercase())
-    } else {
-        None
-    };
-    let refus_repris = repris.as_deref() == Some("KO");
+    let sans_bilan = !retours.iter().any(|r| get(r, "nature").is_ok_and(|n| valeur_en_texte(n) == "11"));
+    let repris_ok = sans_bilan && vrai(getd(detail, "reconstruit", &Value::Null)?) && valeur_en_texte(getd(detail, "etat_declaration", texte_vide())?).eq_ignore_ascii_case("OK");
+    let refusee = refuse_par_un_retour(l)?;
     Ok(json!({
         "quand": get(l, "quand")?, "fichier": get(l, "fichier")?, "flux": get(l, "flux")?,
-        "passee": (verdicts.iter().any(|v| est(v, "OK")) || repris.as_deref() == Some("OK")) && refus.is_empty(),
-        "refusee": !refus.is_empty() || refus_repris,
+        "passee": (bilan_ok || repris_ok) && !refusee,
+        "refusee": refusee,
         "anomalies": anomalies,
         "aer_recue": aer,
     }))
@@ -508,6 +352,22 @@ fn dossiers_urssaf(retours: &[Cow<'_, Value>]) -> R<Dico<Value>> {
     Ok(out)
 }
 
+/// Ce que les retours d'une DPAE partie en disent : `(passee, refusee)`. Passee : le certificat (nature 41) ou un bilan OK ;
+/// refusee : un retour KO, sans certificat ni bilan OK.
+fn verdict_dpae(l: &Value) -> R<(bool, bool)> {
+    let retours = items(ou(get(l, "retours")?, &LISTE_VIDE))?;
+    let (mut passee, mut ko) = (false, false);
+    for r in &retours {
+        let nature = valeur_en_texte(get(r, "nature")?);
+        let verdict = ou(get(r, "verdict")?, texte_vide());
+        passee |= nature == NATURE_CERTIFICAT_DPAE || (nature == "11" && est(verdict, "OK"));
+        ko |= est(verdict, "KO");
+    }
+    Ok((passee, ko && !passee))
+}
+
+/// Ce que chaque DPAE reelle partie est devenue, par (salarie, numero du contrat) : la derniere ligne qui la porte, ses
+/// retours (passee, refusee, anomalies, dossier Urssaf).
 pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
     let mut etat: Dico<Value> = Dico::nouveau();
     for l in filtrer(lignes, Some(DPAE), None, true)? {
@@ -515,29 +375,19 @@ pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
             continue;
         }
         let retours = items(ou(get(l, "retours")?, &LISTE_VIDE))?;
-        let mut passee = false;
-        for r in &retours {
-            let nature = valeur_en_texte(get(r, "nature")?);
-            if nature == NATURE_CERTIFICAT_DPAE || (nature == "11" && est(ou(get(r, "verdict")?, texte_vide()), "OK")) {
-                passee = true;
-            }
-        }
-        let mut refus = Vec::new();
+        let (passee, refusee) = verdict_dpae(l)?;
+        let mut anomalies = Vec::new();
         for r in &retours {
             if est(ou(get(r, "verdict")?, texte_vide()), "KO") {
-                refus.push(r);
-            }
-        }
-        let refusee = !refus.is_empty() && !passee;
-        let mut anomalies = Vec::new();
-        for r in &refus {
-            for a in items(ou(get(r, "anomalies")?, &LISTE_VIDE))? {
-                anomalies.push(a.into_owned());
+                for a in items(ou(get(r, "anomalies")?, &LISTE_VIDE))? {
+                    anomalies.push(a.into_owned());
+                }
             }
         }
         let dossiers = dossiers_urssaf(&retours)?;
         let retours_json: Vec<Value> = retours.iter().map(|r| (**r).clone()).collect();
         for e in detail_liste(l, "embauches")? {
+            let Some(cle) = embauche_du_contrat(&e)? else { continue };
             let mut cert: Option<&Value> = None;
             for ((nom, emb), v) in dossiers.items.iter().map(|(k, v)| ((&k[0], &k[1]), v)) {
                 if valeurs_egales(emb, get(&e, "debut")?) && meme_nom(get(&e, "salarie")?, nom)? {
@@ -550,7 +400,7 @@ pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
                 _ => (texte_vide().clone(), false),
             };
             etat.poser(
-                paire(&e, "salarie", "debut")?,
+                cle,
                 json!({
                     "quand": get(l, "quand")?, "fichier": get(l, "fichier")?, "fin": get(&e, "fin")?,
                     "passee": passee, "refusee": refusee, "anomalies": anomalies,
@@ -564,74 +414,9 @@ pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
 
 // -------------------------------------------------------------- les contrats
 
-/// Les lignes telles que la maille `Contrat` les lit : une ligne `contrat-recu` SANS numero (d'avant les numeros, ou posee sans que
-/// la saisie en porte un) vaut pour le dernier contrat que le journal a vu partir pour ce salarie a ce debut. En maille `Paire`, rien
-/// ne change.
-fn normalisees(lignes: &[Value], m: Maille) -> Cow<'_, [Value]> {
-    if m == Maille::Paire {
-        return Cow::Borrowed(lignes);
-    }
-    let mut dernier: HashMap<(String, String), String> = HashMap::new();
-    let mut out: Vec<Value> = Vec::with_capacity(lignes.len());
-    for l in lignes {
-        let mut l = l.clone();
-        if est(l.get("quoi").unwrap_or(&NUL), SIGNATURE) {
-            if let Some(Value::Array(cs)) = l.get("detail").and_then(|d| d.get("contrats")) {
-                for c in cs {
-                    if let (Some(s), Some(d)) = (c.get("salarie").and_then(Value::as_str), c.get("debut").and_then(Value::as_str)) {
-                        if est(c.get("acte").unwrap_or(&NUL), "avenant") {
-                            continue;
-                        }
-                        dernier.insert((s.to_string(), d.to_string()), valeur_en_texte(&numero_de_cle(c.get("numero").unwrap_or(&NUL))));
-                    }
-                }
-            }
-        } else if est(l.get("quoi").unwrap_or(&NUL), CONTRAT_RECU) {
-            if let Some(Value::Object(d)) = l.get_mut("detail") {
-                if !vrai(d.get("numero").unwrap_or(&NUL)) {
-                    if let (Some(s), Some(db)) = (d.get("salarie").and_then(Value::as_str), d.get("debut").and_then(Value::as_str)) {
-                        if let Some(n) = dernier.get(&(s.to_string(), db.to_string())) {
-                            let n = n.clone();
-                            d.insert("numero".into(), Value::String(n));
-                        }
-                    }
-                }
-            }
-        }
-        out.push(l);
-    }
-    Cow::Owned(out)
-}
-
-/// `d[cle]`, ou, a defaut, la ligne du meme contrat sans numero (une ligne d'avant les numeros).
-pub fn avec_repli<'a, V>(d: &'a Dico<V>, k: &[Value]) -> R<Option<&'a V>> {
-    if let Some(v) = d.get(k)? {
-        return Ok(Some(v));
-    }
-    if k.len() == 3 && vrai(&k[2]) {
-        return d.get(&[k[0].clone(), k[1].clone(), Value::String(String::new())]);
-    }
-    Ok(None)
-}
-
-pub fn contrats_demandes(lignes: &[Value], m: Maille) -> R<Value> {
-    let lignes = &*normalisees(lignes, m);
-    let mut d = Dico::nouveau();
-    for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        for c in detail_liste(l, "contrats")? {
-            d.poser(cle_contrat(&c, m)?, get(l, "quand")?.clone())?;
-        }
-    }
-    Ok(d.sortie(Clone::clone))
-}
-
 /// Comment chaque contrat est parti la derniere fois : `imprime` (remis en main propre, `detail.main_propre`) ou
 /// `courriel`. Un contrat imprime ne se relance pas : il n'y a pas de courriel a renvoyer.
-pub fn contrats_partis_par(lignes: &[Value], m: Maille) -> R<Value> {
-    let lignes = &*normalisees(lignes, m);
+pub fn contrats_partis_par(lignes: &[Value]) -> R<Value> {
     let mut d = Dico::nouveau();
     for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
         if !accepte(l)? {
@@ -639,32 +424,24 @@ pub fn contrats_partis_par(lignes: &[Value], m: Maille) -> R<Value> {
         }
         let par = if l.pointer("/detail/main_propre").is_some_and(vrai) { "imprime" } else { "courriel" };
         for c in detail_liste(l, "contrats")? {
-            d.poser(cle_contrat(&c, m)?, s(par))?;
+            d.poser(cle_contrat(&c)?, s(par))?;
         }
     }
     Ok(d.sortie(Clone::clone))
 }
 
-pub fn numeros_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
-    let lignes = &*normalisees(lignes, m);
-    let mut d = Dico::nouveau();
-    for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        for c in detail_ou_liste(l, "contrats")? {
-            if vrai(get(&c, "numero")?) {
-                d.poser(cle_contrat(&c, m)?, get(&c, "numero")?.clone())?;
-            }
-        }
+/// CE QUI EST REVENU D'UN CONTRAT PARTI (signe, ou la mention retiree), sur la ligne de son envoi (`journal::rattacher`),
+/// dans l'ordre ou c'est revenu : chacun dit son contrat (`cle_contrat`), son avenant, `recu`, `quand`, `origine`.
+pub fn revenus(l: &Value) -> R<Vec<Value>> {
+    if !est(get(l, "quoi")?, SIGNATURE) || !accepte(l)? {
+        return Ok(Vec::new());
     }
-    Ok(d.sortie(Clone::clone))
+    Ok(items(getd(l, "retours", &LISTE_VIDE)?)?.into_iter().map(Cow::into_owned).collect())
 }
 
 /// Les contrats repartis apres leur signature sur une autre version de l'engagement que celle signee : ils attendent une
 /// nouvelle signature. Un avenant n'en fait pas un.
-pub fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dico<()>> {
-    let lignes = &*normalisees(lignes, m);
+pub fn renvoyes_depuis_la_signature(lignes: &[Value]) -> R<Dico<()>> {
     let mut envoye: Dico<Value> = Dico::nouveau();
     let mut signe: Dico<Value> = Dico::nouveau();
     let mut renvoye: Dico<()> = Dico::nouveau();
@@ -674,7 +451,7 @@ pub fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dico<()>> 
         }
         if est(get(l, "quoi")?, SIGNATURE) {
             for c in detail_ou_liste(l, "contrats")? {
-                let k = cle_contrat(&c, m)?;
+                let k = cle_contrat(&c)?;
                 // La version de l'engagement sur laquelle ce contrat part (`journal::versions_des_contrats`).
                 let e = get(l, "versions")?
                     .as_array()
@@ -692,10 +469,10 @@ pub fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dico<()>> 
                 }
                 envoye.poser(k, e)?;
             }
-        } else if est(get(l, "quoi")?, CONTRAT_RECU) {
-            let d = ou(get(l, "detail")?, objet_vide());
+        }
+        for d in &revenus(l)? {
             if vrai(get(d, "recu")?) {
-                let k = cle_contrat(d, m)?;
+                let k = cle_contrat(d)?;
                 let v = envoye.get(&k)?.cloned().unwrap_or(Value::Null);
                 signe.poser(k.clone(), v)?;
                 if let Some(i) = renvoye.index.remove(&Dico::<()>::cle(&k)?) {
@@ -712,21 +489,16 @@ pub fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dico<()>> 
     Ok(renvoye)
 }
 
-/// `contrats_recus` : (salarie, debut) -> quand, pour ceux dont le dernier mot est « recu ».
-pub fn contrats_recus(lignes: &[Value], m: Maille) -> R<Dico<Value>> {
-    let lignes = &*normalisees(lignes, m);
+/// `contrats_recus` : (salarie, numero) -> quand, pour ceux dont le dernier mot est « recu ».
+pub fn contrats_recus(lignes: &[Value]) -> R<Dico<Value>> {
     let mut etat: Dico<Value> = Dico::nouveau();
-    for l in filtrer(lignes, Some(CONTRAT_RECU), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        let d = getd(l, "detail", objet_vide())?;
+    for d in &lignes.iter().map(revenus).collect::<R<Vec<_>>>()?.concat() {
         // La note d'un avenant (signe, ou defait) ne dit rien du contrat lui-meme.
         if vrai(get(d, "avenant")?) {
             continue;
         }
-        let k = cle_contrat(d, m)?;
-        let v = if vrai(get(d, "recu")?) { get(l, "quand")?.clone() } else { Value::Null };
+        let k = cle_contrat(d)?;
+        let v = if vrai(get(d, "recu")?) { get(d, "quand")?.clone() } else { Value::Null };
         etat.poser(k, v)?;
     }
     garder_vrais(etat)
@@ -742,19 +514,14 @@ fn garder_vrais(d: Dico<Value>) -> R<Dico<Value>> {
     Ok(out)
 }
 
-pub fn contrats_recus_comment(lignes: &[Value], m: Maille) -> R<Value> {
-    let lignes = &*normalisees(lignes, m);
+pub fn contrats_recus_comment(lignes: &[Value]) -> R<Value> {
     let mut etat: Dico<Value> = Dico::nouveau();
-    for l in filtrer(lignes, Some(CONTRAT_RECU), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        let d = getd(l, "detail", objet_vide())?;
+    for d in &lignes.iter().map(revenus).collect::<R<Vec<_>>>()?.concat() {
         // La note d'un avenant (signe, ou defait) ne dit rien du contrat lui-meme.
         if vrai(get(d, "avenant")?) {
             continue;
         }
-        let k = cle_contrat(d, m)?;
+        let k = cle_contrat(d)?;
         let main = s("main");
         let v = if vrai(get(d, "recu")?) { ou(get(d, "origine")?, &main).clone() } else { Value::Null };
         etat.poser(k, v)?;
@@ -763,15 +530,15 @@ pub fn contrats_recus_comment(lignes: &[Value], m: Maille) -> R<Value> {
 }
 
 pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Value) -> R<Value> {
-    // Par CONTRAT (salarie, debut, numero) : une reponse ne releve que le contrat qu'elle signe (Retours Windows, B, suite).
-    let lignes = &*normalisees(lignes, Maille::Contrat);
-    let recus = contrats_recus(lignes, Maille::Contrat)?;
-    let renvoyes = renvoyes_depuis_la_signature(lignes, Maille::Contrat)?;
+    // Par CONTRAT (salarie, numero) : une reponse ne releve que le contrat qu'elle signe (Retours Windows, B, suite).
+    let recus = contrats_recus(lignes)?;
+    let renvoyes = renvoyes_depuis_la_signature(lignes)?;
     let mut derniere_recue: Dico<usize> = Dico::nouveau();
     for (i, l) in lignes.iter().enumerate() {
-        let d = ou(get(l, "detail")?, objet_vide());
-        if est(get(l, "quoi")?, CONTRAT_RECU) && accepte(l)? && vrai(get(d, "recu")?) {
-            derniere_recue.poser(cle_contrat(d, Maille::Contrat)?, i)?;
+        for d in &revenus(l)? {
+            if vrai(get(d, "recu")?) {
+                derniere_recue.poser(cle_contrat(d)?, i)?;
+            }
         }
     }
     // Les reponses deja relevees, par envoi (son code) et par contrat ou avenant : une reponse ne se note qu'une fois.
@@ -779,15 +546,14 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
     // attend une nouvelle reponse.
     let releve = |code: &Value, d: &Value| -> R<Vec<Value>> {
         let mut k = vec![s(&valeur_en_texte(code))];
-        k.extend(cle_contrat(d, Maille::Contrat)?);
+        k.extend(cle_contrat(d)?);
         let avenant = get(d, "avenant")?;
         k.push(s(&if vrai(avenant) { valeur_en_texte(avenant) } else { String::new() }));
         Ok(k)
     };
     let mut deja_releves: Dico<()> = Dico::nouveau();
-    for l in lignes {
-        let d = ou(get(l, "detail")?, objet_vide());
-        if est(get(l, "quoi")?, CONTRAT_RECU) && accepte(l)? && vrai(get(d, "recu")?) && est(get(d, "origine")?, "courriel") && vrai(get(d, "code")?) {
+    for d in &lignes.iter().map(revenus).collect::<R<Vec<_>>>()?.concat() {
+        if vrai(get(d, "recu")?) && est(get(d, "origine")?, "courriel") && vrai(get(d, "code")?) {
             deja_releves.poser(releve(get(d, "code")?, d)?, ())?;
         }
     }
@@ -823,9 +589,9 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
             if !vrai(code) {
                 continue;
             }
-            let k = cle_contrat(&c, Maille::Contrat)?;
+            let k = cle_contrat(&c)?;
             let acte = get(&c, "acte")?;
-            let apres_signature = est(acte, "avenant") || est(acte, "remplace") || avec_repli(&renvoyes, &k)?.is_some();
+            let apres_signature = est(acte, "avenant") || est(acte, "remplace") || renvoyes.get(&k)?.is_some();
             let existant = par_code.get(std::slice::from_ref(code))?.copied();
             let n = match existant {
                 Some(n) => n,
@@ -878,16 +644,11 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
     for e in &demandes {
         let mut attendue = false;
         for c in &e.contrats {
-            let k = cle_contrat(c, Maille::Contrat)?;
-            let mut lu = releve(&e.code, c)?;
-            let deja_lu = deja_releves.contient(&lu)? || {
-                lu[3] = s("");
-                deja_releves.contient(&lu)?
-            };
-            let revenu = deja_lu || if e.apres_signature {
-                avec_repli(&derniere_recue, &k)?.is_some_and(|&rang| rang > e.rang)
+            let k = cle_contrat(c)?;
+            let revenu = deja_releves.contient(&releve(&e.code, c)?)? || if e.apres_signature {
+                derniere_recue.get(&k)?.is_some_and(|&rang| rang >= e.rang)
             } else {
-                avec_repli(&recus, &k)?.is_some()
+                recus.get(&k)?.is_some()
             };
             if !revenu {
                 attendue = true;
@@ -907,14 +668,13 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
     Ok(Value::Array(out))
 }
 
-pub fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
-    Ok(avenants_par_contrat(lignes, m)?.sortie(|v| Value::Array(v.clone())))
+pub fn avenants(lignes: &[Value]) -> R<Value> {
+    Ok(avenants_par_contrat(lignes)?.sortie(|v| Value::Array(v.clone())))
 }
 
 /// Les avenants de chaque contrat (sa cle, `cle_contrat`), dans l'ordre du journal : chacun son numero, et `signe` (le
 /// jour ou il est note revenu signe, ou nul).
-pub fn avenants_par_contrat(lignes: &[Value], m: Maille) -> R<Dico<Vec<Value>>> {
-    let lignes = &*normalisees(lignes, m);
+pub fn avenants_par_contrat(lignes: &[Value]) -> R<Dico<Vec<Value>>> {
     let mut out: Dico<Vec<Value>> = Dico::nouveau();
     for l in lignes {
         if !accepte(l)? {
@@ -926,7 +686,7 @@ pub fn avenants_par_contrat(lignes: &[Value], m: Maille) -> R<Dico<Vec<Value>>> 
                 if !est(get(&c, "acte")?, "avenant") {
                     continue;
                 }
-                let k = cle_contrat(&c, m)?;
+                let k = cle_contrat(&c)?;
                 if !out.contient(&k)? {
                     out.poser(k.clone(), Vec::new())?;
                 }
@@ -942,29 +702,20 @@ pub fn avenants_par_contrat(lignes: &[Value], m: Maille) -> R<Dico<Vec<Value>>> 
                     "signe": null,
                 }));
             }
-        } else if est(get(l, "quoi")?, CONTRAT_RECU) {
-            let recu = vrai(get(d, "recu")?);
-            // La note d'UN avenant (`detail.avenant`) ne vaut que pour lui, et se defait (`recu: false`) ; sans numero
-            // d'avenant, « recu » vaut pour tous ceux qui attendent.
+        }
+        for d in &revenus(l)? {
+            // Le retour d'UN avenant (`avenant`) ne vaut que pour lui, et se defait (`recu: false`).
             let un = get(d, "avenant")?;
-            if !recu && !vrai(un) {
+            if !vrai(un) {
                 continue;
             }
-            let k = cle_contrat(d, m)?;
-            // Une ligne sans numero (d'avant les numeros) vaut pour tous les contrats du salarie a ce debut.
-            let cibles: Vec<Vec<Value>> = if m == Maille::Contrat && !vrai(&k[2]) {
-                out.items.iter().map(|(c, _)| c.clone()).filter(|c| c[..2] == k[..2]).collect()
-            } else {
-                vec![k]
-            };
-            for k in cibles {
-                if let Some(liste) = out.get_mut(&k)? {
-                    for a in liste.iter_mut().filter(|a| !vrai(un) || valeurs_egales(&a["numero"], un)) {
-                        if !recu {
-                            a["signe"] = Value::Null;
-                        } else if a["signe"].is_null() {
-                            a["signe"] = get(l, "quand")?.clone();
-                        }
+            let recu = vrai(get(d, "recu")?);
+            if let Some(liste) = out.get_mut(&cle_contrat(d)?)? {
+                for a in liste.iter_mut().filter(|a| valeurs_egales(&a["numero"], un)) {
+                    if !recu {
+                        a["signe"] = Value::Null;
+                    } else if a["signe"].is_null() {
+                        a["signe"] = get(d, "quand")?.clone();
                     }
                 }
             }
@@ -998,7 +749,7 @@ pub fn flux_de_test(lignes: &[Value]) -> R<Value> {
 
 // ------------------------------------------------------------------- resume
 
-/// `util.quand_lisible` avec sa liaison par defaut.
+/// Un horodatage ISO a la francaise, ou vide.
 pub fn quand_lisible(iso: &Value) -> String {
     let t = if vrai(iso) { valeur_en_texte(iso) } else { String::new() };
     let c: Vec<char> = t.chars().collect();
@@ -1039,7 +790,7 @@ pub fn joindre(sep: &str, v: &[Value]) -> R<String> {
 /// LA PHRASE D'UN ENVOI DU JOURNAL : quand il est parti, et ce qui en est revenu. Un contrat est revenu signe quand le
 /// journal le note recu (`contrats_recus`) ; un avenant, quand sa propre note le dit (`avenants_par_contrat`) -- les
 /// memes lectures que l'etat de l'engagement.
-pub fn resume(ligne: &Value, recus: &Dico<()>, avenants: &Dico<Vec<Value>>, m: Maille) -> R<String> {
+pub fn resume(ligne: &Value, recus: &Dico<()>, avenants: &Dico<Vec<Value>>) -> R<String> {
     if !vrai(ligne) {
         return Ok("pas encore envoyé".into());
     }
@@ -1051,8 +802,8 @@ pub fn resume(ligne: &Value, recus: &Dico<()>, avenants: &Dico<Vec<Value>>, m: M
     if !accepte(ligne)? {
         let rep = ou(get(ligne, "reponse")?, texte_vide());
         let debut = match rep {
-            Value::String(t) => t.chars().take(120).collect::<String>(),
-            Value::Array(a) => valeur_ecrite(&Value::Array(a.iter().take(120).cloned().collect())),
+            Value::String(t) => t.clone(),
+            Value::Array(a) => valeur_ecrite(&Value::Array(a.clone())),
             autre => return Err(erreur("TypeError", format!("'reponse' : {}", socle::fichiers::attendu("un texte", nom_type(autre))))),
         };
         return Ok(format!("envoi du {} refusé au dépôt — {}", quand, debut));
@@ -1066,9 +817,9 @@ pub fn resume(ligne: &Value, recus: &Dico<()>, avenants: &Dico<Vec<Value>>, m: M
         for c in &contrats {
             let revenu = if est(get(c, "acte")?, "avenant") {
                 let numero = get(c, "avenant")?;
-                avenants.get(&cle_contrat(c, m)?)?.is_some_and(|l| l.iter().any(|a| valeurs_egales(&a["numero"], numero) && vrai(&a["signe"])))
+                avenants.get(&cle_contrat(c)?)?.is_some_and(|l| l.iter().any(|a| valeurs_egales(&a["numero"], numero) && vrai(&a["signe"])))
             } else {
-                avec_repli(recus, &cle_contrat(c, m)?)?.is_some()
+                recus.get(&cle_contrat(c)?)?.is_some()
             };
             if revenu {
                 revenus += 1;
@@ -1203,13 +954,24 @@ pub fn resume(ligne: &Value, recus: &Dico<()>, avenants: &Dico<Vec<Value>>, m: M
 
 // ------------------------------------------------------ la repetition avant l'acte
 
+/// UNE DECLARATION REFUSEE AU BILAN n'a rien depose : « c'est seulement après avoir satisfait à l'ensemble des
+/// contrôles […] qu'une déclaration sera acceptée », et une annule-et-remplace « doit annuler une déclaration
+/// précédemment reçue » (cahier technique DSN, § 4.1 et 4.2, `atelier/reference/norme-dsn/texte/chapitre-4-controles.txt`) :
+/// la suivante est une normale. Une DPAE : un retour KO sans certificat ni bilan OK (`verdict_dpae`). Une DSN : un retour
+/// KO ; pour un depot repris des retours (`reprise_journal`) sans bilan range en face, le verdict que la ligne garde.
 pub fn refuse_par_un_retour(ligne: &Value) -> R<bool> {
+    if est(get(ligne, "quoi")?, DPAE) {
+        return Ok(verdict_dpae(ligne)?.1);
+    }
+    let mut bilan = false;
     for r in items(ou(get(ligne, "retours")?, &LISTE_VIDE))? {
         if est(ou(get(&r, "verdict")?, texte_vide()), "KO") {
             return Ok(true);
         }
+        bilan |= valeur_en_texte(get(&r, "nature")?) == "11";
     }
-    Ok(false)
+    let detail = ou(get(ligne, "detail")?, objet_vide());
+    Ok(!bilan && vrai(getd(detail, "reconstruit", &Value::Null)?) && valeur_en_texte(getd(detail, "etat_declaration", texte_vide())?).eq_ignore_ascii_case("KO"))
 }
 
 /// Le compte rendu d'un depot : `ko` des qu'un retour refuse ; `ok` seulement quand LE BILAN le dit -- la nature 11
@@ -1240,6 +1002,43 @@ pub fn deja_depose(lignes: &[Value], quoi: &str, empreinte: &str) -> R<Value> {
     Ok(Value::Null)
 }
 
+/// OU EN EST LE TEST d'une repetition (`repetition`), dit une fois : teste et conforme (le reel peut partir), en test
+/// (son compte rendu est attendu), refuse (ses anomalies : `motif`), ou a faire (jamais essaye, ou un test d'un contenu
+/// d'avant).
+pub fn etat_du_test(r: &Value) -> &'static str {
+    if vrai(&r["conforme"]) {
+        if est(&r["compte_rendu"], "ok") { "testee" } else { "en_test" }
+    } else if vrai(&r["ratees"]) {
+        "test_refuse"
+    } else {
+        "ecrite"
+    }
+}
+
+/// Ce qui a fait echouer un depot de test, en une phrase : les anomalies des retours refuses, sinon la reponse du depot.
+pub fn pourquoi_rate(ligne: &Value) -> String {
+    let mut anomalies: Vec<String> = Vec::new();
+    for r in ligne.get("retours").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
+        if r.get("verdict").and_then(Value::as_str) == Some("KO") {
+            for a in r.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
+                let t = valeur_en_texte(a);
+                if !anomalies.contains(&t) {
+                    anomalies.push(t);
+                }
+            }
+        }
+    }
+    if !anomalies.is_empty() {
+        return anomalies.join(" ; ");
+    }
+    let rep = ligne.get("reponse").filter(|r| vrai(r)).map(valeur_en_texte).unwrap_or_default();
+    if rep.trim().is_empty() {
+        "motif non lu".into()
+    } else {
+        rep.trim().to_string()
+    }
+}
+
 pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R<Value> {
     let mut conforme: Option<&Value> = None;
     let (mut ratees, mut perimees) = (Vec::new(), Vec::new());
@@ -1261,6 +1060,7 @@ pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R
         Some(c) if vrai(c) => compte_rendu_du_depot(c)?,
         _ => "",
     };
+    let motif = ratees.last().map(pourquoi_rate);
     // LA COULEUR DE L'ENCART qui le dit (la charte des etats, `moteur::routes::couleur_de_l_etat`) : teste conforme, vert ;
     // essaye et rate (ou un test d'un contenu d'avant), a corriger, orange ; en test, ou jamais essaye, une information.
     let couleur = match conforme {
@@ -1269,10 +1069,51 @@ pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R
         None if !ratees.is_empty() || !perimees.is_empty() => "orange",
         None => "gris",
     };
-    Ok(json!({
+    let mut r = json!({
         "empreinte": empreinte, "fichier": nom, "conforme": conforme, "compte_rendu": compte_rendu,
-        "ratees": ratees, "perimees": perimees, "couleur": couleur,
-    }))
+        "ratees": ratees, "perimees": perimees, "couleur": couleur, "motif": motif,
+    });
+    r["etat"] = json!(etat_du_test(&r));
+    let (titre, phrase) = phrase_du_test(&r, quoi);
+    r["titre"] = json!(titre);
+    r["phrase"] = json!(phrase);
+    Ok(r)
+}
+
+/// CE QUE L'ENCART DU TEST DIT, titre et phrase, d'apres ou il en est (`etat_du_test`) : la page et `moteur route` les
+/// lisent tels quels.
+fn phrase_du_test(r: &Value, quoi: &str) -> (String, String) {
+    let cette = if quoi.eq_ignore_ascii_case(DPAE) { "Cette DPAE" } else { "Cette DSN" };
+    let quand = |l: &Value| quand_lisible(&l["quand"]);
+    let derniere = |k: &str| r[k].as_array().and_then(|l| l.last()).map(quand).unwrap_or_default();
+    const ENSUITE: &str = "Le dépôt réel se fait une fois le test revenu conforme.";
+    match etat_du_test(r) {
+        "testee" => (
+            format!("{} est testée — conforme. Voulez-vous l'envoyer ?", cette),
+            format!("Testée le {} : le même contenu est passé au bac à sable sans anomalie.", quand(&r["conforme"])),
+        ),
+        "en_test" => (
+            format!("{} est en test — son compte rendu est attendu", cette),
+            format!("Envoyée en test le {}. {}", quand(&r["conforme"]), ENSUITE),
+        ),
+        "test_refuse" => (
+            "Le test est refusé".into(),
+            format!(
+                "Essayé le {} : {}. Le même refus attendrait le dépôt réel : c'est cela qu'il faut corriger.",
+                derniere("ratees"),
+                valeur_en_texte(&r["motif"]).trim_end_matches('.')
+            ),
+        ),
+        _ if vrai(&r["perimees"]) => (
+            "Pas de test valable pour ce contenu".into(),
+            format!(
+                "Un fichier du même nom a été essayé le {}, mais son contenu a changé depuis : le test ne vaut plus. {}",
+                derniere("perimees"),
+                ENSUITE
+            ),
+        ),
+        _ => ("D'abord, le dépôt de test".into(), format!("Ce contenu n'a jamais été déposé en test. {}", ENSUITE)),
+    }
 }
 
 // -------------------------------------------------------------------- flux_de
@@ -1672,7 +1513,7 @@ fn rattacher_retours(racine: &Path, retours: &Value, contenus: &Dico<Vec<u8>>, i
     if !p.exists() {
         return Ok(0);
     }
-    let mut lignes = charger(racine)?;
+    let mut lignes = (*crate::journal::lu(racine)?.lignes).clone();
     let mut par_flux: Dico<Vec<usize>> = Dico::nouveau();
     for (i, l) in lignes.iter().enumerate() {
         let f = get(l, "flux")?;
@@ -1778,20 +1619,6 @@ pub fn rattacher_retours_ecrits(racine: &Path, retours: &Value) -> AvecIncidents
 
 // ----------------------------------------------------- le mois est-il parti ?
 
-/// Le NIC de la fiche entreprise, ou `""`.
-pub fn nic_principal(entreprise: &Value) -> String {
-    match entreprise.get("nic") {
-        Some(v) if vrai(v) => valeur_en_texte(v),
-        _ => String::new(),
-    }
-}
-
-/// Le dernier depot REEL accepte de DSN du mois (`etat_dsn_du_mois`), `Null`
-/// si rien de reel n'est parti : le mois est « parti » des qu'il existe.
-pub fn dsn_du_mois(lignes: &[Value], entreprise: &Value, mois: &str) -> R<Value> {
-    etat_dsn_du_mois(lignes, mois, &Value::Null, &nic_principal(entreprise))
-}
-
 // Les etats et resumes sur un journal invente (noms et numeros fictifs).
 // ------------------------------------------------------ le journal
 
@@ -1820,11 +1647,10 @@ impl Parti {
     }
 }
 
-/// Le contrat parti. `numero` : le numero SOUS LEQUEL LE JOURNAL parle du contrat (deux contrats du meme salarie qui
-/// commencent le meme jour sont deux contrats) ; `None` : tous ceux de ce salarie a ce debut (le dernier l'emporte).
-pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Option<&str>) -> Result<Option<Parti>, Echec> {
+/// Le contrat n° `numero` de ce salarie, tel qu'il est parti a la signature.
+pub fn contrat_parti(lignes: &[Value], salarie: &str, numero: &str) -> Result<Option<Parti>, Echec> {
     let du_contrat = |l: &Value| -> Result<bool, Echec> {
-        Ok(numero.map_or(true, |n| valeur_en_texte(&numero_de_cle(get(l, "numero").unwrap_or(&Value::Null))) == n))
+        Ok(est(get(l, "salarie")?, salarie) && valeur_en_texte(&numero_de_cle(get(l, "numero")?)) == numero)
     };
     let mut parti: Option<Parti> = None;
     for l in lignes {
@@ -1835,7 +1661,7 @@ pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Optio
         let quoi = get(l, "quoi")?;
         if est(quoi, SIGNATURE) {
             for c in items(getd(d, "contrats", &LISTE_VIDE)?)? {
-                if !(est(get(&c, "salarie")?, salarie) && est(get(&c, "debut")?, debut) && du_contrat(&c)?) {
+                if !du_contrat(&c)? {
                     continue;
                 }
                 if est(get(&c, "acte")?, "avenant") {
@@ -1849,10 +1675,11 @@ pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Optio
                     signe: Value::Null,
                 });
             }
-        } else if est(quoi, CONTRAT_RECU) {
+        }
+        for d in &revenus(l)? {
             if let Some(p) = parti.as_mut() {
-                if vrai(get(d, "recu")?) && est(get(d, "salarie")?, salarie) && est(get(d, "debut")?, debut) && du_contrat(d)? && p.signe.is_null() {
-                    p.signe = get(l, "quand")?.clone();
+                if vrai(get(d, "recu")?) && du_contrat(d)? && p.signe.is_null() {
+                    p.signe = get(d, "quand")?.clone();
                 }
             }
         }
@@ -1912,25 +1739,13 @@ mod tests {
                "reponse": "", "trace": null, "detail": detail})
     }
 
-    #[test]
-    fn les_embauches_declarees_ne_comptent_que_le_reel_accepte() {
-        let test = ligne("dpae", "2026-06", "test", "2026-06-01T10:00:00", json!({"embauches": [{"salarie": "ALPHA", "debut": "2026-06-02"}]}), json!([]));
-        let mut refuse = ligne("dpae", "2026-06", "reel", "2026-06-01T11:00:00", json!({"embauches": [{"salarie": "BETA", "debut": "2026-06-03"}]}), json!([]));
-        refuse["accepte"] = json!(false);
-        let bon = ligne("dpae", "2026-06", "reel", "2026-06-01T12:00:00", json!({"embauches": [{"salarie": "GAMMA", "debut": "2026-06-04"}, {"salarie": "GAMMA", "debut": "2026-06-04"}]}), json!([]));
-        let l = vec![test, refuse, bon];
-        let e = embauches_par_depot(&l).unwrap();
-        assert_eq!(e.cles(), json!([["GAMMA", "2026-06-04"]]));
-        assert_eq!(e.sortie(Clone::clone), json!([["GAMMA", "2026-06-04", "2026-06-01T12:00:00"]]));
-    }
-
     fn contrat(sal: &str, code: &str, empreinte: &str, acte: Value) -> Value {
         json!({"salarie": sal, "debut": "2026-06-04", "fin": "2026-06-30", "numero": "N1", "code": code,
                "empreinte": empreinte, "acte": acte, "avenant": null, "message": "m1", "mois": "2026-06"})
     }
 
     fn recu(sal: &str, origine: &str) -> Value {
-        ligne("contrat-recu", "2026-06", "reel", "2026-06-12T10:00:00", json!({"salarie": sal, "debut": "2026-06-04", "recu": true, "origine": origine}), json!([]))
+        json!({"salarie": sal, "debut": "2026-06-04", "numero": "N1", "recu": true, "origine": origine, "quand": "2026-06-12T10:00:00"})
     }
 
     fn signature(quand: &str, c: Value) -> Value {
@@ -1938,27 +1753,14 @@ mod tests {
     }
 
     #[test]
-    fn les_signatures_attendues_et_les_contrats_revenus() {
-        let envoi1 = signature("2026-06-05T10:00:00", contrat("ALPHA", "C1", "e1", Value::Null));
-        let mut envoi2 = signature("2026-06-06T10:00:00", contrat("BETA", "C2", "e2", Value::Null));
-        envoi2["detail"]["contrats"][0]["adresse"] = json!("beta@exemple.fr");
-        let l = vec![envoi1, envoi2, recu("ALPHA", "courriel")];
-        let a = signatures_attendues(&l, None, &json!({"BETA": {"prenom": "Beta", "nom": "Bêta"}})).unwrap();
-        assert_eq!(a.as_array().unwrap().len(), 1);
-        assert_eq!((&a[0]["code"], &a[0]["nom"], &a[0]["envoyes"], &a[0]["rang"]), (&json!("C2"), &json!("BÊTA Beta"), &json!(["m1"]), &json!(1)));
-        assert_eq!(contrats_recus(&l, Maille::Paire).unwrap().sortie(Clone::clone), json!([["ALPHA", "2026-06-04", "2026-06-12T10:00:00"]]));
-        assert_eq!(contrats_recus_comment(&l, Maille::Paire).unwrap(), json!([["ALPHA", "2026-06-04", "courriel"]]));
-        assert_eq!(contrats_demandes(&l, Maille::Paire).unwrap().as_array().unwrap().len(), 2);
-        assert_eq!(numeros_contrats_partis(&l, Maille::Paire).unwrap()[0][2], "N1");
-    }
-
-    #[test]
     fn une_reponse_deja_relevee_ne_se_renote_pas_apres_la_mention_retiree() {
         let mut lue = recu("ALPHA", "courriel");
-        lue["detail"]["code"] = json!("C1");
+        lue["code"] = json!("C1");
         let mut retiree = recu("ALPHA", "");
-        retiree["detail"]["recu"] = json!(false);
-        let mut l = vec![signature("2026-06-05T10:00:00", contrat("ALPHA", "C1", "e1", Value::Null)), lue, retiree];
+        retiree["recu"] = json!(false);
+        let mut envoi = signature("2026-06-05T10:00:00", contrat("ALPHA", "C1", "e1", Value::Null));
+        envoi["retours"] = json!([lue, retiree]);
+        let mut l = vec![envoi];
         assert_eq!(signatures_attendues(&l, None, &json!({})).unwrap(), json!([]));
         l.push(signature("2026-06-13T10:00:00", contrat("ALPHA", "C3", "e1", Value::Null)));
         assert_eq!(signatures_attendues(&l, None, &json!({})).unwrap()[0]["code"], "C3");
@@ -2016,7 +1818,7 @@ mod tests {
         assert_eq!(inc[0]["detail"]["anomalies"][0]["rubrique"], "S21.G00.20.001");
         // ni le nom du salarie ni la valeur ne partent chez l'editeur
         assert!(!inc[0].to_string().contains("FAVART"));
-        let fichier = charger(&r).unwrap();
+        let fichier = crate::journal::lu(&r).unwrap().lignes;
         let pose = &fichier[0]["retours"][0];
         assert_eq!(pose["verdict"], "KO");
         assert_eq!(pose["anomalies"], json!(["Code URSSAF invalide (bloquant) -- FAVART"]));

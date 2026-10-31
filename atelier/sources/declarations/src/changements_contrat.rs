@@ -24,7 +24,8 @@
 //! LA DATE SE LIT AUSSI, elle ne se pose jamais au 1er du mois par defaut : le lendemain de la fenetre de l'historique
 //! de la fiche (salarie ou entreprise) qui a change le champ, la `date_modification` de la saisie du mois (un avenant),
 //! le 1er janvier d'un bareme annuel (le code risque AT), ou le premier jour de la periode payee pour ce que le moteur
-//! calcule periode par periode (les emplois multiples, 40.036). Un changement sans date refuse ; un changement anterieur
+//! calcule periode par periode (les emplois multiples, 40.036). La date de debut, identifiant que la norme laisse dater
+//! de tout jour, se date sans cela du dernier jour du mois declare (`blocs_41`). Un changement sans date refuse ; un changement anterieur
 //! au mois (des mois deja declares avec l'ancienne valeur, que la paie n'a pas recalcules) refuse ; un changement en
 //! cours de mois refuse sauf pour ce qui ne change pas la paie (statut BOETH), pour les identifiants, et pour ce que la
 //! paie decoupee en periodes elementaires porte au jour du changement (`periodes`).
@@ -161,10 +162,6 @@ fn qui(p: &Paie) -> String {
     )
 }
 
-fn libelle_mois(mois: &str) -> String {
-    engagement::libelle_mois(mois)
-}
-
 /// La date de la modification (41.001) du changement de `md`, declaree `avant` dans la DSN de `decl.mois`. Refus
 /// quand elle ne se lit pas, ou qu'elle ne tombe pas dans le mois declare (voir l'en-tete du module).
 #[allow(clippy::too_many_arguments)]
@@ -197,10 +194,10 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
                 qui(p),
                 md.r40,
                 avant,
-                libelle_mois(&decl.mois),
+                engagement::libelle_mois(&decl.mois),
                 apres,
-                libelle_mois(&decl.mois),
-                libelle_mois(mois)
+                engagement::libelle_mois(&decl.mois),
+                engagement::libelle_mois(mois)
             ));
         }
         candidats.push((p.engagement.debut_periode()?, "la periode de paie (la valeur se lit periode par periode, p. 199)".into()));
@@ -209,12 +206,12 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
     let mut apres_declare: Vec<&(Jour, String)> = candidats.iter().filter(|(j, _)| *j > fin_b).collect();
     apres_declare.sort_by_key(|(j, _)| *j);
     apres_declare.dedup_by_key(|(j, _)| *j);
-    let quoi = format!("{} passe de '{}' (declare en {}) a '{}'", md.r40, avant, libelle_mois(&decl.mois), if apres.is_empty() { "(rien)" } else { apres });
+    let quoi = format!("{} passe de '{}' (declare en {}) a '{}'", md.r40, avant, engagement::libelle_mois(&decl.mois), if apres.is_empty() { "(rien)" } else { apres });
     let ou_dater = {
         let mut o = Vec::new();
         if md.saisie {
-            o.push("la `date_modification` de l'engagement dans la saisie du mois (a l'ecran : « Avenant a compter du », le jour ou \
-l'avenant prend effet)"
+            o.push("la date de l'avenant (a l'ecran : ouvrir la carte de l'engagement, « Modifier l'engagement », puis le mois a \
+partir duquel le changement vaut, que l'avertissement demande ; l'avenant prend effet le premier jour de ce mois)"
                 .to_string());
         }
         if !md.fiche.is_empty() || !md.entreprise.is_empty() {
@@ -230,7 +227,7 @@ l'avenant prend effet)"
 declare avec l'ancienne valeur. Ce n'est plus un changement du mois mais une correction de mois deja declares (cahier \
 technique DSN, § 2.1.2.5.2 p. 25-26 : bloc S21.G00.41 et profondeur de recalcul), avec la regularisation de leurs paies, \
 que le logiciel ne fait pas. Refus : verifier la date du changement.",
-                    qui(p), quoi, j.jj_mm_aaaa(), d, libelle_mois(&decl.mois)
+                    qui(p), quoi, j.jj_mm_aaaa(), d, engagement::libelle_mois(&decl.mois)
                 ));
             }
             Err(format!(
@@ -246,7 +243,7 @@ se devine pas. Le dater : {}.",
                     "{} : {}. Le changement est date du {} ({}), avant {} : il se declare dans la DSN de {}, qui n'est pas \
 deposee. La deposer d'abord (elle porte le changement) ; si ces mois ont ete declares avec l'ancienne valeur, c'est une \
 correction de mois deja declares, que le logiciel ne fait pas.",
-                    qui(p), quoi, j.jj_mm_aaaa(), d, libelle_mois(mois), libelle_mois(&format!("{:04}-{:02}", j.an, j.mois))
+                    qui(p), quoi, j.jj_mm_aaaa(), d, engagement::libelle_mois(mois), engagement::libelle_mois(&format!("{:04}-{:02}", j.an, j.mois))
                 ));
             }
             // En cours de mois : la paie decoupee au jour du changement le porte (; norme, § 2.1.2.5 p. 22-23 :
@@ -276,7 +273,7 @@ plusieurs blocs, chacun avec la valeur d'avant lui, que la fiche ne garde pas to
 intermediaires, ou ne garder qu'un changement.",
             qui(p),
             quoi,
-            libelle_mois(&decl.mois),
+            engagement::libelle_mois(&decl.mois),
             plusieurs.iter().map(|(j, d)| format!("{} par {}", j.jj_mm_aaaa(), d)).collect::<Vec<_>>().join(" ; ")
         )),
     }
@@ -296,24 +293,15 @@ pub fn blocs_41(ctx: &Contexte, p: &Paie, mois: &str, nics: &[String], ecrit: &[
     let Some(decl) = declare else { return Ok(Vec::new()) };
     let fin_m = dernier_du_mois(mois)?;
     let mut identifiants = Vec::new();
-    // L'IDENTIFIANT : la date de debut. Sans date explicite, il ne change pas en silence (les organismes verraient un
-    // nouveau contrat, § 2.1.2.3).
+    // L'IDENTIFIANT : la date de debut. Il ne change jamais en silence : l'ancienne se declare dans un bloc Changements
+    // contrat (41.021), sans quoi les organismes verraient un nouveau contrat (§ 2.1.2.3, p. 20-21). Ce bloc se date du
+    // jour que la saisie du mois donne a son avenant ; sinon du dernier jour du mois declare : pour un identifiant autre
+    // que le SIRET, « la date de modification du bloc changement peut correspondre a toute date » (§ 2.1.2.3.2, p. 21,
+    // `chapitre-2-principes-de-constitution.txt`), au plus tard ce jour-la (CCH-15 de 41.001, p. 217).
     let (avant, apres) = (valeur(&decl.bloc, "S21.G00.40.001").unwrap_or(""), valeur(ecrit, "S21.G00.40.001").unwrap_or(""));
     if avant != apres {
         let date = e.date_modification.as_deref().map(|t| Jour::lire(t).map_err(|_| format!("{} : `date_modification` illisible : {}.", qui(p), t)));
-        let Some(date) = date.transpose()? else {
-            return Err(format!(
-                "{} : la date de debut du contrat (S21.G00.40.001, donnee identifiante) passe du {} (declare en {}) au {}. \
-Un identifiant change ne se declare qu'avec l'ancien dans un bloc Changements contrat (S21.G00.41.021), sans quoi les \
-organismes voient un nouveau contrat (cahier technique DSN, § 2.1.2.3, p. 20-21) ; ce bloc se date, et la date ne se \
-devine pas. Poser `date_modification` sur l'engagement dans la saisie du mois (a l'ecran : « Avenant a compter du », le \
-jour de la correction), ou remettre la date de debut declaree.",
-                qui(p),
-                ddmmaaaa(avant).map_or_else(|| avant.to_string(), |j| j.jj_mm_aaaa()),
-                libelle_mois(&decl.mois),
-                ddmmaaaa(apres).map_or_else(|| apres.to_string(), |j| j.jj_mm_aaaa())
-            ));
-        };
+        let date = date.transpose()?.unwrap_or(fin_m);
         if date > fin_m {
             return Err(format!(
                 "{} : `date_modification` ({}) apres la fin du mois declare ; la norme l'interdit (CCH-15 de S21.G00.41.001, \
@@ -328,23 +316,18 @@ p. 217).",
     // la mutation (« la datation precise du changement de SIRET est impactante », p. 21).
     if decl.nic != nics[0] {
         let fin_b = dernier_du_mois(&decl.mois)?;
-        let mut dates: Vec<Jour> = changements_dates(&crate::ntt::brute(ctx, &p.salarie), &["etablissement"])?
-            .into_iter()
-            .map(|(j, _)| j)
-            .filter(|j| *j > fin_b && *j <= fin_m)
-            .collect();
-        dates.sort();
-        dates.dedup();
-        let [date] = dates.as_slice() else {
+        // L'etablissement est celui que l'engagement dit (`engagement::calcul::etablissement_du_contrat`) ; le jour ou il
+        // change est celui de l'avenant (`date_modification`).
+        let date = p.engagement.date_modification.as_deref().and_then(|d| Jour::lire(d).ok()).filter(|j| *j > fin_b && *j <= fin_m);
+        let Some(date) = date.as_ref() else {
             return Err(format!(
                 "{} : le contrat etait declare par l'etablissement {} (DSN de {}) et l'est maintenant par l'etablissement {}. \
 Le SIRET de l'ancien etablissement se declare dans un bloc Changements contrat (S21.G00.41.012) date du jour de la \
-mutation (cahier technique DSN, p. 21) ; la fiche du salarie {} . Dater le changement d'etablissement sur la fiche.",
+mutation (cahier technique DSN, p. 21) : ouvrir la carte de l'engagement, changer l'établissement, « Modifier l'engagement », et dire dans l'avertissement le mois et le jour où il change.",
                 qui(p),
                 decl.siret,
-                libelle_mois(&decl.mois),
-                nics[0],
-                if dates.is_empty() { "ne le date pas" } else { "date plusieurs changements depuis" }
+                engagement::libelle_mois(&decl.mois),
+                nics[0]
             ));
         };
         identifiants.push(vec![("S21.G00.41.001".to_string(), date.jjmmaaaa()), ("S21.G00.41.012".to_string(), decl.siret.clone())]);
