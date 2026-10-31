@@ -61,7 +61,9 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
   os ») : un test qui fige un détail (une phrase, une forme, un ordre, un montant d'un cas particulier) se met en travers
   du changement qu'on veut faire et fait tourner pour rien. **Les tests de structure sont les bienvenus**, ceux qui
   gardent les os quoi qu'on change dessus : une crate ne prend qu'à celles du dessous ; l'engagement ne lit pas le
-  journal ; une seule fonction écrit un engagement ; chaque route a sa fiche et son exemple est accepté ; aucun texte de
+  journal ; une seule fonction écrit un engagement ; **chaque route dit, en une phrase brève, ce qu'elle fait** (sa fiche,
+  pour le LLM comme pour qui lit le code : une route sans explication, ou dont l'explication est trop longue, fait
+  échouer le test) et son exemple est accepté ; **chaque phrase affichée tient dans sa place** ; aucun texte de
   la page n'est coupé ; rien ne sort de la machine.
 
 ## Les os, les muscles, la graisse (Léandre, 30-31/10/2026)
