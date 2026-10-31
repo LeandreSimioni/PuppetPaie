@@ -1,10 +1,10 @@
-//! La ligne de commande du produit, `moteur COMMANDE ...` : ce qu'un humain (ou un agent) tape.
+//! La ligne de commande de ce qui n'est pas un geste de l'ecran, `moteur COMMANDE ...` : le coffre (la seance, et les
+//! secrets tapes sans echo, que l'entree standard ne porte jamais), la restauration d'un poste neuf depuis le Drive, et
+//! les outils de l'editeur (`sources`, `depots`). Un geste de l'ecran se fait par sa route : `moteur routes` les dit,
+//! `moteur route` en sert une (`--texte` : ses phrases).
 //!
 //! Une commande = un module, qui declare ses options (`analyse::Spec`) et rend un code de sortie ; sa sortie est un
-//! texte, ou l'enveloppe `--json` (`rendu::enveloppe`). Elle s'appuie sur ce que le moteur sait
-//! deja faire (les routes, `moteur route NOM`) : rien ne se recopie ici, on lit et on met en forme.
-//!
-//! Les phrases proposent `moteur ...`.
+//! texte, ou l'enveloppe `--json` (`rendu::enveloppe`).
 //!
 //! LE MOT DE PASSE. Chaque commande installe au demarrage la demande reelle (`demande::installer`). Une
 //! consultation qui trouve le coffre ferme -- ni la cle du poste, ni un mot de passe tape, ni une seance -- le demande
@@ -33,43 +33,13 @@ macro_rules! dire_sans_ligne {
 }
 
 pub mod actes;
-pub mod aer;
-pub mod casc_envoyer;
-pub mod casc_regularise;
 pub mod analyse;
-pub mod archiver;
-pub mod arret;
-pub mod suspension;
-pub mod cloture;
 pub mod coffre;
-pub mod compta_logiciel;
 pub mod compagnie;
-pub mod depot_dsn;
 pub mod depots;
-pub mod deposer_dpae;
-pub mod dossier;
-pub mod envoi;
-pub mod export_compta;
-pub mod exporter;
-pub mod droits;
-pub mod emplois;
-pub mod echeances;
-pub mod fiche;
-pub mod filet;
-pub mod fin_contrat;
-pub mod importer;
-pub mod google;
-pub mod incidents;
-pub mod journal;
-pub mod ouverture;
-pub mod pas;
 pub mod rendu;
 pub mod restaurer;
-pub mod retours;
-pub mod sauvegarder;
-pub mod signatures;
 pub mod sources;
-pub mod version;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -175,54 +145,23 @@ struct Commande {
 
 fn commandes() -> Vec<Commande> {
     vec![
-        Commande { nom: "droits", aide: "heures et cachets cumules (annexes 8 et 10)", cachee: false, spec: &droits::SPEC, executer: droits::executer },
-        Commande { nom: "echeancier", aide: "la date, ce qui est a faire ce mois-ci, l'annee qui vient", cachee: false, spec: &echeances::SPEC_ECHEANCIER, executer: echeances::echeancier },
-        Commande { nom: "rappels", aide: "ce que l'ouverture propose : DSN du mois d'avant, cloture", cachee: false, spec: &echeances::SPEC_RAPPELS, executer: echeances::rappels },
-        Commande { nom: "incidents", aide: "ce que le logiciel n'a pas su faire : plantages, refus, rejets de declaration", cachee: false, spec: &incidents::SPEC, executer: incidents::executer },
-        Commande { nom: "filet", aide: "la DPAE preparee d'avance et son filet de securite : l'etat, les embauches suivies", cachee: false, spec: &filet::SPEC, executer: filet::executer },
-        Commande { nom: "version", aide: "la version du logiciel, et ce qui est pret", cachee: false, spec: &version::SPEC, executer: version::executer },
         Commande { nom: "coffre", aide: "les mots de passe des organismes, scelles sur le disque (ce qui est pose)", cachee: false, spec: &coffre::SPEC, executer: coffre::executer },
-        Commande { nom: "journal", aide: "le journal des depots -- le lire", cachee: false, spec: &journal::SPEC, executer: journal::executer },
-        Commande { nom: "pas", aide: "taux de prelevement a la source connus", cachee: false, spec: &pas::SPEC, executer: pas::executer },
-        Commande { nom: "google", aide: "le compte Google (Drive : sauvegarde, archivage) : son etat", cachee: false, spec: &google::SPEC, executer: google::executer },
-        Commande { nom: "retours", aide: "recuperer les retours DSN (lecture seule)", cachee: false, spec: &retours::SPEC, executer: retours::executer },
         // L'enquete de l'editeur sur le poste d'une compagnie : elle marche, elle ne figure pas dans l'aide.
         Commande { nom: "depots", aide: "lister les depots vus par net-entreprises (enquete)", cachee: true, spec: &depots::SPEC, executer: depots::executer },
         // L'outil de l'editeur, avant chaque publication : refuse ailleurs que sur son poste (le reglage de l'installation, `maj::reglage`).
         Commande { nom: "sources", aide: "les sources des donnees livrees, et leur veille (poste de l'editeur)", cachee: true, spec: &sources::SPEC, executer: sources::executer },
-        Commande { nom: "fiche", aide: "rappeler les donnees de reference", cachee: false, spec: &fiche::SPEC, executer: fiche::executer },
-        Commande { nom: "fin-contrat", aide: "le signalement de fin de contrat de travail unique (nature 07)", cachee: false, spec: &fin_contrat::SPEC, executer: fin_contrat::executer },
-        Commande { nom: "arret", aide: "les arrets de travail : saisir, signaler, reporter", cachee: false, spec: &arret::SPEC, executer: arret::executer },
-        Commande { nom: "suspension", aide: "les suspensions du contrat (conge parental, sabbatique, sans solde...) : saisies une fois", cachee: false, spec: &suspension::SPEC, executer: suspension::executer },
-        Commande { nom: "emplois", aide: "le catalogue des metiers (codes emploi, PCS, statut)", cachee: false, spec: &emplois::SPEC, executer: emplois::executer },
-        Commande { nom: "importer", aide: "reprendre l historique depuis le dossier import/ : l apercu en JSON, --ecrire pour ecrire", cachee: false, spec: &importer::SPEC, executer: importer::executer },
-        Commande { nom: "aer", aide: "ranger les attestations France Travail deja recues", cachee: false, spec: &aer::SPEC, executer: aer::executer },
-        Commande { nom: "depot-dsn", aide: "deposer une DSN sur net-entreprises (test ou reel)", cachee: false, spec: &depot_dsn::SPEC, executer: depot_dsn::executer },
-        Commande { nom: "deposer-dpae", aide: "deposer une DPAE deja produite (essai a blanc par defaut)", cachee: false, spec: &deposer_dpae::SPEC, executer: deposer_dpae::executer },
-        Commande { nom: "dossier", aide: "le dossier d un salarie : bulletins, contrats, certificats, attestations - un PDF par categorie", cachee: false, spec: &dossier::SPEC, executer: dossier::executer },
-        Commande { nom: "signatures", aide: "relever maintenant les contrats signes d un clic (Gmail)", cachee: false, spec: &signatures::SPEC, executer: signatures::executer },
-        Commande { nom: "envoi", aide: "envoyer bulletin, certificat CS et AER aux salaries", cachee: false, spec: &envoi::SPEC, executer: envoi::executer },
-        Commande { nom: "casc-envoyer", aide: "envoyer les deux courriels de regularisation CASC-SVP (apres les virements)", cachee: false, spec: &casc_envoyer::SPEC, executer: casc_envoyer::executer },
-        Commande { nom: "casc-regularise", aide: "noter qu une annee de CASC-SVP est regularisee (apres le virement)", cachee: false, spec: &casc_regularise::SPEC, executer: casc_regularise::executer },
-        Commande { nom: "sauvegarder", aide: "envoyer le dossier prive dans le Drive, par differences", cachee: false, spec: &sauvegarder::SPEC, executer: sauvegarder::executer },
         Commande { nom: "restaurer", aide: "redescendre le dossier prive du Drive (poste neuf, ordinateur perdu)", cachee: false, spec: &restaurer::SPEC, executer: restaurer::executer },
-        Commande { nom: "archiver", aide: "deposer les sorties d un mois dans le Drive", cachee: false, spec: &archiver::SPEC, executer: archiver::executer },
-        Commande { nom: "ouverture", aide: "ce que le logiciel fait a l ouverture : sauvegarde + retours", cachee: false, spec: &ouverture::SPEC, executer: ouverture::executer },
-        Commande { nom: "exporter", aide: "les etats pour le comptable, les organismes, les financeurs", cachee: false, spec: &exporter::SPEC, executer: exporter::executer },
-        Commande { nom: "export-compta", aide: "le journal de paie de l annee, pour la comptabilite", cachee: false, spec: &export_compta::SPEC, executer: export_compta::executer },
-        Commande { nom: "compta-logiciel", aide: "le logiciel du comptable, retenu pour les ecritures comptables", cachee: false, spec: &compta_logiciel::SPEC, executer: compta_logiciel::executer },
-        Commande { nom: "cloture", aide: "cloturer un exercice (zip de l annee), ou l etat des exercices", cachee: false, spec: &cloture::SPEC, executer: cloture::executer },
     ]
 }
 
 fn aide() -> String {
     let mut t = String::from(
-        "usage: moteur [--dev] COMMANDE [options]\n\nPuppetPaie - paie du spectacle vivant\n\nChaque commande accepte --json : meme travail, sortie lisible par un programme.\n\ncommandes :\n",
+        "usage: moteur [--dev] COMMANDE [options]\n\nPuppetPaie - paie du spectacle vivant\n\ncommandes :\n",
     );
     for c in commandes().iter().filter(|c| !c.cachee) {
         t.push_str(&format!("  {:<11} {}\n", c.nom, c.aide));
     }
-    t.push_str("\n`moteur route NOM` donne acces a tout ce que fait la fenetre ; `moteur pdf` est la fabrique de PDF.\n");
+    t.push_str("\nTout ce que fait la fenetre : `moteur routes` (le catalogue), `moteur route` (une route, `--texte` : ses phrases). `moteur pdf` est la fabrique de PDF.\n");
     t
 }
 

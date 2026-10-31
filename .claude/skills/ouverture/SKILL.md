@@ -7,28 +7,29 @@ description: Ouvrir PuppetPaie au début d'une session — sauvegarder le dossie
 
 `moteur` : `atelier/sources/moteur/bin/windows/moteur.exe` sous Windows (`bin/linux/moteur`, `bin/mac/moteur`), depuis la racine
 du dossier PuppetPaie. La compagnie est `prive/` à côté de `logiciel/` (ou le dossier de `PUPPETPAIE_DONNEES`).
+« route NOM » : `echo '{"route":"NOM","charge":{…}}' | moteur route --texte` (`moteur routes` : le catalogue).
 
 ## Au début d'une session
 
 ```
-moteur ouverture        # sauvegarde Drive, retours DSN et DPAE, signatures ; --pas-avant 20 : rien si moins de 20 min
-moteur rappels          # ce qui attend : DPAE en retard, DSN du mois d'avant, clôture
-moteur echeancier       # la date, ce qui est à faire ce mois-ci, l'année qui vient
+route ouverture         # sauvegarde Drive, retours DSN et DPAE, signatures
+route rappels           # ce qui attend : DPAE en retard, DSN du mois d'avant, clôture
+route echeancier        # la date, ce qui est à faire ce mois-ci, l'année qui vient
 ```
 
 L'ouverture **n'échoue jamais** : sans réseau, sans compte Google, sans secret posé, elle le dit et rend la main.
 `--json` partout pour une sortie lisible par un programme. Puis, au besoin :
 
 ```
-moteur retours          # le détail des retours DSN (moteur retours --dpae : ceux des DPAE)
-moteur pas              # les taux de prélèvement à la source, et ceux à demander
-moteur incidents        # ce que le logiciel n'a pas su faire : plantages, refus, rejets
-moteur journal          # les dépôts faits
-moteur sauvegarder --point   # où en est la dernière sauvegarde, sans réseau
+route historique-mois   # les retours d'un mois
+route configuration     # les fiches, dont les taux de prélèvement à la source
+route incidents-lire    # ce que le logiciel n'a pas su faire : plantages, refus, rejets
+route historique-mois   # les dépôts faits
+route sauvegarde-derniere   # où en est la dernière sauvegarde, sans réseau
 ```
 
 Une compagnie qui arrive : la route `pour-demarrer` dit ce qui manque (rien n'est écrit). Son historique va dans `import/` ;
-`moteur importer` en rend l'aperçu, `moteur importer --ecrire` le reprend.
+la route `importation-apercu` en rend l'aperçu, `importer` le reprend.
 
 ## Ce qui est permis
 
@@ -63,13 +64,13 @@ moteur coffre seance fermer            # refermer la séance
 ```
 
 **Ne jamais lire, afficher ni copier `prive/config/coffre.bin`, `google-jeton.bin` ni `maj-cle-privee.bin`.**
-`moteur coffre` répond à toutes les questions légitimes sans montrer un secret. Le Drive : `moteur google`
-(`moteur google autoriser` pour le relier).
+`moteur coffre` répond à toutes les questions légitimes sans montrer un secret. Le Drive : la route `google-etat`
+(`google-autoriser` pour le relier).
 
 ## Deux pièges
 
 1. **Ne jamais régénérer une déclaration déjà déposée** : les numéros de contrat se renumérotent dès que les
-   compteurs avancent. Pour regarder un fichier : `moteur depot-dsn <fichier> --apercu` (ni réseau, ni disque).
+   compteurs avancent. Pour regarder un fichier : la route `depot-apercu`.
 2. **Le test d'abord, toujours.** Le réel est refusé tant que ce contenu-là n'a pas réussi en test ; le moteur bascule
    lui-même l'envoi en test, en mémoire, sans toucher au fichier. La base de test a sa propre mémoire : un refus de
    test qui parle d'un essai antérieur se lit dans la phrase du moteur, il ne se contourne pas.

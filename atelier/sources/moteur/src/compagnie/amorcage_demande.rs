@@ -163,7 +163,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
         String::new(),
         format!("Un signalement par individu : {} fichier(s) a deposer.", retenus.len()),
         "La DGFiP repond sous cinq jours ouvres, par un compte-rendu metier de".into(),
-        "nature 94 que `moteur retours` ramassera comme les autres.".into(),
+        "nature 94 que la releve des retours ramassera comme les autres.".into(),
         String::new(),
         "DEMANDES :".into(),
     ];

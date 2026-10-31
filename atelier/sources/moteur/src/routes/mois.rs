@@ -1646,8 +1646,8 @@ pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
         let le: String = clos.get("le").filter(|v| vrai(v)).map_or_else(|| "?".to_string(), valeur_en_texte).chars().take(10).collect();
         return Err(refus(format!(
             "L'exercice {} est cloture depuis le {} : {} ne se modifie plus. Rouvrir l'exercice (Historique > L'exercice, ou \
-             `moteur cloture {} --rouvrir`) avant de toucher a ce mois.",
-            annee, le, mois, annee
+             la route `cloture` avec `rouvrir`) avant de toucher a ce mois.",
+            annee, le, mois
         )));
     }
     Ok(())

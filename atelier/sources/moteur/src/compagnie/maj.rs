@@ -62,7 +62,7 @@
 //! UNE VERSION S'INSTALLE DES QU'ELLE EST PRETE : au lancement suivant, ou au clic « Redemarrer pour mettre a jour ».
 //! Rien ne la retient. Sa phrase `calcul` (la case de « Publier ») dit a la compagnie ce qu'elle change d'un calcul de
 //! paie : l'indicateur la montre avec la version prete, puis, une fois, au lancement qui suit son installation
-//! (`dire_l_installation`) ; `moteur version` aussi. Une version EXIGEE bloque tout depot reel tant qu'elle n'est pas
+//! (`dire_l_installation`) ; la route `maj-etat` aussi. Une version EXIGEE bloque tout depot reel tant qu'elle n'est pas
 //! installee (`depot_acte::exigee_en_attente`) ; l'indicateur le dit, sans survol (`Recherche::etat`, `exigee`).
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};

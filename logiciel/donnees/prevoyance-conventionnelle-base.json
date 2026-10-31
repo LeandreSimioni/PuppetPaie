@@ -72,7 +72,7 @@
         "part_patronale_minimum": 50
       },
       "financement_paritarisme": {
-        "_quoi": "Le FCAP-SVP : une contribution ANNUELLE de l'entreprise, hors DSN et hors bulletin, collectee en debut d'annee civile par le FCAP-SVP (qui peut la deleguer a un organisme social du spectacle). Tous les employeurs de la convention y sont assujettis. `moteur exporter fcap-svp --annee AAAA` la calcule.",
+        "_quoi": "Le FCAP-SVP : une contribution ANNUELLE de l'entreprise, hors DSN et hors bulletin, collectee en debut d'annee civile par le FCAP-SVP (qui peut la deleguer a un organisme social du spectacle). Tous les employeurs de la convention y sont assujettis. La route `exporter`, état `fcap-svp`, la calcule.",
         "_source": "CCN 3090, titre V, articles 5.1 (taux, plancher, plafond), 5.2 (collecte par le FCAP-SVP) et 5.3 (collecte annuelle, tous assujettis) -- base KALI, kali-3090-titres-iv-v-sante.",
         "source": "kali-3090-titres-iv-v-sante",
         "taux": 0.1,

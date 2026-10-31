@@ -33,12 +33,12 @@ les chemins `paies/…` et `sorties/…` se lisent depuis elle, et un mois nu (`
    Tout passe par `lignes` : `dates`, `cachets`, `heures` posés sur l'engagement sont refusés. Un contrat mixte = une
    ligne `cachet` et une ligne `heure`, chacune à son taux. Par engagement, au besoin : `debut`/`fin` (contrat qui
    déborde des dates jouées), `numero` (dès le 2e mois d'un contrat sur plusieurs mois), `lieu`, `date_paiement`,
-   `metier` (code emploi, `moteur emplois --chercher …`). Un permanent : `"nature": "cdi"` ou `"cdd"`, sans spectacle,
+   `metier` (code emploi, la route `metiers-catalogue`). Un permanent : `"nature": "cdi"` ou `"cdd"`, sans spectacle,
    avec `salaire_mensuel` et `quotite_contrat`. Les noms sont tolérants (« Brioch », « Valentin », « pupazzi »).
 3. **Montrer les chiffres avant tout acte** (brut, net, coût, sans rien écrire) :
    `echo '{"route":"apercu","charge":{"saisie": <contenu du fichier>}}' | moteur route --racine prive`
    (un `moteur` livré veut aussi `PUPPETPAIE_CODE` = le dossier `logiciel/donnees`).
-4. **Avant le premier jour** : la DPAE (`moteur deposer-dpae 2026-12`, voir la compétence `declarations`) et le contrat envoyé
+4. **Avant le premier jour** : la DPAE (route `deposer`, voir la compétence `declarations`) et le contrat envoyé
    à la signature (compétence `contrat`). Ce sont deux actes réels : c'est l'utilisateur qui les fait partir.
 5. **Fermer le mois** : `moteur mois 2026-12`. Il écrit dans `sorties/2026-12/` les bulletins, les certificats Congés
    Spectacles et la DSN, et les pièces de chaque salarié dans `sorties/2026-12/envoi/`.
@@ -57,12 +57,12 @@ les chemins `paies/…` et `sorties/…` se lisent depuis elle, et un mois nu (`
 
 ## Après la production
 
-1. **DSN** : `moteur depot-dsn sorties/2026-12/DSN_Decembre2026.dsn --test` (sans aval), lire le bilan. Le dépôt
+1. **DSN** : la route `deposer` (`{"quoi":"dsn","mois":"2026-12"}`, en test, sans aval), lire le bilan. Le dépôt
    réel est à l'utilisateur. Échéance : le 15 du mois suivant (le 5 à partir de 50 salariés), à midi, reportée au jour ouvré suivant un week-end ou un férié.
 2. **Certificats Congés Spectacles** : dus **au salarié**, rien à déposer. Leurs N° CE forment une suite continue :
    ne pas reproduire un mois pour rien.
-3. **Envoi aux salariés** : `moteur envoi 2026-12` montre ce qui partirait ; l'envoi demande le mot de passe du
+3. **Envoi aux salariés** : la route `envoi-apercu` montre ce qui partirait ; l'envoi demande le mot de passe du
    logiciel, tapé par l'utilisateur.
 
-Un arrêt de travail (`moteur arret`), un mois déjà déposé à corriger, la fin d'un permanent
-(`moteur fin-contrat`) : compétence `declarations`. Ne jamais reproduire un mois déjà déposé pour le corriger.
+Un arrêt de travail (route `arret-enregistrer`), un mois déjà déposé à corriger, la fin d'un permanent
+(route `fin-contrat-signaler`) : compétence `declarations`. Ne jamais reproduire un mois déjà déposé pour le corriger.

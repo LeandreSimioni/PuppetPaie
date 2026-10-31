@@ -389,6 +389,6 @@
     "attestation_france_travail": "Depuis le 01/06/2026, elle n'est plus éditée par l'employeur : c'est le signalement de fin de contrat (nature 07) qui la déclenche, et France Travail édite l'attestation. Même mécanisme que l'AER des intermittents.",
     "certificat_de_travail": "Art. L1234-19 et D1234-6. Écrit : `moteur/src/routes/imprevus.rs`, modèle `modeles/certificat-travail.modele`. D1234-6 plafonne son contenu — dates d'entrée et de sortie, emplois occupés et leurs périodes, et RIEN d'autre.",
     "recu_pour_solde_de_tout_compte": "Art. L1234-20, D1234-7 et D1234-8. Écrit : `moteur/src/routes/imprevus.rs`, modèle `modeles/recu-solde-de-tout-compte.modele`. Il fait l'INVENTAIRE des sommes, ligne à ligne, et non un total : il n'est libératoire, six mois après signature, que pour celles qui y figurent.",
-    "_etat": "Les deux se produisent d'un geste — `moteur fin-contrat documents <mois> <salarié>`, ou le bouton de la fin de contrat dans la fenêtre —, du mois qui porte la date de fin, le même que le solde de tout compte. Ce sont des PAPIERS : rien ne part nulle part."
+    "_etat": "Les deux se produisent d'un geste — la route `fin-contrat-documents`, ou le bouton de la fin de contrat dans la fenêtre —, du mois qui porte la date de fin, le même que le solde de tout compte. Ce sont des PAPIERS : rien ne part nulle part."
   }
 }

@@ -14,7 +14,7 @@ bulletin par construction. On ne le rédige jamais à la main.
    leur lieu, sur sa carte dans la fenêtre.
 2. Le contrat part **à la signature depuis la fenêtre** : onglet Paie, « Envoyer à la signature… ». Le moteur écrit
    alors le PDF (`sorties/<mois>/envoi/Contrat_<CLE>_<numero>_<Mois><Année>.pdf`) et l'envoie avec un bouton
-   « Je signe » ; la réponse est relevée par `moteur signatures` (et à chaque ouverture), puis le contrat contresigné
+   « Je signe » ; la réponse est relevée par la route `signatures-relever` (et à chaque ouverture), puis le contrat contresigné
    repart au salarié. **C'est un acte** : le mot de passe du logiciel, tapé par l'utilisateur. Un agent prépare,
    l'utilisateur envoie.
 3. Un contrat signé à la main se note dans la fenêtre (sa pastille, sur la ligne du contrat).

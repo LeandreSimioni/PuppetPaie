@@ -58,7 +58,6 @@ pub const NATURES: &[(&str, &str)] = &[
 
 pub const NATURE_TAUX_PAS: &str = "94";
 pub const NATURE_TAUX_ATMP: &str = "34";
-pub const NATURE_CRM_SPECTACLE: &str = "45";
 pub const NATURE_AER_SPECTACLE: &str = "46";
 pub const ESSAI_TEST: &str = "01";
 pub const ESSAI_REEL: &str = "02";

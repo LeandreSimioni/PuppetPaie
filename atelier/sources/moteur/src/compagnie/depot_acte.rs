@@ -390,58 +390,20 @@ pub fn deposer_dsn(
     forcer: bool,
     contournement: &str,
 ) -> R<DepotFait> {
-    deposer_dsn_dans(ctx, fichier, reel, preuve, qui, "production", forcer, contournement, None)
-}
-
-/// `deposer_dsn` avec l'ENVIRONNEMENT du point de depot (`production` ou `editeur`). La
-/// plate-forme de l'editeur est une plate-forme d'ESSAI : un depot REEL n'y a pas de sens et reste refuse ici, car le journal le
-/// noterait comme une declaration partie.
-///
-/// `ordre_d_essai` (`moteur depot-dsn --test --ordre N`) : l'ordre au-dessous duquel un ESSAI de mensuelle ne part pas,
-/// donne par qui sait ce que la base d'essai a deja retenu pour ce SIRET et ce mois (un autre poste, une compagnie d'essai, le
-/// « dernier ordre accepte » d'un B1-208-11). L'essai part alors en annule-et-remplace a cet ordre, ou plus haut si le journal
-/// en sait davantage. Refuse pour un depot reel et pour un signalement (leur ordre est celui du fichier, lu sur la
-/// plate-forme a son ecriture : `ordre_signalements`).
-#[allow(clippy::too_many_arguments)]
-pub fn deposer_dsn_dans(
-    ctx: &Contexte,
-    fichier: &Value,
-    reel: bool,
-    preuve: Option<&Preuve>,
-    qui: &str,
-    environnement: &str,
-    forcer: bool,
-    contournement: &str,
-    ordre_d_essai: Option<i64>,
-) -> R<DepotFait> {
     let branchement = crate::compagnie::bridage::branchement(&ctx.racine);
     branchement.ouvrir()?;
-    if reel && environnement != "production" {
-        return Err(erreur(
-            "ErreurOperation",
-            format!("L'environnement '{}' est la plate-forme d'essai de l'editeur : rien n'y est declare. Un depot REEL ne part que sur 'production' ; pour essayer, utiliser --test. Rien n'est parti.", environnement),
-        ));
-    }
     let chemin = PathBuf::from(crate::routes::depots::resoudre(&ctx.racine, fichier)?);
     let octets = crate::routes::depots::lire_octets(&chemin.to_string_lossy())?;
     let apercu = depot::lire(&octets);
     // 2. le mode contre le fichier ; `presence_prouvee` : c'est ICI qu'on la prouve, jamais le transport.
     depot::verifier(&apercu, reel, None, true)?;
     let mois = apercu.mois_lisible();
-    if let Some(n) = ordre_d_essai {
-        if reel || apercu.est_signalement() || n < 1 {
-            return Err(erreur(
-                "ErreurOperation",
-                "Un ordre d'essai (--ordre) ne vaut que pour le depot de TEST d'une DSN mensuelle, et c'est un entier positif : un depot reel part a l'ordre du fichier, un signalement a celui que la plate-forme a donne a son ecriture. Rien n'est parti.",
-            ));
-        }
-    }
     // UNE COMPAGNIE D'ESSAI ne depose que ce qu'elle a ecrit sous SON identite : les DSN copiees de la fictive portent le
     // SIREN de la fictive, que le compte net-entreprises ne declare pas. Le refus ne cite aucun des deux numeros.
     if crate::compagnie::essai::est_essai(&ctx.racine) && apercu.champ("siren") != valeur_en_texte(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
         return Err(erreur(
             "ErreurOperation",
-            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Deposer ici la DSN du mois (`moteur depot-dsn AAAA-MM`), qui s'y fabrique. Rien n'est parti.",
+            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Deposer ici la DSN du mois (route `deposer`, avec le mois), qui s'y fabrique. Rien n'est parti.",
         ));
     }
     let nic: Value = if apercu.champ("etablissement").is_empty() { Value::Null } else { json!(apercu.champ("etablissement")) };
@@ -521,7 +483,6 @@ pub fn deposer_dsn_dans(
     // UN ESSAI DE PLUS SUR UN MOIS DEJA ESSAYE part en annule-et-remplace, a l'ordre suivant : la base de test
     // garde les essais. JAMAIS PLUS BAS QUE L'ORDRE DU FICHIER.
     let ordre_test = if reel || apercu.est_signalement() { None } else { prochain_ordre_de_test(ctx, &mois, &nic, &mois_de_constitution(apercu.champ("constitution"), &ctx.aujourdhui))? };
-    let ordre_test = ordre_test.max(ordre_d_essai);
     let ordre_test = ordre_d_essai_du_fichier(ordre_test, &chemin)?;
 
     // LA PAIE DECLAREE : la version de chaque engagement que la DSN emporte -- pour la mensuelle, ceux du mois qui relevent
@@ -542,7 +503,7 @@ pub fn deposer_dsn_dans(
     };
     let d = envois::depot_acte::Depot { chemin: &chemin, octets: &octets, mois: &mois, reel, qui, preuve: &forme, repetition: &repetition, motdepasse: mdp, versions: &versions };
     let mut suites = Suites::default();
-    let fait = envois::depot_acte::deposer_dsn(ctx, branchement, &d, &apercu, environnement, ordre_test, &mut suites);
+    let fait = envois::depot_acte::deposer_dsn(ctx, branchement, &d, &apercu, "production", ordre_test, &mut suites);
     crate::compagnie::suites::faire(ctx, suites)?;
     fait
 }

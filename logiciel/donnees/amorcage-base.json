@@ -1,6 +1,6 @@
 {
   "_quoi": "La nomenclature du signalement d'amorçage des données variables (SADV) : la nature de l'événement déclencheur, rubrique S20.G00.05.011. Livré avec le LOGICIEL, jamais avec les données : ce sont des codes de la norme, pas des choix d'une compagnie.",
-  "_a_quoi_il_sert": "Demander à la DGFiP le taux de prélèvement à la source d'un salarié SANS attendre une DSN mensuelle. Il a remplacé TOPAze, fermé. La réponse vient sous cinq jours ouvrés, par un compte-rendu métier de nature 94 — celui que `moteur retours` ramasse déjà — et le bilan d'identification (BIS) revient immédiatement.",
+  "_a_quoi_il_sert": "Demander à la DGFiP le taux de prélèvement à la source d'un salarié SANS attendre une DSN mensuelle. Il a remplacé TOPAze, fermé. La réponse vient sous cinq jours ouvrés, par un compte-rendu métier de nature 94 — celui que la relève des retours ramasse déjà — et le bilan d'identification (BIS) revient immédiatement.",
   "_source": {
     "titre": "Base de connaissances DSN, fiches 2984 (informations générales) et 2117 (cinématique de déclaration) ; cahier technique NEODeS 2026.1, tableau des usages de la nature 08",
     "relu_le": "2026-09-20",

@@ -482,7 +482,6 @@ pub(crate) fn etat_filet(racine: &Path) -> R<Value> {
     let mut e = lire_json_tolerant(&racine.join("config").join("filet-dpae.json"))?.unwrap_or_else(|| Value::Object(Map::new()));
     let Value::Object(m) = &mut e else {
         // Un fichier qui n'est pas un objet JSON est un refus avec sa phrase, jamais un plantage.
-        // `commandes/filet.rs` le dit en « ! ... », code 1.
         return Err(erreur("ErreurOperation", format!("{} est illisible : ce n'est pas un objet JSON.\nLe deplacer suffit a repartir de zero (le filet sera a reactiver).", racine.join("config").join("filet-dpae.json").display())));
     };
     for (cle, defaut) in [("compte", Value::Null), ("tests", json!({})), ("reveils", json!({}))] {

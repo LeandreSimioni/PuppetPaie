@@ -1,5 +1,5 @@
 //! Le magasin `config/pas.json` : les taux de prelevement a la source que la DGFiP a fait connaitre (un compte rendu de
-//! nature 94, `suites`) ou que les DSN deposees declarent (`moteur pas --amorcer`, l'import). `droit::pas` les lit.
+//! nature 94, `suites`) ou que les DSN deposees declarent (l'import). `droit::pas` les lit.
 
 use serde_json::{json, Value};
 

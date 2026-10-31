@@ -834,7 +834,7 @@ pub(crate) fn trouver_l_arret(ctx: &Contexte, nom: &Value, dernier_jour: &Value)
     }
     let quand = if vrai(dernier_jour) { documents::bulletin::jj_mm_aaaa(dernier_jour).map_err(|m| erreur("ValueError", m))? } else { "?".to_string() };
     Err(refus(format!(
-        "Aucun arret de {} dont le dernier jour travaille soit le {}. `moteur arret` les liste.",
+        "Aucun arret de {} dont le dernier jour travaille soit le {}. La route `arrets` les liste.",
         valeur_en_texte(&cle),
         quand
     )))
@@ -1195,7 +1195,7 @@ fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value
         "?".to_string()
     };
     Err(refus(format!(
-        "Aucun arret de {} dont le dernier jour travaille soit le {}. `moteur arret` les liste.",
+        "Aucun arret de {} dont le dernier jour travaille soit le {}. La route `arrets` les liste.",
         cle, lisible
     )))
 }

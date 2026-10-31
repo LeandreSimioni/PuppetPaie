@@ -58,7 +58,7 @@ L'espace Cargo `atelier/sources/` a une crate par partie ; chaque flèche descen
 | `compagnie/` | ce qui garde la compagnie et la fait vivre à côté de ses engagements : le coffre et ses deux mots de passe, la demande d'un acte réel et ses portes (`depot_acte`), le départ des pièces (`depart`), la sauvegarde et la restauration, la mise à jour (`maj`), le bridage, l'ouverture, l'administrateur, le filet, les incidents, les conseils, la clôture et l'export compta (`exercice_ecrit`) |
 | `import/` | le passé d'une compagnie tenu dans un autre logiciel : le tri de la boîte aux lettres, les DSN et AEM (`dsn_aem`), le lecteur unique des bulletins (`bulletin_lu`), les engagements importés (`ecrite`), la nature à dire, la CASC-SVP des mois importés, les écarts de calcul, le caviardage des écarts et le document pas lu |
 | `atelier/` | les outils de l'éditeur, jamais à l'écran : le relevé des textes (`releve/` : LEGI, KALI), les référentiels extraits (`extraire/`), les tables Unicode, la vérification avant commit, le guet, les scénarios du banc, la publication des versions et la clé de l'éditeur (`publier`) ; la redirection vers de faux serveurs et les bulletins fictifs n'existent que dans le binaire de l'atelier (`--features atelier`) |
-| `commandes/` | la ligne de commande `moteur`, mince, au-dessus des parties |
+| `commandes/` | ce qui n'est pas un geste de l'écran : le coffre, la restauration, les outils de l'éditeur ; les gestes passent par `moteur route` |
 
 À la racine : `lib.rs`, `main.rs`, `service.rs` (la demande et la réponse de `moteur route`), `etat_garde.rs` (l'état
 d'un mois et de l'ouverture tels que l'écran les lit, refaits en fond), `horloge.rs` (l'horloge des compagnies
@@ -87,7 +87,7 @@ fictives), et ce que l'écran lit d'un mois : `apercu_dsn.rs`, `historique_mois.
 ```
 
 Plus d'AEM à produire : la compagnie est en 100 % DSN, France Travail édite l'attestation lui-même et la renvoie
-(`moteur aer`) ; l'import relit les AEM d'un ancien logiciel (`moteur/src/import/dsn_aem.rs`, `lire_aem`). La source :
+(la relève des retours) ; l'import relit les AEM d'un ancien logiciel (`moteur/src/import/dsn_aem.rs`, `lire_aem`). La source :
 le courriel de France Travail du 28/05/2026 (`reference-privee/sources/francetravail-100-dsn/
 francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf`, dépôt privé) — fin des AEM, AE Cinéma Spectacle remise
 au salarié, `S21.G00.40.025` vide ; la date vaut pour la compagnie qui l'a reçu, une autre reçoit la sienne.

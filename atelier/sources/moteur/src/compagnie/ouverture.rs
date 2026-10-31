@@ -227,7 +227,7 @@ impl Ouverture {
         format!("{} retour(s), dont {} nouveau(x), {} archive(s).", releve.trouves.len(), releve.nouveaux.len(), releve.archives.len())
     }
 
-    /// Ce que la page et la ligne de commande lisent du passage (`commandes::ouverture`), avec
+    /// Ce que la page et `moteur route` lisent du passage, avec
     /// le detail des fichiers deposes et des retours archives.
     pub fn en_json(&self) -> Value {
         let sauvegarde = self.sauvegarde.as_ref().map(|s| {
@@ -799,7 +799,7 @@ fn sauvegarder_le_dossier(ctx: &Contexte, opt: &Options, clients: &mut Clients<'
     if !pret {
         r.a_poser.push("google".to_string());
         r.manque_coffre(
-            "Compte Google non lie : la sauvegarde ne peut pas partir. Lier le Drive : Configuration > Mots de passe, ou `moteur google autoriser`.",
+            "Compte Google non lie : la sauvegarde ne peut pas partir. Lier le Drive : Configuration > Mots de passe, ou la route `google-autoriser`.",
         );
     } else if opt.veille && sauvegarde::rien_n_a_bouge(&ctx.racine, &opt.racine_drive) {
         // rien de neuf sur le disque : on n'appelle pas

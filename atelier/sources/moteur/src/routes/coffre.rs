@@ -443,7 +443,7 @@ pub(crate) fn lire_jeton_dit(racine: &Path) -> Result<Value, String> {
     // rattrapait ; elle se range ici avec les refus du coffre : l'etat se lit.
     let brut = std::fs::read(&p).map_err(|e| format!("{} : {}", p.display(), e))?;
     let clair = crate::compagnie::coffre::Coffre::du_poste(racine, "").deproteger(&brut, DESCRIPTION).map_err(|e| {
-        format!("{} Pour le jeton Google, le remede est : relancer `moteur google autoriser`.", e.message)
+        format!("{} Pour le jeton Google, le remede est : refaire `google-autoriser`.", e.message)
     })?;
     let texte = String::from_utf8(clair).map_err(|e| e.to_string())?;
     serde_json::from_str(&texte).map_err(|e| e.to_string())
@@ -564,8 +564,7 @@ fn rafraichir(ctx: &Contexte, client_id: &Value, client_secret: &Value) -> R<Opt
     let rafraichissement = champ(&j, "rafraichissement")?;
     if !vrai(&rafraichissement) {
         return Ok(Some(
-            "Compte Google pas encore lie : Configuration > Mots de passe > Lier le Drive, ou `moteur google \
-             autoriser`."
+            "Compte Google pas encore lie : Configuration > Mots de passe > Lier le Drive, ou la route `google-autoriser`."
                 .into(),
         ));
     }

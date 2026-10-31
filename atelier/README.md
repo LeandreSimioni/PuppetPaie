@@ -38,9 +38,9 @@ zip —, sans qu'aucun logiciel ait à être nommé ; le moteur trie par le
 contenu des fichiers et reconstruit tout ce qu'il peut.
 
 ```
-moteur importer                  # l'aperçu, en JSON (`tri` : le sort de chaque fichier, et pourquoi) : rien n'est écrit
-moteur importer --ecrire         # le reprend
-moteur importer --dossier D      # lit un autre dossier que import/
+route importation-apercu          # l'aperçu, en JSON (`tri` : le sort de chaque fichier, et pourquoi) : rien n'est écrit
+route importer                    # le reprend
+route importer {"dossier": D}     # lit un autre dossier que import/
 ```
 
 Ou, dans l'interface : **Configuration › Reprendre l'historique** — le
@@ -85,7 +85,7 @@ montant d'une paie). Un fichier que l'import n'a pas su reprendre se signale
 
 **Pourquoi l'historique compte.** Les droits à l'assurance chômage (annexes
 8 et 10 : 507 h sur 12 mois, un cachet = 12 h) se comptent sur tout ce que la
-compagnie a déclaré, et `moteur droits` comme le bloc de cumul du
+compagnie a déclaré, et le bloc de cumul du
 bulletin lisent **une seule source, la compagnie** : les engagements importés,
 puis les paies écrites des engagements validés. Un mois qui a des paies
 écrites est lu là, et les engagements importés de ce mois se taisent : rien
@@ -188,9 +188,9 @@ Saisir les engagements d'octobre dans la fenêtre (`engagements/2026-10.json` : 
 
 | Document | Quand il se fabrique |
 |---|---|
-| la DPAE (`moteur deposer-dpae`) | avant le début du contrat |
+| la DPAE (route `deposer`, `quoi` dpae) | avant le début du contrat |
 | le contrat | à son envoi à la signature, ou à son impression pour la main propre ; son numéro est celui que la validation a posé |
-| `DSN_Octobre2026.dsn` | à son dépôt : `moteur depot-dsn 2026-10 --test`, lecture du bilan, puis `--reel` |
+| `DSN_Octobre2026.dsn` | à son dépôt : route `deposer` (`quoi` dsn, `mois` 2026-10) en test, lecture du bilan, puis `reel` |
 | bulletin et certificat Congés Spectacles | à l'envoi des documents aux salariés : le numéro du bulletin s'écrit dans la paie |
 
 Une DSN se dépose dès qu'un engagement du mois est validé, sans attendre ni DPAE ni contrat. Le moteur dit si c'est un
@@ -198,13 +198,13 @@ dépôt initial ou un annule-et-remplace ; après la veille de l'échéance, ce 
 correction dans la DSN d'un mois suivant.
 
 Plus d'AEM depuis le 01/06/2026 (100 % DSN) : France Travail édite
-l'attestation lui-même, et `moteur aer --mois 2026-10` range celles qu'il a
+l'attestation lui-même, et la relève des retours range celles qu'il a
 envoyées.
 
 Puis, pour envoyer aux salariés :
 
 ```
-moteur envoi 2026-10
+route envoi-apercu {"mois": "2026-10"}, puis envoyer-documents
 ```
 
 Un message par salarié — bulletin, certificat Congés Spectacles et AER France Travail —
@@ -244,7 +244,7 @@ d'un compte Google lié **une fois** : Configuration › Mots de passe ›
 **Lier le Drive**, ou
 
 ```
-moteur google autoriser
+route google-autoriser
 ```
 
 Une fenêtre Google s'ouvre dans le navigateur, on choisit son compte, on
@@ -255,8 +255,8 @@ l'application déclarée une fois par l'éditeur, la même pour tout le monde
 passe du logiciel, comme tout acte.
 
 ```
-moteur google etat          # vérifie que l'autorisation tient
-moteur google oublier       # efface le jeton local
+route google-etat             # vérifie que l'autorisation tient
+route google-oublier          # efface le jeton local
 ```
 
 Deux permissions demandées, toutes deux *non sensibles* au sens de Google :
@@ -273,7 +273,7 @@ Sécurité › Vos connexions à des applications tierces.
 salarié appuie dessus : sa messagerie s'ouvre sur une réponse toute écrite
 (« Je soussigné(e)… Code de signature : SIG-XXXXXX »), il l'envoie. À
 l'ouverture du logiciel et toutes les vingt minutes ensuite — ou par
-`moteur signatures` — la réponse est relevée dans la boîte : le
+la route `signatures-relever` — la réponse est relevée dans la boîte : le
 journal note le contrat **signé, à l'heure du message**, le message est
 archivé tel quel dans `sorties/<mois>/envoi/` (`Signature_*.eml`, c'est la
 preuve), et le contrat **contresigné** — la case de l'artiste porte qui,
@@ -303,7 +303,7 @@ Le logiciel travaille seul dès qu'on l'ouvre — interface
 ou Claude Code, c'est la même fonction :
 
 ```bash
-moteur ouverture
+route ouverture
 ```
 
 1. il **sauvegarde tout le dossier privé** dans le Drive, par différences :
@@ -376,7 +376,7 @@ moteur coffre ouverture
 moteur coffre poser net-entreprises
 moteur coffre poser urssaf
 moteur coffre poser courriel --compte <adresse>
-moteur google autoriser          # relier le Drive
+route google-autoriser            # relier le Drive
 moteur maj --cle --remplacer     # si ce poste publie les mises à jour
 ```
 
@@ -431,9 +431,8 @@ par l'état du coffre, ni en clair sur le disque (`tests/fichiers/coffre.rs`) ; 
 ### La sauvegarde
 
 ```bash
-moteur sauvegarder          # les différences
-moteur sauvegarder --point  # où en est la dernière, sans réseau
-moteur sauvegarder --tout   # tout renvoyer, sans comparer
+route sauvegarde-maintenant  # les différences
+route sauvegarde-derniere    # où en est la dernière, sans réseau
 moteur restaurer [DOSSIER]  # le retour : redescendre prive/ du Drive (vérifié, rien d'effacé)
 ```
 
@@ -453,25 +452,23 @@ Ne montent jamais : `google-jeton.bin` (le compte se relie de nouveau),
 `.compteurs.verrou`, `.sauvegarde.json`, `.ouverture.json` (de l'état machine,
 qui ment ailleurs), et le rebut (`*.tmp`).
 
-## Archiver dans le Drive
+## La ligne de commande : les mêmes routes que l'écran
+
+Tout ce que fait la fenêtre passe par une route, et toute route se sert en ligne de commande :
 
 ```
-moteur archiver 2026-10
+moteur routes                     # le catalogue : le geste de chaque route, sa charge, un exemple (--avance : tout)
+moteur routes deposer             # la fiche d'une route
+echo '{"route":"etat-du-mois","charge":{"mois":"2026-10"}}' | moteur route           # la réponse en JSON
+echo '{"route":"etat-du-mois","charge":{"mois":"2026-10"}}' | moteur route --texte   # les phrases que la page affiche
 ```
 
-Dépose tout `sorties/2026-10/` dans `PuppetPaie / 2026-10` sur le Drive (le
-sous-dossier `envoi/` est exclu : ce sont les mêmes documents redécoupés par
-salarié, déjà partis par courriel).
-
-Autres commandes : `moteur fiche` (rappel des données de référence),
-`moteur interface` ; `moteur --aide` les liste toutes.
-
-**Pour un programme.** Toute commande accepte `--json` : même travail, mêmes
-garde-fous, sortie lisible par une machine. Les montants y sont des chaînes
-(`"201.32"`, jamais un flottant), les dates en `AAAA-MM-JJ`, et une erreur
-métier reste une réponse — `{"ok": false, "erreur": {"type": "AnnuleRemplaceHorsDelai",
-…}}` — sur laquelle un appelant branche son comportement. C'est par là que
-passe l'interface, et que passerait une API.
+Dans ce texte, « route NOM {charge} » se lit `echo '{"route":"NOM","charge":{…}}' | moteur route`. Un acte réel
+(dépôt, envoi, signature) demande le mot de passe du logiciel à un humain, dans la fenêtre du moteur ou dans son
+terminal, sans écho : il n'entre jamais par l'entrée standard. Une erreur métier reste une réponse —
+`{"ok": false, "erreur": "…", "classe": "AnnuleRemplaceHorsDelai"}` — sur laquelle un appelant branche son
+comportement. Restent des commandes : `moteur coffre` (la séance, et les mots de passe tapés sans écho),
+`moteur restaurer` (un poste neuf), `moteur interface` ; `moteur --aide` les liste.
 
 ## La DPAE, séparément
 
@@ -480,7 +477,7 @@ travaillé**, donc bien avant la paie. Elle se produit seule, sans montant
 Urssaf et sans consommer de numéro de bulletin :
 
 ```bash
-moteur deposer-dpae 2026-09
+route deposer {"quoi": "dpae", "mois": "2026-09"}
 ```
 
 Elle dit si une embauche est déjà passée : la DPAE est alors hors délai, et elle s'écrit quand même, sans antidater
@@ -495,7 +492,7 @@ qui vaut confirmation.
 En ligne de commande, même chose :
 
 ```bash
-moteur deposer-dpae sorties/2026-09/DPAE_Septembre2026.txt
+route depot-apercu {"quoi": "dpae", "mois": "2026-09"}
 ```
 
 Sans `--reel`, rien ne part. Avec, le mois des embauches s'affiche en grand
@@ -506,7 +503,7 @@ Et il y a un **vrai dépôt de test**, qui parcourt toute la chaîne sans rien
 déclarer — bouton « Dépôt de test » dans la fenêtre, ou :
 
 ```bash
-moteur deposer-dpae sorties/2026-09/DPAE_Septembre2026.txt --test
+route deposer {"quoi": "dpae", "mois": "2026-09"}
 ```
 
 Le champ `C_VERSION` bascule de `120` à `TST` **en mémoire** au moment de
@@ -538,7 +535,7 @@ indisponible un 5 du mois à 23 h, et bloquer une déclaration à l'échéance e
 pire qu'un dépôt imparfait :
 
 ```bash
-moteur depot-dsn sorties/2026-09/DSN_Septembre2026.dsn --reel \
+route deposer {"quoi": "dsn", "mois": "2026-09", "reel": true, \
     --sans-repetition "le service de test répond 503 depuis ce matin"
 ```
 
@@ -558,7 +555,7 @@ le taux de prélèvement à la source de chaque salarié et son identifiant — 
 rubriques `S21.G00.50.006/.007/.008`, qui ne se calculent pas.
 
 ```bash
-moteur retours
+route ouverture {"sauvegarder": false, "signatures": false}
 ```
 
 Ou, sans ligne de commande : la fenêtre les relève à l'ouverture.
@@ -576,7 +573,7 @@ $env:NET_ENTREPRISES_MOTDEPASSE = (Read-Host "mot de passe net-entreprises")
 
 La commande télécharge et archive tout dans `retours/`, et les taux qu'un compte rendu de
 nature 94 communique vont aussitôt dans `config/pas.json` (rattachés par le NIR) ; elle les affiche.
-`moteur pas` montre l'état courant et d'où il vient.
+la fiche du salarié montre l'état courant et d'où il vient.
 
 ### Un taux se périme au bout de deux mois
 
@@ -588,7 +585,7 @@ puis en juillet, le taux de janvier est périmé depuis le 31 mars** — et c'es
 alors la grille de l'article 204 H du CGI qui s'applique, pas le taux du
 magasin.
 
-`moteur pas` date donc chaque taux (« en cours de validité, jusqu'au
+le moteur date donc chaque taux (« en cours de validité, jusqu'au
 31/10/2026 », ou « périmé ») et liste, en dessous, **ce qu'il faut demander à
 la DGFiP**.
 
@@ -601,9 +598,7 @@ autres. Le bilan d'identification des salariés (BIS) revient, lui,
 immédiatement.
 
 ```bash
-moteur pas --demander            # un fichier par salarié à amorcer
-moteur pas --demander --test     # les mêmes, en fichiers d'essai
-moteur depot-dsn <fichier> --test   # un dépôt par individu (puis --reel)
+route deposer {"quoi": "dsn", "fichier": F}   # un dépôt par individu (puis reel)
 ```
 
 **Un signalement, un individu, un fichier** (base de connaissances DSN, fiche
@@ -623,7 +618,7 @@ arrive solde la demande.
   de tout le monde sans attendre une embauche. C'est le défaut de
   `--demander` ;
 - **motif 01**, embauche effective. Il part **avec la DPAE**, dans le même
-  geste et le même mot de passe : `moteur deposer-dpae` produit les deux, et
+  geste et le même mot de passe : la route `deposer` (`quoi` dpae) produit les deux, et
   dit ce qu'il a demandé — ou pourquoi il n'a rien demandé ; le dépôt de la
   DPAE (`deposer-dpae`, ou la fenêtre) dépose aussi ses signalements, en test
   avec le test, en réel avec le réel.
@@ -634,7 +629,7 @@ grille de l'article 204 H, et rien d'autre. Un salarié **sans NIR** non plus �
 la DGFiP répond à une identité, un numéro technique temporaire n'en est pas
 une pour elle. C'est la loi, pas un manque du logiciel.
 
-Un taux périmé est **rendu quand même** par `moteur pas`, marqué : il
+Un taux périmé est **rendu quand même** par le moteur, marqué : il
 dit quel taux on avait et depuis quand il ne vaut plus. Mais **il ne part pas
 dans la DSN** — c'est la grille qui reprend la main (ci-dessous). Une fiche
 archivée reste hors de cette liste : son taux est périmé, et ça n'intéresse
@@ -686,7 +681,7 @@ déclaration de revenus l'année suivante. D'où l'appel de taux, ci-dessus.
   DSN non plus : le cahier technique 2026.1 (p. 244) dit que le prélèvement à
   la source ne s'en déduit pas.
 
-Ce module **ne dépose rien** : il n'a aucune fonction d'envoi. Le dépôt de test (`moteur depot-dsn 2026-09 --test`)
+Ce module **ne dépose rien** : il n'a aucune fonction d'envoi. Le dépôt de test (route `deposer`, en test)
 bascule la DSN en envoi de test (`S10.G00.00.005 = 01`, données non conservées) en mémoire.
 
 ## Un arrêt de travail
@@ -704,20 +699,20 @@ déclarations le disent, et ce ne sont pas la même :
   est reporté par **chaque** DSN dont le mois croise l'arrêt.
 
 ```bash
-moteur arret                      ce qui est saisi, et ce qui attend
-moteur arret motifs               les motifs de la norme
-moteur arret contrats Celi --le 2026-10-07     ce qu'un arrêt suspendrait
-moteur arret saisir Celi --dernier-jour 2026-10-07 --fin 2026-10-20 \
+route arrets                      ce qui est saisi, et ce qui attend
+route imprevus                    les motifs de la norme
+route arret-contrats              ce qu'un arrêt suspendrait
+route arret-enregistrer {"salarie": "Celi", "dernier_jour": "2026-10-07", "fin": "2026-10-20", \
                                   --motif 01 --subrogation non
-moteur arret signaler Celi --dernier-jour 2026-10-07
-moteur depot-dsn sorties/2026-10/SignalementArret_Celi_20261007.dsn --test
+route arret-signaler {"salarie": "Celi", "dernier_jour": "2026-10-07"}
+route deposer {"quoi": "dsn", "fichier": "sorties/2026-10/SignalementArret_Celi_20261007.dsn"}
 ```
 
 `saisir` **n'envoie rien** : l'arrêt est écrit dans le magasin des **imprévus**
 (`imprevus/AAAA-MM.json`), au mois de son dernier jour travaillé. C'est un fait
 saisi **une fois** : chaque mois qu'il traverse en tire le bloc
 60 de sa DSN et, pour un permanent, la ligne qui retire le salaire des jours
-d'absence (et le maintien de salaire saisi sur l'arrêt, `moteur arret maintien
+d'absence (et le maintien de salaire saisi sur l'arrêt, la route `arret-maintien
 Celi --dernier-jour 2026-10-07 --mois 2026-10 --montant 300`) ; les cachets
 d'un intermittent datés pendant l'arrêt sont nommés, jamais retirés d'office. `signaler` **écrit un fichier**, et c'est `depot-dsn` qui
 le dépose — même point de dépôt, même mot de passe du logiciel, même journal
@@ -726,9 +721,9 @@ qu'une DSN mensuelle. Comme pour une DSN : **le dépôt de test d'abord**.
 **L'arrêt prolongé, la reprise plus tôt que prévu** :
 
 ```bash
-moteur arret prolonger Celi --dernier-jour 2026-10-07 --fin 2026-11-05
-moteur arret prolonger Celi --dernier-jour 2026-10-07 --subrogation-fin 2027-01-07
-moteur arret reprise Celi --dernier-jour 2026-10-07 --le 2026-10-15
+route arret-prolonger {"salarie": "Celi", "dernier_jour": "2026-10-07", "fin": "2026-11-05"}
+route arret-prolonger {"salarie": "Celi", "dernier_jour": "2026-10-07", "subrogation_fin": "2027-01-07"}
+route arret-reprise {"salarie": "Celi", "dernier_jour": "2026-10-07", "le": "2026-10-15"}
 ```
 
 Une prolongation **ne fait partir aucun signalement** : elle change la fin
@@ -737,7 +732,7 @@ prévisionnelle, que la DSN mensuelle de chaque mois traversé porte
 après sa subrogation, le moteur le dit et demande la fin de subrogation
 (il ne connaît pas le maximum de la convention) ; repoussée après le dépôt du
 signalement d'arrêt, elle fait naître un **signalement d'arrêt rectificatif**
-(annule et remplace, `moteur arret signaler ... --remplace <identifiant>`). Une
+(annule et remplace, route `arret-signaler`, avec `remplace`). Une
 reprise **avant** la fin prévue fait naître le signalement de reprise (05) ; à
 la date prévue, rien à saisir : la DSN du mois la porte. Dans la fenêtre,
 « Prolonger l'arrêt » et « Le salarié a repris plus tôt » ne paraissent que sur un
@@ -774,10 +769,10 @@ l'admet), avec un avertissement. La compagnie dit le jour où elle a su
 l'arrêt, et ce qu'elle a fait hors DSN :
 
 ```bash
-moteur arret connu Celi --dernier-jour 2026-10-07 --le 2026-10-08
-moteur arret declare Celi --dernier-jour 2026-10-07 --le 2026-10-08 --ou net-entreprises --reference 123
-moteur arret declare Celi --dernier-jour 2026-10-07 --le 2026-10-08 --ou net-entreprises-ecran --attestation
-moteur arret declare Celi --dernier-jour 2026-10-07 --retirer [--attestation]
+route arret-connaissance {"salarie": "Celi", "dernier_jour": "2026-10-07", "le": "2026-10-08"}
+route accident-declare {"salarie": "Celi", "dernier_jour": "2026-10-07", "le": "2026-10-08", "ou": "net-entreprises", "reference": "123"}
+route attestation-declare {"salarie": "Celi", "dernier_jour": "2026-10-07", "le": "2026-10-08", "ou": "net-entreprises-ecran"}
+route accident-declare (ou attestation-declare) {"salarie": "Celi", "dernier_jour": "2026-10-07", "retirer": true}
 ```
 
 Un signalement déjà parti ne se corrige pas en en renvoyant un autre : il faut
@@ -878,7 +873,7 @@ dates jouées), `numero`, `lieu` (celui des lignes qui n'en portent pas),
 ```
 
 `metier` est un code emploi France Travail. Le catalogue
-(`moteur emplois`, 129 métiers du spectacle vivant, `--tous` pour
+(route `metiers-catalogue`, 129 métiers du spectacle vivant, `--tous` pour
 les 1 236 codes de la nomenclature) le traduit en six champs déclarés —
 libellé officiel, PCS-ESE, statut, statut conventionnel, cadre — que
 l'engagement peut écrire lui-même par-dessus. Sans `metier`, c'est l'emploi
@@ -1036,7 +1031,7 @@ mois**, avec les mêmes `debut` et `numero`.
 son prorata, congés pris et l'indemnité qui les couvre, primes, solde de
 tout compte le dernier mois. Un arrêt de travail ou une suspension (congé
 parental, sabbatique, sans solde…) n'est **pas** un fait du mois : c'est un
-**imprévu**, saisi une fois sur le salarié (`moteur arret saisir`, `moteur
+**imprévu**, saisi une fois sur le salarié (route `arret-enregistrer`, route
 suspension saisir`), dont le moteur tire la ligne de chaque mois qu'il traverse
 (une saisie qui porte encore des `absences` est refusée) :
 
@@ -1058,9 +1053,9 @@ Et quand il se termine, trois faits de plus, qui ne servent qu'au
 ```
 
 ```bash
-moteur fin-contrat liste 2026-10            ce qui se termine, et ce qui manque
-moteur fin-contrat signaler 2026-10 Camille --test
-moteur fin-contrat documents 2026-10 Camille   certificat + reçu
+route fins-de-contrat {"mois": "2026-10"}               ce qui se termine, et ce qui manque
+route fin-contrat-signaler {"mois": "2026-10", "salarie": "Camille"}
+route fin-contrat-documents {"mois": "2026-10", "salarie": "Camille"}   certificat + reçu
 ```
 
 `liste` **dit ce qui manque** plutôt que de deviner : le moteur ne fabrique ni
@@ -1179,7 +1174,7 @@ signature.
    DSN acceptées d'une compagnie retrouvées au centime. Rien à recopier :
 
    ```
-   moteur depot-dsn 2026-09 --apercu
+   route depot-apercu {"quoi": "dsn", "mois": "2026-09"}
    ```
 2. **La DSN en dépôt de test** (`depot-dsn --test`) avant tout dépôt réel.
    C'est le validateur qui fait foi : la même brique de contrôle que DSN-Val,
@@ -1208,7 +1203,7 @@ d'un autre (relevée des retours, donc connue). Un mois importé ne se rappelle
 pas : sa DSN est celle de l'ancien logiciel.
 
 ```
-moteur rappels                    la même liste, en ligne de commande
+route rappels                     la même liste, en ligne de commande
 ```
 
 ### Les conseils « Le saviez-vous ? »
@@ -1252,10 +1247,10 @@ poste s'identifie auprès de lui par une clé que le serveur lui donne (`config/
 `cle`, `serveur`), demandée au premier envoi ; aucun secret partagé.
 
 ```
-moteur filet                       l'option, les réveils armés
-moteur filet activer ADRESSE       s'inscrire (un lien de confirmation part)
-moteur filet preparer              un passage : tester, armer, désarmer
-moteur filet suivies               les embauches sans trace de DPAE
+route filet-etat                   l'option, les réveils armés
+route filet-activer {"adresse": A}  s'inscrire (un lien de confirmation part)
+route filet-preparer               un passage : tester, armer, désarmer
+route filet-suivies                les embauches sans trace de DPAE
 ```
 
 ## Chaque janvier
@@ -1315,8 +1310,8 @@ moteur filet suivies               les embauches sans trace de DPAE
    une compagnie pose le sien dans `config/plan-comptable.json`, clé par clé.
 
    ```
-   moteur export-compta 2026            sorties/exercices/Compta_2026.csv
-   moteur export-compta 2026 --du 1 --au 6
+   route export-compta {"annee": "2026"}            sorties/exercices/Compta_2026.csv
+   route export-compta {"annee": "2026", "du": 1, "au": 6}
    ```
 4. **La clôture**, après la DSN de décembre : elle fige l'année (ses saisies
    et ses sorties ne se modifient plus — rouvrir reste possible) et réunit
@@ -1327,9 +1322,9 @@ moteur filet suivies               les embauches sans trace de DPAE
    journal (`--forcer` passe outre, et c'est noté).
 
    ```
-   moteur cloture 2026
-   moteur cloture 2026 --rouvrir
-   moteur cloture                       l'état de chaque exercice
+   route cloture {"annee": "2026"}
+   route cloture {"annee": "2026", "rouvrir": true}
+   route exercices                       l'état de chaque exercice
    ```
 
 L'ouverture propose les trois derniers d'elle-même en janvier ; le reste de
@@ -1355,13 +1350,13 @@ de l'interface — quoi, quand, comment, et un aperçu avant d'écrire — et la
 ligne de commande.
 
 ```
-moteur exporter                               ce qu'on sait sortir
-moteur exporter livre-de-paie --annee 2026
-moteur exporter livre-de-paie --mois 2026-09 --par mois
-moteur exporter livre-de-paie --toutes-les-annees --format xlsx
-moteur exporter livre-de-paie --annee 2026 --format pdf
-moteur exporter livre-de-paie --annee 2026 --apercu
-moteur exporter livre-de-paie --annee 2026 --coordonnees
+route exports-periodes                        ce qu'on sait sortir
+route exporter livre-de-paie --annee 2026
+route exporter livre-de-paie --mois 2026-09 --par mois
+route exporter livre-de-paie --toutes-les-annees --format xlsx
+route exporter livre-de-paie --annee 2026 --format pdf
+route exporter livre-de-paie --annee 2026 --apercu
+route exporter livre-de-paie --annee 2026 --coordonnees
 ```
 
 Quatre choses à savoir :
@@ -1389,7 +1384,7 @@ validation.
 
 ### Tous les états
 
-`moteur exporter` sans argument les liste, rangés par famille comme
+la route `exports-periodes` les liste, rangés par famille comme
 dans le menu de l'onglet. Chacun se demande pour un mois, une année ou toutes
 les années (sauf mention), et s'écrit en **CSV, texte tabulé, XLSX, PDF, HTML
 ou JSON** — la machinerie commune `documents/src/tableaux_export.rs`, que chaque état suit
@@ -1423,13 +1418,13 @@ paies écrites des engagements validés (`documents/src/etats_paie.rs`, en tête
 | | `journal-des-declarations` | chaque DSN, DPAE, envoi, signature : date, mode, issue | journal |
 
 ```
-moteur exporter cotisations-par-organisme --annee 2026 --par mois
-moteur exporter ecritures-comptables --annee 2026 --format fec
-moteur exporter ecritures-comptables --mois 2026-09 --format ximport
-moteur exporter ecritures-comptables --annee 2026 --format oxygene
-moteur exporter ecritures-comptables --annee 2026 --logiciel ebp
-moteur exporter registre-du-personnel --toutes-les-annees --format pdf
-moteur exporter versements-organismes --annee 2025 --format xlsx
+route exporter cotisations-par-organisme --annee 2026 --par mois
+route exporter ecritures-comptables --annee 2026 --format fec
+route exporter ecritures-comptables --mois 2026-09 --format ximport
+route exporter ecritures-comptables --annee 2026 --format oxygene
+route exporter ecritures-comptables --annee 2026 --logiciel ebp
+route exporter registre-du-personnel --toutes-les-annees --format pdf
+route exporter versements-organismes --annee 2025 --format xlsx
 ```
 
 **Ce qui lit « saisie » écarte les mois d'avant PuppetPaie, et le dit** :
@@ -1472,7 +1467,7 @@ DSN refuse.
 - Tous ceux-là : **faire un premier import d'essai** sur un dossier de test.
 - **Le logiciel du comptable** se choisit une fois — dans l'onglet
   Exports (menu « Logiciel du comptable », le nom et le format), ou
-  `moteur compta-logiciel oxygene` — et reste retenu
+  la route `retenir-logiciel` (oxygene) — et reste retenu
   (`config/compta.json`) : il fixe le format des écritures. Onze entrées :
   `oxygene`, `sage`, `quadra`, `ciel`, `ebp`, `pennylane`, `paheko`, `acd`
   (le `tsv`, par son « Interface générique »), `loop`, `isacompta`,
@@ -1510,11 +1505,11 @@ toute la période, en une fois. Dans l'onglet **Exports**, « Le dossier d'un
 salarié » : on coche ce qu'on sort.
 
 ```
-moteur dossier Celi --toutes-les-annees        # un ZIP
-moteur dossier --annee 2025 --seulement bulletins  # un PDF par salarié
-moteur dossier --mois 2026-08 --ensemble         # tous dans un fichier
-moteur dossier Celi --annee 2026 --envoyer     # et l'envoyer (mot de passe)
-moteur dossier --toutes-les-annees --apercu      # compter les pages
+route dossier-salarie Celi --toutes-les-annees        # un ZIP
+route dossier-salarie --annee 2025 --seulement bulletins  # un PDF par salarié
+route dossier-salarie --mois 2026-08 --ensemble         # tous dans un fichier
+route dossier-salarie Celi --annee 2026 --envoyer     # et l'envoyer (mot de passe)
+route dossier-salarie --toutes-les-annees --apercu      # compter les pages
 ```
 
 | catégorie | d'où |
@@ -1536,7 +1531,7 @@ s'envoie à personne.
 ## La version, et la mise à jour dans l'ombre
 
 Le logiciel porte un numéro de version — une date, dans le fichier
-`VERSION` — que `moteur version` affiche, comme la fenêtre de
+`VERSION` — que la route `maj-etat` dit, comme la fenêtre de
 lancement et le bandeau de l'interface.
 
 **Une installation, un logiciel, une mise à jour** : ce
@@ -1570,7 +1565,7 @@ incident — une compagnie hors ligne fait sa paie. Une version prête
 s'installe au lancement suivant (ou au clic *« Redémarrer pour mettre à
 jour »*) ; rien ne la retient. Quand elle **change un calcul** de paie, sa
 phrase (`--calcul` au moment de publier) se lit dans la bulle de
-l'indicateur, à côté de la version prête, dans `moteur version`, et une fois au lancement qui suit son installation (« PuppetPaie … est en place. Elle change un calcul de paie : … »). Un taux
+l'indicateur, à côté de la version prête, dans la route `maj-etat`, et une fois au lancement qui suit son installation (« PuppetPaie … est en place. Elle change un calcul de paie : … »). Un taux
 qui change n'en est pas une : la déclaration est mensuelle, le mois suivant
 rattrape.
 

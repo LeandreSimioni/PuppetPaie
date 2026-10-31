@@ -125,7 +125,7 @@ jobs:
 
       # Le moteur Linux : il signe (toujours), il marque les fictives avant l'installeur, et il ouvre la page dans le
       # navigateur sur un Linux sans WebKitGTK.
-      # L'essai `moteur version` ouvre une compagnie, comme toute commande du produit (`commandes::executer`) : ici une
+      # L'essai : la route `maj-etat` (la version) sur une compagnie, comme toute route (`moteur route`) : ici une
       # compagnie fictive livree (`fictives/`, le banc d'essai de l'interface, regle 11) ; sans elle, le moteur refuse
       # (« fichier introuvable : logiciel/config/entreprise.json », Publier n° 5, 15/10/2026). Rien n'y est ecrit.
       - name: Le moteur Linux
@@ -133,7 +133,7 @@ jobs:
           PUPPETPAIE_DONNEES: ${{ github.workspace }}/fictives/fictive-1285-petite
         run: |
           cargo build --release --locked --manifest-path atelier/sources/moteur/Cargo.toml --bin moteur
-          "$CARGO_TARGET_DIR/release/moteur" version
+          echo '{"route":"maj-etat","charge":{}}' | "$CARGO_TARGET_DIR/release/moteur" route | grep '"ok":true'
 
       # LES MARQUES DE LA LIVRAISON DE FICTIVES (`fictives/.livraison.json`, `fictives/<nom>/.livree.json` : maj.rs,
       # `marquer_les_fictives`), avant l'installeur, qui les pose : une installation de l'installeur retient la livraison
@@ -208,7 +208,7 @@ jobs:
           done
 
       # Un seul fichier pour les deux sortes de Mac : l'installation n'a pas a savoir quel processeur a le sien.
-      # L'essai `moteur version` ouvre une compagnie fictive livree, comme sous Linux (voir « Le moteur Linux »).
+      # L'essai de la route `maj-etat` sur une compagnie fictive livree, comme sous Linux (voir « Le moteur Linux »).
       - name: Universels, dans logiciel/mac/
         env:
           PUPPETPAIE_DONNEES: ${{ github.workspace }}/fictives/fictive-1285-petite
@@ -221,7 +221,7 @@ jobs:
             lipo -info "logiciel/mac/$P"
           done
           chmod +x logiciel/mac/moteur logiciel/mac/puppetpaie
-          logiciel/mac/moteur version
+          echo '{"route":"maj-etat","charge":{}}' | logiciel/mac/moteur route | grep '"ok":true'
           tar -cf mac.tar logiciel/mac
           ls -l logiciel/mac
 

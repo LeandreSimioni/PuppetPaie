@@ -266,7 +266,7 @@ struct Amorcage {
 }
 
 /// Un fichier de signalement par individu dont le taux manque (le travail est
-/// celui de `amorcage_demande`, que `moteur pas --demander` generalise). L'echec (quel qu'il soit) est celui que la DPAE ecarte.
+/// celui de `amorcage_demande`). L'echec (quel qu'il soit) est celui que la DPAE ecarte.
 fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution: Jour, ecrits: &mut Vec<PathBuf>) -> Result<Amorcage, String> {
     let demande = crate::compagnie::amorcage_demande::Demande {
         motif: declarations::amorcage::EMBAUCHE,

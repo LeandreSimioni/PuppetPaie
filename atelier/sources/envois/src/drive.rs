@@ -246,8 +246,7 @@ impl Client {
         let rafraichissement = champ(&enregistre, "rafraichissement")?;
         if !vrai(&rafraichissement) {
             return Err(ErreurGoogle::google(
-                "Compte Google pas encore lie : Configuration > Mots de passe > Lier le Drive, ou `moteur google \
-                 autoriser`.",
+                "Compte Google pas encore lie : Configuration > Mots de passe > Lier le Drive, ou la route `google-autoriser`.",
             ));
         }
         let Some((id, secret)) = &self.identifiants else {

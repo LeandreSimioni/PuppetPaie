@@ -6,8 +6,8 @@
 //! son bareme, ses organismes) dans DOSSIER, hors de tout depot Git, et lui donne l'IDENTITE d'une vraie compagnie, lue dans
 //! UNE variable d'environnement, `PUPPETPAIE_COMPAGNIE` : un objet JSON sur une ligne, fragment de `config/entreprise.json`,
 //! avec EXACTEMENT les cles de `CLES`. Le reste de la seance nomme cette compagnie par
-//! `PUPPETPAIE_DONNEES=DOSSIER` et se sert des commandes ordinaires (`moteur depot-dsn AAAA-MM --test`,
-//! `moteur deposer-dpae AAAA-MM --test`, `moteur retours`).
+//! `PUPPETPAIE_DONNEES=DOSSIER` et se sert des routes ordinaires (`moteur route` : `deposer` en test, la DSN ou la DPAE du mois ;
+//! `ouverture` pour relever les retours).
 //!
 //! POURQUOI UNE COPIE, ET PAS LA VARIABLE LUE PARTOUT. Sur le poste, une variable posee par megarde ecraserait la vraie fiche ;
 //! ici, la variable n'est lue qu'au montage, et seulement pour ECRIRE la fiche de la copie (regle 1 : rien ne se devine).
@@ -439,7 +439,7 @@ PUPPETPAIE_COMPAGNIE : un objet JSON sur une ligne, avec exactement ces cles (se
   api_dpae       {nom, prenom, siret, service}               (le compte DPAE d'urssaf.fr ; siret et service peuvent etre vides)
 Les mots de passe restent dans NET_ENTREPRISES_MOTDEPASSE et URSSAF_MOTDEPASSE.
 
-Puis, avec PUPPETPAIE_DONNEES=DOSSIER : moteur depot-dsn AAAA-MM --test, moteur retours, moteur deposer-dpae AAAA-MM --test
+Puis, avec PUPPETPAIE_DONNEES=DOSSIER, par moteur route : deposer (quoi dsn ou dpae, mois AAAA-MM), en test ; ouverture, les retours
 (la suite : atelier/docs/COMPAGNIE-D-ESSAI.md).";
 
 /// `moteur essai ...` : rend le code de sortie.
@@ -495,8 +495,8 @@ pub fn commande(args: &[String]) -> i32 {
             println!("Identite : {} (posee ; ses valeurs ne s'affichent pas). Tout depot reel y est refuse.", VARIABLE);
             println!();
             println!("La suite, avec PUPPETPAIE_DONNEES={} :", d);
-            println!("  moteur depot-dsn AAAA-MM --test      puis   moteur retours");
-            println!("  moteur deposer-dpae AAAA-MM --test");
+            println!("  echo '{{\"route\":\"deposer\",\"charge\":{{\"quoi\":\"dsn\",\"mois\":\"AAAA-MM\"}}}}' | moteur route --texte");
+            println!("  puis les retours : echo '{{\"route\":\"ouverture\",\"charge\":{{\"sauvegarder\":false,\"signatures\":false}}}}' | moteur route --texte");
             println!("(atelier/docs/COMPAGNIE-D-ESSAI.md : l'ordre d'un essai deja fait d'ailleurs, les signalements)");
             0
         }

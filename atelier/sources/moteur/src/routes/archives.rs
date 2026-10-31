@@ -500,7 +500,7 @@ fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let chemin = ctx.racine.join("config").join("compta.json");
     let contenu = json!({
-        "_quoi": "Le logiciel du comptable, retenu pour les écritures comptables (Exports, ou moteur compta-logiciel).",
+        "_quoi": "Le logiciel du comptable, retenu pour les écritures comptables (Exports).",
         "logiciel": nom,
         "analytique": analytique,
     });
@@ -534,16 +534,14 @@ fn exporter(ctx: &Contexte, charge: &Value) -> R<Value> {
     })
 }
 
-/// Ce qu'un export rend, avant d'etre mis en JSON : la ligne de commande (`moteur exporter`) le rend en texte a partir de l'objet
-/// (le chemin ecrit en entier, les montants en `Decimal`).
+/// Ce qu'un export rend, avant d'etre mis en JSON (le chemin ecrit en entier, les montants en `Decimal`).
 pub(crate) enum Exporte {
     Casc(Value),
     Livre(documents::etats_paie::LivreDePaie),
     Tableau(documents::tableaux_export::Tableau),
 }
 
-/// `exporter`, avant la mise en JSON. La charge peut porter `format_du_logiciel_retenu` : sans `format`, les ecritures comptables laissent
-/// le logiciel retenu (`compta-logiciel`) choisir leur format (la ligne de commande), au lieu du CSV (la page, qui envoie son format).
+/// `exporter`, avant la mise en JSON ; sans `format`, le CSV.
 pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
     use documents::etats_paie::Demande;
     let etat = texte_ou_rien(charge, "etat").unwrap_or_else(|| "livre-de-paie".to_string());
@@ -559,9 +557,7 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         annee: texte_ou_rien(charge, "annee"),
         toutes: charge.get("toutes_les_annees").is_some_and(vrai),
         regroupement: texte_ou_rien(charge, "regroupement").unwrap_or_else(|| "salarie".to_string()),
-        format: texte_ou_rien(charge, "format").unwrap_or_else(|| {
-            if etat == "ecritures-comptables" && charge.get("format_du_logiciel_retenu").is_some_and(vrai) { String::new() } else { "csv".to_string() }
-        }),
+        format: texte_ou_rien(charge, "format").unwrap_or_else(|| "csv".to_string()),
         coordonnees: charge.get("coordonnees").is_some_and(vrai),
         ecrire: !charge.get("apercu").is_some_and(vrai),
         logiciel: texte_ou_rien(charge, "logiciel"),

@@ -4030,7 +4030,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 ///
 /// Consequence pratique : `ordre` ne se met pas a 2 par habitude. Il se
 /// choisit au-dessus du dernier ordre ACCEPTE du mois civil en cours, qui se
-/// lit sur le certificat de conformite du depot precedent (`moteur retours`).
+/// lit sur le certificat de conformite du depot precedent (la releve des retours).
 ///
 /// IL REMPLACE, IL N'AJOUTE PAS -- Y COMPRIS LES ORDRES DE TELEPAIEMENT.
 /// Le cahier technique 2026.1, p. 15 : « lorsque la derniere DSN mensuelle transmise pour une date
@@ -4171,8 +4171,8 @@ mois (il y figure sans cachet), ou corriger les dates de l'arret. Rien n'est ecr
         return Err(format!(
             "Absence pour arret de travail dans la paie de {}, mais aucun arret saisi en face : {}. La ligne retire \
 le salaire des heures non travaillees ; c'est le bloc « Arret de travail - S21.G00.60 » qui ouvre les indemnites \
-journalieres, et il se construit depuis l'arret, pas depuis la ligne. Saisir l'arret (`moteur arret \
-saisir`), ou retirer la ligne. Rien n'est ecrit.",
+journalieres, et il se construit depuis l'arret, pas depuis la ligne. Saisir l'arret (route `arret-enregistrer`), ou \
+retirer la ligne. Rien n'est ecrit.",
             mois,
             manquants.join(", ")
         ));

@@ -7,7 +7,7 @@
 //! ATTENTION : elle va au RESEAU (net-entreprises). Lecture seule.
 
 use super::analyse::{Args, Opt, Spec};
-use super::retours::{fenetre, jour_de, ko};
+use socle::date::Jour;
 use super::rendu::texte;
 use super::Cadre;
 use envois::releve_retours::{Client, Panne};
@@ -27,7 +27,7 @@ pub static SPEC: Spec = Spec {
 pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     match faire(cadre, args) {
         Ok(c) => c,
-        Err(e) => super::retours::refus_reseau_ou_plantage(cadre, e),
+        Err(e) => refus_reseau_ou_plantage(cadre, e),
     }
 }
 
@@ -84,3 +84,47 @@ pub fn derouler(cadre: &Cadre, args: &Args, mut client: Client) -> Result<i32, E
     dire!("{} depot(s).", depots.len());
     Ok(0)
 }
+
+/// Le reseau injoignable ou coupe, ou le coffre qui ne s'ouvre pas : une phrase et un code, pas un plantage.
+fn refus_reseau_ou_plantage(cadre: &Cadre, e: Echec) -> i32 {
+    if matches!(e.classe, Some("URLError" | "TimeoutError" | "RemoteDisconnected" | "IncompleteRead" | "HTTPException")) {
+        dire!("Consultation interrompue : le reseau est injoignable ou a ete coupe ({}).\nRien n'est perdu : relancer la commande quand la connexion est revenue.", e.message);
+        return 1;
+    }
+    // Le coffre ferme et la seance refusee : « rien ici ne l'ouvre » est une phrase pour l'utilisateur, pas un defaut du logiciel.
+    // Code 2, comme « le mot de passe n'est nulle part ».
+    if e.classe == Some("ErreurCoffre") {
+        dire!("{}", e.message);
+        return 2;
+    }
+    cadre.plantage(e)
+}
+
+fn ko(m: String) -> Echec {
+    Echec { classe: None, message: m }
+}
+
+const JOUR: i64 = 86_400;
+
+fn secondes(j: &Jour) -> i64 {
+    (j.ordinal() - 719_163) * JOUR
+}
+
+/// La plage de recherche, en heures locales naives. Par defaut, les 30 derniers jours.
+fn fenetre(args: &Args) -> Result<(i64, i64), Echec> {
+    let fin = match args.texte("jusqu-a") {
+        Some(j) => secondes(&Jour::lire(j).map_err(|m| Echec { classe: Some("ValueError"), message: m })?) + 23 * 3600 + 59 * 60 + 59,
+        None => socle::paris::maintenant_naif(),
+    };
+    let debut = match args.texte("depuis") {
+        Some(j) => secondes(&Jour::lire(j).map_err(|m| Echec { classe: Some("ValueError"), message: m })?),
+        None => fin - 30 * JOUR,
+    };
+    Ok((debut, fin))
+}
+
+/// Le jour d'une heure locale naive, en `JJ/MM/AAAA`.
+fn jour_de(t: i64) -> String {
+    Jour::depuis_jours_unix(t.div_euclid(JOUR)).map(|j| j.jj_mm_aaaa()).unwrap_or_default()
+}
+

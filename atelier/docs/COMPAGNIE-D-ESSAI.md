@@ -77,36 +77,30 @@ moteur essai monter
 export PUPPETPAIE_DONNEES=/tmp/puppetpaie-essai     # le dossier que la commande a dit
 ```
 
-**Une DSN mensuelle de test** :
+**Une DSN mensuelle de test** (les routes, par `moteur route --texte`) :
 
 ```bash
-moteur depot-dsn 2026-09 --test                      # la DSN du mois se fabrique sous votre identité, et part en test
-moteur retours                                        # quelques minutes plus tard : le bilan (CCO/BAN) fait foi
+echo '{"route":"deposer","charge":{"quoi":"dsn","mois":"2026-09"}}' | moteur route --texte            # la DSN du mois, sous votre identité, en test
+echo '{"route":"ouverture","charge":{"sauvegarder":false,"signatures":false}}' | moteur route --texte                     # quelques minutes plus tard : le bilan (CCO/BAN) fait foi
 ```
 
 La base d'essai de net-entreprises garde les essais **par SIRET**, y compris ceux faits depuis un autre poste ; le
 journal de la compagnie d'essai, neuf, ne les connaît pas (et les bilans ne disent pas le mois d'une déclaration : le
-moteur ne peut pas le lire sur la plate-forme). Si l'on sait qu'un essai du même mois est déjà passé ailleurs, ou si
-le bilan refuse l'ordre (B1-208-11, « dernier ordre accepté AAAAMMnn »), redéposer avec `--ordre` au-dessus : l'essai
-part alors en annule-et-remplace à cet ordre. Sans `--ordre`, chaque nouvel essai du même mois part déjà à un ordre
-plus grand que le précédent (le journal compte ses essais) : `--ordre` évite de remonter un à un.
+moteur ne peut pas le lire sur la plate-forme). Chaque nouvel essai du même mois part à un ordre plus grand que le
+précédent (le journal compte ses essais) : si le bilan refuse l'ordre (B1-208-11, « dernier ordre accepté AAAAMMnn »),
+redéposer jusqu'à le passer.
 
-```bash
-moteur depot-dsn sorties/2026-09/DSN_Septembre2026.dsn --test --ordre 7
-```
+Une DSN copiée de la fictive (écrite avant le montage, sous son SIREN) est refusée : déposer la DSN par son mois, qui
+la fabrique sous votre identité.
 
-Une DSN copiée de la fictive (écrite avant le montage, sous son SIREN) est refusée : déposer la DSN par son mois
-(`moteur depot-dsn 2026-09`), qui la fabrique sous votre identité.
-
-**Un signalement** (fin de contrat, arrêt, demande de taux) : `moteur fin-contrat signaler AAAA-MM SALARIE --test`,
-`moteur arret …`, `moteur pas --demander --test`, puis `moteur depot-dsn <fichier> --test`. Son ordre se lit sur la
-plate-forme à l'écriture (lot O1).
+**Un signalement** (fin de contrat, arrêt) : sa route l'écrit (`fin-contrat-signaler`, `arret-signaler`), puis
+`deposer` avec `fichier` (le fichier que la route a rendu). Son ordre se lit sur la plate-forme à l'écriture.
 
 **Une DPAE de test** :
 
 ```bash
-moteur deposer-dpae 2026-11 --test                    # pour une seule embauche : la route depot-apercu, avec engagements
-moteur retours --dpae --flux <le flux rendu>
+echo '{"route":"deposer","charge":{"quoi":"dpae","mois":"2026-11"}}' | moteur route --texte           # une seule embauche : avec engagements
+echo '{"route":"ouverture","charge":{"sauvegarder":false,"signatures":false}}' | moteur route --texte
 ```
 
 ## Ce qui reste à confirmer au premier dépôt

@@ -420,7 +420,7 @@ premiere embauche (Configuration > Entreprise), et c'est tout.\n\
 consecutives au-dessus (art. L. 130-1, II, CSS), et il manque \
 l'effectif de {}. L'Urssaf le calcule et le renvoie en \
 compte-rendu metier de nature 118 : relever les retours \
-(`moteur retours --depuis JJ/MM/AAAA`), le moteur \
+(route `ouverture`), le moteur \
 l'ecrit seul dans config/effectifs.json.\n\
 \x20 Une compagnie qui a embauche pour la premiere fois il y a moins \
 de cinq ans n'a qu'a le dire : la date de sa premiere embauche \
