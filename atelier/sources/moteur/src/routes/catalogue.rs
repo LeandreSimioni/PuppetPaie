@@ -109,8 +109,26 @@ pub fn dans(fiches: &[Fiche], nom: &str) -> Option<Fiche> {
     fiches.iter().find(|f| f.nom == nom).copied()
 }
 
+/// La route du catalogue : ce que `moteur routes --json` imprime, pour la page (l'acte d'une route, ce qui est avance).
+pub const ROUTES: &[Fiche] = &[Fiche {
+    nom: "routes",
+    geste: "Dire les routes : leur fiche, le chemin simple d'abord.",
+    charge: &[Champ { nom: "avance", sens: "vrai : toutes les routes, les avancées comprises", avance: true }],
+    exemple: r#"{"avance": true}"#,
+    rend: "routes : la fiche de chaque route (nom, geste, charge, exemple, rend, refus, acte, avance, phrase)",
+    refus: &[FORME],
+    acte: Acte::Lit,
+    avance: true,
+    phrase: 0,
+}];
+
+/// Les fiches du catalogue en JSON : le chemin simple, ou toutes avec `avance`.
+pub fn en_json(avance: bool) -> Value {
+    json!({"routes": catalogue().iter().filter(|f| avance || !f.avance).map(Fiche::en_json).collect::<Vec<_>>()})
+}
+
 /// Les modules dont les routes portent leur fiche, dans l'ordre du catalogue : l'ordre ou leurs exemples se jouent.
-pub const FICHES: [&[Fiche]; 24] = [
+pub const FICHES: [&[Fiche]; 25] = [
     crate::routes::engagement::ROUTES,
     crate::etat_garde::ROUTES,
     crate::routes::mois::ROUTES,
@@ -135,6 +153,7 @@ pub const FICHES: [&[Fiche]; 24] = [
     crate::compagnie::ouverture::ROUTES,
     crate::obligations::ROUTES,
     crate::compagnie::administrateur::ROUTES,
+    ROUTES,
 ];
 
 /// LE CATALOGUE : toutes les routes d'une compagnie, chacune une fois, dans l'ordre des modules.
@@ -161,11 +180,11 @@ pub fn commande(args: &[String]) -> i32 {
         }
         return 0;
     }
-    let montrees: Vec<&Fiche> = tout.iter().filter(|f| avance || !f.avance).collect();
     if json {
-        println!("{}", json!({"routes": montrees.iter().map(|f| f.en_json()).collect::<Vec<_>>()}));
+        println!("{}", en_json(avance));
         return 0;
     }
+    let montrees: Vec<&Fiche> = tout.iter().filter(|f| avance || !f.avance).collect();
     println!("Les routes (echo '{{\"route\":NOM,\"charge\":{{…}}}}' | moteur route ; la fiche : moteur routes NOM ; toutes : --avance)\n");
     let large = montrees.iter().map(|f| f.nom.len()).max().unwrap_or(0);
     for f in &montrees {

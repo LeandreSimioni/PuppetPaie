@@ -174,6 +174,8 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Le banc : l'horloge de la compagnie fictive (rattraper ce qui etait du, ce que le bandeau « pendant votre
         // absence » lit ; `horloge::HorlogeFictive`).
         r if crate::horloge::ROUTES.contains(&r) => crate::horloge::route(o, &ctx, route, &charge),
+        // Le catalogue lui-meme, ce que `moteur routes --json` imprime.
+        _ if dans(catalogue::ROUTES) => Ok(catalogue::en_json(charge.get("avance").is_some_and(socle::fichiers::vrai))),
         autre => return Err(format!("route inconnue : {}", autre)),
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
@@ -189,7 +191,10 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // Les etats des mois se refont dans la fenetre, dans son processus, apres chaque ecriture
     // (`etat_garde::FileDesEtats`) ; hors de la fenetre, un etat perime se refait a sa lecture.
     match rendu {
-        Ok(v) => Ok(json!({"ok": true, "resultat": v})),
+        Ok(v) => {
+            phrase_a_sa_place(&ctx.racine, route, &v);
+            Ok(json!({"ok": true, "resultat": v}))
+        }
         // Une fiche refusee porte ses anomalies : la page les montre.
         Err(Echec { classe: Some("FicheRefusee"), message }) => {
             let d: Value = serde_json::from_str(&message).unwrap_or_else(|_| json!({"message": message}));
@@ -198,6 +203,24 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         Err(Echec { classe: None, message }) => Err(message),
         Err(Echec { classe: Some(c), message }) => Ok(json!({"ok": false, "erreur": message, "classe": c})),
     }
+}
+
+/// UNE PHRASE PLUS LONGUE QUE SA PLACE (la `phrase` de la fiche) se lit entiere, et note un incident silencieux au
+/// developpeur : la route, la place, la longueur ; jamais la phrase, qui peut nommer un salarie. On la corrige a la cause,
+/// en l'ecrivant plus breve.
+fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
+    let Some(place) = catalogue::catalogue().iter().find(|f| f.nom == route).map(|f| f.phrase).filter(|p| *p > 0) else { return };
+    let Some(longueur) = rendu.get("phrase").and_then(Value::as_str).map(|p| p.chars().count()).filter(|n| *n > place) else { return };
+    let resume = format!("La phrase de la route {} passe sa place : {} caractères pour {}.", route, longueur, place);
+    let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
+        nature: crate::compagnie::incidents::LOGICIEL,
+        resume: &resume,
+        ou: route,
+        quoi: "PhraseTropLongue",
+        detail: json!({"route": route, "place": place, "longueur": longueur}),
+        sans_contexte: true,
+        ..Default::default()
+    });
 }
 
 /// Les routes qui ecrivent ou engagent, d'apres l'acte de leur fiche : apres elles, la fenetre verifie les etats des mois

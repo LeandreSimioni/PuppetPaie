@@ -50,28 +50,24 @@ function serveurPerdu() {
  * quelque chose a changé. Chaque lecture garde sa forme (résultat ou refus) :
  * les fonctions qui dessinent n'ont pas changé.
  *
- * Toute autre route peut écrire : ce qui a été lu part alors, avant ET après
- * elle — on n'affiche jamais un état qu'on aurait pu changer soi-même. */
+ * Une route qui écrit le dit dans sa réponse (`ecrit`) : ce qui a été lu part
+ * alors — on n'affiche jamais un état qu'on aurait pu changer soi-même. */
 const LECTURES_DU_MOIS = new Set(["saisie", "contrats-en-cours", "etat-du-mois",
   "fins-de-contrat", "etat-par-engagement", "imprevus"]);
-// Des lectures que la page fait souvent, sans rien changer : elles ne vident pas ce qui a été lu.
-const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organismes-contrats", "incident-navigateur", "diagnostic-etat",
-  "verifier-fiche", "emploi", "signalements", "apercu", "arret-obligations",
-  // Les imprévus d'un salarié (son dossier), les contrats qu'un imprévu suspendrait : des lectures.
-  "imprevus", "arret-contrats",
-  // Les contrats déclarés avant PuppetPaie (l'historique importé) : une lecture, que l'écran d'un mois passé fait en se peignant.
-  "contrats-passes",
-  // L'Historique d'un mois (ses documents, ses envois, leurs retours lus) et la pièce qu'on y ouvre : des lectures.
-  "historique-mois", "ouvrir-piece",
-  // Ce que la boîte « Supprimer cette compagnie » demande : une lecture.
-  "compagnie-suppression",
-  // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne.
-  "veille-etape",
-  // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
-  "conseil-du-jour", "conseils-salarie", "conseils-resume",
-  // Les lectures de l'ouverture : l'accueil, le mois à ouvrir, l'échéancier, et l'ouverture d'un coup.
-  // Elles vidaient ce qui avait été lu du mois : l'écran, servi tout de suite, attendait alors l'état frais (~1 s).
-  "etat", "mois-a-ouvrir", "echeancier", "ouverture"]);
+/* LE CATALOGUE DES ROUTES (`routes`), lu au démarrage : la fiche de chaque route, son acte (`lit`, `ecrit`, `engage`) et ce
+ * qui est « avancé ». Le même que `moteur routes --json --avance`. */
+let CATALOGUE = {};
+const acteDe = (route) => (CATALOGUE[route] || {}).acte || "";
+/** « AVANCÉ » EST LE MÊME POUR LES DEUX ACTEURS : une porte de l'écran (`data-route`, la route qu'elle ouvre) dont la fiche
+ *  est marquée avancée va dans le groupe « Avancé » de sa barre, après le chemin simple. */
+function rangerLAvance() {
+  document.querySelectorAll("[data-route]").forEach((porte) => {
+    const groupe = porte.parentElement && porte.parentElement.querySelector(":scope > .sous-onglets-avance");
+    if (!groupe || !(CATALOGUE[porte.dataset.route] || {}).avance) return;
+    groupe.appendChild(porte);
+    groupe.hidden = false;
+  });
+}
 let LU = null;            // { mois, lectures, perime } : la dernière lecture `mois`
 let LU_EN_COURS = null;   // { mois, promesse, perimeAdmis } : celle qui est en route
 let LU_GENERATION = 0;
@@ -119,13 +115,9 @@ function poserLeMois(mois, ecran) {
  * `verifierLeMois` attend l'état frais (`attendre`) pour repeindre l'écran,
  * s'il a changé, sans toucher à une saisie en cours (`repeindreLeMois`). Tant
  * que ce n'est pas fait, la case du mois dit « mise à jour… », et les gestes
- * qui engagent attendent (`GESTES_QUI_ENGAGENT`) : on ne valide, ne fabrique,
+ * qui écrivent ou engagent (l'acte de leur fiche, `CATALOGUE`) attendent : on ne valide, ne fabrique,
  * ne dépose ni n'envoie sur un écran que le moteur n'a pas confirmé. */
 let VERIF = null;         // { mois, promesse } : la vérification en route
-const GESTES_QUI_ENGAGENT = new Set(["valider-engagement", "contrat-recu", "contrats-imprimer", "depot-apercu", "deposer",
-  "demander-signature", "envoyer-documents", "documents-imprimer",
-  "dossier-envoyer", "casc-envoyer", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents",
-  "cloture"]);
 
 function marquerMiseAJour(oui) {
   const el = document.getElementById("mois-maj");
@@ -177,10 +169,8 @@ async function api(route, charge = {}) {
     const lu = await lireLeMois(mois);
     return structuredClone(lireReponse(lu.lectures[route]));
   }
-  if (ROUTES_SANS_EFFET.has(route)) return appelerMoteur(route, charge);
-  if (GESTES_QUI_ENGAGENT.has(route)) await attendreLeMoisFrais();
-  oublierLeMois();
-  try { return await appelerMoteur(route, charge); } finally { oublierLeMois(); }
+  if (acteDe(route) && acteDe(route) !== "lit") { await attendreLeMoisFrais(); oublierLeMois(); }
+  return appelerMoteur(route, charge);
 }
 
 /* LES GESTES DE LA PAGE : un petit historique des actions sur la machine,
@@ -306,6 +296,8 @@ async function appelerMoteur(route, charge = {}) {
     vide.detail = { type: "ReponseIllisible", message: vide.message };
     throw vide;
   }
+  // Une route qui a écrit (même refusée) : ce qui a été lu part.
+  if (d.ecrit) oublierLeMois();
   if (!d.ok) {
     const erreur = typeof d.erreur === "object" && d.erreur ? d.erreur : { message: String(d.erreur || "Refusé.") };
     if (erreur.type === "EnvoiBride") montrerEnvoiRefuse(erreur.message);

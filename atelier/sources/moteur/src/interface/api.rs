@@ -463,13 +463,15 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
     }
     // APRES UNE ECRITURE (ou un tour de veille demande), les etats de tous les mois se verifient en fond, le mois affiche
     // d'abord : une ecriture d'un mois peut changer les suivants (un contrat en cours, une numerotation, un cumul). Meme
-    // refusee, une ecriture a pu toucher un fichier ; un mois deja juste ne coute que son empreinte.
+    // refusee, une ecriture a pu toucher un fichier ; un mois deja juste ne coute que son empreinte. La reponse le dit
+    // (`ecrit`) : la page oublie alors ce qu'elle a lu.
+    let ecrit = crate::routes::est_une_ecriture(nom) || nom == "veille-maintenant";
     if let Some(f) = etats {
-        if crate::routes::est_une_ecriture(nom) || nom == "veille-maintenant" {
+        if ecrit {
             f.tout_verifier();
         }
     }
-    match rendu {
+    let mut reponse = match rendu {
         Ok(v) => json!({"ok": true, "resultat": v}),
         Err(r) => {
             if !PAS_DES_INCIDENTS.contains(&r.classe.as_str()) && nom != "incident-navigateur" {
@@ -491,7 +493,11 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
             }
             en_page(Err(r))
         }
+    };
+    if ecrit {
+        reponse["ecrit"] = json!(true);
     }
+    reponse
 }
 
 /// Un resultat ou un refus, au format que la page attend (`{"ok", "resultat"}` ou `{"ok": false, "erreur": {"type", "message", ...}}`).

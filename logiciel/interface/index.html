@@ -184,7 +184,7 @@
     <button data-fiche="spectacle">Spectacles</button>
     <!-- LES MÉTIERS : la liste que la compagnie coche, et que
          la fiche d'un salarié et un engagement proposent. -->
-    <button data-fiche="metiers">Métiers</button>
+    <button data-fiche="metiers" data-route="metiers-catalogue">Métiers</button>
     <!-- LES ORGANISMES ET LES CONTRATS DE LA DSN : la référence
          des contrats de prévoyance et de santé, l'organisme quand la branche
          n'en désigne pas. Le moteur compose config/organismes.json. -->
@@ -192,7 +192,9 @@
     <!-- LE MODÈLE DU BULLETIN : simplifié ou complet,
          chacun montré sur une paie fictive ; la compagnie choisit pour tous. -->
     <button data-fiche="bulletin">Modèle de bulletin</button>
-    <button data-fiche="contrats">Modèles de contrat</button>
+    <button data-fiche="contrats" data-route="modeles-contrat">Modèles de contrat</button>
+    <!-- AVANCÉ : ce que la fiche de sa route marque « avancé » (le catalogue, `rangerLAvance`), après le chemin simple. -->
+    <span class="sous-onglets-avance" hidden><span class="discret">Avancé :</span></span>
     <span class="sous-onglets-installation">
       <!-- Signature et logo : la premiere route de fichier du
            logiciel. Le cachet, lui, est DESSINE depuis la fiche Entreprise. -->

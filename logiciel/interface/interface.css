@@ -97,6 +97,9 @@ body {
 .sous-onglets button.actif { color: var(--texte); border-bottom-color: var(--action); font-weight: bold; }
 .sous-onglets-installation { display: flex; gap: 2px; margin-left: auto; }
 .sous-onglets-installation button { font-size: 13px; }
+.sous-onglets-avance { display: flex; align-items: flex-end; gap: 2px; margin-left: 12px; }
+.sous-onglets-avance > .discret { padding: 8px 0 7px; font-size: 13px; }
+.sous-onglets-avance[hidden] { display: none; }
 .etat { margin-left: auto; font-size: 12px; color: var(--discret); text-align: right; }
 
 /* La fenetre PuppetPaie (sans bordure systeme, ticket #195) : le bandeau sert
@@ -151,7 +154,7 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
 /* UNE LIGNE, TOUJOURS (ticket #244 : « une fois affichée, rien ne bouge ») : le relevé qui finit, une nouvelle qui
    arrive changent le texte, jamais la hauteur du bandeau ; ce qui dépasse se lit au survol (`title`). Un « + n autres »
    déplié, c'est la personne qui l'a demandé. */
-.veille-texte { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.veille-texte { flex: 1; min-width: 0; }
 .veille-texte details:not([open]) { display: inline; }
 .veille-texte details[open] { white-space: normal; }
 #veille-maintenant { flex: none; }
@@ -332,7 +335,6 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
   list-style: none; cursor: pointer; padding: 6px 26px 6px 8px;
   font-size: 14px; color: var(--texte); background: var(--carte);
   border: 1px solid var(--bord); border-radius: 3px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .e-qui summary::-webkit-details-marker { display: none; }
 .e-qui summary::after {
@@ -622,7 +624,7 @@ details.historique-fiche[open] > summary { margin-bottom: 8px; }
 /* Les mois de l'Historique : en grille, pour que leurs états et leurs
    documents tombent en colonne d'un mois à l'autre. */
 .rang.mois { display: grid; grid-template-columns: 11rem auto minmax(0, 1fr) auto; }
-.rang.mois .rang-infos { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rang.mois .rang-infos { min-width: 0; }
 .rang.exercice .rang-infos { font-size: 13px; }
 .rang.import .rang-nom { min-width: 220px; }
 /* Signature, tampon, logo : l'image en place, à gauche. */
@@ -874,8 +876,8 @@ input.jour-du-mois { width: 4rem; }
 .rubrique .r-jours-btn {
   font-variant-numeric: tabular-nums; text-align: left; padding: .3rem .5rem;
   border: 1px solid var(--bord); background: var(--carte); color: var(--texte);
-  border-radius: 3px; cursor: pointer; white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; min-width: 0; font-size: 13px;
+  border-radius: 3px; cursor: pointer;
+  min-width: 0; font-size: 13px;
 }
 .rubrique .r-jours-btn.vide { color: var(--discret); }
 .rubrique .r-jours-btn.planning { border-color: var(--alerte); }
@@ -1230,7 +1232,7 @@ pre.reponse {
    sur une ligne, le mot passe dessous ; le nom ne se coupe que s'il est plus long
    que la case entière. */
 .carte-nom { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; row-gap: 0; min-width: 0; }
-.carte-nom b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.carte-nom b { max-width: 100%; }
 .e-pied .e-viser-btn { margin-left: auto; }
 .e-pied .lien { font-size: 12px; color: var(--discret); }
 .e-chiffres[hidden], .e-options[hidden] { display: none; }
@@ -1292,8 +1294,7 @@ pre.reponse {
                     letter-spacing: .5px; }
 .carte-qui { display: flex; flex-direction: column; min-width: 0; }
 .carte-qui b { font-size: 14px; }
-.carte-qui .discret { font-size: 12px; white-space: nowrap; overflow: hidden;
-                      text-overflow: ellipsis; }
+.carte-qui .discret { font-size: 12px; }
 .carte-actes .etats-actes { margin: 0; }
 .carte-net { font-size: 15px; font-weight: bold; white-space: nowrap;
              min-width: 88px; text-align: right; }
@@ -1628,7 +1629,7 @@ label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 
   border-radius: 50%; background: var(--bord, #d0d0d0); font-weight: bold; font-size: 12px; }
 .fictive-bulle.actif { border-color: currentColor; font-weight: bold; }
 .fictive-bulle.fait span { background: #2e7d32; color: #fff; }
-.fictive-courriel { border: 1px solid var(--bord, #d0d0d0); border-radius: 6px; overflow: hidden; }
+.fictive-courriel { border: 1px solid var(--bord, #d0d0d0); border-radius: 6px; }
 .fictive-entete { padding: 8px 12px; font-size: 13px; line-height: 1.6; background: rgba(0,0,0,.03);
   border-bottom: 1px solid var(--bord, #d0d0d0); overflow-wrap: anywhere; }
 .fictive-entete span { display: inline-block; min-width: 88px; color: var(--discret, #777); }
