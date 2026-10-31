@@ -527,19 +527,15 @@ fn connaissance(suivi: &Value, champ: &str, quoi: &str) -> Option<Depart> {
 
 // ------------------------------------------------------------- les arrets
 
-/// L'IMPREVU `a` ET CE QUI EN EST PARTI (`envois`), lu au journal des envois : les signalements de l'arret (son fichier,
-/// `SignalementArret_` ou `SignalementReprise_`, au salarie et au dernier jour travaille, `routes::imprevus::arret_signaler`)
-/// et les DSN mensuelles des mois qu'il traverse deposees apres sa saisie (elles le reportent). Seul compte un depot reel
-/// accepte : un signalement refuse au bilan n'est pas recu (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt`
-/// §4.2) et reste du.
+/// L'IMPREVU `a` ET CE QUI EN EST PARTI (`envois`), lu au journal des envois : les signalements de l'arret (une ligne `dsn`
+/// de nature 04 ou 05 dont l'evenement, `mois`, est le dernier jour travaille de l'arret et qui couvre un engagement du
+/// salarie, `versions`) et les DSN mensuelles des mois qu'il traverse deposees apres sa saisie (elles le reportent). Seul
+/// compte un depot reel accepte : un signalement refuse au bilan n'est pas recu (cahier technique DSN,
+/// `norme-dsn/texte/chapitre-4-controles.txt` §4.2) et reste du.
 pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
     let lignes = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
     let salarie = texte(a, "salarie");
     let dj = texte(a, "dernier_jour_travaille");
-    let siens: Vec<String> = match dj.get(..7) {
-        Some(_) => ["Arret", "Reprise"].iter().map(|n| format!("Signalement{}_{}_{}.dsn", n, salarie, dj.replace('-', ""))).collect(),
-        None => Vec::new(),
-    };
     let traverses: Vec<String> = match (engagement::imprevus::premier_jour(a), engagement::imprevus::dernier_jour(a)) {
         (Ok(p), Ok(d)) if p <= d => socle::date::mois_entre(&p, &d),
         _ => Vec::new(),
@@ -555,7 +551,8 @@ pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
         let d = l.get("detail").cloned().unwrap_or(Value::Null);
         let (nature, type_dsn) = (texte(&d, "nature"), texte(&d, "type"));
         let ordre = texte(&d, "ordre").trim().parse::<i64>().unwrap_or(0);
-        if siens.contains(&nom) {
+        let du_salarie = l.get("versions").and_then(Value::as_array).is_some_and(|v| v.iter().any(|x| texte(x, "salarie") == salarie));
+        if matches!(nature.as_str(), "04" | "05") && dj.len() == 10 && mois == dj && du_salarie {
             partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "fichier": format!("sorties/{}/{}", &dj[..7], nom), "quand": quand}));
         } else if nature == "01" && traverses.contains(&mois) && quand.replace('T', " ") >= saisi {
             partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "mois": mois, "fichier": format!("sorties/{}/{}", mois, nom), "quand": quand}));
