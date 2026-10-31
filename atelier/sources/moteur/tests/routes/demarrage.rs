@@ -2,9 +2,9 @@
 //!
 //! - « Pour demarrer » (`demarrage::manques`) ne demande que ce qui se remplit dans un champ que l'ecran montre : une
 //!   valeur deduite se demande par celle dont elle se deduit (le SIREN et le NIC par le SIRET, la forme declaree par sa
-//!   forme lisible : `demarrage::a_l_ecran`) ; la qualite du contact DSN ne se demande plus (le moteur l'ecrit :
+//!   forme lisible) ; la qualite du contact DSN ne se demande pas (le moteur l'ecrit :
 //!   `dsn::type_du_contact`, prouve dans `tests/dsn/contact_declare.rs`) ; le code du service de sante au travail se
-//!   demande par sa case des que la DPAE l'exigerait (`dpae::employeur_manques`), meme quand le SIRET manque aussi.
+//!   demande par sa case, comme tout ce que la DPAE exige (`exige_par` de `champs-base.json`).
 //!   La reponse sur la TVA (la taxe sur les salaires de la DSN de decembre) se demande d'avance.
 //! - Le SIREN et le NIC se deduisent du SIRET a l'enregistrement de la fiche (`crate::routes::fiches::deriver`) : un SIRET est un
 //!   SIREN de 9 chiffres suivi d'un NIC de 5.
