@@ -572,8 +572,8 @@ pub(crate) fn verifier(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>>
 
 /// LES ANOMALIES QUE L'ECRITURE TROUVERA : celles d'une fiche que l'import cree, derivee comme `ecrire_fiche` la
 /// derive avant d'ecrire (`deriver` force : la forme declaree se refait de la forme lisible), puis verifiee. L'apercu
-/// de l'import les montre telles : avant, il verifiait la fiche avant derivation, et chaque champ que le bulletin ou
-/// la DSN imprime en minuscules (« 3 quai de la Fosse ») criait « doit etre en MAJUSCULES » sous sa forme lisible,
+/// de l'import les montre telles : verifier la fiche avant derivation ferait crier chaque champ que le bulletin ou
+/// la DSN imprime en minuscules (« 3 quai de la Fosse ») « doit etre en MAJUSCULES » sous sa forme lisible,
 /// alors que l'ecriture le declare bien en majuscules.
 ///
 /// Le matricule d'un salarie neuf que la piece ne donne pas, l'ecriture le pose (le suivant, `ecrire_fiche`) : son

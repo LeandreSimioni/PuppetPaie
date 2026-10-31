@@ -1443,7 +1443,7 @@ pub(crate) fn resume_arret(ctx: &Contexte, n: &Value, a: &Value) -> R<Value> {
 fn arrets(ctx: &Contexte) -> R<Value> {
     let tous = tous_les_arrets(ctx)?;
     let n = nomenclatures(ctx)?;
-    // LES OBLIGATIONS de chaque arret (`obligations::de_l_arret`, 15/10/2026) : un champ de plus a son resume.
+    // LES OBLIGATIONS de chaque arret (`obligations::de_l_arret`) : un champ de plus a son resume.
     let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut resumes = Vec::new();
     let mut a_signaler = Vec::new();

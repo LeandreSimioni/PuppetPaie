@@ -250,9 +250,8 @@ fn liste_lue(v: &Value) -> R<Vec<Value>> {
     }
 }
 
-/// Pose sur chaque ligne les jours qu'elle couvre,
-/// et ou (les saisies ecrites avant le 12/09/2026 portaient les jours sur
-/// l'engagement).
+/// Pose sur chaque ligne les jours qu'elle couvre, et ou : une saisie qui porte les jours sur
+/// l'engagement les redescend sur ses lignes.
 fn jours_sur_les_lignes(
     ctx: &Contexte,
     eng: &Engagement,

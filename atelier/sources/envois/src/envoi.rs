@@ -533,7 +533,7 @@ pub fn envoyer_suivi(
 
 const MAXLEN: usize = 78;
 
-/// Les types qui passent devant `mimetypes` (`envoi.GENRES`).
+/// Les types qui passent devant la table `MIMETYPES`.
 const GENRES: [(&str, &str); 2] = [
     (".pdf", "application/pdf"),
     (".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
@@ -708,7 +708,7 @@ const SUFFIXES: [(&str, &str); 6] = [
     (".txz", ".tar.xz"),
 ];
 
-/// `mimetypes.encodings_map` (sensible a la casse) : un suffixe de compression, que la devinette saute.
+/// Les suffixes de compression (sensibles a la casse), que la devinette du type saute.
 const ENCODAGES: [&str; 5] = [".gz", ".Z", ".bz2", ".xz", ".br"];
 
 /// Le dernier point du nom, sauf s'il ne suit que des points.
@@ -720,7 +720,7 @@ fn couper_extension(nom: &str) -> (&str, &str) {
     (&nom[..point], &nom[point..])
 }
 
-/// `mimetypes.guess_type(nom)[0]`, sans les fichiers du systeme.
+/// Le type de la piece d'apres le suffixe de son nom, sans les fichiers du systeme.
 pub fn type_devine(nom: &str) -> Option<&'static str> {
     let (mut base, mut ext) = couper_extension(nom);
     let mut dernier: String;

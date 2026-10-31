@@ -12,7 +12,7 @@ mod outils;
 
 use serde_json::{json, Value};
 
-/// LES TRETEAUX DU BANC : le petit scenario de la preuve, joue au banc le 23/10/2026. Une compagnie ajoutee par le « + »
+/// LES TRETEAUX DU BANC : le petit scenario de la preuve, joue au banc. Une compagnie ajoutee par le « + »
 /// d'un logiciel bride, configuree juste assez pour payer (convention 3090), une comedienne, deux cachets les 20 et
 /// 21/11/2026 ; puis le geste d'atelier qui rend ses envois simules, et le calendrier avance au 20/11, au 01/12, au 16/12 :
 /// l'horloge de la fictive valide l'engagement, depose la DPAE (test puis reel), fabrique et depose la DSN de novembre et
@@ -34,7 +34,7 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     for doc in ["sorties/2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf", "sorties/2026-11/envoi/CertificatCS_FULLER_Novembre2026.pdf"] {
         assert!(f.get(doc).is_some(), "{} manque", doc);
     }
-    // Ajoutee le 02/11/2026, la compagnie ne coche aucune echeance de 2026 fermee avant.
+    // La compagnie ajoutee le 02/11/2026 ne coche aucune echeance de 2026 fermee avant.
     let cochees = f["config/echeancier.json"]["fait"].as_object().map(|m| m.keys().cloned().collect::<Vec<_>>()).unwrap_or_default();
     assert!(cochees.is_empty(), "echeances cochees : {:?}", cochees);
     // L'AER CINEMA SPECTACLE (`aer::due`, `aer_fictive`) : la DSN mensuelle de novembre, qui porte la fin du contrat de la

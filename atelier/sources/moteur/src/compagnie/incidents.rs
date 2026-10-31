@@ -709,7 +709,7 @@ pub fn pour_l_editeur(racine: &Path, ligne: &Value) -> R<Value> {
         d.insert(k.to_string(), pour_texte(get(ligne, k)?));
     }
     d.insert("machine".into(), json!(machine()));
-    // Ce que le diagnostic ajoute (`diagnostic`, 23/10/2026) : combien de fois, la derniere, le fil des trois minutes d'avant,
+    // Ce que le diagnostic ajoute (`diagnostic`) : combien de fois, la derniere, le fil des trois minutes d'avant,
     // la machine en entier. Une ligne d'avant ne les a pas : ils partent vides.
     d.insert("fois".into(), ligne.get("fois").cloned().unwrap_or(json!(1)));
     d.insert("derniere".into(), ligne.get("derniere").cloned().unwrap_or_else(|| ligne.get("quand").cloned().unwrap_or(Value::Null)));
