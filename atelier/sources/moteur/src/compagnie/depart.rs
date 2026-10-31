@@ -70,7 +70,7 @@ fn annee_de(mois: &str) -> R<i64> {
 /// DPAE, un export compta -- y note QUAND, au temps du moteur (`temps.rs`, par `socle::paris::maintenant`). C'est ce que
 /// l'ecran dit (« ecrit le ... ») : la date d'un fichier n'est pas celle de son ecriture (une fictive livree est
 /// decompressee chez le visiteur, un banc simule le temps). `cle` : `<mois>/<fichier>`, ou `exercices/<fichier>` ;
-/// `empreinte_saisie` : la paie que la piece declare -- pour une DSN, l'empreinte de la saisie du mois ; pour l'export compta
+/// `empreinte_saisie` : la paie que la piece declare -- pour une DSN, celle de ses paies validees ; pour l'export compta
 /// de l'annee, celles de ses saisies (`exercice_ecrit::empreintes_des_saisies`).
 pub(crate) fn noter_piece_ecrite(racine: &Path, cle: &str, empreinte_saisie: Option<Value>) -> R<()> {
     let p = racine.join("journal").join("dsn-ecrites.json");

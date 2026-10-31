@@ -959,18 +959,19 @@ impl<'a> Moteur<'a> {
 
     // ----------------------------------------------------- l'annule-et-remplace
 
-    /// `empreinte_saisie` : ce que la DSN du mois declare, resume en 16 caracteres -- la paie du mois, et la version de
-    /// chaque engagement d'un mois passe dont elle porte la correction (`produire_regularisations::regularisations_pour`) :
-    /// une correction validee apres l'ecriture du fichier le rend perime comme une paie du mois qui change. `None` sans
-    /// saisie ni correction.
+    /// `empreinte_saisie` : ce que la DSN du mois declare, resume en 16 caracteres -- les paies validees du mois
+    /// (`engagement::etats::empreinte_des_paies_validees` : un brouillon n'y est pas, la DSN ne le declare pas), et la
+    /// version de chaque engagement d'un mois passe dont elle porte la correction
+    /// (`produire_regularisations::regularisations_pour`) : une correction validee apres l'ecriture du fichier le rend
+    /// perime comme une paie du mois qui change. `None` si rien ne se lit ni ne se corrige.
     pub(crate) fn empreinte_saisie(&self, mois: &str) -> R<Option<String>> {
-        let vue = engagement::stock::vue_du_mois(self.racine(), mois).map_err(plain)?;
+        let vue = engagement::etats::empreinte_des_paies_validees(self.ctx, mois);
         let portees: Vec<Value> = match declarations::produire_regularisations::regularisations_pour(self.ctx, mois, &self.departs()?) {
             Ok(regs) => regs.iter().map(|r| json!([r.mois, valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)), r.apres.engagement.numero, r.version])).collect(),
             Err(e) => vec![json!(e.message)],
         };
         Ok(match (vue, portees.is_empty()) {
-            (vue, true) => vue.map(|v| empreinte_de(&v)),
+            (vue, true) => vue.map(|v| v.chars().take(16).collect()),
             (vue, false) => Some(empreinte_de(&json!({"saisie": vue, "corrections": portees}))),
         })
     }
