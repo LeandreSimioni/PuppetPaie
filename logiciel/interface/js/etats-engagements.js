@@ -312,8 +312,8 @@ async function validerLaCarte(div) {
 }
 
 /** Le bouton « Retirer cet engagement » d'une carte, quel que soit son état. Le moteur décide (`retirer-engagement`,
- *  la carte désignée par son identité) : rien de parti, l'engagement s'efface ; un envoi parti, il refuse
- *  (`EngagementParti`), la page montre sa phrase et propose de rendre l'engagement non actif. Une carte jamais écrite
+ *  la carte désignée par son identité) : rien de parti, l'engagement s'efface ; un envoi parti, il avertit sans rien
+ *  écrire (`avertissement`), et la page propose de le rendre non actif (`confirme`). Une carte jamais écrite
  *  n'a rien dans le moteur : elle s'efface de l'écran. Ce qui attend s'écrit
  *  d'abord, puis le mois se relit. */
 function brancherRetirer(div) {
@@ -327,13 +327,12 @@ function brancherRetirer(div) {
     if (!div.dataset.engagement) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
     const charge = { mois, engagement: JSON.parse(div.dataset.engagement) };
     try {
-      try {
-        dire((await api("retirer-engagement", charge)).phrase);
-      } catch (e) {
-        if (e.detail?.type !== "EngagementParti") throw e;
-        if (!await boiteNonActif(e.message)) return;
-        dire((await api("retirer-engagement", { ...charge, non_actif: true })).phrase);
+      let r = await api("retirer-engagement", charge);
+      if (r.avertissement) {
+        if (!await boiteNonActif(r.avertissement)) return;
+        r = await api("retirer-engagement", { ...charge, confirme: true });
       }
+      dire(r.phrase);
       div.remove();
       await chargerMois(mois, true);
     } catch (e) { dire(e.message, "erreur"); }

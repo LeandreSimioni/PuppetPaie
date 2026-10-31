@@ -112,14 +112,15 @@ fn les_documents_d_un_mois_qui_n_est_pas_parti_ne_partent_pas() {
 }
 
 /// Un engagement dont un envoi reel accepte est parti (la DPAE, la DSN de novembre des Treteaux) ne se supprime
-/// pas. La route refuse et rien n'est ecrit : l'engagement reste tel qu'il etait.
+/// pas. La route avertit et rien n'est ecrit : l'engagement reste tel qu'il etait.
 #[test]
 fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "parti"));
     let avant = std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
     let charge = json!({"mois": "2026-11", "engagement": outils::identite_a(&racine, "2026-11", 0)});
-    outils::refus(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
-    assert!(std::fs::read(racine.join("engagements/2026-11.json")).unwrap() == avant, "le refus a ecrit l'engagement");
+    let r = outils::route(&racine, "retirer-engagement", charge, "2026-12-16");
+    assert!(outils::reussi(&r)["avertissement"].is_string(), "{}", r);
+    assert!(std::fs::read(racine.join("engagements/2026-11.json")).unwrap() == avant, "l'avertissement a ecrit l'engagement");
 }
 
 /// L'engagement des Treteaux, sa DPAE et sa DSN de novembre parties, devient non actif apres la veille de
@@ -142,7 +143,7 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
         dsn["groupes"].as_array().unwrap().iter().map(|g| g["etat"].as_str().unwrap().to_string()).collect()
     };
     assert_eq!(dsn_de_decembre(), ["rien"], "un mois sans rien a declarer");
-    let charge = json!({"mois": "2026-11", "engagement": outils::identite_a(&racine, "2026-11", 0), "non_actif": true});
+    let charge = json!({"mois": "2026-11", "engagement": outils::identite_a(&racine, "2026-11", 0), "confirme": true});
     outils::reussi(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
     assert_eq!(dsn_de_decembre(), ["a_faire"], "la DSN de decembre porte la correction de novembre");
 

@@ -1,4 +1,4 @@
-//! `moteur echeancier [--le AAAA-MM-JJ] [--json]` et `moteur rappels [--le AAAA-MM-JJ] [--json]`.
+//! `moteur echeancier [--json]` et `moteur rappels [--le AAAA-MM-JJ] [--json]`.
 //! Tout passe par les routes du moteur (`echeancier`, `rappels`) : la fenetre fait les memes appels, et un rappel lu ici
 //! est exactement celui qu'elle montre a l'ouverture.
 //!
@@ -14,7 +14,7 @@ use socle::echec::Echec;
 pub static SPEC_ECHEANCIER: Spec = Spec {
     commande: "echeancier",
     positionnels: &[],
-    options: &[Opt::valeur("le"), Opt::valeur("fait"), Opt::valeur("defait"), Opt::drapeau("json")],
+    options: &[Opt::valeur("fait"), Opt::valeur("defait"), Opt::drapeau("json")],
 };
 
 pub static SPEC_RAPPELS: Spec = Spec { commande: "rappels", positionnels: &[], options: &[Opt::valeur("le"), Opt::drapeau("json")] };
@@ -87,11 +87,7 @@ fn cocher(cadre: &Cadre, cle: &str, fait: bool) -> i32 {
 }
 
 fn faire_echeancier(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
-    let charge = match jour_le(args)? {
-        Some(j) => json!({"aujourdhui": j}),
-        None => json!({}),
-    };
-    let r = cadre.route("echeancier", charge)?;
+    let r = cadre.route("echeancier", json!({}))?;
     if args.drapeau("json") {
         // L'enveloppe JSON : le code de sortie est 0.
         rendre(&enveloppe("echeancier", r));

@@ -151,7 +151,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
     match nom {
         "saisie" => saisie(ctx, charge),
         "apercu" => apercu(ctx, charge),
-        "echeancier" => echeancier(ctx, charge),
+        "echeancier" => echeancier(ctx),
         "contrats-en-cours" => contrats_en_cours_route(ctx, charge),
         "contrats-passes" => contrats_passes_route(ctx, charge),
         "emploi" => emploi(charge),
@@ -735,13 +735,9 @@ pub(crate) fn annuelles_de<'a>(base: &'a Value, idcc: Option<&Value>) -> R<Vec<&
         .collect())
 }
 
-/// La route `echeancier` : ce que l'ouverture montre. `charge.aujourdhui`
-/// (AAAA-MM-JJ) remplace le jour du contexte (la ligne de commande `echeancier`).
-fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let aujourdhui = match charge.get("aujourdhui").filter(|v| vrai(v)) {
-        Some(v) => Jour::lire(&en_texte(v))?,
-        None => ctx.aujourdhui,
-    };
+/// La route `echeancier` : ce que l'ouverture montre, au jour du contexte.
+fn echeancier(ctx: &Contexte) -> R<Value> {
+    let aujourdhui = ctx.aujourdhui;
     let mois_a_venir = 12;
     let base: Value = {
         let p = dossier_du_code().join("echeancier-base.json");

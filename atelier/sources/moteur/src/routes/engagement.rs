@@ -67,14 +67,10 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "retirer-engagement",
         geste: "Retirer l'engagement d'une carte, ou le rendre non actif si un envoi est parti.",
-        charge: &[MOIS, IDENTITE, Champ { nom: "non_actif", sens: "vrai : le rendre non actif, après le refus EngagementParti", avance: false }],
+        charge: &[MOIS, IDENTITE, Champ { nom: "confirme", sens: "vrai : l'avertissement rendu a été lu, et l'engagement devient non actif", avance: false }],
         exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0}}"#,
-        rend: "phrase : retiré, ou non actif et ce que cela rend à faire",
-        refus: &[
-            RefusDit { classe: CLASSE_ENGAGEMENT_PARTI, corriger: "rien à corriger : un envoi est parti ; renvoyer avec non_actif pour le rendre non actif" },
-            OPERATION,
-            FORME,
-        ],
+        rend: "phrase : retiré, ou non actif et ce que cela rend à faire ; un envoi est parti : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit",
+        refus: &[OPERATION, FORME],
         acte: Acte::Ecrit,
         avance: false,
         phrase: 200,
@@ -412,24 +408,22 @@ fn avis_de_validation(ctx: &Contexte, v: &engagement::etats::Valide, departs: &e
 
 // ------------------------------------------------------------------ retirer-engagement
 
-/// La classe du refus de supprimer un engagement dont quelque chose est parti : la page montre la phrase, et renvoie la
-/// demande avec `non_actif` si l'utilisateur veut qu'il ne soit plus actif.
-pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
-
 /// « Retirer cet engagement » : la carte se designe par son identite (`engagement`, que le moteur lui a rendue).
 /// Tant que rien n'est parti de lui, l'engagement se supprime, meme valide, et rend son numero
-/// (`engagement::etats::supprimer`). Des qu'un envoi est parti, le moteur refuse (`CLASSE_ENGAGEMENT_PARTI`, la phrase
-/// dit ce qui est parti) ; avec `non_actif`, il devient non actif (`engagement::etats::desactiver`) et la phrase dit ce
-/// que cela rend a faire (la DSN d'un mois a corriger). Rien ne part de lui-meme.
+/// (`engagement::etats::supprimer`). Des qu'un envoi est parti, la route avertit sans rien ecrire (`avertissement` : ce
+/// qui est parti) ; renvoyee avec `confirme`, l'engagement devient non actif (`engagement::etats::desactiver`) et la
+/// phrase dit ce que cela rend a faire (la DSN d'un mois a corriger). Rien ne part de lui-meme.
 fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     let (i, o) = designe(ctx, mois, charge)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
-    if !booleen(charge, "non_actif", false) {
+    if !booleen(charge, "confirme", false) {
+        let parti = !engagement::etats::ce_qui_est_parti(ctx, &o, &departs).is_empty();
         return match engagement::etats::supprimer(ctx, &o, &departs) {
             Ok(()) => Ok(json!({"phrase": "Engagement retiré."})),
-            Err(m) => Err(erreur(CLASSE_ENGAGEMENT_PARTI, m)),
+            Err(m) if parti => Ok(json!({"avertissement": m})),
+            Err(m) => Err(Echec::from(m)),
         };
     }
     let n = engagement::etats::desactiver(ctx, mois, i, &departs).map_err(Echec::from)?;
