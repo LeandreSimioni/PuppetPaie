@@ -106,7 +106,7 @@ fn utf8_remplace(o: &[u8]) -> String {
     String::from_utf8_lossy(o).into_owned()
 }
 
-/// `_sans_secret` : jamais un identifiant dans un message.
+/// Jamais un identifiant dans un message.
 pub fn sans_secret(url: &str) -> &str {
     url.split('?').next().unwrap_or("")
 }

@@ -98,7 +98,7 @@ fn iso(j: Jour) -> String {
 
 // ----------------------------------------------------------------- le calcul
 
-/// `_valeurs` : (PSS mensuel, PSS horaire) de l'annee, tronques a l'entier
+/// (PSS mensuel, PSS horaire) de l'annee, tronques a l'entier
 /// comme `int(...)`.
 fn valeurs(annee: i32, pss: Pss) -> Resultat<(Decimal, Decimal)> {
     let (m, h) = pss(annee)?;

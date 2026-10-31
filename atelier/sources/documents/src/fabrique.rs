@@ -56,7 +56,7 @@ pub fn verrouiller(octets: &[u8]) -> Result<Vec<u8>, String> {
 
 // ------------------------------------------------------------------ l'assemblage
 
-/// `_fusion_fabrique` : des pieces (un PDF, ses pages 0-based ou toutes) fusionnees par la fabrique ;
+/// Des pieces (un PDF, ses pages 0-based ou toutes) fusionnees par la fabrique ;
 /// un refus est une `ErreurOperation`, aucun PDF n'est assemble autrement.
 pub fn fusion_pieces(pieces: &[(PathBuf, Option<Vec<usize>>)]) -> Result<Vec<u8>, Refus> {
     let liste: Vec<Value> = pieces

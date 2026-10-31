@@ -236,7 +236,7 @@ pub struct Note<'a> {
     pub sans_contexte: bool,
 }
 
-/// `_lignes` : la liste du fichier ; un fichier absent, illisible ou qui n'est
+/// La liste du fichier ; un fichier absent, illisible ou qui n'est
 /// pas une liste n'en dit aucune.
 fn lignes(p: &Path) -> Vec<Value> {
     if !p.exists() {
@@ -434,7 +434,7 @@ fn texte_de(v: &Value) -> String {
     valeur_en_texte(v)
 }
 
-/// `_fichier_court` : « http://hote:7331/interface.js?v=3 » -> « interface.js ».
+/// « http://hote:7331/interface.js?v=3 » -> « interface.js ».
 /// L'hote et le port varient ; la requete porte le jeton, elle ne se garde jamais.
 fn fichier_court(source: &Value) -> String {
     let s = if vrai(source) { texte_de(source) } else { String::new() };
@@ -685,7 +685,7 @@ pub fn oublier(racine: &Path, nature: Option<&str>) -> usize {
 
 // -------------------------------------------------------- ce qui part chez l'editeur
 
-/// `_pour_texte` : ni le chemin du dossier de l'utilisateur (qui porte son nom
+/// Ni le chemin du dossier de l'utilisateur (qui porte son nom
 /// de session), ni une adresse courriel.
 fn pour_texte(v: &Value) -> Value {
     match v {
@@ -975,7 +975,7 @@ pub fn canal(racine: &Path) -> R<Canal> {
     })
 }
 
-/// `_marquer` : passe a `depose` les lignes nommees par (empreinte, quand).
+/// Passe a `depose` les lignes nommees par (empreinte, quand).
 fn marquer(racine: &Path, cles: &[(Value, Value)]) -> R<usize> {
     if cles.is_empty() {
         return Ok(0);

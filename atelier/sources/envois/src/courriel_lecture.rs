@@ -76,7 +76,7 @@ pub fn identifiant_de(m: &ParsedMail) -> String {
     socle::texte::strip(&m.headers.get_first_value("Message-ID").unwrap_or_default()).to_string()
 }
 
-/// `_date_de` : la date du message, en heure locale (Paris), ISO a la seconde -- le format du journal. Sans en-tete
+/// La date du message, en heure locale (Paris), ISO a la seconde -- le format du journal. Sans en-tete
 /// `Date` lisible, l'heure de la releve (`maintenant`, deja en ISO).
 ///
 /// `-0000` est une heure UT, comme `+0000` : la RFC 5322, § 3.3 (`atelier/reference/sources/ietf/LISEZ-MOI.md`), ne lui
@@ -243,7 +243,7 @@ fn date_lue(brut: &str) -> Option<i64> {
     }
 }
 
-/// `_texte_propre` : ce que l'auteur de la reponse a ecrit lui-meme, citation exclue. La partie texte ; a defaut,
+/// Ce que l'auteur de la reponse a ecrit lui-meme, citation exclue. La partie texte ; a defaut,
 /// le HTML debarrasse de ses balises (et de sa citation Gmail). Puis on coupe au premier signe de citation.
 pub fn texte_propre(m: &ParsedMail) -> String {
     let mut fs = Vec::new();

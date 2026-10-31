@@ -223,7 +223,7 @@ fn livre(l: &documents::etats_paie::LivreDePaie) {
     }
 }
 
-/// `_afficher_tableau` : l'en-tete, les lignes, les totaux -- colonnes tronquees a l'ecran ; le fichier, lui, porte tout.
+/// L'en-tete, les lignes, les totaux -- colonnes tronquees a l'ecran ; le fichier, lui, porte tout.
 fn tableau(t: &Tableau) {
     use documents::tableaux_export::{Ligne, Val};
     dire!("{} -- {}", t.titre, t.periode);

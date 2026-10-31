@@ -282,7 +282,7 @@ pub fn sections_de<K: Ord + Clone>(
 
 // ------------------------------------------------------------------ totaux
 
-/// `_somme` : la somme de ce qui est DECLARE, ou `None` quand aucune ligne ne l'est.
+/// La somme de ce qui est DECLARE, ou `None` quand aucune ligne ne l'est.
 fn somme(lignes: &[&Ligne], cle: &str) -> R<Option<Val>> {
     let mut total: Option<Decimal> = None;
     for l in lignes {
@@ -532,7 +532,7 @@ fn en_f64(d: &Decimal) -> f64 {
     d.to_f64().unwrap_or(0.0)
 }
 
-/// `_montant_classeur` : le nombre d'une colonne de chiffres, le texte sinon.
+/// Le nombre d'une colonne de chiffres, le texte sinon.
 fn cellule_classeur(v: Option<&Val>, c: &Colonne) -> Cel {
     let Some(v) = v else { return Cel::Vide };
     if matches!(v, Val::Txt(s) if s.is_empty()) {
@@ -866,12 +866,12 @@ pub fn nom_du_mois(m: &str) -> R<&'static str> {
     socle::date::nom_du_mois(i64::try_from(n).unwrap_or(0), socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
 }
 
-/// `_libelle_mois` : « Septembre 2026 ».
+/// « Septembre 2026 ».
 pub fn libelle_mois(m: &str) -> R<String> {
     Ok(format!("{} {}", nom_du_mois(m)?, m.chars().take(4).collect::<String>()))
 }
 
-/// `_jj` : AAAA-MM-JJ -> JJ/MM/AAAA ; le reste tel quel.
+/// AAAA-MM-JJ -> JJ/MM/AAAA ; le reste tel quel.
 pub fn jj(iso: &str) -> String {
     let c: Vec<char> = iso.chars().collect();
     if c.len() >= 10 && c[4] == '-' {
@@ -881,7 +881,7 @@ pub fn jj(iso: &str) -> String {
     }
 }
 
-/// `_qui` : « NOM Prenom ».
+/// « NOM Prenom ».
 pub fn qui(fiche: &Value) -> R<String> {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
         Some(v) => valeur_en_texte(v),
@@ -900,7 +900,7 @@ pub fn qui_souple(fiche: &Value) -> String {
     format!("{} {}", fiche.get("nom").map(valeur_en_texte).unwrap_or_default(), prenom)
 }
 
-/// `_montant` : un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).
+/// Un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).
 pub fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
     match v {
         None | Some(Value::Null) => Ok(None),

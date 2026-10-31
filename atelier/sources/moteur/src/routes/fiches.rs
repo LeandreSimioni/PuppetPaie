@@ -815,7 +815,7 @@ fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
     let mut liste: Vec<Map<String, Value>> = Vec::new();
     for m in emplois::catalogue().map_err(plain)? {
         let conventions: Vec<Value> = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
-        // `_de_la_convention` : sans IDCC (une compagnie qui s'installe), rien ne se cache.
+        // Sans IDCC (une compagnie qui s'installe), rien ne se cache.
         let conv = conventions.is_empty() || idcc.is_empty() || conventions.iter().any(|c| c.as_str() == Some(idcc.as_str()));
         let de = if conv || conventions.is_empty() {
             String::new()
@@ -2086,7 +2086,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
 /// fabrique a la demande, cle comprise.
 const PERSONNES: [(&str, &str, &str); 4] = [("Marie", "Dorval", "2"), ("Pierre", "Bocage", "1"), ("Rose", "Cheri", "2"), ("Frederick", "Lemaitre", "1")];
 
-/// `_reponse_de_fiche` : le questionnaire que la personne fictive renvoie, rempli ligne a ligne dans les termes memes
+/// Le questionnaire que la personne fictive renvoie, rempli ligne a ligne dans les termes memes
 /// des questions, le code en dernier. `bouton` : (objet, corps) du lien du courriel de la demande, quand on l'a.
 fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, String)>) -> Result<Vec<u8>, String> {
     let code = &demande.code;

@@ -215,7 +215,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
 
 // ------------------------------------------------------------------ l'apercu
 
-/// `_remplacement_du_fichier` : l'annule-et-remplace du mois, ou `null` s'il ne se lit pas.
+/// L'annule-et-remplace du mois, ou `null` s'il ne se lit pas.
 fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: &str) -> R<Value> {
     let nic = a.champ("etablissement");
     let nic = if nic.is_empty() { Value::Null } else { json!(nic) };

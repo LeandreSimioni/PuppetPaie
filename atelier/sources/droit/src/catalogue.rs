@@ -253,7 +253,7 @@ impl Rubrique {
 
 // ------------------------------------------------------------------- lecture
 
-/// `_lire` : un fichier absent est un dictionnaire vide.
+/// Un fichier absent est un dictionnaire vide.
 fn lire(p: &Path) -> Resultat<Value> {
     if !socle::fichiers::existe(p) {
         return Ok(Value::Object(Map::new()));

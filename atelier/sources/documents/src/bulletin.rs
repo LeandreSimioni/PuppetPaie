@@ -78,7 +78,7 @@ pub fn jj_mm_aaaa(v: &Value) -> Resultat<String> {
     Ok(d(v)?.jj_mm_aaaa())
 }
 
-/// `_jours` : « 2,5 », et « 2 » quand c'est rond (`quantize` au pair, comme le contexte).
+/// « 2,5 », et « 2 » quand c'est rond (`quantize` au pair, comme le contexte).
 pub fn jours(x: Decimal) -> String {
     let q = x.round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven).normalize();
     q.to_string().replace('.', ",")
@@ -115,7 +115,7 @@ fn ou(o: &Value, cle: &str, defaut: &str) -> String {
     }
 }
 
-/// `_m` : un morceau de texte d'un paragraphe ou d'une cellule.
+/// Un morceau de texte d'un paragraphe ou d'une cellule.
 fn m(texte: impl Into<String>, gras: bool, couleur: Option<&str>) -> Value {
     let mut o = Map::new();
     o.insert("texte".into(), Value::String(texte.into()));
@@ -176,7 +176,7 @@ fn s(texte: impl Into<String>) -> Value {
     Value::String(texte.into())
 }
 
-/// `_ligne_tableau` : les options absentes ne s'ecrivent pas.
+/// Les options absentes ne s'ecrivent pas.
 fn ligne(cellules: Vec<Value>, options: Vec<(&str, Value)>) -> Value {
     let mut o = Map::new();
     o.insert("cellules".into(), Value::Array(cellules));
@@ -199,7 +199,7 @@ fn marge_cellule() -> Value {
     json!({"haut": 1.4, "droite": 3, "bas": 1.4, "gauche": 3})
 }
 
-/// `_tableau` : premiere colonne a gauche, les autres a droite, un filet fin sous chaque ligne.
+/// Premiere colonne a gauche, les autres a droite, un filet fin sous chaque ligne.
 fn tableau(largeurs: &[f64], entete: Vec<Value>, lignes: Vec<Value>, filet: &str) -> Value {
     let colonnes: Vec<Value> = largeurs
         .iter()
@@ -214,7 +214,7 @@ fn tableau(largeurs: &[f64], entete: Vec<Value>, lignes: Vec<Value>, filet: &str
     })
 }
 
-/// `_ligne_net` : une ligne « net », blanc sur rouge, 9,5 pt, en gras.
+/// Une ligne « net », blanc sur rouge, 9,5 pt, en gras.
 fn ligne_net(libelle: &str, montant: Decimal, colonnes: i64) -> Value {
     ligne(
         vec![cel(libelle, colonnes - 1), s(fmt_eur(montant))],
@@ -310,7 +310,7 @@ pub fn remplace_en_entier(r: &Value) -> bool {
     r.get("remplace").is_some_and(vrai)
 }
 
-/// `_rectificatif_lignes` : le bas d'un bulletin RECTIFICATIF.
+/// Le bas d'un bulletin RECTIFICATIF.
 fn rectificatif_lignes(r: &Value, colonnes: i64) -> Resultat<Vec<Value>> {
     let lignes = [
         ("Net à payer avant impôt du bulletin rectifié", "net_avant"),
@@ -350,7 +350,7 @@ fn rectificatif_lignes(r: &Value, colonnes: i64) -> Resultat<Vec<Value>> {
     Ok(out)
 }
 
-/// `_lignes_pas_tableau` : l'impot a la source, et le net paye. La ligne du prelevement suit le modele de l'arrete du
+/// L'impot a la source, et le net paye. La ligne du prelevement suit le modele de l'arrete du
 /// 25/02/2016 (art. 1, I : « IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE », colonnes Base, Taux, Salarié) : son assiette
 /// (le montant soumis, apres l'abattement d'un contrat court ; C. trav. R. 3243-1, 9°), son taux, son montant. Le
 /// « Cumul annuel » du modele (art. 1, V) n'est pas imprime : le moteur ne le calcule pas.
@@ -370,7 +370,7 @@ fn lignes_pas_tableau(p: &Paie, pas: Option<&Versement>, colonnes: i64) -> Resul
     ])
 }
 
-/// `_tableau_cumul` : une colonne de libelles, une par fenetre.
+/// Une colonne de libelles, une par fenetre.
 fn tableau_des_cumuls(colonnes: &[Colonne]) -> Value {
     let n = colonnes.len() as f64;
     let mut cellules = vec![cell("CUMULS", 1, true, Some(ARDOISE))];
@@ -411,7 +411,7 @@ fn tableau_des_cumuls(colonnes: &[Colonne]) -> Value {
     tableau(&largeurs, entete, lignes, "#eeeeee")
 }
 
-/// `_tableau_conges` : le compteur de conges payes d'un permanent.
+/// Le compteur de conges payes d'un permanent.
 fn tableau_conges(cpt: &CompteurConges) -> Value {
     let mut lignes = vec![("Acquis sur la période", cpt.acquis), ("Pris", cpt.pris)];
     if !cpt.reports.is_zero() {
@@ -912,7 +912,7 @@ pub struct Jeu<'a> {
     pub remboursements: Vec<usize>,
 }
 
-/// `_blocs_un` : les blocs d'UN bulletin.
+/// Les blocs d'UN bulletin.
 fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     let p = j.paie;
     let (sal, e, sp) = (&p.salarie, &p.engagement, &p.spectacle);

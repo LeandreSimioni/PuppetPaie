@@ -121,7 +121,7 @@ fn ou_vide<'a>(v: Option<&'a Value>) -> &'a Value {
 
 // ------------------------------------------------------------ la configuration
 
-/// `_fiche_verifiee` : la fiche telle que l'ecran la montre. `donnees` est
+/// La fiche telle que l'ecran la montre. `donnees` est
 /// COMBLEE : une fiche d'avant ne porte que la forme declaree, et l'ecran doit
 /// proposer une forme lisible de depart. Rien n'est ecrit pour autant.
 fn fiche_verifiee(nom: &str, cle: Option<&str>, donnees: &Value) -> R<Value> {
@@ -409,7 +409,7 @@ fn avec_historique(fiche: &Value, brute: Option<&Value>) -> R<Value> {
     Ok(f)
 }
 
-/// `_configuration` : toute la configuration, verifiee, et ce que la page en tire sans un appel de plus.
+/// Toute la configuration, verifiee, et ce que la page en tire sans un appel de plus.
 fn configuration(ctx: &Contexte) -> R<Value> {
     let mut vue = avec_historique(&ctx.entreprise, Some(ctx.entreprise_brute()))?;
     if let Some(o) = vue.as_object_mut() {
@@ -585,7 +585,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
     Ok(Value::Array(out))
 }
 
-/// `_historique` : ce que l'Historique montre de chaque mois.
+/// Ce que l'Historique montre de chaque mois.
 fn historique(m: &mut Moteur, ctx: &Contexte) -> Value {
     let mut mois = mois_connus(&ctx.racine);
     // Les mois tenus avant ce logiciel sont des mois comme les autres : l'Historique les montre aussi.
@@ -664,7 +664,7 @@ pub(crate) fn preferences_metiers(racine: &Path) -> R<(Vec<String>, Vec<String>)
     Ok((liste("codes"), liste("retires")))
 }
 
-/// `_visible` : ce metier est-il dans le deroulant de cette compagnie ? Ceux de
+/// Ce metier est-il dans le deroulant de cette compagnie ? Ceux de
 /// sa convention le sont d'office ; elle en ajoute d'une autre, elle en retire
 /// des siens (Configuration > Metiers).
 pub(crate) fn metier_visible(m: &Value, idcc: &str, ajoutes: &[String], retires: &[String]) -> bool {
@@ -779,7 +779,7 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
     Ok(faits)
 }
 
-/// `_natures` : les natures de contrat, telles que l'ecran doit les proposer.
+/// Les natures de contrat, telles que l'ecran doit les proposer.
 /// Tout vient de `contrats-base.json`. SAUF LES NATURES PAYEES AU MOIS : elles
 /// ne descendent que si la fiche entreprise dit employer des permanents.
 fn natures(ctx: &Contexte) -> R<Value> {
@@ -822,7 +822,7 @@ fn natures(ctx: &Contexte) -> R<Value> {
     Ok(Value::Array(sortie))
 }
 
-/// `_niveaux_sante` : les niveaux de garantie que le bareme connait, pour la
+/// Les niveaux de garantie que le bareme connait, pour la
 /// fiche salarie. Vide quand le bareme n'en porte pas.
 fn niveaux_sante(ctx: &Contexte) -> R<Value> {
     let Ok(bar) = ctx.bareme(&ctx.aujourdhui) else { return Ok(json!([])) };
@@ -844,7 +844,7 @@ fn niveaux_sante(ctx: &Contexte) -> R<Value> {
     ))
 }
 
-/// `_conventions` : les conventions collectives que le bareme sait servir, pour
+/// Les conventions collectives que le bareme sait servir, pour
 /// la fiche. La page ne les invente pas, et elle n'en invente pas le libelle :
 /// `par_convention` du socle dit lesquelles existent, et si leur couche de taux
 /// est RELEVEE (`applicable`).

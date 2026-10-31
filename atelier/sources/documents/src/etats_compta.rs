@@ -84,7 +84,7 @@ fn caler(s: String, n: usize, a_droite: bool) -> String {
     }
 }
 
-/// `_zone` : espaces ramenees a une, coupe a `n`, cadre a gauche (`g`) ou a droite (`d`).
+/// Espaces ramenees a une, coupe a `n`, cadre a gauche (`g`) ou a droite (`d`).
 fn zone(v: &str, n: usize, cote: char) -> String {
     caler(debut(&blancs(v), n), n, cote == 'd')
 }
@@ -158,7 +158,7 @@ fn cp1252(lignes: &[String]) -> Vec<u8> {
 
 // ------------------------------------------------------------------ les ecritures
 
-/// `_libelle_compte` : le libelle d'un compte, lu dans le plan : tiers, brut, net, PAS, retenues, puis les charges
+/// Le libelle d'un compte, lu dans le plan : tiers, brut, net, PAS, retenues, puis les charges
 /// (le premier libelle de ligne qui le porte).
 fn libelle_compte(plan: &Map<String, Value>, compte: &str) -> R<String> {
     if let Some(Value::Object(tiers)) = plan.get("tiers").filter(|t| vrai(t)) {
@@ -209,7 +209,7 @@ fn texte_brut(v: Option<&Value>) -> String {
     v.map(valeur_en_texte).unwrap_or_default()
 }
 
-/// `_compte` : le sous-compte individuel du salarie quand le plan en tient un, le compte general sinon.
+/// Le sous-compte individuel du salarie quand le plan en tient un, le compte general sinon.
 fn compte_de(e: &Ecriture) -> String {
     if e.auxiliaire.is_empty() {
         e.compte.clone()
@@ -224,7 +224,7 @@ fn libelle_de(plan: &Map<String, Value>, e: &Ecriture) -> R<String> {
     Ok(if e.auxiliaire.is_empty() { lib } else { format!("{} — {}", lib, e.auxiliaire_libelle) })
 }
 
-/// `_ligne` : une ligne d'ecriture pour un tableau.
+/// Une ligne d'ecriture pour un tableau.
 fn ligne_de(e: &Ecriture, plan: &Map<String, Value>) -> R<Ligne> {
     let mut l = Ligne::nouvelle();
     l.t("journal", e.journal.clone()).t("date", jj(&e.date)).t("piece", e.piece.clone()).t("compte", compte_de(e));
@@ -235,7 +235,7 @@ fn ligne_de(e: &Ecriture, plan: &Map<String, Value>) -> R<Ligne> {
     Ok(l)
 }
 
-/// `_ecritures` : les ecritures de la periode, numerotees -- une ecriture (une piece) par mois, ses lignes dans
+/// Les ecritures de la periode, numerotees -- une ecriture (une piece) par mois, ses lignes dans
 /// l'ordre de `ecritures_du_mois`.
 fn ecritures_de(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<(Vec<Ecriture>, Map<String, Value>, &'static str)> {
     let (plan, origine) = crate::plan_comptable::plan(ctx)?;
@@ -275,7 +275,7 @@ impl Envoi<'_> {
     }
 }
 
-/// `_code` : un titre en code -- lettres et chiffres, sans accent, en majuscules, coupe a la largeur de la zone.
+/// Un titre en code -- lettres et chiffres, sans accent, en majuscules, coupe a la largeur de la zone.
 fn code_du_titre(titre: &str, n: usize) -> String {
     let ascii = socle::texte::ascii_nfkd(titre);
     debut(&ascii.to_uppercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>(), n)
@@ -356,7 +356,7 @@ const ZONES_FEC: [&str; 18] = [
     "Credit", "EcritureLet", "DateLet", "ValidDate", "Montantdevise", "Idevise",
 ];
 
-/// `_fec_propre` : ni tabulation ni fin de ligne dans une zone.
+/// Ni tabulation ni fin de ligne dans une zone.
 fn fec_propre(s: &str) -> String {
     blancs(&s.replace('\t', " "))
 }
@@ -399,7 +399,7 @@ fn fec(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ outils communs
 
-/// `_libelle_court` : le libelle d'une ligne dans une zone etroite -- ce qui la distingue (le spectacle ou le
+/// Le libelle d'une ligne dans une zone etroite -- ce qui la distingue (le spectacle ou le
 /// salarie, sinon la nature ; les deux si `nature`) et le mois, qui reste entier.
 fn libelle_court(e: &Ecriture, n: usize, nature: bool) -> String {
     let mm = format!("{}/{}", tranche(&e.date, 5, 7), debut(&e.date, 4));
@@ -426,7 +426,7 @@ fn libelle_court(e: &Ecriture, n: usize, nature: bool) -> String {
     format!("{} {}", tete.trim_end_matches([' ', '—', '-']), mm)
 }
 
-/// `_piece_courte` : PAIE-2026-08 fait 12 caracteres ; Oxygene et Quadra en prennent 10.
+/// PAIE-2026-08 fait 12 caracteres ; Oxygene et Quadra en prennent 10.
 fn piece_courte(e: &Ecriture) -> String {
     debut(&format!("PAIE{}", e.mois.replace('-', "")), 10)
 }
@@ -445,7 +445,7 @@ fn jjmmaa(date: &str) -> String {
     format!("{}{}{}", tranche(date, 8, 10), tranche(date, 5, 7), tranche(date, 2, 4))
 }
 
-/// `_csv_propre` : ni point-virgule ni fin de ligne dans une zone.
+/// Ni point-virgule ni fin de ligne dans une zone.
 fn csv_propre(s: &str) -> String {
     blancs(&s.replace(';', ","))
 }
@@ -465,7 +465,7 @@ fn limites(format: &str) -> Option<(String, usize, usize)> {
     Some((l["nom"].as_str()?.to_string(), l["compte"].as_u64()? as usize, l["journal"].as_u64()? as usize))
 }
 
-/// `_borne` : le compte et le journal tiennent dans leurs zones, ou on refuse.
+/// Le compte et le journal tiennent dans leurs zones, ou on refuse.
 fn borne(format: &str, compte: &str, journal: &str) -> R<()> {
     let (nom, lc, lj) = limites(format).ok_or_else(|| erreur("KeyError", format!("format inconnu : {}", socle::fichiers::repr(format))))?;
     if compte.chars().count() > lc || journal.chars().count() > lj {
@@ -616,7 +616,7 @@ const POSITIONS_QUADRA_COMPTE: [(&str, usize); 12] = [
     ("type_compte", 1),
 ];
 
-/// `_compte_quadra` : huit caracteres, pas un de plus ; un compte de chiffres plus court est complete de zeros.
+/// Huit caracteres, pas un de plus ; un compte de chiffres plus court est complete de zeros.
 fn compte_quadra(compte: &str) -> R<String> {
     if compte.chars().count() > 8 {
         return Err(refus(format!(
@@ -636,7 +636,7 @@ fn caler_zeros(compte: &str, n: usize) -> String {
     s
 }
 
-/// `_quadra_ligne` : les zones a la suite, cadrees a gauche.
+/// Les zones a la suite, cadrees a gauche.
 fn quadra_ligne(champs: &BTreeMap<&str, String>, positions: &[(&str, usize)]) -> String {
     positions.iter().map(|(k, n)| zone(champs.get(k).map(String::as_str).unwrap_or(""), *n, 'g')).collect()
 }
@@ -679,12 +679,12 @@ fn quadra(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ EBP
 
-/// `_ebp_texte` : entre guillemets, sans guillemet dedans.
+/// Entre guillemets, sans guillemet dedans.
 fn ebp_texte(s: &str, n: usize) -> String {
     format!("\"{}\"", debut(&blancs(&s.replace('"', "'")), n))
 }
 
-/// `_ebp_zone` : une zone sans guillemets ne contient pas de virgule.
+/// Une zone sans guillemets ne contient pas de virgule.
 fn ebp_zone(s: &str) -> String {
     blancs(&s.replace(',', " ").replace('"', "'"))
 }
@@ -1062,7 +1062,7 @@ pub fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ------------------------------------------------------------------ la provision de conges payes
 
-/// `_taux_patronal` : le taux REEL des cotisations patronales d'un salarie -- ses cotisations patronales sur son
+/// Le taux REEL des cotisations patronales d'un salarie -- ses cotisations patronales sur son
 /// brut, sur les douze mois qui finissent a `jusqu_a`. Rend (taux en %, nombre de bulletins lus).
 fn taux_patronal(lignes: &[crate::etats_paie::LigneLivre], cle: &str, jusqu_a: &str) -> R<(Option<Decimal>, i64)> {
     let annee: i64 = debut(jusqu_a, 4).parse().map_err(|_| erreur("ValueError", "mois illisible"))?;

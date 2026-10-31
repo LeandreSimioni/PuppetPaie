@@ -145,7 +145,7 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
 
 // ------------------------------------------------------------ le secret de l'organisme
 
-/// `_motdepasse_organisme` : le secret de l'organisme -- l'environnement d'abord (quelqu'un l'a tape dans une
+/// Le secret de l'organisme -- l'environnement d'abord (quelqu'un l'a tape dans une
 /// fenetre, il vaut confirmation), puis le coffre. Ce qui autorise a y puiser pour un depot REEL, c'est la
 /// preuve verifiee juste avant par l'appelant. Ce qui SORT d'ici est un secret : il va directement au client.
 pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Option<&str>) -> R<Option<String>> {
@@ -162,7 +162,7 @@ pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Opt
 
 // -------------------------------------------------------- la repetition avant l'irreversible
 
-/// `_pourquoi_rate` : ce qui a fait echouer un depot de test, en une phrase.
+/// Ce qui a fait echouer un depot de test, en une phrase.
 pub(crate) fn pourquoi_rate(ligne: &Value) -> String {
     let mut anomalies: Vec<String> = Vec::new();
     for r in ligne.get("retours").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
@@ -190,7 +190,7 @@ fn quand_a(v: &Value) -> String {
     etats::quand_lisible(v).replace(" à ", " a ")
 }
 
-/// `_phrase_repetition` : le refus, ecrit pour qu'on sache quoi faire dans la minute. Un test qui a RATE se
+/// Le refus, ecrit pour qu'on sache quoi faire dans la minute. Un test qui a RATE se
 /// corrige, un test PERIME se refait, une absence de test se fait.
 fn phrase_repetition(ctx: &Contexte, quoi: &str, chemin: &Path, etat: &Value) -> String {
     let acte = if quoi == "dsn" { "DSN" } else { "DPAE" };
@@ -226,7 +226,7 @@ fn phrase_repetition(ctx: &Contexte, quoi: &str, chemin: &Path, etat: &Value) ->
     )
 }
 
-/// `_exiger_repetition` : leve tant que ce contenu n'a pas ete repete ; rend ce qu'il faut noter. LA SORTIE
+/// Leve tant que ce contenu n'a pas ete repete ; rend ce qu'il faut noter. LA SORTIE
 /// DE SECOURS EST VOULUE, et elle est tracee : un motif ECRIT (dix caracteres au moins) passe outre ; ce
 /// qu'on refuse, c'est le contournement SILENCIEUX.
 fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path, contournement: &str) -> R<Value> {

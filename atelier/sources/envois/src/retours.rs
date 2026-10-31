@@ -1098,7 +1098,7 @@ impl Entree94 {
     }
 }
 
-/// `_plat` : (nom local, valeurs des attributs, texte net) de chaque element.
+/// (nom local, valeurs des attributs, texte net) de chaque element.
 struct Plat {
     nom: String,
     attribs: Vec<(String, String)>,
@@ -1476,7 +1476,7 @@ struct Membre {
     taille_comp: u64,
     taille: u64,
     decalage: i128,
-    /// `_end_offset` : l'octet ou le membre ne peut pas aller plus loin.
+    /// L'octet ou le membre ne peut pas aller plus loin.
     fin: i128,
 }
 
@@ -1631,7 +1631,7 @@ fn repertoire_zip(b: &[u8]) -> Resultat<Vec<Membre>> {
         membres.push(m);
         total += (46 + ln_nom + ln_extra + ln_comm) as i128;
     }
-    // `_end_offset` : chaque membre finit ou le suivant commence (le repertoire pour le dernier).
+    // Chaque membre finit ou le suivant commence (le repertoire pour le dernier).
     let mut ordre: Vec<usize> = (0..membres.len()).collect();
     ordre.sort_by_key(|&i| std::cmp::Reverse(membres[i].decalage));
     let mut fin = debut_cd as i128;

@@ -676,7 +676,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     }))
 }
 
-/// `_chemin_piece` : le fichier d'une piece partie existe-t-il, dans
+/// Le fichier d'une piece partie existe-t-il, dans
 /// `sorties/<mois>/` ou son `envoi/` ? Un NOM, jamais un chemin.
 fn piece_existe(racine: &Path, mois: &Value, fichier: &Value) -> R<bool> {
     if !vrai(mois) || !vrai(fichier) {

@@ -66,7 +66,7 @@ fn secondes(j: &Jour) -> i64 {
     (j.ordinal() - 719_163) * JOUR
 }
 
-/// `_fenetre` : la plage de recherche, en heures locales naives. Par defaut, les 30 derniers jours.
+/// La plage de recherche, en heures locales naives. Par defaut, les 30 derniers jours.
 pub(crate) fn fenetre(args: &Args) -> Result<(i64, i64), Echec> {
     let fin = match args.texte("jusqu-a") {
         Some(j) => secondes(&Jour::lire(j).map_err(|m| Echec { classe: Some("ValueError"), message: m })?) + 23 * 3600 + 59 * 60 + 59,
@@ -84,7 +84,7 @@ pub(crate) fn jour_de(t: i64) -> String {
     Jour::depuis_jours_unix(t.div_euclid(JOUR)).map(|j| j.jj_mm_aaaa()).unwrap_or_default()
 }
 
-/// `_date_lisible` : `20260915...` -> `15/09/2026`.
+/// `20260915...` -> `15/09/2026`.
 fn date_lisible(h: Option<&Value>) -> String {
     let s = h.filter(|v| socle::fichiers::vrai(v)).map(texte).unwrap_or_default();
     let c: Vec<char> = s.chars().collect();

@@ -227,7 +227,7 @@ fn salarie_par_nir(ctx: &Contexte) -> Vec<(String, String)> {
     v
 }
 
-/// `_flux_du_nom` : `20260904-224552_nature41_WSxxxx.txt` -> `WSxxxx`.
+/// `20260904-224552_nature41_WSxxxx.txt` -> `WSxxxx`.
 fn flux_du_nom(nom: &str) -> String {
     let reste = nom.splitn(3, '_').last().unwrap_or(nom);
     reste.rsplit_once('.').map_or(reste, |(a, _)| a).to_string()

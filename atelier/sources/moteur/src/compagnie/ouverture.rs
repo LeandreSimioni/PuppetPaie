@@ -184,7 +184,7 @@ impl Ouverture {
         self.incidents.is_empty() && self.manquants.is_empty()
     }
 
-    /// `_manque_coffre` : un secret absent -- la phrase du terminal, gardee pour ne pas la redire dans la fenetre.
+    /// Un secret absent -- la phrase du terminal, gardee pour ne pas la redire dans la fenetre.
     fn manque_coffre(&mut self, phrase: &str) {
         self.manquants.push(phrase.to_string());
         self.phrases_coffre.push(phrase.to_string());
@@ -431,7 +431,7 @@ fn coffre_dispo(ctx: &Contexte, service: &str) -> Result<bool, String> {
     crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "").disponible(service).map_err(|e| e.message)
 }
 
-/// `_trier_hors_ligne` : une seule phrase pour l'absence de reseau, pas une erreur par dossier et par organisme. Les erreurs
+/// Une seule phrase pour l'absence de reseau, pas une erreur par dossier et par organisme. Les erreurs
 /// qui ne disent que « pas de reseau » sortent des incidents ; les autres (un mot de passe refuse, un coffre ferme)
 /// restent, elles demandent un geste.
 /// Elles ne se perdent pas pour autant : `injoignables` garde de quoi dire QUI n'a pas repondu.

@@ -371,7 +371,7 @@ fn en_echec(p: Panne) -> Echec {
     p.en_echec()
 }
 
-/// `_tranches` : le SI DSN limite l'etendue d'une recherche, on decoupe par jour.
+/// Le SI DSN limite l'etendue d'une recherche, on decoupe par jour.
 fn tranches(debut: i64, fin: i64) -> Vec<(i64, i64)> {
     let mut v = Vec::new();
     let mut t = debut;

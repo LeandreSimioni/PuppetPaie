@@ -1526,7 +1526,7 @@ pub fn regime_local(bar: &Value, sal: &Value) -> bool {
 
 // ------------------------------------------- la retraite en tranche 1
 
-/// `_sigle` : « Scène Ensemble » -> « SCENE ENSEMBLE ».
+/// « Scène Ensemble » -> « SCENE ENSEMBLE ».
 fn sigle(v: &str) -> String {
     let s: String = sans_accent(v).chars().filter(char::is_ascii).collect();
     s.to_uppercase().split_whitespace().collect::<Vec<_>>().join(" ")
@@ -2027,7 +2027,7 @@ mod prevoyance {
         deux_virgule(x)
     }
 
-    /// `_date` : les dix premiers caracteres, au format ISO.
+    /// Les dix premiers caracteres, au format ISO.
     fn date(v: &str) -> Option<Jour> {
         let s: Vec<char> = v.chars().take(10).collect();
         if s.len() != 10 || s[4] != '-' || s[7] != '-' {

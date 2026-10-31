@@ -48,7 +48,7 @@ fn dec_de(v: &Value) -> R<Decimal> {
 }
 
 
-/// `_organismes` : identifiant de ligne -> nom de l'organisme, lu dans le plan comptable (le meme endroit que
+/// Identifiant de ligne -> nom de l'organisme, lu dans le plan comptable (le meme endroit que
 /// l'export compta : l'etat des cotisations et le credit des comptes 43 ne peuvent pas diverger).
 fn organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let (plan, _) = plan(ctx)?;
@@ -294,7 +294,7 @@ fn nom_de_la_dsn(m: &str, partie: bool) -> String {
     format!("DSN de {}{}", libelle_mois(m).unwrap_or_else(|_| m.to_string()), if partie { "" } else { " (à déposer)" })
 }
 
-/// `_libelles_organismes` : SIRET -> libelle, lu dans les organismes de la compagnie (`Contexte::organismes`).
+/// SIRET -> libelle, lu dans les organismes de la compagnie (`Contexte::organismes`).
 fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let d = ctx.organismes()?;
     let mut out: Vec<(String, String)> = Vec::new();
@@ -410,7 +410,7 @@ fn lire_csv(texte: &str, delim: char) -> Vec<Vec<String>> {
     rangs
 }
 
-/// `_libelles_ctp` : code CTP -> libelle, lu dans la table de l'Urssaf livree avec le logiciel
+/// Code CTP -> libelle, lu dans la table de l'Urssaf livree avec le logiciel
 /// (`donnees/urssaf-codes-types-personnel.csv`, celle de `bordereau.rs`). Les textes de reference vivent dans le depot
 /// (`atelier/reference/`), et la table livree en est la copie conforme (`sources.json`).
 fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {

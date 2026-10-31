@@ -155,12 +155,12 @@ pub fn questionnaire(code: &str) -> String {
 
 // ---------------------------------------------------------------- la lecture
 
-/// `_sans_accents` : sans accents, en minuscules, sans blancs aux bords.
+/// Sans accents, en minuscules, sans blancs aux bords.
 fn sans_accents(t: &str) -> String {
     strip(&socle::texte::sans_accent(t).to_lowercase()).to_string()
 }
 
-/// `_cle_libelle` : sans accents ni casse, les parentheses (des consignes) retirees, les mots de `a-z` seulement.
+/// Sans accents ni casse, les parentheses (des consignes) retirees, les mots de `a-z` seulement.
 fn cle_libelle(texte: &str) -> String {
     let t: Vec<char> = socle::texte::sans_accent(texte).to_lowercase().chars().collect();
     // `re.sub(r"\(.*?\)", " ", t)` : de la parenthese ouvrante a la premiere fermante, sans passer a la ligne.
@@ -271,7 +271,7 @@ fn nombre(t: &str) -> Option<u32> {
     Some(v)
 }
 
-/// `_date` : une date lue `AAAA-M-J` ou `J/M/AAAA` (separateurs `/`, `.`, `-`, espace), en ISO ; `None` si elle ne se
+/// Une date lue `AAAA-M-J` ou `J/M/AAAA` (separateurs `/`, `.`, `-`, espace), en ISO ; `None` si elle ne se
 /// lit pas ou n'existe pas.
 pub fn date_lue(texte: &str) -> Option<String> {
     let t = strip(texte);
@@ -307,7 +307,7 @@ pub fn date_lue(texte: &str) -> Option<String> {
 // par leur nom (celui du COG ou le nom officiel, sans accents) ou leur code ISO a deux lettres. Un nom ou un
 // code que la liste ne connait pas laisse la case vide et la note le dit.
 
-/// `_pays` : (code ISO, codification UE) d'un pays de la liste nomme en francais, ou de son code a deux lettres ;
+/// (code ISO, codification UE) d'un pays de la liste nomme en francais, ou de son code a deux lettres ;
 /// `None` pour ce que la liste ne connait pas.
 pub fn pays_lu(texte: &str) -> Option<(String, Option<&'static str>)> {
     let t = sans_accents(texte).replace('\u{2019}', "'");

@@ -238,7 +238,7 @@ fn decoder(t: &str) -> String {
     String::from_utf8_lossy(&b).into_owned()
 }
 
-/// `_bouton_mailto` : (objet, corps) du lien `mailto:` du premier HTML qui en porte un.
+/// (objet, corps) du lien `mailto:` du premier HTML qui en porte un.
 pub fn bouton(feuilles: &[&ParsedMail]) -> Option<(String, String)> {
     let re = regex::Regex::new(r#"href="(mailto:[^"]+)""#).ok()?;
     for f in feuilles {
@@ -267,7 +267,7 @@ pub fn bouton(feuilles: &[&ParsedMail]) -> Option<(String, String)> {
     None
 }
 
-/// `_pages` : le nombre de pages d'une piece PDF, 0 pour une autre ou une illisible.
+/// Le nombre de pages d'une piece PDF, 0 pour une autre ou une illisible.
 fn pages(f: &ParsedMail) -> usize {
     if f.ctype.mimetype != "application/pdf" {
         return 0;

@@ -357,7 +357,7 @@ impl Totaux {
         self.sommes.iter().find(|(c, _)| *c == champ).map(|(_, v)| *v).unwrap_or_else(zero2)
     }
 
-    /// `_total` : le total d'une colonne, ou `None` quand AUCUNE ligne ne la declare.
+    /// Le total d'une colonne, ou `None` quand AUCUNE ligne ne la declare.
     fn total(&self, champ: &str) -> Option<Decimal> {
         let manque = self.inconnus.iter().find(|(c, _)| *c == champ).map_or(0, |(_, n)| *n);
         if manque >= self.bulletins {
@@ -378,7 +378,7 @@ impl Totaux {
     }
 }
 
-/// `_totaliser` : la somme de ce qui est DECLARE, colonne par colonne, et le compte de ce qui ne l'est pas.
+/// La somme de ce qui est DECLARE, colonne par colonne, et le compte de ce qui ne l'est pas.
 fn totaliser_lignes(lignes: &[&LigneLivre]) -> Totaux {
     let mut t = Totaux { bulletins: lignes.len() as i64, sommes: CUMULABLES.iter().map(|c| (*c, zero2())).collect(), inconnus: Vec::new() };
     for l in lignes {
@@ -503,7 +503,7 @@ fn lignes_importees(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<Vec<Lign
     Ok(lignes)
 }
 
-/// `_lignes_du_mois` : les lignes du livre pour un mois (celles des engagements valides de la saisie, puis celles des
+/// Les lignes du livre pour un mois (celles des engagements valides de la saisie, puis celles des
 /// engagements importes payes ce mois-la), ce qu'il a fallu taire, et si ses numeros de contrat sont tous ecrits. Les
 /// paies sont celles que la validation a ecrites, ou celles que l'import a lues ; aucun numero n'est invente.
 fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool, departs: &engagement::departs::Departs) -> R<(Vec<LigneLivre>, Vec<String>, bool)> {
@@ -548,7 +548,7 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool, departs: &engag
     Ok((lignes, sans_pas, figes))
 }
 
-/// `_grouper` : les lignes en groupes, chacun avec son sous-total. L'ordre DANS un groupe est chronologique puis
+/// Les lignes en groupes, chacun avec son sous-total. L'ordre DANS un groupe est chronologique puis
 /// alphabetique : deux editions de la meme periode donnent le meme fichier.
 fn grouper(lignes: &[LigneLivre], regroupement: &str) -> R<Vec<Groupe>> {
     let cle = |l: &LigneLivre| -> String {
@@ -842,7 +842,7 @@ pub fn pdf_livre(ctx: &Contexte, livre: &LivreDePaie) -> R<Vec<u8>> {
         .to_string()
     };
     let entetes: Vec<(String, bool)> = colonnes_livre(livre).iter().map(|c| (etiquette(c), MONTANTS.contains(c))).collect();
-    // `_pdf_nom` : `nom_affichage`, sinon `nom` (pas la raison sociale).
+    // `nom_affichage`, sinon `nom` (pas la raison sociale).
     let nom = ["nom_affichage", "nom"].iter().find_map(|c| ctx.entreprise.get(*c).filter(|v| vrai(v)).map(valeur_en_texte)).unwrap_or_default();
     let sous = format!("{} — {}{}", livre.periode, regroupement_lisible(&livre.regroupement), if livre.coordonnees { " — avec les coordonnées des salariés" } else { "" });
     let d = crate::tableaux_export::description_pdf(
@@ -861,7 +861,7 @@ pub fn pdf_livre(ctx: &Contexte, livre: &LivreDePaie) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ _finir, _sections
 
-/// `_finir` : le format, les totaux, puis -- si on ecrit -- le fichier `<nom>-<periode>.<ext>` dans le dossier
+/// Le format, les totaux, puis -- si on ecrit -- le fichier `<nom>-<periode>.<ext>` dans le dossier
 /// de la periode (celui d'`exports/` sans periode).
 pub fn finir(ctx: &Contexte, t: &mut Tableau, p: Option<&Periode>, nom: &str, format: &str, ecrire: bool) -> R<()> {
     t.format = format_possible(format, &FORMATS_TABLEAU)?;
@@ -887,7 +887,7 @@ fn dec_val(v: Option<Decimal>) -> Option<Val> {
     v.map(Val::Dec)
 }
 
-/// `_lignes_livre` : les lignes du livre de paie, et ses avertissements -- les etats de synthese se
+/// Les lignes du livre de paie, et ses avertissements -- les etats de synthese se
 /// construisent dessus, pour tomber sur le livre.
 pub fn lignes_livre(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<Vec<LigneLivre>> {
     let d = Demande {

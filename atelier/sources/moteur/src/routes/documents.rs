@@ -129,7 +129,7 @@ struct Attestation {
     cle: Option<String>,
 }
 
-/// `_attestations_archivees` : (periode, qui) -> les attestations du DERNIER retour qui le porte, lues
+/// (periode, qui) -> les attestations du DERNIER retour qui le porte, lues
 /// dans les retours 46, dans l'ordre de l'archive. `mois` : seulement cette periode.
 fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<&[std::path::PathBuf]>) -> R<HashMap<(String, String), Vec<Attestation>>> {
     let dossier = ctx.racine.join("retours");

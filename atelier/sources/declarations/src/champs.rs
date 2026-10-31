@@ -356,7 +356,7 @@ fn equivalent(c: char) -> Option<&'static str> {
     })
 }
 
-/// `_ponctuation_propre` : capitales sans accents, signes ramenes a l'ASCII,
+/// Capitales sans accents, signes ramenes a l'ASCII,
 /// separateurs isoles.
 fn ponctuation_propre(texte: &str, identite: bool) -> String {
     let mut v: String = String::new();
@@ -433,7 +433,7 @@ fn ponctuation_propre(texte: &str, identite: bool) -> String {
     strip(&v).to_string()
 }
 
-/// `_sans_caracteres_refuses` : retire de la forme declaree ce que SA rubrique
+/// Retire de la forme declaree ce que SA rubrique
 /// n'admet pas -- par une espace d'abord, par rien ensuite -- et rend la forme
 /// naive si rien ne passe.
 fn sans_caracteres_refuses(c: &Champ, v: String) -> R<String> {
@@ -621,7 +621,7 @@ const MORCEAUX_NIR: [(usize, usize, &str, &str, &str); 6] = [
     (10, 13, "le numero d'ordre a l'etat civil", "001 a 999", "ordre a l'etat civil"),
 ];
 
-/// `_morceau_de_nir_va` : les bornes du cahier technique, morceau par morceau.
+/// Les bornes du cahier technique, morceau par morceau.
 fn morceau_de_nir_va(debut: usize, morceau: &str) -> bool {
     match debut {
         0 => morceau == "1" || morceau == "2",
@@ -815,7 +815,7 @@ pub fn faute_de_norme(c: &Champ, valeur: &str) -> R<Option<String>> {
     Ok(Some(format!("{} (rubrique {} du cahier technique NEODeS) : le point de depot refuserait la declaration", pourquoi, rubrique)))
 }
 
-/// `_faute_de_forme_officielle` : les regles de position du cahier technique
+/// Les regles de position du cahier technique
 /// DSN, section 4.
 fn faute_de_forme_officielle(v: &str) -> Option<String> {
     let c: Vec<char> = v.chars().collect();
@@ -1026,7 +1026,7 @@ fn anomalie(champ: &str, gravite: &str, message: impl Into<String>) -> Value {
     json!({"champ": champ, "gravite": gravite, "message": message.into()})
 }
 
-/// `_controles_croises` : ce qu'aucun champ ne peut verifier seul.
+/// Ce qu'aucun champ ne peut verifier seul.
 fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     let mut out = Vec::new();
 

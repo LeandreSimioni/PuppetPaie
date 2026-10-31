@@ -120,7 +120,7 @@ fn compter(octets: &[u8]) -> R<usize> {
     fabrique_pdf::lecture::charger(octets).map(|d| d.get_pages().len()).map_err(|r| refus_fabrique(r.0))
 }
 
-/// `_marquer` : le pied « reedite » sur chaque page d'un PDF du dossier de travail, en place.
+/// Le pied « reedite » sur chaque page d'un PDF du dossier de travail, en place.
 fn marquer(chemin: &Path, aujourdhui: &Jour) -> R<()> {
     let nom = chemin.to_string_lossy().into_owned();
     let octets = std::fs::read(chemin).map_err(|e| refus_fabrique(format!("{} illisible ({})", nom, e)))?;
@@ -512,7 +512,7 @@ pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec
     Ok((dus, avertissements))
 }
 
-/// `_mois_puppetpaie` : les pages d'un mois de PuppetPaie, pour les salaries demandes.
+/// Les pages d'un mois de PuppetPaie, pour les salaries demandes.
 ///
 /// `contrats_vus` : les numeros de contrat deja reedites par un mois precedent. Un contrat
 /// plurimensuel est sur la paie de chacun de ses mois, mais c'est UN contrat : il ne sort qu'une
@@ -825,7 +825,7 @@ fn pages_importees(ctx: &Contexte, cles: &HashSet<String>, p: &Periode, d: &mut 
 
 // ------------------------------------------------------------------ l'assemblage
 
-/// `_assembler` : un PDF des pages donnees, dans l'ordre, dedoublonne, le logo une fois. Le
+/// Un PDF des pages donnees, dans l'ordre, dedoublonne, le logo une fois. Le
 /// dedoublonnage lit le TEXTE des pages (un appel par fichier).
 fn assembler(pages: &[&Page]) -> R<Option<Vec<u8>>> {
     if pages.is_empty() {
@@ -1022,7 +1022,7 @@ fn ecrire_un(dossier: &Path, cle: &str, contenus: &[(&'static str, Vec<u8>)], pr
     Ok(chemin)
 }
 
-/// `_ecrire_ensemble` : tous les salaries dans le meme fichier : un PDF par categorie qui les
+/// Tous les salaries dans le meme fichier : un PDF par categorie qui les
 /// enchaine (une seule categorie : ce PDF-la), sinon un ZIP.
 fn ecrire_ensemble(dossier: &Path, contenus: &Contenus, preuves: &[(String, Vec<PathBuf>)], cats: &[&'static str], p: &Periode, un_seul: bool, tmp: &Path) -> R<PathBuf> {
     let base = format!("Dossiers_{}", p.nom());

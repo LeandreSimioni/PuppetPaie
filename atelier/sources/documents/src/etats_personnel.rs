@@ -50,7 +50,7 @@ struct ContratMois {
     brut: Option<Decimal>,
 }
 
-/// `_contrats` : chaque contrat de la periode, une ligne par mois de paie, lu dans la paie ecrite de son engagement
+/// Chaque contrat de la periode, une ligne par mois de paie, lu dans la paie ecrite de son engagement
 /// valide, ou dans ce que l'import a lu d'un engagement importe (ce que les pieces de l'ancien logiciel disaient).
 fn contrats_de(ctx: &Contexte, p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
     let mut out = Vec::new();
@@ -168,7 +168,7 @@ fn nationalite(code: &str) -> &'static str {
     }
 }
 
-/// `_sexe` : le premier chiffre du NIR (1 homme, 2 femme) ; un NIR provisoire ne le dit pas.
+/// Le premier chiffre du NIR (1 homme, 2 femme) ; un NIR provisoire ne le dit pas.
 fn sexe(nir: Option<&Value>) -> &'static str {
     let t = nir.filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     match t.chars().next() {
@@ -333,7 +333,7 @@ fn acte_lisible(quoi: &str) -> Option<&'static str> {
     })
 }
 
-/// `_reponse` : une reponse lisible ; un rapport XML complet ne tient pas dans une case.
+/// Une reponse lisible ; un rapport XML complet ne tient pas dans une case.
 fn reponse(r: Option<&Value>) -> String {
     let t = r.filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let t = t.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");

@@ -245,7 +245,7 @@ fn fmt_f(x: Decimal, n: usize) -> String {
     format!("{:.*}", n, f)
 }
 
-/// `_mt` : deux decimales, jamais « -0.00 ».
+/// Deux decimales, jamais « -0.00 ».
 pub fn mt(x: Decimal) -> String {
     if x.is_zero() {
         "0.00".into()
@@ -254,7 +254,7 @@ pub fn mt(x: Decimal) -> String {
     }
 }
 
-/// `_ms` : un montant signe.
+/// Un montant signe.
 pub fn ms(x: Decimal, signe: i64) -> String {
     mt(mul(x, Decimal::from(signe)))
 }
@@ -925,7 +925,7 @@ fn bornes_du_mois(mois: &str) -> Resultat<(Jour, Jour)> {
     Ok((socle::date::premier_du_mois(mois)?, socle::date::dernier_du_mois(mois)?))
 }
 
-/// `_affiliations` : les references d'adhesion auxquelles cette nature rattache, parmi celles qui valent pour la
+/// Les references d'adhesion auxquelles cette nature rattache, parmi celles qui valent pour la
 /// periode `debut`..=`fin`.
 pub fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, (debut, fin): (Jour, Jour)) -> Resultat<Vec<String>> {
     let cle = nat.bareme.clone().unwrap_or_else(|| "intermittent".into());
@@ -2909,7 +2909,7 @@ fn statut(p: &Paie) -> String {
     if s.is_empty() { "artiste".into() } else { s }
 }
 
-/// `_assiettes_ctp` : les assiettes agregees du bordereau Urssaf.
+/// Les assiettes agregees du bordereau Urssaf.
 fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decimal>> {
     // Sous deduction forfaitaire specifique, les assiettes de la securite sociale sont celles des bases abattues
     // (`cle_abattue`, la base 03 ; le 51 de type 001, `brut_du_51`) ; la CSG garde la sienne.

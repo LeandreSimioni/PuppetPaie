@@ -456,7 +456,7 @@ fn de(mois: &str) -> R<String> {
     Ok(socle::texte::de(&libelle(mois)?))
 }
 
-/// `_mois_plus` : `mois` decale de `n` mois.
+/// `mois` decale de `n` mois.
 fn mois_plus(mois: &str, n: i32) -> String {
     let an: i32 = mois[..4].parse().unwrap_or(0);
     let mo: i32 = mois[5..7].parse::<i32>().unwrap_or(1) - 1 + n;
@@ -1244,7 +1244,7 @@ impl<'a> Spectacles<'a> {
     }
 }
 
-/// `_titre` : le titre de la fiche, ou le numero d'objet a defaut.
+/// Le titre de la fiche, ou le numero d'objet a defaut.
 fn titre_de(spec: Option<&Value>, numero: &Value) -> Value {
     let t = spec.and_then(|s| s.get("titre")).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
     let t = t.trim();

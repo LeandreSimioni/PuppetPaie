@@ -1526,7 +1526,7 @@ fn lire_mot_code(v: &str) -> Option<(String, &str)> {
     Some((String::from_utf8_lossy(&octets).into_owned(), suite))
 }
 
-/// `_fold_as_ew` : ecrit `a_coder` en mots codes sur les lignes, en le recombinant avec les mots codes qui
+/// Ecrit `a_coder` en mots codes sur les lignes, en le recombinant avec les mots codes qui
 /// terminent deja la ligne. Rend la nouvelle position du premier mot code de la ligne.
 fn plier_en_mot_code(
     a_coder: &str,

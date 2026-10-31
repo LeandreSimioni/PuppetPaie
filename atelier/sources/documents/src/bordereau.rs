@@ -156,7 +156,7 @@ fn enregistrements(texte: &str) -> Vec<Vec<String>> {
     out
 }
 
-/// `_lire` : code -> lignes de la table.
+/// Code -> lignes de la table.
 fn lire(chemin: &Path) -> Resultat<Table> {
     let octets = std::fs::read(chemin).map_err(|e| format!("{} : {}", chemin.display(), e))?;
     let texte = String::from_utf8(octets).map_err(|e| format!("{} : {}", chemin.display(), e))?;

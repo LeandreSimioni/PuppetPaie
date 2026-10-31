@@ -296,7 +296,7 @@ pub struct Etat {
     pub mtime: i64,
 }
 
-/// `_ecarte` : un nom ou un suffixe exclu, ou un dossier exclu n'importe ou dans le chemin relatif
+/// Un nom ou un suffixe exclu, ou un dossier exclu n'importe ou dans le chemin relatif
 /// (le nom du fichier compris). La restauration s'en sert aussi : elle ne redescend que ce que la sauvegarde envoie.
 pub(crate) fn ecarte(relatif: &Path) -> bool {
     let nom = relatif.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
@@ -371,7 +371,7 @@ pub fn chemin_index(racine: &Path) -> PathBuf {
     racine.join("config").join(INDEX)
 }
 
-/// `_lire_index` : `{}` si le fichier manque ou ne se lit pas comme du JSON.
+/// `{}` si le fichier manque ou ne se lit pas comme du JSON.
 fn lire_index(racine: &Path) -> Map<String, Value> {
     let Ok(octets) = std::fs::read(chemin_index(racine)) else { return Map::new() };
     match serde_json::from_slice::<Value>(&octets) {

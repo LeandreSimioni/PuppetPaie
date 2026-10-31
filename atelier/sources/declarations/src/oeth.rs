@@ -113,7 +113,7 @@ fn decimal_de(v: &Value) -> Option<Decimal> {
     }
 }
 
-/// `_dec` : un nombre positif ou nul de `config/oeth.json`.
+/// Un nombre positif ou nul de `config/oeth.json`.
 fn dec(v: &Value, nom: &str, millesime: i32) -> Resultat<Decimal> {
     let Some(x) = decimal_de(v) else {
         return Err(format!("config/oeth.json, {} : << {} >> n'est pas un nombre ({}).", millesime, nom, repr_valeur(v)));

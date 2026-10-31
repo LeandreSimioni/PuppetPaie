@@ -103,7 +103,7 @@ fn date(args: &Args, nom: &str) -> Result<Option<String>, Echec> {
     }
 }
 
-/// `_oui_non` : « oui »/« non » -> le code de la norme, lu dans `arrets-base.json`.
+/// « oui »/« non » -> le code de la norme, lu dans `arrets-base.json`.
 fn oui_non(cadre: &Cadre, v: &str) -> Result<Value, Echec> {
     let n = crate::routes::imprevus::nomenclatures(&cadre.ctx)?;
     let codes: Vec<Value> = n.get("subrogation").and_then(|s| s.get("codes")).and_then(Value::as_array).cloned().unwrap_or_default();
@@ -119,7 +119,7 @@ fn oui_non(cadre: &Cadre, v: &str) -> Result<Value, Echec> {
     Err(refus(format!("--subrogation : dire « oui » ou « non » ({}).", liste.join(", "))))
 }
 
-/// `_lignes_arret` : un arret en trois ou quatre lignes.
+/// Un arret en trois ou quatre lignes.
 fn lignes_arret(r: &Value) {
     let vrai_de = |k: &str| r.get(k).is_some_and(vrai);
     let fin = if vrai_de("reprise") { champ(r, "reprise") } else { champ(r, "fin_previsionnelle") };

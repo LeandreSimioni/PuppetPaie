@@ -212,7 +212,7 @@ fn rubrique_de(ligne: &str) -> Option<(&str, &str)> {
     Some((&ligne[..14], valeur))
 }
 
-/// `_rubriques` : la premiere valeur de chaque rubrique.
+/// La premiere valeur de chaque rubrique.
 fn rubriques(texte: &str) -> Vec<(&str, &str)> {
     let mut out: Vec<(&str, &str)> = Vec::new();
     for l in lignes(texte) {

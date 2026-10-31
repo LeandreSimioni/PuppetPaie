@@ -132,7 +132,7 @@ pub(crate) fn titre_de(v: Option<&Value>) -> String {
     }
 }
 
-/// `_ecarts` : les champs DECLARES que la DSN disait autrement que la fiche.
+/// Les champs DECLARES que la DSN disait autrement que la fiche.
 fn ecarts(nom: &str, fiche: &Value, declare: &Map<String, Value>, mois: &str) -> R<Value> {
     let mut out = Map::new();
     for c in declarations::champs::fiche(nom)? {
@@ -161,7 +161,7 @@ pub(crate) fn fiche_importee(nom: &str, cle: Option<&str>, libelle: &str, etat: 
     json!({"nom": nom, "cle": cle, "libelle": libelle, "etat": etat, "ecarts": brut(&ecarts), "anomalies": brut(&Value::Array(anomalies)), "donnees": brut(&donnees)})
 }
 
-/// `_fiche_salarie` : ce qu'une fiche neuve recoit d'une DSN.
+/// Ce qu'une fiche neuve recoit d'une DSN.
 fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
     let mut f = decl.fiche.clone();
     f.insert("nir_cle".into(), json!(declarations::champs::cle_nir(&decl.nir).unwrap_or_default()));
@@ -477,7 +477,7 @@ pub(crate) fn apercu_lu(
         }
     }
     let rien_a_faire = a_creer == 0 && a_completer.is_empty() && paies_nouvelles == 0;
-    // `_paies_declarees` : DEUX SOURCES POUR UNE LIGNE -- les montants viennent de la DSN, le numero d'objet peut
+    // DEUX SOURCES POUR UNE LIGNE -- les montants viennent de la DSN, le numero d'objet peut
     // venir de l'AEM (rapprochee sur salarie, debut, fin).
     let objets_aem: HashMap<(String, String, String), String> = contrats
         .iter()

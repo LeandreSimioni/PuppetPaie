@@ -1861,7 +1861,7 @@ pub(crate) fn est_une_dsn_mensuelle(nom: &str) -> bool {
 /// La phrase de la pastille Contrat d'un engagement qui a change depuis la version sur laquelle son contrat est parti.
 pub(crate) const CONTRAT_A_REFAIRE: &str = "l'engagement a changé depuis l'envoi du contrat : un avenant est à faire signer";
 
-/// `_etat_signature` : la pastille Contrat d'un engagement.
+/// La pastille Contrat d'un engagement.
 ///
 /// `caduc` : le contrat parti -- signe ou non -- ne dit plus ce que dit l'engagement : ses clauses ont change depuis la
 /// version sur laquelle il est parti (`a_refaire_signer`, `engagement::etats::a_refaire`), ou il porte un autre numero

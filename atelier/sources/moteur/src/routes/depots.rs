@@ -677,7 +677,7 @@ pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Op
     }
 }
 
-/// `_tester` : LE TEST AUTOMATIQUE -- une DPAE par jour d'embauche, ecrite puis deposee en TEST. Le fichier est
+/// LE TEST AUTOMATIQUE -- une DPAE par jour d'embauche, ecrite puis deposee en TEST. Le fichier est
 /// celui que le depot reel reprendra : `dpae` rend le meme fichier pour la meme selection, et le reel exige
 /// justement la repetition de CE contenu. Rend les tests faits (cle -> entree), ou `None` quand rien ne se
 /// teste sur ce poste.

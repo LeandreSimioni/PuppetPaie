@@ -63,7 +63,7 @@ fn ecrire_etat(racine: &Path, e: &Value) -> R<()> {
     ecrire_json(&chemin(racine), e, 2).map_err(en_os)
 }
 
-/// `_ecrire_etat_si_change` : rien de change, rien d'ecrit.
+/// Rien de change, rien d'ecrit.
 fn ecrire_etat_si_change(racine: &Path, e: &Value) -> R<()> {
     if &lire_etat(racine)? != e {
         ecrire_etat(racine, e)?;
@@ -298,7 +298,7 @@ pub struct Reveils {
     pub incidents: Vec<String>,
 }
 
-/// `_dsn_a_rappeler` : (mois, jour d'echeance ISO) des DSN dont la boite des
+/// (mois, jour d'echeance ISO) des DSN dont la boite des
 /// rappels parle -- aucun depot REEL accepte, ou un depot refuse.
 fn dsn_a_rappeler(ctx: &Contexte) -> R<Vec<(String, String)>> {
     use crate::routes::rappels::{mois_a_declarer, Etat};
@@ -318,7 +318,7 @@ fn nouveau_code() -> R<String> {
     Ok(alea.iter().map(|o| format!("{:02x}", o)).collect())
 }
 
-/// `_reveils` : armer ce qui doit sonner, desarmer ce qui ne doit plus. Une
+/// Armer ce qui doit sonner, desarmer ce qui ne doit plus. Une
 /// panne de reseau arrete le passage (on ne martele pas un serveur absent) ; les
 /// reveils restent notes tels quels, et le passage suivant reprend.
 fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str, bilan: &mut Reveils) -> R<()> {

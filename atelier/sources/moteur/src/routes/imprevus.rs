@@ -1533,7 +1533,7 @@ pub(crate) fn phrase_du_manque(m: &Value) -> String {
     format!("« {} » : {}", valeur_en_texte(&m["case"]), valeur_en_texte(&m["dire"]))
 }
 
-/// `_ce_qui_manque_au_signalement` : ce qu'un signalement exige et que la saisie ne dit pas encore, un manque par case
+/// Ce qu'un signalement exige et que la saisie ne dit pas encore, un manque par case
 /// de la carte (`manque`).
 pub(crate) fn ce_qui_manque(ctx: &Contexte, e: &Value) -> R<Vec<Value>> {
     let e = &fin_au_terme(e)?;

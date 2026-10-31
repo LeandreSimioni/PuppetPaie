@@ -111,7 +111,7 @@ fn chiffre(c: char) -> bool {
     c.is_ascii_digit() || matches!(c, '\u{b2}' | '\u{b3}' | '\u{b9}')
 }
 
-/// `_jjmmaaaa` : `23071990` -> `1990-07-23` ; une date illisible est rendue telle quelle.
+/// `23071990` -> `1990-07-23` ; une date illisible est rendue telle quelle.
 pub(crate) fn jjmmaaaa(v: &str) -> String {
     let c: Vec<char> = v.chars().collect();
     if c.len() == 8 && c.iter().all(|x| chiffre(*x)) {
@@ -122,7 +122,7 @@ pub(crate) fn jjmmaaaa(v: &str) -> String {
     }
 }
 
-/// `_mois_dsn` : `01072026` -> `2026-07`.
+/// `01072026` -> `2026-07`.
 fn mois_dsn(v: &str) -> String {
     let c: Vec<char> = v.chars().collect();
     if c.len() == 8 {
