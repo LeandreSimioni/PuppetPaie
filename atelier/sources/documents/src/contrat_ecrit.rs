@@ -19,7 +19,7 @@ use std::sync::Arc;
 use fabrique_pdf::modele::Valeurs;
 use serde_json::{json, Value};
 
-use crate::avenant::{de_devant, et, fait_le_brut, jj_mm_aaaa, ligne_citee, remuneration_hors_brut};
+use crate::avenant::{de_devant, et, fait_le_brut, ligne_citee, remuneration_hors_brut};
 use crate::bulletin::fmt_eur;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
@@ -62,7 +62,7 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
     // LE TERME (L1242-12, 2°) : un contrat a duree determinee le dit ; un CDI n'en a pas.
     match texte(eng, "fin") {
         Some(f) => {
-            m.insert("contrat.fin".into(), jj_mm_aaaa(f)?);
+            m.insert("contrat.fin".into(), socle::date::Jour::lire(f)?.jj_mm_aaaa());
         }
         None if !nat.duree_indeterminee => return Err(format!("Le contrat de {} ({}) n'a pas de date de fin : un contrat à durée déterminée dit son terme (L. 1242-12, 2°). Rien n'est écrit.", nom, nat.libelle)),
         None => {}
@@ -124,7 +124,7 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
     m.insert("contrat.paiement".into(), "chaque mois, par virement".into());
     m.insert("salarie.case_signature".into(), "Le salarié".into());
     if let Some(p) = texte(eng, "date_paiement") {
-        m.insert("contrat.date_paiement".into(), jj_mm_aaaa(p)?);
+        m.insert("contrat.date_paiement".into(), socle::date::Jour::lire(p)?.jj_mm_aaaa());
     }
     // LA DUREE DU TRAVAIL (R1221-34, 12°) : la quotite du contrat, en heures par mois (S21.G00.40.013). Sous la duree de
     // reference, c'est un temps partiel, dont le contrat dit la repartition (L3123-6, 1°).

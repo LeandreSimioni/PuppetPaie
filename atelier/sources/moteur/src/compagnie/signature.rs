@@ -92,7 +92,7 @@ pub struct Choisis {
     pub contrats: Option<Vec<Cible>>,
 }
 
-/// `jj_mm_aaaa(x)` : `ValueError` si `x` ne se lit pas comme une date.
+/// Une date ISO en JJ/MM/AAAA ; refus (`ValueError`) si elle ne se lit pas.
 pub(crate) fn jj(iso: &str) -> R<String> {
     socle::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).map_err(|m| erreur("ValueError", m))
 }

@@ -8,7 +8,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
-use crate::routes::documents::{charge_texte, client_courriel, cle, jj_mm_aaaa, liste_de, nul, preuve_de, refus, requis, un_nom_commence_et_finit, vrai_ou, Ouvrir};
+use crate::routes::documents::{charge_texte, client_courriel, cle, liste_de, nul, preuve_de, refus, requis, un_nom_commence_et_finit, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
 use crate::routes::etapes::Moteur;
 use droit::contexte::Contexte;
@@ -567,7 +567,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let Some(parti) = parti else {
         return Err(erreur(
             "ErreurOperation",
-            format!("Aucun contrat n'est parti à la signature pour {} du {} : il n'y a rien à modifier.", valeur_en_texte(salarie_v), jj_mm_aaaa(debut_v)?),
+            format!("Aucun contrat n'est parti à la signature pour {} du {} : il n'y a rien à modifier.", valeur_en_texte(salarie_v), documents::bulletin::jj_mm_aaaa(debut_v).map_err(|m| erreur("ValueError", m))?),
         ));
     };
     let (salarie, debut) = (valeur_en_texte(salarie_v), valeur_en_texte(debut_v));
@@ -579,7 +579,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let Some(i) = trouvee else {
         return Err(erreur(
             "ErreurOperation",
-            format!("Aucun contrat de {} commençant le {} dans les engagements de {}.", salarie, jj_mm_aaaa(debut_v)?, mois_parti),
+            format!("Aucun contrat de {} commençant le {} dans les engagements de {}.", salarie, documents::bulletin::jj_mm_aaaa(debut_v).map_err(|m| erreur("ValueError", m))?, mois_parti),
         ));
     };
     // L'ANCIEN TEXTE : celui que le contrat disait sur la version de l'engagement sur laquelle il (ou son dernier avenant)

@@ -105,10 +105,6 @@ pub(crate) fn et(morceaux: &[String]) -> String {
     }
 }
 
-pub(crate) fn jj_mm_aaaa(iso: &str) -> Resultat<String> {
-    Ok(Jour::lire(iso)?.jj_mm_aaaa())
-}
-
 /// Ce que `contrat.marqueurs` lit de l'engagement : la forme canonique du moteur
 /// (`Engagement::canon`, dans la paie calculee).
 pub(crate) struct Eng {
@@ -292,12 +288,12 @@ fn periode_remuneration(e: &Eng) -> Resultat<String> {
 /// Les jours joues, et OU chacun se joue quand ils different.
 fn dates_travail(e: &Eng) -> Resultat<String> {
     let mut texte = if e.lieux_joues().len() < 2 {
-        let v: Resultat<Vec<String>> = e.dates_du_contrat().into_iter().map(|j| jj_mm_aaaa(j)).collect();
+        let v: Resultat<Vec<String>> = e.dates_du_contrat().into_iter().map(|j| Jour::lire(j).map(|x| x.jj_mm_aaaa())).collect();
         v?.join(", ")
     } else {
         let mut groupes = Vec::new();
         for (ou, jours) in e.dates_par_lieu() {
-            let v: Resultat<Vec<String>> = jours.into_iter().map(|j| jj_mm_aaaa(j)).collect();
+            let v: Resultat<Vec<String>> = jours.into_iter().map(|j| Jour::lire(j).map(|x| x.jj_mm_aaaa())).collect();
             let dates = et(&v?);
             groupes.push(if ou.is_empty() { dates } else { format!("{} à {}", dates, ou) });
         }
@@ -305,7 +301,7 @@ fn dates_travail(e: &Eng) -> Resultat<String> {
     };
     if !e.dernier_mois && e.planning.is_empty() {
         let fin = e.fin.as_deref().ok_or("contrat sans fin")?;
-        texte += &format!(", puis les dates du planning jusqu'au {}", jj_mm_aaaa(fin)?);
+        texte += &format!(", puis les dates du planning jusqu'au {}", Jour::lire(fin)?.jj_mm_aaaa());
     }
     Ok(texte)
 }
@@ -334,14 +330,14 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
     poser("employeur.licence", licence);
     // Le numero sous lequel la compagnie est affiliee a la Caisse : son numero d'adherent (`conges_spectacles::adherent`).
     poser("employeur.congesspectacles", crate::conges_spectacles::adherent(ent)?);
-    poser("contrat.fin", jj_mm_aaaa(e.fin.as_deref().ok_or("contrat sans fin")?)?);
+    poser("contrat.fin", Jour::lire(e.fin.as_deref().ok_or("contrat sans fin")?)?.jj_mm_aaaa());
     poser("contrat.dates_travail", dates_travail(e)?);
     poser("contrat.lieu", lieu_du_contrat(e));
     let paiement = match e.date_paiement.as_deref() {
         Some(p) if !p.is_empty() => p,
         _ => e.fin.as_deref().ok_or("contrat sans fin")?,
     };
-    poser("contrat.date_paiement", jj_mm_aaaa(paiement)?);
+    poser("contrat.date_paiement", Jour::lire(paiement)?.jj_mm_aaaa());
     poser("remuneration.detail", remuneration_detaillee(remuneration, e)?);
     poser("remuneration.periode", periode_remuneration(e)?);
     poser("remuneration.hors_brut", remuneration_hors_brut(remuneration)?);
@@ -415,7 +411,7 @@ pub(crate) fn parties(ent: &Value, sal: &Value, sp: &Value, e: &Eng) -> Resultat
             _ => INVALIDE.to_string(),
         },
     );
-    poser("contrat.debut", jj_mm_aaaa(&e.debut)?);
+    poser("contrat.debut", Jour::lire(&e.debut)?.jj_mm_aaaa());
     Ok(m)
 }
 

@@ -770,7 +770,7 @@ pub(crate) fn trouver_l_arret(ctx: &Contexte, nom: &Value, dernier_jour: &Value)
             return Ok(t);
         }
     }
-    let quand = if vrai(dernier_jour) { crate::routes::documents::jj_mm_aaaa(dernier_jour)? } else { "?".to_string() };
+    let quand = if vrai(dernier_jour) { documents::bulletin::jj_mm_aaaa(dernier_jour).map_err(|m| erreur("ValueError", m))? } else { "?".to_string() };
     Err(refus(format!(
         "Aucun arret de {} dont le dernier jour travaille soit le {}. `moteur arret` les liste.",
         valeur_en_texte(&cle),

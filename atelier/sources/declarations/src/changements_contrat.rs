@@ -162,10 +162,6 @@ fn qui(p: &Paie) -> String {
     )
 }
 
-fn libelle_mois(mois: &str) -> String {
-    engagement::libelle_mois(mois)
-}
-
 /// La date de la modification (41.001) du changement de `md`, declaree `avant` dans la DSN de `decl.mois`. Refus
 /// quand elle ne se lit pas, ou qu'elle ne tombe pas dans le mois declare (voir l'en-tete du module).
 #[allow(clippy::too_many_arguments)]
@@ -198,10 +194,10 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
                 qui(p),
                 md.r40,
                 avant,
-                libelle_mois(&decl.mois),
+                engagement::libelle_mois(&decl.mois),
                 apres,
-                libelle_mois(&decl.mois),
-                libelle_mois(mois)
+                engagement::libelle_mois(&decl.mois),
+                engagement::libelle_mois(mois)
             ));
         }
         candidats.push((p.engagement.debut_periode()?, "la periode de paie (la valeur se lit periode par periode, p. 199)".into()));
@@ -210,7 +206,7 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
     let mut apres_declare: Vec<&(Jour, String)> = candidats.iter().filter(|(j, _)| *j > fin_b).collect();
     apres_declare.sort_by_key(|(j, _)| *j);
     apres_declare.dedup_by_key(|(j, _)| *j);
-    let quoi = format!("{} passe de '{}' (declare en {}) a '{}'", md.r40, avant, libelle_mois(&decl.mois), if apres.is_empty() { "(rien)" } else { apres });
+    let quoi = format!("{} passe de '{}' (declare en {}) a '{}'", md.r40, avant, engagement::libelle_mois(&decl.mois), if apres.is_empty() { "(rien)" } else { apres });
     let ou_dater = {
         let mut o = Vec::new();
         if md.saisie {
@@ -231,7 +227,7 @@ partir duquel le changement vaut, que l'avertissement demande ; l'avenant prend 
 declare avec l'ancienne valeur. Ce n'est plus un changement du mois mais une correction de mois deja declares (cahier \
 technique DSN, § 2.1.2.5.2 p. 25-26 : bloc S21.G00.41 et profondeur de recalcul), avec la regularisation de leurs paies, \
 que le logiciel ne fait pas. Refus : verifier la date du changement.",
-                    qui(p), quoi, j.jj_mm_aaaa(), d, libelle_mois(&decl.mois)
+                    qui(p), quoi, j.jj_mm_aaaa(), d, engagement::libelle_mois(&decl.mois)
                 ));
             }
             Err(format!(
@@ -247,7 +243,7 @@ se devine pas. Le dater : {}.",
                     "{} : {}. Le changement est date du {} ({}), avant {} : il se declare dans la DSN de {}, qui n'est pas \
 deposee. La deposer d'abord (elle porte le changement) ; si ces mois ont ete declares avec l'ancienne valeur, c'est une \
 correction de mois deja declares, que le logiciel ne fait pas.",
-                    qui(p), quoi, j.jj_mm_aaaa(), d, libelle_mois(mois), libelle_mois(&format!("{:04}-{:02}", j.an, j.mois))
+                    qui(p), quoi, j.jj_mm_aaaa(), d, engagement::libelle_mois(mois), engagement::libelle_mois(&format!("{:04}-{:02}", j.an, j.mois))
                 ));
             }
             // En cours de mois : la paie decoupee au jour du changement le porte (; norme, § 2.1.2.5 p. 22-23 :
@@ -277,7 +273,7 @@ plusieurs blocs, chacun avec la valeur d'avant lui, que la fiche ne garde pas to
 intermediaires, ou ne garder qu'un changement.",
             qui(p),
             quoi,
-            libelle_mois(&decl.mois),
+            engagement::libelle_mois(&decl.mois),
             plusieurs.iter().map(|(j, d)| format!("{} par {}", j.jj_mm_aaaa(), d)).collect::<Vec<_>>().join(" ; ")
         )),
     }
@@ -330,7 +326,7 @@ Le SIRET de l'ancien etablissement se declare dans un bloc Changements contrat (
 mutation (cahier technique DSN, p. 21) : ouvrir la carte de l'engagement, changer l'établissement, « Modifier l'engagement », et dire dans l'avertissement le mois et le jour où il change.",
                 qui(p),
                 decl.siret,
-                libelle_mois(&decl.mois),
+                engagement::libelle_mois(&decl.mois),
                 nics[0]
             ));
         };

@@ -75,13 +75,6 @@ pub(super) fn get_requis<'a>(d: &'a Value, k: &str) -> R<&'a Value> {
     d.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
 }
 
-// ------------------------------------------------------------------ avenant-apercu
-
-/// `jj_mm_aaaa(x)` : `JJ/MM/AAAA`, `ValueError` si `x` ne se lit pas comme une date.
-pub(crate) fn jj_mm_aaaa(v: &Value) -> R<String> {
-    Ok(socle::date::d(v).map_err(|m| erreur("ValueError", m))?.jj_mm_aaaa())
-}
-
 // ------------------------------------------------------------------ envoi-apercu
 
 /// `int(texte)` d'un morceau de `mois` : `ValueError` sinon.
