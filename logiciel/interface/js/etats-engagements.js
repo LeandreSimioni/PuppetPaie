@@ -293,8 +293,8 @@ function brancherValidation(div, ligne) {
 }
 
 /** « Valider l'engagement », UN GESTE : la carte part au moteur telle qu'elle est (`valider-engagement` l'écrit, puis la
- *  valide), sans attendre l'enregistrement automatique. Il lui manque un fait : elle reste écrite, et le moteur dit
- *  lequel. */
+ *  valide), sans attendre l'enregistrement automatique. Il lui manque un fait : le moteur dit lequel, et n'écrit rien
+ *  (l'enregistrement automatique garde la carte en saisie). */
 async function validerLaCarte(div) {
   clearTimeout(MINUTEUR_SAISIE);
   const charge = chargeDeLaCarte(div, document.getElementById("mois").value);
@@ -306,10 +306,7 @@ async function validerLaCarte(div) {
     const r = await api("valider-engagement", charge);
     div.dataset.engagement = JSON.stringify(r.engagement);
     div._ecrite = JSON.stringify({ ...charge, engagement: r.engagement });
-    // Ce que le moteur dit sans refuser (un contrat qui ne pourra pas partir) se dit, à sa couleur.
-    const avis = (r && r.avis) || [];
-    if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
-    else dire("Engagement validé.");
+    dire(r.phrase, r.couleur || undefined);
   } catch (e) { dire(e.message, "erreur"); }
   await rafraichirActions();
 }
@@ -331,13 +328,11 @@ function brancherRetirer(div) {
     const charge = { mois, engagement: JSON.parse(div.dataset.engagement) };
     try {
       try {
-        await api("retirer-engagement", charge);
-        dire("Engagement retiré.");
+        dire((await api("retirer-engagement", charge)).phrase);
       } catch (e) {
         if (e.detail?.type !== "EngagementParti") throw e;
         if (!await boiteNonActif(e.message)) return;
-        const r = await api("retirer-engagement", { ...charge, non_actif: true });
-        dire("Engagement non actif." + (r.a_faire?.length ? ` À faire : ${r.a_faire.join(", ")}.` : ""));
+        dire((await api("retirer-engagement", { ...charge, non_actif: true })).phrase);
       }
       div.remove();
       await chargerMois(mois, true);
@@ -422,10 +417,7 @@ async function modifierLaCarte(div) {
       r = await api("modifier-engagement", { ...charge, confirme: true, a_partir_du: reponse.a_partir_du,
                                              a_partir_du_jour: reponse.a_partir_du_jour });
     }
-    if (r && r.change) {
-      const avis = r.avis || [];
-      dire("Engagement modifié." + avis.map((a) => " " + a.phrase).join(""), avis.length ? avis[0].couleur : undefined);
-    }
+    if (r && r.change) dire(r.phrase, r.couleur || undefined);
     await refermerLaCarte(div);
     await rafraichirActions();
   } catch (e) { dire(e.message, "erreur"); }

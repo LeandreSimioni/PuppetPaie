@@ -45,6 +45,10 @@ pub mod filet;
 pub mod etapes;
 pub mod rappels;
 pub mod mois;
+pub mod catalogue;
+
+/// Supprimer la compagnie : ce que la boite demande.
+pub const COMPAGNIE_SUPPRESSION: &str = "compagnie-suppression";
 
 /// La pile d'un fil qui sert des routes dans la fenetre : 8 Mo, celle du fil principal d'un `moteur route` sous Linux (un
 /// fil neuf n'en a que 2). Un calcul qui remonte les mois d'avant s'y empile ; un debordement de pile ne se rattrape pas
@@ -138,7 +142,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Un geste de l'ecran, une route : un module par geste.
         r if mois::ROUTES.contains(&r) => mois::route(o, &ctx, route, &charge),
         r if etapes::ROUTES.contains(&r) => etapes::route(o, &ctx, route, &charge),
-        r if engagement::ROUTES.contains(&r) => engagement::route(o, &ctx, route, &charge),
+        r if catalogue::dans(engagement::ROUTES, r).is_some() => engagement::route(o, &ctx, route, &charge),
         r if contrats::ROUTES.contains(&r) => contrats::route(o, &ctx, route, &charge),
         r if modeles_contrat::ROUTES.contains(&r) => modeles_contrat::route(o, &ctx, route, &charge),
         r if documents::ROUTES.contains(&r) => documents::route(o, &ctx, route, &charge),
@@ -178,7 +182,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if crate::compagnie::conseils::ROUTES.contains(&r) => crate::compagnie::conseils::route(&ctx, route, &charge),
         // Supprimer la compagnie : ce que la boite demande (`interface::suppression::question`) ; la suppression elle-meme
         // est un geste de la fenetre, qui lache d'abord ce qu'elle tient de la compagnie.
-        "compagnie-suppression" => crate::interface::suppression::question(&ctx.racine).map_err(|m| Echec { classe: Some("ErreurOperation"), message: m }),
+        COMPAGNIE_SUPPRESSION => crate::interface::suppression::question(&ctx.racine).map_err(|m| Echec { classe: Some("ErreurOperation"), message: m }),
         // La releve des reponses « Je signe » : cherche les codes attendus dans la boite (la vraie, ou celle d'une
         // compagnie fictive), note les signatures, archive la preuve, contresigne et renvoie le contrat.
         r if crate::compagnie::releve_signatures::ROUTES.contains(&r) => crate::compagnie::releve_signatures::route(&ctx, route, &charge),
@@ -219,13 +223,14 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 /// Les routes qui ecrivent (les lots d'ecritures, d'actes, d'envois et de releves) : apres elles, la fenetre verifie les
 /// etats des mois (`interface/api.rs`).
 pub fn est_une_ecriture(route: &str) -> bool {
-    [mois::ECRITURES, engagement::ECRITURES, contrats::ECRITURES, documents::ECRITURES, depots::ECRITURES, imprevus::ECRITURES]
+    [mois::ECRITURES, contrats::ECRITURES, documents::ECRITURES, depots::ECRITURES, imprevus::ECRITURES]
         .iter()
         .chain(&[fiches::ECRITURES, coffre::ECRITURES, import::ECRITURES, archives::ECRITURES, ouverture::ECRITURES, modeles_contrat::ECRITURES])
         .any(|l| l.contains(&route))
         || crate::obligations::ROUTES.contains(&route)
         || crate::compagnie::releve_signatures::ROUTES.contains(&route)
         || crate::compagnie::administrateur::ROUTES.contains(&route)
+        || catalogue::dans(engagement::ROUTES, route).is_some_and(|f| f.acte != catalogue::Acte::Lit)
 }
 
 /// `socle::paris::maintenant` a la minute, `AAAA-MM-JJ HH:MM` : l'heure d'une saisie.

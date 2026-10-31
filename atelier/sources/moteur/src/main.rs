@@ -4,6 +4,7 @@ fn usage() -> ! {
     eprintln!(
         "usage : moteur [--dev] COMMANDE [options]   (la ligne de commande du produit : moteur aide)\n\
          \x20       moteur route [--racine R] [--date D]   (route et charge en JSON sur l entree standard : les routes de l interface)\n\
+         \x20       moteur routes [NOM] [--avance] [--json]   (le catalogue des routes, et la fiche d une route)\n\
          \x20       moteur pdf ...   (la ligne de commande de la fabrique : moteur pdf --aide)\n\
          \x20       moteur fabrique DESCRIPTION.json SORTIE.pdf   (outil d'atelier)\n\
          \x20       moteur guet [--seuil N] [--commits] [--transcript F]   (outil d'atelier : la veille du contexte d'un sous-agent)\n\
@@ -32,6 +33,8 @@ fn main() -> std::process::ExitCode {
             Some(code) => std::process::exit(code),
             None => usage(),
         },
+        // Le catalogue des routes, tire de leurs fiches.
+        Some("routes") => return std::process::ExitCode::from(moteur::routes::catalogue::commande(&args[1..]).clamp(0, 255) as u8),
         // La fenetre, dans le navigateur du poste : `moteur interface`.
         // La mise a jour : verifier, appliquer, revenir ; publier et la cle, chez l'editeur.
         Some("maj") => return std::process::ExitCode::from(moteur::compagnie::maj::commande(&args[1..]).clamp(0, 255) as u8),

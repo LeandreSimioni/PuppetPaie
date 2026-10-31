@@ -126,7 +126,7 @@ impl Brouillon {
     pub fn ecrire(self) -> Resultat<()> {
         let fichiers = BROUILLON.with(|b| b.borrow_mut().take()).map(|(_, f)| f).unwrap_or_default();
         for (mois, contenu) in fichiers {
-            socle::ecriture::ecrire_json(&chemin(&self.0, &mois), &contenu, 2)?;
+            poser(&self.0, &mois, &contenu)?;
         }
         Ok(())
     }
@@ -152,6 +152,20 @@ impl Drop for Brouillon {
     fn drop(&mut self) {
         BROUILLON.with(|b| *b.borrow_mut() = None);
     }
+}
+
+/// LE SEUL ENDROIT QUI ECRIT UN FICHIER D'ENGAGEMENTS : `contenu` devient le fichier de `mois`, dans le brouillon ouvert
+/// pour `racine` s'il y en a un (`Brouillon`), sinon sur le disque. Rend son chemin.
+pub(crate) fn poser(racine: &Path, mois: &str, contenu: &Value) -> Resultat<PathBuf> {
+    let p = chemin(racine, mois);
+    if Brouillon::tient(racine, mois, contenu.clone()) {
+        return Ok(p);
+    }
+    if let Some(d) = p.parent() {
+        std::fs::create_dir_all(d).map_err(|e| socle::fichiers::panne_fichier(&e, d))?;
+    }
+    socle::ecriture::ecrire_json(&p, contenu, 2)?;
+    Ok(p)
 }
 
 /// Le fichier d'un mois tel que le processus l'a lu (`socle::fichiers::json_partage`), ou tel que le brouillon ouvert
@@ -558,9 +572,7 @@ pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
         return Err(format!("{} : l'engagement {} a change sur le disque ; rien n'est efface", o.fichier, o.rang + 1));
     }
     es.remove(o.rang);
-    let p = chemin(racine, &o.fichier);
-    socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
-    Ok(p)
+    poser(racine, &o.fichier, &Value::Object(contenu))
 }
 
 /// LE MOIS DE L'ECRAN : `{"mois", <defauts du mois>, "engagements": [la vue de chacun]}`, ou `None` quand aucun
@@ -742,7 +754,6 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
         }
         None => {
             let saisie = en_forme(saisie)?;
-            let p = chemin(racine, mois);
             let mut contenu = match lire_fichier(racine, mois)? {
                 Some(c) => c,
                 None => defauts.clone(),
@@ -752,10 +763,7 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
             let Value::Array(es) = es else { return Err(format!("{} : `engagements` n'est pas une liste", mois)) };
             let rang = es.len();
             es.push(Value::Object(saisie));
-            if let Some(d) = p.parent() {
-                std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
-            }
-            socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
+            poser(racine, mois, &Value::Object(contenu))?;
             (mois.to_string(), rang)
         }
     };
@@ -1098,11 +1106,7 @@ pub fn reecrire(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     };
     let place = es.get_mut(o.rang).ok_or_else(|| format!("{} : l'engagement {} a disparu", o.fichier, o.rang + 1))?;
     *place = Value::Object(o.brut.clone());
-    let p = chemin(racine, &o.fichier);
-    if !Brouillon::tient(racine, &o.fichier, Value::Object(contenu.clone())) {
-        socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
-    }
-    Ok(p)
+    poser(racine, &o.fichier, &Value::Object(contenu))
 }
 
 /// Le jour `AAAA-MM-JJ` de `mois` qui est le premier, pour les bornes d'un contrat.

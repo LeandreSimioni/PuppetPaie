@@ -290,12 +290,7 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Map<String, Value>>) -> Resultat
         if existe.as_ref() == Some(&contenu) {
             continue;
         }
-        let p = stock::chemin(racine, &f);
-        if let Some(d) = p.parent() {
-            std::fs::create_dir_all(d).map_err(|e| socle::fichiers::panne_fichier(&e, d))?;
-        }
-        socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
-        ecrits.push(p);
+        ecrits.push(stock::poser(racine, &f, &Value::Object(contenu))?);
     }
     Ok(ecrits)
 }

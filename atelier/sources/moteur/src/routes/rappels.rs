@@ -50,10 +50,13 @@ pub fn decoder(erreur: &str) -> (Option<&str>, &str) {
     (None, erreur)
 }
 
+/// La route des rappels.
+pub const ROUTE: &str = "rappels";
+
 /// Une route de l'ouverture : `None` si ce n'est pas la sienne.
 pub fn traiter(o: &HashMap<String, String>, route: &str, charge: &Value) -> Option<Resultat<Value>> {
     let r = match route {
-        "rappels" => rappels(o, charge),
+        ROUTE => rappels(o, charge),
         _ => return None,
     };
     Some(r.map_err(encoder))

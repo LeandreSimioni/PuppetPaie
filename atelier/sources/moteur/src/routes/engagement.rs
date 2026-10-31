@@ -1,6 +1,5 @@
-//! Les routes de l'engagement : le valider (`valider-engagement`), modifier un engagement valide d'un geste
-//! (`modifier-engagement`), et le retirer (`retirer-engagement` : supprime s'il n'en est rien parti, sinon rendu non
-//! actif). Un refus garde sa phrase quand elle est utile a la page.
+//! Les routes de l'engagement, celles de la carte : la valider, la modifier, la retirer. Chacune rend la phrase que
+//! l'on lit ; un refus dit quoi corriger et n'ecrit rien.
 
 use std::collections::HashMap;
 
@@ -11,14 +10,78 @@ use socle::echec::{erreur, Echec, Refus, R};
 use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus as RefusDit};
 
+const MOIS: Champ = Champ { nom: "mois", sens: "le mois de l'écran, AAAA-MM", avance: false };
+const IDENTITE: Champ = Champ {
+    nom: "engagement",
+    sens: "l'identité de la carte, telle que le moteur l'a rendue : {salarie, debut, rang}",
+    avance: false,
+};
+const SAISIE: Champ = Champ {
+    nom: "saisie",
+    sens: "ce que la carte porte : salarie (la clé de sa fiche), spectacle, lignes [{rubrique, quantite, taux, dates}], nature…",
+    avance: false,
+};
+const SAISIE_INCOMPLETE: RefusDit = RefusDit { classe: "SaisieIncomplete", corriger: "le fait que la phrase nomme, sur la carte ou la fiche du salarié" };
+const OPERATION: RefusDit = RefusDit {
+    classe: "ErreurOperation",
+    corriger: "ce que la phrase dit : un mois importé ou clos, une carte que l'écran ne montre pas, une saisie hors de ses bornes",
+};
+const FORME: RefusDit = RefusDit { classe: "TypeError", corriger: "le champ de la charge que la phrase nomme" };
 
-/// Les routes de ce module. `etat-par-engagement` se lit dans l'etat garde (`etat_garde`), que la fenetre refait apres
-/// chaque ecriture.
-pub const ROUTES: &[&str] = &["valider-engagement", "modifier-engagement", "retirer-engagement"];
-
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = ROUTES;
+/// Les routes de ce module, et leurs fiches. Toutes ecrivent.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "valider-engagement",
+        geste: "Valider l'engagement d'une carte : l'écrire et calculer ses paies.",
+        charge: &[MOIS, Champ { nom: "engagement", sens: "l'identité de la carte ; absente pour un engagement neuf", avance: false }, SAISIE],
+        exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-27"]}]}}"#,
+        rend: "engagement (l'identité de la carte), phrase et couleur (ce qui se lit : validé, et ce qui ne pourra pas partir)",
+        refus: &[SAISIE_INCOMPLETE, OPERATION, FORME],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 320,
+    },
+    Fiche {
+        nom: "modifier-engagement",
+        geste: "Modifier un engagement validé : écrire ce que sa carte ouverte montre.",
+        charge: &[
+            MOIS,
+            IDENTITE,
+            SAISIE,
+            Champ { nom: "confirme", sens: "vrai : l'avertissement rendu a été lu et accepté", avance: false },
+            Champ { nom: "a_partir_du", sens: "le mois choisi parmi ceux que l'avertissement propose (CDD, CDI)", avance: true },
+            Champ { nom: "a_partir_du_jour", sens: "son jour, quand ce n'est pas le 1er", avance: true },
+        ],
+        exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":160,"dates":["2026-11-27"]}]}}"#,
+        rend: "rien n'a changé : change faux ; ce qui est parti le demande : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit ; écrit : change, phrase et couleur",
+        refus: &[
+            SAISIE_INCOMPLETE,
+            OPERATION,
+            RefusDit { classe: "ModificationNonDeclarable", corriger: "rien : la norme ne permet plus de déclarer ce changement ; la phrase dit pourquoi" },
+            FORME,
+        ],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 320,
+    },
+    Fiche {
+        nom: "retirer-engagement",
+        geste: "Retirer l'engagement d'une carte, ou le rendre non actif si un envoi est parti.",
+        charge: &[MOIS, IDENTITE, Champ { nom: "non_actif", sens: "vrai : le rendre non actif, après le refus EngagementParti", avance: false }],
+        exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0}}"#,
+        rend: "phrase : retiré, ou non actif et ce que cela rend à faire",
+        refus: &[
+            RefusDit { classe: CLASSE_ENGAGEMENT_PARTI, corriger: "rien à corriger : un envoi est parti ; renvoyer avec non_actif pour le rendre non actif" },
+            OPERATION,
+            FORME,
+        ],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 200,
+    },
+];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -70,9 +133,9 @@ fn designe(ctx: &Contexte, mois: &str, charge: &Value) -> R<(usize, engagement::
 
 /// « VALIDER L'ENGAGEMENT », UN GESTE : la carte s'ecrit (`saisie`, et `engagement`, son identite, absente
 /// pour un engagement neuf : `crate::routes::mois::ecrire_une_carte`), puis l'engagement ecrit se valide : il ecrit ses
-/// paies, une par mois qu'il couvre (`engagement::etats::valider`). Il lui manque un fait : la carte reste ecrite en
-/// saisie, et la validation refuse en disant lequel. Un engagement valide ne se valide pas (il se modifie par
-/// `modifier-engagement`).
+/// paies, une par mois qu'il couvre (`engagement::etats::valider`). Le tout se fait dans un brouillon
+/// (`engagement::stock::Brouillon`) : il lui manque un fait, la validation refuse en disant lequel, et rien n'est ecrit.
+/// Un engagement valide ne se valide pas (il se modifie par `modifier-engagement`).
 fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     // Valider ne se defait pas : un engagement valide se modifie (`modifier-engagement`) ou se retire.
@@ -80,6 +143,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(erreur("TypeError", "`valide` : valider-engagement valide ; un engagement valide se modifie ou se retire. Rien n'est écrit."));
     }
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
+    let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
     let id = crate::routes::mois::ecrire_une_carte(ctx, mois, charge)?;
     let (i, _) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
@@ -88,13 +152,22 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
     }
     let v = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?;
+    brouillon.ecrire().map_err(Echec::from)?;
     let e = &data["engagements"][i];
-    let (salarie, debut) = (e.get("salarie").cloned().unwrap_or(Value::Null), engagement::debut_brut(e));
     if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
-        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &debut)?;
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(e))?;
     }
-    let avis = avis_de_validation(ctx, &v, &departs)?;
-    Ok(json!({"salarie": salarie, "debut": debut, "engagement": id, "valide": v.le(), "avis": avis}))
+    let (phrase, couleur) = phrase_de_validation("Engagement validé.", avis_de_validation(ctx, &v, &departs)?);
+    Ok(json!({"engagement": id, "phrase": phrase, "couleur": couleur}))
+}
+
+/// La phrase que l'on lit apres une validation : `fait`, puis l'avis qui l'accompagne ; sa couleur, orange quand un avis
+/// dit quelque chose a faire.
+fn phrase_de_validation(fait: &str, avis: Option<String>) -> (String, Value) {
+    match avis {
+        Some(a) => (format!("{} {}", fait, a), json!("orange")),
+        None => (fait.to_string(), Value::Null),
+    }
 }
 
 // ------------------------------------------------------------------ modifier-engagement
@@ -154,7 +227,7 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let valide = match modifier_puis_revalider(ctx, mois, i, &o, saisie, confirme, a_partir_du.as_deref(), le)? {
         Issue::Ecrite(valide) => valide,
         Issue::Rien => return Ok(json!({"change": false})),
-        Issue::Avertir(a) => return Ok(json!({"change": true, "avertissement": a})),
+        Issue::Avertir(a) => return Ok(json!({"avertissement": a})),
     };
     brouillon.ecrire().map_err(Echec::from)?;
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
@@ -163,9 +236,9 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(e))?;
     }
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
-    let avis = avis_de_validation(ctx, &valide, &departs)?;
+    let (phrase, couleur) = phrase_de_validation("Engagement modifié.", avis_de_validation(ctx, &valide, &departs)?);
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
-    Ok(json!({"change": true, "valide": valide.le(), "avis": avis}))
+    Ok(json!({"change": true, "phrase": phrase, "couleur": couleur}))
 }
 
 /// La modification elle-meme, dans le brouillon ouvert : l'engagement `o`, de rang `i`, se rouvre, prend sa saisie et
@@ -309,35 +382,34 @@ fn ce_qui_arrive_aux_mois_partis(ctx: &Contexte, q: &engagement::etats::APartirD
 /// n'est pas parti, ensuite l'avenant que le changement demande, `ce_que_le_changement_entraine`, ou rien) part a la
 /// signature par courriel, a l'adresse de la fiche ; sans elle, il ne partira pas (`compagnie::signature`, qui le refuse
 /// au depart). Il s'imprime, ou le courriel se saisit.
-fn avis_de_validation(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Vec<Value>> {
+fn avis_de_validation(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Option<String>> {
     let e = &Value::Object(v.objet().brut.clone());
-    let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Ok(Vec::new()) };
+    let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Ok(None) };
     let nature = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_err(Echec::from)?;
     let numero = e.get("numero").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
     if nature.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &engagement::debut_brut(e), &numero) {
-        return Ok(Vec::new());
+        return Ok(None);
     }
     let fiche = ctx.salarie(&cle).map_err(Echec::from)?;
     if fiche.get("email").map(valeur_en_texte).is_some_and(|m| !m.trim().is_empty()) {
-        return Ok(Vec::new());
+        return Ok(None);
     }
     let document = if !contrat_parti(ctx, v.objet(), departs) {
         "contrat"
     } else if ce_que_le_changement_entraine(ctx, v, departs)?.iter().any(|l| l == UN_AVENANT) {
         "avenant"
     } else {
-        return Ok(Vec::new());
+        return Ok(None);
     };
     let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(valeur_en_texte);
     let qui = [texte("nom"), texte("prenom_affichage").or_else(|| texte("prenom"))].into_iter().flatten().collect::<Vec<_>>().join(" ");
-    // Orange : a faire, et la compagnie peut le faire.
-    Ok(vec![json!({"couleur": "orange", "phrase": format!(
+    Ok(Some(format!(
         "{} n'a pas de courriel dans sa fiche : son {} ne pourra pas partir à la signature par courriel. Imprimez-le \
          pour le faire signer, ou saisissez son courriel (étape « Contrats » de la paie, ou sa fiche dans Configuration › \
          Salariés).",
         if qui.is_empty() { cle } else { qui },
         document
-    )})])
+    )))
 }
 
 // ------------------------------------------------------------------ retirer-engagement
@@ -349,9 +421,8 @@ pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
 /// « Retirer cet engagement » : la carte se designe par son identite (`engagement`, que le moteur lui a rendue).
 /// Tant que rien n'est parti de lui, l'engagement se supprime, meme valide, et rend son numero
 /// (`engagement::etats::supprimer`). Des qu'un envoi est parti, le moteur refuse (`CLASSE_ENGAGEMENT_PARTI`, la phrase
-/// dit ce qui est parti) ; avec `non_actif`, il devient non actif (`engagement::etats::desactiver`) et la reponse dit ce
-/// que cela rend a faire (`a_faire`, en phrases : la DPAE a annuler, la DSN d'un mois a corriger). Rien ne part de
-/// lui-meme.
+/// dit ce qui est parti) ; avec `non_actif`, il devient non actif (`engagement::etats::desactiver`) et la phrase dit ce
+/// que cela rend a faire (la DSN d'un mois a corriger). Rien ne part de lui-meme.
 fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
@@ -359,12 +430,14 @@ fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     if !booleen(charge, "non_actif", false) {
         return match engagement::etats::supprimer(ctx, &o, &departs) {
-            Ok(()) => Ok(json!({"retire": "supprime"})),
+            Ok(()) => Ok(json!({"phrase": "Engagement retiré."})),
             Err(m) => Err(erreur(CLASSE_ENGAGEMENT_PARTI, m)),
         };
     }
     let n = engagement::etats::desactiver(ctx, mois, i, &departs).map_err(Echec::from)?;
-    Ok(json!({"retire": "non_actif", "le": n.le(), "a_faire": a_faire_en_phrases(&n.a_refaire(ctx, &departs))}))
+    let a_faire = a_faire_en_phrases(&n.a_refaire(ctx, &departs));
+    let phrase = if a_faire.is_empty() { "Engagement non actif.".to_string() } else { format!("Engagement non actif. À faire : {}.", a_faire.join(", ")) };
+    Ok(json!({"phrase": phrase}))
 }
 
 /// Ce qu'un engagement non actif rend a faire, en phrases pour l'ecran.
