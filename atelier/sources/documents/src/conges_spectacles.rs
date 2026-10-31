@@ -520,7 +520,7 @@ fn blocs_certificat(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<Value>> {
     Ok(blocs)
 }
 
-/// `str(Path(...))`.
+/// Un chemin en texte : sans `.` ni séparateur double.
 pub fn chemin_texte(p: &std::path::Path) -> String {
     p.components().collect::<std::path::PathBuf>().to_string_lossy().into_owned()
 }

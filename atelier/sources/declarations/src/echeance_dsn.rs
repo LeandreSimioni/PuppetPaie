@@ -88,7 +88,7 @@ pub fn reporter(nominale: Jour) -> Resultat<Echeance> {
     Ok(Echeance { nominale, jour, sautes })
 }
 
-/// `int(texte)` d'un morceau de nom de mois.
+/// Le nombre d'un morceau de nom de mois ; refus s'il ne se lit pas.
 fn entier(t: &str) -> Resultat<i64> {
     t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : {}", socle::fichiers::repr(t)))
 }

@@ -110,7 +110,7 @@ fn zone_employeur(nom: &str) -> (usize, usize) {
 
 // ------------------------------------------------------------- les textes
 
-/// `str(v or "")`.
+/// Une valeur en texte, vide si elle manque ou est vide.
 fn chaine(v: Option<&Value>) -> String {
     match v {
         Some(v) if vrai(v) => en_texte(v),
@@ -183,7 +183,7 @@ fn tout_chiffres(t: &str) -> bool {
     !t.is_empty() && t.chars().all(est_chiffre)
 }
 
-/// Les chiffres de `str(tel)`.
+/// Les chiffres d'un numéro de téléphone.
 fn chiffres(t: &str) -> String {
     t.chars().filter(|&c| est_chiffre(c)).collect()
 }
@@ -202,8 +202,8 @@ pub struct Chemins {
 /// Le nom du gabarit livre.
 const NOM_GABARIT: &str = "due_tel_gabarit.txt";
 
-/// Les 990 premiers caracteres du gabarit, lus comme `Path.read_text(
-/// encoding="latin-1")` (les fins de ligne universelles).
+/// Les 990 premiers caractères du gabarit, lus en latin-1 : un octet, un caractère, et les fins de ligne
+/// CR LF et CR lues comme LF.
 fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
     // Le gabarit de la compagnie s'il en a un, celui livre avec le logiciel
     // sinon (`donnees/modeles/`, un enregistrement neutre) : il ne donne plus

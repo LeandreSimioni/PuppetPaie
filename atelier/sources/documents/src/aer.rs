@@ -217,7 +217,7 @@ pub fn entier(v: Option<&str>) -> Resultat<i128> {
 }
 
 /// << 23/08/2026 >> -> date. None si ce n'est pas une date ; une date qui
-/// n'existe pas (31/02) leve, comme `datetime.date`.
+/// n'existe pas (31/02) se refuse.
 pub fn jour(t: &str) -> Resultat<Option<Jour>> {
     let t = t.trim();
     let b = t.as_bytes();

@@ -7,8 +7,8 @@
 //! laisse la case VIDE et le dit (`illisible`) : rien n'est complete au hasard. Le departement et le pays de
 //! naissance se lisent dans le NIR.
 //!
-//! Lecture des chiffres : `\d` et `int()` ne lisent ici que
-//! les chiffres ASCII pour les dates ; la decomposition NFD des accents est celle de `contexte::sans_accent` (latin
+//! Lecture des chiffres : seuls se lisent
+//! les chiffres ASCII, pour les dates ; la decomposition NFD des accents est celle de `contexte::sans_accent` (latin
 //! courant).
 
 use std::collections::HashMap;
@@ -259,7 +259,7 @@ fn chiffre(c: char) -> bool {
     valeur_chiffre(c).is_some()
 }
 
-/// `int(t)` d'un groupe de chiffres decimaux (toutes ecritures), ou `None`.
+/// Le nombre d'un groupe de chiffres décimaux (toutes écritures), ou `None`.
 fn nombre(t: &str) -> Option<u32> {
     if t.is_empty() {
         return None;

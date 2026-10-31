@@ -473,7 +473,7 @@ fn dire(norme: &Norme, r: &str, v: &str, pourquoi: &str, libelle: &str, ou: Opti
 
 /// Refuse avant le depot ce que le point de depot refuserait, dans la table de la version que le fichier porte
 /// (S10.G00.00.006) ; puis les valeurs que cette version a retirees de leur liste (`norme::verifier_les_valeurs`). Le
-/// texte de l'erreur est celui de `str(ValeurHorsNorme)`.
+/// texte de l'erreur est celui de `ValeurHorsNorme`.
 pub fn verifier_fichier(texte: &str) -> Resultat<()> {
     let norme = crate::norme::du_fichier(texte)?;
     let mauv = mauvaises(texte, &norme)?;

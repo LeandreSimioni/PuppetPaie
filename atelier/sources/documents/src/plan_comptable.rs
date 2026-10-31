@@ -1,10 +1,10 @@
 //! Le plan comptable et les tables des exports : le plan livre (`plan-comptable-base.json`) recouvert par
-//! `config/plan-comptable.json`, le sous-compte 421 d'un salarie (le modele `net.par_salarie`, une forme de
-//! `str.format` que ce module rend ou refuse), le controle du plan avant un export vers le
+//! `config/plan-comptable.json`, le sous-compte 421 d'un salarie (le modele `net.par_salarie`, un
+//! modèle à champs nommés que ce module rend ou refuse), le contrôle du plan avant un export vers le
 //! logiciel du comptable, et les tables fixes des exports (`exports_tables.json`).
 //!
-//! Ecart VOULU (refuser plutot que formater autrement) : un modele de compte individuel qui emploie une forme de
-//! `str.format` que ce module ne rend pas -- groupement des milliers avec zeros
+//! Un modele de compte individuel qui emploie une forme que ce module ne rend pas -- groupement des milliers avec
+//! zeros
 //! (`{code:010,}`), types flottants (`{code:e}`, `f`, `g`, `%`), methodes ou attributs de `str`/`int` autres que
 //! `real`, `imag`, `numerator`, `denominator` -- est refuse en `ErreurOperation` qui le dit.
 
@@ -245,7 +245,7 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
     })
 }
 
-/// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres.
+/// Un entier écrit : le signe, les chiffres, un tiret bas entre deux chiffres.
 fn entier_de(t: &str) -> Option<i64> {
     let (neg, reste) = match t.strip_prefix('-') {
         Some(r) => (true, r),

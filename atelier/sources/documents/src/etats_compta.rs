@@ -94,7 +94,7 @@ fn deux(v: Decimal) -> String {
     eur2(v).to_string()
 }
 
-/// `str(x or "")` d'une valeur JSON.
+/// Une valeur JSON en texte, vide si elle manque ou est vide.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
         Some(x) if vrai(x) => valeur_en_texte(x),

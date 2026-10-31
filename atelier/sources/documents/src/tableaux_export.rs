@@ -57,7 +57,7 @@ impl Val {
         Val::Num(Value::from(n))
     }
 
-    /// `str(v)`.
+    /// La valeur en texte.
     pub fn en_texte_ecrit(&self) -> String {
         match self {
             Val::Dec(d) => d.to_string(),
@@ -260,8 +260,8 @@ impl Tableau {
 
 }
 
-/// `_sections(lignes, cle, libelle, tri)` : les lignes en sections, une par cle, les cles triees
-/// (`sorted(paquets.items())`), les lignes de chaque section triees par `tri` s'il y en a un (tri stable).
+/// Les lignes en sections, une par clé, les clés triées,
+/// les lignes de chaque section triées par `tri` s'il y en a un (tri stable).
 pub fn sections_de<K: Ord + Clone>(
     lignes: Vec<Ligne>, cle: impl Fn(&Ligne) -> K, libelle: impl Fn(&K) -> String, tri: Option<&dyn Fn(&Ligne) -> Vec<String>>,
 ) -> Vec<Section> {

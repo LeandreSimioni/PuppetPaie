@@ -291,7 +291,7 @@ pub fn titre_spectacle(p: &Paie) -> String {
     p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte).unwrap_or_default()
 }
 
-/// `str(Decimal)` d'un taux flottant : `Decimal(str(x))`.
+/// Un taux flottant en décimal, par son écriture la plus courte qui se relit.
 pub fn dec_taux(x: f64) -> R<Decimal> {
     socle::num::dec_f64(x).map_err(|m| erreur("ValueError", m))
 }

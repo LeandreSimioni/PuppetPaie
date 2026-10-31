@@ -173,7 +173,7 @@ pub fn tous_chiffres(s: &str) -> bool {
     !s.is_empty() && s.chars().all(est_chiffre)
 }
 
-/// `str.title()`.
+/// Chaque mot avec sa première lettre en capitale, le reste en minuscules.
 pub fn titre(s: &str) -> String {
     let mut out = String::new();
     let mut precedent_cased = false;
@@ -243,7 +243,7 @@ fn tranche(s: &str, a: usize, b: usize) -> String {
     s.chars().skip(a).take(b.saturating_sub(a)).collect()
 }
 
-/// `float(texte)` : est-ce un nombre ? (`nan`, `inf`, `1e5`,
+/// Le texte est-il un nombre flottant ? (`nan`, `inf`, `1e5`,
 /// `1_000` en sont ; une virgule non.)
 fn flottant_valide(t: &str) -> bool {
     let t = strip(t);

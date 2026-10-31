@@ -102,12 +102,12 @@ fn requis<'a>(o: &'a Value, cle: &str) -> Resultat<&'a Value> {
     o.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
-/// `str(o[cle])`.
+/// La valeur de `cle`, en texte ; refus si elle manque.
 fn texte(o: &Value, cle: &str) -> Resultat<String> {
     Ok(en_texte(requis(o, cle)?))
 }
 
-/// `str(o.get(cle) or defaut)`.
+/// La valeur de `cle` en texte, ou `defaut` si elle manque ou est vide.
 fn ou(o: &Value, cle: &str, defaut: &str) -> String {
     match o.get(cle) {
         Some(v) if vrai(v) => en_texte(v),
@@ -1223,7 +1223,7 @@ pub fn gabarits_de(ent: &Value) -> Option<PathBuf> {
     }
 }
 
-/// Un chemin ecrit comme `str(Path(...))` : sans `.` ni separateur double.
+/// Un chemin en texte : sans `.` ni séparateur double.
 fn chemin_texte(p: &Path) -> String {
     p.components().collect::<PathBuf>().to_string_lossy().into_owned()
 }

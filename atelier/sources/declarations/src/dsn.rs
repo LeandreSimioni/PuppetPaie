@@ -81,7 +81,7 @@ impl Fichier {
         }
     }
 
-    /// `f.add(rubrique, v)` pour une valeur JSON : `str(v)`, refus sur `None`.
+    /// Pose `rubrique` d'une valeur JSON écrite en texte ; refus sur `null`.
     pub fn add_v(&mut self, rubrique: &str, valeur: &Value) -> Resultat<()> {
         if valeur.is_null() {
             return Err(absente(rubrique));
@@ -222,7 +222,7 @@ fn contact_sante_travail(f: &mut Fichier, ent_e: &Value) -> Resultat<()> {
     Ok(())
 }
 
-/// `str(v or "")`.
+/// Une valeur en texte, vide si elle est vide.
 pub fn txt(v: &Value) -> String {
     if vrai(v) {
         en_texte(v)
