@@ -714,10 +714,8 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
             })
             .collect::<Resultat<Vec<_>>>()
     })?;
-    // DES AUTRES ENGAGEMENTS DE SON MOIS, UNE PAIE NE LIT QUE CEUX DE SON SALARIE : la deduction forfaitaire specifique
-    // deja retenue par ses contrats d'avant dans le mois (`calcul::dfs_deja_deduite`, sur `precedentes`). Le reste du
-    // calcul du mois est propre a chaque engagement (`charger_donnees` : `calculer_apres`, minima, SMIC, jours payes
-    // pendant un imprevu, contrat qui deborde) ; `un_numero_un_salarie` refuse, il ne change aucun chiffre.
+    // DES AUTRES ENGAGEMENTS DE SON MOIS, UNE PAIE NE LIT QUE CEUX DE SON SALARIE (`calcul::dfs_deja_deduite`, sur
+    // `precedentes`) ; `un_numero_un_salarie` refuse sans changer un chiffre.
     entrees.remove(&stock::cle_de_saisie(mois, None));
     let mois_lu = mois_lu(&data);
     calculees
@@ -1276,9 +1274,8 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<
     let mut relues = empreinte::Relues::default();
     let mut reecrit = false;
     let mut etats = tels_qu_ecrits(ctx, mois, departs)?;
-    // CE DONT UNE PAIE DEPEND SE MET A JOUR AVANT ELLE : les mois d'avant que ses paies ont lus (`paies <mois>` : conges,
-    // cumuls, deduction forfaitaire de l'annee) se relisent d'abord, du plus ancien au plus recent. Ce que la lecture de
-    // `mois` trouve ne depend donc pas de l'ordre dans lequel les mois ont ete lus.
+    // CE DONT UNE PAIE DEPEND SE MET A JOUR AVANT ELLE : les mois d'avant que ses paies ont lus (`paies <mois>`) se relisent
+    // d'abord, du plus ancien au plus recent ; la lecture de `mois` ne depend pas de l'ordre des lectures.
     let mut avant: Vec<String> = etats
         .iter()
         .filter_map(|e| e.valide()?.paie_ecrite(mois)?.get("empreinte").and_then(empreinte::entrees_de))
@@ -1288,9 +1285,7 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<
     avant.sort();
     avant.dedup();
     if !avant.is_empty() {
-        for m in &avant {
-            du_mois(ctx, m, departs)?;
-        }
+        avant.iter().try_for_each(|m| du_mois(ctx, m, departs).map(|_| ()))?;
         etats = tels_qu_ecrits(ctx, mois, departs)?;
     }
     for (i, e) in etats.iter().enumerate() {

@@ -535,10 +535,7 @@ pub fn vue_a_l_ecran(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
 /// L'empreinte de la saisie de `mois` (`empreinte_de_saisie`) : celle que `vue_du_mois` note, ou, pour `salarie`, celle
 /// que la paie de ses engagements du mois note ; `None` sans saisie.
 pub fn empreinte_de_la_saisie_du_mois(racine: &Path, mois: &str, salarie: Option<&str>) -> Resultat<Option<String>> {
-    Ok(saisie_du_mois(racine, mois, false)?.map(|s| match salarie {
-        None => s.1.clone(),
-        Some(_) => empreinte_de_saisie(&s.0, salarie),
-    }))
+    Ok(saisie_du_mois(racine, mois, false)?.map(|s| if salarie.is_none() { s.1.clone() } else { empreinte_de_saisie(&s.0, salarie) }))
 }
 
 /// La vue de `mois` et son empreinte, faites une fois pour les memes fichiers aux memes octets (`memes`) :
