@@ -29,10 +29,21 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::horloge::{HorlogeFictive, QUI_HORLOGE};
 use socle::echec::Echec;
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
 use envois::simulation_courriels::BoiteQuiRepond;
 
-/// Les routes de ce module.
-pub const ROUTES: [&str; 1] = ["signatures-relever"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[Fiche {
+    nom: "signatures-relever",
+    geste: "Relever dans la boîte les réponses « Je signe » ; contresigner et renvoyer.",
+    charge: &[Champ { nom: "mois", sens: "seulement les contrats de ce mois, AAAA-MM", avance: true }],
+    exemple: r#"{}"#,
+    rend: "les signatures reçues, ce qui est contresigné et renvoyé, les incidents",
+    refus: &[Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" }, OPERATION],
+    acte: Acte::Ecrit,
+    avance: false,
+    phrase: 0,
+}];
 
 /// Secondes entre une demande de signature et le « Je signe » du salarie fictif de la compagnie fictive.
 pub const DELAI_FICTIVE: i64 = crate::routes::fiches::DELAI_FICTIVE;

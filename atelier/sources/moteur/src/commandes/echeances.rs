@@ -1,4 +1,4 @@
-//! `moteur echeancier [--json]` et `moteur rappels [--le AAAA-MM-JJ] [--json]`.
+//! `moteur echeancier [--json]` et `moteur rappels [--json]`.
 //! Tout passe par les routes du moteur (`echeancier`, `rappels`) : la fenetre fait les memes appels, et un rappel lu ici
 //! est exactement celui qu'elle montre a l'ouverture.
 //!
@@ -17,7 +17,7 @@ pub static SPEC_ECHEANCIER: Spec = Spec {
     options: &[Opt::valeur("fait"), Opt::valeur("defait"), Opt::drapeau("json")],
 };
 
-pub static SPEC_RAPPELS: Spec = Spec { commande: "rappels", positionnels: &[], options: &[Opt::valeur("le"), Opt::drapeau("json")] };
+pub static SPEC_RAPPELS: Spec = Spec { commande: "rappels", positionnels: &[], options: &[Opt::drapeau("json")] };
 
 fn marque(etat: &str) -> &'static str {
     match etat {
@@ -26,33 +26,6 @@ fn marque(etat: &str) -> &'static str {
         "en_retard" => "!!",
         _ => "  ",
     }
-}
-
-/// `AAAA-MM-JJ` ou `AAAAMMJJ`, refuse quand la forme est bonne et la valeur impossible. (Les semaines ISO, `2027-W01-1`,
-/// ne se lisent pas : une forme illisible.)
-fn jour_le(args: &Args) -> Result<Option<String>, Echec> {
-    let Some(t) = args.texte("le") else { return Ok(None) };
-    let b = t.as_bytes();
-    let chiffres = |a: &[u8]| !a.is_empty() && a.iter().all(u8::is_ascii_digit);
-    let nombre = |a: &[u8]| a.iter().fold(0u32, |n, c| n * 10 + (c - b'0') as u32);
-    let (an, mois, jour) = if b.len() == 10 && b[4] == b'-' && b[7] == b'-' && chiffres(&b[..4]) && chiffres(&b[5..7]) && chiffres(&b[8..]) {
-        (nombre(&b[..4]), nombre(&b[5..7]), nombre(&b[8..]))
-    } else if b.len() == 8 && chiffres(b) {
-        (nombre(&b[..4]), nombre(&b[4..6]), nombre(&b[6..]))
-    } else {
-        return Err(Echec { classe: Some("ValueError"), message: format!("date illisible : {}", socle::fichiers::repr(t)) });
-    };
-    let refus = |m: &str| Err(Echec { classe: Some("ValueError"), message: m.to_string() });
-    if an == 0 {
-        return refus(&socle::date::annee_impossible(0));
-    }
-    if !(1..=12).contains(&mois) {
-        return refus(&socle::date::mois_impossible(mois));
-    }
-    if jour < 1 || jour > socle::date::jours_du_mois(an as i32, mois) {
-        return refus(&socle::date::jour_impossible(an, mois, jour));
-    }
-    Ok(Some(format!("{:04}-{:02}-{:02}", an, mois, jour)))
 }
 
 pub fn echeancier(cadre: &Cadre, args: &Args) -> i32 {
@@ -123,19 +96,14 @@ pub fn rappels(cadre: &Cadre, args: &Args) -> i32 {
 }
 
 fn faire_rappels(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
-    let le = jour_le(args)?;
-    let charge = match &le {
-        Some(j) => json!({"aujourdhui": j}),
-        None => json!({}),
-    };
-    let r = cadre.route("rappels", charge)?;
+    let r = cadre.route("rappels", json!({}))?;
     let liste: Vec<Value> = r.get("rappels").and_then(Value::as_array).cloned().unwrap_or_default();
     if args.drapeau("json") {
         rendre(&enveloppe("rappels", Value::Array(liste)));
         return Ok(0);
     }
     if liste.is_empty() {
-        dire!("Rien a rappeler{}.", le.map(|l| format!(" au {}", l)).unwrap_or_default());
+        dire!("Rien a rappeler.");
         return Ok(0);
     }
     for x in &liste {

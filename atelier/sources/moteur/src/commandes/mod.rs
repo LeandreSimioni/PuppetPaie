@@ -104,8 +104,7 @@ impl Cadre {
                 Err(Echec { classe, message: r.get("erreur").map(rendu::texte).unwrap_or_default() })
             }
             Err(m) => {
-                let (classe, message) = crate::routes::rappels::decoder(&m);
-                Err(Echec { classe: classe.map(classe_connue), message: message.to_string() })
+                Err(Echec { classe: None, message: m })
             }
         }
     }

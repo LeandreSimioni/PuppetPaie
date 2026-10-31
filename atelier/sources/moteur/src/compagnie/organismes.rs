@@ -19,10 +19,46 @@ use socle::ecriture::ecrire_json;
 use socle::fichiers::{lire_json, vrai};
 use socle::echec::Echec;
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, ILLISIBLE, OPERATION};
+
 type R<T> = Result<T, Echec>;
 
-pub const ROUTE_LIRE: &str = "organismes-contrats";
-pub const ROUTE_ECRIRE: &str = "organismes-enregistrer";
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "organismes-contrats",
+        geste: "Dire les contrats de la DSN (prévoyance, santé…) d'un mois, et ce qui manque.",
+        charge: &[Champ { nom: "mois", sens: "le mois regardé, AAAA-MM ; le mois en cours sinon", avance: false }],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "idcc, a_saisir, mois, contrats (une ligne par contrat attendu : libellé, organisme)",
+        refus: &[OPERATION, ILLISIBLE],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "organismes-enregistrer",
+        geste: "Écrire, à partir d'un mois, les contrats de la DSN que la compagnie dit.",
+        charge: &[
+            Champ { nom: "contrats", sens: "{clé du contrat: {libelle, organisme}}, ce qui est saisi", avance: false },
+            Champ { nom: "mois", sens: "le mois à partir duquel ils valent, AAAA-MM ; le mois en cours sinon", avance: false },
+        ],
+        exemple: r#"{"mois":"2026-11","contrats":{"prevoyance_permanents":{"libelle":"PREVOYANCE","organisme":"P0983"},"sante_permanents":{"libelle":"SANTE","organisme":"P0983"}}}"#,
+        rend: "ce que organismes-contrats rend",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "la référence du contrat que la phrase nomme ; rien n'est écrit" }, ILLISIBLE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+];
+
+/// Une route de ce module.
+pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    match nom {
+        "organismes-contrats" => lire(ctx, charge),
+        _ => enregistrer(ctx, charge),
+    }
+}
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {

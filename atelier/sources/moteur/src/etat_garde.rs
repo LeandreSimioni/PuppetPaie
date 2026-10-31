@@ -719,7 +719,7 @@ impl FileDesEtats {
         let _code = socle::fichiers::code_fige();
         let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
-            crate::compagnie::administrateur::tableau_compagnie(o, &ctx)
+            crate::compagnie::administrateur::tableau_compagnie(&ctx)
         }));
         // Comme apres un mois (`faire`) : le travail suivant, d'une autre compagnie peut-etre, repart d'un fil propre.
         crate::routes::remettre_le_fil();

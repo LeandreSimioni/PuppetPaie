@@ -1209,7 +1209,6 @@ pas : sa DSN est celle de l'ancien logiciel.
 
 ```
 moteur rappels                    la même liste, en ligne de commande
-moteur rappels --le 2026-10-02    ... à une autre date
 ```
 
 ### Les conseils « Le saviez-vous ? »

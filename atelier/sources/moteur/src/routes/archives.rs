@@ -106,7 +106,21 @@ pub const ROUTES: &[Fiche] = &[
         avance: false,
         phrase: 0,
     },
-    Fiche { acte: Acte::Ecrit, avance: true, ..Fiche::a_ecrire("casc-regularise") },
+    Fiche {
+        nom: "casc-regularise",
+        geste: "Noter régularisée, hors DSN, la CASC-SVP d'une année de mois importés.",
+        charge: &[
+            ANNEE,
+            Champ { nom: "vire_le", sens: "le jour du virement, AAAA-MM-JJ", avance: false },
+            Champ { nom: "montant", sens: "le montant viré", avance: false },
+        ],
+        exemple: r#"{"annee":"2025","vire_le":"2026-11-02","montant":"12.80"}"#,
+        rend: "la régularisation notée : année, mois, montant, calculé, vire_le",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
     Fiche {
         nom: "exporter",
         geste: "Exporter un état (livre de paie, charges…) en tableau ou en fichier.",
@@ -143,7 +157,24 @@ pub const ROUTES: &[Fiche] = &[
         avance: false,
         phrase: 0,
     },
-    Fiche { acte: Acte::Engage, avance: true, ..Fiche::a_ecrire("casc-envoyer") },
+    Fiche {
+        nom: "casc-envoyer",
+        geste: "Envoyer à Audiens et au CASC-SVP la régularisation des mois importés.",
+        charge: &[
+            Champ { nom: "vire_le", sens: "{année: jour du virement fait, AAAA-MM-JJ}", avance: false },
+            Champ { nom: "motdepasse", sens: "le mot de passe du logiciel ; sans lui, le moteur le demande à un humain", avance: false },
+        ],
+        exemple: r#"{"vire_le":{"2026":"2026-11-02"}}"#,
+        rend: "partis (les destinataires), expediteur, periode, total, annees (les régularisations notées), eml",
+        refus: &[
+            Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est parti" },
+            Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" },
+            Refus { classe: "ErreurOperation", corriger: "la date du virement fait, ou l'année que la phrase nomme ; rien n'est parti" },
+        ],
+        acte: Acte::Engage,
+        avance: true,
+        phrase: 0,
+    },
 ];
 
 /// Une route de ce module.

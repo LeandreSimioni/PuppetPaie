@@ -40,10 +40,46 @@ use droit::minima::Par;
 use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, OPERATION, SALARIE};
+
 type R<T> = Result<T, Echec>;
 
-/// Les routes de lecture des conseils.
-pub const ROUTES: [&str; 3] = ["conseil-du-jour", "conseils-salarie", "conseils-resume"];
+/// Les routes de lecture des conseils, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "conseil-du-jour",
+        geste: "Dire le conseil du jour (« Le saviez-vous ? »).",
+        charge: &[Champ { nom: "decalage", sens: "un autre conseil : +1 le suivant, -1 le précédent", avance: false }],
+        exemple: r#"{}"#,
+        rend: "le conseil (titre, texte, ce qu'il ouvre)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "conseils-salarie",
+        geste: "Dire les conseils qui valent pour un salarié.",
+        charge: &[SALARIE],
+        exemple: r#"{"salarie":"FULLER"}"#,
+        rend: "conseils",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "conseils-resume",
+        geste: "Dire les conseils qui valent pour la compagnie, en résumé.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "conseils",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+];
 
 /// Les conditions que le moteur sait evaluer : un conseil de la banque dont le `quand` n'est ni « toujours » ni l'une
 /// d'elles ne s'afficherait jamais (le test de la banque le refuse).

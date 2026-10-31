@@ -29,9 +29,24 @@ use socle::fichiers::vrai;
 use envois::retours;
 use socle::echec::Echec;
 
+use crate::routes::catalogue::{Acte, Fiche, Refus, MOIS};
+
 type R<T> = Result<T, Echec>;
 
 pub const ROUTE: &str = "historique-mois";
+
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[Fiche {
+    nom: ROUTE,
+    geste: "Dire l'Historique d'un mois : ses documents, ses envois et ce qui en est revenu.",
+    charge: &[MOIS],
+    exemple: r#"{"mois":"2026-11"}"#,
+    rend: "mois, documents (chacun son chemin), envois (chacun ses retours, du plus récent au plus ancien)",
+    refus: &[Refus { classe: "ErreurOperation", corriger: "le mois, AAAA-MM" }],
+    acte: Acte::Lit,
+    avance: false,
+    phrase: 0,
+}];
 
 // ------------------------------------------------------------------ les tables
 

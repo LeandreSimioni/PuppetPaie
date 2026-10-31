@@ -1,6 +1,6 @@
 //! Les routes des fiches : l'identite de la compagnie (`identite`, `poser-identite`, `retirer-identite`), les fiches des
 //! salaries, des spectacles et des permanents (`permanents`, `verifier-fiche`, `activer-fiche`, `enregistrer-fiche`,
-//! `changements-declares`), leur demande par courriel (`fiche-demander`, `fiches-relever`, `fiche-oublier-demande`),
+//! leur avertissement), leur demande par courriel (`fiche-demander`, `fiches-relever`, `fiche-oublier-demande`),
 //! les metiers (`metiers-catalogue`, `metier-retenu`, `metiers-ajoutes`), le taux AT/MP (`taux-atmp`), le regime de la
 //! taxe sur les salaires, et le modele du bulletin (`bulletin-modeles`, `bulletin-modele-apercu`,
 //! `bulletin-modele-choisir`).
@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, ILLISIBLE, MANQUE, OPERATION, SALARIE};
 use crate::routes::documents::{client_courriel, preuve_de, vrai_ou};
 use crate::routes::mois::{lire_saisie, sauver_avant};
 use crate::routes::ouverture::{metier_visible, preferences_metiers};
@@ -36,20 +37,249 @@ use socle::html::{html_echapper, mailto};
 use socle::texte::{capitaliser, strip};
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "identite", "permanents", "taxe-sur-les-salaires-regime", "verifier-fiche", "changements-declares", "taux-atmp",
-    "metiers-catalogue", "bulletin-modeles", "bulletin-modele-apercu", "bulletin-modele-choisir",
-    "activer-fiche", "enregistrer-fiche", "fiche-oublier-demande", "poser-identite", "retirer-identite", "metier-retenu",
-    "metiers-ajoutes", "fiche-demander", "fiches-relever", "poser-courriel",
-];
+const NOM_FICHE: Champ = Champ { nom: "nom", sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
+const CLE_FICHE: Champ = Champ { nom: "cle", sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
+const DONNEES: Champ = Champ { nom: "donnees", sens: "les cases de la fiche, telles que l'écran les montre", avance: false };
+const QUOI_IDENTITE: Champ = Champ { nom: "quoi", sens: "signature, cachet ou logo", avance: false };
+const MODELE: Champ = Champ { nom: "modele", sens: "« simplifié » ou « complet »", avance: false };
+const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
+const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
+const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
+const IDENTITE_REND: &str = "signature, cachet et logo : chacun posé ou dessiné par le logiciel, et sa pastille";
+const CONFIGURATION_REND: &str = "configuration (les fiches, relues après l'écriture)";
+const METIERS_REND: &str = "emplois (les métiers proposés) et emplois_autres (ceux des autres conventions)";
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &[
-    "activer-fiche", "enregistrer-fiche", "fiche-oublier-demande", "poser-identite", "retirer-identite", "metier-retenu",
-    "metiers-ajoutes", "fiche-demander", "fiches-relever", "poser-courriel",
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "identite",
+        geste: "Dire la signature, le cachet et le logo de la compagnie.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: IDENTITE_REND,
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "poser-identite",
+        geste: "Poser la signature, le cachet ou le logo (une image PNG, JPEG ou SVG).",
+        charge: &[QUOI_IDENTITE, Champ { nom: "contenu", sens: "l'image en base64 (une adresse data: aussi)", avance: false }],
+        exemple: r#"{"quoi":"logo","contenu":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4="}"#,
+        rend: IDENTITE_REND,
+        refus: &[Refus { classe: "ErreurOperation", corriger: "une image lisible (PNG, JPEG, SVG), de 2 Mo au plus" }, FORME, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "retirer-identite",
+        geste: "Retirer la signature, le cachet ou le logo posé.",
+        charge: &[QUOI_IDENTITE],
+        exemple: r#"{"quoi":"logo"}"#,
+        rend: IDENTITE_REND,
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "permanents",
+        geste: "Dire si la compagnie emploie des permanents (ce que la fiche montre alors).",
+        charge: &[Champ { nom: "entreprise", sens: "la fiche Entreprise en cours de saisie ; sans elle, celle de la compagnie", avance: false }],
+        exemple: r#"{}"#,
+        rend: "permanents (vrai ou faux)",
+        refus: &[FORME],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "taxe-sur-les-salaires-regime",
+        geste: "Dire le régime de la taxe sur les salaires d'après les réponses de la fiche.",
+        charge: &[
+            Champ { nom: "taxe_sur_les_salaires", sens: "les réponses en cours de saisie ; sans elles, celles de la compagnie", avance: false },
+            Champ { nom: "annee", sens: "l'année des salaires (ses plafonds) ; l'année en cours sinon", avance: true },
+        ],
+        exemple: r#"{}"#,
+        rend: "franchise (la question et ses plafonds), champs à montrer, consequence en clair, complet, due, part_taxee",
+        refus: &[FORME, ILLISIBLE],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "verifier-fiche",
+        geste: "Vérifier une fiche avant de l'écrire : anomalies, valeurs déclarées.",
+        charge: &[NOM_FICHE, DONNEES],
+        exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics"}}"#,
+        rend: "anomalies (case, gravité, message), declare (ce que la DSN dirait), suggestions",
+        refus: &[MANQUE, FORME, OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "enregistrer-fiche",
+        geste: "Écrire une fiche (entreprise, salarié, spectacle) ; ce qui change se date.",
+        charge: &[
+            NOM_FICHE,
+            CLE_FICHE,
+            DONNEES,
+            Champ { nom: "confirme", sens: "vrai : l'avertissement rendu (ce qui change) a été lu ; la fiche s'écrit", avance: false },
+            Champ { nom: "depuis", sens: "la date d'effet de ce qui change, AAAA-MM-JJ ; la date proposée sinon", avance: false },
+            Champ { nom: "note", sens: "pourquoi cela change (correction, déménagement…)", avance: true },
+            Champ { nom: "forcer", sens: "vrai : écrire malgré une erreur de forme", avance: true },
+        ],
+        exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics","numero_objet":"266Z00952012"}}"#,
+        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi), rien n'est écrit ; écrite : fiche, configuration, enregistre_a",
+        refus: &[REFUSEE, OPERATION, MANQUE, FORME, ILLISIBLE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "activer-fiche",
+        geste: "Archiver une fiche de salarié ou de spectacle, ou la réactiver.",
+        charge: &[NOM_FICHE, CLE_FICHE, Champ { nom: "actif", sens: "vrai : réactiver ; faux : archiver", avance: false }],
+        exemple: r#"{"nom":"spectacle","cle":"le-banc-des-menteurs","actif":true}"#,
+        rend: CONFIGURATION_REND,
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "poser-courriel",
+        geste: "Poser le courriel d'un salarié, là où il manque.",
+        charge: &[SALARIE, Champ { nom: "email", sens: "son adresse de courriel", avance: false }],
+        exemple: r#"{"salarie":"FULLER","email":"loie.fuller@exemple.invalid"}"#,
+        rend: "salarie, email",
+        refus: &[REFUSEE, OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "fiche-demander",
+        geste: "Demander à une personne, par courriel, de remplir sa fiche.",
+        charge: &[
+            Champ { nom: "adresse", sens: "son courriel", avance: false },
+            Champ { nom: "prenom", sens: "son prénom, pour lui écrire", avance: false },
+            Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, s'il est posé ; sans lui, le moteur le demande à un humain", avance: false },
+        ],
+        exemple: r#"{"adresse":"isadora@exemple.invalid","prenom":"Isadora"}"#,
+        rend: "code (celui de la demande), adresse",
+        refus: &[PREUVE, BOITE, OPERATION],
+        acte: Acte::Engage,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "fiches-relever",
+        geste: "Relever dans la boîte les fiches que les personnes ont remplies.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "attendues, recues (les fiches écrites), incidents",
+        refus: &[BOITE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "fiche-oublier-demande",
+        geste: "Renoncer aux demandes de fiche restées sans réponse d'une personne.",
+        charge: &[Champ { nom: "adresse", sens: "le courriel à qui la fiche a été demandée", avance: false }],
+        exemple: r#"{"adresse":"isadora@exemple.invalid"}"#,
+        rend: "adresse",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "metiers-catalogue",
+        geste: "Dire les métiers du catalogue, ceux de la convention et les autres.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "metiers (le catalogue, chacun dit retenu ou non)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "metier-retenu",
+        geste: "Proposer un métier du catalogue dans les listes, ou ne plus le proposer.",
+        charge: &[Champ { nom: "code", sens: "le code du métier au catalogue", avance: false }, Champ { nom: "retenu", sens: "vrai : le proposer", avance: false }],
+        exemple: r#"{"code":"CHE350","retenu":true}"#,
+        rend: METIERS_REND,
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "metiers-ajoutes",
+        geste: "Ajouter des métiers d'une autre convention aux listes, ou les retirer.",
+        charge: &[Champ { nom: "codes", sens: "les codes des métiers au catalogue", avance: false }, Champ { nom: "retirer", sens: "vrai : les retirer", avance: false }],
+        exemple: r#"{"codes":["CRE010"]}"#,
+        rend: METIERS_REND,
+        refus: &[OPERATION, FORME, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "taux-atmp",
+        geste: "Dire le code risque et le taux AT/MP d'une année ; les poser s'il y a lieu.",
+        charge: &[
+            Champ { nom: "annee", sens: "l'année, AAAA", avance: false },
+            Champ { nom: "code_risque", sens: "le code risque notifié par la CARSAT", avance: false },
+            Champ { nom: "valeur", sens: "le taux net notifié, en %", avance: false },
+        ],
+        exemple: r#"{"annee":2026}"#,
+        rend: "le code, le taux, leur libellé et d'où ils viennent, les codes que le socle connaît",
+        refus: &[OPERATION, MANQUE, FORME, ILLISIBLE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "bulletin-modeles",
+        geste: "Dire le modèle du bulletin choisi, et les salariés qui en ont un autre.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "modele, les modèles connus, autrement (les salariés à un autre modèle)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "bulletin-modele-apercu",
+        geste: "Montrer un bulletin d'exemple dans un modèle.",
+        charge: &[MODELE],
+        exemple: r#"{"modele":"complet"}"#,
+        rend: "modele, pdf (en base64)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "bulletin-modele-choisir",
+        geste: "Choisir le modèle du bulletin des documents faits dès aujourd'hui.",
+        charge: &[MODELE],
+        exemple: r#"{"modele":"simplifié"}"#,
+        rend: "ce que bulletin-modeles rend",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
 ];
-
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let texte = |cle: &str| charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
@@ -58,7 +288,6 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "permanents" => permanents(ctx, charge),
         "taxe-sur-les-salaires-regime" => taxe_sur_les_salaires_regime(ctx, charge),
         "verifier-fiche" => verifier_fiche(charge),
-        "changements-declares" => changements_declares(ctx, charge),
         "taux-atmp" => crate::routes::atmp::route(ctx, charge),
         "metiers-catalogue" => metiers_catalogue(ctx),
         "bulletin-modeles" => modeles(ctx),
@@ -630,7 +859,7 @@ fn verifier_fiche(charge: &Value) -> R<Value> {
     Ok(json!({"anomalies": anomalies, "declare": declare, "suggestions": propose}))
 }
 
-// ------------------------------------------------------ changements-declares
+// ------------------------------------------------------ l'avertissement d'une fiche
 
 /// Ou l'import copie les pieces qu'il reprend de l'ancien logiciel, les DSN deposees comprises (`historique/bulletins/`).
 pub(crate) fn pieces_importees(ctx: &Contexte) -> std::path::PathBuf {
@@ -709,43 +938,28 @@ pub(crate) fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
     }
 }
 
-/// `changements-declares` : ce que cet enregistrement ferait
-/// changer (chacune demande sa date d'effet), avec ce que la valeur sortante a deja servi a declarer, et la date que le
-/// moteur propose (`date_proposee`, `depuis` et `pourquoi`). Regarde, n'ecrit rien.
-fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let nom_brut = exiger(charge, "nom")?;
-    let cle = charge.get("cle").unwrap_or(&Value::Null);
-    let donnees = exiger(charge, "donnees")?;
-    let nom = match nom_brut {
-        Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
-        Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
-        Value::String(s) if matches!(s.as_str(), "entreprise" | "salarie" | "spectacle") => s.as_str(),
-        autre => return Err(erreur("ErreurOperation", format!("Fiche inconnue : {}", valeur_ecrite(autre)))),
-    };
+/// L'AVERTISSEMENT D'UN ENREGISTREMENT DE FICHE : ce qu'il ferait changer (chaque valeur existante qui change demande sa
+/// date d'effet), avec ce que la valeur sortante a deja servi a declarer, et la date que le moteur propose
+/// (`date_proposee`, `depuis` et `pourquoi`). `None` : rien n'est a dater. N'ecrit rien.
+fn avertissement_de_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: &Value) -> R<Option<Value>> {
     let vide = Value::Object(Map::new());
     let montree = crate::routes::etablissements::entreprise_montree(ctx);
-    let ancienne: &Value = if nom == "entreprise" {
-        &montree
-    } else {
-        let magasin = if nom == "salarie" { &ctx.salaries } else { &ctx.spectacles };
-        match cle {
-            Value::String(k) => magasin.get(k).unwrap_or(&vide),
-            Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
-            Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
-            _ => &vide,
-        }
+    let ancienne: &Value = match nom {
+        "entreprise" => &montree,
+        "salarie" => cle.and_then(|k| ctx.salaries.get(k)).unwrap_or(&vide),
+        "spectacle" => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
+        autre => return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(autre)))),
     };
-    let copie = copie_en_objet(donnees)?;
-    let cases_vides = dernier_mois_parti(ctx, nom, cle.as_str())?.is_some();
-    let changements = changements(ctx, nom, ancienne, copie, cases_vides)?;
+    let cases_vides = dernier_mois_parti(ctx, nom, cle)?.is_some();
+    let changements = changements(ctx, nom, ancienne, copie_en_objet(donnees)?, cases_vides)?;
     if changements.is_empty() {
-        return Ok(json!({"changements": changements}));
+        return Ok(None);
     }
-    let (depuis, pourquoi) = date_proposee(ctx, nom, cle.as_str())?;
-    Ok(json!({"changements": changements, "depuis": depuis.iso(), "pourquoi": pourquoi}))
+    let (depuis, pourquoi) = date_proposee(ctx, nom, cle)?;
+    Ok(Some(json!({"changements": changements, "depuis": depuis.iso(), "pourquoi": pourquoi})))
 }
 
-/// Le coeur de `changements_declares` : la fiche `ancienne` (telle que l'ecran l'a montree) et les `donnees` qui la
+/// Le coeur de `avertissement_de_fiche` : la fiche `ancienne` (telle que l'ecran l'a montree) et les `donnees` qui la
 /// remplaceraient ; chaque valeur existante qui changerait (`crate::routes::fiches::changements_a_dater`), celles-la memes
 /// dont l'enregistrement exigera la date d'effet. Un champ declare dit aussi ce que sa valeur sortante a deja servi a
 /// declarer.
@@ -932,16 +1146,21 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
 
 // ----------------------------------------------------- fiche-oublier-demande
 
+/// `fiche-oublier-demande` : `{"adresse"}`, la personne a qui la fiche a ete demandee ; ses demandes en attente sont
+/// abandonnees.
 fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let code = charge.get("code").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
-    if !fiches_attendues(ctx)?.iter().any(|a| a.code == code) {
-        return Err(refus(format!("Aucune demande de fiche en attente sous le code {}.", code)));
+    let adresse = strip(&charge.get("adresse").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default()).to_lowercase();
+    let codes: Vec<String> = fiches_attendues(ctx)?.into_iter().filter(|a| a.adresse == adresse).map(|a| a.code).collect();
+    if codes.is_empty() {
+        return Err(refus(format!("Aucune demande de fiche en attente pour {}.", adresse)));
     }
     // CE QUI REVIENT SE RANGE SUR LA LIGNE DE LA DEMANDE : ici, qu'on y renonce.
-    let retour = json!({"code": code, "abandon": true, "quand": maintenant(), "qui": "interface", "reponse": "demande abandonnee, sans reponse"});
-    journal::rattacher(&ctx.racine, |l| demande_de(l, &code), retour).map_err(plain)?;
+    for code in &codes {
+        let retour = json!({"code": code, "abandon": true, "quand": maintenant(), "qui": "interface", "reponse": "demande abandonnee, sans reponse"});
+        journal::rattacher(&ctx.racine, |l| demande_de(l, code), retour).map_err(plain)?;
+    }
     // Ni NIR ni IBAN dans la reponse : la page relit `configuration` (comme apres `fiche-demander`).
-    Ok(json!({"code": code}))
+    Ok(json!({"adresse": adresse}))
 }
 
 // ------------------------------------------------------------------ l'identite
@@ -1373,34 +1592,46 @@ pub(crate) fn depuis_de(depuis: &Value) -> R<Option<Jour>> {
     }
 }
 
-/// POSER UN CHAMP DE LA FICHE ENTREPRISE (une route qui ne touche qu'une case : le modele de bulletin, la case des
-/// permanents) : comme une fiche de l'ecran (`ecrire_datee`), l'ancien fichier sauvegarde.
-pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depuis: Option<Jour>) -> R<()> {
-    let chemin = ctx.racine.join("config").join("entreprise.json");
+/// POSER UN CHAMP D'UNE FICHE (une route qui ne touche qu'une case : le modele de bulletin, la case des permanents, le
+/// compte des DPAE, l'anciennete d'un salarie) : comme une fiche de l'ecran (`ecrire_datee`), l'ancien fichier
+/// sauvegarde. `cle` : celle d'un salarie ou d'un spectacle, `None` pour l'entreprise.
+fn poser_champ(ctx: &Contexte, nom: &str, cle: Option<&str>, champ: &str, valeur: Value, depuis: Option<Jour>) -> R<()> {
+    let Some(fichier) = fichier_de(nom) else {
+        return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
+    };
+    let chemin = ctx.racine.join("config").join(fichier);
     let mut contenu = objet_du_fichier(&chemin)?;
     let mut donnees = Map::new();
     donnees.insert(champ.to_string(), valeur);
-    ecrire_datee(&mut contenu, "entreprise", &ctx.entreprise, &donnees, false, depuis, None, &ctx.lue_au)?;
+    match cle {
+        None => ecrire_datee(&mut contenu, nom, &ctx.entreprise, &donnees, false, depuis, None, &ctx.lue_au)?,
+        Some(k) => {
+            let magasin = if nom == "salarie" { &ctx.salaries } else { &ctx.spectacles };
+            let (Some(ancienne), Some(Value::Object(brute))) = (magasin.get(k), contenu.get_mut(k)) else {
+                return Err(refus(format!("La fiche {} {} n'existe pas : rien n'est écrit.", nom, k)));
+            };
+            ecrire_datee(brute, nom, ancienne, &donnees, false, depuis, None, &ctx.lue_au)?;
+        }
+    }
     sauver_avant(&chemin)?;
     ecrire(&chemin, Value::Object(contenu))
 }
 
+/// Un champ de la fiche entreprise (`poser_champ`).
+pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depuis: Option<Jour>) -> R<()> {
+    poser_champ(ctx, "entreprise", None, champ, valeur, depuis)
+}
+
 /// L'ANCIENNETE D'UN SALARIE PART DE SON EMBAUCHE (S21.G00.86.003, l'anciennete dans l'entreprise :
 /// `norme-dsn/texte/bloc-S21.G00.86.txt`) : la validation de son premier engagement la pose sur sa fiche, au premier jour
-/// de ce contrat (`debut`), quand la fiche ne la dit pas ; elle se change ensuite dans « Avancé » de la fiche. Une fiche
-/// qui la dit la garde. Rend vrai si elle a ete posee. INFERENCE : l'anciennete commence a l'entree dans l'entreprise.
-pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut: &str) -> R<bool> {
-    let chemin = ctx.racine.join("config").join("salaries.json");
-    let mut contenu = objet_du_fichier(&chemin)?;
-    let Some(Value::Object(fiche)) = contenu.get_mut(salarie) else { return Ok(false) };
-    let dite = fiche.get("date_anciennete").and_then(Value::as_array).is_some_and(|v| v.iter().any(|x| x.get("valeur").is_some_and(vrai)));
-    if dite {
-        return Ok(false);
+/// de ce contrat (`debut`), quand la fiche ne la dit pas, par l'ecrivain de la fiche (`poser_champ`) ; elle se change
+/// ensuite dans « Avancé » de la fiche. Une fiche qui la dit la garde. INFERENCE : l'anciennete commence a l'entree dans
+/// l'entreprise.
+pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut: &str) -> R<()> {
+    if ctx.salaries.get(salarie).is_none_or(|f| f.get("date_anciennete").is_some_and(vrai)) {
+        return Ok(());
     }
-    fiche.insert("date_anciennete".into(), json!([{"valeur": debut}]));
-    sauver_avant(&chemin)?;
-    ecrire(&chemin, Value::Object(contenu))?;
-    Ok(true)
+    poser_champ(ctx, "salarie", Some(salarie), "date_anciennete", json!(debut), None)
 }
 
 /// L'ANCIENNETE D'UN SALARIE REPRIS QUE SON CONTRAT FAIT REMONTER : l'import la pose au premier bulletin lu
@@ -1547,6 +1778,9 @@ pub(crate) struct FicheEcrite {
     pub(crate) derives: Map<String, Value>,
 }
 
+/// `enregistrer-fiche` : une fiche de l'ecran, ecrite (`ecrire_fiche`). Une valeur existante qui change demande sa date
+/// d'effet : sans `confirme`, la route rend l'avertissement (`avertissement_de_fiche`) et n'ecrit rien ; la meme charge
+/// avec `confirme` ecrit, a partir de `depuis` (la date proposee, s'il manque).
 fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom = texte_requis(charge, "nom")?;
     let cle: Option<String> = match charge.get("cle") {
@@ -1556,9 +1790,17 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     };
     let donnees = exiger(charge, "donnees")?;
     let forcer = charge.get("forcer").is_some_and(vrai);
-    let depuis = charge.get("depuis").unwrap_or(&Value::Null);
+    let mut depuis = charge.get("depuis").cloned().unwrap_or(Value::Null);
     let note = charge.get("note").unwrap_or(&Value::Null);
-    let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), depuis, note)?;
+    if let Some(a) = avertissement_de_fiche(ctx, nom, cle.as_deref().filter(|k| !k.is_empty()), donnees)? {
+        if !charge.get("confirme").is_some_and(vrai) {
+            return Ok(json!({"avertissement": a}));
+        }
+        if !vrai(&depuis) {
+            depuis = a["depuis"].clone();
+        }
+    }
+    let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), &depuis, note)?;
     let fiche = crate::routes::ouverture::vue_fiche(nom, e.cle.as_deref(), &e.donnees, e.anomalies, &e.derives)?;
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
     Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))

@@ -1817,6 +1817,8 @@ async function boiteSuppression() {
   let q;
   try { q = await api("compagnie-suppression"); }
   catch (e) { dire(e.message, "erreur"); return; }
+  // Une compagnie qui ne se supprime pas : le moteur dit pourquoi.
+  if (!q.genre) { dire(q.phrase, "erreur"); return; }
   const reelle = q.genre === "reelle";
   const s = q.sauvegarde || {};
   const sauvegarde = reelle && s.liee

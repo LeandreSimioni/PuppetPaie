@@ -40,11 +40,40 @@ use socle::fichiers::vrai;
 use envois::releve_retours::{Client, Releve};
 use crate::compagnie::releve_signatures::{self, ReleveSignatures};
 use socle::echec::Echec;
+use crate::routes::catalogue::{Acte, Champ, Fiche, OPERATION};
 use crate::routes::fiches::ReleveFiches;
 use crate::compagnie::sauvegarde::{self, Sauvegarde};
 
-/// Les routes de ce module.
-pub const ROUTES: [&str; 2] = ["ouverture", "ouverture-derniere"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "ouverture",
+        geste: "Ouvrir la compagnie : sauvegarder, relever retours, signatures et fiches.",
+        charge: &[
+            Champ { nom: "sauvegarder", sens: "faux : ne pas sauvegarder dans le Drive", avance: true },
+            Champ { nom: "retours", sens: "faux : ne pas relever les retours des organismes", avance: true },
+            Champ { nom: "signatures", sens: "faux : ne pas relever les signatures", avance: true },
+            Champ { nom: "veille", sens: "vrai : un tour de veille", avance: true },
+        ],
+        exemple: r#"{}"#,
+        rend: "ce que chaque passage a fait (sauvegarde, retours, signatures, fiches, filet), et les incidents en phrases ; ne refuse jamais",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "ouverture-derniere",
+        geste: "Dire ce que la dernière ouverture a fait, sans réseau.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "la trace de la dernière ouverture ; {} sans elle",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+];
 
 /// `compagnies.MARQUEUR`.
 use socle::fichiers::MARQUEUR_COPIE;

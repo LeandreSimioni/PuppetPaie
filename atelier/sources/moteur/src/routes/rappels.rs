@@ -4,10 +4,10 @@
 //! chiffrer, et leur etat (`engagement::etats`), le journal par `etats`. Ses lectures servent aussi le panneau et le
 //! filet (`mois_a_declarer`, `exercice_clos`) ; les DPAE a faire se lisent au panneau (`etapes::Moteur::embauches_a_declarer`).
 //!
-//! Un refus porte sa `classe` : voir `encoder` et `decoder`, que `mod.rs` utilise.
+//! Un refus porte sa `classe`.
 
 use socle::date::jj_mm_aaaa;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
@@ -17,8 +17,8 @@ use socle::date::{en_texte, Jour};
 use engagement;
 use envois::etats;
 use crate::compagnie::etat_dsn;
+use crate::routes::catalogue::{Acte, Fiche, OPERATION};
 use socle::fichiers::{lire_json, vrai};
-use socle::num::Resultat;
 
 // ------------------------------------------------------------------ les refus
 
@@ -29,38 +29,18 @@ fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
     Refus { classe: Some(classe), message: message.into() }
 }
 
-const SEPARATEUR: char = '\u{1}';
-
-/// Le refus en texte : `\u{1}classe\u{1}message` quand il a une classe, le
-/// message seul sinon (le `Resultat<Value>` des routes ne porte qu'un texte).
-fn encoder(r: Refus) -> String {
-    match r.classe {
-        Some(c) => format!("{}{}{}{}", SEPARATEUR, c, SEPARATEUR, r.message),
-        None => r.message,
-    }
-}
-
-/// L'inverse de `encoder` : `(classe, message)`.
-pub fn decoder(erreur: &str) -> (Option<&str>, &str) {
-    if let Some(reste) = erreur.strip_prefix(SEPARATEUR) {
-        if let Some((classe, message)) = reste.split_once(SEPARATEUR) {
-            return (Some(classe), message);
-        }
-    }
-    (None, erreur)
-}
-
-/// La route des rappels.
-pub const ROUTE: &str = "rappels";
-
-/// Une route de l'ouverture : `None` si ce n'est pas la sienne.
-pub fn traiter(o: &HashMap<String, String>, route: &str, charge: &Value) -> Option<Resultat<Value>> {
-    let r = match route {
-        ROUTE => rappels(o, charge),
-        _ => return None,
-    };
-    Some(r.map_err(encoder))
-}
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[Fiche {
+    nom: "rappels",
+    geste: "Dire ce que la compagnie a à faire ce jour : DSN, fins de contrat, DPAE…",
+    charge: &[],
+    exemple: r#"{}"#,
+    rend: "rappels (chacun : quoi, titre, question, mois ou année, état, en retard et sa pastille, l'échéance, ce qu'il ouvre)",
+    refus: &[OPERATION],
+    acte: Acte::Lit,
+    avance: false,
+    phrase: 0,
+}];
 
 // ------------------------------------------------------------------ outils
 
@@ -218,15 +198,9 @@ impl Etat<'_> {
     }
 }
 
-/// `rappels` : `{"rappels": [...]}`. `charge.aujourdhui` (AAAA-MM-JJ) remplace
-/// le jour du contexte (la ligne de commande `rappels --le`).
-fn rappels(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
-    let ctx = crate::service::contexte(o)?;
-    let aujourdhui = match charge.get("aujourdhui").filter(|v| vrai(v)) {
-        Some(v) => Jour::lire(&en_texte(v))?,
-        None => ctx.aujourdhui,
-    };
-    let st = Etat { ctx: &ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine).map(|j| j.lignes)? };
+/// `rappels` : `{"rappels": [...]}`, au jour de la compagnie (celui de toute route).
+pub(crate) fn rappels(ctx: &Contexte) -> socle::echec::R<Value> {
+    let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: envois::journal::lu(&ctx.racine).map(|j| j.lignes)? };
     let out = lister(&st)?;
     Ok(json!({ "rappels": out.iter().map(Rappel::json).collect::<Vec<_>>() }))
 }

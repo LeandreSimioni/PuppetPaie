@@ -1,6 +1,7 @@
 //! Les routes de l'ouverture : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration verifiee,
 //! l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
-//! `maj-etat`, `sauvegarde-derniere`, `echeance-faite`, `journal-reprise` et `courriels-fictifs`.
+//! `pour-demarrer` (ce qui manque pour les premiers actes), `maj-etat`, `sauvegarde-derniere`, `echeance-faite`,
+//! `journal-reprise`, `courriels-fictifs` et `compagnie-suppression` (ce que la suppression demande).
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le
@@ -11,6 +12,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, OPERATION};
 use crate::routes::etapes::Moteur;
 use crate::routes::fiches::exiger;
 use crate::routes::mois::lire_saisie;
@@ -37,14 +39,111 @@ fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
 }
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "etat", "configuration", "maj-etat", "sauvegarde-derniere",
-    "echeance-faite", "journal-reprise", "courriels-fictifs",
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "etat",
+        geste: "Dire tout ce que la page lit en s'ouvrant : configuration, Historique, listes.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "configuration (les fiches vérifiées), historique (les mois), les listes où l'on choisit, les référentiels",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "configuration",
+        geste: "Dire les fiches de la compagnie, vérifiées.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "entreprise, salaries, spectacles, leurs anomalies, l'identité, la description des cases",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "pour-demarrer",
+        geste: "Dire ce qui manque à la compagnie pour ses premiers actes.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "manques (chacun ce qu'il bloque et où le dire), poses (ce que le moteur a posé, en information)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "echeance-faite",
+        geste: "Cocher une échéance annuelle que seule la compagnie peut dire faite.",
+        charge: &[
+            Champ { nom: "cle", sens: "l'échéance et son année, « quoi:AAAA » (celle que rappels ou echeancier rendent)", avance: false },
+            Champ { nom: "fait", sens: "faux : la décocher", avance: false },
+        ],
+        exemple: r#"{"cle":"revue-spectacles:2026"}"#,
+        rend: "cle, fait",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "une échéance qui se coche, avec son année" }, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "maj-etat",
+        geste: "Dire la version du logiciel.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "la version installée et ce que la mise à jour en sait",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "sauvegarde-derniere",
+        geste: "Dire la dernière sauvegarde dans le Drive, sans réseau.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "le dernier passage de la sauvegarde (quand, ce qui est parti)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "journal-reprise",
+        geste: "Reprendre le journal des envois d'après les retours relevés.",
+        charge: &[Champ { nom: "ecrire", sens: "vrai : écrire ce qui se reprend ; sinon, le dire seulement", avance: false }],
+        exemple: r#"{}"#,
+        rend: "ce qui se reprend, ligne par ligne, et ses pastilles",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "courriels-fictifs",
+        geste: "Dire les courriels joués d'une compagnie fictive.",
+        charge: &[Champ { nom: "apres", sens: "seulement ceux d'après cet instant", avance: true }],
+        exemple: r#"{}"#,
+        rend: "les courriels joués (à qui, quoi, quand)",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "rien : seulement dans une compagnie fictive" }],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
+        nom: crate::routes::COMPAGNIE_SUPPRESSION,
+        geste: "Dire ce que la suppression de la compagnie demande.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "le nom, le genre, la conservation à rappeler et la sauvegarde à proposer",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "rien : cette compagnie ne se supprime pas" }],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+    },
 ];
-
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["echeance-faite", "journal-reprise", "courriels-fictifs"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -52,6 +151,17 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "etat" => etat(ctx),
         // La part « configuration » de l'etat, pour les routes qui la rendent apres un enregistrement.
         "configuration" => configuration(ctx),
+        // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup ; ce que le moteur a pose de lui-meme se dit
+        // en information (gris).
+        "pour-demarrer" => declarations::demarrage::route(ctx).map(|mut v| {
+            if let Some(Value::Array(p)) = v.get_mut("poses") {
+                p.iter_mut().for_each(|x| x["pastille"] = super::pastille("information", "posé pour vous"));
+            }
+            v
+        }),
+        // Supprimer la compagnie : ce que la boite demande ; la suppression elle-meme est un geste de la fenetre, qui lache
+        // d'abord ce qu'elle tient de la compagnie.
+        crate::routes::COMPAGNIE_SUPPRESSION => crate::interface::suppression::question(&ctx.racine).map_err(|m| erreur("ErreurOperation", m)),
         "maj-etat" => version(),
         // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
         "sauvegarde-derniere" => Ok(crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json()),

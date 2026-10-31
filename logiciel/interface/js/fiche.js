@@ -821,7 +821,7 @@ function fichesAttenduesHtml() {
     <ul>${l.map((a) => `<li>${echapper(a.prenom ? a.prenom + " — " : "")}${
         echapper(a.adresse)} <span class="discret">demandée le ${
         echapper(jjmmaaaa(String(a.quand || "").slice(0, 10)))}</span>
-      <button class="lien" data-oublier-fiche="${echapper(a.code)}">ne plus attendre</button></li>`).join("")}</ul>
+      <button class="lien" data-oublier-fiche="${echapper(a.adresse)}">ne plus attendre</button></li>`).join("")}</ul>
   </div>`;
 }
 
@@ -842,7 +842,7 @@ function brancherFichesAttendues() {
   document.querySelectorAll("[data-oublier-fiche]").forEach((b) => {
     b.onclick = async () => {
       try {
-        await api("fiche-oublier-demande", { code: b.dataset.oublierFiche });
+        await api("fiche-oublier-demande", { adresse: b.dataset.oublierFiche });
         // La réponse ne porte plus la configuration (ni NIR ni IBAN) : la page la relit.
         ETAT.configuration = await api("configuration", {});
         dessinerConfig();
@@ -1386,23 +1386,7 @@ function aRemplir(a) {
  *  que c'est cette information-la qui fait decider.
  */
 async function enregistrerFiche(fiche) {
-  const donnees = lireFormulaire();
-  // Le moteur dit ce qui change la fiche, case vide comprise : chaque
-  // changement demande sa date d'effet, que le moteur propose, et il refuse
-  // sans elle (toute la configuration est datée). Une fiche neuve : rien à demander.
-  const { changements, depuis, pourquoi } = await api("changements-declares",
-    { nom: FICHE_ACTIVE, cle: fiche.cle, donnees });
-  if (changements.length) {
-    const daté = await demanderDateDEffet(changements, depuis, pourquoi);
-    // Annulé, ou la boîte fermée d'un clic à côté : rien n'est écrit, la
-    // fiche garde ce qu'on y a tapé, et la page le dit.
-    if (!daté) {
-      dire("Rien n'est enregistré : vos saisies restent dans la fiche, à enregistrer quand vous voulez.");
-      return;
-    }
-    return ecrireFiche(fiche, donnees, daté);
-  }
-  return ecrireFiche(fiche, donnees, {});
+  return ecrireFiche(fiche, lireFormulaire(), {});
 }
 
 /* Une valeur declaree n'est pas toujours un mot : `signataire` et `banque`
@@ -1530,6 +1514,17 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
   try {
     const r = await api("enregistrer-fiche",
       { nom: FICHE_ACTIVE, cle: fiche.cle, donnees, ...daté, ...(forcer ? { forcer: true } : {}) });
+    // Ce qui change demande sa date d'effet : le moteur l'a dit, rien n'est écrit ; la même demande, datée et confirmée.
+    if (r.avertissement) {
+      const { changements, depuis, pourquoi } = r.avertissement;
+      const réponse = await demanderDateDEffet(changements, depuis, pourquoi);
+      // Annulé, ou la boîte fermée d'un clic à côté : la fiche garde ce qu'on y a tapé, et la page le dit.
+      if (!réponse) {
+        dire("Rien n'est enregistré : vos saisies restent dans la fiche, à enregistrer quand vous voulez.");
+        return;
+      }
+      return ecrireFiche(fiche, donnees, { ...réponse, confirme: true }, forcer);
+    }
     ETAT = await api("etat");
     // Une fiche neuve : le moteur a fabriqué sa clé, c'est elle qu'on ouvre.
     if (!fiche.cle && r.fiche && r.fiche.cle) { CLE_ACTIVE = r.fiche.cle; FICHE_NEUVE = false; }

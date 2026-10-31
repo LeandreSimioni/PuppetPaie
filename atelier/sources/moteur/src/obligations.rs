@@ -46,11 +46,79 @@ use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use declarations::signalement::sauf_motifs;
 
-/// Les routes qui ecrivent ce que la compagnie dit d'une obligation.
-pub const ROUTES: [&str; 3] = ["arret-connaissance", "accident-declare", "attestation-declare"];
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, OPERATION};
 
-/// La route qui ne fait que lire : ce qu'un arret en cours de saisie ferait naitre.
-pub const ROUTES_LECTURE: [&str; 1] = ["arret-obligations"];
+const SALARIE_ARRETE: Champ = Champ { nom: "salarie", sens: "la clé de la fiche du salarié arrêté", avance: false };
+const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", sens: "le dernier jour travaillé de l'arrêt, AAAA-MM-JJ (il désigne l'arrêt)", avance: false };
+const FAITE: &[Champ] = &[
+    SALARIE_ARRETE,
+    DERNIER_JOUR,
+    Champ { nom: "le", sens: "le jour où elle a été faite ; vide : la retirer", avance: false },
+    Champ { nom: "depot", sens: "où elle a été faite (un des lieux que l'obligation propose)", avance: false },
+    Champ { nom: "heure", sens: "l'heure, HH:MM", avance: true },
+    Champ { nom: "reference", sens: "la référence de l'accusé", avance: true },
+];
+const OBLIGATIONS_REND: &str = "obligations (chacune son échéance, son état et ce qui reste à faire)";
+const NON_ECRIT: Refus = Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit (l'arrêt, le jour, le lieu) ; rien n'est écrit" };
+
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "arret-obligations",
+        geste: "Dire ce qu'un arrêt en cours de saisie fera naître (signalement…).",
+        charge: &[
+            Champ { nom: "motif", sens: "le motif de l'arrêt (code DSN)", avance: false },
+            Champ { nom: "dernier_jour", sens: "le dernier jour travaillé", avance: false },
+            Champ { nom: "fin", sens: "la fin prescrite", avance: false },
+            Champ { nom: "date_accident", sens: "le jour de l'accident", avance: true },
+        ],
+        exemple: r#"{"motif":"01","dernier_jour":"2026-11-02","fin":"2026-11-10"}"#,
+        rend: OBLIGATIONS_REND,
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "arret-connaissance",
+        geste: "Dire le jour où la compagnie a connu un arrêt ou un accident.",
+        charge: &[
+            SALARIE_ARRETE,
+            DERNIER_JOUR,
+            Champ { nom: "de", sens: "arret ou accident", avance: false },
+            Champ { nom: "jour", sens: "le jour ; vide : le moteur reprend sa présomption", avance: false },
+            Champ { nom: "heure", sens: "l'heure, HH:MM", avance: true },
+        ],
+        exemple: r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","de":"arret","jour":"2026-11-02"}"#,
+        rend: OBLIGATIONS_REND,
+        refus: &[NON_ECRIT, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "accident-declare",
+        geste: "Dire faite la déclaration d'un accident du travail ou de trajet.",
+        charge: FAITE,
+        exemple: r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","le":"2026-11-02","depot":"net-entreprises"}"#,
+        rend: OBLIGATIONS_REND,
+        refus: &[NON_ECRIT, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "attestation-declare",
+        geste: "Dire faite l'attestation de salaire d'un arrêt que la DSN ne porte pas.",
+        charge: FAITE,
+        exemple: r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-16","le":"","depot":"net-entreprises-ecran"}"#,
+        rend: OBLIGATIONS_REND,
+        refus: &[NON_ECRIT, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+];
 
 pub const A_FAIRE: &str = "a_faire";
 pub const EN_RETARD: &str = "en_retard";

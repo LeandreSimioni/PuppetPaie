@@ -13,7 +13,7 @@ use std::path::PathBuf;
 
 use serde_json::{json, Value};
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, MANQUE, OPERATION};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, OPERATION};
 use crate::routes::engagement::texte_requis;
 use droit::contexte::Contexte;
 use droit::natures::Nature;
@@ -47,12 +47,22 @@ pub const ROUTES: &[Fiche] = &[
         avance: true,
         phrase: 0,
     },
-    Fiche { acte: Acte::Ecrit, avance: true, ..Fiche::a_ecrire("poser-modele-contrat") },
+    Fiche {
+        nom: "poser-modele-contrat",
+        geste: "Poser le modèle de contrat ou d'avenant propre à la compagnie.",
+        charge: &[NATURE, QUOI, Champ { nom: "texte", sens: "le modèle entier (le format des modèles livrés : TITRE:, ARTICLE:…)", avance: false }],
+        exemple: r#"{"nature":"cddu_spectacle","quoi":"avenant","texte":"TITRE: Avenant n° {{avenant.numero}}\n\nMODIFICATION:\nL'article {{modification.numero}} est désormais rédigé ainsi : « {{modification.apres}} »\n\nARTICLE: Le reste\nLe reste du contrat est inchangé.\n"}"#,
+        rend: "les modèles, comme modeles-contrat",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "le modèle : la mention obligatoire ou le champ que la phrase nomme ; rien n'est posé" }, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
     Fiche {
         nom: "retirer-modele-contrat",
         geste: "Remettre le modèle livré à la place de celui de la compagnie.",
         charge: &[NATURE, QUOI],
-        exemple: r#"{"nature":"cddu_spectacle","quoi":"contrat"}"#,
+        exemple: r#"{"nature":"cddu_spectacle","quoi":"avenant"}"#,
         rend: "les modèles, comme modeles-contrat",
         refus: &[OPERATION, MANQUE],
         acte: Acte::Ecrit,

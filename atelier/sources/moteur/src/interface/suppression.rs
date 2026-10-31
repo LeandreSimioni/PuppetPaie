@@ -98,10 +98,13 @@ pub fn genre(inst: &Path, racine: &Path) -> Result<Genre, String> {
 
 /// LA QUESTION de la suppression, telle que la page la pose (route `compagnie-suppression`) : le nom, le genre, et pour
 /// une compagnie reelle le rappel de la conservation et la sauvegarde a proposer (un Drive lie : la date du dernier
-/// passage). Refuse ce qui ne se supprime pas.
+/// passage). Une compagnie qui ne se supprime pas rend, sans genre, la phrase qui dit pourquoi.
 pub fn question(racine: &Path) -> Result<Value, String> {
     let inst = crate::compagnie::administrateur::installation_de(racine);
-    let g = genre(&inst, racine)?;
+    let g = match genre(&inst, racine) {
+        Ok(g) => g,
+        Err(phrase) => return Ok(json!({"nom": compagnies::nom_de(racine), "phrase": phrase})),
+    };
     let mut v = json!({"nom": compagnies::nom_de(racine), "genre": if g == Genre::Ajoutee { "ajoutee" } else { "reelle" }, "mot_de_passe": g == Genre::Reelle});
     if g == Genre::Reelle {
         v["conservation"] = json!(CONSERVATION);

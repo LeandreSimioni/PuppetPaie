@@ -43,7 +43,7 @@ pub struct Refus {
     pub corriger: &'static str,
 }
 
-/// LA FICHE D'UNE ROUTE. `geste` vide : la fiche reste a ecrire (`a_ecrire`).
+/// LA FICHE D'UNE ROUTE.
 #[derive(Clone, Copy, Debug)]
 pub struct Fiche {
     pub nom: &'static str,
@@ -72,19 +72,7 @@ pub const FORME: Refus = Refus { classe: "TypeError", corriger: "le champ de la 
 pub const OPERATION: Refus = Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit ; rien n'est écrit" };
 
 impl Fiche {
-    /// La fiche d'une route qui n'est pas encore ecrite : le catalogue la nomme, sans rien en dire.
-    pub const fn a_ecrire(nom: &'static str) -> Fiche {
-        Fiche { nom, geste: "", charge: &[], exemple: "", rend: "", refus: &[], acte: Acte::Lit, avance: false, phrase: 0 }
-    }
-
-    pub fn remplie(&self) -> bool {
-        !self.geste.is_empty()
-    }
-
     pub fn en_json(&self) -> Value {
-        if !self.remplie() {
-            return json!({"nom": self.nom, "fiche": false});
-        }
         json!({
             "nom": self.nom,
             "geste": self.geste,
@@ -99,9 +87,6 @@ impl Fiche {
     }
 
     pub fn en_texte(&self) -> String {
-        if !self.remplie() {
-            return format!("{} : sa fiche n'est pas encore écrite.\n", self.nom);
-        }
         let mut t = format!("{}{} : {}\n  Acte : {}\n  Charge :\n", self.nom, if self.avance { " (avancé)" } else { "" }, self.geste, self.acte.mot());
         for c in self.charge {
             t.push_str(&format!("    {}{} : {}\n", c.nom, if c.avance { " (avancé)" } else { "" }, c.sens));
@@ -124,8 +109,8 @@ pub fn dans(fiches: &[Fiche], nom: &str) -> Option<Fiche> {
     fiches.iter().find(|f| f.nom == nom).copied()
 }
 
-/// Les modules dont les routes portent leur fiche, dans l'ordre du catalogue.
-pub const FICHES: [&[Fiche]; 12] = [
+/// Les modules dont les routes portent leur fiche, dans l'ordre du catalogue : l'ordre ou leurs exemples se jouent.
+pub const FICHES: [&[Fiche]; 24] = [
     crate::routes::engagement::ROUTES,
     crate::etat_garde::ROUTES,
     crate::routes::mois::ROUTES,
@@ -137,35 +122,24 @@ pub const FICHES: [&[Fiche]; 12] = [
     crate::routes::depots::ROUTES,
     crate::routes::documents::ROUTES,
     crate::routes::coffre::ROUTES,
+    crate::routes::import::ROUTES,
     crate::routes::archives::ROUTES,
+    crate::routes::fiches::ROUTES,
+    crate::compagnie::organismes::ROUTES,
+    crate::routes::filet::ROUTES,
+    crate::historique_mois::ROUTES,
+    crate::routes::ouverture::ROUTES,
+    crate::routes::rappels::ROUTES,
+    crate::compagnie::conseils::ROUTES,
+    crate::compagnie::releve_signatures::ROUTES,
+    crate::compagnie::ouverture::ROUTES,
+    crate::obligations::ROUTES,
+    crate::compagnie::administrateur::ROUTES,
 ];
 
 /// LE CATALOGUE : toutes les routes d'une compagnie, chacune une fois, dans l'ordre des modules.
 pub fn catalogue() -> Vec<Fiche> {
-    use crate::routes::*;
-    let noms: Vec<&[&'static str]> = vec![
-        &crate::obligations::ROUTES,
-        &crate::obligations::ROUTES_LECTURE,
-        fiches::ROUTES,
-        &[crate::compagnie::organismes::ROUTE_LIRE, crate::compagnie::organismes::ROUTE_ECRIRE],
-        &[crate::compagnie::coffre_verifier::ROUTE],
-        filet::ROUTES,
-        &[filet::ROUTE_OUBLIER],
-        import::ROUTES,
-        &[crate::historique_mois::ROUTE],
-        ouverture::ROUTES,
-        &[declarations::demarrage::ROUTE, COMPAGNIE_SUPPRESSION, rappels::ROUTE],
-        &crate::compagnie::conseils::ROUTES,
-        &crate::compagnie::releve_signatures::ROUTES,
-        &crate::compagnie::ouverture::ROUTES,
-    ];
-    let mut v: Vec<Fiche> = FICHES.iter().flat_map(|l| l.iter().copied()).collect();
-    for n in noms.into_iter().flatten() {
-        if !v.iter().any(|f| f.nom == *n) {
-            v.push(Fiche::a_ecrire(n));
-        }
-    }
-    v
+    FICHES.iter().flat_map(|l| l.iter().copied()).collect()
 }
 
 /// `moteur routes [NOM] [--avance] [--json]` : le catalogue (le chemin simple ; toutes avec `--avance`), ou la fiche
@@ -187,19 +161,15 @@ pub fn commande(args: &[String]) -> i32 {
         }
         return 0;
     }
-    let montrees: Vec<&Fiche> = tout.iter().filter(|f| f.remplie() && (avance || !f.avance)).collect();
-    let a_ecrire: Vec<&str> = tout.iter().filter(|f| !f.remplie()).map(|f| f.nom).collect();
+    let montrees: Vec<&Fiche> = tout.iter().filter(|f| avance || !f.avance).collect();
     if json {
-        println!("{}", json!({"routes": montrees.iter().map(|f| f.en_json()).collect::<Vec<_>>(), "sans_fiche": a_ecrire}));
+        println!("{}", json!({"routes": montrees.iter().map(|f| f.en_json()).collect::<Vec<_>>()}));
         return 0;
     }
     println!("Les routes (echo '{{\"route\":NOM,\"charge\":{{…}}}}' | moteur route ; la fiche : moteur routes NOM ; toutes : --avance)\n");
     let large = montrees.iter().map(|f| f.nom.len()).max().unwrap_or(0);
     for f in &montrees {
         println!("  {:<large$}  {:<5}  {}", f.nom, match f.acte { Acte::Lit => "lit", Acte::Ecrit => "écrit", Acte::Engage => "engage" }, f.geste);
-    }
-    if !a_ecrire.is_empty() {
-        println!("\nSans fiche encore ({}) : {}", a_ecrire.len(), a_ecrire.join(", "));
     }
     0
 }

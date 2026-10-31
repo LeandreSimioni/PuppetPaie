@@ -70,6 +70,17 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
     },
     Fiche {
+        nom: "coffre-verifier",
+        geste: "Essayer une fois le mot de passe posé d'un organisme.",
+        charge: &[SERVICE],
+        exemple: r#"{"service":"urssaf"}"#,
+        rend: "service, ok, message (la première ligne de l'erreur), conseil, pastille",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "poser d'abord le mot de passe de ce service" }],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
         nom: "coffre-oublier",
         geste: "Retirer du coffre le mot de passe d'un organisme.",
         charge: &[SERVICE, MOT_DE_PASSE],
@@ -125,6 +136,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "coffre-etat" => coffre_etat(ctx),
         "google-etat" => google_etat(ctx),
         "coffre-poser" => coffre_poser(ctx, charge),
+        "coffre-verifier" => crate::compagnie::coffre_verifier::route(ctx, charge),
         "coffre-oublier" => coffre_oublier(ctx, charge),
         "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge),
         "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge),
@@ -230,17 +242,9 @@ fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static 
     Ok((!propres.iter().all(|(k, v)| actuel.get(*k).and_then(Value::as_str) == Some(v.as_str()))).then_some(propres))
 }
 
-/// Ecrit le compte DPAE dans la fiche entreprise, date du jour ; les autres cles d'`api_dpae` sont gardees. Rend la
-/// fiche telle qu'elle vaut aujourd'hui.
+/// Ecrit le compte DPAE dans la fiche entreprise, par l'ecrivain de la fiche (`fiches::poser_entreprise`), date du jour ;
+/// les autres cles d'`api_dpae` sont gardees. Rend la fiche telle qu'elle vaut aujourd'hui.
 fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R<Value> {
-    let chemin = ctx.racine.join("config").join("entreprise.json");
-    if !chemin.exists() {
-        return Err(erreur("FileNotFoundError", format!("{} : fichier introuvable", chemin.display())));
-    }
-    let mut contenu = crate::routes::lire_json_ou_vide(&chemin)?;
-    let Value::Object(entreprise) = &mut contenu else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&contenu))));
-    };
     let mut cfg = match ctx.entreprise.get("api_dpae").filter(|v| vrai(v)) {
         Some(Value::Object(o)) => o.clone(),
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
@@ -249,10 +253,8 @@ fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R
     for (cle, v) in propres {
         cfg.insert(cle.to_string(), Value::String(v));
     }
-    // Les identifiants du compte valent a partir du jour ou on les pose (les premiers, de tout temps).
-    droit::contexte::dater(entreprise, "api_dpae", Value::Object(cfg), Some(&ctx.aujourdhui), None);
-    crate::routes::mois::sauver_avant(&chemin)?;
-    socle::ecriture::ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
+    crate::routes::fiches::poser_entreprise(ctx, "api_dpae", Value::Object(cfg), Some(ctx.aujourdhui))?;
+    let contenu = crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("entreprise.json"))?;
     droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, "config/entreprise.json").map_err(Echec::from)
 }
 

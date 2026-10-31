@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::import::dsn_aem::{self, SalarieDeclare};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, OPERATION, SALARIE};
 use droit::contexte::Contexte;
 use envois::etats::get;
 use socle::echec::{erreur, Echec, R};
@@ -23,12 +24,63 @@ use socle::valeur::{nom_type, valeur_en_texte};
 
 
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &["importation-apercu", "importation-etat", "importer", crate::import::nature::ROUTE];
+const DOSSIER: Champ = Champ { nom: "dossier", sens: "le dossier choisi ; la boîte import/ de la compagnie sinon", avance: true };
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["importer", crate::import::nature::ROUTE];
-
+/// Les routes de ce module, et leurs fiches : dans l'ordre d'un import (regarder, reprendre, dire la nature).
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "importation-etat",
+        geste: "Dire ce qui est repris d'un ancien logiciel, et la boîte où déposer.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "importe_le, contrats, salaries, du, au, dossier (la boîte import/), reprises, a_dire (les natures à dire), editeur",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "importation-apercu",
+        geste: "Dire ce qu'un import reprendrait (bulletins, DSN, AEM), sans rien écrire.",
+        charge: &[DOSSIER],
+        exemple: r#"{}"#,
+        rend: "le tri des pièces (chacune son sort), entreprise et salaries (les fiches à créer ou compléter), les écarts, et leurs pastilles",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "le dossier, ou les pièces que la phrase nomme" }, FORME],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "importer",
+        geste: "Reprendre les pièces d'un ancien logiciel : fiches, engagements importés.",
+        charge: &[DOSSIER],
+        exemple: r#"{}"#,
+        rend: "ce que importation-apercu rend, écrit : les fiches créées ou complétées, les mois importés",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "le dossier, ou les pièces que la phrase nomme ; rien n'est écrit" }, FORME],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: crate::import::nature::ROUTE,
+        geste: "Dire la nature des contrats repris d'un permanent, qu'aucune pièce ne dit.",
+        charge: &[
+            SALARIE,
+            Champ { nom: "nature", sens: "la nature d'un contrat de permanent (cdi, cdd…)", avance: false },
+            Champ { nom: "debut", sens: "le contrat court encore : son début", avance: true },
+            Champ { nom: "fin", sens: "son terme, s'il en a un", avance: true },
+            Champ { nom: "numero", sens: "son numéro, tel que la DSN de l'ancien logiciel l'a déclaré", avance: true },
+            Champ { nom: "salaire", sens: "son salaire mensuel", avance: true },
+            Champ { nom: "quotite", sens: "sa durée du travail, en heures par mois", avance: true },
+        ],
+        exemple: r#"{"salarie":"TARTEMPION","nature":"cdi"}"#,
+        rend: "ecrits, a_dire (ce qui reste à dire), permanents_declares",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "le salarié, la nature ou le champ que la phrase nomme ; rien n'est écrit" }],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+];
 /// UNE REPONSE DE L'IMPORT, AVEC SES PASTILLES (`routes::pastille`) : celle de chaque sort
 /// (`import::bulletins::pastilles_des_sorts`), celle de chaque fiche que l'import cree, complete ou laisse
 /// (`fiche_importee` : creee, completee ou deja la, faite ; a creer ou a completer, a faire), celle de chaque ecart entre

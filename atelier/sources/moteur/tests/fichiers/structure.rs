@@ -1,8 +1,6 @@
 //! LES OS, GARDES QUOI QU'ON CHANGE DESSUS : chaque route dit en une phrase breve ce qu'elle fait, et l'exemple de sa
 //! fiche est accepte ; la page et la ligne de commande ont le meme catalogue ; une crate ne prend qu'a celles du
 //! dessous ; l'engagement ne lit pas le journal ; un seul endroit ecrit un fichier d'engagements.
-//!
-//! Une route dont la fiche n'est pas encore ecrite (`Fiche::a_ecrire`, un geste vide) est nommee, pas en echec.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -10,6 +8,7 @@ use std::path::{Path, PathBuf};
 use moteur::routes::catalogue::{catalogue, GESTE_MAX};
 use serde_json::{json, Value};
 
+use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, pdf};
 use crate::outils::rejeu::{rejouer_dossier, scenario};
 use crate::outils::{dossier_de_test, route};
 
@@ -37,15 +36,10 @@ fn chaque_route_dit_brievement_ce_qu_elle_fait() {
     let mut vus = BTreeSet::new();
     for f in &tout {
         assert!(vus.insert(f.nom), "{} est deux fois au catalogue", f.nom);
-        if !f.remplie() {
-            continue;
-        }
-        assert!(f.geste.chars().count() <= GESTE_MAX, "{} : le geste passe {} caracteres : {}", f.nom, GESTE_MAX, f.geste);
+        assert!(!f.geste.is_empty() && f.geste.chars().count() <= GESTE_MAX, "{} : le geste, en {} caracteres au plus : {}", f.nom, GESTE_MAX, f.geste);
         assert!(!f.rend.is_empty() && !f.refus.is_empty(), "{} : sa fiche dit ce qu'elle rend et ses refus", f.nom);
         assert!(serde_json::from_str::<Value>(f.exemple).is_ok_and(|v| v.is_object()), "{} : l'exemple n'est pas un objet JSON", f.nom);
     }
-    let a_ecrire: Vec<&str> = tout.iter().filter(|f| !f.remplie()).map(|f| f.nom).collect();
-    println!("{} routes sans fiche encore : {}", a_ecrire.len(), a_ecrire.join(", "));
 }
 
 /// Les Treteaux du Banc au 02/11, avant son premier jour joue : une compagnie configuree, FULLER en saisie.
@@ -64,7 +58,27 @@ fn treteaux(test: &str) -> PathBuf {
 #[test]
 fn l_exemple_de_chaque_fiche_est_accepte() {
     let c = treteaux("exemples");
-    // Un permanent en CDI, arrete : ce que seul un contrat paye au mois appelle (le maintien de salaire).
+    // Le serveur du filet et du développeur : un faux, sur cette machine ; il donne une identité de poste et accepte tout.
+    let (filet, _) = crate::outils::serveur(|_| {
+        Some(crate::outils::http_json(200, &json!({"poste": "0".repeat(32), "cle": "0".repeat(64), "confirme": false, "numero": 1})))
+    });
+    std::fs::write(c.join("config/filet-dpae.json"), json!({"serveur": filet}).to_string()).unwrap();
+    // Les bulletins d'un ancien logiciel, dans la boîte de l'import : un artiste (janvier 2026, sans la CASC-SVP) et un
+    // permanent (mai 2025) dont aucune pièce ne dit la nature du contrat.
+    let (mut artiste, mut permanent) = (a_repetitions(), a_heures());
+    for a in [&mut artiste, &mut permanent] {
+        a.id.siret = "32520440200011";
+        a.id.entreprise[0] = "Les Tréteaux du Banc";
+    }
+    permanent.id.nom = "TARTEMPION";
+    permanent.id.nir = "185079999912388";
+    permanent.id.conges_spectacles = None;
+    permanent.cotisations.retain(|c| c.2 != "conges_spectacles");
+    std::fs::create_dir_all(c.join("import")).unwrap();
+    pdf(vec![page_a(&artiste)], &c.join("import/artiste.pdf"));
+    pdf(vec![page_a(&permanent)], &c.join("import/permanent.pdf"));
+    // Un permanent en CDI, arrete deux fois (un accident du travail, un deuil d'enfant) : ce que seul un contrat paye au mois
+    // appelle (le maintien de salaire), et ce que ces motifs font declarer hors DSN.
     let svoboda = json!({"nom": "salarie", "cle": null, "donnees": {"prenom_affichage": "Josef",
         "nom_affichage": "Svoboda", "nir": "1750544999001", "nir_cle": "19", "date_naissance": "1975-05-10", "lieu_naissance_affichage": "Villeneuve-sur-Loire",
         "departement_naissance": "44", "pays_naissance": "FR", "code_nationalite_dsn": "01", "adresse_affichage": "4 rue Kervégan", "code_postal": "44000",
@@ -75,20 +89,29 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
     let mut entreprise = serde_json::from_str::<Value>(fiche_entreprise).unwrap()["charge"].clone();
     entreprise["donnees"]["emploie_des_permanents"] = json!(true);
     entreprise["depuis"] = json!("2026-11-01");
+    entreprise["confirme"] = json!(true);
     for (nom, charge) in [
         ("enregistrer-fiche", entreprise),
         ("organismes-enregistrer", json!({"contrats": {"prevoyance_permanents": {"libelle": "PREVOYANCE", "organisme": "P0983"}, "sante_permanents": {"libelle": "SANTE", "organisme": "P0983"}}})),
         ("enregistrer-fiche", svoboda),
         ("valider-engagement", json!({"mois": "2026-11", "saisie": {"salarie": "SVOBODA", "nature": "cdi", "debut": "2026-11-02", "salaire_mensuel": 3400, "quotite_contrat": 151.67}})),
-        ("arret-enregistrer", json!({"salarie": "SVOBODA", "dernier_jour": "2026-11-02", "fin": "2026-11-10", "motif": "01", "subrogation": "02"})),
+        ("arret-enregistrer", json!({"salarie": "SVOBODA", "dernier_jour": "2026-11-02", "fin": "2026-11-10", "motif": "04", "date_accident": "2026-11-02", "subrogation": "02"})),
+        ("arret-enregistrer", json!({"salarie": "SVOBODA", "dernier_jour": "2026-11-16", "fin": "2026-11-18", "motif": "19", "subrogation": "02"})),
     ] {
         let r = route(&c, nom, charge, "2026-11-02");
         assert_eq!(r["ok"], json!(true), "le permanent des exemples : {} : {}", nom, r);
     }
     // Le retrait de l'engagement en dernier : les exemples des imprevus portent sur celui que valider-engagement pose.
-    let mut fiches: Vec<_> = catalogue().into_iter().filter(|f| f.remplie()).collect();
+    let mut fiches = catalogue();
     fiches.sort_by_key(|f| f.nom == "retirer-engagement");
+    // Un administrateur, pour son tableau et son dépôt groupé : la compagnie est rattachée à son registre, après les
+    // exemples du mot de passe du logiciel (celui d'une compagnie seule).
+    let inst = c.parent().unwrap().parent().unwrap();
+    let registre = json!({"compagnies": [{"dossier": c.strip_prefix(inst).unwrap().to_string_lossy()}]});
     for f in &fiches {
+        if f.nom.starts_with("administrateur-") && !inst.join("administrateur.json").exists() {
+            std::fs::write(inst.join("administrateur.json"), registre.to_string()).unwrap();
+        }
         let r = route(&c, f.nom, serde_json::from_str(f.exemple).unwrap(), "2026-11-02");
         assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom, r);
         if f.phrase > 0 {

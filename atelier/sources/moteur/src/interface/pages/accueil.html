@@ -328,7 +328,7 @@
         return;
       }
       const d = r.depot;
-      resultats = `<p><b>${d.partis} ${pluriel(d.partis, "déclaration partie", "déclarations parties")}${d.refuses ? `, ${d.refuses} ${pluriel(d.refuses, "refusée", "refusées")}` : ""}.</b></p>
+      resultats = d.phrase ? `<p>${esc(d.phrase)}</p>` : `<p><b>${d.partis} ${pluriel(d.partis, "déclaration partie", "déclarations parties")}${d.refuses ? `, ${d.refuses} ${pluriel(d.refuses, "refusée", "refusées")}` : ""}.</b></p>
         <ul>${(d.resultats || []).map((x) => `<li class="${x.parti ? "" : "refus"}"><b>${esc(x.compagnie)}</b>${x.titre ? " — " + esc(x.titre) : ""} :
           ${esc(x.parti ? x.phrase : x.refus)}</li>`).join("")}</ul>`;
       dessiner(d.tableau);
