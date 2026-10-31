@@ -150,8 +150,8 @@ impl Cadre {
 
 /// La classe d'un refus rendue en `&'static str` pour `Echec` (une classe inconnue devient `RuntimeError`).
 fn classe_connue(c: &str) -> &'static str {
-    const CONNUES: [&str; 33] = [
-        "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "KeyError", "ValueError",
+    const CONNUES: [&str; 32] = [
+        "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "KeyError", "ValueError",
         "FileNotFoundError", "PermissionError", "OSError", "UnicodeDecodeError", "JSONDecodeError", "TypeError", "AttributeError",
         "ErreurApi", "ErreurCoffre", "ErreurGoogle", "DepotRefuse", "VersionExigee", "EditionBridee", "CompteursVerrouilles", "CalculRefuse",
         // Les classes des actes : un depot, une correction, un arret.

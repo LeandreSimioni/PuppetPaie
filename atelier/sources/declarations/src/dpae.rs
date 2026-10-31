@@ -516,8 +516,7 @@ pub fn enregistrements(embauches: &[Embauche], p: &Parametres) -> Resultat<Vec<S
     Ok(out)
 }
 
-/// Le texte en latin-1, comme `str.encode("latin-1")` : un caractere hors de
-/// la table donne la phrase de `UnicodeEncodeError`.
+/// Le texte en latin-1 : un caractere hors de la table se refuse, et le refus le nomme.
 pub fn en_latin1(texte: &str) -> Resultat<Vec<u8>> {
     let c: Vec<char> = texte.chars().collect();
     if let Some(i) = c.iter().position(|&x| x as u32 > 255) {

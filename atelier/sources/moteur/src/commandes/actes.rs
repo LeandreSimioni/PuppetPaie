@@ -12,8 +12,8 @@ use super::rendu::{erreur, rendre};
 use socle::echec::Echec;
 
 /// Les classes d'un refus metier : `ErreurOperation` et ses filles.
-const OPERATION: [&str; 18] = [
-    "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "CompteursVerrouilles",
+const OPERATION: [&str; 17] = [
+    "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "CompteursVerrouilles",
     "VersionExigee", "DsnDejaDeposee", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai",
     "MoisNonRegularisable", "ExerciceClos", "SortieAbsente", "BoiteAbsente", "AucunDocument", "ActeReelRefuse",
     "ModificationNonDeclarable",
