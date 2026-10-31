@@ -112,6 +112,31 @@ côté** : le moteur dit ce qui est à faire (le panneau des étapes, les rappel
 comment le lui demander ; un manque du LLM est un manque du moteur. Le détail : `SEANCE-1-ECRANS-ET-MODELE.md`, « Le
 second acteur ».
 
+**L'écran et le moteur sont équivalents, dans les deux sens** (Léandre, 31/10/2026 : « il faut absolument que les deux
+cases soient cochées : que ce soit sur l'écran et que ce soit dans le moteur ; c'est pareil, égal »). Concrètement :
+
+1. **Tout geste est une route, à tous les niveaux.** Le logiciel a deux niveaux : **l'installation** (l'accueil : la
+   liste des compagnies, en ajouter une, la remettre à zéro, la mise à jour, l'administrateur) et **la compagnie** (ses
+   salariés, ses paies, ses déclarations). Les gestes des deux niveaux sont des routes du même catalogue, avec leur
+   fiche. Il n'y a pas de second chemin : ni pont de la fenêtre, ni appel direct de la page, ni commande à part.
+2. **Chaque route a sa place à l'écran, et sa place est son module.** Un module du moteur égale une place de l'écran
+   (un onglet, un sous-onglet, l'accueil) : ranger une route dans un module, c'est dire où elle s'affiche. Une route qui
+   n'a pas d'écran dessiné s'affiche toute seule sous « Avancé » de sa place, fabriquée depuis sa fiche (le geste, les
+   champs, la phrase rendue). Une **lecture** (l'état du mois, la configuration) n'a pas de place : elle nourrit les
+   écrans.
+3. **Ce qui n'est pas une route** : ouvrir un fichier ou un dossier, choisir un dossier. Ce sont des gestes de l'outil
+   qui regarde, pas du logiciel : la route rend le chemin, la fenêtre l'ouvre à l'écran, le LLM le lit en ligne de
+   commande. Et **le bridage (la démo) est un réglage de l'accueil** : la ligne de commande n'en a pas ; le geste qui
+   débride est le seul geste qui n'existe qu'à l'écran.
+4. **Le garde-fou est un test de structure** qui vérifie les deux sens : tout ce que la page appelle, par n'importe quel
+   chemin (`api(…)`, `appel(…)`, `fetch`, le pont de la fenêtre), est au catalogue ; toute route du catalogue a sa
+   place et y est atteinte. Une route sans place, ou un geste de l'écran sans route, le fait échouer avec une phrase qui
+   dit quoi faire. Aucune liste d'exceptions ne grandit.
+5. **La parité se prouve depuis l'écran, pas depuis le code** : un parcours clique sur tout ce que la fenêtre offre,
+   de l'accueil à chaque bouton ; chaque geste trouvé a sa route. Et le LLM joue en ligne de commande **depuis zéro** :
+   il crée la compagnie, il ne la reçoit pas toute prête. Un trou trouvé par l'un ou l'autre se comble dans le lot, et
+   se dit à Léandre.
+
 ## La preuve d'un lot (Léandre, 31/10/2026, après la séance 8)
 
 Ce qui n'allait pas pendant la reconstruction : la preuve de chaque lot était un jeu fixe de six gestes (`preuve-r`),
