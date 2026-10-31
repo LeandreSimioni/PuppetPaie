@@ -529,6 +529,21 @@ fn connaissance(suivi: &Value, champ: &str, quoi: &str) -> Option<Depart> {
 
 /// Les obligations d'un arret (`a` : l'arret tel que `imprevus/AAAA-MM.json` le porte), dans l'ordre ou elles se font.
 pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) -> R<Vec<Value>> {
+    // Un signalement refuse au bilan n'est pas recu (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt` §4.2) :
+    // il reste du. Un envoi trace sur l'arret ne compte que si la ligne du journal de son depot (meme fichier, meme heure)
+    // n'est pas refusee.
+    let journal = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
+    let refuse = |e: &Value| {
+        let nom = std::path::Path::new(&texte(e, "fichier")).file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+        journal.iter().any(|l| {
+            texte(l, "quoi") == "dsn" && texte(l, "fichier") == nom && texte(l, "quand") == texte(e, "quand") && envois::etats::refuse_par_un_retour(l).unwrap_or(false)
+        })
+    };
+    let mut a = a.clone();
+    if let Some(Value::Array(envois)) = a.get_mut("envois") {
+        envois.retain(|e| !refuse(e));
+    }
+    let a = &a;
     let n = base()?;
     let mut cal = Calendrier::nouveau(Some(&ctx.entreprise));
     let mut out = Vec::new();
@@ -952,5 +967,18 @@ mod essais {
         assert_eq!(lire_heure("10:30"), Some(630));
         assert_eq!(lire_heure("24:00"), None);
         assert_eq!(lire_heure("9h"), None);
+    }
+
+    /// Bug reel : un signalement de fin de contrat accepte au transport puis refuse au bilan se disait fait. Le bilan
+    /// tranche (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt` §4.2) : refuse, il reste du.
+    #[test]
+    fn un_signalement_de_fin_refuse_au_bilan_reste_du() {
+        let fin = Jour::lire("2026-03-13").unwrap();
+        let ligne = |verdict: &str| {
+            json!([{"quoi": "dsn", "mode": "reel", "accepte": true, "mois": "2026-03-13", "quand": "2026-03-14T10:00:00",
+                    "fichier": "SignalementFinContrat_FANCHON_20260313.dsn", "retours": [{"nature": "11", "verdict": verdict}]}])
+        };
+        assert!(fctu_depose(ligne("KO").as_array().unwrap(), "fanchon", &fin).is_none());
+        assert!(fctu_depose(ligne("OK").as_array().unwrap(), "fanchon", &fin).is_some());
     }
 }
