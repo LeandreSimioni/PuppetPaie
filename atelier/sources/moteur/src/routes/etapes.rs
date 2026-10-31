@@ -1219,8 +1219,13 @@ impl<'a> Moteur<'a> {
                 "refuse" => groupe("refuse", json!(n), n.to_string(), format!("refusée{} · l'éditeur est prévenu", plur(n, "", "s")), echeance_de(&siens, DPAE), action("historique", "Voir le bilan…".into())),
                 "a_faire" => {
                     let (a, refus) = self.action_de_depot(mois, DPAE, &Value::Null, action("declarer_embauches", "Envoyer les DPAE…".into()))?;
-                    let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
-                    groupe("a_faire", json!(n), n.to_string(), quoi, echeance_de(&siens, DPAE), a)
+                    // Le jour de l'embauche passe, la DPAE qui devait le preceder (L. 1221-10) est en retard ; elle se depose
+                    // toujours.
+                    let echeance = echeance_de(&siens, DPAE);
+                    let passee = socle::date::jour_iso(&valeur_en_texte(&echeance["jour"])).is_some_and(|j| j < self.ctx.aujourdhui);
+                    let etat = if passee { "à déposer, en retard" } else { "à déposer" };
+                    let quoi = refus.map_or_else(|| etat.to_string(), |r| format!("{} · {}", etat, r));
+                    groupe("a_faire", json!(n), n.to_string(), quoi, echeance, a)
                 }
                 A_COMPLETER => a_completer(n),
                 _ => fait(),
