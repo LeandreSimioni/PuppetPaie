@@ -435,13 +435,13 @@ fn configuration(ctx: &Contexte) -> R<Value> {
         .iter()
         .map(|(k, v)| fiche_verifiee("spectacle", Some(k), &avec_historique(v, ctx.spectacle_brut(k))?))
         .collect::<R<Vec<_>>>()?;
-    // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre : une erreur a corriger, que la
-    // compagnie peut corriger (orange) ; un champ obligatoire vide n'en est pas une, il reste a remplir.
+    // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre (orange) : une valeur a corriger, ou un
+    // champ obligatoire vide, a remplir -- les memes que la pastille de chaque fiche.
     let erreurs = std::iter::once(&entreprise)
         .chain(salaries.iter())
         .chain(spectacles.iter())
         .flat_map(|f| f["anomalies"].as_array().cloned().unwrap_or_default())
-        .filter(|a| a["gravite"] == "erreur" && a["message"] != "obligatoire")
+        .filter(|a| a["gravite"] == "erreur")
         .count();
     let erreurs = if erreurs > 0 { super::pastille("a_faire", &format!("{} erreur{} de configuration", erreurs, if erreurs > 1 { "s" } else { "" })) } else { Value::Null };
     let permanents = ctx.emploie_des_permanents();
