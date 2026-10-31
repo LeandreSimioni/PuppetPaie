@@ -266,12 +266,9 @@ fn engagement_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str) -> R<engag
 }
 
 /// La paie de `mois` que la version `version` de l'engagement `o` (salarie `cle`, contrat `numero`) a ecrite
-/// (`engagement::etats::paie_declaree`, sur ce seul depart).
+/// (`engagement::etats::paie_de_la_version_n`).
 fn paie_de_la_version(ctx: &Contexte, o: &engagement::stock::Objet, cle: &str, numero: &str, mois: &str, version: u64) -> R<Paie> {
-    use engagement::departs::{Depart, Departs, Envoi};
-    let mut seul = Departs::default();
-    seul.noter(cle, numero, Depart { envoi: Envoi::Dsn, mois: Some(mois.to_string()), par: None, avenant: None, version, le: String::new() });
-    engagement::etats::paie_declaree(ctx, o, &seul, mois)?
+    engagement::etats::paie_de_la_version_n(ctx, o, version, mois)?
         .ok_or_else(|| valeur(format!("{} : la version {} du contrat {} n'a pas de paie de {}.", cle, version, numero, engagement::libelle_mois(mois))))
 }
 

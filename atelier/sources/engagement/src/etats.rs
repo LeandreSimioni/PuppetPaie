@@ -1596,6 +1596,15 @@ pub fn paie_declaree(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -
     }
 }
 
+/// La paie de `mois` que la version n° `n` de l'engagement `o` a ecrite (`version_ecrite`, `paie_de_la_version`) ; `None`
+/// si `o` n'a pas cette version ou qu'elle n'a pas de paie pour ce mois.
+pub fn paie_de_la_version_n(ctx: &Contexte, o: &Objet, n: u64, mois: &str) -> Resultat<Option<Paie>> {
+    match version_ecrite(ctx, o, n)? {
+        Some(v) => paie_de_la_version(ctx, o, v, mois),
+        None => Ok(None),
+    }
+}
+
 /// LA PAIE PARTIE de `mois` : celle que la version sur laquelle les derniers documents de ce mois sont partis au salarie
 /// a ecrite (`paie_de_la_version`), avec le numero de son bulletin ; `None` si les documents de ce mois ne sont pas partis
 /// pour l'engagement `o`. C'est ce que son bulletin a paye.
