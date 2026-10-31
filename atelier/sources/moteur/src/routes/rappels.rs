@@ -713,7 +713,8 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
         let essais: Vec<Value> = groupe
             .iter()
             .map(|e| {
-                let t = tests.get(format!("{}|{}", texte_ou_vide(e, "salarie"), debut)).cloned().unwrap_or(Value::Null);
+                let cle = crate::compagnie::filet::cle_dpae(&texte_ou_vide(e, "salarie"), &texte_ou_vide(e, "numero"));
+                let t = tests.get(cle).cloned().unwrap_or(Value::Null);
                 if vrai(&t) { t } else { json!({}) }
             })
             .collect();

@@ -209,12 +209,12 @@ fn est_une_erreur_d_operation(e: &Echec) -> bool {
     )
 }
 
-/// La premiere ligne du message (160 caracteres au plus), ou le nom de la classe quand le message est vide.
+/// La premiere ligne du message, entiere, ou le nom de la classe quand le message est vide.
 fn motif_de(e: &Echec) -> String {
     if e.message.is_empty() {
         return e.classe.unwrap_or("Exception").to_string();
     }
-    e.message.split(['\n', '\r']).next().unwrap_or("").chars().take(160).collect()
+    e.message.split(['\n', '\r']).next().unwrap_or("").to_string()
 }
 
 /// L'instant d'un pas, `AAAA-MM-JJTHH:MM:SS` a l'heure de Paris, en secondes UTC.

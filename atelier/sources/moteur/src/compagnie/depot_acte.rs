@@ -476,7 +476,7 @@ pub fn deposer_dsn_dans(
             return Err(erreur(
                 "ErreurOperation",
                 format!(
-                    "Ce signalement porte l'ordre {}, et un signalement reel est deja parti a l'ordre {} : le numero d'ordre d'un signalement ne se remet jamais a zero et ne se prend pas deux fois (cahier technique DSN, p. 136 et 14). Refaire le signalement : il partira a l'ordre {}. Rien n'est parti.",
+                    "Ce signalement porte l'ordre {}, et un signalement est déjà parti à l'ordre {} : le numéro d'ordre d'un signalement ne se remet jamais à zéro et ne se prend pas deux fois (cahier technique DSN, p. 136 et 14). Refaire le signalement : il partira à l'ordre {}. Rien n'est parti.",
                     ordre,
                     dernier,
                     dernier + 1
@@ -699,6 +699,10 @@ fn deposer_les_amorcages(ctx: &Contexte, dossier: &Path, embauches: &[Value], re
         let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         etats::repetition(&lignes, "dsn", &empreinte, &nom).is_ok_and(|r| vrai(&r["conforme"]))
     };
+    // LES SIGNALEMENTS PARTENT DANS L'ORDRE DE LEUR NUMERO (S20.G00.05.004) : un ordre deja depasse ne part plus
+    // (cahier technique DSN, p. 136 et 14 ; `deposer_dsn`).
+    let ordre = |f: &PathBuf| std::fs::read(f).ok().and_then(|o| depot::lire(&o).champ("ordre").trim().parse::<i64>().ok()).unwrap_or(0);
+    fichiers.sort_by_key(ordre);
     let mut releve = false;
     for f in fichiers.iter().filter(|f| !parti(f)) {
         let fichier = json!(f.to_string_lossy());
