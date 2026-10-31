@@ -271,7 +271,7 @@ fn plain(m: impl Into<String>) -> Echec {
 /// `un if k == 1 else des` : le pluriel de `_pluriel`, qui compte zero au pluriel.
 /// Le nom d'un etablissement dans une case : sa commune (celle de la fiche entreprise pour le principal), sinon son NIC.
 fn nom_de_l_etablissement(ent: &Value, nic: &str) -> String {
-    let fiche = if nic == etats::nic_principal(ent) { Some(ent.clone()) } else { droit::bareme::entree(ent, nic) };
+    let fiche = if nic == droit::bareme::nic_principal(ent) { Some(ent.clone()) } else { droit::bareme::entree(ent, nic) };
     let commune = fiche.and_then(|f| ["commune_affichage", "commune"].iter().filter_map(|c| f[*c].as_str()).map(str::trim).find(|c| !c.is_empty()).map(String::from));
     commune.unwrap_or_else(|| format!("NIC {}", nic))
 }
@@ -587,7 +587,7 @@ impl<'a> Moteur<'a> {
     }
 
     fn nic(&self) -> String {
-        etats::nic_principal(&self.ctx.entreprise)
+        droit::bareme::nic_principal(&self.ctx.entreprise)
     }
 
     // ------------------------------------------------------ la saisie du mois
@@ -1326,7 +1326,7 @@ impl<'a> Moteur<'a> {
         let ent = self.ctx.entreprise_du_mois(mois).map_err(plain)?;
         if droit::bareme::secondaires(&ent).is_empty() {
             let (g, second) = self.groupes_dsn_de(mois, &Value::Null)?;
-            return Ok((vec![(vec![etats::nic_principal(&ent)], g)], second));
+            return Ok((vec![(vec![droit::bareme::nic_principal(&ent)], g)], second));
         }
         let point = |g: &Value| (valeur_en_texte(&g["etat"]), valeur_en_texte(&g["phrase"]), valeur_en_texte(&g["echeance"]["jour"]));
         let mut classes: Vec<(Vec<String>, Value)> = Vec::new();

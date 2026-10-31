@@ -119,7 +119,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
 /// `courte`, `phrase`, `quand`. `nic` : l'etablissement (`Null` : le principal ; les etats du journal sont les siens).
 pub(crate) fn dsn_avant(ctx: &Contexte, mois: &str, nic: &Value) -> R<Value> {
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    let e = etats::etat_dsn_du_mois(&lignes, mois, nic, &etats::nic_principal(&ctx.entreprise))?;
+    let e = etats::etat_dsn_du_mois(&lignes, mois, nic, &droit::bareme::nic_principal(&ctx.entreprise))?;
     let quand = |e: &Value| etats::quand_lisible(e.get("quand").unwrap_or(&Value::Null));
     if vrai(&e) {
         let refusee = e.get("refusee").is_some_and(vrai);

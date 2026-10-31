@@ -1255,6 +1255,7 @@ pub fn entreprise_du<'a>(bar: &'a Value, ent: &'a Value) -> &'a Value {
 
 // ---------------------------------------------------- les etablissements
 
+/// Le NIC du siege : celui de la fiche entreprise, ou `""`.
 pub fn nic_principal(fiche: &Value) -> String {
     txt(g(fiche, "nic"))
 }

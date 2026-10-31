@@ -1541,14 +1541,6 @@ pub fn rattacher_retours_ecrits(racine: &Path, retours: &Value) -> AvecIncidents
 
 // ----------------------------------------------------- le mois est-il parti ?
 
-/// Le NIC de la fiche entreprise, ou `""`.
-pub fn nic_principal(entreprise: &Value) -> String {
-    match entreprise.get("nic") {
-        Some(v) if vrai(v) => valeur_en_texte(v),
-        _ => String::new(),
-    }
-}
-
 // Les etats et resumes sur un journal invente (noms et numeros fictifs).
 // ------------------------------------------------------ le journal
 

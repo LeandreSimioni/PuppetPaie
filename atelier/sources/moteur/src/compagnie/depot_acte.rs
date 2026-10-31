@@ -327,7 +327,7 @@ fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
 /// rien ; trop petit, c'est B1-208-11. `constitution` : le mois de constitution du fichier (`AAAA-MM`, S20.G00.05.007).
 fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution: &str) -> R<Option<i64>> {
     let du_mois = envois::journal::lire(&ctx.racine, Some("dsn"), Some(mois), false).map_err(|m| erreur("OSError", m))?;
-    let essais: Vec<Value> = etats::de_l_etablissement(&du_mois, nic, &etats::nic_principal(&ctx.entreprise))?
+    let essais: Vec<Value> = etats::de_l_etablissement(&du_mois, nic, &droit::bareme::nic_principal(&ctx.entreprise))?
         .into_iter()
         .filter(|l| l.get("mode").and_then(Value::as_str) == Some("test"))
         .collect();
