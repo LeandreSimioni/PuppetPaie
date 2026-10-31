@@ -1032,24 +1032,13 @@ pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str)
         ));
     }
     let p = ctx.racine.join("config").join("echeancier.json");
-    let mut d = if p.exists() { lire_saisie(&p)? } else { json!({}) };
-    let Value::Object(m) = &mut d else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&d))));
-    };
-    m.entry("_origine").or_insert_with(|| json!("Les echeances que l'utilisateur a dites faites."));
-    let faits = m.entry("fait").or_insert_with(|| json!({}));
-    let Value::Object(faits) = faits else {
-        return Err(match (faits, fait) {
-            (Value::Array(_), true) => erreur("TypeError", format!("'fait' : {}", socle::fichiers::attendu("un objet", "list"))),
-            (autre, true) => erreur("TypeError", socle::fichiers::non_modifiable(nom_type(autre))),
-            (autre, false) => erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(autre))),
-        });
-    };
+    let mut faits = super::mois::cochees(ctx)?;
     if fait {
         faits.insert(cle.to_string(), json!({"le": ctx.aujourdhui.iso(), "qui": qui}));
     } else {
         faits.shift_remove(cle);
     }
+    let d = json!({"_origine": "Les echeances que l'utilisateur a dites faites.", "fait": faits});
     if let Some(parent) = p.parent() {
         creer_dossier(parent)?;
     }

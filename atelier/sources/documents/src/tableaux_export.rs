@@ -379,11 +379,6 @@ fn cellule_lisible(l: &Ligne, c: &Colonne, genre: &str) -> String {
 
 /// Le nom de la compagnie, ou rien.
 pub fn nom_compagnie(ctx: &Contexte) -> String {
-    // `fiche(ctx)` lit aussi les compteurs : un fichier abime fait rendre « ».
-    let compteurs = ctx.racine.join("config").join("compteurs.json");
-    if compteurs.exists() && socle::fichiers::lire_json(&compteurs).is_err() {
-        return String::new();
-    }
     for c in ["nom_affichage", "raison_sociale", "nom"] {
         if let Some(v) = ctx.entreprise.get(c).filter(|v| vrai(v)) {
             return valeur_en_texte(v);

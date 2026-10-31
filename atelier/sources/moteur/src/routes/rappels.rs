@@ -333,15 +333,8 @@ pub(crate) fn mois_de_l_annee(ctx: &Contexte, annee: &str) -> Vec<String> {
 /// `spectacles_a_revoir` : les spectacles actifs, tant que la revue de l'annee
 /// n'est pas faite.
 fn spectacles_a_revoir(ctx: &Contexte, annee: i32) -> R<Vec<Value>> {
-    let p = ctx.racine.join("config").join("echeancier.json");
-    if p.exists() {
-        let v = lire_json(&p)?;
-        let cle = format!("{}:{}", REVUE_SPECTACLES, annee);
-        if let Some(Value::Object(fait)) = v.get("fait") {
-            if fait.contains_key(&cle) {
-                return Ok(Vec::new());
-            }
-        }
+    if super::mois::cochees(ctx)?.contains_key(&format!("{}:{}", REVUE_SPECTACLES, annee)) {
+        return Ok(Vec::new());
     }
     Ok(ctx
         .spectacles

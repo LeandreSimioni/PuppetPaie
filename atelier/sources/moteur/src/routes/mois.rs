@@ -502,8 +502,8 @@ fn dsn(st: &Etat, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> 
     })
 }
 
-/// `config/echeancier.json` : ce que l'utilisateur a coche (`fait`).
-fn cochees(ctx: &Contexte) -> R<Map<String, Value>> {
+/// `config/echeancier.json` : ce que l'utilisateur a coche (`fait`). La seule lecture du fichier ; `ouverture::marquer_echeance` l'ecrit.
+pub(crate) fn cochees(ctx: &Contexte) -> R<Map<String, Value>> {
     let p = ctx.racine.join("config").join("echeancier.json");
     if !p.exists() {
         return Ok(Map::new());
