@@ -685,7 +685,6 @@ async function chargerMois(mois, repeint = false) {
   // ouvertes qui se ferment », 22/09/2026). Les autres appelants l'ignorent.
   const lectures = [
     dessinerActions(mois),
-    dessinerEmbauches(mois),
     // Les imprévus et les fins de contrat : ce qui est dû, et la ligne de
     // chaque imprévu sous sa carte (js/imprevus.js).
     dessinerImprevus(mois),
@@ -729,7 +728,6 @@ async function repeindreLeMois(mois, ancien, frais) {
   if (!enCours) calculerApercu(frais.lectures.apercu);
   await Promise.allSettled([
     dessinerActions(mois),
-    dessinerEmbauches(mois),
     dessinerImprevus(mois),
     dessinerEtatsDesEngagements(mois),
   ]);

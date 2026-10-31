@@ -35,7 +35,8 @@ fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
     assert!(dpae.iter().all(|n| n.contains("_202611")), "une DPAE est repartie en decembre : {:?}", dpae);
     assert!(!c.join("sorties/2026-12/envoi").exists(), "un contrat est refait en decembre : {:?}", noms(&c.join("sorties/2026-12/envoi")));
     let jour = "2026-12-20";
-    assert_eq!(reussi(&route(&c, "embauches-a-declarer", json!({}), jour))["embauches"], json!([]));
+    let ctx = droit::contexte::Contexte::nouveau(&c, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
+    assert_eq!(moteur::routes::etapes::Moteur::nouveau(&ctx).embauches_a_declarer(None).unwrap(), json!([]));
 
     let ecrite = reussi(&route(&c, "dsn-a-deposer", json!({"mois": "2026-12"}), jour)).clone();
     let decembre = String::from_utf8_lossy(&std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap()).to_string();
