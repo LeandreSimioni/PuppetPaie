@@ -9,7 +9,7 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
-use crate::routes::documents::{charge_texte, client_courriel, cle, liste_de, nul, preuve_de, refus, requis, un_nom_commence_et_finit, vrai_ou, Ouvrir};
+use crate::routes::documents::{charge_texte, client_courriel, cle, liste_de, nul, preuve_de, refus, requis, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
 use crate::routes::etapes::Moteur;
 use droit::contexte::Contexte;
@@ -476,7 +476,6 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         .collect::<R<_>>()?;
     let avenants = crate::routes::etapes::avenants_a_faire(ctx, &mois)?;
 
-    let aujourdhui = ctx.aujourdhui.iso();
     let boite_liee = crate::routes::ouverture::boite_liee(ctx)?;
     let mut contrats = Vec::new();
     for (i, p) in paies.iter().enumerate() {
@@ -558,19 +557,13 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("a_envoyer".into(), json!(a_envoyer));
         l.insert("en_avenant".into(), json!(caduc));
         l.insert("en_attente".into(), json!(en_attente));
-        l.insert(
-            "attente".into(),
-            if en_attente { json!(attente) } else { Value::Null },
-        );
         l.insert("recu".into(), recu_g);
         l.insert("relancer".into(), relancer);
         l.insert("recu_le".into(), etat["recu"].clone());
-        l.insert("recu_par".into(), etat["recu_par"].clone());
         l.insert("caduc".into(), etat["caduc"].clone());
         l.insert("pourquoi".into(), etat["pourquoi"].clone());
         l.insert("avenant".into(), etat["avenant"].clone());
         l.insert("avenant_attendu".into(), etat["avenant_attendu"].clone());
-        l.insert("commence".into(), json!(debut <= aujourdhui));
         contrats.push(Value::Object(l));
     }
     // Les contrats et les avenants a faire partir dont le salarie n'a pas de courriel : ce que l'envoi en dira.
@@ -591,25 +584,11 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     if !sans_avenant.is_empty() {
         avertissements.push(crate::compagnie::signature::avenants_sans_courriel_dit(&sans_avenant));
     }
-    let dossier = ctx.racine.join("sorties").join(&mois);
-    let envoi = dossier.join("envoi");
-    let produit = dossier.exists()
-        && if envoi.exists() {
-            un_nom_commence_et_finit(&dossier, "Contrats_", ".pdf") || un_nom_commence_et_finit(&envoi, "Contrat_", ".pdf")
-        } else {
-            un_nom_commence_et_finit(&dossier, "Contrats_", ".pdf")
-        };
-    let salaries = salaries_d_identite(ctx);
-    let attendues = etats::signatures_attendues(&m.lignes()?, Some(&mois), &salaries)?;
-    let n_attendues = attendues.as_array().map_or(0, Vec::len);
     Ok(json!({
         "mois": mois_v,
         "contrats": contrats,
         "boite_liee": boite_liee,
         "avertissements": avertissements,
-        "attendues": n_attendues,
-        "dossier": dossier.to_string_lossy(),
-        "produit": produit,
     }))
 }
 
@@ -741,7 +720,6 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         "contrat": parti.numero,
         "date_contrat": parti.date(),
         "signe": parti.signe,
-        "fichier_parti": parti.fichier,
         "numero": signes.iter().max().copied().unwrap_or(0) + 1,
         "effet": effet,
         "modifications": modifications,

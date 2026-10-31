@@ -55,17 +55,6 @@ pub fn jour_iso(t: &str) -> Option<socle::date::Jour> {
 
 
 
-/// Une ligne de `etapes` (`A faire ensuite :`) : `  N. TITRE     detail`, puis la commande s'il y en a une.
-pub fn afficher_etapes(etapes: &[Value], titre: &str) {
-    dire!("\n{}", titre);
-    for (i, e) in etapes.iter().enumerate() {
-        dire!("  {}. {:<9} {}", i + 1, super::rendu::champ(e, "titre"), super::rendu::champ(e, "detail"));
-        if e.get("commande").is_some_and(socle::fichiers::vrai) {
-            dire!("     {}", super::rendu::champ(e, "commande"));
-        }
-    }
-}
-
 /// `Fichiers produits dans DOSSIER :` puis `  nom  (N o)` pour chacun.
 pub fn afficher_fichiers(fichiers: &[Value], dossier: &str) {
     dire!("\nFichiers produits dans {} :", dossier);

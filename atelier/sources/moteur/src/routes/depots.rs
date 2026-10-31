@@ -42,11 +42,11 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "heure", sens: "l'heure d'embauche, HHMM (0800 par défaut)", avance: true },
         ],
         exemple: r#"{"mois":"2026-11"}"#,
-        rend: "fichiers (la DPAE, son .zip, son récapitulatif, les demandes de taux), lignes (salarié, début), dossier",
+        rend: "fichiers (la DPAE, son .zip, son récapitulatif, les demandes de taux), lignes (salarié, début), dossier, phrase (les embauches déclarées et la demande de taux)",
         refus: &[OPERATION, MANQUE, FORME],
         acte: Acte::Ecrit,
         avance: false,
-        phrase: 0,
+        phrase: 300,
     },
     Fiche {
         nom: "depot-apercu",
@@ -274,8 +274,8 @@ fn embauche_dpae(p: &Paie, spectacle: bool) -> Embauche {
 /// Ce qu'une production d'amorcage a laisse : les fichiers ecrits.
 struct Amorcage {
     fichiers: Vec<PathBuf>,
-    /// Qui est demande : (cle du salarie, ce que la situation de son taux dit).
-    lignes: Vec<(String, String)>,
+    /// Le nombre de salaries dont le taux est demande.
+    demandes: usize,
 }
 
 /// Un fichier de signalement par individu dont le taux manque (le travail est
@@ -290,7 +290,7 @@ fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution
         constitution,
     };
     let lot = crate::compagnie::amorcage_demande::produire(ctx, retenues, &demande, ecrits)?;
-    Ok(Amorcage { fichiers: lot.fichiers, lignes: lot.lignes.iter().map(|l| (l.salarie.clone(), l.libelle.clone())).collect() })
+    Ok(Amorcage { demandes: lot.lignes.len(), fichiers: lot.fichiers })
 }
 
 /// `{"nom", "chemin", "octets"}` d'un fichier (`sortie_json.fichier`).
@@ -300,15 +300,9 @@ fn fichier_json(f: &Path) -> Value {
 }
 
 /// La DPAE, due AVANT le premier jour travaille : tout le mois, ou les engagements choisis (`engagements` : une liste de
-/// `{salarie, numero}` : le salarie et le numero du contrat de l'engagement) dans un fichier horodate a cote du complet. `forcer` : reecrire meme une embauche deja declaree (un
-/// depot rejete, a refaire).
+/// `{salarie, numero}` : le salarie et le numero du contrat de l'engagement) dans un fichier horodate a cote du complet.
+/// La phrase rendue dit combien d'embauches elle declare et ce qu'est devenue la demande de taux de PAS.
 pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
-    dpae_detail(ctx, charge).map(|(v, _, _)| v)
-}
-
-/// `dpae`, avec ce que la reponse JSON ne porte pas et que la ligne de commande dit : qui est demande dans le signalement
-/// d amorcage (`None` : il n y en a pas) et, sinon, pourquoi il est ecarte.
-pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Vec<(String, String)>>, String)> {
     let mois_demande = texte_requis(charge, "mois")?;
     let heure: Value = charge.get("heure").cloned().unwrap_or_else(|| json!("0800"));
     let selection: Option<&Vec<Value>> = match charge.get("engagements") {
@@ -466,41 +460,30 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         }));
     }
 
-    let nom_f = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let nom_recap = recap.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let etapes = vec![json!({
-        "cle": "depot",
-        "titre": "Depot",
-        "detail": format!(
-            "Deposer {}.zip sur net-entreprises.fr, rubrique DPAE, AVANT le debut du contrat. Pour la saisie en ligne, recopier {}. Le moteur depose lui-meme : en test, sans rien demander ; en reel, avec le mot de passe du logiciel, tape par l'utilisateur au moment du depot. Le geste : dans la fenetre, l'action « Envoyer les DPAE… » du mois (le test d'abord, puis l'envoi du fichier teste) ; la demande de taux de PAS des embauches qui n'en ont pas part avec elle.",
-            nom_f, nom_recap
-        ),
-        "commande": Value::Null,
-    })];
-
-    // LE SIGNALEMENT D'AMORCAGE, DANS LE MEME GESTE : il ne fait jamais echouer la DPAE ; ce qui
-    // l'empeche est ecarte, et les fichiers deja ecrits restent.
+    // LE SIGNALEMENT D'AMORCAGE, DANS LE MEME GESTE : il ne fait jamais echouer la DPAE ; ce qui l'empeche se dit dans la
+    // phrase, et les fichiers deja ecrits restent.
     let retenues_owned: Vec<Paie> = retenues.iter().map(|p| (*p).clone()).collect();
     let mut ecrits = Vec::new();
-    let (amorce, ecarte) = match produire_amorcage(ctx, &mois, &retenues_owned, aujourdhui, &mut ecrits) {
-        Ok(a) => (Some(a), String::new()),
-        Err(m) => (None, m),
-    };
-    let _ = ecrits;
+    let amorce = produire_amorcage(ctx, &mois, &retenues_owned, aujourdhui, &mut ecrits);
     let mut fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
-    if let Some(a) = &amorce {
+    let n = lignes.len();
+    let mut phrase = format!("DPAE de {} écrite : {} embauche{}.", libelle, n, if n > 1 { "s" } else { "" });
+    match &amorce {
+        Ok(a) if a.demandes > 0 => phrase.push_str(&format!(" Taux de PAS demandé pour {}.", a.demandes)),
+        Ok(_) => phrase.push_str(" Aucun taux de PAS à demander."),
+        Err(m) => phrase.push_str(&format!(" Aucune demande de taux de PAS : {}", m)),
+    }
+    if let Ok(a) = &amorce {
         fichiers.extend(a.fichiers.iter().map(|p| fichier_json(p)));
     }
-    let json = json!({
+    Ok(json!({
         "mois": mois,
         "libelle": libelle,
         "dossier": sortie.to_string_lossy(),
         "lignes": lignes,
         "fichiers": fichiers,
-        "etapes": etapes,
-    });
-    let amorce_lignes = amorce.as_ref().map(|a| a.lignes.clone());
-    Ok((json, amorce_lignes, ecarte))
+        "phrase": phrase,
+    }))
 }
 
 /// LES FICHIERS D'UNE DPAE : l'enregistrement de chaque embauche de `retenues` dans `cible` (et son `.zip`), horodate
@@ -1052,7 +1035,6 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
             "numero": numero,
             "fin": iso_depuis_jjmmaaaa(champ("date_fin")),
             "type_contrat": type_contrat,
-            "heure": champ("heure_embauche"),
             "deja_declaree": deja,
         }));
     }
@@ -1070,7 +1052,6 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
         "reel": envois::depot::est_reel(&contenu),
         "indicateur": envois::depot::indicateur(&contenu),
         "mois": mois.first().cloned().unwrap_or_default(),
-        "tous_les_mois": mois,
         "embauches": lignes,
         "deja_depose": deja_depose,
         "repetition": repetition,

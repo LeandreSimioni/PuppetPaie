@@ -887,7 +887,7 @@ async function boiteSignature(mois, seulement) {
 }
 
 /** LES CONTRATS EN ATTENTE : un contrat ou un avenant parti, pas revenu
- *  signé. Le moteur dit, pour chacun, ce qui est parti et quand (`attente`),
+ *  signé. Le moteur dit, pour chacun, où il en est (`pastille`),
  *  et ses gestes, route et charge : « Reçu signé » (`recu`, pour tous : ce
  *  qui part par courriel peut revenir signé sur papier) et « Relancer »
  *  (`relancer`, parti par courriel, boîte posée). Une note se défait : le

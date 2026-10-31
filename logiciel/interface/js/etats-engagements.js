@@ -534,7 +534,7 @@ async function boiteDpae(mois) {
       // premier qui se dépose.
       const f = (w.fichiers || []).find(
         (x) => /\.txt$/i.test(x.nom) && !/recapitulatif/i.test(x.nom));
-      dire("Fichier écrit : " + (f ? f.nom : w.dossier));
+      dire(w.phrase);
       await rafraichirActions();
       if (f) boiteDepot("dpae", f.chemin, { testerDabord: true });
     } catch (e) {
