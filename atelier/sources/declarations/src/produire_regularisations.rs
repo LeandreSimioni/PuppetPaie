@@ -249,15 +249,15 @@ pub fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
         let s = &r.apres.salarie;
         let nom = s.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
         out.push(format!(
-            "{} {}, contrat {} ({}) : brut {} -> {}, net {} -> {}",
+            "{} {}, contrat {} ({}) : brut {} € → {} €, net {} € → {} €",
             valeur_en_texte(nom),
             prenom_de(s),
             r.apres.engagement.numero.as_deref().unwrap_or("None"),
             engagement::libelle_mois(&r.mois),
-            q2(r.declare.brut),
-            q2(r.apres.brut),
-            q2(r.net_deja_verse),
-            q2(r.apres.net_a_payer),
+            q2(r.declare.brut).replace('.', ","),
+            q2(r.apres.brut).replace('.', ","),
+            q2(r.net_deja_verse).replace('.', ","),
+            q2(r.apres.net_a_payer).replace('.', ","),
         ));
     }
     Ok(out)

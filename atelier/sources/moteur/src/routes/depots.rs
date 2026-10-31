@@ -40,7 +40,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Écrire ou reprendre la DSN ou la DPAE du mois ; dire ce qu'elle déclare.",
         charge: &[QUOI, MOIS, ETABLISSEMENT, ENGAGEMENTS, SIGNALEMENT],
         exemple: DPAE_DE_L_EXEMPLE,
-        rend: "ce qu'elle déclare (embauches, ou salariés et ordres), deja_depose, repetition (où en est son test, titre et phrase de l'encart), phrase, avertissements, informations",
+        rend: "ce qu'elle déclare (embauches, ou description, salariés, recapitulatif avec son titre et sa phrase, et ordres), deja_depose, repetition (où en est son test, titre et phrase de l'encart), phrase, avertissements, informations",
         refus: &[ILLISIBLE_FICHIER, MANQUE, OPERATION],
         acte: Acte::Ecrit,
         avance: false,

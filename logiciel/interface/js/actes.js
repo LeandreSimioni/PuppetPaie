@@ -164,7 +164,6 @@ function recapitulatifDsn(r) {
   if (!r) return "";
   if (r.erreur) return `<div class="encart attention"><b>Récapitulatif illisible</b>
     ${echapper(r.erreur)}</div>`;
-  const ecarts = r.salaries.reduce((n, s) => n + s.contrats.filter((c) => c.ecarts.length).length, 0);
   // Un nombre du fichier, à la française ; une correction le signe d'un vrai
   // moins (« −184 h » : ce qui s'ajoute à ce qui a déjà été déclaré).
   const signe = (x) => String(x).replace(/^-/, "−");
@@ -197,13 +196,7 @@ function recapitulatifDsn(r) {
       ${pastilleDeLEtat(c.pastille_ecarts)}</td></tr>` : ""}`).join("")).join("");
   return `
     <div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
-      <b>${r.contrats} contrat${r.contrats > 1 ? "s" : ""} dans ce fichier${r.corrections
-        ? ` (et ${r.corrections} correction${r.corrections > 1 ? "s" : ""} d'un mois déjà déclaré)` : ""}${r.compare
-        ? `, ${r.contrats_saisis} saisi${r.contrats_saisis > 1 ? "s" : ""} dans la paie du mois` : ""}</b>
-      ${r.conforme ? "Tous les contrats de la paie sont dans la DSN, tels que la paie les dit."
-        : r.compare ? `${r.absents.length ? r.absents.length + " contrat(s) de la paie manquent au fichier. " : ""}${ecarts
-          ? ecarts + " contrat(s) du fichier ne disent pas ce que dit la paie : réécrire le mois." : ""}`
-        : "Pas de paie saisie à comparer : le fichier se lit seul."}
+      <b>${echapper(r.titre)}</b> ${echapper(r.phrase)}
     </div>
     ${r.absents.length ? `<ul class="absents">${r.absents.map((x) =>
       `<li>${pastilleDeLEtat(x.pastille)} ${echapper(x.nom)} — contrat
@@ -218,10 +211,7 @@ function recapitulatifDsn(r) {
 function corpsDsn(a) {
   const v = a.ordres || [];
   return `
-    <p class="discret">${echapper(a.nom)} — ${echapper(a.libelle_type)}
-      (type ${echapper(a.type_declaration)}), ordre ${echapper(a.ordre)},
-      fraction ${echapper(a.fraction)}, constituée le ${echapper(a.constitution)}.
-      ${a.salaries} salarié(s), ${a.lignes} lignes, SIREN ${echapper(a.siren)}.</p>
+    <p class="discret">${echapper(a.description)}</p>
     ${a.remplace ? `<div class="encart"><b>Annule et remplace</b>
       Ce fichier remplace la déclaration ${echapper(a.remplace)}.</div>` : ""}
     ${a.remplacement?.fichier_remplace ? `<div class="encart attention">

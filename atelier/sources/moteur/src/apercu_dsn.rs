@@ -80,17 +80,20 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
     let (mut n_contrats, mut n_ecarts, mut n_corrections) = (0usize, 0usize, 0usize);
     for sal in &sals {
         let mut contrats_json = Vec::new();
-        for c in &sal.contrats {
+        // Un contrat se dit par ce qu'il declare pour le mois, comparé a la paie du mois, et par ses rappels d'un mois deja
+        // declare (`recap_dsn::Contrat`), qui ne se comparent pas a la paie du mois. Un contrat qui n'a que des rappels
+        // n'a pas de ligne du mois.
+        for (c, correction) in sal.contrats.iter().flat_map(|c| [(c, false), (c, true)]) {
+            let m = if correction { &c.rappel } else { &c.mois };
+            if (correction || c.rappel.remunere) && !m.remunere {
+                continue;
+            }
             vus.insert(c.numero.clone());
             let p = par_numero.get(&c.numero).map(|&i| &liste[i]);
             let mut ecarts: Vec<String> = Vec::new();
-            let brut = c.brut_texte();
-            // UNE CORRECTION D'UN MOIS DEJA DECLARE : un contrat que la paie du mois ne porte pas, et dont la
-            // fin (40.010) precede le mois, n'est dans le fichier que pour sa regularisation (la correction d'un mois suivant,
-            // `dsn::generer` et ses `regs`). Ce n'est pas un ecart avec la paie : il se dit pour ce qu'il est.
-            let correction = p.is_none() && !c.fin.is_empty() && c.fin.as_str() < format!("{}-01", mois).as_str();
+            let brut = m.brut_texte();
             match p {
-                None if correction => {}
+                _ if correction => {}
                 None => {
                     if compare {
                         ecarts.push("aucune paie du mois ne porte ce contrat".to_string());
@@ -99,8 +102,9 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                 Some(p) => {
                     let e = &p.engagement;
                     let mut attendu: HashMap<&str, String> = HashMap::new();
-                    // `paie_rust._euros` : le brut de la paie est quantifie a deux decimales.
-                    attendu.insert("brut", q2(p.brut));
+                    // Le brut que la paie declare en 51 de type 001 (`dsn::brut_du_51` : abattu sous deduction forfaitaire
+                    // specifique), a deux decimales.
+                    attendu.insert("brut", q2(declarations::dsn::brut_du_51(p)));
                     for k in ["jours", "cachets", "heures"] {
                         attendu.insert(k, "0".to_string());
                     }
@@ -138,7 +142,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                         attendu.insert(cle, norm(d));
                     }
                     for cle in ["brut", "jours", "cachets", "heures"] {
-                        let fichier = if cle == "brut" { brut.clone() } else { c.mesure_texte(cle) };
+                        let fichier = if cle == "brut" { brut.clone() } else { m.mesure_texte(cle) };
                         let a = decimal_lu(&attendu[cle]).ok_or_else(|| socle::num::illisible(&attendu[cle]))?;
                         let f = decimal_lu(&fichier).ok_or_else(|| socle::num::illisible(&fichier))?;
                         if norm(f) != norm(a) {
@@ -172,9 +176,9 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             contrats_json.push(json!({
                 "numero": c.numero, "debut": c.debut, "fin": c.fin, "emploi": c.emploi,
                 "nature": c.nature, "objet": c.objet, "brut": brut,
-                "jours": c.mesure_texte("jours"), "cachets": c.mesure_texte("cachets"),
-                "heures": c.mesure_texte("heures"),
-                "fin_declaree": c.fin_declaree, "motif_fin": c.motif_fin, "remunere": c.remunere,
+                "jours": m.mesure_texte("jours"), "cachets": m.mesure_texte("cachets"),
+                "heures": m.mesure_texte("heures"),
+                "fin_declaree": c.fin_declaree, "motif_fin": c.motif_fin, "remunere": m.remunere,
                 "paie": p.is_some(), "correction": correction,
                 // Un contrat du fichier qui ne dit pas ce que dit la paie : a corriger, la compagnie le peut.
                 "pastille_ecarts": if ecarts.is_empty() { Value::Null } else { crate::routes::pastille("a_faire", &ecarts.join(" ; ")) },
@@ -204,9 +208,33 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
         }));
     }
     let conforme = compare && absents.is_empty() && n_ecarts == 0;
+    let s = |n: usize| if n > 1 { "s" } else { "" };
+    let mut titre = format!("{} contrat{} dans ce fichier", n_contrats, s(n_contrats));
+    if n_corrections > 0 {
+        titre += &format!(" (et {} correction{} d'un mois déjà déclaré)", n_corrections, s(n_corrections));
+    }
+    if compare {
+        titre += &format!(", {} saisi{} dans la paie du mois", par_numero.len(), s(par_numero.len()));
+    }
+    let phrase = if conforme {
+        "Tous les contrats de la paie sont dans la DSN, tels que la paie les dit.".to_string()
+    } else if compare {
+        let mut p = Vec::new();
+        if !absents.is_empty() {
+            let n = absents.len();
+            p.push(format!("{} contrat{} de la paie manque{} au fichier.", n, s(n), if n > 1 { "nt" } else { "" }));
+        }
+        if n_ecarts > 0 {
+            let dit = if n_ecarts > 1 { "disent" } else { "dit" };
+            p.push(format!("{} contrat{} du fichier ne {} pas ce que dit la paie : réécrire le mois.", n_ecarts, s(n_ecarts), dit));
+        }
+        p.join(" ")
+    } else {
+        "Pas de paie saisie à comparer : le fichier se lit seul.".to_string()
+    };
     Ok(json!({
         "salaries": salaries_json, "absents": absents,
-        "contrats": n_contrats, "corrections": n_corrections, "contrats_saisis": par_numero.len(),
+        "titre": titre, "phrase": phrase,
         "compare": compare, "conforme": conforme,
         // La couleur du bilan : conforme, vert ; un ecart ou un absent, orange ; rien a comparer, gris.
         "couleur": if conforme { "vert" } else if compare { "orange" } else { "gris" },
@@ -274,8 +302,22 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
     };
     let genre = a.champ("type_declaration");
     let nature = a.champ("nature");
+    let libelle_type = TYPES.iter().find(|(c, _)| *c == genre).map_or("?", |(_, l)| *l);
+    let description = format!(
+        "{} — {} (type {}), ordre {}, fraction {}, constituée le {}. {} salarié{}, {} lignes, SIREN {}.",
+        nom,
+        libelle_type,
+        genre,
+        a.champ("ordre"),
+        a.champ("fraction"),
+        en_clair_jjmmaaaa(a.champ("constitution")),
+        a.salaries,
+        if a.salaries > 1 { "s" } else { "" },
+        a.lignes,
+        a.champ("siren")
+    );
     Ok(json!({
-        "fichier": chemin, "nom": nom,
+        "fichier": chemin, "nom": nom, "description": description,
         "mois": mois, "nature_envoi": a.champ("nature_envoi"),
         "reel": a.reel(),
         "signalement": signalement,
@@ -283,7 +325,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         "libelle_nature": a.nature_lisible(),
         "evenement": if signalement { a.evenement_lisible() } else { String::new() },
         "type_declaration": genre,
-        "libelle_type": TYPES.iter().find(|(c, _)| *c == genre).map_or("?", |(_, l)| *l),
+        "libelle_type": libelle_type,
         "ordre": a.champ("ordre"), "fraction": a.champ("fraction"),
         "remplace": a.champ("remplace"), "constitution": en_clair_jjmmaaaa(&a.champ("constitution")),
         "siren": a.champ("siren"), "salaries": a.salaries, "lignes": a.lignes,

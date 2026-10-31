@@ -538,11 +538,11 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     // partie). Une correction a zero (la paie d'apres est `sans_paie`) n'a pas de bulletin : le net deja verse se retient.
     for (r, ligne) in regs.iter().zip(regularisations::resume_regularisations(&regs)?) {
         let suite = if r.apres.engagement.sans_paie() {
-            " La paie est retiree : le net deja verse se retient, et le salarie doit en etre prevenu par ecrit."
+            " La paie est retirée : le net déjà versé se retient, et le salarié doit en être prévenu par écrit."
         } else {
             ""
         };
-        avertissements.push(info(format!("Regularisation embarquee dans la DSN : {}.{}", ligne, suite)));
+        avertissements.push(info(format!("Régularisation portée par la DSN : {}.{}", ligne, suite)));
     }
     if paies.is_empty() && regs.is_empty() {
         avertissements.push(info(format!(

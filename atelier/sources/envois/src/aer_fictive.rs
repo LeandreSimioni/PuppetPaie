@@ -175,10 +175,10 @@ fn periode(x: &Contrat, debut: Jour, fin: Jour, m: &str, paiement: &str, premier
         contrat: premiere.then(|| (x.numero.clone(), debut.jj_mm_aaaa(), fin.jj_mm_aaaa(), x.objet.clone())),
         debut: if debut > d { debut } else { d },
         fin: if fin < f { fin } else { f },
-        heures: x.heures,
-        cachets: x.cachets,
-        jours: x.jours,
-        brut: x.brut,
+        heures: x.mois.heures,
+        cachets: x.mois.cachets,
+        jours: x.mois.jours,
+        brut: x.mois.brut,
         paiement: Jour::lire(paiement).map(|j| j.jj_mm_aaaa()).unwrap_or_default(),
     })
 }
