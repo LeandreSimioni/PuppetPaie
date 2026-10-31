@@ -342,17 +342,13 @@ pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
 /// `(mois, saisie, dossier)` du plus recent au plus ancien.
 fn mois_connus(ctx: &Contexte) -> Vec<(String, Option<PathBuf>, Option<PathBuf>)> {
     let mut vus: BTreeMap<String, (Option<PathBuf>, Option<PathBuf>)> = BTreeMap::new();
-    let est_un_mois = |n: &str| {
-        let b = n.as_bytes();
-        b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
-    };
     for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
         let chemin = engagement::stock::chemin(&ctx.racine, &mois);
         vus.entry(mois).or_default().0 = Some(chemin);
     }
     for (nom, chemin) in entrees(&ctx.racine.join("sorties")) {
         // Les dossiers AAAA-MM seulement : `sorties/exercices/` n'est pas un mois.
-        if chemin.is_dir() && est_un_mois(&nom) {
+        if chemin.is_dir() && socle::date::mois_valide(&nom) {
             vus.entry(nom).or_default().1 = Some(chemin);
         }
     }

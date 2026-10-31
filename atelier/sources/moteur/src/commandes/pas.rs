@@ -298,13 +298,13 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
     // Le mois : celui qu'on dit, sinon le dernier saisi (c'est le contrat que la derniere DSN a declare, et ce que le motif 07 reprend).
     let mois = match args.texte("mois") {
         Some(m) => {
-            if !super::actes::mois_valide(m) {
+            if !socle::date::mois_valide(m) {
                 dire!("--mois attend AAAA-MM, recu {}.", socle::fichiers::repr(m));
                 return 1;
             }
             m.to_string()
         }
-        None => match engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().filter(|m| super::actes::mois_valide(m)).last() {
+        None => match engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().filter(|m| socle::date::mois_valide(m)).last() {
             Some(m) => m,
             None => {
                 dire!("Aucun mois saisi : un signalement d'amorcage declare un CONTRAT (bloc 40, cardinalite (1,1)), et il n'y en a aucun a declarer.");

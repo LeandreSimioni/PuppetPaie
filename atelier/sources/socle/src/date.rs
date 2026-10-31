@@ -169,6 +169,13 @@ pub fn jour_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into
     format!("date impossible : {:04}-{:02}-{:02}", an.into(), mois.into(), jour.into())
 }
 
+/// `AAAA-MM` : quatre chiffres, un tiret, un mois de 01 a 12, rien d'autre. Un mois nomme un fichier ou un dossier :
+/// `../config` ou `2026-06/envoi` n'en sont pas.
+pub fn mois_valide(mois: &str) -> bool {
+    let b = mois.as_bytes();
+    b.len() == 7 && b[4] == b'-' && b[..4].iter().chain(&b[5..]).all(u8::is_ascii_digit) && (1..=12).contains(&(((b[5] - b'0') * 10 + (b[6] - b'0')) as u32))
+}
+
 /// Le numero du mois d'un « AAAA-MM », de 1 a 12 ; « 00 » (ou « 13 ») n'est aucun mois et se refuse, comme
 /// `premier_du_mois`, `dernier_du_mois` et `envoi::etiquette`. Le mois d'une paie est celui que sa DSN declare :
 /// « le premier jour du mois civil au titre duquel est etablie la paie », de forme `(01)(0[1-9]|1[0-2])(20)[0-9]{2}`

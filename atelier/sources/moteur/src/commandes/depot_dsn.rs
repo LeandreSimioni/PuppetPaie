@@ -133,7 +133,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let fichier = args.texte("fichier").unwrap_or("");
     // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides.
     let fabriquee;
-    let fichier = if est_un_mois(fichier) {
+    let fichier = if socle::date::mois_valide(fichier) {
         let dsn = crate::compagnie::depart::fabriquer_dsn(&cadre.ctx, fichier, "cli")?;
         fabriquee = dsn.fichiers.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
         fabriquee.as_str()
@@ -247,8 +247,3 @@ fn dire_la_suite(fait: &DepotFait, reel: bool, apercu: &Apercu) {
     }
 }
 
-/// `AAAA-MM` : un mois, pas un fichier.
-fn est_un_mois(t: &str) -> bool {
-    let b = t.as_bytes();
-    b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
-}

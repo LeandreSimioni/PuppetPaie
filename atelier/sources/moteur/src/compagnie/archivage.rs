@@ -36,24 +36,14 @@ fn sortie_absente(dossier: &Path) -> ErreurGoogle {
     ErreurGoogle::nouvelle("SortieAbsente", format!("{} n'existe pas.", dossier.display()))
 }
 
-/// `archiver` controle `mois` avant de lire `sorties/<mois>` : sans quoi `..` ou `../config`
-/// archiverait le dossier `config` (coffre et jeton compris), `2026-06/envoi` les fiches de salaries une a une.
-/// Seul `AAAA-MM` (quatre chiffres, un tiret, un mois de 01 a 12) est un mois.
-pub fn mois_valide(mois: &str) -> bool {
-    let b = mois.as_bytes();
-    b.len() == 7
-        && b[4] == b'-'
-        && b[..4].iter().all(u8::is_ascii_digit)
-        && b[5..].iter().all(u8::is_ascii_digit)
-        && (1..=12).contains(&mois[5..].parse::<u32>().unwrap_or(0))
-}
-
 /// `archiver` : depose les sorties d'un mois dans le Drive du compte autorise.
 ///
 /// `client` : `None` pour le vrai (`Client::nouveau`, construit APRES les controles du dossier,
 /// pour qu'un mois absent se dit avant tout refus du client).
 pub fn archiver(racine: &Path, mois: &str, racine_drive: &str, client: Option<&mut dyn Drive>) -> Result<Archivage, ErreurGoogle> {
-    if !mois_valide(mois) {
+    // `..` ou `../config` archiverait le dossier `config` (coffre et jeton compris), `2026-06/envoi` les fiches de
+    // salaries une a une : seul `AAAA-MM` est un mois.
+    if !socle::date::mois_valide(mois) {
         return Err(ErreurGoogle::nouvelle("ErreurOperation", format!("Mois illisible : '{}' (AAAA-MM attendu).", mois)));
     }
     let dossier = racine.join("sorties").join(mois);

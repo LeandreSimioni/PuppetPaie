@@ -82,11 +82,6 @@ pub fn chemin(racine: &Path) -> PathBuf {
     racine.join("ouverture.etat.json")
 }
 
-/// Un mois `AAAA-MM`, rien d'autre : il nomme un fichier.
-fn mois_valide(mois: &str) -> bool {
-    let b = mois.as_bytes();
-    b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
-}
 
 /// Le dossier, absolu et comparable (sous Windows, sans le `\\?\` de `canonicalize`).
 fn absolu(p: &Path) -> String {
@@ -379,7 +374,7 @@ fn mois_a_ouvrir(ouverture: &Value, jour: &str) -> String {
     ouverture
         .pointer("/lectures/mois-a-ouvrir/resultat/mois")
         .and_then(Value::as_str)
-        .filter(|m| mois_valide(m))
+        .filter(|m| socle::date::mois_valide(m))
         .map(String::from)
         .unwrap_or_else(|| jour.get(..7).unwrap_or_default().to_string())
 }
@@ -786,7 +781,7 @@ impl FileDesEtats {
     /// `perime`, et refait aussitot, devant tous les autres. `attendre` (la page qui veut l'etat frais) ou aucun etat
     /// garde : l'etat frais, une fois refait.
     pub fn ecran(&self, mois: &str, attendre: bool) -> R<Value> {
-        if !mois_valide(mois) {
+        if !socle::date::mois_valide(mois) {
             return Err(Echec { classe: Some("ErreurOperation"), message: format!("Mois illisible : {}.", mois) });
         }
         self.verrou().affiche = Some(mois.to_string());

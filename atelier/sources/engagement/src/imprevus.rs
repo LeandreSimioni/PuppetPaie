@@ -151,12 +151,6 @@ fn chemin(racine: &Path, mois: &str) -> PathBuf {
     dossier(racine).join(format!("{}.json", mois))
 }
 
-/// `AAAA-MM.json`, et rien d'autre, est un fichier du magasin.
-fn est_un_mois(nom: &str) -> bool {
-    let b = nom.as_bytes();
-    b.len() == 12 && b[4] == b'-' && nom.ends_with(".json") && b[..4].iter().chain(&b[5..7]).all(u8::is_ascii_digit)
-}
-
 /// Les imprevus d'un fichier deja lu.
 fn du_contenu(contenu: &Value, chemin: &Path) -> Resultat<Vec<Value>> {
     let Value::Object(m) = contenu else {
@@ -177,7 +171,7 @@ pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();
     for f in fichiers {
         let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        if !est_un_mois(&nom) {
+        if !nom.strip_suffix(".json").is_some_and(socle::date::mois_valide) {
             continue;
         }
         out.extend(du_contenu(&socle::fichiers::lire_json(&f)?, &f)?);
@@ -220,7 +214,6 @@ pub fn jour_de_rangement(imp: &Value) -> Resultat<Jour> {
         d(g(imp, "debut"))
     }
 }
-
 
 // ------------------------------------------------------------------ les jours
 

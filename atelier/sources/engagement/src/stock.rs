@@ -90,18 +90,13 @@ pub fn chemin(racine: &Path, mois: &str) -> PathBuf {
     racine.join(DOSSIER).join(format!("{}.json", mois))
 }
 
-fn mois_valide(m: &str) -> bool {
-    let b = m.as_bytes();
-    b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
-}
-
 /// Les mois qui ont un fichier, du plus ancien au plus recent.
 pub fn fichiers(racine: &Path) -> Vec<String> {
     let mut v: Vec<String> = std::fs::read_dir(racine.join(DOSSIER))
         .into_iter()
         .flatten()
         .flatten()
-        .filter_map(|e| e.file_name().to_str()?.strip_suffix(".json").filter(|m| mois_valide(m)).map(String::from))
+        .filter_map(|e| e.file_name().to_str()?.strip_suffix(".json").filter(|m| socle::date::mois_valide(m)).map(String::from))
         .collect();
     v.sort();
     v
@@ -221,7 +216,7 @@ impl Objet {
                     })
                     .collect();
                 jours.sort();
-                let dernier = jours.last().map(|j| j.chars().take(7).collect::<String>()).filter(|m| mois_valide(m));
+                let dernier = jours.last().map(|j| j.chars().take(7).collect::<String>()).filter(|m| socle::date::mois_valide(m));
                 Ok(Some(dernier.map_or(self.fichier.clone(), |m| m.max(self.fichier.clone()))))
             }
             None => Ok(None),
