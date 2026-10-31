@@ -490,7 +490,7 @@ function planningDuBloc(bloc) {
 function debutDuBloc(bloc) {
   if (!bloc) return "";
   const jours = joursDuBloc(bloc);
-  const ecrit = carteFermee(bloc) ? (engagementsLus(bloc)[0] || {}).debut : bloc.querySelector(".e-debut").value;
+  const ecrit = carteFermee(bloc) ? (engagementLu(bloc) || {}).debut : bloc.querySelector(".e-debut").value;
   return ecrit || jours[0] || "";
 }
 
@@ -723,7 +723,7 @@ function poserSpectacles(select) {
  * Une carte lue dans le fichier du mois (`chargerMois`) naît COQUE : ce qui se
  * voit d'un engagement validé (`.e-resume`, ses imprévus, ses états) et ce que
  * l'aperçu y peint — la carte figée que le moteur rend pour un engagement validé.
- * Elle sait seulement quels engagements du fichier elle montre (`data-rangs`) :
+ * Elle sait seulement quels engagements du fichier elle montre (`data-engagement`) :
  * tant que son formulaire n'existe pas, rien ne la modifie, et elle les écrit
  * tels quels (`engagementsDuBloc`). Son formulaire se construit à la première
  * occasion qui l'ouvre — l'état de son engagement dit qu'il n'est pas validé, on
@@ -753,9 +753,9 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
   div.dataset.numeroDe = e.numero ? (e.salarie || "") : "";
   const mois = document.getElementById("mois").value;
   if (e.debut && mois && e.debut.slice(0, 7) < mois) div.classList.add("en-cours");
-  // Sa place dans l'écran du mois, que le moteur a rendue : ce qui la désigne quand elle s'écrit.
-  if (e.rangs) { div.dataset.rangs = e.rangs.join(","); div.dataset.place = String(e.rangs[0]); }
-  if (fermee && e.rangs) return div;
+  // Son identité, que le moteur a rendue : ce qui la désigne quand elle s'écrit.
+  if (e.id) div.dataset.engagement = JSON.stringify(e.id);
+  if (fermee && e.id) return div;
   construireCarte(div, e);
   return div;
 }
@@ -765,8 +765,8 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
  *  reste : l'enregistrement automatique ne réécrit pas le fichier pour rien. */
 function ouvrirCarte(div) {
   if (!carteFermee(div)) return;
-  const lus = engagementsLus(div);
-  construireCarte(div, { ...(lus[0] || {}), salaries: lus.map((x) => x.salarie) });
+  const lu = engagementLu(div) || {};
+  construireCarte(div, lu);
   if (div._paies) peindreChiffres(div, div._total);
   // Les cases du contrat écrit que le moteur a demandées pour cet engagement, au dernier aperçu.
   const p = (div._paies || [])[0];
@@ -1536,7 +1536,7 @@ function nouvelleFiche(nom) {
 
 /** Les salariés cochés d'un bloc, dans l'ordre de la liste. */
 function salariesDuBloc(div) {
-  if (carteFermee(div)) return engagementsLus(div).map((e) => e.salarie);   // une carte fermée : les siens
+  if (carteFermee(div)) return [engagementLu(div)].filter(Boolean).map((e) => e.salarie);   // une carte fermée : le sien
   return [...div.querySelectorAll(".e-qui-case:checked")].map((c) => c.value);
 }
 
@@ -1615,7 +1615,7 @@ function joursDuBloc(div, mois) {
   const vus = new Set();
   // Une carte fermée : les jours des lignes de ses engagements (un bloc porte
   // les mêmes lignes pour tous ses salariés).
-  const lignes = carteFermee(div) ? ((engagementsLus(div)[0] || {}).lignes || []) : lignesDuBloc(div, mois);
+  const lignes = carteFermee(div) ? ((engagementLu(div) || {}).lignes || []) : lignesDuBloc(div, mois);
   lignes.forEach((l) => (l.dates || []).forEach((j) => vus.add(jourDe(j))));
   return [...vus].sort();
 }

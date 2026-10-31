@@ -5,13 +5,13 @@
    moteur ; un clic ouvre l'envoi que le moteur nomme, rien ne part d'un clic sans sa boîte. */
 "use strict";
 
-let ETATS_ENGAGEMENTS = null;      // les lignes d'`etat-par-engagement`, rangées par place ; null = pas lu
+let ETATS_ENGAGEMENTS = null;      // les lignes d'`etat-par-engagement`, par identité d'engagement ; null = pas lu
 
-/** La ligne d'`etat-par-engagement` d'une carte : celle de sa place à l'écran (`data-place`), que le moteur rend avec
- *  chaque ligne. Une carte que le moteur n'a pas encore écrite n'a pas de place, donc pas d'état. */
+/** La ligne d'`etat-par-engagement` d'une carte : celle de son identité (`data-engagement`), que le moteur rend avec
+ *  chaque ligne. Une carte que le moteur n'a pas encore écrite n'a pas d'identité, donc pas d'état. */
 function etatDeLaCarte(div) {
-  if (!ETATS_ENGAGEMENTS || !div.dataset.place) return undefined;
-  return ETATS_ENGAGEMENTS[+div.dataset.place];
+  if (!ETATS_ENGAGEMENTS || !div.dataset.engagement) return undefined;
+  return ETATS_ENGAGEMENTS.get(div.dataset.engagement);
 }
 
 /* LES TROIS CARRÉS DE LA LIGNE VALIDÉE : DPAE, Contrat, Documents. Le moteur
@@ -209,8 +209,8 @@ async function dessinerEtatsDesEngagements(mois) {
   if (!mois) { ETATS_ENGAGEMENTS = null; peindreEtats(); return; }
   try {
     const r = await api("etat-par-engagement", { mois });
-    ETATS_ENGAGEMENTS = [];
-    r.engagements.forEach((l) => { ETATS_ENGAGEMENTS[l.place] = l; });
+    ETATS_ENGAGEMENTS = new Map();
+    r.engagements.forEach((l) => { ETATS_ENGAGEMENTS.set(JSON.stringify(l.engagement), l); });
     peindreNonActifs(r.non_actifs);
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
@@ -304,13 +304,13 @@ async function validerLaCarte(div) {
   clearTimeout(MINUTEUR_SAISIE);
   const charge = chargeDeLaCarte(div, document.getElementById("mois").value);
   if (!charge) { dire("Choisir qui est engagé.", "erreur"); return; }
-  // Une écriture automatique de cette carte déjà en route se finit d'abord : sa place en vient.
+  // Une écriture automatique de cette carte déjà en route se finit d'abord : son identité en vient.
   await ENREGISTREMENT;
-  if (div.dataset.place) charge.place = +div.dataset.place;
+  if (div.dataset.engagement) charge.engagement = JSON.parse(div.dataset.engagement);
   try {
     const r = await api("valider-engagement", charge);
-    div.dataset.place = String(r.place);
-    div._ecrite = JSON.stringify({ ...charge, place: r.place });
+    div.dataset.engagement = JSON.stringify(r.engagement);
+    div._ecrite = JSON.stringify({ ...charge, engagement: r.engagement });
     // Ce que le moteur dit sans refuser (un contrat qui ne pourra pas partir) se dit, à sa couleur.
     const avis = (r && r.avis) || [];
     if (avis.length) dire("Engagement validé. " + avis.map((a) => a.phrase).join(" "), avis[0].couleur);
@@ -320,9 +320,9 @@ async function validerLaCarte(div) {
 }
 
 /** Le bouton « Retirer cet engagement » d'une carte, quel que soit son état. Le moteur décide (`retirer-engagement`,
- *  la carte désignée par sa place) : rien de parti, l'engagement s'efface ; un envoi parti, il refuse
+ *  la carte désignée par son identité) : rien de parti, l'engagement s'efface ; un envoi parti, il refuse
  *  (`EngagementParti`), la page montre sa phrase et propose de rendre l'engagement non actif. Une carte jamais écrite
- *  n'a rien dans le moteur : elle s'efface de l'écran. Les places des cartes suivantes changent : ce qui attend s'écrit
+ *  n'a rien dans le moteur : elle s'efface de l'écran. Ce qui attend s'écrit
  *  d'abord, puis le mois se relit. */
 function brancherRetirer(div) {
   const b = div.querySelector(".retirer-engagement");
@@ -332,8 +332,8 @@ function brancherRetirer(div) {
     const mois = document.getElementById("mois").value;
     clearTimeout(MINUTEUR_SAISIE);
     await enregistrerSaisie(true);
-    if (!div.dataset.place) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
-    const charge = { mois, place: +div.dataset.place };
+    if (!div.dataset.engagement) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
+    const charge = { mois, engagement: JSON.parse(div.dataset.engagement) };
     try {
       try {
         await api("retirer-engagement", charge);
@@ -418,7 +418,7 @@ async function modifierLaCarte(div) {
   let saisie;
   LIRE_LES_MODIFICATIONS = true;
   try { saisie = engagementsDuBloc(div, mois)[0] || {}; } finally { LIRE_LES_MODIFICATIONS = false; }
-  const charge = { mois, place: +div.dataset.place, saisie };
+  const charge = { mois, engagement: JSON.parse(div.dataset.engagement), saisie };
   try {
     let r = await api("modifier-engagement", charge);
     while (r && r.avertissement) {

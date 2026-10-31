@@ -1,4 +1,4 @@
-//! Les routes du mois : `etat-par-engagement`, `etat-du-mois`, `embauches-a-declarer`, `mois-a-ouvrir`, et les lectures
+//! Les routes du mois : `etat-par-engagement`, `etat-du-mois`, `mois-a-ouvrir`, et les lectures
 //! qu'elles partagent (`bilan_du_mois`, `fichiers_deposables`) : l'etat de chaque engagement (sa validation, sa DPAE,
 //! son contrat, ses documents, la DSN du mois), l'etat du mois, et l'annule-et-remplace.
 //!
@@ -33,7 +33,7 @@ use socle::num::Decimal;
 use socle::echec::Echec;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 4] = ["etat-par-engagement", "etat-du-mois", "embauches-a-declarer", "mois-a-ouvrir"];
+pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois-a-ouvrir"];
 
 pub(crate) type Paire = (String, String);
 pub(crate) use envois::etats::Cle3;
@@ -854,14 +854,15 @@ impl<'a> Moteur<'a> {
 
     /// LES ENGAGEMENTS AUXQUELS IL MANQUE UN FAIT (`engagement::stock::A_COMPLETER`), a leur place dans l'ordre de
     /// l'ecran : hors de toutes les lectures du mois, chacun a sa ligne a lui, qui dit ce qui lui manque
-    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre. Chaque ligne porte sa `place` :
-    /// l'identite de l'engagement a l'ecran, celle par laquelle une carte se lit et s'ecrit (`stock::objets_a_l_ecran`).
+    /// (`ligne_a_completer`). Les lignes calculees (`lignes`) gardent leur ordre. Chaque ligne porte `engagement` :
+    /// l'identite de l'engagement, celle par laquelle sa carte le designe (`stock::identites`).
     fn avec_les_engagements_a_completer(&self, mois: &str, lignes: Vec<Value>) -> R<Vec<Value>> {
         let a_l_ecran = engagement::stock::objets_a_l_ecran(self.racine(), mois).map_err(plain)?;
+        let ids = engagement::stock::identites(&a_l_ecran);
         let mut calculees = lignes.into_iter();
         let mut out: Vec<Value> = Vec::new();
-        for o in &a_l_ecran {
-            let ligne = if o.est_a_completer() {
+        for (o, id) in a_l_ecran.iter().zip(ids) {
+            let mut ligne = if o.est_a_completer() {
                 self.ligne_a_completer(mois, o)?
             } else {
                 match calculees.next() {
@@ -869,11 +870,8 @@ impl<'a> Moteur<'a> {
                     None => continue,
                 }
             };
+            ligne["engagement"] = id;
             out.push(ligne);
-        }
-        out.extend(calculees);
-        for (place, l) in out.iter_mut().enumerate() {
-            l["place"] = json!(place);
         }
         Ok(out)
     }
@@ -1652,20 +1650,10 @@ impl<'a> Moteur<'a> {
         Ok(Value::Array(attente))
     }
 
-    /// `etat-du-mois` : tout ce que la page du mois affiche.
+    /// `etat-du-mois` : ce que le panneau des etapes du mois dessine (`colonnes`, `etapes`).
     fn etat_du_mois(&mut self, mois: &str) -> R<Value> {
-        let lignes = self.lignes()?;
-        let fichiers = self.fichiers_deposables(mois)?;
         let mut bilan = self.bilan_du_mois(mois)?;
-        let (etapes, colonnes) = (bilan["etapes"].take(), bilan["colonnes"].take());
-        let lignes_du_mois: Vec<Value> = etats::filtrer(&lignes, None, Some(mois), false)?.into_iter().cloned().collect();
-        let pose = crate::compagnie::coffre::Coffre::du_poste(self.racine(), "")
-            .ouverture_exigee()
-            .map_err(|x| Echec { classe: Some(x.classe), message: x.message })?;
-        Ok(json!({
-            "mois": mois, "fichiers": fichiers,
-            "colonnes": colonnes, "etapes": etapes, "lignes": lignes_du_mois, "mot_de_passe_pose": pose,
-        }))
+        Ok(json!({"mois": mois, "colonnes": bilan["colonnes"].take(), "etapes": bilan["etapes"].take()}))
     }
 }
 
@@ -1993,10 +1981,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "etat-du-mois" => {
             let (_, mois) = mois_de(charge)?;
             m.etat_du_mois(&mois)
-        }
-        "embauches-a-declarer" => {
-            let mois = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
-            Ok(json!({"embauches": m.embauches_a_declarer(mois.as_deref())?}))
         }
         "mois-a-ouvrir" => m.mois_a_ouvrir(),
         autre => Err(plain(format!("route inconnue : {}", autre))),

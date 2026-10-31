@@ -58,17 +58,11 @@ pub(super) fn maintenant() -> String {
     socle::paris::iso_secondes(t)
 }
 
-/// L'ENGAGEMENT QU'UNE CARTE MONTRE : celui de l'ecran de `mois` a la place `place` (`engagement::stock::objets_a_l_ecran`,
-/// l'ordre dans lequel la route `saisie` rend le mois). Refus : une place que l'ecran ne montre pas.
-fn a_la_place(ctx: &Contexte, mois: &str, place: usize) -> R<engagement::stock::Objet> {
-    engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?.into_iter().nth(place).ok_or_else(|| {
-        refus(format!("{} : l'écran ne montre pas d'engagement à la place {} ; rechargez le mois. Rien n'est écrit.", engagement::libelle_mois(mois), place + 1))
-    })
-}
-
-/// `place` de la charge : la place de la carte dans l'ecran du mois.
-fn place_de(charge: &Value) -> R<usize> {
-    Ok(charge.get("place").and_then(Value::as_u64).ok_or_else(|| erreur("TypeError", "`place` : un entier est attendu"))? as usize)
+/// L'ENGAGEMENT QU'UNE CARTE MONTRE : celui que designe `engagement` dans la charge, l'identite que le moteur a rendue a
+/// la carte (`engagement::stock::identites`). Refus : une identite que l'ecran de `mois` ne montre pas.
+fn designe(ctx: &Contexte, mois: &str, charge: &Value) -> R<engagement::stock::Objet> {
+    let id = charge.get("engagement").ok_or_else(|| erreur("TypeError", "`engagement` : l'identité de la carte est attendue"))?;
+    Ok(engagement::stock::designe(&ctx.racine, mois, id).map_err(|m| refus(m))?.1)
 }
 
 /// Le rang de l'engagement `o` parmi ceux que `mois` calcule (`engagement::stock::objets_du_mois`, l'ordre de
@@ -84,7 +78,7 @@ fn rang_calcule(ctx: &Contexte, mois: &str, o: &engagement::stock::Objet) -> R<u
 // ------------------------------------------------------------------ valider-engagement
 
 
-/// « VALIDER L'ENGAGEMENT », UN GESTE : la carte s'ecrit (`saisie`, et `place`, sa place dans l'ecran du mois, absente
+/// « VALIDER L'ENGAGEMENT », UN GESTE : la carte s'ecrit (`saisie`, et `engagement`, son identite, absente
 /// pour un engagement neuf : `crate::routes::mois::ecrire_une_carte`), puis l'engagement ecrit se valide : il ecrit ses
 /// paies, une par mois qu'il couvre (`engagement::etats::valider`). Il lui manque un fait : la carte reste ecrite en
 /// saisie, et la validation refuse en disant lequel. Un engagement valide ne se valide pas (il se modifie par
@@ -98,8 +92,8 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     // Ce qui manquait aux autres se relit d'abord : un fait a pu se dire depuis, sur une fiche.
     crate::routes::mois::relire_les_manques(ctx)?;
-    let place = crate::routes::mois::ecrire_une_carte(ctx, mois, charge)?;
-    let o = a_la_place(ctx, mois, place)?;
+    let id = crate::routes::mois::ecrire_une_carte(ctx, mois, charge)?;
+    let (_, o) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
     if let Some(manque) = o.a_completer() {
         let data = engagement::stock::vue_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
         return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
@@ -114,7 +108,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &debut)?;
     }
     let avis = avis_de_validation(ctx, &v, &departs)?;
-    Ok(json!({"salarie": salarie, "debut": debut, "place": place, "valide": v.le(), "avis": avis}))
+    Ok(json!({"salarie": salarie, "debut": debut, "engagement": id, "valide": v.le(), "avis": avis}))
 }
 
 // ------------------------------------------------------------------ modifier-engagement
@@ -168,7 +162,7 @@ enum Issue {
 }
 
 /// « MODIFIER L'ENGAGEMENT » : les valeurs que la carte ouverte d'un engagement valide montre, ecrites d'un geste.
-/// La carte se designe par sa place dans l'ecran du mois (`place`, que le moteur a rendue) ; `saisie` est ce que
+/// La carte se designe par son identite (`engagement`, que le moteur lui a rendue) ; `saisie` est ce que
 /// sa carte ecrit pour `mois`. Une carte porte un salarie : elle modifie son engagement, et lui seul.
 ///
 /// - Rien n'a change : rien ne s'ecrit, la reponse le dit (`change` faux).
@@ -199,7 +193,7 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         })?),
     };
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
-    let o = a_la_place(ctx, mois, place_de(charge)?)?;
+    let o = designe(ctx, mois, charge)?;
     if !o.est_valide() {
         return Err(refus(format!(
             "{} : cet engagement n'est pas validé ; il se saisit sur sa carte, puis « Valider l'engagement ». Rien n'est écrit.",
@@ -420,7 +414,7 @@ fn avis_de_validation(ctx: &Contexte, v: &engagement::etats::Valide, departs: &e
 /// demande avec `non_actif` si l'utilisateur veut qu'il ne soit plus actif.
 pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
 
-/// « Retirer cet engagement » : la carte se designe par sa place dans l'ecran du mois (`place`, que le moteur a rendue).
+/// « Retirer cet engagement » : la carte se designe par son identite (`engagement`, que le moteur lui a rendue).
 /// Tant que rien n'est parti de lui, l'engagement se supprime, meme valide, et rend son numero
 /// (`engagement::etats::supprimer`). Des qu'un envoi est parti, le moteur refuse (`CLASSE_ENGAGEMENT_PARTI`, la phrase
 /// dit ce qui est parti) ; avec `non_actif`, il devient non actif (`engagement::etats::desactiver`) et la reponse dit ce
@@ -429,7 +423,7 @@ pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
 fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
-    let o = a_la_place(ctx, mois, place_de(charge)?)?;
+    let o = designe(ctx, mois, charge)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     if !booleen(charge, "non_actif", false) {
         return match engagement::etats::supprimer(ctx, &o, &departs) {

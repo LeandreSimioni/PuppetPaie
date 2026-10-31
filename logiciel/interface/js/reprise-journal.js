@@ -1,5 +1,4 @@
-/* La reprise du journal des dépôts, et les embauches sans trace d'envoi. Les arrêts de travail et les fins de
-   contrat sont partis dans js/imprevus.js (15/10/2026). */
+/* La reprise du journal des dépôts. Les arrêts de travail et les fins de contrat sont dans js/imprevus.js. */
 "use strict";
 
 /* ------------------------------------------- la reprise du journal
@@ -78,77 +77,5 @@ async function dessinerReprise() {
       dire(e.message, "erreur");
     }
   };
-}
-
-/* --------------------------------- les embauches sans trace d'envoi
-   La demande était « un bouton qui envoie les DPAE des contrats pas encore
-   envoyés ». Ce qu'on peut faire honnêtement aujourd'hui, c'est la LISTE et
-   le chemin vers le dépôt : le fichier DPAE d'un mois porte tout le mois, et
-   il n'existe pas encore de production qui ne reprendrait qu'une partie des
-   engagements. Le récapitulatif du dépôt dit alors, ligne par ligne, ce qui a
-   déjà une trace — c'est là que la nuance se joue, pas ici.
-
-   DU MOIS AFFICHÉ, ET DE LUI SEUL, depuis le 12/09/2026 :
-
-     « je vois octobre dans septembre »
-     « chaque mois doit être autonome »
-
-   La liste balayait tous les mois connus. Une saisie d'essai laissée en
-   octobre s'affichait donc dans la colonne de septembre, avec son bouton
-   « Voir la DPAE d'octobre… » — un dépôt d'un autre mois à un clic, dans une
-   colonne qui ne parle que de celui-ci. Le moteur savait déjà filtrer
-   (`embauches_a_declarer(ctx, mois)`) ; on lui passe enfin le mois. */
-async function dessinerEmbauches(mois) {
-  const cible = document.getElementById("embauches");
-  const titre = document.getElementById("titre-embauches");
-  // Plus de bloc dans la page depuis le 13/09/2026 : la pastille DPAE de
-  // chaque paie et la boîte DPAE disent déjà tout. Le code reste pour le
-  // jour où on voudrait la liste ailleurs.
-  if (!cible) return;
-  if (titre) {
-    titre.innerHTML = `Embauches sans trace d'envoi
-      <span class="discret">${mois ? "— " + echapper(moisEnClair(mois)) : ""}</span>`;
-  }
-  if (!mois) { cible.innerHTML = ""; return; }
-  let liste;
-  try {
-    liste = (await api("embauches-a-declarer", { mois })).embauches;
-  } catch (e) {
-    cible.innerHTML = `<p class="discret">${echapper(e.message)}</p>`;
-    return;
-  }
-  if (!liste.length) {
-    cible.innerHTML = `<p class="discret">Toutes les embauches de
-      ${echapper(moisEnClair(mois))} ont une trace d'envoi.</p>`;
-    return;
-  }
-  cible.innerHTML = `
-    <div class="encart info">
-      <b>« Pas de trace d'envoi », et non « pas déclarée »</b>
-      Ce journal ne connaît que ce que <i>ce</i> logiciel a déposé. Une
-      embauche déclarée par un autre logiciel, ou à la main sur le site de l'Urssaf,
-      figure ici quand même — et déclarer deux fois la même embauche n'est pas
-      anodin.
-    </div>
-    <div class="acte">
-      <ul class="embauches-liste">
-        ${liste.map((x) => `
-          <li>${echapper(x.nom)} — ${echapper(x.spectacle)}, du
-            ${echapper(jjmmaaaa(x.debut))} au
-            ${echapper(jjmmaaaa(x.fin))}</li>`).join("")}
-      </ul>
-      <button class="secondaire" data-embauche="${echapper(mois)}">
-        Voir la DPAE ${echapper(deMois(mois))}…</button>
-    </div>
-    <p class="note">Le fichier DPAE d'un mois porte <b>tout</b> le mois.
-      Le récapitulatif du dépôt dit, pour chaque embauche, si elle a déjà une
-      trace.</p>`;
-  cible.querySelectorAll("[data-embauche]").forEach((b) => {
-    b.onclick = () => ouvrirDpaeDuMois(b.dataset.embauche);
-  });
-}
-
-async function ouvrirDpaeDuMois(mois) {
-  return boiteDpae(mois);
 }
 

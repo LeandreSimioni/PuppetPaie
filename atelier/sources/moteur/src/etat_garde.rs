@@ -2,7 +2,7 @@
 //!
 //! L'etat d'un mois porte TOUT ce que l'ecran d'un mois lit : l'etat de chaque engagement (`etat-par-engagement`), celui
 //! du mois (`etat-du-mois`), et les lectures que la page faisait une a une (`LECTURES` : la saisie, les contrats en
-//! cours, les embauches, les fins, les imprevus, l'apercu de la saisie enregistree). Il se fait dans le processus de la
+//! cours, les fins, les imprevus, l'apercu de la saisie enregistree). Il se fait dans le processus de la
 //! fenetre, par UNE file (`FileDesEtats`) -- des le lancement pour les compagnies de l'installation (`Fil`) --, puis
 //! apres chaque ecriture, a l'ouverture d'une compagnie et apres chaque tour de veille, le mois affiche et ses voisins
 //! d'abord. Il ne s'ecrit pas : la file le garde en memoire, sous l'EMPREINTE de tout ce dont il est tire (`empreinte`),
@@ -53,10 +53,9 @@ pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois"];
 /// routes, et rendues telles quelles (resultat ou refus).
 /// Les arrets n'y sont plus : la page lit les imprevus du mois, chaque arret avec ses obligations. La reprise
 /// du journal non plus : elle se montre dans l'Historique, avec les envois et leurs retours.
-const LECTURES: [(&str, bool); 5] = [
+const LECTURES: [(&str, bool); 4] = [
     ("saisie", true),
     ("contrats-en-cours", true),
-    ("embauches-a-declarer", true),
     ("fins-de-contrat", true),
     ("imprevus", true),
 ];

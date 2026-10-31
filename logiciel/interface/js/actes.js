@@ -152,11 +152,10 @@ function dessinerArbre(liste) {
 }
 
 /* Ce qu'il faut relire après avoir déposé ou envoyé : l'état du mois affiché,
- * et la liste des embauches, qu'un dépôt de DPAE vient de raccourcir. */
+ * et l'état de chaque engagement. */
 async function rafraichirActions() {
   const mois = document.getElementById("mois").value;
   await dessinerActions(mois);
-  await dessinerEmbauches(mois);
   await dessinerEtatsDesEngagements(mois);
 }
 

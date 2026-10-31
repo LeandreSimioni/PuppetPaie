@@ -392,10 +392,6 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
             saisie[k] = v;
         }
     }
-    // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE n'est pas ferme : sa paie se modifie, en le
-    // confirmant a la premiere modification (`crate::regularisation::modification_de_la_paie`) -- il n'est pas en retard.
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
-    let dsn_deposee = crate::regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &saisie);
     // LES ENGAGEMENTS IMPORTES QUI TOUCHENT LE MOIS, en cartes fermees : ils se lisent, rien ne les calcule
@@ -406,9 +402,9 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
         "existe": existe,
         "importes": importes,
         "defauts": defauts,
-        // La DSN reelle du mois est deposee : ce qu'il faut savoir avant d'en modifier la paie (`null` sinon).
-        "dsn_deposee": dsn_deposee,
         "saisie": resoudre_noms(ctx, &saisie)?,
+        // L'identite de chaque engagement de `saisie.engagements`, dans son ordre : ce par quoi sa carte le designe.
+        "identites": engagement::stock::identites(&engagement::stock::objets_a_l_ecran(&ctx.racine, &mois).map_err(Echec::from)?),
     }))
 }
 
@@ -1644,20 +1640,17 @@ pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) 
 }
 
 /// « ENREGISTRE » : la carte d'un engagement en saisie s'ecrit, et elle seule (`ecrire_une_carte`). Charge : `mois`,
-/// `saisie` (ce que la carte ecrit pour `mois`), `place` (sa place dans l'ecran du mois, que la route `saisie` a rendue,
-/// ou celle que cette route a rendue a la premiere ecriture ; absente, l'engagement est neuf). Rend `place`,
-/// `a_completer` (ce qui lui manque encore, `null` : rien) et `enregistre_a`.
+/// `saisie` (ce que la carte ecrit pour `mois`), `engagement` (l'identite que le moteur a rendue a la carte,
+/// `engagement::stock::identites` ; absente, l'engagement est neuf). Rend `engagement` (l'identite de l'engagement
+/// ecrit), `a_completer` (ce qui lui manque encore, `null` : rien) et `enregistre_a`.
 fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     let _verrou = avant_d_ecrire(ctx, mois)?;
-    let place = ecrire_une_carte(ctx, mois, charge)?;
-    let a_completer = engagement::stock::objets_a_l_ecran(&ctx.racine, mois)
-        .map_err(Echec::from)?
-        .get(place)
-        .and_then(|o| o.a_completer())
-        .map_or(Value::Null, Value::String);
+    let id = ecrire_une_carte(ctx, mois, charge)?;
+    let (_, o) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
+    let a_completer = o.a_completer().map_or(Value::Null, Value::String);
     // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
-    Ok(json!({"place": place, "a_completer": a_completer, "enregistre_a": maintenant()}))
+    Ok(json!({"engagement": id, "a_completer": a_completer, "enregistre_a": maintenant()}))
 }
 
 /// AVANT TOUTE ECRITURE D'UN ENGAGEMENT (saisir, valider, modifier, retirer) : une ecriture a la fois (la fenetre sert
@@ -1674,28 +1667,25 @@ pub(crate) fn avant_d_ecrire(ctx: &Contexte, mois: &str) -> R<std::sync::MutexGu
     Ok(verrou)
 }
 
-/// LA CARTE D'UN ENGAGEMENT EN SAISIE, ECRITE (`engagement::stock::ecrire_la_carte`) : `saisie` et `place` de la
-/// charge. Un mois sans fichier le prend avec ce qu'il dit par defaut (`squelette` : le cachet et la date de paiement
-/// du mois). Ce qui manque a chaque engagement du mois se note ensuite (`noter_les_manques`) : seule la validation
-/// refuse. Rend la place de l'engagement ecrit. L'appelant tient le verrou (`avant_d_ecrire`).
-pub(crate) fn ecrire_une_carte(ctx: &Contexte, mois: &str, charge: &Value) -> R<usize> {
+/// LA CARTE D'UN ENGAGEMENT EN SAISIE, ECRITE (`engagement::stock::ecrire_la_carte`) : `saisie` et `engagement` (son
+/// identite) de la charge. Un mois sans fichier le prend avec ce qu'il dit par defaut (`squelette` : le cachet et la
+/// date de paiement du mois). Ce qui manque a chaque engagement du mois se note ensuite (`noter_les_manques`) : seule la
+/// validation refuse. Rend l'identite de l'engagement ecrit. L'appelant tient le verrou (`avant_d_ecrire`).
+pub(crate) fn ecrire_une_carte(ctx: &Contexte, mois: &str, charge: &Value) -> R<Value> {
     let Some(Value::Object(saisie)) = charge.get("saisie") else {
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     };
-    let place = match charge.get("place").filter(|v| !v.is_null()) {
-        None => None,
-        Some(v) => Some(v.as_u64().ok_or_else(|| erreur("TypeError", "`place` : un entier est attendu"))? as usize),
-    };
+    let id = charge.get("engagement").filter(|v| !v.is_null());
     let mut defauts = match squelette(ctx, mois)? {
         Value::Object(m) => m,
         _ => Map::new(),
     };
     defauts.remove("engagements");
-    let place = engagement::stock::ecrire_la_carte(ctx, mois, place, saisie, &defauts).map_err(|m| erreur("ErreurOperation", m))?;
+    let id = engagement::stock::ecrire_la_carte(ctx, mois, id, saisie, &defauts).map_err(|m| erreur("ErreurOperation", m))?;
     noter_les_manques(ctx, mois)?;
     // UN MOIS FAIT EN DEMO, retravaille dans la compagnie gardee : il cesse d'etre « de demo » (`suppression::sortir_de_la_demo`).
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
-    Ok(place)
+    Ok(id)
 }
 
 /// CE QUI MANQUE A CHAQUE ENGAGEMENT DE LA SAISIE `data` pour se calculer, dans son ordre (`None` : rien). Une saisie
@@ -1852,8 +1842,8 @@ pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> 
 }
 
 /// LE MOIS QUE L'APERCU ET LE MONTANT VISE CALCULENT : ses engagements tels qu'ils sont ecrits, dans l'ordre de l'ecran
-/// (`vue_a_l_ecran`), et chaque carte que l'ecran montre autrement (`cartes` : `{place, saisie}`, ce que la carte porte ;
-/// `place` est sa place dans l'ecran du mois, absente pour une carte qui n'est pas encore ecrite) : a sa place, ou a la
+/// (`vue_a_l_ecran`), et chaque carte que l'ecran montre autrement (`cartes` : `{engagement, saisie}`, ce que la carte
+/// porte ; `engagement` est son identite, absente pour une carte qui n'est pas encore ecrite) : a sa place, ou a la
 /// suite. Rend ce mois et la place de chaque carte dans ses engagements. Rien ne s'ecrit.
 pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usize>)> {
     let mois = texte_requis(charge, "mois")?;
@@ -1867,22 +1857,22 @@ pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usiz
             o.remove(engagement::stock::A_COMPLETER);
         }
     }
+    let ids = engagement::stock::identites(&engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?);
     let mut places = Vec::new();
     for c in charge.get("cartes").and_then(Value::as_array).into_iter().flatten() {
         let Some(saisie) = c.get("saisie").filter(|s| s.is_object()) else {
             return Err(erreur("TypeError", "`cartes` : chaque carte porte `saisie`, un objet"));
         };
-        let i = match c.get("place").filter(|p| !p.is_null()) {
+        let i = match c.get("engagement").filter(|p| !p.is_null()) {
             None => {
                 tous.push(saisie.clone());
                 tous.len() - 1
             }
-            Some(p) => {
-                let i = p.as_u64().ok_or_else(|| erreur("TypeError", "`place` : un entier est attendu"))? as usize;
-                let place = tous.get_mut(i).ok_or_else(|| {
-                    refus(format!("{} : l'écran ne montre pas d'engagement à la place {} ; rechargez le mois.", engagement::libelle_mois(mois), i + 1))
+            Some(id) => {
+                let i = ids.iter().position(|x| x == id).filter(|i| *i < tous.len()).ok_or_else(|| {
+                    refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", engagement::libelle_mois(mois)))
                 })?;
-                *place = saisie.clone();
+                tous[i] = saisie.clone();
                 i
             }
         };

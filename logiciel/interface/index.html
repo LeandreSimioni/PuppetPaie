@@ -132,13 +132,9 @@
            fois là. -->
       <h2>Les engagements
         <span class="discret">— chacun porte son état</span></h2>
-      <!-- UN MOIS DONT LA DSN EST DÉPOSÉE : ce qu'une modification de ses engagements entraîne, tel que le moteur le
-           dit (route `saisie`, `dsn_deposee`) — un annule-et-remplace tant qu'il est admis, puis une confirmation et la
-           correction dans la DSN suivante. js/saisie-mois.js, majAvisDsn(). -->
       <!-- UN MOIS SAISI EN DÉMO, la compagnie gardée au déblocage (ticket #236) : rien n'en est parti. js/saisie-mois.js,
            majAvisDemo(). -->
       <div class="encart attention" id="avis-demo" hidden></div>
-      <div class="encart" id="avis-dsn" hidden></div>
       <div id="engagements"></div>
       <!-- Un mois tenu avant PuppetPaie (ticket #215) : ses paies, en cartes,
            lues dans l'historique importe (route `saisie`, `importe`). Lecture
@@ -186,19 +182,6 @@
            font pour les droits de vos salariés, quand l'option « conseils » de la
            fiche Entreprise est cochée ; vide sinon. js/conseils.js. -->
       <div id="conseils-accueil"></div>
-
-      <!-- Les embauches du MOIS AFFICHÉ dont aucun envoi n'a laissé de trace.
-           Du mois affiché seulement, depuis le 12/09/2026 : « je vois octobre
-           dans septembre… chaque mois doit être autonome ». Une colonne qui
-           parle d'un mois et une liste qui en énumère d'autres, ça se lit
-           comme un retard sur le mois qu'on regarde — et on va déposer la
-           mauvaise DPAE. Le journal ne connaît que ce que CE logiciel a
-           déposé : d'où « pas de trace d'envoi », et jamais « pas déclarée ». -->
-      <!-- « Embauches sans trace d'envoi » n'est plus affiché depuis le
-           13/09/2026 : la pastille DPAE de chaque paie et la boîte DPAE
-           ci-dessus disent déjà la même chose (l'éditeur : « c'est visible
-           dans les paies et au-dessus »). dessinerEmbauches() reste, et ne
-           fait rien sans cible. -->
     </aside>
   </div>
 
