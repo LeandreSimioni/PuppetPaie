@@ -90,7 +90,7 @@ pub fn chemin(racine: &Path, mois: &str) -> PathBuf {
     racine.join(DOSSIER).join(format!("{}.json", mois))
 }
 
-/// Les mois qui ont un fichier, du plus ancien au plus recent.
+/// Les mois qui ont un fichier, du plus ancien au plus recent, ceux du brouillon ouvert compris.
 pub fn fichiers(racine: &Path) -> Vec<String> {
     let mut v: Vec<String> = std::fs::read_dir(racine.join(DOSSIER))
         .into_iter()
@@ -98,7 +98,9 @@ pub fn fichiers(racine: &Path) -> Vec<String> {
         .flatten()
         .filter_map(|e| e.file_name().to_str()?.strip_suffix(".json").filter(|m| socle::date::mois_valide(m)).map(String::from))
         .collect();
+    BROUILLON.with(|b| v.extend(b.borrow().iter().filter(|(r, _)| r == racine).flat_map(|(_, f)| f.keys().cloned())));
     v.sort();
+    v.dedup();
     v
 }
 
