@@ -415,7 +415,7 @@ fn documents_prets(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::Paie
     }
     // L'AER NE SE FABRIQUE PAS : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
     let mut informations: Vec<String> = Vec::new();
-    let e = crate::import::mois::dsn_avant(ctx, mois, &Value::Null)?;
+    let e = crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.0;
     if e["etat"] == "passee" && !e.get("aer_recue").is_some_and(vrai) && dues_a_part(paies)?.values().any(|v| v.contains(&"aer")) {
         informations.push(
             "L'attestation employeur (AER) de France Travail n'est pas encore revenue : France Travail l'édite à partir de la DSN, et chaque relevé des retours la cherche. Elle partira avec un envoi suivant."

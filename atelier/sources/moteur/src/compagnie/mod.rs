@@ -14,6 +14,7 @@ pub mod conseils;
 pub mod demande;
 pub mod depart;
 pub mod depot_acte;
+pub mod etat_dsn;
 pub mod diagnostic;
 pub mod editeur;
 pub mod essai;

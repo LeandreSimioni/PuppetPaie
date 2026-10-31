@@ -425,7 +425,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
                 break;
             }
             // Un mois fait dont la DSN est refusee apres coup (un bilan arrive plus tard) n'est plus fait.
-            if clos.get(mois).and_then(Value::as_str) == Some(empreinte_du_mois(racine, mois).as_str()) && etat_de_la_dsn(&ctx, mois)? != EtatDsn::Refusee {
+            if clos.get(mois).and_then(Value::as_str) == Some(empreinte_du_mois(racine, mois).as_str()) && !crate::compagnie::etat_dsn::du_mois(&ctx, mois, &Value::Null)?.refusee() {
                 continue;
             }
             if les_pas_du_mois(&d, &ctx, mois, &mut calendrier)? {
@@ -562,7 +562,7 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, mois: &str, calendrier: &
     if jour < echeance {
         return Ok(false);
     }
-    let (quand_dsn, quand_documents) = if etat_de_la_dsn(ctx, mois)? == EtatDsn::Refusee {
+    let (quand_dsn, quand_documents) = if crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.refusee() {
         let maintenant = maintenant_du(jour);
         (maintenant.clone(), maintenant)
     } else {
@@ -745,7 +745,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
         Geste::Dsn { mois, echeance } => {
             let mut a_faire: Vec<String> = Vec::new();
             let mut fait = pas(d, quoi, quand, |ctx| {
-                if etat_de_la_dsn(ctx, mois)? == EtatDsn::Acceptee {
+                if crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.partie() {
                     return Ok(false);
                 }
                 // LA DSN SE FABRIQUE A SON DEPOT, depuis les engagements valides du mois, DATEE DE SON ECHEANCE quel que
@@ -773,7 +773,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             let mut sans: Vec<(String, String)> = Vec::new();
             let mut fait = pas(d, quoi, quand, |ctx| {
                 // LES DOCUMENTS D'UN MOIS DONT LA DSN N'EST PAS ACCEPTEE ne partent pas : ils suivent sa DSN, jamais avant.
-                if etat_de_la_dsn(ctx, mois)? != EtatDsn::Acceptee {
+                if !crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.partie() {
                     return Ok(false);
                 }
                 let bilan = Moteur::nouveau(ctx).bilan_du_mois(mois)?;
@@ -974,26 +974,6 @@ fn annee_finie(d: &HorlogeFictive, annee: i32) -> R<bool> {
         return Ok(true);
     }
     Ok(Moteur::nouveau(&ctx).exercice_clos(&a)? && crate::compagnie::exercice_ecrit::export_compta_a_jour(&ctx.racine, &a))
-}
-
-/// Ou en est la DSN mensuelle d'un mois.
-#[derive(PartialEq, Eq)]
-enum EtatDsn {
-    /// Rien n'est parti en reel.
-    Absente,
-    /// Partie en reel, et un bilan la refuse : elle attend sa correction.
-    Refusee,
-    /// Partie en reel, et aucun bilan ne la refuse.
-    Acceptee,
-}
-
-/// L'etat de la DSN mensuelle du mois au journal (`import::mois::dsn_avant`).
-fn etat_de_la_dsn(ctx: &Contexte, mois: &str) -> R<EtatDsn> {
-    Ok(match crate::import::mois::dsn_avant(ctx, mois, &Value::Null)?["etat"].as_str() {
-        Some("refusee") => EtatDsn::Refusee,
-        Some("passee" | "attente") => EtatDsn::Acceptee,
-        _ => EtatDsn::Absente,
-    })
 }
 
 // ------------------------------------------------------------------ les routes

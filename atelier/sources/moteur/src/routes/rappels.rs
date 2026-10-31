@@ -16,7 +16,7 @@ use droit::contexte::{archivee, Contexte};
 use socle::date::{en_texte, Jour};
 use engagement;
 use envois::etats;
-use crate::import::mois::dsn_avant;
+use crate::compagnie::etat_dsn;
 use socle::fichiers::{lire_json, vrai};
 use socle::num::Resultat;
 
@@ -260,8 +260,8 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
     if !vrai_opt(exercice_clos(st.ctx, &precedent.to_string())?.as_ref()) && !mois_de_l_annee(st.ctx, &precedent.to_string()).is_empty() {
         // La cloture vient APRES la DSN de decembre : tant qu'elle manque, c'est
         // son rappel qui parle, pas celui-ci.
-        let e = dsn_avant(st.ctx, &decembre, &Value::Null)?;
-        if matches!(e["etat"].as_str(), Some("passee" | "attente" | "refusee" | "importee")) {
+        let e = etat_dsn::du_mois(st.ctx, &decembre, &Value::Null)?;
+        if e.partie() || e.refusee() {
             let mut r = Rappel::nouveau(
                 CLOTURE,
                 format!("cloture:{}", precedent),
@@ -368,8 +368,8 @@ fn derniere_dsn_passee(st: &Etat) -> R<Option<String>> {
     }
     let mut passes = Vec::new();
     for m in mois {
-        let e = dsn_avant(st.ctx, &m, &Value::Null)?;
-        if !matches!(e["etat"].as_str(), Some("refusee" | "a_deposer")) {
+        let e = etat_dsn::du_mois(st.ctx, &m, &Value::Null)?;
+        if !e.a_faire() {
             passes.push(m);
         }
     }
@@ -418,8 +418,8 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
     }
     let (mut out, mut m) = (Vec::new(), premier);
     while m <= dernier {
-        let e = dsn_avant(st.ctx, &m, &Value::Null)?;
-        if matches!(e["etat"].as_str(), Some("refusee" | "a_deposer")) {
+        let e = etat_dsn::du_mois(st.ctx, &m, &Value::Null)?;
+        if e.a_faire() {
             out.push(m.clone());
         }
         m = mois_suivant(&m);
@@ -491,10 +491,10 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
     r.engagements = engagements;
     r.validees = validees;
 
-    let etat = dsn_avant(st.ctx, mois, &Value::Null)?;
-    if etat["etat"] == "refusee" {
+    let etat = etat_dsn::du_mois(st.ctx, mois, &Value::Null)?;
+    if etat.refusee() {
         r.etat = A_CORRIGER.into();
-        let anomalies: Vec<String> = etat.get("anomalies").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default();
+        let anomalies: Vec<String> = etat.0.get("anomalies").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default();
         r.detail = format!(
             "La DSN de {} a été REFUSÉE : {}. À corriger et à renvoyer.",
             lib,

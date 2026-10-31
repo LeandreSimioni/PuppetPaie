@@ -525,14 +525,14 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
         let limite = echeance.jour;
         let en_retard = echeance.passee_au(&ctx.aujourdhui);
-        // L'ETAT DE LA DSN, lu une fois (`import::mois::dsn_avant`) ; une DSN a deposer passee l'echeance est en retard.
+        // L'ETAT DE LA DSN, lu une fois (`compagnie::etat_dsn`) ; une DSN a deposer passee l'echeance est en retard.
         let importe = crate::import::mois::importe(&ctx.racine, nom)?;
-        let lu = crate::import::mois::dsn_avant(ctx, nom, &Value::Null)?;
-        let etat = match lu["etat"].as_str().unwrap_or("a_deposer") {
+        let lu = crate::compagnie::etat_dsn::du_mois(ctx, nom, &Value::Null)?;
+        let etat = match lu.0["etat"].as_str().unwrap_or("a_deposer") {
             "a_deposer" if en_retard => "en_retard",
             autre => autre,
         };
-        let depose = matches!(etat, "passee" | "attente" | "refusee");
+        let depose = lu.deposee();
         let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
         // Un mois tenu avant : ses bulletins sont ceux de l'ancien logiciel, que l'import garde.
         if importe && !crate::import::mois::bulletins_repris(&ctx.racine, nom).is_empty() {
@@ -570,12 +570,12 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         out.push(json!({
             "mois": nom, "produit": !noms.is_empty(), "dsn": etat,
             "pastille": {"couleur": couleur, "mots": mots},
-            "depose_le": if depose { lu["quand"].clone() } else { Value::Null },
+            "depose_le": if depose { lu.0["quand"].clone() } else { Value::Null },
             "echeance": limite.iso(),
             "echeance_depot": echeance.en_json(),
             // Deposee, passee, et l'echeance derriere : la correction part dans
             // la DSN du mois courant.
-            "corrigeable": matches!(etat, "passee" | "attente") && en_retard && !importe,
+            "corrigeable": lu.partie() && en_retard && !importe,
             "importe": importe,
             "a_faire": a_faire,
             "sortes": sortes, "fichiers": noms,

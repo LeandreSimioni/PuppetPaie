@@ -489,19 +489,19 @@ pub fn deposer_dsn_dans(
         // PAS DEUX FOIS SANS LE VOULOIR. Une DSN reelle deja partie pour ce mois, et pas refusee, ne repart pas.
         // UN SIGNALEMENT N'EST PAS CONCERNE : plusieurs peuvent partir le meme mois.
         if !apercu.est_signalement() {
-            let etat_mois = crate::import::mois::dsn_avant(ctx, &mois, &nic)?;
+            let etat_mois = crate::compagnie::etat_dsn::du_mois(ctx, &mois, &nic)?;
             // L'ANNULE-ET-REMPLACE EN REGLE PART SANS QU'ON FORCE RIEN (ses gardes passent toujours).
             let remplace = verifier_depot_remplacement(ctx, &mois, &apercu, &nic)?;
-            if matches!(etat_mois["etat"].as_str(), Some("passee" | "attente")) && !remplace && !forcer {
+            if etat_mois.partie() && !remplace && !forcer {
                 return Err(avec_donnee(
                     "DsnDejaDeposee",
                     format!(
                         "{} : {}. Rien n'est parti. Ce fichier est une declaration NORMALE, et la plate-forme n'en accepte pas une seconde pour le meme mois (cahier technique DSN §1.4.3.2) : pour corriger, refaire la DSN du mois -- elle sortira en annule-et-remplace.",
                         mois,
-                        valeur_en_texte(&etat_mois["phrase"])
+                        valeur_en_texte(&etat_mois.0["phrase"])
                     ),
                     "etat",
-                    etat_mois,
+                    etat_mois.0,
                 ));
             }
         }

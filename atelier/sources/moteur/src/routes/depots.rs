@@ -572,9 +572,9 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
             lignes.iter().rev().find(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("flux").and_then(Value::as_str) == Some(flux.as_str()))
         };
         let nic = ligne.and_then(|l| l.get("detail")).and_then(|d| d.get("etablissement")).filter(|e| vrai(e)).cloned().unwrap_or(Value::Null);
-        let e = crate::import::mois::dsn_avant(ctx, &mois, &nic)?;
-        passe = e["etat"] == "passee";
-        refuse = e["etat"] == "refusee";
+        let e = crate::compagnie::etat_dsn::du_mois(ctx, &mois, &nic)?;
+        passe = e.0["etat"] == "passee";
+        refuse = e.refusee();
     }
     // Ce que l'ecran en dit, et en quelle couleur, une fois le depot tranche.
     let nom = if dpae { "La DPAE" } else { "La DSN" };

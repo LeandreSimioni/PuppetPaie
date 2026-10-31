@@ -36,14 +36,13 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
     let passee = echeance.passee_au(&ctx.aujourdhui);
-    let etat = crate::import::mois::dsn_avant(ctx, mois, &Value::Null)?["etat"].as_str().unwrap_or_default().to_string();
-    let deposee = matches!(etat.as_str(), "passee" | "attente" | "refusee");
-    let drapeau = |k: &str| etat == k;
+    let dsn = crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?;
+    let deposee = dsn.deposee();
     let mut out = Map::new();
     out.insert("mois".into(), json!(mois));
     out.insert("deposee".into(), json!(deposee));
-    out.insert("passee".into(), json!(drapeau("passee")));
-    out.insert("refusee".into(), json!(drapeau("refusee")));
+    out.insert("passee".into(), json!(dsn.0["etat"] == "passee"));
+    out.insert("refusee".into(), json!(dsn.refusee()));
     out.insert("echeance".into(), json!(limite.iso()));
     out.insert("echeance_depot".into(), echeance.en_json());
     out.insert("echeance_passee".into(), json!(passee));
@@ -55,7 +54,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
             "raison".into(),
             json!(format!("Aucune DSN reelle n'est partie pour {} : ce mois se saisit et se depose normalement{}.", mois, suite)),
         );
-    } else if drapeau("refusee") {
+    } else if dsn.refusee() {
         out.insert(
             "raison".into(),
             json!(format!("La DSN de {} a ete REFUSEE : elle se corrige et se redepose, il n'y a rien a regulariser.", mois)),
@@ -440,7 +439,7 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
 /// l'ancien logiciel, `engagement::importe::dsn_deposee`). Une correction se declare dans la DSN suivante (cahier
 /// technique DSN 2026.1, § 2.1.2.1, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`).
 pub(crate) fn dsn_qui_porte(ctx: &Contexte, mois: &str) -> R<String> {
-    let partie = |m: &str| -> R<bool> { Ok(matches!(crate::import::mois::dsn_avant(ctx, m, &Value::Null)?["etat"].as_str(), Some("passee" | "attente" | "importee"))) };
+    let partie = |m: &str| -> R<bool> { Ok(crate::compagnie::etat_dsn::du_mois(ctx, m, &Value::Null)?.partie()) };
     let suivant = |m: &str| -> R<String> { Ok(socle::date::Jour::lire(&format!("{}-01", m)).map_err(Echec::from)?.mois_suivant()) };
     let mut porteur = suivant(mois)?;
     while partie(&porteur)? {
