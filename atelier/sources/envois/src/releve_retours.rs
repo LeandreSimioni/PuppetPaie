@@ -392,15 +392,12 @@ fn tranches(debut: i64, fin: i64) -> Vec<(i64, i64)> {
 /// depots completes. Ne touche a aucune autre ligne : un vrai depot (flux sans le prefixe) garde ses vrais retours. Les
 /// attestations France Travail jouees s'archivent dans `retours/` comme les vraies, et vont dans les suites, a ranger.
 pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> R<i64> {
-    let p = crate::journal::chemin(&ctx.racine);
-    if !p.exists() {
-        return Ok(0);
-    }
     let mut a_archiver: Vec<(Value, Vec<u8>)> = Vec::new();
     // Ce que les organismes rendent de plus (refus, taux du PAS, effectif) : archive puis range par le meme chemin
     // qu'un retour reel (`rattacher_retours_avec_contenus`), qui en lit le verdict.
     let mut pieces: Vec<crate::organismes_simules::Piece> = Vec::new();
     let mut lignes = crate::journal::lu(&ctx.racine).map(|j| j.lignes.to_vec())?;
+    let p = crate::journal::chemin(&ctx.racine);
     let avant = crate::organismes_simules::memoire(&ctx.racine)?;
     let mut memoire = avant.clone();
     let maintenant = maintenant_naif();

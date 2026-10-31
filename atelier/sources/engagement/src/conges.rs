@@ -1250,3 +1250,52 @@ fn avertir_feries(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Result
     }
     Ok(out)
 }
+
+/// Le compteur d'un permanent a la fin du mois et l'indemnite de son solde.
+pub struct Provision {
+    pub report_restant: socle::num::Decimal,
+    pub acquis: socle::num::Decimal,
+    pub pris: socle::num::Decimal,
+    pub solde: socle::num::Decimal,
+    pub avertissements: Vec<crate::Avis>,
+    pub indemnite: Option<droit::conges::IndemniteDesJours>,
+}
+
+/// La provision de conges d'un permanent a la fin de `mois`, lue dans la paie ecrite `paie` de ce mois : le compteur
+/// que son bulletin montre (`Paie::conges`, ecrit a la validation), dont l'assiette du dixieme compte aussi le brut du
+/// mois (`brut_du_mois`, celui des paies ecrites du salarie), et l'indemnite de son solde (le dixieme ou le maintien,
+/// L3141-24) quand il est positif. `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0). `None` : un
+/// contrat sans compteur de l'employeur (declare a la caisse des Conges Spectacles). Refus : une paie validee qui ne
+/// porte pas le compteur qu'elle devrait.
+pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> socle::num::Resultat<Option<Provision>> {
+    use droit::conges::jours_ouvrables;
+
+    use socle::num::{add, dec, div, eur, mul, Decimal};
+    let Some(ecrit) = paie.conges.as_ref() else {
+        if paie.declaree_a_la_caisse_des_conges()? {
+            return Ok(None);
+        }
+        return Err(format!(
+            "{} : la paie validee de {} ne porte pas le compteur de conges que son bulletin montre. Revalider l'engagement.",
+            paie.engagement.salarie, mois
+        ));
+    };
+    let fin = socle::date::dernier_du_mois(mois)?;
+    let mut cpt = ecrit.clone();
+    cpt.remuneration_periode = add(cpt.remuneration_periode, brut_du_mois);
+    let solde = cpt.solde();
+    let salaire = match salaire_mensuel {
+        Some(v) if socle::fichiers::vrai(v) => dec(v)?,
+        _ => Decimal::ZERO,
+    };
+    let ouvrables = match jours_ouvrables(&socle::date::premier_du_mois(mois)?, &fin, None)? {
+        0 => Decimal::ONE,
+        n => Decimal::from(n),
+    };
+    let indemnite = if solde > Decimal::ZERO {
+        Some(cpt.indemnite_des_jours(solde, eur(mul(div(salaire, ouvrables), solde)))?)
+    } else {
+        None
+    };
+    Ok(Some(Provision { report_restant: cpt.report_restant(), acquis: cpt.acquis, pris: cpt.pris, solde, avertissements: cpt.avertissements.clone(), indemnite }))
+}

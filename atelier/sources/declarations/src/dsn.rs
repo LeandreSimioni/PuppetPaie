@@ -4980,7 +4980,7 @@ mod tests {
             v: json!({
                 "salarie": "Audinot", "contrat_debut": "2025-09-01", "contrat_numero": "AU.25.01", "motif": "01",
                 "dernier_jour_travaille": "2026-06-20", "fin_previsionnelle": fin_previsionnelle, "subrogation": "02",
-                "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null, "envois": [],
+                "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null,
             }),
         }
     }

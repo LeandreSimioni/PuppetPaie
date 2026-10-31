@@ -1,6 +1,6 @@
 //! `moteur route` : la demande JSON sur l'entree standard, la reponse en une ligne de JSON sur la sortie standard ; un
 //! refus : `{"ok": false, "erreur": "..."}`. Et ce dont les routes ont besoin pour lire la compagnie (`contexte`), la
-//! position des droits (`droits`) et la provision de conges (`provision_conges_de`).
+//! position des droits (`droits`) et la provision de conges (`engagement::conges::provision_conges_de`).
 
 use std::collections::HashMap;
 use std::io::Read;

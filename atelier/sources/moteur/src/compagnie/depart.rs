@@ -266,12 +266,9 @@ fn engagement_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str) -> R<engag
 }
 
 /// La paie de `mois` que la version `version` de l'engagement `o` (salarie `cle`, contrat `numero`) a ecrite
-/// (`engagement::etats::paie_declaree`, sur ce seul depart).
+/// (`engagement::etats::paie_de_la_version_n`).
 fn paie_de_la_version(ctx: &Contexte, o: &engagement::stock::Objet, cle: &str, numero: &str, mois: &str, version: u64) -> R<Paie> {
-    use engagement::departs::{Depart, Departs, Envoi};
-    let mut seul = Departs::default();
-    seul.noter(cle, numero, Depart { envoi: Envoi::Dsn, mois: Some(mois.to_string()), par: None, avenant: None, version, le: String::new() });
-    engagement::etats::paie_declaree(ctx, o, &seul, mois)?
+    engagement::etats::paie_de_la_version_n(ctx, o, version, mois)?
         .ok_or_else(|| valeur(format!("{} : la version {} du contrat {} n'a pas de paie de {}.", cle, version, numero, engagement::libelle_mois(mois))))
 }
 
@@ -414,13 +411,6 @@ pub(crate) fn dsn_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>) -> R<Op
     Ok(Some((f, false)))
 }
 
-struct Lot {
-    nic: Option<String>,
-    paies: Vec<usize>,
-    regs: Vec<usize>,
-    arrets: Vec<Value>,
-}
-
 /// La DSN du mois, telle que le depot la prend.
 pub(crate) struct DsnFabriquee {
     /// Une DSN par etablissement, le principal d'abord.
@@ -458,30 +448,28 @@ impl DsnFabriquee {
 /// La route `dsn-a-deposer` : `{"mois"}`. La DSN du mois, fabriquee depuis ses engagements valides, prete a deposer.
 pub fn dsn_a_deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = valeur_en_texte(charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
-    // AVANT SON PREMIER JOUR DE DEPOT, la DSN ne s'ecrit pas (`pas_avant`) : la reponse dit le jour.
-    if let Some((premier, phrase, echeance)) = pas_avant(ctx, &mois)? {
-        return Ok(json!({"mois": mois, "pas_avant": {"jour": premier.iso(), "phrase": phrase, "echeance": echeance.en_json()}}));
-    }
     Ok(fabriquer_dsn(ctx, &mois, "interface")?.en_json(&mois))
 }
 
-/// LA DSN DE `mois` NE PART PAS AVANT SON PREMIER JOUR DE DEPOT : « le dépôt initial de la DSN "normale" peut être émis
-/// jusqu'à 1 mois à l'avance » (cahier technique DSN 2026.1, § 1.4.2,
-/// `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt` ; `Echeance::premier_depot`). `Some` avant ce jour : le
-/// jour, la phrase qui le dit, l'echeance.
-pub(crate) fn pas_avant(ctx: &Contexte, mois: &str) -> R<Option<(socle::date::Jour, String, declarations::echeance_dsn::Echeance)>> {
+/// LA DSN DE `mois` NE S'ECRIT NI NE PART AVANT SON PREMIER JOUR DE DEPOT : « le dépôt initial de la DSN "normale" peut
+/// être émis jusqu'à 1 mois à l'avance » (cahier technique DSN 2026.1, § 1.4.2,
+/// `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt` ; `Echeance::premier_depot`). Avant ce jour, le refus dit
+/// le jour et l'echeance. Seule `fabriquer_dsn` ecrit une mensuelle : c'est elle qui refuse.
+fn pas_avant(ctx: &Contexte, mois: &str) -> R<()> {
     let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let premier = echeance.premier_depot().map_err(|m| erreur("ValueError", m))?;
     if premier.ordinal() <= ctx.aujourdhui.ordinal() {
-        return Ok(None);
+        return Ok(());
     }
-    let phrase = format!(
-        "La DSN de {} se dépose à partir du {} : la norme admet un dépôt au plus un mois avant l'échéance (cahier technique DSN 2026.1, § 1.4.2). Son échéance : {}.",
-        socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee),
-        premier.jj_mm_aaaa(),
-        echeance.phrase()
-    );
-    Ok(Some((premier, phrase, echeance)))
+    Err(erreur(
+        "ErreurOperation",
+        format!(
+            "La DSN de {} se dépose à partir du {} : la norme admet un dépôt au plus un mois avant l'échéance (cahier technique DSN 2026.1, § 1.4.2). Son échéance : {}. Rien n'est parti.",
+            socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee),
+            premier.jj_mm_aaaa(),
+            echeance.phrase()
+        ),
+    ))
 }
 
 /// LA DSN DU MOIS, A SON DEPOT : une par etablissement, depuis les paies ecrites des engagements valides du mois, avec
@@ -497,6 +485,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
     socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
     crate::routes::mois::refuser_si_clos(ctx, mois)?;
+    pas_avant(ctx, mois)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     // LA DSN QUE L'ANCIEN LOGICIEL A DEPOSEE ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se declare
     // dans la DSN suivante.
@@ -592,7 +581,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     let jour = |v: &Value| -> R<String> { documents::bulletin::jj_mm_aaaa(v).map_err(valeur) };
     let mut non_signales = 0;
     for a in &arrets {
-        let resume = crate::routes::imprevus::resume_arret(&nomenclature, a)?;
+        let resume = crate::routes::imprevus::resume_arret(ctx, &nomenclature, a)?;
         let reprise = a.get("reprise").filter(|r| vrai(r));
         let fin = match reprise {
             Some(r) => r.clone(),
@@ -630,77 +619,36 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     // UNE DSN PAR ETABLISSEMENT : chacun avec ses salaries, ses corrections et ses arrets ; celle du principal garde
     // son nom de toujours, les autres portent leur NIC. Un etablissement sans salarie ce mois-ci depose quand meme la
     // sienne, sans individu : une DSN est due chaque mois, par SIRET.
-    let mut lots: Vec<Lot> = Vec::new();
-    if plusieurs {
-        for nic in std::iter::once(principal.clone()).chain(secondaires.iter().cloned()) {
-            let du_nic = |sal: &Value| -> R<bool> { Ok(droit::bareme::etablissement_du_salarie(&fiche, sal).map_err(valeur)? == nic) };
-            let mut lot = Lot { nic: Some(nic.clone()), paies: Vec::new(), regs: Vec::new(), arrets: Vec::new() };
-            for (i, p) in paies.iter().enumerate() {
-                if du_nic(&p.salarie)? {
-                    lot.paies.push(i);
-                }
-            }
-            for (i, r) in regs.iter().enumerate() {
-                if du_nic(&r.apres.salarie)? {
-                    lot.regs.push(i);
-                }
-            }
-            for a in &arrets {
-                let sal = engagement::imprevus::fiche_du_salarie(ctx, &a).map_err(valeur)?;
-                if du_nic(&sal)? {
-                    lot.arrets.push(a.clone());
-                }
-            }
-            lots.push(lot);
-        }
-    } else {
-        lots.push(Lot { nic: None, paies: (0..paies.len()).collect(), regs: (0..regs.len()).collect(), arrets: arrets.clone() });
-    }
     let mut a_ecrire: Vec<(PathBuf, String)> = Vec::new();
     let mut fichiers: Vec<PathBuf> = Vec::new();
     let (mut type_principal, mut ordre_principal) = ("01".to_string(), 1);
-    for (rang, lot) in lots.iter().enumerate() {
-        let mut nom = match &lot.nic {
-            Some(n) if *n != principal => format!("DSN_{}_{}.dsn", etiq, n),
+    for (rang, nic) in nics.iter().enumerate() {
+        let n = nic.as_str().map(str::to_string);
+        let mut nom = match &n {
+            Some(x) if *x != principal => format!("DSN_{}_{}.dsn", etiq, x),
             _ => format!("DSN_{}.dsn", etiq),
         };
-        let nic = lot.nic.clone().map_or(Value::Null, Value::String);
-        let (type_dsn, ordre_dsn, remplace) = forme_de_la_dsn(ctx, &mut m, mois, &nic)?;
+        let (type_dsn, ordre, remplace) = forme_de_la_dsn(ctx, &mut m, mois, nic)?;
         let mut remplacee_versait_pas = None;
         if remplace {
-            remplacee_versait_pas = remplacee_versait_pas_de(ctx, &mut m, mois, &nic)?;
-            nom = format!("{}_AR{}.dsn", &nom[..nom.len() - ".dsn".len()], ordre_dsn);
+            remplacee_versait_pas = remplacee_versait_pas_de(ctx, &mut m, mois, nic)?;
+            nom = format!("{}_AR{}.dsn", &nom[..nom.len() - ".dsn".len()], ordre);
             avertissements.push(info(format!(
                 "La DSN de {} est deja partie : celle-ci est un ANNULE-ET-REMPLACE integral (ordre {}). Elle remplace la precedente, ordres de telepaiement compris, et s'envoie au plus tard le {} a minuit.",
                 engagement::libelle_mois(mois),
-                ordre_dsn,
+                ordre,
                 m.limite(mois)?.jj_mm_aaaa()
             )));
         }
         if rang == 0 {
-            (type_principal, ordre_principal) = (type_dsn.clone(), ordre_dsn);
+            (type_principal, ordre_principal) = (type_dsn.clone(), ordre);
         }
-        let paies_e: Vec<Paie> = lot.paies.iter().map(|i| paies[*i].clone()).collect();
-        let regs_e: Vec<&Reg> = lot.regs.iter().map(|i| &regs[*i]).collect();
-        let regs_dsn = regularisations::pour_la_dsn(&regs_e);
-        let arrets_e: Vec<declarations::dsn::Arret> = lot.arrets.iter().map(|v| declarations::dsn::Arret { v: v.clone() }).collect();
         let f_dsn = sortie.join(&nom);
-        let generer = |constitution: socle::date::Jour| -> R<String> {
-            let options = declarations::dsn::Options {
-                date_constitution: Some(constitution),
-                envoi_test: false,
-                type_declaration: type_dsn.clone(),
-                ordre: ordre_dsn,
-                etablissement: lot.nic.clone(),
-                remplacee_versait_pas,
-                ..Default::default()
-            };
-            declarations::dsn::generer(ctx, &paies_e, mois, &regs_dsn, &arrets_e, &options, &departs).map_err(valeur)
-        };
-        // LE FICHIER DEJA ECRIT QUI DIT LA MEME CHOSE se reprend : meme declaration, au jour ou il a ete constitue.
-        let deja = constitution_de(&f_dsn).and_then(|jour| generer(jour).ok()).filter(|t| std::fs::read(&f_dsn).ok() == declarations::dsn::en_latin1(t).ok());
-        if deja.is_none() {
-            a_ecrire.push((f_dsn.clone(), generer(ctx.aujourdhui)?));
+        // LE FICHIER DEJA ECRIT QUI DIT LA MEME CHOSE se reprend (`refabriquer`) : meme declaration, au jour ou il a ete
+        // constitue.
+        if refabriquer(ctx, &f_dsn, mois, n.as_deref())?.is_none() {
+            let forme = Forme { type_dsn, ordre, etablissement: n, constitution: ctx.aujourdhui, remplacee_versait_pas };
+            a_ecrire.push((f_dsn.clone(), fabriquer_du_present(ctx, mois, &forme)?.0.texte));
         }
         fichiers.push(f_dsn);
     }
@@ -1111,18 +1059,18 @@ pub(crate) fn piece_partie(ctx: &Contexte, mois: &str, nom: &str) -> R<PathBuf> 
             return Ok(sortie.join(nom));
         }
     }
-    // LE CONTRAT ET L'AVENANT, et la description gardee a cote : la derniere ligne qui les a fait partir.
+    // LE CONTRAT ET L'AVENANT : la derniere ligne qui les a fait partir.
     if nom.starts_with("Contrat") || nom.starts_with("Avenant") {
-        let pdf = nom.strip_suffix(".description.json").map(|b| format!("{}.pdf", b)).unwrap_or_else(|| nom.to_string());
         // Le contrat contresigne vient du salarie : il se lit la ou la signature l'a range, il ne se refait pas.
         let signe = lignes.iter().any(|l| texte(l, "quoi") == "contrat-recu" && texte(l, "mois") == mois && texte(&l["detail"], "fichier_signe").split(", ").any(|f| f == nom));
         if signe {
             return Err(refus(format!("{} est le contrat contresigné que le salarié a renvoyé : il ne se refait pas ; le fichier a été déplacé ou effacé.", nom)));
         }
-        let porte = |l: &Value| l["detail"]["contrats"].as_array().is_some_and(|cs| cs.iter().any(|c| c["fichier"] == json!(pdf)));
+        let porte = |l: &Value| l["detail"]["contrats"].as_array().is_some_and(|cs| cs.iter().any(|c| c["fichier"] == json!(nom)));
         if let Some(rang) = lignes.iter().rposition(|l| texte(l, "quoi") == "contrat-signature" && du_mois(l) && porte(l)) {
-            refaire_le_contrat(ctx, &lignes, rang, &sortie.join("envoi").join(&pdf))?;
-            return Ok(sortie.join("envoi").join(nom));
+            let pdf = sortie.join("envoi").join(nom);
+            refaire_le_contrat(ctx, &lignes, rang, &pdf, &pdf, None)?;
+            return Ok(pdf);
         }
     }
     if nom.starts_with("Amorcage") && nom.ends_with("_recapitulatif.txt") {
@@ -1326,12 +1274,13 @@ fn refaire_le_signalement(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -
 }
 
 /// LE CONTRAT OU L'AVENANT `pdf` QU'A FAIT PARTIR LA LIGNE `lignes[rang]` (une demande de signature ou une impression),
-/// refait par ce qui l'a ecrit (`documents::contrat::ecrire_et_garder`, `ecrire_avenant`), avec sa description gardee :
+/// ecrit a `vers` ; `mention` : son exemplaire contresigne par le salarie (`documents::contrat::mention_signature`). Il est
+/// refait par ce qui l'a ecrit (`documents::contrat::ecrire_contrat`, `ecrire_avenant`) :
 /// chaque contrat dans la version de l'engagement que la ligne a emportee, au jour et a l'heure de son depart ; un contrat
 /// qui en remplacait un autre le dit en tete, d'apres le contrat parti avant lui ; un avenant cite ce que sa ligne a
 /// note (articles modifies, effet), date du contrat qu'il modifie. Verifie par les clauses que la ligne a notees de chaque
 /// contrat : la piece refaite qui ne les redit pas s'efface et se refuse.
-fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, pdf: &Path) -> R<()> {
+pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, pdf: &Path, vers: &Path, mention: Option<&str>) -> R<()> {
     let l = &lignes[rang];
     let nom = socle::fichiers::nom_du(pdf);
     let quand = valeur_en_texte(l.get("quand").unwrap_or(&Value::Null));
@@ -1364,7 +1313,7 @@ fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, pdf: &Path)
             let parti = envois::etats::contrat_parti(&lignes[..rang], &texte(premier, "salarie"), &texte(premier, "debut"), Some(&texte(premier, "numero")))?
                 .ok_or_else(|| valeur(format!("journal : {} modifie un contrat qui n'est pas parti avant lui", nom)))?;
             let modifs: Vec<Value> = premier["modifications"].as_array().cloned().unwrap_or_default();
-            return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, pdf, &modifs, numero_av, &jj(&parti.date())?, &jj(&texte(premier, "effet"))?, &jour.jj_mm_aaaa())
+            return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, vers, &modifs, numero_av, &jj(&parti.date())?, &jj(&texte(premier, "effet"))?, &jour.jj_mm_aaaa(), mention)
                 .map_err(Echec::from);
         }
         let mut remplacements: Vec<((String, String, String), (String, String))> = Vec::new();
@@ -1377,13 +1326,12 @@ fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, pdf: &Path)
                 remplacements.push(((cle, debut, texte(c, "numero")), (numero, jj(&parti.date())?)));
             }
         }
-        documents::contrat::ecrire_et_garder(&ctx_j, &paies, &ent, pdf, &remplacements).map_err(Echec::from)
+        documents::contrat::ecrire_contrat(&ctx_j, &paies, &ent, vers, &remplacements, mention).map_err(Echec::from)
     };
     socle::temps::pendant(instant, ecrire)?;
     let pareils = contrats.iter().zip(&paies).all(|(c, p)| c.get("clauses").is_none() || crate::compagnie::signature::clauses_du_contrat(&ctx_j, p, &ent) == c["clauses"]);
     if !pareils {
-        let _ = std::fs::remove_file(pdf);
-        let _ = std::fs::remove_file(pdf.with_file_name(nom.replace(".pdf", ".description.json")));
+        let _ = std::fs::remove_file(vers);
         return Err(erreur("ErreurOperation", format!("{} ne se refait pas à l'identique de ce qui est parti : le fichier a été déplacé ou effacé.", nom)));
     }
     Ok(())

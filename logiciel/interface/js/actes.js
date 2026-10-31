@@ -305,15 +305,6 @@ async function deposerLaDsn(mois) {
   try {
     r = await api("dsn-a-deposer", { mois });
   } catch (e) { dire(e.message, "erreur"); return; }
-  if (r.pas_avant) {
-    // Ce que le moteur dit d'une DSN que la norme ne laisse pas encore partir.
-    ouvrirBoite(`
-      <h3>Déposer la DSN</h3>
-      ${moisEnGros(r.mois)}
-      <p>${echapper(r.pas_avant.phrase)}</p>
-      <div class="actions"><button class="primaire" onclick="fermerBoite()">Fermer</button></div>`);
-    return;
-  }
   const dit = (r.avertissements || []).concat(r.informations || []);
   if (dit.length) dire(dit.join("  ·  "));
   await rafraichirActions();

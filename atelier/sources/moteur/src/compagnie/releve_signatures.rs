@@ -1,7 +1,7 @@
 //! La releve des reponses « Je signe ». La demande de signature (`crate::compagnie::signature::demander_signature`) a garde,
 //! au journal, un CODE (`SIG-XXXXXX`) par courriel parti. Cette releve cherche chaque code attendu dans la boite
 //! (`envois::releve_signatures::chercher_reponse`, le tri strict) et fait tout ce qui suit : la preuve archivee
-//! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`documents::contrat::contresigner`), le journal (une ligne
+//! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`depart::refaire_le_contrat`, la mention de l'artiste dans sa case), le journal (une ligne
 //! `contrat-recu` par contrat, datee de la SIGNATURE, `crate::routes::contrats::contrat_recu_avec`), et le renvoi du
 //! contresigne au salarie (`envois::releve_signatures::renvoyer_contresigne`).
 //!
@@ -211,26 +211,25 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
             }
         }
         let quand_lisible = etats::quand_lisible(&json!(quand));
+        let mention = documents::contrat::mention_signature(&a_nom, &quand_lisible, &de, &code);
         let mut signes: Vec<(String, PathBuf)> = Vec::new();
         for (mois_f, nom_f) in &fichiers {
             let envoye = ctx.racine.join("sorties").join(mois_f).join("envoi").join(nom_f);
             let souche = envoye.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             let signe = envoye.with_file_name(format!("{}_signe.pdf", souche));
-            if envoye.exists() {
-                match documents::contrat::contresigner(&envoye, &signe, &a_nom, &quand_lisible, &de, &code) {
-                    Ok(()) => match signes.iter_mut().find(|(n, _)| n == nom_f) {
-                        Some(deja) => deja.1 = signe,
-                        None => signes.push((nom_f.clone(), signe)),
-                    },
-                    Err(e) => r.incidents.push(format!("{} : contrat contresigne impossible ({}).", a_nom, e)),
-                }
-            } else {
-                r.incidents.push(format!(
-                    "{} : le contrat envoye ({}) n'est plus dans {} ; la signature est notee, sans exemplaire contresigne.",
-                    a_nom,
-                    nom_f,
-                    envoye.parent().map(|p| p.display().to_string()).unwrap_or_default()
-                ));
+            // L'EXEMPLAIRE CONTRESIGNE se refait comme le contrat parti (`depart::refaire_le_contrat`), depuis la ligne de
+            // la demande et la version de l'engagement qu'elle a emportee, la mention de l'artiste dans sa case.
+            let porte = |l: &Value| l["detail"]["contrats"].as_array().is_some_and(|cs| cs.iter().any(|c| c["code"] == json!(code)));
+            let fait = match lignes.iter().rposition(|l| l.get("quoi").and_then(Value::as_str) == Some("contrat-signature") && porte(l)) {
+                Some(rang) => crate::compagnie::depart::refaire_le_contrat(ctx, &lignes, rang, &envoye, &signe, Some(&mention)).map_err(|e| e.message),
+                None => Err(format!("aucune demande de signature ne porte le code {}", code)),
+            };
+            match fait {
+                Ok(()) => match signes.iter_mut().find(|(n, _)| n == nom_f) {
+                    Some(deja) => deja.1 = signe,
+                    None => signes.push((nom_f.clone(), signe)),
+                },
+                Err(e) => r.incidents.push(format!("{} : contrat contresigne impossible ({}).", a_nom, e)),
             }
         }
         let noms_signes: Vec<String> = signes.iter().map(|(_, p)| socle::fichiers::nom_du(p)).collect();

@@ -211,17 +211,17 @@ fn mois_traverses(imp: &Value) -> R<Vec<String>> {
     Ok(if dj < p { Vec::new() } else { socle::date::mois_entre(&p, &dj) })
 }
 
-/// Les DSN mensuelles qui ont reporte l'imprevu (`envois` de nature 01).
-fn reporte_par(imp: &Value) -> Vec<Value> {
-    imp["envois"].as_array().map_or_else(Vec::new, |e| {
+/// Les DSN mensuelles qui ont reporte l'imprevu (`obligations::avec_ce_qui_est_parti`, nature 01).
+fn reporte_par(ctx: &Contexte, imp: &Value) -> R<Vec<Value>> {
+    let imp = crate::obligations::avec_ce_qui_est_parti(ctx, imp)?;
+    Ok(imp["envois"].as_array().map_or_else(Vec::new, |e| {
         e.iter().filter(|x| x.get("nature").and_then(Value::as_str) == Some("01")).map(|x| x.get("mois").cloned().unwrap_or(Value::Null)).collect()
-    })
+    }))
 }
 
-/// Un signalement de cette nature (04, 05) est-il parti pour cet arret (un `envois` que `marques_depot` a trace, et que
-/// son bilan n'a pas refuse : `obligations::sans_les_refuses`) ?
+/// Un signalement de cette nature (04, 05) est-il parti pour cet arret (`obligations::avec_ce_qui_est_parti`) ?
 fn envoye(ctx: &Contexte, imp: &Value, nature: &str) -> R<bool> {
-    let imp = crate::obligations::sans_les_refuses(ctx, imp)?;
+    let imp = crate::obligations::avec_ce_qui_est_parti(ctx, imp)?;
     Ok(imp["envois"].as_array().is_some_and(|e| e.iter().any(|x| x.get("nature").and_then(Value::as_str) == Some(nature))))
 }
 
@@ -245,7 +245,7 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
     if fin >= ctx.aujourdhui {
         return Ok(true);
     }
-    Ok(!reporte_par(imp).iter().any(|m| valeur_en_texte(m) == fin.mois_iso()))
+    Ok(!reporte_par(ctx, imp)?.iter().any(|m| valeur_en_texte(m) == fin.mois_iso()))
 }
 
 // ------------------------------------------------------------------ le resume
@@ -261,7 +261,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
     let premier = magasin(imprevus::premier_jour(imp))?.iso();
     let dernier = magasin(imprevus::dernier_jour(imp))?.iso();
     if imprevus::est_un_arret(imp) {
-        let mut r = crate::routes::imprevus::resume_arret(n, imp)?;
+        let mut r = crate::routes::imprevus::resume_arret(ctx, n, imp)?;
         let motif = magasin(imprevus::motif_d_arret(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
         let maintien_legal = motif.get("maintien_legal").is_some_and(vrai);
         let ouvert = mensuel(ctx, imp)?;
@@ -295,7 +295,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         "motif": imp["motif"], "motif_libelle": motif.get("libelle").cloned().unwrap_or(json!("?")),
         "remunere": motif.get("remunere").is_some_and(vrai),
         "debut": imp["debut"], "fin": imp["fin"], "premier_jour": premier, "dernier_jour": dernier,
-        "note": imp["note"], "saisi_le": imp["saisi_le"], "reporte_par": reporte_par(imp),
+        "note": imp["note"], "saisi_le": imp["saisi_le"], "reporte_par": reporte_par(ctx, imp)?,
         "cachets": cachets,
     }))
 }
@@ -546,7 +546,7 @@ l'arrêt traverse porte la nouvelle fin prévisionnelle (S21.G00.60.003, fiche n
             nouvelle_fin.jj_mm_aaaa()
         )));
         // Les jours ajoutes qui tombent dans un mois dont la DSN reelle est deja partie : elle portait l'ancienne fin.
-        let declares = reporte_par(&avant);
+        let declares = reporte_par(ctx, &avant)?;
         for m in socle::date::mois_entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin) {
             if declares.iter().any(|x| valeur_en_texte(x) == m) {
                 avertissements.push(json!(format!(
@@ -664,7 +664,6 @@ fn suspension_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     s.insert("saisi_le".into(), json!(crate::routes::maintenant()));
     s.insert("qui".into(), json!(crate::routes::qui_de(charge)));
     s.insert("note".into(), note_de(charge));
-    s.insert("envois".into(), json!([]));
     let s = Value::Object(s);
     verifier_suspension(&s, &valeur_en_texte(&contrat["fin"]))?;
     if trouver(ctx, SUSPENSION, &cle, &debut)?.is_some() {
@@ -718,7 +717,7 @@ fn suspension_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let Some((i, mut liste)) = trouver(ctx, SUSPENSION, &cle, &debut)? else {
         return Err(refus(format!("Aucune suspension de {} qui commence le {}.", cle, debut.jj_mm_aaaa())));
     };
-    let envois = liste[i]["envois"].as_array().map_or(0, Vec::len);
+    let envois = crate::obligations::avec_ce_qui_est_parti(ctx, &liste[i])?["envois"].as_array().map_or(0, Vec::len);
     if envois > 0 {
         return Err(refus(format!(
             "Cette suspension a deja ete declaree ({} DSN). La retirer du magasin n'annule rien aupres des organismes : la \
@@ -850,7 +849,6 @@ ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
     a.insert("saisi_le".into(), json!(maintenant()));
     a.insert("qui".into(), json!(qui_de(charge)));
     a.insert("note".into(), note);
-    a.insert("envois".into(), json!([]));
     let arret = Value::Object(a);
     // On verifie AVANT d'ecrire, avec les regles de la nature 04 -- celles qui partiront.
     verifier(&arret)?;
@@ -893,10 +891,7 @@ fn arret_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom = exiger(charge, "salarie")?;
     let dernier_jour = exiger(charge, "dernier_jour")?;
     let (i, mut liste) = trouver_l_arret(ctx, nom, dernier_jour)?;
-    let envois = match &liste[i]["envois"] {
-        Value::Array(e) => e.len(),
-        _ => 0,
-    };
+    let envois = crate::obligations::avec_ce_qui_est_parti(ctx, &liste[i])?["envois"].as_array().map_or(0, Vec::len);
     if envois > 0 {
         return Err(refus(format!(
             "Cet arret a deja ete declare ({} envoi(s)). Le retirer du magasin n'annule rien aupres des organismes et ferait disparaitre la trace de ce qui est parti : emettre un annule-et-remplace.",
@@ -1306,7 +1301,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         "type": type_declaration,
         "ordre": ordre,
         "avertissements": avertissements,
-        "arret": crate::routes::imprevus::resume_arret(&nomenclatures, &arret)?,
+        "arret": crate::routes::imprevus::resume_arret(ctx, &nomenclatures, &arret)?,
     }))
 }
 
@@ -1399,7 +1394,8 @@ fn envois(a: &Value) -> R<Vec<std::borrow::Cow<'_, Value>>> {
 }
 
 /// Un arret resume pour la liste des imprevus.
-pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
+pub(crate) fn resume_arret(ctx: &Contexte, n: &Value, a: &Value) -> R<Value> {
+    let a = &crate::obligations::avec_ce_qui_est_parti(ctx, a)?;
     let mut signalements = Vec::new();
     for e in envois(a)? {
         if matches!(get(&e, "nature")?.as_str(), Some("04") | Some("05")) {

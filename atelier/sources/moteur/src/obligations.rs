@@ -410,7 +410,7 @@ fn indetermine(mut m: Map<String, Value>, pourquoi: String) -> Value {
     Value::Object(m)
 }
 
-/// Le premier envoi de cette nature trace sur l'arret (`marques_depot::marquer_envoye_depuis`, apres un depot REEL).
+/// Le premier envoi de cette nature parti pour l'arret (`avec_ce_qui_est_parti`).
 fn envoi(a: &Value, nature: &str) -> Option<Fait> {
     let mut premier: Option<(String, Value)> = None;
     for e in a.get("envois").and_then(Value::as_array).into_iter().flatten() {
@@ -527,27 +527,50 @@ fn connaissance(suivi: &Value, champ: &str, quoi: &str) -> Option<Depart> {
 
 // ------------------------------------------------------------- les arrets
 
-/// L'ARRET `a` ET CE QUI EN EST PARTI : un signalement refuse au bilan n'est pas recu (cahier technique DSN,
-/// `norme-dsn/texte/chapitre-4-controles.txt` §4.2) et reste du. Un envoi trace sur l'arret (`envois`) ne compte que si la
-/// ligne du journal de son depot (meme fichier, meme heure) n'est pas refusee.
-pub(crate) fn sans_les_refuses(ctx: &Contexte, a: &Value) -> R<Value> {
-    let journal = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
-    let refuse = |e: &Value| {
-        let nom = std::path::Path::new(&texte(e, "fichier")).file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-        journal.iter().any(|l| {
-            texte(l, "quoi") == "dsn" && texte(l, "fichier") == nom && texte(l, "quand") == texte(e, "quand") && envois::etats::refuse_par_un_retour(l).unwrap_or(false)
-        })
+/// L'IMPREVU `a` ET CE QUI EN EST PARTI (`envois`), lu au journal des envois : les signalements de l'arret (son fichier,
+/// `SignalementArret_` ou `SignalementReprise_`, au salarie et au dernier jour travaille, `routes::imprevus::arret_signaler`)
+/// et les DSN mensuelles des mois qu'il traverse deposees apres sa saisie (elles le reportent). Seul compte un depot reel
+/// accepte : un signalement refuse au bilan n'est pas recu (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt`
+/// §4.2) et reste du.
+pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
+    let lignes = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
+    let salarie = texte(a, "salarie");
+    let dj = texte(a, "dernier_jour_travaille");
+    let siens: Vec<String> = match dj.get(..7) {
+        Some(_) => ["Arret", "Reprise"].iter().map(|n| format!("Signalement{}_{}_{}.dsn", n, salarie, dj.replace('-', ""))).collect(),
+        None => Vec::new(),
     };
+    let traverses: Vec<String> = match (engagement::imprevus::premier_jour(a), engagement::imprevus::dernier_jour(a)) {
+        (Ok(p), Ok(d)) if p <= d => socle::date::mois_entre(&p, &d),
+        _ => Vec::new(),
+    };
+    let saisi = texte(a, "saisi_le");
+    let mut partis = Vec::new();
+    for l in lignes.iter() {
+        let accepte = l.get("accepte") == Some(&Value::Bool(true)) && !envois::etats::refuse_par_un_retour(l).unwrap_or(false);
+        if texte(l, "quoi") != "dsn" || texte(l, "mode") != envois::journal::REEL || !accepte {
+            continue;
+        }
+        let (nom, mois, quand) = (texte(l, "fichier"), texte(l, "mois"), texte(l, "quand"));
+        let d = l.get("detail").cloned().unwrap_or(Value::Null);
+        let (nature, type_dsn) = (texte(&d, "nature"), texte(&d, "type"));
+        let ordre = texte(&d, "ordre").trim().parse::<i64>().unwrap_or(0);
+        if siens.contains(&nom) {
+            partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "fichier": format!("sorties/{}/{}", &dj[..7], nom), "quand": quand}));
+        } else if nature == "01" && traverses.contains(&mois) && quand.replace('T', " ") >= saisi {
+            partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "mois": mois, "fichier": format!("sorties/{}/{}", mois, nom), "quand": quand}));
+        }
+    }
     let mut a = a.clone();
-    if let Some(Value::Array(envois)) = a.get_mut("envois") {
-        envois.retain(|e| !refuse(e));
+    if let Some(o) = a.as_object_mut() {
+        o.insert("envois".into(), Value::Array(partis));
     }
     Ok(a)
 }
 
 /// Les obligations d'un arret (`a` : l'arret tel que `imprevus/AAAA-MM.json` le porte), dans l'ordre ou elles se font.
 pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) -> R<Vec<Value>> {
-    let a = &sans_les_refuses(ctx, a)?;
+    let a = &avec_ce_qui_est_parti(ctx, a)?;
     let n = base()?;
     let mut cal = Calendrier::nouveau(Some(&ctx.entreprise));
     let mut out = Vec::new();
@@ -949,7 +972,7 @@ fn arret_obligations(ctx: &Contexte, charge: &Value) -> R<Value> {
     let a = json!({
         "salarie": "", "motif": champ("motif"), "dernier_jour_travaille": champ("dernier_jour"),
         "fin_previsionnelle": champ("fin"), "subrogation": champ("subrogation"), "date_accident": champ("date_accident"),
-        "reprise": champ("reprise"), "envois": [],
+        "reprise": champ("reprise"),
     });
     let mut fiche = json!({"salarie": "", "dernier_jour_travaille": champ("dernier_jour")});
     if !champ("connaissance_accident").trim().is_empty() {

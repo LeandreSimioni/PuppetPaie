@@ -356,15 +356,12 @@ fn copier(src: &Path, dst: &Path, racine: &Path) -> Result<(), String> {
 
 /// Le journal de la copie sans les depots de DSN de la fictive (mensuelles et signalements, essais et reels) : voir l'en-tete.
 fn retirer_les_depots_de_dsn(dossier: &Path) -> Result<(), String> {
-    let p = dossier.join("journal").join("depots.json");
-    if !p.is_file() {
+    let lignes = envois::journal::lu(dossier)?.lignes;
+    if lignes.is_empty() {
         return Ok(());
     }
-    let Value::Array(lignes) = socle::fichiers::lire_json(&p)? else {
-        return Err(format!("{} : une liste est attendue.", p.display()));
-    };
-    let gardees: Vec<Value> = lignes.into_iter().filter(|l| l.get("quoi").and_then(Value::as_str) != Some("dsn")).collect();
-    socle::ecriture::ecrire_json(&p, &Value::Array(gardees), 2)
+    let gardees: Vec<Value> = lignes.iter().filter(|l| l.get("quoi").and_then(Value::as_str) != Some("dsn")).cloned().collect();
+    socle::ecriture::ecrire_json(&envois::journal::chemin(dossier), &Value::Array(gardees), 2)
 }
 
 /// Monte (ou remet a jour) la compagnie d'essai dans `dossier`, depuis la fictive `depuis`, sous l'identite `texte` (le

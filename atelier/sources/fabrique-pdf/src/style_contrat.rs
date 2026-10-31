@@ -20,7 +20,7 @@ const LIGNE_CORPS: f32 = 7.5 * 1.25;
 /// `.cite { margin-left: 12pt }`
 const RETRAIT_CITATION: f32 = 12.0;
 const SIGNATURE_LARGEUR: f32 = 92.0; // l'image fait 792 x 384 px
-/// La case de la mention de signature de l'artiste (`contrat.contresigner`, avant la fabrique) :
+/// La case de la mention de signature de l'artiste (`documents::contrat::ecrire_contrat` contresigne) :
 /// 46 pt de haut, filet gris à 0,5 pt, texte de 6,6 pt à 1,35, en retrait de 4 pt et 3 pt.
 const MENTION_HAUTEUR: f32 = 46.0;
 const MENTION_TAILLE: f32 = 6.6;

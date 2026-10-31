@@ -229,16 +229,6 @@ fn versement_mobilite_des_etablissements(ctx: &Contexte) -> bool {
     ctx.bareme_fondu(ctx.aujourdhui.an).ok().and_then(|b| b.get("versement_mobilite").cloned()).is_some_and(|v| v.is_object())
 }
 
-/// `Contexte.compteurs()` : `config/compteurs.json`, ou `{}`.
-fn compteurs(racine: &Path) -> R<Value> {
-    let p = racine.join("config").join("compteurs.json");
-    if p.exists() {
-        lire_objet(&p)
-    } else {
-        Ok(Value::Object(Map::new()))
-    }
-}
-
 /// `salaries_au_mois` : les salaries qui ont, ou ont eu, un contrat paye au mois. Lu dans les engagements : la nature se
 /// dit sur l'engagement (ou sur un de ses mois), pas sur la fiche. L'ecran n'ouvre le bloc « Salarie au mois » qu'a eux.
 fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
@@ -487,7 +477,7 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         "entreprise": entreprise,
         "salaries": salaries,
         "spectacles": spectacles,
-        "compteurs": compteurs(&ctx.racine)?,
+        "compteurs": documents::ecrire_documents::compteurs(&ctx.racine)?,
         "erreurs": erreurs,
         "description": {
             "entreprise": champs::description("entreprise")?,

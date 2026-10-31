@@ -80,7 +80,6 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
         "2026-11/DPAE_Novembre2026_20261120-0700.txt.zip",
         "2026-11/Amorcage01_FULLER_20261120.dsn",
         "2026-11/envoi/Contrat_FULLER_FU1.26.01_Novembre2026.pdf",
-        "2026-11/envoi/Contrat_FULLER_FU1.26.01_Novembre2026.description.json",
         "2026-11/envoi/AER_FULLER_Novembre2026.pdf",
         "2026-11/DSN_Novembre2026.dsn",
         "2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf",

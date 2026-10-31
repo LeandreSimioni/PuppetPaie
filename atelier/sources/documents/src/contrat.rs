@@ -50,7 +50,7 @@ pub fn lire_modele_texte(chemin: &Path) -> R<String> {
 }
 
 /// L'ordre des cles de `contrat.marqueurs` : celui du modele. `Valeurs` est trie ; la description
-/// gardee a cote du PDF (`fabrique.garder_description`) se relit, et s'ecrit dans le meme ordre.
+/// s'ecrit dans le meme ordre.
 const ORDRE_MARQUEURS: [&str; 38] = [
     "employeur.raison_sociale",
     "employeur.adresse",
@@ -221,46 +221,26 @@ pub fn mention_signature(nom: &str, quand: &str, adresse: &str, code: &str) -> S
     format!("Signé électroniquement le {}\npar {}\n{}\ncode de signature {}", quand, nom, adresse, code)
 }
 
-/// Le contrat renvoye au salarie une fois qu'il a signe d'un clic. LA REGENERATION, ET RIEN
-/// D'AUTRE : le contrat est refait depuis la description gardee a l'envoi (`fabrique::description_gardee`), la mention
-/// de l'artiste dans sa case, puis verrouille (AES-256, impression et copie seules). Sans description valide (absente,
-/// illisible, ne decrivant plus ce PDF) on REFUSE au lieu de deviner : il faut renvoyer le contrat. Il refuse aussi si
-/// la fabrique refuse la mention. `Err` : la phrase du refus.
-pub fn contresigner(source: &Path, sortie: &Path, nom: &str, quand: &str, adresse: &str, code: &str) -> Result<(), String> {
-    let fichier = source.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let texte = mention_signature(nom, quand, adresse, code);
-    let Some(gardee) = crate::fabrique::description_gardee(source) else {
-        return Err(format!(
-            "{} ne peut pas etre contresigne : la description gardee a l'envoi est absente, illisible ou ne correspond plus a ce PDF. Renvoyez le contrat (ou l'avenant) a la signature.",
-            fichier
-        ));
+/// Le PDF de la description `d` d'un contrat ou d'un avenant, ecrit a `chemin`. `mention` : la mention de signature de
+/// l'artiste (`mention_signature`), posee dans sa case ; le contrat contresigne se verrouille (AES-256, impression et
+/// copie seules).
+fn ecrire_signe_ou_non(d: &Value, chemin: &Path, mention: Option<&str>) -> R<()> {
+    let fabrique = |m: String| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() };
+    let Some(mention) = mention else {
+        crate::fabrique::ecrire(d, chemin).map_err(fabrique)?;
+        return Ok(());
     };
-    let regenere = crate::fabrique::avec_mention_artiste(&gardee, &texte)
-        .and_then(|d| crate::fabrique::fabriquer_octets(&d))
-        .map_err(|e| format!("{} ne peut pas etre contresigne : la fabrique refuse la mention de signature ({}).", fichier, e))?;
-    let verrouille = crate::fabrique::verrouiller(&regenere).map_err(|e| format!("{} : {}", fichier, e))?;
-    if let Some(parent) = sortie.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("{} : {}", parent.display(), e))?;
+    let octets = crate::fabrique::avec_mention_artiste(d, mention).and_then(|d| crate::fabrique::fabriquer_octets(&d)).and_then(|o| crate::fabrique::verrouiller(&o)).map_err(fabrique)?;
+    if let Some(parent) = chemin.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| Refus { classe: Some("OSError"), message: format!("{} : {}", parent.display(), e) })?;
     }
-    std::fs::write(sortie, verrouille).map_err(|e| format!("{} : {}", sortie.display(), e))
+    std::fs::write(chemin, octets).map_err(|e| Refus { classe: Some("OSError"), message: format!("{} : {}", chemin.display(), e) })
 }
 
-/// `contrat.ecrire` sans la description gardee : un contrat par page, dans `chemin`.
-pub fn ecrire(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path) -> R<()> {
-    let d = description(ctx, paies, ent, &[])?;
-    crate::fabrique::ecrire(&d, chemin)
-        .map_err(|m| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() })?;
-    Ok(())
-}
-
-/// Le contrat, puis sa description gardee a cote (`fabrique.garder_description`) : la
-/// contresignature refait le contrat depuis elle, octet pour octet.
-pub fn ecrire_et_garder(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements) -> R<()> {
-    let d = description(ctx, paies, ent, remplacements)?;
-    crate::fabrique::ecrire(&d, chemin)
-        .map_err(|m| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() })?;
-    crate::fabrique::garder_description(&d, chemin).map_err(|m| Refus { classe: Some("OSError"), message: m })?;
-    Ok(())
+/// Le contrat de `paies` (un par page), ecrit a `chemin` ; `mention` : contresigne par l'artiste (`ecrire_signe_ou_non`).
+/// Le contrat parti et son exemplaire contresigne se refont ainsi, depuis la version de l'engagement qui est partie.
+pub fn ecrire_contrat(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements, mention: Option<&str>) -> R<()> {
+    ecrire_signe_ou_non(&description(ctx, paies, ent, remplacements)?, chemin, mention)
 }
 
 
@@ -301,7 +281,8 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
 }
 
 /// L'avenant en PDF, a l'identite de la compagnie, la signature de l'employeur posee comme sur
-/// le contrat, puis sa description gardee. Les dates en JJ/MM/AAAA. `modifs` : ce que `avenant-apercu` rend.
+/// le contrat ; `mention` : contresigne par l'artiste (`ecrire_signe_ou_non`). Les dates en JJ/MM/AAAA. `modifs` : ce que
+/// `avenant-apercu` rend.
 #[allow(clippy::too_many_arguments)]
 pub fn ecrire_avenant(
     ctx: &Contexte,
@@ -313,6 +294,7 @@ pub fn ecrire_avenant(
     date_contrat: &str,
     effet: &str,
     date: &str,
+    mention: Option<&str>,
 ) -> R<()> {
     if modifs.is_empty() {
         return Err(Refus { classe: Some("ValueError"), message: "Rien n'a changé : pas d'avenant à écrire.".into() });
@@ -330,7 +312,5 @@ pub fn ecrire_avenant(
         ("avenant.date", date.to_string()),
     ];
     let d = description_avenant(ctx, p, ent, modifs, &extra)?;
-    crate::fabrique::ecrire(&d, chemin).map_err(|m| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() })?;
-    crate::fabrique::garder_description(&d, chemin).map_err(|m| Refus { classe: Some("OSError"), message: m })?;
-    Ok(())
+    ecrire_signe_ou_non(&d, chemin, mention)
 }
