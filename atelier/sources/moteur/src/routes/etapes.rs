@@ -652,13 +652,12 @@ impl<'a> Moteur<'a> {
         }
         let lignes = self.lignes()?;
         let dpae = en_table(etats::etat_des_embauches(&lignes)?);
-        let c = etats::Maille::Contrat;
-        let recus = etats::contrats_recus(&lignes, c)?;
+        let recus = etats::contrats_recus(&lignes)?;
         let recus = en_table3(recus.sortie(Clone::clone));
-        let recus_par = en_table3(etats::contrats_recus_comment(&lignes, c)?);
-        let renvoyes = cles_en_ensemble3(etats::renvoyes_depuis_la_signature(&lignes, c)?.cles());
-        let avenants = en_table3(etats::avenants(&lignes, c)?);
-        let par = en_table3(etats::contrats_partis_par(&lignes, c)?);
+        let recus_par = en_table3(etats::contrats_recus_comment(&lignes)?);
+        let renvoyes = cles_en_ensemble3(etats::renvoyes_depuis_la_signature(&lignes)?.cles());
+        let avenants = en_table3(etats::avenants(&lignes)?);
+        let par = en_table3(etats::contrats_partis_par(&lignes)?);
         let g = Rc::new(Globales { dpae, recus, recus_par, renvoyes, avenants, par });
         self.globales = Some(g.clone());
         Ok(g)
