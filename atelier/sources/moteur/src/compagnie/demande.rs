@@ -351,7 +351,7 @@ pub fn canal_de_la_route(racine: &Path) -> Rc<dyn Canal> {
 pub struct Reel {
     /// Y a-t-il un ecran (`DISPLAY` / `WAYLAND_DISPLAY` sous Linux ; present sous Windows et macOS) ?
     pub ecran: bool,
-    /// La fenetre native du moteur. AUCUNE : le choix de la bibliotheque est une decision d'editeur. Sans elle, un ecran seul ne suffit pas : on passe au terminal, sinon on refuse.
+    /// La boite de dialogue du systeme (`fenetre_native`). Sans elle, un ecran seul ne suffit pas : on passe au terminal, sinon on refuse.
     pub fenetre: Option<Box<dyn Canal>>,
     /// Le terminal de l'humain (`/dev/tty`), saisie sans echo.
     pub terminal: Option<Box<dyn Canal>>,
@@ -373,10 +373,162 @@ pub fn ecran_present(env: &dyn Fn(&str) -> Option<String>) -> bool {
     env("DISPLAY").is_some() || env("WAYLAND_DISPLAY").is_some()
 }
 
-/// LA FENETRE NATIVE : aucune bibliotheque n'est retenue (une decision d'editeur), elle rend `None`. Une bibliotheque se
-/// branche ICI, derriere `Canal`, et rien d'autre ne change.
+/// LA FENETRE : la boite de dialogue du systeme, comme pour choisir un dossier (`interface::api::choisir_dossier`) --
+/// PowerShell sous Windows, `osascript` sous macOS, `zenity` ou `kdialog` sous Linux. Linux sans l'un ni l'autre : pas de
+/// fenetre, on passe au terminal.
 fn fenetre_native() -> Option<Box<dyn Canal>> {
-    None
+    fenetre_systeme::Boite::du_poste().map(|b| Box::new(b) as Box<dyn Canal>)
+}
+
+mod fenetre_systeme {
+    use super::{Canal, Question, Reponse};
+    use std::process::{Command, Stdio};
+
+    /// Combien de secondes la boite attend l'humain avant de se fermer (fermee = refus), comme le terminal.
+    const ATTENTE_S: u32 = 180;
+
+    const FERMEE: &str = "Fenetre fermee : refuse. Rien n'est parti.";
+
+    /// L'outil qui ouvre la boite sur ce poste.
+    enum Outil {
+        PowerShell,
+        Osascript,
+        Zenity,
+        Kdialog,
+    }
+
+    /// La boite du systeme : ce qui va partir, un champ masque, « Envoyer » et « Annuler », au premier plan. Le texte
+    /// tape revient par la SORTIE du processus de la boite (jamais un fichier, une variable ni un argument) ; la fermer,
+    /// l'annuler ou la laisser expirer, c'est refuser.
+    pub struct Boite(Outil);
+
+    impl Boite {
+        pub fn du_poste() -> Option<Boite> {
+            if cfg!(windows) {
+                return Some(Boite(Outil::PowerShell));
+            }
+            if cfg!(target_os = "macos") {
+                return Some(Boite(Outil::Osascript));
+            }
+            if dans_le_chemin("zenity") {
+                return Some(Boite(Outil::Zenity));
+            }
+            dans_le_chemin("kdialog").then_some(Boite(Outil::Kdialog))
+        }
+    }
+
+    fn dans_le_chemin(nom: &str) -> bool {
+        std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(nom).is_file()))
+    }
+
+    /// Le texte de la boite : les lignes de la question, le refus precedent, la ligne qui precede la saisie. Jamais un secret.
+    fn texte(q: &Question) -> Vec<String> {
+        let mut t = q.lignes.clone();
+        if q.precedent_refuse {
+            t.push(format!("Mot de passe refuse (essai {}).", q.essai));
+        }
+        t.push(q.invite.as_deref().unwrap_or("Mot de passe du logiciel :").trim().to_string());
+        t
+    }
+
+    impl Canal for Boite {
+        fn demander(&self, q: &Question) -> Reponse {
+            let lignes = texte(q);
+            let sortie = match self.0 {
+                Outil::PowerShell => powershell(&q.titre, &lignes),
+                Outil::Osascript => Command::new("osascript")
+                    .args([
+                        "-e",
+                        "on run argv",
+                        "-e",
+                        "activate",
+                        "-e",
+                        &format!("set r to display dialog (item 2 of argv) with title (item 1 of argv) default answer \"\" with hidden answer buttons {{\"Annuler\", \"Envoyer\"}} default button \"Envoyer\" cancel button \"Annuler\" giving up after {}", ATTENTE_S),
+                        "-e",
+                        "if gave up of r then error number -128",
+                        "-e",
+                        "return text returned of r",
+                        "-e",
+                        "end run",
+                        &q.titre,
+                        &lignes.join("\n"),
+                    ])
+                    .stdin(Stdio::null())
+                    .stderr(Stdio::null())
+                    .output(),
+                Outil::Zenity => Command::new("zenity")
+                    .args([
+                        "--entry".to_string(),
+                        "--hide-text".to_string(),
+                        format!("--title={}", q.titre),
+                        // zenity lit son texte en balisage Pango : `&`, `<` et `>` s'echappent.
+                        format!("--text={}", lignes.join("\n").replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")),
+                        "--ok-label=Envoyer".to_string(),
+                        "--cancel-label=Annuler".to_string(),
+                        format!("--timeout={}", ATTENTE_S),
+                    ])
+                    .stdin(Stdio::null())
+                    .stderr(Stdio::null())
+                    .output(),
+                Outil::Kdialog => Command::new("kdialog")
+                    .args(["--title", &q.titre, "--password", &lignes.join("\n")])
+                    .stdin(Stdio::null())
+                    .stderr(Stdio::null())
+                    .output(),
+            };
+            match sortie {
+                Ok(s) if s.status.success() => {
+                    let tape = String::from_utf8_lossy(&s.stdout).into_owned();
+                    let tape = tape.strip_suffix('\n').map(|t| t.strip_suffix('\r').unwrap_or(t)).unwrap_or(&tape);
+                    Reponse::Mot(tape.to_string())
+                }
+                Ok(_) => Reponse::Refus(FERMEE.into()),
+                Err(e) => Reponse::Refus(format!("La fenetre du mot de passe ne s'ouvre pas ({}) : refuse. Rien n'est parti.", e)),
+            }
+        }
+    }
+
+    /// Windows : une petite fenetre Windows Forms, au premier plan, fermee seule au bout de `ATTENTE_S`. NON JOUEE DEPUIS LE
+    /// CONTENEUR (pas de cible Windows) : a essayer sur le poste.
+    #[cfg(windows)]
+    fn powershell(titre: &str, lignes: &[String]) -> std::io::Result<std::process::Output> {
+        use crate::interface::api::entre_apostrophes_powershell as ap;
+        use std::os::windows::process::CommandExt;
+        let script = format!(
+            "[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false); Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; \
+             [Windows.Forms.Application]::EnableVisualStyles(); \
+             $f=New-Object Windows.Forms.Form; $f.Text='{}'; $f.TopMost=$true; $f.StartPosition='CenterScreen'; \
+             $f.FormBorderStyle='FixedDialog'; $f.MaximizeBox=$false; $f.MinimizeBox=$false; $f.ShowInTaskbar=$true; \
+             $f.AutoSize=$true; $f.AutoSizeMode='GrowAndShrink'; $f.Padding=New-Object Windows.Forms.Padding(12); \
+             $p=New-Object Windows.Forms.FlowLayoutPanel; $p.FlowDirection='TopDown'; $p.WrapContents=$false; $p.AutoSize=$true; \
+             $l=New-Object Windows.Forms.Label; $l.Text='{}'; $l.AutoSize=$true; $l.MaximumSize=New-Object Drawing.Size(480,0); \
+             $t=New-Object Windows.Forms.TextBox; $t.UseSystemPasswordChar=$true; $t.Width=320; \
+             $b=New-Object Windows.Forms.FlowLayoutPanel; $b.AutoSize=$true; \
+             $ok=New-Object Windows.Forms.Button; $ok.Text='Envoyer'; $ok.DialogResult=[Windows.Forms.DialogResult]::OK; \
+             $no=New-Object Windows.Forms.Button; $no.Text='Annuler'; $no.DialogResult=[Windows.Forms.DialogResult]::Cancel; \
+             $b.Controls.AddRange(@($ok,$no)); $p.Controls.AddRange(@($l,$t,$b)); $f.Controls.Add($p); \
+             $f.AcceptButton=$ok; $f.CancelButton=$no; \
+             $tm=New-Object Windows.Forms.Timer; $tm.Interval={}; $tm.add_Tick({{ $f.Close() }}); $tm.Start(); \
+             $f.add_Shown({{ $f.Activate(); [void]$t.Focus() }}); \
+             if($f.ShowDialog() -eq [Windows.Forms.DialogResult]::OK){{ [Console]::Out.Write($t.Text); exit 0 }} else {{ exit 1 }}",
+            ap(titre),
+            ap(&lignes.join("\r\n")),
+            ATTENTE_S * 1000
+        );
+        // Le script passe encode (UTF-16, base 64) : ni guillemet ni retour a la ligne du texte ne le coupe en chemin.
+        let octets: Vec<u8> = script.encode_utf16().flat_map(u16::to_le_bytes).collect();
+        Command::new("powershell")
+            .args(["-NoProfile", "-STA", "-EncodedCommand", &envois::envoi::base64_brut(&octets)])
+            .creation_flags(0x0800_0000)
+            .stdin(Stdio::null())
+            .stderr(Stdio::null())
+            .output()
+    }
+
+    #[cfg(not(windows))]
+    fn powershell(_: &str, _: &[String]) -> std::io::Result<std::process::Output> {
+        Err(std::io::Error::new(std::io::ErrorKind::Unsupported, "PowerShell n'est que sous Windows"))
+    }
 }
 
 impl Canal for Reel {
