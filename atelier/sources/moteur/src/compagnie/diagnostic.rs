@@ -1001,7 +1001,8 @@ pub fn etat_du_mois(racine: &Path, mois: &str) -> Value {
     m.insert("saisie".into(), json!(!objets.is_empty()));
     m.insert("engagements".into(), json!(objets.len()));
     m.insert("valides".into(), json!(objets.iter().filter(|o| o.est_valide()).count()));
-    if let Some(Value::Array(depots)) = lire_json(&racine.join("journal").join("depots.json")) {
+    if let Ok(journal) = envois::journal::lu(racine) {
+        let depots = &journal.lignes;
         let du_mois: Vec<Value> = depots
             .iter()
             .filter(|d| d.get("mois").and_then(Value::as_str) == Some(mois))
