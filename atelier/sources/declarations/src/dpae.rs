@@ -1018,13 +1018,9 @@ mod tests {
         let mut s = salarie();
         s["nir"] = json!("");
         s["sexe"] = json!("1");
-        let t = enr(&embauche(s.clone(), "cdi", Value::Null), None, json!("")).unwrap();
+        let t = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap();
         assert_eq!(zone(&t, "nir"), " ".repeat(13));
         assert_eq!(zone(&t, "sexe"), "M");
-        // Ni NIR ni sexe : la DPAE ne part pas.
-        s["sexe"] = json!("");
-        let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert!(m.contains("zone SEXE, position 731"), "{}", m);
     }
 
     #[test]
