@@ -9,7 +9,7 @@ use serde_json::{json, Map, Value};
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::documents::{charge_texte, client_courriel, cle, jj_mm_aaaa, liste_de, nul, preuve_de, refus, requis, un_nom_commence_et_finit, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
-use crate::routes::etapes::{dans_l_ensemble, premier, Moteur, SaisieMois};
+use crate::routes::etapes::{dans_l_ensemble, premier, Moteur};
 use droit::contexte::Contexte;
 use crate::compagnie::signature::{Choisis, UnAvenant};
 use envois::etats::{self, est, get, getd, items, objet_vide, ou, LISTE_VIDE, DPAE, SIGNATURE};
@@ -394,20 +394,15 @@ pub(crate) fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve
 pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
-    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
+    let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
     let mut m = Moteur::nouveau(ctx);
     let g = m.globales()?;
     let lignes = m.lignes()?;
-    // `numeros_saisis` : `{}` quand le mois ne se lit pas ; ici il s'est lu.
     let rangs: Vec<(String, String)> = paies
         .iter()
         .map(|p| Ok((valeur_en_texte(get(&p.salarie, "_cle")?), p.engagement.debut.iso())))
         .collect::<R<_>>()?;
-    // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur numero.
-    let uniques: Vec<(String, String)> = rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), format!("{}#{}", d, i))).collect();
-    let saisie = SaisieMois { data, paies: Vec::new() };
     let avenants = crate::routes::etapes::avenants_a_faire(ctx, &mois)?;
-    let saisis = Moteur::numeros_saisis(&saisie, &uniques);
     let cles_paies = etats::cles_des_paies(&lignes, &crate::routes::etapes::contrats_des_paies(&paies))?;
 
     // Quand chaque CONTRAT a ete demande (ce mois-ci).
@@ -439,8 +434,6 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             premier(&g.recus, cles).unwrap_or(nul()),
             premier(&g.recus_par, cles).unwrap_or(nul()),
             dans_l_ensemble(&g.renvoyes, cles),
-            premier(&g.numeros_partis, cles).unwrap_or(nul()),
-            saisis.get(&uniques[i]).unwrap_or(nul()),
             premier(&g.avenants, cles).unwrap_or(nul()),
             avenants.contains(&(cle_s.clone(), p.engagement.numero.clone().unwrap_or_default())),
         );

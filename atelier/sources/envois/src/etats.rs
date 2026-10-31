@@ -600,22 +600,6 @@ pub fn contrats_partis_par(lignes: &[Value], m: Maille) -> R<Value> {
     Ok(d.sortie(Clone::clone))
 }
 
-pub fn numeros_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
-    let lignes = &*normalisees(lignes, m);
-    let mut d = Dico::nouveau();
-    for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        for c in detail_ou_liste(l, "contrats")? {
-            if vrai(get(&c, "numero")?) {
-                d.poser(cle_contrat(&c, m)?, get(&c, "numero")?.clone())?;
-            }
-        }
-    }
-    Ok(d.sortie(Clone::clone))
-}
-
 /// Les contrats repartis apres leur signature sur une autre version de l'engagement que celle signee : ils attendent une
 /// nouvelle signature. Un avenant n'en fait pas un.
 pub fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dico<()>> {
@@ -1911,7 +1895,6 @@ mod tests {
         assert_eq!(contrats_recus(&l, Maille::Paire).unwrap().sortie(Clone::clone), json!([["ALPHA", "2026-06-04", "2026-06-12T10:00:00"]]));
         assert_eq!(contrats_recus_comment(&l, Maille::Paire).unwrap(), json!([["ALPHA", "2026-06-04", "courriel"]]));
         assert_eq!(contrats_demandes(&l, Maille::Paire).unwrap().as_array().unwrap().len(), 2);
-        assert_eq!(numeros_contrats_partis(&l, Maille::Paire).unwrap()[0][2], "N1");
     }
 
     #[test]
