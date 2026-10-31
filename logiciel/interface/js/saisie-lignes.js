@@ -365,8 +365,8 @@ function ouvrirCalendrier(ligne, moisForce) {
     const listePasses = !passe ? "" : (passes.get(vue) === null
       ? `<div class="c-passes discret">…</div>`
       : `<div class="c-passes">${contrats.length
-          ? contrats.map((c) => ligneContratPasse(c, salaries.length !== 1)).join("")
-          : `<span class="discret">${salaries.length ? "aucun contrat déclaré ce mois-là" : "cocher un salarié pour voir ses contrats"}</span>`}
+          ? contrats.map((c) => ligneContratPasse(c, !salarie)).join("")
+          : `<span class="discret">${salarie ? "aucun contrat déclaré ce mois-là" : "cocher un salarié pour voir ses contrats"}</span>`}
         </div>`);
     cal.innerHTML = `
       <div class="c-tete">
@@ -375,7 +375,7 @@ function ouvrirCalendrier(ligne, moisForce) {
         <button type="button" class="c-suiv" title="mois suivant">›</button>
       </div>
       <div class="c-grille">
-        ${passe ? casesMoisPasse(vue, contrats, salaries.length !== 1)
+        ${passe ? casesMoisPasse(vue, contrats, !salarie)
                 : JOURS_SEMAINE.map((x) => `<span class="c-sem">${x}</span>`).join("") + cases}
       </div>
       ${listePasses}
