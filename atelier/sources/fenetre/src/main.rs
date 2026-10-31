@@ -1,7 +1,7 @@
 //! PuppetPaie : la fenetre. Le serveur de la fenetre (`moteur::interface`) tourne dans ce processus, et sa page
 //! s'affiche dans une fenetre Tauri (WebView2 sous Windows, WebKit sous Mac et Linux). Les routes du moteur tournent
-//! dans ce processus (`moteur::interface::api::route`) ; `puppetpaie route ...` reste, comme `moteur route ...`,
-//! pour la mise a jour, qui eprouve le nouveau programme avant de l'installer (`moteur::compagnie::maj`).
+//! dans ce processus (`moteur::interface::api::route`). `puppetpaie route ...` et `puppetpaie routes ...` sont `moteur route` et
+//! `moteur routes` : la ligne de commande d'une installation Windows, et la mise a jour y eprouve le nouveau programme.
 //!
 //! Sans Tauri (un poste sans moteur de rendu), `moteur interface` ouvre la meme page dans le navigateur.
 
@@ -44,12 +44,13 @@ fn devant() {
 
 fn main() -> std::process::ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    // Les sous-commandes du moteur : `route` (la mise a jour eprouve ainsi le nouveau programme), et la fabrique.
+    // Les sous-commandes du moteur : `route` et `routes` (la ligne de commande, sous Windows la seule), et la fabrique.
     match args.first().map(String::as_str) {
         Some("route") => match moteur::service::commande("route", &args[1..]) {
             Some(code) => std::process::exit(code),
             None => std::process::exit(2),
         },
+        Some("routes") => std::process::exit(moteur::routes::catalogue::commande(&args[1..])),
         Some("pdf") => return fabrique_pdf::ligne_de_commande::executer(&args[1..]),
         Some("interface") => std::process::exit(moteur::interface::commande(&args[1..])),
         // Le lanceur Linux demande si la fenetre peut s'ouvrir : le programme se charge (WebKitGTK est la), et un ecran.
