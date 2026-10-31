@@ -101,7 +101,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Dire la version du logiciel.",
         charge: &[],
         exemple: r#"{}"#,
-        rend: "la version installée et ce que la mise à jour en sait",
+        rend: "la version installée et ce que la mise à jour en sait, phrase",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: true,
@@ -190,7 +190,11 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         // Supprimer la compagnie : avertir, puis effacer. Par `moteur route`, rien a lacher ; la fenetre sert elle-meme la
         // suppression confirmee, pour lacher d'abord ce qu'elle tient de la compagnie (`interface::Fenetre`).
         crate::routes::COMPAGNIE_SUPPRIMER => crate::interface::suppression::route(&ctx.racine, charge, &|_| {}).map_err(|m| erreur("ErreurOperation", m)),
-        "maj-etat" => version(),
+        "maj-etat" => version().map(|mut v| {
+            let prete = if vrai(&v["prete"]) { format!(" La version {} est prête.", valeur_en_texte(&v["prete"])) } else { String::new() };
+            v["phrase"] = json!(format!("Version installée : {}.{}", valeur_en_texte(&v["courante"]), prete));
+            v
+        }),
         // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
         "sauvegarde-derniere" => Ok(crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json()),
         // La sauvegarde seule, comme la seconde moitie d'un passage de la veille (`compagnie::ouverture`).

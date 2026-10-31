@@ -34,6 +34,10 @@ function fichesDe(nom) {
 function dessinerConfig() {
   const liste = document.getElementById("config-liste");
   dessinerSuppression();
+  // Avancé : la place du sous-onglet ouvert (`data-place`), ses routes sans écran dessiné.
+  const avance = document.getElementById("config-avance");
+  avance.dataset.auto = (document.querySelector(`.sous-onglets button[data-fiche="${FICHE_ACTIVE}"]`) || {}).dataset?.place || "";
+  dessinerAvance(avance);
   if (FICHE_ACTIVE === "importer") {
     document.getElementById("config-formulaire").innerHTML = "";
     dessinerImportation(liste);

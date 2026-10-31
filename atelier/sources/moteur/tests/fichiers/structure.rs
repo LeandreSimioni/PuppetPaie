@@ -6,7 +6,7 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use moteur::routes::catalogue::{catalogue, GESTE_MAX};
+use moteur::routes::catalogue::{catalogue, Acte, Ecran, Place, FICHES, GESTE_MAX};
 use serde_json::{json, Value};
 
 use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, pdf};
@@ -179,26 +179,42 @@ fn google_autoriser(c: &Path, exemple: Value) -> Value {
     serde_json::from_slice(&sortie).unwrap()
 }
 
-/// Ouvrir un fichier ou un dossier dans l'explorateur du poste : un geste du poste, pas du metier (`piece-partie`,
-/// `historique-mois` disent ou est une piece).
-const OUVRIR: &str = "l'explorateur du poste";
-/// La boite du systeme qui choisit un dossier : un geste du poste (la charge d'une route porte le chemin choisi).
-const CHOISIR: &str = "la boite de choix du poste";
-/// L'etat du passage periodique, tenu dans la memoire de la fenetre (un passage se fait par la route `ouverture`).
-const VEILLE: &str = "la veille de la fenetre";
-
-/// LES SEULS GESTES QUE LA FENETRE SERT HORS DU CATALOGUE (`interface::api::traiter`) : ceux du poste, chacun avec sa
-/// raison. Rien du metier n'y entre : tout ce qui se fait a l'ecran se fait par `moteur route`.
-const FENETRE_SEULE: [(&str, &str); 9] = [
-    ("ouvrir-piece", OUVRIR), ("ouvrir-dossier", OUVRIR), ("ouvrir-exercices", OUVRIR), ("ouvrir-exports", OUVRIR),
-    ("ouvrir-import", OUVRIR), ("choisir-dossier", CHOISIR), ("veille", VEILLE), ("veille-etape", VEILLE),
-    ("veille-maintenant", VEILLE),
+/// LES ROUTES QU'AUCUNE PAGE N'ATTEINT, chacune avec ce qu'elle fait aujourd'hui : elles attendent la decision de
+/// l'editeur (une place a l'ecran, ou leur suppression). La liste ne fait que diminuer.
+const SANS_PLACE: [(&str, &str); 1] = [
+    ("signatures-relever", "la veille releve les signatures (route ouverture) ; aucune page ne l'appelle seule"),
 ];
 
-/// Ce que la page demande au moteur : `api("…"`, `appel("…"`, `fetch("/api/…`.
+/// Les fichiers de la page qui servent chaque place (depuis la racine du depot). L'accueil des compagnies joue ses routes
+/// par la fenetre (`Fenetre::lanceur`).
+fn fichiers_de(p: Place) -> &'static [&'static str] {
+    match p {
+        Place::Paie => &[
+            "logiciel/interface/js/etats-engagements.js", "logiciel/interface/js/saisie-mois.js", "logiciel/interface/js/saisie-lignes.js",
+            "logiciel/interface/js/actes.js", "logiciel/interface/js/imprevus.js", "logiciel/interface/js/rappels.js",
+            "logiciel/interface/js/conseils.js", "logiciel/interface/js/fictives.js", "logiciel/interface/js/boites.js",
+        ],
+        Place::Fiches => &["logiciel/interface/js/configuration.js", "logiciel/interface/js/fiche.js", "logiciel/interface/js/conseils.js"],
+        Place::Metiers | Place::Organismes | Place::Import => &["logiciel/interface/js/configuration.js"],
+        Place::Bulletin => &["logiciel/interface/js/modeles-bulletin.js"],
+        Place::ModelesContrat => &["logiciel/interface/js/modeles-contrat.js"],
+        Place::Identite => &["logiciel/interface/js/identite.js"],
+        Place::Coffre => &["logiciel/interface/js/coffre-compte.js"],
+        Place::Historique => &[
+            "logiciel/interface/js/historique.js", "logiciel/interface/js/rappels.js", "logiciel/interface/js/exports.js",
+            "logiciel/interface/js/corrections.js", "logiciel/interface/js/reprise-journal.js",
+        ],
+        Place::Exports => &["logiciel/interface/js/exports.js"],
+        Place::Signaler => &["logiciel/interface/js/filet.js", "logiciel/interface/js/tuyau.js"],
+        Place::Bandeau => &["logiciel/interface/js/demarrage.js", "logiciel/interface/js/veille.js", "logiciel/interface/js/mise-a-jour.js"],
+        Place::Accueil => &["atelier/sources/moteur/src/interface/mod.rs"],
+    }
+}
+
+/// Ce que la page demande au moteur : `api("…"`, `appel("…"`, `appelerMoteur("…"`, `fetch("/api/…`.
 fn appels_de_la_page(t: &str) -> Vec<String> {
     let mut v = Vec::new();
-    for debut in ["api(\"", "appel(\"", "fetch(\"/api/"] {
+    for debut in ["api(\"", "appel(\"", "appelerMoteur(\"", "fetch(\"/api/"] {
         for morceau in t.split(debut).skip(1) {
             // Une route qui se compose (`"/api/" + route`) est celle d'un `api(...)` : elle n'a pas de nom ici.
             let nom = morceau.split(['"', '?']).next().unwrap();
@@ -210,37 +226,62 @@ fn appels_de_la_page(t: &str) -> Vec<String> {
     v
 }
 
-/// Tout ce qui se fait a l'ecran se fait en ligne de commande, et l'inverse : chaque route que la page appelle est au
-/// catalogue (hors des seuls gestes du poste, `FENETRE_SEULE`), et chaque route du catalogue se sert par `moteur route`.
+/// L'ECRAN ET LE MOTEUR SONT EQUIVALENTS, sans exception : chaque route que la page appelle est au catalogue ; chaque
+/// route du catalogue a sa place (une place de la liste du moteur, qui existe dans la page) et la page de sa place
+/// l'appelle, ou l'affiche sous « Avancé » depuis sa fiche ; une lecture des ecrans est lue par la page ou par la
+/// fenetre ; les routes qui ecrivent d'un module ont une seule place ; et chaque route se sert par `moteur route`.
 #[test]
 fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
-    let noms: BTreeSet<&str> = catalogue().iter().map(|f| f.nom).collect();
-    let du_poste = |n: &str, raison: &str| match raison {
-        OUVRIR => n.starts_with("ouvrir-"),
-        CHOISIR => n.starts_with("choisir-"),
-        VEILLE => n.starts_with("veille"),
-        _ => false,
-    };
-    for (n, raison) in FENETRE_SEULE {
-        assert!(du_poste(n, raison), "{} n'est pas un geste du poste : mets ce geste au catalogue, tout ce qui se fait à l'écran se fait par moteur route", n);
-    }
-    let seule = |n: &str| FENETRE_SEULE.iter().any(|(x, _)| *x == n);
-    let js = espace().join("../../logiciel/interface/js");
+    let depot = espace().join("../..");
+    let lu = |f: &str| std::fs::read_to_string(depot.join(f)).unwrap();
+    let tout = catalogue();
+    let noms: BTreeSet<&str> = tout.iter().map(|f| f.nom).collect();
     let mut page = String::new();
-    for e in std::fs::read_dir(&js).unwrap().flatten() {
+    for e in std::fs::read_dir(depot.join("logiciel/interface/js")).unwrap().flatten() {
         let t = std::fs::read_to_string(e.path()).unwrap();
-        page.push_str(&t);
         for nom in appels_de_la_page(&t) {
-            assert!(
-                noms.contains(nom.as_str()) || seule(&nom),
-                "{} appelle {}, absente du catalogue : mets ce geste au catalogue, tout ce qui se fait à l'écran se fait par moteur route",
-                e.file_name().to_string_lossy(),
-                nom
-            );
+            assert!(noms.contains(nom.as_str()), "{} appelle {}, absente du catalogue : mets ce geste au catalogue", e.file_name().to_string_lossy(), nom);
+        }
+        page.push_str(&t);
+    }
+    let html = (lu("logiciel/interface/index.html") + &lu("atelier/sources/moteur/src/interface/pages/accueil.html")).replace("&amp;", "&");
+    for p in Place::TOUTES {
+        assert!(html.contains(&format!("data-place=\"{}\"", p.nom())), "la place « {} » n'est pas dans la page : nomme-la (data-place) là où la page l'ouvre", p.nom());
+    }
+    let mut fenetre = lu("atelier/sources/moteur/src/etat_garde.rs");
+    for p in sources(&espace().join("moteur/src/interface")) {
+        fenetre.push_str(&std::fs::read_to_string(p).unwrap());
+    }
+    let appelee = |nom: &str, t: &str| t.contains(&format!("\"{}\"", nom)) || t.contains(&format!("/api/{}", nom));
+    for f in &tout {
+        match f.ecran {
+            Ecran::Dessine(p) => assert!(
+                fichiers_de(p).iter().any(|x| appelee(f.nom, &lu(x))),
+                "{} : aucune page de sa place ({}) ne l'appelle : donne à cette route sa place à l'écran (fiche, champ ecran) et appelle-la depuis cette page ({})",
+                f.nom, p.nom(), fichiers_de(p).join(", ")
+            ),
+            Ecran::Auto(p) => {
+                let porte = format!("data-auto=\"{}\"", p.nom());
+                let configuration = p.nom().starts_with("Configuration › ") && html.contains("id=\"config-avance\"");
+                assert!(f.avance, "{} s'affiche sous « Avancé » de sa place : sa fiche est avancée", f.nom);
+                assert!(
+                    configuration || html.contains(&porte) || fichiers_de(p).iter().any(|x| lu(x).contains(&porte)),
+                    "{} : sa place ({}) n'a pas son « Avancé » (data-auto) : appelle js/avance.js là où la page l'ouvre", f.nom, p.nom()
+                );
+            }
+            Ecran::Lecture => {
+                assert!(f.acte == Acte::Lit, "{} écrit : donne à cette route sa place à l'écran (fiche, champ ecran)", f.nom);
+                assert!(appelee(f.nom, &page) || appelee(f.nom, &fenetre), "{} : ni la page ni la fenêtre ne la lisent : donne-lui sa place à l'écran, ou retire-la", f.nom);
+            }
+            Ecran::SansPlace => assert!(SANS_PLACE.iter().any(|(n, _)| *n == f.nom), "{} n'a pas de place : donne à cette route sa place à l'écran (fiche, champ ecran) et appelle-la depuis cette page", f.nom),
         }
     }
-    for (n, _) in FENETRE_SEULE {
-        assert!(page.contains(&format!("\"{}\"", n)) && !noms.contains(n), "{} : au catalogue, ou plus appelee par la page ; elle sort de FENETRE_SEULE", n);
+    for (n, _) in SANS_PLACE {
+        assert!(tout.iter().any(|f| f.nom == n && f.ecran == Ecran::SansPlace), "{} a reçu sa place (ou n'existe plus) : elle sort de SANS_PLACE", n);
+    }
+    for module in FICHES {
+        let places: BTreeSet<&str> = module.iter().filter(|f| f.acte != Acte::Lit).filter_map(|f| f.ecran.place()).map(Place::nom).collect();
+        assert!(places.len() <= 1, "un module, une place : les routes qui écrivent de {:?} vont à {:?} ; range chacune dans le module de sa place", module.iter().map(|f| f.nom).collect::<Vec<_>>(), places);
     }
     let c = treteaux("servies");
     let inconnue = |r: &Value| r["erreur"].as_str().is_some_and(|m| m.starts_with("route inconnue"));

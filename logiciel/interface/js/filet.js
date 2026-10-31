@@ -178,10 +178,13 @@ function boiteSignalement() {
       <button class="primaire" id="sg-envoyer" disabled>Envoyer</button>
     </div>
     <pre class="d-pre" id="sg-pre" hidden></pre>
-    <div id="sg-messages"></div></div>`);
+    <div id="sg-messages"></div>
+    <details class="avance-auto" hidden><summary>Avancé : ce que ce poste a envoyé au développeur</summary>
+      <div id="sg-avance" data-auto="Un problème, une idée ?"></div></details></div>`);
   // Les éléments se tiennent par la boîte, pas par le document : réduite,
   // elle est hors de la page, et ses gestes en cours doivent la trouver.
   const boite = document.getElementById("sg-boite");
+  dessinerAvance(boite.querySelector("#sg-avance"));
   const $ = (id) => boite.querySelector("#" + id);
   const texte = $("sg-texte"), envoyer = $("sg-envoyer");
   const montrerErreur = (m) => { $("sg-erreur").textContent = m || ""; $("sg-erreur").hidden = !m; };

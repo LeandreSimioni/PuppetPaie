@@ -53,6 +53,7 @@ function conseilsDe(o) {
 async function demarrer() {
   CATALOGUE = Object.fromEntries((await appelerMoteur("routes", { avance: true })).routes.map((f) => [f.nom, f]));
   rangerLAvance();
+  dessinerLesAvances();
   let o = await appelerMoteur("ouverture");
   while (!o.pret) {
     // LA SEULE ATTENTE : ce que la page lit se refait. Le moteur dit ce qu'il fait.

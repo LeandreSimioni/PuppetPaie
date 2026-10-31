@@ -32,18 +32,18 @@
     </div>
   </div>
   <nav class="onglets">
-    <button data-vue="paie" class="actif">Paie</button>
+    <button data-vue="paie" data-place="Paie" class="actif">Paie</button>
     <button data-vue="configuration">Configuration</button>
-    <button data-vue="historique">Historique</button>
+    <button data-vue="historique" data-place="Historique">Historique</button>
     <!-- LES EXPORTS : un onglet à part, et
          non un bouton dans Historique : ce qu'on y fait ne regarde pas un
          mois mais une période, et rien n'y part nulle part — un export lit. -->
-    <button data-vue="exports">Exports</button>
+    <button data-vue="exports" data-place="Exports">Exports</button>
   </nav>
   <div class="etat" id="etat-global"></div>
   <!-- SIGNALER UN PROBLEME : sur tous les ecrans, discret. La boite est dans
        js/filet.js (boiteSignalement). -->
-  <button type="button" class="signaler" id="signaler" title="Écrire à l'éditeur : un problème, une envie, une idée">Un problème, une idée ?</button>
+  <button type="button" class="signaler" id="signaler" data-place="Un problème, une idée ?" title="Écrire à l'éditeur : un problème, une envie, une idée">Un problème, une idée ?</button>
   <!-- REVENIR A L'ACCUEIL DES COMPAGNIES. C'est le lanceur
        qui tient l'accueil : le bouton ne se montre que dans la fenetre
        PuppetPaie dont le lanceur sait y revenir (`fenetreNative`). -->
@@ -66,7 +66,7 @@
      parce qu'un travail de fond invisible est un travail dont on ne sait pas
      s'il a lieu -- et parce que c'est ici qu'on apprend qu'un retour est
      arrive. -->
-<div class="veille" id="veille" hidden>
+<div class="veille" id="veille" data-place="Le bandeau" hidden>
   <span class="veille-texte" id="veille-texte"></span>
   <button class="lien" id="veille-maintenant">relever maintenant</button>
 </div>
@@ -179,37 +179,37 @@
     <!-- DU PLUS GROS AU PLUS PETIT : l'entreprise, ses
          salariés, ses spectacles, les métiers. On ouvre toujours sur les
          salariés : c'est la fiche qu'on touche le plus. -->
-    <button data-fiche="entreprise">Entreprise</button>
-    <button data-fiche="salarie" class="actif">Salariés</button>
-    <button data-fiche="spectacle">Spectacles</button>
+    <button data-fiche="entreprise" data-place="Configuration › Entreprise, Salariés, Spectacles">Entreprise</button>
+    <button data-fiche="salarie" data-place="Configuration › Entreprise, Salariés, Spectacles" class="actif">Salariés</button>
+    <button data-fiche="spectacle" data-place="Configuration › Entreprise, Salariés, Spectacles">Spectacles</button>
     <!-- LES MÉTIERS : la liste que la compagnie coche, et que
          la fiche d'un salarié et un engagement proposent. -->
-    <button data-fiche="metiers" data-route="metiers-catalogue">Métiers</button>
+    <button data-fiche="metiers" data-route="metiers-catalogue" data-place="Configuration › Métiers">Métiers</button>
     <!-- LES ORGANISMES ET LES CONTRATS DE LA DSN : la référence
          des contrats de prévoyance et de santé, l'organisme quand la branche
          n'en désigne pas. Le moteur compose config/organismes.json. -->
-    <button data-fiche="organismes">Organismes et contrats</button>
+    <button data-fiche="organismes" data-place="Configuration › Organismes et contrats">Organismes et contrats</button>
     <!-- LE MODÈLE DU BULLETIN : simplifié ou complet,
          chacun montré sur une paie fictive ; la compagnie choisit pour tous. -->
-    <button data-fiche="bulletin">Modèle de bulletin</button>
-    <button data-fiche="contrats" data-route="modeles-contrat">Modèles de contrat</button>
+    <button data-fiche="bulletin" data-place="Configuration › Modèle de bulletin">Modèle de bulletin</button>
+    <button data-fiche="contrats" data-route="modeles-contrat" data-place="Configuration › Modèles de contrat">Modèles de contrat</button>
     <!-- AVANCÉ : ce que la fiche de sa route marque « avancé » (le catalogue, `rangerLAvance`), après le chemin simple. -->
     <span class="sous-onglets-avance" hidden><span class="discret">Avancé :</span></span>
     <span class="sous-onglets-installation">
       <!-- Signature et logo : la premiere route de fichier du
            logiciel. Le cachet, lui, est DESSINE depuis la fiche Entreprise. -->
-      <button data-fiche="identite">Signature &amp; tampon</button>
+      <button data-fiche="identite" data-place="Configuration › Signature &amp; tampon">Signature &amp; tampon</button>
       <!-- Les mots de passe : celui du logiciel, et ceux des
            organismes dans le coffre. La page ne voit jamais une valeur posee.
            Le compte Google y est aussi, pour la sauvegarde. -->
-      <button data-fiche="coffre">Mots de passe</button>
+      <button data-fiche="coffre" data-place="Configuration › Mots de passe">Mots de passe</button>
       <!-- Reprendre ce qui est deja declare : les fiches et
            cinq ans de contrats attestes, depuis les DSN de n'importe quel
            logiciel. C'est par la qu'une compagnie qui arrive
            commence -- et ce qui donne aux droits leur historique. Un seul
            dossier, tout dedans, aucun logiciel nomme. -->
       <!-- « Historique » nomme l'onglet des mois : le mot ne nomme qu'une chose. -->
-      <button data-fiche="importer">Reprendre l'historique</button>
+      <button data-fiche="importer" data-place="Configuration › Reprendre l'historique">Reprendre l'historique</button>
     </span>
   </nav>
   <div id="config-liste"></div>
@@ -217,6 +217,8 @@
   <!-- Supprimer la compagnie, sous la fiche Entreprise, et seulement si elle se supprime (`supprimable`
        du moteur : jamais une fictive livrée, qui se remet à zéro). js/configuration.js, dessinerSuppression(). -->
   <div id="config-suppression"></div>
+  <!-- Avancé : les routes de ce sous-onglet sans écran dessiné, montrées depuis leur fiche (js/avance.js). -->
+  <details class="avance-auto" hidden><summary>Avancé</summary><div id="config-avance" data-auto=""></div></details>
 </section>
 
 <!-- ------------------------------------------------------- HISTORIQUE -->
@@ -278,6 +280,8 @@
     <summary><h2>Les heures et cachets des intermittents <span class="discret">— annexes 8 et 10</span></h2></summary>
     <div id="droits"></div>
   </details>
+  <!-- Avancé : les routes des Exports sans écran dessiné, montrées depuis leur fiche (js/avance.js). -->
+  <details class="avance-auto" hidden><summary>Avancé</summary><div data-auto="Exports"></div></details>
 </section>
 
 </main>
@@ -323,6 +327,7 @@
 <div id="message" class="message cachee"></div>
 
 <script src="/js/tuyau.js?v={{EMPREINTE}}"></script>
+<script src="/js/avance.js?v={{EMPREINTE}}"></script>
 <script src="/js/dates.js?v={{EMPREINTE}}"></script>
 <script src="/js/saisie-lignes.js?v={{EMPREINTE}}"></script>
 <script src="/js/saisie-mois.js?v={{EMPREINTE}}"></script>

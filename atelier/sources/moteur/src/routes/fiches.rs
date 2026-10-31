@@ -1348,6 +1348,7 @@ fn metiers_ajoutes(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(refus(format!("Metier(s) hors catalogue : {}.", inconnus.join(", "))));
     }
     let codes: Vec<String> = codes.iter().filter_map(|c| c.as_str().map(str::to_string)).collect();
+    let n = codes.len();
     let (avant, retires) = crate::routes::ouverture::preferences_metiers(&ctx.racine)?;
     let apres: Vec<String> = if retirer {
         avant.into_iter().filter(|c| !codes.contains(c)).collect()
@@ -1361,7 +1362,9 @@ fn metiers_ajoutes(ctx: &Contexte, charge: &Value) -> R<Value> {
         v
     };
     ecrire_preferences(ctx, &apres, &retires)?;
-    emplois_rendus(ctx)
+    let mut v = emplois_rendus(ctx)?;
+    v["phrase"] = json!(format!("{} métier(s) {} la liste des métiers.", n, if retirer { "retiré(s) de" } else { "ajouté(s) à" }));
+    Ok(v)
 }
 
 // ------------------------------------------------------------- enregistrer-fiche

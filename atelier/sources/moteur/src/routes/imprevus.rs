@@ -56,7 +56,7 @@ pub const ROUTES: &[Fiche] = &[
     fiche("imprevus", "Lire les imprévus d'un mois ou d'un salarié, et ce qu'on peut en saisir.",
         &[MOIS, Champ { nom: "salarie", sens: "à la place du mois : les imprévus de ce salarié", avance: true }],
         r#"{"mois":"2026-11"}"#, "imprevus (chacun résumé, un arrêt avec ses obligations), nomenclatures", Acte::Lit, false),
-    Fiche { ecran: Ecran::Auto(Place::Exports), ..fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "arrets : chacun résumé", Acte::Lit, true) },
+    Fiche { ecran: Ecran::Auto(Place::Exports), ..fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "phrases (qui, quand, le motif, ce qui reste à signaler), arrets : chacun résumé", Acte::Lit, true) },
     fiche("fins-de-contrat", "Lire les fins de contrat dues ce mois, et ce qui manque à chacune.", &[MOIS],
         r#"{"mois":"2026-11"}"#, "fins : chacune avec ce qui est fait et ce qui manque", Acte::Lit, false),
     fiche("arret-contrats", "Lire les contrats qu'un arrêt suspendrait à ce jour.",
@@ -1427,7 +1427,22 @@ fn arrets(ctx: &Contexte) -> R<Value> {
         resumes.push(r);
     }
     let subrogation = n.get("subrogation").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("subrogation")))?;
+    // Ce que l'ecran lit (Exports › Avancé) : qui, quand, le motif, ce qui reste a signaler.
+    let phrases: Vec<String> = resumes
+        .iter()
+        .map(|r| {
+            let t = |k: &str| r.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+            let fin = if t("fin_previsionnelle").is_empty() { String::new() } else { format!(", fin prévue le {}", crate::routes::quand(&t("fin_previsionnelle"))) };
+            let reste = match t("etat").as_str() {
+                "a signaler" => "à signaler",
+                "signale" => "signalé",
+                _ => "sans signalement",
+            };
+            format!("{} : dernier jour travaillé le {}{} — {} — {}", t("salarie"), crate::routes::quand(&t("dernier_jour_travaille")), fin, t("motif_libelle"), reste)
+        })
+        .collect();
     Ok(json!({
+        "phrases": phrases,
         "arrets": resumes,
         "a_signaler": a_signaler,
         "motifs": saisissables(&n, "motifs_arret")?,

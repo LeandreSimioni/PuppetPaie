@@ -91,7 +91,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Faire partir chez le développeur les messages qui attendent.",
         charge: &[],
         exemple: r#"{}"#,
-        rend: "le bilan du passage (partis, reste, erreur) ; ne refuse jamais",
+        rend: "le bilan du passage (partis, reste, erreur), phrase ; ne refuse jamais",
         refus: &[OPERATION],
         acte: Acte::Ecrit,
         avance: true,
@@ -151,7 +151,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Lire les incidents gardés sur le poste.",
         charge: &[QUOI, Champ { nom: "en_attente", sens: "vrai : seulement ceux qui ne sont pas partis", avance: true }],
         exemple: r#"{}"#,
-        rend: "lignes (les plus récentes en dernier)",
+        rend: "phrases (une par incident), lignes (les plus récentes en dernier)",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: true,
@@ -163,7 +163,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Regrouper les incidents gardés, le plus fréquent en tête.",
         charge: &[QUOI],
         exemple: r#"{}"#,
-        rend: "paquets",
+        rend: "phrases (une par paquet), paquets",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: true,
@@ -175,7 +175,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Déposer chez le développeur les incidents qui attendent.",
         charge: &[],
         exemple: r#"{}"#,
-        rend: "envoyes, reste, erreur, sans_serveur ; ne refuse jamais",
+        rend: "envoyes, reste, erreur, sans_serveur, phrase ; ne refuse jamais",
         refus: &[OPERATION],
         acte: Acte::Ecrit,
         avance: true,
@@ -187,7 +187,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Effacer les incidents gardés, tous ou d'une nature.",
         charge: &[QUOI],
         exemple: r#"{"quoi":"logiciel"}"#,
-        rend: "retires (le nombre)",
+        rend: "retires (le nombre), phrase",
         refus: &[OPERATION],
         acte: Acte::Ecrit,
         avance: true,
@@ -280,7 +280,7 @@ fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: 
             etat["couleur"] = json!(couleur);
             Ok(etat)
         }
-        "incidents-envoyer" => Ok(incidents::envoyer(racine)),
+        "incidents-envoyer" => Ok(avec_phrase(incidents::envoyer(racine), phrase_d_envoi)),
         // `{"actif": bool}` : couper ou rendre l'envoi des incidents a l'editeur.
         "diagnostic-regler" => {
             incidents::regler_envoi(racine, vrai(&charge["actif"]))?;
@@ -288,14 +288,21 @@ fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: 
         }
         "incidents-lire" => {
             let (nature, en_attente) = (nature_voulue(charge), vrai(&charge["en_attente"]));
-            Ok(json!({"lignes": incidents::lire(racine, nature.as_deref(), en_attente)?}))
+            let lignes = incidents::lire(racine, nature.as_deref(), en_attente)?;
+            Ok(json!({"phrases": lignes.iter().map(phrase_d_incident).collect::<Vec<_>>(), "lignes": lignes}))
         }
-        "incidents-regrouper" => Ok(json!({"paquets": incidents::regrouper(racine, nature_voulue(charge).as_deref())?})),
-        "incidents-oublier" => Ok(json!({"retires": incidents::oublier(racine, nature_voulue(charge).as_deref())})),
+        "incidents-regrouper" => {
+            let paquets = incidents::regrouper(racine, nature_voulue(charge).as_deref())?;
+            Ok(json!({"phrases": paquets.iter().map(phrase_de_paquet).collect::<Vec<_>>(), "paquets": paquets}))
+        }
+        "incidents-oublier" => {
+            let n = incidents::oublier(racine, nature_voulue(charge).as_deref());
+            Ok(json!({"retires": n, "phrase": format!("{} incident(s) effacé(s) de ce poste.", n)}))
+        }
         "signalement-apercu" => problemes::apercu(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
         "signalement-envoyer" => problemes::envoyer(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
         "signalements-lus" => Ok(json!({"lues": problemes::signalements_lus(racine)?})),
-        "signalements-partir" => Ok(problemes::partir(racine)),
+        "signalements-partir" => Ok(avec_phrase(problemes::partir(racine), phrase_d_envoi)),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -428,4 +435,43 @@ pub(crate) fn signalements_route(racine: &Path) -> R<Value> {
         }
     }
     Ok(json!({"signalements": liste, "non_lues": non_lues}))
+}
+
+/// LES PHRASES QUE L'ECRAN LIT de ces routes, sous « Un problème, une idée ? » › Avancé : ce que ce poste a envoyé au
+/// développeur, et ce qui attend.
+fn avec_phrase(mut v: Value, phrase: fn(&Value) -> String) -> Value {
+    let p = phrase(&v);
+    v["phrase"] = json!(p);
+    v
+}
+
+/// Un passage d'envoi (incidents ou messages) : ce qui est parti, ce qui attend, et pourquoi.
+fn phrase_d_envoi(v: &Value) -> String {
+    let n = |k: &str| v.get(k).and_then(Value::as_u64).unwrap_or(0);
+    let erreur = v.get("erreur").map(valeur_en_texte).unwrap_or_default();
+    if v.get("sans_serveur").is_some_and(vrai) {
+        return "Aucun serveur de l'éditeur n'est configuré : rien ne part.".to_string();
+    }
+    if v.get("occupe").is_some_and(vrai) {
+        return "Un autre envoi est en cours : il prend aussi ceux-ci.".to_string();
+    }
+    let partis = n("envoyes").max(n("partis"));
+    let mut p = format!("{} parti(s) chez le développeur ; {} en attente.", partis, n("reste"));
+    if !erreur.is_empty() {
+        p.push_str(&format!(" {}", erreur));
+    }
+    p
+}
+
+/// Un incident garde : quand, sa nature, ce qu'il dit, et s'il est parti.
+fn phrase_d_incident(l: &Value) -> String {
+    let t = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let parti = l.get("envoi").and_then(|e| e.get("etat")).and_then(Value::as_str) == Some(DEPOSE);
+    format!("{} · {} · {} — {}", super::quand(&t("quand")), t("quoi"), t("resume"), if parti { "parti" } else { "pas encore parti" })
+}
+
+/// Un paquet d'incidents semblables : combien, sa nature, ce qu'il dit, le dernier.
+fn phrase_de_paquet(p: &Value) -> String {
+    let t = |k: &str| p.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    format!("{} fois · {} · {} — le dernier le {}", t("combien"), t("quoi"), t("resume"), super::quand(&t("derniere")))
 }
