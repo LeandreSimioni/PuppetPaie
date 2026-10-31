@@ -937,7 +937,7 @@ revérifie pas en ligne est `manuelle`, avec la page à ouvrir. **`--relever`**
 côté** de l'ancienne, suffixée du jour, jamais par-dessus. `--json` rend la
 même chose pour un programme.
 
-C'est un **outil de l'éditeur**, lancé avant chaque publication (`atelier/CLAUDE.md`,
+C'est un **outil de l'éditeur**, lancé avant chaque publication (`atelier/AGENTS.md`,
 « Publier une version ») : la commande est dans le `moteur` livré, comme
 `moteur maj --publier`, et refusée de la même façon ailleurs que sur son poste
 (le réglage de l'installation, `"editeur": true` ; jamais depuis une copie). Elle
@@ -1674,7 +1674,7 @@ la seconde est celle qui sert tous les jours : `logiciel/` a pour destination
 un dépôt public, et une autre compagnie utilisera ce code avec **ses**
 données à elle — le logiciel doit donc savoir que les siennes sont ailleurs.
 
-Le rangement (`atelier/CLAUDE.md`, « Où sont les choses ») :
+Le rangement (`atelier/AGENTS.md`, « Où sont les choses ») :
 
 ```
 PuppetPaie.cmd            le lanceur (Windows)

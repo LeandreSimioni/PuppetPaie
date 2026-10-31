@@ -1448,7 +1448,7 @@
         "citation": "CCH-11 : La rubrique \"Numéro objet spectacle - S21.G00.40.050\" n'est autorisée que si la rubrique \"Nature du contrat"
       },
       "ciblage": "quand la compagnie a des permanents",
-      "certitude": "sourcé (« PuppetPaie le retire » : `R CLAUDE.md` règle 6 — le moteur refuse/retire hors natures 02 et 10)"
+      "certitude": "sourcé (« PuppetPaie le retire » : `atelier/AGENTS.md` règle 6 — le moteur refuse/retire hors natures 02 et 10)"
     },
     {
       "id": "objet-spectacle-renouvele",
@@ -2170,7 +2170,7 @@
         "citation": "Après chaque dépôt, les organismes répondent : accusé, certificat de conformité, bilans, puis les comptes-rendus métier."
       },
       "ciblage": "quand une DSN réelle est déposée et le bilan n'est pas relevé",
-      "certitude": "sourcé (doc du dépôt ; « le bilan seul dit… » vient de `R CLAUDE.md` règle 5 : accusé de transport OK n'est pas une déclaration acceptée)"
+      "certitude": "sourcé (doc du dépôt ; « le bilan seul dit… » vient de `atelier/AGENTS.md` règle 5 : accusé de transport OK n'est pas une déclaration acceptée)"
     },
     {
       "id": "dsn-fait-generateur-2027",

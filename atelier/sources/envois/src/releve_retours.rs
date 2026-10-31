@@ -2,7 +2,7 @@
 //!
 //! RELEVER EST UNE LECTURE : on archive sans rien demander a personne, aucune seance n'est exigee, rien
 //! n'est applique. L'archive brute est la piece justificative : elle est ecrite avant toute analyse. Un 404
-//! sur une tranche veut dire << rien sur cette tranche >>, tout autre refus arrete (CLAUDE.md, regle 5).
+//! sur une tranche veut dire << rien sur cette tranche >>, tout autre refus arrete (atelier/AGENTS.md, regle 5).
 //!
 //! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, que `moteur` prend a
 //! la variable d'environnement du service ou au coffre. Le mot de passe sert le temps de l'authentification

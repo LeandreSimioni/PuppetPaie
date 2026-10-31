@@ -1,7 +1,7 @@
 #!/bin/bash
 # Seances Claude dans le nuage seulement : la suite de tests se compile d'avance, en arriere-plan, des l'ouverture
 # du conteneur (6 min a froid) ; la suite livree seulement : celle de l'atelier a sa propre cible et ne se lance que
-# quand on touche a l'atelier (`atelier/CLAUDE.md`, « Les tests »). A la fin de la seance, `cargo nextest run` ne
+# quand on touche a l'atelier (`atelier/AGENTS.md`, « Les tests »). A la fin de la seance, `cargo nextest run` ne
 # recompile que ce qui a change (`cargo test` si nextest manque).
 # Le poste de Leandre, une installation ordinaire, n'est pas concerne.
 set -euo pipefail

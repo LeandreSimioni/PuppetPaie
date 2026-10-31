@@ -41,7 +41,7 @@
 #
 # Le numero de version est la date du jour (AAAA.MM.JJ, lue JJ.MM.AAAA), posee par le flux ; `.2`, `.3`... le meme jour.
 # Les programmes Mac ne sont pas signes par Apple (aucun texte depose ici ne dit ce que macOS en exige).
-# Aucun agent n'approuve un deploiement (atelier/CLAUDE.md). Sources : atelier/reference/sources/github/.
+# Aucun agent n'approuve un deploiement (atelier/AGENTS.md). Sources : atelier/reference/sources/github/.
 
 name: Publier
 

@@ -1693,8 +1693,8 @@ vit dans `moteur/tests/` ; un test qui n'appelle qu'une crate sur des valeurs vi
 | interface | `moteur/tests/routes/`, `interface_fichiers.rs`, `interface_http.rs`, `src/interface/`, `src/routes/` | 20 | une route refuse et rien n'est écrit ; l'ouverture |
 | compagnie | `moteur/tests/fichiers/` (coffre, clé de signature, mise à jour, sauvegarde, restauration, archivage, bridage, essai, installations, Drive, banque des conseils), `tests/routes/compagnie_supprimee.rs`, `demarrage.rs`, `tests/drive_jeton.rs`, `src/compagnie/` | 40 | le coffre et ses deux mots de passe, la signature des mises à jour et la forme des archives, la sauvegarde et la restauration, le bridage |
 | import | `moteur/tests/fichiers/bulletin_lu.rs`, `caviardage.rs`, `tests/routes/import_neuve.rs`, `src/import/` | 15 | un passé importé se relit (bulletins, DSN) ; ce qui part chez l'éditeur ne désigne personne |
-| atelier | `moteur/tests/fichiers/donnees_reelles.rs`, `garde_reseau.rs`, `verifier_avant_commit.rs`, `referentiels.rs`, `tests/atelier.rs`, la garde de l'horloge | 15 | les garde-fous de `atelier/CLAUDE.md` ; la fidélité des référentiels livrés aux textes déposés ; le binaire livré ne porte rien de l'atelier |
+| atelier | `moteur/tests/fichiers/donnees_reelles.rs`, `garde_reseau.rs`, `verifier_avant_commit.rs`, `referentiels.rs`, `tests/atelier.rs`, la garde de l'horloge | 15 | les garde-fous de `atelier/AGENTS.md` ; la fidélité des référentiels livrés aux textes déposés ; le binaire livré ne porte rien de l'atelier |
 | parcours | `moteur/tests/rejeu.rs` | 4 | un scénario joué de bout en bout à l'horloge, ses sorties comparées à un oracle |
 
-Total visé : environ 350, plafond 400. La commande, et ce qu'un exécutant lance : `atelier/CLAUDE.md`, « Faire
+Total visé : environ 350, plafond 400. La commande, et ce qu'un exécutant lance : `atelier/AGENTS.md`, « Faire
 tourner le code dans le conteneur, et les tests ».

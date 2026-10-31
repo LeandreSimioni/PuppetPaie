@@ -2,7 +2,7 @@
 
 **PuppetPaie est un logiciel de paie du spectacle vivant, pour toute compagnie qui emploie des artistes et des
 techniciens**, intermittents au cachet comme salariés permanents. Moteur Rust (`moteur`) et fenêtre (`puppetpaie`),
-multiplateforme. Les consignes complètes d'un agent sont dans `CLAUDE.md`, à côté.
+multiplateforme. Les consignes complètes d'un agent sont dans `AGENTS.md`, à côté.
 
 Deux dépôts, et une frontière à retenir : **le code est public, les données d'une compagnie ne sont dans aucun dépôt.**
 

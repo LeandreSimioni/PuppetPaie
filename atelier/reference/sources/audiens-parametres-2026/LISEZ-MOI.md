@@ -59,7 +59,7 @@ Pages du PDF (le pied de page numérote 2 à 4 ; la page 1 n'a pas de numéro) :
 
 - `logiciel/donnees/sources.json`, source `audiens-parametres-et-taux-2026` : « Source des taux `retraite_t1` du
   socle » (p. 3), `nourrit` : `baremes/2026.json`. La vérification des sources n'est pas portée en Rust
-  (`atelier/CLAUDE.md`) : le chemin y est tenu à jour pour le jour où elle le sera.
+  (`atelier/AGENTS.md`) : le chemin y est tenu à jour pour le jour où elle le sera.
 - `logiciel/donnees/baremes/2026.json` et `2025.json` : les notes `_source` de l'Apec d'un cadre, la cotisation
   « 132 - Cotisation Apec » (`par_categorie.cadre.cotisations_ajoutees` et `par_categorie.cadre_permanent`) : taux,
   parts et assiette des lignes `apec_t1` / `apec_t2` du bulletin (p. 3 et p. 4). Le barème 2025 cite ce millésime
