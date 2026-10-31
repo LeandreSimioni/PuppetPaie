@@ -787,8 +787,9 @@ fn raison(avant: &Value, apres: &Value, parti: bool) -> String {
     if code && parti {
         return CALCUL_CORRIGE.to_string();
     }
-    // La saisie d'un mois : `<le mois>:<ses engagements>` (`stock::empreinte_de_saisie`).
-    let saisies: Vec<&String> = changees.iter().copied().filter(|k| k.starts_with("saisie ")).collect();
+    // La saisie dont la paie depend : `<le mois>:<les engagements de son salarie>` (`stock::empreinte_de_saisie`), lue
+    // des deux cotes ; une saisie que l'une des deux paies n'a pas lue ne dit pas qu'un engagement a change.
+    let saisies: Vec<&String> = changees.iter().copied().filter(|k| k.starts_with("saisie ") && ea.contains_key(*k) && eb.contains_key(*k)).collect();
     let part = |e: &BTreeMap<String, String>, k: &str, i: usize| e.get(k).and_then(|v| v.split(':').nth(i).map(String::from));
     if saisies.iter().any(|k| part(&ea, k, 1) != part(&eb, k, 1)) {
         return AUTRE_ENGAGEMENT.to_string();
