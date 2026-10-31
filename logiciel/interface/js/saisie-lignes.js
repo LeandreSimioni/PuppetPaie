@@ -333,11 +333,11 @@ function ouvrirCalendrier(ligne, moisForce) {
   // Les contrats passés, par mois affiché, chargés à la demande. `null`
   // tant qu'on attend le serveur : la grille se dessine sans, puis se redessine.
   const passes = new Map();
-  const salaries = [bloc ? salarieDuBloc(bloc) : ""].filter(Boolean);
+  const salarie = (bloc && salarieDuBloc(bloc)) || null;
   const chargerPasses = (m) => {
     if (passes.has(m)) return;
     passes.set(m, null);
-    api("contrats-passes", { mois: m, salaries }).then((r) => {
+    api("contrats-passes", { mois: m, salarie }).then((r) => {
       passes.set(m, r.contrats || []);
       if (vue === m && cal.isConnected) dessiner();
     }).catch(() => passes.set(m, []));

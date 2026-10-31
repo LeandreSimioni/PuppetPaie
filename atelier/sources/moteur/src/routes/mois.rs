@@ -1320,12 +1320,11 @@ fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
 /// le calendrier des mois passes. Deux sources, la meme regle que
 /// Un mois qui a son fichier de paie est lu la (avec
 /// ses jours exacts), l'historique importe des AEM parle pour les autres.
-/// Trie par salarie puis debut.
-fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<Vec<Passe>> {
+/// Trie par salarie puis debut. `salarie` : ses seuls contrats (absent : ceux de tous).
+fn contrats_passes(ctx: &Contexte, mois: &Value, salarie: Option<&str>) -> R<Vec<Passe>> {
     let texte = valeur_en_texte(mois);
     let (premier, dernier) = (format!("{}-01", texte), format!("{}-31", texte));
-    let voulus: HashSet<String> = parcourir(salaries)?.into_iter().filter_map(|v| v.as_str().map(String::from)).collect();
-    let voulu = |cle: &Value| voulus.is_empty() || cle.as_str().is_some_and(|c| voulus.contains(c));
+    let voulu = |cle: &Value| salarie.is_none_or(|s| cle.as_str() == Some(s));
     let spectacles = Spectacles::nouveau(ctx)?;
 
     let mut couverts: HashSet<String> = HashSet::new();
@@ -1407,13 +1406,8 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
             continue;
         }
         let cle = e.get("salarie").cloned().unwrap_or_else(|| json!(""));
-        if !voulus.is_empty() {
-            if matches!(cle, Value::Array(_) | Value::Object(_)) {
-                return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&cle))));
-            }
-            if !voulu(&cle) {
-                continue;
-            }
+        if !voulu(&cle) {
+            continue;
         }
         let numero = texte_de("numero_objet");
         let compte = |k: &str| e.get(k).filter(|x| vrai(x)).map_or(Ok(0), entier_de);
@@ -1466,8 +1460,8 @@ fn historique(ctx: &Contexte) -> R<Vec<Value>> {
 
 fn contrats_passes_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = exiger(charge, "mois")?;
-    let salaries = charge.get("salaries");
-    let contrats: Vec<Value> = contrats_passes(ctx, mois, salaries)?.iter().map(Passe::json).collect();
+    let salarie = charge.get("salarie").and_then(Value::as_str).filter(|s| !s.is_empty());
+    let contrats: Vec<Value> = contrats_passes(ctx, mois, salarie)?.iter().map(Passe::json).collect();
     Ok(json!({"mois": mois, "contrats": contrats}))
 }
 
