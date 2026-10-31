@@ -206,7 +206,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             engs.sort_by_key(|e| texte(e, "fin"));
             for e in engs {
                 let jj_mm_aa = |iso: String| -> String {
-                    // `strftime("%d/%m/%y")`
+                    // JJ/MM/AA.
                     let c: Vec<char> = iso.chars().collect();
                     if c.len() >= 10 {
                         format!("{}{}/{}{}/{}{}", c[8], c[9], c[5], c[6], c[2], c[3])

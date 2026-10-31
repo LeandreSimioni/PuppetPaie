@@ -3,7 +3,7 @@
 
 use serde_json::{json, Value};
 
-/// `json.dumps(charge, ensure_ascii=False, indent=2)` suivi d'un saut de ligne, comme `cli._rendre`.
+/// La charge en JSON indente de deux espaces, suivi d'un saut de ligne.
 /// Rend le code de sortie : 0 si `ok`, 2 sinon.
 pub fn rendre(charge: &Value) -> i32 {
     dire!("{}", socle::ecriture::json_indente(charge, 2));
@@ -54,7 +54,7 @@ pub fn debut(t: &str, n: usize) -> String {
 }
 
 
-/// `x.get("quand")[:16].replace("T", " ")` -- l'heure d'une ligne de journal.
+/// L'heure d'une ligne de journal : `AAAA-MM-JJ HH:MM`.
 pub fn quand_court(v: Option<&Value>) -> String {
     let t = v.filter(|x| socle::fichiers::vrai(x)).map(texte).unwrap_or_default();
     debut(&t, 16).replace('T', " ")

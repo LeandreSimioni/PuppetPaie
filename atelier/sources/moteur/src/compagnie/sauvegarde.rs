@@ -410,7 +410,7 @@ pub fn rien_n_a_bouge(racine: &Path, racine_drive: &str) -> bool {
     })
 }
 
-/// `etat["x"] != ancien.get("x")` : un nombre JSON egal, entier ou flottant (`5 == 5.0`).
+/// Un nombre JSON egal a `x`, entier ou flottant (`5` et `5.0`).
 fn egal(v: Option<&Value>, x: f64) -> bool {
     v.and_then(Value::as_f64).is_some_and(|a| a == x)
 }
@@ -421,7 +421,7 @@ pub struct Derniere {
     /// Tel que l'index le porte (un texte, en pratique).
     pub quand: Value,
     pub fichiers: usize,
-    /// `index.get("racine_drive", "")`.
+    /// La racine du Drive, vide si l'index n'en dit pas.
     pub racine_drive: Value,
 }
 
@@ -435,7 +435,7 @@ impl Derniere {
 pub fn derniere(racine: &Path) -> Derniere {
     let index = lire_index(racine);
     let brut = |c: &str| index.get(c).cloned().unwrap_or_else(|| json!(""));
-    // `len(index.get("fichiers") or {})`
+    // Le nombre de fichiers de l'index.
     let fichiers = match index.get("fichiers") {
         Some(Value::Object(o)) => o.len(),
         Some(Value::Array(a)) => a.len(),

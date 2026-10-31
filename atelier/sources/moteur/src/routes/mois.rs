@@ -514,7 +514,6 @@ fn cochees(ctx: &Contexte) -> R<Map<String, Value>> {
     match o.get("fait") {
         None => Ok(Map::new()),
         Some(Value::Object(f)) => Ok(f.clone()),
-        // `.get("fait", {})` rend ce qui s'y trouve, et `in` s'y applique.
         Some(autre) => Err(erreur("TypeError", format!("'fait' : {}", socle::fichiers::attendu("un objet", nom_type(autre))))),
     }
 }
@@ -1463,9 +1462,7 @@ fn contrats_passes_route(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------------------ emploi
 
-/// `emplois.resoudre(charge["metier"], cadre=charge.get("cadre"),
-/// feminin=bool(charge.get("feminin")))` : un metier du catalogue traduit en
-/// champs de fiche, pour le formulaire salarie.
+/// Un metier du catalogue traduit en champs de fiche, pour le formulaire salarie.
 fn emploi(charge: &Value) -> R<Value> {
     let code = exiger(charge, "metier")?;
     let cadre = match charge.get("cadre") {

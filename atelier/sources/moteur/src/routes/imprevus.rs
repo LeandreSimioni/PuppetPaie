@@ -1363,7 +1363,7 @@ pub(crate) fn saisissables(n: &Value, quoi: &str) -> R<Vec<Value>> {
     Ok(out)
 }
 
-/// `Arret.libelle_motif` : `_codes("motifs_arret").get(motif, {}).get("libelle", "?")`.
+/// Le libelle du motif d'arret dans les codes de la norme, `?` s'il n'y est pas.
 fn libelle_motif(n: &Value, motif: &Value) -> R<Value> {
     if matches!(motif, Value::Array(_) | Value::Object(_)) {
         return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(motif))));

@@ -130,7 +130,7 @@ pub fn fin_de_validite(e: &Value) -> Option<Jour> {
     Jour::nouveau(an, m, jours_du_mois(an, m))
 }
 
-/// `str(e.get("type"))`.
+/// Le type, en texte.
 fn type_texte(e: &Value) -> String {
     en_texte(e.get("type").unwrap_or(&Value::Null))
 }

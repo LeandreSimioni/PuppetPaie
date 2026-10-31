@@ -396,7 +396,7 @@ fn est_copie(racine: &Path) -> bool {
     racine.join(MARQUEUR_COPIE).is_file()
 }
 
-/// `datetime.now().strftime("%d/%m/%Y %H:%M")`, a l'heure de Paris.
+/// L'heure de Paris, `JJ/MM/AAAA HH:MM`.
 fn quand_maintenant() -> String {
     let iso = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
     format!("{}/{}/{} {}:{}", &iso[8..10], &iso[5..7], &iso[0..4], &iso[11..13], &iso[14..16])

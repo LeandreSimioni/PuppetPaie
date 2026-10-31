@@ -243,7 +243,7 @@ pub fn services_connus() -> Vec<&'static str> {
     noms
 }
 
-/// `datetime.now().isoformat(timespec="minutes")` a l'heure de Paris : ce que le coffre note comme date de pose.
+/// L'heure de Paris, a la minute : ce que le coffre note comme date de pose.
 pub fn maintenant_minutes() -> String {
     let t = socle::temps::secondes();
     socle::paris::iso_minutes(t)

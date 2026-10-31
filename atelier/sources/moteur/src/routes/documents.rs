@@ -694,7 +694,7 @@ pub(crate) fn charge_texte(charge: &Value, cle: &str) -> R<String> {
     Ok(valeur_en_texte(requis(charge, cle)?))
 }
 
-/// `Preuve(motdepasse=charge.get("motdepasse"))`.
+/// La preuve que la charge porte : le mot de passe tape.
 pub(crate) fn preuve_de(charge: &Value) -> Preuve {
     Preuve::de_la_charge(charge)
 }

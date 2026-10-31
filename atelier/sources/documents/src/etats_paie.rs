@@ -286,7 +286,7 @@ pub fn cle_de(fiche: &Value) -> R<String> {
     Ok(valeur_en_texte(fiche.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?))
 }
 
-/// Le titre du spectacle d'une paie (`(p.spectacle or {}).get("titre") or ""`).
+/// Le titre du spectacle d'une paie.
 pub fn titre_spectacle(p: &Paie) -> String {
     p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte).unwrap_or_default()
 }

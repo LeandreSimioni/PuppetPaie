@@ -448,7 +448,7 @@ fn parametres_de<'a>(horodatage: &'a str, heure: &str, code: &str, ent: &'a Valu
     Parametres { horodatage, heure_embauche: heure.to_string(), code_urssaf: json!(code), ent: Some(ent), chemins }
 }
 
-/// `AAAA-MM-JJTHH:MM:SS` -> `JJMMAAAAHHMM` (`strftime("%d%m%Y%H%M")`).
+/// `AAAA-MM-JJTHH:MM:SS` -> `JJMMAAAAHHMM`.
 fn horodatage(iso: &str) -> String {
     format!("{}{}{}{}{}", &iso[8..10], &iso[5..7], &iso[0..4], &iso[11..13], &iso[14..16])
 }

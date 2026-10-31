@@ -332,7 +332,7 @@ fn lire_texte(p: &Path) -> R<String> {
     String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))
 }
 
-/// `json.loads(p.read_text(encoding="utf-8"))`.
+/// Le JSON d'un fichier UTF-8.
 fn lire_json(p: &Path) -> R<Value> {
     serde_json::from_str(&lire_texte(p)?).map_err(|e| erreur("JSONDecodeError", e.to_string()))
 }
@@ -346,9 +346,8 @@ pub(crate) fn lire_json_ou_vide(p: &Path) -> R<Value> {
     }
 }
 
-/// `try: json.loads(p.read_text(...)) except ValueError: ...` : `None` quand le
-/// fichier est absent, illisible comme texte ou comme JSON ; un autre refus du
-/// disque (`OSError`) se leve.
+/// Le JSON d'un fichier : `None` quand il est absent, illisible comme texte ou comme JSON ; un autre refus du
+/// disque se leve.
 fn lire_json_tolerant(p: &Path) -> R<Option<Value>> {
     if !p.exists() {
         return Ok(None);

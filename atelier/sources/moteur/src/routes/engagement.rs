@@ -51,7 +51,7 @@ pub(super) fn booleen(charge: &Value, cle: &str, defaut: bool) -> bool {
     charge.get(cle).map_or(defaut, vrai)
 }
 
-/// `datetime.now().isoformat(timespec="seconds")`, a l'heure de Paris.
+/// L'heure de Paris, a la seconde.
 pub(super) fn maintenant() -> String {
     let t = socle::temps::secondes();
     socle::paris::iso_secondes(t)

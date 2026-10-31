@@ -59,7 +59,7 @@ impl Jour {
         Err(format!("date illisible : {}", repr_texte(s)))
     }
 
-    /// `AAAA-MM-JJ`, ce que `isoformat()` et `str(date)` ecrivent.
+    /// `AAAA-MM-JJ`.
     pub fn iso(&self) -> String {
         format!("{:04}-{:02}-{:02}", self.an, self.mois, self.jour)
     }

@@ -37,7 +37,7 @@ fn valeur_de_rubrique(texte: &str, rubrique: &str) -> Option<String> {
     texte.split('\n').find_map(|l| l.strip_prefix(debut.as_str())?.strip_suffix('\'').map(str::to_string))
 }
 
-/// La cle de la fiche qui porte ce NIR (`next(c for c, f in ctx.salaries.items() if f.get("nir") == nir)`).
+/// La cle de la fiche qui porte ce NIR.
 fn cle_du_nir(ctx: &Contexte, nir: &str) -> Option<String> {
     ctx.salaries.iter().find(|(_, f)| f.is_object() && f.get("nir").and_then(Value::as_str) == Some(nir)).map(|(c, _)| c.clone())
 }

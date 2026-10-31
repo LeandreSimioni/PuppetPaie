@@ -610,7 +610,7 @@ fn jjmmaaaa(iso: &str) -> String {
 fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let qui = qui_de(charge);
     use crate::import::casc::{ecrire, marquer_regularise, regularisation, Demande};
-    // `charge.get("vire_le") or {}`.
+    // Les virements : une table nom -> valeur, vide si la charge n'en dit pas.
     let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {
         None => Vec::new(),
         Some(Value::Object(o)) => o.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),

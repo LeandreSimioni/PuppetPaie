@@ -204,7 +204,7 @@ fn libelle_compte(plan: &Map<String, Value>, compte: &str) -> R<String> {
     Ok(String::new())
 }
 
-/// `regle.get("libelle", "")`.
+/// Le texte d'une valeur, vide si elle manque.
 fn texte_brut(v: Option<&Value>) -> String {
     v.map(valeur_en_texte).unwrap_or_default()
 }

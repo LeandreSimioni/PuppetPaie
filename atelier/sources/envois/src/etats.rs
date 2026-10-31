@@ -221,12 +221,12 @@ pub fn accepte(l: &Value) -> R<bool> {
     Ok(vrai(get(l, "accepte")?))
 }
 
-/// `l.get("detail", {}).get(k, [])`, parcouru.
+/// Les elements du `detail` de la ligne sous la cle `k`, parcourus ; aucun si elle manque.
 fn detail_liste<'a>(l: &'a Value, k: &str) -> R<Vec<Cow<'a, Value>>> {
     items(getd(getd(l, "detail", objet_vide())?, k, &LISTE_VIDE)?)
 }
 
-/// `(l.get("detail") or {}).get(k, [])`, parcouru.
+/// Les elements du `detail` de la ligne sous la cle `k`, parcourus ; aucun si le detail ou la cle manque.
 fn detail_ou_liste<'a>(l: &'a Value, k: &str) -> R<Vec<Cow<'a, Value>>> {
     items(getd(ou(get(l, "detail")?, objet_vide()), k, &LISTE_VIDE)?)
 }
@@ -750,7 +750,7 @@ pub fn flux_de_test(lignes: &[Value]) -> R<Value> {
 
 // ------------------------------------------------------------------- resume
 
-/// `util.quand_lisible` avec sa liaison par defaut.
+/// Un horodatage ISO a la francaise, ou vide.
 pub fn quand_lisible(iso: &Value) -> String {
     let t = if vrai(iso) { valeur_en_texte(iso) } else { String::new() };
     let c: Vec<char> = t.chars().collect();

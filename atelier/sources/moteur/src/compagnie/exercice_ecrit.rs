@@ -45,7 +45,7 @@ fn est_une_erreur_d_operation(e: &Echec) -> bool {
     matches!(e.classe, None | Some("ErreurOperation") | Some("SaisieIncomplete"))
 }
 
-/// L'heure de Paris, a la seconde (`datetime.now().isoformat(timespec="seconds")`).
+/// L'heure de Paris, a la seconde.
 fn maintenant() -> String {
     let t = socle::temps::secondes();
     socle::paris::iso_secondes(t)

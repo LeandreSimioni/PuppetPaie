@@ -71,7 +71,7 @@ pub fn recouper_les_entetes(brut: &[u8]) -> std::borrow::Cow<'_, [u8]> {
     std::borrow::Cow::Owned(refait)
 }
 
-/// `(message.get("Message-ID") or "").strip()`.
+/// L'identifiant du message (`Message-ID`), sans blancs aux bords ; vide s'il manque.
 pub fn identifiant_de(m: &ParsedMail) -> String {
     socle::texte::strip(&m.headers.get_first_value("Message-ID").unwrap_or_default()).to_string()
 }

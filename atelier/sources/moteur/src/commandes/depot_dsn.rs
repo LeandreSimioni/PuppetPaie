@@ -57,7 +57,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
-/// Un horodatage ISO a la francaise, avec ` a ` (`util.quand_lisible(x, " a ")`).
+/// Un horodatage ISO a la francaise, avec « a » sans accent.
 pub(crate) fn quand_a(v: &Value) -> String {
     envois::etats::quand_lisible(v).replace(" à ", " a ")
 }

@@ -151,7 +151,7 @@ fn truthy(v: Option<&Value>) -> bool {
     v.map_or(false, vrai)
 }
 
-/// `str(x.get("lieu") or "").strip()`.
+/// Le lieu en texte, sans blancs aux bords ; vide s'il manque.
 fn lieu_texte(v: Option<&Value>) -> String {
     match v {
         Some(x) if vrai(x) => en_texte(x).trim().to_string(),
@@ -900,7 +900,7 @@ pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&Value>) -> String {
     chaine(salarie).filter(|s| !s.trim().is_empty()).map(|c| ctx.nomme(&c)).unwrap_or_else(|| "Cet engagement".to_string())
 }
 
-/// La nature de l'engagement `e` (`e.get("nature")`) ; un refus nomme son salarie.
+/// La nature de l'engagement `e` ; un refus nomme son salarie.
 fn nature_de(ctx: &Contexte, e: &Value) -> Resultat<Arc<Nature>> {
     natures::nature(chaine(e.get("nature")).as_deref()).map_err(|m| format!("{} : {}", salarie_nomme(ctx, e.get("salarie")), m))
 }

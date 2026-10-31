@@ -104,7 +104,7 @@ fn deux_virgule(x: f64) -> String {
     format!("{:.2}", x).replace('.', ",")
 }
 
-/// `bar.get("annee", "?")` pour un message.
+/// L'annee d'un bareme, `?` si elle manque, pour un message.
 fn annee(bar: &Value) -> String {
     bar.get("annee").map(en_texte).unwrap_or_else(|| "?".to_string())
 }
@@ -1295,7 +1295,7 @@ fiche entreprise ne porte pas a cette date (Configuration › Entreprise › Ava
     Ok(nic)
 }
 
-/// `sal.get("nom") or defaut`.
+/// Le nom du salarie, ou `defaut` s'il n'en a pas.
 fn nom_ou(sal: &Value, defaut: &str) -> String {
     let nom = g(sal, "nom");
     if vrai(nom) {

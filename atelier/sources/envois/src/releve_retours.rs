@@ -27,7 +27,7 @@ use socle::paris::{iso_de_naif, maintenant_naif, naif_de_iso};
 use crate::branchement::{Branchement, ANCIEN_PREFIXE_FLUX_FICTIF, PREFIXE_FLUX_FICTIF};
 use crate::suites::Suites;
 
-/// `strftime("%Y%m%d-%H%M%S")` d'une heure locale naive.
+/// `AAAAMMJJ-HHMMSS` d'une heure locale naive.
 fn horodatage_archive(local: i64) -> String {
     let iso = iso_de_naif(local);
     format!("{}{}{}-{}{}{}", &iso[0..4], &iso[5..7], &iso[8..10], &iso[11..13], &iso[14..16], &iso[17..19])

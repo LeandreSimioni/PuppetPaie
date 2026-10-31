@@ -141,7 +141,7 @@ pub fn signataire_et_raison(ctx: &Contexte) -> R<(String, String)> {
     Ok((signataire, raison))
 }
 
-/// `sal.get("prenom_affichage") or sal["prenom"]`.
+/// Le prenom d'affichage, sinon le prenom.
 fn prenom_de(sal: &Value) -> R<String> {
     match vrai_ou(sal, "prenom_affichage") {
         Some(p) => Ok(p),

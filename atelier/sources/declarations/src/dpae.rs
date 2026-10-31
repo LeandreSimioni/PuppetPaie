@@ -276,8 +276,7 @@ fn medecine_de(ent: &Value, gabarit: &[char]) -> Resultat<String> {
 pub fn employeur(ent: &Value, gabarit: &[char]) -> Resultat<Vec<(&'static str, String)>> {
     let siret = siret_de(ent)?;
     let mt = medecine_de(ent, gabarit)?;
-    // `(ent.get("declarant_dsn") or {}).get("tel") or ent.get("tel") or
-    // (ent.get("signataire") or {}).get("tel") or ""`
+    // Le telephone : celui du declarant DSN, sinon celui de l'entreprise, sinon celui du signataire, sinon rien.
     let tel_de = |k: &str| -> Option<&Value> { ent.get(k).filter(|v| vrai(v)).and_then(|v| v.get("tel")).filter(|v| vrai(v)) };
     let tel = tel_de("declarant_dsn")
         .or_else(|| ent.get("tel").filter(|v| vrai(v)))

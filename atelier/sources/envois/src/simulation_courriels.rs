@@ -338,7 +338,7 @@ pub fn courriels_joues(racine: &Path, apres: &str) -> Value {
 
 // ------------------------------------------------------------------ la boite qui repond
 
-/// Les courriels joues, par leur `Message-ID` (`{(m.get("Message-ID") or "").strip(): m for _, m in courriels(ctx)}`) : le
+/// Les courriels joues, par leur `Message-ID` : le
 /// dernier d'un meme identifiant l'emporte.
 pub fn courriels_par_identifiant(racine: &Path) -> HashMap<String, Vec<u8>> {
     let mut envoyes = HashMap::new();

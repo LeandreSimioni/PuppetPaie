@@ -73,7 +73,7 @@ pub fn fmt_heures(x: Decimal) -> String {
     x.normalize().to_string().replace('.', ",")
 }
 
-/// `util.jj_mm_aaaa` d'une valeur.
+/// Une date ISO en JJ/MM/AAAA.
 pub fn jj_mm_aaaa(v: &Value) -> Resultat<String> {
     Ok(d(v)?.jj_mm_aaaa())
 }

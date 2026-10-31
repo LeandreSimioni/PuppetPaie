@@ -69,7 +69,7 @@ fn en_coffre(x: EchecCoffre) -> Echec {
     Echec { classe: Some(x.classe), message: x.message }
 }
 
-/// `datetime.now().isoformat(timespec="minutes")`, a l'heure de Paris : ce que `coffre._maintenant` posait.
+/// L'heure de Paris, a la minute.
 fn maintenant() -> String {
     let t = socle::temps::secondes();
     socle::paris::iso_minutes(t)
@@ -133,7 +133,7 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let chemin = ctx.racine.join("config").join("entreprise.json");
     if !chemin.exists() {
-        // `json.loads(chemin.read_text())` : le fichier doit etre la.
+        // Le fichier doit etre la.
         return Err(erreur("FileNotFoundError", format!("{} : fichier introuvable", chemin.display())));
     }
     let mut contenu = crate::routes::lire_json_ou_vide(&chemin)?;

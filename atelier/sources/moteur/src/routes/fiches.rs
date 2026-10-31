@@ -878,7 +878,7 @@ pub(crate) fn configuration(o: &HashMap<String, String>, ctx: &Contexte) -> R<Va
     crate::routes::ouverture::route(o, &neuf, "configuration", &json!({}))
 }
 
-/// L'heure de Paris, a la seconde (`datetime.now().isoformat(timespec="seconds")`).
+/// L'heure de Paris, a la seconde.
 pub(super) fn maintenant() -> String {
     let t = socle::temps::secondes();
     socle::paris::iso_secondes(t)

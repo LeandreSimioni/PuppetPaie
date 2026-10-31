@@ -61,7 +61,7 @@ fn nature_connue(n: &str) -> bool {
     NATURES.iter().any(|(x, _)| *x == n)
 }
 
-/// `NATURES.get(quoi, {}).get("regroupe", False)`.
+/// Cette nature d'incident se regroupe-t-elle ?
 fn se_regroupe(quoi: &Value) -> bool {
     quoi.as_str().is_some_and(|q| NATURES.iter().any(|(n, r)| *n == q && *r))
 }
@@ -75,8 +75,8 @@ const JS_PILE_MAX: usize = 2000;
 /// passage suivant reprend.
 const LOT: usize = 20;
 const MAX_PAR_PASSAGE: usize = 200;
-/// Un lot, en octets de JSON : le serveur doit en admettre davantage (`MAX_CORPS_RAPPORT` de infra/filet/filet_serveur.py
-/// du site, 1 Mio).
+/// Un lot, en octets de JSON : le serveur doit en admettre davantage (la limite du corps d'un rapport, 1 Mio, `infra/filet/`
+/// du site).
 const LOT_OCTETS: usize = 400_000;
 
 const POSTE_FICHIER: &str = "diagnostic.json";
@@ -560,7 +560,7 @@ pub fn lire(racine: &Path, nature: Option<&str>, en_attente_seulement: bool) -> 
     Ok(out)
 }
 
-/// `(l.get("envoi") or {}).get("etat")`.
+/// L'etat d'envoi d'une ligne du journal, s'il y en a un.
 fn etat_d_envoi(l: &Value) -> R<Option<String>> {
     let envoi = get(l, "envoi")?;
     let envoi = if vrai(envoi) { envoi } else { return Ok(None) };

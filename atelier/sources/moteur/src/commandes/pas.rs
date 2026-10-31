@@ -3,7 +3,7 @@
 //!
 //! `--demander` (ecrire les signalements d'amorcage, nature 08 ; rien n'est depose) : `demander`, sur `amorcage_demande`.
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::champ;

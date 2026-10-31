@@ -490,7 +490,7 @@ pub fn dict_tableau(t: &Tableau, fichier_ecrit: bool) -> Value {
     })
 }
 
-/// `json_tableau` : `json.dumps(dict_tableau(t), ensure_ascii=False, indent=1)`. Le fichier n'est pas encore nomme quand il s'ecrit.
+/// Le tableau en JSON indente d'une espace. Le fichier n'est pas encore nomme quand il s'ecrit.
 pub fn json_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
     Ok(socle::ecriture::json_indente(&dict_tableau(t, false), 1).into_bytes())
 }
