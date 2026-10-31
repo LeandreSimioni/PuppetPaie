@@ -807,7 +807,8 @@ fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Map<String, Val
 /// seulement si elle n'est pas celle par defaut (un engagement muet a la nature par defaut, `natures::defaut`) ; `cadre`
 /// seulement s'il s'ecarte du defaut du metier au catalogue (`emplois::metier`). Une carte ecrite deux fois a
 /// l'identique s'ecrit donc de meme, et sa relecture ne voit aucun changement.
-fn en_forme(saisie: &Map<String, Value>) -> Resultat<Map<String, Value>> {
+/// L'apercu lit chaque carte dans cette forme aussi.
+pub fn en_forme(saisie: &Map<String, Value>) -> Resultat<Map<String, Value>> {
     let mut saisie = saisie.clone();
     for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
         saisie.remove(*k);
@@ -821,6 +822,14 @@ fn en_forme(saisie: &Map<String, Value>) -> Resultat<Map<String, Value>> {
     };
     if catalogue.is_some() && saisie.get("cadre").and_then(Value::as_bool) == catalogue {
         saisie.remove("cadre");
+    }
+    if droit::natures::nature(saisie.get("nature").and_then(Value::as_str))?.mensuelle() {
+        // UN PERMANENT N'A PAS DE SPECTACLE : le numero d'objet lui est interdit (CCH-11).
+        saisie.remove("spectacle");
+    } else if saisie.get("lignes").is_none() && saisie.get("debut").is_some_and(vrai) && saisie.get("fin").is_some_and(vrai) {
+        // UN MOIS DU CONTRAT SANS CACHET : un contrat aux bornes dites, sans ligne, s'ecrit `lignes: []` -- la DSN porte
+        // le contrat avec un versement a zero, sans bulletin.
+        saisie.insert("lignes".into(), Value::Array(Vec::new()));
     }
     Ok(saisie)
 }

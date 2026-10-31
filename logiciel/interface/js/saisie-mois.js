@@ -101,9 +101,7 @@ function engagementDuBloc(div, mois) {
   if (!salarie) return undefined;
   // LE NUMÉRO EST CELUI D'UN CONTRAT, DONC D'UN SALARIÉ : celui de la carte s'il est le sien.
   const numero = div.dataset.numeroDe === salarie ? numeroDuBloc : "";
-  // UN PERMANENT N'A PAS DE SPECTACLE, et ce n'est pas un détail de mise
-  // en page : le numéro d'objet lui est interdit (CCH-11).
-  const e = nat.mensuelle ? { salarie } : { salarie, spectacle };
+  const e = { salarie, spectacle };
   if (nat.cle) e.nature = nat.cle;
   if (debut) e.debut = debut;
   if (fin) e.fin = fin;
@@ -124,12 +122,8 @@ function engagementDuBloc(div, mois) {
     if (avenant.avant) e.avant = avenant.avant;
     if (faits.conges.length) e.conges_pris = faits.conges;
     if (faits.primes.length) e.primes = faits.primes;
-  } else {
-    // UN MOIS DU CONTRAT SANS CACHET : un contrat aux bornes
-    // dites, et aucune ligne remplie, s'écrit `lignes: []` — la DSN porte
-    // le contrat avec un versement à zéro, sans bulletin.
-    if (lignes.length) e.lignes = JSON.parse(JSON.stringify(lignes));
-    else if (debut && fin) e.lignes = [];
+  } else if (lignes.length) {
+    e.lignes = JSON.parse(JSON.stringify(lignes));
   }
   ruptureDuBloc(div, nat, fin, e);
   // Un engagement sans `metier` prend celui de la fiche ; `cadre` voyage avec lui.

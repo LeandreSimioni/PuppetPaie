@@ -1777,19 +1777,20 @@ pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usiz
     let ids = engagement::stock::identites(&engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(Echec::from)?);
     let mut places = Vec::new();
     for c in charge.get("cartes").and_then(Value::as_array).into_iter().flatten() {
-        let Some(saisie) = c.get("saisie").filter(|s| s.is_object()) else {
+        let Some(saisie) = c.get("saisie").and_then(Value::as_object) else {
             return Err(erreur("TypeError", "`cartes` : chaque carte porte `saisie`, un objet"));
         };
+        let saisie = Value::Object(engagement::stock::en_forme(saisie).map_err(Echec::from)?);
         let i = match c.get("engagement").filter(|p| !p.is_null()) {
             None => {
-                tous.push(saisie.clone());
+                tous.push(saisie);
                 tous.len() - 1
             }
             Some(id) => {
                 let i = ids.iter().position(|x| x == id).filter(|i| *i < tous.len()).ok_or_else(|| {
                     refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", engagement::libelle_mois(mois)))
                 })?;
-                tous[i] = saisie.clone();
+                tous[i] = saisie;
                 i
             }
         };
