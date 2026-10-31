@@ -166,7 +166,7 @@ function peindreEtats() {
     if (!ETATS_ENGAGEMENTS) { poserEtats(cible, ""); return; }
     if (!connue) {
       fermerEdition(div, false);
-      if (!salariesDuBloc(div).length) {
+      if (!salarieDuBloc(div)) {
         // Sans salarié, ce bloc n'est pas un engagement : il n'est même pas
         // enregistré. Le dire, plutôt que de laisser un bloc muet qu'on
         // ne peut ni valider ni faire partir.
@@ -417,7 +417,7 @@ async function modifierLaCarte(div) {
   const mois = document.getElementById("mois").value;
   let saisie;
   LIRE_LES_MODIFICATIONS = true;
-  try { saisie = engagementsDuBloc(div, mois)[0] || {}; } finally { LIRE_LES_MODIFICATIONS = false; }
+  try { saisie = engagementDuBloc(div, mois) || {}; } finally { LIRE_LES_MODIFICATIONS = false; }
   const charge = { mois, engagement: JSON.parse(div.dataset.engagement), saisie };
   try {
     let r = await api("modifier-engagement", charge);

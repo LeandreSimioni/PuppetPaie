@@ -927,7 +927,7 @@ pub(crate) fn engagements(
     for e in tous {
         let qui = salarie_nomme(ctx, e.get("salarie"));
         let nat = nature_de(ctx, e)?;
-        let mut spectacle = ou(e.get("spectacle"), data.get("spectacle"));
+        let mut spectacle = ou(e.get("spectacle"), None);
         if nat.mensuelle() {
             // Employer des permanents se declare.
             if !ctx.emploie_des_permanents() {
@@ -1028,7 +1028,7 @@ pub(crate) fn engagements(
         poser("planning", Some(&Value::Array(planning_engagement(e))));
         poser("lignes", lignes.as_ref());
         poser("date_paiement", e.get("date_paiement").or(data.get("date_paiement")));
-        poser("lieu", e.get("lieu").or(data.get("lieu")));
+        poser("lieu", e.get("lieu"));
         for champ in ["emploi", "pcs_ese", "code_emploi_ft", "statut", "statut_conventionnel", "statut_categoriel_rc"] {
             let v = ou(e.get(champ), declare.get(champ));
             poser(champ, v.map(Value::String).as_ref());

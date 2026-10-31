@@ -185,19 +185,6 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
     let Some(objet) = saisie.as_object() else { return Ok(saisie.clone()) };
     let Ok(paies) = engagement::lue_sans_paie(ctx, saisie) else { return Ok(saisie.clone()) };
     let mut sortie = objet.clone();
-    // Le spectacle du MOIS n'est resolu que si la saisie en nommait un.
-    if vrai_opt(objet.get("spectacle")) {
-        let resolu = match paies.first() {
-            Some(p) => {
-                if !vrai(&p.spectacle) {
-                    return Err(erreur("TypeError", format!("'spectacle' : {}", socle::fichiers::attendu("un objet", nom_type(&p.spectacle)))));
-                }
-                p.spectacle.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?
-            }
-            None => objet["spectacle"].clone(),
-        };
-        sortie.insert("spectacle".into(), resolu);
-    }
     let tous = elements(objet.get("engagements"))?;
     let mut engagements = Vec::new();
     for (e, p) in tous.iter().zip(&paies) {
@@ -355,30 +342,6 @@ fn defauts_de_la_saisie(ctx: &Contexte, saisie: &Value) -> Value {
     json!({"taux_cachet": taux})
 }
 
-/// LE SPECTACLE ET LE LIEU DU MOIS DESCENDENT SUR CHAQUE ENGAGEMENT. Une saisie peut les ecrire au niveau
-/// du mois, comme defaut de ses engagements (`engagement::engagements` : `ou(e.spectacle, data.spectacle)`,
-/// `e.lieu or data.lieu`) ; l'ecran, lui, montre le spectacle d'un engagement et le lieu d'un contrat, et n'ecrit que ce
-/// qu'il montre. Ils sont donc poses sur chaque engagement qui ne dit pas le sien -- le spectacle seulement sur un
-/// contrat d'usage : un permanent n'en a pas (CCH-11) --, et retires du mois. Le calcul lit la meme chose.
-fn descendre_le_mois(saisie: Value) -> Value {
-    let Value::Object(mut m) = saisie else { return saisie };
-    let spectacle = m.remove("spectacle").filter(vrai);
-    let lieu = m.remove("lieu").filter(vrai);
-    if let Some(Value::Array(engagements)) = m.get_mut("engagements") {
-        for e in engagements.iter_mut() {
-            let Value::Object(e) = e else { continue };
-            let mensuel = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_or(false, |n| n.mensuelle());
-            if let Some(s) = spectacle.as_ref().filter(|_| !mensuel && !e.get("spectacle").is_some_and(vrai)) {
-                e.insert("spectacle".into(), s.clone());
-            }
-            if let Some(l) = lieu.as_ref().filter(|_| !e.get("lieu").is_some_and(vrai)) {
-                e.insert("lieu".into(), l.clone());
-            }
-        }
-    }
-    Value::Object(m)
-}
-
 /// La route `saisie`.
 fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
@@ -392,7 +355,6 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
             saisie[k] = v;
         }
     }
-    let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &saisie);
     // LES ENGAGEMENTS IMPORTES QUI TOUCHENT LE MOIS, en cartes fermees : ils se lisent, rien ne les calcule
     // (`import::mois`). Un mois qui en porte ne recoit pas d'engagement neuf (`refuser_si_importe`).
@@ -1801,7 +1763,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
     if vise <= Decimal::ZERO {
         return Err(refus(format!("Un montant vise se dit en euros et il est positif (recu : {}).", vise)));
     }
-    let (data, places) = mois_designe(ctx, charge)?;
+    let (data, places, _) = mois_designe(ctx, charge)?;
     let k = charge.get("carte").and_then(Value::as_u64).ok_or_else(|| erreur("TypeError", "`carte` : un entier est attendu"))? as usize;
     let i = *places.get(k).ok_or_else(|| refus(format!("La carte {} n'est pas dans `cartes`.", k + 1)))?;
     let v = engagement::viser::viser(ctx, &data, &[i], cible_visee, vise).map_err(|r| match r {
@@ -1844,8 +1806,9 @@ pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> 
 /// LE MOIS QUE L'APERCU ET LE MONTANT VISE CALCULENT : ses engagements tels qu'ils sont ecrits, dans l'ordre de l'ecran
 /// (`vue_a_l_ecran`), et chaque carte que l'ecran montre autrement (`cartes` : `{engagement, saisie}`, ce que la carte
 /// porte ; `engagement` est son identite, absente pour une carte qui n'est pas encore ecrite) : a sa place, ou a la
-/// suite. Rend ce mois et la place de chaque carte dans ses engagements. Rien ne s'ecrit.
-pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usize>)> {
+/// suite. Rend ce mois, la place de chaque carte dans ses engagements, et l'identite de chacun de ses engagements
+/// (`Null` pour une carte pas encore ecrite). Rien ne s'ecrit.
+pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usize>, Vec<Value>)> {
     let mois = texte_requis(charge, "mois")?;
     let mut v = engagement::stock::vue_a_l_ecran(&ctx.racine, mois)
         .map_err(Echec::from)?
@@ -1878,8 +1841,9 @@ pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usiz
         };
         places.push(i);
     }
+    let identites = (0..tous.len()).map(|i| ids.get(i).cloned().unwrap_or(Value::Null)).collect();
     v["engagements"] = Value::Array(tous);
-    Ok((v, places))
+    Ok((v, places, identites))
 }
 
 /// Une paie que l'ecran montre, et pourquoi elle s'est recalculee d'elle-meme (`{"le", "raison"}`), s'il y a lieu.
@@ -2032,7 +1996,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
         Some(j) if !j.is_null() => j.clone(),
         _ => Value::from(e.jours),
     };
-    let lieu = brut.get("lieu").or_else(|| data.get("lieu")).cloned().unwrap_or_else(|| Value::String(String::new()));
+    let lieu = brut.get("lieu").cloned().unwrap_or_else(|| Value::String(String::new()));
     let avis: Vec<&Avis> = p.avertissements.iter().collect();
     let prelevement = p.pas.as_ref().map_or(Decimal::new(0, 2), |v| v.prelevement);
     let mut d = json!({
@@ -2168,8 +2132,22 @@ fn annee_de(mois: &str) -> R<i32> {
 /// calculent, et chacun de ceux-la tient sa place dans `paies` avec ce qui lui manque (`a_completer`), sans montant ;
 /// la carte qui en porte un n'a pas de total. Une saisie dont aucun refus ne se rapporte a un engagement refuse.
 fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let (data, _) = mois_designe(ctx, charge)?;
-    let refus = match apercu_de(ctx, charge, &data) {
+    let (data, _, identites) = mois_designe(ctx, charge)?;
+    let mut r = apercu_des_paies(ctx, charge, &data)?;
+    // CHAQUE PAIE PORTE L'IDENTITE DE SON ENGAGEMENT (`Null` : une carte pas encore ecrite) : la carte retrouve la sienne.
+    if let Some(Value::Array(paies)) = r.get_mut("paies") {
+        for (p, id) in paies.iter_mut().zip(identites) {
+            if let Some(p) = p.as_object_mut() {
+                p.insert("engagement".into(), id);
+            }
+        }
+    }
+    Ok(r)
+}
+
+/// Les paies de l'apercu de `data`, une par engagement, dans son ordre.
+fn apercu_des_paies(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
+    let refus = match apercu_de(ctx, charge, data) {
         Ok(v) => return Ok(v),
         Err(refus) => refus,
     };

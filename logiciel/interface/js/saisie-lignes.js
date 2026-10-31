@@ -333,7 +333,7 @@ function ouvrirCalendrier(ligne, moisForce) {
   // Les contrats passés, par mois affiché, chargés à la demande. `null`
   // tant qu'on attend le serveur : la grille se dessine sans, puis se redessine.
   const passes = new Map();
-  const salaries = bloc ? salariesDuBloc(bloc) : [];
+  const salaries = [bloc ? salarieDuBloc(bloc) : ""].filter(Boolean);
   const chargerPasses = (m) => {
     if (passes.has(m)) return;
     passes.set(m, null);
@@ -725,7 +725,7 @@ function poserSpectacles(select) {
  * l'aperçu y peint — la carte figée que le moteur rend pour un engagement validé.
  * Elle sait seulement quels engagements du fichier elle montre (`data-engagement`) :
  * tant que son formulaire n'existe pas, rien ne la modifie, et elle les écrit
- * tels quels (`engagementsDuBloc`). Son formulaire se construit à la première
+ * tels quels (`engagementDuBloc`). Son formulaire se construit à la première
  * occasion qui l'ouvre — l'état de son engagement dit qu'il n'est pas validé, on
  * on l'ouvre d'un clic pour la modifier, les états tardent (`fermerEdition`,
  * `ouvrirCarte`) — et il reste construit tant que la carte vit ; dès lors
@@ -774,11 +774,11 @@ function ouvrirCarte(div) {
   marquerEcrite(div);
 }
 
-/** Le salarié d'une carte, à choisir dans la liste commune (un bouton radio par carte), choisi pour `voulus`,
+/** Le salarié d'une carte, à choisir dans la liste commune (un bouton radio par carte), choisi pour `voulu`,
  *  et un salarié du fichier absent des actifs (fiche mise de côté) garde sa
  *  case, choisie : on ne perd pas un engagement parce qu'on a archivé quelqu'un. */
 let LISTES_QUI = 0;
-function poserQui(liste, voulus) {
+function poserQui(liste, voulu) {
   const actifs = ETAT.salaries || [];
   const connus = new Set(actifs.map((s) => s.cle));
   poserListe(liste, "salaries", [actifs], () => actifs.map(
@@ -787,9 +787,9 @@ function poserQui(liste, voulus) {
   if (!liste.dataset.nom) liste.dataset.nom = "qui-" + (++LISTES_QUI);
   liste.querySelectorAll(".e-qui-case").forEach((c) => {
     c.name = liste.dataset.nom;
-    c.checked = c.defaultChecked = voulus.has(c.value);
+    c.checked = c.defaultChecked = c.value === voulu;
   });
-  liste.insertAdjacentHTML("beforeend", [...voulus].filter((c) => !connus.has(c)).map(
+  liste.insertAdjacentHTML("beforeend", [voulu].filter((c) => c && !connus.has(c)).map(
     (c) => `<label><input type="radio" class="e-qui-case" name="${liste.dataset.nom}" value="${echapper(c)}"
        checked> ${echapper(c)} <span class="discret">(fiche mise de côté)</span></label>`).join(""));
 }
@@ -797,7 +797,7 @@ function poserQui(liste, voulus) {
 /** Le formulaire d'une carte, posé devant sa coque et branché. */
 function construireCarte(div, e) {
   // QUI : un salarié. Une carte porte un engagement, et un engagement un salarié.
-  const voulus = new Set(e.salaries || (e.salarie ? [e.salarie] : []));
+  const voulu = e.salarie || "";
   div.insertAdjacentHTML("afterbegin", `
     <div class="ligne1">
       <!-- Pas de « + » ici : une fiche neuve se crée dans Configuration.
@@ -1049,7 +1049,7 @@ function construireCarte(div, e) {
     </div>`);
   // (Sous le formulaire, la coque : `.resolu`, `.e-resume`, `.e-imprevus`,
   // `.avis`, `.etats` — voir ligneEngagement.)
-  poserQui(div.querySelector(".e-qui-liste"), voulus);
+  poserQui(div.querySelector(".e-qui-liste"), voulu);
 
   // --- la nature du contrat, et la forme du bloc qu'elle décide
   const selNat = div.querySelector(".e-nature");
@@ -1502,7 +1502,7 @@ function rafraichirReferentiels() {
     // Une carte fermée n'a pas de listes : elle les prendra de l'ETAT du
     // moment où elle s'ouvrira.
     if (carteFermee(div)) return;
-    poserQui(div.querySelector(".e-qui-liste"), new Set(salariesDuBloc(div)));
+    poserQui(div.querySelector(".e-qui-liste"), salarieDuBloc(div));
     div.querySelectorAll(".e-qui-case").forEach((c) => {
       c.onchange = () => { majQui(div); rafraichirApercu(); };
     });
@@ -1534,20 +1534,19 @@ function nouvelleFiche(nom) {
   document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
 }
 
-/** Les salariés cochés d'un bloc, dans l'ordre de la liste. */
-function salariesDuBloc(div) {
-  if (carteFermee(div)) return [engagementLu(div)].filter(Boolean).map((e) => e.salarie);   // une carte fermée : le sien
-  return [...div.querySelectorAll(".e-qui-case:checked")].map((c) => c.value);
+/** Le salarié de la carte (`""` : aucun choisi). */
+function salarieDuBloc(div) {
+  if (carteFermee(div)) return (engagementLu(div) || {}).salarie || "";   // une carte fermée : le sien
+  return (div.querySelector(".e-qui-case:checked") || {}).value || "";
 }
 
-/** Le résumé de la liste refermée : les noms cochés, ou l'invitation. */
+/** Le résumé de la liste refermée : le nom choisi, ou l'invitation. */
 function majQui(div) {
   const resume = div.querySelector(".e-qui summary");
-  const noms = [...div.querySelectorAll(".e-qui-case:checked")]
-    .map((c) => c.parentNode.textContent.replace(/\s+/g, " ").trim());
-  resume.textContent = noms.length ? noms.join(" + ") : "— choisir —";
-  resume.classList.toggle("vide", !noms.length);
-  // Un imprévu se dit d'UN salarié : la porte ne s'ouvre que sur une carte qui n'en porte qu'un.
+  const c = div.querySelector(".e-qui-case:checked");
+  resume.textContent = c ? c.parentNode.textContent.replace(/\s+/g, " ").trim() : "— choisir —";
+  resume.classList.toggle("vide", !c);
+  // Un imprévu se dit d'un salarié : la porte ne s'ouvre que sur une carte qui en porte un.
   majPorteImprevu(div);
 }
 

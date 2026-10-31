@@ -21,7 +21,6 @@ use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
 use documents::fiche_questionnaire as fq;
 use droit::contexte::Contexte;
 use droit::emplois;
-use droit::jumeaux::{numero_pose, Ident};
 use envois::courriel::Courriel;
 use envois::courriel_lecture as lecture;
 use envois::envoi::{self, Message};
@@ -1800,27 +1799,6 @@ fn finir_fiche(
     ecrire(chemin, Value::Object(contenu))?;
     Ok(FicheEcrite { cle, donnees, anomalies, derives })
 }
-
-// ------------------------------------------------------------ l'identite d'un engagement
-
-
-
-
-/// Le contrat de chaque engagement : (cle du salarie, premier jour, numero POSE dans la saisie) -- l'identite de
-/// `jumeaux` : deux contrats du meme salarie qui commencent le meme jour ne se confondent pas.
-pub(crate) fn identifiants(ctx: &Contexte, data: &Value) -> Result<Vec<Ident>, String> {
-    let engs = engagement::engagements_de_la_saisie(ctx, data)?;
-    let bruts = data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
-    let mut out = Vec::new();
-    for (i, e) in engs.iter().enumerate() {
-        let fiche = ctx.salarie(&e.salarie)?;
-        out.push((fiche.get("_cle").map_or_else(String::new, valeur_en_texte), e.debut.iso(), bruts.get(i).and_then(numero_pose)));
-    }
-    Ok(out)
-}
-
-
-
 
 // ----------------------------------------------------------------------- ajuster
 

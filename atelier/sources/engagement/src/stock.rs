@@ -14,8 +14,8 @@
 //! d'avant qui courent encore (`{"mois", "engagements": [...]}`) : ce que les calculs lisent. Une carte de l'ecran
 //! ecrit son engagement, et lui seul (`ecrire_la_carte`).
 //!
-//! L'identite d'un engagement : son salarie et son premier jour, et son numero de contrat quand il est pose, ou son rang
-//! parmi ceux du meme salarie et du meme jour (`droit::jumeaux`).
+//! L'identite d'un engagement : son salarie et son premier jour, et son rang
+//! parmi ceux du meme salarie et du meme jour (`identites`).
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -119,9 +119,60 @@ pub fn lire_fichier(racine: &Path, mois: &str) -> Resultat<Option<Map<String, Va
     Ok(lire_partage(racine, mois)?.map(|v| v.as_object().cloned().unwrap_or_default()))
 }
 
-/// Le fichier d'un mois tel que le processus l'a lu (`socle::fichiers::json_partage`) : chaque lecture des engagements
-/// passe par lui, et il ne se relit que quand il a change. `None` s'il n'existe pas.
+thread_local! {
+    /// Les fichiers d'engagements ecrits dans le brouillon ouvert (`Brouillon`), pour sa racine.
+    static BROUILLON: std::cell::RefCell<Option<(PathBuf, BTreeMap<String, std::sync::Arc<Value>>)>> = const { std::cell::RefCell::new(None) };
+}
+
+/// UN BROUILLON : tant qu'il est ouvert, ce qui s'ecrit dans les engagements de `racine` (`reecrire`) reste en memoire,
+/// et toute lecture le voit. `ecrire` le pose sur le disque ; tombe sans, il n'a rien ecrit.
+pub struct Brouillon(PathBuf);
+
+impl Brouillon {
+    pub fn ouvrir(racine: &Path) -> Brouillon {
+        BROUILLON.with(|b| *b.borrow_mut() = Some((racine.to_path_buf(), BTreeMap::new())));
+        Brouillon(racine.to_path_buf())
+    }
+
+    /// Ce que le brouillon tient s'ecrit sur le disque.
+    pub fn ecrire(self) -> Resultat<()> {
+        let fichiers = BROUILLON.with(|b| b.borrow_mut().take()).map(|(_, f)| f).unwrap_or_default();
+        for (mois, contenu) in fichiers {
+            socle::ecriture::ecrire_json(&chemin(&self.0, &mois), &contenu, 2)?;
+        }
+        Ok(())
+    }
+
+    /// Le fichier de `mois` tel que le brouillon ouvert pour `racine` le tient.
+    fn lu(racine: &Path, mois: &str) -> Option<std::sync::Arc<Value>> {
+        BROUILLON.with(|b| b.borrow().as_ref().filter(|(r, _)| r == racine).and_then(|(_, f)| f.get(mois).cloned()))
+    }
+
+    /// Ecrit `contenu` comme fichier de `mois` dans le brouillon ouvert pour `racine` ; faux : aucun ne l'est.
+    fn tient(racine: &Path, mois: &str, contenu: Value) -> bool {
+        BROUILLON.with(|b| match b.borrow_mut().as_mut().filter(|(r, _)| r == racine) {
+            Some((_, f)) => {
+                f.insert(mois.to_string(), std::sync::Arc::new(contenu));
+                true
+            }
+            None => false,
+        })
+    }
+}
+
+impl Drop for Brouillon {
+    fn drop(&mut self) {
+        BROUILLON.with(|b| *b.borrow_mut() = None);
+    }
+}
+
+/// Le fichier d'un mois tel que le processus l'a lu (`socle::fichiers::json_partage`), ou tel que le brouillon ouvert
+/// le tient : chaque lecture des engagements passe par lui, et il ne se relit que quand il a change. `None` s'il
+/// n'existe pas.
 fn lire_partage(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<Value>>> {
+    if let Some(v) = Brouillon::lu(racine, mois) {
+        return Ok(Some(v));
+    }
     let p = chemin(racine, mois);
     match socle::fichiers::json_partage(&p)? {
         Some(v) if !v.is_object() => Err(format!("{} : un objet est attendu, lu {}", p.display(), socle::valeur::nom_type(&v))),
@@ -1094,7 +1145,9 @@ pub fn reecrire(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     let place = es.get_mut(o.rang).ok_or_else(|| format!("{} : l'engagement {} a disparu", o.fichier, o.rang + 1))?;
     *place = Value::Object(o.brut.clone());
     let p = chemin(racine, &o.fichier);
-    socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
+    if !Brouillon::tient(racine, &o.fichier, Value::Object(contenu.clone())) {
+        socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
+    }
     Ok(p)
 }
 
