@@ -672,7 +672,7 @@ pub(crate) fn calculer(ctx: &Contexte, o: &Objet, mois: &str) -> Resultat<Value>
 /// tient (comme `stock::empreinte_de_saisie` la separe).
 fn mois_lu(data: &Value) -> Value {
     let mut m = data.as_object().cloned().unwrap_or_default();
-    for k in ["engagements", "_origine", "numeros_figes", "mois"] {
+    for k in ["engagements", "_origine", "mois"] {
         m.remove(k);
     }
     Value::Object(m)

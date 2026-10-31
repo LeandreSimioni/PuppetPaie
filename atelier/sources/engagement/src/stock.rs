@@ -154,11 +154,6 @@ pub struct Objet {
     pub brut: Map<String, Value>,
 }
 
-/// Le debut d'un engagement brut : `debut` s'il le dit, sinon son premier jour joue.
-fn debut_de(e: &Map<String, Value>) -> String {
-    crate::debut_brut(&Value::Object(e.clone()))
-}
-
 impl Objet {
     /// Le premier mois de l'engagement : celui de son fichier.
     pub fn premier_mois(&self) -> &str {
@@ -631,7 +626,6 @@ pub fn empreinte_de_saisie(vue: &Value, salarie: Option<&str>) -> String {
     let engagements = match v.as_object_mut() {
         Some(m) => {
             m.remove("_origine");
-            m.remove("numeros_figes");
             m.remove("engagements").unwrap_or(Value::Null)
         }
         None => Value::Null,
@@ -1076,11 +1070,6 @@ pub fn reecrire(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     Ok(p)
 }
 
-/// Le debut d'un engagement de l'ecran, tel que son identite le lit (pour qui compare deux vues).
-pub fn debut_vu(e: &Map<String, Value>) -> String {
-    debut_de(e)
-}
-
 /// Le jour `AAAA-MM-JJ` de `mois` qui est le premier, pour les bornes d'un contrat.
 pub fn premier_jour(mois: &str) -> Resultat<Jour> {
     premier_du_mois(mois)
@@ -1097,18 +1086,4 @@ pub fn a_une_saisie(racine: &Path, mois: &str) -> Resultat<bool> {
         }
     }
     Ok(false)
-}
-
-/// Pose `cle` = `valeur` sur le mois `mois` lui-meme (son fichier, cree s'il le faut : un mois que seuls des engagements
-/// d'avant touchent) : ce que le mois dit de lui (`numeros_figes`...).
-pub fn poser_au_mois(racine: &Path, mois: &str, cle: &str, valeur: Value) -> Resultat<()> {
-    let mut contenu = lire_fichier(racine, mois)?.unwrap_or_default();
-    if contenu.get(cle) == Some(&valeur) {
-        return Ok(());
-    }
-    contenu.insert("mois".into(), Value::String(mois.to_string()));
-    contenu.entry("engagements").or_insert_with(|| Value::Array(Vec::new()));
-    contenu.insert(cle.to_string(), valeur);
-    let p = chemin(racine, mois);
-    socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)
 }
