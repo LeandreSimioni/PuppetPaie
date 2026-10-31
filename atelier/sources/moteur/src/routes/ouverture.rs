@@ -1,7 +1,6 @@
-//! Les routes de l'ouverture : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration verifiee,
-//! l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
-//! `pour-demarrer` (ce qui manque pour les premiers actes), `maj-etat`, `sauvegarde-derniere`, `sauvegarde-maintenant`, `echeance-faite`,
-//! `journal-reprise`, `courriels-fictifs` et `compagnie-supprimer`.
+//! Les lectures que les ecrans partagent : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration
+//! verifiee, l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
+//! `maj-etat`, `sauvegarde-derniere` et `courriels-fictifs`.
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le

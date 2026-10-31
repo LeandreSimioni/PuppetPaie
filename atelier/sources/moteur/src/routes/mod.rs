@@ -5,10 +5,11 @@
 //! `{"ok": true, "resultat": ...}` ; un refus rend `{"ok": false, "erreur": "...", "classe": "..."}` avec sa classe
 //! (`ErreurOperation`, `FileNotFoundError`, `KeyError`...), que la page releve.
 //!
-//! UN FICHIER PAR GESTE DE L'ECRAN : `mois` (la saisie et l'apercu), `etapes` (le panneau et les carres de
-//! l'engagement), `engagement` (valider, modifier, retirer), `contrats`, `documents`, `depots`, `imprevus`, `fiches`,
-//! `coffre`, `filet`, `import`, `archives` (l'Historique, les exports, la cloture), `dossier_salarie`, `ouverture`,
-//! `rappels`. Chacun dit ses routes et leurs fiches (`ROUTES`, `catalogue::FICHES`), comme les modules des obligations,
+//! UN MODULE PAR PLACE DE L'ECRAN (`catalogue::Place`) : la Paie (`mois`, `etapes`, `engagement`, `contrats`,
+//! `documents`, `depots`, `imprevus`, `rappels`), la Configuration (`fiches`, `metiers`, `identite`, `bulletin`,
+//! `modeles_contrat`, `coffre`, `import`), l'Historique (`historique`), les Exports (`archives`, `dossier_salarie`),
+//! « Un probleme, une idee ? » (`filet`), et les lectures que les ecrans partagent (`ouverture`). Chacun dit ses routes et
+//! leurs fiches (`ROUTES`, `catalogue::FICHES`), comme les modules des obligations,
 //! des conseils, de l'ouverture et de l'administrateur ; l'aiguillage ne fait rien d'autre que les servir (et l'horloge
 //! du banc, hors catalogue). Ce que les routes partagent (lire un fichier, le salarie d'une charge, `qui_de`) est ici.
 
