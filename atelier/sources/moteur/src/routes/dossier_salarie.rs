@@ -627,7 +627,7 @@ fn mois_puppetpaie(
                 continue;
             }
             let chemin = tmp.join(format!("C_{}_{}.pdf", cle, mois));
-            documents::contrat::ecrire(ctx, &a_lui, &ent, &chemin)?;
+            documents::contrat::ecrire_contrat(ctx, &a_lui, &ent, &chemin, &[], None)?;
             marquer(&chemin, aujourdhui)?;
             for i in 0..pages_pdf(&chemin)? {
                 pages.push(Page { categorie: CONTRATS, cle: cle.clone(), tri: format!("{}-01", mois), source: chemin.clone(), numero: i });
