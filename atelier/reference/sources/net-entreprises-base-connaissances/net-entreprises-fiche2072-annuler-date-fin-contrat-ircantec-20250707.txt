@@ -1,0 +1,133 @@
+Annuler une date de fin de contrat de travail déclarée à tort et modification rétroactive de date
+
+Comment annuler en DSN mensuelle une date de fin de contrat de travail déclarée à tort et modification rétroactive de date de fin de contrat de travail déclarée de manière erronée pour un individu affilié à l'IRCANTEC ?
+
+
+Le contexte
+En DSN mensuelle, il est demandé d'annuler rétroactivement une date de fin de contrat déclarée à tort via la déclaration, dans la DSN mensuelle d'un mois suivant, d'un bloc " Fin du contrat - S21.G00.62 " où la rubrique " Motif de la rupture du contrat - S21.G00.62.002 " est alimentée du code " 099 - Annulation ".
+
+En complément de la re-déclaration du bloc " Fin du contrat - S21.G00.62 ", il est indispensable de re-déclarer, pour les agents affiliés à l'Ircantec au moment de la déclaration initiale de la fin de leur contrat, la base assujettie Ircantec (bloc " Base assujettie - S21.G00.78 " de type " 28-Base IRCANTEC cotisée "), rattachée aux dates d'activité réelles du mois concerné par la date de fin de contrat initiale.
+
+En effet, la date de fin de période pour la base assujettie ne pouvant pas être ultérieure à la date de fin du contrat, la datation de la base assujettie de type Ircantec aura été déclarée de façon erronée sur le mois de la déclaration initiale de la rupture du contrat (ou rupture de la relation agent / administration). Il importe donc de corriger la datation de la base assujettie afin que celle-ci coïncide avec l'activité réelle de l'agent sur le mois concerné.
+
+Cette correction des périodes de rattachement de la base assujettie permettra à l'Ircantec de reconstituer correctement la carrière de l'agent et d'éviter les discontinuités dans son compte individuel retraite.
+
+A noter que cette consigne s'applique pour tous les types de populations d'agents affiliés à l'IRCANTEC, et notamment les contractuels et les fonctionnaires.
+
+
+Annuler une date de fin de contrat de travail déclarée à tort et modification rétroactive de date
+
+L'exemple développé ci-dessous permet d'illustrer le cas où la date de fin de contrat a été déclarée à tort.
+
+Exemple : annulation dans la DSN mensuelle du mois M +n (avec " n " supérieur ou égal à 1) d'une date de fin de contrat déclarée à tort dans la DSN mensuelle du mois M
+
+Un agent contractuel affilié à l'Ircantec a habituellement une base assujettie de type " 28 - Base IRCANTEC cotisée " alimentée à hauteur de 3.000 €. Dans la DSN mensuelle d'octobre 2022, on déclare à tort pour cet agent un bloc " Fin du contrat - S21.G00.62 ", avec une date de fin du contrat positionnée au 20 octobre et le motif " 059 - Démission ". La base IRCANTEC cotisée est datée en tenant compte de cette fin du contrat et est alimentée d'un montant minoré à 2.000 € au lieu des 3.000 € habituels.
+Or dans les faits, l'agent n'a pas démissionné et a exercé son activité sur l'intégralité du mois d'octobre, puis de novembre.
+
+La déclaration opérée en DSN mensuelle du mois d'octobre est donc en décalage avec la réalité de l'activité de l'agent sur ce mois.
+
+Une correction est alors obligatoire dans la DSN mensuelle du mois où l'erreur est constatée, afin d'annuler la date de fin de contrat et de corriger la datation et le montant de la base IRCANTEC cotisée.
+
+Ainsi la correction de la base assujettie IRCANTEC (bloc " Base assujettie - S21.G00.78) se fait selon le modèle " Annule et remplace ".
+
+
+Mois principal déclaré d'octobre 2022
+
+La déclaration du mois d'octobre 2022 contient une erreur. Les informations erronées sont inscrites en rouge.
+
+S21.G00.62 - Fin du contrat
+Code | Rubrique | Valorisation
+S21.G00.62.001 | Date de fin du contrat | 20102022
+S21.G00.62.002 | Motif de la rupture du contrat | 059 - Démission
+
+S21.G00.78 - Base assujettie
+Code | Rubrique | Valorisation
+S21.G00.78.001 | Code de base assujettie | 28 - Base IRCANTEC cotisée
+S21.G00.78.002 | Date de début de période de rattachement | 01102022
+S21.G00.78.003 | Date de fin de période de rattachement | 20102022
+S21.G00.78.004 | Montant | 2000.00
+S21.G00.78.006 | Numéro du contrat | 2X4566E030
+
+S21.G00.81 - Cotisation individuelle
+Code | Rubrique | Valorisation
+S21.G00.81.001 | Code de cotisation | 060 - Cotisation IRCANTEC Tranche A
+S21.G00.81.002 | Identifiant Organisme de Protection Sociale | Siret de l'IRCANTEC
+S21.G00.81.003 | Montant d'assiette | 2000.00
+S21.G00.81.004 | Montant de cotisation | 140.00 (base x taux d'appel)
+S21.G00.81.005 | Code INSEE commune | Non renseignée
+
+
+Mois principal déclaré de novembre 2022
+
+La déclaration du mois de novembre 2022 contient la correction. Les informations de corrections sont inscrites en vert.
+
+Bloc déclaré pour annuler la déclaration de fin du contrat de travail :
+
+S21.G00.62 - Fin du contrat
+Code | Rubrique | Valorisation
+S21.G00.62.001 | Date de fin du contrat | 20102022
+S21.G00.62.002 | Motif de la rupture du contrat | 099 - Annulation
+
+Base déclarée pour la période courante :
+
+S21.G00.78 - Base assujettie
+Code | Rubrique | Valorisation
+S21.G00.78.001 | Code de base assujettie | 28 - Base IRCANTEC cotisée
+S21.G00.78.002 | Date de début de période de rattachement | 01112022
+S21.G00.78.003 | Date de fin de période de rattachement | 30112022
+S21.G00.78.004 | Montant | 3000.00
+S21.G00.78.006 | Numéro du contrat | 2X4566E030
+
+Cotisation déclarée pour la période courante :
+
+S21.G00.81 - Cotisation individuelle
+Code | Rubrique | Valorisation
+S21.G00.81.001 | Code de cotisation | 060 - Cotisation IRCANTEC Tranche A
+S21.G00.81.002 | Identifiant Organisme de Protection Sociale | Siret de l'IRCANTEC
+S21.G00.81.003 | Montant d'assiette | 3000.00
+S21.G00.81.004 | Montant de cotisation | 210.00 (base x taux d'appel)
+S21.G00.81.005 | Code INSEE commune | Non renseignée
+
+Bloc annulant la base assujettie précédemment déclarée :
+
+S21.G00.78 - Base assujettie
+Code | Rubrique | Valorisation
+S21.G00.78.001 | Code de base assujettie | 28 - Base IRCANTEC cotisée
+S21.G00.78.002 | Date de début de période de rattachement | 01102022
+S21.G00.78.003 | Date de fin de période de rattachement | 20102022
+S21.G00.78.004 | Montant | -2000.00
+S21.G00.78.006 | Numéro du contrat | 2X4566E030
+
+Bloc annulant la cotisation précédemment déclarée :
+
+S21.G00.81 - Cotisation individuelle
+Code | Rubrique | Valorisation
+S21.G00.81.001 | Code de cotisation | 060 - Cotisation IRCANTEC Tranche A
+S21.G00.81.002 | Identifiant Organisme de Protection Sociale | Siret de l'IRCANTEC
+S21.G00.81.003 | Montant d'assiette | -2000.00
+S21.G00.81.004 | Montant de cotisation | -140.00
+S21.G00.81.005 | Code INSEE commune | Non renseignée
+
+Bloc portant la base assujettie correcte pour la période d'octobre :
+
+S21.G00.78 - Base assujettie
+Code | Rubrique | Valorisation
+S21.G00.78.001 | Code de base assujettie | 28 - Base IRCANTEC cotisée
+S21.G00.78.002 | Date de début de période de rattachement | 01102022
+S21.G00.78.003 | Date de fin de période de rattachement | 31102022
+S21.G00.78.004 | Montant | 3000.00
+S21.G00.78.006 | Numéro du contrat | 2X4566E030
+
+Bloc portant la cotisation correcte pour la période d'octobre :
+
+S21.G00.81 - Cotisation individuelle
+Code | Rubrique | Valorisation
+S21.G00.81.001 | Code de cotisation | 060 - Cotisation IRCANTEC Tranche A
+S21.G00.81.002 | Identifiant Organisme de Protection Sociale | Siret de l'IRCANTEC
+S21.G00.81.003 | Montant d'assiette | 3000.00
+S21.G00.81.004 | Montant de cotisation | 210.00 (base x taux d'appel)
+S21.G00.81.005 | Code INSEE commune | Non renseignée
+
+Date de création : 01/02/2019 10:13 AM
+Date de modification : 07/07/2025 03:10 PM
+N° de la fiche : 2072

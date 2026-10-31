@@ -1,0 +1,29 @@
+Individu et/ou contrat déclaré(s) à tort dans une DSN mensuelle
+
+Comment gérer le cas d'un individu et/ou contrat déclaré(s) à tort dans une DSN mensuelle (salarié fictif, salarié test, salarié nouvellement embauché qui ne s'est jamais présenté, saisi d'un nouveau contrat affecté à un mauvais individu, etc...) ?
+
+
+Le contexte
+
+Dans le cas où un individu apparaîtrait à tort dans une DSN mensuelle (exemples : salarié fictif, salarié test déclaré à tort en production, salarié nouvellement embauché qui ne s'est jamais présenté, saisi d'un nouveau contrat affecté à tort à un individu alors qu'il s'agit du contrat d'un autre, etc... ) et que vous ne pouvez pas procéder à une DSN annule et remplace, i
+
+[la phrase est coupée ainsi dans la page servie]
+
+
+Corriger un individu déclaré à tort dans la mensuelle
+
+Renseigner un bloc " Changement de contrat - S21.G00.41 " concernant ce salarié, et un bloc " Contrat - S21.G00.40 " indiquant une nature de contrat autre que CDD ou CDI (exemple : " 81 - Mandat d'élu " ou " 90 - Autre nature de contrat, convention, mandat "). Cela permettra de ne pas impacter les données liées à la reconstitution de la DMMO ou de l'EMMO par la DARES.
+
+Renseigner un bloc " Fin de contrat - S21.G00.62 " en indiquant une date de fin égale à la date de début du contrat déclaré à tort. Nous vous invitons à être vigilant au motif de la fin de contrat, qui doit être en adéquation avec la nouvelle nature du contrat, modifiée en amont par le bloc " Changements Contrat - S21.G00.41 " (cf. point 1). Il n'y a pas de signalement " Fin du contrat de travail " ou signalement " Fin du contrat de travail Unique " à émettre dans ce cas.
+
+Effectuer une correction en annulant les montants (hors " Rémunération nette fiscale - S21.G00.50.002 " et Prélèvement à la source) ayant été portés à tort dans le bloc " Versement individu – S21.G00.50 ", en indiquant les sommes déclarées à tort en négatif dans un bloc " Versement individu – S21.G00.50 " daté du mois de l'erreur.
+
+Pour annuler la RNF (" Rémunération nette fiscale - S21.G00.50.002 ") et le Prélèvement à la source, il faut déclarer un bloc " Régularisation du prélèvement à la source - S21.G00.56 " avec pour type d'erreur " 01 - Rectification sur rémunération nette fiscale ". La fiche consigne 1821 " DSN - Rectification de l'assiette fiscale " précise comment renseigner ce bloc.
+
+Effectuer une correction en annulant les montants ayant été portés à tort dans les autres blocs déclarés, en indiquant les sommes déclarées à tort en négatif et en datant ces blocs du mois de l'erreur.
+
+Exemples de blocs pouvant être concernés : bloc « Bordereau de cotisation due – S21.G00.22 », bloc « Cotisation agrégée - S21.G00.23 », bloc « Rémunération - S21.G00.51 », bloc « Prime, gratification et indemnité - S21.G00.52 », bloc « Autre élément de revenu brut - S21.G00.54 », bloc « Base assujettie S21.G00.78 », ou encore le bloc « Bases spécifiques individu non salarié - S89.G00.92 ».
+
+Date de création : 29/07/2016 09:22 AM
+Date de modification : 03/07/2025 03:05 PM
+N° de la fiche : 898

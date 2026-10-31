@@ -470,3 +470,30 @@ une nouvelle déclaration.
 **Où le moteur s'en sert** : `atelier/sources/engagement/src/etats.rs` (`a_refaire`) : un engagement rendu non actif
 ne fait ressortir aucune DPAE à annuler, seulement la DSN à corriger ; `atelier/sources/paie/src/routes_regularisation.rs`
 (la phrase d'un engagement non actif).
+
+## Fiche 898 — Individu et/ou contrat déclaré(s) à tort dans une DSN mensuelle
+
+- URL : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/898/
+- Transmise par Léandre le 31/10/2026 (texte copié de la page ; pas de brut `.html`) ; « Date de modification :
+  03/07/2025 ». La première phrase du contexte est coupée telle quelle dans la page.
+
+**Ce qu'on en lit** : un individu ou un contrat déclaré à tort, quand l'annule-et-remplace n'est plus possible, se
+corrige dans une DSN mensuelle suivante : un bloc « Changement de contrat » (S21.G00.41) et un bloc « Contrat »
+(S21.G00.40) qui lui donnent une nature autre que CDD ou CDI (« 90 - Autre nature de contrat, convention, mandat ») ; un
+bloc « Fin de contrat » (S21.G00.62) dont la date de fin est la date de début du contrat déclaré à tort, sans signalement
+de fin ; les montants déclarés à tort annulés en négatif dans des blocs datés du mois de l'erreur (S21.G00.50, sauf la
+RNF et le PAS, qui s'annulent par un bloc S21.G00.56 de type 01, fiche 1821 ; et les blocs 22, 23, 51, 52, 54, 78…).
+
+**Où le moteur s'en sert** : pas encore. Elle montre que le refus `ModificationNonDeclarable` (retirer un contrat déclaré
+d'un mois dont l'annule-et-remplace est passé) refuse du licite : la norme a une cinématique de correction (ticket du
+privé).
+
+## Fiche 2072 — Annuler une date de fin de contrat déclarée à tort (agents affiliés à l'Ircantec)
+
+- URL : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2072/
+- Transmise par Léandre le 31/10/2026 (texte copié de la page) ; « Date de modification : 07/07/2025 ».
+
+**Ce qu'on en lit** : le motif 099 annule une fin de contrat (comme la fiche 1722) ; pour l'Ircantec, la base
+assujettie (S21.G00.78, type 28) mal datée s'annule en négatif sur sa période d'origine et se redéclare sur la vraie
+période, avec la cotisation (S21.G00.81) de même, dans la DSN du mois où l'erreur est constatée. **Où le moteur s'en
+sert** : nulle part (pas d'Ircantec dans le spectacle vivant privé) ; déposée parce que lue.
