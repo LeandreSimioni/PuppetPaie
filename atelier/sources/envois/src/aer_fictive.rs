@@ -165,7 +165,11 @@ fn periodes(ctx: &Contexte, lignes: &[Value], mois: &str, nir: &str, c: &Contrat
         }
         m = mois_suivant(&m);
     }
-    out.push(periode(c, debut, fin, mois, paiement, out.is_empty())?);
+    // Un contrat que ce fichier ne porte que pour le rappel d'un mois deja declare (`recap_dsn::Contrat::rappel`) n'a pas
+    // de periode ce mois-ci.
+    if c.mois.remunere || out.is_empty() {
+        out.push(periode(c, debut, fin, mois, paiement, out.is_empty())?);
+    }
     Ok(out)
 }
 
