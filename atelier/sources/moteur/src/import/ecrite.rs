@@ -289,7 +289,7 @@ fn rapprocher(par_cle: &mut BTreeMap<(String, String, String), Value>) -> usize 
 }
 
 /// Une ligne sans ce qui dit quand elle a ete importee : ce qui compare deux lectures des memes pieces.
-fn sans_dates_d_import(x: &Value) -> Value {
+pub(crate) fn sans_dates_d_import(x: &Value) -> Value {
     let mut x = x.clone();
     if let Some(o) = x.as_object_mut() {
         o.remove("importe_le");
