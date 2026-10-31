@@ -130,6 +130,10 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     if catalogue::dans(accueil::ROUTES, route).is_some() {
         return reponse(accueil::route(o, route, &charge));
     }
+    // Le catalogue lui-meme, ce que `moteur routes --json` imprime : il ne porte sur aucune compagnie non plus.
+    if catalogue::dans(catalogue::ROUTES, route).is_some() {
+        return reponse(Ok(catalogue::en_json(charge.get("avance").is_some_and(vrai))));
+    }
     // UNE ROUTE QUI PORTE UN MOIS LIT LA CONFIGURATION DE CE MOIS (`Contexte::du_mois`) : sa paie, sa DSN et ses documents
     // se font sous les valeurs qui valaient alors, jamais sous celles d'aujourd'hui.
     let ctx = match charge.get("mois").and_then(Value::as_str).filter(|m| socle::date::premier_du_mois(m).is_ok()) {
@@ -183,8 +187,6 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Le banc : l'horloge de la compagnie fictive (rattraper ce qui etait du, ce que le bandeau « pendant votre
         // absence » lit ; `horloge::HorlogeFictive`).
         r if crate::horloge::ROUTES.contains(&r) => crate::horloge::route(o, &ctx, route, &charge),
-        // Le catalogue lui-meme, ce que `moteur routes --json` imprime.
-        _ if dans(catalogue::ROUTES) => Ok(catalogue::en_json(charge.get("avance").is_some_and(socle::fichiers::vrai))),
         autre => return Err(format!("route inconnue : {}", autre)),
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
