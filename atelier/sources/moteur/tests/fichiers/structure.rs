@@ -64,7 +64,7 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
     let (filet, _) = crate::outils::serveur(|_| {
         Some(crate::outils::http_json(200, &json!({"poste": "0".repeat(32), "cle": "0".repeat(64), "confirme": false, "numero": 1})))
     });
-    std::fs::write(c.join("config/filet-dpae.json"), json!({"serveur": filet}).to_string()).unwrap();
+    std::fs::write(c.join("config/diagnostic.json"), json!({"serveur": filet}).to_string()).unwrap();
     // Les bulletins d'un ancien logiciel, dans la boîte de l'import : un artiste (janvier 2026, sans la CASC-SVP) et un
     // permanent (mai 2025) dont aucune pièce ne dit la nature du contrat.
     let (mut artiste, mut permanent) = (a_repetitions(), a_heures());

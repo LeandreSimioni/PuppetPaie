@@ -165,21 +165,17 @@ fn signer_dossier(h: &mut Sha256, base: &Path, dossier: &Path, profond: bool, ga
 /// - `config/.sauvegarde.json` : l'index de la sauvegarde (`sauvegarde::chemin_index`), reecrit a chaque sauvegarde ; lu
 ///   par la sauvegarde et la restauration seulement ;
 /// - `config/diagnostic.json` : l'identite du poste chez l'editeur (`incidents.rs`, `POSTE_FICHIER`), ecrite par la
-///   veille ; lue par l'envoi des incidents et des signalements, le filet et l'import ;
+///   veille ; lue par l'envoi des incidents et des signalements et l'import ;
 /// - `config/horloge.json` : la memoire de l'horloge d'une compagnie fictive (`horloge.rs`), reecrite a chaque tour de
 ///   veille ; lue par l'horloge seulement (le jour d'un `Contexte` ne la lit pas) ;
-/// - `config/filet-dpae.json` et `config/.filet.verrou` : l'etat du filet DPAE (`filet.rs`), reecrit par
-///   `filet-preparer`, que la fenetre lance en fond apres `produire` ; lu par le filet, `filet-etat` et l'ouverture ;
 /// - `journal/signalements.json` : « Un probleme, une idee ? » (`problemes.rs`) ; lu par `signalements` et
 ///   `importation-etat` ;
 /// - `journal/incidents.json` : le journal des incidents.
-const HORS_DE_L_ECRAN: [&str; 9] = [
+const HORS_DE_L_ECRAN: [&str; 7] = [
     "config/.ouverture.json",
     "config/.sauvegarde.json",
     "config/diagnostic.json",
     "config/horloge.json",
-    "config/filet-dpae.json",
-    "config/.filet.verrou",
     "journal/signalements.json",
     "journal/incidents.json",
     // Le tableau de l'administrateur (`administrateur.rs`) : le resume de la compagnie que l'accueil lit.

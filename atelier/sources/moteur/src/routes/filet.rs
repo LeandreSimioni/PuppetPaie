@@ -5,8 +5,6 @@
 //!   qui attend ;
 //! - `signalements`, `signalement-apercu`, `signalement-envoyer` (enregistre, ne part pas), `signalements-partir` (le
 //!   depart, en fond), `signalements-lus` : « Un probleme, une idee ? » ;
-//! - `filet-etat`, `filet-verifier`, `filet-activer`, `filet-desactiver`, `filet-suivies` : le filet DPAE (activer et
-//!   desactiver exigent le mot de passe du logiciel s'il est pose : le moteur le verifie, jamais la page) ;
 //! - `incidents-lire`, `incidents-regrouper`, `incidents-oublier`, `incidents-envoyer` : les incidents gardes, pour la
 //!   veille et la ligne de commande.
 //!
@@ -18,12 +16,11 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::incidents::{self, DEPOSE, EN_ATTENTE};
-use crate::compagnie::{filet, problemes};
+use crate::compagnie::problemes;
 use droit::contexte::Contexte;
-use super::{lire_json_tolerant, longueur, objet, valeur};
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, OPERATION};
-use envois::etats::{get, objet_vide};
-use socle::echec::{erreur, Echec, R};
+use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, OPERATION};
+use envois::etats::get;
+use socle::echec::{Echec, R};
 use socle::fichiers::vrai;
 use socle::valeur::{valeur_en_texte, valeurs_egales};
 
@@ -33,8 +30,6 @@ const TEXTE: Champ = Champ { nom: "texte", sens: "le message, en mots", avance: 
 const ECRAN: Champ = Champ { nom: "ecran", sens: "où l'on était (l'écran, ou ce que le LLM a tenté : la route, la charge sans donnée personnelle, la réponse)", avance: false };
 const CAPTURES: Champ = Champ { nom: "captures", sens: "[{type, donnees}] : des images en base64", avance: true };
 const QUOI: Champ = Champ { nom: "quoi", sens: "une seule nature d'incident ; toutes sinon", avance: true };
-const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, s'il est posé", avance: false };
-const FILET_REND: &str = "actif, adresse, confirme, et leur pastille";
 const DIAGNOSTIC_REND: &str = "envoi (vrai : actif), total, en_attente, groupes (ce qui part, mot pour mot), pastille";
 
 /// Les routes de ce module, et leurs fiches.
@@ -182,61 +177,6 @@ pub const ROUTES: &[Fiche] = &[
         avance: true,
         phrase: 0,
     },
-    Fiche {
-        nom: "filet-etat",
-        geste: "Dire si le filet DPAE (un rappel par courriel) est actif.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: FILET_REND,
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: true,
-        phrase: 0,
-    },
-    Fiche {
-        nom: "filet-suivies",
-        geste: "Dire les embauches que le filet DPAE suit.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: "suivies (les DPAE à faire)",
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: true,
-        phrase: 0,
-    },
-    Fiche {
-        nom: "filet-verifier",
-        geste: "Relire chez le serveur du filet si l'adresse est confirmée.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: FILET_REND,
-        refus: &[OPERATION],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-    },
-    Fiche {
-        nom: "filet-activer",
-        geste: "Inscrire une adresse au filet DPAE : un rappel si une DPAE tarde.",
-        charge: &[Champ { nom: "adresse", sens: "le courriel qui reçoit le rappel", avance: false }, MOT_DE_PASSE],
-        exemple: r#"{"adresse":"compagnie@exemple.invalid"}"#,
-        rend: FILET_REND,
-        refus: &[Refus { classe: "ErreurOperation", corriger: "l'adresse, ou réessayer quand le serveur du filet répond" }, Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel" }],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-    },
-    Fiche {
-        nom: "filet-desactiver",
-        geste: "Désinscrire la compagnie du filet DPAE.",
-        charge: &[MOT_DE_PASSE],
-        exemple: r#"{}"#,
-        rend: FILET_REND,
-        refus: &[Refus { classe: "ErreurOperation", corriger: "réessayer quand le serveur du filet répond" }, Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel" }],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-    },
 ];
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -245,24 +185,13 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
     Ok(v)
 }
 
-/// LES PASTILLES DE CE QUE CES ROUTES RENDENT (`routes::pastille`). Le filet DPAE : desactive, une information ; actif,
-/// fait ; une adresse a confirmer, a faire. Le diagnostic : coupe par la compagnie, une information ; rien de note ou
-/// tout parti, fait ; des incidents en attente, une information (ils partent d'eux-memes). Un message a l'editeur : en
-/// cours ou pas encore parti, une information.
+/// LES PASTILLES DE CE QUE CES ROUTES RENDENT (`routes::pastille`). Le diagnostic : coupe par la compagnie, une
+/// information ; rien de note ou tout parti, fait ; des incidents en attente, une information (ils partent d'eux-memes).
+/// Un message a l'editeur : en cours ou pas encore parti, une information.
 fn poser_les_pastilles(nom: &str, v: &mut Value) {
     let Some(o) = v.as_object_mut() else { return };
     let nombre = |o: &serde_json::Map<String, Value>, k: &str| o.get(k).and_then(Value::as_u64).unwrap_or(0);
     match nom {
-        "filet-etat" | "filet-verifier" | "filet-activer" | "filet-desactiver" => {
-            let p = if !o.get("actif").is_some_and(vrai) {
-                super::pastille("information", "désactivé")
-            } else if o.get("confirme").is_some_and(vrai) {
-                super::pastille("fait", "actif")
-            } else {
-                super::pastille("a_faire", "adresse à confirmer")
-            };
-            o.insert("pastille".into(), p);
-        }
         "diagnostic-etat" | "diagnostic-envoyer" | "diagnostic-regler" => {
             let attente = nombre(o, "en_attente");
             let p = if o.get("envoi") == Some(&Value::Bool(false)) {
@@ -314,7 +243,6 @@ fn poser_les_pastilles(nom: &str, v: &mut Value) {
 fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let racine = ctx.racine.as_path();
     match nom {
-        "filet-etat" => etat_filet(racine),
         "signalements" => signalements_route(racine),
         "incident-navigateur" => {
             let vide = json!({});
@@ -351,10 +279,6 @@ fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: 
         "signalement-envoyer" => problemes::envoyer(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
         "signalements-lus" => Ok(json!({"lues": problemes::signalements_lus(racine)?})),
         "signalements-partir" => Ok(problemes::partir(racine)),
-        "filet-verifier" => filet::verifier(racine),
-        "filet-activer" => filet::activer(racine, &ou_vide(charge, "adresse"), &champ(charge, "motdepasse")),
-        "filet-desactiver" => filet::desactiver(racine, &champ(charge, "motdepasse")),
-        "filet-suivies" => Ok(json!({"suivies": filet::suivies(ctx)?})),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -473,34 +397,6 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
         "dernier_envoi": partis.iter().max().map_or(Value::Null, |m| json!(m)),
         "paies_annuelles": annees,
         "groupes": liste.into_iter().map(Value::Object).collect::<Vec<_>>(),
-    }))
-}
-
-/// `etat_filet` : le compte (sans sa cle), et le nombre de reveils. Lit
-/// `config/filet-dpae.json` : rien ne part vers le serveur.
-pub(crate) fn etat_filet(racine: &Path) -> R<Value> {
-    let mut e = lire_json_tolerant(&racine.join("config").join("filet-dpae.json"))?.unwrap_or_else(|| Value::Object(Map::new()));
-    let Value::Object(m) = &mut e else {
-        // Un fichier qui n'est pas un objet JSON est un refus avec sa phrase, jamais un plantage.
-        return Err(erreur("ErreurOperation", format!("{} est illisible : ce n'est pas un objet JSON.\nLe deplacer suffit a repartir de zero (le filet sera a reactiver).", racine.join("config").join("filet-dpae.json").display())));
-    };
-    for (cle, defaut) in [("compte", Value::Null), ("tests", json!({})), ("reveils", json!({}))] {
-        m.entry(cle).or_insert(defaut);
-    }
-    let compte = valeur(m, "compte");
-    let c = if vrai(compte) { compte } else { objet_vide() };
-    let c = objet(c)?;
-    let actif = !c.is_empty();
-    let adresse = c.get("adresse").cloned().unwrap_or_else(|| json!(""));
-    let confirme = vrai(valeur(c, "confirme"));
-    // Le serveur auquel `filet-activer` s'inscrirait : celui du compte, de la racine, sinon celui du moteur.
-    let serveur = json!(crate::compagnie::filet::serveur(&Value::Object(m.clone())));
-    let inscrit_le = c.get("inscrit_le").cloned().unwrap_or_else(|| json!(""));
-    let erreur_c = c.get("erreur").cloned().unwrap_or_else(|| json!(""));
-    let reveils = longueur(valeur(m, "reveils"))?;
-    Ok(json!({
-        "actif": actif, "adresse": adresse, "confirme": confirme, "serveur": serveur,
-        "inscrit_le": inscrit_le, "erreur": erreur_c, "reveils": reveils,
     }))
 }
 

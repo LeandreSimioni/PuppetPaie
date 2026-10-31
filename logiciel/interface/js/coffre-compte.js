@@ -66,9 +66,7 @@ async function dessinerCoffre(cible) {
       Les dépôts de DPAE et de DSN, leurs retours, les courriels et les
       signatures sont simulés : aucun mot de passe n'est demandé, et rien ne
       quitte le poste. Dans une compagnie réelle, c'est ici que se posent les
-      accès à net-entreprises, à l'Urssaf et à la boîte courriel — et que
-      s'active le filet de sécurité DPAE, un courriel de rappel si une DPAE
-      n'est pas partie la veille d'une embauche.</div>`
+      accès à net-entreprises, à l'Urssaf et à la boîte courriel.</div>`
     : c.cle_poste ? "" : `<div class="encart"><b>Cet ordinateur n'a pas encore sa clé du coffre</b>
       Rien n'est perdu : elle se refait toute seule la prochaine fois que le mot de passe du
       logiciel est tapé (ou posé, ci-dessous). Elle vit à part des données, pour qu'une
@@ -171,32 +169,6 @@ async function dessinerCoffre(cible) {
         </div>
         <div class="k-verdict discret"></div>
       </div>
-      <div class="rang" id="k-filet">
-        <div class="rang-infos"><b class="rang-nom">Filet de sécurité DPAE</b>
-          <span class="discret">un courriel, et un seul, si une DPAE n'est pas partie la
-            veille d'une embauche — jamais rien quand elle est partie</span>
-          <span class="compte k-filet-compte"></span></div>
-        <div class="rang-etat k-filet-etat"><span class="discret">lecture…</span></div>
-        <div class="rang-actions">
-          <button class="lien" id="k-filet-arreter" hidden>Désactiver</button>
-          <button class="secondaire k-ouvrir" id="k-filet-ouvrir">Activer…</button>
-        </div>
-        <div class="k-verdict discret"></div>
-        <form class="rang-forme" onsubmit="return false" autocomplete="off" hidden>
-          <label>Adresse qui recevra le rappel
-            <input type="email" id="k-filet-adresse" autocomplete="off"></label>
-          <div class="barre-boutons"><button class="primaire" id="k-filet-activer">Activer</button></div>
-          <p class="note">PuppetPaie tourne sur cet ordinateur : éteint, il ne peut prévenir
-            personne. Le filet confie donc un réveil au serveur de PuppetPaie, pour la veille
-            de chaque embauche dont le contrat est parti, et le désarme dès que la DPAE part.
-            S'il n'a pas été désarmé, il sonne : un courriel à cette adresse. Le serveur ne
-            reçoit ni nom, ni salarié, ni contrat — seulement cette adresse, un code tiré au
-            hasard et le jour de l'embauche, effacés dès que le réveil sonne ou se désarme.
-            Un lien de confirmation part d'abord à l'adresse : sans lui, rien ne sera envoyé.
-            La DPAE reste obligatoire avant la première heure de travail ; le filet ne la
-            fait pas, il rappelle qu'elle manque.</p>
-        </form>
-      </div>
       <div class="rang" id="k-diagnostic">
         <div class="rang-infos"><b class="rang-nom">Signalement des dysfonctionnements</b>
           <span class="discret">ce qui casse part chez l'éditeur, avec de quoi le reproduire
@@ -218,7 +190,6 @@ async function dessinerCoffre(cible) {
     cible.querySelectorAll("input, button:not([data-aller-fiche])").forEach((x) => {
       x.disabled = true;
     });
-    cible.querySelector(".k-filet-etat").innerHTML = pastilleDeLEtat(c.fictive.filet);
     cible.querySelector(".k-google-etat").innerHTML = pastilleDeLEtat(c.fictive.google);
     cible.querySelectorAll("[data-aller-fiche]").forEach((b) => {
       b.onclick = () => document.querySelector(
@@ -227,7 +198,6 @@ async function dessinerCoffre(cible) {
     return;
   }
 
-  dessinerFilet(cible.querySelector("#k-filet"), exige);
   dessinerDiagnostic(cible.querySelector("#k-diagnostic"));
 
   // Venu du bandeau : la ligne de ce qui manque, ouverte et montrée.

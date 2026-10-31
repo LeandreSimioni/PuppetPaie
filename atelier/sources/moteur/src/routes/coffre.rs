@@ -4,7 +4,7 @@
 //! passe du logiciel (`mot-de-passe-changer`, `mot-de-passe-retirer`).
 //!
 //! Aucune valeur de secret ne sort : la reponse est l'etat du coffre, des presences et des dates. Ces routes passent
-//! par la porte du mot de passe du logiciel s'il est pose (`filet::exiger_mot_de_passe`) ; le coffre lui-meme est
+//! par la porte du mot de passe du logiciel s'il est pose (`exiger_mot_de_passe`) ; le coffre lui-meme est
 //! `coffre.rs`.
 //!
 //! UN SECRET NE SE LIT JAMAIS SUR L'ENTREE STANDARD. La page tape les siens dans ses cases et les met dans la charge ; par
@@ -18,7 +18,6 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::coffre::{Coffre, Echec as EchecCoffre};
-use crate::compagnie::filet::exiger_mot_de_passe;
 use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
 use droit::contexte::Contexte;
 use super::{ou_texte, vers_route};
@@ -186,6 +185,33 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 #[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
+}
+
+/// `exiger_mot_de_passe` : le mot de passe du logiciel, s'il est pose, pour un
+/// acte qui ENGAGE sans rien envoyer. Decide ICI, jamais par la page.
+pub(crate) fn exiger_mot_de_passe(racine: &Path, motdepasse: &Value, quoi: &str) -> R<()> {
+    let coffre = crate::compagnie::coffre::Coffre::du_poste(racine, "");
+    let vers = crate::routes::vers_route;
+    if !coffre.ouverture_exigee().map_err(vers)? {
+        return Ok(());
+    }
+    if !vrai(motdepasse) {
+        // Rien n'a ete tape pour cette charge : le moteur demande lui-meme a un humain (fenetre, terminal), ou il refuse.
+        // Un « oui » ne laisse que l'ouverture du coffre pour la suite de la commande ; la seance ne vaut pas ici.
+        let acte = crate::compagnie::demande::Acte::nouveau(quoi, "", "");
+        return match crate::compagnie::demande::autoriser_acte(racine, &acte) {
+            crate::compagnie::demande::Verdict::Accepte => Ok(()),
+            crate::compagnie::demande::Verdict::Refuse(phrase) => Err(erreur(
+                "PreuveInsuffisante",
+                format!("Un mot de passe du logiciel est pose : il faut le taper pour {}. {}", quoi, phrase.replace("Rien n'est parti", "Rien n'a ete modifie")),
+            )),
+        };
+    }
+    let mdp = valeur_en_texte(motdepasse);
+    if !coffre.verifier_ouverture(&mdp).map_err(vers)? {
+        return Err(erreur("PreuveInsuffisante", "Mot de passe du logiciel refuse. Rien n'a ete modifie."));
+    }
+    Ok(())
 }
 
 /// `charge.get(cle)`.
@@ -771,7 +797,7 @@ pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
         "cle_poste": cle_poste,
         "chemin_cle": coffre.chemin_cle().display().to_string(),
         // Ce que montrent le filet et le compte Google d'une compagnie fictive, ou rien ne se branche : une information.
-        "fictive": {"filet": super::pastille("information", "désactivé"), "google": super::pastille("information", "non lié")},
+        "fictive": {"google": super::pastille("information", "non lié")},
         // La pastille du mot de passe du logiciel (rattache a l'administrateur, la page dit a combien de compagnies).
         "pastille_mot_de_passe": if simule {
             super::pastille("information", "simulé")

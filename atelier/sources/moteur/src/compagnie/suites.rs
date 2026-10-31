@@ -144,27 +144,13 @@ fn noter_incident_depot(ctx: &Contexte, d: &envois::suites::DepotRefuse) {
     );
 }
 
-/// Ce qu'un depot reel accepte laisse derriere lui : la demande de taux d'un signalement d'amorcage, et le reveil du
-/// filet qui se tait. Ce qu'un signalement ou une mensuelle declare d'un arret se lit au journal (`obligations::avec_ce_qui_est_parti`).
+/// Ce qu'un depot reel accepte laisse derriere lui : la demande de taux d'un signalement d'amorcage. Ce qu'un signalement
+/// ou une mensuelle declare d'un arret se lit au journal (`obligations::avec_ce_qui_est_parti`).
 fn marquer_depot_reel(ctx: &Contexte, d: &envois::suites::DepotReel) -> R<()> {
-    if d.quoi == "dsn" {
-        match &d.signalement {
-            Some(s) => {
-                // Sans la trace d'une demande de taux, le moteur redirait « aucun taux connu, il faut demander ».
-                if s.nature == declarations::amorcage::NATURE {
-                    crate::compagnie::marques_depot::marquer_demande_depuis(ctx, &d.chemin, &d.quand)?;
-                }
-            }
-            None => {
-                if !d.joue {
-                    // Ne leve jamais.
-                    let _ = crate::compagnie::filet::desarmer(&ctx.racine, &format!("dsn|{}", d.mois));
-                }
-            }
-        }
-    } else if !d.joue {
-        for e in &d.embauches {
-            let _ = crate::compagnie::filet::desarmer(&ctx.racine, &crate::compagnie::filet::cle_dpae(&socle::valeur::valeur_en_texte(&e["salarie"]), &socle::valeur::valeur_en_texte(&e["numero"])));
+    // Sans la trace d'une demande de taux, le moteur redirait « aucun taux connu, il faut demander ».
+    if let (true, Some(s)) = (d.quoi == "dsn", &d.signalement) {
+        if s.nature == declarations::amorcage::NATURE {
+            crate::compagnie::marques_depot::marquer_demande_depuis(ctx, &d.chemin, &d.quand)?;
         }
     }
     Ok(())

@@ -650,11 +650,6 @@ fn periode_de_l_arret(resume: &Value) -> String {
 /// des que la DPAE reelle est au journal.
 fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
     let aujourdhui = st.aujourdhui;
-    // L'etat du filet : les tests faits par embauche (`config/filet-dpae.json`).
-    let tests: Value = match std::fs::read_to_string(st.racine().join("config").join("filet-dpae.json")) {
-        Ok(t) => serde_json::from_str::<Value>(&t).ok().and_then(|v| v.get("tests").cloned()).filter(|t| t.is_object()).unwrap_or_else(|| json!({})),
-        Err(_) => json!({}),
-    };
     let mut jours: BTreeMap<(String, String), Vec<Value>> = BTreeMap::new();
     let a_faire = crate::routes::etapes::Moteur::nouveau(st.ctx).embauches_a_declarer(None)?;
     for e in a_faire.as_array().into_iter().flatten() {
@@ -664,40 +659,6 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
     let mut out = Vec::new();
     for ((mois, debut), groupe) in jours {
         let jour = Jour::lire(&debut)?;
-        let essais: Vec<Value> = groupe
-            .iter()
-            .map(|e| {
-                let cle = crate::compagnie::filet::cle_dpae(&texte_ou_vide(e, "salarie"), &texte_ou_vide(e, "numero"));
-                let t = tests.get(cle).cloned().unwrap_or(Value::Null);
-                if vrai(&t) { t } else { json!({}) }
-            })
-            .collect();
-        let fichiers: BTreeSet<String> = essais.iter().map(|t| texte(t.get("fichier"))).collect();
-        let (mut teste, mut pret) = (false, String::new());
-        if fichiers.len() == 1 {
-            let f = essais[0].get("fichier").cloned().unwrap_or(Value::Null);
-            if vrai(&f) {
-                let f = en_texte(&f);
-                if Path::new(&f).exists() {
-                    let empreinte = envois::journal::empreinte_fichier(Path::new(&f))?;
-                    let nom = Path::new(&f).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-                    let rep = etats::repetition(&st.journal, DPAE, &empreinte, &nom)?;
-                    if vrai_opt(rep.get("conforme")) {
-                        teste = true;
-                        pret = "La DPAE est prête et son test est passé : il reste à l'envoyer.".to_string();
-                    } else if let Some(motif) = rep.get("motif").and_then(Value::as_str) {
-                        pret = format!("Le test automatique a été refusé : {}. À corriger avant l'envoi.", motif);
-                    }
-                }
-            }
-        }
-        if pret.is_empty() {
-            let erreurs: Vec<String> = essais.iter().filter(|t| vrai_opt(t.get("erreur"))).map(|t| en_texte(&t["erreur"])).collect();
-            pret = match erreurs.first() {
-                Some(e) => format!("Le test automatique n'a pas pu se faire : {}.", e),
-                None => "Elle n'est pas encore préparée : le bouton ouvre les embauches du mois.".to_string(),
-            };
-        }
         let retard = jour < aujourdhui;
         let noms = groupe.iter().map(|e| format!("{} ({})", texte_ou_vide(e, "nom"), texte_ou_vide(e, "spectacle"))).collect::<Vec<_>>().join(", ");
         let quand = if retard {
@@ -720,12 +681,7 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
         );
         r.mois = Some(mois);
         r.jour = Some(debut);
-        r.detail = format!("{} {}", pret, quand);
-        // Testee : la charge du depot qui la designe (`depots::designee`), que le bouton ouvre.
-        r.objet = teste.then(|| {
-            let engagements: Vec<Value> = groupe.iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
-            json!({"quoi": DPAE, "mois": r.mois, "engagements": engagements})
-        });
+        r.detail = quand;
         r.en_retard = retard;
         r.engagements = groupe.len() as i64;
         out.push(r);

@@ -320,14 +320,6 @@ fn ouvrir_sous(dossier: PathBuf, absent: &str) -> Result<Value, Refus> {
     Ok(json!({"dossier": dossier.display().to_string(), "phrase": phrase}))
 }
 
-/// Le filet repasse en fond apres une ecriture de mois ou un envoi de contrats : l'ecran n'attend pas l'Urssaf.
-fn filet_en_fond(racine: &Path) {
-    let r = racine.to_path_buf();
-    crate::routes::fil_de_routes(move || {
-        let _ = route(&r, "filet-preparer", &json!({"qui": "filet"}));
-    });
-}
-
 /// « Un probleme, une idee ? » part en fond : `signalement-envoyer` a enregistre le message et
 /// rendu la main ; `signalements-partir` le fait partir, le temps du serveur de l'editeur, sans que la page attende.
 fn signalements_en_fond(racine: &Path) {
@@ -364,13 +356,6 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             c.insert("xlsx".into(), Value::Bool(true));
             c.insert("pdf".into(), Value::Bool(true));
             route(racine, nom, &Value::Object(c))
-        }
-        "depot-apercu" | "demander-signature" => {
-            let r = route(racine, nom, charge);
-            if r.is_ok() {
-                filet_en_fond(racine);
-            }
-            r
         }
         "signalement-envoyer" => {
             let r = route(racine, nom, charge);

@@ -19,7 +19,6 @@ pub mod diagnostic;
 pub mod editeur;
 pub mod essai;
 pub mod exercice_ecrit;
-pub mod filet;
 pub mod incidents;
 pub mod maj;
 pub mod marques_depot;

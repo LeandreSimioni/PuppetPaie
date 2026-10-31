@@ -205,7 +205,7 @@ pub fn apercu(racine: &Path, texte: &Value, ecran: &Value, captures: &[Value]) -
         "corps": montre, "caviarde": caviarde, "serveur": serveur,
         "captures": caps.len(), "incidents": nb_incidents,
         "peut_envoyer": !serveur.is_empty(),
-        "pourquoi": if serveur.is_empty() { format!("Aucun serveur n'est configuré (config/{}) : rien ne peut partir.", crate::compagnie::filet::FICHIER) } else { String::new() },
+        "pourquoi": if serveur.is_empty() { "Aucun serveur n'est configuré (config/diagnostic.json) : rien ne peut partir.".to_string() } else { String::new() },
     }))
 }
 

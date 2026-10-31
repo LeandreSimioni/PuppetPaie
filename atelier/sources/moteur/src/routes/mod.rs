@@ -350,24 +350,9 @@ fn lire_json_tolerant(p: &Path) -> R<Option<Value>> {
     Ok(String::from_utf8(octets).ok().and_then(|t| serde_json::from_str(&t).ok()))
 }
 
-/// La longueur d'un texte, d'une liste ou d'un objet.
-fn longueur(v: &Value) -> R<usize> {
-    match v {
-        Value::Array(a) => Ok(a.len()),
-        Value::Object(o) => Ok(o.len()),
-        Value::String(s) => Ok(s.chars().count()),
-        autre => Err(erreur("TypeError", socle::fichiers::attendu("un texte ou une liste", nom_type(autre)))),
-    }
-}
-
 /// `v.get(...)` sur un dictionnaire ; sinon `AttributeError`.
 fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
     v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
-}
-
-fn valeur<'a>(m: &'a Map<String, Value>, cle: &str) -> &'a Value {
-    static NUL: Value = Value::Null;
-    m.get(cle).unwrap_or(&NUL)
 }
 
 /// `x or ""`.

@@ -2,7 +2,7 @@
 //!
 //! Ce que le logiciel fait tout seul quand on l'ouvre -- interface ou ligne de commande, c'est la meme fonction -- et
 //! toutes les vingt minutes ensuite : l'horloge de la compagnie fictive, les retours DSN et DPAE,
-//! les taux de PAS, les signatures et les fiches, le filet DPAE, les incidents et les reponses de l'editeur, la
+//! les taux de PAS, les signatures et les fiches, les incidents et les reponses de l'editeur, la
 //! sauvegarde en dernier, puis la trace `config/.ouverture.json`.
 //!
 //! REGLE : L'OUVERTURE N'ECHOUE JAMAIS. `ouverture` ne rend pas de `Result` : pas de reseau, pas de compte Google, pas de
@@ -13,14 +13,13 @@
 //! `releve_retours::{relever_retours, relever_retours_dpae, rattacher_simulation}`,
 //! `releve_signatures::{relever_signatures, relever_signatures_fictive}`,
 //! `crate::routes::fiches::relever_fiches`, `horloge::{rattraper, dernier_rattrapage}`,
-//! `pas::avertissements`, `crate::routes::depots::filet_preparer` (le passage du filet DPAE),
+//! `pas::avertissements`,
 //! `incidents::envoyer` et `problemes::relever_reponses` (le canal de l'editeur), `sauvegarde::{sauvegarder,
 //! rien_n_a_bouge, hors_ligne}`, `crate::routes::coffre::autorise`, `coffre::Coffre`.
 //!
 //! CHAQUE CLIENT RESEAU PEUT ETRE REMPLACE (`Clients`) : le compte net-entreprises, le compte Urssaf (DPAE), la boite
 //! courriel (signatures et fiches), le Drive. Un client donne est utilise a la place du vrai, SANS regarder le coffre.
 //! Le serveur des incidents est celui de la configuration (`incidents::configuration`), qu'un serveur local peut tenir.
-//! Le test automatique de la DPAE du filet a son client Urssaf remplacable (`Clients::depot_dpae`).
 //!
 //! LA MISE A JOUR N'EST PAS ICI : le logiciel la cherche pour l'installation (`maj::chercher_en_fond`) et l'indicateur la
 //! dit (`maj::Recherche::etat`).
@@ -95,7 +94,7 @@ pub struct Options {
     pub retours: bool,
     /// Relever les signatures et les fiches.
     pub signatures: bool,
-    /// Le filet DPAE (le passage), et ce qui part chez l'editeur (incidents, reponses aux signalements).
+    /// Ce qui part chez l'editeur (incidents, reponses aux signalements).
     pub filet: bool,
     /// Combien de jours en arriere on cherche les retours.
     pub jours: i64,
@@ -167,8 +166,6 @@ pub struct Clients<'a> {
     pub courriel: Option<&'a mut (dyn Courriel + 'a)>,
     /// Le Drive.
     pub drive: Option<&'a mut (dyn Drive + 'a)>,
-    /// Le compte Urssaf du TEST AUTOMATIQUE des DPAE du filet (il depose en test) : distinct de `dpae`, qui sert la releve.
-    pub depot_dpae: Option<Client>,
 }
 
 // ------------------------------------------------------------------ ce que l'ouverture rend
@@ -192,8 +189,6 @@ pub struct Ouverture {
     pub phrases_coffre: Vec<String>,
     /// Une phrase par salarie non archive dont le taux de PAS n'est pas (ou plus) celui de la DGFiP.
     pub taux_pas: Vec<String>,
-    /// Le passage du filet DPAE : `{testees, armes, desarmes, incidents, occupe}`.
-    pub filet: Option<Value>,
     /// Ce que l'horloge de la compagnie fictive a joue aujourd'hui, en phrases.
     pub horloge: Vec<String>,
     pub secondes: f64,
@@ -280,7 +275,6 @@ impl Ouverture {
             "retours_dpae": retours_dpae,
             "fiches": fiches,
             "a_poser": self.a_poser,
-            "filet": self.filet,
             "horloge": self.horloge,
             "hors_ligne": self.hors_ligne,
             "injoignables": self.injoignables,
@@ -644,19 +638,6 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
                 r.fiches = Some(f);
             }
             Err(e) => r.incidents.push(format!("Fiches salariés : {}", e.message)),
-        }
-    }
-
-    // LA DPAE PREPAREE D'AVANCE. Apres les retours DPAE : un test automatique dont le bilan vient d'arriver se
-    // lit a jour. Le test ne declare rien -- la veille ne DEPOSE toujours rien de reel.
-    if opt.filet {
-        dire_l_etape(ctx, "DPAE préparée d'avance : dépôt de test…");
-        match crate::routes::depots::filet_preparer_avec(ctx, &json!({"qui": "veille"}), clients.depot_dpae.as_mut()) {
-            Ok(f) => {
-                r.incidents.extend(f.get("incidents").and_then(Value::as_array).into_iter().flatten().map(valeur_en_texte));
-                r.filet = Some(f);
-            }
-            Err(e) => r.incidents.push(format!("DPAE préparée d'avance : {}", e.message)),
         }
     }
 

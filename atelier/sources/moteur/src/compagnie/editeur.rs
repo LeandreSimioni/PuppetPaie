@@ -32,9 +32,9 @@ pub const ACTIONS_DU_POSTE: [&str; 4] = ["inscrire", "rapport", "retour", "repon
 /// Ce que dit le moteur a un 401 du serveur sur une action du poste : l'identite se redemande.
 pub const REDEMANDER_IDENTITE: &str = "Le serveur ne reconnait plus ce poste : retirer \"cle\" de config/diagnostic.json pour lui redemander une identite.";
 
-/// Le serveur de l'editeur QUAND LA CONFIGURATION NE DIT RIEN : le filet DPAE (ses rappels), les
+/// Le serveur de l'editeur QUAND LA CONFIGURATION NE DIT RIEN : les
 /// incidents, « Un probleme, une idee ? » et leurs reponses. Il repond sur `filet.puppetpaie.fr` (le serveur vit dans le depot du site de l'editeur, `infra/filet/`). Ce qu'une compagnie a
-/// pose le remplace toujours : `serveur` de `config/filet-dpae.json`, celui de son compte du filet, ou `EDITEUR.json` du
+/// pose le remplace toujours : `serveur` de `config/diagnostic.json`, ou `EDITEUR.json` du
 /// paquet. Jamais dans les essais : le garde-fou reseau (`garde_reseau`) le refuse ; un test pose son serveur local, ou
 /// nomme un faux mandataire local comme seule porte.
 pub const SERVEUR_PAR_DEFAUT: &str = "https://filet.puppetpaie.fr";

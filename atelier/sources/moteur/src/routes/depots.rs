@@ -1,16 +1,14 @@
 //! Les routes des declarations : ecrire ou reprendre la DSN ou la DPAE du mois et dire ce
-//! qu'elle declare (`depot-apercu`), la deposer (`deposer`), suivre un depot (`suivre-depot`), le bilan de son test (`bilan-repetition`), et
-//! preparer le filet DPAE (`filet-preparer`).
+//! qu'elle declare (`depot-apercu`), la deposer (`deposer`), suivre un depot (`suivre-depot`), le bilan de son test (`bilan-repetition`).
 //!
 //! Les formats sont ailleurs (`dpae`, la DSN de `declarations`, la fabrique de PDF) : ce module enchaine -- charger,
 //! choisir, refuser, nommer, ecrire, et passer a `envois` ce qui part. Le jour est celui du contexte
 //! (`PUPPETPAIE_AUJOURDHUI`) ; l'horodatage d'un fichier partiel de DPAE est la minute de l'horloge, a l'heure de Paris.
 
-use socle::date::jj_mm_aaaa;
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::compagnie::depot_acte::{self, phrase_de, Preuve};
 use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, MOIS, OPERATION};
@@ -94,17 +92,6 @@ pub const ROUTES: &[Fiche] = &[
         avance: false,
         phrase: 500,
     },
-    Fiche {
-        nom: "filet-preparer",
-        geste: "Tester les DPAE à venir et armer le filet ; la veille le fait d'elle-même.",
-        charge: &[Champ { nom: "tester", sens: "faux : armer sans tester", avance: true }],
-        exemple: r#"{}"#,
-        rend: "testees, armes, desarmes, incidents, occupe (un autre passage est en cours)",
-        refus: &[OPERATION],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-    },
 ];
 
 /// Une route de ce module.
@@ -114,7 +101,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "deposer" => deposer(ctx, charge),
         "suivre-depot" => suivre_depot(ctx, charge),
         "bilan-repetition" => bilan_repetition(ctx, charge),
-        "filet-preparer" => filet_preparer(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }?;
     poser_les_pastilles(&mut v);
@@ -698,166 +684,6 @@ fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     Ok(r)
 }
-
-// ------------------------------------------------------------------ filet-preparer
-
-/// Un test automatique de DPAE se retente au plus tot six heures apres un echec.
-const REESSAI_SECONDES: i64 = 6 * 3600;
-
-/// Un passage -- tester ce qui doit l'etre, armer, desarmer. Rend `{"testees",
-/// "armes", "desarmes", "incidents", "occupe"}`. Ne leve jamais pour une panne : elle devient un incident, et le
-/// passage suivant reessaie. `tester` (vrai par defaut) ; `qui` (`filet` par defaut) ; `maintenant`
-/// (`AAAA-MM-JJTHH:MM`, que l'appelant peut fixer).
-pub(crate) fn filet_preparer(ctx: &Contexte, charge: &Value) -> R<Value> {
-    filet_preparer_avec(ctx, charge, None)
-}
-
-/// `filet_preparer` avec, au besoin, le client Urssaf que l'appelant donne pour le test automatique des DPAE (la preuve de
-/// l'ouverture : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
-pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Option<&mut envois::releve_retours::Client>) -> R<Value> {
-    let tester = charge.get("tester").map_or(true, vrai);
-    let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());
-    let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(valeur_en_texte) {
-        Some(m) => m,
-        None => socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string(),
-    };
-    let mut bilan_testees: Vec<Value> = Vec::new();
-    let mut bilan_incidents: Vec<Value> = Vec::new();
-    let suivies = crate::compagnie::filet::suivies(ctx)?;
-    let mut demande = Map::new();
-    demande.insert("maintenant".into(), json!(maintenant_iso));
-    if tester {
-        let etat = crate::compagnie::filet::lire_etat(&ctx.racine)?;
-        if let Some(tests) = tester_les_dpae(ctx, &etat, &suivies, &maintenant_iso, &qui, &mut bilan_testees, &mut bilan_incidents, client.as_deref_mut())? {
-            demande.insert("tests".into(), tests);
-            demande.insert(
-                "vivantes".into(),
-                Value::Array(suivies.iter().map(|e| json!(crate::compagnie::filet::cle_dpae(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["numero"])))).collect()),
-            );
-        }
-    }
-    let champ = |k: &str| demande.get(k).cloned().unwrap_or(Value::Null);
-    match crate::compagnie::filet::passage(ctx, &champ("tests"), &champ("vivantes"), &champ("maintenant")) {
-        Ok(passage) => {
-            if let Some(i) = passage.get("incidents").and_then(Value::as_array) {
-                bilan_incidents.extend(i.iter().cloned());
-            }
-            Ok(json!({
-                "testees": bilan_testees,
-                "armes": passage.get("armes").cloned().unwrap_or_else(|| json!([])),
-                "desarmes": passage.get("desarmes").cloned().unwrap_or_else(|| json!([])),
-                "incidents": bilan_incidents,
-                "occupe": false,
-            }))
-        }
-        Err(e) if e.message.contains("autre passage") => {
-            Ok(json!({"testees": bilan_testees, "armes": [], "desarmes": [], "incidents": bilan_incidents, "occupe": true}))
-        }
-        Err(e) => Err(e),
-    }
-}
-
-/// LE TEST AUTOMATIQUE -- une DPAE par jour d'embauche, ecrite puis deposee en TEST. Le fichier est
-/// celui que le depot reel reprendra : `dpae` rend le meme fichier pour la meme selection, et le reel exige
-/// justement la repetition de CE contenu. Rend les tests faits (cle -> entree), ou `None` quand rien ne se
-/// teste sur ce poste.
-#[allow(clippy::too_many_arguments)]
-fn tester_les_dpae(
-    ctx: &Contexte,
-    etat: &Value,
-    suivies: &[Value],
-    maintenant_iso: &str,
-    qui: &str,
-    testees: &mut Vec<Value>,
-    incidents: &mut Vec<Value>,
-    mut client: Option<&mut envois::releve_retours::Client>,
-) -> R<Option<Value>> {
-    // La copie de developpement ne teste pas d'elle-meme ; sans le mot de passe Urssaf, rien ne part. LA
-    // COMPAGNIE FICTIVE, elle, teste : son depot est joue.
-    // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
-    if !crate::compagnie::bridage::branchement(&ctx.racine).joue() {
-        let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();
-        let dispo = client.is_some() || crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes::vers_route)?;
-        if copie || !dispo {
-            return Ok(None);
-        }
-    }
-    let aujourdhui = ctx.aujourdhui.iso();
-    let maintenant = socle::paris::naif_de_iso(maintenant_iso).unwrap_or(0);
-    // (mois, debut) -> les embauches de ce jour, dans l'ordre ; `sorted` apres.
-    let mut a_tester: Vec<((String, String), Vec<&Value>)> = Vec::new();
-    let deja = etat.get("tests").cloned().unwrap_or_else(|| json!({}));
-    for e in suivies {
-        let (salarie, debut) = (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["debut"]));
-        if debut < aujourdhui {
-            continue;
-        }
-        if let Some(t) = deja.get(crate::compagnie::filet::cle_dpae(&salarie, &valeur_en_texte(&e["numero"]))).filter(|t| vrai(t)) {
-            if t.get("empreinte") == e.get("empreinte") {
-                if !t.get("erreur").is_some_and(vrai) {
-                    continue; // teste, et rien n'a change
-                }
-                let essai = t.get("essai_le").filter(|x| vrai(x)).map(valeur_en_texte).and_then(|x| socle::paris::naif_de_iso(&x)).unwrap_or_else(|| socle::paris::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
-                if maintenant - essai < REESSAI_SECONDES {
-                    continue;
-                }
-            }
-        }
-        let k = (valeur_en_texte(&e["mois"]), debut);
-        match a_tester.iter_mut().find(|(c, _)| *c == k) {
-            Some((_, g)) => g.push(e),
-            None => a_tester.push((k, vec![e])),
-        }
-    }
-    a_tester.sort_by(|a, b| a.0.cmp(&b.0));
-
-    let mut tests = Map::new();
-    for ((mois, debut), groupe) in a_tester {
-        let selection: Vec<Value> = groupe.iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
-        let mut fichier: Option<String> = None;
-        let mut erreur_texte = String::new();
-        let mut essai = |fichier: &mut Option<String>| -> R<()> {
-            let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": selection}))?;
-            let f = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
-            // Le fichier est note des qu'il est ecrit : un depot qui echoue garde sa trace (`fichier = r.fichiers[0]`).
-            *fichier = Some(f.clone());
-            let p = std::path::Path::new(&f);
-            let octets = std::fs::read(p).map_err(|x| erreur("OSError", format!("{} : {}", p.display(), x)))?;
-            let nom = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-            let deja = etats::repetition(&lignes, "dpae", &envois::journal::empreinte(&octets), &nom)?;
-            if !vrai(&deja["conforme"]) {
-                depot_acte::deposer_dpae_avec(ctx, &json!(f), false, None, qui, false, "", client.as_deref_mut())?;
-            }
-            Ok(())
-        };
-        match essai(&mut fichier) {
-            Ok(()) => {}
-            // Partie entre-temps : rien a tester.
-            Err(e) if e.message.starts_with("Deja declaree(s)") => continue,
-            Err(e) => {
-                let phrase = phrase_de(&e);
-                let premiere = phrase.lines().next().unwrap_or("").chars().take(300).collect::<String>();
-                erreur_texte = if phrase.is_empty() { e.classe.unwrap_or("Exception").to_string() } else { premiere };
-                incidents.push(json!(format!("Test automatique de la DPAE du {} : {}", jj_mm_aaaa(&debut), erreur_texte)));
-            }
-        }
-        for e in &groupe {
-            tests.insert(
-                crate::compagnie::filet::cle_dpae(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["numero"])),
-                json!({
-                    "empreinte": e["empreinte"], "mois": mois, "fichier": fichier.clone().unwrap_or_default(),
-                    "essai_le": maintenant_iso, "erreur": erreur_texte,
-                }),
-            );
-        }
-        if erreur_texte.is_empty() {
-            testees.extend(selection.iter().cloned());
-        }
-    }
-    Ok(Some(Value::Object(tests)))
-}
-
 
 /// `charge["cle"]` : `KeyError` si elle manque.
 fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {

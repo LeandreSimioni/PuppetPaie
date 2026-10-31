@@ -911,15 +911,10 @@ pub fn client_du_poste(ou: &Path, serveur: &str) -> R<Result<Client, ErreurFilet
     Ok(Ok(Client::du_poste(serveur, &numero, &cle)))
 }
 
-/// Le serveur de l'editeur de cette compagnie :
-/// `config/filet-dpae.json`, `serveur`, sinon celui du compte du filet.
+/// Le serveur de l'editeur que cette compagnie a pose : `serveur` de son `config/diagnostic.json` ; vide sinon.
 fn serveur_propre(racine: &Path) -> R<String> {
-    let e = crate::compagnie::filet::lire_etat(racine)?;
-    let compte = get(&e, "compte")?;
-    let compte = if vrai(compte) { compte.clone() } else { json!({}) };
-    let texte = |v: &Value| if vrai(v) { valeur_en_texte(v) } else { String::new() };
-    let s = get(&e, "serveur")?;
-    Ok(if vrai(s) { texte(s) } else { texte(get(&compte, "serveur")?) })
+    let d = crate::routes::fiches::lire_tolerant(&racine.join("config").join(POSTE_FICHIER))?;
+    Ok(d.as_ref().and_then(|d| d.get("serveur")).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default())
 }
 
 /// Le serveur de l'editeur, pour les incidents, les

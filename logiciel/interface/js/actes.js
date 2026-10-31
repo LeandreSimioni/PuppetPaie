@@ -690,7 +690,6 @@ async function boiteSignature(mois, seulement) {
     </div>` : ""}
     ${a.boite_liee && enFictive() ? noteFictive("les salariés").replace("sa réponse arrive comme la vraie",
       "la signature revient comme la vraie") : ""}
-    ${noteDpaeAvance()}
     ${(a.avertissements || []).map((x) => `<div class="encart info">${echapper(x)}</div>`).join("")}
     ${!contrats.length ? `<p class="discret">Aucun contrat à faire partir ce mois-ci.</p>` : `<div class="liste-choix">
       ${contrats.map((c) => `

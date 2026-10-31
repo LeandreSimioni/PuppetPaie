@@ -1,7 +1,7 @@
 //! La demande du mot de passe du logiciel, faite PAR LE MOTEUR : une IA ne fait rien de reel sans humain.
 //!
 //! Pour un acte qui engage -- depot reel, envoi aux salaries, demande de signature, tout ce que
-//! `depot_acte::verifier_preuve` et `filet::exiger_mot_de_passe` gardent --, le moteur demande LUI-MEME le mot de
+//! `depot_acte::verifier_preuve` et `coffre::exiger_mot_de_passe` gardent --, le moteur demande LUI-MEME le mot de
 //! passe, par un canal qu'un agent ne tient pas :
 //!
 //!   1. s'il y a un ecran : la boite de dialogue du systeme (`fenetre_native`), qui dit ce qui va partir (quoi, quel mois, a qui) ; la

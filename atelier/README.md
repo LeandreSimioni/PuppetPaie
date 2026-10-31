@@ -1232,13 +1232,7 @@ echo '{"route":"conseil-du-jour","charge":{}}' | moteur route --racine <compagni
 echo '{"route":"conseils-salarie","charge":{"salarie":"<CLE>"}}' | moteur route --racine <compagnie>
 ```
 
-### La DPAE préparée d'avance, et son filet de sécurité
-
-Dès qu'un engagement est validé, sa DPAE s'écrit et part **en test**, sans rien demander :
-c'est le même fichier que le dépôt réel reprendra, déjà répété. Le test ne
-déclare rien. Il se fait à l'ouverture et à chaque passage de la veille ; une panne devient une ligne
-d'incident, et le passage suivant réessaie. Le dépôt réel n'est permis
-qu'après une répétition réussie de ce fichier-là.
+### La DPAE à envoyer
 
 Dès que l'engagement est validé, la boîte des rappels dit **« DPAE à envoyer —
 embauche du … »**, avec le bouton **Envoyer la DPAE** (**Préparer la DPAE** tant que son fichier n'est pas écrit), qui ouvre le dépôt de
@@ -1246,24 +1240,6 @@ ce fichier (le réel, avec le mot de passe du logiciel) ; un engagement encore e
 saisie se rappelle huit jours avant l'embauche, « Engagement à valider ». Le
 rappel se tait dès que la DPAE réelle est au journal, et dit « en retard » une
 fois l'embauche commencée.
-
-**Le filet** (Configuration › Mots de passe, une option à cocher) : le
-logiciel confie au serveur de PuppetPaie un réveil pour la veille de chaque
-embauche dont l'engagement est validé, et le désarme dès que la DPAE part.
-Un réveil qui n'a pas été désarmé sonne : **un** courriel à l'adresse
-choisie. Si la DPAE est partie, personne ne reçoit rien. Le serveur ne
-reçoit ni nom, ni salarié, ni contrat : l'adresse (confirmée une fois par un
-lien), un code tiré au hasard et le jour de l'embauche. Son code et son
-installation sont dans le dépôt du site de l'éditeur, sous `infra/filet/` (il tourne sur le VPS du site). Le
-poste s'identifie auprès de lui par une clé que le serveur lui donne (`config/diagnostic.json` : `poste`,
-`cle`, `serveur`), demandée au premier envoi ; aucun secret partagé.
-
-```
-route filet-etat                   l'option, les réveils armés
-route filet-activer {"adresse": A}  s'inscrire (un lien de confirmation part)
-route filet-preparer               un passage : tester, armer, désarmer
-route filet-suivies                les embauches sans trace de DPAE
-```
 
 ## Chaque janvier
 

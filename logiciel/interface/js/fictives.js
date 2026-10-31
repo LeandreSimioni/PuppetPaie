@@ -9,17 +9,6 @@ const enFictive = () => !!(ETAT && ETAT.simulation);
 const noteFictive = (vers, reponse = true) => `<p class="note"><b>Compagnie fictive</b> —
   rien ne part vers ${echapper(vers)} : l'envoi est simulé${reponse
   ? ", et sa réponse arrive comme la vraie, quelques secondes plus tard" : ""}.</p>`;
-/* LA DPAE PRÉPARÉE D'AVANCE, DITE DANS UNE COMPAGNIE FICTIVE : le
-   test part en silence (filet.rs) et le filet n'y existe pas — une
-   ligne, là où naissent les contrats, pour que le visiteur sache l'un et
-   l'autre. */
-const noteDpaeAvance = () => enFictive() ? `<p class="note"><b>La DPAE préparée
-  d'avance</b> — dès que les contrats sont écrits ou envoyés, la DPAE de chaque
-  embauche se prépare et part en test, d'elle-même : le jour venu, il ne reste
-  qu'à l'envoyer. Dans une compagnie réelle, une option (Configuration › Mots de
-  passe) envoie en plus un courriel de rappel si elle n'est pas partie la veille
-  de l'embauche.</p>` : "";
-
 /** LA COMPAGNIE FICTIVE : les salariés fictifs signent une vingtaine de secondes
  *  après l'envoi (releve_signatures.rs, boite_des_signatures). La page relève à ce moment-là,
  *  comme la veille l'aurait fait à son passage. */
