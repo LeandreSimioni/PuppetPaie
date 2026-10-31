@@ -1136,13 +1136,7 @@ impl<'a> Moteur<'a> {
     /// d'aujourd'hui, sinon POURQUOI.
     pub(crate) fn paie_changee_depuis_l_ecriture(&self, mois: &str, fichier: &Path) -> R<Option<String>> {
         let nom = fichier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        let p = self.racine().join("journal").join("dsn-ecrites.json");
-        let d: Value = if p.exists() {
-            let t = std::fs::read_to_string(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-            serde_json::from_str(&t).unwrap_or_else(|_| Value::Object(Map::new()))
-        } else {
-            Value::Object(Map::new())
-        };
+        let d = Value::Object(crate::compagnie::depart::journal_des_ecritures(self.racine()));
         let note = get(&d, &format!("{}/{}", mois, nom))?;
         if vrai(note) && vrai(get(note, "empreinte_saisie")?) {
             let notee = get(note, "empreinte_saisie")?;
