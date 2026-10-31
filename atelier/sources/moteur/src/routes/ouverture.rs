@@ -516,10 +516,8 @@ pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
     if let Ok(rd) = std::fs::read_dir(&sorties) {
         for e in rd.flatten() {
             let nom = e.file_name().to_string_lossy().into_owned();
-            let b = nom.as_bytes();
             // Les dossiers AAAA-MM seulement : `sorties/exercices/` n'est pas un mois.
-            let est_mois = b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit());
-            if est_mois && e.path().is_dir() {
+            if socle::date::mois_valide(&nom) && e.path().is_dir() {
                 vus.insert(nom.clone());
                 dossiers.insert(nom, e.path());
             }

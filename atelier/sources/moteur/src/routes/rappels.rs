@@ -24,7 +24,6 @@ use socle::num::Resultat;
 pub(crate) use socle::echec::Refus;
 pub(crate) type R<T> = Result<T, Refus>;
 
-
 fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
     Refus { classe: Some(classe), message: message.into() }
 }
@@ -61,7 +60,6 @@ pub fn traiter(o: &HashMap<String, String>, route: &str, charge: &Value) -> Opti
 
 // ------------------------------------------------------------------ outils
 
-
 /// `str(x)` d'une valeur facultative (`None` si absente).
 pub(super) fn texte(v: Option<&Value>) -> String {
     v.map_or("None".to_string(), en_texte)
@@ -77,19 +75,6 @@ fn texte_ou_vide(v: &Value, cle: &str) -> String {
         Some(x) if vrai(x) => en_texte(x),
         _ => String::new(),
     }
-}
-
-/// Les entrees d'un dossier dont le nom finit par `.json`.
-fn entrees(dossier: &Path) -> Vec<(String, PathBuf)> {
-    let mut v: Vec<(String, PathBuf)> = match std::fs::read_dir(dossier) {
-        Ok(l) => l
-            .filter_map(|e| e.ok())
-            .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path()))
-            .collect(),
-        Err(_) => Vec::new(),
-    };
-    v.sort();
-    v
 }
 
 fn mois_precedent(mois: &str) -> String {
@@ -114,7 +99,6 @@ fn mois_de(j: &Jour) -> String {
     format!("{:04}-{:02}", j.an, j.mois)
 }
 
-
 /// Ce que `journal.lire(ctx, quoi, reel_seulement=...)` rend, sur des lignes deja lues.
 fn lire_journal<'a>(lignes: &'a [Value], quoi: &str, reel: bool) -> R<Vec<&'a Value>> {
     Ok(etats::filtrer(lignes, Some(quoi), None, reel)?)
@@ -136,7 +120,6 @@ const A_SAISIR: &str = "a_saisir";
 const A_PRODUIRE: &str = "a_produire";
 const A_DEPOSER: &str = "a_deposer";
 const A_CORRIGER: &str = "a_corriger";
-
 
 /// Un rappel est une DONNEE : quoi, pour quel mois, ou en est-on, et ce qu'il y
 /// a a faire. Il ne fait rien : << verifier et envoyer >> passe par les
@@ -339,25 +322,9 @@ pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
     }
 }
 
-/// `(mois, saisie, dossier)` du plus recent au plus ancien.
-fn mois_connus(ctx: &Contexte) -> Vec<(String, Option<PathBuf>, Option<PathBuf>)> {
-    let mut vus: BTreeMap<String, (Option<PathBuf>, Option<PathBuf>)> = BTreeMap::new();
-    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
-        let chemin = engagement::stock::chemin(&ctx.racine, &mois);
-        vus.entry(mois).or_default().0 = Some(chemin);
-    }
-    for (nom, chemin) in entrees(&ctx.racine.join("sorties")) {
-        // Les dossiers AAAA-MM seulement : `sorties/exercices/` n'est pas un mois.
-        if chemin.is_dir() && socle::date::mois_valide(&nom) {
-            vus.entry(nom).or_default().1 = Some(chemin);
-        }
-    }
-    vus.into_iter().rev().map(|(m, (s, d))| (m, s, d)).collect()
-}
-
 /// Les mois de l'annee connus du dossier.
 pub(crate) fn mois_de_l_annee(ctx: &Contexte, annee: &str) -> Vec<String> {
-    let mut v: Vec<String> = mois_connus(ctx).into_iter().map(|m| m.0).filter(|m| m.starts_with(annee)).collect();
+    let mut v: Vec<String> = super::ouverture::mois_connus(&ctx.racine).into_iter().map(|m| m.0).filter(|m| m.starts_with(annee)).collect();
     v.sort();
     v
 }
@@ -687,7 +654,6 @@ fn rappel_d_obligation(o: &Value, cle: String, titre: String, question: String, 
     r.objet = Some(objet);
     r
 }
-
 
 /// « Arrêt de travail (accident du travail) » : ce qu'est l'arret, avec le libelle de son motif.
 fn arret_en_clair(resume: &Value) -> String {

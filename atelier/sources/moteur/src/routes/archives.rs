@@ -186,18 +186,10 @@ fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 
 // -------------------------------------------------------------- dossier-formes
 
-/// Les mois qu'il y a matiere a exporter : ceux que des engagements touchent, du plus ancien au plus recent, chacun
-/// marque `saisie` (ses paies se lisent dans ses engagements valides).
-pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<Vec<(String, &'static str)>> {
-    let mut mois: Vec<(String, &'static str)> = engagement::stock::mois_saisis(&ctx.racine).map_err(socle::echec::Echec::from)?.into_iter().map(|m| (m, "saisie")).collect();
-    mois.sort();
-    mois.dedup();
-    Ok(mois)
-}
 
 /// `sorted({m[:4] for m in mois}, reverse=True)`.
-fn annees_de(dispo: &[(String, &'static str)]) -> Vec<String> {
-    let mut annees: Vec<String> = dispo.iter().map(|(m, _)| m.chars().take(4).collect::<String>()).collect::<HashSet<_>>().into_iter().collect();
+fn annees_de(dispo: &[String]) -> Vec<String> {
+    let mut annees: Vec<String> = dispo.iter().map(|m| m.chars().take(4).collect::<String>()).collect::<HashSet<_>>().into_iter().collect();
     annees.sort();
     annees.reverse();
     annees
@@ -225,8 +217,8 @@ fn salaries_de_la_page(ctx: &Contexte) -> Vec<Value> {
 fn dossier_formes(ctx: &Contexte) -> R<Value> {
     let salaries = salaries_de_la_page(ctx);
     // `periodes_exportables` : les mois, puis (sans rien en dire) le logiciel du comptable.
-    let dispo = mois_disponibles(ctx)?;
-    let mois: Vec<&String> = dispo.iter().map(|(m, _)| m).collect();
+    let dispo: Vec<String> = documents::etats_paie::mois_disponibles(ctx)?.into_keys().collect();
+    let mois: Vec<&String> = dispo.iter().collect();
     let annees = annees_de(&dispo);
     etat_logiciel(ctx)?;
     let boite = crate::routes::ouverture::boite_liee(ctx)?;
@@ -296,14 +288,14 @@ fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
 /// (la bibliotheque est-elle la ?) et `pdf` (la fabrique est-elle installee ?)
 /// sont deux faits du poste, que la page dit dans la charge.
 fn exports_periodes(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let dispo = mois_disponibles(ctx)?;
+    let dispo: Vec<String> = documents::etats_paie::mois_disponibles(ctx)?.into_keys().collect();
     let t = tables();
     let etats: Vec<&Value> = t["etats"].as_array().expect("etats").iter().filter(|e| etat_concerne(ctx, e["etat"].as_str().expect("etat"))).collect();
     let annees = annees_de(&dispo);
     let compta = etat_logiciel(ctx)?;
     let fait = |k: &str| charge.get(k).is_some_and(vrai);
     Ok(json!({
-        "mois": dispo.iter().map(|(m, _)| m).collect::<Vec<_>>(),
+        "mois": dispo,
         "annees": annees,
         "etats": etats,
         "formats": t["formats"],
