@@ -1088,16 +1088,21 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
             ),
         ));
     }
+    // LES DEUX PAPIERS OU AUCUN : leurs valeurs se lisent avant que rien ne s'ecrive, et un recu qui ne s'ecrit pas
+    // emporte le certificat deja pose.
     let nom_cert = format!("CertificatTravail_{}_{}.pdf", cle, fin_jj);
-    let modele = socle::fichiers::modele_de("certificat-travail.modele", &ent, &poste);
-    ecrire_papier(&modele, marqueurs_communs(&date, &p, &ent)?, &sortie.join(&nom_cert), &ent, true)?;
-
     let nom_recu = format!("RecuSoldeToutCompte_{}_{}.pdf", cle, fin_jj);
+    let valeurs_cert = marqueurs_communs(&date, &p, &ent)?;
     let mut valeurs = marqueurs_communs(&date, &p, &ent)?;
     valeurs.insert("solde.inventaire".into(), json!(inventaire(&p)));
     valeurs.insert("solde.net".into(), json!(documents::bulletin::fmt_eur(eur2(p.net_a_payer))));
+    let modele = socle::fichiers::modele_de("certificat-travail.modele", &ent, &poste);
+    ecrire_papier(&modele, valeurs_cert, &sortie.join(&nom_cert), &ent, true)?;
     let modele = socle::fichiers::modele_de("recu-solde-de-tout-compte.modele", &ent, &poste);
-    ecrire_papier(&modele, valeurs, &sortie.join(&nom_recu), &ent, false)?;
+    if let Err(e) = ecrire_papier(&modele, valeurs, &sortie.join(&nom_recu), &ent, false) {
+        let _ = std::fs::remove_file(sortie.join(&nom_cert));
+        return Err(e);
+    }
 
     Ok(json!({
         "certificat": sortie.join(&nom_cert).to_string_lossy(),

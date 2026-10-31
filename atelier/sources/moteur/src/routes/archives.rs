@@ -643,12 +643,12 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
 
     // Le dossier, ecrit : la liste nominative jointe est celle du jour.
     let mut r = regularisation(ctx, &Demande { toutes_les_annees: true, annees: annees_voulues.clone(), vire_le: dates.clone(), ..Default::default() })?;
-    ecrire(ctx, &mut r)?;
     let mut manquent: Vec<String> = annees_voulues.iter().filter(|a| !r.annees.iter().any(|x| &x.annee == *a)).cloned().collect();
     manquent.sort();
     if !manquent.is_empty() {
         return Err(refus(format!("Rien a regulariser pour {} (deja fait, ou aucune DSN deposee). Rien n'est parti.", manquent.join(", "))));
     }
+    ecrire(ctx, &mut r)?;
     let classeur = std::path::Path::new(&r.dossier).join("CASC-SVP_liste-nominative.xlsx");
     if !classeur.exists() {
         return Err(refus(format!(

@@ -131,7 +131,19 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
     let environnement = args.texte("environnement").unwrap_or("production");
     let fichier = args.texte("fichier").unwrap_or("");
-    // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides.
+    // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides. L'apercu la
+    // lit sans l'ecrire (`depart::dsn_du_mois`) : rien ne se pose sur le disque avant le depot.
+    if apercu_seul && socle::date::mois_valide(fichier) {
+        let Some((f, partie)) = crate::compagnie::depart::dsn_du_mois(&cadre.ctx, fichier, None)? else {
+            dire!("{} : rien n'est a declarer.", fichier);
+            return Ok(1);
+        };
+        let apercu = depot::lire(f.texte.as_bytes());
+        dire!("{}\nCE QUI PARTIRAIT - rien n'est envoye ni ecrit\n{}", "-".repeat(62), "-".repeat(62));
+        afficher_apercu(&format!("la DSN de {}{}", fichier, if partie { ", deja partie" } else { "" }), &apercu, crate::compagnie::essai::est_essai(&cadre.racine));
+        dire!("{}", "-".repeat(62));
+        return Ok(0);
+    }
     let fabriquee;
     let fichier = if socle::date::mois_valide(fichier) {
         let dsn = crate::compagnie::depart::fabriquer_dsn(&cadre.ctx, fichier, "cli")?;
