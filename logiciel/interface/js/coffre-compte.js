@@ -344,12 +344,8 @@ async function dessinerCoffre(cible) {
       if (!p) return;
       let etat;
       try {
-        if (compteChange) {
-          etat = await api("coffre-compte-dpae", { nom: nom.value, prenom: prenom.value, ...p });
-        }
-        if (valeur || rien) {
-          etat = await api("coffre-poser", { service, valeur, compte: compte ? compte.value : null, ...p });
-        }
+        etat = await api("coffre-poser", { service, valeur, compte: compte ? compte.value : null,
+          ...(compteChange ? { nom: nom.value, prenom: prenom.value } : {}), ...p });
       } catch (e) { raté(e); return; }
       // PUIS UNE TENTATIVE, UNE SEULE : vérifier maintenant évite de
       // découvrir le mot de passe faux au dépôt. Autant le

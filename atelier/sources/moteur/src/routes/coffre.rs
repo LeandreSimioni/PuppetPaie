@@ -1,5 +1,5 @@
 //! Les routes du coffre et des mots de passe : ce qui est pose (`coffre-etat`, `google-etat`), poser ou oublier un
-//! secret (`coffre-poser`, `coffre-compte-dpae`, `coffre-oublier`, `google-oublier`), changer ou retirer le mot de
+//! secret (`coffre-poser`, avec le compte DPAE pour l'Urssaf, `coffre-oublier`, `google-oublier`), changer ou retirer le mot de
 //! passe du logiciel (`mot-de-passe-changer`, `mot-de-passe-retirer`).
 //!
 //! Aucune valeur de secret ne sort : la reponse est l'etat du coffre, des presences et des dates. Ces routes passent
@@ -24,12 +24,12 @@ use socle::valeur::{nom_type, valeur_en_texte};
 /// Les routes de ce module.
 pub const ROUTES: &[&str] = &[
     "coffre-etat", "google-etat",
-    "coffre-poser", "coffre-compte-dpae", "coffre-oublier", "mot-de-passe-changer", "mot-de-passe-retirer", "google-oublier",
+    "coffre-poser", "coffre-oublier", "mot-de-passe-changer", "mot-de-passe-retirer", "google-oublier",
 ];
 
 /// Celles qui ecrivent.
 pub const ECRITURES: &[&str] =
-    &["coffre-poser", "coffre-compte-dpae", "coffre-oublier", "mot-de-passe-changer", "mot-de-passe-retirer", "google-oublier"];
+    &["coffre-poser", "coffre-oublier", "mot-de-passe-changer", "mot-de-passe-retirer", "google-oublier"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -37,7 +37,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "coffre-etat" => coffre_etat(ctx),
         "google-etat" => google_etat(ctx),
         "coffre-poser" => coffre_poser(ctx, charge),
-        "coffre-compte-dpae" => coffre_compte_dpae(ctx, charge),
         "coffre-oublier" => coffre_oublier(ctx, charge),
         "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge),
         "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge),
@@ -91,18 +90,27 @@ fn chaine<'a>(charge: &'a Value, cle: &str) -> Option<&'a str> {
 
 // ------------------------------------------------------------------ le coffre
 
-/// Range le mot de passe d'un organisme, ou de la boite courriel avec
-/// son adresse (`compte`). Rend l'etat du coffre, sans valeur.
-/// Un mot de passe vide se refuse avant la porte du mot de passe du logiciel : il n'y a rien a autoriser.
+/// Range le mot de passe d'un organisme, ou de la boite courriel avec son adresse (`compte`) ; pour l'Urssaf, avec le
+/// nom et le prenom du compte qui depose les DPAE (`nom`, `prenom`), ecrits dans la fiche entreprise s'ils changent. Un
+/// seul geste, une seule preuve : tout se verifie avant d'ecrire. Rend l'etat du coffre, sans valeur. Rien a poser se
+/// refuse avant la porte du mot de passe du logiciel : il n'y a rien a autoriser.
 fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     let service = crate::compagnie::coffre::service_connu(optionnel(charge, "service")).map_err(en_operation)?;
     let valeur = chaine(charge, "valeur").unwrap_or("");
-    if socle::texte::strip(valeur).is_empty() {
+    let compte = if charge.get("nom").is_some() || charge.get("prenom").is_some() { compte_dpae_change(ctx, charge)? } else { None };
+    let a_poser = !socle::texte::strip(valeur).is_empty();
+    if !a_poser && compte.is_none() {
         return Err(refus(format!("Tapez le mot de passe {} à poser : rien n'a été posé.", service.nom)));
     }
-    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "poser un mot de passe")?;
-    coffre(ctx).poser(service.nom, valeur, chaine(charge, "compte")).map_err(en_operation)?;
-    etat_du_coffre(ctx)
+    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), if a_poser { "poser un mot de passe" } else { "changer le compte qui depose les DPAE" })?;
+    let mut entreprise = ctx.entreprise.clone();
+    if let Some(propres) = compte {
+        entreprise = ecrire_compte_dpae(ctx, propres)?;
+    }
+    if a_poser {
+        coffre(ctx).poser(service.nom, valeur, chaine(charge, "compte")).map_err(en_operation)?;
+    }
+    coffre_etat_de(&ctx.racine, &entreprise)
 }
 
 /// `coffre-oublier` : retire un secret du coffre.
@@ -113,11 +121,11 @@ fn coffre_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     etat_du_coffre(ctx)
 }
 
-/// Le nom et le prenom du compte Urssaf qui depose les DPAE.
-/// SANS ACCENTS, DANS LA CASSE TAPEE : la DUE MtoM refuse les accents. Les autres cles d'`api_dpae` sont gardees.
-fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
-    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "changer le compte qui depose les DPAE")?;
-    let mut propres: Vec<(&str, String)> = Vec::new();
+/// Le nom et le prenom du compte Urssaf qui depose les DPAE, tels que la charge les dit, s'ils changent ceux de la fiche.
+/// SANS ACCENTS, DANS LA CASSE TAPEE : la DUE MtoM refuse les accents.
+fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static str, String)>>> {
+    let actuel = ctx.entreprise.get("api_dpae").cloned().unwrap_or(Value::Null);
+    let mut propres: Vec<(&'static str, String)> = Vec::new();
     for cle in ["nom", "prenom"] {
         let v = optionnel(charge, cle);
         let brut = if vrai(v) { valeur_en_texte(v) } else { String::new() };
@@ -131,9 +139,14 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
         propres.push((cle, net));
     }
+    Ok((!propres.iter().all(|(k, v)| actuel.get(*k).and_then(Value::as_str) == Some(v.as_str()))).then_some(propres))
+}
+
+/// Ecrit le compte DPAE dans la fiche entreprise, date du jour ; les autres cles d'`api_dpae` sont gardees. Rend la
+/// fiche telle qu'elle vaut aujourd'hui.
+fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R<Value> {
     let chemin = ctx.racine.join("config").join("entreprise.json");
     if !chemin.exists() {
-        // Le fichier doit etre la.
         return Err(erreur("FileNotFoundError", format!("{} : fichier introuvable", chemin.display())));
     }
     let mut contenu = crate::routes::lire_json_ou_vide(&chemin)?;
@@ -152,9 +165,7 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     droit::contexte::dater(entreprise, "api_dpae", Value::Object(cfg), Some(&ctx.aujourdhui), None);
     crate::routes::mois::sauver_avant(&chemin)?;
     socle::ecriture::ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
-    // L'etat se lit sur la fiche qu'on vient d'ecrire : `ctx` l'a lue avant.
-    let relue = droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, "config/entreprise.json").map_err(Echec::from)?;
-    coffre_etat_de(&ctx.racine, &relue)
+    droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, "config/entreprise.json").map_err(Echec::from)
 }
 
 // ------------------------------------------------------------------ le mot de passe du logiciel
