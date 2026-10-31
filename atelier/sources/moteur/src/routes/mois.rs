@@ -26,7 +26,6 @@ use engagement::Avis;
 use droit::catalogue;
 use droit::contexte::{archivee, Contexte};
 use droit::emplois;
-use droit::jumeaux::{self};
 use engagement::{self, Engagement};
 use envois::etats::{get, items, ou, Dico};
 use socle::date::{en_texte, jours_du_mois, Jour};
@@ -987,29 +986,10 @@ struct EnCours {
     lieu: Value,
     deja_repris: bool,
     lignes: Vec<Value>,
-    /// Un contrat paye au mois (CDD de droit commun...) : ce qui le definit, recopie tel quel
-    /// (`DEFINIT_LE_MENSUEL`). `None` pour un contrat d'usage, qui se reprend par ses lignes.
+    /// Un contrat paye au mois (CDD de droit commun...) : ce qui le definit, recopie tel quel ;
+    /// `None` pour un contrat d'usage, qui se reprend par ses lignes.
     mensuel: Option<Map<String, Value>>,
 }
-
-/// Ce qui definit un contrat paye au mois et qu'un mois suivant ne redit pas : sa nature, son
-/// motif, sa duree du travail, son salaire et son emploi (ce que `engagement::engagements` et
-/// `conges::lignes_du_mois` lisent). Ni ses lignes (le moteur les compose chaque mois), ni ce qui
-/// n'appartient qu'a un mois (conges pris, absences, primes, rupture, date de paiement).
-const DEFINIT_LE_MENSUEL: [&str; 12] = [
-    "nature",
-    "motif_recours",
-    "quotite_contrat",
-    "quotite_reference",
-    "modalite_temps_travail",
-    "salaire_mensuel",
-    "emploi",
-    "pcs_ese",
-    "code_emploi_ft",
-    "statut",
-    "statut_conventionnel",
-    "statut_categoriel_rc",
-];
 
 impl EnCours {
     /// `sortie_json.contrat_en_cours`.
@@ -1030,107 +1010,16 @@ impl EnCours {
         m
     }
 }
-
-/// Les contrats des mois precedents dont
-/// la fin depasse le 1er de `mois`. Lu dans les fichiers de saisie des mois qui
-/// precedent, jamais dans la DSN.
+/// LES CONTRATS REPRIS D'UN AUTRE LOGICIEL QUI COURENT SUR `mois`. Un engagement d'ici commence un mois precedent est
+/// deja a l'ecran de `mois` (un seul objet, lu dans le fichier du mois ou il commence : `engagement::stock`) ; ne
+/// restent que ceux que l'historique importe porte. Chacun se dit repris (`deja_repris`) quand un engagement de l'ecran
+/// a son salarie, son debut et son numero. Jamais lu dans la DSN.
 fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
-    let texte = valeur_en_texte(mois);
-    let premier = format!("{}-01", texte);
-    // LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : deux contrats du meme salarie qui commencent le meme jour se
-    // reprennent chacun, et chacun se dit repris ou non.
-    let mut deja: Vec<Option<jumeaux::Ident>> = Vec::new();
-    for (c, e) in engagements_a_l_ecran(ctx, &texte)? {
-        deja.push(Some((c, bornes_brutes(&e)?.0, jumeaux::numero_du_champ(e.get("numero")))));
-    }
-    let precedents = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?;
     let Some(texte_mois) = mois.as_str() else {
-        // `x.mois < mois` : un texte et autre chose ne se comparent pas.
-        return match precedents.first() {
-            Some(_) => Err(erreur("TypeError", socle::fichiers::incomparables("str", nom_type(mois)))),
-            None => Ok(Vec::new()),
-        };
+        return Err(erreur("TypeError", socle::fichiers::attendu("un texte", nom_type(mois))));
     };
     let mut out = Vec::new();
     let mut vus: Dico<()> = Dico::nouveau();
-    for m in precedents.iter().filter(|m| m.as_str() < texte_mois) {
-        let spectacle_du_mois = spectacle_du_fichier(ctx, m)?;
-        let du_mois = engagements_du_mois(ctx, m)?;
-        let bornes = du_mois.iter().map(|(_, e)| bornes_brutes(e)).collect::<R<Vec<_>>>()?;
-        let ids: Vec<jumeaux::Ident> = du_mois.iter().zip(&bornes).map(|((c, e), b)| (c.clone(), b.0.clone(), jumeaux::numero_du_champ(e.get("numero")))).collect();
-        for (((cle, e), (debut, fin)), (_, _, marque)) in du_mois.into_iter().zip(bornes).zip(jumeaux::cles(&ids)) {
-            // UN CDI SANS TERME COURT TOUJOURS : sa fin vide se comparait comme « avant le mois », et le contrat
-            // d'un permanent ne se reprenait jamais au mois suivant. Une fin vide ne vaut « en cours » que pour une
-            // nature a duree indeterminee : un contrat d'usage sans jour ni fin ne court pas.
-            let sans_terme = fin.is_empty()
-                && e.get("nature").and_then(Value::as_str).and_then(|n| droit::natures::nature(Some(n)).ok()).is_some_and(|n| n.duree_indeterminee);
-            if debut.is_empty() || (fin < premier && !sans_terme) {
-                continue;
-            }
-            let ident = vec![json!(cle), json!(debut), json!(marque)];
-            if vus.contient(&ident)? {
-                continue;
-            }
-            vus.poser(ident.clone(), ())?;
-            let Ok(_) = ctx.salarie(&cle) else { continue };
-            // La nature d'abord : un contrat paye au mois ne se rattache a aucun spectacle
-            // (S21.G00.40.050, CCH-11) et se reprend avec ce qui le definit, pas en cachets.
-            let nature = match e.get("nature") {
-                None | Some(Value::Null) => None,
-                Some(Value::String(s)) => Some(s.as_str()),
-                Some(_) => continue,
-            };
-            let Ok(nat) = droit::natures::nature(nature) else { continue };
-            let mensuel: Option<Map<String, Value>> = nat.mensuelle().then(|| {
-                DEFINIT_LE_MENSUEL.iter().filter_map(|k| e.get(*k).filter(|v| !v.is_null()).map(|v| (k.to_string(), v.clone()))).collect()
-            });
-            // Un contrat d'usage joue le spectacle qu'il nomme, ou celui du mois (`engagement::engagements`).
-            // Sans l'un ni l'autre, il se reprend sans spectacle : il se choisit, il ne se devine pas.
-            let nom_spectacle = match e.get("spectacle").filter(|x| vrai(x)) {
-                _ if mensuel.is_some() => None,
-                None => spectacle_du_mois.clone(),
-                Some(Value::String(s)) => Some(s.clone()),
-                Some(_) => continue,
-            };
-            let spec = match &nom_spectacle {
-                None => Value::Null,
-                Some(n) => match ctx.spectacle(n) {
-                    Ok(s) => s.get("_cle").filter(|x| vrai(x)).cloned().unwrap_or_else(|| json!(n)),
-                    Err(_) => continue,
-                },
-            };
-            let taux_cachet = e
-                .get("lignes")
-                .filter(|x| vrai(x))
-                .map(|l| items(l))
-                .transpose()?
-                .unwrap_or_default()
-                .iter()
-                .find(|l| l.get("rubrique").and_then(Value::as_str) == Some("cachet"))
-                .map(|l| l.get("taux").cloned().unwrap_or(Value::Null))
-                .unwrap_or(Value::Null);
-            out.push(EnCours {
-                salarie: cle.clone(),
-                nom: ctx.nomme(&cle),
-                spectacle: spec,
-                debut: debut.clone(),
-                fin,
-                numero: e.get("numero").cloned().unwrap_or(Value::Null),
-                depuis: m.clone(),
-                metier: e.get("metier").cloned().unwrap_or(Value::Null),
-                cadre: e.get("cadre").cloned().unwrap_or(Value::Null),
-                taux_cachet,
-                lieu: e.get("lieu").filter(|x| vrai(x)).cloned().unwrap_or_else(|| json!("")),
-                deja_repris: false, // ci-dessous, contrat par contrat
-                lignes: match e.get("lignes").filter(|x| vrai(x)) {
-                    Some(Value::Array(a)) => a.clone(),
-                    Some(autre) => vec![autre.clone()],
-                    None => Vec::new(),
-                },
-                mensuel,
-            });
-        }
-    }
     // LE CONTRAT D'UN PERMANENT REPRIS D'UN AUTRE LOGICIEL : aucun fichier de saisie ne le porte, l'historique
     // si (`import::nature::repris_en_cours`, quand sa nature, son debut et son numero ont ete dits). Il se reprend
     // comme les autres, avec sa nature, son debut, son numero, son salaire mensuel et sa duree du travail.
@@ -1215,20 +1104,14 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             mensuel: None,
         });
     }
-    let en_cours: Vec<Option<jumeaux::Ident>> = out.iter().map(|c| Some((c.salarie.clone(), c.debut.clone(), jumeaux::numero_du_champ(Some(&c.numero))))).collect();
-    for (c, repris) in out.iter_mut().zip(jumeaux::apparier(&en_cours, &deja)) {
-        c.deja_repris = repris.is_some();
+    let mut deja: HashSet<(String, String, String)> = HashSet::new();
+    for (c, e) in engagements_a_l_ecran(ctx, texte_mois)? {
+        deja.insert((c, bornes_brutes(&e)?.0, e.get("numero").map(valeur_en_texte).unwrap_or_default()));
+    }
+    for c in out.iter_mut() {
+        c.deja_repris = deja.contains(&(c.salarie.clone(), c.debut.clone(), valeur_en_texte(&c.numero)));
     }
     Ok(out)
-}
-
-/// Le `spectacle` d'un fichier de mois : celui que joue un engagement qui n'en nomme pas
-/// (`engagement::engagements`). `None` s'il n'en dit pas.
-fn spectacle_du_fichier(ctx: &Contexte, mois: &str) -> R<Option<String>> {
-    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
-        return Ok(None);
-    };
-    Ok(data.get("spectacle").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(String::from))
 }
 
 /// Les 7 premiers caracteres (`jour[:7]`) d'un jour de planning.
