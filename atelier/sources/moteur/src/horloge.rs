@@ -829,23 +829,20 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
 // ------------------------------------------------------------------ le mois et ses embauches
 
 /// LES ENGAGEMENTS DU MOIS SE VALIDENT, comme une compagnie bien tenue les valide : ceux qui commencent au plus tard
-/// `jusqu_au`, a `quand`. Rien ne part d'un engagement en saisie ; un engagement que le moteur refuse de valider (une
-/// saisie incomplete) reste en saisie, et le pas le dit.
+/// `jusqu_au`, a `quand`, par le geste de l'ecran (la route `valider-engagement` : son verrou, ses refus), chacun
+/// designe par son identite et tel qu'il est ecrit. Rien ne part d'un engagement en saisie ; un engagement auquel il
+/// manque un fait attend qu'on le complete, et un refus du moteur arrete le pas, qui le dit.
 fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi: &str, quand: &str) -> Vec<String> {
     pas(d, quoi, quand, |ctx| {
-        let objets = engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(Echec::from)?;
-        let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
+        let objets = engagement::stock::objets_a_l_ecran(&ctx.racine, mois).map_err(Echec::from)?;
+        let ids = engagement::stock::identites(&objets);
         let mut fait = false;
-        for (i, o) in objets.iter().enumerate() {
-            // Un engagement auquel il manque un fait attend qu'on le complete (`engagement::stock::A_COMPLETER`).
+        for (o, id) in objets.iter().zip(ids) {
             if o.est_valide() || o.est_importe() || o.a_completer().is_some() || engagement::debut_brut(&Value::Object(o.brut.clone())) > jusqu_au.iso() {
                 continue;
             }
-            engagement::etats::valider(ctx, mois, i, &departs).map_err(Echec::from)?;
-            let brut = Value::Object(o.brut.clone());
-            if let Some(cle) = engagement::cle_de_l_engagement(ctx, &brut) {
-                crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(&brut))?;
-            }
+            let saisie = o.vue(mois).map_err(Echec::from)?.unwrap_or_default();
+            crate::routes::engagement::route(&HashMap::new(), ctx, "valider-engagement", &json!({"mois": mois, "engagement": id, "saisie": saisie}))?;
             fait = true;
         }
         Ok(fait)
