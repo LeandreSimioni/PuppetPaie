@@ -89,7 +89,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     Ok(Value::Object(out))
 }
 
-/// `_resume`.
+/// Le resume d'une paie que la page compare : montants, cotisations, activite.
 fn resume(p: &Paie) -> Value {
     let e = &p.engagement;
     let heures = match e.heures {

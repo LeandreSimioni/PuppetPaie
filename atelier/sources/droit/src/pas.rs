@@ -80,7 +80,7 @@ fn nombre_de(c: &[u32]) -> u32 {
 /// D'ou court la validite, de la source la plus sure a la moins sure :
 /// `mis_a_disposition` (AAAAMMJJHHMMSS, la date du compte rendu), puis
 /// `applique_le` (AAAA-MM-JJ, le jour du versement ou une DSN l'applique, que sa
-/// mise a disposition precede : voir `commandes::pas::derniers_taux_des_dsn`),
+/// mise a disposition precede : voir `compagnie::taux_pas::derniers_taux_des_dsn`),
 /// puis `periode` (AAAAMM ou AAAA-MM), puis `releve_le`.
 pub fn mise_a_disposition(e: &Value) -> Option<Jour> {
     let v = texte_ou_vide(e, "mis_a_disposition");

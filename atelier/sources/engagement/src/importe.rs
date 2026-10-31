@@ -9,7 +9,7 @@
 //! Il est valide et ses documents sont partis : ce qui en est parti, c'est l'import lui-meme (les pieces de l'autre
 //! logiciel). IL SE LIT, IL NE SE MODIFIE PAS ET NE SE RECALCULE JAMAIS : il ne touche aucun mois de la saisie
 //! (`stock::Objet::couvre`), donc aucun calcul, aucune declaration ni aucun document ne le prend ; l'ecran ne peut ni le
-//! reecrire ni en poser un double (`stock::ecrire_vue_du_mois`). Son numero de contrat est celui que la DSN deposee lui
+//! reecrire ni en poser un double (`stock::ecrire_la_carte`). Son numero de contrat est celui que la DSN deposee lui
 //! a donne (S21.G00.40.009), jamais un numero tire : il compte parmi les numeros pris (`numeros`).
 //!
 //! Ce qui le lit : les cumuls des annexes 8 et 10 (`cumul`, par ce que le contrat atteste), le mois tenu avant

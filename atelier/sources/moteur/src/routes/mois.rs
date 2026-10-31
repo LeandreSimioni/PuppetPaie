@@ -904,11 +904,7 @@ pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
 /// Un engagement dont le salarie est inconnu (ou qui n'est pas un dictionnaire)
 /// est sauté.
 pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(String, Map<String, Value>)>> {
-    engagements_de(ctx, engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?)
-}
-
-fn engagements_de(ctx: &Contexte, vue: Option<Value>) -> R<Vec<(String, Map<String, Value>)>> {
-    let Some(data) = vue else {
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());
     };
     let mut out = Vec::new();

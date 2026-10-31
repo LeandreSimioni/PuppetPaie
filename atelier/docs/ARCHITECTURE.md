@@ -105,7 +105,7 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
   d'après avec les jours que le mois d'avant a mis au planning (une ligne par ligne qui en a). Le fichier d'un mois
   porte aussi les défauts du mois (`taux_cachet`, `date_paiement`).
 - **Le mois de l'écran** (`stock::vue_du_mois`) : le fichier du mois et chaque engagement d'un mois d'avant qui court
-  encore, vu ce mois-là. L'écran lit et écrit cette vue (`stock::ecrire_vue_du_mois`) ; chaque engagement y retrouve
+  encore, vu ce mois-là. L'écran lit et écrit cette vue (`stock::ecrire_la_carte`, `stock::poser_la_saisie`) ; chaque engagement y retrouve
   son objet (numéro, puis salarié). Un engagement validé ne change pas par ce chemin.
 - **Ses états** (`engagement/src/etats.rs`), chacun son type : **en saisie** (`EnSaisie` : calculé à mesure pour
   l'écran, rien ne part de lui) ; **validé** (`Valide` : « Valider l'engagement » écrit sous `valide` la date, le numéro
