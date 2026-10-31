@@ -21,6 +21,7 @@
 let EXPORTS = null;          // ce que `exports-periodes` a rendu
 
 async function dessinerExports() {
+  brancherDroits();
   const cible = document.getElementById("exports-formulaire");
   try { EXPORTS = await api("exports-periodes"); }
   catch (e) { cible.innerHTML = `<p class="discret">${echapper(e.message)}</p>`; return; }
@@ -683,3 +684,29 @@ async function lancerExportCompta(annee) {
   if (document.getElementById("exercices")) dessinerExercices();
 }
 
+
+/* ------------------------------- les heures et cachets des intermittents */
+
+/** LA CARTE DES DROITS : à son ouverture, ce que le moteur compte pour chaque intermittent (route `droits`) — ses
+ *  lignes, la phrase qui dit où il en est, ses notes, le tableau du mois. La page met en forme, elle ne compte rien. */
+function brancherDroits() {
+  const carte = document.getElementById("carte-droits");
+  if (!carte) return;
+  carte.ontoggle = async () => {
+    if (!carte.open) return;
+    const cible = document.getElementById("droits");
+    let d;
+    try { d = await api("droits"); }
+    catch (e) { cible.innerHTML = `<p class="discret">${echapper(e.message)}</p>`; return; }
+    cible.innerHTML = d.salaries.map((s) => `
+      <div class="droits-salarie">
+        <h3>${echapper(s.nom)} <span class="discret">— ${echapper(s.fenetre)}</span></h3>
+        <table>${s.lignes.map(([quoi, valeur]) => `<tr><td>${echapper(quoi)}</td><td>${echapper(valeur)}</td></tr>`).join("")}</table>
+        <p><b>${echapper(s.phrase)}</b></p>
+        ${s.notes.map((n) => `<p class="discret">${echapper(n)}</p>`).join("")}
+        <table><tr><th></th>${s.colonnes.titres.map((t) => `<th>${echapper(t)}</th>`).join("")}</tr>
+          ${s.colonnes.lignes.map((l) => `<tr><td>${echapper(l.quoi)}</td>${l.valeurs.map((v) => `<td>${echapper(v)}</td>`).join("")}</tr>`).join("")}
+        </table>
+      </div>`).join("") + `<p class="discret">${echapper(d.phrase)}</p>`;
+  };
+}

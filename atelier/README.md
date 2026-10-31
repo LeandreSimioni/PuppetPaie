@@ -92,6 +92,9 @@ puis les paies écrites des engagements validés. Un mois qui a des paies
 n'est compté deux fois. Une fois l'import fait, le logiciel n'a plus besoin
 du dossier `import/` : il lit ses copies.
 
+Le compte de chaque intermittent, sa fenêtre, ce qui lui manque pour le seuil et le tableau du mois : Exports › « Les
+heures et cachets des intermittents », ou la route `droits` (`{"mois":"2026-03"}`).
+
 ## Faire une paie
 
 Trois façons, au choix — elles font le même travail, avec les mêmes
@@ -241,7 +244,8 @@ pour rien, il ne porte que le Drive.
 
 La sauvegarde du dossier privé et l'archivage d'un mois vont dans le Drive
 d'un compte Google lié **une fois** : Configuration › Mots de passe ›
-**Lier le Drive** (un geste de la fenêtre : un humain dans le navigateur).
+**Lier le Drive**, ou la route `google-autoriser` (un humain dans le navigateur, dans les deux cas : le moteur ouvre la
+fenêtre de Google et dit son adresse sur la sortie d'erreur).
 
 Une fenêtre Google s'ouvre dans le navigateur, on choisit son compte, on
 accepte, on revient au logiciel. C'est tout : pas de console Google, pas de
@@ -251,8 +255,10 @@ l'application déclarée une fois par l'éditeur, la même pour tout le monde
 passe du logiciel, comme tout acte.
 
 ```
+route google-autoriser        # lie le compte : la fenêtre de Google s'ouvre
 route google-etat             # vérifie que l'autorisation tient
 route google-oublier          # efface le jeton local
+route archiver {"mois":"2026-03"}   # dépose les documents d'un mois dans PuppetPaie/2026-03 (Historique, le mois, « Avancé »)
 ```
 
 Deux permissions demandées, toutes deux *non sensibles* au sens de Google :

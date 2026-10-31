@@ -98,8 +98,13 @@ async function dessinerMoisHistorique(d) {
   const envois = h.envois.length ? h.envois.map(dessinerEnvoi).join("")
     : `<p class="discret">Rien n'est parti de ce mois.</p>`;
 
+  // Avancé : les documents du mois déposés dans le Drive de la compagnie (route `archiver`, sa phrase dit ce qui est parti).
+  const archive = h.documents.length ? `<details><summary>Avancé</summary>
+      <p><button class="secondaire" data-archiver>Déposer les documents de ce mois dans le Drive</button>
+      <span class="discret" data-archive></span></p></details>` : "";
+
   vue.innerHTML = `${paie}
-    <h3>Les documents</h3>${documents}
+    <h3>Les documents</h3>${documents}${archive}
     <h3>Les envois et leurs retours</h3>${envois}`;
 
   vue.querySelectorAll("[data-piece]").forEach((b) => {
@@ -111,6 +116,15 @@ async function dessinerMoisHistorique(d) {
       catch (e) { dire(e.message, "erreur"); }
     };
   });
+  const archiver = vue.querySelector("[data-archiver]");
+  if (archiver) archiver.onclick = async () => {
+    const dit = vue.querySelector("[data-archive]");
+    archiver.disabled = true;
+    dit.textContent = "dépôt en cours…";
+    try { dit.textContent = (await api("archiver", { mois })).phrase; }
+    catch (e) { dit.textContent = e.message; }
+    archiver.disabled = false;
+  };
   vue.querySelectorAll("[data-faire]").forEach((b) => {
     b.onclick = async () => {
       document.querySelector('.onglets button[data-vue="paie"]').click();

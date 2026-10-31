@@ -158,6 +158,33 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
     },
     Fiche {
+        nom: "droits",
+        geste: "Dire les heures et cachets cumulés de chaque intermittent (annexes 8 et 10).",
+        charge: &[Champ { nom: "mois", sens: "le mois du tableau (le mois, l'année civile), AAAA-MM ; absent : celui du jour", avance: false }],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "salaries (chacun : nom, fenetre, lignes [quoi, valeur], phrase, notes, colonnes du tableau), phrase (ce que vaut ce compte)",
+        refus: &[OPERATION, FORME],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
+        nom: "archiver",
+        geste: "Déposer les documents d'un mois dans le Drive de la compagnie.",
+        charge: &[MOIS],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "mois, dossier (dans le Drive), compte, fichiers (nom, octets, remplace), phrase ; une fictive joue le dépôt, rien ne part",
+        refus: &[
+            Refus { classe: "SortieAbsente", corriger: "un mois dont les documents sont écrits (une paie validée)" },
+            Refus { classe: "ErreurGoogle", corriger: "lier le Drive (route google-autoriser), ou ce que la phrase de Google dit" },
+            Refus { classe: "CopieDeDeveloppement", corriger: "rien : une copie de développement n'écrit jamais dans le Drive" },
+            OPERATION,
+        ],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
         nom: "casc-envoyer",
         geste: "Envoyer à Audiens et au CASC-SVP la régularisation des mois importés.",
         charge: &[
@@ -193,6 +220,8 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "exporter" => exporter(ctx, charge),
         "dossier-envoyer" => dossier_envoyer(ctx, charge, &mut || client_courriel(ctx)),
         "casc-envoyer" => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)),
+        "droits" => droits(ctx, charge),
+        "archiver" => archiver(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -941,4 +970,116 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
         _ => "OSError",
     };
     erreur(classe, socle::fichiers::panne_fichier(e, p))
+}
+
+// ------------------------------------------------------------------ les droits des intermittents, l'archive d'un mois
+
+/// LES HEURES ET CACHETS DES INTERMITTENTS au regard des annexes 8 et 10 (`droit::cumul` : la fenetre, le plafond des
+/// cachets d'un mois, l'enseignement plafonne, le seuil, lus du bareme) : pour chaque salarie dont un engagement est connu
+/// (importe ou valide), sa position dans sa fenetre et le tableau du mois. Le compte ne porte que les engagements de cette
+/// compagnie : la phrase le dit.
+fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
+    use droit::cumul::{anniversaire_configure, position_droits, tableau_cumul};
+    let mois = match charge.get("mois").filter(|v| vrai(v)) {
+        Some(m) => valeur_en_texte(m),
+        None => format!("{:04}-{:02}", ctx.aujourdhui.an, ctx.aujourdhui.mois),
+    };
+    let engs = engagement::cumul::lire_engagements(ctx, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
+    let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
+    let mut salaries = Vec::new();
+    for cle in cles {
+        let anniv = anniversaire_configure(ctx, cle)?;
+        let p = position_droits(ctx, cle, &engs, anniv, None)?;
+        let c = &p.constantes;
+        let h = |n: i64| format!("{} h", n);
+        let mut lignes = vec![json!(["Cachets déclarés", p.cachets().to_string()])];
+        if p.cachets_perdus() != 0 {
+            lignes.push(json!([format!("Retenus ({} par mois au plus)", c.cachets_par_mois), p.cachets_retenus().to_string()]));
+        }
+        lignes.push(json!([format!("Convertis ({} h par cachet)", c.heures_par_cachet), h(p.cachets_retenus() * c.heures_par_cachet)]));
+        lignes.push(json!(["Heures déclarées", h(p.heures())]));
+        lignes.push(json!(["Total d'heures équivalentes", h(p.heures_retenues())]));
+        if p.heures_enseignement() != 0 {
+            // Deux comptes des qu'il y a de l'enseignement : ces heures ouvrent les droits (plafonnees), sans augmenter l'allocation.
+            lignes.push(json!(["Dont enseignement", h(p.heures_enseignement())]));
+            lignes.push(json!([format!("Enseignement retenu (plafond {} h)", p.plafond_enseignement()?), h(p.heures_enseignement_retenues()?)]));
+            lignes.push(json!(["Pour l'ouverture des droits", h(p.heures_ouverture()?)]));
+            lignes.push(json!(["Pour le montant de l'allocation", h(p.heures_montant())]));
+        }
+        lignes.push(json!(["Seuil des annexes 8 et 10", h(c.seuil_heures)]));
+        let jours = p.jours_restants(ctx.aujourdhui);
+        if anniv.is_some() && jours > 0 {
+            lignes.push(json!(["Avant le réexamen", format!("{} j", jours)]));
+        }
+        let phrase = if p.atteint()? {
+            format!("Seuil atteint, avec {} h de marge.", p.heures_ouverture()? - c.seuil_heures)
+        } else {
+            format!("Il manque {} h, soit environ {} cachets.", p.manque()?, p.cachets_manquants()?)
+        };
+        let mut notes = Vec::new();
+        if p.cachets_perdus() != 0 {
+            notes.push(format!(
+                "{} cachet(s) dépassent les {} d'un mois ({}) : joués, payés et déclarés, mais sans effet sur les droits.",
+                p.cachets_perdus(),
+                c.cachets_par_mois,
+                p.mois_plafonnes().join(", ")
+            ));
+        }
+        if p.enseignement_perdu()? != 0 {
+            notes.push(format!("{} h d'enseignement dépassent le plafond : payées et déclarées, mais sans effet sur les droits.", p.enseignement_perdu()?));
+        }
+        if p.heures_enseignement() != 0 && p.date_naissance.is_none() {
+            notes.push("Date de naissance absente de la fiche : le plafond bas de l'enseignement s'applique, peut-être à tort.".to_string());
+        }
+        if anniv.is_none() {
+            notes.push("Fenêtre déduite du dernier contrat déclaré : la date anniversaire que France Travail notifie (anniversaire_droits, dans la fiche du salarié) prime sur ce calcul.".to_string());
+        }
+        let colonnes: Vec<Value> = tableau_cumul(ctx, cle, &mois, &engs)?.iter().map(|x| x.canon()).collect();
+        let rangee = |quoi: &str, cle: &str, suite: &str| {
+            json!({"quoi": quoi, "valeurs": colonnes.iter().map(|x| format!("{}{}", valeur_en_texte(&x[cle]), suite)).collect::<Vec<_>>()})
+        };
+        let nom = ctx.salaries.get(cle).map(crate::routes::nom_a_l_ecran).unwrap_or_else(|| cle.to_string());
+        salaries.push(json!({
+            "cle": cle,
+            "nom": nom,
+            "fenetre": p.libelle_fenetre,
+            "lignes": lignes,
+            "phrase": phrase,
+            "notes": notes,
+            "colonnes": {
+                "titres": colonnes.iter().map(|x| format!("{} {}", valeur_en_texte(&x["titre"]), valeur_en_texte(&x["sous_titre"])).trim().to_string()).collect::<Vec<_>>(),
+                "lignes": [rangee("Cachets", "cachets", ""), rangee("Heures déclarées", "heures", " h"), rangee("Total d'heures", "heures_equivalentes", " h"), rangee("Salaire brut", "brut", " €")],
+            },
+        }));
+    }
+    let phrase = if salaries.is_empty() {
+        "Aucun engagement d'intermittent n'est encore validé ni importé."
+    } else {
+        "Ce compte ne porte que les engagements de cette compagnie : le relevé de France Travail seul fait foi, et le seuil se compte sur tous les employeurs. Ces totaux sont un plancher."
+    };
+    Ok(json!({"mois": mois, "salaries": salaries, "phrase": phrase}))
+}
+
+/// DEPOSER LES DOCUMENTS D'UN MOIS DANS LE DRIVE (`archivage::archiver`) : `PuppetPaie/<mois>` du compte lie. Une
+/// compagnie fictive joue le depot (`archivage::DriveJoue`) : la meme liste, rien ne part.
+fn archiver(ctx: &Contexte, charge: &Value) -> R<Value> {
+    use crate::compagnie::archivage;
+    let mois = valeur_en_texte(requis(charge, "mois")?);
+    let joue = crate::compagnie::bridage::branchement(&ctx.racine).joue();
+    let mut drive_joue = archivage::DriveJoue;
+    let client: Option<&mut dyn envois::drive::Drive> = if joue { Some(&mut drive_joue) } else { None };
+    let r = archivage::archiver(&ctx.racine, &mois, crate::compagnie::sauvegarde::RACINE_DRIVE, client).map_err(|e| erreur(e.classe, e.message))?;
+    let dossier = format!("{}/{}", r.racine_drive, r.mois);
+    let phrase = if joue {
+        format!("Compagnie fictive : rien ne part au Drive. {} fichier(s) iraient dans {}.", r.fichiers.len(), dossier)
+    } else {
+        format!("{} fichier(s) déposé(s) dans le Drive, dossier {}.", r.fichiers.len(), dossier)
+    };
+    Ok(json!({
+        "mois": r.mois,
+        "dossier": dossier,
+        "compte": r.compte,
+        "fichiers": r.fichiers.iter().map(|f| json!({"nom": f.nom, "octets": f.octets, "remplace": f.remplace})).collect::<Vec<_>>(),
+        "phrase": phrase,
+    }))
 }

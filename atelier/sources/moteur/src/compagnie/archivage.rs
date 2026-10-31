@@ -83,3 +83,29 @@ pub fn archiver(racine: &Path, mois: &str, racine_drive: &str, client: Option<&m
     }
     Ok(Archivage { mois: mois.to_string(), racine_drive: racine_drive.to_string(), compte: client.compte(), fichiers: deposes })
 }
+
+/// LE DRIVE JOUE d'une compagnie fictive (ses envois sont joues, `bridage::branchement`) : le depot se deroule, chaque
+/// fichier se nomme et se compte, et rien ne part. Il n'a pas de compte, ne connait aucun fichier et n'en rend aucun.
+pub struct DriveJoue;
+
+impl Drive for DriveJoue {
+    fn compte(&self) -> Option<String> {
+        None
+    }
+    fn chemin(&mut self, noms: &[&str]) -> Result<String, ErreurGoogle> {
+        Ok(noms.join("/"))
+    }
+    fn lister(&mut self, _parent: &str) -> Result<std::collections::BTreeMap<String, envois::drive::Distant>, ErreurGoogle> {
+        Ok(Default::default())
+    }
+    fn televerser(&mut self, fichier: &Path, _parent: &str, nom: Option<&str>, _connu: Option<&envois::drive::Distant>) -> Result<envois::drive::Depose, ErreurGoogle> {
+        let nom = nom.map(String::from).or_else(|| fichier.file_name().map(|n| n.to_string_lossy().into_owned()));
+        Ok(envois::drive::Depose { nom, ..Default::default() })
+    }
+    fn sous_dossiers(&mut self, _parent: &str) -> Result<Vec<(String, String)>, ErreurGoogle> {
+        Ok(Vec::new())
+    }
+    fn telecharger(&mut self, id: &str) -> Result<Vec<u8>, ErreurGoogle> {
+        Err(ErreurGoogle::nouvelle("ErreurOperation", format!("Le Drive d'une compagnie fictive ne garde rien : {} n'y est pas.", id)))
+    }
+}
