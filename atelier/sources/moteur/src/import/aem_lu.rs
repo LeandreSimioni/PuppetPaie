@@ -171,6 +171,8 @@ pub struct Aem {
     pub brut: Option<Decimal>,
     /// « complementaire » ou « rectificative » quand la case est cochee.
     pub corrige: Option<&'static str>,
+    /// Une periode d'une AER Cinéma Spectacle (`lire_aer`), qui atteste au meme rang qu'une AEM.
+    pub aer: bool,
     /// Ce que la page dit d'elle-meme qui ne tient pas (une cle de NIR fausse, un nombre hors colonne).
     pub faute: Option<String>,
 }
@@ -300,6 +302,82 @@ pub fn lire(chemin: &Path) -> Result<Vec<PageAem>, String> {
         }
     }
     Ok(out)
+}
+
+/// L'AER CINEMA SPECTACLE, le formulaire que France Travail edite depuis la DSN (retour de nature 46, rangé par
+/// `routes::documents::ranger_aer`), se lit PAR SES CHAMPS (`documents::aer::champs`), aux noms que porte le
+/// formulaire (`envois::aer_fictive`, en tete) : l'employeur (`EMP_*`, `ENSEIGNE`), le salarie (`SALARIE_*`), l'emploi
+/// (`CON_LIB_EMPLOI`), et au cadre 4, par colonne `nn`, une periode d'emploi dans un mois (`SAL_DT_DEB_nn`,
+/// `SAL_DT_FIN_nn`, `SAL_NB_HEURES_nn`, `SAL_NB_CACHET_nn`, `SAL_MONTANT_nn`) et son contrat (`CON_NUMERO_nn`,
+/// `CON_OBJET_nn`, dans la colonne de sa premiere periode). Chaque colonne atteste ce qu'une AEM du meme mois
+/// attesterait : elle se lit en `Aem`, et prend le meme chemin (le registre des contrats attestes, le bulletin qui
+/// l'emporte). `None` : ce PDF n'est pas une AER Cinéma Spectacle (un autre formulaire, l'AER du regime general
+/// comprise, n'a pas ces champs).
+pub fn lire_aer(octets: &[u8]) -> Option<Vec<Lecture>> {
+    let champs = documents::aer::champs(octets).ok()?;
+    let v = |nom: &str| champs.get(nom).and_then(|c| c.get("valeur")).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string);
+    if !champs.get("SALARIE_NIR").is_some_and(Value::is_object) || !champs.get("SAL_DT_DEB_01").is_some_and(Value::is_object) {
+        return None;
+    }
+    let jour = |nom: &str| v(nom).and_then(|t| Jour::lire(&t).ok());
+    let entier = |nom: &str| v(nom).and_then(|t| t.replace([' ', '\u{a0}'], "").parse::<i64>().ok());
+    let nir = v("SALARIE_NIR").map(|n| n.replace(' ', ""));
+    let naissance = match (v("SALARIE_DT_NAISSANCE_A"), v("SALARIE_DT_NAISSANCE_M"), v("SALARIE_DT_NAISSANCE_J")) {
+        (Some(a), Some(m), Some(j)) => a.parse().ok().zip(m.parse().ok()).zip(j.parse().ok()).and_then(|((a, m), j)| Jour::nouveau(a, m, j)),
+        _ => None,
+    };
+    let mut out = Vec::new();
+    let mut numero_objet = None;
+    for rang in 1..=5 {
+        let nom = |p: &str| format!("{}{:02}", p, rang);
+        // Un contrat se dit dans la colonne de sa premiere periode ; la colonne sans contrat en est la suite.
+        if v(&nom("CON_NUMERO_")).is_some() {
+            numero_objet = v(&nom("CON_OBJET_"));
+        }
+        let (Some(debut), Some(fin)) = (jour(&nom("SAL_DT_DEB_")), jour(&nom("SAL_DT_FIN_"))) else { continue };
+        let page = champs.get(&nom("SAL_DT_DEB_")).and_then(|c| c.get("page")).and_then(Value::as_u64).unwrap_or(0) as usize;
+        let a = Aem {
+            page,
+            mois: Some(debut.mois_iso()),
+            numero: None,
+            siret: v("EMP_SIRET"),
+            ape: v("EMP_APE"),
+            idcc: v("EMP_IDCC"),
+            employeur: v("ENSEIGNE"),
+            employeur_code_postal: v("ADR_EMP_CP"),
+            employeur_commune: v("ADR_EMP_LOCALITE"),
+            adherent: None,
+            cle_nir: nir.as_ref().and_then(|n| n.get(13..15)).map(str::to_string),
+            nir: nir.as_ref().and_then(|n| n.get(..13)).map(str::to_string),
+            nom: v("SALARIE_NOM_FAMILLE"),
+            prenom: v("SALARIE_PRENOMS"),
+            nom_usage: None,
+            naissance,
+            rue: v("SALARIE_ADRESSE"),
+            code_postal: v("SALARIE_CP"),
+            commune: v("SALARIE_ADR_LOCALITE"),
+            emploi: v("CON_LIB_EMPLOI"),
+            numero_objet: numero_objet.clone(),
+            cadre: None,
+            statut: None,
+            embauche: Some(debut),
+            fin_contrat: Some(fin),
+            en_cours: false,
+            heures: entier(&nom("SAL_NB_HEURES_")),
+            cachets_isoles: entier(&nom("SAL_NB_CACHET_")),
+            cachets_groupes: None,
+            jours: None,
+            brut: v(&nom("SAL_MONTANT_")).and_then(|t| t.replace([' ', '\u{a0}'], "").replace(',', ".").parse::<Decimal>().ok()),
+            corrige: None,
+            aer: true,
+            faute: None,
+        };
+        out.push(match a.manque() {
+            Some(raison) => Lecture::Refusee { sort: "incomplet", raison: raison.replacen("AEM", "AER", 1), partiel: Some(a) },
+            None => Lecture::Lue(a),
+        });
+    }
+    Some(out)
 }
 
 fn mots_de(p: &Value) -> Vec<Mot> {

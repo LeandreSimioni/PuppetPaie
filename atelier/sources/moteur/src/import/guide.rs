@@ -9,6 +9,7 @@
 //! - les certificats Congés Spectacles : `certificat_lu` (`Certificat`), et ce que `bulletins` en tire
 //!   (`fiche_de_certificats`, `entreprise_du_certificat`, `contrat_du_certificat`) ;
 //! - les AEM : `dsn_aem::lire_aem` (`ContratAtteste`) ; en PDF, `aem_lu` (`Aem`), et `bulletins` (`contrat_de_l_aem`) ;
+//! - les AER Cinéma Spectacle : `aem_lu::lire_aer` (par les champs du formulaire, une `Aem` par periode) ;
 //! - les archives : `tri` (un zip s'ouvre, son contenu se trie comme le reste ; un PDF sans texte ne se lit pas).
 //!
 //! Ce qui restera a dire : ce qu'aucune de ces lectures ne donne -- la nature d'un contrat de permanent
@@ -72,6 +73,15 @@ pub fn guide() -> Value {
                     "la compagnie : son Siret, son nom, son code APE, sa convention, sa commune, son numéro d'adhérent Congés Spectacles",
                     "chaque salarié : nom, prénom, date de naissance, adresse, numéro de sécurité sociale, emploi, artiste ou technicien, cadre ou non",
                     "chaque contrat : ses dates dans le mois, ses heures, ses cachets, ses jours, son salaire brut, son numéro d'objet",
+                ],
+            },
+            {
+                "quoi": "Les AER Cinéma Spectacle, en PDF",
+                "ou": "Les attestations que France Travail a éditées depuis vos DSN, telles que vous les avez reçues. Comme une AEM, chacune remplace un bulletin qui manque, sans rien reprendre deux fois.",
+                "lu": [
+                    "la compagnie : son Siret, son nom, son code APE, sa convention, sa commune",
+                    "chaque salarié : nom, prénom, date de naissance, adresse, numéro de sécurité sociale, emploi",
+                    "chaque période d'emploi : ses dates, ses heures, ses cachets, son salaire brut, le numéro d'objet de son contrat",
                 ],
             },
             {

@@ -310,6 +310,22 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                 }
             }
         }
+        // L'AER CINEMA SPECTACLE (`aem_lu::lire_aer`) : un formulaire entier, chaque periode attestee comme une AEM.
+        if let Some(colonnes) = std::fs::read(&f.disque).ok().and_then(|o| crate::import::aem_lu::lire_aer(&o)) {
+            pages_certificats.extend(1..=f.pages.len());
+            for lecture in colonnes {
+                match lecture {
+                    crate::import::aem_lu::Lecture::Lue(a) => {
+                        let c = a.commun();
+                        certificats.push(Attestee { fichier: i, c, aem: Some(a) });
+                    }
+                    crate::import::aem_lu::Lecture::Refusee { sort, raison, partiel } => {
+                        cr.push(PageCr { page: partiel.map_or(1, |a| a.page), sort, raison, infos: Map::new() });
+                    }
+                    crate::import::aem_lu::Lecture::Notice => {}
+                }
+            }
+        }
         // LES AEM EN PDF du fichier (`aem_lu`), et la notice du formulaire.
         for pa in crate::import::aem_lu::lire(&f.disque).unwrap_or_default() {
             if !pages_certificats.insert(pa.page) {
@@ -1177,11 +1193,12 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                 match &cl.aem {
                     Some(a) => {
                         if somme.is_some_and(|s| s != brut) {
-                            phrases.push(format!("écart noté : l'AEM dit {} € de brut, les contrats {} €", brut, somme.unwrap_or_default()));
+                            phrases.push(format!("écart noté : l'{} dit {} € de brut, les contrats {} €", cl.nom(), brut, somme.unwrap_or_default()));
                         }
                         if (i128::from(a.cachets()), i128::from(a.jours.unwrap_or(0))) != (cachets, jours) {
                             phrases.push(format!(
-                                "écart noté : l'AEM dit {} cachets et {} jours, les contrats {} cachets et {} jours",
+                                "écart noté : l'{} dit {} cachets et {} jours, les contrats {} cachets et {} jours",
+                                cl.nom(),
                                 a.cachets(),
                                 a.jours.unwrap_or(0),
                                 cachets,
@@ -1255,7 +1272,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             Ok((ligne, quoi)) => {
                 infos.insert("contrat".into(), json!("nouveau"));
                 let raison = if est_aem {
-                    format!("AEM {} : contrat attesté ajouté ({}, {} € de brut)", du_au, quoi, ligne["brut"].as_str().unwrap_or(""))
+                    format!("{} {} : contrat attesté ajouté ({}, {} € de brut)", nom, du_au, quoi, ligne["brut"].as_str().unwrap_or(""))
                 } else if est_reste {
                     format!("certificat Congés Spectacles {} contrat attesté ajouté ({}) ; les heures, que le certificat ne porte pas, n'y sont pas", du_au, quoi)
                 } else {
@@ -1907,7 +1924,11 @@ struct Attestee {
 impl Attestee {
     /// Son nom dans le compte rendu.
     fn nom(&self) -> &'static str {
-        if self.aem.is_some() { "AEM" } else { "certificat Congés Spectacles" }
+        match &self.aem {
+            Some(a) if a.aer => "AER Cinéma Spectacle",
+            Some(_) => "AEM",
+            None => "certificat Congés Spectacles",
+        }
     }
 
     /// Sa `source`, dans ce que l'import dit d'ou vient une valeur (et son `atteste_par`).
