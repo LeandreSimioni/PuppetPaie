@@ -9,7 +9,7 @@
 //! mois ou il commence : le contrat qu'une AEM ou un bulletin atteste, et ce qui a ete verse, mois par mois (la DSN
 //! deposee, completee par le bulletin). Un import se rejoue sans dommage. La reponse est celle de l'apercu, completee de
 //! ce qui a ete ecrit (`ecrit`, `fichiers`, `copie`) ; elle garde le compte rendu (`tri`) du dossier lu, pour l'ecran ;
-//! rien n'en part (l'incident est `import::incident`, sur le clic de la personne). Les pieces copiees restent sous
+//! un document accepte et pas lu part en incident, masque (`import::incident`). Les pieces copiees restent sous
 //! `historique/` : le dossier du salarie montre les pages des bulletins, l'alerte CASC-SVP relit les DSN.
 //!
 //! UNE PAIE, DEUX SOURCES, UNE LIGNE (les deux chemins) : une ligne de DSN qui arrive sur une ligne que des bulletins
@@ -648,7 +648,8 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     // 1. Le dossier tel qu'il est : son compte rendu (pour l'ecran), et la copie de ce qu'il reprend.
     let (tri, non_repris, copie, noms, deposes) = crate::import::bulletins::lire_dossier(ctx, &dossier, &HashMap::new(), |lu| {
         let (copie, noms) = copier_repris(ctx, &lu)?;
-        let tri = lu.ap.reponse.get("tri").cloned().unwrap_or(Value::Null);
+        crate::import::incident::noter_les_non_lus(ctx, &lu);
+        let tri =lu.ap.reponse.get("tri").cloned().unwrap_or(Value::Null);
         let non_repris: Vec<Value> =
             lu.ap.reponse.get("avertissements").and_then(Value::as_array).into_iter().flatten().filter(|a| dit_les_non_repris(a)).cloned().collect();
         // La copie se relit sous le nom du fichier depose.

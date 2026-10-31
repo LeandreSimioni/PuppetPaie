@@ -161,9 +161,6 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         crate::compagnie::coffre_verifier::ROUTE => crate::compagnie::coffre_verifier::route(&ctx, &charge),
         r if filet::ROUTES.contains(&r) || r == filet::ROUTE_OUBLIER => filet::route(o, &ctx, route, &charge),
         r if import::ROUTES.contains(&r) => import::route(o, &ctx, route, &charge),
-        // Les fichiers que l'import n'a pas repris : le message caviarde qui partirait chez l'editeur (rien n'est ecrit),
-        // et son envoi, sur le seul clic de la personne (`import::incident`).
-        r if crate::import::incident::ROUTES.contains(&r) => crate::import::incident::route(&ctx, route, &charge),
         r if archives::ROUTES.contains(&r) => archives::route(o, &ctx, route, &charge),
         // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
         crate::historique_mois::ROUTE => crate::historique_mois::route(&ctx, &charge),

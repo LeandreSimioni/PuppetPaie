@@ -148,14 +148,11 @@ struct Lu {
 }
 
 /// Ce que la lecture d'un dossier rend : l'apercu, le tri (les fichiers sur le disque, a lire avant d'effacer le dossier
-/// de travail), le nom de la copie de chaque fichier repris (par rang dans le tri), et ce que les bulletins ont dit de
-/// leurs salaries et de leurs entreprises, pages refusees comprises (`Lecture::partiel`) : de quoi caviarder.
+/// de travail), et le nom de la copie de chaque fichier repris (par rang dans le tri).
 pub(crate) struct DossierLu {
     pub(crate) ap: Apercu,
     pub(crate) tri: crate::import::tri::Tri,
     pub(crate) copies: BTreeMap<usize, String>,
-    pub(crate) salaries_lus: Vec<bulletin_lu::Salarie>,
-    pub(crate) entreprises_lues: Vec<bulletin_lu::Entreprise>,
 }
 
 /// `importation-apercu` avec `{"dossier": ...}`.
@@ -284,7 +281,6 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     let mut par_logiciel: BTreeMap<String, usize> = BTreeMap::new();
     let (mut du, mut au): (Option<Jour>, Option<Jour>) = (None, None);
     let mut n_pages = 0usize;
-    let (mut salaries_lus, mut entreprises_lues): (Vec<bulletin_lu::Salarie>, Vec<bulletin_lu::Entreprise>) = (Vec::new(), Vec::new());
     for (i, f) in tri.fichiers.iter().enumerate() {
         if f.sorte != Sorte::PdfTexte {
             continue;
@@ -304,11 +300,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         for pc in certificats_du_fichier {
             match pc.resultat {
                 Ok(c) => {
-                    salaries_lus.push(c.salarie());
                     certificats.push(Attestee { fichier: i, c, aem: None });
                 }
-                Err((raison, c)) => {
-                    salaries_lus.push(c.salarie());
+                Err((raison, _)) => {
                     cr.push(PageCr { page: pc.page, sort: "incomplet", raison, infos: Map::new() });
                 }
             }
@@ -321,13 +315,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             match pa.lecture {
                 crate::import::aem_lu::Lecture::Lue(a) => {
                     let c = a.commun();
-                    salaries_lus.push(c.salarie());
                     certificats.push(Attestee { fichier: i, c, aem: Some(a) });
                 }
-                crate::import::aem_lu::Lecture::Refusee { sort, raison, partiel } => {
-                    if let Some(a) = partiel {
-                        salaries_lus.push(a.commun().salarie());
-                    }
+                crate::import::aem_lu::Lecture::Refusee { sort, raison, .. } => {
                     cr.push(PageCr { page: pa.page, sort, raison, infos: Map::new() });
                 }
                 crate::import::aem_lu::Lecture::Notice => {
@@ -340,15 +330,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                 continue;
             }
             n_pages += 1;
-            if let Some(s) = l.partiel {
-                salaries_lus.push(s);
-            }
             let b = match l.resultat {
-                Ok(b) => {
-                    salaries_lus.push(b.salarie.clone());
-                    entreprises_lues.push(b.entreprise.clone());
-                    b
-                }
+                Ok(b) => b,
                 Err(r) => {
                     cr.push(PageCr { page: l.page, sort: r.code(), raison: r.raison(), infos: Map::new() });
                     continue;
@@ -1454,7 +1437,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     ap.contrats_attestes = registre.retenus;
     ap.contrats_changes = registre.changes;
     ap.reponse = reponse;
-    Ok(DossierLu { ap, tri, copies, salaries_lus, entreprises_lues })
+    Ok(DossierLu { ap, tri, copies })
 }
 
 /// Ce que la page dit d'elle-meme dans le compte rendu.
