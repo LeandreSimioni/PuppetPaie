@@ -1,7 +1,4 @@
-    try {
-      await api("compagnie-supprimer", { confirme: true, ...(mdp ? { motdepasse: mdp } : {}) });
-      location.replace("/");
-    } catch (e) { document.getElementById("sup-erreur").textContent = e.message; }/* La configuration : la liste, l'importation, metiers, organismes, AT/MP, sante. */
+/* La configuration : la liste, l'importation, metiers, organismes, AT/MP, sante. */
 "use strict";
 
 /* =======================================================================

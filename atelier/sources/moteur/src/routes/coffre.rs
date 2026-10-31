@@ -1,5 +1,6 @@
 //! Les routes du coffre et des mots de passe : ce qui est pose (`coffre-etat`, `google-etat`), poser ou oublier un
-//! secret (`coffre-poser`, avec le compte DPAE pour l'Urssaf, `coffre-oublier`, `google-oublier`), changer ou retirer le mot de
+//! secret (`coffre-poser`, avec le compte DPAE pour l'Urssaf, `coffre-oublier`), lier ou delier le compte Google
+//! (`google-autoriser`, `google-oublier`), changer ou retirer le mot de
 //! passe du logiciel (`mot-de-passe-changer`, `mot-de-passe-retirer`).
 //!
 //! Aucune valeur de secret ne sort : la reponse est l'etat du coffre, des presences et des dates. Ces routes passent
