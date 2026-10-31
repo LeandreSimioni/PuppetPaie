@@ -103,10 +103,7 @@ function dessinerConfig() {
   const sansTitre = (d) => titreDe(d) === "a completer";
   // L'année qu'écrivent les deux premiers chiffres d'un numéro d'objet
   // (266Z… : 2026), pour dire de quelles années datent les numéros sans titre
-  // (`archivesHtml`). Elle était définie ici avant le 30/09/2026 (d7c2590,
-  // « le numéro d'objet n'est plus annuel ») : retirée avec ses autres
-  // usages, la phrase des archives l'appelait encore — ReferenceError dès
-  // qu'on affichait un numéro archivé sans titre.
+  // (`archivesHtml`).
   const anDe = (d) => /^\d{2}/.test(String(d.numero_objet || ""))
     ? 2000 + Number(String(d.numero_objet).slice(0, 2)) : null;
   const passees = {};
@@ -127,8 +124,7 @@ function dessinerConfig() {
       || titreDe(a.donnees).localeCompare(titreDe(b.donnees))
       || String(b.donnees.numero_objet || "").localeCompare(String(a.donnees.numero_objet || "")));
 
-  // UNE LIGNE PAR FICHE (l'éditeur, 24/09/2026 : « j'aime bien les lignes pour
-  // les salariés »). Elle remplace la grille de cartes : le nom, ce qui
+  // UNE LIGNE PAR FICHE : le nom, ce qui
   // l'identifie, son état, puis les gestes -- « Archiver » dit en toutes
   // lettres, là où le clic sur toute la carte archivait sans prévenir.
   const rangHtml = (f, trouve) => {
@@ -937,9 +933,8 @@ async function ecrireImportation() {
  *  pas s'affiche quand meme, dans la derniere section.
  */
 const SECTIONS_FICHE = {
-  // LA FICHE ENTREPRISE, RELUE LE 23/09/2026. L'editeur : « on demande le
-  // minimum d'information aux gens, après on traite l'information pour que
-  // ça rentre dans la DSN ». Six blocs, dans l'ordre ou l'on cherche : qui
+  // LA FICHE ENTREPRISE : on demande le minimum d'information aux gens, puis on traite l'information pour qu'elle rentre
+  // dans la DSN. Six blocs, dans l'ordre ou l'on cherche : qui
   // l'on est, ou l'on est, sous quelle convention, ses numeros, qui signe,
   // le compte. Les cases que le moteur deduit sont nommees ici pour que
   // leur case cachee soit posee dans le bloc de la valeur dont elles
@@ -1003,11 +998,11 @@ const SECTIONS_FICHE = {
     // Sans titre : l'historique se replie derriere un lien (`histoireDuChamp`).
     ["", ["historique"]],
   ],
-  // LA FICHE SALARIE, RELUE LE 23/09/2026 sur le modele de l'entreprise.
+  // LA FICHE SALARIE, sur le modele de l'entreprise.
   // Dans l'ordre ou on la remplit, papiers en main : la carte Vitale, la
   // piece d'identite, l'adresse ; puis ce que l'employeur decide, l'emploi.
-  // Chaque champ a ete confronte a ce qui le lit dans le moteur : le taux de
-  // PAS de la fiche n'etait lu par personne, il ne se montre plus ; le sexe
+  // Chaque champ est lu par le moteur : le taux de
+  // PAS de la fiche ne se montre pas ; le sexe
   // ne sert que sans NIR, il ne se montre que dans ce cas (`brancherSexe`).
   salarie: [
     // Le numero et sa cle cote a cote, comme sur la carte Vitale.
@@ -1072,8 +1067,7 @@ const ORDINAIRE = {
 
 /* Les champs qu'on peut laisser vides : l'ecran le dit a cote du libelle,
  * plutot que de laisser croire qu'il manque quelque chose. L'editeur,
- * 23/09/2026 : « il y a des champs facultatifs, par exemple la date
- * anniversaire ». */
+ * Les champs facultatifs : un champ ne se montre que si un fait l'exige. */
 const FACULTATIFS = {
   salarie: ["num_conges_spectacles", "anniversaire_droits", "sante_dispense",
             "sante_dispense_depuis", "sante_dispense_jusqu_au",
@@ -1127,7 +1121,7 @@ const SOUS_CHAMPS = {
   // S20.G00.07.004, et elle vaut 04 : << la personne qui etablit la paie
   // dans l'entreprise >>. La valeur reste dans la fiche et repart telle
   // quelle (STRUCTURES_ORIGINE) ; `dsn.rs` la lit.
-  // LA CIVILITE DU CONTACT (V1h, 10/10/2026) : S10.G00.02.001, 01 monsieur ou
+  // LA CIVILITE DU CONTACT : S10.G00.02.001, 01 monsieur ou
   // 02 madame (cahier technique DSN, p. 132). Le moteur la lit ici et refuse
   // une DSN sans elle ; vide, la case est retiree a l'enregistrement.
   declarant_dsn: { champs: [
@@ -1312,9 +1306,8 @@ const LIBELLES_CHOIX = {
 };
 
 /* Ou aller chercher une valeur qu'on n'a pas sous la main : une phrase et
- * un lien, derriere le « ? » du champ. VIDE DEPUIS LE 23/09/2026 : les
- * liens menaient a la page d'accueil d'un organisme, ce qui n'apprend rien.
- * L'aide de chaque champ (`donnees/champs-base.json`) dit maintenant ou lire la
+ * un lien, derriere le « ? » du champ. VIDE : les liens menaient a la page d'accueil d'un organisme, ce qui n'apprend rien.
+ * L'aide de chaque champ (`donnees/champs-base.json`) dit ou lire la
  * valeur. Un lien ne revient ici que s'il mene a la page qui la donne. */
 const OU_TROUVER = {};
 
@@ -1481,10 +1474,8 @@ function facultatif(c) {
     ? ' <span class="facultatif">facultatif</span>' : "";
 }
 
-/* LE MÉTIER, en tête du bloc « Emploi » (revu le 30/09/2026). Un seul
- * déroulant, qui montre le métier de la fiche (son code France Travail) —
- * il affichait « — celui de la fiche — », emprunté à l'engagement, et ne
- * disait jamais ce qui était choisi. La liste est celle des métiers cochés ;
+/* LE MÉTIER, en tête du bloc « Emploi ». Un seul
+ * déroulant, qui montre le métier de la fiche (son code France Travail). La liste est celle des métiers cochés ;
  * on en ajoute dans l'onglet Métiers, pas ici. */
 function METIER_HTML(fiche) {
   const code = ((fiche || {}).donnees || {}).code_emploi_ft || "";

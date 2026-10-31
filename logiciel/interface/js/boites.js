@@ -43,9 +43,7 @@ function mettreDeCote() {
   return rendre;
 }
 
-/* TOUT COCHER, D'UN CLIC (l'éditeur, 30/09/2026 : « quand on clique sur
- * DPAE ou sur contrat, un truc tout sélectionné, plutôt que de cliquer à
- * la main » — renvoyer tous les contrats, par exemple). Chaque liste de
+/* TOUT COCHER, D'UN CLIC (renvoyer tous les contrats, par exemple). Chaque liste de
  * choix de plus d'une case reçoit en tête une case « Tout cocher ». Elle
  * passe par l'événement « change » de chaque case : ce que la boîte en
  * déduit (le libellé du bouton, un avenant) suit comme au clic. Une case

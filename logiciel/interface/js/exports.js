@@ -139,7 +139,7 @@ async function dessinerDossier() {
     const liste = quand === "mois" ? f.mois.slice().reverse() : f.annees;
     sel.innerHTML = liste.map((v) => opt(v, quand === "mois" ? moisEnClair(v) : v)).join("");
   };
-  // VENU D'UNE FICHE SALARIE (« Exporter ses documents », 23/09/2026) : ce
+  // VENU D'UNE FICHE SALARIE (« Exporter ses documents ») : ce
   // salarie, l'annee la plus recente, toutes les categories cochees.
   if (DOSSIER_PRECHOIX && f.salaries.some((s) => s.cle === DOSSIER_PRECHOIX)) {
     sals.forEach((c) => { c.checked = c.value === DOSSIER_PRECHOIX; });

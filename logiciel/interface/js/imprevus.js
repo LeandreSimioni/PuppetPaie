@@ -209,7 +209,7 @@ function brancherObligation(r, a, o) {
   if (b("connu")) b("connu").onclick = () => boiteConnaissance(a, CONNAISSANCE[o.cle], o);
 }
 
-/* LA FIN D'UN CONTRAT QUI SE SIGNALE (nature 07, 19/09/2026), sous la même
+/* LA FIN D'UN CONTRAT QUI SE SIGNALE (nature 07), sous la même
    forme. Un CDI ou un CDD ordinaire qui se termine fait un signalement à
    part ; un CDD d'usage à son terme (031) n'en fait pas — sa fin part dans la
    mensuelle ; rompu avant (036, 037…), il se signale (fiche 2062). C'est le

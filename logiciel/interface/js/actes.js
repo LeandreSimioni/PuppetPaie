@@ -162,8 +162,7 @@ async function rafraichirActions() {
 /* ---------------------------------------- le récapitulatif d'un dépôt */
 
 /** CE QUE LA DSN DÉCLARE, contrat par contrat, LU DANS LE FICHIER
- *  (30/09/2026, l'éditeur : « ce que l'utilisateur veut voir et vérifier,
- *  c'est que tous les contrats sont dans la DSN »). Comparé aux contrats
+ *  (ce que l'utilisateur veut voir et vérifier : que tous les contrats sont dans la DSN). Comparé aux contrats
  *  saisis du mois : un contrat absent du fichier, ou que l'engagement dit
  *  autrement, se dit en tête. */
 function recapitulatifDsn(r) {
@@ -509,8 +508,7 @@ function avisDocumentsApresDsn(mois) {
     </div>`);
 }
 
-/** L'ÉCOUTE DES RETOURS, JUSTE APRÈS UN DÉPÔT RÉEL (25/09/2026 : « pour que
- *  ça devienne vert le plus vite possible »). Toutes les quinze secondes,
+/** L'ÉCOUTE DES RETOURS, JUSTE APRÈS UN DÉPÔT RÉEL. Toutes les quinze secondes,
  *  dix minutes au plus, sans attendre la veille de vingt minutes ; l'écran
  *  se repeint dès que le dépôt est tranché. */
 async function suivreDepot(quoi, flux, mois) {
@@ -567,7 +565,6 @@ function encartRepetition(r, quoi, a) {
       fait ici, une fois ce compte rendu revenu conforme.</div>`;
   }
   // Jamais essayé : ce n'est pas une mise en garde, c'est l'étape suivante
-  // (26/09/2026 : l'orange se garde pour ce qui demande de corriger).
   const rate = (r.ratees || []).length || (r.perimees || []).length;
   return `<div class="encart ${ENCART_DE_COULEUR[r.couleur] ?? ""}">
     <b>${rate ? "Pas de test valable pour ce contenu" : "D'abord, le dépôt de test"}</b>

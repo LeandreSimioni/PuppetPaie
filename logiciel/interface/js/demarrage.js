@@ -68,8 +68,7 @@ async function demarrer() {
 
   // LE MOIS À OUVRIR, le moteur le dit (`mois-a-ouvrir`, et le mois du jour
   // sans lui) : le mois en cours, sauf un mois passé dont une étape n'est pas
-  // verte (01/10/2026 : « on doit attendre que tout soit vert pour passer au
-  // mois suivant »). Son écran est arrivé avec l'ouverture.
+  // verte. Son écran est arrivé avec l'ouverture.
   poserLeMois(o.mois, o.ecran);
   await chargerMois(o.mois);
   finirChargement();

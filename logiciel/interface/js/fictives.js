@@ -32,9 +32,7 @@ function attendreSignaturesFictives() {
 }
 
 /* ---------------------------------------- LA COMPAGNIE FICTIVE QUI EXPLIQUE
-   (27/09/2026, l'éditeur) : « il faut vraiment que ce soit une démo
-   informative, qui nous renseigne aussi sur le fonctionnement de notre
-   logiciel ». À chaque courriel joué, une petite fenêtre montre ce que le
+   La démo est informative : à chaque courriel joué, une petite fenêtre montre ce que le
    salarié reçoit — le vrai courriel, écrit par le moteur dans
    courriels-simules/ — et le circuit en trois bulles : ce qui part, ce que
    son clic prépare, ce qui revient. Rien n'y est inventé par la page : les

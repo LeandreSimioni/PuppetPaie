@@ -471,9 +471,8 @@ function boiteAvertissement(a) {
  * contrat du mois avec sa case, cochée d'avance sur ce qui reste à faire :
  * c'est là que l'on choisit, et rien ne part sans y être passé. */
 
-/* LA BOÎTE DPAE, comme celle des signatures (l'éditeur, 15/09/2026 : « qu'il
- * y ait la liste déroulante et que soient déjà sélectionnés les contrats qui
- * n'ont pas de DPAE »). Chaque contrat du mois enregistré, une case ; cochée
+/* LA BOÎTE DPAE, comme celle des signatures : une liste déroulante.
+ * Chaque contrat du mois enregistré, une case ; cochée
  * d'avance si aucune DPAE n'est partie, ou si elle a été refusée. Un contrat
  * en cours depuis un mois précédent n'a pas de DPAE ce mois-ci : il se voit,
  * grisé, avec le mois où elle a été faite.

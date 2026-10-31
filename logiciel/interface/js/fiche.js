@@ -45,11 +45,11 @@ function dessinerFormulaire(fiche) {
   });
 
   const caches = CACHES[FICHE_ACTIVE] || [];
-  // UN CHAMP QUI DÉPEND D'UN AUTRE (`si`, 25/09/2026) se replie quel que soit
+  // UN CHAMP QUI DÉPEND D'UN AUTRE (`si`) se replie quel que soit
   // le chemin qui l'a dessiné — liste de choix, convention, champ simple :
   // la marque se pose ici, sur ce que chacun rend, et `brancherConditions`
   // la fait suivre à l'écran.
-  // UN CHAMP QUI DÉPEND DE L'ENTREPRISE (`si_entreprise`, 26/09/2026) : la
+  // UN CHAMP QUI DÉPEND DE L'ENTREPRISE (`si_entreprise`) : la
   // convention décide, et elle ne change pas pendant qu'on remplit la fiche
   // d'un salarié. Le champ est posé, replié — il garde sa valeur.
   const entreprise = ((ETAT.configuration || {}).entreprise || {}).donnees || {};
@@ -1083,7 +1083,7 @@ function histoireDuChamp(lignes, desc, donnees) {
       && x.jusqu_au > e.jusqu_au).sort((a, b) => a.jusqu_au.localeCompare(b.jusqu_au));
     return plus_tard.length ? plus_tard[0].valeur : (donnees || {})[e.champ];
   };
-  // REPLIEE DEPUIS LE 23/09/2026 : elle sert a qui la cherche, et elle
+  // REPLIEE : elle sert a qui la cherche, et elle
   // montrait a tout le monde, en bas de chaque fiche, les formes declarees.
   return `<details class="champ pleine historique-fiche">
     <summary>Historique des modifications (${rangees.length})</summary>

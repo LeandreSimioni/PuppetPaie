@@ -39,7 +39,7 @@ function compteDuService(s) {
  *  regroupé : ce qui est parti, ce qui
  *  attend, et pour chaque groupe le contenu EXACT qui quitte le poste. */
 async function dessinerCoffre(cible) {
-  // LA COMPAGNIE FICTIVE (27/09/2026, l'éditeur) : le même écran, tout grisé —
+  // LA COMPAGNIE FICTIVE : le même écran, tout grisé —
   // on voit ce qui se pose et où, sans rien pouvoir y écrire. Rien ne part,
   // il n'y a donc rien à poser ; la page ne branche aucun geste.
   const fictive = enFictive();
@@ -265,8 +265,7 @@ async function dessinerCoffre(cible) {
     const m = await demanderMotDePasse(quoi);
     return m ? { motdepasse: m } : null;
   };
-  // L'ACTUEL EST UN CHAMP, PAS UN POPUP, et seulement ici (21/09/2026,
-  // l'editeur). La regle du 17/09 vaut pour un acte qui ENGAGE : deposer,
+  // L'ACTUEL EST UN CHAMP, PAS UN POPUP, et seulement ici. La regle du popup vaut pour un acte qui ENGAGE : deposer,
   // envoyer, signer, poser un secret d'organisme -- et elle ne bouge pas, le
   // popup reste pour tout cela. Changer le mot de passe du logiciel n'est pas
   // de cette famille : l'ancien n'autorise pas l'acte, il est ce que l'acte

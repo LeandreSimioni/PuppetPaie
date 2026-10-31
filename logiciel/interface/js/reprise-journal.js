@@ -10,7 +10,7 @@
      « je comprends pas pourquoi il veut que je renvoie ça alors qu'on l'a
        déjà envoyé et on a les traces de dépôt il me semble »
 
-   Ce bloc lui rend ce qu'il savait, en tête de l'Historique (20/10/2026 : tous
+   Ce bloc lui rend ce qu'il savait, en tête de l'Historique:
    les envois et leurs retours s'y lisent). Il n'apparaît QUE s'il y a quelque chose
    à reprendre : une fois le journal à jour, il disparaît et ne revient que si
    un nouveau dépôt atteste d'un chemin qui n'est pas passé par ici.

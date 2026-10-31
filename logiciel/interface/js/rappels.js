@@ -30,8 +30,8 @@ async function montrerRappels(lu = api) {
   const liste = r.rappels || [];
   // L'ÉCHÉANCIER : « un pop-up au démarrage : on est le…,
   // bienvenue sur PuppetPaie, n'oublie pas de faire la DSN ». Elle s'ouvrait
-  // aussi une fois par jour quand rien n'attendait ; l'éditeur, 01/10/2026 :
-  // « elle apparaît seulement s'il y a des trucs à faire ».
+  // aussi une fois par jour quand rien n'attendait : elle n'apparaît
+  // que s'il y a quelque chose à faire.
   if (!liste.length && !(ech && ech.a_faire) && !manques.length) return;
   RAPPELS_MONTRES = { liste, ech, manques };
   if (dejaMontres(RAPPELS_MONTRES)) return;
@@ -171,9 +171,8 @@ function htmlEcheancier(ech) {
     <li><b>${echapper(moisEnClair(m))}</b>
       <ul>${parMois[m].map((x) => `<li>${echapper(x.titre)}${x.etat === "fait" ? " ✓" : ""}</li>`).join("")}</ul>
     </li>`).join("");
-  // CE QUI EST FAIT NE SE RAPPELLE PAS (01/10/2026, « pourquoi il me dit
-  // ça alors que je l'ai déjà fait, pas besoin ») : la DSN de septembre,
-  // déposée, s'affichait encore « fait ». Une échéance cochable reste, pour
+  // CE QUI EST FAIT NE SE RAPPELLE PAS : la DSN de septembre,
+  // déposée, ne s'affiche plus « fait ». Une échéance cochable reste, pour
   // pouvoir la décocher ; les autres faites se taisent.
   // UNE CHOSE SE DIT UNE FOIS : la DSN qu'un rappel réclame
   // (`rappel`, le moteur le dit) se dit dans ce rappel, sous l'en-tête, avec

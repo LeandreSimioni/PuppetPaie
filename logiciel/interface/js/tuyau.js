@@ -19,8 +19,7 @@ let MINUTEUR = null;        // anti-rebond de l'apercu
 
 /* « Failed to fetch » : le serveur ne répond plus.
  *
- * C'est arrivé le 11/09/2026, et le message du navigateur n'apprenait rien —
- * une fiche en cours d'édition n'a pas été enregistrée, sans qu'on sache
+ * Le message du navigateur n'apprend rien : une fiche en cours d'édition n'a pas été enregistrée, sans qu'on sache
  * pourquoi. La page survit à son serveur : elle a l'air de marcher, les
  * champs se remplissent, et seul l'enregistrement échoue.
  *
@@ -340,8 +339,7 @@ function montrerEnvoiRefuse(message) {
  *
  * Cinq mille lignes de JavaScript dont les exceptions s'imprimaient dans la
  * console du navigateur — que personne n'ouvre, et surtout pas une compagnie
- * à trois cents kilomètres. Le moteur, lui, note tout ce qui casse chez lui
- * depuis le 20/09/2026 ; la page était le dernier endroit d'où une erreur
+ * à trois cents kilomètres. Le moteur, lui, note tout ce qui casse chez lui ; la page était le dernier endroit d'où une erreur
  * pouvait disparaître sans laisser de trace.
  *
  * Elle poste donc ce qui casse à `/api/incident-navigateur`, et c'est
@@ -488,9 +486,7 @@ function dire(texte, type) {
   dire._t = setTimeout(() => el.classList.add("cachee"), 6000);
 }
 
-/** UN ACTE EN COURS SE VOIT (26/09/2026 : « quand on met envoyer les
- *  contrats, il faut un petit message pour dire envoi des contrats en
- *  cours »). Le bouton cliqué s'éteint et dit ce qui se passe, là où l'on
+/** UN ACTE EN COURS SE VOIT. Le bouton cliqué s'éteint et dit ce qui se passe, là où l'on
  *  regarde — dans la boîte, que le bandeau du bas ne traverse pas. Rend
  *  la fonction qui le rallume (une erreur : on peut réessayer). */
 function occupe(bouton, texte) {
