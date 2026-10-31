@@ -29,6 +29,8 @@ pub struct DepotFait {
     pub deja: Value,
     /// La repetition qui a ouvert ce depot reel (`Null` pour un test : il EST la repetition).
     pub repetition: Value,
+    /// Ce qu'est devenue chaque demande de taux de PAS partie avec une DPAE, en une phrase (vide pour une DSN).
+    pub demandes_de_taux: Vec<String>,
 }
 
 impl DepotFait {
@@ -37,7 +39,7 @@ impl DepotFait {
         json!({
             "quoi": self.quoi, "mois": self.mois, "reel": self.reel, "reponse": self.reponse, "flux": self.flux,
             "trace": self.trace.as_ref().map(|t| t.to_string_lossy().into_owned()),
-            "ligne": self.ligne, "deja": self.deja, "repetition": self.repetition,
+            "ligne": self.ligne, "deja": self.deja, "repetition": self.repetition, "demandes_de_taux": self.demandes_de_taux,
         })
     }
 }
@@ -210,7 +212,7 @@ pub fn deposer_dsn(
             embauches: Vec::new(),
         });
     }
-    Ok(DepotFait { quoi: "dsn".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone() })
+    Ok(DepotFait { quoi: "dsn".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), demandes_de_taux: Vec::new() })
 }
 
 /// Depose une DPAE. `contenu` : le fichier tel qu'il part (bascule en test faite) ; `embauches` : ce qu'elle declare
@@ -265,7 +267,7 @@ pub fn deposer_dpae(
             embauches,
         });
     }
-    Ok(DepotFait { quoi: "dpae".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone() })
+    Ok(DepotFait { quoi: "dpae".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), demandes_de_taux: Vec::new() })
 }
 
 #[cfg(test)]

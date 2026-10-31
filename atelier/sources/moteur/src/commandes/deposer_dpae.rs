@@ -229,6 +229,9 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     dire!("\nDepot {} recu par le SI DPAE (accuse de transport).", if test { "DE TEST" } else { "REEL" });
     dire!("Reponse archivee : {}", fait.trace.as_ref().map(|t| t.display().to_string()).unwrap_or_else(|| "None".into()));
     dire!("\n{}", fait.reponse.chars().take(2000).collect::<String>());
+    for phrase in &fait.demandes_de_taux {
+        dire!("\n{}", phrase);
+    }
     let bilan = if fait.flux.is_empty() { "moteur retours --dpae".to_string() } else { format!("moteur retours --dpae --flux {}", fait.flux) };
     if test {
         dire!(

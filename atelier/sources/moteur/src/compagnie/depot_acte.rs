@@ -662,9 +662,9 @@ pub fn deposer_dpae_avec(
     let mut suites = Suites::default();
     let fait = envois::depot_acte::deposer_dpae(ctx, branchement, &d, &contenu, embauches.clone(), c, apercu["deja_depose"].clone(), &mut suites);
     crate::compagnie::suites::faire(ctx, suites)?;
-    let fait = fait?;
+    let mut fait = fait?;
     if let Some(dossier) = chemin.parent() {
-        deposer_les_amorcages(ctx, dossier, &embauches, reel, preuve, qui, contournement);
+        fait.demandes_de_taux = deposer_les_amorcages(ctx, dossier, &embauches, reel, preuve, qui, contournement);
     }
     Ok(fait)
 }
@@ -675,10 +675,11 @@ pub fn deposer_dpae_avec(
 /// cinq jours ouvres (compte rendu de nature 94). Il ne fait jamais echouer la DPAE, deja partie : un signalement qui ne
 /// part pas reste a demander, et la veille le dit (`droit::pas::situation`).
 /// Un signalement deja parti dans ce mode ne repart pas. Le reel ne part que sur le bilan lu de son test : s'il n'est pas
-/// encore releve, les retours de la journee se relevent une fois avant.
-fn deposer_les_amorcages(ctx: &Contexte, dossier: &Path, embauches: &[Value], reel: bool, preuve: Option<&Preuve>, qui: &str, contournement: &str) {
+/// encore releve, les retours de la journee se relevent une fois avant. Rend ce qu'est devenue chaque demande, en une
+/// phrase : partie, ou pas partie et pourquoi.
+fn deposer_les_amorcages(ctx: &Contexte, dossier: &Path, embauches: &[Value], reel: bool, preuve: Option<&Preuve>, qui: &str, contournement: &str) -> Vec<String> {
     let prefixe = format!("Amorcage{}_", declarations::amorcage::EMBAUCHE);
-    let Ok(lus) = std::fs::read_dir(dossier) else { return };
+    let Ok(lus) = std::fs::read_dir(dossier) else { return Vec::new() };
     let noms: Vec<String> = lus.filter_map(|e| e.ok()).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.starts_with(&prefixe) && n.ends_with(".dsn")).collect();
     let mut fichiers: Vec<PathBuf> = Vec::new();
     for cle in embauches.iter().filter_map(|e| e["salarie"].as_str()) {
@@ -704,7 +705,10 @@ fn deposer_les_amorcages(ctx: &Contexte, dossier: &Path, embauches: &[Value], re
     let ordre = |f: &PathBuf| std::fs::read(f).ok().and_then(|o| depot::lire(&o).champ("ordre").trim().parse::<i64>().ok()).unwrap_or(0);
     fichiers.sort_by_key(ordre);
     let mut releve = false;
+    let mut dit = Vec::new();
     for f in fichiers.iter().filter(|f| !parti(f)) {
+        let qui_demande = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let qui_demande = qui_demande.strip_prefix(&prefixe).and_then(|r| r.rsplit_once('_')).map_or(String::new(), |(s, _)| s.to_string());
         let fichier = json!(f.to_string_lossy());
         let mut fait = deposer_dsn(ctx, &fichier, reel, preuve, qui, false, contournement);
         if !releve && matches!(&fait, Err(e) if e.classe == Some("RepetitionManquante")) {
@@ -713,6 +717,16 @@ fn deposer_les_amorcages(ctx: &Contexte, dossier: &Path, embauches: &[Value], re
             let _ = crate::compagnie::releve::relever_retours(ctx, debut, fin, false, "production", None, "");
             fait = deposer_dsn(ctx, &fichier, reel, preuve, qui, false, contournement);
         }
-        let _ = fait;
+        let mode = if reel { "" } else { " en test" };
+        dit.push(match fait {
+            Ok(_) => format!("La demande de taux de prélèvement à la source de {} est partie{} avec la DPAE.", qui_demande, mode),
+            Err(e) => format!(
+                "La demande de taux de prélèvement à la source de {} n'est pas partie{} : {} Elle reste à demander.",
+                qui_demande,
+                mode,
+                phrase_de(&e)
+            ),
+        });
     }
+    dit
 }

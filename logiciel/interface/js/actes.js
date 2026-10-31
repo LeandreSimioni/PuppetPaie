@@ -365,13 +365,13 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
         // fenêtre au lieu de rester et d'attendre les retours pour proposer
         // d'envoyer direct ». On reste, on attend le compte rendu, et le
         // bouton du réel s'allume ici même.
-        dire("Dépôt de test envoyé — on attend son compte rendu.", "envoye");
+        dire(["Dépôt de test envoyé — on attend son compte rendu.", ...(r.demandes_de_taux || [])].join(" "), "envoye");
         attendreBilan();
         rafraichirActions();
         return;
       }
       fermerBoite();
-      dire("Dépôt réel effectué — on relève ses retours.", "envoye");
+      dire(["Dépôt réel effectué — on relève ses retours.", ...(r.demandes_de_taux || [])].join(" "), "envoye");
       if (quoi === "dsn") avisDocumentsApresDsn(r.mois);
       await rafraichirActions();
       suivreDepot(quoi, r.flux, r.mois);
