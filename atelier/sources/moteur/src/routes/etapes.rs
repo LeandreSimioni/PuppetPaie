@@ -599,7 +599,7 @@ impl<'a> Moteur<'a> {
             es.retain(|_| m.next().is_some_and(Option::is_none));
         }
         let mois_dit = data.get("mois").map(en_texte).ok_or_else(|| plain(socle::fichiers::absent("mois")))?;
-        let mut paies = engagement::embauches_suivies(self.ctx, &data).map_err(classer_saisie)?;
+        let mut paies = engagement::lue_sans_paie(self.ctx, &data).map_err(classer_saisie)?;
         let annee: i32 = mois_dit.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| {
             erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(mois_dit.get(..4).unwrap_or(&mois_dit))))
         })?;

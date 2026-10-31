@@ -1551,28 +1551,19 @@ pub fn embauche(ctx: &Contexte, eng: &Engagement) -> Resultat<calcul::Paie> {
     Ok(calcul::Paie::nouveau(eng.clone(), sal, spec, zero, zero, zero, 0.0, zero, tp))
 }
 
-/// Les embauches (`embauche`) de la saisie `data`, dans l'ordre de l'ecran, chaque contrat qui deborde du mois suivi
-/// (`suivre_contrat`) : le salarie, son emploi et son spectacle d'abord, pour tous les engagements, puis le contrat qui
-/// deborde reprend le numero de son premier mois.
-pub fn embauches_suivies(ctx: &Contexte, data: &Value) -> Resultat<Vec<calcul::Paie>> {
+/// LA SAISIE LUE SANS PAIE (l'ecran, le panneau, les DPAE a faire) : l'embauche de chaque engagement de la saisie `data`
+/// (`embauche`), dans l'ordre de l'ecran ; chaque contrat qui deborde du mois suivi (`suivre_contrat` : il reprend le
+/// numero de son premier mois) ; et les lignes de remuneration de chaque engagement paye au cachet telles que le calcul
+/// les comprend (elles ne dependent que de l'engagement). Rien ne se calcule au-dela.
+#[cfg(feature = "ecran")]
+pub fn lue_sans_paie(ctx: &Contexte, data: &Value) -> Resultat<Vec<calcul::Paie>> {
     let mut paies = Vec::new();
     for e in &engagements_de_la_saisie(ctx, data)? {
         paies.push(embauche(ctx, e)?);
     }
     for p in paies.iter_mut() {
-        suivre_contrat(ctx, &mut p.ecrire().engagement)?;
-    }
-    Ok(paies)
-}
-
-/// LA SAISIE LUE SANS PAIE, pour l'ecran : les embauches de la saisie `data` (`embauche`), chaque contrat qui deborde du
-/// mois suivi (`suivre_contrat`), et les lignes de remuneration de chaque engagement paye au cachet telles que le calcul
-/// les comprend (elles ne dependent que de l'engagement). Rien ne se calcule au-dela.
-#[cfg(feature = "ecran")]
-pub fn lue_sans_paie(ctx: &Contexte, data: &Value) -> Resultat<Vec<calcul::Paie>> {
-    let mut paies = embauches_suivies(ctx, data)?;
-    for p in paies.iter_mut() {
         let p = p.ecrire();
+        suivre_contrat(ctx, &mut p.engagement)?;
         if !p.engagement.nat()?.mensuelle() {
             p.remuneration = calcul::lignes_brut(&p.engagement, ctx)?;
         }
