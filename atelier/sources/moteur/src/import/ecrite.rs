@@ -195,13 +195,6 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     )))
 }
 
-// ------------------------------------------------------------------ l'historique
-
-fn cle_paie(x: &Value) -> R<(String, String, String)> {
-    let k = |c: &str| x.get(c).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(c)));
-    Ok((k("mois")?, k("salarie")?, k("contrat")?))
-}
-
 // ------------------------------------------------------------------ une paie, deux sources
 
 /// Une valeur qui dit quelque chose (ni `null`, ni un texte blanc).
@@ -540,7 +533,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     // declaree qu'elle complete (`rapprocher`).
     let mut par_cle: BTreeMap<(String, String, String), Value> = BTreeMap::new();
     for x in engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)? {
-        par_cle.insert(cle_paie(&x)?, x);
+        par_cle.insert(crate::routes::import::cle_paie(&x)?, x);
     }
     let avant = par_cle.clone();
     for x in &imp.paies {
@@ -548,7 +541,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
         let mut x = x.clone();
         x["salarie"] = json!(cle);
         x["importe_le"] = le.clone();
-        let k = cle_paie(&x)?;
+        let k = crate::routes::import::cle_paie(&x)?;
         if let Some(a) = par_cle.get(&k).filter(|a| porte_un_bulletin(a) && !porte_un_bulletin(&x)) {
             completer_par(&mut x, &a.clone());
         }
