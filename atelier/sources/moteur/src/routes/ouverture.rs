@@ -524,7 +524,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
     for (nom, noms) in mois {
         let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
         let limite = echeance.jour;
-        let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
+        let en_retard = echeance.passee_au(&ctx.aujourdhui);
         // L'ETAT DE LA DSN, lu une fois (`import::mois::dsn_avant`) ; une DSN a deposer passee l'echeance est en retard.
         let importe = crate::import::mois::importe(&ctx.racine, nom)?;
         let lu = crate::import::mois::dsn_avant(ctx, nom, &Value::Null)?;

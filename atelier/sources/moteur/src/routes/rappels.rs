@@ -476,7 +476,7 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
     // samedi, un dimanche ou un jour ferie (R. 133-14, I), a midi. Passee, ce n'est plus un rappel, c'est un retard --
     // et on le dit.
     let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
-    r.en_retard = st.aujourdhui > echeance.jour;
+    r.en_retard = echeance.passee_au(&st.aujourdhui);
     r.echeance_depot = Some(echeance.en_json());
 
     let (engagements, validees) = engagements_valides(st.ctx, mois);

@@ -118,6 +118,11 @@ fn lisible(j: &Jour) -> String {
 }
 
 impl Echeance {
+    /// L'echeance est passee des le lendemain de son jour : la DSN se depose encore le jour meme.
+    pub fn passee_au(&self, aujourdhui: &Jour) -> bool {
+        *aujourdhui > self.jour
+    }
+
     /// La date a-t-elle bouge ?
     pub fn reportee(&self) -> bool {
         self.jour != self.nominale

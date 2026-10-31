@@ -477,7 +477,7 @@ fn dsn(st: &Etat, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> 
     let e = crate::import::mois::dsn_avant(st.ctx, mois, &Value::Null)?;
     let etat = if !matches!(e["etat"].as_str(), Some("refusee" | "a_deposer")) {
         FAIT
-    } else if *aujourdhui > limite {
+    } else if echeance.passee_au(aujourdhui) {
         EN_RETARD
     } else {
         A_FAIRE
@@ -1576,7 +1576,7 @@ pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) 
     let embauche = ctx.entreprise.get("premiere_embauche").and_then(Value::as_str).unwrap_or("").trim().to_string();
     if embauche.len() >= 7
         && mois < &embauche[..7]
-        && ctx.aujourdhui > declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(Echec::from)?.jour
+        && declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(Echec::from)?.passee_au(&ctx.aujourdhui)
         && !engagement::stock::a_une_saisie(&ctx.racine, mois).map_err(Echec::from)?
     {
         return Err(refus(format!(

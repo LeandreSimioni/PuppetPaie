@@ -35,7 +35,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     };
     let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
-    let passee = ctx.aujourdhui > limite;
+    let passee = echeance.passee_au(&ctx.aujourdhui);
     let etat = crate::import::mois::dsn_avant(ctx, mois, &Value::Null)?["etat"].as_str().unwrap_or_default().to_string();
     let deposee = matches!(etat.as_str(), "passee" | "attente" | "refusee");
     let drapeau = |k: &str| etat == k;
