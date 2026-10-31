@@ -14,6 +14,7 @@
 //! L'AER ne se fabrique pas : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
 //! Un numero de contrat s'ecrit dans l'engagement a sa validation (`engagement::numeros`) ; tout ce qui part le lit la.
 
+use crate::routes::dossier_salarie::cle_de;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -47,10 +48,6 @@ fn os(chemin: &Path, e: std::io::Error) -> Echec {
 
 fn valeur(m: String) -> Echec {
     erreur("ValueError", m)
-}
-
-fn cle_de(p: &Paie) -> String {
-    p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
 }
 
 fn prenom_de(sal: &Value) -> String {

@@ -17,6 +17,7 @@
 //! Le moteur fait les pieces (`documents::contrat`) et compose les messages ; `envois` les transporte
 //! (`envoi::envoyer_suivi`) et note le depart (`ligne_d_envoi`).
 
+use crate::routes::dossier_salarie::cle_de;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -102,10 +103,6 @@ fn periode_de(p: &Paie) -> String {
         Some(f) => format!("du {} au {}", p.engagement.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
         None => format!("à partir du {}", p.engagement.debut.jj_mm_aaaa()),
     }
-}
-
-fn cle_de(p: &Paie) -> String {
-    p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
 }
 
 /// CE QUI A ATTEINT LE SALARIE EST PARTI : d'un envoi coupe en route, les versions des seuls salaries servis (les
@@ -308,7 +305,6 @@ pub fn reunir_pour_imprimer(dossier: &std::path::Path, quoi: &str, etiq: &str, p
     std::fs::write(&f, octets).map_err(|e| erreur("OSError", format!("{} : {}", f.display(), e)))?;
     Ok(f)
 }
-
 
 /// La route `contrats-imprimer` : les contrats choisis (comme `demander-signature` ; `None` : aucun) et les avenants
 /// choisis (`avenants`, deja verifies par la route), chacun dans son PDF dans `sorties/<mois>/envoi/` (la piece partie de

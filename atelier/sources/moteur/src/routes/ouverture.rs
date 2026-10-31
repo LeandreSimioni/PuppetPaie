@@ -382,38 +382,10 @@ pub fn boite_liee(ctx: &Contexte) -> R<bool> {
     coffre.disponible("courriel").map_err(vers)
 }
 
-/// `fiches_attendues_json` : les demandes de fiche parties et pas encore
-/// revenues, les plus anciennes d'abord.
-fn fiches_attendues(m: &mut Moteur) -> R<Value> {
-    let lignes = m.lignes()?;
-    Ok(Value::Array(attendues(&lignes)?))
-}
-
-/// Les demandes de fiche parties et pas encore revenues, d'apres les lignes du journal.
-pub(crate) fn attendues(lignes: &[Value]) -> R<Vec<Value>> {
-    let filtrees = |quoi: &str| -> R<Vec<&Value>> { envois::etats::filtrer(&lignes, Some(quoi), None, false) };
-    let detail = |l: &Value| -> Value { ou_vide(l.get("detail")).clone() };
-    let mut out = Vec::new();
-    for l in filtrees("fiche-demande")? {
-        let d = detail(l);
-        let code = d.get("code").cloned().unwrap_or(Value::Null);
-        if !l.get("accepte").is_some_and(vrai) || !vrai(&code) || l.get("retours").is_some_and(vrai) {
-            continue;
-        }
-        out.push(json!({
-            "code": code, "adresse": d.get("adresse").cloned().unwrap_or_else(|| json!("")),
-            "prenom": d.get("prenom").cloned().unwrap_or_else(|| json!("")),
-            "quand": l.get("quand").cloned().unwrap_or(Value::Null),
-        }));
-    }
-    Ok(out)
-}
-
-/// `_configuration` : toute la configuration, verifiee, et ce que la page en
-/// tire sans un appel de plus.
-fn configuration(ctx: &Contexte) -> R<Value> {
-    let mut m = Moteur::nouveau(ctx);
-    configuration_de(ctx, &mut m)
+/// Les demandes de fiche parties et pas encore revenues, les plus anciennes d'abord, comme la page les lit.
+fn fiches_attendues(ctx: &Contexte) -> R<Value> {
+    let attendues = crate::routes::fiches::fiches_attendues(ctx)?;
+    Ok(Value::Array(attendues.into_iter().map(|a| json!({"code": a.code, "adresse": a.adresse, "prenom": a.prenom, "quand": a.quand})).collect()))
 }
 
 /// La fiche telle qu'elle vaut, avec `historique` : les valeurs qu'une autre a remplacees dans la fiche datee `brute`, et
@@ -437,7 +409,8 @@ fn avec_historique(fiche: &Value, brute: Option<&Value>) -> R<Value> {
     Ok(f)
 }
 
-fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
+/// `_configuration` : toute la configuration, verifiee, et ce que la page en tire sans un appel de plus.
+fn configuration(ctx: &Contexte) -> R<Value> {
     let mut vue = avec_historique(&ctx.entreprise, Some(ctx.entreprise_brute()))?;
     if let Some(o) = vue.as_object_mut() {
         let autres = etablissements_dits(ctx);
@@ -497,7 +470,7 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         // LA FICHE REMPLIE PAR LE SALARIE : sans boite liee, la demande ne peut
         // pas partir. Et ce qui attend encore sa reponse.
         "boite_liee": boite_liee(ctx)?,
-        "fiches_attendues": fiches_attendues(m)?,
+        "fiches_attendues": fiches_attendues(ctx)?,
     }))
 }
 
@@ -922,7 +895,7 @@ fn conventions(ctx: &Contexte) -> R<Value> {
 /// La route `etat` : tout ce que la page lit en s'ouvrant.
 pub fn etat(ctx: &Contexte) -> R<Value> {
     let mut m = Moteur::nouveau(ctx);
-    let configuration = configuration_de(ctx, &mut m)?;
+    let configuration = configuration(ctx)?;
     let historique = historique(&mut m, ctx);
 
     // Les listes ou l'on CHOISIT : les fiches courantes seulement. Une archive

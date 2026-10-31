@@ -934,9 +934,7 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
 
 fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let code = charge.get("code").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
-    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    let attendues = crate::routes::ouverture::attendues(&lignes)?;
-    if !attendues.iter().any(|a| a.get("code").and_then(Value::as_str) == Some(code.as_str())) {
+    if !fiches_attendues(ctx)?.iter().any(|a| a.code == code) {
         return Err(refus(format!("Aucune demande de fiche en attente sous le code {}.", code)));
     }
     // CE QUI REVIENT SE RANGE SUR LA LIGNE DE LA DEMANDE : ici, qu'on y renonce.
