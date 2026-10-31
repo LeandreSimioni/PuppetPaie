@@ -53,10 +53,6 @@ pub fn debut(t: &str, n: usize) -> String {
     t.chars().take(n).collect()
 }
 
-/// `jj_mm_aaaa` d'un `AAAA-MM-JJ` (les dix premiers caracteres).
-pub fn jj_mm_aaaa_de_iso(iso: &str) -> String {
-    socle::date::Jour::lire(&debut(iso, 10)).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string())
-}
 
 /// `x.get("quand")[:16].replace("T", " ")` -- l'heure d'une ligne de journal.
 pub fn quand_court(v: Option<&Value>) -> String {

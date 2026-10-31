@@ -92,7 +92,7 @@ pub struct Choisis {
 }
 
 /// `jj_mm_aaaa(x)` : `ValueError` si `x` ne se lit pas comme une date.
-fn jj(iso: &str) -> R<String> {
+pub(crate) fn jj(iso: &str) -> R<String> {
     socle::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).map_err(|m| erreur("ValueError", m))
 }
 

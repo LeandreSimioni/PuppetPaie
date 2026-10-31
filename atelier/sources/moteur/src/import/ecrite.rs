@@ -54,9 +54,6 @@ fn en_os(e: &std::io::Error, p: &Path) -> Echec {
     erreur("OSError", format!("{} : {}", p.display(), e))
 }
 
-fn jj_mm_aaaa(j: &socle::date::Jour) -> String {
-    format!("{:02}/{:02}/{:04}", j.jour, j.mois, j.an)
-}
 
 /// Les cles qui commencent par `_` s'en vont.
 fn sans_prives(v: &Value) -> Value {
@@ -696,7 +693,7 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     reponse["tri"] = tri;
     reponse["source"] = json!(dossier.display().to_string());
-    let note = json!(format!("Importe du dossier import/ le {}", jj_mm_aaaa(&aujourdhui)));
+    let note = json!(format!("Importe du dossier import/ le {}", aujourdhui.jj_mm_aaaa()));
     let e = ecrire(ctx, &imp, &mut reponse, &note)?;
     avertissements.extend(e.avertissements.iter().map(|a| json!(a)));
     reponse["avertissements"] = Value::Array(avertissements);

@@ -6,6 +6,7 @@
 //! choisir, refuser, nommer, ecrire, et passer a `envois` ce qui part. Le jour est celui du contexte
 //! (`PUPPETPAIE_AUJOURDHUI`) ; l'horodatage d'un fichier partiel de DPAE est la minute de l'horloge, a l'heure de Paris.
 
+use socle::date::jj_mm_aaaa;
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -777,15 +778,6 @@ fn tester_les_dpae(
     Ok(Some(Value::Object(tests)))
 }
 
-/// `util.jj_mm_aaaa` d'un `AAAA-MM-JJ`.
-fn jj_mm_aaaa(iso: &str) -> String {
-    let c: Vec<char> = iso.chars().collect();
-    if c.len() >= 10 {
-        format!("{}/{}/{}", c[8..10].iter().collect::<String>(), c[5..7].iter().collect::<String>(), c[..4].iter().collect::<String>())
-    } else {
-        iso.to_string()
-    }
-}
 
 /// `charge["cle"]` : `KeyError` si elle manque.
 fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {

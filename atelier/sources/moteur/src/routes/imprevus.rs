@@ -740,10 +740,6 @@ fn ou_rien(v: &Value) -> Value {
     }
 }
 
-/// `jj_mm_aaaa(v)`.
-fn jj_mm_aaaa(v: &Value) -> R<String> {
-    Ok(jour(v)?.jj_mm_aaaa())
-}
 
 /// Ecrit le fichier d'un mois du magasin des imprevus (`imprevus/AAAA-MM.json`) : les arrets ET les suspensions qu'il
 /// range, tels que la liste les donne.
@@ -774,7 +770,7 @@ pub(crate) fn trouver_l_arret(ctx: &Contexte, nom: &Value, dernier_jour: &Value)
             return Ok(t);
         }
     }
-    let quand = if vrai(dernier_jour) { jj_mm_aaaa(dernier_jour)? } else { "?".to_string() };
+    let quand = if vrai(dernier_jour) { crate::routes::documents::jj_mm_aaaa(dernier_jour)? } else { "?".to_string() };
     Err(refus(format!(
         "Aucun arret de {} dont le dernier jour travaille soit le {}. `moteur arret` les liste.",
         valeur_en_texte(&cle),

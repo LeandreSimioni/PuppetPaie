@@ -1,6 +1,7 @@
 //! Les routes des contrats : ce que le contrat a signer et l'avenant montrent, les envoyer a la signature ou les
 //! imprimer, les relancer, les noter revenus signes, et les pieces parties d'un engagement.
 
+use crate::compagnie::signature::jj;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -288,11 +289,6 @@ fn avenants_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> 
     };
     let (r, avertissements) = envoyer_avenants(ctx, &voulus, &preuve_de(charge), ouvrir)?;
     Ok(json!({"partis": r.partis, "avenants": r.avenants, "avertissements": avertissements}))
-}
-
-/// `jj_mm_aaaa(x)` : `ValueError` si `x` ne se lit pas comme une date.
-fn jj(iso: &str) -> R<String> {
-    socle::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).map_err(|m| erreur("ValueError", m))
 }
 
 /// LES AVENANTS VOULUS, verifies avant que rien ne parte : chacun a son apercu (`avenant-apercu`), qui dit ce qui change

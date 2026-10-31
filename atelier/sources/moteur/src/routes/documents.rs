@@ -78,7 +78,7 @@ pub(super) fn get_requis<'a>(d: &'a Value, k: &str) -> R<&'a Value> {
 // ------------------------------------------------------------------ avenant-apercu
 
 /// `jj_mm_aaaa(x)` : `JJ/MM/AAAA`, `ValueError` si `x` ne se lit pas comme une date.
-pub(super) fn jj_mm_aaaa(v: &Value) -> R<String> {
+pub(crate) fn jj_mm_aaaa(v: &Value) -> R<String> {
     Ok(socle::date::d(v).map_err(|m| erreur("ValueError", m))?.jj_mm_aaaa())
 }
 

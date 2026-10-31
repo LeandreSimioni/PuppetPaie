@@ -6,7 +6,8 @@
 use serde_json::{json, Map, Value};
 
 use super::analyse::{Args, Opt, Spec};
-use super::rendu::{champ, jj_mm_aaaa_de_iso};
+use super::rendu::champ;
+use socle::date::jj_mm_aaaa;
 use super::Cadre;
 use droit::contexte::Contexte;
 use socle::echec::Echec;
@@ -254,7 +255,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         dire!("  {:<12} taux {:<6} type {} ({})", cle, champ(e, "taux"), champ(e, "type"), libelle_type(&champ(e, "type")));
         dire!("  {:<12} identifiant {}", "", champ(e, "identifiant"));
         let jusqu = match s.get("valable_jusqu_a") {
-            Some(Value::String(j)) => format!(", jusqu'au {}", jj_mm_aaaa_de_iso(j)),
+            Some(Value::String(j)) => format!(", jusqu'au {}", jj_mm_aaaa(j)),
             _ => String::new(),
         };
         dire!("  {:<12} {}{}", "", champ(&s, "libelle"), jusqu);

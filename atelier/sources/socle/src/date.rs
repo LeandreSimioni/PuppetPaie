@@ -545,3 +545,8 @@ pub fn jour_iso(texte: &str) -> Option<Jour> {
     }
     Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
 }
+
+/// `JJ/MM/AAAA` d'un `AAAA-MM-JJ` (ou d'un instant, par ses dix premiers caracteres) ; le texte tel quel s'il ne se lit pas.
+pub fn jj_mm_aaaa(iso: &str) -> String {
+    jour_iso(&iso.chars().take(10).collect::<String>()).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|| iso.to_string())
+}

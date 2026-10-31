@@ -38,6 +38,7 @@
 //! Ce qui est hors DSN (la declaration d'accident, l'attestation de salaire) s'affiche avec son echeance et la marche a
 //! suivre : rien ne le depose.
 
+use socle::date::jj_mm_aaaa;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -404,12 +405,6 @@ pub fn changer(inst: &Path, actuel: &str, nouveau: &str, confirmation: &str, pos
 
 // ------------------------------------------------------------------ le tableau d'une compagnie
 
-fn jj_mm_aaaa(iso: &str) -> String {
-    match (iso.get(..4), iso.get(5..7), iso.get(8..10)) {
-        (Some(a), Some(m), Some(j)) => format!("{}/{}/{}", j, m, a),
-        _ => iso.to_string(),
-    }
-}
 
 /// Ou en est un fichier DSN ecrit (mensuelle ou signalement), lu du journal : `deposee` (un depot reel accepte de ce
 /// contenu), `paie_changee` (une mensuelle qui ne declare plus la paie), `testee` (test conforme, bilan lu), `en_test`

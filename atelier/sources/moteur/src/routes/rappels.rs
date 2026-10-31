@@ -6,6 +6,7 @@
 //!
 //! Un refus porte sa `classe` : voir `encoder` et `decoder`, que `mod.rs` utilise.
 
+use socle::date::jj_mm_aaaa;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -695,9 +696,6 @@ fn pourquoi_rate(ligne: &Value) -> String {
     if reponse.is_empty() { "motif non lu".to_string() } else { reponse }
 }
 
-fn jj_mm_aaaa(iso: &str) -> String {
-    Jour::lire(iso).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string())
-}
 
 /// Les DPAE a envoyer : celles des engagements valides (`etapes::Moteur::embauches_a_declarer`), a toute distance de
 /// l'embauche, celles en retard comprises. Une par jour d'embauche, avec le fichier

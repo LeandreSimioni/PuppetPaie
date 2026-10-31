@@ -54,10 +54,6 @@ pub fn jour_iso(t: &str) -> Option<socle::date::Jour> {
     socle::date::Jour::lire(t).ok()
 }
 
-/// `JJ/MM/AAAA` d'un `AAAA-MM-JJ` (`util.jj_mm_aaaa`) ; le texte tel quel s'il ne se lit pas.
-pub fn jj_mm_aaaa(iso: &str) -> String {
-    jour_iso(&iso.chars().take(10).collect::<String>()).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|| iso.to_string())
-}
 
 
 /// Une ligne de `etapes` (`A faire ensuite :`) : `  N. TITRE     detail`, puis la commande s'il y en a une.

@@ -11,7 +11,8 @@
 
 use serde_json::{json, Value};
 
-use super::actes::{afficher_etapes, afficher_fichiers, est_operation, jj_mm_aaaa, reponse_metier};
+use super::actes::{afficher_etapes, afficher_fichiers, est_operation, reponse_metier};
+use socle::date::jj_mm_aaaa;
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{champ, enveloppe, erreur, rendre};
 use super::Cadre;
