@@ -5,6 +5,11 @@
 //! Aucune valeur de secret ne sort : la reponse est l'etat du coffre, des presences et des dates. Ces routes passent
 //! par la porte du mot de passe du logiciel s'il est pose (`filet::exiger_mot_de_passe`) ; le coffre lui-meme est
 //! `coffre.rs`.
+//!
+//! UN SECRET NE SE LIT JAMAIS SUR L'ENTREE STANDARD. La page tape les siens dans ses cases et les met dans la charge ; par
+//! `moteur route`, ils en sont retires (`SECRETS`, `service::commande`) et le moteur les demande lui-meme a un humain :
+//! le mot de passe du logiciel par `demande::autoriser_acte`, un secret a poser par `demande::saisir_deux_fois` (sa
+//! fenetre, sinon le terminal sans echo, sinon un refus).
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -23,9 +28,27 @@ use socle::fichiers::{vrai, MARQUEUR_COPIE};
 use socle::valeur::{nom_type, valeur_en_texte};
 
 const SERVICE: Champ = Champ { nom: "service", sens: "net-entreprises, urssaf ou courriel", avance: false };
-const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, s'il est posé ; sans lui, le moteur le demande à un humain", avance: false };
+const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est modifié" };
 const ETAT: &str = "l'état du coffre : ce qui est posé, depuis quand, jamais les valeurs";
+
+/// Les secrets qu'une charge de ce module peut porter, retires de celle qui arrive par `moteur route` (le mot de passe
+/// du logiciel, `motdepasse`, l'est de toutes).
+pub const SECRETS: [&str; 3] = ["valeur", "nouveau", "confirmation"];
+
+/// Un secret a poser : celui de la charge (la page), sinon tape deux fois par un humain (`demande::saisir_deux_fois`).
+fn secret_a_poser(charge: &Value, cle: &str, titre: &str, lignes: &[String]) -> R<String> {
+    match charge.get(cle) {
+        Some(v) => Ok(if vrai(v) { valeur_en_texte(v) } else { String::new() }),
+        None => crate::compagnie::demande::saisir_deux_fois(titre, lignes, "mot de passe (rien ne s'affiche) : ").map_err(refus),
+    }
+}
+
+/// Le mot de passe actuel du logiciel : celui de la charge (la page), sinon celui que l'humain vient de taper pour cette
+/// route (`exiger_mot_de_passe`).
+fn actuel(charge: &Value) -> Option<String> {
+    chaine(charge, "motdepasse").filter(|m| !m.is_empty()).map(String::from).or_else(crate::compagnie::coffre::mot_de_passe_retenu)
+}
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -56,13 +79,13 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Poser le mot de passe d'un organisme ; pour l'Urssaf, avec le compte des DPAE.",
         charge: &[
             SERVICE,
-            Champ { nom: "valeur", sens: "le mot de passe à poser", avance: false },
+            Champ { nom: "valeur", sens: "le mot de passe à poser, tapé dans la page ; par moteur route, le moteur le fait taper deux fois à un humain", avance: false },
             Champ { nom: "compte", sens: "l'identifiant du compte (l'adresse, pour la boîte courriel)", avance: false },
-            Champ { nom: "nom", sens: "Urssaf : le nom du compte qui dépose les DPAE", avance: false },
+            Champ { nom: "nom", sens: "Urssaf : le nom du compte qui dépose les DPAE ; s'il change, la route ne pose que le compte quand `valeur` manque", avance: false },
             Champ { nom: "prenom", sens: "Urssaf : son prénom", avance: false },
             MOT_DE_PASSE,
         ],
-        exemple: r#"{"service":"urssaf","valeur":"exemple","nom":"FULLER","prenom":"Ada"}"#,
+        exemple: r#"{"service":"urssaf"}"#,
         rend: "l'état du coffre, et ce qu'une tentative de connexion en dit : phrase, couleur",
         refus: &[PREUVE, OPERATION],
         acte: Acte::Ecrit,
@@ -96,10 +119,10 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Poser ou changer le mot de passe du logiciel.",
         charge: &[
             MOT_DE_PASSE,
-            Champ { nom: "nouveau", sens: "le nouveau mot de passe", avance: false },
-            Champ { nom: "confirmation", sens: "le même, retapé", avance: false },
+            Champ { nom: "nouveau", sens: "le nouveau mot de passe, tapé dans la page ; par moteur route, le moteur le fait taper deux fois à un humain", avance: false },
+            Champ { nom: "confirmation", sens: "le même, retapé dans la page", avance: false },
         ],
-        exemple: r#"{"nouveau":"exemple","confirmation":"exemple"}"#,
+        exemple: r#"{}"#,
         rend: ETAT,
         refus: &[PREUVE, OPERATION],
         acte: Acte::Ecrit,
@@ -110,7 +133,7 @@ pub const ROUTES: &[Fiche] = &[
         nom: "mot-de-passe-retirer",
         geste: "Retirer le mot de passe du logiciel.",
         charge: &[MOT_DE_PASSE],
-        exemple: r#"{"motdepasse":"exemple"}"#,
+        exemple: r#"{}"#,
         rend: ETAT,
         refus: &[PREUVE, OPERATION],
         acte: Acte::Ecrit,
@@ -196,19 +219,23 @@ fn chaine<'a>(charge: &'a Value, cle: &str) -> Option<&'a str> {
 /// refuse avant la porte du mot de passe du logiciel : il n'y a rien a autoriser.
 fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     let service = crate::compagnie::coffre::service_connu(optionnel(charge, "service")).map_err(en_operation)?;
-    let valeur = chaine(charge, "valeur").unwrap_or("");
     let compte = if charge.get("nom").is_some() || charge.get("prenom").is_some() { compte_dpae_change(ctx, charge)? } else { None };
-    let a_poser = !socle::texte::strip(valeur).is_empty();
-    if !a_poser && compte.is_none() {
+    // Sans `valeur` (`moteur route`) : le compte seul s'il change, sinon le secret, tape par un humain apres la porte.
+    let tape = charge.get("valeur").is_none() && compte.is_none();
+    if !tape && socle::texte::strip(chaine(charge, "valeur").unwrap_or("")).is_empty() && compte.is_none() {
         return Err(refus(format!("Tapez le mot de passe {} à poser : rien n'a été posé.", service.nom)));
     }
-    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), if a_poser { "poser un mot de passe" } else { "changer le compte qui depose les DPAE" })?;
+    let pose_un_secret = tape || !socle::texte::strip(chaine(charge, "valeur").unwrap_or("")).is_empty();
+    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), if pose_un_secret { "poser un mot de passe" } else { "changer le compte qui depose les DPAE" })?;
+    let lignes = [format!("Service : {}", service.libelle), "La frappe ne s'affiche pas : elle est scellée dans le coffre, nulle part ailleurs.".to_string()];
+    let valeur = if pose_un_secret { secret_a_poser(charge, "valeur", "PuppetPaie : poser un mot de passe", &lignes)? } else { String::new() };
+    let a_poser = !socle::texte::strip(&valeur).is_empty();
     let mut entreprise = ctx.entreprise.clone();
     if let Some(propres) = compte {
         entreprise = ecrire_compte_dpae(ctx, propres)?;
     }
     if a_poser {
-        coffre(ctx).poser(service.nom, valeur, chaine(charge, "compte")).map_err(en_operation)?;
+        coffre(ctx).poser(service.nom, &valeur, chaine(charge, "compte")).map_err(en_operation)?;
     }
     let mut etat = coffre_etat_de(&ctx.racine, &entreprise)?;
     // PUIS UNE TENTATIVE, UNE SEULE (`coffre_verifier`) : un mot de passe faux se voit maintenant, pas au depot. Pas si
@@ -288,33 +315,35 @@ fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R
 /// Pose ou change le mot de passe du logiciel. L'actuel
 /// est exige s'il existe, et il ouvre aussi le coffre quand la cle de ce poste ne l'ouvre plus.
 fn mot_de_passe_changer(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let actuel = optionnel(charge, "motdepasse");
-    exiger_mot_de_passe(&ctx.racine, actuel, "changer le mot de passe du logiciel")?;
-    let texte = |cle: &str| {
-        let v = optionnel(charge, cle);
-        if vrai(v) {
-            valeur_en_texte(v)
-        } else {
-            String::new()
-        }
+    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "changer le mot de passe du logiciel")?;
+    // La page tape le nouveau et sa confirmation dans ses cases ; par `moteur route`, l'humain le tape deux fois.
+    let (nouveau, confirmation) = if charge.get("nouveau").is_some() {
+        // Une saisie qui n'est pas un texte n'est pas un mot de passe : le coffre la lit comme vide.
+        let texte = |cle: &str| match optionnel(charge, cle) {
+            Value::String(s) => s.clone(),
+            _ => String::new(),
+        };
+        (texte("nouveau"), texte("confirmation"))
+    } else {
+        let lignes = ["Le NOUVEAU mot de passe du logiciel (pas celui d'un organisme).".to_string(), "La frappe ne s'affiche pas.".to_string()];
+        let m = secret_a_poser(charge, "nouveau", "PuppetPaie : mot de passe du logiciel", &lignes)?;
+        (m.clone(), m)
     };
-    let (nouveau, confirmation) = (texte("nouveau"), texte("confirmation"));
     if nouveau != confirmation {
         return Err(refus("Les deux saisies du nouveau mot de passe different. Rien n'a ete modifie."));
     }
-    // Une saisie qui n'est pas un texte n'est pas un mot de passe : le coffre la lit comme vide.
-    let nouveau = if matches!(optionnel(charge, "nouveau"), Value::String(_) | Value::Null) { nouveau } else { String::new() };
+    let actuel = actuel(charge);
     // UNE COMPAGNIE DE L'ADMINISTRATEUR : son mot de passe est celui de toutes ses compagnies, et il se change
     // pour toutes a la fois (`administrateur::changer`) ; l'actuel les ouvre chacune, tout se prepare puis tout se remplace.
     let inst = crate::compagnie::administrateur::installation_de(&ctx.racine);
     if crate::compagnie::administrateur::est_rattachee(&inst, &ctx.racine) {
-        let Some(actuel) = chaine(charge, "motdepasse").filter(|m| !m.is_empty()) else {
+        let Some(actuel) = actuel else {
             return Err(refus("Tapez le mot de passe actuel de l'administrateur : le nouveau le remplace dans toutes ses compagnies. Rien n'a ete modifie."));
         };
-        crate::compagnie::administrateur::changer(&inst, actuel, &nouveau, &confirmation, &crate::compagnie::administrateur::Poste::de_ce_poste()).map_err(refus)?;
+        crate::compagnie::administrateur::changer(&inst, &actuel, &nouveau, &confirmation, &crate::compagnie::administrateur::Poste::de_ce_poste()).map_err(refus)?;
         return etat_du_coffre(ctx);
     }
-    coffre(ctx).poser_ouverture(&nouveau, chaine(charge, "motdepasse")).map_err(en_operation)?;
+    coffre(ctx).poser_ouverture(&nouveau, actuel.as_deref()).map_err(en_operation)?;
     etat_du_coffre(ctx)
 }
 
@@ -324,7 +353,7 @@ fn mot_de_passe_retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(refus("Cette compagnie est geree par l'administrateur : son mot de passe ouvre aussi les autres. La detacher d'abord (elle recoit alors son propre mot de passe), puis le retirer. Rien n'a ete modifie."));
     }
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "retirer le mot de passe du logiciel")?;
-    coffre(ctx).oublier_ouverture(chaine(charge, "motdepasse")).map_err(en_coffre)?;
+    coffre(ctx).oublier_ouverture(actuel(charge).as_deref()).map_err(en_coffre)?;
     etat_du_coffre(ctx)
 }
 

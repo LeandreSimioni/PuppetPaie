@@ -734,7 +734,7 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
         Some(false) => {
             r.a_poser.push("net-entreprises".to_string());
             r.manque_coffre(
-                "Mot de passe net-entreprises absent du coffre : les retours ne peuvent pas etre releves seuls. `moteur coffre poser net-entreprises`.",
+                "Mot de passe net-entreprises absent du coffre : les retours ne peuvent pas etre releves seuls. `route coffre-poser, service net-entreprises`.",
             );
         }
         Some(true) => {
@@ -768,7 +768,7 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
     match dispo {
         Some(false) => {
             r.a_poser.push("urssaf".to_string());
-            r.manque_coffre("Mot de passe Urssaf (DPAE) absent du coffre : les retours de DPAE ne peuvent pas etre releves seuls. `moteur coffre poser urssaf`.");
+            r.manque_coffre("Mot de passe Urssaf (DPAE) absent du coffre : les retours de DPAE ne peuvent pas etre releves seuls. `route coffre-poser, service urssaf`.");
         }
         Some(true) => {
             dire_l_etape(ctx, "Urssaf : retours des DPAE…");

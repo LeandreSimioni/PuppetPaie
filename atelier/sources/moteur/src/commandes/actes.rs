@@ -1,4 +1,4 @@
-//! Les petits outils des commandes : les classes d'un refus, les garde-fous du binaire de l'atelier, les services du coffre.
+//! Les petits outils des commandes : les classes d'un refus, les garde-fous du binaire de l'atelier, l'heure du coffre.
 
 use socle::echec::Echec;
 
@@ -50,36 +50,6 @@ pub fn pas_redirige(_cadre: &super::Cadre, _organisme: Organisme) -> bool {
     false
 }
 
-/// Dans `moteur-atelier`, hors compagnie fictive : la boite courriel n'est pas redirigee, donc rien ne la lit ni ne l'ouvre.
-#[cfg(feature = "atelier")]
-pub fn boite_interdite(cadre: &super::Cadre) -> bool {
-    !crate::compagnie::bridage::branchement(&cadre.racine).joue()
-}
-
-#[cfg(not(feature = "atelier"))]
-pub fn boite_interdite(_cadre: &super::Cadre) -> bool {
-    false
-}
-
-/// `moteur-atelier` refuse, hors compagnie fictive, ce qui passe par le mot de passe du logiciel (`filet::exiger_mot_de_passe` : poser ou
-/// retirer un mot de passe, le changer, oublier Google, activer ou desactiver le filet) : ce sont des gestes sur les secrets du
-/// poste, que l'atelier ne touche pas. `quoi` dit ce qui est refuse (« de poser un mot de passe »). Dans `moteur` : rien n'est refuse ici.
-#[cfg(feature = "atelier")]
-pub fn refuser_dans_l_atelier(cadre: &super::Cadre, quoi: &str) -> Result<(), Echec> {
-    if crate::compagnie::bridage::branchement(&cadre.racine).joue() {
-        return Ok(());
-    }
-    Err(Echec {
-        classe: Some("ActeReelRefuse"),
-        message: format!("Ceci est le binaire de l'atelier (moteur-atelier) : il refuse {} hors compagnie fictive. Rien n'a ete modifie.", quoi),
-    })
-}
-
-#[cfg(not(feature = "atelier"))]
-pub fn refuser_dans_l_atelier(_cadre: &super::Cadre, _quoi: &str) -> Result<(), Echec> {
-    Ok(())
-}
-
 /// Le refus de l'atelier quand `organisme` n'y est pas redirige (`pas_redirige`) ; `quoi` : ce qui irait au vrai serveur.
 #[cfg(feature = "atelier")]
 pub fn refuser_si_pas_redirige(cadre: &super::Cadre, organisme: Organisme, quoi: &str) -> Result<(), Echec> {
@@ -104,13 +74,6 @@ pub fn refuser_si_pas_redirige(cadre: &super::Cadre, organisme: Organisme, quoi:
 #[cfg(not(feature = "atelier"))]
 pub fn refuser_si_pas_redirige(_cadre: &super::Cadre, _organisme: Organisme, _quoi: &str) -> Result<(), Echec> {
     Ok(())
-}
-
-/// Les services du coffre, dans l'ordre alphabétique.
-pub fn services_connus() -> Vec<&'static str> {
-    let mut noms: Vec<&str> = crate::compagnie::coffre::SERVICES.iter().map(|s| s.nom).collect();
-    noms.sort_unstable();
-    noms
 }
 
 /// L'heure de Paris, a la minute : ce que le coffre note comme date de pose.

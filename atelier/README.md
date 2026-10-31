@@ -224,8 +224,8 @@ que chaque compagnie fabrique dans son compte Google : validation en deux
 applications**. Seize lettres, à poser avec l'adresse de la boîte :
 
 ```bash
-moteur coffre poser courriel --compte compagnie@gmail.com
-moteur coffre verifier          # la boîte s'ouvre-t-elle
+echo '{"route":"coffre-poser","charge":{"service":"courriel","compte":"compagnie@gmail.com"}}' | moteur route --texte
+echo '{"route":"coffre-verifier","charge":{"service":"courriel"}}' | moteur route --texte   # la boîte s'ouvre-t-elle
 ```
 
 Ou dans la fenêtre : Configuration › Mots de passe. Rien à demander à
@@ -323,28 +323,23 @@ Deux comptes distincts, et un troisième mot de passe qui n'appartient qu'au
 logiciel :
 
 ```bash
-moteur coffre poser net-entreprises   # la DSN
-moteur coffre poser urssaf            # la DPAE
-moteur coffre poser courriel --compte compagnie@gmail.com   # la boîte
-moteur coffre ouverture               # le mot de passe PuppetPaie
+echo '{"route":"coffre-poser","charge":{"service":"net-entreprises"}}' | moteur route --texte   # la DSN
+echo '{"route":"coffre-poser","charge":{"service":"urssaf"}}' | moteur route --texte            # la DPAE
+echo '{"route":"coffre-poser","charge":{"service":"courriel","compte":"compagnie@gmail.com"}}' | moteur route --texte
+echo '{"route":"mot-de-passe-changer","charge":{}}' | moteur route --texte   # le mot de passe PuppetPaie
 moteur coffre                         # ce qui est posé, jamais les valeurs
-moteur coffre verifier                # ils ouvrent bien une session ?
+echo '{"route":"coffre-verifier","charge":{"service":"net-entreprises"}}' | moteur route --texte
 ```
 
-**`--fenetre` si la saisie du terminal ne capture pas tout** : une saisie masquée qui ne lit qu'un caractère ne se
-voit qu'au refus de l'organisme, qui ne dit rien de la cause. Le coffre refuse un secret de moins de
-six caractères, et `--fenetre` ouvre un champ masqué qui ne dépend pas du
-terminal :
+Le secret ne passe jamais par la charge : la route le fait taper par le moteur (sa fenêtre, sinon le terminal sans
+écho, sinon un refus), deux fois ; un `valeur`, `nouveau` ou `motdepasse` arrivé sur l'entrée standard est retiré. Le
+coffre refuse un secret de moins de six caractères.
 
-```bash
-moteur coffre poser net-entreprises --fenetre
-```
-
-`coffre verifier` fait **une** tentative d'authentification par compte — jamais
+`coffre-verifier` fait **une** tentative d'authentification par compte — jamais
 plus : au-delà de quelques échecs, net-entreprises bloque temporairement le
 compte.
 
-Chacun se tape dans un champ masqué, deux fois : jamais sur la ligne de
+Jamais sur la ligne de
 commande, où il resterait dans l'historique du shell. Le fichier est
 `prive/config/coffre.bin`, **scellé par AES-256-GCM**, le même sur tous les systèmes.
 
@@ -368,10 +363,10 @@ supprime les trois fichiers — `coffre.bin`, `google-jeton.bin` et
 `maj-cle-privee.bin` — et on repose :
 
 ```bash
-moteur coffre ouverture
-moteur coffre poser net-entreprises
-moteur coffre poser urssaf
-moteur coffre poser courriel --compte <adresse>
+echo '{"route":"mot-de-passe-changer","charge":{}}' | moteur route
+echo '{"route":"coffre-poser","charge":{"service":"net-entreprises"}}' | moteur route
+echo '{"route":"coffre-poser","charge":{"service":"urssaf"}}' | moteur route
+echo '{"route":"coffre-poser","charge":{"service":"courriel","compte":"<adresse>"}}' | moteur route
 moteur maj --cle --remplacer     # si ce poste publie les mises à jour
 ```
 
@@ -403,7 +398,7 @@ réel.
 
 **Le mot de passe est obligatoire.** La fenêtre le fait choisir à sa
 première ouverture (deux fois, six caractères au moins) ; en ligne de
-commande, `moteur coffre ouverture`. Sans mot de passe posé, le
+commande, la route `mot-de-passe-changer`. Sans mot de passe posé, le
 logiciel lit, calcule, sauvegarde, relève les retours et dépose en
 test — mais **rien ne part en réel** : ni DSN, ni DPAE, ni envoi, ni
 signature. **Le mois ne se recopie pas** : il s'écrit en
@@ -555,8 +550,8 @@ route ouverture {"sauvegarder": false, "signatures": false}
 
 Ou, sans ligne de commande : la fenêtre les relève à l'ouverture.
 
-Le mot de passe n'est pas demandé si le coffre le porte (`moteur
-coffre poser net-entreprises`) : relever les retours est une lecture, et c'est
+Le mot de passe n'est pas demandé si le coffre le porte (la route
+`coffre-poser`) : relever les retours est une lecture, et c'est
 ce qui permet à l'ouverture de le faire seule. Le champ reste, pour le cas où
 aucun coffre n'est posé — et ce qui y est tapé passe devant le coffre.
 

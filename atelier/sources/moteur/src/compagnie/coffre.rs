@@ -550,6 +550,13 @@ pub fn oublier_mot_de_passe_tape() {
     TAPE.with(|t| *t.borrow_mut() = None);
 }
 
+/// Le mot de passe du logiciel qu'un humain a tape pour cette route (`demande::autoriser_acte` le retient), et rien
+/// d'autre : ni la variable, ni la seance. Le geste qui a besoin de l'actuel (le changer, le retirer) le prend ici quand la
+/// charge ne le porte pas.
+pub(crate) fn mot_de_passe_retenu() -> Option<String> {
+    TAPE.with(|t| t.borrow().clone())
+}
+
 /// Le mot de passe tape pour cette commande : celui de la demande, sinon `PUPPETPAIE_MOTDEPASSE`.
 fn mot_de_passe_tape() -> Option<String> {
     TAPE.with(|t| t.borrow().clone()).or_else(|| env_non_vide("PUPPETPAIE_MOTDEPASSE"))
@@ -752,7 +759,7 @@ impl Coffre {
                 "Le coffre de cette compagnie ({}) n'a pas de mot de passe du logiciel : scelle par lui, « {} » ne \
                  s'ouvrirait que sur ce poste et serait perdu avec lui. Rien n'a ete ecrit. Poser d'abord le mot de \
                  passe du logiciel :\n\
-                 \x20 moteur coffre ouverture",
+                 \x20 route mot-de-passe-changer",
                 affiche(&self.chemin()),
                 description
             )));
@@ -809,10 +816,10 @@ impl Coffre {
              ancien, ou abime. Il ne se convertit pas : le supprimer, avec \
              `google-jeton.bin` et `maj-cle-privee.bin` qui sont fermes de la \
              meme facon, puis reposer ce qu'ils contenaient :\n\
-             \x20 moteur coffre ouverture\n\
-             \x20 moteur coffre poser net-entreprises\n\
-             \x20 moteur coffre poser urssaf\n\
-             \x20 moteur coffre poser courriel --compte <adresse>\n\
+             \x20 route mot-de-passe-changer\n\
+             \x20 route coffre-poser, service net-entreprises\n\
+             \x20 route coffre-poser, service urssaf\n\
+             \x20 route coffre-poser, service courriel, compte <adresse>\n\
              Puis relier le Drive, et refaire une cle de signature si ce poste \
              publie les mises a jour.",
             affiche(&p)
@@ -905,7 +912,7 @@ impl Coffre {
             "Ce coffre ne s'ouvre pas ici : la cle de ce poste ({}) n'est pas \
              celle qui l'a ferme{}. Le mot de passe du logiciel l'ouvre -- et \
              reposera une cle pour ce poste :\n\
-             \x20 moteur coffre ouverture",
+             \x20 route mot-de-passe-changer",
             affiche(&self.chemin_cle()),
             if self.cle_posee()? { "" } else { ", et elle est absente" }
         )))
@@ -1002,7 +1009,7 @@ impl Coffre {
                  d'organisme, et c'est presque toujours le signe que la saisie \
                  masquee n'a pas tout capture. Rien n'a ete pose.\n\
                  Reessayer dans une fenetre, qui ne depend pas du terminal :\n\
-                 \x20 moteur coffre poser {} --fenetre",
+                 \x20 route coffre-poser, service {}",
                 longueur, service
             )));
         }
@@ -1138,7 +1145,7 @@ impl Coffre {
                  de passe du logiciel {}.\n\
                  Le donner ouvre le coffre sans rien changer au poste ; le \
                  reposer rend a cette machine son ouverture sans mot de passe :\n\
-                 \x20 moteur coffre ouverture",
+                 \x20 route mot-de-passe-changer",
                 nom,
                 affiche(&self.chemin_cle()),
                 if self.cle_posee()? { "" } else { ", et elle est absente" },

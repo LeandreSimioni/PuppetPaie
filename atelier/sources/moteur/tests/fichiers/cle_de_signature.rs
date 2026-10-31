@@ -77,11 +77,11 @@ fn sans_mot_de_passe_du_logiciel_la_cle_ne_se_fabrique_pas_elle_serait_perdue_av
     // Un coffre qui ne porte qu'un mot de passe d'organisme : seule la cle du poste l'ouvre.
     a.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
     let refus = generer_cle_au_poste(&a, false).unwrap_err();
-    assert!(refus.contains("moteur coffre ouverture"), "{}", refus);
+    assert!(refus.contains("route mot-de-passe-changer"), "{}", refus);
     assert!(!racine.join("config/maj-cle-privee.bin").exists());
     // Sans coffre du tout, pareil.
     std::fs::remove_file(a.chemin()).unwrap();
-    assert!(generer_cle_au_poste(&a, false).unwrap_err().contains("moteur coffre ouverture"));
+    assert!(generer_cle_au_poste(&a, false).unwrap_err().contains("route mot-de-passe-changer"));
     assert!(!racine.join("config/maj-cle-privee.bin").exists() && !a.chemin().exists());
 }
 

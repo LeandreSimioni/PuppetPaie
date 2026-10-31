@@ -11,7 +11,8 @@ use serde_json::{json, Value};
 
 use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, pdf};
 use crate::outils::rejeu::{rejouer_dossier, scenario};
-use crate::outils::{dossier_de_test, route};
+use crate::outils::{dossier_de_test, route, route_avec};
+use moteur::compagnie::demande::VARIABLE_ESSAIS;
 
 fn espace() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
@@ -113,7 +114,8 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
         if f.nom.starts_with("administrateur-") && !inst.join("administrateur.json").exists() {
             std::fs::write(inst.join("administrateur.json"), registre.to_string()).unwrap();
         }
-        let r = route(&c, f.nom, serde_json::from_str(f.exemple).unwrap(), "2026-11-02");
+        // Un secret ne se lit jamais dans la charge : la fausse demande des essais le tape (`demande::canal_de_la_route`).
+        let r = route_avec(&c, f.nom, serde_json::from_str(f.exemple).unwrap(), "2026-11-02", &[(VARIABLE_ESSAIS, "exemple")]);
         assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom, r);
         if f.phrase > 0 {
             let p = r["resultat"]["phrase"].as_str().unwrap_or_else(|| panic!("{} : la phrase manque : {}", f.nom, r));

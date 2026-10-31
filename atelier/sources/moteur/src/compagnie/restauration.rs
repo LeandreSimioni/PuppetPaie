@@ -346,13 +346,13 @@ pub fn a_faire(coffre: &Coffre) -> Vec<String> {
         SERVICES
             .iter()
             .filter(|s| manquants.contains(&s.nom))
-            .map(|s| if s.avec_compte { format!("moteur coffre poser {} --compte <adresse>", s.nom) } else { format!("moteur coffre poser {}", s.nom) })
+            .map(|s| if s.avec_compte { format!("route coffre-poser, service {}, compte <adresse>", s.nom) } else { format!("route coffre-poser, service {}", s.nom) })
             .collect()
     };
     let tous: Vec<&str> = SERVICES.iter().map(|s| s.nom).collect();
     if !coffre.chemin().exists() {
         lignes.push(
-            "Le coffre n'est pas dans la sauvegarde : poser le mot de passe du logiciel (`moteur coffre ouverture`), puis ceux des organismes :".into(),
+            "Le coffre n'est pas dans la sauvegarde : poser le mot de passe du logiciel (`route mot-de-passe-changer`), puis ceux des organismes :".into(),
         );
         lignes.extend(a_poser(&tous).into_iter().map(|c| format!("  {}", c)));
     } else {
@@ -376,14 +376,14 @@ pub fn a_faire(coffre: &Coffre) -> Vec<String> {
                 } else if avec_mot_de_passe {
                     lignes.push(format!("Le coffre est revenu ; il porte : {}.", porte));
                     lignes.push(
-                        "La cle de ce poste ne l'ouvre pas (elle ne voyage jamais) : le mot de passe du logiciel, oui. `moteur coffre ouverture` \
+                        "La cle de ce poste ne l'ouvre pas (elle ne voyage jamais) : le mot de passe du logiciel, oui. `route mot-de-passe-changer` \
                          le demande (l'actuel, puis le nouveau, qui peut etre le meme) et repose une cle ici."
                             .into(),
                     );
                 } else {
                     lignes.push(format!(
                         "Le coffre est revenu ({}), mais sans mot de passe du logiciel : seule la cle de l'ancien poste l'ouvrait, il ne s'ouvrira pas ici. \
-                         Le mettre de cote (config/coffre.bin), poser le mot de passe du logiciel (`moteur coffre ouverture`), puis ceux des organismes :",
+                         Le mettre de cote (config/coffre.bin), poser le mot de passe du logiciel (`route mot-de-passe-changer`), puis ceux des organismes :",
                         porte
                     ));
                     lignes.extend(a_poser(&tous).into_iter().map(|c| format!("  {}", c)));
@@ -402,11 +402,11 @@ pub fn a_faire(coffre: &Coffre) -> Vec<String> {
     if crate::atelier::publier::cle_de_signature_posee(cible) {
         lignes.push(if coffre.chemin().exists() {
             "config/maj-cle-privee.bin (la cle qui signe les mises a jour) est revenu, scelle par le coffre : il s'ouvre quand le coffre \
-             s'ouvre, ici par le mot de passe du logiciel, puis par la cle de ce poste une fois `moteur coffre ouverture` passe."
+             s'ouvre, ici par le mot de passe du logiciel, puis par la cle de ce poste une fois `route mot-de-passe-changer` passe."
                 .into()
         } else {
             "config/maj-cle-privee.bin (la cle qui signe les mises a jour) est revenu, mais le coffre qui le scelle n'est pas revenu : \
-             rien d'autre ne l'ouvre, et un coffre neuf (celui que `moteur coffre ouverture` poserait) ne l'ouvrira pas. Remettre \
+             rien d'autre ne l'ouvre, et un coffre neuf (celui que `route mot-de-passe-changer` poserait) ne l'ouvrira pas. Remettre \
              d'abord config/coffre.bin de l'ancien poste s'il en reste une copie ; sinon, `moteur maj --cle --remplacer` sur le poste \
              de l'editeur, et la nouvelle cle publique a faire parvenir aux compagnies."
                 .into()

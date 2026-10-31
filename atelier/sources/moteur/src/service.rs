@@ -49,7 +49,7 @@ fn demande(entree: &str) -> Resultat<Value> {
 ///
 /// UN ACTE REEL PAR `moteur route` : la demande du mot de passe du logiciel est celle du moteur (`demande::Reel` : sa
 /// fenetre, sinon le terminal de l'humain, sans echo, sinon un refus). L'entree standard est celle d'un programme (un LLM,
-/// un script) : le `motdepasse` d'un acte reel qui y arrive est retire de la charge, il ne prouve rien.
+/// un script) : aucun secret ne s'y lit, ils sont retires de la charge (`sans_mot_de_passe`) et la route les demande a un humain.
 pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
     if quoi != "route" {
         return None;
@@ -62,7 +62,7 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
     if let Some(d) = o.get("date").filter(|d| Jour::lire(d).is_ok()) {
         std::env::set_var("PUPPETPAIE_AUJOURDHUI", d);
     }
-    let _canaux = crate::compagnie::demande::installer(std::rc::Rc::new(crate::compagnie::demande::Reel::du_poste()));
+    let _canaux = crate::compagnie::demande::installer(crate::compagnie::demande::canal_de_la_route(&racine_de(&o)));
     let mut entree = String::new();
     let lu = std::io::stdin().read_to_string(&mut entree);
     let nom = demande(entree.trim_start_matches('\u{feff}')).ok().and_then(|d| d.get("route").and_then(Value::as_str).map(String::from)).unwrap_or_default();
@@ -84,14 +84,18 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
     Some(0)
 }
 
-/// La demande d'un acte reel (une route qui engage), sans le `motdepasse` de sa charge.
+/// La demande sans les secrets de sa charge : le `motdepasse` de toute route, et ceux d'une route du coffre
+/// (`routes::coffre::SECRETS`). La route les demande alors elle-meme a un humain.
 fn sans_mot_de_passe(entree: &str) -> Resultat<String> {
-    use crate::routes::catalogue::{catalogue, Acte};
     let mut d = demande(entree)?;
     let nom = d.get("route").and_then(Value::as_str).unwrap_or("").to_string();
-    if catalogue().iter().any(|f| f.nom == nom && f.acte == Acte::Engage) {
-        if let Some(c) = d.get_mut("charge").and_then(Value::as_object_mut) {
-            c.remove("motdepasse");
+    let du_coffre = crate::routes::catalogue::dans(crate::routes::coffre::ROUTES, &nom).is_some();
+    if let Some(c) = d.get_mut("charge").and_then(Value::as_object_mut) {
+        c.remove("motdepasse");
+        if du_coffre {
+            for s in crate::routes::coffre::SECRETS {
+                c.remove(s);
+            }
         }
     }
     Ok(d.to_string())

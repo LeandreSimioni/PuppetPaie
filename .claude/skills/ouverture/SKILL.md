@@ -55,11 +55,11 @@ engage la compagnie, ordres de télépaiement compris.
 
 ```
 moteur coffre                          # ce qui est posé, depuis quand, pour quoi : jamais une valeur
-moteur coffre verifier                 # une tentative de connexion par compte, pas plus
-moteur coffre poser net-entreprises    # à taper par l'utilisateur (DSN)
-moteur coffre poser urssaf             # à taper par l'utilisateur (DPAE)
-moteur coffre poser courriel --compte <adresse>
-moteur coffre ouverture                # le mot de passe du logiciel
+route coffre-verifier {"service":"net-entreprises"}   # une tentative de connexion par compte, pas plus
+route coffre-poser {"service":"net-entreprises"}      # le moteur fait taper le secret à l'utilisateur (DSN)
+route coffre-poser {"service":"urssaf"}               # idem (DPAE)
+route coffre-poser {"service":"courriel","compte":"<adresse>"}
+route mot-de-passe-changer {}                         # le mot de passe du logiciel, tapé par l'utilisateur
 moteur coffre seance fermer            # refermer la séance
 ```
 

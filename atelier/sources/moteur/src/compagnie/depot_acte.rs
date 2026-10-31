@@ -127,7 +127,7 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
     if !coffre.ouverture_exigee().map_err(vers)? {
         return Err(erreur(
             "PreuveInsuffisante",
-            "Aucun mot de passe du logiciel n'est pose : rien ne peut partir en reel. Le poser d'abord -- la fenetre PuppetPaie le demande a sa premiere ouverture, ou `moteur coffre ouverture`. Rien n'est parti.",
+            "Aucun mot de passe du logiciel n'est pose : rien ne peut partir en reel. Le poser d'abord -- la fenetre PuppetPaie le demande a sa premiere ouverture, ou `route mot-de-passe-changer`. Rien n'est parti.",
         ));
     }
     let Some(preuve) = preuve.filter(|p| p.motdepasse.as_deref().is_some_and(|m| !m.is_empty())) else {
@@ -160,7 +160,7 @@ pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Opt
     if !coffre.disponible(service).map_err(vers)? {
         return Err(erreur(
             "ErreurOperation",
-            format!("Mot de passe {} absent : ni dans l'environnement, ni au coffre.\n  moteur coffre poser {}", service, service),
+            format!("Mot de passe {} absent : ni dans l'environnement, ni au coffre.\n  route coffre-poser, service {}", service, service),
         ));
     }
     coffre.lire(&json!(service), &json!(crate::compagnie::coffre::DEPOT), true, ouverture).map_err(vers)

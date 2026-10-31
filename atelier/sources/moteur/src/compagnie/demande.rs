@@ -272,6 +272,17 @@ pub fn saisir_secret(titre: &str, lignes: &[String], invite: &str) -> Result<Str
     }
 }
 
+/// Un secret a poser, tape DEUX fois par le meme canal (`saisir_secret`) : la frappe ne s'affiche pas, la seconde la
+/// confirme. Rend le texte, ou la phrase du refus (rien n'est pose).
+pub fn saisir_deux_fois(titre: &str, lignes: &[String], invite: &str) -> Result<String, String> {
+    let mot = saisir_secret(titre, lignes, invite)?;
+    let bis = saisir_secret("PuppetPaie : le retaper", &[], "le retaper (rien ne s'affiche) : ")?;
+    if bis != mot {
+        return Err("Les deux saisies different. Rien n'a ete pose.".into());
+    }
+    Ok(mot)
+}
+
 // ------------------------------------------------------------------ une fausse, pour les tests
 
 /// Une fausse demande : repond ce qu'on lui a dit, compte les questions et les garde (sans secret : une `Question` n'en
@@ -316,6 +327,21 @@ impl Canal for Fausse {
             Some(m) => Reponse::Mot(m),
             None => Reponse::Refus("Fenetre fermee : refuse. Rien n'est parti.".into()),
         }
+    }
+}
+
+/// La variable de la fausse demande des essais : ce que la fausse tape (`canal_de_la_route`).
+pub const VARIABLE_ESSAIS: &str = "PUPPETPAIE_ESSAIS_DEMANDE";
+
+/// LE CANAL D'UNE ROUTE SERVIE PAR `moteur route` : celui du poste (`Reel::du_poste`). En essai seulement
+/// (`garde_reseau::en_essai`, que Cargo pose) et pour une compagnie dont les envois sont joues (une fictive : rien n'y part
+/// ni n'y engage), la fausse demande tape ce que `VARIABLE_ESSAIS` dit : les exemples des fiches du coffre se jouent ainsi
+/// sans humain. Une compagnie reelle n'a jamais que le canal du poste.
+pub fn canal_de_la_route(racine: &Path) -> Rc<dyn Canal> {
+    let fausse = std::env::var(VARIABLE_ESSAIS).ok().filter(|_| socle::garde_reseau::en_essai() && crate::compagnie::bridage::branchement(racine).joue());
+    match fausse {
+        Some(m) => Rc::new(Fausse::mot(&m)),
+        None => Rc::new(Reel::du_poste()),
     }
 }
 

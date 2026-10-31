@@ -647,7 +647,7 @@ pub(crate) fn client_courriel(ctx: &Contexte) -> R<Box<dyn Courriel>> {
     if !crate::compagnie::boite::disponible(&ctx.racine) {
         return Err(erreur(
             "BoiteAbsente",
-            "Aucune boite courriel : poser le mot de passe d'application de la boite (Configuration > Mots de passe, ou `moteur coffre poser courriel --compte adresse@...`).",
+            "Aucune boite courriel : poser le mot de passe d'application de la boite (Configuration > Mots de passe, ou `route coffre-poser, service courriel, compte adresse@...`).",
         ));
     }
     let client = crate::compagnie::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;

@@ -530,7 +530,7 @@ pub fn relever_retours(
     }
     let Some(mut client) = client else {
         releve.incidents.push(
-            "Mot de passe net-entreprises absent : ni dans l'environnement, ni dans le coffre. `moteur coffre poser net-entreprises`.".into(),
+            "Mot de passe net-entreprises absent : ni dans l'environnement, ni dans le coffre. `route coffre-poser, service net-entreprises`.".into(),
         );
         return Ok(releve);
     };
@@ -661,7 +661,7 @@ pub fn relever_retours_dpae(
     }
     let Some(mut client) = client else {
         let mut r = Releve::default();
-        r.incidents.push("Mot de passe DPAE absent : ni dans l'environnement, ni dans le coffre. `moteur coffre poser urssaf`.".into());
+        r.incidents.push("Mot de passe DPAE absent : ni dans l'environnement, ni dans le coffre. `route coffre-poser, service urssaf`.".into());
         return Ok(r);
     };
     if flux.is_empty() {
