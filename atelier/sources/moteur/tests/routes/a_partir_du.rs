@@ -39,7 +39,8 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
         let l = reussi(&route(&c, "etat-par-engagement", json!({"mois": "2026-01"}), jour)).clone();
         l["engagements"].as_array().and_then(|l| l.iter().find(|x| x["salarie"] == "SVOBODA")).cloned().unwrap_or(l)
     };
-    assert!(!ligne_de_janvier()["etats"]["documents"]["fait"].is_null(), "{}", ligne_de_janvier());
+    let documents_partis = || ligne_de_janvier()["carres"].as_array().and_then(|c| c.iter().find(|x| x["cle"] == "documents").cloned()).is_some_and(|x| x["etat"] == "fait");
+    assert!(documents_partis(), "{}", ligne_de_janvier());
     // « Modifier l'engagement » avec le salaire de la carte ouverte : la question vient dans l'avertissement, et rien
     // n'est ecrit sans la reponse.
     let modifier = |salaire: u32, x: Value| {
@@ -56,7 +57,7 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
     let avant = ecrits();
     let q = reussi(&modifier(3600, json!({}))).clone();
     assert!(ecrits() == avant, "la question a ecrit");
-    assert!(!ligne_de_janvier()["etats"]["documents"]["fait"].is_null(), "{}", ligne_de_janvier()["etats"]);
+    assert!(documents_partis(), "{}", ligne_de_janvier());
     let question = &q["avertissement"]["a_partir_du"];
     let phrase = question["phrase"].as_str().unwrap_or_default();
     assert!(q["avertissement"]["engagements"][0]["qui"].as_str().is_some_and(|n| n.contains("SVOBODA Josef")), "{}", q);

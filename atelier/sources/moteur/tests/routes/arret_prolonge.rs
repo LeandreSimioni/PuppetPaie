@@ -47,7 +47,7 @@ fn un_accident_du_travail_se_prolonge_puis_se_reprend_plus_tot() {
     assert_eq!((&a["fin_previsionnelle"], &a["reprise"]), (&json!("2026-02-22"), &json!("2026-02-19")), "{}", a);
 
     // Le bulletin de fevrier retire les jours d'arret sous le nom de l'accident du travail.
-    let apercu = reussi(&route(&c, "apercu", json!({"mois": "2026-02", "lignes": true}), jour)).to_string().to_lowercase();
+    let apercu = reussi(&route(&c, "apercu", json!({"mois": "2026-02"}), jour)).to_string().to_lowercase();
     assert!(apercu.contains("absence accident du travail"), "{}", apercu);
     assert!(!apercu.contains("absence maladie"), "{}", apercu);
 }

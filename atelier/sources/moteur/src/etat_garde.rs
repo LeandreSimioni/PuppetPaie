@@ -259,7 +259,7 @@ fn lectures(o: &HashMap<String, String>, mois: &str) -> Value {
     // L'APERCU : ce que la page demande des qu'un mois s'affiche (`calculerApercu`), sur la saisie qu'elle vient de lire
     // (`{"mois": mois}`, le mois enregistre) ; la page ne le redemande que quand on modifie la saisie.
     if l.get("saisie").and_then(|s| s.pointer("/resultat/existe")).is_some_and(|e| e == &Value::Bool(true)) {
-        l.insert("apercu".into(), lecture(o, "apercu", json!({"mois": mois, "lignes": false})));
+        l.insert("apercu".into(), lecture(o, "apercu", json!({"mois": mois})));
     }
     Value::Object(l)
 }

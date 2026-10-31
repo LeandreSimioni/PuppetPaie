@@ -1843,7 +1843,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
         engagement::viser::RefusVisee::Refus(m) => refus(m),
         engagement::viser::RefusVisee::Calcul(m) => refus_du_calcul(ctx, &data, m),
     })?;
-    let vue = vue_paie(ctx, &v.paies[i], &v.saisie["engagements"][i], &v.saisie, false).map_err(Echec::from)?;
+    let vue = vue_paie(ctx, &v.paies[i], &v.saisie["engagements"][i], &v.saisie).map_err(Echec::from)?;
     let atteint = centimes(v.atteint);
     let mut f = v.facteur.round_dp(6);
     f.rescale(6);
@@ -2033,7 +2033,7 @@ fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &Value) -> Vec<&'static 
 /// Une paie pour l'ecran. `brut` : l'engagement tel qu'il
 /// est ecrit dans la saisie ; `mois` : le mois du fichier (pour `lieu` et
 /// `taux_cachet`, gardes tels qu'ecrits).
-pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, avec_lignes: bool) -> R<Value> {
+pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> R<Value> {
     let e = &p.engagement;
     let nat = e.nat()?;
     let iso = |j: &Jour| Value::String(j.iso());
@@ -2068,7 +2068,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
     let lieu = brut.get("lieu").cloned().unwrap_or_else(|| Value::String(String::new()));
     let avis: Vec<&Avis> = p.avertissements.iter().collect();
     let prelevement = p.pas.as_ref().map_or(Decimal::new(0, 2), |v| v.prelevement);
-    let mut d = json!({
+    let d = json!({
         "numero_bulletin": p.numero_bulletin.clone().map_or(Value::Null, Value::String),
         "numero_contrat": e.numero.clone().map_or(Value::Null, Value::String),
         "salarie": sal_vue,
@@ -2095,14 +2095,11 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
             "quantite": l.quantite.to_string(), "taux": l.taux.to_string(), "montant": q2(l.montant).to_string(),
         })).collect::<Vec<_>>(),
         "jours": jours, "lieu": lieu,
-        "brut": q2(p.brut).to_string(), "base_csg": q2(p.base_csg).to_string(),
-        "plafond": q2(p.plafond).to_string(), "smic": nombre_f(p.smic),
-        "total_patronal": q2(p.total_pat).to_string(), "total_salarial": q2(p.total_sal).to_string(),
-        "net_social": q2(p.net_social).to_string(), "net_a_payer": q2(p.net_a_payer).to_string(),
+        "brut": q2(p.brut).to_string(), "net_a_payer": q2(p.net_a_payer).to_string(),
         // CE QUE LA COMPAGNIE VIRE : la somme effectivement recue par le salarie (C. trav. R. 3243-1, 10°,
         // `atelier/reference/sources/code-du-travail/articles-20261029.md`), le « MONTANT NET À PAYER » du bulletin :
         // le net a payer moins l'impot preleve a la source.
-        "prelevement_a_la_source": q2(prelevement).to_string(), "net_paye": q2(p.net_a_payer - prelevement).to_string(),
+        "net_paye": q2(p.net_a_payer - prelevement).to_string(),
         "net_imposable": q2(p.net_imposable).to_string(), "cout_employeur": q2(p.cout_employeur).to_string(),
         "avertissements": avis.iter().filter(|a| !a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
         "informations": avis.iter().filter(|a| a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
@@ -2113,22 +2110,6 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
             "cadre": s.get("statut_categoriel_rc").and_then(Value::as_str) == Some("01"),
         },
     });
-    if avec_lignes {
-        let taux = |t: Option<f64>| t.map_or(Value::Null, nombre_f);
-        d["lignes"] = Value::Array(
-            p.lignes
-                .iter()
-                .map(|l| {
-                    json!({
-                        "id": l.id, "famille": l.famille, "libelle": l.libelle, "base": q2(l.base).to_string(),
-                        "taux_pat": taux(l.taux_pat), "montant_pat": q2(l.montant_pat).to_string(),
-                        "taux_sal": taux(l.taux_sal), "montant_sal": q2(l.montant_sal).to_string(),
-                        "masquer_base_et_taux": l.masquer_base_et_taux,
-                    })
-                })
-                .collect(),
-        );
-    }
     Ok(d)
 }
 
@@ -2191,8 +2172,7 @@ fn annee_de(mois: &str) -> R<i32> {
 }
 
 /// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur. Charge : `mois`, `cartes`
-/// (les cartes que l'ecran montre autrement qu'elles ne sont ecrites, `mois_designe`), `lignes` (vrai : les lignes de
-/// cotisation de chaque paie, pour le bulletin affiche), `urssaf` (vrai : le bordereau Urssaf du mois).
+/// (les cartes que l'ecran montre autrement qu'elles ne sont ecrites, `mois_designe`).
 ///
 /// Un engagement valide montre la paie qu'il a ecrite, avec ses numeros du moment ; s'il s'est recalcule de lui-meme,
 /// ses informations disent quand et pourquoi (`etats::phrase_du_recalcul`). Un engagement en saisie se calcule, et
@@ -2206,7 +2186,7 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     if identites.iter().any(Value::is_null) {
         refuser_si_importe(ctx, texte_requis(charge, "mois")?)?;
     }
-    let mut r = apercu_des_paies(ctx, charge, &data)?;
+    let mut r = apercu_des_paies(ctx, &data)?;
     // CHAQUE PAIE PORTE L'IDENTITE DE SON ENGAGEMENT (`Null` : une carte pas encore ecrite) : la carte retrouve la sienne.
     if let Some(Value::Array(paies)) = r.get_mut("paies") {
         for (p, id) in paies.iter_mut().zip(identites) {
@@ -2219,8 +2199,8 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 /// Les paies de l'apercu de `data`, une par engagement, dans son ordre.
-fn apercu_des_paies(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
-    let refus = match apercu_de(ctx, charge, data) {
+fn apercu_des_paies(ctx: &Contexte, data: &Value) -> R<Value> {
+    let refus = match apercu_de(ctx, data) {
         Ok(v) => return Ok(v),
         Err(refus) => refus,
     };
@@ -2231,7 +2211,7 @@ fn apercu_des_paies(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut complete = data.clone();
     complete["engagements"] = Value::Array(tous.iter().zip(&manques).filter(|(_, m)| m.is_none()).map(|(e, _)| e.clone()).collect());
-    let mut r = apercu_de(ctx, charge, &complete)?;
+    let mut r = apercu_de(ctx, &complete)?;
     let mut calculees = r["paies"].as_array().cloned().unwrap_or_default().into_iter();
     let paies: Vec<Value> = tous
         .iter()
@@ -2268,10 +2248,8 @@ fn phrase_du_mois(paies: &[Value], aucun_chiffre: bool) -> Option<String> {
 }
 
 /// L'apercu de la saisie `data` : chaque engagement se calcule.
-fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
+fn apercu_de(ctx: &Contexte, data: &Value) -> R<Value> {
     let data = data.clone();
-    let avec_lignes = vrai_opt(charge.get("lignes"));
-    let avec_urssaf = vrai_opt(charge.get("urssaf"));
     let mois = data.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
     let annee = annee_de(&mois)?;
     let montrees = paies_de_l_ecran(ctx, &data, &mois)?;
@@ -2280,7 +2258,7 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut vues = Vec::new();
     for (i, p) in paies.iter().enumerate() {
-        vues.push(vue_paie(ctx, p, tous.get(i).unwrap_or(&Value::Null), &data, avec_lignes)?);
+        vues.push(vue_paie(ctx, p, tous.get(i).unwrap_or(&Value::Null), &data)?);
     }
     // LES CONSEILS DE SAISIE : au plus un par carte, quand l'option de la compagnie est cochee, pour un
     // engagement en saisie seulement. Ils ne vivent qu'ici, dans la vue de l'ecran : ni dans les avertissements de la
@@ -2297,7 +2275,6 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
             }
         }
     }
-    let (urssaf, avert) = if avec_urssaf { urssaf_de_l_apercu(&ctx, &paies, &mois)? } else { (Value::Null, Vec::new()) };
     let somme = |cle: &str| -> R<Decimal> {
         let mut t = Decimal::new(0, 2);
         for v in &vues {
@@ -2305,7 +2282,7 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
         }
         Ok(q2(t))
     };
-    let (total_brut, total_cout, total_net) = (somme("brut")?, somme("cout_employeur")?, somme("net_paye")?);
+    let (total_cout, total_net) = (somme("cout_employeur")?, somme("net_paye")?);
     // LES TROIS NOMBRES, sommes ici : par carte (une carte, un engagement) et par salarie (la colonne « Le mois »).
     let trois = |vs: &[&Value]| -> R<Value> {
         let mut t = [Decimal::new(0, 2), Decimal::new(0, 2), Decimal::new(0, 2)];
@@ -2333,7 +2310,7 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
         t["nom"] = json!(nom);
         par_salarie.push(t);
     }
-    let mut a_regarder = avert;
+    let mut a_regarder = Vec::new();
     a_regarder.extend(archives_employees(&paies)?);
     let mut informations = Vec::new();
     for v in &vues {
@@ -2347,9 +2324,8 @@ fn apercu_de(ctx: &Contexte, charge: &Value, data: &Value) -> R<Value> {
         "mois": mois,
         "libelle": format!("{} {}", socle::date::nom_du_mois(n as i64, socle::date::Graphie::Titre)?, annee),
         "paies": vues,
-        "total_brut": total_brut.to_string(), "total_cout": total_cout.to_string(), "total_net": total_net.to_string(),
+        "total_cout": total_cout.to_string(), "total_net": total_net.to_string(),
         "blocs": blocs, "par_salarie": par_salarie,
-        "urssaf": urssaf,
         "avertissements": a_regarder,
         "informations": informations,
     }))

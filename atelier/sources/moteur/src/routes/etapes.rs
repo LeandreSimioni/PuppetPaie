@@ -7,15 +7,12 @@
 //! etat a l'autre. Les etats du journal sont ceux de `etats.rs`, appeles
 //! directement sur les lignes deja lues.
 //!
-//! AUCUN CALCUL D'UN ENGAGEMENT VALIDE. La saisie se charge sans calculer (`charger_saisie` : les engagements, le
-//! contrat qui deborde, les numeros attribues en memoire). Le seul montant affiche, le `brut` de `etat-par-engagement`,
-//! se lit dans la paie ecrite d'un engagement valide ; il ne se calcule que pour un engagement en saisie, et seulement si
-//! la route le demande (`etat-du-mois` et `mois-a-ouvrir` ne le demandent jamais).
+//! AUCUN CALCUL D'UN ENGAGEMENT. La saisie se charge sans calculer (`charger_saisie` : les engagements, le contrat qui
+//! deborde, les numeros attribues en memoire).
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::str::FromStr;
 
 use serde_json::{json, Map, Value};
 
@@ -29,7 +26,6 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{sha256_hex, vrai};
-use socle::num::Decimal;
 use socle::echec::Echec;
 use crate::routes::catalogue::{Acte, Fiche};
 
@@ -436,17 +432,6 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
     emportes != presents
 }
 
-/// Un montant à deux décimales.
-fn brut_en_texte(v: &Value) -> R<String> {
-    let t = valeur_en_texte(v);
-    let mut d = Decimal::from_str(t.trim())
-        .or_else(|_| Decimal::from_scientific(t.trim()))
-        .map_err(|_| erreur("InvalidOperation", socle::num::illisible(&t)))?;
-    d = d.round_dp_with_strategy(2, rust_decimal::RoundingStrategy::MidpointNearestEven);
-    d.rescale(2);
-    Ok(d.to_string())
-}
-
 /// La saisie en JSON, sans les cles
 /// `_...`, ni `valide` -- ce qui change dans une saisie sans
 /// changer la paie.
@@ -522,16 +507,14 @@ fn radical(nom: &str) -> &str {
     }
 }
 
-/// Ce qu'une saisie chargee sans calcul porte : le fichier lu, et une
-/// « embauche » par engagement (le salarie, le spectacle, les dates, la nature
-/// et le numero du contrat ; aucun montant).
+/// Ce qu'une saisie chargee sans calcul porte : une « embauche » par engagement (le salarie, le spectacle, les dates,
+/// la nature et le numero du contrat ; aucun montant).
 pub(crate) struct SaisieMois {
-    pub(crate) data: Value,
     pub(crate) paies: Vec<Paie>,
     /// L'identite de chaque engagement de `paies` (`engagement::stock::identites`, sur tous les engagements du mois).
     pub(crate) identites: Vec<Value>,
-    /// Ce qui manque a chaque engagement du mois (`None` : rien), dans l'ordre de `stock::objets_du_mois` : `data` et
-    /// `paies` ne portent que ceux qui ne manquent de rien.
+    /// Ce qui manque a chaque engagement du mois (`None` : rien), dans l'ordre de `stock::objets_du_mois` :
+    /// `paies` ne porte que ceux qui ne manquent de rien.
     pub(crate) manques: Vec<Option<String>>,
 }
 
@@ -615,7 +598,7 @@ impl<'a> Moteur<'a> {
             erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(mois_dit.get(..4).unwrap_or(&mois_dit))))
         })?;
         engagement::numeros::numeroter_les_contrats(self.ctx, &mut paies, annee, &self.departs()?).map_err(plain)?;
-        Ok(SaisieMois { data, paies, identites, manques })
+        Ok(SaisieMois { paies, identites, manques })
     }
 
     // --------------------------------------------- ce que le journal et la saisie disent
@@ -639,10 +622,9 @@ impl<'a> Moteur<'a> {
 
     // ------------------------------------------------------------ etat_par_engagement
 
-    /// `etat_par_engagement` : ou en est CHAQUE engagement du mois. `avec_brut` : le
-    /// montant brut de chaque paie y figure ; le bilan, qui ne l'affiche pas,
-    /// ne le demande jamais.
-    pub fn etat_par_engagement(&mut self, mois: &str, avec_brut: bool) -> R<Vec<Value>> {
+    /// `etat_par_engagement` : ou en est CHAQUE engagement du mois (ce que les etapes lisent ; la route n'en rend que ce
+    /// que la page lit, `pour_la_page`).
+    pub fn etat_par_engagement(&mut self, mois: &str) -> R<Vec<Value>> {
         // UN MOIS SANS ENGAGEMENT N'EST PAS UNE ERREUR.
         if !engagement::stock::a_une_saisie(self.racine(), mois).map_err(plain)? {
             return Ok(Vec::new());
@@ -652,12 +634,6 @@ impl<'a> Moteur<'a> {
         // embauche par son identite (`engagement::stock::identites`).
         let etats_eng = self.etats_du_mois(mois)?;
         let ids = engagement::stock::identites(&etats_eng.iter().map(|e| e.objet().clone()).collect::<Vec<_>>());
-        let brut_ecrit = |e: &engagement::etats::Etat| e.valide().and_then(|v| v.paie_ecrite(mois)).and_then(|p| p.pointer("/paie/brut")).cloned();
-        let calcul = if avec_brut && etats_eng.iter().any(|e| brut_ecrit(e).is_none()) {
-            Some(engagement::pour_l_ecran(self.ctx, &s.data).map_err(classer_saisie)?)
-        } else {
-            None
-        };
         let g = self.globales()?;
         let departs = self.departs()?;
 
@@ -679,11 +655,6 @@ impl<'a> Moteur<'a> {
             let refaire = a_refaire_de(self.ctx, e, &departs);
             let sal = &p.salarie;
             let nat = p.engagement.nat().map_err(plain)?;
-            let nom_famille = texte_de(requis(sal, "nom")?);
-            let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
-                Some(v) => texte_de(v),
-                None => texte_de(requis(sal, "prenom")?),
-            };
             let spectacle = if vrai(&p.spectacle) { requis(&p.spectacle, "titre")?.clone() } else { Value::Null };
             let mois_du_contrat = p.engagement.mois_du_contrat().map_err(plain)?;
             if mois_du_contrat.is_empty() {
@@ -702,8 +673,6 @@ impl<'a> Moteur<'a> {
             ligne.insert("numero".into(), p.engagement.numero.clone().map_or(Value::Null, Value::String));
             ligne.insert("debut".into(), Value::String(debut.clone()));
             ligne.insert("fin".into(), fin);
-            ligne.insert("emploi".into(), sal.get("emploi").cloned().unwrap_or(Value::Null));
-            ligne.insert("statut".into(), sal.get("statut").cloned().unwrap_or(Value::Null));
             // Son etablissement (NIC) : la DSN qui le porte.
             let nic = nic_de_l_engagement(self.ctx, mois, e);
             ligne.insert("etablissement".into(), nic.map_or(Value::Null, Value::String));
@@ -715,21 +684,6 @@ impl<'a> Moteur<'a> {
                 let idcc = self.ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null);
                 let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &idcc, &code_emploi, Some(&self.ctx.entreprise)).map_err(plain)?;
                 ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json()}));
-            }
-            if avec_brut {
-                // Le brut de sa paie ecrite s'il est valide, celui du calcul de la saisie sinon. Qu'il manque est un defaut du
-                // logiciel, jamais la saisie de l'utilisateur, et la phrase le lui dit.
-                let calcule = calcul.as_ref().and_then(|c| c.paies.get(k)).map(|x| Value::String(x.brut.to_string()));
-                let brut = brut_ecrit(e).or(calcule).ok_or_else(|| Echec {
-                    classe: Some("DefautDuLogiciel"),
-                    message: format!(
-                        "Le montant de la paie de {} {} ne se lit pas : le calcul de {} ne correspond pas à la saisie \
-                         enregistrée. Ce n'est pas votre saisie qui est en cause : c'est un défaut du logiciel, \
-                         noté dans ses incidents.",
-                        nom_famille, prenom, mois
-                    ),
-                })?;
-                ligne.insert("brut".into(), Value::String(brut_en_texte(&brut)?));
             }
             ligne.insert("valide".into(), valide);
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
@@ -1201,7 +1155,7 @@ impl<'a> Moteur<'a> {
                 .collect();
             return Ok(json!({"mois": mois, "colonnes": ["G"], "etapes": suivante(etapes)}));
         }
-        let paies = self.etat_par_engagement(mois, false)?;
+        let paies = self.etat_par_engagement(mois)?;
         let echeance_de = |ps: &[&Value], quoi: &str| -> Value {
             ps.iter().map(|p| &p["echeances"][quoi]).filter(|e| e.is_object()).min_by_key(|e| valeur_en_texte(&e["jour"])).cloned().unwrap_or(Value::Null)
         };
@@ -1918,13 +1872,26 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     Ok(out)
 }
 
+/// La ligne d'un engagement telle que la page la lit : son identite, sa carte fermee (qui, quand, pour quoi, le contrat,
+/// la validation, le recalcul, la frise), ses carres et le choix de sa DPAE, et la phrase d'une date d'embauche changee.
+/// Le reste (echeances, pieces, etablissement, etats des envois) ne sert qu'aux etapes du mois.
+fn pour_la_page(l: &Value) -> Value {
+    let mut v = Map::new();
+    for k in ["engagement", "salarie", "nom", "spectacle", "nature", "numero", "debut", "fin", "valide", "recalcul", "contrat", "versions", "carres", "dpae_choix"] {
+        v.insert(k.into(), l.get(k).cloned().unwrap_or(Value::Null));
+    }
+    v.insert("etats".into(), json!({"dpae": {"date_changee": l.pointer("/etats/dpae/date_changee").cloned().unwrap_or(Value::Null)}}));
+    Value::Object(v)
+}
+
 /// Une route de ce module. `charge` : ce que la page envoie (`mois`).
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let mut m = Moteur::nouveau(ctx);
     match nom {
         "etat-par-engagement" => {
             let (brut, mois) = mois_de(charge)?;
-            Ok(json!({"mois": brut, "engagements": m.etat_par_engagement(&mois, true)?, "non_actifs": non_actifs(ctx, &mois)?}))
+            let lignes: Vec<Value> = m.etat_par_engagement(&mois)?.iter().map(pour_la_page).collect();
+            Ok(json!({"mois": brut, "engagements": lignes, "non_actifs": non_actifs(ctx, &mois)?}))
         }
         "etat-du-mois" => {
             let (_, mois) = mois_de(charge)?;
