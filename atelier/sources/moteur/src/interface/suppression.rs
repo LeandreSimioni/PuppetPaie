@@ -280,8 +280,9 @@ pub fn mention(racine: &Path) -> Option<Value> {
 }
 
 /// UN MOIS DE DEMO RETRAVAILLE apres que la compagnie a ete gardee (sa saisie enregistree, une paie validee ou modifiee :
-/// UN MOIS DE DEMO RETRAVAILLE apres que la compagnie a ete gardee (sa saisie enregistree, une paie validee ou modifiee,
-/// la saisie du mois s'ecrivant dans `crate::routes::mois::ecrire_saisie_confirmee`) est un mois qu'on entend
+/// `engagement::stock::poser_la_saisie`, `ecrire_la_carte`) est un mois qu'on entend
+/// declarer : il sort de la mention (`config/demo.json`, `mois`), et la page ne le dit plus « fait en demo ». Rien a faire
+/// pour une compagnie sans mention, ni pour un mois qui n'y est pas.
 pub fn sortir_de_la_demo(racine: &Path, mois: &str) -> Result<(), String> {
     let p = racine.join(FICHIER_DEMO);
     let Some(mut v) = std::fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else { return Ok(()) };
