@@ -131,7 +131,7 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
   bulletin rectificatif, DSN) se tire de la comparaison entre le présent et la version sur laquelle chaque envoi est
   parti. L'engagement ne lit jamais le journal : le moteur lui passe ce qui est parti (`engagement/src/departs.rs`).
 - **Chaque document se fabrique à son départ** (`moteur/src/compagnie/depart.rs`) : la DSN à son dépôt (`fabriquer_dsn`, route
-  `dsn-a-deposer`), dès qu'un engagement du mois est validé, sans attendre DPAE ni contrat ; le bulletin et le certificat
+  `depot-apercu`, la DSN désignée par son mois), dès qu'un engagement du mois est validé, sans attendre DPAE ni contrat ; le bulletin et le certificat
   Congés Spectacles à l'envoi des documents (`fabriquer_documents`), qui écrit dans la paie le numéro du bulletin
   (`N/AAAA`, la suite de l'année, après le plus haut que porte une paie de l'année, importée comprise) et le premier
   N° CE (`etats::poser_numeros_des_documents`). Un bulletin parti dont la paie change ensuite a son rectificatif, sous
