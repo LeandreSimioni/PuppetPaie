@@ -392,10 +392,6 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
             saisie[k] = v;
         }
     }
-    // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE n'est pas ferme : sa paie se modifie, en le
-    // confirmant a la premiere modification (`crate::regularisation::modification_de_la_paie`) -- il n'est pas en retard.
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
-    let dsn_deposee = crate::regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &saisie);
     // LES ENGAGEMENTS IMPORTES QUI TOUCHENT LE MOIS, en cartes fermees : ils se lisent, rien ne les calcule
@@ -406,8 +402,6 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
         "existe": existe,
         "importes": importes,
         "defauts": defauts,
-        // La DSN reelle du mois est deposee : ce qu'il faut savoir avant d'en modifier la paie (`null` sinon).
-        "dsn_deposee": dsn_deposee,
         "saisie": resoudre_noms(ctx, &saisie)?,
         // L'identite de chaque engagement de `saisie.engagements`, dans son ordre : ce par quoi sa carte le designe.
         "identites": engagement::stock::identites(&engagement::stock::objets_a_l_ecran(&ctx.racine, &mois).map_err(Echec::from)?),

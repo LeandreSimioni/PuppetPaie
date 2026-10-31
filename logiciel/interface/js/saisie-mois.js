@@ -564,7 +564,6 @@ function vueApercu(a) {
 
 /* ------------------------------------------------------- charger un mois */
 let MOIS_AFFICHE = null;        // le mois REELLEMENT charge dans l'ecran
-let DSN_DEPOSEE = null;         // ce que le moteur dit du mois déclaré (`dsn_deposee`), ou null
 
 
 function afficherRappelsMois() {
@@ -650,7 +649,6 @@ async function chargerMois(mois, repeint = false) {
   // Un repeint montre ses cartes tout de suite : les états qu'on a déjà de
   // ce mois s'y posent, une coque ne reste pas vide le temps de les relire.
   if (repeint && ETATS_ENGAGEMENTS) peindreEtats();
-  DSN_DEPOSEE = r.dsn_deposee || null;
   // Une confirmation ne vaut que pour LE mois confirmé : on la redonne en revenant.
   // Les blocs se montrent quand leurs états sont posés -- ou, quoi qu'il
   // arrive, au bout de quelques secondes : une lecture qui traîne ne doit
@@ -720,7 +718,6 @@ async function repeindreLeMois(mois, ancien, frais) {
     const defauts = r.defauts || {};
     if (defauts.taux_cachet != null) TAUX_PAR_RUBRIQUE.cachet = +defauts.taux_cachet;
     afficherRappelsMois();
-    DSN_DEPOSEE = r.dsn_deposee || null;
     IMPORTES = r.importes || [];
     majAvisDuMois(mois, r.existe);
     dessinerMoisImporte();
@@ -736,22 +733,10 @@ async function repeindreLeMois(mois, ancien, frais) {
 /** Ce que l'écran dit d'un mois, au-dessus de ses engagements. Ce que le moteur refuse d'y écrire (un mois qui
  *  porte des engagements importés, un mois d'avant la première embauche), il le dit à l'écriture. */
 function majAvisDuMois(mois, existe) {
-  majAvisDsn(mois);
   majAvisDemo(mois);
   noteSaisie(existe
     ? "Saisie chargée. L'enregistrement est automatique."
     : "Nouveau mois — l'enregistrement est automatique dès la première saisie.");
-}
-
-/** Ce que le moteur dit d'un mois dont la DSN est déposée, au-dessus des engagements : l'annule-et-remplace que la
- *  modification fera partir, ou que la modification se confirme et se corrige dans la DSN suivante. */
-function majAvisDsn(mois) {
-  const avis = document.getElementById("avis-dsn");
-  const d = MOIS_AFFICHE === mois ? DSN_DEPOSEE : null;
-  avis.hidden = !d;
-  if (!d) return;
-  avis.className = "encart " + (ENCART_DE_COULEUR[d.couleur] ?? "");
-  avis.textContent = d.phrase;
 }
 
 /** UN MOIS SAISI EN DÉMO, dans une compagnie gardée au déblocage : la mention du moteur (route `etat`,
