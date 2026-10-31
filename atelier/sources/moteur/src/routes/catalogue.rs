@@ -27,6 +27,94 @@ impl Acte {
     }
 }
 
+/// LES PLACES DE L'ECRAN, telles que la page les nomme : l'onglet, et le sous-onglet de la Configuration. Une place se
+/// nomme d'une seule facon, ici ; une fiche ne peut nommer qu'une de ces places.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Place {
+    Paie,
+    Fiches,
+    Metiers,
+    Organismes,
+    Bulletin,
+    ModelesContrat,
+    Identite,
+    Coffre,
+    Import,
+    Historique,
+    Exports,
+    Signaler,
+    Bandeau,
+    Accueil,
+}
+
+impl Place {
+    pub const TOUTES: [Place; 14] = [
+        Place::Paie, Place::Fiches, Place::Metiers, Place::Organismes, Place::Bulletin, Place::ModelesContrat, Place::Identite,
+        Place::Coffre, Place::Import, Place::Historique, Place::Exports, Place::Signaler, Place::Bandeau, Place::Accueil,
+    ];
+
+    /// Le nom que l'ecran montre (la page le porte en `data-place`).
+    pub fn nom(self) -> &'static str {
+        match self {
+            Place::Paie => "Paie",
+            Place::Fiches => "Configuration › Entreprise, Salariés, Spectacles",
+            Place::Metiers => "Configuration › Métiers",
+            Place::Organismes => "Configuration › Organismes et contrats",
+            Place::Bulletin => "Configuration › Modèle de bulletin",
+            Place::ModelesContrat => "Configuration › Modèles de contrat",
+            Place::Identite => "Configuration › Signature & tampon",
+            Place::Coffre => "Configuration › Mots de passe",
+            Place::Import => "Configuration › Reprendre l'historique",
+            Place::Historique => "Historique",
+            Place::Exports => "Exports",
+            Place::Signaler => "Un problème, une idée ?",
+            Place::Bandeau => "Le bandeau",
+            Place::Accueil => "L'accueil des compagnies",
+        }
+    }
+}
+
+/// OU LA ROUTE SE VOIT A L'ECRAN.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Ecran {
+    /// La page de cette place l'appelle (son ecran est dessine).
+    Dessine(Place),
+    /// Sans ecran dessine : sous « Avancé » de sa place, la page l'affiche depuis sa fiche (`js/avance.js`).
+    Auto(Place),
+    /// Une lecture qui nourrit les ecrans (l'etat, la configuration, le mois) : elle n'a pas de place.
+    Lecture,
+    /// Aucune page ne l'atteint : elle attend la decision de l'editeur (une place, ou sa suppression).
+    SansPlace,
+}
+
+impl Ecran {
+    pub fn place(self) -> Option<Place> {
+        match self {
+            Ecran::Dessine(p) | Ecran::Auto(p) => Some(p),
+            Ecran::Lecture | Ecran::SansPlace => None,
+        }
+    }
+
+    fn mot(self) -> &'static str {
+        match self {
+            Ecran::Dessine(_) => "dessine",
+            Ecran::Auto(_) => "auto",
+            Ecran::Lecture => "lecture",
+            Ecran::SansPlace => "sans_place",
+        }
+    }
+
+    /// Ce que `moteur routes` en dit.
+    pub fn texte(self) -> String {
+        match self {
+            Ecran::Dessine(p) => p.nom().to_string(),
+            Ecran::Auto(p) => format!("{} › Avancé", p.nom()),
+            Ecran::Lecture => "(une lecture des écrans)".to_string(),
+            Ecran::SansPlace => "(sans place)".to_string(),
+        }
+    }
+}
+
 /// Un champ de la charge : son nom, son sens, et s'il est « avance » (l'ecran le range sous Avancé, ou seul un fait
 /// l'appelle).
 #[derive(Clone, Copy, Debug)]
@@ -58,6 +146,8 @@ pub struct Fiche {
     pub avance: bool,
     /// La place, en caracteres, de la phrase que la route rend pour l'affichage (`phrase`) ; 0 : elle n'en rend pas.
     pub phrase: usize,
+    /// Ou la route se voit a l'ecran.
+    pub ecran: Ecran,
 }
 
 /// La longueur d'un geste.
@@ -83,6 +173,8 @@ impl Fiche {
             "acte": match self.acte { Acte::Lit => "lit", Acte::Ecrit => "ecrit", Acte::Engage => "engage" },
             "avance": self.avance,
             "phrase": self.phrase,
+            "ecran": self.ecran.place().map(Place::nom),
+            "affichage": self.ecran.mot(),
         })
     }
 
@@ -93,6 +185,7 @@ impl Fiche {
         }
         t.push_str(&format!("  Exemple : echo '{{\"route\":\"{}\",\"charge\":{}}}' | moteur route\n", self.nom, self.exemple));
         t.push_str(&format!("  Rend : {}\n", self.rend));
+        t.push_str(&format!("  Écran : {}\n", self.ecran.texte()));
         if self.phrase > 0 {
             t.push_str(&format!("  Phrase : au plus {} caractères\n", self.phrase));
         }
@@ -120,6 +213,7 @@ pub const ROUTES: &[Fiche] = &[Fiche {
     acte: Acte::Lit,
     avance: true,
     phrase: 0,
+    ecran: Ecran::Lecture,
 }];
 
 /// Les fiches du catalogue en JSON : le chemin simple, ou toutes avec `avance`.
@@ -188,7 +282,7 @@ pub fn commande(args: &[String]) -> i32 {
     println!("Les routes (echo '{{\"route\":NOM,\"charge\":{{…}}}}' | moteur route ; la fiche : moteur routes NOM ; toutes : --avance)\n");
     let large = montrees.iter().map(|f| f.nom.len()).max().unwrap_or(0);
     for f in &montrees {
-        println!("  {:<large$}  {:<5}  {}", f.nom, match f.acte { Acte::Lit => "lit", Acte::Ecrit => "écrit", Acte::Engage => "engage" }, f.geste);
+        println!("  {:<large$}  {:<5}  {}  [{}]", f.nom, match f.acte { Acte::Lit => "lit", Acte::Ecrit => "écrit", Acte::Engage => "engage" }, f.geste, f.ecran.texte());
     }
     0
 }

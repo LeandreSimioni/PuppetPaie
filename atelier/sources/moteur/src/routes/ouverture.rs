@@ -29,6 +29,7 @@ use socle::echec::{erreur, Echec};
 use socle::ecriture::ecrire_json;
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
+use crate::routes::catalogue::{Ecran, Place};
 
 
 
@@ -38,6 +39,9 @@ type R<T> = Result<T, Echec>;
 fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
 }
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Lecture;
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -51,6 +55,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "configuration",
@@ -62,6 +67,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "pour-demarrer",
@@ -73,6 +79,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Paie),
     },
     Fiche {
         nom: "echeance-faite",
@@ -87,6 +94,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Paie),
     },
     Fiche {
         nom: "maj-etat",
@@ -98,6 +106,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Auto(Place::Fiches),
     },
     Fiche {
         nom: "sauvegarde-derniere",
@@ -109,6 +118,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "sauvegarde-maintenant",
@@ -120,6 +130,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Fiches),
     },
     Fiche {
         nom: "journal-reprise",
@@ -131,6 +142,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Historique),
     },
     Fiche {
         nom: "courriels-fictifs",
@@ -142,6 +154,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: crate::routes::COMPAGNIE_SUPPRIMER,
@@ -156,6 +169,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Fiches),
     },
 ];
 

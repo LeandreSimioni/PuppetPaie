@@ -19,6 +19,7 @@ use envois::etats;
 use crate::compagnie::etat_dsn;
 use crate::routes::catalogue::{Acte, Fiche, OPERATION};
 use socle::fichiers::{lire_json, vrai};
+use crate::routes::catalogue::{Ecran, Place};
 
 // ------------------------------------------------------------------ les refus
 
@@ -28,6 +29,9 @@ pub(crate) type R<T> = Result<T, Refus>;
 fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
     Refus { classe: Some(classe), message: message.into() }
 }
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[Fiche {
@@ -40,6 +44,7 @@ pub const ROUTES: &[Fiche] = &[Fiche {
     acte: Acte::Lit,
     avance: false,
     phrase: 0,
+    ecran: ECRAN,
 }];
 
 // ------------------------------------------------------------------ outils

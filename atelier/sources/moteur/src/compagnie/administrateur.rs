@@ -54,11 +54,15 @@ use socle::fichiers::vrai;
 use crate::interface::compagnies::{self, Compagnie};
 use socle::echec::Echec;
 use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
+use crate::routes::catalogue::{Ecran, Place};
 
 /// Le registre de l'administrateur, a la racine de l'installation.
 pub const FICHIER: &str = "administrateur.json";
 /// Le dernier tableau connu d'une compagnie (hors de l'empreinte des etats des mois : `etat_garde::HORS_DE_L_ECRAN`).
 pub const TABLEAU: &str = "config/.tableau.json";
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Accueil);
 
 /// Les routes de l'administrateur, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -72,6 +76,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "administrateur-deposer",
@@ -86,6 +91,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Engage,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
 ];
 

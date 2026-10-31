@@ -92,7 +92,7 @@ async function dessinerMoisHistorique(d) {
   }
   const documents = sortes.length ? sortes.map((s) => `
     <div class="docs-sorte"><b>${echapper(s.nom)}</b>${s.docs.map((x) =>
-      `<button class="lien" data-piece="${echapper(x.chemin)}" title="${echapper(x.chemin)}">${echapper(x.nom)}</button>`).join("")}
+      `<button class="lien" data-piece="${echapper(x.chemin)}"${x.fichier ? ` data-refaire="${echapper(x.fichier)}"` : ""} title="${echapper(x.chemin)}">${echapper(x.nom)}</button>`).join("")}
     </div>`).join("") : `<p class="discret">Aucun document écrit pour ce mois.</p>`;
 
   const envois = h.envois.length ? h.envois.map(dessinerEnvoi).join("")
@@ -109,11 +109,11 @@ async function dessinerMoisHistorique(d) {
 
   vue.querySelectorAll("[data-piece]").forEach((b) => {
     b.onclick = async () => {
+      // Une pièce partie dont le fichier manque (`fichier`) : `piece-partie` la refait et rend son chemin.
       try {
-        const r = await api("ouvrir-piece", { historique: mois, chemin: b.dataset.piece });
-        if (r && r.phrase) dire(r.phrase);
-      }
-      catch (e) { dire(e.message, "erreur"); }
+        const chemin = b.dataset.refaire ? (await api("piece-partie", { mois, fichier: b.dataset.refaire })).chemin : b.dataset.piece;
+        await ouvrirEtDire(chemin);
+      } catch (e) { dire(e.message, "erreur"); }
     };
   });
   const archiver = vue.querySelector("[data-archiver]");

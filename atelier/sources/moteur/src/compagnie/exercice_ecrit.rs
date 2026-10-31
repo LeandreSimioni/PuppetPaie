@@ -99,12 +99,13 @@ pub(crate) struct ExportCompta {
 }
 
 impl ExportCompta {
-    /// Un chemin ne rend que son nom.
+    /// Un chemin ne rend que son nom ; `dossier`, celui ou il est ecrit.
     pub(crate) fn json(&self) -> Value {
         json!({
             "annee": self.annee, "du": self.du, "au": self.au, "mois": self.mois,
             "ecritures": self.ecritures.iter().map(Ecriture::json).collect::<Vec<_>>(),
             "total_debit": self.total_debit.to_string(), "total_credit": self.total_credit.to_string(),
+            "dossier": self.fichier.as_ref().and_then(|f| f.parent()).map(|d| d.to_string_lossy().into_owned()),
             "fichier": self.fichier.as_ref().map(|f| f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()),
             "plan": self.plan, "avertissements": self.avertissements,
         })

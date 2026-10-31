@@ -328,10 +328,8 @@ function pastilleSort(sort, pastilles) {
 }
 
 /* « Ouvrir le dossier » n'a de sens que si la page tourne sur le poste,
-   servie par sa fenêtre (Tauri, ou `moteur interface` dans le navigateur du
-   poste) : c'est elle qui pose `window.pywebview` (la cale de
-   `interface/mod.rs`, avant le premier script) et qui sait la route
-   `ouvrir-import` (`interface/api.rs`). Sans elle, le bouton n'apparaît pas. */
+   servie par sa fenêtre : c'est elle qui ouvre l'explorateur (`ouvrir`, `interface/poste.rs`). Sans elle, le bouton
+   n'apparaît pas. */
 // Dans la fenêtre PuppetPaie (Tauri, `cadre.js`), et non dans un navigateur : le poste peut ouvrir son dossier.
 const fenetreDuPoste = () => !!window.fenetrePuppetPaie;
 
@@ -390,23 +388,16 @@ async function dessinerImportation(cible) {
     document.getElementById("import-tout").onclick = () => importerDepuisLeGuide();
   }
   document.getElementById("import-apercu").onclick = () => apercuImportation();
-  // L'EXPLORATEUR : la boîte du système, ouverte par le poste.
+  // L'EXPLORATEUR : la boîte du système, ouverte par la fenêtre.
   document.getElementById("import-parcourir").onclick = async () => {
     try {
-      const r = await api("choisir-dossier", { titre: "Le dossier à reprendre" });
+      const r = await fenetre("choisir_dossier", "Le dossier à reprendre");
       if (r.dossier) document.getElementById("import-dossier").value = r.dossier;
     } catch (err) { dire(err.message, "erreur"); }
   };
   const ouvrir = document.getElementById("import-ouvrir");
-  if (ouvrir) {
-    ouvrir.onclick = async () => {
-      try {
-        const r = await api("ouvrir-import", { dossier: document.getElementById("import-dossier").value.trim() });
-        // Le dossier ouvert se dit : l'explorateur peut s'ouvrir derrière la fenêtre.
-        if (r && r.phrase) dire(r.phrase);
-      } catch (err) { dire(err.message, "erreur"); }
-    };
-  }
+  // Le dossier choisi, sinon la boîte import/ de la compagnie (`dossier` de `importation-etat`), créée si elle manque.
+  if (ouvrir) ouvrir.onclick = () => ouvrirEtDire(document.getElementById("import-dossier").value.trim() || (e && e.dossier) || "", "", true);
 }
 
 /* LE GUIDE DE L'IMPORT (`import::guide`, du moteur) : ce qu'on met dans le

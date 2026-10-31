@@ -23,6 +23,7 @@ use socle::date::jour_iso;
 use socle::echec::{erreur, Echec};
 use socle::fichiers::{nom_du, vrai};
 use socle::valeur::valeur_en_texte;
+use crate::routes::catalogue::{Ecran, Place};
 
 pub(crate) type R<T> = Result<T, Echec>;
 
@@ -31,6 +32,9 @@ pub(crate) type R<T> = Result<T, Echec>;
 pub type Ouvrir<'a> = &'a mut dyn FnMut() -> R<Box<dyn Courriel>>;
 
 const SALARIES: Champ = Champ { nom: "salaries", sens: "seulement ceux-ci (les clés de leurs fiches) ; tous sinon", avance: false };
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -44,6 +48,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "envoyer-documents",
@@ -60,17 +65,19 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Engage,
         avance: false,
         phrase: 40,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "documents-imprimer",
         geste: "Imprimer les documents du mois, à remettre en main propre ; la paie se fige.",
         charge: &[MOIS, SALARIES],
         exemple: r#"{"mois":"2026-11","salaries":["SVOBODA"]}"#,
-        rend: "impression (le PDF, dans sorties/<mois>/), salaries, avertissements",
+        rend: "impression (le PDF, dans sorties/<mois>/) et son chemin, salaries, avertissements",
         refus: &[Refus { classe: "AucunDocument", corriger: "valider un engagement du mois" }, OPERATION],
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "piece-partie",
@@ -82,6 +89,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Paie),
     },
 ];
 
@@ -739,7 +747,7 @@ pub(crate) fn documents_imprimer(ctx: &Contexte, charge: &Value, qui: &str) -> R
     let detail = json!({"salaries": salaries, "main_propre": true});
     let reponse = format!("documents de {} salarie(s) imprimes pour une remise en main propre", cles.len());
     let ligne = noter_envoi(ctx, "documents", Some(&mois), qui, true, "", &reponse, Some(&detail), Some(&versions))?;
-    Ok(json!({"impression": nom_du(&impression), "salaries": cles, "avertissements": avertissements, "ligne": ligne}))
+    Ok(json!({"impression": nom_du(&impression), "chemin": impression.to_string_lossy(), "salaries": cles, "avertissements": avertissements, "ligne": ligne}))
 }
 
 /// Les messages, le compte verifie -- rien n'est parti.

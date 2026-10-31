@@ -46,6 +46,10 @@ type R<T> = Result<T, Echec>;
 const FORMAT: u64 = 4;
 
 use crate::routes::catalogue::{Acte, Fiche, ILLISIBLE, MOIS};
+use crate::routes::catalogue::Ecran;
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Lecture;
 
 /// Les routes que l'etat d'un mois sert, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -59,6 +63,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "etat-par-engagement",
@@ -70,6 +75,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "etat-du-mois",
@@ -81,6 +87,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
 ];
 

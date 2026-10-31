@@ -124,11 +124,10 @@ async function boitePieces(ligne, acte) {
   });
   document.querySelectorAll(".p-ouvrir").forEach((b) => {
     b.onclick = async () => {
-      try {
-        const o = await api("ouvrir-piece", { salarie: ligne.salarie, debut: ligne.debut,
-                                              fichier: pieces[+b.dataset.i].fichier });
-        if (o && o.phrase) dire(o.phrase);
-      } catch (err) { dire(err.message, "erreur"); }
+      // La pièce partie, refaite à l'identique si elle manque : le moteur rend son chemin, la fenêtre l'ouvre.
+      const p = pieces[+b.dataset.i];
+      try { await ouvrirEtDire((await api("piece-partie", { mois: p.mois, fichier: p.fichier })).chemin); }
+      catch (err) { dire(err.message, "erreur"); }
     };
   });
 }

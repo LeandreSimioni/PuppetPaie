@@ -10,7 +10,7 @@
    l'ouverture. Elle ne fait que demander ou ca en est.
 
    Elle ne calcule rien non plus : tout ce qui s'affiche ici est rendu par
-   /api/veille, comme le reste. */
+   la fenêtre (`veille`, `interface/veille.rs`), comme le reste. */
 let VEILLE = null;
 
 /** Un passage de veille a pu changer ce que la page montre : un contrat
@@ -181,7 +181,7 @@ function suivreLesEtapes() {
   if (SUIVI_ETAPES || SERVEUR_PERDU) return;
   SUIVI_ETAPES = setTimeout(async () => {
     let e = null;
-    try { e = await api("veille-etape"); } catch (x) { /* déjà signalé */ }
+    try { e = (await fenetre("veille_etape")).etat; } catch (x) { /* déjà signalé */ }
     SUIVI_ETAPES = null;
     if (!e) return;
     if (e.en_cours || e.sauvegarde_en_cours || RELEVE_DEMANDE) {
@@ -197,7 +197,7 @@ function suivreLesEtapes() {
 async function suivreVeille() {
   if (SERVEUR_PERDU) return;          // le bandeau dit déjà l'essentiel
   try {
-    const v = await api("veille");
+    const v = (await fenetre("veille")).etat;
     await rafraichirApresVeille(v);
     dessinerVeille(v);
     dessinerPastilleReponses();
@@ -208,7 +208,8 @@ document.getElementById("veille-maintenant").onclick = async () => {
   RELEVE_DEMANDE = true;
   dessinerVeille({ ...(VEILLE || {}), en_cours: true, etape: "" });
   try {
-    const v = await api("veille-maintenant");
+    const v = (await fenetre("veille_maintenant")).etat;
+    oublierLeMois();   // un passage a pu changer les mois : ce qui a été lu part
     RELEVE_DEMANDE = false;
     // Le relevé manuel repeint TOUJOURS : c'est ce qu'on vient demander.
     VEILLE = { ...(VEILLE || {}), dernier: {} };

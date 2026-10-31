@@ -11,6 +11,7 @@ use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;
 
 use crate::routes::catalogue::{Acte, Champ, Fiche, Refus as RefusDit, FORME, MOIS};
+use crate::routes::catalogue::{Ecran, Place};
 
 const IDENTITE: Champ = Champ {
     nom: "engagement",
@@ -28,6 +29,9 @@ const OPERATION: RefusDit = RefusDit {
     corriger: "ce que la phrase dit : un mois importé ou clos, une carte que l'écran ne montre pas, une saisie hors de ses bornes",
 };
 
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
+
 /// Les routes de ce module, et leurs fiches. Toutes ecrivent.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
@@ -40,6 +44,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 320,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "modifier-engagement",
@@ -63,6 +68,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 320,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "retirer-engagement",
@@ -74,6 +80,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 200,
+        ecran: ECRAN,
     },
 ];
 

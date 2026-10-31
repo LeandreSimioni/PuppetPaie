@@ -456,13 +456,23 @@ window.addEventListener("unhandledrejection", (ev) => {
   });
 });
 
-/** Ouvre un dossier du poste dans l'explorateur, et dit lequel :
- *  l'explorateur peut s'ouvrir derrière la fenêtre, et le chemin, c'est le
- *  moteur qui le rend (`dossier`). */
-async function ouvrirEtDire(route, charge = {}) {
+/** LES GESTES DE LA FENÊTRE : ouvrir, choisir un dossier, la veille. Ce ne sont pas des routes du moteur mais l'outil qui
+ *  regarde (`interface/poste.rs`, servi par la fenêtre : `window.pywebview.api`) ; une route rend le chemin, la fenêtre
+ *  l'ouvre. Rend la réponse de la fenêtre, ou lève son refus. */
+async function fenetre(geste, ...args) {
+  const f = window.pywebview && window.pywebview.api;
+  if (!f || !f[geste]) throw new Error("Cette fenêtre ne sait pas faire ce geste : " + geste + ".");
+  const r = await f[geste](...args);
+  if (!r || !r.ok) throw new Error((r && r.erreur) || "Refusé.");
+  return r;
+}
+
+/** Ouvre dans l'explorateur ce qu'une route a rendu (un chemin), et dit lequel : l'explorateur peut s'ouvrir derrière la
+ *  fenêtre. `quoi` : ce que le message dit d'abord. `creer` : un dossier de la compagnie qui manque se crée. */
+async function ouvrirEtDire(chemin, quoi = "", creer = false) {
   try {
-    const r = await api(route, charge);
-    if (r && r.phrase) dire(r.phrase);
+    const r = await fenetre("ouvrir", chemin, creer);
+    dire([quoi, r.phrase].filter(Boolean).join(" "), quoi ? "envoye" : undefined);
   } catch (e) { dire(e.message, "erreur"); }
 }
 

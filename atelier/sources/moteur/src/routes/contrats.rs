@@ -20,12 +20,16 @@ use socle::date::jour_iso;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{repr, vrai};
 use socle::valeur::{nom_type, valeur_en_texte, valeurs_egales};
+use crate::routes::catalogue::{Ecran, Place};
 
 
 
 const CONTRATS: Champ = Champ { nom: "contrats", sens: "les contrats choisis : [{salarie, debut, numero}]", avance: false };
 const DEBUT: Champ = Champ { nom: "debut", sens: "le premier jour de l'engagement, AAAA-MM-JJ", avance: false };
 const NUMERO: Champ = Champ { nom: "numero", sens: "le numéro du contrat, quand deux commencent le même jour", avance: true };
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -39,6 +43,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "demander-signature",
@@ -62,6 +67,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Engage,
         avance: false,
         phrase: 600,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "pieces-parties",
@@ -73,6 +79,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "avenant-apercu",
@@ -88,17 +95,19 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "contrats-imprimer",
         geste: "Réunir en un PDF les contrats et avenants cochés, à remettre en main propre.",
         charge: &[MOIS, CONTRATS, Champ { nom: "avenants", sens: "les avenants cochés : [{salarie, debut, numero, mois, effet}]", avance: false }],
         exemple: r#"{"mois":"2026-11","contrats":[{"salarie":"SVOBODA","debut":"2026-11-02"}]}"#,
-        rend: "impression (le PDF), contrats",
+        rend: "impression (le PDF) et son chemin, contrats",
         refus: &[OPERATION, MANQUE],
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "contrat-recu",
@@ -117,6 +126,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 200,
+        ecran: ECRAN,
     },
 ];
 

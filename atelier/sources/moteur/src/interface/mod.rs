@@ -16,6 +16,7 @@ pub mod compagnies;
 pub mod http;
 pub mod instance;
 pub mod navigateur;
+pub mod poste;
 pub mod suppression;
 pub mod veille;
 
@@ -80,8 +81,9 @@ const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zer
 /// Dans la page du logiciel : revenir aux compagnies ; et, comme a l'accueil, lire ou en est la mise a
 /// jour et redemarrer pour l'installer (`js/mise-a-jour.js`). L'administrateur, dans la Configuration
 /// (`js/coffre-compte.js`) : ce qu'il est pour cette compagnie, la rattacher, la detacher, changer son mot
-/// de passe.
-const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "administrateur", "rattacher", "detacher", "changer_administrateur"]"#;
+/// de passe. Les gestes du poste (`poste.rs` : ouvrir ce qu'une route a rendu, choisir un dossier) et la veille de la
+/// fenetre (`js/veille.js`).
+const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "administrateur", "rattacher", "detacher", "changer_administrateur", "ouvrir", "choisir_dossier", "veille", "veille_etape", "veille_maintenant"]"#;
 
 #[derive(Clone)]
 enum Phase {
@@ -816,6 +818,22 @@ impl Fenetre {
                 self.fermer_le_logiciel();
                 ok(false)
             }
+            // LES GESTES DU POSTE (`poste.rs`) : ouvrir ce qu'une route a rendu (un chemin), choisir un dossier.
+            ("ouvrir", Phase::Ouverte { racine, .. }) => {
+                match poste::ouvrir_pour_la_page(&racine, &a(0), args.get(1).and_then(Value::as_bool) == Some(true)) {
+                    Ok(phrase) => json!({"ok": true, "phrase": phrase}),
+                    Err(m) => refus(m),
+                }
+            }
+            ("choisir_dossier", Phase::Ouverte { .. }) => match poste::choisir_dossier(&a(0)) {
+                Ok(d) => json!({"ok": true, "dossier": d}),
+                Err(m) => refus(m),
+            },
+            // LA VEILLE DE LA FENETRE : son etat, l'etape du passage en cours, un passage tout de suite (un passage appelle
+            // la route `ouverture`, qui releve et sauvegarde).
+            ("veille", Phase::Ouverte { veille, .. }) => json!({"ok": true, "etat": veille.etat()}),
+            ("veille_etape", Phase::Ouverte { veille, .. }) => json!({"ok": true, "etat": veille.etape()}),
+            ("veille_maintenant", Phase::Ouverte { veille, .. }) => json!({"ok": true, "etat": veille.tour(false, false)}),
             // Ou en est la recherche de la mise a jour : l'accueil et la page d'une compagnie l'affichent.
             ("maj", _) => json!({"ok": true, "etat": crate::compagnie::maj::RECHERCHE.etat()}),
             // « Redemarrer pour mettre a jour » : la version prete part au relais, puis le logiciel se ferme comme par sa

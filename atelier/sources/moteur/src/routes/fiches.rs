@@ -49,6 +49,9 @@ const IDENTITE_REND: &str = "signature, cachet et logo : chacun posé ou dessin�
 const ETAT_REND: &str = "etat : ce que la page lit de la compagnie (la route etat), relu après l'écriture";
 const METIERS_REND: &str = "emplois (les métiers proposés) et emplois_autres (ceux des autres conventions)";
 
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Fiches);
+
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
@@ -61,6 +64,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Identite),
     },
     Fiche {
         nom: "poser-identite",
@@ -72,6 +76,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Identite),
     },
     Fiche {
         nom: "retirer-identite",
@@ -83,6 +88,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Identite),
     },
     Fiche {
         nom: "permanents",
@@ -94,6 +100,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "taxe-sur-les-salaires-regime",
@@ -108,6 +115,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "verifier-fiche",
@@ -119,6 +127,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "enregistrer-fiche",
@@ -138,6 +147,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 60,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "activer-fiche",
@@ -149,6 +159,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "poser-courriel",
@@ -160,6 +171,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Paie),
     },
     Fiche {
         nom: "fiche-demander",
@@ -175,6 +187,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Engage,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "fiches-relever",
@@ -186,6 +199,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "fiche-oublier-demande",
@@ -197,6 +211,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "metiers-catalogue",
@@ -208,6 +223,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Metiers),
     },
     Fiche {
         nom: "metier-retenu",
@@ -219,6 +235,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Metiers),
     },
     Fiche {
         nom: "metiers-ajoutes",
@@ -230,6 +247,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Auto(Place::Metiers),
     },
     Fiche {
         nom: "taux-atmp",
@@ -245,6 +263,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 60,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "bulletin-modeles",
@@ -256,6 +275,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Bulletin),
     },
     Fiche {
         nom: "bulletin-modele-apercu",
@@ -267,6 +287,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Lecture,
     },
     Fiche {
         nom: "bulletin-modele-choisir",
@@ -278,6 +299,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Bulletin),
     },
 ];
 /// Une route de ce module.
@@ -1443,6 +1465,7 @@ fn coercer_booleens(nom: &str, donnees: &mut Map<String, Value>) -> R<()> {
 /// Une case vide (`import::completer::vide` : le titre « A COMPLETER » compris) : la remplir n'est pas un changement a
 /// dater.
 use crate::import::completer::vide;
+use crate::routes::catalogue::{Ecran, Place};
 
 /// La meme valeur, a la forme pres : un nombre saisi en texte (100 et « 100 »), une personne et sa forme lisible (les
 /// cles `_affichage` que l'ecran comble, `champs::combler_affichage`, ne se declarent pas).

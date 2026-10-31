@@ -1025,12 +1025,7 @@ async function boitePapiersDeFin(mois, salarie) {
       <button class="secondaire" id="fp-dossier">Ouvrir le dossier</button>
       <button class="primaire" onclick="fermerBoite()">Fermer</button>
     </div>`);
-  document.getElementById("fp-dossier").onclick = async () => {
-    try {
-      const d = await api("ouvrir-dossier", { mois });
-      if (d && d.phrase) dire(d.phrase);
-    } catch (e) { dire(e.message, "erreur"); }
-  };
+  document.getElementById("fp-dossier").onclick = () => ouvrirEtDire(r.dossier);
 }
 
 /* ------------------------------------------ LE DOSSIER DU SALARIÉ

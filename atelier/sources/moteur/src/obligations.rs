@@ -47,6 +47,7 @@ use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use declarations::signalement::sauf_motifs;
 
 use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, OPERATION};
+use crate::routes::catalogue::{Ecran, Place};
 
 const SALARIE_ARRETE: Champ = Champ { nom: "salarie", sens: "la clé de la fiche du salarié arrêté", avance: false };
 const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", sens: "le dernier jour travaillé de l'arrêt, AAAA-MM-JJ (il désigne l'arrêt)", avance: false };
@@ -60,6 +61,9 @@ const FAITE: &[Champ] = &[
 ];
 const OBLIGATIONS_REND: &str = "obligations (chacune son échéance, son état et ce qui reste à faire)";
 const NON_ECRIT: Refus = Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit (l'arrêt, le jour, le lieu) ; rien n'est écrit" };
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -78,6 +82,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "arret-connaissance",
@@ -95,6 +100,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "accident-declare",
@@ -106,6 +112,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "attestation-declare",
@@ -117,6 +124,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
 ];
 

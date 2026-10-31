@@ -6,7 +6,7 @@
 //!
 //! - `documents` : chaque fichier de `sorties/<mois>/` et de `sorties/<mois>/envoi/` (les memes listes que
 //!   l'Historique : `crate::routes::ouverture::mois_connus`, `crate::routes::archives::documents_du_mois`), range
-//!   par sorte, chacun avec le chemin que `ouvrir-piece` ouvre ;
+//!   par sorte, chacun avec son chemin, que la fenetre ouvre ;
 //! - `envois` : chaque ligne du journal des depots du mois (DPAE, DSN, signalements, documents, contrats), TESTS
 //!   COMPRIS : le journal ne porte que ce que CE logiciel a envoye (un test d'ailleurs n'y entre pas, `reprise_journal`),
 //!   et ce qu'il a envoye se montre partout : le logiciel est d'une transparence totale, ce sont les informations et les
@@ -30,10 +30,14 @@ use envois::retours;
 use socle::echec::Echec;
 
 use crate::routes::catalogue::{Acte, Fiche, Refus, MOIS};
+use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
 
 pub const ROUTE: &str = "historique-mois";
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Historique);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[Fiche {
@@ -41,11 +45,12 @@ pub const ROUTES: &[Fiche] = &[Fiche {
     geste: "Dire l'Historique d'un mois : ses documents, ses envois et ce qui en est revenu.",
     charge: &[MOIS],
     exemple: r#"{"mois":"2026-11"}"#,
-    rend: "mois, documents (chacun son chemin), envois (chacun ses retours, du plus récent au plus ancien)",
+    rend: "mois, documents (chacun son chemin ; fichier : à refaire par piece-partie avant de l'ouvrir), envois (chacun ses retours, du plus récent au plus ancien)",
     refus: &[Refus { classe: "ErreurOperation", corriger: "le mois, AAAA-MM" }],
     acte: Acte::Lit,
     avance: false,
     phrase: 0,
+    ecran: ECRAN,
 }];
 
 // ------------------------------------------------------------------ les tables
@@ -264,14 +269,15 @@ fn documents(ctx: &Contexte, mois: &str, lignes: &[Value]) -> R<Vec<Value>> {
         let nom = valeur_en_texte(&d["nom"]);
         out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": d["salarie"], "chemin": format!("sorties/{}/envoi/{}", mois, nom)}));
     }
-    // CE QUE LE JOURNAL DIT PARTI, meme si son fichier manque : `ouvrir-piece` le refait (`depart::piece_partie`).
+    // CE QUE LE JOURNAL DIT PARTI, meme si son fichier manque : `fichier` le nomme pour `piece-partie`, qui le refait
+    // (`depart::piece_partie`) et rend son chemin.
     for nom in pieces_du_journal(lignes) {
         if out.iter().any(|d| d["nom"] == json!(nom)) {
             continue;
         }
         let dans_l_envoi = ["Bulletin_", "CertificatCS_", "AER_", "Contrat_", "Avenant"].iter().any(|p| nom.starts_with(p));
         let chemin = if dans_l_envoi { format!("sorties/{}/envoi/{}", mois, nom) } else { format!("sorties/{}/{}", mois, nom) };
-        out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": "", "chemin": chemin}));
+        out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": "", "chemin": chemin, "fichier": nom}));
     }
     // LES BULLETINS QUE L'ANCIEN LOGICIEL A FAITS, tels que l'import les garde : ce sont les bulletins du mois.
     for b in crate::import::mois::bulletins_repris(&ctx.racine, mois) {
@@ -886,14 +892,6 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Le plus recent en premier : c'est le dernier envoi qu'on vient lire ; a la meme heure, le reel devant son test.
     envois.sort_by(|a, b| (valeur_en_texte(&b["quand"]), b["mode"] == json!("reel")).cmp(&(valeur_en_texte(&a["quand"]), a["mode"] == json!("reel"))));
     Ok(json!({"mois": mois, "documents": documents(ctx, mois, &lignes)?, "envois": envois}))
-}
-
-/// Le chemin d'une piece que `historique-mois` a listee pour `mois` (un document ou la piece d'un retour), ou `None` :
-/// `ouvrir-piece` n'ouvre que ce que la route a montre.
-pub fn piece_listee(listage: &Value, chemin: &str) -> bool {
-    let doc = listage["documents"].as_array().into_iter().flatten().any(|d| d["chemin"] == json!(chemin));
-    let ret = listage["envois"].as_array().into_iter().flatten().flat_map(|e| e["retours"].as_array().into_iter().flatten()).any(|r| r["piece"] == json!(chemin));
-    doc || ret
 }
 
 #[cfg(test)]

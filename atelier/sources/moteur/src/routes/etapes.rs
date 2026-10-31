@@ -28,6 +28,10 @@ use socle::echec::erreur;
 use socle::fichiers::{sha256_hex, vrai};
 use socle::echec::Echec;
 use crate::routes::catalogue::{Acte, Fiche};
+use crate::routes::catalogue::Ecran;
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Lecture;
 
 /// La route de ce module, et sa fiche ; les deux etats d'un mois se servent de l'etat garde (`etat_garde::ROUTES`).
 pub const ROUTES: &[Fiche] = &[Fiche {
@@ -40,6 +44,7 @@ pub const ROUTES: &[Fiche] = &[Fiche {
     acte: Acte::Lit,
     avance: false,
     phrase: 0,
+    ecran: ECRAN,
 }];
 
 pub(crate) type Paire = (String, String);

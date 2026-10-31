@@ -384,7 +384,7 @@ async function dessinerExercices() {
   });
   const o = document.getElementById("ouvrir-exercices");
   if (o) o.onclick = async () => {
-    await ouvrirEtDire("ouvrir-exercices");
+    await ouvrirEtDire(r.dossier);
   };
 }
 

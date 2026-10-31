@@ -90,6 +90,6 @@ pub fn ouvrir(url: &str, profil: &std::path::Path, journal: &dyn Fn(&str)) -> Op
         }
     }
     journal("Fenetre : le navigateur par defaut.\n");
-    let _ = super::api::ouvrir_adresse(url);
+    let _ = super::poste::ouvrir_adresse(url);
     None
 }

@@ -492,7 +492,7 @@ mod fenetre_systeme {
     /// CONTENEUR (pas de cible Windows) : a essayer sur le poste.
     #[cfg(windows)]
     fn powershell(titre: &str, lignes: &[String]) -> std::io::Result<std::process::Output> {
-        use crate::interface::api::entre_apostrophes_powershell as ap;
+        use crate::interface::poste::entre_apostrophes_powershell as ap;
         use std::os::windows::process::CommandExt;
         let script = format!(
             "[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false); Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; \

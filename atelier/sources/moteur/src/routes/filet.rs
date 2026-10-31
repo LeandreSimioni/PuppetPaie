@@ -23,38 +23,44 @@ use envois::etats::get;
 use socle::echec::{Echec, R};
 use socle::fichiers::vrai;
 use socle::valeur::{valeur_en_texte, valeurs_egales};
+use crate::routes::catalogue::{Ecran, Place};
 
 
 
 const TEXTE: Champ = Champ { nom: "texte", sens: "le message, en mots", avance: false };
-const ECRAN: Champ = Champ { nom: "ecran", sens: "où l'on était (l'écran, ou ce que le LLM a tenté : la route, la charge sans donnée personnelle, la réponse)", avance: false };
+const OU: Champ = Champ { nom: "ecran", sens: "où l'on était (l'écran, ou ce que le LLM a tenté : la route, la charge sans donnée personnelle, la réponse)", avance: false };
 const CAPTURES: Champ = Champ { nom: "captures", sens: "[{type, donnees}] : des images en base64", avance: true };
 const QUOI: Champ = Champ { nom: "quoi", sens: "une seule nature d'incident ; toutes sinon", avance: true };
 const DIAGNOSTIC_REND: &str = "envoi (vrai : actif), total, en_attente, groupes (ce qui part, mot pour mot), pastille";
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Signaler);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "signalement-apercu",
         geste: "Montrer, mot pour mot, ce qu'un message au développeur emporterait.",
-        charge: &[TEXTE, ECRAN, CAPTURES],
+        charge: &[TEXTE, OU, CAPTURES],
         exemple: r#"{"texte":"La phrase de la DSN est coupée.","ecran":"Paie, novembre 2026"}"#,
         rend: "corps (ce qui part), caviarde, serveur, captures, incidents, peut_envoyer, pourquoi",
         refus: &[OPERATION, FORME],
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "signalement-envoyer",
         geste: "Écrire au développeur (un problème, une idée) ; le message part seul.",
-        charge: &[TEXTE, ECRAN, CAPTURES],
+        charge: &[TEXTE, OU, CAPTURES],
         exemple: r#"{"texte":"La phrase de la DSN est coupée.","ecran":"Paie, novembre 2026"}"#,
         rend: "signalements (chacun son état et son départ)",
         refus: &[OPERATION, FORME],
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "signalements",
@@ -66,6 +72,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "signalements-lus",
@@ -77,6 +84,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "signalements-partir",
@@ -88,6 +96,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Auto(Place::Signaler),
     },
     Fiche {
         nom: "incident-navigateur",
@@ -99,6 +108,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "diagnostic-etat",
@@ -110,6 +120,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "diagnostic-envoyer",
@@ -121,6 +132,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "diagnostic-regler",
@@ -132,6 +144,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "incidents-lire",
@@ -143,6 +156,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Auto(Place::Signaler),
     },
     Fiche {
         nom: "incidents-regrouper",
@@ -154,6 +168,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Auto(Place::Signaler),
     },
     Fiche {
         nom: "incidents-envoyer",
@@ -165,6 +180,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Auto(Place::Signaler),
     },
     Fiche {
         nom: "incidents-oublier",
@@ -176,6 +192,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Auto(Place::Signaler),
     },
 ];
 /// Une route de ce module.

@@ -20,8 +20,12 @@ use socle::fichiers::{lire_json, vrai};
 use socle::echec::Echec;
 
 use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, ILLISIBLE, OPERATION};
+use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Organismes);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -35,6 +39,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "organismes-enregistrer",
@@ -49,6 +54,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
 ];
 

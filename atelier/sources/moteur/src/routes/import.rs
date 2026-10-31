@@ -21,10 +21,14 @@ use envois::etats::get;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::vrai;
 use socle::valeur::{nom_type, valeur_en_texte};
+use crate::routes::catalogue::{Ecran, Place};
 
 
 
 const DOSSIER: Champ = Champ { nom: "dossier", sens: "le dossier choisi ; la boîte import/ de la compagnie sinon", avance: true };
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Import);
 
 /// Les routes de ce module, et leurs fiches : dans l'ordre d'un import (regarder, reprendre, dire la nature).
 pub const ROUTES: &[Fiche] = &[
@@ -38,6 +42,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "importation-apercu",
@@ -49,6 +54,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "importer",
@@ -60,6 +66,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: crate::import::nature::ROUTE,
@@ -79,6 +86,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
 ];
 /// UNE REPONSE DE L'IMPORT, AVEC SES PASTILLES (`routes::pastille`) : celle de chaque sort

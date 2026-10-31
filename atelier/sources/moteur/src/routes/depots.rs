@@ -21,6 +21,7 @@ use socle::date::{en_texte, repr_texte, Jour};
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
+use crate::routes::catalogue::{Ecran, Place};
 
 // LA DESIGNATION d'une declaration (`designee`) : la DSN ou la DPAE d'un mois, ou un signalement ecrit.
 const QUOI: Champ = Champ { nom: "quoi", sens: "dpae ou dsn", avance: false };
@@ -30,6 +31,9 @@ const SIGNALEMENT: Champ = Champ { nom: "fichier", sens: "un signalement écrit,
 /// L'exemple : la DPAE de novembre, que `depot-apercu` ecrit.
 const DPAE_DE_L_EXEMPLE: &str = r#"{"quoi":"dpae","mois":"2026-11"}"#;
 const ILLISIBLE_FICHIER: Refus = Refus { classe: "FileNotFoundError", corriger: "le signalement : le fichier que sa route a rendu" };
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -43,6 +47,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 300,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "deposer",
@@ -69,6 +74,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Engage,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "suivre-depot",
@@ -80,6 +86,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 80,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "bilan-repetition",
@@ -91,6 +98,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 500,
+        ecran: ECRAN,
     },
 ];
 

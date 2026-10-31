@@ -158,7 +158,7 @@ async function dessinerDossier() {
   document.getElementById("d-ecrire").onclick = () => lancerDossier("dossier-salarie", false);
   if (f.boite_liee) document.getElementById("d-envoyer").onclick = () => lancerDossier("dossier-envoyer", false);
   document.getElementById("d-ouvrir").onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports", { sous: "dossiers" });
+    await ouvrirEtDire(DOSSIER.dossier);
   };
 }
 
@@ -303,7 +303,7 @@ function dessinerQuestions(opt) {
   if (forme.apercu) document.getElementById("x-apercu").onclick = () => lancerExport(true);
   document.getElementById("x-ecrire").onclick = () => lancerExport(false);
   document.getElementById("x-dossier").onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports");
+    await ouvrirEtDire(EXPORTS.dossier);
   };
 }
 
@@ -470,7 +470,7 @@ function dessinerCasc(r) {
         <th class="r">CASC</th></tr></thead><tbody>${lignes}${annees}</tbody></table>
     </details>`;
   document.getElementById("casc-dossier").onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports", { sous: "casc-svp" });
+    await ouvrirEtDire(r.dossier);
   };
   const choixAnnee = document.getElementById("casc-annee");
   const montant = document.getElementById("casc-montant");
@@ -552,7 +552,7 @@ function dessinerTableau(r, apercu) {
       <button class="lien" id="x-dossier-2">Ouvrir le dossier</button></div>` : ""}`;
   const o = document.getElementById("x-dossier-2");
   if (o) o.onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports");
+    await ouvrirEtDire(EXPORTS.dossier);
   };
   if (!apercu) dire("Export écrit.");
 }
@@ -615,7 +615,7 @@ function dessinerLivre(r, apercu) {
       <button class="lien" id="x-dossier-2">Ouvrir le dossier</button></div>` : ""}`;
   const o = document.getElementById("x-dossier-2");
   if (o) o.onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports");
+    await ouvrirEtDire(EXPORTS.dossier);
   };
   if (!apercu) dire("Export écrit.");
 }
@@ -679,7 +679,7 @@ async function lancerExportCompta(annee) {
       <button class="primaire" onclick="fermerBoite()">Fermer</button>
     </div>`);
   document.getElementById("x-ouvrir").onclick = async () => {
-    await ouvrirEtDire("ouvrir-exercices");
+    await ouvrirEtDire(r.dossier);
   };
   if (document.getElementById("exercices")) dessinerExercices();
 }

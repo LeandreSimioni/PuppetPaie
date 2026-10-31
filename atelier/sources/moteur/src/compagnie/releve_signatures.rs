@@ -31,6 +31,10 @@ use crate::horloge::{HorlogeFictive, QUI_HORLOGE};
 use socle::echec::Echec;
 use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
 use envois::simulation_courriels::BoiteQuiRepond;
+use crate::routes::catalogue::Ecran;
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::SansPlace;
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[Fiche {
@@ -43,6 +47,7 @@ pub const ROUTES: &[Fiche] = &[Fiche {
     acte: Acte::Ecrit,
     avance: false,
     phrase: 0,
+    ecran: ECRAN,
 }];
 
 /// Secondes entre une demande de signature et le « Je signe » du salarie fictif de la compagnie fictive.

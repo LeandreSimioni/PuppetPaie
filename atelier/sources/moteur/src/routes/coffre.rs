@@ -26,6 +26,7 @@ use envois::google::{champ, en_texte, jeton_par_rafraichissement, DELAI, PERMISS
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{vrai, MARQUEUR_COPIE};
 use socle::valeur::{nom_type, valeur_en_texte};
+use crate::routes::catalogue::{Ecran, Place};
 
 const SERVICE: Champ = Champ { nom: "service", sens: "net-entreprises, urssaf ou courriel", avance: false };
 const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false };
@@ -50,6 +51,9 @@ fn actuel(charge: &Value) -> Option<String> {
     chaine(charge, "motdepasse").filter(|m| !m.is_empty()).map(String::from).or_else(crate::compagnie::coffre::mot_de_passe_retenu)
 }
 
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Coffre);
+
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
@@ -62,6 +66,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "google-etat",
@@ -73,6 +78,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "coffre-poser",
@@ -91,6 +97,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 400,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "coffre-verifier",
@@ -102,6 +109,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "coffre-oublier",
@@ -113,6 +121,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "mot-de-passe-changer",
@@ -128,6 +137,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "mot-de-passe-retirer",
@@ -139,6 +149,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "google-autoriser",
@@ -150,6 +161,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "google-oublier",
@@ -161,6 +173,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
 ];
 
@@ -575,7 +588,7 @@ fn google_autoriser(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (id, secret, _) = identifiants(&ctx.racine).map_err(|e| Echec { classe: Some("ErreurOperation"), message: e.message })?;
     let dire_url = |u: &str| {
         eprintln!("La fenetre de Google, a ouvrir dans le navigateur si elle ne s'ouvre pas seule : {}", u);
-        let _ = crate::interface::api::ouvrir_adresse(u);
+        let _ = crate::interface::poste::ouvrir_adresse(u);
     };
     let jeton = envois::google_autorisation::autoriser((id, secret), &adresses_de_l_autorisation(), envois::google_autorisation::DELAI_AUTORISATION, &dire_url, &|m| eprintln!("{}", m))?;
     Ok(json!({"compte": sceller_le_jeton(&ctx.racine, &jeton)?}))

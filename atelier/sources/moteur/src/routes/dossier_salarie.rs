@@ -37,6 +37,10 @@ use socle::echec::Refus;
 type R<T> = Result<T, Refus>;
 
 use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, OPERATION};
+use crate::routes::catalogue::{Ecran, Place};
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Exports);
 
 /// La route de ce module, et sa fiche.
 pub const ROUTES: &[Fiche] = &[Fiche {
@@ -55,6 +59,7 @@ pub const ROUTES: &[Fiche] = &[Fiche {
     acte: Acte::Ecrit,
     avance: false,
     phrase: 0,
+    ecran: ECRAN,
 }];
 
 

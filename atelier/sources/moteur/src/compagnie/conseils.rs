@@ -41,8 +41,12 @@ use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
 use crate::routes::catalogue::{Acte, Champ, Fiche, OPERATION, SALARIE};
+use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
 /// Les routes de lecture des conseils, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -56,6 +60,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "conseils-salarie",
@@ -67,6 +72,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Fiches),
     },
     Fiche {
         nom: "conseils-resume",
@@ -78,6 +84,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
 ];
 

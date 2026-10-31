@@ -37,12 +37,16 @@ use socle::valeur::{nom_type, nombre, valeur_en_texte, valeurs_egales};
 
 use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION};
 use crate::routes::engagement::SAISIE_INCOMPLETE;
+use crate::routes::catalogue::{Ecran, Place};
 
 const CARTES: Champ = Champ {
     nom: "cartes",
     sens: "les cartes non écrites de l'écran : [{engagement (son identité, ou null pour une neuve), saisie}]",
     avance: false,
 };
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -56,6 +60,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "apercu",
@@ -67,6 +72,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "echeancier",
@@ -78,6 +84,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "contrats-en-cours",
@@ -89,6 +96,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "contrats-passes",
@@ -100,6 +108,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "emploi",
@@ -111,6 +120,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Lecture,
     },
     Fiche {
         nom: "enregistrer-saisie",
@@ -126,6 +136,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "ajuster",
@@ -143,6 +154,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
 ];
 

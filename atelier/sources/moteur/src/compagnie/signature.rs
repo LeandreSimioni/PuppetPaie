@@ -365,7 +365,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
         );
         lignes.push(noter_envoi(ctx, "contrat-signature", Some(&mois), qui, true, "", &reponse, Some(&detail), Some(&versions))?);
     }
-    Ok(json!({"fichiers": fichiers, "impression": nom_du(&impression), "contrats": contrats, "avenants": lignes_avenants, "lignes": lignes}))
+    Ok(json!({"fichiers": fichiers, "impression": nom_du(&impression), "chemin": impression.to_string_lossy(), "contrats": contrats, "avenants": lignes_avenants, "lignes": lignes}))
 }
 
 // ------------------------------------------------------------------ demander-signature

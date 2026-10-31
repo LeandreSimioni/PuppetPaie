@@ -33,6 +33,7 @@ use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
 
 use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
+use crate::routes::catalogue::{Ecran, Place};
 
 const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", sens: "le dernier jour travaillé avant l'arrêt, qui le désigne", avance: false };
 const DEBUT: Champ = Champ { nom: "debut", sens: "le premier jour de l'absence, qui la désigne", avance: false };
@@ -40,19 +41,22 @@ const UN_ARRET: &str = r#"{"salarie":"FULLER","dernier_jour":"2026-11-27"}"#;
 
 /// Une fiche de ce module : `rend` et les refus que toutes partagent.
 const fn fiche(nom: &'static str, geste: &'static str, charge: &'static [Champ], exemple: &'static str, rend: &'static str, acte: Acte, avance: bool) -> Fiche {
-    Fiche { nom, geste, charge, exemple, rend, refus: &[OPERATION, MANQUE, ILLISIBLE, FORME], acte, avance, phrase: 0 }
+    Fiche { nom, geste, charge, exemple, rend, refus: &[OPERATION, MANQUE, ILLISIBLE, FORME], acte, avance, phrase: 0, ecran: ECRAN }
 }
 
 const ORDRE: Champ = Champ { nom: "ordre", sens: "son numéro d'ordre ; sinon le suivant de ceux déjà partis", avance: true };
 const REMPLACE: Champ = Champ { nom: "remplace", sens: "le signalement qu'il remplace", avance: true };
 const TEST: Champ = Champ { nom: "test", sens: "vrai : un fichier d'essai, marqué comme tel", avance: true };
 
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
+
 /// Les routes de ce module, et leurs fiches, dans l'ordre d'un arrêt : il s'enregistre, se suit, se signale, s'oublie.
 pub const ROUTES: &[Fiche] = &[
     fiche("imprevus", "Lire les imprévus d'un mois ou d'un salarié, et ce qu'on peut en saisir.",
         &[MOIS, Champ { nom: "salarie", sens: "à la place du mois : les imprévus de ce salarié", avance: true }],
         r#"{"mois":"2026-11"}"#, "imprevus (chacun résumé, un arrêt avec ses obligations), nomenclatures", Acte::Lit, false),
-    fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "arrets : chacun résumé", Acte::Lit, true),
+    Fiche { ecran: Ecran::Auto(Place::Exports), ..fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "arrets : chacun résumé", Acte::Lit, true) },
     fiche("fins-de-contrat", "Lire les fins de contrat dues ce mois, et ce qui manque à chacune.", &[MOIS],
         r#"{"mois":"2026-11"}"#, "fins : chacune avec ce qui est fait et ce qui manque", Acte::Lit, false),
     fiche("arret-contrats", "Lire les contrats qu'un arrêt suspendrait à ce jour.",
@@ -104,7 +108,7 @@ pub const ROUTES: &[Fiche] = &[
         r#"{"mois":"2026-11","salarie":"FULLER"}"#, "fichier (écrit dans sorties/AAAA-MM/), phrase, type, ordre, preavis, avertissements", Acte::Ecrit, true) },
     Fiche { phrase: 160, ..fiche("fin-contrat-documents", "Fabriquer le certificat de travail et le reçu pour solde de tout compte.",
         &[MOIS, SALARIE, Champ { nom: "le", sens: "le jour où ils s'établissent ; sinon aujourd'hui", avance: true }],
-        r#"{"mois":"2026-11","salarie":"FULLER"}"#, "phrase, certificat et recu (leurs chemins), avertissements (ce qu'il faut savoir en les remettant)", Acte::Ecrit, false) },
+        r#"{"mois":"2026-11","salarie":"FULLER"}"#, "phrase, certificat et recu (leurs chemins), dossier, avertissements (ce qu'il faut savoir en les remettant)", Acte::Ecrit, false) },
 ];
 
 /// Une route de ce module.
@@ -1073,6 +1077,7 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
         "phrase": format!("Écrits pour {} : {}, {}.", crate::routes::nom_a_l_ecran(&p.salarie), nom(&certificat), nom(&recu)),
         "certificat": certificat.to_string_lossy(),
         "recu": recu.to_string_lossy(),
+        "dossier": ctx.racine.join("sorties").join(mois).to_string_lossy(),
         "avertissements": documents::fin_de_contrat::AVIS,
     }))
 }

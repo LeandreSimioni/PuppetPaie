@@ -19,9 +19,13 @@ use droit::contexte::Contexte;
 use droit::natures::Nature;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
+use crate::routes::catalogue::{Ecran, Place};
 
 const NATURE: Champ = Champ { nom: "nature", sens: "la nature du contrat : cddu_spectacle, cdd, cdi…", avance: false };
 const QUOI: Champ = Champ { nom: "quoi", sens: "contrat ou avenant", avance: false };
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::ModelesContrat);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
@@ -35,6 +39,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "modele-contrat-livre",
@@ -46,6 +51,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "poser-modele-contrat",
@@ -57,6 +63,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "retirer-modele-contrat",
@@ -68,6 +75,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "clauses-particulieres",
@@ -79,6 +87,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 60,
+        ecran: ECRAN,
     },
 ];
 

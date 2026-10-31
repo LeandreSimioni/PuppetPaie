@@ -624,7 +624,7 @@ async function boiteEnvoi(mois) {
     try {
       const r = await api("documents-imprimer", { mois, salaries });
       fermerBoite();
-      await ouvrirImpression(mois, r.impression, "Documents de " + r.salaries.length + " salarié(s) à imprimer.");
+      await ouvrirEtDire(r.chemin, "Documents de " + r.salaries.length + " salarié(s) à imprimer.");
       await rafraichirActions();
     } catch (e) {
       rendre();
@@ -654,15 +654,6 @@ async function boiteEnvoi(mois) {
 }
 
 /* --------------------------------------------- les contrats à faire signer */
-
-/** LE PDF À IMPRIMER s'ouvre : le moteur l'a écrit (`impression`), la fenêtre l'ouvre,
- *  et le message dit ce qui est à imprimer (`quoi`) et où est le PDF (la phrase du moteur). */
-async function ouvrirImpression(mois, fichier, quoi) {
-  try {
-    const r = await api("ouvrir-piece", { impression: mois, fichier });
-    dire([quoi, r && r.phrase].filter(Boolean).join(" "), "envoye");
-  } catch (e) { dire(e.message, "erreur"); }
-}
 
 /** LES CONTRATS À FAIRE PARTIR : ceux que le moteur dit à envoyer
  *  (`a_envoyer` : jamais partis, ou changés depuis), tous cochés ; on décoche
@@ -732,7 +723,7 @@ async function boiteSignature(mois, seulement) {
     try {
       const r = await api("contrats-imprimer", { mois, contrats: choisis, avenants });
       fermerBoite();
-      await ouvrirImpression(mois, r.impression, "À imprimer : " + [...r.contrats.map((c) => "contrat n° " + c.numero),
+      await ouvrirEtDire(r.chemin, "À imprimer : " + [...r.contrats.map((c) => "contrat n° " + c.numero),
         ...r.avenants.map((c) => "avenant n° " + c.avenant + " au contrat n° " + c.numero)].join(", ") + ".");
       await rafraichirActions();
     } catch (e) {

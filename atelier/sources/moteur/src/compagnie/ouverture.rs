@@ -43,6 +43,9 @@ use crate::routes::catalogue::{Acte, Champ, Fiche, OPERATION};
 use crate::routes::fiches::ReleveFiches;
 use crate::compagnie::sauvegarde::{self, Sauvegarde};
 
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Bandeau);
+
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
@@ -60,6 +63,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "ouverture-derniere",
@@ -71,11 +75,13 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Lecture,
     },
 ];
 
 /// `compagnies.MARQUEUR`.
 use socle::fichiers::MARQUEUR_COPIE;
+use crate::routes::catalogue::{Ecran, Place};
 
 /// La trace de la derniere ouverture : `config/.ouverture.json`.
 const TRACE: &str = ".ouverture.json";

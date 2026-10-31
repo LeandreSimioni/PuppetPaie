@@ -28,20 +28,24 @@ use socle::fichiers::lire_json_echec as lire_json;
 use socle::fichiers::{nom_du, repr, vrai};
 use socle::html::courriel_en_html;
 use socle::valeur::{nom_type, valeur_en_texte, valeurs_egales};
+use crate::routes::catalogue::{Ecran, Place};
 
 const ANNEE: Champ = Champ { nom: "annee", sens: "l'année, AAAA", avance: false };
 
 /// Une lecture sans charge de l'Historique ou des Exports.
 const fn lecture(nom: &'static str, geste: &'static str, rend: &'static str) -> Fiche {
-    Fiche { nom, geste, charge: &[], exemple: "{}", rend, refus: &[OPERATION], acte: Acte::Lit, avance: false, phrase: 0 }
+    Fiche { nom, geste, charge: &[], exemple: "{}", rend, refus: &[OPERATION], acte: Acte::Lit, avance: false, phrase: 0, ecran: ECRAN }
 }
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Exports);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
-    lecture("exercices", "Lister les années : leurs DSN, leur clôture, leur export comptable.", "annees (chacune : DSN, clôture, export)"),
+    Fiche { ecran: Ecran::Dessine(Place::Historique), ..lecture("exercices", "Lister les années : leurs DSN, leur clôture, leur export comptable.", "annees (chacune : DSN, clôture, export)") },
     lecture("dossier-formes", "Dire ce que peut porter le dossier d'un salarié : catégories, périodes.", "salaries, categories, periodes"),
     lecture("exports-periodes", "Dire ce qui s'exporte : mois, années, états, formats, logiciel comptable.", "mois, annees, etats, formats, logiciel retenu"),
-    lecture("regularisations", "Lister les corrections à porter et portées, par mois d'origine.", "les corrections, mois par mois"),
+    Fiche { ecran: Ecran::Dessine(Place::Historique), ..lecture("regularisations", "Lister les corrections à porter et portées, par mois d'origine.", "les corrections, mois par mois") },
     Fiche {
         nom: "couts",
         geste: "Dire le coût de l'année, spectacle par spectacle.",
@@ -52,6 +56,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Fiches),
     },
     Fiche {
         nom: "revue-spectacles",
@@ -63,6 +68,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Paie),
     },
     Fiche {
         nom: "cloture",
@@ -78,6 +84,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Historique),
     },
     Fiche {
         nom: "export-compta",
@@ -94,6 +101,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Historique),
     },
     Fiche {
         nom: "retenir-logiciel",
@@ -105,6 +113,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "casc-regularise",
@@ -120,6 +129,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "exporter",
@@ -137,6 +147,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "dossier-envoyer",
@@ -156,6 +167,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Engage,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "droits",
@@ -167,6 +179,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
+        ecran: ECRAN,
     },
     Fiche {
         nom: "archiver",
@@ -183,6 +196,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
+        ecran: Ecran::Dessine(Place::Historique),
     },
     Fiche {
         nom: "casc-envoyer",
@@ -201,6 +215,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Engage,
         avance: true,
         phrase: 0,
+        ecran: ECRAN,
     },
 ];
 

@@ -14,7 +14,7 @@ const noteFictive = (vers, reponse = true) => `<p class="note"><b>Compagnie fict
  *  comme la veille l'aurait fait à son passage. */
 function attendreSignaturesFictives() {
   setTimeout(async () => {
-    try { await api("veille-maintenant"); } catch (e) { return; }
+    try { await fenetre("veille_maintenant"); oublierLeMois(); } catch (e) { return; }
     await rafraichirActions();
     dire("Compagnie fictive : les contrats sont revenus signés.");
   }, 22000);
