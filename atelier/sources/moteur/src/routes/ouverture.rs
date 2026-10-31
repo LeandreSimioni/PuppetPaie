@@ -1,7 +1,7 @@
 //! Les routes de l'ouverture : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration verifiee,
 //! l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
 //! `pour-demarrer` (ce qui manque pour les premiers actes), `maj-etat`, `sauvegarde-derniere`, `sauvegarde-maintenant`, `echeance-faite`,
-//! `journal-reprise`, `courriels-fictifs` et `compagnie-suppression` (ce que la suppression demande).
+//! `journal-reprise`, `courriels-fictifs` et `compagnie-supprimer`.
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le
@@ -144,13 +144,16 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
     },
     Fiche {
-        nom: crate::routes::COMPAGNIE_SUPPRESSION,
-        geste: "Dire ce que la suppression de la compagnie demande.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: "le nom, le genre, la conservation à rappeler et la sauvegarde à proposer",
-        refus: &[Refus { classe: "ErreurOperation", corriger: "rien : cette compagnie ne se supprime pas" }],
-        acte: Acte::Lit,
+        nom: crate::routes::COMPAGNIE_SUPPRIMER,
+        geste: "Supprimer la compagnie de ce poste : avertir, puis effacer tout son dossier.",
+        charge: &[
+            Champ { nom: "confirme", sens: "vrai : effacer ; sans lui, la route dit seulement ce qui sera effacé et ce qu'elle demande", avance: false },
+            Champ { nom: "motdepasse", sens: "une compagnie réelle : le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false },
+        ],
+        exemple: r#"{"confirme": true}"#,
+        rend: "sans confirme : nom, genre (ajoutee ou reelle), avertissement, conservation et sauvegarde à proposer, ou la phrase qui dit pourquoi elle ne se supprime pas ; avec : supprimee, phrase",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit (une fictive livrée se remet à zéro, le mot de passe du logiciel refusé, un dossier tenu ouvert) ; rien n'est effacé" }],
+        acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
     },
@@ -170,9 +173,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             }
             v
         }),
-        // Supprimer la compagnie : ce que la boite demande ; la suppression elle-meme est un geste de la fenetre, qui lache
-        // d'abord ce qu'elle tient de la compagnie.
-        crate::routes::COMPAGNIE_SUPPRESSION => crate::interface::suppression::question(&ctx.racine).map_err(|m| erreur("ErreurOperation", m)),
+        // Supprimer la compagnie : avertir, puis effacer. Par `moteur route`, rien a lacher ; la fenetre sert elle-meme la
+        // suppression confirmee, pour lacher d'abord ce qu'elle tient de la compagnie (`interface::Fenetre`).
+        crate::routes::COMPAGNIE_SUPPRIMER => crate::interface::suppression::route(&ctx.racine, charge, &|_| {}).map_err(|m| erreur("ErreurOperation", m)),
         "maj-etat" => version(),
         // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
         "sauvegarde-derniere" => Ok(crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json()),

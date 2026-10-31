@@ -141,6 +141,17 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
     },
     Fiche {
+        nom: "google-autoriser",
+        geste: "Lier le compte Google de la sauvegarde : Google s'ouvre, la personne accepte.",
+        charge: &[MOT_DE_PASSE],
+        exemple: r#"{}"#,
+        rend: "compte : l'adresse du compte Google lié ; la fenêtre de Google s'ouvre dans le navigateur, son adresse est dite sur la sortie d'erreur",
+        refus: &[PREUVE, Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit (Google a refusé, aucune réponse en cinq minutes, l'application absente) ; rien n'est enregistré" }],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+    },
+    Fiche {
         nom: "google-oublier",
         geste: "Délier le compte Google de la sauvegarde : le jeton du poste s'efface.",
         charge: &[MOT_DE_PASSE],
@@ -164,6 +175,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge),
         "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge),
         "google-oublier" => google_oublier(ctx, charge),
+        "google-autoriser" => google_autoriser(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -509,22 +521,37 @@ pub fn client_drive(racine: &Path) -> Result<envois::drive::Client, envois::driv
     Ok(envois::drive::Client::nouveau(autorisation, adresses_du_poste()))
 }
 
-/// LIER LE COMPTE GOOGLE : lit l'application et les adresses du poste, mene l'autorisation
-/// (`google_autorisation::autoriser`), puis scelle le jeton obtenu. Rend l'adresse du compte lie.
-pub(crate) fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire: &dyn Fn(&str)) -> R<String> {
-    let (id, secret, _) = identifiants(racine).map_err(|e| Echec { classe: Some("ErreurOperation"), message: e.message })?;
-    let adresses = {
-        #[cfg(feature = "atelier")]
-        if let Some(b) = crate::atelier::redirection::base(crate::atelier::redirection::VARIABLE_GOOGLE) {
-            envois::google_autorisation::Adresses::de_la_base(&b)
-        } else {
-            envois::google_autorisation::Adresses::default()
-        }
-        #[cfg(not(feature = "atelier"))]
-        envois::google_autorisation::Adresses::default()
+/// La variable d'un faux Google des essais : sa base locale (`http://127.0.0.1:<port>`), lue en essai seulement
+/// (`garde_reseau::en_essai`, que Cargo pose) ; les jetons et le compte y sont demandes (`google_autorisation::Adresses`).
+pub const VARIABLE_GOOGLE_ESSAIS: &str = "PUPPETPAIE_ESSAIS_GOOGLE";
+
+/// Les adresses de l'autorisation : celles de Google ; dans l'atelier, son faux Google ; en essai, celui que l'essai
+/// nomme (`VARIABLE_GOOGLE_ESSAIS`, une adresse locale seulement).
+fn adresses_de_l_autorisation() -> envois::google_autorisation::Adresses {
+    #[cfg(feature = "atelier")]
+    if let Some(b) = crate::atelier::redirection::base(crate::atelier::redirection::VARIABLE_GOOGLE) {
+        return envois::google_autorisation::Adresses::de_la_base(&b);
+    }
+    let essai = std::env::var(VARIABLE_GOOGLE_ESSAIS).ok().filter(|b| socle::garde_reseau::en_essai() && envois::redirection::est_locale(b));
+    match essai {
+        Some(b) => envois::google_autorisation::Adresses::de_la_base(b.trim_end_matches('/')),
+        None => envois::google_autorisation::Adresses::default(),
+    }
+}
+
+/// LIER LE COMPTE GOOGLE (`google-autoriser`) : le mot de passe du logiciel s'il est pose, puis l'autorisation
+/// (`google_autorisation::autoriser`) : le moteur ouvre la fenetre de consentement de Google dans le navigateur du poste
+/// et dit son adresse sur la sortie d'erreur (un terminal sans navigateur la copie), la personne accepte, Google renvoie
+/// le code au moteur, qui scelle le jeton. Rend l'adresse du compte lie. La page et `moteur route` l'appellent pareil.
+fn google_autoriser(ctx: &Contexte, charge: &Value) -> R<Value> {
+    exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "lier le compte Google")?;
+    let (id, secret, _) = identifiants(&ctx.racine).map_err(|e| Echec { classe: Some("ErreurOperation"), message: e.message })?;
+    let dire_url = |u: &str| {
+        eprintln!("La fenetre de Google, a ouvrir dans le navigateur si elle ne s'ouvre pas seule : {}", u);
+        let _ = crate::interface::api::ouvrir_adresse(u);
     };
-    let jeton = envois::google_autorisation::autoriser((id, secret), &adresses, delai, dire_url, dire)?;
-    sceller_le_jeton(racine, &jeton)
+    let jeton = envois::google_autorisation::autoriser((id, secret), &adresses_de_l_autorisation(), envois::google_autorisation::DELAI_AUTORISATION, &dire_url, &|m| eprintln!("{}", m))?;
+    Ok(json!({"compte": sceller_le_jeton(&ctx.racine, &jeton)?}))
 }
 
 /// Le jeton que l'autorisation a obtenu (`google_autorisation::autoriser`) et l'adresse du compte, dans un seul fichier

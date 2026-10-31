@@ -115,7 +115,20 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
             std::fs::write(inst.join("administrateur.json"), registre.to_string()).unwrap();
         }
         // Un secret ne se lit jamais dans la charge : la fausse demande des essais le tape (`demande::canal_de_la_route`).
-        let r = route_avec(&c, f.nom, serde_json::from_str(f.exemple).unwrap(), "2026-11-02", &[(VARIABLE_ESSAIS, "exemple")]);
+        let exemple = serde_json::from_str(f.exemple).unwrap();
+        let r = match f.nom {
+            "google-autoriser" => google_autoriser(&c, exemple),
+            // La suppression efface une compagnie ajoutee a part, pas celle des exemples.
+            "compagnie-supprimer" => {
+                let autre = c.parent().unwrap().join("ajoutee-a-supprimer");
+                crate::outils::copier(&c.join("config"), &autre.join("config"));
+                std::fs::write(autre.join("COPIE-DE-DEVELOPPEMENT.json"), json!({"copie_de": "compagnie fictive ajoutee", "ajoutee": true}).to_string()).unwrap();
+                let r = route(&autre, f.nom, exemple, "2026-11-02");
+                assert!(!autre.exists(), "compagnie-supprimer : la compagnie est encore la");
+                r
+            }
+            _ => route_avec(&c, f.nom, exemple, "2026-11-02", &[(VARIABLE_ESSAIS, "exemple")]),
+        };
         assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom, r);
         if f.phrase > 0 {
             let p = r["resultat"]["phrase"].as_str().unwrap_or_else(|| panic!("{} : la phrase manque : {}", f.nom, r));
@@ -124,35 +137,107 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
     }
 }
 
-/// Les gestes que seule la fenetre sert (`interface::api::traiter`), hors du catalogue, chacun avec sa raison. La liste ne
-/// fait que diminuer : un geste qui y entre fait echouer le test, un geste porte au catalogue doit en sortir.
-/// - ouvrir un fichier ou un dossier dans l'explorateur du poste, choisir un dossier : des gestes du poste, pas du metier
-///   (`piece-partie`, `historique-mois` disent ou est une piece) ;
-/// - la veille : l'etat du passage periodique, tenu dans la memoire de la fenetre (un passage se fait par `ouverture`) ;
-/// - lier le compte Google : un humain dans le navigateur, que l'exemple d'une fiche ne joue pas sur une compagnie de test.
-const FENETRE_SEULE: [&str; 10] = [
-    "ouvrir-piece", "ouvrir-dossier", "ouvrir-exercices", "ouvrir-exports", "ouvrir-import", "choisir-dossier",
-    "veille", "veille-etape", "veille-maintenant", "google-autoriser",
+
+/// L'exemple de `google-autoriser`, sur un faux Google local (rien ne sort de la machine) : le test fait le navigateur
+/// (il lit l'adresse de la fenetre de Google que le moteur dit sur sa sortie d'erreur, et renvoie un code a l'adresse
+/// locale qu'elle nomme) ; le faux Google rend un jeton et l'adresse du compte.
+fn google_autoriser(c: &Path, exemple: Value) -> Value {
+    use std::io::{BufRead, Read, Write};
+    use std::process::{Command, Stdio};
+    let (google, _) = crate::outils::serveur(|r| {
+        Some(match r.chemin.as_str() {
+            "/token" => crate::outils::http_json(200, &json!({"refresh_token": "essai", "access_token": "essai", "scope": ""})),
+            "/userinfo" => crate::outils::http_json(200, &json!({"email": "sauvegarde@exemple.invalid"})),
+            _ => crate::outils::http(404, "text/plain", b""),
+        })
+    });
+    // L'application du logiciel n'est livree qu'avec une version publiee : celle de la compagnie, inventee.
+    std::fs::write(c.join("config/google.json"), json!({"client_id": "essai.apps.googleusercontent.com", "client_secret": "essai"}).to_string()).unwrap();
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_moteur"));
+    cmd.args(["route", "--racine", c.to_str().unwrap(), "--date", "2026-11-02"]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    crate::outils::bac_a_sable(&mut cmd, c, "2026-11-02");
+    cmd.env(moteur::routes::coffre::VARIABLE_GOOGLE_ESSAIS, &google).env(VARIABLE_ESSAIS, "exemple");
+    let mut p = cmd.spawn().unwrap();
+    p.stdin.take().unwrap().write_all(json!({"route": "google-autoriser", "charge": exemple}).to_string().as_bytes()).unwrap();
+    let (envoi, recu) = std::sync::mpsc::channel();
+    let erreur = p.stderr.take().unwrap();
+    std::thread::spawn(move || {
+        for l in std::io::BufReader::new(erreur).lines().map_while(Result::ok) {
+            let _ = envoi.send(l);
+        }
+    });
+    let adresse = recu.iter().find_map(|l| l.split_once(": https://").map(|(_, u)| u.to_string())).expect("l'adresse de la fenetre de Google");
+    let valeur = |cle: &str| adresse.split(['?', '&']).find_map(|kv| kv.strip_prefix(&format!("{}=", cle))).unwrap().to_string();
+    let retour = valeur("redirect_uri").replace("%3A", ":").replace("%2F", "/");
+    let hote = retour.trim_start_matches("http://").trim_end_matches('/');
+    let mut navigateur = std::net::TcpStream::connect(hote).unwrap();
+    write!(navigateur, "GET /?code=essai&state={} HTTP/1.1\r\nHost: {}\r\n\r\n", valeur("state"), hote).unwrap();
+    let _ = navigateur.read_to_end(&mut Vec::new());
+    let sortie = p.wait_with_output().unwrap().stdout;
+    serde_json::from_slice(&sortie).unwrap()
+}
+
+/// Ouvrir un fichier ou un dossier dans l'explorateur du poste : un geste du poste, pas du metier (`piece-partie`,
+/// `historique-mois` disent ou est une piece).
+const OUVRIR: &str = "l'explorateur du poste";
+/// La boite du systeme qui choisit un dossier : un geste du poste (la charge d'une route porte le chemin choisi).
+const CHOISIR: &str = "la boite de choix du poste";
+/// L'etat du passage periodique, tenu dans la memoire de la fenetre (un passage se fait par la route `ouverture`).
+const VEILLE: &str = "la veille de la fenetre";
+
+/// LES SEULS GESTES QUE LA FENETRE SERT HORS DU CATALOGUE (`interface::api::traiter`) : ceux du poste, chacun avec sa
+/// raison. Rien du metier n'y entre : tout ce qui se fait a l'ecran se fait par `moteur route`.
+const FENETRE_SEULE: [(&str, &str); 9] = [
+    ("ouvrir-piece", OUVRIR), ("ouvrir-dossier", OUVRIR), ("ouvrir-exercices", OUVRIR), ("ouvrir-exports", OUVRIR),
+    ("ouvrir-import", OUVRIR), ("choisir-dossier", CHOISIR), ("veille", VEILLE), ("veille-etape", VEILLE),
+    ("veille-maintenant", VEILLE),
 ];
 
+/// Ce que la page demande au moteur : `api("…"`, `appel("…"`, `fetch("/api/…`.
+fn appels_de_la_page(t: &str) -> Vec<String> {
+    let mut v = Vec::new();
+    for debut in ["api(\"", "appel(\"", "fetch(\"/api/"] {
+        for morceau in t.split(debut).skip(1) {
+            // Une route qui se compose (`"/api/" + route`) est celle d'un `api(...)` : elle n'a pas de nom ici.
+            let nom = morceau.split(['"', '?']).next().unwrap();
+            if !nom.is_empty() {
+                v.push(nom.to_string());
+            }
+        }
+    }
+    v
+}
+
 /// Tout ce qui se fait a l'ecran se fait en ligne de commande, et l'inverse : chaque route que la page appelle est au
-/// catalogue, et chaque route du catalogue se sert par `moteur route`.
+/// catalogue (hors des seuls gestes du poste, `FENETRE_SEULE`), et chaque route du catalogue se sert par `moteur route`.
 #[test]
 fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
     let noms: BTreeSet<&str> = catalogue().iter().map(|f| f.nom).collect();
+    let du_poste = |n: &str, raison: &str| match raison {
+        OUVRIR => n.starts_with("ouvrir-"),
+        CHOISIR => n.starts_with("choisir-"),
+        VEILLE => n.starts_with("veille"),
+        _ => false,
+    };
+    for (n, raison) in FENETRE_SEULE {
+        assert!(du_poste(n, raison), "{} n'est pas un geste du poste : mets ce geste au catalogue, tout ce qui se fait à l'écran se fait par moteur route", n);
+    }
+    let seule = |n: &str| FENETRE_SEULE.iter().any(|(x, _)| *x == n);
     let js = espace().join("../../logiciel/interface/js");
     let mut page = String::new();
     for e in std::fs::read_dir(&js).unwrap().flatten() {
         let t = std::fs::read_to_string(e.path()).unwrap();
         page.push_str(&t);
-        for morceau in t.split("api(\"").skip(1) {
-            let nom = morceau.split('"').next().unwrap().to_string();
-            if !noms.contains(nom.as_str()) {
-                assert!(FENETRE_SEULE.contains(&nom.as_str()), "{} appelle la route {}, absente du catalogue", e.file_name().to_string_lossy(), nom);
-            }
+        for nom in appels_de_la_page(&t) {
+            assert!(
+                noms.contains(nom.as_str()) || seule(&nom),
+                "{} appelle {}, absente du catalogue : mets ce geste au catalogue, tout ce qui se fait à l'écran se fait par moteur route",
+                e.file_name().to_string_lossy(),
+                nom
+            );
         }
     }
-    for n in FENETRE_SEULE {
+    for (n, _) in FENETRE_SEULE {
         assert!(page.contains(&format!("\"{}\"", n)) && !noms.contains(n), "{} : au catalogue, ou plus appelee par la page ; elle sort de FENETRE_SEULE", n);
     }
     let c = treteaux("servies");

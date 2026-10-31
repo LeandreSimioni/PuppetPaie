@@ -1,4 +1,7 @@
-/* La configuration : la liste, l'importation, metiers, organismes, AT/MP, sante. */
+    try {
+      await api("compagnie-supprimer", { confirme: true, ...(mdp ? { motdepasse: mdp } : {}) });
+      location.replace("/");
+    } catch (e) { document.getElementById("sup-erreur").textContent = e.message; }/* La configuration : la liste, l'importation, metiers, organismes, AT/MP, sante. */
 "use strict";
 
 /* =======================================================================
@@ -1799,9 +1802,9 @@ function enteteSalarie(fiche) {
 
 /* SUPPRIMER LA COMPAGNIE , sous la fiche Entreprise. Le moteur dit si elle se supprime
    (`supprimable` de la route `etat` : jamais une fictive livrée, qui se remet à zéro) et ce que la boîte demande
-   (`compagnie-suppression`) : une compagnie créée en démo, une confirmation ; une compagnie réelle, le rappel de la
-   conservation des bulletins, la sauvegarde si un Drive est lié, puis le mot de passe du logiciel (le popup de chaque acte
-   qui engage, `demanderMotDePasse`). La fenêtre supprime (`pywebview.api.supprimer`) et revient à l'accueil. */
+   (`compagnie-supprimer`, sans `confirme`) : ce qui sera effacé ; une compagnie réelle, le rappel de la conservation des
+   bulletins, la sauvegarde si un Drive est lié, puis le mot de passe du logiciel (le popup de chaque acte qui engage,
+   `demanderMotDePasse`). La même route, confirmée, supprime ; la page revient à l'accueil. */
 function dessinerSuppression() {
   const zone = document.getElementById("config-suppression");
   if (!zone) return;
@@ -1816,7 +1819,7 @@ function dessinerSuppression() {
 
 async function boiteSuppression() {
   let q;
-  try { q = await api("compagnie-suppression"); }
+  try { q = await api("compagnie-supprimer"); }
   catch (e) { dire(e.message, "erreur"); return; }
   // Une compagnie qui ne se supprime pas : le moteur dit pourquoi.
   if (!q.genre) { dire(q.phrase, "erreur"); return; }
@@ -1828,7 +1831,7 @@ async function boiteSuppression() {
        <span class="discret" id="sup-sauvegarde-etat"></span></p>`
     : "";
   ouvrirBoite(`<h3>Supprimer ${echapper(q.nom)} ?</h3>
-    <p>Tout le dossier de cette compagnie sera effacé de ce poste : fiches, paies, documents, journaux. Cela ne se défait pas.</p>
+    <p>${echapper(q.avertissement)}</p>
     ${reelle ? `<p>${echapper(q.conservation)}</p>` : ""}
     ${sauvegarde}
     <p class="erreur" id="sup-erreur"></p>
@@ -1856,7 +1859,9 @@ async function boiteSuppression() {
       mdp = await demanderMotDePasse("supprimer définitivement " + q.nom);
       if (mdp === null) return;
     }
-    const r = await window.pywebview.api.supprimer(mdp);
-    if (!r || !r.ok) document.getElementById("sup-erreur").textContent = (r && r.erreur) || "Rien n'a été supprimé.";
+    try {
+      await api("compagnie-supprimer", { confirme: true, ...(mdp ? { motdepasse: mdp } : {}) });
+      location.replace("/");
+    } catch (e) { document.getElementById("sup-erreur").textContent = e.message; }
   };
 }

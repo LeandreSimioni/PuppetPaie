@@ -96,7 +96,7 @@ pub fn genre(inst: &Path, racine: &Path) -> Result<Genre, String> {
     Ok(Genre::Reelle)
 }
 
-/// LA QUESTION de la suppression, telle que la page la pose (route `compagnie-suppression`) : le nom, le genre, et pour
+/// LA QUESTION de la suppression, telle que la page la pose (route `compagnie-supprimer`, sans `confirme`) : le nom, le genre, et pour
 /// une compagnie reelle le rappel de la conservation et la sauvegarde a proposer (un Drive lie : la date du dernier
 /// passage). Une compagnie qui ne se supprime pas rend, sans genre, la phrase qui dit pourquoi.
 pub fn question(racine: &Path) -> Result<Value, String> {
@@ -112,6 +112,27 @@ pub fn question(racine: &Path) -> Result<Value, String> {
         v["sauvegarde"] = json!({"liee": liee, "derniere": crate::compagnie::sauvegarde::derniere(racine).quand});
     }
     Ok(v)
+}
+
+/// LA ROUTE `compagnie-supprimer` : avertir, puis effacer. Sans `confirme` : la question (`question`) et l'avertissement,
+/// qui dit ce qui sera efface ; rien ne bouge. Avec `confirme` : la suppression (`supprimer`), la preuve d'une compagnie
+/// reelle comprise (le `motdepasse` que la page a fait taper ; sinon le moteur le demande lui-meme a un humain). `avant` :
+/// ce que la fenetre lache de la compagnie avant qu'elle parte (rien, par `moteur route`).
+pub fn route(racine: &Path, charge: &Value, avant: &dyn Fn(&Path)) -> Result<Value, String> {
+    if !charge.get("confirme").is_some_and(socle::fichiers::vrai) {
+        let mut q = question(racine)?;
+        if q.get("genre").is_some() {
+            q["avertissement"] = json!(format!(
+                "Tout le dossier de {} sera effacé de ce poste : fiches, paies, documents, journaux. Cela ne se défait pas.",
+                compagnies::nom_de(racine)
+            ));
+        }
+        return Ok(q);
+    }
+    let inst = crate::compagnie::administrateur::installation_de(racine);
+    let motdepasse = charge.get("motdepasse").and_then(Value::as_str);
+    let nom = supprimer(&inst, racine, motdepasse, &Poste::de_ce_poste(), avant)?;
+    Ok(json!({"supprimee": nom, "phrase": format!("{} est supprimée de ce poste.", nom)}))
 }
 
 /// La preuve d'une suppression reelle : le mot de passe du logiciel, verifie sur le coffre de la compagnie. Vide : le

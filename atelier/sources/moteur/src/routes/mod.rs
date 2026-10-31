@@ -46,8 +46,8 @@ pub mod rappels;
 pub mod mois;
 pub mod catalogue;
 
-/// Supprimer la compagnie : ce que la boite demande.
-pub const COMPAGNIE_SUPPRESSION: &str = "compagnie-suppression";
+/// Supprimer la compagnie : avertir, puis effacer (`interface::suppression::route`).
+pub const COMPAGNIE_SUPPRIMER: &str = "compagnie-supprimer";
 
 /// La pile d'un fil qui sert des routes dans la fenetre : 8 Mo, celle du fil principal d'un `moteur route` sous Linux (un
 /// fil neuf n'en a que 2). Un calcul qui remonte les mois d'avant s'y empile ; un debordement de pile ne se rattrape pas

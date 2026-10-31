@@ -3,8 +3,7 @@
 //!
 //! LES ROUTES TOURNENT DANS LE PROCESSUS DE LA FENETRE :
 //! `route`, et pourquoi rien ne reste a part. S'ajoutent ici les gestes qui ne sont pas des routes du moteur :
-//! ouvrir un dossier dans l'explorateur, la veille, l'autorisation Google (le navigateur s'ouvre sur la fenetre de
-//! consentement), et le filet qui repasse en fond.
+//! ouvrir un dossier dans l'explorateur, choisir un dossier, la veille, et le filet qui repasse en fond.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -321,17 +320,6 @@ fn ouvrir_sous(dossier: PathBuf, absent: &str) -> Result<Value, Refus> {
     Ok(json!({"dossier": dossier.display().to_string(), "phrase": phrase}))
 }
 
-fn google_autoriser(racine: &Path, charge: &Value) -> Result<Value, Refus> {
-    let vers = |f: socle::echec::Echec| Refus::simple(f.classe.unwrap_or("ErreurOperation"), f.message);
-    let mot = charge.get("motdepasse").cloned().unwrap_or(Value::Null);
-    crate::compagnie::filet::exiger_mot_de_passe(racine, &mot, "lier le compte Google").map_err(vers)?;
-    let url = |u: &str| {
-        let _ = ouvrir_adresse(u);
-    };
-    let compte = crate::routes::coffre::autoriser(racine, envois::google_autorisation::DELAI_AUTORISATION, &url, &|_| {}).map_err(vers)?;
-    Ok(json!({"compte": compte}))
-}
-
 /// Le filet repasse en fond apres une ecriture de mois ou un envoi de contrats : l'ecran n'attend pas l'Urssaf.
 fn filet_en_fond(racine: &Path) {
     let r = racine.to_path_buf();
@@ -368,7 +356,6 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             Some(v) => Ok(v.tour(false, false)),
             None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
         },
-        "google-autoriser" => google_autoriser(racine, charge),
         "choisir-dossier" => choisir_dossier(charge),
         "ouvrir-import" => ouvrir_import(racine, charge),
         // `xlsx` et `pdf` : deux faits du poste, que le moteur constate lui-meme.

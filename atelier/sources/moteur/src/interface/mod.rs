@@ -81,7 +81,7 @@ const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zer
 /// jour et redemarrer pour l'installer (`js/mise-a-jour.js`). L'administrateur, dans la Configuration
 /// (`js/coffre-compte.js`) : ce qu'il est pour cette compagnie, la rattacher, la detacher, changer son mot
 /// de passe.
-const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "supprimer", "administrateur", "rattacher", "detacher", "changer_administrateur"]"#;
+const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "administrateur", "rattacher", "detacher", "changer_administrateur"]"#;
 
 #[derive(Clone)]
 enum Phase {
@@ -770,23 +770,6 @@ impl Fenetre {
                     Err(m) => refus(m),
                 }
             }
-            // SUPPRIMER LA COMPAGNIE OUVERTE : tout se decide dans `suppression::supprimer` (la preuve d'une
-            // compagnie reelle : le mot de passe du logiciel, tape dans le popup de la page). Un passage de la veille en
-            // cours ecrit dans son dossier : on attend qu'il finisse.
-            ("supprimer", Phase::Ouverte { racine, veille, .. }) => {
-                if veille.occupee() {
-                    return refus("Un relevé ou une sauvegarde de cette compagnie est en cours : attendez qu'il se termine, puis recommencez. Rien n'a été supprimé.".into());
-                }
-                let mdp = a(0);
-                let poste = crate::compagnie::administrateur::Poste::de_ce_poste();
-                match suppression::supprimer(&compagnies::base(), &racine, Some(mdp.as_str()), &poste, &|r| self.lacher(r)) {
-                    Ok(nom) => {
-                        self.ecrire(&format!("Compagnie supprimee : {} ({}).\n", nom, racine.display()));
-                        json!({"ok": true, "recharger": true, "nom": nom})
-                    }
-                    Err(m) => refus(m),
-                }
-            }
             ("verifier", Phase::MotDePasse { racine, .. }) => match crate::compagnie::coffre::Coffre::du_poste(&racine, "").verifier_ouverture(&a(0)) {
                 Ok(true) => {
                     self.retenir_administrateur(&racine, &a(0));
@@ -894,6 +877,21 @@ impl Fenetre {
                     if let Ok(lot) = serde_json::from_str::<Value>(&http::decoder_pourcent(g)) {
                         crate::compagnie::diagnostic::noter_gestes(&racine, &lot);
                     }
+                }
+                // SUPPRIMER LA COMPAGNIE OUVERTE (`compagnie-supprimer` confirmee) : la route decide tout
+                // (`suppression::route`) ; la fenetre lache d'abord ce qu'elle tient de la compagnie (sa veille, sa file
+                // des etats, son journal), et ne note rien apres dans un dossier qui n'est plus. Un passage de la veille en
+                // cours ecrit dans ce dossier : on attend qu'il finisse.
+                if nom == crate::routes::COMPAGNIE_SUPPRIMER && charge.get("confirme").is_some_and(socle::fichiers::vrai) {
+                    let rendu = if veille.occupee() {
+                        Err(api::Refus::simple("ErreurOperation", "Un relevé ou une sauvegarde de cette compagnie est en cours : attendez qu'il se termine, puis recommencez. Rien n'a été supprimé."))
+                    } else {
+                        suppression::route(&racine, &charge, &|r| self.lacher(r)).map_err(|m| api::Refus::simple("ErreurOperation", m))
+                    };
+                    if rendu.is_ok() {
+                        self.ecrire(&format!("Compagnie supprimee : {}.\n", racine.display()));
+                    }
+                    return Reponse::json(200, &api::en_page(rendu));
                 }
                 let debut = Instant::now();
                 let rendu = api::repondre(&racine, nom, &charge, Some(&veille), Some(&etats));
