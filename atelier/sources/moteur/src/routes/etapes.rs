@@ -336,35 +336,27 @@ pub(crate) fn contrat_parti_le(departs: &engagement::departs::Departs, cle: &str
     departs.de(cle, n).iter().rev().find(|d| d.envoi == engagement::departs::Envoi::Contrat).map_or(Value::Null, |d| Value::String(d.le.clone()))
 }
 
-/// Ce qui est a refaire pour chaque engagement de `etats` (ceux d'un mois, dans l'ordre de l'ecran) : le present compare
-/// a la version sur laquelle chaque envoi est parti (`engagement::etats::a_refaire`) ; rien pour un engagement en saisie.
-pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs) -> R<Vec<Vec<ARefaire>>> {
+/// Ce qui est a refaire pour l'engagement `e` : le present compare a la version sur laquelle chaque envoi est parti
+/// (`engagement::etats::a_refaire`) ; rien pour un engagement en saisie.
+pub(crate) fn a_refaire_de(ctx: &Contexte, e: &engagement::etats::Etat, departs: &engagement::departs::Departs) -> Vec<ARefaire> {
     // Un contrat rompu n'a pas d'avenant (`contrats::seule_la_rupture`).
     let saisie = |x: Option<&Value>| x.and_then(|x| x.get("saisie")).cloned().unwrap_or(Value::Null);
-    Ok(etats
-        .iter()
-        .map(|e| {
-            let Some(v) = e.valide() else { return Vec::new() };
-            let presente = saisie(v.objet().brut.get("valide"));
-            let mut r = engagement::etats::a_refaire(ctx, v, departs);
-            r.retain(|a| !matches!(a, ARefaire::Avenant { depuis } if crate::routes::contrats::seule_la_rupture(&saisie(v.version_numero(*depuis)), &presente)));
-            r
-        })
-        .collect())
+    let Some(v) = e.valide() else { return Vec::new() };
+    let presente = saisie(v.objet().brut.get("valide"));
+    let mut r = engagement::etats::a_refaire(ctx, v, departs);
+    r.retain(|a| !matches!(a, ARefaire::Avenant { depuis } if crate::routes::contrats::seule_la_rupture(&saisie(v.version_numero(*depuis)), &presente)));
+    r
 }
 
-
 /// Les contrats de `mois` dont l'avenant est a faire signer : `(cle du salarie, numero)` des engagements dont les clauses
-/// ont change depuis la version sur laquelle le contrat est parti (`a_refaire_du_mois`).
+/// ont change depuis la version sur laquelle le contrat est parti (`a_refaire_de`).
 pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String, String)>> {
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     let etats = engagement::etats::du_mois(ctx, mois, &departs).map_err(plain)?;
-    let refaire = a_refaire_du_mois(ctx, &etats, &departs)?;
     Ok(etats
         .iter()
-        .zip(&refaire)
-        .filter(|(_, r)| r.iter().any(|a| matches!(a, ARefaire::Avenant { .. })))
-        .filter_map(|(e, _)| {
+        .filter(|e| a_refaire_de(ctx, e, &departs).iter().any(|a| matches!(a, ARefaire::Avenant { .. })))
+        .filter_map(|e| {
             let b = Value::Object(e.objet().brut.clone());
             Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
         })
@@ -403,10 +395,9 @@ pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, mois: &str, brut: &Value
 
 /// La DSN de `mois` est-elle a refaire ? Une DSN est celle d'un etablissement (`derniere` : sa ligne du journal, son NIC
 /// en `detail.etablissement`, le principal s'il est tu) : seuls comptent les engagements qui en relevent
-/// (`nic_de_l_engagement`). La paie de l'un d'eux a change depuis la version sur laquelle elle est partie (`refaire`, de
-/// `a_refaire_du_mois` sur `etats`), ou ils ne sont plus ceux qu'elle a emportes (`versions`) : un engagement ajoute, ou
-/// retire.
-pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats: &[engagement::etats::Etat], refaire: &[Vec<ARefaire>]) -> bool {
+/// (`nic_de_l_engagement`). La paie de l'un d'eux a change depuis la version sur laquelle elle est partie
+/// (`a_refaire_de`), ou ils ne sont plus ceux qu'elle a emportes (`versions`) : un engagement ajoute, ou retire.
+pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs) -> bool {
     // Une ligne qui ne dit pas ce qu'elle a emporte ne se compare a rien.
     let Some(emportes) = derniere.get("versions").and_then(Value::as_array) else { return false };
     let nic = derniere
@@ -415,21 +406,18 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
         .map(valeur_en_texte)
         .filter(|n| !n.is_empty())
         .unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
-    let siens: Vec<bool> = etats.iter().map(|e| nic_de_l_engagement(ctx, mois, e).as_deref() == Some(nic.as_str())).collect();
-    if refaire.iter().zip(&siens).filter(|(_, s)| **s).flat_map(|(r, _)| r).any(|a| matches!(a, ARefaire::Dsn { mois: m, .. } if m == mois)) {
+    let siens: Vec<&engagement::etats::Etat> = etats.iter().filter(|e| nic_de_l_engagement(ctx, mois, e).as_deref() == Some(nic.as_str())).collect();
+    if siens.iter().flat_map(|e| a_refaire_de(ctx, e, departs)).any(|a| matches!(a, ARefaire::Dsn { mois: ref m, .. } if m == mois)) {
         return true;
     }
     let paire = |v: &Value| (valeur_en_texte(&v["salarie"]), valeur_en_texte(&v["numero"]));
     // Les corrections de mois passes que la ligne porte ne sont pas des engagements de ce mois.
     let mut emportes: Vec<(String, String)> = emportes.iter().filter(|v| v.get("mois").is_none()).map(paire).collect();
-    let mut presents: Vec<(String, String)> = etats
+    let mut presents: Vec<(String, String)> = siens
         .iter()
-        .zip(&siens)
-        .filter(|(_, s)| **s)
-        .filter(|(e, _)| e.valide().is_some())
-        .map(|(e, _)| e.objet())
-        .filter_map(|o| {
-            let b = Value::Object(o.brut.clone());
+        .filter(|e| e.valide().is_some())
+        .filter_map(|e| {
+            let b = Value::Object(e.objet().brut.clone());
             Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
         })
         .collect();
@@ -683,7 +671,7 @@ impl<'a> Moteur<'a> {
             let cle = texte_de(requis(&p.salarie, "_cle")?);
             let debut = p.engagement.debut.iso();
             // CE QUI EST A REFAIRE : le present compare a la version sur laquelle chaque envoi est parti.
-            let refaire = a_refaire_du_mois(self.ctx, std::slice::from_ref(e), &departs)?.pop().unwrap_or_default();
+            let refaire = a_refaire_de(self.ctx, e, &departs);
             let sal = &p.salarie;
             let nat = p.engagement.nat().map_err(plain)?;
             let nom_famille = texte_de(requis(sal, "nom")?);
@@ -1024,8 +1012,7 @@ impl<'a> Moteur<'a> {
         let mut modifiee = false;
         if derniere.get("versions").is_some() {
             let etats_eng = self.etats_du_mois(mois)?;
-            let refaire = a_refaire_du_mois(self.ctx, &etats_eng, &self.departs()?)?;
-            modifiee = dsn_a_refaire(self.ctx, mois, derniere, &etats_eng, &refaire);
+            modifiee = dsn_a_refaire(self.ctx, mois, derniere, &etats_eng, &self.departs()?);
             out.insert("saisie_modifiee".into(), json!(modifiee));
         }
         // Apres la limite : les contrats dont la paie validee n'est plus celle que la DSN a declaree ; la DSN suivante
@@ -1566,7 +1553,7 @@ impl<'a> Moteur<'a> {
                 let Some(p) = s.paies.iter().find(|p| p.salarie.get("_cle").and_then(Value::as_str) == Some(cle.as_str()) && p.engagement.numero.as_deref() == Some(numero)) else {
                     continue;
                 };
-                let refaire = a_refaire_du_mois(self.ctx, std::slice::from_ref(e), &departs)?.pop().unwrap_or_default();
+                let refaire = a_refaire_de(self.ctx, e, &departs);
                 let debut = p.engagement.debut.iso();
                 // UNE DPAE PAR EMBAUCHE, reconnue a sa date : « L'embauche d'un salarié ne peut intervenir qu'après
                 // déclaration nominative » (code du travail, L. 1221-10), et la DPAE porte la « Date et heure
