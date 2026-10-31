@@ -35,7 +35,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
         return refus("ErreurOperation", &e.message);
     }
     if !crate::routes::coffre::autorise(&cadre.racine) {
-        return refus("ErreurGoogle", "Compte Google non autorise : relier d'abord le Drive de la compagnie, dans la fenetre (Configuration > Mots de passe > Lier le Drive).");
+        return refus("ErreurGoogle", "Compte Google non autorise : relier d'abord le Drive de la compagnie : la route google-autoriser, ou dans la fenetre Configuration > Mots de passe > Lier le Drive.");
     }
     let racine_drive = args.texte("racine-drive").unwrap_or(sauvegarde::RACINE_DRIVE);
     let cible = args.texte("dossier").filter(|d| !d.is_empty()).map(PathBuf::from).unwrap_or_else(|| cadre.racine.clone());

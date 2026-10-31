@@ -620,7 +620,7 @@ fn rafraichir(ctx: &Contexte, client_id: &Value, client_secret: &Value) -> R<Opt
     let rafraichissement = champ(&j, "rafraichissement")?;
     if !vrai(&rafraichissement) {
         return Ok(Some(
-            "Compte Google pas encore lie : Configuration > Mots de passe > Lier le Drive."
+            "Compte Google pas encore lie : Configuration > Mots de passe > Lier le Drive, ou la route google-autoriser."
                 .into(),
         ));
     }
