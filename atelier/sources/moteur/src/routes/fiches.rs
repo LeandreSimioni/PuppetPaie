@@ -1,38 +1,32 @@
-//! Les routes des fiches : l'identite de la compagnie (`identite`, `poser-identite`, `retirer-identite`), les fiches des
-//! salaries, des spectacles et des permanents (`permanents`, `verifier-fiche`, `activer-fiche`, `enregistrer-fiche`,
-//! leur avertissement), leur demande par courriel (`fiche-demander`, `fiches-relever`, `fiche-oublier-demande`),
-//! les metiers (`metiers-catalogue`, `metier-retenu`, `metiers-ajoutes`), le taux AT/MP (`taux-atmp`), le regime de la
-//! taxe sur les salaires, et le modele du bulletin (`bulletin-modeles`, `bulletin-modele-apercu`,
-//! `bulletin-modele-choisir`).
+//! Configuration › Entreprise, Salariés, Spectacles : les fiches des salaries, des spectacles et de l'entreprise
+//! (`verifier-fiche`, `activer-fiche`, `enregistrer-fiche`, leur avertissement, `permanents`), leur demande par courriel
+//! (`fiche-demander`, `fiches-relever`, `fiche-oublier-demande`), le taux AT/MP (`taux-atmp`), le regime de la taxe sur
+//! les salaires, le cout de l'annee (`couts`), la sauvegarde et la suppression de la compagnie.
 //!
 //! Les refus portent leur classe (`KeyError`, `TypeError`, `ErreurOperation`...), que la page releve.
 
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, ILLISIBLE, MANQUE, OPERATION, SALARIE};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, ILLISIBLE, MANQUE, OPERATION};
 use crate::routes::documents::{client_courriel, preuve_de, vrai_ou};
 use crate::routes::mois::{lire_saisie, sauver_avant};
-use crate::routes::ouverture::{metier_visible, preferences_metiers};
 use declarations::champs;
-use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
 use documents::fiche_questionnaire as fq;
 use droit::contexte::Contexte;
-use droit::emplois;
 use envois::courriel::Courriel;
 use envois::courriel_lecture as lecture;
 use envois::envoi::{self, Message};
-use envois::etats::{self};
 use envois::journal;
 use envois::ligne_d_envoi::{echec_d_envoi, noter};
 use envois::simulation_courriels::BoiteQuiRepond;
 use socle::date::Jour;
 use socle::echec::{erreur, Echec, R};
 use socle::ecriture::ecrire_json;
-use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use socle::html::{html_echapper, mailto};
 use socle::texte::{capitaliser, strip};
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
@@ -40,56 +34,16 @@ use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 const NOM_FICHE: Champ = Champ { nom: "nom", sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
 const CLE_FICHE: Champ = Champ { nom: "cle", sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
 const DONNEES: Champ = Champ { nom: "donnees", sens: "les cases de la fiche, telles que l'écran les montre", avance: false };
-const QUOI_IDENTITE: Champ = Champ { nom: "quoi", sens: "signature, cachet ou logo", avance: false };
-const MODELE: Champ = Champ { nom: "modele", sens: "« simplifié » ou « complet »", avance: false };
-const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
+pub(crate) const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
 const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
-const IDENTITE_REND: &str = "signature, cachet et logo : chacun posé ou dessiné par le logiciel, et sa pastille";
 const ETAT_REND: &str = "etat : ce que la page lit de la compagnie (la route etat), relu après l'écriture";
-const METIERS_REND: &str = "emplois (les métiers proposés) et emplois_autres (ceux des autres conventions)";
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Fiches);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
-    Fiche {
-        nom: "identite",
-        geste: "Dire la signature, le cachet et le logo de la compagnie.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: IDENTITE_REND,
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: false,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Identite),
-    },
-    Fiche {
-        nom: "poser-identite",
-        geste: "Poser la signature, le cachet ou le logo (une image PNG, JPEG ou SVG).",
-        charge: &[QUOI_IDENTITE, Champ { nom: "contenu", sens: "l'image en base64 (une adresse data: aussi)", avance: false }],
-        exemple: r#"{"quoi":"logo","contenu":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4="}"#,
-        rend: IDENTITE_REND,
-        refus: &[Refus { classe: "ErreurOperation", corriger: "une image lisible (PNG, JPEG, SVG), de 2 Mo au plus" }, FORME, MANQUE],
-        acte: Acte::Ecrit,
-        avance: false,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Identite),
-    },
-    Fiche {
-        nom: "retirer-identite",
-        geste: "Retirer la signature, le cachet ou le logo posé.",
-        charge: &[QUOI_IDENTITE],
-        exemple: r#"{"quoi":"logo"}"#,
-        rend: IDENTITE_REND,
-        refus: &[OPERATION, MANQUE],
-        acte: Acte::Ecrit,
-        avance: false,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Identite),
-    },
     Fiche {
         nom: "permanents",
         geste: "Dire si la compagnie emploie des permanents (ce que la fiche montre alors).",
@@ -162,18 +116,6 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "poser-courriel",
-        geste: "Poser le courriel d'un salarié, là où il manque.",
-        charge: &[SALARIE, Champ { nom: "email", sens: "son adresse de courriel", avance: false }],
-        exemple: r#"{"salarie":"FULLER","email":"loie.fuller@exemple.invalid"}"#,
-        rend: "salarie, email",
-        refus: &[REFUSEE, OPERATION, MANQUE],
-        acte: Acte::Ecrit,
-        avance: false,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Paie),
-    },
-    Fiche {
         nom: "fiche-demander",
         geste: "Demander à une personne, par courriel, de remplir sa fiche.",
         charge: &[
@@ -214,42 +156,6 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "metiers-catalogue",
-        geste: "Dire les métiers du catalogue, ceux de la convention et les autres.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: "metiers (le catalogue, chacun dit retenu ou non)",
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: true,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Metiers),
-    },
-    Fiche {
-        nom: "metier-retenu",
-        geste: "Proposer un métier du catalogue dans les listes, ou ne plus le proposer.",
-        charge: &[Champ { nom: "code", sens: "le code du métier au catalogue", avance: false }, Champ { nom: "retenu", sens: "vrai : le proposer", avance: false }],
-        exemple: r#"{"code":"CHE350","retenu":true}"#,
-        rend: METIERS_REND,
-        refus: &[OPERATION, MANQUE],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Metiers),
-    },
-    Fiche {
-        nom: "metiers-ajoutes",
-        geste: "Ajouter des métiers d'une autre convention aux listes, ou les retirer.",
-        charge: &[Champ { nom: "codes", sens: "les codes des métiers au catalogue", avance: false }, Champ { nom: "retirer", sens: "vrai : les retirer", avance: false }],
-        exemple: r#"{"codes":["CRE010"]}"#,
-        rend: METIERS_REND,
-        refus: &[OPERATION, FORME, MANQUE],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-        ecran: Ecran::Auto(Place::Metiers),
-    },
-    Fiche {
         nom: "taux-atmp",
         geste: "Dire le code risque et le taux AT/MP d'une année ; les poser s'il y a lieu.",
         charge: &[
@@ -266,67 +172,68 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "bulletin-modeles",
-        geste: "Dire le modèle du bulletin choisi, et les salariés qui en ont un autre.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: "modele, les modèles connus, autrement (les salariés à un autre modèle)",
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: false,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Bulletin),
-    },
-    Fiche {
-        nom: "bulletin-modele-apercu",
-        geste: "Montrer un bulletin d'exemple dans un modèle.",
-        charge: &[MODELE],
-        exemple: r#"{"modele":"complet"}"#,
-        rend: "modele, pdf (en base64)",
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: false,
-        phrase: 0,
-        ecran: Ecran::Lecture,
-    },
-    Fiche {
-        nom: "bulletin-modele-choisir",
-        geste: "Choisir le modèle du bulletin des documents faits dès aujourd'hui.",
-        charge: &[MODELE],
-        exemple: r#"{"modele":"simplifié"}"#,
-        rend: "ce que bulletin-modeles rend",
-        refus: &[OPERATION],
+        nom: "couts",
+        geste: "Dire le coût de l'année, spectacle par spectacle.",
+        charge: &[Champ { nom: "annee", sens: "l'année, AAAA", avance: false }],
+        exemple: r#"{"annee":"2026"}"#,
+        rend: "le coût de l'année par spectacle",
+        refus: &[MANQUE, OPERATION],
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
-        ecran: Ecran::Dessine(Place::Bulletin),
+        ecran: Ecran::Dessine(Place::Fiches),
+    },
+    Fiche {
+        nom: "sauvegarde-maintenant",
+        geste: "Sauvegarder maintenant le dossier de la compagnie dans le Drive.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "sauvegarde (la dernière : quand, ce qui est parti), erreur (ce qui l'a empêchée) ; ne refuse jamais",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+        ecran: Ecran::Dessine(Place::Fiches),
+    },
+    Fiche {
+        nom: crate::routes::COMPAGNIE_SUPPRIMER,
+        geste: "Supprimer la compagnie de ce poste : avertir, puis effacer tout son dossier.",
+        charge: &[
+            Champ { nom: "confirme", sens: "vrai : effacer ; sans lui, la route dit seulement ce qui sera effacé et ce qu'elle demande", avance: false },
+            Champ { nom: "motdepasse", sens: "une compagnie réelle : le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false },
+        ],
+        exemple: r#"{"confirme": true}"#,
+        rend: "sans confirme : nom, genre (ajoutee ou reelle), avertissement, conservation et sauvegarde à proposer, ou la phrase qui dit pourquoi elle ne se supprime pas ; avec : supprimee, phrase",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit (une fictive livrée se remet à zéro, le mot de passe du logiciel refusé, un dossier tenu ouvert) ; rien n'est effacé" }],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+        ecran: Ecran::Dessine(Place::Fiches),
     },
 ];
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let texte = |cle: &str| charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     match nom {
-        "identite" => identite(ctx),
+        // Supprimer la compagnie : avertir, puis effacer. Par `moteur route`, rien a lacher ; la fenetre sert elle-meme la
+        // suppression confirmee, pour lacher d'abord ce qu'elle tient de la compagnie (`interface::Fenetre`).
+        crate::routes::COMPAGNIE_SUPPRIMER => crate::interface::suppression::route(&ctx.racine, charge, &|_| {}).map_err(|m| erreur("ErreurOperation", m)),
+        // La sauvegarde seule, comme la seconde moitie d'un passage de la veille (`compagnie::ouverture`).
+        "sauvegarde-maintenant" => {
+            use crate::compagnie::ouverture::{ouverture, Clients, Options};
+            let opt = Options::de_la_charge(&json!({"sauvegarde_seule": true, "incidents_editeur": false}));
+            let r = ouverture(ctx, &opt, Clients::default(), None);
+            let erreur: Vec<String> = r.manquants.into_iter().chain(r.incidents).collect();
+            Ok(json!({"sauvegarde": crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json(), "erreur": erreur.join(" ")}))
+        }
+        "couts" => couts(o, ctx, charge),
         "permanents" => permanents(ctx, charge),
         "taxe-sur-les-salaires-regime" => taxe_sur_les_salaires_regime(ctx, charge),
         "verifier-fiche" => verifier_fiche(charge),
         "taux-atmp" => crate::routes::atmp::route(ctx, charge),
-        "metiers-catalogue" => metiers_catalogue(ctx),
-        "bulletin-modeles" => modeles(ctx),
-        "bulletin-modele-apercu" => {
-            let modele = modele_demande(charge)?;
-            let pdf = apercu_pdf(modele).map_err(refus)?;
-            Ok(json!({"modele": modele.cle(), "pdf": socle::base64::ecrire(&pdf)}))
-        }
-        "bulletin-modele-choisir" => choisir(ctx, charge),
         "activer-fiche" => activer_fiche_route(o, ctx, charge),
         "enregistrer-fiche" => enregistrer_fiche(o, ctx, charge),
-        "poser-courriel" => poser_courriel(ctx, charge),
         "fiche-oublier-demande" => oublier_demande(o, ctx, charge),
-        "poser-identite" => poser_identite(ctx, charge),
-        "retirer-identite" => retirer_identite(ctx, charge),
-        "metier-retenu" => metier_retenu(ctx, charge),
-        "metiers-ajoutes" => metiers_ajoutes(ctx, charge),
         "fiche-demander" => {
             let d = demander_fiche(ctx, &texte("adresse"), &texte("prenom"), &preuve_de(charge), "interface", None)?;
             Ok(json!({"code": d.code, "adresse": d.adresse}))
@@ -1040,38 +947,9 @@ pub(crate) fn chiffre_lu(c: char) -> Option<u32> {
     DEBUTS.iter().find(|d| u >= **d && u < **d + 10).map(|d| u - d)
 }
 
-/// L'onglet
-/// Metiers, tout le catalogue, chaque metier coche ou non.
-fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
-    let familles = emplois::familles().map_err(plain)?;
-    let ordre: HashMap<&str, usize> = familles.iter().enumerate().map(|(i, f)| (f.as_str(), i)).collect();
-    let noms = emplois::noms_des_conventions().map_err(plain)?;
-    let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
-    let idcc = ctx.entreprise.get("idcc").filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
-    let mut liste: Vec<Map<String, Value>> = Vec::new();
-    for m in emplois::catalogue().map_err(plain)? {
-        let conventions: Vec<Value> = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
-        // Sans IDCC (une compagnie qui s'installe), rien ne se cache.
-        let conv = conventions.is_empty() || idcc.is_empty() || conventions.iter().any(|c| c.as_str() == Some(idcc.as_str()));
-        let de = if conv || conventions.is_empty() {
-            String::new()
-        } else {
-            conventions.iter().map(|c| noms.get(&valeur_en_texte(c)).map(valeur_en_texte).unwrap_or_else(|| valeur_en_texte(c))).collect::<Vec<_>>().join(", ")
-        };
-        let mut e = m.as_object().cloned().unwrap_or_default();
-        e.insert("retenu".into(), json!(metier_visible(&m, &idcc, &ajoutes, &retires)));
-        e.insert("de_la_convention".into(), json!(conv));
-        e.insert("de".into(), json!(de));
-        liste.push(e);
-    }
-    let texte = |m: &Map<String, Value>, k: &str| m.get(k).map(valeur_en_texte).unwrap_or_default();
-    liste.sort_by_cached_key(|m| (ordre.get(texte(m, "famille").as_str()).copied().unwrap_or(ordre.len()), texte(m, "libelle").to_lowercase()));
-    let _ = etats::s("");
-    Ok(json!({"metiers": liste, "familles": familles}))
-}
 
 #[track_caller]
-fn plain(m: impl Into<String>) -> Echec {
+pub(crate) fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
 }
 
@@ -1081,7 +959,7 @@ pub(super) fn refus(m: impl Into<String>) -> Echec {
 }
 
 #[track_caller]
-fn en_os(m: String) -> Echec {
+pub(crate) fn en_os(m: String) -> Echec {
     erreur("OSError", m)
 }
 
@@ -1089,12 +967,12 @@ pub(super) fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
     exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
 }
 
-fn creer_dossier(d: &Path) -> R<()> {
+pub(crate) fn creer_dossier(d: &Path) -> R<()> {
     std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
 }
 
 /// Un fichier de configuration : son objet, vide s'il n'existe pas.
-fn objet_du_fichier(chemin: &Path) -> R<Map<String, Value>> {
+pub(crate) fn objet_du_fichier(chemin: &Path) -> R<Map<String, Value>> {
     if !chemin.exists() {
         return Ok(Map::new());
     }
@@ -1104,7 +982,7 @@ fn objet_du_fichier(chemin: &Path) -> R<Map<String, Value>> {
     }
 }
 
-fn ecrire(chemin: &Path, v: Value) -> R<()> {
+pub(crate) fn ecrire(chemin: &Path, v: Value) -> R<()> {
     ecrire_json(chemin, &v, 2).map_err(en_os)
 }
 
@@ -1122,7 +1000,7 @@ pub(super) fn maintenant() -> String {
 }
 
 /// Aujourd'hui, a Paris (`date.today()`).
-fn aujourd_hui() -> Jour {
+pub(crate) fn aujourd_hui() -> Jour {
     Jour::lire(&maintenant()[..10]).expect("date de Paris")
 }
 
@@ -1169,202 +1047,6 @@ fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
     }
     // Ni NIR ni IBAN dans la reponse : la page relit `configuration` (comme apres `fiche-demander`).
     Ok(json!({"adresse": adresse}))
-}
-
-// ------------------------------------------------------------------ l'identite
-
-const IDENTITES: [&str; 3] = ["signature", "cachet", "logo"];
-const OCTETS_MAX: usize = 2 * 1024 * 1024;
-
-#[track_caller]
-fn identite_inconnue(quoi: &str) -> Echec {
-    refus(format!("Identite inconnue : {}. Connues : cachet, logo, signature.", socle::fichiers::repr(quoi)))
-}
-
-fn dossier_identite(ctx: &Contexte) -> PathBuf {
-    ctx.gabarits().join("identite")
-}
-
-/// Le fichier pose pour `quoi`, quelle que soit son extension.
-fn chemin_identite(dossier: &Path, quoi: &str) -> Option<PathBuf> {
-    [".png", ".jpg", ".svg"].iter().map(|e| dossier.join(format!("{}{}", quoi, e))).find(|f| f.exists())
-}
-
-/// Le format de ces octets, reconnu sur l'en-tete et non sur l'extension.
-fn format_de(o: &[u8]) -> Option<&'static str> {
-    if o.starts_with(&[0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]) {
-        return Some("png");
-    }
-    if o.starts_with(&[0xff, 0xd8, 0xff]) {
-        return Some("jpeg");
-    }
-    let tete = &o[..o.len().min(2048)];
-    let debut = tete.iter().position(|c| !c.is_ascii_whitespace() && *c != 0x0b).unwrap_or(tete.len());
-    let tete = &tete[debut..];
-    if tete.starts_with(b"<?xml") || tete.starts_with(b"<svg") || tete.starts_with(b"<!--") {
-        let long = o[..o.len().min(8192)].to_ascii_lowercase();
-        if long.windows(4).any(|w| w == b"<svg") {
-            return Some("svg");
-        }
-    }
-    None
-}
-
-fn avant(f: &Path) -> R<()> {
-    let mut nom = f.as_os_str().to_owned();
-    nom.push(".avant");
-    std::fs::rename(f, PathBuf::from(nom)).map_err(|e| en_os(format!("{} : {}", f.display(), e)))
-}
-
-fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let quoi = texte_requis(charge, "quoi")?;
-    let contenu = match exiger(charge, "contenu")? {
-        Value::Null => "",
-        Value::String(s) => s.as_str(),
-        _ => return Err(erreur("TypeError", "`contenu` : un texte est attendu")),
-    };
-    if !IDENTITES.contains(&quoi) {
-        return Err(identite_inconnue(quoi));
-    }
-    let utile = contenu.rsplit(',').next().unwrap_or("");
-    let octets = crate::compagnie::problemes::base64_strict(utile).ok_or_else(|| refus("Le fichier n'est pas lisible : base64 invalide."))?;
-    if octets.is_empty() {
-        return Err(refus("Le fichier est vide."));
-    }
-    if octets.len() > OCTETS_MAX {
-        return Err(refus(format!("Le fichier fait {:.1} Mo ; la limite est de 2 Mo.", octets.len() as f64 / 1024.0 / 1024.0)));
-    }
-    let format = format_de(&octets).ok_or_else(|| {
-        refus("Ce fichier n'est ni un PNG, ni un JPEG, ni un SVG (ses premiers octets ne sont ceux d'aucun des trois). Rien n'a ete ecrit.")
-    })?;
-    let dossier = dossier_identite(ctx);
-    creer_dossier(&dossier)?;
-    // Les autres extensions s'en vont : une identite, un fichier.
-    if let Some(ancien) = chemin_identite(&dossier, quoi) {
-        avant(&ancien)?;
-    }
-    let extension = match format {
-        "png" => ".png",
-        "jpeg" => ".jpg",
-        _ => ".svg",
-    };
-    let cible = dossier.join(format!("{}{}", quoi, extension));
-    std::fs::write(&cible, &octets).map_err(|e| en_os(format!("{} : {}", cible.display(), e)))?;
-    if quoi == "signature" {
-        // Pour qui elle est posee : la personne qui signe CE JOUR-LA.
-        let registre = dossier.join("identite.json");
-        let mut tenu = objet_du_fichier(&registre)?;
-        let signataire = crate::routes::ouverture::signataire_de(&ctx.entreprise)?;
-        tenu.insert("signature".into(), json!({"de": signataire["nom"], "le": aujourd_hui().iso()}));
-        ecrire(&registre, Value::Object(tenu))?;
-    }
-    identite(ctx)
-}
-
-fn retirer_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let quoi = texte_requis(charge, "quoi")?;
-    if !IDENTITES.contains(&quoi) {
-        return Err(identite_inconnue(quoi));
-    }
-    if let Some(f) = chemin_identite(&dossier_identite(ctx), quoi) {
-        avant(&f)?;
-    }
-    identite(ctx)
-}
-
-fn identite(ctx: &Contexte) -> R<Value> {
-    let mut v = crate::routes::ouverture::identite(ctx, &ctx.gabarits())?;
-    // La pastille de chaque image : la sienne, posee, ou celle que le logiciel dessine, faites ; rien de pose, a faire.
-    for e in v.as_object_mut().into_iter().flat_map(|o| o.values_mut()) {
-        let Some(o) = e.as_object_mut() else { continue };
-        let p = if o.get("pose").is_some_and(vrai) {
-            super::pastille("fait", "le vôtre")
-        } else if o.get("automatique").is_some_and(vrai) {
-            super::pastille("fait", "celui du logiciel")
-        } else {
-            super::pastille("a_faire", "rien de posé")
-        };
-        o.insert("pastille".into(), p);
-    }
-    Ok(json!({"identite": v}))
-}
-
-// ---------------------------------------------------------------- les metiers
-
-const QUOI_METIERS: &str = "Les metiers que cette compagnie a coches ou decoches dans Configuration > Metiers : `codes`, pris a une autre convention collective ; `retires`, decoches dans la sienne. Preference d'affichage : aucun calcul ne change. Le catalogue est livre avec le logiciel (donnees/emplois-base.json).";
-
-fn ecrire_preferences(ctx: &Contexte, ajoutes: &[String], retires: &[String]) -> R<()> {
-    let p = ctx.racine.join("config").join("metiers-ajoutes.json");
-    if let Some(parent) = p.parent() {
-        creer_dossier(parent)?;
-    }
-    if p.exists() {
-        sauver_avant(&p)?;
-    }
-    ecrire(&p, json!({"_quoi": QUOI_METIERS, "codes": ajoutes, "retires": retires}))
-}
-
-fn emplois_rendus(ctx: &Contexte) -> R<Value> {
-    Ok(json!({"emplois": crate::routes::ouverture::metiers(ctx)?, "emplois_autres": crate::routes::ouverture::metiers_autres_conventions(ctx)?}))
-}
-
-fn metier_retenu(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let code = texte_requis(charge, "code")?;
-    let retenu = charge.get("retenu").is_some_and(vrai);
-    let catalogue = emplois::catalogue().map_err(plain)?;
-    let Some(m) = catalogue.iter().find(|m| m.get("code").and_then(Value::as_str) == Some(code)) else {
-        return Err(refus(format!("Metier hors catalogue : {}.", code)));
-    };
-    // Ceux de sa convention le sont d'office ; sans IDCC, rien ne se cache.
-    let idcc = ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-    let conventions = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
-    let de_la_convention = conventions.is_empty() || idcc.is_empty() || conventions.iter().any(|c| c.as_str() == Some(idcc.as_str()));
-    let (mut ajoutes, mut retires) = crate::routes::ouverture::preferences_metiers(&ctx.racine)?;
-    ajoutes.retain(|c| c != code);
-    retires.retain(|c| c != code);
-    if retenu && !de_la_convention {
-        ajoutes.push(code.to_string());
-    }
-    if !retenu && de_la_convention {
-        retires.push(code.to_string());
-    }
-    ecrire_preferences(ctx, &ajoutes, &retires)?;
-    emplois_rendus(ctx)
-}
-
-fn metiers_ajoutes(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let codes: Vec<Value> = match exiger(charge, "codes")? {
-        Value::Array(a) => a.clone(),
-        _ => return Err(erreur("TypeError", "`codes` : une liste est attendue")),
-    };
-    let retirer = charge.get("retirer").is_some_and(vrai);
-    let connus: HashSet<String> = emplois::catalogue()
-        .map_err(plain)?
-        .iter()
-        .filter_map(|m| m.get("code").and_then(Value::as_str).map(str::to_string))
-        .collect();
-    let inconnus: Vec<String> = codes.iter().filter(|c| !c.as_str().is_some_and(|s| connus.contains(s))).map(valeur_en_texte).collect();
-    if !inconnus.is_empty() {
-        return Err(refus(format!("Metier(s) hors catalogue : {}.", inconnus.join(", "))));
-    }
-    let codes: Vec<String> = codes.iter().filter_map(|c| c.as_str().map(str::to_string)).collect();
-    let n = codes.len();
-    let (avant, retires) = crate::routes::ouverture::preferences_metiers(&ctx.racine)?;
-    let apres: Vec<String> = if retirer {
-        avant.into_iter().filter(|c| !codes.contains(c)).collect()
-    } else {
-        let mut v = avant;
-        for c in codes {
-            if !v.contains(&c) {
-                v.push(c);
-            }
-        }
-        v
-    };
-    ecrire_preferences(ctx, &apres, &retires)?;
-    let mut v = emplois_rendus(ctx)?;
-    v["phrase"] = json!(format!("{} métier(s) {} la liste des métiers.", n, if retirer { "retiré(s) de" } else { "ajouté(s) à" }));
-    Ok(v)
 }
 
 // ------------------------------------------------------------- enregistrer-fiche
@@ -1832,21 +1514,6 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     Ok(json!({"cle": e.cle, "etat": etat_relu(o, ctx)?, "enregistre_a": e.ecrit.then(maintenant), "phrase": phrase}))
 }
 
-/// `poser-courriel` : `{"salarie", "email"}`, le courriel d'un salarie, saisi la ou il manque (la boite des contrats a
-/// faire signer). La fiche entiere s'ecrit comme depuis l'ecran (`ecrire_fiche`), seul le courriel y change : il se
-/// verifie avec elle, et une fiche qui refuse le dit.
-fn poser_courriel(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let cle = texte_requis(charge, "salarie")?;
-    let email = texte_requis(charge, "email")?;
-    let Some(Value::Object(fiche)) = ctx.salaries.get(cle) else {
-        return Err(refus(format!("Salarié {} inconnu.", socle::fichiers::repr(cle))));
-    };
-    let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), v.clone())).collect();
-    donnees.insert("email".into(), Value::String(email.trim().to_string()));
-    let (depuis, _) = date_proposee(ctx, "salarie", Some(cle))?;
-    ecrire_fiche(ctx, "salarie", Some(cle.to_string()), &Value::Object(donnees), Forcer::Rien, &json!(depuis.iso()), &Value::Null)?;
-    Ok(json!({"salarie": cle, "email": email.trim()}))
-}
 
 /// Verifie, date ce qui change, sauvegarde l'ancien fichier et
 /// ecrit. Rend ce qui a ete ecrit, sans la page : l'import s'en sert fiche par fiche.
@@ -2384,99 +2051,26 @@ pub fn boite_des_fiches(ctx: &Contexte, attendues: &[Attendue], delai: i64) -> R
     Ok(boite)
 }
 
-// ------------------------------------------------------------------ le modele du bulletin
-
-/// Le modele que la charge nomme (`modele`) : un modele connu, rien d'autre.
-fn modele_demande(charge: &Value) -> R<Modele> {
-    let v = charge.get("modele").cloned().unwrap_or(Value::Null);
-    let cle = v.as_str().map(str::trim).unwrap_or_default();
-    Modele::TOUS.iter().copied().find(|m| m.cle() == cle).ok_or_else(|| {
-        refus(format!("Modèle de bulletin inconnu : {}. Connus : « simplifié », « complet ».", v))
-    })
+/// `couts` : le cout de l'annee `charge["annee"]`, au jour du contexte.
+fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+    let _ = o;
+    let annee = valeur_en_texte(exiger(charge, "annee")?);
+    let mut r = documents::fiche_recapitulative::Recapitulatifs::nouveau(ctx, None, Some(annee), false, envois::journal::lu(&ctx.racine).map(|j| j.departs)?);
+    r.couts_de_l_annee().map_err(|e| Echec { classe: e.classe, message: e.message })
 }
 
-/// L'adresse ou la fenetre sert l'apercu d'un modele (`interface::Fenetre::apercu_bulletin`).
-pub fn adresse_apercu(m: Modele) -> String {
-    format!("/apercu/bulletin?modele={}", if m == Modele::Simplifie { "simplifie" } else { "complet" })
-}
-
-/// Le modele d'une adresse d'apercu (`simplifie`, `complet` : sans accent dans l'adresse).
-pub fn modele_de_l_adresse(v: &str) -> Option<Modele> {
-    match v {
-        "simplifie" | "simplifié" => Some(Modele::Simplifie),
-        "complet" => Some(Modele::Complet),
-        _ => None,
-    }
-}
-
-// ------------------------------------------------------------------ bulletin-modeles
-
-fn modeles(ctx: &Contexte) -> R<Value> {
-    let choisi = Modele::de_la_fiche(&ctx.entreprise, "entreprise").map_err(refus)?;
-    let modele = choisi.unwrap_or(Modele::Simplifie);
-    // Les salaries dont la case dit un autre modele que la compagnie : la page les nomme, la decision reste au moteur.
-    let mut autrement = Vec::new();
-    for (cle, sal) in &ctx.salaries {
-        if let Some(m) = Modele::de_la_fiche(sal, &format!("du salarié {}", cle)).map_err(refus)? {
-            if m != modele {
-                let champ = |k: &str| sal.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
-                let nom = format!("{} {}", champ("prenom_affichage"), champ("nom_affichage")).trim().to_string();
-                let nom = if nom.is_empty() { cle.clone() } else { nom };
-                autrement.push(json!({"cle": cle, "nom": nom, "modele": m.cle()}));
-            }
-        }
-    }
-    let liste: Vec<Value> = Modele::TOUS
-        .iter()
-        .map(|m| json!({"cle": m.cle(), "nom": m.nom(), "description": m.description(), "apercu": adresse_apercu(*m),
-            // Le modele de la compagnie : sa pastille, celle d'un choix fait.
-            "pastille": if *m == modele { super::pastille("fait", if choisi.is_none() { "celui de la compagnie (par défaut)" } else { "celui de la compagnie" }) } else { Value::Null }}))
-        .collect();
-    Ok(json!({
-        "choisi": modele.cle(),
-        "par_defaut": choisi.is_none(),
-        "modeles": liste,
-        "salaries_autrement": autrement,
-    }))
-}
-
-// ------------------------------------------------------------------ l'apercu
-
-/// La compagnie fictive de l'apercu, livree avec le logiciel.
-pub fn dossier_apercu() -> PathBuf {
-    dossier_du_code().join("apercu-bulletin")
-}
-
-/// La description du bulletin de la paie fictive sous `modele` : le moteur du jour, la compagnie fictive, rien d'ecrit.
-pub fn apercu_description(modele: Modele) -> Result<Value, String> {
-    let racine = dossier_apercu();
-    let saisie = lire_json(&racine.join("saisie.json"))?;
-    let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
-    let jour = saisie.get("date_paiement").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas sa date de paiement.")?;
-    let ctx = Contexte::nouveau(&racine, Some(Jour::lire(jour)?))?;
-    let s = engagement::pour_l_ecran(&ctx, &saisie)?;
-    let mut ent = ctx.entreprise.clone();
-    let o: &mut Map<String, Value> = ent.as_object_mut().ok_or("La fiche de la compagnie de l'aperçu n'est pas un objet.")?;
-    o.insert(CASE_MODELE.into(), json!(modele.cle()));
-    // Ni le logo ni la signature du poste sur une paie fictive : ses gabarits sont un dossier qui n'existe pas.
-    o.insert("_gabarits".into(), json!(racine.join("gabarits").to_string_lossy()));
-    // Une paie de l'ecran n'a pas de numero de bulletin (il se reserve au depart) : l'apercu montre celui d'un premier
-    // bulletin de l'annee.
-    let numeros: Vec<Option<String>> = (1..=s.paies.len()).map(|n| Some(format!("{}/{}", n, &mois[..4]))).collect();
-    jeux_et_description(&ctx, &s.paies, &numeros, &ent, &mois, None, false, &HashMap::new(), &engagement::departs::Departs::default())
-}
-
-/// Le PDF de la paie fictive sous `modele`.
-pub fn apercu_pdf(modele: Modele) -> Result<Vec<u8>, String> {
-    documents::fabrique::fabriquer_octets(&apercu_description(modele)?)
-}
-
-// ------------------------------------------------------------------ bulletin-modele-choisir
-
-fn choisir(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let modele = modele_demande(charge)?;
-    // Le modele vaut pour les documents faits a partir d'aujourd'hui ; ceux d'avant gardent le leur.
-    crate::routes::fiches::poser_entreprise(ctx, CASE_MODELE, json!(modele.cle()), Some(ctx.aujourdhui))?;
-    let neuf = Contexte::nouveau(&ctx.racine, None).map_err(refus)?;
-    modeles(&neuf)
+/// `poser-courriel` : `{"salarie", "email"}`, le courriel d'un salarie, saisi la ou il manque (la boite des contrats a
+/// faire signer). La fiche entiere s'ecrit comme depuis l'ecran (`ecrire_fiche`), seul le courriel y change : il se
+/// verifie avec elle, et une fiche qui refuse le dit.
+pub(crate) fn poser_courriel(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let cle = texte_requis(charge, "salarie")?;
+    let email = texte_requis(charge, "email")?;
+    let Some(Value::Object(fiche)) = ctx.salaries.get(cle) else {
+        return Err(refus(format!("Salarié {} inconnu.", socle::fichiers::repr(cle))));
+    };
+    let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), v.clone())).collect();
+    donnees.insert("email".into(), Value::String(email.trim().to_string()));
+    let (depuis, _) = date_proposee(ctx, "salarie", Some(cle))?;
+    ecrire_fiche(ctx, "salarie", Some(cle.to_string()), &Value::Object(donnees), Forcer::Rien, &json!(depuis.iso()), &Value::Null)?;
+    Ok(json!({"salarie": cle, "email": email.trim()}))
 }

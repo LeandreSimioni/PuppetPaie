@@ -12,11 +12,10 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, OPERATION};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
 use crate::routes::etapes::Moteur;
-use crate::routes::fiches::exiger;
 use crate::routes::mois::lire_saisie;
-use super::{lire_json_tolerant, lire_texte, ou_texte, qui_de};
+use super::{lire_json_tolerant, lire_texte, ou_texte};
 use declarations::champs;
 use droit::catalogue::{self, Rubrique};
 use droit::contexte::Contexte;
@@ -70,33 +69,6 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "pour-demarrer",
-        geste: "Dire ce qui manque à la compagnie pour ses premiers actes.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: "manques (chacun ce qu'il bloque et où le dire), poses (ce que le moteur a posé, en information)",
-        refus: &[OPERATION],
-        acte: Acte::Lit,
-        avance: false,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Paie),
-    },
-    Fiche {
-        nom: "echeance-faite",
-        geste: "Cocher une échéance annuelle que seule la compagnie peut dire faite.",
-        charge: &[
-            Champ { nom: "cle", sens: "l'échéance et son année, « quoi:AAAA » (celle que rappels ou echeancier rendent)", avance: false },
-            Champ { nom: "fait", sens: "faux : la décocher", avance: false },
-        ],
-        exemple: r#"{"cle":"revue-spectacles:2026"}"#,
-        rend: "cle, fait",
-        refus: &[Refus { classe: "ErreurOperation", corriger: "une échéance qui se coche, avec son année" }, MANQUE],
-        acte: Acte::Ecrit,
-        avance: false,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Paie),
-    },
-    Fiche {
         nom: "maj-etat",
         geste: "Dire la version du logiciel.",
         charge: &[],
@@ -121,30 +93,6 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "sauvegarde-maintenant",
-        geste: "Sauvegarder maintenant le dossier de la compagnie dans le Drive.",
-        charge: &[],
-        exemple: r#"{}"#,
-        rend: "sauvegarde (la dernière : quand, ce qui est parti), erreur (ce qui l'a empêchée) ; ne refuse jamais",
-        refus: &[OPERATION],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Fiches),
-    },
-    Fiche {
-        nom: "journal-reprise",
-        geste: "Reprendre le journal des envois d'après les retours relevés.",
-        charge: &[Champ { nom: "ecrire", sens: "vrai : écrire ce qui se reprend ; sinon, le dire seulement", avance: false }],
-        exemple: r#"{}"#,
-        rend: "ce qui se reprend, ligne par ligne, et ses pastilles",
-        refus: &[OPERATION],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Historique),
-    },
-    Fiche {
         nom: "courriels-fictifs",
         geste: "Dire les courriels joués d'une compagnie fictive.",
         charge: &[Champ { nom: "apres", sens: "seulement ceux d'après cet instant", avance: true }],
@@ -156,21 +104,6 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
         ecran: ECRAN,
     },
-    Fiche {
-        nom: crate::routes::COMPAGNIE_SUPPRIMER,
-        geste: "Supprimer la compagnie de ce poste : avertir, puis effacer tout son dossier.",
-        charge: &[
-            Champ { nom: "confirme", sens: "vrai : effacer ; sans lui, la route dit seulement ce qui sera effacé et ce qu'elle demande", avance: false },
-            Champ { nom: "motdepasse", sens: "une compagnie réelle : le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false },
-        ],
-        exemple: r#"{"confirme": true}"#,
-        rend: "sans confirme : nom, genre (ajoutee ou reelle), avertissement, conservation et sauvegarde à proposer, ou la phrase qui dit pourquoi elle ne se supprime pas ; avec : supprimee, phrase",
-        refus: &[Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit (une fictive livrée se remet à zéro, le mot de passe du logiciel refusé, un dossier tenu ouvert) ; rien n'est effacé" }],
-        acte: Acte::Ecrit,
-        avance: true,
-        phrase: 0,
-        ecran: Ecran::Dessine(Place::Fiches),
-    },
 ];
 
 /// Une route de ce module.
@@ -179,17 +112,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "etat" => etat(ctx),
         // La part « configuration » de l'etat, pour les routes qui la rendent apres un enregistrement.
         "configuration" => configuration(ctx),
-        // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup ; ce que le moteur a pose de lui-meme se dit
-        // en information (gris).
-        "pour-demarrer" => declarations::demarrage::route(ctx).map(|mut v| {
-            if let Some(Value::Array(p)) = v.get_mut("poses") {
-                p.iter_mut().for_each(|x| x["pastille"] = super::pastille("information", "posé pour vous"));
-            }
-            v
-        }),
-        // Supprimer la compagnie : avertir, puis effacer. Par `moteur route`, rien a lacher ; la fenetre sert elle-meme la
-        // suppression confirmee, pour lacher d'abord ce qu'elle tient de la compagnie (`interface::Fenetre`).
-        crate::routes::COMPAGNIE_SUPPRIMER => crate::interface::suppression::route(&ctx.racine, charge, &|_| {}).map_err(|m| erreur("ErreurOperation", m)),
         "maj-etat" => version().map(|mut v| {
             let prete = if vrai(&v["prete"]) { format!(" La version {} est prête.", valeur_en_texte(&v["prete"])) } else { String::new() };
             v["phrase"] = json!(format!("Version installée : {}.{}", valeur_en_texte(&v["courante"]), prete));
@@ -197,24 +119,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }),
         // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
         "sauvegarde-derniere" => Ok(crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json()),
-        // La sauvegarde seule, comme la seconde moitie d'un passage de la veille (`compagnie::ouverture`).
-        "sauvegarde-maintenant" => {
-            use crate::compagnie::ouverture::{ouverture, Clients, Options};
-            let opt = Options::de_la_charge(&json!({"sauvegarde_seule": true, "incidents_editeur": false}));
-            let r = ouverture(ctx, &opt, Clients::default(), None);
-            let erreur: Vec<String> = r.manquants.into_iter().chain(r.incidents).collect();
-            Ok(json!({"sauvegarde": crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json(), "erreur": erreur.join(" ")}))
-        }
-        "echeance-faite" => echeance_faite(ctx, charge),
-        "journal-reprise" => crate::compagnie::incidents::noter_ceux_des_retours(
-            &ctx.racine,
-            envois::reprise_journal::reprise(
-                ctx,
-                charge.get("ecrire").is_some_and(vrai),
-                &crate::routes::qui_de(charge),
-                &socle::paris::iso_secondes(socle::temps::secondes()),
-            ),
-        ).map(pastilles_de_la_reprise),
         "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
         autre => Err(plain(format!("route inconnue : {}", autre))),
     }
@@ -1147,17 +1051,6 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
     }))
 }
 
-/// `echeance-faite` : coche (`fait`) ou decoche l'echeance `charge["cle"]`, au nom de `qui`.
-fn echeance_faite(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let cle = exiger(charge, "cle")?;
-    let fait = charge.get("fait") != Some(&Value::Bool(false));
-    let Some(texte) = cle.as_str() else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(cle))));
-    };
-    marquer_echeance(ctx, texte, fait, &qui_de(charge))?;
-    Ok(json!({"cle": texte, "fait": fait}))
-}
-
 /// Coche (ou decoche) une echeance que seul
 /// l'utilisateur peut dire faite.
 pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str) -> R<()> {
@@ -1257,14 +1150,3 @@ fn creer_dossier(d: &std::path::Path) -> R<()> {
     std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
 }
 
-/// La pastille de chaque depot que la reprise du journal remet (`ajoutes`) : un depot reel accepte, fait ; refuse,
-/// refuse ; un depot de test, une information.
-fn pastilles_de_la_reprise(mut v: Value) -> Value {
-    for d in v.get_mut("ajoutes").and_then(Value::as_array_mut).into_iter().flatten() {
-        let reel = d.get("mode").and_then(Value::as_str) == Some("reel");
-        let accepte = d.get("accepte").is_some_and(vrai);
-        let mots = format!("{}{}", if reel { "dépôt réel" } else { "test" }, if accepte { "" } else { " — refusé" });
-        d["pastille"] = super::pastille(if !reel { "information" } else if accepte { "fait" } else { "refuse" }, &mots);
-    }
-    v
-}

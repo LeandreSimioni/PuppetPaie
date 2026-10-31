@@ -29,6 +29,7 @@ use crate::service::contexte;
 pub mod ouverture;
 pub mod depots;
 pub mod archives;
+pub mod historique;
 pub mod documents;
 pub mod dossier_salarie;
 pub mod coffre;
@@ -36,6 +37,9 @@ pub mod engagement;
 pub mod contrats;
 pub mod modeles_contrat;
 pub mod fiches;
+pub mod identite;
+pub mod metiers;
+pub mod bulletin;
 pub mod etablissements;
 pub mod atmp;
 pub mod import;
@@ -149,17 +153,21 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Les obligations d'un arret : le jour ou la compagnie l'a su, la declaration d'accident faite.
         _ if dans(crate::obligations::ROUTES) => crate::obligations::route(&ctx, route, &charge),
         _ if dans(fiches::ROUTES) => fiches::route(o, &ctx, route, &charge),
+        _ if dans(identite::ROUTES) => identite::route(o, &ctx, route, &charge),
+        _ if dans(metiers::ROUTES) => metiers::route(o, &ctx, route, &charge),
+        _ if dans(bulletin::ROUTES) => bulletin::route(o, &ctx, route, &charge),
         // Les organismes et les contrats de la DSN : lus, et composes quand la compagnie les enregistre (`organismes`).
         _ if dans(crate::compagnie::organismes::ROUTES) => crate::compagnie::organismes::route(&ctx, route, &charge),
         _ if dans(coffre::ROUTES) => coffre::route(o, &ctx, route, &charge),
         _ if dans(filet::ROUTES) => filet::route(o, &ctx, route, &charge),
         _ if dans(import::ROUTES) => import::route(o, &ctx, route, &charge),
         _ if dans(archives::ROUTES) => archives::route(o, &ctx, route, &charge),
+        _ if dans(historique::ROUTES) => historique::route(o, &ctx, route, &charge),
         // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
         _ if dans(crate::historique_mois::ROUTES) => crate::historique_mois::route(&ctx, &charge),
         _ if dans(dossier_salarie::ROUTES) => dossier_salarie::route(o, &ctx, route, &charge),
         _ if dans(ouverture::ROUTES) => ouverture::route(o, &ctx, route, &charge),
-        _ if dans(rappels::ROUTES) => rappels::rappels(&ctx),
+        _ if dans(rappels::ROUTES) => rappels::route(o, &ctx, route, &charge),
         // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
         _ if dans(crate::compagnie::conseils::ROUTES) => crate::compagnie::conseils::route(&ctx, route, &charge),
         // La releve des reponses « Je signe » : cherche les codes attendus dans la boite (la vraie, ou celle d'une

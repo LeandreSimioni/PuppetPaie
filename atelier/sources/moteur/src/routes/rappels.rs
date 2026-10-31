@@ -17,7 +17,14 @@ use socle::date::{en_texte, Jour};
 use engagement;
 use envois::etats;
 use crate::compagnie::etat_dsn;
-use crate::routes::catalogue::{Acte, Fiche, OPERATION};
+use crate::routes::catalogue::{Acte, Champ, Fiche, Refus as RefusFiche, FORME, MANQUE, OPERATION};
+use crate::routes::qui_de;
+use crate::routes::fiches::{entier, exiger};
+use crate::routes::ouverture::marquer_echeance;
+use envois::etats::{getd, items};
+use socle::echec::{erreur, Echec};
+use socle::valeur::{nom_type, valeurs_egales};
+use std::collections::HashMap;
 use socle::fichiers::{lire_json, vrai};
 use crate::routes::catalogue::{Ecran, Place};
 
@@ -34,18 +41,129 @@ fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
 const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
 /// Les routes de ce module, et leurs fiches.
-pub const ROUTES: &[Fiche] = &[Fiche {
-    nom: "rappels",
-    geste: "Dire ce que la compagnie a à faire ce jour : DSN, fins de contrat, DPAE…",
-    charge: &[],
-    exemple: r#"{}"#,
-    rend: "rappels (chacun : quoi, titre, question, mois ou année, état, en retard et sa pastille, l'échéance, ce qu'il ouvre)",
-    refus: &[OPERATION],
-    acte: Acte::Lit,
-    avance: false,
-    phrase: 0,
-    ecran: ECRAN,
-}];
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "rappels",
+        geste: "Dire ce que la compagnie a à faire ce jour : DSN, fins de contrat, DPAE…",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "rappels (chacun : quoi, titre, question, mois ou année, état, en retard et sa pastille, l'échéance, ce qu'il ouvre)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "revue-spectacles",
+        geste: "Archiver les spectacles qui ne continuent pas, et noter la revue faite.",
+        charge: &[ANNEE, Champ { nom: "continuent", sens: "les spectacles qui continuent (leurs clés) ; les autres s'archivent", avance: false }],
+        exemple: r#"{"annee":2026,"continuent":["le-banc-des-menteurs"]}"#,
+        rend: "archives, gardes",
+        refus: &[MANQUE, FORME],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+        ecran: Ecran::Dessine(Place::Paie),
+    },
+    Fiche {
+        nom: "pour-demarrer",
+        geste: "Dire ce qui manque à la compagnie pour ses premiers actes.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "manques (chacun ce qu'il bloque et où le dire), poses (ce que le moteur a posé, en information)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+        ecran: Ecran::Dessine(Place::Paie),
+    },
+    Fiche {
+        nom: "echeance-faite",
+        geste: "Cocher une échéance annuelle que seule la compagnie peut dire faite.",
+        charge: &[
+            Champ { nom: "cle", sens: "l'échéance et son année, « quoi:AAAA » (celle que rappels ou echeancier rendent)", avance: false },
+            Champ { nom: "fait", sens: "faux : la décocher", avance: false },
+        ],
+        exemple: r#"{"cle":"revue-spectacles:2026"}"#,
+        rend: "cle, fait",
+        refus: &[RefusFiche { classe: "ErreurOperation", corriger: "une échéance qui se coche, avec son année" }, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+        ecran: Ecran::Dessine(Place::Paie),
+    },
+];
+
+const ANNEE: Champ = Champ { nom: "annee", sens: "l'année, AAAA", avance: false };
+
+/// Une route de ce module.
+pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> socle::echec::R<Value> {
+    match nom {
+        "rappels" => rappels(ctx),
+        "revue-spectacles" => revue_spectacles(o, ctx, charge),
+        "echeance-faite" => echeance_faite(ctx, charge),
+        // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup ; ce que le moteur a pose de lui-meme se dit
+        // en information (gris).
+        "pour-demarrer" => declarations::demarrage::route(ctx).map(|mut v| {
+            if let Some(Value::Array(p)) = v.get_mut("poses") {
+                p.iter_mut().for_each(|x| x["pastille"] = super::pastille("information", "posé pour vous"));
+            }
+            v
+        }),
+        autre => Err(Echec::from(format!("route inconnue : {}", autre))),
+    }
+}
+
+/// Archive les spectacles actifs qui ne sont pas dans
+/// `continuent`, note la revue de l'annee faite, rend la configuration.
+fn revue_spectacles(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> socle::echec::R<Value> {
+    let annee = entier(exiger(charge, "annee")?)?;
+    let continuent = etats::ou(getd(charge, "continuent", &etats::LISTE_VIDE)?, &etats::LISTE_VIDE);
+    // `set(continuent)` : l'ordre ne compte pas, les doublons non plus.
+    let mut garder: Vec<Value> = Vec::new();
+    for c in items(continuent)? {
+        if matches!(c.as_ref(), Value::Array(_) | Value::Object(_)) {
+            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&c))));
+        }
+        if !garder.iter().any(|g| valeurs_egales(g, &c)) {
+            garder.push(c.into_owned());
+        }
+    }
+    let actifs = ctx.spectacles_actifs();
+    let est_actif = |v: &Value| v.as_str().is_some_and(|s| actifs.contains(&s));
+    let mut inconnus: Vec<&Value> = garder.iter().filter(|g| !est_actif(g)).collect();
+    if !inconnus.is_empty() {
+        if let Some((i, autre)) = inconnus.iter().enumerate().find(|(_, c)| !c.is_string()) {
+            return Err(erreur("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre)))));
+        }
+        inconnus.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
+        let noms: Vec<&str> = inconnus.iter().filter_map(|c| c.as_str()).collect();
+        return Err(erreur("ErreurOperation", format!("Spectacle actif inconnu : {}.", noms.join(", "))));
+    }
+    let archives: Vec<String> = actifs.iter().filter(|c| !garder.iter().any(|g| g.as_str() == Some(c))).map(|c| c.to_string()).collect();
+    for cle in &archives {
+        crate::routes::fiches::activer_fiche(ctx, "spectacle", cle, false)?;
+    }
+    marquer_echeance(ctx, &format!("revue-spectacles:{}", annee), true, "interface")?;
+    let mut continuent: Vec<String> = garder.iter().filter_map(|g| g.as_str().map(String::from)).collect();
+    continuent.sort();
+    let neuf = Contexte::nouveau(&ctx.racine, None).map_err(|m| socle::echec::noter_et(None, m))?;
+    let configuration = crate::routes::ouverture::route(o, &neuf, "configuration", &json!({}))?;
+    Ok(json!({"annee": annee, "archives": archives, "continuent": continuent, "configuration": configuration}))
+}
+
+/// `echeance-faite` : coche (`fait`) ou decoche l'echeance `charge["cle"]`, au nom de `qui`.
+fn echeance_faite(ctx: &Contexte, charge: &Value) -> socle::echec::R<Value> {
+    let cle = exiger(charge, "cle")?;
+    let fait = charge.get("fait") != Some(&Value::Bool(false));
+    let Some(texte) = cle.as_str() else {
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(cle))));
+    };
+    marquer_echeance(ctx, texte, fait, &qui_de(charge))?;
+    Ok(json!({"cle": texte, "fait": fait}))
+}
+
 
 // ------------------------------------------------------------------ outils
 

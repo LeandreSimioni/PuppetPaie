@@ -128,11 +128,24 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 200,
         ecran: ECRAN,
     },
+    Fiche {
+        nom: "poser-courriel",
+        geste: "Poser le courriel d'un salarié, là où il manque.",
+        charge: &[SALARIE, Champ { nom: "email", sens: "son adresse de courriel", avance: false }],
+        exemple: r#"{"salarie":"FULLER","email":"loie.fuller@exemple.invalid"}"#,
+        rend: "salarie, email",
+        refus: &[crate::routes::fiches::REFUSEE, OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+        ecran: ECRAN,
+    },
 ];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
+        "poser-courriel" => crate::routes::fiches::poser_courriel(ctx, charge),
         "signature-apercu" => signature_apercu(ctx, charge),
         "avenant-apercu" => avenant_apercu(ctx, charge),
         "pieces-parties" => pieces_parties(ctx, charge),
