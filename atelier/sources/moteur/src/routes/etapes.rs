@@ -1222,9 +1222,13 @@ impl<'a> Moteur<'a> {
                     // Le jour de l'embauche passe, la DPAE qui devait le preceder (L. 1221-10) est en retard ; elle se depose
                     // toujours.
                     let echeance = echeance_de(&siens, DPAE);
-                    let passee = socle::date::jour_iso(&valeur_en_texte(&echeance["jour"])).is_some_and(|j| j < self.ctx.aujourdhui);
-                    let etat = if passee { "à déposer, en retard" } else { "à déposer" };
-                    let quoi = refus.map_or_else(|| etat.to_string(), |r| format!("{} · {}", etat, r));
+                    let en_retard = siens.iter().filter(|p| socle::date::jour_iso(&valeur_en_texte(&p["echeances"][DPAE]["jour"])).is_some_and(|j| j < self.ctx.aujourdhui)).count();
+                    let etat = match en_retard {
+                        0 => "à déposer".to_string(),
+                        r if r == n => "à déposer, en retard".to_string(),
+                        r => format!("à déposer, dont {} en retard", r),
+                    };
+                    let quoi = refus.map_or_else(|| etat.clone(), |r| format!("{} · {}", etat, r));
                     groupe("a_faire", json!(n), n.to_string(), quoi, echeance, a)
                 }
                 A_COMPLETER => a_completer(n),
