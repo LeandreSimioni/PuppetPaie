@@ -1612,6 +1612,25 @@ se déclare, avec le type « 90 - pas de clause de préavis applicable ».",
 du contrat, il précède le début du préavis (CCH-12, cahier technique DSN p. 275). La mensuelle et le signalement le \
 déclarent tous deux.",
         ));
+    } else if let Some(dernier) = e.get("dernier_jour_paye").filter(|j| vrai(j)).map(valeur_en_texte) {
+        // Hors preavis non effectue, aucun jour de la paie ne vient apres le dernier jour paye.
+        let jour = |j: &Value| j.get("jour").map_or_else(|| valeur_en_texte(j), valeur_en_texte);
+        let apres: Vec<String> = engagement::dates_engagement(e).iter().map(jour).filter(|j| *j > dernier).collect();
+        if !apres.is_empty() {
+            let dire = |j: &str| socle::date::jour_iso(j).map_or_else(|| j.to_string(), |x| x.jj_mm());
+            manque.push(self::manque(
+                "dernier_jour_paye",
+                "Dernier jour payé",
+                format!(
+                    "{} {} après le dernier jour payé, le {} : retirez-le de la paie, ou dites un autre dernier jour payé.",
+                    apres.iter().map(|j| format!("le {}", dire(j))).collect::<Vec<_>>().join(", "),
+                    if apres.len() > 1 { "sont" } else { "est" },
+                    dire(&dernier)
+                ),
+                "Le dernier jour travaillé et payé (S21.G00.62.006) clôt la paie du contrat rompu : un jour payé après lui \
+contredit le signalement.",
+            ));
+        }
     }
     Ok(manque)
 }
