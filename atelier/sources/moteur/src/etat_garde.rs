@@ -24,8 +24,8 @@
 //! ouvrir, l'echeancier, les rappels, ce qui manque pour demarrer, les conseils) ; lui s'ecrit, pour qu'une compagnie
 //! s'ouvre tout de suite au lancement suivant. Meme empreinte (dates et tailles), mais de TOUTE la compagnie ; meme
 //! file, qui le refait a l'ouverture, apres chaque ecriture et chaque tour de veille ; meme service sans processus
-//! (`FileDesEtats::ouverture`, route `ouverture` de `interface/api.rs`) : le dernier etat connu, tout de suite, avec
-//! l'ecran du mois a ouvrir, chacun marque `perime` s'il l'est. Sans etat connu, la fenetre le fait faire et dit ce que
+//! (`FileDesEtats::ouverture`, route `ouverture` de `interface/api.rs`) : ses lectures justes (refaites si besoin), avec
+//! l'ecran du mois a ouvrir, marque `perime` s'il l'est. Ce qui se refait, la fenetre le fait faire et dit ce que
 //! fait le moteur (`phrase`), au lieu d'une roue muette.
 
 use std::collections::{HashMap, VecDeque};
@@ -804,13 +804,18 @@ impl FileDesEtats {
         Ok(Self::marquer(pour_la_page(&self.racine, &etat, &brut), false))
     }
 
-    /// L'etat garde `cle`, juste ou non, s'il y en a un ; sinon il est demande devant et attendu jusqu'a `limite` --
-    /// `Ok(None)` si elle passe avant lui. Le passage rend l'etat (juste) ou son refus.
-    fn obtenir(&self, cle: &str, jour: &str, limite: Instant) -> R<Option<(Value, bool)>> {
-        if let Some(x) = self.connu(cle, jour) {
+    /// L'etat garde `cle`, s'il y en a un (juste, si `juste` l'exige) ; sinon il est demande devant et attendu jusqu'a
+    /// `limite` -- `Ok(None)` si elle passe avant lui. Le passage rend l'etat (juste) ou son refus.
+    fn obtenir(&self, cle: &str, jour: &str, limite: Instant, juste: bool) -> R<Option<(Value, bool)>> {
+        if let Some(x) = self.connu(cle, jour).filter(|(_, j)| *j || !juste) {
             return Ok(Some(x));
         }
-        let n = self.demander(cle, true);
+        // Deja en route (la page qui redemande) : on attend ce passage-la, sans en demander un de plus.
+        let en_route = {
+            let e = self.verrou();
+            (e.en_cours.as_deref() == Some(cle) || e.attente.iter().any(|m| m == cle)).then(|| e.voulu.get(cle).copied()).flatten()
+        };
+        let n = en_route.unwrap_or_else(|| self.demander(cle, true));
         let mut e = self.verrou();
         loop {
             if let Some((fait, rendu)) = e.fait.get(cle) {
@@ -842,14 +847,14 @@ impl FileDesEtats {
 
     /// L'OUVERTURE D'UNE COMPAGNIE (la route `ouverture` de la fenetre) : d'un coup, ce que la page lit en
     /// s'ouvrant -- les lectures de l'ouverture (`lectures`, une entree par route, au format d'une reponse de la page), le
-    /// mois a ouvrir (`mois`) et l'ecran de ce mois (`ecran`, celui de la route `mois`). Le DERNIER ETAT CONNU, tout de
-    /// suite : chacun marque `perime` s'il l'est (`perime` pour les lectures, `ecran.perime` pour le mois), et refait
-    /// aussitot, le mois devant. `pret: true`.
+    /// mois a ouvrir (`mois`) et l'ecran de ce mois (`ecran`, celui de la route `mois`). Les lectures sont JUSTES : la
+    /// page ne les lit qu'une fois. L'ecran du mois est le dernier connu, tout de suite, marque `perime` s'il l'est
+    /// (`ecran.perime`), et refait aussitot. `pret: true`.
     ///
-    /// Sans etat connu de l'un ou de l'autre (compagnie neuve, etat illisible ou d'un autre moteur) : il se fait, et l'on
-    /// attend au plus `patienter` ; passe ce delai, `{"pret": false, "phrase"}` dit ce que fait le moteur, et la page
-    /// redemande. `frais` : les lectures de l'ouverture une fois refaites (la page qui a peint un etat perime), sans
-    /// l'ecran du mois (la page attend celui-ci par la route `mois`).
+    /// Sans lectures justes ou sans etat connu du mois (compagnie neuve, etat illisible ou d'un autre moteur, une
+    /// ecriture depuis) : il se fait, et l'on attend au plus `patienter` ; passe ce delai, `{"pret": false, "phrase"}` dit
+    /// ce que fait le moteur, et la page redemande. `frais` : les lectures de l'ouverture une fois refaites, sans l'ecran
+    /// du mois (l'Historique qui se relit).
     ///
     /// `aujourdhui` : LE JOUR DU MOTEUR, celui que la page prend pour tout ce qu'elle date ou presente au jour (une
     /// date d'effet proposee, l'annee du taux AT/MP, le mois en cours de la grille) -- jamais l'horloge du navigateur :
@@ -859,25 +864,21 @@ impl FileDesEtats {
         if frais {
             let v = self.attendre(OUVERTURE)?;
             let mois = mois_a_ouvrir(&v, &jour);
-            return Ok(json!({"pret": true, "perime": false, "mois": mois, "aujourdhui": jour, "lectures": v.get("lectures").cloned().unwrap_or(Value::Null), "ecran": Value::Null}));
+            return Ok(json!({"pret": true, "mois": mois, "aujourdhui": jour, "lectures": v.get("lectures").cloned().unwrap_or(Value::Null), "ecran": Value::Null}));
         }
         let limite = Instant::now() + patienter;
         let attente = || json!({"pret": false, "phrase": self.phrase()});
-        let Some((ouv, juste)) = self.obtenir(OUVERTURE, &jour, limite)? else { return Ok(attente()) };
+        let Some((ouv, _)) = self.obtenir(OUVERTURE, &jour, limite, true)? else { return Ok(attente()) };
         let mois = mois_a_ouvrir(&ouv, &jour);
         self.verrou().affiche = Some(mois.clone());
-        let Some((etat, mois_juste)) = self.obtenir(&mois, &jour, limite)? else { return Ok(attente()) };
-        // Refaits en fond, le mois devant : ses cartes sont ce qui se voit le plus.
-        if !juste {
-            self.demander(OUVERTURE, true);
-        }
+        let Some((etat, mois_juste)) = self.obtenir(&mois, &jour, limite, false)? else { return Ok(attente()) };
+        // Refait en fond, devant : ses cartes sont ce qui se voit le plus.
         if !mois_juste {
             self.demander(&mois, true);
         }
         let ecran = Self::marquer(pour_la_page(&self.racine, &etat, &Value::String(mois.clone())), !mois_juste);
         Ok(json!({
             "pret": true,
-            "perime": !juste,
             "mois": mois,
             "aujourdhui": jour,
             "lectures": ouv.get("lectures").cloned().unwrap_or(Value::Null),

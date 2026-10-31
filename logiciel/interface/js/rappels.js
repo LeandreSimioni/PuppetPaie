@@ -52,31 +52,6 @@ function dejaMontres(montres) {
   return false;
 }
 
-/** L'ÉTAT FRAIS DE L'OUVERTURE : la boîte des rappels, si elle
- *  est encore ouverte et que le moteur dit autre chose, se repeint en place ;
- *  s'il n'y en avait pas et qu'il y a maintenant quelque chose à faire, elle
- *  s'ouvre (par-dessus la page : rien ne bouge dessous). Fermée par la
- *  personne, elle ne revient pas avant la prochaine ouverture. */
-async function rafraichirRappels(lu) {
-  const ouverte = !document.getElementById("voile").classList.contains("cachee")
-    && document.querySelector("#boite .boite-rappels");
-  if (RAPPELS_MONTRES && !ouverte) return;
-  let r, ech = null, manques = [];
-  try { r = await lu("rappels"); } catch (e) { return; }
-  try { ech = await lu("echeancier"); } catch (e) { ech = null; }
-  try { const pd = await lu("pour-demarrer"); manques = pd.manques || []; POSES_DEMARRAGE = pd.poses || []; } catch (e) { manques = []; }
-  const liste = r.rappels || [];
-  const neuf = { liste, ech, manques };
-  if (JSON.stringify(neuf) === JSON.stringify(RAPPELS_MONTRES)) return;
-  if (!liste.length && !(ech && ech.a_faire) && !manques.length) {
-    if (ouverte) fermerBoite();
-    return;
-  }
-  if (!RAPPELS_MONTRES && !document.getElementById("voile").classList.contains("cachee")) return; // une autre boîte est ouverte
-  RAPPELS_MONTRES = neuf;
-  boiteRappels(liste, ech, manques);
-}
-
 /* CE QUE LE MOTEUR A POSÉ DE LUI-MÊME (`pour-demarrer`, `poses`) : dit avec
  * ce qui manque, en information, avec le lien vers sa case. */
 let POSES_DEMARRAGE = [];
