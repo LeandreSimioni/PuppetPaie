@@ -217,7 +217,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
 
     let second = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])});
     outils::reussi(&outils::route(&racine, "valider-engagement", json!({"mois": "2026-11", "saisie": second}), jour));
-    assert_eq!(documents(), ["a_faire"], "le bulletin du contrat ajoute est a envoyer");
+    assert_eq!(documents(), ["fait", "a_faire"], "le bulletin du contrat ajoute est a envoyer, celui du premier est parti");
     outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), jour));
     let dsn = std::fs::read(racine.join("sorties/2026-12/DSN_Decembre2026.dsn")).unwrap().iter().map(|&o| o as char).collect::<String>();
     assert!(dsn.contains("S21.G00.40.009,'FU1.26.02'"), "la DSN de decembre declare le contrat ajoute");
@@ -243,7 +243,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     assert!(consequences.iter().any(|p| p.as_str().is_some_and(|p| p.contains("bulletin rectificatif"))), "{}", r);
     assert!(ecrits() == avant, "une modification non confirmee a ecrit");
     outils::reussi(&modifier(lignes(2, &["2026-11-27", "2026-11-28"]), true));
-    assert_eq!(documents(), ["a_faire"], "le bulletin parti est a rectifier");
+    assert_eq!(documents(), ["fait", "a_faire"], "le bulletin parti du second est a rectifier");
     std::fs::remove_dir_all(racine.join("sorties/2026-12")).unwrap();
     outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), jour));
     assert!(bulletins_hors_du_mois().is_empty(), "la DSN a fabrique un bulletin : {:?}", bulletins_hors_du_mois());

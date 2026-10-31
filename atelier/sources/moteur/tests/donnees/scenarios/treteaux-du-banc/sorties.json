@@ -1162,7 +1162,7 @@
                   "prelevement": "20"
                 },
                 "recalcul": {
-                  "le": "2026-11-20T08:00:00",
+                  "le": "2026-11-20T07:00:00",
                   "raison": "taux de PAS reçu"
                 },
                 "bulletin": "1/2026",
@@ -1681,7 +1681,7 @@
       },
       "2026-11/DSN_Novembre2026.dsn": {
         "quand": "2026-12-15T10:00:00",
-        "empreinte_saisie": "8ebcfd452a124fc5"
+        "empreinte_saisie": "247189879fc12aa5"
       }
     },
     "retours/20261120-070000_nature94_FICTIF-72F3139B75DB.xml": {
