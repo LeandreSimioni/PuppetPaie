@@ -1555,7 +1555,7 @@ fn ferme_aux_neufs(ctx: &Contexte, mois: &str) -> R<Option<String>> {
     let importes = engagement::importe::du_mois(&ctx.racine, mois).map_err(Echec::from)?;
     Ok(importes.iter().any(|i| i.paies().contains_key(mois)).then(|| {
         format!(
-            "{} porte des paies importées de votre ancien logiciel : il ne reçoit pas d'engagement neuf. Finissez ce mois \
+            "Le mois de {} porte des paies importées de votre ancien logiciel : il ne reçoit pas d'engagement neuf. Finissez ce mois \
              dans l'ancien logiciel.",
             engagement::libelle_mois(mois)
         )
