@@ -541,7 +541,7 @@ async function boiteDpae(mois) {
     const rendre = occupe(bouton, "Fabrication du fichier en cours…");
     try {
       const w = await api("dpae", {
-        mois, engagements: choisies.map((l) => ({ salarie: l.salarie, debut: l.debut })),
+        mois, engagements: choisies.map((l) => ({ salarie: l.salarie, numero: l.numero })),
       });
       fermerBoite();
       // Le dossier porte le fichier à déposer et son récapitulatif ; c'est le

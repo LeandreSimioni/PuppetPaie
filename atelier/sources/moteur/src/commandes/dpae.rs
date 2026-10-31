@@ -1,4 +1,4 @@
-//! `moteur dpae FICHIER [--heure HHMM] [--seulement SALARIE:AAAA-MM-JJ ...] [--json]` : produire la seule DPAE d'un mois,
+//! `moteur dpae FICHIER [--heure HHMM] [--seulement SALARIE:NUMERO ...] [--json]` : produire la seule DPAE d'un mois,
 //! avant l'embauche. Rien ne part : un fichier a plat
 //! (990 caracteres par embauche), son archive et son recapitulatif, plus -- dans le meme geste -- les signalements d'amorcage
 //! (nature 08) des embauches dont le taux de PAS manque. Le depot est une commande a part (`moteur deposer-dpae`).
@@ -38,17 +38,17 @@ fn mois_de_la_saisie(cadre: &Cadre, texte: &str) -> Result<String, Echec> {
 
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let json = args.drapeau("json");
-    // `--seulement FAVART:2026-08-23` : la DPAE d'une PARTIE du mois. Le fichier complet reste a cote, intact.
+    // `--seulement FAVART:3` : la DPAE d'une PARTIE du mois (le salarie et le numero du contrat). Le fichier complet reste a cote, intact.
     let mut choix: Option<Vec<Value>> = None;
     let seulement = args.liste("seulement");
     if args.drapeau("seulement") {
         let mut liste = Vec::new();
         for x in &seulement {
-            let Some((cle, debut)) = x.split_once(':') else {
-                dire!("--seulement attend SALARIE:AAAA-MM-JJ, recu {}", socle::fichiers::repr(x));
+            let Some((cle, numero)) = x.split_once(':') else {
+                dire!("--seulement attend SALARIE:NUMERO, recu {}", socle::fichiers::repr(x));
                 return Ok(2);
             };
-            liste.push(json!({"salarie": cle.trim(), "debut": debut.trim()}));
+            liste.push(json!({"salarie": cle.trim(), "numero": numero.trim()}));
         }
         choix = Some(liste);
     }

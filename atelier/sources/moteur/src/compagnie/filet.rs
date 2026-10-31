@@ -84,8 +84,9 @@ fn verrouiller(racine: &Path) -> R<Verrou> {
     }
 }
 
-fn cle(salarie: &str, debut: &str) -> String {
-    format!("{}|{}", salarie, debut)
+/// La cle du reveil de la DPAE d'un engagement : son salarie et le numero de son contrat.
+pub(crate) fn cle_dpae(salarie: &str, numero: &str) -> String {
+    format!("{}|{}", salarie, numero)
 }
 
 fn cle_dsn(mois: &str) -> String {
@@ -350,7 +351,7 @@ fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str
         for e in suivies {
             let debut = valeur_en_texte(get(e, "debut")?);
             if let Some(quand) = echeance_du_reveil(&debut, maintenant)? {
-                poser(cle(&valeur_en_texte(get(e, "salarie")?), &debut), debut, quand, "dpae");
+                poser(cle_dpae(&valeur_en_texte(get(e, "salarie")?), &valeur_en_texte(get(e, "numero")?)), debut, quand, "dpae");
             }
         }
         // LA DSN PAS PARTIE : le meme reveil, la veille de l'echeance a 9 h.
@@ -485,16 +486,5 @@ pub fn desarmer(racine: &Path, k: &str) -> R<bool> {
     }
     ecrire_etat(racine, &etat)?;
     Ok(true)
-}
-
-/// La cle d'un reveil de DPAE ou de DSN.
-pub fn cle_du_reveil(charge: &Value) -> String {
-    match charge.get("cle").filter(|c| vrai(c)) {
-        Some(c) => valeur_en_texte(c),
-        None => cle(
-            &charge.get("salarie").map(valeur_en_texte).unwrap_or_else(|| "None".into()),
-            &charge.get("debut").map(valeur_en_texte).unwrap_or_else(|| "None".into()),
-        ),
-    }
 }
 

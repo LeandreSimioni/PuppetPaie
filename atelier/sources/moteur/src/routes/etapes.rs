@@ -1579,7 +1579,7 @@ impl<'a> Moteur<'a> {
                 };
                 let titre = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).cloned() } else { None };
                 let mut due = json!({
-                    "mois": m, "salarie": cle,
+                    "mois": m, "salarie": cle, "numero": numero,
                     "nom": super::nom_a_l_ecran(&p.salarie),
                     "spectacle": titre.unwrap_or_else(|| json!("salarié au mois")),
                     "debut": debut, "fin": p.engagement.fin.map(|f| f.iso()),

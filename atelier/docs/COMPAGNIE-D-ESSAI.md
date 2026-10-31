@@ -105,7 +105,7 @@ plate-forme à l'écriture (lot O1).
 **Une DPAE de test** :
 
 ```bash
-moteur dpae 2026-11                                   # --seulement SALARIE:AAAA-MM-JJ pour une seule embauche
+moteur dpae 2026-11                                   # --seulement SALARIE:NUMERO pour une seule embauche
 moteur deposer-dpae sorties/2026-11/DPAE_Novembre2026.txt --test
 moteur retours --dpae --flux <le flux rendu>
 ```

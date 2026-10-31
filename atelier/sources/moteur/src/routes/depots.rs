@@ -211,7 +211,7 @@ fn fichier_json(f: &Path) -> Value {
 }
 
 /// La DPAE, due AVANT le premier jour travaille : tout le mois, ou les engagements choisis (`engagements` : une liste de
-/// `{salarie, debut}`) dans un fichier horodate a cote du complet. `forcer` : reecrire meme une embauche deja declaree (un
+/// `{salarie, numero}` : le salarie et le numero du contrat de l'engagement) dans un fichier horodate a cote du complet. `forcer` : reecrire meme une embauche deja declaree (un
 /// depot rejete, a refaire).
 pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     dpae_detail(ctx, charge).map(|(v, _, _)| v)
@@ -241,7 +241,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let (etiq, libelle) = mois_en_toutes_lettres(&mois)?;
     let sortie = ctx.racine.join("sorties").join(&mois);
     let aujourdhui = ctx.aujourdhui;
-    let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.debut.iso()) };
+    let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.numero.clone().unwrap_or_default()) };
 
     // LES DPAE A FAIRE DU MOIS (`Moteur::embauches_a_declarer`, la seule liste) : une embauche deja partie en DPAE
     // reelle, ou un contrat en cours depuis un mois precedent (sa DPAE part avec son premier mois), n'y est pas.
@@ -250,7 +250,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         .as_array()
         .into_iter()
         .flatten()
-        .map(|e| (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["debut"])))
+        .map(|e| (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["numero"])))
         .collect();
     let mut retenues: Vec<&Paie> = paies.iter().filter(|p| a_faire.contains(&cle_de(p))).collect();
     let mut marque = String::new();
@@ -260,15 +260,12 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
             match x {
                 Value::Object(_) => {
                     let g = |k: &str| x.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
-                    voulues.insert((g("salarie")?, g("debut")?));
-                }
-                Value::Array(a) if a.len() == 2 => {
-                    voulues.insert((en_texte(&a[0]), en_texte(&a[1])));
+                    voulues.insert((g("salarie")?, g("numero")?));
                 }
                 autre => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
             }
         }
-        let joint = |s: BTreeSet<&(String, String)>| s.into_iter().map(|(a, b)| format!("{} au {}", a, b)).collect::<Vec<_>>().join(", ");
+        let joint = |s: BTreeSet<&(String, String)>| s.into_iter().map(|(a, b)| format!("{} (contrat {})", a, b)).collect::<Vec<_>>().join(", ");
         let hors: BTreeSet<&(String, String)> = voulues.difference(&a_faire).collect();
         if !hors.is_empty() {
             return Err(refus(format!(
@@ -299,7 +296,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         let mut doubles: Vec<String> = Vec::new();
         for i in 1..paies.len() {
             if retenue(i) && (0..i).any(|j| retenue(j) && sans_numero(&brutes[i]) == sans_numero(&brutes[j])) {
-                let (c, d) = cle_de(&paies[i]);
+                let (c, d) = (cle_de(&paies[i]).0, paies[i].engagement.debut.iso());
                 let texte = format!("{} au {}", c, d);
                 if !doubles.contains(&texte) {
                     doubles.push(texte);
@@ -620,10 +617,6 @@ fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Un test automatique de DPAE se retente au plus tot six heures apres un echec.
 const REESSAI_SECONDES: i64 = 6 * 3600;
 
-fn cle_du_test(salarie: &str, debut: &str) -> String {
-    format!("{}|{}", salarie, debut)
-}
-
 /// Un passage -- tester ce qui doit l'etre, armer, desarmer. Rend `{"testees",
 /// "armes", "desarmes", "incidents", "occupe"}`. Ne leve jamais pour une panne : elle devient un incident, et le
 /// passage suivant reessaie. `tester` (vrai par defaut) ; `qui` (`filet` par defaut) ; `maintenant`
@@ -652,7 +645,7 @@ pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Op
             demande.insert("tests".into(), tests);
             demande.insert(
                 "vivantes".into(),
-                Value::Array(suivies.iter().map(|e| json!(cle_du_test(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["debut"])))).collect()),
+                Value::Array(suivies.iter().map(|e| json!(crate::compagnie::filet::cle_dpae(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["numero"])))).collect()),
             );
         }
     }
@@ -712,7 +705,7 @@ fn tester_les_dpae(
         if debut < aujourdhui {
             continue;
         }
-        if let Some(t) = deja.get(cle_du_test(&salarie, &debut)).filter(|t| vrai(t)) {
+        if let Some(t) = deja.get(crate::compagnie::filet::cle_dpae(&salarie, &valeur_en_texte(&e["numero"]))).filter(|t| vrai(t)) {
             if t.get("empreinte") == e.get("empreinte") {
                 if !t.get("erreur").is_some_and(vrai) {
                     continue; // teste, et rien n'a change
@@ -733,7 +726,7 @@ fn tester_les_dpae(
 
     let mut tests = Map::new();
     for ((mois, debut), groupe) in a_tester {
-        let selection: Vec<Value> = groupe.iter().map(|e| json!({"salarie": e["salarie"], "debut": e["debut"]})).collect();
+        let selection: Vec<Value> = groupe.iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
         let mut fichier: Option<String> = None;
         let mut erreur_texte = String::new();
         let mut essai = |fichier: &mut Option<String>| -> R<()> {
@@ -764,7 +757,7 @@ fn tester_les_dpae(
         }
         for e in &groupe {
             tests.insert(
-                cle_du_test(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["debut"])),
+                crate::compagnie::filet::cle_dpae(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["numero"])),
                 json!({
                     "empreinte": e["empreinte"], "mois": mois, "fichier": fichier.clone().unwrap_or_default(),
                     "essai_le": maintenant_iso, "erreur": erreur_texte,

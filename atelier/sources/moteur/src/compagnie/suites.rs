@@ -164,7 +164,7 @@ fn marquer_depot_reel(ctx: &Contexte, d: &envois::suites::DepotReel) -> R<()> {
         }
     } else if !d.joue {
         for e in &d.embauches {
-            let _ = crate::compagnie::filet::desarmer(&ctx.racine, &crate::compagnie::filet::cle_du_reveil(&json!({"salarie": e["salarie"], "debut": e["debut"]})));
+            let _ = crate::compagnie::filet::desarmer(&ctx.racine, &crate::compagnie::filet::cle_dpae(&socle::valeur::valeur_en_texte(&e["salarie"]), &socle::valeur::valeur_en_texte(&e["numero"])));
         }
     }
     Ok(())

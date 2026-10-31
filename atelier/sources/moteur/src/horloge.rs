@@ -651,7 +651,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             if attente.is_empty() {
                 return Ok(false);
             }
-            let engagements: Vec<Value> = attente.iter().map(|e| json!({"salarie": e["salarie"], "debut": e["debut"]})).collect();
+            let engagements: Vec<Value> = attente.iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
             let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": engagements}))?;
             let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             for reel in [false, true] {
