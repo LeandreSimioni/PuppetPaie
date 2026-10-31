@@ -1070,7 +1070,7 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let [certificat, recu] = documents::fin_de_contrat::ecrire(ctx, &p, date, &ctx.racine.join("sorties").join(mois))?;
     let nom = |c: &Path| socle::fichiers::nom_du(c);
     Ok(json!({
-        "phrase": format!("Écrits pour {} {} : {}, {}.", en_texte(&p.salarie["prenom"]), en_texte(&p.salarie["nom"]), nom(&certificat), nom(&recu)),
+        "phrase": format!("Écrits pour {} : {}, {}.", crate::routes::nom_a_l_ecran(&p.salarie), nom(&certificat), nom(&recu)),
         "certificat": certificat.to_string_lossy(),
         "recu": recu.to_string_lossy(),
         "avertissements": documents::fin_de_contrat::AVIS,

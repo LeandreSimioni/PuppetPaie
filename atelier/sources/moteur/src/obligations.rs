@@ -272,7 +272,7 @@ impl Suivi {
         // Une fiche qui ne dit plus rien s'en va.
         self.fiches.retain(|f| f.as_object().is_some_and(|o| o.keys().any(|k| k != "salarie" && k != "dernier_jour_travaille")));
         let doc = json!({
-            "_quoi": "Ce que la compagnie a dit des obligations de ses arrets de travail : le jour ou elle a connu l'arret ou l'accident, la declaration d'accident du travail faite et l'attestation de salaire faite (hors DSN, le deuil d'enfant). Ecrit par les routes `arret-connaissance`, `accident-declare` et `attestation-declare` (`atelier/sources/moteur/src/obligations.rs`) ; les arrets eux-memes sont dans `AAAA-MM.json`.",
+            "_quoi": "Ce que la compagnie a dit des obligations de ses arrets de travail : le jour ou elle a connu l'arret ou l'accident, la declaration d'accident du travail faite et l'attestation de salaire faite (hors DSN, le deuil d'enfant). Ecrit par les routes `arret-enregistrer` (avec `connu`), `arret-connaissance`, `accident-declare` et `attestation-declare` (`atelier/sources/moteur/src/obligations.rs`) ; les arrets eux-memes sont dans `AAAA-MM.json`.",
             "arrets": self.fiches,
         });
         socle::ecriture::ecrire_json(&chemin(ctx), &doc, 2).map_err(|m| erreur("OSError", m))
