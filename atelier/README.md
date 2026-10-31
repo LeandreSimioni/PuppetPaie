@@ -463,8 +463,24 @@ Dans ce texte, « route NOM {charge} » se lit `echo '{"route":"NOM","charge":{�
 (dépôt, envoi, signature) demande le mot de passe du logiciel à un humain, dans la fenêtre du moteur ou dans son
 terminal, sans écho : il n'entre jamais par l'entrée standard. Une erreur métier reste une réponse —
 `{"ok": false, "erreur": "…", "classe": "AnnuleRemplaceHorsDelai"}` — sur laquelle un appelant branche son
-comportement. Restent des commandes : `moteur coffre` (la séance, et les mots de passe tapés sans écho),
-`moteur restaurer` (un poste neuf), `moteur interface` ; `moteur --aide` les liste.
+comportement. Restent des commandes : `moteur coffre` (ce qui est posé, et la séance), `moteur restaurer` (un poste
+neuf), `moteur interface` ; `moteur --aide` les liste. Un secret (le mot de passe du logiciel, celui d'un organisme)
+ne se lit jamais dans la charge : la route le fait taper par le moteur.
+
+### Les outils de l'atelier sur une compagnie
+
+Le binaire de l'atelier (`moteur-atelier`, `--features atelier`, jamais livré) garde des enquêtes et des gestes
+d'éditeur qui ne sont pas des gestes de l'écran (`moteur/src/atelier/outils/`) ; ils appellent les fonctions du moteur :
+
+```
+moteur-atelier pas                          # les taux de PAS connus, et ceux à demander
+moteur-atelier pas --amorcer                # les taux posés depuis les DSN de l'import
+moteur-atelier pas --demander [--mois AAAA-MM] [--salaries A,B] [--test]   # les signalements d'amorçage (nature 08), écrits
+moteur-atelier aer [--mois AAAA-MM] [--forcer]   # ranger de nouveau les AER reçues ; --forcer signe malgré un écart
+moteur-atelier journal --dpae [--ecrire]    # reprendre au journal les DPAE que les certificats de l'Urssaf attestent
+moteur-atelier retours [--dpae] [--flux F] [--depuis JJ/MM/AAAA] [--jusqu-a JJ/MM/AAAA] [--tout] [--environnement editeur]
+moteur-atelier depot-dsn AAAA-MM|FICHIER [--ordre N] [--environnement editeur]   # un dépôt de test à un ordre, ou chez l'éditeur
+```
 
 ## La DPAE, séparément
 

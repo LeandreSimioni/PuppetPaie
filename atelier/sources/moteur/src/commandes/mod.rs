@@ -144,14 +144,28 @@ struct Commande {
 }
 
 fn commandes() -> Vec<Commande> {
-    vec![
+    #[allow(unused_mut)]
+    let mut v = vec![
         Commande { nom: "coffre", aide: "les mots de passe des organismes, scelles sur le disque (ce qui est pose)", cachee: false, spec: &coffre::SPEC, executer: coffre::executer },
         // L'enquete de l'editeur sur le poste d'une compagnie : elle marche, elle ne figure pas dans l'aide.
         Commande { nom: "depots", aide: "lister les depots vus par net-entreprises (enquete)", cachee: true, spec: &depots::SPEC, executer: depots::executer },
         // L'outil de l'editeur, avant chaque publication : refuse ailleurs que sur son poste (le reglage de l'installation, `maj::reglage`).
         Commande { nom: "sources", aide: "les sources des donnees livrees, et leur veille (poste de l'editeur)", cachee: true, spec: &sources::SPEC, executer: sources::executer },
         Commande { nom: "restaurer", aide: "redescendre le dossier prive du Drive (poste neuf, ordinateur perdu)", cachee: false, spec: &restaurer::SPEC, executer: restaurer::executer },
-    ]
+    ];
+    // LES OUTILS DE L'ATELIER sur une compagnie (`atelier::outils`) : le binaire de l'atelier seulement.
+    #[cfg(feature = "atelier")]
+    {
+        use crate::atelier::outils::{aer, depot_dsn, journal, pas, retours};
+        v.extend([
+            Commande { nom: "pas", aide: "les taux de PAS connus ; --amorcer, --demander (atelier)", cachee: false, spec: &pas::SPEC, executer: pas::executer },
+            Commande { nom: "aer", aide: "ranger de nouveau les AER recues ; --forcer (atelier)", cachee: false, spec: &aer::SPEC, executer: aer::executer },
+            Commande { nom: "journal", aide: "--dpae : reprendre au journal les DPAE attestees (atelier)", cachee: false, spec: &journal::SPEC, executer: journal::executer },
+            Commande { nom: "retours", aide: "l'enquete des retours : plage, flux, plate-forme (atelier)", cachee: false, spec: &retours::SPEC, executer: retours::executer },
+            Commande { nom: "depot-dsn", aide: "un depot de test a un ordre, ou chez l'editeur (atelier)", cachee: false, spec: &depot_dsn::SPEC, executer: depot_dsn::executer },
+        ]);
+    }
+    v
 }
 
 fn aide() -> String {

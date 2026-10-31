@@ -171,7 +171,9 @@ fn google_autoriser(c: &Path, exemple: Value) -> Value {
     let retour = valeur("redirect_uri").replace("%3A", ":").replace("%2F", "/");
     let hote = retour.trim_start_matches("http://").trim_end_matches('/');
     let mut navigateur = std::net::TcpStream::connect(hote).unwrap();
-    write!(navigateur, "GET /?code=essai&state={} HTTP/1.1\r\nHost: {}\r\n\r\n", valeur("state"), hote).unwrap();
+    // Une seule ecriture : le moteur repond et ferme des la premiere ligne lue.
+    let requete = format!("GET /?code=essai&state={} HTTP/1.1\r\nHost: {}\r\n\r\n", valeur("state"), hote);
+    let _ = navigateur.write_all(requete.as_bytes());
     let _ = navigateur.read_to_end(&mut Vec::new());
     let sortie = p.wait_with_output().unwrap().stdout;
     serde_json::from_slice(&sortie).unwrap()
