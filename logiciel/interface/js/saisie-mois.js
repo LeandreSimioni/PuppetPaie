@@ -661,7 +661,7 @@ async function chargerMois(mois, repeint = false) {
   }
   if (DEMANDE_MOIS !== mois) return;
   majAvisDuMois(mois, r.existe);
-  dessinerMoisImporte();
+  dessinerMoisImporte(r.ferme_aux_neufs);
   document.getElementById("resultat").innerHTML = "";
   // L'aperçu de la saisie enregistrée est dans la lecture : il ne se recalcule que quand on modifie la saisie.
   calculerApercu(lu.lectures.apercu);
@@ -710,7 +710,7 @@ async function repeindreLeMois(mois, ancien, frais) {
     afficherRappelsMois();
     IMPORTES = r.importes || [];
     majAvisDuMois(mois, r.existe);
-    dessinerMoisImporte();
+    dessinerMoisImporte(r.ferme_aux_neufs);
   } catch (e) { /* la saisie se lit telle quelle : rien à changer */ }
   if (!enCours) calculerApercu(frais.lectures.apercu);
   await Promise.allSettled([
@@ -752,14 +752,19 @@ const CASES_IMPORTEES = [
 ];
 const SOURCES_IMPORTEES = { bulletin: "bulletin", DSN: "DSN", AEM: "AEM", historique: "historique" };
 
-function dessinerMoisImporte() {
+/** `ferme` : la phrase du moteur quand le mois ne reçoit pas d'engagement neuf (`ferme_aux_neufs` de la route `saisie`) ;
+ *  « + un engagement » se cache, la phrase se lit à sa place. */
+function dessinerMoisImporte(ferme) {
   const cible = document.getElementById("mois-importe");
+  document.getElementById("ajouter-engagement").hidden = !!ferme;
   if (!IMPORTES.length) { cible.hidden = true; cible.innerHTML = ""; return; }
   const moisCourt = MOIS_COURTS[parseInt(MOIS_AFFICHE.slice(5, 7), 10) - 1] || "";
   cible.innerHTML = `
     <p class="mi-tete"><b>Importé${IMPORTES.length > 1 ? "s" : ""}</b> <span class="discret">— ${IMPORTES.length}
       engagement${IMPORTES.length > 1 ? "s" : ""} de l'ancien logiciel</span></p>
-    ${IMPORTES.map((p, i) => carteImportee(p, i, moisCourt)).join("")}`;
+    ${IMPORTES.map((p, i) => carteImportee(p, i, moisCourt)).join("")}
+    <p class="discret mi-ferme"></p>`;
+  cible.querySelector(".mi-ferme").textContent = ferme || "";
   ouvrirLesCartesImportees(cible);
   cible.hidden = false;
 }

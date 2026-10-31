@@ -301,6 +301,10 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let avant = engagements_ecrits(&racine);
     assert_eq!(route("modifier-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}, "saisie": {"salarie": "FULLER"}}))["ok"], json!(false));
     assert_eq!(route("retirer-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}}))["ok"], json!(false));
+    // Le mois importe le dit des l'ouverture, et une carte neuve ne s'y compte pas.
+    assert!(reussi(&route("saisie", json!({"mois": "2026-11"})))["ferme_aux_neufs"].is_string());
+    let neuve = json!({"engagement": null, "saisie": {"salarie": "FULLER", "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-25"]}]}});
+    assert_eq!(route("apercu", json!({"mois": "2026-11", "cartes": [neuve]}))["ok"], json!(false));
     assert_eq!(engagements_ecrits(&racine), avant);
 
     // Decembre se paie ici : le contrat s'y reprend avec son numero et ses dates.
@@ -309,7 +313,8 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
         std::fs::create_dir_all(cible.parent().unwrap()).unwrap();
         std::fs::copy(banc.join("config").join(f), cible).unwrap();
     }
-    assert_eq!(reussi(&route("saisie", json!({"mois": "2026-12"})))["importes"], json!([]));
+    let decembre = reussi(&route("saisie", json!({"mois": "2026-12"}))).clone();
+    assert_eq!((decembre["importes"].clone(), decembre["ferme_aux_neufs"].clone()), (json!([]), Value::Null));
     let r = reussi(&route("contrats-en-cours", json!({"mois": "2026-12"}))).clone();
     let c = &r["contrats"][0];
     assert_eq!((c["debut"].clone(), c["fin"].clone(), c["numero"].clone()), (json!("2026-11-20"), json!("2026-12-03"), json!("FU1.26.01")), "{}", r);

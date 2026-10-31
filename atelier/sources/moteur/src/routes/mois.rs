@@ -356,12 +356,14 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let defauts = defauts_de_la_saisie(ctx, &saisie);
     // LES ENGAGEMENTS IMPORTES QUI TOUCHENT LE MOIS, en cartes fermees : ils se lisent, rien ne les calcule
-    // (`import::mois`). Un mois qui en porte ne recoit pas d'engagement neuf (`refuser_si_importe`).
+    // (`import::mois`). Un mois qui en porte ne recoit pas d'engagement neuf : `ferme_aux_neufs` est la phrase qui le
+    // dit (`null` : le mois en recoit).
     let importes = crate::import::mois::cartes(ctx, &mois)?;
     Ok(json!({
         "mois": brut,
         "existe": existe,
         "importes": importes,
+        "ferme_aux_neufs": ferme_aux_neufs(ctx, &mois)?,
         "defauts": defauts,
         "saisie": resoudre_noms(ctx, &saisie)?,
         // L'identite de chaque engagement de `saisie.engagements`, dans son ordre : ce par quoi sa carte le designe.
@@ -1547,16 +1549,24 @@ pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
 /// UN MOIS QUI PORTE DES PAIES IMPORTEES NE RECOIT PAS D'ENGAGEMENT NEUF : ses paies ont ete calculees et declarees par
 /// l'ancien logiciel (`engagement::importe`), et sa DSN avec elles ; un engagement de plus la changerait, et une
 /// declaration deja faite ne se regenere pas (regle 4). Ce mois se finit dans l'ancien logiciel. Rien ne passe outre.
-fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
+/// Rend la phrase qui le dit (`None` : le mois recoit des engagements) ; la route `saisie` la rend a la page, les
+/// ecritures et l'apercu d'une carte neuve refusent avec elle.
+fn ferme_aux_neufs(ctx: &Contexte, mois: &str) -> R<Option<String>> {
     let importes = engagement::importe::du_mois(&ctx.racine, mois).map_err(Echec::from)?;
-    if importes.iter().any(|i| i.paies().contains_key(mois)) {
-        return Err(refus(format!(
+    Ok(importes.iter().any(|i| i.paies().contains_key(mois)).then(|| {
+        format!(
             "{} porte des paies importées de votre ancien logiciel : il ne reçoit pas d'engagement neuf. Finissez ce mois \
-             dans l'ancien logiciel. Rien n'est écrit.",
+             dans l'ancien logiciel.",
             engagement::libelle_mois(mois)
-        )));
+        )
+    }))
+}
+
+fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
+    match ferme_aux_neufs(ctx, mois)? {
+        Some(phrase) => Err(refus(format!("{} Rien n'est écrit.", phrase))),
+        None => Ok(()),
     }
-    Ok(())
 }
 
 /// UN MOIS D'AVANT LA PREMIERE EMBAUCHE NE SE SAISIT PAS : la DSN est due par l'employeur pour les salaries qu'il
@@ -2088,6 +2098,10 @@ fn annee_de(mois: &str) -> R<i32> {
 /// la carte qui en porte un n'a pas de total. Une saisie dont aucun refus ne se rapporte a un engagement refuse.
 fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (data, _, identites) = mois_designe(ctx, charge)?;
+    // Une carte neuve dans un mois ferme aux engagements neufs ne se compte pas : son ecriture serait refusee.
+    if identites.iter().any(Value::is_null) {
+        refuser_si_importe(ctx, texte_requis(charge, "mois")?)?;
+    }
     let mut r = apercu_des_paies(ctx, charge, &data)?;
     // CHAQUE PAIE PORTE L'IDENTITE DE SON ENGAGEMENT (`Null` : une carte pas encore ecrite) : la carte retrouve la sienne.
     if let Some(Value::Array(paies)) = r.get_mut("paies") {
