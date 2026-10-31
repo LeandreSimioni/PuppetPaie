@@ -58,6 +58,47 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
   règle tirée d'un texte déposé, un test par bug réel qui a échappé, quelques parcours de bout en bout sur les fictives.
   Un test de l'ancien parcours meurt avec lui.
 
+## Les os, les muscles, la graisse (Léandre, 30-31/10/2026)
+
+« Si on veut un corps solide, il faut des os solides ; après on rajoute les muscles, ce sont les routes, et il faut
+qu'elles soient bien faites ; après on peut rajouter la graisse : les taux, les imports, les petits bidouillages, les
+fonctions avancées. » **L'architecture est la base** : sans elle, « on fera des pansements sur des pansements et on n'aura
+plus accès à la structure ». Le modèle et l'écran sont décrits dans `journal/SEANCE-1-ECRANS-ET-MODELE.md` du privé, qui
+fait foi.
+
+- **Les os : un seul chemin pour chaque chose.** Une chose (écrire un engagement, dire ce qui est parti, composer
+  l'échéance de la DSN, lire le journal) se fait à un seul endroit ; un second chemin se ferme dans le commit qui ouvre le
+  premier. L'engagement est au centre, une identité (salarié, début, rang ; le numéro du contrat, posé à la validation, est
+  la clé de ce qui est parti). **Une carte porte un salarié et écrit son engagement, et lui seul** ; « Valider
+  l'engagement » est un geste ; le mois n'est jamais une unité d'écriture ; **un mois est neuf ou importé** (un mois
+  importé ne reçoit pas d'engagement neuf). L'engagement ne lit pas le journal : le moteur le lit **une fois par geste**
+  (`envois::journal::lu`), ce qui est **parti** (`departs`) et ce qui est **revenu** dans la même valeur ; une déclaration
+  refusée au bilan n'est pas partie (règle 5). L'empreinte qui fait recalculer un engagement est celle de ce dont **son**
+  calcul dépend.
+- **Les muscles : une route par geste de l'écran, bien faite.** Un geste, une route ; la route obéit (elle ne recopie pas
+  une règle du calcul ni n'ajoute d'état, de bouton ou de refus) ; un refus dit quoi corriger et n'écrit rien ; ce qu'elle
+  rend est ce que la page lit ; **la route rend la phrase que l'on lit**, la page ne fait que la mise en page et ne décide
+  rien.
+- **La graisse vient après** : on ne la pose pas sur un os ou un muscle qui n'est pas droit.
+- **Un lot de reconstruction enlève, il n'ajoute pas** : il finit avec moins de lignes et moins de tests ; ce qui
+  demanderait d'ajouter se dit, ne se fait pas. On ne fait rien que Léandre n'a pas validé ; une pause demandée est une
+  pause.
+- **Rien ne se débranche** : chaque appel de la page a sa route, chaque route un appelant, chaque geste va de la page au
+  fichier écrit, chaque acte de la route à l'envoi. Des Sonnets en lecture le vérifient après chaque passe, face au plan.
+
+## Deux acteurs : la personne devant l'écran, et un LLM en ligne de commande (Léandre, 31/10/2026)
+
+**Le LLM est un second écran** : il passe par les mêmes routes, reçoit les mêmes décisions, les mêmes phrases et les mêmes
+refus. Sa documentation sort du code : **chaque route porte sa fiche dans son code** (le geste, la charge et un exemple, ce
+qu'elle rend, ses refus et quoi corriger, si elle lit, écrit ou engage, si elle est « avancée ») ; `moteur routes` en tire
+le catalogue ; `moteur route … --texte` imprime les phrases que la page affiche. **« Avancé » est le même pour les deux** :
+la marque de la fiche range l'écran et le catalogue (le chemin simple d'abord). Un acte réel, des deux côtés, demande le
+mot de passe du logiciel tapé par un humain (la page, ou la fenêtre que le moteur ouvre) ; le LLM ne voit ni le mot de
+passe ni le coffre. Le LLM écrit au développeur comme une personne (`signalement-envoyer`). **Rien du métier ne s'écrit à
+côté** : le moteur dit ce qui est à faire (le panneau des étapes, les rappels, « Pour démarrer ») ; la skill dit seulement
+comment le lui demander ; un manque du LLM est un manque du moteur. Le détail : `SEANCE-1-ECRANS-ET-MODELE.md`, « Le
+second acteur ».
+
 ## Une séance, par tickets
 
 - **Un ticket** : lire ce qu'il dit, le reproduire (dans la fenêtre, sur une compagnie fictive, ou par `moteur route`), corriger
