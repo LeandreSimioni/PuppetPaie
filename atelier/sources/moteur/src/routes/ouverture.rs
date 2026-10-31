@@ -1,6 +1,6 @@
 //! Les routes de l'ouverture : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration verifiee,
 //! l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
-//! `pour-demarrer` (ce qui manque pour les premiers actes), `maj-etat`, `sauvegarde-derniere`, `echeance-faite`,
+//! `pour-demarrer` (ce qui manque pour les premiers actes), `maj-etat`, `sauvegarde-derniere`, `sauvegarde-maintenant`, `echeance-faite`,
 //! `journal-reprise`, `courriels-fictifs` et `compagnie-suppression` (ce que la suppression demande).
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
@@ -111,6 +111,17 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
     },
     Fiche {
+        nom: "sauvegarde-maintenant",
+        geste: "Sauvegarder maintenant le dossier de la compagnie dans le Drive.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "sauvegarde (la dernière : quand, ce qui est parti), erreur (ce qui l'a empêchée) ; ne refuse jamais",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+    },
+    Fiche {
         nom: "journal-reprise",
         geste: "Reprendre le journal des envois d'après les retours relevés.",
         charge: &[Champ { nom: "ecrire", sens: "vrai : écrire ce qui se reprend ; sinon, le dire seulement", avance: false }],
@@ -165,6 +176,14 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "maj-etat" => version(),
         // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
         "sauvegarde-derniere" => Ok(crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json()),
+        // La sauvegarde seule, comme la seconde moitie d'un passage de la veille (`compagnie::ouverture`).
+        "sauvegarde-maintenant" => {
+            use crate::compagnie::ouverture::{ouverture, Clients, Options};
+            let opt = Options::de_la_charge(&json!({"sauvegarde_seule": true, "incidents_editeur": false}));
+            let r = ouverture(ctx, &opt, Clients::default(), None);
+            let erreur: Vec<String> = r.manquants.into_iter().chain(r.incidents).collect();
+            Ok(json!({"sauvegarde": crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json(), "erreur": erreur.join(" ")}))
+        }
         "echeance-faite" => echeance_faite(ctx, charge),
         "journal-reprise" => crate::compagnie::incidents::noter_ceux_des_retours(
             &ctx.racine,

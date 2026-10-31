@@ -65,7 +65,7 @@ moteur coffre seance fermer            # refermer la séance
 
 **Ne jamais lire, afficher ni copier `prive/config/coffre.bin`, `google-jeton.bin` ni `maj-cle-privee.bin`.**
 `moteur coffre` répond à toutes les questions légitimes sans montrer un secret. Le Drive : la route `google-etat`
-(`google-autoriser` pour le relier).
+(Configuration › Mots de passe › Lier le Drive, dans la fenêtre, pour le relier).
 
 ## Deux pièges
 

@@ -799,7 +799,7 @@ fn sauvegarder_le_dossier(ctx: &Contexte, opt: &Options, clients: &mut Clients<'
     if !pret {
         r.a_poser.push("google".to_string());
         r.manque_coffre(
-            "Compte Google non lie : la sauvegarde ne peut pas partir. Lier le Drive : Configuration > Mots de passe, ou la route `google-autoriser`.",
+            "Compte Google non lie : la sauvegarde ne peut pas partir. Lier le Drive : Configuration > Mots de passe.",
         );
     } else if opt.veille && sauvegarde::rien_n_a_bouge(&ctx.racine, &opt.racine_drive) {
         // rien de neuf sur le disque : on n'appelle pas

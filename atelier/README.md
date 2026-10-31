@@ -241,11 +241,7 @@ pour rien, il ne porte que le Drive.
 
 La sauvegarde du dossier privé et l'archivage d'un mois vont dans le Drive
 d'un compte Google lié **une fois** : Configuration › Mots de passe ›
-**Lier le Drive**, ou
-
-```
-route google-autoriser
-```
+**Lier le Drive** (un geste de la fenêtre : un humain dans le navigateur).
 
 Une fenêtre Google s'ouvre dans le navigateur, on choisit son compte, on
 accepte, on revient au logiciel. C'est tout : pas de console Google, pas de
@@ -376,7 +372,6 @@ moteur coffre ouverture
 moteur coffre poser net-entreprises
 moteur coffre poser urssaf
 moteur coffre poser courriel --compte <adresse>
-route google-autoriser            # relier le Drive
 moteur maj --cle --remplacer     # si ce poste publie les mises à jour
 ```
 

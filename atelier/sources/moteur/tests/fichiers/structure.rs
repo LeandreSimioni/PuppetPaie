@@ -122,11 +122,15 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
     }
 }
 
-/// Les gestes que seule la fenetre sert (`interface::api::traiter`) : ils ne sont pas encore au catalogue. La liste ne
+/// Les gestes que seule la fenetre sert (`interface::api::traiter`), hors du catalogue, chacun avec sa raison. La liste ne
 /// fait que diminuer : un geste qui y entre fait echouer le test, un geste porte au catalogue doit en sortir.
-const FENETRE_SEULE: [&str; 11] = [
+/// - ouvrir un fichier ou un dossier dans l'explorateur du poste, choisir un dossier : des gestes du poste, pas du metier
+///   (`piece-partie`, `historique-mois` disent ou est une piece) ;
+/// - la veille : l'etat du passage periodique, tenu dans la memoire de la fenetre (un passage se fait par `ouverture`) ;
+/// - lier le compte Google : un humain dans le navigateur, que l'exemple d'une fiche ne joue pas sur une compagnie de test.
+const FENETRE_SEULE: [&str; 10] = [
     "ouvrir-piece", "ouvrir-dossier", "ouvrir-exercices", "ouvrir-exports", "ouvrir-import", "choisir-dossier",
-    "veille", "veille-etape", "veille-maintenant", "sauvegarde-maintenant", "google-autoriser",
+    "veille", "veille-etape", "veille-maintenant", "google-autoriser",
 ];
 
 /// Tout ce qui se fait a l'ecran se fait en ligne de commande, et l'inverse : chaque route que la page appelle est au
