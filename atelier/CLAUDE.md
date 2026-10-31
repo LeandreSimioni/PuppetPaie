@@ -99,6 +99,30 @@ côté** : le moteur dit ce qui est à faire (le panneau des étapes, les rappel
 comment le lui demander ; un manque du LLM est un manque du moteur. Le détail : `SEANCE-1-ECRANS-ET-MODELE.md`, « Le
 second acteur ».
 
+## La preuve d'un lot (Léandre, 31/10/2026, après la séance 8)
+
+Ce qui n'allait pas pendant la reconstruction : la preuve de chaque lot était un jeu fixe de six gestes (`preuve-r`),
+fait pour l'écriture d'une carte ; des lots qui touchaient l'import, la DPAE, les rappels, le mois importé ou la rupture
+passaient cette preuve « identique » sans qu'elle regarde rien de ce qu'ils avaient changé. Un lot changeait une clé (la
+DPAE rangée par numéro) et un lecteur oublié (le rappel) cassait sans qu'aucun test ne le voie. L'orchestrateur fusionnait
+sur « tests verts, preuve identique » et répétait les passations comme des faits. Le tour de jeu suivant trouvait les
+défauts que les lots avaient eux-mêmes créés. Désormais :
+
+- **Un lot dit ce qu'il touche** : sa passation liste chaque fonction, clé, format ou identité qu'il change, et **chaque
+  lecteur** trouvé par `grep` (appels, chaînes de route, clés JSON lues par la page) ; un lecteur non listé est un
+  lecteur non vérifié.
+- **La preuve couvre ce que le lot touche**, pas un jeu fixe : pour chaque lecteur, un appel de route ou un geste au banc
+  qui le fait passer, avant et après. « Preuve identique » ne vaut que pour ce qu'elle a joué ; la passation dit ce
+  qu'elle n'a pas joué.
+- **Les parcours des fictives sont la preuve commune** : les scénarios des fictives (un à l'écran, un en ligne de
+  commande) couvrent chaque domaine (embauche, DPAE et taux de PAS, mois, contrat et avenant, rupture, arrêt et accident,
+  congé, Congés Spectacles, import et mois importé, DSN, clôture) ; leur rejeu (`banc.js verifier`) tourne après chaque
+  fusion qui touche un domaine, pas seulement à la fin.
+- **L'orchestrateur reproduit avant de répéter** : un point d'une passation ne se dit à Léandre qu'après avoir été vu
+  (un appel de route, une capture, un `grep`) ; un lot se dit « fusionné, vérifié par … », jamais « fini », tant qu'un
+  tour de jeu n'a pas joué son domaine.
+- **Un tour de jeu court après chaque série de lots** sur le domaine touché, plutôt qu'un grand tour à la fin.
+
 ## Une séance, par tickets
 
 - **Un ticket** : lire ce qu'il dit, le reproduire (dans la fenêtre, sur une compagnie fictive, ou par `moteur route`), corriger
