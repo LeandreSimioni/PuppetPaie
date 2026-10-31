@@ -122,6 +122,10 @@ défauts que les lots avaient eux-mêmes créés. Désormais :
   (un appel de route, une capture, un `grep`) ; un lot se dit « fusionné, vérifié par … », jamais « fini », tant qu'un
   tour de jeu n'a pas joué son domaine.
 - **Un tour de jeu court après chaque série de lots** sur le domaine touché, plutôt qu'un grand tour à la fin.
+- **Frugal** (Léandre : « il ne faut pas que ça devienne une usine à gaz où on rajoute des tests dans tous les sens ») :
+  la preuve d'un lot **n'est pas un test de plus** ; c'est un geste joué (un appel de route, un geste au banc) et noté
+  dans la passation. Les tests restent ceux de « Le nombre de tests ne monte pas » ; les parcours des deux fictives en
+  sont les « quelques parcours de bout en bout » : un rejeu par fictive, pas un test par domaine.
 
 ## Une séance, par tickets
 
