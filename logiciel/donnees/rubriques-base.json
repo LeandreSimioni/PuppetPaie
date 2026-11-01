@@ -171,6 +171,42 @@
       "conges_spectacles": false,
       "source": "Frais professionnels rembourses au forfait : hors assiette dans les limites du bareme (BOSS, Frais professionnels). S21.G00.54.001 = 07."
     },
+    "repas": {
+      "libelle": "Repas",
+      "unite": "forfait",
+      "nature": "frais",
+      "saisie": [
+        "quantite",
+        "taux"
+      ],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": null,
+      "dsn_autres_bruts": "07",
+      "soumis": false,
+      "imposable": false,
+      "conges_spectacles": false,
+      "source": "Un repas principal pris en deplacement, rembourse au forfait : la quantite est le nombre de repas, le taux celui de la convention a la date (bareme, `tarifs_conventionnels.repas` de la couche de la convention ; sans tarif, il se saisit). Hors assiette comme tout remboursement de frais au forfait : BOSS, Frais professionnels, § 240 et 1290 (atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt) ; sous DFS, arrete du 4 septembre 2025, annexe 2, I, 2° et 5° (bareme, `frais_hors_assiette`). S21.G00.54.001 = 07 (norme-dsn/texte/bloc-S21.G00.54.txt, l. 53)."
+    },
+    "nuitee": {
+      "libelle": "Nuitée",
+      "unite": "forfait",
+      "nature": "frais",
+      "saisie": [
+        "quantite",
+        "taux"
+      ],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": null,
+      "dsn_autres_bruts": "07",
+      "soumis": false,
+      "imposable": false,
+      "conges_spectacles": false,
+      "source": "Une nuit en deplacement (chambre et petit-dejeuner), remboursee au forfait : la quantite est le nombre de nuits, le taux celui de la convention a la date (bareme, `tarifs_conventionnels.nuitee` de la couche de la convention ; sans tarif, il se saisit). Hors assiette comme tout remboursement de frais au forfait : BOSS, Frais professionnels, § 1270-1290 (atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt) ; sous DFS, arrete du 4 septembre 2025, annexe 2, I, 2° et 5° (bareme, `frais_hors_assiette`). S21.G00.54.001 = 07 (norme-dsn/texte/bloc-S21.G00.54.txt, l. 53)."
+    },
     "defraiement_reel": {
       "libelle": "Défraiement au réel",
       "unite": "forfait",

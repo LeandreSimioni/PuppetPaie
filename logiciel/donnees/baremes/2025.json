@@ -969,6 +969,8 @@
         "categorie": "20",
         "frais_hors_assiette": [
           "defraiement_forfait",
+          "repas",
+          "nuitee",
           "defraiement_reel"
         ]
       },
@@ -977,6 +979,8 @@
         "categorie": "20",
         "frais_hors_assiette": [
           "defraiement_forfait",
+          "repas",
+          "nuitee",
           "defraiement_reel"
         ]
       },
@@ -985,6 +989,8 @@
         "categorie": "20",
         "frais_hors_assiette": [
           "defraiement_forfait",
+          "repas",
+          "nuitee",
           "defraiement_reel"
         ]
       },
@@ -992,28 +998,36 @@
         "libelle": "Régisseur de théâtre",
         "categorie": "20",
         "frais_hors_assiette": [
-          "defraiement_forfait"
+          "defraiement_forfait",
+          "repas",
+          "nuitee"
         ]
       },
       "artiste_dramatique": {
         "libelle": "Artiste dramatique",
         "categorie": "25",
         "frais_hors_assiette": [
-          "defraiement_forfait"
+          "defraiement_forfait",
+          "repas",
+          "nuitee"
         ]
       },
       "artiste_lyrique": {
         "libelle": "Artiste lyrique",
         "categorie": "25",
         "frais_hors_assiette": [
-          "defraiement_forfait"
+          "defraiement_forfait",
+          "repas",
+          "nuitee"
         ]
       },
       "artiste_choregraphique": {
         "libelle": "Artiste chorégraphique",
         "categorie": "25",
         "frais_hors_assiette": [
-          "defraiement_forfait"
+          "defraiement_forfait",
+          "repas",
+          "nuitee"
         ]
       },
       "artiste_cinematographique": {
@@ -1986,6 +2000,12 @@
       "applicable": true,
       "_source": "C'est la convention de la compagnie qui a servi a ecrire ce socle : ces valeurs sont celles que cinq ans de declarations acceptees ont prouvees. Elles sont ecrites ici, et pas seulement dans le corps, pour qu'on VOIE ce qui changerait sous une autre convention.",
       "bareme": {
+        "tarifs_conventionnels": {
+          "_source": "Avenant du 21 juillet 2025 relatif aux salaires minimaux applicables au 1er septembre 2025 (atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md) : entree en vigueur le 1er septembre 2025 (l. 175) ; << Chambre et petit-dejeuner : 70,28 euros. Chaque repas principal : 17,85 euros. >> (annexe 2, indemnites journalieres de deplacement en France applicables a l'ensemble du personnel, l. 429-432), les memes montants pour les artistes, techniciens et personnels administratifs en tournee (l. 737-739). Le taux d'une ligne << Repas >> ou << Nuitee >> saisie sans taux (`engagement::lignes_au_tarif`).",
+          "_avant": "Avant le 1er septembre 2025 : l'avenant precedent n'est pas depose ; le taux se saisit.",
+          "repas": [{"depuis": null, "valeur": null}, {"depuis": "2025-09-01", "valeur": 17.85}],
+          "nuitee": [{"depuis": null, "valeur": null}, {"depuis": "2025-09-01", "valeur": 70.28}]
+        },
         "rubriques_bulletin": [
           {
             "id": "ccn",

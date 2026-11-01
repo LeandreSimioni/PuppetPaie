@@ -28,3 +28,4 @@ mod net_a_virer;
 mod duree_du_travail;
 mod arret_prolonge;
 mod signalement_apres_echeance;
+mod tarif_conventionnel;

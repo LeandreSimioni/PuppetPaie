@@ -24,6 +24,8 @@ fn chaque_rubrique_livree_hors_assiette_dit_ce_qu_elle_est_pour_le_net_social() 
         ("indemnite_rupture_conventionnelle_imposable", HorsAssiette::Revenu),
         ("indemnite_rupture_conventionnelle_supplement", HorsAssiette::Revenu),
         ("indemnite_rupture_conventionnelle_supplement_imposable", HorsAssiette::Revenu),
+        ("nuitee", HorsAssiette::Frais),
+        ("repas", HorsAssiette::Frais),
     ]
     .iter()
     .map(|(c, h)| (c.to_string(), *h))

@@ -927,6 +927,8 @@ pub(crate) fn engagements(
     for e in tous {
         let qui = salarie_nomme(ctx, e.get("salarie"));
         let nat = nature_de(ctx, e)?;
+        let au_tarif = if nat.mensuelle() { None } else { lignes_au_tarif(ctx, e, &mois_dit)? };
+        let e = au_tarif.as_ref().unwrap_or(e);
         let mut spectacle = ou(e.get("spectacle"), None);
         if nat.mensuelle() {
             // Employer des permanents se declare.
@@ -1105,6 +1107,61 @@ const QUANTITE_SANS_COMPTE: &str = " : saisissez un nombre plus grand que zéro"
 /// Une journee de plus de 24 heures (`duree::plus_d_une_journee`) : une faute de frappe, a corriger comme une saisie pas finie.
 pub(crate) const JOURNEE_DE_PLUS_DE_24: &str = ", et une journée n'a que 24 heures";
 const SAISIE_INCOMPLETE: [&str; 5] = [PAS_DE_SPECTACLE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE, JOURNEE_DE_PLUS_DE_24];
+
+/// LE TARIF DE LA CONVENTION d'une rubrique a ce jour (`tarifs_conventionnels.<code>` de la couche de la convention du
+/// bareme, liste datee : l'avenant qui le fixe et sa date d'effet y sont cites). `None` : la convention n'en fixe pas, ou
+/// pas encore a ce jour ; le taux se saisit.
+pub fn tarif_conventionnel(ctx: &Contexte, code: &str, jour: &Jour) -> Resultat<Option<Value>> {
+    let bar = ctx.bareme(jour)?;
+    Ok(bar.get("tarifs_conventionnels").and_then(|t| t.get(code)).filter(|v| v.is_number()).cloned())
+}
+
+/// Les lignes d'un engagement au cachet dont la rubrique a un tarif de la convention (`tarif_conventionnel`) et qui ne
+/// disent pas leur taux le prennent, au premier jour de la ligne (a defaut, au premier jour du mois saisi). Le
+/// bareme ne se lit que pour une telle ligne.
+fn lignes_au_tarif(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<Option<Value>> {
+    let vide = |v: Option<&Value>| matches!(v, None | Some(Value::Null)) || v.and_then(Value::as_str).is_some_and(|s| s.trim().is_empty());
+    let Some(lignes) = e.get("lignes").and_then(Value::as_array) else { return Ok(None) };
+    let mut neuves = lignes.clone();
+    let mut change = false;
+    for l in neuves.iter_mut() {
+        let Some(code) = l.get("rubrique").and_then(Value::as_str) else { continue };
+        if !vide(l.get("taux")) || !matches!(rubrique(&ctx.racine, code, &ctx.lue_au), Ok(r) if r.saisie.iter().any(|s| s == "taux")) {
+            continue;
+        }
+        let premier = l.get("dates").and_then(Value::as_array).and_then(|a| a.first()).map(|x| d(x.get("jour").unwrap_or(x)));
+        let jour = match premier {
+            Some(j) => j?,
+            None => premier_du_mois(mois)?,
+        };
+        if let Some(t) = tarif_conventionnel(ctx, code, &jour)? {
+            l["taux"] = t;
+            change = true;
+        }
+    }
+    if !change {
+        return Ok(None);
+    }
+    let mut e = e.clone();
+    e["lignes"] = Value::Array(neuves);
+    Ok(Some(e))
+}
+
+/// Les engagements au cachet d'une saisie de mois, leurs lignes au tarif de la convention (`lignes_au_tarif`).
+#[cfg(feature = "ecran")]
+pub(crate) fn saisie_au_tarif(ctx: &Contexte, data: &mut Value) -> Resultat<()> {
+    let mois = data.get("mois").map_or(String::new(), en_texte);
+    let Some(Value::Array(tous)) = data.get_mut("engagements") else { return Ok(()) };
+    for e in tous.iter_mut() {
+        if nature_de(ctx, e)?.mensuelle() {
+            continue;
+        }
+        if let Some(neuf) = lignes_au_tarif(ctx, e, &mois)? {
+            *e = neuf;
+        }
+    }
+    Ok(())
+}
 
 /// Chaque ligne de paie saisie dit sa quantite et son taux (ou sa base et son pourcentage) : la saisie s'enregistre
 /// sans eux, en saisie, et ce refus dit ce qui manque, ligne par ligne, avec le salarie (`qui`).
