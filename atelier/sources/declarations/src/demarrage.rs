@@ -34,7 +34,12 @@ fn champ(cle: &str) -> (String, String) {
 }
 
 fn manque(cle: &str, libelle: String, bloque: &str, ou: &str, champ: Option<&str>, trouver: String) -> Value {
-    json!({ "cle": cle, "libelle": libelle, "bloque": bloque, "ou": ou, "champ": champ, "case": champ, "trouver": trouver })
+    let mut l = json!({ "cle": cle, "libelle": libelle, "bloque": bloque, "ou": ou, "champ": champ, "case": champ, "trouver": trouver });
+    // UNE STRUCTURE DIT SES CASES (leur nom, leur forme, leurs valeurs), d'apres la table qui les decrit.
+    if let Some(c) = champ.and_then(|k| crate::champs::champ("entreprise", k).ok().flatten()).filter(|c| !c.champs.is_empty()) {
+        l["cases"] = json!(crate::champs::cases_dites(&c));
+    }
+    l
 }
 
 /// LA LICENCE D'ENTREPRENEUR DE SPECTACLES est-elle exigee de la compagnie `ent` ? « Est entrepreneur de spectacles
@@ -116,6 +121,10 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
             l["sinon"] = json!(m.sinon);
         } else {
             l["bloque"] = json!(crate::champs::actes_en_clair(&m.actes));
+        }
+        // UNE STRUCTURE DIT SES CASES (leur nom, leur forme, leurs valeurs), d'apres la table qui les decrit.
+        if !m.cases.is_empty() {
+            l["cases"] = json!(m.cases);
         }
         if let Some((s, nom)) = salarie {
             l["salarie"] = json!(s);

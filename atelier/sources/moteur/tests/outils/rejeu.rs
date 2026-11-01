@@ -52,6 +52,7 @@ pub fn rejouer_dossier(sc: &Path, dossier: &Path) -> (moteur::atelier::scenario:
         .unwrap_or_else(|m| panic!("le scenario {} ne se rejoue pas : {}", nom, m));
     assert!(r.ecarts.is_empty(), "le rejeu de {} s'ecarte de l'enregistrement :\n{}", nom, r.ecarts.join("\n"));
     let racine = r.compagnies.first().map(|(_, p)| p.clone()).unwrap_or_else(|| panic!("le scenario {} n'ajoute aucune compagnie", nom));
+    chaque_reponse_a_sa_phrase(&racine, &nom.to_string());
     (r, racine)
 }
 
@@ -119,6 +120,7 @@ pub fn rejouer_et_lire(nom: &str, dossier: &Path, jours: &[&str], mut lire: impl
     assert_eq!(lus, jours.len(), "des soirs n'ont pas ete lus");
     assert!(r.ecarts.is_empty(), "le rejeu de {} s'ecarte de l'enregistrement :\n{}", nom, r.ecarts.join("\n"));
     let racine = r.compagnies.first().map(|(_, p)| p.clone()).unwrap_or_else(|| panic!("le scenario {} n'ajoute aucune compagnie", nom));
+    chaque_reponse_a_sa_phrase(&racine, &nom.to_string());
     (r, racine)
 }
 
@@ -210,4 +212,12 @@ pub fn rejouer_et_comparer(nom: &str, dossier: &Path) -> Value {
     let releve = sorties(&racine, &jour);
     super::oracle(&format!("scenarios/{}/sorties.json", nom), "", &releve);
     releve
+}
+
+/// CHAQUE REPONSE A SA PHRASE, aussi un avertissement ou une variante que l'exemple d'une fiche ne joue pas : une reponse
+/// qui l'oublie note un incident (`routes::phrase_a_sa_place`), que le rejeu ne laisse pas passer.
+fn chaque_reponse_a_sa_phrase(racine: &Path, nom: &str) {
+    let incidents: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("journal/incidents.json")).unwrap_or_default()).unwrap_or(Value::Null);
+    let sans: Vec<&str> = incidents.as_array().into_iter().flatten().filter_map(|i| i["resume"].as_str()).filter(|r| r.contains("a rendu une réponse sans phrase")).collect();
+    assert!(sans.is_empty(), "le rejeu de {} : {} Chaque réponse rend la phrase que l'écran et `moteur route --texte` lisent.", nom, sans.join(" "));
 }

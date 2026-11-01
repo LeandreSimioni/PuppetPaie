@@ -236,6 +236,24 @@ fn reponse(rendu: Result<Value, Echec>) -> Resultat<Value> {
 /// developpeur : la route, la place, la longueur ; jamais la phrase, qui peut nommer un salarie. On la corrige a la cause,
 /// en l'ecrivant plus breve.
 fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
+    // UNE REPONSE SANS PHRASE d'une route du catalogue (un avertissement, une variante que l'exemple de sa fiche ne joue
+    // pas) : ni l'ecran ni `moteur route --texte` n'ont rien a lire. Le meme incident silencieux, pour la reponse qui l'a
+    // oubliee. (L'horloge du banc, hors catalogue, rend ses phrases en liste.)
+    let au_catalogue = catalogue::catalogue().iter().any(|f| f.nom == route);
+    if au_catalogue && !rendu.get("phrase").and_then(Value::as_str).is_some_and(|p| !p.trim().is_empty()) {
+        let resume = format!("La route {} a rendu une réponse sans phrase.", route);
+        let cles: Vec<&str> = rendu.as_object().map(|o| o.keys().map(String::as_str).collect()).unwrap_or_default();
+        let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
+            nature: crate::compagnie::incidents::LOGICIEL,
+            resume: &resume,
+            ou: route,
+            quoi: "PhraseManquante",
+            detail: json!({"route": route, "cles": cles}),
+            sans_contexte: true,
+            ..Default::default()
+        });
+        return;
+    }
     let Some(place) = catalogue::catalogue().iter().find(|f| f.nom == route).map(|f| f.phrase).filter(|p| *p > 0) else { return };
     let Some(longueur) = rendu.get("phrase").and_then(Value::as_str).map(|p| p.chars().count()).filter(|n| *n > place) else { return };
     let resume = format!("La phrase de la route {} passe sa place : {} caractères pour {}.", route, longueur, place);

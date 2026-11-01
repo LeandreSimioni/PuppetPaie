@@ -258,6 +258,11 @@ pub fn catalogue() -> Vec<Fiche> {
 /// `moteur routes [NOM] [--avance] [--json]` : le catalogue en texte (le chemin simple ; toutes avec `--avance`), en JSON
 /// (toutes : chaque fiche porte `avance`), ou la fiche entiere d'une route.
 pub fn commande(args: &[String]) -> i32 {
+    // Une option que `routes` ne prend pas se refuse, comme a `moteur route` (code 2) : sa valeur se lirait comme un nom.
+    if let Some(o) = args.iter().find(|a| a.starts_with("--") && !["--json", "--avance"].contains(&a.as_str())) {
+        eprintln!("option inconnue : {} (moteur routes [NOM] [--avance] [--json] ; --racine et --date sont de moteur route)", o);
+        return 2;
+    }
     let json = args.iter().any(|a| a == "--json");
     let avance = args.iter().any(|a| a == "--avance");
     let nom = args.iter().find(|a| !a.starts_with("--"));

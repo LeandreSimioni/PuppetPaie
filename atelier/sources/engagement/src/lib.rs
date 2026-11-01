@@ -1000,10 +1000,16 @@ pub(crate) fn engagements(
             dits.push(avis);
             Some(Value::Array(lignes))
         } else {
-            dits.push(Vec::new());
             match e.get("lignes") {
-                Some(Value::Array(l)) => Some(Value::Array(nuitees_au_dela(ctx, e, l.clone(), &mois_dit, &qui)?)),
-                autre => autre.cloned(),
+                Some(Value::Array(l)) => {
+                    let (lignes, avis) = nuitees_au_dela(ctx, e, l.clone(), &mois_dit, &qui)?;
+                    dits.push(avis);
+                    Some(Value::Array(lignes))
+                }
+                autre => {
+                    dits.push(Vec::new());
+                    autre.cloned()
+                }
             }
         };
         let mut champs = Map::new();
@@ -1199,14 +1205,14 @@ pub const TAUX_SAISI: &str = "_taux_saisi";
 /// chaque nuit le dit (le mot Paris, ou un code postal 75, 92, 93, 94), celle des autres departements sinon -- le montant
 /// de Paris « ne peut être octroyé pour d'autres grandes villes ou d'autres départements » (§ 1310, l. 1567-1569), et un
 /// lieu qui ne dit pas son departement ne l'etablit pas.
-fn nuitees_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui: &str) -> Resultat<Vec<Value>> {
+fn nuitees_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
     let est_nuitee = |l: &Value| l.get("rubrique").and_then(Value::as_str) == Some(NUITEE);
     if !lignes.iter().any(est_nuitee) {
-        return Ok(lignes);
+        return Ok((lignes, Vec::new()));
     }
     let sal = ctx.salarie(&chaine(e.get("salarie")).ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
     let lieu_engagement = chaine(e.get("lieu")).unwrap_or_default();
-    let (mut out, mut au_dela) = (Vec::new(), Vec::new());
+    let (mut out, mut au_dela, mut avis) = (Vec::new(), Vec::new(), Vec::new());
     for mut l in lignes {
         let taux = match l.get("taux") {
             Some(t) if est_nuitee(&l) && !t.is_null() && !t.as_str().is_some_and(|s| s.trim().is_empty()) => dec(t)?,
@@ -1262,13 +1268,27 @@ fn nuitees_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qu
             part.insert("dates".into(), Value::Array(dates));
         }
         au_dela.push(Value::Object(part));
+        // LA LIGNE COUPEE SE DIT : pourquoi (la limite du jour, du BOSS) et comment l'eviter (la case de la ligne).
+        let virgule = |x: Decimal| format!("{:.2}", x).replace('.', ",");
+        avis.push(Avis {
+            info: true,
+            texte: format!(
+                "{} : nuitée de {} € au-dessus de la limite du jour ({} € {}, BOSS) : {} € par nuit entrent dans le brut, \
+                 sauf si la compagnie garde la facture de l'hôtel (« justificatif conservé » sur la ligne).",
+                qui,
+                virgule(taux),
+                virgule(limite),
+                if a_paris { "à Paris, 92, 93, 94" } else { "hors Paris" },
+                virgule(taux - limite)
+            ),
+        });
         l[TAUX_SAISI] = nombre_dec(taux);
         l["taux"] = nombre_dec(limite);
         out.push(l);
     }
     // Les parts au-dela viennent apres les lignes saisies : une ligne garde son rang (la case de l'ecran le lit).
     out.extend(au_dela);
-    Ok(out)
+    Ok((out, avis))
 }
 
 /// Un montant en nombre JSON.

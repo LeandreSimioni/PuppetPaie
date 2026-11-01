@@ -110,6 +110,11 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let mut lignes: Vec<Value> = ["remplacement", "recapitulatif", "repetition"].iter().filter_map(|k| v[*k]["phrase"].as_str().filter(|p| !p.is_empty()).map(|p| json!(p))).collect();
             lignes.extend(v["avertissements"].as_array().into_iter().flatten().cloned());
             v["phrases"] = Value::Array(lignes);
+            // Une DSN se dit par sa description (le fichier, son type, ses salaries) quand rien d'autre n'est a dire.
+            if !v["phrase"].as_str().is_some_and(|p| !p.is_empty()) {
+                let p = valeur_en_texte(&v["description"]);
+                v = super::phrase_en_tete(v, p);
+            }
             v
         }),
         "deposer" => deposer(ctx, charge),
