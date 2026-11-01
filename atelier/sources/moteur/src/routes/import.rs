@@ -151,7 +151,11 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }
         "importation-etat" => etat_importation(&ctx.racine).map(|v| {
             let t = |k: &str| super::mot(&v[k]);
-            let p = if t("importe_le").is_empty() { "Rien n'est repris d'un ancien logiciel.".to_string() } else { format!("Repris le {} : {} contrats, {} salariés, du {} au {}.", super::quand(&t("importe_le")), t("contrats"), t("salaries"), super::quand(&t("du")), super::quand(&t("au"))) };
+            let p = if t("importe_le").is_empty() {
+                format!("Rien n'est repris d'un ancien logiciel. Ses bulletins, DSN ou AEM se déposent dans {}, puis s'importent.", t("dossier"))
+            } else {
+                format!("Repris le {} : {} contrats, {} salariés, du {} au {}.", super::quand(&t("importe_le")), t("contrats"), t("salaries"), super::quand(&t("du")), super::quand(&t("au")))
+            };
             super::phrase_en_tete(v, p)
         }),
         "importer" => crate::import::ecrite::importer(ctx, charge).map(avec_les_pastilles),

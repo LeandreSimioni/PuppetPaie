@@ -165,12 +165,16 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
             out.push(manque("licence_spectacle", libelle, "la DSN", ENTREPRISE, Some("licence_spectacle"), trouver));
         }
     }
-    // L'effectif, puis le reste du bareme de l'annee : le contexte refuse lui-meme, avec la phrase qui dit ou trouver ce
+    // L'EFFECTIF, puis le reste du bareme de l'annee : le contexte refuse lui-meme, avec la phrase qui dit ou trouver ce
     // qui manque. L'effectif a part : le bareme s'arrete au premier refus (le taux AT/MP), et tout doit sortir d'un coup.
+    // La date de la premiere embauche n'est demandee que quand l'effectif ne se connait pas autrement : un seuil d'effectif
+    // n'est franchi qu'apres « cinq années civiles consécutives » (CSS, art. L. 130-1, II,
+    // `atelier/reference/sources/code-de-la-securite-sociale/articles-20261011.md` l. 296), et des taux de chaque paie en
+    // dependent (onze et cinquante salaries) : elle est exigee pour l'effectif de la paie.
     let an = ctx.aujourdhui.an;
     if let Err(m) = ctx.effectif().and_then(|e| e.atteint(11, an).map(|_| ())) {
         let (libelle, _) = champ("premiere_embauche");
-        out.push(manque("premiere_embauche", libelle, "toute paie", ENTREPRISE, Some("premiere_embauche"), m));
+        out.push(manque("premiere_embauche", libelle, "l'effectif de toute paie (seuils de 11 et 50 salariés)", ENTREPRISE, Some("premiere_embauche"), m));
     }
     // EN ALSACE-MOSELLE, le taux pose a la creation (celui de l'annexe 1) ne vaut pas : l'annexe 3 en fixe d'autres (art. 4
     // de l'arrete, `atelier/reference/sources/tarification-atmp/`), et le taux se saisit (`droit::bareme::taux_de_l_arrete`).

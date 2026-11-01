@@ -229,8 +229,12 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             p.push(format!("{} contrat{} du fichier ne {} pas ce que dit la paie : réécrire le mois.", n_ecarts, s(n_ecarts), dit));
         }
         p.join(" ")
+    } else if n_contrats == 0 && n_corrections == 0 {
+        // Un mois sans salarie a sa DSN, « Sans individu » (cahier technique DSN 2026.1, § 2.4,
+        // `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt` l. 2291-2309).
+        "Aucun salarié ce mois-ci : la DSN se dépose sans individu.".to_string()
     } else {
-        "Pas de paie saisie à comparer : le fichier se lit seul.".to_string()
+        String::new()
     };
     Ok(json!({
         "salaries": salaries_json, "absents": absents,

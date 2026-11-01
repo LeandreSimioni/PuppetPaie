@@ -938,7 +938,7 @@ fn avertissement_de_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees:
         "spectacle" => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
         autre => return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(autre)))),
     };
-    let cases_vides = dernier_mois_parti(ctx, nom, cle)?.is_some();
+    let cases_vides = cases_vides_a_dater(ctx, nom, cle)?;
     let changements = changements(ctx, nom, ancienne, copie_en_objet(donnees)?, cases_vides)?;
     if changements.is_empty() {
         return Ok(None);
@@ -1249,7 +1249,7 @@ pub(crate) fn sans_valeur(v: Option<&Value>) -> bool {
 /// LES CHAMPS DE `donnees` QUI CHANGENT LA FICHE `ancienne` (telle que l'ecran l'a montree) : ceux-la demandent leur date
 /// d'effet (modele, « Le temps » : toute la configuration est datee, et une valeur sans date rend le passe faux des
 /// qu'elle change). Une valeur deja dite qui change, toujours. Une case vide qu'on remplit, quand `cases_vides` : la
-/// fiche a deja servi a un mois parti (`dernier_mois_parti`), et ce mois ne disait rien d'elle (la deduction forfaitaire
+/// fiche a deja servi a un mois parti d'ici (`cases_vides_a_dater`), et ce mois ne disait rien d'elle (la deduction forfaitaire
 /// cochee en fevrier ne vaut pas pour janvier ; la reponse a la question que la taxe sur les salaires pose apres la TVA,
 /// a sa date). Sans mois parti, la remplir est sa premiere valeur : aucun passe ne la lit. Une fiche neuve n'a rien a
 /// dater.
@@ -1301,6 +1301,17 @@ pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<Str
 /// partis (`engagement::departs`), ou que l'ancien logiciel a verse et declare (un engagement importe), pour ce salarie,
 /// ou pour quiconque quand c'est la fiche de l'entreprise. `None` : aucun ; une fiche de spectacle n'en a pas.
 pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -> R<Option<String>> {
+    dernier_parti(ctx, nom, cle, true)
+}
+
+/// UNE CASE VIDE QU'ON REMPLIT SE DATE quand la fiche a servi a un mois parti d'ici (`engagement::departs`) : ce mois
+/// ne disait rien d'elle. Un mois importe ne se recalcule pas : il garde ce que l'ancien logiciel a declare, et aucun
+/// calcul ne relit la fiche pour lui ; la remplir apres lui est sa premiere valeur.
+fn cases_vides_a_dater(ctx: &Contexte, nom: &str, cle: Option<&str>) -> R<bool> {
+    Ok(dernier_parti(ctx, nom, cle, false)?.is_some())
+}
+
+fn dernier_parti(ctx: &Contexte, nom: &str, cle: Option<&str>, avec_importes: bool) -> R<Option<String>> {
     use engagement::departs::Envoi;
     if nom == "spectacle" {
         return Ok(None);
@@ -1314,10 +1325,12 @@ pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -
         .filter(|d| matches!(d.envoi, Envoi::Documents | Envoi::Dsn))
         .filter_map(|d| d.mois.clone());
     let mut importes = Vec::new();
-    for i in engagement::importe::tous(&ctx.racine).map_err(plain)? {
-        let c = engagement::cle_de_l_engagement(ctx, &i.objet().brut);
-        if c.as_deref().is_some_and(sien) {
-            importes.extend(i.paies().into_keys());
+    if avec_importes {
+        for i in engagement::importe::tous(&ctx.racine).map_err(plain)? {
+            let c = engagement::cle_de_l_engagement(ctx, &i.objet().brut);
+            if c.as_deref().is_some_and(sien) {
+                importes.extend(i.paies().into_keys());
+            }
         }
     }
     Ok(partis.chain(importes).max())
@@ -1697,7 +1710,7 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
     }
 
     let (depuis, note) = (depuis_de(depuis)?, Some(valeur_en_texte(note)).filter(|n| vrai(note) && !n.trim().is_empty()));
-    let cases_vides = dernier_mois_parti(ctx, nom, cle.as_deref().filter(|k| !k.is_empty()))?.is_some();
+    let cases_vides = cases_vides_a_dater(ctx, nom, cle.as_deref().filter(|k| !k.is_empty()))?;
     let mut contenu = objet_du_fichier(&chemin)?;
     if nom == "entreprise" {
         // La fiche entreprise est le fichier entier. Les autres etablissements se datent chacun a son ouverture.

@@ -403,6 +403,11 @@ pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie,
     // Le code risque et le taux AT/MP de l'annee : le risque par defaut du socle et le taux de l'arrete, dits a l'ecran et
     // modifiables (`routes::atmp`).
     crate::routes::atmp::poser_a_la_creation(&dossier, i64::from(creation.an)).map_err(|e| e.message)?;
+    // VENUE D'UN LOGICIEL PRECEDENT, elle commence par reprendre son passe : la boite ou poser ses pieces (`import/`,
+    // celle que `importation-etat` nomme) est la des le premier jour.
+    if matches!(venue, Venue::LogicielPrecedent) {
+        std::fs::create_dir_all(dossier.join("import")).map_err(|e| e.to_string())?;
+    }
     if !bride {
         return Ok(entree(format!("cie:{}", nom_dossier(&dossier)), &dossier, true));
     }

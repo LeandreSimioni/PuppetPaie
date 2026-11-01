@@ -721,11 +721,20 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
         .chain(reponse["spectacles"].as_array().into_iter().flatten())
         .filter(|f| matches!(f.get("etat").and_then(Value::as_str), Some("creee" | "completee")))
         .count();
+    // UN SPECTACLE SANS TITRE : les pieces ne portent que son numero d'objet (`completer::A_COMPLETER`) ; le contrat imprime
+    // le titre, la phrase le dit.
+    let sans_titre = reponse["spectacles"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|f| f["donnees"]["titre"].as_str().is_some_and(|t| t.eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)))
+        .count();
     reponse["phrase"] = json!(format!(
-        "Repris : {} contrat(s), {} bulletin(s), {} fiche(s).",
+        "Repris : {} contrat(s), {} bulletin(s), {} fiche(s).{}",
         n(&reponse["contrats_nouveaux"]) + n(&b["contrats_nouveaux"]),
         n(&b["paies_nouvelles"]) + n(&b["paies_completees"]),
-        fiches
+        fiches,
+        if sans_titre > 0 { format!(" Titre à dire pour {} spectacle(s) : les pièces ne portent que le numéro d'objet (Configuration › Spectacles).", sans_titre) } else { String::new() }
     ));
     reponse["couleur"] = json!(crate::routes::couleur_de_l_etat("fait"));
     rapporter_les_ecarts(ctx);
