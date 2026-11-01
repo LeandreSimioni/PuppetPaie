@@ -1822,8 +1822,8 @@
       "bareme": {
         "tarifs_conventionnels": {
           "_source": "Avenant du 21 juillet 2025 relatif aux salaires minimaux applicables au 1er septembre 2025 (atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md) : entree en vigueur le 1er septembre 2025 (l. 175) ; << Chambre et petit-dejeuner : 70,28 euros. Chaque repas principal : 17,85 euros. >> (annexe 2, indemnites journalieres de deplacement en France applicables a l'ensemble du personnel, l. 429-432), les memes montants pour les artistes, techniciens et personnels administratifs en tournee (l. 737-739). Le taux d'une ligne << Repas >> ou << Nuitee >> saisie sans taux (`engagement::lignes_au_tarif`).",
-          "repas": [{"depuis": "2025-09-01", "valeur": 17.85}],
-          "nuitee": [{"depuis": "2025-09-01", "valeur": 70.28}]
+          "repas": 17.85,
+          "nuitee": 70.28
         },
         "rubriques_bulletin": [
           {
