@@ -34,7 +34,7 @@ const TEXTE_MAX: usize = 5000;
 /// 1,5 Mo decodes.
 const CAPTURE_MAX: usize = 1536 * 1024;
 const CAPTURE_TYPES: [&str; 2] = ["image/png", "image/jpeg"];
-const CAPTURES_MAX: usize = 5;
+pub(crate) const CAPTURES_MAX: usize = 5;
 const INCIDENTS_JOINTS: usize = 10;
 const SIGNALEMENTS_FICHIER: &str = "signalements.json";
 

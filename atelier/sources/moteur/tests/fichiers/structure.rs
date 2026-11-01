@@ -442,9 +442,10 @@ fn un_seul_endroit_ecrit_un_fichier_d_engagements() {
 /// LA ROUTE REND LA PHRASE QUE L'ON LIT : la page (`logiciel/interface/js/`, `index.html`, et les pages que sert la
 /// fenetre, `interface/pages/`) n'ecrit que des mots d'interface (le nom d'un bouton, d'une colonne, d'un onglet, d'un
 /// champ) : un texte qu'elle montre a au plus `MOTS_D_INTERFACE` mots et, s'il en a plusieurs, aucune ponctuation de
-/// phrase (`.` `:` `?` `!` `…`). Un texte est ce qu'un litteral montre entre deux balises (un gabarit `${…}` ne le coupe
-/// pas : une phrase composee autour d'une valeur reste une phrase), ou un attribut qui se lit (`title`, `placeholder`,
-/// `aria-label`, `alt`) ; un mot porte une lettre et rien d'un code (ni le point d'un sélecteur) ; un texte qui porte `[]{}=<>` est du code.
+/// phrase (`.` `:` `!` `…` ; un point d'interrogation clot une question d'interface, « Un problème, une idée ? »). Un
+/// texte est ce qu'un litteral montre entre deux balises (un gabarit `${…}` ne le coupe pas : une phrase composee autour
+/// d'une valeur reste une phrase), ou un attribut qui se lit (`title`, `placeholder`, `aria-label`, `alt`) ; un mot porte
+/// une lettre et rien d'un code (ni le point d'un selecteur) ; un texte qui porte `[]{}=<>` est du code.
 #[test]
 fn la_page_n_ecrit_aucune_phrase() {
     let depot = espace().join("../..");
@@ -490,7 +491,7 @@ fn phrase(texte: &str) -> Option<String> {
         .collect();
     let c: Vec<char> = t.chars().collect();
     let ponctue = (1..c.len()).any(|i| {
-        ".:?!…".contains(c[i]) && c.get(i + 1).is_none_or(|y| y.is_whitespace()) && (c[i - 1].is_alphanumeric() || "»)".contains(c[i - 1]) || (c[i - 1] == ' ' && c[i] != '.'))
+        ".:!…".contains(c[i]) && c.get(i + 1).is_none_or(|y| y.is_whitespace()) && (c[i - 1].is_alphanumeric() || "»)".contains(c[i - 1]) || (c[i - 1] == ' ' && c[i] != '.'))
     });
     (mots.len() > MOTS_D_INTERFACE || mots.len() > 1 && ponctue).then(|| texte.replace('\u{1}', "…").split_whitespace().collect::<Vec<_>>().join(" "))
 }

@@ -219,8 +219,18 @@ fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
     poser_les_pastilles(nom, &mut v);
     let n = |k: &str| v.get(k).and_then(Value::as_u64).unwrap_or(0);
     let message = |l: Option<&Value>| l.map(|s| format!("« {} » : {}", super::mot(&s["debut"]), super::mot(&s["depart"]["mots"]).to_lowercase())).unwrap_or_default();
+    if nom == "signalements" || nom == "signalement-envoyer" {
+        v["ecran"] = ecran_du_message();
+    }
+    if nom.starts_with("diagnostic-") {
+        v["ecran"] = ecran_du_diagnostic(&v);
+    }
     let phrase = match nom {
-        "diagnostic-etat" | "diagnostic-envoyer" | "diagnostic-regler" => format!(
+        "diagnostic-regler" if v["envoi"] == json!(false) => "Le signalement des dysfonctionnements est désactivé : rien ne part plus chez l'éditeur.".to_string(),
+        "diagnostic-regler" => "Le signalement des dysfonctionnements est réactivé.".to_string(),
+        "diagnostic-envoyer" if vrai(&v["bilan"]["erreur"]) => format!("Envoi impossible : {}", super::mot(&v["bilan"]["erreur"])),
+        "diagnostic-envoyer" => format!("{} incident(s) envoyé(s).", super::mot(&v["bilan"]["envoyes"])),
+        "diagnostic-etat" => format!(
             "Signalement des dysfonctionnements : {} ; incidents gardés : {}, partis : {}, en attente : {}.",
             if v["envoi"] == json!(false) { "désactivé" } else { "actif" },
             n("total"),
@@ -515,4 +525,58 @@ fn phrase_d_incident(l: &Value) -> String {
 fn phrase_de_paquet(p: &Value) -> String {
     let t = |k: &str| p.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     format!("{} fois · {} · {} — le dernier le {}", t("combien"), t("quoi"), t("resume"), super::quand(&t("derniere")))
+}
+
+/// CE QUE L'ECRAN DU FILET DIT (`ecran` des routes `diagnostic-*`) : la ligne de son etat, la boite qui avertit avant de
+/// couper l'envoi, et celle qui montre ce qui est parti.
+fn ecran_du_diagnostic(v: &Value) -> Value {
+    let coupe = v["envoi"] == json!(false);
+    let mut compte = if coupe {
+        "désactivé : les incidents restent sur cet ordinateur, rien ne part".to_string()
+    } else if !vrai(&v["serveur"]) {
+        "aucun serveur de l'éditeur connu : rien ne part".to_string()
+    } else if vrai(&v["dernier_envoi"]) {
+        format!("{} incident(s) parti(s), le dernier le {}", super::mot(&v["partis"]), super::quand(&super::mot(&v["dernier_envoi"])))
+    } else if v["total"].as_u64().unwrap_or(0) > 0 {
+        "rien n'est encore parti".to_string()
+    } else {
+        String::new()
+    };
+    if let Some(a) = v["paies_annuelles"].as_array().and_then(|l| l.first()).filter(|_| !coupe) {
+        let paies = format!("nombre de paies de {} parti le {}", super::mot(&a["annee"]), super::quand(&super::mot(&a["parti_le"])));
+        compte = if compte.is_empty() { paies } else { format!("{} · {}", compte, paies) };
+    }
+    json!({
+        "compte": compte,
+        "desactiver": {
+            "titre": "Désactiver le signalement des dysfonctionnements ?",
+            "phrase": "Si vous le désactivez, l'éditeur ne verra plus les problèmes de votre logiciel, et risque de ne pas pouvoir les corriger avant qu'ils vous arrivent, ou qu'ils arrivent à d'autres compagnies. Il ne saura plus non plus combien de paies PuppetPaie fait chez vous : le logiciel est gratuit, c'est sa seule façon de savoir s'il sert.",
+            "note": "Ce qui part : chaque dysfonctionnement avec de quoi le reproduire (ce que le logiciel faisait, ses données, les 3 minutes d'avant, cet ordinateur), et une fois par an, à partir du 16 janvier, le nombre de paies faites l'année précédente. Les noms, NIR, adresses, IBAN et coordonnées de vos salariés n'en partent pas : ils sont remplacés par leur forme. Les incidents resteront notés sur cet ordinateur, et vous pourrez réactiver l'envoi à tout moment.",
+            "question": "Voulez-vous vraiment continuer ?",
+        },
+        "parti": format!(
+            "Quand quelque chose casse, PuppetPaie le note et l'envoie au serveur de l'éditeur, pour qu'il le corrige. Une fois par an, à partir du 16 janvier, il envoie aussi le nombre de paies faites l'année précédente : le logiciel est gratuit, c'est la seule façon pour l'éditeur de savoir s'il sert. Ce qui part est affiché ici tel quel : ce que le logiciel faisait et ses données (montants, dates, codes, spectacles, lieux), ce que vous et le logiciel avez fait les 3 minutes d'avant, et cet ordinateur (système, version, mémoire, disque, écran). Les noms, NIR, adresses, IBAN, naissances, courriels et téléphones des salariés sont remplacés par leur forme (« salarié n°2 », « NIR présent, clé valide ») ; la compagnie n'est pas nommée et le poste est désigné par un numéro tiré au hasard. {}",
+            if vrai(&v["serveur"]) { format!("Serveur : {}.", super::mot(&v["serveur"])) } else { "Aucun serveur connu : rien ne part.".to_string() }
+        ),
+        "rien": "Rien n'a été noté.",
+    })
+}
+
+/// CE QUE LA BOITE « Un problème, une idée ? » DIT (`ecran` de `signalements` et `signalement-envoyer`) : la question, les
+/// captures, ce qui part avec le message, et ce qu'elle dit d'un message envoye.
+fn ecran_du_message() -> Value {
+    json!({
+        "question": "Ce qui ne va pas, ce qui vous manque, ce que vous aimeriez :",
+        "captures": format!("Captures d'écran, {} au plus : collez-les (Ctrl+V), choisissez des images ou capturez l'écran.", problemes::CAPTURES_MAX),
+        "ce_qui_part": "Pour qu'on trouve la panne sans vous redemander, partent avec votre message : cet ordinateur (système, version, mémoire, disque, écran), tout ce que vous et PuppetPaie avez fait ces 3 dernières minutes, et les derniers dysfonctionnements notés. Les noms, NIR, adresses, IBAN, naissances, courriels et téléphones de vos salariés y sont remplacés par leur forme (« salarié n°2 ») et la compagnie n'est pas nommée ; montants, dates et codes restent tels quels.",
+        "trop": format!("{} captures au plus.", problemes::CAPTURES_MAX),
+        "format": "Une capture doit être une image PNG ou JPEG.",
+        "taille": "Une capture dépasse 1,5 Mo : réduisez-la, ou découpez-la.",
+        "ratee": "La capture n'a pas pu se faire.",
+        "merci": "Merci, votre message est enregistré.",
+        "merci_parti": "Merci ! La réponse de l'éditeur viendra ici, dans « Vos messages ».",
+        "renverra": "PuppetPaie le renverra de lui-même.",
+        "deja": "Ce message était déjà enregistré : il ne part qu'une fois.",
+        "attente": "arrivé, en attente de réponse",
+    })
 }

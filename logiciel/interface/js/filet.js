@@ -6,6 +6,7 @@ async function dessinerDiagnostic(rang) {
   const etat = rang.querySelector(".k-diag-etat"), compte = rang.querySelector(".k-diag-compte");
   let d;
   try { d = await api("diagnostic-etat"); } catch (e) { etat.textContent = e.message; return; }
+  const k = d.ecran || {};
   // L'ENVOI SE COUPE : avec un avertissement, et il se
   // rallume d'un clic. Coupé, rien ne part ; le journal reste sur le poste.
   const couper = rang.querySelector("#k-diag-couper");
@@ -13,23 +14,14 @@ async function dessinerDiagnostic(rang) {
   couper.textContent = d.envoi === false ? "Réactiver" : "Désactiver";
   couper.onclick = async () => {
     if (d.envoi !== false) {
+      const a = k.desactiver || {};
       const oui = await new Promise((resoudre) => {
         let repondu = false;
         const repondre = (v) => { if (!repondu) { repondu = true; resoudre(v); } };
-        ouvrirBoite(`<h3>Désactiver le signalement des dysfonctionnements ?</h3>
-          <p>Si vous le désactivez, l'éditeur ne verra plus les problèmes de votre
-            logiciel, et risque de ne pas pouvoir les corriger avant qu'ils vous
-            arrivent — ou qu'ils arrivent à d'autres compagnies. Il ne saura plus
-            non plus combien de paies PuppetPaie fait chez vous : le logiciel est
-            gratuit, c'est sa seule façon de savoir s'il sert.</p>
-          <p class="note">Ce qui part : chaque dysfonctionnement avec de quoi le
-            reproduire (ce que le logiciel faisait, ses données, les 3 minutes
-            d'avant, cet ordinateur), et une fois par an, à partir du 16 janvier,
-            le nombre de paies faites l'année précédente. Les noms, NIR, adresses,
-            IBAN et coordonnées de vos salariés n'en partent pas : ils sont
-            remplacés par leur forme. Les incidents resteront notés sur cet
-            ordinateur, et vous pourrez réactiver l'envoi à tout moment.</p>
-          <p>Voulez-vous vraiment continuer ?</p>
+        ouvrirBoite(`<h3>${echapper(a.titre)}</h3>
+          <p>${echapper(a.phrase)}</p>
+          <p class="note">${echapper(a.note)}</p>
+          <p>${echapper(a.question)}</p>
           <div class="actions">
             <button class="secondaire" id="dg-garder">Non, garder l'envoi</button>
             <button class="primaire" id="dg-couper">Oui, désactiver</button>
@@ -40,22 +32,13 @@ async function dessinerDiagnostic(rang) {
       if (!oui) return;
     }
     try {
-      await api("diagnostic-regler", { actif: d.envoi === false });
-      dire(d.envoi === false ? "Le signalement des dysfonctionnements est réactivé."
-        : "Le signalement des dysfonctionnements est désactivé : rien ne part plus chez l'éditeur.");
+      const r = await api("diagnostic-regler", { actif: d.envoi === false });
+      dire(r.phrase);
     } catch (e) { dire(e.message, "erreur"); return; }
     dessinerDiagnostic(rang);
   };
   etat.innerHTML = pastilleDeLEtat(d.pastille);
-  compte.textContent = d.envoi === false ? "désactivé : les incidents restent sur cet ordinateur, rien ne part"
-    : !d.serveur ? "aucun serveur de l'éditeur connu : rien ne part"
-    : d.dernier_envoi ? `${d.partis} incident(s) parti(s), le dernier le ${quand(d.dernier_envoi)}`
-    : d.total ? "rien n'est encore parti" : "";
-  // Le nombre de paies de l'année : le dernier parti, à la suite.
-  const annee = d.envoi !== false && (d.paies_annuelles || [])[0];
-  if (annee) {
-    compte.textContent += `${compte.textContent ? " · " : ""}nombre de paies de ${annee.annee} parti le ${quand(annee.parti_le)}`;
-  }
+  compte.textContent = k.compte || "";
   let signales = [];
   try { signales = (await api("signalements")).signalements; } catch (e) { /* la liste est un plus */ }
   rang.querySelector("#k-diag-voir").onclick = () => boiteDiagnostic(d, rang, signales);
@@ -63,21 +46,12 @@ async function dessinerDiagnostic(rang) {
 
 function boiteDiagnostic(d, rang, signales = []) {
   const NOMS = { logiciel: "plantage", refus: "refus du moteur", dpae: "DPAE rejetée",
-                 dsn: "DSN rejetée", paies: "nombre de paies de l'année" };
+                 dsn: "DSN rejetée", paies: "nombre de paies" };
+  const k = d.ecran || {};
   ouvrirBoite(`
-    <h3>Ce qui est parti chez l'éditeur</h3>
-    <p class="note">Quand quelque chose casse, PuppetPaie le note et l'envoie au serveur
-      de l'éditeur, pour qu'il le corrige. Une fois par an, à partir du 16 janvier, il
-      envoie aussi le nombre de paies faites l'année précédente : le logiciel est
-      gratuit, c'est la seule façon pour l'éditeur de savoir s'il sert. Ce qui part est
-      affiché ici tel quel : ce que le logiciel faisait et ses données (montants, dates,
-      codes, spectacles, lieux), ce que vous et le logiciel avez fait les 3 minutes d'avant,
-      et cet ordinateur (système, version, mémoire, disque, écran). Les noms, NIR, adresses,
-      IBAN, naissances, courriels et téléphones des salariés sont remplacés par leur forme
-      (« salarié n°2 », « NIR présent, clé valide ») ; la compagnie n'est pas nommée et le
-      poste est désigné par un numéro tiré au hasard.
-      ${d.serveur ? `Serveur : <b>${echapper(d.serveur)}</b>.` : "<b>Aucun serveur connu : rien ne part.</b>"}</p>
-    ${!d.groupes.length ? `<p>Rien n'a été noté.</p>` : `<div class="liste-choix">
+    <h3>Ce qui est parti</h3>
+    <p class="note">${echapper(k.parti)}</p>
+    ${!d.groupes.length ? `<p>${echapper(k.rien)}</p>` : `<div class="liste-choix">
       ${d.groupes.map((g, i) => `
         <div class="choix"><span>
           <b>${echapper(NOMS[g.quoi] || g.quoi)}</b>
@@ -102,13 +76,11 @@ function boiteDiagnostic(d, rang, signales = []) {
   });
   const envoyer = document.getElementById("d-envoyer");
   if (envoyer) envoyer.onclick = async () => {
-    const rendre = occupe(envoyer, "Envoi en cours…");
+    const rendre = occupe(envoyer, "Envoi…");
     try {
       const r = await api("diagnostic-envoyer");
       fermerBoite();
-      dire(r.bilan.erreur ? "Envoi impossible : " + r.bilan.erreur
-                          : r.bilan.envoyes + " incident(s) envoyé(s).",
-           r.couleur);
+      dire(r.phrase, r.couleur);
       dessinerDiagnostic(rang);
     } catch (e) { rendre(); dire(e.message, "erreur"); }
   };
@@ -130,6 +102,8 @@ function boiteDiagnostic(d, rang, signales = []) {
 const CAPTURE_MAX = 1536 * 1024;           // 1,5 Mo, comme le moteur
 const CAPTURES_MAX = 5;
 let SIGNALEMENT_REDUIT = null;             // rouvre la boîte rangée dans sa pastille
+/* Ce que la boîte dit, tel que le moteur le rend (`ecran` de `signalements`). */
+let ECRAN_MESSAGE = {};
 
 function ecranCourant() {
   const b = document.querySelector(".onglets button.actif");
@@ -154,32 +128,25 @@ function boiteSignalement() {
   const rendreDessous = () => { const d = dessous; dessous = null; if (d) d(); };
   ouvrirBoite(`<div id="sg-boite">
     <h3>Un problème, une idée ?</h3>
-    <label class="champ-boite">Ce qui ne va pas, ce qui vous manque, ce que vous aimeriez
+    <label class="champ-boite"><span id="sg-question"></span>
       <textarea id="sg-texte" rows="6" maxlength="5000"></textarea></label>
     <div class="sg-vignettes" id="sg-vignettes"></div>
-    <p class="discret" id="sg-ajout">Captures d'écran (${CAPTURES_MAX} au plus) : collez-les
-      (Ctrl+V), <label class="lien">choisissez des images<input type="file" id="sg-fichier"
-      accept="image/png,image/jpeg" multiple hidden></label>, ou
-      <button type="button" class="lien" id="sg-capturer"
-        title="Photographier l'écran de PuppetPaie tel qu'il est derrière cette boîte">capturez
-        l'écran</button>.</p>
-    <p class="note" id="sg-ce-qui-part">Pour qu'on trouve la panne sans vous redemander, partent avec votre
-      message : cet ordinateur (système, version, mémoire, disque, écran), tout ce que vous et PuppetPaie
-      avez fait ces 3 dernières minutes, et les derniers dysfonctionnements notés. Les noms, NIR, adresses,
-      IBAN, naissances, courriels et téléphones de vos salariés y sont remplacés par leur forme
-      (« salarié n°2 ») et la compagnie n'est pas nommée ; montants, dates et codes restent tels quels.</p>
+    <p class="discret" id="sg-ajout"><span id="sg-captures"></span>
+      <label class="lien">choisir des images<input type="file" id="sg-fichier"
+      accept="image/png,image/jpeg" multiple hidden></label>
+      <button type="button" class="lien" id="sg-capturer">capturer l'écran</button></p>
+    <p class="note" id="sg-ce-qui-part"></p>
     <p class="encart erreur" id="sg-erreur" hidden></p>
     <p id="sg-resultat" hidden></p>
     <div class="actions">
       <button type="button" class="lien sg-voir" id="sg-voir" disabled>voir ce qui part</button>
       <button class="secondaire" id="sg-fermer">Fermer</button>
-      <button class="secondaire" id="sg-reduire"
-        title="Ranger la boîte le temps de faire une capture d'écran">Réduire</button>
+      <button class="secondaire" id="sg-reduire">Réduire</button>
       <button class="primaire" id="sg-envoyer" disabled>Envoyer</button>
     </div>
     <pre class="d-pre" id="sg-pre" hidden></pre>
     <div id="sg-messages"></div>
-    <details class="avance-auto" hidden><summary>Avancé : ce que ce poste a envoyé au développeur</summary>
+    <details class="avance-auto" hidden><summary>Avancé</summary>
       <div id="sg-avance" data-auto="Un problème, une idée ?"></div></details></div>`);
   // Les éléments se tiennent par la boîte, pas par le document : réduite,
   // elle est hors de la page, et ses gestes en cours doivent la trouver.
@@ -211,17 +178,17 @@ function boiteSignalement() {
   const poser = (fichier) => new Promise((fini) => {
     montrerErreur("");
     if (captures.length >= CAPTURES_MAX) {
-      return fini(montrerErreur(`${CAPTURES_MAX} captures au plus.`));
+      return fini(montrerErreur(ECRAN_MESSAGE.trop));
     }
     if (!/^image\/(png|jpeg)$/.test(fichier.type)) {
-      return fini(montrerErreur("Une capture doit être une image PNG ou JPEG."));
+      return fini(montrerErreur(ECRAN_MESSAGE.format));
     }
     if (fichier.size > CAPTURE_MAX) {
-      return fini(montrerErreur("Une capture dépasse 1,5 Mo : réduisez-la, ou découpez-la."));
+      return fini(montrerErreur(ECRAN_MESSAGE.taille));
     }
     const lecteur = new FileReader();
     lecteur.onload = () => {
-      if (captures.length >= CAPTURES_MAX) return fini(montrerErreur(`${CAPTURES_MAX} captures au plus.`));
+      if (captures.length >= CAPTURES_MAX) return fini(montrerErreur(ECRAN_MESSAGE.trop));
       captures.push({ type: fichier.type, donnees: lecteur.result, octets: fichier.size });
       dessinerVignettes();
       fini();
@@ -246,7 +213,12 @@ function boiteSignalement() {
   // VOS MESSAGES, et leurs réponses : ouvrir la boîte les rend lues.
   (async () => {
     try {
-      const l = (await api("signalements")).signalements;
+      const r = await api("signalements");
+      const l = r.signalements;
+      ECRAN_MESSAGE = r.ecran || {};
+      $("sg-question").textContent = ECRAN_MESSAGE.question || "";
+      $("sg-captures").textContent = ECRAN_MESSAGE.captures || "";
+      $("sg-ce-qui-part").textContent = ECRAN_MESSAGE.ce_qui_part || "";
       $("sg-messages").innerHTML = vosMessages(l);
       if (l.some((s) => s.reponse && !s.lu)) {
         await api("signalements-lus");
@@ -281,10 +253,10 @@ function boiteSignalement() {
   // la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
   $("sg-capturer").onclick = () => {
     montrerErreur("");
-    if (captures.length + enCours.size >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
+    if (captures.length + enCours.size >= CAPTURES_MAX) return montrerErreur(ECRAN_MESSAGE.trop);
     // La place « capture… » d'abord : elle se peint avant que la copie de la page ne prenne la main.
     const tour = photographierLaPage(dessous && dessous.noeuds)
-      .then(poser, (e) => montrerErreur("La capture n'a pas pu se faire : " + e.message))
+      .then(poser, (e) => montrerErreur(ECRAN_MESSAGE.ratee + " " + e.message))
       .finally(() => { enCours.delete(tour); dessinerVignettes(); });
     enCours.add(tour);
     dessinerVignettes();
@@ -328,7 +300,7 @@ function boiteSignalement() {
   // montrer où il en est, dans « Vos messages ».
   envoyer.onclick = async () => {
     montrerErreur("");
-    const rendre = occupe(envoyer, "Envoi en cours…");
+    const rendre = occupe(envoyer, "Envoi…");
     try {
       await Promise.all([...enCours]);      // une capture qui se dessine encore part avec le reste
       const r = await api("signalement-envoyer", charge());
@@ -406,7 +378,7 @@ async function photographierLaPage(dessous) {
       return new File([blob], `ecran-${quand}.jpg`, { type: "image/jpeg" });
     }
   }
-  throw new Error("l'image dépasse 1,5 Mo même réduite");
+  throw new Error("image trop lourde");
 }
 
 /** `noeud` copié dans le document `doc`, avec ce qu'on y a tapé ou coché : une copie de nœud reprend les attributs,
@@ -440,23 +412,23 @@ function vosMessages(liste) {
  *  encore parti (et pourquoi). Un message déjà enregistré (un second clic) le dit : il ne part qu'une fois. */
 let SG_ENVOI = null;
 function departDuMessage(s) {
-  const deja = SG_ENVOI && SG_ENVOI.deja ? ` <span class="discret">Ce message était déjà enregistré : il ne part qu'une fois.</span>` : "";
+  const m = ECRAN_MESSAGE;
+  const deja = SG_ENVOI && SG_ENVOI.deja ? ` <span class="discret">${echapper(m.deja)}</span>` : "";
   // Où en est son départ : le moteur le dit (`depart`) ; tant qu'il ne l'a pas lu, l'envoi est en cours.
   if (!s || !s.depart) {
-    return `<b>Merci, votre message est enregistré.</b> <span class="sg-envoi">Envoi en cours…</span>${deja}`;
+    return `<b>${echapper(m.merci)}</b> <span class="sg-envoi">Envoi…</span>${deja}`;
   }
   if (s.depart.couleur === "vert") {
-    return `${pastilleDeLEtat(s.depart)} Merci ! La réponse de l'éditeur viendra ici,
-    dans « Vos messages ».${deja}`;
+    return `${pastilleDeLEtat(s.depart)} ${echapper(m.merci_parti)}${deja}`;
   }
-  return `<b>Merci, votre message est enregistré.</b> ${pastilleDeLEtat(s.depart)}${
-    s.etat === "pas-parti" ? ` — ${echapper(s.raison || "PuppetPaie le renverra de lui-même.")}` : ""}${deja}`;
+  return `<b>${echapper(m.merci)}</b> ${pastilleDeLEtat(s.depart)}${
+    s.etat === "pas-parti" ? ` — ${echapper(s.raison || m.renverra)}` : ""}${deja}`;
 }
 
 /** Où en est un message (l'état vient du moteur, `problemes::signalements`). */
 function etatDuMessage(s) {
   if (s.pastille) return ` ${pastilleDeLEtat(s.pastille)}${s.raison ? ` <span class="discret">— ${echapper(s.raison)}</span>` : ""}`;
-  return ` <span class="discret">— arrivé, en attente de réponse</span>`;
+  return ` <span class="discret">— ${echapper(ECRAN_MESSAGE.attente || "")}</span>`;
 }
 
 /** Tant qu'un message est en cours d'envoi et la boîte ouverte, la liste se
