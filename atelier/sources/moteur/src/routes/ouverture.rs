@@ -121,6 +121,19 @@ const AIDES: &[(&str, &str)] = &[
     ("dpae_cochees", "Cochées d'avance : les embauches sans DPAE, ou dont la DPAE a été refusée. Une DPAE déjà passée ne se redéclare pas : l'Urssaf recevrait deux déclarations pour un seul contrat."),
     ("dpae_heure", "Heure d'embauche déclarée : 08h00. Toutes les embauches cochées partent ensemble, dans un seul dépôt. D'abord le test, qui ne déclare rien ; puis, une fois le test revenu conforme, l'envoi réel."),
     ("revue_spectacles", "Décochés, ils s'archivent : ils restent lisibles et se réactivent d'un clic (Configuration › Spectacles). Ceux qui continuent gardent leur numéro d'objet."),
+    ("mot_de_passe", "Le mot de passe du logiciel ne sert qu'à prouver que quelqu'un est là. Les mots de passe des organismes et de la boîte restent dans le coffre."),
+    ("import_dossier", "Vide : le dossier import/ de la compagnie."),
+    ("import_relire", "Un fichier ajouté depuis, un salarié ou une année qui manquait."),
+    ("import_relire_note", "Les fiches qui existent déjà ne sont pas touchées ; ce que les DSN ou les bulletins disaient autrement est seulement signalé. Ce qui est déjà repris ne se double pas."),
+    ("import_relire_intro", "Mettez dans ce dossier ce qui manquait, puis « Aperçu ». Rien n'est écrit avant « Reprendre »."),
+    ("import_intro", "Mettez dans le dossier ci-dessous tout ce que votre ancien logiciel vous a laissé, puis « Importer » : PuppetPaie crée la fiche de la compagnie, ses salariés, ses spectacles et leurs contrats avec ce que les pièces disent."),
+    ("import_natures", "Un bulletin de paie ne dit pas si le contrat est un CDI ou un CDD. Dites-le pour chacun : la DSN et les documents de fin de contrat en dépendent."),
+    ("import_numero", "Le numéro du contrat : la rubrique S21.G00.40.009 de sa dernière DSN."),
+    ("import_quotite", "La durée du travail, en heures par mois : la rubrique S21.G00.40.013 de la DSN."),
+    ("import_ecarts", "Le bulletin fait foi : c'est son montant qui s'écrit, l'écart reste noté ici."),
+    ("import_copies", "Les fichiers lus sont copiés dans l'historique de la compagnie ; vous pouvez vider le dossier import/."),
+    ("import_rien", "Rien à reprendre : tout est déjà là."),
+    ("import_avant_clic", "Rien n'est écrit avant ce clic."),
 ];
 
 /// Les routes de ce module, et leurs fiches.

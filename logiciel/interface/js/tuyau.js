@@ -27,6 +27,10 @@ let MINUTEUR = null;        // anti-rebond de l'apercu
  * message qui s'efface au bout de six secondes n'aide pas quelqu'un qui
  * était en train de taper. */
 let SERVEUR_PERDU = false;
+/* Ce que la page dit quand le moteur ne répond plus : la fenêtre le pose dans la page qu'elle sert (`{{PHRASES}}`). */
+const PHRASES_FENETRE = (() => {
+  try { return JSON.parse(document.getElementById("phrases-fenetre").textContent); } catch (e) { return {}; }
+})();
 
 function serveurPerdu() {
   if (SERVEUR_PERDU) return;
@@ -34,10 +38,7 @@ function serveurPerdu() {
   const zone = document.getElementById("veille");
   zone.hidden = false;
   zone.classList.add("souci");
-  document.getElementById("veille-texte").innerHTML =
-    "<b>Le serveur ne répond plus.</b> La fenêtre PuppetPaie a été fermée, ou le "
-    + "terminal qui la faisait tourner. <b>Rien de ce qui est à l'écran n'est "
-    + "enregistré.</b> Relancer PuppetPaie, puis recharger cette page.";
+  document.getElementById("veille-texte").innerHTML = `<b>${echapper(PHRASES_FENETRE.perdu || "")}</b>`;
   document.getElementById("veille-maintenant").hidden = true;
 }
 
@@ -75,7 +76,7 @@ let LU_GENERATION = 0;
 
 /** Une réponse du moteur, telle que `appelerMoteur` la rend : son résultat, ou son refus levé. */
 function lireReponse(d) {
-  if (!d) throw new Error("Lecture absente de l'état du mois.");
+  if (!d) throw new Error(PHRASES_FENETRE.lecture_absente);
   if (!d.ok) { const e = new Error(d.erreur.message); e.detail = d.erreur; throw e; }
   return d.resultat;
 }
@@ -144,7 +145,7 @@ function verifierLeMois(mois, peint) {
     LU = frais;
     if (ancien) await repeindreLeMois(mois, ancien, frais);
   }).catch((e) => {
-    if (MOIS_AFFICHE === mois) dire("L'état du mois ne s'est pas mis à jour : " + e.message, "erreur");
+    if (MOIS_AFFICHE === mois) dire(e.message, "erreur");
   }).finally(() => {
     if (VERIF && VERIF.promesse === promesse) { VERIF = null; marquerMiseAJour(false); }
   });
@@ -283,7 +284,7 @@ async function appelerMoteur(route, charge = {}) {
   } catch (e) {
     // `fetch` ne rejette que sur un échec réseau — le serveur est parti.
     serveurPerdu();
-    const perdu = new Error("Le serveur PuppetPaie ne répond plus. Rien n'a été enregistré.");
+    const perdu = new Error(PHRASES_FENETRE.perdu_court);
     // Ce n'est pas un défaut de la page, et de toute façon le journal des
     // incidents vit derrière ce serveur-là : le rapport n'arriverait nulle
     // part. Voir `noterIncident`.
@@ -296,7 +297,7 @@ async function appelerMoteur(route, charge = {}) {
   const texte = await r.text();
   let d;
   try { d = JSON.parse(texte); } catch (e) {
-    const vide = new Error(`PuppetPaie a répondu ${r.status} sans dire pourquoi (route ${route}). Rien n'est sûr d'avoir été enregistré.`);
+    const vide = new Error(`${PHRASES_FENETRE.illisible} (${r.status}, ${route})`);
     vide.detail = { type: "ReponseIllisible", message: vide.message };
     throw vide;
   }
@@ -415,7 +416,7 @@ window.addEventListener("error", (ev) => {
   if (!ev.error && ev.target && ev.target !== window) {
     return noterIncident({
       genre: "RessourceAbsente",
-      message: String(ev.target.tagName || "?") + " n'a pas pu être chargé",
+      message: String(ev.target.tagName || "?") + " absent",
       fichier: ev.target.src || ev.target.href || "",
       ligne: 0, canal: "ressource",
     });
@@ -461,7 +462,7 @@ window.addEventListener("unhandledrejection", (ev) => {
  *  l'ouvre. Rend la réponse de la fenêtre, ou lève son refus. */
 async function fenetre(geste, ...args) {
   const f = window.pywebview && window.pywebview.api;
-  if (!f || !f[geste]) throw new Error("Cette fenêtre ne sait pas faire ce geste : " + geste + ".");
+  if (!f || !f[geste]) throw new Error("geste inconnu — " + geste);
   const r = await f[geste](...args);
   if (!r || !r.ok) throw new Error((r && r.erreur) || "Refusé.");
   return r;

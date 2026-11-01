@@ -145,6 +145,7 @@ function demanderMotDePasse(pourquoi, { envoi = false } = {}) {
     const champ = document.getElementById("mdp-valeur");
     // Le geste : le nom du bouton qui le demande, ou ce que le moteur en dit (`pourquoi`).
     document.getElementById("mdp-pourquoi").textContent = pourquoi || "";
+    document.getElementById("mdp-note").textContent = ((ETAT && ETAT.aides) || {}).mot_de_passe || "";
     champ.value = "";
     voile.classList.remove("cachee");
     const finir = (valeur) => {

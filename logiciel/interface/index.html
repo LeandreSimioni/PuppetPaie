@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/interface.css?v={{EMPREINTE}}">
 <link rel="stylesheet" href="/mise-a-jour.css?v={{EMPREINTE}}">
 {{STYLE_COMPAGNIE}}
+<script type="application/json" id="phrases-fenetre">{{PHRASES}}</script>
 </head>
 <body data-jeton="{{JETON}}" data-copie="{{COPIE}}">
 <!-- LE VOILE DU DEMARRAGE : le fond seul, le temps que la page se peigne
@@ -17,7 +18,7 @@
 <header class="bandeau">
   <!-- A GAUCHE, AVANT LE LOGO, AVEC UNE MAISON : le
        chemin vers l'accueil se cherche la ou commence la page. -->
-  <button type="button" class="retour-accueil" id="fenetre-accueil" title="Fermer cette compagnie et revenir au choix des compagnies"><svg viewBox="0 0 24 24" class="maison" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg> Les compagnies</button>
+  <button type="button" class="retour-accueil" id="fenetre-accueil" title="Les compagnies"><svg viewBox="0 0 24 24" class="maison" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg> Les compagnies</button>
   <div class="marque">
     <svg viewBox="0 0 64 40" class="logo" aria-hidden="true">
       <rect x="0" y="0" width="64" height="3" class="filet"/>
@@ -43,7 +44,7 @@
   <div class="etat" id="etat-global"></div>
   <!-- SIGNALER UN PROBLEME : sur tous les ecrans, discret. La boite est dans
        js/filet.js (boiteSignalement). -->
-  <button type="button" class="signaler" id="signaler" data-place="Un problème, une idée ?" title="Écrire à l'éditeur : un problème, une envie, une idée">Un problème, une idée ?</button>
+  <button type="button" class="signaler" id="signaler" data-place="Un problème, une idée ?" title="Écrire à l'éditeur">Un problème, une idée ?</button>
   <!-- REVENIR A L'ACCUEIL DES COMPAGNIES. C'est le lanceur
        qui tient l'accueil : le bouton ne se montre que dans la fenetre
        PuppetPaie dont le lanceur sait y revenir (`fenetreNative`). -->
@@ -90,8 +91,7 @@
              clic n'importe où ailleurs ouvre les douze mois de l'année. La
              valeur vit dans le champ caché #mois, que toute la page lit. -->
         <div class="choix-mois" id="choix-mois">
-          <span class="choix-mois-lib">Mois <span id="mois-maj" class="mois-maj" hidden
-                title="Le dernier état connu de ce mois est affiché : le moteur le vérifie.">· mise à jour…</span></span>
+          <span class="choix-mois-lib">Mois <span id="mois-maj" class="mois-maj" hidden>· vérification…</span></span>
           <div class="choix-mois-case">
             <button type="button" class="choix-mois-pas" id="mois-avant"
                     title="Mois précédent" aria-label="Mois précédent">&lsaquo;</button>
@@ -262,7 +262,7 @@
        salarié. Chacune dit à quoi elle sert en une ligne. -->
   <!-- REPLIEES A L'ARRIVEE : on ouvre la carte dont on a besoin. -->
   <details class="carte-export" id="carte-etat">
-    <summary><h2>Un état <span class="discret">— un tableau des paies : pour le comptable, la banque, une subvention</span></h2></summary>
+    <summary><h2>Un état <span class="discret">— un tableau des paies</span></h2></summary>
     <div id="exports-formulaire"></div>
     <div id="exports-resultat"></div>
   </details>
@@ -270,14 +270,14 @@
        qu'on sort. Les salaries, les categories et les periodes viennent du
        moteur (`dossier-formes`). -->
   <details class="carte-export" id="carte-dossier">
-    <summary><h2>Les documents d'un salarié <span class="discret">— bulletins, contrats, certificats, en PDF</span></h2></summary>
+    <summary><h2>Les documents d'un salarié <span class="discret">— en PDF</span></h2></summary>
     <div id="dossier-formulaire"></div>
     <div id="dossier-resultat"></div>
   </details>
   <!-- LES HEURES ET CACHETS DES INTERMITTENTS : ce que le moteur compte au regard des annexes 8 et 10, salarie par
        salarie (route `droits`), lu a l'ouverture de la carte. -->
   <details class="carte-export" id="carte-droits">
-    <summary><h2>Les heures et cachets des intermittents <span class="discret">— annexes 8 et 10</span></h2></summary>
+    <summary><h2>Heures et cachets <span class="discret">— annexes 8 et 10</span></h2></summary>
     <div id="droits"></div>
   </details>
   <!-- Avancé : les routes des Exports sans écran dessiné, montrées depuis leur fiche (js/avance.js). -->
@@ -288,7 +288,7 @@
 
 <!-- Boîte de dialogue de production : le montant URSSAF s'y demande. -->
 <div class="voile cachee" id="voile">
-  <button type="button" class="signaler sur-voile" id="signaler-voile" title="Écrire à l'éditeur, sans fermer cette fenêtre">Un problème, une idée ?</button>
+  <button type="button" class="signaler sur-voile" id="signaler-voile" title="Écrire à l'éditeur">Un problème, une idée ?</button>
   <div class="boite" id="boite"></div>
 </div>
 
@@ -297,13 +297,12 @@
      Un formulaire, pour qu'Entrée confirme. -->
 <div class="voile cachee" id="voile-mdp">
   <form class="boite boite-mdp" id="forme-mdp" autocomplete="off">
-    <h3>Mot de passe du logiciel</h3>
+    <h3>Mot de passe</h3>
     <p class="discret" id="mdp-pourquoi"></p>
     <label class="champ-boite">
       <input type="password" id="mdp-valeur" autocomplete="off">
     </label>
-    <p class="note">Il ne sert qu'à prouver que quelqu'un est là. Les mots de
-      passe des organismes et de la boîte restent dans le coffre.</p>
+    <p class="note" id="mdp-note"></p>
     <div class="actions">
       <button type="button" class="secondaire" id="mdp-annuler">Annuler</button>
       <button type="submit" class="primaire" id="mdp-ok">Confirmer</button>

@@ -360,6 +360,7 @@ pub fn page_logiciel(racine: &Path, jeton: &str) -> Result<String, String> {
             "{{STYLE_COMPAGNIE}}",
             &if copie { String::new() } else { format!("<style>:root {{ --compagnie: {}; }}</style>", compagnies::couleur(racine)) },
         )
+        .replace("{{PHRASES}}", &PHRASES_DE_LA_FENETRE.to_string())
         .replace("{{EDITION}}", if crate::compagnie::bridage::est_bride() { " &middot; d&eacute;mo" } else { "" });
     let cale = CALE.replace("{{JETON}}", jeton).replace("{{NOMS}}", NOMS_LOGICIEL);
     // Avant le PREMIER script de la page (`/js/tuyau.js`, qui definit `api`) : la cale doit exister avant lui.
@@ -1186,3 +1187,14 @@ pub fn commande(args: &[String]) -> i32 {
         }
     }
 }
+
+/// CE QUE LA PAGE DIT QUAND LE MOTEUR NE PEUT PLUS LE DIRE : le serveur qui ne repond plus, une reponse illisible. La
+/// fenetre les pose dans la page qu'elle sert (`{{PHRASES}}` de `index.html`), la page n'en ecrit aucune.
+static PHRASES_DE_LA_FENETRE: std::sync::LazyLock<serde_json::Value> = std::sync::LazyLock::new(|| {
+    serde_json::json!({
+        "perdu": "Le serveur ne répond plus : la fenêtre PuppetPaie a été fermée, ou le terminal qui la faisait tourner. Rien de ce qui est à l'écran n'est enregistré. Relancer PuppetPaie, puis recharger cette page.",
+        "perdu_court": "Le serveur PuppetPaie ne répond plus. Rien n'a été enregistré.",
+        "illisible": "PuppetPaie a répondu sans dire pourquoi. Rien n'est sûr d'avoir été enregistré.",
+        "lecture_absente": "Lecture absente de l'état du mois.",
+    })
+});
