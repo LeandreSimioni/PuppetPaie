@@ -305,7 +305,7 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
       ${echapper(a.deja_depose.mode)}. Redéposer le même fichier ne remplace
       rien : un annule-et-remplace se produit, il ne se redépose pas.</div>` : ""}
     <div id="d-bilan">${encartRepetition(a.repetition)}</div>
-    ${enFictive() ? noteFictive(quoi === "dsn" ? "net-entreprises" : "l'Urssaf")
+    ${enFictive() ? noteFictive(quoi === "dsn" ? "net-entreprises" : "l'Urssaf", ", et sa réponse est là aussitôt")
       : `<p class="note">Un dépôt réel demande le mot de passe <b>du logiciel</b>,
       qui ne sert qu'à prouver que quelqu'un est là. Celui de l'organisme ne
       passe pas par cette page : le moteur va le chercher au coffre.</p>`}
@@ -607,7 +607,7 @@ async function boiteEnvoi(mois) {
     </table>`}
     ${a.deja ? `<div class="encart attention"><b>Déjà partis</b>
       Le ${echapper(quand(a.deja.quand))}.</div>` : ""}
-    ${peut && a.boite_liee && enFictive() ? noteFictive("les salariés", false) : ""}
+    ${peut && a.boite_liee && enFictive() ? noteFictive("les salariés") : ""}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
       ${peut ? `<button class="${a.boite_liee ? "secondaire" : "primaire"}" id="e-imprimer"
@@ -679,8 +679,8 @@ async function boiteSignature(mois, seulement) {
       appuie dessus et renvoie la réponse toute écrite ; elle est relevée toute
       seule et le salarié reçoit son contrat contresigné.
     </div>` : ""}
-    ${a.boite_liee && enFictive() ? noteFictive("les salariés").replace("sa réponse arrive comme la vraie",
-      "la signature revient comme la vraie") : ""}
+    ${a.boite_liee && enFictive() ? noteFictive("les salariés",
+      ", et la signature revient comme la vraie, quelques secondes plus tard") : ""}
     ${(a.avertissements || []).map((x) => `<div class="encart info">${echapper(x)}</div>`).join("")}
     ${!contrats.length ? `<p class="discret">Aucun contrat à faire partir ce mois-ci.</p>` : `<div class="liste-choix">
       ${contrats.map((c) => `

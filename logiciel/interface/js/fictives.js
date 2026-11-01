@@ -6,9 +6,8 @@
    moteur le dit dans `etat` ; la page ne fait que ne pas demander de mot de
    passe, et le dire au moment de l'acte. */
 const enFictive = () => !!(ETAT && ETAT.simulation);
-const noteFictive = (vers, reponse = true) => `<p class="note"><b>Compagnie fictive</b> —
-  rien ne part vers ${echapper(vers)} : l'envoi est simulé${reponse
-  ? ", et sa réponse arrive comme la vraie, quelques secondes plus tard" : ""}.</p>`;
+const noteFictive = (vers, suite = "") => `<p class="note"><b>Compagnie fictive</b> —
+  rien ne part vers ${echapper(vers)} : l'envoi est simulé${suite}.</p>`;
 /** LA COMPAGNIE FICTIVE : les salariés fictifs signent une vingtaine de secondes
  *  après l'envoi (releve_signatures.rs, boite_des_signatures). La page relève à ce moment-là,
  *  comme la veille l'aurait fait à son passage. */
