@@ -163,6 +163,11 @@ défauts que les lots avaient eux-mêmes créés. Désormais :
   la preuve d'un lot **n'est pas un test de plus** ; c'est un geste joué (un appel de route, un geste au banc) et noté
   dans la passation. Les tests restent ceux de « Le nombre de tests ne monte pas » ; les parcours des deux fictives en
   sont les « quelques parcours de bout en bout » : un rejeu par fictive, pas un test par domaine.
+- **Une preuve et un test sont les plus rapides possible** (Léandre, 01/11/2026 : « ça sert à quoi ? à prouver qu'on
+  est lent ? »). Aucune attente fixe (`sleep`, `waitForTimeout`, une pause « pour laisser le temps ») : on attend un
+  état. Une absence se vérifie par la réponse du moteur, jamais en attendant qu'un délai expire. Un seul navigateur et
+  une seule ouverture pour tout un parcours. Une lenteur est un défaut, de la preuve ou du logiciel : on la mesure et on
+  va à la cause, on ne la subit pas à chaque lot.
 
 ## Une séance, par tickets
 
