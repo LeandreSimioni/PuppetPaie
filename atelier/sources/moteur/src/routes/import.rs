@@ -586,10 +586,16 @@ pub(crate) fn apercu_lu(
             "brut": texte("brut"), "net_imposable": texte("net_imposable"),
             // 50.004 est le net verse, pas le net a payer : la DSN ne declare pas celui-ci, un bulletin le donnera.
             "net_verse": texte("net_verse"), "net_a_payer": "", "pas": texte("pas"),
+            "taux_pas": texte("taux_pas"), "type_pas": texte("type_pas"), "identifiant_pas": texte("identifiant_pas"),
             "verse_le": texte("verse_le"),
             "declare_par": "DSN", "depose_le": texte("depot"),
             "fichier": texte("fichier"),
         }));
+        if let Some(b) = v.get("bases").filter(|b| b.as_object().is_some_and(|o| !o.is_empty())) {
+            if let Some(Value::Object(l)) = paies.last_mut() {
+                l.insert("bases".into(), b.clone());
+            }
+        }
     }
     let Value::Object(reponse) = json!({
         "source": source,

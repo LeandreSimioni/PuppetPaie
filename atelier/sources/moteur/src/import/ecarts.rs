@@ -81,14 +81,9 @@ fn comparees(racine: &Path) -> BTreeSet<String> {
 /// paies qui ne sont plus a comparer : comparees, ou que leurs pieces empechent de comparer (une paie que le calcul a
 /// refusee se compare de nouveau la fois suivante).
 pub fn rapports(ctx: &Contexte) -> (Vec<Rapport>, Vec<String>) {
-    let table = match crate::import::bulletin_lu::Table::livree() {
-        Ok(t) => t,
-        Err(m) => return (vec![Rapport { genre: "table de lecture illisible".into(), resume: m, detail: json!({}) }], Vec::new()),
-    };
-    let rattacher = |l: &str| table.cotisation(l).map(str::to_string);
     let importes = engagement::importe::tous(&ctx.racine).unwrap_or_default();
     let deja = comparees(&ctx.racine);
-    let comparaisons: Vec<Comparaison> = importes.iter().flat_map(|i| engagement::ecarts::comparer(&ctx.racine, i, &rattacher, &|e| deja.contains(e))).collect();
+    let comparaisons: Vec<Comparaison> = importes.iter().flat_map(|i| engagement::ecarts::comparer(&ctx.racine, i, &|e| deja.contains(e))).collect();
     let faites: Vec<String> = comparaisons.iter().filter(|c| !c.a_refaire).map(|c| c.empreinte.clone()).collect();
     (rapports_de(ctx, &comparaisons), faites)
 }

@@ -775,13 +775,28 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let titre = rangs.iter().rev().find_map(|&k| lus[k].b.spectacle.clone().filter(|t| !t.trim().is_empty()));
         let porteur = rangs.iter().rev().find(|&&k| lus[k].b.spectacle.as_ref().is_some_and(|t| !t.trim().is_empty())).map(|&k| &lus[k]);
         let analytique = rangs.iter().rev().find_map(|&k| lus[k].b.analytique.clone().filter(|t| !t.trim().is_empty()));
+        // LE TITRE QUE L'IMPORT PROPOSE : celui de la ligne « Spectacle » du bulletin ; a defaut, la case « Analytique »,
+        // ou un logiciel (sPAIEctacle) imprime le titre du spectacle. Il se propose, il ne s'ecrit pas : la fiche garde
+        // « A COMPLETER » et « Pour démarrer » demande de le valider ou de le corriger (`declarations::demarrage`). La case
+        // « Analytique » qui porte le titre n'est pas un code analytique.
+        let (propose, lu_dans) = match (&titre, &analytique) {
+            (Some(t), _) => (Some(t.clone()), "Spectacle"),
+            (None, Some(a)) => (Some(a.clone()), "Analytique"),
+            (None, None) => (None, ""),
+        };
+        let analytique = analytique.filter(|_| titre.is_some());
+        let proposition = |m: &mut Map<String, Value>| {
+            if let Some(t) = &propose {
+                m.insert(declarations::demarrage::TITRE_PROPOSE.into(), json!(t));
+                m.insert(declarations::demarrage::TITRE_LU_DANS.into(), json!(lu_dans));
+            }
+        };
         let liste = reponse.get_mut("spectacles").and_then(Value::as_array_mut).expect("une liste");
         if let Some(cle) = connus.get(numero) {
             let fiche = &ctx.spectacles[cle];
             let mut ec = Map::new();
-            // UN TITRE VIDE OU « A COMPLETER » (celui que l'import des DSN donne, la DSN ne portant pas le titre) prend
-            // celui du bulletin, comme une fiche que l'import cree ; un vrai titre saisi reste, et
-            // l'ecart est seulement signale.
+            // UN TITRE VIDE OU « A COMPLETER » (celui que l'import des DSN donne, la DSN ne portant pas le titre) recoit
+            // le titre propose ; un vrai titre saisi reste, et l'ecart avec la ligne « Spectacle » est seulement signale.
             if let (Some(t), Some(p)) = (&titre, porteur) {
                 let a = fiche.get("titre").map_or(String::new(), valeur_en_texte);
                 if !completer::vide(fiche.get("titre")) && compare(&a) != compare(t) {
@@ -789,13 +804,13 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                 }
             }
             let mut proposees = Map::new();
-            if let Some(t) = &titre {
-                proposees.insert("titre".into(), json!(t));
-            }
             if let Some(x) = &analytique {
                 proposees.insert("code_analytique".into(), json!(x));
             }
-            let champs = completer::champs_a_completer("spectacle", fiche, &proposees)?;
+            let mut champs = completer::champs_a_completer("spectacle", fiche, &proposees)?;
+            if completer::vide(fiche.get("titre")) {
+                proposition(&mut champs);
+            }
             let origine = porteur.map_or_else(|| json!({"source": "bulletin"}), |p| json!({"source": "bulletin", "fichier": chemin_de(p), "page": p.page}));
             let rang = match liste.iter().position(|e| e.get("cle").and_then(Value::as_str) == Some(cle.as_str())) {
                 Some(i) => {
@@ -817,11 +832,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                 && e.get("donnees").and_then(|d| d.get("numero_objet")).map(valeur_en_texte).map(|n| n.to_uppercase()).as_deref() == Some(numero.as_str())
         });
         if let Some(rang) = deja_la {
-            // Un objet que les DSN ou les AEM creent : le bulletin lui donne son titre.
+            // Un objet que les DSN ou les AEM creent : le bulletin lui propose son titre.
             let Some(a) = ap.a_creer.iter_mut().find(|a| a.nom == "spectacle" && a.rang == Some(rang)) else { continue };
-            if let Some(t) = &titre {
-                a.donnees.insert("titre".into(), json!(t));
-            }
+            proposition(&mut a.donnees);
             if let Some(x) = &analytique {
                 a.donnees.entry("code_analytique").or_insert_with(|| json!(x));
             }
@@ -833,8 +846,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let premier = rangs.iter().map(|&k| lus[k].mois.clone()).min().unwrap_or_default();
         let dernier = rangs.iter().map(|&k| lus[k].mois.clone()).max().unwrap_or_default();
         let mut donnees = Map::new();
-        donnees.insert("titre".into(), json!(titre.clone().unwrap_or_else(|| "A COMPLETER".into())));
+        donnees.insert("titre".into(), json!(completer::A_COMPLETER));
         donnees.insert("numero_objet".into(), json!(numero));
+        proposition(&mut donnees);
         if let Some(x) = &analytique {
             donnees.insert("code_analytique".into(), json!(x));
         }
@@ -842,8 +856,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         donnees.insert("actif".into(), json!(dernier >= seuil));
         donnees.insert("_vu_dans".into(), json!(format!("bulletins de {} a {} ({} bulletin(s))", premier, dernier, rangs.len())));
         let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
-        let libelle = match &titre {
-            Some(t) => format!("{} ({})", t, numero),
+        let libelle = match &propose {
+            Some(t) => format!("numéro d'objet {}, titre proposé « {} » (bulletins de {} à {})", numero, t, premier, dernier),
             None => format!("numéro d'objet {}, sans titre (bulletins de {} à {})", numero, premier, dernier),
         };
         ap.a_creer.push(ACreer { nom: "spectacle", rang: Some(liste.len()), donnees: donnees.clone() });
@@ -1764,6 +1778,10 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
         }
     } else if !objet.is_empty() && avant.to_uppercase() != objet.to_uppercase() {
         ecarts.push(("numero_objet", avant, false, objet));
+    }
+    // Le taux du prelevement que le bulletin imprime, quand la DSN ne l'a pas declare.
+    if let Some(t) = b.pas.as_ref().and_then(|p| p.taux).filter(|_| ligne.get("taux_pas").map(valeur_en_texte).unwrap_or_default().trim().is_empty()) {
+        ligne.insert("taux_pas".into(), json!(t.to_string()));
     }
     if ligne.get("verse_le").map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
         if let Some(r) = b.regle_le {

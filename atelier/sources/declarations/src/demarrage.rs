@@ -19,6 +19,13 @@ type R<T> = Result<T, Echec>;
 
 pub const ROUTE: &str = "pour-demarrer";
 
+/// Dans la fiche d'un spectacle : le titre que l'import a lu dans les bulletins de l'ancien logiciel, propose, et ou il
+/// l'a lu (la ligne « Spectacle », ou la case « Analytique »). « Pour démarrer » le propose dans la case du titre.
+pub const TITRE_PROPOSE: &str = "_titre_propose";
+pub const TITRE_LU_DANS: &str = "_titre_lu_dans";
+/// Le titre d'un spectacle que l'import n'a pas ecrit.
+const TITRE_A_COMPLETER: &str = "A COMPLETER";
+
 const ENTREPRISE: &str = "Configuration › Entreprise";
 
 fn valeur<'a>(ent: &'a Value, chemin: &str) -> Option<&'a Value> {
@@ -157,6 +164,36 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
             l["cle"] = json!(format!("{}.{}", l["case"].as_str().unwrap_or(""), cle));
             out.push(l);
         }
+    }
+    // LE TITRE D'UN SPECTACLE QUE L'IMPORT N'A PAS ECRIT (« A COMPLETER » sur une fiche active : le contrat et le bulletin
+    // l'imprimeraient tel quel) : la case se demande, avec le titre que les bulletins de l'ancien logiciel portent
+    // (`TITRE_PROPOSE`), a valider ou a corriger, et le numero d'objet auquel il correspond.
+    for (cle, sp) in ctx.spectacles.iter().filter(|(k, s)| !k.starts_with('_') && s.get("actif") != Some(&json!(false))) {
+        let lu = |k: &str| sp.get(k).filter(|t| vrai(t)).map(socle::date::en_texte).map(|t| t.trim().to_string()).filter(|t| !t.is_empty());
+        if !lu("titre").is_none_or(|t| t.eq_ignore_ascii_case(TITRE_A_COMPLETER)) {
+            continue;
+        }
+        let objet = lu("numero_objet").unwrap_or_else(|| cle.clone());
+        let propose = lu(TITRE_PROPOSE);
+        let trouver = match &propose {
+            Some(t) => format!(
+                "Proposé : « {} », lu dans la case « {} » des bulletins de l'ancien logiciel pour le numéro d'objet {}. Validez-le ou corrigez-le.",
+                t,
+                lu(TITRE_LU_DANS).unwrap_or_else(|| "Spectacle".into()),
+                objet
+            ),
+            None => format!("Aucune pièce reprise ne porte le titre du numéro d'objet {} : celui que vous avez déclaré à France Travail.", objet),
+        };
+        let mut l = json!({
+            "cle": format!("titre.{}", cle), "case": "titre", "libelle": "Titre", "champ": "titre",
+            "ou": format!("Configuration › Spectacles, la fiche du numéro d'objet {}", objet),
+            "trouver": trouver, "utile": "les contrats et les bulletins", "sinon": "ils impriment « A COMPLETER »",
+            "spectacle": cle, "qui": format!("Numéro d'objet {}", objet),
+        });
+        if let Some(t) = propose {
+            l["propose"] = json!(t);
+        }
+        out.push(l);
     }
     // La licence d'entrepreneur de spectacles : la DSN l'ecrit dans chaque contrat (S21.G00.40.049) et refuse sans elle
     // QUAND ELLE EST EXIGEE de la compagnie (`exige_si` de `champs-base.json`, lu par `dsn::licence_du_contrat` aussi) :
@@ -382,7 +419,9 @@ pub fn route(ctx: &Contexte, proposes: Vec<Value>, pose: Option<Value>) -> R<Val
             Some(b) => format!("case exigée pour {}", b),
             None => format!("utile pour {} ; sinon, {}", t("utile"), t("sinon")),
         };
-        l["phrase"] = json!(format!("{} › {} : {}.", t("ou"), t("libelle"), pour));
+        // Une valeur que le moteur propose (`propose`) se dit dans la phrase : la ligne de commande la lit comme l'ecran.
+        let propose = l.get("propose").and_then(Value::as_str).map(|p| format!(" Proposé : « {} ».", p)).unwrap_or_default();
+        l["phrase"] = json!(format!("{} › {} : {}.{}", t("ou"), t("libelle"), pour, propose));
         let mut c = pour.chars();
         l["pour"] = json!(format!("{}{}.", c.next().map(|p| p.to_uppercase().collect::<String>()).unwrap_or_default(), c.as_str()));
     }

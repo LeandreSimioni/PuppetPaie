@@ -423,6 +423,16 @@ pub fn validees_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Result
     Ok(Some((reduite, paies)))
 }
 
+/// LES PAIES DE `mois`, CE QUE LISENT LES ETATS : la paie ecrite de chaque engagement valide de la saisie qui en a une
+/// (`validees_du_mois`), puis celle de chaque engagement importe paye ce mois (`importe::paies_du_mois` : ce que les
+/// pieces de l'ancien logiciel en disent, dans les mots du moteur). Un engagement en saisie n'est pas paye ; rien ne se
+/// calcule. Ce qui part (DSN, documents) ne lit que la saisie (`validees_du_mois`) : un mois importe a deja ete declare.
+pub fn paies_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Vec<Paie>> {
+    let mut paies: Vec<Paie> = validees_du_mois(ctx, mois, departs)?.map(|(_, p)| p).unwrap_or_default().into_iter().filter(|p| !p.engagement.sans_paie()).collect();
+    paies.extend(crate::importe::paies_du_mois(ctx, mois)?);
+    Ok(paies)
+}
+
 /// LES PAIES VALIDEES DU SALARIE `salarie` (la cle de sa fiche) EN `mois` QU'UN CALCUL LIT (le compteur de conges, le
 /// brut de sa periode, la deduction forfaitaire de l'annee) : la paie ecrite de chacun de ses engagements valides du
 /// mois, telle qu'elle est ecrite, dans l'ordre de l'ecran. Un engagement en saisie n'y est pas : ce qui n'est pas valide

@@ -95,7 +95,10 @@ function caseDuManque(m) {
     if (!sous) return null;
     c = { ...c, champs: [sous] };
   }
-  return { nom, fiche, c, racine };
+  // UNE VALEUR QUE LE MOTEUR PROPOSE (`propose` : le titre lu dans les bulletins de
+  // l'ancien logiciel) remplit la case ; la fiche, elle, garde ce qu'elle dit.
+  const affiche = m.propose ? { ...fiche, donnees: { ...fiche.donnees, [racine]: m.propose } } : fiche;
+  return { nom, fiche, affiche, c, racine };
 }
 
 /* Le dessin de la case : celui de la fiche. Le métier se choisit dans la
@@ -105,7 +108,7 @@ function caseDemarrageHtml(k) {
     return `<div class="champ"><label>Métier
       <select data-cle="code_emploi_ft">${optionsMetiers(k.fiche.donnees.code_emploi_ft || "", "— choisir —")}</select></label></div>`;
   }
-  return champDeFiche(k.c, k.fiche, k.nom).replace(/^(\s*<div class="champ[^"]*"[^>]*?)\s+hidden(?=[\s>])/, "$1");
+  return champDeFiche(k.c, k.affiche, k.nom).replace(/^(\s*<div class="champ[^"]*"[^>]*?)\s+hidden(?=[\s>])/, "$1");
 }
 
 function htmlDemarrage(manques) {

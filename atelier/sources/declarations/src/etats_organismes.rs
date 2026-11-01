@@ -5,7 +5,8 @@
 //! L'ARGENT QUI A BOUGE se tire de chaque DSN telle qu'elle est partie (`depart::dsn_du_mois` : ses paies et les
 //! corrections d'autres mois qu'elle portait, des versions qu'elle a emportees, par la fonction qui l'a fabriquee), ou
 //! telle qu'elle partirait : les versements (bloc 20) et le bordereau Urssaf (blocs 22 et 23). CE QUE LE MOIS COUTE se
-//! tire des paies declarees de chaque mois de paie (`dsn::paies_declarees_du_mois`) : la tranche A (`dsn::cotisations`).
+//! tire des paies de chaque mois (`engagement::etats::paies_du_mois`, ecrites ou importees) : la tranche A
+//! (`dsn::base_declaree`).
 //! Les montants annuels hors DSN (FCAP-SVP, Afdas, paritarisme) se calculent sur le brut du livre de paie ou sur la
 //! tranche A declaree, avec les taux du bareme.
 
@@ -17,7 +18,7 @@ use serde_json::Value;
 use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use documents::etats_paie::{ecarter_declares, finir, lignes_livre, Demande, Lecture, Periode};
+use documents::etats_paie::{finir, lignes_livre, Demande, Lecture, Periode};
 use socle::fichiers::vrai;
 use socle::num::{add, div, eur2, mul, zero2, Decimal};
 use documents::tableaux_export::{col_m, col_n, col_t, col_x, libelle_mois, montant, qui, refus, sections_de, Ligne, Section, Tableau, R};
@@ -155,7 +156,7 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         c.part_sal = add(c.part_sal, if ms.is_zero() { zero } else { ms });
         c.part_pat = add(c.part_pat, if mp.is_zero() { zero } else { mp });
     };
-    for m in ecarter_declares(&p, &mut avert, "la répartition des cotisations")? {
+    for m in p.mois.clone() {
         for paie in lecture.paies(&m)?.iter() {
             for c in &paie.lignes {
                 let Some(org) = org_de(&c.id) else {
@@ -237,12 +238,12 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ===================================== 7. les versements aux organismes (bloc 20)
 
-/// Les paies declarees de chaque mois de la periode (`dsn::paies_declarees_du_mois` : la version sur laquelle la DSN est
-/// partie, ou la paie ecrite si rien n'est parti), tous etablissements. Un mois sans paie validee est dit.
+/// Les paies de chaque mois de la periode (`engagement::etats::paies_du_mois` : ecrites ou importees), tous
+/// etablissements. Un mois sans paie est dit.
 fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<Vec<(String, Vec<engagement::calcul::Paie>)>> {
     let (mut out, mut sans) = (Vec::new(), Vec::new());
     for m in &p.mois {
-        let paies = crate::dsn::paies_declarees_du_mois(ctx, m, None, departs).map_err(refus)?;
+        let paies = engagement::etats::paies_du_mois(ctx, m, departs).map_err(refus)?;
         if paies.is_empty() {
             sans.push(m.clone());
         } else {
@@ -250,10 +251,10 @@ fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs:
         }
     }
     if !sans.is_empty() {
-        avert.push(format!("Aucune paie validée pour {} : ces mois ne sont pas dans l'état.", sans.join(", ")));
+        avert.push(format!("Aucune paie pour {} : ces mois ne sont pas dans l'état.", sans.join(", ")));
     }
     if out.is_empty() {
-        return Err(refus(format!("Aucune paie validée sur la période ({}) : il n'y a rien à lire.", p.libelle)));
+        return Err(refus(format!("Aucune paie sur la période ({}) : il n'y a rien à lire.", p.libelle)));
     }
     Ok(out)
 }
@@ -509,7 +510,8 @@ fn refuse_un_mois(quoi: &str, d: &Demande) -> R<()> {
 }
 
 /// 0,1 % de la tranche A de l'annee, plancher 80 EUR, plafond 300 EUR, paye HORS
-/// DSN en debut d'annee. La tranche A est la base 02 que la DSN declare (S21.G00.78), tiree des paies declarees.
+/// DSN en debut d'annee. La tranche A est la base 02 (S21.G00.78) de chaque paie du mois, ecrite ou importee
+/// (`dsn::base_declaree`) ; une annee que le logiciel ne tient pas depuis janvier se dit partielle.
 pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le FCAP-SVP est une contribution annuelle : il se demande pour une année, ou pour toutes les années.", d)?;
     let idcc = idcc_de(ctx);
@@ -528,15 +530,13 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let zero = zero2();
     let orgs = ctx.organismes().map_err(refus)?;
     for (m, paies) in paies_des_mois(ctx, &p, &mut avert, &d.departs)? {
-        // La tranche A : la base 02 (« assiette brute plafonnee ») que la DSN declare pour chaque contrat (`dsn::cotisations`).
+        // La tranche A : la base 02 (« assiette brute plafonnee ») de chaque paie (`dsn::base_declaree`).
         let mut ta = zero;
         for q in &paies {
             let nic = droit::bareme::etablissement_du_salarie(&ctx.entreprise, &q.salarie).map_err(refus)?;
             let bar = crate::dsn::bar_du(&ctx.du_mois(&m).map_err(refus)?, &ctx.entreprise, &orgs, &nic, &m).map_err(refus)?;
             for e in q.elementaires() {
-                if let Some(c) = crate::dsn::cotisations(e, &bar).map_err(refus)?.into_iter().find(|c| c.bloc78 == "02") {
-                    ta = add(ta, c.base78);
-                }
+                ta = add(ta, crate::dsn::base_declaree(e, &bar, "02").map_err(refus)?);
             }
         }
         let an: String = m.chars().take(4).collect();
@@ -559,6 +559,24 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             "plafond"
         } else {
             "0,1 % de la tranche A"
+        };
+        // UNE ANNEE QUE LE LOGICIEL NE TIENT PAS EN ENTIER : la compagnie n'y a de paies (ecrites ou importees) qu'a
+        // partir d'un mois apres janvier ; les mois d'avant manquent, la tranche A et la contribution sont partielles.
+        let premier = p.dispo.keys().next().cloned().unwrap_or_default();
+        let partielle = premier.starts_with(&an) && premier.as_str() > format!("{}-01", an).as_str();
+        let regle = if partielle {
+            let avant = format!("{}-{:02}", an, premier[5..7].parse::<u32>().unwrap_or(1).saturating_sub(1).max(1));
+            let manquent = if avant == format!("{}-01", an) { libelle_mois(&avant)? } else { format!("{} à {}", libelle_mois(&format!("{}-01", an))?, libelle_mois(&avant)?) };
+            avert.push(format!(
+                "{} est partielle : le logiciel n'a de paies qu'à partir de {} ; {} manquent. La tranche A et la contribution de {} sont celles des mois lus, pas de l'année.",
+                an,
+                libelle_mois(&premier)?,
+                manquent,
+                an
+            ));
+            format!("{} ; année partielle", regle)
+        } else {
+            regle.to_string()
         };
         let mut l = Ligne::nouvelle();
         l.t("annee", an.clone()).n("mois", mois).d("tranche_a", tranche_a).d("taux", taux).d("calcule", calcule).d("du", du).t("regle", regle);
@@ -583,7 +601,7 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     ];
     t.sources = vec![
         "CCN 3090, titre V, articles 5.1 (0,1 % de la tranche A, plancher 80 €, plafond 300 € par an et par entreprise), 5.2 et 5.3 — base KALI de la DILA, relevée le 23/09/2026".to_string(),
-        "tranche A : assiette brute plafonnée que la DSN déclare (S21.G00.78.001 = 02), tirée des paies déclarées".to_string(),
+        "tranche A : assiette brute plafonnée que la DSN déclare (S21.G00.78.001 = 02), de chaque paie : écrite, ou importée (la DSN ou le bulletin de l'ancien logiciel)".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "fcap-svp", &d.format, d.ecrire)?;
     Ok(t)
