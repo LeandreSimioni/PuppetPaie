@@ -216,8 +216,6 @@ pub fn route_sans_compagnie(o: &HashMap<String, String>, nom: &str, charge: &Val
 
 fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
     let mut v = route_seule(racine, nom, charge)?;
-    poser_les_pastilles(nom, &mut v);
-    let n = |k: &str| v.get(k).and_then(Value::as_u64).unwrap_or(0);
     let message = |l: Option<&Value>| l.map(|s| format!("« {} » : {}", super::mot(&s["debut"]), super::mot(&s["depart"]["mots"]).to_lowercase())).unwrap_or_default();
     if nom == "signalements" || nom == "signalement-envoyer" {
         v["ecran"] = ecran_du_message();
@@ -225,6 +223,8 @@ fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
     if nom.starts_with("diagnostic-") {
         v["ecran"] = ecran_du_diagnostic(&v);
     }
+    poser_les_pastilles(nom, &mut v);
+    let n = |k: &str| v.get(k).and_then(Value::as_u64).unwrap_or(0);
     let phrase = match nom {
         "diagnostic-regler" if v["envoi"] == json!(false) => "Le signalement des dysfonctionnements est désactivé : rien ne part plus chez l'éditeur.".to_string(),
         "diagnostic-regler" => "Le signalement des dysfonctionnements est réactivé.".to_string(),
