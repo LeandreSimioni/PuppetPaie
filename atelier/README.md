@@ -552,8 +552,8 @@ indisponible un 5 du mois à 23 h, et bloquer une déclaration à l'échéance e
 pire qu'un dépôt imparfait :
 
 ```bash
-route deposer {"quoi": "dsn", "mois": "2026-09", "reel": true, \
-    --sans-repetition "le service de test répond 503 depuis ce matin"
+echo '{"route":"deposer","charge":{"quoi":"dsn","mois":"2026-09","reel":true,
+    "contournement":"le service de test répond 503 depuis ce matin"}}' | moteur route --racine <compagnie>
 ```
 
 Le motif est **écrit**, pas coché : un drapeau booléen posé par le code appelant
