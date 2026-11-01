@@ -38,24 +38,6 @@ async function rafraichirApresVeille(v) {
    l'endroit où le faire. Jamais une commande de terminal : une fenêtre
    n'en a pas. La mise à jour n'est pas ici : l'indicateur la dit
    (js/mise-a-jour.js). */
-const A_POSER = {
-  "net-entreprises": ["Les retours de DSN ne se relèvent pas seuls : le mot de passe net-entreprises n'est pas posé.", "Poser le mot de passe"],
-  urssaf: ["Les retours de DPAE ne se relèvent pas seuls : le mot de passe Urssaf (DPAE) n'est pas posé.", "Poser le mot de passe"],
-  google: ["La sauvegarde ne part pas : aucun Drive n'est lié.", "Lier le Drive"],
-};
-
-/** « à 16:28 » aujourd'hui, « le 23/09 à 16:28 » un autre jour. */
-function heureDuPassage(q) {
-  const m = String(q || "").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/)
-    || String(q || "").match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2})/);
-  if (!m) return q ? `le ${q}` : "";
-  const [an, mo, jo] = m[1].length === 4 ? [m[1], m[2], m[3]] : [m[3], m[2], m[1]];
-  // Le jour du moteur, pas celui du navigateur.
-  const [ja, jm, jj] = aujourdhuiIso().split("-").map(Number);
-  const memeJour = +an === ja && +mo === jm && +jo === jj;
-  return memeJour ? `à ${m[4]}` : `le ${jo}/${mo} à ${m[4]}`;
-}
-
 /** Aller aux mots de passe, d'où qu'on soit -- et y ouvrir la ligne de ce
  *  qui manque, le curseur dans la case : il ne reste qu'à taper. */
 let OUVRIR_SERVICE = null;
@@ -75,7 +57,7 @@ function dessinerVeille(v) {
 
   if (v.en_cours) {
     // L'ÉTAPE, DITE PAR LE MOTEUR : qui il appelle, puis qui d'autre, puis la sauvegarde.
-    texte.innerHTML = `<span class="veille-etape">${echapper(v.etape || "Relevé des retours en cours…")}</span>`;
+    texte.innerHTML = `<span class="veille-etape">${echapper(v.etape || (v.dit || {}).en_cours)}</span>`;
     suivreLesEtapes();
     return;
   }
@@ -88,18 +70,12 @@ function dessinerVeille(v) {
   // « HORS CONNEXION, C'EST QUAND IL N'Y A PAS INTERNET, PAS QUAND ON ATTEND » : l'attente
   // dit l'heure du prochain relevé ; un service qui n'a pas répondu se nomme (au survol), et le relevé qui est
   // passé reste dit. « Pas de réponse » seulement quand le relevé lui-même n'est pas passé.
-  const prochain = v.prochain_dans ? ` · prochain relevé dans ${v.prochain_dans} min` : "";
+  const k = v.dit || {};
   const sansReponse = (d.injoignables || []).join("\n");
-  const morceaux = [`<span class="veille-etat" title="${echapper(detail)}">${d.hors_ligne && !d.retours
-    ? `<b>Pas de réponse</b> au relevé ${echapper(heureDuPassage(d.quand))} — vérifier la connexion${
-        v.prochain_dans ? ` ; nouvel essai dans ${v.prochain_dans} min` : ""}`
-    : `À jour — relevé ${echapper(heureDuPassage(d.quand))}${prochain}${v.sauvegarde_en_cours
-        ? ` · <span class="veille-etape">${echapper(v.etape || "sauvegarde en cours…")}</span>` : ""}`}</span>${
-    d.hors_ligne && d.retours ? ` — <span class="veille-sauvegarde" title="${echapper(sansReponse)}">${
-      (d.injoignables || []).length > 1 ? `${d.injoignables.length} services n'ont pas répondu`
-        : "un service n'a pas répondu"} (détail au survol) : nouvel essai au prochain relevé</span>` : ""}${enFictive()
-    ? ` · <button class="lien" data-fictive-explique="coulisses">compagnie fictive : pas de
-        sauvegarde — pourquoi ?</button>` : ""}`];
+  const morceaux = [`<span class="veille-etat" title="${echapper(detail)}">${echapper(k.etat)}${v.sauvegarde_en_cours
+        ? ` · <span class="veille-etape">${echapper(v.etape || k.sauvegarde)}</span>` : ""}</span>${
+    k.muets ? ` — <span class="veille-sauvegarde" title="${echapper(sansReponse)}">${echapper(k.muets)}</span>` : ""}${k.fictive
+    ? ` · <button class="lien" data-fictive-explique="coulisses">${echapper(k.fictive)}</button>` : ""}`];
   // LA SAUVEGARDE QUI N'ARRIVE PAS AU BOUT, à sa place : un dossier que
   // Google refuse une fois repart au passage suivant, sans bruit ; ce qui dure, le moteur le dit
   // en une phrase (`sauvegarde::souci`), et elle se lit ici, à côté de l'état, pas parmi les retours.
@@ -110,14 +86,11 @@ function dessinerVeille(v) {
   // 2. LES NOUVELLES : ce qui est arrivé depuis le dernier regard.
   const nouvelles = [];
   // Les retours se LISENT dans l'Historique : le bandeau les annonce et y mène.
-  const retours = d.nouveaux ? ` <button class="lien" data-vers-historique>${d.nouveaux} retour${d.nouveaux > 1 ? "s" : ""}
-    nouveau${d.nouveaux > 1 ? "x" : ""} — les lire dans l'Historique</button>` : "";
+  const retours = k.retours ? ` <button class="lien" data-vers-historique>${echapper(k.retours)}</button>` : "";
   (d.signatures_recues || []).forEach((x) => nouvelles.push(`contrat signé par ${x.nom}`));
   // L'HORLOGE DE LA COMPAGNIE FICTIVE : ce que l'administrateur fictif a fait
   // pendant l'absence du visiteur, chaque geste à sa date limite.
-  const horloge = enFictive() && (d.horloge || []).length
-    ? ` <button class="lien" id="fictive-horloge">pendant votre absence, la compagnie a
-        travaillé (${d.horloge.length}) — voir</button>` : "";
+  const horloge = k.horloge ? ` <button class="lien" id="fictive-horloge">${echapper(k.horloge)}</button>` : "";
   if (retours) morceaux.push(retours);
   if (nouvelles.length) morceaux.push(`<b>${nouvelles.map(echapper).join(" · ")}</b>`);
   if (horloge) morceaux.push(horloge);
@@ -126,7 +99,7 @@ function dessinerVeille(v) {
   //    suivants se déplient.
   const afaire = [];
   (d.a_poser || []).forEach((code) => {
-    const [phrase, geste] = A_POSER[code] || [code, "Mots de passe"];
+    const [phrase, geste] = (k.a_poser || {})[code] || [code, "Mots de passe"];
     afaire.push(`${echapper(phrase)} <button class="lien" data-aller="${echapper(code)}">${echapper(geste)}</button>`);
   });
   [...(d.manquants || []), ...(d.incidents || []), ...(v.erreur ? [v.erreur] : [])]
@@ -151,11 +124,8 @@ function dessinerVeille(v) {
   const bh = texte.querySelector("#fictive-horloge");
   if (bh) bh.onclick = () => ouvrirBoite(`
     <div class="fictive-fenetre">
-      <h3>Compagnie fictive — Pendant votre absence</h3>
-      <p class="intro">L'administrateur fictif a fait ce qui tombait, chacun à sa date
-        limite : le 1er du mois, le mois s'écrit ; le jour d'une embauche, sa DPAE part ;
-        à l'échéance, la DSN. Tout est joué, rien n'a quitté le poste — et le journal
-        de chaque mois le montre.</p>
+      <h3>Compagnie fictive — ${echapper(k.horloge_titre)}</h3>
+      <p class="intro">${echapper(k.horloge_intro)}</p>
       <ul>${d.horloge.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>
       <div class="actions"><button class="primaire" onclick="fermerBoite()">Compris</button></div>
     </div>`);
@@ -208,7 +178,7 @@ document.getElementById("veille-maintenant").onclick = async () => {
     VEILLE = { ...(VEILLE || {}), dernier: {} };
     await rafraichirApresVeille(v);
     dessinerVeille(v);
-    dire("Relevé terminé.");
-  } catch (e) { RELEVE_DEMANDE = false; dire("Relevé impossible : " + e.message, "erreur"); }
+    dire((v.dit || {}).termine);
+  } catch (e) { RELEVE_DEMANDE = false; dire(e.message, "erreur"); }
 };
 
