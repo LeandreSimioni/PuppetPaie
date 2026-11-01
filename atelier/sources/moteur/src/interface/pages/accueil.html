@@ -168,7 +168,7 @@
     // La reponse se lit (#141) : une compagnie qui ne s'ouvre pas le dit, au lieu de ne rien faire.
     t.addEventListener("click", async () => {
       const r = await window.pywebview.api.choisir(t.dataset.id);
-      err.textContent = r && r.ok ? "" : (r && r.erreur) || "La compagnie ne s'ouvre pas.";
+      err.textContent = r && r.ok ? "" : (r && r.erreur) || "{{P:ouvre_pas}}";
     });
   }
   for (const c of document.querySelectorAll(".crayon input")) {
@@ -185,8 +185,7 @@
     z.addEventListener("click", async (e) => {
       e.stopPropagation();
       const nom = tuile.querySelector(".nom").textContent;
-      if (!confirm("Remettre « " + nom + " » à zéro ?\n\nTout ce qui a été fait "
-                   + "dans cette compagnie fictive sera effacé.")) return;
+      if (!confirm(nom + " — {{P:zero_confirmer}}")) return;
       const r = await appel("compagnie-remettre-a-zero", { compagnie: tuile.dataset.id });
       err.textContent = r.ok ? r.resultat.phrase : r.erreur;
     });
@@ -305,19 +304,19 @@
       if (g.reel && g.reel.propose) boutons.push(`<button type="button" id="g-reel">Déposer les ${g.reel.declarations} DSN prêtes</button>`);
       if (g.test && g.test.propose) boutons.push(`<button type="button" class="second" id="g-test">Tester les ${g.test.declarations} DSN écrites</button>`);
       zone.innerHTML = `
-        <h2>Les déclarations de vos compagnies</h2>
-        <p class="intro">${esc(noms.join(" · "))} — un seul mot de passe, celui de l'administrateur.</p>
+        <h2>Déclarations des compagnies</h2>
+        <p class="intro">${esc(noms.join(" · "))} — {{P:administrateur_seul}}</p>
         <div class="declarations">${decl.length ? decl.map(ligne).join("")
-          : pannes.length ? "" : `<div class="vide">Toutes les déclarations de vos compagnies sont faites.</div>`}
+          : pannes.length ? "" : `<div class="vide">{{P:toutes_faites}}</div>`}
           ${pannes.map((c) => `<div class="declaration retard" data-id="${esc(c.id)}" style="--cie:${esc(c.couleur)}">
-            <span class="cie">${esc(c.nom)}</span><span class="quoi"><b>Le tableau de cette compagnie ne se lit pas</b>
+            <span class="cie">${esc(c.nom)}</span><span class="quoi"><b>{{P:tableau_illisible}}</b>
             <span>${esc(c.erreur)}</span></span><span class="limite"></span></div>`).join("")}</div>
         ${boutons.length ? `<div class="groupe">${boutons.join("")}</div>` : ""}
         <div class="resultats">${resultats}</div>`;
       for (const l of zone.querySelectorAll(".declaration[data-id]")) {
         l.addEventListener("click", async () => {
           const r = await api.choisir(l.dataset.id);
-          if (!r || !r.ok) err.textContent = (r && r.erreur) || "La compagnie ne s'ouvre pas.";
+          if (!r || !r.ok) err.textContent = (r && r.erreur) || "{{P:ouvre_pas}}";
         });
       }
       const reel = document.getElementById("g-reel"), test = document.getElementById("g-test");
@@ -330,10 +329,9 @@
     function demanderMotDePasse(n, suite) {
       const b = document.createElement("div");
       b.className = "boite-mdp";
-      b.innerHTML = `<form><p><b>Déposer ${n} DSN pour de vrai</b></p>
-        <p class="discret">Chaque DSN part avec ses contrôles et son bilan, compagnie par compagnie. Le mot de passe de
-          l'administrateur le confirme.</p>
-        <input type="password" autocomplete="current-password" placeholder="le mot de passe de l'administrateur">
+      b.innerHTML = `<form><p><b>Déposer ${n} DSN</b></p>
+        <p class="discret">{{P:chaque_dsn}}</p>
+        <input type="password" autocomplete="current-password" placeholder="{{P:mdp_administrateur}}">
         <div class="barre"><button type="button" class="second">Annuler</button><button type="submit">Déposer</button></div></form>`;
       document.body.appendChild(b);
       const champ = b.querySelector("input");
@@ -349,10 +347,10 @@
 
     async function deposer(reel, motdepasse, bouton) {
       bouton.disabled = true;
-      bouton.textContent = reel ? "Dépôts en cours…" : "Tests en cours…";
+      bouton.textContent = reel ? "Dépôts…" : "Tests…";
       const r = await appel("administrateur-deposer", reel ? { reel, motdepasse } : { reel });
       if (!r || !r.ok) {
-        resultats = `<p class="refus">${esc((r && r.erreur) || "Rien n'est parti.")}</p>`;
+        resultats = `<p class="refus">${esc((r && r.erreur) || "{{P:rien_parti}}")}</p>`;
         dessiner(dernier);
         return;
       }

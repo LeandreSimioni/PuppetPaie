@@ -255,6 +255,8 @@ fn json_dans_la_page(v: &Value) -> String {
 }
 
 fn page(corps: &str, jeton: &str, noms: &str) -> String {
+    // Ce que l'accueil et les pages du mot de passe disent : les phrases de la fenetre (`{{P:...}}`), la page n'en ecrit aucune.
+    let corps = PHRASES_DE_L_ACCUEIL.iter().fold(corps.to_string(), |c, (cle, phrase)| c.replace(&format!("{{{{P:{}}}}}", cle), phrase));
     format!(
         "<!doctype html>\n<html lang=\"fr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>PuppetPaie</title>\n{}</head><body>\n{}\n</body></html>",
         CALE.replace("{{JETON}}", jeton).replace("{{NOMS}}", noms),
@@ -1198,3 +1200,35 @@ static PHRASES_DE_LA_FENETRE: std::sync::LazyLock<serde_json::Value> = std::sync
         "lecture_absente": "Lecture absente de l'état du mois.",
     })
 });
+
+/// CE QUE DISENT L'ACCUEIL DES COMPAGNIES ET LES PAGES DU MOT DE PASSE, que la fenetre sert (`pages/`) : chacune a sa
+/// place dans le gabarit (`{{P:cle}}`), y compris dans ses scripts (sans guillemet droit ni retour a la ligne).
+const PHRASES_DE_L_ACCUEIL: &[(&str, &str)] = &[
+    ("ouvre_pas", "La compagnie ne s'ouvre pas."),
+    ("zero_confirmer", "remettre à zéro ? Tout ce qui a été fait dans cette compagnie fictive sera effacé."),
+    ("toutes_faites", "Toutes les déclarations de vos compagnies sont faites."),
+    ("tableau_illisible", "Le tableau de cette compagnie ne se lit pas"),
+    ("administrateur_seul", "un seul mot de passe, celui de l'administrateur."),
+    ("chaque_dsn", "Chaque DSN part avec ses contrôles et son bilan, compagnie par compagnie. Le mot de passe de l'administrateur le confirme."),
+    ("mdp_administrateur", "le mot de passe de l'administrateur"),
+    ("rien_parti", "Rien n'est parti."),
+    ("rien_change", "Rien n'a changé."),
+    ("avis_ajouter", "Vous pouvez ajouter votre compagnie et regarder le logiciel avec vos vraies données. Pour 2027, et afin d'offrir un service de qualité, le nombre d'utilisateurs est restreint. N'hésitez pas à contacter Léandre"),
+    ("avis_ajouter_suite", "avec une courte présentation et votre motivation pour faire partie des premiers utilisateurs."),
+    ("meme_administrateur", "Gérer cette compagnie avec le même administrateur ?"),
+    ("ouvre_deja", "Le mot de passe qui ouvre déjà"),
+    ("non_a_elle", "Non, un mot de passe à elle"),
+    ("tapez_pour", "Le mot de passe que vous tapez pour"),
+    ("ouvrira_aussi", "ouvrira aussi cette compagnie, et il servira aux actes sur toutes à la fois, comme déposer d'un coup toutes les DSN prêtes."),
+    ("choisissez", "Choisissez le mot de passe du logiciel"),
+    ("demande_ouverture", "Il sera demandé à chaque ouverture et à chaque dépôt réel. Ce n'est pas celui d'un organisme."),
+    ("retour_choix", "Revenir au choix de la compagnie"),
+    ("garder_titre", "Vous venez de débloquer le logiciel. Voulez-vous garder les compagnies créées ?"),
+    ("garder_note", "Une compagnie gardée devient une compagnie réelle : son mot de passe du logiciel se choisit à sa première ouverture. Une compagnie décochée est supprimée, avec tout son dossier."),
+    ("mdp_logiciel", "Mot de passe du logiciel"),
+    ("mdp_redemande", "Celui du logiciel, pas celui d'un organisme. Il sera redemandé à chaque dépôt."),
+    ("mdp_titre_admin", "Mot de passe de l'administrateur"),
+    ("neuve", "Elle commence ses paies ici : vous la configurez, puis vous engagez vos salariés."),
+    ("precedent", "Vous faisiez vos paies ailleurs : vous mettez dans un dossier ce que votre ancien logiciel vous a laissé (bulletins, déclarations), et PuppetPaie se paramètre avec."),
+    ("zero", "Remettre à zéro : tout ce qui a été fait ici s'efface"),
+];

@@ -42,13 +42,12 @@
   <div class="sous">paies d'intermittents</div>
   <form id="f">
     <script type="application/json" id="administrateur">{{ADMINISTRATEUR}}</script>
-    <p id="titre-mdp">Mot de passe du logiciel</p>
+    <p id="titre-mdp">{{P:mdp_logiciel}}</p>
     <input id="mdp" type="password" autocomplete="current-password" autofocus>
     <button id="ok" type="submit">Ouvrir</button>
     <div class="erreur" id="erreur"></div>
   </form>
-  <div class="discret">Celui du logiciel, pas celui d'un organisme. Il sera
-  redemand&eacute; &agrave; chaque d&eacute;p&ocirc;t.</div>
+  <div class="discret">{{P:mdp_redemande}}</div>
 </div>
 <script>
   const f = document.getElementById("f"), mdp = document.getElementById("mdp"),
@@ -65,7 +64,7 @@
   const adm = JSON.parse(document.getElementById("administrateur").textContent || "{}");
   if (adm.rattachee) {
     const autres = adm.autres || [];
-    document.getElementById("titre-mdp").textContent = "Mot de passe de l'administrateur"
+    document.getElementById("titre-mdp").textContent = "{{P:mdp_titre_admin}}"
       + (autres.length ? " — il ouvre aussi " + (autres.length > 1 ? autres.slice(0, -1).join(", ") + " et " + autres[autres.length - 1] : autres[0]) : "");
   }
   window.addEventListener("pywebviewready", () => mdp.focus());
@@ -80,7 +79,7 @@
   });
 </script>
 
-<div class="bande"><button class="retour" title="Revenir au choix de la compagnie"
+<div class="bande"><button class="retour" title="{{P:retour_choix}}"
   onclick="retour()">&lsaquo; Retour</button><button class="croix" title="Fermer"
   onclick="window.pywebview.api.fermer()">&#x2715;</button></div>
 <script>

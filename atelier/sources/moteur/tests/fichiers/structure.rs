@@ -459,7 +459,10 @@ fn la_page_n_ecrit_aucune_phrase() {
         let textes: Vec<String> = if p.extension().is_some_and(|x| x == "js") {
             litteraux_js(&t).iter().flat_map(|s| textes_html(s)).collect()
         } else {
-            textes_html(&t.replace("{{", "\u{1}").replace("}}", "\u{1}"))
+            // Une page HTML : ses textes, et les litteraux de ses scripts (hors JSON).
+            let t = t.replace("{{", "\u{1}").replace("}}", "\u{1}");
+            let scripts: Vec<String> = t.split("<script").skip(1).filter(|s| !s.starts_with(" type=\"application/json\"")).filter_map(|s| s.split_once('>')).map(|(_, s)| s.split("</script>").next().unwrap_or("").to_string()).collect();
+            textes_html(&t).into_iter().chain(scripts.iter().flat_map(|s| litteraux_js(s)).flat_map(|s| textes_html(&s))).collect()
         };
         for texte in textes {
             if let Some(phrase) = phrase(&texte) {
