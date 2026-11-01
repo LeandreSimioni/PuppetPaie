@@ -135,7 +135,7 @@ function champDeFiche(c, fiche, nom) {
         <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
           <span id="signature-poids" class="discret"></span>
           <button type="button" class="secondaire" id="signature-vider"
-            >Revenir à la signature habituelle</button>
+            >Signature habituelle</button>
         </div>
         ${aideCorps(c.cle, c.aide)}
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
@@ -149,13 +149,13 @@ function champDeFiche(c, fiche, nom) {
         <label>${echapper(c.libelle)}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="chiffres">
-            <option value=""${v3 ? "" : " selected"}>— celle de votre code postal (${
+            <option value=""${v3 ? "" : " selected"}>— code postal (${
               echapper(ETAT.urssaf_deduit || "")}) —</option>
             ${org.map((o) => `<option value="${echapper(o.code)}"${
                 o.code === v3 ? " selected" : ""}
               >${echapper(o.code)} — ${echapper(o.nom)}</option>`).join("")}
             ${connu || !v3 ? "" : `<option value="${echapper(v3)}" selected
-              >${echapper(v3)} — inconnu de la table : la DPAE serait rejetée</option>`}
+              >${echapper(v3)} — inconnu</option>`}
           </select></label>
         ${aideCorps(c.cle, c.aide)}
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
@@ -172,9 +172,9 @@ function champDeFiche(c, fiche, nom) {
             ${cv.map((x) => `<option value="${echapper(x.idcc)}"${
                 String(x.idcc) === String(v ?? "") ? " selected" : ""}
               >IDCC ${echapper(x.idcc)} — ${echapper(x.libelle)}${
-                x.applicable ? "" : " (taux non relevés : le calcul refuse)"}</option>`).join("")}
+                x.applicable ? "" : " (taux non relevés)"}</option>`).join("")}
             ${connue || !String(v ?? "") ? "" : `<option value="${echapper(v)}" selected
-              >IDCC ${echapper(v)} — non servie par le barème</option>`}
+              >IDCC ${echapper(v)} — non servie</option>`}
           </select></label>
         ${aideCorps(c.cle, c.aide)}
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
@@ -204,7 +204,7 @@ function champDeFiche(c, fiche, nom) {
             ${liste.map((p) => `<option value="${echapper(p.code)}"${
                 p.code === v2.toUpperCase() ? " selected" : ""}>${echapper(p.nom)}</option>`).join("")}
             ${connu || !v2 ? "" : `<option value="${echapper(v2)}" selected
-              >${echapper(v2)} — inconnu de la liste : choisir le pays</option>`}
+              >${echapper(v2)} — inconnu</option>`}
           </select></label>
         ${aideCorps(c.cle, c.aide)}
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
@@ -247,7 +247,7 @@ function champDeFiche(c, fiche, nom) {
       return `<div class="champ pleine">
         <label>${echapper(c.libelle)} ${aideHtml(c.cle, c.aide)}
           <input data-cle="${c.cle}" data-liste-textes="1" value="${echapper((v || []).join(", "))}"
-                 placeholder="ex. zerbinette, aaah">
+                 placeholder="zerbinette, aaah">
         </label>
         ${aideCorps(c.cle, c.aide)}
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
@@ -406,7 +406,7 @@ function dessinerFormulaire(fiche) {
           return v !== null && v !== undefined && v !== "";
         }) || !!fiche.donnees.sante_svp;
         return `<details class="bloc avance" data-bloc-permanents="1"${auMois || rempli ? " open" : ""}>
-          <summary>${echapper(titre)}${auMois ? "" : ` <span class="discret">— s'il est payé au mois</span>`}</summary>
+          <summary>${echapper(titre)}${auMois ? "" : ` <span class="discret">— payé au mois</span>`}</summary>
           ${entete}
           <div class="champs">${dedansHtml}</div>
         </details>`;
@@ -432,18 +432,14 @@ function dessinerFormulaire(fiche) {
           : "Nouveau spectacle"}</h2>
         ${fiche.cle && fiche.donnees.titre ? `<div class="cout-annee" data-cote="spectacles"
           data-cle="${echapper(fiche.donnees.titre)}"></div>` : ""}`}
-      ${!fiche.cle && FICHE_ACTIVE === "spectacle" ? `<p class="note">La clé de la
-        fiche se fabrique à l'enregistrement.</p>` : ""}
+      ${!fiche.cle && FICHE_ACTIVE === "spectacle" ? `<p class="note">${aideDe("fiche_cle")}</p>` : ""}
       ${err ? `<div class="encart erreur"><b>${err > 1 ? `${err} champs à corriger` : "Un champ à corriger"}</b>
-        — marqué${err > 1 ? "s" : ""} ci-dessous.</div>` : ""}
+        — marqué${err > 1 ? "s" : ""} ci-dessous</div>` : ""}
       ${sections ? champs : `<div class="champs">${champs}</div>`}
       <div class="actions">
         <!-- ANNULER : une fiche qu'on crée ou modifie peut s'abandonner sans
              enregistrer. Voir annulerFiche. -->
-        <button class="secondaire" id="config-annuler"${FICHE_ACTIVE === "entreprise" ? " hidden" : ""}
-          title="${FICHE_ACTIVE === "entreprise" ? "Reprendre ce qui est enregistré"
-            : fiche.cle ? "Laisser la fiche telle qu'elle est enregistrée et revenir à la liste"
-            : "Ne pas créer cette fiche et revenir à la liste"}">Annuler</button>
+        <button class="secondaire" id="config-annuler"${FICHE_ACTIVE === "entreprise" ? " hidden" : ""}>Annuler</button>
         <button class="primaire" id="config-enregistrer">Enregistrer</button>
         <span class="note" id="config-modifie" hidden>modifications non enregistrées</span>
       </div>
@@ -533,7 +529,7 @@ function brancherSignatureCourriel() {
     const n = new Blob([champ.value]).size;
     poids.textContent = n ? `${Math.ceil(n / 1024)} Ko sur 150 Ko` : "signature habituelle";
     poids.style.color = n > SIGNATURE_LIMITE ? "#B22222" : "";
-    if (n > SIGNATURE_LIMITE) poids.textContent += " — trop lourde : une image collée pèse tout son poids, préférez une image en ligne";
+    if (n > SIGNATURE_LIMITE) poids.textContent += " — " + ((ETAT.aides || {}).signature_lourde || "");
   };
   const relire = () => {
     // Un cadre vide garde souvent un <br> : c'est vide.
@@ -583,12 +579,9 @@ function brancherUrssaf() {
       else { choix.value = avant; marquerModifie(); }
     };
     ouvrirBoite(`<h3>Changer d'Urssaf ?</h3>
-      <p>D'après l'adresse de l'entreprise, vos déclarations vont à
-        <strong>${echapper(nom(deduit))}</strong>. C'est elle qui reçoit
-        normalement DPAE et DSN.</p>
-      <p>Vous avez choisi <strong>${echapper(nom(neuf))}</strong>.
-        Une Urssaf qui ne vous gère pas peut faire rejeter vos déclarations.
-        Voulez-vous vraiment la changer ?</p>
+      <p>Selon l'adresse <strong>${echapper(nom(deduit))}</strong></p>
+      <p>Votre choix <strong>${echapper(nom(neuf))}</strong></p>
+      <p>${aideDe("urssaf_changer")}</p>
       <div class="actions">
         <button class="secondaire" id="u-garder-ancienne">Non, revenir en arrière</button>
         <button class="primaire" id="u-changer">Oui, changer</button>
@@ -697,7 +690,7 @@ function brancherNationalite() {
     note.hidden = !p;
     if (!p) return;
     code.value = p.codification_ue;
-    note.textContent = `${lib[p.codification_ue] || p.codification_ue} — déduite du pays de nationalité (${p.nom})`;
+    note.textContent = `${lib[p.codification_ue] || p.codification_ue} — déduite de la nationalité (${p.nom})`;
   };
   pays.addEventListener("change", poser);
   poser();
@@ -759,13 +752,9 @@ async function exporterSalarie(cle) {
 async function demanderFiche(bouton) {
   const adresse = (document.getElementById("invitation-courriel").value || "").trim();
   const prenom = (document.getElementById("invitation-prenom").value || "").trim();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adresse)) {
-    dire("Il faut son adresse de courriel.");
-    return;
-  }
-  const mdp = await demanderMotDePasse(`envoyer la demande de fiche à ${adresse}`, { envoi: true });
+  const mdp = await demanderMotDePasse("Envoyer la demande", { envoi: true });
   if (!mdp) return;
-  const rendre = occupe(bouton, "Envoi de la demande en cours…");
+  const rendre = occupe(bouton, "Envoi…");
   const repere = await repereCourrielsFictifs();
   try {
     const r = await api("fiche-demander", { adresse, prenom, motdepasse: mdp });
@@ -779,7 +768,7 @@ async function demanderFiche(bouton) {
     fenetreCourrielsFictifs("fiche", repere);
   } catch (e) {
     rendre();
-    dire("Envoi impossible : " + e.message, "erreur");
+    dire(e.message, "erreur");
   }
 }
 
@@ -788,7 +777,7 @@ function fichesAttenduesHtml() {
   const l = (ETAT.configuration || {}).fiches_attendues || [];
   if (!l.length) return "";
   return `<div class="encart attente-fiches">
-    <b>${l.length} fiche(s) demandée(s), en attente de réponse</b>
+    <b>${l.length} fiche(s) en attente</b>
     <button class="lien" id="fiches-relever">relever maintenant</button>
     <ul>${l.map((a) => `<li>${echapper(a.prenom ? a.prenom + " — " : "")}${
         echapper(a.adresse)} <span class="discret">demandée le ${
@@ -1057,8 +1046,7 @@ function histoireDuChamp(lignes, desc, donnees) {
   // montrait a tout le monde, en bas de chaque fiche, les formes declarees.
   return `<details class="champ pleine historique-fiche">
     <summary>Historique des modifications (${rangees.length})</summary>
-    <div class="aide">Les valeurs remplacées, et jusqu'à quand elles ont
-       servi. Elles restent pour les déclarations déjà envoyées.</div>
+    <div class="aide">${aideDe("historique_fiche")}</div>
     <div class="histoire">${rangees.map((e) => `
       <div class="histoire-ligne">
         <span class="histoire-champ">${echapper(libelle(e.champ))}</span>
@@ -1205,7 +1193,7 @@ function appliquerSuggestions(suggestions) {
     if (!boite || boite.querySelector(".suggere")) return;
     const note = document.createElement("div");
     note.className = "suggere";
-    note.textContent = "Rempli pour vous : " + s.pourquoi;
+    note.textContent = "Rempli pour vous — " + s.pourquoi;
     boite.appendChild(note);
     // Elle ne vaut que tant qu'on n'a pas choisi soi-même.
     champ.addEventListener("change", () => note.remove(), { once: true });
@@ -1274,7 +1262,7 @@ async function demanderSiEnregistrer() {
     let repondu = false;
     const repondre = (v) => { if (!repondu) { repondu = true; resoudre(v); } };
     ouvrirBoite(`<h3>Changements non enregistrés</h3>
-      <p>Vos changements ne sont pas encore enregistrés.</p>
+      <p>${aideDe("non_enregistres")}</p>
       <div class="actions">
         <button class="primaire" id="q-enregistrer">Enregistrer les changements</button>
         <button class="secondaire" id="q-jeter">Annuler les changements</button>
@@ -1452,16 +1440,14 @@ function demanderDateDEffet(changements, propose, pourquoi) {
     let repondu = false;
     const repondre = (v) => { if (!repondu) { repondu = true; resoudre(v); } };
     ouvrirBoite(`<h3>${titre}</h3>
-      <p>Ce que vous changez vaut à partir d'une date : la voici proposée,
-         changez-la si besoin, puis enregistrez.</p>
+      <p>${aideDe("dater")}</p>
       <div class="changements">${blocs}</div>
       <label class="champ-boite">À partir du
         <input type="date" id="b-depuis" value="${echapper(propose || "")}">
       </label>
-      <p class="note">${echapper(pourquoi || "")} Avant cette date, la fiche garde ce
-         qu'elle disait.</p>
+      <p class="note">${echapper(pourquoi || "")} ${aideDe("dater_avant")}</p>
       <details class="b-note-bloc"><summary class="discret">ajouter une note</summary>
-        <input type="text" id="b-note" placeholder="correction, déménagement…">
+        <input type="text" id="b-note" placeholder="motif">
       </details>
       <div class="actions">
         <button class="secondaire" id="b-annuler">Annuler</button>
@@ -1493,7 +1479,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
       const réponse = await demanderDateDEffet(changements, depuis, pourquoi);
       // Annulé, ou la boîte fermée d'un clic à côté : la fiche garde ce qu'on y a tapé, et la page le dit.
       if (!réponse) {
-        dire("Rien n'est enregistré : vos saisies restent dans la fiche, à enregistrer quand vous voulez.");
+        dire((ETAT.aides || {}).rien_enregistre);
         return;
       }
       return ecrireFiche(fiche, donnees, { ...réponse, confirme: true }, forcer);

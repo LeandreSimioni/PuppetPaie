@@ -96,6 +96,14 @@ const AIDES: &[(&str, &str)] = &[
     ("cloture", "Les saisies et les sorties de l'année ne se modifieront plus (rouvrir reste possible, depuis l'Historique). Tout ce qu'il faut garder (saisies, bulletins, contrats signés, DPAE, DSN, certificats, retours des organismes, journal des dépôts, fiches, export compta) est réuni dans l'archive de l'exercice :"),
     ("cloture_refus", "La clôture vient après la dernière DSN de l'année : elle est refusée si un mois avec des paies n'a pas de DSN acceptée au journal."),
     ("cloture_forcer", "Si une DSN manque au journal (déposée ailleurs, par exemple)."),
+    ("fiche_cle", "La clé de la fiche se fabrique à l'enregistrement."),
+    ("signature_lourde", "Trop lourde : une image collée pèse tout son poids, préférez une image en ligne."),
+    ("urssaf_changer", "D'après l'adresse de l'entreprise, vos déclarations vont à l'Urssaf de son code postal : c'est elle qui reçoit normalement DPAE et DSN. Une Urssaf qui ne vous gère pas peut faire rejeter vos déclarations. Voulez-vous vraiment la changer ?"),
+    ("historique_fiche", "Les valeurs remplacées, et jusqu'à quand elles ont servi. Elles restent pour les déclarations déjà envoyées."),
+    ("non_enregistres", "Vos changements ne sont pas encore enregistrés."),
+    ("dater", "Ce que vous changez vaut à partir d'une date : la voici proposée, changez-la si besoin, puis enregistrez."),
+    ("dater_avant", "Avant cette date, la fiche garde ce qu'elle disait."),
+    ("rien_enregistre", "Rien n'est enregistré : vos saisies restent dans la fiche, à enregistrer quand vous voulez."),
 ];
 
 /// Les routes de ce module, et leurs fiches.
