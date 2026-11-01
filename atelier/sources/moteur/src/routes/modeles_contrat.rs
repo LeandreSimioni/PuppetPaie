@@ -104,10 +104,19 @@ const CHAMPS_DU_REMPLACEMENT: [&str; 2] = ["remplace.numero", "remplace.date"];
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "modeles-contrat" => modeles(ctx),
-        "modele-contrat-livre" => livre(charge),
-        "poser-modele-contrat" => poser(ctx, charge),
-        "retirer-modele-contrat" => retirer(ctx, charge),
+        "modeles-contrat" => modeles(ctx).map(|v| super::phrase_en_tete(v.clone(), dire_les_modeles(&v))),
+        "modele-contrat-livre" => livre(charge).map(|v| {
+            let p = format!("Le modèle livré : {}.", socle::valeur::valeur_en_texte(&v["nom"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "poser-modele-contrat" => poser(ctx, charge).map(|v| {
+            let p = format!("Modèle de la compagnie posé. {}", dire_les_modeles(&v));
+            super::phrase_en_tete(v, p)
+        }),
+        "retirer-modele-contrat" => retirer(ctx, charge).map(|v| {
+            let p = format!("Modèle de la compagnie retiré : le modèle livré revient. {}", dire_les_modeles(&v));
+            super::phrase_en_tete(v, p)
+        }),
         "clauses-particulieres" => clauses(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -266,4 +275,11 @@ fn clauses(ctx: &Contexte, charge: &Value) -> R<Value> {
     let texte = charge.get("texte").and_then(Value::as_str).unwrap_or_default().trim().to_string();
     crate::routes::fiches::poser_entreprise(ctx, CLAUSES, json!(texte), Some(ctx.aujourdhui))?;
     Ok(json!({"phrase": "Clauses particulières enregistrées."}))
+}
+
+/// Ce que `modeles` rend, en une phrase : les modeles de chaque nature, et ceux que la compagnie a poses.
+fn dire_les_modeles(v: &Value) -> String {
+    let modeles: Vec<&Value> = v["natures"].as_array().into_iter().flatten().flat_map(|n| n["modeles"].as_array().into_iter().flatten()).collect();
+    let propres = modeles.iter().filter(|m| m["propre"] == json!(true)).count();
+    format!("Modèles de contrat et d'avenant : {} ; propres à la compagnie : {}.", modeles.len(), propres)
 }

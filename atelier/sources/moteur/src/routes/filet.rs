@@ -195,11 +195,53 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Auto(Place::Signaler),
     },
 ];
-/// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    let mut v = route_seule(o, ctx, nom, charge)?;
+/// Une route de ce module, pour la compagnie `ctx`.
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    route_de(&ctx.racine, nom, charge)
+}
+
+/// LE DOSSIER DE L'INSTALLATION QUI GARDE CE QU'ON ECRIT AU DEVELOPPEUR SANS COMPAGNIE (depuis l'accueil, ou en ligne de
+/// commande sans `--racine`) : ses messages, leur depart et l'identite du poste, comme une compagnie les garde dans son
+/// dossier ; aucune compagnie n'y est lue, le message part sans ses renseignements.
+pub fn sans_compagnie(o: &HashMap<String, String>) -> std::path::PathBuf {
+    super::accueil::installation(o).join(".accueil")
+}
+
+/// Une route de ce module, sans compagnie (`sans_compagnie`).
+pub fn route_sans_compagnie(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value> {
+    let racine = sans_compagnie(o);
+    std::fs::create_dir_all(&racine).map_err(|e| Echec::from(format!("{} : {}", racine.display(), e)))?;
+    route_de(&racine, nom, charge)
+}
+
+fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
+    let mut v = route_seule(racine, nom, charge)?;
     poser_les_pastilles(nom, &mut v);
-    Ok(v)
+    let n = |k: &str| v.get(k).and_then(Value::as_u64).unwrap_or(0);
+    let message = |l: Option<&Value>| l.map(|s| format!("{} : {}", valeur_en_texte(&s["debut"]), valeur_en_texte(&s["pastille"]["mots"]))).unwrap_or_default();
+    let phrase = match nom {
+        "diagnostic-etat" | "diagnostic-envoyer" | "diagnostic-regler" => format!(
+            "Signalement des dysfonctionnements : {} ; incidents gardés : {}, partis : {}, en attente : {}.",
+            if v["envoi"] == json!(false) { "désactivé" } else { "actif" },
+            n("total"),
+            n("partis"),
+            n("en_attente")
+        ),
+        "incident-navigateur" => if v["note"] == json!(true) { "Incident noté." } else { "Rien n'est noté." }.to_string(),
+        "signalement-apercu" if v["peut_envoyer"] == json!(true) => format!("Ce message partirait chez {}, avec {} incidents et {} captures.", valeur_en_texte(&v["serveur"]), n("incidents"), n("captures")),
+        "signalement-apercu" => valeur_en_texte(&v["pourquoi"]),
+        "signalement-envoyer" => {
+            let s = v["signalements"].as_array().and_then(|l| l.iter().find(|s| s["id"] == v["id"]));
+            format!("{} {}", if v["deja"] == json!(true) { "Ce message est déjà enregistré." } else { "Message enregistré pour le développeur." }, s.map(|s| valeur_en_texte(&s["depart"]["mots"])).unwrap_or_default()).trim().to_string()
+        }
+        "signalements" => format!("Messages au développeur : {} ; réponses non lues : {}.", v["signalements"].as_array().map_or(0, Vec::len), n("non_lues")),
+        "signalements-lus" => format!("Réponses marquées lues : {}.", n("lues")),
+        _ => return Ok(v),
+    };
+    if nom == "signalements" {
+        v["phrases"] = json!(v["signalements"].as_array().into_iter().flatten().map(|s| message(Some(s))).collect::<Vec<_>>());
+    }
+    Ok(crate::routes::phrase_en_tete(v, phrase))
 }
 
 /// LES PASTILLES DE CE QUE CES ROUTES RENDENT (`routes::pastille`). Le diagnostic : coupe par la compagnie, une
@@ -257,8 +299,7 @@ fn poser_les_pastilles(nom: &str, v: &mut Value) {
     }
 }
 
-fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    let racine = ctx.racine.as_path();
+fn route_seule(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "signalements" => signalements_route(racine),
         "incident-navigateur" => {

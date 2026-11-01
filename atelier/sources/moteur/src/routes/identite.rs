@@ -61,9 +61,9 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "identite" => identite(ctx),
-        "poser-identite" => poser_identite(ctx, charge),
-        "retirer-identite" => retirer_identite(ctx, charge),
+        "identite" => identite(ctx).map(|v| super::phrase_en_tete(v.clone(), dire_l_identite(&v))),
+        "poser-identite" => poser_identite(ctx, charge).map(|v| super::phrase_en_tete(v.clone(), format!("Posé. {}", dire_l_identite(&v)))),
+        "retirer-identite" => retirer_identite(ctx, charge).map(|v| super::phrase_en_tete(v.clone(), format!("Retiré. {}", dire_l_identite(&v)))),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -186,3 +186,9 @@ fn identite(ctx: &Contexte) -> R<Value> {
     Ok(json!({"identite": v}))
 }
 
+
+/// L'identite de la compagnie en une phrase : la signature, le tampon et le logo, chacun avec ce que l'ecran en dit.
+fn dire_l_identite(v: &Value) -> String {
+    let mot = |k: &str| socle::valeur::valeur_en_texte(&v["identite"][k]["pastille"]["mots"]);
+    format!("Signature : {} ; tampon : {} ; logo : {}.", mot("signature"), mot("cachet"), mot("logo"))
+}

@@ -59,7 +59,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Archiver les spectacles qui ne continuent pas, et noter la revue faite.",
         charge: &[ANNEE, Champ { nom: "continuent", sens: "les spectacles qui continuent (leurs clés) ; les autres s'archivent", avance: false }],
         exemple: r#"{"annee":2026,"continuent":["le-banc-des-menteurs"]}"#,
-        rend: "archives, gardes",
+        rend: "phrase, archives, continuent, configuration",
         refus: &[MANQUE, FORME],
         acte: Acte::Ecrit,
         avance: false,
@@ -100,9 +100,20 @@ const ANNEE: Champ = Champ { nom: "annee", sens: "l'année, AAAA", avance: false
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> socle::echec::R<Value> {
     match nom {
-        "rappels" => rappels(ctx),
-        "revue-spectacles" => revue_spectacles(o, ctx, charge),
-        "echeance-faite" => echeance_faite(ctx, charge),
+        "rappels" => rappels(ctx).map(|mut v| {
+            let lignes: Vec<Value> = v["rappels"].as_array().into_iter().flatten().map(|r| json!(format!("{} : {} {}{}", super::mot(&r["titre"]), super::mot(&r["question"]), super::mot(&r["detail"]), r["echeance_depot"]["phrase"].as_str().map(|q| format!(" Échéance : {}.", q)).unwrap_or_default()))).collect();
+            let p = format!("Rappels : {}.", lignes.len());
+            v["phrases"] = Value::Array(lignes);
+            super::phrase_en_tete(v, p)
+        }),
+        "revue-spectacles" => revue_spectacles(o, ctx, charge).map(|v| {
+            let p = format!("Spectacles qui continuent : {} ; archivés : {}.", super::nombre(&v["continuent"]), super::nombre(&v["archives"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "echeance-faite" => echeance_faite(ctx, charge).map(|v| {
+            let p = if v["fait"] == json!(true) { "Échéance cochée : faite." } else { "Échéance décochée." };
+            super::phrase_en_tete(v, p)
+        }),
         // Ce que la compagnie peut remplir d'avance, d'un coup ; ce que le moteur a pose de lui-meme se dit en information
         // (gris) ; les acces aux organismes et le Drive se proposent (`acces_proposes`).
         "pour-demarrer" => {
@@ -472,31 +483,6 @@ fn derniere_dsn_passee(st: &Etat) -> R<Option<String>> {
     Ok(passes.into_iter().max())
 }
 
-/// Le premier mois dont la compagnie doit une DSN, quand on le sait.
-///
-/// UNE COMPAGNIE NEUVE N'EST EN RETARD DE RIEN. Creee depuis
-/// l'accueil un 30 septembre, elle s'ouvrait sur << Deposer la DSN d'aout 2026
-/// -- en retard >>. Le premier mois du, c'est celui de sa premiere embauche ;
-/// sans cette date, une compagnie qui n'a ni salarie, ni paie saisie, ni DSN au
-/// journal n'a encore rien a declarer (le mois courant). `None` : rien ne borne
-/// -- une compagnie qui a deja des salaries, des paies ou des declarations.
-pub(crate) fn premier_mois_declarable(st: &Etat) -> Option<String> {
-    let embauche: String = texte_ou_vide(&st.ctx.entreprise, "premiere_embauche").chars().take(7).collect();
-    if !embauche.is_empty() {
-        return Some(embauche);
-    }
-    // Une compagnie qui a deja des engagements a deja declare.
-    if !engagement::stock::mois_saisis(st.racine()).unwrap_or_default().is_empty() {
-        return None;
-    }
-    // DES FICHES NE SONT PAS UN PASSE : une compagnie neuve remplit ses salaries avant sa premiere paie ;
-    // sans paie ni DSN, elle n'a aucun mois d'avant a declarer (elle reclamait la DSN du mois precedent sa naissance).
-    if !st.journal.is_empty() && st.journal.iter().any(|l| l.get("quoi").and_then(Value::as_str) == Some(DSN)) {
-        return None;
-    }
-    Some(mois_de(&st.aujourdhui))
-}
-
 /// Les mois dont la DSN manque -- ou a ete refusee --, du plus ancien au plus
 /// recent : depuis le mois qui suit la derniere DSN passee jusqu'au mois d'avant
 /// aujourd'hui. Sans aucune DSN au journal : le seul mois d'avant -- on ne va pas
@@ -506,7 +492,7 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
     let dernier = mois_precedent(&courant);
     let depuis = derniere_dsn_passee(st)?;
     let mut premier = depuis.as_ref().map_or_else(|| dernier.clone(), |d| mois_suivant(d));
-    if let (Some(borne), None) = (premier_mois_declarable(st), &depuis) {
+    if let (Some(borne), None) = (etat_dsn::premier_mois_du(st.ctx)?, &depuis) {
         premier = premier.max(borne);
     }
     if premier > dernier {
@@ -514,8 +500,7 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
     }
     let (mut out, mut m) = (Vec::new(), premier);
     while m <= dernier {
-        let e = etat_dsn::du_mois(st.ctx, &m, &Value::Null)?;
-        if e.a_faire() {
+        if etat_dsn::due(st.ctx, &m, &Value::Null)? {
             out.push(m.clone());
         }
         m = mois_suivant(&m);
@@ -844,7 +829,8 @@ fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)
         }
         out.push(json!({
             "cle": format!("acces.{}", s["service"].as_str().unwrap_or("")),
-            "libelle": format!("{} : pour {} depuis le logiciel", s["libelle"].as_str().unwrap_or(""), s["sert_a"].as_str().unwrap_or("")),
+            "libelle": s["libelle"].as_str().unwrap_or(""),
+            "utile": format!("{} depuis le logiciel", s["sert_a"].as_str().unwrap_or("")),
             "sinon": "vous le faites vous-même, hors du logiciel",
             "ou": OU, "champ": null, "trouver": "",
         }));
@@ -852,7 +838,7 @@ fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)
     // Le Drive de la sauvegarde : se lie au meme endroit (« Lier le Drive »), sans reseau pour le savoir.
     if super::coffre::compte_autorise(&ctx.racine).is_none() {
         out.push(json!({
-            "cle": "acces.google", "libelle": "Google Drive : pour sauvegarder la compagnie dans votre Drive",
+            "cle": "acces.google", "libelle": "Google Drive", "utile": "sauvegarder la compagnie dans votre Drive",
             "sinon": "rien ne se sauvegarde hors de ce poste",
             "ou": OU, "champ": null, "trouver": "",
         }));

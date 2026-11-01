@@ -142,14 +142,42 @@ pub const ROUTES: &[Fiche] = &[
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
-        "dossier-formes" => dossier_formes(ctx),
-        "exports-periodes" => exports_periodes(ctx, charge),
-        "retenir-logiciel" => retenir_logiciel(ctx, charge),
-        "casc-regularise" => casc_regularise(ctx, charge),
-        "exporter" => exporter(ctx, charge),
-        "dossier-envoyer" => dossier_envoyer(ctx, charge, &mut || client_courriel(ctx)),
-        "casc-envoyer" => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)),
+        "dossier-formes" => dossier_formes(ctx).map(|v| {
+            let p = format!("Dossiers possibles : {} ; sortes de pièces : {}.", super::compte(super::nombre(&v["salaries"]), "salarié", "salariés"), super::nombre(&v["categories"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "exports-periodes" => exports_periodes(ctx, charge).map(|v| {
+            let p = format!("Exports : {} ; mois payés : {} ; années : {}.", super::compte(super::nombre(&v["etats"]), "état", "états"), super::nombre(&v["mois"]), super::nombre(&v["annees"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "retenir-logiciel" => retenir_logiciel(ctx, charge).map(|v| {
+            let p = if t(&v, "logiciel").is_empty() { "Aucun logiciel comptable retenu.".to_string() } else { format!("Logiciel comptable retenu : {}.", t(&v, "logiciel")) };
+            super::phrase_en_tete(v, p)
+        }),
+        "casc-regularise" => casc_regularise(ctx, charge).map(|v| {
+            let p = format!("CASC-SVP {} notée régularisée : {} € virés le {}.", t(&v, "annee"), t(&v, "montant"), t(&v, "vire_le"));
+            super::phrase_en_tete(v, p)
+        }),
+        "exporter" => exporter(ctx, charge).map(|v| {
+            let titre = if v["titre"].is_string() { t(&v, "titre") } else { t(&v, "periode") };
+            let p = match v["fichier"].as_str() {
+                Some(f) => format!("{} : écrit dans {}.", titre, f),
+                None => format!("{} : aperçu, rien n'est écrit.", titre),
+            };
+            super::phrase_en_tete(v, p)
+        }),
+        "dossier-envoyer" => dossier_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
+            let fichiers: Vec<String> = v["fichiers"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+            let p = format!("Dossier de {} ({}) : {}.", v["salaries"].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>().join(", "), t(&v, "periode"), fichiers.join(", "));
+            super::phrase_en_tete(v, p)
+        }),
+        "casc-envoyer" => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
+            let partis: Vec<String> = v["partis"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+            let p = format!("CASC-SVP de {} : {} €, envoyé à {}.", t(&v, "periode"), t(&v, "total"), partis.join(", "));
+            super::phrase_en_tete(v, p)
+        }),
         "droits" => droits(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -841,6 +869,7 @@ fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
     } else {
         "Ce compte ne porte que les engagements de cette compagnie : le relevé de France Travail seul fait foi, et le seuil se compte sur tous les employeurs. Ces totaux sont un plancher."
     };
-    Ok(json!({"mois": mois, "salaries": salaries, "phrase": phrase}))
+    let phrases: Vec<String> = salaries.iter().map(|s| format!("{} ({}) : {}", valeur_en_texte(&s["nom"]), valeur_en_texte(&s["fenetre"]), valeur_en_texte(&s["phrase"]))).collect();
+    Ok(json!({"mois": mois, "phrase": phrase, "phrases": phrases, "salaries": salaries}))
 }
 

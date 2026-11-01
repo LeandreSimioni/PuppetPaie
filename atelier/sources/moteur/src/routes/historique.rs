@@ -96,11 +96,35 @@ pub const ROUTES: &[Fiche] = &[
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
-        "exercices" => exercices_route(ctx),
-        "regularisations" => regularisations(ctx),
-        "cloture" => crate::compagnie::exercice_ecrit::cloture_route(ctx, charge),
-        "export-compta" => crate::compagnie::exercice_ecrit::export_compta_route(ctx, charge),
+        "exercices" => exercices_route(ctx).map(|mut v| {
+            let lignes: Vec<Value> = v["exercices"].as_array().into_iter().flatten().map(|e| json!(format!("{} : {}", t(e, "annee"), t(&e["pastille"], "mots")))).collect();
+            v["phrases"] = Value::Array(lignes);
+            let p = format!("Exercices : {}.", super::nombre(&v["exercices"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "regularisations" => regularisations(ctx).map(|v| {
+            let p = format!("Mois qui portent des corrections : {}.", super::nombre(&v["corrections"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "cloture" => crate::compagnie::exercice_ecrit::cloture_route(ctx, charge).map(|v| {
+            let p = if v.get("etait_clos_depuis").is_some() {
+                format!("Exercice {} rouvert ; son archive reste.", t(&v, "annee"))
+            } else {
+                let manques: Vec<String> = v["manques"].as_array().into_iter().flatten().map(socle::valeur::valeur_en_texte).collect();
+                let reste = if manques.is_empty() { String::new() } else { format!(" Pas archivé : {}.", manques.join(" ; ")) };
+                format!("Exercice {} clos : {} fichiers archivés dans {}.{}", t(&v, "annee"), t(&v, "fichiers"), t(&v, "archive"), reste)
+            };
+            super::phrase_en_tete(v, p)
+        }),
+        "export-compta" => crate::compagnie::exercice_ecrit::export_compta_route(ctx, charge).map(|v| {
+            let p = match v["fichier"].as_str() {
+                Some(f) => format!("Export comptable de {} : {} écritures, dans {} ({}).", t(&v, "annee"), super::nombre(&v["ecritures"]), f, t(&v, "dossier")),
+                None => format!("Export comptable de {} : {} écritures, rien n'est écrit.", t(&v, "annee"), super::nombre(&v["ecritures"])),
+            };
+            super::phrase_en_tete(v, p)
+        }),
         "archiver" => archiver(ctx, charge),
         "journal-reprise" => crate::compagnie::incidents::noter_ceux_des_retours(
             &ctx.racine,
@@ -110,7 +134,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
                 &crate::routes::qui_de(charge),
                 &socle::paris::iso_secondes(socle::temps::secondes()),
             ),
-        ).map(pastilles_de_la_reprise),
+        )
+        .map(pastilles_de_la_reprise)
+        .map(|v| {
+            let p = format!("Dépôts trouvés dans les retours : {} ; ajoutés au journal : {}{}.", super::nombre(&v["trouves"]), super::nombre(&v["ajoutes"]), if v["ecrit"] == json!(true) { "" } else { " (rien n'est écrit)" });
+            super::phrase_en_tete(v, p)
+        }),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

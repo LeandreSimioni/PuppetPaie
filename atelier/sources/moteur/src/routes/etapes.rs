@@ -94,21 +94,44 @@ fn a_completer(n: usize) -> Value {
     groupe("a_faire", json!(n), n.to_string(), "à compléter".into(), Value::Null, Value::Null)
 }
 
-/// Marque `suivante` la premiere etape qui a quelque chose a faire de notre cote (a faire, ou refuse), et donne a chaque
-/// groupe sa couleur (`couleur_de_l_etat`).
+/// Marque `suivante` la premiere etape qui a quelque chose a faire de notre cote (a faire, ou refuse), donne a chaque
+/// groupe sa couleur (`couleur_de_l_etat`) et sa phrase entiere (`phrase_du_groupe`).
 fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
     let i = etapes.iter().position(|e| e["groupes"].as_array().is_some_and(|g| g.iter().any(|x| est(&x["etat"], "a_faire") || est(&x["etat"], "refuse"))));
     for (j, e) in etapes.iter_mut().enumerate() {
         e["suivante"] = json!(Some(j) == i);
+        let nom = valeur_en_texte(&e["nom"]);
         if let Some(gs) = e["groupes"].as_array_mut() {
             for g in gs {
                 g["couleur"] = json!(super::couleur_de_l_etat(&valeur_en_texte(&g["etat"])));
                 // Une attente se dessine coupee : la moitie faite (partie), la moitie qui attend (le retour).
                 g["coupee"] = json!(est(&g["etat"], "en_attente"));
+                g["phrase"] = phrase_du_groupe(&nom, g);
             }
         }
     }
     etapes
+}
+
+/// LA PHRASE D'UNE CASE, entiere, telle qu'on la lit hors de la case (son titre, la ligne de commande) : l'etape, ce
+/// qu'elle ecrit et son echeance (« DPAE : 2 à déposer, avant le 19/01/2026 »). Une etape qui n'a rien a faire dans un
+/// mois sans engagement n'en a pas : la phrase du mois le dit une fois (`bilan_du_mois`).
+fn phrase_du_groupe(nom: &str, g: &Value) -> Value {
+    if est(&g["etat"], "rien") {
+        return Value::Null;
+    }
+    let ecrit = [valeur_en_texte(&g["compte_texte"]), valeur_en_texte(&g["quoi"])].into_iter().filter(|s| !s.is_empty()).collect::<Vec<_>>().join(" ");
+    let ecrit = if ecrit.is_empty() && est(&g["etat"], "fait") { "fait".to_string() } else { ecrit };
+    let echeance = g["echeance"]["texte"].as_str().filter(|t| !t.is_empty()).map(|t| format!(", {}", t)).unwrap_or_default();
+    json!(format!("{} : {}{}", nom, ecrit, echeance))
+}
+
+/// LA PHRASE DU MOIS : ce qu'en disent ses cases, l'une apres l'autre (`phrase_du_groupe`) ; un mois sans engagement le
+/// dit une fois en tete (`debut`), sans redire ses etapes qui n'ont rien a faire.
+fn phrase_du_mois(debut: Option<String>, etapes: &[Value]) -> String {
+    let cases = etapes.iter().flat_map(|e| e["groupes"].as_array().cloned().unwrap_or_default()).filter_map(|g| g["phrase"].as_str().map(String::from));
+    let morceaux: Vec<String> = debut.into_iter().chain(cases).collect();
+    format!("{}.", morceaux.join(". "))
 }
 
 // ------------------------------------------------------------ les colonnes
@@ -1127,7 +1150,7 @@ impl<'a> Moteur<'a> {
 
     /// `bilan_du_mois` : LES ETAPES DU MOIS, dans l'ordre de l'habitude (DPAE, Contrats, DSN, Documents), chacune
     /// avec les groupes que le panneau dessine : `{etat, compte, compte_texte, quoi, phrase, echeance, action}` (`groupe`), `etat` parmi `fait`,
-    /// `a_faire`, `en_attente`, `refuse`. Un groupe `fait` n'a ni compte ni phrase ; un groupe qui reste compte en nombre
+    /// `a_faire`, `en_attente`, `refuse` ; `phrase` : la case dite entiere (`phrase_du_groupe`). Un groupe `fait` n'a pas de compte ; un groupe qui reste compte en nombre
     /// simple, avec son echeance (`texte`, et `court` sans l'annee, que la case ecrit) et le geste qu'ouvre un clic. `colonnes` : celles du mois (`colonnes`, G d'abord) ;
     /// chaque groupe nomme celles qu'il couvre, les memes d'une etape a l'autre. L'etape `suivante` est la premiere qui a
     /// quelque chose a faire de notre cote. Aucun montant : le brut n'est jamais lu.
@@ -1150,7 +1173,8 @@ impl<'a> Moteur<'a> {
                     json!({"cle": cle, "nom": nom, "groupes": [g], "phrase": x["phrase"].clone()})
                 })
                 .collect();
-            return Ok(json!({"mois": mois, "colonnes": ["G"], "etapes": suivante(etapes)}));
+            let etapes = suivante(etapes);
+            return Ok(json!({"mois": mois, "phrase": phrase_du_mois(None, &etapes), "colonnes": ["G"], "etapes": etapes}));
         }
         let paies = self.etat_par_engagement(mois)?;
         let echeance_de = |ps: &[&Value], quoi: &str| -> Value {
@@ -1268,19 +1292,32 @@ impl<'a> Moteur<'a> {
         // UN MOIS SANS ENGAGEMENT n'a rien de fait : ce qui n'a rien a faire s'y dit « rien ce mois-ci », en gris. Ce que le
         // moteur demande quand meme (une DSN due sans salarie) garde son etat.
         let vide = paies.is_empty();
+        // La DSN d'un mois sans engagement, partie sans individu, est faite ; pas due, elle n'a rien a faire.
+        let dsn_partie = vide && crate::compagnie::etat_dsn::du_mois(self.ctx, mois, &Value::Null)?.partie();
         let rien = |gs: Vec<Value>| -> Vec<Value> {
             gs.into_iter()
                 .map(|g| if vide && est(&g["etat"], "fait") { let mut r = rien_ce_mois(); r["colonnes"] = g["colonnes"].clone(); r } else { g })
                 .collect()
         };
+        let dsn = if dsn_partie { dsn } else { rien(dsn) };
+        // Un mois sans engagement se dit une fois : ce qui reste (sa DSN) se dit dans sa case.
+        let debut = match (vide, dsn.iter().all(|g| est(&g["etat"], "rien"))) {
+            (false, _) => None,
+            (true, rien_du_tout) => Some(format!(
+                "Aucun engagement en {} : {}",
+                socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee),
+                if rien_du_tout { "rien à faire" } else { "ni DPAE, ni contrat, ni document" }
+            )),
+        };
         let etapes = vec![
             json!({"cle": DPAE, "nom": "DPAE", "groupes": rien(dpae)}),
             json!({"cle": SIGNATURE, "nom": "Contrats", "groupes": rien(contrats)}),
-            json!({"cle": DSN, "nom": "DSN", "groupes": rien(dsn)}),
+            json!({"cle": DSN, "nom": "DSN", "groupes": dsn}),
             json!({"cle": DOCUMENTS, "nom": "Documents", "groupes": rien(documents), "detail": presentes.join(", ")}),
         ];
         let noms: Vec<String> = cols.iter().map(|c| c.nom.clone()).collect();
-        Ok(json!({"mois": mois, "colonnes": noms, "etapes": suivante(etapes)}))
+        let etapes = suivante(etapes);
+        Ok(json!({"mois": mois, "phrase": phrase_du_mois(debut, &etapes), "colonnes": noms, "etapes": etapes}))
     }
 
     /// LA DSN DU MOIS, par etablissement. Elle « est mensuelle et produite par établissement employeur » (cahier technique
@@ -1328,13 +1365,17 @@ impl<'a> Moteur<'a> {
         let e = crate::compagnie::etat_dsn::du_mois(self.ctx, mois, nic)?;
         let partie = e.deposee();
         if !partie {
-            if !self.dsn_a_declarer(mois, nic)? {
+            // Due chaque mois, sans salarie aussi (`etat_dsn::due`, ce que l'echeancier et les rappels lisent) ; un mois
+            // sans rien a declarer porte encore la correction d'un mois passe (`dsn_a_declarer`).
+            let a_declarer = self.dsn_a_declarer(mois, nic)?;
+            if !a_declarer && !crate::compagnie::etat_dsn::due(self.ctx, mois, nic)? {
                 return Ok(fait());
             }
             // Avant son premier jour de depot, la case reste a deposer : c'est le depot qui dit le jour
             // (`compagnie::depart::fabriquer_dsn`).
             let (a, refus) = self.action_de_depot(mois, DSN, nic, action("deposer_dsn", "Déposer la DSN…".into()))?;
-            let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
+            let etat = if a_declarer { "à déposer" } else { "à déposer, sans salarié" };
+            let quoi = refus.map_or_else(|| etat.to_string(), |r| format!("{} · {}", etat, r));
             return Ok(groupe("a_faire", Value::Null, String::new(), quoi, au_depot, a));
         }
         if e.refusee() {
@@ -1437,16 +1478,25 @@ impl<'a> Moteur<'a> {
         let courant = self.ctx.aujourdhui.mois_iso();
         // A L'OUVERTURE, RIEN NE SE CALCULE : les groupes d'un mois passe se tirent de ce qui est ecrit.
         self.ecrit = true;
-        for m in engagement::stock::mois_saisis(self.racine()).unwrap_or_default() {
+        // Un mois passe sans engagement dont la DSN est due (`etat_dsn::due`, ce que les rappels reclament) s'ouvre aussi.
+        let mut mois = engagement::stock::mois_saisis(self.racine()).unwrap_or_default();
+        let st = crate::routes::rappels::Etat { ctx: self.ctx, aujourdhui: self.ctx.aujourdhui, journal: envois::journal::lu(self.racine()).map_err(plain)?.lignes };
+        mois.extend(crate::routes::rappels::mois_a_declarer(&st).map_err(|r| Echec { classe: r.classe, message: r.message })?);
+        mois.sort();
+        mois.dedup();
+        for m in mois {
             if m >= courant || self.exercice_clos(&m)? {
                 continue;
             }
             let reste = self.etapes_restantes(&m)?;
             if !reste.is_empty() {
-                return Ok(json!({"mois": m, "courant": courant, "reste": reste}));
+                let noms: Vec<&str> = ORDRE.iter().filter(|(c, _)| reste.iter().any(|r| r == c)).map(|(_, n)| *n).collect();
+                let phrase = format!("À ouvrir : {}, où il reste {}.", socle::date::libelle_du_mois_ou_tel_quel(&m, socle::date::Graphie::Accentuee), noms.join(", "));
+                return Ok(json!({"phrase": phrase, "mois": m, "courant": courant, "reste": reste}));
             }
         }
-        Ok(json!({"mois": courant, "courant": courant, "reste": []}))
+        let phrase = format!("À ouvrir : {}, le mois du jour ; rien ne reste aux mois d'avant.", socle::date::libelle_du_mois_ou_tel_quel(&courant, socle::date::Graphie::Accentuee));
+        Ok(json!({"phrase": phrase, "mois": courant, "courant": courant, "reste": []}))
     }
 
     /// LES ETAPES QUI RESTENT A UN MOIS PASSE : celles dont un groupe n'est pas fait (`bilan_du_mois`).
@@ -1456,7 +1506,7 @@ impl<'a> Moteur<'a> {
             .as_array()
             .into_iter()
             .flatten()
-            .filter(|e| e["groupes"].as_array().is_some_and(|g| g.iter().any(|x| !est(&x["etat"], "fait"))))
+            .filter(|e| e["groupes"].as_array().is_some_and(|g| g.iter().any(|x| !est(&x["etat"], "fait") && !est(&x["etat"], "rien"))))
             .map(|e| valeur_en_texte(&e["cle"]))
             .collect())
     }
@@ -1546,7 +1596,7 @@ impl<'a> Moteur<'a> {
     /// `etat-du-mois` : ce que le panneau des etapes du mois dessine (`colonnes`, `etapes`).
     fn etat_du_mois(&mut self, mois: &str) -> R<Value> {
         let mut bilan = self.bilan_du_mois(mois)?;
-        Ok(json!({"mois": mois, "colonnes": bilan["colonnes"].take(), "etapes": bilan["etapes"].take()}))
+        Ok(json!({"mois": mois, "phrase": bilan["phrase"].take(), "colonnes": bilan["colonnes"].take(), "etapes": bilan["etapes"].take()}))
     }
 }
 

@@ -121,11 +121,13 @@ function htmlDemarrage(manques) {
     if (!k) {
       return `<li class="demarrage-ligne">
         <b>${echapper(m.libelle)}</b> ${lien(m)}
+        <div class="note">${echapper(m.pour || "")}</div>
         ${m.trouver ? `<details><summary>Où le trouver</summary><p class="note">${echapper(m.trouver)}</p></details>` : ""}
       </li>`;
     }
     return `<li class="demarrage-ligne" data-demarrage="${i}">
       <div class="demarrage-case">${caseDemarrageHtml(k)}</div>
+      <div class="note">${echapper(m.pour || "")}</div>
       <div class="actions">${lien(m)}</div>
     </li>`;
   };

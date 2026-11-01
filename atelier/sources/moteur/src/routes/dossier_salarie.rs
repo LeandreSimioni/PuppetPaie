@@ -66,7 +66,15 @@ pub const ROUTES: &[Fiche] = &[Fiche {
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> Result<Value, Echec> {
     match nom {
-        "dossier-salarie" => dossier_salarie_route(ctx, charge).map_err(Echec::from),
+        "dossier-salarie" => dossier_salarie_route(ctx, charge).map_err(Echec::from).map(|mut v| {
+            let liste = |k: &str| v[k].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>();
+            let (qui, fichiers) = (liste("salaries").join(", "), liste("fichiers"));
+            let p = if fichiers.is_empty() { format!("Dossier de {} ({}) : rien n'est écrit.", qui, valeur_en_texte(&v["periode"])) } else { format!("Dossier de {} ({}) : {}.", qui, valeur_en_texte(&v["periode"]), fichiers.join(", ")) };
+            let mut lignes = liste("avertissements");
+            lignes.extend(liste("refus"));
+            v["phrases"] = json!(lignes);
+            super::phrase_en_tete(v, p)
+        }),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }

@@ -60,10 +60,19 @@ pub const ROUTES: &[Fiche] = &[
 
 /// Une route de ce module.
 pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    match nom {
-        "organismes-contrats" => lire(ctx, charge),
-        _ => enregistrer(ctx, charge),
-    }
+    let v = match nom {
+        "organismes-contrats" => lire(ctx, charge)?,
+        _ => enregistrer(ctx, charge)?,
+    };
+    // Ce qui reste a dire a la compagnie (`a_saisir`), sinon combien de contrats la DSN declare.
+    let n = v["contrats"].as_array().map_or(0, Vec::len);
+    let p = if v["a_saisir"] == json!(true) {
+        format!("Contrats de la DSN : {} ; il en reste à saisir.", n)
+    } else {
+        format!("Contrats de la DSN : {} ; rien à saisir.", n)
+    };
+    let p = if nom == "organismes-contrats" { p } else { format!("Enregistré. {}", p) };
+    Ok(crate::routes::phrase_en_tete(v, p))
 }
 
 #[track_caller]

@@ -256,7 +256,14 @@ pub fn route_de_l_installation(nom: &str, charge: &Value) -> Value {
             return en_page(rendu.map_err(|m| Refus::simple("ErreurOperation", m)));
         }
     }
-    en_page(depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge)))
+    let rendu = en_page(depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge)));
+    // Le message ecrit a l'accueil part en fond, comme celui d'une compagnie (`signalements_en_fond`).
+    if nom == "signalement-envoyer" && rendu["ok"] == json!(true) {
+        crate::routes::fil_de_routes(move || {
+            let _ = crate::routes::dans_la_fenetre(&std::collections::HashMap::new(), "signalements-partir", &json!({}));
+        });
+    }
+    rendu
 }
 
 /// Un resultat ou un refus, au format que la page attend (`{"ok", "resultat"}` ou `{"ok": false, "erreur": {"type", "message", ...}}`).

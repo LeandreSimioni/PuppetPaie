@@ -1005,17 +1005,6 @@ const ORDINAIRE = {
   code_emploi_ft: () => true,
 };
 
-/* Les champs qu'on peut laisser vides : l'ecran le dit a cote du libelle,
- * plutot que de laisser croire qu'il manque quelque chose. L'editeur,
- * Les champs facultatifs : un champ ne se montre que si un fait l'exige. */
-const FACULTATIFS = {
-  salarie: ["num_conges_spectacles", "anniversaire_droits", "sante_dispense",
-            "sante_dispense_depuis", "sante_dispense_jusqu_au",
-            "prevoyance_branche_depuis", "echelon_ccneac",
-            "classement_conventionnel", "conges_reprise",
-            "categorie_conventionnelle", "poste_depuis"],
-};
-
 /* Les champs que la machine deduit d'un autre, ou qu'elle connait sans
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
@@ -1297,13 +1286,6 @@ function ligneStructure(cle, sous, ligne, i) {
 /* La fiche que le formulaire montre en ce moment : `quitterLaFiche` en a
  * besoin pour pouvoir l'enregistrer avant de partir. */
 let FICHE_COURANTE = null;
-
-/* La mention « facultatif », a cote du libelle d'un champ qu'on peut
- * laisser vide (FACULTATIFS). */
-function facultatif(c) {
-  return (FACULTATIFS[FICHE_ACTIVE] || []).includes(c.cle)
-    ? ' <span class="facultatif">facultatif</span>' : "";
-}
 
 /* LE MÉTIER, en tête du bloc « Emploi ». Un seul
  * déroulant, qui montre le métier de la fiche (son code France Travail). La liste est celle des métiers cochés ;
@@ -1663,7 +1645,7 @@ function enteteSalarie(fiche) {
       ${lie ? `<div class="champs">
         <div class="champ"><label>Son courriel
           <input type="email" id="invitation-courriel" placeholder="prenom.nom@exemple.fr"></label></div>
-        <div class="champ"><label>Son prénom <span class="facultatif">facultatif</span>
+        <div class="champ"><label>Son prénom
           <input id="invitation-prenom" placeholder="pour dire bonjour"></label></div>
       </div>
       <div class="actions">

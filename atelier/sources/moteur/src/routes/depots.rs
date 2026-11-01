@@ -105,7 +105,12 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let mut v = match nom {
-        "depot-apercu" => depot_apercu(ctx, charge),
+        // Les phrases de ses parties (le remplacement, le recapitulatif, le test), a la suite de la sienne.
+        "depot-apercu" => depot_apercu(ctx, charge).map(|mut v| {
+            let lignes: Vec<Value> = ["remplacement", "recapitulatif", "repetition"].iter().filter_map(|k| v[*k]["phrase"].as_str().filter(|p| !p.is_empty()).map(|p| json!(p))).collect();
+            v["phrases"] = Value::Array(lignes);
+            v
+        }),
         "deposer" => deposer(ctx, charge),
         "suivre-depot" => suivre_depot(ctx, charge),
         "bilan-repetition" => bilan_repetition(ctx, charge),
@@ -685,7 +690,7 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     } else if refuse {
         (format!("{} est refusée — voir le motif dans l'étape.", nom), "refuse")
     } else {
-        (String::new(), "en_attente")
+        (format!("{} attend le retour de l'organisme.", nom), "en_attente")
     };
     Ok(json!({"fini": passe || refuse, "passe": passe, "refuse": refuse, "incident": incident,
               "phrase": phrase, "couleur": crate::routes::couleur_de_l_etat(etat)}))

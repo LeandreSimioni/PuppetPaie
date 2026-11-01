@@ -162,13 +162,46 @@ pub const ROUTES: &[Fiche] = &[
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "saisie" => saisie(ctx, charge),
-        "apercu" => apercu(ctx, charge),
-        "echeancier" => echeancier(ctx),
-        "contrats-en-cours" => contrats_en_cours_route(ctx, charge),
-        "contrats-passes" => contrats_passes_route(ctx, charge),
-        "emploi" => emploi(charge),
-        "enregistrer-saisie" => enregistrer_saisie(ctx, charge),
-        "ajuster" => ajuster(ctx, charge),
+        "apercu" => apercu(ctx, charge).map(|v| {
+            let p = v["phrase_du_mois"].as_str().map(String::from).unwrap_or_else(|| format!("{} : {}.", valeur_en_texte(&v["libelle"]), super::compte(super::nombre(&v["paies"]), "paie", "paies")));
+            super::phrase_en_tete(v, p)
+        }),
+        "echeancier" => echeancier(ctx).map(|mut v| {
+            let ligne = |x: &Value| {
+                let quand = x["echeance_depot"]["phrase"].as_str().map(String::from).unwrap_or_else(|| super::mot(&x["date"]));
+                json!(format!("{} ({}{})", super::mot(&x["titre"]), super::mot(&x["pastille"]["mots"]), if quand.is_empty() { String::new() } else { format!(", {}", quand) }))
+            };
+            let ce_mois: Vec<Value> = v["ce_mois"].as_array().into_iter().flatten().map(ligne).collect();
+            let n = ce_mois.len();
+            let mut lignes = ce_mois;
+            lignes.extend(v["a_venir"].as_array().into_iter().flatten().map(ligne));
+            let p = format!("{} : {} ce mois-ci, {} à venir.", valeur_en_texte(&v["compagnie"]), super::compte(n, "échéance", "échéances"), super::nombre(&v["a_venir"]));
+            v["phrases"] = Value::Array(lignes);
+            super::phrase_en_tete(v, p)
+        }),
+        "contrats-en-cours" => contrats_en_cours_route(ctx, charge).map(|v| {
+            let p = format!("Contrats d'un mois passé qui courent encore ce mois : {}.", super::nombre(&v["contrats"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "contrats-passes" => contrats_passes_route(ctx, charge).map(|v| {
+            let p = format!("Contrats déclarés dans ce mois importé : {}.", super::nombre(&v["contrats"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "emploi" => emploi(charge).map(|v| {
+            let p = format!("Métier : {} ({}).", valeur_en_texte(&v["emploi_affichage"]), valeur_en_texte(&v["code_emploi_ft"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "enregistrer-saisie" => enregistrer_saisie(ctx, charge).map(|v| {
+            let p = match v["a_completer"].as_str() {
+                Some(m) => format!("Carte enregistrée ; à compléter avant de valider : {}", m),
+                None => "Carte enregistrée.".to_string(),
+            };
+            super::phrase_en_tete(v, p)
+        }),
+        "ajuster" => ajuster(ctx, charge).map(|v| {
+            let p = format!("Visé ({}) : {} € ; atteint : {} €.", valeur_en_texte(&v["cible"]), valeur_en_texte(&v["vise"]), valeur_en_texte(&v["atteint"]));
+            super::phrase_en_tete(v, p)
+        }),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -598,8 +631,7 @@ fn date_en_clair(j: &Jour) -> String {
 fn dsn(st: &Etat, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> {
     let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
-    let e = crate::compagnie::etat_dsn::du_mois(st.ctx, mois, &Value::Null)?;
-    let etat = if !e.a_faire() {
+    let etat = if !crate::compagnie::etat_dsn::due(st.ctx, mois, &Value::Null)? {
         FAIT
     } else if echeance.passee_au(aujourdhui) {
         EN_RETARD
@@ -774,7 +806,7 @@ fn echeancier(ctx: &Contexte) -> R<Value> {
     // meme lecture : on ne reclame pas a une compagnie qui commence les DSN
     // d'avant sa premiere embauche.
     let precedent = mois_plus(&courant, -1);
-    let premier = rappels::premier_mois_declarable(&st);
+    let premier = crate::compagnie::etat_dsn::premier_mois_du(ctx)?;
     let reclames = rappels::mois_a_declarer(&st).map_err(en_echec)?;
     for m in reclames.iter().cloned() {
         if m < precedent {
@@ -1690,7 +1722,7 @@ fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
 
 /// UN MOIS D'AVANT LA PREMIERE EMBAUCHE NE SE SAISIT PAS : la DSN est due par l'employeur pour les salaries qu'il
 /// emploie, et le premier mois du est celui de la premiere embauche (`premiere_embauche` de la fiche Entreprise, la
-/// borne que l'echeancier et les rappels lisent : `crate::routes::rappels::premier_mois_declarable`), une fois l'echeance
+/// borne que l'echeancier, les rappels et le panneau lisent : `compagnie::etat_dsn::premier_mois_du`), une fois l'echeance
 /// de sa DSN passee (`echeance_dsn`). Avant elle, une compagnie qui commence saisit ce mois, et sa DSN se depose a temps.
 /// Un mois qui a deja des engagements se modifie.
 pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<()> {

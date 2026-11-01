@@ -114,10 +114,27 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "imprevus" => imprevus(ctx, charge),
+        "imprevus" => imprevus(ctx, charge).map(|mut v| {
+            let n = super::nombre(&v["imprevus"]);
+            let lignes: Vec<Value> = v["imprevus"].as_array().into_iter().flatten().flat_map(|i| {
+                let t = |k: &str| super::mot(&i[k]);
+                let mut l = vec![json!(format!("{} ({}) : {}, du {} au {} — {}", t("salarie"), t("contrat"), t("motif_libelle"), t("premier_jour"), t("dernier_jour"), t("etat")))];
+                l.extend(crate::obligations::en_phrases(&i["obligations"]).into_iter().map(|o| json!(format!("  {}", o))));
+                l
+            }).collect();
+            let p = format!("Imprévus : {}.", n);
+            v["phrases"] = Value::Array(lignes);
+            super::phrase_en_tete(v, p)
+        }),
         "arrets" => arrets(ctx),
-        "fins-de-contrat" => fins_de_contrat(ctx, charge),
-        "arret-contrats" => arret_contrats(ctx, charge),
+        "fins-de-contrat" => fins_de_contrat(ctx, charge).map(|v| {
+            let p = format!("Fins de contrat du mois : {}.", super::nombre(&v["fins"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "arret-contrats" => arret_contrats(ctx, charge).map(|v| {
+            let p = format!("Contrats qu'un arrêt peut toucher : {}.", super::nombre(&v["contrats"]));
+            super::phrase_en_tete(v, p)
+        }),
         "arret-enregistrer" => arret_enregistrer(ctx, charge),
         "arret-reprise" => arret_reprise(ctx, charge),
         "arret-oublier" => arret_oublier(ctx, charge),
@@ -1430,7 +1447,7 @@ fn arrets(ctx: &Contexte) -> R<Value> {
     // Ce que l'ecran lit (Exports › Avancé) : qui, quand, le motif, ce qui reste a signaler.
     let phrases: Vec<String> = resumes
         .iter()
-        .map(|r| {
+        .flat_map(|r| {
             let t = |k: &str| r.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
             let fin = if t("fin_previsionnelle").is_empty() { String::new() } else { format!(", fin prévue le {}", crate::routes::quand(&t("fin_previsionnelle"))) };
             let reste = match t("etat").as_str() {
@@ -1438,7 +1455,10 @@ fn arrets(ctx: &Contexte) -> R<Value> {
                 "signale" => "signalé",
                 _ => "sans signalement",
             };
-            format!("{} : dernier jour travaillé le {}{} — {} — {}", t("salarie"), crate::routes::quand(&t("dernier_jour_travaille")), fin, t("motif_libelle"), reste)
+            // Puis ses obligations, une ligne chacune.
+            let mut l = vec![format!("{} : dernier jour travaillé le {}{} — {} — {}", t("salarie"), crate::routes::quand(&t("dernier_jour_travaille")), fin, t("motif_libelle"), reste)];
+            l.extend(crate::obligations::en_phrases(&r["obligations"]).into_iter().map(|o| format!("  {}", o)));
+            l
         })
         .collect();
     Ok(json!({

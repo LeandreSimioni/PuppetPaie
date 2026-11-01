@@ -96,15 +96,26 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "etat" => etat(ctx),
+        "etat" => etat(ctx).map(|v| {
+            let p = dire_la_configuration(&v["configuration"]);
+            super::phrase_en_tete(v, p)
+        }),
         // La part « configuration » de l'etat, pour les routes qui la rendent apres un enregistrement.
-        "configuration" => configuration(ctx),
+        "configuration" => configuration(ctx).map(|v| {
+            let p = dire_la_configuration(&v);
+            super::phrase_en_tete(v, p)
+        }),
         "maj-etat" => version().map(|mut v| {
             let prete = if vrai(&v["prete"]) { format!(" La version {} est prête.", valeur_en_texte(&v["prete"])) } else { String::new() };
             v["phrase"] = json!(format!("Version installée : {}.{}", valeur_en_texte(&v["courante"]), prete));
             v
         }),
-        "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
+        "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge).map(|mut v| {
+            let lignes: Vec<Value> = v["courriels"].as_array().into_iter().flatten().map(|m| json!(format!("{} → {} : {}", super::mot(&m["de"]), super::mot(&m["a"]), super::mot(&m["sujet"])))).collect();
+            let p = format!("Courriels simulés : {}.", lignes.len());
+            v["phrases"] = Value::Array(lignes);
+            super::phrase_en_tete(v, p)
+        }),
         autre => Err(plain(format!("route inconnue : {}", autre))),
     }
 }
@@ -1134,3 +1145,16 @@ fn creer_dossier(d: &std::path::Path) -> R<()> {
     std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
 }
 
+
+/// La configuration en une phrase : la compagnie, ses fiches, et ses erreurs s'il y en a.
+fn dire_la_configuration(c: &Value) -> String {
+    let nom = super::mot(&c["entreprise"]["donnees"]["nom_affichage"]);
+    let erreurs = c["erreurs"]["mots"].as_str().map(|m| format!(" ; {}", m)).unwrap_or_default();
+    format!(
+        "{} : {}, {}{}.",
+        nom,
+        super::compte(super::nombre(&c["salaries"]), "salarié", "salariés"),
+        super::compte(super::nombre(&c["spectacles"]), "spectacle", "spectacles"),
+        erreurs
+    )
+}

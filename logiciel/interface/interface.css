@@ -1483,13 +1483,8 @@ body[data-copie="1"] .bandeau { background: repeating-linear-gradient(135deg,
 .casc-option.principale { border-width: 2px; border-color: var(--action); }
 .casc-option h5 { margin: 0 0 8px; font-size: 14px; }
 @media (max-width: 760px) { .casc-choix { grid-template-columns: 1fr; } }
-/* LA FICHE SALARIE (23/09/2026). La mention d'un champ qu'on peut laisser
-   vide ; le haut de fiche, son nom et le bouton d'export sur une ligne ;
+/* LA FICHE SALARIE (23/09/2026). Le haut de fiche, son nom et le bouton d'export sur une ligne ;
    la demande par courriel d'une fiche neuve. */
-.facultatif {
-  font-size: 11px; font-weight: normal; color: var(--discret);
-  font-style: italic; margin-left: 4px;
-}
 .entete-fiche {
   display: flex; align-items: baseline; justify-content: space-between;
   gap: 12px; flex-wrap: wrap;

@@ -835,15 +835,34 @@ fn fctu_depose(journal: &[Value], cle: &str, fin: &Jour) -> Option<Fait> {
 
 // ------------------------------------------------------------------ les routes
 
-/// Une route de ce module.
+/// Une route de ce module. Sa phrase : ce que l'arret oblige a faire, une obligation par ligne (`phrases`), chacune avec
+/// ce qu'elle dit d'elle-meme.
 pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    match nom {
-        "arret-connaissance" => arret_connaissance(ctx, charge),
-        "accident-declare" => accident_declare(ctx, charge),
-        "attestation-declare" => attestation_declare(ctx, charge),
-        "arret-obligations" => arret_obligations(ctx, charge),
-        autre => Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),
+    let mut v = match nom {
+        "arret-connaissance" => arret_connaissance(ctx, charge)?,
+        "accident-declare" => accident_declare(ctx, charge)?,
+        "attestation-declare" => attestation_declare(ctx, charge)?,
+        "arret-obligations" => arret_obligations(ctx, charge)?,
+        autre => return Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),
+    };
+    let p = format!("Obligations de l'arrêt : {}.", crate::routes::nombre(&v["obligations"]));
+    let lignes: Vec<Value> = en_phrases(&v["obligations"]).into_iter().map(Value::String).collect();
+    v["phrases"] = Value::Array(lignes);
+    Ok(crate::routes::phrase_en_tete(v, p))
+}
+
+/// LES OBLIGATIONS D'UN ARRET EN PHRASES, telles que l'ecran les dit : chacune, son libelle et ce qu'elle dit d'elle-meme,
+/// puis ses suites (les reserves, la feuille d'accident). Ce que les routes qui en rendent mettent dans `phrases`.
+pub(crate) fn en_phrases(obligations: &Value) -> Vec<String> {
+    let mut out = Vec::new();
+    for o in obligations.as_array().into_iter().flatten() {
+        out.push(format!("{} : {}", en_texte(&o["libelle"]), o["phrase"].as_str().unwrap_or("")));
+        for s in o["suites"].as_array().into_iter().flatten() {
+            let (libelle, phrase) = (s["libelle"].as_str().unwrap_or(""), s["phrase"].as_str().unwrap_or(""));
+            out.push(if libelle.is_empty() || libelle == phrase { phrase.to_string() } else { format!("{} : {}", libelle, phrase) });
+        }
     }
+    out
 }
 
 fn refus(m: impl Into<String>) -> socle::echec::Echec {

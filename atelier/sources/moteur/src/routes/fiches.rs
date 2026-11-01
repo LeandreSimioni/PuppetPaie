@@ -224,23 +224,47 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             let opt = Options::de_la_charge(&json!({"sauvegarde_seule": true, "incidents_editeur": false}));
             let r = ouverture(ctx, &opt, Clients::default(), None);
             let erreur: Vec<String> = r.manquants.into_iter().chain(r.incidents).collect();
-            Ok(json!({"sauvegarde": crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json(), "erreur": erreur.join(" ")}))
+            let s = crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json();
+            let phrase = match (erreur.is_empty(), valeur_en_texte(&s["quand"])) {
+                (false, _) => format!("Sauvegarde : {}", erreur.join(" ")),
+                (true, q) if q.is_empty() => "Aucune sauvegarde faite.".to_string(),
+                (true, q) => format!("Dernière sauvegarde : {}, {} fichiers.", q, valeur_en_texte(&s["fichiers"])),
+            };
+            Ok(json!({"phrase": phrase, "sauvegarde": s, "erreur": erreur.join(" ")}))
         }
-        "couts" => couts(o, ctx, charge),
-        "permanents" => permanents(ctx, charge),
-        "taxe-sur-les-salaires-regime" => taxe_sur_les_salaires_regime(ctx, charge),
-        "verifier-fiche" => verifier_fiche(charge),
+        "couts" => couts(o, ctx, charge).map(|v| {
+            let p = format!("Coûts de {} jusqu'à {} : {}.", valeur_en_texte(&v["annee"]), valeur_en_texte(&v["jusqu_a"]), super::compte(v["spectacles"].as_object().map_or(0, |o| o.len()), "spectacle", "spectacles"));
+            super::phrase_en_tete(v, p)
+        }),
+        "permanents" => permanents(ctx, charge).map(|v| {
+            let p = if v["permanents"] == json!(true) { "La compagnie emploie des permanents." } else { "La compagnie n'emploie pas de permanents." };
+            super::phrase_en_tete(v, p)
+        }),
+        "taxe-sur-les-salaires-regime" => taxe_sur_les_salaires_regime(ctx, charge).map(|v| {
+            let p = valeur_en_texte(&v["consequence"]);
+            super::phrase_en_tete(v, p)
+        }),
+        "verifier-fiche" => verifier_fiche(charge).map(|mut v| {
+            let lignes: Vec<Value> = v["anomalies"].as_array().into_iter().flatten().map(|a| json!(valeur_en_texte(a))).collect();
+            let p = if lignes.is_empty() { "La fiche est juste.".to_string() } else { format!("Anomalies de la fiche : {}.", lignes.len()) };
+            v["phrases"] = Value::Array(lignes);
+            super::phrase_en_tete(v, p)
+        }),
         "taux-atmp" => crate::routes::atmp::route(ctx, charge),
         "activer-fiche" => activer_fiche_route(o, ctx, charge),
         "enregistrer-fiche" => enregistrer_fiche(ctx, charge),
-        "fiche-oublier-demande" => oublier_demande(o, ctx, charge),
+        "fiche-oublier-demande" => oublier_demande(o, ctx, charge).map(|v| {
+            let p = format!("Demande à {} abandonnée.", valeur_en_texte(&v["adresse"]));
+            super::phrase_en_tete(v, p)
+        }),
         "fiche-demander" => {
             let d = demander_fiche(ctx, &texte("adresse"), &texte("prenom"), &preuve_de(charge), "interface", None)?;
-            Ok(json!({"code": d.code, "adresse": d.adresse}))
+            Ok(json!({"phrase": format!("Demande de fiche envoyée à {} (code {}).", d.adresse, d.code), "code": d.code, "adresse": d.adresse}))
         }
         "fiches-relever" => {
             let r = relever_fiches(ctx, None, "interface")?;
-            Ok(json!({"attendues": r.attendues, "recues": r.recues, "incidents": r.incidents}))
+            let phrase = format!("Fiches attendues : {} ; reçues : {}.", r.attendues, r.recues.len());
+            Ok(json!({"phrase": phrase, "attendues": r.attendues, "recues": r.recues, "incidents": r.incidents}))
         }
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -1062,7 +1086,8 @@ pub(crate) fn activer_fiche(ctx: &Contexte, nom: &str, cle: &str, actif: bool) -
 fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let (nom, cle) = (texte_requis(charge, "nom")?, texte_requis(charge, "cle")?);
     activer_fiche(ctx, nom, cle, charge.get("actif").is_some_and(vrai))?;
-    Ok(json!({"etat": etat_relu(o, ctx)?}))
+    let actif = charge.get("actif").is_some_and(vrai);
+    Ok(json!({"phrase": format!("Fiche {} {}.", cle, if actif { "réactivée" } else { "archivée" }), "etat": etat_relu(o, ctx)?}))
 }
 
 // ----------------------------------------------------- fiche-oublier-demande

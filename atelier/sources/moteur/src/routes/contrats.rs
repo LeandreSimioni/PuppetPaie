@@ -144,13 +144,35 @@ pub const ROUTES: &[Fiche] = &[
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
-        "poser-courriel" => crate::routes::fiches::poser_courriel(ctx, charge),
-        "signature-apercu" => signature_apercu(ctx, charge),
-        "avenant-apercu" => avenant_apercu(ctx, charge),
-        "pieces-parties" => pieces_parties(ctx, charge),
+        "poser-courriel" => crate::routes::fiches::poser_courriel(ctx, charge).map(|v| {
+            let p = format!("Courriel de {} : {}.", t(&v, "salarie"), t(&v, "email"));
+            super::phrase_en_tete(v, p)
+        }),
+        "signature-apercu" => signature_apercu(ctx, charge).map(|mut v| {
+            let mut lignes: Vec<Value> = v["contrats"].as_array().into_iter().flatten().map(|c| {
+                let a = if t(c, "destinataire").is_empty() { "pas de courriel : il s'imprime".to_string() } else { t(c, "destinataire") };
+                json!(format!("{} ({}) : {}", t(c, "nom"), t(c, "numero"), a))
+            }).collect();
+            lignes.extend(v["avertissements"].as_array().into_iter().flatten().cloned());
+            let p = format!("Contrats à faire signer : {}.", super::nombre(&v["contrats"]));
+            v["phrases"] = Value::Array(lignes);
+            super::phrase_en_tete(v, p)
+        }),
+        "avenant-apercu" => avenant_apercu(ctx, charge).map(|v| {
+            let p = format!("Avenant {} au contrat {} de {}, à effet du {} : {}.", t(&v, "numero"), t(&v, "contrat"), t(&v, "nom"), t(&v, "effet"), super::compte(super::nombre(&v["modifications"]), "modification", "modifications"));
+            super::phrase_en_tete(v, p)
+        }),
+        "pieces-parties" => pieces_parties(ctx, charge).map(|v| {
+            let p = format!("Pièces parties : DPAE {} ; contrats {}.", super::nombre(&v["dpae"]), super::nombre(&v["contrat"]));
+            super::phrase_en_tete(v, p)
+        }),
         "demander-signature" => demander_signature(ctx, charge, &mut || client_courriel(ctx)),
-        "contrats-imprimer" => contrats_imprimer_par(ctx, charge, "interface"),
+        "contrats-imprimer" => contrats_imprimer_par(ctx, charge, "interface").map(|v| {
+            let p = format!("Contrats imprimés, à faire signer en main propre : {}.", t(&v, "chemin"));
+            super::phrase_en_tete(v, p)
+        }),
         "contrat-recu" => contrat_recu(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }

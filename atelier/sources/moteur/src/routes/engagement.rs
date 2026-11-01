@@ -39,7 +39,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Valider l'engagement d'une carte : l'écrire et calculer ses paies.",
         charge: &[MOIS, Champ { nom: "engagement", sens: "l'identité de la carte ; absente pour un engagement neuf", avance: false }, SAISIE],
         exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-27"]}]}}"#,
-        rend: "engagement (l'identité de la carte), phrase et couleur (ce qui se lit : validé, et ce qui ne pourra pas partir)",
+        rend: "engagement (l'identité de la carte), phrase",
         refus: &[SAISIE_INCOMPLETE, OPERATION, FORME],
         acte: Acte::Ecrit,
         avance: false,
@@ -58,7 +58,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "a_partir_du_jour", sens: "son jour, quand ce n'est pas le 1er", avance: true },
         ],
         exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":160,"dates":["2026-11-27"]}]}}"#,
-        rend: "rien n'a changé : change faux ; ce qui est parti le demande : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit ; écrit : change, phrase et couleur",
+        rend: "rien n'a changé : change faux ; ce qui est parti le demande : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit ; écrit : change, phrase",
         refus: &[
             SAISIE_INCOMPLETE,
             OPERATION,
@@ -152,23 +152,13 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     if let Some(manque) = crate::routes::mois::manques_de_la_saisie(ctx, &data).swap_remove(i) {
         return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
     }
-    let v = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?;
+    engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?;
     brouillon.ecrire().map_err(Echec::from)?;
     let e = &data["engagements"][i];
     if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
         crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(e))?;
     }
-    let (phrase, couleur) = phrase_de_validation("Engagement validé.", avis_de_validation(ctx, &v, &departs)?);
-    Ok(json!({"engagement": id, "phrase": phrase, "couleur": couleur}))
-}
-
-/// La phrase que l'on lit apres une validation : `fait`, puis l'avis qui l'accompagne ; sa couleur, orange quand un avis
-/// dit quelque chose a faire.
-fn phrase_de_validation(fait: &str, avis: Option<String>) -> (String, Value) {
-    match avis {
-        Some(a) => (format!("{} {}", fait, a), json!("orange")),
-        None => (fait.to_string(), Value::Null),
-    }
+    Ok(json!({"engagement": id, "phrase": "Engagement validé."}))
 }
 
 // ------------------------------------------------------------------ modifier-engagement
@@ -180,7 +170,7 @@ enum Issue {
     /// Ce qui est parti le demande : l'avertissement, a confirmer.
     Avertir(Value),
     /// Ecrite : l'engagement revalide.
-    Ecrite(engagement::etats::Valide),
+    Ecrite,
 }
 
 /// « MODIFIER L'ENGAGEMENT » : les valeurs que la carte ouverte d'un engagement valide montre, ecrites d'un geste.
@@ -225,8 +215,8 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     // LA MODIFICATION SE FAIT DANS UN BROUILLON (`engagement::stock::Brouillon`) : calculee en memoire, elle ne s'ecrit
     // sur le disque que quand elle est faite ; rien n'a change, un avertissement a confirmer, un refus : rien n'est ecrit.
     let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
-    let valide = match modifier_puis_revalider(ctx, mois, i, &o, saisie, confirme, a_partir_du.as_deref(), le)? {
-        Issue::Ecrite(valide) => valide,
+    match modifier_puis_revalider(ctx, mois, i, &o, saisie, confirme, a_partir_du.as_deref(), le)? {
+        Issue::Ecrite => {}
         Issue::Rien => return Ok(json!({"change": false})),
         Issue::Avertir(a) => return Ok(json!({"avertissement": a})),
     };
@@ -236,10 +226,8 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
         crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(e))?;
     }
-    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
-    let (phrase, couleur) = phrase_de_validation("Engagement modifié.", avis_de_validation(ctx, &valide, &departs)?);
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
-    Ok(json!({"change": true, "phrase": phrase, "couleur": couleur}))
+    Ok(json!({"change": true, "phrase": "Engagement modifié."}))
 }
 
 /// La modification elle-meme, dans le brouillon ouvert : l'engagement `o`, de rang `i`, se rouvre, prend sa saisie et
@@ -295,7 +283,7 @@ fn modifier_puis_revalider(
     if !confirme && !lignes.is_empty() {
         return Ok(Issue::Avertir(json!({"engagements": en_valeur(engagement::etats::qui_de(ctx, v.objet()), lignes), "a_partir_du": Value::Null})));
     }
-    Ok(Issue::Ecrite(v))
+    Ok(Issue::Ecrite)
 }
 
 /// Le contrat (ou un avenant) de l'engagement `o` est-il parti ?
@@ -372,40 +360,6 @@ fn ce_qui_arrive_aux_mois_partis(ctx: &Contexte, q: &engagement::etats::APartirD
         out.push(format!("dès {} : {}{}", engagement::libelle_mois(mois), un_bulletin_rectificatif(mois), dsn));
     }
     Ok(out)
-}
-
-/// CE QUE LA VALIDATION DIT SANS REFUSER, pour l'engagement valide `v` : ce qu'il fait signer (son contrat tant qu'il
-/// n'est pas parti, ensuite l'avenant que le changement demande, `ce_que_le_changement_entraine`, ou rien) part a la
-/// signature par courriel, a l'adresse de la fiche ; sans elle, il ne partira pas (`compagnie::signature`, qui le refuse
-/// au depart). Il s'imprime, ou le courriel se saisit.
-fn avis_de_validation(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Option<String>> {
-    let e = &Value::Object(v.objet().brut.clone());
-    let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Ok(None) };
-    let nature = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_err(Echec::from)?;
-    let numero = e.get("numero").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
-    if nature.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &engagement::debut_brut(e), &numero) {
-        return Ok(None);
-    }
-    let fiche = ctx.salarie(&cle).map_err(Echec::from)?;
-    if fiche.get("email").map(valeur_en_texte).is_some_and(|m| !m.trim().is_empty()) {
-        return Ok(None);
-    }
-    let document = if !contrat_parti(ctx, v.objet(), departs) {
-        "contrat"
-    } else if ce_que_le_changement_entraine(ctx, v, departs)?.iter().any(|l| l == UN_AVENANT) {
-        "avenant"
-    } else {
-        return Ok(None);
-    };
-    let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(valeur_en_texte);
-    let qui = [texte("nom"), texte("prenom_affichage").or_else(|| texte("prenom"))].into_iter().flatten().collect::<Vec<_>>().join(" ");
-    Ok(Some(format!(
-        "{} n'a pas de courriel dans sa fiche : son {} ne pourra pas partir à la signature par courriel. Imprimez-le \
-         pour le faire signer, ou saisissez son courriel (étape « Contrats » de la paie, ou sa fiche dans Configuration › \
-         Salariés).",
-        if qui.is_empty() { cle } else { qui },
-        document
-    )))
 }
 
 // ------------------------------------------------------------------ retirer-engagement

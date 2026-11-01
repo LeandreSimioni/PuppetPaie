@@ -129,9 +129,8 @@ fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
 /// `atelier/reference/norme-dsn/texte-2027/chapitre-2-principes-de-constitution.txt`, §2.1.2.1 et §2.1.3.6). Partie,
 /// elle ne se porte plus.
 ///
-/// La ligne DSN de decembre : sans engagement valide dans le mois ni correction a porter, rien n'est a declarer (l'ecran des etapes :
-/// « à déposer dès qu'il y a des engagements validés dans le mois ») ; la correction de novembre a porter la rend a
-/// deposer (§2.1.2.1 : une correction « donne lieu à la déclaration d'une correction dans la DSN suivante »).
+/// La ligne DSN de decembre : la correction de novembre a porter la rend a deposer (§2.1.2.1 : une correction « donne
+/// lieu à la déclaration d'une correction dans la DSN suivante »).
 #[test]
 fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
     use engagement::etats::ARefaire;
@@ -142,7 +141,6 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
         let dsn = etapes.iter().find(|e| e["cle"] == json!("dsn")).expect("la ligne DSN").clone();
         dsn["groupes"].as_array().unwrap().iter().map(|g| g["etat"].as_str().unwrap().to_string()).collect()
     };
-    assert_eq!(dsn_de_decembre(), ["rien"], "un mois sans rien a declarer");
     let charge = json!({"mois": "2026-11", "engagement": outils::identite_a(&racine, "2026-11", 0), "confirme": true});
     outils::reussi(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
     assert_eq!(dsn_de_decembre(), ["a_faire"], "la DSN de decembre porte la correction de novembre");

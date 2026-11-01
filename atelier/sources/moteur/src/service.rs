@@ -36,6 +36,11 @@ pub(crate) fn racine_de(o: &HashMap<String, String>) -> PathBuf {
     }
 }
 
+/// La route nomme-t-elle une compagnie (`--racine`, ou `PUPPETPAIE_DONNEES`) ?
+pub(crate) fn compagnie_nommee(o: &HashMap<String, String>) -> bool {
+    o.get("racine").is_some_and(|r| !r.is_empty()) || std::env::var("PUPPETPAIE_DONNEES").is_ok_and(|e| !e.is_empty())
+}
+
 pub(crate) fn contexte(o: &HashMap<String, String>) -> Resultat<Contexte> {
     let date = o.get("date").map(|d| Jour::lire(d)).transpose()?;
     Contexte::nouveau(&racine_de(o), date)
@@ -78,6 +83,11 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
         m.insert("erreur".into(), Value::String(e));
         Value::Object(m)
     });
+    // LE MESSAGE AU DEVELOPPEUR PART AUSSITOT, comme la fenetre le fait partir en fond (`interface::api`) : le processus
+    // attend son depart, sans changer ce que la route a rendu.
+    if nom == "signalement-envoyer" && corps["ok"] == Value::Bool(true) {
+        let _ = crate::routes::commande(&o, r#"{"route":"signalements-partir","charge":{}}"#);
+    }
     if texte_seul {
         dire_sans_ligne!("{}", en_texte(&nom, &corps));
     } else {
@@ -103,18 +113,18 @@ fn sans_mot_de_passe(entree: &str) -> Resultat<String> {
     Ok(d.to_string())
 }
 
-/// `--texte` : ce que la page lit de la reponse, sans la composer. Une reussite : chaque `phrase` du resultat (et les lignes
-/// d'une liste `phrases`), dans
-/// l'ordre ou la route les rend (le resultat entier s'il n'en porte aucune) ; un refus : sa phrase, et ce que la fiche de
-/// cette route dit de corriger pour sa classe.
-fn en_texte(route: &str, rep: &Value) -> String {
+/// `--texte` : ce que la page lit de la reponse, sans la composer, et jamais du JSON. Une reussite : la phrase de la route
+/// (`phrase`, que chaque route rend : `routes::phrase_en_tete`), puis les lignes d'une liste `phrases` ; un refus : sa
+/// phrase, et ce que la fiche de cette route dit de corriger pour sa classe.
+pub fn en_texte(route: &str, rep: &Value) -> String {
     if rep.get("ok").and_then(Value::as_bool) == Some(true) {
-        let mut phrases = Vec::new();
-        phrases_de(&rep["resultat"], &mut phrases);
-        if phrases.is_empty() {
-            return format!("{}\n", serde_json::to_string_pretty(&rep["resultat"]).unwrap_or_default());
+        let r = &rep["resultat"];
+        let mut lignes: Vec<String> = r.get("phrase").and_then(Value::as_str).filter(|p| !p.is_empty()).map(String::from).into_iter().collect();
+        lignes.extend(r.get("phrases").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str).map(String::from));
+        if lignes.is_empty() {
+            lignes.push(format!("La route {} n'a pas rendu de phrase.", route));
         }
-        return phrases.iter().map(|p| format!("{}\n", p)).collect();
+        return lignes.iter().map(|p| format!("{}\n", p)).collect();
     }
     let phrase = rep.get("erreur").map(socle::valeur::valeur_en_texte).unwrap_or_default();
     let classe = rep.get("classe").and_then(Value::as_str).unwrap_or("");
@@ -126,20 +136,4 @@ fn en_texte(route: &str, rep: &Value) -> String {
         .map(|r| format!("A corriger : {}\n", r.corriger))
         .unwrap_or_default();
     format!("Refus{} : {}\n{}", if classe.is_empty() { String::new() } else { format!(" ({})", classe) }, phrase, corriger)
-}
-
-fn phrases_de(v: &Value, phrases: &mut Vec<String>) {
-    match v {
-        Value::Object(m) => {
-            for (k, x) in m {
-                match x {
-                    Value::String(s) if k == "phrase" && !s.is_empty() => phrases.push(s.clone()),
-                    Value::Array(a) if k == "phrases" => phrases.extend(a.iter().filter_map(Value::as_str).map(String::from)),
-                    _ => phrases_de(x, phrases),
-                }
-            }
-        }
-        Value::Array(a) => a.iter().for_each(|x| phrases_de(x, phrases)),
-        _ => {}
-    }
 }

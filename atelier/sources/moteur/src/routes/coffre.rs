@@ -225,17 +225,37 @@ pub const ROUTES: &[Fiche] = &[
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    let mots = |v: &Value| valeur_en_texte(&v["pastille"]["mots"]);
+    // L'etat du coffre en une phrase : chaque service et ce que l'ecran en dit.
+    let coffre = |fait: &str, v: Value| {
+        let services: Vec<String> = v["services"].as_array().into_iter().flatten().map(|s| format!("{} : {}", valeur_en_texte(&s["libelle"]), mots(s))).collect();
+        let p = format!("{}{}.", fait, services.join(" ; "));
+        super::phrase_en_tete(v, p)
+    };
     match nom {
-        "coffre-etat" => coffre_etat(ctx),
-        "google-etat" => google_etat(ctx),
+        "coffre-etat" => coffre_etat(ctx).map(|v| coffre("", v)),
+        "google-etat" => google_etat(ctx).map(|v| {
+            let p = format!("Google Drive : {}.", mots(&v));
+            super::phrase_en_tete(v, p)
+        }),
         "coffre-poser" => coffre_poser(ctx, charge),
-        "coffre-verifier" => crate::compagnie::coffre_verifier::route(ctx, charge),
-        "coffre-oublier" => coffre_oublier(ctx, charge),
-        "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge),
-        "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge),
-        "google-oublier" => google_oublier(ctx, charge),
-        "google-autoriser" => google_autoriser(ctx, charge),
-        "administrateur-etat" => Ok(administrateur_etat(&ctx.racine)),
+        "coffre-verifier" => crate::compagnie::coffre_verifier::route(ctx, charge).map(|v| {
+            let p = format!("{} : {}. {}", valeur_en_texte(&v["service"]), mots(&v), valeur_en_texte(&v["message"])).trim().to_string();
+            super::phrase_en_tete(v, p)
+        }),
+        "coffre-oublier" => coffre_oublier(ctx, charge).map(|v| coffre("Mot de passe retiré du coffre. ", v)),
+        "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge).map(|v| coffre("Mot de passe du logiciel posé. ", v)),
+        "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge).map(|v| coffre("Mot de passe du logiciel retiré. ", v)),
+        "google-oublier" => google_oublier(ctx, charge).map(|v| super::phrase_en_tete(v, "Compte Google délié : la sauvegarde ne va plus au Drive.")),
+        "google-autoriser" => google_autoriser(ctx, charge).map(|v| {
+            let p = format!("Compte Google lié : {}.", valeur_en_texte(&v["compte"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "administrateur-etat" => {
+            let v = administrateur_etat(&ctx.racine);
+            let p = format!("Mot de passe de la compagnie : {}.", mots(&v));
+            Ok(super::phrase_en_tete(v, p))
+        }
         "administrateur-rattacher" | "administrateur-detacher" => administrateur(&ctx.racine, nom, charge, &Poste::de_ce_poste()),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }

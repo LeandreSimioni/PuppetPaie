@@ -58,7 +58,8 @@ fn treteaux(test: &str) -> PathBuf {
 }
 
 /// Les exemples des fiches, joues dans l'ordre du catalogue sur une compagnie de test (Les Treteaux du Banc, au 02/11) :
-/// chacun est accepte, et la phrase rendue tient dans sa place.
+/// chacun est accepte, rend sa phrase (ce que `moteur route --texte` imprime, jamais du JSON), et celle-ci tient dans sa
+/// place.
 #[test]
 fn l_exemple_de_chaque_fiche_est_accepte() {
     let c = treteaux("exemples");
@@ -136,6 +137,7 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
             _ => route_avec(&c, f.nom, exemple, "2026-11-02", &[(VARIABLE_ESSAIS, "exemple")]),
         };
         assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom, r);
+        assert!(r["resultat"]["phrase"].as_str().is_some_and(|p| !p.trim().is_empty()) && !moteur::service::en_texte(f.nom, &r).trim_start().starts_with(['{', '[']), "{} : sa phrase manque (moteur route --texte ne rend que des phrases, celles que l'écran lit) : {}", f.nom, r);
         if f.phrase > 0 {
             let p = r["resultat"]["phrase"].as_str().unwrap_or_else(|| panic!("{} : la phrase manque : {}", f.nom, r));
             assert!(p.chars().count() <= f.phrase, "{} : la phrase passe sa place ({}) : {}", f.nom, f.phrase, p);

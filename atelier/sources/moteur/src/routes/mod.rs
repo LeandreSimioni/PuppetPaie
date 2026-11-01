@@ -130,9 +130,18 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     if catalogue::dans(accueil::ROUTES, route).is_some() {
         return reponse(accueil::route(o, route, &charge));
     }
+    // ECRIRE AU DEVELOPPEUR, ET CE QUI S'Y RATTACHE, SE SERT AUSSI SANS COMPAGNIE : depuis l'accueil, ou en ligne de
+    // commande sans `--racine` (`filet::sans_compagnie`).
+    if catalogue::dans(filet::ROUTES, route).is_some() && !crate::service::compagnie_nommee(o) {
+        return reponse(filet::route_sans_compagnie(o, route, &charge));
+    }
     // Le catalogue lui-meme, ce que `moteur routes --json` imprime : il ne porte sur aucune compagnie non plus.
     if catalogue::dans(catalogue::ROUTES, route).is_some() {
-        return reponse(Ok(catalogue::en_json(charge.get("avance").is_some_and(vrai))));
+        let mut v = catalogue::en_json(charge.get("avance").is_some_and(vrai));
+        let lignes: Vec<Value> = v["routes"].as_array().into_iter().flatten().map(|f| json!(format!("{} : {}", mot(&f["nom"]), mot(&f["geste"])))).collect();
+        let p = format!("Routes : {} (la fiche de chacune : moteur routes NOM).", lignes.len());
+        v["phrases"] = Value::Array(lignes);
+        return reponse(Ok(phrase_en_tete(v, p)));
     }
     // UNE ROUTE QUI PORTE UN MOIS LIT LA CONFIGURATION DE CE MOIS (`Contexte::du_mois`) : sa paie, sa DSN et ses documents
     // se font sous les valeurs qui valaient alors, jamais sous celles d'aujourd'hui.
@@ -382,4 +391,30 @@ fn ou_texte(v: &Value) -> Value {
 
 pub(crate) fn vers_route(x: crate::compagnie::coffre::Echec) -> Echec {
     Echec { classe: Some(x.classe), message: x.message }
+}
+
+/// LA PHRASE D'UNE ROUTE, en tete de ce qu'elle rend : celle que l'ecran lit, et que `moteur route --texte` imprime
+/// (`service::en_texte`). Chaque route en rend une ; une phrase deja posee par la route est remplacee.
+pub(crate) fn phrase_en_tete(v: Value, phrase: impl Into<String>) -> Value {
+    let mut m = Map::new();
+    m.insert("phrase".into(), Value::String(phrase.into()));
+    if let Value::Object(o) = v {
+        m.extend(o.into_iter().filter(|(k, _)| k != "phrase"));
+    }
+    Value::Object(m)
+}
+
+/// « 1 salarié », « 3 salariés » : `n` et le nom, au pluriel quand il le faut (un `s` de plus, ou `pluriel`).
+pub(crate) fn compte(n: usize, un: &str, pluriel: &str) -> String {
+    format!("{} {}", n, if n > 1 { pluriel } else { un })
+}
+
+/// Le nombre d'elements d'une liste rendue (0 : pas une liste).
+pub(crate) fn nombre(v: &Value) -> usize {
+    v.as_array().map_or(0, Vec::len)
+}
+
+/// Une valeur rendue, en mots dans une phrase : rien pour une valeur absente (jamais « None »).
+pub(crate) fn mot(v: &Value) -> String {
+    if v.is_null() { String::new() } else { valeur_en_texte(v) }
 }

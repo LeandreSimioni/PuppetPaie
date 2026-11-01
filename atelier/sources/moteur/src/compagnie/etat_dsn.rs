@@ -90,3 +90,35 @@ pub(crate) fn du_mois(ctx: &Contexte, mois: &str, nic: &Value) -> R<EtatDsn> {
         "quand": Value::Null,
     })))
 }
+
+/// LE PREMIER MOIS DONT LA COMPAGNIE DOIT UNE DSN, quand on le sait. Une compagnie neuve n'est en retard de rien : le
+/// premier mois du est celui de sa premiere embauche (`premiere_embauche` de la fiche Entreprise) ; sans cette date, une
+/// compagnie qui n'a ni paie saisie ni DSN au journal n'a encore rien a declarer avant le mois courant (des fiches ne
+/// sont pas un passe). `None` : rien ne borne -- une compagnie qui a deja des paies ou des declarations.
+pub(crate) fn premier_mois_du(ctx: &Contexte) -> R<Option<String>> {
+    let embauche: String = ctx.entreprise.get("premiere_embauche").filter(|v| vrai(v)).map(socle::date::en_texte).unwrap_or_default().chars().take(7).collect();
+    if !embauche.is_empty() {
+        return Ok(Some(embauche));
+    }
+    if !engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().is_empty() {
+        return Ok(None);
+    }
+    let journal = envois::journal::lu(&ctx.racine)?;
+    if journal.lignes.iter().any(|l| l.get("quoi").and_then(Value::as_str) == Some(etats::DSN)) {
+        return Ok(None);
+    }
+    Ok(Some(ctx.aujourdhui.mois_iso()))
+}
+
+/// LA DSN DE `mois` EST-ELLE DUE pour l'etablissement `nic` (`Null` : le principal) ? « La DSN est mensuelle et
+/// produite par établissement employeur. Par principe, elle est générée par l'acte de paie et liée à la présence de
+/// salariés [...]. A défaut, une DSN Sans individu devra être produite » (cahier technique DSN 2026.1, § 2.4,
+/// `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt` l. 2291-2309) : elle est due chaque mois,
+/// avec ou sans salarie, a partir du premier mois du (`premier_mois_du`), tant qu'elle reste a faire
+/// (`EtatDsn::a_faire`). LE SEUL ENDROIT QUI LE DIT : l'echeancier, les rappels et le panneau des etapes le lisent.
+pub(crate) fn due(ctx: &Contexte, mois: &str, nic: &Value) -> R<bool> {
+    if premier_mois_du(ctx)?.is_some_and(|p| mois < p.as_str()) {
+        return Ok(false);
+    }
+    Ok(du_mois(ctx, mois, nic)?.a_faire())
+}

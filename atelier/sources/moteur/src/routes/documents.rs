@@ -96,10 +96,29 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "envoi-apercu" => envoi_apercu(ctx, charge),
+        "envoi-apercu" => envoi_apercu(ctx, charge).map(|mut v| {
+            let t = |x: &Value, k: &str| super::mot(&x[k]);
+            let mut lignes: Vec<Value> = v["messages"].as_array().into_iter().flatten().map(|m| {
+                let pieces: Vec<String> = m["pieces"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+                json!(format!("{} ({}) : {}", t(m, "nom"), t(m, "destinataire"), pieces.join(", ")))
+            }).collect();
+            for k in ["empechements", "avertissements", "informations"] {
+                lignes.extend(v[k].as_array().into_iter().flatten().cloned());
+            }
+            let p = format!("Documents à envoyer par courriel, de {} : {}.", t(&v, "expediteur"), super::compte(super::nombre(&v["messages"]), "message", "messages"));
+            v["phrases"] = Value::Array(lignes);
+            super::phrase_en_tete(v, p)
+        }),
         "envoyer-documents" => envoyer_documents(ctx, charge, &mut || client_courriel(ctx)),
-        "documents-imprimer" => documents_imprimer(ctx, charge, &qui_de(charge)),
-        "piece-partie" => crate::compagnie::depart::piece_partie_route(ctx, charge),
+        "documents-imprimer" => documents_imprimer(ctx, charge, &qui_de(charge)).map(|v| {
+            let qui: Vec<String> = v["salaries"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+            let p = format!("Documents imprimés ({}), à remettre en main propre : {}.", qui.join(", "), valeur_en_texte(&v["chemin"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "piece-partie" => crate::compagnie::depart::piece_partie_route(ctx, charge).map(|v| {
+            let p = format!("La pièce partie : {}.", valeur_en_texte(&v["chemin"]));
+            super::phrase_en_tete(v, p)
+        }),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }

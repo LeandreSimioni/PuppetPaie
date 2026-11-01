@@ -49,8 +49,7 @@ function dessinerCase(et, k, g, colonnes, neuves, gestes) {
   const cote = g.colonnes[0] !== colonnes[0];
   const neuf = g.colonnes.some((c) => neuves.has(c));
   const ech = g.echeance && g.echeance.court;
-  const titre = [et.nom, g.phrase, g.echeance && g.echeance.texte && `— ${g.echeance.texte}`, et.phrase]
-    .filter(Boolean).join(" ");
+  const titre = [g.phrase || et.nom, et.phrase].filter(Boolean).join(" — ");
   let bouton = "";
   if (!fini && g.action) {
     gestes.push(g.action);

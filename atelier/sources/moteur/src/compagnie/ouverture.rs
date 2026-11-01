@@ -284,7 +284,22 @@ impl Ouverture {
 ///   reseau.** Elle ne rend jamais d'erreur : une panne est une phrase de `incidents`.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "ouverture" => Ok(ouverture(ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json()),
+        "ouverture" => {
+            let mut v = ouverture(ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json();
+            // Ce que le passage a fait et trouve, une ligne par chose : ce que l'horloge a joue, les taux de PAS, ce qui
+            // manque, les incidents.
+            let texte = |x: &Value| x.as_str().map(String::from).unwrap_or_else(|| crate::routes::mot(x));
+            let mut lignes: Vec<Value> = Vec::new();
+            for k in ["horloge", "manquants", "incidents"] {
+                lignes.extend(v[k].as_array().into_iter().flatten().map(|x| json!(texte(x))));
+            }
+            if let Some(t) = v["taux_pas_phrase"].as_str().filter(|t| !t.is_empty()) {
+                lignes.push(json!(t));
+            }
+            let p = format!("Ouverture du {} : {}", crate::routes::mot(&v["quand"]), crate::routes::mot(&v["retours"]["resume"]));
+            v["phrases"] = Value::Array(lignes);
+            Ok(crate::routes::phrase_en_tete(v, p))
+        }
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

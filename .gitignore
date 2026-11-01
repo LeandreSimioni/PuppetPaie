@@ -75,6 +75,9 @@ atelier/prive-dev/config/.jeton-interface
 # portable, le profil de son navigateur et le jeton de sa page.
 /.fenetre.json
 /.fenetre/
+# CE QU'ON ECRIT AU DEVELOPPEUR SANS COMPAGNIE (moteur/src/routes/filet.rs, `sans_compagnie`) : les messages ecrits a
+# l'accueil, leur depart et l'identite du poste.
+/.accueil/
 
 # Le mode developpeur de CE poste (moteur/compagnies.py).
 .mode-developpeur.json

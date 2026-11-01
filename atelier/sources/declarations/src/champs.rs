@@ -76,7 +76,10 @@ pub struct Champ {
     /// LA SEULE LISTE de ce qu'un acte exige d'une fiche, que « Pour demarrer » (`demarrage::manques`) et l'acte
     /// (`refus_des_manques`) lisent.
     pub exige_par: Vec<String>,
-    /// Ce qui se passe sans lui, quand rien ne se refuse (`sinon`) : « Pour demarrer » le dit en facultatif.
+    /// Les gestes qu'il sert sans les bloquer (`utile_pour`, meme vocabulaire que `exige_par`) : sans lui, ils se font
+    /// autrement, ce que dit `sinon`. « Pour demarrer » le dit : « utile pour ... ; sinon, ... ».
+    pub utile_pour: Vec<String>,
+    /// Ce qui se passe sans lui, quand rien ne se refuse (`sinon`).
     pub sinon: String,
     /// Les cases d'une structure (`champs`), decrites comme les champs ; une autre cle s'y refuse. Une case peut etre un
     /// chemin (`taux.t1_cadre` : la case `t1_cadre` du bloc `taux`).
@@ -120,6 +123,7 @@ impl Champ {
             booleen_defaut: drapeau("booleen_defaut", true),
             ecran: drapeau("ecran", true),
             exige_par: v.get("exige_par").and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default(),
+            utile_pour: v.get("utile_pour").and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default(),
             sinon: texte("sinon"),
             champs: v.get("champs").and_then(Value::as_array).map(|a| a.iter().map(Champ::lire).collect()).unwrap_or_default(),
             libelles: v.get("libelles").cloned().unwrap_or_else(|| json!({})),
@@ -147,7 +151,7 @@ impl Champ {
             "si_entreprise": self.si_entreprise,
             "exige_si": self.exige_si,
             "booleen_defaut": self.booleen_defaut, "ecran": self.ecran,
-            "exige_par": self.exige_par, "bloque": actes_en_clair(&self.exige_par), "sinon": self.sinon,
+            "exige_par": self.exige_par, "bloque": actes_en_clair(&self.exige_par), "utile_pour": self.utile_pour, "utile": actes_en_clair(&self.utile_pour), "sinon": self.sinon,
             "champs": self.champs.iter().map(Champ::description).collect::<Vec<_>>(),
             "libelles": self.libelles, "boutons": self.boutons,
             "si_configuration": self.si_configuration, "ligne": self.ligne,
@@ -173,6 +177,7 @@ fn acte_en_clair(acte: &str) -> &str {
         "bulletin" => "les bulletins",
         "certificat" => "les certificats Congés Spectacles",
         "paie" => "toute paie",
+        "envoi" => "l'envoi par courriel de ses contrats et de ses documents",
         autre => autre,
     }
 }
@@ -187,7 +192,7 @@ pub fn actes_en_clair(actes: &[String]) -> String {
     }
 }
 
-/// Une case vide d'une fiche qu'un acte exige (`exige_par`) ou dont l'absence se dit (`sinon`).
+/// Une case vide d'une fiche qu'un acte exige (`exige_par`) ou qu'un geste se sert (`utile_pour`, et ce qui se passe sans elle : `sinon`).
 #[derive(Debug, Clone)]
 pub struct Manquant {
     /// Son chemin dans la fiche (`signataire.fonction`).
@@ -198,11 +203,12 @@ pub struct Manquant {
     pub libelle: String,
     pub aide: String,
     pub actes: Vec<String>,
+    pub utile: Vec<String>,
     pub sinon: String,
 }
 
 /// CE QUI MANQUE A LA FICHE `donnees` (`entreprise`, `salarie`) pour les actes de la compagnie : chaque champ, et chaque
-/// case de structure, qui porte `exige_par` ou `sinon`, s'il s'applique (`si`, `exige_si` ; une case suit sa
+/// case de structure, qui porte `exige_par` ou `utile_pour`, s'il s'applique (`si`, `exige_si` ; une case suit sa
 /// structure) et qu'il est vide. Un champ declare se dit par sa forme lisible (`derive_de`).
 pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
     // La case que l'ecran montre pour `c` : celle dont il se deduit, s'il se deduit.
@@ -212,10 +218,10 @@ pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
     let tous = fiche(nom)?;
     let mut out = Vec::new();
     let mut voir = |c: &Champ, m: &Champ, chemin: (String, String), libelle: String, v: Option<&Value>| {
-        if (c.exige_par.is_empty() && c.sinon.is_empty()) || v.is_some_and(vrai) {
+        if (c.exige_par.is_empty() && c.utile_pour.is_empty()) || v.is_some_and(vrai) {
             return;
         }
-        out.push(Manquant { cle: chemin.0, ecran: chemin.1, libelle, aide: m.aide.clone(), actes: c.exige_par.clone(), sinon: c.sinon.clone() });
+        out.push(Manquant { cle: chemin.0, ecran: chemin.1, libelle, aide: m.aide.clone(), actes: c.exige_par.clone(), utile: c.utile_pour.clone(), sinon: c.sinon.clone() });
     };
     for c in tous.iter().filter(|c| c.applicable(donnees)) {
         let m = montre(&tous, c);
@@ -231,10 +237,10 @@ pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
 }
 
 /// LA CASE `cle` DE LA FICHE `nom` SERT-ELLE A UN ACTE ? Elle, ou le champ declare qui se deduit d'elle (`derive_de`),
-/// porte `exige_par` ou `sinon` : la meme liste que `manquants`. Le questionnaire du salarie n'en pose pas d'autre.
+/// porte `exige_par` ou `utile_pour` : la meme liste que `manquants`. Le questionnaire du salarie n'en pose pas d'autre.
 pub fn utile(nom: &str, cle: &str) -> bool {
     fiche(nom).is_ok_and(|t| {
-        t.iter().any(|c| (c.cle == cle || c.derive_de.as_deref() == Some(cle)) && (!c.exige_par.is_empty() || !c.sinon.is_empty()))
+        t.iter().any(|c| (c.cle == cle || c.derive_de.as_deref() == Some(cle)) && (!c.exige_par.is_empty() || !c.utile_pour.is_empty()))
     })
 }
 
@@ -247,16 +253,17 @@ pub fn refus_des_manques(acte: &str, fiches: &[(&str, String, &Value)], sauf: &[
         let manque: Vec<String> =
             manquants(nom, donnees)?.into_iter().filter(|m| m.actes.iter().any(|a| a == acte) && !sauf.contains(&m.cle.as_str())).map(|m| m.libelle).collect();
         if !manque.is_empty() {
-            lignes.push(format!("  - {} : {}", qui, manque.join(", ")));
+            let manque: Vec<String> = manque.iter().map(|l| format!("« {} »", l)).collect();
+            lignes.push(format!("{} dans {}", manque.join(", "), qui));
         }
     }
     if lignes.is_empty() {
         return Ok(None);
     }
     Ok(Some(format!(
-        "Pour {}, il manque, dans Configuration :\n{}\nRien n'est écrit.",
+        "Pour {}, il manque, à remplir dans Configuration : {}. Rien n'est écrit.",
         acte_en_clair(acte),
-        lignes.join("\n")
+        lignes.join(" ; ")
     )))
 }
 

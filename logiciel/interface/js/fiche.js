@@ -193,7 +193,7 @@ function champDeFiche(c, fiche, nom) {
       const v2 = String(v ?? "").trim();
       const connu = liste.some((p) => p.code === v2.toUpperCase());
       return `<div class="champ">
-        <label>${echapper(c.libelle)}${facultatif(c, nom)}
+        <label>${echapper(c.libelle)}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="pays"
               class="${a ? (a.gravite === "erreur" ? "faute" : "suspect") : ""}">
@@ -222,7 +222,7 @@ function champDeFiche(c, fiche, nom) {
         ...Object.keys(lib).filter((x) => x && c.choix.includes(x)),
         ...c.choix.filter((x) => x && !(x in lib))];
       return `<div class="champ${nom === "entreprise" ? " pleine" : ""}">
-        <label>${echapper(c.libelle)}${facultatif(c, nom)}
+        <label>${echapper(c.libelle)}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="choix">
             ${c.choix.includes("") ? "" : `<option value=""${v1 ? "" : " selected"}>— ${
@@ -242,7 +242,7 @@ function champDeFiche(c, fiche, nom) {
     if (c.cle === "alias" && nom === "spectacle"
         && (v == null || (Array.isArray(v) && v.every((x) => typeof x === "string")))) {
       return `<div class="champ pleine">
-        <label>${echapper(c.libelle)}${facultatif(c, nom)} ${aideHtml(c.cle, c.aide)}
+        <label>${echapper(c.libelle)} ${aideHtml(c.cle, c.aide)}
           <input data-cle="${c.cle}" data-liste-textes="1" value="${echapper((v || []).join(", "))}"
                  placeholder="ex. zerbinette, aaah">
         </label>
@@ -298,7 +298,7 @@ function champDeFiche(c, fiche, nom) {
         c.si_permanents ? " champ-permanents" : ""}"${
         (c.si_permanents && !avecPermanents)
           || (c.si_etablissements && !avecEtablissements) ? " hidden" : ""}>
-      <label>${echapper(c.libelle)}${facultatif(c, nom)}
+      <label>${echapper(c.libelle)}
         ${aideHtml(c.cle, c.aide)}
         ${controle}
       </label>

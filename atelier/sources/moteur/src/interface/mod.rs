@@ -770,7 +770,9 @@ impl Fenetre {
                 // LA SEULE PORTE DE LA PAGE VERS LE MOTEUR : une route du catalogue. Celle de l'installation se sert a tout
                 // moment ; celle d'une compagnie, quand la compagnie est ouverte -- ou quand elle n'a pas encore de mot de
                 // passe (rien a deverrouiller : la page du premier mot de passe le pose par sa route).
-                if crate::routes::catalogue::dans(crate::routes::accueil::ROUTES, nom).is_some() {
+                // Ecrire au developpeur se sert aussi a l'accueil, aucune compagnie ouverte (`routes::filet::sans_compagnie`).
+                let au_developpeur = crate::routes::catalogue::dans(crate::routes::filet::ROUTES, nom).is_some() && !matches!(self.phase(), Phase::Ouverte { .. });
+                if crate::routes::catalogue::dans(crate::routes::accueil::ROUTES, nom).is_some() || au_developpeur {
                     let debut = Instant::now();
                     let rendu = self.route_de_l_installation(nom, &charge);
                     self.ecrire(&ligne_de_route(nom, debut.elapsed(), &rendu));

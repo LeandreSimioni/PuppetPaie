@@ -364,7 +364,9 @@ fn pour_la_page(racine: &Path, etat: &Value, brut: &Value) -> Value {
         "etat-du-mois".into(),
         en_page(du_mois(racine, etat).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))),
     );
-    json!({ "mois": brut, "lectures": l })
+    // La phrase de l'ecran du mois : celle de ses etapes (`etat-du-mois`).
+    let phrase = l.get("etat-du-mois").and_then(|e| e["resultat"]["phrase"].as_str()).unwrap_or("").to_string();
+    json!({ "phrase": phrase, "mois": brut, "lectures": l })
 }
 
 /// `etat-par-engagement`, `etat-du-mois` et `mois`, servis par l'etat du mois : pour les deux premiers, le meme JSON que
@@ -373,7 +375,20 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
     let (brut, mois) = crate::routes::etapes::mois_de(charge)?;
     let etat = lire(o, ctx, &mois)?;
     match nom {
-        "etat-par-engagement" => Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) })),
+        "etat-par-engagement" => {
+            let n = crate::routes::nombre(etat.get("engagements").unwrap_or(&Value::Null));
+            // Chaque engagement, et ce que disent ses carres.
+            let phrases: Vec<String> = etat["engagements"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|e| {
+                    let carres: Vec<String> = e["carres"].as_array().into_iter().flatten().filter_map(|c| c["phrase"].as_str().map(String::from)).collect();
+                    format!("{} ({}) : {}", crate::routes::mot(&e["nom"]), crate::routes::mot(&e["numero"]), carres.join(" ; "))
+                })
+                .collect();
+            Ok(json!({ "phrase": format!("Engagements du mois : {}.", n), "phrases": phrases, "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))
+        }
         "mois" => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
         _ => du_mois(&ctx.racine, &etat),
     }

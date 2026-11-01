@@ -300,7 +300,7 @@ async function validerLaCarte(div) {
     const r = await api("valider-engagement", charge);
     div.dataset.engagement = JSON.stringify(r.engagement);
     div._ecrite = JSON.stringify({ ...charge, engagement: r.engagement });
-    dire(r.phrase, r.couleur || undefined);
+    dire(r.phrase);
   } catch (e) { dire(e.message, "erreur"); }
   await rafraichirActions();
 }
@@ -410,7 +410,7 @@ async function modifierLaCarte(div) {
       r = await api("modifier-engagement", { ...charge, confirme: true, a_partir_du: reponse.a_partir_du,
                                              a_partir_du_jour: reponse.a_partir_du_jour });
     }
-    if (r && r.change) dire(r.phrase, r.couleur || undefined);
+    if (r && r.change) dire(r.phrase);
     await refermerLaCarte(div);
     await rafraichirActions();
   } catch (e) { dire(e.message, "erreur"); }

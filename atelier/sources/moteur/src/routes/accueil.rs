@@ -183,8 +183,8 @@ pub fn route(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value>
             v["phrase"] = json!(phrase);
             Ok(v)
         }
-        "administrateur-tableau" if charge.get("garde").is_some_and(vrai) => Ok(administrateur::tableau_garde(&inst)),
-        "administrateur-tableau" => Ok(administrateur::tableau(o, &inst, charge.get("relever").is_some_and(vrai))),
+        "administrateur-tableau" if charge.get("garde").is_some_and(vrai) => Ok(dire_le_tableau(administrateur::tableau_garde(&inst))),
+        "administrateur-tableau" => Ok(dire_le_tableau(administrateur::tableau(o, &inst, charge.get("relever").is_some_and(vrai)))),
         "administrateur-deposer" => {
             let reel = charge.get("reel").is_some_and(vrai);
             let mdp = charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte);
@@ -212,4 +212,18 @@ fn liste(inst: &std::path::Path) -> Value {
     let t = |c: &Value, k: &str| valeur_en_texte(&c[k]);
     let phrases: Vec<String> = cies.iter().map(|c| format!("{} ({}) : {}", t(c, "nom"), t(c, "id"), t(c, "chemin"))).collect();
     json!({"compagnies": cies, "bride": crate::compagnie::bridage::est_bride_de(inst), "a_garder": a_garder, "phrase": phrase, "phrases": phrases})
+}
+
+/// Le tableau de l'administrateur en phrases : combien de declarations, puis chacune (sa compagnie, ce qu'elle est, quand).
+fn dire_le_tableau(mut v: Value) -> Value {
+    let t = |x: &Value, k: &str| super::mot(&x[k]);
+    let lignes: Vec<Value> = v["declarations"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|d| json!(format!("{} : {}, {}{}", t(d, "compagnie"), t(d, "titre"), if d["en_retard"] == json!(true) { "en retard, c'était " } else { "au plus tard " }, t(d, "quand"))))
+        .collect();
+    let p = format!("Déclarations à faire : {} ; compagnies : {}.", lignes.len(), super::nombre(&v["compagnies"]));
+    v["phrases"] = Value::Array(lignes);
+    super::phrase_en_tete(v, p)
 }

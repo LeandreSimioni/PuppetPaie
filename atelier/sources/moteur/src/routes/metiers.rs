@@ -52,8 +52,14 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "metiers-catalogue" => metiers_catalogue(ctx),
-        "metier-retenu" => metier_retenu(ctx, charge),
+        "metiers-catalogue" => metiers_catalogue(ctx).map(|v| {
+            let p = format!("Métiers du catalogue : {}.", super::nombre(&v["metiers"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "metier-retenu" => metier_retenu(ctx, charge).map(|v| {
+            let p = format!("Métiers retenus par la compagnie : {}.", super::nombre(&v["emplois"]));
+            super::phrase_en_tete(v, p)
+        }),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

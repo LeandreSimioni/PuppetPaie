@@ -961,18 +961,24 @@ fn et(noms: &[String]) -> String {
 
 // ------------------------------------------------------------------ routes
 
-/// L'aiguillage des trois routes de lecture.
+/// L'aiguillage des trois routes de lecture. La phrase : le texte du conseil, ou ceux de la liste un par un (`phrases`).
 pub fn route(ctx: &Contexte, route: &str, charge: &Value) -> R<Value> {
+    let liste = |conseils: Vec<Value>| {
+        let lignes: Vec<Value> = conseils.iter().map(|c| c["texte"].clone()).collect();
+        json!({ "phrase": format!("Conseils : {}.", conseils.len()), "phrases": lignes, "conseils": conseils })
+    };
     match route {
         "conseil-du-jour" => {
             let decalage = charge.get("decalage").and_then(Value::as_i64).unwrap_or(0);
-            Ok(du_jour(ctx, decalage)?)
+            let v = du_jour(ctx, decalage)?;
+            let p = v["conseil"]["texte"].as_str().map(String::from).unwrap_or_else(|| "Pas de conseil aujourd'hui.".to_string());
+            Ok(crate::routes::phrase_en_tete(v, p))
         }
         "conseils-salarie" => {
             let cle = charge.get("salarie").map(en_texte).unwrap_or_default();
-            Ok(json!({ "conseils": du_salarie(ctx, &cle)? }))
+            Ok(liste(du_salarie(ctx, &cle)?))
         }
-        "conseils-resume" => Ok(json!({ "conseils": resume(ctx)? })),
+        "conseils-resume" => Ok(liste(resume(ctx)?)),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

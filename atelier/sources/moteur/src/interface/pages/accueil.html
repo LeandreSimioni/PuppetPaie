@@ -101,6 +101,14 @@
   .a-garder li { padding:4px 0; }
   .a-garder label { display:flex; gap:9px; align-items:center; cursor:pointer; }
   .a-garder input { width:auto; margin:0; }
+  /* Ecrire au developpeur, sous les tuiles. */
+  .ecrire { margin-top:26px; border-top:1px solid var(--bord); padding-top:12px; }
+  .ecrire > summary { cursor:pointer; color:var(--discret); font-size:13px; }
+  .ecrire > summary:hover { color:var(--texte); }
+  .ecrire form { max-width:520px; margin-top:10px; }
+  .ecrire textarea { width:100%; padding:9px 10px; font:inherit; border:1px solid var(--bord); border-radius:4px; resize:vertical; }
+  .ecrire button { width:auto; padding:8px 18px; }
+  .ecrire .dit { margin-top:8px; }
 </style>
 <style>
   /* LE TABLEAU DE BORD DE L'ADMINISTRATEUR (ticket #244) : les declarations de ses compagnies, la plus pressee d'abord. */
@@ -144,6 +152,15 @@
   <section class="tableau" id="tableau" data-place="L'accueil des compagnies" hidden></section>
   {{TUILES}}
   <div class="erreur" id="erreur"></div>
+  <!-- ECRIRE AU DEVELOPPEUR sans ouvrir de compagnie : la meme route que dans une compagnie (`routes::filet::sans_compagnie`). -->
+  <details class="ecrire">
+    <summary>Un problème, une idée ?</summary>
+    <form id="ecrire">
+      <textarea rows="4" placeholder="Votre message au développeur"></textarea>
+      <button type="submit">Envoyer</button>
+      <p class="dit" id="ecrire-dit"></p>
+    </form>
+  </details>
 </div>
 <script>
   const err = document.getElementById("erreur");
@@ -238,6 +255,16 @@
       document.getElementById("venue-erreur").textContent = r.ok ? "" : r.erreur;
     });
   }
+  // Le message part par sa route ; la phrase que le moteur rend se lit telle quelle.
+  const ecrire = document.getElementById("ecrire");
+  ecrire.addEventListener("mousedown", (e) => e.stopPropagation());
+  ecrire.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const texte = ecrire.querySelector("textarea");
+    const r = await appel("signalement-envoyer", { texte: texte.value, ecran: "L'accueil des compagnies" });
+    document.getElementById("ecrire-dit").textContent = r.ok ? r.resultat.phrase : r.erreur;
+    if (r.ok) texte.value = "";
+  });
 </script>
 <script>
   /* LE TABLEAU DE BORD DE L'ADMINISTRATEUR (ticket #244). Tout vient du moteur (`administrateur.rs`) : les declarations

@@ -1069,11 +1069,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         k("Urssaf :"),
         mt(format!(
             " {}\n",
-            ent.get("urssaf_compte").filter(|v| vrai(v)).map(en_texte).ok_or(
-                "La fiche entreprise ne dit pas le numéro du compte Urssaf (`urssaf_compte`) : il figure sur chaque bulletin \
-                 (art. R. 3243-1 du code du travail, le numéro sous lequel les cotisations sont versées). Il se lit sur \
-                 l'avis d'immatriculation de l'Urssaf."
-            )?
+            ent.get("urssaf_compte").filter(|v| vrai(v)).map(en_texte).unwrap_or_default()
         )),
         k("Conv. collective :"),
         mt(format!(" IDCC {} - {}\n", conv.0, conv.1)),

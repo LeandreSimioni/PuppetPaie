@@ -891,7 +891,9 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     // Le plus recent en premier : c'est le dernier envoi qu'on vient lire ; a la meme heure, le reel devant son test.
     envois.sort_by(|a, b| (valeur_en_texte(&b["quand"]), b["mode"] == json!("reel")).cmp(&(valeur_en_texte(&a["quand"]), a["mode"] == json!("reel"))));
-    Ok(json!({"mois": mois, "documents": documents(ctx, mois, &lignes)?, "envois": envois}))
+    let documents = documents(ctx, mois, &lignes)?;
+    let phrase = format!("Historique de {} : {} documents, {} envois.", socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee), documents.len(), envois.len());
+    Ok(json!({"phrase": phrase, "mois": mois, "documents": documents, "envois": envois}))
 }
 
 #[cfg(test)]

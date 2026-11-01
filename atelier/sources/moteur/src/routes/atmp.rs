@@ -386,6 +386,12 @@ pub(crate) fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
         (false, true) => "Ni code ni taux : rien n'est écrit.",
         (false, false) => "",
     });
+    // Une lecture dit le taux de l'annee.
+    if r["phrase"] == json!("") {
+        let t = |k: &str| socle::valeur::valeur_en_texte(&r["taux"][k]);
+        let p = if r["taux"].is_object() { format!("Taux AT/MP {} : {} %, code risque {}.", an, t("valeur"), t("code_risque")) } else { format!("Aucun taux AT/MP pour {}.", an) };
+        r["phrase"] = json!(p);
+    }
     Ok(r)
 }
 

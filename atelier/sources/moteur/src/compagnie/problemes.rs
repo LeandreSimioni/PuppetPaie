@@ -192,7 +192,7 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
 }
 
 /// `signalement_apercu` : ce qui partira, au mot pres (les octets des captures
-/// mis a part). Facultatif : on peut envoyer sans l'avoir regarde.
+/// mis a part). On peut envoyer sans l'avoir regarde.
 pub fn apercu(racine: &Path, texte: &Value, ecran: &Value, captures: &[Value]) -> R<Value> {
     let (corps, caviarde, caps) = corps_signalement(racine, texte, ecran, captures)?;
     let mut montre = corps.clone();

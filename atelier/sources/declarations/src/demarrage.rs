@@ -3,7 +3,7 @@
 //!
 //! Une compagnie neuve ne decouvre pas ce qui lui manque un refus apres l'autre (le taux AT/MP, l'effectif, la medecine
 //! du travail, le compte Urssaf...) : tout se dit d'un coup, ce que chaque case servira, OU elle vit, et ou la compagnie
-//! TROUVE la valeur (l'aide du champ, `champs-base.json`). Rien n'y est obligatoire : le refus reste a l'acte.
+//! TROUVE la valeur (l'aide du champ, `champs-base.json`). Une case y est exigee pour un geste ou utile pour un geste ; le refus reste a l'acte.
 //!
 //! Les regles ne sont pas recopiees : le bareme de l'annee se demande au contexte (`Contexte::bareme` : le taux AT/MP,
 //! l'effectif, la premiere embauche), ce que chaque acte exige des fiches a `champs-base.json` (`exige_par`), que l'acte
@@ -98,7 +98,7 @@ fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
 }
 
 /// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque. Une ligne dit ce qu'elle bloque
-/// (`bloque`), ou, quand rien ne se refuse sans elle, ce qui se passe sinon (`sinon`).
+/// (`bloque`), ou, quand rien ne se refuse sans elle, ce qu'elle sert (`utile`) et ce qui se passe sinon (`sinon`).
 pub fn manques(ctx: &Contexte) -> Vec<Value> {
     let ent = &ctx.entreprise;
     let mut out: Vec<Value> = Vec::new();
@@ -112,6 +112,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         let racine = m.ecran.split('.').next().unwrap_or(&m.ecran).to_string();
         let mut l = json!({ "cle": m.ecran, "case": m.ecran, "libelle": m.libelle, "ou": ou, "champ": racine, "trouver": m.aide });
         if m.actes.is_empty() {
+            l["utile"] = json!(crate::champs::actes_en_clair(&m.utile));
             l["sinon"] = json!(m.sinon);
         } else {
             l["bloque"] = json!(crate::champs::actes_en_clair(&m.actes));
@@ -230,7 +231,8 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         out.push(json!({
             "cle": format!("conges_reprise.{}", salarie),
             "libelle": format!("Ses congés payés acquis avant le {}", socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
-            "sinon": "son compteur de congés payés part de zéro",
+            "utile": "le compteur de ses congés payés",
+            "sinon": "il part de zéro",
             "ou": format!("la fiche de {}, « Congés payés à la reprise »", nom),
             "champ": "conges_reprise",
             "case": "conges_reprise",
@@ -353,31 +355,41 @@ pub fn poses(ctx: &Contexte) -> Vec<Value> {
     })]
 }
 
-/// `pour-demarrer` : `{"titre", "note", "manques": [...], "poses": [...]}`. `proposes` : les propositions qui ne se
-/// tirent pas des fiches (les acces aux organismes, que le moteur lit dans le coffre), a la suite ; `pose` : ce qui se
-/// dit en information a leur place. Rien n'y est obligatoire : chaque ligne dit ce qu'elle servira (`phrase`), et ce qui
-/// est rempli d'avance ne se demandera plus au moment d'un acte ; le refus reste a l'acte (`champs::refus_des_manques`).
+/// `pour-demarrer` : `{"phrase", "titre", "note", "manques": [...], "poses": [...]}`. `proposes` : les propositions qui
+/// ne se tirent pas des fiches (les acces aux organismes, que le moteur lit dans le coffre), a la suite ; `pose` : ce qui
+/// se dit en information a leur place. Une case est EXIGEE POUR un geste (sans elle, il ne se fait pas : `bloque`) ou
+/// UTILE POUR un geste (sans elle, il se fait autrement : `utile`, `sinon`) ; chaque ligne le dit (`pour`), et sa phrase
+/// entiere dit aussi ou elle vit et de qui (`phrase`). Le refus reste a l'acte (`champs::refus_des_manques`).
 pub fn route(ctx: &Contexte, proposes: Vec<Value>, pose: Option<Value>) -> R<Value> {
     let mut lignes = manques(ctx);
     lignes.extend(proposes);
     for l in lignes.iter_mut() {
-        l["phrase"] = json!(match l.get("bloque").and_then(Value::as_str) {
-            Some(b) => format!("Pour {}.", b),
-            None => format!("Facultatif : sinon, {}.", l["sinon"].as_str().unwrap_or("")),
-        });
+        let t = |k: &str| l.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+        let pour = match l.get("bloque").and_then(Value::as_str) {
+            Some(b) => format!("case exigée pour {}", b),
+            None => format!("utile pour {} ; sinon, {}", t("utile"), t("sinon")),
+        };
+        l["phrase"] = json!(format!("{} › {} : {}.", t("ou"), t("libelle"), pour));
+        let mut c = pour.chars();
+        l["pour"] = json!(format!("{}{}.", c.next().map(|p| p.to_uppercase().collect::<String>()).unwrap_or_default(), c.as_str()));
     }
     let n = lignes.iter().filter(|l| l.get("bloque").is_some()).count();
     let (titre, note) = match (n, lignes.is_empty()) {
-        (0, true) => (String::new(), ""),
-        (0, false) => ("Pour démarrer : tout est rempli".to_string(), "Ce qui suit est facultatif."),
+        (0, true) => ("Pour démarrer : rien à remplir".to_string(), ""),
+        (0, false) => ("Pour démarrer : tout ce qui est exigé est rempli".to_string(), "Ce qui suit est utile : sans ces cases, les gestes se font autrement."),
         (n, _) => (
-            format!("Pour démarrer : {} à remplir d'avance", if n == 1 { "une chose".to_string() } else { format!("{} choses", n) }),
-            "Rien n'est obligatoire ici : ce qui est rempli d'avance ne se demandera plus au moment d'un envoi.",
+            format!("Pour démarrer : {} à remplir d'avance", if n == 1 { "une case exigée".to_string() } else { format!("{} cases exigées", n) }),
+            "Une case exigée bloque son geste tant qu'elle est vide ; ce qui est rempli d'avance ne se demandera plus au moment de l'acte.",
         ),
     };
+    let phrase = if note.is_empty() { format!("{}.", titre) } else { format!("{}. {}", titre, note) };
+    let titre = if lignes.is_empty() { String::new() } else { titre };
     let mut poses = poses(ctx);
     poses.extend(pose);
-    Ok(json!({ "titre": titre, "note": note, "manques": lignes, "poses": poses }))
+    // Chaque ligne en phrase entiere, puis ce que le moteur a pose de lui-meme : ce que la ligne de commande lit.
+    let mut phrases: Vec<Value> = lignes.iter().map(|l| l["phrase"].clone()).collect();
+    phrases.extend(poses.iter().map(|p| json!(format!("{} : {}", p["libelle"].as_str().unwrap_or(""), p["texte"].as_str().unwrap_or("")))));
+    Ok(json!({ "phrase": phrase, "phrases": phrases, "titre": titre, "note": note, "manques": lignes, "poses": poses }))
 }
 
 /// Ce qui suit le refus d'un acte quand la compagnie n'a pas fini de demarrer : toute la liste, d'un coup, sans ce que
@@ -391,14 +403,14 @@ pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> Option<String> {
             !(x["libelle"].as_str().is_some_and(|l| deja_dit.contains(l)) && x["qui"].as_str().is_none_or(|q| deja_dit.contains(q)))
         })
         .map(|x| {
-            let qui = x["qui"].as_str().map(|q| format!("{} : ", q)).unwrap_or_default();
-            format!("  - {}{} : bloque {} ({})", qui, x["libelle"].as_str().unwrap_or(""), x["bloque"].as_str().unwrap_or(""), x["ou"].as_str().unwrap_or(""))
+            let t = |k: &str| x[k].as_str().unwrap_or("").to_string();
+            format!("« {} » pour {}, dans {}", t("libelle"), t("bloque"), t("ou"))
         })
         .collect();
     if lignes.is_empty() {
         return None;
     }
-    Some(format!("\n\nPour démarrer, il manque encore :\n{}", lignes.join("\n")))
+    Some(format!(" Pour démarrer, il manque encore : {}.", lignes.join(" ; ")))
 }
 
 /// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`) ?

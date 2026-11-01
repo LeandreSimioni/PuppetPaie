@@ -91,7 +91,7 @@ async function dessinerIdentite(cible) {
       ${rang("signature", titreSignature, ditSignature)}
       ${rang("cachet", "Le tampon", `${ou("cachet")}. Il identifie la compagnie, il
         n'engage personne.`)}
-      ${rang("logo", "Le logo", `${ou("logo")}, en haut à droite. Facultatif.`)}
+      ${rang("logo", "Le logo", `${ou("logo")}, en haut à droite ; sans lui, rien n'y est imprimé.`)}
     </div>`;
   cible.querySelectorAll("[data-aller-fiche]").forEach((b) => {
     b.onclick = () => document.querySelector(
