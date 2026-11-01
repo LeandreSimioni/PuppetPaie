@@ -387,7 +387,8 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
                     format!("{} ({}) : {}", crate::routes::mot(&e["nom"]), crate::routes::mot(&e["numero"]), carres.join(" ; "))
                 })
                 .collect();
-            Ok(json!({ "phrase": format!("Engagements du mois : {}.", n), "phrases": phrases, "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))
+            let phrase = if n == 0 { format!("Aucun engagement enregistré en {}.", engagement::libelle_mois(&mois)) } else { format!("Engagements du mois : {}.", n) };
+            Ok(json!({ "phrase": phrase, "phrases": phrases, "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))
         }
         "mois" => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
         _ => du_mois(&ctx.racine, &etat),

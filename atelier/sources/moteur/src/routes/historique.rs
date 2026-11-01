@@ -136,7 +136,18 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             ),
         )
         .map(pastilles_de_la_reprise)
-        .map(|v| {
+        .map(|mut v| {
+            // Ce que l'Historique en dit, en tete : le resume replie, l'explication, le nom du logiciel lu.
+            let n = super::nombre(&v["ajoutes"]);
+            let reels = v["ajoutes"].as_array().into_iter().flatten().filter(|d| d["mode"] == "reel" && vrai(&d["accepte"])).count();
+            let s = if n > 1 { "s" } else { "" };
+            v["ecran"] = json!({
+                "resume": format!("{} dépôt{} retrouvé{} dans les retours, absent{} du journal{}", n, s, s, s, if reels > 0 { format!(" — dont {} réel{}", reels, if reels > 1 { "s" } else { "" }) } else { String::new() }),
+                "titre": format!("{} dépôt(s) attestés par les retours, absents du journal", n),
+                "explication": "Le journal des dépôts est né le 11/09/2026 ; ce qui est parti avant ne s'y est pas écrit. Les accusés d'enregistrement reçus des organismes, eux, s'en souviennent. Les reprendre ne dépose rien et n'envoie rien : ça remet au journal ce qui a déjà eu lieu.",
+                "reels": if reels > 0 { json!(format!("{} sont des dépôts réels acceptés.", reels)) } else { Value::Null },
+                "logiciel": "Le nom du logiciel n'est pas une annotation : il est lu dans le certificat de conformité. C'est lui qui distingue le dépôt d'un autre logiciel d'un dépôt PuppetPaie.",
+            });
             let p = format!("Dépôts trouvés dans les retours : {} ; ajoutés au journal : {}{}.", super::nombre(&v["trouves"]), super::nombre(&v["ajoutes"]), if v["ecrit"] == json!(true) { "" } else { " (rien n'est écrit)" });
             super::phrase_en_tete(v, p)
         }),

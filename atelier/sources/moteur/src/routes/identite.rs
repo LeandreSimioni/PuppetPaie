@@ -61,7 +61,10 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "identite" => identite(ctx).map(|v| super::phrase_en_tete(v.clone(), dire_l_identite(&v))),
+        "identite" => identite(ctx).map(|mut v| {
+            ecran_de_l_identite(&mut v);
+            super::phrase_en_tete(v.clone(), dire_l_identite(&v))
+        }),
         "poser-identite" => poser_identite(ctx, charge).map(|v| super::phrase_en_tete(v.clone(), format!("Posé. {}", dire_l_identite(&v)))),
         "retirer-identite" => retirer_identite(ctx, charge).map(|v| super::phrase_en_tete(v.clone(), format!("Retiré. {}", dire_l_identite(&v)))),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
@@ -191,4 +194,36 @@ fn identite(ctx: &Contexte) -> R<Value> {
 fn dire_l_identite(v: &Value) -> String {
     let mot = |k: &str| socle::valeur::valeur_en_texte(&v["identite"][k]["pastille"]["mots"]);
     format!("Signature : {} ; tampon : {} ; logo : {}.", mot("signature"), mot("cachet"), mot("logo"))
+}
+
+/// CE QUE L'ECRAN DE LA SIGNATURE ET DU TAMPON DIT (`intro`, et pour chaque image son `titre` et ce qu'elle `dit` : ou elle
+/// va, ce qu'elle engage, et ce qui la contredit dans la fiche Entreprise).
+fn ecran_de_l_identite(v: &mut Value) {
+    v["intro"] = json!("Ce qui se pose sur les documents de la compagnie : PNG, JPEG ou SVG, 2 Mo au plus.");
+    let ou = |i: &Value| {
+        let docs: Vec<String> = i["documents"].as_array().into_iter().flatten().map(super::mot).collect();
+        if docs.is_empty() { String::new() } else { format!("Sur {}", docs.join(", ")) }
+    };
+    let i = &mut v["identite"];
+    let sig = i["signature"].clone();
+    let qui = &sig["signataire"];
+    let nom = super::mot(&qui["nom"]);
+    i["signature"]["titre"] = json!(if nom.is_empty() { "La signature".to_string() } else {
+        format!("La signature de {}{}", nom, if super::mot(&qui["fonction"]).is_empty() { String::new() } else { format!(", {}", super::mot(&qui["fonction"])) })
+    });
+    let mut dit = format!("{}. Elle engage la personne qui signe au nom de la compagnie.", ou(&sig));
+    if nom.is_empty() {
+        dit.push_str(" La fiche Entreprise ne dit pas qui signe.");
+    }
+    if vrai(&sig["autre_personne"]) {
+        dit.push_str(&format!(" Cette image a été posée pour {} ; la personne qui signe est maintenant {}. Importer sa signature à elle, ou corriger la fiche Entreprise.", super::mot(&sig["posee_pour"]), nom));
+    }
+    i["signature"]["dit"] = json!(dit);
+    let cachet = ou(&i["cachet"]);
+    i["cachet"]["titre"] = json!("Le tampon");
+    i["cachet"]["dit"] = json!(format!("{}. Il identifie la compagnie, il n'engage personne.", cachet));
+    i["cachet"]["automatique_dit"] = json!("dessiné depuis la fiche Entreprise, il la suit : rien à faire");
+    let logo = ou(&i["logo"]);
+    i["logo"]["titre"] = json!("Le logo");
+    i["logo"]["dit"] = json!(format!("{}, en haut à droite ; sans lui, rien n'y est imprimé.", logo));
 }

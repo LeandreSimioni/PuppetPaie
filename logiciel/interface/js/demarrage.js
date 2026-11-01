@@ -49,7 +49,7 @@ function peindreEtatGlobal() {
   // Les erreurs de configuration, comptées par le moteur (`configuration`, `erreurs`).
   const html = `
     ${pastilleDeLEtat(c.erreurs)}
-    ${compteurs ? `<div>compteurs ${echapper(compteurs[0])} :
+    ${compteurs ? `<div>compteurs ${echapper(compteurs[0])} —
        bulletin <b>${compteurs[1].bulletin ?? "?"}</b> ·
        AEM <b>${compteurs[1].aem ?? "?"}</b> ·
        CS <b>${compteurs[1].certificat_cs ?? "?"}</b></div>` : ""}`;
@@ -119,7 +119,7 @@ function finirChargement() {
 
 demarrer().catch((e) => {
   finirChargement();
-  dire("Démarrage impossible : " + e.message, "erreur");
+  dire(e.message, "erreur");
 });
 
 /* LA FENETRE PUPPETPAIE, SANS BARRE NOIRE. La

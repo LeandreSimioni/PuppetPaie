@@ -115,6 +115,12 @@ const AIDES: &[(&str, &str)] = &[
     ("importe_dates", "Début et fin du contrat : les jours exacts ne sont pas lus."),
     ("importe_brut", "Le brut : le net à payer n'est pas lu."),
     ("a_completer", "Un engagement au moins reste à compléter avant de le valider : sa carte dit ce qui manque."),
+    ("piece_absente", "N'est plus dans le dossier du mois."),
+    ("qui_engage", "Choisir qui est engagé."),
+    ("engagement_retire", "Engagement retiré."),
+    ("dpae_cochees", "Cochées d'avance : les embauches sans DPAE, ou dont la DPAE a été refusée. Une DPAE déjà passée ne se redéclare pas : l'Urssaf recevrait deux déclarations pour un seul contrat."),
+    ("dpae_heure", "Heure d'embauche déclarée : 08h00. Toutes les embauches cochées partent ensemble, dans un seul dépôt. D'abord le test, qui ne déclare rien ; puis, une fois le test revenu conforme, l'envoi réel."),
+    ("revue_spectacles", "Décochés, ils s'archivent : ils restent lisibles et se réactivent d'un clic (Configuration › Spectacles). Ceux qui continuent gardent leur numéro d'objet."),
 ];
 
 /// Les routes de ce module, et leurs fiches.

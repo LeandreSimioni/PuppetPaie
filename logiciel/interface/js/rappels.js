@@ -382,7 +382,7 @@ function htmlEcheancier(ech) {
       <h2 class="accueil-titre">${echapper(ech.bienvenue)}</h2>
       ${ceMois.length
         ? `<h3>Ce mois-ci</h3><ul class="echeances">${ceMois.map(ligne).join("")}</ul>`
-        : ditAilleurs ? "" : `<h3>Ce mois-ci</h3><p class="discret">Rien à faire ce mois-ci.</p>`}
+        : ditAilleurs ? "" : `<h3>Ce mois-ci</h3><p class="discret">Rien à faire</p>`}
       ${annee ? `<details class="accueil-annee"><summary>L'année qui vient</summary>
         <ul class="echeances-annee">${annee}</ul></details>` : ""}
     </div>`;
@@ -448,7 +448,7 @@ function gesteObligation(r) {
 function boutonRappel(r, i) {
   if (r.quoi === "obligation") {
     const libelle = {
-      "signaler-fin": "Signaler…", signaler: "Signaler…", faite: "Faite le…",
+      "signaler-fin": "Signaler…", signaler: "Signaler…", faite: "Faite le",
       carte: "Compléter le contrat", mois: "Ouvrir le mois",
     }[gesteObligation(r)];
     return `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>`;
@@ -514,8 +514,7 @@ function boiteRevueSpectacles(r) {
     <h3>Les spectacles de ${echapper(r.annee)}</h3>
     <p>${echapper(r.question)}</p>
     ${lignes}
-    <p class="note">Décochés, ils s'archivent : ils restent lisibles et se réactivent
-      d'un clic (Configuration › Spectacles). Ceux qui continuent gardent leur numéro d'objet.</p>
+    <p class="note">${aideDe("revue_spectacles")}</p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Plus tard</button>
       <button class="primaire" id="rv-valider">Enregistrer</button>
@@ -529,9 +528,7 @@ function boiteRevueSpectacles(r) {
       const res = await api("revue-spectacles", { annee: r.annee, continuent });
       await relireEtat();
       fermerBoite();
-      dire(res.archives.length
-        ? `${res.archives.length} spectacle${res.archives.length > 1 ? "s" : ""} archivé${res.archives.length > 1 ? "s" : ""} ; ${res.continuent.length} continue${res.continuent.length > 1 ? "nt" : ""}.`
-        : "Tous les spectacles continuent.");
+      dire(res.phrase);
     } catch (e) {
       bouton.disabled = false;
       dire(e.message, "erreur");
@@ -547,7 +544,7 @@ async function dessinerExercices() {
   let r;
   try { r = await api("exercices"); }
   catch (e) { cible.innerHTML = `<p class="discret">${echapper(e.message)}</p>`; return; }
-  if (!r.exercices.length) { cible.innerHTML = `<p class="discret">Aucune année pour l'instant.</p>`; return; }
+  if (!r.exercices.length) { cible.innerHTML = `<p class="discret">Aucune année</p>`; return; }
   cible.innerHTML = r.exercices.map((x) => {
     const clos = x.clos;
     return `
@@ -565,7 +562,7 @@ async function dessinerExercices() {
         : `<button class="secondaire" data-cloturer="${echapper(x.annee)}">Clôturer…</button>`}
     </div>`;
   }).join("") + `<p class="note"><button class="lien" id="ouvrir-exercices"
-    title="${echapper(r.dossier)}">Ouvrir le dossier des archives</button></p>`;
+    title="${echapper(r.dossier)}">Dossier des archives</button></p>`;
   cible.querySelectorAll("[data-export]").forEach((b) => {
     b.onclick = () => lancerExportCompta(b.dataset.export);
   });

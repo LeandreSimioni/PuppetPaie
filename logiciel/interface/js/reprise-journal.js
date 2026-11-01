@@ -36,16 +36,11 @@ async function dessinerReprise() {
   // des essais retrouvés sont un historique à ranger, pas une urgence.
   cible.innerHTML = `
     <details class="reprise" ${reels.length ? "open" : ""}>
-    <summary>${r.ajoutes.length} dépôt${r.ajoutes.length > 1 ? "s" : ""} retrouvé${r.ajoutes.length > 1 ? "s" : ""}
-      dans les retours, absent${r.ajoutes.length > 1 ? "s" : ""} du journal${reels.length
-        ? ` — <b>dont ${reels.length} réel${reels.length > 1 ? "s" : ""}</b>` : ""}</summary>
+    <summary>${echapper(r.ecran.resume)}</summary>
     <div class="encart">
-      <b>${r.ajoutes.length} dépôt(s) attestés par les retours, absents du journal</b>
-      Le journal des dépôts est né le 11/09/2026 ; ce qui est parti avant ne
-      s'y est pas écrit. Les accusés d'enregistrement reçus des organismes,
-      eux, s'en souviennent. Les reprendre ne dépose
-      rien et n'envoie rien : ça remet au journal ce qui a déjà eu lieu.
-      ${reels.length ? `<br><b>${reels.length} sont des dépôts RÉELS acceptés.</b>` : ""}
+      <b>${echapper(r.ecran.titre)}</b>
+      ${echapper(r.ecran.explication)}
+      ${r.ecran.reels ? `<br><b>${echapper(r.ecran.reels)}</b>` : ""}
     </div>
     <div class="liste-choix">
       ${r.ajoutes.map((v) => `
@@ -58,17 +53,14 @@ async function dessinerReprise() {
         </span></div>`).join("")}
     </div>
     <button class="secondaire" id="reprendre">Reprendre ces ${r.ajoutes.length} dépôt(s)</button>
-    <p class="note">Le nom du logiciel n'est pas une annotation : il est lu
-      dans le certificat de conformité. C'est lui qui distingue le dépôt d'un
-      autre logiciel d'un dépôt PuppetPaie.</p>
+    <p class="note">${echapper(r.ecran.logiciel)}</p>
     </details>`;
 
   document.getElementById("reprendre").onclick = async () => {
     document.getElementById("reprendre").disabled = true;
     try {
       const f = await api("journal-reprise", { ecrire: true });
-      dire(f.ajoutes.length + " dépôt(s) remis au journal"
-           + (f.rattaches ? ", " + f.rattaches + " retour(s) rattachés." : "."));
+      dire(f.phrase);
       // La reprise remet des envois au journal : l'Historique, où elle se montre, se redessine avec eux.
       await rafraichirActions();
       dessinerHistorique();

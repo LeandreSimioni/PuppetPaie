@@ -29,7 +29,7 @@ async function dessinerRegularisation() {
               brut ${echapper(c.avant.brut)} → ${echapper(c.apres.brut)},
               net ${echapper(c.avant.net_a_payer)} → ${echapper(c.apres.net_a_payer)}
               ${c.dates ? `<span class="discret">${echapper(c.dates)}</span>` : ""}
-              ${c.portee_par ? ` · portée par la DSN ${echapper(deMois(c.portee_par))}` : " · part dans la prochaine DSN"}</span>
+              ${c.portee_par ? ` · portée par la DSN ${echapper(deMois(c.portee_par))}` : " · prochaine DSN"}</span>
           </div>`).join("")}
       </div>`).join("");
 }

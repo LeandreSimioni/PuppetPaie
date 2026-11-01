@@ -19,7 +19,8 @@
    - RETIRER, C'EST REVENIR AU DÉFAUT. Un tampon importé qu'on retire rend la
      main au dessin. Rien à reconfigurer, rien à se rappeler. */
 async function dessinerIdentite(cible) {
-  const etat = (await api("identite")).identite;
+  const lu = await api("identite");
+  const etat = lu.identite;
   const t = Date.now();          // l'image vient d'être remplacée : pas de cache
 
   const apercu = (src, alt) => `<div class="identite-apercu">
@@ -30,8 +31,9 @@ async function dessinerIdentite(cible) {
   // d'où elle vient, puis les gestes. Le champ de fichier du navigateur
   // (« Choisir un fichier — aucun fichier choisi ») se cache derrière un
   // bouton qui dit ce qu'il fait.
-  const rang = (quoi, titre, quoiDit) => {
+  const rang = (quoi) => {
     const e = etat[quoi] || { pose: false };
+    const titre = echapper(e.titre || "");
     // Le tampon a une image même quand rien n'est posé : celle que le
     // logiciel dessine. C'est tout l'objet de la case « automatique ».
     const vue = e.pose
@@ -42,56 +44,35 @@ async function dessinerIdentite(cible) {
       ? `${pastilleDeLEtat(e.pastille)} <span class="discret">${e.format.toUpperCase()},
            ${Math.round((e.octets || 0) / 1024)} Ko, posé le ${jjmmaaaa((e.quand || "").slice(0, 10))}</span>`
       : e.automatique
-        ? `${pastilleDeLEtat(e.pastille)} <span class="discret">dessiné
-             depuis la fiche Entreprise, il la suit : rien à faire</span>`
+        ? `${pastilleDeLEtat(e.pastille)} <span class="discret">${echapper(e.automatique_dit)}</span>`
         : pastilleDeLEtat(e.pastille);
     return `<div class="rang rang-image">
       ${vue}
       <div class="rang-infos">
         <b class="rang-nom">${titre}</b>
-        <span class="discret">${quoiDit}</span>
+        <span class="discret">${echapper(e.dit || "")}</span>${quoi === "signature" ? `
+          <button class="lien" data-aller-fiche="entreprise">Qui signe</button>` : ""}
         <div>${dit}</div>
       </div>
       <div class="rang-actions">
         ${e.pose ? `<button class="lien" data-retirer="${quoi}">${
-          e.automatique ? "Revenir à celui du logiciel" : "Retirer"}</button>` : ""}
-        <label class="${e.pose ? "modifier" : "bouton-fichier"}" title="PNG, JPEG ou SVG, 2 Mo au plus">${
-          e.pose ? CRAYON + "Modifier…" : e.automatique ? "Importer le vôtre…" : "Importer…"}
+          e.automatique ? "Tampon du logiciel" : "Retirer"}</button>` : ""}
+        <label class="${e.pose ? "modifier" : "bouton-fichier"}">${
+          e.pose ? CRAYON + "Modifier…" : "Importer…"}
           <input type="file" accept="image/png,image/jpeg,image/svg+xml"
                  data-quoi="${quoi}"></label>
       </div>
     </div>`;
   };
 
-  // OÙ VA CHAQUE IMAGE, en toutes lettres : le moteur en tient la
-  // liste (`DOCUMENTS_IDENTITE`). La page disait de la signature
-  // « l'attestation et le certificat » ; elle part aussi sur chaque contrat.
-  const ou = (quoi) => {
-    const docs = (etat[quoi] || {}).documents || [];
-    return docs.length ? `Sur ${docs.map(echapper).join(", ")}` : "";
-  };
-  // LA SIGNATURE EST CELLE D'UNE PERSONNE : celle que la fiche Entreprise
-  // nomme sous « Qui signe ». Posée pour quelqu'un d'autre, la page le dit.
-  const sig = etat.signature || {};
-  const qui = sig.signataire || {};
-  const titreSignature = qui.nom
-    ? `La signature de ${echapper(qui.nom)}${qui.fonction ? ", " + echapper(qui.fonction) : ""}`
-    : "La signature";
-  const ditSignature = `${ou("signature")}. Elle engage la personne qui signe au nom de
-      la compagnie${qui.nom ? "" : ` — <span class="a-completer">la fiche Entreprise ne dit pas
-      qui signe</span>`}.${sig.autre_personne ? `<span class="compte a-completer">Cette image a été
-      posée pour ${echapper(sig.posee_pour)} ; la personne qui signe est maintenant
-      ${echapper(qui.nom)}. Importer sa signature à elle, ou corriger la fiche Entreprise.</span>` : ""}
-      <button class="lien" data-aller-fiche="entreprise">Qui signe (fiche Entreprise)</button>`;
+  // OÙ VA CHAQUE IMAGE, CE QU'ELLE ENGAGE, et ce qui la contredit : le moteur le dit (`titre`, `dit` de chaque image).
 
   cible.innerHTML = `
-    <p class="intro">Ce qui se pose sur les documents de la compagnie. PNG, JPEG ou
-      SVG, 2 Mo au plus.</p>
+    <p class="intro">${echapper(lu.intro)}</p>
     <div class="rangs">
-      ${rang("signature", titreSignature, ditSignature)}
-      ${rang("cachet", "Le tampon", `${ou("cachet")}. Il identifie la compagnie, il
-        n'engage personne.`)}
-      ${rang("logo", "Le logo", `${ou("logo")}, en haut à droite ; sans lui, rien n'y est imprimé.`)}
+      ${rang("signature")}
+      ${rang("cachet")}
+      ${rang("logo")}
     </div>`;
   cible.querySelectorAll("[data-aller-fiche]").forEach((b) => {
     b.onclick = () => document.querySelector(

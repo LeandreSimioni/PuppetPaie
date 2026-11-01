@@ -25,7 +25,7 @@ function dessinerHistorique() {
   dessinerRegularisation();
   const cible = document.getElementById("historique");
   if (!ETAT.historique.length) {
-    cible.innerHTML = `<p class="discret">Aucun mois pour l'instant.</p>`;
+    cible.innerHTML = `<p class="discret">Aucun mois</p>`;
     return;
   }
   // L'état de la DSN, en mots et en couleur : c'est ce qu'on cherche en
@@ -49,7 +49,7 @@ function dessinerHistorique() {
         <span class="rang-actions">
         </span>
       </summary>
-      <div class="mois-vue"><p class="discret">Lecture du mois…</p></div>
+      <div class="mois-vue"><p class="discret">Lecture…</p></div>
     </details>`;
   }).join("");
   cible.querySelectorAll("details.mois-hist").forEach((d) => {
@@ -80,8 +80,8 @@ async function dessinerMoisHistorique(d) {
     return;
   }
   const paie = d.dataset.aFaire === "1"
-    ? `<p><button class="secondaire" data-faire="${echapper(mois)}">Reprendre ce mois dans Paie</button>
-       <span class="discret">— il y reste quelque chose à faire</span></p>` : "";
+    ? `<p><button class="secondaire" data-faire="${echapper(mois)}">Reprendre ce mois</button>
+       <span class="discret">— reste à faire</span></p>` : "";
 
   // Les documents, par sorte, dans l'ordre que le moteur donne.
   const sortes = [];
@@ -93,19 +93,19 @@ async function dessinerMoisHistorique(d) {
   const documents = sortes.length ? sortes.map((s) => `
     <div class="docs-sorte"><b>${echapper(s.nom)}</b>${s.docs.map((x) =>
       `<button class="lien" data-piece="${echapper(x.chemin)}"${x.fichier ? ` data-refaire="${echapper(x.fichier)}"` : ""} title="${echapper(x.chemin)}">${echapper(x.nom)}</button>`).join("")}
-    </div>`).join("") : `<p class="discret">Aucun document écrit pour ce mois.</p>`;
+    </div>`).join("") : `<p class="discret">Aucun document</p>`;
 
   const envois = h.envois.length ? h.envois.map(dessinerEnvoi).join("")
-    : `<p class="discret">Rien n'est parti de ce mois.</p>`;
+    : `<p class="discret">Rien n'est parti</p>`;
 
   // Avancé : les documents du mois déposés dans le Drive de la compagnie (route `archiver`, sa phrase dit ce qui est parti).
   const archive = h.documents.length ? `<details><summary>Avancé</summary>
-      <p><button class="secondaire" data-archiver>Déposer les documents de ce mois dans le Drive</button>
+      <p><button class="secondaire" data-archiver>Déposer dans le Drive</button>
       <span class="discret" data-archive></span></p></details>` : "";
 
   vue.innerHTML = `${paie}
     <h3>Les documents</h3>${documents}${archive}
-    <h3>Les envois et leurs retours</h3>${envois}`;
+    <h3>Envois et retours</h3>${envois}`;
 
   vue.querySelectorAll("[data-piece]").forEach((b) => {
     b.onclick = async () => {
@@ -120,7 +120,7 @@ async function dessinerMoisHistorique(d) {
   if (archiver) archiver.onclick = async () => {
     const dit = vue.querySelector("[data-archive]");
     archiver.disabled = true;
-    dit.textContent = "dépôt en cours…";
+    dit.textContent = "dépôt…";
     try { dit.textContent = (await api("archiver", { mois })).phrase; }
     catch (e) { dit.textContent = e.message; }
     archiver.disabled = false;
@@ -140,7 +140,7 @@ function dessinerEnvoi(e) {
   const test = e.mode === "test";
   const id = e.identite;
   const retours = e.retours.length ? e.retours.map(dessinerRetour).join("")
-    : e.attend_retour ? `<p class="discret retour">Aucun retour pour l'instant.</p>` : "";
+    : e.attend_retour ? `<p class="discret retour">Aucun retour</p>` : "";
   return `
     <details class="envoi ${test ? "test" : "reel"}" ${test ? "" : "open"}>
       <summary><b>${echapper(e.acte)}</b>
@@ -170,7 +170,7 @@ function dessinerRetour(r) {
         ${r.nature ? `<p class="discret">Nature ${echapper(r.nature)} : ${echapper(r.libelle || "")}</p>` : ""}
         ${(r.phrases || []).map((p) => `<p>${echapper(p)}</p>`).join("")}
         ${anomalies}
-        ${r.piece ? `<p><button class="lien" data-piece="${echapper(r.piece)}">Ouvrir la pièce telle quelle</button>
+        ${r.piece ? `<p><button class="lien" data-piece="${echapper(r.piece)}">Ouvrir la pièce</button>
           <span class="discret">${echapper(r.piece)}</span></p>` : ""}
       </div>
     </details>`;

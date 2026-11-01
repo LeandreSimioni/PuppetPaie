@@ -96,7 +96,7 @@ async function boitePieces(ligne, acte) {
     ? `<ul class="liste-pieces">${pieces.map((p, i) => `<li>
         <span><b>${echapper(p.quoi)}</b> — ${echapper(quand(p.quand))}
           <br><span class="discret">${echapper(p.fichier)}${p.existe ? ""
-            : " — n'est plus dans le dossier du mois"}</span></span>
+            : " — " + aideDe("piece_absente")}</span></span>
         <button class="secondaire p-ouvrir" data-i="${i}" ${p.existe ? "" : "disabled"}>Ouvrir</button>
       </li>`).join("")}</ul>`
     : `<p class="discret">${echapper(montre.vide || "")}</p>`;
@@ -169,7 +169,7 @@ function peindreEtats() {
         // Sans salarié, ce bloc n'est pas un engagement : il n'est même pas
         // enregistré. Le dire, plutôt que de laisser un bloc muet qu'on
         // ne peut ni valider ni faire partir.
-        poserEtats(cible, `<p class="etats-absent">Choisir qui est engagé.</p>
+        poserEtats(cible, `<p class="etats-absent">${aideDe("qui_engage")}</p>
            <div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`);
         brancherRetirer(div);
         return;
@@ -241,7 +241,7 @@ function fermerEdition(div, ferme) {
    L'avertissement n'est là que quand il y a quelque chose à perdre : un
    engagement validé, un contrat envoyé à la signature ou revenu signé, une DPAE
    partie. Sinon le bloc s'en va, et l'enregistrement suit. */
-const BOUTON_RETIRER = `<button class="lien retirer-engagement" title="retirer cet engagement de la saisie">Retirer cet engagement</button>`;
+const BOUTON_RETIRER = `<button class="lien retirer-engagement">Retirer cet engagement</button>`;
 
 /** Le bandeau de validation d'un bloc, sous les quatre pastilles. Un engagement validé ne le montre qu'ouvert pour être
  *  modifié : ses pièces, ses versions, et « Annuler » à côté de « Modifier l'engagement ». */
@@ -292,7 +292,7 @@ function brancherValidation(div, ligne) {
 async function validerLaCarte(div) {
   clearTimeout(MINUTEUR_SAISIE);
   const charge = chargeDeLaCarte(div, document.getElementById("mois").value);
-  if (!charge) { dire("Choisir qui est engagé.", "erreur"); return; }
+  if (!charge) { dire((ETAT.aides || {}).qui_engage, "erreur"); return; }
   // Une écriture automatique de cette carte déjà en route se finit d'abord : son identité en vient.
   await ENREGISTREMENT;
   if (div.dataset.engagement) charge.engagement = JSON.parse(div.dataset.engagement);
@@ -318,7 +318,7 @@ function brancherRetirer(div) {
     const mois = document.getElementById("mois").value;
     clearTimeout(MINUTEUR_SAISIE);
     await enregistrerSaisie(true);
-    if (!div.dataset.engagement) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
+    if (!div.dataset.engagement) { div.remove(); rafraichirApercu(); dire((ETAT.aides || {}).engagement_retire); return; }
     const charge = { mois, engagement: JSON.parse(div.dataset.engagement) };
     try {
       let r = await api("retirer-engagement", charge);
@@ -462,7 +462,7 @@ function boiteAvertissement(a) {
  * à côté du fichier complet du mois, jamais par-dessus. Écrire n'envoie rien ;
  * le dépôt reste le même geste, avec la même relecture et le même mot de passe. */
 async function boiteDpae(mois) {
-  if (!mois) { dire("Choisir un mois."); return; }
+  if (!mois) return;
   let r;
   try {
     r = await api("etat-par-engagement", { mois });
@@ -472,16 +472,14 @@ async function boiteDpae(mois) {
     return;
   }
   const lignes = r.engagements || [];
-  if (!lignes.length) { dire("Aucun engagement enregistré en " + moisEnClair(mois) + "."); return; }
+  if (!lignes.length) { dire(r.phrase); return; }
   // Le moteur dit, par engagement (`dpae_choix`), s'il se coche, s'il est coché
   // d'avance, son état en mots et sa couleur.
 
   ouvrirBoite(`
     <h3>Envoyer les DPAE</h3>
     ${moisEnGros(mois)}
-    <p class="note">Cochées d'avance : les embauches sans DPAE, ou dont la
-      DPAE a été refusée. Une DPAE déjà passée ne se redéclare pas : l'Urssaf
-      recevrait deux déclarations pour un seul contrat.</p>
+    <p class="note">${aideDe("dpae_cochees")}</p>
     <div class="liste-choix">
       ${lignes.map((l, i) => {
         const e = l.etats.dpae;
@@ -497,19 +495,17 @@ async function boiteDpae(mois) {
             ${e.date_changee ? `<br><span class="note">${echapper(e.date_changee.phrase)}</span>` : ""}</span></label>`;
       }).join("")}
     </div>
-    <p class="note">Heure d'embauche déclarée : 08h00. Toutes les embauches
-      cochées partent ensemble, dans un seul dépôt. D'abord le test, qui ne
-      déclare rien ; une fois le test revenu conforme, ${enFictive() ? "l'envoi, simulé" : "l'envoi réel"}.</p>
+    <p class="note">${aideDe("dpae_heure")}</p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      <button class="primaire" id="d-ecrire">Envoyer le test…</button>
+      <button class="primaire" id="d-ecrire">Envoyer le test</button>
     </div>`);
 
   const bouton = document.getElementById("d-ecrire");
   const majBouton = () => {
     const n = document.querySelectorAll(".d-qui:checked").length;
     bouton.disabled = !n;
-    bouton.textContent = n ? `Envoyer le test (${n} embauche${n > 1 ? "s" : ""})…` : "Rien de coché";
+    bouton.textContent = n ? `Envoyer le test (${n})` : "Rien de coché";
   };
   document.querySelectorAll(".d-qui").forEach((c) => { c.onchange = majBouton; });
   majBouton();
@@ -517,7 +513,7 @@ async function boiteDpae(mois) {
     const choisies = [...document.querySelectorAll(".d-qui:checked")]
       .map((c) => lignes[+c.dataset.i]);
     if (!choisies.length) return;
-    const rendre = occupe(bouton, "Fabrication du fichier en cours…");
+    const rendre = occupe(bouton, "Fabrication…");
     await boiteDepot({ quoi: "dpae", mois,
                        engagements: choisies.map((l) => ({ salarie: l.salarie, numero: l.numero })) },
                      { testerDabord: true });

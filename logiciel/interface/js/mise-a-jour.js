@@ -87,7 +87,7 @@
       return;
     }
     bouton.disabled = false;
-    refus.textContent = (r && r.erreur) || "PuppetPaie reste ouvert sur cette version.";
+    refus.textContent = (r && r.erreur) || "";
   }
 
   /* Dans la page d'une compagnie, l'état arrive avec l'ouverture (

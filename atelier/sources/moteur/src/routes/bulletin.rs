@@ -62,7 +62,14 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "bulletin-modeles" => modeles(ctx).map(|v| {
+        "bulletin-modeles" => modeles(ctx).map(|mut v| {
+            // Ce que l'ecran des modeles dit : a quoi sert le choix, les salaries qui en gardent un autre, ce que le choix change.
+            let autrement: Vec<String> = v["salaries_autrement"].as_array().into_iter().flatten().map(|s| format!("{} ({})", super::mot(&s["nom"]), super::mot(&s["modele"]))).collect();
+            v["ecran"] = json!({
+                "intro": "Le bulletin que la compagnie remet à ses salariés. Chaque modèle est montré sur la même paie fictive (une compagnie et un salarié inventés) : mêmes lignes du modèle réglementaire, mêmes totaux, même net. Un salarié qui demande l'autre modèle l'obtient par la case « Modèle de bulletin demandé par le salarié » de sa fiche, dans Avancé.",
+                "autrement": if autrement.is_empty() { Value::Null } else { json!(format!("Ces salariés ont demandé l'autre modèle (case de leur fiche, Avancé) et le gardent : {}.", autrement.join(", "))) },
+                "ensuite": "Le choix vaut pour les bulletins produits ensuite ; ceux déjà remis ne changent pas.",
+            });
             let p = format!("Modèle de bulletin : {}{}.", socle::valeur::valeur_en_texte(&v["choisi"]), if v["par_defaut"] == json!(true) { " (celui du logiciel)" } else { "" });
             super::phrase_en_tete(v, p)
         }),
