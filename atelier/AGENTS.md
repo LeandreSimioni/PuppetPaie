@@ -86,7 +86,8 @@ fait foi.
 - **Les muscles : une route par geste de l'écran, bien faite.** Un geste, une route ; la route obéit (elle ne recopie pas
   une règle du calcul ni n'ajoute d'état, de bouton ou de refus) ; un refus dit quoi corriger et n'écrit rien ; ce qu'elle
   rend est ce que la page lit ; **la route rend la phrase que l'on lit**, la page ne fait que la mise en page et ne décide
-  rien.
+  rien. Le test `la_page_n_ecrit_aucune_phrase` (`tests/fichiers/structure.rs`) le garde : un texte de la page a quatre
+  mots au plus et, s'il en a plusieurs, aucune ponctuation de phrase ; le reste vient d'une route.
 - **La graisse vient après** : on ne la pose pas sur un os ou un muscle qui n'est pas droit.
 - **Un lot de reconstruction enlève, il n'ajoute pas** : il finit avec moins de lignes et moins de tests ; ce qui
   demanderait d'ajouter se dit, ne se fait pas. On ne fait rien que Léandre n'a pas validé ; une pause demandée est une

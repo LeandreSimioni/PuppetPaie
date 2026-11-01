@@ -438,3 +438,213 @@ fn un_seul_endroit_ecrit_un_fichier_d_engagements() {
         }
     }
 }
+
+/// LA ROUTE REND LA PHRASE QUE L'ON LIT : la page (`logiciel/interface/js/`, `index.html`, et les pages que sert la
+/// fenetre, `interface/pages/`) n'ecrit que des mots d'interface (le nom d'un bouton, d'une colonne, d'un onglet, d'un
+/// champ) : un texte qu'elle montre a au plus `MOTS_D_INTERFACE` mots et, s'il en a plusieurs, aucune ponctuation de
+/// phrase (`.` `:` `?` `!` `…`). Un texte est ce qu'un litteral montre entre deux balises (un gabarit `${…}` ne le coupe
+/// pas : une phrase composee autour d'une valeur reste une phrase), ou un attribut qui se lit (`title`, `placeholder`,
+/// `aria-label`, `alt`) ; un mot porte une lettre et rien d'un code ; un texte qui porte `[]{}=<>` est du code.
+#[test]
+fn la_page_n_ecrit_aucune_phrase() {
+    let depot = espace().join("../..");
+    let mut fichiers: Vec<PathBuf> = std::fs::read_dir(depot.join("logiciel/interface/js")).unwrap().flatten().map(|e| e.path()).collect();
+    fichiers.push(depot.join("logiciel/interface/index.html"));
+    fichiers.extend(std::fs::read_dir(espace().join("moteur/src/interface/pages")).unwrap().flatten().map(|e| e.path()));
+    fichiers.sort();
+    let mut phrases = Vec::new();
+    for p in &fichiers {
+        let t = std::fs::read_to_string(p).unwrap();
+        let textes: Vec<String> = if p.extension().is_some_and(|x| x == "js") {
+            litteraux_js(&t).iter().flat_map(|s| textes_html(s)).collect()
+        } else {
+            textes_html(&t.replace("{{", "\u{1}").replace("}}", "\u{1}"))
+        };
+        for texte in textes {
+            if let Some(phrase) = phrase(&texte) {
+                phrases.push(format!("{} : « {} »", p.file_name().unwrap().to_string_lossy(), phrase));
+            }
+        }
+    }
+    assert!(
+        phrases.is_empty(),
+        "la page écrit {} phrase(s) : chacune doit venir d'une route (la phrase de la réponse du geste qui l'appelle, que la page affiche), ou disparaître ; la page n'écrit que des mots d'interface ({} mots au plus, sans ponctuation de phrase) :\n{}",
+        phrases.len(), MOTS_D_INTERFACE, phrases.join("\n")
+    );
+}
+
+/// Le plus de mots qu'ait un mot d'interface (« Envoyer à la signature », « Code emploi France Travail »).
+const MOTS_D_INTERFACE: usize = 4;
+
+/// `Some(le texte)` si le texte est une phrase : plus de `MOTS_D_INTERFACE` mots, ou plusieurs mots et une ponctuation
+/// de phrase.
+fn phrase(texte: &str) -> Option<String> {
+    let t = texte.replace("&nbsp;", " ").replace("&#160;", " ").replace('\u{1}', " ");
+    if t.chars().any(|c| "[]{}=<>".contains(c)) {
+        return None;
+    }
+    let mots: Vec<&str> = t.split_whitespace().filter(|m| m.chars().any(char::is_alphabetic) && !m.chars().any(|c| "/\\_$#;|&*".contains(c))).collect();
+    let c: Vec<char> = t.chars().collect();
+    let ponctue = (1..c.len()).any(|i| {
+        ".:?!…".contains(c[i]) && c.get(i + 1).is_none_or(|y| y.is_whitespace()) && (c[i - 1].is_alphanumeric() || "»)".contains(c[i - 1]) || (c[i - 1] == ' ' && c[i] != '.'))
+    });
+    (mots.len() > MOTS_D_INTERFACE || mots.len() > 1 && ponctue).then(|| texte.replace('\u{1}', "…").split_whitespace().collect::<Vec<_>>().join(" "))
+}
+
+/// Les litteraux de chaine d'un source JS, hors commentaires et expressions regulieres ; un gabarit garde la place de
+/// chaque `${…}` (\u{1}), et ses litteraux interieurs sont des litteraux a part.
+fn litteraux_js(t: &str) -> Vec<String> {
+    let c: Vec<char> = t.chars().collect();
+    let mut v = Vec::new();
+    let (mut i, mut avant) = (0, '(');
+    while i < c.len() {
+        let x = c[i];
+        if x == '/' && c.get(i + 1) == Some(&'/') {
+            while i < c.len() && c[i] != '\n' {
+                i += 1;
+            }
+        } else if x == '/' && c.get(i + 1) == Some(&'*') {
+            i += 2;
+            while i + 1 < c.len() && !(c[i] == '*' && c[i + 1] == '/') {
+                i += 1;
+            }
+            i += 2;
+        } else if x == '/' && "(,=:[!&|?{};+".contains(avant) {
+            let mut classe = false;
+            i += 1;
+            while i < c.len() && (c[i] != '/' || classe) {
+                match c[i] {
+                    '\\' => i += 1,
+                    '[' => classe = true,
+                    ']' => classe = false,
+                    _ => {}
+                }
+                i += 1;
+            }
+            i += 1;
+            avant = 'r';
+        } else if x == '"' || x == '\'' {
+            let (s, j) = chaine(&c, i);
+            v.push(s);
+            (i, avant) = (j, 's');
+        } else if x == '`' {
+            let (s, j) = gabarit(&c, i + 1, &mut v);
+            v.push(s);
+            (i, avant) = (j, 's');
+        } else {
+            if !x.is_whitespace() {
+                avant = x;
+            }
+            i += 1;
+        }
+    }
+    v
+}
+
+/// La chaine entre guillemets qui commence en `i`, et ou elle finit.
+fn chaine(c: &[char], mut i: usize) -> (String, usize) {
+    let q = c[i];
+    let mut s = String::new();
+    i += 1;
+    while i < c.len() && c[i] != q {
+        if c[i] == '\\' {
+            i += 1;
+        }
+        if let Some(&y) = c.get(i) {
+            s.push(if y == 'n' && c[i - 1] == '\\' { '\n' } else { y });
+        }
+        i += 1;
+    }
+    (s, i + 1)
+}
+
+/// Le gabarit qui commence en `i` (apres l'accent grave) : son texte, chaque `${…}` en \u{1}, et ou il finit. Les
+/// litteraux du code de chaque `${…}` vont dans `v`.
+fn gabarit(c: &[char], mut i: usize, v: &mut Vec<String>) -> (String, usize) {
+    let mut s = String::new();
+    while i < c.len() && c[i] != '`' {
+        if c[i] == '\\' {
+            if let Some(&y) = c.get(i + 1) {
+                s.push(y);
+            }
+            i += 2;
+        } else if c[i] == '$' && c.get(i + 1) == Some(&'{') {
+            s.push('\u{1}');
+            i += 2;
+            let mut profondeur = 1;
+            while i < c.len() && profondeur > 0 {
+                match c[i] {
+                    '{' => profondeur += 1,
+                    '}' => profondeur -= 1,
+                    _ => {}
+                }
+                if c[i] == '`' {
+                    let (t, j) = gabarit(c, i + 1, v);
+                    v.push(t);
+                    i = j;
+                } else if c[i] == '"' || c[i] == '\'' {
+                    let (t, j) = chaine(c, i);
+                    v.push(t);
+                    i = j;
+                } else {
+                    i += 1;
+                }
+            }
+        } else {
+            s.push(c[i]);
+            i += 1;
+        }
+    }
+    (s, i + 1)
+}
+
+/// Les textes qu'un fragment HTML montre : ce qui est entre deux balises, et les attributs qui se lisent ; ni les
+/// commentaires, ni `<script>`, ni `<style>`.
+fn textes_html(t: &str) -> Vec<String> {
+    let c: Vec<char> = t.chars().collect();
+    let mut v = Vec::new();
+    let mut texte = String::new();
+    let mut i = 0;
+    while i < c.len() {
+        if c[i] != '<' || !c.get(i + 1).is_some_and(|y| y.is_ascii_alphabetic() || *y == '/' || *y == '!') {
+            texte.push(c[i]);
+            i += 1;
+            continue;
+        }
+        v.push(std::mem::take(&mut texte));
+        if c[i + 1..].starts_with(&['!', '-', '-']) {
+            while i + 2 < c.len() && !(c[i] == '-' && c[i + 1] == '-' && c[i + 2] == '>') {
+                i += 1;
+            }
+            i += 3;
+            continue;
+        }
+        let debut = i;
+        let mut guillemet: Option<char> = None;
+        while i < c.len() && (guillemet.is_some() || c[i] != '>') {
+            match guillemet {
+                Some(g) if c[i] == g => guillemet = None,
+                None if c[i] == '"' || c[i] == '\'' => guillemet = Some(c[i]),
+                _ => {}
+            }
+            i += 1;
+        }
+        let balise: String = c[debut..i.min(c.len())].iter().collect();
+        for attribut in [" title=", " placeholder=", " aria-label=", " alt="] {
+            for m in balise.split(attribut).skip(1) {
+                let mut it = m.chars();
+                if let Some(g @ ('"' | '\'')) = it.next() {
+                    v.push(it.take_while(|y| *y != g).collect());
+                }
+            }
+        }
+        let nom: String = balise.chars().skip(1).take_while(char::is_ascii_alphanumeric).collect();
+        i += 1;
+        if nom == "script" || nom == "style" {
+            let reste: String = c[i.min(c.len())..].iter().collect();
+            i += reste[..reste.find(&format!("</{}", nom)).unwrap_or(reste.len())].chars().count();
+        }
+    }
+    v.push(texte);
+    v
+}
