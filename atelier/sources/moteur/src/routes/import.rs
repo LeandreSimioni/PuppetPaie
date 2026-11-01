@@ -142,7 +142,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let t = |x: &Value, k: &str| super::mot(&x[k]);
             let b = &v["bulletins"];
             let bulletins = if b.is_object() {
-                format!("{} bulletins lus (du {} au {}), {} à reprendre, fiches à créer : {} ; ", t(b, "lus"), t(b, "du"), t(b, "au"), t(b, "repris"), t(b, "fiches_a_creer"))
+                format!("{} bulletins lus (du {} au {}), {} à reprendre, fiches à créer : {} ; ", t(b, "lus"), super::quand(&t(b, "du")), super::quand(&t(b, "au")), t(b, "repris"), t(b, "fiches_a_creer"))
             } else {
                 String::new()
             };
@@ -151,7 +151,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }
         "importation-etat" => etat_importation(&ctx.racine).map(|v| {
             let t = |k: &str| super::mot(&v[k]);
-            let p = if t("importe_le").is_empty() { "Rien n'est repris d'un ancien logiciel.".to_string() } else { format!("Repris le {} : {} contrats, {} salariés, du {} au {}.", t("importe_le"), t("contrats"), t("salaries"), t("du"), t("au")) };
+            let p = if t("importe_le").is_empty() { "Rien n'est repris d'un ancien logiciel.".to_string() } else { format!("Repris le {} : {} contrats, {} salariés, du {} au {}.", super::quand(&t("importe_le")), t("contrats"), t("salaries"), super::quand(&t("du")), super::quand(&t("au"))) };
             super::phrase_en_tete(v, p)
         }),
         "importer" => crate::import::ecrite::importer(ctx, charge).map(avec_les_pastilles),
