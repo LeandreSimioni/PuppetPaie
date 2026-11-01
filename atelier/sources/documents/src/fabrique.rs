@@ -67,12 +67,17 @@ pub fn fusion_pieces(pieces: &[(PathBuf, Option<Vec<usize>>)]) -> Result<Vec<u8>
         })
         .collect();
     let description = json!({"format": 1, "pieces": liste});
-    fabrique_pdf::assemblage::assembler(&description.to_string()).map_err(|r| {
+    let refus = |m: &str| {
         avec("ErreurOperation", format!(
             "Assemblage impossible : la fabrique de PDF refuse la fusion ({}). Aucun PDF n'est assemblé autrement.",
-            r.0.replace('\n', " ").trim()
+            m.replace('\n', " ").trim()
         ))
-    })
+    };
+    match fabrique_pdf::assemblage::assembler(&description.to_string()).map_err(|r| refus(&r.0))? {
+        // Une piece verrouillee (le contrat contresigne) garde son verrou dans ce qui la porte.
+        (octets, true) => verrouiller(&octets).map_err(|m| refus(&m)),
+        (octets, false) => Ok(octets),
+    }
 }
 
 /// La fusion de PDF en memoire : chacun va dans un fichier de `tmp` le temps de la fusion.

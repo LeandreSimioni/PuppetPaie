@@ -82,7 +82,11 @@ pub fn executer(args: &[String]) -> ExitCode {
                 Err(m) => return echec(&m, 1),
             };
             let octets = match crate::assembler(&texte) {
-                Ok(o) => o,
+                Ok((o, false)) => o,
+                Ok((o, true)) => match crate::chiffrement::verrouiller(&o) {
+                    Ok(o) => o,
+                    Err(r) => return echec(&r.0, 1),
+                },
                 Err(r) => return echec(&r.0, 1),
             };
             match ecrire(sortie, &octets, None) {

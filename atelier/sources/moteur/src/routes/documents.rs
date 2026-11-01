@@ -273,37 +273,6 @@ fn periodes_attendues(ctx: &Contexte, par_mois: &mut HashMap<String, Vec<engagem
     documents::aer::periodes_attendues(periode, cle, &mut du_mois).map(Some).map_err(Echec::from)
 }
 
-/// Un dossier temporaire, retire quand on a fini.
-struct Temporaire(std::path::PathBuf);
-
-impl Temporaire {
-    fn nouveau() -> R<Temporaire> {
-        static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-        let p = std::env::temp_dir().join(format!("assemblage-{}-{}", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::SeqCst)));
-        std::fs::create_dir_all(&p).map_err(|e| erreur("OSError", e.to_string()))?;
-        Ok(Temporaire(p))
-    }
-}
-
-impl Drop for Temporaire {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-/// Les PDF mis a la suite.
-fn assembler(pieces: &[Vec<u8>]) -> R<Vec<u8>> {
-    let tmp = Temporaire::nouveau()?;
-    let mut liste = Vec::new();
-    for (i, octets) in pieces.iter().enumerate() {
-        let f = tmp.0.join(format!("piece{}.pdf", i));
-        std::fs::write(&f, octets).map_err(|e| erreur("OSError", e.to_string()))?;
-        liste.push(json!({"fichier": f.to_string_lossy()}));
-    }
-    let description = json!({"format": 1, "pieces": liste});
-    fabrique_pdf::assemblage::assembler(&description.to_string()).map_err(|r| Echec::from(r.0))
-}
-
 /// `chemin_identite("cachet")` : le tampon pose, quelle que soit son extension (png, jpg, svg).
 fn cachet_pose(ent: &Value) -> Option<String> {
     let dossier = documents::bulletin::gabarits_de(ent)?.join("identite");
@@ -397,7 +366,7 @@ pub(crate) fn ranger_aer_detail(ctx: &Contexte, mois: Option<&str>, fichiers: Op
                 Err(AerEchec::Fabrique(m)) | Err(AerEchec::Autre(m)) => return Err(Echec::from(m)),
             }
         }
-        let donnees = if signees.len() == 1 { signees.remove(0) } else { assembler(&signees)? };
+        let donnees = if signees.len() == 1 { signees.remove(0) } else { documents::fabrique::fusion_octets(&signees, &std::env::temp_dir()).map_err(Echec::from)? };
         let cible = ctx.racine.join("sorties").join(periode).join("envoi");
         std::fs::create_dir_all(&cible).map_err(|e| erreur("OSError", e.to_string()))?;
         let chemin = cible.join(nom_fichier("AER", &cle, &etiquette(periode)?));

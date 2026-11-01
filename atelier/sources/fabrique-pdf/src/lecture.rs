@@ -99,24 +99,26 @@ fn reparer(b: &[u8]) -> Option<Vec<u8>> {
     Some(sortie)
 }
 
-/// Ouvre un PDF. Un fichier chiffré s'ouvre avec le mot de passe vide quand c'est possible
-/// (`dechiffrer` : `true`) ; sans le déchiffrer, le nombre de pages se lit quand même.
-pub fn ouvrir(chemin: &str, dechiffrer: bool) -> Result<Document, Refus> {
+/// Ouvre un PDF, et dit s'il était verrouillé. Un fichier chiffré s'ouvre avec le mot de passe vide
+/// quand c'est possible (`dechiffrer` : `true`) ; sans le déchiffrer, le nombre de pages se lit
+/// quand même.
+pub fn ouvrir(chemin: &str, dechiffrer: bool) -> Result<(Document, bool), Refus> {
     let octets = std::fs::read(chemin).map_err(|e| Refus(format!("{} illisible ({})", chemin, e)))?;
     let mut doc = charger(&octets).map_err(|r| Refus(format!("{} {}", chemin, r.0)))?;
+    let verrouille = doc.is_encrypted();
     if dechiffrer {
         crate::chiffrement::dechiffrer(&mut doc, b"").map_err(|r| Refus(format!("{} : {}", chemin, r.0)))?;
     }
-    Ok(doc)
+    Ok((doc, verrouille))
 }
 
 /// Le nombre de pages de chaque fichier, dans l'ordre.
 pub fn pages(chemins: &[String]) -> Result<Vec<usize>, Refus> {
-    chemins.iter().map(|c| Ok(ouvrir(c, false)?.get_pages().len())).collect()
+    chemins.iter().map(|c| Ok(ouvrir(c, false)?.0.get_pages().len())).collect()
 }
 
 /// Le texte de chaque page de `chemin`, et les avertissements (pages illisibles).
 pub fn texte(chemin: &str) -> Result<(Vec<String>, Vec<String>), Refus> {
-    let doc = ouvrir(chemin, true)?;
+    let (doc, _) = ouvrir(chemin, true)?;
     Ok(crate::texte::texte_des_pages(&doc))
 }

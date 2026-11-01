@@ -39,7 +39,7 @@ fn source(dossier: &Path, nom: &str, textes: &[&str]) -> String {
 }
 
 fn assembler(v: &Value) -> Result<Vec<u8>, String> {
-    fabrique_pdf::assembler(&v.to_string()).map_err(|r| {
+    fabrique_pdf::assembler(&v.to_string()).map(|(o, _)| o).map_err(|r| {
         assert!(!r.0.contains('\n'), "le message doit tenir sur une ligne : {:?}", r.0);
         r.0
     })

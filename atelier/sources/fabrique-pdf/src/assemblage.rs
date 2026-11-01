@@ -42,7 +42,10 @@ fn refus<T>(m: String) -> Result<T, Refus> {
 /// Les attributs qu'une page hérite de son arbre.
 const HERITES: [&[u8]; 4] = [b"Resources", b"MediaBox", b"CropBox", b"Rotate"];
 
-pub fn assembler(texte: &str) -> Result<Vec<u8>, Refus> {
+/// Les octets du PDF assemblé, et vrai quand une pièce était verrouillée : une pièce s'ouvre par
+/// `lecture::ouvrir` (le mot de passe vide), et c'est à qui écrit l'assemblage de le verrouiller
+/// comme elle (`chiffrement::verrouiller`), pour que le verrou de la pièce ne se perde pas en route.
+pub fn assembler(texte: &str) -> Result<(Vec<u8>, bool), Refus> {
     let a: Assemblage = serde_json::from_str(texte)
         .map_err(|e| Refus(format!("description d'assemblage illisible : {}", e)))?;
     if let Some(f) = a.format {
@@ -60,17 +63,13 @@ pub fn assembler(texte: &str) -> Result<Vec<u8>, Refus> {
     let mut feuilles: Vec<Object> = Vec::new();
     // Chaque fichier n'est lu qu'une fois, même s'il revient dans plusieurs pièces.
     let mut lus: HashMap<String, Document> = HashMap::new();
+    let mut verrouille = false;
 
     for (n, piece) in a.pieces.iter().enumerate() {
         let n = n + 1;
         if !lus.contains_key(&piece.fichier) {
-            let octets = std::fs::read(&piece.fichier)
-                .map_err(|e| Refus(format!("pièce {} : {} illisible ({})", n, piece.fichier, e)))?;
-            let doc = Document::load_mem(&octets)
-                .map_err(|e| Refus(format!("pièce {} : {} n'est pas un PDF lisible ({})", n, piece.fichier, e)))?;
-            if doc.is_encrypted() {
-                return refus(format!("pièce {} : {} est chiffré", n, piece.fichier));
-            }
+            let (doc, verrou) = crate::lecture::ouvrir(&piece.fichier, true).map_err(|r| Refus(format!("pièce {} : {}", n, r.0)))?;
+            verrouille |= verrou;
             lus.insert(piece.fichier.clone(), doc);
         }
         let src = &lus[&piece.fichier];
@@ -120,7 +119,7 @@ pub fn assembler(texte: &str) -> Result<Vec<u8>, Refus> {
     sortie
         .save_to(&mut octets)
         .map_err(|e| Refus(format!("écriture du PDF impossible : {}", e)))?;
-    Ok(octets)
+    Ok((octets, verrouille))
 }
 
 // ---------------------------------------------------------------------------
