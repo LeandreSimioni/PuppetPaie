@@ -11,7 +11,7 @@
 //!   revient signe.
 //! - Les signalements d'arret, de reprise anticipee et de fin de contrat que le moteur dit dus (`obligations`) partent le
 //!   jour de leur date butoir, a 9 h 30 (test puis reel). Un signalement que la saisie ne permet pas d'ecrire n'est pas
-//!   joue : le pas le dit, et l'horloge ne corrige pas une saisie.
+//!   joue : le pas le dit une fois, les rappels le disent a la personne, et l'horloge ne corrige pas une saisie.
 //! - Le 1er du mois suivant, ce qui reste en saisie du mois se valide ; a l'echeance de la DSN, la DSN se fabrique et part
 //!   (test puis reel), puis les documents aux salaries, fabriques a leur envoi, et les bulletins rectificatifs d'un mois
 //!   dont les documents etaient partis.
@@ -24,8 +24,8 @@
 //! ancien au plus recent, de mois en mois sans rien sauter (une embauche du 3 avril se joue avant la DSN de mars du 15).
 //!
 //! FAIT : un mois dont l'echeance est passee, dont toutes les etapes sont vertes (`etapes_restantes`) et dont aucun
-//! signalement n'est du. Il ne se relit plus tant que sa saisie et ses imprevus ne changent pas (`empreinte_du_mois`) et
-//! que sa DSN n'est pas refusee.
+//! signalement n'est du, hors celui qui attend la saisie. Il ne se relit plus tant que sa saisie et ses imprevus ne
+//! changent pas (`empreinte_du_mois`) et que sa DSN n'est pas refusee.
 //!
 //! UN REFUS ATTEND SA CORRECTION : une DSN refusee par un bilan laisse son mois a faire ; a chaque ouverture, l'horloge la
 //! refait datee de son echeance, et ne redepose jamais les octets qu'un organisme a refuses (`deposer_les_dsn`). Quand une
@@ -209,12 +209,12 @@ fn est_une_erreur_d_operation(e: &Echec) -> bool {
     )
 }
 
-/// La premiere ligne du message, entiere, ou le nom de la classe quand le message est vide.
+/// Le message entier, ses lignes mises bout a bout sur une seule, ou le nom de la classe quand le message est vide.
 fn motif_de(e: &Echec) -> String {
-    if e.message.is_empty() {
+    if e.message.trim().is_empty() {
         return e.classe.unwrap_or("Exception").to_string();
     }
-    e.message.split(['\n', '\r']).next().unwrap_or("").to_string()
+    e.message.lines().map(str::trim).filter(|l| !l.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
 /// L'instant d'un pas, `AAAA-MM-JJTHH:MM:SS` a l'heure de Paris, en secondes UTC.
@@ -451,10 +451,12 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
     }
 
     // FAIT : un mois echu dont toutes les etapes sont vertes (`etapes_restantes`, ce que l'ecran montre) et dont aucun
-    // signalement n'est du. Un mois refuse, ou dont un signalement n'a pas pu s'ecrire, se regarde a chaque ouverture.
+    // signalement n'est du que l'horloge puisse ecrire. Un mois refuse se regarde a chaque ouverture ; un signalement qui
+    // attend la saisie (`fins_a_signaler`, `a_saisir` : une case de la carte vide) est a la personne, et les rappels le lui
+    // disent : le mois se rouvre quand sa saisie change (`empreinte_du_mois`).
     for mois in &echus {
         let ctx = d.contexte()?;
-        if Moteur::nouveau(&ctx).etapes_restantes(mois)?.is_empty() && signalements_dus(&ctx, mois, jour).is_empty() {
+        if Moteur::nouveau(&ctx).etapes_restantes(mois)?.is_empty() && signalements_dus(&ctx, mois, jour, false).is_empty() {
             clos.insert(mois.clone(), json!(empreinte_du_mois(racine, mois)));
         } else {
             clos.remove(mois);
@@ -539,7 +541,7 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, mois: &str, calendrier: &
             calendrier.push(Pas { quand, quoi: String::new(), geste: Geste::Avenant { mois: mois.to_string(), salarie, debut, nom } });
         }
     }
-    calendrier.extend(signalements_dus(ctx, mois, jour));
+    calendrier.extend(signalements_dus(ctx, mois, jour, true));
 
     let suivant = socle::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
     if jour < suivant {
@@ -911,7 +913,9 @@ fn due(o: &Value, jour: Jour) -> Option<Jour> {
 /// l'arret (04) et la reprise anticipee (05) d'un arret dont le dernier jour travaille est du mois, la fin de contrat (07)
 /// d'un contrat qui finit dans le mois. Chacun s'ecrit et part (test puis reel) le jour de sa date butoir, a 9 h 30 --
 /// avant la DSN du mois quand c'est le jour de son echeance (un arret subroge) ; un signalement fait n'est plus du.
-fn signalements_dus(ctx: &Contexte, mois: &str, jour: Jour) -> Vec<Pas> {
+/// `aussi_a_saisir` : aussi une fin dont la carte n'a pas encore ce que le signalement exige (`a_saisir`) ; son pas dit
+/// pourquoi il n'est pas joue.
+fn signalements_dus(ctx: &Contexte, mois: &str, jour: Jour, aussi_a_saisir: bool) -> Vec<Pas> {
     let mut dus = Vec::new();
     let natures = [("signalement_arret", declarations::signalement::ARRET, "d'arrêt"), ("signalement_reprise", declarations::signalement::REPRISE, "de reprise")];
     let arrets = crate::routes::imprevus::tous_les_arrets(ctx).unwrap_or_default();
@@ -931,6 +935,9 @@ fn signalements_dus(ctx: &Contexte, mois: &str, jour: Jour) -> Vec<Pas> {
     }
     for f in crate::routes::imprevus::fins_a_signaler(ctx, mois, jour).unwrap_or_default() {
         let Some(butoir) = due(&f["obligation"], jour) else { continue };
+        if !aussi_a_saisir && f["a_saisir"].as_array().is_some_and(|a| !a.is_empty()) {
+            continue;
+        }
         let (salarie, fin) = (valeur_en_texte(&f["salarie"]), valeur_en_texte(&f["fin"]));
         dus.push(Pas {
             quand: format!("{}T09:30:00", butoir.iso()),

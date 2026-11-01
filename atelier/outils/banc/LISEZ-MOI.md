@@ -22,7 +22,9 @@ node atelier/outils/banc/banc.js lancer /tmp/banc-<nom> --jour 2026-11-02
 
 Le banc copie `logiciel/` et `fictives/` du dépôt dans `/tmp/banc-<nom>/installation/` (bridée : aucun `.edition.json`),
 lance la fenêtre sans navigateur, rien ne sort de la machine (`PUPPETPAIE_ESSAIS_HORS_RESEAU`). L'heure simulée est
-9 h (Paris) ce jour-là, et elle coule ensuite au pas de la montre.
+9 h (Paris) ce jour-là, et elle coule ensuite au pas de la montre. Le scénario garde les routes qui écrivent ou
+engagent (l'acte de leur fiche) ; les lectures, servies sans attendre, n'y entrent qu'en lançant la fenêtre avec
+`--lectures` (`moteur-atelier interface … --enregistrer <scénario> --lectures`).
 
 **2. Jouer dans la page**, par un script Playwright en Node (jamais Python), qui commence ainsi :
 

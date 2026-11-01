@@ -33,8 +33,9 @@
 //!   rien d'exterieur : ni `/tmp`, ni le poste ou on l'a enregistre.
 //!
 //! L'ENREGISTREUR (`Enregistreur`) n'existe que dans le binaire de l'atelier (`moteur-atelier`, `--features atelier`) :
-//! `moteur-atelier interface --enregistrer <dossier> --jour J` (le banc, `atelier/outils/banc/`). Le binaire livre n'en a
-//! pas une ligne.
+//! `moteur-atelier interface --enregistrer <dossier> [--lectures] --jour J` (le banc, `atelier/outils/banc/`). Il garde
+//! les routes dont la fiche ecrit ou engage (`routes::est_une_ecriture`) ; une lecture n'y entre qu'avec `--lectures`,
+//! et sans lui elle est servie sans attendre le tour des autres. Le binaire livre n'en a pas une ligne.
 //!
 //! LE REJEU (`rejouer`) est dans le moteur ordinaire : les essais (`tests/outils/rejeu.rs`) et l'exemple `vie_fictive`
 //! l'appellent dans leur processus. Chaque geste se rejoue a son instant, fige (`temps::figer`), les aleas en suite fixe
@@ -663,6 +664,10 @@ mod enregistreur {
         /// Un geste a la fois, de bout en bout : la route, son empreinte avant et apres, sa ligne. Le temps est fige
         /// pendant ce temps-la (`temps::figer`) ; l'ordre du fichier est celui ou les gestes ont eu lieu.
         tour: Mutex<u64>,
+        /// Vrai : les lectures entrent aussi dans le scenario. Faux (le banc, les preuves) : seules les routes dont la
+        /// fiche ecrit ou engage (`routes::est_une_ecriture`) ; une lecture est servie telle quelle, sans tour ni
+        /// empreinte, en meme temps que les autres -- le rejeu les ecarte de toute facon.
+        lectures: bool,
     }
 
     static ENREGISTREUR: OnceLock<Enregistreur> = OnceLock::new();
@@ -705,18 +710,13 @@ mod enregistreur {
 
     impl Enregistreur {
         /// Pose l'enregistreur de ce processus : `dossier` (cree s'il n'existe pas ; un scenario commence s'y poursuit),
-        /// `inst` l'installation. Le banc commence a `jour`.
-        pub fn demarrer(dossier: &Path, inst: &Path) -> Result<&'static Enregistreur, String> {
-            ENREGISTREUR.set(Enregistreur::nouveau(dossier, inst)?).map_err(|_| "Un enregistreur est deja pose dans ce processus.".to_string())?;
-            Ok(ENREGISTREUR.get().expect("pose"))
-        }
-
-        /// Un enregistreur qui n'est pas celui du processus (les essais) : `dossier` cree s'il n'existe pas, un scenario
-        /// commence s'y poursuit.
-        pub fn nouveau(dossier: &Path, inst: &Path) -> Result<Enregistreur, String> {
+        /// `inst` l'installation, `lectures` : les lectures aussi.
+        pub fn demarrer(dossier: &Path, inst: &Path, lectures: bool) -> Result<&'static Enregistreur, String> {
             std::fs::create_dir_all(dossier.join(PIECES)).map_err(|e| format!("{} : {}", dossier.display(), e))?;
             let deja = lire(dossier).map(|g| g.iter().filter_map(|x| x.get("n").and_then(Value::as_u64)).max().unwrap_or(0)).unwrap_or(0);
-            Ok(Enregistreur { dossier: dossier.to_path_buf(), inst: inst.to_path_buf(), tour: Mutex::new(deja) })
+            let e = Enregistreur { dossier: dossier.to_path_buf(), inst: inst.to_path_buf(), tour: Mutex::new(deja), lectures };
+            ENREGISTREUR.set(e).map_err(|_| "Un enregistreur est deja pose dans ce processus.".to_string())?;
+            Ok(ENREGISTREUR.get().expect("pose"))
         }
 
         pub fn dossier(&self) -> &Path {
@@ -789,8 +789,12 @@ mod enregistreur {
         }
 
         /// UNE ROUTE, servie par `servir` sous l'enregistreur : le temps fige a son debut, ce qu'on avait depose recopie,
-        /// l'empreinte de la compagnie avant et apres, puis sa ligne.
+        /// l'empreinte de la compagnie avant et apres, puis sa ligne. Une lecture, quand on ne les enregistre pas, est
+        /// seulement servie.
         pub fn route(&self, racine: &Path, nom: &str, charge: &Value, servir: impl FnOnce() -> Value) -> Value {
+            if !self.lectures && !crate::routes::est_une_ecriture(nom) {
+                return servir();
+            }
             let mut n = self.tour.lock().unwrap_or_else(|p| p.into_inner());
             let quand = socle::temps::secondes();
             socle::temps::figer(quand);

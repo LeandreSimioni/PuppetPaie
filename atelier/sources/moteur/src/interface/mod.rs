@@ -1043,19 +1043,23 @@ pub fn lire_options(args: &[String]) -> Result<Options, String> {
 }
 
 /// LE BANC D'ESSAI (l'atelier seulement ; `atelier/outils/banc/`) : `moteur-atelier interface ... [--enregistrer
-/// DOSSIER] [--jour AAAA-MM-JJ]`. `--jour` : le temps du moteur coule depuis ce jour, 9 h a Paris (`temps`) ;
-/// `--enregistrer` : chaque geste entre dans le scenario `DOSSIER` (`scenario::Enregistreur`). Un scenario deja
-/// commence se poursuit : sans `--jour`, le temps reprend une minute apres son dernier geste ; un `--jour` avant lui est
+/// DOSSIER [--lectures]] [--jour AAAA-MM-JJ]`. `--jour` : le temps du moteur coule depuis ce jour, 9 h a Paris (`temps`) ;
+/// `--enregistrer` : chaque geste qui ecrit entre dans le scenario `DOSSIER` (`scenario::Enregistreur`), les lectures
+/// aussi avec `--lectures`. Un scenario deja commence se poursuit : sans `--jour`, le temps reprend une minute apres son dernier geste ; un `--jour` avant lui est
 /// refuse. Rend les autres options, pour `lire_options`.
 #[cfg(feature = "atelier")]
 fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
-    let (mut reste, mut dossier, mut jour) = (Vec::new(), None, None);
+    let (mut reste, mut dossier, mut jour, mut lectures) = (Vec::new(), None, None, false);
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
             "--enregistrer" if i + 1 < args.len() => {
                 dossier = Some(PathBuf::from(&args[i + 1]));
                 i += 2;
+            }
+            "--lectures" => {
+                lectures = true;
+                i += 1;
             }
             "--jour" if i + 1 < args.len() => {
                 jour = Some(socle::date::Jour::lire(&args[i + 1]).map_err(|_| format!("Jour illisible : {} (AAAA-MM-JJ).", args[i + 1]))?);
@@ -1068,7 +1072,7 @@ fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
         }
     }
     let enr = match &dossier {
-        Some(d) => Some(crate::atelier::scenario::Enregistreur::demarrer(d, &compagnies::base())?),
+        Some(d) => Some(crate::atelier::scenario::Enregistreur::demarrer(d, &compagnies::base(), lectures)?),
         None => None,
     };
     let dernier = enr.and_then(|e| e.dernier_instant());
