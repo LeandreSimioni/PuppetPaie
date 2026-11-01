@@ -129,13 +129,6 @@ function dessinerVeille(v) {
     const [phrase, geste] = A_POSER[code] || [code, "Mots de passe"];
     afaire.push(`${echapper(phrase)} <button class="lien" data-aller="${echapper(code)}">${echapper(geste)}</button>`);
   });
-  // LES TAUX DE PAS QUI MANQUENT : la phrase et une ligne par salarié, du
-  // moteur. Le bandeau est le seul endroit où cela arrive à temps — trois
-  // semaines avant la DSN, pas cinq minutes avant le dépôt.
-  if (d.taux_pas_phrase) {
-    afaire.push(`<span title="${echapper((d.taux_pas || []).join(" · "))}">${echapper(d.taux_pas_phrase)}</span>${enFictive()
-      ? ` <button class="lien" data-fictive-explique="pas">pourquoi ?</button>` : ""}`);
-  }
   [...(d.manquants || []), ...(d.incidents || []), ...(v.erreur ? [v.erreur] : [])]
     .forEach((x) => afaire.push(echapper(x)));
   if (afaire.length) {

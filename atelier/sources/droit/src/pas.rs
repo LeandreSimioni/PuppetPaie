@@ -558,8 +558,8 @@ fn fr(iso: &Value) -> String {
     }
 }
 
-
-/// Les phrases a dire avant de declarer, une par salarie dont la paie prendrait la grille de l'article 204 H, III
+/// Les phrases a dire au depot de la DSN et a la production des bulletins (`depart::sans_taux_recu`), une par salarie
+/// dont la paie prendrait la grille de l'article 204 H, III
 /// (CGI, art. 1671, 2 : « A défaut de taux transmis par l'administration ») : ce que le magasin sait de lui. Vide si
 /// tout va bien.
 pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>) -> Resultat<Vec<String>> {
@@ -589,16 +589,6 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>)
     }
     Ok(lignes)
 }
-
-/// La phrase du bandeau : combien de salaries n'ont pas de taux valide, et ce que la paie applique alors.
-pub fn resume_avertissements(lignes: &[String]) -> String {
-    match lignes.len() {
-        0 => String::new(),
-        1 => "1 salarié sans taux de PAS valide transmis par la DGFiP : sa paie prend la grille de l'article 204 H du CGI.".into(),
-        n => format!("{} salariés sans taux de PAS valide transmis par la DGFiP : leur paie prend la grille de l'article 204 H du CGI.", n),
-    }
-}
-
 
 #[cfg(test)]
 mod tests {

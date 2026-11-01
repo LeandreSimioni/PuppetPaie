@@ -489,6 +489,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         )));
     }
     let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None, &departs)?;
+    avertissements.extend(sans_taux_recu(ctx, paies.iter())?.into_iter().map(avertissement));
     // LE BORDEREAU URSSAF DU PRINCIPAL (chacun des autres etablissements a le sien, dans sa DSN) : ce qui l'empeche de se
     // calculer se dit avant le depot.
     let plusieurs_etablissements = !droit::bareme::secondaires(&ctx.entreprise_du_mois(mois).map_err(valeur)?).is_empty();
@@ -766,6 +767,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     let verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     let mut faits = DocumentsFabriques { _verrou: verrou, reserves: Reserves::default(), a_poser: Vec::new(), avertissements: Vec::new() };
     let Some((_data, paies)) = validees else { return Ok(faits) };
+    faits.avertissements.extend(sans_taux_recu(ctx, paies.iter().filter(|p| cles.contains(&cle_de(p))))?);
     let ecrits = engagement::etats::numeros_des_documents(ctx, mois, &departs).map_err(Echec::from)?;
     let an = annee_de(mois)?;
     let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
@@ -1416,4 +1418,28 @@ pub(crate) fn piece_partie_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let f = piece_partie(ctx, &champ("mois")?, &champ("fichier")?)?;
     let relatif = f.strip_prefix(&ctx.racine).unwrap_or(&f).to_string_lossy().replace('\\', "/");
     Ok(json!({"chemin": relatif}))
+}
+
+/// LE TAUX DE PAS DES PAIES QUI PARTENT : une phrase par salarie dont une paie n'a pas de taux transmis par la DGFiP qui
+/// vaille le jour de son paiement. Elle prend alors le taux non personnalise de la grille : « Lorsque le débiteur ne dispose
+/// pas d'un taux calculé par l'administration fiscale [...] il est appliqué un taux proportionnel » (CGI, art. 204 H, III,
+/// 1, `atelier/reference/sources/code-general-des-impots/xml/204_H.xml` l. 126). Se dit au depot de la DSN et a la
+/// production des bulletins, pour ces paies-la seulement.
+fn sans_taux_recu<'a>(ctx: &Contexte, paies: impl Iterator<Item = &'a Paie>) -> R<Vec<String>> {
+    let mut lignes: Vec<String> = Vec::new();
+    // La paie dit le taux qu'elle a pris (`Paie::pas`, ecrit a la validation) : un autre type que « 01 » (taux transmis
+    // par la DGFiP, S21.G00.50.007) est la grille.
+    for p in paies.filter(|p| p.pas.as_ref().is_some_and(|v| v.type_taux.as_str() != Some("01"))) {
+        let e = &p.engagement;
+        let paye_le = e.date_paiement.as_deref().and_then(|d| socle::date::Jour::lire(d.get(..10).unwrap_or(d)).ok()).map_or_else(|| e.fin_periode(), Ok).map_err(Echec::from)?;
+        let pourquoi = droit::pas::avertissements(ctx, Some(&[cle_de(p)]), Some(paye_le)).map_err(Echec::from)?;
+        let l = format!(
+            "{} : sa paie prend le taux non personnalisé (CGI, art. 204 H).",
+            pourquoi.first().cloned().unwrap_or_else(|| format!("{} : aucun taux transmis par la DGFiP au jour de son paiement", ctx.nomme(&cle_de(p))))
+        );
+        if !lignes.contains(&l) {
+            lignes.push(l);
+        }
+    }
+    Ok(lignes)
 }

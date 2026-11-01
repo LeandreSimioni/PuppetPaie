@@ -57,8 +57,7 @@ const CIRCUITS_FICTIFS = {
 };
 
 /* CE QU'UNE COMPAGNIE FICTIVE NE FAIT PAS, DIT AU LIEU D'ÊTRE TU.
-   La sauvegarde est coupée dans une compagnie fictive, et quatre salariés
-   fictifs n'ont volontairement pas de taux de PAS : le visiteur doit savoir ce
+   La sauvegarde est coupée dans une compagnie fictive : le visiteur doit savoir ce
    que fait une compagnie réelle, et pourquoi il voit ce qu'il voit. La mise à
    jour, elle, est celle du logiciel (une par installation) : elle se
    fait partout. Les phrases disent le logiciel tel qu'il est (sauvegarde.rs,
@@ -91,22 +90,6 @@ const EXPLICATIONS_FICTIVES = {
         passée se clôt. Avant la date limite, c'est à vous : faites la DPAE deux jours
         avant, ou la DSN le 14, et l'horloge ne la refera pas. Ajoutez ou retirez un
         contrat : à votre retour, le mois est réécrit et tout est à jour.`],
-    ],
-  },
-  pas: {
-    titre: "Les taux de prélèvement à la source",
-    sections: [
-      ["D'où vient le taux", `Chaque salarié a un taux, que la DGFiP transmet dans un compte
-        rendu (nature 94) après chaque DSN. Il vaut jusqu'à la fin du deuxième mois qui
-        suit : un intermittent qui n'a pas travaillé depuis quelques mois n'en a donc
-        plus de valide.`],
-      ["Sans taux valide", `La loi impose la grille par défaut de l'article 204 H du code
-        général des impôts, qui prélève le plus souvent plus que le vrai taux. La paie
-        sort quand même ; le bandeau le signale des semaines avant la DSN, pour qu'on
-        ait le temps d'agir.`],
-      ["Comment l'éviter", `Quand la DPAE d'une embauche s'écrit, le logiciel écrit aussi,
-        pour chaque salarié sans taux valide, une demande de taux à la DGFiP (signalement
-        d'amorçage), à déposer comme une DSN. La DGFiP répond sous cinq jours ouvrés.`],
     ],
   },
 };

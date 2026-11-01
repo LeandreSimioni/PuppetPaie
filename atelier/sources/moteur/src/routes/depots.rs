@@ -107,7 +107,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
     let mut v = match nom {
         // Les phrases de ses parties (le remplacement, le recapitulatif, le test), a la suite de la sienne.
         "depot-apercu" => depot_apercu(ctx, charge).map(|mut v| {
-            let lignes: Vec<Value> = ["remplacement", "recapitulatif", "repetition"].iter().filter_map(|k| v[*k]["phrase"].as_str().filter(|p| !p.is_empty()).map(|p| json!(p))).collect();
+            let mut lignes: Vec<Value> = ["remplacement", "recapitulatif", "repetition"].iter().filter_map(|k| v[*k]["phrase"].as_str().filter(|p| !p.is_empty()).map(|p| json!(p))).collect();
+            lignes.extend(v["avertissements"].as_array().into_iter().flatten().cloned());
             v["phrases"] = Value::Array(lignes);
             v
         }),

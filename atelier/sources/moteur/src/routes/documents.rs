@@ -113,7 +113,10 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "documents-imprimer" => documents_imprimer(ctx, charge, &qui_de(charge)).map(|v| {
             let qui: Vec<String> = v["salaries"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
             let p = format!("Documents imprimés ({}), à remettre en main propre : {}.", qui.join(", "), valeur_en_texte(&v["chemin"]));
-            super::phrase_en_tete(v, p)
+            let avert: Vec<Value> = v["avertissements"].as_array().cloned().unwrap_or_default();
+            let mut v = super::phrase_en_tete(v, p);
+            v["phrases"] = Value::Array(avert);
+            v
         }),
         "piece-partie" => crate::compagnie::depart::piece_partie_route(ctx, charge).map(|v| {
             let p = format!("La pièce partie : {}.", valeur_en_texte(&v["chemin"]));

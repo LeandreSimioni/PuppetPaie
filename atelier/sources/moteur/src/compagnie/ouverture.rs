@@ -13,7 +13,6 @@
 //! `releve_retours::{relever_retours, relever_retours_dpae, rattacher_simulation}`,
 //! `releve_signatures::{relever_signatures, relever_signatures_fictive}`,
 //! `crate::routes::fiches::relever_fiches`, `horloge::{rattraper, dernier_rattrapage}`,
-//! `pas::avertissements`,
 //! `incidents::envoyer` et `problemes::relever_reponses` (le canal de l'editeur), `sauvegarde::{sauvegarder,
 //! rien_n_a_bouge, hors_ligne}`, `crate::routes::coffre::autorise`, `coffre::Coffre`.
 //!
@@ -178,8 +177,6 @@ pub struct Ouverture {
     pub a_poser: Vec<String>,
     /// Les phrases de ces manques, a ne pas redire dans la trace (`a_poser` les dit).
     pub phrases_coffre: Vec<String>,
-    /// Une phrase par salarie non archive dont le taux de PAS n'est pas (ou plus) celui de la DGFiP.
-    pub taux_pas: Vec<String>,
     /// Ce que l'horloge de la compagnie fictive a joue aujourd'hui, en phrases.
     pub horloge: Vec<String>,
     pub secondes: f64,
@@ -261,8 +258,6 @@ impl Ouverture {
             "signatures": self.signatures.as_ref().map(ReleveSignatures::en_json),
             "incidents": self.incidents,
             "manquants": self.manquants,
-            "taux_pas": self.taux_pas,
-            "taux_pas_phrase": droit::pas::resume_avertissements(&self.taux_pas),
             "retours_dpae": retours_dpae,
             "fiches": fiches,
             "a_poser": self.a_poser,
@@ -286,15 +281,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
     match nom {
         "ouverture" => {
             let mut v = ouverture(ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json();
-            // Ce que le passage a fait et trouve, une ligne par chose : ce que l'horloge a joue, les taux de PAS, ce qui
+            // Ce que le passage a fait et trouve, une ligne par chose : ce que l'horloge a joue, ce qui
             // manque, les incidents.
             let texte = |x: &Value| x.as_str().map(String::from).unwrap_or_else(|| crate::routes::mot(x));
             let mut lignes: Vec<Value> = Vec::new();
             for k in ["horloge", "manquants", "incidents"] {
                 lignes.extend(v[k].as_array().into_iter().flatten().map(|x| json!(texte(x))));
-            }
-            if let Some(t) = v["taux_pas_phrase"].as_str().filter(|t| !t.is_empty()) {
-                lignes.push(json!(t));
             }
             let p = format!("Ouverture du {} : {}", crate::routes::mot(&v["quand"]), crate::routes::mot(&v["retours"]["resume"]));
             v["phrases"] = Value::Array(lignes);
@@ -410,7 +402,6 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
     let manquants: Vec<&String> = r.manquants.iter().filter(|m| !r.phrases_coffre.contains(m)).collect();
     trace.insert("manquants".into(), json!(manquants));
     trace.insert("a_poser".into(), json!(r.a_poser));
-    trace.insert("taux_pas".into(), json!(r.taux_pas));
     trace.insert("horloge".into(), json!(r.horloge));
     let _ = socle::ecriture::ecrire_json(&p, &Value::Object(trace), 1);
 }
@@ -615,14 +606,6 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         relever_les_retours(ctx, opt, &mut clients, &mut r);
     }
 
-    // LE PAS, AU MEME PASSAGE QUE LES RETOURS, et juste apres eux : c'est un retour qui pose les taux, donc c'est ici qu'ils
-    // sont les plus frais. Cela se fait hors ligne aussi (une lecture de config/pas.json), parce qu'un taux perime le reste
-    // que le reseau soit la ou non.
-    match droit::pas::avertissements(ctx, None, None) {
-        Ok(l) => r.taux_pas = l,
-        Err(m) => r.incidents.push(format!("Taux de PAS : {}", m)),
-    }
-
     if signatures {
         dire_l_etape(ctx, "Boîte courriel : contrats revenus signés…");
         // Les reponses « Je signe ». La relève ne leve pas pour un compte absent ou une permission manquante : elle le dit.
@@ -663,8 +646,6 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         let _ = crate::compagnie::problemes::partir(&ctx.racine);
         let _ = crate::compagnie::problemes::relever_reponses(&ctx.racine);
     }
-
-
 
     if let Some(rappel) = apres_releve.as_mut() {
         clore(ctx, &mut r, debut);
