@@ -177,6 +177,11 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }),
         "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge).map(|mut v| {
             let lignes: Vec<Value> = v["courriels"].as_array().into_iter().flatten().map(|m| json!(format!("{} → {} : {}", super::mot(&m["de"]), super::mot(&m["a"]), super::mot(&m["sujet"])))).collect();
+            // Ce que la fenetre d'une compagnie fictive en dit : combien sont joues, et le circuit de chaque genre.
+            let n = lignes.len();
+            let s = if n > 1 { "s" } else { "" };
+            v["intro"] = json!(format!("{} courriel{} joué{} — rien n'a quitté le poste.{}", n, s, s, if n > 1 { " Chacun reçoit les siens :" } else { "" }));
+            v["circuits"] = circuits_fictifs();
             let p = format!("Courriels simulés : {}.", lignes.len());
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
@@ -1103,6 +1108,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         // UNE COMPAGNIE FICTIVE : les envois sont joues (`bridage::branchement`).
         "simulation": crate::compagnie::bridage::branchement(&ctx.racine).joue(),
         // Ce que la boite d'un envoi joue en dit.
+        "coulisses": if crate::compagnie::bridage::branchement(&ctx.racine).joue() { coulisses_fictives() } else { Value::Null },
         "note_fictive": if crate::compagnie::bridage::branchement(&ctx.racine).joue() { super::encart("information", "Compagnie fictive", "Rien ne part : la réponse est là aussitôt ; en vrai, elle peut prendre quelques jours.") } else { Value::Null },
         // UN ENVOI N'A RIEN A PROUVER : joue (`depot_acte::verifier_preuve` ne demande rien a une fictive), ou refuse
         // avant toute preuve (une fictive ajoutee) ; la page ne demande alors pas le mot de passe du logiciel.
@@ -1263,4 +1269,58 @@ fn dire_la_configuration(c: &Value) -> String {
         super::compte(super::nombre(&c["spectacles"]), "spectacle", "spectacles"),
         erreurs
     )
+}
+
+/// LE CIRCUIT D'UN COURRIEL JOUE PAR UNE COMPAGNIE FICTIVE, genre par genre (`circuits` de `courriels-fictifs`) : ce que
+/// recoit le destinataire, ses etapes (bulles) et ce que chacune dit (notes), et ce qui se dit en attendant la reponse.
+fn circuits_fictifs() -> Value {
+    json!({
+        "signature": {
+            "titre": "Ce que reçoit le salarié",
+            "bulles": ["Le contrat part", "Il appuie sur « Je signe »", "Le contrat signé lui revient"],
+            "notes": [
+                "Un courriel par salarié, le contrat en pièce jointe et un bouton « Je signe ».",
+                "Le bouton ouvre sa messagerie sur cette réponse toute écrite, avec son code unique : il n'a qu'à l'envoyer. Le logiciel la relève seul, à l'ouverture et avec la veille, et la garde comme preuve.",
+                "Dès la signature relevée, le contrat contresigné part tout seul : le seul envoi sans clic du logiciel, puisque le clic est celui du salarié. La pastille du contrat passe au vert.",
+            ],
+            "attente": "La signature du salarié fictif arrive une vingtaine de secondes après l'envoi.",
+        },
+        "fiche": {
+            "titre": "Ce que reçoit la personne",
+            "bulles": ["La demande part", "Elle appuie sur « Remplir ma fiche »", "Sa fiche se crée"],
+            "notes": [
+                "Un courriel avec un bouton « Remplir ma fiche », et les questions recopiées dans le texte pour les messageries qui n'affichent pas le bouton.",
+                "Le bouton ouvre sa messagerie sur les questions, une par ligne : elle écrit après chaque deux-points et envoie. Seul ce qu'elle sait lui est demandé ; l'emploi reste à l'employeur.",
+                "Sa réponse est relevée comme une signature : la fiche salarié se crée avec ce qu'elle a écrit, marquée « à compléter » pour l'emploi. Une réponse illisible laisse la case vide, et le dit.",
+            ],
+            "attente": "La réponse de la personne fictive arrive une vingtaine de secondes après l'envoi.",
+            "creee": "Elle est dans Configuration › Salariés, avec ce que la personne a écrit ; il reste à choisir son emploi.",
+        },
+        "documents": {
+            "titre": "Ce que reçoit le salarié",
+            "bulles": ["Les documents partent"],
+            "notes": ["Un courriel par salarié, avec ses documents en pièces jointes. L'envoi est noté au journal, et un second envoi le signale avant de repartir."],
+        },
+        "courriel": {
+            "titre": "Le courriel envoyé",
+            "bulles": ["Le courriel part"],
+            "notes": ["Voici le message tel qu'il serait parti. Dans la compagnie fictive, il est écrit dans le dossier courriels-simules/ de la compagnie, et rien ne quitte le poste."],
+        },
+        "sans_bouton": "Ce courriel n'a pas de bouton.",
+    })
+}
+
+/// CE QU'UNE COMPAGNIE FICTIVE NE FAIT PAS, DIT AU LIEU D'ETRE TU (`coulisses` de la route `etat`, pour une fictive) : ce
+/// que fait une compagnie reelle (la sauvegarde, `compagnie::sauvegarde` ; la mise a jour, `compagnie::maj`), et l'horloge
+/// de la fictive (`horloge`).
+fn coulisses_fictives() -> Value {
+    json!({
+        "titre": "Les coulisses de la compagnie fictive",
+        "sections": [
+            ["La sauvegarde", "Pour une compagnie réelle, à l'ouverture puis toutes les vingt minutes quand quelque chose a changé, le dossier de la compagnie (saisies, bulletins, contrats, déclarations, retours, journal) part dans son propre Google Drive. Seul ce qui a changé repart, et rien de ce qui est effacé sur le poste ne l'est dans le Drive. Les mots de passe, eux, ne quittent jamais l'ordinateur. Le logiciel ne voit dans le Drive que ce qu'il y a lui-même créé."],
+            ["Les mises à jour", "Au lancement, le logiciel regarde si l'éditeur a publié une nouvelle version. Il la télécharge en arrière-plan, vérifie qu'elle est bien signée par l'éditeur, et l'installe au démarrage suivant, sans rien demander. Une version qui change un calcul de paie le dit en une phrase ; une version marquée « exigée » (une norme DSN qui change) bloque les dépôts réels tant qu'elle n'est pas installée."],
+            ["Dans la compagnie fictive", "La sauvegarde ne tourne pas : aucun compte Google n'est lié, rien ne quitte le poste. La mise à jour, elle, est celle du logiciel : elle se fait de la même façon, qu'on ouvre une compagnie fictive ou réelle. Le bandeau dit « À jour » parce que la relève des retours, elle, est jouée."],
+            ["L'horloge de la compagnie fictive", "La compagnie vit sans vous. À chaque ouverture, ce qui tombait depuis votre dernier passage a été fait par un administrateur fictif, chaque geste à sa date limite : le 1er du mois, le mois s'écrit ; le jour d'une embauche, sa DPAE part et son contrat revient signé ; le 15, la DSN du mois précédent part, puis les documents aux salariés ; fin janvier, l'année passée se clôt. Avant la date limite, c'est à vous : faites la DPAE deux jours avant, ou la DSN le 14, et l'horloge ne la refera pas. Ajoutez ou retirez un contrat : à votre retour, le mois est réécrit et tout est à jour."],
+        ],
+    })
 }
