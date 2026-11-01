@@ -233,7 +233,10 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         super::phrase_en_tete(v, p)
     };
     match nom {
-        "coffre-etat" => coffre_etat(ctx).map(|v| coffre("", v)),
+        "coffre-etat" => coffre_etat(ctx).map(|mut v| {
+            v["ecran"] = ecran_du_coffre(ctx, &mut v);
+            coffre("", v)
+        }),
         "google-etat" => google_etat(ctx).map(|v| {
             let p = format!("Google Drive : {}.", mots(&v));
             super::phrase_en_tete(v, p)
@@ -255,9 +258,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "coffre-oublier" => coffre_oublier(ctx, charge).map(|v| coffre("Mot de passe retiré du coffre. ", v)),
         "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge).map(|v| coffre("Mot de passe du logiciel posé. ", v)),
         "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge).map(|v| coffre("Mot de passe du logiciel retiré. ", v)),
-        "google-oublier" => google_oublier(ctx, charge).map(|v| super::phrase_en_tete(v, "Compte Google délié : la sauvegarde ne va plus au Drive.")),
+        "google-oublier" => google_oublier(ctx, charge).map(|v| super::phrase_en_tete(v, "Compte Google délié : la sauvegarde ne va plus au Drive. L'accès accordé côté Google se retire sur myaccount.google.com.")),
         "google-autoriser" => google_autoriser(ctx, charge).map(|v| {
-            let p = format!("Compte Google lié : {}.", valeur_en_texte(&v["compte"]));
+            let p = format!("Drive lié : {}. La prochaine ouverture sauvegarde.", valeur_en_texte(&v["compte"]));
             super::phrase_en_tete(v, p)
         }),
         "administrateur-etat" => {
@@ -913,9 +916,12 @@ fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
             }
             let noms: Vec<Value> = [get(cfg, "prenom")?, get(cfg, "nom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
             let texte = joindre(" ", &noms)?;
+            // Ce qui manque, dit : le compte de la DPAE ne part pas sans lui.
+            let noms_manquants: Vec<&str> = manque.iter().map(|m| match m.as_str().unwrap_or("") { "nom" => "le nom", "prenom" => "le prénom", "siret" => "le SIRET", autre => autre }).collect();
+            let manque_dit = if manque.is_empty() { String::new() } else { format!("le compte Urssaf n'est pas dit ({}) : la DPAE ne partira pas", noms_manquants.join(", ")) };
             let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(siret)) } else { String::new() };
             Ok(json!({
-                "texte": phrase, "manque": manque, "ici": true,
+                "texte": phrase, "manque": manque, "ici": true, "manque_dit": manque_dit,
                 "nom": ou_texte(get(cfg, "nom")?), "prenom": ou_texte(get(cfg, "prenom")?),
             }))
         }
@@ -976,4 +982,56 @@ pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
             super::pastille("a_faire", "aucun")
         },
     }))
+}
+
+/// CE QUE L'ECRAN DES MOTS DE PASSE DIT (`ecran` de `coffre-etat`) : son introduction, l'encart d'une compagnie fictive ou
+/// d'un poste sans cle, la ligne du mot de passe du logiciel et celle de l'administrateur, les notes des comptes Urssaf
+/// et courriel, a quoi servent le compte Google et le filet, et ce que demandent les confirmations. La page n'en ecrit
+/// rien ; chaque service porte aussi ce que sa confirmation d'oubli demande (`oublier`).
+fn ecran_du_coffre(ctx: &Contexte, v: &mut Value) -> Value {
+    let fictive = crate::compagnie::bridage::branchement(&ctx.racine).joue();
+    let adm = if fictive { json!({}) } else { administrateur_etat(&ctx.racine) };
+    let autres: Vec<String> = adm["autres"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+    let en_liste = match autres.len() {
+        0 => String::new(),
+        1 => autres[0].clone(),
+        k => format!("{} et {}", autres[..k - 1].join(", "), autres[k - 1]),
+    };
+    let rattachee = vrai(&adm["rattachee"]);
+    let pose = vrai(&v["mot_de_passe_pose"]);
+    for s in v["services"].as_array_mut().into_iter().flatten() {
+        s["oublier"] = json!(format!("Oublier le mot de passe {} ? Les retours et les dépôts ne seront plus possibles jusqu'à ce qu'il soit reposé.", valeur_en_texte(&s["libelle"])));
+    }
+    let encart = if fictive {
+        super::encart("information", "Compagnie fictive : les champs sont grisés", "Les dépôts de DPAE et de DSN, leurs retours, les courriels et les signatures sont simulés : aucun mot de passe n'est demandé, et rien ne quitte le poste. Dans une compagnie réelle, c'est ici que se posent les accès à net-entreprises, à l'Urssaf et à la boîte courriel.")
+    } else if !vrai(&v["cle_poste"]) {
+        super::encart("information", "Cet ordinateur n'a pas encore sa clé du coffre", "Rien n'est perdu : elle se refait toute seule la prochaine fois que le mot de passe du logiciel est tapé (ou posé, ci-dessous). Elle vit à part des données, pour qu'une sauvegarde n'emporte jamais de quoi ouvrir le coffre.")
+    } else {
+        Value::Null
+    };
+    let demande = "demandé à l'ouverture et à chaque dépôt réel, envoi ou signature";
+    json!({
+        "intro": "Les mots de passe dont le logiciel a besoin pour déposer, relever et envoyer. La page ne voit jamais un mot de passe, seulement s'il est posé.",
+        "encart": encart,
+        "logiciel": {
+            "nom": if rattachee { "Le mot de passe de l'administrateur" } else { "Le mot de passe du logiciel" },
+            "dit": if rattachee { format!("il ouvre aussi {} ; {}", en_liste, demande) } else if pose || fictive { demande.to_string() } else { "rien ne peut partir en réel tant qu'il n'est pas posé".to_string() },
+            "nouveau": if rattachee { "six caractères au moins ; il remplacera l'actuel dans toutes ses compagnies" } else { "six caractères au moins" },
+            "retirer": "Retirer le mot de passe du logiciel ? La fenêtre s'ouvrira sans rien demander et le coffre ne sera plus protégé.",
+        },
+        "administrateur": if rattachee {
+            json!({"dit": format!("cette compagnie s'ouvre avec {}, d'un seul mot de passe", en_liste), "note": "Détachée, elle a son propre mot de passe : celui de l'administrateur ne l'ouvre plus, et elle dépose seule."})
+        } else if vrai(&adm["peut_rattacher"]) {
+            json!({"dit": format!("le mot de passe de {} peut ouvrir aussi cette compagnie", en_liste), "note": "Rattachée, elle s'ouvre avec le mot de passe de l'administrateur, et ses déclarations prêtes partent avec celles des autres compagnies, d'un seul mot de passe."})
+        } else {
+            Value::Null
+        },
+        "urssaf": "Le compte ouvert sur urssaf.fr pour la DPAE (service « DPAE Service plus ») : ce n'est pas celui de net-entreprises. Les accents sont retirés, la DPAE les refuse. Un mot de passe vide garde celui qui est posé.",
+        "courriel": "Pour Gmail : validation en deux étapes activée, puis myaccount.google.com › Sécurité › Mots de passe des applications. C'est ce mot de passe-là, pas celui du compte.",
+        "verifier": "Une tentative de connexion chez l'organisme, une seule.",
+        "google": "la sauvegarde du dossier privé et l'archivage des mois, dans son Drive ; rien d'autre",
+        "google_ouvert": "La fenêtre Google est ouverte dans votre navigateur : choisissez le compte, acceptez, puis revenez ici ; cette ligne se met à jour toute seule. Si Google dit que l'application n'est pas validée : Paramètres avancés › Accéder à PuppetPaie.",
+        "google_oublier": "Oublier le compte Google ? Le jeton local est effacé : plus de sauvegarde ni d'archivage jusqu'à ce qu'un Drive soit relié. L'accès accordé côté Google, lui, se retire sur myaccount.google.com › Sécurité › Vos connexions à des applications tierces.",
+        "diagnostic": "ce qui casse part chez l'éditeur, avec de quoi le reproduire (ses données, les 3 minutes d'avant, cet ordinateur), et une fois par an le nombre de paies faites ; les noms, NIR, adresses et coordonnées des salariés n'en partent pas",
+    })
 }

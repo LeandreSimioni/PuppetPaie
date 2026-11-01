@@ -30,7 +30,7 @@ function compteDuService(s) {
   if (!id.manque || !id.manque.length) return "";
   const manque = id.manque.map((m) => ({ nom: "le nom", prenom: "le prénom", siret: "le SIRET" }[m] || m)).join(", ");
   return id.ici
-    ? `<span class="compte a-completer">le compte Urssaf n'est pas dit (${echapper(manque)}) : la DPAE ne partira pas</span>`
+    ? `<span class="compte a-completer">${echapper(id.manque_dit)}</span>`
     : `<span class="compte a-completer">identifiant incomplet (${echapper(manque)}) —
         <button class="lien" data-aller-fiche="entreprise">${echapper(id.ou || "fiche Entreprise")}</button></span>`;
 }
@@ -48,73 +48,59 @@ async function dessinerCoffre(cible) {
   // L'ADMINISTRATEUR : ce que le moteur dit de cette compagnie pour lui (rattachée, ou à rattacher). Une compagnie
   // fictive n'en a pas.
   const adm = fictive ? {} : await api("administrateur-etat");
-  const enListe = (n) => n.length > 1 ? n.slice(0, -1).join(", ") + " et " + n[n.length - 1] : (n[0] || "");
   // UNE LIGNE PAR SECRET, comme les mois de l'Historique : ce
   // qu'il sert à faire, où il en est, et les gestes. Les cases de saisie ne
   // s'ouvrent que sur un clic sur la ligne (ou « Poser… ») -- cinq formulaires ouverts
   // d'office faisaient croire qu'il y avait cinq choses à remplir.
   const etatService = (s) => `${pastilleDeLEtat(s.pastille)}${!fictive && !s.environnement && s.pose && s.compte ? ` <span class="discret">${echapper(s.compte)}</span>` : ""}`;
+  const k = c.ecran || {};
+  const l = k.logiciel || {};
+  const a = k.administrateur;
   cible.innerHTML = `
-    <p class="intro">Les mots de passe dont le logiciel a besoin pour déposer, relever et
-      envoyer. La page ne voit jamais un mot de passe, seulement s'il est posé.</p>
-    ${fictive ? `<div class="encart info"><b>Compagnie fictive — les champs sont grisés</b>
-      Les dépôts de DPAE et de DSN, leurs retours, les courriels et les
-      signatures sont simulés : aucun mot de passe n'est demandé, et rien ne
-      quitte le poste. Dans une compagnie réelle, c'est ici que se posent les
-      accès à net-entreprises, à l'Urssaf et à la boîte courriel.</div>`
-    : c.cle_poste ? "" : `<div class="encart"><b>Cet ordinateur n'a pas encore sa clé du coffre</b>
-      Rien n'est perdu : elle se refait toute seule la prochaine fois que le mot de passe du
-      logiciel est tapé (ou posé, ci-dessous). Elle vit à part des données, pour qu'une
-      sauvegarde n'emporte jamais de quoi ouvrir le coffre.</div>`}
+    <p class="intro">${echapper(k.intro)}</p>
+    ${encart(k.encart)}
     <div class="rangs">
       <div class="rang">
-        <div class="rang-infos"><b class="rang-nom">${adm.rattachee ? "Le mot de passe de l'administrateur" : "Le mot de passe du logiciel"}</b>
-          <span class="discret">${adm.rattachee
-            ? "il ouvre aussi " + enListe(adm.autres || []) + " ; demandé à l'ouverture et à chaque dépôt réel, envoi ou signature"
-            : exige || fictive
-            ? "demandé à l'ouverture et à chaque dépôt réel, envoi ou signature"
-            : "rien ne peut partir en réel tant qu'il n'est pas posé"}</span></div>
+        <div class="rang-infos"><b class="rang-nom">${echapper(l.nom)}</b>
+          <span class="discret">${echapper(l.dit)}</span></div>
         <div class="rang-etat">${pastilleDeLEtat(c.pastille_mot_de_passe)}</div>
         <div class="rang-actions">
           ${exige ? "" : `<button class="secondaire k-ouvrir">Poser…</button>`}</div>
         <form class="rang-forme" id="k-logiciel" onsubmit="return false" autocomplete="off" hidden>
-          ${exige ? `<label>Mot de passe actuel${adm.rattachee ? " de l'administrateur" : ""}
+          ${exige ? `<label>Mot de passe actuel
             <input type="password" id="k-actuel" autocomplete="current-password"></label>` : ""}
-          <label>Nouveau <span class="discret">— six caractères au moins${adm.rattachee ? " ; il remplacera l'actuel dans toutes ses compagnies" : ""}</span>
+          <label>Nouveau <span class="discret">— ${echapper(l.nouveau)}</span>
             <input type="password" id="k-nouveau" autocomplete="new-password"></label>
           <label>Le retaper <input type="password" id="k-confirmation" autocomplete="new-password"></label>
           <div class="barre-boutons">
             <button class="primaire" id="k-changer">${exige ? "Enregistrer" : "Poser"}</button>
-            ${exige && !adm.rattachee ? `<button class="lien" id="k-retirer">retirer le mot de passe</button>` : ""}
+            ${exige && !adm.rattachee ? `<button class="lien" id="k-retirer">retirer</button>` : ""}
           </div>
         </form>
       </div>
-      ${adm.rattachee ? `
+      ${a && adm.rattachee ? `
       <div class="rang" id="k-admin">
         <div class="rang-infos"><b class="rang-nom">L'administrateur</b>
-          <span class="discret">cette compagnie s'ouvre avec ${enListe(adm.autres || [])}, d'un seul mot de passe</span></div>
+          <span class="discret">${echapper(a.dit)}</span></div>
         <div class="rang-etat">${pastilleDeLEtat(adm.pastille)}</div>
         <div class="rang-actions"><button class="lien k-ouvrir">Détacher…</button></div>
         <form class="rang-forme" onsubmit="return false" autocomplete="off" hidden>
-          <p class="note">Détachée, elle a son propre mot de passe : celui de l'administrateur ne l'ouvre plus, et elle
-            dépose seule.</p>
-          <label>Mot de passe de l'administrateur <input type="password" id="k-adm-actuel" autocomplete="current-password"></label>
-          <label>Son propre mot de passe <span class="discret">— six caractères au moins</span>
-            <input type="password" id="k-adm-nouveau" autocomplete="new-password"></label>
+          <p class="note">${echapper(a.note)}</p>
+          <label>Mot de passe administrateur <input type="password" id="k-adm-actuel" autocomplete="current-password"></label>
+          <label>Nouveau mot de passe <input type="password" id="k-adm-nouveau" autocomplete="new-password"></label>
           <label>Le retaper <input type="password" id="k-adm-confirmation" autocomplete="new-password"></label>
           <div class="barre-boutons"><button class="primaire" id="k-detacher">Détacher</button></div>
         </form>
-      </div>` : adm.peut_rattacher ? `
+      </div>` : a ? `
       <div class="rang" id="k-admin">
         <div class="rang-infos"><b class="rang-nom">L'administrateur</b>
-          <span class="discret">le mot de passe de ${enListe(adm.autres || [])} peut ouvrir aussi cette compagnie</span></div>
+          <span class="discret">${echapper(a.dit)}</span></div>
         <div class="rang-etat">${pastilleDeLEtat(adm.pastille)}</div>
         <div class="rang-actions"><button class="secondaire k-ouvrir">Rattacher…</button></div>
         <form class="rang-forme" onsubmit="return false" autocomplete="off" hidden>
-          <p class="note">Rattachée, elle s'ouvre avec le mot de passe de l'administrateur, et ses déclarations prêtes
-            partent avec celles des autres compagnies, d'un seul mot de passe.</p>
-          ${exige ? `<label>Son mot de passe actuel <input type="password" id="k-adm-propre" autocomplete="current-password"></label>` : ""}
-          <label>Mot de passe de l'administrateur <input type="password" id="k-adm-mdp" autocomplete="current-password"></label>
+          <p class="note">${echapper(a.note)}</p>
+          ${exige ? `<label>Mot de passe actuel <input type="password" id="k-adm-propre" autocomplete="current-password"></label>` : ""}
+          <label>Mot de passe administrateur <input type="password" id="k-adm-mdp" autocomplete="current-password"></label>
           <div class="barre-boutons"><button class="primaire" id="k-rattacher">Rattacher</button></div>
         </form>
       </div>` : ""}
@@ -125,7 +111,7 @@ async function dessinerCoffre(cible) {
         <div class="rang-etat">${etatService(s)}</div>
         <div class="rang-actions">
           ${!fictive && (s.pose || s.environnement) ? `<button class="lien k-verifier"
-            title="Une tentative de connexion chez l'organisme, une seule">Vérifier</button>` : ""}
+            title="${echapper(k.verifier)}">Vérifier</button>` : ""}
           ${s.pose ? `<button class="lien k-oublier">Oublier</button>` : ""}
           ${s.pose ? "" : `<button class="secondaire k-ouvrir">Poser…</button>`}
         </div>
@@ -138,22 +124,16 @@ async function dessinerCoffre(cible) {
             <input type="text" class="k-nom" autocomplete="off" value="${echapper(s.identifiant.nom)}"></label>` : ""}
           ${s.avec_compte ? `<label>Adresse de la boîte
             <input type="email" class="k-compte" autocomplete="off" value="${echapper(s.compte || "")}"></label>` : ""}
-          <label>Mot de passe${s.identifiant?.ici && s.pose
-              ? ` <span class="discret">— vide : on garde celui qui est posé</span>` : ""}
+          <label>Mot de passe
             <input type="password" class="k-valeur" autocomplete="off"></label>
           <div class="barre-boutons"><button class="primaire k-poser">${s.identifiant?.ici ? "Enregistrer" : "Poser"}</button></div>
-          ${s.identifiant?.ici ? `<p class="note">Le compte ouvert sur urssaf.fr pour la DPAE (service
-            « DPAE Service plus ») : ce n'est pas celui de net-entreprises. Les accents sont
-            retirés, la DPAE les refuse.</p>` : ""}
-          ${s.avec_compte ? `<p class="note">Pour Gmail : validation en deux étapes activée,
-            puis myaccount.google.com › Sécurité › Mots de passe des applications. C'est ce
-            mot de passe-là, pas celui du compte.</p>` : ""}
+          ${s.identifiant?.ici ? `<p class="note">${echapper(k.urssaf)}</p>` : ""}
+          ${s.avec_compte ? `<p class="note">${echapper(k.courriel)}</p>` : ""}
         </form>
       </div>`).join("")}
       <div class="rang" id="k-google">
         <div class="rang-infos"><b class="rang-nom">Compte Google</b>
-          <span class="discret">la sauvegarde du dossier privé et l'archivage des mois,
-            dans son Drive — rien d'autre</span>${VEILLE?.dernier?.sauvegarde_souci
+          <span class="discret">${echapper(k.google)}</span>${VEILLE?.dernier?.sauvegarde_souci
             ? `<span class="compte">${echapper(VEILLE.dernier.sauvegarde_souci)}</span>`
             : VEILLE?.dernier?.sauvegarde
             ? `<span class="compte">${echapper(VEILLE.dernier.sauvegarde)}</span>` : ""}</div>
@@ -166,14 +146,12 @@ async function dessinerCoffre(cible) {
       </div>
       <div class="rang" id="k-diagnostic">
         <div class="rang-infos"><b class="rang-nom">Signalement des dysfonctionnements</b>
-          <span class="discret">ce qui casse part chez l'éditeur, avec de quoi le reproduire
-            (ses données, les 3 minutes d'avant, cet ordinateur), et une fois par an le nombre de
-            paies faites — les noms, NIR, adresses et coordonnées des salariés n'en partent pas</span>
+          <span class="discret">${echapper(k.diagnostic)}</span>
           <span class="compte k-diag-compte"></span></div>
         <div class="rang-etat k-diag-etat"><span class="discret">lecture…</span></div>
         <div class="rang-actions">
           <button class="lien" id="k-diag-couper" hidden>Désactiver</button>
-          <button class="secondaire" id="k-diag-voir">Voir ce qui est parti…</button>
+          <button class="secondaire" id="k-diag-voir">Ce qui est parti</button>
         </div>
       </div>
     </div>`;
@@ -236,31 +214,23 @@ async function dessinerCoffre(cible) {
   // de cette famille : l'ancien n'autorise pas l'acte, il est ce que l'acte
   // remplace. Le taper au-dessus du nouveau, c'est la forme que tout le monde
   // connait, et elle se lit d'un coup d'oeil.
-  const actuelSaisi = (quoi) => {
+  const actuelSaisi = () => {
     if (!exige) return { motdepasse: null };
     const champ = document.getElementById("k-actuel");
-    const v = champ ? champ.value : "";
-    if (!v) {
-      dire("Tapez le mot de passe actuel pour " + quoi + ".");
-      if (champ) champ.focus();
-      return null;
-    }
-    return { motdepasse: v };
+    return { motdepasse: champ ? champ.value : "" };
   };
   const ok = (texte) => { dire(texte); dessinerCoffre(cible); };
   const raté = (e) => dire(e.message, "erreur");
   document.getElementById("k-changer").onclick = async () => {
     const nouveau = document.getElementById("k-nouveau").value;
     const confirmation = document.getElementById("k-confirmation").value;
-    if (!nouveau) { dire("Tapez le nouveau mot de passe."); return; }
-    const p = actuelSaisi("changer");
+    const p = actuelSaisi();
     if (!p) return;
     // UNE COMPAGNIE DE L'ADMINISTRATEUR : le moteur remplace l'actuel dans toutes ses compagnies d'un coup (il prépare
     // tout, puis remplace ; si une seule refuse, aucune ne change).
     try {
-      await api("mot-de-passe-changer", { nouveau, confirmation, ...p });
-      ok(adm.rattachee ? "Mot de passe de l'administrateur changé dans toutes ses compagnies."
-        : exige ? "Mot de passe du logiciel changé." : "Mot de passe du logiciel posé : il sera demandé à la prochaine ouverture.");
+      const r = await api("mot-de-passe-changer", { nouveau, confirmation, ...p });
+      ok(r.phrase);
     } catch (e) { raté(e); }
   };
   const detacher = document.getElementById("k-detacher");
@@ -282,12 +252,12 @@ async function dessinerCoffre(cible) {
   };
   const retirer = document.getElementById("k-retirer");
   if (retirer) retirer.onclick = async () => {
-    if (!confirm("Retirer le mot de passe du logiciel ? La fenêtre s'ouvrira sans rien demander et le coffre ne sera plus protégé.")) return;
-    const p = actuelSaisi("retirer");
+    if (!confirm(l.retirer)) return;
+    const p = actuelSaisi();
     if (!p) return;
     try {
-      await api("mot-de-passe-retirer", p);
-      ok("Mot de passe du logiciel retiré.");
+      const r = await api("mot-de-passe-retirer", p);
+      ok(r.phrase);
     } catch (e) { raté(e); }
   };
   for (const carte of cible.querySelectorAll("[data-service]")) {
@@ -295,7 +265,7 @@ async function dessinerCoffre(cible) {
     carte.querySelector(".k-poser").onclick = async () => {
       const nom = carte.querySelector(".k-nom"), prenom = carte.querySelector(".k-prenom");
       const compte = carte.querySelector(".k-compte");
-      const p = await preuve("poser le mot de passe " + service);
+      const p = await preuve("Poser");
       if (!p) return;
       // Le moteur dit ce qui change, pose, essaie une fois la connexion et dit ce qu'il en est (`phrase`, `couleur`).
       try {
@@ -317,16 +287,16 @@ async function dessinerCoffre(cible) {
     };
     const oublierService = carte.querySelector(".k-oublier");
     if (oublierService) oublierService.onclick = async () => {
-      if (!confirm("Oublier le mot de passe " + service + " ? Les retours et les dépôts ne seront plus possibles jusqu'à ce qu'il soit reposé.")) return;
-      const p = await preuve("oublier le mot de passe " + service);
+      if (!confirm((c.services.find((s) => s.service === service) || {}).oublier)) return;
+      const p = await preuve("Oublier");
       if (!p) return;
       try {
-        await api("coffre-oublier", { service, ...p });
-        ok("Mot de passe " + service + " oublié.");
+        const r = await api("coffre-oublier", { service, ...p });
+        ok(r.phrase);
       } catch (e) { raté(e); }
     };
   }
-  dessinerCompteGoogle(cible, preuve, ok, raté);
+  dessinerCompteGoogle(cible, preuve, ok, raté, k);
 }
 
 /* Le compte Google, dans la même grille. L'état fait un vrai
@@ -337,7 +307,7 @@ async function dessinerCoffre(cible) {
  * « Lier le Drive » : l'appel reste suspendu le temps du consentement dans
  * le navigateur du système (jusqu'à cinq minutes, google.DELAI_AUTORISATION).
  * La carte le dit, et le bouton reste grisé jusqu'au retour. */
-async function dessinerCompteGoogle(cible, preuve, ok, raté) {
+async function dessinerCompteGoogle(cible, preuve, ok, raté, k) {
   const carte = cible.querySelector("#k-google");
   if (!carte) return;
   const etat = carte.querySelector(".k-google-etat");
@@ -346,7 +316,7 @@ async function dessinerCompteGoogle(cible, preuve, ok, raté) {
   const oublier = carte.querySelector("#k-google-oublier");
   let g = null;
   try { g = await api("google-etat"); }
-  catch (e) { etat.innerHTML = `<span class="discret">état inconnu : ${echapper(e.message)}</span>`; }
+  catch (e) { etat.innerHTML = `<span class="discret">${echapper(e.message)}</span>`; }
   if (!carte.isConnected) return;       // la page a été redessinée entre-temps
   if (g) {
     etat.innerHTML = `${pastilleDeLEtat(g.pastille)}${!g.compte ? ""
@@ -359,25 +329,22 @@ async function dessinerCompteGoogle(cible, preuve, ok, raté) {
   oublier.hidden = oublier.disabled;
 
   lier.onclick = async () => {
-    const p = await preuve("lier le compte Google");
+    const p = await preuve("Lier le Drive");
     if (!p) return;
     lier.disabled = oublier.disabled = true;
-    verdict.innerHTML = `<b>La fenêtre Google est ouverte dans votre navigateur.</b>
-      Choisissez le compte, acceptez, puis revenez ici — cette ligne se met à jour
-      toute seule. Si Google dit que l'application n'est pas validée : Paramètres
-      avancés › Accéder à PuppetPaie.`;
+    verdict.textContent = k.google_ouvert;
     try {
       const r = await api("google-autoriser", p);
-      ok("Drive lié : " + r.compte + ". La prochaine ouverture sauvegarde.");
+      ok(r.phrase);
     } catch (e) { verdict.textContent = ""; lier.disabled = false; oublier.disabled = !(g && g.compte); raté(e); }
   };
   oublier.onclick = async () => {
-    if (!confirm("Oublier le compte Google ? Le jeton local est effacé : plus de sauvegarde ni d'archivage jusqu'à ce qu'un Drive soit relié. L'accès accordé côté Google, lui, se retire sur myaccount.google.com › Sécurité › Vos connexions à des applications tierces.")) return;
-    const p = await preuve("oublier le compte Google");
+    if (!confirm(k.google_oublier)) return;
+    const p = await preuve("Oublier le compte Google");
     if (!p) return;
     try {
-      await api("google-oublier", p);
-      ok("Compte Google oublié. Pensez à retirer l'accès sur myaccount.google.com.");
+      const r = await api("google-oublier", p);
+      ok(r.phrase);
     } catch (e) { raté(e); }
   };
 }
