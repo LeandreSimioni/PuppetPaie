@@ -148,7 +148,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let p = format!("Dossiers possibles : {} ; sortes de pièces : {}.", super::compte(super::nombre(&v["salaries"]), "salarié", "salariés"), super::nombre(&v["categories"]));
             super::phrase_en_tete(v, p)
         }),
-        "exports-periodes" => exports_periodes(ctx, charge).map(|v| {
+        "exports-periodes" => exports_periodes(ctx, charge).map(|mut v| {
+            v["ecran"] = ecran_des_exports(&v);
             let p = format!("Exports : {} ; mois payés : {} ; années : {}.", super::compte(super::nombre(&v["etats"]), "état", "états"), super::nombre(&v["mois"]), super::nombre(&v["annees"]));
             super::phrase_en_tete(v, p)
         }),
@@ -161,6 +162,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             super::phrase_en_tete(v, p)
         }),
         "exporter" => exporter(ctx, charge).map(|mut v| {
+            // Ce que l'ecran dit d'un etat : ses donnees personnelles, ses totaux partiels, la regularisation CASC-SVP.
+            v["ecran"] = ecran_d_un_etat(&v);
             // Ce que l'etat dit de lui-meme (ce qui est du, ce qui est infere), sous la phrase : ce que l'ecran montre au-dessus du tableau.
             v["phrases"] = v["avertissements"].clone();
             let titre = if v["titre"].is_string() { t(&v, "titre") } else { t(&v, "periode") };
@@ -341,7 +344,12 @@ pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
         }
         _ => Vec::new(),
     };
-    Ok(json!({"logiciels": tables()["logiciels"], "logiciel": retenu, "analytique": analytique, "controle": controle}))
+    // Ce que l'ecran dit de chaque logiciel, une fois choisi.
+    let mut logiciels = tables()["logiciels"].clone();
+    for l in logiciels.as_array_mut().into_iter().flatten() {
+        l["dit"] = json!(format!("Fichier {} : {}. Retenu pour les prochaines fois.", super::mot(&l["format_lisible"]), super::mot(&l["pourquoi"])));
+    }
+    Ok(json!({"logiciels": logiciels, "logiciel": retenu, "analytique": analytique, "controle": controle}))
 }
 
 /// La page ne propose pas la CASC-SVP de la
@@ -877,3 +885,36 @@ fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"mois": mois, "phrase": phrase, "phrases": phrases, "salaries": salaries}))
 }
 
+
+/// CE QUE L'ECRAN DES EXPORTS DIT (`ecran` de `exports-periodes`) : rien a exporter, les regroupements, l'analytique, le
+/// format, les coordonnees, le dossier.
+fn ecran_des_exports(v: &Value) -> Value {
+    json!({
+        "vide": if super::nombre(&v["mois"]) == 0 { json!("Aucune paie saisie : il n'y a rien à exporter pour l'instant.") } else { Value::Null },
+        "regroupement_livre": "Par salarié, ce qu'on envoie au comptable ; par mois, ce qu'on rapproche de la banque ; par spectacle, ce qui justifie une subvention. Les trois disent la même chose, et le total ne bouge pas.",
+        "regroupement": "Le total ne bouge pas : seule la répartition des lignes change.",
+        "analytique": "Les salaires bruts ventilés par spectacle. Le code de chaque spectacle se règle sur sa fiche : Configuration › Spectacles, case « Code analytique ». Vide, il est tiré du titre.",
+        "format_libre": "Le format se choisit ci-dessous.",
+        "brique_absente": "brique absente, le CSV sera écrit",
+        "coordonnees": "Le NIR, la naissance, l'adresse. Sans la case, rien de tout cela ne sort ; un fichier qui les porte ne s'envoie qu'à qui en a besoin.",
+        "dossier": format!("{} — et nulle part ailleurs : un export emporte des salaires", super::mot(&v["dossier"])),
+        "categories": "Une seule case : un PDF. Plusieurs : un ZIP, un PDF par catégorie.",
+    })
+}
+
+/// CE QUE L'ECRAN DIT D'UN ETAT EXPORTE (`ecran` de `exporter`) : ses donnees personnelles, ses totaux partiels, et pour
+/// la regularisation CASC-SVP ce que disent ses deux etapes.
+fn ecran_d_un_etat(v: &Value) -> Value {
+    let bulletins = v["totaux"]["bulletins"].as_u64().unwrap_or(0);
+    let partiels: Vec<String> = v["totaux"]["inconnus"].as_object().into_iter().flatten().map(|(c, n)| {
+        let sur = bulletins.saturating_sub(n.as_u64().unwrap_or(0));
+        format!("{} sur {} bulletin{} sur {}", c.replace('_', " "), sur, if sur == 1 { "" } else { "s" }, bulletins)
+    }).collect();
+    json!({
+        "personnelles": if vrai(&v["donnees_personnelles"]) { json!("Cet état porte des données personnelles : il reste dans prive/, et ne s'envoie qu'à qui en a besoin.") } else { Value::Null },
+        "partiels": if partiels.is_empty() { Value::Null } else { json!(format!("Totaux partiels : {}.", partiels.join(" ; "))) },
+        "virement": "Vers Audiens Santé Prévoyance – Encaissement. L'IBAN se lit dans l'espace employeur Audiens ou sur la page employeurs du CASC-SVP.",
+        "automatique": if vrai(&v["boite_liee"]) { "Audiens reçoit les masses et les dates des virements ; le CASC-SVP, la liste nominative. Une copie reste dans le dossier, et les années sont notées régularisées." } else { "La boîte courriel n'est pas posée : Configuration › Courriel. Une fois posée, l'envoi se fait d'ici en un clic." },
+        "a_la_main": "Joindre la liste nominative au courriel du CASC-SVP, recopier les deux courriels ci-dessous, puis noter la régularisation.",
+    })
+}
