@@ -297,7 +297,9 @@ fn deposer_les_dsn(
     for chemin in chemins {
         let nom = Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let Ok(octets) = std::fs::read(&chemin) else { continue };
-        if !garder(&envois::depot::lire(&octets)) {
+        // LA DEMANDE DE TAUX NE PART QU'AVEC LA DPAE (`depot_acte::deposer_dpae`) : un signalement d'amorcage reste d'un
+        // essai ne part pas avec la DSN du mois.
+        if !garder(&envois::depot::lire(&octets)) || envois::depot::lire(&octets).champ("nature").trim() == declarations::amorcage::NATURE {
             continue;
         }
         let empreinte = json!(envois::journal::empreinte(&octets));
