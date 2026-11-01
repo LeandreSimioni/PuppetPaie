@@ -847,13 +847,9 @@ fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
 /// "Présidente"}}` garde le prenom et le nom). Une structure entiere a `null` s'efface.
 pub(crate) fn charge_completee(ancienne: &Value, neuve: &Value) -> Value {
     let (Value::Object(a), Value::Object(n)) = (ancienne, neuve) else { return neuve.clone() };
-    let mut sortie = n.clone();
-    for (k, v) in a {
-        if k.starts_with('_') && !sortie.contains_key(k) {
-            sortie.insert(k.clone(), v.clone());
-        } else if let Some(dedans) = sortie.get(k).cloned() {
-            sortie.insert(k.clone(), structure_completee(v, &dedans));
-        }
+    let mut sortie: Map<String, Value> = n.iter().map(|(k, x)| (k.clone(), structure_completee(a.get(k).unwrap_or(&Value::Null), x))).collect();
+    for (k, v) in a.iter().filter(|(k, _)| k.starts_with('_')) {
+        sortie.entry(k.clone()).or_insert_with(|| v.clone());
     }
     Value::Object(sortie)
 }
