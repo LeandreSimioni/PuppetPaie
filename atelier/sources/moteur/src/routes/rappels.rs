@@ -508,6 +508,18 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
     Ok(out)
 }
 
+/// LES MOIS QUI ONT QUELQUE CHOSE A FAIRE au jour `aujourdhui`, du plus ancien au plus recent : ceux que la saisie
+/// touche (`stock::mois_saisis`), et ceux dont la DSN est reclamee sans engagement (`mois_a_declarer` : une DSN sans
+/// individu, cahier technique DSN 2026.1, § 2.4). Le mois a ouvrir et l'horloge de la compagnie fictive les parcourent.
+pub(crate) fn mois_a_parcourir(ctx: &Contexte, aujourdhui: Jour) -> socle::echec::R<Vec<String>> {
+    let mut mois = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default();
+    let st = Etat { ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine)?.lignes };
+    mois.extend(mois_a_declarer(&st).map_err(|r| Echec { classe: r.classe, message: r.message })?);
+    mois.sort();
+    mois.dedup();
+    Ok(mois)
+}
+
 /// `fichiers_deposables(ctx, mois)["dsn"]` : `(nom,
 /// chemin)` de la DSN mensuelle du dossier du mois, dans l'ordre de `crate::routes::etapes::ordre_de_depot`.
 fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {

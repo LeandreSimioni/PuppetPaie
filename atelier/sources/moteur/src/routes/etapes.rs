@@ -1478,13 +1478,8 @@ impl<'a> Moteur<'a> {
         let courant = self.ctx.aujourdhui.mois_iso();
         // A L'OUVERTURE, RIEN NE SE CALCULE : les groupes d'un mois passe se tirent de ce qui est ecrit.
         self.ecrit = true;
-        // Un mois passe sans engagement dont la DSN est due (`etat_dsn::due`, ce que les rappels reclament) s'ouvre aussi.
-        let mut mois = engagement::stock::mois_saisis(self.racine()).unwrap_or_default();
-        let st = crate::routes::rappels::Etat { ctx: self.ctx, aujourdhui: self.ctx.aujourdhui, journal: envois::journal::lu(self.racine()).map_err(plain)?.lignes };
-        mois.extend(crate::routes::rappels::mois_a_declarer(&st).map_err(|r| Echec { classe: r.classe, message: r.message })?);
-        mois.sort();
-        mois.dedup();
-        for m in mois {
+        // Un mois passe sans engagement dont la DSN est due (ce que les rappels reclament) s'ouvre aussi.
+        for m in crate::routes::rappels::mois_a_parcourir(self.ctx, self.ctx.aujourdhui)? {
             if m >= courant || self.exercice_clos(&m)? {
                 continue;
             }

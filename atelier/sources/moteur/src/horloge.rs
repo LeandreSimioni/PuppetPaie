@@ -15,7 +15,8 @@
 //! - Le 1er du mois suivant, ce qui reste en saisie du mois se valide ; a l'echeance de la DSN, la DSN se fabrique et part
 //!   (test puis reel), puis les documents aux salaries, fabriques a leur envoi, et les bulletins rectificatifs d'un mois
 //!   dont les documents etaient partis.
-//! - Chaque mois que la saisie touche se joue, ceux d'un contrat sans terme compris (`stock::mois_saisis`).
+//! - Chaque mois que la saisie touche se joue, ceux d'un contrat sans terme compris, et chaque mois dont la DSN est due
+//!   sans engagement, qui part sans individu a son echeance (`rappels::mois_a_parcourir`).
 //! - Fin janvier, l'annee passee se clot et s'exporte pour la comptabilite. Une echeance annuelle n'est faite que par son
 //!   fait (le taux AT/MP pose, la revue des spectacles) : l'horloge n'en coche aucune.
 //! Ce qui vient apres aujourd'hui reste au visiteur.
@@ -414,7 +415,8 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
     let mut echus: Vec<String> = Vec::new();
     {
         let ctx = d.contexte()?;
-        for mois in &saisis {
+        // Les mois saisis, et ceux dont la DSN est due sans engagement : ce que le panneau et les rappels reclament.
+        for mois in &crate::routes::rappels::mois_a_parcourir(&ctx, jour)? {
             let premier = socle::date::premier_du_mois(mois).map_err(Echec::from)?;
             if jour < premier {
                 break;
