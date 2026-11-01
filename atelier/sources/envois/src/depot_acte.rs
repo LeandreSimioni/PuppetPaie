@@ -29,8 +29,9 @@ pub struct DepotFait {
     pub deja: Value,
     /// La repetition qui a ouvert ce depot reel (`Null` pour un test : il EST la repetition).
     pub repetition: Value,
-    /// Ce qu'est devenue chaque demande de taux de PAS partie avec une DPAE, en une phrase (vide pour une DSN).
-    pub demandes_de_taux: Vec<String>,
+    /// Ce que le depot a entraine, en phrases : chaque demande de taux de PAS partie avec une DPAE, ce que les retours
+    /// laissent a faire.
+    pub suites: Vec<String>,
 }
 
 impl DepotFait {
@@ -39,7 +40,7 @@ impl DepotFait {
         json!({
             "quoi": self.quoi, "mois": self.mois, "reel": self.reel, "reponse": self.reponse, "flux": self.flux,
             "trace": self.trace.as_ref().map(|t| t.to_string_lossy().into_owned()),
-            "ligne": self.ligne, "deja": self.deja, "repetition": self.repetition, "demandes_de_taux": self.demandes_de_taux,
+            "ligne": self.ligne, "deja": self.deja, "repetition": self.repetition, "suites": self.suites,
         })
     }
 }
@@ -139,6 +140,18 @@ fn echec(ctx: &Contexte, quoi: &str, d: &Depot, destinataire: &str, detail: Valu
     e
 }
 
+/// LE SIMULATEUR REPOND DANS LE GESTE : rien ne voyage, rien n'oblige a attendre ; les retours d'un depot joue (accuse,
+/// bilan, et ce que les organismes rendent de plus) sont la des la reponse du depot, et le reel peut suivre son test
+/// aussitot. Rend la ligne du journal telle qu'elle est apres eux. Un depot du monde attend ses retours a la releve.
+fn repondu_aussitot(ctx: &Contexte, joue: bool, ligne: Value, suites: &mut Suites) -> R<Value> {
+    if !joue {
+        return Ok(ligne);
+    }
+    crate::releve_retours::rattacher_simulation(ctx, suites)?;
+    let meme = |l: &Value| l.get("flux") == ligne.get("flux") && l.get("quand") == ligne.get("quand");
+    Ok(crate::journal::lu(&ctx.racine)?.lignes.iter().rev().find(|l| meme(l)).cloned().unwrap_or(ligne))
+}
+
 /// Depose une DSN. `ordre_test` : l'ordre auquel un essai de mensuelle part en annule-et-remplace (`None` : celui du
 /// fichier). `environnement` : `production`, ou la plate-forme d'essai de l'editeur.
 pub fn deposer_dsn(
@@ -195,6 +208,7 @@ pub fn deposer_dsn(
         "etablissement": apercu.champ("etablissement"),
     });
     let ligne = noter(ctx, "dsn", d, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, Some(d.versions))?;
+    let ligne = repondu_aussitot(ctx, joue, ligne, suites)?;
     if d.reel {
         let signalement = apercu.est_signalement().then(|| Signalement {
             nature: apercu.champ("nature").into(),
@@ -212,7 +226,7 @@ pub fn deposer_dsn(
             embauches: Vec::new(),
         });
     }
-    Ok(DepotFait { quoi: "dsn".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), demandes_de_taux: Vec::new() })
+    Ok(DepotFait { quoi: "dsn".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
 }
 
 /// Depose une DPAE. `contenu` : le fichier tel qu'il part (bascule en test faite) ; `embauches` : ce qu'elle declare
@@ -256,6 +270,7 @@ pub fn deposer_dpae(
     // « lesquelles restent a faire ».
     let detail = json!({"preuve": d.preuve, "repetition": d.repetition, "embauches": embauches});
     let ligne = noter(ctx, "dpae", d, true, "urssaf", &flux, &reponse, Some(&trace), &detail, Some(d.versions))?;
+    let ligne = repondu_aussitot(ctx, joue, ligne, suites)?;
     if d.reel {
         suites.depot_reel = Some(DepotReel {
             quoi: "dpae".into(),
@@ -267,7 +282,7 @@ pub fn deposer_dpae(
             embauches,
         });
     }
-    Ok(DepotFait { quoi: "dpae".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), demandes_de_taux: Vec::new() })
+    Ok(DepotFait { quoi: "dpae".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
 }
 
 #[cfg(test)]

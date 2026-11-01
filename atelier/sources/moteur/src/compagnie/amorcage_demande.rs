@@ -5,7 +5,7 @@
 //! effective, qui part avec la DPAE : `crate::routes::depots::dpae` le produit, `depot_acte::deposer_dpae` le depose). UN SIGNALEMENT, UN INDIVIDU, UN FICHIER.
 //! RIEN N'EST DEPOSE ici ; c'est le depot reel qui note la demande.
 //!
-//! Ce qui ne se demande pas : un salarie sans NIR, et un salarie dont la demande est deja partie et dont la reponse n'est pas
+//! Ce qui ne se demande pas, et se dit : un salarie sans NIR, et un salarie dont la demande est deja partie et dont la reponse n'est pas
 //! echue (`forcer` : le signalement rejete par la plate-forme, pas l'ordinaire).
 
 use std::path::PathBuf;
@@ -76,6 +76,17 @@ fn a_combler(ctx: &Contexte, paies: &[Paie], forcer: bool) -> Result<Vec<Ligne>,
     for (cle, i) in &par_salarie {
         let p = &paies[*i];
         let s = droit::pas::situation(ctx, cle, None)?;
+        // SANS NIR, LA DGFiP N'A PERSONNE A QUI REPONDRE : la demande ne part pas, et cela se dit.
+        if s["situation"] == droit::pas::SANS_NIR {
+            lignes.push(Ligne {
+                salarie: cle.clone(),
+                libelle: String::new(),
+                contrat: String::new(),
+                pourquoi_pas: "sans NIR dans sa fiche, la DGFiP n'a personne à qui répondre".into(),
+                indice: *i,
+            });
+            continue;
+        }
         if !s.get("a_demander").is_some_and(vrai) {
             continue;
         }

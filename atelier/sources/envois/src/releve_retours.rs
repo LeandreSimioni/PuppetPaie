@@ -22,7 +22,7 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
-use socle::paris::{iso_de_naif, maintenant_naif, naif_de_iso};
+use socle::paris::{iso_de_naif, maintenant_naif};
 
 use crate::branchement::{Branchement, ANCIEN_PREFIXE_FLUX_FICTIF, PREFIXE_FLUX_FICTIF};
 use crate::suites::Suites;
@@ -382,10 +382,10 @@ fn tranches(debut: i64, fin: i64) -> Vec<(i64, i64)> {
     v
 }
 
-/// LE SIMULATEUR : pose les retours des depots joues qui les attendent depuis `delai` secondes, et rend le nombre de
+/// LE SIMULATEUR : pose les retours des depots joues qui les attendent, et rend le nombre de
 /// depots completes. Ne touche a aucune autre ligne : un vrai depot (flux sans le prefixe) garde ses vrais retours. Les
 /// attestations France Travail jouees s'archivent dans `retours/` comme les vraies, et vont dans les suites, a ranger.
-pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> R<i64> {
+pub fn rattacher_simulation(ctx: &Contexte, suites: &mut Suites) -> R<i64> {
     let mut a_archiver: Vec<(Value, Vec<u8>)> = Vec::new();
     // Ce que les organismes rendent de plus (refus, taux du PAS, effectif) : archive puis range par le meme chemin
     // qu'un retour reel (`rattacher_retours_avec_contenus`), qui en lit le verdict.
@@ -401,12 +401,10 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> 
         let l = &lignes[i];
         let quoi = l.get("quoi").and_then(Value::as_str).unwrap_or("");
         let flux = l.get("flux").map(|f| if vrai(f) { valeur_en_texte(f) } else { String::new() }).unwrap_or_default();
-        let age = l.get("quand").and_then(Value::as_str).and_then(naif_de_iso).map_or(0, |t| maintenant - t);
         if (quoi == "dsn" || quoi == "dpae")
             && l.get("accepte").is_some_and(vrai)
             && (flux.starts_with(PREFIXE_FLUX_FICTIF) || flux.starts_with(ANCIEN_PREFIXE_FLUX_FICTIF))
             && !l.get("retours").is_some_and(vrai)
-            && age >= delai
         {
             let base = |nature: &str, verdict: Option<&str>, libelle: &str| {
                 let mut m = Map::new();
@@ -500,9 +498,6 @@ fn aer_jouee(ctx: &Contexte, l: &Value) -> R<Option<Vec<u8>>> {
     crate::aer_fictive::archive(ctx, &octets, &mois, ctx.aujourdhui).map_err(Echec::from)
 }
 
-/// Le delai, en secondes, au bout duquel le simulateur rend les retours d'un depot joue a la releve.
-pub const DELAI_RETOURS_JOUES: i64 = 6;
-
 /// Telecharge et archive ce que les organismes ont publie. `debut` et `fin` : heures locales naives
 /// (`maintenant_naif`). `client` : le client du service, avec son mot de passe (le canal DPAE passe le sien, avec
 /// `canal = "dpae"`) ; `None` dans le monde : aucun mot de passe n'est pose, et cela se dit.
@@ -523,7 +518,7 @@ pub fn relever_retours(
         Branchement::Message(_) => return Ok(releve),
         // Les retours des depots joues arrivent d'ici, sans reseau ni mot de passe.
         Branchement::Simulateur if client.is_none() => {
-            releve.rattaches = rattacher_simulation(ctx, DELAI_RETOURS_JOUES, suites)?;
+            releve.rattaches = rattacher_simulation(ctx, suites)?;
             return Ok(releve);
         }
         _ => {}
@@ -654,7 +649,7 @@ pub fn relever_retours_dpae(
         Branchement::Message(_) => return Ok(Releve::default()),
         Branchement::Simulateur => {
             let mut r = Releve::default();
-            r.rattaches = rattacher_simulation(ctx, DELAI_RETOURS_JOUES, suites)?;
+            r.rattaches = rattacher_simulation(ctx, suites)?;
             return Ok(r);
         }
         Branchement::Monde => {}

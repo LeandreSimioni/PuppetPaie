@@ -168,51 +168,37 @@ pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Opt
 
 // -------------------------------------------------------- la repetition avant l'irreversible
 
-
-fn quand_a(v: &Value) -> String {
-    etats::quand_lisible(v).replace(" à ", " a ")
-}
-
-/// Le refus, ecrit pour qu'on sache quoi faire dans la minute. Un test qui a RATE se
-/// corrige, un test PERIME se refait, une absence de test se fait.
-fn phrase_repetition(ctx: &Contexte, quoi: &str, chemin: &Path, etat: &Value) -> String {
-    let acte = if quoi == "dsn" { "DSN" } else { "DPAE" };
-    // LE CHEMIN DOIT SE RECOPIER TEL QUEL : « sorties/2026-08/... » marche dans les deux cas.
-    let ou = chemin.strip_prefix(&ctx.racine).map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| chemin.to_string_lossy().into_owned());
-    let verbe = if quoi == "dsn" { "depot-dsn" } else { "deposer-dpae" };
-    let commande = format!("paie {} {} --test", verbe, ou);
+/// Le refus, ecrit pour qu'on sache quoi faire dans la minute, a l'ecran comme par `moteur route` : un test qui a RATE se
+/// corrige, un test PERIME se refait, une absence de test se fait, par la route `deposer` sans `reel`.
+fn phrase_repetition(quoi: &str, etat: &Value) -> String {
+    let acte = if quoi == "dsn" { "la DSN" } else { "la DPAE" };
     let dernier = |cle: &str| etat.get(cle).and_then(Value::as_array).and_then(|a| a.last()).cloned();
     let situation = if vrai(&etat["conforme"]) {
         format!(
-            "Ce contenu est parti en test le {}, et son compte rendu de conformite n'est pas encore arrive :\nl'accuse d'enregistrement dit que l'envoi est recu, pas qu'il est conforme. Attendre le bilan\n(en general dans les dix minutes), relever les retours, puis envoyer le reel.",
-            quand_a(&etat["conforme"]["quand"])
+            "Ce contenu est parti en test le {}, et son compte rendu n'est pas encore arrivé : l'accusé d'enregistrement dit que l'envoi est reçu, pas qu'il est conforme. Relevez les retours, puis envoyez le réel.",
+            etats::quand_lisible(&etat["conforme"]["quand"])
         )
     } else if let Some(l) = dernier("ratees") {
         format!(
-            "Ce contenu a ete essaye en test le {}, et l'essai a ECHOUE : {}.\nC'est cela qu'il faut corriger : le meme refus attend en reel.",
-            quand_a(&l["quand"]),
+            "Ce contenu a été essayé en test le {}, et l'essai a échoué : {}. C'est cela qu'il faut corriger, puis le déposer de nouveau en test.",
+            etats::quand_lisible(&l["quand"]),
             etats::pourquoi_rate(&l)
         )
     } else if let Some(l) = dernier("perimees") {
-        format!(
-            "Un fichier du meme nom a bien ete essaye en test le {}, mais son\ncontenu a CHANGE depuis ({} teste, {} aujourd'hui) : un octet qui\nbouge rend le test caduc.",
-            quand_a(&l["quand"]),
-            l.get("empreinte").filter(|e| vrai(e)).map(valeur_en_texte).unwrap_or_else(|| "?".into()),
-            valeur_en_texte(&etat["empreinte"])
-        )
+        format!("Un fichier du même nom a été essayé en test le {}, mais son contenu a changé depuis : déposez d'abord ce fichier en test.", etats::quand_lisible(&l["quand"]))
     } else {
-        "Ce contenu n'a jamais ete depose en test.".to_string()
+        "Ce contenu n'a jamais été déposé en test : déposez d'abord ce fichier en test.".to_string()
     };
     format!(
-        "Depot {} REEL refuse : aucune repetition reussie de ce contenu-la. Rien n'est parti.\n{}\n\nFaire la repetition avec CE fichier-ci -- la bascule en envoi de test se fait\nen memoire, le fichier sur le disque n'est pas modifie :\n  {}\n\nSi le service de test est indisponible et que l'echeance ne peut pas attendre,\nle dire en toutes lettres -- le motif est ecrit au journal des depots :\n  ... --reel --sans-repetition \"ce qui empechait le test\"",
-        acte, situation, commande
+        "Dépôt réel de {} refusé : rien n'est parti. {} Si le service de test est indisponible et que l'échéance ne peut pas attendre, le réel part avec un motif écrit (contournement), noté au journal des dépôts.",
+        acte, situation
     )
 }
 
 /// Leve tant que ce contenu n'a pas ete repete ; rend ce qu'il faut noter. LA SORTIE
 /// DE SECOURS EST VOULUE, et elle est tracee : un motif ECRIT (dix caracteres au moins) passe outre ; ce
 /// qu'on refuse, c'est le contournement SILENCIEUX.
-fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path, contournement: &str) -> R<Value> {
+fn exiger_repetition(lignes: &[Value], quoi: &str, chemin: &Path, contournement: &str) -> R<Value> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let etat = etats::repetition(lignes, quoi, &envois::journal::empreinte(&octets), &nom)?;
@@ -239,7 +225,7 @@ fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path
         }
         return Ok(json!({"contournement": raison, "empreinte": etat["empreinte"]}));
     }
-    Err(avec_donnee("RepetitionManquante", phrase_repetition(ctx, quoi, chemin, &etat), "etat", etat))
+    Err(avec_donnee("RepetitionManquante", phrase_repetition(quoi, &etat), "etat", etat))
 }
 
 /// LES ENGAGEMENTS QU'UN SIGNALEMENT COUVRE : un signalement porte un individu, un contrat, un evenement
@@ -506,7 +492,7 @@ pub fn deposer_dsn_dans(
             ));
         }
         // Et la repetition, en DERNIER des garde-fous.
-        repetition = exiger_repetition(ctx, &lignes, "dsn", &chemin, contournement)?;
+        repetition = exiger_repetition(&lignes, "dsn", &chemin, contournement)?;
     }
 
     let joue = branchement.joue();
@@ -543,8 +529,10 @@ pub fn deposer_dsn_dans(
     let d = envois::depot_acte::Depot { chemin: &chemin, octets: &octets, mois: &mois, reel, qui, preuve: &forme, repetition: &repetition, motdepasse: mdp, versions: &versions };
     let mut suites = Suites::default();
     let fait = envois::depot_acte::deposer_dsn(ctx, branchement, &d, &apercu, environnement, ordre_test, &mut suites);
-    crate::compagnie::suites::faire(ctx, suites)?;
-    fait
+    let faites = crate::compagnie::suites::faire(ctx, suites)?;
+    let mut fait = fait?;
+    fait.suites.extend(faites.incidents.into_iter().chain(faites.a_faire));
+    Ok(fait)
 }
 
 // ----------------------------------------------------------------------- la DPAE
@@ -588,7 +576,7 @@ pub fn deposer_dpae_avec(
         return Err(erreur(
             "ErreurOperation",
             format!(
-                "Le fichier porte l'indicateur {} (test) et vous demandez un depot REEL : rien ne serait declare. Reproduire le fichier sans --test.",
+                "Le fichier porte l'indicateur {} (envoi de test) : déposé en réel, il ne déclarerait rien. Rien n'est parti : déposez le fichier du mois, que la route deposer écrit elle-même.",
                 valeur_en_texte(&apercu["indicateur"])
             ),
         ));
@@ -600,7 +588,7 @@ pub fn deposer_dpae_avec(
         // LA REPETITION, apres la preuve : le fichier sur le disque porte toujours l'indicateur reel, et c'est
         // NOUS qui le basculons en test juste en dessous.
         let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-        repetition = exiger_repetition(ctx, &lignes, "dpae", &chemin, contournement)?;
+        repetition = exiger_repetition(&lignes, "dpae", &chemin, contournement)?;
     }
 
     let mut contenu = octets.clone();
@@ -644,12 +632,13 @@ pub fn deposer_dpae_avec(
     };
     let mut suites = Suites::default();
     let fait = envois::depot_acte::deposer_dpae(ctx, branchement, &d, &contenu, embauches.clone(), c, apercu["deja_depose"].clone(), &mut suites);
-    crate::compagnie::suites::faire(ctx, suites)?;
+    let faites = crate::compagnie::suites::faire(ctx, suites)?;
     let mut fait = fait?;
+    fait.suites.extend(faites.incidents.into_iter().chain(faites.a_faire));
     if let Some(dossier) = chemin.parent() {
         // UN ACTE, UNE PREUVE : la demande de taux part sous celle de la DPAE.
         let meme = reel.then(|| Preuve { donnee: Some(forme.clone()), ..preuve.cloned().unwrap_or_default() });
-        fait.demandes_de_taux = deposer_les_amorcages(ctx, dossier, &embauches, reel, meme.as_ref().or(preuve), qui, contournement);
+        fait.suites.extend(deposer_les_amorcages(ctx, dossier, &embauches, reel, meme.as_ref().or(preuve), qui, contournement));
     }
     Ok(fait)
 }

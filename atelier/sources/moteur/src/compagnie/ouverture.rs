@@ -74,9 +74,6 @@ use crate::routes::catalogue::{Ecran, Place};
 /// La trace de la derniere ouverture : `config/.ouverture.json`.
 const TRACE: &str = ".ouverture.json";
 
-/// Secondes entre un depot joue et son compte rendu, dans une compagnie fictive .
-const DELAI_RETOURS_FICTIVE: i64 = 6;
-
 // ------------------------------------------------------------------ les options et les clients
 
 /// Les options de `ouverture(...)`.
@@ -577,7 +574,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         if retours {
             dire_l_etape(ctx, "Compagnie fictive : retours des dépôts joués…");
             let mut releve = Releve::default();
-            match crate::compagnie::releve::rattacher_simulation(ctx, DELAI_RETOURS_FICTIVE) {
+            match crate::compagnie::releve::rattacher_simulation(ctx) {
                 Ok((n, a_faire)) => (releve.rattaches, releve.a_faire) = (n, a_faire),
                 // L'ouverture ne doit pas tomber.
                 Err(e) => r.incidents.push(format!("Retours : {}", e.message)),

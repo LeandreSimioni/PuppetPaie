@@ -261,11 +261,10 @@ fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Conte
     }
 }
 
-/// JOUE. La re-verification precede l'appel.
-fn deposer_dsn_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bool) -> R<()> {
+/// JOUE. La re-verification precede l'appel. Rend ce que ses retours laissent a faire.
+fn deposer_dsn_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bool) -> R<Vec<String>> {
     d.reverifier()?;
-    depot_acte::deposer_dsn(ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?;
-    Ok(())
+    Ok(depot_acte::deposer_dsn(ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?.suites)
 }
 
 /// JOUE. La re-verification precede l'appel.
@@ -278,7 +277,7 @@ fn deposer_dpae_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bo
 /// LES DSN DU MOIS QUI NE SONT PAS PARTIES et que `garder` retient (sur ce que le fichier declare), deposees chacune en
 /// test puis en reel -- le bilan du test lu avant le reel (`depot_acte::exiger_repetition`) --, dans
 /// l'ordre de `crate::routes::etapes::ordre_de_depot`. Rend vrai si l'une est partie ; `a_faire` recoit ce que le rangement des AER
-/// jouees laisse a faire (`rattacher`).
+/// jouees laisse a faire (les suites du depot, ses retours etant la des la reponse).
 /// CE QUI EST PARTI NE REPART PAS : un fichier parti en reel et qu'aucun bilan ne refuse est fait ; les octets qu'un
 /// organisme a refuses (en test ou en reel) ne repartent jamais. Seul un fichier change depuis son refus -- la correction
 /// d'une personne -- part.
@@ -315,24 +314,16 @@ fn deposer_les_dsn(
         // Un signalement qui ne part pas se nomme : le pas est celui de la DSN du mois.
         let signalement = envois::depot::lire(&octets).champ("nature").trim() != "01";
         for reel in [false, true] {
-            deposer_dsn_joue(d, ctx, &chemin, reel).map_err(|mut e| {
+            a_faire.extend(deposer_dsn_joue(d, ctx, &chemin, reel).map_err(|mut e| {
                 if signalement {
                     e.message = format!("le signalement {} ne part pas : {}", nom, depot_acte::phrase_de(&e));
                 }
                 e
-            })?;
-            a_faire.extend(rattacher(d, ctx)?);
+            })?);
         }
         fait = true;
     }
     Ok(fait)
-}
-
-/// Les retours des depots joues arrivent tout de suite. Rend ce que le rangement
-/// des AER jouees laisse a faire (`crate::compagnie::releve::rattacher_simulation`), comme les autres chemins de la releve.
-fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
-    d.reverifier()?;
-    Ok(crate::compagnie::releve::rattacher_simulation(ctx, 0)?.1)
 }
 
 // ------------------------------------------------------------------ dernier_rattrapage
@@ -664,8 +655,6 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             // La DPAE emporte la demande de taux de PAS de ses embauches (`depot_acte::deposer_dpae`).
             for reel in [false, true] {
                 deposer_dpae_joue(d, ctx, &fichier, reel)?;
-                // LE BILAN DU TEST AVANT LE REEL (`depot_acte::exiger_repetition`) ; puis celui du reel.
-                rattacher(d, ctx)?;
             }
             Ok(true)
         }),

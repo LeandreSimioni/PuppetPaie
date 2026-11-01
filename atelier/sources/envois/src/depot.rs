@@ -336,7 +336,7 @@ pub fn verifier(a: &Apercu, reel: bool, mois_confirme: Option<&str>, presence_pr
     let nature_envoi = a.champ("nature_envoi");
     if reel && nature_envoi != NATURE_REEL {
         return Err(depot_refuse(format!(
-            "Le fichier porte {}='{}' (envoi de test) et vous demandez un depot REEL. Un fichier de test depose reellement ne declare RIEN : les donnees ne sont pas conservees. Produire le fichier sans --test.",
+            "Le fichier porte {}='{}' (envoi de test) et vous demandez un depot REEL. Un fichier de test depose reellement ne declare RIEN : les donnees ne sont pas conservees. Deposez le fichier du mois, que la route deposer ecrit elle-meme.",
             RUB_NATURE, nature_envoi
         )));
     }
