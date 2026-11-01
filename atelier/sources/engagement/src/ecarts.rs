@@ -11,8 +11,8 @@
 //! configuration a la date de la periode ; une compagnie qui n'a pas encore pose son taux AT/MP de l'annee lit celui que
 //! le bulletin applique (`Contexte::avec_le_taux_atmp_lu`).
 //!
-//! LA COMPARAISON, PAR COTISATION : chaque ligne de cotisation du bulletin importe porte la cotisation que la table de
-//! lecture lui rattache (`rattacher`, par son libelle) ; chaque ligne de la paie calculee, la sienne (`cotisation_de`).
+//! LA COMPARAISON, PAR COTISATION : chaque ligne de cotisation du bulletin importe porte la cotisation que l'import lui a
+//! donnee (`cotisation`, par son libelle) ; chaque ligne de la paie calculee, la sienne (`cotisation_de`).
 //! Plusieurs lignes d'une meme cotisation s'additionnent (les tranches de l'Apec, les contributions de « Autres charges
 //! dues par l'employeur ») ; leur base et leurs taux ne se comparent que quand chaque cote n'en a qu'une. Un bulletin au
 //! modele de l'arrete du 25/02/2016 (art. 3) range la caisse des Conges Spectacles dans « Autres charges dues par
@@ -171,10 +171,9 @@ fn texte(o: &Map<String, Value>, k: &str) -> Option<String> {
     o.get(k).filter(|x| vrai(x)).map(en_texte)
 }
 
-/// Les comparaisons de chaque paie de l'engagement importe `imp`, mois par mois. `rattacher` : la cotisation que la
-/// table de lecture rattache a un libelle de cotisation imprime ; `deja` : la paie de cette empreinte (`empreinte`) est
+/// Les comparaisons de chaque paie de l'engagement importe `imp`, mois par mois. `deja` : la paie de cette empreinte (`empreinte`) est
 /// deja comparee, elle ne se compare pas deux fois.
-pub fn comparer(racine: &Path, imp: &Importe, rattacher: &dyn Fn(&str) -> Option<String>, deja: &dyn Fn(&str) -> bool) -> Vec<Comparaison> {
+pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Vec<Comparaison> {
     let brut = imp.objet().champs();
     let contrat = imp.contrat();
     let nature = contrat.and_then(|c| texte(c, "nature")).or_else(|| texte(brut, "nature"));
@@ -203,7 +202,7 @@ pub fn comparer(racine: &Path, imp: &Importe, rattacher: &dyn Fn(&str) -> Option
                 a_refaire: false,
                 non_rattachees: Vec::new(),
             };
-            c.ecarts = comparer_une(racine, brut, &mois, p, nature.as_deref(), rattacher, &mut c);
+            c.ecarts = comparer_une(racine, brut, &mois, p, nature.as_deref(), &mut c);
             Some(c)
         })
         .collect()
@@ -215,7 +214,6 @@ fn comparer_une(
     mois: &str,
     p: &Map<String, Value>,
     nature: Option<&str>,
-    rattacher: &dyn Fn(&str) -> Option<String>,
     c: &mut Comparaison,
 ) -> Result<Vec<Ecart>, String> {
     let annee = mois.get(..4).unwrap_or("");
@@ -249,7 +247,7 @@ fn comparer_une(
     let an: i32 = annee.parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mut atmp_imprime: Option<(Option<Decimal>, Option<Decimal>, Option<Decimal>)> = None;
     if !racine.join("config").join("baremes").join(format!("{}.json", annee)).exists() {
-        let ligne = cotisations.iter().find(|l| l.get("libelle").map(en_texte).is_some_and(|x| rattacher(&x).as_deref() == Some("atmp")));
+        let ligne = cotisations.iter().find(|l| l.get("cotisation").and_then(Value::as_str) == Some("atmp"));
         atmp_imprime = ligne
             .map(|l| (decimal(l.get("taux_employeur")), decimal(l.get("montant_employeur")), decimal(l.get("base"))))
             .filter(|(t, m, _)| t.is_some() || m.is_some_and(|m| !m.is_zero()));
@@ -365,7 +363,7 @@ fn comparer_une(
         if lue.montant_salarie.is_none() && lue.montant_employeur.is_none() {
             continue;
         }
-        match rattacher(&lue.libelle) {
+        match l.get("cotisation").and_then(Value::as_str).filter(|c| !c.is_empty()).map(str::to_string) {
             Some(code) => {
                 if l.get("hors_total") == Some(&Value::Bool(true)) && !hors_total.contains(&code) {
                     hors_total.push(code.clone());

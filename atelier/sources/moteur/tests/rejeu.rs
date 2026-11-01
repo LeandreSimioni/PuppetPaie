@@ -539,6 +539,13 @@ fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
     }
     outils::oracle("fictives/fictive-fil-de-fer.json", "", &json!({"paies": paies, "dsn": dsn, "depots": depots}));
 
+    // LES MOIS IMPORTES SE LISENT (le bug du joueur L9 : le FCAP-SVP de 2025 refusait « aucune paie validée ») : la
+    // tranche A de 2025 est celle des paies importees de septembre a decembre, et l'annee se dit partielle.
+    let fcap = outils::reussi(&outils::route(&racine, "exporter", json!({"etat": "fcap-svp", "annee": "2025"}), jour)).clone();
+    let ligne = &fcap["sections"][0]["lignes"][0];
+    assert_eq!(ligne["mois"], json!(4), "{}", fcap);
+    assert!(ligne["regle"].as_str().is_some_and(|r| r.contains("partielle")), "{}", fcap);
+
     // LIVREE (`scenario::poser_livree`, ce que « Publier » pose dans `fictives/`) : une fictive livree, pas ajoutee.
     let dest = d.join("fictives").join("fictive-fil-de-fer");
     moteur::atelier::scenario::poser_livree(&racine, &dest, r.fin).unwrap();

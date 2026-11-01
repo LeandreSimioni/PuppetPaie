@@ -546,8 +546,10 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
             debut,
             fin,
             dates,
+            // sPAIEctacle imprime le titre du spectacle dans sa case « Analytique », sous le numero d'objet : un
+            // bulletin fictif sans analytique dite y porte le titre de son objet.
+            analytique: texte_ou(b, "analytique").or_else(|| (gabarit == "spaiectacle").then(|| objet.as_ref().map(|o| o.1.clone())).flatten()).unwrap_or_default(),
             objet,
-            analytique: texte_ou(b, "analytique").unwrap_or_default(),
             lignes,
             non_soumis,
             taux_pas: b.get("taux_pas").map(socle::num::dec).transpose().map_err(|m| format!("{} : `taux_pas` : {}", ou, m))?.unwrap_or_default(),

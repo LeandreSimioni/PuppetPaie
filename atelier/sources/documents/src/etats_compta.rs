@@ -13,7 +13,7 @@ use serde_json::{Map, Value};
 use droit::contexte::{archivee, Contexte};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use crate::etats_paie::{ecarter_declares, ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
+use crate::etats_paie::{ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
 use crate::ecritures_comptables::{ecritures_du_mois, Ecriture};
 use socle::fichiers::vrai;
 use socle::num::{add, div, dec_avec_echelle, eur, eur2, mul, sub, zero2, Decimal};
@@ -240,7 +240,7 @@ fn ligne_de(e: &Ecriture, plan: &Map<String, Value>) -> R<Ligne> {
 fn ecritures_de(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<(Vec<Ecriture>, Map<String, Value>, &'static str)> {
     let (plan, origine) = crate::plan_comptable::plan(ctx)?;
     let mut out = Vec::new();
-    let mois = ecarter_declares(p, avert, "la répartition des cotisations — donc pas d'écriture équilibrée")?;
+    let mois = p.mois.clone();
     for (n, m) in mois.iter().enumerate() {
         for mut e in ecritures_du_mois(ctx, m, &plan, departs)? {
             e.piece = format!("PAIE-{}", m);
@@ -883,7 +883,7 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     }
     let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert, &d.departs)?;
     let mut t = Tableau::nouveau("ecritures-comptables", "Journal de paie — écritures comptables", p.libelle.clone());
-    t.mois = p.saisis();
+    t.mois = p.mois.clone();
     t.avertissements = avert;
     let mois: BTreeSet<&String> = ecr.iter().map(|e| &e.mois).collect();
     for m in mois {
@@ -984,7 +984,7 @@ pub fn grand_livre(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         libelles.insert(compte_de(e), libelle_de(&plan, e)?);
     }
     let mut t = Tableau::nouveau("grand-livre-paie", "Grand livre des comptes de paie", p.libelle.clone());
-    t.mois = p.saisis();
+    t.mois = p.mois.clone();
     t.avertissements = avert;
     t.sections = par.into_iter().map(|(c, l)| Section::nouvelle(format!("{} {}", c, libelles[&c]), l)).collect();
     t.colonnes = vec![
@@ -1040,7 +1040,7 @@ pub fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         lignes.push(l);
     }
     let mut t = Tableau::nouveau("balance-paie", "Balance des comptes de paie", p.libelle.clone());
-    t.mois = p.saisis();
+    t.mois = p.mois.clone();
     t.avertissements = avert;
     t.sections = vec![Section::nouvelle("", lignes)];
     t.colonnes = vec![
@@ -1279,9 +1279,9 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     // cle -> (salarie, brut, base, mois) dans l'ordre d'insertion
     let mut ordre: Vec<String> = Vec::new();
     let mut par: BTreeMap<String, (String, Decimal, Decimal, BTreeSet<String>)> = BTreeMap::new();
-    for m in p.saisis_sans_les_importes(&mut avert, "l'assiette de la CSG d'où se calcule la taxe")? {
-        let paies = match charger_mois(ctx, &m, &d.departs) {
-            Ok((_, paies)) => paies,
+    for m in p.mois.clone() {
+        let paies = match engagement::etats::paies_du_mois(ctx, &m, &d.departs).map_err(|x| erreur("ErreurOperation", x)) {
+            Ok(paies) => paies,
             Err(e) if matches!(e.classe, Some("ErreurOperation") | Some("ValueError") | Some("KeyError") | Some("FileNotFoundError")) => {
                 avert.push(format!("{} : le mois ne se charge pas ({}) — écarté.", m, e.message));
                 continue;

@@ -790,6 +790,10 @@ pub struct Cotisation {
     /// La cle de la famille (`familles` de la table) sous laquelle la ligne est ecrite.
     pub famille: Option<String>,
     pub libelle: String,
+    /// LA COTISATION QUE LA LIGNE EST, dans les mots du moteur (`cotisations` de la table, par son libelle : l'identifiant
+    /// du bareme, ou le grain auquel le modele de l'arrete du 25/02/2016 regroupe plusieurs lignes) ; `None` : un libelle
+    /// que la table ne connait pas, garde tel quel et non qualifie.
+    pub cotisation: Option<String>,
     pub base: Option<Decimal>,
     pub taux_employeur: Option<Decimal>,
     pub montant_employeur: Option<Decimal>,
@@ -975,7 +979,7 @@ impl BulletinLu {
             })).collect::<Vec<_>>(),
             "brut": self.brut.to_string(),
             "cotisations": self.cotisations.iter().map(|c| json!({
-                "famille": t(&c.famille), "libelle": c.libelle, "base": d(&c.base),
+                "famille": t(&c.famille), "libelle": c.libelle, "cotisation": t(&c.cotisation), "base": d(&c.base),
                 "taux_employeur": d(&c.taux_employeur), "montant_employeur": d(&c.montant_employeur),
                 "taux_salarie": d(&c.taux_salarie), "montant_salarie": d(&c.montant_salarie), "hors_total": c.hors_total,
             })).collect::<Vec<_>>(),
@@ -1948,7 +1952,7 @@ impl<'a> Lecteur<'a> {
                             famille = Some(f.to_string());
                             famille_apres_total |= phase == Phase::ApresTotal;
                             if !r.nombres.is_empty() {
-                                lu.ajouter(cotisation(&famille, ecrit, &r), phase == Phase::ApresTotal);
+                                lu.ajouter(cotisation(table, &famille, ecrit, &r), phase == Phase::ApresTotal);
                             }
                             continue;
                         }
@@ -1962,7 +1966,7 @@ impl<'a> Lecteur<'a> {
                         famille = Some(f.to_string());
                         famille_apres_total |= phase == Phase::ApresTotal;
                         if !r.nombres.is_empty() {
-                            lu.ajouter(cotisation(&famille, r.libelle.clone(), &r), phase == Phase::ApresTotal);
+                            lu.ajouter(cotisation(table, &famille, r.libelle.clone(), &r), phase == Phase::ApresTotal);
                         }
                         continue;
                     }
@@ -1980,7 +1984,7 @@ impl<'a> Lecteur<'a> {
                     if r.nombres.is_empty() {
                         avertissements.push(format!("cotisation sans montant : « {} »", r.libelle));
                     }
-                    lu.ajouter(cotisation(&famille, r.libelle.clone(), &r), phase == Phase::ApresTotal);
+                    lu.ajouter(cotisation(table, &famille, r.libelle.clone(), &r), phase == Phase::ApresTotal);
                 }
             }
         }
@@ -2112,9 +2116,10 @@ impl Corps {
     }
 }
 
-fn cotisation(famille: &Option<String>, libelle: String, r: &RangCorps) -> Cotisation {
+fn cotisation(table: &Table, famille: &Option<String>, libelle: String, r: &RangCorps) -> Cotisation {
     Cotisation {
         famille: famille.clone(),
+        cotisation: table.cotisation(&libelle).map(str::to_string),
         libelle,
         base: r.colonne(Genre::Base, None),
         taux_employeur: r.colonne(Genre::Taux, Some(Part::Employeur)),

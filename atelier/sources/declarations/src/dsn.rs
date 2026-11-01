@@ -600,6 +600,22 @@ fn bareme_de(p: &Paie, bar: &Value) -> Resultat<Value> {
     bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), p.declaree_a_la_caisse_des_conges()?, cpf_cdd)
 }
 
+/// LA BASE `bloc78` DE LA PAIE `p` (S21.G00.78.004 sous ce code), telle que la paie la porte : la base du calcul que le
+/// bareme de cette paie declare sous ce code (`cotisations_dsn`, `base78` ; abattue sous deduction forfaitaire
+/// specifique : `cle_abattue`), lue dans ses bases (`Paie::bases`), rien de recalcule. Une paie importee porte ses
+/// bases aux memes cles (`engagement::importe::Importe::paie`). Zero quand le bareme ne declare rien sous ce code.
+pub fn base_declaree(p: &Paie, bar: &Value, bloc78: &str) -> Resultat<Decimal> {
+    let bar = bareme_de(p, bar)?;
+    let Some(cle) = liste(req(&bar, "cotisations_dsn")?).iter().filter(|c| en_texte(g(c, "bloc78")) == bloc78).map(|c| en_texte(g(c, "base78"))).find(|k| k != "zero") else {
+        return Ok(zero());
+    };
+    Ok(match cle_abattue(p, bloc78, &cle)?.as_str() {
+        "brut" => p.brut,
+        "csg" => p.base_csg,
+        k => p.bases.get(k).copied().unwrap_or_else(zero),
+    })
+}
+
 /// Les cotisations d'un versement, dans l'ordre du bareme.
 pub fn cotisations(p: &Paie, bar: &Value) -> Resultat<Vec<Cotisation>> {
     let contribs = liste(g(bar, "_contributions_du_mois")).to_vec();

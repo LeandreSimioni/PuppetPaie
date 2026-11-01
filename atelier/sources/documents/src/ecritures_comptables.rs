@@ -1,6 +1,6 @@
 //! Les ecritures comptables d'un mois : le journal de paie en ecritures (`ecritures_du_mois`, le plan comptable livre
 //! recouvert par `config/plan-comptable.json`) et leur CSV (`Compta_AAAA.csv`) : point-virgule, virgule decimale,
-//! UTF-8 avec BOM, fins de ligne CRLF. Tout part des paies ecrites des engagements valides (`etats_paie::charger_mois`).
+//! UTF-8 avec BOM, fins de ligne CRLF. Tout part des paies du mois (`engagement::etats::paies_du_mois` : ecrites ou importees).
 
 use std::collections::BTreeMap;
 
@@ -90,7 +90,7 @@ fn ou_texte(v: Option<&Value>, defaut: &str) -> String {
 /// (une dette envers l'Etat, au compte `pas` du plan), le net par salarie -- le net PAYE, apres l'impot, celui du
 /// bulletin. Un identifiant de ligne absent du plan fait refuser : on ne devine pas un compte.
 pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>, departs: &engagement::departs::Departs) -> R<Vec<Ecriture>> {
-    let (_, paies) = crate::etats_paie::charger_mois(ctx, mois, departs)?;
+    let paies = engagement::etats::paies_du_mois(ctx, mois, departs).map_err(|m| erreur("ErreurOperation", m))?;
     let (date, lib_mois) = date_et_libelle(mois)?;
     let jrn = ou_texte(plan.get("journal"), "OD");
     let jrn = if plan.contains_key("journal") { valeur_en_texte(&plan["journal"]) } else { jrn };

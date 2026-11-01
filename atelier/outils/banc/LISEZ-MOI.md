@@ -167,7 +167,7 @@ commune 999 à clé juste ; rien de réel) :
 | `objet` | `{"numero", "titre"}` : le spectacle (numéro d'objet), pour un CDDU |
 | `lignes` | `{"libelle", "quantite", "taux"}` ; libellés du gabarit : `Cachets isolés`, `Cachets groupés`, `Heures`, `Service(s) répét. 4h (contrat<5j)` et `Masterclass / Action Culturelle` (CoolPaie), `Service de répétition 4 heures` (sPAIEctacle) |
 | `non_soumis` | sPAIEctacle seulement : `Défraiement non soumis`, `Prime de panier non soumise`, `Acompte` |
-| `taux_pas`, `regle_le`, `numero`, `analytique` | facultatifs : le taux du PAS (0), le jour du règlement (`fin`), le numéro CoolPaie (`k/année`), le code analytique sPAIEctacle |
+| `taux_pas`, `regle_le`, `numero`, `analytique` | facultatifs : le taux du PAS (0), le jour du règlement (`fin`), le numéro CoolPaie (`k/année`), la case « Analytique » de sPAIEctacle (par défaut : le titre de l'objet, comme sPAIEctacle l'y imprime) |
 
 Le gabarit se donne dans la description ou par `--gabarit` (qui l'emporte). Le « plafond Urssaf » imprimé se calcule
 par la règle du moteur (`plafond.rs`), sur le plafond de la Sécurité sociale de l'année lu dans le barème livré

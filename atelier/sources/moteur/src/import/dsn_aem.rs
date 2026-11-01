@@ -82,8 +82,15 @@ const A_DEFAUT: [(&str, &str); 7] = [
 /// remuneration nette fiscale moins CSG/CRDS non deductible et sante patronale, p. 244), pas le net a payer : CoolPaie y
 /// ecrivait son net a payer, PuppetPaie y ecrit le net verse. La DSN ne declare pas le net a payer ;
 /// une paie importee d'une DSN seule n'en a pas, un bulletin le donne (`import::bulletins::completer`).
-const VERSEMENT: [(&str, &str); 3] =
-    [("S21.G00.50.002", "net_imposable"), ("S21.G00.50.004", "net_verse"), ("S21.G00.50.009", "pas")];
+/// Le taux du prelevement a la source, son type et son identifiant (50.006 a 50.008) se lisent avec lui.
+const VERSEMENT: [(&str, &str); 6] = [
+    ("S21.G00.50.002", "net_imposable"),
+    ("S21.G00.50.004", "net_verse"),
+    ("S21.G00.50.006", "taux_pas"),
+    ("S21.G00.50.007", "type_pas"),
+    ("S21.G00.50.008", "identifiant_pas"),
+    ("S21.G00.50.009", "pas"),
+];
 
 /// Une valeur que la NATURE du contrat fixe (`contrats-base.json`, `codes` : « 999SPT » en 40.005 pour tout permanent,
 /// CCH-18 du bloc 40) ne dit rien du salarie : elle ne passe pas dans sa fiche. `999SPT` n'est pas un metier, et une
@@ -233,7 +240,24 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
         } else if let (Some(champ), Some(i)) = (table(&VERSEMENT, k), versement) {
             versements[i].insert(champ.to_string(), texte(v));
         } else if let (true, Some(i)) = (k == "S21.G00.51.010", versement) {
+            // UN VERSEMENT DE DEUX CONTRATS ne dit pas a lequel ses bases (78) se rattachent : elles ne se gardent pas.
+            if versements[i].get("contrat").and_then(Value::as_str).is_some_and(|c| !c.is_empty() && c != v) {
+                versements[i].insert("_plusieurs_contrats".into(), Value::Bool(true));
+            }
             versements[i].insert("contrat".into(), texte(v));
+        } else if let (true, Some(i)) = (k == "S21.G00.78.001", versement) {
+            versements[i].insert("_base".into(), texte(v));
+        } else if let (true, Some(i)) = (k == "S21.G00.78.004", versement) {
+            // LES BASES ASSUJETTIES QUE LA DSN DECLARE (bloc 78 : son code .001, son montant .004 ;
+            // `norme-dsn/texte/bloc-S21.G00.78.txt`), par code, sommees sur les periodes de rattachement du versement.
+            let code = versements[i].get("_base").and_then(Value::as_str).unwrap_or_default().to_string();
+            if let (false, Some(m)) = (code.is_empty(), socle::num::decimal_lu(v)) {
+                let bases = versements[i].entry("bases").or_insert_with(|| Value::Object(Map::new()));
+                if let Some(b) = bases.as_object_mut() {
+                    let avant = b.get(&code).and_then(Value::as_str).and_then(socle::num::decimal_lu).unwrap_or_default();
+                    b.insert(code, Value::String((avant + m).to_string()));
+                }
+            }
         } else if let (true, Some(i)) = (k == "S21.G00.51.011", versement) {
             versements[i].insert("_type".into(), texte(v));
         } else if let (true, Some(i)) = (k == "S21.G00.51.013", versement) {
@@ -341,7 +365,13 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     let versements: Vec<Value> = versements
         .into_iter()
         .filter(|v| v.get("contrat").and_then(Value::as_str).is_some_and(|c| !c.is_empty()))
-        .map(Value::Object)
+        .map(|mut v| {
+            v.shift_remove("_base");
+            if v.shift_remove("_plusieurs_contrats").is_some() {
+                v.shift_remove("bases");
+            }
+            Value::Object(v)
+        })
         .collect();
     let mut out = Map::new();
     out.insert("mois".into(), Value::String(mois));
