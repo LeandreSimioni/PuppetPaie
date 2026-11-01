@@ -409,7 +409,7 @@ pub const CHAMPS: &[(&str, &str, &str)] = &[
     ("remuneration.cachets", "le nombre de cachets", "cddu_spectacle"),
     ("remuneration.taux_cachet", "le taux du cachet, quand le contrat paie des cachets", "cddu_spectacle"),
     ("spectacle.titre", "le titre du spectacle", "cddu_spectacle"),
-    ("spectacle.numero_objet", "son numéro d'objet", "cddu_spectacle"),
+    ("spectacle.objet", "son numéro d'objet, entre parenthèses (vide sans numéro)", "cddu_spectacle"),
     ("organismes.retraite", "le nom et l'adresse de la caisse de retraite complémentaire", "tous"),
     ("organismes.prevoyance", "le nom et l'adresse de l'organisme de prévoyance, ou « aucun »", "tous"),
     ("mentions.formation", "le droit à la formation (un renvoi au code du travail)", "tous"),

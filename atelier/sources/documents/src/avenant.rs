@@ -349,7 +349,12 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
     poser("remuneration.brut", fmt_eur(dec(brut)?));
     poser("remuneration.net_estime", fmt_eur(dec(net)?));
     poser("spectacle.titre", texte_ou_invalide(requis(sp, "titre")?));
-    poser("spectacle.numero_objet", texte_ou_invalide(requis(sp, "numero_objet")?));
+    // LE NUMERO D'OBJET se reporte sur le contrat « a chaque fois que cela est possible » (annexes VIII et X, art. 47 § 3 :
+    // atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt l. 1183-1184, et l'annexe X,
+    // l. 1161-1162) : un spectacle qui n'en a pas encore fait son contrat, qui n'en dit rien. Le bulletin, lui, l'exige
+    // (`exige_par` de `champs-base.json`).
+    let objet = sp.get("numero_objet").and_then(Value::as_str).map(str::trim).filter(|n| !n.is_empty());
+    poser("spectacle.objet", objet.map(|n| format!(" (numéro d'objet France Travail {})", n)).unwrap_or_default());
     Ok(m)
 }
 

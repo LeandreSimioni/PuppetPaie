@@ -738,18 +738,40 @@ fn numero_en_nom(n: &str) -> String {
 /// qui est partie, et le bulletin d'origine se garde a cote (`sorties/<mois>/Bulletin_<cle>_<Mois>_<numero>.pdf`). Les N CE
 /// suivent la sequence continue des certificats. L'archive du mois (`Bulletins_<Mois>.pdf`, `CertificatsCS_<Mois>.pdf` et
 /// son recapitulatif) porte tous les documents numerotes du mois.
+/// CE QUE LES BULLETINS EXIGENT DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit) :
+/// l'entreprise, et le spectacle de chaque paie dont la nature declare un numero d'objet (S21.G00.40.050, la marque des
+/// annexes VIII et X) ; tout ce qui manque, d'un coup, avant que rien ne s'ecrive.
+fn exiges_des_bulletins<'a>(ent: &Value, paies: impl Iterator<Item = &'a Paie>) -> R<()> {
+    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
+    for p in paies {
+        if !p.engagement.nat().map_err(valeur)?.ecrit("S21.G00.40.050") || fiches.iter().any(|(_, _, f)| **f == p.spectacle) {
+            continue;
+        }
+        let titre = p.spectacle.get("titre").filter(|t| vrai(t)).map(valeur_en_texte).unwrap_or_default();
+        fiches.push(("spectacle", format!("Spectacles, la fiche de {}", titre), &p.spectacle));
+    }
+    match declarations::champs::refus_des_manques("bulletin", &fiches, &[])? {
+        Some(m) => Err(erreur("ErreurOperation", m)),
+        None => Ok(()),
+    }
+}
+
 pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], qui: &str) -> R<DocumentsFabriques> {
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    let validees = engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(Echec::from)?;
+    let ent = ctx.entreprise_du_mois(mois).map_err(valeur)?;
+    if let Some((_, paies)) = &validees {
+        exiges_des_bulletins(&ent, paies.iter().filter(|p| cles.contains(&cle_de(p)) && !p.engagement.sans_paie()))?;
+    }
     let verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     let mut faits = DocumentsFabriques { _verrou: verrou, reserves: Reserves::default(), a_poser: Vec::new(), avertissements: Vec::new() };
-    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
-    let Some((_data, paies)) = engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(Echec::from)? else { return Ok(faits) };
+    let Some((_data, paies)) = validees else { return Ok(faits) };
     let ecrits = engagement::etats::numeros_des_documents(ctx, mois, &departs).map_err(Echec::from)?;
     let an = annee_de(mois)?;
     let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
     let dossier = sortie.join("envoi");
     std::fs::create_dir_all(&dossier).map_err(|e| os(&dossier, e))?;
-    let ent = ctx.entreprise_du_mois(mois).map_err(valeur)?;
     let part = |p: &Paie| cles.contains(&cle_de(p));
     let mut a_poser: HashMap<usize, (Option<String>, Option<(i64, i64)>)> = HashMap::new();
 

@@ -89,7 +89,7 @@ const ORDRE_MARQUEURS: [&str; 38] = [
     "remuneration.brut",
     "remuneration.net_estime",
     "spectacle.titre",
-    "spectacle.numero_objet",
+    "spectacle.objet",
 ];
 
 /// Les valeurs d'un modele en JSON, dans l'ordre du modele : celles de `marqueurs` d'abord, puis les autres

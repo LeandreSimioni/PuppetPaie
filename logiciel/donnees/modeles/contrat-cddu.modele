@@ -36,7 +36,7 @@ L'artiste : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à
 Il a été convenu et arrêté ce qui suit.
 
 ARTICLE: Objet et nature du contrat
-L'artiste est engagé(e) en qualité {{salarie.qualite_de}}**{{salarie.emploi}}** (catégorie d'emploi : {{salarie.categorie}}) pour le spectacle **{{spectacle.titre}}** (numéro d'objet France Travail {{spectacle.numero_objet}}).
+L'artiste est engagé(e) en qualité {{salarie.qualite_de}}**{{salarie.emploi}}** (catégorie d'emploi : {{salarie.categorie}}) pour le spectacle **{{spectacle.titre}}**{{spectacle.objet}}.
 
 Le présent contrat est {{contrat.motif}}. La convention collective applicable est la convention collective nationale « {{employeur.convention}} » (IDCC {{employeur.idcc}}). L'usage constant exclut le recours au contrat à durée indéterminée pour cet emploi.
 

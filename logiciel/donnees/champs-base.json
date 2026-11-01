@@ -2355,9 +2355,10 @@
    "ecran": true
   },
   {
+   "_note": "Exigé par les bulletins : « Ce numéro doit obligatoirement être reporté par l'employeur sur les bulletins de salaire, ainsi que, à chaque fois que cela est possible, sur les contrats de travail » (annexes VIII et X, art. 47 § 3 : atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt l. 1183-1184, unedic-annexe10-convention-20241115.txt l. 1161-1162). Le contrat le porte quand le spectacle l'a (`spectacle.objet`), la DSN aussi (S21.G00.40.050, usage C) : ni l'un ni l'autre ne l'exige.",
    "cle": "numero_objet",
+   "exige_par": ["bulletin"],
    "libelle": "Numéro d'objet",
-   "sinon": "la DSN déclare ses contrats sans numéro d'objet",
    "forme": "texte",
    "aide": "France Travail en délivre un NOUVEAU chaque année : 216Z... = 2021, 266Z... = 2026. Celui d'une nouvelle année se pose par « Numéro 2027… » sur la ligne du spectacle, pas ici : ici, on corrige une faute de frappe.",
    "longueur": 12,
