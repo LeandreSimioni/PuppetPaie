@@ -300,7 +300,7 @@ fn modifier_puis_revalider(
 
 /// Le contrat (ou un avenant) de l'engagement `o` est-il parti ?
 fn contrat_parti(ctx: &Contexte, o: &engagement::stock::Objet, departs: &engagement::departs::Departs) -> bool {
-    let b = Value::Object(o.brut.clone());
+    let b = &*o.brut;
     let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b), b.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else {
         return false;
     };
@@ -379,7 +379,7 @@ fn ce_qui_arrive_aux_mois_partis(ctx: &Contexte, q: &engagement::etats::APartirD
 /// signature par courriel, a l'adresse de la fiche ; sans elle, il ne partira pas (`compagnie::signature`, qui le refuse
 /// au depart). Il s'imprime, ou le courriel se saisit.
 fn avis_de_validation(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Option<String>> {
-    let e = &Value::Object(v.objet().brut.clone());
+    let e = &v.objet().brut;
     let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Ok(None) };
     let nature = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_err(Echec::from)?;
     let numero = e.get("numero").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();

@@ -230,11 +230,11 @@ pub fn poser_numeros_des_documents(ctx: &Contexte, mois: &str, cle: &str, numero
     let mut o = stock::objets_du_mois(&ctx.racine, mois)?
         .into_iter()
         .find(|o| {
-            let e = Value::Object(o.brut.clone());
+            let e = &*o.brut;
             crate::cle_de_l_engagement(ctx, &e).as_deref() == Some(cle) && e.get("numero").and_then(Value::as_str) == Some(numero)
         })
         .ok_or_else(|| format!("{} : pas d'engagement de {} au contrat {}", mois, cle, numero))?;
-    let Some(p) = o.brut.get_mut("valide").and_then(|v| v.get_mut("paies")).and_then(|p| p.get_mut(mois)).and_then(Value::as_object_mut) else {
+    let Some(p) = o.brut_mut().get_mut("valide").and_then(|v| v.get_mut("paies")).and_then(|p| p.get_mut(mois)).and_then(Value::as_object_mut) else {
         return Err(format!("{} : l'engagement de {} au contrat {} n'a pas de paie validee", mois, cle, numero));
     };
     let mut change = false;
@@ -285,12 +285,12 @@ impl Etat {
 
 /// La cle de la fiche du salarie d'un engagement (`None` s'il ne nomme aucune fiche).
 fn cle_du_salarie(ctx: &Contexte, o: &Objet) -> Option<String> {
-    crate::cle_de_l_engagement(ctx, &Value::Object(o.brut.clone()))
+    crate::cle_de_l_engagement(ctx, &o.brut)
 }
 
 /// Qui est l'engagement `o`, pour une phrase de l'ecran : « MARTIN Lou (contrat du 20/11/2026) » (`crate::salarie_nomme`).
 pub fn qui_de(ctx: &Contexte, o: &Objet) -> String {
-    let debut = crate::debut_brut(&Value::Object(o.brut.clone()));
+    let debut = crate::debut_brut(&o.brut);
     let debut = Jour::lire(&debut).map(|j| j.jj_mm_aaaa()).unwrap_or(debut);
     format!("{} (contrat du {})", crate::salarie_nomme(ctx, o.brut.get("salarie")), debut)
 }
@@ -399,7 +399,7 @@ pub fn valides_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<bool>> {
 /// `du_mois` ; `None` s'il n'est pas valide ou n'a pas de paie ecrite pour ce mois.
 pub fn paie_ecrite_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str, departs: &Departs) -> Resultat<Option<Value>> {
     Ok(du_mois(ctx, mois, departs)?.into_iter().find_map(|e| {
-        let b = Value::Object(e.objet().brut.clone());
+        let b = &*e.objet().brut;
         let sien = crate::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle) && b.get("numero").and_then(Value::as_str) == Some(numero);
         if sien { e.valide().and_then(|v| v.paie_ecrite(mois)).cloned() } else { None }
     }))
@@ -539,14 +539,14 @@ fn valides_lues(ctx: &Contexte, mois: &str, salarie: Option<&str>) -> Resultat<V
     let en_cours = EN_VALIDATION.with(|e| e.borrow().clone()).unwrap_or_default();
     let mut out = Vec::new();
     for (i, o) in stock::objets_du_mois(&ctx.racine, mois)?.into_iter().enumerate() {
-        if salarie.is_some_and(|s| crate::cle_de_l_engagement(ctx, &Value::Object(o.brut.clone())).as_deref() != Some(s)) {
+        if salarie.is_some_and(|s| crate::cle_de_l_engagement(ctx, &o.brut).as_deref() != Some(s)) {
             continue;
         }
         let v = match en_cours.iter().find(|(f, r, _)| o.fichier == *f && o.rang == *r) {
             Some((_, _, paies)) => {
                 let Some(p) = paies.get(mois) else { continue };
                 let mut lue = o.clone();
-                lue.brut.insert("valide".into(), json!({ "le": "", "paies": { mois: p } }));
+                lue.brut_mut().insert("valide".into(), json!({ "le": "", "paies": { mois: p } }));
                 Valide::de(lue)
             }
             None => Valide::de(o),
@@ -846,7 +846,7 @@ fn maintenant() -> String {
 /// la saisie, y reste).
 fn saisie_de(o: &Objet) -> Value {
     Value::Object(
-        o.brut
+        o.champs()
             .iter()
             .filter(|(k, _)| k.as_str() == stock::SUITE || !stock::TENUS_PAR_LE_MOTEUR.contains(&k.as_str()))
             .map(|(k, v)| (k.clone(), v.clone()))
@@ -880,10 +880,10 @@ fn nouvelle_version(o: &mut Objet, actuelle: &Value, n: u64, siens: &[Depart], l
         "version": n, "valide_le": actuelle.get("le").cloned().unwrap_or(Value::Null), "remplacee_le": le,
         "saisie": actuelle["saisie"], "paies": actuelle["paies"],
     });
-    match o.brut.get_mut(VERSIONS).and_then(Value::as_array_mut) {
+    match o.brut_mut().get_mut(VERSIONS).and_then(Value::as_array_mut) {
         Some(v) => v.push(passee),
         None => {
-            o.brut.insert(VERSIONS.into(), json!([passee]));
+            o.brut_mut().insert(VERSIONS.into(), json!([passee]));
         }
     }
     n + 1
@@ -926,8 +926,8 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize, departs: &Departs) -> Re
         Some((p, n)) => (n, p.get("le").and_then(Value::as_str).map_or(le, String::from)),
         None => (1, le),
     };
-    o.brut.remove(PRECEDENTE);
-    o.brut.insert("valide".into(), json!({ "le": le, "version": version, "saisie": saisie, "paies": paies }));
+    o.brut_mut().remove(PRECEDENTE);
+    o.brut_mut().insert("valide".into(), json!({ "le": le, "version": version, "saisie": saisie, "paies": paies }));
     stock::reecrire(&ctx.racine, &o)?;
     Valide::de(o).ok_or_else(|| "validation illisible".to_string())
 }
@@ -1117,8 +1117,8 @@ pub fn mois_du_changement(v: &Valide, passee: &Value) -> Resultat<Option<String>
 /// « MODIFIER… » : l'engagement repasse en saisie. Sa validation se garde (`precedente`) pour la suivante.
 pub fn modifier(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<EnSaisie> {
     let mut o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
-    if let Some(v) = o.brut.remove("valide") {
-        o.brut.insert(PRECEDENTE.into(), v);
+    if let Some(v) = o.brut_mut().remove("valide") {
+        o.brut_mut().insert(PRECEDENTE.into(), v);
         stock::reecrire(&ctx.racine, &o)?;
     }
     Ok(EnSaisie { objet: o })
@@ -1231,7 +1231,7 @@ pub fn desactiver(ctx: &Contexte, mois: &str, rang: usize, departs: &Departs) ->
     }
     let le = maintenant();
     // La validation presente : la derniere version, gardee telle quelle.
-    let derniere = o.brut.remove("valide");
+    let derniere = o.brut_mut().remove("valide");
     // Sa version suit la derniere validee : son present, rien de paye, est une version de plus.
     let version = o.brut.get(VERSIONS).and_then(Value::as_array).into_iter().flatten().chain(derniere.as_ref()).filter_map(|v| version_de(Some(v))).max().unwrap_or(0) + 1;
     if let Some(v) = derniere.filter(|v| version_de(Some(v)).is_some()) {
@@ -1239,14 +1239,14 @@ pub fn desactiver(ctx: &Contexte, mois: &str, rang: usize, departs: &Departs) ->
             "version": v["version"], "valide_le": v.get("le").cloned().unwrap_or(Value::Null), "remplacee_le": le,
             "saisie": v.get("saisie").cloned().unwrap_or(Value::Null), "paies": v.get("paies").cloned().unwrap_or(Value::Null),
         });
-        match o.brut.get_mut(VERSIONS).and_then(Value::as_array_mut) {
+        match o.brut_mut().get_mut(VERSIONS).and_then(Value::as_array_mut) {
             Some(vs) => vs.push(gardee),
             None => {
-                o.brut.insert(VERSIONS.into(), json!([gardee]));
+                o.brut_mut().insert(VERSIONS.into(), json!([gardee]));
             }
         }
     }
-    o.brut.insert(stock::NON_ACTIF.into(), json!({ "le": le, "version": version }));
+    o.brut_mut().insert(stock::NON_ACTIF.into(), json!({ "le": le, "version": version }));
     stock::reecrire(&ctx.racine, &o)?;
     NonActif::de(o).ok_or_else(|| "desactivation illisible".to_string())
 }
@@ -1309,7 +1309,7 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<
             if let Some(a) = ancienne.filter(|a| a.get(CONGES_AVANT).is_some()) {
                 if let Some(nouvelle) = conges_avant_a_jour(ctx, &v.objet, a, mois, &mut relues)? {
                     let mut o = v.objet.clone();
-                    if let Some(Value::Object(paies)) = o.brut.get_mut("valide").and_then(|x| x.get_mut("paies")) {
+                    if let Some(Value::Object(paies)) = o.brut_mut().get_mut("valide").and_then(|x| x.get_mut("paies")) {
                         paies.insert(mois.to_string(), nouvelle);
                     }
                     stock::reecrire(&ctx.racine, &o)?;
@@ -1380,12 +1380,12 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<
             let actuelle = o.brut.get("valide").cloned().filter(|v| a_revalider(ctx, &o, v).is_none());
             if let Some((actuelle, n)) = actuelle.as_ref().and_then(|a| Some((a, version_de(Some(a))?))) {
                 let n = nouvelle_version(&mut o, actuelle, n, &emportee, &le);
-                if let Some(v) = o.brut.get_mut("valide").and_then(Value::as_object_mut) {
+                if let Some(v) = o.brut_mut().get_mut("valide").and_then(Value::as_object_mut) {
                     v.insert("version".into(), json!(n));
                 }
             }
         }
-        if let Some(Value::Object(paies)) = o.brut.get_mut("valide").and_then(|x| x.get_mut("paies")) {
+        if let Some(Value::Object(paies)) = o.brut_mut().get_mut("valide").and_then(|x| x.get_mut("paies")) {
             paies.insert(mois.to_string(), nouvelle);
         }
         stock::reecrire(&ctx.racine, &o)?;
@@ -1625,7 +1625,7 @@ fn version_de_la_dsn<'a>(ctx: &Contexte, o: &'a Objet, departs: &Departs, mois: 
 fn vue_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Map<String, Value>>> {
     let saisie = version.get("saisie").and_then(Value::as_object).ok_or("version ecrite illisible : `saisie`")?;
     let mut declare = o.clone();
-    declare.brut = saisie.clone();
+    declare.brut = std::sync::Arc::new(Value::Object(saisie.clone()));
     declare.vue(mois)
 }
 

@@ -348,28 +348,87 @@ pub fn json_en_cache_ou<E>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Val
 
 type CacheDesContenus = Mutex<HashMap<PathBuf, (Arc<Vec<u8>>, Arc<Value>)>>;
 
-/// UN JSON LU, ANALYSE UNE FOIS PAR CONTENU : le fichier se relit a chaque fois (ses octets), et ce qu'on en avait tire
-/// ne sert que si ses octets sont exactement ceux d'alors. Rien ne se lit perime, quel que soit qui l'a ecrit et quand
-/// (une autre fenetre, une restauration, une cle USB aux dates a deux secondes pres) : seule l'analyse s'epargne, et
-/// c'est elle qui coute. `None` s'il n'existe pas. Rien ne se note au registre : l'appelant dit ce qu'il lit (les
-/// engagements se comptent par leur saisie, `engagement::stock`). Partage : on ne le modifie pas ; deux lectures du meme
-/// contenu rendent la meme valeur (`Arc::ptr_eq`).
+/// UN JSON LU, ANALYSE UNE FOIS PAR CONTENU : hors d'un geste, le fichier se relit a chaque fois (ses octets), et ce
+/// qu'on en avait tire ne sert que si ses octets sont exactement ceux d'alors. Rien ne se lit perime, quel que soit qui
+/// l'a ecrit et quand (une autre fenetre, une restauration, une cle USB aux dates a deux secondes pres) : seule l'analyse
+/// s'epargne. PENDANT UN GESTE (`geste`), il se lit une fois : la lecture du geste le garde, et ce que le geste ecrit
+/// (`ecriture::ecrire_json`) y prend sa place. `None` s'il n'existe pas. Rien ne se note au registre : l'appelant dit ce
+/// qu'il lit (les engagements se comptent par leur saisie, `engagement::stock`). Partage : on ne le modifie pas ; deux
+/// lectures du meme contenu rendent la meme valeur (`Arc::ptr_eq`).
 pub fn json_partage(chemin: &Path) -> Resultat<Option<Arc<Value>>> {
     static CACHE: OnceLock<CacheDesContenus> = OnceLock::new();
+    if let Some(v) = GESTE.with(|g| g.borrow().as_ref().and_then(|l| l.get(chemin).cloned())) {
+        return Ok(v);
+    }
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     let octets = match std::fs::read(chemin) {
         Ok(o) => o,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            garder_dans_le_geste(chemin, None);
+            return Ok(None);
+        }
         Err(e) => return Err(panne_fichier(&e, chemin)),
     };
-    if let Some((vus, v)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
-        if **vus == octets {
-            return Ok(Some(v.clone()));
+    let deja = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin).filter(|(vus, _)| **vus == octets).map(|(_, v)| v.clone());
+    let v = match deja {
+        Some(v) => v,
+        None => {
+            let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| format!("{} : {}", chemin.display(), e))?);
+            ranger(cache, chemin.to_path_buf(), (Arc::new(octets), v.clone()));
+            v
+        }
+    };
+    garder_dans_le_geste(chemin, Some(v.clone()));
+    Ok(Some(v))
+}
+
+thread_local! {
+    /// LA LECTURE DU GESTE EN COURS (`geste`) : chaque fichier que `json_partage` a servi, tel qu'il l'a lu ou tel que le
+    /// geste l'a ecrit (`None` : absent).
+    static GESTE: RefCell<Option<HashMap<PathBuf, Option<Arc<Value>>>>> = const { RefCell::new(None) };
+}
+
+fn garder_dans_le_geste(chemin: &Path, v: Option<Arc<Value>>) {
+    GESTE.with(|g| {
+        if let Some(l) = g.borrow_mut().as_mut() {
+            l.insert(chemin.to_path_buf(), v);
+        }
+    });
+}
+
+/// Ce que le geste vient d'ecrire dans `chemin` (`ecriture::ecrire_json`) : si le geste l'a lu, c'est ce qu'il a
+/// desormais en main ; il ne relit pas ce qu'il a ecrit.
+pub(crate) fn ecrit_pendant_le_geste(chemin: &Path, v: &Value) {
+    GESTE.with(|g| {
+        if let Some(l) = g.borrow_mut().as_mut().filter(|l| l.contains_key(chemin)) {
+            l.insert(chemin.to_path_buf(), Some(Arc::new(v.clone())));
+        }
+    });
+}
+
+/// UN GESTE (une route, l'etat d'un mois refait) LIT UNE FOIS ce que la compagnie porte et que `json_partage` sert (les
+/// engagements, le journal de ce qui est parti) : rendu par `geste`, la lecture vit tant que son garde vit, et tombe
+/// avec lui ; un geste ouvert depuis un autre lit dans la lecture de celui-ci.
+pub struct Geste(bool);
+
+#[must_use = "la lecture du geste ne vit que tant que son garde vit"]
+pub fn geste() -> Geste {
+    Geste(GESTE.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.is_some() {
+            return false;
+        }
+        *g = Some(HashMap::new());
+        true
+    }))
+}
+
+impl Drop for Geste {
+    fn drop(&mut self) {
+        if self.0 {
+            GESTE.with(|g| *g.borrow_mut() = None);
         }
     }
-    let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| format!("{} : {}", chemin.display(), e))?);
-    ranger(cache, chemin.to_path_buf(), (Arc::new(octets), v.clone()));
-    Ok(Some(v))
 }
 
 /// Le JSON d'un fichier UTF-8, sans cache.

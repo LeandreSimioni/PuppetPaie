@@ -273,7 +273,7 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
         if !o.est_valide() || o.est_non_actif() {
             continue;
         }
-        let e = Value::Object(o.brut.clone());
+        let e = &*o.brut;
         let (salarie, debut) = (t(&e, "salarie"), t(&e, "debut"));
         if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) || !mensuel(&t(&e, "nature")) {
             continue;

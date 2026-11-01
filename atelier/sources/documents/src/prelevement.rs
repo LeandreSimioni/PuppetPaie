@@ -28,7 +28,7 @@ fn deja_declare(ctx: &Contexte, pa: &Paie, lus: &mut Lus, departs: &engagement::
         lus.objets.insert(mois.clone(), engagement::stock::objets_du_mois(&ctx.racine, &mois)?);
     }
     let objet = lus.objets[&mois].iter().find(|o| {
-        let b = Value::Object(o.brut.clone());
+        let b = &*o.brut;
         engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle.as_str()) && b.get("numero").map(en_texte).as_deref() == Some(numero.as_str())
     });
     let Some(o) = objet else { return Ok(None) };

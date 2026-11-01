@@ -299,7 +299,7 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Map<String, Value>>) -> Resultat
 /// nature d'un contrat de permanent, son numero). `completer` recoit chaque engagement importe tel qu'il est ecrit et
 /// dit s'il l'a change ; ceux-la se reecrivent. Rend combien ont change.
 pub fn completer(racine: &Path, mut completer: impl FnMut(&mut Map<String, Value>) -> bool) -> Resultat<usize> {
-    let mut tous: Vec<Map<String, Value>> = tous(racine)?.into_iter().map(|i| i.objet.brut).collect();
+    let mut tous: Vec<Map<String, Value>> = tous(racine)?.into_iter().map(|i| i.objet.champs().clone()).collect();
     let mut changes = 0usize;
     for e in tous.iter_mut() {
         if completer(e) {

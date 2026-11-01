@@ -282,7 +282,7 @@ pub(crate) fn refus_non_declarable(
     apres: &engagement::stock::Objet,
     departs: &engagement::departs::Departs,
 ) -> R<Option<String>> {
-    let brut = |o: &engagement::stock::Objet| Value::Object(o.brut.clone());
+    let brut = |o: &engagement::stock::Objet| o.brut.clone();
     let (b_avant, b_apres) = (brut(avant), brut(apres));
     let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b_avant), b_avant.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else {
         return Ok(None);

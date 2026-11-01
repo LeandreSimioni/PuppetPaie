@@ -1127,7 +1127,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
     // ses mois verses sont importes, les suivants se paient ici, sous le numero et les dates que la DSN deposee lui a
     // donnes (regle 4). Le spectacle est celui de son numero d'objet, le cachet celui que l'ancien logiciel a paye.
     for i in engagement::importe::qui_continuent(&ctx.racine, texte_mois).map_err(Echec::from)? {
-        let b = &i.objet().brut;
+        let b = i.objet().champs();
         let t = |x: &Map<String, Value>, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         let (salarie, debut, fin, numero) = (t(b, "salarie"), t(b, "debut"), t(b, "fin"), t(b, "numero"));
         let ident = vec![json!(salarie), json!(debut), json!(numero)];
@@ -1952,7 +1952,7 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Ve
         let mut lue = None;
         if let (true, Some(b)) = (engagement::etats::est_validee(e), e.as_object()) {
             let sien = qui(b);
-            let trouve = etats.iter().enumerate().find(|(_, x)| x.valide().is_some() && sien.1.is_some() && qui(&x.objet().brut) == sien);
+            let trouve = etats.iter().enumerate().find(|(_, x)| x.valide().is_some() && sien.1.is_some() && qui(x.objet().champs()) == sien);
             if let (Some((j, x)), Some(d)) = (trouve, disque.as_ref()) {
                 let v = x.valide().ok_or("engagement en saisie")?;
                 lue = Some(PaieMontree { paie: v.paie(ctx, d, j)?, recalcul: v.recalcul(mois).cloned() });

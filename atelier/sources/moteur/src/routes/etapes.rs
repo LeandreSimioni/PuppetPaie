@@ -362,7 +362,7 @@ pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String,
         .iter()
         .filter(|e| a_refaire_de(ctx, e, &departs).iter().any(|a| matches!(a, ARefaire::Avenant { .. })))
         .filter_map(|e| {
-            let b = Value::Object(e.objet().brut.clone());
+            let b = &*e.objet().brut;
             Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
         })
         .collect())
@@ -379,7 +379,7 @@ pub(crate) fn debut_declare(refaire: &[ARefaire]) -> Option<String> {
 /// L'etablissement (NIC) dont releve l'engagement `e` pour `mois` : celui de la fiche de son salarie telle que le calcul
 /// de sa paie du mois l'a lue (`fiches`) ; sans paie ecrite du mois, de sa fiche d'aujourd'hui.
 pub(crate) fn nic_de_l_engagement(ctx: &Contexte, mois: &str, e: &engagement::etats::Etat) -> Option<String> {
-    nic_de_l_engagement_ecrit(ctx, mois, &Value::Object(e.objet().brut.clone()))
+    nic_de_l_engagement_ecrit(ctx, mois, &e.objet().brut)
 }
 
 /// `nic_de_l_engagement`, sur l'engagement tel qu'il est ecrit (`brut`).
@@ -422,7 +422,7 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
         .iter()
         .filter(|e| e.valide().is_some())
         .filter_map(|e| {
-            let b = Value::Object(e.objet().brut.clone());
+            let b = &*e.objet().brut;
             Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
         })
         .collect();
@@ -1383,7 +1383,7 @@ impl<'a> Moteur<'a> {
         let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
         let de_l_etablissement = |ctx: &Contexte, m: &str, brut: &Value| !plusieurs || nic_de_l_engagement_ecrit(ctx, m, brut).as_deref() == Some(voulu.as_str());
         for e in self.etats_du_mois(mois)? {
-            if e.valide().is_some() && de_l_etablissement(self.ctx, mois, &Value::Object(e.objet().brut.clone())) {
+            if e.valide().is_some() && de_l_etablissement(self.ctx, mois, &e.objet().brut) {
                 return Ok(true);
             }
         }
@@ -1397,12 +1397,12 @@ impl<'a> Moteur<'a> {
             }
             for e in self.etats_du_mois(&m)? {
                 let Some(v) = e.valide() else { continue };
-                if de_l_etablissement(self.ctx, &m, &Value::Object(e.objet().brut.clone())) && engagement::etats::correction_due(self.ctx, v, &departs, &m, mois).map_err(plain)?.is_some() {
+                if de_l_etablissement(self.ctx, &m, &e.objet().brut) && engagement::etats::correction_due(self.ctx, v, &departs, &m, mois).map_err(plain)?.is_some() {
                     return Ok(true);
                 }
             }
             for n in engagement::etats::non_actifs_du_mois(self.ctx, &m).map_err(plain)? {
-                if de_l_etablissement(self.ctx, &m, &Value::Object(n.objet().brut.clone())) && n.correction_due(self.ctx, &departs, &m, mois).map_err(plain)?.is_some() {
+                if de_l_etablissement(self.ctx, &m, &n.objet().brut) && n.correction_due(self.ctx, &departs, &m, mois).map_err(plain)?.is_some() {
                     return Ok(true);
                 }
             }
@@ -1489,7 +1489,7 @@ impl<'a> Moteur<'a> {
             // par son identite (salarie, numero du contrat).
             for e in &etats_m {
                 let Some(v) = e.valide() else { continue };
-                let brut = Value::Object(v.objet().brut.clone());
+                let brut = &*v.objet().brut;
                 let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(self.ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
                 let Some(p) = s.paies.iter().find(|p| p.salarie.get("_cle").and_then(Value::as_str) == Some(cle.as_str()) && p.engagement.numero.as_deref() == Some(numero)) else {
                     continue;
@@ -1746,13 +1746,13 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
     let a_envoyer: HashSet<String> = etats
         .iter()
         .filter(|e| matches!(e, engagement::etats::Etat::Valide(_)))
-        .filter_map(|e| engagement::cle_de_l_engagement(ctx, &Value::Object(e.objet().brut.clone())))
+        .filter_map(|e| engagement::cle_de_l_engagement(ctx, &e.objet().brut))
         .collect();
     for e in etats {
         if !matches!(e, engagement::etats::Etat::Partis(_)) {
             continue;
         }
-        let brut = Value::Object(e.objet().brut.clone());
+        let brut = &*e.objet().brut;
         let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else { continue };
         let dernier = departs
             .de(&cle, &numero)
@@ -1838,7 +1838,7 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     let mut out = Vec::new();
     for n in engagement::etats::non_actifs_du_mois(ctx, mois).map_err(plain)? {
-        let b = Value::Object(n.objet().brut.clone());
+        let b = &*n.objet().brut;
         let cle = engagement::cle_de_l_engagement(ctx, &b).unwrap_or_else(|| b.get("salarie").map(valeur_en_texte).unwrap_or_default());
         let nom = ctx
             .salarie(&cle)

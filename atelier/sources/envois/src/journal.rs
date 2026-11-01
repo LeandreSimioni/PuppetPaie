@@ -258,7 +258,7 @@ pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, departs: &e
     let mut out = Vec::new();
     for e in engagement::etats::du_mois(ctx, mois, departs)? {
         let Some(v) = e.valide() else { continue };
-        let brut = Value::Object(v.objet().brut.clone());
+        let brut = &*v.objet().brut;
         let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
         if garder(&cle, numero, &brut) {
             if let Some(phrase) = v.a_revalider(ctx) {

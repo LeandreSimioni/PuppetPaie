@@ -68,7 +68,7 @@ fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>, d
         if sauf == Some((o.fichier.as_str(), o.rang)) {
             continue;
         }
-        let e = Value::Object(o.brut.clone());
+        let e = &*o.brut;
         let (Some(cle), Some(n)) = (crate::cle_de_l_engagement(ctx, &e), o.brut.get("numero").filter(|n| vrai(n))) else { continue };
         noter(&cle, &en_texte(n));
     }
@@ -113,9 +113,9 @@ fn porte_par_un_envoi(o: &Objet, cle: &str, n: &str, departs: &Departs) -> bool 
 /// continue ici (`importe::continue_par`), comme chacun des bulletins repris d'un permanent dont le contrat court
 /// encore (`importe::Importe::atteste`).
 fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
-    let continue_ = crate::importe::continue_par(&ctx.racine, &o.brut)?.map(|i| (i.objet().fichier.clone(), i.objet().rang));
+    let continue_ = crate::importe::continue_par(&ctx.racine, o.champs())?.map(|i| (i.objet().fichier.clone(), i.objet().rang));
     let salarie = o.brut.get("salarie").map(en_texte).unwrap_or_default();
-    let debut = crate::debut_brut(&Value::Object(o.brut.clone()));
+    let debut = crate::debut_brut(&o.brut);
     Ok(stock::objets(&ctx.racine)?.into_iter().any(|x| {
         (x.fichier.as_str(), x.rang) < (o.fichier.as_str(), o.rang)
             && continue_.as_ref() != Some(&(x.fichier.clone(), x.rang))
@@ -128,7 +128,7 @@ fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
 /// Il garde celui qu'il porte, sauf si son salarie ou son debut a change depuis qu'il l'a recu et qu'aucun envoi ne l'a
 /// porte : il en recoit alors un nouveau, comme un engagement qui n'en a pas.
 pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: &Departs) -> Resultat<()> {
-    let e = Value::Object(o.brut.clone());
+    let e = &*o.brut;
     let fiche = ctx.salarie(&e.get("salarie").map(en_texte).unwrap_or_default())?;
     let cle = fiche.get("_cle").map(en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
     let debut = crate::debut_brut(&e);
@@ -148,8 +148,8 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: 
     }
     let annee: i32 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("date illisible : {}", debut))?;
     let dernier = derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)), departs)?.get(&cle).copied().unwrap_or(0);
-    o.brut.insert("numero".into(), Value::String(former(&fiche, annee, dernier + 1)?));
-    o.brut.insert(POUR.into(), json!({"salarie": cle, "debut": debut, "le": le}));
+    o.brut_mut().insert("numero".into(), Value::String(former(&fiche, annee, dernier + 1)?));
+    o.brut_mut().insert(POUR.into(), json!({"salarie": cle, "debut": debut, "le": le}));
     Ok(())
 }
 
