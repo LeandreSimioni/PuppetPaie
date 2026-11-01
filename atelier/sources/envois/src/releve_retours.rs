@@ -583,7 +583,7 @@ pub fn relever_retours(
                         releve.a_faire.extend(crate::ordre_signalements::conduite_b1_208_10(&d, &flux));
                     }
                 }
-                // LE TAUX DU PAS SE LIT DU COMPTE RENDU (regle 1) : il va au magasin du PAS, par les suites.
+                // LE TAUX DU PAS SE LIT DU COMPTE RENDU (regle 1) : il va dans la fiche du salarie, par les suites.
                 if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_TAUX_PAS) {
                     suites.taux_pas.push((r.clone(), chemin.clone()));
                 }

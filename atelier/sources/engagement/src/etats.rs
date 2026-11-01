@@ -596,10 +596,7 @@ pub(crate) fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<droit::pa
     }
     let cle = en_texte(p.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
     let fin = e.fin_periode()?;
-    // Le taux qui vaut le jour du paiement (CGI, art. 204 A, 2, 1° : la retenue est faite « lors du paiement ») ; sans
-    // date de paiement dite, la fin de la periode.
-    let paye_le = e.date_paiement.as_deref().and_then(|d| Jour::lire(d.get(..10).unwrap_or(d)).ok()).unwrap_or(fin);
-    let taux = droit::pas::taux_dgfip(ctx, &cle, Some(paye_le))?;
+    let taux = droit::pas::taux_dgfip(ctx, &cle, Some(e.date_du_versement()?))?;
     let bareme = ctx.bareme(&Jour { an: fin.an, mois: fin.mois, jour: 1 })?;
     let t = |j: Jour| (j.an, j.mois, j.jour);
     let court = droit::natures::contrat_court(&*e.nat()?, t(e.debut), e.fin.map(t), t(fin));
@@ -732,6 +729,8 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
             let cle = ctx.salarie(&salarie).ok().and_then(|f| f.get("_cle").and_then(Value::as_str).map(String::from)).unwrap_or_else(|| salarie.clone());
             let mut siennes = entrees.clone();
             siennes.retain(|k, _| k.strip_prefix("paies ").and_then(|r| r.split_once(' ')).is_none_or(|(_, s)| s == cle));
+            // Le taux de PAS d'un autre salarie n'est pas de son calcul.
+            siennes.retain(|k, _| k.strip_prefix("pas ").and_then(|r| r.split_once(' ')).is_none_or(|(s, _)| s == cle));
             siennes.insert(stock::cle_de_saisie(mois, Some(&salarie)), stock::empreinte_de_saisie(&data, Some(&salarie)));
             siennes.insert(cle_fiches, entree_fiches);
             let mut v = json!({ "paie": paie, "fiches": fiches, MOIS_LU: mois_lu.clone(), "empreinte": empreinte::en_json(&siennes, &regles, &config) });

@@ -623,7 +623,7 @@ pub fn livre_de_paie(ctx: &Contexte, d: &Demande) -> R<LivreDePaie> {
     if !sans_pas.is_empty() {
         let uniques: BTreeSet<&String> = sans_pas.iter().collect();
         avert.push(format!(
-            "Prélèvement à la source inconnu pour {} bulletin(s) ({}) : aucun taux DGFiP au magasin et le barème de l'année ne porte pas la grille par défaut. La colonne reste vide et le total du PAS ne les compte pas.",
+            "Prélèvement à la source inconnu pour {} bulletin(s) ({}) : aucun taux DGFiP reçu et le barème de l'année ne porte pas la grille par défaut. La colonne reste vide et le total du PAS ne les compte pas.",
             sans_pas.len(),
             uniques.into_iter().cloned().collect::<Vec<_>>().join(", ")
         ));
@@ -1232,7 +1232,7 @@ pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     if !sans.is_empty() {
         let uniques: BTreeSet<&String> = sans.iter().collect();
         avert.push(format!(
-            "Prélèvement inconnu pour {} : aucun taux DGFiP au magasin et le barème ne porte pas la grille par défaut. La ligne reste vide.",
+            "Prélèvement inconnu pour {} : aucun taux DGFiP reçu et le barème ne porte pas la grille par défaut. La ligne reste vide.",
             uniques.into_iter().cloned().collect::<Vec<_>>().join(", ")
         ));
     }

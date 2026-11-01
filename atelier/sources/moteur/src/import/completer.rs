@@ -32,10 +32,9 @@ pub(crate) fn vide(v: Option<&Value>) -> bool {
     }
 }
 
-/// Ce que l'import ne met jamais dans une fiche qui existe : son etat (`actif` : une fiche archivee l'est exprès), son
-/// historique, et `taux_pas`, que personne ne lit plus (le taux vit dans `config/pas.json`, pose par les comptes rendus
-/// de la DGFiP : `champs-base.json`, la note du champ).
-const JAMAIS: [&str; 3] = ["actif", "historique", "taux_pas"];
+/// Ce que l'import ne met jamais dans une fiche qui existe : son etat (`actif` : une fiche archivee l'est exprès), et son
+/// historique.
+const JAMAIS: [&str; 2] = ["actif", "historique"];
 
 /// Les champs de `proposees` (la fiche que l'import creerait de cette piece) qu'une fiche existante recoit : un champ de
 /// la fiche, vide dans `fiche`, plein dans `proposees`. Un champ officiel dont la forme lisible est remplie se derive

@@ -250,8 +250,6 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
                 }
                 _ => {}
             }
-        } else if let (true, Some(i)) = (k == "S21.G00.50.006", cur) {
-            individus[i].insert("taux_pas".into(), texte(v));
         } else if let (true, Some(i)) = (k == "S21.G00.40.001", cur) {
             let mut m = Map::new();
             m.insert("nir".into(), individus[i]["nir"].clone());

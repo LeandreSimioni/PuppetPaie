@@ -17,32 +17,6 @@ pub struct DepotRefuse {
     pub repetition: Value,
 }
 
-/// Ce qu'un depot reel accepte laisse derriere lui hors du journal des depots.
-#[derive(Clone, Debug)]
-pub struct DepotReel {
-    /// `dsn` ou `dpae`.
-    pub quoi: String,
-    pub mois: String,
-    /// Le fichier depose.
-    pub chemin: PathBuf,
-    /// L'heure de la ligne du journal.
-    pub quand: String,
-    /// Le depot a-t-il ete joue par le simulateur ?
-    pub joue: bool,
-    /// Un signalement (DSN de nature 04, 05, 07, 08) : sa nature, son ordre, son type, son evenement.
-    pub signalement: Option<Signalement>,
-    /// Les embauches d'une DPAE (`salarie`, `numero`, `debut`, `fin`).
-    pub embauches: Vec<Value>,
-}
-
-#[derive(Clone, Debug)]
-pub struct Signalement {
-    pub nature: String,
-    pub ordre: String,
-    pub type_declaration: String,
-    pub evenement: String,
-}
-
 /// Les suites d'un envoi.
 #[derive(Default, Debug)]
 pub struct Suites {
@@ -51,15 +25,13 @@ pub struct Suites {
     /// Les attestations France Travail archivees, a ranger.
     pub aer: Vec<PathBuf>,
     /// Les comptes rendus DGFiP de nature 94 archives (le retour tel que la liste le decrit, l'archive) : leurs taux
-    /// s'appliquent au magasin du PAS.
+    /// s'ecrivent dans la fiche de leur salarie.
     pub taux_pas: Vec<(Value, PathBuf)>,
     /// Les notifications du taux AT/MP de nature 34 archivees (le retour, l'archive) : leur code et leur taux se posent
     /// dans la surcouche de l'annee.
     pub taux_atmp: Vec<(Value, PathBuf)>,
     /// Un depot refuse.
     pub depot_refuse: Option<DepotRefuse>,
-    /// Un depot reel accepte.
-    pub depot_reel: Option<DepotReel>,
 }
 
 impl Suites {

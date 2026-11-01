@@ -588,8 +588,9 @@ Sans coffre, en ligne de commande, pour cette fenêtre seulement :
 $env:NET_ENTREPRISES_MOTDEPASSE = (Read-Host "mot de passe net-entreprises")
 ```
 
-La commande télécharge et archive tout dans `retours/`, et les taux qu'un compte rendu de
-nature 94 communique vont aussitôt dans `config/pas.json` (rattachés par le NIR) ; elle les affiche.
+La commande télécharge et archive tout dans `retours/`, et chaque taux qu'un compte rendu de
+nature 94 communique s'écrit aussitôt dans la fiche de son salarié (rattaché par le NIR), daté du jour de sa mise à
+disposition ; les engagements qu'il touche, et qui ne sont pas partis, se recalculent. Elle les affiche ;
 la fiche du salarié montre l'état courant et d'où il vient.
 
 ### Un taux se périme au bout de deux mois
@@ -598,9 +599,11 @@ Le taux transmis par la DGFiP vaut **jusqu'à la fin du deuxième mois suivant
 celui de sa mise à disposition**. Pour un permanent déclaré tous les mois, la
 règle ne se voit jamais : le compte-rendu du dépôt précédent repousse
 l'échéance avant qu'elle tombe. **Pour un intermittent qui joue en janvier
-puis en juillet, le taux de janvier est périmé depuis le 31 mars** — et c'est
-alors la grille de l'article 204 H du CGI qui s'applique, pas le taux du
-magasin.
+puis en juillet, le taux de janvier est périmé depuis le 31 mars** : son
+embauche de juillet en redemande un, avec la DPAE (ci-dessous), et la grille de
+l'article 204 H du CGI ne s'applique que si aucun taux n'est arrivé au jour du
+versement. Un taux vaut pour tout versement fait à partir du jour de sa mise à
+disposition (CGI, art. 1671 ; BOI-IR-PAS-30-10-20, § 70 et 80).
 
 le moteur date donc chaque taux (« en cours de validité, jusqu'au
 31/10/2026 », ou « périmé ») et liste, en dessous, **ce qu'il faut demander à
@@ -621,12 +624,13 @@ route deposer {"quoi": "dsn", "fichier": F}   # un dépôt par individu (puis re
 **Un signalement, un individu, un fichier** (base de connaissances DSN, fiche
 2117) : cinq salariés à amorcer, c'est cinq dépôts.
 
-**Le déclencheur est « pas de taux valide », pas « nouveau contrat ».** Un taux
-couvre deux mois ; un intermittent qui enchaîne les cachets est déjà couvert,
-et le service n'a pas vocation à être appelé en masse. Un salarié dont la
-demande est déjà partie ne repart pas non plus — `pas.json` retient « demandé
-le X, réponse attendue avant le Y », compté en jours **ouvrés**, et le CRM qui
-arrive solde la demande.
+**Le déclencheur est « pas de taux valide au jour du versement », pas « nouveau
+contrat ».** Un taux couvre deux mois ; un intermittent qui enchaîne les cachets
+est déjà couvert, et le service n'a pas vocation à être appelé en masse. Une
+demande part une fois : tant qu'aucun taux n'est arrivé depuis le dernier
+signalement d'amorçage réel parti pour un salarié (le journal des dépôts le dit),
+elle ne repart pas, et le moteur dit « demandé le X, réponse attendue avant le
+Y », compté en jours **ouvrés**.
 
 **Deux portes, et deux seulement**, pour le taux d'un salarié :
 
@@ -635,10 +639,11 @@ arrive solde la demande.
   de tout le monde sans attendre une embauche. C'est le défaut de
   `--demander` ;
 - **motif 01**, embauche effective. Il part **avec la DPAE**, dans le même
-  geste et le même mot de passe : la route `deposer` (`quoi` dpae) produit les deux, et
-  dit ce qu'il a demandé — ou pourquoi il n'a rien demandé ; le dépôt de la
-  DPAE (`deposer-dpae`, ou la fenêtre) dépose aussi ses signalements, en test
-  avec le test, en réel avec le réel.
+  geste et le même mot de passe : le dépôt de la DPAE (la route `deposer`,
+  `quoi` dpae, ou la fenêtre) écrit le signalement de chaque embauche qui en a
+  besoin et le dépose, en test avec le test, en réel avec le réel (son test
+  d'abord, s'il n'est pas fait) ; il dit ce qu'il a demandé, ou pourquoi il n'a
+  rien demandé.
 
 Il n'existe **aucun motif « mon taux a expiré »**. Un intermittent déjà sous
 contrat dont le taux périme sans nouvelle embauche n'a aucun levier : c'est la

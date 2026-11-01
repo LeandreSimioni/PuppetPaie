@@ -6,7 +6,7 @@
 use serde_json::{json, Value};
 
 use crate::outils::rejeu::{rejouer_dossier, scenario};
-use crate::outils::{dec, dossier_de_test, ecrire, reussi, route};
+use crate::outils::{dec, dossier_de_test, ecrire, lire, reussi, route};
 
 #[test]
 fn le_net_a_virer_est_le_net_apres_impot() {
@@ -18,10 +18,11 @@ fn le_net_a_virer_est_le_net_apres_impot() {
     std::fs::write(sc.join("gestes.jsonl"), debut.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
     let jour = "2026-11-02";
-    ecrire(&c, "config/pas.json", &json!({"salaries": {"FULLER": {
-        "taux": "10.00", "type": "01", "identifiant": "190151266", "periode": "202610",
-        "mis_a_disposition": "20261015100000", "source": "CRM DGFiP nature 94",
-    }}}));
+    let mut fiches = lire(&c, "config/salaries.json");
+    fiches["FULLER"]["taux_pas"] = json!([{"valeur": {
+        "taux": "10.00", "type": "01", "identifiant": "190151266", "mis_a_disposition": "20261015100000",
+    }}]);
+    ecrire(&c, "config/salaries.json", &fiches);
 
     let r = route(&c, "apercu", json!({"mois": "2026-11"}), jour);
     let a = reussi(&r);

@@ -1,86 +1,62 @@
-//! Le magasin `config/pas.json` : les taux de prelevement a la source que la DGFiP a fait connaitre (un compte rendu de
-//! nature 94, `suites`) ou que les DSN deposees declarent (l'import). `droit::pas` les lit.
+//! Les taux de prelevement a la source que la DGFiP a fait connaitre (un compte rendu de nature 94, `suites`) ou que les
+//! DSN deposees declarent (l'import) : chacun s'ecrit dans la fiche de son salarie (`droit::pas::CHAMP`,
+//! `routes::fiches::poser_taux_recu`), et les engagements qu'il touche se recalculent. `droit::pas` les lit.
 
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
+use socle::date::Jour;
 use socle::echec::Echec;
 
 pub(crate) fn ko(m: String) -> Echec {
     Echec { classe: None, message: m }
 }
 
-fn maintenant_court() -> String {
-    // A l'heure de Paris, a la minute.
-    socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].replace('T', " ")
-}
-
-/// Le magasin, indente de deux espaces, sans saut de ligne final.
-fn ecrire(ctx: &Contexte, data: &Value) -> Result<(), Echec> {
-    let p = ctx.racine.join("config").join("pas.json");
-    std::fs::write(&p, socle::ecriture::json_indente(data, 2)).map_err(|e| Echec { classe: Some("OSError"), message: format!("{} : {}", p.display(), e) })
-}
-
-/// Applique des releves de CRM ; rend les changements lisibles. Un releve :
-/// `{"salarie", "taux", "type", "identifiant", "periode", "mis_a_disposition", "applique_le"}`.
+/// Ecrit des taux recus ; rend les changements lisibles (`CLE : ...`). Un releve :
+/// `{"salarie", "taux", "type", "identifiant", "mis_a_disposition"}` (AAAAMMJJHHMMSS). Un taux deja recu (meme
+/// identifiant, meme taux, meme instant) ne s'ecrit pas deux fois.
 pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<String>, Echec> {
-    let mut data = droit::pas::charger(ctx).map_err(ko)?;
     let mut changements = Vec::new();
-    let mut soldees = false;
-    let horodatage = maintenant_court();
+    let mut ecrits: Vec<(String, Value)> = Vec::new();
     for r in releves {
         let cle = r.get("salarie").and_then(Value::as_str).unwrap_or("").to_string();
-        // LA REPONSE EST LA : la demande qui l'attendait n'a plus lieu d'etre. Elle se solde AVANT le test d'egalite.
-        let demandes = data["demandes"].as_object_mut().ok_or_else(|| ko("demandes illisibles".into()))?;
-        soldees = demandes.shift_remove(&cle).is_some() || soldees;
-        let avant = data["salaries"].get(&cle).cloned();
         let get = |k: &str| r.get(k).cloned().unwrap_or(Value::Null);
-        let mut neuf = json!({
-            "taux": get("taux"), "type": get("type"), "identifiant": get("identifiant"),
-            "periode": get("periode"), "mis_a_disposition": get("mis_a_disposition"),
-            "source": source, "releve_le": horodatage,
-        });
-        if let Some(a) = r.get("applique_le").filter(|a| socle::fichiers::vrai(a)) {
-            neuf["applique_le"] = a.clone();
+        let valeur = json!({"taux": get("taux"), "type": get("type"), "identifiant": get("identifiant"), "mis_a_disposition": get("mis_a_disposition")});
+        let Some(depuis) = droit::pas::mise_a_disposition(&valeur) else {
+            return Err(ko(format!("{} : un taux de PAS recu sans sa date de mise a disposition ne s'ecrit pas ({}).", cle, valeur)));
+        };
+        let deja = droit::pas::recus(ctx, &cle).map_err(ko)?.into_iter().chain(ecrits.iter().filter(|(c, _)| *c == cle).map(|(_, v)| v.clone())).any(|v| v == valeur);
+        if deja {
+            continue;
         }
-        if let Some(a) = avant.as_ref().filter(|a| socle::fichiers::vrai(a)) {
-            if ["taux", "type", "identifiant"].iter().all(|k| a.get(*k) == neuf.get(*k)) {
-                continue;
-            }
-        }
-        let t = |v: &Value, k: &str| crate::commandes::rendu::champ(v, k);
-        data["salaries"].as_object_mut().ok_or_else(|| ko("salaries illisibles".into()))?.insert(cle.clone(), neuf.clone());
-        match avant.filter(|a| socle::fichiers::vrai(a)) {
-            Some(a) => changements.push(format!(
-                "{} : taux {} -> {}, type {} -> {}, identifiant {} -> {}",
-                cle, t(&a, "taux"), t(&neuf, "taux"), t(&a, "type"), t(&neuf, "type"), t(&a, "identifiant"), t(&neuf, "identifiant")
-            )),
-            None => changements.push(format!("{} : premier releve - taux {}, type {}, identifiant {}", cle, t(&neuf, "taux"), t(&neuf, "type"), t(&neuf, "identifiant"))),
-        }
-        let mut ligne = neuf.as_object().cloned().unwrap_or_default();
-        ligne.insert("salarie".into(), json!(cle));
-        data["journal"].as_array_mut().ok_or_else(|| ko("journal illisible".into()))?.push(Value::Object(ligne));
-    }
-    if !changements.is_empty() || soldees {
-        ecrire(ctx, &data)?;
+        crate::routes::fiches::poser_taux_recu(ctx, &cle, valeur.clone(), depuis, source)?;
+        let t = |k: &str| crate::commandes::rendu::champ(&valeur, k);
+        changements.push(format!("{} : taux {}, type {}, identifiant {}, mis a disposition le {}", cle, t("taux"), t("type"), t("identifiant"), depuis.jj_mm_aaaa()));
+        ecrits.push((cle, valeur));
     }
     if !changements.is_empty() {
-        refaire_les_paies(ctx)?;
+        refaire_les_engagements(ctx)?;
     }
     Ok(changements)
 }
 
-/// UN TAUX RECU REFAIT, DANS LE MEME GESTE, LES PAIES QU'IL TOUCHE (le recalcul de lui-meme, « taux de PAS reçu ») :
-/// chaque mois saisi se relit (`engagement::etats::du_mois`), et ses paies validees dont l'empreinte ne tient plus se
-/// reecrivent. Un mois dont les documents sont partis ne bouge pas. Aucune lecture ulterieure n'a donc a le decouvrir.
-fn refaire_les_paies(ctx: &Contexte) -> Result<(), Echec> {
+/// UN TAUX RECU REFAIT, DANS LE MEME GESTE, LES ENGAGEMENTS QU'IL TOUCHE : chaque mois saisi se relit
+/// (`engagement::etats::du_mois`) dans la compagnie telle qu'elle est maintenant, et ses engagements valides dont
+/// l'empreinte ne tient plus (le taux de leur salarie au jour de leur paiement, `droit::pas::taux_dgfip`) se reecrivent.
+/// Un mois dont les documents sont partis ne bouge pas.
+fn refaire_les_engagements(ctx: &Contexte) -> Result<(), Echec> {
+    let ctx = Contexte::nouveau(&ctx.racine, Some(ctx.date)).map_err(ko)?;
     let departs = envois::journal::lu(&ctx.racine).map_err(ko)?.departs;
     for mois in engagement::stock::mois_saisis(&ctx.racine).map_err(ko)? {
-        engagement::etats::du_mois(ctx, &mois, &departs).map_err(ko)?;
+        engagement::etats::du_mois(&ctx, &mois, &departs).map_err(ko)?;
     }
     Ok(())
 }
 
+/// `AAAAMMJJ000000` du jour `j`.
+fn instant_du_jour(j: Jour) -> String {
+    format!("{}000000", j.aaaammjj())
+}
 /// Par salarie, l'historique des taux declares dans les DSN deja deposees (une lecture, pas un calcul).
 fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String, Vec<Value>)> {
     let par_nir: std::collections::HashMap<String, String> = ctx
@@ -117,11 +93,12 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
                 if code == "S21.G00.50.008" && val != "-1" {
                     if let (Some(cle), Some(m)) = (nir.as_ref().and_then(|n| par_nir.get(n)), mois.as_ref()) {
                         let g = |k: &str| cur.get(k).map_or(Value::Null, |v| json!(v));
-                        let mut rel = json!({"taux": g("S21.G00.50.006"), "type": g("S21.G00.50.007"), "identifiant": val, "periode": m});
-                        // S21.G00.50.001, la date du versement (JJMMAAAA).
-                        if let Ok(j) = socle::date::Jour::lire(&crate::import::dsn_aem::jjmmaaaa(cur.get("S21.G00.50.001").map_or("", String::as_str))) {
-                            rel["applique_le"] = json!(j.iso());
-                        }
+                        // S21.G00.50.001, la date du versement (JJMMAAAA) : sans elle, le taux ne se date pas.
+                        let Ok(j) = Jour::lire(&crate::import::dsn_aem::jjmmaaaa(cur.get("S21.G00.50.001").map_or("", String::as_str))) else {
+                            cur.clear();
+                            continue;
+                        };
+                        let rel = json!({"taux": g("S21.G00.50.006"), "type": g("S21.G00.50.007"), "identifiant": val, "mis_a_disposition": instant_du_jour(j)});
                         match trouve.iter_mut().find(|(k, _)| k == cle) {
                             Some((_, mm)) => {
                                 mm.insert(m.clone(), rel);
@@ -148,7 +125,7 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
 /// plus tard le jour du versement (S21.G00.50.001) et au plus tot deux mois pleins avant ; le compte rendu « est
 /// transmis le mois au cours duquel la DSN […] a été déposée » (meme page, § 30), mais la DSN qui applique le
 /// taux n'en porte pas la date. INFERENCE (aucun texte ne date un taux lu dans une DSN) : le releve est date du jour du versement
-/// (`applique_le`), la mise a disposition la plus tardive que les textes permettent ; le compte rendu de la DSN suivante
+/// (`mis_a_disposition`), la mise a disposition la plus tardive que les textes permettent ; le compte rendu de la DSN suivante
 /// le remplace.
 pub(crate) fn derniers_taux_des_dsn(ctx: &Contexte, dossier: &std::path::Path) -> Vec<Value> {
     let mut releves = Vec::new();

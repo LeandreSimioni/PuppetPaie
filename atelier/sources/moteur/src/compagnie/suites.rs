@@ -25,9 +25,6 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
     if let Some(d) = &s.depot_refuse {
         noter_incident_depot(ctx, d);
     }
-    if let Some(d) = &s.depot_reel {
-        marquer_depot_reel(ctx, d)?;
-    }
     if !s.taux_pas.is_empty() {
         if let Err(e) = appliquer_taux_pas(ctx, &s.taux_pas) {
             faites.incidents.push(format!("Taux de PAS recus mais non appliques : {}", e.message));
@@ -48,7 +45,7 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
     Ok(faites)
 }
 
-/// Les taux qu'un compte rendu DGFiP de nature 94 communique vont au magasin du PAS (`config/pas.json`) : un taux se lit
+/// Les taux qu'un compte rendu DGFiP de nature 94 communique vont dans la fiche de leur salarie : un taux se lit
 /// du compte rendu, il ne se devine pas (regle 1). Chaque releve se rattache a une fiche par le NIR ; un NIR qu'aucune
 /// fiche ne porte ne se rattache a personne. La validite court de la mise a disposition (`droit::pas`).
 fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::PathBuf)]) -> R<()> {
@@ -60,10 +57,8 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
         let lus = envois::retours::taux_pas_d_octets(&octets)?;
         let releves: Vec<Value> = lus.get("releves").and_then(Value::as_array).cloned().unwrap_or_default();
         let r = envois::retours::releves_vers_salaries(&releves, &nirs);
-        let production: String = retour.get("production").filter(|p| vrai(p)).map(socle::valeur::valeur_en_texte).unwrap_or_default().chars().take(6).collect();
         for x in r.get("rattaches").and_then(Value::as_array).cloned().unwrap_or_default() {
             let mut m = x.as_object().cloned().unwrap_or_default();
-            m.insert("periode".into(), json!(production));
             m.insert("mis_a_disposition".into(), retour.get("publication").cloned().unwrap_or(Value::Null));
             tous.push(Value::Object(m));
         }
@@ -142,16 +137,4 @@ fn noter_incident_depot(ctx: &Contexte, d: &envois::suites::DepotRefuse) {
             ..Default::default()
         },
     );
-}
-
-/// Ce qu'un depot reel accepte laisse derriere lui : la demande de taux d'un signalement d'amorcage. Ce qu'un signalement
-/// ou une mensuelle declare d'un arret se lit au journal (`obligations::avec_ce_qui_est_parti`).
-fn marquer_depot_reel(ctx: &Contexte, d: &envois::suites::DepotReel) -> R<()> {
-    // Sans la trace d'une demande de taux, le moteur redirait « aucun taux connu, il faut demander ».
-    if let (true, Some(s)) = (d.quoi == "dsn", &d.signalement) {
-        if s.nature == declarations::amorcage::NATURE {
-            crate::compagnie::marques_depot::marquer_demande_depuis(ctx, &d.chemin, &d.quand)?;
-        }
-    }
-    Ok(())
 }

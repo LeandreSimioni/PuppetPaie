@@ -1430,12 +1430,15 @@ fn sans_taux_recu<'a>(ctx: &Contexte, paies: impl Iterator<Item = &'a Paie>) -> 
     // La paie dit le taux qu'elle a pris (`Paie::pas`, ecrit a la validation) : un autre type que « 01 » (taux transmis
     // par la DGFiP, S21.G00.50.007) est la grille.
     for p in paies.filter(|p| p.pas.as_ref().is_some_and(|v| v.type_taux.as_str() != Some("01"))) {
-        let e = &p.engagement;
-        let paye_le = e.date_paiement.as_deref().and_then(|d| socle::date::Jour::lire(d.get(..10).unwrap_or(d)).ok()).map_or_else(|| e.fin_periode(), Ok).map_err(Echec::from)?;
+        let paye_le = p.engagement.date_du_versement().map_err(Echec::from)?;
         let pourquoi = droit::pas::avertissements(ctx, Some(&[cle_de(p)]), Some(paye_le)).map_err(Echec::from)?;
+        let demande = crate::compagnie::amorcage_demande::en_cours(ctx, &cle_de(p))?
+            .map(|d| format!(" ; taux demandé le {}, réponse attendue avant le {}", d.quand.jj_mm_aaaa(), d.avant.jj_mm_aaaa()))
+            .unwrap_or_default();
         let l = format!(
-            "{} : sa paie prend le taux non personnalisé (CGI, art. 204 H).",
-            pourquoi.first().cloned().unwrap_or_else(|| format!("{} : aucun taux transmis par la DGFiP au jour de son paiement", ctx.nomme(&cle_de(p))))
+            "{}{} : sa paie prend le taux non personnalisé (CGI, art. 204 H).",
+            pourquoi.first().cloned().unwrap_or_else(|| format!("{} : aucun taux transmis par la DGFiP au jour de son paiement", ctx.nomme(&cle_de(p)))),
+            demande
         );
         if !lignes.contains(&l) {
             lignes.push(l);

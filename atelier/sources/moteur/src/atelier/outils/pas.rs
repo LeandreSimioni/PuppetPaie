@@ -1,9 +1,9 @@
 //! `moteur-atelier pas [--amorcer] [--demander [--motif 07] [--salaries A,B] [--mois AAAA-MM] [--test] [--forcer]]` : les
-//! taux de prelevement a la source connus (`config/pas.json`, `droit::pas`), l'amorcage depuis les DSN deposees
+//! taux de prelevement a la source recus (la fiche de chaque salarie, `droit::pas`), l'amorcage depuis les DSN deposees
 //! (`taux_pas::derniers_taux_des_dsn`), et les signalements d'amorcage a ecrire (`amorcage_demande::produire`, nature 08 :
 //! ecrits, jamais deposes ici).
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use crate::commandes::analyse::{Args, Opt, Spec};
 use crate::commandes::rendu::champ;
@@ -53,13 +53,6 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     r.unwrap_or_else(|e| super::refus(&e))
 }
 
-fn fr(iso: Option<&str>) -> String {
-    match iso {
-        Some(i) if i.len() >= 10 => jj_mm_aaaa(i),
-        _ => "?".into(),
-    }
-}
-
 /// `--amorcer` : l'etat courant pose depuis la derniere DSN deposee de chaque salarie (celles de l'import).
 fn amorcer(cadre: &Cadre) -> Result<i32, Echec> {
     let ctx = &cadre.ctx;
@@ -82,39 +75,32 @@ fn amorcer(cadre: &Cadre) -> Result<i32, Echec> {
     Ok(0)
 }
 
-/// Les taux connus, et ce qu'il faudrait demander a la DGFiP.
+/// Les taux recus (la fiche de chaque salarie, `droit::pas::recus`), et ce qu'il faudrait demander a la DGFiP.
 fn lire(cadre: &Cadre) -> Result<i32, Echec> {
     let ctx = &cadre.ctx;
-    let etat = droit::pas::charger(ctx).map_err(ko)?;
-    let salaries: Map<String, Value> = etat.get("salaries").and_then(Value::as_object).cloned().unwrap_or_default();
-    if salaries.is_empty() {
-        dire!("Aucun taux connu. `pas --amorcer` part de l'historique importe ; la releve des retours lit les CRM de nature 94.");
-        return Ok(0);
-    }
-    dire!("Taux de prelevement a la source connus\n{}", "-".repeat(62));
-    for (cle, e) in &salaries {
-        let s = droit::pas::situation(ctx, cle, None).map_err(ko)?;
+    let diag = droit::pas::diagnostic(ctx, None, None).map_err(ko)?;
+    dire!("Taux de prelevement a la source recus\n{}", "-".repeat(62));
+    for s in &diag {
+        let cle = champ(s, "salarie");
+        let recus = droit::pas::recus(ctx, &cle).map_err(ko)?;
+        let Some(e) = recus.last() else {
+            dire!("  {:<12} aucun taux recu", cle);
+            continue;
+        };
         dire!("  {:<12} taux {:<6} type {} ({})", cle, champ(e, "taux"), champ(e, "type"), libelle_type(&champ(e, "type")));
-        dire!("  {:<12} identifiant {}", "", champ(e, "identifiant"));
+        dire!("  {:<12} identifiant {}, mis a disposition {}", "", champ(e, "identifiant"), champ(e, "mis_a_disposition"));
         let jusqu = match s.get("valable_jusqu_a") {
             Some(Value::String(j)) => format!(", jusqu'au {}", jj_mm_aaaa(j)),
             _ => String::new(),
         };
-        dire!("  {:<12} {}{}", "", champ(&s, "libelle"), jusqu);
-        let periode = if e.get("periode").is_some_and(socle::fichiers::vrai) { format!(" (periode {})", champ(e, "periode")) } else { String::new() };
-        dire!("  {:<12} source : {}{}\n", "", champ(e, "source"), periode);
+        dire!("  {:<12} {}{}\n", "", champ(s, "libelle"), jusqu);
     }
-    let diag = droit::pas::diagnostic(ctx, None, None).map_err(ko)?;
     let a_demander: Vec<&Value> = diag.iter().filter(|s| s.get("a_demander").is_some_and(socle::fichiers::vrai)).collect();
     if !a_demander.is_empty() {
         dire!("A demander a la DGFiP (signalement d'amorcage, nature 08)\n{}", "-".repeat(62));
         for s in a_demander {
-            let attente = match s.get("demande").filter(|d| socle::fichiers::vrai(d)) {
-                Some(d) => format!(
-                    "  -- demande partie le {}, reponse attendue avant le {}",
-                    fr(d.get("quand").and_then(Value::as_str)),
-                    fr(d.get("reponse_attendue_avant").and_then(Value::as_str))
-                ),
+            let attente = match crate::compagnie::amorcage_demande::en_cours(ctx, &champ(s, "salarie"))? {
+                Some(d) => format!("  -- demande partie le {}, reponse attendue avant le {}", d.quand.jj_mm_aaaa(), d.avant.jj_mm_aaaa()),
                 None => String::new(),
             };
             dire!("  {:<12} {}{}", champ(s, "salarie"), champ(s, "libelle"), attente);
@@ -162,7 +148,7 @@ fn demander(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         constitution: cadre.aujourdhui,
     };
     let mut ecrits = Vec::new();
-    let lot = produire(ctx, &paies, &demande, &mut ecrits).map_err(Echec::from)?;
+    let lot = produire(ctx, &paies, &demande, &mut ecrits)?;
     let nom = |p: &std::path::Path| p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     dire!("Signalements d'amorcage des donnees variables (nature 08)");
     dire!("Motif {} - {}\n{}", lot.motif, declarations::amorcage::libelle_motif(&lot.motif).unwrap_or_else(|_| "?".into()), "-".repeat(62));

@@ -341,7 +341,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
         entrees.push(entree_fichier(&j, "journal/depots.json".to_string())?);
     }
     let cfg = ctx.racine.join("config");
-    for nom in ["entreprise.json", "salaries.json", "spectacles.json", "organismes.json", "rubriques.json", "compteurs.json", "pas.json"] {
+    for nom in ["entreprise.json", "salaries.json", "spectacles.json", "organismes.json", "rubriques.json", "compteurs.json"] {
         if cfg.join(nom).exists() {
             entrees.push(entree_fichier(&cfg.join(nom), format!("config/{}", nom))?);
         }

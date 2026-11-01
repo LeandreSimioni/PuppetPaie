@@ -2152,7 +2152,9 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
     let e = &p.engagement;
     let debut = e.debut_periode()?;
     let fin = e.fin_periode()?;
-    f.add("S21.G00.50.001", fin.jjmmaaaa());
+    // « Date à laquelle le débiteur effectue le versement » (`bloc-S21.G00.50.txt`, l. 50-55 ; CCH-13, l. 61-62 : au plus
+    // tard le dernier jour du mois suivant) : le jour ou se fait la retenue, celui du taux de PAS de la paie.
+    f.add("S21.G00.50.001", e.date_du_versement()?.jjmmaaaa());
     f.add("S21.G00.50.002", mt(p.net_imposable));
     // Le versement du mois a le rang de son contrat : un contrat paye ce mois, un versement (`generer`).
     f.add("S21.G00.50.003", numero_de_versement(rang)?);
@@ -2216,7 +2218,7 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
         return Ok(());
     }
     autre_revenu(f, p, bar, &debut, &fin, 1)?;
-    // Le versement est date de la fin de la periode (50.001 ci-dessus).
+    // Le net social de la periode (le versement est date par 50.001 ci-dessus).
     net_social(f, p, &debut, &fin, 1)?;
     // Les bases d'un mois decoupe, periode elementaire par periode elementaire, datees de ses bornes (78.002, 78.003) :
     // « Pour tout changement intervenant en cours de mois, il convient de ventiler les bases assujetties par periodes »
@@ -4000,7 +4002,7 @@ pub fn exiges<'a>(ent: &Value, salaries: impl Iterator<Item = &'a Value>, caisse
 /// Le prelevement d'une paie est celui qu'elle a ecrit a la validation (`Paie::pas`), celui du versement d'une
 /// correction celui que l'engagement rend (`engagement::etats::prelevement_de_la_correction`) : la DSN n'en calcule
 /// aucun. Seul le versement nul d'un mois sans paie porte le taux qui vaut pour le salarie, lu ici :
-/// le magasin config/pas.json, tant que son taux est VALIDE (`pas.situation`) ; faute d'un taux valide, la
+/// les taux recus de sa fiche (`pas::taux_dgfip`), tant que son taux est VALIDE ; faute d'un taux valide, la
 /// grille de taux par defaut de l'article 204 H du CGI (`pas_du_versement`, ci-dessous).
 ///
 /// `envoi_test` met S10.G00.00.005 a '01' : controles executes et bilan rendu,

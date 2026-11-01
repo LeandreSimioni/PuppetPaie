@@ -14,7 +14,7 @@ use socle::echec::{erreur, Echec, R};
 use crate::branchement::{reponse_fictive, Branchement};
 use crate::depot::{self, Apercu};
 use crate::releve_retours::{Client, Panne};
-use crate::suites::{DepotReel, DepotRefuse, Signalement, Suites};
+use crate::suites::{DepotRefuse, Suites};
 
 /// Ce qui vient de partir, et ce que l'organisme a repondu.
 pub struct DepotFait {
@@ -209,23 +209,6 @@ pub fn deposer_dsn(
     });
     let ligne = noter(ctx, "dsn", d, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, Some(d.versions))?;
     let ligne = repondu_aussitot(ctx, joue, ligne, suites)?;
-    if d.reel {
-        let signalement = apercu.est_signalement().then(|| Signalement {
-            nature: apercu.champ("nature").into(),
-            ordre: apercu.champ("ordre").into(),
-            type_declaration: apercu.champ("type_declaration").into(),
-            evenement: apercu.evenement_lisible(),
-        });
-        suites.depot_reel = Some(DepotReel {
-            quoi: "dsn".into(),
-            mois: d.mois.into(),
-            chemin: d.chemin.to_path_buf(),
-            quand: ligne.get("quand").and_then(Value::as_str).unwrap_or("").into(),
-            joue,
-            signalement,
-            embauches: Vec::new(),
-        });
-    }
     Ok(DepotFait { quoi: "dsn".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
 }
 
@@ -271,17 +254,6 @@ pub fn deposer_dpae(
     let detail = json!({"preuve": d.preuve, "repetition": d.repetition, "embauches": embauches});
     let ligne = noter(ctx, "dpae", d, true, "urssaf", &flux, &reponse, Some(&trace), &detail, Some(d.versions))?;
     let ligne = repondu_aussitot(ctx, joue, ligne, suites)?;
-    if d.reel {
-        suites.depot_reel = Some(DepotReel {
-            quoi: "dpae".into(),
-            mois: d.mois.into(),
-            chemin: d.chemin.to_path_buf(),
-            quand: ligne.get("quand").and_then(Value::as_str).unwrap_or("").into(),
-            joue,
-            signalement: None,
-            embauches,
-        });
-    }
     Ok(DepotFait { quoi: "dpae".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
 }
 

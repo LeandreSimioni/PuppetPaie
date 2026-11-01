@@ -1181,10 +1181,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     };
     blocs.extend(cumul);
     let plafond = j.plafond.map_or("—".to_string(), fmt_eur);
-    let date_paiement = match &e.date_paiement {
-        Some(dp) if !dp.is_empty() => d(&Value::String(dp.clone()))?,
-        _ => e.fin_periode()?,
-    };
+    let date_paiement = e.date_du_versement()?;
     blocs.push(para(
         vec![mt(format!(
             "Plafond Urssaf de la période : {} €{}SMIC retenu pour la réduction générale : {}{}Règlement le {} \

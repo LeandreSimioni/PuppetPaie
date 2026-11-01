@@ -1,7 +1,8 @@
 //! CE DONT UNE PAIE DEPEND : l'empreinte est celle d'un engagement, pas d'un mois. Le calcul d'un mois note tout ce qu'il
 //! lit (`socle::fichiers::suivre`) : le contenu de chaque fichier (baremes du socle et de la compagnie, catalogues livres,
-//! effectifs, imprevus, taux de prelevement a la source...), les fichiers absents, les dossiers parcourus, le jour s'il le
-//! lit, et les paies validees de son salarie dans les autres mois qu'il lit (`paies <mois> <salarie>`,
+//! effectifs, imprevus...), les fichiers absents, les dossiers parcourus, le jour s'il le lit, le taux de prelevement a
+//! la source de son salarie au jour de son paiement (`pas <salarie> <jour>`, `droit::pas::taux_dgfip`), et les paies
+//! validees de son salarie dans les autres mois qu'il lit (`paies <mois> <salarie>`,
 //! `etats::paies_validees`). De la saisie de son mois, chaque paie ne garde que ce dont elle depend :
 //! ce que le mois pose pour tous, les engagements valides de son salarie (`saisie <mois> <salarie>`,
 //! `etats::calculer_les_rangs`) et les fiches de l'entreprise, de son salarie et de son spectacle au dernier jour du mois
@@ -108,6 +109,9 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
         "date" => v == ctx.date.iso(),
         "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| v == j.iso()),
         _ => {
+            if let Some((salarie, jour)) = k.strip_prefix("pas ").and_then(|r| r.split_once(' ')) {
+                return Jour::lire(jour).is_ok_and(|j| droit::pas::empreinte(ctx, salarie, j).is_ok_and(|e| v == e));
+            }
             if let Some((mois, salarie)) = k.strip_prefix("paies ").and_then(|r| r.split_once(' ')) {
                 return crate::etats::empreinte_des_paies_validees(ctx, mois, Some(salarie)).is_some_and(|e| v == e);
             }

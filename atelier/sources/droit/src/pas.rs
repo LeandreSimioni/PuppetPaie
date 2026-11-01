@@ -1,6 +1,6 @@
-//! Le prelevement a la source : le taux et son identifiant, tels que la DGFiP les donne (le magasin `pas.json` de la
-//! compagnie, ecrit par les comptes rendus 94), et la grille de l'article 204 H du CGI quand elle n'en donne pas. Ce
-//! que le calcul d'un bulletin et la DSN lisent.
+//! Le prelevement a la source : le taux et son identifiant, tels que la DGFiP les donne (les taux recus, dans la fiche du
+//! salarie, `CHAMP`), et la grille de l'article 204 H du CGI quand aucun ne vaut. Ce que le calcul d'un engagement et la
+//! DSN lisent.
 
 use std::collections::BTreeSet;
 
@@ -9,10 +9,13 @@ use serde_json::{Map, Value};
 use crate::contexte::Contexte;
 use socle::date::{en_texte, jours_du_mois, Jour};
 use socle::num::nombre;
-use socle::fichiers::{lire_json, repr, vrai};
+use socle::fichiers::{repr, vrai};
 use socle::num::{dec_avec_echelle, eur, pct, sub, Decimal, Resultat};
 
-const FICHIER: &str = "pas.json";
+/// LE TAUX RECU APPARTIENT AU SALARIE : chaque taux que la DGFiP transmet (un compte rendu de nature 94) s'ecrit dans
+/// sa fiche, valeur datee du jour de sa mise a disposition (`{"taux", "type", "identifiant", "mis_a_disposition"}`,
+/// `mis_a_disposition` en AAAAMMJJHHMMSS, l'instant du compte rendu).
+pub const CHAMP: &str = "taux_pas";
 
 /// Un refus du module. `SansGrille` est `BaremeSansGrille` (un bareme sans la grille de l'article 204 H : le prelevement
 /// ne se devine pas, le calcul refuse) ; `Inconnu` est `PasInconnu`.
@@ -39,7 +42,7 @@ impl From<String> for ErreurPas {
 
 type R<T> = Result<T, ErreurPas>;
 
-/// Un taux qui vaut : (taux, type, identifiant), tels que le magasin les porte.
+/// Un taux qui vaut : (taux, type, identifiant), tels que le compte rendu les donne.
 pub type Triplet = (Value, Value, Value);
 
 // ------------------------------------------------------------- peremption
@@ -77,35 +80,10 @@ fn nombre_de(c: &[u32]) -> u32 {
     c.iter().fold(0, |a, x| a * 10 + x)
 }
 
-/// D'ou court la validite, de la source la plus sure a la moins sure :
-/// `mis_a_disposition` (AAAAMMJJHHMMSS, la date du compte rendu), puis
-/// `applique_le` (AAAA-MM-JJ, le jour du versement ou une DSN l'applique, que sa
-/// mise a disposition precede : voir `compagnie::taux_pas::derniers_taux_des_dsn`),
-/// puis `periode` (AAAAMM ou AAAA-MM), puis `releve_le`.
+/// Le jour de la mise a disposition d'un taux recu (`mis_a_disposition`, AAAAMMJJHHMMSS) : d'ou court sa validite.
 pub fn mise_a_disposition(e: &Value) -> Option<Jour> {
-    let v = texte_ou_vide(e, "mis_a_disposition");
-    if let Some(c) = chiffres(&v, 8) {
-        if let Some(j) = Jour::nouveau(nombre_de(&c[..4]) as i32, nombre_de(&c[4..6]), nombre_de(&c[6..8])) {
-            return Some(j);
-        }
-    }
-    if let Ok(j) = depuis_iso(&texte_ou_vide(e, "applique_le")) {
-        return Some(j);
-    }
-    let p = texte_ou_vide(e, "periode").replace('-', "");
-    if let Some(c) = chiffres(&p, 6) {
-        if let Some(j) = Jour::nouveau(nombre_de(&c[..4]) as i32, nombre_de(&c[4..6]), 1) {
-            return Some(j);
-        }
-    }
-    let r = texte_ou_vide(e, "releve_le");
-    if r.chars().count() >= 10 {
-        let t: String = r.chars().take(10).collect();
-        if let Ok(j) = depuis_iso(&t) {
-            return Some(j);
-        }
-    }
-    None
+    let c = chiffres(&texte_ou_vide(e, "mis_a_disposition"), 8)?;
+    Jour::nouveau(nombre_de(&c[..4]) as i32, nombre_de(&c[4..6]), nombre_de(&c[6..8]))
 }
 
 /// Une date `AAAA-MM-JJ` stricte.
@@ -147,34 +125,7 @@ pub fn est_perime(e: &Value, le: Jour) -> bool {
     }
 }
 
-/// `e` avec `valable_jusqu_a` et `perime`.
-pub fn avec_validite(e: &Value, le: Jour) -> Value {
-    let mut m = e.as_object().cloned().unwrap_or_default();
-    m.insert("valable_jusqu_a".into(), fin_de_validite(e).map_or(Value::Null, |f| Value::String(f.iso())));
-    m.insert("perime".into(), Value::Bool(est_perime(e, le)));
-    Value::Object(m)
-}
-
 // ------------------------------------------------------------------ lecture
-
-/// Le magasin des taux (`config/pas.json`), ou un magasin vide.
-pub fn charger(ctx: &Contexte) -> Resultat<Value> {
-    let p = ctx.racine.join("config").join(FICHIER);
-    if !socle::fichiers::existe(&p) {
-        let mut m = Map::new();
-        m.insert("salaries".into(), Value::Object(Map::new()));
-        m.insert("journal".into(), Value::Array(Vec::new()));
-        m.insert("demandes".into(), Value::Object(Map::new()));
-        return Ok(Value::Object(m));
-    }
-    let mut d = lire_json(&p)?;
-    if let Some(o) = d.as_object_mut() {
-        o.entry("salaries").or_insert_with(|| Value::Object(Map::new()));
-        o.entry("journal").or_insert_with(|| Value::Array(Vec::new()));
-        o.entry("demandes").or_insert_with(|| Value::Object(Map::new()));
-    }
-    Ok(d)
-}
 
 /// Vrai seulement si la fiche est la ET qu'elle n'a pas de NIR.
 pub fn sans_nir(ctx: &Contexte, cle: &str) -> bool {
@@ -192,40 +143,24 @@ pub fn le_jour(ctx: &Contexte, le: Option<Jour>) -> Jour {
     })
 }
 
-fn entree<'a>(magasin: &'a Value, cle: &str) -> Option<&'a Value> {
-    magasin.get("salaries").and_then(|s| s.get(cle))
+/// LES TAUX RECUS POUR LE SALARIE `cle`, du premier mis a disposition au dernier (a instant egal, dans l'ordre ou ils
+/// se sont ecrits). Une valeur de la fiche qui n'est pas un taux (la case vide d'avant le premier) n'en est pas un.
+pub fn recus(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
+    let Some(fiche) = ctx.salarie_brut(cle) else { return Ok(Vec::new()) };
+    let mut r: Vec<Value> = crate::contexte::valeurs_datees(fiche, CHAMP)?.into_iter().map(|(_, v)| v).filter(|v| v.is_object()).cloned().collect();
+    r.sort_by_key(|v| texte_ou_vide(v, "mis_a_disposition"));
+    Ok(r)
 }
 
-/// Une entree vide vaut une entree absente (`if not e`).
-fn presente(e: Option<&Value>) -> Option<&Value> {
-    e.filter(|v| vrai(v))
-}
-
-/// LE TAUX DU SALARIE `cle` AU JOUR `le` : de ceux que le magasin a recus pour lui (le present, `salaries`, et ceux
-/// qu'il a remplaces, `journal`), le dernier mis a disposition au plus tard ce jour-la. La retenue est « effectuée par le
-/// débiteur lors du paiement » (CGI, art. 204 A, 2, 1°, `atelier/reference/sources/code-general-des-impots/xml/
-/// 204_A.xml`) : un taux transmis apres le paiement d'un salaire ne vaut pas pour lui. Aucun taux recu avant ce jour :
-/// aucun (la grille de l'article 204 H s'applique). Le present qu'on ne sait pas dater reste le taux du salarie (il est
-/// alors perime, `est_perime`).
-fn en_vigueur<'a>(magasin: &'a Value, cle: &str, le: Jour) -> Option<&'a Value> {
-    let present = presente(entree(magasin, cle))?;
-    let Some(depuis) = mise_a_disposition(present) else {
-        return Some(present);
-    };
-    if depuis <= le {
-        return Some(present);
-    }
-    let anciens = magasin.get("journal").and_then(Value::as_array).into_iter().flatten();
-    anciens
-        .filter(|e| e.get("salarie").and_then(Value::as_str) == Some(cle))
-        .filter_map(|e| Some((mise_a_disposition(e)?, e)))
-        .filter(|(d, _)| *d <= le)
-        // A jour egal, le dernier recu.
-        .fold(None, |garde: Option<(Jour, &Value)>, (d, e)| match garde {
-            Some((g, _)) if g > d => garde,
-            _ => Some((d, e)),
-        })
-        .map(|(_, e)| e)
+/// LE TAUX DU SALARIE AU JOUR `le` : de ceux qu'il a recus, le dernier mis a disposition au plus tard ce jour-la. Le
+/// debiteur « applique le taux calculé par l'administration fiscale, au plus tard le deuxième mois suivant sa
+/// transmission » (CGI, art. 1671, 2, `atelier/reference/sources/code-general-des-impots/articles-20261021.md`) : un
+/// taux vaut des sa mise a disposition (BOI-IR-PAS-30-10-20, § 70 et 80, `atelier/reference/sources/bofip/
+/// BOI-IR-PAS-30-10-20-extrait-taux.md`), pour toute retenue faite a partir de ce jour ; la retenue est « effectuée par le
+/// débiteur lors du paiement » (CGI, art. 1671, 1, meme fichier) : un taux transmis apres le paiement d'un salaire ne
+/// vaut pas pour lui. Aucun taux recu avant ce jour : aucun (la grille de l'article 204 H s'applique).
+fn en_vigueur(recus: &[Value], le: Jour) -> Option<&Value> {
+    recus.iter().filter(|e| mise_a_disposition(e).is_some_and(|d| d <= le)).last()
 }
 
 // ------------------------------------------ la grille de l'article 204 H du CGI
@@ -426,14 +361,35 @@ pub fn rubriques_par_defaut(
 // ------------------------------------------- lequel des deux chemins, et pour
 //                                              quel versement
 
-/// Le triplet a declarer, ou `None` : pas de taux DGFiP applicable, c'est la
-/// grille. Un taux perime compte pour rien.
+/// Le triplet a declarer, ou `None` : pas de taux DGFiP applicable, c'est la grille. Un taux perime compte pour rien.
+/// UN CALCUL DEPEND DU TAUX DE SON SALARIE A SON JOUR : il le note (`pas <cle> <jour>`, `empreinte`), et un taux recu
+/// qui le change le fait recalculer.
 pub fn taux_dgfip(ctx: &Contexte, cle: &str, le: Option<Jour>) -> Resultat<Option<Triplet>> {
+    let t = triplet(ctx, cle, le)?;
+    if let Some(j) = le {
+        socle::fichiers::noter_valeur(&format!("pas {} {}", cle, j.iso()), empreinte_du_triplet(&t));
+    }
+    Ok(t)
+}
+
+fn triplet(ctx: &Contexte, cle: &str, le: Option<Jour>) -> Resultat<Option<Triplet>> {
     let s = situation(ctx, cle, le)?;
     if s["situation"] != Value::String(VALIDE.into()) {
         return Ok(None);
     }
     Ok(Some((s["taux"].clone(), s["type"].clone(), s["identifiant"].clone())))
+}
+
+fn empreinte_du_triplet(t: &Option<Triplet>) -> String {
+    match t {
+        Some((a, b, c)) => Value::Array(vec![a.clone(), b.clone(), c.clone()]).to_string(),
+        None => "aucun".into(),
+    }
+}
+
+/// Ce que `taux_dgfip` note pour le salarie `cle` au jour `le`, relu maintenant : l'empreinte tient tant qu'il est le meme.
+pub fn empreinte(ctx: &Contexte, cle: &str, le: Jour) -> Resultat<String> {
+    Ok(empreinte_du_triplet(&triplet(ctx, cle, Some(le))?))
 }
 
 /// Le prelevement d'UN versement. Un triplet s'applique tel quel, sur la
@@ -486,11 +442,11 @@ fn libelle(situation: &str) -> &'static str {
     }
 }
 
-/// Ou en est le taux d'un salarie. Ne refuse que si le magasin est illisible.
+/// Ou en est le taux d'un salarie au jour `le`. Ne refuse que si sa fiche est illisible.
 pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>) -> Resultat<Value> {
     let le = le_jour(ctx, le);
-    let magasin = charger(ctx)?;
-    let e = en_vigueur(&magasin, cle, le);
+    let recus = recus(ctx, cle)?;
+    let e = en_vigueur(&recus, le);
     let fin = e.and_then(fin_de_validite);
     let quoi = match e {
         None if sans_nir(ctx, cle) => SANS_NIR,
@@ -520,10 +476,7 @@ pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>) -> Resultat<Value>
     m.insert("identifiant".into(), champ("identifiant"));
     m.insert("valable_jusqu_a".into(), fin.map_or(Value::Null, |f| Value::String(f.iso())));
     m.insert("a_demander".into(), Value::Bool(matches!(quoi, PERIME | BAREME | INCONNU)));
-    m.insert(
-        "demande".into(),
-        magasin.get("demandes").and_then(|d| d.get(cle)).cloned().unwrap_or(Value::Null),
-    );
+    m.insert("dernier_recu".into(), recus.last().map_or(Value::Null, |r| r["mis_a_disposition"].clone()));
     Ok(Value::Object(m))
 }
 
@@ -531,17 +484,11 @@ fn archive(ctx: &Contexte, cle: &str) -> bool {
     ctx.salaries.get(cle).map_or(false, |f| vrai(f) && f.get("actif") == Some(&Value::Bool(false)))
 }
 
-/// Le meme tableau pour plusieurs salaries, dans l'ordre alphabetique. Sans
-/// liste : ceux que le magasin ou les fiches connaissent, moins les archives.
+/// Le meme tableau pour plusieurs salaries, dans l'ordre alphabetique. Sans liste : ceux des fiches, moins les archives.
 pub fn diagnostic(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>) -> Resultat<Vec<Value>> {
     let cles: BTreeSet<String> = match cles {
         Some(c) => c.iter().cloned().collect(),
-        None => {
-            let magasin = charger(ctx)?;
-            let mut s: BTreeSet<String> = magasin.get("salaries").and_then(Value::as_object).map(|o| o.keys().cloned().collect()).unwrap_or_default();
-            s.extend(ctx.salaries.keys().cloned());
-            s.into_iter().filter(|c| !archive(ctx, c)).collect()
-        }
+        None => ctx.salaries.keys().filter(|c| !archive(ctx, c)).cloned().collect(),
     };
     cles.iter().map(|c| situation(ctx, c, le)).collect()
 }
@@ -559,9 +506,8 @@ fn fr(iso: &Value) -> String {
 }
 
 /// Les phrases a dire au depot de la DSN et a la production des bulletins (`depart::sans_taux_recu`), une par salarie
-/// dont la paie prendrait la grille de l'article 204 H, III
-/// (CGI, art. 1671, 2 : « A défaut de taux transmis par l'administration ») : ce que le magasin sait de lui. Vide si
-/// tout va bien.
+/// dont la paie prendrait la grille de l'article 204 H, III (CGI, art. 1671, 2 : « A défaut de taux transmis par
+/// l'administration ») : ce que sa fiche sait des taux recus. Vide si tout va bien.
 pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>) -> Resultat<Vec<String>> {
     let mut lignes = Vec::new();
     for s in diagnostic(ctx, cles, le)? {
@@ -577,14 +523,6 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>)
             SANS_NIR => "sans NIR dans sa fiche, la DGFiP ne peut transmettre aucun taux".into(),
             _ => "aucun taux transmis par la DGFiP".into(),
         };
-        let dem = &s["demande"];
-        if vrai(dem) {
-            ligne += &format!(
-                " ; taux demandé le {}, réponse attendue avant le {}",
-                fr(dem.get("quand").unwrap_or(&Value::Null)),
-                fr(dem.get("reponse_attendue_avant").unwrap_or(&Value::Null))
-            );
-        }
         lignes.push(ligne);
     }
     Ok(lignes)
@@ -595,19 +533,24 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    /// CGI, art. 204 A, 2, 1° (`atelier/reference/sources/code-general-des-impots/xml/204_A.xml`) : la retenue se fait
-    /// « lors du paiement ». Le taux transmis le 17/02 (compte rendu de la DSN de janvier) ne vaut pas pour le salaire de
-    /// janvier paye le 31/01 : c'est celui du 02/01 ; il vaut pour celui de fevrier. Sans taux recu avant le paiement :
-    /// aucun, la grille s'applique.
+    /// LA DATE D'EFFET D'UN TAUX TRANSMIS. Le debiteur « applique le taux calculé par l'administration fiscale, au plus
+    /// tard le deuxième mois suivant sa transmission » (CGI, art. 1671, 2, `atelier/reference/sources/code-general-des-
+    /// impots/articles-20261021.md`, l. 135) ; la retenue « est effectuée par le débiteur lors du paiement » (meme
+    /// article, 1, l. 132) ; le taux est « applicable jusqu'à la fin du deuxième mois qui suit sa mise à disposition »
+    /// (BOI-IR-PAS-30-10-20, § 70, `atelier/reference/sources/bofip/BOI-IR-PAS-30-10-20-extrait-taux.md`, l. 23-24). Un
+    /// taux vaut donc pour tout paiement fait a partir du jour de sa mise a disposition, et pour aucun avant : mis a
+    /// disposition le 13/03, il vaut pour le salaire paye le 14/03 ; celui du 15/04 ne vaut pas pour lui, il vaut pour
+    /// celui paye le 15/04. Sans taux recu avant le paiement : aucun, la grille s'applique.
     #[test]
-    fn un_taux_transmis_apres_le_paiement_ne_vaut_pas_pour_lui() {
-        let taux = |id: &str, le: &str| json!({"taux": "4.10", "type": "01", "identifiant": id, "mis_a_disposition": le});
-        let mut ancien = taux("250004", "20250102090000");
-        ancien["salarie"] = json!("MARCHAL");
-        let magasin = json!({"salaries": {"MARCHAL": taux("993918841", "20250217100000")}, "journal": [ancien]});
-        let id = |le: &str| en_vigueur(&magasin, "MARCHAL", Jour::lire(le).unwrap()).map(|e| e["identifiant"].clone());
-        assert_eq!(id("2025-01-31"), Some(json!("250004")));
-        assert_eq!(id("2025-02-28"), Some(json!("993918841")));
+    fn un_taux_vaut_pour_tout_paiement_a_partir_de_sa_mise_a_disposition() {
+        let taux = |id: &str, le: &str| json!({"taux": "9.40", "type": "01", "identifiant": id, "mis_a_disposition": le});
+        let recus = vec![taux("480747943", "20260313070000"), taux("985249073", "20260415100000")];
+        let id = |le: &str| en_vigueur(&recus, Jour::lire(le).unwrap()).map(|e| e["identifiant"].clone());
+        assert_eq!(id("2026-03-12"), None);
+        assert_eq!(id("2026-03-13"), Some(json!("480747943")));
+        assert_eq!(id("2026-03-14"), Some(json!("480747943")));
+        assert_eq!(id("2026-04-14"), Some(json!("480747943")));
+        assert_eq!(id("2026-04-15"), Some(json!("985249073")));
         assert_eq!(id("2024-12-31"), None);
     }
 

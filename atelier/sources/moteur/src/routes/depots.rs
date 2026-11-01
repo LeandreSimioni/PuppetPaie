@@ -17,7 +17,7 @@ use droit::contexte::Contexte;
 use engagement::calcul::Paie;
 use envois::etats;
 use envois::releve_retours;
-use socle::date::{en_texte, repr_texte, Jour};
+use socle::date::{en_texte, repr_texte};
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
@@ -258,31 +258,6 @@ fn embauche_dpae(p: &Paie, spectacle: bool) -> Embauche {
     }
 }
 
-/// Ce qu'une production d'amorcage a laisse : les fichiers ecrits.
-struct Amorcage {
-    fichiers: Vec<PathBuf>,
-    /// Le nombre de salaries dont le taux est demande.
-    demandes: usize,
-    /// Ceux dont le taux ne se demande pas, et pourquoi, en phrases.
-    non_demandes: Vec<String>,
-}
-
-/// Un fichier de signalement par individu dont le taux manque (le travail est
-/// celui de `amorcage_demande`). L'echec (quel qu'il soit) est celui que la DPAE ecarte.
-fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution: Jour, ecrits: &mut Vec<PathBuf>) -> Result<Amorcage, String> {
-    let demande = crate::compagnie::amorcage_demande::Demande {
-        motif: declarations::amorcage::EMBAUCHE,
-        mois,
-        salaries: None,
-        envoi_test: false,
-        forcer: false,
-        constitution,
-    };
-    let lot = crate::compagnie::amorcage_demande::produire(ctx, retenues, &demande, ecrits)?;
-    let non_demandes = lot.ecartes.iter().map(|l| format!("Taux de PAS non demandé pour {} : {}.", l.salarie, l.pourquoi_pas)).collect();
-    Ok(Amorcage { demandes: lot.lignes.len(), fichiers: lot.fichiers, non_demandes })
-}
-
 /// `{"nom", "chemin", "octets"}` d'un fichier (`sortie_json.fichier`).
 fn fichier_json(f: &Path) -> Value {
     let octets = std::fs::metadata(f).ok().map(|m| m.len());
@@ -291,7 +266,8 @@ fn fichier_json(f: &Path) -> Value {
 
 /// La DPAE, due AVANT le premier jour travaille : tout le mois, ou les engagements choisis (`engagements` : une liste de
 /// `{salarie, numero}` : le salarie et le numero du contrat de l'engagement) dans un fichier horodate a cote du complet.
-/// La phrase rendue dit combien d'embauches elle declare et ce qu'est devenue la demande de taux de PAS.
+/// La phrase rendue dit combien d'embauches elle declare ; la demande de taux de PAS part avec son depot
+/// (`depot_acte::deposer_dpae`).
 pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_demande = texte_requis(charge, "mois")?;
     // L'heure d'embauche que la DPAE declare.
@@ -314,7 +290,6 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let (etiq, libelle) = mois_en_toutes_lettres(&mois)?;
     let sortie = ctx.racine.join("sorties").join(&mois);
-    let aujourdhui = ctx.aujourdhui;
     let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.numero.clone().unwrap_or_default()) };
 
     // LES DPAE A FAIRE DU MOIS (`Moteur::embauches_a_declarer`, la seule liste) : une embauche deja partie en DPAE
@@ -445,29 +420,10 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     };
 
-    // LE SIGNALEMENT D'AMORCAGE, DANS LE MEME GESTE : il ne fait jamais echouer la DPAE ; ce qui l'empeche se dit dans la
-    // phrase, et les fichiers deja ecrits restent.
-    let retenues_owned: Vec<Paie> = retenues.iter().map(|p| (*p).clone()).collect();
-    let mut ecrits = Vec::new();
-    let amorce = produire_amorcage(ctx, &mois, &retenues_owned, aujourdhui, &mut ecrits);
-    let mut fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
+    let fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
     let n = retenues.len();
-    let mut phrase = format!("DPAE de {} écrite : {} embauche{}.", libelle, n, if n > 1 { "s" } else { "" });
-    // CE QUI NE SE DEMANDE PAS SE DIT, ici et avec le depot (`deposer`), jamais en silence.
-    let non_demandes = match &amorce {
-        Ok(a) => {
-            if a.demandes > 0 {
-                phrase.push_str(&format!(" Taux de PAS demandé pour {}.", a.demandes));
-            }
-            fichiers.extend(a.fichiers.iter().map(|p| fichier_json(p)));
-            a.non_demandes.clone()
-        }
-        Err(m) => vec![m.clone()],
-    };
-    for m in &non_demandes {
-        phrase.push_str(&format!(" {}", m));
-    }
-    Ok(json!({ "fichiers": fichiers, "phrase": phrase, "taux_non_demandes": non_demandes }))
+    let phrase = format!("DPAE de {} écrite : {} embauche{}.", libelle, n, if n > 1 { "s" } else { "" });
+    Ok(json!({ "fichiers": fichiers, "phrase": phrase }))
 }
 
 /// LES FICHIERS D'UNE DPAE : l'enregistrement de chaque embauche de `retenues` dans `cible` (et son `.zip`), horodate
@@ -603,20 +559,18 @@ fn partie(ctx: &Contexte, charge: &Value) -> R<Option<Value>> {
 /// `DsnDejaDeposee` -- jamais par defaut.
 fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
-    let (fichier, ecrite) = designee(ctx, charge)?;
+    let (fichier, _) = designee(ctx, charge)?;
     let fichier = &fichier;
     let preuve = Preuve::de_la_charge(charge);
     let contournement = charge.get("contournement").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let contournement = contournement.trim().to_string();
     let reel = charge.get("reel").is_some_and(vrai);
-    let mut fait = if etats::est(quoi, "dsn") {
+    let fait = if etats::est(quoi, "dsn") {
         let forcer = charge.get("forcer").is_some_and(vrai);
         depot_acte::deposer_dsn(ctx, fichier, reel, Some(&preuve), "interface", forcer, &contournement)?
     } else {
         depot_acte::deposer_dpae(ctx, fichier, reel, Some(&preuve), "interface", false, &contournement)?
     };
-    // Le taux qu'une DPAE n'a pas demande, et pourquoi (`dpae`).
-    fait.suites.extend(ecrite["taux_non_demandes"].as_array().into_iter().flatten().map(valeur_en_texte));
     // LA PHRASE DU DEPOT : ou en est son test, ou ce qu'ont dit les retours du reel s'ils sont deja la (le simulateur repond
     // dans le geste) ; puis ses suites.
     let tranche = if !reel {

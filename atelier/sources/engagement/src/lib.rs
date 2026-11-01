@@ -676,6 +676,16 @@ impl Engagement {
         Ok(self.fin.map_or(fin_mois, |f| f.min(fin_mois)))
     }
 
+    /// Le jour du versement de ce que l'engagement paie (S21.G00.50.001) : la date de paiement dite, sinon la fin de la
+    /// periode. C'est le jour ou se fait la retenue a la source (CGI, art. 1671, 1, `atelier/reference/sources/
+    /// code-general-des-impots/articles-20261021.md`), donc celui ou se lit le taux de PAS du salarie.
+    pub fn date_du_versement(&self) -> Resultat<Jour> {
+        match self.date_paiement.as_deref().and_then(|d| Jour::lire(d.get(..10).unwrap_or(d)).ok()) {
+            Some(j) => Ok(j),
+            None => self.fin_periode(),
+        }
+    }
+
     /// Les mois AAAA-MM que couvre le contrat, du premier au dernier.
     pub fn mois_du_contrat(&self) -> Resultat<Vec<String>> {
         let fin = match self.fin {

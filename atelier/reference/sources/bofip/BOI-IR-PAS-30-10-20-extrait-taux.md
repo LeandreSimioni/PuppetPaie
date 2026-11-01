@@ -48,6 +48,8 @@ l'actualité ACTU-2018-00014, `11180-PGP` ; « Version en vigueur du 03/12/2018 
   **Inférence** (aucun texte ne date un taux qu'on lit dans une DSN déjà déposée, la DSN ne portant pas la date du compte
   rendu) : un taux de type 01 qu'une DSN reprise applique a été mis à disposition au plus tard le jour du versement
   (S21.G00.50.001) ; l'import le date de ce jour, la date la plus tardive que les textes permettent
-  (`moteur/src/commandes/pas.rs`, `derniers_taux_des_dsn`, champ `applique_le` lu par `droit::pas::mise_a_disposition`).
+  (`moteur/src/compagnie/taux_pas.rs`, `derniers_taux_des_dsn`, sa `mis_a_disposition`).
 - § 20, second alinéa : la demande de taux par anticipation (le signalement d'amorçage) ; le simulateur y répond par un
   compte rendu (`envois/src/organismes_simules.rs`).
+- § 30 : le compte rendu suit la déclaration dans un délai qui « ne devrait pas excéder 5 jours ouvrés » : la réponse
+  attendue d'une demande partie (`moteur/src/compagnie/amorcage_demande.rs`, `en_cours`).

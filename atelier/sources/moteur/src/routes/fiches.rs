@@ -1396,6 +1396,20 @@ fn poser_champs(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: Map<Strin
     ecrire(&chemin, Value::Object(contenu))
 }
 
+/// UN TAUX DE PAS RECU S'ECRIT DANS LA FICHE DE SON SALARIE (`droit::pas::CHAMP`), date du jour de sa mise a disposition
+/// `depuis` : avant ce jour, la fiche ne le disait pas (la case vide). `note` dit d'ou il vient.
+pub(crate) fn poser_taux_recu(ctx: &Contexte, salarie: &str, valeur: Value, depuis: Jour, note: &str) -> R<()> {
+    let chemin = ctx.racine.join("config").join("salaries.json");
+    let mut contenu = objet_du_fichier(&chemin)?;
+    let Some(Value::Object(brute)) = contenu.get_mut(salarie) else {
+        return Err(refus(format!("La fiche salarie {} n'existe pas : rien n'est écrit.", salarie)));
+    };
+    let ancienne = droit::contexte::fiche_au(&Value::Object(brute.clone()), &depuis, "config/salaries.json").map_err(plain)?;
+    ecrire_datee(brute, "salarie", &ancienne, &un_champ(droit::pas::CHAMP, valeur), true, Some(depuis), Some(note), &depuis)?;
+    sauver_avant(&chemin)?;
+    ecrire(&chemin, Value::Object(contenu))
+}
+
 /// Un seul champ, pour `poser_champs`.
 fn un_champ(champ: &str, valeur: Value) -> Map<String, Value> {
     let mut m = Map::new();
