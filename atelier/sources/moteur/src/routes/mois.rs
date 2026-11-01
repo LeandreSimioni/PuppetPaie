@@ -327,20 +327,24 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
 /// les relit pour les remettre dans ses champs, et les reecrit ensuite.
 /// `base` et `taux_majoration` d'une ligne en pourcentage, surtout : sans eux,
 /// la page lirait le `taux` (0.1) comme un pourcentage (0,1 %).
-const CHAMPS_DE_LIGNE_GARDES: [&str; 4] = ["heures", "genre", "base", "taux_majoration"];
+const CHAMPS_DE_LIGNE_GARDES: [&str; 5] = ["heures", "genre", "base", "taux_majoration", engagement::JUSTIFICATIF];
 
 /// Les lignes de paie telles que le MOTEUR les a comprises.
-/// `remuneration` suit les lignes du fichier une a une (`calcul::lignes_brut`).
+/// `remuneration` suit les lignes du fichier une a une (`calcul::lignes_brut`) ; la part d'une nuitee au-dela de la
+/// limite, que le moteur pose apres elles (`engagement::nuitees_au_dela`), ne se montre pas en ligne de saisie, et la
+/// nuitee garde le taux saisi (`engagement::TAUX_SAISI`).
 fn lignes_affichees(ctx: &Contexte, p: &engagement::calcul::Paie, brutes: &[Value]) -> R<Vec<Value>> {
     let lignes: Vec<Map<String, Value>> = p
         .remuneration
         .iter()
+        .take(brutes.len())
         .enumerate()
         .map(|(i, l)| {
             let mut m = Map::new();
             m.insert("rubrique".into(), Value::String(l.code.clone()));
             m.insert("quantite".into(), nombre_f(decimal_en_f64(l.quantite)));
-            m.insert("taux".into(), nombre_f(decimal_en_f64(l.taux)));
+            let saisi = p.engagement.lignes.get(i).and_then(|x| x.get(engagement::TAUX_SAISI)).cloned();
+            m.insert("taux".into(), saisi.unwrap_or_else(|| nombre_f(decimal_en_f64(l.taux))));
             if let Some(src) = brutes.get(i).and_then(Value::as_object) {
                 for k in CHAMPS_DE_LIGNE_GARDES {
                     match src.get(k) {
@@ -1749,6 +1753,9 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         "dates_travail": e.dates_travail.iter().map(iso).collect::<Vec<_>>(),
         "cachets": e.cachets, "taux_cachet": taux_cachet,
         "heures": e.heures.map_or(Value::Null, nombre_f),
+        // LES LIGNES DE NUITÉE OÙ LA CASE « justificatif conservé » A LIEU D'ÊTRE (leur rang dans la saisie) : une nuitée
+        // au-delà de la limite du jour, d'un salarié que l'annexe 2 ne nomme pas (`engagement::nuitees_au_dela`).
+        "justificatifs": e.lignes.iter().enumerate().filter(|(_, l)| l.get(engagement::JUSTIFICATIF_POSSIBLE).is_some_and(vrai)).map(|(i, _)| i).collect::<Vec<_>>(),
         "remuneration": p.remuneration.iter().map(|l| json!({
             "rubrique": l.code, "designation": l.designation(),
             "quantite": l.quantite.to_string(), "taux": l.taux.to_string(), "montant": q2(l.montant).to_string(),

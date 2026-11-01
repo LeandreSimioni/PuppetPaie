@@ -253,6 +253,11 @@ async function calculerApercu(lu) {
       div._total = part.length ? (a.blocs || [])[rangs[i]] : null;
       peindreChiffres(div, div._total);
       div._paies = part;
+      // LA CASE « justificatif conservé » : sur les lignes que le moteur désigne (`justificatifs`, leur rang dans la saisie).
+      const designees = (p && p.justificatifs) || [];
+      [...div.querySelectorAll(".rubrique")].filter(ligneEnvoyee).forEach((r, k) => {
+        r.querySelector(".r-justificatif").classList.toggle("cachee", !designees.includes(k) && !r.querySelector(".r-justif").checked);
+      });
       // La rupture que le moteur propose pour cet engagement (`contrat.rupture`) : la porte « Un imprévu… » et la fin.
       div._rupture = (p && p.contrat && p.contrat.rupture) || null;
       if (div.querySelector(".e-nature") && div.querySelector(".e-rupture")) majRupture(div);

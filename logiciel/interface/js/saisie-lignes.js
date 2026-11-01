@@ -113,6 +113,11 @@ function ligneRubrique(l = {}, nat) {
          et ses valeurs viennent du moteur (« genres »). Vide : celui de la
          rubrique, qui n'est écrit nulle part. -->
     <select class="r-genre cachee" title="genre de l'avantage en nature (bloc 54)"></select>
+    <!-- LE JUSTIFICATIF D'UNE NUITÉE au-delà de la limite du jour : la case
+         ne se montre que sur la ligne que le moteur désigne
+         (\`justificatifs\` de l'aperçu), ou déjà cochée. -->
+    <label class="coche r-justificatif ${l.justificatif ? "" : "cachee"}"><input type="checkbox" class="r-justif"
+      ${l.justificatif ? "checked" : ""}> justificatif conservé</label>
     <!-- LES JOURS SE COCHENT DANS UN CALENDRIER, plus
          clair que de taper 12, 24, 26. Le bouton dit les
          jours cochés ; le champ caché garde l'écriture « 14 15 17 18 » que
@@ -1577,6 +1582,7 @@ function lignesDuBloc(div, mois) {
     // qu'on en a choisi un : le moteur refuse un genre sur toute autre.
     const genre = r.querySelector(".r-genre").value;
     if (genre && rr && (rr.genres || []).length) l.genre = genre;
+    if (r.querySelector(".r-justif").checked) l.justificatif = true;
     // Le lieu et les jours de CETTE ligne. Absents du fichier quand ils sont
     // vides : une ligne qui ne dit rien de son lieu n'écrit pas `"lieu": ""`.
     const ou = r.querySelector(".r-lieu").value.trim();

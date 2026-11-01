@@ -970,7 +970,8 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
 
     // Le catalogue qui paie, deja dans l'ordre ou le proposer.
     let cat = catalogue::catalogue(&ctx.racine, &ctx.lue_au).map_err(plain)?;
-    let rubriques: Vec<Value> = cat.iter().map(rubrique_json).collect();
+    // Une rubrique que le moteur pose (`saisie` vide) ne se propose pas.
+    let rubriques: Vec<Value> = cat.iter().filter(|r| !r.saisie.is_empty()).map(rubrique_json).collect();
     // La rubrique d'une ligne neuve, par forme de paie : le moteur la choisit (`catalogue::par_defaut`), la page la pose.
     let par_defaut = |forme: &str| catalogue::par_defaut(&cat, forme).map_or(Value::Null, |r| json!(r.code));
     let rubrique_par_defaut = json!({"activite": par_defaut("activite"), "mensuelle": par_defaut("mensuelle")});
