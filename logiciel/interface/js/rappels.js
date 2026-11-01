@@ -68,12 +68,12 @@ function htmlPoses() {
 }
 
 /* POUR DÉMARRER. Le moteur (`pour-demarrer`) rend d'un coup ce que la
- * compagnie peut remplir d'avance : chaque ligne, sa case (`case`), ce
- * qu'elle servira (`phrase`), où elle vit (`ou`), et pour qui (`qui`, une
- * ligne d'un salarié). Rien n'y est obligatoire. Chaque case se remplit sur
- * place, dessinée comme dans sa fiche (`champDeFiche`), et s'enregistre
- * seule (`enregistrer-fiche`) ; la liste se relit ensuite. La page ne fait
- * que la mise en page. */
+ * compagnie peut remplir d'avance : chaque ligne, sa case (`case`), où elle
+ * vit (`ou`), et pour qui (`qui`, une ligne d'un salarié). Chaque case se
+ * remplit sur place, dessinée comme dans sa fiche (`champDeFiche`) ; un seul
+ * « Enregistrer » écrit tout ce qui a changé (`enregistrer-fiche`, une
+ * écriture par fiche), et la liste se relit. La page ne fait que la mise en
+ * page. */
 let DEMARRAGE = { titre: "", note: "", manques: [] };
 
 /* La case qu'une ligne propose, telle que sa fiche la décrit : `{nom, fiche,
@@ -109,8 +109,9 @@ function caseDemarrageHtml(k) {
 
 function htmlDemarrage(manques) {
   if (!manques || !manques.length) return htmlPoses();
+  const n = ++DEMARRAGE_LISTES;
   // CHAQUE CHOSE MÈNE À SA PLACE : `ou` est un lien qui y conduit (la fiche,
-  // l'onglet), à côté de la case.
+  // l'onglet), sous la case.
   const lien = (m) => `<button type="button" class="lien" data-manque-champ="${echapper(m.champ || "")}"
         data-manque-ou="${echapper(m.ou || "")}" data-manque-salarie="${echapper(m.salarie || "")}">${echapper(m.ou || "")}</button>`;
   const ligne = (m) => {
@@ -118,79 +119,129 @@ function htmlDemarrage(manques) {
     const k = caseDuManque(m);
     if (!k) {
       return `<li class="demarrage-ligne">
-        <b>${echapper(m.libelle)}</b> <span class="discret">— ${echapper(m.phrase || "")}</span> ${lien(m)}
+        <b>${echapper(m.libelle)}</b> ${lien(m)}
         ${m.trouver ? `<details><summary>Où le trouver</summary><p class="note">${echapper(m.trouver)}</p></details>` : ""}
       </li>`;
     }
     return `<li class="demarrage-ligne" data-demarrage="${i}">
       <div class="demarrage-case">${caseDemarrageHtml(k)}</div>
-      <div class="actions">
-        <button type="button" class="petit" data-demarrage-enregistrer="${i}">Enregistrer</button>
-        <span class="discret">${echapper(m.phrase || "")}</span> ${lien(m)}
-      </div>
-      <div class="anomalie" data-demarrage-dit hidden></div>
+      <div class="actions">${lien(m)}</div>
     </li>`;
   };
   const entreprise = manques.filter((m) => !m.qui);
   const qui = [...new Set(manques.filter((m) => m.qui).map((m) => m.qui))];
+  const aRemplir = manques.some((m) => caseDuManque(m));
   return `
-    <div class="rappel demarrage demarrage-liste">
+    <div class="rappel demarrage demarrage-liste" data-demarrage-liste="${n}">
       ${DEMARRAGE.titre ? `<h3>${echapper(DEMARRAGE.titre)}</h3>` : ""}
       ${DEMARRAGE.note ? `<p class="note">${echapper(DEMARRAGE.note)}</p>` : ""}
       ${entreprise.length ? `<ul class="rappel-liste">${entreprise.map(ligne).join("")}</ul>` : ""}
       ${qui.map((q) => `<h4>${echapper(q)}</h4>
         <ul class="rappel-liste">${manques.filter((m) => m.qui === q).map(ligne).join("")}</ul>`).join("")}
-      <div class="actions"><button class="petit" data-aller-configuration>Ouvrir la configuration</button></div>
+      <div class="anomalie" data-demarrage-dit hidden></div>
+      <div class="actions">
+        ${aRemplir ? `<button class="primaire" data-demarrage-enregistrer>Enregistrer</button>` : ""}
+        <button class="petit" data-aller-configuration>Ouvrir la configuration</button>
+      </div>
     </div>${htmlPoses()}`;
 }
+let DEMARRAGE_LISTES = 0;   // chaque liste peinte a son numéro : ses cases se lisent chez elle
 
 /* Les cases dessinées d'une liste : leur aide, et la taxe sur les salaires
  * qui dit, sous ses cases, ce que le moteur en conclut. */
 function brancherDemarrage(conteneur) {
-  conteneur.querySelectorAll("[data-demarrage]").forEach((li) => {
-    const sel = `[data-demarrage="${li.dataset.demarrage}"]`;
+  conteneur.querySelectorAll(".demarrage-liste [data-demarrage]").forEach((li) => {
+    const sel = `[data-demarrage-liste="${li.closest(".demarrage-liste").dataset.demarrageListe}"] [data-demarrage="${li.dataset.demarrage}"]`;
     brancherAide(sel);
     brancherTaxeSalaires(sel);
   });
 }
 
-/* ENREGISTRER UNE CASE DE « POUR DÉMARRER » : le seul champ qu'elle porte
- * (une structure, entière : ce qu'elle disait, plus la case), par la route
- * de la fiche ; puis la liste se relit. */
-async function enregistrerDemarrage(i, bouton) {
-  const m = DEMARRAGE.manques[i];
-  const k = m && caseDuManque(m);
-  if (!k) return;
-  const li = bouton.closest("[data-demarrage]");
-  const dit = li.querySelector("[data-demarrage-dit]");
-  const avant = k.fiche.donnees[k.racine];
-  const origine = avant && typeof avant === "object" && !Array.isArray(avant) ? { [k.racine]: avant } : {};
-  const lu = lireFormulaire(`[data-demarrage="${i}"] .demarrage-case`, origine);
-  const charge = { nom: k.nom, ...(k.nom === "salarie" ? { cle: k.fiche.cle } : {}), donnees: { [k.racine]: lu[k.racine] } };
-  bouton.disabled = true;
+/* CE QUE LA LISTE PORTE ET QUI N'EST PAS ENREGISTRÉ : par fiche (l'entreprise,
+ * chaque salarié), les cases remplies qui disent autre chose que la fiche.
+ * Une case de structure part seule dans sa structure : le moteur garde les
+ * autres cases (`enregistrer-fiche`). */
+function changementsDemarrage(liste) {
+  const parFiche = new Map();
+  const memes = (a, b) => JSON.stringify(a ?? "") === JSON.stringify(b ?? "");
+  const fondre = (a, b) => {
+    if (!a || typeof a !== "object" || !b || typeof b !== "object") return b;
+    const o = { ...a };
+    Object.entries(b).forEach(([x, v]) => { o[x] = fondre(o[x], v); });
+    return o;
+  };
+  liste.querySelectorAll("[data-demarrage]").forEach((li) => {
+    const m = DEMARRAGE.manques[+li.dataset.demarrage];
+    const k = m && caseDuManque(m);
+    if (!k) return;
+    const lu = lireFormulaire(`[data-demarrage-liste="${liste.dataset.demarrageListe}"] [data-demarrage="${li.dataset.demarrage}"] .demarrage-case`, {});
+    const v = lu[k.racine];
+    const avant = k.fiche.donnees[k.racine];
+    if (v === null || v === undefined || v === "" || (v === false && !avant) || memes(v, avant)) return;
+    const cle = k.nom + "|" + (k.nom === "salarie" ? k.fiche.cle : "");
+    const f = parFiche.get(cle) || { nom: k.nom, ...(k.nom === "salarie" ? { cle: k.fiche.cle } : {}), donnees: {} };
+    f.donnees[k.racine] = fondre(f.donnees[k.racine], v);
+    parFiche.set(cle, f);
+  });
+  return [...parFiche.values()];
+}
+function demarrageModifie() {
+  return [...document.querySelectorAll(".demarrage-liste")].some((l) => changementsDemarrage(l).length);
+}
+
+/* ENREGISTRER « POUR DÉMARRER » : tout ce que la liste porte, une écriture
+ * par fiche (`enregistrer-fiche`), puis la liste se relit. Rend vrai quand
+ * tout est écrit. */
+async function enregistrerDemarrage(liste) {
+  const fiches = changementsDemarrage(liste);
+  const dit = liste.querySelector("[data-demarrage-dit]");
+  const bouton = liste.querySelector("[data-demarrage-enregistrer]");
+  if (!fiches.length) return true;
+  if (bouton) bouton.disabled = true;
+  dit.hidden = true;
+  let phrase = "";
   try {
-    let r = await api("enregistrer-fiche", charge);
-    if (r.avertissement) {
-      const { changements, depuis, pourquoi } = r.avertissement;
-      const reponse = await demanderDateDEffet(changements, depuis, pourquoi);
-      if (!reponse) { bouton.disabled = false; return; }
-      r = await api("enregistrer-fiche", { ...charge, ...reponse, confirme: true });
+    for (const charge of fiches) {
+      let r = await api("enregistrer-fiche", charge);
+      if (r.avertissement) {
+        const { changements, depuis, pourquoi } = r.avertissement;
+        const rendre = mettreDeCote();
+        const reponse = await demanderDateDEffet(changements, depuis, pourquoi);
+        if (rendre) rendre();
+        if (!reponse) { if (bouton) bouton.disabled = false; return false; }
+        r = await api("enregistrer-fiche", { ...charge, ...reponse, confirme: true });
+      }
+      phrase = r.phrase;
     }
-    ETAT = await api("etat");
-    dire(r.phrase);
-    await repeindreDemarrage();
   } catch (e) {
-    bouton.disabled = false;
+    if (bouton) bouton.disabled = false;
     const anomalies = ((e.detail || {}).anomalies || []).filter((a) => a.gravite === "erreur");
-    dit.textContent = anomalies.length ? anomalies.map((a) => a.message).join(" ; ") : e.message;
+    dit.textContent = anomalies.length ? anomalies.map((a) => `${a.libelle || a.champ} : ${a.message}`).join(" ; ") : e.message;
     dit.hidden = false;
+    await relireEtat();
+    return false;
   }
+  await relireEtat();
+  dire(phrase);
+  await repeindreDemarrage();
+  return true;
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-demarrage-enregistrer]");
-  if (b) enregistrerDemarrage(+b.dataset.demarrageEnregistrer, b);
+  if (b) enregistrerDemarrage(b.closest(".demarrage-liste"));
 });
 
+/* QUITTER « POUR DÉMARRER » avec des cases remplies et pas enregistrées : la
+ * même boîte que la fiche (`demanderSiEnregistrer`). Rend vrai si l'on peut
+ * partir. */
+async function quitterDemarrage() {
+  const liste = [...document.querySelectorAll(".demarrage-liste")].find((l) => changementsDemarrage(l).length);
+  if (!liste) return true;
+  const choix = await demanderSiEnregistrer();
+  if (choix === "rester") return false;
+  if (choix === "jeter") { await repeindreDemarrage(); return true; }
+  return enregistrerDemarrage(liste);
+}
 /* La liste relue, partout où elle est peinte ; la fiche Entreprise, si elle
  * est ouverte et qu'on n'y a rien tapé, montre ce qui vient de s'écrire. */
 async function repeindreDemarrage() {
@@ -213,9 +264,10 @@ async function repeindreDemarrage() {
 }
 
 /* « Ouvrir la configuration », sous la liste de la boîte de l'ouverture. */
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
   const b = e.target.closest && e.target.closest("[data-aller-configuration]");
   if (!b) return;
+  if (!(await quitterDemarrage())) return;
   fermerBoite();
   document.querySelector('.onglets button[data-vue="configuration"]').click();
   const sous = document.querySelector('.sous-onglets button[data-fiche="entreprise"]');
@@ -235,7 +287,10 @@ async function lireDemarrage(lu) {
  *  (`ATMP_HTML`) ; les organismes ont leur onglet ; ce qui se dit sur la
  *  fiche d'un salarié (`salarie`, du moteur) ouvre sa fiche. */
 async function allerAuManque(champ, ou, salarie) {
-  if (!document.getElementById("voile").classList.contains("cachee")) fermerBoite();
+  if (!document.getElementById("voile").classList.contains("cachee")) {
+    if (!(await quitterDemarrage())) return;
+    fermerBoite();
+  }
   // Déjà dans la configuration : on n'y retourne pas. Recliquer l'onglet
   // redessinait la fiche et, sur une fiche en cours de saisie, ouvrait « Vous
   // avez modifié cette fiche » — suivre un manque après l'autre sans
@@ -343,7 +398,7 @@ function boiteRappels(liste, ech, manques = []) {
   ouvrirBoite(`
     <div class="boite-rappels"></div>${html}
     <div class="actions">
-      <button class="secondaire" onclick="fermerBoite()">${liste.length ? "Plus tard" : "Fermer"}</button>
+      <button class="secondaire" id="rappels-fermer">${liste.length ? "Plus tard" : "Fermer"}</button>
     </div>`, () => {
     // FERMÉE, ELLE SORT DE LA PAGE : cachée sous le voile, elle gardait
     // ses boutons `[data-manque-champ]`, périmés dès que la fiche change, et
@@ -351,6 +406,10 @@ function boiteRappels(liste, ech, manques = []) {
     const boite = document.getElementById("boite");
     if (boite.querySelector(".boite-rappels")) boite.innerHTML = "";
   });
+  // FERMER AVEC DES CASES REMPLIES ET PAS ENREGISTRÉES demande, comme partout (`quitterDemarrage`).
+  const fermer = async () => { if (await quitterDemarrage()) fermerBoite(); };
+  document.getElementById("rappels-fermer").onclick = fermer;
+  CLIC_DEHORS = fermer;
   liste.forEach((r, i) => {
     const b = document.getElementById("rappel-" + i);
     if (b) b.onclick = () => agirSurRappel(r);
@@ -400,6 +459,7 @@ function boutonRappel(r, i) {
 }
 
 async function agirSurRappel(r) {
+  if (!(await quitterDemarrage())) return;
   fermerBoite();
   if (r.quoi === "dsn") {
     // On va sur le mois, on le regarde, et le dépôt s'enchaîne : c'est la
@@ -460,7 +520,7 @@ function boiteRevueSpectacles(r) {
       .filter((c) => c.checked).map((c) => c.dataset.cle);
     try {
       const res = await api("revue-spectacles", { annee: r.annee, continuent });
-      ETAT = await api("etat");
+      await relireEtat();
       fermerBoite();
       dire(res.archives.length
         ? `${res.archives.length} spectacle${res.archives.length > 1 ? "s" : ""} archivé${res.archives.length > 1 ? "s" : ""} ; ${res.continuent.length} continue${res.continuent.length > 1 ? "nt" : ""}.`

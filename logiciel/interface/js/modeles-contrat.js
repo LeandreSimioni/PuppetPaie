@@ -92,7 +92,7 @@ async function dessinerModelesContrat(cible) {
     ev.target.disabled = true;
     try {
       const r = await api("clauses-particulieres", { texte: document.getElementById("clauses-compagnie").value });
-      ETAT.configuration = await api("configuration", {});
+      ETAT.configuration = await api("configuration", {}); peindreEtatGlobal();
       dire(r.phrase);
     } catch (e) {
       dire(e.message, "erreur");

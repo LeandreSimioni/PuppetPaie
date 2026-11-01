@@ -740,7 +740,7 @@ async function boiteSignature(mois, seulement) {
       try {
         await api("poser-courriel", { salarie: b.dataset.salarie, email: champ ? champ.value : "" });
       } catch (e) { dire(e.message, "erreur"); return; }
-      ETAT = await api("etat");
+      await relireEtat();
       const gardes = [...document.querySelectorAll(".s-qui:checked")].map((c) => c.value);
       fermerBoite();
       dire("Courriel enregistré dans la fiche.", "envoye");

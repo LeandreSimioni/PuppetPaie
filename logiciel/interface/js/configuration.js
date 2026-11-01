@@ -283,7 +283,7 @@ function dessinerConfig() {
       r.querySelector("[data-activer]").onclick = async (e) => {
         const activer = e.currentTarget.dataset.activer === "oui";
         try {
-          ETAT = (await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer })).etat;
+          poserEtat((await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer })).etat);
           dire(`${nom} : ${activer ? "réactivé" : "archivé"}.`);
           dessinerConfig();
         } catch (err) { dire(err.message, "erreur"); }
@@ -557,7 +557,7 @@ document.addEventListener("click", async (ev) => {
     const r = await api("importation-nature", charge);
     dire(r.phrase, r.couleur);
     // Les natures au mois s'ouvrent alors dans la saisie (`etat.natures`).
-    ETAT = await api("etat");
+    await relireEtat();
     rafraichirReferentiels();
     rafraichirEtatImportation();
   } catch (err) {
@@ -624,20 +624,13 @@ function fichesImportees(fiches, titre) {
       return `<div class="acte-dernier">${ou} <b>${echapper(champ)}</b> = « ${echapper(lu)} »,
          la fiche dit « ${echapper(e.fiche)} » — la fiche fait foi</div>`;
     }).join("");
-    // CE QUE LES PIÈCES NE DONNENT PAS : les cases que la fiche
-    // demande et qu'aucun bulletin ni aucune DSN n'imprime (le moteur les
-    // nomme par leur libellé). Une case vide se dit « à remplir », pas
-    // « erreur » : rien n'est faux, il reste à la remplir dans la fiche, que
-    // le bouton ouvre une fois la fiche créée.
-    const anomalies = (f.anomalies || []).filter((a) => a.gravite === "erreur");
-    const manques = anomalies.filter((a) => a.message === "obligatoire").map((a) => a.libelle || a.champ);
-    const fautes = anomalies.filter((a) => a.message !== "obligatoire").map((a) =>
+    // UNE VALEUR FAUSSE DES PIÈCES se dit, avec le libellé de sa case ; une
+    // case vide n'est pas une faute (ce qu'un acte exige, « Pour démarrer »
+    // le dit après l'import).
+    const fautes = (f.anomalies || []).filter((a) => a.gravite === "erreur").map((a) =>
       `<div class="acte-dernier faute">${echapper(a.libelle || a.champ)} : ${echapper(a.message)}</div>`).join("");
     const ouvrable = f.etat === "creee" && f.cle && f.nom;
-    const reste = manques.length || fautes ? `<div class="acte-dernier">${manques.length
-        ? `${f.etat === "creee" ? "Reste à remplir dans la fiche" : "À remplir dans la fiche après la reprise"} :
-           <b>${manques.map((m) => echapper(m)).join("</b>, <b>")}</b>` : ""}
-        ${ouvrable ? ` <button type="button" class="petit" data-ouvrir-fiche="${echapper(f.nom)}"
+    const reste = fautes ? `<div class="acte-dernier">${ouvrable ? `<button type="button" class="petit" data-ouvrir-fiche="${echapper(f.nom)}"
             data-ouvrir-cle="${echapper(f.cle)}">Compléter la fiche</button>` : ""}</div>${fautes}` : "";
     return `<div class="rang import">
       <span class="rang-nom">${echapper(f.libelle)}</span>
@@ -839,7 +832,7 @@ async function ecrireImportation() {
     brancherImportation();
     // Les fiches créées doivent apparaître dans Salariés et Spectacles, et
     // dans les déroulants de la saisie, sans recharger la page.
-    ETAT = await api("etat");
+    await relireEtat();
     rafraichirReferentiels();
     // CE QUI RESTE À DIRE : la nature des contrats repris se demande en tête de la page ; on y va.
     await rafraichirEtatImportation();
@@ -1183,7 +1176,6 @@ function aideCorps(cle, aide) {
 function structureHtml(c, v, sous, a, avecPermanents) {
   const cache = c.si_permanents && !avecPermanents;
   const tete = `<label class="titre-structure">${echapper(c.libelle)}
-      ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
       ${aideHtml(c.cle, c.aide)}</label>
     ${aideCorps(c.cle, c.aide)}`;
   let corps;
@@ -1319,7 +1311,7 @@ function facultatif(c) {
 function METIER_HTML(fiche) {
   const code = ((fiche || {}).donnees || {}).code_emploi_ft || "";
   return `<div class="champ" id="config-metier">
-    <label>Métier <span class="obligatoire">*</span>
+    <label>Métier
       <select id="config-metier-choix">${optionsMetiers(code, "— choisir —")}</select></label>
     <div class="note">C'est du métier que viennent le statut, la catégorie et les codes que la DPAE et la DSN
       déclarent ; l'intitulé du contrat s'en remplit, et se retouche ensuite.</div>

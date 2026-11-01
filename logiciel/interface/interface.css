@@ -581,8 +581,6 @@ details.historique-fiche > summary {
   cursor: pointer; font-size: 12px; color: var(--discret);
 }
 details.historique-fiche[open] > summary { margin-bottom: 8px; }
-/* L'étoile d'un champ obligatoire. */
-.obligatoire { color: var(--erreur); }
 .champ .anomalie { font-size: 12px; margin-top: 3px; }
 .champ .anomalie.erreur { color: var(--erreur); }
 .champ .anomalie.avertissement { color: var(--alerte); }

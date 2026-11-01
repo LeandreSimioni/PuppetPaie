@@ -51,9 +51,7 @@ function champDeFiche(c, fiche, nom) {
   // Une compagnie à un seul établissement ne voit pas la case « Établissement »
   // du salarié : la question ne se pose pas.
   const avecEtablissements = !!(ETAT.configuration || {}).etablissements;
-  // Une case obligatoire encore vide n'est pas une faute tant qu'on n'a pas
-  // essayé d'enregistrer : l'astérisque le dit (`aRemplir`).
-  const anomalie = (cle) => (fiche.anomalies || []).find((a) => a.champ === cle && !aRemplir(a));
+  const anomalie = (cle) => (fiche.anomalies || []).find((a) => a.champ === cle);
   const caches = CACHES[nom] || [];
   // UN CHAMP QUI DÉPEND D'UN AUTRE (`si`) se replie quel que soit
   // le chemin qui l'a dessiné — liste de choix, convention, champ simple :
@@ -165,7 +163,6 @@ function champDeFiche(c, fiche, nom) {
       const connue = cv.some((x) => String(x.idcc) === String(v ?? ""));
       return `<div class="champ pleine">
         <label>Convention collective
-          ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="chiffres">
             ${String(v ?? "") ? "" : `<option value="" selected>— à choisir —</option>`}
@@ -197,7 +194,6 @@ function champDeFiche(c, fiche, nom) {
       const connu = liste.some((p) => p.code === v2.toUpperCase());
       return `<div class="champ">
         <label>${echapper(c.libelle)}${facultatif(c, nom)}
-          ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="pays"
               class="${a ? (a.gravite === "erreur" ? "faute" : "suspect") : ""}">
@@ -227,7 +223,6 @@ function champDeFiche(c, fiche, nom) {
         ...c.choix.filter((x) => x && !(x in lib))];
       return `<div class="champ${nom === "entreprise" ? " pleine" : ""}">
         <label>${echapper(c.libelle)}${facultatif(c, nom)}
-          ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="choix">
             ${c.choix.includes("") ? "" : `<option value=""${v1 ? "" : " selected"}>— ${
@@ -304,7 +299,6 @@ function champDeFiche(c, fiche, nom) {
         (c.si_permanents && !avecPermanents)
           || (c.si_etablissements && !avecEtablissements) ? " hidden" : ""}>
       <label>${echapper(c.libelle)}${facultatif(c, nom)}
-        ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
         ${aideHtml(c.cle, c.aide)}
         ${controle}
       </label>
@@ -423,7 +417,7 @@ function dessinerFormulaire(fiche) {
     }).join("");
   }
 
-  const err = fiche.anomalies.filter((a) => a.gravite === "erreur" && !aRemplir(a)).length;
+  const err = fiche.anomalies.filter((a) => a.gravite === "erreur").length;
   document.getElementById("config-formulaire").innerHTML = `
     <div class="carte" style="margin-top:16px">
       ${FICHE_ACTIVE === "salarie" ? enteteSalarie(fiche)
@@ -773,7 +767,7 @@ async function demanderFiche(bouton) {
   try {
     const r = await api("fiche-demander", { adresse, prenom, motdepasse: mdp });
     // La réponse ne porte plus la configuration (ni NIR ni IBAN) : la page la relit.
-    ETAT.configuration = await api("configuration", {});
+    ETAT.configuration = await api("configuration", {}); peindreEtatGlobal();
     FICHE_MODIFIEE = false;
     CLE_ACTIVE = null;
     FICHE_NEUVE = false;
@@ -806,7 +800,7 @@ function brancherFichesAttendues() {
     relever.disabled = true;
     try {
       const r = await api("fiches-relever", {});
-      ETAT.configuration = await api("configuration", {});
+      ETAT.configuration = await api("configuration", {}); peindreEtatGlobal();
       dessinerConfig();
       dire(r.recues.length ? `${r.recues.length} fiche(s) reçue(s) : ${
         r.recues.map((x) => x.nom).join(", ")}.`
@@ -819,7 +813,7 @@ function brancherFichesAttendues() {
       try {
         await api("fiche-oublier-demande", { adresse: b.dataset.oublierFiche });
         // La réponse ne porte plus la configuration (ni NIR ni IBAN) : la page la relit.
-        ETAT.configuration = await api("configuration", {});
+        ETAT.configuration = await api("configuration", {}); peindreEtatGlobal();
         dessinerConfig();
       } catch (e) { dire(e.message, "erreur"); }
     };
@@ -1132,11 +1126,11 @@ function lireFormulaire(racine = "#config-formulaire", origine = STRUCTURES_ORIG
       o = o[k];
     });
     const k = chemin[chemin.length - 1];
-    // Une case typee (choix, nombre) vide est RETIREE : le moteur applique
-    // alors son defaut, celui de la convention. Un texte garde sa valeur.
+    // Une case typee (choix, nombre) vide s'EFFACE (`null`) : le moteur
+    // applique alors son defaut, celui de la convention. Un texte garde sa valeur.
     if (c.dataset.sousType) {
       types.add(p);
-      if (String(c.value).trim() === "") delete o[k];
+      if (String(c.value).trim() === "") o[k] = null;
       else if (c.dataset.sousType === "nombre") o[k] = Number(c.value);
       // Un oui/non : un vrai booleen, comme une case a cocher.
       else if (c.dataset.sousType === "booleen") o[k] = c.value === "true";
@@ -1145,13 +1139,15 @@ function lireFormulaire(racine = "#config-formulaire", origine = STRUCTURES_ORIG
       o[k] = c.value;
     }
   });
-  // Un bloc dont il ne reste rien (sous-blocs vides compris) vaut « rien ».
+  // Un bloc dont il ne reste rien (sous-blocs vides compris) vaut « rien » ;
+  // une case ou un sous-bloc vide s'efface (`null`) : le moteur garde ce
+  // qu'une structure ne dit pas, il efface ce qu'elle dit nul.
   const vide = (x) => x === "" || x == null ||
     (typeof x === "object" && !Array.isArray(x) && Object.values(x).every(vide));
   types.forEach((p) => {
     if (d[p] && typeof d[p] === "object") {
-      Object.keys(d[p]).forEach((k) => { if (vide(d[p][k])) delete d[p][k]; });
-      if (!Object.keys(d[p]).length) d[p] = null;
+      if (Object.values(d[p]).every(vide)) d[p] = null;
+      else Object.keys(d[p]).forEach((k) => { if (vide(d[p][k])) d[p][k] = null; });
     }
   });
   // LES LISTES (licences, etablissements). Une ligne entierement vide ne
@@ -1255,7 +1251,7 @@ function marquerModifie() {
  * n'est pas créée, une fiche existante reste telle qu'elle est enregistrée.
  * La fiche Entreprise n'a pas de liste où revenir : Annuler y reprend ce
  * qui est enregistré, et ne se montre que si l'on a changé quelque chose.
- * C'est le « Abandonner les modifications » de `quitterLaFiche`, demandé
+ * C'est le « Annuler les changements » de `quitterLaFiche`, demandé
  * d'un geste : il ne redemande pas. */
 function annulerFiche() {
   FICHE_MODIFIEE = false;
@@ -1268,51 +1264,59 @@ function annulerFiche() {
   dessinerConfig();
 }
 
-/** Appelee avant de quitter la fiche en cours. Rend `true` si on peut
- *  partir. Trois issues : enregistrer et partir, partir quand meme, rester. */
-async function quitterLaFiche() {
-  if (!FICHE_MODIFIEE || ficheIdentique()) return true;
-  const fiche = FICHE_COURANTE;
+/** LA BOÎTE DES CHANGEMENTS NON ENREGISTRÉS, la même partout (une fiche,
+ *  « Pour démarrer ») : « enregistrer », « jeter », ou « rester » quand on
+ *  la ferme d'un clic à côté. La boîte ouverte dessous (celle de
+ *  l'ouverture) est mise de côté, et revient sauf si l'on jette. */
+async function demanderSiEnregistrer() {
+  const rendre = mettreDeCote();
   const choix = await new Promise((resoudre) => {
     let repondu = false;
     const repondre = (v) => { if (!repondu) { repondu = true; resoudre(v); } };
-    ouvrirBoite(`<h3>Vous avez modifié cette fiche</h3>
+    ouvrirBoite(`<h3>Changements non enregistrés</h3>
       <p>Vos changements ne sont pas encore enregistrés.</p>
       <div class="actions">
-        <button class="primaire" id="q-enregistrer">Enregistrer</button>
-        <button class="secondaire" id="q-jeter">Abandonner les modifications</button>
-        <button class="secondaire" id="q-rester">Rester sur la fiche</button>
+        <button class="primaire" id="q-enregistrer">Enregistrer les changements</button>
+        <button class="secondaire" id="q-jeter">Annuler les changements</button>
       </div>`, () => repondre("rester"));
-    // REPONDRE D'ABORD, FERMER ENSUITE. Dans l'autre ordre,
-    // `fermerBoite` appelait le rappel de fermeture -- « rester » -- avant le
-    // bouton : les trois boutons valaient « Rester sur la fiche ».
+    // REPONDRE D'ABORD, FERMER ENSUITE : dans l'autre ordre, `fermerBoite`
+    // appellerait le rappel de fermeture -- « rester » -- avant le bouton.
     document.getElementById("q-enregistrer").onclick = () => { repondre("enregistrer"); fermerBoite(); };
     document.getElementById("q-jeter").onclick = () => { repondre("jeter"); fermerBoite(); };
-    document.getElementById("q-rester").onclick = () => { repondre("rester"); fermerBoite(); };
   });
+  if (rendre && choix !== "jeter") rendre();
+  return choix;
+}
+
+/** Appelee avant de quitter la fiche en cours (et « Pour démarrer », qui
+ *  s'y peint en tête). Rend `true` si on peut partir. */
+async function quitterLaFiche() {
+  if (!FICHE_MODIFIEE || ficheIdentique()) return quitterDemarrage();
+  const fiche = FICHE_COURANTE;
+  const choix = await demanderSiEnregistrer();
   if (choix === "rester") return false;
   if (choix === "jeter") {
     // La fiche redevient celle de l'entree : on la redessine depuis ce qui
     // est enregistre, sinon la saisie abandonnee resterait dans les cases.
     if (fiche) dessinerFormulaire(fiche);
     FICHE_MODIFIEE = false;
-    return true;
+    return quitterDemarrage();
   }
   if (fiche) await enregistrerFiche(fiche);
   // Enregistrer peut avoir ete annule (la boite des valeurs datees) : dans
   // ce cas la fiche est toujours modifiee, et on ne part pas.
-  return !FICHE_MODIFIEE;
+  return !FICHE_MODIFIEE && quitterDemarrage();
 }
 
 /* LA VÉRIFICATION PENDANT LA FRAPPE. Le texte sous chaque case suit ce qu'on
- * tape : « obligatoire » s'efface sous un SIRET valide, un SIRET faux dit
- * pourquoi. Aucun message volant à chaque frappe : la case parle. */
+ * tape : un SIRET faux dit pourquoi, et la note s'efface quand il est juste.
+ * Aucun message volant à chaque frappe : la case parle. */
 async function verifierFormulaire() {
   const r = await api("verifier-fiche",
     { nom: FICHE_ACTIVE, donnees: lireFormulaire() });
   const anomalies = r.anomalies;
   document.querySelectorAll("#config-formulaire [data-cle]").forEach((c) => {
-    const a = anomalies.find((x) => x.champ === c.dataset.cle && !aRemplir(x));
+    const a = anomalies.find((x) => x.champ === c.dataset.cle);
     c.classList.toggle("faute", !!a && a.gravite === "erreur");
     c.classList.toggle("suspect", !!a && a.gravite === "avertissement");
     const champ = c.closest(".champ");
@@ -1324,23 +1328,14 @@ async function verifierFormulaire() {
     note.textContent = a.message;
   });
   // UNE VALEUR FAUSSE SE VOIT : le tiroir « Avancé » qui en tient une
-  // s'ouvre de lui-même — rien à corriger ne reste replié hors de la vue. Une
-  // case seulement vide n'ouvre rien : celles du tiroir se remplissent seules
-  // (le matricule et l'ancienneté à l'enregistrement, les codes par le métier,
-  // qui se dit sur sa liste : `enregistrerFiche`).
+  // s'ouvre de lui-même — rien à corriger ne reste replié hors de la vue.
   document.querySelectorAll("#config-formulaire details.avance:not([open])").forEach((d) => {
     const fautif = [...d.querySelectorAll("[data-cle]")].some((c) => c.type !== "hidden"
-      && anomalies.some((x) => x.champ === c.dataset.cle && x.gravite === "erreur" && !aRemplir(x)));
+      && anomalies.some((x) => x.champ === c.dataset.cle && x.gravite === "erreur"));
     if (fautif) d.open = true;
   });
   appliquerSuggestions(r.suggestions || {});
   return anomalies;
-}
-
-/** Une case obligatoire laissée vide : l'astérisque suffit à l'écran, le
- *  refus d'enregistrer la nommera. */
-function aRemplir(a) {
-  return !!a && a.gravite === "erreur" && a.message === "obligatoire";
 }
 
 /*  ENREGISTRER UNE FICHE : DATER CE QUI CHANGE
@@ -1503,7 +1498,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
       }
       return ecrireFiche(fiche, donnees, { ...réponse, confirme: true }, forcer);
     }
-    ETAT = await api("etat");
+    await relireEtat();
     // Une fiche neuve : le moteur a fabriqué sa clé, c'est elle qu'on ouvre.
     if (!fiche.cle && r.cle) { CLE_ACTIVE = r.cle; FICHE_NEUVE = false; }
     dire(r.phrase);
@@ -1540,24 +1535,12 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
       // Le libellé du champ, pas sa clé technique (« numero_objet »).
       const libelles = {};
       (ETAT.configuration.description[FICHE_ACTIVE] || []).forEach((c) => { libelles[c.cle] = c.libelle; });
-      let erreurs = e.detail.anomalies.filter((a) => a.gravite === "erreur");
-      // Les codes d'un métier qu'on n'a pas choisi manquent tous ensemble :
-      // une ligne, « Métier : à choisir », plutôt que quatre codes.
-      // Sans métier choisi, un seul code qui manque se dit aussi « Métier » :
-      // ces codes ne se tapent pas, ils viennent du métier.
-      const sansMetier = !(document.getElementById("config-metier-choix") || {}).value;
-      const duMetier = erreurs.filter((a) => CHAMPS_DU_METIER.includes(a.champ) && aRemplir(a));
-      if (duMetier.length > 1 || (duMetier.length && sansMetier)) {
-        erreurs = erreurs.filter((a) => !duMetier.includes(a));
-        erreurs.unshift({ champ: "Métier", message: "à choisir dans la liste" });
-      }
-      // LE MOTEUR DIT CE QUI SE FORCE : une erreur de forme
-      // (`forcable`), oui ; une valeur obligatoire absente d'un salarié ou d'un
-      // spectacle (son métier…), non — sans elle, ni DPAE ni DSN.
-      const enErreur = e.detail.anomalies.filter((a) => a.gravite === "erreur");
-      const forcable = enErreur.every((a) => a.forcable !== false);
+      const erreurs = e.detail.anomalies.filter((a) => a.gravite === "erreur");
+      // LE MOTEUR DIT CE QUI SE FORCE : une erreur de forme (`forcable`), oui ;
+      // une case qu'une structure ne décrit pas, non.
+      const forcable = erreurs.every((a) => a.forcable !== false);
       // Ce que le moteur dit de ces erreurs (`pourquoi`) : celles qui bloquent si l'une bloque, sinon celles qui se forcent.
-      const pourquoi = [...new Set(enErreur.filter((a) => forcable || a.forcable === false).map((a) => a.pourquoi).filter(Boolean))];
+      const pourquoi = [...new Set(erreurs.filter((a) => forcable || a.forcable === false).map((a) => a.pourquoi).filter(Boolean))];
       // Le libellé et son message sur une ligne : `.encart b` est un titre.
       ouvrirBoite(`<h3>Enregistrement refusé</h3>
         <div class="encart erreur"><b>${erreurs.length > 1 ? `${erreurs.length} erreurs` : "Une erreur"}</b>

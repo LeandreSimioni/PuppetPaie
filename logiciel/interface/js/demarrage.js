@@ -23,6 +23,17 @@ function lectureDe(o, route) {
   return structuredClone(lireReponse(o.lectures[route]));
 }
 
+/** L'état lu (`etat`), et le bandeau qui le dit : le seul endroit où la page
+ *  le pose, pour que le bandeau ne parle jamais d'un état d'avant. */
+function poserEtat(etat) {
+  ETAT = etat;
+  peindreEtatGlobal();
+  return ETAT;
+}
+async function relireEtat() {
+  return poserEtat(await api("etat"));
+}
+
 /** Le bandeau : les erreurs de configuration et les compteurs. */
 function peindreEtatGlobal() {
   // Une option VIDE en tete, et c'est elle le defaut. Un deroulant montre
@@ -61,8 +72,7 @@ async function demarrer() {
     o = await appelerMoteur("ouverture", { patienter: 400 });
   }
   AUJOURDHUI = o.aujourdhui || "";
-  ETAT = lectureDe(o, "etat");
-  peindreEtatGlobal();
+  poserEtat(lectureDe(o, "etat"));
   dessinerVeille(o.veille);
   try { dessinerPastilleReponses(lireReponse(o.signalements)); } catch (e) { /* la pastille est un plus */ }
   if (window.miseAJourMontrer) window.miseAJourMontrer(o.maj);

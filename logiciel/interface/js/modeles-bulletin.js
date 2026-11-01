@@ -61,7 +61,7 @@ async function dessinerModelesBulletin(cible) {
         await api("bulletin-modele-choisir", { modele: b.dataset.choisir });
         // La fiche Entreprise garde la case (cachée) : la configuration relue, un enregistrement de la
         // fiche ne la remet pas à l'ancienne valeur.
-        ETAT.configuration = await api("configuration", {});
+        ETAT.configuration = await api("configuration", {}); peindreEtatGlobal();
         await dessinerModelesBulletin(cible);
       } catch (e) {
         b.disabled = false;
