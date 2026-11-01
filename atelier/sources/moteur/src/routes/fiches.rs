@@ -33,7 +33,7 @@ use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
 const NOM_FICHE: Champ = Champ { nom: "nom", sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
 const CLE_FICHE: Champ = Champ { nom: "cle", sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
-const DONNEES: Champ = Champ { nom: "donnees", sens: "les cases de la fiche ; à l'écriture, une case non donnée garde sa valeur, une structure s'écrit entière", avance: false };
+const DONNEES: Champ = Champ { nom: "donnees", sens: "les cases de la fiche ; à l'écriture, une case non donnée garde sa valeur, aussi dans une structure ; null l'efface", avance: false };
 pub(crate) const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
 const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
@@ -734,14 +734,10 @@ pub(crate) fn verifier(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>>
 /// la DSN imprime en minuscules (« 3 quai de la Fosse ») « doit etre en MAJUSCULES » sous sa forme lisible,
 /// alors que l'ecriture le declare bien en majuscules.
 ///
-/// Le matricule d'un salarie neuf que la piece ne donne pas, l'ecriture le pose (le suivant, `ecrire_fiche`) : son
-/// absence n'est pas une anomalie a montrer. Chaque anomalie porte le libelle de sa case (`libelle`), celui que la
+/// Chaque anomalie porte le libelle de sa case (`libelle`), celui que la
 /// fiche montre : la page le dit a l'utilisateur, pas la cle.
 pub(crate) fn verifier_comme_a_l_ecriture(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> {
     let mut copie = donnees.clone();
-    if nom == "salarie" && copie.get("code_salarie").is_none_or(|v| !vrai(v)) {
-        copie.insert("code_salarie".into(), json!("1"));
-    }
     deriver(nom, &mut copie, true)?;
     let mut anomalies = champs::verifier_fiche(nom, &copie)?;
     avec_libelles(nom, &mut anomalies)?;
@@ -845,9 +841,52 @@ fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
     json!({"declarations": fichiers, "du": mois.iter().min(), "au": mois.iter().max()})
 }
 
+/// LA CHARGE D'UNE ECRITURE DE FICHE, completee de la fiche `ancienne` : les cles internes (`_...`) qu'elle ne dit pas,
+/// et, dans chaque structure qu'elle nomme (le signataire, la banque...), les cases qu'elle ne dit pas. Une case se
+/// remplit par sa valeur et s'efface par `null` ; son absence la laisse telle qu'elle est (`{"signataire": {"fonction":
+/// "Présidente"}}` garde le prenom et le nom). Une structure entiere a `null` s'efface.
+pub(crate) fn charge_completee(ancienne: &Value, neuve: &Value) -> Value {
+    let (Value::Object(a), Value::Object(n)) = (ancienne, neuve) else { return neuve.clone() };
+    let mut sortie = n.clone();
+    for (k, v) in a {
+        if k.starts_with('_') && !sortie.contains_key(k) {
+            sortie.insert(k.clone(), v.clone());
+        } else if let Some(dedans) = sortie.get(k).cloned() {
+            sortie.insert(k.clone(), structure_completee(v, &dedans));
+        }
+    }
+    Value::Object(sortie)
+}
+
+/// Une structure de la charge, completee de celle de la fiche (`charge_completee`).
+fn structure_completee(ancienne: &Value, neuve: &Value) -> Value {
+    match (ancienne, neuve) {
+        (Value::Object(a), Value::Object(n)) => {
+            let mut sortie = a.clone();
+            for (k, x) in n {
+                match (x, sortie.get(k)) {
+                    (Value::Null, _) => {
+                        sortie.shift_remove(k);
+                    }
+                    (_, Some(avant)) => {
+                        let x = structure_completee(avant, x);
+                        sortie.insert(k.clone(), x);
+                    }
+                    (_, None) => {
+                        sortie.insert(k.clone(), structure_completee(&Value::Null, x));
+                    }
+                }
+            }
+            Value::Object(sortie)
+        }
+        (_, Value::Object(n)) => Value::Object(n.iter().filter(|(_, x)| !x.is_null()).map(|(k, x)| (k.clone(), structure_completee(&Value::Null, x))).collect()),
+        _ => garder_notes_internes(ancienne, neuve),
+    }
+}
+
 /// `garder_notes_internes` : `neuve`, augmentee des cles internes (`_...`) de
 /// `ancienne`. Les listes se recollent par rang, a longueur egale seulement.
-pub(crate) fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
+fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
     match (ancienne, neuve) {
         (Value::Object(a), Value::Object(n)) => {
             let mut sortie = n.clone();
@@ -893,7 +932,7 @@ fn avertissement_de_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees:
 /// dont l'enregistrement exigera la date d'effet. Un champ declare dit aussi ce que sa valeur sortante a deja servi a
 /// declarer.
 pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Map<String, Value>, cases_vides: bool) -> R<Vec<Value>> {
-    let Value::Object(mut donnees) = garder_notes_internes(ancienne, &Value::Object(copie)) else { unreachable!() };
+    let Value::Object(mut donnees) = charge_completee(ancienne, &Value::Object(copie)) else { unreachable!() };
     deriver(nom, &mut donnees, true)?;
     let Value::Object(anc) = ancienne else {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(ancienne))));
@@ -1442,9 +1481,8 @@ pub(crate) fn ecrire_datee(
 pub(crate) enum Forcer {
     /// Rien : une erreur refuse la fiche.
     Rien,
-    /// Ce que l'ecran peut forcer (« Enregistrer quand meme ») : une erreur de forme (`forcable`), jamais une valeur
-    /// obligatoire absente d'un salarie ou d'un spectacle, sans laquelle la DPAE et la DSN ne se font pas (
-    /// `champs::verifier_fiche`).
+    /// Ce que l'ecran peut forcer (« Enregistrer quand meme ») : une erreur de forme (`forcable`), jamais une case
+    /// qu'une structure ne decrit pas (`champs::cases_inconnues`).
     Forme,
     /// Tout : l'import et le questionnaire du salarie posent une fiche a completer, qui le dit (« A COMPLETER »).
     Tout,
@@ -1545,8 +1583,8 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
         let magasin = if nom == "salarie" { &ctx.salaries } else { &ctx.spectacles };
         cle.as_deref().and_then(|k| magasin.get(k)).unwrap_or(&vide)
     };
-    // Les notes internes que l'ecran n'a pas vues sont rendues a la fiche AVANT tout le reste.
-    let Value::Object(mut donnees) = crate::routes::fiches::garder_notes_internes(ancienne, donnees) else { unreachable!() };
+    // Ce que la charge ne dit pas (les notes internes, les cases d'une structure) reste ce qu'il est, avant tout le reste.
+    let Value::Object(mut donnees) = charge_completee(ancienne, donnees) else { unreachable!() };
     coercer_booleens(nom, &mut donnees)?;
 
     // LE MATRICULE D'UN SALARIE SANS NIR NE SE CHANGE PAS : il finit son numero technique temporaire.
@@ -1624,7 +1662,7 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
     crate::routes::fiches::deriver(nom, &mut donnees, true)?;
 
     // UNE CHARGE PARTIELLE ne change que les champs qu'elle nomme : les autres gardent leur valeur (`ecrire_datee` n'ecrit
-    // que ceux-la), et la fiche se verifie entiere, telle qu'elle sera. Une structure s'ecrit entiere.
+    // que ceux-la), et la fiche se verifie entiere, telle qu'elle sera.
     let mut entiere = donnees.clone();
     if let Value::Object(a) = ancienne {
         for (k, v) in a {
@@ -1632,9 +1670,6 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         }
     }
     let mut anomalies = crate::routes::fiches::verifier(nom, &entiere)?;
-    // Une case vide que l'ecriture ne touche pas ne la refuse pas : on remplit une fiche case par case (« Pour
-    // demarrer »), et l'acte qui l'exige la refuse a son heure (`exige_par`).
-    anomalies.retain(|a| !(a["message"] == json!("obligatoire") && a["champ"].as_str().is_some_and(|c| !donnees.contains_key(c))));
     anomalies.extend(champs::cases_inconnues(nom, &donnees, ancienne)?);
     if forcer.refuse(&anomalies) {
         return Err(fiche_refusee(&anomalies));

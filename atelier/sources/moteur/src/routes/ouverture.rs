@@ -474,8 +474,8 @@ fn configuration(ctx: &Contexte) -> R<Value> {
         .iter()
         .map(|(k, v)| fiche_verifiee("spectacle", Some(k), &avec_historique(v, ctx.spectacle_brut(k))?))
         .collect::<R<Vec<_>>>()?;
-    // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre (orange) : une valeur a corriger, ou un
-    // champ obligatoire vide, a remplir -- les memes que la pastille de chaque fiche.
+    // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre (orange) : une valeur saisie et fausse,
+    // les memes que la pastille de chaque fiche. Une case vide n'en est jamais une : ce qu'un acte exige, « Pour demarrer » le dit.
     let erreurs = std::iter::once(&entreprise)
         .chain(salaries.iter())
         .chain(spectacles.iter())

@@ -58,7 +58,6 @@ pub struct Champ {
     pub libelle: String,
     pub forme: String,
     pub aide: String,
-    pub obligatoire: bool,
     pub longueur: Option<i64>,
     pub exemple: String,
     pub choix: Vec<Value>,
@@ -107,7 +106,6 @@ impl Champ {
             libelle: texte("libelle"),
             forme: texte("forme"),
             aide: texte("aide"),
-            obligatoire: drapeau("obligatoire", false),
             longueur: v.get("longueur").and_then(Value::as_i64),
             exemple: texte("exemple"),
             choix: v.get("choix").and_then(Value::as_array).cloned().unwrap_or_default(),
@@ -135,7 +133,7 @@ impl Champ {
     fn description(&self) -> Value {
         let mut d = json!({
             "cle": self.cle, "libelle": self.libelle, "forme": self.forme,
-            "aide": self.aide, "obligatoire": self.obligatoire,
+            "aide": self.aide,
             "longueur": self.longueur, "exemple": self.exemple, "choix": self.choix,
             "declare": self.declare, "forme_libelle": forme_libelle(&self.forme),
             "calcule": self.calcule(), "derive_de": self.derive_de,
@@ -986,7 +984,8 @@ fn courriel_valide(v: &str) -> bool {
     (1..domaine.len().saturating_sub(1)).any(|i| domaine[i] == '.')
 }
 
-/// `verifier_champ` : un message si le champ est fautif, sinon `None`.
+/// `verifier_champ` : un message si la valeur saisie est fautive, sinon `None`. Une case vide n'est pas une faute : ce
+/// qu'un acte exige, il le dit a son heure (`exige_par`, `refus_des_manques`).
 fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     let vide = match valeur {
         None | Some(Value::Null) => true,
@@ -994,7 +993,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
         _ => false,
     };
     if vide {
-        return Ok(if c.obligatoire { Some("obligatoire".into()) } else { None });
+        return Ok(None);
     }
     if c.cle == "banque" {
         return Ok(match valeur {
@@ -1193,13 +1192,8 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         // pas encore immatricule, sous son numero technique temporaire, qui
         // commence par le sexe.
         let sexe_saisi = strip(&texte_de(d, "sexe")?).to_string();
-        if nir.is_empty() && sexe_saisi.is_empty() {
-            out.push(anomalie(
-                "sexe",
-                "erreur",
-                "obligatoire tant que le NIR manque : sans NIR ni NIA, la norme declare le salarie sous un numero technique temporaire (S21.G00.30.020) qui commence par le code sexe. Le reste -- le SIREN, le matricule -- le moteur l'a deja.",
-            ));
-        } else if nir.is_empty() {
+        // Le sexe qu'il faut alors, la DPAE et la DSN l'exigent a leur heure (`exige_par`, `exige_si` du champ `sexe`).
+        if nir.is_empty() {
             out.push(anomalie(
                 "nir",
                 "avertissement",
@@ -1364,20 +1358,16 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         // a lui reprocher le travail de la machine. On pointe la forme
         // lisible, qui est ce qu'il peut corriger.
         if c.calcule() {
-            let message = if msg == "obligatoire" { msg } else { format!("{} (la forme declaree, « {} », s'en deduit)", msg, c.libelle) };
+            let message = format!("{} (la forme declaree, « {} », s'en deduit)", msg, c.libelle);
             anomalies.push(anomalie(c.derive_de.as_deref().unwrap_or(""), "erreur", message));
         } else {
             anomalies.push(anomalie(&c.cle, "erreur", msg));
         }
     }
     anomalies.extend(controles_croises(nom, &donnees)?);
-    // CE QUI MANQUE A UN SALARIE OU A UN SPECTACLE NE SE FORCE PAS. Une regle de forme peut se tromper et la valeur
-    // etre juste : son erreur se passe outre a l'ecran (`forcable`). Une valeur obligatoire absente, non : le metier d'un
-    // salarie (ses codes emploi, PCS-ESE, statut), son nom, sa naissance, son adresse, le numero d'objet d'un spectacle
-    // partent dans la DPAE et la DSN, qui ne se font pas sans eux, et rien ne se devine (regle 1). La fiche entreprise se
-    // remplit en plusieurs fois (« Pour demarrer » dit ce qui manque) : ses manques restent forcables.
+    // UNE REGLE DE FORME PEUT SE TROMPER et la valeur etre juste : son erreur se passe outre a l'ecran (`forcable`).
     // CE QUE L'ECRAN DIT D'UNE ERREUR, d'apres le champ : s'il part dans une declaration (`declare` ; un champ lisible,
-    // par la forme declaree qui s'en deduit), et s'il se force.
+    // par la forme declaree qui s'en deduit).
     let mut declares: std::collections::HashMap<&str, bool> = std::collections::HashMap::new();
     for c in &champs {
         for cle in [Some(c.cle.as_str()), c.derive_de.as_deref().filter(|d| !d.is_empty())].into_iter().flatten() {
@@ -1385,23 +1375,21 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         }
     }
     for a in anomalies.iter_mut() {
-        let manque = a["gravite"] == "erreur" && a["message"] == "obligatoire" && nom != "entreprise";
-        a["forcable"] = json!(!manque);
+        a["forcable"] = json!(true);
         let declare = a["champ"].as_str().and_then(|k| declares.get(k)).copied().unwrap_or(false);
-        a["pourquoi"] = json!(match (manque, declare) {
-            (true, true) => "Sans ces valeurs, ni la DPAE ni la DSN ne peuvent se faire : elles se remplissent avant d'enregistrer.",
-            (true, false) => "Ces valeurs se remplissent avant d'enregistrer.",
-            (false, true) => "Ces champs partent dans des déclarations. Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir.",
-            (false, false) => "Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir.",
+        a["pourquoi"] = json!(if declare {
+            "Ces champs partent dans des déclarations. Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir."
+        } else {
+            "Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir."
         });
     }
-    // Une fiche mise de cote ne doit pas crier. Ses manques restent visibles --
-    // et redeviennent bloquants a la reactivation, ce que le message dit.
+    // Une fiche mise de cote ne doit pas crier. Ses fautes restent visibles --
+    // et redeviennent des erreurs a la reactivation, ce que le message dit.
     if donnees.get("actif") == Some(&Value::Bool(false)) {
         for a in anomalies.iter_mut() {
             if a["gravite"] == "erreur" {
                 a["gravite"] = json!("avertissement");
-                let m = format!("{} (fiche inactive : a completer avant toute paie)", a["message"].as_str().unwrap_or(""));
+                let m = format!("{} (fiche inactive : a corriger avant toute paie)", a["message"].as_str().unwrap_or(""));
                 a["message"] = json!(m);
             }
         }
