@@ -1296,6 +1296,7 @@
    "_note": "CE CHAMP EST CELUI QU'ON NE PEUT PAS DEVINER, et celui qui manque le\nplus souvent a une premiere embauche. Son aide dit donc aussi quoi\nfaire quand il n'y en a pas encore -- c'est la question qui se pose\nvraiment, et la reponse de la norme n'est pas celle qu'on croit.",
    "cle": "nir",
    "libelle": "Numéro de sécurité sociale",
+   "sinon": "la DPAE et la DSN le déclarent par un numéro temporaire, avec son sexe",
    "forme": "chiffres",
    "aide": "Les 13 premiers chiffres, sur la carte Vitale ou l'attestation de droits ; les deux derniers vont dans la case « Clé ». Collez les 15 d'un coup : ils se répartissent. Pas encore immatriculé : le numéro d'attente (NIA) notifié par la caisse. Ni l'un ni l'autre : laisser vide, jamais de numéro inventé — le logiciel déclare alors un numéro temporaire, et demande le sexe à la place.",
    "longueur": 13,
@@ -2356,6 +2357,7 @@
   {
    "cle": "numero_objet",
    "libelle": "Numéro d'objet",
+   "sinon": "la DSN déclare ses contrats sans numéro d'objet",
    "forme": "texte",
    "aide": "France Travail en délivre un NOUVEAU chaque année : 216Z... = 2021, 266Z... = 2026. Celui d'une nouvelle année se pose par « Numéro 2027… » sur la ligne du spectacle, pas ici : ici, on corrige une faute de frappe.",
    "longueur": 12,

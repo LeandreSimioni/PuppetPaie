@@ -230,6 +230,14 @@ pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
     Ok(out)
 }
 
+/// LA CASE `cle` DE LA FICHE `nom` SERT-ELLE A UN ACTE ? Elle, ou le champ declare qui se deduit d'elle (`derive_de`),
+/// porte `exige_par` ou `sinon` : la meme liste que `manquants`. Le questionnaire du salarie n'en pose pas d'autre.
+pub fn utile(nom: &str, cle: &str) -> bool {
+    fiche(nom).is_ok_and(|t| {
+        t.iter().any(|c| (c.cle == cle || c.derive_de.as_deref() == Some(cle)) && (!c.exige_par.is_empty() || !c.sinon.is_empty()))
+    })
+}
+
 /// LE REFUS D'UN ACTE quand une fiche qu'il lit n'a pas ce qu'il exige (`exige_par`) : tout ce qui manque, d'un coup,
 /// fiche par fiche. `fiches` : (`entreprise` ou `salarie`, qui, la fiche) ; `sauf` : les cases qu'un fait de l'acte ne demande
 /// pas. `None` : rien ne manque.

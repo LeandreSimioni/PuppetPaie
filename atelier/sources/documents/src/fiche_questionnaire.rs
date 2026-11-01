@@ -47,32 +47,36 @@ pub fn code_fiche() -> String {
     code_au_hasard("FIC-")
 }
 
-/// Les questions : (cle de la reponse, libelle, facultatif).
-pub const QUESTIONS: [(&str, &str, bool); 15] = [
-    ("prenom", "Prénom", false),
-    ("nom", "Nom de famille (de naissance)", false),
-    ("naissance", "Date de naissance (JJ/MM/AAAA)", false),
-    ("lieu", "Commune de naissance", false),
-    ("pays", "Pays de naissance", false),
-    ("nationalite", "Nationalité", false),
-    ("nir", "Numéro de sécurité sociale (15 chiffres)", false),
-    ("sexe", "Sans numéro de sécurité sociale : femme ou homme ?", true),
-    ("adresse", "Adresse (numéro et rue)", false),
-    ("code_postal", "Code postal", false),
-    ("commune", "Commune", false),
-    ("conges", "Numéro Congés Spectacles", true),
-    ("anniversaire", "Date anniversaire de vos droits France Travail (JJ/MM/AAAA)", true),
-    // Le compte ou le salaire est vire ; le BIC est facultatif (reglement (UE) 260/2012, art. 5, 7 :
-    // `atelier/reference/sources/iban/eurlex-reglement-260-2012-sepa-20261029.txt`, l. 459).
-    ("iban", "IBAN (le compte où verser le salaire, sur le RIB)", false),
-    ("bic", "BIC (sur le même RIB)", true),
+/// Les questions que le questionnaire sait lire : (cle de la reponse, libelle, case de la fiche salarie qu'elle remplit).
+/// Ne se posent que celles dont la case sert a un acte (`posees`) : la liste de `champs-base.json` (`exige_par`, `sinon`).
+pub const QUESTIONS: [(&str, &str, &str); 15] = [
+    ("prenom", "Prénom", "prenom_affichage"),
+    ("nom", "Nom de famille (de naissance)", "nom_affichage"),
+    ("naissance", "Date de naissance (JJ/MM/AAAA)", "date_naissance"),
+    ("lieu", "Commune de naissance", "lieu_naissance_affichage"),
+    ("pays", "Pays de naissance", "pays_naissance"),
+    ("nationalite", "Nationalité", "code_nationalite_dsn"),
+    ("nir", "Numéro de sécurité sociale (15 chiffres)", "nir"),
+    ("sexe", "Sans numéro de sécurité sociale : femme ou homme ?", "sexe"),
+    ("adresse", "Adresse (numéro et rue)", "adresse_affichage"),
+    ("code_postal", "Code postal", "code_postal"),
+    ("commune", "Commune", "commune_affichage"),
+    ("conges", "Numéro Congés Spectacles", "num_conges_spectacles"),
+    ("anniversaire", "Date anniversaire de vos droits France Travail (JJ/MM/AAAA)", "anniversaire_droits"),
+    ("iban", "IBAN (le compte où verser le salaire, sur le RIB)", "banque"),
+    ("bic", "BIC (sur le même RIB)", "banque"),
 ];
+
+/// Les questions posees : celles dont la case sert a un acte (`utile`, que l'appelant lit dans `champs-base.json`).
+pub fn posees(utile: &dyn Fn(&str) -> bool) -> Vec<(&'static str, &'static str)> {
+    QUESTIONS.iter().filter(|(_, _, case)| utile(case)).map(|(cle, lib, _)| (*cle, *lib)).collect()
+}
 
 pub const SUJET: &str = "Ta fiche pour {compagnie}";
 
-pub const CORPS: &str = "Bonjour{virgule_prenom},\n\nPour préparer ton contrat, {compagnie} a besoin de quelques informations sur toi.\n\nLe plus simple : appuie sur le bouton « Remplir ma fiche » de ce message. Une réponse s'ouvre avec les questions ; écris chaque réponse après les deux-points, puis envoie-la. Les lignes marquées « facultatif » peuvent rester vides.\n\nSi ta messagerie n'affiche pas le bouton, réponds simplement à ce message en recopiant les lignes ci-dessous, avec tes réponses :\n\n{questionnaire}\n\nCes informations servent à tes contrats, à tes bulletins et aux déclarations obligatoires (Urssaf, France Travail, Audiens). Elles restent chez {compagnie}.\n\nBien à toi,\n{signataire}\n{compagnie}\n";
+pub const CORPS: &str = "Bonjour{virgule_prenom},\n\nPour préparer ton contrat, {compagnie} a besoin de quelques informations sur toi.\n\nLe plus simple : appuie sur le bouton « Remplir ma fiche » de ce message. Une réponse s'ouvre avec les questions ; écris chaque réponse après les deux-points, puis envoie-la. Une question dont tu n'as pas la réponse reste vide.\n\nSi ta messagerie n'affiche pas le bouton, réponds simplement à ce message en recopiant les lignes ci-dessous, avec tes réponses :\n\n{questionnaire}\n\nCes informations servent à tes contrats, à tes bulletins et aux déclarations obligatoires (Urssaf, France Travail, Audiens). Elles restent chez {compagnie}.\n\nBien à toi,\n{signataire}\n{compagnie}\n";
 
-pub const HTML: &str = "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#2C3E50\">\n<p>Bonjour{virgule_prenom},</p>\n<p>Pour préparer ton contrat, {compagnie} a besoin de quelques informations sur toi.</p>\n<p>Appuie sur le bouton : une réponse s'ouvre avec les questions. Écris chaque réponse après les deux-points, puis envoie-la. Les lignes marquées « facultatif » peuvent rester vides.</p>\n<p style=\"margin:26px 0\">\n<a href=\"{mailto}\" style=\"display:inline-block;background:#B22222;color:#ffffff;padding:14px 26px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px\">Remplir ma fiche</a>\n</p>\n<p style=\"font-size:13px;color:#555\">Si le bouton ne fait rien, réponds simplement à ce message en recopiant ces lignes avec tes réponses :</p>\n<pre style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f4f4f4;padding:12px\">{questionnaire}</pre>\n<p>Ces informations servent à tes contrats, à tes bulletins et aux déclarations obligatoires (Urssaf, France Travail, Audiens). Elles restent chez {compagnie}.</p>\n<p>Bien à toi,<br>{signataire}<br>{compagnie}</p>\n</div>\n";
+pub const HTML: &str = "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#2C3E50\">\n<p>Bonjour{virgule_prenom},</p>\n<p>Pour préparer ton contrat, {compagnie} a besoin de quelques informations sur toi.</p>\n<p>Appuie sur le bouton : une réponse s'ouvre avec les questions. Écris chaque réponse après les deux-points, puis envoie-la. Une question dont tu n'as pas la réponse reste vide.</p>\n<p style=\"margin:26px 0\">\n<a href=\"{mailto}\" style=\"display:inline-block;background:#B22222;color:#ffffff;padding:14px 26px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px\">Remplir ma fiche</a>\n</p>\n<p style=\"font-size:13px;color:#555\">Si le bouton ne fait rien, réponds simplement à ce message en recopiant ces lignes avec tes réponses :</p>\n<pre style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f4f4f4;padding:12px\">{questionnaire}</pre>\n<p>Ces informations servent à tes contrats, à tes bulletins et aux déclarations obligatoires (Urssaf, France Travail, Audiens). Elles restent chez {compagnie}.</p>\n<p>Bien à toi,<br>{signataire}<br>{compagnie}</p>\n</div>\n";
 
 /// Les nationalites (adjectifs) : (mot sans accent, code ISO du pays). La fiche garde le pays (`pays_nationalite`) ;
 /// la codification UE s'en deduit (`codification_ue::code_du_pays`).
@@ -144,10 +148,11 @@ const NATIONALITES: [(&str, &str); 60] = [
 /// (`code_nationalite_dsn`) ne s'en deduit pas, l'administrateur la choisit.
 const NATIONALITES_HORS_LISTE: [(&str, &str); 3] = [("kosovare", "Kosovo"), ("kosovar", "Kosovo"), ("kosovo", "Kosovo")];
 
-/// `questionnaire` : ce que le bouton prepare. Les questions, puis le code, en DERNIER, sur sa ligne ; la releve le
-/// cherche dans ce que la personne a ecrit, avant la citation.
-pub fn questionnaire(code: &str) -> String {
-    let mut lignes: Vec<String> = QUESTIONS.iter().map(|(_, lib, fac)| format!("{}{} : ", lib, if *fac { " (facultatif)" } else { "" })).collect();
+/// `questionnaire` : ce que le bouton prepare. Les questions `posees`, chacune suivie de sa reponse (vide pour la
+/// demande ; la personne fictive y met la sienne), puis le code, en DERNIER, sur sa ligne ; la releve le cherche dans
+/// ce que la personne a ecrit, avant la citation.
+pub fn questionnaire(code: &str, posees: &[(&str, &str)], reponse: &dyn Fn(&str) -> String) -> String {
+    let mut lignes: Vec<String> = posees.iter().map(|(cle, lib)| format!("{} : {}", lib, reponse(cle))).collect();
     lignes.push(String::new());
     lignes.push(format!("Code (ne pas modifier) : {}", code));
     lignes.join("\n")
@@ -203,7 +208,7 @@ pub fn lire_reponses(texte: &str) -> HashMap<&'static str, String> {
     let libelles: Vec<(String, &'static str)> = QUESTIONS.iter().map(|(cle, lib, _)| (cle_libelle(lib), *cle)).collect();
     let mut sortie: HashMap<&'static str, String> = HashMap::new();
     // Un libelle qui porte lui-meme un deux-points (« Sans numero de securite sociale : femme ou homme ? ») : la reponse
-    // est derriere le dernier (« femme ou homme ? (facultatif) : homme » a pour reponse « homme », pas « femme »).
+    // est derriere le dernier (« femme ou homme ? : homme » a pour reponse « homme », pas « femme »).
     let avec_deux_points: Vec<(usize, String, &'static str)> =
         QUESTIONS.iter().filter(|(_, lib, _)| lib.contains(':')).map(|(cle, lib, _)| (lib.matches(':').count(), cle_libelle(lib), *cle)).collect();
     for ligne in socle::texte::lignes_du_texte(texte) {

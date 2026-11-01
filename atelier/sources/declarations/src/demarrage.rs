@@ -67,6 +67,23 @@ fn a_des_spectacles(ctx: &Contexte) -> bool {
         .unwrap_or(false)
 }
 
+/// Les spectacles (leur cle) que porte un engagement actif, ni importe, dont la nature declare le numero d'objet.
+fn spectacles_declares(ctx: &Contexte) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for o in engagement::stock::objets(&ctx.racine).unwrap_or_default() {
+        if o.est_non_actif() || o.est_importe() {
+            continue;
+        }
+        let nature = o.brut.get("nature").and_then(Value::as_str);
+        let Some(sp) = o.brut.get("spectacle").and_then(Value::as_str).filter(|s| !s.trim().is_empty()) else { continue };
+        let Some(cle) = ctx.spectacle(sp).ok().and_then(|f| f.get("_cle").and_then(Value::as_str).map(str::to_string)) else { continue };
+        if droit::natures::nature(nature).is_ok_and(|n| n.ecrit("S21.G00.40.050")) && !out.contains(&cle) {
+            out.push(cle);
+        }
+    }
+    out
+}
+
 /// Une suspension saisie (un imprevu du bloc 65) dont le motif n'est pas remunere. Un magasin illisible ne dit rien ici :
 /// la paie le refusera elle-meme.
 fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
@@ -116,6 +133,19 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         let nom = socle::texte::salarie_nomme_ou(Some(s), cle);
         for m in crate::champs::manquants("salarie", s).unwrap_or_default() {
             out.push(ligne(m, format!("Configuration › Salariés, la fiche de {}", nom), Some((cle, &nom))));
+        }
+    }
+    // Un spectacle ne se dit que si un engagement dont la nature declare le numero d'objet (S21.G00.40.050, `champs` de
+    // sa nature dans `contrats-base.json`) le porte : rien de remplissable s'il n'y a pas a le remplir.
+    for cle in spectacles_declares(ctx) {
+        let Some(sp) = ctx.spectacles.get(&cle) else { continue };
+        let titre = sp.get("titre").filter(|t| vrai(t)).map(socle::date::en_texte).unwrap_or_else(|| cle.clone());
+        for m in crate::champs::manquants("spectacle", sp).unwrap_or_default() {
+            let mut l = ligne(m, format!("Configuration › Spectacles, la fiche de {}", titre), None);
+            l["spectacle"] = json!(cle);
+            l["qui"] = json!(titre);
+            l["cle"] = json!(format!("{}.{}", l["case"].as_str().unwrap_or(""), cle));
+            out.push(l);
         }
     }
     // La licence d'entrepreneur de spectacles : la DSN l'ecrit dans chaque contrat (S21.G00.40.049) et refuse sans elle

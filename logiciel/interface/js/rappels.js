@@ -69,7 +69,7 @@ function htmlPoses() {
 
 /* POUR DÉMARRER. Le moteur (`pour-demarrer`) rend d'un coup ce que la
  * compagnie peut remplir d'avance : chaque ligne, sa case (`case`), où elle
- * vit (`ou`), et pour qui (`qui`, une ligne d'un salarié). Chaque case se
+ * vit (`ou`), et pour qui (`qui`, une ligne d'un salarié ou d'un spectacle). Chaque case se
  * remplit sur place, dessinée comme dans sa fiche (`champDeFiche`) ; un seul
  * « Enregistrer » écrit tout ce qui a changé (`enregistrer-fiche`, une
  * écriture par fiche), et la liste se relit. La page ne fait que la mise en
@@ -82,9 +82,10 @@ let DEMARRAGE = { titre: "", note: "", manques: [] };
  * dessine seule, dans sa structure. */
 function caseDuManque(m) {
   const conf = ETAT.configuration || {};
-  const nom = m.salarie ? "salarie" : /^Configuration › Entreprise/.test(m.ou || "") ? "entreprise" : null;
+  const nom = m.salarie ? "salarie" : m.spectacle ? "spectacle" : /^Configuration › Entreprise/.test(m.ou || "") ? "entreprise" : null;
   if (!nom || !m.case) return null;
-  const fiche = nom === "salarie" ? (conf.salaries || []).find((f) => f.cle === m.salarie) : conf.entreprise;
+  const fiche = nom === "entreprise" ? conf.entreprise
+    : ((nom === "salarie" ? conf.salaries : conf.spectacles) || []).find((f) => f.cle === (m.salarie || m.spectacle));
   if (!fiche) return null;
   const [racine, ...reste] = m.case.split(".");
   let c = ((conf.description || {})[nom] || []).find((x) => x.cle === racine);
@@ -113,7 +114,7 @@ function htmlDemarrage(manques) {
   // CHAQUE CHOSE MÈNE À SA PLACE : `ou` est un lien qui y conduit (la fiche,
   // l'onglet), sous la case.
   const lien = (m) => `<button type="button" class="lien" data-manque-champ="${echapper(m.champ || "")}"
-        data-manque-ou="${echapper(m.ou || "")}" data-manque-salarie="${echapper(m.salarie || "")}">${echapper(m.ou || "")}</button>`;
+        data-manque-ou="${echapper(m.ou || "")}" data-manque-fiche="${m.salarie ? "salarie" : m.spectacle ? "spectacle" : ""}" data-manque-cle="${echapper(m.salarie || m.spectacle || "")}">${echapper(m.ou || "")}</button>`;
   const ligne = (m) => {
     const i = manques.indexOf(m);
     const k = caseDuManque(m);
@@ -158,7 +159,7 @@ function brancherDemarrage(conteneur) {
 }
 
 /* CE QUE LA LISTE PORTE ET QUI N'EST PAS ENREGISTRÉ : par fiche (l'entreprise,
- * chaque salarié), les cases remplies qui disent autre chose que la fiche.
+ * chaque salarié, chaque spectacle), les cases remplies qui disent autre chose que la fiche.
  * Une case de structure part seule dans sa structure : le moteur garde les
  * autres cases (`enregistrer-fiche`). */
 function changementsDemarrage(liste) {
@@ -178,8 +179,8 @@ function changementsDemarrage(liste) {
     const v = lu[k.racine];
     const avant = k.fiche.donnees[k.racine];
     if (v === null || v === undefined || v === "" || (v === false && !avant) || memes(v, avant)) return;
-    const cle = k.nom + "|" + (k.nom === "salarie" ? k.fiche.cle : "");
-    const f = parFiche.get(cle) || { nom: k.nom, ...(k.nom === "salarie" ? { cle: k.fiche.cle } : {}), donnees: {} };
+    const cle = k.nom + "|" + (k.nom === "entreprise" ? "" : k.fiche.cle);
+    const f = parFiche.get(cle) || { nom: k.nom, ...(k.nom === "entreprise" ? {} : { cle: k.fiche.cle }), donnees: {} };
     f.donnees[k.racine] = fondre(f.donnees[k.racine], v);
     parFiche.set(cle, f);
   });
@@ -285,8 +286,9 @@ async function lireDemarrage(lu) {
 /** Aller à ce qui manque : l'onglet, puis la case (son tiroir ouvert, le
  *  curseur dedans). Le taux AT/MP n'est pas une case de la fiche
  *  (`ATMP_HTML`) ; les organismes ont leur onglet ; ce qui se dit sur la
- *  fiche d'un salarié (`salarie`, du moteur) ouvre sa fiche. */
-async function allerAuManque(champ, ou, salarie) {
+ *  fiche d'un salarié ou d'un spectacle (`salarie`, `spectacle`, du moteur)
+ *  ouvre sa fiche. */
+async function allerAuManque(champ, ou, nom, cle) {
   if (!document.getElementById("voile").classList.contains("cachee")) {
     if (!(await quitterDemarrage())) return;
     fermerBoite();
@@ -298,8 +300,8 @@ async function allerAuManque(champ, ou, salarie) {
   if (document.getElementById("vue-configuration").classList.contains("cachee")) {
     document.querySelector('.onglets button[data-vue="configuration"]').click();
   }
-  const fiche = salarie ? "salarie" : /Organismes/.test(ou) ? "organismes" : /Mots de passe/.test(ou) ? "coffre" : "entreprise";
-  if (salarie) await ouvrirFicheImportee("salarie", salarie);
+  const fiche = nom || (/Organismes/.test(ou) ? "organismes" : /Mots de passe/.test(ou) ? "coffre" : "entreprise");
+  if (nom) await ouvrirFicheImportee(nom, cle);
   else {
     const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
     if (sous && !sous.classList.contains("actif")) sous.click();
@@ -325,7 +327,7 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-manque-champ]");
   if (!b) return;
   e.preventDefault();
-  allerAuManque(b.dataset.manqueChamp, b.dataset.manqueOu, b.dataset.manqueSalarie);
+  allerAuManque(b.dataset.manqueChamp, b.dataset.manqueOu, b.dataset.manqueFiche, b.dataset.manqueCle);
 });
 
 /** La liste « Pour démarrer », en tête de Configuration › Entreprise. */

@@ -1673,8 +1673,13 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         }
     }
     licence_du_contrat(f, nature_dsn, ent, nat.ecrit("S21.G00.40.050"))?;
-    if nat.ecrit("S21.G00.40.050") && usage_admet(f, "S21.G00.40.050", nature_dsn)? {
-        f.add_v("S21.G00.40.050", req(&p.spectacle, "numero_objet")?)?;
+    // Le numero d'objet du spectacle : rubrique conditionnelle (usage « C », `norme-dsn/texte/tableaux-des-usages.txt`
+    // l. 270), seulement AUTORISEE pour les natures 02 et 10 (CCH-11, `texte/bloc-S21.G00.40.txt` l. 1379-1388) ; une
+    // rubrique conditionnelle qu'on n'a pas s'omet, elle ne s'ecrit pas a blanc (`texte/chapitre-3-structuration.txt`
+    // l. 257-259). Utile, jamais exige : « Pour demarrer » le propose (`sinon` de `champs-base.json`).
+    let objet = txt(g(&p.spectacle, "numero_objet"));
+    if nat.ecrit("S21.G00.40.050") && !objet.trim().is_empty() && usage_admet(f, "S21.G00.40.050", nature_dsn)? {
+        f.add("S21.G00.40.050", objet.trim());
     }
     si_admise(f, nature_dsn, "S21.G00.40.051", nat.code("S21.G00.40.051"))?;
     if vrai(g(s, "statut_boeth")) {

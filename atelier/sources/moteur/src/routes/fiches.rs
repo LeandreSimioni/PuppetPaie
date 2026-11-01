@@ -1804,7 +1804,7 @@ pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preu
     };
     let expediteur = client.compte().to_lowercase();
     let code = fq::code_fiche();
-    let q = fq::questionnaire(&code);
+    let q = fq::questionnaire(&code, &fq::posees(&|c| champs::utile("salarie", c)), &|_| String::new());
     let sujet = envoi::formater(fq::SUJET, &[("compagnie", compagnie.clone())]);
     let prenom = strip(prenom).to_string();
     let virgule_prenom = if prenom.is_empty() { String::new() } else { format!(" {}", prenom) };
@@ -2085,12 +2085,9 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
         // Le compte fabrique des fictives, a la cle juste (`socle::iban::faute_iban`).
         ("iban", "FR7630001007941234567890185".to_string()),
     ]);
-    let mut lignes: Vec<String> =
-        fq::QUESTIONS.iter().map(|(cle, lib, fac)| format!("{}{} : {}", lib, if *fac { " (facultatif)" } else { "" }, reponses.get(cle).map(String::as_str).unwrap_or(""))).collect();
-    lignes.push(String::new());
-    lignes.push(format!("Code (ne pas modifier) : {}", code));
+    let rempli = fq::questionnaire(code, &fq::posees(&|c| champs::utile("salarie", c)), &|cle| reponses.get(cle).cloned().unwrap_or_default());
     let sujet = bouton.map(|b| b.0.clone()).unwrap_or_else(|| "Re: fiche".to_string());
-    envois::simulation_courriels::reponse_jouee(&demande.adresse, compte, &sujet, &lignes.join("\n"), &format!("fiche-{}", code))
+    envois::simulation_courriels::reponse_jouee(&demande.adresse, compte, &sujet, &rempli, &format!("fiche-{}", code))
 }
 
 /// La boite de la compagnie fictive, vue par la releve. Chaque demande de fiche partie
