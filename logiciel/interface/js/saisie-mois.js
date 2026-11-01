@@ -198,15 +198,14 @@ async function calculerApercu(lu) {
   const cible = document.getElementById("apercu");
   // Les engagements importés ne se calculent pas ici : ce sont ceux de l'ancien logiciel.
   if (!engagements.length && IMPORTES.length) {
-    cible.innerHTML = `<p class="discret">Engagements de l'ancien logiciel : rien ne se calcule ici.</p>`;
+    cible.innerHTML = `<p class="discret">${aideDe("importes")}</p>`;
     return;
   }
   // Dès qu'un engagement nomme son salarié, le moteur dit ce que le mois en compte et ce qui lui manque (`apercu`).
   if (!engagements.length) {
     // Le permanent ne se nomme qu'à une compagnie qui en emploie.
     const perm = !!(ETAT.configuration || {}).permanents;
-    cible.innerHTML = `<p class="discret">Ajouter un engagement, une ligne de
-      paie et ses jours joués${perm ? " — ou, pour un permanent, son salaire mensuel" : ""}.</p>`;
+    cible.innerHTML = `<p class="discret">${aideDe(perm ? "apercu_vide_permanents" : "apercu_vide")}</p>`;
     return;
   }
   cible.classList.add("attente");
@@ -246,7 +245,7 @@ async function calculerApercu(lu) {
         // Les cases du contrat écrit se disent avant que le reste soit complet (la période d'essai d'un CDD).
         div._ecrits = p && p.contrat && p.contrat.ecrits;
         montrerEcrit(div, div._ecrits);
-        div.querySelector(".avis").innerHTML = `<div class="encart attention avis-engagement"><b>À compléter avant de valider</b>${
+        div.querySelector(".avis").innerHTML = `<div class="encart attention avis-engagement"><b>À compléter</b>${
           manques.map((x) => `<div>${erreurEnClair(x.a_completer)}</div>`).join("")}</div>`;
         return;
       }
@@ -280,7 +279,7 @@ async function calculerApercu(lu) {
       montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
       div.querySelector(".resolu").innerHTML = p
         ? `${p.contrat && p.contrat.sans_paie
-             ? `<b>aucun cachet ce mois-ci</b> — pas de bulletin, la DSN porte le contrat`
+             ? `<b>aucun cachet ce mois-ci</b> — ${aideDe("sans_cachet")}`
              : `bulletin <b>${echapper(p.numero_bulletin)}</b>`} · contrat ${echapper(p.numero_contrat)}
            · ${echapper(jjmmaaaa(p.debut))} → ${echapper(jjmmaaaa(p.fin))}${
              p.contrat && p.contrat.a_cheval
@@ -395,17 +394,17 @@ function peindreCarte(div) {
     <div class="carte-qui" title="${echapper(detail)}">
       <span class="carte-nom"><b>${echapper(ligne.nom)}</b></span>
       <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}${
-        ligne.contrat && ligne.contrat.repris ? " · contrat repris de votre ancien logiciel" : ""}</span>
+        ligne.contrat && ligne.contrat.repris ? " · contrat repris" : ""}</span>
     </div>
     <div class="carte-actes">${bandeauEtats(ligne, false)}</div>
-    <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>
+    <div class="carte-net" title="net à payer">${echapper(net)}</div>
     ${recalculDe(ligne)}${versionsDe(ligne)}
     <span class="carte-modifier">
-      <button class="lien carte-imprevu" title="Un imprévu : un arrêt de travail, une absence…"
+      <button class="lien carte-imprevu" title="Imprévu"
         aria-label="Un imprévu">&hellip;</button></span>`;
   // LA CARTE S'OUVRE D'UN CLIC SUR ELLE, carrés compris, toutes ses cases modifiables : un clic n'écrit rien et ne
   // fait partir aucun envoi. Rien ne s'écrit avant « Modifier l'engagement » (`ouvrirEnModification`).
-  rendreOuvrable(cible, () => ouvrirEnModification(div), "Ouvrir l'engagement pour le modifier");
+  rendreOuvrable(cible, () => ouvrirEnModification(div), "Modifier l'engagement");
   // LA PORTE DES IMPRÉVUS sur un engagement validé : un arrêt ou
   // une absence arrive souvent après la paie. js/imprevus.js.
   const porte = cible.querySelector(".carte-imprevu");
@@ -456,7 +455,7 @@ function peindreChiffres(div, total) {
     net.innerHTML = total
       ? `Net <b>${echapper(euros(total.net_paye))}</b>
          <span class="e-cout">Coût employeur <b>${echapper(euros(total.cout_employeur))}</b></span>`
-      : `<span class="discret">Le net s'affiche dès que l'engagement est complet.</span>`;
+      : `<span class="discret">${aideDe("net_attend")}</span>`;
   }
   div.querySelectorAll(".e-vise").forEach((c) => {
     if (c === document.activeElement) return;
@@ -476,7 +475,7 @@ async function ajusterBloc(div, champ) {
   // Vidée : on ne vise plus rien, et l'aperçu remettra le nombre calculé.
   if (montant === "") { rafraichirApercu(); return; }
   if (cartesAuMoteur(div).rang < 0) {
-    note.innerHTML = `<span class="rouge">Choisir d'abord qui est payé.</span>`;
+    note.innerHTML = `<span class="rouge">${aideDe("qui_d_abord")}</span>`;
     return;
   }
   note.textContent = "calcul…";
@@ -551,7 +550,7 @@ function afficherRappelsMois() {
   const t = TAUX_PAR_RUBRIQUE.cachet;
   document.getElementById("rappels-mois").innerHTML =
     `${t == null ? "aucun cachet par défaut" : `cachet à <b>${echapper(euros(t))}</b> par défaut`} ·
-     le lieu et les jours se posent sur chaque ligne de paie`;
+     ${aideDe("lieu_jours")}`;
 }
 
 let DEMANDE_MOIS = null;
@@ -765,7 +764,7 @@ function ouvrirLesCartesImportees(cible) {
     rendreOuvrable(div.querySelector(".e-resume"), () => {
       cases.hidden = !cases.hidden;
       div.classList.toggle("ouverte", !cases.hidden);
-    }, "Voir ou replier les cases de l'engagement");
+    }, "Ses cases");
   });
 }
 
@@ -786,8 +785,8 @@ function carteImportee(p, i, moisCourt) {
     : p.montants.brut ? `<span class="discret">brut</span> ${euros(p.montants.brut)}` : "";
   // CE QUI MANQUE SE DIT SUR LA CARTE, en une ligne (quels champs) ; le pourquoi est sous chaque case vide.
   const manque = p.manque.length ? `
-    <div class="ci-manque"><b>Non lu par l'import :</b> ${p.manque.map((m) => echapper(m.libelle)).join(" · ")}
-      <span class="discret">— un clic sur la carte montre ses cases, et sous chacune pourquoi</span></div>` : "";
+    <div class="ci-manque"><b>Non lu par l'import</b> ${p.manque.map((m) => echapper(m.libelle)).join(" · ")}
+      <span class="discret">— ${aideDe("importe_manque")}</span></div>` : "";
   const dits = new Set();
   const casePlate = (libelle, valeur, source, champ) => {
     const absent = valeur ? null : p.manque.find((m) => m.champ === champ);
@@ -806,13 +805,13 @@ function carteImportee(p, i, moisCourt) {
   return `
     <div class="carte-importee${p.manque.length ? " incomplete" : ""}" data-rang="${i}">
       <div class="e-resume">
-        <div class="carte-quand" title="${echapper(p.dates.length ? p.dates.map(jjmmaaaa).join(", ") : "début et fin du contrat : les jours exacts ne sont pas lus")}">
+        <div class="carte-quand" title="${echapper(p.dates.length ? p.dates.map(jjmmaaaa).join(", ") : (ETAT.aides || {}).importe_dates)}">
           <b class="${jours.includes(" · ") || jours.includes(" – ") ? "epars" : ""}">${echapper(jours)}</b><span>${echapper(moisCourt)}</span></div>
-        <div class="carte-qui" title="${echapper(origine ? "lu dans : " + origine : "")}">
+        <div class="carte-qui" title="${echapper(origine ? "lu dans " + origine : "")}">
           <span class="carte-nom"><b>${echapper(p.nom)}</b> <span class="mot-etat">importé</span></span>
           <span class="discret">${echapper(quoi || "spectacle non lu")}</span></div>
         <div class="carte-actes"><div class="etats-actes">${pastille("dpae", "DPAE")}${pastille("signature", "Contrat")}${pastille("documents", "Documents")}</div></div>
-        <div class="carte-net" title="${p.montants.net_a_payer ? "net à payer" : "brut : le net à payer n'est pas lu"}">${net}</div>
+        <div class="carte-net" title="${p.montants.net_a_payer ? "net à payer" : aideDe("importe_brut")}">${net}</div>
       </div>
       ${manque}
       <div class="ci-cases" hidden>
@@ -861,7 +860,7 @@ async function enregistrerEnPartant(attente, chargement) {
     oublierCouts();
     appelerMoteur("etat").then((e) => { ETAT.historique = e.historique; }, () => {});
   } catch (e) {
-    dire(`${moisEnClair(mois)} : non enregistré — ${e.message}`, "erreur");
+    dire(e.message, "erreur");
     return;
   }
   // Le mois affiché se vérifie quand il est peint (la vérification part tout de suite : le moteur refait l'état).
@@ -1087,9 +1086,7 @@ async function enregistrerLesCartes(silencieux) {
   oublierCouts();
   // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé. Un engagement auquel il
   // manque un fait s'enregistre aussi : sa carte dit ce qui manque.
-  noteSaisie("Enregistré à " + heure + (aCompleter
-    ? ` — ${aCompleter > 1 ? `${aCompleter} engagements à compléter avant de les valider` : "un engagement à compléter avant de le valider"}.`
-    : "."));
+  noteSaisie("Enregistré à " + heure + (aCompleter ? " — " + ((ETAT.aides || {}).a_completer || "") : ""));
   ETAT.historique = await api("etat").then((e) => e.historique);
   // Ce qui vient d'être enregistré compte dans la colonne « ce qui part », et la fin d'un contrat comme les jours payés
   // pendant un imprévu se lisent sur ce qui est enregistré.

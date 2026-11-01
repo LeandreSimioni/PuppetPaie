@@ -104,7 +104,10 @@ const CHAMPS_DU_REMPLACEMENT: [&str; 2] = ["remplace.numero", "remplace.date"];
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "modeles-contrat" => modeles(ctx).map(|v| super::phrase_en_tete(v.clone(), dire_les_modeles(&v))),
+        "modeles-contrat" => modeles(ctx).map(|mut v| {
+            v["ecran"] = ecran_des_modeles(&v);
+            super::phrase_en_tete(v.clone(), dire_les_modeles(&v))
+        }),
         "modele-contrat-livre" => livre(charge).map(|v| {
             let p = format!("Modèle livré {}.", socle::valeur::valeur_en_texte(&v["libelle"]));
             super::phrase_en_tete(v, p)
@@ -283,4 +286,21 @@ fn dire_les_modeles(v: &Value) -> String {
     let modeles: Vec<&Value> = v["natures"].as_array().into_iter().flatten().flat_map(|n| n["modeles"].as_array().into_iter().flatten()).collect();
     let propres = modeles.iter().filter(|m| m["propre"] == json!(true)).count();
     format!("Modèles de contrat et d'avenant : {} ; propres à la compagnie : {}.", modeles.len(), propres)
+}
+
+/// CE QUE L'ECRAN DES MODELES DE CONTRAT DIT (`ecran` de `modeles-contrat`) : a quoi sert un modele, les clauses
+/// particulieres, comment ecrire celui de la compagnie, et ce que cite un modele d'avenant.
+fn ecran_des_modeles(v: &Value) -> Value {
+    let avenant: Vec<String> = v["champs_de_l_avenant"].as_array().into_iter().flatten().map(super::mot).collect();
+    json!({
+        "intro": "Chaque contrat que le logiciel fait signer suit un modèle. Celui du logiciel porte déjà ce que la loi exige d'un contrat écrit, rempli de lui-même depuis l'engagement et la configuration. Si la compagnie a son propre contrat, elle le pose ici : le logiciel le prend à la place du sien, pour tous les contrats de cette sorte.",
+        "clauses": "Ce qu'elle ajoute à chacun de ses contrats (confidentialité, image, déplacements…). Un engagement peut dire les siennes à la place, dans « Plus d'options ».",
+        "comment": [
+            "Partir du modèle du logiciel (« Écrire le modèle »), ou poser un fichier texte déjà écrit.",
+            "Changer le texte comme on veut. Chaque article commence par une ligne « ARTICLE: son titre » ; une ligne vide sépare deux paragraphes ; **texte** met en gras ; une ligne qui commence par # est une note, qui ne s'imprime pas.",
+            "Les champs entre accolades ({{salarie.nom_complet}}…) se remplissent d'eux-mêmes : leur liste est sous chaque contrat. Ceux que la loi exige doivent rester ; sans l'un d'eux, le modèle est refusé, et le refus dit lequel.",
+            format!("« Poser ce modèle » : il est vérifié, puis rangé dans le dossier de la compagnie ({}), et sauvegardé avec elle. L'ancien est gardé à côté.", super::mot(&v["dossier"])),
+        ],
+        "avenant": format!("Un modèle d'avenant cite aussi : {}.", avenant.join(", ")),
+    })
 }

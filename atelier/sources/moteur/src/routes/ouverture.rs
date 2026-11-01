@@ -104,6 +104,17 @@ const AIDES: &[(&str, &str)] = &[
     ("dater", "Ce que vous changez vaut à partir d'une date : la voici proposée, changez-la si besoin, puis enregistrez."),
     ("dater_avant", "Avant cette date, la fiche garde ce qu'elle disait."),
     ("rien_enregistre", "Rien n'est enregistré : vos saisies restent dans la fiche, à enregistrer quand vous voulez."),
+    ("importes", "Engagements de l'ancien logiciel : rien ne se calcule ici."),
+    ("apercu_vide", "Ajouter un engagement, une ligne de paie et ses jours joués."),
+    ("apercu_vide_permanents", "Ajouter un engagement, une ligne de paie et ses jours joués, ou, pour un permanent, son salaire mensuel."),
+    ("sans_cachet", "Pas de bulletin, la DSN porte le contrat."),
+    ("net_attend", "Le net s'affiche dès que l'engagement est complet."),
+    ("qui_d_abord", "Choisir d'abord qui est payé."),
+    ("lieu_jours", "Le lieu et les jours se posent sur chaque ligne de paie."),
+    ("importe_manque", "Un clic sur la carte montre ses cases, et sous chacune pourquoi."),
+    ("importe_dates", "Début et fin du contrat : les jours exacts ne sont pas lus."),
+    ("importe_brut", "Le brut : le net à payer n'est pas lu."),
+    ("a_completer", "Un engagement au moins reste à compléter avant de le valider : sa carte dit ce qui manque."),
 ];
 
 /// Les routes de ce module, et leurs fiches.
