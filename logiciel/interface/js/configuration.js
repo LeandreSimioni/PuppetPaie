@@ -279,12 +279,12 @@ function dessinerConfig() {
     }
     cible.querySelectorAll(".rang.fiche").forEach((r) => {
       const cle = r.dataset.cle;
-      const nom = r.querySelector(".rang-nom").textContent.trim();
       r.querySelector("[data-activer]").onclick = async (e) => {
         const activer = e.currentTarget.dataset.activer === "oui";
         try {
-          poserEtat((await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer })).etat);
-          dire(`${nom} : ${activer ? "réactivé" : "archivé"}.`);
+          const rep = await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer });
+          poserEtat(rep.etat);
+          dire(rep.phrase);
           dessinerConfig();
         } catch (err) { dire(err.message, "erreur"); }
       };

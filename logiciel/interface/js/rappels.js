@@ -576,7 +576,7 @@ async function dessinerExercices() {
     b.onclick = async () => {
       try {
         const x = await api("cloture", { annee: b.dataset.rouvrir, rouvrir: true });
-        dire("L'année " + x.annee + " est rouverte — son archive reste.");
+        dire(x.phrase);
         await dessinerExercices();
       } catch (e) { dire(e.message, "erreur"); }
     };

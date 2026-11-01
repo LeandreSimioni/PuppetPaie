@@ -625,7 +625,7 @@ async function boiteEnvoi(mois) {
     try {
       const r = await api("documents-imprimer", { mois, salaries });
       fermerBoite();
-      await ouvrirEtDire(r.chemin, "Documents de " + r.salaries.length + " salarié(s) à imprimer.");
+      await ouvrirEtDire(r.chemin, r.phrase);
       await rafraichirActions();
     } catch (e) {
       rendre();
@@ -723,8 +723,7 @@ async function boiteSignature(mois, seulement) {
     try {
       const r = await api("contrats-imprimer", { mois, contrats: choisis, avenants });
       fermerBoite();
-      await ouvrirEtDire(r.chemin, "À imprimer : " + [...r.contrats.map((c) => "contrat n° " + c.numero),
-        ...r.avenants.map((c) => "avenant n° " + c.avenant + " au contrat n° " + c.numero)].join(", ") + ".");
+      await ouvrirEtDire(r.chemin, r.phrase);
       await rafraichirActions();
     } catch (e) {
       rendre();

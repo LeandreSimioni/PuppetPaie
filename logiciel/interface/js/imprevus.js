@@ -971,13 +971,14 @@ function boiteObligationFaite(a, o) {
       <button class="primaire" id="da-ok">Enregistrer</button>
     </div>`);
   document.getElementById("da-ok").onclick = async () => {
+    let r;
     try {
-      await api(route, { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
+      r = await api(route, { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
         le: document.getElementById("da-le").value, depot: document.getElementById("da-depot").value,
         reference: document.getElementById("da-reference").value.trim() });
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
-    dire(`${o.libelle} : noté.`);
+    dire(r.phrase);
     await rafraichirImprevus();
   };
 }

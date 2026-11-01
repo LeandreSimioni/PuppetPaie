@@ -1332,15 +1332,16 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let due = if part.is_some() { quant(div(mul(brute, pct_a), cent), 0) } else { zero };
     let franchise = dec_du_bareme(du_bareme(&ts, "franchise")?)?;
     let limite = dec_du_bareme(du_bareme(&ts, "decote_jusqu_a")?)?;
-    let mut etapes = vec![format!("taxe brute {} € × {} % taxés (CGI art. 231, 1) = {} €", brute, pct_a, due)];
+    let fr = |d: Decimal| d.to_string().replace('.', ",");
+    let mut etapes = vec![format!("taxe brute {} € × {} % taxés (CGI art. 231, 1) = {} €", fr(brute), fr(pct_a), fr(due))];
     let mut net;
     if due <= franchise {
         net = zero;
-        etapes.push(format!("franchise : {} € n'excède pas {} € — rien à payer", due, franchise));
+        etapes.push(format!("franchise : {} € n'excède pas {} € — rien à payer", fr(due), fr(franchise)));
     } else if due <= limite {
         let decote = quant(div(mul(sub(limite, due), Decimal::from(3)), Decimal::from(4)), 0);
         net = sub(due, decote);
-        etapes.push(format!("décote : ({} − {}) × 3/4 = {} €, reste {} €", limite, due, decote, net));
+        etapes.push(format!("décote : ({} − {}) × 3/4 = {} €, reste {} €", fr(limite), fr(due), fr(decote), fr(net)));
     } else {
         net = due;
     }
@@ -1348,10 +1349,10 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let ab = dec_du_bareme(du_bareme(&ts, "abattement_1679A")?)?;
         let reste = sub(net, ab);
         let reste = if reste > zero { reste } else { zero };
-        etapes.push(format!("abattement des associations (art. 1679 A) : {} €, reste {} €", ab, reste));
+        etapes.push(format!("abattement des associations (art. 1679 A) : {} €, reste {} €", fr(ab), fr(reste)));
         net = reste;
     }
-    etapes.push(format!("TAXE NETTE DUE : {} €", net));
+    etapes.push(format!("taxe nette due : {} €", fr(net)));
     avert.push(format!("Calcul {} : {}.", annee, etapes.join(" ; ")));
     if net.is_zero() {
         avert.push("Rien à payer : pas de relevé 2501-SD ni de déclaration 2502-SD à déposer (franchise ou abattement).".to_string());

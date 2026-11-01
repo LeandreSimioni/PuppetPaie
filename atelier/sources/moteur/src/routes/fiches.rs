@@ -232,8 +232,14 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             };
             Ok(json!({"phrase": phrase, "sauvegarde": s, "erreur": erreur.join(" ")}))
         }
-        "couts" => couts(o, ctx, charge).map(|v| {
-            let p = format!("Coûts de {} jusqu'à {} : {}.", valeur_en_texte(&v["annee"]), valeur_en_texte(&v["jusqu_a"]), super::compte(v["spectacles"].as_object().map_or(0, |o| o.len()), "spectacle", "spectacles"));
+        "couts" => couts(o, ctx, charge).map(|mut v| {
+            // Chaque spectacle et son cout, comme l'ecran les liste ; le total de l'annee en tete.
+            let cout = |x: &Value| x["cout"].as_str().and_then(|c| c.parse::<f64>().ok()).unwrap_or(0.0);
+            let spectacles: Vec<(String, Value)> = v["spectacles"].as_object().map(|o| o.iter().map(|(k, x)| (k.clone(), x.clone())).collect()).unwrap_or_default();
+            let total: f64 = spectacles.iter().map(|(_, x)| cout(x)).sum();
+            let jusqu_a = engagement::libelle_mois(&valeur_en_texte(&v["jusqu_a"]));
+            let p = format!("Coût de {}, jusqu'à {} : {} pour {}.", valeur_en_texte(&v["annee"]), jusqu_a, super::euros(&json!(total)), super::compte(spectacles.len(), "spectacle", "spectacles"));
+            v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, super::euros(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), super::euros(&x["brut"]))).collect::<Vec<_>>());
             super::phrase_en_tete(v, p)
         }),
         "permanents" => permanents(ctx, charge).map(|v| {
@@ -259,11 +265,15 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         }),
         "fiche-demander" => {
             let d = demander_fiche(ctx, &texte("adresse"), &texte("prenom"), &preuve_de(charge), "interface", None)?;
-            Ok(json!({"phrase": format!("Demande de fiche envoyée à {} (code {}).", d.adresse, d.code), "code": d.code, "adresse": d.adresse}))
+            Ok(json!({"phrase": format!("Demande de fiche envoyée à {} (code {}) : sa fiche se crée à l'arrivée de sa réponse.", d.adresse, d.code), "code": d.code, "adresse": d.adresse}))
         }
         "fiches-relever" => {
             let r = relever_fiches(ctx, None, "interface")?;
-            let phrase = format!("Fiches attendues : {} ; reçues : {}.", r.attendues, r.recues.len());
+            let phrase = match (r.recues.is_empty(), r.incidents.first()) {
+                (false, _) => format!("{}.", r.resume()),
+                (true, Some(i)) => i.clone(),
+                (true, None) => format!("Aucune réponse pour l'instant ; fiches attendues : {}.", r.attendues),
+            };
             Ok(json!({"phrase": phrase, "attendues": r.attendues, "recues": r.recues, "incidents": r.incidents}))
         }
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
@@ -1117,7 +1127,20 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
     let (nom, cle) = (texte_requis(charge, "nom")?, texte_requis(charge, "cle")?);
     activer_fiche(ctx, nom, cle, charge.get("actif").is_some_and(vrai))?;
     let actif = charge.get("actif").is_some_and(vrai);
-    Ok(json!({"phrase": format!("Fiche {} {}.", cle, if actif { "réactivée" } else { "archivée" }), "etat": etat_relu(o, ctx)?}))
+    // Le nom que la liste montre : le salarie par son nom, le spectacle par son titre ; la cle seule si la fiche n'en a pas.
+    let qui = if nom == "salarie" {
+        super::salarie(ctx, &json!(cle)).map(|s| super::nom_a_l_ecran(&s)).ok()
+    } else {
+        ctx.spectacle(cle).ok().and_then(|s| s.get("titre").and_then(Value::as_str).filter(|t| !t.trim().is_empty()).map(String::from))
+    }
+    .unwrap_or_else(|| cle.to_string());
+    let p = match (nom, actif) {
+        ("salarie", true) => format!("{} : fiche réactivée.", qui),
+        ("salarie", false) => format!("{} : fiche archivée.", qui),
+        (_, true) => format!("Spectacle « {} » réactivé.", qui),
+        (_, false) => format!("Spectacle « {} » archivé.", qui),
+    };
+    Ok(json!({"phrase": p, "etat": etat_relu(o, ctx)?}))
 }
 
 // ----------------------------------------------------- fiche-oublier-demande
@@ -1987,7 +2010,7 @@ impl ReleveFiches {
             return String::new();
         }
         let noms: Vec<String> = self.recues.iter().map(|r| r.get("nom").map(valeur_en_texte).unwrap_or_default()).collect();
-        format!("{} fiche(s) salarié reçue(s) : {}", self.recues.len(), noms.join(", "))
+        format!("{} : {}", super::compte(self.recues.len(), "fiche de salarié reçue", "fiches de salarié reçues"), noms.join(", "))
     }
 }
 

@@ -135,7 +135,7 @@ pub fn en_texte(route: &str, rep: &Value) -> String {
         .filter(|f| f.nom == route)
         .flat_map(|f| f.refus.iter().copied())
         .find(|r| r.classe == classe)
-        .map(|r| format!("A corriger : {}\n", r.corriger))
+        .map(|r| format!("À corriger : {}\n", r.corriger))
         .unwrap_or_default();
-    format!("Refus{} : {}\n{}", if classe.is_empty() { String::new() } else { format!(" ({})", classe) }, phrase, corriger)
+    format!("Refus : {}\n{}", phrase, corriger)
 }

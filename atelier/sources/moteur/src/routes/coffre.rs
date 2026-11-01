@@ -240,7 +240,16 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }),
         "coffre-poser" => coffre_poser(ctx, charge),
         "coffre-verifier" => crate::compagnie::coffre_verifier::route(ctx, charge).map(|v| {
-            let p = format!("{} : {}. {}", valeur_en_texte(&v["service"]), mots(&v), valeur_en_texte(&v["message"])).trim().to_string();
+            let service = valeur_en_texte(&v["service"]);
+            // Un compte incomplet se dit avec ce qui lui manque et ou le donner (`identifiant_du_compte`).
+            let manque = etat_du_coffre(ctx).ok().and_then(|e| {
+                e["services"].as_array().into_iter().flatten().filter(|s| valeur_en_texte(&s["service"]) == service).map(|s| manque_du_compte(&s["identifiant"])).find(|m| !m.is_empty())
+            });
+            let conseil = v["conseil"].as_str().filter(|c| !c.is_empty()).map(|c| format!(" {}", c)).unwrap_or_default();
+            let p = match manque {
+                Some(m) if v["ok"] != true => format!("{} : {}, {}.", libelle_du_service(&service), mots(&v), m),
+                _ => format!("{} : {}. {}{}", libelle_du_service(&service), mots(&v), valeur_en_texte(&v["message"]), conseil).trim().to_string(),
+            };
             super::phrase_en_tete(v, p)
         }),
         "coffre-oublier" => coffre_oublier(ctx, charge).map(|v| coffre("Mot de passe retiré du coffre. ", v)),
@@ -384,6 +393,36 @@ fn chaine<'a>(charge: &'a Value, cle: &str) -> Option<&'a str> {
 
 // ------------------------------------------------------------------ le coffre
 
+/// Le libelle d'un service du coffre, tel que l'ecran le dit (« Urssaf (DPAE) ») ; son nom s'il n'est pas connu.
+fn libelle_du_service(nom: &str) -> String {
+    crate::compagnie::coffre::SERVICES.iter().find(|s| s.nom == nom).map_or_else(|| nom.to_string(), |s| s.libelle.to_string())
+}
+
+/// Ce qui manque au compte d'un service (`identifiant_du_compte`), en mots, et ou le donner ; vide s'il est complet.
+fn manque_du_compte(identifiant: &Value) -> String {
+    let manque: Vec<&str> = identifiant["manque"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(|c| match c {
+            "siret" => "le SIRET",
+            "nom" => "le nom",
+            "prenom" => "le prénom",
+            autre => autre,
+        })
+        .collect();
+    if manque.is_empty() {
+        return String::new();
+    }
+    let ou = match identifiant["ou"].as_str() {
+        Some(ou) => format!(" ({})", ou),
+        None if identifiant["ici"] == true => " (à donner avec le mot de passe)".to_string(),
+        None => String::new(),
+    };
+    format!("il manque au compte {}{}", manque.join(", "), ou)
+}
+
 /// Range le mot de passe d'un organisme, ou de la boite courriel avec son adresse (`compte`) ; pour l'Urssaf, avec le
 /// nom et le prenom du compte qui depose les DPAE (`nom`, `prenom`), ecrits dans la fiche entreprise s'ils changent. Un
 /// seul geste, une seule preuve : tout se verifie avant d'ecrire. Rend l'etat du coffre, sans valeur. Rien a poser se
@@ -411,12 +450,10 @@ fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut etat = coffre_etat_de(&ctx.racine, &entreprise)?;
     // PUIS UNE TENTATIVE, UNE SEULE (`coffre_verifier`) : un mot de passe faux se voit maintenant, pas au depot. Pas si
     // l'identifiant est incomplet : l'echec serait certain, et chaque echec rapproche du blocage du compte.
-    let quoi = format!("{} {} enregistré", if a_poser { "Mot de passe" } else { "Compte" }, service.nom);
-    let incomplet = etat["services"].as_array().into_iter().flatten().filter(|s| s["service"] == service.nom).any(|s| {
-        s["identifiant"]["manque"].as_array().is_some_and(|m| !m.is_empty())
-    });
-    let (phrase, couleur) = if incomplet {
-        (format!("{}. Identifiant incomplet : pas de vérification.", quoi), "gris")
+    let quoi = format!("{} {} enregistré", if a_poser { "Mot de passe" } else { "Compte" }, libelle_du_service(service.nom));
+    let manque = etat["services"].as_array().into_iter().flatten().filter(|s| s["service"] == service.nom).map(|s| manque_du_compte(&s["identifiant"])).find(|m| !m.is_empty());
+    let (phrase, couleur) = if let Some(manque) = manque {
+        (format!("{} ; pas essayé : {}.", quoi, manque), "gris")
     } else {
         match crate::compagnie::coffre_verifier::route(ctx, &json!({"service": service.nom})) {
             Ok(v) if v["ok"] == true => (format!("{}, et vérifié : la connexion passe.", quoi), "vert"),

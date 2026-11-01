@@ -334,7 +334,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
         marque = format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16]);
     }
     if retenues.is_empty() {
-        return Err(refus(format!("Aucune DPAE a faire en {}. Rien n'est ecrit.", libelle)));
+        return Err(refus(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", libelle)));
     }
 
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
@@ -428,7 +428,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
 
     let fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
     let n = retenues.len();
-    let phrase = format!("DPAE de {} écrite : {} embauche{}.", libelle, n, if n > 1 { "s" } else { "" });
+    let phrase = format!("DPAE {} écrite : {} embauche{}.", socle::texte::de(&engagement::libelle_mois(&mois)), n, if n > 1 { "s" } else { "" });
     Ok(json!({ "fichiers": fichiers, "phrase": phrase }))
 }
 

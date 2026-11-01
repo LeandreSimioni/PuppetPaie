@@ -72,9 +72,12 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "pieces-parties",
         geste: "Lister ce qui est parti pour un contrat : DPAE, contrat envoyé, signé, preuve.",
-        charge: &[SALARIE, NUMERO],
-        exemple: r#"{"salarie":"FULLER"}"#,
-        rend: "dpae, contrat, signe, preuve : les fichiers partis, lus au journal",
+        charge: &[
+            Champ { nom: "numero", sens: "le numéro du contrat, tel que signature-apercu ou etat-par-engagement le rend", avance: false },
+            Champ { nom: "salarie", sens: "la clé de la fiche du salarié ; le numéro suffit", avance: true },
+        ],
+        exemple: r#"{"salarie":"FULLER","numero":"FU1.26.01"}"#,
+        rend: "phrase (chaque pièce partie et son jour), dpae, contrat : les fichiers partis, lus au journal",
         refus: &[MANQUE],
         acte: Acte::Lit,
         avance: false,
@@ -164,13 +167,14 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let p = format!("Avenant {} au contrat {} de {}, à effet du {} : {}.", t(&v, "numero"), t(&v, "contrat"), t(&v, "nom"), t(&v, "effet"), super::compte(super::nombre(&v["modifications"]), "modification", "modifications"));
             super::phrase_en_tete(v, p)
         }),
-        "pieces-parties" => pieces_parties(ctx, charge).map(|v| {
-            let p = format!("Pièces parties : DPAE {} ; contrats {}.", super::nombre(&v["dpae"]), super::nombre(&v["contrat"]));
-            super::phrase_en_tete(v, p)
-        }),
+        "pieces-parties" => pieces_parties(ctx, charge),
         "demander-signature" => demander_signature(ctx, charge, &mut || client_courriel(ctx)),
         "contrats-imprimer" => contrats_imprimer_par(ctx, charge, "interface").map(|v| {
-            let p = format!("Contrats imprimés, à faire signer en main propre : {}.", t(&v, "chemin"));
+            // Chaque piece imprimee par son numero, comme l'ecran la coche.
+            let quoi: Vec<String> = v["contrats"].as_array().into_iter().flatten().map(|c| format!("contrat n° {}", t(c, "numero")))
+                .chain(v["avenants"].as_array().into_iter().flatten().map(|c| format!("avenant n° {} au contrat n° {}", t(c, "avenant"), t(c, "numero"))))
+                .collect();
+            let p = format!("À faire signer en main propre : {} ; imprimés dans {}.", quoi.join(", "), t(&v, "chemin"));
             super::phrase_en_tete(v, p)
         }),
         "contrat-recu" => contrat_recu(ctx, charge),
@@ -419,10 +423,11 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
             r["avertissements"] = json!(a.into_iter().chain(avertissements.into_iter().map(Value::String)).collect::<Vec<_>>());
         }
     }
-    let quoi = [(n_contrats, "contrat(s)"), (n_avenants, "avenant(s)")].iter().filter(|(n, _)| *n > 0).map(|(n, m)| format!("{} {}", n, m)).collect::<Vec<_>>().join(" et ");
+    let quoi = [(n_contrats, "contrat", "contrats"), (n_avenants, "avenant", "avenants")].iter().filter(|(n, _, _)| *n > 0).map(|(n, un, des)| super::compte(*n, un, des)).collect::<Vec<_>>().join(" et ");
     let avertissements = r["avertissements"].as_array().into_iter().flatten().filter_map(Value::as_str).collect::<Vec<_>>().join(" ");
     let relancee = relance || (!des_contrats && avenants.iter().all(|a| a.get("relance").is_some_and(vrai)));
-    let fait = if relancee { "relancé(s)" } else { "envoyé(s) à la signature" };
+    let s = if n_contrats + n_avenants > 1 { "s" } else { "" };
+    let fait = if relancee { format!("relancé{}", s) } else { format!("envoyé{} à la signature", s) };
     let mut phrase = format!("{} {}.{}{}", quoi, fait, if avertissements.is_empty() { "" } else { " " }, avertissements);
     // LE SIMULATEUR REPOND DANS LE GESTE : les salaries d'une compagnie fictive signent aussitot, et la vraie releve lit
     // leur reponse (`releve_signatures::boite_des_signatures`).
@@ -823,19 +828,21 @@ fn piece(racine: &Path, quoi: &str, quand: &Value, mois: &Value, fichier: &Value
     Ok(json!({"quoi": quoi, "quand": quand, "mois": mois, "fichier": fichier, "existe": piece_existe(racine, mois, fichier)?}))
 }
 
-/// La ligne `c` (une embauche d'une DPAE, un contrat parti, un contrat revenu) est-elle celle du contrat n° `numero` de ce
-/// salarie ?
+/// La ligne `c` (une embauche d'une DPAE, un contrat parti, un contrat revenu) est-elle celle du contrat n° `numero` (de ce
+/// salarie, quand il est dit) ?
 fn est_ce_contrat(c: &Value, salarie: &Value, numero: &Value) -> R<bool> {
-    Ok(vrai(numero) && valeurs_egales(get(c, "salarie")?, salarie) && valeurs_egales(getd(c, "numero", &Value::Null)?, numero))
+    Ok(vrai(numero) && (salarie.is_null() || valeurs_egales(get(c, "salarie")?, salarie)) && valeurs_egales(getd(c, "numero", &Value::Null)?, numero))
 }
 
-/// `pieces_parties` : les FICHIERS partis pour le contrat n° `numero` d'un salarie -- la DPAE deposee, le
+/// `pieces_parties` : les FICHIERS partis pour le contrat n° `numero` -- la DPAE deposee, le
 /// contrat envoye a la signature, le contrat revenu signe et la preuve de la
-/// signature. Lu au journal ; rien ne part.
+/// signature. Lu au journal ; rien ne part. La phrase dit chaque piece et son jour, comme la boite de l'ecran.
 fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let cle = |k: &str| charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
-    let salarie = cle("salarie")?;
-    let numero = &charge.get("numero").filter(|n| vrai(n)).map(|n| json!(valeur_en_texte(n))).unwrap_or(Value::Null);
+    let numero = &charge.get("numero").filter(|n| vrai(n)).map(|n| json!(valeur_en_texte(n))).ok_or_else(|| {
+        erreur("KeyError", "Quel contrat ? Donnez son numéro (« numero »), tel que signature-apercu ou etat-par-engagement le rend. Rien n'est écrit.")
+    })?;
+    let salarie = &charge.get("salarie").filter(|s| vrai(s)).cloned().unwrap_or(Value::Null);
+    let mut qui: Option<Value> = salarie.as_str().map(|_| salarie.clone());
     let racine = ctx.racine.as_path();
     let m = Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
@@ -849,6 +856,7 @@ fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
         let mut trouve = false;
         for e in &embauches {
             if est_ce_contrat(e, salarie, numero)? {
+                qui.get_or_insert_with(|| e["salarie"].clone());
                 trouve = true;
                 break;
             }
@@ -868,6 +876,7 @@ fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
             if !(est_ce_contrat(&c, salarie, numero)? && vrai(get(&c, "fichier")?)) {
                 continue;
             }
+            qui.get_or_insert_with(|| c["salarie"].clone());
             let quoi = if est(get(&c, "acte")?, "avenant") {
                 format!("Avenant n° {} {}", valeur_en_texte(get(&c, "avenant")?), parti)
             } else if est(get(&c, "acte")?, "remplace") {
@@ -902,5 +911,19 @@ fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     }
     contrat.sort_by_key(|x| if vrai(&x["quand"]) { valeur_en_texte(&x["quand"]) } else { String::new() });
-    Ok(json!({"dpae": dpae, "contrat": contrat}))
+    let de = match &qui {
+        Some(cle) => format!(" de {}", super::salarie(ctx, cle).map(|s| super::nom_a_l_ecran(&s)).unwrap_or_else(|_| valeur_en_texte(cle))),
+        None => String::new(),
+    };
+    let dites: Vec<String> = dpae.iter().chain(contrat.iter()).map(|p| {
+        let quoi = valeur_en_texte(&p["quoi"]);
+        let quoi = if quoi.starts_with("DPAE") { quoi } else { quoi[..1].to_lowercase() + &quoi[1..] };
+        if vrai(&p["quand"]) { format!("{} le {}", quoi, super::quand(&valeur_en_texte(&p["quand"]))) } else { quoi }
+    }).collect();
+    let phrase = if dites.is_empty() {
+        format!("Contrat {}{} : rien n'est parti.", valeur_en_texte(numero), de)
+    } else {
+        format!("Contrat {}{} : {}.", valeur_en_texte(numero), de, dites.join(" ; "))
+    };
+    Ok(json!({"phrase": phrase, "dpae": dpae, "contrat": contrat}))
 }

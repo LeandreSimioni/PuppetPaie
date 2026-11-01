@@ -205,7 +205,7 @@ impl Ouverture {
     /// `ReleveRetours.resume`.
     fn resume_retours(releve: &Releve) -> String {
         if releve.trouves.is_empty() {
-            return "Aucun retour sur la periode.".to_string();
+            return "Aucun retour sur la période.".to_string();
         }
         format!("{} retour(s), dont {} nouveau(x), {} archive(s).", releve.trouves.len(), releve.nouveaux.len(), releve.archives.len())
     }
@@ -377,7 +377,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
         if trouves > 0 {
             format!("{} retour(s), dont {} nouveau(x).", trouves, nouveaux)
         } else {
-            "Aucun retour sur la periode.".to_string()
+            "Aucun retour sur la période.".to_string()
         }
     } else {
         String::new()

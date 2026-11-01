@@ -667,16 +667,13 @@ Trois facons de le fournir, dans cet ordre de priorite :\n\n\
         }
     };
     let decl = a.declarant;
-    let manquants: Vec<&str> = ["siret", "nom", "prenom"].into_iter().filter(|c| !vrai(decl.get(*c))).collect();
+    let manquants: Vec<&str> =
+        [("siret", "le SIRET"), ("nom", "le nom"), ("prenom", "le prénom")].into_iter().filter(|(c, _)| !vrai(decl.get(*c))).map(|(_, m)| m).collect();
     if !manquants.is_empty() {
         return Err(echec(
             "ErreurApi",
             format!(
-                "Identite du declarant incomplete dans config/entreprise.json :\n\
-\x20 \"declarant\": {{\"siret\": ..., \"nom\": ..., \"prenom\": ...}}\n\
-Manque : {}.\n\
-Ce sont le SIRET, le nom et le prenom inscrits au service DSN\n\
-sur net-entreprises.fr (sans accent).",
+                "Le compte qui se connecte est incomplet, il manque {} : ceux du compte ouvert pour ce service, sans accent. Rien n'est parti.",
                 manquants.join(", ")
             ),
             Some(0),

@@ -70,16 +70,37 @@ impl ReleveSignatures {
         ReleveSignatures { quand: maintenant(), attendues: 0, recues: Vec::new(), incidents: Vec::new() }
     }
 
-    /// La phrase de la veille, vide quand rien n'etait attendu ni arrive.
+    /// La phrase de la veille, vide quand rien n'etait attendu ni arrive : contrat par contrat, chaque salarie et les
+    /// numeros de ce qu'il a signe (une reponse « Je signe » porte tous les contrats d'une demande).
     pub fn resume(&self) -> String {
         if self.attendues == 0 && self.recues.is_empty() {
             return String::new();
         }
         if self.recues.is_empty() {
-            return format!("{} signature(s) attendue(s), aucune arrivée", self.attendues);
+            let s = if self.attendues > 1 { "s" } else { "" };
+            return format!("{} demande{} de signature en attente, aucune réponse arrivée", self.attendues, s);
         }
-        let noms: Vec<&str> = self.recues.iter().map(|r| r.nom.as_str()).collect();
-        format!("{} signature(s) reçue(s) : {}", self.recues.len(), noms.join(", "))
+        let mut n = 0;
+        let qui: Vec<String> = self
+            .recues
+            .iter()
+            .map(|r| {
+                let numeros: Vec<String> = r
+                    .contrats
+                    .iter()
+                    .map(|c| {
+                        n += 1;
+                        let numero = texte_de(c, "numero");
+                        match c.get("avenant").filter(|a| !a.is_null()) {
+                            Some(a) => format!("avenant {} au {}", valeur_en_texte(a), numero),
+                            None => numero,
+                        }
+                    })
+                    .collect();
+                format!("{} ({})", r.nom, numeros.join(", "))
+            })
+            .collect();
+        format!("{} revenu{} signé{} : {}", if n > 1 { format!("{} contrats", n) } else { "1 contrat".into() }, if n > 1 { "s" } else { "" }, if n > 1 { "s" } else { "" }, qui.join(" ; "))
     }
 
     /// Ce que l'ouverture met dans son bilan, avec le resume.

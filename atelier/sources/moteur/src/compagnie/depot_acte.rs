@@ -465,8 +465,8 @@ pub fn deposer_dsn_dans(
                 return Err(avec_donnee(
                     "DsnDejaDeposee",
                     format!(
-                        "{} : {}. Rien n'est parti. Ce fichier est une declaration NORMALE, et la plate-forme n'en accepte pas une seconde pour le meme mois (cahier technique DSN §1.4.3.2) : pour corriger, refaire la DSN du mois -- elle sortira en annule-et-remplace.",
-                        mois,
+                        "{} : {}. Rien n'est parti : la plate-forme n'accepte pas une seconde DSN normale pour le même mois (cahier technique DSN §1.4.3.2). Pour corriger, refaites la DSN du mois : elle sortira en annule-et-remplace.",
+                        { let l = engagement::libelle_mois(&mois); l[..1].to_uppercase() + &l[1..] },
                         valeur_en_texte(&etat_mois.0["phrase"])
                     ),
                     "etat",

@@ -297,20 +297,19 @@ CCH-12.",
         Some(j) => *j,
         None => aujourdhui()?,
     };
-    for (libelle, rubrique, cle) in [
-        ("dernier jour travaille", "S21.G00.60.002", "dernier_jour_travaille"),
-        ("debut de subrogation", "S21.G00.60.005", "subrogation_debut"),
-        ("date de reprise", "S21.G00.60.010", "reprise"),
-        ("date de l'accident", "S21.G00.60.012", "date_accident"),
+    for (libelle, cle) in [
+        ("Dernier jour travaillé", "dernier_jour_travaille"),
+        ("Début de subrogation", "subrogation_debut"),
+        ("Date de reprise", "reprise"),
+        ("Date de l'accident", "date_accident"),
     ] {
         if vrai(g(v, cle)) && jours(a, cle)? > jour {
             avertissements.push(format!(
-                "{} ({}) au {} : posterieur a la constitution du fichier ({}). Le cahier technique (§4.4.13) le \
-signale sans bloquer -- un evenement deja survenu ne se date pas dans le futur.",
+                "{} le {}, après le jour où le fichier est fait ({}) : le cahier technique (§4.4.13) le signale sans bloquer, \
+un fait déjà survenu ne se date pas dans le futur.",
                 libelle,
-                rubrique,
-                s(v, cle),
-                jour.iso()
+                jours(a, cle)?.jj_mm_aaaa(),
+                jour.jj_mm_aaaa()
             ));
         }
     }

@@ -391,16 +391,15 @@ signalement sans elle. Rien n'est ecrit.",
     // car le salarie peut demander le signalement (fiche 1902). Rompu avant son terme, le CDDU se signale.
     if !nat.signalement_fctu(Some(&fin.motif)) {
         avertissements.push(format!(
-            "Contrat {} : un {} arrive a son terme n'a pas besoin de signalement de fin de contrat -- sa fin part dans la \
-DSN du mois, par le circuit derogatoire. Ce signalement ne se fait que si le salarie le demande.",
-            e.numero.clone().unwrap_or_else(|| "None".into()),
+            "Contrat {} : un {} arrivé à son terme n'a pas besoin de signalement de fin de contrat ; sa fin part dans la \
+DSN du mois, par le circuit dérogatoire. Ce signalement ne se fait que si le salarié le demande.",
+            e.numero.clone().unwrap_or_default(),
             nat.libelle
         ));
     }
     avertissements.push(format!(
-        "Le signalement est du dans les cinq jours ouvres qui suivent la fin du contrat (cahier technique p. 107). \
-Fin le {}.",
-        fin.fin
+        "Fin du contrat le {} : le signalement est dû dans les cinq jours ouvrés qui suivent (cahier technique p. 107).",
+        socle::date::jj_mm_aaaa(&fin.fin)
     ));
     Ok(avertissements)
 }
