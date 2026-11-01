@@ -482,7 +482,7 @@ fn declaration(ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> 
             d.insert("butoir".into(), e.get("jour").cloned().unwrap_or(Value::Null));
             d.insert("quand".into(), e.get("phrase").cloned().unwrap_or(Value::Null));
             d.insert("detail".into(), json!(texte("detail")));
-            let etat = texte("etat");
+            let etat = texte("etape");
             let marche = match etat.as_str() {
                 "a_saisir" => "Saisir le mois dans la compagnie (vide s'il n'y a pas eu de paie : une DSN « néant » se dépose aussi).",
                 "a_produire" => "Écrire le mois dans la compagnie : la DSN s'écrit avec les bulletins, puis se teste.",
@@ -534,7 +534,7 @@ fn declaration(ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> 
         "dpae" => {
             d.insert("genre".into(), json!("dpae"));
             d.insert("titre".into(), json!(texte("titre")));
-            let jour = r.get("jour").filter(|j| vrai(j)).map(valeur_en_texte);
+            let jour = r.get("date").filter(|j| vrai(j)).map(valeur_en_texte);
             d.insert("quand".into(), json!(jour.as_ref().map(|j| format!("le {}", jj_mm_aaaa(j)))));
             d.insert("butoir".into(), json!(jour));
             d.insert("detail".into(), json!(texte("detail")));

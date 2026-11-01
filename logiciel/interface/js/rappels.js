@@ -353,8 +353,8 @@ async function peindreDemarrageDans(conteneur) {
 function htmlEcheancier(ech) {
   if (!ech) return "";
   const pastille = (x) => pastilleDeLEtat(x.pastille);
-  const avant = (x) => x.date && x.etat !== "fait"
-    ? ` <span class="discret">— avant le ${echapper(jjmmaaaa(String(x.date || "").slice(0, 10)))}</span>` : "";
+  const avant = (x) => x.quand && x.etat !== "fait"
+    ? ` <span class="discret">— ${echapper(x.quand)}</span>` : "";
   const ligne = (x) => `
     <li class="echeance ${echapper(x.etat)}">
       <div class="echeance-titre">${pastille(x)} ${echapper(x.titre)}${avant(x)}</div>
@@ -363,7 +363,7 @@ function htmlEcheancier(ech) {
         data-fait="${x.etat === "fait" ? "non" : "oui"}">${x.etat === "fait" ? "Pas encore fait" : "C'est fait"}</button>` : ""}
     </li>`;
   const parMois = {};
-  (ech.a_venir || []).forEach((x) => { (parMois[x.mois] = parMois[x.mois] || []).push(x); });
+  (ech.a_venir || []).forEach((x) => { (parMois[x.tombe] = parMois[x.tombe] || []).push(x); });
   const annee = Object.keys(parMois).map((m) => `
     <li><b>${echapper(moisEnClair(m))}</b>
       <ul>${parMois[m].map((x) => `<li>${echapper(x.titre)}${x.etat === "fait" ? " ✓" : ""}</li>`).join("")}</ul>
@@ -391,9 +391,9 @@ function htmlEcheancier(ech) {
 function boiteRappels(liste, ech, manques = []) {
   const html = htmlDemarrage(manques) + htmlEcheancier(ech) + liste.map((r, i) => `
     <div class="rappel ${r.en_retard ? "retard" : ""}">
-      <h3>${echapper(r.titre)}${r.pastille ? ` ${pastilleDeLEtat(r.pastille)}` : ""}${r.echeance_depot && r.echeance_depot.jour
-        ? ` <span class="discret">— avant le ${echapper(jjmmaaaa(r.echeance_depot.jour))}</span>` : ""}</h3>
-      <p class="rappel-question">${echapper(r.question)}</p>
+      <h3>${echapper(r.titre)}${r.pastille ? ` ${pastilleDeLEtat(r.pastille)}` : ""}${r.quand
+        ? ` <span class="discret">— ${echapper(r.quand)}</span>` : ""}</h3>
+      ${r.question ? `<p class="rappel-question">${echapper(r.question)}</p>` : ""}
       ${r.detail ? `<p class="note">${echapper(r.detail)}</p>` : ""}
       ${r.spectacles && r.spectacles.length ? `<ul class="rappel-liste">${r.spectacles.map((s) =>
         `<li>${echapper(s.titre)} <span class="discret">— ${echapper(s.numero_objet || "aucun numéro")}</span></li>`).join("")}</ul>` : ""}
@@ -424,7 +424,8 @@ function boiteRappels(liste, ech, manques = []) {
       try {
         await api("echeance-faite", { cle: b.dataset.echeance, fait: b.dataset.fait === "oui" });
         const ech2 = await api("echeancier");
-        boiteRappels(liste, ech2, manques);
+        const r2 = await api("rappels");
+        boiteRappels(r2.rappels || [], ech2, manques);
       } catch (e) { dire(e.message, "erreur"); }
     };
   });
@@ -458,8 +459,10 @@ function boutonRappel(r, i) {
     "export-compta": "Exporter pour la compta",
     "revue-spectacles": "Choisir les spectacles",
     "dpae": r.objet ? "Envoyer la DPAE" : "Préparer la DPAE",
-  }[r.quoi] || "Voir";
-  return `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>`;
+  }[r.quoi];
+  // UNE ÉCHÉANCE QUE SEULE LA COMPAGNIE PEUT DIRE FAITE (`cochable`) : « C'est fait », comme dans l'échéancier.
+  const coche = r.cochable ? `<button class="secondaire" data-echeance="${echapper(r.cle)}" data-fait="oui">C'est fait</button>` : "";
+  return (libelle ? `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>` : "") + coche;
 }
 
 async function agirSurRappel(r) {

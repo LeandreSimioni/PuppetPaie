@@ -1070,7 +1070,7 @@ pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str)
         ));
     }
     let p = ctx.racine.join("config").join("echeancier.json");
-    let mut faits = super::mois::cochees(ctx)?;
+    let mut faits = super::rappels::cochees(ctx)?;
     if fait {
         faits.insert(cle.to_string(), json!({"le": ctx.aujourdhui.iso(), "qui": qui}));
     } else {
