@@ -170,9 +170,8 @@ pub(crate) fn poser(racine: &Path, mois: &str, contenu: &Value) -> Resultat<Path
     Ok(p)
 }
 
-/// Le fichier d'un mois tel que le processus l'a lu (`socle::fichiers::json_partage`), ou tel que le brouillon ouvert
-/// le tient : chaque lecture des engagements passe par lui, et il ne se relit que quand il a change. `None` s'il
-/// n'existe pas.
+/// Le fichier d'un mois tel que le geste l'a lu ou ecrit (`socle::fichiers::json_partage`), ou tel que le brouillon ouvert
+/// le tient : chaque lecture des engagements passe par lui. `None` s'il n'existe pas.
 fn lire_partage(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<Value>>> {
     if let Some(v) = Brouillon::lu(racine, mois) {
         return Ok(Some(v));
@@ -200,16 +199,35 @@ pub fn mois_apres(mois: &str) -> Resultat<String> {
 // ------------------------------------------------------------------ l'objet
 
 /// Un engagement tel qu'il est ecrit : la compagnie, le mois de son fichier (son premier mois), son rang dans le
-/// fichier, et l'objet lui-meme.
+/// fichier, et l'objet lui-meme, partage : le copier ne recopie pas ce qu'il porte (ses versions, ses paies) ; on ne
+/// recopie que ce qu'on change (`brut_mut`).
 #[derive(Debug, Clone)]
 pub struct Objet {
     pub racine: PathBuf,
     pub fichier: String,
     pub rang: usize,
-    pub brut: Map<String, Value>,
+    /// Toujours un objet JSON.
+    pub brut: std::sync::Arc<Value>,
 }
 
 impl Objet {
+    /// Ses champs.
+    pub fn champs(&self) -> &Map<String, Value> {
+        static VIDE: std::sync::LazyLock<Map<String, Value>> = std::sync::LazyLock::new(Map::new);
+        self.brut.as_object().unwrap_or(&VIDE)
+    }
+
+    /// L'objet a changer : recopie s'il est partage.
+    pub fn brut_mut(&mut self) -> &mut Map<String, Value> {
+        match std::sync::Arc::make_mut(&mut self.brut) {
+            Value::Object(m) => m,
+            autre => {
+                *autre = Value::Object(Map::new());
+                autre.as_object_mut().expect("un objet vient d'etre pose")
+            }
+        }
+    }
+
     /// Le premier mois de l'engagement : celui de son fichier.
     pub fn premier_mois(&self) -> &str {
         &self.fichier
@@ -222,7 +240,7 @@ impl Objet {
             None if !self.mensuel() => {
                 // Un contrat d'usage sans fin dite finit a son dernier jour joue ou planifie ; sans jour encore, a son
                 // premier mois : seul un contrat paye au mois court sans terme.
-                let v = Value::Object(self.brut.clone());
+                let v = &*self.brut;
                 let mut jours: Vec<String> = crate::dates_engagement(&v)
                     .iter()
                     .chain(crate::planning_engagement(&v).iter())
@@ -300,7 +318,7 @@ impl Objet {
 
     /// La saisie du premier mois : l'objet sans ce que le moteur tient seul.
     fn premiere_vue(&self) -> Map<String, Value> {
-        let mut v = self.brut.clone();
+        let mut v = self.brut.as_object().cloned().unwrap_or_default();
         for k in TENUS_PAR_LE_MOTEUR {
             v.remove(k);
         }
@@ -488,9 +506,9 @@ impl Tires {
     }
 }
 
-/// TOUS LES ENGAGEMENTS D'UNE COMPAGNIE, tires une fois des memes fichiers : chaque lecture relit les fichiers, et ce
-/// qu'on en avait tire ne sert que si leurs octets sont exactement les memes (`memes`). Partage : on n'y touche pas, on
-/// recopie ce qu'on garde.
+/// TOUS LES ENGAGEMENTS D'UNE COMPAGNIE, tires une fois des memes fichiers : ce qu'on en avait tire ne sert que si ce
+/// sont les memes lectures (`memes`) ; pendant un geste, les fichiers se lisent une fois (`socle::fichiers::geste`).
+/// Partage : on n'y touche pas, et un objet se copie sans recopier ce qu'il porte (`Objet`).
 fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
     type Gardes = std::sync::Mutex<std::collections::HashMap<PathBuf, (Lus, std::sync::Arc<Tires>)>>;
     static GARDES: std::sync::OnceLock<Gardes> = std::sync::OnceLock::new();
@@ -504,8 +522,8 @@ fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
     let mut objets = Vec::new();
     for (f, m) in &fichiers {
         for (rang, e) in m.get("engagements").and_then(Value::as_array).into_iter().flatten().enumerate() {
-            if let Value::Object(brut) = e {
-                objets.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: brut.clone() });
+            if e.is_object() {
+                objets.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: std::sync::Arc::new(e.clone()) });
             }
         }
     }
@@ -528,7 +546,7 @@ pub fn identites(objets: &[Objet]) -> Vec<Value> {
     let paires: Vec<(String, String)> = objets
         .iter()
         .map(|o| {
-            let e = Value::Object(o.brut.clone());
+            let e = &*o.brut;
             (e.get("salarie").map(en_texte).unwrap_or_default(), crate::debut_brut(&e))
         })
         .collect();
@@ -570,7 +588,7 @@ pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     let Some(Value::Array(es)) = contenu.get_mut("engagements") else {
         return Err(format!("{} : `engagements` manque", o.fichier));
     };
-    if o.rang >= es.len() || es[o.rang] != Value::Object(o.brut.clone()) {
+    if o.rang >= es.len() || es[o.rang] != *o.brut {
         return Err(format!("{} : l'engagement {} a change sur le disque ; rien n'est efface", o.fichier, o.rang + 1));
     }
     es.remove(o.rang);
@@ -802,7 +820,7 @@ fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Map<String, Val
     }
     let vue = o.vue(mois)?;
     // Le debut qu'un mois suivant d'un contrat d'usage deduit de son premier jour (`Objet::vue`) n'est pas une saisie.
-    if mois != o.fichier && !o.brut.contains_key("debut") && saisie.get("debut").is_some_and(|d| vue.as_ref().and_then(|v| v.get("debut")) == Some(d)) {
+    if mois != o.fichier && !o.champs().contains_key("debut") && saisie.get("debut").is_some_and(|d| vue.as_ref().and_then(|v| v.get("debut")) == Some(d)) {
         saisie.remove("debut");
     }
     if let Some(ecrit) = vue.and_then(|v| v.get("spectacle").filter(|s| vrai(s)).cloned()) {
@@ -864,13 +882,13 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
     }
     for k in PARTAGES {
         match saisie.get(k).filter(|x| !x.is_null()) {
-            Some(x) => o.brut.insert(k.to_string(), x.clone()),
+            Some(x) => o.brut_mut().insert(k.to_string(), x.clone()),
             None if k == "numero" => None,
-            None => o.brut.remove(k),
+            None => o.brut_mut().remove(k),
         };
     }
     if mois == o.fichier {
-        let tenus: Vec<(&str, Option<Value>)> = TENUS_PAR_LE_MOTEUR.iter().map(|k| (*k, o.brut.remove(*k))).collect();
+        let tenus: Vec<(&str, Option<Value>)> = TENUS_PAR_LE_MOTEUR.iter().map(|k| (*k, o.brut_mut().remove(*k))).collect();
         let mut neuf = saisie.clone();
         for k in PARTAGES {
             match o.brut.get(k) {
@@ -878,10 +896,10 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
                 None => neuf.remove(k),
             };
         }
-        o.brut = neuf;
+        o.brut = std::sync::Arc::new(Value::Object(neuf));
         for (k, v) in tenus {
             if let Some(v) = v {
-                o.brut.insert(k.to_string(), v);
+                o.brut_mut().insert(k.to_string(), v);
             }
         }
     } else {
@@ -911,7 +929,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
         }
         changer_un_mois(o, &m, &v)?;
     }
-    if let Some(Value::Object(s)) = o.brut.get_mut(SUITE) {
+    if let Some(Value::Object(s)) = o.brut_mut().get_mut(SUITE) {
         for m in &a_retirer {
             s.remove(m);
         }
@@ -921,7 +939,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
         }
     }
     if o.brut.get(SUITE).and_then(Value::as_object).is_some_and(Map::is_empty) {
-        o.brut.remove(SUITE);
+        o.brut_mut().remove(SUITE);
     }
     Ok(())
 }
@@ -942,7 +960,7 @@ fn changer_un_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Re
         base_sans.remove(k);
     }
     let d = difference(&base_sans, &cible);
-    let suite = o.brut.entry(SUITE.to_string()).or_insert_with(|| Value::Object(Map::new()));
+    let suite = o.brut_mut().entry(SUITE.to_string()).or_insert_with(|| Value::Object(Map::new()));
     if let Value::Object(s) = suite {
         s.insert(mois.to_string(), Value::Object(d));
         let mut trie: Vec<(String, Value)> = std::mem::take(s).into_iter().collect();
@@ -955,7 +973,7 @@ fn changer_un_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Re
 impl Objet {
     /// L'engagement tel qu'une saisie gardee (`saisie`, celle d'une validation) le disait : meme fichier, meme rang.
     pub fn d_apres_la_saisie(&self, saisie: &Map<String, Value>) -> Objet {
-        Objet { racine: self.racine.clone(), fichier: self.fichier.clone(), rang: self.rang, brut: saisie.clone() }
+        Objet { racine: self.racine.clone(), fichier: self.fichier.clone(), rang: self.rang, brut: std::sync::Arc::new(Value::Object(saisie.clone())) }
     }
 
     /// Ce que la vue de `mois` dit du contrat qui se reconduit (`RECONDUITS`, hors `PARTAGES`) : ce qui change « a partir
@@ -1042,21 +1060,21 @@ impl Objet {
         let mut r = self.clone();
         let tenus: Vec<(&str, Value)> = TENUS_PAR_LE_MOTEUR.iter().filter(|k| **k != SUITE).filter_map(|k| r.brut.get(*k).map(|v| (*k, v.clone()))).collect();
         let premiere = cibles.iter().find(|(m, _)| *m == self.fichier).map(|(_, v)| v.clone()).unwrap_or_else(|| self.premiere_vue());
-        r.brut = premiere;
+        r.brut = std::sync::Arc::new(Value::Object(premiere));
         for k in DEDUITS {
-            r.brut.remove(k);
+            r.brut_mut().remove(k);
         }
         for (k, v) in tenus {
-            r.brut.insert(k.to_string(), v);
+            r.brut_mut().insert(k.to_string(), v);
         }
         for (m, v) in cibles.iter().filter(|(m, _)| *m != self.fichier) {
             changer_un_mois(&mut r, m, v)?;
         }
-        if let Some(Value::Object(s)) = r.brut.get_mut(SUITE) {
+        if let Some(Value::Object(s)) = r.brut_mut().get_mut(SUITE) {
             s.retain(|_, v| !v.as_object().is_some_and(Map::is_empty));
         }
         if r.brut.get(SUITE).and_then(Value::as_object).is_some_and(Map::is_empty) {
-            r.brut.remove(SUITE);
+            r.brut_mut().remove(SUITE);
         }
         Ok(r)
     }
@@ -1107,7 +1125,7 @@ pub fn reecrire(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
         return Err(format!("{} : `engagements` manque", o.fichier));
     };
     let place = es.get_mut(o.rang).ok_or_else(|| format!("{} : l'engagement {} a disparu", o.fichier, o.rang + 1))?;
-    *place = Value::Object(o.brut.clone());
+    *place = (*o.brut).clone();
     poser(racine, &o.fichier, &Value::Object(contenu))
 }
 

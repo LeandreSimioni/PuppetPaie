@@ -716,7 +716,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let siens = engagement::etats::du_mois(ctx, &mois_parti, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?.into_iter().find_map(|e| {
         let v = e.valide()?.clone();
-        let b = Value::Object(v.objet().brut.clone());
+        let b = &*v.objet().brut;
         (engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie.as_str()) && b.get("numero").map(valeur_en_texte) == paies[i].engagement.numero).then_some(v)
     });
     let passee = siens.as_ref().and_then(|v| engagement::etats::version_au_depart(ctx, v, &departs, engagement::departs::Envoi::Contrat));

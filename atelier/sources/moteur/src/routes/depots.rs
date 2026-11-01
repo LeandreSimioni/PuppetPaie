@@ -886,7 +886,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
         if m_e.len() == 7 && !mois_vus.contains(&m_e) {
             for etat in engagement::etats::tels_qu_ecrits(ctx, &m_e, &departs).map_err(Echec::from)? {
                 let Some(v) = etat.valide() else { continue };
-                let brut = Value::Object(v.objet().brut.clone());
+                let brut = &*v.objet().brut;
                 let Some(cle) = engagement::cle_de_l_engagement(ctx, &brut) else { continue };
                 let id = (cle, engagement::debut_brut(&brut));
                 if let Ok(nat) = droit::natures::nature(brut.get("nature").and_then(Value::as_str)) {

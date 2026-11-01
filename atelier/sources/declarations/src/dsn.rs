@@ -3876,7 +3876,7 @@ fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat
 fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs, orgs: &Value) -> Resultat<Option<crate::changements_contrat::Declare>> {
     let (cle, numero) = (cle_salarie(p), p.engagement.numero.clone().unwrap_or_default());
     let sienne = |e: &engagement::etats::Etat| {
-        let b = Value::Object(e.objet().brut.clone());
+        let b = &*e.objet().brut;
         engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle.as_str()) && b.get("numero").map(en_texte).as_deref() == Some(numero.as_str())
     };
     let Some(v) = etats.iter().filter(|e| sienne(e)).find_map(engagement::etats::Etat::valide) else { return Ok(None) };

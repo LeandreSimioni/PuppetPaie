@@ -288,7 +288,7 @@ fn modifier_puis_revalider(
 
 /// Le contrat (ou un avenant) de l'engagement `o` est-il parti ?
 fn contrat_parti(ctx: &Contexte, o: &engagement::stock::Objet, departs: &engagement::departs::Departs) -> bool {
-    let b = Value::Object(o.brut.clone());
+    let b = &*o.brut;
     let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b), b.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else {
         return false;
     };

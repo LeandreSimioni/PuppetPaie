@@ -58,7 +58,7 @@ fn contrats_de(ctx: &Contexte, p: &Periode, lecture: &mut Lecture) -> R<Vec<Cont
         for i in engagement::importe::du_mois(&ctx.racine, m).map_err(|x| erreur("ValueError", x))? {
             let paies = i.paies();
             let Some(paie) = paies.get(m) else { continue };
-            let brut = &i.objet().brut;
+            let brut = i.objet().champs();
             let lu = |o: Option<&serde_json::Map<String, Value>>, k: &str| o.and_then(|o| o.get(k)).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
             let cle = lu(Some(brut), "salarie");
             let fiche = ctx.salarie(&cle).map_err(|x| erreur("ErreurOperation", x))?;

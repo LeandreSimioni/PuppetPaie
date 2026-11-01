@@ -383,7 +383,7 @@ pub(crate) fn cartes(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     for i in importes {
         let contrat = i.ligne_du_contrat();
         let paie = i.lignes_des_paies().into_iter().find(|p| texte(p, "mois") == mois);
-        let brut = Value::Object(i.objet().brut.clone());
+        let brut = &*i.objet().brut;
         let (s, d) = (texte(&brut, "salarie"), texte(&brut, "debut"));
         let dpae = dpae_de(&embauches, &certifiees, &s, &texte(&brut, "numero"), &d);
         cartes.push(carte(ctx, mois, paie.as_ref(), contrat.as_ref(), dpae));

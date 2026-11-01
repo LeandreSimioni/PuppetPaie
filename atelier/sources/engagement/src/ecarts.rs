@@ -175,7 +175,7 @@ fn texte(o: &Map<String, Value>, k: &str) -> Option<String> {
 /// table de lecture rattache a un libelle de cotisation imprime ; `deja` : la paie de cette empreinte (`empreinte`) est
 /// deja comparee, elle ne se compare pas deux fois.
 pub fn comparer(racine: &Path, imp: &Importe, rattacher: &dyn Fn(&str) -> Option<String>, deja: &dyn Fn(&str) -> bool) -> Vec<Comparaison> {
-    let brut = &imp.objet().brut;
+    let brut = imp.objet().champs();
     let contrat = imp.contrat();
     let nature = contrat.and_then(|c| texte(c, "nature")).or_else(|| texte(brut, "nature"));
     // UN CONTRAT DONT LA NATURE RESTE A DIRE (`nature_a_dire`, celui d'un permanent : `import::nature`) ne se compare
@@ -475,7 +475,7 @@ fn a_refaire(c: &mut Comparaison, raison: String) -> String {
 /// L'empreinte de la paie `mois` de l'engagement importe `imp` : ce qui la reconnait d'une comparaison a l'autre (son
 /// salarie, ses bornes, son numero et ce que les pieces en disent, sans la date de l'import).
 pub fn empreinte(imp: &Importe, mois: &str, p: &Map<String, Value>) -> String {
-    let brut = &imp.objet().brut;
+    let brut = imp.objet().champs();
     let mut paie = p.clone();
     paie.remove("importe_le");
     let graine = json!([brut.get("salarie"), brut.get("debut"), brut.get("fin"), brut.get("numero"), mois, paie]);
