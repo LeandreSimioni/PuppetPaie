@@ -121,9 +121,10 @@ pub fn paie_sur_ses_fiches(ctx: &Contexte, eng: Engagement, v: &Value, fiches: &
 }
 
 /// Les fiches du salarie telles que le calcul de `p` les a lues : `{"paie": <fiche>, "periodes": [<fiche de chaque
-/// periode elementaire>]}`. Elles s'ecrivent a cote de la paie, et ce qui relit ce qui a ete declare les relit.
+/// periode elementaire>]}`, sans les taux recus (`droit::pas::sans_taux_recus` : le taux de la paie est son `pas`). Elles
+/// s'ecrivent a cote de la paie, et ce qui relit ce qui a ete declare les relit.
 pub fn fiches_du_calcul(p: &Paie) -> Value {
-    json!({ "paie": p.salarie, "periodes": p.periodes.iter().map(|q| q.salarie.clone()).collect::<Vec<_>>() })
+    json!({ "paie": droit::pas::sans_taux_recus(&p.salarie), "periodes": p.periodes.iter().map(|q| droit::pas::sans_taux_recus(&q.salarie)).collect::<Vec<_>>() })
 }
 
 fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) -> Resultat<Paie> {

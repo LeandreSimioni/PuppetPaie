@@ -603,7 +603,9 @@ puis en juillet, le taux de janvier est périmé depuis le 31 mars** : son
 embauche de juillet en redemande un, avec la DPAE (ci-dessous), et la grille de
 l'article 204 H du CGI ne s'applique que si aucun taux n'est arrivé au jour du
 versement. Un taux vaut pour tout versement fait à partir du jour de sa mise à
-disposition (CGI, art. 1671 ; BOI-IR-PAS-30-10-20, § 70 et 80).
+disposition (CGI, art. 1671 ; BOI-IR-PAS-30-10-20, § 70 et 80), sauf celui qui répond à la DSN du
+mois même : il vaut pour les mois qui suivent (§ 70, exemple 1), et s'écrit dans la fiche à partir du premier jour
+du mois suivant. Une DSN déposée avant son versement ne redevient donc pas « à refaire » par son propre compte rendu.
 
 le moteur date donc chaque taux (« en cours de validité, jusqu'au
 31/10/2026 », ou « périmé ») et liste, en dessous, **ce qu'il faut demander à

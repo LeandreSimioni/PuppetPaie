@@ -674,7 +674,8 @@
               "taux": "8.30",
               "type": "01",
               "identifiant": "762147540",
-              "mis_a_disposition": "20261215100000"
+              "mis_a_disposition": "20261215100000",
+              "en_retour_de": "2026-11"
             },
             "note": "CRM DGFiP nature 94"
           }
@@ -1496,12 +1497,6 @@
                     "adresse": "7 RUE DE LA PAIX",
                     "commune": "NANTES",
                     "emploi": "COMEDIEN",
-                    "taux_pas": {
-                      "taux": "8.30",
-                      "type": "01",
-                      "identifiant": "238122673",
-                      "mis_a_disposition": "20261120070000"
-                    },
                     "_cle": "FULLER"
                   },
                   "periodes": []
@@ -1519,7 +1514,7 @@
                     "existe racine:config/baremes/2026.json": "oui",
                     "existe racine:config/effectifs.json": "non",
                     "existe racine:config/rubriques-compagnie.json": "non",
-                    "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "6981ed793b6333530bf31fc3e7a8c6fed4ef4337bf48a559f896a2bfaa873d7f",
+                    "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "db105831e932fc984562dadaff82cb63bd0521c2b8b4bfaa8982eebf27c1ba14",
                     "fichier code:baremes/2026.json": "1aec03d68d6381fccf47d53abc740d82191ab98ef55caccf6ec218a1e368a74d",
                     "fichier code:contrats-base.json": "fa6e9d4099fd495aa0ac87b0edbb5d88bdbf0242823427702cff8fb188b0d9b0",
                     "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",
@@ -1527,7 +1522,7 @@
                     "fichier code:rubriques-base.json": "f5c6b87d6c56c8882512f782fcb56b4d3ff5823b65ceceb51634e5af31762b61",
                     "fichier racine:config/baremes/2026.json": "18a1fd29e339afc1246fcefd6720bad48221693ac22780a790259021e260d045",
                     "moteur": "<moteur>",
-                    "pas FULLER 2026-11-30": "[\"8.30\",\"01\",\"238122673\"]",
+                    "pas FULLER 2026-11-30 2026-11": "[\"8.30\",\"01\",\"238122673\"]",
                     "saisie 2026-11 FULLER": "2202b17c97d8c24bd45434b7d8ed6626e4ee9ea705cb1f93039b93a3b1d28294:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
                   },
                   "regles": [

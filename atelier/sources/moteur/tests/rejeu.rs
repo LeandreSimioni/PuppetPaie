@@ -399,3 +399,47 @@ fn la_demande_de_taux_d_une_embauche_part_et_sa_reponse_fait_l_engagement() {
     let types: Vec<&str> = dsn.lines().filter_map(|l| l.strip_prefix("S21.G00.50.007,")).collect();
     assert_eq!(types, ["'01'", "'01'"], "la DSN de novembre declare les deux au taux transmis");
 }
+
+/// LE COMPTE RENDU D'UNE DSN NE REFAIT PAS LA PAIE QU'ELLE DECLARE (le parcours du joueur L9, sa compagnie du Fil de Fer,
+/// decembre 2026 : la DSN deposee le 21/12 pour un versement du 31/12, son compte rendu du 21/12 refaisait la paie et la
+/// DSN redevenait « à refaire »). Les Treteaux, FULLER payee le 20/12 pour novembre (CCH-13 : au plus tard le dernier jour
+/// du mois suivant), au taux arrive le 17/11. La DSN de novembre est deposee le 14/12, avant le versement, ses documents
+/// envoyes ensuite ; son compte rendu, en retour de la DSN de novembre, vaut pour les mois qui suivent (BOI-IR-PAS-30-10-20,
+/// § 70, exemple 1 ; `droit::pas::en_vigueur`) : la paie de novembre garde son taux, et sa DSN reste faite.
+#[test]
+fn le_compte_rendu_d_une_dsn_ne_refait_pas_la_paie_qu_elle_declare() {
+    let d = outils::dossier_de_test("rejeu", "compte_rendu_de_sa_dsn");
+    let sc = d.join("scenario");
+    std::fs::create_dir_all(&sc).unwrap();
+    let gestes = std::fs::read_to_string(outils::rejeu::scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
+    let debut: Vec<&str> = gestes.lines().take_while(|l| !l.contains("\"geste\":\"jour\"")).collect();
+    std::fs::write(sc.join("gestes.jsonl"), debut.join("\n") + "\n").unwrap();
+    let (_, racine) = outils::rejeu::rejouer_dossier(&sc, &d);
+
+    let mut fiches = outils::lire(&racine, "config/salaries.json");
+    fiches["FULLER"]["taux_pas"] = json!([{"valeur": ""}, {"depuis": "2026-11-17", "valeur": {"taux": "4.30", "type": "01", "identifiant": "190151266", "mis_a_disposition": "20261117100000"}}]);
+    outils::ecrire(&racine, "config/salaries.json", &fiches);
+    let vue = engagement::stock::vue_du_mois(&racine, "2026-11").unwrap().unwrap();
+    let mut carte = vue["engagements"][0].clone();
+    carte["date_paiement"] = json!("2026-12-20");
+    for k in ["numero_pour", "valide"] {
+        carte.as_object_mut().unwrap().remove(k);
+    }
+    outils::reussi(&outils::route(&racine, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": carte}), "2026-11-16"));
+    outils::reussi(&outils::valider_la_carte(&racine, "2026-11", "FULLER", "2026-11-16"));
+    for jour in ["2026-11-20", "2026-12-01"] {
+        let le = socle::paris::naif_de_iso(&format!("{}T09:00:00", jour)).unwrap() as f64;
+        socle::temps::pendant(le, || moteur::horloge::rattraper(&racine, Some(socle::date::Jour::lire(jour).unwrap()), true)).unwrap();
+    }
+    for reel in [false, true] {
+        outils::reussi(&outils::route(&racine, "deposer", json!({"quoi": "dsn", "mois": "2026-11", "reel": reel}), "2026-12-14"));
+    }
+    outils::reussi(&outils::route(&racine, "envoyer-documents", json!({"mois": "2026-11"}), "2026-12-14"));
+    let etat = outils::reussi(&outils::route(&racine, "etat-du-mois", json!({"mois": "2026-11"}), "2026-12-14")).to_string();
+    assert!(!etat.contains("à refaire"), "la DSN de novembre reste faite : {}", etat);
+    let fiches = outils::lire(&racine, "config/salaries.json");
+    let en_retour = fiches["FULLER"]["taux_pas"].as_array().unwrap().iter().find(|e| e["valeur"]["en_retour_de"] == json!("2026-11")).cloned();
+    assert!(en_retour.is_some(), "le compte rendu de la DSN de novembre est dans sa fiche : {}", fiches["FULLER"]);
+    let m = outils::lire(&racine, "engagements/2026-11.json");
+    assert_eq!(m["engagements"][0]["valide"]["paies"]["2026-11"]["pas"]["identifiant"], json!("190151266"), "la paie de novembre garde son taux");
+}

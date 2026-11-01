@@ -596,7 +596,7 @@ pub(crate) fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<droit::pa
     }
     let cle = en_texte(p.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
     let fin = e.fin_periode()?;
-    let taux = droit::pas::taux_dgfip(ctx, &cle, Some(e.date_du_versement()?))?;
+    let taux = droit::pas::taux_dgfip(ctx, &cle, Some(e.date_du_versement()?), Some(&e.mois))?;
     let bareme = ctx.bareme(&Jour { an: fin.an, mois: fin.mois, jour: 1 })?;
     let t = |j: Jour| (j.an, j.mois, j.jour);
     let court = droit::natures::contrat_court(&*e.nat()?, t(e.debut), e.fin.map(t), t(fin));
@@ -628,7 +628,7 @@ pub fn prelevement_de_la_correction(
     let difference = socle::num::sub(apres.net_imposable, net_imposable_declare);
     let e = &apres.engagement;
     let cle = en_texte(apres.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
-    let taux = droit::pas::taux_dgfip(ctx, &cle, Some(fin))?;
+    let taux = droit::pas::taux_dgfip(ctx, &cle, Some(fin), Some(mois_du_versement))?;
     let bareme = ctx.bareme(&debut)?;
     let t = |j: Jour| (j.an, j.mois, j.jour);
     let court = droit::natures::contrat_court(&*e.nat()?, t(e.debut), e.fin.map(t), t(fin));

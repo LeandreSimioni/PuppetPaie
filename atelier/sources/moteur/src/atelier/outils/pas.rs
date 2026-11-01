@@ -78,7 +78,7 @@ fn amorcer(cadre: &Cadre) -> Result<i32, Echec> {
 /// Les taux recus (la fiche de chaque salarie, `droit::pas::recus`), et ce qu'il faudrait demander a la DGFiP.
 fn lire(cadre: &Cadre) -> Result<i32, Echec> {
     let ctx = &cadre.ctx;
-    let diag = droit::pas::diagnostic(ctx, None, None).map_err(ko)?;
+    let diag = droit::pas::diagnostic(ctx, None, None, None).map_err(ko)?;
     dire!("Taux de prelevement a la source recus\n{}", "-".repeat(62));
     for s in &diag {
         let cle = champ(s, "salarie");

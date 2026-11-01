@@ -4272,7 +4272,7 @@ certificat de conformite du depot precedent.",
     let mut pas_par_salarie: HashMap<String, Option<Triplet>> = HashMap::new();
     for cle in paies.iter().filter(|p| p.engagement.sans_paie()).map(cle_salarie) {
         if !pas_par_salarie.contains_key(&cle) {
-            let t = pas::taux_dgfip(ctx, &cle, None)?;
+            let t = pas::taux_dgfip(ctx, &cle, None, Some(mois))?;
             pas_par_salarie.insert(cle, t);
         }
     }

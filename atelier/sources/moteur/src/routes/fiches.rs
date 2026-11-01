@@ -1426,7 +1426,7 @@ fn poser_champs(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: Map<Strin
     ecrire(&chemin, Value::Object(contenu))
 }
 
-/// UN TAUX DE PAS RECU S'ECRIT DANS LA FICHE DE SON SALARIE (`droit::pas::CHAMP`), date du jour de sa mise a disposition
+/// UN TAUX DE PAS RECU S'ECRIT DANS LA FICHE DE SON SALARIE (`droit::pas::CHAMP`), date du jour ou il commence de valoir
 /// `depuis` : avant ce jour, la fiche ne le disait pas (la case vide). `note` dit d'ou il vient.
 pub(crate) fn poser_taux_recu(ctx: &Contexte, salarie: &str, valeur: Value, depuis: Jour, note: &str) -> R<()> {
     let chemin = ctx.racine.join("config").join("salaries.json");

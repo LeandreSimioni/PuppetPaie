@@ -47,12 +47,23 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
 
 /// Les taux qu'un compte rendu DGFiP de nature 94 communique vont dans la fiche de leur salarie : un taux se lit
 /// du compte rendu, il ne se devine pas (regle 1). Chaque releve se rattache a une fiche par le NIR ; un NIR qu'aucune
-/// fiche ne porte ne se rattache a personne. La validite court de la mise a disposition (`droit::pas`).
+/// fiche ne porte ne se rattache a personne. La validite court de la mise a disposition (`droit::pas`). Le compte rendu
+/// qui repond a une DSN mensuelle (le depot du journal au meme flux, de nature 01) dit le mois qu'elle declare
+/// (`droit::pas::EN_RETOUR_DE`) : son taux vaut pour les mois qui suivent.
 fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::PathBuf)]) -> R<()> {
     use serde_json::Value;
     let nirs: Vec<Value> = ctx.salaries.iter().filter(|(_, s)| s.get("nir").is_some_and(vrai)).map(|(cle, s)| json!([cle, s["nir"]])).collect();
+    let journal = envois::journal::lu(&ctx.racine).map_err(|m| socle::echec::erreur("ValueError", m))?;
+    let texte = |v: Option<&Value>| v.filter(|x| vrai(x)).map(socle::valeur::valeur_en_texte).unwrap_or_default();
+    let mois_declare = |retour: &Value| -> Option<String> {
+        let flux = texte(retour.get("flux"));
+        let l = journal.lignes.iter().find(|l| !flux.is_empty() && texte(l.get("flux")) == flux)?;
+        let nature = texte(l.get("detail").and_then(|d| d.get("nature")));
+        (texte(l.get("quoi")) == "dsn" && nature == "01").then(|| texte(l.get("mois"))).filter(|m| !m.is_empty())
+    };
     let mut tous = Vec::new();
     for (retour, chemin) in crm {
+        let en_retour_de = mois_declare(retour);
         let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
         let lus = envois::retours::taux_pas_d_octets(&octets)?;
         let releves: Vec<Value> = lus.get("releves").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -60,6 +71,9 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
         for x in r.get("rattaches").and_then(Value::as_array).cloned().unwrap_or_default() {
             let mut m = x.as_object().cloned().unwrap_or_default();
             m.insert("mis_a_disposition".into(), retour.get("publication").cloned().unwrap_or(Value::Null));
+            if let Some(mois) = &en_retour_de {
+                m.insert(droit::pas::EN_RETOUR_DE.into(), Value::String(mois.clone()));
+            }
             tous.push(Value::Object(m));
         }
     }

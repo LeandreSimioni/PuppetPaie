@@ -1431,7 +1431,7 @@ fn sans_taux_recu<'a>(ctx: &Contexte, paies: impl Iterator<Item = &'a Paie>) -> 
     // par la DGFiP, S21.G00.50.007) est la grille.
     for p in paies.filter(|p| p.pas.as_ref().is_some_and(|v| v.type_taux.as_str() != Some("01"))) {
         let paye_le = p.engagement.date_du_versement().map_err(Echec::from)?;
-        let pourquoi = droit::pas::avertissements(ctx, Some(&[cle_de(p)]), Some(paye_le)).map_err(Echec::from)?;
+        let pourquoi = droit::pas::avertissements(ctx, Some(&[cle_de(p)]), Some(paye_le), Some(&p.engagement.mois)).map_err(Echec::from)?;
         let demande = crate::compagnie::amorcage_demande::en_cours(ctx, &cle_de(p))?
             .map(|d| format!(" ; taux demandé le {}, réponse attendue avant le {}", d.quand.jj_mm_aaaa(), d.avant.jj_mm_aaaa()))
             .unwrap_or_default();
