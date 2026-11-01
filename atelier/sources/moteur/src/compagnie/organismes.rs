@@ -34,7 +34,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Dire les contrats de la DSN (prévoyance, santé…) d'un mois, et ce qui manque.",
         charge: &[Champ { nom: "mois", sens: "le mois regardé, AAAA-MM ; le mois en cours sinon", avance: false }],
         exemple: r#"{"mois":"2026-11"}"#,
-        rend: "idcc, a_saisir, mois, contrats (une ligne par contrat attendu : libellé, organisme)",
+        rend: "idcc, a_saisir, mois, contrats (une ligne par contrat attendu : libellé, organisme, periode), encarts",
         refus: &[OPERATION, ILLISIBLE],
         acte: Acte::Lit,
         avance: false,
@@ -72,6 +72,26 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
         format!("Contrats de la DSN : {} ; rien à saisir.", n)
     };
     let p = if nom == "organismes-contrats" { p } else { format!("Enregistré. {}", p) };
+    let mut v = v;
+    // Ce que l'ecran en dit : d'ou viennent les valeurs, les contrats de quel mois, ce qui manque ; la periode de chaque
+    // contrat.
+    let mut encarts = vec![crate::routes::encart("information", "", "Ce que la DSN déclare de vos adhésions de prévoyance et de santé. La référence du contrat et le code de l'organisme se lisent sur le certificat d'adhésion et sur la fiche de paramétrage DSN de l'organisme. Le reste (organismes payés, Urssaf, taux AT/MP, compte France Travail) vient de la loi, de la convention et de la fiche Entreprise.")];
+    if let Some(m) = v["mois"].as_str().filter(|m| !m.is_empty()) {
+        encarts.push(crate::routes::encart("information", "", format!("Les contrats en vigueur en {}.", engagement::libelle_mois(m))));
+    }
+    if v["a_saisir"] == json!(true) {
+        encarts.push(crate::routes::encart("a_faire", "", "Une référence de contrat manque : la DSN refuse les salariés que ce contrat couvre tant qu'elle n'est pas enregistrée."));
+    }
+    for c in v["contrats"].as_array_mut().into_iter().flatten() {
+        let (de, a) = (crate::routes::jour_en_clair(&json!(crate::routes::mot(&c["depuis"]).get(..10).unwrap_or(""))), crate::routes::jour_en_clair(&json!(crate::routes::mot(&c["jusqu_a"]).get(..10).unwrap_or(""))));
+        c["periode"] = json!(match (de.is_empty(), a.is_empty()) {
+            (false, false) => format!("Du {} au {}.", de, a),
+            (false, true) => format!("Depuis le {}.", de),
+            (true, false) => format!("Jusqu'au {}.", a),
+            _ => String::new(),
+        });
+    }
+    v["encarts"] = Value::Array(encarts);
     Ok(crate::routes::phrase_en_tete(v, p))
 }
 

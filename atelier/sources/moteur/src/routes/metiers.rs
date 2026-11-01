@@ -53,7 +53,7 @@ pub const ROUTES: &[Fiche] = &[
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "metiers-catalogue" => metiers_catalogue(ctx).map(|v| {
-            let p = format!("Métiers du catalogue : {}.", super::nombre(&v["metiers"]));
+            let p = format!("Métiers du catalogue : {}. Ceux qui sont cochés se proposent dans la fiche d'un salarié et dans un engagement ; ceux de votre convention le sont d'office.", super::nombre(&v["metiers"]));
             super::phrase_en_tete(v, p)
         }),
         "metier-retenu" => metier_retenu(ctx, charge).map(|v| {

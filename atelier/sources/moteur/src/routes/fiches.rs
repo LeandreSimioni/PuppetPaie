@@ -239,6 +239,19 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             let total: f64 = spectacles.iter().map(|(_, x)| cout(x)).sum();
             let jusqu_a = engagement::libelle_mois(&valeur_en_texte(&v["jusqu_a"]));
             let p = format!("Coût de {}, jusqu'à {} : {} pour {}.", valeur_en_texte(&v["annee"]), jusqu_a, super::euros(&json!(total)), super::compte(spectacles.len(), "spectacle", "spectacles"));
+            // La ligne de chaque spectacle et de chaque salarie, telle que sa fiche la montre.
+            for cote in ["spectacles", "salaries"] {
+                for x in v[cote].as_object_mut().into_iter().flat_map(|o| o.values_mut()) {
+                    let prevu = x["prevu"].as_str().and_then(|c| c.parse::<f64>().ok()).filter(|p| *p != 0.0);
+                    x["phrase"] = json!(format!(
+                        "coût employeur {} — brut {}, charges {}, {}{}{}",
+                        super::euros(&x["cout"]), super::euros(&x["brut"]), super::euros(&x["charges"]),
+                        super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"),
+                        if vrai(&x["incomplet"]) { ", coût incomplet avant PuppetPaie" } else { "" },
+                        prevu.map_or(String::new(), |p| format!(" · + {} déjà saisis pour la suite de l'année", super::euros(&json!(p))))
+                    ));
+                }
+            }
             v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, super::euros(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), super::euros(&x["brut"]))).collect::<Vec<_>>());
             super::phrase_en_tete(v, p)
         }),
@@ -256,7 +269,11 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "taux-atmp" => crate::routes::atmp::route(ctx, charge),
+        "taux-atmp" => crate::routes::atmp::route(ctx, charge).map(|mut v| {
+            // Ce que dit la saisie avancee d'un taux notifie.
+            v["aide"] = json!("Le taux vide : celui de l'arrêté de l'année, quand il s'applique au code choisi. Avec 999ZZ, pas de taux.");
+            v
+        }),
         "activer-fiche" => activer_fiche_route(o, ctx, charge),
         "enregistrer-fiche" => enregistrer_fiche(ctx, charge),
         "fiche-oublier-demande" => oublier_demande(o, ctx, charge).map(|v| {

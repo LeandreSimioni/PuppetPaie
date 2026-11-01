@@ -109,7 +109,12 @@ pub fn question(racine: &Path) -> Result<Value, String> {
     if g == Genre::Reelle {
         v["conservation"] = json!(CONSERVATION);
         let liee = racine.join("config").join(crate::routes::coffre::FICHIER_JETON).is_file();
-        v["sauvegarde"] = json!({"liee": liee, "derniere": crate::compagnie::sauvegarde::derniere(racine).quand});
+        let derniere = crate::compagnie::sauvegarde::derniere(racine).quand;
+        let phrase = match derniere.as_str().filter(|q| !q.is_empty()) {
+            Some(q) => format!("Dernière sauvegarde dans le Drive : {}.", crate::routes::quand(q)),
+            None => "Aucune sauvegarde n'est encore partie dans le Drive.".to_string(),
+        };
+        v["sauvegarde"] = json!({"liee": liee, "derniere": derniere, "phrase": phrase});
     }
     Ok(v)
 }

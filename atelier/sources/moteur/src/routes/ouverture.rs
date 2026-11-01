@@ -495,14 +495,42 @@ fn configuration(ctx: &Contexte) -> R<Value> {
         .count();
     let erreurs = if erreurs > 0 { super::pastille("a_faire", &format!("{} erreur{} de configuration", erreurs, if erreurs > 1 { "s" } else { "" })) } else { Value::Null };
     let permanents = ctx.emploie_des_permanents();
+    // LA DEDUCTION FORFAITAIRE SPECIFIQUE vue de la fiche d'un salarie : l'option est celle de l'employeur, dans la fiche de
+    // l'entreprise ; la fiche du salarie dit si elle s'applique (`calcul::deduction_forfaitaire` decide).
+    let description_entreprise = champs::description("entreprise")?;
+    let option = super::mot(&ctx.entreprise["deduction_forfaitaire_option"]);
+    let deduction = if option.is_empty() {
+        "La compagnie ne l'applique pas : c'est une option de l'employeur, qui se règle dans la fiche de l'entreprise (« Avancé — cas particuliers »). Une fois l'option posée, la profession et l'accord du salarié se disent ici.".to_string()
+    } else {
+        let nom = description_entreprise.as_array().into_iter().flatten().find(|c| c["cle"] == "deduction_forfaitaire_option").map(|c| super::mot(&c["libelles"][&option])).filter(|n| !n.is_empty()).unwrap_or_else(|| option.clone());
+        format!("La compagnie l'applique (fiche de l'entreprise) : « {} ».", nom)
+    };
+    // LES NUMEROS D'OBJET SANS TITRE (importes des DSN, « A COMPLETER »), archives : la liste des spectacles les groupe sous
+    // cette phrase.
+    let sans_titre: Vec<&Value> = ctx.spectacles.values().filter(|s| s.get("actif") == Some(&json!(false)) && super::mot(&s["titre"]).trim().eq_ignore_ascii_case("a completer")).collect();
+    let ans: Vec<u32> = sans_titre.iter().filter_map(|s| super::mot(&s["numero_objet"]).get(..2).and_then(|a| a.parse::<u32>().ok())).map(|a| 2000 + a).collect();
+    let numeros_sans_titre = match (sans_titre.len(), ans.iter().min(), ans.iter().max()) {
+        (0, _, _) => Value::Null,
+        (n, de, a) => {
+            let s = if n > 1 { "s" } else { "" };
+            let annees = match (de, a) {
+                (Some(de), Some(a)) if de != a => format!(" de {}–{}", de, a),
+                (Some(de), _) => format!(" de {}", de),
+                _ => String::new(),
+            };
+            json!(format!("{} numéro{} sans titre, trouvé{} dans les DSN{} : les nommer si vous savez à quel spectacle ils étaient (cliquer sur la ligne).", n, s, s, annees))
+        }
+    };
     Ok(json!({
+        "deduction_forfaitaire": deduction,
+        "numeros_sans_titre": numeros_sans_titre,
         "entreprise": entreprise,
         "salaries": salaries,
         "spectacles": spectacles,
         "compteurs": documents::ecrire_documents::compteurs(&ctx.racine)?,
         "erreurs": erreurs,
         "description": {
-            "entreprise": champs::description("entreprise")?,
+            "entreprise": description_entreprise,
             "salarie": champs::description("salarie")?,
             "spectacle": champs::description("spectacle")?,
         },
@@ -519,6 +547,12 @@ fn configuration(ctx: &Contexte) -> R<Value> {
         "identite": identite(ctx, &ctx.gabarits())?,
         // LA FICHE REMPLIE PAR LE SALARIE : sans boite liee, la demande ne peut
         // pas partir. Et ce qui attend encore sa reponse.
+        // LA FICHE A FAIRE REMPLIR PAR LA PERSONNE : ce que dit l'invitation, et ce qui lui manque sans boite liee.
+        "invitation": {
+            "aide": "Elle reçoit un courriel avec un bouton : une réponse s'ouvre avec les questions (identité, naissance, numéro de sécurité sociale, adresse, compte bancaire), elle y répond et l'envoie. Sa fiche se crée seule à l'arrivée de la réponse ; il vous restera l'emploi à choisir.",
+            "sans_boite": if boite_liee(ctx)? { Value::Null } else { json!("Il faut d'abord lier la boîte courriel de la compagnie (Configuration › Mots de passe).") },
+            "ou": "Ou remplissez la fiche vous-même ci-dessous. Le matricule se donne à l'enregistrement.",
+        },
         "boite_liee": boite_liee(ctx)?,
         "fiches_attendues": fiches_attendues(ctx)?,
     }))
@@ -888,7 +922,7 @@ fn niveaux_sante(ctx: &Contexte) -> R<Value> {
             .into_iter()
             .map(|(n, t)| {
                 let champ = |k: &str| t.get(k).cloned().unwrap_or(Value::Null);
-                json!({"niveau": n, "assure": champ("assure"), "conjoint": champ("conjoint"), "enfant": champ("enfant")})
+                json!({"niveau": n, "assure": champ("assure"), "conjoint": champ("conjoint"), "enfant": champ("enfant"), "libelle": format!("niveau {} — {} % du PMSS pour l'assuré seul", n, super::mot(&champ("assure")))})
             })
             .collect(),
     ))
@@ -1011,6 +1045,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         // SUPPRIMER LA COMPAGNIE : la Configuration ne le propose que si elle se supprime -- jamais une
         // fictive livree, qui se remet a zero (`interface::suppression::genre`).
         "supprimable": crate::interface::suppression::genre(&crate::compagnie::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),
+        "suppression": "Tout son dossier est effacé de ce poste : fiches, paies, documents, journaux.",
         // UNE COMPAGNIE CREEE EN DEMO PUIS GARDEE : sa mention, et les mois saisis en demo, ou la page la montre.
         "demo": crate::interface::suppression::mention(&ctx.racine),
         // UNE COMPAGNIE VENUE D'UN LOGICIEL PRECEDENT, DONT RIEN N'EST ENCORE REPRIS : la page s'ouvre sur l'import et
@@ -1037,6 +1072,8 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "niveaux_sante": niveaux_sante(ctx)?,
         // Ou, quand la convention ne la fait pas choisir sur la fiche, d'ou elle vient (`bareme::sante_hors_fiche`).
         "sante_hors_fiche": droit::bareme::sante_hors_fiche(&ctx.entreprise).map_err(plain)?,
+        // Ce que la fiche d'un permanent dit de sa complementaire sante, sous le choix du niveau.
+        "sante_aide": "Obligatoire pour un salarié au mois (art. L911-7) : sans elle, le logiciel refuse de le payer plutôt que de cotiser moins que le contrat. Elle se lit sur son bulletin d'adhésion.",
         // Les conventions collectives servies, pour la fiche entreprise.
         "conventions": conventions(ctx)?,
         "organismes_urssaf": organismes,

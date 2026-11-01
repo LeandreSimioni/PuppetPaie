@@ -1,13 +1,16 @@
 /* Le formulaire d'une fiche : brancher, lire, verifier, enregistrer, dater. */
 "use strict";
 
-/* Ce que vaut la ligne vide d'une liste de choix, quand elle vaut quelque
- * chose : le moteur prend alors le cas ordinaire. */
-const ORDINAIRE_VIDE = {
-  statut_conventionnel: "vide : profession intermédiaire",
-  statut_categoriel_rc: "vide : non cadre",
-  plafond_temps_partiel: "vide : proratisé à la durée du contrat, la règle",
-};
+/* Ce que l'écran dit de chaque valeur d'une liste de choix : les `libelles` du champ, tels que la description des fiches
+ * les rend (`donnees/champs-base.json`) ; `""` est la ligne vide, quand elle vaut le cas ordinaire. */
+function libellesDe(cle) {
+  const d = (ETAT.configuration || {}).description || {};
+  for (const nom of ["entreprise", "salarie", "spectacle"]) {
+    const c = (d[nom] || []).find((x) => x.cle === cle);
+    if (c) return c.libelles || {};
+  }
+  return {};
+}
 
 /* LES CASES D'UNE STRUCTURE, telles que le moteur les décrit (`champs` de la description) : `{champs: [[clé, libellé,
  * aide, genre]], liste, ligne}`, ou null. Une case déclarée qui se déduit d'une autre (`ecran: false`) ne se montre pas ;
@@ -213,7 +216,7 @@ function champDeFiche(c, fiche, nom) {
     // nationalite « 01 », le statut cadre « 04 ».
     if (["entreprise", "salarie"].includes(nom) && c.forme === "choix"
         && (c.choix || []).length) {
-      const lib = LIBELLES_CHOIX[c.cle] || {};
+      const lib = c.libelles || {};
       const v1 = String(v ?? "");
       // L'ordre de la table des libelles (le cas ordinaire d'abord), puis ce
       // qu'elle ne nomme pas ; un choix vide prevu par le moteur (« aucun »)
@@ -226,7 +229,7 @@ function champDeFiche(c, fiche, nom) {
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="choix">
             ${c.choix.includes("") ? "" : `<option value=""${v1 ? "" : " selected"}>— ${
-              c.cle in ORDINAIRE_VIDE ? echapper(ORDINAIRE_VIDE[c.cle]) : "à choisir"} —</option>`}
+              echapper(lib[""] || "à choisir")} —</option>`}
             ${ordre.map((x) => `<option value="${echapper(x)}"${
                 x === v1 ? " selected" : ""}>${echapper(lib[x] || x)}</option>`).join("")}
             ${!v1 || c.choix.includes(v1) ? "" : `<option value="${echapper(v1)}" selected
@@ -686,7 +689,7 @@ function brancherNationalite() {
     note.className = "nationalite-deduite";
     code.insertAdjacentElement("afterend", note);
   }
-  const lib = LIBELLES_CHOIX.code_nationalite_dsn || {};
+  const lib = libellesDe("code_nationalite_dsn");
   const poser = () => {
     const p = (ETAT.pays || []).find((x) => x.code === String(pays.value || "").toUpperCase());
     code.hidden = !!p;
@@ -1423,7 +1426,7 @@ function demanderDateDEffet(changements, propose, pourquoi) {
     if (v && typeof v === "object" && !Array.isArray(v) && structureDecrite(c.champ)) {
       return structureLisible(c.champ, v);
     }
-    const nom = (LIBELLES_CHOIX[c.champ] || {})[String(v ?? "")];
+    const nom = libellesDe(c.champ)[String(v ?? "")];
     return nom && String(v ?? "") ? nom : valeurLisible(v);
   };
   const ligne = (titre, avant, apres, detail = "") => `<div class="changement">

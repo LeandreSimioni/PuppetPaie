@@ -573,6 +573,12 @@ fn gabarit(c: &[char], mut i: usize, v: &mut Vec<String>) -> (String, usize) {
             i += 2;
             let mut profondeur = 1;
             while i < c.len() && profondeur > 0 {
+                if c[i] == '/' && c.get(i + 1) == Some(&'/') {
+                    while i < c.len() && c[i] != '\n' {
+                        i += 1;
+                    }
+                    continue;
+                }
                 match c[i] {
                     '{' => profondeur += 1,
                     '}' => profondeur -= 1,
