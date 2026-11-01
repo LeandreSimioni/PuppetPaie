@@ -463,5 +463,5 @@ pub(crate) fn mot(v: &Value) -> String {
 /// Un jour rendu (`2026-11-02`), tel qu'une phrase le dit : « 02/11/2026 » ; ce qui n'en est pas un, tel quel.
 pub(crate) fn jour_en_clair(v: &Value) -> String {
     let t = mot(v);
-    socle::date::Jour::lire(&t).map(|j| j.jjmmaaaa()).unwrap_or(t)
+    socle::date::Jour::lire(&t).map(|j| j.jj_mm_aaaa()).unwrap_or(t)
 }

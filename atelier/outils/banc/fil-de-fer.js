@@ -78,12 +78,11 @@ const caseDe = (page, etape) => page.locator("#actions-mois .kase", { hasText: e
   for (let i = 0; i < 40 && await page.isDisabled("#d-reel"); i++) await avancer(page, 10000);
   if (await page.isDisabled("#d-reel")) throw new Error("le bilan du test n'arrive pas : " + await page.innerText("#d-bilan"));
   await capture(page, "04-dsn-test-conforme.png");
+  // La DSN d'août n'a pas de salarié : aucune boîte d'avis ne suit (le moteur n'en rend pas, `avis` de `deposer`).
   await page.click("#d-reel");
-  await page.waitForSelector("#boite >> text=DSN envoyée");
+  await page.waitForSelector("#voile", { state: "hidden" });
   await calme(page);
   await capture(page, "05-dsn-envoyee.png");
-  await page.click("#boite >> text=Compris");
-  await page.waitForSelector("#voile", { state: "hidden" });
   // Le suivi du dépôt repeint le panneau quand le bilan est tranché (son minuteur, avancé).
   for (let i = 0; i < 10 && !/✓\s*DSN/.test(await panneau(page)); i++) await avancer(page, 5000);
   const apres = await panneau(page);
