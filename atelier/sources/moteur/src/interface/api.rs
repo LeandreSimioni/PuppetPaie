@@ -70,7 +70,8 @@ fn route_seule(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus>
     let mut o = std::collections::HashMap::new();
     o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
     // LE BANC D'ESSAI (l'atelier seulement) : chaque route que la fenetre sert -- la page, la veille, le fil de fond --
-    // entre dans le scenario, avec sa charge et son instant (`scenario::Enregistreur`).
+    // passe par l'enregistreur, qui garde celles qu'il enregistre dans le scenario, avec leur charge et leur instant
+    // (`scenario::Enregistreur::route`).
     #[cfg(feature = "atelier")]
     if let Some(e) = crate::atelier::scenario::enregistreur_actif() {
         return depuis_reponse(e.route(racine, nom, charge, || crate::routes::dans_la_fenetre(&o, nom, charge)));
