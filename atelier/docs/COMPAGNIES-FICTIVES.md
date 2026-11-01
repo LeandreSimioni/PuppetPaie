@@ -5,7 +5,7 @@ logiciel bridé, et les compagnies de test que montent les tests et le banc.
 
 ## Les fictives livrées
 
-Elles sont dans `fictives/`, à la racine du dépôt (`fictive-1285-grande`, `fictive-1285-petite`, `fictive-3090-grande`,
+Elles sont dans `fictives/`, à la racine du dépôt (les fictives de référence, ci-dessous, et `fictive-1285-grande`, `fictive-1285-petite`, `fictive-3090-grande`,
 `fictive-3090-petite` ; l'équipe et les spectacles de chacune : `fictives/LISEZ-MOI.md`). « Publier » les livre à part
 du logiciel, signées, et une installation ne les retélécharge que si leur empreinte change ; la livraison ne remplace
 que ce qu'elle a posé (`moteur/src/atelier/publier.rs`, `moteur/src/compagnie/maj.rs`).
@@ -20,6 +20,20 @@ que ce qu'elle a posé (`moteur/src/atelier/publier.rs`, `moteur/src/compagnie/m
   ce qui vient après aujourd'hui lui reste. L'horloge ne joue rien hors d'une compagnie fictive (`HorlogeFictive::verifier`).
 - Elles ont leur photo d'origine et leur remise à zéro (`interface::compagnies::est_fictive_livree`).
 - Un test ne les lit jamais.
+
+## Les fictives de référence
+
+Une fictive de référence est un **scénario** (`atelier/fictives/<nom>/` : `gestes.jsonl`, les papiers qu'elle importe,
+un `LISEZ-MOI.md`), écrit comme la personne qui administre la compagnie l'aurait joué, par les routes seulement. Le même
+scénario est la preuve commune en ligne de commande (son rejeu, `moteur/tests/rejeu.rs`, comparé à un oracle) et la
+fictive livrée : `moteur maj --marquer-fictives` (le flux « Publier ») la refait dans `fictives/<nom>`, rejouée jusqu'au
+jour de la publication (`scenario::livrer` ; à la main : `moteur-atelier scenario livrer <scénario> <dossier>
+[--jusqu-au AAAA-MM-JJ]`). Elle ne se suit pas dans Git (`.gitignore`) : elle se refait. Ce qui vient après le dernier
+geste rejoué reste au visiteur ; son horloge ne saisit rien.
+
+- `fictive-fil-de-fer` : la Compagnie du Fil de Fer, marionnettes, convention 3090, intermittents au cachet, venue d'un
+  logiciel précédent fin 2025, une année 2026 (`atelier/fictives/fictive-fil-de-fer/LISEZ-MOI.md`) ; son parcours court à
+  l'écran : `atelier/outils/banc/fil-de-fer.js`.
 
 ## Les fictives ajoutées (logiciel bridé)
 

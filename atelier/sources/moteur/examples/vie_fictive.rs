@@ -8,6 +8,7 @@
 //!     cargo run --profile essais --example vie_fictive -- rejouer <scenario> <installation neuve> [--lectures] [--jusqu-au AAAA-MM-JJ]
 //!     cargo run --profile essais --example vie_fictive -- verifier <scenario> <installation du banc> <dossier de travail>
 //!     cargo run --profile essais --example vie_fictive -- elaguer <scenario> <scenario sans lectures>
+//!     cargo run --profile essais --example vie_fictive -- livrer <scenario> <dossier de la fictive> [--jusqu-au AAAA-MM-JJ]
 //!
 //! `moteur-atelier scenario ...` est la meme commande.
 

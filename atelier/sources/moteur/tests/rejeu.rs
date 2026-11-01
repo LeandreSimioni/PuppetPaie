@@ -443,3 +443,105 @@ fn le_compte_rendu_d_une_dsn_ne_refait_pas_la_paie_qu_elle_declare() {
     let m = outils::lire(&racine, "engagements/2026-11.json");
     assert_eq!(m["engagements"][0]["valide"]["paies"]["2026-11"]["pas"]["identifiant"], json!("190151266"), "la paie de novembre garde son taux");
 }
+
+/// LA FICTIVE DE REFERENCE DU FIL DE FER, PREUVE COMMUNE EN LIGNE DE COMMANDE (`atelier/fictives/fictive-fil-de-fer/`) :
+/// une compagnie de marionnettes (convention 3090) venue d'un logiciel precedent, qui importe ses papiers de 2025, remplit
+/// « Pour démarrer », puis vit 2026 par les routes seulement : chaque engagement valide avant son premier jour, sa DPAE
+/// (test puis reel), ses contrats a la signature, ses repas et nuitees, la DSN de chaque mois apres son versement (test
+/// puis reel), les documents, le FCAP-SVP paye et coche, la cloture de 2026 en janvier 2027 ; puis l'horloge passe le
+/// 30/01/2027 et ne trouve rien a faire. Le rejeu est celui que « Publier » livre (`scenario::livrer`).
+#[test]
+fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
+    let d = outils::dossier_de_test("rejeu", "fil-de-fer");
+    let (r, racine) = outils::rejeu::rejouer_dossier(&outils::rejeu::reference("fictive-fil-de-fer"), &d);
+    let jour = "2027-01-30";
+    assert!(r.horloge.is_empty(), "l'horloge a trouve a faire derriere l'administratrice : {:?}", r.horloge);
+
+    // Chaque mois de 2026 a toutes ses etapes faites ; un mois sans engagement n'a que sa DSN, sans individu.
+    for m in 1..=12 {
+        let mois = format!("2026-{:02}", m);
+        let e = outils::reussi(&outils::route(&racine, "etat-du-mois", json!({"mois": mois}), jour)).clone();
+        let etats: Vec<&str> = e["etapes"].as_array().unwrap().iter().flat_map(|x| x["groupes"].as_array().unwrap().iter().filter_map(|g| g["etat"].as_str())).collect();
+        assert!(etats.contains(&"fait") && etats.iter().all(|x| *x == "fait" || *x == "rien"), "{} : {}", mois, e["phrase"]);
+    }
+    let exercices = outils::lire(&racine, "config/exercices.json");
+    assert_eq!(exercices["2026"]["sans_dsn"], json!([]), "2026 se clot avec ses douze DSN : {}", exercices);
+
+    // LE RELEVE, compare a l'oracle : chaque paie (brut, net, cout, et son PAS : taux, type, prelevement), chaque DSN
+    // (chaque individu : contrat, taux et type de PAS, montant preleve ; chaque versement), chaque depot.
+    let mut paies = serde_json::Map::new();
+    for mois in engagement::stock::mois_saisis(&racine).unwrap() {
+        let m = outils::lire(&racine, &format!("engagements/{}.json", mois));
+        let v: Vec<Value> = m["engagements"].as_array().unwrap().iter().flat_map(|e| {
+            e["valide"]["paies"].as_object().into_iter().flatten().map(move |(pm, p)| {
+                let q = &p["paie"];
+                json!({"salarie": e["salarie"], "numero": e["numero"], "mois": pm, "brut": q["brut"], "net_a_payer": q["net_a_payer"],
+                       "net_imposable": q["net_imposable"], "cout_employeur": q["cout_employeur"], "pas": p["pas"]})
+            })
+        }).collect();
+        paies.insert(mois.to_string(), json!(v));
+    }
+    let mut dsn = serde_json::Map::new();
+    for m in 1..=12 {
+        let mois = format!("2026-{:02}", m);
+        let f = racine.join("sorties").join(&mois).join(format!("DSN_{}.dsn", socle::date::etiquette_du_mois(&mois).unwrap()));
+        let texte: String = std::fs::read(&f).unwrap_or_else(|_| panic!("{} manque", f.display())).iter().map(|&o| o as char).collect();
+        let (mut individus, mut versements, mut types) = (Vec::new(), Vec::new(), Vec::new());
+        let mut courant: Option<serde_json::Map<String, Value>> = None;
+        for (k, v) in outils::paires(&texte) {
+            let cle = match k.as_str() {
+                "S21.G00.30.002" => {
+                    individus.extend(courant.take().map(Value::Object));
+                    courant = Some(serde_json::Map::new());
+                    "nom"
+                }
+                "S21.G00.40.009" => "contrat",
+                "S21.G00.50.006" => "taux_pas",
+                "S21.G00.50.007" => {
+                    types.push(v.clone());
+                    "type_pas"
+                }
+                "S21.G00.50.009" => "pas",
+                "S21.G00.20.001" => {
+                    versements.push(json!([v]));
+                    continue;
+                }
+                "S21.G00.20.005" => {
+                    if let Some(Value::Array(a)) = versements.last_mut() {
+                        a.push(json!(v));
+                    }
+                    continue;
+                }
+                _ => continue,
+            };
+            if let Some(c) = courant.as_mut() {
+                match c.get_mut(cle) {
+                    Some(Value::Array(a)) => a.push(json!(v)),
+                    _ => {
+                        c.insert(cle.to_string(), json!([v]));
+                    }
+                }
+            }
+        }
+        individus.extend(courant.take().map(Value::Object));
+        // Chaque salarie declare l'est au taux que la DGFiP a transmis (type 01) : un taux se lit, il ne se devine pas.
+        assert!(types.iter().all(|t| t == "01"), "{} : types de PAS {:?}", mois, types);
+        dsn.insert(mois, json!({"individus": individus, "versements": versements}));
+    }
+    let depots: Vec<Value> = outils::lire(&racine, "journal/depots.json").as_array().unwrap().iter()
+        .map(|l| json!([l["quoi"], l["mois"], l["fichier"], l["mode"], l["accepte"]])).collect();
+    let reel = |quoi: &str, mois: &str| depots.iter().any(|l| l[0] == json!(quoi) && l[1] == json!(mois) && l[3] == json!("reel") && l[4] == json!(true));
+    for m in 1..=12 {
+        assert!(reel("dsn", &format!("2026-{:02}", m)), "la DSN de 2026-{:02} n'est pas partie en reel", m);
+    }
+    for m in ["01", "02", "03", "04", "05", "06", "09", "12"] {
+        assert!(reel("dpae", &format!("2026-{}", m)), "la DPAE de 2026-{} n'est pas partie en reel", m);
+    }
+    outils::oracle("fictives/fictive-fil-de-fer.json", "", &json!({"paies": paies, "dsn": dsn, "depots": depots}));
+
+    // LIVREE (`scenario::poser_livree`, ce que « Publier » pose dans `fictives/`) : une fictive livree, pas ajoutee.
+    let dest = d.join("fictives").join("fictive-fil-de-fer");
+    moteur::atelier::scenario::poser_livree(&racine, &dest, r.fin).unwrap();
+    assert!(moteur::interface::compagnies::est_fictive_livree(&dest), "la fictive posee n'est pas une fictive livree");
+    assert!(!dest.join("journal/incidents.json").exists(), "les incidents du rejeu ne se livrent pas");
+}

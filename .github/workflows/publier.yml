@@ -137,7 +137,8 @@ jobs:
 
       # LES MARQUES DE LA LIVRAISON DE FICTIVES (`fictives/.livraison.json`, `fictives/<nom>/.livree.json` : maj.rs,
       # `marquer_les_fictives`), avant l'installeur, qui les pose : une installation de l'installeur retient la livraison
-      # qu'elle a et ne la retelecharge pas. Elles ne changent ni l'empreinte ni ce qui se livre.
+      # qu'elle a et ne la retelecharge pas. Elles ne changent ni l'empreinte ni ce qui se livre. D'abord, les fictives de reference
+      # se refont de leur scenario (`atelier/fictives/<nom>/`, `scenario::livrer`), rejouees jusqu'au jour de la publication.
       - name: Les marques des fictives
         run: |
           "$CARGO_TARGET_DIR/release/moteur" maj --marquer-fictives --logiciel logiciel

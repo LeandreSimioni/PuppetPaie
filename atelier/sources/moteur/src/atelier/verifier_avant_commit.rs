@@ -50,7 +50,7 @@ pub const INVENTE: [&str; 3] = ["999", "123456", "000"];
 ///
 /// Y ajouter une valeur est un acte visible, relu comme le reste du code. N'y mettre QUE des valeurs inventées : cette
 /// liste est publiée avec le dépôt.
-pub const FICTIVES: [(&str, &str); 8] = [
+pub const FICTIVES: [(&str, &str); 9] = [
     ("2930899999999", "NIR féminin fabriqué (clé 47)"),
     ("1850375999999", "NIR masculin fabriqué (clé 87)"),
     // Les deux ci-dessus finissent par six « 9 », ce que la norme n'admet pas (CCH-16) : ils servent d'exemples dans des
@@ -68,6 +68,9 @@ pub const FICTIVES: [(&str, &str); 8] = [
     // `tests/fichiers/caviardage.rs` (« les IBAN sont faits de zéros »).
     ("FR7630001007943252044000039", "IBAN de la démonstration Les Faisceaux"),
     ("FR7630001000000000000000185", "IBAN fait de zéros, test du caviardage"),
+    // La fictive de référence du Fil de Fer (`atelier/fictives/fictive-fil-de-fer/LISEZ-MOI.md` : « tout ce qui suit est
+    // inventé ») : le compte de la compagnie, clé juste, banque « 12345 ».
+    ("FR7612345678900005556660781", "IBAN de la fictive Compagnie du Fil de Fer"),
 ];
 
 /// Les textes de référence (`atelier/reference/`) sont des copies, octet pour octet, de ce que d'autres ont

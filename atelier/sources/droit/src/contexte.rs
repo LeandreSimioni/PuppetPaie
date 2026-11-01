@@ -1596,7 +1596,9 @@ impl Contexte {
         Ok((*self.bareme_partage(jour)?).clone())
     }
 
-    fn bareme_partage(&self, jour: &Jour) -> Resultat<Arc<Value>> {
+    /// Le bareme resolu a ce jour, partage : a lire sans le copier (une ligne d'engagement le lit a chaque calcul, pour
+    /// chaque engagement de chaque mois declare).
+    pub fn bareme_partage(&self, jour: &Jour) -> Resultat<Arc<Value>> {
         type Cache = Mutex<HashMap<String, Arc<Value>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));

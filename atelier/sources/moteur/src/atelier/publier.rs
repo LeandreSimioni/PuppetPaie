@@ -239,9 +239,20 @@ pub fn nom_des_fictives(version: &str) -> String {
 /// l'installeur retient sa livraison comme une installation de l'archive, et ne retelecharge ni ne remplace des fictives
 /// qui n'ont pas change. Rien de ce que porte une livraison n'en depend (`fictives_livrees` ne les livre pas). Rend
 /// l'empreinte.
+///
+/// D'ABORD, LES FICTIVES DE REFERENCE (`scenario::fictives_de_reference`) : chacune se refait de son scenario, rejoue
+/// jusqu'au jour de la publication (`scenario::livrer`), dans `fictives/<nom>` -- ce qu'une compagnie bien tenue a fait
+/// avant ce jour ; la suite est au visiteur. Un rejeu qui s'ecarte arrete la publication.
 pub fn marquer_les_fictives(code: &Path) -> R<String> {
-    let (_, en_plus, empreinte) = entrees_des_fictives(code)?;
     let base = code.parent().unwrap_or(code);
+    if std::env::var_os(socle::garde_reseau::VARIABLE).is_none() {
+        std::env::set_var(socle::garde_reseau::VARIABLE, "1");
+    }
+    for (nom, scenario) in crate::atelier::scenario::fictives_de_reference(base) {
+        let dest = base.join(crate::interface::compagnies::DOSSIER_FICTIVES).join(&nom);
+        crate::atelier::scenario::livrer(&scenario, &dest, Some(droit::contexte::jour_reel()))?;
+    }
+    let (_, en_plus, empreinte) = entrees_des_fictives(code)?;
     for (nom, octets) in en_plus {
         std::fs::write(base.join(&nom), octets).map_err(|e| format!("{} : {}", nom, e))?;
     }

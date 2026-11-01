@@ -1,4 +1,4 @@
-//! Le verrou des données réelles (règle de fond 9a) : ce qui sera public — `logiciel/`, `fictives/`, `atelier/sources/`, et les
+//! Le verrou des données réelles (règle de fond 9a) : ce qui sera public — `logiciel/`, `fictives/` et leurs scénarios (`atelier/fictives/`), `atelier/sources/`, et les
 //! textes de référence d'`atelier/reference/` — n'écrit pas un NIR qui ne soit pas inventé (sauf, dans un texte de référence,
 //! l'exemple que son émetteur y a imprimé : `EXEMPLES_DES_TEXTES`) ; aucun test ne construit un chemin vers `prive/` ; la
 //! suite ne prend pas `prive/` pour racine. Tout ce qui part du dépôt hors de `prive/` (`atelier/` entier, `.claude/`, la racine : le dépôt public part de
@@ -23,7 +23,7 @@ const SIREN_REEL: &str = concat!("8783", "66194");
 const NOM_REEL: &str = concat!("ueu", "eue");
 /// Ce qui ne s'écrit pas à la main : ce que construit cargo (ses empreintes ressemblent à des NIR), les caches.
 const HORS_CODE: [&str; 4] = ["target", ".git", "__pycache__", ".pytest_cache"];
-const PUBLIC: [&str; 4] = ["logiciel", "fictives", "atelier/sources", "atelier/reference"];
+const PUBLIC: [&str; 5] = ["logiciel", "fictives", "atelier/fictives", "atelier/sources", "atelier/reference"];
 
 /// Les textes de référence (`atelier/reference/`) sont des copies, octet pour octet, de ce que d'autres ont publié : un numéro
 /// à la forme d'un NIR qui y figure est celui de l'émetteur -- l'exemple d'une documentation officielle, ou un nombre qui

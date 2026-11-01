@@ -38,6 +38,11 @@ pub fn scenario(nom: &str) -> PathBuf {
     super::chemin_oracle(&format!("scenarios/{}", nom))
 }
 
+/// Le scenario d'une fictive de reference : `<depot>/atelier/fictives/<nom>` (`scenario::DOSSIER_REFERENCE`).
+pub fn reference(nom: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").join(moteur::atelier::scenario::DOSSIER_REFERENCE).join(nom)
+}
+
 /// Rejoue le scenario `nom` dans `dossier` (une installation neuve) ; rend le compte rendu et la racine de la compagnie
 /// qu'il a ajoutee (la premiere). Un ecart avec l'enregistrement fait echouer le test.
 pub fn rejouer(nom: &str, dossier: &Path) -> (moteur::atelier::scenario::Rejeu, PathBuf) {

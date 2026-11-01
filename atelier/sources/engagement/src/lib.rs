@@ -1131,7 +1131,7 @@ const SAISIE_INCOMPLETE: [&str; 5] = [PAS_DE_SPECTACLE, PAS_DE_JOUR, LIGNE_A_DIR
 /// bareme, liste datee : l'avenant qui le fixe et sa date d'effet y sont cites). `None` : la convention n'en fixe pas, ou
 /// pas encore a ce jour ; le taux se saisit.
 pub fn tarif_conventionnel(ctx: &Contexte, code: &str, jour: &Jour) -> Resultat<Option<Value>> {
-    let bar = ctx.bareme(jour)?;
+    let bar = ctx.bareme_partage(jour)?;
     Ok(bar.get("tarifs_conventionnels").and_then(|t| t.get(code)).filter(|v| v.is_number()).cloned())
 }
 
@@ -1236,7 +1236,7 @@ fn nuitees_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qu
             Some(x) => d(x.get("jour").unwrap_or(x))?,
             None => premier_du_mois(mois)?,
         };
-        let bar = ctx.bareme(&jour)?;
+        let bar = ctx.bareme_partage(&jour)?;
         let ent = ctx.entreprise_au(&jour)?;
         let du_texte = calcul::deduction_forfaitaire(&bar, &sal, &ent)?.is_some_and(|o| o.frais_hors_assiette.iter().any(|f| f == NUITEE));
         if du_texte || sal.get("statut").map(en_texte).as_deref() == Some("artiste") {

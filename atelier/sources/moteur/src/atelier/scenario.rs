@@ -43,6 +43,9 @@
 //! (une lecture ne change pas la compagnie ; les garder coute le temps de les recalculer) ; `OptionsRejeu::lectures` les
 //! rejoue aussi. `rejouer_et_lire` s'arrete a des jours choisis pour qu'on lise la compagnie telle qu'elle est ce
 //! soir-la, puis reprend : un seul rejeu pour plusieurs dates.
+//!
+//! LES FICTIVES DE REFERENCE (`DOSSIER_REFERENCE`) sont des scenarios ecrits, non enregistres : leur rejeu est la preuve
+//! commune, et `livrer` pose la compagnie qui en sort dans `fictives/`, ce que « Publier » livre.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -550,9 +553,80 @@ pub fn verifier(scenario: &Path, inst: &Path, travail: &Path) -> Result<Vec<Stri
     Ok(ecarts)
 }
 
+// ------------------------------------------------------------------ les fictives de reference
+
+/// LES FICTIVES DE REFERENCE, a cote du logiciel (`<depot>/atelier/fictives/<nom>/`) : chacune est un scenario ecrit
+/// comme la personne qui administre la compagnie l'aurait joue, par les routes seulement, avec les papiers qu'elle
+/// importe. Le meme scenario est la preuve commune en ligne de commande (son rejeu, `tests/rejeu.rs`) et la fictive que
+/// les installations recoivent (`livrer`, que « Publier » appelle par `publier::marquer_les_fictives`).
+pub const DOSSIER_REFERENCE: &str = "atelier/fictives";
+
+/// Les scenarios des fictives de reference d'un depot (`depot/atelier/fictives/<nom>/`, ceux qui ont des gestes), par
+/// nom, dans l'ordre des noms.
+pub fn fictives_de_reference(depot: &Path) -> Vec<(String, PathBuf)> {
+    let mut v: Vec<(String, PathBuf)> = std::fs::read_dir(depot.join(DOSSIER_REFERENCE))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().join(GESTES).is_file())
+        .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path()))
+        .collect();
+    v.sort();
+    v
+}
+
+/// Ce qu'une fictive livree ne porte pas de son rejeu : le marqueur (reecrit), les incidents du rejeu, les caches.
+fn hors_livraison(rel: &str) -> bool {
+    rel == crate::interface::compagnies::MARQUEUR || rel == "journal/incidents.json" || hors_comparaison(rel)
+}
+
+/// LIVRER UNE FICTIVE DE REFERENCE : rejoue `scenario` (jusqu'au jour `jusqu_au`, ou entier) dans une installation de
+/// travail, et pose la compagnie qui en sort dans `dest` (`poser_livree`). Un ecart du rejeu (une route qui refuse)
+/// refuse la livraison, et `dest` reste tel qu'il etait.
+pub fn livrer(scenario: &Path, dest: &Path, jusqu_au: Option<Jour>) -> Result<Rejeu, String> {
+    let nom = dest.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let travail = std::env::temp_dir().join(format!("puppetpaie-livrer-{}-{}", nom, std::process::id()));
+    let _ = std::fs::remove_dir_all(&travail);
+    let rendu = rejouer(scenario, &travail, &OptionsRejeu { lectures: false, jusqu_au }).and_then(|r| {
+        if !r.ecarts.is_empty() {
+            return Err(format!("le scenario {} s'ecarte au rejeu :\n{}", scenario.display(), r.ecarts.join("\n")));
+        }
+        let (_, racine) = r.compagnies.first().ok_or(format!("le scenario {} n'ajoute aucune compagnie", scenario.display()))?;
+        poser_livree(racine, dest, r.fin)?;
+        Ok(r)
+    });
+    let _ = std::fs::remove_dir_all(&travail);
+    rendu
+}
+
+/// POSE LA COMPAGNIE REJOUEE `racine` dans `dest` (remplace), marquee fictive livree (`compagnies::MARQUE_FICTIVE` suivie
+/// du nom du dossier, sans la marque `ajoutee`) : ses envois sont joues, son horloge joue ce qui vient apres `fin`, le
+/// dernier geste rejoue.
+pub fn poser_livree(racine: &Path, dest: &Path, fin: Option<f64>) -> Result<(), String> {
+    let nom = dest.file_name().map(|n| n.to_string_lossy().into_owned()).ok_or(format!("{} : un dossier est attendu", dest.display()))?;
+    let _ = std::fs::remove_dir_all(dest);
+    for (rel, source) in fichiers_de(racine).into_iter().filter(|(rel, _)| !hors_livraison(rel)) {
+        let cible = dest.join(&rel);
+        if let Some(d) = cible.parent() {
+            std::fs::create_dir_all(d).map_err(|e| format!("{} : {}", d.display(), e))?;
+        }
+        std::fs::copy(&source, &cible).map_err(|e| format!("{} : {}", cible.display(), e))?;
+    }
+    socle::ecriture::ecrire_json(
+        &dest.join(crate::interface::compagnies::MARQUEUR),
+        &json!({
+            "copie_de": format!("{} {}", crate::interface::compagnies::MARQUE_FICTIVE, nom),
+            "quand": fin.map(heure),
+            "_quoi": "Compagnie FICTIVE de reference, livree avec le logiciel : le rejeu de son scenario (atelier/fictives/). Ses envois sont joues, rien n'en part.",
+        }),
+        2,
+    )
+}
+
 const USAGE: &str = "scenario rejouer <scenario> <installation neuve> [--lectures] [--jusqu-au AAAA-MM-JJ]\n\
                      scenario verifier <scenario> <installation du banc> <dossier de travail>\n\
-                     scenario elaguer <scenario> <scenario sans lectures>";
+                     scenario elaguer <scenario> <scenario sans lectures>\n\
+                     scenario livrer <scenario> <dossier de la fictive> [--jusqu-au AAAA-MM-JJ]";
 
 /// LA LIGNE DE COMMANDE DES SCENARIOS : `moteur-atelier scenario ...` (le banc) et l'exemple `vie_fictive` (sans le binaire
 /// de l'atelier). `rejouer`, `verifier`, `elaguer`. Rend le code de sortie : 1 a la moindre difference.
@@ -621,6 +695,16 @@ pub fn commande(args: &[String]) -> i32 {
                     dire!("DIFFERENCE  {}", x);
                 }
                 1
+            }
+            Err(m) => {
+                eprintln!("{}", m);
+                1
+            }
+        },
+        ["livrer", sc, dest] => match livrer(Path::new(sc), Path::new(dest), options.jusqu_au) {
+            Ok(r) => {
+                dire!("{} : {} route(s) rejouee(s), en {:.1} s.", dest, r.routes_rejouees, debut.elapsed().as_secs_f64());
+                0
             }
             Err(m) => {
                 eprintln!("{}", m);

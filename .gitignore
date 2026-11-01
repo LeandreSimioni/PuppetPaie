@@ -114,6 +114,9 @@ demo/*/journal/interface.log
 # ne les prend jamais des fichiers suivis.
 fictives/.livraison.json
 fictives/*/.livree.json
+# LES FICTIVES DE REFERENCE : leur scenario est dans `atelier/fictives/<nom>/` ; `moteur maj --marquer-fictives` les
+# refait dans `fictives/<nom>` (moteur/src/atelier/scenario.rs, `livrer`). Elles se refont, elles ne se suivent pas.
+fictives/fictive-fil-de-fer/
 # LES FICTIVES AJOUTEES SUR UN POSTE (ticket #236) : le « + » d'un logiciel bride les pose sous `fictives/ajoutee-…`,
 # avec les donnees qu'on y met -- de vraies donnees, souvent. Elles n'entrent jamais dans le depot (ni dans une
 # livraison : moteur/src/compagnie/maj.rs, `fictives_livrees`).
