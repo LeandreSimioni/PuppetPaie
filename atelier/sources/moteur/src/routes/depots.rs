@@ -110,6 +110,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let mut lignes: Vec<Value> = ["remplacement", "recapitulatif", "repetition"].iter().filter_map(|k| v[*k]["phrase"].as_str().filter(|p| !p.is_empty()).map(|p| json!(p))).collect();
             lignes.extend(v["avertissements"].as_array().into_iter().flatten().cloned());
             v["phrases"] = Value::Array(lignes);
+            // Une DSN se dit par sa nature, son mois et ses salaries quand rien d'autre n'est a dire.
+            if !v["phrase"].as_str().is_some_and(|p| !p.is_empty()) {
+                let mois = engagement::libelle_mois(v["mois"].as_str().unwrap_or(""));
+                let p = format!("{} {} : {}.", valeur_en_texte(&v["libelle_nature"]), socle::texte::de(&mois), super::compte(v["salaries"].as_u64().unwrap_or(0) as usize, "salarié", "salariés"));
+                v = super::phrase_en_tete(v, p);
+            }
             v
         }),
         "deposer" => deposer(ctx, charge),
@@ -924,6 +930,13 @@ fn depot_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     for k in ["phrase", "avertissements", "informations"] {
         if let Some(v) = dit.get(k) {
             a[k] = v.clone();
+        }
+    }
+    // Ce que deux engagements disent pareil se dit une fois.
+    for k in ["avertissements", "informations"] {
+        if let Some(l) = a.get_mut(k).and_then(Value::as_array_mut) {
+            let mut vus = Vec::new();
+            l.retain(|x| if vus.contains(x) { false } else { vus.push(x.clone()); true });
         }
     }
     Ok(a)

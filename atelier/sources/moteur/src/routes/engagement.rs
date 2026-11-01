@@ -217,8 +217,11 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
     match modifier_puis_revalider(ctx, mois, i, &o, saisie, confirme, a_partir_du.as_deref(), le)? {
         Issue::Ecrite => {}
-        Issue::Rien => return Ok(json!({"change": false})),
-        Issue::Avertir(a) => return Ok(json!({"avertissement": a})),
+        Issue::Rien => return Ok(json!({"change": false, "phrase": "Rien n'a changé : rien n'est écrit."})),
+        Issue::Avertir(a) => {
+            let phrases = avertissement_en_phrases(&a);
+            return Ok(json!({"avertissement": a, "phrase": "Ce qui est parti le demande : rien n'est écrit sans confirme.", "phrases": phrases}));
+        }
     };
     brouillon.ecrire().map_err(Echec::from)?;
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
@@ -284,6 +287,23 @@ fn modifier_puis_revalider(
         return Ok(Issue::Avertir(json!({"engagements": en_valeur(engagement::etats::qui_de(ctx, v.objet()), lignes), "a_partir_du": Value::Null})));
     }
     Ok(Issue::Ecrite)
+}
+
+/// L'avertissement d'une modification en phrases : ce que le changement entraine pour chaque engagement touche, puis la
+/// question « a partir de quel mois ? » et ses choix (`a_partir_du`).
+fn avertissement_en_phrases(a: &Value) -> Vec<Value> {
+    let mut lignes = Vec::new();
+    for e in a["engagements"].as_array().into_iter().flatten() {
+        for c in e["consequences"].as_array().into_iter().flatten() {
+            lignes.push(json!(format!("{} : {}", valeur_en_texte(&e["qui"]), valeur_en_texte(c))));
+        }
+    }
+    let q = &a["a_partir_du"];
+    if !q.is_null() {
+        let choix: Vec<String> = q["choix"].as_array().into_iter().flatten().map(|c| format!("{} (a_partir_du : {})", valeur_en_texte(&c["libelle"]), valeur_en_texte(&c["mois"]))).collect();
+        lignes.push(json!(format!("{} Choix : {}.", valeur_en_texte(&q["phrase"]), choix.join(", "))));
+    }
+    lignes
 }
 
 /// Le contrat (ou un avenant) de l'engagement `o` est-il parti ?
@@ -378,7 +398,7 @@ fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         let parti = !engagement::etats::ce_qui_est_parti(ctx, &o, &departs).is_empty();
         return match engagement::etats::supprimer(ctx, &o, &departs) {
             Ok(()) => Ok(json!({"phrase": "Engagement retiré."})),
-            Err(m) if parti => Ok(json!({"avertissement": m})),
+            Err(m) if parti => Ok(json!({"phrase": m.clone(), "avertissement": m})),
             Err(m) => Err(Echec::from(m)),
         };
     }

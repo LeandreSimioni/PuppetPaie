@@ -381,16 +381,6 @@
           "valeur": "3090"
         }
       ],
-      "convention_collective": [
-        {
-          "valeur": "Entreprises du secteur prive du spectacle vivant"
-        }
-      ],
-      "code_convention_dsn": [
-        {
-          "valeur": "3090"
-        }
-      ],
       "cinquante_salaries_3241": [
         {
           "valeur": true
@@ -1529,7 +1519,7 @@
                     "existe racine:config/baremes/2026.json": "oui",
                     "existe racine:config/effectifs.json": "non",
                     "existe racine:config/rubriques-compagnie.json": "non",
-                    "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "2591248c460f04bc1c3a2af313dc9f8c44ebaab1292e1808f8489ff68cb2a092",
+                    "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "6981ed793b6333530bf31fc3e7a8c6fed4ef4337bf48a559f896a2bfaa873d7f",
                     "fichier code:baremes/2026.json": "1aec03d68d6381fccf47d53abc740d82191ab98ef55caccf6ec218a1e368a74d",
                     "fichier code:contrats-base.json": "fa6e9d4099fd495aa0ac87b0edbb5d88bdbf0242823427702cff8fb188b0d9b0",
                     "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",

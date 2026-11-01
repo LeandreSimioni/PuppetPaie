@@ -33,7 +33,7 @@ use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
 const NOM_FICHE: Champ = Champ { nom: "nom", sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
 const CLE_FICHE: Champ = Champ { nom: "cle", sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
-const DONNEES: Champ = Champ { nom: "donnees", sens: "les cases de la fiche ; à l'écriture, une case non donnée garde sa valeur, aussi dans une structure ; null l'efface", avance: false };
+const DONNEES: Champ = Champ { nom: "donnees", sens: "les cases de la fiche, que la route configuration décrit (description : nom, forme, valeurs) ; une case inconnue se refuse ; à l'écriture, une case non donnée garde sa valeur, aussi dans une structure ; null l'efface", avance: false };
 pub(crate) const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
 const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
@@ -74,7 +74,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "verifier-fiche",
         geste: "Vérifier une fiche avant de l'écrire : anomalies, valeurs déclarées.",
-        charge: &[NOM_FICHE, DONNEES],
+        charge: &[NOM_FICHE, CLE_FICHE, DONNEES],
         exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics"}}"#,
         rend: "anomalies (case, gravité, message), declare (ce que la DSN dirait), suggestions",
         refus: &[MANQUE, FORME, OPERATION],
@@ -96,7 +96,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "forcer", sens: "vrai : écrire malgré une erreur de forme", avance: true },
         ],
         exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics","numero_objet":"266Z00952012"}}"#,
-        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi), rien n'est écrit ; sinon : cle, ecrits (les champs changés), enregistre_a (vide si rien n'a changé), phrase",
+        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi) et ses phrases, rien n'est écrit ; sinon : cle, ecrits (les champs changés), enregistre_a (vide si rien n'a changé), phrase",
         refus: &[REFUSEE, OPERATION, MANQUE, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
         avance: false,
@@ -244,8 +244,8 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             let p = valeur_en_texte(&v["consequence"]);
             super::phrase_en_tete(v, p)
         }),
-        "verifier-fiche" => verifier_fiche(charge).map(|mut v| {
-            let lignes: Vec<Value> = v["anomalies"].as_array().into_iter().flatten().map(|a| json!(valeur_en_texte(a))).collect();
+        "verifier-fiche" => verifier_fiche(ctx, charge).map(|mut v| {
+            let lignes: Vec<Value> = v["anomalies"].as_array().into_iter().flatten().map(|a| json!(format!("{} : {}", valeur_en_texte(&a["champ"]), valeur_en_texte(&a["message"])))).collect();
             let p = if lignes.is_empty() { "La fiche est juste.".to_string() } else { format!("Anomalies de la fiche : {}.", lignes.len()) };
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
@@ -785,13 +785,22 @@ pub(crate) fn avec_libelles(nom: &str, anomalies: &mut [Value]) -> R<()> {
 
 /// `verifier-fiche` : les anomalies de la fiche telle qu'elle SERAIT derivee, ce qui
 /// serait declare, et ce que le moteur proposerait pour les cases vides.
-fn verifier_fiche(charge: &Value) -> R<Value> {
+fn verifier_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom_brut = exiger(charge, "nom")?;
     let donnees = exiger(charge, "donnees")?;
     let mut copie = copie_en_objet(donnees)?;
     let nom = nom_de_fiche(nom_brut)?;
     deriver(nom, &mut copie, false)?;
-    let anomalies = champs::verifier_fiche(nom, &copie)?;
+    let mut anomalies = champs::verifier_fiche(nom, &copie)?;
+    // Une case que la fiche ne decrit pas se dit comme a l'ecriture (`ecrire_fiche`), face a la fiche qu'elle completerait.
+    let (vide, montree) = (Value::Object(Map::new()), crate::routes::etablissements::entreprise_montree(ctx));
+    let cle = charge.get("cle").and_then(Value::as_str).filter(|k| !k.is_empty());
+    let ancienne: &Value = match nom {
+        "entreprise" => &montree,
+        "salarie" => cle.and_then(|k| ctx.salaries.get(k)).unwrap_or(&vide),
+        _ => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
+    };
+    anomalies.extend(champs::cases_inconnues(nom, &copie, ancienne, true)?);
     let objet = donnees.as_object();
     let declare = match objet {
         Some(o) => champs::apercu_derive(nom, o)?,
@@ -945,6 +954,27 @@ fn avertissement_de_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees:
     }
     let (depuis, pourquoi) = date_proposee(ctx, nom, cle)?;
     Ok(Some(json!({"changements": changements, "depuis": depuis.iso(), "pourquoi": pourquoi})))
+}
+
+/// L'avertissement en phrases : chaque valeur qui change, puis la date proposee et ce qui l'ecrit.
+fn avertissement_en_phrases(a: &Value) -> Vec<Value> {
+    let dite = |v: &Value| if sans_valeur(Some(v)) { "vide".to_string() } else { valeur_en_texte(v) };
+    let mut lignes: Vec<Value> = a["changements"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|c| {
+            let (avant, apres) = if c.get("avant_lisible").is_some() { (&c["avant_lisible"], &c["apres_lisible"]) } else { (&c["avant"], &c["apres"]) };
+            json!(format!("{} : {} devient {}.", valeur_en_texte(&c["libelle"]), dite(avant), dite(apres)))
+        })
+        .collect();
+    let depuis = Jour::lire(a["depuis"].as_str().unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
+    lignes.push(json!(format!(
+        "À partir du {}. {} La même charge avec « confirme » l'écrit (« depuis » pour une autre date).",
+        depuis,
+        valeur_en_texte(&a["pourquoi"])
+    )));
+    lignes
 }
 
 /// Le coeur de `avertissement_de_fiche` : la fiche `ancienne` (telle que l'ecran l'a montree) et les `donnees` qui la
@@ -1593,7 +1623,7 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
     let note = charge.get("note").unwrap_or(&Value::Null);
     if let Some(a) = avertissement_de_fiche(ctx, nom, cle.as_deref().filter(|k| !k.is_empty()), donnees)? {
         if !charge.get("confirme").is_some_and(vrai) {
-            return Ok(json!({"avertissement": a}));
+            return Ok(json!({"avertissement": a, "phrase": "Ce qui change se date : rien n'est écrit.", "phrases": avertissement_en_phrases(&a)}));
         }
         if !vrai(&depuis) {
             depuis = a["depuis"].clone();
@@ -1718,7 +1748,7 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         }
     }
     let mut anomalies = crate::routes::fiches::verifier(nom, &entiere)?;
-    anomalies.extend(champs::cases_inconnues(nom, &donnees, ancienne)?);
+    anomalies.extend(champs::cases_inconnues(nom, &donnees, ancienne, !matches!(forcer, Forcer::Tout))?);
     if forcer.refuse(&anomalies) {
         return Err(fiche_refusee(&anomalies));
     }

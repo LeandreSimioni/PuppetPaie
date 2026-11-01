@@ -13,7 +13,8 @@ ne calcule rien de tête et n'invente aucune valeur.
   elle est avancée). `moteur routes NOM` : la fiche d'une route (son geste, sa charge, un exemple, ce qu'elle rend, ses
   refus et quoi corriger, si elle lit, écrit ou engage).
 - Jouer une route : `echo '{"route":"NOM","charge":{…}}' | moteur route [--racine <dossier de la compagnie>] [--texte]`
-  (`--texte` : la phrase que la fenêtre affiche).
+  (`--texte` : la phrase que la fenêtre affiche). Un refus sort avec le code 1, la réponse dit pourquoi ; une commande
+  mal dite (option inconnue), avec le code 2.
 - La compagnie : la route `compagnies` (sans `--racine`) dit les compagnies de l'installation ; le `chemin` de chacune est
   le `--racine` de ses routes. Sans compagnie : `compagnie-ajouter`.
 - Ce qui est à faire : les routes `pour-demarrer`, `rappels`, `etat-du-mois`.

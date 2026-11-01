@@ -147,8 +147,17 @@ pub const ROUTES: &[Fiche] = &[
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "saisie" => saisie(ctx, charge),
-        "apercu" => apercu(ctx, charge).map(|v| {
+        "apercu" => apercu(ctx, charge).map(|mut v| {
             let p = v["phrase_du_mois"].as_str().map(String::from).unwrap_or_else(|| format!("{} : {}.", valeur_en_texte(&v["libelle"]), super::compte(super::nombre(&v["paies"]), "paie", "paies")));
+            // Ce que le moteur dit de chaque engagement (les encarts de sa carte), en phrases : le mois, puis ses paies.
+            let mut lignes: Vec<Value> = Vec::new();
+            let blocs = std::iter::once(&v).chain(v["paies"].as_array().into_iter().flatten());
+            for a in blocs.flat_map(|b| ["avertissements", "informations"].map(|k| b[k].clone())).filter_map(|l| l.as_array().cloned()).flatten() {
+                if !lignes.contains(&a) {
+                    lignes.push(a);
+                }
+            }
+            v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
         "contrats-en-cours" => contrats_en_cours_route(ctx, charge).map(|v| {

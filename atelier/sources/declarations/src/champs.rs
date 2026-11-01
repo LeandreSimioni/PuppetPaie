@@ -205,6 +205,8 @@ pub struct Manquant {
     pub actes: Vec<String>,
     pub utile: Vec<String>,
     pub sinon: String,
+    /// Les cases d'une structure, dites (`cases_dites`) ; vide pour une case simple.
+    pub cases: String,
 }
 
 /// CE QUI MANQUE A LA FICHE `donnees` (`entreprise`, `salarie`) pour les actes de la compagnie : chaque champ, et chaque
@@ -221,7 +223,7 @@ pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
         if (c.exige_par.is_empty() && c.utile_pour.is_empty()) || v.is_some_and(vrai) {
             return;
         }
-        out.push(Manquant { cle: chemin.0, ecran: chemin.1, libelle, aide: m.aide.clone(), actes: c.exige_par.clone(), utile: c.utile_pour.clone(), sinon: c.sinon.clone() });
+        out.push(Manquant { cle: chemin.0, ecran: chemin.1, libelle, aide: m.aide.clone(), actes: c.exige_par.clone(), utile: c.utile_pour.clone(), sinon: c.sinon.clone(), cases: cases_dites(c) });
     };
     for c in tous.iter().filter(|c| c.applicable(donnees)) {
         let m = montre(&tous, c);
@@ -1508,20 +1510,59 @@ mod tests {
     }
 }
 
-/// LES CASES QU'UNE STRUCTURE NE DECRIT PAS (`champs`) et que l'ecriture `donnees` ajouterait a la fiche `ancienne` :
-/// personne ne les lirait. Une case que la fiche porte deja se garde. Cela ne se force pas.
-pub fn cases_inconnues(nom: &str, donnees: &Map<String, Value>, ancienne: &Value) -> R<Vec<Value>> {
+/// LES CASES D'UNE STRUCTURE, DITES (`champs`) : leur nom, leur forme et leurs valeurs, d'apres la seule table qui les
+/// decrit (`champs-base.json`). « tva : assujettie ou exoneree ; part_tva : nombre decimal ; ... ». Vide : pas de cases.
+pub fn cases_dites(c: &Champ) -> String {
+    c.champs
+        .iter()
+        .filter(|s| !s.calcule())
+        .map(|s| {
+            let valeurs: Vec<String> = s.choix.iter().map(valeur_en_texte).filter(|v| !v.is_empty()).collect();
+            let forme = match s.forme.as_str() {
+                "booleen" => "true ou false".to_string(),
+                _ if !valeurs.is_empty() => valeurs.join(" ou "),
+                f => forme_libelle(f).to_string(),
+            };
+            format!("{} : {}", s.cle, forme)
+        })
+        .collect::<Vec<_>>()
+        .join(" ; ")
+}
+
+/// LES CASES QU'UNE FICHE NE DECRIT PAS (`la_fiche` : ce qu'une saisie lui donne ; ce que le moteur compose lui-meme, l'import
+/// et le questionnaire, ne se compte pas), ET CELLES D'UNE STRUCTURE (`champs`), que l'ecriture `donnees` ajouterait a la
+/// fiche `ancienne` : personne ne les lirait. Une case que la fiche porte deja se garde ; une cle en `_` est une note
+/// interne. Une case d'une structure dont la valeur n'a pas sa forme (une valeur hors de sa liste, un nombre, une date)
+/// se dit aussi. Cela ne se force pas.
+pub fn cases_inconnues(nom: &str, donnees: &Map<String, Value>, ancienne: &Value, la_fiche: bool) -> R<Vec<Value>> {
+    let tous = fiche(nom)?;
     let mut out = Vec::new();
-    for c in fiche(nom)?.iter().filter(|c| !c.champs.is_empty()) {
+    let refusee = |champ: &str, message: String| {
+        let mut a = anomalie(champ, "erreur", message);
+        a["forcable"] = json!(false);
+        a["pourquoi"] = json!("Cette case n'existe pas : la retirer, ou la nommer comme le dit la liste.");
+        a
+    };
+    let connues: Vec<&str> = tous.iter().filter(|c| !c.calcule()).map(|c| c.cle.as_str()).collect();
+    // Une case vide n'ajoute rien a la fiche (elle ne s'ecrit pas) : seule une valeur se refuse.
+    for k in donnees.iter().filter(|(k, v)| la_fiche && vrai(v) && !k.starts_with('_') && !tous.iter().any(|c| &c.cle == *k) && ancienne.get(k.as_str()).is_none()).map(|(k, _)| k) {
+        out.push(refusee(k, format!("la case « {} » n'existe pas dans la fiche {} ; ses cases sont : {}", k, nom, connues.join(", "))));
+    }
+    for c in tous.iter().filter(|c| !c.champs.is_empty()) {
         let Some(Value::Object(o)) = donnees.get(&c.cle) else { continue };
         let mut admises: Vec<&str> = c.champs.iter().map(|s| s.cle.split('.').next().unwrap_or(&s.cle)).collect();
         admises.dedup();
         let deja = ancienne.get(&c.cle);
         for k in o.keys().filter(|k| !k.starts_with('_') && !admises.contains(&k.as_str()) && deja.and_then(|d| d.get(k.as_str())).is_none()) {
-            let mut a = anomalie(&c.cle, "erreur", format!("la case « {} » n'existe pas ; ses cases sont : {}", k, admises.join(", ")));
-            a["forcable"] = json!(false);
-            a["pourquoi"] = json!("Cette case n'existe pas : la retirer, ou la nommer comme le dit la liste.");
-            out.push(a);
+            out.push(refusee(&c.cle, format!("la case « {} » n'existe pas ; ses cases sont : {}", k, cases_dites(c))));
+        }
+        for s in c.champs.iter().filter(|s| matches!(s.forme.as_str(), "choix" | "montant" | "date")) {
+            if let Some(faute) = verifier_champ(s, o.get(&s.cle))? {
+                let mut a = anomalie(&c.cle, "erreur", format!("« {} » : {}", s.cle, faute));
+                a["forcable"] = json!(false);
+                a["pourquoi"] = json!(format!("Les cases de « {} » : {}.", c.libelle, cases_dites(c)));
+                out.push(a);
+            }
         }
     }
     Ok(out)

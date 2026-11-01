@@ -1,5 +1,5 @@
 //! `moteur route` : la demande JSON sur l'entree standard, la reponse en une ligne de JSON sur la sortie standard (`--texte` : ses phrases) ; un
-//! refus : `{"ok": false, "erreur": "..."}`. Et ce dont les routes ont besoin pour lire la compagnie (`contexte`).
+//! refus : `{"ok": false, "erreur": "..."}`, et le code de sortie 1. Et ce dont les routes ont besoin pour lire la compagnie (`contexte`).
 
 use std::collections::HashMap;
 use std::io::Read;
@@ -93,7 +93,9 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
     } else {
         dire!("{}", corps);
     }
-    Some(0)
+    // UN REFUS SORT EN 1 (la reponse reste la meme) : qui se fie au code de sortie ne croit pas le geste fait. 2 : la
+    // commande elle-meme est mal dite (`usage`).
+    Some(if corps["ok"] == Value::Bool(true) { 0 } else { 1 })
 }
 
 /// La demande sans les secrets de sa charge : le `motdepasse` de toute route, et ceux d'une route du coffre
