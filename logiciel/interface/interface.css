@@ -1817,3 +1817,6 @@ body > .maj { position: static; flex: none; align-self: flex-start; margin: 0 0 
 .modele-contrat input[type=file] { display: none; }
 .modele-contrat .modele-editeur[hidden] { display: none; }
 .modele-champs table code { white-space: nowrap; }
+
+/* Une compagnie fictive : ce que ses boutons envoient est joué. */
+body.fictive button.envoi::after { content: " — simulé"; }

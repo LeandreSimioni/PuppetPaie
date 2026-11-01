@@ -27,6 +27,8 @@ function lectureDe(o, route) {
  *  le pose, pour que le bandeau ne parle jamais d'un état d'avant. */
 function poserEtat(etat) {
   ETAT = etat;
+  // Une compagnie fictive : ses boutons qui envoient disent « simulé » (interface.css, `.envoi`).
+  document.body.classList.toggle("fictive", !!(etat && etat.simulation));
   peindreEtatGlobal();
   return ETAT;
 }

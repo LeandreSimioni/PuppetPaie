@@ -334,6 +334,8 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         "remplace": a.champ("remplace"), "constitution": en_clair_jjmmaaaa(&a.champ("constitution")),
         "siren": a.champ("siren"), "salaries": a.salaries, "lignes": a.lignes,
         "pas_versements": a.pas_versements, "pas_bareme": a.pas_bareme,
+        // Ce que la boite dit sous les ordres.
+        "ordres_phrase": if ordres.is_empty() { "Aucun ordre de télépaiement dans ce fichier." } else { "Chaque organisme prélèvera ce montant sur le compte de la compagnie ; la date se lit dans la DSN ou dans le texte qui la fixe (au survol)." },
         "ordres": ordres, "ordres_erreur": ordres_erreur,
         // Un depot reel les declenche tous : a regarder (orange) ; joues, rien ne part (une information).
         "couleur_ordres": crate::routes::couleur_de_l_etat(if crate::compagnie::bridage::branchement(&ctx.racine).joue() { "information" } else { "a_faire" }),

@@ -143,7 +143,8 @@ function demanderMotDePasse(pourquoi, { envoi = false } = {}) {
     const voile = document.getElementById("voile-mdp");
     const forme = document.getElementById("forme-mdp");
     const champ = document.getElementById("mdp-valeur");
-    document.getElementById("mdp-pourquoi").textContent = pourquoi ? "Pour " + pourquoi + "." : "";
+    // Le geste : le nom du bouton qui le demande, ou ce que le moteur en dit (`pourquoi`).
+    document.getElementById("mdp-pourquoi").textContent = pourquoi || "";
     champ.value = "";
     voile.classList.remove("cachee");
     const finir = (valeur) => {

@@ -1003,6 +1003,8 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "configuration": configuration,
         // UNE COMPAGNIE FICTIVE : les envois sont joues (`bridage::branchement`).
         "simulation": crate::compagnie::bridage::branchement(&ctx.racine).joue(),
+        // Ce que la boite d'un envoi joue en dit.
+        "note_fictive": if crate::compagnie::bridage::branchement(&ctx.racine).joue() { super::encart("information", "Compagnie fictive", "Rien ne part : la réponse est là aussitôt ; en vrai, elle peut prendre quelques jours.") } else { Value::Null },
         // UN ENVOI N'A RIEN A PROUVER : joue (`depot_acte::verifier_preuve` ne demande rien a une fictive), ou refuse
         // avant toute preuve (une fictive ajoutee) ; la page ne demande alors pas le mot de passe du logiciel.
         "envoi_sans_mot_de_passe": crate::compagnie::bridage::branchement(&ctx.racine).joue() || crate::compagnie::bridage::branchement(&ctx.racine).refus().is_some(),

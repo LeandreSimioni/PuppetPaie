@@ -22,6 +22,7 @@ use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
 use crate::routes::catalogue::{Ecran, Place};
+use super::mot;
 
 // LA DESIGNATION d'une declaration (`designee`) : la DSN ou la DPAE d'un mois, ou un signalement ecrit.
 const QUOI: Champ = Champ { nom: "quoi", sens: "dpae ou dsn", avance: false };
@@ -42,7 +43,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Écrire ou reprendre la DSN ou la DPAE du mois ; dire ce qu'elle déclare.",
         charge: &[QUOI, MOIS, ETABLISSEMENT, ENGAGEMENTS, SIGNALEMENT],
         exemple: DPAE_DE_L_EXEMPLE,
-        rend: "ce qu'elle déclare (embauches, ou description, salariés, recapitulatif avec son titre et sa phrase, et ordres), deja_depose, repetition (où en est son test, titre et phrase de l'encart), phrase, avertissements, informations",
+        rend: "ce qu'elle déclare (description, embauches, ou salariés, recapitulatif avec son titre et sa phrase, ordres et ordres_phrase), deja_depose, repetition (où en est son test, titre et phrase de l'encart), encarts (titre, phrase, couleur), phrase, avertissements, informations",
         refus: &[ILLISIBLE_FICHIER, MANQUE, OPERATION],
         acte: Acte::Ecrit,
         avance: false,
@@ -63,7 +64,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "contournement", sens: "le motif écrit d'un dépôt réel sans test", avance: true },
         ],
         exemple: DPAE_DE_L_EXEMPLE,
-        rend: "le dépôt : accepté ou non, le retour de l'organisme, ses suites (chaque demande de taux), phrase",
+        rend: "le dépôt : accepté ou non, le retour de l'organisme, ses suites (chaque demande de taux), phrase, avis (l'encart à montrer après la DSN réelle d'un mois qui a des salariés)",
         refus: &[
             Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est parti" },
             Refus { classe: "RepetitionManquante", corriger: "déposer d'abord ce fichier en test" },
@@ -107,7 +108,10 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
     let mut v = match nom {
         // Les phrases de ses parties (le remplacement, le recapitulatif, le test), a la suite de la sienne.
         "depot-apercu" => depot_apercu(ctx, charge).map(|mut v| {
+            let encarts = encarts_du_depot(&v);
             let mut lignes: Vec<Value> = ["remplacement", "recapitulatif", "repetition"].iter().filter_map(|k| v[*k]["phrase"].as_str().filter(|p| !p.is_empty()).map(|p| json!(p))).collect();
+            lignes.extend(super::encarts_en_lignes(&encarts));
+            v["encarts"] = Value::Array(encarts);
             lignes.extend(v["avertissements"].as_array().into_iter().flatten().cloned());
             v["phrases"] = Value::Array(lignes);
             // Une DSN se dit par sa nature, son mois et ses salaries quand rien d'autre n'est a dire.
@@ -125,6 +129,57 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
     }?;
     poser_les_pastilles(&mut v);
     Ok(v)
+}
+
+/// CE QUE LA BOITE DU DEPOT DIT DU FICHIER, encart par encart, dans l'ordre ou elle les montre : l'annule-et-remplace
+/// qu'il porte, le prelevement a la source sur la grille par defaut (CGI, art. 204 H), les embauches deja declarees, le
+/// fichier deja depose, le fichier code envoi de test.
+fn encarts_du_depot(v: &Value) -> Vec<Value> {
+    let mut e = Vec::new();
+    let remplace = mot(&v["remplace"]);
+    if !remplace.is_empty() {
+        e.push(super::encart("information", "Annule et remplace", format!("Ce fichier remplace la déclaration {}.", remplace)));
+    }
+    let r = &v["remplacement"];
+    if r["fichier_remplace"].as_bool() == Some(true) {
+        e.push(super::encart(
+            "a_faire",
+            format!("Annule-et-remplace intégral — ordre {}", mot(&v["ordre"])),
+            format!(
+                "Il remplace la DSN réelle déjà partie pour ce mois (ordre {}), ordres de télépaiement compris : c'est lui qui vaudra. Admis jusqu'au {} à minuit.",
+                mot(&r["dernier_ordre"]),
+                super::jour_en_clair(&r["limite"])
+            ),
+        ));
+    }
+    let bareme = v["pas_bareme"].as_u64().unwrap_or(0);
+    if bareme > 0 {
+        e.push(super::encart(
+            "a_faire",
+            format!("Prélèvement à la source : {} versement{} sur {} sur la grille par défaut", bareme, if bareme > 1 { "s" } else { "" }, mot(&v["pas_versements"])),
+            "Faute de taux transmis par la DGFiP, c'est la grille de l'article 204 H du CGI qui s'applique, et le dépôt n'est pas bloqué. Elle prélève le plus souvent plus que le taux réel du salarié, qui ne récupère la différence qu'à sa déclaration de revenus l'année suivante. Relever les retours avant de déposer peut encore changer cela.",
+        ));
+    }
+    let deja = v["embauches"].as_array().into_iter().flatten().filter(|x| x["deja_declaree"].as_bool() == Some(true)).count();
+    if deja > 0 {
+        e.push(super::encart(
+            "a_faire",
+            format!("{} déjà envoyée{}", super::compte(deja, "embauche", "embauches"), if deja > 1 { "s" } else { "" }),
+            "Le fichier porte tout le mois : le déposer les redéclare, et l'Urssaf reçoit deux déclarations pour un seul contrat.",
+        ));
+    }
+    let d = &v["deja_depose"];
+    if vrai(d) {
+        e.push(super::encart(
+            "a_faire",
+            "Ce fichier a déjà été déposé",
+            format!("Le {}, en mode {}. Redéposer le même fichier ne remplace rien : un annule-et-remplace se produit, il ne se redépose pas.", super::quand(&mot(&d["quand"])), mot(&d["mode"])),
+        ));
+    }
+    if v["reel"].as_bool() == Some(false) {
+        e.push(super::encart("information", "Envoi de test", "Le fichier est codé envoi de test : déposé pour de vrai, il ne déclarerait rien et rien ne serait conservé."));
+    }
+    e
 }
 
 /// LES PASTILLES DE CE QUE CES ROUTES RENDENT (`routes::pastille`) : la ligne d'un certificat de conformite DPAE
@@ -590,6 +645,10 @@ fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let phrase = std::iter::once(tranche).chain(fait.suites.iter().cloned()).collect::<Vec<_>>().join(" ");
     let mut v = fait.en_json();
     v["phrase"] = json!(phrase);
+    // APRES LA DSN REELLE D'UN MOIS QUI A DES SALARIES, la boite d'avis : leurs documents partent de l'etape 4.
+    if reel && etats::est(quoi, "dsn") && envois::depot::lire(&lire_octets(&resoudre(&ctx.racine, fichier)?)?).salaries > 0 {
+        v["avis"] = super::encart("information", "Les documents des salariés", "Ils partent de l'étape 4, « Envoyer les documents », qui dit ce qu'il leur manque encore.");
+    }
     Ok(v)
 }
 
@@ -912,6 +971,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let deja_depose = etats::deja_depose(&lignes_journal, "dpae", &empreinte)?;
     let repetition = etats::repetition(&lignes_journal, "dpae", &empreinte, &nom_fichier)?;
     Ok(json!({
+        "description": format!("{} — {} enregistrement{}, {} octets, indicateur {}.", nom_fichier, enrs.len(), if enrs.len() > 1 { "s" } else { "" }, contenu.len(), envois::depot::indicateur(&contenu)),
         "fichier": chemin, "nom": nom_fichier,
         "enregistrements": enrs.len(), "octets": contenu.len(),
         "reel": envois::depot::est_reel(&contenu),

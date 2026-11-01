@@ -318,6 +318,17 @@ pub(crate) fn couleur_de_l_etat(etat: &str) -> &'static str {
     }
 }
 
+/// UN ENCART, tel que la page le dessine (`encart` de js/tuyau.js) : un titre en gras, sa phrase, la couleur de l'etat.
+/// La page n'ecrit aucune phrase : ce qu'une boite dit d'un cas, la route le rend ainsi.
+pub(crate) fn encart(etat: &str, titre: impl Into<String>, phrase: impl Into<String>) -> Value {
+    json!({"couleur": couleur_de_l_etat(etat), "titre": titre.into(), "phrase": phrase.into()})
+}
+
+/// Les encarts d'une reponse, en lignes pour `moteur route --texte` : « titre : phrase ».
+pub(crate) fn encarts_en_lignes(encarts: &[Value]) -> Vec<Value> {
+    encarts.iter().map(|e| json!([mot(&e["titre"]), mot(&e["phrase"])].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" : "))).collect()
+}
+
 /// LA PASTILLE D'UN ETAT, telle que la page la dessine : sa couleur (`couleur_de_l_etat`) et ses mots.
 pub(crate) fn pastille(etat: &str, mots: &str) -> Value {
     json!({"couleur": couleur_de_l_etat(etat), "mots": mots})
@@ -447,4 +458,10 @@ pub(crate) fn euros(v: &Value) -> String {
 /// Une valeur rendue, en mots dans une phrase : rien pour une valeur absente (jamais « None »).
 pub(crate) fn mot(v: &Value) -> String {
     if v.is_null() { String::new() } else { valeur_en_texte(v) }
+}
+
+/// Un jour rendu (`2026-11-02`), tel qu'une phrase le dit : « 02/11/2026 » ; ce qui n'en est pas un, tel quel.
+pub(crate) fn jour_en_clair(v: &Value) -> String {
+    let t = mot(v);
+    socle::date::Jour::lire(&t).map(|j| j.jjmmaaaa()).unwrap_or(t)
 }

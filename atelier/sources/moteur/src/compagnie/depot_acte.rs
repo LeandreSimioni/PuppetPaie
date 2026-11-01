@@ -220,7 +220,7 @@ fn exiger_repetition(lignes: &[Value], quoi: &str, chemin: &Path, contournement:
         if raison.chars().count() < 10 {
             return Err(erreur(
                 "ErreurOperation",
-                "Deposer sans repetition demande un motif ECRIT, pas un mot : ce qui empechait le test, en une phrase. C'est ce qu'on relira le jour ou ce depot posera question. Rien n'est parti.",
+                "Déposer sans répétition demande un motif écrit : ce qui empêchait le test, en une phrase, qu'on relira le jour où ce dépôt posera question. Rien n'est parti.",
             ));
         }
         return Ok(json!({"contournement": raison, "empreinte": etat["empreinte"]}));

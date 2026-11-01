@@ -526,6 +526,12 @@ const echapperLiens = (s) => echapper(s).replace(
   /(https:\/\/[^\s<]+?)([.,;]?)(?=\s|$)/g,
   (_, url, fin) => `<a href="${url}" target="_blank" rel="noopener">texte de la convention</a>${fin}`);
 
+/* Un encart que le moteur rend (`routes::encart` : titre, phrase, couleur) ; rien s'il n'y en a pas. La page n'écrit
+ * aucune phrase : ce qu'une boîte dit d'un cas lui vient ainsi de la route. */
+const encart = (e) => e && (e.titre || e.phrase)
+  ? `<div class="encart ${ENCART_DE_COULEUR[e.couleur] ?? ""}">${e.titre ? `<b>${echapper(e.titre)}</b> ` : ""}${echapperLiens(e.phrase || "")}</div>` : "";
+const encarts = (l) => (l || []).map(encart).join("");
+
 /* ------------------------------------------------------------ navigation */
 document.querySelectorAll(".onglets button").forEach((b) => {
   b.onclick = async () => {

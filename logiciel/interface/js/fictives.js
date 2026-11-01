@@ -6,8 +6,7 @@
    moteur le dit dans `etat` ; la page ne fait que ne pas demander de mot de
    passe, et le dire au moment de l'acte. */
 const enFictive = () => !!(ETAT && ETAT.simulation);
-const noteFictive = (vers) => `<p class="note"><b>Compagnie fictive</b> —
-  rien ne part vers ${echapper(vers)} : la réponse est là aussitôt ; en vrai, elle peut prendre quelques jours.</p>`;
+const noteFictive = () => encart(ETAT && ETAT.note_fictive);
 
 /* ---------------------------------------- LA COMPAGNIE FICTIVE QUI EXPLIQUE
    La démo est informative : à chaque courriel joué, une petite fenêtre montre ce que le

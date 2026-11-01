@@ -38,7 +38,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Montrer les contrats du mois : à envoyer, en attente de signature, en avenant.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
-        rend: "contrats (chacun : son état, et ses gestes recu et relancer, route et charge), boite_liee",
+        rend: "contrats (chacun : son état, et ses gestes recu et relancer, route et charge), boite_liee, signature (l'encart de la signature d'un clic), rien_a_envoyer, rien_en_attente",
         refus: &[MANQUE, ILLISIBLE],
         acte: Acte::Lit,
         avance: false,
@@ -93,7 +93,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "numero", sens: "le numéro du contrat parti, tel que signature-apercu le rend", avance: false },
         ],
         exemple: r#"{"salarie":"FULLER","debut":"2026-11-27","numero":"FU1.26.01"}"#,
-        rend: "le contrat parti (contrat, date_contrat, signe), numero de l'avenant, effet, modifications (article, avant, apres), avenants, destinataire",
+        rend: "le contrat parti (contrat, date_contrat, signe), numero de l'avenant, effet, modifications (article, avant, apres), avenants (et la phrase de chacun), destinataire, situation (le contrat parti en une ligne), encarts",
         refus: &[Refus { classe: "ErreurOperation", corriger: "le salarié, le début et le numéro d'un contrat parti à la signature" }, MANQUE, ILLISIBLE],
         acte: Acte::Lit,
         avance: false,
@@ -158,13 +158,51 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
                 let a = if t(c, "destinataire").is_empty() { "pas de courriel : il s'imprime".to_string() } else { t(c, "destinataire") };
                 json!(format!("{} ({}) : {}", t(c, "nom"), t(c, "numero"), a))
             }).collect();
+            // Ce que ses deux boites disent : la signature d'un clic, quand une boite courriel est liee ; leur liste vide.
+            let aucun = |v: &Value, k: &str| !v["contrats"].as_array().into_iter().flatten().any(|c| vrai(&c[k]));
+            if vrai(&v["boite_liee"]) {
+                v["signature"] = super::encart("information", "Signature d'un clic", "Le contrat part par courriel avec un bouton « Je signe » ; la réponse du salarié est relevée toute seule, et il reçoit son contrat contresigné.");
+            }
+            if aucun(&v, "a_envoyer") {
+                v["rien_a_envoyer"] = json!("Aucun contrat à faire partir ce mois-ci.");
+            }
+            if aucun(&v, "en_attente") {
+                v["rien_en_attente"] = json!("Aucun contrat n'attend sa signature.");
+            }
             lignes.extend(v["avertissements"].as_array().into_iter().flatten().cloned());
             let p = format!("Contrats à faire signer : {}.", super::nombre(&v["contrats"]));
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "avenant-apercu" => avenant_apercu(ctx, charge).map(|v| {
-            let p = format!("Avenant {} au contrat {} de {}, à effet du {} : {}.", t(&v, "numero"), t(&v, "contrat"), t(&v, "nom"), t(&v, "effet"), super::compte(super::nombre(&v["modifications"]), "modification", "modifications"));
+        "avenant-apercu" => avenant_apercu(ctx, charge).map(|mut v| {
+            let n = super::nombre(&v["modifications"]);
+            let quand = |k: &str| super::quand(&t(&v, k));
+            v["situation"] = json!(format!(
+                "{} — {}, du {} au {} ; {}",
+                t(&v, "nom"), t(&v, "spectacle"), super::jour_en_clair(&v["debut"]), super::jour_en_clair(&v["fin"]),
+                if vrai(&v["signe"]) { format!("signé le {}", quand("signe")) } else { format!("envoyé le {}, pas encore signé", super::jour_en_clair(&v["date_contrat"])) }
+            ));
+            for a in v["avenants"].as_array_mut().into_iter().flatten() {
+                let signe = if vrai(&a["signe"]) { format!("signé le {}", super::quand(&t(a, "signe"))) } else { "pas encore revenu signé".to_string() };
+                a["phrase"] = json!(format!("Avenant n° {} envoyé le {} — {}", t(a, "numero"), super::quand(&t(a, "quand")), signe));
+            }
+            let mut encarts = vec![if n > 0 {
+                super::encart("information", "", format!(
+                    "Le contrat parti se compare à l'engagement d'aujourd'hui : {}. L'avenant n° {} cite l'ancien texte et le nouveau ; le reste du contrat ne change pas.",
+                    if n > 1 { format!("{} articles ont changé", n) } else { "un article a changé".to_string() }, t(&v, "numero")
+                ))
+            } else {
+                super::encart("information", "", "Le contrat parti dit déjà tout ce que dit l'engagement : il n'y a rien à modifier.")
+            }];
+            if n > 0 && vrai(&v["remplacable"]) && vrai(&v["boite_liee"]) {
+                encarts.push(super::encart("information", "", format!(
+                    "Le contrat n'a pas commencé : il peut aussi être refait en entier. Le nouveau porte en tête « annule et remplace le contrat n° {} du {} ».",
+                    t(&v, "contrat"), super::jour_en_clair(&v["date_contrat"])
+                )));
+            }
+            v["phrases"] = Value::Array(std::iter::once(v["situation"].clone()).chain(super::encarts_en_lignes(&encarts)).collect());
+            v["encarts"] = Value::Array(encarts);
+            let p = format!("Avenant {} au contrat {} de {}, à effet du {} : {}.", t(&v, "numero"), t(&v, "contrat"), t(&v, "nom"), t(&v, "effet"), super::compte(n, "modification", "modifications"));
             super::phrase_en_tete(v, p)
         }),
         "pieces-parties" => pieces_parties(ctx, charge),
@@ -362,7 +400,18 @@ fn refuser_les_contrats_partis(ctx: &Contexte, mois: &str, choisis: &crate::comp
 /// passe le sien).
 /// `avenants` : les avenants des contrats signes qui ont change ([{"salarie", "debut", "numero", "mois", "effet"}]),
 /// imprimes avec eux ; sans `contrats` ni `salaries`, seuls les avenants s'impriment.
+/// Une charge qui coche une liste vide (`contrats` ou `salaries` donnes vides, sans avenant) : rien n'est choisi.
+fn aucun_coche(charge: &Value) -> R<()> {
+    let vide = |k: &str| charge.get(k).and_then(Value::as_array).is_none_or(Vec::is_empty);
+    let donne = ["contrats", "salaries"].iter().any(|k| charge.get(*k).is_some());
+    if donne && vide("contrats") && vide("salaries") && vide("avenants") {
+        return Err(refus("Aucun contrat coché. Rien n'est parti."));
+    }
+    Ok(())
+}
+
 pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -> R<Value> {
+    aucun_coche(charge)?;
     let voulus = liste_de(charge, "avenants")?.cloned().unwrap_or_default();
     let avenants = avenants_voulus(ctx, &voulus)?;
     if avenants.iter().any(|(_, aa)| aa.iter().any(UnAvenant::relance)) {
@@ -380,6 +429,7 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
 /// (`signature::demander_signature`) et les avenants (`envoyer_avenants`, un courriel par salarie). `relance` : l'etat des
 /// contrats du mois (`signature-apercu`) dit lesquels peuvent se relancer.
 pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+    aucun_coche(charge)?;
     let mois = charge_texte(charge, "mois")?;
     let relance = charge.get("relance").is_some_and(vrai);
     let remplace = charge.get("remplace").is_some_and(vrai);
@@ -601,7 +651,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         let jj_mm = if jour.len() >= 10 { format!("{}/{}", &jour[8..10], &jour[5..7]) } else { jour };
         let attente = format!("{}{} le {}", ce, if est(&par, "imprime") { "imprimé" } else { "envoyé" }, jj_mm);
         // Ce que la demande du mot de passe dit avant une relance.
-        let pourquoi = format!("relancer la signature : {}, {}", valeur_en_texte(&l["nom"]), attente);
+        let pourquoi = format!("Relancer la signature : {}, {}.", valeur_en_texte(&l["nom"]), attente);
         let numero_charge = p.engagement.numero.clone().map_or(json!(""), Value::String);
         let (recu_g, relancer) = if en_attente {
             let avenant = if avenant_en_attente { etat["avenant"]["numero"].clone() } else { Value::Null };
