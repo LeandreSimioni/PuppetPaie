@@ -106,7 +106,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
     match nom {
         "modeles-contrat" => modeles(ctx).map(|v| super::phrase_en_tete(v.clone(), dire_les_modeles(&v))),
         "modele-contrat-livre" => livre(charge).map(|v| {
-            let p = format!("Le modèle livré : {}.", socle::valeur::valeur_en_texte(&v["nom"]));
+            let p = format!("Modèle livré {}.", socle::valeur::valeur_en_texte(&v["libelle"]));
             super::phrase_en_tete(v, p)
         }),
         "poser-modele-contrat" => poser(ctx, charge).map(|v| {
@@ -196,10 +196,11 @@ fn modeles(ctx: &Contexte) -> R<Value> {
 
 /// Le texte du modele livre, pour partir de lui.
 fn livre(charge: &Value) -> R<Value> {
-    let (_, nom) = nom_du_modele(texte_requis(charge, "nature")?, texte_requis(charge, "quoi")?)?;
+    let (nat, nom) = nom_du_modele(texte_requis(charge, "nature")?, texte_requis(charge, "quoi")?)?;
     let chemin = dossier_du_code().join("modeles").join(&nom);
     let texte = std::fs::read_to_string(&chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
-    Ok(json!({"nom": nom, "texte": texte}))
+    let de = if texte_requis(charge, "quoi")? == "avenant" { "de l'avenant" } else { "du contrat" };
+    Ok(json!({"nom": nom, "texte": texte, "libelle": format!("{} {}", de, nat.libelle)}))
 }
 
 /// UN MODELE PROPRE SE VERIFIE AVANT D'ETRE POSE : sa grammaire (`fabrique_pdf::modele::lire_modele`), chacun de ses

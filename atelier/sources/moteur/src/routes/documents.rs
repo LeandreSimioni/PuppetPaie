@@ -64,7 +64,7 @@ pub const ROUTES: &[Fiche] = &[
         ],
         acte: Acte::Engage,
         avance: false,
-        phrase: 40,
+        phrase: 300,
         ecran: ECRAN,
     },
     Fiche {
@@ -111,8 +111,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }),
         "envoyer-documents" => envoyer_documents(ctx, charge, &mut || client_courriel(ctx)),
         "documents-imprimer" => documents_imprimer(ctx, charge, &qui_de(charge)).map(|v| {
-            let qui: Vec<String> = v["salaries"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
-            let p = format!("Documents imprimés ({}), à remettre en main propre : {}.", qui.join(", "), valeur_en_texte(&v["chemin"]));
+            let qui: Vec<String> = v["salaries"].as_array().into_iter().flatten().map(|c| super::salarie(ctx, c).map(|s| super::nom_a_l_ecran(&s)).unwrap_or_else(|_| valeur_en_texte(c))).collect();
+            let mois = engagement::libelle_mois(&charge.get("mois").map(valeur_en_texte).unwrap_or_default());
+            let p = format!("Documents {} imprimés pour {}, à remettre en main propre : {}.", socle::texte::de(&mois), qui.join(", "), valeur_en_texte(&v["chemin"]));
             let avert: Vec<Value> = v["avertissements"].as_array().cloned().unwrap_or_default();
             let mut v = super::phrase_en_tete(v, p);
             v["phrases"] = Value::Array(avert);
@@ -889,7 +890,7 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
     if paies.is_empty() {
         return Err(erreur(
             "AucunDocument",
-            format!("{} : aucun engagement valide, aucun document a envoyer. Rien ne part d'un engagement en saisie.", engagement::libelle_mois(mois)),
+            format!("{} : aucun engagement validé, aucun document à envoyer. Rien ne part d'un engagement en saisie.", engagement::libelle_mois(mois)),
         ));
     }
     let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
@@ -997,7 +998,7 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
     Ok(json!({
         "partis": partis,
         "avertissements": avertissements,
-        "phrase": format!("{} message(s) envoyé(s).", partis.len()),
+        "phrase": format!("Documents {} envoyés à {} : {}.", socle::texte::de(&engagement::libelle_mois(mois)), crate::routes::compte(partis.len(), "salarié", "salariés"), messages.iter().map(|m| crate::routes::salarie(ctx, &json!(m.cle)).map(|s| crate::routes::nom_a_l_ecran(&s)).unwrap_or_else(|_| m.nom.clone())).collect::<Vec<_>>().join(", ")),
     }))
 }
 

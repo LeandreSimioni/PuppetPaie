@@ -118,7 +118,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let n = super::nombre(&v["imprevus"]);
             let lignes: Vec<Value> = v["imprevus"].as_array().into_iter().flatten().flat_map(|i| {
                 let t = |k: &str| super::mot(&i[k]);
-                let mut l = vec![json!(format!("{} ({}) : {}, du {} au {} — {}", t("salarie"), t("contrat"), t("motif_libelle"), t("premier_jour"), t("dernier_jour"), t("etat")))];
+                let etat = match t("etat").as_str() {
+                    "a signaler" => "à signaler".to_string(),
+                    "signale" => "signalé".to_string(),
+                    autre => autre.to_string(),
+                };
+                let mut l = vec![json!(format!("{} ({}) : {}, du {} au {} — {}", t("salarie"), t("contrat"), t("motif_libelle"), super::quand(&t("premier_jour")), super::quand(&t("dernier_jour")), etat))];
                 l.extend(crate::obligations::en_phrases(&i["obligations"]).into_iter().map(|o| json!(format!("  {}", o))));
                 l
             }).collect();
@@ -1462,7 +1467,7 @@ fn arrets(ctx: &Contexte) -> R<Value> {
         })
         .collect();
     Ok(json!({
-        "phrase": format!("{} arrêt(s) de travail, {} à signaler.", resumes.len(), a_signaler.len()),
+        "phrase": format!("{}, {} à signaler.", crate::routes::compte(resumes.len(), "arrêt de travail", "arrêts de travail"), a_signaler.len()),
         "phrases": phrases,
         "arrets": resumes,
         "a_signaler": a_signaler,

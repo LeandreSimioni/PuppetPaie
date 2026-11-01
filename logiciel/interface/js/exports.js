@@ -486,7 +486,7 @@ function dessinerCasc(r) {
     try {
       const e = await api("casc-regularise",
         { annee: choixAnnee.value, vire_le: vire, montant: montant.value });
-      dire(`CASC-SVP ${e.annee} notée régularisée (${e.mois.length} mois).`);
+      dire(e.phrase);
     } catch (x) { dire(x.message, "erreur"); }
   };
   const envoyer = document.getElementById("casc-envoyer");
@@ -501,8 +501,7 @@ function dessinerCasc(r) {
     const repere = await repereCourrielsFictifs();
     try {
       const e = await api("casc-envoyer", { vire_le, motdepasse: mdp });
-      dire(`${e.partis.length} courriel(s) envoyé(s) à ${e.partis.join(" et ")} — ` +
-           `${e.annees.map((a) => a.annee).join(" et ")} notée(s) régularisée(s).`, "envoye");
+      dire(e.phrase, "envoye");
       cible.innerHTML = `<p>CASC-SVP ${echapper(e.periode)} : ${echapper(euros(e.total))}, envoyé depuis
         ${echapper(e.expediteur)}. Copie des courriels dans ${echapper(e.dossier)}.</p>`;
       fenetreCourrielsFictifs("courriel", repere);
@@ -644,8 +643,7 @@ function boiteCloture(annee) {
     try {
       const r = await api("cloture", { annee, forcer: document.getElementById("c-forcer").checked });
       fermerBoite();
-      dire("Exercice " + r.annee + " clos : " + r.archive + " (" + r.fichiers + " fichiers).");
-      if (r.manques && r.manques.length) dire(r.manques.join(" · "));
+      dire(r.phrase);
       if (document.getElementById("exercices")) await dessinerExercices();
     } catch (e) {
       document.getElementById("c-lancer").disabled = false;

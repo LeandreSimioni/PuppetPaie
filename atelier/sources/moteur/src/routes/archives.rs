@@ -157,10 +157,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             super::phrase_en_tete(v, p)
         }),
         "casc-regularise" => casc_regularise(ctx, charge).map(|v| {
-            let p = format!("CASC-SVP {} notée régularisée : {} € virés le {}.", t(&v, "annee"), t(&v, "montant"), t(&v, "vire_le"));
+            let p = format!("CASC-SVP {} notée régularisée : {} virés le {}.", t(&v, "annee"), super::euros(&v["montant"]), super::quand(&t(&v, "vire_le")));
             super::phrase_en_tete(v, p)
         }),
-        "exporter" => exporter(ctx, charge).map(|v| {
+        "exporter" => exporter(ctx, charge).map(|mut v| {
+            // Ce que l'etat dit de lui-meme (ce qui est du, ce qui est infere), sous la phrase : ce que l'ecran montre au-dessus du tableau.
+            v["phrases"] = v["avertissements"].clone();
             let titre = if v["titre"].is_string() { t(&v, "titre") } else { t(&v, "periode") };
             let p = match v["fichier"].as_str() {
                 Some(f) => format!("{} : écrit dans {}.", titre, f),
@@ -175,7 +177,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }),
         "casc-envoyer" => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
             let partis: Vec<String> = v["partis"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
-            let p = format!("CASC-SVP de {} : {} €, envoyé à {}.", t(&v, "periode"), t(&v, "total"), partis.join(", "));
+            let annees: Vec<String> = v["annees"].as_array().into_iter().flatten().map(|a| super::mot(&a["annee"])).collect();
+            let notee = if annees.len() > 1 { "notées régularisées" } else { "notée régularisée" };
+            let p = format!("CASC-SVP, {} : {}, envoyé à {} ; {} {}.", t(&v, "periode"), super::euros(&v["total"]), partis.join(" et "), annees.join(" et "), notee);
             super::phrase_en_tete(v, p)
         }),
         "droits" => droits(ctx, charge),

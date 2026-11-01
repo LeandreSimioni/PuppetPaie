@@ -113,7 +113,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
                 format!("Exercice {} rouvert ; son archive reste.", t(&v, "annee"))
             } else {
                 let manques: Vec<String> = v["manques"].as_array().into_iter().flatten().map(socle::valeur::valeur_en_texte).collect();
-                let reste = if manques.is_empty() { String::new() } else { format!(" Pas archivé : {}.", manques.join(" ; ")) };
+                let reste = if manques.is_empty() { String::new() } else { format!(" Pas archivé : {}.", manques.iter().map(|m| m.trim_end_matches('.')).collect::<Vec<_>>().join(" ; ")) };
                 format!("Exercice {} clos : {} fichiers archivés dans {}.{}", t(&v, "annee"), t(&v, "fichiers"), t(&v, "archive"), reste)
             };
             super::phrase_en_tete(v, p)

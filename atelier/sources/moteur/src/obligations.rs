@@ -734,12 +734,12 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
                         let jusqu = plus(f.le, entier(r, "jours_francs")?)?;
                         s["jusqu_au"] = json!(jusqu.iso());
                         s["phrase"] = json!(if jusqu >= aujourdhui {
-                            format!("Des réserves motivées peuvent encore s'émettre jusqu'au {}.", lisible(&jusqu))
+                            format!("possibles jusqu'au {}.", lisible(&jusqu))
                         } else {
-                            format!("Le délai des réserves motivées est passé (le {}).", jusqu.jj_mm_aaaa())
+                            format!("le délai est passé (le {}).", jusqu.jj_mm_aaaa())
                         });
                     } else {
-                        s["phrase"] = json!(format!("Des réserves motivées, s'il y en a : dans les {} jours francs qui suivent la déclaration.", entier(r, "jours_francs")?));
+                        s["phrase"] = json!(format!("dans les {} jours francs qui suivent la déclaration.", entier(r, "jours_francs")?));
                     }
                     suites.push(s);
                 }
@@ -845,7 +845,15 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
         "arret-obligations" => arret_obligations(ctx, charge)?,
         autre => return Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),
     };
-    let p = format!("Obligations de l'arrêt : {}.", crate::routes::nombre(&v["obligations"]));
+    let n = crate::routes::nombre(&v["obligations"]);
+    let le = charge.get("le").map(en_texte).unwrap_or_default();
+    let fait = |quoi: &str| if le.trim().is_empty() { format!("{} : la note « faite » est retirée. Obligations de l'arrêt : {}.", quoi, n) } else { format!("{} notée faite le {}. Obligations de l'arrêt : {}.", quoi, crate::routes::quand(&le), n) };
+    let p = match nom {
+        "accident-declare" => fait("Déclaration d'accident"),
+        "attestation-declare" => fait("Attestation de salaire"),
+        "arret-connaissance" => format!("Jour de connaissance noté. Obligations de l'arrêt : {}.", n),
+        _ => format!("Obligations de l'arrêt : {}.", n),
+    };
     let lignes: Vec<Value> = en_phrases(&v["obligations"]).into_iter().map(Value::String).collect();
     v["phrases"] = Value::Array(lignes);
     Ok(crate::routes::phrase_en_tete(v, p))

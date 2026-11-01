@@ -218,7 +218,7 @@ fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
     let mut v = route_seule(racine, nom, charge)?;
     poser_les_pastilles(nom, &mut v);
     let n = |k: &str| v.get(k).and_then(Value::as_u64).unwrap_or(0);
-    let message = |l: Option<&Value>| l.map(|s| format!("{} : {}", valeur_en_texte(&s["debut"]), valeur_en_texte(&s["pastille"]["mots"]))).unwrap_or_default();
+    let message = |l: Option<&Value>| l.map(|s| format!("« {} » : {}", super::mot(&s["debut"]), super::mot(&s["depart"]["mots"]).to_lowercase())).unwrap_or_default();
     let phrase = match nom {
         "diagnostic-etat" | "diagnostic-envoyer" | "diagnostic-regler" => format!(
             "Signalement des dysfonctionnements : {} ; incidents gardés : {}, partis : {}, en attente : {}.",

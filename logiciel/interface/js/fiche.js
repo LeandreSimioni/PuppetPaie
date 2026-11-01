@@ -772,7 +772,7 @@ async function demanderFiche(bouton) {
     CLE_ACTIVE = null;
     FICHE_NEUVE = false;
     dessinerConfig();
-    dire(`Demande envoyée à ${r.adresse}. Sa fiche se créera à l'arrivée de sa réponse.`, "envoye");
+    dire(r.phrase, "envoye");
     fenetreCourrielsFictifs("fiche", repere);
   } catch (e) {
     rendre();
@@ -802,10 +802,7 @@ function brancherFichesAttendues() {
       const r = await api("fiches-relever", {});
       ETAT.configuration = await api("configuration", {}); peindreEtatGlobal();
       dessinerConfig();
-      dire(r.recues.length ? `${r.recues.length} fiche(s) reçue(s) : ${
-        r.recues.map((x) => x.nom).join(", ")}.`
-        : (r.incidents[0] || "Aucune réponse pour l'instant."),
-        undefined);
+      dire(r.phrase, undefined);
     } catch (e) { relever.disabled = false; dire(e.message, "erreur"); }
   };
   document.querySelectorAll("[data-oublier-fiche]").forEach((b) => {

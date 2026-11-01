@@ -623,9 +623,10 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) 
             }
         };
         let au_reel = format!(
-            "{} jour(s) travaille(s) d'absence ce mois-ci, {} h au reel sur {} h de travail du mois, retirees au quotient du \
-salaire du mois",
-            jours, heures, heures_du_mois
+            "{} d'absence ce mois-ci, {} h sur les {} h de travail du mois, retirées au prorata du salaire du mois",
+            if jours > 1 { format!("{} jours travaillés", jours) } else { format!("{} jour travaillé", jours) },
+            heures.to_string().replace('.', ","),
+            heures_du_mois.to_string().replace('.', ",")
         );
         let code = s(&imp, "motif");
         if est_un_arret(&imp) {
@@ -646,8 +647,7 @@ nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
             }
             lignes.extend(retenue(&rubrique));
             avert.push(info(format!(
-                "{} : arret de travail ({}) du {} au {}, saisi une fois : {} ; le bloc S21.G00.60 part dans la DSN de \
-chaque mois qu'il traverse.",
+                "{} : arrêt de travail ({}) du {} au {} : {} ; la DSN de chaque mois qu'il traverse le déclare.",
                 qui,
                 en_texte(g(&motif, "libelle")),
                 premier.jj_mm_aaaa(),
@@ -668,9 +668,8 @@ chaque mois qu'il traverse.",
             let libelle = en_texte(g(&motif, "libelle"));
             if vrai(g(&motif, "remunere")) {
                 avert.push(info(format!(
-                    "{} : suspension {} ({}) du {} au {} : un conge remunere, rien n'est retire du salaire ({}).",
+                    "{} : absence ({}) du {} au {} : un congé rémunéré, rien n'est retiré du salaire ({}).",
                     qui,
-                    code,
                     libelle,
                     premier.jj_mm_aaaa(),
                     dernier.jj_mm_aaaa(),
@@ -679,10 +678,8 @@ chaque mois qu'il traverse.",
             } else {
                 lignes.extend(retenue("absence_non_remuneree"));
                 avert.push(info(format!(
-                    "{} : suspension {} ({}) du {} au {}, saisie une fois : {} ; le bloc S21.G00.65 la declare entiere \
-dans la DSN de chaque mois qu'elle traverse.",
+                    "{} : absence ({}) du {} au {} : {} ; la DSN de chaque mois qu'elle traverse la déclare.",
                     qui,
-                    code,
                     libelle,
                     premier.jj_mm_aaaa(),
                     dernier.jj_mm_aaaa(),
@@ -723,7 +720,7 @@ fn maintien_possible(ctx: &Contexte, e: &Value, imp: &Value, mois: &str, remuner
     let anciennete = anciennete_mois(&depuis, &premier);
     if let Some(refus) = droit_au_maintien(Some(&nat), anciennete)? {
         let mut dit = sur_l_anciennete;
-        dit.push(avertir(format!("{} : pas de maintien de salaire pour cet arret -- {}", qui, refus)));
+        dit.push(avertir(format!("{} : pas de maintien de salaire pour cet arrêt : {}", qui, refus)));
         return Ok(dit);
     }
     let jours = dernier_jour(imp)?.moins(&premier) + 1;

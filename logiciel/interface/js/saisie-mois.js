@@ -492,7 +492,7 @@ async function ajusterBloc(div, champ) {
     // reste sous les yeux — et l'aperçu ne repeint pas une case où le curseur
     // est encore (on a tapé Entrée, rien n'a perdu le focus).
     champ.value = r.atteint;
-    note.innerHTML = phraseAjustement(r);
+    note.textContent = r.phrase;
   } catch (e) {
     note.innerHTML = `<span class="rouge">${echapper(e.message)}</span>`;
   }
@@ -511,20 +511,6 @@ function appliquerAjustement(div, r) {
   });
   if (e.salaire_mensuel != null) div.querySelector(".e-salaire").value = e.salaire_mensuel;
   rafraichirApercu();
-}
-
-/** Ce qui est ATTEINT, jamais ce qui a été demandé. Un taux se paie au
- *  centime : deux cachets ne tombent pas toujours sur 500,00 € pile, et la
- *  page qui afficherait le montant visé mentirait de deux centimes. */
-function phraseAjustement(r) {
-  const noms = { net: "Net salarié", brut: "Brut", cout: "Coût entreprise" };
-  const ecart = Number(r.ecart || 0);
-  return `${echapper(noms[r.cible] || r.cible)} visé ${echapper(euros(r.vise))}
-    → <b>${echapper(euros(r.atteint))}</b> `
-    + (ecart
-        ? `<span class="discret">(${ecart > 0 ? "+" : ""}${echapper(euros(r.ecart))} —
-           un taux se paie au centime)</span>`
-        : `<span class="discret">— au centime près</span>`);
 }
 
 /* Ce que porte le contrat, en toutes lettres : « 2 Cachets », « 1 Journée de

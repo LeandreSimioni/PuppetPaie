@@ -716,11 +716,19 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     // propres lignes : la nature des contrats repris, « Pour demarrer »).
     let n = |v: &Value| v.as_u64().unwrap_or(0);
     let b = &reponse["bulletins"];
-    let fiches = std::iter::once(&reponse["entreprise"])
-        .chain(reponse["salaries"].as_array().into_iter().flatten())
-        .chain(reponse["spectacles"].as_array().into_iter().flatten())
-        .filter(|f| matches!(f.get("etat").and_then(Value::as_str), Some("creee" | "completee")))
-        .count();
+    let ecrite = |f: &&Value| matches!(f.get("etat").and_then(Value::as_str), Some("creee" | "completee"));
+    let de = |k: &str| reponse[k].as_array().into_iter().flatten().filter(ecrite).count();
+    // Les fiches ecrites, par sorte : l'entreprise, les salaries, les spectacles.
+    let mut fiches: Vec<String> = Vec::new();
+    if ecrite(&&reponse["entreprise"]) {
+        fiches.push("l'entreprise".into());
+    }
+    if de("salaries") > 0 {
+        fiches.push(crate::routes::compte(de("salaries"), "salarié", "salariés"));
+    }
+    if de("spectacles") > 0 {
+        fiches.push(crate::routes::compte(de("spectacles"), "spectacle", "spectacles"));
+    }
     // UN SPECTACLE SANS TITRE : les pieces ne portent que son numero d'objet (`completer::A_COMPLETER`) ; le contrat imprime
     // le titre, la phrase le dit.
     let sans_titre = reponse["spectacles"]
@@ -730,10 +738,10 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
         .filter(|f| f["donnees"]["titre"].as_str().is_some_and(|t| t.eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)))
         .count();
     reponse["phrase"] = json!(format!(
-        "Repris : {} contrat(s), {} bulletin(s), {} fiche(s).{}",
-        n(&reponse["contrats_nouveaux"]) + n(&b["contrats_nouveaux"]),
-        n(&b["paies_nouvelles"]) + n(&b["paies_completees"]),
-        fiches,
+        "Repris : {}, {} ; fiches écrites : {}.{}",
+        crate::routes::compte((n(&reponse["contrats_nouveaux"]) + n(&b["contrats_nouveaux"])) as usize, "contrat", "contrats"),
+        crate::routes::compte((n(&b["paies_nouvelles"]) + n(&b["paies_completees"])) as usize, "bulletin", "bulletins"),
+        if fiches.is_empty() { "aucune".to_string() } else { fiches.join(", ") },
         if sans_titre > 0 { format!(" Titre à dire pour {} spectacle(s) : les pièces ne portent que le numéro d'objet (Configuration › Spectacles).", sans_titre) } else { String::new() }
     ));
     reponse["couleur"] = json!(crate::routes::couleur_de_l_etat("fait"));

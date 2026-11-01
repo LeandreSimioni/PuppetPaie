@@ -134,11 +134,11 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "montant", sens: "le montant voulu, en euros", avance: false },
         ],
         exemple: r#"{"mois":"2026-11","cartes":[{"engagement":null,"saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-21"]}]}}],"carte":0,"cible":"brut","montant":200}"#,
-        rend: "le taux qu'il faudrait ; rien n'est écrit",
+        rend: "phrase (ce qui est atteint, et le taux qu'il faudrait), vise, atteint, ecart, engagements (les taux qui changent), paies ; rien n'est écrit",
         refus: &[OPERATION, FORME, SAISIE_INCOMPLETE],
         acte: Acte::Lit,
         avance: false,
-        phrase: 0,
+        phrase: 200,
         ecran: ECRAN,
     },
 ];
@@ -180,7 +180,25 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             super::phrase_en_tete(v, p)
         }),
         "ajuster" => ajuster(ctx, charge).map(|v| {
-            let p = format!("Visé ({}) : {} € ; atteint : {} €.", valeur_en_texte(&v["cible"]), valeur_en_texte(&v["vise"]), valeur_en_texte(&v["atteint"]));
+            // Le taux qu'il faudrait : chaque ligne qui change, puis le salaire du mois s'il change.
+            let c = &v["engagements"][0];
+            let mut faut: Vec<String> = c["lignes"].as_array().into_iter().flatten().map(|l| {
+                let avant = if l["taux_avant"].is_null() { String::new() } else { format!(" au lieu de {}", super::euros(&l["taux_avant"])) };
+                format!("{} à {}{}", valeur_en_texte(&l["rubrique"]), super::euros(&l["taux"]), avant)
+            }).collect();
+            if !c["salaire_mensuel"].is_null() {
+                faut.push(format!("salaire du mois à {}", super::euros(&c["salaire_mensuel"])));
+            }
+            let avec = if faut.is_empty() { String::new() } else { format!(" ; {}", faut.join(", ")) };
+            let cible = match v["cible"].as_str() {
+                Some("net") => "Net salarié".to_string(),
+                Some("brut") => "Brut".to_string(),
+                Some("cout") => "Coût entreprise".to_string(),
+                _ => valeur_en_texte(&v["cible"]),
+            };
+            let ecart = v["ecart"].as_str().and_then(|e| e.parse::<f64>().ok()).unwrap_or(0.0);
+            let pres = if ecart == 0.0 { " au centime près".to_string() } else { format!(" ({}{} : un taux se paie au centime)", if ecart > 0.0 { "+" } else { "" }, super::euros(&v["ecart"])) };
+            let p = format!("{} visé {} → {}{}{}.", cible, super::euros(&v["vise"]), super::euros(&v["atteint"]), pres, avec);
             super::phrase_en_tete(v, p)
         }),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
@@ -1842,9 +1860,40 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             if let Some(p) = p.as_object_mut() {
                 p.insert("engagement".into(), id);
             }
+            dire_les_tarifs(ctx, texte_requis(charge, "mois")?, p)?;
         }
     }
     Ok(r)
+}
+
+/// LE MONTANT D'UN REPAS OU D'UNE NUITEE DIT D'OU IL VIENT : une ligne au tarif de la convention (`engagement::tarif_conventionnel`,
+/// le barème de l'année, couche de la convention de la compagnie) le dit dans les informations de sa paie.
+fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut Value) -> R<()> {
+    let Ok(jour) = Jour::lire(&format!("{}-01", mois)) else { return Ok(()) };
+    let mut dits: Vec<String> = Vec::new();
+    for l in p["remuneration"].as_array().into_iter().flatten() {
+        let code = valeur_en_texte(&l["rubrique"]);
+        let Some(tarif) = engagement::tarif_conventionnel(ctx, &code, &jour).map_err(Echec::from)? else { continue };
+        let taux = l["taux"].as_str().and_then(|t| t.parse::<f64>().ok()).or_else(|| l["taux"].as_f64());
+        if taux.is_some_and(|t| Some(t) == tarif.as_f64()) {
+            let dit = format!("{} à {}", valeur_en_texte(&l["designation"]).to_lowercase(), crate::routes::euros(&tarif));
+            if !dits.contains(&dit) {
+                dits.push(dit);
+            }
+        }
+    }
+    if dits.is_empty() {
+        return Ok(());
+    }
+    let idcc = ctx.entreprise.get("idcc").map(valeur_en_texte).unwrap_or_default();
+    let qui = format!("{} {}", crate::routes::mot(&p["salarie"]["nom"]), crate::routes::mot(&p["salarie"]["prenom"])).trim().to_string();
+    let quoi = dits.join(", ");
+    let quoi = if qui.is_empty() { quoi[..1].to_uppercase() + &quoi[1..] } else { format!("{} : {}", qui, quoi) };
+    let phrase = format!("{}, le tarif de la convention collective {}.", quoi, idcc);
+    if let Some(Value::Array(infos)) = p.get_mut("informations") {
+        infos.push(json!(phrase));
+    }
+    Ok(())
 }
 
 /// Les paies de l'apercu de `data`, une par engagement, dans son ordre.

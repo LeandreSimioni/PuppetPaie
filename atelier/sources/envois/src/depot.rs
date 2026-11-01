@@ -411,10 +411,10 @@ pub fn basculer_dpae(octets: &[u8], longueur: i64) -> Resultat<Vec<u8>> {
 pub fn identifiants(declarant: &Value, arobase: bool) -> Resultat<Vec<String>> {
     let mut soucis = Vec::new();
     let champ = |c: &str| declarant.get(c).filter(|v| vrai(v));
-    let manquants: Vec<&str> = ["siret", "nom", "prenom"].into_iter().filter(|c| champ(c).is_none()).collect();
+    let manquants: Vec<&str> = [("siret", "le SIRET"), ("nom", "le nom"), ("prenom", "le prénom")].into_iter().filter(|(c, _)| champ(c).is_none()).map(|(_, m)| m).collect();
     if !manquants.is_empty() {
         soucis.push(format!(
-            "Identite du declarant DPAE incomplete (manque : {}). Elle se saisit dans Configuration > Mots de passe, ligne Urssaf (DPAE) : le nom et le prenom du compte ouvert sur urssaf.fr pour la DPAE (cle `api_dpae` de config/entreprise.json).",
+            "Le compte des DPAE est incomplet (il manque : {}). Il se saisit dans Configuration › Mots de passe, ligne Urssaf (DPAE) : le nom et le prénom du compte ouvert sur urssaf.fr pour la DPAE.",
             manquants.join(", ")
         ));
     }

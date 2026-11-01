@@ -387,7 +387,8 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     let sig = if vrai(&sig) { sig } else { json!({}) };
     let ou = |a: &str, b: &str| sig.get(a).filter(|v| vrai(v)).or_else(|| sig.get(b)).filter(|v| vrai(v)).map(valeur_en_texte);
     let signe: String = [ou("prenom_affichage", "prenom"), ou("nom_affichage", "nom")].into_iter().flatten().collect::<Vec<_>>().join(" ");
-    let periode = format!("{} à {}", par_mois[0].libelle, par_mois[par_mois.len() - 1].libelle);
+    let (premier, dernier) = (&par_mois[0].libelle, &par_mois[par_mois.len() - 1].libelle);
+    let periode = if premier == dernier { premier.clone() } else { format!("{} à {}", premier, dernier) };
 
     let mut tableau = vec!["| mois | masse | cotisation |".to_string(), "|---|---:|---:|".to_string()];
     for a in &annees {

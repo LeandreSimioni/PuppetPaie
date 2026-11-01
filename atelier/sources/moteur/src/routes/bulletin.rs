@@ -69,7 +69,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "bulletin-modele-apercu" => {
             let modele = modele_demande(charge)?;
             let pdf = apercu_pdf(modele).map_err(refus)?;
-            Ok(json!({"phrase": format!("Bulletin d'exemple dans le modèle {} (PDF en base64, clé pdf).", modele.cle()), "modele": modele.cle(), "pdf": socle::base64::ecrire(&pdf)}))
+            Ok(json!({"phrase": format!("Bulletin d'exemple dans le modèle {}, en PDF.", modele.cle()), "modele": modele.cle(), "pdf": socle::base64::ecrire(&pdf)}))
         }
         "bulletin-modele-choisir" => choisir(ctx, charge).map(|v| {
             let p = format!("Modèle choisi : {}, pour les documents faits à partir d'aujourd'hui.", socle::valeur::valeur_en_texte(&v["choisi"]));

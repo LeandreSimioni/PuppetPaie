@@ -863,12 +863,12 @@ fn engagements_valides(ctx: &Contexte, mois: &str) -> (i64, i64) {
 }
 
 fn rappel_dsn(st: &Etat, mois: &str, modele: &Value) -> R<Echeance> {
-    let lib = socle::date::libelle_du_mois(mois, socle::date::Graphie::Minuscule).map_err(Refus::from)?;
+    let lib = socle::date::libelle_du_mois(mois, socle::date::Graphie::Accentuee).map_err(Refus::from)?;
     let mut r = Echeance::nouveau(
         DSN,
         format!("dsn:{}", mois),
-        format!("Il est temps d'envoyer la DSN de {}", lib),
-        format!("Avez-vous bien fini les paies de {} ?", lib),
+        format!("Il est temps d'envoyer la DSN {}", socle::texte::de(&lib)),
+        format!("Avez-vous bien fini les paies {} ?", socle::texte::de(&lib)),
         mois_suivant(mois),
     );
     r.mois = Some(mois.to_string());
