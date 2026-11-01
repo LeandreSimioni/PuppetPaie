@@ -1476,7 +1476,7 @@ function enteteSalarie(fiche) {
     </div>
     <div class="cout-annee" data-cote="salaries" data-cle="${echapper(fiche.cle)}"></div>
     <!-- SES IMPRÉVUS : ses arrêts et ses absences, passés et en
-         cours, ce qui en est parti, et la porte « Un imprévu… ». js/imprevus.js. -->
+         cours, ce qui en est parti, et la porte « Imprévu… ». js/imprevus.js. -->
     <div class="fiche-imprevus" id="fiche-imprevus"></div>
     <!-- CE QUE VOS CONTRATS FONT POUR SES DROITS : les conseils sur
          l'historique, quand l'option « conseils » est cochée. js/conseils.js. -->

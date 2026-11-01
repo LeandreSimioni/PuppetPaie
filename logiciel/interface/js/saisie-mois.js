@@ -258,7 +258,7 @@ async function calculerApercu(lu) {
       [...div.querySelectorAll(".rubrique")].filter(ligneEnvoyee).forEach((r, k) => {
         r.querySelector(".r-justificatif").classList.toggle("cachee", !designees.includes(k) && !r.querySelector(".r-justif").checked);
       });
-      // La rupture que le moteur propose pour cet engagement (`contrat.rupture`) : la porte « Un imprévu… » et la fin.
+      // La rupture que le moteur propose pour cet engagement (`contrat.rupture`) : la porte « Imprévu… » et la fin.
       div._rupture = (p && p.contrat && p.contrat.rupture) || null;
       if (div.querySelector(".e-nature") && div.querySelector(".e-rupture")) majRupture(div);
       peindreCarte(div);

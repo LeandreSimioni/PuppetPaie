@@ -41,6 +41,43 @@ fn plain(m: impl Into<String>) -> Echec {
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Lecture;
 
+/// CE QUE LA CARTE D'UN ENGAGEMENT DIT DE SES CASES (`aides` de la route `etat`) : l'aide de chaque case, qu'elle montre
+/// au survol ou sous la case ; la page n'en ecrit aucune. Les articles cites sont ceux du code du travail, sauf mention.
+const AIDES: &[(&str, &str)] = &[
+    ("heures_par_mois", "La durée du travail du contrat, en heures par mois (S21.G00.40.013)."),
+    ("net", "Ce que le salarié touche sur son compte."),
+    ("cout", "Le brut et les cotisations patronales : ce que l'employeur sort."),
+    ("viser", "Écrire dans une case : les taux se recalculent pour y tomber."),
+    ("metier", "Le métier de ce contrat, s'il diffère de la fiche."),
+    ("recours", "Pourquoi ce CDD est conclu : la DSN le déclare (motif de recours)."),
+    ("periode_essai_jours", "La durée de la période d'essai que le contrat prévoit ; vide : aucune."),
+    ("personne_remplacee", "Le contrat d'un remplacement nomme la personne remplacée et sa qualification (L. 1242-12, 1°)."),
+    ("repartition_horaire", "À temps partiel, le contrat dit la répartition des heures entre les jours de la semaine ou les semaines du mois (L. 3123-6) : par exemple, lundi, mardi et jeudi, de 9 h à 17 h."),
+    ("clauses_particulieres", "À la place des clauses particulières de la compagnie (Configuration › Modèles de contrat) ; vide : celles de la compagnie."),
+    ("engagement_licenciement", "La convocation à l'entretien préalable (L1232-2 ; L1332-2 pour une faute)."),
+    ("signature_convention", "La date de signature de la convention de rupture (L1237-13)."),
+    ("dernier_paye", "Le dernier jour payé au salaire habituel : la fin du contrat, sauf préavis non effectué."),
+    ("en_droit_a_la_retraite", "CGI, art. 80 duodecies, 6° : l'indemnité n'est imposable que si le salarié est en droit de bénéficier d'une pension de retraite d'un régime obligatoire."),
+    ("preavis_non_effectue", "L1234-5 : le préavis dont l'employeur dispense le salarié est payé en indemnité compensatrice."),
+    ("preavis_mois", "La durée du préavis, en mois ; vide : celle de la loi et de la convention."),
+    ("precarite_due", "L1243-10 : deux cas ne se lisent pas dans le contrat, l'étudiant pendant ses vacances et le salarié qui refuse un CDI ; dire lequel."),
+    ("date_paiement", "La date de paiement propre à ce contrat (sinon celle du mois)."),
+    ("lieu", "Le lieu que le contrat imprime quand une ligne de paie n'en dit pas."),
+    ("taux_cachet", "Le taux du cachet de ce contrat quand aucune ligne de cachet ne le dit."),
+    ("jours", "Les jours travaillés que la DSN déclare (sinon les jours cochés)."),
+    ("quotite_reference", "La durée de référence de l'entreprise pour ce contrat (S21.G00.40.012)."),
+    ("indemnite_licenciement", "Le montant retenu, entre l'indemnité légale et la conventionnelle."),
+    ("faute_grave", "Une fin de période d'essai pour faute grave : pas d'indemnité du délai de prévenance (L1221-25)."),
+    ("bornes_au_mois", "Un contrat payé au mois n'a pas de jour coché : ses bornes se disent ici. La date de fin d'un CDD est celle qui déclenche le signalement de fin de contrat (nature 07) : son délai et sa date butoir se lisent sous « Fin de contrat »."),
+    ("bornes_au_calendrier", "Le contrat va du premier au dernier jour coché, planning compris, quand on a coché des jours dans les mois suivants depuis le calendrier d'une ligne. Ses cachets suivants se paient dans le mois suivant (le mois venu, le contrat y est repris, ses jours cochés) ; la DPAE et le contrat imprimé ne partent qu'avec ce mois-ci, le certificat Congés Spectacles à la fin du contrat."),
+    ("fin_signalee", "Ce que le signalement de fin de contrat (nature 07) déclarera."),
+    ("fin_derogatoire", "Elle part dans la DSN du mois, par le circuit dérogatoire : rien à signaler."),
+    ("numero_contrat", "Attribué à la production, il ne change plus."),
+    ("debut_au_mois", "Sa date de début, celle du contrat signé."),
+    ("bornes_jouees", "Du premier au dernier jour joué."),
+    ("plusieurs_mois", "Les cachets des mois suivants se paieront dans le fichier de leur mois (« reprendre un contrat en cours » les retrouvera cochés) ; ce mois-ci partent le contrat et la DPAE pour le contrat entier."),
+];
+
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
@@ -1067,6 +1104,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "natures": natures(ctx)?,
         "nature_defaut": natures::defaut().map_err(plain)?,
         "types_preavis": types_preavis,
+        "aides": AIDES.iter().map(|(k, a)| (k.to_string(), json!(a))).collect::<Map<String, Value>>(),
         "transaction": transaction,
         // Les niveaux de complementaire sante, pour la fiche d'un permanent.
         "niveaux_sante": niveaux_sante(ctx)?,

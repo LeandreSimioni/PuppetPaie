@@ -11,7 +11,7 @@
 
    LA FORME, EN TROIS ENDROITS, ET PAS UN DE PLUS :
 
-   - LA PORTE est sur la carte de l'engagement : « Un imprévu… » (et « … »
+   - LA PORTE est sur la carte de l'engagement : « Imprévu… » (et « … »
      sur un engagement validé). Elle propose un arrêt de travail, une absence
      (congé parental, sans solde, sabbatique… : une suspension du contrat,
      bloc 65), et, quand la carte sait déjà dire une fin, la rupture avant
@@ -287,7 +287,7 @@ async function allerALaCase(f, champ) {
 /* --------------------------------------------------------- LA PORTE
    Sur la carte d'un engagement, quand elle porte UN salarié (plusieurs
    cochés, c'est une saisie en cours : on ne sait pas encore de qui on
-   parle). « Un imprévu… » au pied d'une carte ouverte, « … » sur un engagement
+   parle). « Imprévu… » au pied d'une carte ouverte, « … » sur un engagement
    validé. */
 function majPorteImprevu(div) {
   const b = div.querySelector(".e-imprevu-btn");
@@ -1047,7 +1047,7 @@ async function dessinerImprevusDuSalarie(cle) {
   cible.innerHTML = `
     <div class="fiche-imprevus-tete">
       ${liste.length ? `<h3>Ses imprévus</h3>` : ""}
-      <button type="button" class="lien" id="fiche-imprevu-porte">Un imprévu…</button>
+      <button type="button" class="lien" id="fiche-imprevu-porte">Imprévu…</button>
     </div>
     ${liste.map((i, k) => `<div class="imprevu" data-imprevu="${k}">
         <span class="imprevu-quoi"><b>${echapper(quoiDeLImprevu(i))}</b>

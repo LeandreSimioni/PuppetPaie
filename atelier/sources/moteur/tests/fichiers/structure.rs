@@ -444,7 +444,7 @@ fn un_seul_endroit_ecrit_un_fichier_d_engagements() {
 /// champ) : un texte qu'elle montre a au plus `MOTS_D_INTERFACE` mots et, s'il en a plusieurs, aucune ponctuation de
 /// phrase (`.` `:` `?` `!` `…`). Un texte est ce qu'un litteral montre entre deux balises (un gabarit `${…}` ne le coupe
 /// pas : une phrase composee autour d'une valeur reste une phrase), ou un attribut qui se lit (`title`, `placeholder`,
-/// `aria-label`, `alt`) ; un mot porte une lettre et rien d'un code ; un texte qui porte `[]{}=<>` est du code.
+/// `aria-label`, `alt`) ; un mot porte une lettre et rien d'un code (ni le point d'un sélecteur) ; un texte qui porte `[]{}=<>` est du code.
 #[test]
 fn la_page_n_ecrit_aucune_phrase() {
     let depot = espace().join("../..");
@@ -483,7 +483,11 @@ fn phrase(texte: &str) -> Option<String> {
     if t.chars().any(|c| "[]{}=<>".contains(c)) {
         return None;
     }
-    let mots: Vec<&str> = t.split_whitespace().filter(|m| m.chars().any(char::is_alphabetic) && !m.chars().any(|c| "/\\_$#;|&*".contains(c))).collect();
+    // Un mot porte une lettre, et rien d'un code : ni `/\_$#;|&*`, ni le point d'un selecteur en tete.
+    let mots: Vec<&str> = t
+        .split_whitespace()
+        .filter(|m| m.chars().any(char::is_alphabetic) && !m.chars().any(|c| "/\\_$#;|&*".contains(c)) && !m.starts_with('.'))
+        .collect();
     let c: Vec<char> = t.chars().collect();
     let ponctue = (1..c.len()).any(|i| {
         ".:?!…".contains(c[i]) && c.get(i + 1).is_none_or(|y| y.is_whitespace()) && (c[i - 1].is_alphanumeric() || "»)".contains(c[i - 1]) || (c[i - 1] == ' ' && c[i] != '.'))

@@ -160,7 +160,18 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "contrats-en-cours" => contrats_en_cours_route(ctx, charge).map(|v| {
+        "contrats-en-cours" => contrats_en_cours_route(ctx, charge).map(|mut v| {
+            // Ce que l'ecran dit en posant les contrats qui ne sont pas encore repris : qui, et s'il reste des jours a poser.
+            let restants: Vec<&Value> = v["contrats"].as_array().into_iter().flatten().filter(|c| !socle::fichiers::vrai(&c["deja_repris"])).collect();
+            let au_mois = restants.iter().all(|c| droit::natures::nature(c["engagement"]["nature"].as_str()).is_ok_and(|n| n.mensuelle()));
+            let de_mois = socle::texte::de(&engagement::libelle_mois(&valeur_en_texte(&charge["mois"])));
+            let noms: Vec<String> = restants.iter().map(|c| valeur_en_texte(&c["nom"])).collect();
+            let reprise = match noms.len() {
+                0 => Value::Null,
+                1 => json!(format!("Contrat en cours repris : {}{}.", noms[0], if au_mois { String::new() } else { format!(" — poser ses jours {}", de_mois) })),
+                n => json!(format!("{} contrats en cours repris ({}){}.", n, noms.join(", "), if au_mois { String::new() } else { format!(" — poser leurs jours {}", de_mois) })),
+            };
+            v["reprise"] = reprise;
             let p = format!("Contrats d'un mois passé qui courent encore ce mois : {}.", super::nombre(&v["contrats"]));
             super::phrase_en_tete(v, p)
         }),

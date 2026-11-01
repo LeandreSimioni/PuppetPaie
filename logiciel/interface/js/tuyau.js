@@ -519,6 +519,9 @@ const pastilleDeLEtat = (p) => p && p.mots
 /* Un encart de la même couleur : `.encart` a ses propres classes. */
 const ENCART_DE_COULEUR = { vert: "bien", orange: "attention", rouge: "erreur", gris: "info" };
 
+/* L'aide d'une case, telle que le moteur la dit (`aides` de la route `etat`), échappée pour un attribut. */
+const aideDe = (k) => echapper(((ETAT && ETAT.aides) || {})[k] || "");
+
 /* Une phrase du moteur qui porte un lien (le texte d'une convention) :
  * echappee d'abord, puis l'adresse https devient cliquable. Le point
  * qui clot la phrase reste dehors. */

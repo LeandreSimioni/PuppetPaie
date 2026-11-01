@@ -98,7 +98,7 @@ function ligneRubrique(l = {}, nat) {
   div.innerHTML = `
     <!-- LES JOURS D'ABORD : ce sont eux qui situent l'engagement et
          qui comptent les cachets. -->
-    <button type="button" class="r-jours-btn" title="cocher les jours dans le calendrier">—</button>
+    <button type="button" class="r-jours-btn" title="cocher les jours">—</button>
     <input class="r-quantite" type="number" min="0" step="0.5" placeholder="qté"
            value="${l.quantite ?? ""}">
     <select class="r-code"></select>
@@ -112,7 +112,7 @@ function ligneRubrique(l = {}, nat) {
          autres : S21.G00.54.001) — seulement sur la rubrique qui le demande,
          et ses valeurs viennent du moteur (« genres »). Vide : celui de la
          rubrique, qui n'est écrit nulle part. -->
-    <select class="r-genre cachee" title="genre de l'avantage en nature (bloc 54)"></select>
+    <select class="r-genre cachee" title="genre de l'avantage"></select>
     <!-- LE JUSTIFICATIF D'UNE NUITÉE au-delà de la limite du jour : la case
          ne se montre que sur la ligne que le moteur désigne
          (\`justificatifs\` de l'aperçu), ou déjà cochée. -->
@@ -321,7 +321,7 @@ function ouvrirCalendrier(ligne, moisForce) {
   // `moisForce` : la correction d'un mois deja depose se coche dans SON mois,
   // pas dans celui qu'affiche l'ecran de paie.
   const mois = moisForce || document.getElementById("mois").value;
-  if (!mois) { dire("Choisir le mois d'abord."); return; }
+  if (!mois) return;
   const bloc = ligne.closest(".engagement");
   const enCours = bloc && bloc.classList.contains("en-cours");
   const fin = bloc ? bloc.querySelector(".e-fin").value : "";
@@ -371,7 +371,7 @@ function ouvrirCalendrier(ligne, moisForce) {
       ? `<div class="c-passes discret">…</div>`
       : `<div class="c-passes">${contrats.length
           ? contrats.map((c) => ligneContratPasse(c, !salarie)).join("")
-          : `<span class="discret">${salarie ? "aucun contrat déclaré ce mois-là" : "cocher un salarié pour voir ses contrats"}</span>`}
+          : `<span class="discret">${salarie ? "aucun contrat déclaré" : "aucun salarié coché"}</span>`}
         </div>`);
     cal.innerHTML = `
       <div class="c-tete">
@@ -386,20 +386,17 @@ function ouvrirCalendrier(ligne, moisForce) {
       ${listePasses}
       ${attente ? `
         <div class="c-avert">
-          <b>Vous êtes en train de créer un contrat sur plusieurs mois</b>
-          — du ${echapper(jjmmaaaa(debutDuBloc(bloc) || mois + "-01"))} au
-          ${echapper(jjmmaaaa(attente))}. Les cachets ${echapper(deMois(attente.slice(0, 7)))}
-          se paieront dans le fichier de ce mois-là (« reprendre un contrat en
-          cours » les retrouvera cochés) ; ce mois-ci partent le contrat et la
-          DPAE pour le contrat entier. Valider ?
+          <b>Contrat sur plusieurs mois</b>
+          du ${echapper(jjmmaaaa(debutDuBloc(bloc) || mois + "-01"))} au ${echapper(jjmmaaaa(attente))}
+          <p>${echapper((ETAT.aides || {}).plusieurs_mois)}</p>
           <div class="c-actions">
             <button type="button" class="secondaire c-annuler">Annuler</button>
             <button type="button" class="primaire c-valider">Valider</button>
           </div>
         </div>` : `
         <div class="c-pied">
-          <span class="discret">${passe ? "mois passé : ce qui a été déclaré, en lecture seule"
-            : `${ici ? "jours joués ce mois-ci" : "planning : payé dans son mois"}
+          <span class="discret">${passe ? "mois passé, lecture seule"
+            : `${ici ? "jours joués ce mois-ci" : "planning du mois"}
             · ${nJoues} joué${nJoues > 1 ? "s" : ""}${nPlan ? `, ${nPlan} prévu${nPlan > 1 ? "s" : ""}` : ""}`}</span>
           <button type="button" class="secondaire c-ok">OK</button>
         </div>`}`;
@@ -543,27 +540,20 @@ function tauxParDefaut(code) {
  * chacun n'apparaît dans « Plus d'options » que s'il a une valeur — et alors
  * il se voit, se modifie, se vide, et s'écrit depuis là, comme le reste. */
 const CHAMPS_RARES = [
-  { cle: "date_paiement", libelle: "Payé le", type: "date",
-    titre: "la date de paiement propre à ce contrat (sinon celle du mois)" },
-  { cle: "lieu", libelle: "Lieu du contrat", type: "text",
-    titre: "le lieu que le contrat imprime quand une ligne de paie n'en dit pas" },
-  { cle: "taux_cachet", libelle: "Cachet du contrat", type: "number",
-    titre: "le taux du cachet de ce contrat quand aucune ligne de cachet ne le dit" },
-  { cle: "jours", libelle: "Jours travaillés déclarés", type: "number",
-    titre: "les jours travaillés que la DSN déclare (sinon les jours cochés)" },
+  { cle: "date_paiement", libelle: "Payé le", type: "date" },
+  { cle: "lieu", libelle: "Lieu du contrat", type: "text" },
+  { cle: "taux_cachet", libelle: "Cachet du contrat", type: "number" },
+  { cle: "jours", libelle: "Jours travaillés déclarés", type: "number" },
   { cle: "emploi", libelle: "Emploi déclaré", type: "text" },
   { cle: "pcs_ese", libelle: "PCS-ESE", type: "text" },
   { cle: "code_emploi_ft", libelle: "Code emploi France Travail", type: "text" },
   { cle: "statut", libelle: "Statut", type: "text" },
   { cle: "statut_conventionnel", libelle: "Statut conventionnel", type: "text" },
   { cle: "statut_categoriel_rc", libelle: "Statut catégoriel (retraite complémentaire)", type: "text" },
-  { cle: "quotite_reference", libelle: "Quotité de référence", type: "number",
-    titre: "la durée de référence de l'entreprise pour ce contrat (S21.G00.40.012)" },
-  { cle: "modalite_temps_travail", libelle: "Modalité du temps de travail", type: "text" },
-  { cle: "indemnite_licenciement", libelle: "Indemnité de licenciement", type: "number",
-    titre: "le montant retenu, entre l'indemnité légale et la conventionnelle" },
-  { cle: "faute_grave", libelle: "faute grave", type: "checkbox",
-    titre: "une fin de période d'essai pour faute grave : pas d'indemnité du délai de prévenance (L1221-25)" },
+  { cle: "quotite_reference", libelle: "Quotité de référence", type: "number" },
+  { cle: "modalite_temps_travail", libelle: "Modalité temps de travail", type: "text" },
+  { cle: "indemnite_licenciement", libelle: "Indemnité de licenciement", type: "number" },
+  { cle: "faute_grave", libelle: "faute grave", type: "checkbox" },
 ];
 
 const aUneValeur = (v) => v !== undefined && v !== null && v !== "" && v !== false;
@@ -572,9 +562,9 @@ const aUneValeur = (v) => v !== undefined && v !== null && v !== "" && v !== fal
 function poserRares(div, e) {
   const cible = div.querySelector(".e-rares");
   cible.innerHTML = CHAMPS_RARES.filter((c) => aUneValeur(e[c.cle])).map((c) => c.type === "checkbox"
-    ? `<label class="coche" title="${echapper(c.titre || "")}"><input type="checkbox" class="e-rare"
+    ? `<label class="coche" title="${aideDe(c.cle)}"><input type="checkbox" class="e-rare"
          data-cle="${c.cle}" data-type="checkbox" checked> ${echapper(c.libelle)}</label>`
-    : `<label title="${echapper(c.titre || "")}">${echapper(c.libelle)}
+    : `<label title="${aideDe(c.cle)}">${echapper(c.libelle)}
          <input class="e-rare" data-cle="${c.cle}" data-type="${c.type}" type="${c.type}"
            ${c.type === "number" ? `step="any"` : ""} value="${echapper(String(e[c.cle]))}"></label>`).join("");
   cible.hidden = !cible.children.length;
@@ -646,7 +636,7 @@ function lieuxDesJours(l) {
   const propres = [...(l.dates || []), ...(l.planning || [])]
     .filter((x) => x && typeof x === "object" && x.lieu);
   if (!propres.length) return "";
-  return `<span class="discret">lieu propre à un jour :</span> ` + propres.map((x) =>
+  return `<span class="discret">lieu propre</span> ` + propres.map((x) =>
     `<label class="r-lieu-jour-l">le ${echapper(jjmmaaaa(x.jour).slice(0, 5))}
        <input class="r-lieu-jour" data-iso="${echapper(x.jour)}" value="${echapper(x.lieu)}"></label>`).join("");
 }
@@ -832,7 +822,7 @@ function construireCarte(div, e) {
          prorata d'un mois incomplet, les deux calculs de l'indemnité de
          congés, la retenue et l'indemnité qui la couvre. Un arrêt ou une
          suspension n'est pas un fait du mois : c'est un IMPRÉVU, saisi une
-         fois depuis la carte (« Un imprévu… », js/imprevus.js), dont le moteur tire la ligne de
+         fois depuis la carte (« Imprévu… », js/imprevus.js), dont le moteur tire la ligne de
          chaque mois qu'il traverse. Taper les lignes à la main, ce serait refaire à la main
          ce que la loi impose de calculer. -->
     <div class="e-permanent" hidden>
@@ -840,14 +830,14 @@ function construireCarte(div, e) {
         <label>Salaire mensuel brut
           <input type="number" step="0.01" min="0" class="e-salaire"
                  placeholder="celui du contrat signé"></label>
-        <label title="la durée du travail du contrat, en heures par mois (S21.G00.40.013)">Heures par mois
+        <label title="${aideDe("heures_par_mois")}">Heures par mois
           <input type="number" step="0.01" min="0" class="e-quotite">
           <button type="button" class="lien e-temps-plein" hidden></button></label>
       </div>
       <div class="e-faits">
         <div class="e-fait-groupe">
           <div class="e-fait-tete">Congés pris
-            <span class="discret">— en jours ouvrables, le compteur suit</span></div>
+            <span class="discret">— en jours ouvrables</span></div>
           <div class="e-conges"></div>
           <button class="ajouter-fait discret" data-quoi="conges">+ des congés</button>
         </div>
@@ -897,17 +887,16 @@ function construireCarte(div, e) {
       <!-- LA PORTE DES IMPRÉVUS : un arrêt de travail, une
            absence, une rupture avant terme, pour le salarié de cette carte.
            Discrète : les imprévus sont rares. js/imprevus.js. -->
-      <button type="button" class="lien e-imprevu-btn" hidden>Un imprévu…</button>
+      <button type="button" class="lien e-imprevu-btn" hidden>Imprévu…</button>
     </div>
     <div class="e-chiffres" hidden>
-      <label title="ce que le salarié touche sur son compte">Net salarié
+      <label title="${aideDe("net")}">Net salarié
         <input type="number" step="0.01" min="0" class="e-vise" data-cible="net"></label>
       <label title="le brut du bulletin">Brut
         <input type="number" step="0.01" min="0" class="e-vise" data-cible="brut"></label>
-      <label title="brut + cotisations patronales : ce que l'employeur sort">Coût entreprise
+      <label title="${aideDe("cout")}">Coût entreprise
         <input type="number" step="0.01" min="0" class="e-vise" data-cible="cout"></label>
-      <span class="e-chiffres-note discret">Écrire dans une case : les taux se
-        recalculent pour y tomber.</span>
+      <span class="e-chiffres-note discret">${aideDe("viser")}</span>
     </div>
     <div class="e-options" hidden>
       <div class="e-options-ligne">
@@ -915,7 +904,7 @@ function construireCarte(div, e) {
            Choisi : le moteur pose d'un coup code emploi, PCS, libellé, statut
            et classement DSN (emplois.rs). La case « cadre » suit le
            défaut du catalogue et se décoche. -->
-      <label class="e-metier-bloc" title="le métier de ce contrat, s'il diffère de la fiche">Métier
+      <label class="e-metier-bloc" title="${aideDe("metier")}">Métier
         <select class="e-metier"></select></label>
       <label class="coche e-cadre-bloc" title="cadre pour la retraite complémentaire (DSN 40.003 = 01)">
         <input type="checkbox" class="e-cadre"> cadre</label>
@@ -938,7 +927,7 @@ function construireCarte(div, e) {
            au regard de L1242-2, et la plate-forme le contrôle (SIG-11). Un
            CDD d'usage n'apparaît pas dans cette liste et c'est délibéré — il
            se saisit comme un CDD d'usage, avec tout ce qui va avec. -->
-      <label class="e-recours-bloc" hidden title="pourquoi ce CDD est conclu : la DSN le déclare (motif de recours)">Motif du CDD
+      <label class="e-recours-bloc" hidden title="${aideDe("recours")}">Motif du CDD
         <select class="e-recours"></select></label>
       <!-- CE QUE LE CONTRAT ÉCRIT DE CET ENGAGEMENT DIT EN PLUS (le modèle
            le remplit avec le reste). Le moteur dit quelles cases cet
@@ -947,14 +936,14 @@ function construireCarte(div, e) {
            contrat écrit, la personne remplacée d'un remplacement, la
            répartition des horaires d'un temps partiel. -->
       <div class="e-ecrit">
-        <label data-ecrit="periode_essai_jours" hidden title="la durée de la période d'essai que le contrat prévoit ; vide : aucune">Période d'essai (jours)
+        <label data-ecrit="periode_essai_jours" hidden title="${aideDe("periode_essai_jours")}">Période d'essai (jours)
           <input type="number" min="0" step="1" class="e-ecrit-champ" data-cle="periode_essai_jours" data-type="number"></label>
-        <label data-ecrit="personne_remplacee" hidden title="le contrat d'un remplacement nomme la personne remplacée et sa qualification (L. 1242-12, 1°)">Personne remplacée
+        <label data-ecrit="personne_remplacee" hidden title="${aideDe("personne_remplacee")}">Personne remplacée
           <input type="text" class="e-ecrit-champ" data-cle="personne_remplacee" placeholder="nom, qualification"></label>
-        <label data-ecrit="repartition_horaire" hidden title="à temps partiel, le contrat dit la répartition des heures entre les jours de la semaine ou les semaines du mois (L. 3123-6)">Répartition des horaires
-          <input type="text" class="e-ecrit-champ" data-cle="repartition_horaire" placeholder="ex. lundi, mardi et jeudi, de 9 h à 17 h"></label>
-        <label data-ecrit="clauses_particulieres" hidden title="à la place des clauses particulières de la compagnie (Configuration › Modèles de contrat)">Clauses particulières de ce contrat
-          <textarea rows="2" class="e-ecrit-champ" data-cle="clauses_particulieres" placeholder="vide : celles de la compagnie"></textarea></label>
+        <label data-ecrit="repartition_horaire" hidden title="${aideDe("repartition_horaire")}">Répartition des horaires
+          <input type="text" class="e-ecrit-champ" data-cle="repartition_horaire"></label>
+        <label data-ecrit="clauses_particulieres" hidden title="${aideDe("clauses_particulieres")}">Clauses particulières
+          <textarea rows="2" class="e-ecrit-champ" data-cle="clauses_particulieres"></textarea></label>
       </div>
       <!-- LA FIN D'UN CONTRAT QUI SE SIGNALE. Trois faits que
            le moteur ne devine pas, et il a raison de ne pas les deviner :
@@ -971,8 +960,8 @@ function construireCarte(div, e) {
            reste du bloc paraît (fiche 2062 ; le moteur le dit motif par
            motif, signalement_par_motif). -->
       <div class="e-rupture" hidden>
-        <div class="e-fait-tete">La fin de ce contrat
-          <span class="discret e-rupture-dit">— ce que le signalement (nature 07) déclarera</span></div>
+        <div class="e-fait-tete">Fin du contrat
+          <span class="discret e-rupture-dit"></span></div>
         <label class="e-motif-l">Motif de la rupture
           <select class="e-motif-rupture"></select></label>
         <p class="discret e-motif-dit" hidden></p>
@@ -981,12 +970,12 @@ function construireCarte(div, e) {
              l'un décide, engagée pour un licenciement, signée pour une
              rupture conventionnelle, la transaction après un litige. -->
         <label data-fait="engagement_licenciement" hidden
-               title="la convocation à l'entretien préalable (L1232-2 ; L1332-2 pour une faute)">Procédure engagée le
+               title="${aideDe("engagement_licenciement")}">Procédure engagée le
           <input type="date" class="e-engagement-licenciement"></label>
         <label data-fait="notification_rupture" hidden>Notifiée le
           <input type="date" class="e-notification"></label>
         <label data-fait="signature_convention" hidden
-               title="la date de signature de la convention de rupture (L1237-13)">Convention signée le
+               title="${aideDe("signature_convention")}">Convention signée le
           <input type="date" class="e-signature-convention"></label>
         <label>Préavis
           <select class="e-preavis-type"></select></label>
@@ -996,26 +985,26 @@ function construireCarte(div, e) {
           <input type="date" class="e-preavis-fin"></label>
         <label data-fait="transaction" hidden>Transaction
           <select class="e-transaction"></select></label>
-        <label title="le dernier jour payé au salaire habituel — la fin du contrat, sauf préavis non effectué">Dernier jour payé
+        <label title="${aideDe("dernier_paye")}">Dernier jour payé
           <input type="date" class="e-dernier-paye" placeholder="la fin du contrat"></label>
         <!-- LES FAITS DU MOTIF : le moteur dit, motif par motif,
              ce qu'il doit savoir (permanents.faits_de_rupture) ; la page ne
              montre que ceux-là. Sans eux, une rupture conventionnelle était
              refusée sans qu'on puisse répondre d'ici. -->
         <label data-fait="en_droit_a_la_retraite" hidden
-               title="CGI 80 duodecies 6° : l'indemnité n'est imposable que si le salarié est en droit de bénéficier d'une pension de retraite d'un régime obligatoire">En droit à une pension de retraite
+               title="${aideDe("en_droit_a_la_retraite")}">Droit à la retraite
           <select class="e-en-droit"><option value="">— à dire —</option>
             <option value="non">non</option><option value="oui">oui</option></select></label>
         <label data-fait="preavis_non_effectue" hidden class="case"
-               title="L1234-5 : le préavis dont l'employeur dispense le salarié est payé en indemnité compensatrice">
-          <input type="checkbox" class="e-preavis-non-effectue"> préavis non effectué, payé en indemnité</label>
-        <label data-fait="preavis_non_effectue" hidden class="e-preavis-mois-l">durée du préavis, en mois
-          <input type="number" class="e-preavis-mois" min="0" step="0.5" placeholder="celle de la loi et de la convention"></label>
+               title="${aideDe("preavis_non_effectue")}">
+          <input type="checkbox" class="e-preavis-non-effectue"> préavis non effectué</label>
+        <label data-fait="preavis_non_effectue" hidden class="e-preavis-mois-l" title="${aideDe("preavis_mois")}">préavis (mois)
+          <input type="number" class="e-preavis-mois" min="0" step="0.5"></label>
         <label data-fait="precarite_due" hidden class="case"
-               title="L1243-10 : deux cas ne se lisent pas dans le contrat — l'étudiant pendant ses vacances, le salarié qui refuse un CDI">
-          <input type="checkbox" class="e-precarite-ecartee"> pas d'indemnité de fin de contrat</label>
+               title="${aideDe("precarite_due")}">
+          <input type="checkbox" class="e-precarite-ecartee"> sans indemnité de précarité</label>
         <label data-fait="precarite_due" hidden class="e-precarite-pourquoi-l">pourquoi
-          <input class="e-precarite-pourquoi" placeholder="refus d'un CDI, emploi de vacances…"></label>
+          <input class="e-precarite-pourquoi"></label>
       </div>
       <!-- LES BORNES NE SE SAISISSENT PLUS POUR UN CONTRAT D'USAGE
           . L'éditeur : « il y a marqué date de début et fin de
@@ -1267,16 +1256,7 @@ function majNature(div) {
   if (nat.mensuelle) {
     majContrat(div);
   }
-  div.querySelector(".e-contrat-note").textContent = bornes
-    ? "Un contrat payé au mois n'a pas de jour coché : ses bornes se disent ici."
-      + " La date de fin d'un CDD est celle qui déclenche le signalement de"
-      + " fin de contrat (nature 07) : son délai et sa date butoir se lisent sous « Fin de contrat »."
-    : "Le contrat va du premier au dernier jour coché — planning compris,"
-      + " quand on a coché des jours dans les mois suivants depuis le"
-      + " calendrier d'une ligne. Ses cachets suivants se paient dans le mois"
-      + " suivant (le mois venu, le contrat y est repris, ses jours cochés) ;"
-      + " la DPAE et le contrat imprimé ne partent qu'avec ce mois-ci, le"
-      + " certificat Congés Spectacles à la fin du contrat.";
+  div.querySelector(".e-contrat-note").textContent = (ETAT.aides || {})[bornes ? "bornes_au_mois" : "bornes_au_calendrier"] || "";
   // LA DURÉE DU CONTRAT se tape, elle ne se devine pas : la durée de
   // référence d'un temps plein que le moteur donne (`quotite_defaut`) se
   // propose d'un clic, jamais en grisé dans la case, où elle passerait pour
@@ -1285,7 +1265,7 @@ function majNature(div) {
   const pleine = div.querySelector(".e-temps-plein");
   pleine.hidden = nat.quotite_defaut == null;
   if (nat.quotite_defaut != null) {
-    pleine.textContent = `temps plein : ${String(nat.quotite_defaut).replace(".", ",")} h`;
+    pleine.textContent = `temps plein ${String(nat.quotite_defaut).replace(".", ",")} h`;
     pleine.onclick = (ev) => {
       ev.preventDefault();
       quotite.value = nat.quotite_defaut;
@@ -1343,7 +1323,7 @@ function majRupture(div) {
   const sel = div.querySelector(".e-motif-rupture");
   const voulu = sel.value || div.dataset.motifRupture || "";
   const vide = !nat.signalement_fctu && nat.motif_rupture_defaut
-    ? `— ${echapper(nat.motif_rupture_defaut)} : à son terme —` : "— à choisir —";
+    ? `— ${echapper(nat.motif_rupture_defaut)}, à son terme —` : "— à choisir —";
   poserListe(sel, "rupture:" + nat.cle, [nat.motifs_rupture, vide], () => `<option value="">${vide}</option>`
     + (nat.motifs_rupture || []).map(
       (m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${echapper(m.libelle)}</option>`).join(""));
@@ -1373,9 +1353,7 @@ function majRupture(div) {
   // Une fin qui ne se signale pas (le CDDU à son terme) ne montre que son
   // motif : le reste ne partirait nulle part.
   const signale = finSeSignale(nat, sel.value);
-  div.querySelector(".e-rupture-dit").textContent = signale
-    ? "— ce que le signalement (nature 07) déclarera"
-    : "— elle part dans la DSN du mois, par le circuit dérogatoire : rien à signaler";
+  div.querySelector(".e-rupture-dit").textContent = (ETAT.aides || {})[signale ? "fin_signalee" : "fin_derogatoire"] || "";
   if (!signale) {
     bloc.querySelectorAll(":scope > label:not(.e-motif-l)").forEach((l) => { l.hidden = true; });
   } else {
@@ -1455,8 +1433,8 @@ function majContrat(div) {
   const debut = div.querySelector(".e-debut").value || jours[0] || "";
   const fin = div.querySelector(".e-fin").value || jours[jours.length - 1] || "";
   const numero = div.dataset.numero || "";
-  div.querySelector(".e-numero").textContent = numero
-    ? "n° " + numero + " — attribué à la production, il ne change plus" : "";
+  div.querySelector(".e-numero").textContent = numero ? "n° " + numero : "";
+  div.querySelector(".e-numero").title = (ETAT.aides || {}).numero_contrat || "";
   const s = d.querySelector("summary");
   const enCours = !!(debut && mois && debut.slice(0, 7) < mois);
   const sePoursuit = !!(fin && mois && fin.slice(0, 7) > mois);
@@ -1464,17 +1442,17 @@ function majContrat(div) {
   // UN CONTRAT SANS TERME (un CDI) n'a pas de dernier jour joué : il se
   // dit par son début.
   if (debut && !fin && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
-    s.textContent = `Contrat depuis le ${jjmmaaaa(debut)}, sans terme${
-      numero ? ` · n° ${numero}` : ""}`;
+    s.textContent = `Contrat du ${jjmmaaaa(debut)}, sans terme${
+      numero ? ` · ${numero}` : ""}`;
     return;
   }
   if (!debut && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
     // Un contrat au mois n'a pas de jour joué d'où tirer son début.
-    s.innerHTML = `Contrat <span class="discret">— sa date de début, celle du contrat signé</span>`;
+    s.innerHTML = `Contrat <span class="discret">— ${echapper((ETAT.aides || {}).debut_au_mois)}</span>`;
     return;
   }
   if (!debut || !fin) {
-    s.innerHTML = `Contrat <span class="discret">— du premier au dernier jour joué</span>`;
+    s.innerHTML = `Contrat <span class="discret">— ${echapper((ETAT.aides || {}).bornes_jouees)}</span>`;
     return;
   }
   let texte = `Contrat du ${jjmmaaaa(debut)} au ${jjmmaaaa(fin)}`;
@@ -1627,8 +1605,9 @@ document.getElementById("ajouter-engagement").onclick = () => {
 let CONTRATS_EN_COURS = [];
 
 async function poserContratsEnCours(mois) {
+  let r;
   try {
-    const r = await api("contrats-en-cours", { mois });
+    r = await api("contrats-en-cours", { mois });
     CONTRATS_EN_COURS = r.contrats || [];
   } catch (e) { CONTRATS_EN_COURS = []; return; }
   if (MOIS_AFFICHE !== mois) return;
@@ -1656,13 +1635,7 @@ async function poserContratsEnCours(mois) {
     cible.appendChild(ligneEngagement(e));
   });
   rafraichirApercu();
-  // Un permanent n'a pas de jours à poser : il est payé au mois (son salaire
-  // se dit dans son bloc).
-  const auMois = restants.every((c) => natureDe((c.engagement || {}).nature).mensuelle);
-  dire(restants.length === 1
-    ? `Contrat en cours repris : ${restants[0].nom}${auMois ? "" : ` — poser ses jours ${deMois(mois)}`}.`
-    : `${restants.length} contrats en cours repris (${restants.map((c) => c.nom).join(", ")})`
-      + (auMois ? "." : ` — poser leurs jours ${deMois(mois)}.`));
+  dire(r.reprise);
 }
 
 /** Ce qu'un engagement dit de lui-même en une ligne : son spectacle, ou — quand
