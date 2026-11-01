@@ -856,6 +856,16 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     };
     let lignes: Vec<Value> = en_phrases(&v["obligations"]).into_iter().map(Value::String).collect();
     v["phrases"] = Value::Array(lignes);
+    // Ce que la boite d'un arret pas encore ecrit dit de ce qu'il fera naitre, en une ligne.
+    if nom == "arret-obligations" {
+        let suites: Vec<String> = v["obligations"].as_array().into_iter().flatten().map(|o| {
+            let libelle = en_texte(&o["libelle"]);
+            let libelle = libelle.chars().next().map(|c| c.to_lowercase().collect::<String>() + &libelle[c.len_utf8()..]).unwrap_or_default();
+            let quand = if o["etat"] == "a_la_charge_du_salarie" { " (par le salarié)".to_string() } else { butoir_en_clair(o).map(|b| format!(" ({})", b)).unwrap_or_default() };
+            libelle + &quand
+        }).collect();
+        v["ensuite"] = if suites.is_empty() { Value::Null } else { json!(format!("Il faudra ensuite : {}.", suites.join(" ; "))) };
+    }
     Ok(crate::routes::phrase_en_tete(v, p))
 }
 
@@ -1119,4 +1129,12 @@ mod essais {
         assert!(fctu_depose(ligne("KO").as_array().unwrap(), "fanchon", &fin).is_none());
         assert!(fctu_depose(ligne("OK").as_array().unwrap(), "fanchon", &fin).is_some());
     }
+}
+
+/// « au plus tard le 16/10/2026 à 10:00 » : la date butoir d'une obligation (`butoir`, `butoir_heure`), telle que l'ecran
+/// la dit ; `None` sans butoir.
+pub(crate) fn butoir_en_clair(o: &Value) -> Option<String> {
+    let jour = o["butoir"].as_str().filter(|b| !b.is_empty())?;
+    let heure = o["butoir_heure"].as_str().filter(|h| !h.is_empty() && *h != "24:00").map(|h| format!(" à {}", h)).unwrap_or_default();
+    Some(format!("au plus tard le {}{}", crate::routes::jour_en_clair(&json!(jour)), heure))
 }

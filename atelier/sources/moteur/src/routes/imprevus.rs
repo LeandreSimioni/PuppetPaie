@@ -137,7 +137,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             super::phrase_en_tete(v, p)
         }),
         "arret-contrats" => arret_contrats(ctx, charge).map(|v| {
-            let p = format!("Contrats qu'un arrêt peut toucher : {}.", super::nombre(&v["contrats"]));
+            let cle = super::mot(&charge["salarie"]);
+            let nom = ctx.salaries.get(&cle).and_then(socle::texte::salarie_nomme).unwrap_or(cle);
+            let p = match super::nombre(&v["contrats"]) {
+                0 => format!("Aucun contrat de {} ne couvre le {} : il n'y a rien à suspendre.", nom, super::jour_en_clair(&charge["jour"])),
+                n => format!("Contrats qu'un arrêt peut toucher : {}.", n),
+            };
             super::phrase_en_tete(v, p)
         }),
         "arret-enregistrer" => arret_enregistrer(ctx, charge),

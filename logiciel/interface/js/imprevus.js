@@ -149,7 +149,7 @@ function pourquoiDu(o) {
       <p>${echapper(o.phrase || "")}</p>
       ${o.delai ? `<p>${echapper(o.delai.charAt(0).toUpperCase() + o.delai.slice(1))}${depart.quoi
         ? ` — à compter de ${echapper(depart.quoi)}${depart.jour ? `, le ${echapper(jjmmaaaa(depart.jour))}` : ""}` : ""}.</p>` : ""}
-      ${depart.presume ? `<p class="discret">Point de départ présumé : ${echapper(depart.presume)}</p>` : ""}
+      ${depart.presume ? `<p class="discret"><b>Point de départ présumé</b> ${echapper(depart.presume)}</p>` : ""}
       ${o.destinataire ? `<p class="discret">${echapper(o.destinataire)}</p>` : ""}
       ${(o.textes || []).length ? `<ul class="discret">${o.textes.map((t) =>
         `<li>${echapper(t.reference)}${t.dit ? ` — ${echapper(t.dit)}` : ""}</li>`).join("")}</ul>` : ""}
@@ -178,13 +178,13 @@ function rangObligation(a, o, k) {
     gestes.push(`<button class="secondaire petit" data-geste="signaler">Signaler…</button>`);
   }
   if (Array.isArray(o.ou) && ROUTES_OBLIGATION_FAITE[o.cle]) {
-    gestes.push(`<button class="secondaire petit" data-geste="faite">Faite le…</button>`);
+    gestes.push(`<button class="secondaire petit" data-geste="faite">Faite le</button>`);
   }
   // Le point de départ ne se dit que là où le délai court de la connaissance
   // (`arret-connaissance`) : l'accident, et le signalement d'un arrêt sans
   // subrogation — subrogé, il court du mois de l'arrêt.
   if (CONNAISSANCE[o.cle] && o.depart && o.subrogation !== true) {
-    gestes.push(`<button class="lien" data-geste="connu">Connu le…</button>`);
+    gestes.push(`<button class="lien" data-geste="connu">Connu le</button>`);
   }
   return rangDu(k, pastilleDu(o), o.libelle, nomDuSalarie(a.salarie), butoirEnClair(o), gestes.join(""), "", pourquoiDu(o));
 }
@@ -223,13 +223,13 @@ function brancherObligation(r, a, o) {
 function rangFin(f, k) {
   const manque = f.a_saisir.length;
   const ailleurs = f.mois && f.mois !== MOIS_AFFICHE ? ` (${moisEnClair(f.mois)})` : "";
-  return rangDu(k, pastilleDeLEtat(f.pastille), (f.obligation && f.obligation.libelle) || "Signalement de fin de contrat",
+  return rangDu(k, pastilleDeLEtat(f.pastille), (f.obligation && f.obligation.libelle) || "Fin de contrat",
     `${nomDuSalarie(f.salarie)}, ${f.nature}, fin le ${jjmmaaaa(f.fin)}${ailleurs}`, butoirEnClair(f.obligation),
     `<button class="secondaire petit" data-geste="signaler"${manque ? " disabled" : ""}>Signaler…</button>
-     <button class="lien" data-geste="papiers">Les papiers de fin…</button>`,
-    manque ? `<div class="du-manque"><p>À dire dans sa carte, sous « Contrat », avant de signaler :</p>
+     <button class="lien" data-geste="papiers">Papiers de fin</button>`,
+    manque ? `<div class="du-manque"><p>${aideDe("a_dire_avant_signaler")}</p>
       ${f.a_saisir.map((m, i) => `<p><b>${echapper(m.case)}</b> : ${echapper(m.dire)}
-        <button class="lien" data-case="${i}">La dire…</button></p>`).join("")}</div>` : "",
+        <button class="lien" data-case="${i}">La dire</button></p>`).join("")}</div>` : "",
     pourquoiDu(f.obligation));
 }
 
@@ -271,7 +271,7 @@ async function allerALaCase(f, champ) {
     return siennes.find((d) => carteDe(d).numero === f.numero || (f.debut && carteDe(d).debut === f.debut)) || siennes[0] || null;
   };
   let div = await attendre(carte, 15000);
-  if (!div) { dire(`La carte de ${nomDuSalarie(f.salarie)} ne se trouve pas dans ${moisEnClair(f.mois || MOIS_AFFICHE)}.`, "erreur"); return; }
+  if (!div) return;
   if (div.classList.contains("validee") && div._ligne) ouvrirEnModification(div);
   else ouvrirCarte(div);
   const options = div.querySelector(".e-options");
@@ -326,9 +326,9 @@ function menuImprevu(ancre, ou) {
   menu.setAttribute("role", "menu");
   menu.innerHTML = `
     <button type="button" data-choix="arret">Un arrêt de travail
-      <span class="discret">maladie, accident, maternité…</span></button>
+      <span class="discret">maladie, accident, maternité</span></button>
     <button type="button" data-choix="absence">Une absence
-      <span class="discret">congé parental, sans solde, sabbatique…</span></button>
+      <span class="discret">congé parental, sans solde</span></button>
     ${rupture ? `<button type="button" data-choix="rupture">${echapper(rupture)}
       <span class="discret">se saisit sous « Contrat »</span></button>` : ""}`;
   document.body.appendChild(menu);
@@ -395,10 +395,10 @@ function peindreImprevusDeLaCarte(div, liste) {
         <span class="imprevu-quoi"><b>${echapper(quoiDeLImprevu(i))}</b>
           <span class="discret">${echapper(periodeDeLImprevu(i))}</span></span>
         <span class="imprevu-gestes">${gestesImprevu(i, MOIS_AFFICHE)}</span>
-        ${jours.length ? `<div class="imprevu-jours">Payé pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"} :
+        ${jours.length ? `<div class="imprevu-jours">Payé pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"}
           ${jours.map((c) => c.dates.map((iso) => `${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}
             ${validee ? "" : `<button class="lien" data-retirer="${echapper(iso)}" data-rubrique="${echapper(c.rubrique)}">retirer ce jour</button>`}`).join(" · ")).join(" · ")}
-          ${validee ? `<span class="discret">— l'engagement est validé : cliquer sur sa carte pour l'ouvrir, retirer ces jours, puis « Modifier l'engagement ».</span>` : ""}
+          ${validee ? `<span class="discret">— ${aideDe("imprevu_valide")}</span>` : ""}
         </div>` : ""}
       </div>`;
   }).join("");
@@ -408,9 +408,9 @@ function peindreImprevusDeLaCarte(div, liste) {
     r.querySelectorAll("[data-retirer]").forEach((b) => {
       b.onclick = async () => {
         if (!retirerJour(div, b.dataset.rubrique, b.dataset.retirer)) {
-          dire(`Le ${jjmmaaaa(b.dataset.retirer)} n'est sur aucune ligne ouverte de cette carte : le décocher au calendrier.`, "erreur");
-        } else if (await avantDeQuitter()) {
-          dire(`Le ${jjmmaaaa(b.dataset.retirer)} est retiré de la ligne de paie.`);
+          dire((ETAT.aides || {}).jour_hors_ligne, "erreur");
+        } else {
+          await avantDeQuitter();
         }
       };
     });
@@ -436,9 +436,9 @@ function gestesImprevu(i, mois) {
   if (i.genre === "arret") {
     // Le moteur dit ce que l'arrêt ouvre : en cours, il se prolonge ou se reprend plus tôt ; une reprise saisie se
     // corrige tant que son signalement n'est pas parti. Une reprise à la date prévue ne se saisit pas : la DSN la porte.
-    if (i.peut_prolonger) g.push(`<button class="lien" data-geste="prolonger">Prolonger l'arrêt…</button>`);
-    if (i.peut_reprendre_plus_tot) g.push(`<button class="lien" data-geste="reprise">Le salarié a repris plus tôt…</button>`);
-    if (i.reprise_corrigeable) g.push(`<button class="lien" data-geste="reprise">Reprise du ${echapper(jjmmaaaa(i.reprise))} : corriger…</button>`);
+    if (i.peut_prolonger) g.push(`<button class="lien" data-geste="prolonger">Prolonger l'arrêt</button>`);
+    if (i.peut_reprendre_plus_tot) g.push(`<button class="lien" data-geste="reprise">Reprise plus tôt</button>`);
+    if (i.reprise_corrigeable) g.push(`<button class="lien" data-geste="reprise">Corriger la reprise</button>`);
     if (i.maintien_ouvert && mois && (i.mois_du_maintien || []).includes(mois)) {
       const m = (i.maintien || {})[mois];
       g.push(`<button class="lien" data-geste="maintien">Maintien ${echapper(deMois(mois))}${
@@ -446,7 +446,7 @@ function gestesImprevu(i, mois) {
     }
     if (!i.signale && !(i.reporte_par || []).length) g.push(`<button class="lien" data-geste="retirer">Retirer</button>`);
   } else {
-    g.push(`<button class="lien" data-geste="fin">Changer la fin…</button>`);
+    g.push(`<button class="lien" data-geste="fin">Changer la fin</button>`);
     if (!(i.reporte_par || []).length) g.push(`<button class="lien" data-geste="retirer">Retirer</button>`);
   }
   return g.join("");
@@ -478,19 +478,19 @@ function brancherGestesImprevu(r, i, mois, apres) {
 async function contratsDuJour(ou, jour, cible) {
   cible.innerHTML = "";
   if (!ou.salarie || !jour) return null;
-  let contrats;
-  try { contrats = (await api("arret-contrats", { salarie: ou.salarie, jour })).contrats || []; }
+  let r;
+  try { r = await api("arret-contrats", { salarie: ou.salarie, jour }); }
   catch (e) { cible.innerHTML = `<span class="erreur">${echapper(e.message)}</span>`; return null; }
+  const contrats = r.contrats || [];
   if (!contrats.length) {
-    cible.innerHTML = `<span class="erreur">Aucun contrat de ${echapper(nomDuSalarie(ou.salarie))} ne couvre
-      le ${echapper(jjmmaaaa(jour))} : il n'y a rien à suspendre.</span>`;
+    cible.innerHTML = `<span class="erreur">${echapper(r.phrase)}</span>`;
     return null;
   }
   const carte = ou.carte;
   const sien = carte && contrats.find((c) => (carte.numero && c.numero === carte.numero) || c.debut === carte.debut);
   if (contrats.length === 1) return contrats[0];
   if (sien && sien.numero) return sien;
-  cible.innerHTML = `Plusieurs contrats couvrent ce jour-là — lequel ?
+  cible.innerHTML = `Quel contrat
     <select id="im-contrat">${contrats.map((c) => `<option value="${echapper(c.numero)}"${c === sien ? " selected" : ""}>${
       echapper(c.numero || "sans numéro")}, ${echapper(periodeEnClair(c.debut, c.fin))}</option>`).join("")}</select>`;
   return { choisir: true, contrats };
@@ -547,16 +547,16 @@ async function boiteArret(ou) {
           echapper(m.libelle.charAt(0).toUpperCase() + m.libelle.slice(1))}</option>`).join("")}
       </select></label>
     <div id="ar-bloc-accident" hidden>
-      <label class="champ-boite">Date de l'accident, ou de la première constatation
+      <label class="champ-boite" title="${aideDe("date_accident")}">Date de l'accident
         <input type="date" id="ar-accident"></label>
       <div class="champs-deux" id="ar-bloc-connu" hidden>
-        <label class="champ-boite">La compagnie l'a su le
+        <label class="champ-boite">Connu le
           <input type="date" id="ar-connu"></label>
         <label class="champ-boite">à <span class="discret">— si on le sait</span>
           <input type="time" id="ar-connu-heure"></label>
       </div>
     </div>
-    <div class="champ-boite">La compagnie perçoit-elle les indemnités journalières à la place du salarié (subrogation) ?
+    <div class="champ-boite">Subrogation <span class="discret">${aideDe("subrogation")}</span>
       <div class="oui-non">${sub.map((s) => `<label class="coche"><input type="radio" name="ar-sub" value="${
         echapper(s.code)}"> ${echapper(s.libelle)}</label>`).join("")}</div></div>
     <div class="champs-deux" id="ar-bloc-subrogation" hidden>
@@ -564,7 +564,7 @@ async function boiteArret(ou) {
       <label class="champ-boite">au <input type="date" id="ar-sub-fin"></label>
     </div>
     <button type="button" class="lien" id="ar-note-btn">+ une note</button>
-    <label class="champ-boite" id="ar-note-l" hidden>Note <span class="discret">— pour vous, ne part nulle part</span>
+    <label class="champ-boite" id="ar-note-l" hidden>Note <span class="discret">— ${aideDe("note_imprevu")}</span>
       <input type="text" id="ar-note"></label>
     <p class="note" id="ar-ensuite"></p>
     <div class="actions">
@@ -591,8 +591,7 @@ async function boiteArret(ou) {
     const os = r.obligations || [];
     avecDeclaration = os.some((o) => o.cle === "declaration_accident");
     majFaits();
-    ligne.innerHTML = os.length ? `Il faudra ensuite : ${os.map((o) => `${echapper(minuscule(o.libelle))}${
-      o.etat === "a_la_charge_du_salarie" ? " (par le salarié)" : o.butoir ? ` (${echapper(butoirEnClair(o))})` : ""}`).join(" ; ")}.` : "";
+    ligne.textContent = r.ensuite || "";
   };
   const majFaits = () => {
     const m = motif();
@@ -660,9 +659,9 @@ async function boiteAbsence(ou) {
           m.remunere ? " (payé)" : ""}</option>`).join("")}
       </select></label>
     <button type="button" class="lien" id="ab-note-btn">+ une note</button>
-    <label class="champ-boite" id="ab-note-l" hidden>Note <span class="discret">— pour vous, ne part nulle part</span>
+    <label class="champ-boite" id="ab-note-l" hidden>Note <span class="discret">— ${aideDe("note_imprevu")}</span>
       <input type="text" id="ab-note"></label>
-    <p class="note">Saisie une fois : chaque mois qu'elle traverse la déclare et, si elle n'est pas payée, en retire le salaire.</p>
+    <p class="note">${aideDe("absence")}</p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
       <button class="primaire" id="ab-ok">Enregistrer</button>
@@ -708,21 +707,19 @@ async function etapeSuite(i, p, phrase) {
   const div = p.carte ? p.carte.div : null;
   const ici = (c) => div && c.mois === MOIS_AFFICHE && !div.classList.contains("validee");
   ouvrirBoite(`
-    <h3>${echapper(phrase)} Ce qu'il appelle encore</h3>
-    ${i.jours_deja_indemnises_attendus ? `<label class="champ-boite">Jours d'arrêt déjà indemnisés dans les douze mois
-      <span class="discret">— ils réduisent la durée du maintien</span>
+    <p>${echapper(phrase)}</p>
+    <h3>Ce qu'il appelle encore</h3>
+    ${i.jours_deja_indemnises_attendus ? `<label class="champ-boite" title="${aideDe("jours_deja_indemnises")}">Jours déjà indemnisés
       <input type="number" step="1" min="0" id="su-deja" value="${echapper(i.jours_deja_indemnises ?? "")}"></label>` : ""}
-    ${maintien ? `<label class="champ-boite">Maintien de salaire ${echapper(deMois(MOIS_AFFICHE))}
-      <span class="discret">— le complément versé après les indemnités journalières ; à dire quand on le connaît</span>
+    ${maintien ? `<label class="champ-boite" title="${aideDe("maintien")}">Maintien de salaire ${echapper(deMois(MOIS_AFFICHE))}
       <input type="number" step="0.01" min="0" id="su-maintien"></label>` : ""}
-    ${jours.length ? `<div class="champ-boite">Des jours sont payés pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"}.
-      Cocher ceux à retirer de l'engagement :
+    ${jours.length ? `<div class="champ-boite">${aideDe("jours_payes")}
       <div class="liste-jours">${jours.map((c, k) => c.dates.map((iso) => ici(c)
         ? `<label class="coche"><input type="checkbox" data-jour="${k}" value="${echapper(iso)}">
              ${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}</label>`
-        : `<div class="discret">${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))} — à retirer dans la saisie ${
-             echapper(deMois(c.mois))}${c.mois === MOIS_AFFICHE ? " (l'engagement est validé : le modifier d'abord)" : ""}</div>`).join("")).join("")}
-      </div></div>` : ""}
+        : `<div class="discret">${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}, ${echapper(deMois(c.mois))}</div>`).join("")).join("")}
+      </div>
+      ${jours.some((c) => !ici(c) && c.mois === MOIS_AFFICHE) ? `<p class="discret">${aideDe("imprevu_valide")}</p>` : ""}</div>` : ""}
     <div class="actions">
       <button class="secondaire" id="su-plus-tard">Plus tard</button>
       <button class="primaire" id="su-ok">Enregistrer</button>
@@ -744,7 +741,7 @@ async function etapeSuite(i, p, phrase) {
       const c = jours[+x.dataset.jour];
       if (retirerJour(div, c.rubrique, x.value)) retires++;
     });
-    if (retires && await avantDeQuitter()) dire(`${retires} jour${retires > 1 ? "s" : ""} retiré${retires > 1 ? "s" : ""} de l'engagement.`);
+    if (retires) await avantDeQuitter();
     await finir();
   };
 }
@@ -758,8 +755,8 @@ async function boiteReprise(a, apres) {
   try { n = await nomenclaturesImprevus(); } catch (e) { dire(e.message, "erreur"); return; }
   const motifs = n.motifs_reprise || [];
   ouvrirBoite(`
-    <h3>${a.reprise ? "La reprise" : "Le salarié a repris plus tôt"} — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}.</p>
+    <h3>${a.reprise ? "La reprise" : "Reprise plus tôt"} — ${echapper(nomDuSalarie(a.salarie))}</h3>
+    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}</p>
     <label class="champ-boite">Premier jour retravaillé
       <input type="date" id="re-date" value="${echapper(a.reprise || "")}"></label>
     <label class="champ-boite">Comment
@@ -787,8 +784,8 @@ async function boiteReprise(a, apres) {
 function boiteProlonger(a, apres) {
   ouvrirBoite(`
     <h3>Prolonger l'arrêt — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}.</p>
-    <label class="champ-boite">Prolongé jusqu'au (avis de prolongation)
+    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}</p>
+    <label class="champ-boite" title="${aideDe("prolongation")}">Prolongé jusqu'au
       <input type="date" id="pr-fin" value=""></label>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
@@ -836,12 +833,11 @@ function boiteSubrogationProlongee(a, phrase, apres) {
  *  indemnisés (D1226-4). */
 function boiteMaintien(a, mois, apres) {
   ouvrirBoite(`
-    <h3>Le maintien de salaire ${echapper(deMois(mois))} — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p class="note">Le complément versé au titre de l'arrêt, une fois déduites les indemnités journalières et la
-      prévoyance : il ne se devine pas. Vide, il n'y en a pas.</p>
+    <h3>Maintien ${echapper(deMois(mois))} — ${echapper(nomDuSalarie(a.salarie))}</h3>
+    <p class="note">${aideDe("maintien")}</p>
     <label class="champ-boite">Montant
       <input type="number" step="0.01" min="0" id="ma-montant" value="${echapper((a.maintien || {})[mois] ?? "")}"></label>
-    ${a.jours_deja_indemnises_attendus ? `<label class="champ-boite">Jours d'arrêt déjà indemnisés dans les douze mois
+    ${a.jours_deja_indemnises_attendus ? `<label class="champ-boite" title="${aideDe("jours_deja_indemnises")}">Jours déjà indemnisés
       <input type="number" step="1" min="0" id="ma-deja" value="${echapper(a.jours_deja_indemnises ?? "")}"></label>` : ""}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
@@ -863,7 +859,7 @@ function boiteMaintien(a, mois, apres) {
 function boiteFinAbsence(s, apres) {
   ouvrirBoite(`
     <h3>${echapper(s.motif_libelle)} — ${echapper(nomDuSalarie(s.salarie))}</h3>
-    <p class="discret">Depuis le ${echapper(jjmmaaaa(s.debut))}.</p>
+    <p class="discret">Depuis le ${echapper(jjmmaaaa(s.debut))}</p>
     <label class="champ-boite">Jusqu'au <input type="date" id="af-fin" value="${echapper(s.fin || "")}"></label>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
@@ -889,14 +885,12 @@ function boiteSignalerArret(a, nature) {
   ouvrirBoite(`
     <h3>Signaler ${reprise ? "la reprise" : "l'arrêt"} — ${echapper(nomDuSalarie(a.salarie))}</h3>
     <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}${
-      reprise ? `, reprise le ${echapper(jjmmaaaa(a.reprise))}` : ""}.</p>
-    <p class="note">Le logiciel écrit le fichier du signalement ; le dépôt, sur net-entreprises, est l'étape suivante.
-      La DSN du mois le répétera : l'une ne remplace pas l'autre.</p>
+      reprise ? `, reprise le ${echapper(jjmmaaaa(a.reprise))}` : ""}</p>
+    <p class="note">${aideDe("signalement_dsn")}</p>
     ${deja ? `<div class="encart attention"><b>Déjà signalé ${deja} fois</b>
-      Un nouveau signalement ne remplace rien : pour corriger ce qui est parti, un annule-et-remplace vise
-      l'identifiant rendu par le point de dépôt (sur le certificat de conformité).
-      <label class="champ-boite">Identifiant de la déclaration remplacée
-        <input type="text" id="si-remplace" placeholder="vide pour un signalement normal"></label></div>` : ""}
+      ${aideDe("deja_signale")}
+      <label class="champ-boite" title="${aideDe("identifiant_remplace")}">Déclaration remplacée
+        <input type="text" id="si-remplace"></label></div>` : ""}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
       <button class="primaire" id="si-ok">Écrire le signalement</button>
@@ -904,7 +898,7 @@ function boiteSignalerArret(a, nature) {
   document.getElementById("si-ok").onclick = async () => {
     const remplace = document.getElementById("si-remplace");
     // Un clic de plus, pendant l'écriture, ne fait pas un second signalement.
-    const rendre = occupe(document.getElementById("si-ok"), "Écriture du signalement…");
+    const rendre = occupe(document.getElementById("si-ok"), "Écriture…");
     let r;
     try {
       r = await api("arret-signaler", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille, nature,
@@ -923,9 +917,9 @@ function boiteSignalerArret(a, nature) {
 function boiteConnaissance(a, de, o) {
   const depart = (o && o.depart) || {};
   ouvrirBoite(`
-    <h3>Quand la compagnie a-t-elle su ${de === "accident" ? "l'accident" : "l'arrêt"} ?</h3>
-    <p class="discret">${echapper(nomDuSalarie(a.salarie))} — ${echapper(quoiDeLImprevu(a))}.</p>
-    ${depart.presume ? `<p class="note">Sans réponse, le délai court du ${echapper(jjmmaaaa(depart.jour))}, le plus tôt possible.</p>` : ""}
+    <h3>Connaissance ${de === "accident" ? "de l'accident" : "de l'arrêt"}</h3>
+    <p class="discret">${echapper(nomDuSalarie(a.salarie))} — ${echapper(quoiDeLImprevu(a))}</p>
+    ${depart.presume ? `<p class="note"><b>Point de départ présumé</b> ${echapper(depart.presume)}</p>` : ""}
     <div class="champs-deux">
       <label class="champ-boite">Le <input type="date" id="co-jour" value="${echapper(depart.saisi ? depart.jour : "")}"></label>
       <label class="champ-boite">à <span class="discret">— si on le sait</span>
@@ -954,9 +948,10 @@ function boiteObligationFaite(a, o) {
   ouvrirBoite(`
     <h3>${echapper(o.libelle)} — ${echapper(nomDuSalarie(a.salarie))}</h3>
     <p class="discret">${echapper(butoirEnClair(o).replace(/^./, (c) => c.toUpperCase()))}${
-      o.destinataire ? ` — ${echapper(o.destinataire.replace(/\.$/, ""))}` : ""}. Elle ne part pas avec la DSN.</p>
+      o.destinataire ? ` — ${echapper(o.destinataire.replace(/\.$/, ""))}` : ""}</p>
+    <p class="note">${aideDe("hors_dsn")}</p>
     ${(o.ou || []).map((x) => `<p class="note">${echapper(x.libelle)}</p>`).join("")}
-    ${(o.a_avoir || []).length ? `<details class="pourquoi"><summary>ce qu'il faut avoir sous la main</summary>
+    ${(o.a_avoir || []).length ? `<details class="pourquoi"><summary>pièces à avoir</summary>
       <ul class="note">${o.a_avoir.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul></details>` : ""}
     <div class="champs-deux">
       <label class="champ-boite">Faite le <input type="date" id="da-le" value="${echapper(fait.le || "")}"></label>
@@ -964,7 +959,7 @@ function boiteObligationFaite(a, o) {
         <select id="da-depot">${(o.ou || []).map((x) => `<option value="${echapper(x.code)}"${
           fait.depot === x.code ? " selected" : ""}>${echapper(x.court || x.code)}</option>`).join("")}</select></label>
     </div>
-    <label class="champ-boite">Référence <span class="discret">— l'accusé de réception, le numéro du recommandé, s'il y en a un</span>
+    <label class="champ-boite" title="${aideDe("reference_faite")}">Référence
       <input type="text" id="da-reference" value="${echapper(fait.reference || "")}"></label>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
@@ -986,21 +981,20 @@ function boiteObligationFaite(a, o) {
 /** Écrire le signalement de fin de contrat, puis le déposer. */
 function boiteSignalerFin(mois, f) {
   ouvrirBoite(`
-    <h3>Signaler la fin du contrat — ${echapper(nomDuSalarie(f.salarie))}</h3>
-    <p class="discret">${echapper(f.nature)} — contrat ${echapper(f.numero || "?")}, fin le ${echapper(jjmmaaaa(f.fin))}.</p>
-    <p class="note">Il va à France Travail, qui en tire l'attestation employeur : c'est elle qui ouvre les droits du
-      salarié. La DSN du mois ne le remplace pas.</p>
-    <details class="pourquoi"><summary>remplacer un signalement déjà parti</summary>
-      <label class="champ-boite">Identifiant de la déclaration remplacée
-        <span class="discret">— JJMMAAAA suivi du rang de l'envoi, lu sur son certificat de conformité</span>
-        <input type="text" id="fi-remplace" placeholder="vide pour un signalement normal"></label>
+    <h3>Signaler la fin — ${echapper(nomDuSalarie(f.salarie))}</h3>
+    <p class="discret">${echapper(f.nature)} — contrat ${echapper(f.numero || "?")}, fin le ${echapper(jjmmaaaa(f.fin))}</p>
+    <p class="note">${aideDe("signalement_fin")}</p>
+    <details class="pourquoi"><summary>Annule et remplace</summary>
+      <label class="champ-boite" title="${aideDe("identifiant_remplace")}">Déclaration remplacée
+
+        <input type="text" id="fi-remplace"></label>
     </details>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
       <button class="primaire" id="fi-ok">Écrire le signalement</button>
     </div>`);
   document.getElementById("fi-ok").onclick = async () => {
-    const rendre = occupe(document.getElementById("fi-ok"), "Écriture du signalement…");
+    const rendre = occupe(document.getElementById("fi-ok"), "Écriture…");
     let r;
     try {
       r = await api("fin-contrat-signaler", { mois, salarie: f.salarie,
@@ -1019,7 +1013,7 @@ async function boitePapiersDeFin(mois, salarie) {
   try { r = await api("fin-contrat-documents", { mois, salarie }); }
   catch (e) { dire(e.message, "erreur"); return; }
   ouvrirBoite(`
-    <h3>Le certificat de travail et le reçu pour solde de tout compte</h3>
+    <h3>Les papiers de fin</h3>
     <p class="discret">${echapper(r.phrase)}</p>
     ${(r.avertissements || []).map((m) => `<div class="encart attention">${echapper(m)}</div>`).join("")}
     <div class="actions">
@@ -1064,12 +1058,12 @@ async function dessinerImprevusDuSalarie(cle) {
 function ceQuiEnEstParti(i) {
   const morceaux = [];
   (i.prolongations || []).filter((p) => p.fin !== p.fin_avant).forEach((p) => morceaux.push(`prolongé jusqu'au ${
-    echapper(jjmmaaaa(p.fin))} (avis saisi le ${echapper(jjmmaaaa(p.le))})`));
+    echapper(jjmmaaaa(p.fin))} (avis du ${echapper(jjmmaaaa(p.le))})`));
   (i.signalements || []).forEach((s) => morceaux.push(`${s.nature === "05" ? "reprise signalée" : s.type === "03" ? "signalement rectifié" : "signalé"} le ${
     echapper(quand(s.quand || ""))}`));
   if ((i.reporte_par || []).length) morceaux.push(`déclaré par la DSN ${i.reporte_par.map((m) => echapper(deMois(m))).join(", ")}`);
   (i.obligations || []).forEach((o) => {
-    if (o.fait && o.fait.le && Array.isArray(o.ou)) morceaux.push(`${echapper(minuscule(o.libelle))} : faite le ${echapper(jjmmaaaa(o.fait.le))}`);
+    if (o.fait && o.fait.le && Array.isArray(o.ou)) morceaux.push(`${echapper(minuscule(o.libelle))}, faite le ${echapper(jjmmaaaa(o.fait.le))}`);
     else if (o.du) morceaux.push(`${pastilleDu(o)} ${echapper(minuscule(o.libelle))}, ${echapper(butoirEnClair(o))}`);
   });
   return morceaux.length ? morceaux.join(" · ") : `<span class="discret">rien n'est encore parti</span>`;

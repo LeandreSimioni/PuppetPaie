@@ -76,6 +76,23 @@ const AIDES: &[(&str, &str)] = &[
     ("debut_au_mois", "Sa date de début, celle du contrat signé."),
     ("bornes_jouees", "Du premier au dernier jour joué."),
     ("plusieurs_mois", "Les cachets des mois suivants se paieront dans le fichier de leur mois (« reprendre un contrat en cours » les retrouvera cochés) ; ce mois-ci partent le contrat et la DPAE pour le contrat entier."),
+    ("imprevu_valide", "L'engagement est validé : cliquer sur sa carte pour l'ouvrir, retirer ces jours, puis « Modifier l'engagement »."),
+    ("jour_hors_ligne", "Ce jour n'est sur aucune ligne ouverte de cette carte : le décocher au calendrier."),
+    ("a_dire_avant_signaler", "À dire dans sa carte, sous « Contrat », avant de signaler :"),
+    ("subrogation", "La compagnie perçoit-elle les indemnités journalières à la place du salarié ?"),
+    ("absence", "Saisie une fois : chaque mois qu'elle traverse la déclare et, si elle n'est pas payée, en retire le salaire."),
+    ("jours_deja_indemnises", "Les jours d'arrêt déjà indemnisés dans les douze mois : ils réduisent la durée du maintien."),
+    ("maintien", "Le complément versé au titre de l'arrêt, une fois déduites les indemnités journalières et la prévoyance : il ne se devine pas, et se dit quand on le connaît. Vide, il n'y en a pas."),
+    ("jours_payes", "Des jours sont payés pendant l'imprévu : cocher ceux à retirer de l'engagement."),
+    ("signalement_dsn", "Le logiciel écrit le fichier du signalement ; le dépôt, sur net-entreprises, est l'étape suivante. La DSN du mois le répétera : l'une ne remplace pas l'autre."),
+    ("deja_signale", "Un nouveau signalement ne remplace rien : pour corriger ce qui est parti, un annule-et-remplace vise l'identifiant rendu par le point de dépôt (sur le certificat de conformité)."),
+    ("signalement_fin", "Il va à France Travail, qui en tire l'attestation employeur : c'est elle qui ouvre les droits du salarié. La DSN du mois ne le remplace pas."),
+    ("identifiant_remplace", "JJMMAAAA suivi du rang de l'envoi, lu sur son certificat de conformité ; vide pour un signalement normal."),
+    ("reference_faite", "L'accusé de réception, le numéro du recommandé, s'il y en a un."),
+    ("hors_dsn", "Elle ne part pas avec la DSN."),
+    ("date_accident", "La date de l'accident, ou de sa première constatation."),
+    ("prolongation", "La nouvelle fin prescrite, celle de l'avis de prolongation."),
+    ("note_imprevu", "Une note pour vous : elle ne part nulle part."),
 ];
 
 /// Les routes de ce module, et leurs fiches.
