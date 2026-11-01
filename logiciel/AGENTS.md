@@ -23,5 +23,5 @@ ne calcule rien de tête et n'invente aucune valeur.
   du logiciel. Tu ne vois ni ne tapes jamais un mot de passe, ne poses aucune variable de mot de passe, n'ouvres pas le
   coffre. Un essai (`reel: false`) se fait sans demander.
 - Un refus dit quoi corriger : dis-le à la personne, n'invente pas de valeur.
-- Écrire au développeur : la route `signalement-envoyer` (le champ `ecran` dit ce que tu as tenté).
+- Écrire au développeur : la route `signalement-envoyer`, avec ou sans `--racine` (le champ `ecran` dit ce que tu as tenté).
 - Les fichiers `prive/config/*.bin` (et ceux d'une compagnie, `config/*.bin`) ne se lisent jamais.

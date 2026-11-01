@@ -161,7 +161,8 @@ pub fn route(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value>
             } else {
                 format!("{} est ajoutée, en compagnie fictive : rien n'en part.", c.nom)
             };
-            Ok(json!({"id": c.id, "nom": c.nom, "chemin": c.racine.display().to_string(), "phrase": phrase}))
+            let chemin = c.racine.display().to_string();
+            Ok(json!({"id": c.id, "nom": c.nom, "chemin": chemin, "phrase": phrase, "phrases": [format!("Son dossier, le --racine de ses routes : {}", chemin)]}))
         }
         "compagnie-couleur" => {
             let couleur = compagnies::poser_couleur(&inst, texte(charge, "compagnie")?, texte(charge, "couleur")?).map_err(operation)?;
