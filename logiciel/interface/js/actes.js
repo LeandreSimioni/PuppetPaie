@@ -146,12 +146,14 @@ function dessinerArbre(liste) {
     `<path class="${t.c}" d="M${t.x - base.left},${t.y1 - base.top} V${t.y2 - base.top}"/>`).join("");
 }
 
-/* Ce qu'il faut relire après avoir déposé ou envoyé : l'état du mois affiché,
- * et l'état de chaque engagement. */
+/* Ce qu'il faut relire après avoir déposé ou envoyé : l'état du mois affiché, l'état de chaque engagement, et ses
+ * chiffres (un acte peut refaire une paie : le taux de PAS revenu avec la DPAE), lus dans la même lecture du mois.
+ * Les chiffres ne s'attendent pas : appelée pendant un enregistrement, l'aperçu prend son tour après lui. */
 async function rafraichirActions() {
   const mois = document.getElementById("mois").value;
   await dessinerActions(mois);
   await dessinerEtatsDesEngagements(mois);
+  if (mois && toutEstEcrit()) lireLeMois(mois).then((lu) => calculerApercu(lu.lectures.apercu)).catch(() => {});
 }
 
 /* ---------------------------------------- le récapitulatif d'un dépôt */

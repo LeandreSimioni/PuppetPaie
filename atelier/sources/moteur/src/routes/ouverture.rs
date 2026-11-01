@@ -989,12 +989,11 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
 
     Ok(json!({
         "configuration": configuration,
-        // UNE COMPAGNIE FICTIVE : les envois sont joues, et la page ne demande aucun
-        // mot de passe.
+        // UNE COMPAGNIE FICTIVE : les envois sont joues (`bridage::branchement`).
         "simulation": crate::compagnie::bridage::branchement(&ctx.racine).joue(),
-        // UNE FICTIVE AJOUTEE : ses envois sont refuses par le moteur (`bridage::branchement`) ; la page
-        // ne demande pas le mot de passe du logiciel pour un envoi qui ne partira pas.
-        "envois_refuses": crate::compagnie::bridage::branchement(&ctx.racine).refus().is_some(),
+        // UN ENVOI N'A RIEN A PROUVER : joue (`depot_acte::verifier_preuve` ne demande rien a une fictive), ou refuse
+        // avant toute preuve (une fictive ajoutee) ; la page ne demande alors pas le mot de passe du logiciel.
+        "envoi_sans_mot_de_passe": crate::compagnie::bridage::branchement(&ctx.racine).joue() || crate::compagnie::bridage::branchement(&ctx.racine).refus().is_some(),
         // SUPPRIMER LA COMPAGNIE : la Configuration ne le propose que si elle se supprime -- jamais une
         // fictive livree, qui se remet a zero (`interface::suppression::genre`).
         "supprimable": crate::interface::suppression::genre(&crate::compagnie::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),
