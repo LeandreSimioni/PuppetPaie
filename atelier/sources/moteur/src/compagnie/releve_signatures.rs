@@ -8,8 +8,8 @@
 //! NE LEVE PAS pour une boite absente : c'est un travail de fond, il dit ce qui l'empeche dans `incidents` et rend la
 //! main.
 //!
-//! Dans une compagnie fictive, les salaries « signent » (`boite_des_signatures`) : chaque demande partie depuis `delai`
-//! secondes recoit sa reponse -- celle que le bouton du courriel prepare --, et c'est la VRAIE releve qui la lit.
+//! Dans une compagnie fictive, les salaries « signent » (`boite_des_signatures`) : chaque demande partie
+//! recoit sa reponse aussitot -- celle que le bouton du courriel prepare --, et c'est la VRAIE releve qui la lit.
 //! `relever_signatures_fictive` ne joue rien dans une compagnie qui n'est pas une compagnie fictive (la garde de
 //! l'horloge).
 
@@ -31,28 +31,19 @@ use socle::fichiers::vrai;
 use crate::horloge::{HorlogeFictive, QUI_HORLOGE};
 use envois::simulation_courriels::BoiteQuiRepond;
 
-/// Secondes entre une demande de signature et le « Je signe » du salarie fictif de la compagnie fictive.
-pub const DELAI_FICTIVE: i64 = crate::routes::fiches::DELAI_FICTIVE;
-
 // ------------------------------------------------------------------ la compagnie fictive
 
 /// La boite de la compagnie fictive, vue par la releve. Chaque demande de signature partie
-/// depuis `delai` secondes y trouve la reponse « Je signe » que le bouton de son courriel prepare (a defaut, une reponse
+/// y trouve aussitot la reponse « Je signe » que le bouton de son courriel prepare (a defaut, une reponse
 /// au code dans les termes de `CORPS_REPONSE`) ; la vraie releve la lit, note la signature, contresigne le contrat et le
 /// renvoie au salarie.
-pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
+pub fn boite_des_signatures(ctx: &Contexte) -> R<BoiteQuiRepond> {
     let mut boite = BoiteQuiRepond::nouvelle(ctx);
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let attendues = etats::signatures_attendues(&lignes, None, &crate::routes::contrats::salaries_d_identite(ctx))?;
-    let maintenant_naif = socle::paris::maintenant_naif();
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
     let envoyes = envois::simulation_courriels::courriels_par_identifiant(&ctx.racine);
     for a in attendues.as_array().into_iter().flatten() {
-        let quand = a.get("quand").map(valeur_en_texte).unwrap_or_default();
-        let age = socle::paris::naif_de_iso(&quand).map_or(0, |t| maintenant_naif - t);
-        if age < delai {
-            continue;
-        }
         let code = texte_de(a, "code");
         let nom = texte_de(a, "nom");
         let (sujet, corps) = match envois::simulation_courriels::bouton_de_la_demande(&envoyes, &identifiants_de(a)) {
@@ -75,11 +66,11 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
 /// Les salaries de la compagnie fictive signent, et la VRAIE releve lit leur reponse. Rien
 /// ne se joue dans une compagnie qui n'est pas une compagnie fictive (la garde de l'horloge) : la releve rendue est alors
 /// vide.
-pub fn relever_signatures_fictive(ctx: &Contexte, delai: i64) -> R<ReleveSignatures> {
+pub fn relever_signatures_fictive(ctx: &Contexte) -> R<ReleveSignatures> {
     if HorlogeFictive::verifier(&ctx.racine).is_none() {
         return Ok(ReleveSignatures::nouvelle());
     }
-    let mut boite = boite_des_signatures(ctx, delai)?;
+    let mut boite = boite_des_signatures(ctx)?;
     relever_signatures(ctx, Some(&mut boite), None, QUI_HORLOGE)
 }
 
@@ -112,7 +103,7 @@ fn os(m: String) -> Echec {
 /// pourquoi rien ne se releve.
 fn boite_de_la_releve(ctx: &Contexte) -> R<Result<Box<dyn Courriel>, String>> {
     match crate::compagnie::bridage::branchement(&ctx.racine) {
-        envois::branchement::Branchement::Simulateur => return Ok(Ok(Box::new(boite_des_signatures(ctx, DELAI_FICTIVE)?))),
+        envois::branchement::Branchement::Simulateur => return Ok(Ok(Box::new(boite_des_signatures(ctx)?))),
         envois::branchement::Branchement::Message(r) => return Ok(Err(r.phrase.to_string())),
         envois::branchement::Branchement::Monde => {}
     }

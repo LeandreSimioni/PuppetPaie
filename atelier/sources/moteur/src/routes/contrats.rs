@@ -57,7 +57,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "remplace", sens: "vrai : un contrat refait qui annule et remplace le précédent", avance: true },
         ],
         exemple: r#"{"mois":"2026-11","contrats":[{"salarie":"FULLER","debut":"2026-11-27"}]}"#,
-        rend: "phrase, partis, contrats (les fichiers partis), avertissements (ceux sans courriel)",
+        rend: "phrase, partis, contrats (les fichiers partis), avertissements (ceux sans courriel), signatures (compagnie fictive : revenues aussitôt)",
         refus: &[
             Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain au moment de l'envoi ; rien n'est parti" },
             Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe), ou imprimer" },
@@ -401,7 +401,18 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
     let avertissements = r["avertissements"].as_array().into_iter().flatten().filter_map(Value::as_str).collect::<Vec<_>>().join(" ");
     let relancee = relance || (!des_contrats && avenants.iter().all(|a| a.get("relance").is_some_and(vrai)));
     let fait = if relancee { "relancé(s)" } else { "envoyé(s) à la signature" };
-    r["phrase"] = json!(format!("{} {}.{}{}", quoi, fait, if avertissements.is_empty() { "" } else { " " }, avertissements));
+    let mut phrase = format!("{} {}.{}{}", quoi, fait, if avertissements.is_empty() { "" } else { " " }, avertissements);
+    // LE SIMULATEUR REPOND DANS LE GESTE : les salaries d'une compagnie fictive signent aussitot, et la vraie releve lit
+    // leur reponse (`releve_signatures::boite_des_signatures`).
+    if crate::compagnie::bridage::branchement(&ctx.racine).joue() {
+        let releve = crate::compagnie::releve_signatures::relever_signatures(ctx, None, None, "interface")?;
+        let resume = releve.resume();
+        if !resume.is_empty() {
+            phrase.push_str(&format!(" {}.", resume.trim_end_matches('.')));
+        }
+        r["signatures"] = releve.en_json();
+    }
+    r["phrase"] = json!(phrase);
     Ok(r)
 }
 

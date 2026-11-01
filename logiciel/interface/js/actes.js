@@ -305,7 +305,7 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
       ${echapper(a.deja_depose.mode)}. Redéposer le même fichier ne remplace
       rien : un annule-et-remplace se produit, il ne se redépose pas.</div>` : ""}
     <div id="d-bilan">${encartRepetition(a.repetition)}</div>
-    ${enFictive() ? noteFictive(quoi === "dsn" ? "net-entreprises" : "l'Urssaf", ", et sa réponse est là aussitôt")
+    ${enFictive() ? noteFictive(quoi === "dsn" ? "net-entreprises" : "l'Urssaf")
       : `<p class="note">Un dépôt réel demande le mot de passe <b>du logiciel</b>,
       qui ne sert qu'à prouver que quelqu'un est là. Celui de l'organisme ne
       passe pas par cette page : le moteur va le chercher au coffre.</p>`}
@@ -679,8 +679,7 @@ async function boiteSignature(mois, seulement) {
       appuie dessus et renvoie la réponse toute écrite ; elle est relevée toute
       seule et le salarié reçoit son contrat contresigné.
     </div>` : ""}
-    ${a.boite_liee && enFictive() ? noteFictive("les salariés",
-      ", et la signature revient comme la vraie, quelques secondes plus tard") : ""}
+    ${a.boite_liee && enFictive() ? noteFictive("les salariés") : ""}
     ${(a.avertissements || []).map((x) => `<div class="encart info">${echapper(x)}</div>`).join("")}
     ${!contrats.length ? `<p class="discret">Aucun contrat à faire partir ce mois-ci.</p>` : `<div class="liste-choix">
       ${contrats.map((c) => `
@@ -784,7 +783,6 @@ async function boiteSignature(mois, seulement) {
       afficherEnvoi("Contrats à signer", mois, [...new Set(r.partis)],
                     [...(r.avertissements || []), ...r.contrats.map((c) => c.fichier)]);
       if (enFictive()) {
-        attendreSignaturesFictives();
         fenetreCourrielsFictifs("signature", repere);
       }
       await rafraichirActions();

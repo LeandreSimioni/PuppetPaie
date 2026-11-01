@@ -583,7 +583,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         }
         dire_l_etape(ctx, "Compagnie fictive : signatures et fiches des salariés…");
         // Le resultat de la relève jouee n'est pas gardé.
-        if let Err(e) = releve_signatures::relever_signatures_fictive(ctx, releve_signatures::DELAI_FICTIVE) {
+        if let Err(e) = releve_signatures::relever_signatures_fictive(ctx) {
             r.incidents.push(format!("Signatures : {}", e.message));
         }
         match crate::routes::fiches::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), crate::horloge::QUI_HORLOGE) {

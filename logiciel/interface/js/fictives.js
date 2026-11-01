@@ -6,18 +6,8 @@
    moteur le dit dans `etat` ; la page ne fait que ne pas demander de mot de
    passe, et le dire au moment de l'acte. */
 const enFictive = () => !!(ETAT && ETAT.simulation);
-const noteFictive = (vers, suite = "") => `<p class="note"><b>Compagnie fictive</b> —
-  rien ne part vers ${echapper(vers)} : l'envoi est simulé${suite}.</p>`;
-/** LA COMPAGNIE FICTIVE : les salariés fictifs signent une vingtaine de secondes
- *  après l'envoi (releve_signatures.rs, boite_des_signatures). La page relève à ce moment-là,
- *  comme la veille l'aurait fait à son passage. */
-function attendreSignaturesFictives() {
-  setTimeout(async () => {
-    try { await fenetre("veille_maintenant"); oublierLeMois(); } catch (e) { return; }
-    await rafraichirActions();
-    dire("Compagnie fictive : les contrats sont revenus signés.");
-  }, 22000);
-}
+const noteFictive = (vers) => `<p class="note"><b>Compagnie fictive</b> —
+  rien ne part vers ${echapper(vers)} : la réponse est là aussitôt ; en vrai, elle peut prendre quelques jours.</p>`;
 
 /* ---------------------------------------- LA COMPAGNIE FICTIVE QUI EXPLIQUE
    La démo est informative : à chaque courriel joué, une petite fenêtre montre ce que le
