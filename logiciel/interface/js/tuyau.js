@@ -246,7 +246,7 @@ document.addEventListener("change", (e) => {
   // Un mot de passe ne voyage jamais, même jusqu'au moteur : seulement qu'il a été tapé.
   if (type === "password") return noterGeste({ quoi: "champ", nom, type, secret: true });
   const valeur = type === "checkbox" || type === "radio" ? el.checked
-    : type === "file" ? `${(el.files || []).length} fichier(s)` : String(el.value).slice(0, 300);
+    : type === "file" ? (el.files || []).length : String(el.value).slice(0, 300);
   // Une case dit aussi ce qu'elle coche (sa `value` : un salarié, un jour) ; le moteur le met en forme.
   noterGeste({ quoi: "champ", nom, type, valeur, ...(type === "checkbox" || type === "radio" ? { de: String(el.value).slice(0, 80) } : {}) });
 }, true);
@@ -416,7 +416,7 @@ window.addEventListener("error", (ev) => {
   if (!ev.error && ev.target && ev.target !== window) {
     return noterIncident({
       genre: "RessourceAbsente",
-      message: String(ev.target.tagName || "?") + " absent",
+      message: String(ev.target.tagName || "?"),
       fichier: ev.target.src || ev.target.href || "",
       ligne: 0, canal: "ressource",
     });
