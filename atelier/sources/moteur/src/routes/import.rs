@@ -898,7 +898,21 @@ fn dire_l_etat_de_l_import(v: &mut Value) {
         _ => String::new(),
     };
     v["repris_dit"] = if quoi.is_empty() { Value::Null } else { json!(format!("{}{}", quoi.join(", "), periode)) };
+    // Le titre de la ligne : le jour de la derniere reprise.
+    let le = std::iter::once(super::mot(&v["importe_le"])).chain(reprises.iter().map(|r| super::mot(&r["le"]))).filter(|x| !x.is_empty()).max();
+    v["repris_titre"] = json!(match le {
+        Some(l) => format!("Historique repris le {}", super::jour_en_clair(&json!(l.chars().take(10).collect::<String>()))),
+        None => "Historique repris".to_string(),
+    });
+    // Ce qui attend l'editeur : un message ou un incident, et son jour.
+    for x in v["editeur"].as_array_mut().into_iter().flatten() {
+        let quoi = if x["canal"] == "signalement" { "Message à l'éditeur" } else { "Incident" };
+        let quand = super::mot(&x["quand"]);
+        x["titre_dit"] = json!(if quand.is_empty() { quoi.to_string() } else { format!("{} du {}", quoi, super::quand(&quand)) });
+    }
     for x in v["a_dire"].as_array_mut().into_iter().flatten() {
+        x["numero_placeholder"] = json!(format!("sur la DSN {}", super::mot(&x["au_dit"])));
+        x["choix_dit"] = json!(format!("Nature du contrat de {}", super::mot(&x["nom"])));
         let (au, suite) = (super::mot(&x["au"]).chars().take(7).collect::<String>(), super::mot(&x["suite"]));
         let contrats = x["contrats"].as_u64().unwrap_or(0);
         let du = if super::mot(&x["du"]).is_empty() { String::new() } else { format!(", du {} au {}", super::jour_en_clair(&x["du"]), super::jour_en_clair(&x["au"])) };
@@ -977,7 +991,37 @@ fn dire_ce_qui_est_repris(v: &mut Value) {
     let total = n(&v["tri"], "total");
     if v["tri"].is_object() {
         v["tri"]["dit"] = json!(format!("{} fichier{} dans {}", total, s(total), super::mot(&v["tri"]["dossier"])));
+        // Chaque fichier : d'ou il vient (une copie, une archive), ses pages, et ou se lit l'ecart d'une page.
+        for f in v["tri"]["fichiers"].as_array_mut().into_iter().flatten() {
+            let chemin = super::mot(&f["chemin"]);
+            f["de_dit"] = if vrai(&f["doublon_de"]) {
+                json!(format!("(copie de {})", super::mot(&f["doublon_de"])))
+            } else if vrai(&f["archive"]) {
+                json!(format!("(dans {})", super::mot(&f["archive"])))
+            } else {
+                Value::Null
+            };
+            let nb = f["pages"].as_array().map_or(0, Vec::len);
+            f["pages_dit"] = json!(format!("{} pages", nb));
+            for p in f["pages"].as_array_mut().into_iter().flatten() {
+                let page = super::mot(&p["page"]);
+                let mois = super::mot(&p["mois"]);
+                p["page_dit"] = json!(if mois.is_empty() { format!("page {}", page) } else { format!("page {} ({})", page, engagement::libelle_mois(&mois)) });
+                p["ou_dit"] = json!(if nb > 1 { format!("{}, page {}", chemin, page) } else { chemin.clone() });
+                for e in p["ecarts"].as_array_mut().into_iter().flatten() {
+                    let champ = super::mot(&e["champ"]);
+                    e["champ_dit"] = json!(match champ.as_str() {
+                        "brut" => "brut",
+                        "net_imposable" => "net imposable",
+                        "net_a_payer" => "net à payer",
+                        "pas" => "prélèvement à la source",
+                        autre => autre,
+                    });
+                }
+            }
+        }
     }
+    v["titre_dit"] = json!(if ecrit { "Repris" } else { "Serait repris" });
     // Ce que le bouton reprendrait.
     let a_ecrire = |f: &Value| f["etat"] == "a_creer" || (f["etat"] == "existante" && f["completer"].as_object().is_some_and(|o| !o.is_empty()));
     let compte = |k: &str| v[k].as_array().into_iter().flatten().filter(|f| a_ecrire(f)).count() as u64;

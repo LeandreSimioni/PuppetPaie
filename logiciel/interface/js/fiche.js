@@ -33,7 +33,7 @@ function sousChamps(c) {
     if (s.si_configuration) g.si = s.si_configuration;
     return g;
   };
-  return { liste: !!c.ligne, ligne: c.ligne,
+  return { liste: !!c.ligne, ligne: c.ligne, ajouter: c.ajouter_dit,
     champs: c.champs.filter((s) => s.ecran !== false).map((s) => [s.cle, s.libelle, s.aide, genre(s)]) };
 }
 

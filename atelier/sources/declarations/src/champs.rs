@@ -155,6 +155,8 @@ impl Champ {
             "champs": self.champs.iter().map(Champ::description).collect::<Vec<_>>(),
             "libelles": self.libelles, "boutons": self.boutons,
             "si_configuration": self.si_configuration, "ligne": self.ligne,
+            // Le bouton qui ajoute une ligne a une liste de cases (un contact, un etablissement).
+            "ajouter_dit": format!("+ Ajouter un {}", if self.ligne.is_empty() { "élément" } else { self.ligne.as_str() }),
         });
         if !self.champs.is_empty() {
             d["forme_libelle"] = json!("sous-objet : ses cases sont dans `champs`, une autre cle se refuse");

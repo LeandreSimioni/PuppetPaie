@@ -335,7 +335,18 @@ fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Value>, anomali
         n => json!(format!("{} champs à corriger", n)),
     };
     let erreurs_note = if erreurs > 1 { "marqués ci-dessous" } else { "marqué ci-dessous" };
+    // Ce que la ligne de la fiche dit, dans la liste : ce qui l'identifie (le metier et le matricule d'un salarie, le
+    // numero d'objet et le code analytique d'un spectacle), et le geste qui l'archive ou la reactive.
+    let lu = |k: &str| comble.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let quoi = match nom {
+        "salarie" => [if lu("emploi_affichage").is_empty() { lu("emploi") } else { lu("emploi_affichage") }, if lu("code_salarie").is_empty() { String::new() } else { format!("matricule {}", lu("code_salarie")) }],
+        _ => [lu("numero_objet"), if lu("code_analytique").is_empty() { String::new() } else { format!("analytique {}", lu("code_analytique")) }],
+    };
+    let quoi_dit = quoi.into_iter().filter(|s| !s.is_empty()).collect::<Vec<_>>().join(" · ");
+    let geste_dit = if comble.get("actif") == Some(&Value::Bool(false)) { "Réactiver" } else { "Archiver" };
+    let matricule_dit = (nom == "salarie" && !lu("code_salarie").is_empty()).then(|| format!("matricule {}", lu("code_salarie")));
     Ok(json!({
+        "quoi_dit": quoi_dit, "geste_dit": geste_dit, "matricule_dit": matricule_dit,
         "titre_dit": titre_dit, "erreurs_titre": erreurs_titre, "erreurs_note": erreurs_note,
         "nom": nom, "cle": cle, "donnees": brut(&Value::Object(comble)),
         "declare": declare, "anomalies": anomalies, "derives": derives, "pastille": pastille, "sans_titre": sans_titre,
@@ -652,7 +663,12 @@ fn configuration(ctx: &Contexte) -> R<Value> {
         format!("compteurs {} — bulletin {} · AEM {} · CS {}", an, n("bulletin"), n("aem"), n("certificat_cs"))
     });
     let fiches_attendues_titre = format!("{} fiche(s) en attente", fiches_attendues(ctx)?.as_array().map_or(0, Vec::len));
+    // Les mots de la liste des fiches, par sorte : le bouton qui en ajoute une, la liste vide, la case des archives ; et
+    // le mot d'une valeur trouvee dans l'historique d'une fiche.
+    let liste = |un: &str, les: &str| json!({"nouvelle": format!("+ un {}", un), "aucun": format!("Aucun {} actif", un), "archives": format!("Afficher les {} archivés", les)});
+    let ecran = json!({"salarie": liste("salarié", "salariés"), "spectacle": liste("spectacle", "spectacles"), "ancienne": "ancienne valeur"});
     Ok(json!({
+        "ecran": ecran,
         "fiches_attendues_titre": fiches_attendues_titre,
         "compteurs_dit": compteurs_dit,
         "deduction_forfaitaire": deduction,

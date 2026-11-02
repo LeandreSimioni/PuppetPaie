@@ -98,6 +98,9 @@ function dessinerConfig() {
       String(a.donnees.numero_objet || "")));
   const rangees = [...courantes, ...archivees];
   const salarie = FICHE_ACTIVE === "salarie";
+  // Les mots de la liste, tels que le moteur les dit pour cette sorte de fiche (`configuration.ecran`).
+  const ecran = (ETAT.configuration.ecran || {});
+  const mots = ecran[FICHE_ACTIVE] || {};
 
   // UN SPECTACLE, PAS UNE FICHE PAR NUMÉRO. Une fiche archivée du
   // même titre qu'un spectacle actif (un ancien numéro) se montre sous lui,
@@ -135,9 +138,6 @@ function dessinerConfig() {
     // Un numéro d'objet importé sans titre : le moteur le dit (`sans_titre`),
     // la ligne le dit en minuscules.
     const aCompleter = !salarie && sansTitre(f);
-    const quoi = salarie
-      ? [d.emploi_affichage || d.emploi || "", d.code_salarie ? "matricule " + d.code_salarie : ""]
-      : [d.numero_objet || "", d.code_analytique ? "analytique " + d.code_analytique : ""];
     const autresNumeros = !salarie && !archive && !trouve ? (passees[titreDe(d)] || [])
       .slice().sort((a, b) => String(b.donnees.numero_objet || "").localeCompare(
         String(a.donnees.numero_objet || ""))) : [];
@@ -147,15 +147,16 @@ function dessinerConfig() {
       <div class="rang-infos">
         <b class="rang-nom">${aCompleter ? `<span class="a-completer">titre à compléter</span>`
           : echapper(titre || f.cle)}</b>
-        ${echapper(quoi.filter(Boolean).join(" · "))}
-        ${trouve ? `<span class="trouve">trouvé dans ${echapper(trouve.ou)} « ${echapper(trouve.quoi)} »</span>` : ""}
-        ${autresNumeros.length ? `<span class="annees">anciens numéros
+        ${echapper(f.quoi_dit || "")}
+        ${trouve ? `<span class="trouve">${echapper(trouve.ou)} : ${echapper(trouve.quoi)}${
+          trouve.ancienne ? ` <span class="discret">${echapper(ecran.ancienne)}</span>` : ""}</span>` : ""}
+        ${autresNumeros.length ? `<span class="annees"><span>anciens numéros</span>
           ${autresNumeros.map((p) => `<button class="lien" data-ouvrir="${echapper(p.cle)}">${
             echapper(p.donnees.numero_objet || p.cle)}</button>`).join(" · ")}</span>` : ""}
       </div>
       <div class="rang-etat">${etat}</div>
       <div class="rang-actions">
-        <button class="lien" data-activer="${archive ? "oui" : "non"}">${archive ? "Réactiver" : "Archiver"}</button>
+        <button class="lien" data-activer="${archive ? "oui" : "non"}">${echapper(f.geste_dit)}</button>
       </div>
     </div>`;
   };
@@ -172,8 +173,7 @@ function dessinerConfig() {
       <input type="search" id="config-recherche" class="recherche" autocomplete="off"
         value="${echapper(RECHERCHE[FICHE_ACTIVE] || "")}"
         placeholder="Rechercher">
-      <button class="secondaire" id="config-nouvelle">+ ${salarie
-        ? "un salarié" : "un spectacle"}</button>
+      <button class="secondaire" id="config-nouvelle">${echapper(mots.nouvelle || "+")}</button>
     </div>
     <div id="config-rangs"></div>`
     + (salarie ? fichesAttenduesHtml() : "");
@@ -193,15 +193,15 @@ function dessinerConfig() {
   const plat = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const valeurs = (f) => {
     const out = [];
-    const ajouter = (ou, v, champ) => {
+    const ajouter = (ou, v, champ, ancienne = false) => {
       if (v === null || v === undefined || v === "" || typeof v === "boolean") return;
       if (typeof v === "object") {
-        Object.entries(v).forEach(([k, x]) => { if (!k.startsWith("_")) ajouter(ou, x, champ); });
+        Object.entries(v).forEach(([k, x]) => { if (!k.startsWith("_")) ajouter(ou, x, champ, ancienne); });
         return;
       }
       const t = String(v);
-      out.push({ ou, champ, quoi: t });
-      if (/^\d{4}-\d{2}-\d{2}$/.test(t)) out.push({ ou, champ, quoi: jjmmaaaa(t) });
+      out.push({ ou, champ, quoi: t, ancienne });
+      if (/^\d{4}-\d{2}-\d{2}$/.test(t)) out.push({ ou, champ, quoi: jjmmaaaa(t), ancienne });
     };
     // La forme lisible d'abord (« Avallon »), la forme déclarée ensuite
     // (« AVALLON ») : c'est la première trouvée que la ligne cite.
@@ -212,7 +212,7 @@ function dessinerConfig() {
         ajouter(libelleDe(k), v, k);
       });
     (f.donnees.historique || []).forEach((h) =>
-      ajouter(libelleDe(h.champ) && libelleDe(h.champ) + " (ancienne valeur)", h.valeur, h.champ));
+      ajouter(libelleDe(h.champ), h.valeur, h.champ, true));
     return out.map((x) => ({ ...x, cle: plat(x.quoi), serre: plat(x.quoi).replace(/\s+/g, "") }));
   };
   const chercher = (f, mots) => {
@@ -251,10 +251,10 @@ function dessinerConfig() {
     } else {
       cible.innerHTML = `${courantes.length
           ? `<div class="rangs">${courantes.map((f) => rangHtml(f)).join("")}</div>`
-          : `<p class="discret">${salarie ? "Aucun salarié actif" : "Aucun spectacle actif"}</p>`}
+          : `<p class="discret">${echapper(mots.aucun || "")}</p>`}
         ${archiveesSeules.length ? `<label class="coche montrer-archives">
             <input type="checkbox" id="config-archives"${voirArchives ? " checked" : ""}>
-            ${salarie ? "Afficher les salariés archivés" : "Afficher les spectacles archivés"}
+            ${echapper(mots.archives || "")}
             <span class="discret">(${archiveesSeules.length})</span></label>
           ${voirArchives ? archivesHtml() : ""}` : ""}`;
       const caseArchives = document.getElementById("config-archives");
@@ -434,16 +434,13 @@ async function importerDepuisLeGuide() {
    l'historique (`contrats`). Puis ce qui attend l'éditeur (`editeur`). */
 function vueEtatImportation(e) {
   if (!e) return "";
-  const reprises = e.reprises || [];
-  const le = [e.importe_le, ...reprises.map((r) => r.le)].filter((x) => x).sort().pop();
   const repris = e.repris_dit ? `<div class="rang">
-      <div class="rang-infos"><b class="rang-nom">Historique repris${le ? ` le ${echapper(jjmmaaaa(le))}` : ""}</b>
+      <div class="rang-infos"><b class="rang-nom">${echapper(e.repris_titre || "")}</b>
         ${echapper(e.repris_dit)}</div>
       <div class="rang-etat">${pastilleDeLEtat(e.pastille_repris)}</div>
     </div>` : "";
   const editeur = (e.editeur || []).map((x) => `<div class="rang">
-      <div class="rang-infos"><b class="rang-nom">${x.canal === "signalement" ? "Message à l'éditeur" : "Incident"}${
-        x.quand ? ` du ${echapper(quand(x.quand))}` : ""}</b>${echapper(x.resume || "")}</div>
+      <div class="rang-infos"><b class="rang-nom">${echapper(x.titre_dit || "")}</b>${echapper(x.resume || "")}</div>
       <div class="rang-etat">${pastilleDeLEtat(x.pastille)}</div>
     </div>`).join("");
   return repris + vueNaturesADire(e.a_dire)
@@ -462,7 +459,7 @@ function vueNaturesADire(liste) {
     debut: (x) => `<label>Début du contrat <input type="date" data-nature-champ="debut"></label>`,
     fin: (x) => `<label>Fin prévue <input type="date" data-nature-champ="fin"></label>`,
     numero: (x) => `<label title="${aideDe("import_numero")}">Numéro du contrat
-        <input type="text" data-nature-champ="numero" placeholder="sur la DSN ${echapper(x.au_dit)}"></label>`,
+        <input type="text" data-nature-champ="numero" placeholder="${echapper(x.numero_placeholder)}"></label>`,
     salaire: (x) => `<label>Salaire mensuel brut <input type="number" step="0.01" min="0" data-nature-champ="salaire"
         placeholder="celui du contrat signé"></label>`,
     quotite: (x) => `<label title="${aideDe("import_quotite")}">Heures par mois
@@ -475,7 +472,7 @@ function vueNaturesADire(liste) {
         <div class="e-contrat-champs" data-nature-cases hidden>${["debut", "fin", "numero", "salaire", "quotite"].map((c) =>
           `<span data-nature-case="${c}" hidden>${CASES[c](x)}</span>`).join("")}</div></div>
       <div class="rang-etat" style="display:flex;gap:6px;align-items:center">
-        <select data-nature-choix aria-label="Nature du contrat de ${echapper(x.nom)}">
+        <select data-nature-choix aria-label="${echapper(x.choix_dit)}">
           <option value="">— choisir —</option>
           ${(x.natures || []).map((n) => `<option value="${echapper(n.cle)}"
              data-demande="${echapper((n.demande || []).join(" "))}">${echapper(n.libelle)}</option>`).join("")}
@@ -582,11 +579,10 @@ function compteRenduImport(tri, pastilles) {
     .map(([s, n]) => `${pastilleSort(s, pastilles)} ${n}`).join(" &nbsp; ");
   const lignes = tri.fichiers.map((f) => {
     const pages = f.pages && f.pages.length > 1
-      ? `<details class="relire"><summary>${f.pages.length} pages</summary>${f.pages.map((p) =>
-          `<div class="acte-dernier">page ${p.page}${p.mois ? ` (${echapper(moisEnClair(p.mois))})` : ""}
+      ? `<details class="relire"><summary>${echapper(f.pages_dit)}</summary>${f.pages.map((p) =>
+          `<div class="acte-dernier">${echapper(p.page_dit)}
              ${pastilleSort(p.sort, pastilles)} ${echapper(p.raison || "")}</div>`).join("")}</details>` : "";
-    const de = f.doublon_de ? ` <span class="discret">(copie de ${echapper(f.doublon_de)})</span>`
-      : f.archive ? ` <span class="discret">(dans ${echapper(f.archive)})</span>` : "";
+    const de = f.de_dit ? ` <span class="discret">${echapper(f.de_dit)}</span>` : "";
     return `<tr><td>${echapper(f.chemin)}${de}</td><td style="white-space:nowrap">${pastilleSort(f.sort, pastilles)}</td>
       <td>${echapper(f.raison || "")}${pages}</td></tr>`;
   }).join("");
@@ -612,15 +608,14 @@ function piecesImportees(c, titre) {
 /* Les écarts entre un bulletin et ce que la DSN (ou l'historique) disait
    de la même paie : le bulletin fait foi sur les montants, l'écart est
    noté (`tri.fichiers[].pages[].ecarts`). */
-const CHAMPS_PAIE = { brut: "brut", net_imposable: "net imposable", net_a_payer: "net à payer", pas: "prélèvement à la source" };
 function ecartsBulletinDsn(tri) {
   const lignes = [];
   for (const f of (tri && tri.fichiers) || []) {
     for (const p of f.pages || []) {
       for (const e of p.ecarts || []) {
-        lignes.push(`<tr><td>${echapper(f.chemin)}${f.pages.length > 1 ? `, page ${p.page}` : ""}</td>
+        lignes.push(`<tr><td>${echapper(p.ou_dit)}</td>
           <td>${echapper(moisEnClair(p.mois || ""))}</td>
-          <td>${echapper(CHAMPS_PAIE[e.champ] || e.champ)}</td>
+          <td>${echapper(e.champ_dit)}</td>
           <td class="nombre">${echapper(e.valeur == null ? "" : e.valeur)}</td>
           <td class="nombre">${echapper(e.bulletin == null ? "" : e.bulletin)}</td>
           <td>${pastilleDeLEtat(e.pastille)}</td></tr>`);
@@ -672,7 +667,7 @@ function vueImportation(r) {
          <span class="note">${aideDe("import_avant_clic")}</span></p>`;
   return `${vueNonRepris((r.tri || {}).non_repris, r.pastilles)}
     ${compteRenduImport(r.tri, r.pastilles)}
-    <h3>${r.ecrit ? "Repris" : "Serait repris"}</h3>
+    <h3>${echapper(r.titre_dit)}</h3>
     <div class="encart"><b>Déclarations</b>
       ${echapper(r.declarations_dit || "")}</div>
     ${bulletinsImportes(r.bulletins)}
@@ -946,7 +941,7 @@ function structureHtml(c, v, sous, a, avecPermanents) {
         ${lignes.map((l, i) => ligneStructure(c.cle, sous, l, i)).join("")}
       </div>
       <button type="button" class="secondaire ajouter-ligne"
-        data-ajouter="${echapper(c.cle)}">+ Ajouter un ${echapper(sous.ligne || "élément")}</button>`;
+        data-ajouter="${echapper(c.cle)}">${echapper(sous.ajouter || "+")}</button>`;
   } else {
     const o = (v && typeof v === "object" && !Array.isArray(v)) ? v : {};
     corps = `<div class="sous-champs">${sous.champs.map(([k, lib, aide, genre = {}]) => {
@@ -1121,13 +1116,13 @@ async function dessinerMetiers(cible) {
       && (!filtre || sansAccent(m.libelle).includes(filtre) || sansAccent(m.code).includes(filtre)));
     const familles = [...new Set(vus.map((m) => m.famille))];
     const retenus = r.metiers.filter((m) => m.retenu).length;
-    document.getElementById("metiers-compte").textContent =
-      `${retenus} métier${retenus > 1 ? "s" : ""} coché${retenus > 1 ? "s" : ""}`;
+    document.getElementById("metiers-compte").innerHTML =
+      `<span>Métiers cochés</span> <b>${retenus}</b>`;
     document.getElementById("metiers-liste").innerHTML = familles.length ? familles.map((f) => {
       const dedans = vus.filter((m) => m.famille === f);
       const n = dedans.filter((m) => m.retenu).length;
       return `<details class="metiers-famille" data-famille="${echapper(f)}"${filtre ? " open" : ""}>
-        <summary><b>${echapper(f)}</b> <span class="discret">${n} coché${n > 1 ? "s" : ""} sur ${dedans.length}</span></summary>
+        <summary><b>${echapper(f)}</b> <span class="discret">${n} / ${dedans.length}</span></summary>
         <div class="metiers-colonnes">${dedans.map((m) => `
           <label class="coche" title="${echapper(m.code)}${m.de ? " — " + echapper(m.de) : ""}">
             <input type="checkbox" data-code="${echapper(m.code)}"${m.retenu ? " checked" : ""}>
@@ -1248,7 +1243,7 @@ async function ouvrirOptionDfs() {
 function ATMP_HTML() {
   const an = anneeDuJour();
   return `<div class="encart" id="config-atmp" data-annee="${an}">
-    <h4>Accidents du travail (AT/MP) ${an}</h4>
+    <h4>Accidents du travail (AT/MP) — ${an}</h4>
     <p id="atmp-resume"></p>
     <p class="note" id="atmp-libelle"></p>
     <p class="aide" id="atmp-explication"></p>
@@ -1363,7 +1358,7 @@ function enteteSalarie(fiche) {
   if (fiche.cle) {
     return `<div class="entete-fiche">
       <h2>${echapper(nom || fiche.cle)}
-        ${d.code_salarie ? `<span class="discret">— matricule ${echapper(d.code_salarie)}</span>` : ""}</h2>
+        ${fiche.matricule_dit ? `<span class="discret">— ${echapper(fiche.matricule_dit)}</span>` : ""}</h2>
       <button type="button" class="secondaire petit" id="config-exporter">Exporter ses documents</button>
     </div>
     <div class="cout-annee" data-cote="salaries" data-cle="${echapper(fiche.cle)}"></div>
@@ -1426,7 +1421,7 @@ async function boiteSuppression() {
        <p><button type="button" class="secondaire" id="sup-sauvegarder">Sauvegarder maintenant</button>
        <span class="discret" id="sup-sauvegarde-etat"></span></p>`
     : "";
-  ouvrirBoite(`<h3>Supprimer ${echapper(q.nom)} ?</h3>
+  ouvrirBoite(`<h3>${echapper(q.titre_dit)}</h3>
     <p>${echapper(q.avertissement)}</p>
     ${reelle ? `<p>${echapper(q.conservation)}</p>` : ""}
     ${sauvegarde}

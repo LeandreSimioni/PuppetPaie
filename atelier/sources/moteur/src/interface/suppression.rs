@@ -105,7 +105,9 @@ pub fn question(racine: &Path) -> Result<Value, String> {
         Ok(g) => g,
         Err(phrase) => return Ok(json!({"nom": compagnies::nom_de(racine), "phrase": phrase})),
     };
-    let mut v = json!({"nom": compagnies::nom_de(racine), "genre": if g == Genre::Ajoutee { "ajoutee" } else { "reelle" }, "mot_de_passe": g == Genre::Reelle});
+    let nom = compagnies::nom_de(racine);
+    let titre_dit = format!("Supprimer {} ?", nom);
+    let mut v = json!({"nom": nom, "titre_dit": titre_dit, "genre": if g == Genre::Ajoutee { "ajoutee" } else { "reelle" }, "mot_de_passe": g == Genre::Reelle});
     if g == Genre::Reelle {
         v["conservation"] = json!(CONSERVATION);
         let liee = racine.join("config").join(crate::routes::coffre::FICHIER_JETON).is_file();
