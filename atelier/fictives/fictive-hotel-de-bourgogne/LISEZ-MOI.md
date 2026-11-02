@@ -16,8 +16,8 @@ leurs vrais débuts, chaque série d'intermittents validée la veille, DPAE, con
 papiers en sont tirés :
 
 - **les bulletins** : un par paie (un contrat, un mois), ses lignes telles que PuppetPaie les a payées (rubrique, quantité,
-  taux), sa période, ses jours travaillés, son numéro d'objet et le taux de PAS qu'il a appliqué ; les cotisations sont
-  celles du faux logiciel (`fabriquer_bulletins.rs`), que l'import ne recalcule pas ;
+  taux), sa période, ses jours travaillés, son numéro d'objet, ses cotisations, son net imposable et l'impôt prélevé,
+  tels que PuppetPaie les a calculés : bulletins et DSN de décembre disent la même chose ;
 - **la DSN de décembre 2025** : celle que PuppetPaie a fabriquée et déposée en jouant décembre, octet pour octet (fins de
   ligne CRLF comprises), sauf l'identité du logiciel émetteur (S10.G00.00.001 à .003 : « GHS », « sPAIEctacle »,
   « 12.4.0 »). Une compagnie n'apporte souvent que sa dernière DSN : c'est une **donnée** fixe, que rien du moteur ne
@@ -28,7 +28,7 @@ papiers en sont tirés :
 Une compagnie ajoutée « D'un logiciel précédent » au 02/01/2026 qui importe `papiers-2025/` reprend : la fiche de
 l'entreprise et les huit salariés (noms accentués), deux spectacles par leur numéro d'objet (titre proposé d'après les
 bulletins), 74 contrats d'intermittents et 3 engagements de permanents (CH1.22.01 du 01/03/2022, MA2.22.01 du
-05/09/2022, CL3.24.01 du 08/01/2024, les numéros de la DSN de décembre), sans écart de compteurs. Les 11 bulletins de
+05/09/2022, CL3.24.01 du 08/01/2024, les numéros de la DSN de décembre), sans écart de compteurs ni de nets. Les 11 bulletins de
 décembre complètent les paies que la DSN déclare. Janvier 2026 continue les trois CDI sous leurs numéros. « Pour
 démarrer » demande ce que ni les bulletins ni la DSN ne portent : le compte Urssaf, la santé au travail, qui signe, la
 date de la première embauche, la taxe sur les salaires, les titres des spectacles, et les congés acquis des trois

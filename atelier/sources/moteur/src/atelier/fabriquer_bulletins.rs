@@ -11,6 +11,8 @@
 //! - des cotisations VRAISEMBLABLES (`COTISATIONS` : des taux d'un faux bulletin, ni relevés ni recalcules par le
 //!   moteur -- l'import ne recalcule rien, le bulletin fait foi) ; elles sont COHERENTES, comme le lecteur les controle :
 //!   net avant impot = brut - cotisations salariales + lignes non soumises ; net a payer = net avant impot - impot ;
+//!   quand la description porte les cotisations d'une paie (`cotisations`, `net_imposable`, `pas`), ce sont elles,
+//!   imprimees telles quelles : les bulletins disent alors ce que dit la DSN de la meme paie ;
 //! - le net imposable (le net avant impot hors non soumis, plus la CSG/CRDS non deductible), le PAS au taux donne ;
 //! - les cumuls de l'annee par salarie (cachets, heures, jours, brut, plafond, cout employeur, net imposable, PAS), dans
 //!   l'ordre du temps, tels que `bulletin_lu::compteurs` les confronte aux lignes : ils s'accordent.
@@ -188,6 +190,25 @@ struct Bulletin {
     taux_pas: Decimal,
     regle_le: Jour,
     numero: Option<String>,
+    /// Ce que la paie a calcule, quand la description le porte : le bulletin l'imprime au lieu de le calculer.
+    paie: Option<Paie>,
+}
+
+/// Les cotisations, le net imposable et l'impot preleve d'une paie (les `lignes` d'une paie de PuppetPaie, telles quelles).
+struct Paie {
+    cotisations: Vec<CotisationPayee>,
+    net_imposable: Decimal,
+    pas: Decimal,
+}
+
+struct CotisationPayee {
+    /// La cle de sa famille (`familles` de la table de lecture).
+    famille: &'static str,
+    libelle: String,
+    base: Option<Decimal>,
+    taux_salarie: Option<Decimal>,
+    montant_salarie: Decimal,
+    montant_employeur: Decimal,
 }
 
 fn texte(v: &Value, cle: &str, ou: &str) -> Resultat<String> {
@@ -347,7 +368,7 @@ fn calculer(b: &Bulletin, avant: &Cumuls) -> Resultat<Calcule> {
     let assiette_csg = eur2(brut * ASSIETTE_CSG.parse::<Decimal>().unwrap_or_default());
     let mut cotisations = Vec::new();
     let (mut total_e, mut total_s, mut csg_non_deductible) = (Decimal::ZERO, Decimal::ZERO, Decimal::ZERO);
-    for (cle, base, ei, si, ep, sp) in COTISATIONS {
+    for (cle, base, ei, si, ep, sp) in COTISATIONS.iter().copied().filter(|_| b.paie.is_none()) {
         let (te, ts) = if b.permanent { (ep, sp) } else { (ei, si) };
         if te.is_empty() && ts.is_empty() {
             continue;
@@ -365,11 +386,20 @@ fn calculer(b: &Bulletin, avant: &Cumuls) -> Resultat<Calcule> {
         }
         cotisations.push((cle, assiette, te, me, ts, ms));
     }
+    if let Some(p) = &b.paie {
+        total_e = p.cotisations.iter().map(|c| c.montant_employeur).sum();
+        total_s = p.cotisations.iter().map(|c| c.montant_salarie).sum();
+    }
     let non_soumis: Decimal = b.non_soumis.iter().map(|l| l.montant).sum();
     let net_social = brut - total_s;
     let net_avant_impot = net_social + non_soumis;
-    let net_imposable = net_social + csg_non_deductible;
-    let pas = socle::num::pct(net_imposable, b.taux_pas);
+    let (net_imposable, pas) = match &b.paie {
+        Some(p) => (p.net_imposable, p.pas),
+        None => {
+            let n = net_social + csg_non_deductible;
+            (n, socle::num::pct(n, b.taux_pas))
+        }
+    };
     let cout = brut + total_e + non_soumis;
     let cachets: Decimal = b.lignes.iter().map(|l| l.cachets).sum();
     let heures: Decimal = b.lignes.iter().map(|l| l.heures).sum();
@@ -555,6 +585,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
             taux_pas: b.get("taux_pas").map(socle::num::dec).transpose().map_err(|m| format!("{} : `taux_pas` : {}", ou, m))?.unwrap_or_default(),
             regle_le: if b.get("regle_le").is_some() { jour(b, "regle_le", &ou)? } else { fin },
             numero: texte_ou(b, "numero"),
+            paie: lire_paie(b, &g, &gabarit, &ou)?,
         });
     }
 
@@ -562,6 +593,51 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
         return Err("`plafonds` ne se donne plus : le plafond de la Sécurité sociale se lit dans le barème livré ou la table du BOSS déposée".into());
     }
     Ok(Description { gabarit, entreprise: e, salaries, bulletins })
+}
+
+/// Les cotisations d'une paie (`cotisations` : les `lignes` d'une paie de PuppetPaie, `famille`, `libelle`, `base`,
+/// `taux_sal`, `montant_sal`, `montant_pat`, `masquer_base_et_taux`), son `net_imposable` et son impot preleve (`pas`) :
+/// les trois ensemble, ou aucun.
+fn lire_paie(b: &Value, g: &Table, gabarit: &str, ou: &str) -> Resultat<Option<Paie>> {
+    let Some(liste) = b.get("cotisations") else {
+        if b.get("net_imposable").is_some() || b.get("pas").is_some() {
+            return Err(format!("{} : `net_imposable` et `pas` vont avec les `cotisations` de la paie", ou));
+        }
+        return Ok(None);
+    };
+    if gabarit != "spaiectacle" {
+        return Err(format!("{} : les cotisations d'une paie ne s'impriment qu'au gabarit sPAIEctacle", ou));
+    }
+    let liste = liste.as_array().filter(|l| !l.is_empty()).ok_or_else(|| format!("{} : `cotisations` : une liste non vide", ou))?;
+    let mut cotisations = Vec::new();
+    for (k, c) in liste.iter().enumerate() {
+        let ouc = format!("{} : cotisation {}", ou, k + 1);
+        let titre = texte(c, "famille", &ouc)?;
+        let famille = g
+            .famille_nommee(&titre)
+            .and_then(|f| FAMILLES_B.iter().find(|(x, _)| *x == f).map(|(x, _)| *x))
+            .ok_or_else(|| format!("{} : la famille « {} » n'en est pas une que le bulletin imprime dans son total", ouc, titre))?;
+        let libelle = texte(c, "libelle", &ouc)?;
+        if g.cotisation(&libelle).is_none() {
+            return Err(format!("{} : « {} » n'est pas une cotisation de la table de lecture : ajoutez-la à `cotisations`", ouc, libelle));
+        }
+        let facultatif = |cle: &str| -> Resultat<Option<Decimal>> {
+            match c.get(cle) {
+                None | Some(Value::Null) => Ok(None),
+                Some(v) => socle::num::dec(v).map(Some).map_err(|m| format!("{} : `{}` : {}", ouc, cle, m)),
+            }
+        };
+        let masquee = c.get("masquer_base_et_taux").and_then(Value::as_bool).unwrap_or(false);
+        cotisations.push(CotisationPayee {
+            famille,
+            libelle,
+            base: if masquee { None } else { facultatif("base")? },
+            taux_salarie: if masquee { None } else { facultatif("taux_sal")? },
+            montant_salarie: facultatif("montant_sal")?.unwrap_or_default(),
+            montant_employeur: facultatif("montant_pat")?.unwrap_or_default(),
+        });
+    }
+    Ok(Some(Paie { cotisations, net_imposable: nombre(b, "net_imposable", ou)?, pas: nombre(b, "pas", ou)? }))
 }
 
 // --------------------------------------------------------------------------------------------- les pages
@@ -629,6 +705,74 @@ fn libelle_b(cle: &str) -> (Option<&'static str>, f64, &'static str, &'static st
         "csg_deductible" => (None, 39.0, "CSG déductible de l'impôt sur le revenu", "csg"),
         _ => (None, 39.0, "CSG/CRDS non déductible de l'impôt sur le revenu", "csg"),
     }
+}
+
+/// Comment sPAIEctacle imprime une famille de cotisations, au modele du bulletin clarifie (arrete du 25 fevrier 2016,
+/// art. 1, I : `atelier/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml`) :
+/// la sante et la retraite, un titre puis leurs lignes ; la CSG, ses lignes ; toute autre famille, un rang qui la nomme.
+#[derive(Clone, Copy, PartialEq)]
+enum RenduB {
+    Titre(&'static str),
+    Lignes,
+    Rang(&'static str),
+}
+
+const FAMILLES_B: [(&str, RenduB); 10] = [
+    ("sante", RenduB::Titre("Santé")),
+    ("accidents_du_travail", RenduB::Rang("Accidents du travail & maladies professionnelles")),
+    ("retraite", RenduB::Titre("Retraite")),
+    ("famille", RenduB::Rang("Famille")),
+    ("assurance_chomage", RenduB::Rang("Assurance chômage")),
+    ("autres_contributions", RenduB::Rang("Autres charges dues par l\u{2019}employeur")),
+    ("conges_spectacles", RenduB::Rang("Congés Spectacles")),
+    ("cotisations_conventionnelles", RenduB::Rang("Cotisations statutaires ou prévues par la convention collective")),
+    ("csg", RenduB::Lignes),
+    ("exonerations", RenduB::Rang("Exonérations et allègements de cotisations")),
+];
+
+fn rendu_b(famille: &str) -> RenduB {
+    FAMILLES_B.iter().find(|(k, _)| *k == famille).map(|(_, r)| *r).unwrap_or(RenduB::Lignes)
+}
+
+/// Les rangs sPAIEctacle des cotisations d'une paie, famille par famille, dans l'ordre de la paie. Un montant nul ne
+/// s'imprime pas ; une ligne sans aucun montant non plus (elle se lirait comme un titre).
+fn rangs_de_la_paie(p: &Paie) -> Vec<RangB<String>> {
+    let mut out: Vec<RangB<String>> = Vec::new();
+    let montant = |x: Decimal| if x.is_zero() { String::new() } else { fr(x) };
+    let mut k = 0;
+    while k < p.cotisations.len() {
+        let famille = p.cotisations[k].famille;
+        let n = p.cotisations[k..].iter().take_while(|c| c.famille == famille).count();
+        let groupe: Vec<&CotisationPayee> = p.cotisations[k..k + n].iter().filter(|c| !(c.montant_salarie.is_zero() && c.montant_employeur.is_zero())).collect();
+        k += n;
+        if groupe.is_empty() {
+            continue;
+        }
+        let seule = |x: f64, c: &CotisationPayee| -> RangB<String> {
+            let taux = c.taux_salarie.filter(|_| !c.montant_salarie.is_zero()).map(taux3).unwrap_or_default();
+            (x, c.libelle.clone(), famille, c.base.map(fr).unwrap_or_default(), taux, montant(c.montant_salarie), montant(c.montant_employeur))
+        };
+        match rendu_b(famille) {
+            RenduB::Titre(t) => {
+                out.push((39.0, t.into(), "", String::new(), String::new(), String::new(), String::new()));
+                out.extend(groupe.iter().map(|c| seule(74.0, c)));
+            }
+            RenduB::Lignes => out.extend(groupe.iter().map(|c| seule(39.0, c))),
+            RenduB::Rang(libelle) if groupe.len() == 1 => {
+                let mut r = seule(39.0, groupe[0]);
+                r.1 = libelle.into();
+                out.push(r);
+            }
+            RenduB::Rang(libelle) => {
+                let bases: BTreeSet<Option<Decimal>> = groupe.iter().map(|c| c.base).collect();
+                let base = if bases.len() == 1 { bases.into_iter().next().flatten().map(fr).unwrap_or_default() } else { String::new() };
+                let s: Decimal = groupe.iter().map(|c| c.montant_salarie).sum();
+                let e: Decimal = groupe.iter().map(|c| c.montant_employeur).sum();
+                out.push((39.0, libelle.into(), famille, base, String::new(), montant(s), montant(e)));
+            }
+        }
+    }
+    out
 }
 
 fn dates_a(dates: &[(Jour, Jour)]) -> Resultat<Vec<String>> {
@@ -705,7 +849,7 @@ fn page_coolpaie(d: &Description, b: &Bulletin, c: &Calcule, numero: String) -> 
 fn page_spaiectacle(d: &Description, b: &Bulletin, c: &Calcule) -> Resultat<Vec<Value>> {
     let s = &d.salaries[b.salarie];
     let vide = String::new;
-    let mut cotisations: Vec<RangB<String>> = Vec::new();
+    let mut cotisations: Vec<RangB<String>> = b.paie.as_ref().map(rangs_de_la_paie).unwrap_or_default();
     for (cle, base, _, me, ts, ms) in &c.cotisations {
         let (titre, x, libelle, famille) = libelle_b(cle);
         if let Some(t) = titre {

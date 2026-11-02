@@ -687,6 +687,11 @@ impl Table {
         self.cotisations.iter().find(|(_, l)| l.iter().any(|x| *x == c)).map(|(k, _)| k.as_str())
     }
 
+    /// La famille (`familles` de la table) que le titre imprime `libelle` nomme ; `None` : un titre qu'elle ne connait pas.
+    pub fn famille_nommee(&self, libelle: &str) -> Option<&str> {
+        self.famille(&canon(libelle))
+    }
+
     fn famille(&self, libelle: &str) -> Option<&str> {
         self.familles.iter().find(|(_, t)| t.iter().any(|x| x == libelle)).map(|(c, _)| c.as_str())
     }

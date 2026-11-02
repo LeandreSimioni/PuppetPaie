@@ -167,6 +167,7 @@ commune 999 à clé juste ; rien de réel) :
 | `objet` | `{"numero", "titre"}` : le spectacle (numéro d'objet), pour un CDDU |
 | `lignes` | `{"libelle", "quantite", "taux"}` ; libellés du gabarit : `Cachets isolés`, `Cachets groupés`, `Heures`, `Service(s) répét. 4h (contrat<5j)` et `Masterclass / Action Culturelle` (CoolPaie), `Service de répétition 4 heures` (sPAIEctacle) |
 | `non_soumis` | sPAIEctacle seulement : `Défraiement non soumis`, `Prime de panier non soumise`, `Acompte` |
+| `cotisations`, `net_imposable`, `pas` | sPAIEctacle seulement, les trois ensemble : ce qu'une paie de PuppetPaie a calculé (ses `lignes` telles quelles : `famille`, `libelle`, `base`, `taux_sal`, `montant_sal`, `montant_pat`, `masquer_base_et_taux` ; son net imposable ; l'impôt prélevé), que le bulletin imprime au lieu de ses cotisations vraisemblables ; la santé et la retraite ligne à ligne, toute autre famille sur un rang, comme le bulletin clarifié |
 | `taux_pas`, `regle_le`, `numero`, `analytique` | facultatifs : le taux du PAS (0), le jour du règlement (`fin`), le numéro CoolPaie (`k/année`), la case « Analytique » de sPAIEctacle (par défaut : le titre de l'objet, comme sPAIEctacle l'y imprime) |
 
 Le gabarit se donne dans la description ou par `--gabarit` (qui l'emporte). Le « plafond Urssaf » imprimé se calcule

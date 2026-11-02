@@ -1849,6 +1849,30 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
             }
         }
     }
+    // UN NUMERO D'OBJET, UN SPECTACLE : France Travail l'attribue « pour chaque spectacle ou chaque production » et il
+    // « permet d'identifier toutes les personnes ayant travaille » dessus (S21.G00.40.050, `norme-dsn/texte/bloc-S21.G00.40.txt`,
+    // l. 1379-1385) ; deux fiches au meme numero se confondraient dans la DSN. `forcer` ne leve pas ce refus.
+    if nom == "spectacle" {
+        let numero = donnees.get("numero_objet").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+        let numero = numero.trim();
+        if !numero.is_empty() {
+            let porteur = ctx.spectacles.iter().find(|(k, s)| {
+                Some(k.as_str()) != cle.as_deref()
+                    && s.get("numero_objet").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().eq_ignore_ascii_case(numero)
+            });
+            if let Some((k, s)) = porteur {
+                let qui = match s.get("titre").filter(|t| !crate::import::completer::vide(Some(t))) {
+                    Some(t) => format!("du spectacle « {} » (fiche {})", valeur_en_texte(t), k),
+                    None => format!("de la fiche {}", k),
+                };
+                return Err(refus(format!(
+                    "Le numéro d'objet {} est déjà celui {}. Un numéro d'objet désigne un spectacle et un seul : complétez \
+cette fiche-là, ou corrigez le numéro.",
+                    numero, qui
+                )));
+            }
+        }
+    }
     let chemin = ctx.racine.join("config").join(fichier);
     if cle.as_deref().map_or(true, str::is_empty) && nom == "salarie" {
         // Le matricule d'une fiche neuve : le suivant. Un matricule saisi est garde tel quel.
