@@ -203,7 +203,7 @@ pub fn ecrire(ctx: &Contexte, paies: &[Paie], retenues: &[Ligne], motif: &str, m
         let texte = am::generer(ctx, &paies[l.indice], &options, &departs).map_err(|e| erreur("ErreurOperation", e.message().to_string()))?;
         let cible = dossier.join(format!("Amorcage{}_{}_{}.dsn", motif, l.salarie, constitution.aaaammjj()));
         declarations::dsn::ecrire(&texte, &cible).map_err(|m| erreur("OSError", m))?;
-        crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
+        crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None, None)?;
         fichiers.push(cible);
     }
     Ok(fichiers)

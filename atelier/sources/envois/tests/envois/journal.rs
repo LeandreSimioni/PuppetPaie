@@ -32,18 +32,38 @@ fn noter_ajoute_a_la_fin_et_lire_filtre() {
     let l1 = journal::noter(&d, &note("dsn"), "2026-10-03T10:00:00").unwrap();
     assert_eq!(l1["quand"], "2026-10-03T10:00:00");
     assert_eq!(l1["retours"], json!([]));
+    let avant = std::fs::read(journal::chemin(&d)).unwrap();
     let mut n2 = note("dpae");
     n2.mode = "test";
     journal::noter(&d, &n2, "2026-10-03T11:00:00").unwrap();
+    assert!(std::fs::read(journal::chemin(&d)).unwrap().starts_with(&avant), "ce qui etait ecrit au journal a ete reecrit");
     assert_eq!(journal::lire(&d, None, None, false).unwrap().len(), 2);
     assert_eq!(journal::lire(&d, Some("dpae"), None, false).unwrap().len(), 1);
     assert_eq!(journal::lire(&d, None, None, true).unwrap().len(), 1);
     assert_eq!(journal::lire(&d, Some(""), Some("2026-08"), false).unwrap().len(), 0);
+
+    // DEUX POSTES (regle 9 b) : chacun ajoute au meme journal ce qu'il a fait, et range le meme retour ; leurs journaux mis
+    // bout a bout disent tout, sans rien compter deux fois.
+    let e = dossier_de_test("journal", "second-poste");
+    std::fs::create_dir_all(e.join("journal")).unwrap();
+    std::fs::copy(journal::chemin(&d), journal::chemin(&e)).unwrap();
+    let retour = json!({"nature": "11", "publication": "P1", "statut": "fictive"});
+    for (poste, quoi) in [(&d, "documents"), (&e, "contrat-signature")] {
+        journal::noter(poste, &note(quoi), "2026-10-04T09:00:00").unwrap();
+        journal::rattacher(poste, |l| l["quoi"] == "dsn", retour.clone()).unwrap().unwrap();
+    }
+    let mut reunis = std::fs::read(journal::chemin(&d)).unwrap();
+    reunis.extend(std::fs::read(journal::chemin(&e)).unwrap());
+    std::fs::write(journal::chemin(&e), reunis).unwrap();
+    let lignes = journal::lire(&e, None, None, false).unwrap();
+    let quoi: Vec<&str> = lignes.iter().filter_map(|l| l["quoi"].as_str()).collect();
+    assert_eq!(quoi, ["dsn", "dpae", "documents", "contrat-signature"]);
+    assert_eq!(lignes[0]["retours"], json!([retour]));
 }
 
 #[test]
 fn l_empreinte_reste_comparable_a_celles_du_journal() {
-    // Les 16 premiers chiffres hexadecimaux du SHA-256, comme celles deja ecrites dans `depots.json`.
+    // Les 16 premiers chiffres hexadecimaux du SHA-256, comme celles deja ecrites au journal.
     assert_eq!(journal::empreinte(b"abc"), "ba7816bf8f01cfea");
     let d = dossier_de_test("journal", "empreinte");
     let f = d.join("DSN.dsn");

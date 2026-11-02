@@ -82,7 +82,7 @@ fictives), et ce que l'écran lit d'un mois : `apercu_dsn.rs`, `historique_mois.
    envois ── dépôt par l'API, signature, courriel, contre le mot de passe du logiciel
               │
               ▼
-   journal/depots.json ── ce qui est parti, sur quelle version de chaque
+   journal/depots.jsonl ─ ce qui est parti, sur quelle version de chaque
                           engagement, et ce que l'organisme en a dit
 ```
 
@@ -1449,7 +1449,7 @@ Trois garde-fous, tous dans le moteur (`moteur/src/compagnie/depot_acte.rs`, `mo
   Une déclaration **refusée** repart sans forcer —
   c'est la seule raison de la refaire.
 - **Un dépôt n'est pas fini quand il est parti.** `envois/src/journal.rs` écrit une ligne
-  par acte sortant dans `journal/depots.json` (dépôt, courriel, demande de
+  par acte sortant à la fin de `journal/depots.jsonl`, sans réécrire ce qui y est (un enregistrement par ligne ; dépôt, courriel, demande de
   signature ou contrat imprimé pour la main propre, documents), avec le `flux` rendu par le point de dépôt et, pour chaque engagement qu'il
   couvre, le numéro de la version sur laquelle il est parti (`journal::departs`, que le moteur passe à l'engagement) ;
   les retours relevés
@@ -1668,7 +1668,7 @@ et une année dont un mois avec des paies n'a pas de DSN réelle acceptée
 compta si besoin, puis `sorties/exercices/Exercice_<année>.zip` : `engagements/` (le fichier de chaque mois de l'année, et celui du mois où commence un engagement qui court dans l'année),
 chaque `sorties/<mois>/` en entier (les contrats signés sont dans `envoi/`),
 les retours dont le nom commence par l'année ou par janvier suivant (le
-bilan de la DSN de décembre arrive en janvier), `journal/depots.json`, les
+bilan de la DSN de décembre arrive en janvier), `journal/depots.jsonl`, les
 fiches de `config/` et le barème de l'année, `compta/`, un `LISEZ-MOI.txt`.
 Elle note dans `config/exercices.json` la date, l'archive, son empreinte
 SHA-256 et le nombre de fichiers. **Figer** vit dans le moteur

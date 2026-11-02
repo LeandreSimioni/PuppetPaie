@@ -131,7 +131,7 @@ pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str, departs: &engage
             }
             let lu = versement_declare::dernier_declare(ctx, d.valide.objet(), departs, &mois, mois_courant)
                 .map_err(|e| refus(&e))?
-                .ok_or_else(|| refus(&format!("aucune DSN partie (journal/depots.json) n'a declare ce contrat pour {}", mois)))?;
+                .ok_or_else(|| refus(&format!("aucune DSN partie (journal/depots.jsonl) n'a declare ce contrat pour {}", mois)))?;
             // Le taux du bloc 56 : celui de la paie declaree du mois d'origine.
             let taux_pas_origine = lu.versement.taux_pas.clone();
             out.push(Reg {
@@ -181,14 +181,14 @@ fn annulations(ctx: &Contexte, departs: &engagement::departs::Departs, mois: &st
     Ok(out)
 }
 
-/// LES VERSIONS QUE PORTENT LES CORRECTIONS de la DSN de `mois` pour l'etablissement `nic` : pour chaque correction
-/// qu'elle porte (`regularisations_pour`), la version presente de l'engagement du mois corrige, `{"salarie", "numero",
-/// "version", "mois": <le mois corrige>}`. Ce que la ligne du journal de son depot emporte.
-pub fn versions_portees(ctx: &Contexte, mois: &str, nic: &str, departs: &engagement::departs::Departs) -> R<Vec<Value>> {
+/// LES VERSIONS QUE PORTENT LES CORRECTIONS `regs` (`regularisations_pour`, lues par la fabrication de la DSN) pour
+/// l'etablissement `nic` : pour chacune, la version de l'engagement du mois corrige, `{"salarie", "numero", "version",
+/// "mois": <le mois corrige>}`. Ce que la DSN fabriquee dit porter, et ce que la ligne du journal de son depot emporte.
+pub fn versions_portees(ctx: &Contexte, regs: &[Reg], nic: &str) -> R<Vec<Value>> {
     let fiche = &ctx.entreprise;
     let plusieurs = !droit::bareme::secondaires(fiche).is_empty();
     let mut out = Vec::new();
-    for r in regularisations_pour(ctx, mois, departs)? {
+    for r in regs {
         if plusieurs && droit::bareme::etablissement_du_salarie(fiche, &r.apres.salarie).map_err(refus_valeur)? != nic {
             continue;
         }

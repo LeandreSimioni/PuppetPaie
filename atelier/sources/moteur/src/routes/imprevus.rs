@@ -1156,7 +1156,7 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         .collect();
     let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?).map_err(echec_fctu)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
-    crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
+    crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None, None)?;
     let preavis = declarations::fctu::libelle_preavis(&fin.type_preavis).map_err(plain)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
@@ -1254,7 +1254,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let texte = signalement::generer(ctx, &dsn_arret, &options, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?).map_err(echec)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
-    crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
+    crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None, None)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
         "phrase": phrase_du_signalement(if nature == signalement::ARRET { "Signalement d'arrêt écrit. Rien n'est parti." } else { "Signalement de reprise écrit. Rien n'est parti." }, &avertissements),

@@ -391,7 +391,7 @@ pub fn rattacher_simulation(ctx: &Contexte, suites: &mut Suites) -> R<i64> {
     // qu'un retour reel (`rattacher_retours_avec_contenus`), qui en lit le verdict.
     let mut pieces: Vec<crate::organismes_simules::Piece> = Vec::new();
     let mut lignes = crate::journal::lu(&ctx.racine).map(|j| j.lignes.to_vec())?;
-    let p = crate::journal::chemin(&ctx.racine);
+    let mut rangements: Vec<(usize, crate::journal::Rangement)> = Vec::new();
     let avant = crate::organismes_simules::memoire(&ctx.racine)?;
     let mut memoire = avant.clone();
     let maintenant = maintenant_naif();
@@ -445,13 +445,12 @@ pub fn rattacher_simulation(ctx: &Contexte, suites: &mut Suites) -> R<i64> {
                     retours.push(Value::Object(r46));
                 }
             }
+            rangements.extend(retours.iter().map(|r| (i, crate::journal::Rangement::Retour(r.clone()))));
             lignes[i]["retours"] = Value::Array(retours);
             faits += 1;
         }
     }
-    if faits > 0 {
-        socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
-    }
+    crate::journal::ranger(&ctx.racine, rangements).map_err(|m| erreur("OSError", m))?;
     crate::organismes_simules::garder(&ctx.racine, &avant, &memoire)?;
     // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement (par `moteur`), qui signe le cadre 5 et la
     // pose dans `sorties/<mois>/envoi/`, ou l'envoi va la chercher.

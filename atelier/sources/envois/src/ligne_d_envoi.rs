@@ -16,7 +16,7 @@ pub fn echec_d_envoi(message: String) -> Echec {
     erreur(if message.contains("\nATTENTION, ") { "RuntimeError" } else { "ErreurCourriel" }, message)
 }
 
-/// La ligne d'un envoi par courriel, a la fin de `journal/depots.json`, en mode `reel` (une compagnie fictive aussi).
+/// La ligne d'un envoi par courriel, a la fin de `journal/depots.jsonl`, en mode `reel` (une compagnie fictive aussi).
 #[allow(clippy::too_many_arguments)]
 pub fn noter(
     ctx: &Contexte,

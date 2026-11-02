@@ -85,6 +85,11 @@ pub fn chemin_unique(nom: &str) -> PathBuf {
     d.join(format!("{}-{}-{}", std::process::id(), N.fetch_add(1, Ordering::SeqCst), nom))
 }
 
+/// Les lignes du journal des envois de la compagnie `racine`, telles que le moteur les lit (`envois::journal::lu`).
+pub fn journal(racine: &Path) -> Value {
+    Value::Array(envois::journal::lu(racine).unwrap().lignes.to_vec())
+}
+
 pub fn lire(racine: &Path, rel: &str) -> Value {
     serde_json::from_slice(&std::fs::read(racine.join(rel)).unwrap()).unwrap_or_else(|e| panic!("{} illisible : {}", rel, e))
 }

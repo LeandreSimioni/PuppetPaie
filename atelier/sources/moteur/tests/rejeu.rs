@@ -24,7 +24,7 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
 
     // Le contrat de la vie d'une fictive : la DPAE et la DSN du mois partent en reel (jouees), chacune sur le bilan de son
     // test (`depot_acte::exiger_repetition`) ; le mois a ses bulletins et ses certificats CS.
-    let depots = f["journal/depots.json"].as_array().expect("le journal des depots");
+    let depots = f["journal/depots.jsonl"].as_array().expect("le journal des depots");
     let reel = |quoi: &str, fichier: &str| {
         depots.iter().any(|l| l["quoi"] == json!(quoi) && l["mode"] == json!("reel") && l["accepte"] == json!(true) && l["fichier"] == json!(fichier))
     };
@@ -105,7 +105,7 @@ fn les_documents_d_un_mois_qui_n_est_pas_parti_ne_partent_pas() {
     let d = outils::dossier_de_test("rejeu", "faisceaux-sans-civilite");
     let (r, racine) = outils::rejeu::rejouer("faisceaux-sans-civilite", &d);
     assert!(r.horloge.iter().any(|p| p.contains("DSN de janvier 2026 déposée") && p.contains("non joué")), "{:?}", r.horloge);
-    let depots: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("journal/depots.json")).unwrap()).unwrap();
+    let depots = outils::journal(&racine);
     let documents = depots.as_array().unwrap().iter().filter(|l| l["quoi"] == json!("documents")).count();
     assert_eq!(documents, 0, "des documents sont partis pour un mois sans DSN : {}", depots);
     assert!(!r.horloge.iter().any(|p| p.contains("documents")), "{:?}", r.horloge);
@@ -167,12 +167,12 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
     assert_eq!(brut(&decembre), brut(&novembre).into_iter().map(|m| -m).collect::<Vec<_>>());
 
     // Partie sur la version du non actif, la correction ne ressort plus et ne se porte plus en janvier.
-    let mut journal = outils::lire(&racine, "journal/depots.json");
-    journal.as_array_mut().unwrap().push(json!({
-        "quoi": "dsn", "quand": "2027-01-05T10:00:00", "mois": "2026-12", "fichier": "DSN_Decembre2026.dsn", "mode": "reel", "accepte": true,
-        "versions": [{"salarie": "FULLER", "numero": "FU1.26.01", "version": na.version(), "mois": "2026-11"}],
-    }));
-    outils::ecrire(&racine, "journal/depots.json", &journal);
+    let versions = json!([{"salarie": "FULLER", "numero": "FU1.26.01", "version": na.version(), "mois": "2026-11"}]);
+    let n = envois::journal::Note {
+        quoi: "dsn", mois: Some("2026-12"), fichier: Some("DSN_Decembre2026.dsn"), mode: "reel", qui: "test", accepte: true, destinataire: "", flux: "",
+        reponse: "", trace: None, detail: None, versions: Some(&versions), quand: "2027-01-05T10:00:00", origine: "le test",
+    };
+    envois::journal::noter(&racine, &n, "").unwrap();
     let a_refaire = na.a_refaire(&ctx("2027-01-20"), &envois::journal::lu(&racine).map(|j| j.departs).unwrap());
     assert!(!a_refaire.iter().any(|a| matches!(a, ARefaire::Dsn { .. })), "{:?}", a_refaire);
     assert!(declarations::produire_regularisations::regularisations_pour(&ctx("2027-01-20"), "2027-01", &envois::journal::lu(&racine).map(|j| j.departs).unwrap()).unwrap().is_empty());
@@ -256,19 +256,25 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
 fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     let (r, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "organismes"));
     let fin = r.fin.unwrap();
-    let journal = racine.join("journal/depots.json");
+    let journal = envois::journal::chemin(&racine);
     let dsn_de_novembre = |d: &Value| -> Value {
         d.as_array().unwrap().iter().find(|l| l["quoi"] == json!("dsn") && l["mode"] == json!("reel") && l["fichier"] == json!("DSN_Novembre2026.dsn")).unwrap().clone()
     };
-    // Le depot attend sa reponse : les retours deja rendus s'effacent de sa ligne.
+    // Le depot attend sa reponse : ce qui en est revenu s'efface du journal.
     let en_attente = || {
-        let mut d = outils::lire(&racine, "journal/depots.json");
-        for l in d.as_array_mut().unwrap() {
-            if l["fichier"] == json!("DSN_Novembre2026.dsn") && l["mode"] == json!("reel") {
-                l.as_object_mut().unwrap().remove("retours");
+        let mut siens: Vec<Value> = Vec::new();
+        let mut texte = String::new();
+        for l in std::fs::read_to_string(&journal).unwrap().lines() {
+            let mut e: Value = serde_json::from_str(l).unwrap();
+            if e["ligne"]["fichier"] == json!("DSN_Novembre2026.dsn") && e["ligne"]["mode"] == json!("reel") {
+                siens.push(e["id"].clone());
+                e["ligne"]["retours"] = json!([]);
+            } else if siens.contains(&e["a"]) {
+                continue;
             }
+            texte.push_str(&format!("{}\n", e));
         }
-        std::fs::write(&journal, serde_json::to_string_pretty(&d).unwrap()).unwrap();
+        std::fs::write(&journal, texte).unwrap();
     };
     let annoncer = |a: Value| {
         // Annoncee avant le depot : le 1er novembre.
@@ -288,7 +294,7 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     en_attente();
     annoncer(json!({"taux_pas": {"salarie": salarie, "taux": "4.30"}}));
     relever();
-    let natures: Vec<Value> = dsn_de_novembre(&outils::lire(&racine, "journal/depots.json"))["retours"].as_array().unwrap().iter().map(|x| x["nature"].clone()).collect();
+    let natures: Vec<Value> = dsn_de_novembre(&outils::journal(&racine))["retours"].as_array().unwrap().iter().map(|x| x["nature"].clone()).collect();
     assert!(natures.contains(&json!("94")) && natures.contains(&json!("11")), "{:?}", natures);
     let fiches = outils::lire(&racine, "config/salaries.json");
     let recu = fiches[salarie.as_str()]["taux_pas"].as_array().and_then(|l| l.last()).map(|e| e["valeur"].clone()).unwrap_or_default();
@@ -298,18 +304,18 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     en_attente();
     annoncer(json!({"refus": {"code": "CST-04", "message": "Code URSSAF invalide", "rubrique": "S21.G00.20.001", "mois": "2026-11"}}));
     relever();
-    let ligne = dsn_de_novembre(&outils::lire(&racine, "journal/depots.json"));
+    let ligne = dsn_de_novembre(&outils::journal(&racine));
     let bilan = ligne["retours"].as_array().unwrap().iter().find(|x| x["nature"] == json!("11")).cloned().unwrap();
     assert_eq!(bilan["verdict"], json!("KO"), "{}", ligne);
     assert!(bilan["anomalies"].to_string().contains("Code URSSAF invalide"), "{}", bilan);
     assert!(!ligne["retours"].as_array().unwrap().iter().any(|x| x["nature"] == json!("94")), "une DSN refusee n'a pas de taux : {}", ligne);
-    let etat = envois::etats::etat_dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), "2026-11", &json!(null), &droit::bareme::nic_principal(&ctx.entreprise)).unwrap();
+    let etat = envois::etats::etat_dsn_du_mois(outils::journal(&racine).as_array().unwrap(), "2026-11", &json!(null), &droit::bareme::nic_principal(&ctx.entreprise)).unwrap();
     assert_eq!(etat["refusee"], json!(true), "{}", etat);
 
     // UN FICHIER REFUSE NE REPART PAS TOUT SEUL : a l'ouverture suivante, l'horloge refait la DSN a son echeance, octet
     // pour octet, et ne la redepose pas ; une fois corrigee (le telephone du declarant, S20.G00.07.002), elle part, et le
     // mois est accepte.
-    let de_novembre = || outils::lire(&racine, "journal/depots.json").as_array().unwrap().iter().filter(|l| l["fichier"] == json!("DSN_Novembre2026.dsn")).count();
+    let de_novembre = || outils::journal(&racine).as_array().unwrap().iter().filter(|l| l["fichier"] == json!("DSN_Novembre2026.dsn")).count();
     let ouvrir = |jour: &str| {
         let le = socle::paris::naif_de_iso(&format!("{}T09:00:00", jour)).unwrap() as f64;
         socle::temps::pendant(le, || moteur::horloge::rattraper(&racine, Some(socle::date::Jour::lire(jour).unwrap()), true)).unwrap()
@@ -322,7 +328,7 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     std::fs::write(racine.join("config/entreprise.json"), serde_json::to_string_pretty(&entreprise).unwrap()).unwrap();
     ouvrir("2026-12-21");
     assert_eq!(de_novembre(), avant + 2, "le fichier corrige part, en test puis en reel");
-    let etat = envois::etats::etat_dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), "2026-11", &json!(null), &droit::bareme::nic_principal(&ctx.entreprise)).unwrap();
+    let etat = envois::etats::etat_dsn_du_mois(outils::journal(&racine).as_array().unwrap(), "2026-11", &json!(null), &droit::bareme::nic_principal(&ctx.entreprise)).unwrap();
     assert_eq!(etat["refusee"], json!(false), "{}", etat);
     ouvrir("2026-12-22");
     assert_eq!(de_novembre(), avant + 2, "une DSN acceptee ne repart pas");
@@ -381,7 +387,7 @@ fn la_demande_de_taux_d_une_embauche_part_et_sa_reponse_fait_l_engagement() {
         let le = socle::paris::naif_de_iso(&format!("{}T09:00:00", jour)).unwrap() as f64;
         socle::temps::pendant(le, || moteur::horloge::rattraper(&racine, Some(socle::date::Jour::lire(jour).unwrap()), true)).unwrap();
     }
-    let depots = outils::lire(&racine, "journal/depots.json");
+    let depots = outils::journal(&racine);
     let demandes = |s: &str| {
         depots.as_array().unwrap().iter().filter(|l| l["mode"] == json!("reel") && l["accepte"] == json!(true) && l["fichier"].as_str().is_some_and(|f| f.starts_with(&format!("Amorcage01_{}_", s)))).count()
     };
@@ -537,7 +543,7 @@ fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
         assert!(types.iter().all(|t| t == "01"), "{} : types de PAS {:?}", mois, types);
         dsn.insert(mois, json!({"individus": individus, "versements": versements}));
     }
-    let depots: Vec<Value> = outils::lire(&racine, "journal/depots.json").as_array().unwrap().iter()
+    let depots: Vec<Value> = outils::journal(&racine).as_array().unwrap().iter()
         .map(|l| json!([l["quoi"], l["mois"], l["fichier"], l["mode"], l["accepte"]])).collect();
     let reel = |quoi: &str, mois: &str| depots.iter().any(|l| l[0] == json!(quoi) && l[1] == json!(mois) && l[3] == json!("reel") && l[4] == json!(true));
     for m in 1..=12 {

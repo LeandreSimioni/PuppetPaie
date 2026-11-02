@@ -472,7 +472,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         None => {
             let cible = sortie.join(format!("DPAE_{}{}.txt", etiq, marque));
             ecrire_la_dpae(ctx, &retenues, &cible, &recap, &heure, &maintenant_iso())?;
-            crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
+            crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None, None)?;
             cible
         }
     };

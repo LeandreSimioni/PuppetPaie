@@ -1742,7 +1742,7 @@ prive/                    les données de la compagnie
   sorties/                les fichiers produits
   gabarits/               les enregistrements DPAE servant de patrons
   retours/                ce que renvoient les organismes
-  journal/                le journal des envois (depots.json), des incidents,
+  journal/                le journal des envois (depots.jsonl), des incidents,
                           des écarts de l'import
 ```
 

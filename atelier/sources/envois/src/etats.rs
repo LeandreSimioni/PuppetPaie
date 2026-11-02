@@ -15,7 +15,6 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use socle::ecriture::ecrire_json;
 use socle::fichiers::vrai;
 use crate::journal::{chemin, REEL};
 use crate::retours;
@@ -1514,6 +1513,7 @@ fn rattacher_retours(racine: &Path, retours: &Value, contenus: &Dico<Vec<u8>>, i
         return Ok(0);
     }
     let mut lignes = (*crate::journal::lu(racine)?.lignes).clone();
+    let mut rangements: Vec<(usize, crate::journal::Rangement)> = Vec::new();
     let mut par_flux: Dico<Vec<usize>> = Dico::nouveau();
     for (i, l) in lignes.iter().enumerate() {
         let f = get(l, "flux")?;
@@ -1563,6 +1563,8 @@ fn rattacher_retours(racine: &Path, retours: &Value, contenus: &Dico<Vec<u8>>, i
                         for (k, x) in v {
                             o.insert(k.clone(), x.clone());
                         }
+                        let de = |k: &str| connus[xi].get(k).cloned().unwrap_or(Value::Null);
+                        rangements.push((li, crate::journal::Rangement::Complement { nature: de("nature"), publication: de("publication"), champs: v.clone() }));
                     }
                     ajoutes += 1;
                     incidents.extend(incident(racine, &ligne, r, &verdict, contenus));
@@ -1580,13 +1582,12 @@ fn rattacher_retours(racine: &Path, retours: &Value, contenus: &Dico<Vec<u8>>, i
             m.insert("libelle".into(), Value::String(libelle_nature(get(r, "nature")?, get(&ligne, "quoi")?)));
             m.insert("statut".into(), get(r, "statut")?.clone());
             m.insert("publication".into(), get(r, "publication")?.clone());
-            nouvelles_de(&mut lignes[li])?.push(Value::Object(m));
+            nouvelles_de(&mut lignes[li])?.push(Value::Object(m.clone()));
+            rangements.push((li, crate::journal::Rangement::Retour(Value::Object(m))));
             ajoutes += 1;
         }
     }
-    if ajoutes > 0 {
-        ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
-    }
+    crate::journal::ranger(racine, rangements).map_err(|m| erreur("OSError", m))?;
     Ok(ajoutes)
 }
 
@@ -1729,7 +1730,8 @@ mod tests {
         let p = std::env::temp_dir().join(format!("paie-etats-{}-{}", nom, std::process::id()));
         let _ = std::fs::remove_dir_all(&p);
         std::fs::create_dir_all(p.join("journal")).unwrap();
-        std::fs::write(p.join("journal").join("depots.json"), serde_json::to_string_pretty(&lignes).unwrap()).unwrap();
+        let texte: String = lignes.as_array().unwrap().iter().enumerate().map(|(i, l)| format!("{}\n", json!({"id": i.to_string(), "ligne": l}))).collect();
+        std::fs::write(chemin(&p), texte).unwrap();
         p
     }
 
