@@ -159,3 +159,6 @@ atelier/prive-dev/
 import/
 !atelier/sources/moteur/src/import/
 logiciel/donnees/google-application.json
+
+# La sortie de atelier/installeur/construire.sh (Publier la refait a chaque version).
+atelier/depot/
