@@ -803,7 +803,7 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
         }));
     }
     for s in crate::compagnie::problemes::signalements(racine) {
-        let debut = texte(&s, "debut");
+        let debut = texte(&s, "texte");
         if !parle_d_import(&debut) {
             continue;
         }

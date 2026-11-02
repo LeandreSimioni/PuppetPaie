@@ -364,7 +364,7 @@ pub fn envoyer(racine: &Path, texte: &Value, ecran: &Value, captures: &[Value]) 
     let ligne = json!({
         "id": id,
         "quand": socle::paris::maintenant()[..16].to_string(),
-        "debut": tete(corps["texte"].as_str().unwrap_or(""), 80),
+        "texte": corps["texte"].as_str().unwrap_or(""),
         "captures": caps.len(),
         "incidents": corps["incidents"].as_array().map_or(0, Vec::len),
         "empreinte": empreinte,

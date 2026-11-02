@@ -216,7 +216,7 @@ pub fn route_sans_compagnie(o: &HashMap<String, String>, nom: &str, charge: &Val
 
 fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
     let mut v = route_seule(racine, nom, charge)?;
-    let message = |l: Option<&Value>| l.map(|s| format!("« {} » : {}", super::mot(&s["debut"]), super::mot(&s["depart"]["mots"]).to_lowercase())).unwrap_or_default();
+    let message = |l: Option<&Value>| l.map(|s| format!("« {} » : {}", super::mot(&s["texte"]), super::mot(&s["depart"]["mots"]).to_lowercase())).unwrap_or_default();
     if nom == "signalements" || nom == "signalement-envoyer" {
         v["ecran"] = ecran_du_message();
         // Le jour et l'heure de chaque message, tels qu'on les lit.
