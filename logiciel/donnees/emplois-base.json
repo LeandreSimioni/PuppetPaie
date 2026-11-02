@@ -15,7 +15,8 @@
   "minima": "cle vers minima-conventionnels.json : par IDCC, puis par annexe de la CCN 3090 (1 theatre, 2 musiques actuelles, 4 tournee, 5 cirque) ou directement pour la 1285. Absent : aucun avertissement de minimum n'est emis pour ce metier. Quand une grille distingue les jauges, le metier pointe LA LIGNE LA PLUS BASSE (petites salles) : sans savoir la jauge, le moteur ne doit jamais crier a tort. Les montants des autres jauges sont portes pour memoire dans minima-conventionnels.json.",
   "classification_1285": "le GROUPE de l'emploi dans la CCNEAC (article XI.3, filieres administration-production, communication-relations publiques-action culturelle et technique ; groupes 1 a 4 cadres, 5 a 7 agents de maitrise, 8 et 9 employes-ouvriers), et l'intitule de la nomenclature XI.3.2 auquel le metier a ete rattache. Quand l'intitule France Travail couvre deux emplois de la convention (un costumier realise ou habille, un regisseur est de scene, de lumiere ou de son), le metier pointe le GROUPE LE PLUS BAS : sans savoir le poste, le moteur ne doit jamais crier a tort -- la regle des jauges. Un metier que la nomenclature ne nomme pas (le chef operateur, le monteur, l'assistant decorateur, le cariste, le souffleur...) n'a pas de groupe : il n'est compare a rien, et `minima.non_compares` le dit. Les emplois ARTISTIQUES de la filiere XI.2 (directeur artistique, dramaturge, collaborateur artistique, repetiteur) n'ont pas de grille de salaires dans l'accord : pas de groupe.",
   "classification_2642": "La fonction de la grille de la production audiovisuelle (IDCC 2642) qui correspond a ce metier, telle que la nomme l'article IV.1 et la grille consolidee (`minima-conventionnels.json`, `2642.cddu_semaine_35h`). Posee seulement quand la correspondance est evidente : un chef operateur peut etre directeur photo ou chef OPV, un monteur son n'a pas de ligne a lui -- ceux-la restent sans fonction, et le moteur le dit au lieu de comparer a la mauvaise ligne. Les fonctions de la famille << Production audiovisuelle >> la portent toutes.",
-  "conventions": "Les conventions collectives dont la liste d'emplois de l'annexe 8 (notice France Travail du 03/12/2025) nomme ce metier : le deroulant d'une compagnie ne montre que ceux de SA convention , plus ceux qu'elle ajoute d'une autre (config/metiers-ajoutes.json). La 1790 renvoie aux listes 6 et 7 du spectacle vivant. Un artiste (annexe 10) n'en porte pas : il vaut pour toutes. Les techniciens du spectacle vivant qu'aucune liste ne nomme gardent leur perimetre d'origine (1285, 1790, 3090).",
+  "conventions": "Les conventions collectives dont la liste d'emplois de l'annexe 8 (notice France Travail du 03/12/2025) nomme ce metier : le deroulant d'une compagnie ne montre que ceux de SA convention , plus ceux qu'elle ajoute d'une autre (config/metiers-ajoutes.json). La 1790 renvoie aux listes 6 et 7 du spectacle vivant. Un artiste (annexe 10) n'en porte pas : il vaut pour toutes. Les techniciens du spectacle vivant portent 1285, 1790 et 3090, que la liste de leur convention les nomme ou non : `conventions` dit le deroulant, pas l'annexe 8 (voir `conventions_hors_liste`).",
+  "conventions_hors_liste": "Les conventions de `conventions` dont la liste de l'annexe 8 ne nomme pas ce metier : il reste dans leur deroulant (une compagnie peut l'employer), mais un CDD de droit commun n'en fait pas un intermittent (`droit::emplois::nomme_par_l_annexe8`). La liste 6 (spectacle vivant subventionne) est celle de la 1285, la liste 7 (prive) celle de la 3090 (circulaire Unedic 2016-25, 1.1.1.6, `unedic-circulaire-2016-25-annexes-8-10.txt`, l. 553-571 ; annexe 8 du 15/11/2024, art. 71, listes 6 et 7, `plafond-intermittents/unedic-annexe8-convention-20241115.txt`, l. 2949-3316). Un metier est nomme quand une entree de la liste porte son intitule, ou un intitule plus general (le Menuisier de la liste 7 nomme le menuisier de decors) ; INFERENCE (ecrite) : deux intitules qu'une entree d'une liste joint par une barre sont la meme fonction dans l'autre liste aussi (la liste 7 joint concepteur des eclairages et concepteur lumiere, realisateur son et sonorisateur, technicien de plateau, technicien hydraulique et cariste, regisseur d'orchestre et regisseur de choeur ; la liste 6, regisseur de scene et regisseur d'equipement scenique, operateur lumiere, pupitreur et technicien CAO-PAO). La 1790 renvoie a la liste 6 ou 7 selon que l'employeur est public ou prive (art. 71, liste 8), ce que le moteur ne sait pas : un metier d'une des deux listes la garde.",
   "conventions_nouvelles": "Les fonctions des familles Telediffusion, Radiodiffusion, Creation et evenement, Films d'animation, Edition phonographique : le libelle de la notice quand il ne nomme qu'un emploi, sinon celui de la nomenclature ; NON cadres par defaut, faute de grille commune qui le dise -- a cocher sur l'engagement ; PCS-ESE comme pour la 2642, sans le 353c : 637c pour le decor, le costume et le plateau (statut conventionnel 07), 465b pour le reste (05). `classement` : la ligne de la grille de minima (2412, 3252) qui porte le meme libelle."
  },
  "emplois": {
@@ -377,6 +378,9 @@
     "1285",
     "1790",
     "3090"
+   ],
+   "conventions_hors_liste": [
+    "1285"
    ]
   },
   "REG030": {
@@ -529,6 +533,9 @@
     "1285",
     "1790",
     "3090"
+   ],
+   "conventions_hors_liste": [
+    "3090"
    ]
   },
   "CHA060": {
@@ -553,6 +560,9 @@
    "conventions": [
     "1285",
     "1790",
+    "3090"
+   ],
+   "conventions_hors_liste": [
     "3090"
    ]
   },
@@ -800,6 +810,9 @@
     "1285",
     "1790",
     "3090"
+   ],
+   "conventions_hors_liste": [
+    "3090"
    ]
   },
   "PER030": {
@@ -850,6 +863,9 @@
     "1285",
     "1790",
     "3090"
+   ],
+   "conventions_hors_liste": [
+    "1285"
    ]
   },
   "POS010": {
@@ -950,6 +966,9 @@
     "1285",
     "1790",
     "3090"
+   ],
+   "conventions_hors_liste": [
+    "3090"
    ]
   },
   "TAI010": {
@@ -999,6 +1018,9 @@
    "conventions": [
     "1285",
     "1790",
+    "3090"
+   ],
+   "conventions_hors_liste": [
     "3090"
    ]
   },
@@ -1228,6 +1250,9 @@
     "1285",
     "1790",
     "3090"
+   ],
+   "conventions_hors_liste": [
+    "1285"
    ]
   },
   "PEI010": {
@@ -1366,6 +1391,9 @@
     "1285",
     "1790",
     "3090"
+   ],
+   "conventions_hors_liste": [
+    "3090"
    ]
   },
   "SER020": {
@@ -1390,6 +1418,9 @@
    "conventions": [
     "1285",
     "1790",
+    "3090"
+   ],
+   "conventions_hors_liste": [
     "3090"
    ]
   },
@@ -1425,7 +1456,10 @@
    "classement": {
     "3252": "Staffeur [Décors]",
     "2121": "Staffeur"
-   }
+   },
+   "conventions_hors_liste": [
+    "3090"
+   ]
   },
   "TAP050": {
    "libelle": "Tapissier de spectacles",
@@ -1529,6 +1563,9 @@
     "1790",
     "3090",
     "3252"
+   ],
+   "conventions_hors_liste": [
+    "1285"
    ]
   },
   "PUP010": {
@@ -1835,7 +1872,10 @@
    ],
    "classement": {
     "2412": "Directeur artistique [I]"
-   }
+   },
+   "conventions_hors_liste": [
+    "1285"
+   ]
   },
   "DRA010": {
    "libelle": "Dramaturge",
@@ -2383,6 +2423,9 @@
     "1285",
     "1790",
     "3090"
+   ],
+   "conventions_hors_liste": [
+    "1285"
    ]
   },
   "CON090": {
@@ -2408,6 +2451,9 @@
     "1285",
     "1790",
     "3090"
+   ],
+   "conventions_hors_liste": [
+    "3090"
    ]
   },
   "CON270": {
@@ -2432,6 +2478,9 @@
    "conventions": [
     "1285",
     "1790",
+    "3090"
+   ],
+   "conventions_hors_liste": [
     "3090"
    ]
   },
@@ -2768,7 +2817,10 @@
    ],
    "classement": {
     "2121": "Régisseur de plateau/chef de plateau"
-   }
+   },
+   "conventions_hors_liste": [
+    "1285"
+   ]
   },
   "TEC040": {
    "libelle": "Technicien de maintenance (tournée et festival)",
@@ -2902,6 +2954,9 @@
    "conventions": [
     "1285",
     "1790",
+    "3090"
+   ],
+   "conventions_hors_liste": [
     "3090"
    ]
   },
@@ -7085,6 +7140,9 @@
     "1790",
     "3090",
     "3252"
+   ],
+   "conventions_hors_liste": [
+    "3090"
    ]
   },
   "COL030": {
@@ -7271,6 +7329,9 @@
     "1790",
     "3090",
     "3252"
+   ],
+   "conventions_hors_liste": [
+    "3090"
    ]
   },
   "TAP010": {
@@ -7317,7 +7378,10 @@
    ],
    "classement": {
     "2121": "Menuisier"
-   }
+   },
+   "conventions_hors_liste": [
+    "1285"
+   ]
   },
   "REG210": {
    "libelle": "Régisseur de chœur",

@@ -69,6 +69,18 @@ pub fn metier(code: &str) -> Resultat<Option<Value>> {
     Ok(None)
 }
 
+/// La liste de l'annexe 8 de la convention `idcc` nomme-t-elle ce metier (`metier`) ? Ce n'est pas le deroulant : un
+/// metier porte dans `conventions` les conventions dont le deroulant le montre, dont celles qui le portent sans que
+/// leur liste le nomme (`conventions_hors_liste`, et la regle de lecture des listes 6 et 7 dans `_regles` de
+/// `emplois-base.json`). Un metier hors catalogue ne dit pas sur quelle liste il est : non.
+pub fn nomme_par_l_annexe8(m: &Value, idcc: &str) -> bool {
+    let idcc = idcc.trim();
+    let porte = |cle: &str| {
+        m.get(cle).and_then(Value::as_array).is_some_and(|l| l.iter().any(|c| socle::date::en_texte(c).trim() == idcc))
+    };
+    !idcc.is_empty() && porte("conventions") && !porte("conventions_hors_liste")
+}
+
 /// Les sept champs declares pour ce metier (`emploi_affichage` compris).
 /// `cadre` a `None` prend le defaut du catalogue. Refuse un code inconnu.
 pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool) -> Resultat<Value> {

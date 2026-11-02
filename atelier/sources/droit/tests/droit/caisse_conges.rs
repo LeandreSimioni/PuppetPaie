@@ -6,7 +6,9 @@
 //! l'annexe 8 range « les ouvriers et techniciens engages dans le cadre d'un contrat a duree determinee, pour assurer
 //! l'une des fonctions enumerees dans la liste figurant au titre XIV, [...] dans les domaines d'activite [...] enumeres
 //! dans la meme liste » (art. 1er, § 2,
-//! `atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt`).
+//! `atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt`) ; la liste 6 (subventionne,
+//! IDCC 1285) nomme le staffeur, la liste 7 (prive, IDCC 3090) non (art. 71, l. 3094 et 3145-3316 ; circulaire Unedic
+//! 2016-25, `unedic-circulaire-2016-25-annexes-8-10.txt`, l. 567-573).
 
 use droit::caisse_conges::{affilie, douze_mois_ou_plus, IDCC_DE_L_EMPLOYEUR};
 use droit::natures::nature;
@@ -30,6 +32,10 @@ fn qui_est_declare_a_la_caisse() {
     assert!(affilie(&cdd, &regisseur("3090"), &debut, Some(&trois_mois)).unwrap(), "un technicien de la liste en CDD");
     assert!(!affilie(&cdd, &regisseur("1922"), &debut, Some(&trois_mois)).unwrap(), "une fonction hors de la liste du domaine");
     assert!(affilie(&cddu, &regisseur("1922"), &debut, Some(&trois_mois)).unwrap(), "un technicien en CDDU");
+    // Le staffeur est sur la liste du spectacle vivant subventionne (1285), pas sur celle du prive (3090).
+    let staffeur = |idcc: &str| json!({"code_emploi_ft": "STA010", "statut": "technicien", IDCC_DE_L_EMPLOYEUR: idcc});
+    assert!(affilie(&cdd, &staffeur("1285"), &debut, Some(&trois_mois)).unwrap(), "la liste 6 nomme le staffeur");
+    assert!(!affilie(&cdd, &staffeur("3090"), &debut, Some(&trois_mois)).unwrap(), "la liste 7 ne le nomme pas");
     assert!(!affilie(&cdd, &sans_metier, &debut, Some(&trois_mois)).unwrap(), "un metier hors de la nomenclature");
     assert!(!affilie(&cdi, &comedien, &debut, None).unwrap(), "un CDI");
     assert!(affilie(&cdd, &comedien, &debut, None).unwrap_err().contains("sans terme"));

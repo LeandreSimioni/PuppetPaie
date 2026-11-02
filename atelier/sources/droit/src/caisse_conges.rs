@@ -61,9 +61,9 @@ pub const IDCC_DE_L_EMPLOYEUR: &str = "idcc_de_l_employeur";
 ///   l'une des fonctions enumerees dans la liste figurant au titre XIV, [...] dans les domaines d'activite ou dans les
 ///   entreprises enumeres dans la meme liste », domaines « definis par les numeros d'identifiant des conventions
 ///   collectives (IDCC) » (art. 1er, § 2, et art. 71, `unedic-annexe8-convention-20241115.txt`, l. 16-22 et 1530 s.) :
-///   un metier du catalogue dont la liste de la convention de l'employeur nomme la fonction (`conventions` de
-///   `emplois-base.json`, relevee de la liste ; `IDCC_DE_L_EMPLOYEUR` sur la fiche). Un metier hors catalogue ne dit
-///   pas sur quelle liste il est : non.
+///   un metier du catalogue dont la liste de la convention de l'employeur nomme la fonction
+///   (`emplois::nomme_par_l_annexe8` ; `IDCC_DE_L_EMPLOYEUR` sur la fiche). Un metier hors catalogue ne dit pas sur
+///   quelle liste il est : non.
 /// La caisse des Conges Spectacles ne distingue pas davantage : elle sert « le personnel artistique et technique
 /// employe de facon intermittente » (C. trav. D. 7121-38 ; D. 7121-40, D. 7121-41,
 /// `atelier/reference/sources/code-du-travail/articles-20261102.md`, l. 596-607).
@@ -92,8 +92,7 @@ pub fn intermittent(nat: &Nature, sal: &Value) -> Resultat<bool> {
         Some(10) => Ok(true),
         Some(8) => {
             let idcc = sal.get(IDCC_DE_L_EMPLOYEUR).filter(|c| vrai(c)).map(socle::date::en_texte).unwrap_or_default();
-            let listes = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
-            Ok(!idcc.trim().is_empty() && listes.iter().any(|c| socle::date::en_texte(c).trim() == idcc.trim()))
+            Ok(emplois::nomme_par_l_annexe8(&m, &idcc))
         }
         _ => Ok(false),
     }
