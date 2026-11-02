@@ -1375,22 +1375,23 @@ function structureLisible(champ, v) {
  * le courriel en minuscules. On ne montre que ce qui a CHANGE, avec le
  * libelle de la case -- « Courriel : CONTACT@EXEMPLE.FR ». Une cle que
  * l'ancienne valeur ne portait pas n'est pas un changement : elle est nee
- * depuis. Les cles `_…` sont des notes, pas des valeurs. */
-const LIBELLES_CACHES = { nom_prenom: "Nom déclaré", qualite: "Qualité",
-                          bic: "BIC", iban: "IBAN", taux: "Taux du contrat" };
+ * depuis. Les cles `_…` sont des notes, pas des valeurs. Chaque case se nomme par son libellé de
+ * `champs-base.json`, celles que la fiche ne montre pas comprises ; une case faite de cases (« taux.t1_cadre »)
+ * se dit case par case. */
 function valeurHistorique(champ, avant, apres) {
   if (avant === null || typeof avant !== "object" || Array.isArray(avant)) {
     return valeurLisible(avant);
   }
-  const libelles = Object.fromEntries(
-    ((structureDecrite(champ) || {}).champs || []).map(([k, l]) => [k, l]));
+  const decrit = ((ETAT.configuration || {}).description[FICHE_ACTIVE] || []).find((c) => c.cle === champ) || {};
+  const libelles = Object.fromEntries((decrit.champs || []).map((s) => [s.cle, s.libelle]));
+  const dire = (k, v) => v && typeof v === "object" && !Array.isArray(v) && !libelles[k]
+    ? Object.entries(v).map(([s, x]) => dire(`${k}.${s}`, x)).join(" · ")
+    : `${libelles[k] || k} : ${valeurLisible(v)}`;
   const courant = apres && typeof apres === "object" ? apres : {};
   const cles = Object.keys(avant).filter((k) => !k.startsWith("_"));
   const changees = cles.filter((k) =>
     JSON.stringify(avant[k]) !== JSON.stringify(courant[k]));
-  return (changees.length ? changees : cles)
-    .map((k) => `${libelles[k] || LIBELLES_CACHES[k] || k} : ${valeurLisible(avant[k])}`)
-    .join(" · ");
+  return (changees.length ? changees : cles).map((k) => dire(k, avant[k])).join(" · ");
 }
 
 /* RIEN DE ROUGE. « On a le droit de changer de métier, je ne sais
