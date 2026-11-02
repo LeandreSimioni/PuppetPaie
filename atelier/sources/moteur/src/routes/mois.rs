@@ -891,7 +891,12 @@ struct Passe {
 
 impl Passe {
     fn json(&self) -> Value {
+        // Ce que la liste des contrats d'un mois passe dit de lui : ses bornes, ses cachets et ses heures.
+        let court = |iso: &str| socle::date::Jour::lire(iso).map(|j| j.jj_mm()).unwrap_or_else(|_| iso.to_string());
+        let heures = if self.heures > 0 { format!(" + {} h", self.heures) } else { String::new() };
+        let dit = format!("{}→{} · {}{}", court(&self.debut), court(&self.fin), super::compte(self.cachets.max(0) as usize, "cachet", "cachets"), heures);
         json!({
+            "dit": dit,
             "salarie": self.salarie, "nom": self.nom, "debut": self.debut, "fin": self.fin,
             "cachets": self.cachets, "heures": self.heures, "jours": self.jours,
             "titre": self.titre, "numero_objet": self.numero_objet,
@@ -1164,7 +1169,9 @@ fn contrats_passes_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = exiger(charge, "mois")?;
     let salarie = charge.get("salarie").and_then(Value::as_str).filter(|s| !s.is_empty());
     let contrats: Vec<Value> = contrats_passes(ctx, mois, salarie)?.iter().map(Passe::json).collect();
-    Ok(json!({"mois": mois, "contrats": contrats}))
+    // Ce que la liste dit quand elle est vide : rien de declare pour ce salarie, ou aucun salarie choisi.
+    let rien_dit = if salarie.is_some() { "aucun contrat déclaré" } else { "aucun salarié coché" };
+    Ok(json!({"mois": mois, "contrats": contrats, "rien_dit": rien_dit}))
 }
 
 // ------------------------------------------------------------------------ emploi
@@ -1741,9 +1748,31 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         m.push(format!("brut {}", socle::texte::euros(p.brut)));
         m.join(" · ")
     };
+    // LA LIGNE REPLIEE DU CONTRAT : ses bornes, son numero, et ce qu'il fait par rapport au mois (en cours depuis un
+    // mois passe, se poursuit au mois suivant) ; un contrat sans terme se dit par son debut.
+    let contrat_dit = {
+        let clair = |m: &str| socle::date::libelle_du_mois_ou_tel_quel(m, socle::date::Graphie::Accentuee);
+        let mut t = match &e.fin {
+            Some(f) => format!("Contrat du {} au {}", e.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
+            None if nat.mensuelle() => format!("Contrat du {}, sans terme", e.debut.jj_mm_aaaa()),
+            None => format!("Contrat du {}", e.debut.jj_mm_aaaa()),
+        };
+        if let Some(n) = &e.numero {
+            t.push_str(&format!(" · n° {}", n));
+        }
+        if e.fin.is_some() {
+            if !e.premier_mois()? {
+                t.push_str(&format!(" — en cours depuis {}", clair(&e.debut.iso()[..7])));
+            }
+            if !e.dernier_mois()? {
+                t.push_str(&format!(" — se poursuit en {}", clair(&e.debut_mois()?.mois_suivant())));
+            }
+        }
+        t
+    };
     let paye_dit = p.remuneration.iter().map(|l| l.designation().to_string().to_lowercase()).collect::<Vec<_>>().join(", ");
     let d = json!({
-        "resolu_dit": resolu_dit,
+        "resolu_dit": resolu_dit, "contrat_dit": contrat_dit,
         // Ce que la carte validee dit de la paie : ce qu'elle paye, son bulletin.
         "paye_dit": paye_dit,
         "bulletin_dit": p.numero_bulletin.as_ref().map(|n| format!("bulletin {}", n)),
@@ -1758,6 +1787,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         // DPAE ni de contrat imprime hors de son premier mois.
         "contrat": {
             "premier_mois": e.premier_mois()?, "dernier_mois": e.dernier_mois()?, "a_cheval": e.a_cheval()?,
+            "chevrons": chevrons_dits(e)?,
             "sans_paie": e.sans_paie(),
             "depuis": mois_du_contrat.first().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
             "jusqu_a": mois_du_contrat.last().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
@@ -1799,6 +1829,31 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         },
     });
     Ok(d)
+}
+
+/// LES CHEVRONS D'UN CONTRAT SUR PLUSIEURS MOIS, tels qu'on les lit au survol : ses bornes, ce qu'il fait du cote ou il
+/// deborde du mois (commence avant, se poursuit apres), et le mois voisin ou mene le clic. `Null` du cote ou il ne
+/// deborde pas.
+pub(crate) fn chevrons_dits(e: &engagement::Engagement) -> R<Value> {
+    let clair = |m: &str| socle::date::libelle_du_mois_ou_tel_quel(m, socle::date::Graphie::Accentuee);
+    let bornes = match &e.fin {
+        Some(f) => format!("Contrat du {} au {}", e.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
+        None => format!("Contrat du {}, sans date de fin", e.debut.jj_mm_aaaa()),
+    };
+    let mois = e.mois_du_contrat()?;
+    let premier = e.debut_mois()?;
+    let avant = (!e.premier_mois()?).then(|| -> R<String> {
+        let voisin = premier.plus_jours(-1)?.iso()[..7].to_string();
+        Ok(format!("{} — commencé en {} · voir {}", bornes, clair(mois.first().map_or("", String::as_str)), clair(&voisin)))
+    });
+    let apres = (!e.dernier_mois()?).then(|| {
+        let suite = match (&e.fin, mois.last()) {
+            (Some(_), Some(j)) => format!("se poursuit jusqu'en {}", clair(j)),
+            _ => "se poursuit".to_string(),
+        };
+        format!("{} — {} · voir {}", bornes, suite, clair(&premier.mois_suivant()))
+    });
+    Ok(json!({"avant": avant.transpose()?, "apres": apres}))
 }
 
 /// Ce qui, dans ce mois, porte sur une

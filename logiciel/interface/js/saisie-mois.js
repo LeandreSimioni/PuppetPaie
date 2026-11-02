@@ -231,6 +231,7 @@ async function calculerApercu(lu) {
       const p = part[0];
       // Les bornes de l'engagement, telles que le moteur les lit (ses lignes de travail) : la ligne du contrat les montre.
       div._bornes = p ? { debut: p.debut || "", fin: p.fin || "" } : null;
+      div._contratDit = p ? p.contrat_dit : null;
       majContrat(div);
       // Un engagement auquel il manque un fait est enregistré tel quel : la carte dit ce qui manque, sans montant.
       const manques = part.filter((x) => x && x.a_completer);

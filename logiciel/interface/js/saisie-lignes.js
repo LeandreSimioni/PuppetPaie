@@ -163,8 +163,7 @@ function ligneRubrique(l = {}, nat) {
     // Une ligne en pourcentage : « base € à taux % », sans jours ni lieu.
     const pct = !!r && r.saisie.includes("taux_majoration");
     const mots = div.querySelectorAll(".r-mot");
-    mots[0].textContent = pct ? "€ à" : "à";
-    mots[1].textContent = pct ? "%" : "€";
+    if (r && r.mots) [mots[0].textContent, mots[1].textContent] = r.mots;
     if (pct) {
       q.placeholder = "base €";
       div.querySelector(".r-taux").placeholder = "%";
@@ -307,8 +306,7 @@ function casesMoisPasse(vue, contrats, avecNom) {
 function ligneContratPasse(c, avecNom) {
   return `<div class="c-passe" title="${echapper(c.numero_objet)}">
       <span>${echapper((avecNom ? c.nom.split(" ")[0] + " · " : "") + c.titre)}</span>
-      <span class="discret">${echapper(jjmmaaaa(c.debut).slice(0, 5))}→${echapper(jjmmaaaa(c.fin).slice(0, 5))}
-        · ${c.cachets} cachet${c.cachets > 1 ? "s" : ""}${c.heures ? ` + ${c.heures} h` : ""}</span>
+      <span class="discret">${echapper(c.dit)}</span>
     </div>`;
 }
 
@@ -341,9 +339,9 @@ function ouvrirCalendrier(ligne, moisForce) {
     if (passes.has(m)) return;
     passes.set(m, null);
     api("contrats-passes", { mois: m, salarie }).then((r) => {
-      passes.set(m, r.contrats || []);
+      passes.set(m, r);
       if (vue === m && cal.isConnected) dessiner();
-    }).catch(() => passes.set(m, []));
+    }).catch(() => passes.set(m, {}));
   };
 
   const dessiner = () => {
@@ -355,7 +353,8 @@ function ouvrirCalendrier(ligne, moisForce) {
     const ici = vue === mois;
     const passe = vue < mois;
     if (passe) chargerPasses(vue);
-    const contrats = passe ? (passes.get(vue) || []) : [];
+    const lu = (passe && passes.get(vue)) || {};
+    const contrats = lu.contrats || [];
     let cases = "";
     for (let i = 0; i < premier && !passe; i++) cases += `<span class="c-vide"></span>`;
     for (let j = 1; j <= nb && !passe; j++) {
@@ -371,7 +370,7 @@ function ouvrirCalendrier(ligne, moisForce) {
       ? `<div class="c-passes discret">…</div>`
       : `<div class="c-passes">${contrats.length
           ? contrats.map((c) => ligneContratPasse(c, !salarie)).join("")
-          : `<span class="discret">${salarie ? "aucun contrat déclaré" : "aucun salarié coché"}</span>`}
+          : `<span class="discret">${echapper(lu.rien_dit || "")}</span>`}
         </div>`);
     cal.innerHTML = `
       <div class="c-tete">
@@ -387,7 +386,7 @@ function ouvrirCalendrier(ligne, moisForce) {
       ${attente ? `
         <div class="c-avert">
           <b>Contrat sur plusieurs mois</b>
-          du ${echapper(jjmmaaaa(debutDuBloc(bloc) || mois + "-01"))} au ${echapper(jjmmaaaa(attente))}
+          <span>${echapper(jjmmaaaa(debutDuBloc(bloc) || mois + "-01"))} → ${echapper(jjmmaaaa(attente))}</span>
           <p>${echapper((ETAT.aides || {}).plusieurs_mois)}</p>
           <div class="c-actions">
             <button type="button" class="secondaire c-annuler">Annuler</button>
@@ -395,9 +394,13 @@ function ouvrirCalendrier(ligne, moisForce) {
           </div>
         </div>` : `
         <div class="c-pied">
-          <span class="discret">${passe ? "mois passé, lecture seule"
-            : `${ici ? "jours joués ce mois-ci" : "planning du mois"}
-            · ${nJoues} joué${nJoues > 1 ? "s" : ""}${nPlan ? `, ${nPlan} prévu${nPlan > 1 ? "s" : ""}` : ""}`}</span>
+          <span class="discret">
+            <span ${passe ? "" : "hidden"}>Lecture seule</span>
+            <span ${!passe && ici ? "" : "hidden"}>Jours joués ce mois-ci</span>
+            <span ${!passe && !ici ? "" : "hidden"}>Planning du mois</span>
+            <span ${passe ? "hidden" : ""}>· Joués <b>${nJoues}</b></span>
+            <span ${!passe && nPlan ? "" : "hidden"}>· Prévus <b>${nPlan}</b></span>
+          </span>
           <button type="button" class="secondaire c-ok">OK</button>
         </div>`}`;
     cal.querySelector(".c-prec").onclick = () => { vue = moisPrecedent(vue); attente = null; dessiner(); };
@@ -638,7 +641,7 @@ function lieuxDesJours(l) {
     .filter((x) => x && typeof x === "object" && x.lieu);
   if (!propres.length) return "";
   return `<span class="discret">lieu propre</span> ` + propres.map((x) =>
-    `<label class="r-lieu-jour-l">le ${echapper(jjmmaaaa(x.jour).slice(0, 5))}
+    `<label class="r-lieu-jour-l">${echapper(jjmmaaaa(x.jour).slice(0, 5))}
        <input class="r-lieu-jour" data-iso="${echapper(x.jour)}" value="${echapper(x.lieu)}"></label>`).join("");
 }
 
@@ -685,9 +688,9 @@ function poserMetiers(select, choisi) {
 
 /** Le déroulant des spectacles, depuis la liste commune. */
 function poserSpectacles(select) {
-  poserListe(select, "spectacles", [ETAT.spectacles], () => `<option value="">— à choisir —</option>`
-    + (ETAT.spectacles || []).map(
-      (s) => `<option value="${echapper(s.cle)}">${echapper(s.titre)}</option>`).join(""));
+  poserListe(select, "spectacles", [ETAT.spectacles], () => [`<option value="">— à choisir —</option>`,
+    ...(ETAT.spectacles || []).map(
+      (s) => `<option value="${echapper(s.cle)}">${echapper(s.titre)}</option>`)].join(""));
 }
 
 /** Un engagement : QUI, QUOI, QUAND, COMBIEN.
@@ -924,7 +927,7 @@ function construireCarte(div, e) {
         <input type="date" class="e-rare e-paye-le" data-cle="date_paiement" data-type="date"></label>
       </div>
       <div class="e-options-ligne e-rares" hidden></div>
-    <!-- LE CONTRAT, replié : « du 12/10/2026 au 20/12/2026 », préréglé sur
+    <!-- LE CONTRAT, replié : ses bornes, préréglées sur
          le premier et le dernier jour joué. On l'ouvre pour une seule chose :
          allonger la date de fin quand le contrat se poursuit le mois suivant
          (contrats sur plusieurs mois). Le numéro y apparaît, en
@@ -934,7 +937,7 @@ function construireCarte(div, e) {
       <div class="e-contrat-champs">
         <label class="e-borne">Début du contrat <input type="date" class="e-debut"></label>
         <label class="e-borne">Fin du contrat <input type="date" class="e-fin"></label>
-        <span class="e-numero discret"></span>
+        <span class="e-numero discret" hidden>n° <span></span></span>
       </div>
       <!-- LE MOTIF DE RECOURS (S21.G00.40.021). Seul un CDD ordinaire en a
            un, et il est obligatoire : c'est lui qui rend le contrat licite
@@ -1064,8 +1067,8 @@ function construireCarte(div, e) {
   const selEtab = div.querySelector(".e-etablissement");
   const etabs = Array.isArray((ETAT.configuration || {}).etablissements) ? ETAT.configuration.etablissements : [];
   div.querySelector(".e-etablissement-bloc").hidden = !etabs.length;
-  const jj = (iso) => echapper(iso.split("-").reverse().join("/"));
-  selEtab.innerHTML = etabs.map((x) => `<option value="${echapper(x.nic || "")}">${echapper(x.nom)}${x.ouverture ? ` (ouvert le ${jj(x.ouverture)}${x.fermeture ? `, jusqu’au ${jj(x.fermeture)}` : ""})` : ""}</option>`).join("");
+  selEtab.innerHTML = etabs.map((x) => `<option value="${echapper(x.nic || "")}">${
+    echapper([x.nom, x.periode_dit].filter(Boolean).join(" — "))}</option>`).join("");
   selEtab.value = e.etablissement || "";
   selEtab.onchange = rafraichirApercu;
   // --- le métier
@@ -1133,10 +1136,9 @@ function construireCarte(div, e) {
   // « à choisir » vide — le moteur dira qu'il manque —, et la transaction
   // sur le défaut de la norme (02, « non »), jamais sur la première venue.
   poserListe(div.querySelector(".e-preavis-type"), "preavis", [ETAT.types_preavis], () =>
-    `<option value="">— à choisir —</option>`
-    + (ETAT.types_preavis || []).map(
+    [`<option value="">— à choisir —</option>`, ...(ETAT.types_preavis || []).map(
       (t) => `<option value="${echapper(t.code)}" data-dates="${t.dates ? 1 : 0}">${
-        echapper(t.code)} — ${echapper(t.libelle)}</option>`).join(""));
+        echapper(t.code)} — ${echapper(t.libelle)}</option>`)].join(""));
   poserListe(div.querySelector(".e-transaction"), "transaction", [ETAT.transaction], () =>
     (ETAT.transaction || []).map(
       (t) => `<option value="${echapper(t.code)}"${t.defaut ? " selected" : ""}>${
@@ -1281,7 +1283,7 @@ function majNature(div) {
   const pleine = div.querySelector(".e-temps-plein");
   pleine.hidden = nat.quotite_defaut == null;
   if (nat.quotite_defaut != null) {
-    pleine.textContent = `temps plein ${String(nat.quotite_defaut).replace(".", ",")} h`;
+    pleine.textContent = nat.temps_plein_dit || "";
     pleine.onclick = (ev) => {
       ev.preventDefault();
       quotite.value = nat.quotite_defaut;
@@ -1294,9 +1296,9 @@ function majNature(div) {
   div.querySelector(".e-recours-bloc").hidden = !recours.length;
   const sel = div.querySelector(".e-recours");
   const voulu = sel.value || div.dataset.motifRecours || "";
-  poserListe(sel, "recours:" + nat.cle, [recours], () => `<option value="">— à choisir —</option>`
-    + recours.map((m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${
-      echapper(m.libelle)}</option>`).join(""));
+  poserListe(sel, "recours:" + nat.cle, [recours], () => [`<option value="">— à choisir —</option>`,
+    ...recours.map((m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${
+      echapper(m.libelle)}</option>`)].join(""));
   sel.value = recours.some((m) => m.code === voulu) ? voulu : "";
   // UN CDD DIT SON MOTIF, et le moteur refuse sans lui : tant qu'il manque,
   // le contrat s'ouvre de lui-même, comme pour ses bornes.
@@ -1338,11 +1340,10 @@ function majRupture(div) {
   // est ce défaut : la fin à son terme.
   const sel = div.querySelector(".e-motif-rupture");
   const voulu = sel.value || div.dataset.motifRupture || "";
-  const vide = !nat.signalement_fctu && nat.motif_rupture_defaut
-    ? `— ${echapper(nat.motif_rupture_defaut)}, à son terme —` : "— à choisir —";
-  poserListe(sel, "rupture:" + nat.cle, [nat.motifs_rupture, vide], () => `<option value="">${vide}</option>`
-    + (nat.motifs_rupture || []).map(
-      (m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${echapper(m.libelle)}</option>`).join(""));
+  const vide = nat.motif_rupture_vide_dit || "";
+  poserListe(sel, "rupture:" + nat.cle, [nat.motifs_rupture, vide], () => [`<option value="">${echapper(vide)}</option>`,
+    ...(nat.motifs_rupture || []).map(
+      (m) => `<option value="${echapper(m.code)}">${echapper(m.code)} — ${echapper(m.libelle)}</option>`)].join(""));
   sel.value = (nat.motifs_rupture || []).some((m) => m.code === voulu) ? voulu : "";
   // Ce que le moteur dit du motif choisi (ce qu'il ouvre pour le salarié), sous la liste.
   const motifDit = div.querySelector(".e-motif-dit");
@@ -1492,33 +1493,19 @@ function majContrat(div) {
   const debut = div.querySelector(".e-debut").value || lues.debut || "";
   const fin = div.querySelector(".e-fin").value || lues.fin || "";
   const numero = div.dataset.numero || "";
-  div.querySelector(".e-numero").textContent = numero ? "n° " + numero : "";
-  div.querySelector(".e-numero").title = (ETAT.aides || {}).numero_contrat || "";
+  const n = div.querySelector(".e-numero");
+  n.hidden = !numero;
+  n.querySelector("span").textContent = numero;
+  n.title = (ETAT.aides || {}).numero_contrat || "";
   const s = d.querySelector("summary");
   const enCours = !!(debut && mois && debut.slice(0, 7) < mois);
   const sePoursuit = !!(fin && mois && fin.slice(0, 7) > mois);
   d.classList.toggle("a-cheval", enCours || sePoursuit);
-  // UN CONTRAT SANS TERME (un CDI) n'a pas de dernier jour joué : il se
-  // dit par son début.
-  if (debut && !fin && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
-    s.textContent = `Contrat du ${jjmmaaaa(debut)}, sans terme${
-      numero ? ` · ${numero}` : ""}`;
-    return;
-  }
-  if (!debut && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
-    // Un contrat au mois n'a pas de jour joué d'où tirer son début.
-    s.innerHTML = `Contrat <span class="discret">— ${echapper((ETAT.aides || {}).debut_au_mois)}</span>`;
-    return;
-  }
-  if (!debut || !fin) {
-    s.innerHTML = `Contrat <span class="discret">— ${echapper((ETAT.aides || {}).bornes_jouees)}</span>`;
-    return;
-  }
-  let texte = `Contrat du ${jjmmaaaa(debut)} au ${jjmmaaaa(fin)}`;
-  if (numero) texte += ` · n° ${numero}`;
-  if (enCours) texte += ` — en cours depuis ${moisEnClair(debut.slice(0, 7))}`;
-  if (sePoursuit) texte += ` — se poursuit en ${moisEnClair(moisSuivant(mois))}`;
-  s.textContent = texte;
+  // Ce que le moteur a compris du contrat de la carte (`contrat_dit` de l'aperçu) ; tant qu'il ne l'a pas dit, d'où
+  // la carte tire ses bornes (un contrat au mois, de son début ; les autres, de leurs jours joués).
+  if (div._contratDit) { s.textContent = div._contratDit; return; }
+  const aide = !debut && natureDe(div.querySelector(".e-nature")?.value).mensuelle ? "debut_au_mois" : "bornes_jouees";
+  s.innerHTML = `Contrat <span class="discret">— ${echapper((ETAT.aides || {})[aide])}</span>`;
 }
 
 /** Les listes de salariés et de spectacles de TOUS les blocs, refaites sur
@@ -1717,15 +1704,15 @@ function marquePlurimensuel(contrat, debut, fin) {
     const d = new Date(x[0], x[1] - 1 + pas, 1);
     return moisEnTexte(d.getFullYear(), d.getMonth() + 1);
   };
-  const bornes = `Contrat du ${jjmmaaaa(debut)}${fin ? ` au ${jjmmaaaa(fin)}` : ", sans date de fin"}`;
-  const un = (sens, texte, pas) => {
+  // Le survol de chaque chevron, tel que le moteur le dit (`contrat.chevrons`).
+  const dits = contrat.chevrons || {};
+  const un = (sens, pas) => {
     const m = voisin(pas);
-    const titre = `${bornes} — ${texte}${m ? ` · voir ${moisEnClair(m)}` : ""}`;
+    const titre = dits[sens] || "";
     return `<button type="button" class="chevron-pluri ${sens}" data-mois="${echapper(m)}"
       title="${echapper(titre)}" aria-label="${echapper(titre)}">${sens === "avant" ? "&#x2039;" : "&#x203A;"}</button>`;
   };
-  return (avant ? un("avant", `commencé en ${moisEnClair(contrat.depuis)}`, -1) : "")
-    + (apres ? un("apres", fin && contrat.jusqu_a ? `se poursuit jusqu'en ${moisEnClair(contrat.jusqu_a)}` : "se poursuit", 1) : "");
+  return (avant ? un("avant", -1) : "") + (apres ? un("apres", 1) : "");
 }
 
 /** Pose (ou remplace) les chevrons d'un contrat sur plusieurs mois au bord de la case `div`. */

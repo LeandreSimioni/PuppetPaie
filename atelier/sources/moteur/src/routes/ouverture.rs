@@ -379,7 +379,14 @@ fn choix_d_etablissement(ctx: &Contexte) -> Value {
     let mut out = vec![json!({"nic": "", "nom": format!("Le siège{}", Some(commune(&ctx.entreprise)).filter(|c| !c.is_empty()).map(|c| format!(", {}", c)).unwrap_or_default())})];
     for (e, fermeture) in autres {
         let nom = [texte_ou_vide(e.get("libelle")), commune(&e)].into_iter().filter(|s| !s.trim().is_empty()).collect::<Vec<_>>().join(", ");
+        // Son ouverture, et son dernier jour s'il est ferme, tels que l'option les dit.
+        let ouverture = e.get("ouverture").filter(|o| vrai(o)).map(super::jour_en_clair);
+        let periode_dit = ouverture.map(|o| match &fermeture {
+            Some(f) => format!("ouvert le {}, jusqu'au {}", o, f.jj_mm_aaaa()),
+            None => format!("ouvert le {}", o),
+        });
         out.push(json!({
+            "periode_dit": periode_dit,
             "nic": texte_ou_vide(e.get("nic")),
             "nom": if nom.is_empty() { texte_ou_vide(e.get("nic")) } else { nom },
             "ouverture": e.get("ouverture").cloned().unwrap_or(Value::Null),
@@ -863,6 +870,8 @@ pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
         "non_appliques": non_appliques,
         "source": r.source,
         "dit": r.dit,
+        // Les mots entre les cases de sa ligne : « quantité à taux € », ou « base € à taux % » pour un pourcentage.
+        "mots": if r.saisie.iter().any(|s| s == "taux_majoration") { ["€ à", "%"] } else { ["à", "€"] },
     })
 }
 
@@ -1031,6 +1040,13 @@ fn natures(ctx: &Contexte) -> R<Value> {
             "motifs_recours": n.motifs_recours(),
             "motif_recours_exige": n.motif_recours_exige(),
             "quotite_defaut": n.quotite_reference_defaut.map(nombre),
+            // Le bouton qui propose la duree d'un temps plein, et le choix vide des motifs de fin (le defaut d'une fin qui ne
+            // se signale pas : le CDDU a son terme).
+            "temps_plein_dit": n.quotite_reference_defaut.map(|q| format!("temps plein {} h", socle::texte::virgule(socle::num::dec_f64(q).unwrap_or_default()))),
+            "motif_rupture_vide_dit": match n.motif_rupture_par_defaut() {
+                Some(d) if !n.signalement_fctu(None) => format!("— {}, à son terme —", d),
+                _ => "— à choisir —".to_string(),
+            },
             "unite_quotite": n.unite_quotite,
         }));
     }

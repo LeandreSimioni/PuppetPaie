@@ -744,7 +744,7 @@ impl<'a> Moteur<'a> {
             ligne.insert(
                 "contrat".into(),
                 // ECRIT : le contrat de cet engagement se fait signer ici (`engagement::contrat_a_signer`).
-                json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
+                json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois, "chevrons": super::mois::chevrons_dits(&p.engagement)?,
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last(),
                        "repris": repris, "ecrit": engagement::contrat_a_signer(&self.ctx.racine, &p.engagement).map_err(plain)?, "ailleurs": ailleurs,
                        "dossier": if ailleurs { crate::compagnie::signature::contrat_signe_dit(self.ctx, &cle, &p.engagement.debut.iso()) } else { Value::Null },
