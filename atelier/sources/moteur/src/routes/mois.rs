@@ -1739,8 +1739,8 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
             bornes.push_str(&format!(" (paie du {} au {})", e.debut_periode()?.jj_mm_aaaa(), e.fin_periode()?.jj_mm_aaaa()));
         }
         m.push(bornes);
-        let designations: Vec<String> = p.remuneration.iter().map(|l| l.designation().to_string()).collect();
-        m.push(if designations.is_empty() { "—".to_string() } else { designations.join(", ") });
+        let paye = p.paye_en_bref();
+        m.push(if paye.is_empty() { "—".to_string() } else { paye });
         if let Some(emploi) = s.get("emploi").and_then(Value::as_str).filter(|x| !x.is_empty()) {
             let cadre = if s.get("statut_categoriel_rc").and_then(Value::as_str) == Some("01") { " (cadre)" } else { "" };
             m.push(format!("{}{}", emploi.to_lowercase(), cadre));
@@ -1770,11 +1770,10 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         }
         t
     };
-    let paye_dit = p.remuneration.iter().map(|l| l.designation().to_string().to_lowercase()).collect::<Vec<_>>().join(", ");
     let d = json!({
         "resolu_dit": resolu_dit, "contrat_dit": contrat_dit,
-        // Ce que la carte validee dit de la paie : ce qu'elle paye, son bulletin.
-        "paye_dit": paye_dit,
+        // Ce que la carte validee dit de la paie : ce qu'elle paye, en bref, son bulletin.
+        "paye_dit": p.paye_en_bref(),
         "bulletin_dit": p.numero_bulletin.as_ref().map(|n| format!("bulletin {}", n)),
         "numero_bulletin": p.numero_bulletin.clone().map_or(Value::Null, Value::String),
         "numero_contrat": e.numero.clone().map_or(Value::Null, Value::String),

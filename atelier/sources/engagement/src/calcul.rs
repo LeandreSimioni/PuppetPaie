@@ -453,15 +453,69 @@ impl Paie {
         self.lignes.iter().find(|l| l.id == id)
     }
 
-    pub fn resume(&self) -> Resultat<String> {
-        let s = &self.salarie;
-        let quoi = self.remuneration.iter().map(|l| l.designation()).collect::<Vec<_>>().join(", ");
-        let quoi = if quoi.is_empty() { "sans ligne".to_string() } else { quoi };
-        Ok(format!(
-            "{} {} - {} - {} = {} brut, net {}, cout employeur {}",
-            en_texte(requis(s, "nom")?), en_texte(requis(s, "prenom_affichage")?), self.titre()?,
-            quoi, self.brut, self.net_a_payer, self.cout_employeur))
+    /// Ce que la paie paye, en une ligne, la plus courte qu'une personne reconnaisse (`en_bref`).
+    pub fn paye_en_bref(&self) -> String {
+        en_bref(&self.remuneration)
     }
+}
+
+/// Des lignes de remuneration en une ligne, la plus courte qu'une personne reconnaisse : « 4 cachets, 8 repas,
+/// 4 nuitées », « 28 h de travail », « salaire mensuel de base, 119 h d'absence maladie, maintien de salaire,
+/// indemnités journalières (22 jours) ». Le detail ligne a ligne est celui du bulletin (`LigneBrut::designation`).
+/// - Les lignes d'une meme rubrique s'additionnent.
+/// - La part d'une nuitee au-dela de la limite du jour (`NUITEE_AU_DELA`) est celle d'une nuitee deja comptee.
+/// - Deux rubriques qui ne different que par leur precision entre parentheses, sur la meme mesure, se disent une fois :
+///   les indemnites journalieres deduites puis versees.
+/// - Ce qui rend, juste apres elle, ce qu'une deduction a retire (la meme mesure) se dit sans la repeter : le maintien
+///   de salaire d'une absence, l'indemnite des conges pris.
+pub fn en_bref(lignes: &[LigneBrut]) -> String {
+    let mut groupes: Vec<LigneBrut> = Vec::new();
+    for l in lignes.iter().filter(|l| l.code != crate::NUITEE_AU_DELA) {
+        match groupes.iter_mut().find(|g| g.code == l.code && g.precision == l.precision) {
+            Some(g) => {
+                g.quantite += l.quantite;
+                g.montant += l.montant;
+            }
+            None => groupes.push(l.clone()),
+        }
+    }
+    let base = |l: &LigneBrut| l.libelle.split_once(" (").map(|(b, _)| b.to_string());
+    let meme_mesure = |a: &LigneBrut, b: &LigneBrut| a.unite == b.unite && a.quantite == b.quantite;
+    let mut dits = Vec::new();
+    let mut i = 0;
+    while i < groupes.len() {
+        let g = &groupes[i];
+        let jumelle = groupes.get(i + 1).filter(|s| meme_mesure(g, s) && base(g).is_some() && base(g) == base(s));
+        if jumelle.is_some() {
+            let mut une = g.clone();
+            une.libelle = base(g).unwrap_or_default();
+            une.precision = None;
+            dits.push(bref(&une));
+            i += 2;
+            continue;
+        }
+        let rend = i > 0 && groupes[i - 1].montant.is_sign_negative() && g.montant.is_sign_positive() && meme_mesure(&groupes[i - 1], g);
+        dits.push(if rend { g.libelle.to_lowercase() } else { bref(g) });
+        i += 1;
+    }
+    dits.join(", ")
+}
+
+/// Une ligne (deja additionnee) dite en bref : un forfait qui se compte dit son nombre (« 8 repas »), des heures de
+/// travail se disent en heures (« 28 h de travail ») ; le reste comme au bulletin.
+fn bref(l: &LigneBrut) -> String {
+    let q = l.quantite.round_dp(2).normalize();
+    let (tete, reste) = l.libelle.split_once(' ').map_or((l.libelle.as_str(), ""), |(t, r)| (t, r));
+    let reste = if reste.is_empty() { String::new() } else { format!(" {}", reste) };
+    let dit = if l.unite == "forfait" && q.fract().is_zero() && q >= Decimal::TWO {
+        let tete = if tete.ends_with('s') || tete.ends_with('x') { tete.to_string() } else { format!("{}s", tete) };
+        format!("{} {}{}", q, tete, reste)
+    } else if l.unite == "heure" && tete.to_lowercase() == "heure" {
+        format!("{} h{}", q.to_string().replace('.', ","), reste)
+    } else {
+        l.designation()
+    };
+    dit.to_lowercase()
 }
 
 // ------------------------------------------------------ les allegements
