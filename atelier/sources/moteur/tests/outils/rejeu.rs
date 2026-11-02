@@ -61,6 +61,17 @@ pub fn rejouer_dossier(sc: &Path, dossier: &Path) -> (moteur::atelier::scenario:
     (r, racine)
 }
 
+/// `rejouer` du scenario `nom` jusqu'au premier geste qui avance le jour (sa compagnie configuree, rien de paye), dans
+/// `dossier` ; rend la racine de la compagnie.
+pub fn rejouer_le_premier_jour(nom: &str, dossier: &Path) -> PathBuf {
+    let sc = dossier.join("scenario");
+    std::fs::create_dir_all(&sc).unwrap();
+    let gestes = std::fs::read_to_string(scenario(nom).join("gestes.jsonl")).unwrap();
+    let gestes: Vec<&str> = gestes.lines().take_while(|l| !l.contains("\"geste\":\"jour\"")).collect();
+    std::fs::write(sc.join("gestes.jsonl"), gestes.join("\n") + "\n").unwrap();
+    rejouer_dossier(&sc, dossier).1
+}
+
 /// LIVRE le scenario `sc` tel qu'il est le soir de `jour` (`scenario::livrer`, ce que « Publier » pose) dans
 /// `dossier/installation/fictives/<nom du scenario>` ; rend la racine de la fictive livree.
 pub fn livrer(sc: &Path, dossier: &Path, jour: &str) -> PathBuf {

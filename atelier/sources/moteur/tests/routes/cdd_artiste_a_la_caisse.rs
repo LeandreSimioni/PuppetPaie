@@ -6,19 +6,13 @@
 
 use serde_json::json;
 
-use crate::outils::rejeu::{rejouer_dossier, scenario};
+use crate::outils::rejeu::rejouer_le_premier_jour;
 use crate::outils::{reussi, route};
 
 #[test]
 fn le_dernier_mois_n_a_pas_d_indemnite_compensatrice() {
     let d = crate::outils::dossier_de_test("cdd_artiste_a_la_caisse", "dernier_mois");
-    let sc = d.join("scenario");
-    std::fs::create_dir_all(&sc).unwrap();
-    // Les Faisceaux jusqu'a la carte de janvier.
-    let gestes = std::fs::read_to_string(scenario("faisceaux-sans-civilite").join("gestes.jsonl")).unwrap();
-    let gestes: Vec<&str> = gestes.lines().take_while(|l| !l.contains("\"geste\":\"jour\"")).collect();
-    std::fs::write(sc.join("gestes.jsonl"), gestes.join("\n") + "\n").unwrap();
-    let (_, c) = rejouer_dossier(&sc, &d);
+    let c = rejouer_le_premier_jour("faisceaux-sans-civilite", &d);
 
     // FULLER engagee comme artiste choregraphique (annexe 10), en CDD de droit commun de trois mois.
     let saisie = json!({"salarie": "FULLER", "nature": "cdd", "debut": "2026-03-02", "fin": "2026-05-29", "salaire_mensuel": 2500,

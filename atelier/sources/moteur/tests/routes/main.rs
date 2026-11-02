@@ -29,6 +29,7 @@ mod arret_prolonge;
 mod signalement_apres_echeance;
 mod tarif_conventionnel;
 mod cdd_artiste_a_la_caisse;
+mod motif_de_recours;
 mod dsn_sans_salarie;
 mod une_liste_de_ce_qui_est_du;
 mod nuitee_au_dela;
