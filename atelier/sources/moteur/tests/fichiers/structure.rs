@@ -710,12 +710,16 @@ fn la_page_n_ecrit_aucune_phrase() {
     for p in &fichiers {
         let t = std::fs::read_to_string(p).unwrap();
         let textes: Vec<String> = if p.extension().is_some_and(|x| x == "js") {
-            litteraux_js(&t).iter().flat_map(|s| textes_html(s)).collect()
+            litteraux_js(&t).iter().flat_map(|s| textes_html(s)).chain(tables_js(&t)).collect()
         } else {
             // Une page HTML : ses textes, et les litteraux de ses scripts (hors JSON).
             let t = t.replace("{{", "\u{1}").replace("}}", "\u{1}");
             let scripts: Vec<String> = t.split("<script").skip(1).filter(|s| !s.starts_with(" type=\"application/json\"")).filter_map(|s| s.split_once('>')).map(|(_, s)| s.split("</script>").next().unwrap_or("").to_string()).collect();
-            textes_html(&t).into_iter().chain(scripts.iter().flat_map(|s| litteraux_js(s)).flat_map(|s| textes_html(&s))).collect()
+            textes_html(&t)
+                .into_iter()
+                .chain(scripts.iter().flat_map(|s| litteraux_js(s)).flat_map(|s| textes_html(&s)))
+                .chain(scripts.iter().flat_map(|s| tables_js(s)))
+                .collect()
         };
         for texte in textes {
             if let Some(phrase) = phrase(&texte) {
@@ -910,14 +914,16 @@ fn gabarit(c: &[char], mut i: usize, v: &mut Vec<String>) -> (String, usize) {
                     i += 1;
                 }
             }
+            // Dans une balise, seul un attribut qui se lit (`title`, `placeholder`…) montre le texte qu'il choisit.
+            let se_lit = !dans_balise || attribut_qui_se_lit(&s);
             s.push(match () {
-                _ if dans_balise => '\u{1}',
+                _ if !se_lit => '\u{1}',
                 _ if ternaire && branches.iter().any(|b| texte_humain(b)) => '\u{2}',
                 _ if ternaire && branches.iter().any(|b| accord(b)) => '\u{3}',
                 _ => '\u{1}',
             });
             // Les textes qu'un choix offre se lisent chacun, marques comme choisis.
-            v.extend(branches.into_iter().map(|b| if ternaire && !dans_balise && texte_humain(&b) { format!("\u{2}{}", b) } else { b }));
+            v.extend(branches.into_iter().map(|b| if ternaire && se_lit && texte_humain(&b) { format!("\u{2}{}", b) } else { b }));
         } else {
             match c[i] {
                 '<' if c.get(i + 1).is_some_and(|y| y.is_ascii_alphabetic() || *y == '/') => dans_balise = true,
@@ -929,6 +935,18 @@ fn gabarit(c: &[char], mut i: usize, v: &mut Vec<String>) -> (String, usize) {
         }
     }
     (s, i + 1)
+}
+
+/// Le gabarit `s`, arrete dans une balise, est-il dans la valeur d'un attribut qui se lit (`title="…`) ?
+fn attribut_qui_se_lit(s: &str) -> bool {
+    let balise = &s[s.rfind('<').unwrap_or(0)..];
+    let Some(q) = balise.rfind(['"', '\'']) else { return false };
+    let g = balise[q..].chars().next().unwrap();
+    let tete = &balise[..q];
+    balise.matches(g).count() % 2 == 1
+        && ["title=", "placeholder=", "aria-label=", "alt="]
+            .iter()
+            .any(|a| tete.strip_suffix(a).is_some_and(|r| r.ends_with(char::is_whitespace)))
 }
 
 /// Le `?` en `i` est-il celui d'un choix (`a ? b : c`) ? Ni `?.`, ni `??`.
@@ -945,6 +963,106 @@ fn texte_humain(t: &str) -> bool {
         && t.chars().any(char::is_alphabetic)
         && (t.split_whitespace().filter(|m| 2 * m.chars().filter(|c| c.is_alphabetic()).count() > m.chars().count()).count() > 1
             || t.chars().any(|c| c.is_uppercase() || !c.is_ascii() || c == '\''))
+}
+
+/// Les textes qu'une table de la page associe a une valeur : un objet litteral indexe par une valeur (`{…}[cle]`, ou
+/// `const NOMS = {…}` puis `NOMS[cle]`) dont une propriete vaut un litteral qui se lit (`texte_humain`). Chacun se rend
+/// marque comme choisi (\u{2}) : la page choisirait un texte selon une valeur.
+fn tables_js(t: &str) -> Vec<String> {
+    let c: Vec<char> = t.chars().collect();
+    let mut v = Vec::new();
+    let mut ouvertes: Vec<usize> = Vec::new();
+    let (mut i, mut avant) = (0, '(');
+    let mut jetes = Vec::new();
+    while i < c.len() {
+        let x = c[i];
+        if x == '/' && c.get(i + 1) == Some(&'/') {
+            while i < c.len() && c[i] != '\n' {
+                i += 1;
+            }
+        } else if x == '/' && c.get(i + 1) == Some(&'*') {
+            i += 2;
+            while i + 1 < c.len() && !(c[i] == '*' && c[i + 1] == '/') {
+                i += 1;
+            }
+            i += 2;
+        } else if x == '/' && "(,=:[!&|?{};+".contains(avant) {
+            let mut classe = false;
+            i += 1;
+            while i < c.len() && (c[i] != '/' || classe) {
+                match c[i] {
+                    '\\' => i += 1,
+                    '[' => classe = true,
+                    ']' => classe = false,
+                    _ => {}
+                }
+                i += 1;
+            }
+            i += 1;
+            avant = 'r';
+        } else if x == '"' || x == '\'' {
+            (i, avant) = (chaine(&c, i).1, 's');
+        } else if x == '`' {
+            (i, avant) = (gabarit(&c, i + 1, &mut jetes).1, 's');
+        } else {
+            match x {
+                '{' => ouvertes.push(i),
+                '}' => {
+                    if let Some(debut) = ouvertes.pop() {
+                        let apres = c[i + 1..].iter().find(|y| !y.is_whitespace() && **y != ')');
+                        let avant_txt: String = c[..debut].iter().collect();
+                        let avant_txt = avant_txt.trim_end();
+                        let nom: String = avant_txt
+                            .strip_suffix('=')
+                            .map(|a| a.trim_end().chars().rev().take_while(|y| y.is_alphanumeric() || *y == '_').collect::<Vec<_>>().into_iter().rev().collect())
+                            .unwrap_or_default();
+                        let indexee = apres == Some(&'[') || (!nom.is_empty() && t.contains(&format!("{}[", nom)));
+                        if indexee {
+                            v.extend(valeurs_de_table(&c[debut + 1..i]).into_iter().filter(|s| texte_humain(s)).map(|s| format!("\u{2}{}", s)));
+                        }
+                    }
+                }
+                _ => {}
+            }
+            if !x.is_whitespace() {
+                avant = x;
+            }
+            i += 1;
+        }
+    }
+    v
+}
+
+/// Les valeurs litterales (une chaine juste apres `:`) d'un corps d'objet, a son premier niveau.
+fn valeurs_de_table(c: &[char]) -> Vec<String> {
+    let mut v = Vec::new();
+    let mut jetes = Vec::new();
+    let (mut i, mut profondeur, mut deux_points) = (0, 0, false);
+    while i < c.len() {
+        match c[i] {
+            '"' | '\'' => {
+                let (s, j) = chaine(c, i);
+                if profondeur == 0 && deux_points {
+                    v.push(s);
+                }
+                deux_points = false;
+                i = j;
+                continue;
+            }
+            '`' => {
+                i = gabarit(c, i + 1, &mut jetes).1;
+                deux_points = false;
+                continue;
+            }
+            '{' | '[' | '(' => profondeur += 1,
+            '}' | ']' | ')' => profondeur -= 1,
+            ':' if profondeur == 0 => deux_points = true,
+            y if !y.is_whitespace() => deux_points = false,
+            _ => {}
+        }
+        i += 1;
+    }
+    v
 }
 
 /// Un accord : une terminaison de trois lettres au plus (« s », « es », « nt »).
