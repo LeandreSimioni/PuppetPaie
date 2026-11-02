@@ -920,7 +920,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
                 let Some(v) = etat.valide() else { continue };
                 let brut = &*v.objet().brut;
                 let Some(cle) = engagement::cle_de_l_engagement(ctx, &brut) else { continue };
-                let id = (cle, engagement::debut_brut(&brut));
+                let id = (cle, engagement::debut_brut(&ctx.racine, &brut));
                 if let Ok(nat) = droit::natures::nature(brut.get("nature").and_then(Value::as_str)) {
                     natures.insert(id.clone(), nat.libelle.clone());
                 }

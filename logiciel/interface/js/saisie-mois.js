@@ -81,9 +81,9 @@ function engagementDuBloc(div, mois) {
   // l'aperçu et le montant visé la lisent (`LIRE_LES_MODIFICATIONS`).
   if (carteFermee(div) || (div.classList.contains("en-modification") && !LIRE_LES_MODIFICATIONS))
     return engagementLu(div) && JSON.parse(JSON.stringify(engagementLu(div)));
-  // L'ENGAGEMENT N'ÉCRIT PLUS DE `dates` : chacune de ses lignes porte les
-  // siennes, avec son lieu, et le moteur en fait la réunion
-  // (`operations.dates_engagement`). Une carte porte un salarié : elle écrit son engagement.
+  // L'engagement n'écrit pas de `dates` : chacune de ses lignes porte les
+  // siennes, avec son lieu, et le moteur lit les jours de ses lignes de travail
+  // (`engagement::dates_engagement`). Une carte porte un salarié : elle écrit son engagement.
   const spectacle = div.querySelector(".e-spectacle").value;
   const etablissement = div.querySelector(".e-etablissement").value;
   const lignes = lignesDuBloc(div, mois);
@@ -229,6 +229,9 @@ async function calculerApercu(lu) {
     blocs.forEach((div, i) => {
       const part = rangs[i] == null ? [] : [(a.paies || [])[rangs[i]]].filter(Boolean);
       const p = part[0];
+      // Les bornes de l'engagement, telles que le moteur les lit (ses lignes de travail) : la ligne du contrat les montre.
+      div._bornes = p ? { debut: p.debut || "", fin: p.fin || "" } : null;
+      majContrat(div);
       // Un engagement auquel il manque un fait est enregistré tel quel : la carte dit ce qui manque, sans montant.
       const manques = part.filter((x) => x && x.a_completer);
       if (manques.length) {

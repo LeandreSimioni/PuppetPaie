@@ -297,7 +297,7 @@ pub(crate) fn refus_non_declarable(
             continue;
         }
         let nom = b_avant.get("salarie").map(valeur_en_texte).unwrap_or_else(|| cle.clone());
-        let debut = socle::date::Jour::lire(&engagement::debut_brut(&b_avant)).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
+        let debut = socle::date::Jour::lire(&engagement::debut_brut(&ctx.racine, &b_avant)).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
         let dsn = match departs.de(&cle, &numero).iter().find(|x| x.envoi == engagement::departs::Envoi::Dsn && x.mois.as_deref() == Some(mois)).and_then(|x| x.par.clone()) {
             Some(par) => format!("dans la DSN {}, qui a porté la correction {}", de_mois_en_clair(&par), de_mois_en_clair(mois)),
             None => format!("dans la DSN {}, qui ne se remplace plus", de_mois_en_clair(mois)),

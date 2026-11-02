@@ -457,7 +457,7 @@ fn mensuels_d_avant(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Vec<Strin
         .iter()
         .filter(|o| o.fichier.as_str() < mois && !o.est_non_actif() && !o.importe_seul() && o.mensuel())
         .filter(|o| crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle))
-        .map(|o| format!("{}#{}", o.fichier, crate::debut_brut(&o.brut)))
+        .map(|o| format!("{}#{}", o.fichier, crate::debut_brut(&ctx.racine, &o.brut)))
         .collect();
     out.sort();
     Ok(out)

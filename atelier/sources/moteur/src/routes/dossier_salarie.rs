@@ -503,12 +503,8 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
             o.shift_remove("planning");
         }
     }
-    let mut dates: Vec<Value> = Vec::new();
-    for l in &lignes {
-        if let Some(Value::Array(d)) = l.get("dates").filter(|d| vrai(d)) {
-            dates.extend(d.iter().cloned());
-        }
-    }
+    // Les jours du contrat entier : ceux de ses lignes de travail (`engagement::dates_engagement`).
+    let dates = engagement::dates_engagement(&ctx.racine, &json!({"lignes": lignes.clone()}));
     let texte = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
     let fin = eng.fin.map_or(Value::Null, |f| json!(f.iso()));
     let entier = json!({
