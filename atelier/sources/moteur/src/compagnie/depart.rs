@@ -68,13 +68,18 @@ fn annee_de(mois: &str) -> R<i64> {
 /// l'ecran dit (« ecrit le ... ») : la date d'un fichier n'est pas celle de son ecriture (une fictive livree est
 /// decompressee chez le visiteur, un banc simule le temps). `cle` : `<mois>/<fichier>`, ou `exercices/<fichier>` ;
 /// `empreinte_saisie` : la paie que la piece declare -- pour une DSN, celle de ses paies validees ; pour l'export compta
-/// de l'annee, celles de ses saisies (`exercice_ecrit::empreintes_des_saisies`).
-pub(crate) fn noter_piece_ecrite(racine: &Path, cle: &str, empreinte_saisie: Option<Value>) -> R<()> {
+/// de l'annee, celles de ses saisies (`exercice_ecrit::empreintes_des_saisies`) ; `versions_portees` : pour une DSN
+/// mensuelle, la version de chaque engagement d'un mois passe dont elle porte la correction
+/// (`produire_regularisations::versions_portees`), que la ligne du journal de son depot emporte (`versions_portees_de`).
+pub(crate) fn noter_piece_ecrite(racine: &Path, cle: &str, empreinte_saisie: Option<Value>, versions_portees: Option<Vec<Value>>) -> R<()> {
     let p = racine.join("journal").join("dsn-ecrites.json");
     let mut d = Value::Object(journal_des_ecritures(racine));
     let mut note = json!({"quand": socle::paris::maintenant()});
     if let Some(e) = empreinte_saisie {
         note["empreinte_saisie"] = e;
+    }
+    if let Some(v) = versions_portees {
+        note["versions_portees"] = Value::Array(v);
     }
     d[cle] = note;
     if let Some(parent) = p.parent() {
@@ -120,6 +125,12 @@ pub(crate) fn ecrit_le(racine: &Path, fichier: &Path) -> Value {
         .and_then(|n| n.get("quand"))
         .and_then(Value::as_str)
         .map_or(Value::Null, |q| json!(q.chars().take(16).collect::<String>()))
+}
+
+/// CE QUE CETTE DSN MENSUELLE CORRIGE, tel que sa fabrication l'a note (`noter_piece_ecrite`) ; `None` si le moteur ne l'a
+/// pas ecrite.
+pub(crate) fn versions_portees_de(racine: &Path, fichier: &Path) -> Option<Vec<Value>> {
+    journal_des_ecritures(racine).get(&cle_de_piece(fichier)).and_then(|n| n.get("versions_portees")).and_then(Value::as_array).cloned()
 }
 
 // ------------------------------------------------------------- la DSN, a son depot
@@ -652,7 +663,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     // UNE DSN PAR ETABLISSEMENT : chacun avec ses salaries, ses corrections et ses arrets ; celle du principal garde
     // son nom de toujours, les autres portent leur NIC. Un etablissement sans salarie ce mois-ci depose quand meme la
     // sienne, sans individu : une DSN est due chaque mois, par SIRET.
-    let mut a_ecrire: Vec<(PathBuf, String)> = Vec::new();
+    let mut a_ecrire: Vec<(PathBuf, String, Vec<Value>)> = Vec::new();
     let mut fichiers: Vec<PathBuf> = Vec::new();
     for nic in &nics {
         let n = nic.as_str().map(str::to_string);
@@ -676,20 +687,22 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         // LE FICHIER DEJA ECRIT QUI DIT LA MEME CHOSE se reprend (`refabriquer`) : meme declaration, au jour ou il a ete
         // constitue.
         if refabriquer_sur(ctx, Some(&lu), &f_dsn, mois, n.as_deref())?.is_none() {
+            // Ce que la DSN de cet etablissement corrige des mois passes : elle le dit a son depot.
+            let portees = declarations::produire_regularisations::versions_portees(ctx, &lu.regs, n.as_deref().unwrap_or(&principal))?;
             let forme = Forme { type_dsn, ordre, etablissement: n, constitution: ctx.aujourdhui, remplacee_versait_pas };
-            a_ecrire.push((f_dsn.clone(), fabriquer_du_present(ctx, &lu, mois, &forme)?.texte));
+            a_ecrire.push((f_dsn.clone(), fabriquer_du_present(ctx, &lu, mois, &forme)?.texte, portees));
         }
         fichiers.push(f_dsn);
     }
     if !a_ecrire.is_empty() {
         std::fs::create_dir_all(&sortie).map_err(|e| os(&sortie, e))?;
-        for (f, texte) in &a_ecrire {
+        for (f, texte, _) in &a_ecrire {
             declarations::dsn::ecrire(texte, f).map_err(|m| erreur("OSError", m))?;
         }
         // La paie que chaque DSN declare : l'ecran dira si elle change avant l'envoi.
         let empreinte = m.empreinte_saisie_avec(mois, || Ok(Moteur::portees(&lu.regs)))?;
-        for (f, _) in &a_ecrire {
-            noter_piece_ecrite(&ctx.racine, &cle_de_piece(f), Some(json!(empreinte)))?;
+        for (f, _, portees) in a_ecrire {
+            noter_piece_ecrite(&ctx.racine, &cle_de_piece(&f), Some(json!(empreinte)), Some(portees))?;
         }
     }
     Ok(DsnFabriquee { fichiers, avertissements })

@@ -200,7 +200,7 @@ pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()
     texte.push('\n');
     // ATOMIQUE : le fichier s'ecrit a cote puis prend sa place d'un coup. `std::fs::write` tronque d'abord,
     // puis ecrit : un lecteur arrive entre les deux (l'etat du mois se refait dans le fil de la fenetre, `etat_garde::
-    // FileDesEtats`, pendant qu'une route relit `journal/depots.json`) lirait un fichier vide, « EOF while
+    // FileDesEtats`, pendant qu'une route relit `journal/dsn-ecrites.json`) lirait un fichier vide, « EOF while
     // parsing a value ». Un journal JSON ne se voit jamais a moitie ecrit.
     // Le fichier d'a cote est a cette ecriture seule (le processus, un numero) : la fenetre sert ses routes dans son
     // processus, et deux fils qui ecrivent le meme fichier ne s'ecrivent jamais l'un sur l'autre. En `.tmp` :

@@ -162,7 +162,7 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
         std::fs::write(&f, csv_compta(&ecritures)).map_err(|e| en_os(&e, &f))?;
         // L'export de l'annee entiere note les saisies qu'il a lues (`export_compta_a_jour`).
         let lues = ((du, au) == (1, 12)).then(|| empreintes_des_saisies(&ctx.racine, &annee.to_string()));
-        crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&f), lues)?;
+        crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&f), lues, None)?;
         fichier = Some(f);
     }
     Ok(ExportCompta { annee: annee.to_string(), du, au, mois, ecritures, total_debit, total_credit, fichier, plan: origine.to_string(), avertissements: avert })
@@ -343,9 +343,9 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
             }
         }
     }
-    let j = ctx.racine.join("journal").join("depots.json");
+    let j = envois::journal::chemin(&ctx.racine);
     if j.exists() {
-        entrees.push(entree_fichier(&j, "journal/depots.json".to_string())?);
+        entrees.push(entree_fichier(&j, "journal/depots.jsonl".to_string())?);
     }
     let cfg = ctx.racine.join("config");
     for nom in ["entreprise.json", "salaries.json", "spectacles.json", "organismes.json", "rubriques.json", "compteurs.json"] {

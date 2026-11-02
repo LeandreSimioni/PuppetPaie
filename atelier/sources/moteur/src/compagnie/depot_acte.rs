@@ -453,6 +453,17 @@ pub fn deposer_dsn_dans(
             ));
         }
     }
+    // UNE DSN MENSUELLE REELLE DIT CE QU'ELLE CORRIGE : sa fabrication l'a note (`depart::versions_portees_de`). Un fichier
+    // que le moteur n'a pas ecrit ne le dit pas, et ce qu'il corrige ne se devine pas (regle 1).
+    if reel && !apercu.est_signalement() && crate::compagnie::depart::versions_portees_de(&ctx.racine, &chemin).is_none() {
+        return Err(erreur(
+            "ErreurOperation",
+            format!(
+                "{} n'a pas été écrite par le logiciel : ce qu'elle corrige des mois passés ne se lit pas. Rien n'est parti. Déposer la DSN du mois (route deposer, avec le mois), qui s'écrit ici.",
+                chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
+            ),
+        ));
+    }
     if reel {
         forme = verifier_preuve(ctx, preuve, &apercu.confirmation_attendue(), "depot REEL d'une DSN", "net-entreprises (la declaration part a l'Urssaf et aux organismes)")?;
         // PAS DEUX FOIS SANS LE VOULOIR. Une DSN reelle deja partie pour ce mois, et pas refusee, ne repart pas.
@@ -520,9 +531,11 @@ pub fn deposer_dsn_dans(
         let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
         let mut v = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
-        // Et la version presente de l'engagement de chaque mois passe dont la DSN porte la correction.
+        // Et ce qu'elle corrige des mois passes, tel que sa fabrication l'a note : un fichier qui part tel qu'il a ete
+        // ecrit emporte ce qu'il porte, pas ce qu'une DSN fabriquee aujourd'hui porterait (regle 4). Un essai d'un
+        // fichier que le moteur n'a pas ecrit n'emporte rien ; en reel, il est refuse plus haut.
         if let Value::Array(a) = &mut v {
-            a.extend(declarations::produire_regularisations::versions_portees(ctx, &mois, &nic, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?);
+            a.extend(crate::compagnie::depart::versions_portees_de(&ctx.racine, &chemin).unwrap_or_default());
         }
         v
     };

@@ -1176,7 +1176,7 @@
         }
       ]
     },
-    "journal/depots.json": [
+    "journal/depots.jsonl": [
       {
         "quoi": "contrat-signature",
         "quand": "2026-11-20T06:00:00",
@@ -1717,7 +1717,8 @@
       },
       "2026-11/DSN_Novembre2026.dsn": {
         "quand": "2026-12-15T10:00:00",
-        "empreinte_saisie": "247189879fc12aa5"
+        "empreinte_saisie": "247189879fc12aa5",
+        "versions_portees": []
       }
     },
     "paies/2026-11.json": {

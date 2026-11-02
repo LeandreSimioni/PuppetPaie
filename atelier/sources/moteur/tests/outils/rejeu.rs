@@ -195,6 +195,8 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
         let ext = Path::new(&rel).extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
         let octets = std::fs::read(&p).unwrap();
         let v = match ext.as_str() {
+            // Le journal des envois : ce qu'il dit, ses lignes telles que le moteur les lit.
+            "jsonl" if p == envois::journal::chemin(racine) => masquer(super::journal(racine), &r),
             "json" => masquer(serde_json::from_slice(&octets).unwrap_or_else(|e| panic!("{} illisible : {}", rel, e)), &r),
             // Les fichiers a largeur fixe sont en latin-1 : un octet, un caractere.
             "dsn" | "txt" | "csv" | "eml" => lignes(&octets.iter().map(|&o| o as char).collect::<String>(), &r),

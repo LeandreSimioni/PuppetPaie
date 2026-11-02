@@ -21,13 +21,13 @@ fn la_relance_d_un_contrat_imprime_se_refuse_et_rien_n_est_ecrit() {
     reussi(&valider_la_carte(&c, "2026-11", "FULLER", jour));
     reussi(&route(&c, "contrats-imprimer", json!({"mois": "2026-11", "contrats": [contrat]}), jour));
 
-    let journal = std::fs::read(c.join("journal/depots.json")).unwrap();
+    let journal = std::fs::read(envois::journal::chemin(&c)).unwrap();
     let pieces = noms(&c.join("sorties/2026-11/envoi"));
     // Plus fictive : sans boite et sans mot de passe, la relance refusee se dit avant de demander l'une ou l'autre.
     std::fs::remove_file(c.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
     let r = route(&c, "demander-signature", json!({"mois": "2026-11", "contrats": [contrat], "relance": true}), jour);
     let (_, phrase) = refus(&r);
     assert!(phrase.contains("imprime"), "{}", phrase);
-    assert_eq!(std::fs::read(c.join("journal/depots.json")).unwrap(), journal, "la relance refusee a ecrit au journal");
+    assert_eq!(std::fs::read(envois::journal::chemin(&c)).unwrap(), journal, "la relance refusee a ecrit au journal");
     assert_eq!(noms(&c.join("sorties/2026-11/envoi")), pieces, "la relance refusee a ecrit un PDF");
 }

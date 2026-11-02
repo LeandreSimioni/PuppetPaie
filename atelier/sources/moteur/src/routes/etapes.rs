@@ -620,7 +620,7 @@ impl<'a> Moteur<'a> {
         &self.ctx.racine
     }
 
-    /// Les lignes de `journal/depots.json` (`envois::journal::lu`, la lecture qui donne aussi `departs`).
+    /// Les lignes de `journal/depots.jsonl` (`envois::journal::lu`, la lecture qui donne aussi `departs`).
     pub(crate) fn lignes(&self) -> R<std::sync::Arc<Vec<Value>>> {
         envois::journal::lu(self.racine()).map(|j| j.lignes).map_err(plain)
     }
@@ -981,7 +981,7 @@ impl<'a> Moteur<'a> {
         t.trim().parse::<i64>().map_err(|_| {
             erreur(
                 "ValueError",
-                format!("journal/depots.json : un depot reel de la DSN de {} ne porte pas son ordre (S20.G00.05.004). Le rang d'un annule-et-remplace ne se devine pas.", mois),
+                format!("journal/depots.jsonl : un depot reel de la DSN de {} ne porte pas son ordre (S20.G00.05.004). Le rang d'un annule-et-remplace ne se devine pas.", mois),
             )
         })
     }

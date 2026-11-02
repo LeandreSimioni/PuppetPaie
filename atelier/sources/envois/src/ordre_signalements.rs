@@ -1,6 +1,6 @@
 //! Le numero d'ordre (S20.G00.05.004) du prochain signalement, LA PLATE-FORME FAISANT FOI.
 //!
-//! POURQUOI. Le journal d'un dossier (`journal/depots.json`) ne connait que ce que CE dossier a depose ; la plate-forme se
+//! POURQUOI. Le journal d'un dossier (`journal/depots.jsonl`) ne connait que ce que CE dossier a depose ; la plate-forme se
 //! souvient de tout, par SIRET, essais compris. Cahier technique DSN 2026.1, §1.4.3.2, p. 14 : « Quand un signalement
 //! d'evenement de type normal a ete accepte pour un SIRET employeur et un numero d'ordre de la declaration donne, il n'est
 //! pas possible d'emettre un deuxieme signalement d'evenement de type normal avec le meme SIRET employeur et le meme

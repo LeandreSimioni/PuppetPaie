@@ -20,7 +20,7 @@ fn la_dpae_deposee_emporte_la_demande_de_taux() {
 
     reussi(&route(&c, "deposer", json!({"quoi": "dpae", "mois": "2026-11", "reel": false}), jour));
 
-    let journal: serde_json::Value = serde_json::from_slice(&std::fs::read(c.join("journal/depots.json")).unwrap()).unwrap();
+    let journal = crate::outils::journal(&c);
     let lignes = journal.as_array().or_else(|| journal["lignes"].as_array()).cloned().unwrap_or_default();
     let parti = lignes.iter().any(|l| l["quoi"] == "dsn" && l["mode"] == "test" && l["fichier"] == "Amorcage01_FULLER_20261120.dsn");
     assert!(parti, "le signalement d'amorcage n'est pas parti avec la DPAE : {:?}", lignes.iter().map(|l| (&l["quoi"], &l["mode"], &l["fichier"])).collect::<Vec<_>>());
@@ -42,7 +42,7 @@ fn une_dpae_a_qui_il_manque_une_case_refuse_au_lieu_de_reprendre_la_partie() {
     reussi(&valider_la_carte(&c, "2026-11", "FULLER", jour));
     reussi(&route(&c, "deposer", json!({"quoi": "dpae", "mois": "2026-11", "reel": false}), jour));
     let lignes = || -> usize {
-        let j: serde_json::Value = serde_json::from_slice(&std::fs::read(c.join("journal/depots.json")).unwrap()).unwrap();
+        let j = crate::outils::journal(&c);
         j.as_array().or_else(|| j["lignes"].as_array()).map_or(0, |l| l.iter().filter(|x| x["quoi"] == "dpae").count())
     };
     let avant = lignes();

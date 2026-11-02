@@ -168,28 +168,6 @@ fn le(iso: &str) -> String {
     format!("{}/{}/{}", t(8, 10), t(5, 7), t(0, 4))
 }
 
-/// Combien de lignes le journal des depots porte (0 sans journal), tel que le geste le tient.
-fn n_lignes(racine: &Path) -> usize {
-    envois::journal::lu(racine).map(|j| j.lignes.len()).unwrap_or(0)
-}
-
-/// Date les lignes du journal ecrites depuis la `depuis`-ieme : un pas joue se lit a la date ou il aurait eu
-/// lieu, et la ligne le dit (`origine`). Un pas qui n'a rien ajoute ne reecrit rien.
-fn dater(racine: &Path, depuis: usize, quand: &str) {
-    let Ok(journal) = envois::journal::lu(racine) else { return };
-    if journal.lignes.len() <= depuis {
-        return;
-    }
-    let mut lignes = (*journal.lignes).clone();
-    for l in lignes.iter_mut().skip(depuis) {
-        if let Value::Object(o) = l {
-            o.insert("quand".into(), json!(quand));
-            o.insert("origine".into(), json!(ORIGINE));
-        }
-    }
-    let _ = socle::ecriture::ecrire_json(&envois::journal::chemin(racine), &Value::Array(lignes), 2);
-}
-
 /// Les refus ordinaires d'une operation (un refus du moteur sans classe en est un).
 fn est_une_erreur_d_operation(e: &Echec) -> bool {
     e.classe.is_none()
@@ -239,10 +217,10 @@ fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Conte
         Ok(c) => c,
         Err(e) => return echec(&e),
     };
-    let n = n_lignes(racine);
-    // Le geste a lieu a son heure : ce qu'il ecrit (un nom de fichier, une ligne de journal) en porte la date.
+    // Le geste a lieu a son heure : ce qu'il ecrit (un nom de fichier, une ligne de journal) en porte la date, et une
+    // ligne du journal dit qu'il a ete joue (`origine`).
     // La re-verification precede TOUT geste : ce qui suit ne s'execute que dans une compagnie fictive.
-    let mut jouer = || d.reverifier().and_then(|_| geste(&ctx));
+    let mut jouer = || envois::journal::dater_pendant(quand, ORIGINE, || d.reverifier().and_then(|_| geste(&ctx)));
     let fait = match instant_du_pas(quand) {
         Some(t) => socle::temps::pendant(t, jouer),
         None => jouer(),
@@ -251,7 +229,6 @@ fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Conte
         Ok(b) => b,
         Err(e) => return echec(&e),
     };
-    dater(racine, n, quand);
     if dit {
         vec![format!("Le {} : {}", le(quand), quoi)]
     } else {
