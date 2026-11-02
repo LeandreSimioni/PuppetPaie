@@ -435,7 +435,7 @@ un truc urgent ; c'est lui qui lance « Publier », jamais un agent. En cas de d
 6. **Une nature de contrat n'est pas un détail.** `donnees/contrats-base.json` dit ce que la DSN écrit par nature
    (`cddu_spectacle`, `cdi`, `cdd`) ; un engagement muet est un CDDU. Le numéro d'objet spectacle est **interdit** hors des
    natures 02 et 10 (CCH-11). Le barème a des axes qui s'empilent (statut, nature, santé, catégorie), à un seul endroit
-   (`droit::bareme::bareme_applique_au_contrat`). La prévoyance des permanents vient de la convention ; un cadre permanent lit
+   (`droit::bareme::bareme_applique`). La prévoyance des permanents vient de la convention ; un cadre permanent lit
    `par_categorie.cadre_permanent`. Détail : `docs/ARCHITECTURE.md`, « La nature du contrat ».
 7. **Deux contrôles avant tout dépôt** : les usages (une rubrique a-t-elle le *droit* d'être là pour la nature de déclaration)
    et les formats (ce qu'on y a *mis* a-t-il la bonne forme). Un contrôle faux refuserait du licite : c'est lui qu'on retire,
