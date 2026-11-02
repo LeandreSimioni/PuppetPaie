@@ -11,6 +11,7 @@ mod clauses;
 mod contexte;
 mod emplois;
 mod essai;
+mod minima;
 mod natures;
 mod pas;
 mod mois_incomplet;
