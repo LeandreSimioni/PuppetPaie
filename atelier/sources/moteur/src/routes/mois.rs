@@ -1622,7 +1622,7 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Ve
             let trouve = etats.iter().enumerate().find(|(_, x)| x.valide().is_some() && sien.1.is_some() && qui(x.objet().champs()) == sien);
             if let (Some((j, x)), Some(d)) = (trouve, disque.as_ref()) {
                 let v = x.valide().ok_or("engagement en saisie")?;
-                lue = Some(PaieMontree { paie: v.paie(ctx, d, j)?, recalcul: v.recalcul(mois).cloned() });
+                lue = Some(PaieMontree { paie: v.paie(ctx, d, j)?, recalcul: v.recalcul(mois) });
             }
         }
         lues.push(lue);

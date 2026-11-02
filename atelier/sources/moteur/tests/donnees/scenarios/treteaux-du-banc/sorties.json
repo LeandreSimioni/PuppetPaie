@@ -1170,381 +1170,6 @@
                 }
               ],
               "numero": "FU1.26.01"
-            },
-            "paies": {
-              "2026-11": {
-                "paie": {
-                  "assiette_chomage": "300",
-                  "avertissements": [],
-                  "base_csg": "298.08",
-                  "bases": {
-                    "brut": "300",
-                    "brut_chomage": "300",
-                    "brut_cs": "300",
-                    "brut_plafonne": "300",
-                    "brut_x110": "330",
-                    "brut_x115": "334.5",
-                    "brut_x115_plafonne": "334.5",
-                    "csg": "298.08"
-                  },
-                  "brut": "300",
-                  "cout_employeur": "471.85",
-                  "deduction_forfaitaire": null,
-                  "engagement": {
-                    "salarie": "FULLER",
-                    "spectacle": "le-banc-des-menteurs",
-                    "dates_travail": [
-                      "2026-11-20",
-                      "2026-11-21"
-                    ],
-                    "lignes": [
-                      {
-                        "rubrique": "cachet",
-                        "quantite": 2,
-                        "taux": 150,
-                        "lieu": "Salle fictive de Rezé",
-                        "dates": [
-                          "2026-11-20",
-                          "2026-11-21"
-                        ]
-                      }
-                    ],
-                    "debut": "2026-11-20",
-                    "fin": "2026-11-21",
-                    "numero": "FU1.26.01",
-                    "mois": "2026-11",
-                    "planning": [],
-                    "planning_lieux": {},
-                    "jours": "2",
-                    "jours_contrat": "2",
-                    "date_paiement": "2026-11-30",
-                    "taux_cachet": "150",
-                    "cachets": "2",
-                    "heures": null,
-                    "lieu": "",
-                    "lieux": {
-                      "2026-11-20": "Salle fictive de Rezé",
-                      "2026-11-21": "Salle fictive de Rezé"
-                    },
-                    "emploi": null,
-                    "pcs_ese": null,
-                    "code_emploi_ft": null,
-                    "statut": null,
-                    "statut_conventionnel": null,
-                    "statut_categoriel_rc": null,
-                    "nature": "cddu_spectacle",
-                    "quotite_contrat": null,
-                    "quotite_reference_saisie": null,
-                    "modalite_temps_travail_saisie": null,
-                    "motif_recours": null,
-                    "motif_rupture": null,
-                    "notification_rupture": null,
-                    "preavis": null,
-                    "transaction": null,
-                    "suspensions": [],
-                    "debut_periode": "2026-11-20",
-                    "fin_periode": "2026-11-21",
-                    "quotite": "2",
-                    "sans_paie": false,
-                    "premier_mois": true,
-                    "dernier_mois": true,
-                    "mois_du_contrat": [
-                      "2026-11"
-                    ]
-                  },
-                  "heures": "14",
-                  "heures_absence": "0",
-                  "heures_travaillees": "24",
-                  "lignes": [
-                    {
-                      "id": "maladie",
-                      "famille": "SANTÉ",
-                      "libelle": "Sécurité sociale — Maladie Maternité Invalidité Décès",
-                      "base": "300",
-                      "taux_pat": "9.1",
-                      "montant_pat": "27.3",
-                      "taux_sal": null,
-                      "montant_sal": "0",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "prevoyance",
-                      "famille": "SANTÉ",
-                      "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
-                      "base": "300",
-                      "taux_pat": "1.11",
-                      "montant_pat": "3.33",
-                      "taux_sal": "0.12",
-                      "montant_sal": "0.36",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "atmp",
-                      "famille": "ACCIDENTS DU TRAVAIL — MALADIES PROFESSIONNELLES",
-                      "libelle": "Accidents du travail",
-                      "base": "300",
-                      "taux_pat": "0.77",
-                      "montant_pat": "2.31",
-                      "taux_sal": null,
-                      "montant_sal": "0",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "vieil_plaf",
-                      "famille": "RETRAITE",
-                      "libelle": "Sécurité sociale plafonnée",
-                      "base": "300",
-                      "taux_pat": "5.99",
-                      "montant_pat": "17.97",
-                      "taux_sal": "4.83",
-                      "montant_sal": "14.49",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "vieil_deplaf",
-                      "famille": "RETRAITE",
-                      "libelle": "Sécurité sociale déplafonnée",
-                      "base": "300",
-                      "taux_pat": "1.48",
-                      "montant_pat": "4.44",
-                      "taux_sal": "0.28",
-                      "montant_sal": "0.84",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "retraite_t1",
-                      "famille": "RETRAITE",
-                      "libelle": "Complémentaire Tranche 1",
-                      "base": "300",
-                      "taux_pat": "5.74",
-                      "montant_pat": "17.22",
-                      "taux_sal": "5.3",
-                      "montant_sal": "15.9",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "famille",
-                      "famille": "FAMILLE",
-                      "libelle": "Allocations familiales",
-                      "base": "300",
-                      "taux_pat": "3.68",
-                      "montant_pat": "11.04",
-                      "taux_sal": null,
-                      "montant_sal": "0",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "chomage",
-                      "famille": "ASSURANCE CHÔMAGE",
-                      "libelle": "Chômage",
-                      "base": "300",
-                      "taux_pat": "9.75",
-                      "montant_pat": "29.25",
-                      "taux_sal": "2.4",
-                      "montant_sal": "7.2",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "autres_1",
-                      "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
-                      "libelle": "Autres contributions dues par l'employeur",
-                      "base": "300",
-                      "taux_pat": "2.836",
-                      "montant_pat": "8.51",
-                      "taux_sal": null,
-                      "montant_sal": "0",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "autres_2",
-                      "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
-                      "libelle": "Autres contributions dues par l'employeur",
-                      "base": "334.5",
-                      "taux_pat": "0.07",
-                      "montant_pat": "0.23",
-                      "taux_sal": null,
-                      "montant_sal": "0",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "autres_3",
-                      "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
-                      "libelle": "Autres contributions dues par l'employeur",
-                      "base": "330",
-                      "taux_pat": "0.68",
-                      "montant_pat": "2.25",
-                      "taux_sal": null,
-                      "montant_sal": "0",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "conges_spec",
-                      "famille": "CONGÉS SPECTACLES",
-                      "libelle": "Caisse des Congés Spectacles",
-                      "base": "300",
-                      "taux_pat": "15.5",
-                      "montant_pat": "46.5",
-                      "taux_sal": null,
-                      "montant_sal": "0",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "ccn",
-                      "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
-                      "libelle": "Cotisations conventionnelles IDCC 3090",
-                      "base": "300",
-                      "taux_pat": "0.5",
-                      "montant_pat": "1.5",
-                      "taux_sal": null,
-                      "montant_sal": "0",
-                      "masquer_base_et_taux": true
-                    },
-                    {
-                      "id": "csg_ded",
-                      "famille": "CSG / CRDS",
-                      "libelle": "CSG déductible de l'impôt sur le revenu",
-                      "base": "298.08",
-                      "taux_pat": null,
-                      "montant_pat": "0",
-                      "taux_sal": "6.8",
-                      "montant_sal": "20.27",
-                      "masquer_base_et_taux": false
-                    },
-                    {
-                      "id": "csg_crds_nd",
-                      "famille": "CSG / CRDS",
-                      "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
-                      "base": "298.08",
-                      "taux_pat": null,
-                      "montant_pat": "0",
-                      "taux_sal": "2.9",
-                      "montant_sal": "8.64",
-                      "masquer_base_et_taux": false
-                    }
-                  ],
-                  "net_a_payer": "232.3",
-                  "net_imposable": "240.94",
-                  "net_social": "232.3",
-                  "numero_bulletin": null,
-                  "reduction_generale": null,
-                  "remuneration": [
-                    {
-                      "code": "cachet",
-                      "libelle": "Cachet",
-                      "unite": "cachet",
-                      "quantite": "2",
-                      "taux": "150",
-                      "montant": "300",
-                      "heures_annexes": "24",
-                      "soumis": true,
-                      "imposable": true,
-                      "conges_spectacles": true,
-                      "salaire_de_base": false,
-                      "retabli": false,
-                      "conges_pris": false,
-                      "dsn_bloc52": null,
-                      "arret_de_travail": false,
-                      "dsn_autres_bruts": null,
-                      "designation": "2 Cachets"
-                    }
-                  ],
-                  "salaire_de_base": "300",
-                  "salaire_retabli": "300",
-                  "salarie": {
-                    "_cle": "FULLER"
-                  },
-                  "smic": "12.31",
-                  "spectacle": {
-                    "_cle": "le-banc-des-menteurs"
-                  },
-                  "total_pat": "171.85",
-                  "total_sal": "67.7",
-                  "plafond": "172.34",
-                  "plafond_urssaf": "720",
-                  "plafond_temps_partiel": "non_concerne"
-                },
-                "fiches": {
-                  "paie": {
-                    "prenom_affichage": "Loïe",
-                    "nom_affichage": "Fuller",
-                    "nir": "2820144999002",
-                    "nir_cle": "46",
-                    "date_naissance": "1982-01-15",
-                    "lieu_naissance_affichage": "Villeneuve-sur-Loire",
-                    "departement_naissance": "44",
-                    "pays_naissance": "FR",
-                    "code_nationalite_dsn": "01",
-                    "adresse_affichage": "7 rue de la Paix",
-                    "code_postal": "44000",
-                    "commune_affichage": "Nantes",
-                    "email": "loie.fuller@exemple.invalid",
-                    "emploi_affichage": "Comédien",
-                    "forfait_jours": true,
-                    "statut": "artiste",
-                    "statut_categoriel_rc": "04",
-                    "pcs_ese": "354c",
-                    "code_emploi_ft": "COM010",
-                    "date_anciennete": "2026-11-02",
-                    "code_salarie": "1",
-                    "initiales_contrat": "FU",
-                    "statut_conventionnel": "05",
-                    "experimente_3241": true,
-                    "actif": true,
-                    "nom": "FULLER",
-                    "prenom": "LOIE",
-                    "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
-                    "adresse": "7 RUE DE LA PAIX",
-                    "commune": "NANTES",
-                    "emploi": "COMEDIEN",
-                    "_cle": "FULLER"
-                  },
-                  "periodes": []
-                },
-                "saisie_du_mois": {
-                  "taux_cachet": null
-                },
-                "empreinte": {
-                  "entrees": {
-                    "dossier racine:imprevus": "absent",
-                    "dossier? racine:": "oui",
-                    "existe code:baremes/2026.json": "oui",
-                    "existe code:rubriques-base.json": "oui",
-                    "existe racine:config/baremes/2026.json": "oui",
-                    "existe racine:config/effectifs.json": "non",
-                    "existe racine:config/rubriques-compagnie.json": "non",
-                    "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "db105831e932fc984562dadaff82cb63bd0521c2b8b4bfaa8982eebf27c1ba14",
-                    "fichier code:baremes/2026.json": "1aec03d68d6381fccf47d53abc740d82191ab98ef55caccf6ec218a1e368a74d",
-                    "fichier code:contrats-base.json": "fa6e9d4099fd495aa0ac87b0edbb5d88bdbf0242823427702cff8fb188b0d9b0",
-                    "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",
-                    "fichier code:minima-conventionnels.json": "2ef600adf478c5c235821d4847555f8b469acfbd29fae8cb863d38369535e882",
-                    "fichier code:rubriques-base.json": "f5c6b87d6c56c8882512f782fcb56b4d3ff5823b65ceceb51634e5af31762b61",
-                    "fichier racine:config/baremes/2026.json": "18a1fd29e339afc1246fcefd6720bad48221693ac22780a790259021e260d045",
-                    "moteur": "<moteur>",
-                    "pas FULLER 2026-11-30 2026-11": "[\"8.30\",\"01\",\"238122673\"]",
-                    "saisie 2026-11 FULLER": "e0ad37804bbfa6e0f816dbaa7e0da47844374179868ad0b6bcde25d23ebfa70c:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
-                  },
-                  "regles": [
-                    "2026-06-01"
-                  ],
-                  "configuration": [
-                    "2026-11-20"
-                  ]
-                },
-                "pas": {
-                  "taux": "8.30",
-                  "type": "01",
-                  "identifiant": "238122673",
-                  "abattement": "0",
-                  "montant_soumis": "240.94",
-                  "prelevement": "20"
-                },
-                "recalcul": {
-                  "le": "2026-11-20T07:00:00",
-                  "raison": "taux de PAS reçu"
-                },
-                "bulletin": "1/2026",
-                "ce": 1
-              }
             }
           }
         }
@@ -2093,6 +1718,386 @@
         "quand": "2026-12-15T10:00:00",
         "empreinte_saisie": "247189879fc12aa5"
       }
+    },
+    "paies/2026-11.json": {
+      "mois": "2026-11",
+      "paies": [
+        {
+          "salarie": "FULLER",
+          "numero": "FU1.26.01",
+          "paie": {
+            "assiette_chomage": "300",
+            "avertissements": [],
+            "base_csg": "298.08",
+            "bases": {
+              "brut": "300",
+              "brut_chomage": "300",
+              "brut_cs": "300",
+              "brut_plafonne": "300",
+              "brut_x110": "330",
+              "brut_x115": "334.5",
+              "brut_x115_plafonne": "334.5",
+              "csg": "298.08"
+            },
+            "brut": "300",
+            "cout_employeur": "471.85",
+            "deduction_forfaitaire": null,
+            "engagement": {
+              "salarie": "FULLER",
+              "spectacle": "le-banc-des-menteurs",
+              "dates_travail": [
+                "2026-11-20",
+                "2026-11-21"
+              ],
+              "lignes": [
+                {
+                  "rubrique": "cachet",
+                  "quantite": 2,
+                  "taux": 150,
+                  "lieu": "Salle fictive de Rezé",
+                  "dates": [
+                    "2026-11-20",
+                    "2026-11-21"
+                  ]
+                }
+              ],
+              "debut": "2026-11-20",
+              "fin": "2026-11-21",
+              "numero": "FU1.26.01",
+              "mois": "2026-11",
+              "planning": [],
+              "planning_lieux": {},
+              "jours": "2",
+              "jours_contrat": "2",
+              "date_paiement": "2026-11-30",
+              "taux_cachet": "150",
+              "cachets": "2",
+              "heures": null,
+              "lieu": "",
+              "lieux": {
+                "2026-11-20": "Salle fictive de Rezé",
+                "2026-11-21": "Salle fictive de Rezé"
+              },
+              "emploi": null,
+              "pcs_ese": null,
+              "code_emploi_ft": null,
+              "statut": null,
+              "statut_conventionnel": null,
+              "statut_categoriel_rc": null,
+              "nature": "cddu_spectacle",
+              "quotite_contrat": null,
+              "quotite_reference_saisie": null,
+              "modalite_temps_travail_saisie": null,
+              "motif_recours": null,
+              "motif_rupture": null,
+              "notification_rupture": null,
+              "preavis": null,
+              "transaction": null,
+              "suspensions": [],
+              "debut_periode": "2026-11-20",
+              "fin_periode": "2026-11-21",
+              "quotite": "2",
+              "sans_paie": false,
+              "premier_mois": true,
+              "dernier_mois": true,
+              "mois_du_contrat": [
+                "2026-11"
+              ]
+            },
+            "heures": "14",
+            "heures_absence": "0",
+            "heures_travaillees": "24",
+            "lignes": [
+              {
+                "id": "maladie",
+                "famille": "SANTÉ",
+                "libelle": "Sécurité sociale — Maladie Maternité Invalidité Décès",
+                "base": "300",
+                "taux_pat": "9.1",
+                "montant_pat": "27.3",
+                "taux_sal": null,
+                "montant_sal": "0",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "prevoyance",
+                "famille": "SANTÉ",
+                "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
+                "base": "300",
+                "taux_pat": "1.11",
+                "montant_pat": "3.33",
+                "taux_sal": "0.12",
+                "montant_sal": "0.36",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "atmp",
+                "famille": "ACCIDENTS DU TRAVAIL — MALADIES PROFESSIONNELLES",
+                "libelle": "Accidents du travail",
+                "base": "300",
+                "taux_pat": "0.77",
+                "montant_pat": "2.31",
+                "taux_sal": null,
+                "montant_sal": "0",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "vieil_plaf",
+                "famille": "RETRAITE",
+                "libelle": "Sécurité sociale plafonnée",
+                "base": "300",
+                "taux_pat": "5.99",
+                "montant_pat": "17.97",
+                "taux_sal": "4.83",
+                "montant_sal": "14.49",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "vieil_deplaf",
+                "famille": "RETRAITE",
+                "libelle": "Sécurité sociale déplafonnée",
+                "base": "300",
+                "taux_pat": "1.48",
+                "montant_pat": "4.44",
+                "taux_sal": "0.28",
+                "montant_sal": "0.84",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "retraite_t1",
+                "famille": "RETRAITE",
+                "libelle": "Complémentaire Tranche 1",
+                "base": "300",
+                "taux_pat": "5.74",
+                "montant_pat": "17.22",
+                "taux_sal": "5.3",
+                "montant_sal": "15.9",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "famille",
+                "famille": "FAMILLE",
+                "libelle": "Allocations familiales",
+                "base": "300",
+                "taux_pat": "3.68",
+                "montant_pat": "11.04",
+                "taux_sal": null,
+                "montant_sal": "0",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "chomage",
+                "famille": "ASSURANCE CHÔMAGE",
+                "libelle": "Chômage",
+                "base": "300",
+                "taux_pat": "9.75",
+                "montant_pat": "29.25",
+                "taux_sal": "2.4",
+                "montant_sal": "7.2",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "autres_1",
+                "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                "libelle": "Autres contributions dues par l'employeur",
+                "base": "300",
+                "taux_pat": "2.836",
+                "montant_pat": "8.51",
+                "taux_sal": null,
+                "montant_sal": "0",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "autres_2",
+                "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                "libelle": "Autres contributions dues par l'employeur",
+                "base": "334.5",
+                "taux_pat": "0.07",
+                "montant_pat": "0.23",
+                "taux_sal": null,
+                "montant_sal": "0",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "autres_3",
+                "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                "libelle": "Autres contributions dues par l'employeur",
+                "base": "330",
+                "taux_pat": "0.68",
+                "montant_pat": "2.25",
+                "taux_sal": null,
+                "montant_sal": "0",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "conges_spec",
+                "famille": "CONGÉS SPECTACLES",
+                "libelle": "Caisse des Congés Spectacles",
+                "base": "300",
+                "taux_pat": "15.5",
+                "montant_pat": "46.5",
+                "taux_sal": null,
+                "montant_sal": "0",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "ccn",
+                "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+                "libelle": "Cotisations conventionnelles IDCC 3090",
+                "base": "300",
+                "taux_pat": "0.5",
+                "montant_pat": "1.5",
+                "taux_sal": null,
+                "montant_sal": "0",
+                "masquer_base_et_taux": true
+              },
+              {
+                "id": "csg_ded",
+                "famille": "CSG / CRDS",
+                "libelle": "CSG déductible de l'impôt sur le revenu",
+                "base": "298.08",
+                "taux_pat": null,
+                "montant_pat": "0",
+                "taux_sal": "6.8",
+                "montant_sal": "20.27",
+                "masquer_base_et_taux": false
+              },
+              {
+                "id": "csg_crds_nd",
+                "famille": "CSG / CRDS",
+                "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
+                "base": "298.08",
+                "taux_pat": null,
+                "montant_pat": "0",
+                "taux_sal": "2.9",
+                "montant_sal": "8.64",
+                "masquer_base_et_taux": false
+              }
+            ],
+            "net_a_payer": "232.3",
+            "net_imposable": "240.94",
+            "net_social": "232.3",
+            "numero_bulletin": null,
+            "reduction_generale": null,
+            "remuneration": [
+              {
+                "code": "cachet",
+                "libelle": "Cachet",
+                "unite": "cachet",
+                "quantite": "2",
+                "taux": "150",
+                "montant": "300",
+                "heures_annexes": "24",
+                "soumis": true,
+                "imposable": true,
+                "conges_spectacles": true,
+                "salaire_de_base": false,
+                "retabli": false,
+                "conges_pris": false,
+                "dsn_bloc52": null,
+                "arret_de_travail": false,
+                "dsn_autres_bruts": null,
+                "designation": "2 Cachets"
+              }
+            ],
+            "salaire_de_base": "300",
+            "salaire_retabli": "300",
+            "salarie": {
+              "_cle": "FULLER"
+            },
+            "smic": "12.31",
+            "spectacle": {
+              "_cle": "le-banc-des-menteurs"
+            },
+            "total_pat": "171.85",
+            "total_sal": "67.7",
+            "plafond": "172.34",
+            "plafond_urssaf": "720",
+            "plafond_temps_partiel": "non_concerne"
+          },
+          "fiches": {
+            "paie": {
+              "prenom_affichage": "Loïe",
+              "nom_affichage": "Fuller",
+              "nir": "2820144999002",
+              "nir_cle": "46",
+              "date_naissance": "1982-01-15",
+              "lieu_naissance_affichage": "Villeneuve-sur-Loire",
+              "departement_naissance": "44",
+              "pays_naissance": "FR",
+              "code_nationalite_dsn": "01",
+              "adresse_affichage": "7 rue de la Paix",
+              "code_postal": "44000",
+              "commune_affichage": "Nantes",
+              "email": "loie.fuller@exemple.invalid",
+              "emploi_affichage": "Comédien",
+              "forfait_jours": true,
+              "statut": "artiste",
+              "statut_categoriel_rc": "04",
+              "pcs_ese": "354c",
+              "code_emploi_ft": "COM010",
+              "date_anciennete": "2026-11-02",
+              "code_salarie": "1",
+              "initiales_contrat": "FU",
+              "statut_conventionnel": "05",
+              "experimente_3241": true,
+              "actif": true,
+              "nom": "FULLER",
+              "prenom": "LOIE",
+              "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
+              "adresse": "7 RUE DE LA PAIX",
+              "commune": "NANTES",
+              "emploi": "COMEDIEN",
+              "_cle": "FULLER"
+            },
+            "periodes": []
+          },
+          "saisie_du_mois": {
+            "taux_cachet": null
+          },
+          "empreinte": {
+            "entrees": {
+              "dossier racine:imprevus": "absent",
+              "dossier? racine:": "oui",
+              "existe code:baremes/2026.json": "oui",
+              "existe code:rubriques-base.json": "oui",
+              "existe racine:config/baremes/2026.json": "oui",
+              "existe racine:config/effectifs.json": "non",
+              "existe racine:config/rubriques-compagnie.json": "non",
+              "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "db105831e932fc984562dadaff82cb63bd0521c2b8b4bfaa8982eebf27c1ba14",
+              "fichier code:baremes/2026.json": "1aec03d68d6381fccf47d53abc740d82191ab98ef55caccf6ec218a1e368a74d",
+              "fichier code:contrats-base.json": "fa6e9d4099fd495aa0ac87b0edbb5d88bdbf0242823427702cff8fb188b0d9b0",
+              "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",
+              "fichier code:minima-conventionnels.json": "2ef600adf478c5c235821d4847555f8b469acfbd29fae8cb863d38369535e882",
+              "fichier code:rubriques-base.json": "f5c6b87d6c56c8882512f782fcb56b4d3ff5823b65ceceb51634e5af31762b61",
+              "fichier racine:config/baremes/2026.json": "18a1fd29e339afc1246fcefd6720bad48221693ac22780a790259021e260d045",
+              "moteur": "<moteur>",
+              "pas FULLER 2026-11-30 2026-11": "[\"8.30\",\"01\",\"238122673\"]",
+              "saisie 2026-11 FULLER": "e0ad37804bbfa6e0f816dbaa7e0da47844374179868ad0b6bcde25d23ebfa70c:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
+            },
+            "regles": [
+              "2026-06-01"
+            ],
+            "configuration": [
+              "2026-11-20"
+            ]
+          },
+          "pas": {
+            "taux": "8.30",
+            "type": "01",
+            "identifiant": "238122673",
+            "abattement": "0",
+            "montant_soumis": "240.94",
+            "prelevement": "20"
+          },
+          "recalcul": {
+            "le": "2026-11-20T07:00:00",
+            "raison": "taux de PAS reçu"
+          },
+          "bulletin": "1/2026",
+          "ce": 1
+        }
+      ]
     },
     "retours/20261120-070000_nature94_FICTIF-7387B5D85090.xml": {
       "empreinte": "30862e44511f21290ba0a0d614c225799b1de283b0e66f318a90c0be69a59bbb"

@@ -1,5 +1,6 @@
 //! OU VIVENT LES ENGAGEMENTS : `engagements/AAAA-MM.json`, le fichier du mois ou chaque engagement commence. Un
-//! engagement est UN objet, qu'il dure un jour ou six mois ; il n'est ecrit que la.
+//! engagement est UN objet, qu'il dure un jour ou six mois ; il n'est ecrit que la. Ses paies n'y sont pas : chacune vit dans le
+//! fichier de son mois (`paies`).
 //!
 //! Le fichier d'un mois : `{"mois", "taux_cachet", "engagements": [...]}` : le cachet par defaut du mois, que le
 //! calcul lit pour chaque engagement du mois ; le mois ne porte rien d'autre.
@@ -30,6 +31,23 @@ use socle::num::Resultat;
 
 /// Le dossier des engagements, sous les donnees de la compagnie.
 pub const DOSSIER: &str = "engagements";
+
+/// Les deux dossiers que le stock tient, un fichier par mois : les engagements (`DOSSIER`), et les paies du mois
+/// (`paies::DOSSIER`), que seul `paies` lit et ecrit. Un brouillon (`Brouillon`) les tient tous les deux.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum Dossier {
+    Engagements,
+    Paies,
+}
+
+impl Dossier {
+    fn nom(self) -> &'static str {
+        match self {
+            Dossier::Engagements => DOSSIER,
+            Dossier::Paies => crate::paies::DOSSIER,
+        }
+    }
+}
 
 /// Les mois d'apres que la saisie d'un engagement a touches, et ce que chacun change.
 pub const SUITE: &str = "mois_suivants";
@@ -88,18 +106,28 @@ pub const RECONDUITS: [&str; 25] = [
 
 /// Le fichier des engagements qui commencent en `mois`.
 pub fn chemin(racine: &Path, mois: &str) -> PathBuf {
-    racine.join(DOSSIER).join(format!("{}.json", mois))
+    chemin_dans(racine, Dossier::Engagements, mois)
 }
 
-/// Les mois qui ont un fichier, du plus ancien au plus recent, ceux du brouillon ouvert compris.
+/// Le fichier de `mois` dans le dossier `d`.
+pub(crate) fn chemin_dans(racine: &Path, d: Dossier, mois: &str) -> PathBuf {
+    racine.join(d.nom()).join(format!("{}.json", mois))
+}
+
+/// Les mois qui ont un fichier d'engagements, du plus ancien au plus recent, ceux du brouillon ouvert compris.
 pub fn fichiers(racine: &Path) -> Vec<String> {
-    let mut v: Vec<String> = std::fs::read_dir(racine.join(DOSSIER))
+    fichiers_dans(racine, Dossier::Engagements)
+}
+
+/// Les mois qui ont un fichier dans le dossier `d`, du plus ancien au plus recent, ceux du brouillon ouvert compris.
+pub(crate) fn fichiers_dans(racine: &Path, d: Dossier) -> Vec<String> {
+    let mut v: Vec<String> = std::fs::read_dir(racine.join(d.nom()))
         .into_iter()
         .flatten()
         .flatten()
         .filter_map(|e| e.file_name().to_str()?.strip_suffix(".json").filter(|m| socle::date::mois_valide(m)).map(String::from))
         .collect();
-    BROUILLON.with(|b| v.extend(b.borrow().iter().filter(|(r, _)| r == racine).flat_map(|(_, f)| f.keys().cloned())));
+    BROUILLON.with(|b| v.extend(b.borrow().iter().filter(|(r, _)| r == racine).flat_map(|(_, f)| f.keys().filter(|(x, _)| *x == d).map(|(_, m)| m.clone()))));
     v.sort();
     v.dedup();
     v
@@ -111,12 +139,12 @@ pub fn lire_fichier(racine: &Path, mois: &str) -> Resultat<Option<Map<String, Va
 }
 
 thread_local! {
-    /// Les fichiers d'engagements ecrits dans le brouillon ouvert (`Brouillon`), pour sa racine.
-    static BROUILLON: std::cell::RefCell<Option<(PathBuf, BTreeMap<String, std::sync::Arc<Value>>)>> = const { std::cell::RefCell::new(None) };
+    /// Les fichiers ecrits dans le brouillon ouvert (`Brouillon`), pour sa racine : chacun par son dossier et son mois.
+    static BROUILLON: std::cell::RefCell<Option<(PathBuf, BTreeMap<(Dossier, String), std::sync::Arc<Value>>)>> = const { std::cell::RefCell::new(None) };
 }
 
-/// UN BROUILLON : tant qu'il est ouvert, ce qui s'ecrit dans les engagements de `racine` (`reecrire`) reste en memoire,
-/// et toute lecture le voit. `ecrire` le pose sur le disque ; tombe sans, il n'a rien ecrit.
+/// UN BROUILLON : tant qu'il est ouvert, ce qui s'ecrit dans les engagements de `racine` et dans leurs paies (`reecrire`,
+/// `paies`) reste en memoire, et toute lecture le voit. `ecrire` le pose sur le disque ; tombe sans, il n'a rien ecrit.
 pub struct Brouillon(PathBuf);
 
 impl Brouillon {
@@ -128,22 +156,23 @@ impl Brouillon {
     /// Ce que le brouillon tient s'ecrit sur le disque.
     pub fn ecrire(self) -> Resultat<()> {
         let fichiers = BROUILLON.with(|b| b.borrow_mut().take()).map(|(_, f)| f).unwrap_or_default();
-        for (mois, contenu) in fichiers {
-            poser(&self.0, &mois, &contenu)?;
+        for ((d, mois), contenu) in fichiers {
+            poser_dans(&self.0, d, &mois, &contenu)?;
         }
         Ok(())
     }
 
-    /// Le fichier de `mois` tel que le brouillon ouvert pour `racine` le tient.
-    fn lu(racine: &Path, mois: &str) -> Option<std::sync::Arc<Value>> {
-        BROUILLON.with(|b| b.borrow().as_ref().filter(|(r, _)| r == racine).and_then(|(_, f)| f.get(mois).cloned()))
+    /// Le fichier de `mois` du dossier `d` tel que le brouillon ouvert pour `racine` le tient.
+    fn lu(racine: &Path, d: Dossier, mois: &str) -> Option<std::sync::Arc<Value>> {
+        BROUILLON.with(|b| b.borrow().as_ref().filter(|(r, _)| r == racine).and_then(|(_, f)| f.get(&(d, mois.to_string())).cloned()))
     }
 
-    /// Ecrit `contenu` comme fichier de `mois` dans le brouillon ouvert pour `racine` ; faux : aucun ne l'est.
-    fn tient(racine: &Path, mois: &str, contenu: Value) -> bool {
+    /// Ecrit `contenu` comme fichier de `mois` du dossier `d` dans le brouillon ouvert pour `racine` ; faux : aucun ne
+    /// l'est.
+    fn tient(racine: &Path, d: Dossier, mois: &str, contenu: Value) -> bool {
         BROUILLON.with(|b| match b.borrow_mut().as_mut().filter(|(r, _)| r == racine) {
             Some((_, f)) => {
-                f.insert(mois.to_string(), std::sync::Arc::new(contenu));
+                f.insert((d, mois.to_string()), std::sync::Arc::new(contenu));
                 true
             }
             None => false,
@@ -157,27 +186,37 @@ impl Drop for Brouillon {
     }
 }
 
-/// LE SEUL ENDROIT QUI ECRIT UN FICHIER D'ENGAGEMENTS : `contenu` devient le fichier de `mois`, dans le brouillon ouvert
-/// pour `racine` s'il y en a un (`Brouillon`), sinon sur le disque. Rend son chemin.
+/// Ecrit `contenu` comme fichier d'engagements de `mois` (`poser_dans`).
 pub(crate) fn poser(racine: &Path, mois: &str, contenu: &Value) -> Resultat<PathBuf> {
-    let p = chemin(racine, mois);
-    if Brouillon::tient(racine, mois, contenu.clone()) {
+    poser_dans(racine, Dossier::Engagements, mois, contenu)
+}
+
+/// LE SEUL ENDROIT QUI ECRIT UN FICHIER D'ENGAGEMENTS OU DE PAIES : `contenu` devient le fichier de `mois` du dossier `d`,
+/// dans le brouillon ouvert pour `racine` s'il y en a un (`Brouillon`), sinon sur le disque. Rend son chemin.
+pub(crate) fn poser_dans(racine: &Path, d: Dossier, mois: &str, contenu: &Value) -> Resultat<PathBuf> {
+    let p = chemin_dans(racine, d, mois);
+    if Brouillon::tient(racine, d, mois, contenu.clone()) {
         return Ok(p);
     }
-    if let Some(d) = p.parent() {
-        std::fs::create_dir_all(d).map_err(|e| socle::fichiers::panne_fichier(&e, d))?;
+    if let Some(dir) = p.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| socle::fichiers::panne_fichier(&e, dir))?;
     }
     socle::ecriture::ecrire_json(&p, contenu, 2)?;
     Ok(p)
 }
 
-/// Le fichier d'un mois tel que le geste l'a lu ou ecrit (`socle::fichiers::json_partage`), ou tel que le brouillon ouvert
-/// le tient : chaque lecture des engagements passe par lui. `None` s'il n'existe pas.
+/// Le fichier d'engagements d'un mois (`lire_dans`).
 fn lire_partage(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<Value>>> {
-    if let Some(v) = Brouillon::lu(racine, mois) {
+    lire_dans(racine, Dossier::Engagements, mois)
+}
+
+/// Le fichier de `mois` du dossier `d` tel que le geste l'a lu ou ecrit (`socle::fichiers::json_partage`), ou tel que le
+/// brouillon ouvert le tient : chaque lecture des engagements et des paies passe par lui. `None` s'il n'existe pas.
+pub(crate) fn lire_dans(racine: &Path, d: Dossier, mois: &str) -> Resultat<Option<std::sync::Arc<Value>>> {
+    if let Some(v) = Brouillon::lu(racine, d, mois) {
         return Ok(Some(v));
     }
-    let p = chemin(racine, mois);
+    let p = chemin_dans(racine, d, mois);
     match socle::fichiers::json_partage(&p)? {
         Some(v) if !v.is_object() => Err(format!("{} : un objet est attendu, lu {}", p.display(), socle::valeur::nom_type(&v))),
         v => Ok(v),
@@ -523,6 +562,14 @@ fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
     let mut objets = Vec::new();
     for (f, m) in &fichiers {
         for (rang, e) in m.get("engagements").and_then(Value::as_array).into_iter().flatten().enumerate() {
+            if porte_ses_paies(e) {
+                return Err(format!(
+                    "Les engagements de cette compagnie portent encore leurs paies ({}/{}.json), une forme que ce logiciel ne \
+                     lit plus : elle se refait, en l'ajoutant de nouveau et en reprenant ses mois (ses papiers s'importent). \
+                     Rien n'est lu.",
+                    DOSSIER, f
+                ));
+            }
             if e.is_object() {
                 objets.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: std::sync::Arc::new(e.clone()) });
             }
@@ -532,6 +579,15 @@ fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
     let out = std::sync::Arc::new(Tires { objets, derniers });
     socle::fichiers::ranger(gardes, racine.to_path_buf(), (fichiers.clone(), out.clone()));
     Ok((fichiers, out))
+}
+
+/// UN ENGAGEMENT NE PORTE PAS SES PAIES : elles vivent dans le fichier de leur mois (`paies`). Un engagement qui en porte
+/// dans sa validation, celle qu'une modification remplace ou une version passee est d'une forme que le moteur ne lit pas.
+fn porte_ses_paies(e: &Value) -> bool {
+    let a_des_paies = |v: Option<&Value>| v.is_some_and(|v| v.get("paies").is_some());
+    a_des_paies(e.get("valide"))
+        || a_des_paies(e.get("precedente"))
+        || e.get("versions").and_then(Value::as_array).is_some_and(|vs| vs.iter().any(|v| a_des_paies(Some(v))))
 }
 
 /// Les engagements qui touchent `mois`, dans l'ordre de l'ecran : ceux des fichiers d'avant qui courent encore, puis

@@ -307,6 +307,13 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
             entrees.push(entree_fichier(&s, format!("{}/{}.json", engagement::stock::DOSSIER, f))?);
         }
     }
+    // Les paies de chaque mois de l'annee.
+    for m in &mois {
+        let s = engagement::paies::chemin(&ctx.racine, m);
+        if s.exists() {
+            entrees.push(entree_fichier(&s, format!("{}/{}.json", engagement::paies::DOSSIER, m))?);
+        }
+    }
     for m in &mois {
         let d = ctx.racine.join("sorties").join(m);
         if d.is_dir() {

@@ -116,11 +116,12 @@ fn les_documents_d_un_mois_qui_n_est_pas_parti_ne_partent_pas() {
 #[test]
 fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "parti"));
-    let avant = std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
+    let ecrits = || [racine.join("engagements/2026-11.json"), racine.join("paies/2026-11.json")].map(|p| std::fs::read(p).unwrap());
+    let avant = ecrits();
     let charge = json!({"mois": "2026-11", "engagement": outils::identite_a(&racine, "2026-11", 0)});
     let r = outils::route(&racine, "retirer-engagement", charge, "2026-12-16");
     assert!(outils::reussi(&r)["avertissement"].is_string(), "{}", r);
-    assert!(std::fs::read(racine.join("engagements/2026-11.json")).unwrap() == avant, "l'avertissement a ecrit l'engagement");
+    assert!(ecrits() == avant, "l'avertissement a ecrit l'engagement");
 }
 
 /// L'engagement des Treteaux, sa DPAE et sa DSN de novembre parties, devient non actif apres la veille de
@@ -207,11 +208,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
         }
         out
     };
-    let paie_du_second = || -> Value {
-        let e = outils::lire(&racine, "engagements/2026-11.json");
-        let e = e["engagements"].as_array().unwrap().iter().find(|x| x["numero"] == json!("FU1.26.02")).expect("le second contrat").clone();
-        e["valide"]["paies"]["2026-11"].clone()
-    };
+    let paie_du_second = || -> Value { outils::paie_ecrite(&racine, "2026-11", "FULLER", Some("FU1.26.02")) };
 
     let second = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])});
     outils::reussi(&outils::route(&racine, "valider-engagement", json!({"mois": "2026-11", "saisie": second}), jour));
@@ -231,7 +228,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
         outils::route(&racine, "modifier-engagement", json!({"mois": "2026-11", "confirme": confirme,
             "engagement": outils::identite(&racine, "2026-11", "FULLER", Some("FU1.26.02")), "saisie": saisie}), jour)
     };
-    let ecrits = || std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
+    let ecrits = || [racine.join("engagements/2026-11.json"), racine.join("paies/2026-11.json")].map(|p| std::fs::read(p).unwrap());
     let avant = ecrits();
     let r = outils::reussi(&modifier(lignes(1, &["2026-11-27"]), false)).clone();
     assert_eq!((&r["change"], r.get("avertissement")), (&json!(false), None), "{}", r);
@@ -371,11 +368,7 @@ fn la_demande_de_taux_d_une_embauche_part_et_sa_reponse_fait_l_engagement() {
     }
     outils::reussi(&outils::route(&racine, "deposer", json!({"quoi": "dpae", "mois": "2026-11", "reel": false}), "2026-11-16"));
 
-    let type_ecrit = |s: &str| -> Value {
-        let m = outils::lire(&racine, "engagements/2026-11.json");
-        let e = m["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == json!(s)).unwrap().clone();
-        e["valide"]["paies"]["2026-11"]["pas"]["type"].clone()
-    };
+    let type_ecrit = |s: &str| -> Value { outils::paie_ecrite(&racine, "2026-11", s, None)["pas"]["type"].clone() };
     assert_eq!(type_ecrit("FULLER"), json!("13"), "sans taux recu, la grille");
     // Le taux de FULLER arrive le 17/11 dans sa fiche ; lire le mois suffit a refaire son engagement.
     let mut fiches = outils::lire(&racine, "config/salaries.json");
@@ -440,8 +433,7 @@ fn le_compte_rendu_d_une_dsn_ne_refait_pas_la_paie_qu_elle_declare() {
     let fiches = outils::lire(&racine, "config/salaries.json");
     let en_retour = fiches["FULLER"]["taux_pas"].as_array().unwrap().iter().find(|e| e["valeur"]["en_retour_de"] == json!("2026-11")).cloned();
     assert!(en_retour.is_some(), "le compte rendu de la DSN de novembre est dans sa fiche : {}", fiches["FULLER"]);
-    let m = outils::lire(&racine, "engagements/2026-11.json");
-    assert_eq!(m["engagements"][0]["valide"]["paies"]["2026-11"]["pas"]["identifiant"], json!("190151266"), "la paie de novembre garde son taux");
+    assert_eq!(outils::paie_ecrite(&racine, "2026-11", "FULLER", None)["pas"]["identifiant"], json!("190151266"), "la paie de novembre garde son taux");
 }
 
 /// LA FICTIVE DE REFERENCE DU FIL DE FER, PREUVE COMMUNE EN LIGNE DE COMMANDE (`atelier/fictives/fictive-fil-de-fer/`) :
@@ -470,10 +462,18 @@ fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
     // LE RELEVE, compare a l'oracle : chaque paie (brut, net, cout, et son PAS : taux, type, prelevement), chaque DSN
     // (chaque individu : contrat, taux et type de PAS, montant preleve ; chaque versement), chaque depot.
     let mut paies = serde_json::Map::new();
+    // Les paies ecrites, mois par mois (`paies/AAAA-MM.json`), rangees sous l'engagement qui les porte.
+    let mut ecrites: Vec<(String, Value)> = Vec::new();
+    let mut fichiers: Vec<String> = std::fs::read_dir(racine.join("paies")).unwrap().flatten().map(|f| f.file_name().to_string_lossy().into_owned()).collect();
+    fichiers.sort();
+    for f in fichiers {
+        let m = outils::lire(&racine, &format!("paies/{}", f));
+        ecrites.extend(m["paies"].as_array().unwrap().iter().map(|p| (m["mois"].as_str().unwrap().to_string(), p.clone())));
+    }
     for mois in engagement::stock::mois_saisis(&racine).unwrap() {
         let m = outils::lire(&racine, &format!("engagements/{}.json", mois));
         let v: Vec<Value> = m["engagements"].as_array().unwrap().iter().flat_map(|e| {
-            e["valide"]["paies"].as_object().into_iter().flatten().map(move |(pm, p)| {
+            ecrites.iter().filter(move |(_, p)| p["salarie"] == e["salarie"] && p["numero"] == e["numero"] && !e["valide"].is_null()).map(move |(pm, p)| {
                 let q = &p["paie"];
                 json!({"salarie": e["salarie"], "numero": e["numero"], "mois": pm, "brut": q["brut"], "net_a_payer": q["net_a_payer"],
                        "net_imposable": q["net_imposable"], "cout_employeur": q["cout_employeur"], "pas": p["pas"]})

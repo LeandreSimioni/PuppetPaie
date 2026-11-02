@@ -73,8 +73,8 @@ fictives), et ce que l'écran lit d'un mois : `apercu_dsn.rs`, `historique_mois.
               ▼
    routes/ ── un geste : saisir, valider, modifier, envoyer…
               ▼
-   engagement ── engagements/AAAA-MM.json ; lit config/ (datée) et les barèmes
-              │   au jour de la période ; calcule et écrit les paies à la validation
+   engagement ── engagements/AAAA-MM.json et paies/AAAA-MM.json ; lit config/ (datée)
+              │   et les barèmes au jour de la période ; calcule et écrit les paies à la validation
               ▼
    documents, declarations ── contrat, DPAE, bulletin, certificat, DSN…
               │                fabriqués au départ, depuis les paies écrites
@@ -92,11 +92,14 @@ le courriel de France Travail du 28/05/2026 (`reference-privee/sources/francetra
 francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf`, dépôt privé) — fin des AEM, AE Cinéma Spectacle remise
 au salarié, `S21.G00.40.025` vide ; la date vaut pour la compagnie qui l'a reçu, une autre reçoit la sienne.
 
-## L'engagement : un objet, ses paies validées
+## L'engagement : un objet, ses paies validées dans le fichier de leur mois
 
 L'engagement est au centre (crate `engagement`, `atelier/sources/engagement/`). Il vit dans
 `engagements/AAAA-MM.json`, le fichier **du mois où il commence**, et nulle part ailleurs ; un engagement de
-novembre à janvier est un seul objet de `engagements/2026-11.json`.
+novembre à janvier est un seul objet de `engagements/2026-11.json`. Ses paies n'y sont pas : chacune vit dans
+`paies/AAAA-MM.json`, le fichier du mois payé (`engagement/src/paies.rs`, `{"mois", "paies": [...]}`), une entrée
+par engagement désignée par son salarié et son numéro de contrat, et sous `versions` la paie de ce mois de chaque
+version passée ; `engagement::paies` seul lit et écrit ce fichier, dans le même brouillon que l'engagement.
 
 - **Sa forme** (`engagement/src/stock.rs`) : son premier mois en clair (salarié, spectacle, `debut`, `fin`, lignes de
   paie datées…) ; chaque mois d'après n'écrit que ce qu'il change, sous `mois_suivants` (`null` : retiré). Le salarié,
@@ -109,7 +112,7 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
   son objet (numéro, puis salarié). Un engagement validé ne change pas par ce chemin.
 - **Ses états** (`engagement/src/etats.rs`), chacun son type : **en saisie** (`EnSaisie` : calculé à mesure pour
   l'écran, rien ne part de lui) ; **validé** (`Valide` : « Valider l'engagement » écrit sous `valide` la date, le numéro
-  de sa version, sa saisie telle qu'elle était et une paie par mois couvert, avec son prélèvement à la source et
+  de sa version et sa saisie telle qu'elle était, et dans `paies/` une paie par mois couvert, avec son prélèvement à la source et
   l'empreinte de ce dont le calcul dépend : fichiers lus, fiches, saisie des mois lus, code du moteur, règles datées) ;
   **documents partis** pour un mois (`Partis` : le bulletin, le certificat Congés Spectacles et l'AER du mois sont
   partis au salarié). Seul un engagement validé donne une paie à qui fabrique un document : tout document se fabrique
@@ -127,7 +130,7 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
     déclaré à corriger). Un engagement dont rien n'est parti se supprime, même validé, et rend son numéro.
 - **Les versions datées** : tant que rien n'est parti d'un engagement, il se modifie librement, sans historique. Dès
   qu'un envoi est parti sur sa version, une revalidation qui le change garde la version d'avant dans l'engagement
-  (`versions`), datée ; le présent prend le numéro suivant. Ce qui est à refaire (`etats::a_refaire` : avenant, DPAE,
+  (`versions`, sa saisie), datée, ses paies sous son numéro dans le fichier de leur mois ; le présent prend le numéro suivant. Ce qui est à refaire (`etats::a_refaire` : avenant, DPAE,
   bulletin rectificatif, DSN) se tire de la comparaison entre le présent et la version sur laquelle chaque envoi est
   parti. L'engagement ne lit jamais le journal : le moteur lui passe ce qui est parti (`engagement/src/departs.rs`).
 - **Chaque document se fabrique à son départ** (`moteur/src/compagnie/depart.rs`) : la DSN à son dépôt (`fabriquer_dsn`, route

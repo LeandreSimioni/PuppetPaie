@@ -50,13 +50,12 @@ pub fn annee_due(aujourdhui: Jour) -> Option<i32> {
     (aujourdhui.mois > 1 || aujourdhui.jour >= JOUR_DE_JANVIER).then_some(aujourdhui.an - 1)
 }
 
-/// Le nombre de paies validees dont le mois de paie est dans `annee` (voir l'en-tete).
+/// Le nombre de paies validees dont le mois de paie est dans `annee` (voir l'en-tete) : celles que portent les fichiers
+/// des paies de ses mois (`engagement::paies::nombre`).
 pub fn compter(ctx: &Contexte, annee: i32) -> R<usize> {
-    let an = format!("{:04}-", annee);
     let mut n = 0;
-    for o in engagement::stock::objets(&ctx.racine).map_err(socle::echec::Echec::from)? {
-        let paies = o.brut.get("valide").and_then(|v| v.get("paies")).and_then(Value::as_object);
-        n += paies.map_or(0, |p| p.keys().filter(|m| m.starts_with(&an)).count());
+    for m in 1..=12 {
+        n += engagement::paies::nombre(&ctx.racine, &format!("{:04}-{:02}", annee, m)).map_err(socle::echec::Echec::from)?;
     }
     Ok(n)
 }

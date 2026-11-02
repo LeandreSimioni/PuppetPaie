@@ -275,7 +275,7 @@ fn enumerer(xs: &[String]) -> String {
 /// d'avant (un contrat au mois change a partir d'un mois suivant : ce mois-ci reste tel qu'il est parti).
 pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Option<Value> {
     let passees = v.versions();
-    let paie_du_mois = |x: &Value| x.get("paies").and_then(|p| p.get(mois)).and_then(|p| p.get("paie")).cloned();
+    let paie_du_mois = |x: &Value| crate::etats::paie_ecrite_de_la_version(v.objet(), x, mois).ok().flatten().and_then(|p| p.get("paie").cloned());
     let present = v.objet().brut.get("valide");
     if passees.last().zip(present).is_none_or(|(a, p)| paie_du_mois(a).is_some() && paie_du_mois(a) == paie_du_mois(p)) {
         return None;

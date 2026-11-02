@@ -814,11 +814,23 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let vals = documents::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
     // L'ancien texte s'ecrit du modele avec les valeurs de la version partie, au mois compare (ou, pour un contrat sans
     // terme dont cette version n'avait pas encore ecrit ce mois, a son dernier mois d'avant : ses termes s'y reconduisent).
-    let ancienne = passee
-        .and_then(|x| {
-            let ps = x.get("paies")?.as_object()?;
-            ps.get(&mois_compare).or_else(|| ps.iter().filter(|(k, _)| **k <= mois_compare).last().map(|(_, v)| v))?.get("paie").cloned()
-        })
+    let ancienne = match (siens.as_ref(), passee) {
+        (Some(v), Some(x)) => {
+            let o = v.objet();
+            let mut mois = engagement::paies::mois_ecrits(o).map_err(Echec::from)?;
+            mois.retain(|m| *m <= mois_compare);
+            let mut trouvee = None;
+            for m in mois.iter().rev() {
+                if let Some(p) = engagement::etats::paie_ecrite_de_la_version(o, x, m).map_err(Echec::from)? {
+                    trouvee = p.get("paie").cloned();
+                    break;
+                }
+            }
+            trouvee
+        }
+        _ => None,
+    };
+    let ancienne = ancienne
         .ok_or_else(|| {
             erreur(
                 "ErreurOperation",

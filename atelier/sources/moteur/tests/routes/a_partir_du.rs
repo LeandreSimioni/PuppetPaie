@@ -32,7 +32,8 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
         let e: Value = serde_json::from_slice(&std::fs::read(c.join("engagements/2026-01.json")).unwrap()).unwrap();
         e["engagements"][0].clone()
     };
-    let paie_de_janvier = lire()["valide"]["paies"]["2026-01"]["paie"].clone();
+    let paie = |mois: &str| crate::outils::paie_ecrite(&c, mois, "SVOBODA", None);
+    let paie_de_janvier = paie("2026-01")["paie"].clone();
     assert!(!paie_de_janvier.is_null(), "{}", lire());
     let svoboda = json!({"mois": "2026-01", "engagement": crate::outils::identite(&c, "2026-01", "SVOBODA", None)});
     let ligne_de_janvier = || -> Value {
@@ -53,7 +54,7 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
         charge.as_object_mut().unwrap().extend(x.as_object().unwrap().clone());
         route(&c, "modifier-engagement", charge, jour)
     };
-    let ecrits = || std::fs::read(c.join("engagements/2026-01.json")).unwrap();
+    let ecrits = || [c.join("engagements/2026-01.json"), c.join("paies/2026-01.json"), c.join("paies/2026-02.json")].map(|p| std::fs::read(p).unwrap_or_default());
     let avant = ecrits();
     let q = reussi(&modifier(3600, json!({}))).clone();
     assert!(ecrits() == avant, "la question a ecrit");
@@ -67,7 +68,7 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
 
     reussi(&modifier(3600, json!({"confirme": true, "a_partir_du": "2026-02"})));
     let e = lire();
-    assert_eq!(e["valide"]["paies"]["2026-01"]["paie"], paie_de_janvier, "janvier a change");
+    assert_eq!(paie("2026-01")["paie"], paie_de_janvier, "janvier a change");
     assert_eq!(e["salaire_mensuel"], json!(3400));
     assert_eq!(e["mois_suivants"]["2026-02"]["salaire_mensuel"], json!(3600));
     assert_eq!(e["mois_suivants"]["2026-02"]["date_modification"], json!("2026-02-01"));
@@ -81,7 +82,7 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
     // portait. Rien de ce qui est tape ne se perd.
     reussi(&modifier(3800, json!({"confirme": true, "a_partir_du": "2026-02"})));
     let e = lire();
-    assert_eq!(e["valide"]["paies"]["2026-01"]["paie"], paie_de_janvier, "janvier a change");
+    assert_eq!(paie("2026-01")["paie"], paie_de_janvier, "janvier a change");
     assert_eq!(e["salaire_mensuel"], json!(3400));
     assert_eq!(e["mois_suivants"]["2026-02"]["salaire_mensuel"], json!(3800), "{}", e);
 
@@ -91,16 +92,17 @@ fn le_salaire_d_un_cdi_parti_change_a_partir_du_mois_choisi() {
     // ouvres de fevrier 2026 aux 3 800 d'avant, les 10 autres aux 4 000.
     reussi(&modifier(4000, json!({"confirme": true, "a_partir_du": "2026-02", "a_partir_du_jour": 16})));
     let e = lire();
-    assert_eq!(e["valide"]["paies"]["2026-01"]["paie"], paie_de_janvier, "janvier a change");
+    assert_eq!(paie("2026-01")["paie"], paie_de_janvier, "janvier a change");
     let fevrier = &e["mois_suivants"]["2026-02"];
     assert_eq!(fevrier["date_modification"], json!("2026-02-16"), "{}", e);
     assert_eq!(fevrier["avant"]["salaire_mensuel"], json!(3800), "{}", e);
-    let montants: Vec<&str> = e["valide"]["paies"]["2026-02"]["paie"]["remuneration"]
+    let fevrier_ecrit = paie("2026-02");
+    let montants: Vec<&str> = fevrier_ecrit["paie"]["remuneration"]
         .as_array()
         .unwrap()
         .iter()
         .filter(|l| l["code"] == "mois")
         .map(|l| l["montant"].as_str().unwrap())
         .collect();
-    assert_eq!(montants, ["1900", "2000"], "{}", e["valide"]["paies"]["2026-02"]["paie"]["remuneration"]);
+    assert_eq!(montants, ["1900", "2000"], "{}", paie("2026-02")["paie"]["remuneration"]);
 }

@@ -709,7 +709,7 @@ impl<'a> Moteur<'a> {
             }
             ligne.insert("valide".into(), valide);
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
-            let recalcul = e.valide().and_then(|v| v.recalcul(mois)).and_then(engagement::etats::phrase_du_recalcul);
+            let recalcul = e.valide().and_then(|v| v.recalcul(mois)).as_ref().and_then(engagement::etats::phrase_du_recalcul);
             ligne.insert("recalcul".into(), recalcul.map_or(Value::Null, Value::String));
             // REPRIS D'UN ANCIEN LOGICIEL : la carte le dit (`engagement::importe::vient_d_un_ancien_logiciel`).
             let repris = engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref().unwrap_or(""));
