@@ -51,15 +51,17 @@ permanents.
 - **Première embauche** : Hortense Champmeslé, en CDI, le **1er mars 2022**.
 - **Effectif de 2025** : **3,65**, l'effectif annuel moyen que l'Urssaf a calculé de ses DSN de 2025 (compte rendu
   « Effectifs », nature 118, reçu le 16/02/2026 dans l'année jouée).
-- **Congés payés à la reprise**, au 1er janvier 2026, tels que l'année 2025 jouée les a comptés (son dernier bulletin) :
-  aucun jour pris ; sur la période passée (juin 2024 à mai 2025), 12,5 jours acquis et 12,5 qui restent ; sur la
-  période en cours (depuis le 1er juin 2025), 17,5 jours acquis. Le brut de chaque période :
+- **Congés payés à la reprise**, au 1er janvier 2026, tels que le dernier bulletin de décembre 2025 de l'ancien
+  logiciel les porte : aucun jour pris ; sur la période passée (juin 2024 à mai 2025), 30 jours acquis et 30 qui
+  restent (les trois sont là depuis avant le 1er juin 2024 : douze mois à 2,5 jours ouvrables, C. trav. L3141-3) ; sur
+  la période en cours (juin à décembre 2025), 17,5 jours acquis. Le brut de chaque période, douze et sept salaires
+  mensuels aux montants de l'équipe ci-dessous :
 
   | | période passée | période en cours |
   |---|---|---|
-  | Champmeslé | 19 717,10 € | 23 660,52 € |
-  | Marivaux | 12 436,95 € | 14 924,34 € |
-  | Clairon | 9 706,40 € | 11 647,68 € |
+  | Champmeslé | 47 321,04 € | 27 603,94 € |
+  | Marivaux | 29 848,68 € | 17 411,73 € |
+  | Clairon | 23 295,36 € | 13 588,96 € |
 - **Spectacles** : Les Fausses Confidences (Marivaux), 256Z00921041 ; Le Barbier de Séville (Beaumarchais),
   256Z00921042.
 

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>KALIARTI000054981899</ID>
+<ANCIEN_ID/>
+<ORIGINE>KALI</ORIGINE>
+<URL>article/KALI/ARTI/00/00/54/98/18/KALIARTI000054981899.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>1.1.4</NUM>
+<TITRE>Salaires minima conventionnels des artistes de cirque</TITRE>
+
+<ETAT>VIGUEUR_ETEN</ETAT>
+
+
+<CALIPSOS>
+<CALIPSO>SALAIRES</CALIPSO>
+</CALIPSOS>
+<HISTORIQUE/>
+<DATE_DEBUT>2026-08-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+<DATE_DEB_EXT>2999-01-01</DATE_DEB_EXT>
+<DATE_FIN_EXT>2999-01-01</DATE_FIN_EXT>
+<TYPE>AUTONOME</TYPE>
+
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE cid="KALITEXT000054981887" date_publi="2999-01-01" date_signature="2026-07-01" nature="Accord" nor="ASET2650748M" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Salaires pour l'année 2026" debut="2026-08-01" fin="2999-01-01" id_txt="KALITEXT000054981887">Accord du 1er juillet 2026 relatif aux salaires pour l'année 2026</TITRE_TXT>
+
+
+</TEXTE>
+<CONTENEUR cid="KALICONT000005635964" date_publi="1984-01-01" etat="VIGUEUR_ETEN" nature="IDCC" num="1285" titre="Convention collective nationale pour les entreprises artistiques et culturelles du 1er janvier 1984.  Etendue par arrêté du 4 janvier 1994 JORF 26 janvier 1994." url="conteneur/KALI/CONT/00/00/05/63/59/KALICONT000005635964.xml"/>
+</CONTEXTE>
+<VERSIONS>
+<VERSION etat="VIGUEUR_ETEN">
+<LIEN_ART debut="2026-08-01" etat="VIGUEUR_ETEN" fin="2999-01-01" id="KALIARTI000054981899" num="1.1.4" origine="KALI"/>
+</VERSION>
+</VERSIONS>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p align="left">Les salaires minima conventionnels des artistes de cirque sont revalorisés à compter du 1er août 2026 selon les grilles ci-après :</p>
+<p align="center">Exploitation des spectacles</p>
+<p align="right">(En euros.)</p>
+<br/>
+
+<table border="1">
+<tbody>
+<tr>
+<th>Libellé</th>
+<th>Modalité</th>
+<th>Montant</th>
+</tr>
+<tr>
+<th align="center" colspan="3">Plateau inférieur ou égal à 5 artistes</th>
+</tr>
+<tr>
+<td>1 à 2 cachets/mois</td>
+<td align="center">Cachet</td>
+<td align="center">162,75</td>
+</tr>
+<tr>
+<td>Plus de 2 cachets/mois</td>
+<td align="center">Cachet</td>
+<td align="center">141,63</td>
+</tr>
+<tr>
+<td>Salaire mensuel</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">2 252,37</td>
+</tr>
+<tr>
+<th align="center" colspan="3">Plateau supérieur à 5 artistes</th>
+</tr>
+<tr>
+<td>1 à 2 cachets/mois</td>
+<td align="center">Cachet</td>
+<td align="center">141,63</td>
+</tr>
+<tr>
+<td>Plus de 2 cachets/mois</td>
+<td align="center">Cachet</td>
+<td align="center">141,63</td>
+</tr>
+<tr>
+<td align="center">Salaire mensuel</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">2 252,37</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+<p align="center">Répétitions/création</p>
+<p align="right">(En euros.)</p>
+<br/>
+
+<table border="1">
+<tbody>
+<tr>
+<th>Libellé</th>
+<th>Modalité</th>
+<th>Montant</th>
+</tr>
+<tr>
+<td>Cachet de base par jour</td>
+<td align="center">Cachet</td>
+<td align="center">122,10</td>
+</tr>
+<tr>
+<td>Service isolé de répétition</td>
+<td align="center">Cachet</td>
+<td align="center">61,05</td>
+</tr>
+<tr>
+<td>Salaire mensuel</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">2 252,37</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+
+</LIENS>
+
+
+
+<INFORMATIONS_COMPLEMENTAIRES>
+<CONTENU/>
+</INFORMATIONS_COMPLEMENTAIRES>
+</ARTICLE>

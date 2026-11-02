@@ -145,6 +145,30 @@
         "minima-conventionnels.json"
       ]
     },
+    "kali-1285-accord-salaires-20260701": {
+      "titre": "CCN des entreprises artistiques et culturelles (IDCC 1285, CCNEAC) - Accord du 1er juillet 2026 relatif aux salaires pour l'année 2026, et l'arrêté du 7 septembre 2026 qui l'étend",
+      "editeur": "DILA, données ouvertes KALI et JORF",
+      "url": "https://echanges.dila.gouv.fr/OPENDATA/KALI/KALI_20261015-214025.tar.gz",
+      "page_de_veille": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635964",
+      "contenu": "Indemnite de deplacement (art. 2) a compter du 01/09/2026 : 21,40 le repas principal, 76,60 la chambre et le petit dejeuner, 7,50 le petit dejeuner seul ; primes et indemnites (art. 3) ; minima (art. 1) au 01/08/2026. Etendu par arrete du 7 septembre 2026 (NOR TRST2622487A, JORF n 0219 du 19/09/2026, archive JORF_20260919-002738), l'extension prenant effet a la publication (art. 2 de l'arrete).",
+      "version": "2026-07-01",
+      "en_vigueur": "2026-08-01",
+      "etendu_le": "2026-09-19",
+      "releve_le": "2026-11-02",
+      "fichier": "kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-texte-KALITEXT000054981887-version-20261102.xml",
+      "sha256": "9b8c6e524076bbff6353cbcccb399db75421ae2568cc871cefae51282419cd87",
+      "transcription": "kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-transcription-20261102.md",
+      "verification": "manuelle",
+      "verification_comment": "Les XML sont ceux des archives open data de la DILA (une archive par livraison, pas un fichier par texte) : la copie ne se retelecharge pas telle quelle. Le bloc `kali` dit si le texte a bouge depuis le releve.",
+      "nourrit": [
+        "baremes/2026.json"
+      ],
+      "kali": {
+        "idcc": "1285",
+        "conteneur": "KALICONT000005635964",
+        "texte": "KALITEXT000054981887"
+      }
+    },
     "syndeac-ccneac-nao-2026": {
       "titre": "CCNEAC - Minima conventionnels des artistes dramatiques et chorégraphiques, NAO 2026 (accord du 1er juillet 2026, en vigueur au 1er août 2026)",
       "editeur": "SYNDEAC (organisation d'employeurs signataire)",

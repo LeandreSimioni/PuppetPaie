@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>KALIARTI000054981900</ID>
+<ANCIEN_ID/>
+<ORIGINE>KALI</ORIGINE>
+<URL>article/KALI/ARTI/00/00/54/98/19/KALIARTI000054981900.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>1.2</NUM>
+<TITRE>Revalorisation des salaires minima des emplois autres qu'artistiques</TITRE>
+
+<ETAT>VIGUEUR_ETEN</ETAT>
+
+
+<CALIPSOS>
+<CALIPSO>SALAIRES</CALIPSO>
+</CALIPSOS>
+<HISTORIQUE/>
+<DATE_DEBUT>2026-08-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+<DATE_DEB_EXT>2999-01-01</DATE_DEB_EXT>
+<DATE_FIN_EXT>2999-01-01</DATE_FIN_EXT>
+<TYPE>AUTONOME</TYPE>
+
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE cid="KALITEXT000054981887" date_publi="2999-01-01" date_signature="2026-07-01" nature="Accord" nor="ASET2650748M" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Salaires pour l'année 2026" debut="2026-08-01" fin="2999-01-01" id_txt="KALITEXT000054981887">Accord du 1er juillet 2026 relatif aux salaires pour l'année 2026</TITRE_TXT>
+
+
+</TEXTE>
+<CONTENEUR cid="KALICONT000005635964" date_publi="1984-01-01" etat="VIGUEUR_ETEN" nature="IDCC" num="1285" titre="Convention collective nationale pour les entreprises artistiques et culturelles du 1er janvier 1984.  Etendue par arrêté du 4 janvier 1994 JORF 26 janvier 1994." url="conteneur/KALI/CONT/00/00/05/63/59/KALICONT000005635964.xml"/>
+</CONTEXTE>
+<VERSIONS>
+<VERSION etat="VIGUEUR_ETEN">
+<LIEN_ART debut="2026-08-01" etat="VIGUEUR_ETEN" fin="2999-01-01" id="KALIARTI000054981900" num="1.2" origine="KALI"/>
+</VERSION>
+</VERSIONS>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p align="left">
+<br/>Les parties conviennent que les salaires minima conventionnels des emplois autres qu'artistiques tels que définis à l'article X-4 (grille des salaires bruts minima pour un horaire de 151 h 40) sont revalorisés à compter du 1er août 2026 selon les grilles ci-après :</p>
+<p align="right">
+<br/>(En euros.)</p>
+<div align="left">
+<div align="center">
+
+<table border="1">
+<tr>
+<th>
+<br/>
+</th>
+<th>Échelon 1</th>
+<th>Échelon 2</th>
+<th>Échelon 3</th>
+<th>Échelon 4</th>
+<th>Échelon 5</th>
+<th>Échelon 6</th>
+<th>Échelon 7</th>
+<th>Échelon 8</th>
+<th>Échelon 9</th>
+<th>Échelon 10</th>
+<th>Échelon 11</th>
+<th>Échelon 12</th>
+</tr>
+<tr>
+<td align="center">Groupe 1</td>
+<td align="center">3 513,35</td>
+<td align="center">3 618,75</td>
+<td align="center">3 724,15</td>
+<td align="center">3 829,55</td>
+<td align="center">3 934,95</td>
+<td align="center">4 040,35</td>
+<td align="center">4 145,75</td>
+<td align="center">4 251,15</td>
+<td align="center">4 356,55</td>
+<td align="center">4 461,95</td>
+<td align="center">4 567,35</td>
+<td align="center">4 672,75</td>
+</tr>
+<tr>
+<td align="center">Groupe 2</td>
+<td align="center">2 748,58</td>
+<td align="center">2 831,04</td>
+<td align="center">2 913,50</td>
+<td align="center">2 995,96</td>
+<td align="center">3 078,41</td>
+<td align="center">3 160,87</td>
+<td align="center">3 243,33</td>
+<td align="center">3 325,79</td>
+<td align="center">3 408,24</td>
+<td align="center">3 490,70</td>
+<td align="center">3 573,16</td>
+<td align="center">3 655,62</td>
+</tr>
+<tr>
+<td align="center">Groupe 3</td>
+<td align="center">2 547,66</td>
+<td align="center">2 624,09</td>
+<td align="center">2 700,52</td>
+<td align="center">2 776,95</td>
+<td align="center">2 853,38</td>
+<td align="center">2 929,81</td>
+<td align="center">3 006,24</td>
+<td align="center">3 082,67</td>
+<td align="center">3 159,10</td>
+<td align="center">3 235,53</td>
+<td align="center">3 311,96</td>
+<td align="center">3 388,39</td>
+</tr>
+<tr>
+<td align="center">Groupe 4</td>
+<td align="center">2 359,38</td>
+<td align="center">2 430,16</td>
+<td align="center">2 500,94</td>
+<td align="center">2 571,72</td>
+<td align="center">2 642,50</td>
+<td align="center">2 713,28</td>
+<td align="center">2 784,07</td>
+<td align="center">2 854,85</td>
+<td align="center">2 925,63</td>
+<td align="center">2 996,41</td>
+<td align="center">3 067,19</td>
+<td align="center">3 137,97</td>
+</tr>
+<tr>
+<td align="center">Groupe 5</td>
+<td align="center">2 037,24</td>
+<td align="center">2 098,36</td>
+<td align="center">2 159,48</td>
+<td align="center">2 220,60</td>
+<td align="center">2 281,71</td>
+<td align="center">2 342,83</td>
+<td align="center">2 403,95</td>
+<td align="center">2 465,06</td>
+<td align="center">2 526,18</td>
+<td align="center">2 587,30</td>
+<td align="center">2 648,42</td>
+<td align="center">2 709,53</td>
+</tr>
+<tr>
+<td align="center">Groupe 6</td>
+<td align="center">1 921,51</td>
+<td align="center">1 979,15</td>
+<td align="center">2 036,80</td>
+<td align="center">2 094,44</td>
+<td align="center">2 152,09</td>
+<td align="center">2 209,73</td>
+<td align="center">2 267,38</td>
+<td align="center">2 325,02</td>
+<td align="center">2 382,67</td>
+<td align="center">2 440,31</td>
+<td align="center">2 497,96</td>
+<td align="center">2 555,60</td>
+</tr>
+<tr>
+<td align="center">Groupe 7</td>
+<td align="center">1 904,09</td>
+<td align="center">1 961,21</td>
+<td align="center">2 018,33</td>
+<td align="center">2 075,45</td>
+<td align="center">2 132,58</td>
+<td align="center">2 189,70</td>
+<td align="center">2 246,82</td>
+<td align="center">2 303,94</td>
+<td align="center">2 361,07</td>
+<td align="center">2 418,19</td>
+<td align="center">2 475,31</td>
+<td align="center">2 532,43</td>
+</tr>
+<tr>
+<td align="center">Groupe 8</td>
+<td align="center">1 882,56</td>
+<td align="center">1 939,04</td>
+<td align="center">1 995,52</td>
+<td align="center">2 051,99</td>
+<td align="center">2 108,47</td>
+<td align="center">2 164,95</td>
+<td align="center">2 221,42</td>
+<td align="center">2 277,90</td>
+<td align="center">2 334,38</td>
+<td align="center">2 390,86</td>
+<td align="center">2 447,33</td>
+<td align="center">2 503,81</td>
+</tr>
+<tr>
+<td align="center">Groupe 9</td>
+<td align="center">1 868,67</td>
+<td align="center">1 924,73</td>
+<td align="center">1 980,79</td>
+<td align="center">2 036,85</td>
+<td align="center">2 092,91</td>
+<td align="center">2 148,97</td>
+<td align="center">2 205,03</td>
+<td align="center">2 261,09</td>
+<td align="center">2 317,15</td>
+<td align="center">2 373,21</td>
+<td align="center">2 429,27</td>
+<td align="center">2 485,33</td>
+</tr>
+</table>
+
+</div>
+</div>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+
+</LIENS>
+
+
+
+<INFORMATIONS_COMPLEMENTAIRES>
+<CONTENU/>
+</INFORMATIONS_COMPLEMENTAIRES>
+</ARTICLE>

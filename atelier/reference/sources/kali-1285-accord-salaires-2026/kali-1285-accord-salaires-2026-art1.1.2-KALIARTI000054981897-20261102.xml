@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>KALIARTI000054981897</ID>
+<ANCIEN_ID/>
+<ORIGINE>KALI</ORIGINE>
+<URL>article/KALI/ARTI/00/00/54/98/18/KALIARTI000054981897.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>1.1.2</NUM>
+
+<TITRE>Salaires minima conventionnels des artistes musiciens</TITRE>
+
+<ETAT>VIGUEUR_ETEN</ETAT>
+
+
+<CALIPSOS>
+<CALIPSO>SALAIRES</CALIPSO>
+</CALIPSOS>
+<HISTORIQUE/>
+<DATE_DEBUT>2026-08-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+<DATE_DEB_EXT>2999-01-01</DATE_DEB_EXT>
+<DATE_FIN_EXT>2999-01-01</DATE_FIN_EXT>
+<TYPE>AUTONOME</TYPE>
+
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE cid="KALITEXT000054981887" date_publi="2999-01-01" date_signature="2026-07-01" nature="Accord" nor="ASET2650748M" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Salaires pour l'année 2026" debut="2026-08-01" fin="2999-01-01" id_txt="KALITEXT000054981887">Accord du 1er juillet 2026 relatif aux salaires pour l'année 2026</TITRE_TXT>
+
+
+</TEXTE>
+<CONTENEUR cid="KALICONT000005635964" date_publi="1984-01-01" etat="VIGUEUR_ETEN" nature="IDCC" num="1285" titre="Convention collective nationale pour les entreprises artistiques et culturelles du 1er janvier 1984.  Etendue par arrêté du 4 janvier 1994 JORF 26 janvier 1994." url="conteneur/KALI/CONT/00/00/05/63/59/KALICONT000005635964.xml"/>
+</CONTEXTE>
+<VERSIONS>
+<VERSION etat="VIGUEUR_ETEN">
+<LIEN_ART debut="2026-08-01" etat="VIGUEUR_ETEN" fin="2999-01-01" id="KALIARTI000054981897" num="1.1.2" origine="KALI"/>
+</VERSION>
+</VERSIONS>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p align="left">Les salaires minima conventionnels des artistes musiciens applicables à compter du 1er août 2026 correspondent aux grilles ci-après :</p>
+<p align="center">Artistes musiciens appartenant aux ensembles musicaux avec nomenclature</p>
+<p align="right">(En euros.)</p>
+<br/>
+
+<table border="1">
+<tbody>
+<tr>
+<th>Libellé</th>
+<th>Modalité</th>
+<th>Montant</th>
+</tr>
+<tr>
+<th align="center" colspan="3">Salaire mensuel minimum d'embauche : CDI et CDD &gt; 1 mois</th>
+</tr>
+<tr>
+<td>Tuttiste</td>
+<td align="center">Salaire mensuel minimum</td>
+<td align="center">3 250,97</td>
+</tr>
+<tr>
+<td>Soliste</td>
+<td align="center">Salaire mensuel minimum</td>
+<td align="center">3 364,52</td>
+</tr>
+<tr>
+<td>Chef de pupitre</td>
+<td align="center">Salaire mensuel minimum</td>
+<td align="center">3 580,29</td>
+</tr>
+<tr>
+<td colspan="3">Ces minima s'articulent avec les catégories définies dans les orchestres par accord d'entreprise</td>
+</tr>
+<tr>
+<th align="center" colspan="3">Rémunération au cachet</th>
+</tr>
+<tr>
+<td>Cachet – service indivisible 3 heures (pro rata temporis au-delà)</td>
+<td align="center">Cachet</td>
+<td align="center">116,34</td>
+</tr>
+<tr>
+<td colspan="3">Le cas particulier des ensembles musicaux à nomenclature employant les musiciens en CDI est défini à l'article X.3.3.A.</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+<p align="center">Artistes musiciens appartenant aux ensembles musicaux sans nomenclature</p>
+<p align="right">(En euros.)</p>
+<br/>
+
+<table border="1">
+<tbody>
+<tr>
+<th>Libellé</th>
+<th>Modalité</th>
+<th>Montant</th>
+</tr>
+<tr>
+<th align="center" colspan="3">Rémunération mensualisée</th>
+</tr>
+<tr>
+<td>CDI</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">2 902,08</td>
+</tr>
+<tr>
+<td>CDD droit commun &gt; 1 mois</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">2 962,85</td>
+</tr>
+<tr>
+<td>CDD d'usage &gt; 1 mois</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">3 123,31</td>
+</tr>
+<tr>
+<th align="center" colspan="3">Rémunération au cachet</th>
+</tr>
+<tr>
+<td colspan="3">Répétitions</td>
+</tr>
+<tr>
+<td>Journée de 2 services (6 heures et pro rata temporis au-delà)</td>
+<td align="center">Cachet</td>
+<td align="center">166,75</td>
+</tr>
+<tr>
+<td>Garantie service isolé</td>
+<td align="center">Cachet</td>
+<td align="center">118,09</td>
+</tr>
+<tr>
+<td colspan="3">Représentations</td>
+</tr>
+<tr>
+<td>Cas général</td>
+<td align="center">Cachet</td>
+<td align="center">166,75</td>
+</tr>
+<tr>
+<td>7 représentations ou plus par 15 jours</td>
+<td align="center">Cachet</td>
+<td align="center">146,74</td>
+</tr>
+<tr>
+<td colspan="3">Répétitions et représentations</td>
+</tr>
+<tr>
+<td>Journée avec un service de répétition et un service de représentation</td>
+<td align="center">Cachet</td>
+<td align="center">255,39</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+<p align="center">Artistes musiciens appartenant au secteur des musiques actuelles</p>
+<p align="right">(En euros.)</p>
+<br/>
+
+<table border="1">
+<tbody>
+<tr>
+<th>Libellé</th>
+<th>Modalité</th>
+<th>Montant</th>
+</tr>
+<tr>
+<th align="center" colspan="3">Rémunération mensualisée</th>
+</tr>
+<tr>
+<td>CDI</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">2 856,24</td>
+</tr>
+<tr>
+<td>CDD droit commun &gt; 1 mois</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">2 962,85</td>
+</tr>
+<tr>
+<td>CDD d'usage &gt; 1 mois</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">3 123,31</td>
+</tr>
+<tr>
+<th align="center" colspan="3">Rémunération au cachet</th>
+</tr>
+<tr>
+<td colspan="3">Répétitions</td>
+</tr>
+<tr>
+<td>Journée de 2 services (montant ci-contre à verser sous la forme de 2 cachets)</td>
+<td align="center">2 cachets</td>
+<td align="center">118,20</td>
+</tr>
+<tr>
+<td>Garantie journalière si service isolé</td>
+<td align="center">1 cachet</td>
+<td align="center">88,64</td>
+</tr>
+<tr>
+<td colspan="3">Représentations</td>
+</tr>
+<tr>
+<td>Cas général</td>
+<td align="center">Cachet</td>
+<td align="center">166,75</td>
+</tr>
+<tr>
+<td>7 représentations ou plus par 15 jours</td>
+<td align="center">Cachet</td>
+<td align="center">146,74</td>
+</tr>
+<tr>
+<td>Salles musiques actuelles &lt; 300 places</td>
+<td align="center">Cachet</td>
+<td align="center">118,09</td>
+</tr>
+<tr>
+<td>Première partie</td>
+<td align="center">Cachet</td>
+<td align="center">118,09</td>
+</tr>
+<tr>
+<td>Plateau découverte</td>
+<td align="center">Cachet</td>
+<td align="center">118,09</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+<p align="center">Artistes musiciens engagés au sein d'autres entreprises (art. X.3.3.D)</p>
+<p align="right">(En euros.)</p>
+<br/>
+
+<table border="1">
+<tbody>
+<tr>
+<th>Libellé</th>
+<th>Modalité</th>
+<th>Montant</th>
+</tr>
+<tr>
+<th align="center" colspan="3">Rémunération mensualisée</th>
+</tr>
+<tr>
+<td>CDI</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">2 856,35</td>
+</tr>
+<tr>
+<td>CDD droit commun &gt; 1 mois</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">2 962,85</td>
+</tr>
+<tr>
+<td>CDD d'usage &gt; 1 mois</td>
+<td align="center">Minimum brut mensuel</td>
+<td align="center">3 123,31</td>
+</tr>
+<tr>
+<th align="center" colspan="3">Rémunération au cachet</th>
+</tr>
+<tr>
+<td colspan="3">Répétitions</td>
+</tr>
+<tr>
+<td>Service de 3 heures</td>
+<td align="center">Cachet</td>
+<td align="center">118,09</td>
+</tr>
+<tr>
+<td colspan="3">Représentation</td>
+</tr>
+<tr>
+<td>Service de 3 heures</td>
+<td align="center">Cachet</td>
+<td align="center">118,09</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+<p>
+<font color="808080">
+<em>
+ (1) L'article 1.1.2 est étendu sous réserve du respect du principe « à travail égal, salaire égal », les disparités de rémunération prévues ne pouvant être licites qu'à la condition de reposer sur des raisons objectives et pertinentes et les seules différences de statut juridique (contrat de droit commun, CDD, CDI) et de durée des contrats ne pouvant être regardées comme étant, à elles seules, suffisantes pour justifier une différence de traitement.  <br/>(Arrêté du 7 septembre 2026 - art. 1)</em>
+</font>
+</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+
+</LIENS>
+
+
+
+<INFORMATIONS_COMPLEMENTAIRES>
+<CONTENU/>
+</INFORMATIONS_COMPLEMENTAIRES>
+</ARTICLE>

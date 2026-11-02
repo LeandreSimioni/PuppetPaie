@@ -1880,15 +1880,33 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 /// LE MONTANT D'UN REPAS OU D'UNE NUITEE DIT D'OU IL VIENT : une ligne au tarif de la convention (`engagement::tarif_conventionnel`,
-/// le barème de l'année, couche de la convention de la compagnie) le dit dans les informations de sa paie.
+/// le barème de l'année, couche de la convention de la compagnie) le dit dans les informations de sa paie. Le tarif
+/// est daté : il se lit au premier jour du mois, au premier et au dernier jour de la paie dans le mois.
 fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut Value) -> R<()> {
-    let Ok(jour) = Jour::lire(&format!("{}-01", mois)) else { return Ok(()) };
+    let Ok(premier) = Jour::lire(&format!("{}-01", mois)) else { return Ok(()) };
+    let mut jours = vec![premier];
+    for cle in ["debut", "fin"] {
+        if let Ok(j) = Jour::lire(&valeur_en_texte(&p[cle])) {
+            if j.iso().starts_with(mois) && !jours.contains(&j) {
+                jours.push(j);
+            }
+        }
+    }
     let mut dits: Vec<String> = Vec::new();
     for l in p["remuneration"].as_array().into_iter().flatten() {
         let code = valeur_en_texte(&l["rubrique"]);
-        let Some(tarif) = engagement::tarif_conventionnel(ctx, &code, &jour).map_err(Echec::from)? else { continue };
         let taux = l["taux"].as_str().and_then(|t| t.parse::<f64>().ok()).or_else(|| l["taux"].as_f64());
-        if taux.is_some_and(|t| Some(t) == tarif.as_f64()) {
+        let mut tarif = None;
+        for j in &jours {
+            match engagement::tarif_conventionnel(ctx, &code, j).map_err(Echec::from)? {
+                Some(t) if taux.is_some_and(|x| Some(x) == t.as_f64()) => {
+                    tarif = Some(t);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        if let Some(tarif) = tarif {
             let dit = format!("{} à {}", valeur_en_texte(&l["designation"]).to_lowercase(), socle::texte::euros_de(&tarif));
             if !dits.contains(&dit) {
                 dits.push(dit);
