@@ -1363,13 +1363,8 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, 
 }
 
 /// La paie ecrite de `mois` que porte la version de l'engagement `o` dont le bulletin a le numero `numero`.
-fn paie_ecrite_au_bulletin<'a>(o: &'a engagement::stock::Objet, mois: &str, numero: &str) -> Option<&'a Value> {
-    let passees = o.brut.get("versions").and_then(Value::as_array).into_iter().flatten();
-    o.brut.get("valide")
-        .into_iter()
-        .chain(passees)
-        .filter_map(|v| v.get("paies").and_then(|p| p.get(mois)))
-        .find(|p| p.get(engagement::etats::BULLETIN).and_then(Value::as_str) == Some(numero))
+fn paie_ecrite_au_bulletin(o: &engagement::stock::Objet, mois: &str, numero: &str) -> R<Option<Value>> {
+    Ok(engagement::paies::ecrites(o, mois).map_err(Echec::from)?.into_iter().find(|p| p.get(engagement::etats::BULLETIN).and_then(Value::as_str) == Some(numero)))
 }
 
 /// LES DOCUMENTS QU'A FAIT PARTIR LA LIGNE `lignes[rang]` (un envoi aux salaries de `mois`), refaits tels qu'ils sont
@@ -1395,8 +1390,11 @@ fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usi
         for e in engagement::etats::du_mois(&ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(Echec::from)? {
             let Some(v) = e.valide() else { continue };
             let Some(p) = engagement::etats::paie_partie(&ctx, v.objet(), &jusqu_a, mois).map_err(Echec::from)? else { continue };
-            let ecrite = p.numero_bulletin.as_deref().and_then(|n| paie_ecrite_au_bulletin(v.objet(), mois, n));
-            if let Some(r) = ecrite.and_then(|x| x.get(engagement::etats::RECTIFIE)).and_then(Value::as_str) {
+            let ecrite = match p.numero_bulletin.as_deref() {
+                Some(n) => paie_ecrite_au_bulletin(v.objet(), mois, n)?,
+                None => None,
+            };
+            if let Some(r) = ecrite.as_ref().and_then(|x| x.get(engagement::etats::RECTIFIE)).and_then(Value::as_str) {
                 let parti = if clos { engagement::etats::paie_partie(&ctx, v.objet(), &avant, mois).map_err(Echec::from)? } else { None };
                 let rectif = match parti {
                     Some(parti) => {
@@ -1411,7 +1409,7 @@ fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usi
                 rectificatifs.insert(paies.len(), rectif);
             }
             numeros.push(if p.engagement.sans_paie() { None } else { p.numero_bulletin.clone() });
-            premiers_ce.push(ecrite.and_then(|x| x.get(engagement::etats::CE)).and_then(Value::as_i64));
+            premiers_ce.push(ecrite.as_ref().and_then(|x| x.get(engagement::etats::CE)).and_then(Value::as_i64));
             paies.push(p);
         }
         let (mut pour_cs, _) = crate::routes::dossier_salarie::certificats_dus(&ctx, &paies)?;

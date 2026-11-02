@@ -27,6 +27,7 @@ pub mod periodes;
 pub mod relire;
 pub mod solde;
 pub mod numeros;
+pub mod paies;
 pub mod stock;
 pub mod versions;
 #[cfg(feature = "ecran")]

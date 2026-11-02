@@ -211,10 +211,11 @@ pub fn empreinte_de(racine: &Path, cle: &str, jour: &str) -> String {
         h.update([0]);
     }
     let sorties_du_mois = format!("sorties/{}/", cle);
-    // La compagnie : ses engagements (et `engagements/avant/`), sa configuration, ses journaux, ses imprevus, ses
-    // regularisations, son historique importe, ses retours, et ce qui est sorti pour ce mois-ci (pour l'ouverture : pour
-    // tous les mois).
+    // La compagnie : ses engagements (et `engagements/avant/`) et leurs paies, sa configuration, ses journaux, ses
+    // imprevus, ses regularisations, son historique importe, ses retours, et ce qui est sorti pour ce mois-ci (pour
+    // l'ouverture : pour tous les mois).
     signer_dossier(&mut h, racine, &racine.join(engagement::stock::DOSSIER), true, &|n| n.ends_with(".json"));
+    signer_dossier(&mut h, racine, &racine.join(engagement::paies::DOSSIER), true, &|n| n.ends_with(".json"));
     signer_dossier(&mut h, racine, &racine.join("config"), true, &|n| {
         (ouverture || !n.ends_with(".bin")) && !n.ends_with(".tmp") && !HORS_DE_L_ECRAN.contains(&n)
     });

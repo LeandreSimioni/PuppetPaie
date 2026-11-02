@@ -1,7 +1,7 @@
 //! LES OS, GARDES QUOI QU'ON CHANGE DESSUS : chaque route dit en une phrase breve ce qu'elle fait, et l'exemple de sa
 //! fiche est accepte ; la page et la ligne de commande ont le meme catalogue ; une crate ne prend qu'a celles du
 //! dessous ; l'engagement ne lit pas le journal ; une seule fonction date une valeur de fiche ; un seul endroit
-//! ecrit un fichier d'engagements.
+//! ecrit un fichier d'engagements ; une seule fonction lit une paie, une seule l'ecrit.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -434,6 +434,30 @@ fn un_seul_endroit_ecrit_un_fichier_d_engagements() {
             if std::fs::read_to_string(&p).unwrap().contains("stock::chemin(") {
                 let rel = p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned();
                 assert!(LECTEURS.contains(&rel.as_str()), "{} nomme le fichier d'un engagement : il passe par `stock`", rel);
+            }
+        }
+    }
+}
+
+/// Une seule fonction lit un fichier de paies, une seule l'ecrit : dans `engagement::paies`, `fichier` (`stock::lire_dans`)
+/// et `ecrire` (`stock::poser_dans`), sur le dossier des paies, que rien d'autre ne nomme. Hors de `paies.rs`, le fichier
+/// des paies d'un mois ne se nomme que pour le lire tel qu'il est sur le disque : dans la cloture (l'archive de
+/// l'exercice) et l'etat garde de l'ecran (sa signature).
+#[test]
+fn une_seule_fonction_lit_une_paie_et_une_seule_l_ecrit() {
+    const LECTEURS: [&str; 2] = ["moteur/src/compagnie/exercice_ecrit.rs", "moteur/src/etat_garde.rs"];
+    let paies = espace().join("engagement/src/paies.rs");
+    let stock = espace().join("engagement/src/stock.rs");
+    let texte = std::fs::read_to_string(&paies).unwrap();
+    assert_eq!(texte.matches("stock::lire_dans(").count(), 1, "paies.rs ne lit un fichier de paies que par `fichier`");
+    assert_eq!(texte.matches("stock::poser_dans(").count(), 1, "paies.rs n'ecrit un fichier de paies que par `ecrire`");
+    for crate_ in ["engagement", "documents", "declarations", "envois", "moteur"] {
+        for p in sources(&espace().join(crate_).join("src")).into_iter().filter(|p| *p != paies && *p != stock) {
+            let t = std::fs::read_to_string(&p).unwrap();
+            let rel = p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned();
+            assert!(!t.contains("Dossier::Paies"), "{} nomme le dossier des paies : il lit et ecrit une paie par `engagement::paies`", rel);
+            if t.contains("paies::chemin(") || t.contains("paies::DOSSIER") {
+                assert!(LECTEURS.contains(&rel.as_str()), "{} nomme le fichier des paies d'un mois : il passe par `engagement::paies`", rel);
             }
         }
     }
