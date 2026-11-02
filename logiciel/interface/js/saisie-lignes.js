@@ -489,9 +489,8 @@ function planningDuBloc(bloc) {
 
 function debutDuBloc(bloc) {
   if (!bloc) return "";
-  const jours = joursDuBloc(bloc);
   const ecrit = carteFermee(bloc) ? (engagementLu(bloc) || {}).debut : bloc.querySelector(".e-debut").value;
-  return ecrit || jours[0] || "";
+  return ecrit || bornesLues(bloc).debut || "";
 }
 
 /** Les jours tapés « 14 15 17 18 », en nombres, sans doublon et triés. */
@@ -524,9 +523,9 @@ function tauxParDefaut(code) {
    se tape sur la ligne : il n'y a rien à hériter, rien à déplier.
 
    C'est TOUJOURS UN SEUL ENGAGEMENT : même spectacle, donc même numéro d'objet,
-   donc un contrat, un bulletin, une AEM. Les jours de l'engagement sont la
-   réunion des jours de ses lignes — `joursDuBloc` ici, `dates_engagement`
-   dans le moteur, et les deux composent la même liste.
+   donc un contrat, un bulletin, une AEM. Les jours de l'engagement sont ceux
+   de ses lignes de travail, et c'est le moteur qui les lit
+   (`engagement::dates_engagement`) : la carte montre les bornes qu'il rend.
 
    Le lieu ne se déclare NULLE PART : ni DSN, ni AEM, ni DPAE. Il figure au
    contrat, qui groupe les dates par lieu, et nulle part ailleurs. */
@@ -1488,15 +1487,15 @@ function faitsDuBloc(div) {
 
 /** La ligne repliée du contrat : ses bornes, son numéro, et ce qu'il fait
  *  par rapport au mois — « se poursuit en novembre », « en cours depuis
- *  octobre ». Les bornes vides se lisent sur les jours joués, comme le
- *  moteur le fait (`Engagement.debut`/`fin`). */
+ *  octobre ». Les bornes que la carte n'écrit pas sont celles que le moteur
+ *  rend (`bornesLues`). */
 function majContrat(div) {
   const d = div.querySelector(".e-contrat");
   if (!d) return;
   const mois = document.getElementById("mois").value;
-  const jours = joursDuBloc(div, mois);
-  const debut = div.querySelector(".e-debut").value || jours[0] || "";
-  const fin = div.querySelector(".e-fin").value || jours[jours.length - 1] || "";
+  const lues = bornesLues(div);
+  const debut = div.querySelector(".e-debut").value || lues.debut || "";
+  const fin = div.querySelector(".e-fin").value || lues.fin || "";
   const numero = div.dataset.numero || "";
   div.querySelector(".e-numero").textContent = numero ? "n° " + numero : "";
   div.querySelector(".e-numero").title = (ETAT.aides || {}).numero_contrat || "";
@@ -1643,16 +1642,10 @@ function lignesDuBloc(div, mois) {
   }).filter(Boolean);
 }
 
-/** Les jours d'un engagement, toutes lignes confondues — c'est ce que le
- *  moteur appelle `dates_travail`, et il le recompose de la même façon
- *  (`operations.dates_engagement`). */
-function joursDuBloc(div, mois) {
-  const vus = new Set();
-  // Une carte fermée : les jours des lignes de ses engagements (un bloc porte
-  // les mêmes lignes pour tous ses salariés).
-  const lignes = carteFermee(div) ? ((engagementLu(div) || {}).lignes || []) : lignesDuBloc(div, mois);
-  lignes.forEach((l) => (l.dates || []).forEach((j) => vus.add(jourDe(j))));
-  return [...vus].sort();
+/** Les bornes de l'engagement d'une carte, telles que le moteur les lit de ses lignes de travail (`debut`, `fin` de
+ *  sa paie dans l'aperçu) ; vides tant que l'aperçu ne les a pas rendues. */
+function bornesLues(div) {
+  return div._bornes || { debut: "", fin: "" };
 }
 
 document.getElementById("ajouter-engagement").onclick = () => {

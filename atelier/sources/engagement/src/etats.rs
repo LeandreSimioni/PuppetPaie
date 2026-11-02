@@ -345,12 +345,12 @@ fn cle_du_salarie(ctx: &Contexte, o: &Objet) -> Option<String> {
 pub fn signe_ailleurs(ctx: &Contexte, o: &Objet) -> bool {
     let texte = |k: &str| o.brut.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
     let Ok(nat) = droit::natures::nature(o.brut.get("nature").and_then(Value::as_str)) else { return false };
-    crate::signe_ailleurs_de(&ctx.racine, &nat, &texte("salarie"), &crate::debut_brut(&o.brut), &texte("numero"), &o.fichier).unwrap_or(false)
+    crate::signe_ailleurs_de(&ctx.racine, &nat, &texte("salarie"), &crate::debut_brut(&ctx.racine, &o.brut), &texte("numero"), &o.fichier).unwrap_or(false)
 }
 
 /// Qui est l'engagement `o`, pour une phrase de l'ecran : « MARTIN Lou (contrat du 20/11/2026) » (`crate::salarie_nomme`).
 pub fn qui_de(ctx: &Contexte, o: &Objet) -> String {
-    let debut = crate::debut_brut(&o.brut);
+    let debut = crate::debut_brut(&ctx.racine, &o.brut);
     let debut = Jour::lire(&debut).map(|j| j.jj_mm_aaaa()).unwrap_or(debut);
     format!("{} (contrat du {})", crate::salarie_nomme(ctx, o.brut.get("salarie")), debut)
 }
@@ -1621,7 +1621,7 @@ pub fn a_refaire_parmi(ctx: &Contexte, v: &Valide, departs: &Departs, sorte: &dy
                 }
             }
             Envoi::Dpae => {
-                let (avant, maintenant) = (crate::debut_brut(&saisie(passee)), crate::debut_brut(&saisie(&actuelle)));
+                let (avant, maintenant) = (crate::debut_brut(&ctx.racine, &saisie(passee)), crate::debut_brut(&ctx.racine, &saisie(&actuelle)));
                 if avant != maintenant {
                     out.push(ARefaire::Dpae { depuis: d.version, debut_declare: avant });
                 }
@@ -1907,7 +1907,7 @@ pub fn debut_declare(ctx: &Contexte, o: &Objet, departs: &Departs, avant: &str) 
     let Some(d) = ses_departs(ctx, o, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.par.as_deref().or(d.mois.as_deref()).is_some_and(|m| m < avant)) else {
         return Ok(None);
     };
-    Ok(version_ecrite(ctx, o, d.version)?.and_then(|v| v.get("saisie")).map(crate::debut_brut).filter(|d| !d.is_empty()))
+    Ok(version_ecrite(ctx, o, d.version)?.and_then(|v| v.get("saisie")).map(|s| crate::debut_brut(&ctx.racine, s)).filter(|d| !d.is_empty()))
 }
 
 /// La phrase d'un recalcul, pour l'ecran : « Recalculé le JJ/MM/AAAA : taux de PAS reçu. »

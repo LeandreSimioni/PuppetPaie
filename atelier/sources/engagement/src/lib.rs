@@ -869,13 +869,29 @@ pub struct Avis {
     pub texte: String,
 }
 
+/// UNE LIGNE DE FRAIS NE FAIT PAS LES JOURS DE L'ENGAGEMENT : sa rubrique est de nature `frais` au catalogue de la
+/// compagnie (lu au premier jour de la ligne). Un remboursement de frais professionnels n'est pas un revenu d'activite
+/// (CSS L136-1-1, `atelier/reference/sources/code-de-la-securite-sociale/articles-20260923.md`, l. 47) : ce qui fait le
+/// debut, la fin et les jours d'un engagement, ce sont ses lignes de travail. Le frais d'un voyage pour rejoindre le
+/// lieu de travail, ou en revenir, est a la charge de l'employeur (CCN 1285, art. VIII.5.1, KALIARTI000005808081,
+/// `atelier/reference/sources/kali-entrepot/articles.jsonl.gz`) : il se paie avec l'engagement qui le porte, au mois de
+/// celui-ci, quel que soit son jour. Le temps du trajet, lui, est du travail ou une servitude qui se compte (art.
+/// VIII.1, KALIARTI000023306777) : il se saisit sur une ligne de travail, qui fait son jour. Une rubrique que le catalogue
+/// ne connait pas compte comme du travail : le calcul la refuse en la nommant.
+pub fn ligne_de_frais(racine: &Path, l: &Value) -> bool {
+    let Some(code) = l.get("rubrique").filter(|c| vrai(c)).map(en_texte) else { return false };
+    let premier = ["dates", "planning"].iter().find_map(|k| l.get(*k).and_then(Value::as_array).and_then(|a| a.first()).cloned());
+    let Some(jour) = premier.and_then(|x| d(x.get("jour").unwrap_or(&x)).ok()) else { return false };
+    rubrique(racine, &code, &jour).is_ok_and(|r| r.nature == "frais")
+}
+
 /// `dates_engagement` (`cle` = "dates") et `planning_engagement` (`cle` =
-/// "planning") : la reunion, dedoublonnee, des jours des lignes, chacun nu ou
+/// "planning") : la reunion, dedoublonnee, des jours des lignes de travail (`ligne_de_frais`), chacun nu ou
 /// detaille `{jour, lieu}` quand une ligne dit ou elle se joue.
-fn jours_des_lignes(e: &Value, cle: &str) -> Vec<Value> {
+fn jours_des_lignes(racine: &Path, e: &Value, cle: &str) -> Vec<Value> {
     let (mut out, mut vus) = (Vec::new(), BTreeSet::new());
     let lignes = e.get("lignes").and_then(|l| l.as_array()).map_or(&[][..], |a| &a[..]);
-    for l in lignes {
+    for l in lignes.iter().filter(|l| !ligne_de_frais(racine, l)) {
         let Some(Value::Array(js)) = l.get(cle) else { continue };
         for j in js {
             let jour = match j {
@@ -903,23 +919,23 @@ fn jours_des_lignes(e: &Value, cle: &str) -> Vec<Value> {
     out
 }
 
-pub fn dates_engagement(e: &Value) -> Vec<Value> {
-    jours_des_lignes(e, "dates")
+pub fn dates_engagement(racine: &Path, e: &Value) -> Vec<Value> {
+    jours_des_lignes(racine, e, "dates")
 }
 
-pub fn planning_engagement(e: &Value) -> Vec<Value> {
-    jours_des_lignes(e, "planning")
+pub fn planning_engagement(racine: &Path, e: &Value) -> Vec<Value> {
+    jours_des_lignes(racine, e, "planning")
 }
 
 /// Les jours du contrat entier qu'un engagement brut connait : ses dates
 /// jouees et son planning, sans doublon.
-pub fn jours_du_contrat(e: &Value) -> usize {
+pub fn jours_du_contrat(racine: &Path, e: &Value) -> usize {
     let cle = |j: &Value| match j {
         Value::Object(m) => m.get("jour").map_or(String::new(), |x| x.to_string()),
         autre => autre.to_string(),
     };
-    let mut vus: BTreeSet<String> = dates_engagement(e).iter().map(cle).collect();
-    vus.extend(planning_engagement(e).iter().map(cle));
+    let mut vus: BTreeSet<String> = dates_engagement(racine, e).iter().map(cle).collect();
+    vus.extend(planning_engagement(racine, e).iter().map(cle));
     vus.len()
 }
 
@@ -1028,7 +1044,7 @@ pub(crate) fn engagements(
                 qui
             ));
         }
-        let jours = if nat.mensuelle() { Vec::new() } else { dates_engagement(e) };
+        let jours = if nat.mensuelle() { Vec::new() } else { dates_engagement(&ctx.racine, e) };
         // `lignes: []` ecrit est un mois du contrat sans cachet ; une ligne sans date est incomplete.
         if jours.is_empty() && !nat.mensuelle() && e.get("lignes") != Some(&Value::Array(Vec::new())) {
             return Err(format!("{}{} Sans eux il n'y a ni début, ni fin, ni contrat.", qui, PAS_DE_JOUR));
@@ -1089,13 +1105,13 @@ pub(crate) fn engagements(
         // Un contrat d'usage commence dans l'ancien logiciel et continue ici : les jours du contrat entier comptent ceux
         // que les pieces importees attestent (`importe::Importe::jours_du_contrat_continue`).
         let continue_ = match (e.get("jours_contrat"), e.as_object()) {
-            (None, Some(o)) if !nat.mensuelle() && crate::debut_brut(e).get(..7).is_some_and(|m| m < mois_dit.as_str()) => {
-                crate::importe::continue_par(&ctx.racine, o)?.and_then(|i| i.jours_du_contrat_continue(jours_du_contrat(e))).map(Value::from)
+            (None, Some(o)) if !nat.mensuelle() && crate::debut_brut(&ctx.racine, e).get(..7).is_some_and(|m| m < mois_dit.as_str()) => {
+                crate::importe::continue_par(&ctx.racine, o)?.and_then(|i| i.jours_du_contrat_continue(jours_du_contrat(&ctx.racine, e))).map(Value::from)
             }
             _ => None,
         };
         poser("jours_contrat", e.get("jours_contrat").or(continue_.as_ref()));
-        poser("planning", Some(&Value::Array(planning_engagement(e))));
+        poser("planning", Some(&Value::Array(planning_engagement(&ctx.racine, e))));
         poser("lignes", lignes.as_ref());
         poser("date_paiement", e.get("date_paiement"));
         poser("lieu", e.get("lieu"));
@@ -1520,7 +1536,7 @@ pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
     ctx.cle_du_salarie(nom).ok()
 }
 /// Le debut d'un engagement brut, comme `Engagement` le deduirait : `debut` s'il le dit, sinon son premier jour joue.
-pub fn debut_brut(e: &Value) -> String {
+pub fn debut_brut(racine: &Path, e: &Value) -> String {
     let cle = |j: &Value| match j {
         Value::Object(m) => m.get("jour").map_or(String::new(), en_texte),
         autre => en_texte(autre),
@@ -1528,7 +1544,7 @@ pub fn debut_brut(e: &Value) -> String {
     if truthy(e.get("debut")) {
         return en_texte(e.get("debut").unwrap());
     }
-    let mut jours: Vec<String> = dates_engagement(e).iter().map(cle).collect();
+    let mut jours: Vec<String> = dates_engagement(racine, e).iter().map(cle).collect();
     jours.sort();
     jours.into_iter().next().unwrap_or_default()
 }

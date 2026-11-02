@@ -64,7 +64,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Calculer sans rien écrire les paies du mois, avec les cartes en cours.",
         charge: &[MOIS, CARTES],
         exemple: r#"{"mois":"2026-11","cartes":[]}"#,
-        rend: "paies (une par engagement, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer » ; faits_avances : les cases « avancé » de la carte d'un contrat au mois qu'il appelle, `cases` de valider-engagement), les trois nombres de chaque carte, le mois",
+        rend: "paies (une par engagement, ses bornes debut et fin, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer » ; faits_avances : les cases « avancé » de la carte d'un contrat au mois qu'il appelle, `cases` de valider-engagement), les trois nombres de chaque carte, le mois",
         refus: &[SAISIE_INCOMPLETE, MANQUE, FORME],
         acte: Acte::Lit,
         avance: false,
@@ -550,33 +550,6 @@ fn pas_comparable(a: &Value, b: &Value) -> Echec {
     erreur("TypeError", socle::fichiers::incomparables(nom_type(a), nom_type(b)))
 }
 
-/// Les valeurs triées ; refus si elles ne se comparent pas.
-fn trier(mut v: Vec<Value>) -> R<Vec<Value>> {
-    let mut refus = None;
-    v.sort_by(|a, b| match comparer(a, b) {
-        Ok(o) => o,
-        Err(e) => {
-            refus.get_or_insert(e);
-            Ordering::Equal
-        }
-    });
-    match refus {
-        Some(e) => Err(e),
-        None => Ok(v),
-    }
-}
-
-/// `max(valeurs)` d'une liste non vide : le premier des plus grands.
-fn maximum(v: &[Value]) -> R<Value> {
-    let mut m = v[0].clone();
-    for x in &v[1..] {
-        if comparer(&m, x)? == Ordering::Less {
-            m = x.clone();
-        }
-    }
-    Ok(m)
-}
-
 /// `valeur or defaut`, puis `for x in ...`.
 fn parcourir(v: Option<&Value>) -> R<Vec<Value>> {
     match v {
@@ -621,39 +594,6 @@ fn entier_de(v: &Value) -> R<i64> {
 
 // ------------------------------------------------------- les jours d'un engagement
 
-/// Les jours d'un engagement (`cle` = "dates") et
-/// `planning_engagement` (`cle` = "planning") : les jours des lignes, sans
-/// doublon, nus ou detailles `{jour, lieu}`. Les refus :
-/// une ligne qui n'est pas un dictionnaire (`AttributeError`), un jour qui ne se
-/// hache pas (`TypeError`), un jour detaille sans `jour` (`KeyError`).
-fn jours_des_lignes(e: &Map<String, Value>, cle: &str) -> R<Vec<Value>> {
-    let mut out = Vec::new();
-    let mut vus: Dico<()> = Dico::nouveau();
-    for l in parcourir(e.get("lignes"))? {
-        let lm = objet(&l)?;
-        for j in parcourir(lm.get(cle))? {
-            let jour = match &j {
-                Value::Object(m) => m.get("jour").cloned().ok_or_else(|| cle_manquante("jour"))?,
-                autre => autre.clone(),
-            };
-            if vus.contient(&[jour.clone()])? {
-                continue;
-            }
-            vus.poser(vec![jour.clone()], ())?;
-            let lieu_ligne = lm.get("lieu").filter(|x| vrai(x)).cloned();
-            let lieu = match &j {
-                Value::Object(m) => m.get("lieu").filter(|x| vrai(x)).cloned().or(lieu_ligne),
-                _ => lieu_ligne,
-            };
-            out.push(match lieu {
-                Some(ou) => json!({"jour": jour, "lieu": ou}),
-                None => jour,
-            });
-        }
-    }
-    Ok(out)
-}
-
 /// `j["jour"] if isinstance(j, dict) else j`.
 fn jour_de(j: &Value) -> Value {
     match j {
@@ -662,24 +602,28 @@ fn jour_de(j: &Value) -> Value {
     }
 }
 
-/// (debut, fin) d'un engagement brut,
-/// AAAA-MM-JJ, comme `Engagement` les deduirait ; vides sans aucun jour.
-pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
-    let jours = trier(jours_des_lignes(e, "dates")?.iter().map(jour_de).collect())?;
-    let plan = trier(jours_des_lignes(e, "planning")?.iter().map(jour_de).collect())?;
-    let ecrit = |k: &str| e.get(k).filter(|x| vrai(x)).cloned();
-    let debut = ecrit("debut").or_else(|| jours.first().cloned()).map(|v| valeur_en_texte(&v)).unwrap_or_default();
-    let fin = if !jours.is_empty() || !plan.is_empty() {
-        let mut tous = jours.clone();
-        tous.extend(plan);
-        match ecrit("fin") {
-            Some(f) => valeur_en_texte(&f),
-            None => valeur_en_texte(&maximum(&tous)?),
-        }
-    } else {
-        ecrit("fin").map(|f| valeur_en_texte(&f)).unwrap_or_default()
+/// Les jours travailles d'un engagement brut, AAAA-MM-JJ, tries : ceux de ses lignes de travail
+/// (`engagement::dates_engagement`).
+fn jours_joues(ctx: &Contexte, e: &Map<String, Value>) -> Vec<String> {
+    let mut jours: Vec<String> = engagement::dates_engagement(&ctx.racine, &Value::Object(e.clone())).iter().map(|j| valeur_en_texte(&jour_de(j))).collect();
+    jours.sort();
+    jours
+}
+
+/// (debut, fin) d'un engagement brut, AAAA-MM-JJ, comme `Engagement` les deduirait : son debut (`engagement::debut_brut`),
+/// sa fin ecrite, sinon le dernier de ses jours travailles et de son planning ; vides sans aucun jour.
+pub(crate) fn bornes_brutes(ctx: &Contexte, e: &Map<String, Value>) -> (String, String) {
+    let brut = Value::Object(e.clone());
+    let fin = match e.get("fin").filter(|x| vrai(x)) {
+        Some(f) => valeur_en_texte(f),
+        None => engagement::dates_engagement(&ctx.racine, &brut)
+            .iter()
+            .chain(engagement::planning_engagement(&ctx.racine, &brut).iter())
+            .map(|j| valeur_en_texte(&jour_de(j)))
+            .max()
+            .unwrap_or_default(),
     };
-    Ok((debut, fin))
+    (engagement::debut_brut(&ctx.racine, &brut), fin)
 }
 
 // ------------------------------------------------------------ les fichiers de mois
@@ -800,7 +744,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
     }
     let mut deja: HashSet<(String, String, String)> = HashSet::new();
     for (c, e) in engagements_du_mois(ctx, texte_mois)? {
-        deja.insert((c, bornes_brutes(&e)?.0, e.get("numero").map(valeur_en_texte).unwrap_or_default()));
+        deja.insert((c, bornes_brutes(ctx, &e).0, e.get("numero").map(valeur_en_texte).unwrap_or_default()));
     }
     for c in out.iter_mut() {
         c.deja_repris = deja.contains(&(c.salarie.clone(), c.debut.clone(), valeur_en_texte(&c.numero)));
@@ -1072,7 +1016,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salarie: Option<&str>) -> R<Vec
     for mc in &connus {
         couverts.insert(mc.clone());
         for (cle, e) in engagements_du_mois(ctx, mc)? {
-            let (debut, fin) = bornes_brutes(&e)?;
+            let (debut, fin) = bornes_brutes(ctx, &e);
             if debut.is_empty() || debut > dernier || (if fin.is_empty() { &debut } else { &fin }).as_str() < premier.as_str() {
                 continue;
             }
@@ -1087,7 +1031,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salarie: Option<&str>) -> R<Vec
                 None => json!(valeur_en_texte(&ref_spec)),
             };
             let cachets = cachets_de(ctx, &e)?;
-            let mut dates: Vec<Value> = trier(jours_des_lignes(&e, "dates")?.iter().map(jour_de).collect())?;
+            let mut dates: Vec<Value> = jours_joues(ctx, &e).into_iter().map(Value::String).collect();
             let fin = if fin.is_empty() { debut.clone() } else { fin };
             let ident = vec![cle.clone(), json!(debut), json!(fin)];
             let deja = vus.get(&ident)?.copied();
@@ -1717,13 +1661,13 @@ fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &dro
 /// periode d'essai et les clauses se disent avant que le reste soit complet. La repartition des horaires attend la
 /// duree du travail calculee.
 fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &Value, mois: &str) -> Vec<&'static str> {
-    if engagement::stock::commence_avant_le_logiciel(&ctx.racine, &engagement::debut_brut(e), mois).unwrap_or(false) {
-        return numero_a_dire(ctx, &e.get("salarie").map(en_texte).unwrap_or_default(), &engagement::debut_brut(e));
+    if engagement::stock::commence_avant_le_logiciel(&ctx.racine, &engagement::debut_brut(&ctx.racine, e), mois).unwrap_or(false) {
+        return numero_a_dire(ctx, &e.get("salarie").map(en_texte).unwrap_or_default(), &engagement::debut_brut(&ctx.racine, e));
     }
     let Ok(nat) = droit::natures::nature(e.get("nature").and_then(Value::as_str)) else { return Vec::new() };
     let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Vec::new() };
     let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_default();
-    if nat.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &engagement::debut_brut(e), &numero) {
+    if nat.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &engagement::debut_brut(&ctx.racine, e), &numero) {
         return Vec::new();
     }
     let mut v = vec!["periode_essai_jours"];
@@ -1987,11 +1931,16 @@ fn apercu_des_paies(ctx: &Contexte, data: &Value) -> R<Value> {
         .zip(&manques)
         .map(|(e, m)| match m {
             None => calculees.next().unwrap_or(Value::Null),
-            Some(m) => json!({
-                "a_completer": m, "salarie": {"_cle": e.get("salarie").cloned().unwrap_or(Value::Null)},
-                "avertissements": [], "informations": [],
-                "contrat": {"ecrits": champs_du_contrat_ecrit_en_saisie(ctx, e, &valeur_en_texte(&data["mois"]))},
-            }),
+            Some(m) => {
+                // Ses bornes, comme le moteur les lit de ses lignes de travail : la carte les montre avant tout calcul.
+                let (debut, fin) = e.as_object().map(|o| bornes_brutes(ctx, o)).unwrap_or_default();
+                json!({
+                    "a_completer": m, "salarie": {"_cle": e.get("salarie").cloned().unwrap_or(Value::Null)},
+                    "debut": debut, "fin": fin,
+                    "avertissements": [], "informations": [],
+                    "contrat": {"ecrits": champs_du_contrat_ecrit_en_saisie(ctx, e, &valeur_en_texte(&data["mois"]))},
+                })
+            }
         })
         .collect();
     // Les trois nombres de chaque carte : ceux de son engagement calcule ; une carte a completer n'en a pas.

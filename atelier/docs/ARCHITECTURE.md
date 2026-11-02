@@ -204,7 +204,8 @@ bulletin, une AEM. Le format est dans le `README.md`.
 Ce que ça impose au moteur :
 
 - `dates_engagement` (`engagement/src/lib.rs`) est le **seul endroit** qui sache où
-  chercher les jours d'un engagement : dans ses lignes, et nulle part
+  chercher les jours d'un engagement : dans ses lignes de travail (une ligne de frais n'en fait
+  aucun, `ligne_de_frais`), et nulle part
   ailleurs. La lecture d'un engagement (`Engagement::nouveau`) passe par lui, et le décompte des droits (`cumul.rs`)
   lit ce qu'elle a lu.
 - **Une seule écriture.** `Engagement` exige

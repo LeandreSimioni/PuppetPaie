@@ -301,9 +301,9 @@ impl Objet {
                 // Un contrat d'usage sans fin dite finit a son dernier jour joue ou planifie ; sans jour encore, a son
                 // premier mois : seul un contrat paye au mois court sans terme.
                 let v = &*self.brut;
-                let mut jours: Vec<String> = crate::dates_engagement(&v)
+                let mut jours: Vec<String> = crate::dates_engagement(&self.racine, &v)
                     .iter()
-                    .chain(crate::planning_engagement(&v).iter())
+                    .chain(crate::planning_engagement(&self.racine, &v).iter())
                     .map(|j| match j {
                         Value::Object(m) => m.get("jour").map(en_texte).unwrap_or_default(),
                         autre => en_texte(autre),
@@ -436,11 +436,11 @@ impl Objet {
         if mois > self.fichier.as_str() && !self.mensuel() {
             // Un contrat d'usage qui ne dit pas son debut commence a son premier jour joue, celui de son premier mois :
             // les mois suivants le declarent (S21.G00.40.001) et ne le prennent pas pour une embauche.
-            let debut = crate::debut_brut(&Value::Object(premiere.clone()));
+            let debut = crate::debut_brut(&self.racine, &Value::Object(premiere.clone()));
             if !v.contains_key("debut") && !debut.is_empty() {
                 v.insert("debut".into(), Value::String(debut));
             }
-            v.insert("jours_contrat".into(), Value::from(crate::jours_du_contrat(&Value::Object(premiere)) as i64));
+            v.insert("jours_contrat".into(), Value::from(crate::jours_du_contrat(&self.racine, &Value::Object(premiere)) as i64));
         }
         Ok(Some(v))
     }
@@ -697,7 +697,7 @@ pub fn identites(objets: &[Objet]) -> Vec<Value> {
         .iter()
         .map(|o| {
             let e = &*o.brut;
-            (e.get("salarie").map(en_texte).unwrap_or_default(), crate::debut_brut(&e))
+            (e.get("salarie").map(en_texte).unwrap_or_default(), crate::debut_brut(&o.racine, e))
         })
         .collect();
     paires
@@ -907,7 +907,7 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
     let racine = &ctx.racine;
     let e = Value::Object(saisie.clone());
     if let Some(cle) = crate::cle_de_l_engagement(ctx, &e) {
-        let debut = crate::debut_brut(&e);
+        let debut = crate::debut_brut(racine, &e);
         if crate::importe::celui_de(racine, mois, &cle, &debut)?.is_some() {
             return Err(crate::importe::refus(&e.get("salarie").map(en_texte).unwrap_or(cle), &debut));
         }
@@ -957,7 +957,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Value) -> Resultat<()> 
     if !au_mois(e) {
         return Ok(());
     }
-    let (Some(cle), debut) = (crate::cle_de_l_engagement(ctx, e), crate::debut_brut(e)) else { return Ok(()) };
+    let (Some(cle), debut) = (crate::cle_de_l_engagement(ctx, e), crate::debut_brut(&ctx.racine, e)) else { return Ok(()) };
     if debut.is_empty() {
         return Ok(());
     }
@@ -966,7 +966,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Value) -> Resultat<()> 
         !o.est_non_actif()
             && !o.importe_seul()
             && au_mois(&o.brut)
-            && crate::debut_brut(&o.brut) == debut
+            && crate::debut_brut(&ctx.racine, &o.brut) == debut
             && crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle.as_str())
     }) else {
         return Ok(());
@@ -1295,7 +1295,7 @@ pub fn mois_d_entree(racine: &Path, mois: &str) -> Resultat<String> {
 /// a faire (sa paie, sa DPAE). Sinon, `mois`.
 pub fn mois_d_ecriture(racine: &Path, mois: &str, e: &Value) -> Resultat<String> {
     let mensuel = droit::natures::nature(e.get("nature").and_then(Value::as_str)).is_ok_and(|n| n.mensuelle());
-    let debut = crate::debut_brut(e);
+    let debut = crate::debut_brut(racine, e);
     let premier = debut.get(..7).filter(|m| socle::date::mois_valide(m)).map(String::from);
     Ok(match premier {
         Some(p) if mensuel && p.as_str() < mois && !commence_avant_le_logiciel(racine, &debut, mois)? => p,

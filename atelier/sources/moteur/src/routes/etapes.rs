@@ -850,11 +850,11 @@ impl<'a> Moteur<'a> {
         };
         let nature = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map(|n| n.libelle.clone()).unwrap_or_default();
         let premier_mois = o.premier_mois() == mois;
-        let anterieur = engagement::stock::commence_avant_le_logiciel(&self.ctx.racine, &engagement::debut_brut(&e), mois).map_err(plain)?;
+        let anterieur = engagement::stock::commence_avant_le_logiciel(&self.ctx.racine, &engagement::debut_brut(&self.ctx.racine, &e), mois).map_err(plain)?;
         let mut ligne = json!({
             "salarie": cle, "nom": nom, "spectacle": spectacle, "nature": nature,
             "numero": e.get("numero").filter(|n| vrai(n)).cloned().unwrap_or(Value::Null),
-            "debut": engagement::debut_brut(&e), "fin": e.get("fin").filter(|f| vrai(f)).cloned().unwrap_or(Value::Null),
+            "debut": engagement::debut_brut(&self.ctx.racine, &e), "fin": e.get("fin").filter(|f| vrai(f)).cloned().unwrap_or(Value::Null),
             "valide": Value::Null, "recalcul": Value::Null, "versions": Value::Null, "pieces": [],
             "a_completer": manque, "non_calcule": true,
             "contrat": {"premier_mois": premier_mois, "repris": false, "anterieur": anterieur},
@@ -1972,8 +1972,8 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
             "salarie": cle,
             "nom": nom.trim(),
             "numero": b.get("numero").cloned().unwrap_or(Value::Null),
-            "debut": engagement::debut_brut(&b),
-            "fin": b.get("fin").filter(|v| vrai(v)).cloned().unwrap_or_else(|| engagement::dates_engagement(&b).iter().map(|d| d.get("jour").map_or_else(|| valeur_en_texte(d), valeur_en_texte)).max().map_or(Value::Null, Value::String)),
+            "debut": engagement::debut_brut(&ctx.racine, &b),
+            "fin": b.get("fin").filter(|v| vrai(v)).cloned().unwrap_or_else(|| engagement::dates_engagement(&ctx.racine, &b).iter().map(|d| d.get("jour").map_or_else(|| valeur_en_texte(d), valeur_en_texte)).max().map_or(Value::Null, Value::String)),
             "non_actif": n.le(),
             "a_faire": crate::routes::engagement::a_faire_en_phrases(&n.a_refaire(ctx, &departs)),
         }));

@@ -26,22 +26,6 @@ fn jour_de(x: &Value) -> String {
     }
 }
 
-/// Les jours d'une saisie, toutes lignes confondues, tries.
-fn jours(s: &Map<String, Value>) -> Vec<String> {
-    let mut j: Vec<String> = s
-        .get("lignes")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .flat_map(|l| l.get("dates").and_then(Value::as_array).cloned().unwrap_or_default())
-        .map(|d| jour_de(&d))
-        .filter(|d| !d.is_empty())
-        .collect();
-    j.sort();
-    j.dedup();
-    j
-}
-
 /// Ce qui change dans les jours d'une ligne, et seulement cela : « Jours : + 16/11 », « Jours : − 14/11 »,
 /// « Jours : + 16/11 · − 14/11 ». `None` si la ligne a les memes jours.
 fn jours_changes(x: &Value, y: &Value) -> Option<String> {
@@ -60,11 +44,12 @@ fn jours_changes(x: &Value, y: &Value) -> Option<String> {
     (!parts.is_empty()).then(|| format!("Jours : {}", parts.join(" · ")))
 }
 
-/// Le premier et le dernier jour d'une saisie : ses bornes dites, sinon ses jours.
-fn bornes(s: &Map<String, Value>) -> (String, String) {
-    let j = jours(s);
-    let dite = |k: &str| s.get(k).filter(|v| vrai(v)).map(en_texte);
-    (dite("debut").unwrap_or_else(|| j.first().cloned().unwrap_or_default()), dite("fin").unwrap_or_else(|| j.last().cloned().unwrap_or_default()))
+/// Le premier et le dernier jour d'une saisie : ses bornes dites, sinon ses jours travailles (`crate::debut_brut`,
+/// `crate::dates_engagement`).
+fn bornes(ctx: &Contexte, s: &Map<String, Value>) -> (String, String) {
+    let e = Value::Object(s.clone());
+    let fin = s.get("fin").filter(|v| vrai(v)).map(en_texte);
+    (crate::debut_brut(&ctx.racine, &e), fin.unwrap_or_else(|| crate::dates_engagement(&ctx.racine, &e).iter().map(jour_de).max().unwrap_or_default()))
 }
 
 /// Le libelle d'une rubrique au catalogue, ou son code.
@@ -235,7 +220,7 @@ pub fn depuis(ctx: &Contexte, v: &Valide, n: u64) -> Vec<String> {
 
 fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, Value>) -> Vec<String> {
     let mut out = Vec::new();
-    let ((da, fa), (db, fb)) = (bornes(a), bornes(b));
+    let ((da, fa), (db, fb)) = (bornes(ctx, a), bornes(ctx, b));
     if da != db {
         out.push(format!("Début : {} → {}", jour_court(&da), jour_court(&db)));
     }

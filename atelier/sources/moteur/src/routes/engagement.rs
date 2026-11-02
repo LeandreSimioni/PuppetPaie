@@ -156,7 +156,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     brouillon.ecrire().map_err(Echec::from)?;
     let e = &data["engagements"][i];
     if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
-        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(e))?;
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(&ctx.racine, e))?;
     }
     Ok(json!({"engagement": id, "phrase": "Engagement validé."}))
 }
@@ -217,7 +217,7 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
     let e = &data["engagements"][i];
     if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
-        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(e))?;
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(&ctx.racine, e))?;
     }
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     let phrase = match depuis {
@@ -323,7 +323,7 @@ fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etats::Valide, 
         match a {
             ARefaire::Avenant { .. } => out.push(UN_AVENANT.to_string()),
             ARefaire::Dpae { debut_declare, .. } => {
-                let (rien_a_refaire, phrase) = crate::regularisation::dpae_d_une_date_changee(&debut_declare, &engagement::debut_brut(&presente));
+                let (rien_a_refaire, phrase) = crate::regularisation::dpae_d_une_date_changee(&debut_declare, &engagement::debut_brut(&ctx.racine, &presente));
                 if !rien_a_refaire {
                     out.push(phrase);
                 }
