@@ -140,6 +140,11 @@ pub fn ecrites(o: &Objet, mois: &str) -> Resultat<Vec<Value>> {
     Ok(e.presente.as_deref().cloned().into_iter().chain(passees).collect())
 }
 
+/// Les mois qui ont un fichier de paies, du plus ancien au plus recent.
+pub(crate) fn mois_payes(racine: &std::path::Path) -> Vec<String> {
+    stock::fichiers_dans(racine, Dossier::Paies)
+}
+
 /// Les mois ou l'engagement `o` a une paie ecrite (presente ou d'une version passee), du premier au dernier.
 pub fn mois_ecrits(o: &Objet) -> Resultat<Vec<String>> {
     let mut out = Vec::new();

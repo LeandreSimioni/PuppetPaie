@@ -1604,7 +1604,8 @@ pub(crate) struct PaieMontree {
 }
 
 /// LES PAIES QUE L'ECRAN MONTRE POUR LA SAISIE `data` : un engagement valide se lit (sa paie ecrite, `etats::Valide::paie`),
-/// un engagement en saisie se calcule, sans rien ecrire. Un mois tout valide ne calcule rien.
+/// un engagement en saisie se calcule, sans rien ecrire, comme un engagement valide d'un mois d'apres le present, qui n'a
+/// pas encore de paie. Un mois tout valide et present ne calcule rien.
 ///
 /// L'ecran rend chaque engagement valide tel que le moteur le lui a montre (`valide` pose) : il retrouve le sien, sur le
 /// disque, par son salarie et son numero de contrat (ecrit a la validation).
@@ -1619,7 +1620,9 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Ve
         let mut lue = None;
         if let (true, Some(b)) = (engagement::etats::est_validee(e), e.as_object()) {
             let sien = qui(b);
-            let trouve = etats.iter().enumerate().find(|(_, x)| x.valide().is_some() && sien.1.is_some() && qui(x.objet().champs()) == sien);
+            // Un mois d'apres le present n'a pas encore de paie ecrite : l'engagement valide s'y calcule pour l'ecran.
+            let a_venir = |x: &engagement::etats::Etat| mois > engagement::etats::mois_present(ctx).as_str() && x.valide().is_some_and(|v| v.paie_ecrite(mois).is_none());
+            let trouve = etats.iter().enumerate().find(|(_, x)| x.valide().is_some() && !a_venir(x) && sien.1.is_some() && qui(x.objet().champs()) == sien);
             if let (Some((j, x)), Some(d)) = (trouve, disque.as_ref()) {
                 let v = x.valide().ok_or("engagement en saisie")?;
                 lue = Some(PaieMontree { paie: v.paie(ctx, d, j)?, recalcul: v.recalcul(mois) });

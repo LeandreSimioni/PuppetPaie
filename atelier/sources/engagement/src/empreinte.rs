@@ -3,7 +3,8 @@
 //! effectifs, imprevus...), les fichiers absents, les dossiers parcourus, le jour s'il le lit, le taux de prelevement a
 //! la source de son salarie au jour de son paiement (`pas <salarie> <jour> <mois>`, `droit::pas::taux_dgfip`), et les paies
 //! validees de son salarie dans les autres mois qu'il lit (`paies <mois> <salarie>`,
-//! `etats::paies_validees`). De la saisie de son mois, chaque paie ne garde que ce dont elle depend :
+//! `etats::paies_validees`), ou, pour le premier mois d'un permanent, ses contrats payes au mois d'avant, qu'il n'a pas
+//! (`mensuels <mois> <salarie>`, `conges::avant_le_mois`). De la saisie de son mois, chaque paie ne garde que ce dont elle depend :
 //! ce que le mois pose pour tous, les engagements valides de son salarie (`saisie <mois> <salarie>`,
 //! `etats::calculer_les_rangs`) et les fiches de l'entreprise, de son salarie (hors de ses taux recus) et de son spectacle au dernier jour du mois
 //! (`fiches`). S'y ajoutent la marque du code qui calcule (`MOTEUR`) et les regles datees qui
@@ -111,6 +112,9 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
         _ => {
             if k.starts_with("pas ") {
                 return droit::pas::empreinte(ctx, k).is_some_and(|e| v == e);
+            }
+            if let Some((mois, salarie)) = k.strip_prefix(crate::conges::MENSUELS).and_then(|r| r.split_once(' ')) {
+                return crate::conges::empreinte_des_mensuels_d_avant(ctx, mois, salarie).is_some_and(|e| v == e);
             }
             if let Some((mois, salarie)) = k.strip_prefix("paies ").and_then(|r| r.split_once(' ')) {
                 return crate::etats::empreinte_des_paies_validees(ctx, mois, Some(salarie)).is_some_and(|e| v == e);
