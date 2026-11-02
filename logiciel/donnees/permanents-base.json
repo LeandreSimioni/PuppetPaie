@@ -389,8 +389,20 @@
     },
     "_douze_mois_glissants": "D1226-4 : il est tenu compte des indemnites deja percues durant les DOUZE MOIS ANTERIEURS, de telle sorte que la duree totale d'indemnisation ne depasse pas celle des articles D1226-1 et D1226-2.",
     "_ce_qui_se_deduit": "D1226-5 : sont deduites de l'indemnite complementaire les allocations que le salarie percoit de la Securite sociale et des regimes complementaires de prevoyance -- mais, pour ces derniers, seulement la part des prestations resultant des versements de l'EMPLOYEUR. D1226-6 : des indemnites de Securite sociale reduites (hospitalisation, sanction de la caisse) sont reputees servies INTEGRALEMENT pour ce calcul.",
-    "_ce_que_le_moteur_ne_fait_pas": "Il calcule le complement BRUT -- le taux applique a la remuneration de reference -- et la duree a laquelle le salarie a droit. Il ne deduit pas les indemnites journalieres : leur montant vient de la Securite sociale et ne se devine pas. Elles se SAISISSENT, et tant qu'elles manquent le moteur dit ce qu'il a calcule et ce qu'il attend.",
+    "_ce_que_le_moteur_fait": "Il paie le complement (`engagement::maintien`) : le taux de chaque jour applique a la remuneration que l'absence retire, moins les indemnites journalieres de la Securite sociale des memes jours. Leur montant ne se devine pas : il se SAISIT sur l'arret (`arret-indemnites`), et tant qu'il manque, la paie du mois se refuse et dit quoi saisir. La prevoyance (D1226-5, la part de l'employeur) ne se deduit pas : aucune saisie ne la porte.",
     "_remuneration_de_reference": "D1226-7 : celle correspondant a l'horaire pratique pendant l'absence dans l'etablissement ; une augmentation d'horaire due a l'absence elle-meme ne compte pas."
+  },
+  "indemnites_journalieres": {
+    "_quoi": "Les jours ou la caisse verse ses indemnites journalieres, et ce que le prelevement a la source en retient quand l'employeur est subroge. Leur MONTANT ne se calcule pas : il se lit sur le releve de la caisse ou son bordereau de paiement (BPIJ : la prestation « I.J. normale » ou « I.J. majoree », son prix unitaire, puis les retenues CSG et RDS sur leurs propres lignes, `atelier/reference/sources/subrogation-indemnites-journalieres/bpij-edi/cnamts-bpij-modele-v02-00r3-20120306.txt`, l. 719-794) : il se saisit sur l'arret, par jour, brut et net de CSG et CRDS.",
+    "debut_maladie": 4,
+    "_debut_maladie": "CSS R323-1, 1° : « le point de depart de l'indemnite journaliere [...] est le quatrieme jour de l'incapacite de travail » ; L323-1 : due « pour chaque jour ouvrable ou non » (`atelier/reference/sources/code-de-la-securite-sociale/articles-20261102.md`). Un accident du travail, une maladie professionnelle, un accident de trajet : des le premier jour qui suit l'arret (L433-1, al. 2 ; L411-2 pour le trajet).",
+    "majoree_des_le_jour": 29,
+    "_majoree": "CSS R433-3 : l'indemnite d'un accident du travail est portee a 80 % du salaire journalier « a partir du vingt-neuvieme jour apres celui de l'arret de travail » (60 % avant, R433-1) : un second montant par jour, lu sur le releve.",
+    "csg_deductible": 3.8,
+    "_csg_deductible": "La CSG des indemnites journalieres est de 6,2 % (CSS L136-8, II, 1°, b), deductible de l'impot « a hauteur de 3,8 points » (CGI 154 quinquies, I : `atelier/reference/sources/code-general-des-impots/articles-20261102.md`).",
+    "pas_maladie_jours": 60,
+    "pas_accident": 50,
+    "_pas": "BOFiP BOI-IR-PAS-20-10-10, § 80 a 110 (`atelier/reference/sources/suspension-non-remuneree/bofip-boi-ir-pas-20-10-10-20200728.txt`, l. 69-87) : subroge, l'employeur retient le prelevement sur « le montant brut de l'indemnite [...] diminue de la part deductible de la CSG » ; pour la maladie, seules celles des soixante premiers jours de l'arret, de date a date, carence comprise, sans interruption par une prolongation ; pour un accident du travail ou une maladie professionnelle, la moitie de leur montant (CGI 81, 8°). « Le montant de l'avance s'ajoute a la RNF pour constituer l'assiette du PAS » (S21.G00.50.013, `atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt`)."
   },
 
   "suspensions": {

@@ -38,14 +38,15 @@ pub const DOSSIER: &str = "imprevus";
 
 /// Les champs d'un arret, dans l'ordre ou ils s'ecrivent ; les `REQUIS_ARRET` premiers sont obligatoires. Ceux de la
 /// norme (motif, dernier jour travaille, fin previsionnelle, subrogation, reprise, accident) sont ceux du bloc 60 et du
-/// signalement (`signalement::verifier`) ; `jours_deja_indemnises` et `maintien` sont ceux du maintien de salaire d'un
-/// permanent (D1226-4 ; le complement verse, mois par mois : `{"AAAA-MM": montant}`) ; `prolongations` garde chaque avis de
+/// signalement (`signalement::verifier`) ; `jours_deja_indemnises` et les indemnites journalieres par
+/// jour, brutes et nettes de CSG et CRDS (`ij_brute`, `ij_nette`, et `_majoree` au-dela du vingt-huitieme jour d'un accident du
+/// travail) sont ceux du maintien de salaire d'un permanent (`maintien`) ; `prolongations` garde chaque avis de
 /// prolongation saisi (`moteur::routes::imprevus::arret_prolonger` : quand, la fin et la fin de subrogation d'avant et d'apres),
 /// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`).
-pub const CHAMPS_ARRET: [&str; 19] = [
+pub const CHAMPS_ARRET: [&str; 22] = [
     "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "fin_previsionnelle",
     "subrogation", "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident",
-    "jours_deja_indemnises", "maintien", "prolongations", "saisi_le", "qui", "note",
+    "jours_deja_indemnises", "ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree", "prolongations", "saisi_le", "qui", "note",
 ];
 const REQUIS_ARRET: usize = 7;
 
@@ -118,14 +119,17 @@ suspension du contrat, bloc S21.G00.65).",
         let defaut = match *k {
             "qui" => json!("?"),
             "note" => json!(""),
-            "maintien" => json!({}),
             "prolongations" => json!([]),
             _ => Value::Null,
         };
-        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "maintien" | "prolongations" | "note"))).unwrap_or(defaut));
+        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "prolongations" | "note"))).unwrap_or(defaut));
     }
-    if genre == ARRET && !o["maintien"].is_object() {
-        return Err("Arret : `maintien` est un objet {\"AAAA-MM\": montant}.".into());
+    if genre == ARRET {
+        for k in ["ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree"] {
+            if vrai(&o[k]) && dec_avec_echelle(&o[k]).map_or(true, |x| x <= Decimal::ZERO) {
+                return Err(format!("Arret : `{}` est un montant par jour, positif ({}).", k, en_texte(&o[k])));
+            }
+        }
     }
     if genre == ARRET && !o["prolongations"].is_array() {
         return Err("Arret : `prolongations` n'est pas une liste.".into());
@@ -607,6 +611,8 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<Value>, Vec<Avis>, i64)> {
     let qui = crate::conges::qui(ctx, e);
     let (mut lignes, mut avert, mut absents) = (Vec::new(), Vec::new(), 0i64);
+    let nat = crate::conges::nature_de(e.get("nature"))?;
+    let mut maintien = crate::maintien::DuMois::default();
     // Le taux de l'heure d'absence : le salaire du mois sur ses heures de travail (Cass. soc. 11/02/1982).
     let heures_du_mois = eur2(mul(m.heures_par_jour, Decimal::from(m.jours_payes)));
     let taux_horaire = if heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, heures_du_mois)) } else { None };
@@ -648,7 +654,10 @@ nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
                     en_texte(g(&motif, "libelle"))
                 ));
             }
-            lignes.extend(retenue(&rubrique));
+            lignes.extend(retenue(&rubrique).map(|mut l| {
+                l["arret"] = json!(true);
+                l
+            }));
             absents += jours;
             avert.push(info(format!(
                 "{} : arrêt de travail ({}) du {} au {} : {} ; la DSN de chaque mois qu'il traverse le déclare.",
@@ -659,13 +668,7 @@ nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
                 au_reel
             )));
             if vrai(g(&motif, "maintien_legal")) {
-                avert.extend(maintien_possible(ctx, e, &imp, mois, m.taux_jour_ouvrable)?);
-            }
-            if let Some(montant) = g(&imp, "maintien").get(mois).filter(|x| vrai(x)) {
-                let montant = dec_avec_echelle(montant)?;
-                // Le montant saisi est verse tel quel : un taux arrondi avant de multiplier le changerait (`taux_exact`).
-                let (q, t) = if heures > Decimal::ZERO { (heures, taux_exact(montant, heures)) } else { (Decimal::ONE, json!(flot(montant))) };
-                lignes.push(json!({"rubrique": "maintien_salaire", "quantite": flot(q), "taux": t}));
+                crate::maintien::ajouter(ctx, e, &imp, &nat, mois, m, &mut maintien)?;
             }
         } else {
             let motif = verifier_motif_de_suspension(&code, &qui)?;
@@ -693,92 +696,9 @@ nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
             }
         }
     }
+    lignes.extend(crate::maintien::lignes(&maintien, mois));
+    avert.extend(maintien.avis);
     Ok((lignes, avert, absents))
-}
-
-/// L'origine d'un arret pour le maintien de salaire, lue sur son motif (`arrets-base.json`, `origine`) : `at_mp` (accident
-/// du travail, maladie professionnelle : pas de carence) ou `trajet` (un accident qui garde la sienne), D1226-3
-/// (`atelier/reference/sources/code-du-travail/articles-20261015.md`).
-pub fn origine(imp: &Value) -> Resultat<(bool, bool)> {
-    let motif = motif_d_arret(&s(imp, "motif"))?.unwrap_or(Value::Null);
-    Ok(match g(&motif, "origine").as_str() {
-        Some("at_mp") => (true, false),
-        Some("trajet") => (true, true),
-        _ => (false, false),
-    })
-}
-
-/// Ce que la loi donne pour cet arret-la, dit sans etre applique : L1226-1, D1226-1 a D1226-4 (le droit, la carence, les
-/// tranches, les jours deja indemnises dans les douze mois, saisis sur l'arret), sur l'arret entier.
-fn maintien_possible(ctx: &Contexte, e: &Value, imp: &Value, mois: &str, remuneration_journaliere: Decimal) -> Resultat<Vec<Avis>> {
-    use droit::permanents::{anciennete_mois, droit_au_maintien, maintien_de_salaire, OptionsMaintien};
-    let qui = crate::conges::qui(ctx, e);
-    let nat = crate::conges::nature_de(e.get("nature"))?;
-    let premier = premier_jour(imp)?;
-    let fiche = ctx.salarie(&en_texte(g(e, "salarie")))?;
-    let depuis = d(match fiche.get("date_anciennete").filter(|x| vrai(x)) {
-        Some(v) => v,
-        None => g(e, "debut"),
-    })?;
-    // L'anciennete que les suspensions laissent (L1225-54 : `anciennete_depuis`).
-    let (depuis, sur_l_anciennete) = anciennete_depuis(&ctx.racine, &en_texte(g(&fiche, "_cle")), &depuis, &premier)?;
-    let anciennete = anciennete_mois(&depuis, &premier);
-    if let Some(refus) = droit_au_maintien(Some(&nat), anciennete)? {
-        let mut dit = sur_l_anciennete;
-        dit.push(avertir(format!("{} : pas de maintien de salaire pour cet arrêt : {}", qui, refus)));
-        return Ok(dit);
-    }
-    let jours = dernier_jour(imp)?.moins(&premier) + 1;
-    let (at, trajet) = origine(imp)?;
-    let deja = match g(imp, "jours_deja_indemnises") {
-        x if vrai(x) => crate::conges::entier(x)?,
-        _ => 0,
-    };
-    let r = maintien_de_salaire(
-        anciennete,
-        jours,
-        remuneration_journaliere,
-        &OptionsMaintien { deja_indemnises: deja, accident_du_travail: at, accident_de_trajet: trajet },
-    )?;
-    let tranches: Vec<String> = r["tranches"]
-        .as_array()
-        .map_or(&[][..], |a| &a[..])
-        .iter()
-        .map(|x| format!("{} jour(s) a {} %", en_texte(&x["jours"]), en_texte(&x["taux"])))
-        .collect();
-    let tranches = if tranches.is_empty() { "aucun jour".to_string() } else { tranches.join(", ") };
-    let carence = r["carence"].as_i64().unwrap_or(0);
-    let mut dit = vec![info(format!(
-        "{} : arrêt de {} jour(s) en tout. La loi donne {} après {} jour(s) de carence ({}) -- soit {} bruts AVANT \
-déduction des indemnités journalières (L1226-1, D1226-1 à D1226-3).",
-        qui,
-        jours,
-        tranches,
-        carence,
-        if carence == 0 { "aucune, accident du travail ou maladie professionnelle" } else { "D1226-3" },
-        socle::texte::euros_de(&r["brut_avant_deduction"])
-    ))];
-    let au_dela = r["jours_au_dela_du_droit"].as_i64().unwrap_or(0);
-    if au_dela != 0 {
-        dit.push(avertir(format!(
-            "{} : {} jour(s) de cet arret depassent la duree d'indemnisation a laquelle l'anciennete donne droit (D1226-2).",
-            qui, au_dela
-        )));
-    }
-    if let Some(conv) = droit::clauses::maintien(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), anciennete, at)? {
-        dit.push(avertir(format!("{} : {}", qui, conv)));
-    }
-    if !g(imp, "maintien").get(mois).is_some_and(vrai) {
-        dit.push(avertir(format!(
-            "{} : le maintien de salaire de {} n'est pas saisi sur l'arret, donc rien n'est verse a ce titre. Le \
-complement du est le brut ci-dessus moins les indemnites journalieres et la prevoyance, que la caisse communique : le \
-porter sur l'arret, maintien du mois.",
-            qui,
-            crate::libelle_mois(mois)
-        )));
-    }
-    dit.extend(sur_l_anciennete);
-    Ok(dit)
 }
 
 // ------------------------------------------------------------- les jours payes
@@ -897,7 +817,7 @@ mod tests {
         let mut attendus: Vec<String> = CHAMPS_ARRET.iter().map(|c| c.to_string()).collect();
         attendus.sort();
         assert_eq!(champs, attendus, "un arret complete porte tous ses champs");
-        assert_eq!((a["qui"].clone(), a["maintien"].clone()), (json!("?"), json!({})));
+        assert_eq!((a["qui"].clone(), a["ij_brute"].clone()), (json!("?"), Value::Null));
         assert_eq!(a["prolongations"], json!([]));
         assert!(complet(&json!({"genre": "arret", "salarie": "X"})).unwrap_err().contains("champ manquant"));
         assert!(complet(&json!({"genre": "autre"})).unwrap_err().contains("genre"));

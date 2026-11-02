@@ -938,7 +938,29 @@ pub(crate) fn cle_du_salarie(ctx: &Contexte, eng: &Engagement) -> Resultat<Strin
 /// le statut, la categorie ou la quotite d'un contrat paye au mois change en cours de periode se decoupe en periodes
 /// elementaires (`periodes::bornes`), chacune calculee de meme, les periodes deja calculees comptant parmi les
 /// precedentes, et la paie du mois en est la somme (`periodes::assembler`).
+///
+/// Un maintien de salaire garanti en net (`maintien::au_net`) se reconstitue par ce meme calcul, refait sur les lignes du
+/// mois jusqu'a ce que le net garanti soit atteint au centime ; la paie est alors celle de ce montant.
 pub(crate) fn calculer_apres(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> Resultat<Paie> {
+    let mut paie_des = |lignes: Vec<Value>| -> Resultat<Paie> {
+        let mut e = eng.clone();
+        e.lignes = lignes;
+        calculer_du_mois(ctx, &e, precedentes)
+    };
+    match crate::maintien::au_net(&eng.lignes, &mut paie_des)? {
+        None => calculer_du_mois(ctx, eng, precedentes),
+        Some((montant, avis)) => {
+            let mut e = eng.clone();
+            e.lignes = crate::maintien::avec_le_montant(&eng.lignes, montant);
+            let mut p = calculer_du_mois(ctx, &e, precedentes)?;
+            p.ecrire().avertissements.push(avis);
+            Ok(p)
+        }
+    }
+}
+
+/// La paie d'un mois, d'un seul tenant ou en periodes elementaires.
+fn calculer_du_mois(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> Resultat<Paie> {
     let bornes = crate::periodes::bornes(ctx, eng)?;
     if bornes.len() <= 1 {
         return calculer_periode(ctx, eng, precedentes);
@@ -1524,6 +1546,15 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         bases.insert(crate::heures_en_plus::REMUNERATION.into(), h.remuneration);
         bases.insert(crate::heures_en_plus::HEURES.into(), h.heures);
         bases.insert(crate::heures_en_plus::EXONERE.into(), h.exonere);
+    }
+    // Les indemnites journalieres que la compagnie subrogee reverse (`maintien::lignes`) : le montant net social les
+    // compte, la DSN les dit en S21.G00.58 de type 10, et le prelevement a la source les prend pour assiette, a cote du
+    // net imposable (`etats::prelevement`).
+    for (l, b) in eng.lignes.iter().zip(lb.iter()) {
+        if b.code == crate::maintien::IJ_NETTES {
+            *bases.entry(crate::maintien::IJ_SUBROGEES.into()).or_insert(zero) += b.montant;
+            *bases.entry(crate::maintien::IJ_ASSIETTE_PAS.into()).or_insert(zero) += socle::num::dec_avec_echelle(l.get("assiette_pas").unwrap_or(&Value::Null)).unwrap_or(zero);
+        }
     }
 
     // 7.10 : la sortie. Ce qui est hors assiette se paie ou se retient quand meme.

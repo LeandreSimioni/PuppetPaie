@@ -179,3 +179,21 @@ réduction générale des heures supplémentaires et complémentaires. Texte dan
 (`../boss/boss-heures-supplementaires-20260601.txt`). **Où le moteur s'en sert** : `logiciel/donnees/permanents-base.json`
 (`heures_en_plus`), `atelier/sources/droit/src/heures_en_plus.rs`, `atelier/sources/engagement/src/heures_en_plus.rs`
 (`apres_les_cotisations`) ; la DSN (codes 114 et 021, CTP 003 et 004) dans `atelier/sources/declarations/src/dsn.rs`.
+
+## Les indemnités journalières, la subrogation et leur CSG (relevé du 02/11/2026)
+
+`articles-20261102.md`, sections « Les indemnites journalieres et la subrogation de l'employeur » et « La CSG des revenus
+de remplacement » (`xml/L321-1.xml` … `xml/R433-3.xml`, `xml/L136-1-2.xml`, `xml/L136-8.xml`).
+
+- **L323-1, R323-1, 1°** : l'indemnité journalière est « due pour chaque jour ouvrable ou non », à partir du « quatrième
+  jour de l'incapacité de travail ». **L433-1** : celle d'un accident du travail, dès « le premier jour qui suit l'arrêt du
+  travail consécutif à l'accident » (la journée de l'accident est « intégralement à la charge de l'employeur ») ;
+  **R433-1** et **R433-3** : 60 % du salaire journalier, puis 80 % « à partir du vingt-neuvième jour ».
+- **L323-4, R323-4, R323-5** : son montant (la moitié du revenu d'activité antérieur, dans la limite de 1,4 SMIC) ; la caisse
+  le calcule, le moteur le **lit** sur l'arrêt (règle 1).
+- **R323-11** : l'employeur qui maintient le salaire en totalité est « subrogé de plein droit » ; en partie, il l'est à
+  condition que le salaire maintenu soit au moins égal aux indemnités.
+- **L136-8, II, 1°, b** : la CSG des indemnités journalières est de 6,2 %.
+
+**Où le moteur s'en sert** : `atelier/sources/engagement/src/maintien.rs` (les jours que la caisse indemnise, la subrogation),
+`logiciel/donnees/permanents-base.json` (section `indemnites_journalieres`).

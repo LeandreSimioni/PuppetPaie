@@ -2122,6 +2122,13 @@ pub fn net_social(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour, signe: i6
     dater_le_58(f, dates);
     f.add("S21.G00.58.003", "03");
     f.add("S21.G00.58.004", ms(p.net_social, signe));
+    // Les indemnites journalieres que la compagnie subrogee reverse, comptees dans le montant net social : « 10 - IJSS
+    // subrogees prises en compte dans le calcul du MNS » (S21.G00.58.003, `norme-dsn/texte/bloc-S21.G00.60.txt`, p. 265).
+    if let Some(ij) = p.bases.get(engagement::maintien::IJ_SUBROGEES).filter(|m| !m.is_zero()) {
+        dater_le_58(f, dates);
+        f.add("S21.G00.58.003", "10");
+        f.add("S21.G00.58.004", ms(*ij, signe));
+    }
     if let Some(part) = part_exoneree_des_indemnites_de_rupture(f, p)? {
         dater_le_58(f, dates);
         f.add("S21.G00.58.003", "13");

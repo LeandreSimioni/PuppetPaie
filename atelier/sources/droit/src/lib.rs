@@ -18,6 +18,7 @@ pub mod echeances;
 pub mod emplois;
 pub mod essai;
 pub mod heures_en_plus;
+pub mod maintien;
 pub mod minima;
 pub mod natures;
 pub mod organismes;

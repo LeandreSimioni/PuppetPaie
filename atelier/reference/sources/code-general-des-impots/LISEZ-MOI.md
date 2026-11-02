@@ -72,3 +72,12 @@ annuelle de 7 500 €. Leur montant net sort de la rémunération nette fiscale 
 net-entreprises 2066, `../net-entreprises-base-connaissances/`). Texte dans `articles-20261102.md`. **Où le moteur s'en
 sert** : `logiciel/donnees/permanents-base.json` (`heures_en_plus.exoneration_impot`), `atelier/sources/engagement/src/
 heures_en_plus.rs` (le net exonéré, la limite de l'année), `atelier/sources/declarations/src/dsn.rs` (`net_social`).
+
+## Les indemnités journalières subrogées et le prélèvement à la source (relevé du 02/11/2026)
+
+`articles-20261102.md`, section « L'impot sur le revenu des indemnites journalieres » (`xml/154_quinquies.xml`,
+`xml/80_quinquies.xml`, `xml/81.xml`) : **154 quinquies, I** (la CSG des revenus de L136-8, II, déductible « à hauteur de
+3,8 points ») ; **80 quinquies** (les indemnités journalières imposables comme des salaires, sauf la fraction exonérée par
+81, 8°, et les affections de longue durée) ; **81, 8°** (celles d'un accident du travail, « à hauteur de 50 % de leur
+montant »). Avec le BOFiP BOI-IR-PAS-20-10-10, § 80 à 110 (`../suspension-non-remuneree/`), l'assiette du PAS des
+indemnités qu'un employeur subrogé verse (`engagement::maintien`, `etats::prelevement`).

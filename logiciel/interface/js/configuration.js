@@ -812,7 +812,7 @@ const SECTIONS_FICHE = {
     // CASC-SVP qu'en 3090, l'article 45 qu'au cinéma.
     ["Avancé — cas particuliers", ["jours_feries_chomes", "plafond_temps_partiel",
       "deduction_forfaitaire_option",
-      "prevoyance_permanents", "sante_permanents",
+      "prevoyance_permanents", "sante_permanents", "subrogation_ij",
       "organisation_patronale", "organisation_patronale_depuis",
       "representation_personnel", "casc_svp_exemptee",
       "prevoyance_techniciens_3097",

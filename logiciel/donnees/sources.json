@@ -3,6 +3,53 @@
   "_regle": "Une donnee du logiciel ne se recopie pas d'un editeur ni d'un blog : elle se lit dans le texte qui fait foi, la copie est gardee dans atelier/reference/sources/ (dans le depot public : elle rend le logiciel verifiable), et sa date est ecrite ici. Quand la source en ligne change, le condensat ne colle plus : c'est le signal de RELIRE, pas de recopier le nouveau fichier a l'aveugle. Les sources Legifrance portent un bloc `kali` (IDCC, conteneur, texte) : `--verifier` lit alors les livraisons open data KALI de la DILA depuis le releve, et dit si la convention ou le texte ont bouge.",
   "_dossier": "atelier/reference/sources/ du depot, a cote de logiciel/. Les copies y sont versionnees, octet pour octet. Le document original d'un organisme prive (Audiens, Afdas, CASC-SVP, un syndicat...) n'y entre pas, seulement sa transcription : sa copie est alors absente, et la source se relit a son URL ; la cle << transcription >> nomme la transcription publiee (pdftotext, CSV par feuille, texte du HTML, ou une version expurgee), que les renvois citent.",
   "sources": {
+    "ameli-subrogation-salaire-arret": {
+      "titre": "ameli.fr, Entreprise - La subrogation de salaire en cas d'arrêt de travail",
+      "editeur": "Assurance Maladie",
+      "url": "https://www.ameli.fr/entreprise/vos-salaries/arret-de-travail/subrogation-salaire",
+      "contenu": "Les conditions de la subrogation (salaire maintenu au moins egal aux indemnites), sa demande dans le signalement d'arret de la DSN, ses dates (du debut de l'arret a la fin de la duree maximale du maintien de la convention, pas a la fin de l'arret), le versement tous les 14 jours, le bordereau de paiement (BPIJ) en XML.",
+      "version": "2026-01-08",
+      "releve_le": "2026-11-02",
+      "fichier": "subrogation-indemnites-journalieres/ameli-subrogation-salaire-arret-20261102.pdf",
+      "sha256": "671ed769375d9c4c490b264680a52e5633323ffda26448ca75a0f687407e53ca",
+      "transcription": "subrogation-indemnites-journalieres/ameli-subrogation-salaire-arret-20261102.txt",
+      "verification": "manuelle",
+      "verification_comment": "La page refuse le nuage (403) : Leandre l'a imprimee en PDF le 02/11/2026.",
+      "nourrit": [
+        "permanents-base.json"
+      ]
+    },
+    "net-entreprises-fiche3028-subrogation": {
+      "titre": "net-entreprises, base de connaissances, fiche 3028 - La subrogation pour l'Assurance maladie",
+      "editeur": "net-entreprises",
+      "url": "https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/3028",
+      "contenu": "La date de fin de subrogation est celle de la duree maximale du maintien de la convention, pas celle de l'arret ; la subrogation de plein droit de CSS R323-11.",
+      "version": "2025-03-23",
+      "releve_le": "2026-11-02",
+      "fichier": "subrogation-indemnites-journalieres/net-entreprises-fiche3028-subrogation-assurance-maladie-20261102.pdf",
+      "sha256": "a34111d44924057452fdb522ebf8cec4a4e0070d1386d1265a117fcb70def78e",
+      "transcription": "subrogation-indemnites-journalieres/net-entreprises-fiche3028-subrogation-assurance-maladie-20261102.txt",
+      "verification": "manuelle",
+      "nourrit": [
+        "permanents-base.json"
+      ]
+    },
+    "cnamts-bpij": {
+      "titre": "CNAMTS - BPIJ, bordereau de paiement des indemnites journalieres en mode EDI : modele des donnees structurees, version 02.00R3",
+      "editeur": "CNAMTS",
+      "url": "https://www.ameli.fr/entreprise/vos-salaries/arret-de-travail/subrogation-salaire",
+      "contenu": "Les prestations d'un salarie subroge : I.J. normale, majoree, carence, leurs dates, le nombre d'indemnites, le prix unitaire brut, puis les retenues CSG et RDS sur leurs propres lignes.",
+      "version": "2012-03-06",
+      "releve_le": "2026-11-02",
+      "fichier": "subrogation-indemnites-journalieres/bpij-edi/cnamts-bpij-modele-v02-00r3-20120306.pdf",
+      "sha256": "0be66167905880a6b14aa413d42050247054fd463512b48166bf692e017c6cae",
+      "transcription": "subrogation-indemnites-journalieres/bpij-edi/cnamts-bpij-modele-v02-00r3-20120306.txt",
+      "verification": "manuelle",
+      "verification_comment": "Le pack ZIP de la page d'ameli, apporte par Leandre le 02/11/2026.",
+      "nourrit": [
+        "permanents-base.json"
+      ]
+    },
     "francetravail-annexe8-notice": {
       "titre": "Annexe 8 - Techniciens du spectacle. Liste des emplois et des secteurs d'activités",
       "editeur": "France Travail Spectacle",

@@ -1,6 +1,6 @@
 //! Les routes des IMPREVUS d'un salarie : la liste (`imprevus`, `arrets`, `fins-de-contrat`, `arret-contrats`), l'arret
 //! saisi, repris, prolonge, signale ou oublie (`arret-enregistrer`, `arret-reprise`, `arret-prolonger`,
-//! `arret-signaler`, `arret-oublier`), son maintien de salaire (`arret-maintien`), la suspension du bloc 65
+//! `arret-signaler`, `arret-oublier`), ses indemnites journalieres (`arret-indemnites`), la suspension du bloc 65
 //! (`suspension-enregistrer`, `-modifier`, `-oublier`), et la fin d'un contrat signalee, avec ses documents
 //! (`fin-contrat-signaler`, `fin-contrat-documents`).
 //!
@@ -9,10 +9,9 @@
 //! `ErreurOperation` (la page les montre tels quels) ; un refus n'ecrit rien.
 //!
 //! CE QUI S'Y SAISIT, ET CE QUI L'APPELLE (rien de remplissable s'il n'y a pas a le remplir). Le moteur dit, sur chaque
-//! imprevu resume (`resume`), ce que ses faits ouvrent : `maintien_ouvert` (le contrat est paye au mois : un complement
-//! de salaire peut s'y verser, mois par mois, `mois_du_maintien`) et `jours_deja_indemnises_attendus` (et le motif est
-//! une maladie ou un accident, L1226-1 : D1226-4 compte les jours deja indemnises dans les douze mois). La page n'ouvre
-//! que cela.
+//! imprevu resume (`resume`), ce que ses faits ouvrent : `ij_attendues` (l'arret ouvre le maintien de salaire, par la loi
+//! ou la convention : ses indemnites journalieres se disent, `arret-indemnites`), `ij_majoree_attendue` et
+//! `jours_deja_indemnises_attendus`. La page n'ouvre que cela.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -69,26 +68,27 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "motif", sens: "le code du motif d'arrêt (nomenclatures de imprevus)", avance: false },
             Champ { nom: "date_accident", sens: "le jour de l'accident, quand le motif l'appelle", avance: true },
             Champ { nom: "connu", sens: "{jour, heure} où la compagnie a su l'accident, quand le motif l'appelle", avance: true },
-            Champ { nom: "subrogation", sens: "01 la compagnie est subrogée (alors subrogation_debut et subrogation_fin), 02 non", avance: false },
             Champ { nom: "contrat", sens: "le contrat suspendu, quand plusieurs couvrent le jour", avance: true },
             Champ { nom: "jours_deja_indemnises", sens: "pour le maintien d'un permanent", avance: true },
             Champ { nom: "note", sens: "une note libre", avance: true },
         ],
-        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-11-30","motif":"01","subrogation":"02"}"#,
+        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-11-30","motif":"01"}"#,
         "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
-    Fiche { phrase: 700, ..fiche("arret-prolonger", "Prolonger un arrêt : sa nouvelle fin, ou la fin de la subrogation.",
-        &[SALARIE, DERNIER_JOUR, Champ { nom: "fin", sens: "la nouvelle fin prescrite", avance: false }, Champ { nom: "subrogation_fin", sens: "la nouvelle fin de subrogation", avance: true }],
+    Fiche { phrase: 700, ..fiche("arret-prolonger", "Prolonger un arrêt : sa nouvelle fin.",
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "fin", sens: "la nouvelle fin prescrite", avance: false }],
         r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-12-04"}"#,
-        "arret, phrase, et subrogation_a_revoir (la question de la fin de subrogation, quand elle se pose)", Acte::Ecrit, false) },
+        "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 20, ..fiche("arret-reprise", "Poser ou effacer la reprise d'un arrêt.",
         &[SALARIE, DERNIER_JOUR, Champ { nom: "reprise", sens: "le jour de la reprise ; vide l'efface", avance: false }, Champ { nom: "motif_reprise", sens: "le motif de la reprise", avance: true }],
         r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","reprise":"2026-12-03"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
-    Fiche { phrase: 50, ..fiche("arret-maintien", "Dire le maintien de salaire d'un mois d'arrêt d'un permanent.",
+    Fiche { phrase: 50, ..fiche("arret-indemnites", "Dire les indemnités journalières d'un arrêt, par jour.",
         &[SALARIE, DERNIER_JOUR,
-            Champ { nom: "mois", sens: "le mois que l'arrêt traverse, AAAA-MM (avec montant)", avance: false },
-            Champ { nom: "montant", sens: "le complément versé ce mois ; vide le retire", avance: false },
-            Champ { nom: "jours_deja_indemnises", sens: "les jours d'arrêt déjà indemnisés dans les douze mois, quand le moteur les attend", avance: true }],
-        r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","mois":"2026-11","montant":"120"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
+            Champ { nom: "ij_brute", sens: "l'indemnité d'un jour, avant CSG et CRDS (relevé de la CPAM)", avance: false },
+            Champ { nom: "ij_nette", sens: "la même, nette de CSG et CRDS", avance: false },
+            Champ { nom: "ij_brute_majoree", sens: "accident du travail, dès le 29e jour : brute", avance: true },
+            Champ { nom: "ij_nette_majoree", sens: "la même, nette", avance: true },
+            Champ { nom: "jours_deja_indemnises", sens: "les jours indemnisés dans les douze mois qu'aucun arrêt saisi ne porte", avance: true }],
+        r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","ij_brute":"40.89","ij_nette":"38.15"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 600, ..fiche("arret-signaler", "Fabriquer le signalement d'un arrêt, sans le déposer.",
         &[SALARIE, DERNIER_JOUR, Champ { nom: "nature", sens: "04 arrêt (par défaut), ou 05 reprise", avance: true }, REMPLACE, ORDRE, TEST,
             Champ { nom: "le", sens: "le jour de constitution ; sinon aujourd'hui", avance: true }],
@@ -148,7 +148,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "arret-enregistrer" => arret_enregistrer(ctx, charge),
         "arret-reprise" => arret_reprise(ctx, charge),
         "arret-oublier" => arret_oublier(ctx, charge),
-        "arret-maintien" => arret_maintien(ctx, charge),
+        "arret-indemnites" => arret_indemnites(ctx, charge),
         "arret-prolonger" => arret_prolonger(ctx, charge),
         "arret-signaler" => arret_signaler(ctx, charge),
         "suspension-enregistrer" => suspension_enregistrer(ctx, charge),
@@ -233,14 +233,6 @@ contrat.",
     }
 }
 
-/// Le contrat de l'imprevu est-il paye au mois ? Lu dans les saisies (`contrats_au`, au jour de son debut) ; un contrat
-/// que plus aucune saisie ne porte ne l'est pas.
-fn mensuel(ctx: &Contexte, imp: &Value) -> R<bool> {
-    let debut = valeur_en_texte(&imp["contrat_debut"]);
-    let contrats = crate::routes::imprevus::contrats_au(ctx, &imp["salarie"], &debut)?;
-    Ok(contrats.iter().any(|c| valeur_en_texte(&c["debut"]) == debut && c["mensuel"] == json!(true)))
-}
-
 /// UN IMPREVU NE CHEVAUCHE PAS UN AUTRE IMPREVU DU MEME CONTRAT : un jour d'absence ne se retire qu'une fois du salaire,
 /// et deux periodes qui se recouvrent sur le meme contrat sont deux declarations qui se contredisent (un salarie ne
 /// travaille pas le dernier jour travaille d'un arret qui court deja). `sauf` : l'imprevu lui-meme, quand il change.
@@ -296,12 +288,6 @@ pub(crate) fn ecrire(ctx: &Contexte, mois: &str, liste: Vec<Value>) -> R<()> {
     imprevus::ecrire(&ctx.racine, mois, liste).map_err(|m| erreur("OSError", m))
 }
 
-/// Les mois qu'un imprevu traverse, du premier au dernier jour d'absence.
-fn mois_traverses(imp: &Value) -> R<Vec<String>> {
-    let (p, dj) = (magasin(imprevus::premier_jour(imp))?, magasin(imprevus::dernier_jour(imp))?);
-    Ok(if dj < p { Vec::new() } else { socle::date::mois_entre(&p, &dj) })
-}
-
 /// Les DSN mensuelles qui ont reporte l'imprevu (`obligations::avec_ce_qui_est_parti`, nature 01).
 fn reporte_par(ctx: &Contexte, imp: &Value) -> R<Vec<Value>> {
     let imp = crate::obligations::avec_ce_qui_est_parti(ctx, imp)?;
@@ -343,8 +329,9 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
 
 /// UN IMPREVU TEL QUE LA PAGE LE LIT. Un arret : le resume de toujours (`crate::routes::imprevus::resume_arret` : salarie, contrat,
 /// motif et son libelle, les dates de la norme, signale, signalements, reporte_par, etat), plus `genre`, `premier_jour`,
-/// `dernier_jour`, `jours_deja_indemnises`, `maintien`, `maintien_legal`, `origine`, `maintien_ouvert`,
-/// `mois_du_maintien`, `jours_deja_indemnises_attendus`, `cachets`. Une suspension : `genre`, `salarie`, `contrat`,
+/// `dernier_jour`, `jours_deja_indemnises`, les indemnites par jour (`ij_brute`, `ij_nette`, `ij_brute_majoree`,
+/// `ij_nette_majoree`), `origine`, `ij_attendues` (l'arret ouvre le maintien), `ij_majoree_attendue` (un accident du travail
+/// au-dela du vingt-huitieme jour, CSS R433-3), `jours_deja_indemnises_attendus`, `cachets`. Une suspension : `genre`, `salarie`, `contrat`,
 /// `contrat_debut`, `motif`, `motif_libelle`, `remunere`, `debut`, `fin`, `premier_jour`, `dernier_jour`, `note`,
 /// `saisi_le`, `reporte_par`, `cachets`.
 pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
@@ -354,19 +341,22 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
     if imprevus::est_un_arret(imp) {
         let mut r = crate::routes::imprevus::resume_arret(ctx, n, imp)?;
         let motif = magasin(imprevus::motif_d_arret(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
-        let maintien_legal = motif.get("maintien_legal").is_some_and(vrai);
-        let ouvert = mensuel(ctx, imp)?;
+        let ouvert = ouvre_le_maintien(ctx, imp)?;
+        let majoree = ouvert
+            && engagement::maintien::origine(imp).is_some_and(|o| o.professionnelle() || o == droit::maintien::Origine::Trajet)
+            && magasin(imprevus::dernier_jour(imp))?.moins(&magasin(imprevus::premier_jour(imp))?) >= 28;
         let o = r.as_object_mut().ok_or_else(|| erreur("TypeError", "resume"))?;
         o.insert("genre".into(), json!(ARRET));
         o.insert("premier_jour".into(), json!(premier));
         o.insert("dernier_jour".into(), json!(dernier));
         o.insert("jours_deja_indemnises".into(), imp["jours_deja_indemnises"].clone());
-        o.insert("maintien".into(), imp["maintien"].clone());
-        o.insert("maintien_legal".into(), json!(maintien_legal));
+        for k in ["ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree"] {
+            o.insert(k.into(), imp[k].clone());
+        }
         o.insert("origine".into(), motif.get("origine").cloned().unwrap_or(Value::Null));
-        o.insert("maintien_ouvert".into(), json!(ouvert));
-        o.insert("mois_du_maintien".into(), json!(if ouvert { mois_traverses(imp)? } else { Vec::new() }));
-        o.insert("jours_deja_indemnises_attendus".into(), json!(ouvert && maintien_legal));
+        o.insert("ij_attendues".into(), json!(ouvert));
+        o.insert("ij_majoree_attendue".into(), json!(majoree));
+        o.insert("jours_deja_indemnises_attendus".into(), json!(ouvert));
         o.insert("cachets".into(), json!(cachets));
         // CE QUE L'ARRET OUVRE A LA PAGE (rien de remplissable s'il n'y a pas a le remplir) :
         // un arret en cours se prolonge ou se reprend plus tot ; une reprise saisie se corrige tant que son signalement
@@ -445,7 +435,6 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
         "imprevus": out,
         "motifs_arret": crate::routes::imprevus::saisissables(&n, "motifs_arret")?,
         "motifs_reprise": crate::routes::imprevus::saisissables(&n, "motifs_reprise")?,
-        "subrogation": n["subrogation"]["codes"],
         "motifs_suspension": motifs_de_suspension()?,
     }))
 }
@@ -468,69 +457,79 @@ pub(crate) fn jours_ou_rien(v: &Value, quoi: &str) -> R<Value> {
     }
 }
 
-/// `arret-maintien` : `{salarie, dernier_jour, mois?, montant?, jours_deja_indemnises?}`. Le complement de salaire verse
-/// au titre de l'arret pour un mois qu'il traverse (`montant` vide ou nul : retire), et les jours deja indemnises dans
-/// les douze mois (D1226-4). Seulement pour un arret d'un contrat paye au mois : L1226-1 « ne s'appliquent pas [...] aux
-/// salaries intermittents » (`atelier/reference/sources/code-du-travail/articles-20261015.md`), et un mois de CDDU n'a
-/// pas de salaire du mois a completer.
-fn arret_maintien(ctx: &Contexte, charge: &Value) -> R<Value> {
+/// `arret-indemnites` : `{salarie, dernier_jour, ij_brute?, ij_nette?, ij_brute_majoree?, ij_nette_majoree?,
+/// jours_deja_indemnises?}`. Les indemnites journalieres d'un arret, par jour, telles que les ecrit le releve de la caisse ou
+/// son bordereau de paiement (BPIJ : le prix unitaire de l'« I.J. normale » ou « majoree », puis les retenues CSG et RDS,
+/// `atelier/reference/sources/subrogation-indemnites-journalieres/bpij-edi/`) : brutes, et nettes de CSG et CRDS. Le
+/// maintien de salaire s'en deduit (`engagement::maintien`). Un champ vide l'efface. La page ne les demande que pour un arret qui
+/// ouvre le maintien (`ij_attendues` du resume) ; ailleurs, elles ne se deduisent de rien.
+fn arret_indemnites(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = cle_du_salarie(ctx, exiger(charge, "salarie")?)?;
     let dernier = jour(exiger(charge, "dernier_jour")?)?;
     let Some((i, mut liste)) = trouver(ctx, ARRET, &cle, &dernier)? else {
         return Err(refus(format!("Aucun arret de {} dont le dernier jour travaille soit le {}.", cle, dernier.jj_mm_aaaa())));
     };
     let a = liste[i].clone();
-    if !charge.get("mois").is_some() && !charge.get("jours_deja_indemnises").is_some() {
-        return Err(refus("Dire le maintien d'un mois (`mois` et `montant`) ou les jours deja indemnises : rien n'est change."));
-    }
-    if !mensuel(ctx, &a)? {
-        return Err(refus(format!(
-            "L'arret de {} suspend le contrat {}, qui n'est pas paye au mois : le maintien de salaire de L1226-1 ne \
-s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire a completer. Rien n'est change.",
-            cle,
-            valeur_en_texte(&a["contrat_numero"])
-        )));
+    let champs = ["ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree", "jours_deja_indemnises"];
+    if !champs.iter().any(|k| charge.get(*k).is_some()) {
+        return Err(refus("Dire les indemnités journalières (brute et nette, par jour) ou les jours déjà indemnisés : rien n'est changé."));
     }
     let mut nouveau = a.clone();
-    if let Some(m) = charge.get("mois") {
-        let mois = valeur_en_texte(m);
-        if !mois_traverses(&a)?.contains(&mois) {
-            return Err(refus(format!(
-                "Le maintien de {} : l'arret de {} (du {} au {}) ne traverse pas ce mois. Rien n'est change.",
-                mois,
-                cle,
-                magasin(imprevus::premier_jour(&a))?.jj_mm_aaaa(),
-                magasin(imprevus::dernier_jour(&a))?.jj_mm_aaaa()
-            )));
+    for k in &champs[..4] {
+        if let Some(v) = charge.get(*k) {
+            let vide = v.is_null() || v.as_str().is_some_and(|t| t.trim().is_empty());
+            nouveau[*k] = if vide {
+                Value::Null
+            } else {
+                let x = socle::num::dec_avec_echelle(v).map_err(|e| refus(format!("Indemnité journalière ({}) : {}", k, e)))?;
+                if x <= Decimal::ZERO {
+                    return Err(refus("Une indemnité journalière est un montant par jour, positif : rien n'est changé."));
+                }
+                json!(socle::num::eur2(x).to_string())
+            };
         }
-        let montant = optionnel(charge, "montant");
-        let mut table = a["maintien"].as_object().cloned().unwrap_or_default();
-        let vide = montant.is_null() || montant.as_str().is_some_and(|t| t.trim().is_empty());
-        let valeur = if vide { None } else { Some(socle::num::dec_avec_echelle(montant).map_err(|e| refus(format!("Montant du maintien : {}", e)))?) };
-        match valeur {
-            Some(v) if v < socle::num::Decimal::ZERO => return Err(refus("Un maintien de salaire ne se verse pas en negatif.")),
-            Some(v) if v > socle::num::Decimal::ZERO => {
-                table.insert(mois, json!(socle::num::eur2(v).to_string().parse::<f64>().unwrap_or(0.0)));
-            }
-            _ => {
-                table.remove(&mois);
-            }
-        }
-        nouveau["maintien"] = Value::Object(table);
     }
     if let Some(j) = charge.get("jours_deja_indemnises") {
         nouveau["jours_deja_indemnises"] = jours_ou_rien(j, "Jours deja indemnises")?;
     }
+    imprevus::complet(&nouveau).map_err(refus)?;
     liste[i] = nouveau.clone();
     ecrire(ctx, &dernier.mois_iso(), liste)?;
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
-    Ok(json!({"arret": resume(ctx, &n, &nouveau)?, "phrase": "Maintien noté : la paie du mois le portera."}))
+    Ok(json!({"arret": resume(ctx, &n, &nouveau)?, "phrase": "Indemnités journalières notées."}))
+}
+
+/// La nature du contrat qu'un imprevu suspend, lue dans la saisie qui le porte ; `None` s'il n'y est plus.
+pub(crate) fn nature_du_contrat(ctx: &Contexte, imp: &Value) -> R<Option<std::sync::Arc<droit::natures::Nature>>> {
+    let debut = valeur_en_texte(&imp["contrat_debut"]);
+    let contrats = crate::routes::imprevus::contrats_au(ctx, &imp["salarie"], &debut)?;
+    let Some(c) = contrats.iter().find(|c| valeur_en_texte(&c["debut"]) == debut) else { return Ok(None) };
+    let cle = c["nature"].as_str().filter(|n| !n.is_empty());
+    Ok(Some(droit::natures::nature(cle).map_err(refus)?))
+}
+
+/// L'arret ouvre-t-il le maintien de salaire, par la loi ou la convention (`engagement::maintien::droits`) ?
+fn ouvre_le_maintien(ctx: &Contexte, imp: &Value) -> R<bool> {
+    let Some(nat) = nature_du_contrat(ctx, imp)? else { return Ok(false) };
+    Ok(magasin(engagement::maintien::droits(ctx, imp, &nat))?.is_some_and(|d| d.du()))
+}
+
+/// LA SUBROGATION D'UN ARRET, telle que le moteur la tire de la convention et du choix de la compagnie
+/// (`engagement::maintien::subrogation`) : `01` et ses dates, ou `02`.
+pub(crate) fn subrogation_de(ctx: &Contexte, imp: &Value) -> R<(Value, Value, Value)> {
+    let sub = match nature_du_contrat(ctx, imp)? {
+        Some(nat) => magasin(engagement::maintien::subrogation(ctx, imp, &nat))?,
+        None => None,
+    };
+    Ok(match sub {
+        Some((d, f)) => (json!("01"), json!(d.iso()), json!(f.iso())),
+        None => (json!("02"), Value::Null, Value::Null),
+    })
 }
 
 // ------------------------------------------------------------------ la prolongation
 
-/// `arret-prolonger` : `{salarie, dernier_jour, fin?, subrogation_fin?}` -> `{"arret": resume, "phrase", "subrogation_a_revoir"}`
-/// (la question de la fin de subrogation, quand elle se pose). L'AVIS DE PROLONGATION D'UN ARRET EN COURS.
+/// `arret-prolonger` : `{salarie, dernier_jour, fin}` -> `{"arret": resume, "phrase"}`. L'AVIS DE PROLONGATION D'UN ARRET EN COURS.
 ///
 /// CE QUI PART, ET CE QUI NE PART PAS. « En cas de prolongation d'arret, il ne faut pas envoyer de nouveau signalement de
 /// nature " arret de travail ". Il suffit de declarer la nouvelle date de fin de l'arret en DSN mensuelle, au niveau de la
@@ -540,7 +539,7 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
 /// logiciel de paie » (`atelier/reference/sources/ameli-arret-de-travail/`). La route ne change donc que
 /// `fin_previsionnelle` : le bloc S21.G00.60 de chaque DSN mensuelle que l'arret traverse la porte (`dsn::bloc_60`,
 /// `imprevus::du_mois`, qui suit la nouvelle fin), la paie d'un permanent retire les jours ajoutes et le maintien s'ouvre
-/// aux mois ajoutes (`imprevus::lignes_du_mois`, `mois_du_maintien`), les cachets payes dans la prolongation s'avertissent
+/// aux mois ajoutes (`imprevus::lignes_du_mois`, `maintien`), les cachets payes dans la prolongation s'avertissent
 /// (`imprevus::cachets_dans`) -- par le mecanisme de toujours, sans second. Un signalement d'arret pas encore parti partira
 /// avec la nouvelle fin.
 ///
@@ -548,16 +547,15 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
 /// qu'en 04 -- `dsn::bloc_60`, tableau des usages) ; sa fin « maximale prevue dans le cadre de la convention collective ou
 /// de l'accord de branche » se declare d'emblee (fiche 1983, l. 25). Si elle est « insuffisante ou erronee », un nouveau
 /// signalement d'arret de type annule et remplace la porte (l. 37), « le plus rapidement possible des connaissance de la
-/// prolongation » (l. 66) ; si elle « court toujours », rien (l. 110). Le moteur ne connait pas le maximum de la convention
-/// (regle 1) : quand l'arret subroge finit desormais apres la subrogation, il le dit (`subrogation_a_revoir`) et la page
-/// demande la fin de subrogation -- c'est `subrogation_fin`, seule ou avec `fin`. Une fin de subrogation changee apres le
+/// prolongation » (l. 66) ; si elle « court toujours », rien (l. 110). Le moteur tire ce maximum du droit
+/// (`engagement::maintien::subrogation`) : il ne bouge qu'avec une subrogation qui dure tant que la caisse indemnise (1285,
+/// X.4.7), et suit alors la nouvelle fin. Une fin de subrogation changee apres le
 /// depot du signalement d'arret fait naitre le signalement rectificatif (`obligations::de_l_arret`,
 /// `signalement_arret_rectificatif`), d'ou la trace de chaque avis dans `prolongations`.
 ///
 /// CE QUI REFUSE, sans rien ecrire : un arret deja repris (« se prolonge sans interruption », ameli : un arret apres la
 /// reprise est un nouvel arret) ; une fin qui n'est pas apres la fin prescrite (une fin plus tot est une reprise
-/// anticipee, qui se signale : `arret-reprise`) ; une fin de subrogation sur un arret qui n'est pas subroge (CCH-11 de
-/// S21.G00.60.006) ; ce que la norme refuse au signalement d'arret (`crate::routes::imprevus::verifier`) ; un chevauchement.
+/// anticipee, qui se signale : `arret-reprise`) ; ce que la norme refuse au signalement d'arret (`crate::routes::imprevus::verifier`) ; un chevauchement.
 fn arret_prolonger(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = cle_du_salarie(ctx, exiger(charge, "salarie")?)?;
     let dernier = jour(exiger(charge, "dernier_jour")?)?;
@@ -574,19 +572,10 @@ n'est changé.",
             jour(&avant["reprise"])?.jj_mm_aaaa()
         )));
     }
-    let date_ou_rien = |k: &str| -> R<Option<Jour>> {
-        match charge.get(k).filter(|v| vrai(v)) {
-            Some(v) => Ok(Some(jour(v)?)),
-            None => Ok(None),
-        }
-    };
-    let (fin, sub_fin) = (date_ou_rien("fin")?, date_ou_rien("subrogation_fin")?);
-    if fin.is_none() && sub_fin.is_none() {
-        return Err(refus("Dire la nouvelle fin de l'arrêt (l'avis de prolongation), ou la fin de la subrogation : rien n'est changé."));
-    }
+    let f = jour(exiger(charge, "fin")?)?;
     let fin_avant = jour(&avant["fin_previsionnelle"])?;
     let mut a = avant.clone();
-    if let Some(f) = fin {
+    {
         if f < fin_avant {
             return Err(refus(format!(
                 "Le {} est avant la fin prescrite de l'arrêt (le {}) : ce n'est pas une prolongation. Si le salarié a repris \
@@ -595,20 +584,18 @@ plus tôt, c'est une reprise anticipée, qui se saisit comme telle et se signale
                 fin_avant.jj_mm_aaaa()
             )));
         }
-        if f == fin_avant && sub_fin.is_none() {
+        if f == fin_avant {
             return Err(refus(format!("L'arrêt est déjà prescrit jusqu'au {} : rien n'est changé.", f.jj_mm_aaaa())));
         }
         a["fin_previsionnelle"] = json!(f.iso());
     }
-    let subroge = signalement_subroge(&a)?;
-    if let Some(sf) = sub_fin {
-        if !subroge {
-            return Err(refus(
-                "Cet arrêt n'est pas subrogé : il n'a pas de fin de subrogation (S21.G00.60.006, interdite sans subrogation -- \
-CCH-11). Rien n'est changé.",
-            ));
+    // Une subrogation qui dure tant que la caisse indemnise (1285, X.4.7) suit la fin de l'arret ; les autres vont deja
+    // jusqu'au maximum du maintien (`engagement::maintien::subrogation`).
+    if signalement_subroge(&a)? {
+        let (sub, _, sub_fin) = crate::routes::imprevus::subrogation_de(ctx, &a)?;
+        if sub == json!("01") {
+            a["subrogation_fin"] = sub_fin;
         }
-        a["subrogation_fin"] = json!(sf.iso());
     }
     crate::routes::imprevus::verifier(&a)?;
     sans_chevauchement(ctx, &a, Some(&avant))?;
@@ -649,7 +636,7 @@ tombent, est à corriger.",
             }
         }
     }
-    let sub_change = sub_fin.is_some() && a["subrogation_fin"] != avant["subrogation_fin"];
+    let sub_change = a["subrogation_fin"] != avant["subrogation_fin"];
     if sub_change && envoye(ctx, &avant, declarations::signalement::ARRET)? {
         avertissements.push(json!(
             "Le signalement d'arrêt est déjà parti avec l'ancienne fin de subrogation : un signalement d'arrêt annule et \
@@ -658,44 +645,19 @@ remplace porte la nouvelle, le plus vite possible (fiche net-entreprises 1983). 
     }
     let phrase = if !avertissements.is_empty() {
         avertissements.iter().map(valeur_en_texte).collect::<Vec<_>>().join("  ·  ")
-    } else if fin.is_some() {
-        "Arrêt prolongé.".to_string()
     } else {
-        "Subrogation notée.".to_string()
+        "Arrêt prolongé.".to_string()
     };
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
     Ok(json!({
         "arret": resume(ctx, &n, &a)?,
         "phrase": phrase,
-        "subrogation_a_revoir": subrogation_a_revoir(&a)?,
     }))
 }
 
 /// L'arret est-il subroge (S21.G00.60.004 = oui) ?
 fn signalement_subroge(a: &Value) -> R<bool> {
     declarations::signalement::avec_subrogation(&declarations::dsn::Arret { v: a.clone() }).map_err(|m| erreur("ValueError", m))
-}
-
-/// UNE SUBROGATION QUI S'ARRETE AVANT L'ARRET : `(true, la question)` quand l'arret est subroge et que sa fin de subrogation
-/// (60.006) tombe avant sa fin previsionnelle. Le moteur ne connait pas le maximum que la convention permet (regle 1) : il
-/// demande. Fiche net-entreprises 1983 (l. 25 et 110) : la fin de subrogation est la « date de fin de subrogation
-/// maximale prevue dans le cadre de la convention collective ou de l'accord de branche » ; si elle « court toujours »,
-/// il n'y a rien a faire.
-fn subrogation_a_revoir(a: &Value) -> R<Value> {
-    if !signalement_subroge(a)? || !vrai(&a["subrogation_fin"]) {
-        return Ok(Value::Null);
-    }
-    let (sf, fin) = (jour(&a["subrogation_fin"])?, jour(&a["fin_previsionnelle"])?);
-    if sf >= fin {
-        return Ok(Value::Null);
-    }
-    Ok(json!(format!(
-            "La subrogation demandée s'arrête le {}, avant la nouvelle fin de l'arrêt (le {}). Elle se déclare jusqu'à son \
-maximum prévu par la convention collective ou l'accord de branche : si ce maximum va plus loin, porter sa fin ici ; s'il est \
-atteint, la garder (fiche net-entreprises 1983).",
-            sf.jj_mm_aaaa(),
-            fin.jj_mm_aaaa()
-    )))
 }
 
 // ------------------------------------------------------------------ les suspensions
@@ -877,7 +839,7 @@ fn reponse_arret(ctx: &Contexte, arret: &Value, phrase: &str) -> R<Value> {
     Ok(json!({"arret": crate::routes::imprevus::resume(ctx, &n, arret)?, "phrase": phrase}))
 }
 
-/// `arret-enregistrer` : `{salarie, dernier_jour, fin, motif, subrogation?, subrogation_debut?, subrogation_fin?,
+/// `arret-enregistrer` : `{salarie, dernier_jour, fin, motif,
 /// date_accident?, jours_deja_indemnises?, contrat?, note?}` -> `{"arret": resume}`. Les controles de la norme sont ceux
 /// du signalement (`signalement::verifier`, nature 04), avant toute ecriture ; un arret ne chevauche pas un autre imprevu
 /// du meme contrat (`crate::routes::imprevus::sans_chevauchement`).
@@ -906,18 +868,7 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
             json!("")
         }
     };
-    // Les jours deja indemnises (D1226-4) ne se disent que pour un arret qu'un maintien de salaire peut suivre : un contrat
-    // paye au mois, et un motif de maladie ou d'accident (L1226-1 ; `maintien_legal` dans arrets-base.json).
     let deja = crate::routes::imprevus::jours_ou_rien(optionnel(charge, "jours_deja_indemnises"), "Jours deja indemnises")?;
-    if !deja.is_null() {
-        let m = engagement::imprevus::motif_d_arret(&valeur_en_texte(motif)).map_err(crate::routes::imprevus::refus_magasin)?.unwrap_or(Value::Null);
-        if choisi["mensuel"] != json!(true) || !m.get("maintien_legal").is_some_and(vrai) {
-            return Err(refus(
-                "Les jours deja indemnises (D1226-4) ne servent qu'au maintien de salaire d'un permanent arrete pour maladie \
-ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
-            ));
-        }
-    }
     let mut a = Map::new();
     a.insert("genre".into(), json!(engagement::imprevus::ARRET));
     a.insert("salarie".into(), cle.clone());
@@ -926,19 +877,30 @@ ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
     a.insert("motif".into(), json!(valeur_en_texte(motif)));
     a.insert("dernier_jour_travaille".into(), json!(dernier.iso()));
     a.insert("fin_previsionnelle".into(), json!(jour(fin)?.iso()));
-    a.insert("subrogation".into(), optionnel(charge, "subrogation").clone());
-    a.insert("subrogation_debut".into(), jour_ou_rien("subrogation_debut")?);
-    a.insert("subrogation_fin".into(), jour_ou_rien("subrogation_fin")?);
+    a.insert("subrogation".into(), Value::Null);
+    a.insert("subrogation_debut".into(), Value::Null);
+    a.insert("subrogation_fin".into(), Value::Null);
     a.insert("reprise".into(), Value::Null);
     a.insert("reprise_motif".into(), Value::Null);
     a.insert("date_accident".into(), jour_ou_rien("date_accident")?);
     a.insert("jours_deja_indemnises".into(), deja);
-    a.insert("maintien".into(), json!({}));
     a.insert("prolongations".into(), json!([]));
     a.insert("saisi_le".into(), json!(maintenant()));
     a.insert("qui".into(), json!(qui_de(charge)));
     a.insert("note".into(), note);
-    let arret = Value::Object(a);
+    let mut arret = Value::Object(a);
+    // Les jours deja indemnises (D1226-4) ne se disent que pour un arret qui ouvre le maintien de salaire.
+    if !arret["jours_deja_indemnises"].is_null() && !ouvre_le_maintien(ctx, &arret)? {
+        return Err(refus(
+            "Les jours deja indemnises (D1226-4) ne servent qu'au maintien de salaire, que cet arret n'ouvre pas. Rien n'est ecrit.",
+        ));
+    }
+    // LA SUBROGATION SE TIRE DU DROIT : la convention qui la donne, ou le choix de la compagnie, et la duree maximale du
+    // maintien pour ses dates (`engagement::maintien::subrogation`).
+    let (sub, sub_debut, sub_fin) = crate::routes::imprevus::subrogation_de(ctx, &arret)?;
+    arret["subrogation"] = sub;
+    arret["subrogation_debut"] = sub_debut;
+    arret["subrogation_fin"] = sub_fin;
     // On verifie AVANT d'ecrire, avec les regles de la nature 04 -- celles qui partiront.
     verifier(&arret)?;
     // Le jour où la compagnie a su l'accident, point de départ des 48 heures de la déclaration (R441-3) : contrôlé ici,
@@ -1808,6 +1770,7 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
             // Paye au mois (`Nature::mensuelle`) : son mois de paie se tire du moteur, et un arret y appelle le maintien de
             // salaire (L1226-1 : pas pour un intermittent).
             o.insert("mensuel".into(), json!(mensuel));
+            o.insert("nature".into(), e.get("nature").cloned().unwrap_or(Value::Null));
             sorties.push((debut, Value::Object(o)));
         }
     }

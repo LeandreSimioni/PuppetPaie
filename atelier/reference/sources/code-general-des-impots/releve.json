@@ -393,11 +393,35 @@
    "texte": "impots"
   },
   {
+   "apres": "LEGIARTI000053542733",
+   "article": "81",
+   "avant": "LEGIARTI000051765336",
+   "depuis": "2026-01-01",
+   "livraison": "20260223-224003",
+   "texte": "impots"
+  },
+  {
    "apres": "LEGIARTI000053545390",
    "article": "83",
    "avant": "LEGIARTI000051765287",
    "depuis": "2026-02-21",
    "livraison": "20260223-224003",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000053560507",
+   "article": "81",
+   "avant": "LEGIARTI000053542733",
+   "depuis": "2026-02-21",
+   "livraison": "20260224-221302",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000054336634",
+   "article": "154 quinquies",
+   "avant": "LEGIARTI000047288608",
+   "depuis": "2026-06-27",
+   "livraison": "20260629-223234",
    "texte": "impots"
   },
   {
@@ -427,6 +451,11 @@
  ],
  "_releve_le": "2026-11-02",
  "articles": {
+  "154 quinquies": {
+   "debut": "2026-06-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000054336634"
+  },
   "1671": {
    "debut": "2019-12-30",
    "en_vigueur": true,
@@ -491,6 +520,16 @@
    "debut": "2025-02-16",
    "en_vigueur": true,
    "id": "LEGIARTI000051200373"
+  },
+  "80 quinquies": {
+   "debut": "2010-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000021629283"
+  },
+  "81": {
+   "debut": "2026-02-21",
+   "en_vigueur": true,
+   "id": "LEGIARTI000053560507"
   },
   "81 quater": {
    "debut": "2022-08-18",

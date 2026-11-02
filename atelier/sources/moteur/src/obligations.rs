@@ -74,9 +74,11 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "motif", sens: "le motif de l'arrêt (code DSN)", avance: false },
             Champ { nom: "dernier_jour", sens: "le dernier jour travaillé", avance: false },
             Champ { nom: "fin", sens: "la fin prescrite", avance: false },
+            Champ { nom: "salarie", sens: "le salarié : sa subrogation se tire de son contrat", avance: false },
+            Champ { nom: "contrat", sens: "le contrat suspendu, quand plusieurs couvrent le jour", avance: true },
             Champ { nom: "date_accident", sens: "le jour de l'accident", avance: true },
         ],
-        exemple: r#"{"motif":"01","dernier_jour":"2026-11-02","fin":"2026-11-10"}"#,
+        exemple: r#"{"motif":"01","dernier_jour":"2026-11-02","fin":"2026-11-10","salarie":"SVOBODA"}"#,
         rend: OBLIGATIONS_REND,
         refus: &[OPERATION],
         acte: Acte::Lit,
@@ -1084,17 +1086,38 @@ fn dire_faite(ctx: &Contexte, charge: &Value, f: &Faite) -> R<Value> {
     reponse(ctx, &a)
 }
 
-/// `arret-obligations` : `{motif, dernier_jour, fin?, subrogation?, date_accident?, reprise?, connaissance_accident?,
+/// `arret-obligations` : `{motif, dernier_jour, fin?, salarie?, contrat?, date_accident?, reprise?, connaissance_accident?,
 /// connaissance_heure?, connaissance_arret?}` -- les obligations qu'un arret AINSI SAISI ferait naitre, avant d'etre enregistre (la boite de
 /// saisie les montre). Rien n'est ecrit, rien n'est verifie de l'arret lui-meme (c'est `arret-enregistrer` qui refuse) :
 /// un champ vide ou illisible donne une obligation `indetermine`, qui dit pourquoi.
 fn arret_obligations(ctx: &Contexte, charge: &Value) -> R<Value> {
     let champ = |k: &str| charge.get(k).map(en_texte).unwrap_or_default();
-    let a = json!({
+    let mut a = json!({
         "salarie": "", "motif": champ("motif"), "dernier_jour_travaille": champ("dernier_jour"),
-        "fin_previsionnelle": champ("fin"), "subrogation": champ("subrogation"), "date_accident": champ("date_accident"),
+        "fin_previsionnelle": champ("fin"), "subrogation": "", "date_accident": champ("date_accident"),
         "reprise": champ("reprise"),
     });
+    // La subrogation se tire du contrat suspendu et du droit (`routes::imprevus::subrogation_de`), comme a l'enregistrement.
+    if let (Some(nom), Some(dj)) = (charge.get("salarie").filter(|v| vrai(v)), socle::date::jour_iso(&champ("dernier_jour"))) {
+        if let Ok(cle) = crate::routes::imprevus::cle_du_salarie(ctx, nom) {
+            let contrat = charge.get("contrat").cloned().unwrap_or(Value::Null);
+            if let Ok(c) = crate::routes::imprevus::contrat_suspendu(ctx, &cle, &dj, &contrat) {
+                let imp = json!({"genre": engagement::imprevus::ARRET, "salarie": cle, "contrat_debut": c["debut"], "motif": champ("motif"),
+                    "dernier_jour_travaille": dj.iso(), "fin_previsionnelle": champ("fin"), "reprise": Value::Null});
+                if socle::date::jour_iso(&champ("fin")).is_some() {
+                    let (sub, sub_debut, sub_fin) = crate::routes::imprevus::subrogation_de(ctx, &imp)?;
+                    a["salarie"] = json!(cle);
+                    a["contrat_debut"] = c["debut"].clone();
+                    a["contrat_numero"] = c["numero"].clone();
+                    if sub == json!("01") {
+                        a["subrogation_debut"] = sub_debut;
+                        a["subrogation_fin"] = sub_fin;
+                    }
+                    a["subrogation"] = sub;
+                }
+            }
+        }
+    }
     let mut fiche = json!({"salarie": "", "dernier_jour_travaille": champ("dernier_jour")});
     if !champ("connaissance_accident").trim().is_empty() {
         fiche["connaissance_accident"] = json!({"jour": champ("connaissance_accident"), "heure": champ("connaissance_heure")});

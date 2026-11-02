@@ -382,6 +382,33 @@
    "ecran": true
   },
   {
+   "_note": "LA SUBROGATION DES INDEMNITES JOURNALIERES, un choix de la compagnie : la loi ne l'impose pas (CSS R323-11 : de plein droit quand le salaire est maintenu en totalite), ni la plupart des conventions (3090, 11.2 : << l'employeur pourra mettre en oeuvre >> ; 2642, VIII.2 : au-dela de dix salaries). La 1285 la donne a tout salarie (X.4.6) : le champ ne s'y montre pas. Le moteur l'applique a chaque arret qui ouvre le maintien (`engagement::maintien::subrogation`). Textes : atelier/reference/sources/subrogation-indemnites-journalieres/.",
+   "cle": "subrogation_ij",
+   "libelles": {"": "Non : le salarié les reçoit de la caisse", "oui": "Oui : la compagnie les perçoit et les lui reverse"},
+   "libelle": "Subrogation des indemnités journalières",
+   "forme": "choix",
+   "aide": "Pendant l'arrêt d'un permanent, la compagnie peut percevoir ses indemnités journalières et les lui reverser avec son salaire maintenu ; elle le déclare dans le signalement d'arrêt.",
+   "longueur": null,
+   "exemple": "",
+   "choix": [
+    "",
+    "oui"
+   ],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": true,
+   "si": {
+    "idcc": [
+     "3090", "2642", "3097", "3252", "3241", "1922", "2412", "2121", "1790"
+    ]
+   },
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": true,
+   "ecran": true
+  },
+  {
    "cle": "urssaf_compte",
    "exige_par": ["bulletin"],
    "libelle": "Compte Urssaf",

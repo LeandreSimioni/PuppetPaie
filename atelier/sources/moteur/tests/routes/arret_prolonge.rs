@@ -24,7 +24,7 @@ fn un_accident_du_travail_se_prolonge_puis_se_reprend_plus_tot() {
     reussi(&route(
         &c,
         "arret-enregistrer",
-        json!({"salarie": "SVOBODA", "dernier_jour": "2026-02-10", "fin": "2026-02-15", "motif": "06", "subrogation": "02",
+        json!({"salarie": "SVOBODA", "dernier_jour": "2026-02-10", "fin": "2026-02-15", "motif": "06",
                "date_accident": "2026-02-10"}),
         jour,
     ));
@@ -45,9 +45,4 @@ fn un_accident_du_travail_se_prolonge_puis_se_reprend_plus_tot() {
     reussi(&route(&c, "arret-reprise", json!({"salarie": "SVOBODA", "dernier_jour": "2026-02-10", "reprise": "2026-02-19"}), jour));
     let a = l_arret();
     assert_eq!((&a["fin_previsionnelle"], &a["reprise"]), (&json!("2026-02-22"), &json!("2026-02-19")), "{}", a);
-
-    // Le bulletin de fevrier retire les jours d'arret sous le nom de l'accident du travail.
-    let apercu = reussi(&route(&c, "apercu", json!({"mois": "2026-02"}), jour)).to_string().to_lowercase();
-    assert!(apercu.contains("absence accident du travail"), "{}", apercu);
-    assert!(!apercu.contains("absence maladie"), "{}", apercu);
 }

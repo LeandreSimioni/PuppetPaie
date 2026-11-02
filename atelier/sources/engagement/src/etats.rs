@@ -138,7 +138,8 @@ pub struct EnSaisie {
 pub struct Valide {
     objet: Objet,
     le: String,
-    /// Pourquoi la paie du mois lu ne s'est pas ecrite : le refus du recalcul (`du_mois`), quand elle manque.
+    /// Pourquoi la paie du mois lu ne s'est pas ecrite : le refus du recalcul (`du_mois`), quand elle manque, ou quand il
+    /// dit une saisie a finir (`saisie_incomplete`) : la paie ecrite ne tient plus, et elle ne se lit pas.
     refus: Option<String>,
     /// La paie d'un mois qu'une validation en cours vient de calculer (`valides_lues`) : elle se lit en place de l'ecrite.
     en_cours: Option<(String, Arc<Value>)>,
@@ -208,6 +209,9 @@ impl Valide {
     }
 
     fn ecrite(&self, mois: &str) -> Resultat<Option<Arc<Value>>> {
+        if self.refus.as_deref().is_some_and(crate::saisie_incomplete) {
+            return Ok(None);
+        }
         match &self.en_cours {
             Some((m, p)) if m == mois => Ok(Some(p.clone())),
             _ => crate::paies::presente(&self.objet, mois),
@@ -424,7 +428,8 @@ fn lu_et_rafraichi(ctx: &Contexte, mois: &str, departs: &Departs, passage: bool)
     let mut etats = tels_qu_ecrits(ctx, mois, departs)?;
     let mut temoins: Vec<&String> = Vec::new();
     for (_, m) in &refus {
-        if !temoins.contains(&m) {
+        // Une saisie a finir est l'affaire de l'utilisateur : ce qui lit la paie la lui dit, l'editeur n'en est pas averti.
+        if !temoins.contains(&m) && !crate::saisie_incomplete(m) {
             temoins.push(m);
             if let Some(temoin) = TEMOIN.get() {
                 temoin(&ctx.racine, mois, m);
@@ -433,14 +438,16 @@ fn lu_et_rafraichi(ctx: &Contexte, mois: &str, departs: &Departs, passage: bool)
     }
     // Une paie qui manque (un contrat sans terme qui entre dans le mois) ne s'est pas ecrite a cause de son refus : qui la
     // lit le dit, avec sa cause (`Valide::paie`).
+    // Une saisie a finir que le recalcul attend (les indemnites journalieres d'un arret, `maintien`) : la paie ecrite ne
+    // tient plus, et ce qui la lit dit quoi saisir plutot que de lire une paie fausse.
     for (i, e) in etats.iter_mut().enumerate() {
-        let v = match e {
-            Etat::Valide(v) => v,
-            Etat::Partis(p) => &mut p.valide,
+        let (v, parti) = match e {
+            Etat::Valide(v) => (v, false),
+            Etat::Partis(p) => (&mut p.valide, true),
             Etat::EnSaisie(_) => continue,
         };
         let sien = refus.iter().find(|(r, _)| r.is_none_or(|r| r == i));
-        if let Some((_, m)) = sien.filter(|_| v.paie_ecrite(mois).is_none()) {
+        if let Some((_, m)) = sien.filter(|(_, m)| v.paie_ecrite(mois).is_none() || (!parti && crate::saisie_incomplete(m))) {
             v.refus = Some(m.clone());
         }
     }
@@ -714,7 +721,11 @@ pub(crate) fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<droit::pa
     let bareme = ctx.bareme(&Jour { an: fin.an, mois: fin.mois, jour: 1 })?;
     let t = |j: Jour| (j.an, j.mois, j.jour);
     let court = droit::natures::contrat_court(&*e.nat()?, t(e.debut), e.fin.map(t), t(fin));
-    droit::pas::du_versement(taux.as_ref(), &bareme, p.net_imposable, Some(fin), court, droit::pas::ZONE_DEFAUT)
+    // « Dans le cas d'une avance faite par un employeur en cas de subrogation des indemnites journalieres : le montant de
+    // l'avance s'ajoute a la RNF pour constituer l'assiette du PAS » (S21.G00.50.013, `norme-dsn/texte/bloc-S21.G00.50.txt`) ;
+    // cette avance-la, ce que le BOFiP en soumet (`maintien`, `IJ_ASSIETTE_PAS`).
+    let avance = p.bases.get(crate::maintien::IJ_ASSIETTE_PAS).copied().unwrap_or(Decimal::ZERO);
+    droit::pas::du_versement(taux.as_ref(), &bareme, p.net_imposable + avance, Some(fin), court, droit::pas::ZONE_DEFAUT)
         .map(Some)
         .map_err(|e| e.message().to_string())
 }

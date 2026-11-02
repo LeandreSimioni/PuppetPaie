@@ -18,8 +18,8 @@
      terme — qui n'est pas une boîte de plus : elle ouvre le « Contrat » de
      la carte, où la fin se saisit depuis toujours. Le salarié et le contrat
      sont ceux de la carte : on ne les redemande pas. Sous la carte, une ligne
-     par imprévu qui la touche ce mois-ci, avec ses gestes (la reprise, le
-     maintien du mois, retirer) et les jours payés pendant l'imprévu, à
+     par imprévu qui la touche ce mois-ci, avec ses gestes (la reprise, les
+     indemnités journalières, retirer) et les jours payés pendant l'imprévu, à
      retirer un par un.
    - LA COLONNE DU MOIS ne garde que CE QUI EST DÛ : une ligne par
      obligation à faire ou en retard, sa date butoir, son état, et le bouton
@@ -34,7 +34,7 @@
    sont pas des imprévus : ils restent dans la saisie du mois.
 
    RIEN NE SE DÉCIDE ICI (règle 2) : le moteur dit ce que chaque fait ouvre
-   (`imprevus` : `maintien_ouvert`, `jours_deja_indemnises_attendus`,
+   (`imprevus` : `ij_attendues`, `jours_deja_indemnises_attendus`,
    `cachets`, `obligations` ; `arret-obligations` pour un arrêt pas encore
    écrit), et la page ne montre un champ que parce qu'il le dit. */
 
@@ -439,10 +439,8 @@ function gestesImprevu(i, mois) {
     if (i.peut_prolonger) g.push(`<button class="lien" data-geste="prolonger">Prolonger l'arrêt</button>`);
     if (i.peut_reprendre_plus_tot) g.push(`<button class="lien" data-geste="reprise">Reprise plus tôt</button>`);
     if (i.reprise_corrigeable) g.push(`<button class="lien" data-geste="reprise">Corriger la reprise</button>`);
-    if (i.maintien_ouvert && mois && (i.mois_du_maintien || []).includes(mois)) {
-      const m = (i.maintien || {})[mois];
-      g.push(`<button class="lien" data-geste="maintien">Maintien ${echapper(deMois(mois))}${
-        m != null ? ` : ${echapper(euros(m))}` : "…"}</button>`);
+    if (i.ij_attendues) {
+      g.push(`<button class="lien" data-geste="indemnites">Indemnités journalières${i.ij_brute != null ? "" : "…"}</button>`);
     }
     if (!i.signale && !(i.reporte_par || []).length) g.push(`<button class="lien" data-geste="retirer">Retirer</button>`);
   } else {
@@ -456,7 +454,7 @@ function brancherGestesImprevu(r, i, mois, apres) {
   const b = (g) => r.querySelector(`.imprevu-gestes [data-geste="${g}"]`);
   if (b("reprise")) b("reprise").onclick = () => boiteReprise(i, apres);
   if (b("prolonger")) b("prolonger").onclick = () => boiteProlonger(i, apres);
-  if (b("maintien")) b("maintien").onclick = () => boiteMaintien(i, mois, apres);
+  if (b("indemnites")) b("indemnites").onclick = () => boiteIndemnites(i, apres);
   if (b("fin")) b("fin").onclick = () => boiteFinAbsence(i, apres);
   if (b("retirer")) b("retirer").onclick = async () => {
     try {
@@ -516,14 +514,13 @@ async function provenance(ou) {
 }
 
 /* -------------------------------------------------- un arrêt de travail
-   Toujours : le dernier jour travaillé, la fin prescrite, le motif, la
-   subrogation. Le reste n'apparaît que si un fait l'appelle :
+   Toujours : le dernier jour travaillé, la fin prescrite, le motif (la
+   subrogation se tire du droit, dans le moteur). Le reste n'apparaît que si un fait l'appelle :
      - la date de l'accident, si le motif en porte une (04, 05, 06 : le
        moteur le dit, `date_accident` du motif) ;
      - le jour où la compagnie l'a su, si le moteur fait naître la
        déclaration d'accident (`arret-obligations`) : c'est le point de départ
        des quarante-huit heures ;
-     - les dates de la subrogation, si elle est dite « oui » ;
      - une note, si on la demande.
    Après l'enregistrement, ce que l'arrêt écrit appelle encore (`etapeSuite`). */
 async function boiteArret(ou) {
@@ -531,7 +528,6 @@ async function boiteArret(ou) {
   let n;
   try { n = await nomenclaturesImprevus(); } catch (e) { dire(e.message, "erreur"); return; }
   const motifs = n.motifs_arret || [];
-  const sub = n.subrogation || [];
   ouvrirBoite(`
     <h3>Un arrêt de travail — ${echapper(nomDuSalarie(p.salarie))}</h3>
     <div class="champs-deux">
@@ -556,13 +552,6 @@ async function boiteArret(ou) {
           <input type="time" id="ar-connu-heure"></label>
       </div>
     </div>
-    <div class="champ-boite">Subrogation <span class="discret">${aideDe("subrogation")}</span>
-      <div class="oui-non">${sub.map((s) => `<label class="coche"><input type="radio" name="ar-sub" value="${
-        echapper(s.code)}"> ${echapper(s.libelle)}</label>`).join("")}</div></div>
-    <div class="champs-deux" id="ar-bloc-subrogation" hidden>
-      <label class="champ-boite">Subrogation du <input type="date" id="ar-sub-debut"></label>
-      <label class="champ-boite">au <input type="date" id="ar-sub-fin"></label>
-    </div>
     <button type="button" class="lien" id="ar-note-btn">+ une note</button>
     <label class="champ-boite" id="ar-note-l" hidden>Note <span class="discret">— ${aideDe("note_imprevu")}</span>
       <input type="text" id="ar-note"></label>
@@ -574,7 +563,6 @@ async function boiteArret(ou) {
 
   const val = (id) => document.getElementById(id).value;
   const motif = () => (motifs.find((m) => m.code === val("ar-motif")) || null);
-  const subrogation = () => (document.querySelector('input[name="ar-sub"]:checked') || {}).value || "";
   let avecDeclaration = false;
   // CE QUE L'ARRÊT FERA NAÎTRE, demandé au moteur (`arret-obligations`, rien n'est écrit) : il décide si la connaissance
   // de l'accident se demande, et la page le dit en une ligne, sans la loi.
@@ -584,7 +572,7 @@ async function boiteArret(ou) {
     let r;
     try {
       r = await api("arret-obligations", {
-        motif: val("ar-motif"), dernier_jour: val("ar-dernier"), fin: val("ar-fin"), subrogation: subrogation(),
+        motif: val("ar-motif"), dernier_jour: val("ar-dernier"), fin: val("ar-fin"), salarie: p.salarie, ...contratAEnvoyer(trouve),
         date_accident: val("ar-accident"), connaissance_accident: val("ar-connu"), connaissance_heure: val("ar-connu-heure"),
       });
     } catch (e) { ligne.textContent = ""; return; }
@@ -597,14 +585,12 @@ async function boiteArret(ou) {
     const m = motif();
     document.getElementById("ar-bloc-accident").hidden = !(m && m.date_accident);
     document.getElementById("ar-bloc-connu").hidden = !avecDeclaration;
-    document.getElementById("ar-bloc-subrogation").hidden = subrogation() !== "01";
   };
   let trouve = null;
   const relireContrats = async () => {
     trouve = await contratsDuJour(p, val("ar-dernier"), document.getElementById("ar-contrats"));
   };
   document.getElementById("ar-motif").onchange = () => { majFaits(); relireEnsuite(); };
-  document.querySelectorAll('input[name="ar-sub"]').forEach((x) => { x.onchange = () => { majFaits(); relireEnsuite(); }; });
   document.getElementById("ar-dernier").addEventListener("change", () => { relireContrats(); relireEnsuite(); });
   for (const id of ["ar-fin", "ar-accident", "ar-connu", "ar-connu-heure"]) {
     document.getElementById(id).addEventListener("change", relireEnsuite);
@@ -621,13 +607,9 @@ async function boiteArret(ou) {
     const m = motif();
     const charge = {
       salarie: p.salarie, dernier_jour: val("ar-dernier"), fin: val("ar-fin"),
-      motif: val("ar-motif"), subrogation: subrogation(), ...contratAEnvoyer(trouve),
+      motif: val("ar-motif"), ...contratAEnvoyer(trouve),
     };
     if (m && m.date_accident) charge.date_accident = val("ar-accident");
-    if (charge.subrogation === "01") {
-      charge.subrogation_debut = val("ar-sub-debut");
-      charge.subrogation_fin = val("ar-sub-fin");
-    }
     if (val("ar-note").trim()) charge.note = val("ar-note").trim();
     if (avecDeclaration && val("ar-connu")) charge.connu = { jour: val("ar-connu"), heure: val("ar-connu-heure") };
     let r;
@@ -688,17 +670,39 @@ async function boiteAbsence(ou) {
 }
 
 /* ------------------------------------- ce que l'imprévu écrit appelle encore
-   Le moteur le dit sur l'imprévu qu'il vient d'écrire : les jours déjà
-   indemnisés (`jours_deja_indemnises_attendus` : un permanent arrêté pour
-   maladie ou accident, D1226-4), le maintien du mois (`maintien_ouvert` :
-   un contrat payé au mois), et les jours que la saisie paie pendant
-   l'imprévu (`cachets`). Rien de tout ça : la boîte se ferme. Sinon, une
-   seconde page, où rien n'est obligatoire — le maintien ne se connaît
-   souvent qu'à la paie, et il se reprend sous la carte. */
+   Le moteur le dit sur l'imprévu qu'il vient d'écrire : ses indemnités
+   journalières (`ij_attendues` : l'arrêt ouvre le maintien de salaire, par
+   la loi ou la convention ; `ij_majoree_attendue` : un accident du travail
+   au-delà du 28e jour), les jours déjà indemnisés
+   (`jours_deja_indemnises_attendus`), et les jours que la saisie paie
+   pendant l'imprévu (`cachets`). Rien de tout ça : la boîte se ferme.
+   Sinon, une seconde page, où rien n'est obligatoire — les indemnités se
+   connaissent au relevé de la caisse, et se reprennent sous la carte. */
+
+/** Les cases des indemnités journalières d'un arrêt, et ses jours déjà indemnisés : seulement ce que le moteur attend. */
+function champsIndemnites(a, x) {
+  const montant = (id, libelle, v) => `<label class="champ-boite">${libelle}
+      <input type="number" step="0.01" min="0" id="${x}-${id}" value="${echapper(v ?? "")}"></label>`;
+  return `${a.ij_attendues ? `<p class="note">${aideDe("indemnites_journalieres")}</p>
+    <div class="champs-deux">${montant("ijb", "Indemnité brute par jour", a.ij_brute)}${montant("ijn", "Indemnité nette par jour", a.ij_nette)}</div>` : ""}
+    ${a.ij_majoree_attendue ? `<div class="champs-deux">${montant("ijbm", "Brute majorée par jour", a.ij_brute_majoree)}${
+      montant("ijnm", "Nette majorée par jour", a.ij_nette_majoree)}</div>` : ""}
+    ${a.jours_deja_indemnises_attendus ? `<label class="champ-boite" title="${aideDe("jours_deja_indemnises")}">Jours déjà indemnisés
+      <input type="number" step="1" min="0" id="${x}-deja" value="${echapper(a.jours_deja_indemnises ?? "")}"></label>` : ""}`;
+}
+
+/** Ce que les cases de `champsIndemnites` disent, pour `arret-indemnites` ; `null` si rien n'est saisi. */
+function chargeIndemnites(a, x) {
+  const charge = { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille };
+  const lire = (id, cle) => { const c = document.getElementById(`${x}-${id}`); if (c && c.value !== "") charge[cle] = c.value; };
+  lire("ijb", "ij_brute"); lire("ijn", "ij_nette"); lire("ijbm", "ij_brute_majoree"); lire("ijnm", "ij_nette_majoree");
+  lire("deja", "jours_deja_indemnises");
+  return Object.keys(charge).length > 2 ? charge : null;
+}
+
 async function etapeSuite(i, p, phrase) {
-  const maintien = i.maintien_ouvert && MOIS_AFFICHE && (i.mois_du_maintien || []).includes(MOIS_AFFICHE);
   const jours = (i.cachets || []);
-  if (!i.jours_deja_indemnises_attendus && !maintien && !jours.length) {
+  if (!i.ij_attendues && !i.jours_deja_indemnises_attendus && !jours.length) {
     fermerBoite();
     dire(phrase);
     await p.apres();
@@ -709,10 +713,7 @@ async function etapeSuite(i, p, phrase) {
   ouvrirBoite(`
     <p>${echapper(phrase)}</p>
     <h3>Ce qu'il appelle encore</h3>
-    ${i.jours_deja_indemnises_attendus ? `<label class="champ-boite" title="${aideDe("jours_deja_indemnises")}">Jours déjà indemnisés
-      <input type="number" step="1" min="0" id="su-deja" value="${echapper(i.jours_deja_indemnises ?? "")}"></label>` : ""}
-    ${maintien ? `<label class="champ-boite" title="${aideDe("maintien")}">Maintien de salaire ${echapper(deMois(MOIS_AFFICHE))}
-      <input type="number" step="0.01" min="0" id="su-maintien"></label>` : ""}
+    ${champsIndemnites(i, "su")}
     ${jours.length ? `<div class="champ-boite">${aideDe("jours_payes")}
       <div class="liste-jours">${jours.map((c, k) => c.dates.map((iso) => ici(c)
         ? `<label class="coche"><input type="checkbox" data-jour="${k}" value="${echapper(iso)}">
@@ -727,13 +728,9 @@ async function etapeSuite(i, p, phrase) {
   const finir = async () => { fermerBoite(); await p.apres(); };
   document.getElementById("su-plus-tard").onclick = finir;
   document.getElementById("su-ok").onclick = async () => {
-    const deja = document.getElementById("su-deja");
-    const montant = document.getElementById("su-maintien");
-    const charge = { salarie: i.salarie, dernier_jour: i.dernier_jour_travaille };
-    if (deja && deja.value !== "") charge.jours_deja_indemnises = deja.value;
-    if (montant && montant.value !== "") { charge.mois = MOIS_AFFICHE; charge.montant = montant.value; }
-    if (Object.keys(charge).length > 2) {
-      try { await api("arret-maintien", charge); }
+    const charge = chargeIndemnites(i, "su");
+    if (charge) {
+      try { await api("arret-indemnites", charge); }
       catch (e) { dire(e.message, "erreur"); return; }
     }
     let retires = 0;
@@ -779,8 +776,7 @@ async function boiteReprise(a, apres) {
 }
 
 /** L'avis de prolongation : la nouvelle fin prescrite, et rien d'autre. Le moteur met l'arrêt à jour et dit ce qui en
- *  découle ; s'il dit que la subrogation s'arrête désormais avant l'arrêt, sa fin se demande ensuite — et seulement
- *  alors (`subrogation_a_revoir`). */
+ *  découle. */
 function boiteProlonger(a, apres) {
   ouvrirBoite(`
     <h3>Prolonger l'arrêt — ${echapper(nomDuSalarie(a.salarie))}</h3>
@@ -798,58 +794,29 @@ function boiteProlonger(a, apres) {
         fin: document.getElementById("pr-fin").value });
     } catch (e) { dire(e.message, "erreur"); return; }
     dire(r.phrase);
-    if (r.subrogation_a_revoir) { boiteSubrogationProlongee(r.arret, r.subrogation_a_revoir, apres); return; }
     fermerBoite();
     await apres();
   };
 }
 
-/** La fin de la subrogation d'un arrêt prolongé, quand le moteur la demande : il ne connaît pas le maximum que la
- *  convention permet. La garder ne change rien. */
-function boiteSubrogationProlongee(a, phrase, apres) {
-  ouvrirBoite(`
-    <h3>La subrogation — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p>${echapper(phrase || "")}</p>
-    <label class="champ-boite">Subrogation jusqu'au
-      <input type="date" id="ps-fin" value="${echapper(a.subrogation_fin || "")}"></label>
-    <div class="actions">
-      <button class="secondaire" id="ps-garder">Garder le ${echapper(jjmmaaaa(a.subrogation_fin))}</button>
-      <button class="primaire" id="ps-ok">Enregistrer</button>
-    </div>`);
-  document.getElementById("ps-garder").onclick = async () => { fermerBoite(); await apres(); };
-  document.getElementById("ps-ok").onclick = async () => {
-    let r;
-    try {
-      r = await api("arret-prolonger", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
-        subrogation_fin: document.getElementById("ps-fin").value });
-    } catch (e) { dire(e.message, "erreur"); return; }
-    fermerBoite();
-    dire(r.phrase);
-    await apres();
-  };
-}
 
-/** Le maintien de salaire d'un mois que l'arrêt traverse, et — seulement si le moteur les attend — les jours déjà
- *  indemnisés (D1226-4). */
-function boiteMaintien(a, mois, apres) {
+/** Les indemnités journalières d'un arrêt, par jour, brutes et nettes, telles que le relevé de la caisse les écrit ; et,
+ *  seulement si le moteur les attend, celles d'un accident du travail au-delà du 28e jour et les jours déjà indemnisés. */
+function boiteIndemnites(a, apres) {
   ouvrirBoite(`
-    <h3>Maintien ${echapper(deMois(mois))} — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p class="note">${aideDe("maintien")}</p>
-    <label class="champ-boite">Montant
-      <input type="number" step="0.01" min="0" id="ma-montant" value="${echapper((a.maintien || {})[mois] ?? "")}"></label>
-    ${a.jours_deja_indemnises_attendus ? `<label class="champ-boite" title="${aideDe("jours_deja_indemnises")}">Jours déjà indemnisés
-      <input type="number" step="1" min="0" id="ma-deja" value="${echapper(a.jours_deja_indemnises ?? "")}"></label>` : ""}
+    <h3>Indemnités journalières — ${echapper(nomDuSalarie(a.salarie))}</h3>
+    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}</p>
+    ${champsIndemnites(a, "ma")}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
       <button class="primaire" id="ma-ok">Enregistrer</button>
     </div>`);
   document.getElementById("ma-ok").onclick = async () => {
-    const deja = document.getElementById("ma-deja");
+    const charge = chargeIndemnites(a, "ma");
+    if (!charge) { fermerBoite(); return; }
     let r;
-    try {
-      r = await api("arret-maintien", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille, mois,
-        montant: document.getElementById("ma-montant").value, ...(deja ? { jours_deja_indemnises: deja.value } : {}) });
-    } catch (e) { dire(e.message, "erreur"); return; }
+    try { r = await api("arret-indemnites", charge); }
+    catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
     dire(r.phrase);
     await apres();

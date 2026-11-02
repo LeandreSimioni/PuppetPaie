@@ -278,13 +278,14 @@
         "prevenance_mois": 6
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL — comme le maintien légal : le complément se calcule après déduction des indemnités journalières, qui viennent de la caisse. Le moteur dit ce que la convention garantit, à côté de la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; un pourcentage du NET se reconstitue par le calcul de la paie (`engagement::maintien::au_net`) ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "11.2",
           "kali": "KALIARTI000028157422",
           "anciennete_mois_minimum": 12,
           "carence_jours": 3,
           "base": "net",
+          "plafond_net": true,
           "tranches_premiere_annee": [
             {
               "jours": 30,
@@ -339,6 +340,7 @@
           "kali": "KALIARTI000028157427",
           "carence_jours": 0,
           "base": "net",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 30,
@@ -692,7 +694,63 @@
         "_ce_que_ca_change": "Dès deux ans (la loi : dix), et bien plus haut : un mois à cinq ans, quatre et demi à trente (la loi : deux)."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ : la convention ne prévoit aucun complément de salaire en cas de maladie ou d'accident (aucun article du texte de base n'en traite). La loi seule s'applique (L1226-1)."
+        "_source": "Article X.4 (KALIARTI000026922483, VIGUEUR_ETEN depuis le 24/07/2012), X.4.6 « Maladie » et X.4.7 « Accident du travail » : atelier/reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md, l. 579-590.",
+        "maladie": {
+          "article": "X.4.6",
+          "kali": "KALIARTI000026922483",
+          "anciennete_mois_minimum": 6,
+          "carence_jours": 0,
+          "base": "brut",
+          "subrogation": "tout_salarie",
+          "par_anciennete": [
+            {
+              "anciennete_annees_min": 0.5,
+              "tranches": [
+                {
+                  "mois": 1,
+                  "taux": 100.0
+                },
+                {
+                  "mois": 1,
+                  "taux": 75.0
+                }
+              ]
+            },
+            {
+              "anciennete_annees_min": 1,
+              "tranches": [
+                {
+                  "mois": 3,
+                  "taux": 100.0
+                },
+                {
+                  "mois": 3,
+                  "taux": 75.0
+                }
+              ]
+            }
+          ],
+          "_texte": "« En cas de maladie, tout salarié bénéficie de la subrogation et du maintien de son salaire brut [...] : à partir de 6 mois et jusqu'à 1 an d'ancienneté : 1 mois à 100 % et 1 mois à 75 % ; au-delà de 1 an d'ancienneté : 3 mois à 100 % et 3 mois à 75 %. » « Il est tenu compte des indemnités déjà perçues par le salarié durant les 12 mois précédant la période de paie concernée. » Aucune carence n'est écrite : aucune.",
+          "_un_an": "« Jusqu'à 1 an » et « au-delà de 1 an » se touchent à un an tout rond : le moteur donne les trois mois dès le premier anniversaire, la lecture la plus favorable.",
+          "_maladie_professionnelle": "X.4.7 ne nomme que l'accident du travail et l'accident de trajet : la maladie professionnelle suit X.4.6, la maladie."
+        },
+        "accident_du_travail": {
+          "article": "X.4.7",
+          "kali": "KALIARTI000026922483",
+          "couvre": ["accident_du_travail", "trajet"],
+          "anciennete_mois_minimum": 0,
+          "carence_jours": 0,
+          "base": "brut",
+          "subrogation": "tout_salarie",
+          "tranches": [
+            {
+              "pendant_ij": true,
+              "taux": 100.0
+            }
+          ],
+          "_texte": "« Au cas où l'indisponibilité du salarié est due à un accident du travail ou à un accident de trajet reconnu, son salaire brut lui est intégralement garanti pendant la période de versement des indemnités journalières de sécurité sociale, sous déduction de ces indemnités et de toutes autres indemnités émanant d'organismes aux financements desquels concourt l'employeur. » Aucune ancienneté n'est demandée.",
+          "_subrogation": "X.4.7 ne dit pas la subrogation ; le salaire maintenu en totalité, l'employeur est « subrogé de plein droit » (CSS R323-11, al. 2 : atelier/reference/sources/code-de-la-securite-sociale/articles-20261102.md)."
+        }
       }
     },
     "2642": {
@@ -798,13 +856,14 @@
         "loi_seule": "la convention de la production audiovisuelle ne prevoit rien pour le depart a la retraite (base KALI, 25/09/2026) : la loi seule (L1237-9)."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "VIII.2",
           "kali": "KALIARTI000028141154",
           "anciennete_mois_minimum": 12,
           "carence_jours": 3,
           "base": "brut",
+          "plafond_net": true,
           "par_anciennete": [
             {
               "anciennete_annees_min": 1,
@@ -851,6 +910,7 @@
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 30,
@@ -1133,13 +1193,14 @@
         "_transition": "Article 11.1 II 3° : un salarié embauché avant le 01/04/2025 sous la 2717 garde les règles antérieures de départ volontaire. Le moteur ne les porte pas : pour un tel salarié, les relire dans la CCN du 21/02/2008."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "8.2.1",
           "kali": "KALIARTI000051948363",
           "anciennete_mois_minimum": 12,
           "carence_jours": 3,
           "base": "brut",
+          "plafond_net": true,
           "par_anciennete": [
             {
               "anciennete_annees_min": 1,
@@ -1173,6 +1234,7 @@
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 90,
@@ -1574,13 +1636,14 @@
         "_prevenance": "58.1.3 : le salarié est invité à prévenir six mois avant -- une information, distincte du préavis."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "52.1.1",
           "kali": "KALIARTI000044226515",
           "anciennete_mois_minimum": 12,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "par_anciennete": [
             {
               "anciennete_annees_min": 1,
@@ -1618,6 +1681,7 @@
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 90,
@@ -1947,13 +2011,14 @@
         "_ce_que_ca_change": "Trois mois dès le premier jour : la loi (L1237-9) donne un demi-mois après dix ans."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "2.3.2 d",
           "kali": "KALIARTI000049869769",
           "anciennete_mois_minimum": 12,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "assiette": "la rémunération de l'horaire pratiqué pendant l'absence, sans dépasser le net qu'il aurait perçu",
           "par_anciennete": [
             {
@@ -2018,6 +2083,7 @@
           "anciennete_mois_minimum": 3,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 60,
@@ -2182,13 +2248,14 @@
         "_bornes": "« De vingt à trente ans » et « au-delà de trente » se touchent à trente ans tout ronds : le moteur donne trois mois dès le trentième anniversaire -- la lecture la plus favorable. Le 3.1 A renvoie au « paragraphe 2 » : c'est le barème du 3.2 qu'il désigne, le seul barème de retraite du texte."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "X, III, 1er ; avenant n° 23, art. 2",
           "kali": "KALIARTI000027944605",
           "anciennete_mois_minimum": 12,
           "carence_jours": 7,
           "base": "net",
+          "plafond_net": true,
           "assiette": "le salaire net qu'il aurait perçu s'il avait travaillé",
           "par_anciennete": [
             {
@@ -2214,6 +2281,7 @@
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "net",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 29,

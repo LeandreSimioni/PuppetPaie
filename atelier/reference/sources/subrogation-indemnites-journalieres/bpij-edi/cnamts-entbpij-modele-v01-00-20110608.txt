@@ -1,0 +1,850 @@
+      CNAMTS                                      ENTBPIJ                         Date: 08/06/2011
+    DDSI/DPRM/DAP                Message d'Entete pour l'échange des Bordereaux   Statut: Validé
+ Département Avant-Projets       de Payement des Indemnités Journalières (BPIJ)   Version: 01.00
+
+
+
+
+ENTBPIJ
+Message d'Entete pour l'échange des Bordereaux de Payement des Indemnités Journalières (BPIJ)
+
+
+
+
+                                                            Modèle des données structurées
+                                                            Date: 08/06/2011
+                                                            Statut: Validé
+                                                            Version: 01.00
+       CNAMTS                                               ENTBPIJ                                  Date: 08/06/2011
+     DDSI/DPRM/DAP                        Message d'Entete pour l'échange des Bordereaux             Statut: Validé
+ Département Avant-Projets                de Payement des Indemnités Journalières (BPIJ)             Version: 01.00
+
+
+
+ENTBPIJ: Modèle des données structurées
+Mention légale
+Clause de cession de droit de reproduction.
+L'auteur de ce document est :
+CNAMTS
+DDSI/DPRM/DAP
+Département Avant-Projets
+Le présent document est la propriété de l'auteur.
+Par la présente, l'auteur cède à titre gracieux à l’utilisateur du présent document, un droit de reproduction non exclusif
+dans le seul but de l’intégrer dans une application informatique.
+Cette cession est valable sur supports papier, magnétique, optique, électronique, numérique, et plus généralement sur
+tout autre support de fixation connu à la date de la reproduction, et permettant à l’utilisateur de créer l’application visée
+au paragraphe précédent.
+Cette cession est consentie pour l’ensemble du territoire national, et pour la durée de protection prévue par le code de
+la propriété intellectuelle.
+L’utilisateur fera son affaire personnelle de tout dommage qu’il causerait à un tiers et qui trouverait son origine dans
+une violation des termes de la présente cession.
+Toute atteinte aux droits d’auteur constitue un délit et est passible des sanctions indiquées aux articles L.335-1 et suivants
+du Code de propriété intellectuelle.
+      CNAMTS                                                                 ENTBPIJ                                                Date: 08/06/2011
+    DDSI/DPRM/DAP                                    Message d'Entete pour l'échange des Bordereaux                                 Statut: Validé
+Département Avant-Projets                            de Payement des Indemnités Journalières (BPIJ)                                 Version: 01.00
+
+
+
+ Table des matières
+ Documentation .................................................................................................................................................. iv
+      1. Tableau des révisions ................................................................................................................................ iv
+ 1. Modèle ENTBPIJ ............................................................................................................................................ 1
+      1.1. Description ........................................................................................................................................... 2
+      1.2. Diagramme Diagramme de Classe ENTBPIJ .................................................................................................. 3
+ 2. Commun ....................................................................................................................................................... 4
+      2.1. Description ........................................................................................................................................... 5
+      2.2. Simples ............................................................................................................................................... 6
+             2.2.1. Diagramme Diagramme de Classe Simples .......................................................................................... 6
+             2.2.2. Liste des classes .......................................................................................................................... 7
+                    2.2.2.1. Code .............................................................................................................................. 7
+                    2.2.2.2. CodeCFT ........................................................................................................................ 7
+                    2.2.2.3. CodeSEHGBL001 .............................................................................................................. 8
+                    2.2.2.4. IdentiteDeclarant ............................................................................................................... 9
+                    2.2.2.5. IdentiteOPEDI .................................................................................................................. 9
+                    2.2.2.6. IdentiteORGIR .................................................................................................................. 9
+      2.3. Liste des classes ................................................................................................................................... 11
+             2.3.1. Dossier .................................................................................................................................... 11
+             2.3.2. Emetteur .................................................................................................................................. 12
+             2.3.3. Entete ..................................................................................................................................... 13
+             2.3.4. Lien ....................................................................................................................................... 14
+             2.3.5. Mindex .................................................................................................................................... 15
+             2.3.6. Recepteur ................................................................................................................................. 16
+             2.3.7. Trace ...................................................................................................................................... 17
+             2.3.8. Transmis .................................................................................................................................. 18
+ A. Annexes ...................................................................................................................................................... 19
+      A.1. Package Bases .................................................................................................................................... 19
+             A.1.1. dateTime ................................................................................................................................. 19
+             A.1.2. string ..................................................................................................................................... 19
+      A.2. Informations de traçabilité du modèle ......................................................................................................... 20
+      A.3. Tableau des changements - Version de référence: 01.00 ................................................................................... 21
+
+
+
+
+                                                                               iii
+      CNAMTS                                  ENTBPIJ                                 Date: 08/06/2011
+    DDSI/DPRM/DAP            Message d'Entete pour l'échange des Bordereaux           Statut: Validé
+ Département Avant-Projets   de Payement des Indemnités Journalières (BPIJ)           Version: 01.00
+                                            Documentation
+
+
+Documentation
+1. Tableau des révisions
+                                      Description                                                   Statut
+
+  01.00. 08/06/2011                                                                                 Valide
+                                                                          Tableau des changements
+
+
+
+
+                                                iv
+     CNAMTS                                  ENTBPIJ                         Date: 08/06/2011
+   DDSI/DPRM/DAP            Message d'Entete pour l'échange des Bordereaux   Statut: Validé
+Département Avant-Projets   de Payement des Indemnités Journalières (BPIJ)   Version: 01.00
+                                          Modèle ENTBPIJ
+
+
+
+
+Chapitre 1. Modèle ENTBPIJ
+
+
+
+
+                                               1
+      CNAMTS                                                      ENTBPIJ                                       Date: 08/06/2011
+    DDSI/DPRM/DAP                             Message d'Entete pour l'échange des Bordereaux                    Statut: Validé
+ Département Avant-Projets                    de Payement des Indemnités Journalières (BPIJ)                    Version: 01.00
+                                                            Modèle ENTBPIJ
+
+
+1.1. Description
+  Définition. Message d'Entete pour l'échange des Bordereaux de Payement des Indemnités Journalières (BPIJ) entre la CNAMTS et les
+  opérateurs EDI des employeurs.
+  Ce message est constitué un l'opérateur d'entrée (CNAMTS)et est destiné à un opérateur de sortie (OPEDI).
+  Vocabulaire.    www.cnamts.fr/tlsemp/ENTBPIJ (Identifiant=ENTBPIJ)
+  Racines.
+
+  Nom                                           Définition                                                          Type
+
+                                                Une entête est un système d’identification de l’enveloppe d’échange, Entete
+       Entete @ENTBPIJ                          et de description de son contenu
+
+                                                        • PGMD _Profil [1..1]
+                                                          Contrainte (regexp) . ENTBPIJ
+                                                        • Profil _Version [1..1] string
+
+  Liste des vocabulaires déclarés.
+
+  Identifiant                    Valeur déclarée                               Répertoire (nom qualifié)
+
+  ENTBPIJ                        www.cnamts.fr/tlsemp/ENTBPIJ                  • Modèle ENTBPIJ.      Message d'Entete pour l'échange
+                                                                                 des Bordereaux de Payement des Indemnités Journalières
+                                                                                 (BPIJ) (ENTBPIJ)
+
+
+
+
+                                                                     2
+       CNAMTS                                                                                                 ENTBPIJ                                                                  Date: 08/06/2011
+     DDSI/DPRM/DAP                                                        Message d'Entete pour l'échange des Bordereaux                                                               Statut: Validé
+Département Avant-Projets                                                 de Payement des Indemnités Journalières (BPIJ)                                                               Version: 01.00
+                                                                                        Modèle ENTBPIJ
+
+
+1.2. Diagramme Diagramme de Classe ENTBPIJ
+                                        ENTBPIJ
+
+
+
+                                                                                                     Ente te
+                                                                                                     Ente te
+                                                                                   Ide ntifica tion : s tring
+                                                                                   Te mps : da te Time
+                                                                                   Fonction : Code [0..1]
+                                                                                                                                                      - Re ce pte ur
+                                                           0..1                    Info : Code CFT
+                                                                                   P GMD_P rofil ¤ ENTBP IJ ¤ : s tring
+                                                                                                                                                                                      Re c e pte ur
+                             Eme tte ur                  - Eme tte ur              P rofil_Ve rs ion : s tring                                                0..1
+                                                                                                                                                                             Ide ntite : Ide ntite OP EDI
+          Ide ntite ¤ 010000000 ¤ : Ide ntite ORGIR
+                                                                                                                                                                             Qua lite ¤ OP EDI ¤ : Code
+          Qua lite ¤ ACNAM ¤ : Code
+
+
+
+
+                                                                                                 *     - Docume nt
+
+
+                                                                                                Do s s ie r
+
+
+
+
+                                                                                                              1                                                         1
+                                                                     1          - Minde x                                 - Lie n                                                - Tra ce
+
+
+                                                         Minde x                                                              Lie n                                                         Trac e
+                                                P rofil ¤ BP IJ ¤ : Code                                              Adre s s e : s tring                                  Activite ¤ R ¤ : Code S EHGBL001
+                                                Fonction : Code [0..1]                                                Type ¤ XML ¤ : Code
+                                                Ide ntifica tion : Code
+                                                                                                                                                                                                     - Tra ns mis
+                                                Te mps : da te Time
+                                                                                                                                                                                                1
+                                                                                                                                                                                                    Trans mis
+                                                                                                                                                                                        Ide ntite : Ide ntite De cla ra nt
+                                                                                                                                                                                        Qua lite ¤ De cla ra nt ¤ : Code
+
+
+ ...................................................................................................................................................................................................................................
+      Classes. Dossier , Emetteur , Entete , Lien , Mindex , Recepteur , Trace , Transmis
+
+
+
+
+                                                                                                                  3
+     CNAMTS                                  ENTBPIJ                         Date: 08/06/2011
+   DDSI/DPRM/DAP            Message d'Entete pour l'échange des Bordereaux   Statut: Validé
+Département Avant-Projets   de Payement des Indemnités Journalières (BPIJ)   Version: 01.00
+                                              Commun
+
+
+
+
+Chapitre 2. Commun
+
+
+
+
+                                               4
+      CNAMTS                                                     ENTBPIJ                                       Date: 08/06/2011
+    DDSI/DPRM/DAP                            Message d'Entete pour l'échange des Bordereaux                    Statut: Validé
+ Département Avant-Projets                   de Payement des Indemnités Journalières (BPIJ)                    Version: 01.00
+                                                               Commun
+
+
+2.1. Description
+  Définition.   Le dictionnaire regroupe un ensemble des données définies en commun par un ensemble de partenaires.
+
+
+
+
+                                                                   5
+        CNAMTS                                                                                              ENTBPIJ                                                                     Date: 08/06/2011
+      DDSI/DPRM/DAP                                                        Message d'Entete pour l'échange des Bordereaux                                                               Statut: Validé
+ Département Avant-Projets                                                 de Payement des Indemnités Journalières (BPIJ)                                                               Version: 01.00
+                                                                                             Commun
+
+
+2.2. Simples
+2.2.1. Diagramme Diagramme de Classe Simples
+
+                                                                                             s tring @xs d
+
+
+
+
+               Co de                                                 Ide ntite OPEDI                                                Ide ntite De c larant                                           Co de CFT
+                                                              R ¤ S IRET|OC ¤ : s tring                                         R ¤ S IRET|OC ¤ : s tring                                    Q ¤ CFT ¤ : s tring
+
+
+
+
+                                 Ide ntite ORGIR
+                                                                                                        Co de S EHGBL001
+                             R ¤ ORGIR ¤ : s tring
+                                                                                                      A ¤ S EH ¤ : s tring
+                                                                                                      L ¤ GBL ¤ : s tring
+                                                                                                      V ¤ 001 ¤ : s tring
+
+
+  ...................................................................................................................................................................................................................................
+       Classes. Code , CodeCFT , CodeSEHGBL001 , IdentiteDeclarant , IdentiteOPEDI , IdentiteORGIR , string
+
+
+
+
+                                                                                                               6
+       CNAMTS                                                       ENTBPIJ                              Date: 08/06/2011
+     DDSI/DPRM/DAP                               Message d'Entete pour l'échange des Bordereaux          Statut: Validé
+ Département Avant-Projets                       de Payement des Indemnités Journalières (BPIJ)          Version: 01.00
+                                                                   Commun
+
+
+2.2.2. Liste des classes
+
+                                                                                                                  2.2.2.1. Code
+
+   Nom qualifié.     ENTBPIJ :: Enveloppe :: Commun :: Simples :: Code
+   Vocabulaire.     ENTBPIJ
+
+
+   Définition.    Code exprime une information sous forme littérale et/ou codée.
+   Généralisation en extension.       string
+   Diagramme.        Diagramme de Classe Simples
+
+
+                                                                                                            2.2.2.2. CodeCFT
+
+   Nom qualifié.     ENTBPIJ :: Enveloppe :: Commun :: Simples :: CodeCFT
+   Vocabulaire.     ENTBPIJ
+
+
+   Définition.    Code exprime une information sous forme littérale et/ou codée.
+   Généralisation en extension.       string
+   Diagramme.        Diagramme de Classe Simples
+
+
+   Métadonnée (*)              Définition complète                                                Occ. Type
+
+                               Qualifiant de discrimination de l’information.                     [1..1] string
+       Q                       Valeur = "CFT"
+                               Contrainte (regexp) .     CFT
+
+  (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+
+
+                                                                      7
+      CNAMTS                                                      ENTBPIJ                                Date: 08/06/2011
+    DDSI/DPRM/DAP                               Message d'Entete pour l'échange des Bordereaux           Statut: Validé
+Département Avant-Projets                       de Payement des Indemnités Journalières (BPIJ)           Version: 01.00
+                                                                  Commun
+
+
+                                                                                                 2.2.2.3. CodeSEHGBL001
+
+ Nom qualifié.      ENTBPIJ :: Enveloppe :: Commun :: Simples :: CodeSEHGBL001
+ Vocabulaire.      ENTBPIJ
+
+
+ Définition.    Code exprime une information sous forme littérale et/ou codée.
+ Généralisation en extension.        string
+ Diagramme.         Diagramme de Classe Simples
+
+
+ Métadonnée (*)               Définition complète                                                 Occ. Type
+
+                              Agence de maintenance de la liste de codes                          [1..1] string
+      A
+                              Valeur="SEH"
+                              Contrainte (regexp) .      SEH
+
+                              Identifiant de la liste de codes.                                   [1..1] string
+      L
+                              Valeur="GLB"
+                              Contrainte (regexp) .      GBL
+
+                              Version de la liste de codes.                                       [1..1] string
+      V
+                              valeur="001"
+                              Contrainte (regexp) .      001
+
+ (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+
+
+                                                                    8
+      CNAMTS                                                        ENTBPIJ                                           Date: 08/06/2011
+    DDSI/DPRM/DAP                               Message d'Entete pour l'échange des Bordereaux                        Statut: Validé
+Département Avant-Projets                       de Payement des Indemnités Journalières (BPIJ)                        Version: 01.00
+                                                                  Commun
+
+
+                                                                                                             2.2.2.4. IdentiteDeclarant
+
+ Nom qualifié.      ENTBPIJ :: Enveloppe :: Commun :: Simples :: IdentiteDeclarant
+ Vocabulaire.      ENTBPIJ
+
+
+ Définition.    L’identité donne la référence unique d’un intervenant dans un certain référentiel d’identification.
+ Généralisation en extension.        string
+ Diagramme.         Diagramme de Classe Simples
+
+
+ Métadonnée (*)               Définition complète                                                             Occ. Type
+
+                              Code désignant le référentiel d’identification.                                 [1..1] string
+      R
+                              valeur= "SIRET" ou "OC"
+                              Contrainte (regexp) .     SIRET|OC
+
+ (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+                                                                                                                2.2.2.5. IdentiteOPEDI
+
+ Nom qualifié.      ENTBPIJ :: Enveloppe :: Commun :: Simples :: IdentiteOPEDI
+ Vocabulaire.      ENTBPIJ
+
+
+ Définition.    Code identifiant un opérateur EDI
+ L’identité donne la référence unique d’un intervenant dans un certain référentiel d’identification.
+ Généralisation en extension.        string
+ Diagramme.         Diagramme de Classe Simples
+
+
+ Métadonnée (*)               Définition complète                                                             Occ. Type
+
+                              Code désignant le référentiel d’identification.                                 [1..1] string
+      R                       Valeur = "SIRET"
+                              ou
+                              "OC" (référentiel des codes organismes complémentaires)
+                              Contrainte (regexp) .     SIRET|OC
+
+ (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+                                                                                                               2.2.2.6. IdentiteORGIR
+
+ Nom qualifié.      ENTBPIJ :: Enveloppe :: Commun :: Simples :: IdentiteORGIR
+ Vocabulaire.      ENTBPIJ
+
+
+ Définition.    L’identité donne la référence unique d’un intervenant dans un certain référentiel d’identification.
+ Généralisation en extension.        string
+ Diagramme.         Diagramme de Classe Simples
+
+
+ Métadonnée (*)               Définition complète                                                             Occ. Type
+
+                              Code désignant le référentiel d’identification.                                 [1..1] string
+      R
+
+
+                                                                       9
+      CNAMTS                                                     ENTBPIJ                             Date: 08/06/2011
+    DDSI/DPRM/DAP                               Message d'Entete pour l'échange des Bordereaux       Statut: Validé
+Département Avant-Projets                       de Payement des Indemnités Journalières (BPIJ)       Version: 01.00
+                                                                  Commun
+
+
+ Métadonnée (*)               Définition complète                                                Occ. Type
+                              Valeur= "ORGIR" pour référentiel des organismes inter-régime
+                              Contrainte (regexp) .     ORGIR
+
+ (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+
+
+                                                                  10
+      CNAMTS                                                        ENTBPIJ                                  Date: 08/06/2011
+    DDSI/DPRM/DAP                              Message d'Entete pour l'échange des Bordereaux                Statut: Validé
+ Département Avant-Projets                     de Payement des Indemnités Journalières (BPIJ)                Version: 01.00
+                                                                 Commun
+
+
+2.3. Liste des classes
+
+                                                                                                                       2.3.1. Dossier
+
+  Nom qualifié.     ENTBPIJ :: Enveloppe :: Commun :: Agregats :: Dossier
+  Vocabulaire.     ENTBPIJ
+
+
+  Définition.    Dossier : rassemble les informations décrivant un document logique.
+  Un document logique est une entité métier composée d'un ensemble de données de format quelconque (documents physiques transportés).
+  -- Il est conceptuellement unique et possède un identifiant non ambigu (Mindex),
+  permettant son repérage dans n’importe quelle étape de l’échange
+  -- Il est électronique (natif ou numérisé)
+  -- Il ne peut être traité, visualisé, archivé que par des moyens
+  électroniques
+  Exemple :
+  Dossier référençant des documents physiques
+  Dossier de déclaration d'accident de travail (DAT) référençant 1 cerfa
+  et une photo en pièce jointe
+  Dossier de demande de passeport référençant 1 cerfa, 1 photo, des
+  empreintes digitales et des pièces justificatives numérisées.
+  Diagramme.        Diagramme de Classe ENTBPIJ
+
+
+  Attribut                    Définition complète                                                      Occ. Type
+
+                                                                                                       [1..1] Mindex
+       Mindex
+
+                                                                                                       [1..1] Lien
+       Lien
+
+                                                                                                       [1..1] Trace
+       Trace
+
+
+
+
+                                                                     11
+     CNAMTS                                                        ENTBPIJ                                       Date: 08/06/2011
+   DDSI/DPRM/DAP                              Message d'Entete pour l'échange des Bordereaux                     Statut: Validé
+Département Avant-Projets                     de Payement des Indemnités Journalières (BPIJ)                     Version: 01.00
+                                                                Commun
+
+
+                                                                                                                         2.3.2. Emetteur
+
+ Nom qualifié.     ENTBPIJ :: Enveloppe :: Commun :: Agregats :: Emetteur
+ Vocabulaire.     ENTBPIJ
+
+
+ Définition.    Emetteur du flux.
+ Diagramme.        Diagramme de Classe ENTBPIJ
+
+
+ Attribut                    Définition complète                                                           Occ. Type
+
+                             Identité de l'émetteur du flux.                                               [1..1] IdentiteORGIR
+     Identite
+                             Valeur de Identité : "010000000 " pour le CEN (Centre d'Exploitation Natio-
+                             nal) de la CNAMTS
+                             Valeur du qualifiant R = "ORGIR"
+                             Contrainte (regexp) .     010000000
+
+                                      • R [1..1]
+                                         Contrainte (regexp) .     ORGIR
+
+                             Qualité de l'émetteur.                                                        [1..1] Code
+     Qualite
+                             Valeur fixée contractuellement entre les partenaires.
+                             Valeur fixée : ACNAM
+                             Contrainte (regexp) .     ACNAM
+
+
+
+
+                                                                    12
+      CNAMTS                                                           ENTBPIJ                                           Date: 08/06/2011
+    DDSI/DPRM/DAP                                 Message d'Entete pour l'échange des Bordereaux                         Statut: Validé
+Département Avant-Projets                         de Payement des Indemnités Journalières (BPIJ)                         Version: 01.00
+                                                                    Commun
+
+
+                                                                                                                                     2.3.3. Entete
+
+ Nom qualifié.      ENTBPIJ :: Enveloppe :: Commun :: Agregats :: Entete
+ Nom d'instance.        Entete
+ Vocabulaire.      ENTBPIJ
+
+
+ Définition.     Une entête est un système d’identification de l’enveloppe d’échange, et de description de son contenu
+ Diagramme.         Diagramme de Classe ENTBPIJ
+
+
+ Métadonnée (*)                  Définition complète                                                              Occ. Type
+
+                                 Nom du profil fonctionnel du message. Il est défini entre les partenaires et est [1..1] string
+      PGMD _Profil               utilisé pour valider l’instance du message.
+                                 Valeur fixée contractuellement entre les partenaires.
+                                 Contrainte (regexp) .     ENTBPIJ
+
+                                 Version fonctionnelle du message. Elle est définie entre les partenaires et est [1..1] string
+      Profil _Version            utilisée pour contrôler l’instance du message (validation) .
+                                 La version discrimine les messages de même nature (PGMD_Profil) dont les
+                                 échanges sont autorisés simultanéments entre deux partenaires.
+                                 Valeur fixée contractuellement entre les partenaires.
+                                 Par exemple : 1.0 pour la version initiale.
+
+ (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+ Attribut                        Définition complète                                                              Occ. Type
+
+                                 Numéro ou référence attribué par le producteur de l’entête, lui permettant de [1..1] string
+      Identification             l’identifier de manière unique
+
+                                 Date ou horodatage fixé par le producteur de l’entête au moment de sa création [1..1] dateTime
+      Temps
+
+                                 Code qui détermine la fonction du message dans un scénario déterminé. Ex. [0..1] Code
+      Fonction                   Message initial, rectificatif, annule et remplace, etc. (ISO 7372/1225)
+                                 Par défaut, valeur=9 (original)
+                                 valeur = 53 (document de test)
+
+                                 Informations techniques CFT pour commande : CFTSEND                              [1..1] CodeCFT
+      Info
+                                 valeur=PART=... , IDF=...
+
+                                          • Q [1..1]
+                                             Contrainte (regexp) .     CFT
+
+                                                                                                                  [0..1] Emetteur
+      Emetteur
+
+                                                                                                                  [0..1] Recepteur
+      Recepteur
+
+                                                                                                                  [0..*] Dossier
+      Document
+
+
+
+
+                                                                         13
+     CNAMTS                                                        ENTBPIJ                                           Date: 08/06/2011
+   DDSI/DPRM/DAP                              Message d'Entete pour l'échange des Bordereaux                         Statut: Validé
+Département Avant-Projets                     de Payement des Indemnités Journalières (BPIJ)                         Version: 01.00
+                                                                Commun
+
+
+                                                                                                                                2.3.4. Lien
+
+ Nom qualifié.     ENTBPIJ :: Enveloppe :: Commun :: Agregats :: Lien
+ Vocabulaire.     ENTBPIJ
+
+
+ Définition.    Ressource permettant l'accès indirect aux documents physiques référencés (la ressource contient l'adresse de la donnée).
+ Diagramme.        Diagramme de Classe ENTBPIJ
+
+
+ Attribut                    Définition complète                                                               Occ. Type
+
+                             C’est l’adresse d’un document physique. Cette adresse peut être externe à [1..1] string
+     Adresse                 l’enveloppe ou interne à celle-ci.
+                             Par exemple :
+                             - pour une unité d'envoi de type ZIP, l'adresse est le nom du fichier référencé
+                             dans le ZIP,
+                             - pour une unité d'envoi de type agrégat XML, l'adresse est le numéro d'ordre
+                             de l'élement XML (document) dans l'agrégat.
+
+                             Code permettant de déterminer la structure du document physique.                  [1..1] Code
+     Type
+                             Valeur = "XML"
+                             Contrainte (regexp) .     XML
+
+
+
+
+                                                                    14
+     CNAMTS                                                         ENTBPIJ                                       Date: 08/06/2011
+   DDSI/DPRM/DAP                               Message d'Entete pour l'échange des Bordereaux                     Statut: Validé
+Département Avant-Projets                      de Payement des Indemnités Journalières (BPIJ)                     Version: 01.00
+                                                                 Commun
+
+
+                                                                                                                           2.3.5. Mindex
+
+ Nom qualifié.     ENTBPIJ :: Enveloppe :: Commun :: Agregats :: Mindex
+ Vocabulaire.      ENTBPIJ
+
+
+ Définition.    Index constitué d'informations relatives au dossier transporté.
+ Diagramme.        Diagramme de Classe ENTBPIJ
+
+
+ Attribut                     Définition complète                                                           Occ. Type
+
+                              Information codée décrivant la nature fonctionnelle du document.              [1..1] Code
+     Profil
+                              Valeur du profil = "BPIJ" pour Borderau de Payement des Indemnités Journa-
+                              lières
+                              Contrainte (regexp) .     BPIJ
+
+                              Code qui détermine la fonction du document dans un scénario déterminé. Ex. [0..1] Code
+     Fonction                 Document initial, rectificatif, annule et remplace, etc.
+                              Par défaut, valeur=9 (original)
+                              valeur = 53 (document de test)
+
+                              Numéro ou référence attribué par l' Origine (producteur du document), lui per- [1..1] Code
+     Identification           mettant d’identifier le document de manière unique dans un profil déterminé.
+
+                              Date ou horodatage fixé par l’origine au moment de la création du document. [1..1] dateTime
+     Temps
+
+
+
+
+                                                                      15
+     CNAMTS                                                        ENTBPIJ                           Date: 08/06/2011
+   DDSI/DPRM/DAP                              Message d'Entete pour l'échange des Bordereaux         Statut: Validé
+Département Avant-Projets                     de Payement des Indemnités Journalières (BPIJ)         Version: 01.00
+                                                                Commun
+
+
+                                                                                                         2.3.6. Recepteur
+
+ Nom qualifié.     ENTBPIJ :: Enveloppe :: Commun :: Agregats :: Recepteur
+ Vocabulaire.     ENTBPIJ
+
+
+ Définition.    Récepteur du flux.
+ Diagramme.        Diagramme de Classe ENTBPIJ
+
+
+ Attribut                    Définition complète                                               Occ. Type
+
+                             Identité de l' Opérateur EDI récepteur de l'enveloppe .           [1..1] IdentiteOPEDI
+     Identite
+                                      • R [1..1]
+                                        Contrainte (regexp) .     SIRET|OC
+
+                             Qualité du récepteur.                                             [1..1] Code
+     Qualite
+                             Valeur fixée contractuellement entre les partenaires.
+                             Valeur fixée = "OPEDI"
+                             Contrainte (regexp) .    OPEDI
+
+
+
+
+                                                                    16
+     CNAMTS                                                           ENTBPIJ                                          Date: 08/06/2011
+   DDSI/DPRM/DAP                                 Message d'Entete pour l'échange des Bordereaux                        Statut: Validé
+Département Avant-Projets                        de Payement des Indemnités Journalières (BPIJ)                        Version: 01.00
+                                                                   Commun
+
+
+                                                                                                                                  2.3.7. Trace
+
+ Nom qualifié.      ENTBPIJ :: Enveloppe :: Commun :: Agregats :: Trace
+ Vocabulaire.       ENTBPIJ
+
+
+ Définition.     La trace est un système décrivant le changement d’état d’un objet, suite à la réalisation d’une activité identifiée dans son cycle
+ de vie.
+ Trace l'activité de réception et précise le consomateur du document.
+ Diagramme.         Diagramme de Classe ENTBPIJ
+
+
+ Attribut                      Définition complète                                                              Occ. Type
+
+                               Décrit l'activité du processus.                                                  [1..1] CodeSEHGBL001
+      Activite
+                               Valeur de l'activité = "R"
+                               Liste des qualifiants utilisés :
+                               A= "SEH"
+                               L="GBL"
+                               V="001"
+                               Contrainte (regexp) .      R
+
+                                         • A [1..1]
+                                           Contrainte (regexp) .     SEH
+                                         • L [1..1]
+                                           Contrainte (regexp) .     GBL
+                                         • V [1..1]
+                                           Contrainte (regexp) .     001
+
+                                                                                                                [1..1] Transmis
+      Transmis
+
+
+
+
+                                                                       17
+     CNAMTS                                                             ENTBPIJ                                    Date: 08/06/2011
+   DDSI/DPRM/DAP                                 Message d'Entete pour l'échange des Bordereaux                    Statut: Validé
+Département Avant-Projets                        de Payement des Indemnités Journalières (BPIJ)                    Version: 01.00
+                                                                   Commun
+
+
+                                                                                                                            2.3.8. Transmis
+
+ Nom qualifié.      ENTBPIJ :: Enveloppe :: Commun :: Agregats :: Transmis
+ Vocabulaire.       ENTBPIJ
+
+
+ Définition.     Décrit l'intervenant responsable de l'activité suivante de l'activité courante tracée.
+ Pour l'activité "réception", Transmis décrit le "consomateur" du document.
+ Diagramme.          Diagramme de Classe ENTBPIJ
+
+
+ Attribut                      Définition complète                                                           Occ. Type
+
+                               Identité de l'intervenant.                                                    [1..1] IdentiteDeclarant
+      Identite
+                                         • R [1..1]
+                                            Contrainte (regexp) .       SIRET|OC
+
+                               A pour objet de décrire de manière générique l'intervenant qui joue le rôle de [1..1] Code
+      Qualite                  consommateur du document.
+                               Contrainte (regexp) .        Declarant
+
+
+
+
+                                                                         18
+      CNAMTS                                                          ENTBPIJ                                          Date: 08/06/2011
+    DDSI/DPRM/DAP                               Message d'Entete pour l'échange des Bordereaux                         Statut: Validé
+Département Avant-Projets                       de Payement des Indemnités Journalières (BPIJ)                         Version: 01.00
+                                                                   Annexes
+
+
+Annexe A. Annexes
+A.1. Package Bases
+ Définition.    Cette annexe décrit l'ensemble des types de base utilisés dans la documentation du modèle.
+ Vocabulaire. Les types de base sont définis dans un vocabulaire externe au modèle (le vocabulaire déclaré par le langage cible)
+ Valeur: http://www.w3.org/2001/XMLSchema (Identifiant: xsd)
+
+
+                                                                                                                             A.1.1. dateTime
+
+  Nom qualifié.     dateTime
+
+
+  Définition.    Type primitif XML Schémas
+  Représente un moment spécifique dans le temps (norme ISO 8601).
+  Le format de dateTime est CCYY-MM-DDThh :mm:ss, où CC représente le siècle, YY, l'année, MM, le mois et DD, le jour, précédé d'un signe
+  moins facultatif (-) pour indiquer un nombre négatif. Si le signe moins (-) est omis, le nombre est supposé positif (+). T est le séparateur date/
+  heure et hh, mm et ss représentent respectivement l'heure, la minute et la seconde. Des chiffres supplémentaires permettent d'augmenter la
+  précision de fractions de secondes, au besoin. Par exemple, le format ss.ss... avec n'importe quel nombre de chiffres après la virgule décimale
+  est pris en charge. La partie des fractions de secondes est facultative.
+  Cette représentation peut être immédiatement suivie d'un « Z » pour indiquer l'heure universelle (UTC) ou le fuseau horaire. Il s'agit par
+  exemple de la différence entre l'heure locale et l'heure UTC, immédiatement suivie d'un signe + ou -, suivi de la différence par rapport à
+  l'heure UTC représentée sous la forme hh:mm (les minutes sont requises). Si le fuseau horaire est inclus, les heures et les minutes doivent
+  être présentes.
+
+
+                                                                                                                                  A.1.2. string
+
+  Nom qualifié.     string
+
+
+  Définition.    Type primitif XML Schémas
+  Représente des chaînes de caractères.
+
+
+
+
+                                                                        19
+      CNAMTS                                           ENTBPIJ                         Date: 08/06/2011
+    DDSI/DPRM/DAP                     Message d'Entete pour l'échange des Bordereaux   Statut: Validé
+ Département Avant-Projets            de Payement des Indemnités Journalières (BPIJ)   Version: 01.00
+                                                         Annexes
+
+
+A.2. Informations de traçabilité du modèle
+  EspaceTravail.     WS_CAMELIA_ET5
+  Horodatage.      20110608_163755
+  Projet.   Projet_BPIJ
+  Statut.   Consolidé
+
+
+
+
+                                                        20
+      CNAMTS                                                ENTBPIJ                                   Date: 08/06/2011
+    DDSI/DPRM/DAP                          Message d'Entete pour l'échange des Bordereaux             Statut: Validé
+Département Avant-Projets                  de Payement des Indemnités Journalières (BPIJ)             Version: 01.00
+                                                              Annexes
+
+
+A.3. Tableau des changements - Version de référence: 01.00
+ Liste des diagrammes, dont les éléments ont changé.
+
+  Diagrammes                                                             Liens vers les classes
+
+  Diagramme de Classe ENTBPIJ            Dossier , Emetteur , Entete , Lien , Mindex , Recepteur , Trace , Transmis
+
+                                         Modèle ENTBPIJ. Message d'Entete pour l'échange des Bordereaux de Payement des Indem-
+                                         nités Journalières (BPIJ) (ENTBPIJ)
+
+
+
+
+                                                              21
+

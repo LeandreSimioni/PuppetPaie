@@ -327,6 +327,15 @@ pub static TEXTES: &[Texte] = &[
             // la DSN remplit d'ordinaire (R133-14, IV) -- pas pour le deuil, que la DSN ne couvre pas (la page de
             // net-entreprises, `accident-du-travail/`). `moteur/src/obligations.rs`, l'obligation `attestation_salaire`.
             Domaine { cle: "conge_de_deuil", titre: "Le conge de deuil d'un enfant : ses indemnites journalieres et l'attestation de salaire", numeros: &["L331-9", "D331-7", "R323-10"] },
+            // LES INDEMNITES JOURNALIERES ET LA SUBROGATION : L321-1 (l'indemnite journaliere), L323-1 et R323-1 (due
+            // « pour chaque jour ouvrable ou non », a partir du quatrieme jour), L323-4, R323-4 et R323-5 (son montant,
+            // que la caisse calcule et que le moteur lit, regle 1), R323-11 (l'employeur qui maintient le salaire est
+            // subroge) ; L433-1, R433-1 et R433-3 pour l'accident du travail (des le lendemain de l'accident, 60 % puis 80 %
+            // au vingt-neuvieme jour). `engagement::maintien`.
+            Domaine { cle: "indemnites_journalieres", titre: "Les indemnites journalieres et la subrogation de l'employeur", numeros: &["L321-1", "L323-1", "L323-4", "R323-1", "R323-4", "R323-5", "R323-11", "L433-1", "R433-1", "R433-3"] },
+            // LA CSG DES INDEMNITES JOURNALIERES : 6,2 % (L136-8, II, 1°, b), sur les revenus de remplacement (L136-1-2).
+            // L'assiette du PAS d'une indemnite subrogee en retire la part deductible (CGI 154 quinquies).
+            Domaine { cle: "csg_remplacement", titre: "La CSG des revenus de remplacement", numeros: &["L136-1-2", "L136-8"] },
         ],
     },
     // ------------------------------------------------------------------
@@ -509,6 +518,10 @@ pub static TEXTES: &[Texte] = &[
             // L'EXONERATION D'IMPOT SUR LE REVENU DES HEURES SUPPLEMENTAIRES ET COMPLEMENTAIRES, dans sa limite annuelle
             // (81 quater) : elle sort du net imposable, donc de l'assiette du PAS. `engagement::heures_en_plus`.
             Domaine { cle: "heures_supplementaires", titre: "L'exoneration d'impot sur le revenu des heures supplementaires et complementaires", numeros: &["81 quater"] },
+            // LES INDEMNITES JOURNALIERES SUBROGEES ET LE PAS : 154 quinquies (la CSG deductible, 3,8 points sur 6,2),
+            // 80 quinquies (les indemnites journalieres sont imposables, sauf affection de longue duree) et 81, 8° (celles
+            // d'un accident du travail le sont pour moitie). BOFiP BOI-IR-PAS-20-10-10 § 80 a 110. `engagement::maintien`.
+            Domaine { cle: "indemnites_journalieres", titre: "L'impot sur le revenu des indemnites journalieres", numeros: &["154 quinquies", "80 quinquies", "81"] },
         ],
     },
 ];

@@ -455,7 +455,22 @@
       "soumis": true,
       "imposable": true,
       "conges_spectacles": false,
-      "source": "Ce que l'employeur continue de verser pendant un arret de travail, en application de la loi (art. L1226-1 du code du travail) ou de la convention collective. NON CALCULE : le montant se saisit. La loi (L1226-1, D1226-1 et D1226-2) fait dependre le maintien de l'anciennete, d'un delai de carence et d'un pourcentage degressif, et ces articles N'ONT PAS ETE RELEVES ; la convention 3090 peut faire mieux. Le moteur porte la ligne et la declare, il ne la calcule pas."
+      "retabli": true,
+      "source": "Ce que l'employeur verse pendant un arret de travail : le complement de la loi (L1226-1, D1226-1 a D1226-5) ou de la convention, le plus favorable, apres deduction des indemnites journalieres ; subrogee, la compagnie y ajoute les indemnites brutes qu'elle avance (`ijss_brutes` les retire). Calcule par `engagement::maintien`, les indemnites lues sur l'arret. Rubrique `retabli` : le salaire retabli (S21.G00.51, type 003) est le salaire sans l'absence, ni ce qui la compense."
+    },
+    "ijss_brutes": {
+      "libelle": "Indemnités journalières (déduction)",
+      "unite": "jour", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "Subrogee, la compagnie percoit les indemnites journalieres a la place du salarie (CSS R323-11) : le salaire maintenu les avance, et elles se retirent du brut, qu'elles ne sont pas (« les indemnites journalieres de securite sociale non soumises a cotisations », BOSS, assiette generale, § 850 ; norme DSN 2026.1, § 2.3.2 : l'employeur ne declare que « le salaire proprement dit [...] a l'exclusion des indemnites journalieres »). Le montant brut, avant CSG et CRDS, du releve de la caisse (`engagement::maintien`)."
+    },
+    "ijss_nettes": {
+      "libelle": "Indemnités journalières (subrogation)",
+      "unite": "jour", "nature": "indemnite", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": null,
+      "soumis": false, "imposable": false, "conges_spectacles": false,
+      "source": "Les indemnites journalieres que la compagnie subrogee reverse, nettes de la CSG et de la CRDS que la caisse a retenues (BPIJ : les retenues CSG et RDS). Hors cotisations et hors net imposable (norme DSN 2026.1, § 2.3.2 : la caisse les declare elle-meme), dans l'assiette du prelevement a la source (S21.G00.50.013 ; BOFiP BOI-IR-PAS-20-10-10, § 80 a 110) et dans le montant net social (BOSS, Q 13 bis ; S21.G00.58, type 10). `engagement::maintien`."
     },
     "absence_conges_payes": {
       "libelle": "Absence congés payés",
