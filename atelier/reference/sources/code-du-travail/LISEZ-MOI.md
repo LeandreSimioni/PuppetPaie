@@ -434,3 +434,15 @@ fériés ne sont pas relevées ici (la 3090, titre VII, dit seulement quand ils 
 qui tombent un jour travaillé du salarié, avant ses trois mois comptés depuis « Dans la compagnie depuis ») ;
 `droit::periodes::part_du_mois` les retire des heures payées du mois, et l'aperçu le dit. Test :
 `droit/tests/droit/mois_incomplet.rs`, `un_ferie_chome_ne_se_paie_qu_apres_trois_mois_d_anciennete`.
+
+## Les heures supplémentaires et complémentaires d'un salarié au mois (relevé du 02/11/2026, séance 8, lot LONG7)
+
+Domaine `heures_supplementaires` de `moteur/src/atelier/releve/codes/textes.rs` : L3121-29 (le décompte par semaine),
+L3121-30 (le contingent annuel), L3121-33 (l'accord fixe le taux, au moins 10 %, et le contingent), L3121-34, L3121-35,
+L3121-36 (à défaut d'accord : 25 % pour les huit premières heures de la semaine, 50 % au-delà), L3123-22 (le complément
+d'heures par avenant, qui n'est pas une heure complémentaire), L3123-29 (à défaut d'accord : 10 % dans le dixième des heures
+du contrat, 25 % jusqu'au tiers) ; avec, déjà relevés, L3121-28, L3123-20, L3123-21 et L3123-28. Texte dans
+`articles-20261102.md`. **Où le moteur s'en sert** : `logiciel/donnees/permanents-base.json` (`heures_en_plus`), lu par
+`atelier/sources/droit/src/heures_en_plus.rs` ; la convention l'emporte quand elle fixe un taux
+(`clauses-conventionnelles-base.json` : 1285, VI.9, VI.12 et VI.13 bis ; 3090, 8.6), `kali-1285-titre-vi-duree-du-travail-
+20261102.md` et `kali-3090-titre-viii-duree-du-travail-20261102.md`, relevés le même jour par `moteur releve-conventions`.

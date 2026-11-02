@@ -6257,6 +6257,14 @@
    "texte": "securite-sociale"
   },
   {
+   "apres": "LEGIARTI000053278678",
+   "article": "L241-18-1",
+   "avant": "LEGIARTI000046982267",
+   "depuis": "2025-12-31",
+   "livraison": "20260102-215048",
+   "texte": "securite-sociale"
+  },
+  {
    "apres": "LEGIARTI000053279206",
    "article": "L331-9",
    "avant": "LEGIARTI000041976579",
@@ -6359,6 +6367,26 @@
    "debut": "2026-06-15",
    "en_vigueur": true,
    "id": "LEGIARTI000054252223"
+  },
+  "D241-21": {
+   "debut": "2019-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000038056813"
+  },
+  "D241-22": {
+   "debut": "2019-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000038056809"
+  },
+  "D241-24": {
+   "debut": "2025-04-07",
+   "en_vigueur": true,
+   "id": "LEGIARTI000051434562"
+  },
+  "D241-25": {
+   "debut": "2025-04-07",
+   "en_vigueur": true,
+   "id": "LEGIARTI000051434553"
   },
   "D241-7": {
    "debut": "2026-06-15",
@@ -6499,6 +6527,21 @@
    "debut": "2026-01-01",
    "en_vigueur": true,
    "id": "LEGIARTI000053280526"
+  },
+  "L241-17": {
+   "debut": "2019-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000037947458"
+  },
+  "L241-18": {
+   "debut": "2020-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000038610232"
+  },
+  "L241-18-1": {
+   "debut": "2025-12-31",
+   "en_vigueur": true,
+   "id": "LEGIARTI000053278678"
   },
   "L241-3": {
    "debut": "2026-01-01",

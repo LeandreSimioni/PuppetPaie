@@ -118,6 +118,7 @@ function engagementDuBloc(div, mois) {
     if (quotite !== "") e.quotite_contrat = +quotite;
     if (faits.conges.length) e.conges_pris = faits.conges;
     if (faits.primes.length) e.primes = faits.primes;
+    faitsAvancesDuBloc(div, e);
   } else if (lignes.length) {
     e.lignes = JSON.parse(JSON.stringify(lignes));
   }
@@ -274,6 +275,7 @@ async function calculerApercu(lu) {
       if (p) poserChevrons(div, p.contrat, p.debut, p.fin);
       // Les cases du contrat écrit que le moteur demande pour cet engagement.
       montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
+      montrerFaitsAvances(div, p && p.faits_avances);
       div.querySelector(".resolu").innerHTML = p
         ? `${p.contrat && p.contrat.sans_paie
              ? `<b>aucun cachet ce mois-ci</b> — ${aideDe("sans_cachet")}`

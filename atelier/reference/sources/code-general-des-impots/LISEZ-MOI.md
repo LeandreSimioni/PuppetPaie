@@ -64,3 +64,11 @@ taux vaut donc pour tout paiement fait à partir du jour de sa mise à dispositi
 à disposition au plus tard le jour du paiement ; `engagement::etats::prelevement` le demande au jour du versement de
 l'engagement (`Engagement::date_du_versement` : sa date de paiement, sinon la fin de sa période). Le test
 `un_taux_vaut_pour_tout_paiement_a_partir_de_sa_mise_a_disposition` (`droit/src/pas.rs`).
+
+## L'exonération d'impôt sur le revenu des heures supplémentaires et complémentaires (relevé du 02/11/2026, lot LONG7)
+
+81 quater (domaine `heures_supplementaires`) : les rémunérations et majorations de L241-17 CSS sont exonérées dans une limite
+annuelle de 7 500 €. Leur montant net sort de la rémunération nette fiscale et se déclare en S21.G00.58.003 = 01 (fiche
+net-entreprises 2066, `../net-entreprises-base-connaissances/`). Texte dans `articles-20261102.md`. **Où le moteur s'en
+sert** : `logiciel/donnees/permanents-base.json` (`heures_en_plus.exoneration_impot`), `atelier/sources/engagement/src/
+heures_en_plus.rs` (le net exonéré, la limite de l'année), `atelier/sources/declarations/src/dsn.rs` (`net_social`).

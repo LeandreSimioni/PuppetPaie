@@ -19,6 +19,7 @@ pub mod duree;
 pub mod departs;
 pub mod ecarts;
 pub mod empreinte;
+pub mod heures_en_plus;
 pub mod etats;
 pub mod importe;
 pub mod imprevus;
@@ -948,6 +949,24 @@ pub(crate) fn engagements(
         let au_tarif = if nat.mensuelle() { None } else { lignes_au_tarif(ctx, e, &mois_dit)? };
         let e = au_tarif.as_ref().unwrap_or(e);
         let mut spectacle = ou(e.get("spectacle"), None);
+        // Les heures en plus sont des faits d'un contrat paye au mois (`heures_en_plus`) : ceux d'un contrat d'usage ne
+        // seraient payes par rien.
+        if !nat.mensuelle() {
+            let dites: Vec<&str> = [heures_en_plus::HEURES_SUPPLEMENTAIRES, heures_en_plus::HEURES_SUPPLEMENTAIRES_A_50, heures_en_plus::HEURES_COMPLEMENTAIRES]
+                .into_iter()
+                .filter(|k| truthy(e.get(*k)))
+                .collect();
+            if !dites.is_empty() {
+                return Err(format!(
+                    "{} : {} est un fait d'un contrat payé au mois ; un {} paie ses heures par ses lignes (une ligne « Heure de \
+                     travail », ou « Majoration » pour leur majoration). Retirer {}. Rien n'est écrit.",
+                    qui,
+                    dites.join(", "),
+                    nat.libelle,
+                    if dites.len() > 1 { "ces champs" } else { "ce champ" }
+                ));
+            }
+        }
         if nat.mensuelle() {
             // Employer des permanents se declare.
             if !ctx.emploie_des_permanents() {

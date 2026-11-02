@@ -128,9 +128,11 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: 
     let fiche = ctx.salarie(&e.get("salarie").map(en_texte).unwrap_or_default())?;
     let cle = fiche.get("_cle").map(en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
     let debut = crate::debut_brut(&e);
-    // UN NUMERO PARTI NE CHANGE PLUS : celui de la validation que la modification remplace, des qu'un envoi l'a porte.
+    // UN NUMERO PARTI NE CHANGE PLUS : celui de la validation que la modification remplace, des qu'un envoi l'a porte ;
+    // celui qu'une DSN de l'ancien logiciel a declare pour un contrat repris (`importe::numero_declare`).
     let parti = o.brut.get(crate::etats::PRECEDENTE).and_then(|p| p.pointer("/saisie/numero")).filter(|n| vrai(n)).map(en_texte);
-    if let Some(parti) = parti.filter(|p| porte_par_un_envoi(o, &cle, p, departs)) {
+    let parti = parti.filter(|p| porte_par_un_envoi(o, &cle, p, departs)).or_else(|| crate::importe::numero_declare(&o.brut));
+    if let Some(parti) = parti {
         if o.brut.get("numero").filter(|n| vrai(n)).map(en_texte).is_some_and(|n| n != parti) {
             return Err(format!(
                 "{} : ce contrat est parti sous le n° {} ; un numéro parti ne change plus (il identifie le contrat en DSN, \

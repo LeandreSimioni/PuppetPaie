@@ -40,6 +40,34 @@
       "conges_spectacles": true,
       "source": "CSS L.242-1. Les heures declarees sont les heures faites."
     },
+    "heure_supplementaire": {
+      "libelle": "Heures supplémentaires",
+      "unite": "heure",
+      "nature": "salaire",
+      "saisie": [],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": "017",
+      "soumis": true,
+      "imposable": true,
+      "conges_spectacles": true,
+      "source": "Les heures supplementaires d'un salarie a temps plein paye au mois (C. trav. L3121-28), au taux horaire de son contrat majore (`droit::heures_en_plus`). Le moteur la compose depuis le fait du mois (`heures_supplementaires`), jamais une saisie de ligne. Declaree en S21.G00.51.011 = 017 (heures aleatoires ; fiche net-entreprises 2066) ; ses heures comptent au salaire minimum de la reduction generale (CSS D241-7, IV). Son montant ouvre la reduction de cotisations salariales (L241-17) et l'exoneration d'impot (CGI 81 quater), que le calcul fait (`engagement::heures_en_plus`)."
+    },
+    "heure_complementaire": {
+      "libelle": "Heures complémentaires",
+      "unite": "heure",
+      "nature": "salaire",
+      "saisie": [],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": "017",
+      "soumis": true,
+      "imposable": true,
+      "conges_spectacles": true,
+      "source": "Les heures complementaires d'un salarie a temps partiel paye au mois (C. trav. L3123-20), au taux horaire de son contrat majore (`droit::heures_en_plus`). Le moteur la compose depuis le fait du mois (`heures_complementaires`). Declaree en S21.G00.51.011 = 017 ; ses heures comptent au salaire minimum de la reduction generale (CSS D241-7, IV) et s'ajoutent a la duree du contrat qui corrige le plafond (R242-2, I). Reduction salariale et exoneration d'impot comme les heures supplementaires (L241-17, I, 5° ; CGI 81 quater) ; pas de deduction patronale (BOSS § 570)."
+    },
     "journee": {
       "libelle": "Journée de travail",
       "unite": "jour",

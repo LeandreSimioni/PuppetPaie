@@ -97,3 +97,17 @@ Ce qu'on en lit (chapitre 9) :
   2025 et 2026 suivent (`_professions`, `_plafond` de `logiciel/donnees/baremes/<année>.json`).
 - Hors chapitre 9, pour mémoire : § 760 (chapitre 4) et § 990, le non-cumul de la DFS avec la prise en charge des
   transports et du carburant, et sa dérogation pour les 50 % obligatoires des titres de transport.
+
+## `boss-heures-supplementaires-20260601.pdf` — Exonérations › Exonérations heures supplémentaires et complémentaires
+
+URL : `http://boss.gouv.fr/portail/sites/siteboss/accueil/exonerations/exonerations-heures-supplementai.html`,
+**version en vigueur au 01/06/2026**, imprimée par Léandre le 02/11/2026. Chapitre 1 : la réduction de cotisations
+salariales d'assurance vieillesse sur la rémunération des heures supplémentaires et complémentaires (L. 241-17 CSS).
+Ce que le moteur en lit : le champ (§ 40-150 : heures supplémentaires d'un temps plein, complémentaires d'un temps
+partiel, pas de « complément d'heures »), le taux horaire majoré (§ 280-310 : le moteur prend le salaire mensuel sur les heures
+par mois, une inférence), le taux de la réduction (§ 350-370 : le taux moyen de la vieillesse salariale, plafonné à 11,31 %),
+son imputation sur la vieillesse de base et sa limite (§ 450-480), sa ligne au bulletin (§ 400), la déduction patronale
+(chapitre 2 : 1,50 € sous vingt salariés, 0,50 € à partir de vingt, heures supplémentaires seules, § 570), et la CSG des heures
+exonérées (§ 440). Où : `droit/src/heures_en_plus.rs`, `engagement/src/heures_en_plus.rs`, `logiciel/donnees/permanents-base.json`
+(`heures_en_plus`). Non porté : les heures structurelles (§ 70, 230-250), le forfait en heures ou en jours (§ 100, 160), le
+rachat de RTT (chapitre 3).

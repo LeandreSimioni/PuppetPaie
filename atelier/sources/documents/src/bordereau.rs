@@ -252,7 +252,9 @@ urssaf-codes-types-personnel). Rien n'est ecrit.",
     };
     let cent = Decimal::ONE_HUNDRED;
     match t.format.as_str() {
-        "F" => {
+        // F et R : le CTP porte le signe negatif, le montant (23.005) s'ecrit positif (tableau DIDA de l'Urssaf,
+        // `chomage-permanents/urssaf-equivalence-dida-20260611.csv`, CTP 003 et 004 ; guide Urssaf du 04/06/2026, format R).
+        "F" | "R" => {
             let m = l.montant.ok_or_else(|| socle::fichiers::absent("montant"))?;
             Ok(-euro(m))
         }
