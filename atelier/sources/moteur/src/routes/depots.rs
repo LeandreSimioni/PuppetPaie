@@ -162,7 +162,7 @@ fn encarts_du_depot(v: &Value) -> Vec<Value> {
         e.push(super::encart(
             "a_faire",
             format!("Prélèvement à la source : {} versement{} sur {} sur la grille par défaut", bareme, if bareme > 1 { "s" } else { "" }, mot(&v["pas_versements"])),
-            "Faute de taux transmis par la DGFiP, c'est la grille de l'article 204 H du CGI qui s'applique, et le dépôt n'est pas bloqué. Elle prélève le plus souvent plus que le taux réel du salarié, qui ne récupère la différence qu'à sa déclaration de revenus l'année suivante. Relever les retours avant de déposer peut encore changer cela.",
+            "Sans taux transmis par la DGFiP, la grille de l'article 204 H du CGI s'applique ; le dépôt n'est pas bloqué. Elle prélève souvent plus que le taux réel, et le salarié ne récupère la différence qu'à sa déclaration de revenus. Relever les retours avant de déposer peut changer cela.",
         ));
     }
     let deja = v["embauches"].as_array().into_iter().flatten().filter(|x| x["deja_declaree"].as_bool() == Some(true)).count();
@@ -178,7 +178,7 @@ fn encarts_du_depot(v: &Value) -> Vec<Value> {
         e.push(super::encart(
             "a_faire",
             "Ce fichier a déjà été déposé",
-            format!("Le {}, en mode {}. Redéposer le même fichier ne remplace rien : un annule-et-remplace se produit, il ne se redépose pas.", super::quand(&mot(&d["quand"])), mot(&d["mode"])),
+            format!("Le {}, en mode {}. Redéposer le même fichier ne remplace rien : un annule-et-remplace se produit, il ne se redépose pas.", super::quand(&mot(&d["quand"])), if mot(&d["mode"]) == "reel" { "réel".to_string() } else { mot(&d["mode"]) }),
         ));
     }
     if v["reel"].as_bool() == Some(false) {

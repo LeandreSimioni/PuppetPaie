@@ -907,6 +907,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     // Le numero du contrat (S21.G00.40.009, que le versement rappelle en S21.G00.51.010) et le mois, si : un bulletin qui
     // imprime son numero se rattache a la paie que la DSN du mois declare sous ce numero.
     let mut par_numero: HashMap<(String, String, String), Vec<(String, String, Cible)>> = HashMap::new();
+    // Sans numero imprime, la regle de l'ecriture (`import::ecrite::rapprocher`, « un contrat a cheval sur deux mois ») :
+    // le bulletin complete la paie declaree du meme mois dont le contrat contient sa periode, quand il n'y en a qu'une.
+    let mut par_mois: HashMap<(String, String), Vec<(String, String, String, Cible)>> = HashMap::new();
     let mut vus: HashSet<(String, String, String)> = HashSet::new();
     for (k, x) in ap.paies.iter().enumerate() {
         let t = |c: &str| x.get(c).map(valeur_en_texte).unwrap_or_default();
@@ -914,6 +917,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         index.entry((t("nir"), t("debut"), t("fin"))).or_default().push((t("mois"), t("contrat"), Cible::Dsn(k)));
         if !t("contrat").is_empty() {
             par_numero.entry((t("nir"), t("mois"), t("contrat"))).or_default().push((t("mois"), t("contrat"), Cible::Dsn(k)));
+        }
+        if !t("debut").is_empty() {
+            par_mois.entry((t("nir"), t("mois"))).or_default().push((t("debut"), t("fin"), t("contrat"), Cible::Dsn(k)));
         }
     }
     // Une paie que l'historique tient d'un bulletin seul s'efface devant la DSN qui la declare (la DSN est lue apres le
@@ -949,6 +955,18 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         if candidats.is_empty() {
             if let Some(n) = l.b.contrat.as_deref().map(str::trim).filter(|n| !n.is_empty()) {
                 candidats = par_numero.get(&(l.nir.clone(), l.mois.clone(), n.to_string())).cloned().unwrap_or_default();
+            }
+        }
+        if candidats.is_empty() {
+            let contient: Vec<(String, String, Cible)> = par_mois
+                .get(&(l.nir.clone(), l.mois.clone()))
+                .into_iter()
+                .flatten()
+                .filter(|(d, f, _, _)| *d <= debut && (f.is_empty() || fin <= *f))
+                .map(|(_, _, contrat, cible)| (l.mois.clone(), contrat.clone(), cible.clone()))
+                .collect();
+            if contient.len() == 1 {
+                candidats = contient;
             }
         }
         if candidats.iter().any(|c| matches!(c.2, Cible::Dsn(_))) {
