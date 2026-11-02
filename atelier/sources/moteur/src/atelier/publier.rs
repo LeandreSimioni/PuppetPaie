@@ -217,7 +217,7 @@ pub fn archiver_fictives(code: &Path) -> R<(Vec<u8>, String)> {
 /// L'ARCHIVE D'INSTALLATION d'un systeme ou de tous : `logiciel/` (ce que porte l'archive de mise a jour,
 /// sous `logiciel/`) et, a cote, `fictives/` (exactement ce que porte l'archive des fictives : une installation neuve
 /// retient la livraison qu'elle a, et ne la retelecharge pas). Decompressee dans un dossier neuf, elle donne ce que pose
-/// l'installeur Windows : une installation bridee, avec ses quatre fictives. Elle ne sert qu'a installer : aucune
+/// l'installeur Windows : une installation bridee, avec ses fictives. Elle ne sert qu'a installer : aucune
 /// installation ne la telecharge, et `deballer` la refuse comme mise a jour. Elle pourrait se composer des deux autres
 /// (les decompresser l'une dans `logiciel/`, l'autre a cote) ; elle reste une archive, pour qu'installer soit telecharger
 /// un fichier et le decompresser.

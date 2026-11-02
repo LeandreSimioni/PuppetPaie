@@ -42,7 +42,7 @@
 //!
 //! L'ARCHIVE D'INSTALLATION, a cote (`puppetpaie-<version>-<systeme>-installation.zip`) : ce que l'installeur Windows
 //! pose, pour Linux, Mac et le dossier portable (la tout-systeme) : `logiciel/` et, a cote, `fictives/` (les compagnies
-//! fictives livrees). Decompressee dans un dossier neuf, elle s'ouvre bridee sur ses quatre fictives. Elle ne sert qu'a
+//! fictives livrees). Decompressee dans un dossier neuf, elle s'ouvre bridee sur ses fictives. Elle ne sert qu'a
 //! installer : aucune installation ne la telecharge, `derniere.json` ne la nomme pas, et elle n'est pas signee
 //! (l'installeur Windows non plus) ; la Release la porte a cote des archives de mise a jour.
 //!

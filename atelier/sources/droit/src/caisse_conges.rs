@@ -52,7 +52,7 @@ pub fn douze_mois_ou_plus(debut: &Jour, fin: &Jour) -> Resultat<bool> {
 /// Les TECHNICIENS (annexe 8) ne sont pas lus ici, et c'est voulu : D. 7121-40 dit « le personnel artistique et
 /// technique » sans le definir, et l'annexe 8 -- la seule liste que le moteur ait -- range parmi les « ouvriers et
 /// techniciens » l'administrateur, le charge et l'attache de production (liste de l'Unedic,
-/// `unedic-annexe8-liste-champ-application-20161216.txt`, p. 21-22), que la compagnie fictive `fictive-3090-grande` paie en
+/// `unedic-annexe8-liste-champ-application-20161216.txt`, p. 21-22), qu'une compagnie peut payer en
 /// CDD de droit commun avec ses conges payes par l'employeur. Quel technicien en CDD de droit commun est declare a la
 /// caisse attend une decision : il n'est pas declare.
 pub fn artiste_du_spectacle(sal: &Value) -> Resultat<bool> {

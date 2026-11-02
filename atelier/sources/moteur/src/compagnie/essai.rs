@@ -53,9 +53,9 @@ const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
 /// une fictive joue ses depots, une compagnie d'essai les fait en test, pour de vrai.
 pub const MARQUE_ESSAI: &str = "compagnie d'essai";
 
-/// La fictive copiee quand `--depuis` ne dit rien : celle qui a du monde CHAQUE mois (des permanents et des intermittents,
-/// IDCC 3090), pour qu'une DSN d'essai porte des individus quel que soit le mois.
-pub const FICTIVE_PAR_DEFAUT: &str = "fictive-3090-grande";
+/// La fictive copiee quand `--depuis` ne dit rien : la fictive de reference livree (`scenario::livrer`, que « Publier »
+/// refait), dont les mois joues ont leurs DSN et leurs salaries.
+pub const FICTIVE_PAR_DEFAUT: &str = "fictive-fil-de-fer";
 
 /// Le nom du dossier quand la commande n'en donne pas : dans le dossier temporaire du systeme.
 pub const DOSSIER_PAR_DEFAUT: &str = "puppetpaie-essai";
@@ -93,7 +93,7 @@ const RUBRIQUES: [(&str, &[&str]); 12] = [
 const RETIREES: [&str; 8] = ["siret", "nom_affichage", "adresse_affichage", "commune_affichage", "complement_adresse", "tel", "etablissements", "_source"];
 
 /// Ce que la copie ne prend pas de la fictive (relatif a sa racine).
-const NON_COPIES: [&str; 4] = [MARQUEUR, "FICTIVE.md", "retours", "config/horloge.json"];
+const NON_COPIES: [&str; 3] = [MARQUEUR, "retours", "config/horloge.json"];
 
 /// Une compagnie d'essai : son marqueur le dit.
 pub fn est_essai(racine: &Path) -> bool {
@@ -425,7 +425,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
 
 const AIDE: &str = "usage : moteur essai monter [DOSSIER] [--depuis FICTIVE]
 
-Monte une COMPAGNIE D'ESSAI : la copie d'une compagnie fictive (defaut : fictive-3090-grande, dans fictives/ de
+Monte une COMPAGNIE D'ESSAI : la copie d'une compagnie fictive (defaut : fictive-fil-de-fer, dans fictives/ de
 l'installation ; ou un chemin), sous l'identite d'une vraie compagnie lue dans la variable PUPPETPAIE_COMPAGNIE.
 Ses depots de TEST vont au reseau (net-entreprises, Urssaf) ; tout depot reel y est refuse.
 DOSSIER : hors de tout depot Git (defaut : <dossier temporaire>/puppetpaie-essai). Deja monte, seule l'identite

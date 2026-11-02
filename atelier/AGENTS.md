@@ -25,7 +25,7 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
 2. **Les tickets** : les issues GitHub du dépôt privé (celles de Léandre, et celles du filet, étiquetées `retour` et
    `incident`). Une séance prend ceux que Léandre nomme ; les captures d'un ticket se regardent toutes, avant le reste.
 3. Le reste s'ouvre quand on en a besoin : `atelier/README.md` (comment une commande s'utilise), `atelier/docs/ARCHITECTURE.md`
-   (un format, un calcul), `atelier/docs/RUBRIQUES.md` (une rubrique de paie), `atelier/docs/COMPAGNIES-FICTIVES.md`, `atelier/docs/COMPAGNIE-D-ESSAI.md`
+   (un format, un calcul), `atelier/docs/RUBRIQUES.md` (une rubrique de paie), `atelier/docs/COMPAGNIE-D-ESSAI.md`
    (déposer en test depuis le nuage). Les archives du journal se cherchent par `grep` dans `journal/archives/INDEX.md`, et on
    n'ouvre que la section du chantier du jour.
 
@@ -212,7 +212,7 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 |---|---|
 | `PuppetPaie.cmd` | le lanceur |
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe` (la fenêtre), `WebView2Loader.dll`, `VERSION`, `AGENTS.md` (la notice d'un LLM qui pilote le moteur), `donnees/` (barèmes, bases, modèles), `interface/` (la page : `index.html`, `interface.css`, `js/`). C'est ce que publie la mise à jour. |
-| `fictives/` | les quatre compagnies fictives, livrées (`docs/COMPAGNIES-FICTIVES.md`) |
+| `fictives/` | les fictives livrées, refaites par « Publier » de leur scénario (`atelier/fictives/`, `scenario::livrer`) ; hors Git |
 | `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
 | `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `envois/` (ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours, et le journal de ce qui est parti ; il reçoit des pièces faites et un mot de passe, et le branchement que `moteur` choisit : le monde, le simulateur ou le message), `moteur/` (programme `moteur` : `src/routes/` une route par geste de l'écran, `src/interface/` le serveur local de la page et la veille, `src/compagnie/` coffre, demande d'un acte réel, sauvegarde, mise à jour, bridage, ouverture, filet, incidents, conseils, `src/import/` le passé d'un ancien logiciel, `src/atelier/` les outils de l'éditeur et la publication, `src/commandes/` la ligne de commande ; exécutables livrés dans `moteur/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |

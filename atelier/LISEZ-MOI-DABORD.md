@@ -11,7 +11,7 @@ PuppetPaie/  (ce dépôt, public)
 ├── PuppetPaie.cmd      le lanceur
 ├── logiciel/           exactement ce qu'une compagnie reçoit : la fenêtre, VERSION, donnees/ (barèmes, bases,
 │                       modèles), interface/ (la page HTML, CSS, JS)
-├── fictives/           les quatre compagnies fictives livrées, sur lesquelles on essaie l'interface
+├── fictives/           (hors Git) les fictives livrées, refaites de leur scénario (atelier/fictives/)
 ├── maj/                (poste seulement) la mise à jour de l'installation
 ├── prive/              (poste seulement, jamais dans Git) la compagnie du poste : config, engagements, paies, sorties, retours, journal
 └── atelier/            tout le reste :
@@ -19,7 +19,7 @@ PuppetPaie/  (ce dépôt, public)
     │                   (le programme moteur ; exécutables livrés dans moteur/bin/<système>/) ; fenetre/ (Tauri),
     │                   fabrique-pdf/
     ├── reference/      les textes qui fondent chaque règle (un LISEZ-MOI par dossier)
-    ├── docs/           ARCHITECTURE, RUBRIQUES, COMPAGNIES-FICTIVES, COMPAGNIE-D-ESSAI, COOLPAIE-SORTIR-SES-DOCUMENTS
+    ├── docs/           ARCHITECTURE, RUBRIQUES, COMPAGNIE-D-ESSAI, COOLPAIE-SORTIR-SES-DOCUMENTS
     ├── outils/         banc/ (le banc d'essai daté, piloté en Node), demos/
     ├── bac-a-sable/    une installation en retard d'une version, pour essayer la mise à jour
     ├── depot/, installeur/, site/, maquettes/

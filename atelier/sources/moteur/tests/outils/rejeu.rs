@@ -61,6 +61,15 @@ pub fn rejouer_dossier(sc: &Path, dossier: &Path) -> (moteur::atelier::scenario:
     (r, racine)
 }
 
+/// LIVRE le scenario `sc` tel qu'il est le soir de `jour` (`scenario::livrer`, ce que « Publier » pose) dans
+/// `dossier/installation/fictives/<nom du scenario>` ; rend la racine de la fictive livree.
+pub fn livrer(sc: &Path, dossier: &Path, jour: &str) -> PathBuf {
+    let _un = UN_A_LA_FOIS.lock().unwrap_or_else(|p| p.into_inner());
+    let dest = dossier.join("installation").join("fictives").join(sc.file_name().unwrap());
+    moteur::atelier::scenario::livrer(sc, &dest, Some(socle::date::Jour::lire(jour).unwrap())).unwrap_or_else(|m| panic!("{} ne se livre pas : {}", sc.display(), m));
+    dest
+}
+
 /// UN SOIR DU REJEU : la compagnie telle qu'elle est a la fin du jour `jour`, avant le premier geste du lendemain
 /// (`rejouer_et_lire`). Ce qu'un test y lit, il le lit comme l'ecran ou un salarie le lirait.
 pub struct Soir<'a> {

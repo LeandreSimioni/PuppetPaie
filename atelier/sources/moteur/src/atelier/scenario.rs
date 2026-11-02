@@ -129,7 +129,7 @@ fn fichiers_de(dossier: &Path) -> Vec<(String, PathBuf)> {
 pub struct OptionsRejeu {
     /// Rejouer aussi les routes qui n'avaient rien ecrit.
     pub lectures: bool,
-    /// S'arreter a la fin de ce jour (a Paris) : les gestes d'apres ne se jouent pas.
+    /// Jouer jusqu'a la fin de ce jour (a Paris) ; des gestes d'apres, seule la saisie s'ecrit (`saisie_d_un_geste`).
     pub jusqu_au: Option<Jour>,
 }
 
@@ -142,6 +142,8 @@ pub struct Rejeu {
     pub lectures_ecartees: usize,
     /// Les gestes sur une compagnie que le scenario n'a pas ajoutee (une fictive livree ouverte pour voir) : ecartes.
     pub autres_compagnies: usize,
+    /// Les gestes d'apres le jour dit (`OptionsRejeu::jusqu_au`) qui ne sont pas une saisie : laisses a l'horloge ou a la personne.
+    pub laisses: usize,
     /// Ce que l'horloge des fictives a joue pendant le rejeu, en phrases, precedees de l'heure du geste.
     pub horloge: Vec<String>,
     /// L'instant du dernier geste rejoue (secondes UTC) : le jour ou l'on lit la compagnie qui en sort.
@@ -341,10 +343,20 @@ fn rejouer_les_gestes(
     let mut racines: BTreeMap<String, PathBuf> = BTreeMap::new();
     for (i, (g, &t)) in gestes.iter().zip(instants).enumerate() {
         let n = g.get("n").and_then(Value::as_u64).map_or(i + 1, |n| n as usize);
+        // APRES LE JOUR DIT, la saisie seule, ce jour-la (a 9 h, ou a la suite du dernier geste joue) : la carte s'ecrit,
+        // le reste est a l'horloge ou a la personne.
+        let (g, t) = match options.jusqu_au.filter(|j| jour_de(t) > *j) {
+            None => (g.clone(), t),
+            Some(j) => match saisie_d_un_geste(g) {
+                Some(s) => (s, r.fin.map_or(0.0, |f| f + 1.0).max(socle::temps::instant_de(j, 9))),
+                None => {
+                    r.laisses += 1;
+                    continue;
+                }
+            },
+        };
+        let g = &g;
         let jour = jour_de(t);
-        if options.jusqu_au.is_some_and(|j| jour > j) {
-            break;
-        }
         lire_les_soirs(jour, &r);
         socle::temps::figer(t);
         r.fin = Some(t);
@@ -439,6 +451,26 @@ fn rejouer_les_gestes(
     }
     lire_les_soirs(Jour::nouveau(9999, 12, 31).expect("un jour"), &r);
     Ok(r)
+}
+
+/// CE QUI SE SAISIT D'UN GESTE : une carte (`enregistrer-saisie` ; `valider-engagement` sans sa validation), une fiche
+/// (`enregistrer-fiche`), reussies a l'enregistrement. Tout autre geste valide, envoie, depose, coche ou avance le
+/// calendrier : `None`.
+fn saisie_d_un_geste(g: &Value) -> Option<Value> {
+    let carte = match g.get("route").and_then(Value::as_str)? {
+        "valider-engagement" | "enregistrer-saisie" => "enregistrer-saisie",
+        "enregistrer-fiche" => "enregistrer-fiche",
+        _ => return None,
+    };
+    if g.get("ok") == Some(&Value::Bool(false)) || g.get("ecrit") == Some(&Value::Bool(false)) {
+        return None;
+    }
+    let mut s = g.clone();
+    s["route"] = json!(carte);
+    for cle in ["quand", "heure"] {
+        s.as_object_mut()?.remove(cle);
+    }
+    Some(s)
 }
 
 // ------------------------------------------------------------------ elaguer, verifier, la ligne de commande
@@ -581,8 +613,10 @@ fn hors_livraison(rel: &str) -> bool {
 }
 
 /// LIVRER UNE FICTIVE DE REFERENCE : rejoue `scenario` (jusqu'au jour `jusqu_au`, ou entier) dans une installation de
-/// travail, et pose la compagnie qui en sort dans `dest` (`poser_livree`). Un ecart du rejeu (une route qui refuse)
-/// refuse la livraison, et `dest` reste tel qu'il etait.
+/// travail, et pose la compagnie qui en sort dans `dest` (`poser_livree`). Les mois d'avant le jour sont faits ; ceux
+/// d'apres portent deja leurs cartes, non validees : sur le poste, seul le temps passe, et l'horloge de la fictive
+/// valide, envoie et depose a leur date (`horloge`). Un ecart du rejeu (une route qui refuse) refuse la livraison, et
+/// `dest` reste tel qu'il etait.
 pub fn livrer(scenario: &Path, dest: &Path, jusqu_au: Option<Jour>) -> Result<Rejeu, String> {
     let nom = dest.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let travail = std::env::temp_dir().join(format!("puppetpaie-livrer-{}-{}", nom, std::process::id()));
@@ -602,7 +636,7 @@ pub fn livrer(scenario: &Path, dest: &Path, jusqu_au: Option<Jour>) -> Result<Re
 /// POSE LA COMPAGNIE REJOUEE `racine` dans `dest` (remplace), marquee fictive livree (`compagnies::MARQUE_FICTIVE` suivie
 /// du nom du dossier, sans la marque `ajoutee`) : ses envois sont joues, son horloge joue ce qui vient apres `fin`, le
 /// dernier geste rejoue.
-pub fn poser_livree(racine: &Path, dest: &Path, fin: Option<f64>) -> Result<(), String> {
+fn poser_livree(racine: &Path, dest: &Path, fin: Option<f64>) -> Result<(), String> {
     let nom = dest.file_name().map(|n| n.to_string_lossy().into_owned()).ok_or(format!("{} : un dossier est attendu", dest.display()))?;
     let _ = std::fs::remove_dir_all(dest);
     for (rel, source) in fichiers_de(racine).into_iter().filter(|(rel, _)| !hors_livraison(rel)) {
@@ -703,7 +737,7 @@ pub fn commande(args: &[String]) -> i32 {
         },
         ["livrer", sc, dest] => match livrer(Path::new(sc), Path::new(dest), options.jusqu_au) {
             Ok(r) => {
-                dire!("{} : {} route(s) rejouee(s), en {:.1} s.", dest, r.routes_rejouees, debut.elapsed().as_secs_f64());
+                dire!("{} : {} route(s) rejouee(s), {} geste(s) d'apres le jour laisse(s) a l'horloge, en {:.1} s.", dest, r.routes_rejouees, r.laisses, debut.elapsed().as_secs_f64());
                 0
             }
             Err(m) => {

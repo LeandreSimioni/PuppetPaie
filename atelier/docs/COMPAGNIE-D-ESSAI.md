@@ -53,8 +53,8 @@ done
 moteur essai monter [DOSSIER] [--depuis FICTIVE]
 ```
 
-- copie une compagnie **fictive** livrée (défaut : `fictive-3090-grande`, qui a des permanents et des intermittents
-  chaque mois ; `--depuis` prend un autre nom de `fictives/` ou un chemin) dans `DOSSIER` (défaut :
+- copie une compagnie **fictive** livrée (défaut : `fictive-fil-de-fer`, livrée d'abord par `moteur-atelier scenario
+  livrer atelier/fictives/fictive-fil-de-fer fictives/fictive-fil-de-fer` ; `--depuis` prend un autre nom de `fictives/` ou un chemin) dans `DOSSIER` (défaut :
   `<dossier temporaire>/puppetpaie-essai`), **hors de tout dépôt Git** — le montage refuse sinon ;
 - donne à sa fiche (`config/entreprise.json`) l'identité de `PUPPETPAIE_COMPAGNIE`, et en retire celle de la fictive ;
   tout le reste (salariés inventés, contrats, paies, barème, organismes) reste celui de la fictive ;

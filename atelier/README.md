@@ -123,7 +123,7 @@ fenêtre s'ouvre, et c'est tout le logiciel.
 
 **Pour installer, on prend l'installeur (Windows) ou l'archive d'installation**
 (`…-installation.zip`) : `logiciel/` et, à côté, `fictives/`, les
-quatre compagnies fictives. Décompressée dans un dossier neuf (Linux, Mac, un
+les compagnies fictives. Décompressée dans un dossier neuf (Linux, Mac, un
 dossier portable), elle s'ouvre bridée sur ses fictives ; le geste de
 l'accueil la débloque.
 
@@ -1609,7 +1609,7 @@ pas de stagiaire — cinq cas qu'aucune de nos données n'éprouve.
 
 Les tests du moteur montent leurs propres compagnies de test (`outils::dossier_de_test`, `compagnies::ajouter_dans`) ;
 les compagnies fictives livrées (`fictives/`) se jouent dans l'interface, et un test ne les lit jamais
-(`docs/COMPAGNIES-FICTIVES.md`). Les identités y sont inventées et **leurs clés se vérifient** : clé de NIR
+(`atelier/fictives/`). Les identités y sont inventées et **leurs clés se vérifient** : clé de NIR
 calculée, clé de Luhn du SIRET, IBAN de forme juste. Un test ne doit pas
 pouvoir passer sur un numéro impossible.
 
@@ -1656,8 +1656,9 @@ précédente d'une seconde —, une route écrit et réussit par défaut, la com
 se tait quand il n'y en a qu'une, `{"geste":"jour","jour":"AAAA-MM-JJ"}` ouvre la
 fictive ce jour-là (son horloge joue ce qui était dû), et une pièce déposée se
 nomme par son chemin dans le scénario (`{"chemin": "pieces/…"}`). Le format
-entier est en tête de `scenario.rs` ; `rejouer … --jusqu-au AAAA-MM-JJ` s'arrête
-le soir de ce jour. Au rejeu comme au banc,
+entier est en tête de `scenario.rs` ; `rejouer … --jusqu-au AAAA-MM-JJ` joue
+jusqu'au soir de ce jour, puis écrit seulement les saisies des gestes d'après (les cartes,
+non validées ; les fiches) : ce que « Publier » livre. Au rejeu comme au banc,
 le temps du moteur est figé à l'instant de chaque geste et les aléas suivent une
 suite fixe (`socle/src/temps.rs`) : deux rejeux écrivent les mêmes octets, et
 `banc.js verifier` (`scenario verifier`) contrôle, fichier par fichier, que le
@@ -1711,7 +1712,7 @@ atelier/                  ← ce dossier : tout le reste
                           BOSS…), leur transcription et un LISEZ-MOI.md par
                           dossier (d'un organisme privé, seule la
                           transcription) ; `moteur sources` y vérifie les copies
-  docs/                   ARCHITECTURE.md, RUBRIQUES.md, COMPAGNIES-FICTIVES.md,
+  docs/                   ARCHITECTURE.md, RUBRIQUES.md,
                           COMPAGNIE-D-ESSAI.md, COOLPAIE-SORTIR-SES-DOCUMENTS.md
   bac-a-sable/            une installation en retard d'une version, pour essayer
                           la mise à jour
