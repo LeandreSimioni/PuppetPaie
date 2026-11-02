@@ -1253,14 +1253,11 @@ pub struct Provision {
 
 /// La provision de conges d'un permanent a la fin de `mois`, lue dans la paie ecrite `paie` de ce mois : le compteur
 /// que son bulletin montre (`Paie::conges`, ecrit a la validation), dont l'assiette du dixieme compte aussi le brut du
-/// mois (`brut_du_mois`, celui des paies ecrites du salarie), et l'indemnite de son solde (le dixieme ou le maintien,
-/// L3141-24) quand il est positif. `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0). `None` : un
-/// contrat sans compteur de l'employeur (declare a la caisse des Conges Spectacles). Refus : une paie validee qui ne
-/// porte pas le compteur qu'elle devrait.
+/// mois (`brut_du_mois`, celui des paies ecrites du salarie), et l'indemnite de son solde (`provision_du_compteur`).
+/// `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0). `None` : un contrat sans compteur de
+/// l'employeur (declare a la caisse des Conges Spectacles). Refus : une paie validee qui ne porte pas le compteur
+/// qu'elle devrait.
 pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> socle::num::Resultat<Option<Provision>> {
-    use droit::conges::jours_ouvrables;
-
-    use socle::num::{add, dec, div, eur, mul, Decimal};
     let Some(ecrit) = paie.conges.as_ref() else {
         if paie.declaree_a_la_caisse_des_conges()? {
             return Ok(None);
@@ -1270,15 +1267,23 @@ pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::De
             paie.engagement.salarie, mois
         ));
     };
-    let fin = socle::date::dernier_du_mois(mois)?;
     let mut cpt = ecrit.clone();
     cpt.remuneration_periode = add(cpt.remuneration_periode, brut_du_mois);
-    let solde = cpt.solde();
     let salaire = match salaire_mensuel {
         Some(v) if socle::fichiers::vrai(v) => dec(v)?,
         _ => Decimal::ZERO,
     };
-    let ouvrables = match jours_ouvrables(&socle::date::premier_du_mois(mois)?, &fin, None)? {
+    provision_du_compteur(cpt, mois, salaire).map(Some)
+}
+
+/// LA PROVISION D'UN COMPTEUR a la fin de `mois` : son solde, et l'indemnite de ce solde quand il est positif, le
+/// dixieme ou le maintien (C. trav. L3141-24, `droit::permanents::indemnite_des_jours`), le maintien au salaire
+/// `salaire` du mois reparti sur ses jours ouvrables.
+pub fn provision_du_compteur(cpt: CompteurConges, mois: &str, salaire: Decimal) -> Resultat<Provision> {
+    use socle::num::eur;
+    let fin = dernier_du_mois(mois)?;
+    let solde = cpt.solde();
+    let ouvrables = match jours_ouvrables(&premier_du_mois(mois)?, &fin, None)? {
         0 => Decimal::ONE,
         n => Decimal::from(n),
     };
@@ -1287,5 +1292,12 @@ pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::De
     } else {
         None
     };
-    Ok(Some(Provision { report_restant: cpt.report_restant(), acquis: cpt.acquis, pris: cpt.pris, solde, avertissements: cpt.avertissements.clone(), indemnite }))
+    Ok(Provision { report_restant: cpt.report_restant(), acquis: cpt.acquis, pris: cpt.pris, solde, avertissements: cpt.avertissements.clone(), indemnite })
+}
+
+/// LE COMPTEUR DE CONGES QUE LA FICHE DU SALARIE REPREND d'un ancien logiciel (`conges_reprise`), a sa date : celui du
+/// premier jour paye ici, donc du dernier jour que l'ancien logiciel a paye. `None` : la fiche ne dit pas de reprise.
+pub fn compteur_a_la_reprise(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<CompteurConges>> {
+    let Some(r) = reprise_conges(ctx, cle_salarie)? else { return Ok(None) };
+    compteur_conges(ctx, cle_salarie, &r.date, &r.date.mois_iso()).map(Some)
 }
