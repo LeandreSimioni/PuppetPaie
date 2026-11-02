@@ -181,7 +181,7 @@ version passée ; `engagement::paies` seul lit et écrit ce fichier, dans le mê
 - **Le recalcul de lui-même** (`etats::rafraichir`, à chaque lecture d'un mois, `etats::du_mois`) : une paie validée
   dont l'empreinte ne tient plus et dont les documents ne sont pas partis se recalcule, d'un seul calcul du mois. Si un
   chiffre change, elle dit pourquoi : « taux de PAS reçu », « règle du JJ/MM/AAAA », « calcul corrigé » (le code ou ce
-  qu'il livre), « un autre engagement du salarié a changé », « configuration de la compagnie modifiée ». L'écran le montre
+  qu'il livre), « un autre engagement du salarié a changé », « un arrêt ou une absence a changé », « configuration de la compagnie modifiée ». L'écran le montre
   (« Recalculé le JJ/MM/AAAA : … »). Sans chiffre changé, rien ne se dit. Un recalcul que le moteur refuse
   garde la paie validée et se note en incident pour l'éditeur (le témoin des recalculs refusés, `compagnie::incidents`).
 - **Modifier…** (route `valider-engagement`, `valide: false`) repasse l'engagement en saisie. Si les documents d'un de

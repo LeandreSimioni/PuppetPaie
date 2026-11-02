@@ -25,7 +25,8 @@
 //! valide se compare a son empreinte. Si elle ne tient plus, la paie se recalcule et se reecrit ; si un chiffre a change,
 //! elle dit pourquoi (`raison`) : « taux de PAS reçu » (seul le prelevement change), « règle du JJ/MM/AAAA » (une regle
 //! datee s'applique : du bareme, ou une valeur datee de la compagnie, son taux AT/MP de l'annee), « calcul corrigé » (le code qui calcule a change), « un autre engagement du salarié a changé » (un
-//! engagement de son salarie dans le mois), « saisie du mois modifiée » (le taux du cachet, la date de paiement), « la paie de
+//! engagement de son salarie dans le mois), « saisie du mois modifiée » (le taux du cachet, la date de paiement), « un arrêt
+//! ou une absence a changé » (un imprevu du salarie que le calcul lit), « la paie de
 //! <mois> a changé » (une paie validee d'un autre mois que son calcul lit : conges, cumuls), « configuration de la
 //! compagnie modifiée » (une fiche corrigee sans date nouvelle, les contrats d'organismes). Un changement qui ne change aucun chiffre ne laisse aucune trace.
 //! Un mois dont les documents sont partis ne se recalcule que par une decision de l'editeur (« calcul corrigé », une
@@ -71,6 +72,9 @@ pub const AUTRE_ENGAGEMENT: &str = "un autre engagement du salarié a changé";
 /// La raison d'un recalcul : ce que la saisie du mois pose pour tous ses engagements (taux du cachet, date de paiement) a
 /// change.
 pub const SAISIE_DU_MOIS: &str = "saisie du mois modifiée";
+/// La raison d'un recalcul : un arret ou une suspension du salarie (le magasin des imprevus, `imprevus::DOSSIER`), que le
+/// calcul lit, a change.
+pub const IMPREVU: &str = "un arrêt ou une absence a changé";
 /// La raison d'un recalcul : la configuration de la compagnie a change sans valeur datee nouvelle (une fiche corrigee, les
 /// contrats d'organismes).
 pub const CONFIGURATION: &str = "configuration de la compagnie modifiée";
@@ -923,7 +927,9 @@ fn raison(avant: &Value, apres: &Value, parti: bool) -> String {
     let entrees = |v: &Value| v.get("empreinte").and_then(empreinte::entrees_de).unwrap_or_default();
     let (ea, eb) = (entrees(avant), entrees(apres));
     let changees: Vec<&String> = ea.keys().chain(eb.keys()).filter(|k| ea.get(*k) != eb.get(*k)).collect();
-    let code = changees.iter().any(|k| *k == "moteur" || k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:")));
+    // Le code a change : le moteur, ou un fichier livre que les deux calculs ont lu. Un fichier livre que seul l'un des
+    // deux a lu dit que le calcul a pris un autre chemin (un arret saisi lit le bareme des arrets), pas que le code a change.
+    let code = changees.iter().any(|k| *k == "moteur" || (k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:")) && ea.contains_key(*k) && eb.contains_key(*k)));
     if code && parti {
         return CALCUL_CORRIGE.to_string();
     }
@@ -936,6 +942,10 @@ fn raison(avant: &Value, apres: &Value, parti: bool) -> String {
     }
     if !saisies.is_empty() {
         return SAISIE_DU_MOIS.to_string();
+    }
+    let imprevus = format!("racine:{}", crate::imprevus::DOSSIER);
+    if changees.iter().any(|k| k.split_once(' ').is_some_and(|(_, c)| c.starts_with(&imprevus))) {
+        return IMPREVU.to_string();
     }
     // Les paies validees d'un autre mois que le calcul lit (conges, cumuls) : `paies <le mois> <son salarie>`.
     let mut mois: Vec<&str> = changees.iter().filter_map(|k| k.strip_prefix("paies ")?.split(' ').next()).collect();
