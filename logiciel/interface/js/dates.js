@@ -85,11 +85,9 @@ function quand(iso) {
   return heure ? `${jour} à ${heure}` : jour;
 }
 
-/** « du 17/03/2026 au 20/03/2026 », ou « depuis le 04/09/2023 » pour un
- *  CDI : sans fin, le moteur rend `None` ou rien, et l'écran disait
- *  « au None ». */
+/** « du 17/03/2026 au 20/03/2026 », ou « depuis le 04/09/2023 » pour un CDI, sans fin. */
 function periodeEnClair(debut, fin) {
-  return fin && fin !== "None"
+  return fin
     ? `du ${jjmmaaaa(debut)} au ${jjmmaaaa(fin)}`
     : `depuis le ${jjmmaaaa(debut)}`;
 }

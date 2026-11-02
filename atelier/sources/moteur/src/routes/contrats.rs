@@ -27,6 +27,11 @@ use crate::routes::catalogue::{Ecran, Place};
 const CONTRATS: Champ = Champ { nom: "contrats", sens: "les contrats choisis : [{salarie, debut, numero}]", avance: false };
 const DEBUT: Champ = Champ { nom: "debut", sens: "le premier jour de l'engagement, AAAA-MM-JJ", avance: false };
 const NUMERO: Champ = Champ { nom: "numero", sens: "le numéro du contrat, quand deux commencent le même jour", avance: true };
+/// Un contrat ecrit refuse de se faire quand une case qu'il appelle est vide : elle se dit dans la saisie de l'engagement.
+const CONTRAT_ECRIT: Refus = Refus {
+    classe: "ErreurOperation",
+    corriger: "ce que la phrase dit ; une case du contrat écrit vide (`contrat.ecrits` de la route apercu) se remplit dans la saisie de l'engagement, par modifier-engagement ; rien n'est écrit",
+};
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
@@ -61,7 +66,7 @@ pub const ROUTES: &[Fiche] = &[
         refus: &[
             Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain au moment de l'envoi ; rien n'est parti" },
             Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe), ou imprimer" },
-            OPERATION,
+            CONTRAT_ECRIT,
             MANQUE,
         ],
         acte: Acte::Engage,
@@ -106,7 +111,7 @@ pub const ROUTES: &[Fiche] = &[
         charge: &[MOIS, CONTRATS, Champ { nom: "avenants", sens: "les avenants cochés : [{salarie, debut, numero, mois, effet}]", avance: false }],
         exemple: r#"{"mois":"2026-11","contrats":[{"salarie":"SVOBODA","debut":"2026-11-02"}]}"#,
         rend: "impression (le PDF) et son chemin, contrats",
-        refus: &[OPERATION, MANQUE],
+        refus: &[CONTRAT_ECRIT, MANQUE],
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
@@ -178,8 +183,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let n = super::nombre(&v["modifications"]);
             let quand = |k: &str| super::quand(&t(&v, k));
             v["situation"] = json!(format!(
-                "{} — {}, du {} au {} ; {}",
-                t(&v, "nom"), t(&v, "spectacle"), super::jour_en_clair(&v["debut"]), super::jour_en_clair(&v["fin"]),
+                "{} — {}, {} ; {}",
+                t(&v, "nom"), t(&v, "spectacle"), t(&v, "periode"),
                 if vrai(&v["signe"]) { format!("signé le {}", quand("signe")) } else { format!("envoyé le {}, pas encore signé", super::jour_en_clair(&v["date_contrat"])) }
             ));
             for a in v["avenants"].as_array_mut().into_iter().flatten() {
@@ -622,7 +627,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         );
         let sal = &p.salarie;
         let numero = p.engagement.numero.clone().map_or(Value::Null, Value::String);
-        let fin = p.engagement.fin.map_or("None".to_string(), |f| f.iso());
+        let fin = p.engagement.fin.map(|f| f.iso());
         let mut l = Map::new();
         l.insert("salarie".into(), json!(cle_s));
         l.insert("nom".into(), json!(socle::texte::salarie_nomme_ou(Some(sal), &cle_s)));
@@ -834,7 +839,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({
         "salarie": salarie_v,
         "debut": debut_v,
-        "fin": p.engagement.fin.map_or("None".to_string(), |f| f.iso()),
+        "fin": p.engagement.fin.map(|f| f.iso()),
         "nom": socle::texte::salarie_nomme_ou(Some(sal), &valeur_en_texte(salarie_v)),
         "spectacle": p.titre()?,
         // CE QUE LE COURRIEL DIT DU CONTRAT : son nom (`contrat_ecrit.nom` de sa nature), son spectacle s'il en a un, sa
