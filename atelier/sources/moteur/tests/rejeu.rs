@@ -442,24 +442,24 @@ fn le_compte_rendu_d_une_dsn_ne_refait_pas_la_paie_qu_elle_declare() {
     assert_eq!(outils::paie_ecrite(&racine, "2026-11", "FULLER", None)["pas"]["identifiant"], json!("190151266"), "la paie de novembre garde son taux");
 }
 
-/// LA FICTIVE DE REFERENCE DU FIL DE FER, PREUVE COMMUNE EN LIGNE DE COMMANDE (`atelier/fictives/fictive-fil-de-fer/`) :
-/// une compagnie de marionnettes (convention 3090) venue d'un logiciel precedent, qui importe ses papiers de 2025, remplit
-/// « Pour démarrer », puis vit 2026 par les routes seulement : chaque engagement valide avant son premier jour, sa DPAE
-/// (test puis reel), ses contrats a la signature, ses repas et nuitees, la DSN de chaque mois apres son versement (test
-/// puis reel), les documents, le FCAP-SVP paye et coche. LIVREE le 02/11/2026 comme « Publier » la livre
+/// UNE FICTIVE DE REFERENCE (`atelier/fictives/<nom>/`), PREUVE COMMUNE EN LIGNE DE COMMANDE : une compagnie venue d'un
+/// logiciel precedent, qui importe ses papiers de 2025, remplit « Pour démarrer », puis vit 2026 par les routes seulement :
+/// chaque engagement valide avant son premier jour, sa DPAE (test puis reel), ses contrats a la signature, la DSN de chaque
+/// mois apres son versement (test puis reel), les documents. LIVREE le 02/11/2026 comme « Publier » la livre
 /// (`scenario::livrer`) : l'horloge n'y trouve rien a faire ce jour-la, les cartes de decembre sont ecrites et non
-/// validees ; puis le temps passe au 31/01/2027, et l'horloge seule valide, declare, envoie et clot 2026.
-#[test]
-fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
-    let d = outils::dossier_de_test("rejeu", "fil-de-fer");
-    let racine = outils::rejeu::livrer(&outils::rejeu::reference("fictive-fil-de-fer"), &d, "2026-11-02");
+/// validees (`decembre` : combien) ; puis le temps passe au 31/01/2027, et l'horloge seule valide, declare, envoie et clot
+/// 2026. Chaque mois de 2026 a toutes ses etapes faites et sa DSN partie en reel, chaque mois de `dpae` sa DPAE ; le
+/// releve (paies, DSN, depots) se compare a l'oracle `fictives/<nom>.json`. Rend la racine et le jour de la fin.
+fn la_fictive_tient_son_annee_et_se_livre(nom: &str, decembre: usize, dpae: &[&str]) -> (std::path::PathBuf, &'static str) {
+    let d = outils::dossier_de_test("rejeu", nom);
+    let racine = outils::rejeu::livrer(&outils::rejeu::reference(nom), &d, "2026-11-02");
     assert!(moteur::interface::compagnies::est_fictive_livree(&racine), "la fictive posee n'est pas une fictive livree");
     assert!(!racine.join("journal/incidents.json").exists(), "les incidents du rejeu ne se livrent pas");
     let horloge = |jour: &str| outils::reussi(&outils::route(&racine, "horloge-rattraper", json!({}), jour)).clone();
     assert_eq!(horloge("2026-11-02"), json!([]), "l'horloge a trouve a faire derriere l'administratrice");
-    let decembre = outils::lire(&racine, "engagements/2026-12.json");
-    let cartes = decembre["engagements"].as_array().unwrap();
-    assert!(cartes.len() == 2 && cartes.iter().all(|e| e["valide"].is_null()), "les cartes de decembre, ecrites et non validees : {}", decembre);
+    let cartes = outils::lire(&racine, "engagements/2026-12.json");
+    let cartes = cartes["engagements"].as_array().unwrap();
+    assert!(cartes.len() == decembre && cartes.iter().all(|e| e["valide"].is_null()), "les cartes de decembre, ecrites et non validees : {:?}", cartes);
     let jour = "2027-01-31";
     let jouees = horloge(jour);
     assert!(jouees.to_string().contains("exercice 2026 clos"), "{}", jouees);
@@ -485,13 +485,19 @@ fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
         let m = outils::lire(&racine, &format!("paies/{}", f));
         ecrites.extend(m["paies"].as_array().unwrap().iter().map(|p| (m["mois"].as_str().unwrap().to_string(), p.clone())));
     }
-    for mois in engagement::stock::mois_saisis(&racine).unwrap() {
+    // Un mois que traverse un CDI sans carte neuve (aout) n'a pas de fichier : ses paies sont sous le mois du CDI.
+    for mois in engagement::stock::mois_saisis(&racine).unwrap().into_iter().filter(|m| racine.join(format!("engagements/{}.json", m)).exists()) {
         let m = outils::lire(&racine, &format!("engagements/{}.json", mois));
         let v: Vec<Value> = m["engagements"].as_array().unwrap().iter().flat_map(|e| {
             ecrites.iter().filter(move |(_, p)| p["salarie"] == e["salarie"] && p["numero"] == e["numero"] && !e["valide"].is_null()).map(move |(pm, p)| {
                 let q = &p["paie"];
+                // L'identifiant du compte rendu qui porte le taux se tire au hasard au simulateur, hors du rejeu (l'horloge).
+                let mut pas = p["pas"].clone();
+                if let Some(o) = pas.as_object_mut() {
+                    o.remove("identifiant");
+                }
                 json!({"salarie": e["salarie"], "numero": e["numero"], "mois": pm, "brut": q["brut"], "net_a_payer": q["net_a_payer"],
-                       "net_imposable": q["net_imposable"], "cout_employeur": q["cout_employeur"], "pas": p["pas"]})
+                       "net_imposable": q["net_imposable"], "cout_employeur": q["cout_employeur"], "pas": pas})
             })
         }).collect();
         paies.insert(mois.to_string(), json!(v));
@@ -549,15 +555,31 @@ fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
     for m in 1..=12 {
         assert!(reel("dsn", &format!("2026-{:02}", m)), "la DSN de 2026-{:02} n'est pas partie en reel", m);
     }
-    for m in ["01", "02", "03", "04", "05", "06", "09", "12"] {
+    for m in dpae {
         assert!(reel("dpae", &format!("2026-{}", m)), "la DPAE de 2026-{} n'est pas partie en reel", m);
     }
-    outils::oracle("fictives/fictive-fil-de-fer.json", "", &json!({"paies": paies, "dsn": dsn, "depots": depots}));
+    outils::oracle(&format!("fictives/{}.json", nom), "", &json!({"paies": paies, "dsn": dsn, "depots": depots}));
+    (racine, jour)
+}
 
+/// LE FIL DE FER (`atelier/fictives/fictive-fil-de-fer/`) : une compagnie de marionnettes (convention 3090), ses repas et
+/// nuitees, le FCAP-SVP paye et coche.
+#[test]
+fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
+    let (racine, jour) = la_fictive_tient_son_annee_et_se_livre("fictive-fil-de-fer", 2, &["01", "02", "03", "04", "05", "06", "09", "12"]);
     // LES MOIS IMPORTES SE LISENT (le bug du joueur L9 : le FCAP-SVP de 2025 refusait « aucune paie validée ») : la
     // tranche A de 2025 est celle des paies importees de septembre a decembre, et l'annee se dit partielle.
     let fcap = outils::reussi(&outils::route(&racine, "exporter", json!({"etat": "fcap-svp", "annee": "2025"}), jour)).clone();
     let ligne = &fcap["sections"][0]["lignes"][0];
     assert_eq!(ligne["mois"], json!(4), "{}", fcap);
     assert!(ligne["regle"].as_str().is_some_and(|r| r.contains("partielle")), "{}", fcap);
+}
+
+/// L'HOTEL DE BOURGOGNE (`atelier/fictives/fictive-hotel-de-bourgogne/`) : une compagnie de theatre (convention 1285),
+/// trois permanents en CDI et cinq intermittents ; l'arret de Marivaux et son maintien subroge, ses heures
+/// supplementaires, la demission de Clairon, les conges d'ete, l'augmentation de Champmesle et son avenant, une date
+/// ajoutee a des contrats partis et leurs avenants, aout sans intermittent, la tournee de mai et ses frais.
+#[test]
+fn la_fictive_de_l_hotel_de_bourgogne_tient_son_annee_et_se_livre() {
+    la_fictive_tient_son_annee_et_se_livre("fictive-hotel-de-bourgogne", 8, &["01", "02", "03", "04", "05", "06", "07", "09", "10", "11", "12"]);
 }
