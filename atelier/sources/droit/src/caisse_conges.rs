@@ -14,9 +14,10 @@
 //!
 //! Ce que le moteur en fait : un CDDU de moins de douze mois (du debut au terme signes) est declare a la caisse, un
 //! CDDU de douze mois ou plus ne l'est pas, des son premier bulletin ; un CDD de droit commun de moins de douze mois
-//! d'un ARTISTE l'est ; un CDI ne l'est jamais. Ce qui n'est pas porte (le technicien en CDD de droit commun ; des
-//! contrats successifs qui, mis bout a bout, font douze mois continus ; un contrat prolonge au-dela de douze mois)
-//! attend une decision : aucun texte depose ne le tranche.
+//! d'un intermittent (un artiste, ou un technicien d'une fonction que la liste de l'annexe 8 nomme pour la convention de
+//! l'employeur : `intermittent`) l'est ; un CDI ne l'est jamais. Ce qui n'est pas porte (des contrats successifs qui,
+//! mis bout a bout, font douze mois continus ; un contrat prolonge au-dela de douze mois) : aucun texte depose ne le
+//! tranche.
 
 use crate::natures::Nature;
 use socle::date::Jour;
@@ -45,17 +46,41 @@ pub fn douze_mois_ou_plus(debut: &Jour, fin: &Jour) -> Resultat<bool> {
     Ok(fin.plus_jours(1)? >= douze_mois_apres(debut))
 }
 
-/// Le salarie tient-il un emploi ARTISTIQUE du spectacle ? Son metier (`code_emploi_ft`, tel que la paie le lit) est
-/// un emploi de l'annexe 10 de la nomenclature des emplois du spectacle (les artistes). Un metier hors nomenclature, ou
-/// pas de metier : non.
-///
-/// Les TECHNICIENS (annexe 8) ne sont pas lus ici, et c'est voulu : D. 7121-40 dit « le personnel artistique et
-/// technique » sans le definir, et l'annexe 8 -- la seule liste que le moteur ait -- range parmi les « ouvriers et
-/// techniciens » l'administrateur, le charge et l'attache de production (liste de l'Unedic,
-/// `unedic-annexe8-liste-champ-application-20161216.txt`, p. 21-22), qu'une compagnie peut payer en
-/// CDD de droit commun avec ses conges payes par l'employeur. Quel technicien en CDD de droit commun est declare a la
-/// caisse attend une decision : il n'est pas declare.
-pub fn artiste_du_spectacle(sal: &Value) -> Resultat<bool> {
+/// La cle de la fiche (telle que la paie la lit) qui porte la convention collective de l'employeur (son IDCC) : le
+/// domaine d'activite ou l'annexe 8 range le technicien (`intermittent`). La fiche la recoit de l'entreprise, a la
+/// date ou la paie la lit (`engagement::calcul::fiche_de_l_engagement`).
+pub const IDCC_DE_L_EMPLOYEUR: &str = "idcc_de_l_employeur";
+
+/// LE CONTRAT D'UN INTERMITTENT. Un CDD d'usage (la nature payee a l'activite) l'est toujours ; un CDI jamais ; un CDD
+/// de droit commun l'est quand l'annexe de l'assurance chomage range son salarie, dans les memes termes que pour le
+/// CDDU :
+/// - l'annexe 10 : « les artistes [...] engages au titre d'un contrat de travail a duree determinee » (art. 1er, § 2,
+///   `atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt`, l. 15-17) : un metier
+///   de l'annexe 10 de la nomenclature des emplois du spectacle ;
+/// - l'annexe 8 : « les ouvriers et techniciens engages dans le cadre d'un contrat a duree determinee, pour assurer
+///   l'une des fonctions enumerees dans la liste figurant au titre XIV, [...] dans les domaines d'activite ou dans les
+///   entreprises enumeres dans la meme liste », domaines « definis par les numeros d'identifiant des conventions
+///   collectives (IDCC) » (art. 1er, § 2, et art. 71, `unedic-annexe8-convention-20241115.txt`, l. 16-22 et 1530 s.) :
+///   un metier du catalogue dont la liste de la convention de l'employeur nomme la fonction (`conventions` de
+///   `emplois-base.json`, relevee de la liste ; `IDCC_DE_L_EMPLOYEUR` sur la fiche). Un metier hors catalogue ne dit
+///   pas sur quelle liste il est : non.
+/// La caisse des Conges Spectacles ne distingue pas davantage : elle sert « le personnel artistique et technique
+/// employe de facon intermittente » (C. trav. D. 7121-38 ; D. 7121-40, D. 7121-41,
+/// `atelier/reference/sources/code-du-travail/articles-20261102.md`, l. 596-607).
+/// INFERENCE (ecrite) : l'employeur est dans le domaine de sa convention. Pour le spectacle vivant (1285, 3090), la
+/// liste n'ajoute que des categories que remplit tout employeur de la convention qui fait jouer un spectacle (licencie,
+/// ou organisateur occasionnel) ; pour les autres domaines, elle nomme aussi des codes NAF, que le moteur ne confronte
+/// pas.
+/// Ce qui en suit, et le lit ici : la caisse des Conges Spectacles (`affilie`), le code emploi de la nomenclature du
+/// spectacle en DSN (S21.G00.40.005, CCH-18 : « 999SPT » n'est que pour les emplois permanents), l'attestation employeur
+/// Cinema Spectacle (`documents::aer::due`), le certificat de la caisse.
+pub fn intermittent(nat: &Nature, sal: &Value) -> Resultat<bool> {
+    if nat.duree_indeterminee {
+        return Ok(false);
+    }
+    if !nat.mensuelle() {
+        return Ok(true);
+    }
     let code = sal.get("code_emploi_ft").filter(|c| vrai(c)).and_then(Value::as_str).unwrap_or("").trim().to_string();
     if code.is_empty() || code.eq_ignore_ascii_case("999SPT") {
         return Ok(false);
@@ -63,23 +88,15 @@ pub fn artiste_du_spectacle(sal: &Value) -> Resultat<bool> {
     let Some(m) = emplois::metier(&code)? else {
         return Ok(false);
     };
-    let annexe = m.get("annexe").and_then(|a| a.as_i64().or_else(|| a.as_f64().map(|x| x as i64)));
-    Ok(annexe == Some(10))
-}
-
-/// LE CONTRAT D'UN INTERMITTENT : un CDD d'usage (la nature payee a l'activite), ou un CDD de droit commun d'un
-/// artiste (`artiste_du_spectacle`) ; jamais un CDI. L'annexe 10 de l'assurance chomage range « les artistes [...]
-/// engages au titre d'un contrat de travail a duree determinee » (art. 1er, § 2,
-/// `atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt`), quel que soit ce CDD.
-/// Ce qui en suit, et le lit ici : la caisse des Conges Spectacles (`affilie`), le code emploi de la nomenclature du
-/// spectacle en DSN (S21.G00.40.005, CCH-18 : « 999SPT » n'est que pour les emplois permanents), l'attestation employeur
-/// Cinema Spectacle (`documents::aer::due`). Le technicien en CDD de droit commun n'y est pas (voir
-/// `artiste_du_spectacle`).
-pub fn intermittent(nat: &Nature, sal: &Value) -> Resultat<bool> {
-    if nat.duree_indeterminee {
-        return Ok(false);
+    match m.get("annexe").and_then(|a| a.as_i64().or_else(|| a.as_f64().map(|x| x as i64))) {
+        Some(10) => Ok(true),
+        Some(8) => {
+            let idcc = sal.get(IDCC_DE_L_EMPLOYEUR).filter(|c| vrai(c)).map(socle::date::en_texte).unwrap_or_default();
+            let listes = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
+            Ok(!idcc.trim().is_empty() && listes.iter().any(|c| socle::date::en_texte(c).trim() == idcc.trim()))
+        }
+        _ => Ok(false),
     }
-    Ok(!nat.mensuelle() || artiste_du_spectacle(sal)?)
 }
 
 /// L'employeur declare-t-il ce contrat a la caisse des Conges Spectacles ? `sal` est la fiche telle que la paie la lit
@@ -87,9 +104,9 @@ pub fn intermittent(nat: &Nature, sal: &Value) -> Resultat<bool> {
 /// - un CDI : non ;
 /// - un CDD d'usage (CDDU) : oui, sauf s'il dure douze mois ou plus du debut au terme signes (le chargeur des
 ///   engagements pose toujours le terme d'un CDDU : sa derniere date ; sans terme, il est de moins de douze mois) ;
-/// - un CDD de droit commun d'un artiste (`artiste_du_spectacle`) : oui, sauf s'il dure douze mois ou plus ; sans
-///   terme, refus -- sa duree decide, et le moteur ne la devine pas ;
-/// - un CDD de droit commun d'un autre salarie : non (voir `artiste_du_spectacle` pour les techniciens).
+/// - un CDD de droit commun d'un intermittent (`intermittent`) : oui, sauf s'il dure douze mois ou plus ; sans terme,
+///   refus -- sa duree decide, et le moteur ne la devine pas ;
+/// - un CDD de droit commun d'un autre salarie : non.
 pub fn affilie(nat: &Nature, sal: &Value, debut: &Jour, fin: Option<&Jour>) -> Resultat<bool> {
     if !intermittent(nat, sal)? {
         return Ok(false);
@@ -99,7 +116,7 @@ pub fn affilie(nat: &Nature, sal: &Value, debut: &Jour, fin: Option<&Jour>) -> R
         None if !nat.mensuelle() => return Ok(true),
         None => {
             return Err(format!(
-                "{} d'un artiste commence le {} sans terme : la duree d'un contrat a duree determinee dit s'il est \
+                "{} d'un intermittent commence le {} sans terme : la duree d'un contrat a duree determinee dit s'il est \
 declare a la caisse des Conges Spectacles (moins de douze mois : code du travail D. 7121-41, fiche Audiens), et le \
 moteur ne la devine pas.",
                 nat.libelle,

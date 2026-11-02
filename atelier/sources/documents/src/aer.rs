@@ -86,15 +86,16 @@ const FIN: &str = "SAL_DT_FIN_";
 const NUM_CONTRAT: &str = "CON_NUMERO_";
 
 /// QUAND UNE AER CINEMA SPECTACLE EST DUE : au contrat d'un intermittent (`droit::caisse_conges::intermittent` : un CDD
-/// d'usage, le CDD d'un artiste ; annexes 8 et 10), le mois ou il FINIT -- une seule par employeur et par mois, et pour
-/// un contrat sur plusieurs mois, « 1 AE CS éditée à la fin du dernier mois concerné par le contrat »
+/// d'usage, le CDD d'un artiste ou d'un technicien de la liste ; annexes 8 et 10), le mois ou il FINIT -- une seule par
+/// employeur et par mois, et pour un contrat sur plusieurs mois,
+/// « 1 AE CS éditée à la fin du dernier mois concerné par le contrat »
 /// (`atelier/reference/sources/francetravail-100-dsn/movinmotion-fin-des-aem-20260601.txt`, l. 152-166 ;
 /// `mescachets-aem-aer-cs-20260903.txt`, l. 47 et 69 : « salariés intermittents du spectacle relevant des annexes 8 et
 /// 10 », « l'attestation est produite à la fin du dernier mois concerné » ; `comenolo-aer-cs.txt`, l. 37). France Travail
 /// l'edite depuis la DSN mensuelle qui porte la fin du contrat (son bloc 62 ; `francetravail-100-dsn/LISEZMOI.md`,
 /// « Ce qu'on en conclut », point 1), pour un contrat dont le code emploi (S21.G00.40.005) est de la nomenclature du
 /// spectacle et non « 999SPT » (`net-entreprises-base-connaissances/net-entreprises-de-la-dsn-a-l-attestation-employeur-
-/// v3-2-20230328.txt`, l. 500-510). Un permanent (CDI, CDD de droit commun d'un salarie qui n'est pas artiste) n'en a
+/// v3-2-20230328.txt`, l. 500-510) : le contrat d'un intermittent (`droit::caisse_conges::intermittent`). Un permanent n'en a
 /// pas : sa fin de contrat est un signalement (`contrats-base.json`, `cdd.fin_de_contrat.signalement_fctu`), et
 /// l'attestation de droit commun qui en revient n'est pas celle-ci.
 pub fn due(p: &engagement::calcul::Paie) -> Resultat<bool> {
