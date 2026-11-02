@@ -478,19 +478,25 @@ pub fn paie_ecrite_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str, depar
 /// present n'a pas encore de paie ecrite : celle de chaque engagement valide s'y calcule, sans s'ecrire, pour ce qui part
 /// avant lui (la DPAE, le contrat). `None` : aucune saisie.
 pub fn validees_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<(Value, Vec<Paie>)>> {
+    validees_du_mois_parmi(ctx, mois, departs, &|_| true)
+}
+
+/// `validees_du_mois`, reduite aux engagements valides que `garder` retient : la paie d'un engagement que l'appelant ne
+/// lit pas ne se relit pas.
+pub fn validees_du_mois_parmi(ctx: &Contexte, mois: &str, departs: &Departs, garder: &dyn Fn(&Valide) -> bool) -> Resultat<Option<(Value, Vec<Paie>)>> {
     let etats = du_mois(ctx, mois, departs)?;
     let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut gardes = Vec::new();
     let mut paies = Vec::new();
     let a_venir: Vec<usize> = if mois > mois_present(ctx).as_str() {
-        etats.iter().enumerate().filter(|(_, e)| e.valide().is_some_and(|v| v.paie_ecrite(mois).is_none())).map(|(i, _)| i).collect()
+        etats.iter().enumerate().filter(|(_, e)| e.valide().is_some_and(|v| garder(v) && v.paie_ecrite(mois).is_none())).map(|(i, _)| i).collect()
     } else {
         Vec::new()
     };
     let mut calculees = if a_venir.is_empty() { Vec::new() } else { calculer_les_rangs(ctx, mois, &a_venir)? }.into_iter();
     for (i, e) in etats.iter().enumerate() {
-        let Some(v) = e.valide() else { continue };
+        let Some(v) = e.valide().filter(|v| garder(v)) else { continue };
         let paie = match a_venir.contains(&i).then(|| calculees.next()).flatten() {
             Some(p) => Valide { en_cours: Some((mois.to_string(), Arc::new(p))), ..v.clone() }.paie(ctx, &data, i)?,
             None => v.paie(ctx, &data, i)?,
@@ -1558,26 +1564,32 @@ pub enum ARefaire {
 /// refaire. Pour chaque sorte d'envoi (et chaque mois des documents et des DSN), le dernier parti fait foi ; parti sur la
 /// version presente, il est a jour.
 pub fn a_refaire(ctx: &Contexte, v: &Valide, departs: &Departs) -> Vec<ARefaire> {
+    a_refaire_parmi(ctx, v, departs, &|_| true)
+}
+
+/// `a_refaire`, pour les seules sortes d'envoi que `sorte` retient : ce qui ne se demande pas ne se compare pas (les paies
+/// des documents et des DSN partis, pour qui ne cherche que l'avenant d'un contrat).
+pub fn a_refaire_parmi(ctx: &Contexte, v: &Valide, departs: &Departs, sorte: &dyn Fn(Envoi) -> bool) -> Vec<ARefaire> {
     let siens = ses_departs(ctx, &v.objet, departs);
     let present = v.version();
     let actuelle = v.objet.brut.get("valide").cloned().unwrap_or(Value::Null);
     let mut derniers: BTreeMap<(u8, Option<String>), &Depart> = BTreeMap::new();
-    for d in siens {
-        let sorte = match d.envoi {
+    for d in siens.iter().filter(|d| sorte(d.envoi)) {
+        let rang = match d.envoi {
             Envoi::Contrat => 0,
             Envoi::Dpae => 1,
             Envoi::Documents => 2,
             Envoi::Dsn => 3,
             Envoi::Signalement => 4,
         };
-        derniers.insert((sorte, d.mois.clone()), d);
+        derniers.insert((rang, d.mois.clone()), d);
     }
     let mensuel = v.objet.mensuel();
     let mut out = Vec::new();
     // UN CONTRAT SIGNE AILLEURS, dont aucun avenant n'est parti : ce qu'il dit est ce que dit le premier mois ; un terme
     // date apres lui (`stock::DATES`) est un changement que le salarie n'a pas signe.
     let contrat_parti = derniers.keys().any(|(sorte, _)| *sorte == 0);
-    if !contrat_parti && signe_ailleurs(ctx, &v.objet) {
+    if sorte(Envoi::Contrat) && !contrat_parti && signe_ailleurs(ctx, &v.objet) {
         let presente = actuelle.get("saisie").cloned().unwrap_or(Value::Null);
         if clauses(&presente, mensuel)["termes"].as_object().is_some_and(|t| !t.is_empty()) {
             out.push(ARefaire::Avenant { depuis: None });

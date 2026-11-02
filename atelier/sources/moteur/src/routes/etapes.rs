@@ -404,13 +404,16 @@ pub(crate) fn a_refaire_de(ctx: &Contexte, e: &engagement::etats::Etat, departs:
 }
 
 /// Les contrats de `mois` dont l'avenant est a faire signer : `(cle du salarie, numero)` des engagements dont les clauses
-/// ont change depuis la version sur laquelle le contrat est parti (`a_refaire_de`).
+/// ont change depuis la version sur laquelle le contrat est parti (`a_refaire_parmi`, les contrats seuls).
 pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String, String)>> {
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     let etats = engagement::etats::du_mois(ctx, mois, &departs).map_err(plain)?;
     Ok(etats
         .iter()
-        .filter(|e| a_refaire_de(ctx, e, &departs).iter().any(|a| matches!(a, ARefaire::Avenant { .. })))
+        .filter(|e| {
+            let avenant = |s: engagement::departs::Envoi| s == engagement::departs::Envoi::Contrat;
+            e.valide().is_some_and(|v| engagement::etats::a_refaire_parmi(ctx, v, &departs, &avenant).iter().any(|a| matches!(a, ARefaire::Avenant { .. })))
+        })
         .filter_map(|e| {
             let b = &*e.objet().brut;
             Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
@@ -1570,7 +1573,9 @@ impl<'a> Moteur<'a> {
                 let Some(p) = s.paies.iter().find(|p| p.salarie.get("_cle").and_then(Value::as_str) == Some(cle.as_str()) && p.engagement.numero.as_deref() == Some(numero)) else {
                     continue;
                 };
-                let refaire = a_refaire_de(self.ctx, e, &departs);
+                // Seule la DPAE partie se compare (`debut_declare`) : les paies parties ne se relisent pas ici.
+                let dpae = |s: engagement::departs::Envoi| s == engagement::departs::Envoi::Dpae;
+                let refaire = engagement::etats::a_refaire_parmi(self.ctx, v, &departs, &dpae);
                 let debut = p.engagement.debut.iso();
                 // UNE DPAE PAR EMBAUCHE, reconnue a sa date : « L'embauche d'un salarié ne peut intervenir qu'après
                 // déclaration nominative » (code du travail, L. 1221-10), et la DPAE porte la « Date et heure
