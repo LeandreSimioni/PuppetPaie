@@ -262,11 +262,12 @@ impl Champs {
     }
 }
 
-fn entier(d: Decimal) -> String {
+/// Une quantite telle que la DSN la declare (bloc 53), ecrite en francais : « 151,67 », « 12 » ; zero, a blanc.
+fn quantite(d: Decimal) -> String {
     if d.is_zero() {
         String::new()
     } else {
-        d.trunc().normalize().to_string()
+        d.normalize().to_string().replace('.', ",")
     }
 }
 
@@ -428,9 +429,9 @@ fn attestation(ent: &Value, ind: &Individu, plus: &Complement, periodes: &[&Peri
         }
         f.imprime(2, &format!("SAL_DT_DEB_{}", n), r(218.0, 233.0), &p.debut.jj_mm_aaaa(), 8.5, "centre");
         f.imprime(2, &format!("SAL_DT_FIN_{}", n), r(236.0, 252.0), &p.fin.jj_mm_aaaa(), 8.5, "centre");
-        f.imprime(2, &format!("SAL_NB_HEURES_{}", n), r(258.0, 273.0), &entier(p.heures), 8.5, "centre");
-        f.imprime(2, &format!("SAL_NB_CACHET_{}", n), r(282.0, 298.0), &entier(p.cachets), 8.5, "centre");
-        f.imprime(2, &format!("SAL_TPS_TRA_{}", n), r(306.0, 322.0), &entier(p.jours), 8.5, "centre");
+        f.imprime(2, &format!("SAL_NB_HEURES_{}", n), r(258.0, 273.0), &quantite(p.heures), 8.5, "centre");
+        f.imprime(2, &format!("SAL_NB_CACHET_{}", n), r(282.0, 298.0), &quantite(p.cachets), 8.5, "centre");
+        f.imprime(2, &format!("SAL_TPS_TRA_{}", n), r(306.0, 322.0), &quantite(p.jours), 8.5, "centre");
         f.imprime(2, &format!("SAL_MONTANT_{}", n), r(339.0, 360.0), &format!("{:.2}", p.brut.round_dp(2)), 8.5, "centre");
         f.imprime(2, &format!("SAL_DT_PAI_{}", n), r(379.0, 400.0), &p.paiement, 8.5, "centre");
     }
