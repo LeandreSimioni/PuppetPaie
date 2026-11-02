@@ -52,7 +52,9 @@ l'actualité ACTU-2018-00014, `11180-PGP` ; « Version en vigueur du 03/12/2018 
 - § 20, second alinéa : la demande de taux par anticipation (le signalement d'amorçage) ; le simulateur y répond par un
   compte rendu (`envois/src/organismes_simules.rs`).
 - § 30 : le compte rendu suit la déclaration dans un délai qui « ne devrait pas excéder 5 jours ouvrés » : la réponse
-  attendue d'une demande partie (`moteur/src/compagnie/amorcage_demande.rs`, `en_cours`).
+  attendue d'une demande partie (`moteur/src/compagnie/amorcage_demande.rs`, `en_cours`). **Inférence** (le texte ne
+  dit pas ce que devient une demande restée sans réponse) : passé ce délai, elle n'attend plus ; la paie prend la grille
+  (§ 10) et le taux se demande de nouveau (§ 20).
 - § 20 et § 70, exemple 1 : le compte rendu est établi « en retour de chaque déclaration sociale nominative », et celui
   qui répond à la DSN de janvier sert aux revenus « versés au titre des mois de février, mars et avril ». **Inférence**
   (les textes supposent la DSN déposée après le versement qu'elle déclare) : le taux en retour de la DSN du mois `M` vaut
