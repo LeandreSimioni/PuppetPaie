@@ -56,6 +56,11 @@ pub const NATURES: &[(&str, &str)] = &[
     ("124", "Compte-rendu metier URSSAF de rappel"),
 ];
 
+/// Le dossier des retours des organismes, sous la racine d'une compagnie.
+pub const RETOURS: &str = "retours";
+/// Les retours de la DPAE, a part (regle 5).
+pub const RETOURS_DPAE: &str = "retours/dpae";
+
 pub const NATURE_TAUX_PAS: &str = "94";
 pub const NATURE_TAUX_ATMP: &str = "34";
 pub const NATURE_AER_SPECTACLE: &str = "46";

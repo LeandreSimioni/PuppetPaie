@@ -723,7 +723,7 @@ const A01: &str = "A01";
 const DIT_LE: &str = "dit_le";
 
 fn chemin_des_effectifs(racine: &Path) -> PathBuf {
-    racine.join("config").join("effectifs.json")
+    racine.join(droit::contexte::EFFECTIFS)
 }
 
 fn effectifs_lus(racine: &Path) -> Value {
@@ -756,7 +756,7 @@ fn dits(existant: &Value) -> std::collections::BTreeMap<String, Map<String, Valu
 /// et chaque code, le calcul le plus RECENT l'emporte ; l'effectif qu'une annee sans 118 a recu de la compagnie reste.
 /// Ne touche pas au fichier s'il n'y a aucun 118.
 pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
-    let dossier = racine.join("retours");
+    let dossier = racine.join(crate::retours::RETOURS);
     let mut noms: Vec<String> = match std::fs::read_dir(&dossier) {
         Ok(l) => l
             .flatten()

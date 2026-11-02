@@ -121,8 +121,8 @@ fn dossier_exercices(ctx: &Contexte) -> PathBuf {
 fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) -> R<ExportCompta> {
     let plan = plan_comptable(ctx)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
-    let propre = ctx.racine.join("config").join("plan-comptable.json");
-    let origine = if propre.exists() { "config/plan-comptable.json" } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
+    let propre = ctx.racine.join(documents::plan_comptable::PLAN_COMPTABLE);
+    let origine = if propre.exists() { documents::plan_comptable::PLAN_COMPTABLE } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
     let mois: Vec<String> = mois_de_l_annee(ctx, annee)
         .into_iter()
         .filter(|m| {
@@ -220,9 +220,12 @@ pub(crate) fn export_compta_charge(ctx: &Contexte, charge: &Value) -> R<ExportCo
 
 // ------------------------------------------------------------------ la cloture
 
+/// Les exercices clos de la compagnie, sous sa racine.
+pub const EXERCICES: &str = "config/exercices.json";
+
 /// `config/exercices.json`, sans les cles qui commencent par `_`.
 fn lire_exercices(ctx: &Contexte) -> R<Map<String, Value>> {
-    match crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
+    match crate::routes::lire_json_ou_vide(&ctx.racine.join(EXERCICES))? {
         Value::Object(o) => Ok(o),
         autre => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre)))),
     }
@@ -235,7 +238,7 @@ fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
 }
 
 fn ecrire_exercices(ctx: &Contexte, tous: &Map<String, Value>) -> R<()> {
-    let chemin = ctx.racine.join("config").join("exercices.json");
+    let chemin = ctx.racine.join(EXERCICES);
     socle::ecriture::ecrire_json(&chemin, &Value::Object(tous.clone()), 1).map_err(|m| erreur("OSError", m))
 }
 
@@ -330,7 +333,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     // janvier suivant qui repondent a la DSN de decembre sont pris aussi : ils portent sur l'annee close.
     let suivante = format!("{}01", an + 1);
     for sous in ["", "dpae"] {
-        let d = if sous.is_empty() { ctx.racine.join("retours") } else { ctx.racine.join("retours").join(sous) };
+        let d = if sous.is_empty() { ctx.racine.join(envois::retours::RETOURS) } else { ctx.racine.join(envois::retours::RETOURS).join(sous) };
         if d.is_dir() {
             let mut noms: Vec<PathBuf> = std::fs::read_dir(&d).map_err(|e| en_os(&e, &d))?.flatten().map(|e| e.path()).collect();
             noms.sort();
@@ -345,9 +348,9 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     }
     let j = envois::journal::chemin(&ctx.racine);
     if j.exists() {
-        entrees.push(entree_fichier(&j, "journal/depots.jsonl".to_string())?);
+        entrees.push(entree_fichier(&j, envois::journal::DEPOTS.to_string())?);
     }
-    let cfg = ctx.racine.join("config");
+    let cfg = ctx.racine.join(socle::fichiers::CONFIG);
     for nom in ["entreprise.json", "salaries.json", "spectacles.json", "organismes.json", "rubriques.json", "compteurs.json"] {
         if cfg.join(nom).exists() {
             entrees.push(entree_fichier(&cfg.join(nom), format!("config/{}", nom))?);
@@ -378,7 +381,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
 
     let empreinte: String = Sha256::digest(&octets).iter().map(|b| format!("{:02x}", b)).collect();
     let le = maintenant();
-    let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
+    let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join(EXERCICES))? {
         Value::Object(o) => o,
         autre => return Err(erreur("TypeError", socle::fichiers::non_modifiable(socle::valeur::nom_type(&autre)))),
     };
@@ -401,7 +404,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
 /// Retire la cloture. L'archive reste sur le disque : elle dit ce
 /// qu'etait l'annee au moment ou on l'a fermee.
 fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
-    let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
+    let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join(EXERCICES))? {
         Value::Object(o) => o,
         autre => return Err(erreur("TypeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
     };

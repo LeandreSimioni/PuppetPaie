@@ -75,7 +75,7 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
         let mut m = Map::new();
         m.insert("code_risque".into(), json!(code));
         m.insert("_source".into(), json!(format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040).", en_clair(mois))));
-        let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", courante));
+        let p = ctx.racine.join(droit::contexte::BAREMES).join(format!("{}.json", courante));
         let mut data = socle::fichiers::lire_json(&p).unwrap_or_else(|_| json!({"annee": courante, "socle": courante}));
         data["taux_atmp"] = Value::Object(m);
         if socle::ecriture::ecrire_json(&p, &data, 2).is_ok() {

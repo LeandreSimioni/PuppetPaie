@@ -370,7 +370,7 @@ fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
         phrase = format!("Effectif de {} : {}.", an, socle::num::dec_f64(x).map(|e| socle::texte::virgule(e.round_dp(2))).unwrap_or_default());
     }
     let e = ctx.effectif().map_err(Echec::from)?;
-    let lu = std::fs::read_to_string(ctx.racine.join("config").join("effectifs.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).unwrap_or(Value::Null);
+    let lu = std::fs::read_to_string(ctx.racine.join(droit::contexte::EFFECTIFS)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).unwrap_or(Value::Null);
     let dit = lu.pointer(&format!("/annees/{}/A01/dit_le", an)).is_some();
     let (valeur, source) = match e.annees.get(&an) {
         Some(v) => (json!(v), if dit { "la compagnie" } else { "l'Urssaf" }),
@@ -1554,7 +1554,7 @@ fn poser_champs(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: Map<Strin
     let Some(fichier) = fichier_de(nom) else {
         return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
-    let chemin = ctx.racine.join("config").join(fichier);
+    let chemin = ctx.racine.join(socle::fichiers::CONFIG).join(fichier);
     let mut contenu = objet_du_fichier(&chemin)?;
     let brute = match cle {
         None => &mut contenu,
@@ -1572,12 +1572,12 @@ fn poser_champs(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: Map<Strin
 /// UN TAUX DE PAS RECU S'ECRIT DANS LA FICHE DE SON SALARIE (`droit::pas::CHAMP`), date du jour ou il commence de valoir
 /// `depuis` : avant ce jour, la fiche ne le disait pas (la case vide). `note` dit d'ou il vient.
 pub(crate) fn poser_taux_recu(ctx: &Contexte, salarie: &str, valeur: Value, depuis: Jour, note: &str) -> R<()> {
-    let chemin = ctx.racine.join("config").join("salaries.json");
+    let chemin = ctx.racine.join(droit::contexte::SALARIES);
     let mut contenu = objet_du_fichier(&chemin)?;
     let Some(Value::Object(brute)) = contenu.get_mut(salarie) else {
         return Err(refus(format!("La fiche salarie {} n'existe pas : rien n'est écrit.", salarie)));
     };
-    let ancienne = droit::contexte::fiche_au(&Value::Object(brute.clone()), &depuis, "config/salaries.json").map_err(plain)?;
+    let ancienne = droit::contexte::fiche_au(&Value::Object(brute.clone()), &depuis, droit::contexte::SALARIES).map_err(plain)?;
     ecrire_datee(brute, "salarie", &ancienne, &un_champ(droit::pas::CHAMP, valeur), true, Some(depuis), Some(note), &depuis)?;
     sauver_avant(&chemin)?;
     ecrire(&chemin, Value::Object(contenu))
@@ -1614,7 +1614,7 @@ pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut
 /// Seule la valeur que l'import a posee, `pose_le`, se remplace : l'anciennete est un fait du passe (`FAITS_SANS_DATE`),
 /// elle se corrige. Une date saisie depuis reste la sienne. Rend vrai si elle a ete remplacee.
 pub(crate) fn reprendre_anciennete(ctx: &Contexte, salarie: &str, pose_le: &str, debut: &str) -> R<bool> {
-    let contenu = objet_du_fichier(&ctx.racine.join("config").join("salaries.json"))?;
+    let contenu = objet_du_fichier(&ctx.racine.join(droit::contexte::SALARIES))?;
     let Some(Value::Array(versions)) = contenu.get(salarie).and_then(|f| f.get("date_anciennete")) else { return Ok(false) };
     let [seule] = versions.as_slice() else { return Ok(false) };
     if seule.get("valeur").map(valeur_en_texte).as_deref() != Some(pose_le) || debut >= pose_le {
@@ -1895,7 +1895,7 @@ cette fiche-là, ou corrigez le numéro.",
             }
         }
     }
-    let chemin = ctx.racine.join("config").join(fichier);
+    let chemin = ctx.racine.join(socle::fichiers::CONFIG).join(fichier);
     if cle.as_deref().map_or(true, str::is_empty) && nom == "salarie" {
         // Le matricule d'une fiche neuve : le suivant. Un matricule saisi est garde tel quel.
         if !donnees.get("code_salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
@@ -1956,7 +1956,7 @@ pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, cham
     let Some(fichier) = fichier_de(nom) else {
         return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
-    let contenu = Value::Object(objet_du_fichier(&ctx.racine.join("config").join(fichier))?);
+    let contenu = Value::Object(objet_du_fichier(&ctx.racine.join(socle::fichiers::CONFIG).join(fichier))?);
     let brute = match cle {
         None => &contenu,
         Some(k) => contenu.get(k).filter(|f| f.is_object()).ok_or_else(|| refus(format!("La fiche {} {} n'existe plus : rien n'est complete.", nom, k)))?,
@@ -1975,7 +1975,7 @@ pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, cham
 /// reste ce qu'elle est.
 pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, String)], note: &Value) -> R<()> {
     let Some(((_, premiere), suivantes)) = licences.split_first().filter(|(_, s)| !s.is_empty()) else { return Ok(()) };
-    let fiche = Value::Object(objet_du_fichier(&ctx.racine.join("config").join("entreprise.json"))?);
+    let fiche = Value::Object(objet_du_fichier(&ctx.racine.join(droit::contexte::ENTREPRISE))?);
     let portees = droit::contexte::valeurs_datees(&fiche, "licence_spectacle").map_err(plain)?;
     if !matches!(portees.as_slice(), [(None, v)] if valeur_en_texte(v) == *premiere) {
         return Ok(());

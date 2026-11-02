@@ -68,8 +68,8 @@ use crate::routes::etapes::Moteur;
 
 /// Qui signe, au journal, ce que l'horloge joue.
 pub const QUI_HORLOGE: &str = "horloge";
-/// La memoire de l'horloge, dans `config/`.
-pub const FICHIER_HORLOGE: &str = "horloge.json";
+/// La memoire de l'horloge, sous la racine de la compagnie.
+pub const FICHIER_HORLOGE: &str = "config/horloge.json";
 /// Les routes de ce module.
 pub const ROUTES: [&str; 1] = ["horloge-rattraper"];
 
@@ -313,7 +313,7 @@ pub fn dernier_rattrapage(racine: &Path, aujourdhui: Option<Jour>) -> R<Vec<Stri
         None => droit::contexte::aujourdhui().map_err(Echec::from)?,
     }
     .iso();
-    let Some(Value::Object(m)) = std::fs::read_to_string(racine.join("config").join(FICHIER_HORLOGE)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok())
+    let Some(Value::Object(m)) = std::fs::read_to_string(racine.join(FICHIER_HORLOGE)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok())
     else {
         return Ok(Vec::new());
     };
@@ -379,7 +379,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
     // SA MEMOIRE (config/horloge.json) : le dernier jour joue, et les mois dont tout est fait, chacun avec l'empreinte de
     // ce qui le fait (sa saisie et ses imprevus). La veille repasse toutes les vingt minutes : un mois fait ne se relit
     // que si ce qui le fait a change (une correction, un arret saisi apres coup).
-    let memoire_f = racine.join("config").join(FICHIER_HORLOGE);
+    let memoire_f = racine.join(FICHIER_HORLOGE);
     let memoire: Map<String, Value> = match std::fs::read_to_string(&memoire_f).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) {
         Some(Value::Object(m)) => m,
         _ => Map::new(),
@@ -1008,9 +1008,9 @@ pub(crate) fn racine_d_essai(fictive: bool) -> std::path::PathBuf {
     static N: AtomicUsize = AtomicUsize::new(0);
     let r = std::env::temp_dir().join(format!("paie-horloge-{}-{}", std::process::id(), N.fetch_add(1, Ordering::SeqCst)));
     let _ = std::fs::remove_dir_all(&r);
-    std::fs::create_dir_all(r.join("config")).unwrap();
+    std::fs::create_dir_all(r.join(socle::fichiers::CONFIG)).unwrap();
     for f in ["entreprise.json", "salaries.json", "spectacles.json"] {
-        std::fs::write(r.join("config").join(f), "{}").unwrap();
+        std::fs::write(r.join(socle::fichiers::CONFIG).join(f), "{}").unwrap();
     }
     if fictive {
         std::fs::write(r.join("COPIE-DE-DEVELOPPEMENT.json"), r#"{"copie_de": "compagnie fictive essai"}"#).unwrap();
@@ -1056,7 +1056,7 @@ mod tests {
         assert_eq!(rattraper(&r, Some(jour("2027-03-01")), true).unwrap(), Vec::<String>::new());
         assert_eq!(rattraper(&r, Some(jour("2027-03-01")), false).unwrap(), Vec::<String>::new());
         assert_eq!(photo(&r), avant, "pas meme config/horloge.json");
-        assert!(!r.join("config").join(FICHIER_HORLOGE).exists());
+        assert!(!r.join(FICHIER_HORLOGE).exists());
         // Un marqueur de copie de developpement qui n'est PAS une compagnie fictive ne suffit pas.
         std::fs::write(r.join("COPIE-DE-DEVELOPPEMENT.json"), r#"{"copie_de": "prive"}"#).unwrap();
         let avant = photo(&r);

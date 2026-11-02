@@ -71,7 +71,7 @@ fn fichiers(code: &Path, rel: &Path, out: &mut Vec<PathBuf>) {
 /// exclusions que le `.gitignore` du depot public, « LES COMPAGNIES FICTIVES »).
 /// La marque d'une livraison (`LIVREE`) non plus : la livraison l'ajoute elle-meme.
 const HORS_D_UNE_FICTIVE_LIVREE: [&str; 6] =
-    ["config/coffre.bin", "config/google-jeton.bin", "config/maj-cle-privee.bin", "config/.jeton-interface", "journal/interface.log", LIVREE];
+    ["config/coffre.bin", crate::routes::coffre::JETON_GOOGLE, "config/maj-cle-privee.bin", "config/.jeton-interface", crate::interface::JOURNAL_INTERFACE, LIVREE];
 
 /// LES COMPAGNIES FICTIVES LIVREES, a cote du logiciel (`<code>/../fictives/`) : les fichiers que porte l'archive
 /// d'installation (`archiver_installation`), chemins relatifs a `fictives/`, dans l'ordre des noms. Une fictive est un dossier que son marqueur dit fictif
@@ -277,7 +277,7 @@ fn scelle_par_le_coffre(octets: &[u8]) -> Option<Vec<u8>> {
 /// La compagnie de `racine` porte-t-elle une cle de signature (scellee par son coffre) ? Ne lit que la presence du
 /// fichier, n'ouvre rien.
 pub fn cle_de_signature_posee(racine: &Path) -> bool {
-    racine.join("config").join(FICHIER_CLE_PRIVEE).is_file()
+    racine.join(socle::fichiers::CONFIG).join(FICHIER_CLE_PRIVEE).is_file()
 }
 
 /// Ecrit la cle scellee par le coffre : un `.part` renomme, jamais un fichier coupe en route sous le vrai nom.
@@ -291,7 +291,7 @@ fn ecrire_cle(chemin: &Path, scelle: &[u8]) -> R<()> {
 /// La graine de la cle privee, ouverte par ce qui ouvre le coffre. Un fichier qui n'est pas au format `FORMAT_CLE` est
 /// refuse : il ne s'ouvre pas.
 fn cle_privee(coffre: &Coffre) -> R<Option<Vec<u8>>> {
-    let p = coffre.racine.join("config").join(FICHIER_CLE_PRIVEE);
+    let p = coffre.racine.join(socle::fichiers::CONFIG).join(FICHIER_CLE_PRIVEE);
     if !p.exists() {
         return Ok(None);
     }
@@ -333,7 +333,7 @@ pub fn generer_cle_au_poste(coffre: &Coffre, remplacer: bool) -> R<Value> {
     if crate::interface::compagnies::est_copie(racine) {
         return Err("Copie de developpement : la cle de signature ne part jamais d'ici.".into());
     }
-    let chemin = racine.join("config").join(FICHIER_CLE_PRIVEE);
+    let chemin = racine.join(socle::fichiers::CONFIG).join(FICHIER_CLE_PRIVEE);
     if chemin.exists() && !remplacer {
         return Err(format!(
             "Une cle privee existe deja ({}). --remplacer pour en faire une autre : les compagnies devront alors recevoir la nouvelle cle publique par une autre voie.",

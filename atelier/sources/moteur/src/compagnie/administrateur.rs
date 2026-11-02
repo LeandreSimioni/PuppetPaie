@@ -138,7 +138,7 @@ pub fn rattachees(inst: &Path) -> Vec<PathBuf> {
     for e in lire_registre(inst) {
         let Some(d) = e.get("dossier").and_then(Value::as_str) else { continue };
         let racine = inst.join(d);
-        if racine.join("config").join("entreprise.json").is_file() {
+        if racine.join(droit::contexte::ENTREPRISE).is_file() {
             out.push(racine);
         }
     }

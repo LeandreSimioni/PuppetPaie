@@ -59,7 +59,7 @@ pub fn base(ctx: &Contexte) -> Resultat<Value> {
 /// (`donnes_par_un_texte`) n'est pas une saisie, sous quelque convention qu'on lise. Son identifiant reste pris : il a
 /// pu partir dans une DSN.
 pub fn saisis(ctx: &Contexte) -> Resultat<(Value, Vec<u32>)> {
-    let p = ctx.racine.join("config").join(ORGANISMES);
+    let p = ctx.racine.join(socle::fichiers::CONFIG).join(ORGANISMES);
     if !p.is_file() {
         return Ok((json!({}), Vec::new()));
     }

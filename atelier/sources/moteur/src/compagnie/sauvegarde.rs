@@ -364,7 +364,7 @@ pub fn inventaire(racine: &Path) -> (Vec<(String, Etat)>, usize) {
 /// `chemin_index` : `config/`, et pas `journal/` : de l'etat machine, pas un document. Il est
 /// ecarte de la sauvegarde (`NOMS_EXCLUS`).
 pub fn chemin_index(racine: &Path) -> PathBuf {
-    racine.join("config").join(INDEX)
+    racine.join(socle::fichiers::CONFIG).join(INDEX)
 }
 
 /// `{}` si le fichier manque ou ne se lit pas comme du JSON.

@@ -398,7 +398,7 @@ pub fn compagnies_de(inst: &Path) -> Vec<PathBuf> {
             v.extend(autres);
         }
     }
-    v.retain(|r| !crate::interface::compagnies::est_cache(r) && r.join("config").join("entreprise.json").is_file() && (!crate::interface::compagnies::est_copie(r) || crate::interface::compagnies::est_fictive(r)));
+    v.retain(|r| !crate::interface::compagnies::est_cache(r) && r.join(droit::contexte::ENTREPRISE).is_file() && (!crate::interface::compagnies::est_copie(r) || crate::interface::compagnies::est_fictive(r)));
     v
 }
 
@@ -1726,9 +1726,9 @@ mod tests {
     /// LISEZ-MOI du dossier.
     fn une_fictive(base: &Path) {
         let f = base.join("fictives").join("fictive-essai");
-        std::fs::create_dir_all(f.join("config")).unwrap();
+        std::fs::create_dir_all(f.join(socle::fichiers::CONFIG)).unwrap();
         std::fs::write(f.join("COPIE-DE-DEVELOPPEMENT.json"), "{\"copie_de\": \"compagnie fictive (essai)\"}").unwrap();
-        std::fs::write(f.join("config").join("entreprise.json"), "{\"nom_affichage\": \"Essai\"}").unwrap();
+        std::fs::write(f.join(droit::contexte::ENTREPRISE), "{\"nom_affichage\": \"Essai\"}").unwrap();
         std::fs::write(base.join("fictives").join("LISEZ-MOI.md"), "Les fictives.\n").unwrap();
     }
 

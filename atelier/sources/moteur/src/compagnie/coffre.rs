@@ -657,7 +657,7 @@ impl Coffre {
     }
 
     pub fn chemin(&self) -> PathBuf {
-        self.racine.join("config").join(FICHIER)
+        self.racine.join(socle::fichiers::CONFIG).join(FICHIER)
     }
 
     pub fn chemin_cle(&self) -> PathBuf {

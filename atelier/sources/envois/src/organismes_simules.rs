@@ -637,8 +637,8 @@ mod tests {
     fn le_118_rendu_s_ecrit_dans_les_effectifs_de_la_compagnie() {
         let racine = std::env::temp_dir().join(format!("envois-118-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&racine);
-        std::fs::create_dir_all(racine.join("retours")).unwrap();
-        std::fs::create_dir_all(racine.join("config")).unwrap();
+        std::fs::create_dir_all(racine.join(crate::retours::RETOURS)).unwrap();
+        std::fs::create_dir_all(racine.join(socle::fichiers::CONFIG)).unwrap();
         // Ce que la compagnie a dit : l'annee que le 118 mesure le remplace, l'autre reste.
         assert!(crate::releve_retours::poser_effectif(&racine, 2026, 3.0, "2027-01-05").unwrap());
         assert!(crate::releve_retours::poser_effectif(&racine, 2025, 2.0, "2027-01-05").unwrap());
@@ -646,7 +646,7 @@ mod tests {
         let chemin = crate::transport::archiver(&racine, "", &p.retour, &p.contenu, "application/xml", "20270215-100000").unwrap();
         assert!(chemin.file_name().unwrap().to_string_lossy().contains("_nature118_"));
         crate::releve_retours::reconstruire_effectifs(&racine).unwrap();
-        let e: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("config/effectifs.json")).unwrap()).unwrap();
+        let e: Value = serde_json::from_str(&std::fs::read_to_string(racine.join(droit::contexte::EFFECTIFS)).unwrap()).unwrap();
         assert_eq!(e["annees"]["2026"]["A01"]["valeur"], json!(11.42));
         assert_eq!(e["annees"]["2025"]["A01"]["valeur"], json!(2.0));
         assert!(!crate::releve_retours::poser_effectif(&racine, 2026, 3.0, "2027-03-01").unwrap());

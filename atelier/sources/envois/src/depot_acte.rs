@@ -72,7 +72,7 @@ pub struct Depot<'a> {
 /// est impossible sous Windows), et une reponse n'en ecrase JAMAIS une autre : deux depots dans la meme seconde (un test
 /// puis le reel) prennent `-2`, `-3`... avant `.txt`.
 pub fn archiver_reponse(racine: &Path, quoi: &str, mois: &str, reponse: &str) -> R<PathBuf> {
-    let dossier = racine.join("retours").join("depots");
+    let dossier = racine.join(crate::retours::RETOURS).join("depots");
     std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
     let etiquette: String = mois.replace('-', "").chars().filter(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')).collect();
     let etiquette = if etiquette.is_empty() { "sans-date".to_string() } else { etiquette };

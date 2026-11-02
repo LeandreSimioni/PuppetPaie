@@ -29,7 +29,7 @@ use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
 const POSE_A_LA_CREATION: &str = "_pose_a_la_creation";
 
 fn surcouche(racine: &Path, an: i64) -> std::path::PathBuf {
-    racine.join("config").join("baremes").join(format!("{}.json", an))
+    racine.join(droit::contexte::BAREMES).join(format!("{}.json", an))
 }
 
 /// Le socle livre de l'annee, s'il existe.

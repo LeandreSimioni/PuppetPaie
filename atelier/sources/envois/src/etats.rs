@@ -1311,7 +1311,7 @@ fn correspond(j: &[Jeton], nom: &[char]) -> bool {
 /// `journal._archive_du_retour`.
 fn archive_du_retour(racine: &Path, r: &Value, quoi: &Value) -> R<Option<PathBuf>> {
     let canal = if est(quoi, DPAE) { "dpae" } else { "" };
-    let dossier = if canal.is_empty() { racine.join("retours") } else { racine.join("retours").join(canal) };
+    let dossier = if canal.is_empty() { racine.join(crate::retours::RETOURS) } else { racine.join(crate::retours::RETOURS).join(canal) };
     if !dossier.is_dir() {
         return Ok(None);
     }
@@ -1724,7 +1724,7 @@ mod tests {
     fn journal(nom: &str, lignes: Value) -> PathBuf {
         let p = std::env::temp_dir().join(format!("paie-etats-{}-{}", nom, std::process::id()));
         let _ = std::fs::remove_dir_all(&p);
-        std::fs::create_dir_all(p.join("journal")).unwrap();
+        std::fs::create_dir_all(p.join(crate::journal::JOURNAL)).unwrap();
         let texte: String = lignes.as_array().unwrap().iter().enumerate().map(|(i, l)| format!("{}\n", json!({"id": i.to_string(), "ligne": l}))).collect();
         std::fs::write(chemin(&p), texte).unwrap();
         p

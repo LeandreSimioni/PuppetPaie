@@ -1499,7 +1499,7 @@ impl<'a> Moteur<'a> {
 
     /// `exercice_clos` : la cloture de l'annee de ce mois, ou `None`.
     pub(crate) fn exercice_clos(&self, mois_ou_annee: &str) -> R<bool> {
-        let p = self.racine().join("config").join("exercices.json");
+        let p = self.racine().join(crate::compagnie::exercice_ecrit::EXERCICES);
         if !socle::fichiers::existe(&p) {
             return Ok(false);
         }

@@ -73,7 +73,7 @@ pub fn licence_exigee(ent: &Value, spectacle: bool) -> bool {
 
 /// La compagnie emploie-t-elle des intermittents ? Un spectacle actif le dit : un CDDU se rattache a un spectacle.
 fn a_des_spectacles(ctx: &Contexte) -> bool {
-    std::fs::read(ctx.racine.join("config").join("spectacles.json"))
+    std::fs::read(ctx.racine.join(socle::fichiers::CONFIG).join("spectacles.json"))
         .ok()
         .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
         .and_then(|v| v.as_object().map(|o| o.iter().any(|(k, s)| !k.starts_with('_') && s.get("actif") != Some(&json!(false)))))

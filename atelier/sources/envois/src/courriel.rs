@@ -115,7 +115,7 @@ fn hote_de(v: &Value) -> String {
 /// Gmail par defaut ; `config/courriel.json` change les cles `imap`, `port_imap`, `smtp`, `port_smtp` (les autres
 /// cles sont ignorees).
 pub fn serveurs(racine: &Path) -> Result<Serveurs, ErreurCourriel> {
-    let p = racine.join("config").join(FICHIER_SERVEURS);
+    let p = racine.join(socle::fichiers::CONFIG).join(FICHIER_SERVEURS);
     let mut s = Serveurs::gmail();
     if !p.exists() {
         return Ok(s);

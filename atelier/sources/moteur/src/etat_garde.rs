@@ -181,12 +181,12 @@ fn signer_dossier(h: &mut Sha256, base: &Path, dossier: &Path, profond: bool, ga
 const HORS_DE_L_ECRAN: [&str; 7] = [
     "config/.ouverture.json",
     "config/.sauvegarde.json",
-    "config/diagnostic.json",
-    "config/horloge.json",
-    "journal/signalements.json",
-    "journal/incidents.json",
+    crate::compagnie::incidents::DIAGNOSTIC,
+    crate::horloge::FICHIER_HORLOGE,
+    crate::compagnie::problemes::SIGNALEMENTS,
+    crate::compagnie::incidents::INCIDENTS,
     // Le tableau de l'administrateur (`administrateur.rs`) : le resume de la compagnie que l'accueil lit.
-    "config/.tableau.json",
+    crate::compagnie::administrateur::TABLEAU,
 ];
 
 /// L'empreinte de tout ce dont l'etat `cle` est tire, au jour `jour` (AAAA-MM-JJ).
@@ -216,10 +216,10 @@ pub fn empreinte_de(racine: &Path, cle: &str, jour: &str) -> String {
     // l'ouverture : pour tous les mois).
     signer_dossier(&mut h, racine, &racine.join(engagement::stock::DOSSIER), true, &|n| n.ends_with(".json"));
     signer_dossier(&mut h, racine, &racine.join(engagement::paies::DOSSIER), true, &|n| n.ends_with(".json"));
-    signer_dossier(&mut h, racine, &racine.join("config"), true, &|n| {
+    signer_dossier(&mut h, racine, &racine.join(socle::fichiers::CONFIG), true, &|n| {
         (ouverture || !n.ends_with(".bin")) && !n.ends_with(".tmp") && !HORS_DE_L_ECRAN.contains(&n)
     });
-    signer_dossier(&mut h, racine, &racine.join("journal"), false, &|n| n.ends_with(".json") && !HORS_DE_L_ECRAN.contains(&n));
+    signer_dossier(&mut h, racine, &racine.join(envois::journal::JOURNAL), false, &|n| n.ends_with(".json") && !HORS_DE_L_ECRAN.contains(&n));
     for d in ["imprevus", "historique", "retours"] {
         signer_dossier(&mut h, racine, &racine.join(d), true, &|n| !n.ends_with(".tmp"));
     }

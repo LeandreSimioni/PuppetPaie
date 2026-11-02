@@ -26,10 +26,13 @@ fn valeur(m: String) -> Echec {
     erreur("ValueError", m)
 }
 
+/// La suite des numeros de chaque annee, sous la racine de la compagnie.
+const COMPTEURS: &str = "config/compteurs.json";
+
 /// `config/compteurs.json` (`{"AAAA": {"bulletin": n, ...}}`, la suite des numeros de chaque annee), ou `{}` s'il
 /// n'existe pas. La seule lecture du fichier.
 pub fn compteurs(racine: &std::path::Path) -> R<Value> {
-    let p = racine.join("config").join("compteurs.json");
+    let p = racine.join(COMPTEURS);
     if !p.exists() {
         return Ok(json!({}));
     }
@@ -151,7 +154,7 @@ impl Reserves {
         if self.ordre.is_empty() {
             return Ok(());
         }
-        let p = ctx.racine.join("config").join("compteurs.json");
+        let p = ctx.racine.join(COMPTEURS);
         let mut c = compteurs(&ctx.racine)?;
         let lu = socle::valeur::nom_type(&c);
         let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", format!("config/compteurs.json : {}", socle::fichiers::attendu("un objet", lu))))?;

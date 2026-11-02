@@ -12,10 +12,12 @@ use socle::fichiers::dossier_du_code;
 
 pub const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
 const COULEUR_DEFAUT: &str = "#B22222";
+/// La couleur de la compagnie, sous sa racine.
+const AFFICHAGE: &str = "config/affichage.json";
 const DOSSIER_ORIGINE: &str = ".origine";
 /// Ce qui appartient au poste et survit a une remise a zero.
 const PROPRES_AU_POSTE: [&str; 4] =
-    ["config/diagnostic.json", "journal/signalements.json", "journal/incidents.json", "journal/interface.log"];
+    [crate::compagnie::incidents::DIAGNOSTIC, crate::compagnie::problemes::SIGNALEMENTS, crate::compagnie::incidents::INCIDENTS, crate::interface::JOURNAL_INTERFACE];
 
 /// Le dossier du logiciel (`logiciel/`).
 pub fn logiciel() -> PathBuf {
@@ -59,7 +61,7 @@ fn ecrire(p: &Path, v: &Value) -> Result<(), String> {
 /// La vraie compagnie : `prive/` a cote du code, sinon le code lui-meme.
 pub fn dossier_reel() -> PathBuf {
     let voisin = base().join("prive");
-    if voisin.join("config").is_dir() {
+    if voisin.join(socle::fichiers::CONFIG).is_dir() {
         voisin
     } else {
         logiciel()
@@ -113,8 +115,8 @@ pub const PREFIXE_AJOUTEE: &str = "ajoutee-";
 /// La fiche entreprise telle qu'elle vaut aujourd'hui ; vide si elle ne se lit pas (la tuile dit alors le dossier, et
 /// la compagnie, ouverte, dit pourquoi).
 fn fiche(racine: &Path) -> Value {
-    lire(&racine.join("config").join("entreprise.json"))
-        .and_then(|b| droit::contexte::fiche_au(&b, &droit::contexte::jour_reel(), "config/entreprise.json").ok())
+    lire(&racine.join(droit::contexte::ENTREPRISE))
+        .and_then(|b| droit::contexte::fiche_au(&b, &droit::contexte::jour_reel(), droit::contexte::ENTREPRISE).ok())
         .unwrap_or_else(|| json!({}))
 }
 
@@ -172,7 +174,7 @@ fn couleur_valide(c: &str) -> bool {
 
 /// La couleur d'une compagnie (`config/affichage.json`), rouge par defaut.
 pub fn couleur(racine: &Path) -> String {
-    lire(&racine.join("config").join("affichage.json"))
+    lire(&racine.join(AFFICHAGE))
         .and_then(|d| d.get("couleur").and_then(Value::as_str).map(String::from))
         .filter(|c| couleur_valide(c))
         .unwrap_or_else(|| COULEUR_DEFAUT.to_string())
@@ -213,7 +215,7 @@ pub fn est_cache(p: &Path) -> bool {
 fn sous_dossiers(dossier: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = std::fs::read_dir(dossier)
         .map(|it| {
-            it.filter_map(|e| e.ok().map(|e| e.path())).filter(|d| !est_cache(d) && d.join("config").join("entreprise.json").is_file()).collect()
+            it.filter_map(|e| e.ok().map(|e| e.path())).filter(|d| !est_cache(d) && d.join(droit::contexte::ENTREPRISE).is_file()).collect()
         })
         .unwrap_or_default();
     v.sort();
@@ -230,7 +232,7 @@ pub fn liste_de(b: &Path) -> Vec<Compagnie> {
     let mut out = Vec::new();
     if !crate::compagnie::bridage::est_bride_de(b) {
         let reel = if b == base() { dossier_reel() } else { b.join("prive") };
-        if reel.join("config").is_dir() {
+        if reel.join(socle::fichiers::CONFIG).is_dir() {
             out.push(entree("reelle".into(), &reel, true));
         }
         for d in sous_dossiers(&b.join("compagnies")) {
@@ -247,7 +249,7 @@ pub fn liste_de(b: &Path) -> Vec<Compagnie> {
 /// vraies compagnies de l'installation `b` (pas les fictives), la derniere ouverte d'abord -- la date de son journal de
 /// la fenetre (`journal/interface.log`), que chaque ouverture recommence ; jamais ouverte, a la fin.
 pub fn a_tenir_a_jour(b: &Path) -> Vec<PathBuf> {
-    let date = |r: &Path| std::fs::metadata(r.join("journal").join("interface.log")).and_then(|m| m.modified()).ok();
+    let date = |r: &Path| std::fs::metadata(r.join(crate::interface::JOURNAL_INTERFACE)).and_then(|m| m.modified()).ok();
     let mut reelles: Vec<PathBuf> = liste_de(b).into_iter().filter(|c| c.reelle).map(|c| c.racine).collect();
     reelles.sort_by_key(|r| std::cmp::Reverse(date(r)));
     reelles
@@ -268,7 +270,7 @@ pub fn poser_couleur(inst: &Path, id: &str, valeur: &str) -> Result<String, Stri
     }
     let c = liste_de(inst).into_iter().find(|c| c.id == id && c.reelle).ok_or("Seule une compagnie reelle a une couleur a choisir.")?;
     let v = valeur.to_uppercase();
-    ecrire(&c.racine.join("config").join("affichage.json"), &json!({"couleur": v}))?;
+    ecrire(&c.racine.join(AFFICHAGE), &json!({"couleur": v}))?;
     Ok(v)
 }
 
@@ -316,7 +318,7 @@ pub(crate) fn nom_de_dossier(nom: &str) -> String {
 pub const FICHIER_CREATION: &str = "creation.json";
 
 pub fn cree_le(racine: &Path) -> Option<socle::date::Jour> {
-    lire(&racine.join("config").join(FICHIER_CREATION))?.get("le").and_then(Value::as_str).and_then(|j| socle::date::Jour::lire(j).ok())
+    lire(&racine.join(socle::fichiers::CONFIG).join(FICHIER_CREATION))?.get("le").and_then(Value::as_str).and_then(|j| socle::date::Jour::lire(j).ok())
 }
 
 /// D'OU VIENT UNE COMPAGNIE AJOUTEE : le « + » propose les deux chemins. Une compagnie neuve commence ses paies ici ;
@@ -350,7 +352,7 @@ impl Venue {
 
 /// La compagnie a ete ajoutee par le chemin « d'un logiciel precedent ».
 pub fn vient_d_un_logiciel_precedent(racine: &Path) -> bool {
-    lire(&racine.join("config").join(FICHIER_CREATION))
+    lire(&racine.join(socle::fichiers::CONFIG).join(FICHIER_CREATION))
         .and_then(|c| c.get("venue").and_then(Value::as_str).map(Venue::lire))
         == Some(Venue::LogicielPrecedent)
 }
@@ -378,7 +380,7 @@ pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie,
         dossier = parent.join(format!("{}-{}", racine_nom, n));
         n += 1;
     }
-    let cfg = dossier.join("config");
+    let cfg = dossier.join(socle::fichiers::CONFIG);
     std::fs::create_dir_all(&cfg).map_err(|e| e.to_string())?;
     // La raison sociale se deduit du nom comme a chaque enregistrement de la fiche (`crate::routes::fiches::deriver` : majuscules
     // SANS ACCENTS, la forme declaree). `to_uppercase` gardait les accents : la fiche neuve naissait avec une erreur de

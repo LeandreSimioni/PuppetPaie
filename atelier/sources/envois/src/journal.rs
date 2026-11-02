@@ -40,9 +40,15 @@ pub const ACTES: [&str; 8] = [
 
 pub const REEL: &str = "reel";
 
+/// Le dossier du journal d'une compagnie, sous sa racine : ce qui est parti, les incidents, les messages.
+pub const JOURNAL: &str = "journal";
+
+/// Le journal de ce qui est parti, sous la racine de la compagnie.
+pub const DEPOTS: &str = "journal/depots.jsonl";
+
 /// `<racine>/journal/depots.jsonl`.
 pub fn chemin(racine: &Path) -> PathBuf {
-    racine.join("journal").join("depots.jsonl")
+    racine.join(DEPOTS)
 }
 
 /// Les 16 premiers caracteres du SHA-256.

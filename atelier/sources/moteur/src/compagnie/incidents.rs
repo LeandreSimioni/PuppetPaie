@@ -79,7 +79,10 @@ const MAX_PAR_PASSAGE: usize = 200;
 /// du site).
 const LOT_OCTETS: usize = 400_000;
 
-const POSTE_FICHIER: &str = "diagnostic.json";
+/// L'identite du poste chez l'editeur, sous la racine de la compagnie.
+pub const DIAGNOSTIC: &str = "config/diagnostic.json";
+/// Le journal des incidents, sous la racine de la compagnie.
+pub const INCIDENTS: &str = "journal/incidents.json";
 const FICHIER_EDITEUR: &str = "EDITEUR.json";
 
 // ------------------------------------------------------------------- les motifs
@@ -146,7 +149,7 @@ fn sans_chemin(s: &str) -> String {
 pub fn chemin(racine: &Path) -> PathBuf {
     match std::env::var("PUPPETPAIE_INCIDENTS").ok().filter(|v| !v.is_empty()) {
         Some(autre) => PathBuf::from(autre).join("incidents.json"),
-        None => racine.join("journal").join("incidents.json"),
+        None => racine.join(INCIDENTS),
     }
 }
 
@@ -804,7 +807,7 @@ pub fn edition() -> String {
 /// L'ENVOI A L'EDITEUR SE COUPE (une condition de SignPath). `config/diagnostic.json`,
 /// cle `envoi` : absente ou vraie, les incidents partent ; `false`, ils restent notes sur le poste et rien ne part.
 pub fn envoi_actif(racine: &Path) -> bool {
-    let p = racine.join("config").join(POSTE_FICHIER);
+    let p = racine.join(DIAGNOSTIC);
     match crate::routes::fiches::lire_tolerant(&p) {
         Ok(Some(v)) => v.get("envoi") != Some(&Value::Bool(false)),
         _ => true,
@@ -813,7 +816,7 @@ pub fn envoi_actif(racine: &Path) -> bool {
 
 /// Active ou coupe l'envoi a l'editeur ; le numero du poste reste.
 pub fn regler_envoi(racine: &Path, actif: bool) -> R<()> {
-    let p = racine.join("config").join(POSTE_FICHIER);
+    let p = racine.join(DIAGNOSTIC);
     let mut d = match crate::routes::fiches::lire_tolerant(&p)? {
         Some(Value::Object(o)) => o,
         _ => Map::new(),
@@ -843,7 +846,7 @@ pub fn poste(racine: &Path) -> R<String> {
         Some((_, ou)) => ou,
         None => racine.to_path_buf(),
     };
-    let p = ou.join("config").join(POSTE_FICHIER);
+    let p = ou.join(DIAGNOSTIC);
     Ok(crate::routes::fiches::lire_tolerant(&p)?.as_ref().and_then(|d| d.get("poste")).and_then(numero_de_poste).unwrap_or_default())
 }
 
@@ -855,7 +858,7 @@ pub fn poste(racine: &Path) -> R<String> {
 /// de personne : il se remplace. Une panne du serveur (reseau, 429) se rend
 /// telle quelle : l'appelant laisse tout en attente.
 pub fn client_du_poste(ou: &Path, serveur: &str) -> R<Result<Client, ErreurFilet>> {
-    let p = ou.join("config").join(POSTE_FICHIER);
+    let p = ou.join(DIAGNOSTIC);
     let mut d = match crate::routes::fiches::lire_tolerant(&p)? {
         Some(Value::Object(o)) => o,
         _ => Map::new(),
@@ -887,7 +890,7 @@ pub fn client_du_poste(ou: &Path, serveur: &str) -> R<Result<Client, ErreurFilet
 
 /// Le serveur de l'editeur que cette compagnie a pose : `serveur` de son `config/diagnostic.json` ; vide sinon.
 fn serveur_propre(racine: &Path) -> R<String> {
-    let d = crate::routes::fiches::lire_tolerant(&racine.join("config").join(POSTE_FICHIER))?;
+    let d = crate::routes::fiches::lire_tolerant(&racine.join(DIAGNOSTIC))?;
     Ok(d.as_ref().and_then(|d| d.get("serveur")).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default())
 }
 
@@ -906,8 +909,8 @@ pub fn configuration(racine: &Path) -> R<Option<(String, PathBuf)>> {
     }
     let logiciel = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
     let voisin = logiciel.parent().map(|r| r.join("prive")).unwrap_or_default();
-    let reel = if voisin.join("config").is_dir() { voisin } else { logiciel.clone() };
-    if crate::interface::compagnies::est_fictive(racine) && reel != racine && reel.join("config").is_dir() {
+    let reel = if voisin.join(socle::fichiers::CONFIG).is_dir() { voisin } else { logiciel.clone() };
+    if crate::interface::compagnies::est_fictive(racine) && reel != racine && reel.join(socle::fichiers::CONFIG).is_dir() {
         let serveur = serveur_propre(&reel)?;
         if !serveur.is_empty() {
             return Ok(Some((serveur, reel)));

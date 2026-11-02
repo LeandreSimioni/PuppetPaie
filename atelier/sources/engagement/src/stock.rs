@@ -770,7 +770,7 @@ pub(crate) fn vue_et_empreinte(racine: &Path, mois: &str) -> Resultat<Option<std
     static ABSENT: std::sync::OnceLock<std::sync::Arc<Value>> = std::sync::OnceLock::new();
     let vues = VUES.get_or_init(Default::default);
     let (mut lus, tous) = tous(racine)?;
-    for p in [socle::fichiers::dossier_du_code().join("rubriques-base.json"), racine.join("config").join(droit::catalogue::RUBRIQUES_COMPAGNIE)] {
+    for p in [socle::fichiers::dossier_du_code().join("rubriques-base.json"), racine.join(socle::fichiers::CONFIG).join(droit::catalogue::RUBRIQUES_COMPAGNIE)] {
         // Absent, il est le meme d'une lecture a l'autre ; illisible, il ne l'est jamais (la vue se refait).
         let v = match socle::fichiers::json_partage(&p) {
             Ok(Some(v)) => v,

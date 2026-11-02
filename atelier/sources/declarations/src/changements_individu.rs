@@ -91,7 +91,7 @@ fn ecrite(champ: &str, v: Option<&Value>) -> Option<String> {
 /// mois declare n'entre pas dans sa DSN, sans quoi 31.001 depasserait le dernier jour du mois principal declare
 /// (§ 4.4.12, p. 99) -- il ira dans la DSN du mois ou il prend effet.
 pub fn identite_du_mois(salarie: &Value, brute: &Value, fin: &Jour) -> Resultat<Value> {
-    let au = fiche_au(brute, fin, "config/salaries.json")?;
+    let au = fiche_au(brute, fin, droit::contexte::SALARIES)?;
     let mut sortie = salarie.clone();
     if let Some(o) = sortie.as_object_mut() {
         for (champ, ..) in IDENTIFIANTS {

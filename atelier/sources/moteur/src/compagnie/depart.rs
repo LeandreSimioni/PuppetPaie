@@ -63,6 +63,9 @@ fn annee_de(mois: &str) -> R<i64> {
 
 // ------------------------------------------------------------- le journal des pieces ecrites
 
+/// Le journal des pieces ecrites, sous la racine de la compagnie.
+const DSN_ECRITES: &str = "journal/dsn-ecrites.json";
+
 /// LE JOURNAL DES PIECES ECRITES (`journal/dsn-ecrites.json`) : chaque piece que le moteur ecrit -- une DSN, une
 /// DPAE, un export compta -- y note QUAND, au temps du moteur (`temps.rs`, par `socle::paris::maintenant`). C'est ce que
 /// l'ecran dit (« ecrit le ... ») : la date d'un fichier n'est pas celle de son ecriture (une fictive livree est
@@ -72,7 +75,7 @@ fn annee_de(mois: &str) -> R<i64> {
 /// mensuelle, la version de chaque engagement d'un mois passe dont elle porte la correction
 /// (`produire_regularisations::versions_portees`), que la ligne du journal de son depot emporte (`versions_portees_de`).
 pub(crate) fn noter_piece_ecrite(racine: &Path, cle: &str, empreinte_saisie: Option<Value>, versions_portees: Option<Vec<Value>>) -> R<()> {
-    let p = racine.join("journal").join("dsn-ecrites.json");
+    let p = racine.join(DSN_ECRITES);
     let mut d = Value::Object(journal_des_ecritures(racine));
     let mut note = json!({"quand": socle::paris::maintenant()});
     if let Some(e) = empreinte_saisie {
@@ -98,7 +101,7 @@ pub(crate) fn cle_de_piece(fichier: &Path) -> String {
 /// Le journal des pieces ecrites : `{"<mois>/<fichier>": {"quand", "empreinte_saisie"}}`. Un journal absent ou illisible
 /// est vide.
 pub(crate) fn journal_des_ecritures(racine: &Path) -> Map<String, Value> {
-    std::fs::read(racine.join("journal").join("dsn-ecrites.json"))
+    std::fs::read(racine.join(DSN_ECRITES))
         .ok()
         .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
         .and_then(|v| v.as_object().cloned())
@@ -1173,7 +1176,7 @@ pub(crate) fn piece_partie(ctx: &Contexte, mois: &str, nom: &str) -> R<PathBuf> 
     // L'AER vient de France Travail : elle ne se refait pas, elle se relit dans `retours/` (l'archive du retour 46) et se
     // range de nouveau comme a sa releve (`routes::documents::ranger_aer_detail`), signee au jour de cette releve.
     if nom.starts_with("AER_") {
-        let mut archives: Vec<PathBuf> = std::fs::read_dir(ctx.racine.join("retours"))
+        let mut archives: Vec<PathBuf> = std::fs::read_dir(ctx.racine.join(envois::retours::RETOURS))
             .into_iter()
             .flatten()
             .flatten()

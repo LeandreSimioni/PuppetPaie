@@ -85,7 +85,7 @@ fn jours_payes(i: &Importe) -> (String, String) {
 
 /// Le nom d'un salarié à l'écran ; sa clé à défaut.
 fn nom_du_salarie(racine: &Path, cle: &str) -> String {
-    let fiches = crate::routes::lire_json_ou_vide(&racine.join("config").join("salaries.json")).unwrap_or(Value::Null);
+    let fiches = crate::routes::lire_json_ou_vide(&racine.join(droit::contexte::SALARIES)).unwrap_or(Value::Null);
     socle::texte::salarie_nomme_ou(fiches.get(cle).filter(|f| f.is_object()), cle)
 }
 

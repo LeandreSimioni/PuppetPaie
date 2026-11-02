@@ -4952,7 +4952,7 @@ mod tests {
     fn ctx_dsn(nom: &str, regularises: &[&str]) -> Contexte {
         let racine: PathBuf = std::env::temp_dir().join(format!("puppetpaie-dsn-{}-{}", std::process::id(), nom));
         let _ = std::fs::remove_dir_all(&racine);
-        let cfg = racine.join("config");
+        let cfg = racine.join(socle::fichiers::CONFIG);
         std::fs::create_dir_all(&cfg).unwrap();
         for f in ["entreprise.json", "salaries.json", "spectacles.json"] {
             std::fs::write(cfg.join(f), "{}").unwrap();

@@ -517,8 +517,8 @@ fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R
         cfg.insert(cle.to_string(), Value::String(v));
     }
     crate::routes::fiches::poser_entreprise(ctx, "api_dpae", Value::Object(cfg), Some(ctx.aujourdhui))?;
-    let contenu = crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("entreprise.json"))?;
-    droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, "config/entreprise.json").map_err(Echec::from)
+    let contenu = crate::routes::lire_json_ou_vide(&ctx.racine.join(droit::contexte::ENTREPRISE))?;
+    droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, droit::contexte::ENTREPRISE).map_err(Echec::from)
 }
 
 // ------------------------------------------------------------------ le mot de passe du logiciel
@@ -574,7 +574,7 @@ fn mot_de_passe_retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Google, et se retire sur myaccount.google.com.
 fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "oublier le compte Google")?;
-    let p = ctx.racine.join("config").join("google-jeton.bin");
+    let p = ctx.racine.join(JETON_GOOGLE);
     let efface = p.exists();
     if efface {
         std::fs::remove_file(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
@@ -592,6 +592,8 @@ const FICHIER_APPLICATION: &str = "google-application.json";
 /// `google.FICHIER_IDENTIFIANTS`, `google.FICHIER_JETON`.
 const FICHIER_IDENTIFIANTS: &str = "google.json";
 pub(crate) const FICHIER_JETON: &str = "google-jeton.bin";
+/// Le jeton Google, sous la racine de la compagnie.
+pub const JETON_GOOGLE: &str = "config/google-jeton.bin";
 
 /// La description scellee avec le jeton (`google._dpapi`).
 pub(crate) const DESCRIPTION: &str = "moteur de paie - jeton Google";
@@ -599,7 +601,7 @@ pub(crate) const DESCRIPTION: &str = "moteur de paie - jeton Google";
 /// `compagnies.MARQUEUR`.
 
 fn config(racine: &Path) -> PathBuf {
-    racine.join("config")
+    racine.join(socle::fichiers::CONFIG)
 }
 
 /// `ErreurGoogle` : la phrase est ecrite pour etre lue.

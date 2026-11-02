@@ -1113,6 +1113,59 @@ fn sans_commentaires_c(t: &str) -> String {
     s
 }
 
+/// UN SEUL CHEMIN POUR CHAQUE FICHIER DE LA COMPAGNIE : un dossier de la compagnie (`config/`, `journal/`, `retours/` et
+/// leurs sous-dossiers) et chacun de leurs fichiers ne se nomment, dans le code du logiciel (hors tests), qu'a un seul
+/// endroit : la constante ou la fonction qui en donne le chemin, au plus bas niveau de crate qui le sert ; les autres
+/// l'appellent. Un nom, c'est un litteral qui n'est qu'un chemin sous l'un de ces dossiers (`"config/entreprise.json"`), un
+/// `.join("<dossier>")`, ou un `.join("<nom>")` qui suit un dossier. Le garde ne lit pas une phrase qui cite un fichier, ni un
+/// chemin compose ailleurs (`racine.join(CONFIG).join("x.json")` se lit ; `cfg.join("x.json")`, `format!("{}/x.json", ..)` non).
+#[test]
+fn un_seul_endroit_nomme_un_fichier_de_la_compagnie() {
+    let chemin = regex::Regex::new(r#""((?:config|journal|retours)(?:/[\w.-]+)+)/?""#).unwrap();
+    // Un dossier par son nom (`.join("config")`) ou par sa constante (`.join(socle::fichiers::CONFIG)`, qui ne le nomme
+    // pas), puis ce qui s'y joint.
+    let joint = regex::Regex::new(r#"\.join\((?:"(config|journal|retours)"|(?:\w+::)*(CONFIG|JOURNAL|RETOURS))\)((?:\s*\.join\("[\w.-]+"\))*)"#).unwrap();
+    let suite = regex::Regex::new(r#"\.join\("([\w.-]+)"\)"#).unwrap();
+    let mut noms: std::collections::BTreeMap<String, Vec<String>> = Default::default();
+    for e in std::fs::read_dir(espace()).unwrap().flatten() {
+        let src = e.path().join("src");
+        if !src.is_dir() {
+            continue;
+        }
+        for p in sources(&src) {
+            let code = sans_tests(&std::fs::read_to_string(&p).unwrap());
+            let code: String = code.lines().map(|l| if l.trim_start().starts_with("//") { "" } else { l }).collect::<Vec<_>>().join("\n");
+            let rel = p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned();
+            let ligne = |i: usize| code[..i].matches('\n').count() + 1;
+            for c in chemin.captures_iter(&code) {
+                let m = c.get(1).unwrap();
+                noms.entry(m.as_str().to_string()).or_default().push(format!("{}:{}", rel, ligne(m.start())));
+            }
+            for c in joint.captures_iter(&code) {
+                let ou = format!("{}:{}", rel, ligne(c.get(0).unwrap().start()));
+                let mut nom = match (c.get(1), c.get(2)) {
+                    (Some(d), _) => {
+                        noms.entry(d.as_str().to_string()).or_default().push(ou.clone());
+                        d.as_str().to_string()
+                    }
+                    (_, Some(k)) => k.as_str().to_lowercase(),
+                    _ => unreachable!(),
+                };
+                for s in suite.captures_iter(&c[3]) {
+                    nom = format!("{}/{}", nom, &s[1]);
+                    noms.entry(nom.clone()).or_default().push(ou.clone());
+                }
+            }
+        }
+    }
+    let fautes: Vec<String> = noms.iter().filter(|(_, v)| v.len() > 1).map(|(k, v)| format!("{} : {}", k, v.join(", "))).collect();
+    assert!(
+        fautes.is_empty(),
+        "{} chemin(s) de la compagnie se nomment a plusieurs endroits : un seul (la constante ou la fonction qui donne le chemin, au plus bas niveau de crate qui le sert), que les autres appellent :\n{}",
+        fautes.len(),
+        fautes.join("\n")
+    );
+}
 /// TOUT CE QUI EST PUBLIC SERT LE LOGICIEL : chaque `pub fn`, `pub const`, `pub static` et `pub type` d'une crate de
 /// l'espace a un appelant dans le code du logiciel (le `src/` d'une crate, la fenetre et l'atelier compris), hors de sa
 /// definition et hors des tests. Les crates sont des bibliotheques : le compilateur ne dit rien d'un `pub` mort. Une

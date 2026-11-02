@@ -344,7 +344,7 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Declaration>> 
         .parse::<i32>()
         .map_err(|_| format!("nombre entier illisible : {}", repr(&tranche(0, 4))))?
         - 1;
-    let chemin = ctx.racine.join("config").join("oeth.json");
+    let chemin = ctx.racine.join(socle::fichiers::CONFIG).join("oeth.json");
     let fichier = if socle::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
     let donnees = match fichier.get(millesime.to_string()) {
         None | Some(Value::Null) => None,
@@ -414,7 +414,7 @@ pub fn smic_au_31_decembre(ctx: &Contexte, millesime: i32) -> Resultat<Decimal> 
 /// L'effectif dit-il l'entreprise assujettie pour ce millesime ? Le code A04 du
 /// 118 l'emporte s'il est la et sous le seuil ; un effectif inconnu reste sous le seuil.
 fn assujetti_selon_l_effectif(ctx: &Contexte, millesime: i32) -> Resultat<bool> {
-    let chemin = ctx.racine.join("config").join("effectifs.json");
+    let chemin = ctx.racine.join(droit::contexte::EFFECTIFS);
     let brut = if socle::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
     let a04 = brut
         .get("annees")

@@ -36,7 +36,8 @@ const CAPTURE_MAX: usize = 1536 * 1024;
 const CAPTURE_TYPES: [&str; 2] = ["image/png", "image/jpeg"];
 pub(crate) const CAPTURES_MAX: usize = 5;
 const INCIDENTS_JOINTS: usize = 10;
-const SIGNALEMENTS_FICHIER: &str = "signalements.json";
+/// « Un probleme, une idee ? », sous la racine de la compagnie.
+pub const SIGNALEMENTS: &str = "journal/signalements.json";
 
 fn tete(s: &str, n: usize) -> String {
     s.chars().take(n).collect()
@@ -217,7 +218,8 @@ const PAR_PASSAGE: usize = 8;
 const DOSSIER_ATTENTE: &str = "signalements";
 
 fn chemin_signalements(racine: &Path) -> PathBuf {
-    incidents::chemin(racine).with_file_name(SIGNALEMENTS_FICHIER)
+    // A cote du journal des incidents, qu'un essai deplace (`incidents::chemin`).
+    incidents::chemin(racine).with_file_name(Path::new(SIGNALEMENTS).file_name().expect("un nom de fichier"))
 }
 
 /// `journal/signalements/` : le corps exact de chaque message qui attend son depart, un fichier par message.

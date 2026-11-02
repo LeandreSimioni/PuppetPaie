@@ -192,7 +192,7 @@ fn regularisations(ctx: &Contexte) -> R<Value> {
 
 /// Les clotures, sans les cles `_...`.
 fn exercices_clos(racine: &Path) -> R<Map<String, Value>> {
-    let v = lire_json_ou_vide(&racine.join("config").join("exercices.json"))?;
+    let v = lire_json_ou_vide(&racine.join(crate::compagnie::exercice_ecrit::EXERCICES))?;
     match v {
         Value::Object(o) => Ok(o.into_iter().filter(|(k, _)| !k.starts_with('_')).collect()),
         autre => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&autre)))),

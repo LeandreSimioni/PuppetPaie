@@ -329,7 +329,7 @@ fn pieces_du_journal(lignes: &[Value]) -> Vec<String> {
 /// La piece archivee d'un retour : `retours/[dpae/]AAAAMMJJ-hhmmss_natureN_<flux>.<ext>` (`transport::archiver`),
 /// celle de sa publication d'abord, sinon la premiere de sa nature pour ce flux (`etats::archive_du_retour`).
 fn piece_du_retour(racine: &Path, canal: &str, flux: &str, nature: &str, publication: &str) -> Option<PathBuf> {
-    let mut dossier = racine.join("retours");
+    let mut dossier = racine.join(envois::retours::RETOURS);
     if !canal.is_empty() {
         dossier = dossier.join(canal);
     }

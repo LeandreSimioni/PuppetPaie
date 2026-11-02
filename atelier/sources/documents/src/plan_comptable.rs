@@ -31,10 +31,13 @@ pub fn logiciels_connus() -> Vec<&'static str> {
 }
 
 
+/// Le plan comptable propre a la compagnie, sous sa racine.
+pub const PLAN_COMPTABLE: &str = "config/plan-comptable.json";
+
 /// Le plan comptable de la compagnie, et d'ou il vient (`config/plan-comptable.json` ou le plan livre).
 pub fn plan(ctx: &Contexte) -> R<(Map<String, Value>, &'static str)> {
     let p = plan_comptable(ctx)?;
-    let origine = if ctx.racine.join("config").join("plan-comptable.json").exists() { "config/plan-comptable.json" } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
+    let origine = if ctx.racine.join(PLAN_COMPTABLE).exists() { PLAN_COMPTABLE } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
     Ok((p, origine))
 }
 
@@ -43,7 +46,7 @@ pub fn plan(ctx: &Contexte) -> R<(Map<String, Value>, &'static str)> {
 pub fn plan_comptable(ctx: &Contexte) -> R<Map<String, Value>> {
     let base = lire_json(&ctx.code.join("plan-comptable-base.json"))?;
     let Value::Object(mut plan) = base else { unreachable!("plan-comptable-base.json est un objet") };
-    let propre = ctx.racine.join("config").join("plan-comptable.json");
+    let propre = ctx.racine.join(PLAN_COMPTABLE);
     if propre.exists() {
         let perso = lire_json(&propre)?;
         let Value::Object(perso) = perso else {
