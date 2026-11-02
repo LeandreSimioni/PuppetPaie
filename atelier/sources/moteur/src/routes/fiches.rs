@@ -1380,8 +1380,9 @@ fn seulement_completee(avant: &Value, apres: &Value) -> bool {
     }
 }
 
-/// La case avait une valeur (celle que le moteur lisait : la fiche, ou le defaut d'une case qu'elle ne dit pas) : la
-/// changer est un changement, a dater. Une case a cocher a toujours la sienne, cochee ou non.
+/// La case avait une valeur dans la fiche (`avant`, telle que la fiche la dit) : la changer est un changement, a dater.
+/// Une case a cocher que la fiche dit a la sienne, cochee ou non ; une case que la fiche ne dit pas est vide, meme si le
+/// moteur lit son defaut en attendant.
 fn avait_une_valeur(avant: Option<&Value>) -> bool {
     match avant {
         Some(Value::Bool(_)) => true,
@@ -1402,8 +1403,8 @@ pub(crate) fn sans_valeur(v: Option<&Value>) -> bool {
 
 /// LES CHAMPS DE `donnees` QUI CHANGENT LA FICHE `ancienne` (telle que l'ecran l'a montree) : ceux-la demandent leur date
 /// d'effet (modele, « Le temps » : toute la configuration est datee, et une valeur sans date rend le passe faux des
-/// qu'elle change). Une valeur deja dite qui change, toujours : une case a cocher dit la sienne, son defaut quand la
-/// fiche ne la dit pas. UNE CASE VIDE QU'ON REMPLIT NE SE DATE PAS : elle comble un manque, sa premiere valeur vaut de
+/// qu'elle change). Une valeur deja dite qui change, toujours (`avait_une_valeur`) ; une case que la fiche ne dit pas
+/// est vide. UNE CASE VIDE QU'ON REMPLIT NE SE DATE PAS : elle comble un manque, sa premiere valeur vaut de
 /// tout temps ; ce qui est parti ne se refait pas (regle 4), seul ce qui reste a faire la lit. Sauf `premiere_datee` :
 /// une valeur qui, par nature, ne vaut qu'a partir d'un jour (le taux de PAS recu, « le taux personnalise ne s'applique
 /// que pour l'avenir », BOI-IR-PAS-30-10-50 § 20, `bofip/BOI-IR-PAS-30-10-50-20190227.html`). Une fiche neuve n'a rien a
@@ -1436,7 +1437,7 @@ pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<Str
                 && !(nom == "entreprise" && k.as_str() == "etablissements")
                 && !avant.is_some_and(|a| meme(a, v))
                 && !(sans_valeur(avant) && sans_valeur(Some(v)))
-                && (premiere_datee || avait_une_valeur(avant))
+                && (premiere_datee || avait_une_valeur(ancienne.get(k.as_str()).filter(|a| !vide(Some(a)))))
                 // Une structure dont on remplit des cases vides sans changer celles qui ont une valeur : c'est leur
                 // premiere valeur, comme une case vide.
                 && (premiere_datee || !avant.is_some_and(|a| seulement_completee(a, v)))
