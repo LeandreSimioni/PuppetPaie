@@ -203,7 +203,7 @@ fn modeles(ctx: &Contexte) -> R<Value> {
 fn livre(charge: &Value) -> R<Value> {
     let (nat, nom) = nom_du_modele(texte_requis(charge, "nature")?, texte_requis(charge, "quoi")?)?;
     let chemin = dossier_du_code().join("modeles").join(&nom);
-    let texte = std::fs::read_to_string(&chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    let texte = std::fs::read_to_string(&chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     let de = if texte_requis(charge, "quoi")? == "avenant" { "de l'avenant" } else { "du contrat" };
     Ok(json!({"nom": nom, "texte": texte, "libelle": format!("{} {}", de, nat.libelle)}))
 }
@@ -255,13 +255,13 @@ fn poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     let texte = texte_requis(charge, "texte")?;
     verifier(&nat, quoi, &nom, texte).map_err(|m| refus(format!("{} Rien n'est posé.", m.trim_end_matches(" Rien n'est écrit."))))?;
     let dossier = ctx.gabarits();
-    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     let cible = dossier.join(&nom);
     if cible.is_file() {
         let ancien = dossier.join(format!("{}.avant", nom));
-        std::fs::rename(&cible, &ancien).map_err(|e| erreur("OSError", format!("{} : {}", cible.display(), e)))?;
+        std::fs::rename(&cible, &ancien).map_err(|e| erreur("OSError", socle::echec::du_disque(&cible, &e)))?;
     }
-    std::fs::write(&cible, texte).map_err(|e| erreur("OSError", format!("{} : {}", cible.display(), e)))?;
+    std::fs::write(&cible, texte).map_err(|e| erreur("OSError", socle::echec::du_disque(&cible, &e)))?;
     modeles(ctx)
 }
 
@@ -270,7 +270,7 @@ fn retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (_, nom) = nom_du_modele(texte_requis(charge, "nature")?, texte_requis(charge, "quoi")?)?;
     if let Some(p) = propre(ctx, &nom) {
         let ancien = ctx.gabarits().join(format!("{}.avant", nom));
-        std::fs::rename(&p, &ancien).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        std::fs::rename(&p, &ancien).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
     }
     modeles(ctx)
 }

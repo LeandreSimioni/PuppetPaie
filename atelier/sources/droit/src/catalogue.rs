@@ -145,33 +145,33 @@ impl Rubrique {
                 repr(code), repr(&self.nature), joindre(&NATURES)));
         }
         if !COMPTE_POUR.contains(&self.compte_pour.as_str()) {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : compte_pour {} inconnu. Connus : {}.",
-                repr(code), repr(&self.compte_pour), joindre(&COMPTE_POUR)));
+                repr(code), repr(&self.compte_pour), joindre(&COMPTE_POUR))})));
         }
         if self.source.is_empty() {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : `source` est vide. Une rubrique dit d'ou vient \
-                 sa regle, sinon personne ne pourra la verifier.", repr(code)));
+                 sa regle, sinon personne ne pourra la verifier.", repr(code))})));
         }
         if self.conges_spectacles && !self.soumis {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : `conges_spectacles` sans `soumis`. Les Conges \
                  Spectacles sont une cotisation : leur assiette ne peut pas \
-                 depasser ce qui entre dans l'assiette des cotisations.", repr(code)));
+                 depasser ce qui entre dans l'assiette des cotisations.", repr(code))})));
         }
         if self.heures_forfait.is_some() && self.unite == "heure" {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : `heures_forfait` sur une rubrique dont l'unite \
                  est l'heure. Les heures y sont un fait, pas un forfait : \
-                 elles compteraient deux fois.", repr(code)));
+                 elles compteraient deux fois.", repr(code))})));
         }
         if let Some(c) = &self.dsn_autres_bruts {
             if !AUTRES_BRUTS.iter().any(|(k, _)| k == c) {
-                return Err(format!(
+                return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                     "Rubrique {} : `dsn_autres_bruts` vaut {}, qui n'est pas une \
                      valeur de S21.G00.54.001. Voir AUTRES_BRUTS, releve dans le \
-                     cahier technique NEODeS 2026.1.", repr(code), repr(c)));
+                     cahier technique NEODeS 2026.1.", repr(code), repr(c))})));
             }
         }
         Ok(())
@@ -185,14 +185,14 @@ impl Rubrique {
             "frais" => Ok(HorsAssiette::Frais),
             "indemnite" => Ok(HorsAssiette::Revenu),
             "retenue" => Ok(HorsAssiette::Mouvement),
-            autre => Err(format!(
+            autre => Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(&self.code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : hors assiette (`soumis` faux) et de nature {}. Le montant net social \
                  (S21.G00.58.004, bulletin) ne sait pas si cette ligne est un revenu, un remboursement de frais \
                  ou un mouvement de tresorerie, et ne le devine pas. Hors assiette, la nature doit etre `frais` \
                  (remboursement de frais professionnels : hors du montant net social), `indemnite` (une somme \
                  versee a l'occasion du travail, exoneree ou non : dans le montant net social) ou `retenue` \
                  (acompte, avance, saisie : hors du montant net social).",
-                repr(&self.code), repr(autre))),
+                repr(&self.code), repr(autre))}))),
         }
     }
 
@@ -271,9 +271,7 @@ pub fn annexes() -> Resultat<Value> {
     let a = b.get("annexes").cloned().unwrap_or(Value::Object(Map::new()));
     let ok = |c: &str| a.get(c).map_or(false, vrai);
     if !ok("seuil_heures") || !ok("fenetre_jours") {
-        return Err("rubriques-base.json : la section `annexes` \
-                    (seuil_heures, fenetre_jours) manque."
-            .into());
+        return Err(socle::echec::livree("rubriques-base.json", "annexes"));
     }
     Ok(a)
 }
@@ -309,9 +307,9 @@ fn construire(code: &str, d: &Map<String, Value>, origine: &str) -> Resultat<Rub
         .collect();
     if !inconnus.is_empty() {
         inconnus.sort();
-        return Err(format!(
+        return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
             "Rubrique {} : champ(s) inconnu(s) {}. Les champs admis sont ceux des rubriques livrees, \
-             rubriques-base.json.", repr(code), inconnus.join(", ")));
+             rubriques-base.json.", repr(code), inconnus.join(", "))})));
     }
     let texte = |v: &Value| match v {
         Value::String(s) => s.clone(),
@@ -520,16 +518,10 @@ pub fn code_54(r: &Rubrique, ligne: &Value) -> Resultat<Option<String>> {
         return Ok(Some(code.clone()));
     }
     if !AVANTAGES_EN_NATURE.contains(&code.as_str()) {
-        return Err(format!(
-            "Ligne << {} >> : `genre` ({}) ne se saisit que sur un avantage \
-             en nature. Cette rubrique declare {} en S21.G00.54.001.",
-            r.libelle, repr_texte(&genre), code));
+        return Err(socle::echec::a_la_cle(&format!("La ligne « {} » dit le genre d'un avantage en nature, et ce n'en est pas un : retirer ce genre.", r.libelle), "genre", repr_texte(&genre)));
     }
     if !AVANTAGES_EN_NATURE.contains(&genre.as_str()) {
-        return Err(format!(
-            "Ligne << {} >> : `genre` vaut {}. Les avantages en nature du \
-             bloc 54 sont {} -- voir catalogue.AUTRES_BRUTS.",
-            r.libelle, repr_texte(&genre), AVANTAGES_EN_NATURE.join(", ")));
+        return Err(socle::echec::a_la_cle(&format!("La ligne « {} » porte un genre d'avantage en nature inconnu : le choisir dans la liste.", r.libelle), "genre", format!("{} ; connus : {}", repr_texte(&genre), AVANTAGES_EN_NATURE.join(", "))));
     }
     Ok(Some(genre))
 }

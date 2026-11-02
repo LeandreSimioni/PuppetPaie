@@ -125,15 +125,10 @@ fn decimal_de(v: &Value) -> Option<Decimal> {
 /// Un nombre positif ou nul de `config/oeth.json`.
 fn dec(v: &Value, nom: &str, millesime: i32) -> Resultat<Decimal> {
     let Some(x) = decimal_de(v) else {
-        return Err(format!("config/oeth.json, {} : << {} >> n'est pas un nombre ({}).", millesime, nom, repr_valeur(v)));
+        return Err(socle::echec::a_la_cle(&format!("La déclaration OETH de {} porte un chiffre illisible.", millesime), nom, repr_valeur(v)));
     };
     if x.is_sign_negative() && !x.is_zero() {
-        return Err(format!(
-            "config/oeth.json, {} : << {} >> est negatif ({}).",
-            millesime,
-            nom,
-            socle::date::en_texte(v)
-        ));
+        return Err(socle::echec::a_la_cle(&format!("La déclaration OETH de {} porte un chiffre négatif.", millesime), nom, socle::date::en_texte(v)));
     }
     Ok(x)
 }
@@ -159,18 +154,20 @@ pub fn coefficient(effectif: Decimal, sans_action: bool) -> i64 {
 /// La declaration d'un millesime, depuis son entree de `config/oeth.json` et le
 /// SMIC horaire brut au 31/12 de ce millesime.
 pub fn calculer(millesime: i32, donnees: &Value, smic: Decimal) -> Resultat<Declaration> {
-    let ou = format!("config/oeth.json, {}", millesime);
+    let ou = format!("La déclaration OETH de {}", millesime);
     let manque: Vec<&str> = ["effectif_assujettissement", "boeth", "ecap", "source"]
         .into_iter()
         .filter(|k| matches!(donnees.get(*k), None | Some(Value::Null)) || donnees.get(*k) == Some(&Value::String(String::new())))
         .collect();
     if !manque.is_empty() {
-        return Err(format!(
-            "{} : il manque {}. Ce sont les chiffres que l'Urssaf transmet avant le 15 mars (D5212-5) -- \
+        return Err(socle::echec::cle(
+            format!(
+                "{} : il manque des chiffres, ceux que l'Urssaf transmet avant le 15 mars (D5212-5) -- \
 effectif d'assujettissement, beneficiaires employes, effectif ECAP -- et d'ou ils viennent. \
 Rien n'est ecrit.",
-            ou,
-            manque.join(", ")
+                ou
+            ),
+            &manque.join(", "),
         ));
     }
     let eff = dec(&donnees["effectif_assujettissement"], "effectif_assujettissement", millesime)?;
@@ -214,7 +211,7 @@ Rien n'est ecrit.",
                 }
             }
         }
-        Some(v) if vrai(v) => return Err(format!("{} : 'boeth_externes' : {}", ou, socle::fichiers::attendu("une liste", socle::valeur::nom_type(v)))),
+        Some(v) if vrai(v) => return Err(socle::echec::a_la_cle(&format!("{} ne se lit pas : une liste est attendue.", ou), "boeth_externes", socle::valeur::nom_type(v))),
         _ => {}
     }
     d.externes = externes;
@@ -289,13 +286,13 @@ Rien n'est ecrit.",
     let mut sans_action = donnees.get("aucune_action_depuis_plus_de_trois_ans").and_then(Value::as_bool);
     if d.beneficiaires.is_zero() && sous_traitance.is_zero() {
         if sans_action.is_none() {
-            return Err(format!(
+            return Err(socle::echec::avec("La déclaration OETH de l'année ne dit pas depuis quand la compagnie n'a ni bénéficiaire ni sous-traitance : le dire, depuis plus de trois ans ou non.", serde_json::json!({"fichier": "config/oeth.json", "detail": format!(
                 "{} : aucun beneficiaire et aucune sous-traitance cette annee. La contribution passe a 1 500 \
 fois le SMIC par manquant si cela dure depuis PLUS DE TROIS ANS (D5212-21), et 400 fois sinon : ecrire \
 \"aucune_action_depuis_plus_de_trois_ans\": true ou false. Le logiciel ne connait pas assez le passe \
 pour le dire. Rien n'est ecrit.",
                 ou
-            ));
+            )})));
         }
     } else {
         sans_action = Some(false);
@@ -354,13 +351,13 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Declaration>> 
         if !assujetti_selon_l_effectif(ctx, millesime)? {
             return Ok(None);
         }
-        return Err(format!(
+        return Err(socle::echec::avec("La compagnie doit la déclaration OETH de l'année, et ses chiffres ne sont pas saisis : y écrire ceux que l'Urssaf transmet avant le 15 mars.", serde_json::json!({"fichier": "config/oeth.json", "detail": format!(
             "DSN de {} : l'entreprise a atteint {} salaries cinq annees de suite, elle doit la declaration \
 OETH de {} (L5212-1, D5212-8), et config/oeth.json ne porte rien pour {}. Y ecrire les chiffres que \
 l'Urssaf transmet avant le 15 mars : \"{}\": {{\"effectif_assujettissement\": ..., \"boeth\": ..., \
 \"ecap\": ..., \"source\": \"...\"}}. Rien n'est ecrit.",
             mois, SEUIL, millesime, millesime, millesime
-        ));
+        )})));
     };
     if donnees.get("assujetti") == Some(&Value::Bool(false)) {
         let pourquoi = match donnees.get("pourquoi") {
@@ -368,17 +365,17 @@ l'Urssaf transmet avant le 15 mars : \"{}\": {{\"effectif_assujettissement\": ..
             _ => String::new(),
         };
         if pourquoi.trim().is_empty() {
-            return Err(format!(
+            return Err(socle::echec::avec("La déclaration OETH de l'année dit la compagnie non assujettie sans dire pourquoi : dire la raison.", serde_json::json!({"fichier": "config/oeth.json", "detail": format!(
                 "config/oeth.json, {} : \"assujetti\": false sans \"pourquoi\". Dire la raison (delai de cinq \
 ans d'une entreprise creee a vingt salaries, L5212-4 ; seuil pas encore franchi, L. 130-1).",
                 millesime
-            ));
+            )})));
         }
         return Ok(None);
     }
     if let Some(eff) = donnees.get("effectif_assujettissement") {
         if !matches!(eff, Value::Null) && eff != &Value::String(String::new()) {
-            let x = decimal_de(eff).ok_or_else(|| format!("config/oeth.json, {} : effectif d'assujettissement illisible : {}", millesime, eff))?;
+            let x = decimal_de(eff).ok_or_else(|| socle::echec::a_la_cle(&format!("La déclaration OETH de {} porte un effectif illisible.", millesime), "effectif_assujettissement", eff))?;
             let accord = donnees.get("accord").map_or(false, vrai);
             if x < Decimal::from(SEUIL) && !accord {
                 return Ok(None);

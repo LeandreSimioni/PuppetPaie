@@ -184,7 +184,7 @@ pub fn declaration(ctx: &Contexte, mois: &str, departs: &engagement::departs::De
 supplementaire a l'apprentissage {} (code du travail L. 6242-1) se calcule sur le quotient de ses alternants, que l'Urssaf \
 calcule et renvoie debut mars en compte rendu metier de nature 118 (fiche net-entreprises 2624) : l'effectif moyen annuel \
 des contrats favorisant l'insertion professionnelle (code {}) et celui de determination du taux d'alternants (code {}). \
-config/effectifs.json ne les a pas pour {} : relever les retours, le moteur les y ecrit. Ils ne se \
+Le logiciel ne les a pas pour {} : relever les retours, le moteur les garde. Ils ne se \
 saisissent pas. Rien n'est ecrit.",
             n + 1,
             n,
@@ -223,7 +223,7 @@ pour {} : le quotient de la contribution supplementaire a l'apprentissage ne se 
             return Err(format!(
                 "DSN de mars {} : les alternants font {} % de l'effectif en {}, entre 3 et 5 % : la contribution \
 supplementaire a l'apprentissage n'est pas due si leur effectif a progresse d'au moins 10 % sur {} (L. 6242-1, II). \
-config/effectifs.json n'a pas l'effectif des alternants de {} (code {} du compte rendu metier 118) : relever les retours \
+Le logiciel n'a pas l'effectif des alternants de {} (code {} du compte rendu metier 118) : relever les retours \
 de {}. Rien n'est ecrit.",
                 n + 1,
                 quotient_lu,

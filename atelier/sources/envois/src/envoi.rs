@@ -790,7 +790,7 @@ fn en_mime_complet(message: &Message, expediteur: &str, nom: &str, hasards: Hasa
         if adresse_simple(a) {
             Ok(())
         } else {
-            Err(format!("Adresse illisible : {:?}", a))
+            Err(socle::echec::a_la_cle("Une adresse courriel ne se lit pas : la corriger.", "adresse", a))
         }
     };
     adresse(expediteur)?;
@@ -824,7 +824,7 @@ fn en_mime_complet(message: &Message, expediteur: &str, nom: &str, hasards: Hasa
     let texte = partie_texte("plain", cte, charge, false);
     let mut pieces: Vec<Noeud> = Vec::new();
     for piece in &message.pieces {
-        let octets = std::fs::read(piece).map_err(|e| format!("{} : {}", piece.display(), e))?;
+        let octets = std::fs::read(piece).map_err(|e| socle::echec::du_disque(&piece, &e))?;
         let nom = piece.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let genre = genre_de(&nom);
         pieces.push(Noeud {

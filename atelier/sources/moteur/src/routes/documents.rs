@@ -603,7 +603,7 @@ pub(super) fn liste_de<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Vec<Val
     match charge.get(cle).filter(|v| vrai(v)) {
         None => Ok(None),
         Some(Value::Array(a)) => Ok(Some(a)),
-        Some(autre) => Err(erreur("TypeError", format!("`{}` : une liste est attendue, pas {}", cle, socle::valeur::nom_type(autre)))),
+        Some(_) => Err(erreur("TypeError", socle::echec::charge(cle, "une liste"))),
     }
 }
 
@@ -649,7 +649,7 @@ pub(crate) fn client_courriel(ctx: &Contexte) -> R<Box<dyn Courriel>> {
     if !crate::compagnie::boite::disponible(&ctx.racine) {
         return Err(erreur(
             "BoiteAbsente",
-            "Aucune boite courriel : poser le mot de passe d'application de la boite (Configuration > Mots de passe, ou `route coffre-poser, service courriel, compte adresse@...`).",
+            socle::echec::cle("Aucune boîte courriel : poser le mot de passe d'application de la boîte dans Configuration › Mots de passe.", "courriel"),
         ));
     }
     let client = crate::compagnie::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;

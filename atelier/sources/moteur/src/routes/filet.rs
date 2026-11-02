@@ -210,7 +210,7 @@ pub fn sans_compagnie(o: &HashMap<String, String>) -> std::path::PathBuf {
 /// Une route de ce module, sans compagnie (`sans_compagnie`).
 pub fn route_sans_compagnie(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value> {
     let racine = sans_compagnie(o);
-    std::fs::create_dir_all(&racine).map_err(|e| Echec::from(format!("{} : {}", racine.display(), e)))?;
+    std::fs::create_dir_all(&racine).map_err(|e| Echec::from(socle::echec::du_disque(&racine, &e)))?;
     route_de(&racine, nom, charge)
 }
 

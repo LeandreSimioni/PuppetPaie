@@ -128,14 +128,14 @@ impl Identite {
             format!("{} n'est pas un JSON lisible (ligne {}, colonne {}) : un objet sur une ligne est attendu. Rien n'est ecrit.", VARIABLE, e.line(), e.column())
         })?;
         let Value::Object(racine) = v else {
-            return Err(format!("{} n'est pas un objet JSON ({{\"siren\": ..., ...}}). Rien n'est ecrit.", VARIABLE));
+            return Err(socle::echec::avec("L'identité de la compagnie d'essai n'est pas un objet. Rien n'est écrit.", json!({"variable": VARIABLE})));
         };
         let (mut manques, mut inconnues) = (Vec::new(), Vec::new());
         confronter(&racine, &CLES, "", &mut manques, &mut inconnues);
         for (cle, attendues) in [("declarant", &CLES_DECLARANT[..]), ("declarant_dsn", &CLES_DECLARANT_DSN[..]), ("api_dpae", &CLES_API_DPAE[..])] {
             match racine.get(cle) {
                 Some(Value::Object(o)) => confronter(o, attendues, cle, &mut manques, &mut inconnues),
-                Some(_) => return Err(format!("{} : `{}` doit etre un objet ({}). Rien n'est ecrit.", VARIABLE, cle, attendues.join(", "))),
+                Some(_) => return Err(socle::echec::avec("L'identité de la compagnie d'essai porte une valeur qui doit être un objet. Rien n'est écrit.", json!({"variable": VARIABLE, "cle": cle, "detail": attendues.join(", ")}))),
                 None => {}
             }
         }
@@ -147,7 +147,7 @@ impl Identite {
             if !inconnues.is_empty() {
                 p.push(format!("cle(s) inconnue(s) : {}", inconnues.join(", ")));
             }
-            return Err(format!("{} : {}. Les cles attendues sont celles de `moteur essai monter --aide`. Rien n'est ecrit.", VARIABLE, p.join(" ; ")));
+            return Err(socle::echec::avec("L'identité de la compagnie d'essai porte des clés que le logiciel ne connaît pas. Rien n'est écrit.", json!({"variable": VARIABLE, "detail": p.join(" ; "), "aide": "moteur essai monter --aide"})));
         }
         let id = Identite(racine);
         id.verifier()?;
@@ -162,14 +162,14 @@ impl Identite {
         };
         match v {
             Some(Value::String(s)) => Ok(s.trim().to_string()),
-            _ => Err(format!("{} : `{}` doit etre un texte. Rien n'est ecrit.", VARIABLE, chemin)),
+            _ => Err(socle::echec::avec("L'identité de la compagnie d'essai porte une valeur qui doit être un texte. Rien n'est écrit.", json!({"variable": VARIABLE, "cle": chemin}))),
         }
     }
 
     /// Les formes que la norme et le moteur exigent, verifiees AVANT d'ecrire : un refus plus tard (a l'ecriture de la DSN,
     /// au depot) citerait la valeur fautive a l'ecran.
     fn verifier(&self) -> Result<(), String> {
-        let refus = |chemin: &str, ce_qu_il_faut: &str| Err(format!("{} : `{}` -- {}. Rien n'est ecrit.", VARIABLE, chemin, ce_qu_il_faut));
+        let refus = |chemin: &str, ce_qu_il_faut: &str| Err(socle::echec::avec("L'identité de la compagnie d'essai porte une valeur mal formée. Rien n'est écrit.", json!({"variable": VARIABLE, "cle": chemin, "detail": ce_qu_il_faut})));
         let mut vides = Vec::new();
         for (o, cles) in [("", &CLES[..8]), ("declarant", &CLES_DECLARANT[..]), ("declarant_dsn", &CLES_DECLARANT_DSN[..]), ("api_dpae", &CLES_API_DPAE[..])] {
             for k in cles {
@@ -231,7 +231,7 @@ impl Identite {
     /// declarant net-entreprises, le compte DPAE), ce qui disait l'identite de la fictive retire. Chaque valeur posee vaut
     /// de tout temps, seule : une valeur datee de l'ancienne identite la redonnerait a une date passee.
     pub fn appliquer(&self, fiche: &Value) -> Result<Value, String> {
-        let mut brute = fiche.as_object().cloned().ok_or_else(|| "config/entreprise.json de la fictive n'est pas un objet.".to_string())?;
+        let mut brute = fiche.as_object().cloned().ok_or_else(|| socle::echec::avec("La fiche entreprise de la fictive est abîmée.", json!({"fichier": "config/entreprise.json"})))?;
         for k in RETIREES {
             brute.remove(k);
         }
@@ -298,11 +298,11 @@ fn source(depuis: &str) -> Result<PathBuf, String> {
     let p = PathBuf::from(depuis);
     let d = if depuis.contains('/') || depuis.contains('\\') || p.is_dir() { p } else { installation().join(crate::interface::compagnies::DOSSIER_FICTIVES).join(depuis) };
     if !d.join("config").join("entreprise.json").is_file() {
-        return Err(format!("{} : ce n'est pas une compagnie (pas de config/entreprise.json). Rien n'est ecrit.", d.display()));
+        return Err(socle::echec::avec("Ce dossier n'est pas une compagnie : il n'a pas de fiche entreprise. Rien n'est écrit.", json!({"chemin": d.to_string_lossy()})));
     }
     // Seulement une FICTIVE : jamais `prive/` ni une autre compagnie reelle, dont les salaries partiraient sous un autre SIREN.
     if !crate::interface::compagnies::est_fictive_livree(&d) {
-        return Err(format!("{} n'est pas une compagnie fictive (son marqueur ne le dit pas) : une compagnie d'essai ne se monte que depuis une fictive. Rien n'est ecrit.", d.display()));
+        return Err(socle::echec::avec("Ce dossier n'est pas une compagnie fictive : une compagnie d'essai ne se monte que depuis une fictive. Rien n'est écrit.", json!({"chemin": d.to_string_lossy()})));
     }
     Ok(d)
 }
@@ -337,8 +337,8 @@ fn depot_englobant(dossier: &Path) -> Option<PathBuf> {
 }
 
 fn copier(src: &Path, dst: &Path, racine: &Path) -> Result<(), String> {
-    std::fs::create_dir_all(dst).map_err(|e| format!("{} : {}", dst.display(), e))?;
-    for e in std::fs::read_dir(src).map_err(|e| format!("{} : {}", src.display(), e))?.flatten() {
+    std::fs::create_dir_all(dst).map_err(|e| socle::echec::du_disque(&dst, &e))?;
+    for e in std::fs::read_dir(src).map_err(|e| socle::echec::du_disque(&src, &e))?.flatten() {
         let s = e.path();
         let rel = s.strip_prefix(racine).unwrap_or(&s).to_string_lossy().replace('\\', "/");
         if NON_COPIES.contains(&rel.as_str()) || s.extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf")) {
@@ -348,7 +348,7 @@ fn copier(src: &Path, dst: &Path, racine: &Path) -> Result<(), String> {
         if s.is_dir() {
             copier(&s, &d, racine)?;
         } else {
-            std::fs::copy(&s, &d).map_err(|x| format!("{} : {}", s.display(), x))?;
+            std::fs::copy(&s, &d).map_err(|x| socle::echec::du_disque(&s, &x))?;
         }
     }
     Ok(())
@@ -370,16 +370,15 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
     })?;
     let id = Identite::lire(texte)?;
     if let Some(d) = depot_englobant(dossier) {
-        return Err(format!(
-            "{} est dans {} (un depot Git ou une installation de PuppetPaie) : la compagnie d'essai porte l'identite d'une vraie compagnie, elle se monte hors de tout depot (par exemple dans le dossier temporaire, le defaut). Rien n'est ecrit.",
-            dossier.display(),
-            d.display()
+        return Err(socle::echec::avec(
+            "Ce dossier est dans un dépôt Git ou une installation de PuppetPaie : la compagnie d'essai porte l'identité d'une vraie compagnie, elle se monte hors de tout dépôt (par exemple dans le dossier temporaire, le défaut). Rien n'est écrit.",
+            json!({"chemin": dossier.to_string_lossy(), "depot": d.to_string_lossy()}),
         ));
     }
     let existe = dossier.exists();
     let deja = existe && est_essai(dossier);
     if existe && !deja && std::fs::read_dir(dossier).map(|mut d| d.next().is_some()).unwrap_or(true) {
-        return Err(format!("{} existe et n'est pas une compagnie d'essai : choisir un dossier vide ou neuf. Rien n'est ecrit.", dossier.display()));
+        return Err(socle::echec::avec("Ce dossier existe et n'est pas une compagnie d'essai : choisir un dossier vide ou neuf. Rien n'est écrit.", json!({"chemin": dossier.to_string_lossy()})));
     }
     let (src, nom) = if deja {
         // La copie dit de quelle fictive elle vient ; `--depuis` ne la change pas (il faudrait une copie neuve).
@@ -395,7 +394,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
         Some(s) => s.join("config").join("entreprise.json"),
         None => dossier.join("config").join("entreprise.json"),
     };
-    let fiche = socle::fichiers::lire_json(&base_fiche).map_err(|e| format!("{} : {}", base_fiche.display(), e))?;
+    let fiche = socle::fichiers::lire_json(&base_fiche).map_err(|e| socle::echec::du_disque(&base_fiche, &e))?;
     let fiche = id.appliquer(&fiche)?;
 
     if let Some(s) = &src {
@@ -410,7 +409,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
         });
         socle::ecriture::ecrire_json(&dossier.join(MARQUEUR), &marqueur, 2)?;
         std::fs::write(dossier.join(".gitignore"), "# Compagnie d'essai : l'identite d'une vraie compagnie. Rien ici ne se commite.\n*\n")
-            .map_err(|e| format!("{} : {}", dossier.display(), e))?;
+            .map_err(|e| socle::echec::du_disque(&dossier, &e))?;
     }
     socle::ecriture::ecrire_json(&dossier.join("config").join("entreprise.json"), &fiche, 2)?;
     Ok(Montage { dossier: absolu(dossier), depuis: nom, neuf: !deja })

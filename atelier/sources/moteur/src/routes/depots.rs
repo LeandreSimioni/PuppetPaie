@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::compagnie::depot_acte::{self, phrase_de, Preuve};
+use crate::compagnie::depot_acte::{self, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, MOIS, OPERATION};
 use declarations::dpae::{Chemins, Embauche, Parametres};
 use droit::contexte::Contexte;
@@ -231,7 +231,7 @@ fn plain(m: String) -> Echec {
 
 /// `charge["cle"]` : un texte requis.
 fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
-    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
+    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", socle::echec::charge(cle, "un texte")))
 }
 
 /// Les secondes unix de l'horloge.
@@ -246,9 +246,9 @@ fn maintenant_iso() -> String {
 
 fn ecrire_texte(chemin: &Path, texte: &str) -> R<()> {
     if let Some(d) = chemin.parent() {
-        std::fs::create_dir_all(d).map_err(|e| plain(format!("{} : {}", d.display(), e)))?;
+        std::fs::create_dir_all(d).map_err(|e| plain(socle::echec::du_disque(&d, &e)))?;
     }
-    std::fs::write(chemin, texte).map_err(|e| plain(format!("{} : {}", chemin.display(), e)))
+    std::fs::write(chemin, texte).map_err(|e| plain(socle::echec::du_disque(&chemin, &e)))
 }
 
 // ------------------------------------------------------------------ dpae
@@ -440,7 +440,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         let complet = sortie.join(format!("DPAE_{}.txt", etiq));
         let candidats = if marque.is_empty() { vec![complet].into_iter().filter(|c| c.is_file()).collect() } else { fichiers_partiels(&sortie, &etiq) };
         for x in candidats {
-            let contenu = std::fs::read(&x).map_err(|e| erreur("OSError", format!("{} : {}", x.display(), e)))?;
+            let contenu = std::fs::read(&x).map_err(|e| erreur("OSError", socle::echec::du_disque(&x, &e)))?;
             if declarations::dpae::meme_declaration(&latin1(&contenu), &voulu) {
                 pareils.push(x);
             }
@@ -682,7 +682,7 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let incident = match releve {
         Ok(r) => releve_retours::incidents_en_phrase(&r),
-        Err(e) => phrase_de(&e),
+        Err(e) => e.phrase(),
     };
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let (passe, refuse);
@@ -746,7 +746,7 @@ fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
         };
         let incident = match releve {
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),
-            Err(e) => phrase_de(&e),
+            Err(e) => e.phrase(),
         };
         r = bilan_de_la_repetition(ctx, charge)?;
         r["incident"] = json!(incident);
@@ -1027,7 +1027,7 @@ fn bilan_de_la_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
     let m = crate::routes::etapes::Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
     let Some(quoi) = quoi.as_str() else {
-        return Err(Echec { classe: None, message: "demande illisible : il faut `quoi`".to_string() });
+        return Err(Echec { classe: None, message: socle::echec::charge("quoi", "le nom de ce qui se dépose") });
     };
     let mut r = etats::repetition(&lignes, quoi, &empreinte, &nom)?;
     r["incident"] = json!("");

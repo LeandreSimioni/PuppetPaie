@@ -49,7 +49,7 @@ fn entier_de(v: &Value) -> Option<i64> {
 }
 
 fn decimal_de(v: &Value, cle: &str) -> Resultat<Decimal> {
-    dec(v.get(cle).ok_or_else(|| format!("paie ecrite illisible : `{}`", cle))?)
+    dec(v.get(cle).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, cle))?)
 }
 
 fn decimal_opt(v: Option<&Value>) -> Resultat<Option<f64>> {
@@ -93,19 +93,19 @@ pub fn engagements_ecrits(ctx: &Contexte, data: &Value, paies: &[&Value]) -> Res
         let ecrit = paies.get(rang).and_then(|p| p.get("engagement"));
         let l = ecrit.and_then(|e| e.get("lignes")).and_then(Value::as_array);
         let jours = ecrit.and_then(|e| e.get("jours")).and_then(|j| socle::date::en_texte(j).trim().parse::<i64>().ok());
-        Ok((l.cloned().ok_or("paie ecrite illisible : `lignes`")?, Vec::new(), jours))
+        Ok((l.cloned().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "lignes"))?, Vec::new(), jours))
     };
     let (mut engs, _) = crate::engagements(ctx, data, &lignes)?;
     if engs.len() != paies.len() {
-        return Err("paie ecrite illisible : le nombre de paies".into());
+        return Err(socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "paies"));
     }
     for (e, p) in engs.iter_mut().zip(paies) {
-        let v = p.get("engagement").ok_or("paie ecrite illisible : `engagement`")?;
+        let v = p.get("engagement").ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "engagement"))?;
         // Le numero est celui de l'engagement, pose quand le contrat part ; une paie validee avant ne le porte pas.
         if e.numero.as_deref().map_or(true, str::is_empty) {
             e.numero = v.get("numero").filter(|n| !n.is_null()).map(en_texte);
         }
-        e.jours_contrat = v.get("jours_contrat").and_then(entier_de).ok_or("paie ecrite illisible : `jours_contrat`")?;
+        e.jours_contrat = v.get("jours_contrat").and_then(entier_de).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "jours_contrat"))?;
         e.suspensions = v.get("suspensions").and_then(Value::as_array).cloned().unwrap_or_default();
     }
     Ok(engs)
@@ -140,8 +140,8 @@ fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) 
     } else {
         ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
     };
-    let smic = flottant(v.get("smic").ok_or("paie ecrite illisible : `smic`")?)?;
-    let tp = PlafondTempsPartiel::lire(v.get(PLAFOND_TEMPS_PARTIEL).and_then(Value::as_str).ok_or_else(|| format!("paie ecrite illisible : `{}`", PLAFOND_TEMPS_PARTIEL))?)?;
+    let smic = flottant(v.get("smic").ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "smic"))?)?;
+    let tp = PlafondTempsPartiel::lire(v.get(PLAFOND_TEMPS_PARTIEL).and_then(Value::as_str).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, PLAFOND_TEMPS_PARTIEL))?)?;
     let mut paie = Paie::nouveau(eng.clone(), sal, spectacle, decimal_de(v, "brut")?, decimal_de(v, "base_csg")?, decimal_de(v, "plafond")?, smic, decimal_de(v, "heures")?, tp);
     let p = paie.ecrire();
     p.total_pat = decimal_de(v, "total_pat")?;
@@ -222,10 +222,10 @@ fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) 
         .map_or_else(Vec::new, |a| a.iter().map(|x| Avis { info: drapeau(x, "info"), texte: texte_ou_vide(x, "texte") }).collect());
     // Les periodes elementaires d'un mois decoupe : chacune sur l'engagement borne a sa periode, aux termes qu'elle porte.
     for (n, x) in v.get("periodes").and_then(Value::as_array).map_or(&[][..], |a| &a[..]).iter().enumerate() {
-        let e = x.get("engagement").ok_or("paie ecrite illisible : `periodes.engagement`")?;
+        let e = x.get("engagement").ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "periodes.engagement"))?;
         let lire = |k: &str| e.get(k).filter(|j| !j.is_null()).map(|j| Jour::lire(&en_texte(j))).transpose();
         let (Some(debut), Some(fin)) = (lire("debut_periode")?, lire("fin_periode")?) else {
-            return Err("paie ecrite illisible : les bornes d'une periode".into());
+            return Err(socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "periodes"));
         };
         let mut sub = eng.clone();
         sub.periode = Some((debut, fin));

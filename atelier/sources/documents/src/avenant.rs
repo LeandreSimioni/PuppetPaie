@@ -127,19 +127,19 @@ pub(crate) struct Eng {
 impl Eng {
     pub(crate) fn lire(e: &Value) -> Resultat<Eng> {
         let texte = |c: &str| e.get(c).and_then(Value::as_str).map(str::to_string);
-        let requis_texte = |c: &str| texte(c).ok_or_else(|| format!("engagement sans `{}`", c));
+        let requis_texte = |c: &str| texte(c).ok_or_else(|| socle::echec::cle("Un engagement ne se relit pas : le revalider.", c));
         let liste = |c: &str| -> Resultat<Vec<String>> {
             e.get(c)
                 .and_then(Value::as_array)
-                .ok_or_else(|| format!("engagement sans `{}`", c))?
+                .ok_or_else(|| socle::echec::cle("Un engagement ne se relit pas : le revalider.", c))?
                 .iter()
-                .map(|x| x.as_str().map(str::to_string).ok_or_else(|| format!("`{}` : une date est attendue", c)))
+                .map(|x| x.as_str().map(str::to_string).ok_or_else(|| socle::echec::cle("Un engagement ne se relit pas : le revalider.", c)))
                 .collect()
         };
         let carte = |c: &str| -> Resultat<BTreeMap<String, String>> {
             Ok(e.get(c)
                 .and_then(Value::as_object)
-                .ok_or_else(|| format!("engagement sans `{}`", c))?
+                .ok_or_else(|| socle::echec::cle("Un engagement ne se relit pas : le revalider.", c))?
                 .iter()
                 .map(|(k, v)| (k.clone(), v.as_str().unwrap_or_default().to_string()))
                 .collect())
@@ -149,7 +149,7 @@ impl Eng {
             fin: texte("fin"),
             mois: requis_texte("mois")?,
             numero: texte("numero"),
-            dernier_mois: e.get("dernier_mois").and_then(Value::as_bool).ok_or("engagement sans `dernier_mois`")?,
+            dernier_mois: e.get("dernier_mois").and_then(Value::as_bool).ok_or_else(|| socle::echec::cle("Un engagement ne se relit pas : le revalider.", "dernier_mois"))?,
             dates_travail: liste("dates_travail")?,
             planning: liste("planning")?,
             lieux: carte("lieux")?,
@@ -321,7 +321,7 @@ fn lieu_du_contrat(e: &Eng) -> String {
 fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
     let licence = match requis(ent, "licence_spectacle")? {
         Value::String(s) => s.clone(),
-        autre => return Err(format!("licence_spectacle non resolue : elle vaut {}", en_texte(autre))),
+        autre => return Err(socle::echec::a_la_cle("Le numéro de licence de la compagnie ne se lit pas pour ce mois : le vérifier dans Configuration › Entreprise.", "licence_spectacle", en_texte(autre))),
     };
     let mut m = parties(ent, sal, sp, e)?;
     let mut poser = |k: &str, v: String| {
@@ -334,7 +334,7 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
     poser("contrat.dates_travail", dates_travail(e)?);
     poser("contrat.lieu", lieu_du_contrat(e));
     // Le jour du versement de la paie (`engagement::Engagement::date_du_versement`, que la paie ecrite porte).
-    let paiement = e.date_paiement.as_deref().filter(|p| !p.is_empty()).ok_or("engagement sans `date_paiement`")?;
+    let paiement = e.date_paiement.as_deref().filter(|p| !p.is_empty()).ok_or_else(|| socle::echec::cle("Un engagement ne se relit pas : le revalider.", "date_paiement"))?;
     poser("contrat.date_paiement", Jour::lire(paiement)?.jj_mm_aaaa());
     poser("remuneration.detail", remuneration_detaillee(remuneration, e)?);
     poser("remuneration.periode", periode_remuneration(e)?);

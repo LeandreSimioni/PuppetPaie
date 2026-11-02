@@ -350,7 +350,7 @@ fn page_accueil() -> String {
 
 /// La page du logiciel, telle que la fenetre la recoit (publique pour `tests/interface_fichiers.rs`).
 pub fn page_logiciel(racine: &Path, jeton: &str) -> Result<String, String> {
-    let brut = std::fs::read_to_string(ressources().join("index.html")).map_err(|e| format!("index.html illisible : {}", e))?;
+    let brut = std::fs::read_to_string(ressources().join("index.html")).map_err(|e| socle::echec::du_disque(&ressources().join("index.html"), &e))?;
     let copie = compagnies::est_copie(racine);
     let mut p = brut
         .replace("{{JETON}}", jeton)
@@ -1085,7 +1085,7 @@ fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
     let dernier = enr.and_then(|e| e.dernier_instant());
     let depart = match (jour, dernier) {
         (Some(j), Some(t)) if socle::temps::instant_de(j, 9) <= t => {
-            return Err(format!("Le scenario va deja jusqu'au {} : --jour {} le ferait reculer.", socle::paris::iso_secondes(t), j.iso()))
+            return Err(socle::echec::avec(format!("Le scénario va déjà jusqu'au {} : ce jour le ferait reculer.", socle::paris::iso_secondes(t)), serde_json::json!({"jour": j.iso()})))
         }
         (Some(j), _) => Some(socle::temps::instant_de(j, 9)),
         (None, Some(t)) => Some(t + 60.0),

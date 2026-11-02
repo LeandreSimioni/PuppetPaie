@@ -235,7 +235,7 @@ fn ecrire_entier(p: &Path, v: &Value) -> R<()> {
     nom.push(".ecriture");
     let provisoire = p.with_file_name(nom);
     ecrire_json(&provisoire, v, 2).map_err(|m| erreur("OSError", m))?;
-    std::fs::rename(&provisoire, p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))
+    std::fs::rename(&provisoire, p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))
 }
 
 /// `signalements` : ceux faits depuis ce poste, du plus recent au plus ancien, chacun avec ce que la page en dit :
@@ -273,11 +273,11 @@ fn en_ordre_strict(racine: &Path) -> R<Vec<Value>> {
     let octets = match std::fs::read(&p) {
         Ok(o) => o,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(e) => return Err(erreur("OSError", format!("{} : {}", p.display(), e))),
+        Err(e) => return Err(erreur("OSError", socle::echec::du_disque(&p, &e))),
     };
     match String::from_utf8(octets).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) {
         Some(Value::Array(a)) => Ok(a),
-        _ => Err(erreur("ErreurOperation", format!("{} est illisible : rien n'y est écrit, pour ne rien perdre de ce qu'il garde.", p.display()))),
+        _ => Err(erreur("ErreurOperation", socle::echec::avec("Un fichier de la compagnie est illisible : rien n'y est écrit, pour ne rien perdre de ce qu'il garde.", serde_json::json!({"chemin": p.to_string_lossy()})))),
     }
 }
 
@@ -299,7 +299,7 @@ fn id_de(l: &Value) -> Option<&str> {
 fn verrouiller(racine: &Path) -> R<Result<Verrou, ()>> {
     let p = chemin_signalements(racine).with_file_name(".signalements.verrou");
     if let Some(d) = p.parent() {
-        std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
+        std::fs::create_dir_all(d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))?;
     }
     let marque = socle::verrou::marque("signalements", std::process::id(), &socle::paris::maintenant());
     let fin = std::time::Instant::now() + std::time::Duration::from_secs(10);
@@ -438,7 +438,7 @@ pub fn partir(racine: &Path) -> Value {
 fn passage(racine: &Path) -> R<Value> {
     let p = chemin_signalements(racine).with_file_name(".signalements-envoi.verrou");
     if let Some(d) = p.parent() {
-        std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
+        std::fs::create_dir_all(d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))?;
     }
     let marque = socle::verrou::marque("signalements-envoi", std::process::id(), &socle::paris::maintenant());
     let _envoi = match Verrou::prendre(&p, &marque, socle::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {

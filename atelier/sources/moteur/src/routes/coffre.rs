@@ -577,7 +577,7 @@ fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let p = ctx.racine.join("config").join("google-jeton.bin");
     let efface = p.exists();
     if efface {
-        std::fs::remove_file(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        std::fs::remove_file(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
     }
     Ok(json!({ "efface": efface }))
 }
@@ -681,7 +681,7 @@ pub(crate) fn lire_jeton_dit(racine: &Path) -> Result<Value, String> {
     }
     // Une lecture impossible (droits) levait une OSError que rien ne
     // rattrapait ; elle se range ici avec les refus du coffre : l'etat se lit.
-    let brut = std::fs::read(&p).map_err(|e| format!("{} : {}", p.display(), e))?;
+    let brut = std::fs::read(&p).map_err(|e| socle::echec::du_disque(&p, &e))?;
     let clair = crate::compagnie::coffre::Coffre::du_poste(racine, "").deproteger(&brut, DESCRIPTION).map_err(|e| {
         format!("{} Pour le jeton Google, le remede est : relier de nouveau le Drive (Configuration > Mots de passe).", e.message)
     })?;
@@ -766,9 +766,9 @@ fn sceller_le_jeton(racine: &Path, jeton: &envois::google_autorisation::JetonGoo
         .proteger(brut.as_bytes(), DESCRIPTION)
         .map_err(|e| erreur_google(format!("Le jeton n'a pas pu etre scelle, rien n'est enregistre : {}", e.message)))?;
     let dossier = config(racine);
-    std::fs::create_dir_all(&dossier).map_err(|e| erreur_google(format!("{} : {}", dossier.display(), e)))?;
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur_google(socle::echec::du_disque(&dossier, &e)))?;
     let chemin = dossier.join(FICHIER_JETON);
-    std::fs::write(&chemin, scelle).map_err(|e| erreur_google(format!("{} : {}", chemin.display(), e)))?;
+    std::fs::write(&chemin, scelle).map_err(|e| erreur_google(socle::echec::du_disque(&chemin, &e)))?;
     Ok(jeton.compte.clone())
 }
 

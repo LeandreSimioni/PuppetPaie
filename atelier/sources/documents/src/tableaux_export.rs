@@ -843,11 +843,11 @@ pub fn format_possible(fmt: &str, formats: &[&str]) -> R<String> {
 
 /// Ecrit le tableau dans `dossier/nom.<ext>` (`tsv` s'ecrit `.txt`) et rend le chemin.
 pub fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte) -> R<PathBuf> {
-    std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+    std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     let ext = if t.format == "tsv" { "txt" } else { t.format.as_str() };
     let chemin = dossier.join(format!("{}.{}", nom, ext));
     let contenu = octets(t, Some(ctx))?;
-    std::fs::write(&chemin, contenu).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    std::fs::write(&chemin, contenu).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     t.fichier = Some(chemin.clone());
     Ok(chemin)
 }

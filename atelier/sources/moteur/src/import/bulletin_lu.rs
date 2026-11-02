@@ -607,7 +607,7 @@ fn mots_seuls(v: Option<&Value>, ou: &str) -> Resultat<Vec<String>> {
 
 /// Un objet de listes de libelles : (cle, libelles canoniques).
 fn groupes(v: Option<&Value>, ou: &str) -> Resultat<Vec<(String, Vec<String>)>> {
-    let o = v.and_then(Value::as_object).ok_or_else(|| format!("table de lecture : `{}` manque", ou))?;
+    let o = v.and_then(Value::as_object).ok_or_else(|| socle::echec::livree("table de lecture des bulletins", ou))?;
     o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| Ok((k.clone(), libelles(Some(x), &format!("{}.{}", ou, k))?))).collect()
 }
 
@@ -620,14 +620,14 @@ impl Table {
 
     /// Une table, verifiee : une mention, un en-tete, un resume ou une forme inconnue est un refus qui le nomme.
     pub fn depuis(v: &Value) -> Resultat<Table> {
-        let m = v.get("mentions").and_then(Value::as_object).ok_or("table de lecture : `mentions` manque")?;
+        let m = v.get("mentions").and_then(Value::as_object).ok_or_else(|| socle::echec::livree("table de lecture des bulletins", "mentions"))?;
         let mut mentions = Vec::new();
         for (n, x) in m.iter().filter(|(k, _)| !k.starts_with('_')) {
             let &(nom, sorte, section, rangs, employeur) =
                 MENTIONS.iter().find(|c| c.0 == n).ok_or_else(|| format!("mentions.{} : mention inconnue", n))?;
             mentions.push(Mention { nom, sorte, section, rangs, employeur, libelles: phrases(Some(x), &format!("mentions.{}", n))? });
         }
-        let e = v.get("entetes").ok_or("table de lecture : `entetes` manque")?;
+        let e = v.get("entetes").ok_or_else(|| socle::echec::livree("table de lecture des bulletins", "entetes"))?;
         if let Some(k) = e.as_object().and_then(|o| o.keys().find(|k| !k.starts_with('_') && !matches!(k.as_str(), "libelle" | "base" | "taux" | "montant" | "salarie" | "employeur" | "periode" | "cumul"))) {
             return Err(format!("entetes.{} : en-tête inconnu", k));
         }
@@ -711,7 +711,7 @@ fn lignes_de(v: Option<&Value>) -> Resultat<Vec<LigneTable>> {
     let catalogue = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("rubriques-base.json"))?;
     let hors_assiette = |code: &str| catalogue["rubriques"][code]["soumis"] == Value::Bool(false);
     let mut lignes: Vec<LigneTable> = Vec::new();
-    let Some(l) = v.and_then(Value::as_object) else { return Err("table de lecture : `lignes` manque".into()) };
+    let Some(l) = v.and_then(Value::as_object) else { return Err(socle::echec::livree("table de lecture des bulletins", "lignes")) };
     for (libelle, valeur) in l.iter().filter(|(k, _)| !k.starts_with('_')) {
         let o = format!("lignes.{}", libelle);
         let (rubrique, heures) = match valeur {
@@ -722,17 +722,17 @@ fn lignes_de(v: Option<&Value>) -> Resultat<Vec<LigneTable>> {
                     return Err(format!("{} : cle inconnue « {} » (rubrique, heures)", o, k));
                 }
                 let r = m.get("rubrique").and_then(Value::as_str).filter(|s| !s.is_empty());
-                let r = r.ok_or_else(|| format!("{} : `rubrique` manque", o))?.to_string();
+                let r = r.ok_or_else(|| socle::echec::livree("table de lecture des bulletins", &format!("{}.rubrique", o)))?.to_string();
                 let h = match m.get("heures") {
                     None => None,
                     Some(x) => match socle::num::dec(x) {
                         Ok(h) if x.is_number() && h > Decimal::ZERO => Some(h),
-                        _ => return Err(format!("{} : `heures` est un nombre d'heures positif", o)),
+                        _ => return Err(socle::echec::livree("table de lecture des bulletins", &format!("{}.heures", o))),
                     },
                 };
                 (Some(r), h)
             }
-            _ => return Err(format!("{} : une rubrique, null, ou {{rubrique, heures}}", o)),
+            _ => return Err(socle::echec::livree("table de lecture des bulletins", &o)),
         };
         let c = canon(libelle);
         if lignes.iter().any(|x| x.canon == c) {

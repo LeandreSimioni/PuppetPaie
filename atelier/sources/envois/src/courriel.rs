@@ -631,12 +631,12 @@ impl Courriel for BoiteSimulee {
     /// c'est par lui que la compagnie fictive retrouve ce qui est parti.
     fn envoyer(&mut self, message_mime: &[u8]) -> Result<String, ErreurCourriel> {
         let dossier = self.racine.join(DOSSIER_COURRIELS);
-        std::fs::create_dir_all(&dossier).map_err(|e| erreur(format!("{} : {}", dossier.display(), e)))?;
+        std::fs::create_dir_all(&dossier).map_err(|e| erreur(socle::echec::du_disque(&dossier, &e)))?;
         let ident = message_id_de(message_mime).unwrap_or_else(|| format!("<{}@fictive.puppetpaie>", hexa_au_hasard(8)));
         let maintenant = std::time::Duration::from_secs_f64(socle::temps::secondes());
         let nom = format!("{}_{}.eml", horodatage_de(maintenant), hexa_au_hasard(4));
         let chemin = dossier.join(&nom);
-        std::fs::write(&chemin, message_mime).map_err(|e| erreur(format!("{} : {}", chemin.display(), e)))?;
+        std::fs::write(&chemin, message_mime).map_err(|e| erreur(socle::echec::du_disque(&chemin, &e)))?;
         Ok(ident)
     }
 

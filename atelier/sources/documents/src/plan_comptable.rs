@@ -227,10 +227,12 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
             "NonPorte" => {
                 return Refus::Autre(erreur(
                     "ErreurOperation",
-                    format!(
-                        "Le modèle du compte individuel « {} » (net.par_salarie) emploie une forme de str.format que `moteur route` ne prend pas en charge ({}) : refusé plutôt que formaté autrement.",
-                        valeur_en_texte(modele),
-                        message
+                    socle::echec::avec(
+                        format!(
+                            "Le modèle du compte individuel « {} » emploie une forme que le logiciel ne sait pas remplir : l'écrire autrement dans le plan comptable.",
+                            valeur_en_texte(modele)
+                        ),
+                        serde_json::json!({"cle": "net.par_salarie", "detail": message}),
                     ),
                 ))
             }

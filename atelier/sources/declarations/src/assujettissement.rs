@@ -157,10 +157,9 @@ fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &Value, pct: Dec
     let seuil = |k: &str| -> Resultat<Decimal> {
         match ts.get(k) {
             Some(v) => dec_avec_echelle(v),
-            None => Err(format!(
-                "Le bareme de l'annee ne porte pas la taxe sur les salaires (`taxe_sur_les_salaires.{}`) : les seuils des taux \
-majores se lisent sur la notice 2501-SD de l'annee.",
-                k
+            None => Err(socle::echec::cle(
+                "Le barème de l'année ne porte pas la taxe sur les salaires : ses seuils se lisent sur la notice 2501-SD de l'année ; le signaler au développeur.",
+                &format!("taxe_sur_les_salaires.{}", k),
             )),
         }
     };
@@ -244,14 +243,14 @@ fn taxe_d_apprentissage(ent: &Value, ctp: &[String], an: i32) -> Resultat<Bloc44
         if paye {
             return Ok(Bloc44 { code: "001", montant: None, motif: None });
         }
-        return Err(format!(
-            "DSN de décembre {} : la table des CTP livrée avec le logiciel (donnees/organismes-base.json, `ctp_urssaf`) \
+        return Err(socle::echec::cle(format!(
+            "DSN de décembre {} : la table des cotisations livrée avec le logiciel \
 ne paie pas la taxe d'apprentissage (ni CTP {} ni CTP {}), et le bloc S21.G00.44 déclare donc « 002 - Non \
 assujettissement », qui exige son motif (S21.G00.44.004, table MNATA de la norme). La fiche ne le dit pas : {}. Si la \
 compagnie doit la taxe (code du travail L. 6241-1), c'est la table livrée qui est en défaut : aucune saisie de la \
 compagnie ne la corrige. Rien n'est écrit.",
             an, CTP_TAXE_APPRENTISSAGE[0], CTP_TAXE_APPRENTISSAGE[1], champ
-        ));
+        ), "ctp_urssaf"));
     };
     if code == MNATA_ASSOCIATIONS && an >= MILLESIME_ASSOCIATIONS_REDEVABLES {
         return Err(format!(
@@ -263,12 +262,12 @@ Rien n'est écrit.",
         ));
     }
     if paye {
-        return Err(format!(
+        return Err(socle::echec::cle(format!(
             "DSN de decembre {} : la fiche dit la compagnie non assujettie a la taxe d'apprentissage (motif MNATA {}), et le \
-bordereau la paie (CTP {} ou {} de la table livrée, donnees/organismes-base.json). L'un des deux est faux : {}, \
+bordereau la paie (CTP {} ou {} de la table livrée). L'un des deux est faux : {}, \
 ou la table livrée. Rien n'est écrit.",
             an, code, CTP_TAXE_APPRENTISSAGE[0], CTP_TAXE_APPRENTISSAGE[1], champ
-        ));
+        ), "ctp_urssaf"));
     }
     // Le code vient de la table livree : `Bloc44.code` est statique, le motif ne l'est pas.
     Ok(Bloc44 { code: "002", montant: None, motif: Some(code) })
@@ -303,13 +302,15 @@ pub fn blocs(
             Some("due") => "003",
             Some("non_due") => "004",
             _ => {
-                return Err(format!(
-                    "DSN de decembre {} : la compagnie compte au moins 250 salaries depuis cinq ans, et la contribution \
+                return Err(socle::echec::cle(
+                    format!(
+                        "DSN de decembre {} : la compagnie compte au moins 250 salaries depuis cinq ans, et la contribution \
 supplementaire a l'apprentissage (code du travail L. 6242-1) est due si moins de 5 % de son effectif annuel est en \
 contrat d'apprentissage, de professionnalisation, en CIFRE ou en CDI a leur suite. Le moteur ne compte pas ces contrats : \
-le dire dans Configuration › Entreprise, « Contribution supplementaire a l'apprentissage » (`{}` : \"due\" ou \
-\"non_due\"). Rien n'est ecrit.",
-                    an, CHAMP_CONTRIBUTION_SUPPLEMENTAIRE
+le dire dans Configuration › Entreprise, « Contribution supplementaire a l'apprentissage » (due ou non due). Rien n'est ecrit.",
+                        an
+                    ),
+                    CHAMP_CONTRIBUTION_SUPPLEMENTAIRE,
                 ))
             }
         }

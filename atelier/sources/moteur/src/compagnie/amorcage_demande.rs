@@ -267,6 +267,6 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
         }
     }
     let recap = dossier.join(format!("Amorcage{}_{}_recapitulatif.txt", d.motif, jour));
-    std::fs::write(&recap, format!("{}\n", out.join("\n"))).map_err(|e| erreur("OSError", format!("{} : {}", recap.display(), e)))?;
+    std::fs::write(&recap, format!("{}\n", out.join("\n"))).map_err(|e| erreur("OSError", socle::echec::du_disque(&recap, &e)))?;
     Ok(Lot { motif: d.motif.to_string(), dossier, fichiers, lignes: retenus, ecartes, recapitulatif: recap })
 }

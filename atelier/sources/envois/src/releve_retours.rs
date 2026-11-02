@@ -769,7 +769,7 @@ pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
     let mut annees: std::collections::BTreeMap<String, Map<String, Value>> = std::collections::BTreeMap::new();
     for nom in &noms {
         let p = dossier.join(nom);
-        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         let Some(mesures) = lire_crm118(&octets)? else { continue };
         for (code, valeur, debut, fin, calcule_le) in mesures {
             let ref_an = if debut.is_empty() { &fin } else { &debut };
@@ -810,7 +810,7 @@ pub fn poser_effectif(racine: &Path, an: i32, valeur: f64, le: &str) -> R<bool> 
     }
     codes.insert(A01.to_string(), json!({"valeur": valeur, DIT_LE: le}));
     if let Some(dossier) = chemin_des_effectifs(racine).parent() {
-        std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+        std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     }
     ecrire_effectifs(racine, &existant, annees)?;
     Ok(true)

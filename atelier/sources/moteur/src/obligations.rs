@@ -150,7 +150,7 @@ fn obligation(n: &Value, cle: &str) -> R<Value> {
     n.get("obligations")
         .and_then(|o| o.get(cle))
         .cloned()
-        .ok_or_else(|| erreur("KeyError", format!("obligations-base.json : l'obligation {} manque", repr(cle))))
+        .ok_or_else(|| erreur("KeyError", socle::echec::livree("obligations-base.json", cle)))
 }
 
 fn texte(v: &Value, k: &str) -> String {
@@ -158,7 +158,7 @@ fn texte(v: &Value, k: &str) -> String {
 }
 
 fn entier(v: &Value, k: &str) -> R<i64> {
-    v.get(k).and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", format!("obligations-base.json : {} manque ou n'est pas un nombre", repr(k))))
+    v.get(k).and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", socle::echec::livree("obligations-base.json", k)))
 }
 
 fn motifs_de(o: &Value) -> Vec<String> {
@@ -188,7 +188,7 @@ fn code_subrogation_oui() -> R<String> {
         .as_array()
         .and_then(|a| a.iter().find(|c| c["libelle"].as_str() == Some("oui")))
         .map(|c| en_texte(&c["code"]))
-        .ok_or_else(|| erreur("KeyError", "arrets-base.json : pas de code « oui » pour la subrogation"))
+        .ok_or_else(|| erreur("KeyError", socle::echec::livree("arrets-base.json", "subrogation")))
 }
 
 // --------------------------------------------------------------- le calendrier
@@ -320,7 +320,7 @@ impl Suivi {
         let fiches = match v.get("arrets") {
             None | Some(Value::Null) => Vec::new(),
             Some(Value::Array(a)) => a.clone(),
-            Some(_) => return Err(erreur("TypeError", format!("{} : `arrets` doit etre une liste", p.display()))),
+            Some(_) => return Err(erreur("TypeError", socle::echec::abime(&p, "arrets : une liste est attendue"))),
         };
         Ok(Suivi { fiches })
     }
@@ -341,7 +341,7 @@ impl Suivi {
                 self.fiches.len() - 1
             }
         };
-        let f = self.fiches[i].as_object_mut().ok_or_else(|| erreur("TypeError", "imprevus/obligations.json : une fiche n'est pas un objet"))?;
+        let f = self.fiches[i].as_object_mut().ok_or_else(|| erreur("TypeError", socle::echec::avec("Le fichier des obligations des imprévus est abîmé.", serde_json::json!({"fichier": "imprevus/obligations.json"}))))?;
         if valeur.is_null() {
             f.remove(champ);
         } else {

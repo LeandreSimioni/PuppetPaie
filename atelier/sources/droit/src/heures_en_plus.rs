@@ -97,7 +97,7 @@ pub fn supplementaires(idcc: &Value, heures: Decimal, a_50: Decimal, deja: Decim
             let hebdo = champ(champ(&l, "heures_supplementaires")?, "paliers_hebdomadaires")?.as_array().cloned().unwrap_or_default();
             let (premier, second) = match (hebdo.first(), hebdo.get(1)) {
                 (Some(a), Some(b)) => (nombre(a, "majoration")?, nombre(b, "majoration")?),
-                _ => return Err("permanents-base.json : `heures_en_plus.heures_supplementaires.paliers_hebdomadaires` attend deux paliers".into()),
+                _ => return Err(socle::echec::livree("permanents-base.json", "heures_en_plus.heures_supplementaires.paliers_hebdomadaires")),
             };
             ajouter(&mut r.paliers, heures - a_50, premier);
             ajouter(&mut r.paliers, a_50, second);

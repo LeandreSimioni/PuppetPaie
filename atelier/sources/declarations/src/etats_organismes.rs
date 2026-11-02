@@ -458,7 +458,7 @@ fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
     if !p.exists() {
         return Ok(Vec::new());
     }
-    let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+    let octets = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
     let texte = String::from_utf8_lossy(&octets).into_owned();
     let texte = texte.strip_prefix('\u{feff}').unwrap_or(&texte).to_string();
     let rangs = lire_csv(&texte, ';');
@@ -713,7 +713,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let tranche = tranches
             .iter()
             .find(|x| x["jusqu_a"].is_null() || x["jusqu_a"].as_f64().is_some_and(|j| eff <= j))
-            .ok_or_else(|| erreur("StopIteration", ""))?;
+            .ok_or_else(|| erreur("StopIteration", socle::echec::cle("Le barème de l'année est incomplet : le signaler au développeur.", "tranches")))?;
         let taux_p = dec_de(&tranche["taux"])?;
         let permanents = eur2(div(mul(masse_permanents, taux_p), Decimal::ONE_HUNDRED));
         let mut l = Ligne::nouvelle();

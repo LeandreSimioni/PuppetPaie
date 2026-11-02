@@ -290,7 +290,7 @@ Organismes et contrats) : un permanent est refusé tant qu'elles manquent.",
 
     let mut out = match base {
         Value::Object(m) => m,
-        _ => return Err("donnees/organismes-base.json : un objet est attendu.".into()),
+        _ => return Err(socle::echec::livree("organismes-base.json", "")),
     };
     out.shift_remove("contrats");
     out.insert("adhesions_prevoyance".into(), Value::Array(adhesions));

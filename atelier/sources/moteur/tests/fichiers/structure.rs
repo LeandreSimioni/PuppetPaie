@@ -102,7 +102,153 @@ fn ce_que_l_ecran_affiche_est_fait_pour_l_ecran() {
             voir(format!("champs-base.json {} : le choix vide", ou), l, CHOIX, false);
         }
     }
-    assert!(fautes.is_empty(), "ce que l'écran affiche n'est pas fait pour l'écran : récris-le bref, en mots, dans le moteur (le sens long reste au LLM) :\n{}", fautes.join("\n"));
+    let mut chemins = Vec::new();
+    // LES PHRASES DE REFUS que les sources construisent : la page les affiche, le LLM les lit (`refus_rs`).
+    for crate_ in ["socle", "droit", "engagement", "documents", "declarations", "envois", "moteur"] {
+        let atelier = espace().join("moteur/src/atelier");
+        for p in sources(&espace().join(crate_).join("src")).into_iter().filter(|p| !p.starts_with(&atelier)) {
+            let rel = p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned();
+            for (ligne, phrase, chemin) in refus_rs(&std::fs::read_to_string(&p).unwrap()) {
+                if chemin {
+                    chemins.push(format!("{}:{} : le refus « {} » compose un chemin : il va dans un champ à part (`socle::echec::avec`)", rel, ligne, phrase));
+                } else {
+                    voir(format!("{}:{} : le refus", rel, ligne), &phrase, usize::MAX, false);
+                }
+            }
+        }
+    }
+    fautes.extend(chemins);
+    assert!(fautes.is_empty(), "ce que l'écran affiche n'est pas fait pour l'écran : récris-le bref, en mots, dans le moteur (le sens long reste au LLM ; un chemin, une clé, un fichier vont dans un champ à part du refus, `socle::echec::avec`) :\n{}", fautes.join("\n"));
+}
+
+/// LES PHRASES DE REFUS d'un source Rust (hors commentaires et tests) : le litteral que construit un refus, en premier
+/// argument de `Err(…)`, `ok_or(…)`, `ok_or_else(|| …)`, `map_err(|e| …)`, `Echec::from(…)`, `message: …`, `avec(…)`,
+/// ou en second de `erreur(classe, …)`, `noter_et(classe, …)` (directement ou par `format!`). Chacune : sa ligne, sa
+/// phrase (une valeur composee `{}` y devient un mot ; `{:?}` reste du code) et si ses valeurs portent un chemin
+/// (`.display()`).
+fn refus_rs(t: &str) -> Vec<(usize, String, bool)> {
+    let c: Vec<char> = t.chars().collect();
+    // Les modules de tests (`#[cfg(test)]` puis le bloc qui suit) : leurs litteraux ne sont pas des refus.
+    let mut essais: Vec<(usize, usize)> = Vec::new();
+    let marque: Vec<char> = "#[cfg(test)]".chars().collect();
+    let mut i = 0;
+    while i + marque.len() <= c.len() {
+        if c[i..i + marque.len()] == marque[..] {
+            let mut j = i + marque.len();
+            while j < c.len() && c[j] != '{' && c[j] != ';' {
+                j += 1;
+            }
+            let mut profondeur = 0;
+            while j < c.len() {
+                match c[j] {
+                    '{' => profondeur += 1,
+                    '}' => {
+                        profondeur -= 1;
+                        if profondeur <= 0 {
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+                j += 1;
+            }
+            essais.push((i, j));
+            i = j;
+        }
+        i += 1;
+    }
+    let mut out = Vec::new();
+    for (ligne, debut, fin, l) in litteraux_rs_places(t) {
+        if essais.iter().any(|(a, b)| *a <= debut && debut <= *b) {
+            continue;
+        }
+        let avant: String = c[debut.saturating_sub(160)..debut].iter().filter(|x| !x.is_whitespace()).collect();
+        let avant = avant.strip_suffix("format!(").unwrap_or(&avant);
+        let avant = avant.strip_suffix('&').unwrap_or(avant);
+        let premier = ["Err(", "ok_or(", "Echec::from(", "message:", "echec::avec(", "echec::a_la_cle(", "echec::cle(", "ok_or_else(||"].iter().any(|s| avant.ends_with(s))
+            || avant.rsplit_once("map_err(|").is_some_and(|(_, r)| r.ends_with('|') && r[..r.len() - 1].chars().all(|x| x.is_alphanumeric() || x == '_'));
+        let second = ["erreur(", "noter_et("].iter().any(|f| avant.rsplit_once(f).is_some_and(|(_, r)| r.ends_with(',') && r.matches(',').count() == 1 && !r.replace("Some(", "").contains('(')));
+        if !(premier || second) {
+            continue;
+        }
+        // Les valeurs composees : jusqu'a la parenthese qui ferme l'appel.
+        let mut profondeur = 0i32;
+        let mut j = fin;
+        let mut args = String::new();
+        let mut dans = false;
+        while j < c.len() {
+            let x = c[j];
+            if dans {
+                if x == '\\' {
+                    j += 1;
+                } else if x == '"' {
+                    dans = false;
+                }
+            } else if x == '"' {
+                dans = true;
+            } else if "([{".contains(x) {
+                profondeur += 1;
+            } else if ")]}".contains(x) {
+                profondeur -= 1;
+                if profondeur < 0 {
+                    break;
+                }
+            } else if x == ';' && profondeur == 0 {
+                break;
+            }
+            if !dans {
+                args.push(x);
+            }
+            j += 1;
+        }
+        out.push((ligne, phrase_de_refus(&l), args.contains(".display()")));
+    }
+    out
+}
+
+/// Le litteral d'un refus tel que l'ecran le lit : les echappements rendus, une valeur composee `{…}` en mot (`x`) ;
+/// `{:?}` (la forme de code d'une valeur) garde son accolade.
+fn phrase_de_refus(l: &str) -> String {
+    let c: Vec<char> = l.chars().collect();
+    let mut s = String::new();
+    let mut i = 0;
+    while i < c.len() {
+        match c[i] {
+            '\\' => {
+                match c.get(i + 1) {
+                    Some('n') | Some('t') => s.push(' '),
+                    Some('u') => {
+                        let fin = c[i..].iter().position(|x| *x == '}').map_or(c.len(), |p| i + p);
+                        let hex: String = c[i + 3..fin].iter().collect();
+                        s.push(u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32).unwrap_or(' '));
+                        i = fin - 1;
+                    }
+                    Some(&y) => s.push(y),
+                    None => {}
+                }
+                i += 2;
+            }
+            '{' if c.get(i + 1) == Some(&'{') => {
+                s.push('{');
+                i += 2;
+            }
+            '}' if c.get(i + 1) == Some(&'}') => {
+                s.push('}');
+                i += 2;
+            }
+            '{' => {
+                let fin = c[i..].iter().position(|x| *x == '}').map_or(c.len(), |p| i + p);
+                let dedans: String = c[i + 1..fin].iter().collect();
+                s.push_str(if dedans.ends_with('?') { "{" } else { "x" });
+                i = fin + 1;
+            }
+            x => {
+                s.push(x);
+                i += 1;
+            }
+        }
+    }
+    s
 }
 
 /// La place du libelle d'une case de fiche (une ligne du formulaire), de son aide et d'un choix de sa liste, en caracteres.
@@ -827,6 +973,11 @@ fn met_des_euros(l: &str) -> bool {
 /// Les litteraux de chaine d'un source Rust (hors commentaires), avec la ligne ou chacun commence ; une fin de ligne
 /// echappee (`\` puis le blanc qui suit) est retiree, comme le fait le compilateur.
 fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
+    litteraux_rs_places(t).into_iter().map(|(l, _, _, s)| (l, s)).collect()
+}
+
+/// Les memes, avec ou chacun commence (son guillemet) et finit (apres le sien), en caracteres.
+fn litteraux_rs_places(t: &str) -> Vec<(usize, usize, usize, String)> {
     let c: Vec<char> = t.chars().collect();
     let (mut v, mut i, mut ligne) = (Vec::new(), 0, 1);
     while i < c.len() {
@@ -873,7 +1024,7 @@ fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
                     i += 1;
                     continue;
                 }
-                let debut = ligne;
+                let (debut, ouvre) = (ligne, i);
                 let mut s = String::new();
                 j += 1;
                 while j < c.len() && !(c[j] == '"' && (0..dieses).all(|k| c.get(j + 1 + k) == Some(&'#'))) {
@@ -881,11 +1032,11 @@ fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
                     s.push(c[j]);
                     j += 1;
                 }
-                v.push((debut, s));
                 i = j + 1 + dieses;
+                v.push((debut, ouvre, i, s));
             }
             '"' => {
-                let debut = ligne;
+                let (debut, ouvre) = (ligne, i);
                 let mut s = String::new();
                 i += 1;
                 while i < c.len() && c[i] != '"' {
@@ -907,8 +1058,8 @@ fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
                     }
                     i += 1;
                 }
-                v.push((debut, s));
                 i += 1;
+                v.push((debut, ouvre, i, s));
             }
             _ => i += 1,
         }

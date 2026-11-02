@@ -520,12 +520,12 @@ fn delai_de_prevenance(
     if !nat.duree_indeterminee {
         let minimum = dec_avec_echelle(cle(&regle, "cdd_essai_minimum_jours")?)?;
         let Some(essai) = e.get("periode_essai_jours").filter(|x| !x.is_null()) else {
-            return Err(format!(
+            return Err(socle::echec::cle(format!(
                 "{} : fin de periode d'essai a l'initiative de l'employeur (034) d'un contrat a duree determinee : L1221-25 \
                  ne donne un delai de prevenance que si le contrat stipule une periode d'essai d'au moins une semaine. \
-                 La saisie ne dit pas celle du contrat (`periode_essai_jours`, en jours) ; le moteur ne la devine pas.",
+                 La saisie ne dit pas celle du contrat, en jours ; le moteur ne la devine pas.",
                 qui
-            ));
+            ), "periode_essai_jours"));
         };
         if dec_avec_echelle(essai)? < minimum {
             stc.avertissements.push(info(format!(
@@ -546,12 +546,12 @@ fn delai_de_prevenance(
         return Ok(());
     }
     let Some(notification) = e.get("notification_rupture").filter(|x| vrai(x)) else {
-        return Err(format!(
+        return Err(socle::echec::cle(format!(
             "{} : fin de periode d'essai a l'initiative de l'employeur (034) : la date de notification de la rupture n'est \
-             pas dite (`notification_rupture`). Le delai de prevenance de L1221-25 se compte depuis elle, selon la presence \
+             pas dite (« Notifiée le »). Le delai de prevenance de L1221-25 se compte depuis elle, selon la presence \
              du salarie ; le moteur ne la devine pas.",
             qui
-        ));
+        ), "notification_rupture"));
     };
     let notification = d(notification)?;
     let debut = d(cle(e, "debut")?)?;
@@ -675,17 +675,16 @@ fn indemnite_de_rupture(
             && anciennete > Decimal::from(120)
         {
             if saisi.is_none() {
-                return Err(format!(
+                return Err(socle::echec::cle(format!(
                     "{} : mise a la retraite d'un cadre de direction de plus \
                      de dix ans d'anciennete -- {} ({}) fixe l'indemnite a << 6 \
                      mois de salaires minimum >>, et le texte ne dit pas quel \
-                     salaire. Saisir le montant retenu (`{}`) : le moteur \
+                     salaire. Saisir le montant retenu : le moteur \
                      l'accepte a partir du minimum legal.",
                     qui,
                     clauses::nom(idcc),
-                    t(cle(cdd, "article")?),
-                    rubrique
-                ));
+                    t(cle(cdd, "article")?)
+                ), &rubrique));
             }
             ouvert = true;
         }
@@ -778,16 +777,15 @@ fn indemnite_de_rupture(
         }
     } else if let (Some(cb), Some(ch)) = (conv_bas, conv_haut) {
         if cb != ch && ch > m_legal && cle_sec != "rupture_conventionnelle" {
-            return Err(format!(
+            return Err(socle::echec::cle(format!(
                 "{} : {} se lit de deux façons, de {} à {} ; la loi donne {}. \
-                 Saisir le montant retenu (`{}`).",
+                 Saisir le montant retenu.",
                 qui,
                 t(&conv_article),
                 euros(cb),
                 euros(ch),
-                euros(m_legal),
-                rubrique
-            ));
+                euros(m_legal)
+            ), &rubrique));
         }
         montant = bas;
     } else {
@@ -824,16 +822,14 @@ fn indemnite_de_rupture(
         // Deux rubriques pour une seule indemnite : l'impot depend d'un fait du salarie.
         let droit = e.get("en_droit_a_la_retraite").filter(|x| !x.is_null());
         let Some(droit) = droit else {
-            return Err(format!(
+            return Err(socle::echec::cle(format!(
                 "{} : rupture conventionnelle -- il manque un fait, et il \
                  change l'impot du salarie : est-il EN DROIT DE BENEFICIER \
                  D'UNE PENSION de retraite d'un regime legalement \
                  obligatoire ? S'il ne l'est pas, son indemnite n'est pas \
-                 imposable (CGI 80 duodecies 6°) ; s'il l'est, elle l'est. \
-                 Le dire sur l'engagement (`en_droit_a_la_retraite`, vrai ou \
-                 faux).",
+                 imposable (CGI 80 duodecies 6°) ; s'il l'est, elle l'est. Le dire sur l'engagement.",
                 qui
-            ));
+            ), "en_droit_a_la_retraite"));
         };
         if vrai(droit) {
             rubrique = "indemnite_rupture_conventionnelle_imposable".into();

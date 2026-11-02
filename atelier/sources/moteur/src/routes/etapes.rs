@@ -878,7 +878,7 @@ impl<'a> Moteur<'a> {
             json!({"dsn": [], "dpae": []})
         } else {
             let mut tous: Vec<(String, PathBuf, u64)> = Vec::new();
-            let rd = std::fs::read_dir(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+            let rd = std::fs::read_dir(&dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
             for e in rd.flatten() {
                 let chemin = e.path();
                 let Ok(m) = std::fs::metadata(&chemin) else { continue };
@@ -981,7 +981,7 @@ impl<'a> Moteur<'a> {
         t.trim().parse::<i64>().map_err(|_| {
             erreur(
                 "ValueError",
-                format!("journal/depots.jsonl : un depot reel de la DSN de {} ne porte pas son ordre (S20.G00.05.004). Le rang d'un annule-et-remplace ne se devine pas.", mois),
+                socle::echec::avec(format!("Un dépôt réel de la DSN de {} ne porte pas son ordre (S20.G00.05.004) dans le journal des envois : le rang d'un annule-et-remplace ne se devine pas ; le signaler au développeur.", mois), serde_json::json!({"fichier": "journal/depots.jsonl", "cle": "ordre"})),
             )
         })
     }
@@ -1506,7 +1506,7 @@ impl<'a> Moteur<'a> {
         // LU UNE FOIS TANT QU'IL NE CHANGE PAS : `etat` le demandait pour chaque mois. Le refus d'un fichier
         // illisible ne change pas (`OSError`, `JSONDecodeError`), et ne se garde pas.
         let v = socle::fichiers::json_en_cache_ou(&p, |p| {
-            let t = socle::fichiers::lire_texte(p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+            let t = socle::fichiers::lire_texte(p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
             serde_json::from_str::<Value>(&t).map_err(|e| erreur("JSONDecodeError", e.to_string()))
         })?;
         let Value::Object(o) = &*v else {

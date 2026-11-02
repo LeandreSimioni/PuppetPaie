@@ -51,7 +51,7 @@ const COLONNES_BULLETIN: [&str; 12] = [
 const MONTANTS_BULLETIN: [&str; 4] = ["brut", "net_imposable", "net_a_payer", "pas"];
 
 fn en_os(e: &std::io::Error, p: &Path) -> Echec {
-    erreur("OSError", format!("{} : {}", p.display(), e))
+    erreur("OSError", socle::echec::du_disque(p, e))
 }
 
 
@@ -88,7 +88,7 @@ pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>
         return Ok(Some(chemin));
     }
     let nom = valeur_en_texte(&ligne["fichier"]);
-    Err(format!("La DSN de {} ({}) a ete importee, mais le fichier n'est plus sous historique/.", mois, nom))
+    Err(socle::echec::avec(format!("La DSN de {} a été importée, mais son fichier n'est plus dans l'historique de la compagnie.", mois), serde_json::json!({"fichier": nom})))
 }
 
 /// `lire_dsn_casc` : la DSN deposee, et si elle porte la CASC-SVP (un contrat rattache, S21.G00.70.013, a

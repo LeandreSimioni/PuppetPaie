@@ -179,7 +179,7 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
         std::io::ErrorKind::PermissionDenied => "PermissionError",
         _ => "OSError",
     };
-    erreur(classe, format!("{} : {}", p.display(), e))
+    erreur(classe, socle::echec::du_disque(p, e))
 }
 
 /// `journal.lire` sur des lignes deja lues.

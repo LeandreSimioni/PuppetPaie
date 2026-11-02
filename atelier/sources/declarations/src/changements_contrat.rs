@@ -171,7 +171,7 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
     let mut candidats: Vec<(Jour, String)> = Vec::new();
     if md.saisie {
         if let Some(t) = &p.engagement.date_modification {
-            let j = Jour::lire(t).map_err(|_| format!("{} : `date_modification` illisible dans la saisie de {} : {}.", qui(p), mois, t))?;
+            let j = Jour::lire(t).map_err(|_| socle::echec::a_la_cle(&format!("{} : la date de l'avenant de la saisie de {} ne se lit pas.", qui(p), mois), "date_modification", t))?;
             candidats.push((j, "la date de modification de la saisie du mois (`date_modification`)".into()));
         }
     }
@@ -300,15 +300,15 @@ pub fn blocs_41(ctx: &Contexte, p: &Paie, mois: &str, nics: &[String], ecrit: &[
     // `chapitre-2-principes-de-constitution.txt`), au plus tard ce jour-la (CCH-15 de 41.001, p. 217).
     let (avant, apres) = (valeur(&decl.bloc, "S21.G00.40.001").unwrap_or(""), valeur(ecrit, "S21.G00.40.001").unwrap_or(""));
     if avant != apres {
-        let date = e.date_modification.as_deref().map(|t| Jour::lire(t).map_err(|_| format!("{} : `date_modification` illisible : {}.", qui(p), t)));
+        let date = e.date_modification.as_deref().map(|t| Jour::lire(t).map_err(|_| socle::echec::a_la_cle(&format!("{} : la date de l'avenant ne se lit pas.", qui(p)), "date_modification", t)));
         let date = date.transpose()?.unwrap_or(fin_m);
         if date > fin_m {
-            return Err(format!(
-                "{} : `date_modification` ({}) apres la fin du mois declare ; la norme l'interdit (CCH-15 de S21.G00.41.001, \
+            return Err(socle::echec::cle(format!(
+                "{} : l'avenant prend effet le {}, après la fin du mois déclaré ; la norme l'interdit (CCH-15 de S21.G00.41.001, \
 p. 217).",
                 qui(p),
                 date.jj_mm_aaaa()
-            ));
+            ), "date_modification"));
         }
         identifiants.push(vec![("S21.G00.41.001".to_string(), date.jjmmaaaa()), ("S21.G00.41.021".to_string(), avant.to_string())]);
     }
@@ -410,30 +410,32 @@ pub fn ancienne_date_de_debut(lignes: &mut Vec<String>, debut: usize, r: &crate:
         if *nouveau == r.avant.engagement.debut {
             return Ok(());
         }
-        return Err(format!(
-            "Correction de {} (contrat {}) : la date de debut passe du {} au {}, et la DSN deposee {} ne dit pas la date \
+        return Err(socle::echec::avec(
+            format!(
+                "Correction de {} (contrat {}) : la date de debut passe du {} au {}, et la DSN deposee ne dit pas la date \
 declaree (S21.G00.40.001 du contrat). Le bloc Changements contrat (S21.G00.41.021, fiche net-entreprises 1952) porte la \
 date declaree : elle se lit, elle ne se devine pas. Rien n'est ecrit.",
-            r.mois,
-            numero,
-            r.avant.engagement.debut.jj_mm_aaaa(),
-            nouveau.jj_mm_aaaa(),
-            r.declare.fichier
+                r.mois,
+                numero,
+                r.avant.engagement.debut.jj_mm_aaaa(),
+                nouveau.jj_mm_aaaa()
+            ),
+            serde_json::json!({"fichier": r.declare.fichier}),
         ));
     };
     if ancienne == nouveau.jjmmaaaa() {
         return Ok(());
     }
     let Some(decidee) = r.decidee_le else {
-        return Err(format!(
+        return Err(socle::echec::cle(format!(
             "Correction de {} (contrat {}) : la date de debut passe du {} au {} ; le bloc Changements contrat se date du \
-jour de la correction (S21.G00.41.001, fiche net-entreprises 1952), et la correction ne le dit pas (`decidee_le`). Rien \
+jour de la correction (S21.G00.41.001, fiche net-entreprises 1952), et la correction ne le dit pas. Rien \
 n'est ecrit.",
             r.mois,
             numero,
             ddmmaaaa(ancienne).map_or_else(|| ancienne.to_string(), |j| j.jj_mm_aaaa()),
             nouveau.jj_mm_aaaa()
-        ));
+        ), "decidee_le"));
     };
     let date = decidee.min(fin_mois);
     let mut fin = debut;

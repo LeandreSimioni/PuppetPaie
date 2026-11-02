@@ -29,13 +29,13 @@ use socle::fichiers::vrai;
 use envois::releve_retours::Client;
 use envois::suites::Suites;
 
-pub use envois::depot_acte::{phrase_de, DepotFait};
+pub use envois::depot_acte::DepotFait;
 use socle::echec::Echec;
 
 /// Une erreur qui porte une donnee de plus pour la page (`etat`, `manques`...) : sa phrase et la donnee
 /// voyagent ensemble dans le message, que `routes::commande` redresse en `{"erreur", "classe", <cle>}`.
 pub(crate) fn avec_donnee(classe: &'static str, message: impl Into<String>, cle: &str, donnee: Value) -> Echec {
-    Echec { classe: Some(classe), message: json!({"message": message.into(), cle: donnee}).to_string() }
+    Echec { classe: Some(classe), message: socle::echec::avec(message, json!({cle: donnee})) }
 }
 
 /// `Preuve` : ce qui prouve qu'un humain veut CET acte, MAINTENANT. Le mot de passe DU LOGICIEL, retape.
@@ -127,7 +127,7 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
     if !coffre.ouverture_exigee().map_err(vers)? {
         return Err(erreur(
             "PreuveInsuffisante",
-            "Aucun mot de passe du logiciel n'est pose : rien ne peut partir en reel. Le poser d'abord -- la fenetre PuppetPaie le demande a sa premiere ouverture, ou `route mot-de-passe-changer`. Rien n'est parti.",
+            "Aucun mot de passe du logiciel n'est pose : rien ne peut partir en reel. Le poser d'abord : la fenêtre PuppetPaie le demande à sa première ouverture. Rien n'est parti.",
         ));
     }
     let Some(preuve) = preuve.filter(|p| p.motdepasse.as_deref().is_some_and(|m| !m.is_empty())) else {
@@ -199,7 +199,7 @@ fn phrase_repetition(quoi: &str, etat: &Value) -> String {
 /// DE SECOURS EST VOULUE, et elle est tracee : un motif ECRIT (dix caracteres au moins) passe outre ; ce
 /// qu'on refuse, c'est le contournement SILENCIEUX.
 fn exiger_repetition(lignes: &[Value], quoi: &str, chemin: &Path, contournement: &str) -> R<Value> {
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let etat = etats::repetition(lignes, quoi, &envois::journal::empreinte(&octets), &nom)?;
     // UN REEL NE PART QUE SUR LE BILAN LU DE SON TEST : l'accuse d'enregistrement dit
@@ -256,7 +256,7 @@ fn refuser_si_copie(ctx: &Contexte, quoi: &str) -> R<()> {
 /// deja. `None` reste `None`.
 fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64>> {
     let Some(c) = calcule else { return Ok(None) };
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     Ok(Some(rang_dans_le_fichier(&octets).map_or(c, |m| c.max(m))))
 }
 
@@ -427,7 +427,7 @@ pub fn deposer_dsn_dans(
     if crate::compagnie::essai::est_essai(&ctx.racine) && apercu.champ("siren") != valeur_en_texte(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
         return Err(erreur(
             "ErreurOperation",
-            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Deposer ici la DSN du mois (route `deposer`, avec le mois), qui s'y fabrique. Rien n'est parti.",
+            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Déposer ici la DSN du mois, qui s'y fabrique. Rien n'est parti.",
         ));
     }
     let nic: Value = if apercu.champ("etablissement").is_empty() { Value::Null } else { json!(apercu.champ("etablissement")) };
@@ -667,11 +667,11 @@ fn deposer_les_amorcages(ctx: &Contexte, mois: &str, embauches: &[Value], reel: 
     let mode = if reel { "" } else { " en test" };
     let paies = match paies_des_embauches(ctx, mois, embauches) {
         Ok(p) => p,
-        Err(e) => return vec![format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, phrase_de(&e))],
+        Err(e) => return vec![format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, e.phrase())],
     };
     let lignes = match ad::a_combler(ctx, &paies, declarations::amorcage::EMBAUCHE, false) {
         Ok(l) => l,
-        Err(e) => return vec![format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, phrase_de(&e))],
+        Err(e) => return vec![format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, e.phrase())],
     };
     let (retenues, ecartees): (Vec<ad::Ligne>, Vec<ad::Ligne>) = lignes.into_iter().partition(|l| l.pourquoi_pas.is_empty());
     // UNE PHRASE PAR RAISON, pas par salarie : la phrase du depot tient dans sa place quel que soit le nombre d'embauches.
@@ -690,7 +690,7 @@ fn deposer_les_amorcages(ctx: &Contexte, mois: &str, embauches: &[Value], reel: 
     let fichiers = match ad::ecrire(ctx, &paies, &retenues, declarations::amorcage::EMBAUCHE, mois, ctx.aujourdhui, false) {
         Ok(f) => f,
         Err(e) => {
-            dit.push(format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, phrase_de(&e)));
+            dit.push(format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, e.phrase()));
             return dit;
         }
     };
@@ -716,7 +716,7 @@ fn deposer_les_amorcages(ctx: &Contexte, mois: &str, embauches: &[Value], reel: 
         let qui_demande = ctx.nomme(&l.salarie);
         match fait {
             Ok(_) => parties.push(qui_demande),
-            Err(e) => dit.push(format!("La demande de taux de prélèvement à la source de {} n'est pas partie{} : {} Elle reste à demander.", qui_demande, mode, phrase_de(&e))),
+            Err(e) => dit.push(format!("La demande de taux de prélèvement à la source de {} n'est pas partie{} : {} Elle reste à demander.", qui_demande, mode, e.phrase())),
         }
     }
     if !parties.is_empty() {

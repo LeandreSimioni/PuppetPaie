@@ -82,7 +82,7 @@ fn de_l_installation(inst: &Path, racine: &Path) -> bool {
 /// Ce qu'est `racine` pour sa suppression, ou pourquoi elle ne se supprime pas.
 pub fn genre(inst: &Path, racine: &Path) -> Result<Genre, String> {
     if !de_l_installation(inst, racine) {
-        return Err(format!("{} n'est pas une compagnie de ce logiciel : rien n'a été supprimé.", racine.display()));
+        return Err(socle::echec::avec("Ce dossier n'est pas une compagnie de ce logiciel : rien n'a été supprimé.", serde_json::json!({"chemin": racine.to_string_lossy()})));
     }
     if compagnies::est_ajoutee(racine) {
         return Ok(Genre::Ajoutee);
@@ -183,7 +183,7 @@ fn effacer(racine: &Path) -> Result<(), String> {
     let nom = racine.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let instant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
     let cache = parent.join(format!("{}{}-{}", PREFIXE_RESTE, nom, instant));
-    std::fs::rename(racine, &cache).map_err(|e| format!("{} ne se supprime pas ({}) : fermez ce qui l'utilise, puis recommencez. Rien n'a été supprimé.", racine.display(), e))?;
+    std::fs::rename(racine, &cache).map_err(|e| socle::echec::avec("La compagnie ne se supprime pas : fermez ce qui l'utilise, puis recommencez. Rien n'a été supprimé.", serde_json::json!({"chemin": racine.to_string_lossy(), "detail": e.to_string()})))?;
     let _ = std::fs::remove_dir_all(&cache);
     Ok(())
 }
@@ -223,7 +223,7 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
         .and_then(|v| v.get("quand").and_then(Value::as_str).map(String::from))
         .unwrap_or_default();
     let parent = inst.join("compagnies");
-    std::fs::create_dir_all(&parent).map_err(|e| format!("{} : {}", parent.display(), e))?;
+    std::fs::create_dir_all(&parent).map_err(|e| socle::echec::du_disque(&parent, &e))?;
     let base = compagnies::nom_de_dossier(&nom);
     let mut cible = parent.join(&base);
     let mut n = 2;
@@ -244,11 +244,11 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
     }
     // Sans marqueur : une compagnie reelle. S'il ne s'efface pas, elle resterait une fictive ajoutee hors de `fictives/` :
     // le dire, plutot que la laisser envoyer sans le savoir... ou ne jamais envoyer.
-    std::fs::remove_file(cible.join(compagnies::MARQUEUR)).map_err(|e| format!("{} : le marqueur de fictive ne s'efface pas ({}).", cible.display(), e))?;
+    std::fs::remove_file(cible.join(compagnies::MARQUEUR)).map_err(|e| socle::echec::avec("Le marqueur de la fictive ne s'efface pas.", serde_json::json!({"chemin": cible.to_string_lossy(), "detail": e.to_string()})))?;
     compagnies::liste_de(inst)
         .into_iter()
         .find(|c| absolu(&c.racine) == absolu(&cible))
-        .ok_or_else(|| format!("{} a été gardée, mais l'accueil ne la trouve pas ({}).", nom, cible.display()))
+        .ok_or_else(|| socle::echec::avec(format!("{} a été gardée, mais l'accueil ne la trouve pas.", nom), serde_json::json!({"chemin": cible.to_string_lossy()})))
 }
 
 /// LA REPONSE A LA QUESTION DU DEBLOCAGE : `garder` et `ne_pas_garder`, des identifiants de tuile (`fictive:<dossier>`)

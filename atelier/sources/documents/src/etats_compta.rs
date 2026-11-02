@@ -937,7 +937,7 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     if d.ecrire {
         let dossier = p.dossier(ctx);
         if let Some(ec) = &ecr_format {
-            let io = |c: &std::path::Path, e: std::io::Error| erreur("OSError", format!("{} : {}", c.display(), e));
+            let io = |c: &std::path::Path, e: std::io::Error| erreur("OSError", socle::echec::du_disque(&c, &e));
             std::fs::create_dir_all(&dossier).map_err(|e| io(&dossier, e))?;
             let env = Envoi { plan: &plan, ctx, sections };
             let chemin = dossier.join(ec.fichier.replace("%s", &p.nom()));

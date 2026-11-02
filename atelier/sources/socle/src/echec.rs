@@ -141,3 +141,105 @@ impl From<Refus> for Echec {
         Echec { classe: r.classe, message: r.message }
     }
 }
+
+// ============================================================================================ ce qui va a part
+
+/// Entre la phrase d'un refus et ce qu'il porte a part : un chemin, une cle, un fichier, une donnee pour la page.
+pub const A_PART: char = '\u{1e}';
+
+/// UN REFUS QUI PORTE QUELQUE CHOSE A PART. Sa phrase se lit a l'ecran, en mots ; ce qui n'est pas fait pour l'ecran
+/// (le chemin d'un fichier, la cle d'une donnee, le nom d'un fichier livre) ou ce que la page lit d'autre (l'etat d'un
+/// mois, les anomalies d'une fiche) va dans `plus`, un objet, que la reponse de la route rend a cote de la phrase
+/// (`separer`) : la fenetre l'ouvre, le LLM le lit. Une phrase qu'on prefixe garde ce qu'elle porte.
+pub fn avec(phrase: impl Into<String>, plus: serde_json::Value) -> String {
+    format!("{}{}{}", phrase.into(), A_PART, plus)
+}
+
+/// La phrase d'un refus, et ce qu'il porte a part (`avec`), reunis d'un bout a l'autre du message.
+pub fn separer(message: &str) -> (String, serde_json::Map<String, serde_json::Value>) {
+    let mut morceaux = message.split(A_PART);
+    let mut phrase = morceaux.next().unwrap_or_default().to_string();
+    let mut plus = serde_json::Map::new();
+    for m in morceaux {
+        let mut lu = serde_json::Deserializer::from_str(m).into_iter::<serde_json::Value>();
+        match lu.next() {
+            Some(Ok(serde_json::Value::Object(o))) => {
+                for (k, v) in o {
+                    plus.entry(k).or_insert(v);
+                }
+                phrase.push_str(&m[lu.byte_offset()..]);
+            }
+            _ => phrase.push_str(m),
+        }
+    }
+    (phrase, plus)
+}
+
+impl Echec {
+    /// La phrase du refus, sans ce qu'il porte a part (`separer`).
+    pub fn phrase(&self) -> String {
+        separer(&self.message).0
+    }
+}
+
+/// UN FICHIER QUE LE DISQUE REFUSE (absent, interdit, illisible, mal forme) : la phrase dit ce qui arrive, en mots ; le
+/// chemin et la raison du systeme vont a part (`avec` : `chemin`, `detail`). Un refus du moteur sur ce que le fichier
+/// porte (une phrase, `String`) garde sa phrase, et le chemin va a part.
+pub fn du_disque<E: std::fmt::Display + 'static>(chemin: &std::path::Path, e: &E) -> String {
+    let a_part = |phrase: &str, detail: Option<String>| {
+        let mut plus = serde_json::json!({"chemin": chemin.to_string_lossy()});
+        if let Some(d) = detail {
+            plus["detail"] = serde_json::Value::String(d);
+        }
+        avec(phrase, plus)
+    };
+    let e_ = e as &dyn std::any::Any;
+    if let Some(phrase) = e_.downcast_ref::<String>() {
+        return a_part(phrase, None);
+    }
+    let phrase = match e_.downcast_ref::<std::io::Error>().map(std::io::Error::kind) {
+        Some(std::io::ErrorKind::NotFound) => "Un fichier de la compagnie manque.",
+        Some(std::io::ErrorKind::PermissionDenied) => "Le poste refuse l'accès à un fichier de la compagnie : un autre programme le tient peut-être ouvert.",
+        Some(std::io::ErrorKind::StorageFull) => "Le disque est plein : un fichier de la compagnie ne s'écrit pas.",
+        Some(_) => "Le disque refuse un fichier de la compagnie.",
+        None => "Un fichier de la compagnie ne se lit pas : il est abîmé.",
+    };
+    a_part(phrase, Some(e.to_string()))
+}
+
+/// UNE DONNEE QUI NE SE LIT PAS LA OU ELLE DEVRAIT : `quoi` la dit en mots (« Une paie écrite ne se relit pas. ») ; la cle
+/// et ce qui a ete lu vont a part (`cle`, `detail`).
+pub fn a_la_cle(quoi: &str, cle: &str, detail: impl std::fmt::Display) -> String {
+    let detail = detail.to_string();
+    let mut plus = serde_json::json!({"cle": cle});
+    if !detail.is_empty() {
+        plus["detail"] = serde_json::Value::String(detail);
+    }
+    avec(quoi, plus)
+}
+
+/// UNE DONNEE LIVREE AVEC LE LOGICIEL QUI MANQUE OU NE SE LIT PAS (un referentiel de `donnees/`) : rien que la compagnie
+/// puisse corriger ; le fichier et la cle vont a part.
+pub fn livree(fichier: &str, cle: &str) -> String {
+    avec("Une donnée livrée avec le logiciel manque ou ne se lit pas : le signaler au développeur.", serde_json::json!({"fichier": fichier, "cle": cle}))
+}
+
+/// UNE DEMANDE MAL FORMEE : la charge d'une route n'a pas, a `cle`, ce qu'il faut (`attendu` : « un texte », « une
+/// liste »). La cle va a part.
+pub fn charge(cle: &str, attendu: &str) -> String {
+    avec(format!("La demande est mal formée : {} est attendu.", attendu), serde_json::json!({"cle": cle}))
+}
+
+/// Un refus en mots, et la cle de la donnee qu'il vise, a part.
+pub fn cle(phrase: impl Into<String>, cle: &str) -> String {
+    avec(phrase, serde_json::json!({"cle": cle}))
+}
+
+/// Une paie ecrite (ce que la validation d'un engagement a garde) qui ne se relit pas : la cle va a part (`a_la_cle`).
+pub const PAIE_ILLISIBLE: &str = "Une paie écrite ne se relit pas : revalider l'engagement.";
+
+/// UN FICHIER DE LA COMPAGNIE QUI NE PORTE PAS CE QU'IL DEVRAIT (une forme inattendue) : la phrase en mots, le chemin et ce
+/// qui ne va pas a part.
+pub fn abime(chemin: &std::path::Path, detail: impl std::fmt::Display) -> String {
+    avec("Un fichier de la compagnie ne se lit pas : il est abîmé.", serde_json::json!({"chemin": chemin.to_string_lossy(), "detail": detail.to_string()}))
+}

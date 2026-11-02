@@ -150,8 +150,8 @@ fn entier_opt(v: Option<&Value>, nom: &str) -> Resultat<Option<i64>> {
             .as_i64()
             .or_else(|| n.as_f64().filter(|f| f.fract() == 0.0).map(|f| f as i64))
             .map(Some)
-            .ok_or_else(|| format!("`{}` : un entier est attendu, lu {}", nom, n)),
-        Some(autre) => Err(format!("`{}` : un entier est attendu, lu {}", nom, forme_ecrite(autre))),
+            .ok_or_else(|| socle::echec::a_la_cle("Un nombre entier est attendu.", nom, n)),
+        Some(autre) => Err(socle::echec::a_la_cle("Un nombre entier est attendu.", nom, forme_ecrite(autre))),
     }
 }
 
@@ -186,11 +186,10 @@ pub(crate) fn ligne_en_pourcentage(l: &Value) -> Resultat<Value> {
     let (base, pct) = match (o.get("base"), o.get("taux_majoration")) {
         (Some(b), Some(p)) => (dec_avec_echelle(b)?, dec_avec_echelle(p)?),
         _ => {
-            return Err(format!(
-                "Ligne << {} >> : une ligne en pourcentage dit sa `base` (en euros) \
-                 ET son `taux_majoration` (en %). Recu : {}",
-                rub,
-                forme_ecrite(l)
+            return Err(socle::echec::a_la_cle(
+                &format!("La ligne « {} » est en pourcentage : elle dit sa base (en euros) et son pourcentage.", rub),
+                "taux_majoration",
+                forme_ecrite(l),
             ))
         }
     };
@@ -206,14 +205,15 @@ pub(crate) fn ligne_en_pourcentage(l: &Value) -> Resultat<Value> {
         if let Some(x) = o.get(champ) {
             let vide = x.is_null() || x.as_str() == Some("");
             if !vide && dec_avec_echelle(x)? != attendu {
-                return Err(format!(
-                    "Ligne << {} >> : `{}` ({}) contredit `base` x `taux_majoration` \
-                     ({} x {} %). N'ecrire que base et pourcentage.",
-                    rub,
+                return Err(socle::echec::cle(
+                    format!(
+                        "La ligne « {} » : sa quantité ou son taux ({}) contredit sa base et son pourcentage ({} x {} %). N'écrire que la base et le pourcentage.",
+                        rub,
+                        en_texte(x),
+                        base,
+                        pct
+                    ),
                     champ,
-                    en_texte(x),
-                    base,
-                    pct
                 ));
             }
         }
@@ -261,7 +261,7 @@ fn liste<'a>(v: Option<&'a Value>, nom: &str) -> Resultat<&'a [Value]> {
     match v {
         None | Some(Value::Null) => Ok(&[]),
         Some(Value::Array(a)) => Ok(a),
-        Some(autre) => Err(format!("`{}` : une liste est attendue, lu {}", nom, forme_ecrite(autre))),
+        Some(autre) => Err(socle::echec::a_la_cle("Une liste est attendue.", nom, forme_ecrite(autre))),
     }
 }
 
@@ -293,11 +293,7 @@ impl Engagement {
         lieux.retain(|j, _| presents.contains(j));
 
         let Some(Value::Array(lignes_brutes)) = get("lignes").filter(|x| !x.is_null()) else {
-            return Err("Un engagement se saisit en lignes de paie ([{rubrique, \
-                        quantite, taux, dates}]). L'ancienne ecriture -- `dates`, \
-                        `cachets`, `heures`, `taux_horaire` sur l'engagement -- \
-                        n'est plus lue, et celui-ci n'a pas de `lignes`."
-                .to_string());
+            return Err(socle::echec::cle("Un engagement se saisit en lignes de paie, et celui-ci n'en porte pas.", "lignes"));
         };
         let lignes: Vec<Value> = lignes_brutes.iter().map(ligne_en_pourcentage).collect::<Resultat<_>>()?;
 
@@ -307,11 +303,10 @@ impl Engagement {
         let debut_saisi = truthy(get("debut"));
         let fin_saisie = truthy(get("fin"));
         if lignes.is_empty() && !(debut_saisi && fin_saisie) {
-            return Err("Un engagement sans aucune ligne de paie est un mois du \
-                        contrat sans cachet : il doit dire `debut` et `fin` du \
-                        contrat (et `numero` s'il est connu), rien ne permet de les \
-                        deduire."
-                .to_string());
+            return Err(socle::echec::cle(
+                "Un engagement sans aucune ligne de paie est un mois du contrat sans cachet : il dit le début et la fin du contrat, rien ne permet de les déduire.",
+                "debut",
+            ));
         }
         if lignes.is_empty() && mois_saisi.is_empty() {
             return Err("Un engagement sans aucune ligne de paie doit dire son mois.".to_string());
@@ -493,10 +488,8 @@ impl Engagement {
         };
         if let Some(j) = hors.first() {
             return Err(format!(
-                "Le {} n'est pas dans le mois {}. Les jours joues d'un \
-                 engagement sont ceux du mois de paie ; un contrat qui se \
-                 poursuit le mois suivant garde `fin` au-dela du mois et \
-                 porte ses jours suivants dans le fichier du mois suivant.",
+                "Le {} n'est pas dans le mois {}. Les jours joués d'un \
+                 engagement sont ceux du mois de paie ; un contrat qui se poursuit le mois suivant y porte ses jours suivants.",
                 j.jj_mm_aaaa(),
                 mois
             ));
@@ -968,7 +961,7 @@ pub(crate) fn engagements(
     let defaut_taux = data.get("taux_cachet").cloned().unwrap_or(Value::Null);
     let (mut out, mut dits) = (Vec::new(), Vec::new());
     let tous = data.get("engagements").ok_or_else(|| socle::fichiers::absent("engagements"))?;
-    let tous = tous.as_array().ok_or("`engagements` : une liste est attendue")?;
+    let tous = tous.as_array().ok_or_else(|| socle::echec::cle("Une liste est attendue.", "engagements"))?;
     for e in tous {
         let qui = salarie_nomme(ctx, e.get("salarie"));
         let nat = nature_de(ctx, e)?;
@@ -1039,8 +1032,7 @@ pub(crate) fn engagements(
         }
         if ["dates", "cachets", "heures", "taux_horaire"].iter().any(|k| e.get(*k).is_some()) {
             return Err(format!(
-                "{} : l'engagement porte `dates`, `cachets`, `heures` ou `taux_horaire`, que le logiciel ne lit pas : \
-                 tout se porte sur les lignes de paie ([{{rubrique, quantite, taux, dates}}]).",
+                "{} : l'engagement porte des jours, des cachets, des heures ou un taux horaire à part, que le logiciel ne lit pas : tout se porte sur les lignes de paie.",
                 qui
             ));
         }
@@ -1679,7 +1671,7 @@ pub struct Saisie {
 
 /// La saisie de `mois` telle que l'ecran la montre (`stock::vue_du_mois`) ; refus quand aucun engagement ne le touche.
 pub fn vue_requise(racine: &Path, mois: &str) -> Resultat<Value> {
-    stock::vue_du_mois(racine, mois)?.ok_or_else(|| format!("{} : aucun engagement ne touche ce mois ({}/).", mois, stock::DOSSIER))
+    stock::vue_du_mois(racine, mois)?.ok_or_else(|| socle::echec::cle(format!("Aucun engagement ne touche le mois {}.", mois), stock::DOSSIER))
 }
 
 /// UN NUMERO DE CONTRAT EST CELUI D'UN SEUL SALARIE (regle 4) : il se lit, il ne se partage pas. Un salarie

@@ -127,7 +127,7 @@ pub fn reduction_generale(
 pub fn reduction_au_coefficient(bar: &Value, coefficient: Decimal, brut: Decimal, heures: Decimal) -> Resultat<ReductionGenerale> {
     let rg = match bar.get("reduction_generale") {
         Some(rg) if vrai(rg) => rg,
-        _ => return Err("reduction_au_coefficient : le bareme n'a pas de section `reduction_generale`".into()),
+        _ => return Err(socle::echec::a_la_cle("Le barème de l'année ne porte pas la réduction générale des cotisations : le signaler au développeur.", "reduction_generale", "")),
     };
     let smic_ref = eur(mul(dec(requis(rg, "smic_horaire_reference")?)?, heures));
     let montant = eur(mul(brut, coefficient));

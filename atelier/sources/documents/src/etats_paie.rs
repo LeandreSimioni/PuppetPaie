@@ -585,7 +585,7 @@ fn ecrire_livre(ctx: &Contexte, livre: &LivreDePaie, mois: &Option<String>, anne
         let a = annee.clone().unwrap_or_default();
         (dossier_exports(ctx, Some(&a)), a)
     };
-    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     let nom = format!("livre-de-paie-{}-{}{}.{}", periode, livre.regroupement, if livre.coordonnees { "-coordonnees" } else { "" }, livre.format);
     let chemin = dossier.join(nom);
     let octets = match livre.format.as_str() {
@@ -593,7 +593,7 @@ fn ecrire_livre(ctx: &Contexte, livre: &LivreDePaie, mois: &Option<String>, anne
         "xlsx" => xlsx_livre(livre)?,
         _ => pdf_livre(ctx, livre)?,
     };
-    std::fs::write(&chemin, octets).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    std::fs::write(&chemin, octets).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     Ok(chemin)
 }
 

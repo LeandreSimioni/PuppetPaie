@@ -15,7 +15,7 @@
 //!   (`tout_salarie`), que la convention la donne a tout salarie qui a droit au maintien.
 
 use crate::natures::Nature;
-use socle::fichiers::{repr, vrai};
+use socle::fichiers::vrai;
 use socle::num::{dec_avec_echelle, div, Decimal, Resultat};
 use serde_json::Value;
 
@@ -152,14 +152,14 @@ fn get<'a>(v: &'a Value, k: &str) -> &'a Value {
 
 fn nombre(v: &Value, k: &str, ou: &str) -> Resultat<Decimal> {
     match v.get(k) {
-        Some(x) if !x.is_null() => dec_avec_echelle(x).map_err(|e| format!("{} : `{}` : {}", ou, k, e)),
-        _ => Err(format!("{} : `{}` manque.", ou, k)),
+        Some(x) if !x.is_null() => dec_avec_echelle(x).map_err(|_| socle::echec::livree(ou, k)),
+        _ => Err(socle::echec::livree(ou, k)),
     }
 }
 
 fn entier(v: &Value, k: &str, ou: &str) -> Resultat<i64> {
     use rust_decimal::prelude::ToPrimitive;
-    nombre(v, k, ou)?.trunc().to_i64().ok_or_else(|| format!("{} : `{}` n'est pas un entier.", ou, k))
+    nombre(v, k, ou)?.trunc().to_i64().ok_or_else(|| socle::echec::livree(ou, k))
 }
 
 fn tranche(t: &Value, ou: &str) -> Resultat<Tranche> {
@@ -266,7 +266,7 @@ pub fn conventionnel(idcc: &Value, anciennete_mois: Decimal, origine: Origine) -
     let base = match get(s, "base").as_str() {
         Some("net") => Base::Net,
         Some("brut") => Base::Brut,
-        autre => return Err(format!("{} : `base` vaut {} ; « brut » ou « net » est attendu.", ou, repr(&format!("{:?}", autre)))),
+        _ => return Err(socle::echec::livree(&ou, "base")),
     };
     Ok(Some(Droit::Du(Regime {
         texte: format!("{} (art. {})", nom, article),

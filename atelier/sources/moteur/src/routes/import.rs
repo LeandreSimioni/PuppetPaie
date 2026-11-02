@@ -187,7 +187,7 @@ pub(crate) fn dossier_import(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
             && p.parent().and_then(|x| x.canonicalize().ok()).is_some_and(|x| ctx.racine.canonicalize().is_ok_and(|r| r == x))
     };
     if la_boite(&d) && !d.exists() {
-        std::fs::create_dir_all(&d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
+        std::fs::create_dir_all(&d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))?;
     }
     Ok(d)
 }

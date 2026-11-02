@@ -743,13 +743,13 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
 
     // Ce que l'envoi garde : les deux messages tels qu'ils sont partis.
     let garde = std::path::Path::new(&r.dossier).join("envoyes");
-    std::fs::create_dir_all(&garde).map_err(|e| erreur("OSError", format!("{} : {}", garde.display(), e)))?;
+    std::fs::create_dir_all(&garde).map_err(|e| erreur("OSError", socle::echec::du_disque(&garde, &e)))?;
     let iso = socle::paris::maintenant();
     let horodate = format!("{}_{}{}{}", &iso[..10], &iso[11..13], &iso[14..16], &iso[17..19]);
     let mut emls: Vec<String> = Vec::new();
     for (m, brut) in messages.iter().zip(&copies) {
         let p = garde.join(format!("{}_CASC-SVP_{}.eml", horodate, m.cle));
-        std::fs::write(&p, brut).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        std::fs::write(&p, brut).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         emls.push(nom_du(&p));
     }
     let date_de = |a: &str| dates.iter().find(|(k, _)| k == a).map(|(_, d)| d.clone()).unwrap_or_default();

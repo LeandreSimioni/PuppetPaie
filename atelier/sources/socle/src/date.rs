@@ -298,7 +298,7 @@ pub fn d(v: &Value) -> Resultat<Jour> {
     match v {
         Value::Object(o) => match o.get("jour") {
             Some(j) => d(j),
-            None => Err(format!("date detaillee sans `jour` : {}", forme_ecrite(v))),
+            None => Err(crate::echec::a_la_cle("Une date ne dit pas son jour.", "jour", forme_ecrite(v))),
         },
         Value::String(s) => Jour::lire(s),
         autre => Jour::lire(&en_texte(autre)),

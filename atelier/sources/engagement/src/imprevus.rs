@@ -127,12 +127,12 @@ suspension du contrat, bloc S21.G00.65).",
     if genre == ARRET {
         for k in ["ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree"] {
             if vrai(&o[k]) && dec_avec_echelle(&o[k]).map_or(true, |x| x <= Decimal::ZERO) {
-                return Err(format!("Arret : `{}` est un montant par jour, positif ({}).", k, en_texte(&o[k])));
+                return Err(socle::echec::a_la_cle("Un montant par jour de l'arrêt doit être positif.", k, en_texte(&o[k])));
             }
         }
     }
     if genre == ARRET && !o["prolongations"].is_array() {
-        return Err("Arret : `prolongations` n'est pas une liste.".into());
+        return Err(socle::echec::charge("prolongations", "une liste"));
     }
     Ok(Value::Object(o))
 }
@@ -158,14 +158,14 @@ fn chemin(racine: &Path, mois: &str) -> PathBuf {
 /// Les imprevus d'un fichier deja lu.
 fn du_contenu(contenu: &Value, chemin: &Path) -> Resultat<Vec<Value>> {
     let Value::Object(m) = contenu else {
-        return Err(format!("{} : un objet est attendu, pas {}", chemin.display(), socle::valeur::nom_type(contenu)));
+        return Err(socle::echec::abime(chemin, format!("un objet est attendu, pas {}", socle::valeur::nom_type(contenu))));
     };
     let liste = match m.get("imprevus") {
         None => return Ok(Vec::new()),
         Some(Value::Array(l)) => l,
-        Some(autre) => return Err(format!("{} : `imprevus` n'est pas une liste ({})", chemin.display(), socle::valeur::nom_type(autre))),
+        Some(autre) => return Err(socle::echec::abime(chemin, format!("imprevus : une liste est attendue, pas {}", socle::valeur::nom_type(autre)))),
     };
-    liste.iter().map(|v| complet(v).map_err(|e| format!("{} : {}", chemin.display(), e))).collect()
+    liste.iter().map(|v| complet(v).map_err(|e| socle::echec::du_disque(chemin, &e))).collect()
 }
 
 /// Tous les imprevus de la compagnie, dans l'ordre des mois du magasin puis de leur saisie, verifies et complets. La
@@ -308,11 +308,13 @@ pub fn motif_de_suspension(code: &str) -> Resultat<Option<Value>> {
 /// Ce que le motif d'une suspension interdit de declarer : un motif inconnu, ou le 200 (conges payes).
 pub fn verifier_motif_de_suspension(code: &str, qui: &str) -> Resultat<Value> {
     let Some(m) = motif_de_suspension(code)? else {
-        return Err(format!(
-            "{} : motif de suspension {}. Les motifs connus sont dans donnees/permanents-base.json (section \
-`suspensions`) ; un motif que le moteur ne connait pas ne se declare pas.",
-            qui,
-            if code.is_empty() { "absent".to_string() } else { format!("inconnu ({})", repr(code)) }
+        return Err(socle::echec::cle(
+            format!(
+                "{} : motif de suspension {}, que le logiciel ne connaît pas : le choisir dans la liste des motifs.",
+                qui,
+                if code.is_empty() { "absent".to_string() } else { format!("inconnu ({})", repr(code)) }
+            ),
+            "motif",
         ));
     };
     if vrai(g(&m, "_ne_pas_declarer")) {
@@ -644,15 +646,15 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) 
             // (`arrets-base.json`, `rubrique`).
             let rubrique = s(&motif, "rubrique");
             if rubrique.is_empty() {
-                return Err(format!(
+                return Err(socle::echec::cle(format!(
                     "{} : l'arret du {} au {} a pour motif {} ({}), que le logiciel ne paie pas : aucune ligne de bulletin ne \
-nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
+nomme cette absence. Rien n'est calcule.",
                     qui,
                     premier.jj_mm_aaaa(),
                     dernier.jj_mm_aaaa(),
                     code,
                     en_texte(g(&motif, "libelle"))
-                ));
+                ), "arrets-base.json"));
             }
             lignes.extend(retenue(&rubrique).map(|mut l| {
                 l["arret"] = json!(true);

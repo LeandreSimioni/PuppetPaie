@@ -1272,7 +1272,7 @@ fn plain(m: String) -> Echec {
 
 /// `charge["cle"]` : un texte requis.
 fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
-    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
+    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", socle::echec::charge(cle, "un texte")))
 }
 
 /// Le nombre d'un morceau de nom de mois ; refus s'il ne se lit pas.

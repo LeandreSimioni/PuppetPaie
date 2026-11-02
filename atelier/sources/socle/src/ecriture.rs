@@ -194,7 +194,7 @@ fn pair_a_egalite(x: f64, chiffres: String, exp: i32) -> String {
 /// LF, le JSON suivi d'un saut de ligne.
 pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()> {
     if let Some(dossier) = chemin.parent() {
-        std::fs::create_dir_all(dossier).map_err(|e| format!("{} : {}", dossier.display(), e))?;
+        std::fs::create_dir_all(dossier).map_err(|e| crate::echec::du_disque(&dossier, &e))?;
     }
     let mut texte = json_indente(donnees, indent);
     texte.push('\n');
@@ -206,8 +206,8 @@ pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()
     // processus, et deux fils qui ecrivent le meme fichier ne s'ecrivent jamais l'un sur l'autre. En `.tmp` :
     // ni l'empreinte de l'etat d'un mois ni la sauvegarde ne le voient le temps qu'il existe.
     let provisoire = provisoire(chemin);
-    std::fs::write(&provisoire, texte).map_err(|e| format!("{} : {}", provisoire.display(), e))?;
-    std::fs::rename(&provisoire, chemin).map_err(|e| format!("{} : {}", chemin.display(), e))?;
+    std::fs::write(&provisoire, texte).map_err(|e| crate::echec::du_disque(&provisoire, &e))?;
+    std::fs::rename(&provisoire, chemin).map_err(|e| crate::echec::du_disque(&chemin, &e))?;
     crate::fichiers::ecrit_pendant_le_geste(chemin, donnees);
     Ok(())
 }
@@ -225,7 +225,7 @@ pub fn provisoire(chemin: &Path) -> std::path::PathBuf {
 /// Efface `chemin` s'il existe : le geste qui l'avait lu ne le voit plus (`fichiers::ecrit_pendant_le_geste`).
 pub fn effacer(chemin: &Path) -> Resultat<()> {
     match std::fs::remove_file(chemin) {
-        Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(format!("{} : {}", chemin.display(), e)),
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(crate::echec::du_disque(&chemin, &e)),
         _ => {}
     }
     crate::fichiers::efface_pendant_le_geste(chemin);

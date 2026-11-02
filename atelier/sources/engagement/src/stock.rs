@@ -237,7 +237,7 @@ pub(crate) fn lire_dans(racine: &Path, d: Dossier, mois: &str) -> Resultat<Optio
     }
     let p = chemin_dans(racine, d, mois);
     match socle::fichiers::json_partage(&p)? {
-        Some(v) if !v.is_object() => Err(format!("{} : un objet est attendu, lu {}", p.display(), socle::valeur::nom_type(&v))),
+        Some(v) if !v.is_object() => Err(socle::echec::abime(&p, format!("un objet est attendu, lu {}", socle::valeur::nom_type(&v)))),
         v => Ok(v),
     }
 }
@@ -656,11 +656,9 @@ fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
     for (f, m) in &fichiers {
         for (rang, e) in m.get("engagements").and_then(Value::as_array).into_iter().flatten().enumerate() {
             if porte_ses_paies(e) {
-                return Err(format!(
-                    "Les engagements de cette compagnie portent encore leurs paies ({}/{}.json), une forme que ce logiciel ne \
-                     lit plus : elle se refait, en l'ajoutant de nouveau et en reprenant ses mois (ses papiers s'importent). \
-                     Rien n'est lu.",
-                    DOSSIER, f
+                return Err(socle::echec::avec(
+                    "Les engagements de cette compagnie portent encore leurs paies, une forme que ce logiciel ne lit plus : elle se refait, en l'ajoutant de nouveau et en reprenant ses mois (ses papiers s'importent). Rien n'est lu.",
+                    serde_json::json!({"chemin": format!("{}/{}.json", DOSSIER, f)}),
                 ));
             }
             if e.is_object() {
@@ -736,7 +734,7 @@ pub fn non_actifs_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
 pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     let mut contenu = lire_fichier(racine, &o.fichier)?.ok_or_else(|| format!("{} : le fichier de l'engagement a disparu", o.fichier))?;
     let Some(Value::Array(es)) = contenu.get_mut("engagements") else {
-        return Err(format!("{} : `engagements` manque", o.fichier));
+        return Err(socle::echec::a_la_cle("Un mois d'engagements ne se relit pas : il est abîmé.", "engagements", &o.fichier));
     };
     if o.rang >= es.len() || es[o.rang] != *o.brut {
         return Err(format!("{} : l'engagement {} a change sur le disque ; rien n'est efface", o.fichier, o.rang + 1));
@@ -932,7 +930,7 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
             };
             contenu.insert("mois".into(), Value::String(fichier.clone()));
             let es = contenu.entry("engagements").or_insert_with(|| Value::Array(Vec::new()));
-            let Value::Array(es) = es else { return Err(format!("{} : `engagements` n'est pas une liste", mois)) };
+            let Value::Array(es) = es else { return Err(socle::echec::a_la_cle("Un mois d'engagements ne se relit pas : il est abîmé.", "engagements", mois)) };
             let rang = es.len();
             es.push(Value::Object(saisie));
             poser(racine, &fichier, &Value::Object(contenu))?;
@@ -1002,8 +1000,7 @@ pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Map<Str
             if mois == o.fichier {
                 return Err(format!(
                     "{} : {} est le premier mois de cet engagement, ce qu'il dit vaut depuis le début du contrat ; un jour \
-                     n'y date rien. Pour que le contrat commence un autre jour, changez son début (« Début du contrat », \
-                     `debut` de la saisie). Rien n'est écrit.",
+                     n'y date rien. Pour que le contrat commence un autre jour, changez son début (« Début du contrat »). Rien n'est écrit.",
                     qui,
                     crate::libelle_mois(mois)
                 ));
@@ -1234,7 +1231,7 @@ fn poser_la_fin(o: &mut Objet, dernier: &str, de_la_fin: Map<String, Value>) -> 
 fn dater(o: &mut Objet, terme: &str, mois: &str, depuis: Jour, valeur: Option<Value>) -> Resultat<()> {
     let jour_de = |e: &Value| e.get("depuis").and_then(|j| Jour::lire(&en_texte(j)).ok());
     let dates = o.brut_mut().entry(DATES.to_string()).or_insert_with(|| Value::Object(Map::new()));
-    let Value::Object(dates) = dates else { return Err(format!("`{}` n'est pas un objet", DATES)) };
+    let Value::Object(dates) = dates else { return Err(socle::echec::cle("Un engagement ne se relit pas : il est abîmé.", DATES)) };
     let mut liste: Vec<Value> = dates.get(terme).and_then(Value::as_array).cloned().unwrap_or_default();
     liste.retain(|e| jour_de(e).is_none_or(|j| j.mois_iso() != mois));
     dates.insert(terme.to_string(), Value::Array(liste.clone()));
@@ -1243,7 +1240,7 @@ fn dater(o: &mut Objet, terme: &str, mois: &str, depuis: Jour, valeur: Option<Va
         liste.push(serde_json::json!({"depuis": depuis.iso(), "valeur": valeur.unwrap_or(Value::Null)}));
         liste.sort_by_key(|e| jour_de(e));
     }
-    let Some(Value::Object(dates)) = o.brut_mut().get_mut(DATES) else { return Err(format!("`{}` n'est pas un objet", DATES)) };
+    let Some(Value::Object(dates)) = o.brut_mut().get_mut(DATES) else { return Err(socle::echec::cle("Un engagement ne se relit pas : il est abîmé.", DATES)) };
     if liste.is_empty() {
         dates.remove(terme);
     } else {
@@ -1274,7 +1271,7 @@ pub fn objet_du_mois(racine: &Path, mois: &str, rang: usize) -> Resultat<Option<
 pub fn reecrire(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     let mut contenu = lire_fichier(racine, &o.fichier)?.ok_or_else(|| format!("{} : le fichier de l'engagement a disparu", o.fichier))?;
     let Some(Value::Array(es)) = contenu.get_mut("engagements") else {
-        return Err(format!("{} : `engagements` manque", o.fichier));
+        return Err(socle::echec::a_la_cle("Un mois d'engagements ne se relit pas : il est abîmé.", "engagements", &o.fichier));
     };
     let place = es.get_mut(o.rang).ok_or_else(|| format!("{} : l'engagement {} a disparu", o.fichier, o.rang + 1))?;
     *place = (*o.brut).clone();

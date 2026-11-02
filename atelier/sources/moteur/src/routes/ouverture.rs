@@ -255,9 +255,9 @@ fn lire_objet(p: &Path) -> R<Value> {
             std::io::ErrorKind::PermissionDenied => "PermissionError",
             _ => "OSError",
         };
-        erreur(classe, format!("{} : {}", p.display(), e))
+        erreur(classe, socle::echec::du_disque(&p, &e))
     })?;
-    let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))?;
+    let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", socle::echec::du_disque(&p, &e)))?;
     serde_json::from_str(&texte).map_err(|e| erreur("JSONDecodeError", e.to_string()))
 }
 
@@ -484,7 +484,7 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
                 e.insert("dossier".into(), json!(dossier.display().to_string()));
             }
             Some(f) => {
-                let st = std::fs::metadata(&f).map_err(|x| erreur("OSError", format!("{} : {}", f.display(), x)))?;
+                let st = std::fs::metadata(&f).map_err(|x| erreur("OSError", socle::echec::du_disque(&f, &x)))?;
                 e.insert("pose".into(), json!(true));
                 e.insert("automatique".into(), json!(auto));
                 e.insert("octets".into(), json!(st.len()));
@@ -1251,7 +1251,7 @@ pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
     let o = super::objet(&d)?;
     let version = o.get("version").cloned().unwrap_or_else(|| json!(""));
     let Value::String(v) = &version else {
-        return Err(erreur("TypeError", format!("prete.json : 'version' : {}", socle::fichiers::attendu("un texte", nom_type(&version)))));
+        return Err(erreur("TypeError", socle::echec::avec("La mise à jour préparée est abîmée : elle se refait.", serde_json::json!({"fichier": "prete.json", "cle": "version", "detail": socle::fichiers::attendu("un texte", nom_type(&version))}))));
     };
     if !dossier.join(v).join("logiciel").join("donnees").is_dir() {
         return Ok(None);
@@ -1291,7 +1291,7 @@ fn en_os(m: String) -> Echec {
 
 /// Crée le dossier et ses parents ; rien s'il existe.
 fn creer_dossier(d: &std::path::Path) -> R<()> {
-    std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
+    std::fs::create_dir_all(d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))
 }
 
 

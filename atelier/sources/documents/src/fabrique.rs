@@ -14,13 +14,13 @@ use socle::num::Resultat;
 pub fn ecrire(description: &Value, chemin: &Path) -> Resultat<PathBuf> {
     if let Some(parent) = chemin.parent() {
         std::fs::create_dir_all(parent)
-            .map_err(|e| format!("ecriture impossible de {} : {}", chemin.display(), e))?;
+            .map_err(|e| socle::echec::du_disque(chemin, &e))?;
     }
     let texte = serde_json::to_string(description).map_err(|e| e.to_string())?;
     let octets = fabrique_pdf::fabriquer(&texte).map_err(|r| r.0.replace('\n', " "))?;
     if let Err(e) = std::fs::write(chemin, &octets) {
         let _ = std::fs::remove_file(chemin);
-        return Err(format!("ecriture impossible de {} : {}", chemin.display(), e));
+        return Err(socle::echec::du_disque(chemin, &e));
     }
     Ok(chemin.to_path_buf())
 }
@@ -86,7 +86,7 @@ pub fn fusion_octets(morceaux: &[Vec<u8>], tmp: &Path) -> Result<Vec<u8>, Refus>
     let mut pieces = Vec::new();
     for (i, octets) in morceaux.iter().enumerate() {
         let f = dossier.0.join(format!("piece{}.pdf", i));
-        std::fs::write(&f, octets).map_err(|e| avec("OSError", format!("{} : {}", f.display(), e)))?;
+        std::fs::write(&f, octets).map_err(|e| avec("OSError", socle::echec::du_disque(&f, &e)))?;
         pieces.push((f, None));
     }
     fusion_pieces(&pieces)
@@ -99,7 +99,7 @@ impl Temporaire {
     pub fn nouveau_dans(parent: &Path, prefixe: &str) -> Result<Temporaire, Refus> {
         static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let p = parent.join(format!("{}-{}-{}", prefixe, std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::SeqCst)));
-        std::fs::create_dir_all(&p).map_err(|e| avec("OSError", format!("{} : {}", p.display(), e)))?;
+        std::fs::create_dir_all(&p).map_err(|e| avec("OSError", socle::echec::du_disque(&p, &e)))?;
         Ok(Temporaire(p))
     }
 }

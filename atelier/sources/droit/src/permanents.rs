@@ -389,7 +389,7 @@ pub fn delai_de_prevenance(debut: &Jour, notification: &Jour) -> Resultat<DelaiD
             (None, Some(m)) => m.as_i64().is_some_and(|m| presence_mois <= Decimal::from(m)),
             (None, None) => true,
         })
-        .ok_or_else(|| "permanents-base.json, preavis.delai_de_prevenance : aucune tranche pour cette presence.".to_string())?;
+        .ok_or_else(|| socle::echec::livree("permanents-base.json", "preavis.delai_de_prevenance"))?;
     let expiration = match (tranche.get("delai_jours"), tranche.get("delai_mois")) {
         (Some(j), _) => notification.plus_jours(entier(j)?)?,
         (None, Some(m)) => plus_mois(notification, entier(m)? as u32)?,

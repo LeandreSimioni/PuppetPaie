@@ -593,7 +593,7 @@ pub fn description_numerotee(paires: &[(&PaieCs, i64)], ent: &Value) -> R<Value>
     if !ent.get("congesspectacles_adherent").map_or(false, vrai) {
         return Err(Refus {
             classe: Some("ValueError"),
-            message: "`congesspectacles_adherent` manquant dans config/entreprise.json : c'est le numero qui va dans la case COMPTE du certificat.".to_string(),
+            message: socle::echec::cle("La fiche entreprise ne dit pas son numéro d'adhérent Congés Spectacles : le saisir dans Configuration › Entreprise.", "congesspectacles_adherent"),
         });
     }
     let mut tous: Vec<(Certificat, &PaieCs)> = Vec::new();

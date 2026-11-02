@@ -82,7 +82,7 @@ fn defaut(quoi: &str) -> Resultat<String> {
             return Ok(en_texte(&c["code"]));
         }
     }
-    Err(format!("fctu-base.json : aucun defaut pour {}", quoi))
+    Err(socle::echec::livree("fctu-base.json", quoi))
 }
 
 /// La fin d'un contrat, telle qu'elle se declare (dates AAAA-MM-JJ). Le dernier jour travaille et paye
@@ -141,7 +141,7 @@ pub fn preavis_non_effectue(type_preavis: &str) -> Resultat<bool> {
     match codes("types_preavis")?.iter().find(|c| en_texte(&c["code"]) == type_preavis) {
         Some(c) => Ok(vrai(g(c, "non_effectue"))),
         None => Err(format!(
-            "Type de preavis {} inconnu de la norme (S21.G00.63.001). Les types sont dans fctu-base.json.",
+            "Type de préavis {} inconnu de la norme (S21.G00.63.001) : le choisir dans la liste.",
             repr(type_preavis)
         )),
     }
@@ -160,7 +160,7 @@ pub fn notification_exigee(motif: &str) -> Resultat<bool> {
         .get("notification_rupture")
         .and_then(|x| x.get("motifs"))
         .and_then(Value::as_array)
-        .ok_or_else(|| "fctu-base.json : la liste `notification_rupture.motifs` manque.".to_string())?;
+        .ok_or_else(|| socle::echec::livree("fctu-base.json", "notification_rupture.motifs"))?;
     Ok(motifs.iter().any(|m| en_texte(m) == motif))
 }
 
@@ -235,7 +235,7 @@ pub fn dernier_jour_paye(e: &Engagement) -> Resultat<Jour> {
                 if preavis_non_effectue(t)? {
                     return Err(format!(
                         "Contrat {} : preavis « {} », et la saisie ne dit pas le dernier jour travaille et paye au salaire \
-habituel (`dernier_jour_paye`, S21.G00.62.006). Sur un preavis non effectue, ce n'est pas la fin du contrat ({}) : il \
+habituel (« Dernier jour payé », S21.G00.62.006). Sur un preavis non effectue, ce n'est pas la fin du contrat ({}) : il \
 precede le debut du preavis (CCH-12, cahier technique DSN p. 275). Il se saisit ; le moteur ne le devine pas.",
                         numero,
                         libelle_preavis(t)?,

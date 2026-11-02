@@ -42,41 +42,36 @@ pub const TERMES_D_AVANT: [&str; 2] = ["salaire_mensuel", "quotite_contrat"];
 /// `avant` incomplet, sans date, ou qui ne decoupe rien refuse. `qui` nomme le contrat dans un refus.
 pub fn jour_de_l_avenant(avant: Option<&Value>, date_modification: Option<&str>, debut: Jour, fin: Jour, qui: &str) -> Resultat<Option<Jour>> {
     let Some(avant) = avant else { return Ok(None) };
-    let objet = avant.as_object().ok_or_else(|| format!("{} : `avant` (les termes du contrat avant l'avenant) : un objet est attendu, lu {}.", qui, avant))?;
+    let objet = avant.as_object().ok_or_else(|| socle::echec::cle(format!("{} : les termes du contrat d'avant l'avenant ne se lisent pas.", qui), "avant"))?;
     if let Some(k) = objet.keys().find(|k| !TERMES_D_AVANT.contains(&k.as_str())) {
-        return Err(format!(
-            "{} : `avant` dit `{}`, que le decoupage de la paie ne sait pas porter. Il dit les termes du contrat avant un \
-avenant en cours de mois : {} ; un autre changement en cours de mois (nature, motif, duree de reference...) n'a pas de \
-periode elementaire dans le logiciel. Refus.",
-            qui,
-            k,
-            TERMES_D_AVANT.join(", ")
+        return Err(socle::echec::cle(
+            format!(
+                "{} : l'avenant change en cours de mois ce que la paie ne sait pas couper ; seuls le salaire et la durée du travail changent en cours de mois.",
+                qui
+            ),
+            &format!("avant.{}", k),
         ));
     }
     if let Some(k) = TERMES_D_AVANT.iter().find(|k| objet.get(**k).map_or(true, Value::is_null)) {
-        return Err(format!(
-            "{} : `avant` ne dit pas `{}`. La periode d'avant l'avenant se paie sur les termes du contrat d'alors, le \
-salaire mensuel ET la duree du travail (S21.G00.40.013) ; le logiciel ne les devine pas. Les dire tous les deux.",
-            qui, k
+        return Err(socle::echec::cle(
+            format!("{} : l'avenant ne dit pas tous les termes d'avant ; la période d'avant se paie sur le salaire et la durée du travail d'alors, les deux.", qui),
+            &format!("avant.{}", k),
         ));
     }
     let Some(texte) = date_modification else {
-        return Err(format!(
-            "{} : `avant` dit les termes du contrat avant un avenant, et `date_modification` (« Modifier l'engagement », « A partir de ») \
-ne dit pas quand il prend effet. Le dater.",
-            qui
-        ));
+        return Err(socle::echec::cle(format!("{} : l'avenant ne dit pas quand il prend effet : remplir « À partir de » dans « Modifier l'engagement ».", qui), "date_modification"));
     };
-    let j = Jour::lire(texte).map_err(|_| format!("{} : `date_modification` illisible : {}.", qui, texte))?;
+    let j = Jour::lire(texte).map_err(|_| socle::echec::a_la_cle(&format!("{} : la date de l'avenant ne se lit pas.", qui), "date_modification", texte))?;
     if j <= debut || j > fin {
-        return Err(format!(
-            "{} : `avant` dit les termes du contrat avant un avenant qui prend effet le {}, et la periode payee va du {} \
-au {} : il ne la coupe pas, rien n'est a decouper. Retirer `avant` (un avenant au premier jour de la periode se paie sur \
-les termes de la saisie, tout le mois).",
-            qui,
-            j.jj_mm_aaaa(),
-            debut.jj_mm_aaaa(),
-            fin.jj_mm_aaaa()
+        return Err(socle::echec::cle(
+            format!(
+                "{} : l'avenant prend effet le {}, hors de la période payée du {} au {} : il ne la coupe pas ; un avenant au premier jour de la période se paie sur les termes de la saisie, tout le mois.",
+                qui,
+                j.jj_mm_aaaa(),
+                debut.jj_mm_aaaa(),
+                fin.jj_mm_aaaa()
+            ),
+            "avant",
         ));
     }
     Ok(Some(j))
@@ -249,7 +244,7 @@ fn heures_en_mots(heures_par_jour: Decimal, jours: i64) -> String {
 /// sociale, lui, se proratise aux jours calendaires (CSS R. 242-2, `plafond::prorata_calendaire`) : ce n'est pas le
 /// salaire.
 pub fn part_du_mois(d: &Jour, f: &Jour, fin_mois: &Jour, regle: RegleDuMoisIncomplet, horaire: &Horaire) -> Resultat<PartDuMois> {
-    let premier = Jour::nouveau(fin_mois.an, fin_mois.mois, 1).ok_or("part_du_mois : premier jour du mois")?;
+    let premier = Jour::nouveau(fin_mois.an, fin_mois.mois, 1).ok_or_else(|| socle::echec::cle("Le moteur ne calcule pas ce mois : le signaler au développeur.", "part_du_mois"))?;
     let feries_non_payes: Vec<(Jour, String)> =
         horaire.feries_non_payes.iter().filter(|(j, _)| d <= j && j <= f && horaire.jours.travaille(j)).cloned().collect();
     let jours = horaire.jours.jours_entre(d, f)? - feries_non_payes.len() as i64;

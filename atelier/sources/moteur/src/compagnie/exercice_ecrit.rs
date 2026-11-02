@@ -36,7 +36,7 @@ fn refus(m: impl Into<String>) -> Echec {
 }
 
 fn en_os(e: &std::io::Error, p: &Path) -> Echec {
-    erreur("OSError", format!("{} : {}", p.display(), e))
+    erreur("OSError", socle::echec::du_disque(p, e))
 }
 
 /// Une erreur d'operation, que l'appelant rattrape : celles que le moteur nomme, et
@@ -403,7 +403,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
 fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
     let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => o,
-        autre => return Err(erreur("TypeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
+        autre => return Err(erreur("TypeError", socle::echec::avec("Le fichier des exercices de la compagnie est abîmé.", serde_json::json!({"fichier": "config/exercices.json", "detail": socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))})))),
     };
     let Some(clos) = tous.shift_remove(annee) else {
         return Err(refus(format!("L'exercice {} n'est pas clos.", annee)));

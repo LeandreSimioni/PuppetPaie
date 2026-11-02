@@ -226,8 +226,8 @@ fn nombre_f(x: f64) -> Value {
 
 /// Le fichier d'une saisie, lu en JSON ; un fichier illisible refuse en le nommant.
 pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
-    let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", chemin.display(), e)))?;
+    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
+    let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", socle::echec::du_disque(&chemin, &e)))?;
     serde_json::from_str(&texte).map_err(|e| erreur("JSONDecodeError", e.to_string()))
 }
 
@@ -1184,8 +1184,7 @@ fn emploi(charge: &Value) -> R<Value> {
         erreur(
             "ValueError",
             format!(
-                "Metier {} inconnu : ni dans le catalogue (emplois-base.json), ni \
-                 dans la nomenclature France Travail (nomenclature-emplois-ft.json).",
+                "Métier {} inconnu : ni dans le catalogue des métiers, ni dans la nomenclature France Travail.",
                 if code.is_string() { repr(t) } else { repr_valeur(code) }
             ),
         )
@@ -1327,7 +1326,7 @@ pub(crate) fn avant_d_ecrire(ctx: &Contexte, mois: &str) -> R<std::sync::MutexGu
 /// l'identite de l'engagement ecrit. L'appelant tient le verrou (`avant_d_ecrire`).
 pub(crate) fn ecrire_une_carte(ctx: &Contexte, mois: &str, charge: &Value) -> R<Value> {
     let Some(Value::Object(saisie)) = charge.get("saisie") else {
-        return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
+        return Err(erreur("TypeError", socle::echec::charge("saisie", "un objet")));
     };
     let id = charge.get("engagement").filter(|v| !v.is_null());
     // UN ENGAGEMENT NEUF S'ECRIT DANS SON PREMIER MOIS (`engagement::stock::mois_d_ecriture`) : ce mois-la passe les memes
@@ -1452,7 +1451,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(refus(format!("Un montant vise se dit en euros et il est positif (recu : {}).", vise)));
     }
     let (data, places, _) = mois_designe(ctx, charge)?;
-    let k = charge.get("carte").and_then(Value::as_u64).ok_or_else(|| erreur("TypeError", "`carte` : un entier est attendu"))? as usize;
+    let k = charge.get("carte").and_then(Value::as_u64).ok_or_else(|| erreur("TypeError", socle::echec::charge("carte", "un nombre entier")))? as usize;
     let i = *places.get(k).ok_or_else(|| refus(format!("La carte {} n'est pas dans `cartes`.", k + 1)))?;
     let v = engagement::viser::viser(ctx, &data, &[i], cible_visee, vise).map_err(|r| match r {
         engagement::viser::RefusVisee::Refus(m) => refus(m),
@@ -1507,7 +1506,7 @@ pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usiz
     let mut places = Vec::new();
     for c in charge.get("cartes").and_then(Value::as_array).into_iter().flatten() {
         let Some(saisie) = c.get("saisie").and_then(Value::as_object) else {
-            return Err(erreur("TypeError", "`cartes` : chaque carte porte `saisie`, un objet"));
+            return Err(erreur("TypeError", socle::echec::charge("cartes", "pour chaque carte, sa saisie")));
         };
         let mut saisie = engagement::stock::en_forme(saisie).map_err(Echec::from)?;
         let i = match c.get("engagement").filter(|p| !p.is_null()) {

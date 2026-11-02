@@ -373,7 +373,7 @@ pub fn json_partage(chemin: &Path) -> Resultat<Option<Arc<Value>>> {
     let v = match deja {
         Some(v) => v,
         None => {
-            let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| format!("{} : {}", chemin.display(), e))?);
+            let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| crate::echec::du_disque(&chemin, &e))?);
             ranger(cache, chemin.to_path_buf(), (Arc::new(octets), v.clone()));
             v
         }
@@ -443,8 +443,8 @@ impl Drop for Geste {
 /// Le JSON d'un fichier UTF-8, sans cache.
 pub fn lire_json(chemin: &Path) -> Resultat<Value> {
     let texte = lire_texte(chemin)
-        .map_err(|e| format!("{} : {}", chemin.display(), e))?;
-    serde_json::from_str(&texte).map_err(|e| format!("{} : {}", chemin.display(), e))
+        .map_err(|e| crate::echec::du_disque(&chemin, &e))?;
+    serde_json::from_str(&texte).map_err(|e| crate::echec::du_disque(&chemin, &e))
 }
 
 /// Une valeur est-elle vraie ? Faux : `null`, `false`, zero, un texte, une liste ou un objet vides.
@@ -526,7 +526,7 @@ pub fn repr_valeur(v: &Value) -> String {
 
 /// « champ 'prenom' absent ».
 pub fn absent(cle: &str) -> String {
-    format!("champ {} absent", repr(cle))
+    crate::echec::cle("Il manque une donnée attendue.", cle)
 }
 
 /// Une valeur JSON dite en francais, depuis son nom de type (`valeur::nom_type`).
@@ -650,7 +650,7 @@ pub fn lire_texte_echec(p: &Path) -> Result<String, crate::echec::Echec> {
         };
         erreur(classe, panne_fichier(&e, p))
     })?;
-    String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))
+    String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", crate::echec::du_disque(&p, &e)))
 }
 
 /// Un fichier JSON (`lire_texte_echec`, puis `JSONDecodeError` s'il ne se lit pas).

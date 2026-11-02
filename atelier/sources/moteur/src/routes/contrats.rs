@@ -783,7 +783,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             return Ok(v);
         }
         if numero_voulu.is_empty() {
-            return Err(erreur("KeyError", "Le numéro du contrat (`numero`, que signature-apercu rend) désigne le contrat parti dont l'avenant se fait. Rien n'est écrit."));
+            return Err(erreur("KeyError", socle::echec::cle("Le numéro du contrat désigne le contrat parti dont l'avenant se fait, et la demande ne le dit pas. Rien n'est écrit.", "numero")));
         }
         return Err(erreur(
             "ErreurOperation",

@@ -504,7 +504,7 @@ pub fn vers_json(r: &Regularisation) -> Value {
 /// L'ecriture de la regularisation : `exports/casc-svp/` -- les CSV, les deux courriels, la liste des gestes.
 pub fn ecrire(ctx: &Contexte, r: &mut Regularisation) -> R<()> {
     let dossier = ctx.racine.join("exports").join("casc-svp");
-    let io = |p: &Path, e: std::io::Error| erreur("OSError", format!("{} : {}", p.display(), e));
+    let io = |p: &Path, e: std::io::Error| erreur("OSError", socle::echec::du_disque(&p, &e));
     std::fs::create_dir_all(&dossier).map_err(|e| io(&dossier, e))?;
     let virgule = |d: &Decimal| d.to_string().replace('.', ",");
     let mut fichiers: Vec<std::path::PathBuf> = vec![];
@@ -704,7 +704,7 @@ fn liste_nominative_xlsx(ctx: &Contexte, r: &mut Regularisation, dossier: &Path,
         ));
     }
     let chemin = dossier.join("CASC-SVP_liste-nominative.xlsx");
-    wb.save(&chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    wb.save(&chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     fichiers.push(chemin);
     Ok(())
 }
@@ -731,7 +731,7 @@ pub fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montan
         "qui": qui,
     });
     let Value::Object(o) = &mut d else {
-        return Err(erreur("AttributeError", "config/casc-svp.json : un objet est attendu"));
+        return Err(erreur("AttributeError", socle::echec::avec("Le fichier de la CASC-SVP de la compagnie est abîmé.", serde_json::json!({"fichier": "config/casc-svp.json"}))));
     };
     match o.entry("regularisations").or_insert_with(|| json!([])) {
         Value::Array(a) => a.push(entree.clone()),

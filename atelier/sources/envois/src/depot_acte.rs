@@ -45,11 +45,6 @@ impl DepotFait {
     }
 }
 
-/// Le texte d'un refus qui porte une donnee pour la page (`{"message", <cle>}` dans le message) : sa phrase seule.
-pub fn phrase_de(e: &Echec) -> String {
-    serde_json::from_str::<Value>(&e.message).ok().and_then(|d| d.get("message").and_then(Value::as_str).map(str::to_string)).unwrap_or_else(|| e.message.clone())
-}
-
 /// Ce que `moteur` a verifie et prepare avant le depot.
 pub struct Depot<'a> {
     /// Le fichier depose, tel qu'il est sur le disque.
@@ -73,7 +68,7 @@ pub struct Depot<'a> {
 /// puis le reel) prennent `-2`, `-3`... avant `.txt`.
 pub fn archiver_reponse(racine: &Path, quoi: &str, mois: &str, reponse: &str) -> R<PathBuf> {
     let dossier = racine.join("retours").join("depots");
-    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     let etiquette: String = mois.replace('-', "").chars().filter(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')).collect();
     let etiquette = if etiquette.is_empty() { "sans-date".to_string() } else { etiquette };
     let iso = socle::paris::maintenant();
@@ -85,11 +80,11 @@ pub fn archiver_reponse(racine: &Path, quoi: &str, mois: &str, reponse: &str) ->
         match std::fs::OpenOptions::new().write(true).create_new(true).open(&p) {
             Ok(mut f) => {
                 use std::io::Write;
-                f.write_all(reponse.as_bytes()).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+                f.write_all(reponse.as_bytes()).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
                 return Ok(p);
             }
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => rang += 1,
-            Err(e) => return Err(erreur("OSError", format!("{} : {}", p.display(), e))),
+            Err(e) => return Err(erreur("OSError", socle::echec::du_disque(&p, &e))),
         }
     }
 }
@@ -134,7 +129,7 @@ fn noter(
 /// Le depot a echoue : la ligne refusee au journal, l'incident dans les suites, et le refus rendu.
 fn echec(ctx: &Contexte, quoi: &str, d: &Depot, destinataire: &str, detail: Value, e: Echec, suites: &mut Suites) -> Echec {
     let classe = e.classe.unwrap_or("Exception");
-    let phrase = phrase_de(&e);
+    let phrase = e.phrase();
     let _ = noter(ctx, quoi, d, false, destinataire, "", &phrase, None, &detail, None);
     suites.depot_refuse = Some(DepotRefuse { quoi: quoi.into(), reel: d.reel, classe: classe.into(), message: phrase, repetition: d.repetition.clone() });
     e

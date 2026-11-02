@@ -19,7 +19,7 @@ use socle::num::entier_lu;
 use engagement::calcul::Paie;
 
 fn os(chemin: &std::path::Path, e: std::io::Error) -> Echec {
-    erreur("OSError", format!("{} : {}", chemin.display(), e))
+    erreur("OSError", socle::echec::du_disque(&chemin, &e))
 }
 
 fn valeur(m: String) -> Echec {
@@ -154,7 +154,7 @@ impl Reserves {
         let p = ctx.racine.join("config").join("compteurs.json");
         let mut c = compteurs(&ctx.racine)?;
         let lu = socle::valeur::nom_type(&c);
-        let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", format!("config/compteurs.json : {}", socle::fichiers::attendu("un objet", lu))))?;
+        let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", socle::echec::abime(&ctx.racine.join("config").join("compteurs.json"), socle::fichiers::attendu("un objet", lu))))?;
         for (an, cle) in &self.ordre {
             let annee = racine.entry(an.clone()).or_insert_with(|| json!({}));
             let annee = annee.as_object_mut().ok_or_else(|| erreur("AttributeError", "l'annee des compteurs n'est pas un dictionnaire"))?;

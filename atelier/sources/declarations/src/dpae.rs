@@ -236,7 +236,7 @@ fn siret_de(ent: &Value) -> Resultat<String> {
 fn medecine_de(ent: &Value) -> Resultat<String> {
     let mt = strip(&chaine(ent.get("medecine_travail"))).to_string();
     if mt.is_empty() {
-        return Err("DPAE : la fiche entreprise ne dit pas le code du centre de medecine du travail (`medecine_travail`, C_MT_DCL, obligatoire). Il se lit sur l'adhesion au service de sante au travail.".to_string());
+        return Err(socle::echec::cle("La fiche entreprise ne dit pas le code du service de santé au travail, que la DPAE exige : le lire sur l'adhésion au service de santé au travail, et le saisir dans Configuration › Entreprise.", "medecine_travail"));
     }
     Ok(mt)
 }
@@ -316,7 +316,7 @@ pub struct Embauche {
 
 impl Embauche {
     pub fn lire(v: &Value) -> Resultat<Embauche> {
-        let salarie = v.get("salarie").filter(|s| s.is_object()).cloned().ok_or("demande illisible : une embauche sans `salarie`")?;
+        let salarie = v.get("salarie").filter(|s| s.is_object()).cloned().ok_or_else(|| socle::echec::charge("salarie", "un objet"))?;
         Ok(Embauche {
             salarie,
             debut: v.get("debut").cloned().unwrap_or(Value::Null),
@@ -376,10 +376,10 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         let brut = en_texte(&code_urssaf);
         let v = strip(&brut);
         if v.chars().count() != b - a || !tout_chiffres(v) {
-            return Err(format!(
-                "code_urssaf: {}, attendu {} chiffres (annexe II.1)",
+            return Err(socle::echec::a_la_cle(
+                &format!("Le code Urssaf de la fiche entreprise s'écrit en {} chiffres : le lire sur un bordereau Urssaf.", b - a),
+                "code_urssaf",
                 repr_valeur(&code_urssaf),
-                b - a
             ));
         }
         // ET LE CODE DOIT EXISTER. Trois chiffres bien formes
@@ -389,9 +389,10 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         // celle de la Table des Urssaf (`urssaf-codes-types-personnel.csv`), relevee et
         // datee.
         if !urssaf_existe(v)? {
-            return Err(format!(
-                "code_urssaf: {} n'est pas un organisme de recouvrement connu.\n  Le point de depot le refuserait (\u{ab} Code URSSAF invalide \u{bb}). Le code se lit sur les bordereaux Urssaf de la compagnie.",
-                repr_valeur(&code_urssaf)
+            return Err(socle::echec::a_la_cle(
+                "Le code Urssaf de la fiche entreprise n'est pas celui d'un organisme de recouvrement connu : le point de dépôt le refuserait. Le code se lit sur les bordereaux Urssaf de la compagnie.",
+                "code_urssaf",
+                repr_valeur(&code_urssaf),
             ));
         }
         ecrire_zone(&mut buf, a, b, v);
@@ -430,10 +431,13 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     // type CDD. Un CDD sans fin, lui, est refuse ici plutot que par l'Urssaf.
     if nat.date_fin_dpae() {
         if !vrai(&e.fin) {
-            return Err(format!(
-                "{} : un contrat de nature '{}' doit dire sa date de fin -- la DPAE d'un CDD la porte (D_FIN_CDD), et l'Urssaf la refuse sans (code retour 46).",
-                en_texte(cle(s, "nom")?),
-                nat.cle
+            return Err(socle::echec::cle(
+                format!(
+                    "{} : un contrat {} dit sa date de fin ; la DPAE d'un CDD la porte, et l'Urssaf la refuse sans (code retour 46).",
+                    en_texte(cle(s, "nom")?),
+                    nat.libelle
+                ),
+                "fin",
             ));
         }
         poser(&mut buf, "date_fin", &d(&e.fin)?.jjmmaaaa())?;
@@ -588,15 +592,15 @@ pub fn zip(nom: &str, donnees: &[u8], horodatage: &str) -> Resultat<Vec<u8>> {
 /// deux, et CoolPaie deposait le zip.
 pub fn ecrire(embauches: &[Embauche], chemin: &Path, p: &Parametres, zipper: bool) -> Resultat<()> {
     if let Some(parent) = chemin.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("{} : {}", parent.display(), e))?;
+        std::fs::create_dir_all(parent).map_err(|e| socle::echec::du_disque(&parent, &e))?;
     }
     let octets = contenu(embauches, p)?;
-    std::fs::write(chemin, &octets).map_err(|e| format!("{} : {}", chemin.display(), e))?;
+    std::fs::write(chemin, &octets).map_err(|e| socle::echec::du_disque(&chemin, &e))?;
     if zipper {
         let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let mut cz = chemin.as_os_str().to_os_string();
         cz.push(".zip");
-        std::fs::write(PathBuf::from(cz), zip(&nom, &octets, p.horodatage)?).map_err(|e| format!("{} : {}", chemin.display(), e))?;
+        std::fs::write(PathBuf::from(cz), zip(&nom, &octets, p.horodatage)?).map_err(|e| socle::echec::du_disque(&chemin, &e))?;
     }
     Ok(())
 }

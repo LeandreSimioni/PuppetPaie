@@ -382,11 +382,11 @@ impl Avant {
     /// L'etat ecrit dans une paie validee (`en_json`). Refus : un champ qui manque ou ne se lit pas.
     pub fn lire(v: &Value) -> Resultat<Avant> {
         let compteur = CompteurConges::lire(requis(v, "compteur")?)?;
-        let avis_du_report = requis(v, "avis_du_report")?.as_u64().filter(|n| *n as usize <= compteur.avertissements.len()).ok_or("compteur avant le mois illisible : `avis_du_report`")? as usize;
+        let avis_du_report = requis(v, "avis_du_report")?.as_u64().filter(|n| *n as usize <= compteur.avertissements.len()).ok_or_else(|| socle::echec::cle("Le compteur de congés du mois d'avant ne se relit pas : revalider l'engagement de ce mois.", "avis_du_report"))? as usize;
         let premier = match requis(v, "premier")? {
             Value::Null => None,
             Value::String(m) => Some(m.clone()),
-            _ => return Err("compteur avant le mois illisible : `premier`".into()),
+            _ => return Err(socle::echec::cle("Le compteur de congés du mois d'avant ne se relit pas : revalider l'engagement de ce mois.", "premier")),
         };
         Ok(Avant { compteur, avis_du_report, premier, reprise: requis(v, "reprise")?.clone() })
     }
@@ -1063,12 +1063,12 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     // LES ABSENCES NE SE SAISISSENT PLUS DANS LE MOIS : un arret de travail ou une suspension est un
     // imprevu, saisi une fois sur le salarie (`imprevus`), dont le moteur tire la ligne de chaque mois qu'il traverse.
     if e.get("absences").is_some() {
-        return Err(format!(
-            "{} : la saisie du mois porte des `absences`. Un arret de travail ou une suspension (conge parental, \
+        return Err(socle::echec::cle(format!(
+            "{} : la saisie du mois porte des absences. Un arret de travail ou une suspension (conge parental, \
              sabbatique, sans solde...) se saisit une fois, comme un imprevu du salarie, et le moteur en tire la ligne de \
              chaque mois qu'il traverse. Saisir l'imprevu, puis enregistrer ce mois sans ses absences.",
             qui(ctx, e)
-        ));
+        ), "absences"));
     }
     // Une saisie qui ecrit ses lignes les garde : un imprevu du contrat n'y retire rien, et cela se dit.
     if let Some(l) = e.get("lignes").filter(|l| !l.is_null()) {
@@ -1096,7 +1096,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             ))
         }
     };
-    let defaut = dec_f64(nat.quotite_reference_defaut.ok_or("quotite_reference_defaut")?)?;
+    let defaut = dec_f64(nat.quotite_reference_defaut.ok_or_else(|| socle::echec::livree("contrats-base.json", "quotite_reference_defaut"))?)?;
     let quotite = dec_ou(e.get("quotite_contrat"), defaut)?;
     let salaire = dec_avec_echelle(salaire)?;
 

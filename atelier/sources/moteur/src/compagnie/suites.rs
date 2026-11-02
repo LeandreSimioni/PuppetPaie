@@ -64,7 +64,7 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
     let mut tous = Vec::new();
     for (retour, chemin) in crm {
         let en_retour_de = mois_declare(retour);
-        let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+        let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
         let lus = envois::retours::taux_pas_d_octets(&octets)?;
         let releves: Vec<Value> = lus.get("releves").and_then(Value::as_array).cloned().unwrap_or_default();
         let r = envois::retours::releves_vers_salaries(&releves, &nirs);
@@ -96,7 +96,7 @@ fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std:
         let le_iso = socle::date::Jour::lire(&le).map(|j| j.iso()).unwrap_or_default();
         let archive = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let source = format!("Notification AT/MP de la CARSAT reçue le {} (retour DSN de nature 34, archive retours/{})", le, archive);
-        let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+        let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
         let lus = match envois::retours::taux_atmp_d_octets(&octets) {
             Ok(l) => l,
             Err(e) => {

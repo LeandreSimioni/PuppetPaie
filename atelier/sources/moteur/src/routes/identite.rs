@@ -113,7 +113,7 @@ fn format_de(o: &[u8]) -> Option<&'static str> {
 fn avant(f: &Path) -> R<()> {
     let mut nom = f.as_os_str().to_owned();
     nom.push(".avant");
-    std::fs::rename(f, PathBuf::from(nom)).map_err(|e| en_os(format!("{} : {}", f.display(), e)))
+    std::fs::rename(f, PathBuf::from(nom)).map_err(|e| en_os(socle::echec::du_disque(&f, &e)))
 }
 
 fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
@@ -121,7 +121,7 @@ fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
     let contenu = match exiger(charge, "contenu")? {
         Value::Null => "",
         Value::String(s) => s.as_str(),
-        _ => return Err(erreur("TypeError", "`contenu` : un texte est attendu")),
+        _ => return Err(erreur("TypeError", socle::echec::charge("contenu", "un texte"))),
     };
     if !IDENTITES.contains(&quoi) {
         return Err(identite_inconnue(quoi));
@@ -149,7 +149,7 @@ fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
         _ => ".svg",
     };
     let cible = dossier.join(format!("{}{}", quoi, extension));
-    std::fs::write(&cible, &octets).map_err(|e| en_os(format!("{} : {}", cible.display(), e)))?;
+    std::fs::write(&cible, &octets).map_err(|e| en_os(socle::echec::du_disque(&cible, &e)))?;
     if quoi == "signature" {
         // Pour qui elle est posee : la personne qui signe CE JOUR-LA.
         let registre = dossier.join("identite.json");

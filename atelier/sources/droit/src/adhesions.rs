@@ -24,7 +24,7 @@ fn borne(contrat: &Value, cle: &str) -> Resultat<Option<Jour>> {
         None => Ok(None),
         Some(v) => Jour::lire(en_texte(v).trim())
             .map(Some)
-            .map_err(|e| format!("Le contrat d'organisme {} : `{}` ne se lit pas ({}).", en_texte(contrat.get("libelle").unwrap_or(&Value::Null)), cle, e)),
+            .map_err(|e| socle::echec::a_la_cle(&format!("Le contrat d'organisme {} porte une date illisible : la corriger dans Configuration › Organismes et contrats.", en_texte(contrat.get("libelle").unwrap_or(&Value::Null))), cle, e)),
     }
 }
 
@@ -51,7 +51,7 @@ pub fn casc_svp(code: &Path, ent: &Value) -> Resultat<Option<Value>> {
     let champ = |k: &str| -> Resultat<String> {
         let v = en_texte(&dsn[k]).trim().to_string();
         if v.is_empty() {
-            return Err(format!("casc-svp-base.json : `dsn.{}` manque.", k));
+            return Err(socle::echec::livree("casc-svp-base.json", &format!("dsn.{}", k)));
         }
         Ok(v)
     };

@@ -61,7 +61,7 @@ pub fn empreinte(contenu: &[u8]) -> String {
 
 /// L'empreinte d'un fichier, comme le journal l'écrit.
 pub fn empreinte_fichier(chemin: &Path) -> Resultat<String> {
-    std::fs::read(chemin).map(|b| empreinte(&b)).map_err(|e| format!("{} : {}", chemin.display(), e))
+    std::fs::read(chemin).map(|b| empreinte(&b)).map_err(|e| socle::echec::du_disque(&chemin, &e))
 }
 
 /// LE JOURNAL LU : ses lignes (ce qui est parti et ce qui en est revenu : bilans, contrats signes, anomalies), et ce qui
@@ -172,7 +172,7 @@ impl Tenu {
             if texte.iter().all(u8::is_ascii_whitespace) {
                 continue;
             }
-            let e: Value = serde_json::from_slice(texte).map_err(|x| format!("{}, ligne {} : {}", p.display(), n, x))?;
+            let e: Value = serde_json::from_slice(texte).map_err(|x| socle::echec::avec("Le journal des envois de la compagnie ne se lit pas : il est abîmé.", serde_json::json!({"chemin": p.to_string_lossy(), "ligne": n, "detail": x.to_string()})))?;
             self.replier(&e, n, p)?;
         }
         self.octets.extend_from_slice(&octets[..=fin]);
@@ -188,13 +188,13 @@ fn a_jour<'t>(tenus: &'t mut HashMap<PathBuf, Tenu>, p: &Path) -> Resultat<Optio
             tenus.remove(p);
             return Ok(None);
         }
-        Err(e) => return Err(format!("{} : {}", p.display(), e)),
+        Err(e) => return Err(socle::echec::du_disque(&p, &e)),
     };
     let vu = (meta.len(), meta.modified().ok());
     if tenus.get(p).is_some_and(|t| t.vu == vu) {
         return Ok(tenus.get_mut(p));
     }
-    let octets = std::fs::read(p).map_err(|e| format!("{} : {}", p.display(), e))?;
+    let octets = std::fs::read(p).map_err(|e| socle::echec::du_disque(&p, &e))?;
     // Ce qui a ete lu reste en tete du fichier, puisqu'on n'y fait qu'ajouter : seul le reste se replie. Un fichier
     // qui ne commence plus par ce qui a ete lu (un journal remplace) se replie en entier.
     let mut t = match tenus.remove(p) {
@@ -238,14 +238,14 @@ fn ajouter(racine: &Path, faire: impl FnOnce(&Journal, &HashMap<String, usize>) 
         texte.push('\n');
     }
     if let Some(dossier) = p.parent() {
-        std::fs::create_dir_all(dossier).map_err(|e| format!("{} : {}", dossier.display(), e))?;
+        std::fs::create_dir_all(dossier).map_err(|e| socle::echec::du_disque(&dossier, &e))?;
     }
     {
         use std::io::Write;
-        let mut f = std::fs::OpenOptions::new().create(true).append(true).open(&p).map_err(|e| format!("{} : {}", p.display(), e))?;
-        f.write_all(texte.as_bytes()).map_err(|e| format!("{} : {}", p.display(), e))?;
+        let mut f = std::fs::OpenOptions::new().create(true).append(true).open(&p).map_err(|e| socle::echec::du_disque(&p, &e))?;
+        f.write_all(texte.as_bytes()).map_err(|e| socle::echec::du_disque(&p, &e))?;
     }
-    let meta = std::fs::metadata(&p).map_err(|e| format!("{} : {}", p.display(), e))?;
+    let meta = std::fs::metadata(&p).map_err(|e| socle::echec::du_disque(&p, &e))?;
     let mut t = tenus.remove(&p).unwrap_or_default();
     // Un autre processus a pu ajouter entre la lecture et l'ecriture : le journal se relira alors du fichier.
     if t.octets.len() + texte.len() == meta.len() as usize {
@@ -267,7 +267,7 @@ pub fn ne_garder_que(racine: &Path, garder: impl Fn(&Value) -> bool) -> Resultat
         if l.iter().all(u8::is_ascii_whitespace) {
             continue;
         }
-        let e: Value = serde_json::from_slice(l).map_err(|x| format!("{}, ligne {} : {}", p.display(), n + 1, x))?;
+        let e: Value = serde_json::from_slice(l).map_err(|x| socle::echec::avec("Le journal des envois de la compagnie ne se lit pas : il est abîmé.", serde_json::json!({"chemin": p.to_string_lossy(), "ligne": n + 1, "detail": x.to_string()})))?;
         let garde = match (e.get("ligne"), e.get("id").and_then(Value::as_str), e.get("a").and_then(Value::as_str)) {
             (Some(ligne), Some(id), _) => garder(ligne) && gardes.insert(id.to_string()),
             (_, _, Some(a)) => gardes.contains(a),
@@ -279,8 +279,8 @@ pub fn ne_garder_que(racine: &Path, garder: impl Fn(&Value) -> bool) -> Resultat
         }
     }
     let provisoire = socle::ecriture::provisoire(&p);
-    std::fs::write(&provisoire, texte).map_err(|e| format!("{} : {}", provisoire.display(), e))?;
-    std::fs::rename(&provisoire, &p).map_err(|e| format!("{} : {}", p.display(), e))?;
+    std::fs::write(&provisoire, texte).map_err(|e| socle::echec::du_disque(&provisoire, &e))?;
+    std::fs::rename(&provisoire, &p).map_err(|e| socle::echec::du_disque(&p, &e))?;
     tenus().remove(&p);
     Ok(())
 }
@@ -348,7 +348,7 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
         ));
     }
     if !n.quand.is_empty() && n.origine.is_empty() {
-        return Err("Une ligne datee doit dire d'ou vient sa date : passer `origine`. Sans ca, rien ne distingue une reprise d'une ligne fabriquee.".to_string());
+        return Err(socle::echec::cle("Une ligne datée du journal doit dire d'où vient sa date : sans cela, rien ne distingue une reprise d'une ligne fabriquée.", "origine"));
     }
     let fichier = n.fichier.filter(|f| !f.is_empty());
     let nom = fichier.map(|f| Path::new(f).file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default());
@@ -519,7 +519,7 @@ pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, departs: &e
             if let Some(phrase) = v.a_revalider(ctx) {
                 return Err(phrase);
             }
-            let version = v.version().ok_or("validation illisible : `version`")?;
+            let version = v.version().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "version"))?;
             out.push(json!({"salarie": cle, "numero": numero, "version": version}));
         }
     }
@@ -579,11 +579,12 @@ pub fn dernier_ordre_des_signalements(racine: &Path) -> Resultat<i64> {
         match ordre {
             Some(o) => dernier = dernier.max(o),
             None if l.get("accepte").map(vrai).unwrap_or(false) => {
-                return Err(format!(
-                    "Le journal des envois ({}) note le signalement reel du {} ({}) sans son numero d'ordre : l'ecrire dans le `detail` de cette ligne (`\"ordre\": N`, N lu en S20.G00.05.004 du fichier envoye). Le numero d'ordre d'un signalement ne se remet jamais a zero (cahier technique DSN, p. 136) : sans lui, le suivant ne se numerote pas. Rien n'est ecrit.",
-                    chemin(racine).display(),
-                    l.get("quand").and_then(Value::as_str).unwrap_or("?"),
-                    l.get("fichier").and_then(Value::as_str).unwrap_or("?"),
+                return Err(socle::echec::avec(
+                    format!(
+                        "Le journal des envois note le signalement reel du {} sans son numero d'ordre, lu en S20.G00.05.004 du fichier envoye. Le numero d'ordre d'un signalement ne se remet jamais a zero (cahier technique DSN, p. 136) : sans lui, le suivant ne se numerote pas. Le signaler au developpeur. Rien n'est ecrit.",
+                        l.get("quand").and_then(Value::as_str).unwrap_or("?"),
+                    ),
+                    json!({"chemin": chemin(racine).to_string_lossy(), "fichier": l.get("fichier").and_then(Value::as_str).unwrap_or("?"), "cle": "detail.ordre"}),
                 ))
             }
             None => {}

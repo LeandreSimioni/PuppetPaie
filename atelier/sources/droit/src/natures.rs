@@ -320,9 +320,7 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
     let manquants: Vec<&str> =
         ["libelle", "paie", "codes"].into_iter().filter(|c| !d.contains_key(*c)).collect();
     if !manquants.is_empty() {
-        return Err(format!(
-            "Nature de contrat {} : {} manque dans contrats-base.json.",
-            repr(cle), manquants.join(", ")));
+        return Err(socle::echec::livree("contrats-base.json", &format!("{}.{}", cle, manquants.join(", "))));
     }
     let paie = texte(&d["paie"]).unwrap_or_default();
     if !PAIES.contains(&paie.as_str()) {
@@ -336,10 +334,7 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
     let uq = objet("unite_quotite");
     let valeur_uq = uq.get("valeur").filter(|v| vrai(v));
     let Some(valeur_uq) = valeur_uq else {
-        return Err(format!(
-            "Nature de contrat {} : `unite_quotite` (S21.G00.40.011) manque. \
-             L'unite de mesure de la quotite ne se devine pas -- 12 pour des \
-             journees, 10 pour des heures.", repr(cle)));
+        return Err(socle::echec::livree("contrats-base.json", &format!("{}.unite_quotite", cle)));
     };
     let qref = objet("quotite_reference_defaut");
     let dp = objet("dpae");
@@ -351,13 +346,7 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
         .and_then(texte)
         .unwrap_or_default();
     if !TYPES_CONTRAT_DPAE.iter().any(|(k, _)| *k == tc) {
-        let connus: Vec<String> =
-            TYPES_CONTRAT_DPAE.iter().map(|(k, v)| format!("{} {}", k, v)).collect();
-        return Err(format!(
-            "Nature de contrat {} : `dpae.type_contrat` vaut {}. Le Format \
-             120 de la DPAE n'en connait que trois -- {}. Sans lui, \
-             l'embauche partirait au type du gabarit, celui d'un CDD.",
-            repr(cle), repr(&tc), connus.join(", ")));
+        return Err(socle::echec::livree("contrats-base.json", &format!("{}.dpae.type_contrat", cle)));
     }
     let sans_commentaire = |m: Map<String, Value>| -> Map<String, Value> {
         m.into_iter().filter(|(r, _)| !r.starts_with('_')).collect()

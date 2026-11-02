@@ -37,7 +37,7 @@ fn base() -> Resultat<Arc<Value>> {
 /// Les versions livrees, dans l'ordre de la donnee.
 pub fn versions() -> Resultat<Vec<Norme>> {
     let b = base()?;
-    let v = b["versions"].as_object().ok_or_else(|| format!("{} : pas de `versions`", BASE))?;
+    let v = b["versions"].as_object().ok_or_else(|| socle::echec::livree(BASE, "versions"))?;
     Ok(v.keys().map(|k| Norme { version: k.clone() }).collect())
 }
 
@@ -55,11 +55,9 @@ impl Norme {
         if base()?["versions"].get(version).is_some() {
             return Ok(Norme { version: version.to_string() });
         }
-        Err(format!(
-            "Version de la norme DSN « {} » inconnue du logiciel (versions livrees : {} ; logiciel/donnees/{}). Rien n'est ecrit.",
-            version,
-            liste_des_versions()?,
-            BASE
+        Err(socle::echec::avec(
+            format!("Version de la norme DSN « {} » inconnue du logiciel (versions livrées : {}). Rien n'est écrit.", version, liste_des_versions()?),
+            serde_json::json!({"fichier": BASE}),
         ))
     }
 
@@ -131,7 +129,7 @@ fn dans(v: &str, plage: &Value) -> bool {
 
 fn choisir(cle: &str, valeur: &str) -> Resultat<Option<Norme>> {
     let b = base()?;
-    let v = b["versions"].as_object().ok_or_else(|| format!("{} : pas de `versions`", BASE))?;
+    let v = b["versions"].as_object().ok_or_else(|| socle::echec::livree(BASE, "versions"))?;
     let siennes: Vec<&String> = v.iter().filter(|(_, e)| e.get(cle).map_or(false, |p| dans(valeur, p))).map(|(k, _)| k).collect();
     match siennes.as_slice() {
         [] => Ok(None),
@@ -148,7 +146,7 @@ fn choisir(cle: &str, valeur: &str) -> Resultat<Option<Norme>> {
 
 fn plages(cle: &str) -> Resultat<String> {
     let b = base()?;
-    let v = b["versions"].as_object().ok_or_else(|| format!("{} : pas de `versions`", BASE))?;
+    let v = b["versions"].as_object().ok_or_else(|| socle::echec::livree(BASE, "versions"))?;
     Ok(v.iter()
         .map(|(k, e)| {
             let p = &e[cle];
@@ -226,23 +224,21 @@ pub fn verifier_les_valeurs(texte: &str, norme: &Norme) -> Resultat<()> {
         }
     }
     if !a_ne_pas.is_empty() {
-        return Err(format!(
-            "Rubrique(s) que la norme {} dit << a ne pas renseigner >> :\n{}\n  logiciel/donnees/{}, \
-`rubriques_a_ne_pas_renseigner`. Rien n'est ecrit.",
-            norme.version,
-            a_ne_pas.join("\n"),
-            BASE
+        return Err(socle::echec::avec(
+            format!("Rubrique(s) que la norme {} dit « à ne pas renseigner » :\n{}\n  Rien n'est écrit.", norme.version, a_ne_pas.join("\n")),
+            serde_json::json!({"fichier": BASE, "cle": "rubriques_a_ne_pas_renseigner"}),
         ));
     }
     if refus.is_empty() {
         return Ok(());
     }
-    Err(format!(
-        "Valeur(s) que la norme {} n'admet plus dans leur liste -- la plate-forme refuserait le fichier :\n{}\n  \
-logiciel/donnees/{}, `valeurs_retirees`. Rien n'est ecrit.",
-        norme.version,
-        refus.join("\n"),
-        BASE
+    Err(socle::echec::avec(
+        format!(
+            "Valeur(s) que la norme {} n'admet plus dans leur liste -- la plate-forme refuserait le fichier :\n{}\n  Rien n'est écrit.",
+            norme.version,
+            refus.join("\n")
+        ),
+        serde_json::json!({"fichier": BASE, "cle": "valeurs_retirees"}),
     ))
 }
 

@@ -96,12 +96,14 @@ pub fn verifier(texte: &str, nature: &str, norme: &Norme) -> Resultat<()> {
             }
         })
         .collect();
-    Err(format!(
-        "Rubrique(s) que la nature {} ({}) n'admet pas -- anomalie bloquante CST-04, le fichier ne declarerait rien :\n{}\n  Tableau des usages du cahier technique NEODeS (donnees/{}).",
-        nature,
-        libelle,
-        lignes.join("\n"),
-        norme.table_usages()?
+    Err(socle::echec::avec(
+        format!(
+            "Rubrique(s) que la nature {} ({}) n'admet pas -- anomalie bloquante CST-04, le fichier ne declarerait rien :\n{}\n  Tableau des usages du cahier technique NEODeS.",
+            nature,
+            libelle,
+            lignes.join("\n")
+        ),
+        serde_json::json!({"fichier": norme.table_usages()?}),
     ))
 }
 

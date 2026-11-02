@@ -138,11 +138,14 @@ pub fn verifier_pour(norme: &Norme, ent: &Value) -> Resultat<()> {
         if en_naf_rev2(&code)? {
             return Err(refus_rev2(&ou, &code, &norme.version)?);
         }
-        return Err(format!(
-            "Code APE (NAF) {} : « {} » n'est pas un code de la NAF 2025 (INSEE, logiciel/donnees/{}), que tout fichier DSN \
+        return Err(socle::echec::avec(
+            format!(
+                "Code APE (NAF) {} : « {} » n'est pas un code de la NAF 2025 (INSEE), que tout fichier DSN \
 en norme {} demande (net-entreprises, 08/10/2026). Saisir dans Configuration › Entreprise, « Code APE (NAF) », le code que \
 l'INSEE a notifie, sans le point. Rien n'est ecrit.",
-            ou, code, BASE, norme.version
+                ou, code, norme.version
+            ),
+            serde_json::json!({"fichier": BASE}),
         ));
     }
     Ok(())

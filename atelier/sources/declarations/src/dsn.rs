@@ -139,14 +139,14 @@ pub fn contact_emetteur(f: &mut Fichier, ent: &Value) -> Resultat<()> {
     let decl = req(ent, "declarant_dsn")?;
     let civilite = txt(g(decl, "civilite"));
     if civilite != "01" && civilite != "02" {
-        return Err(format!(
-            "La civilité de la personne que les organismes contactent {} : la saisir dans Configuration › Entreprise, « Qui les organismes contactent », case Civilité (Monsieur ou Madame ; `declarant_dsn.civilite` de config/entreprise.json, 01 ou 02). Elle s'écrit en S10.G00.02.001 (cahier technique DSN, p. 132). Rien n'est écrit.",
+        return Err(socle::echec::cle(format!(
+            "La civilité de la personne que les organismes contactent {} : la saisir dans Configuration › Entreprise, « Qui les organismes contactent », case Civilité (Monsieur ou Madame). Elle s'écrit en S10.G00.02.001 (cahier technique DSN, p. 132). Rien n'est écrit.",
             if civilite.is_empty() { "manque".to_string() } else { format!("vaut « {} », ni 01 ni 02", civilite) }
-        ));
+        ), "declarant_dsn.civilite"));
     }
     f.add("S10.G00.02.001", civilite);
     if !vrai(g(decl, "nom_prenom")) {
-        return Err("Le nom de la personne que les organismes contactent manque : le saisir dans Configuration › Entreprise, « Qui les organismes contactent » (`declarant_dsn.nom_prenom`). Il s'écrit en S10.G00.02.002 et S20.G00.07.001. Rien n'est écrit.".to_string());
+        return Err(socle::echec::cle("Le nom de la personne que les organismes contactent manque : le saisir dans Configuration › Entreprise, « Qui les organismes contactent ». Il s'écrit en S10.G00.02.002 et S20.G00.07.001. Rien n'est écrit.", "declarant_dsn.nom_prenom"));
     }
     f.add_v("S10.G00.02.002", req(decl, "nom_prenom")?)?;
     f.add_v("S10.G00.02.004", req(decl, "email")?)?;
@@ -366,7 +366,7 @@ fn nomenclature_subrogation(libelle: &str) -> Resultat<String> {
             return Ok(txt(g(c, "code")));
         }
     }
-    Err(format!("subrogation : pas de code « {} » dans arrets-base.json", libelle))
+    Err(socle::echec::livree("arrets-base.json", &format!("subrogation.{}", libelle)))
 }
 
 /// Le bloc « Arret de travail - S21.G00.60 » (`signalement.bloc_60`).
@@ -493,7 +493,7 @@ fn opt_txt(v: &Value) -> Option<String> {
 pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
     let b = &p.bases;
     let mut out = HashMap::new();
-    let lue = |cle: &str| -> Resultat<Decimal> { b.get(cle).copied().ok_or_else(|| format!("paie ecrite illisible : la base `{}`", cle)) };
+    let lue = |cle: &str| -> Resultat<Decimal> { b.get(cle).copied().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, cle)) };
     out.insert("brut".into(), p.brut);
     out.insert("brut_cs".into(), lue("brut_cs")?);
     out.insert("csg".into(), p.base_csg);
@@ -558,13 +558,12 @@ pub fn cle_abattue(p: &Paie, bloc78: &str, cle: &str) -> Resultat<String> {
     if p.bases.contains_key(&abattue) {
         return Ok(abattue);
     }
-    Err(format!(
-        "{} : la deduction forfaitaire specifique abat la base {}, mais le calcul n'a pas de forme abattue de << {} >> \
-(atelier/reference/sources/dfs/LISEZ-MOI.md). Rien n'est ecrit.",
+    Err(socle::echec::cle(format!(
+        "{} : la deduction forfaitaire specifique abat la base {}, mais le calcul n'a pas sa forme abattue \
+(aucun texte déposé ne la dit). Rien n'est écrit.",
         qui_contrat(p),
-        bloc78,
-        cle
-    ))
+        bloc78
+    ), cle))
 }
 
 /// Le brut que la paie declare en 51 de type 001 : sous deduction forfaitaire specifique, le brut abattu. Guide Urssaf
@@ -977,13 +976,13 @@ pub fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, (debut, fin): 
     let cle = nat.bareme.clone().unwrap_or_else(|| "intermittent".into());
     let sec = g(g(orgs, "affiliations_par_nature"), &cle);
     if !vrai(sec) {
-        return Err(format!(
+        return Err(socle::echec::avec(format!(
             "Contrat {} : la DSN rattache chaque salarié à ses contrats de prévoyance et de santé (S21.G00.70.013), et \
 les organismes composés pour la compagnie ne disent rien d'un salarié « {} » (seulement des intermittents et des \
-permanents). Aucune saisie de la compagnie ne le dit : c'est la composition livrée (donnees/organismes-base.json) qui \
+permanents). Aucune saisie de la compagnie ne le dit : c'est la composition livrée qui \
 ne connaît pas ce cas. Rien n'est écrit.",
             nat.libelle, cle
-        ));
+        ), serde_json::json!({"fichier": "organismes-base.json"})));
     }
     let refs = g(sec, "references");
     if !vrai(refs) {
@@ -1065,14 +1064,17 @@ fn affiliations_du_permanent(p: &Paie, ent: &Value) -> Resultat<Option<Affiliati
         ));
     }
     if dispense && p.lignes.iter().any(|l| l.id == "mutuelle") {
-        return Err(format!(
-            "{} : la fiche porte une dispense de complementaire sante (`sante_dispense` : « {} ») et le bulletin cotise a \
+        return Err(socle::echec::cle(
+            format!(
+                "{} : la fiche porte une dispense de complementaire sante (« {} ») et le bulletin cotise a \
 la mutuelle (convention {}) : il a ete calcule sans elle. La DSN ne choisit pas entre l'affiliation et la dispense : \
-recalculer le bulletin si le salarie est dispense, retirer `sante_dispense` de la fiche s'il est affilie. Rien n'est \
+recalculer le bulletin si le salarie est dispense, retirer la dispense de la fiche s'il est affilie. Rien n'est \
 declare.",
-            qui_contrat(p),
-            txt(g(&p.salarie, "sante_dispense")),
-            txt(g(ent, "idcc"))
+                qui_contrat(p),
+                txt(g(&p.salarie, "sante_dispense")),
+                txt(g(ent, "idcc"))
+            ),
+            "sante_dispense",
         ));
     }
     Ok(Some(AffiliationsDuPermanent { prevoyance, sante: !dispense && !suspendue }))
@@ -1119,9 +1121,9 @@ pub fn rattachements(p: &Paie, orgs: &Value, ent: &Value, refs: Vec<String>) -> 
                     bareme::AffiliationPrevoyance::Le(j) => debut = Some(*j),
                     bareme::AffiliationPrevoyance::AuPlusTardLe(j) => {
                         if *j > e.debut {
-                            return Err(format!(
+                            return Err(socle::echec::cle(format!(
                                 "{} : la prevoyance de sa convention s'ouvre apres une anciennete DANS LA BRANCHE, et sa \
-fiche ne date que son anciennete dans l'entreprise (`date_anciennete`) : assez pour la cotisation, pas pour dire si \
+fiche ne date que son anciennete dans l'entreprise (« Dans la compagnie depuis ») : assez pour la cotisation, pas pour dire si \
 l'affiliation a commence avec le contrat (le {}) ou plus tard, au plus tard le {}. La DSN date le debut de \
 l'affiliation quand ce n'est pas celui du contrat (S21.G00.70.014, cahier technique p. 287) ; elle ne le devine pas.\n  \
 A dire sur sa fiche : Configuration › Salariés, bloc « Salarié au mois », « Dans la branche depuis » : la date de son entree dans la branche (s'il n'y \
@@ -1129,7 +1131,7 @@ travaillait pas avant, sa date d'embauche chez nous). Rien n'est declare.",
                                 qui_contrat(p),
                                 e.debut.jj_mm_aaaa(),
                                 j.jj_mm_aaaa()
-                            ));
+                            ), "prevoyance_branche_depuis"));
                         }
                     }
                 }
@@ -1213,12 +1215,13 @@ compagnie ; rien n'est declare.",
     let code = g(g(g(options, "niveaux"), &niveau), if famille { "famille" } else { "isole" }).as_str();
     match (code, enfants) {
         (Some(c), Some(n)) => Ok((Some(c.to_string()), famille.then_some((i64::from(conjoint), n)))),
-        _ => Err(format!(
-            "{} : elle se lit sur la fiche du salarie, `sante_svp` : {{\"niveau\": \"1\" | \"2\" | \"3\", \
-\"conjoint\": true | false, \"enfants\": 0 a 99}}, d'apres son bulletin d'adhesion -- la meme fiche que sa cotisation. \
-Lu : {}. Rien n'est declare.",
-            lieu,
-            if choix.is_null() { "rien".to_string() } else { choix.to_string() }
+        _ => Err(socle::echec::a_la_cle(
+            &format!(
+                "{} : elle se lit sur la fiche du salarie (son niveau, son conjoint, ses enfants), d'apres son bulletin d'adhesion -- la meme fiche que sa cotisation. Rien n'est declare.",
+                lieu
+            ),
+            "sante_svp",
+            if choix.is_null() { "rien".to_string() } else { choix.to_string() },
         )),
     }
 }
@@ -1264,7 +1267,7 @@ fn casc_svp(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str) -> Resultat<O
         None => {
             return Err(format!(
                 "Convention 3090 : la CASC-SVP se declare en DSN depuis janvier 2025, et les organismes lus n'ont pas \
-l'adhesion {} que `Contexte::organismes` porte pour toute compagnie de la 3090. Rien n'est ecrit.",
+l'adhesion {} que le logiciel compose pour toute compagnie de la 3090. Rien n'est ecrit.",
                 contrat
             ))
         }
@@ -1324,11 +1327,10 @@ fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar:
             None => {
                 return Err(format!(
                     "Convention {} : le {} se declare en DSN depuis {}, sous une adhesion Audiens, et les organismes \
-du mois n'ont pas l'adhesion \"contribution\": \"{}\" que `droit::organismes` compose depuis le bareme. Rien n'est ecrit.",
+du mois n'ont pas l'adhesion de cette contribution, que le logiciel compose depuis le bareme. Rien n'est ecrit.",
                     socle::date::forme_ecrite(g(ent, "idcc")).trim_matches('\''),
                     nom,
-                    en_texte(g(spec, "en_dsn_depuis")),
-                    nom
+                    en_texte(g(spec, "en_dsn_depuis"))
                 ))
             }
         };
@@ -1432,16 +1434,15 @@ fn motif_rupture(p: &Paie, nat: &Nature) -> Resultat<String> {
         .iter()
         .map(|m| format!("{} ({})", en_texte(g(m, "code")), en_texte(g(m, "libelle"))))
         .collect();
-    Err(format!(
+    Err(socle::echec::cle(format!(
         "Contrat {} ({}) : il se termine le {}, et le motif de la rupture (S21.G00.62.002) n'est pas dit. Un {} ne \
-finit pas tout seul, et le motif commande les droits du salarie a l'assurance chomage : il se saisit \
-(`motif_rupture`). Motifs : {}.",
+finit pas tout seul, et le motif commande les droits du salarie a l'assurance chomage : il se saisit. Motifs : {}.",
         e.numero.clone().unwrap_or_else(|| "None".into()),
         nat.libelle,
         e.fin.map(|f| f.jjmmaaaa()).unwrap_or_default(),
         nat.libelle,
         connus.join(", ")
-    ))
+    ), "motif_rupture"))
 }
 
 fn qt(x: Decimal) -> String {
@@ -1472,26 +1473,26 @@ fn qui_contrat(p: &Paie) -> String {
 /// ou moins, que la CCH-12 interdit : elle refuse aussi.
 pub fn anciennete_du_mois(s: &Value, cle: &str, fin_m: &Jour) -> Resultat<i64> {
     let Some(v) = s.get("date_anciennete").filter(|v| vrai(v)) else {
-        return Err(format!(
-            "{} : la fiche ne porte pas sa date d'anciennete (`date_anciennete`, « Dans la compagnie depuis »), d'ou se \
+        return Err(socle::echec::cle(format!(
+            "{} : la fiche ne porte pas sa date d'anciennete (« Dans la compagnie depuis »), d'ou se \
 compte l'anciennete declaree en S21.G00.86.003. C'est le jour de son embauche, que la validation de son premier \
 engagement pose et l'import au premier contrat lu ; cette fiche ne la dit pas, et elle ne se devine pas. La saisir sur \
 la fiche : le jour ou la personne est entree dans la compagnie.",
             qui_fiche(s, cle)
-        ));
+        ), "date_anciennete"));
     };
     let depuis = jour(v)?;
     let jours = fin_m.moins(&depuis) + 1;
     if jours < 1 {
-        return Err(format!(
-            "{} : la fiche date son anciennete du {} (`date_anciennete`), apres la fin du mois declare ({}). \
+        return Err(socle::echec::cle(format!(
+            "{} : la fiche date son anciennete du {}, apres la fin du mois declare ({}). \
 L'anciennete declaree en S21.G00.86.003 serait de {} jour(s), et la norme DSN interdit zero (CCH-12, cahier technique \
 p. 322). Corriger la date sur la fiche : le jour ou la personne est entree dans la compagnie.",
             qui_fiche(s, cle),
             depuis.jj_mm_aaaa(),
             fin_m.jj_mm_aaaa(),
             jours
-        ));
+        ), "date_anciennete"));
     }
     Ok(jours)
 }
@@ -1528,8 +1529,8 @@ pub fn statuts_du_contrat(p: &Paie) -> Resultat<(String, String)> {
         (None, Some(m)) => {
             return Err(format!(
                 "{} : le metier {} ({}) est cadre au catalogue, et la fiche ne dit pas cadre ou non cadre \
-(S21.G00.40.003, `statut_categoriel_rc`). La paie s'est calculee non cadre ; ni l'un ni l'autre ne se devine. Saisir \
-`statut_categoriel_rc` sur la fiche : 01 (cadre, et refaire la paie) ou 04 (non cadre).",
+(S21.G00.40.003, « Cadre ou non cadre »). La paie s'est calculee non cadre ; ni l'un ni l'autre ne se devine. Saisir \
+« Cadre ou non cadre » sur la fiche : 01 (cadre, et refaire la paie) ou 04 (non cadre).",
                 qui_contrat(p),
                 code,
                 txt(g(m, "libelle"))
@@ -1537,15 +1538,15 @@ pub fn statuts_du_contrat(p: &Paie) -> Resultat<(String, String)> {
         }
         (None, None) => {
             let aussi = if lu("statut_conventionnel").is_none() {
-                ", ni le classement conventionnel (S21.G00.40.002, `statut_conventionnel` : 04 cadre, 05 profession \
+                ", ni le classement conventionnel (S21.G00.40.002, « Classement conventionnel (DSN) » : 04 cadre, 05 profession \
 intermediaire, 06 employe, 07 ouvrier)"
             } else {
                 ""
             };
             return Err(format!(
                 "{} : la fiche ne dit pas le statut categoriel de retraite complementaire (S21.G00.40.003, \
-`statut_categoriel_rc` : 01 cadre, 04 non cadre){}, et {}. Ils ne se devinent pas : choisir le metier dans la liste des \
-metiers, ou saisir `statut_categoriel_rc` et `statut_conventionnel` sur la fiche.",
+« Cadre ou non cadre » : 01 cadre, 04 non cadre){}, et {}. Ils ne se devinent pas : choisir le metier dans la liste des \
+metiers, ou saisir « Cadre ou non cadre » et « Classement conventionnel (DSN) » sur la fiche.",
                 qui_contrat(p),
                 aussi,
                 metier_dit
@@ -1563,7 +1564,7 @@ metiers, ou saisir `statut_categoriel_rc` et `statut_conventionnel` sur la fiche
     let Some(sc) = sc else {
         let raison = if metier_dit.is_empty() { format!("le metier {} ne le dit pas pour le statut {}", code, rc) } else { metier_dit };
         return Err(format!(
-            "{} : la fiche ne dit pas le classement conventionnel (S21.G00.40.002, `statut_conventionnel` : 04 cadre, 05 \
+            "{} : la fiche ne dit pas le classement conventionnel (S21.G00.40.002, « Classement conventionnel (DSN) » : 04 cadre, 05 \
 profession intermediaire, 06 employe, 07 ouvrier), et {}. Il ne se devine pas : le saisir sur la fiche.",
             qui_contrat(p),
             raison
@@ -1573,7 +1574,7 @@ profession intermediaire, 06 employe, 07 ouvrier), et {}. Il ne se devine pas : 
         return Err(format!(
             "{} : cadre (S21.G00.40.003 = 01) et classe {} en S21.G00.40.002. La norme DSN n'admet pour un cadre que 03 \
 (cadre dirigeant), 04 (autres cadres) ou 08 (CCH-11, cahier technique p. 182) : la declaration serait rejetee. Corriger \
-`statut_conventionnel` (04) ou `statut_categoriel_rc` sur la fiche.",
+« Classement conventionnel (DSN) » (04) ou « Cadre ou non cadre » sur la fiche.",
             qui_contrat(p),
             sc
         ));
@@ -1609,11 +1610,11 @@ pub fn bloc_contrat_fctu(
     let sans_notification = txt(g(atmp, "code_risque")) == bareme::SANS_NOTIFICATION;
     if ecrit_atmp && (!vrai(g(atmp, "code_risque")) || (!sans_notification && !vrai(g(atmp, "valeur")))) {
         let annee = if bar.get("annee").is_some() { en_texte(&bar["annee"]) } else { "?".into() };
-        return Err(format!(
-            "Bareme {} : `taux_atmp` (valeur, code_risque) manque. C'est le taux AT/MP notifie a l'etablissement, \
+        return Err(socle::echec::cle(format!(
+            "Bareme {} : le taux AT/MP manque (sa valeur et son code risque). C'est le taux AT/MP notifie a l'etablissement, \
 declare en S21.G00.40.043 ; il ne se devine pas.",
             annee
-        ));
+        ), "taux_atmp"));
     }
     // Les statuts se lisent, ou refusent (`statuts_du_contrat`), avant qu'une ligne du contrat soit ecrite.
     let (statut_conventionnel, statut_categoriel_rc) = statuts_du_contrat(p)?;
@@ -1795,7 +1796,7 @@ fn suspension_sans_maintien(f: &Fichier, p: &Paie, s: &Value) -> Resultat<()> {
     let Some(m) = m.filter(|m| vrai(g(m, "remunere"))) else { return Ok(()) };
     Err(format!(
         "{} : suspension au motif {} ({}), du {} au {}, saisie comme imprevu. Ce motif est un conge remunere \
-(logiciel/donnees/permanents-base.json : {}). En norme {}, le bloc S21.G00.65 ne declare qu'une << absence a temps plein du \
+({}). En norme {}, le bloc S21.G00.65 ne declare qu'une << absence a temps plein du \
 salarie sans maintien de sa remuneration normale par son employeur >> : {} Un conge pour evenement familial se paie (le moteur \
 ne retire rien du salaire) et ne se declare pas en suspension : retirer l'imprevu ; s'il n'est vraiment pas paye, le motif est a revoir. \
 Rien n'est ecrit.",
@@ -1822,7 +1823,7 @@ fn quotite_de_reference_sans_heures_supplementaires(f: &Fichier, p: &Paie, nat: 
         return Ok(());
     }
     Err(format!(
-        "{} : quotite de reference de {} h (S21.G00.40.012, `quotite_reference` de la fiche entreprise ou de l'engagement), \
+        "{} : quotite de reference de {} h (S21.G00.40.012, la durée de référence de la fiche entreprise ou de l'engagement), \
 au-dessus de la duree legale ({} h par mois, 35 heures par semaine). En norme {}, elle << ne doit pas inclure les heures \
 supplementaires structurelles >> : {} Declarer la duree collective sans les heures supplementaires (une compagnie a 39 h \
 declare {} h ; ses quatre heures sont des heures supplementaires, payees comme telles). Rien n'est ecrit.",
@@ -2245,11 +2246,11 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
         Some(v) => (v.taux.clone(), v.type_taux.clone(), v.identifiant.clone(), v.montant_soumis),
         None if e.sans_paie() => pas_du_versement(taux_pas, bar, p.net_imposable, fin, court(p, fin)?)?,
         None => {
-            return Err(format!(
-                "La paie de {} pour {} ne porte pas de prelevement a la source (paie ecrite illisible : `pas`). Revalider l'engagement.",
+            return Err(socle::echec::cle(format!(
+                "La paie de {} pour {} ne porte pas de prelevement a la source. Revalider l'engagement.",
                 en_texte(p.salarie.get("_cle").unwrap_or(&Value::Null)),
                 e.mois
-            ))
+            ), "pas"))
         }
     };
     f.add_v("S21.G00.50.006", &taux)?;
@@ -2388,7 +2389,7 @@ rattacher. Rien n'est ecrit.",
             })?;
             f.add(&k, id);
         } else if crate::versement_declare::est_un_montant(&k) == Some(true) {
-            let m: Decimal = v.parse().map_err(|_| format!("{} illisible dans {} : {:?}", k, d.fichier, v))?;
+            let m: Decimal = v.parse().map_err(|_| socle::echec::avec(format!("La DSN déposée porte un montant illisible en {}.", k), serde_json::json!({"fichier": d.fichier, "detail": v})))?;
             f.add(&k, ms(m, -1));
         } else {
             f.add(&k, v);
@@ -2500,7 +2501,7 @@ fn annuler_les_58(f: &mut Fichier, r: &Regularisation, origine: (Jour, Jour)) ->
                 f.add(&k, v);
             }
             _ if crate::versement_declare::est_un_montant(&k) == Some(true) => {
-                let m: Decimal = v.parse().map_err(|_| format!("{} illisible dans {} : {:?}", k, r.declare.fichier, v))?;
+                let m: Decimal = v.parse().map_err(|_| socle::echec::avec(format!("La DSN déposée porte un montant illisible en {}.", k), serde_json::json!({"fichier": r.declare.fichier, "detail": v})))?;
                 f.add(&k, ms(m, -1));
             }
             _ => f.add(&k, v),
@@ -2559,14 +2560,15 @@ fn bloc_regularisation(
         let taux_o = match r.taux_pas_origine.as_deref().filter(|t| !t.is_empty()) {
             Some(t) => t,
             None => {
-                return Err(format!(
-                    "Correction de {} pour {} : le taux de prelevement a la source applique ce mois-la est \
-introuvable dans le versement declare (sorties/{}/{}, rubrique S21.G00.50.006). Le bloc 56 de regularisation du PAS \
+                return Err(socle::echec::avec(
+                    format!(
+                        "Correction de {} pour {} : le taux de prelevement a la source applique ce mois-la est \
+introuvable dans le versement declare (rubrique S21.G00.50.006). Le bloc 56 de regularisation du PAS \
 doit le citer, et on ne le devine pas. Rien n'est ecrit.",
-                    r.mois,
-                    txt(g(&apres.salarie, "nom")),
-                    r.mois,
-                    r.declare.fichier
+                        r.mois,
+                        txt(g(&apres.salarie, "nom"))
+                    ),
+                    serde_json::json!({"chemin": format!("sorties/{}/{}", r.mois, r.declare.fichier)}),
                 ))
             }
         };
@@ -2684,7 +2686,7 @@ struct Ligne81 {
 
 /// Les blocs 78 (78.001, 78.004) et les lignes 81 du versement declare.
 fn lignes_declarees(d: &crate::versement_declare::VersementDeclare) -> Resultat<(Vec<(String, Decimal)>, Vec<Ligne81>)> {
-    let lu = |k: &str, v: &str| -> Resultat<Decimal> { v.parse().map_err(|_| format!("{} illisible dans {} : {:?}", k, d.fichier, v)) };
+    let lu = |k: &str, v: &str| -> Resultat<Decimal> { v.parse().map_err(|_| socle::echec::avec(format!("La DSN déposée porte un montant illisible en {}.", k), serde_json::json!({"fichier": d.fichier, "detail": v}))) };
     let (mut b78, mut l81): (Vec<(String, Decimal)>, Vec<Ligne81>) = (Vec::new(), Vec::new());
     let (mut bloc, mut affiliation) = (String::new(), None::<String>);
     for (k, v) in d.blocs(&["78", "81"]) {
@@ -2975,9 +2977,10 @@ fn taux_at_du_ctp(ctp: &Value, bar: &Value) -> Resultat<String> {
     // dit seulement « cette ligne porte le taux AT » ("bareme"), le taux ne se recopie pas.
     if !vrai(g(g(bar, "taux_atmp"), "valeur")) {
         if txt(g(ctp, "taux_at")) == "bareme" {
-            return Err("Le bareme du mois n'a pas de taux AT/MP (`taux_atmp.valeur`), et un CTP de la DSN le porte. C'est \
-le taux notifie par l'Assurance Maladie (Configuration > Entreprise). Rien n'est ecrit."
-                .to_string());
+            return Err(socle::echec::cle(
+                "Le bareme du mois n'a pas de taux AT/MP, et un CTP de la DSN le porte. C'est le taux notifie par l'Assurance Maladie (Configuration › Entreprise). Rien n'est ecrit.",
+                "taux_atmp.valeur",
+            ));
         }
         return Ok(en_texte(&ctp["taux_at"]));
     }
@@ -3174,15 +3177,17 @@ fn valeur_ctp(somme: &HashMap<String, Decimal>, ctp: &Value) -> Resultat<(Decima
     let (k, par_montant) = cle_ctp(ctp)?;
     match somme.get(&k) {
         Some(v) => Ok((*v, par_montant)),
-        None if k.starts_with(&plafonnee("")) => Err(format!(
-            "La table des CTP livrée avec le logiciel (donnees/organismes-base.json, `ctp_urssaf`) : le CTP {} sous le \
-qualifiant {} (assiette plafonnée, cahier technique 2026.1, p. 168) lit l'assiette « {} », qui n'a pas de forme \
-plafonnée. Aucune saisie de la compagnie ne le corrige. Rien n'est écrit.",
-            txt(g(ctp, "code")),
-            QUALIFIANT_PLAFONNEE,
-            &k[plafonnee("").len()..]
+        None if k.starts_with(&plafonnee("")) => Err(socle::echec::avec(
+            format!(
+                "La table des CTP livrée avec le logiciel : le CTP {} sous le qualifiant {} (assiette plafonnée, cahier \
+technique 2026.1, p. 168) lit une assiette qui n'a pas de forme plafonnée. Aucune saisie de la compagnie ne le corrige : le \
+signaler au développeur. Rien n'est écrit.",
+                txt(g(ctp, "code")),
+                QUALIFIANT_PLAFONNEE
+            ),
+            serde_json::json!({"fichier": "organismes-base.json", "cle": &k[plafonnee("").len()..]}),
         )),
-        None => Err(format!("assiette inconnue : {}", socle::fichiers::repr(&k))),
+        None => Err(socle::echec::livree("organismes-base.json", &k)),
     }
 }
 
@@ -3230,7 +3235,7 @@ impl Seuils {
         let seuil = |k: &str| -> Resultat<Option<i64>> {
             match g(ctp, k) {
                 Value::Null => Ok(None),
-                v => v.as_i64().map(Some).ok_or_else(|| format!("La table des CTP livrée avec le logiciel (donnees/organismes-base.json) : `{}` du CTP {} n'est pas un entier. Rien n'est écrit.", k, txt(g(ctp, "code")))),
+                v => v.as_i64().map(Some).ok_or_else(|| socle::echec::livree("organismes-base.json", &format!("ctp_urssaf.{}.{}", txt(g(ctp, "code")), k))),
             }
         };
         Ok(seuil("effectif_au_moins")?.map_or(true, |s| self.atteint(s)) && seuil("effectif_sous")?.map_or(true, |s| !self.atteint(s)))
@@ -3254,7 +3259,7 @@ fn lignes_bordereau(
     if !somme["brut_permanent"].is_zero() && !ctps.iter().any(|c| txt(g(c, "nature")) == "permanent") {
         return Err(format!(
             "La DSN de {} porte {} de brut de salariés permanents, et la table des CTP livrée avec le logiciel \
-(donnees/organismes-base.json, `ctp_urssaf`) n'a aucun CTP des permanents. Le bordereau Urssaf serait faux : un \
+n'a aucun CTP des permanents. Le bordereau Urssaf serait faux : un \
 permanent relève du régime général (CTP 100 et suivants) et son assurance chômage est recouvrée par l'Urssaf, \
 contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le corrige. Rien n'est écrit.",
             mois,
@@ -3606,7 +3611,7 @@ contrats ouvert sur le mois déclaré. Rien n'est écrit.",
                     )
                 })?;
                 let montant: Decimal =
-                    v.parse().map_err(|_| format!("S21.G00.81.004 illisible pour la cotisation {} : {:?}", code81, v))?;
+                    v.parse().map_err(|_| socle::echec::a_la_cle(&format!("Le montant de la cotisation {} ne se lit pas (S21.G00.81.004).", code81), "S21.G00.81.004", v))?;
                 let periode = periode_d_affectation(debut, fin)?;
                 match out.iter_mut().find(|c| c.organisme == organisme && c.code == code && c.periode == periode) {
                     Some(c) => c.montant = add(c.montant, montant),
@@ -3675,13 +3680,13 @@ fn banque_du_prelevement(ent: &Value) -> Resultat<&Value> {
         .map(|(_, l)| *l)
         .collect();
     if !manque.is_empty() {
-        return Err(format!(
+        return Err(socle::echec::cle(format!(
             "Coordonnees bancaires absentes de la fiche entreprise : {}. Chaque versement de la DSN (Urssaf, DGFiP, \
 caisses) se paie par prelevement SEPA sur ce compte, et la norme exige les deux (S21.G00.20.010 = 05 : CCH-12 et \
-SIG-13). Les saisir dans Configuration › Paiement des cotisations (fiche entreprise, `banque.iban` et `banque.bic`, \
+SIG-13). Les saisir dans Configuration › Paiement des cotisations (le compte et son BIC, \
 sur le RIB de la compagnie). Rien n'est ecrit.",
             manque.join(" et ")
-        ));
+        ), "banque"));
     }
     Ok(banque)
 }
@@ -3696,7 +3701,7 @@ pub fn pas_retenu(lignes: &[String]) -> Resultat<Decimal> {
         let (k, v) = l.split_once(',').unwrap_or((l.as_str(), ""));
         if k == "S21.G00.50.009" || k == "S21.G00.56.007" {
             let v = v.trim_matches('\'');
-            let m: Decimal = v.parse().map_err(|_| format!("{} illisible : {:?}", k, v))?;
+            let m: Decimal = v.parse().map_err(|_| socle::echec::a_la_cle(&format!("Un montant ne se lit pas ({}).", k), k, v))?;
             s = add(s, m);
         }
     }
@@ -3730,12 +3735,12 @@ fn versement_dgfip(
         match remplacee_versait_pas {
             Some(v) => v,
             None => {
-                return Err(format!(
+                return Err(socle::echec::avec(format!(
                     "Annule et remplace de {} sans prelevement a la source a reverser : si la declaration remplacee \
 portait un versement DGFiP, celle-ci doit en porter un a 0.00 (S21.G00.20.005, norme p. 157). La DSN remplacee n'a \
-pas pu etre relue (sorties/{}/, le fichier du dernier depot accepte) : on ne devine pas. Rien n'est ecrit.",
-                    mois, mois
-                ))
+pas pu etre relue (le fichier du dernier depot accepte) : on ne devine pas. Rien n'est ecrit.",
+                    mois
+                ), serde_json::json!({"chemin": format!("sorties/{}/", mois)})))
             }
         }
     } else {
@@ -3900,12 +3905,12 @@ fn verifier_affiliations(texte: &str) -> Resultat<()> {
         }
     }
     if !doublons.is_empty() {
-        return Err(format!(
+        return Err(socle::echec::avec("Le barème de l'année déclare deux fois une même affiliation de prévoyance : le signaler au développeur.", serde_json::json!({"detail": format!(
             "Affiliation(s) prevoyance declarees DEUX FOIS en base 31 pour un meme individu, meme periode et meme \
 signe : {} (S21.G00.78.001/SIG-23).\n  Ce n'est admis que sur un contrat de mission (S21.G00.40.007 = 03). Les \
 `cotisations_dsn` du bareme en declarent deux pour la meme affiliation.",
             doublons.into_iter().collect::<Vec<_>>().join(", ")
-        ));
+        )})));
     }
     let mut manquantes: Vec<String> = affiliations
         .iter()
@@ -3916,7 +3921,7 @@ signe : {} (S21.G00.78.001/SIG-23).\n  Ce n'est admis que sur un contrat de miss
     if !manquantes.is_empty() {
         let mut dites: Vec<String> = bases.iter().map(|(_, a)| a.clone()).collect();
         dites.sort();
-        return Err(format!(
+        return Err(socle::echec::avec("Le barème de l'année ne déclare pas la base de chaque affiliation de prévoyance : le signaler au développeur.", serde_json::json!({"detail": format!(
             "Affiliation(s) prevoyance sans base assujettie de code 31 : {} (S21.G00.78.001/CCH-13).\n  Le bloc 70 \
 declare {} affiliation(s) et le bareme ne donne de cotisation 31 que pour {}. La plate-forme refuse la declaration \
 entiere.\n  Une base 31 par affiliation, meme a 0.00, et sous chacune une et une seule cotisation 81 de code 059 \
@@ -3924,7 +3929,7 @@ entiere.\n  Une base 31 par affiliation, meme a 0.00, et sous chacune une et une
             manquantes.join(", "),
             if affiliations.is_empty() { "aucune".to_string() } else { affiliations.len().to_string() },
             if dites.is_empty() { "aucune".to_string() } else { dites.join(", ") }
-        ));
+        )})));
     }
     Ok(())
 }
@@ -4226,13 +4231,13 @@ pub fn fabriquer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisat
     }
     if !egares.is_empty() {
         let n = egares.len();
-        return Err(format!(
-            "DSN de l'etablissement {} : {} n'y appartien{} pas (fiche salarie, `etablissement`). Une DSN par \
+        return Err(socle::echec::cle(format!(
+            "DSN de l'etablissement {} : {} n'y appartien{} pas (l'établissement de sa fiche). Une DSN par \
 etablissement, chacun avec ses salaries. Rien n'est ecrit.",
             nic,
             egares.into_iter().collect::<Vec<_>>().join(", "),
             if n > 1 { "nent" } else { "t" }
-        ));
+        ), "etablissement"));
     }
     let caisse = paies.iter().any(|p| p.declaree_a_la_caisse_des_conges().unwrap_or(false));
     exiges(&ent0, paies.iter().map(|p| &p.salarie).chain(regs.iter().map(|r| &r.apres.salarie)), caisse)?;
@@ -4309,7 +4314,7 @@ mois (il y figure sans cachet), ou corriger les dates de l'arret. Rien n'est ecr
         return Err(format!(
             "Absence pour arret de travail dans la paie de {}, mais aucun arret saisi en face : {}. La ligne retire \
 le salaire des heures non travaillees ; c'est le bloc « Arret de travail - S21.G00.60 » qui ouvre les indemnites \
-journalieres, et il se construit depuis l'arret, pas depuis la ligne. Saisir l'arret (route `arret-enregistrer`), ou \
+journalieres, et il se construit depuis l'arret, pas depuis la ligne. Saisir l'arret dans les imprévus du salarié, ou \
 retirer la ligne. Rien n'est ecrit.",
             mois,
             manquants.join(", ")
@@ -4369,7 +4374,7 @@ traverse. Reprendre le contrat dans la saisie du mois, ou corriger les dates de 
     }
     if o.remplace.as_deref().map_or(false, |r| !r.is_empty()) {
         return Err("S20.G00.05.006 est interdite sur une DSN mensuelle : la plate-forme a repondu CST-04 le \
-10/09/2026. Un annule et remplace se code par type_declaration='03' et un numero d'ordre superieur, sans \
+10/09/2026. Un annule et remplace se code par le type de declaration 03 et un numero d'ordre superieur, sans \
 identifiant de declaration remplacee."
             .into());
     }
@@ -4556,7 +4561,7 @@ certificat de conformite du depot precedent.",
             echeance_mois_suivant(
                 an,
                 mo,
-                crate::ordres_paiement::jour_de_paiement("P0983")?.ok_or("donnees/organismes-base.json : P0983 n'a pas de jour_de_paiement")?,
+                crate::ordres_paiement::jour_de_paiement("P0983")?.ok_or_else(|| socle::echec::livree("organismes-base.json", "P0983.jour_de_paiement"))?,
             ),
         ),
     ]
@@ -4873,7 +4878,7 @@ affiliation (S21.G00.78.005). Rien n'est écrit.",
         if !sans_individu {
             return Err(format!(
                 "Des cotisations sont déclarées sous l'adhésion {} de l'organisme {} (S21.G00.15.002), et le logiciel ne \
-sait pas payer cet organisme : la table livrée des versements (donnees/organismes-base.json) n'en a aucun à {}, et le \
+sait pas payer cet organisme : la table livrée des versements n'en a aucun à {}, et le \
 bloc S21.G00.20 qui les paie ne se devine pas. Si ce code d'organisme a été saisi dans Configuration › Organismes et \
 contrats, le vérifier sur le certificat d'adhésion. Rien n'est écrit.",
                 c.code, c.organisme, c.organisme
@@ -4930,15 +4935,15 @@ contrats, le vérifier sur le certificat d'adhésion. Rien n'est écrit.",
 pub fn en_latin1(texte: &str) -> Resultat<Vec<u8>> {
     texte
         .chars()
-        .map(|c| if (c as u32) < 256 { Ok(c as u8) } else { Err(format!("'latin-1' codec can't encode character {:?}", c)) })
+        .map(|c| if (c as u32) < 256 { Ok(c as u8) } else { Err(socle::echec::a_la_cle("Un texte de la DSN porte un caractère que la norme n'admet pas : le retirer de la fiche qui le porte.", "caractere", c)) })
         .collect()
 }
 
 pub fn ecrire(texte: &str, chemin: &Path) -> Resultat<()> {
     if let Some(d) = chemin.parent() {
-        std::fs::create_dir_all(d).map_err(|e| format!("{} : {}", d.display(), e))?;
+        std::fs::create_dir_all(d).map_err(|e| socle::echec::du_disque(&d, &e))?;
     }
-    std::fs::write(chemin, en_latin1(texte)?).map_err(|e| format!("{} : {}", chemin.display(), e))
+    std::fs::write(chemin, en_latin1(texte)?).map_err(|e| socle::echec::du_disque(&chemin, &e))
 }
 
 #[cfg(test)]

@@ -58,10 +58,13 @@ pub fn numero(entreprise: &Value, salarie: &Value) -> Resultat<String> {
     let siren = chaine(entreprise, "siren");
     let siren = strip(&siren).to_string();
     if siren.chars().count() != 9 || !siren.chars().all(|c| c.is_ascii_digit()) {
-        return Err(format!(
-            "Le numero technique temporaire ({}) porte le SIREN de l'entreprise en 2e a 10e position (CCH-13), et config/entreprise.json en donne {}.",
-            RUBRIQUE,
-            repr(&siren)
+        return Err(socle::echec::a_la_cle(
+            &format!(
+                "Le numero technique temporaire ({}) porte le SIREN de l'entreprise en 2e a 10e position (CCH-13), et celui de la fiche entreprise n'a pas neuf chiffres : le corriger dans Configuration › Entreprise.",
+                RUBRIQUE
+            ),
+            "siren",
+            repr(&siren),
         ));
     }
     let matricule = chaine(salarie, "code_salarie");

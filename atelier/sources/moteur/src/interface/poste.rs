@@ -29,7 +29,7 @@ pub fn ouvrir(chemin: &Path) -> Result<String, String> {
 /// Ce que dit un fichier qu'aucun programme du poste n'a ouvert : s'il est ecrit, ou il est ; sinon, qu'il manque.
 fn pas_ouvert(chemin: &Path, e: &std::io::Error) -> Result<String, String> {
     if !chemin.exists() {
-        return Err(format!("{} n'existe pas : rien à ouvrir ({}).", chemin.display(), e));
+        return Err(socle::echec::avec("Ce fichier n'existe pas : rien à ouvrir.", serde_json::json!({"chemin": chemin.to_string_lossy(), "detail": e.to_string()})));
     }
     let quoi = if chemin.is_dir() {
         "Le dossier"
@@ -114,15 +114,15 @@ pub fn choisir_dossier(titre: &str) -> Result<Option<String>, String> {
 pub fn ouvrir_pour_la_page(racine: &Path, chemin: &str, creer: bool) -> Result<String, String> {
     let p = Path::new(chemin.trim());
     if chemin.trim().is_empty() || p.components().any(|c| c == Component::ParentDir) {
-        return Err(format!("{} : rien à ouvrir.", chemin));
+        return Err(socle::echec::avec("Ce chemin ne mène à rien à ouvrir.", serde_json::json!({"chemin": chemin})));
     }
     let f = if p.is_absolute() { p.to_path_buf() } else { racine.join(p) };
     let dans = f.starts_with(racine);
     if creer && dans && !f.exists() {
-        std::fs::create_dir_all(&f).map_err(|e| format!("Le dossier {} ne se crée pas : {}.", f.display(), e))?;
+        std::fs::create_dir_all(&f).map_err(|e| socle::echec::du_disque(&f, &e))?;
     }
     if !dans && !f.is_dir() {
-        return Err(format!("{} n'est pas un dossier : rien à ouvrir.", f.display()));
+        return Err(socle::echec::avec("Ce n'est pas un dossier : rien à ouvrir.", serde_json::json!({"chemin": f.to_string_lossy()})));
     }
     ouvrir(&f)
 }

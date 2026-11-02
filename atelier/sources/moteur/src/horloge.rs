@@ -293,7 +293,7 @@ fn deposer_les_dsn(
         for reel in [false, true] {
             a_faire.extend(deposer_dsn_joue(d, ctx, &chemin, reel).map_err(|mut e| {
                 if signalement {
-                    e.message = format!("le signalement {} ne part pas : {}", nom, depot_acte::phrase_de(&e));
+                    e.message = format!("le signalement {} ne part pas : {}", nom, e.phrase());
                 }
                 e
             })?);

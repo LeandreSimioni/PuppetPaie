@@ -80,10 +80,10 @@ fn date_table(texte: &str) -> Resultat<Option<Jour>> {
     }
     let p: Vec<&str> = texte.split('-').collect();
     if p.len() != 3 {
-        return Err(format!("{} valeurs a decompacter, 3 attendues : {:?}", p.len(), texte));
+        return Err(socle::echec::a_la_cle("La table des cotisations livrée avec le logiciel porte une date illisible : le signaler au développeur.", "date", texte));
     }
     let n = |s: &str| -> Resultat<i64> {
-        s.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : {:?}", s))
+        s.trim().parse::<i64>().map_err(|_| socle::echec::a_la_cle("La table des cotisations livrée avec le logiciel porte une date illisible : le signaler au développeur.", "date", s))
     };
     let (an, x, y) = (n(p[0])?, n(p[1])?, n(p[2])?);
     let (mois, jour) = if y > 12 { (x, y) } else { (y, x) };
@@ -159,8 +159,8 @@ fn enregistrements(texte: &str) -> Vec<Vec<String>> {
 
 /// Code -> lignes de la table.
 fn lire(chemin: &Path) -> Resultat<Table> {
-    let octets = std::fs::read(chemin).map_err(|e| format!("{} : {}", chemin.display(), e))?;
-    let texte = String::from_utf8(octets).map_err(|e| format!("{} : {}", chemin.display(), e))?;
+    let octets = std::fs::read(chemin).map_err(|e| socle::echec::du_disque(&chemin, &e))?;
+    let texte = String::from_utf8(octets).map_err(|e| socle::echec::du_disque(&chemin, &e))?;
     let texte = texte.strip_prefix('\u{feff}').unwrap_or(&texte);
     let mut recs = enregistrements(texte).into_iter();
     let entete = recs.next().unwrap_or_default();

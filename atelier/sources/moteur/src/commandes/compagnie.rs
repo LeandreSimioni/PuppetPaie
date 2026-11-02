@@ -99,10 +99,10 @@ pub fn poser_le_jour() -> Jour {
 pub fn racine(dev: bool) -> Result<PathBuf, String> {
     if dev {
         if !mode_actif() {
-            return Err("Mode developpeur eteint : `--dev` est refuse sur ce poste (`moteur dev activer`, commande de l'atelier).".into());
+            return Err(socle::echec::avec("Le mode développeur est éteint sur ce poste : la copie de développement ne s'y ouvre pas.", serde_json::json!({"commande": "moteur dev activer"})));
         }
         if !copie_faite() {
-            return Err("Pas de copie de developpement (`moteur dev copier`, commande de l'atelier).".into());
+            return Err(socle::echec::avec("Ce poste n'a pas de copie de développement.", serde_json::json!({"commande": "moteur dev copier"})));
         }
         let d = dossier_dev();
         std::env::set_var("PUPPETPAIE_DONNEES", &d);

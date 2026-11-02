@@ -27,7 +27,7 @@ pub fn lire(t: &str) -> Result<Vec<u8>, String> {
         if c == b'=' {
             break;
         }
-        let v = ALPHABET.iter().position(|&a| a == c).ok_or("demande illisible : `base64` n'est pas du base64")?;
+        let v = ALPHABET.iter().position(|&a| a == c).ok_or_else(|| crate::echec::charge("base64", "du base64"))?;
         acc = acc << 6 | v as u32;
         n += 6;
         if n >= 8 {

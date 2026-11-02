@@ -236,7 +236,7 @@ impl Valide {
             ),
         })?;
         let une = relire::saisie_d_un_engagement(data, i);
-        let mut paie = relire::paies(ctx, &une, &[&x["paie"]])?.pop().ok_or("paie ecrite illisible")?;
+        let mut paie = relire::paies(ctx, &une, &[&x["paie"]])?.pop().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "paie"))?;
         let p = paie.ecrire();
         p.pas = x.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
         p.conges = x.get(CONGES).filter(|x| x.is_object()).map(crate::conges::CompteurConges::lire).transpose()?;
@@ -1750,7 +1750,7 @@ fn version_de_la_dsn<'a>(ctx: &Contexte, o: &'a Objet, departs: &Departs, mois: 
 
 /// Ce que la version `version` dit de `mois` (`Objet::vue` de sa saisie).
 fn vue_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Map<String, Value>>> {
-    let saisie = version.get("saisie").and_then(Value::as_object).ok_or("version ecrite illisible : `saisie`")?;
+    let saisie = version.get("saisie").and_then(Value::as_object).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "saisie"))?;
     let mut declare = o.clone();
     declare.brut = std::sync::Arc::new(Value::Object(saisie.clone()));
     declare.vue(mois)
@@ -1773,13 +1773,13 @@ pub fn paie_ecrite_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resu
 /// pas de paie pour ce mois. Elle porte le numero de son bulletin quand ses documents sont partis.
 fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Paie>> {
     let Some(ecrite) = paie_ecrite_de_la_version(o, version, mois)? else { return Ok(None) };
-    let paie = ecrite.get("paie").ok_or("paie ecrite illisible : `paie`")?;
+    let paie = ecrite.get("paie").ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "paie"))?;
     let Some(vue) = vue_de_la_version(o, version, mois)? else { return Ok(None) };
-    let mut data = ecrite.get(MOIS_LU).filter(|m| m.is_object()).cloned().ok_or_else(|| format!("paie ecrite illisible : `{}`", MOIS_LU))?;
+    let mut data = ecrite.get(MOIS_LU).filter(|m| m.is_object()).cloned().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, MOIS_LU))?;
     data["mois"] = json!(mois);
     data["engagements"] = json!([vue]);
-    let eng = relire::engagements_ecrits(ctx, &data, &[paie])?.pop().ok_or("paie ecrite illisible")?;
-    let fiches = ecrite.get("fiches").filter(|f| f.is_object()).ok_or("paie ecrite illisible : `fiches`")?;
+    let eng = relire::engagements_ecrits(ctx, &data, &[paie])?.pop().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "paie"))?;
+    let fiches = ecrite.get("fiches").filter(|f| f.is_object()).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "fiches"))?;
     let mut lue = relire::paie_sur_ses_fiches(ctx, eng, paie, fiches)?;
     let p = lue.ecrire();
     p.pas = ecrite.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;

@@ -76,7 +76,7 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
         None => (salaire_apres, quotite_apres),
     };
     let fin_mois = eng.fin_mois()?;
-    let debut_mois = Jour::nouveau(fin_mois.an, fin_mois.mois, 1).ok_or("engagements_des_periodes : premier jour du mois")?;
+    let debut_mois = Jour::nouveau(fin_mois.an, fin_mois.mois, 1).ok_or_else(|| socle::echec::cle("Le moteur ne calcule pas ce mois : le signaler au développeur.", "engagements_des_periodes"))?;
     // Le contrat borne au mois : la regle d'un premier ou d'un dernier mois incomplet le regarde, pas la coupure.
     let (debut, fin) = (eng.debut_periode()?, eng.fin_periode()?);
     let regle = crate::conges::regle_du_mois_incomplet(ctx, &eng.salarie, &debut, &fin, &debut_mois, &fin_mois);

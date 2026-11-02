@@ -455,7 +455,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         }
         let sous = if *aem { "AEM_EDI" } else { "DSN" };
         let d = export.join(sous);
-        std::fs::create_dir_all(&d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
+        std::fs::create_dir_all(&d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))?;
         let base = nom_copie(f).unwrap_or_else(|| if *aem { "fichier.txt".into() } else { "fichier.dsn".into() });
         let mut nom = base.clone();
         let mut k = 2;

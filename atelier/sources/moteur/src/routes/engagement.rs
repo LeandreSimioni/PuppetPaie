@@ -107,7 +107,7 @@ pub(super) fn en_echec(r: Refus) -> Echec {
 
 /// `charge["cle"]` : un texte requis.
 pub(super) fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
-    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
+    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", socle::echec::charge(cle, "un texte")))
 }
 
 /// La valeur de `cle` de la charge, vraie ou fausse ; `defaut` si elle manque.
@@ -124,7 +124,7 @@ pub(super) fn maintenant() -> String {
 /// L'ENGAGEMENT QU'UNE CARTE MONTRE : celui que designe `engagement` dans la charge, l'identite que le moteur a rendue a
 /// la carte (`engagement::stock::identites`). Refus : une identite que l'ecran de `mois` ne montre pas.
 fn designe(ctx: &Contexte, mois: &str, charge: &Value) -> R<(usize, engagement::stock::Objet)> {
-    let id = charge.get("engagement").ok_or_else(|| erreur("TypeError", "`engagement` : l'identité de la carte est attendue"))?;
+    let id = charge.get("engagement").ok_or_else(|| erreur("TypeError", socle::echec::charge("engagement", "l'identité de la carte")))?;
     engagement::stock::designe(&ctx.racine, mois, id).map_err(refus)
 }
 
@@ -141,7 +141,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     // Valider ne se defait pas : un engagement valide se modifie (`modifier-engagement`) ou se retire.
     if charge.get("valide").is_some() {
-        return Err(erreur("TypeError", "`valide` : valider-engagement valide ; un engagement valide se modifie ou se retire. Rien n'est écrit."));
+        return Err(erreur("TypeError", socle::echec::cle("Valider l'engagement ne se défait pas : un engagement validé se modifie ou se retire. Rien n'est écrit.", "valide")));
     }
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
@@ -184,7 +184,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
 fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     let Some(Value::Object(saisie)) = charge.get("saisie") else {
-        return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
+        return Err(erreur("TypeError", socle::echec::charge("saisie", "un objet")));
     };
     let confirme = booleen(charge, "confirme", false);
     // Le jour du mois de la carte ou un terme change, quand on le dit (le 1er sinon).

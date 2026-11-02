@@ -61,7 +61,7 @@ pub fn prendre(chemin: &Path, marque: &str, delai: i64) -> Resultat<Result<(), V
     for essai in [1, 2] {
         match OpenOptions::new().write(true).create_new(true).open(chemin) {
             Ok(mut f) => {
-                f.write_all(marque.as_bytes()).map_err(|e| format!("{} : {}", chemin.display(), e))?;
+                f.write_all(marque.as_bytes()).map_err(|e| crate::echec::du_disque(&chemin, &e))?;
                 return Ok(Ok(()));
             }
             Err(e) if e.kind() == ErrorKind::AlreadyExists => {
@@ -78,7 +78,7 @@ pub fn prendre(chemin: &Path, marque: &str, delai: i64) -> Resultat<Result<(), V
                 }
                 let _ = std::fs::remove_file(chemin);
             }
-            Err(e) => return Err(format!("{} : {}", chemin.display(), e)),
+            Err(e) => return Err(crate::echec::du_disque(&chemin, &e)),
         }
     }
     Ok(Ok(()))

@@ -74,7 +74,7 @@ pub fn dernier_ordre_des_bilans(racine: &Path, siren: &str) -> Result<Option<(i6
         if !p.is_file() {
             continue;
         }
-        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         let flux = nom.split_once("_nature11_").map(|(_, f)| f.rsplit_once('.').map_or(f, |(x, _)| x)).unwrap_or("").to_string();
         for d in crate::retours::declarations_du_bilan(&octets) {
             let texte = |k: &str| d.get(k).and_then(Value::as_str).unwrap_or("").to_string();
@@ -224,7 +224,7 @@ pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, con
         if !p.is_file() {
             continue;
         }
-        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         let bilan = crate::retours::bilan_d_octets(&octets);
         if bilan.is_null() {
             continue;

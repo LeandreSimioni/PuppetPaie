@@ -241,7 +241,7 @@ pub fn reglage(inst: &Path) -> R<(Option<String>, bool)> {
     if !p.exists() {
         return Ok((None, false));
     }
-    let d = lire_json(&p).filter(Value::is_object).ok_or("maj/reglage.json illisible")?;
+    let d = lire_json(&p).filter(Value::is_object).ok_or_else(|| socle::echec::avec("Le réglage de la mise à jour ne se lit pas.", json!({"chemin": p.to_string_lossy()})))?;
     let depot = d.get("depot").and_then(Value::as_str).filter(|s| !s.is_empty()).map(String::from);
     Ok((depot, d.get("editeur").and_then(Value::as_bool).unwrap_or(false)))
 }
@@ -308,7 +308,7 @@ fn lire_depot_suivi(depot: &str, nom: &str, suivre: &dyn Fn(u64, Option<u64>)) -
         return lire_tout(&mut lecteur, attendus).map_err(|e| (HORS_LIGNE, format!("{} : {}", url, e)));
     }
     let p = Path::new(depot).join(nom);
-    let dit = |e: std::io::Error| (INTROUVABLE, format!("{} : {}", p.display(), e));
+    let dit = |e: std::io::Error| (INTROUVABLE, socle::echec::du_disque(&p, &e));
     let mut f = std::fs::File::open(&p).map_err(dit)?;
     let attendus = f.metadata().ok().map(|m| m.len());
     lire_tout(&mut f, attendus).map_err(dit)
@@ -326,27 +326,32 @@ fn derniere_dite(depot: &str) -> Result<Value, Echec> {
     derniere_lue(&octets).map_err(|e| (ILLISIBLE, e))
 }
 
+/// La version publiee (`derniere.json`) qui ne se lit pas : la phrase en mots, la cle a part.
+fn publiee_illisible(cle: &str, detail: impl std::fmt::Display) -> String {
+    socle::echec::avec("La version publiée ne se lit pas : la mise à jour se refera à la prochaine.", json!({"fichier": "derniere.json", "cle": cle, "detail": detail.to_string()}))
+}
+
 fn derniere_lue(octets: &[u8]) -> R<Value> {
-    let d: Value = serde_json::from_slice(octets).map_err(|e| format!("derniere.json illisible : {}", e))?;
+    let d: Value = serde_json::from_slice(octets).map_err(|e| publiee_illisible("", e))?;
     if d.get("version").and_then(Value::as_str).filter(|s| !s.is_empty()).is_none() {
-        return Err("derniere.json sans « version »".into());
+        return Err(publiee_illisible("version", "").into());
     }
-    let archives = d.get("archives").and_then(Value::as_object).filter(|a| !a.is_empty()).ok_or("derniere.json sans « archives »")?;
+    let archives = d.get("archives").and_then(Value::as_object).filter(|a| !a.is_empty()).ok_or_else(|| publiee_illisible("archives", ""))?;
     for (systeme, a) in archives {
         if systeme != TOUT_SYSTEME && !SYSTEMES.contains(&systeme.as_str()) {
-            return Err(format!("derniere.json : « {} » n'est pas un systeme", systeme));
+            return Err(publiee_illisible("archives", systeme).into());
         }
         for k in ["archive", "sha256", "signature"] {
             if a.get(k).and_then(Value::as_str).filter(|s| !s.is_empty()).is_none() {
-                return Err(format!("derniere.json : l'archive « {} » sans « {} »", systeme, k));
+                return Err(publiee_illisible(&format!("archives.{}.{}", systeme, k), "").into());
             }
         }
     }
     // Celle de tous les systemes dit lesquels elle porte : ceux qui ont ete fabriques.
     if let Some(t) = archives.get(TOUT_SYSTEME) {
-        let portes = t.get("systemes").and_then(Value::as_array).filter(|l| !l.is_empty()).ok_or("derniere.json : l'archive « tout-systeme » sans « systemes »")?;
+        let portes = t.get("systemes").and_then(Value::as_array).filter(|l| !l.is_empty()).ok_or_else(|| publiee_illisible("archives.tout-systeme.systemes", ""))?;
         if let Some(x) = portes.iter().find(|x| !x.as_str().is_some_and(|x| SYSTEMES.contains(&x))) {
-            return Err(format!("derniere.json : « {} » n'est pas un systeme", x));
+            return Err(publiee_illisible("archives.tout-systeme.systemes", x).into());
         }
     }
     Ok(d)
@@ -416,7 +421,7 @@ fn deballer(octets: &[u8], neuf: &Path) -> R<()> {
 fn deballer_ce_qui(octets: &[u8], neuf: &Path, garder: &dyn Fn(&str) -> bool) -> R<()> {
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(octets)).map_err(|e| format!("archive illisible : {}", e))?;
     if z.file_names().any(|n| n == format!("{}/VERSION", LOGICIEL) || n.starts_with(&format!("{}/", crate::interface::compagnies::DOSSIER_FICTIVES))) {
-        return Err("c'est une archive d'installation (logiciel/ et fictives/), pas une archive de mise a jour".into());
+        return Err("C'est une archive d'installation, pas une archive de mise à jour.".into());
     }
     for i in 0..z.len() {
         let mut f = z.by_index(i).map_err(|e| e.to_string())?;
@@ -440,7 +445,7 @@ fn deballer_ce_qui(octets: &[u8], neuf: &Path, garder: &dyn Fn(&str) -> bool) ->
         #[cfg(unix)]
         if executable {
             use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&chemin, std::fs::Permissions::from_mode(0o755)).map_err(|e| format!("{} : {}", chemin.display(), e))?;
+            std::fs::set_permissions(&chemin, std::fs::Permissions::from_mode(0o755)).map_err(|e| socle::echec::du_disque(&chemin, &e))?;
         }
         #[cfg(not(unix))]
         let _ = executable;
@@ -453,7 +458,7 @@ fn controler(neuf: &Path, racine: &Path) -> R<()> {
     // La fenetre sert aussi les routes (`puppetpaie route`) : c'est elle qu'on livre, pas la ligne de commande.
     let exe = programme(neuf, "puppetpaie");
     if !exe.is_file() {
-        return Err(format!("le programme de ce systeme manque dans l'archive ({})", exe.display()));
+        return Err(socle::echec::avec("Le programme de ce système manque dans l'archive.", json!({"chemin": exe.to_string_lossy()})));
     }
     let mut c = std::process::Command::new(&exe);
     c.args(["route", "--racine"])
@@ -487,12 +492,12 @@ fn controler(neuf: &Path, racine: &Path) -> R<()> {
 /// (`completer_le_portable`). Un echec de lecture porte `HORS_LIGNE` ou `INTROUVABLE` ; une archive qui n'est pas la
 /// notre, `ALTEREE` ou `SIGNATURE_REFUSEE`.
 fn archive_verifiee(depot: &str, a: &Value, cles: &[&str], suivre: &dyn Fn(u64, Option<u64>)) -> Result<Vec<u8>, Echec> {
-    let nom = a.get("archive").and_then(Value::as_str).filter(|n| !n.is_empty()).ok_or((INTROUVABLE, "derniere.json : une archive sans « archive »".to_string()))?;
+    let nom = a.get("archive").and_then(Value::as_str).filter(|n| !n.is_empty()).ok_or((INTROUVABLE, publiee_illisible("archives.archive", "")))?;
     let octets = lire_depot_suivi(depot, nom, suivre)?;
     let sha = condensat(&octets);
     let attendu = a.get("sha256").and_then(Value::as_str).unwrap_or_default();
     if sha != attendu {
-        return Err((ALTEREE, format!("{} alteree (condensat {}, attendu {})", nom, sha, attendu)));
+        return Err((ALTEREE, socle::echec::avec("Une archive téléchargée est altérée : elle se télécharge de nouveau à la prochaine mise à jour.", json!({"fichier": nom, "condensat": sha, "attendu": attendu}))));
     }
     let signature = a.get("signature").and_then(Value::as_str).ok_or((SIGNATURE_REFUSEE, format!("{} non signee : derniere.json n'a pas de « signature »", nom)))?;
     if !signee_par_l_une(&octets, signature, cles) {
@@ -533,7 +538,7 @@ fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Reche
     let systemes = systemes_poses(&logiciel_de(inst));
     let jeux = jeux_a_essayer(d, &systemes);
     if jeux.is_empty() {
-        return Err((INTROUVABLE, format!("derniere.json n'a pas d'archive qui porte {}", systemes.join(", "))));
+        return Err((INTROUVABLE, socle::echec::avec(format!("La version publiée n'a pas d'archive pour ce système ({}).", systemes.join(", ")), json!({"fichier": "derniere.json"}))));
     }
     let mut manquees = Vec::new();
     let mut mot = INTROUVABLE;
@@ -626,7 +631,7 @@ pub fn completer_le_portable(inst: &Path, portable: bool, cles: &[&str]) -> R<Va
     let code = logiciel_de(inst);
     let version = courante(&code);
     if version == "0.0.0" {
-        return Err(format!("{} n'a pas de logiciel/VERSION : ce n'est pas une installation. {}", inst.display(), rien));
+        return Err(socle::echec::avec(format!("Ce dossier n'est pas une installation de PuppetPaie. {}", rien), json!({"chemin": inst.to_string_lossy()})));
     }
     if a_installer(inst).is_some() {
         return Err(format!("Une mise à jour attend le redémarrage : redémarrez PuppetPaie, puis recommencez. {}", rien));
@@ -680,7 +685,7 @@ pub fn completer_le_portable(inst: &Path, portable: bool, cles: &[&str]) -> R<Va
         }
     }
     if portable && !inst.join(crate::compagnie::coffre::MARQUEUR_PORTABLE).is_file() {
-        std::fs::write(inst.join(crate::compagnie::coffre::MARQUEUR_PORTABLE), crate::compagnie::coffre::CONTENU_PORTABLE).map_err(|e| format!("{} : {}", inst.display(), e))?;
+        std::fs::write(inst.join(crate::compagnie::coffre::MARQUEUR_PORTABLE), crate::compagnie::coffre::CONTENU_PORTABLE).map_err(|e| socle::echec::du_disque(&inst, &e))?;
     }
     let noms = |l: &[&'static str]| l.iter().map(|s| systeme_lu(s)).collect::<Vec<_>>().join(", ");
     let mut phrase = if ajoutes.is_empty() && absents.is_empty() {
@@ -833,7 +838,7 @@ pub fn poser_les_fictives_pretes(inst: &Path) -> Option<String> {
         let d = poste.join(nom);
         if d.exists() {
             std::fs::create_dir_all(&avant).map_err(|e| e.to_string())?;
-            std::fs::rename(&d, avant.join(nom)).map_err(|e| format!("{} : {}", d.display(), e))?;
+            std::fs::rename(&d, avant.join(nom)).map_err(|e| socle::echec::du_disque(&d, &e))?;
         }
         let _ = std::fs::remove_dir_all(origines.join(nom));
         Ok(())
@@ -848,7 +853,7 @@ pub fn poser_les_fictives_pretes(inst: &Path) -> Option<String> {
             dit.push(format!("{} non posee : un dossier de ce nom, que la livraison n'a pas pose, reste tel quel", nom));
             continue;
         }
-        let pose = ecarter(nom).and_then(|_| std::fs::rename(neuves.join(nom), &d).map_err(|e| format!("{} : {}", d.display(), e)));
+        let pose = ecarter(nom).and_then(|_| std::fs::rename(neuves.join(nom), &d).map_err(|e| socle::echec::du_disque(&d, &e)));
         match pose {
             Ok(()) => {
                 posees.insert(nom.clone(), nouvelle["posees"][nom].clone());
@@ -1258,7 +1263,7 @@ fn dire_l_installation(inst: &Path, suivi: &Recherche) {
     }
     a["vue"] = json!(true);
     if let Err(e) = ecrire_json(&chemin, &a) {
-        noter(inst, &format!("{} : {}", chemin.display(), e));
+        noter(inst, &socle::echec::du_disque(&chemin, &e));
     }
     let calcul = a.get("calcul").and_then(Value::as_str).map(str::trim).unwrap_or_default();
     if calcul.is_empty() {
@@ -1339,20 +1344,20 @@ fn appliquer_depuis(maj: &Path, code: &Path) -> R<Value> {
     let mut faire = || -> R<()> {
         for p in entrees(code)? {
             let nom = p.file_name().unwrap_or_default().to_os_string();
-            deplacer(&p, &avant.join(&nom)).map_err(|e| format!("{} : {}", p.display(), e))?;
+            deplacer(&p, &avant.join(&nom)).map_err(|e| socle::echec::du_disque(&p, &e))?;
             deplaces.push(nom);
         }
         for p in entrees(&neuf)? {
             let nom = p.file_name().unwrap_or_default().to_os_string();
-            deplacer(&p, &code.join(&nom)).map_err(|e| format!("{} : {}", p.display(), e))?;
+            deplacer(&p, &code.join(&nom)).map_err(|e| socle::echec::du_disque(&p, &e))?;
             arrives.push(nom);
         }
         for nom in PROPRES_A_L_INSTALLATION {
             if code.join(nom).is_file() {
-                std::fs::remove_file(code.join(nom)).map_err(|e| format!("{} : {}", code.join(nom).display(), e))?;
+                std::fs::remove_file(code.join(nom)).map_err(|e| socle::echec::du_disque(&code.join(nom), &e))?;
             }
             if avant.join(nom).is_file() {
-                copier(&avant.join(nom), &code.join(nom)).map_err(|e| format!("{} : {}", code.join(nom).display(), e))?;
+                copier(&avant.join(nom), &code.join(nom)).map_err(|e| socle::echec::du_disque(&code.join(nom), &e))?;
             }
         }
         Ok(())
@@ -1387,7 +1392,7 @@ pub fn revenir(inst: &Path) -> R<Value> {
     let code = &logiciel_de(inst);
     let avant = code.join(".avant");
     if !avant.join("donnees").is_dir() {
-        return Err(format!("pas de version d'avant dans {}", avant.display()));
+        return Err(socle::echec::avec("Cette installation n'a pas de version d'avant où revenir.", json!({"chemin": avant.to_string_lossy()})));
     }
     let version_avant = courante(&avant);
     // Ce qui part est DEPLACE dans `.apres/`, puis efface si possible : sous Windows, le programme qui lance `maj
@@ -1400,7 +1405,7 @@ pub fn revenir(inst: &Path) -> R<Value> {
         if NE_PAS_TOUCHER.iter().any(|n| p.file_name().is_some_and(|f| f == *n)) {
             continue;
         }
-        deplacer(&p, &apres.join(e.file_name())).map_err(|e| format!("{} : {}", p.display(), e))?;
+        deplacer(&p, &apres.join(e.file_name())).map_err(|e| socle::echec::du_disque(&p, &e))?;
     }
     for e in std::fs::read_dir(&avant).map_err(|e| e.to_string())?.flatten() {
         deplacer(&e.path(), &code.join(e.file_name())).map_err(|e| e.to_string())?;
@@ -1512,7 +1517,7 @@ pub fn lancer_relais(inst: &Path, version: &str) -> R<bool> {
     let neuf = maj.join(version).join("logiciel");
     let source = programme(&neuf, "puppetpaie");
     if !source.is_file() {
-        return Err(format!("le programme de la fenetre manque dans la version {} ({})", version, source.display()));
+        return Err(socle::echec::avec(format!("Le programme de la fenêtre manque dans la version {}.", version), json!({"chemin": source.to_string_lossy()})));
     }
     let relais = maj.join(format!("relais-{}{}", version, if cfg!(windows) { ".exe" } else { "" }));
     std::fs::copy(&source, &relais).map_err(|e| e.to_string())?;
@@ -1630,12 +1635,12 @@ pub fn commande(args: &[String]) -> i32 {
                 publier_depuis_l_environnement(Path::new(&l), Path::new(&s), &valeur("--notes").unwrap_or_default(), &valeur("--calcul").unwrap_or_default(), &valeur("--exigee").unwrap_or_default())
                     .map(|r| format!("Signee : {} ({}) dans {}", r["version"].as_str().unwrap_or(""), dire_les_archives(&r), r["dossier"].as_str().unwrap_or(""))),
             ),
-            _ => Some(Err("--publier-github demande --logiciel DOSSIER et --sortie DOSSIER".into())),
+            _ => Some(Err(socle::echec::avec("La publication demande le dossier du logiciel et celui où écrire.", json!({"options": "--logiciel DOSSIER --sortie DOSSIER"})))),
         }
     } else if drapeau("--marquer-fictives") {
         Some(match valeur("--logiciel") {
             Some(l) => marquer_les_fictives(Path::new(&l)).map(|e| format!("Fictives marquees : livraison {}.", e)),
-            None => Err("--marquer-fictives demande --logiciel DOSSIER".into()),
+            None => Err(socle::echec::avec("Marquer les fictives demande le dossier du logiciel.", json!({"options": "--logiciel DOSSIER"}))),
         })
     } else {
         None

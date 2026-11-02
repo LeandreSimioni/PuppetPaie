@@ -52,7 +52,6 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::interface::compagnies::{self, Compagnie};
-use socle::echec::Echec;
 
 /// Le registre de l'administrateur, a la racine de l'installation.
 pub const FICHIER: &str = "administrateur.json";
@@ -121,7 +120,7 @@ fn ecrire_registre(inst: &Path, entrees: &[Value]) -> Result<(), String> {
         return match std::fs::remove_file(&p) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(e) => Err(format!("{} : {}", p.display(), e)),
+            Err(e) => Err(socle::echec::du_disque(&p, &e)),
         };
     }
     let v = json!({
@@ -238,10 +237,10 @@ pub fn etat(inst: &Path, racine: Option<&Path>, poste: &Poste) -> Value {
 /// Remplace `chemin` par `octets`, d'un coup (a cote puis a la place) ; 0600 sous Unix.
 fn remplacer(chemin: &Path, octets: &[u8]) -> Result<(), String> {
     if let Some(d) = chemin.parent() {
-        std::fs::create_dir_all(d).map_err(|e| format!("{} : {}", d.display(), e))?;
+        std::fs::create_dir_all(d).map_err(|e| socle::echec::du_disque(&d, &e))?;
     }
     let tmp = chemin.with_extension("bin.administrateur");
-    std::fs::write(&tmp, octets).map_err(|e| format!("{} : {}", tmp.display(), e))?;
+    std::fs::write(&tmp, octets).map_err(|e| socle::echec::du_disque(&tmp, &e))?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -249,7 +248,7 @@ fn remplacer(chemin: &Path, octets: &[u8]) -> Result<(), String> {
     }
     std::fs::rename(&tmp, chemin).map_err(|e| {
         let _ = std::fs::remove_file(&tmp);
-        format!("{} : {}", chemin.display(), e)
+        socle::echec::du_disque(&chemin, &e)
     })
 }
 
@@ -282,7 +281,7 @@ pub fn rattacher(inst: &Path, racine: &Path, admin: &str, actuel: Option<&str>, 
         return Err("Une compagnie fictive s'ouvre sans mot de passe : elle n'a pas d'administrateur.".into());
     }
     let Some(rel) = relatif(inst, racine) else {
-        return Err(format!("{} n'est pas une compagnie de ce logiciel ({}).", racine.display(), inst.display()));
+        return Err(socle::echec::avec("Ce dossier n'est pas une compagnie de cette installation.", serde_json::json!({"chemin": racine.to_string_lossy(), "installation": inst.to_string_lossy()})));
     };
     if est_rattachee(inst, racine) {
         return Err("Cette compagnie est déjà gérée par l'administrateur.".into());
@@ -408,7 +407,7 @@ pub fn changer(inst: &Path, actuel: &str, nouveau: &str, confirmation: &str, pos
 /// (test parti, bilan attendu), `test_refuse`, `a_tester`. Les memes lectures que l'etape de depot du mois
 /// (`crate::routes::etapes`, la route `etat-du-mois`).
 fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: Option<&str>) -> R<&'static str> {
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     let empreinte = envois::journal::empreinte(&octets);
     if vrai(&etats::deja_depose(lignes, "dsn", &empreinte)?) {
         return Ok("deposee");
@@ -769,7 +768,7 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
             Ok(v) => {
                 sortie["parti"] = json!(false);
                 let message = v.get("erreur").map(|e| e.as_str().map(String::from).unwrap_or_else(|| e.to_string())).unwrap_or_default();
-                sortie["refus"] = json!(crate::compagnie::depot_acte::phrase_de(&Echec { classe: None, message }));
+                sortie["refus"] = json!(socle::echec::separer(&message).0);
                 sortie["classe"] = v.get("classe").cloned().unwrap_or(Value::Null);
             }
             Err(m) => {

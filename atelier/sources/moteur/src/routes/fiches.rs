@@ -523,7 +523,7 @@ pub(crate) fn lire_tolerant(p: &Path) -> R<Option<Value>> {
             std::io::ErrorKind::PermissionDenied => "PermissionError",
             _ => "OSError",
         };
-        erreur(classe, format!("{} : {}", p.display(), e))
+        erreur(classe, socle::echec::du_disque(&p, &e))
     })?;
     Ok(String::from_utf8(octets).ok().and_then(|t| serde_json::from_str(&t).ok()))
 }
@@ -1185,11 +1185,11 @@ pub(crate) fn en_os(m: String) -> Echec {
 }
 
 pub(super) fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
-    exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
+    exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", socle::echec::charge(cle, "un texte")))
 }
 
 pub(crate) fn creer_dossier(d: &Path) -> R<()> {
-    std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
+    std::fs::create_dir_all(d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))
 }
 
 /// Un fichier de configuration : son objet, vide s'il n'existe pas.
@@ -1199,7 +1199,7 @@ pub(crate) fn objet_du_fichier(chemin: &Path) -> R<Map<String, Value>> {
     }
     match lire_saisie(chemin)? {
         Value::Object(m) => Ok(m),
-        _ => Err(erreur("AttributeError", format!("{} : un objet JSON est attendu", chemin.display()))),
+        _ => Err(erreur("AttributeError", socle::echec::abime(chemin, "un objet est attendu"))),
     }
 }
 
@@ -1731,14 +1731,19 @@ impl Forcer {
 }
 
 /// Ce que `echoue` dit : la fiche porte au moins une erreur, elle n'a pas ete ecrite.
-fn fiche_refusee(anomalies: &[Value]) -> Echec {
-    let erreurs: Vec<&Value> = anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).collect();
-    let phrases: Vec<String> = erreurs
+fn fiche_refusee(nom: &str, anomalies: &[Value]) -> Echec {
+    let phrases: Vec<String> = anomalies
         .iter()
-        .map(|a| format!("{} : {}", a.get("champ").map_or_else(String::new, valeur_en_texte), a.get("message").map_or_else(String::new, valeur_en_texte)))
+        .filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur"))
+        .map(|a| {
+            let cle = a.get("champ").map_or_else(String::new, valeur_en_texte);
+            let libelle = champs::champ(nom, &cle).ok().flatten().map(|c| c.libelle.to_string()).filter(|l| !l.is_empty());
+            let message = a.get("message").map_or_else(String::new, valeur_en_texte);
+            libelle.map_or(message.clone(), |l| format!("« {} » : {}", l, message))
+        })
         .collect();
-    let message = format!("{} erreur(s) : {}", erreurs.len(), phrases.join(" ; "));
-    Echec { classe: Some("FicheRefusee"), message: json!({"message": message, "anomalies": anomalies}).to_string() }
+    let message = format!("La fiche n'est pas écrite : {}", phrases.join(" ; "));
+    Echec { classe: Some("FicheRefusee"), message: socle::echec::avec(message, json!({"anomalies": anomalies})) }
 }
 
 /// Ce que l'ecriture d'une fiche a fait : sa cle (celle d'une fiche neuve est fabriquee ici), les anomalies, et si le
@@ -1758,7 +1763,7 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle: Option<String> = match charge.get("cle") {
         None | Some(Value::Null) => None,
         Some(Value::String(s)) => Some(s.clone()),
-        Some(_) => return Err(erreur("TypeError", "`cle` : un texte est attendu")),
+        Some(_) => return Err(erreur("TypeError", socle::echec::charge("cle", "un texte"))),
     };
     let donnees = exiger(charge, "donnees")?;
     let forcer = charge.get("forcer").is_some_and(vrai);
@@ -1796,7 +1801,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
         return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
     if !donnees.is_object() {
-        return Err(erreur("TypeError", "`donnees` : un objet est attendu"));
+        return Err(erreur("TypeError", socle::echec::charge("donnees", "un objet")));
     }
     let vide = Value::Object(Map::new());
     let montree = crate::routes::etablissements::entreprise_montree(ctx);
@@ -1919,7 +1924,7 @@ cette fiche-là, ou corrigez le numéro.",
     let mut anomalies = crate::routes::fiches::verifier(nom, &entiere)?;
     anomalies.extend(champs::cases_inconnues(nom, &donnees, ancienne, !matches!(forcer, Forcer::Tout))?);
     if forcer.refuse(&anomalies) {
-        return Err(fiche_refusee(&anomalies));
+        return Err(fiche_refusee(nom, &anomalies));
     }
 
     let (depuis, note) = (depuis_de(depuis)?, Some(valeur_en_texte(note)).filter(|n| vrai(note) && !n.trim().is_empty()));
@@ -2250,9 +2255,9 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
             continue;
         }
         let dossier = ctx.racine.join("sorties").join("fiches-salaries");
-        std::fs::create_dir_all(&dossier).map_err(|e| os(format!("{} : {}", dossier.display(), e)))?;
+        std::fs::create_dir_all(&dossier).map_err(|e| os(socle::echec::du_disque(&dossier, &e)))?;
         let eml = dossier.join(format!("Fiche_{}.eml", code));
-        std::fs::write(&eml, &brut).map_err(|e| os(format!("{} : {}", eml.display(), e)))?;
+        std::fs::write(&eml, &brut).map_err(|e| os(socle::echec::du_disque(&eml, &e)))?;
         let jour: Vec<&str> = quand.get(..10).unwrap_or("").split('-').rev().collect();
         let mut note = format!("Fiche remplie par la personne, par courriel, le {}. Reste à choisir l'emploi.", jour.join("/"));
         if !illisible.is_empty() {

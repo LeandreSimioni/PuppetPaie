@@ -77,7 +77,7 @@ fn code_subrogation_oui() -> Resultat<String> {
             return Ok(en_texte(&c["code"]));
         }
     }
-    Err("subrogation : pas de code « oui » dans arrets-base.json".into())
+    Err(socle::echec::livree("arrets-base.json", "subrogation"))
 }
 
 pub fn avec_subrogation(a: &Arret) -> Resultat<bool> {
@@ -492,7 +492,7 @@ pub fn avertissement_hors_dsn(nature: &str, motif: &str) -> Result<Option<String
         _ => return Ok(None),
     };
     let n = json_en_cache(&dossier_du_code().join("obligations-base.json"))?;
-    let o = n.get("obligations").and_then(|o| o.get(cle)).ok_or_else(|| format!("obligations-base.json : l'obligation {} manque", repr(cle)))?;
+    let o = n.get("obligations").and_then(|o| o.get(cle)).ok_or_else(|| socle::echec::livree("obligations-base.json", cle))?;
     if !sauf_motifs(o).iter().any(|m| m == motif) {
         return Ok(None);
     }

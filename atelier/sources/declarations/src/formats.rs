@@ -156,7 +156,7 @@ impl Lecteur {
         match c {
             'd' => Ok(Elt::Chiffre),
             's' => Ok(Elt::Espace),
-            c if c.is_ascii_alphanumeric() => Err(format!("echappement \\{} non pris en charge", c)),
+            c if c.is_ascii_alphanumeric() => Err(socle::echec::a_la_cle("Un format de la norme livrée ne se lit pas : le signaler au développeur.", "format", c)),
             c => Ok(Elt::Car(c)),
         }
     }
@@ -502,11 +502,9 @@ pub fn verifier_fichier(texte: &str) -> Resultat<()> {
         let lib = libelles.get(r).map(|s| s.as_str()).unwrap_or("");
         dites.push(dire(&norme, r, v, p, lib, saisies.iter().find(|s| s.0 == r).copied())?);
     }
-    Err(format!(
-        "Valeur(s) qui ne suivent pas le format de la norme :\n{}\n  Formats du cahier technique NEODeS (donnees/{}).{}",
-        dites.join("\n"),
-        norme.table_formats()?,
-        trou
+    Err(socle::echec::avec(
+        format!("Valeur(s) qui ne suivent pas le format de la norme :\n{}\n  Formats du cahier technique NEODeS.{}", dites.join("\n"), trou),
+        serde_json::json!({"fichier": norme.table_formats()?}),
     ))
 }
 

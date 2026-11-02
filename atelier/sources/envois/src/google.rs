@@ -147,7 +147,7 @@ pub fn jeton_par_rafraichissement(
             };
             match &v {
                 Value::Object(o) if o.get("access_token").is_some_and(|t| t.is_string() && vrai(t)) => Ok(Ok(en_texte(&o["access_token"]))),
-                _ => Ok(Err("Google n'a pas rendu de jeton d'acces (reponse sans `access_token`). Reessayer plus tard ; si cela dure, lier de nouveau le compte.".into())),
+                _ => Ok(Err("Google n'a pas rendu de jeton d'acces. Reessayer plus tard ; si cela dure, lier de nouveau le compte.".into())),
             }
         }
         Err(panne) => match phrase_de_panne(panne) {

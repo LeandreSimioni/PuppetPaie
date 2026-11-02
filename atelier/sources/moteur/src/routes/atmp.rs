@@ -73,7 +73,7 @@ fn ecrire(racine: &Path, an: i64, taux: Map<String, Value>) -> R<()> {
     };
     d.insert("taux_atmp".into(), Value::Object(taux));
     if let Some(parent) = p.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| erreur("OSError", format!("{} : {}", parent.display(), e)))?;
+        std::fs::create_dir_all(parent).map_err(|e| erreur("OSError", socle::echec::du_disque(&parent, &e)))?;
     }
     if p.exists() {
         crate::routes::mois::sauver_avant(&p)?;

@@ -180,10 +180,10 @@ fn fichier_json(f: &Fichier) -> Value {
 /// (cree s'il manque ; s'il est sous `dossier`, il n'est pas parcouru), et donne a chaque fichier sa sorte.
 pub fn trier(dossier: &Path, travail: &Path) -> R<Tri> {
     if !dossier.is_dir() {
-        return Err(erreur("ErreurOperation", format!("Le dossier a trier n'existe pas : {}", dossier.display())));
+        return Err(erreur("ErreurOperation", socle::echec::avec("Le dossier à trier n'existe pas.", serde_json::json!({"chemin": dossier.to_string_lossy()}))));
     }
     std::fs::create_dir_all(travail)
-        .map_err(|e| erreur("ErreurOperation", format!("Le dossier de travail ne se cree pas : {} ({})", travail.display(), e)))?;
+        .map_err(|e| erreur("ErreurOperation", socle::echec::du_disque(travail, &e)))?;
     let mut t = Trieur { travail: travail.to_path_buf(), travail_canon: std::fs::canonicalize(travail).ok(), vus: HashMap::new(), fichiers: Vec::new() };
     t.parcourir(dossier, "", None, 0);
     Ok(Tri { dossier: dossier.to_path_buf(), fichiers: t.fichiers })

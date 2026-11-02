@@ -111,7 +111,7 @@ fn lire_json_sans_cache(p: &Path) -> Resultat<Value> {
     let texte = socle::fichiers::lire_texte(p).map_err(|e| {
         socle::fichiers::panne_fichier(&e, p)
     })?;
-    serde_json::from_str(&texte).map_err(|e| format!("{} ({})", e, p.display()))
+    serde_json::from_str(&texte).map_err(|e| socle::echec::du_disque(&p, &e))
 }
 
 fn objet(v: Value, nom: &str) -> Resultat<Map<String, Value>> {
@@ -562,19 +562,19 @@ fn convention(socle_annee: &Value, idcc: &Value) -> Result<Value, String> {
         par_conv.as_object().map(|o| o.keys().map(String::as_str).filter(|k| !k.starts_with('_')).collect()).unwrap_or_default();
     let idcc = texte_ou_vide(Some(idcc)).trim().to_string();
     if idcc.is_empty() {
-        return Err(format!(
+        return Err(socle::echec::avec("La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.", serde_json::json!({"cle": "idcc", "detail": format!(
             "Bareme {} : la fiche entreprise ne dit pas son `idcc`, et les \
 cotisations conventionnelles en dependent.\n\
 \x20 Conventions couvertes : {}.\n\
 \x20 A ecrire dans config/entreprise.json : \"idcc\": \"3090\".",
             annee,
             connues.join(", ")
-        ));
+        )})));
     }
     let couche = match par_conv.get(&idcc) {
         Some(c) if c.is_object() => c,
         _ => {
-            return Err(format!(
+            return Err(socle::echec::avec("La convention collective de la compagnie n'est pas couverte par le barème : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Bareme {} : la convention collective {} n'a pas de couche dans le \
 socle, et le moteur refuse de payer avec celle d'une autre \
 branche.\n\
@@ -587,7 +587,7 @@ de ses intermittents cadres), a relever puis a ajouter dans \
                 idcc,
                 connues.join(", "),
                 annee
-            ));
+            )})));
         }
     };
     if couche.get("applicable") == Some(&Value::Bool(false)) {
@@ -753,11 +753,11 @@ l'effectif qu'il y emploie (CGCT, L. 2333-64, I) : son taux et le code INSEE de 
     if griefs.is_empty() {
         return Ok(());
     }
-    Err(format!(
+    Err(socle::echec::avec("Les établissements de la fiche entreprise se mêlent : chacun se déclare dans sa propre DSN, avec ce qui est à lui.", serde_json::json!({"detail": format!(
         "config/entreprise.json, etablissements : chaque etablissement se \
 declare dans sa propre DSN, avec ce qui est a lui.\n  - {}",
         griefs.join("\n  - ")
-    ))
+    )})))
 }
 
 /// Le secteur de la fiche est-il un de ceux du bareme ?
@@ -818,7 +818,7 @@ fn controler_organisation_patronale(bareme: &Value, fiche: &Value) -> Resultat<(
     let couche = match couche_organisation(bareme, &nom) {
         Some(c) => c,
         None => {
-            return Err(format!(
+            return Err(socle::echec::avec("L'organisation patronale de la compagnie n'est pas couverte par le barème : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Bareme {} : la fiche entreprise declare une adhesion a \
 l'organisation patronale {} , et le socle n'a pas de couche pour \
 elle.\n\
@@ -834,7 +834,7 @@ ne change pour elle.",
                 if connues.is_empty() { "aucune".to_string() } else { connues.join(", ") },
                 annee
             )
-            .replace(" , et le socle", ", et le socle"));
+            .replace(" , et le socle", ", et le socle")})));
         }
     };
     if couche.get("applicable") != Some(&Value::Bool(true)) {
@@ -1192,7 +1192,7 @@ fn dater_les_accords(v: &mut Value, organisation: Option<&str>) -> Resultat<()> 
                 };
                 let source = en_texte(&source);
                 let accord = crate::minima::accord(&t, &source)
-                    .ok_or_else(|| format!("Bareme : l'accord {} n'est pas decrit dans minima-conventionnels.json.", source))?;
+                    .ok_or_else(|| socle::echec::livree("minima-conventionnels.json", &source))?;
                 let depuis = depuis_entree(&e)?.map(|j| j.iso()).unwrap_or_default();
                 if let Some(j) = crate::minima::lie_depuis(accord, organisation, &depuis) {
                     e["depuis"] = Value::String(j);
@@ -1703,14 +1703,14 @@ impl Contexte {
         let sec = brut.get("plafond_securite_sociale").filter(|v| vrai(v)).cloned().unwrap_or(Value::Null);
         match (sec.get("mensuel").filter(|v| vrai(v)), sec.get("horaire").filter(|v| vrai(v))) {
             (Some(m), Some(h)) => Ok((entier(m)?, entier(h)?)),
-            _ => Err(format!(
+            _ => Err(socle::echec::avec("Le barème de l'année n'a pas le plafond de la Sécurité sociale : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Pas de plafond de Securite sociale pour {} dans \
 config/baremes/{}.json : ajouter la section \
 plafond_securite_sociale ({{\"mensuel\": ..., \"horaire\": ...}}), \
 relevee sur la table des parametres du BOSS (PSS_M_METROP, \
 PSS_H_METROP).",
                 annee, annee
-            )),
+            )}))),
         }
     }
 
@@ -1718,7 +1718,7 @@ PSS_H_METROP).",
     /// les revalorisations ; la derniere dont `depuis <= date` gagne).
     pub fn smic(&self, jour: &Jour) -> Resultat<f64> {
         let brut = self.bareme_brut(jour.an, &self.entreprise_au(jour)?).map_err(|r| r.message)?;
-        let liste = exiger(&brut, "smic_horaire")?.as_array().ok_or_else(|| "smic_horaire : une liste est attendue".to_string())?;
+        let liste = exiger(&brut, "smic_horaire")?.as_array().ok_or_else(|| socle::echec::a_la_cle("Le barème de l'année est incomplet : le signaler au développeur.", "smic_horaire", ""))?;
         let mut entrees: Vec<&Value> = liste.iter().collect();
         for e in &entrees {
             exiger(e, "depuis")?;
@@ -1884,7 +1884,7 @@ PSS_H_METROP).",
                 c.starts_with(&q) || levenshtein(&q, &c) <= 3
             });
             if ressemble {
-                return Err(format!(
+                return Err(socle::echec::avec(format!("{} ressemble à {} {}, dont la fiche est archivée : pour l'embaucher à nouveau, rendre sa fiche active dans Configuration › Salariés.", repr_texte(nom), n, p), serde_json::json!({"cle": cle, "detail": format!(
                     "Salarie archive : {} ressemble a {} {} (cle {}), dont la fiche porte \
 `actif: false`. L'appeler par sa cle exacte pour rejouer \
 une paie passee ; pour l'embaucher a nouveau, remettre \
@@ -1893,7 +1893,7 @@ une paie passee ; pour l'embaucher a nouveau, remettre \
                     n,
                     p,
                     repr_texte(cle)
-                ));
+                )})));
             }
         }
         Err(format!("Salarie inconnu : {}. Connus : {}.", repr_texte(nom), actifs.join(", ")))

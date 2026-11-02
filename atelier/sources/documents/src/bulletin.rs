@@ -294,7 +294,7 @@ fn emploi_imprime(e: &engagement::Engagement, sal: &Value) -> Resultat<String> {
 pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value, jour: &Jour) -> Resultat<(String, String)> {
     let idcc = droit::minima::idcc_du_contrat(ent, sp, sal)?;
     if idcc.is_empty() {
-        return Err("La fiche entreprise ne dit pas sa convention collective (`idcc`).".into());
+        return Err(socle::echec::cle("La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.", "idcc"));
     }
     let libelle = if idcc == "1734" {
         "Artistes-interprètes engagés pour des émissions de télévision".to_string()
@@ -1293,10 +1293,10 @@ pub fn jeux_et_description(
     // La licence est DATEE : l'appelant la resout au mois du bulletin.
     if let Some(l) = ent.get("licence_spectacle") {
         if !l.is_null() && !l.is_string() {
-            return Err(format!(
-                "licence_spectacle non resolue : elle vaut {}. Le numero change de date en date ; le resoudre au \
-                 mois du bulletin avec Contexte.licence(), comme le fait la fabrique des documents (`depart`).",
-                forme_ecrite(l)
+            return Err(socle::echec::a_la_cle(
+                "Le numéro de licence de la compagnie ne se lit pas pour ce mois : le vérifier dans Configuration › Entreprise.",
+                "licence_spectacle",
+                forme_ecrite(l),
             ));
         }
     }

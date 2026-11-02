@@ -1025,8 +1025,8 @@ pub(crate) fn entree_ecrite(nom: String, octets: Vec<u8>) -> Entree {
 
 /// La date et les droits du fichier.
 pub(crate) fn entree_fichier(f: &Path, nom: String) -> R<Entree> {
-    let octets = std::fs::read(f).map_err(|e| avec("OSError", format!("{} : {}", f.display(), e)))?;
-    let meta = std::fs::metadata(f).map_err(|e| avec("OSError", format!("{} : {}", f.display(), e)))?;
+    let octets = std::fs::read(f).map_err(|e| avec("OSError", socle::echec::du_disque(&f, &e)))?;
+    let meta = std::fs::metadata(f).map_err(|e| avec("OSError", socle::echec::du_disque(&f, &e)))?;
     let (date, heure) = horodatage_dos(secondes(&meta));
     Ok(Entree { nom, octets, date, heure, attributs: (mode(&meta) & 0xFFFF) << 16 })
 }

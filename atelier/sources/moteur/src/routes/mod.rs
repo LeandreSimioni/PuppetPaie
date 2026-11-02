@@ -114,9 +114,29 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // Ce que la compagnie porte (les engagements, le journal de ce qui est parti) se lit une fois par geste (`fichiers::geste`).
     let _geste = socle::fichiers::geste();
     crate::compagnie::incidents::brancher_l_engagement();
-    let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
-    let route = d.get("route").and_then(Value::as_str).ok_or("demande illisible : il faut `route`")?;
+    let d: Value = serde_json::from_str(entree).unwrap_or(Value::Null);
+    let route = d.get("route").and_then(Value::as_str).unwrap_or_default();
     let charge = d.get("charge").cloned().unwrap_or_else(|| json!({}));
+    let rendu = servir(o, entree, route, &charge);
+    // Ce que la route rend, reussite ou refus, est ce que l'ecran lit : ses phrases passent ici (`phrase_a_sa_place`).
+    let racine = crate::service::compagnie_nommee(o).then(|| crate::service::racine_de(o));
+    if let (Ok(v), Some(r)) = (&rendu, &racine) {
+        if catalogue::dans(accueil::ROUTES, route).is_none() && catalogue::dans(catalogue::ROUTES, route).is_none() {
+            phrase_a_sa_place(r, route, v);
+        }
+    }
+    Ok(reponse(racine.as_deref(), route, rendu))
+}
+
+/// La route `route` servie : ce qu'elle rend, ou son refus.
+fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value) -> Result<Value, Echec> {
+    if let Err(e) = serde_json::from_str::<Value>(entree) {
+        return Err(socle::echec::avec("La demande ne se lit pas : ce n'est pas du JSON.", json!({"detail": e.to_string()})).into());
+    }
+    if route.is_empty() {
+        return Err(socle::echec::avec("La demande ne nomme pas sa route.", json!({"cle": "route"})).into());
+    }
+    let charge = charge.clone();
     // Le mot de passe du logiciel tape pour cette route ouvre aussi le coffre (`coffre::retenir_mot_de_passe_tape`) ;
     // dans la fenetre, le temps de cette route seulement (`dans_la_fenetre`).
     if let Some(m) = charge.get("motdepasse").and_then(Value::as_str) {
@@ -131,12 +151,12 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     }
     // UNE ROUTE DE L'INSTALLATION (l'accueil des compagnies) ne porte sur aucune compagnie : elle se sert sans contexte.
     if catalogue::dans(accueil::ROUTES, route).is_some() {
-        return reponse(accueil::route(o, route, &charge));
+        return accueil::route(o, route, &charge);
     }
     // ECRIRE AU DEVELOPPEUR, ET CE QUI S'Y RATTACHE, SE SERT AUSSI SANS COMPAGNIE : depuis l'accueil, ou en ligne de
     // commande sans `--racine` (`filet::sans_compagnie`).
     if catalogue::dans(filet::ROUTES, route).is_some() && !crate::service::compagnie_nommee(o) {
-        return reponse(filet::route_sans_compagnie(o, route, &charge));
+        return filet::route_sans_compagnie(o, route, &charge);
     }
     // Le catalogue lui-meme, ce que `moteur routes --json` imprime : il ne porte sur aucune compagnie non plus.
     if catalogue::dans(catalogue::ROUTES, route).is_some() {
@@ -144,7 +164,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         let lignes: Vec<Value> = v["routes"].as_array().into_iter().flatten().map(|f| json!(format!("{} : {}", mot(&f["nom"]), mot(&f["geste"])))).collect();
         let p = format!("Routes : {} (la fiche de chacune : moteur routes NOM).", lignes.len());
         v["phrases"] = Value::Array(lignes);
-        return reponse(Ok(phrase_en_tete(v, p)));
+        return Ok(phrase_en_tete(v, p));
     }
     // UNE ROUTE QUI PORTE UN MOIS LIT LA CONFIGURATION DE CE MOIS (`Contexte::du_mois`) : sa paie, sa DSN et ses documents
     // se font sous les valeurs qui valaient alors, jamais sous celles d'aujourd'hui.
@@ -163,14 +183,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         _ if dans(contrats::ROUTES) => contrats::route(o, &ctx, route, &charge),
         _ if dans(modeles_contrat::ROUTES) => modeles_contrat::route(o, &ctx, route, &charge),
         _ if dans(documents::ROUTES) => documents::route(o, &ctx, route, &charge),
-        // Un refus du depot qui porte une donnee pour la page (`etat`) la rend a cote de `erreur` et `classe`.
-        _ if dans(depots::ROUTES) => match depots::route(o, &ctx, route, &charge) {
-            Err(Echec { classe: Some(c), message }) if matches!(c, "RepetitionManquante" | "DsnDejaDeposee") => {
-                let d: Value = serde_json::from_str(&message).unwrap_or_else(|_| json!({"message": message}));
-                return Ok(json!({"ok": false, "erreur": d["message"], "classe": c, "etat": d["etat"]}));
-            }
-            autre => autre,
-        },
+        _ if dans(depots::ROUTES) => depots::route(o, &ctx, route, &charge),
         _ if dans(imprevus::ROUTES) => imprevus::route(o, &ctx, route, &charge),
         // Les obligations d'un arret : le jour ou la compagnie l'a su, la declaration d'accident faite.
         _ if dans(crate::obligations::ROUTES) => crate::obligations::route(&ctx, route, &charge),
@@ -199,38 +212,62 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Le banc : l'horloge de la compagnie fictive (rattraper ce qui etait du, ce que le bandeau « pendant votre
         // absence » lit ; `horloge::HorlogeFictive`).
         r if crate::horloge::ROUTES.contains(&r) => crate::horloge::route(o, &ctx, route, &charge),
-        autre => return Err(format!("route inconnue : {}", autre)),
+        autre => return Err(socle::echec::avec("Cette route n'existe pas : la liste des routes le dit.", json!({"route": autre})).into()),
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     // Les mots de passe et les comptes (`routes::coffre`), le filet et les messages au developpeur (`routes::filet`) ne
     // dependent d'aucun de ces manques : leur refus se dit seul.
-    let rendu = match rendu {
-        Err(Echec { classe, message }) if est_une_ecriture(route) && !dans(coffre::ROUTES) && !dans(filet::ROUTES) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) && !message.trim_start().starts_with('{') => {
-            let suite = declarations::demarrage::a_la_suite(&ctx, &message).unwrap_or_default();
-            Err(Echec { classe, message: message + &suite })
+    match rendu {
+        Err(Echec { classe, message }) if est_une_ecriture(route) && !dans(coffre::ROUTES) && !dans(filet::ROUTES) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) => {
+            // Un refus qui porte une donnee a part (l'etat d'un mois, les anomalies d'une fiche, un chemin) se dit seul.
+            let message = if socle::echec::separer(&message).1.is_empty() { let suite = declarations::demarrage::a_la_suite(&ctx, &message).unwrap_or_default(); message + &suite } else { message };
+            Err(Echec { classe, message })
         }
         autre => autre,
-    };
-    // Les etats des mois se refont dans la fenetre, dans son processus, apres chaque ecriture
-    // (`etat_garde::FileDesEtats`) ; hors de la fenetre, un etat perime se refait a sa lecture.
-    if let Ok(v) = &rendu {
-        phrase_a_sa_place(&ctx.racine, route, v);
     }
-    reponse(rendu)
 }
 
-/// La reponse de `moteur route` a ce que la route a rendu : `{"ok", "resultat"}`, ou son refus et sa classe.
-fn reponse(rendu: Result<Value, Echec>) -> Resultat<Value> {
+/// LA REPONSE DE `moteur route`, le seul endroit ou ce qu'une route a rendu devient ce que l'ecran et le LLM lisent :
+/// `{"ok": true, "resultat"}`, ou `{"ok": false, "erreur", "classe"}` et ce que le refus porte a part
+/// (`socle::echec::avec` : un chemin, une cle, l'etat d'un mois, les anomalies d'une fiche). La phrase d'un refus se lit
+/// a l'ecran : elle passe la verification de ce que l'ecran affiche (`refus_a_sa_place`).
+fn reponse(racine: Option<&Path>, route: &str, rendu: Result<Value, Echec>) -> Value {
     match rendu {
-        Ok(v) => Ok(json!({"ok": true, "resultat": v})),
-        // Une fiche refusee porte ses anomalies : la page les montre.
-        Err(Echec { classe: Some("FicheRefusee"), message }) => {
-            let d: Value = serde_json::from_str(&message).unwrap_or_else(|_| json!({"message": message}));
-            Ok(json!({"ok": false, "erreur": d["message"], "classe": "FicheRefusee", "anomalies": d["anomalies"]}))
+        Ok(v) => json!({"ok": true, "resultat": v}),
+        Err(Echec { classe, message }) => {
+            let (phrase, plus) = socle::echec::separer(&message);
+            if let Some(r) = racine {
+                refus_a_sa_place(r, route, &phrase);
+            }
+            let mut m = Map::new();
+            m.insert("ok".into(), Value::Bool(false));
+            m.insert("erreur".into(), Value::String(phrase));
+            if let Some(c) = classe {
+                m.insert("classe".into(), json!(c));
+            }
+            for (k, v) in plus {
+                m.entry(k).or_insert(v);
+            }
+            Value::Object(m)
         }
-        Err(Echec { classe: None, message }) => Err(message),
-        Err(Echec { classe: Some(c), message }) => Ok(json!({"ok": false, "erreur": message, "classe": c})),
     }
+}
+
+/// UNE PHRASE DE REFUS QUI N'EST PAS FAITE POUR L'ECRAN (un chemin, un nom de fichier, un terme de code :
+/// `affiche::defaut`) se lit quand meme, et note un incident silencieux au developpeur : la route et le defaut, jamais la
+/// phrase. On la corrige a la cause : la phrase en mots, ce qui n'est pas pour l'ecran a part (`socle::echec::avec`).
+fn refus_a_sa_place(racine: &Path, route: &str, phrase: &str) {
+    let Some(d) = affiche::defaut(phrase, usize::MAX, false) else { return };
+    let resume = format!("Un refus de la route {} n'est pas fait pour l'écran : {}.", route, d.corriger());
+    let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
+        nature: crate::compagnie::incidents::LOGICIEL,
+        resume: &resume,
+        ou: route,
+        quoi: "PhrasePasFaitePourLEcran",
+        detail: json!({"route": route, "defaut": format!("{:?}", d), "refus": true}),
+        sans_contexte: true,
+        ..Default::default()
+    });
 }
 
 /// LA PLUS LONGUE DES PHRASES QUE REND UNE ROUTE, en caracteres : la sienne, et celle de chaque ligne qu'elle porte (la
@@ -430,13 +467,13 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
         std::io::ErrorKind::PermissionDenied => "PermissionError",
         _ => "OSError",
     };
-    erreur(classe, format!("{} : {}", p.display(), e))
+    erreur(classe, socle::echec::du_disque(p, e))
 }
 
 /// Un fichier lu en UTF-8.
 fn lire_texte(p: &Path) -> R<String> {
     let octets = std::fs::read(p).map_err(|e| erreur_io(&e, p))?;
-    String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))
+    String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", socle::echec::du_disque(&p, &e)))
 }
 
 /// Le JSON d'un fichier UTF-8.
