@@ -129,8 +129,8 @@ pub const ROUTES: &[Fiche] = &[
     },
     Fiche {
         nom: "portable-completer",
-        geste: "Ajouter au dossier les systèmes qui lui manquent (Windows, Linux, macOS).",
-        charge: &[Champ { nom: "portable", sens: "vrai : faire aussi de ce dossier un dossier portable (PORTABLE.json)", avance: false }],
+        geste: "Ajouter les systèmes qui manquent à ce dossier.",
+        charge: &[Champ { nom: "portable", sens: "vrai : rendre ce dossier portable, pour une clé USB", avance: false }],
         exemple: r#"{"portable":true}"#,
         rend: "ajoutes, absents (les systèmes que la version n'a pas), version, portable, phrase",
         refus: &[Refus { classe: "ErreurOperation", corriger: "le réseau, la mise à jour en attente, ou ce que la phrase dit ; rien n'est posé" }],

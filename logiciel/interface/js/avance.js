@@ -9,11 +9,11 @@
 "use strict";
 
 /** La forme d'un champ, d'après la valeur que l'exemple de la fiche lui donne (un champ que l'exemple ne donne pas et
- *  dont le sens dit « vrai : … » est un oui/non). */
+ *  que le catalogue dit oui/non, `oui_non`, est une case). */
 function formeDuChamp(f, c) {
   const ex = f.exemple ? f.exemple[c.nom] : undefined;
   if (Array.isArray(ex)) return "liste";
-  if (typeof ex === "boolean" || (ex === undefined && /^vrai\b/.test(c.sens))) return "case";
+  if (typeof ex === "boolean" || (ex === undefined && c.oui_non)) return "case";
   if (typeof ex === "number") return "nombre";
   if (c.nom === "mois" || (typeof ex === "string" && /^\d{4}-\d{2}$/.test(ex))) return "mois";
   return "texte";
@@ -57,7 +57,7 @@ function dessinerAvance(cible) {
   enveloppe.hidden = !routes.length;
   cible.innerHTML = routes.map((f, i) => `
     <div class="carte avance-route" data-i="${i}">
-      ${f.charge.map((c, j) => `<label class="champ-boite">${echapper(c.sens)}
+      ${f.charge.map((c, j) => `<label class="champ-boite">${echapper(c.libelle)}
         ${saisieDuChamp(formeDuChamp(f, c), j)}</label>`).join("")}
       <p><button class="secondaire" data-faire>${echapper(f.geste)}</button></p>
       <div data-rendu></div>

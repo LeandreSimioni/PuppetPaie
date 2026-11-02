@@ -120,6 +120,29 @@ pub struct Champ {
     pub avance: bool,
 }
 
+/// LE SENS D'UN OUI/NON commence par « vrai : » : le catalogue le dit (`oui_non`) et rend ce que l'écran affiche à côté
+/// de la case (`libelle`, le sens sans ce mot), pour que la page n'en décide rien.
+const OUI_NON: &str = "vrai : ";
+
+impl Champ {
+    pub fn en_json(&self) -> Value {
+        let libelle = self.sens.strip_prefix(OUI_NON);
+        json!({
+            "nom": self.nom,
+            "sens": self.sens,
+            "avance": self.avance,
+            "oui_non": libelle.is_some(),
+            "libelle": libelle.map(majuscule).unwrap_or_else(|| self.sens.to_string()),
+        })
+    }
+}
+
+/// La première lettre en capitale : un libellé commence une phrase.
+fn majuscule(s: &str) -> String {
+    let mut c = s.chars();
+    c.next().map(|p| p.to_uppercase().chain(c).collect()).unwrap_or_default()
+}
+
 /// LES CASES DE LA CARTE D'UN CONTRAT PAYE AU MOIS, dans la charge `saisie` (les faits du mois et ses termes). La marque
 /// « avancé » range l'ecran et le catalogue a la fois : la page met sous « Avancé » de la carte les cases marquees, et
 /// seulement celles que l'engagement appelle (`faits_avances` de la route apercu, `engagement::heures_en_plus::faits_appeles`).
@@ -200,9 +223,9 @@ impl Fiche {
         json!({
             "nom": self.nom,
             "geste": self.geste,
-            "charge": self.charge.iter().map(|c| json!({"nom": c.nom, "sens": c.sens, "avance": c.avance})).collect::<Vec<_>>(),
-            "cases": cases(self.charge).iter().map(|c| json!({"nom": c.nom, "sens": c.sens, "avance": c.avance})).collect::<Vec<_>>(),
-            "cases_de_la_fin": cases_de_la_fin(self.charge).iter().map(|c| json!({"nom": c.nom, "sens": c.sens, "avance": c.avance})).collect::<Vec<_>>(),
+            "charge": self.charge.iter().map(|c| c.en_json()).collect::<Vec<_>>(),
+            "cases": cases(self.charge).iter().map(|c| c.en_json()).collect::<Vec<_>>(),
+            "cases_de_la_fin": cases_de_la_fin(self.charge).iter().map(|c| c.en_json()).collect::<Vec<_>>(),
             "exemple": serde_json::from_str::<Value>(self.exemple).unwrap_or(Value::Null),
             "rend": self.rend,
             "refus": self.refus.iter().map(|r| json!({"classe": r.classe, "corriger": r.corriger})).collect::<Vec<_>>(),
