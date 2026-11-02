@@ -64,7 +64,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Calculer sans rien écrire les paies du mois, avec les cartes en cours.",
         charge: &[MOIS, CARTES],
         exemple: r#"{"mois":"2026-11","cartes":[]}"#,
-        rend: "paies (une par engagement, ou ce qui lui manque : a_completer), les trois nombres de chaque carte, le mois",
+        rend: "paies (une par engagement, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer), les trois nombres de chaque carte, le mois",
         refus: &[SAISIE_INCOMPLETE, MANQUE, FORME],
         acte: Acte::Lit,
         avance: false,
@@ -113,7 +113,7 @@ pub const ROUTES: &[Fiche] = &[
         charge: &[
             MOIS,
             Champ { nom: "engagement", sens: "l'identité de la carte ; absente pour une carte neuve", avance: false },
-            Champ { nom: "saisie", sens: "ce que la carte porte : salarie, spectacle, lignes [{rubrique, quantite, taux, dates}]…", avance: false },
+            super::engagement::SAISIE,
         ],
         exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}}"#,
         rend: "engagement (l'identité écrite), a_completer (ce qui lui manque, ou null), enregistre_a",

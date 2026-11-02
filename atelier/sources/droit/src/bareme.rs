@@ -1013,43 +1013,28 @@ pub fn bareme_casc(bar: Value) -> Resultat<Value> {
 /// confrontee a l'effectif : elle decide du FNAS (article III.3.1).
 pub fn representation_du_personnel(ent: &Value) -> Resultat<String> {
     let v = txt(g(ent, "representation_personnel")).trim().to_lowercase();
-    let effectif = g(ent, "effectif");
     if !v.is_empty() && !REPRESENTATIONS.contains(&v.as_str()) {
-        let liste: Vec<String> = REPRESENTATIONS.iter().map(|x| format!("<< {} >>", x)).collect();
-        return Err(format!(
-            "config/entreprise.json, `representation_personnel` = '{}' : \
-inconnu. Les valeurs possibles sont {}.",
-            v,
-            liste.join(", ")
-        ));
+        let liste: Vec<String> = REPRESENTATIONS.iter().map(|x| format!("« {} »", x)).collect();
+        return Err(format!("Comité social et économique (`representation_personnel`) « {} » : inconnu ; les valeurs possibles sont {}.", v, liste.join(", ")));
     }
     if !v.is_empty() {
         return Ok(v);
     }
-    if let Some(e) = effectif.as_f64() {
-        if e < 11.0 {
-            // III.3.1.b : moins de onze salaries, 1,45 %.
-            return Ok("aucune".to_string());
-        }
+    match g(ent, "effectif").as_f64() {
+        // III.3.1.b : moins de onze salaries, 1,45 %.
+        Some(e) if e < 11.0 => Ok("aucune".to_string()),
+        Some(_) => Err(
+            "Comité social et économique (CSE) : la compagnie compte au moins onze salariés, et la CCNEAC fait dépendre de son CSE \
+la contribution au FNAS (article III.3.1). Le dire dans Configuration › Entreprise : pas de CSE (carence constatée), un CSE \
+conventionnel (11 à 49 salariés), ou un CSE de 50 salariés et plus, adhérent au FNAS ou non. Il ne se devine pas : le CSE \
+conventionnel est la règle « sauf carence »."
+                .to_string(),
+        ),
+        // Sans effectif connu, le CSE ne se demande pas : c'est l'effectif qui manque (`contexte::Effectif::a_dire`).
+        None => Err("L'effectif de la compagnie n'est pas connu : sous onze salariés, la CCNEAC fixe la contribution au FNAS \
+sans CSE (article III.3.1). Le dire dans « Pour démarrer »."
+            .to_string()),
     }
-    Err("config/entreprise.json : `representation_personnel` manque, et \
-la CCNEAC en fait dependre le FNAS (article III.3.1) :\n  \
-<< aucune >>             pas de representation (proces-verbal \
-de carence) : 1,45 %% des bruts ;\n  \
-<< csec >>               un CSE conventionnel, de 11 a 49 \
-salaries : 0,825 %% des bruts des permanents, 1,325 %% de ceux \
-des intermittents ;\n  \
-<< cse_adherent_fnas >>  un CSE d'au moins 50 salaries qui \
-adhere au FNAS : les memes taux ;\n  \
-<< cse >>                un CSE d'au moins 50 salaries qui n'y \
-adhere pas : pas de FNAS (le CSE recoit 1,25 %% pour ses \
-activites sociales, hors paie).\n  \
-Sous onze salaries la question ne se pose pas. Au-dela, elle \
-ne se devine pas : le CSE conventionnel est la regle << sauf \
-carence >>.\n  \
-C'est l'entreprise qui le sait (ses elections) : l'effectif de \
-l'Urssaf n'est pas celui du code du travail, qui decide du CSE."
-        .to_string())
 }
 
 /// LA CAISSE DES CONGES SPECTACLES (`par_caisse_conges`), quand le contrat n'est pas ce que sa nature decrit : un

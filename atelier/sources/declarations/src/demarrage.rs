@@ -217,10 +217,36 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // n'est franchi qu'apres « cinq années civiles consécutives » (CSS, art. L. 130-1, II,
     // `atelier/reference/sources/code-de-la-securite-sociale/articles-20261011.md` l. 296), et des taux de chaque paie en
     // dependent (onze et cinquante salaries) : elle est exigee pour l'effectif de la paie.
+    // Une compagnie plus ancienne dit l'effectif de chaque annee qui manque (`Effectif::a_dire`), tel que l'Urssaf l'a
+    // calcule (L. 130-1, I) : celle qui arrive d'un autre logiciel n'a pas ses comptes rendus de nature 118.
     let an = ctx.aujourdhui.an;
-    if let Err(m) = ctx.effectif().and_then(|e| e.atteint(11, an).map(|_| ())) {
-        let (libelle, _) = champ("premiere_embauche");
-        out.push(manque("premiere_embauche", libelle, "l'effectif de toute paie (seuils de 11 et 50 salariés)", ENTREPRISE, Some("premiere_embauche"), m));
+    if let Ok(e) = ctx.effectif() {
+        let manquent = e.a_dire(an);
+        if !manquent.is_empty() && e.premiere_embauche.is_none() {
+            let (libelle, _) = champ("premiere_embauche");
+            let m = e.atteint(11, an).err().unwrap_or_else(|| format!("L'effectif de {} n'est pas connu.", an - 1));
+            out.push(manque("premiere_embauche", libelle, "l'effectif de toute paie (seuils de 11 et 50 salariés)", ENTREPRISE, Some("premiere_embauche"), m));
+        } else if !manquent.is_empty() {
+            let annees = manquent.iter().map(i32::to_string).collect::<Vec<_>>().join(", ");
+            out.push(manque(
+                "effectif",
+                format!("L'effectif de {}", annees),
+                "l'effectif de toute paie (seuils de 11 et 50 salariés)",
+                ENTREPRISE,
+                None,
+                "Ces années sont d'avant PuppetPaie : leur effectif se dit tel que l'Urssaf l'a calculé (l'effectif annuel moyen de l'année, sur le compte rendu « Effectifs » de nature 118 reçu au début de l'année suivante), sous « Avancé », une année à la fois. Le compte rendu 118 de l'Urssaf le remplace à son arrivée.".to_string(),
+            ));
+        }
+    }
+    // LE CSE, la ou la convention en fait dependre une contribution (`par_representation` : le FNAS de la CCNEAC,
+    // article III.3.1) et seulement quand l'effectif de la paie compte au moins onze salaries : en dessous, la question
+    // ne se pose pas (III.3.1.b, `droit::bareme::representation_du_personnel`).
+    let cle = "representation_personnel";
+    let par_representation = |b: &Value| b["contributions_conventionnelles"].as_array().is_some_and(|l| l.iter().any(|c| c.get("par_representation").is_some()));
+    let onze = ctx.effectif().ok().and_then(|e| e.valeur(an)).is_some_and(|e| e >= 11.0);
+    if onze && !valeur(ent, cle).is_some_and(vrai) && ctx.bareme(&ctx.aujourdhui).is_ok_and(|b| par_representation(&b)) {
+        let (libelle, aide) = champ(cle);
+        out.push(manque(cle, libelle, "la contribution au FNAS de chaque paie", ENTREPRISE, Some(cle), aide));
     }
     // EN ALSACE-MOSELLE, le taux pose a la creation (celui de l'annexe 1) ne vaut pas : l'annexe 3 en fixe d'autres (art. 4
     // de l'arrete, `atelier/reference/sources/tarification-atmp/`), et le taux se saisit (`droit::bareme::taux_de_l_arrete`).

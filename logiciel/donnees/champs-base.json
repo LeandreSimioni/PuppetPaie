@@ -855,11 +855,11 @@
    "ecran": true
   },
   {
-   "_note": "L'EFFECTIF NE SE SAISIT PAS : l'Urssaf le calcule et le\nrenvoie en CRM de nature 118, et le releve des retours l'ecrit seul dans\nconfig/effectifs.json (`envois/src/releve_retours.rs`). Ce qui se saisit,\nc'est la date de la PREMIERE EMBAUCHE : avant elle, aucun salarie, et\nune compagnie neuve n'a pas a attendre cinq ans de 118 pour etre payee\n(art. L. 130-1, II, CSS).",
+   "_note": "L'EFFECTIF, l'Urssaf le calcule et le renvoie en CRM de nature 118,\net le releve des retours l'ecrit dans config/effectifs.json\n(`envois/src/releve_retours.rs`). Avant la PREMIERE EMBAUCHE, aucun salarie :\nune compagnie neuve n'a pas a attendre cinq ans de 118 pour etre payee\n(art. L. 130-1, II, CSS). Une compagnie plus ancienne, venue d'un autre\nlogiciel, dit l'effectif des annees qui manquent (route `effectif`), qu'un 118\nremplace.",
    "cle": "premiere_embauche",
    "libelle": "Date de la première embauche",
    "forme": "date",
-   "aide": "La date de la toute première embauche de la compagnie, même faite avec un autre logiciel. Pour une compagnie de moins de cinq ans, elle est nécessaire au calcul de la paie : sans elle, l'effectif est inconnu. Au-delà, le logiciel lit l'effectif dans les retours de l'Urssaf.",
+   "aide": "La date de la toute première embauche de la compagnie, même faite avec un autre logiciel. Pour une compagnie de moins de cinq ans, elle est nécessaire au calcul de la paie : sans elle, l'effectif est inconnu. Au-delà, « Pour démarrer » demande l'effectif des années que les retours de l'Urssaf n'ont pas encore dit.",
    "longueur": null,
    "exemple": "",
    "choix": [],

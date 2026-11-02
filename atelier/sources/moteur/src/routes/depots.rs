@@ -114,10 +114,15 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             v["encarts"] = Value::Array(encarts);
             lignes.extend(v["avertissements"].as_array().into_iter().flatten().cloned());
             v["phrases"] = Value::Array(lignes);
-            // Une DSN se dit par sa nature, son mois et ses salaries quand rien d'autre n'est a dire.
+            // Une DSN se dit par sa nature, son mois et ses salaries quand rien d'autre n'est a dire ; une DPAE par ses
+            // embauches.
             if !v["phrase"].as_str().is_some_and(|p| !p.is_empty()) {
                 let mois = engagement::libelle_mois(v["mois"].as_str().unwrap_or(""));
-                let p = format!("{} {} : {}.", valeur_en_texte(&v["libelle_nature"]), socle::texte::de(&mois), super::compte(v["salaries"].as_u64().unwrap_or(0) as usize, "salarié", "salariés"));
+                let (nature, combien) = match v.get("embauches") {
+                    Some(e) => ("DPAE".to_string(), super::compte(super::nombre(e), "embauche", "embauches")),
+                    None => (super::mot(&v["libelle_nature"]), super::compte(v["salaries"].as_u64().unwrap_or(0) as usize, "salarié", "salariés")),
+                };
+                let p = format!("{} {} : {}.", nature, socle::texte::de(&mois), combien);
                 v = super::phrase_en_tete(v, p);
             }
             v

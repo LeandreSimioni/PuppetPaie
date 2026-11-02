@@ -325,15 +325,16 @@ pub fn fiche_datee(plate: &Map<String, Value>) -> Map<String, Value> {
 
 const CODE_SECURITE_SOCIALE: &str = "A01";
 const ANNEES_CONSECUTIVES: i32 = 5;
-const CLE_PASSE: &str = "jamais_au_dessus_de";
+/// Le plus petit seuil d'effectif dont un taux depend (la formation des permanents) : une annee qui ne le departage pas
+/// ne departage aucun des autres.
+const PLUS_PETIT_SEUIL: i64 = 11;
 
-/// Les effectifs A01 connus, par annee civile (`config/effectifs.json`, que le
-/// moteur ecrit depuis les retours de nature 118 ; on ne fait que le lire).
+/// Les effectifs A01 connus, par annee civile (`config/effectifs.json`) : ceux que l'Urssaf renvoie en compte rendu de
+/// nature 118, que le releve des retours y ecrit, et ceux que la compagnie dit pour une annee sans 118
+/// (`envois::releve_retours::poser_effectif`), qu'un 118 de la meme annee remplace.
 #[derive(Debug, Clone, Default)]
 pub struct Effectif {
     pub annees: BTreeMap<i32, f64>,
-    /// (seuil, derniere annee) : declare sous ce seuil jusqu'a cette annee.
-    pub passe: Option<(i64, i64)>,
     /// L'annee de la premiere embauche (fiche entreprise) : avant elle, zero.
     pub premiere_embauche: Option<i32>,
 }
@@ -353,11 +354,7 @@ pub fn effectif_de(racine: &Path, fiche: &Value) -> Resultat<Effectif> {
             }
         }
     }
-    let passe = match brut.get(CLE_PASSE) {
-        Some(p) if vrai(p) => Some((entier(exiger(p, "seuil")?)?, entier(exiger(p, "jusqu_a")?)?)),
-        _ => None,
-    };
-    Ok(Effectif { annees, passe, premiere_embauche: annee_de_premiere_embauche(fiche) })
+    Ok(Effectif { annees, premiere_embauche: annee_de_premiere_embauche(fiche) })
 }
 
 /// L'annee de la premiere embauche (AAAA-MM-JJ ou AAAAMMJJ).
@@ -394,6 +391,20 @@ impl Effectif {
         }
     }
 
+    /// LES ANNEES DONT L'EFFECTIF MANQUE POUR PAYER EN `annee_paie` : la derniere, quand aucune n'est connue avant
+    /// (`valeur`, qui fait le taux de la paie) ; celles des cinq dernieres que le plus petit seuil ne departage pas
+    /// (`atteint`, L. 130-1, II, CSS). Vide : l'effectif de la paie est connu.
+    pub fn a_dire(&self, annee_paie: i32) -> Vec<i32> {
+        let mut v: Vec<i32> = Vec::new();
+        if self.atteint(PLUS_PETIT_SEUIL, annee_paie).is_err() {
+            v.extend((annee_paie - ANNEES_CONSECUTIVES..annee_paie).filter(|a| self.annee(*a).is_none()));
+        }
+        if self.valeur(annee_paie).is_none() && !v.contains(&(annee_paie - 1)) {
+            v.push(annee_paie - 1);
+        }
+        v
+    }
+
     /// Le seuil est-il franchi pour payer en `annee_paie` ? (L. 130-1, II, CSS :
     /// cinq annees civiles consecutives.)
     pub fn atteint(&self, seuil: i64, annee_paie: i32) -> Resultat<bool> {
@@ -402,33 +413,16 @@ impl Effectif {
         if connues.values().any(|v| *v < seuil as f64) {
             return Ok(false);
         }
-        if let Some((s, jusqu)) = self.passe {
-            if seuil >= s && fenetre.clone().any(|a| i64::from(a) <= jusqu && !connues.contains_key(&a)) {
-                return Ok(false); // une annee declaree sous le seuil
-            }
-        }
         if connues.len() == ANNEES_CONSECUTIVES as usize {
             return Ok(true);
         }
         let manquent: Vec<String> = fenetre.filter(|a| !connues.contains_key(a)).map(|a| a.to_string()).collect();
         Err(format!(
-            "Effectif de l'entreprise, pour payer en {} : {} -- le moteur ne \
-sait pas si le seuil de {} salaries est franchi.\n\
-\x20 Une compagnie de moins de cinq ans : renseigner la date de sa \
-premiere embauche (Configuration > Entreprise), et c'est tout.\n\
-\x20 Un seuil n'est franchi qu'apres CINQ annees civiles \
-consecutives au-dessus (art. L. 130-1, II, CSS), et il manque \
-l'effectif de {}. L'Urssaf le calcule et le renvoie en \
-compte-rendu metier de nature 118 : relever les retours \
-(route `ouverture`), le moteur \
-l'ecrit seul dans config/effectifs.json.\n\
-\x20 Une compagnie qui a embauche pour la premiere fois il y a moins \
-de cinq ans n'a qu'a le dire : la date de sa premiere embauche \
-(`premiere_embauche` de la fiche entreprise) suffit, les annees \
-d'avant n'ont pas de salarie.\n\
-\x20 Il ne se saisit pas et ne se devine pas : des taux en \
-dependent (formation des permanents a onze salaries ; FNAL, \
-reduction generale et echeance de la DSN a cinquante).",
+            "Effectif de l'entreprise pour payer en {} : {}. Le seuil de {} salariés ne se franchit qu'après cinq années civiles \
+consécutives au-dessus (CSS, art. L. 130-1, II) : il manque l'effectif de {}. Une compagnie de moins de cinq ans dit la date \
+de sa première embauche (Configuration › Entreprise) ; une plus ancienne dit l'effectif de chacune de ces années, tel que \
+l'Urssaf l'a calculé (« Pour démarrer », ou la route effectif). Le compte rendu de nature 118 de l'Urssaf le remplace \
+à son arrivée.",
             annee_paie,
             if connues.is_empty() {
                 "rien de connu".to_string()
