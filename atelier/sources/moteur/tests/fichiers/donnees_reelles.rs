@@ -115,8 +115,9 @@ fn fichiers(racine: &Path, sortie: &mut Vec<PathBuf>) {
 /// Chaque fichier et dossier de ce qui sera public.
 fn publics() -> Vec<PathBuf> {
     let mut v = Vec::new();
-    for d in PUBLIC {
-        fichiers(&depot().join(d), &mut v);
+    // `fictives/` n'existe que là où une livraison l'a fabriqué (`scenario::livrer`) : vérifié quand il est là.
+    for d in PUBLIC.iter().map(|d| depot().join(d)).filter(|d| d.exists()) {
+        fichiers(&d, &mut v);
     }
     v.sort();
     v
