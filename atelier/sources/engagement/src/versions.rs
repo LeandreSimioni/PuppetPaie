@@ -7,7 +7,7 @@ use serde_json::{json, Map, Value};
 
 use crate::departs::{Depart, Departs, Envoi};
 use crate::etats::{ses_departs, Valide};
-use crate::stock::SUITE;
+use crate::stock::{DATES, FAITS};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use socle::fichiers::vrai;
@@ -138,18 +138,49 @@ fn en_mots(cle: &str, v: Option<&Value>) -> String {
 }
 
 /// CE QUI A CHANGE d'une saisie a l'autre, en mots, dans l'ordre ou l'on lit un engagement : les bornes, chaque ligne
-/// (son nombre, son taux, ses jours, son lieu), puis les autres clauses, et chaque mois suivant d'un contrat qui deborde.
+/// (son nombre, son taux, ses jours, son lieu), puis les autres clauses ; chaque terme qui change a une date (« À partir
+/// du 01/09 : Salaire mensuel : … → … ») ; et les faits de chaque mois suivant d'un contrat qui deborde.
 pub fn changements(ctx: &Contexte, avant: &Value, apres: &Value) -> Vec<String> {
     let vide = Map::new();
     let (a, b) = (avant.as_object().unwrap_or(&vide), apres.as_object().unwrap_or(&vide));
     let mut out = changements_du_mois(ctx, a, b);
-    let suite = |m: &Map<String, Value>| m.get(SUITE).and_then(Value::as_object).cloned().unwrap_or_default();
-    let (sa, sb) = (suite(a), suite(b));
-    let mut mois: Vec<&String> = sa.keys().chain(sb.keys()).collect();
+    let par_mois = |m: &Map<String, Value>, k: &str| m.get(k).and_then(Value::as_object).cloned().unwrap_or_default();
+    // Un terme a une date : sa derniere valeur datee au plus tard ce jour, ou celle du premier mois.
+    let au = |m: &Map<String, Value>, terme: &str, jour: &str| -> Option<Value> {
+        let datees = par_mois(m, DATES);
+        let derniere = datees.get(terme).and_then(Value::as_array).into_iter().flatten().filter(|e| e.get("depuis").map(en_texte).is_some_and(|d| d.as_str() <= jour)).last().cloned();
+        match derniere {
+            Some(e) => e.get("valeur").cloned().filter(|v| !v.is_null()),
+            None => m.get(terme).cloned(),
+        }
+    };
+    let (da, db) = (par_mois(a, DATES), par_mois(b, DATES));
+    let mut jours: Vec<(String, String)> = Vec::new();
+    for (k, liste) in da.iter().chain(db.iter()) {
+        for e in liste.as_array().into_iter().flatten() {
+            jours.push((e.get("depuis").map(en_texte).unwrap_or_default(), k.clone()));
+        }
+    }
+    jours.sort();
+    jours.dedup();
+    let mut dits: Vec<String> = Vec::new();
+    for (jour, _) in &jours {
+        if dits.contains(jour) {
+            continue;
+        }
+        dits.push(jour.clone());
+        let termes: Vec<&String> = jours.iter().filter(|(j, _)| j == jour).map(|(_, k)| k).collect();
+        let tels = |m: &Map<String, Value>| -> Map<String, Value> { termes.iter().filter_map(|k| au(m, k, jour).map(|v| ((*k).clone(), v))).collect() };
+        for c in changements_du_mois(ctx, &tels(a), &tels(b)) {
+            out.push(format!("À partir du {} : {}", jour_court(jour), c));
+        }
+    }
+    let (fa, fb) = (par_mois(a, FAITS), par_mois(b, FAITS));
+    let mut mois: Vec<&String> = fa.keys().chain(fb.keys()).collect();
     mois.sort();
     mois.dedup();
     for m in mois {
-        let (x, y) = (sa.get(m).and_then(Value::as_object).unwrap_or(&vide), sb.get(m).and_then(Value::as_object).unwrap_or(&vide));
+        let (x, y) = (fa.get(m).and_then(Value::as_object).unwrap_or(&vide), fb.get(m).and_then(Value::as_object).unwrap_or(&vide));
         for c in changements_du_mois(ctx, x, y) {
             out.push(format!("En {} : {}", crate::libelle_mois(m), c));
         }

@@ -1378,7 +1378,7 @@ fn lignes_dites(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
         if n.is_some_and(|n| n < 0.0 || (n == 0.0 && !a_venir_seulement)) {
             let quoi = if pourcentage { "la base" } else { "la quantité" };
             // La ligne dit ses jours et le mois ou elle se saisit : la ligne d'un mois suivant d'un contrat a cheval
-            // (`stock::reconduire`) porte les jours de son planning, et ses heures se disent sur la carte de ce mois.
+            // (`stock::Objet::vue`) porte les jours de son planning, et ses heures se disent sur la carte de ce mois.
             let jours: Vec<Jour> = l.get("dates").and_then(Value::as_array).into_iter().flatten().filter_map(|x| d(x.get("jour").unwrap_or(x)).ok()).collect();
             let (ou, carte) = match jours.first() {
                 Some(j) => (

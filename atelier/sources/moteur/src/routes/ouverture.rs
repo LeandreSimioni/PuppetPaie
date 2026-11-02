@@ -390,8 +390,9 @@ fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
     let objets: Vec<Map<String, Value>> =
         lus.flat_map(|m| m.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default()).filter_map(|e| e.as_object().cloned()).collect();
     for e in &objets {
-        let suites = e.get(engagement::stock::SUITE).and_then(Value::as_object).into_iter().flat_map(|s| s.values());
-        let natures = std::iter::once(e.get("nature")).chain(suites.map(|s| s.get("nature")));
+        // La nature du premier mois, et chaque nature qu'un changement date lui donne ensuite (`stock::DATES`).
+        let datees = e.get(engagement::stock::DATES).and_then(|t| t.get("nature")).and_then(Value::as_array).into_iter().flatten().map(|x| x.get("valeur"));
+        let natures = std::iter::once(e.get("nature")).chain(datees);
         if !natures.flatten().filter_map(Value::as_str).any(|n| mensuelles.contains(n)) {
             continue;
         }

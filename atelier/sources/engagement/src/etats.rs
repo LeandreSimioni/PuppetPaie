@@ -921,13 +921,13 @@ fn maintenant() -> String {
 }
 
 
-/// La saisie d'un engagement telle qu'une version la garde : l'objet, sans ce que le moteur tient (sa suite, qui est de
-/// la saisie, y reste).
+/// La saisie d'un engagement telle qu'une version la garde : l'objet, sans ce que le moteur tient (ses termes dates et
+/// les faits de ses mois, qui sont de la saisie, y restent).
 fn saisie_de(o: &Objet) -> Value {
     Value::Object(
         o.champs()
             .iter()
-            .filter(|(k, _)| k.as_str() == stock::SUITE || !stock::TENUS_PAR_LE_MOTEUR.contains(&k.as_str()))
+            .filter(|(k, _)| stock::SAISIS_PAR_MOIS.contains(&k.as_str()) || !stock::TENUS_PAR_LE_MOTEUR.contains(&k.as_str()))
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect(),
     )
@@ -1043,7 +1043,7 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, anciennes: &Map<String
         let partis = documents_partis(siens, &m).is_some();
         let garde = anciennes.get(&m).filter(|f| {
             let salarie = o.brut.get("salarie").map(en_texte);
-            let saisie = stock::empreinte_de_la_saisie_du_mois(&ctx.racine, &m, salarie.as_deref()).ok().flatten();
+            let saisie = saisie_comptee_valide(ctx, o, &m, salarie.as_deref());
             let ecrite = f.get("empreinte").and_then(empreinte::entrees_de).and_then(|e| e.get(&stock::cle_de_saisie(&m, salarie.as_deref())).cloned());
             partis && saisie.is_some() && saisie == ecrite
         });
@@ -1065,6 +1065,19 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, anciennes: &Map<String
     }
     Ok(paies)
 }
+/// L'empreinte de la saisie de `mois` dont la paie de l'engagement `o` (de `salarie`) depend, `o` compte comme valide,
+/// comme son calcul le compte (`calculer_les_rangs`) : celle qu'une paie ecrite de `o` porte si ce que le mois dit d'elle
+/// n'a pas change.
+fn saisie_comptee_valide(ctx: &Contexte, o: &Objet, mois: &str, salarie: Option<&str>) -> Option<String> {
+    let mut data = stock::vue_du_mois(&ctx.racine, mois).ok().flatten()?;
+    let i = rang_dans(ctx, o, mois).ok()?;
+    let e = data.get_mut("engagements").and_then(|es| es.get_mut(i))?;
+    if e.get("valide").is_none() {
+        e["valide"] = json!({});
+    }
+    Some(stock::empreinte_de_saisie(&data, salarie))
+}
+
 /// L'engagement de rang `rang` de l'ecran de `mois`, rouvert (`modifier`), est-il a revalider ? Sa saisie dit autre
 /// chose que sa validation mise de cote, ou celle-ci ne dit pas tout ce qu'un envoi emporte (`a_revalider`). Faux pour un
 /// engagement qui n'a pas ete rouvert.
@@ -1072,119 +1085,6 @@ pub fn a_revalider_rouvert(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<
     let Some(o) = stock::objet_du_mois(&ctx.racine, mois, rang)? else { return Ok(false) };
     let Some(p) = o.brut.get(PRECEDENTE) else { return Ok(false) };
     Ok(p.get("saisie") != Some(&saisie_de(&o)) || a_revalider(ctx, &o, p).is_some())
-}
-
-/// « A PARTIR DE QUEL MOIS ? » : ce que le moteur demande avant de revalider un contrat paye au mois (CDD, CDI) de
-/// plusieurs mois dont un mois est parti (ses documents ou sa DSN), quand ce que le contrat dit (`stock::RECONDUITS` :
-/// salaire, duree du travail, emploi...) change dans un de ses mois. `partis` : les mois partis ; `choix` : les mois
-/// d'ou le changement peut valoir, du premier ou il change au dernier que la validation ecrit.
-#[derive(Debug, Clone)]
-pub struct APartirDu {
-    pub qui: String,
-    pub partis: Vec<String>,
-    pub choix: Vec<String>,
-}
-
-impl APartirDu {
-    /// La question, en mots ; l'avertissement nomme l'engagement (`qui`).
-    pub fn phrase(&self) -> String {
-        let partis: Vec<String> = self.partis.iter().map(|m| crate::libelle_mois(m)).collect();
-        format!(
-            "Les documents ou la DSN de {} sont déjà partis. À partir de quel mois ce changement vaut-il ? Les mois \
-d'avant gardent leurs chiffres ; à partir du mois choisi, la paie prend le nouveau chiffre, et l'avenant le dit à compter \
-du jour dit, le 1er si rien d'autre n'est dit. Un changement en cours de mois coupe ce mois en deux : l'ancien chiffre \
-jusqu'à la veille, le nouveau à partir de ce jour, chaque part payée pour ses heures.",
-            partis.join(", ")
-        )
-    }
-}
-
-/// La question « a partir de quel mois ? » pour l'engagement de rang `rang` de l'ecran de `mois` (voir `APartirDu`) ;
-/// `None` quand le fait ne l'appelle pas : un contrat d'usage, un engagement d'un seul mois, jamais valide, dont rien
-/// n'est parti, dont les termes ne changent pas, ou dont les bornes changent (le contrat entier change).
-pub fn question_a_partir_du(ctx: &Contexte, mois: &str, rang: usize, departs: &Departs) -> Resultat<Option<APartirDu>> {
-    let Some(o) = stock::objet_du_mois(&ctx.racine, mois, rang)? else { return Ok(None) };
-    let Some((ancien, partis, couverts)) = contrat_au_mois_parti(ctx, &o, &o, mois, departs)? else { return Ok(None) };
-    let mut premier = None;
-    for m in &couverts {
-        if o.termes_du_mois(m)? != ancien.termes_du_mois(m)? {
-            premier = Some(m.clone());
-            break;
-        }
-    }
-    let Some(premier) = premier else { return Ok(None) };
-    let choix = couverts.into_iter().filter(|m| *m >= premier).collect();
-    Ok(Some(APartirDu { qui: qui_de(ctx, &o), partis, choix }))
-}
-
-/// L'engagement `ecrit` (rouvert, tel qu'il est ecrit) devenu `nouveau` : un contrat paye au mois, avant et apres, dont
-/// le salarie et les bornes ne changent pas (`stock::PARTAGES`), dont un mois est parti (documents ou DSN) et qui couvre
-/// au moins deux mois. Rend ce que sa validation disait, les mois partis et les mois couverts ; `None` sinon.
-fn contrat_au_mois_parti(ctx: &Contexte, ecrit: &Objet, nouveau: &Objet, mois: &str, departs: &Departs) -> Resultat<Option<(Objet, Vec<String>, Vec<String>)>> {
-    let Some(ancien) = ecrit.brut.get(PRECEDENTE).and_then(|p| p.get("saisie")).and_then(Value::as_object).map(|s| ecrit.d_apres_la_saisie(s)) else {
-        return Ok(None);
-    };
-    if !nouveau.mensuel() || !ancien.mensuel() {
-        return Ok(None);
-    }
-    if stock::PARTAGES.iter().any(|k| nouveau.brut.get(*k).map(stock::canonique) != ancien.brut.get(*k).map(stock::canonique)) {
-        return Ok(None);
-    }
-    let mut partis: Vec<String> =
-        ses_departs(ctx, ecrit, departs).iter().filter(|d| matches!(d.envoi, Envoi::Documents | Envoi::Dsn)).filter_map(|d| d.mois.clone()).collect();
-    partis.sort();
-    partis.dedup();
-    if partis.is_empty() {
-        return Ok(None);
-    }
-    // Un contrat sans terme court au moins jusqu'au mois d'aujourd'hui.
-    let couverts = nouveau.mois_couverts(&socle::temps::jour_de_paris().mois_iso().max(mois.to_string()))?;
-    if couverts.len() < 2 {
-        return Ok(None);
-    }
-    Ok(Some((ancien, partis, couverts)))
-}
-
-/// La reponse : le changement vaut a partir de `depuis` (`stock::Objet::a_partir_du`), le jour `le` de ce mois quand il
-/// est dit (le 1er sinon), ecrit dans l'engagement. Refus : la question ne se pose pas, `depuis` n'est pas un de ses
-/// choix, ou le jour n'est pas un jour du contrat dans ce mois ; rien n'est ecrit.
-pub fn poser_a_partir_du(ctx: &Contexte, mois: &str, rang: usize, depuis: &str, le: Option<u32>, departs: &Departs) -> Resultat<()> {
-    let q = question_a_partir_du(ctx, mois, rang, departs)?.ok_or_else(|| "Rien ne change d'un mois à l'autre dans cet engagement : la question « à partir de quel mois ? » ne se pose pas. Rien n'est écrit.".to_string())?;
-    if !q.choix.iter().any(|m| m == depuis) {
-        return Err(format!(
-            "{} : « à partir de {} » n'est pas un des mois possibles ({}). Rien n'est écrit.",
-            q.qui,
-            depuis,
-            q.choix.iter().map(|m| crate::libelle_mois(m)).collect::<Vec<_>>().join(", ")
-        ));
-    }
-    let o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
-    let jour = match le {
-        None => None,
-        Some(n) => {
-            let premier = socle::date::premier_du_mois(depuis)?;
-            let j = socle::date::Jour::nouveau(premier.an, premier.mois, n).ok_or_else(|| {
-                format!("{} : « le {} {} » n'est pas un jour de ce mois. Rien n'est écrit.", q.qui, n, crate::libelle_mois(depuis))
-            })?;
-            let debut = socle::date::d(o.brut.get("debut").unwrap_or(&Value::Null))?;
-            let fin = o.brut.get("fin").filter(|f| vrai(f)).map(socle::date::d).transpose()?;
-            if j < debut || fin.is_some_and(|f| j > f) {
-                return Err(format!(
-                    "{} : le contrat court du {}{} ; un changement au {} n'en est pas un jour. Rien n'est écrit.",
-                    q.qui,
-                    debut.jj_mm_aaaa(),
-                    fin.map(|f| format!(" au {}", f.jj_mm_aaaa())).unwrap_or_default(),
-                    j.jj_mm_aaaa()
-                ));
-            }
-            // Le premier jour du contrat dans le mois : le changement couvre tout ce que le mois en paie.
-            (j > debut).then_some(j).or(Some(premier))
-        }
-    };
-    let saisie = o.brut.get(PRECEDENTE).and_then(|p| p.get("saisie")).and_then(Value::as_object).cloned().unwrap_or_default();
-    let r = o.a_partir_du(&o.d_apres_la_saisie(&saisie), depuis, jour)?;
-    stock::reecrire(&ctx.racine, &r)?;
-    Ok(())
 }
 
 /// LE MOIS OU LE CONTRAT CHANGE entre la version `passee` d'un engagement valide (sa saisie gardee) et son present : le
@@ -1561,20 +1461,16 @@ const CLAUSES: [&str; 18] = [
     "quotite_reference", "modalite_temps_travail", "salaire_mensuel", "emploi", "metier", "cadre", "statut", "planning",
 ];
 
-/// Les clauses d'une saisie gardee (`saisie_de`) : celles de son premier mois et celles que chaque mois d'apres change.
+/// Les clauses d'une saisie gardee (`saisie_de`) : celles de son premier mois, chaque changement d'une clause, et
+/// celles que les faits de chaque mois d'apres disent.
 fn clauses(saisie: &Value, mensuel: bool) -> Value {
-    let garder = |m: &Map<String, Value>| -> Value {
-        Value::Object(m.iter().filter(|(k, _)| CLAUSES.contains(&k.as_str()) && !(mensuel && k.as_str() == "lignes")).map(|(k, v)| (k.clone(), v.clone())).collect())
+    let garder = |m: &Map<String, Value>| -> Map<String, Value> {
+        m.iter().filter(|(k, _)| CLAUSES.contains(&k.as_str()) && !(mensuel && k.as_str() == "lignes")).map(|(k, v)| (k.clone(), v.clone())).collect()
     };
     let vide = Map::new();
-    let suite: Map<String, Value> = saisie
-        .get(stock::SUITE)
-        .and_then(Value::as_object)
-        .unwrap_or(&vide)
-        .iter()
-        .map(|(m, x)| (m.clone(), garder(x.as_object().unwrap_or(&vide))))
-        .collect();
-    json!({ "premier": garder(saisie.as_object().unwrap_or(&vide)), "suite": suite })
+    let par_mois = |k: &str| saisie.get(k).and_then(Value::as_object).unwrap_or(&vide);
+    let faits: Map<String, Value> = par_mois(stock::FAITS).iter().map(|(m, x)| (m.clone(), Value::Object(garder(x.as_object().unwrap_or(&vide))))).collect();
+    json!({ "premier": garder(saisie.as_object().unwrap_or(&vide)), "termes": garder(par_mois(stock::DATES)), "faits": faits })
 }
 
 /// Ce qu'un envoi parti sur une version passee demande de refaire, le present ayant change.

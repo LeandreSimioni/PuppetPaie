@@ -102,11 +102,16 @@ par engagement désignée par son salarié et son numéro de contrat, et sous `v
 version passée ; `engagement::paies` seul lit et écrit ce fichier, dans le même brouillon que l'engagement.
 
 - **Sa forme** (`engagement/src/stock.rs`) : son premier mois en clair (salarié, spectacle, `debut`, `fin`, lignes de
-  paie datées…) ; chaque mois d'après n'écrit que ce qu'il change, sous `mois_suivants` (`null` : retiré). Le salarié,
-  les bornes et le numéro de contrat sont ceux de l'engagement dans tous ses mois (`PARTAGES`) ; la nature, le
-  spectacle, l'emploi… se reconduisent d'un mois au suivant (`RECONDUITS`) ; un contrat d'usage commence chaque mois
-  d'après avec les jours que le mois d'avant a mis au planning (une ligne par ligne qui en a). Le fichier d'un mois
-  porte aussi les défauts du mois (`taux_cachet`, `date_paiement`).
+  paie datées…). Un terme du contrat (nature, salaire, durée du travail, emploi, spectacle… : `TERMES`) qui change
+  ensuite s'écrit sous `termes`, une liste datée par terme (`[{"depuis": "AAAA-MM-JJ", "valeur"}]`, la forme de la
+  configuration ; `null` : retiré), et vaut de son jour au changement suivant : le mois de la carte qui le change est le
+  « à partir de » (le 1er, ou le jour dit). Ce qu'un mois d'après dit de lui seul (lignes, congés pris, primes, rupture)
+  s'écrit sous `faits`, à ce mois. Le salarié, les bornes et le numéro de contrat sont ceux de l'engagement dans tous
+  ses mois (`PARTAGES`). La vue d'un mois se lit à la date, sans relire les mois d'entre-deux : chaque terme au dernier
+  jour du mois, les faits du mois ; un contrat d'usage sans faits ce mois-là prend les jours que le planning du dernier
+  mois qui en dit y met ; un contrat au mois dont un terme change dans le mois y porte l'avenant daté
+  (`date_modification`, et `avant` quand il change en cours de mois), déduits. Le fichier d'un mois porte aussi les
+  défauts du mois (`taux_cachet`, `date_paiement`).
 - **Le mois de l'écran** (`stock::vue_du_mois`) : le fichier du mois et chaque engagement d'un mois d'avant qui court
   encore, vu ce mois-là. L'écran lit et écrit cette vue (`stock::ecrire_la_carte`, `stock::poser_la_saisie`) ; chaque engagement y retrouve
   son objet (numéro, puis salarié). Un engagement validé ne change pas par ce chemin.

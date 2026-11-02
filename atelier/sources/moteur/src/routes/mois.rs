@@ -1576,17 +1576,24 @@ pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usiz
         let Some(saisie) = c.get("saisie").and_then(Value::as_object) else {
             return Err(erreur("TypeError", "`cartes` : chaque carte porte `saisie`, un objet"));
         };
-        let saisie = Value::Object(engagement::stock::en_forme(saisie).map_err(Echec::from)?);
+        let mut saisie = engagement::stock::en_forme(saisie).map_err(Echec::from)?;
         let i = match c.get("engagement").filter(|p| !p.is_null()) {
             None => {
-                tous.push(saisie);
+                tous.push(Value::Object(saisie));
                 tous.len() - 1
             }
             Some(id) => {
                 let i = ids.iter().position(|x| x == id).filter(|i| *i < tous.len()).ok_or_else(|| {
                     refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", engagement::libelle_mois(mois)))
                 })?;
-                tous[i] = saisie;
+                // L'avenant du mois se deduit des termes dates de l'engagement ecrit (`stock::Objet::vue`) : la carte
+                // ne le porte pas.
+                for k in ["date_modification", "avant"] {
+                    if let Some(x) = tous[i].get(k).cloned() {
+                        saisie.insert(k.to_string(), x);
+                    }
+                }
+                tous[i] = Value::Object(saisie);
                 i
             }
         };

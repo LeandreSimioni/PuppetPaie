@@ -1121,16 +1121,18 @@ tant qu'il manque, ce sont ses références d'adhésion (`config/organismes.json
 
 Un CDDU signé une fois pour une tournée d'octobre à décembre est **un seul
 engagement**, dans le fichier du mois où il commence. Son premier mois est
-écrit en clair ; chaque mois d'après n'écrit, sous `mois_suivants`, que ce
-qu'il change (ses cachets) ; les bornes et le numéro sont ceux du contrat
-entier :
+écrit en clair ; ce que chaque mois d'après dit de lui seul (ses cachets)
+s'écrit sous `faits`, à ce mois ; un terme du contrat qui change (le
+salaire, la durée du travail, l'emploi) s'écrit sous `termes`, daté, et vaut
+du mois de la carte qui le change jusqu'au changement suivant ; les bornes et
+le numéro sont ceux du contrat entier :
 
 ```json
 engagements/2026-10.json   { "salarie": "Celi", "spectacle": "aaah zerbinette",
                              "debut": "2026-10-12", "fin": "2026-12-20",
                              "numero": "FA1.26.14",
                              "lignes": [ …les cachets d'octobre… ],
-                             "mois_suivants": {
+                             "faits": {
                                "2026-11": { "lignes": [ …les cachets de novembre… ] },
                                "2026-12": { "lignes": [ …ceux de décembre… ] } } }
 ```

@@ -23,7 +23,6 @@ mod contrat_a_cheval;
 mod homonymes;
 mod case_de_depot;
 mod notification_atmp;
-mod a_partir_du;
 mod net_a_virer;
 mod duree_du_travail;
 mod arret_prolonge;

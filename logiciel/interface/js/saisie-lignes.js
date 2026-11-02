@@ -624,15 +624,6 @@ function ecritDuBloc(div, e) {
   });
 }
 
-/* L'AVENANT D'UN MOIS (`date_modification`, et `avant`, les termes qui paient
- * ses jours d'avant : periodes.rs) ne se saisit pas sur la carte : sa date se
- * dit à un seul endroit, la question « À partir de » que le moteur pose à
- * « Modifier l'engagement ». La carte garde ce que le mois porte et le rend tel
- * quel à l'enregistrement. */
-function poserAvenant(div, e) {
-  div._avenant = { date_modification: e.date_modification || "", avant: e.avant || null };
-}
-
 /** Les jours d'une ligne qui disent leur propre lieu, un champ chacun. */
 function lieuxDesJours(l) {
   const propres = [...(l.dates || []), ...(l.planning || [])]
@@ -1107,7 +1098,6 @@ function construireCarte(div, e) {
   // permanent repris d'un autre logiciel n'a pas d'autre case qui fasse sa
   // paie). `onchange` : pas un calcul par touche d'un montant.
   div.querySelectorAll(".e-salaire, .e-quotite").forEach((c) => { c.onchange = rafraichirApercu; });
-  poserAvenant(div, e);
   poserRares(div, e);
   poserEcrit(div, e);
   remplirFaits(div, e);
