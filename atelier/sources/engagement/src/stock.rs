@@ -15,7 +15,8 @@
 //! ecrit son engagement, et lui seul (`ecrire_la_carte`).
 //!
 //! L'identite d'un engagement : son salarie et son premier jour, et son rang
-//! parmi ceux du meme salarie et du meme jour (`identites`).
+//! parmi ceux du meme salarie et du meme jour (`identites`) : deux contrats d'usage du meme jour. Un contrat au mois
+//! n'en a qu'un par salarie et par jour (`refuser_un_second_contrat_au_mois`).
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -773,6 +774,7 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
             (o.fichier, o.rang)
         }
         None => {
+            refuser_un_second_contrat_au_mois(ctx, &e)?;
             let saisie = en_forme(saisie)?;
             let mut contenu = match lire_fichier(racine, mois)? {
                 Some(c) => c,
@@ -793,6 +795,42 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
         .position(|o| o.fichier == fichier && o.rang == rang)
         .ok_or_else(|| format!("{} : l'engagement écrit ne tombe pas dans ce mois (ses dates le placent ailleurs).", crate::libelle_mois(mois)))?;
     Ok(identites(&objets).swap_remove(k))
+}
+
+/// UN CONTRAT AU MOIS N'A QU'UN ENGAGEMENT : une carte neuve d'un contrat paye au mois (CDI, CDD) dont le salarie a deja
+/// un contrat au mois commence le meme jour (actif, ni importe : `importe::refus` dit le sien) ne le refait pas, elle
+/// refuse et n'ecrit rien ; cet engagement se designe et se modifie depuis sa carte. Le rang de l'identite (`identites`)
+/// ne distingue que des contrats d'usage du meme jour (deux spectacles) ; deux contrats au mois du meme salarie
+/// commencent deux jours differents (ils se suivent).
+fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Value) -> Resultat<()> {
+    let au_mois = |e: &Value| droit::natures::nature(e.get("nature").and_then(Value::as_str)).is_ok_and(|n| n.mensuelle());
+    if !au_mois(e) {
+        return Ok(());
+    }
+    let (Some(cle), debut) = (crate::cle_de_l_engagement(ctx, e), crate::debut_brut(e)) else { return Ok(()) };
+    if debut.is_empty() {
+        return Ok(());
+    }
+    let tires = tous(&ctx.racine)?.1;
+    let Some(o) = tires.objets.iter().find(|o| {
+        !o.est_non_actif()
+            && !o.est_importe()
+            && au_mois(&o.brut)
+            && crate::debut_brut(&o.brut) == debut
+            && crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle.as_str())
+    }) else {
+        return Ok(());
+    };
+    let nature = droit::natures::nature(o.brut.get("nature").and_then(Value::as_str))?;
+    let numero = o.brut.get("numero").filter(|n| vrai(n)).map_or_else(String::new, |n| format!(" (n° {})", en_texte(n)));
+    Err(format!(
+        "{} : son {} commencé le {}{} a déjà son engagement ; une carte neuve ne le refait pas, il se modifie depuis sa \
+         carte. Un nouveau contrat commence un autre jour. Rien n'est écrit.",
+        crate::salarie_nomme(ctx, e.get("salarie")),
+        nature.libelle,
+        Jour::lire(&debut).map_or(debut.clone(), |j| j.jj_mm_aaaa()),
+        numero
+    ))
 }
 
 /// LA SAISIE D'UN ENGAGEMENT VALIDE ROUVERT, POSEE SUR SON MOIS : l'engagement de rang `rang` de `mois`

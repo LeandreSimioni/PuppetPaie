@@ -27,7 +27,7 @@ pub(crate) const SAISIE: Champ = Champ {
 pub(crate) const SAISIE_INCOMPLETE: RefusDit = RefusDit { classe: "SaisieIncomplete", corriger: "le fait que la phrase nomme, sur la carte ou la fiche du salarié" };
 const OPERATION: RefusDit = RefusDit {
     classe: "ErreurOperation",
-    corriger: "ce que la phrase dit : un mois importé ou clos, une carte que l'écran ne montre pas, une saisie hors de ses bornes",
+    corriger: "ce que la phrase dit : un mois importé ou clos, une carte que l'écran ne montre pas, un contrat au mois déjà engagé (sa carte le modifie), une saisie hors de ses bornes",
 };
 
 /// Ou ces routes se voient a l'ecran (une place par module).
