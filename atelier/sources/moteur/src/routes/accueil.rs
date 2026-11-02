@@ -1,6 +1,7 @@
 //! L'ACCUEIL DES COMPAGNIES : les routes de l'installation (le dossier qui porte `logiciel/`, `prive/`, `compagnies/`,
 //! `fictives/` : `interface/compagnies.rs`), et non d'une compagnie. Les lister, en ajouter une, choisir sa couleur, remettre
-//! une fictive livree a zero, garder au deblocage les compagnies creees en demo ; et ce que l'administrateur fait sur
+//! une fictive livree a zero, garder au deblocage les compagnies creees en demo, completer un dossier portable des systemes
+//! qui lui manquent (`maj::completer_le_portable`) ; et ce que l'administrateur fait sur
 //! toutes ses compagnies a la fois (son tableau, son depot groupe).
 //!
 //! L'INSTALLATION D'UNE ROUTE : celle de la compagnie nommee (`--racine`, `administrateur::installation_de`), sinon celle
@@ -126,6 +127,18 @@ pub const ROUTES: &[Fiche] = &[
         phrase: 0,
         ecran: ECRAN,
     },
+    Fiche {
+        nom: "portable-completer",
+        geste: "Ajouter au dossier les systèmes qui lui manquent (Windows, Linux, macOS).",
+        charge: &[Champ { nom: "portable", sens: "vrai : faire aussi de ce dossier un dossier portable (PORTABLE.json)", avance: false }],
+        exemple: r#"{"portable":true}"#,
+        rend: "ajoutes, absents (les systèmes que la version n'a pas), version, portable, phrase",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "le réseau, la mise à jour en attente, ou ce que la phrase dit ; rien n'est posé" }],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 140,
+        ecran: Ecran::Auto(Place::Accueil),
+    },
 ];
 
 /// L'installation de la route : celle de la compagnie nommee (`--racine`), sinon celle du programme.
@@ -196,6 +209,10 @@ pub fn route(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value>
         }
         "administrateur-tableau" if charge.get("garde").is_some_and(vrai) => Ok(dire_le_tableau(administrateur::tableau_garde(&inst))),
         "administrateur-tableau" => Ok(dire_le_tableau(administrateur::tableau(o, &inst, charge.get("relever").is_some_and(vrai)))),
+        "portable-completer" => {
+            let cles = crate::compagnie::maj::cles_de_l_editeur();
+            crate::compagnie::maj::completer_le_portable(&inst, charge.get("portable").is_some_and(vrai), &cles).map_err(operation)
+        }
         "administrateur-deposer" => {
             let reel = charge.get("reel").is_some_and(vrai);
             let mdp = charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte);

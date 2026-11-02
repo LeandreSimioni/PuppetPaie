@@ -326,16 +326,19 @@ jobs:
           ARCHIVES+=("sortie/$F")
           # LES ARCHIVES D'INSTALLATION (Linux, Mac s'ils sont publies, et tous : le dossier portable ; Windows a son
           # installeur), ni signees ni nommees dans `derniere.json` : decompressee dans un dossier neuf, chacune est une
-          # installation, `logiciel/` et les fictives a cote, avec la livraison qu'elle retient.
+          # installation, `logiciel/` et les fictives a cote, avec la livraison qu'elle retient. Celle de tous porte aussi
+          # `PORTABLE.json` a sa racine (`archiver_installation`) : decompressee sur une cle USB, elle est portable.
           for S in $CHOISIS tout-systeme; do
             [ "$S" = windows ] && continue
             A="puppetpaie-$V-$S-installation.zip"
             [ -f "sortie/$A" ] || { echo "::error::L'archive d'installation $S manque ($A)."; exit 1; }
             unzip -Z1 "sortie/$A" > noms.txt
             N="$(grep -cE '^fictives/[^/]+/COPIE-DE-DEVELOPPEMENT\.json$' noms.txt || true)"
+            if [ "$S" = tout-systeme ]; then M=1; else M=0; fi
             grep -qx 'logiciel/VERSION' noms.txt && [ "$N" -ge 1 ] && grep -qx 'fictives/.livraison.json' noms.txt \
-              && ! grep -qvE '^(logiciel|fictives)/' noms.txt \
-              || { echo "::error::L'archive d'installation $S n'est pas une installation (logiciel/VERSION, $N fictive(s), fictives/.livraison.json)."; exit 1; }
+              && [ "$(grep -cx 'PORTABLE.json' noms.txt || true)" = "$M" ] \
+              && ! grep -qvE '^((logiciel|fictives)/|PORTABLE\.json$)' noms.txt \
+              || { echo "::error::L'archive d'installation $S n'est pas une installation (logiciel/VERSION, $N fictive(s), fictives/.livraison.json, PORTABLE.json pour tous les systemes seulement)."; exit 1; }
             ARCHIVES+=("sortie/$A")
           done
           L="${V:8:2}.${V:5:2}.${V:0:4}"; [ "${#V}" -gt 10 ] && L="$L-${V:11}"

@@ -566,6 +566,10 @@ fn mot_de_passe_tape() -> Option<String> {
 /// le logiciel, ses donnees et la cle qui les scelle voyagent ensemble -- une cle USB -- et s'ouvrent sur
 /// n'importe quel ordinateur, quel que soit le systeme. La cle du poste vit alors dans ce dossier, pas sur la machine.
 pub const MARQUEUR_PORTABLE: &str = "PORTABLE.json";
+/// Ce que porte le marqueur : sa presence seule compte, la phrase le dit a qui ouvre le fichier. L'archive d'installation
+/// de tous les systemes le porte (`atelier::publier::archiver_installation`), la route `portable-completer` le pose ;
+/// l'installeur Windows ecrit la meme phrase (`atelier/installeur/puppetpaie.nsi`).
+pub const CONTENU_PORTABLE: &str = "{\"_quoi\": \"Ce dossier est une installation PORTABLE de PuppetPaie : le logiciel, ses donnees et la cle qui les scelle (cle-poste.bin) vivent ici, ensemble, et s'ouvrent sur n'importe quel ordinateur. Effacer ce fichier rattache le coffre a la machine.\"}\n";
 
 /// Le dossier portable, s'il y en a un : ce qui est a cote de `logiciel/` quand il porte `PORTABLE.json`.
 pub fn dossier_portable() -> Option<PathBuf> {

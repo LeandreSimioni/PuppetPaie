@@ -161,6 +161,8 @@
       <p class="dit" id="ecrire-dit"></p>
     </form>
   </details>
+  <!-- « AVANCÉ » DE L'ACCUEIL : les routes de l'installation sans écran dessiné, depuis leur fiche (`js/avance.js`). -->
+  <details class="ecrire avance-auto" id="avance-accueil" hidden><summary>Avancé</summary><div data-auto="L'accueil des compagnies"></div></details>
 </div>
 <script>
   const err = document.getElementById("erreur");
@@ -370,6 +372,21 @@
       if (frais && frais.ok) dessiner(frais.resultat);
     })();
   })();
+</script>
+<script>
+  // Ce que `js/avance.js` lit dans la page d'une compagnie (`js/tuyau.js`) : le catalogue, l'echappement, la route.
+  let CATALOGUE = {};
+  const echapper = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const api = (nom, charge) => appel(nom, charge).then((r) => { if (!r || !r.ok) throw new Error((r && r.erreur) || ""); return r.resultat; });
+</script>
+<script src="/js/avance.js?v={{EMPREINTE}}"></script>
+<script>
+  document.getElementById("avance-accueil").addEventListener("mousedown", (e) => e.stopPropagation());
+  appel("routes", { avance: true }).then((r) => {
+    if (!r || !r.ok) return;
+    CATALOGUE = Object.fromEntries(r.resultat.routes.map((f) => [f.nom, f]));
+    dessinerLesAvances();
+  });
 </script>
 <!-- L'indicateur de la mise a jour, en bas a gauche (ticket #210). -->
 <script src="/js/mise-a-jour.js?v={{EMPREINTE}}"></script>

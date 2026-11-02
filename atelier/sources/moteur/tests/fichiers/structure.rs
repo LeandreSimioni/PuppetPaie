@@ -134,6 +134,16 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
             // une installation a part.
             "compagnie-couleur" | "compagnie-remettre-a-zero" | "compagnies-garder" => route(&installation_a_part(&c, f.nom).1, f.nom, exemple, "2026-11-02"),
             "administrateur-rattacher" | "administrateur-detacher" => administrateur(&c, f.nom, exemple),
+            // Le dossier portable : une installation a part qui porte deja les trois systemes (rien ne se telecharge).
+            "portable-completer" => {
+                let (inst, reelle) = installation_a_part(&c, f.nom);
+                for s in moteur::compagnie::maj::SYSTEMES {
+                    let p = moteur::compagnie::maj::programme_de(&inst.join("logiciel"), s, "puppetpaie");
+                    std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+                    std::fs::write(p, "").unwrap();
+                }
+                route(&reelle, f.nom, exemple, "2026-11-02")
+            }
             _ => route_avec(&c, f.nom, exemple, "2026-11-02", &[(VARIABLE_ESSAIS, "exemple")]),
         };
         assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom, r);
