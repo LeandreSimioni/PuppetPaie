@@ -45,8 +45,6 @@ async function dessinerDiagnostic(rang) {
 }
 
 function boiteDiagnostic(d, rang, signales = []) {
-  const NOMS = { logiciel: "plantage", refus: "refus du moteur", dpae: "DPAE rejetée",
-                 dsn: "DSN rejetée", paies: "nombre de paies" };
   const k = d.ecran || {};
   ouvrirBoite(`
     <h3>Ce qui est parti</h3>
@@ -54,7 +52,7 @@ function boiteDiagnostic(d, rang, signales = []) {
     ${!d.groupes.length ? `<p>${echapper(k.rien)}</p>` : `<div class="liste-choix">
       ${d.groupes.map((g, i) => `
         <div class="choix"><span>
-          <b>${echapper(NOMS[g.quoi] || g.quoi)}</b>
+          <b>${echapper(g.quoi_dit)}</b>
           ${g.combien > 1 ? `<span class="discret">× ${g.combien}</span>` : ""}
           — ${echapper(g.resume || g.genre || "")}
           <br><span class="discret">${echapper(g.ou || "")} · ${echapper(g.dernier_dit)}</span>

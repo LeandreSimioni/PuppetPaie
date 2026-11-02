@@ -424,6 +424,16 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
         g.insert("derniere".into(), l.get("derniere").filter(|d| d.is_string()).unwrap_or(quand).clone());
         let dernier_dit = format!("dernier le {}", super::quand(&super::mot(&g["derniere"])));
         g.insert("dernier_dit".into(), json!(dernier_dit));
+        // Le nom de ce qui est parti, tel que la boite le titre.
+        let quoi_dit = match g.get("quoi").and_then(Value::as_str).unwrap_or("") {
+            "logiciel" => "plantage".to_string(),
+            "refus" => "refus du moteur".to_string(),
+            "dpae" => "DPAE rejetée".to_string(),
+            "dsn" => "DSN rejetée".to_string(),
+            "paies" => "nombre de paies".to_string(),
+            autre => autre.to_string(),
+        };
+        g.insert("quoi_dit".into(), json!(quoi_dit));
         let resume = get(l, "resume")?;
         if vrai(resume) {
             g.insert("resume".into(), resume.clone());
