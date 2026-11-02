@@ -38,7 +38,7 @@ fn les_catalogues_et_les_refus() {
         *attendu = match catalogue(&racine, &jour("2026-10-28")) {
             Err(e) => {
                 refus += 1;
-                json!({ "refus": e })
+                json!({ "refus": socle::echec::separer(&e).0 })
             }
             Ok(cat) => json!({
                 "catalogue": cat.iter().map(en_json).collect::<Vec<_>>(),

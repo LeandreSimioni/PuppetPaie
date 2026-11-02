@@ -594,7 +594,8 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
         assert!(places.len() <= 1, "un module, une place : les routes qui écrivent de {:?} vont à {:?} ; range chacune dans le module de sa place", module.iter().map(|f| f.nom).collect::<Vec<_>>(), places);
     }
     let c = treteaux("servies");
-    let inconnue = |r: &Value| r["erreur"].as_str().is_some_and(|m| m.starts_with("route inconnue"));
+    // Une route inconnue se refuse en nommant la route a part (`routes::servir`).
+    let inconnue = |r: &Value| r["ok"] == json!(false) && r.get("route").is_some_and(Value::is_string);
     assert!(inconnue(&route(&c, "pas-une-route", json!({}), "2026-11-02")));
     for nom in &noms {
         let r = route(&c, nom, json!({}), "2026-11-02");

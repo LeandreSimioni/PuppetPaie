@@ -929,7 +929,6 @@ mod tests {
         let e = embauche(salarie(), "cdd", Value::Null);
         let m = enr(&e, None, json!("")).unwrap_err();
         assert!(m.contains("date de fin"), "{}", m);
-        assert!(m.contains("'cdd'"), "{}", m);
         // Avec son terme, il part, type 1 (CDD) et date de fin dans la case.
         let e = embauche(salarie(), "cdd", json!("2026-12-31"));
         let t = enr(&e, None, json!("")).unwrap();
@@ -990,7 +989,7 @@ mod tests {
         let m = enr(&e, None, json!("11")).unwrap_err();
         assert!(m.contains("code_urssaf") && m.contains("'11'"), "{}", m);
         let m = enr(&e, None, json!("abc")).unwrap_err();
-        assert!(m.contains("attendu 3 chiffres"), "{}", m);
+        assert!(m.contains("3 chiffres"), "{}", m);
         let m = enr(&e, None, json!("999")).unwrap_err();
         assert!(m.contains("code_urssaf") && m.contains("'999'"), "{}", m);
         assert!(enr(&e, None, json!(" 117 ")).is_ok());

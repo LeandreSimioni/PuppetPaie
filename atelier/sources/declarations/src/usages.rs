@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn un_fichier_sans_version_connue_ne_se_controle_pas() {
         let e = verifier_fichier("S10.G00.00.006,'P25V01'\r\nS20.G00.05.001,'01'\r\n").unwrap_err();
-        assert!(e.contains("Version de la norme DSN « P25V01 » inconnue du logiciel (versions livrees : P26V01, P27V01"), "{}", e);
+        assert!(e.contains("Version de la norme DSN « P25V01 » inconnue du logiciel (versions livrées : P26V01, P27V01"), "{}", e);
     }
 
     /// Le releve de `moteur extraire usages`, sur le PDF 2027.1.1 puis sur les classeurs

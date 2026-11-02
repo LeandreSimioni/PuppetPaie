@@ -16,7 +16,7 @@ const ORACLE: &str = "calcul-pieces.json";
 fn essai(r: Result<Value, String>) -> Value {
     match r {
         Ok(v) => json!({"ok": canon_valeur(&v).unwrap()}),
-        Err(e) => json!({"refus": e}),
+        Err(e) => json!({"refus": socle::echec::separer(&e).0}),
     }
 }
 

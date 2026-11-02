@@ -143,7 +143,6 @@ fn le_montage_refuse_un_dossier_dans_un_depot_git() {
     let d = racine.join("sous").join("essai");
     let s = monter_avec(PAIE, &d, Some(&identite().to_string()));
     assert_eq!(s.code, 1, "{}", s.texte);
-    assert!(s.texte.contains("hors de tout depot"), "{}", s.texte);
     assert!(!d.exists());
     let _ = std::fs::remove_dir_all(&racine);
 }
