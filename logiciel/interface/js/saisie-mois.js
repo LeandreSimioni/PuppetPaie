@@ -260,8 +260,9 @@ async function calculerApercu(lu) {
       // Ce qui a été numéroté : un contrat en cours garde le numéro de son
       // premier mois, et c'est ici qu'il revient à l'écran quand la saisie
       // ne le portait pas encore.
+      // Un numéro que la carte demande de dire (`contrat.ecrits`) ne se reprend pas de l'aperçu : vide, le moteur le donne.
       if (p && p.numero_contrat && p.contrat && !p.contrat.premier_mois
-          && !div.dataset.numero) {
+          && !(p.contrat.ecrits || []).includes("numero") && !div.dataset.numero) {
         div.dataset.numero = p.numero_contrat;
         div.dataset.numeroDe = salarieDuBloc(div);
         majContrat(div);
@@ -296,6 +297,10 @@ async function calculerApercu(lu) {
           (a) => `<div class="encart attention avis-engagement">${echapper(a)}</div>`).join("")
         + avisDuBloc(part, "informations").map(
           (a) => `<div class="encart info avis-engagement">${echapperLiens(a)}</div>`).join("")
+        // La case d'une fiche que cet engagement appelle (`a_dire`, comme « Pour démarrer ») : sa phrase, et le lien qui y mène.
+        + part.flatMap((x) => (x && x.a_dire) || []).map((m) => `<div class="encart info avis-engagement">${echapper(m.trouver)}
+            <button type="button" class="lien" data-manque-champ="${echapper(m.champ)}" data-manque-ou="${echapper(m.ou)}"
+              data-manque-fiche="salarie" data-manque-cle="${echapper(m.salarie)}">${echapper(m.ou)}</button></div>`).join("")
         // Le conseil que la saisie appelle, au plus un par carte, quand la compagnie a coché l'option.
         + conseilDuBloc(part);
     });

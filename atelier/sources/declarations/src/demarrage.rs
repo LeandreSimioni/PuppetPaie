@@ -318,20 +318,33 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // `engagement::conges::reprise_conges` lit). Rien ne se refuse sans eux : la ligne dit ce qui se passe sinon (`sinon`),
     // et non ce qu'elle bloque. C'est ici seulement que la question se pose, contrat repris d'un import compris.
     for (salarie, nom, depuis) in conges_a_reprendre(ctx) {
-        out.push(json!({
-            "cle": format!("conges_reprise.{}", salarie),
-            "libelle": format!("Ses congés payés acquis avant le {}", socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
-            "utile": "le compteur de ses congés payés",
-            "sinon": "il part de zéro",
-            "ou": format!("la fiche de {}, « Congés payés à la reprise »", nom),
-            "champ": "conges_reprise",
-            "case": "conges_reprise",
-            "qui": nom,
-            "salarie": salarie,
-            "trouver": format!("Son contrat a commencé avant que PuppetPaie le paie : recopiez de son dernier bulletin de votre ancien logiciel les jours acquis et pris, avec le {} pour date de reprise.", socle::date::Jour::lire(&depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.clone())),
-        }));
+        out.push(conges_a_dire(&salarie, &nom, &depuis));
     }
     out
+}
+
+/// LA LIGNE QUI DEMANDE LES CONGES ACQUIS AVANT PUPPETPAIE d'un salarie au mois (`salarie`, `nom` tel que l'ecran le dit),
+/// paye ici depuis `depuis` (`AAAA-MM-JJ`) : la case `conges_reprise` de sa fiche, ou elle mene. « Pour démarrer » la dit,
+/// et la carte d'un contrat commence avant le logiciel la montre avant sa validation (`moteur::routes::mois`).
+pub fn conges_a_dire(salarie: &str, nom: &str, depuis: &str) -> Value {
+    let le = socle::date::Jour::lire(depuis).map(|j| j.jj_mm_aaaa()).unwrap_or(depuis.to_string());
+    json!({
+        "cle": format!("conges_reprise.{}", salarie),
+        "libelle": format!("Ses congés payés acquis avant le {}", le),
+        "utile": "le compteur de ses congés payés",
+        "sinon": "il part de zéro",
+        "ou": format!("la fiche de {}, « Congés payés à la reprise »", nom),
+        "champ": "conges_reprise",
+        "case": "conges_reprise",
+        "qui": nom,
+        "salarie": salarie,
+        "trouver": format!("Son contrat a commencé avant que PuppetPaie le paie : recopiez de son dernier bulletin de votre ancien logiciel les jours acquis et pris, avec le {} pour date de reprise.", le),
+    })
+}
+
+/// La reprise des conges de ce salarie est-elle deja dite sur sa fiche (`conges_reprise.date`) ?
+pub fn conges_repris(ctx: &Contexte, salarie: &str) -> bool {
+    ctx.salaries.get(salarie).and_then(|f| f.get("conges_reprise")).and_then(|c| c.get("date")).is_some_and(vrai)
 }
 
 /// Les permanents dont un contrat commence avant le premier mois ou PuppetPaie le paie, et dont la fiche ne dit pas les
@@ -371,13 +384,14 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
             continue;
         }
         vus.push(salarie.clone());
-        contrats.push((salarie, debut, format!("{}-01", o.premier_mois())));
+        if engagement::stock::commence_avant_le_logiciel(&ctx.racine, &debut, o.premier_mois()).unwrap_or(false) {
+            contrats.push((salarie, debut, format!("{}-01", o.premier_mois())));
+        }
     }
     let mut out = Vec::new();
     for (salarie, debut, premier) in contrats {
         let fiche = ctx.salaries.get(&salarie);
-        let dit = fiche.and_then(|f| f.get("conges_reprise")).and_then(|c| c.get("date")).is_some_and(vrai);
-        if debut >= premier || dit {
+        if debut >= premier || conges_repris(ctx, &salarie) {
             continue;
         }
         let nom = fiche

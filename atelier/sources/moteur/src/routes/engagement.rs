@@ -21,7 +21,7 @@ const IDENTITE: Champ = Champ {
 /// La saisie d'une carte, ses cases et ou se lit ce que chacune demande.
 pub(crate) const SAISIE: Champ = Champ {
     nom: "saisie",
-    sens: "ce que la carte porte : salarie (la clé de sa fiche), spectacle, nature (`natures` de la route etat), debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures, jours, montant…}] ; un contrat au mois : salaire_mensuel, quotite_contrat (heures par mois) ; les cases que son contrat écrit appelle : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
+    sens: "ce que la carte porte : salarie (la clé de sa fiche), spectacle, nature (`natures` de la route etat), debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures, jours, montant…}] ; un contrat au mois : salaire_mensuel, quotite_contrat (heures par mois) ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
     avance: false,
 };
 pub(crate) const SAISIE_INCOMPLETE: RefusDit = RefusDit { classe: "SaisieIncomplete", corriger: "le fait que la phrase nomme, sur la carte ou la fiche du salarié" };

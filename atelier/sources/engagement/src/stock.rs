@@ -903,18 +903,19 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
         }
         None => {
             refuser_un_second_contrat_au_mois(ctx, &e)?;
+            let fichier = mois_d_ecriture(racine, mois, &e)?;
             let saisie = en_forme(saisie)?;
-            let mut contenu = match lire_fichier(racine, mois)? {
+            let mut contenu = match lire_fichier(racine, &fichier)? {
                 Some(c) => c,
                 None => defauts.clone(),
             };
-            contenu.insert("mois".into(), Value::String(mois.to_string()));
+            contenu.insert("mois".into(), Value::String(fichier.clone()));
             let es = contenu.entry("engagements").or_insert_with(|| Value::Array(Vec::new()));
             let Value::Array(es) = es else { return Err(format!("{} : `engagements` n'est pas une liste", mois)) };
             let rang = es.len();
             es.push(Value::Object(saisie));
-            poser(racine, mois, &Value::Object(contenu))?;
-            (mois.to_string(), rang)
+            poser(racine, &fichier, &Value::Object(contenu))?;
+            (fichier, rang)
         }
     };
     let objets = objets_du_mois(racine, mois)?;
@@ -976,6 +977,16 @@ pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Map<Str
         Some(n) => {
             let premier = premier_du_mois(mois)?;
             let qui = crate::salarie_nomme(ctx, o.brut.get("salarie"));
+            // AU PREMIER MOIS DE L'ENGAGEMENT, ses termes valent de son debut : un jour n'a rien a dater.
+            if mois == o.fichier {
+                return Err(format!(
+                    "{} : {} est le premier mois de cet engagement, ce qu'il dit vaut depuis le début du contrat ; un jour \
+                     n'y date rien. Pour que le contrat commence un autre jour, changez son début (« Début du contrat », \
+                     `debut` de la saisie). Rien n'est écrit.",
+                    qui,
+                    crate::libelle_mois(mois)
+                ));
+            }
             let j = Jour::nouveau(premier.an, premier.mois, n)
                 .ok_or_else(|| format!("{} : « le {} {} » n'est pas un jour de ce mois. Rien n'est écrit.", qui, n, crate::libelle_mois(mois)))?;
             let debut = socle::date::d(o.brut.get("debut").unwrap_or(&Value::Null))?;
@@ -1196,6 +1207,40 @@ pub fn reecrire(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     let place = es.get_mut(o.rang).ok_or_else(|| format!("{} : l'engagement {} a disparu", o.fichier, o.rang + 1))?;
     *place = (*o.brut).clone();
     poser(racine, &o.fichier, &Value::Object(contenu))
+}
+
+/// LE MOIS D'ENTREE DE LA COMPAGNIE DANS LE LOGICIEL : le premier mois qu'elle y paie, celui du plus ancien fichier qui
+/// porte un engagement d'ici (ni importe, ni plus actif), ou `mois` s'il vient avant (la carte d'un premier mois, pas
+/// encore ecrite). Les mois repris d'un ancien logiciel (`importe`) sont d'avant lui.
+pub fn mois_d_entree(racine: &Path, mois: &str) -> Resultat<String> {
+    let premier = tous(racine)?.1.objets.iter().find(|o| !o.est_importe() && !o.est_non_actif()).map(|o| o.fichier.clone());
+    Ok(premier.filter(|p| p.as_str() < mois).unwrap_or_else(|| mois.to_string()))
+}
+
+/// LE MOIS OU S'ECRIT L'ENGAGEMENT NEUF `e` que la carte de `mois` saisit : un engagement appartient a son premier mois.
+/// Un contrat paye au mois dont le debut tombe dans un mois d'avant la carte, mais pas avant le logiciel
+/// (`commence_avant_le_logiciel`), s'ecrit dans le mois de son debut, comme saisi sur sa carte : ce mois montre ce qui est
+/// a faire (sa paie, sa DPAE). Sinon, `mois`.
+pub fn mois_d_ecriture(racine: &Path, mois: &str, e: &Value) -> Resultat<String> {
+    let mensuel = droit::natures::nature(e.get("nature").and_then(Value::as_str)).is_ok_and(|n| n.mensuelle());
+    let debut = crate::debut_brut(e);
+    let premier = debut.get(..7).filter(|m| socle::date::mois_valide(m)).map(String::from);
+    Ok(match premier {
+        Some(p) if mensuel && p.as_str() < mois && !commence_avant_le_logiciel(racine, &debut, mois)? => p,
+        _ => mois.to_string(),
+    })
+}
+
+/// UN CONTRAT COMMENCE AVANT LE LOGICIEL : son debut (`AAAA-MM-JJ`) precede le mois d'entree de la compagnie
+/// (`mois_d_entree`, vu du mois `mois`). Il a commence ailleurs : sa DPAE et son contrat se sont faits avant (rien a
+/// declarer ni a signer ici), son numero se dit s'il a deja ete declare en DSN, et ses conges acquis avant se reprennent
+/// de l'ancien bulletin (la fiche, `conges_reprise`).
+/// Sa date de debut se declare telle quelle : S21.G00.40.001 est « la date du premier jour d'applicabilité du contrat »,
+/// identifiante, sans autre borne que le dernier jour du mois declare (cahier technique DSN 2026.1, § 4.4.12,
+/// `atelier/reference/norme-dsn/texte/chapitre-4-controles.txt` ; bloc S21.G00.40, `texte-2027/bloc-S21.G00.40.txt`) ;
+/// son numero, identifiant aussi, se reporte a l'identique d'une DSN a la suivante (§ 2.1.2, `chapitre-2-principes-de-constitution.txt`).
+pub fn commence_avant_le_logiciel(racine: &Path, debut: &str, mois: &str) -> Resultat<bool> {
+    Ok(debut.get(..7).is_some_and(|m| socle::date::mois_valide(m)) && debut[..7] < *mois_d_entree(racine, mois)?)
 }
 
 /// Le jour `AAAA-MM-JJ` de `mois` qui est le premier, pour les bornes d'un contrat.

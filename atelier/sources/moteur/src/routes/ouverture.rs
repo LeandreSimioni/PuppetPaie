@@ -73,6 +73,7 @@ const AIDES: &[(&str, &str)] = &[
     ("fin_signalee", "Ce que le signalement de fin de contrat (nature 07) déclarera."),
     ("fin_derogatoire", "Elle part dans la DSN du mois, par le circuit dérogatoire : rien à signaler."),
     ("numero_contrat", "Attribué à la production, il ne change plus."),
+    ("numero", "Le numéro sous lequel votre ancien logiciel a déjà déclaré ce contrat en DSN ; vide : le logiciel en donne un."),
     ("debut_au_mois", "Sa date de début, celle du contrat signé."),
     ("bornes_jouees", "Du premier au dernier jour joué."),
     ("plusieurs_mois", "Les cachets des mois suivants se paieront dans le fichier de leur mois (« reprendre un contrat en cours » les retrouvera cochés) ; ce mois-ci partent le contrat et la DPAE pour le contrat entier."),

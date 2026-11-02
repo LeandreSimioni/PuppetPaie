@@ -64,7 +64,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Calculer sans rien écrire les paies du mois, avec les cartes en cours.",
         charge: &[MOIS, CARTES],
         exemple: r#"{"mois":"2026-11","cartes":[]}"#,
-        rend: "paies (une par engagement, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer), les trois nombres de chaque carte, le mois",
+        rend: "paies (une par engagement, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer »), les trois nombres de chaque carte, le mois",
         refus: &[SAISIE_INCOMPLETE, MANQUE, FORME],
         acte: Acte::Lit,
         avance: false,
@@ -1415,7 +1415,17 @@ pub(crate) fn ecrire_une_carte(ctx: &Contexte, mois: &str, charge: &Value) -> R<
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     };
     let id = charge.get("engagement").filter(|v| !v.is_null());
-    let mut defauts = match squelette(ctx, mois)? {
+    // UN ENGAGEMENT NEUF S'ECRIT DANS SON PREMIER MOIS (`engagement::stock::mois_d_ecriture`) : ce mois-la passe les memes
+    // refus que celui de la carte, et donne ce qu'il dit par defaut.
+    let fichier = match id {
+        Some(_) => mois.to_string(),
+        None => engagement::stock::mois_d_ecriture(&ctx.racine, mois, &Value::Object(saisie.clone())).map_err(Echec::from)?,
+    };
+    if fichier != mois {
+        refuser_si_importe(ctx, &fichier)?;
+        refuser_si_clos(ctx, &fichier)?;
+    }
+    let mut defauts = match squelette(ctx, &fichier)? {
         Value::Object(m) => m,
         _ => Map::new(),
     };
@@ -1684,12 +1694,22 @@ fn rupture_de(e: &engagement::Engagement, nat: &droit::natures::Nature) -> R<Val
     Ok(json!({"porte": porte, "fin": fin.iso()}))
 }
 
+/// LA CASE DU NUMERO DEJA DECLARE EN DSN d'un contrat commence avant le logiciel : un numero ne se recalcule pas, il se lit
+/// (regle 4) ; celui que l'ancien logiciel a declare (S21.G00.40.009) reste le sien, la saisie le porte en `numero`
+/// (`engagement::numeros::a_la_validation` le garde). Vide, le logiciel en donne un.
+const NUMERO_DIT: &str = "numero";
+
 /// LES CASES DU CONTRAT ECRIT QUE CET ENGAGEMENT APPELLE (`engagement::CHAMPS_DU_CONTRAT_ECRIT`), et elles seules : la
 /// periode d'essai et les clauses particulieres de tout contrat ecrit ; la personne remplacee d'un CDD de remplacement
 /// (L1242-12, 1° ; `Nature::motif_de_remplacement`) ; la repartition des horaires d'un temps partiel (L3123-6, 1° : la
 /// modalite 20 de S21.G00.40.014, `Engagement::modalite_temps_travail`). Un engagement dont le contrat ne se fait pas
 /// signer ici (`engagement::contrat_a_signer`) n'en a aucune.
+/// Un contrat commence avant le logiciel (`engagement::stock::commence_avant_le_logiciel`) a ete signe ailleurs : il
+/// n'appelle que la case de son numero deja declare en DSN (`NUMERO_DIT`).
 fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &droit::natures::Nature) -> R<Vec<&'static str>> {
+    if engagement::stock::commence_avant_le_logiciel(&ctx.racine, &e.debut.iso(), &e.mois)? {
+        return Ok(vec![NUMERO_DIT]);
+    }
     if !engagement::contrat_a_signer(&ctx.racine, e)? {
         return Ok(Vec::new());
     }
@@ -1707,7 +1727,10 @@ fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &dro
 /// `champs_du_contrat_ecrit` d'un engagement qui ne se calcule pas encore (`a_completer`), lu sur sa saisie `e` : la
 /// periode d'essai et les clauses se disent avant que le reste soit complet. La repartition des horaires attend la
 /// duree du travail calculee.
-fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &Value) -> Vec<&'static str> {
+fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &Value, mois: &str) -> Vec<&'static str> {
+    if engagement::stock::commence_avant_le_logiciel(&ctx.racine, &engagement::debut_brut(e), mois).unwrap_or(false) {
+        return vec![NUMERO_DIT];
+    }
     let Ok(nat) = droit::natures::nature(e.get("nature").and_then(Value::as_str)) else { return Vec::new() };
     let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Vec::new() };
     let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_default();
@@ -1898,6 +1921,38 @@ fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut Value) -> R<()> {
     Ok(())
 }
 
+/// UN CONTRAT COMMENCE AVANT LE LOGICIEL, SUR SA CARTE PAS ENCORE VALIDEE (`engagement::stock::commence_avant_le_logiciel`) :
+/// la phrase qui dit ce qui se passe (ni DPAE ni contrat ici ; le numero sous lequel la DSN le declare, et qu'un numero
+/// deja declare par l'ancien logiciel se dit dans sa case, `NUMERO_DIT`), et, pour un contrat paye au mois dont la fiche
+/// ne dit pas ses conges a la reprise, la ligne de « Pour démarrer » qui y mene (`a_dire`,
+/// `declarations::demarrage::conges_a_dire`) : le compteur de conges part du solde de l'ancien bulletin (L3141-3,
+/// `engagement::conges::reprise_conges`). `brut` : l'engagement tel que la saisie l'ecrit ; `v` : sa vue (`vue_paie`).
+fn dire_l_entree(ctx: &Contexte, mois: &str, brut: &Value, v: &mut Value) -> R<()> {
+    let debut = valeur_en_texte(&v["debut"]);
+    if engagement::etats::est_validee(brut) || !engagement::stock::commence_avant_le_logiciel(&ctx.racine, &debut, mois).map_err(Echec::from)? {
+        return Ok(());
+    }
+    let qui = format!("{} {}", crate::routes::mot(&v["salarie"]["nom"]), crate::routes::mot(&v["salarie"]["prenom"])).trim().to_string();
+    let le = Jour::lire(&debut).map(|j| j.jj_mm_aaaa()).unwrap_or(debut);
+    let numero = valeur_en_texte(&v["numero_contrat"]);
+    let phrase = if brut.get("numero").is_some_and(vrai) {
+        format!("{} : contrat commencé le {}, avant PuppetPaie : ni DPAE ni contrat à faire ici. La DSN le déclare sous le n° {}, celui que votre ancien logiciel a déclaré.", qui, le, numero)
+    } else {
+        format!(
+            "{} : contrat commencé le {}, avant PuppetPaie : ni DPAE ni contrat à faire ici. La DSN le déclare sous le n° {} ; si votre ancien logiciel l'a déjà déclaré en DSN, dites son numéro (« Numéro en DSN »), sinon il compterait pour un second contrat.",
+            qui, le, numero
+        )
+    };
+    if let Some(Value::Array(infos)) = v.get_mut("informations") {
+        infos.insert(0, json!(phrase));
+    }
+    let cle = valeur_en_texte(&v["salarie"]["cle"]);
+    if vrai(&v["nature"]["mensuelle"]) && !declarations::demarrage::conges_repris(ctx, &cle) {
+        v["a_dire"] = json!([declarations::demarrage::conges_a_dire(&cle, &qui, &format!("{}-01", mois))]);
+    }
+    Ok(())
+}
+
 /// Les paies de l'apercu de `data`, une par engagement, dans son ordre.
 fn apercu_des_paies(ctx: &Contexte, data: &Value) -> R<Value> {
     let refus = match apercu_de(ctx, data) {
@@ -1921,7 +1976,7 @@ fn apercu_des_paies(ctx: &Contexte, data: &Value) -> R<Value> {
             Some(m) => json!({
                 "a_completer": m, "salarie": {"_cle": e.get("salarie").cloned().unwrap_or(Value::Null)},
                 "avertissements": [], "informations": [],
-                "contrat": {"ecrits": champs_du_contrat_ecrit_en_saisie(ctx, e)},
+                "contrat": {"ecrits": champs_du_contrat_ecrit_en_saisie(ctx, e, &valeur_en_texte(&data["mois"]))},
             }),
         })
         .collect();
@@ -1967,6 +2022,9 @@ fn apercu_de(ctx: &Contexte, data: &Value) -> R<Value> {
         if let Some(c) = c.filter(|_| !tous.get(i).is_some_and(engagement::etats::est_validee)) {
             v["conseil"] = c;
         }
+    }
+    for (i, v) in vues.iter_mut().enumerate() {
+        dire_l_entree(ctx, &mois, tous.get(i).unwrap_or(&Value::Null), v)?;
     }
     for (v, m) in vues.iter_mut().zip(&montrees) {
         if let Some(phrase) = m.recalcul.as_ref().and_then(engagement::etats::phrase_du_recalcul) {

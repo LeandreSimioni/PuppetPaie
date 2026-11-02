@@ -132,6 +132,18 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: 
     let fiche = ctx.salarie(&e.get("salarie").map(en_texte).unwrap_or_default())?;
     let cle = fiche.get("_cle").map(en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
     let debut = crate::debut_brut(&e);
+    // UN NUMERO PARTI NE CHANGE PLUS : celui de la validation que la modification remplace, des qu'un envoi l'a porte.
+    let parti = o.brut.get(crate::etats::PRECEDENTE).and_then(|p| p.pointer("/saisie/numero")).filter(|n| vrai(n)).map(en_texte);
+    if let Some(parti) = parti.filter(|p| porte_par_un_envoi(o, &cle, p, departs)) {
+        if o.brut.get("numero").filter(|n| vrai(n)).map(en_texte).is_some_and(|n| n != parti) {
+            return Err(format!(
+                "{} : ce contrat est parti sous le n° {} ; un numéro parti ne change plus (il identifie le contrat en DSN, \
+                 S21.G00.40.009). Rien n'est écrit.",
+                crate::salarie_nomme(ctx, o.brut.get("salarie")),
+                parti
+            ));
+        }
+    }
     if let Some(n) = o.brut.get("numero").filter(|n| vrai(n)).map(en_texte) {
         let garde = match o.brut.get(POUR) {
             Some(p) => {
@@ -153,12 +165,14 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: 
     Ok(())
 }
 
-/// Le numero de contrat que la paie `p`, sans numero, porterait : la suite des numeros `pris` pour son salarie
-/// (`derniers_pris`, lus une fois), en memoire.
-fn proposer(ctx: &Contexte, p: &mut crate::calcul::Contenu, annee: i32, pris: &mut Option<HashMap<String, i64>>, departs: &Departs) -> Resultat<()> {
-    let pris = match pris {
-        Some(x) => x,
-        None => pris.insert(derniers_pris(ctx, annee, departs)?),
+/// Le numero de contrat que la paie `p`, sans numero, porterait : la suite des numeros `pris` pour son salarie dans
+/// l'annee du debut du contrat (`derniers_pris`, lus une fois par annee), en memoire -- celui que sa validation lui
+/// donnerait (`a_la_validation`).
+fn proposer(ctx: &Contexte, p: &mut crate::calcul::Contenu, pris: &mut HashMap<i32, HashMap<String, i64>>, departs: &Departs) -> Resultat<()> {
+    let annee = p.engagement.debut.an;
+    let pris = match pris.entry(annee) {
+        std::collections::hash_map::Entry::Occupied(x) => x.into_mut(),
+        std::collections::hash_map::Entry::Vacant(x) => x.insert(derniers_pris(ctx, annee, departs)?),
     };
     let cle = p.salarie.get("_cle").map(en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
     let dernier = pris.entry(cle).or_insert(0);
@@ -167,32 +181,29 @@ fn proposer(ctx: &Contexte, p: &mut crate::calcul::Contenu, annee: i32, pris: &m
     Ok(())
 }
 
-/// LES NUMEROS DE CONTRAT QUE DES PAIES PORTERAIENT, en memoire : un engagement qui porte deja le sien le garde ; au
-/// premier mois de son contrat, un autre prend la suite des numeros pris pour son salarie (`derniers_pris`). Un mois qui
-/// n'est pas le premier n'en recoit pas : son numero est celui de l'engagement, ecrit a sa validation.
-pub fn numeroter_les_contrats(ctx: &Contexte, paies: &mut [crate::calcul::Paie], annee: i32, departs: &Departs) -> Resultat<()> {
-    let mut pris = None;
+/// LES NUMEROS DE CONTRAT QUE DES PAIES PORTERAIENT, en memoire : un engagement qui porte deja le sien le garde ; un
+/// engagement qui n'a pas encore le sien (pas encore valide) recoit celui que sa validation lui donnerait (`proposer`).
+pub fn numeroter_les_contrats(ctx: &Contexte, paies: &mut [crate::calcul::Paie], departs: &Departs) -> Resultat<()> {
+    let mut pris = HashMap::new();
     for paie in paies.iter_mut() {
-        if paie.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) || !paie.engagement.premier_mois()? {
+        if paie.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
             continue;
         }
-        proposer(ctx, paie.ecrire(), annee, &mut pris, departs)?;
+        proposer(ctx, paie.ecrire(), &mut pris, departs)?;
     }
     Ok(())
 }
 
-/// LES NUMEROS QUE DES PAIES PORTERAIENT, en memoire : les numeros de contrat (`numeroter_les_contrats`, et un mois qui
-/// n'est pas le premier de son contrat, sans numero, refuse : `refus_sans_numero`) ; une paie dont le bulletin est parti
-/// garde son numero de bulletin, une autre recoit le `prochain` (`N/AAAA`), puis le suivant. Un mois sans paie n'a pas de
+/// LES NUMEROS QUE DES PAIES PORTERAIENT, en memoire : les numeros de contrat (`numeroter_les_contrats`) ; une paie dont le bulletin est
+/// parti garde son numero de bulletin, une autre recoit le `prochain` (`N/AAAA`), puis le suivant. Un mois sans paie n'a pas de
 /// bulletin. Rend le prochain numero de bulletin libre.
 pub fn numeroter(ctx: &Contexte, paies: &mut [crate::calcul::Paie], annee: i32, prochain: i64, departs: &Departs) -> Resultat<i64> {
     let mut n_bull = prochain;
-    let mut pris = None;
+    let mut pris = HashMap::new();
     for paie in paies.iter_mut() {
         let p = paie.ecrire();
         if p.engagement.numero.as_deref().map_or(true, str::is_empty) {
-            crate::refus_sans_numero(ctx, &p.engagement)?;
-            proposer(ctx, p, annee, &mut pris, departs)?;
+            proposer(ctx, p, &mut pris, departs)?;
         }
         if p.engagement.sans_paie() || p.numero_bulletin.as_deref().is_some_and(|n| !n.is_empty()) {
             continue;

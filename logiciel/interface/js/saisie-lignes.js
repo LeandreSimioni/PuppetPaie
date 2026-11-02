@@ -591,13 +591,16 @@ function poserEcrit(div, e) {
     c.value = e[c.dataset.cle] ?? "";
     c.onchange = rafraichirApercu;
   });
+  const n = div.querySelector(".e-numero-dit");
+  if (n) { n.value = e.numero || ""; n.onchange = rafraichirApercu; }
   montrerEcrit(div, []);
 }
 
 function montrerEcrit(div, demandes) {
   div.querySelectorAll(".e-ecrit [data-ecrit]").forEach((l) => {
+    // La case du numéro ne se montre que demandée : sa valeur est celle du contrat, que toute carte porte.
     const c = l.querySelector(".e-ecrit-champ");
-    l.hidden = !(demandes || []).includes(l.dataset.ecrit) && c.value.trim() === "";
+    l.hidden = !(demandes || []).includes(l.dataset.ecrit) && (!c || c.value.trim() === "");
   });
   nommerLesCases(div);
 }
@@ -622,6 +625,12 @@ function ecritDuBloc(div, e) {
     const v = c.value.trim();
     if (v !== "") e[c.dataset.cle] = c.dataset.type === "number" ? +v : v;
   });
+  // LE NUMÉRO DÉJÀ DÉCLARÉ EN DSN, quand le moteur demande sa case : il est celui du contrat ; vide, le moteur en donne un.
+  const n = div.querySelector(".e-numero-dit");
+  if (n && !n.closest("[data-ecrit]").hidden) {
+    if (n.value.trim()) e.numero = n.value.trim();
+    else delete e.numero;
+  }
 }
 
 /** Les jours d'une ligne qui disent leur propre lieu, un champ chacun. */
@@ -934,6 +943,8 @@ function construireCarte(div, e) {
            contrat écrit, la personne remplacée d'un remplacement, la
            répartition des horaires d'un temps partiel. -->
       <div class="e-ecrit">
+        <label data-ecrit="numero" hidden title="${aideDe("numero")}">Numéro en DSN
+          <input type="text" class="e-numero-dit"></label>
         <label data-ecrit="periode_essai_jours" hidden title="${aideDe("periode_essai_jours")}">Période d'essai (jours)
           <input type="number" min="0" step="1" class="e-ecrit-champ" data-cle="periode_essai_jours" data-type="number"></label>
         <label data-ecrit="personne_remplacee" hidden title="${aideDe("personne_remplacee")}">Personne remplacée

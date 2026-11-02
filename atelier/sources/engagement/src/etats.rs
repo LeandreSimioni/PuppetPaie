@@ -76,7 +76,7 @@ pub const SAISIE_DU_MOIS: &str = "saisie du mois modifiée";
 pub const CONFIGURATION: &str = "configuration de la compagnie modifiée";
 
 /// Dans l'engagement : la validation qu'une modification va remplacer, et les versions passees.
-const PRECEDENTE: &str = "precedente";
+pub(crate) const PRECEDENTE: &str = "precedente";
 const VERSIONS: &str = "versions";
 
 // ------------------------------------------------------------------ ce qui est parti

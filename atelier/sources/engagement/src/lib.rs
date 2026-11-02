@@ -1504,40 +1504,14 @@ fn numero_dit(eng: &Engagement) -> String {
 /// LE CONTRAT DE CET ENGAGEMENT SE FAIT-IL SIGNER PAR LE LOGICIEL ? Oui quand sa nature a un contrat ecrit (`contrat_ecrit`
 /// de `contrats-base.json` : le CDD « est etabli par ecrit », L1242-12 ; tout salarie recoit l'ecrit de L1221-5-1). Un
 /// contrat repris d'un ancien logiciel -- celui d'un permanent, ou le contrat d'usage qui continue ici un contrat importe --
-/// a ete signe la-bas (`importe::vient_d_un_ancien_logiciel`) : il ne se refait pas signer ici.
+/// a ete signe la-bas (`importe::vient_d_un_ancien_logiciel`) : il ne se refait pas signer ici. Un contrat commence avant
+/// le logiciel (`stock::commence_avant_le_logiciel`) non plus : il a ete signe avant.
 pub fn contrat_a_signer(racine: &Path, eng: &Engagement) -> Resultat<bool> {
     let nat = eng.nat()?;
-    if nat.modele_contrat().is_none() {
+    if nat.modele_contrat().is_none() || stock::commence_avant_le_logiciel(racine, &eng.debut.iso(), &eng.mois)? {
         return Ok(false);
     }
     Ok(!importe::vient_d_un_ancien_logiciel(racine, &eng.salarie, &eng.debut.iso(), eng.numero.as_deref().unwrap_or("")))
-}
-
-/// UN NUMERO DE CONTRAT NE SE DONNE QU'AU PREMIER MOIS : le numero identifie le contrat en DSN (S21.G00.40.009), il se
-/// pose a la validation de l'engagement (`numeros::a_la_validation`), et il ne se regenere pas (regle 4). Ce qui
-/// numerote un mois du contrat qui n'est pas le premier, sans numero, refuse ici.
-pub fn refus_sans_numero(ctx: &Contexte, eng: &Engagement) -> Resultat<()> {
-    if eng.numero.as_deref().is_some_and(|n| !n.is_empty()) || eng.premier_mois()? {
-        return Ok(());
-    }
-    let qui = qui_de(&ctx.salarie(&eng.salarie)?)?;
-    let contrat = match eng.fin {
-        Some(fin) if !eng.nat()?.mensuelle() => format!("contrat du {} au {}", eng.debut.jj_mm_aaaa(), fin.jj_mm_aaaa()),
-        _ => format!("{} depuis le {}", eng.nat()?.libelle, eng.debut.jj_mm_aaaa()),
-    };
-    Err(numero_inconnu(&qui, &contrat, &eng.mois_du_contrat()?.remove(0)))
-}
-
-fn numero_inconnu(qui: &str, contrat: &str, premier: &str) -> String {
-    format!(
-        "{}, {} : en cours depuis {}, mais son numéro n'est pas connu : l'engagement n'est pas validé. Le numéro \
-         identifie le contrat en DSN (S21.G00.40.009) et s'écrit à la validation : validez d'abord l'engagement {}. \
-         Un contrat repris d'un autre logiciel dit le sien, lu sur sa DSN, dans Configuration › Reprendre l'historique.",
-        qui,
-        contrat,
-        libelle_mois(premier),
-        socle::texte::de(&libelle_mois(premier))
-    )
 }
 
 /// Un contrat permanent court d'un bout a l'autre, son numero est celui de l'engagement, et le dernier mois le dit.
