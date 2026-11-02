@@ -361,9 +361,9 @@ Le domaine `modification_du_contrat` (L1221-1, L1222-6) ajouté à `moteur/src/a
 `rapport`) : `articles-20261102.md`, l. 972-980 ; XML : `xml/L1221-1.xml`, `xml/L1222-6.xml`.
 
 - **L1221-1** (`LEGIARTI000006900839`) : « Le contrat de travail est soumis aux règles du droit commun. » Le droit commun
-  (code civil, article 1193 : un contrat ne se modifie que du consentement mutuel des parties) **n'est pas déposé** : le
-  code civil ne se relève pas par `moteur releve-codes` (`../code-civil/LISEZ-MOI.md`) ; à relever sur Légifrance depuis
-  le poste de Léandre. **Inférence** : un terme du contrat (salaire, durée du travail, emploi) qui change se fait signer
+  (code civil, article 1193 : « Les contrats ne peuvent être modifiés ou révoqués que du consentement mutuel des parties », déposé
+  dans `../code-civil/legifrance-code-civil-art1193-force-obligatoire-20261102.md`, relevé par Léandre le 02/11/2026) : un
+  terme du contrat (salaire, durée du travail, emploi) qui change se fait signer
   par le salarié, d'où l'avenant envoyé à la signature.
 - **L1222-6** (`LEGIARTI000028724382`) : la modification d'un élément essentiel pour motif économique se propose par lettre
   recommandée, et le salarié a un mois pour refuser. **Le moteur ne le porte pas** : il ne connaît pas le motif d'un
