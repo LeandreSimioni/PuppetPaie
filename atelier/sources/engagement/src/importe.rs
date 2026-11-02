@@ -458,6 +458,24 @@ pub fn vient_d_un_ancien_logiciel(racine: &Path, salarie: &str, debut: &str, num
     !numero.is_empty() && tous(racine).unwrap_or_default().iter().any(|i| i.texte("salarie") == salarie && i.texte("debut") == debut && i.texte("numero") == numero)
 }
 
+/// LE NUMERO QU'UNE DSN DE L'ANCIEN LOGICIEL A DECLARE pour l'engagement `brut` : celui de sa derniere paie importee
+/// qu'une DSN deposee declare (`declare_par: "DSN"`, S21.G00.40.009). Cette DSN est partie : le numero est lu, il ne se
+/// dit plus et ne change plus (`numeros::a_la_validation`). `None` pour un engagement d'ici, ou repris des seuls bulletins.
+pub fn numero_declare(brut: &Value) -> Option<String> {
+    let paies = brut.get(IMPORTE)?.get("paies")?.as_object()?;
+    paies
+        .values()
+        .rev()
+        .filter(|p| p.get("declare_par").and_then(Value::as_str) == Some("DSN"))
+        .find_map(|p| p.get("contrat").filter(|n| vrai(n)).map(en_texte))
+}
+
+/// Le numero qu'une DSN de l'ancien logiciel a declare pour le contrat de `salarie` commence le `debut`
+/// (`numero_declare`), lu sur l'engagement repris qui le porte.
+pub fn numero_declare_du_contrat(racine: &Path, salarie: &str, debut: &str) -> Option<String> {
+    tous(racine).ok()?.iter().filter(|i| i.texte("salarie") == salarie && i.texte("debut") == debut).find_map(|i| numero_declare(&i.objet.brut))
+}
+
 impl Importe {
     /// LES JOURS DU CONTRAT ENTIER (S21.G00.40.013 d'un contrat d'usage : `Engagement::quotite`) d'un contrat qui continue
     /// ici, `propres` etant ceux que la saisie lui donne : les jours que les bulletins importes impriment, plus les siens ;

@@ -1670,6 +1670,16 @@ fn rupture_de(e: &engagement::Engagement, nat: &droit::natures::Nature) -> R<Val
 /// (`engagement::numeros::a_la_validation` le garde). Vide, le logiciel en donne un.
 const NUMERO_DIT: &str = "numero";
 
+/// La case du numero, sauf pour un contrat dont une DSN de l'ancien logiciel a declare le numero : il est lu
+/// (`engagement::importe::numero_declare_du_contrat`), il ne se dit pas.
+fn numero_a_dire(ctx: &Contexte, salarie: &str, debut: &str) -> Vec<&'static str> {
+    if engagement::importe::numero_declare_du_contrat(&ctx.racine, salarie, debut).is_some() {
+        Vec::new()
+    } else {
+        vec![NUMERO_DIT]
+    }
+}
+
 /// LES CASES DU CONTRAT ECRIT QUE CET ENGAGEMENT APPELLE (`engagement::CHAMPS_DU_CONTRAT_ECRIT`), et elles seules : la
 /// periode d'essai et les clauses particulieres de tout contrat ecrit ; la personne remplacee d'un CDD de remplacement
 /// (L1242-12, 1° ; `Nature::motif_de_remplacement`) ; la repartition des horaires d'un temps partiel (L3123-6, 1° : la
@@ -1679,7 +1689,7 @@ const NUMERO_DIT: &str = "numero";
 /// n'appelle que la case de son numero deja declare en DSN (`NUMERO_DIT`).
 fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &droit::natures::Nature) -> R<Vec<&'static str>> {
     if engagement::stock::commence_avant_le_logiciel(&ctx.racine, &e.debut.iso(), &e.mois)? {
-        return Ok(vec![NUMERO_DIT]);
+        return Ok(numero_a_dire(ctx, &e.salarie, &e.debut.iso()));
     }
     if !engagement::contrat_a_signer(&ctx.racine, e)? {
         return Ok(Vec::new());
@@ -1700,7 +1710,7 @@ fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &dro
 /// duree du travail calculee.
 fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &Value, mois: &str) -> Vec<&'static str> {
     if engagement::stock::commence_avant_le_logiciel(&ctx.racine, &engagement::debut_brut(e), mois).unwrap_or(false) {
-        return vec![NUMERO_DIT];
+        return numero_a_dire(ctx, &e.get("salarie").map(en_texte).unwrap_or_default(), &engagement::debut_brut(e));
     }
     let Ok(nat) = droit::natures::nature(e.get("nature").and_then(Value::as_str)) else { return Vec::new() };
     let Some(cle) = engagement::cle_de_l_engagement(ctx, e) else { return Vec::new() };
