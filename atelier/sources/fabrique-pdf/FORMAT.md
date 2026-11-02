@@ -137,16 +137,6 @@ telle quelle.
   fonction du signataire (`employeur.signataire`, `employeur.signataire_fonction`),
   puis l'image, qui occupe sa hauteur ; le bloc ne se coupe pas entre deux
   pages. Le certificat de travail l'envoie, pas le reçu (le salarié y signe).
-- `mention_artiste` (styles `contrat` et `avenant`, facultatif) : ce que
-  l'artiste a signé d'un clic (qui, quand, adresse, code), posé dans SA case,
-  sous « signature » : un texte à lignes séparées par `\n`, dans un cadre gris
-  de 46 pt de haut et de la largeur de la colonne, en 6,6 pt. La case ne prend
-  aucune hauteur (comme une image flottante) : rien d'autre ne bouge, et sans
-  cette clé le PDF est exactement celui d'avant. C'est ce qui fait de la
-  contresignature « le contrat, plus une mention » : même description, même
-  modèle (`texte`), plus ce champ. Au plus 4 lignes, chacune assez courte pour
-  tenir dans la case, en caractères que la police possède : sinon refus. Pas
-  avec `attestation`.
 - `remplace` ne va qu'avec le style `contrat`, `modifications` qu'avec
   `avenant`, et `signature` pas avec `attestation` (pas de case) : sinon refus.
 - Pour les styles `contrat` et `avenant`, les valeurs `employeur.signataire`,
@@ -430,7 +420,7 @@ le corps, donc ne changent pas les sauts de page.
 - Le **texte extrait** du PDF (PyMuPDF `page.get_text()`, ou `fabrique-pdf --texte`, qui
   donne le même sur les PDF de la fabrique) est celui des
   morceaux, dans l'ordre : l'avenant relit le contrat parti, et
-  `contrat.contresigner` cherche le mot « signature » dans la colonne de
+  `marquage::contresigner` cherche le mot « signature » dans la colonne de
   droite.
 - Les accents et « € » s'impriment et s'extraient justes ; **tout caractère que
   Liberation possède** aussi (« Ł », « ő », « č », « Ş », cyrillique, grec…) :
@@ -692,6 +682,21 @@ et 12 pt du bas *tels qu'on les voit*.
   chiffré : on ne le marque pas »).
 - Code 0 : le PDF est écrit ; 1 : refus d'une ligne qui nomme le fichier, rien n'est écrit (et
   la sortie, si ce n'est pas l'entrée, n'existe pas) ; 2 : il manque un argument.
+
+## Contresigner un contrat parti (bibliothèque seulement : `marquage::contresigner`)
+
+L'exemplaire contresigné d'un contrat ou d'un avenant (styles `contrat` et `avenant`) est **le PDF parti, plus la
+mention** de l'artiste (qui, quand, adresse, code : des lignes séparées par `\n`), posée par une **mise à jour
+incrémentale** (ISO 32000-2, 7.5.6) : les octets du PDF parti restent tels quels en tête du fichier ; après eux
+s'ajoutent la police de la mention (Liberation Sans en sous-ensemble, avec `ToUnicode`), un flux par page, la page qui
+le cite (ses flux d'avant intacts, comme `--marquer`), une table de références et un `trailer` qui renvoie à l'ancienne
+par `/Prev`. Retirer ce qui suit les octets partis rend le contrat parti à l'octet près. Rien n'est chiffré.
+
+- *La case* : sous la ligne « signature » de la colonne de droite (la case de l'artiste du bloc de signatures), sur
+  chaque page qui en porte une ; un cadre gris (`#B3B3B3`, 0,5 pt) de 46 pt de haut et de la largeur de la colonne,
+  3 pt sous le pas de cette ligne ; le texte en 6,6 pt à 1,35, en retrait de 4 pt et 3 pt.
+- *Refus d'une ligne* : un PDF illisible ou chiffré, un PDF sans case de l'artiste, une mention vide, une ligne trop
+  longue pour la case, trop de lignes pour sa hauteur, un caractère que Liberation n'a pas.
 
 ## Verrouiller un PDF : `--verrouiller`
 

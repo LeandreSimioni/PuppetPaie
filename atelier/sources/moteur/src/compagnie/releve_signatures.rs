@@ -1,7 +1,7 @@
 //! La releve des reponses « Je signe ». La demande de signature (`crate::compagnie::signature::demander_signature`) a garde,
 //! au journal, un CODE (`SIG-XXXXXX`) par courriel parti. Cette releve cherche chaque code attendu dans la boite
 //! (`envois::releve_signatures::chercher_reponse`, le tri strict) et fait tout ce qui suit : la preuve archivee
-//! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`depart::refaire_le_contrat`, la mention de l'artiste dans sa case), le journal (sur la ligne de
+//! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`depart::contresigner` : le PDF parti, plus la mention de l'artiste dans sa case), le journal (sur la ligne de
 //! l'envoi, par contrat, date de la SIGNATURE, `crate::routes::contrats::contrat_recu_avec`), et le renvoi du
 //! contresigne au salarie (`envois::releve_signatures::renvoyer_contresigne`).
 //!
@@ -184,13 +184,8 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
             let envoye = ctx.racine.join("sorties").join(mois_f).join("envoi").join(nom_f);
             let souche = envoye.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             let signe = envoye.with_file_name(format!("{}{}", souche, envois::releve_signatures::SUFFIXE_CONTRESIGNE));
-            // L'EXEMPLAIRE CONTRESIGNE se refait comme le contrat parti (`depart::refaire_le_contrat`), depuis la ligne de
-            // la demande et la version de l'engagement qu'elle a emportee, la mention de l'artiste dans sa case.
-            let porte = |l: &Value| l["detail"]["contrats"].as_array().is_some_and(|cs| cs.iter().any(|c| c["code"] == json!(code)));
-            let fait = match lignes.iter().rposition(|l| l.get("quoi").and_then(Value::as_str) == Some("contrat-signature") && porte(l)) {
-                Some(rang) => crate::compagnie::depart::refaire_le_contrat(ctx, &lignes, rang, &envoye, &signe, Some(&mention)).map_err(|e| e.message),
-                None => Err(format!("aucune demande de signature ne porte le code {}", code)),
-            };
+            // L'EXEMPLAIRE CONTRESIGNE : le PDF parti avec ce code, octet pour octet, plus la mention de l'artiste dans sa case.
+            let fait = crate::compagnie::depart::contresigner(ctx, &lignes, &code, &envoye, &signe, &mention).map_err(|e| e.message);
             match fait {
                 Ok(()) => match signes.iter_mut().find(|(n, _)| n == nom_f) {
                     Some(deja) => deja.1 = signe,
@@ -217,6 +212,8 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
             courriel.insert("message".into(), json!(ident));
             courriel.insert("preuve".into(), json!(nom_preuve));
             courriel.insert("fichier_signe".into(), json!(sien.unwrap_or_default()));
+            // La mention posee : l'exemplaire contresigne se refait du contrat parti et d'elle (`depart::piece_partie`).
+            courriel.insert("mention".into(), json!(mention));
             courriel.insert("acte".into(), acte.clone());
             if est_avenant {
                 courriel.insert("avenant".into(), ou_valeur(c, a, "avenant"));

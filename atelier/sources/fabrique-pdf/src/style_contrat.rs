@@ -20,13 +20,17 @@ const LIGNE_CORPS: f32 = 7.5 * 1.25;
 /// `.cite { margin-left: 12pt }`
 const RETRAIT_CITATION: f32 = 12.0;
 const SIGNATURE_LARGEUR: f32 = 92.0; // l'image fait 792 x 384 px
-/// La case de la mention de signature de l'artiste (`documents::contrat::ecrire_contrat` contresigne) :
-/// 46 pt de haut, filet gris à 0,5 pt, texte de 6,6 pt à 1,35, en retrait de 4 pt et 3 pt.
-const MENTION_HAUTEUR: f32 = 46.0;
-const MENTION_TAILLE: f32 = 6.6;
-const MENTION_INTERLIGNE: f32 = 1.35;
-const MENTION_FILET: Rvb = (0xB3, 0xB3, 0xB3);
-const MENTION_MARGE: (f32, f32) = (4.0, 3.0);
+/// La case de la mention de signature de l'artiste, posée sur le contrat parti (`marquage::contresigner`) :
+/// 46 pt de haut, filet gris à 0,5 pt, texte de 6,6 pt à 1,35, en retrait de 4 pt et 3 pt, 3 pt sous la ligne
+/// « signature » de la case de l'artiste (7 pt).
+pub(crate) const MENTION_HAUTEUR: f32 = 46.0;
+pub(crate) const MENTION_TAILLE: f32 = 6.6;
+pub(crate) const MENTION_INTERLIGNE: f32 = 1.35;
+pub(crate) const MENTION_FILET: Rvb = (0xB3, 0xB3, 0xB3);
+pub(crate) const MENTION_MARGE: (f32, f32) = (4.0, 3.0);
+pub(crate) const MENTION_ECART: f32 = 3.0;
+pub(crate) const LIBELLE_CASE_ARTISTE: &str = "signature";
+pub(crate) const TAILLE_SOUS_LIBELLE: f32 = 7.0;
 
 /// La phrase d'un contrat qui annule et remplace, quand le modèle n'a pas de clé `ANNULE:`.
 const ANNULE_DEFAUT: &str = "Le présent contrat annule et remplace le contrat n° {{remplace.numero}} du {{remplace.date}}, qui est réputé n'avoir jamais produit d'effet.";
@@ -94,9 +98,6 @@ pub struct Contrat<'a> {
     /// L'image de la signature de l'employeur, posée en fin de document, à droite (attestation
     /// seulement : le certificat de travail s'établit signé ; le reçu, lui, se signe du salarié).
     pub signature_employeur: Option<&'a str>,
-    /// Ce que l'artiste a signé d'un clic : qui, quand, de quelle adresse, quel code. Posé dans
-    /// SA case, sans rien déplacer (contrat et avenant) ; sans lui la case reste vide.
-    pub mention_artiste: Option<&'a str>,
 }
 
 fn para(
@@ -143,12 +144,12 @@ fn valeur<'a>(v: &'a Valeurs, cle: &str) -> Result<&'a str, Refus> {
 /// Le bloc de signatures : deux colonnes à filet, celle de l'employeur avec sa signature sous sa
 /// fonction (image flottante : elle recouvre les lignes vides sans rien pousser à la page
 /// suivante). Sans fichier de signature, la case reste vide et le contrat se signe à la main.
-fn signatures(v: &Valeurs, signature: Option<&str>, mention: Option<&str>) -> Result<Bloc, Refus> {
+fn signatures(v: &Valeurs, signature: Option<&str>) -> Result<Bloc, Refus> {
     let case = |libelle: &str, nom: &str, sous: &str| -> Vec<Bloc> {
         vec![
             para(vec![(libelle.to_string(), true)], Some(6.6), Some(ROUGE), Alignement::Gauche, 0.0, 0.0),
             para(vec![(nom.to_string(), false)], None, None, Alignement::Gauche, 0.0, 0.0),
-            para(vec![(sous.to_string(), false)], Some(7.0), Some(GRIS_CLAIR), Alignement::Gauche, 0.0, 0.0),
+            para(vec![(sous.to_string(), false)], Some(TAILLE_SOUS_LIBELLE), Some(GRIS_CLAIR), Alignement::Gauche, 0.0, 0.0),
         ]
     };
     let mut employeur = case(
@@ -159,7 +160,7 @@ fn signatures(v: &Valeurs, signature: Option<&str>, mention: Option<&str>) -> Re
     // La case du salarie dit qui il est au contrat : « L'artiste » d'un engagement, sauf si le contrat dit autre chose
     // (`salarie.case_signature`, « Le salarié » d'un contrat de permanent).
     let qualite = v.get("salarie.case_signature").map(String::as_str).unwrap_or("L'artiste");
-    let mut artiste = case(qualite, valeur(v, "salarie.nom_complet")?, "signature");
+    let mut artiste = case(qualite, valeur(v, "salarie.nom_complet")?, LIBELLE_CASE_ARTISTE);
     match signature {
         Some(chemin) => {
             employeur.push(Bloc::Espace(3.0));
@@ -172,24 +173,7 @@ fn signatures(v: &Valeurs, signature: Option<&str>, mention: Option<&str>) -> Re
         }
         None => employeur.push(Bloc::Espace(3.0 * LIGNE_CORPS)),
     }
-    match mention {
-        // La case est posée 3 pt sous « signature » et ne prend aucune hauteur : le reste de
-        // l'espace garde la case de l'artiste à la hauteur qu'elle a sans mention.
-        Some(texte) => {
-            artiste.push(Bloc::Espace(3.0));
-            artiste.push(Bloc::Mention {
-                lignes: texte.replace("\r\n", "\n").replace('\r', "\n").split('\n').map(str::to_string).collect(),
-                taille: MENTION_TAILLE,
-                interligne: MENTION_INTERLIGNE,
-                couleur: COULEUR_TEXTE,
-                filet: MENTION_FILET,
-                hauteur: MENTION_HAUTEUR,
-                marge: MENTION_MARGE,
-            });
-            artiste.push(Bloc::Espace(3.0 * LIGNE_CORPS - 3.0));
-        }
-        None => artiste.push(Bloc::Espace(3.0 * LIGNE_CORPS)),
-    }
+    artiste.push(Bloc::Espace(3.0 * LIGNE_CORPS));
     let etiquetter = |blocs: Vec<Bloc>, col: usize| -> Vec<BlocEtiquete> {
         blocs
             .into_iter()
@@ -332,7 +316,7 @@ pub fn blocs(m: &Modele, c: &Contrat, ou: &str) -> Result<Vec<BlocEtiquete>, Ref
         blocs.extend(corps(b, v, 6.0)?);
     }
     if !attestation {
-        blocs.push(signatures(v, c.signature, c.mention_artiste)?);
+        blocs.push(signatures(v, c.signature)?);
     } else if let Some(image) = c.signature_employeur {
         blocs.push(signature_employeur(v, image)?);
     }

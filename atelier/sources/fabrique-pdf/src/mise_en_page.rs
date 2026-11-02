@@ -52,8 +52,6 @@ pub enum Noeud {
         fait: bool,
     },
     Image(Picture),
-    /// La case de la mention de signature : posée là où l'on est, sans hauteur.
-    Mention(Mention),
     /// Une image posée là où l'on est, qui n'occupe aucune hauteur : le texte qui suit passe
     /// dessous, et elle peut descendre dans la marge du bas (FORMAT.md, `flottante`).
     ImageFlottante(Picture),
@@ -61,17 +59,6 @@ pub enum Noeud {
     Tableau(Tableau),
     /// Un bloc à position absolue sur la page (FORMAT.md) : il ne consomme aucune hauteur.
     Fixe(Fixe),
-}
-
-/// Une case encadrée de quelques lignes de texte (`Bloc::Mention`) ; elle recouvre ce qui est
-/// dessous sans rien pousser, comme l'image flottante.
-pub struct Mention {
-    lignes: Vec<String>,
-    style: Style,
-    filet: Color,
-    largeur: Mm,
-    hauteur: Mm,
-    marge: (Mm, Mm),
 }
 
 /// Un texte, un trait ou une image posés à des coordonnées de la page (points → millimètres), et
@@ -179,7 +166,7 @@ impl Noeud {
             } => *avant + para.height(ctx, largeur - *retrait, style) + *apres,
             Noeud::Espace { hauteur, .. } => *hauteur,
             Noeud::Image(p) => p.height(),
-            Noeud::ImageFlottante(_) | Noeud::Fixe(_) | Noeud::Mention(_) => Mm::from(0.0f32),
+            Noeud::ImageFlottante(_) | Noeud::Fixe(_) => Mm::from(0.0f32),
             Noeud::Colonnes(c) => c.hauteur(ctx, largeur, style),
             // Le tableau entier, comme s'il tenait sur une page : pour qui l'additionne.
             Noeud::Tableau(t) => {
@@ -226,23 +213,6 @@ impl Element for Noeud {
             Noeud::Image(p) => p.render(ctx, area, style),
             Noeud::Fixe(f) => {
                 f.poser(ctx, &area)?;
-                Ok(RenderResult::default())
-            }
-            Noeud::Mention(m) => {
-                let mut zone = area.clone();
-                zone.set_height(m.hauteur);
-                zone.set_width(m.largeur);
-                let (l, h) = (m.largeur, m.hauteur);
-                zone.draw_line(
-                    vec![Position::new(0, 0), Position::new(l, 0), Position::new(l, h), Position::new(0, h), Position::new(0, 0)],
-                    LineStyle::new().with_thickness(pt(0.5)).with_color(m.filet),
-                );
-                let hauteur_ligne = m.style.line_height(&ctx.font_cache);
-                let mut y = m.marge.1;
-                for ligne in &m.lignes {
-                    zone.print_str(&ctx.font_cache, Position::new(m.marge.0, y), m.style, ligne)?;
-                    y += hauteur_ligne;
-                }
                 Ok(RenderResult::default())
             }
             Noeud::ImageFlottante(p) => {
@@ -711,30 +681,6 @@ fn construire(
                 retrait: pt(*retrait),
                 commence: false,
             }
-        }
-        Bloc::Mention { lignes, taille, interligne, couleur, filet, hauteur, marge } => {
-            let st = Style::new()
-                .with_font_size(*taille)
-                .with_line_spacing(*interligne)
-                .with_color(couleur_genpdfi(*couleur));
-            for l in lignes {
-                verifier_texte(ctx, st, l, ou)?;
-                if st.text_width(&ctx.font_cache, l) + pt(2.0 * marge.0) > largeur {
-                    return refus(format!("{} : la mention de signature ne tient pas dans la case (la ligne « {} » est trop longue)", ou, l));
-                }
-            }
-            let besoin = st.line_height(&ctx.font_cache) * lignes.len() as f32 + pt(marge.1);
-            if besoin > pt(*hauteur) + Mm::from(EPS_MM) {
-                return refus(format!("{} : la mention de signature ne tient pas dans la case ({} lignes)", ou, lignes.len()));
-            }
-            Noeud::Mention(Mention {
-                lignes: lignes.clone(),
-                style: st,
-                filet: couleur_genpdfi(*filet),
-                largeur,
-                hauteur: pt(*hauteur),
-                marge: (pt(marge.0), pt(marge.1)),
-            })
         }
         Bloc::Espace(h) => Noeud::Espace {
             hauteur: pt(*h),

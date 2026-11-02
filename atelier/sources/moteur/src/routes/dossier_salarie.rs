@@ -303,7 +303,7 @@ fn noms_commencant_finissant(dossier: &Path, debut: &str, fin: &str) -> Vec<Stri
 /// `glob("Contrat*_<cle>_*_signe.pdf")`.
 fn contrats_signes_de(dossier: &Path, cle: &str) -> Vec<String> {
     let marque = format!("_{}_", cle);
-    let fin = "_signe.pdf";
+    let fin = envois::releve_signatures::SUFFIXE_CONTRESIGNE;
     noms_commencant_finissant(dossier, "Contrat", fin)
         .into_iter()
         .filter(|n| {
@@ -676,7 +676,7 @@ fn mois_puppetpaie(
                 continue;
             }
             let chemin = tmp.join(format!("C_{}_{}.pdf", cle, mois));
-            documents::contrat::ecrire_contrat(ctx, &a_lui, &ent, &chemin, &[], None)?;
+            documents::contrat::ecrire_contrat(ctx, &a_lui, &ent, &chemin, &[])?;
             marquer(&chemin, aujourdhui)?;
             for i in 0..pages_pdf(&chemin)? {
                 pages.push(Page { categorie: CONTRATS, cle: cle.clone(), tri: format!("{}-01", mois), source: chemin.clone(), numero: i });
