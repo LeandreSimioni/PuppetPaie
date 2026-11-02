@@ -215,6 +215,44 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
 
 // ------------------------------------------------------ le solde lui-meme
 
+/// LES RELATIONS DE TRAVAIL QUI SE POURSUIVENT PAR UN CDI : l'indemnite de fin de contrat est due « lorsque, a l'issue
+/// d'un contrat de travail a duree determinee, les relations contractuelles de travail ne se poursuivent pas par un
+/// contrat a duree indeterminee » (C. trav. L1243-8, `atelier/reference/sources/code-du-travail/articles-20261102.md`).
+/// Le debut du CDI valide du meme salarie qui commence apres le debut du CDD `e` et au plus tard le premier jour de
+/// semaine qui suit son terme `fin`, ou `None`. INFERENCE : « a l'issue » se lit sans jour de semaine entre les deux (un
+/// CDD qui finit le vendredi, un CDI qui commence le lundi) ; un jour ferie entre eux n'est pas compte. La saisie de ce
+/// salarie dans les mois lus se note (`stock::cle_de_saisie`) : qu'un CDI s'y valide ou s'en retire, la paie du dernier
+/// mois du CDD se recalcule.
+fn cdi_a_l_issue(ctx: &Contexte, e: &Value, fin: &socle::date::Jour) -> Resultat<Option<socle::date::Jour>> {
+    let salarie = t(cle(e, "salarie")?);
+    let debut = d(cle(e, "debut")?)?;
+    // Le premier jour de semaine apres le terme (0 = lundi ... 6 = dimanche).
+    let mut reprise = fin.plus_jours(1)?;
+    while reprise.jour_de_la_semaine() >= 5 {
+        reprise = reprise.plus_jours(1)?;
+    }
+    let mut mois = vec![fin.mois_iso()];
+    if reprise.mois_iso() != fin.mois_iso() {
+        mois.push(reprise.mois_iso());
+    }
+    let mut trouve = None;
+    for m in mois {
+        let Some(s) = crate::stock::vue_et_empreinte(&ctx.racine, &m)? else { continue };
+        socle::fichiers::noter_valeur(&crate::stock::cle_de_saisie(&m, Some(&salarie)), crate::stock::empreinte_de_saisie(&s.0, Some(&salarie)));
+        for x in s.0.get("engagements").and_then(Value::as_array).into_iter().flatten() {
+            let sien = x.get("valide").is_some() && x.get("salarie").and_then(Value::as_str) == Some(salarie.as_str());
+            if !sien || !nature_de(x.get("nature"))?.duree_indeterminee {
+                continue;
+            }
+            let Some(j) = x.get("debut").filter(|v| vrai(v)).map(d).transpose()? else { continue };
+            if j > debut && j <= reprise {
+                trouve = Some(j);
+            }
+        }
+    }
+    Ok(trouve)
+}
+
 /// Les lignes du dernier bulletin : conges non pris, precarite, preavis,
 /// indemnite de rupture. `deja` : les lignes de CE mois deja construites.
 pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value]) -> Resultat<(Vec<Value>, Vec<Avis>)> {
@@ -284,7 +322,15 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     }
 
     // --- l'indemnite de fin de CDD (L1243-8)
+    let cdi = if nat.duree_indeterminee { None } else { cdi_a_l_issue(ctx, e, &fin)? };
     match permanents::precarite_due(&nat, motif)? {
+        None if cdi.is_some() => {
+            stc.avertissements.push(info(format!(
+                "{} : pas d'indemnite de fin de contrat -- les relations de travail se poursuivent par un CDI, a compter du {} (L1243-8).",
+                qui,
+                cdi.map(|j| j.jj_mm_aaaa()).unwrap_or_default()
+            )));
+        }
         None => {
             if e.get("precarite_due") == Some(&Value::Bool(false)) {
                 stc.avertissements.push(info(format!(

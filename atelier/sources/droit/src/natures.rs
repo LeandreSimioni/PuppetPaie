@@ -164,6 +164,27 @@ impl Nature {
         liste(self.champs.get("S21.G00.40.021").and_then(|c| c.get("valeurs")))
     }
 
+    /// Le refus d'un motif de recours saisi (`S21.G00.40.021`) que cette nature n'accepte pas, ou `None`. La rubrique
+    /// est une liste de codes de deux caracteres (cahier technique DSN 2026.1, p. 194-195,
+    /// `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`) ; la nature en propose une partie (`valeurs` de
+    /// `contrats-base.json`). Une nature sans liste (le CDDU, qui fixe le sien ; le CDI) n'est pas controlee.
+    pub fn motif_recours_refuse(&self, motif: &str, qui: &str) -> Option<String> {
+        let motifs = self.motifs_recours();
+        let code = |m: &Value| m.get("code").and_then(texte).unwrap_or_default();
+        if motif.is_empty() || motifs.is_empty() || motifs.iter().any(|m| code(m) == motif) {
+            return None;
+        }
+        let connus: Vec<String> =
+            motifs.iter().map(|m| format!("{} ({})", code(m), m.get("libelle").and_then(texte).unwrap_or_default())).collect();
+        Some(format!(
+            "« {} » n'est pas un motif de recours d'un {} ({}) ; la DSN le déclare par son code (S21.G00.40.021). Choisir l'un de : {}. Rien n'est écrit.",
+            motif,
+            self.libelle,
+            qui,
+            connus.join(", ")
+        ))
+    }
+
     pub fn motif_recours_exige(&self) -> bool {
         self.champs
             .get("S21.G00.40.021")

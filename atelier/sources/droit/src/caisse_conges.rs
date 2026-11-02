@@ -67,6 +67,21 @@ pub fn artiste_du_spectacle(sal: &Value) -> Resultat<bool> {
     Ok(annexe == Some(10))
 }
 
+/// LE CONTRAT D'UN INTERMITTENT : un CDD d'usage (la nature payee a l'activite), ou un CDD de droit commun d'un
+/// artiste (`artiste_du_spectacle`) ; jamais un CDI. L'annexe 10 de l'assurance chomage range « les artistes [...]
+/// engages au titre d'un contrat de travail a duree determinee » (art. 1er, § 2,
+/// `atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt`), quel que soit ce CDD.
+/// Ce qui en suit, et le lit ici : la caisse des Conges Spectacles (`affilie`), le code emploi de la nomenclature du
+/// spectacle en DSN (S21.G00.40.005, CCH-18 : « 999SPT » n'est que pour les emplois permanents), l'attestation employeur
+/// Cinema Spectacle (`documents::aer::due`). Le technicien en CDD de droit commun n'y est pas (voir
+/// `artiste_du_spectacle`).
+pub fn intermittent(nat: &Nature, sal: &Value) -> Resultat<bool> {
+    if nat.duree_indeterminee {
+        return Ok(false);
+    }
+    Ok(!nat.mensuelle() || artiste_du_spectacle(sal)?)
+}
+
 /// L'employeur declare-t-il ce contrat a la caisse des Conges Spectacles ? `sal` est la fiche telle que la paie la lit
 /// (`emplois::emploi_de` a la date du contrat).
 /// - un CDI : non ;
@@ -76,10 +91,7 @@ pub fn artiste_du_spectacle(sal: &Value) -> Resultat<bool> {
 ///   terme, refus -- sa duree decide, et le moteur ne la devine pas ;
 /// - un CDD de droit commun d'un autre salarie : non (voir `artiste_du_spectacle` pour les techniciens).
 pub fn affilie(nat: &Nature, sal: &Value, debut: &Jour, fin: Option<&Jour>) -> Resultat<bool> {
-    if nat.duree_indeterminee {
-        return Ok(false);
-    }
-    if nat.mensuelle() && !artiste_du_spectacle(sal)? {
+    if !intermittent(nat, sal)? {
         return Ok(false);
     }
     let fin = match fin {

@@ -69,9 +69,13 @@ pub fn codes_de(nat: &Nature, motif_recours: Option<&str>) -> (String, String, S
     (code("S21.G00.40.007"), code("S21.G00.40.008"), motif)
 }
 
-/// Le contrat de nature `nat` paie-t-il la contribution CPF-CDD ? Un CDD sans motif de recours refuse (le motif dit
-/// s'il est saisonnier).
+/// Le contrat de nature `nat` paie-t-il la contribution CPF-CDD ? C'est la ou le calcul lit le motif de recours saisi :
+/// un CDD sans motif refuse (le motif dit s'il est saisonnier), un motif que la nature n'a pas aussi
+/// (`Nature::motif_recours_refuse`).
 pub fn contrat_ouvre_cpf_cdd(nat: &Nature, motif_recours: Option<&str>, qui: &str) -> Resultat<bool> {
+    if let Some(refus) = nat.code("S21.G00.40.021").is_none().then(|| nat.motif_recours_refuse(motif_recours.unwrap_or_default(), qui)).flatten() {
+        return Err(refus);
+    }
     let (n, d, m) = codes_de(nat, motif_recours);
     ouvre_cpf_cdd(&n, &d, &m, qui)
 }

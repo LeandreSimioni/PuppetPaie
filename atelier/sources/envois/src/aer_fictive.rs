@@ -7,8 +7,9 @@
 //! ce module lui fabrique son AER, pour que ses intermittents la recoivent.
 //!
 //! Ici, on FABRIQUE cette archive a la place de France Travail, depuis les DSN que la compagnie fictive a jouees -- ce
-//! que France Travail lit, et rien d'autre : le salarie (bloc 30), l'employeur et ses contrats d'usage (bloc 40) dont la
-//! DSN du mois declare la fin (bloc 62), et pour chacun ses periodes d'emploi, mois par mois, lues dans la DSN reelle de
+//! que France Travail lit, et rien d'autre : le salarie (bloc 30), l'employeur et ses contrats d'intermittent (bloc 40,
+//! `cinema_spectacle`) dont la DSN du mois declare la fin (bloc 62), et pour chacun ses periodes d'emploi, mois par
+//! mois, lues dans la DSN reelle de
 //! chaque mois du contrat (heures, cachets, jours, brut, date de paiement). Une attestation par salarie et par mois ; un
 //! contrat sur plusieurs mois y porte tous ses mois (« 1 AE CS éditée à la fin du dernier mois concerné par le contrat »,
 //! `aer::due`, sources citees la) ; cinq periodes au plus par PDF (les colonnes 01 a 05 du formulaire). Puis l'archive
@@ -40,8 +41,10 @@ use socle::num::{Decimal, Resultat};
 
 /// Le « code » du nom d'archive (`AER_<siret>__<MMAAAA>_<code>_<JJMMAAAA>_<NOM>_<rang>_<id>.pdf`) : celui d'une fictive.
 const CODE: &str = "FICTIVE";
-/// La nature de contrat de la DSN d'un contrat d'usage (S21.G00.40.007 ; `contrats-base.json`, `cddu_spectacle`).
-const NATURE_CDDU: &str = "02";
+/// La nature de contrat de la DSN d'un CDD de droit prive (S21.G00.40.007 ; `contrats-base.json`).
+const NATURE_CDD: &str = "02";
+/// Le code emploi d'un emploi permanent du spectacle (S21.G00.40.005, CCH-18).
+const EMPLOI_PERMANENT: &str = "999SPT";
 /// Les colonnes du cadre 4 : 01 a 05 (`aer::lire_quantites`).
 const COLONNES: usize = 5;
 
@@ -53,7 +56,8 @@ const BLANC: &str = "#FFFFFF";
 // ------------------------------------------------------------------ ce que la DSN dit, en plus de `lire_recap`
 
 /// Ce que `recap_dsn::lire_recap` ne lit pas et que l'attestation imprime : le salarie (naissance, adresse), et par
-/// contrat l'IDCC (40.017), la caisse de conges payes (40.022) et la licence (40.049) ; la date du premier versement.
+/// contrat le code emploi (40.005), l'IDCC (40.017), la caisse de conges payes (40.022) et la licence (40.049) ; la date du
+/// premier versement.
 #[derive(Default, Clone)]
 struct Complement {
     naissance: String,
@@ -62,7 +66,7 @@ struct Complement {
     code_postal: String,
     commune: String,
     paiement: String,
-    /// numero de contrat -> rubrique (`017`, `022`, `049`) -> valeur.
+    /// numero de contrat -> rubrique (`005`, `017`, `022`, `049`) -> valeur.
     contrats: HashMap<String, HashMap<String, String>>,
 }
 
@@ -90,7 +94,7 @@ fn complements(octets: &[u8]) -> HashMap<String, Complement> {
                 let c = out.entry(nir.clone()).or_default();
                 c.contrats.entry(contrat.clone()).or_default().extend(en_attente.drain());
             }
-            ("S21.G00.40", "017" | "022" | "049") => {
+            ("S21.G00.40", "005" | "017" | "022" | "049") => {
                 if contrat.is_empty() {
                     en_attente.insert(champ.to_string(), v);
                 } else if let Some(c) = out.get_mut(&nir) {
@@ -113,6 +117,15 @@ fn complements(octets: &[u8]) -> HashMap<String, Complement> {
         }
     }
     out
+}
+
+/// Le contrat releve-t-il de l'attestation Cinema Spectacle ? Ce que France Travail lit de la DSN : un CDD (40.007 = 02)
+/// dont le code emploi (40.005) est de la nomenclature des emplois du spectacle, pas « 999SPT » (« Code complément PCS
+/// ESE-S21.G00.40.005 doit être dans la table ART et <> « 999SPT » », `atelier/reference/sources/
+/// net-entreprises-base-connaissances/net-entreprises-de-la-dsn-a-l-attestation-employeur-v3-2-20230328.txt`, l. 500-510).
+fn cinema_spectacle(plus: &Complement, c: &Contrat) -> bool {
+    let emploi = plus.contrats.get(&c.numero).and_then(|m| m.get("005")).cloned().unwrap_or_default();
+    c.nature == NATURE_CDD && !emploi.is_empty() && !emploi.eq_ignore_ascii_case(EMPLOI_PERMANENT)
 }
 
 // ------------------------------------------------------------------ les periodes
@@ -264,7 +277,7 @@ fn attestation(ent: &Value, ind: &Individu, plus: &Complement, periodes: &[&Peri
         return Err(format!("une attestation porte de 1 a {} periodes ({} donnees)", COLONNES, periodes.len()));
     }
     let champ = |c: &str| ent.get(c).map(en_texte).unwrap_or_default();
-    let premier_contrat = ind.contrats.iter().find(|c| c.nature == NATURE_CDDU).map(|c| c.numero.clone()).unwrap_or_default();
+    let premier_contrat = ind.contrats.iter().find(|c| cinema_spectacle(plus, c)).map(|c| c.numero.clone()).unwrap_or_default();
     let du_contrat = |r: &str| plus.contrats.get(&premier_contrat).and_then(|m| m.get(r)).cloned().unwrap_or_default();
     let mut f = Champs::default();
     let (mut p1, mut p2, mut p3): (Vec<Value>, Vec<Value>, Vec<Value>) = (Vec::new(), Vec::new(), Vec::new());
@@ -554,12 +567,12 @@ pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Result
     let idcc = ent.get("idcc").map(en_texte).unwrap_or_default();
     let mut pdfs: Vec<(String, Vec<u8>)> = Vec::new();
     for ind in &individus {
-        let mut finis: Vec<&Contrat> = ind.contrats.iter().filter(|c| c.nature == NATURE_CDDU && !c.fin_declaree.is_empty()).collect();
+        let complement = plus.get(&ind.nir).cloned().unwrap_or_default();
+        let mut finis: Vec<&Contrat> = ind.contrats.iter().filter(|c| cinema_spectacle(&complement, c) && !c.fin_declaree.is_empty()).collect();
         if finis.is_empty() {
             continue;
         }
         finis.sort_by(|a, b| (a.debut.as_str(), a.fin.as_str()).cmp(&(b.debut.as_str(), b.fin.as_str())));
-        let complement = plus.get(&ind.nir).cloned().unwrap_or_default();
         let paiement = ind.versements.first().map(|v| v.date.clone()).unwrap_or_default();
         let mut toutes: Vec<Periode> = Vec::new();
         for c in &finis {

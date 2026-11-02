@@ -906,32 +906,23 @@ const CACHES = {
   salarie: ["sante_svp"],
 };
 
-/* Ou aller chercher une valeur qu'on n'a pas sous la main : une phrase et
- * un lien, derriere le « ? » du champ. VIDE : les liens menaient a la page d'accueil d'un organisme, ce qui n'apprend rien.
- * L'aide de chaque champ (`donnees/champs-base.json`) dit ou lire la
- * valeur. Un lien ne revient ici que s'il mene a la page qui la donne. */
-const OU_TROUVER = {};
-
 /* Les structures telles qu'elles etaient AVANT la saisie : `lireFormulaire`
  * en repart pour ne pas perdre les clefs qu'on n'affiche pas. */
 let STRUCTURES_ORIGINE = {};
 
 /* L'aide derriere un « ? » : le bouton dans le libelle, le texte dessous,
- * replie. `OU_TROUVER` y ajoute une phrase et un lien quand la valeur se
- * demande a quelqu'un d'autre qu'a soi-meme. */
+ * replie. Le texte vient du moteur (`aide` du champ, `donnees/champs-base.json`,
+ * rendue par la route) : la page n'en ecrit aucun. */
 function aideHtml(cle, aide) {
-  return (aide || OU_TROUVER[cle])
+  return aide
     ? `<button type="button" class="aide-bouton" data-aide="${echapper(cle)}"
          title="aide">?</button>` : "";
 }
 
 function aideCorps(cle, aide) {
-  const ou = OU_TROUVER[cle];
-  if (!aide && !ou) return "";
+  if (!aide) return "";
   return `<div class="aide" data-aide-corps="${echapper(cle)}" hidden>
-    ${ou ? `<p class="ou-trouver">${echapper(ou[0])}
-        <a href="${echapper(ou[1])}" target="_blank" rel="noopener">${echapper(ou[1])}</a></p>` : ""}
-    ${aide ? `<p>${echapper(aide)}</p>` : ""}
+    <p>${echapper(aide)}</p>
   </div>`;
 }
 

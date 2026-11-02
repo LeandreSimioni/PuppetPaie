@@ -489,7 +489,6 @@ details.relire[open] > summary { margin-bottom: 8px; }
 }
 .champ .aide p { margin: 0 0 4px; }
 .champ .aide p:last-child { margin-bottom: 0; }
-.champ .aide .ou-trouver { color: var(--texte); }
 .champ .aide a { color: var(--action); word-break: break-all; }
 
 /* Une structure : une case par valeur, jamais d'accolades a taper. */

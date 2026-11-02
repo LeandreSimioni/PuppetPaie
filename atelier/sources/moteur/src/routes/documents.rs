@@ -406,7 +406,7 @@ fn dues_a_part(paies: &[engagement::calcul::Paie]) -> R<HashMap<String, Vec<&'st
     let mut out: HashMap<String, Vec<&'static str>> = HashMap::new();
     for p in paies {
         let siennes = out.entry(p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()).or_default();
-        if documents::aer::due(&p.engagement).map_err(Echec::from)? && !siennes.contains(&"aer") {
+        if documents::aer::due(p).map_err(Echec::from)? && !siennes.contains(&"aer") {
             siennes.push("aer");
         }
         if documents::aer::attestation_fctu(&p.engagement).map_err(Echec::from)? && !siennes.contains(&"attestation_fctu") {
