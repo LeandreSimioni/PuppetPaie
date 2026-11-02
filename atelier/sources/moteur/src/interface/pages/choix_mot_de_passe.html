@@ -3,7 +3,7 @@
   :root { --accent:#B22222; --texte:#2C3E50; --fond:#F7F6F4; --carte:#FFFFFF;
           --bord:#DDD8D2; --discret:#7A8794; }
   * { box-sizing:border-box; }
-  html, body { overflow:hidden; }   /* taille fixe : jamais de barre de defilement */
+  html, body { overflow:auto; }   /* taille fixe : une barre de defilement seulement si le texte ne tient pas */
   body { margin:0; height:100vh; display:flex; align-items:center;
          justify-content:center; font:14px/1.5 Arial,Helvetica,sans-serif;
          color:var(--texte); background:var(--fond); }
@@ -41,7 +41,7 @@
   <div class="filet"></div>
   <h1>PuppetPaie</h1>
   <div class="sous">premi&egrave;re ouverture</div>
-  <!-- « Meme administrateur ? » (ticket #244) : seulement quand le moteur dit qu'il y a lieu (`administrateur::etat`,
+  <!-- « Meme administrateur ? » : seulement quand le moteur dit qu'il y a lieu (`administrateur::etat`,
        `question`) -- une compagnie reelle sans mot de passe, et d'autres qui en ont un. -->
   <script type="application/json" id="administrateur">{{ADMINISTRATEUR}}</script>
   <div id="question" hidden>

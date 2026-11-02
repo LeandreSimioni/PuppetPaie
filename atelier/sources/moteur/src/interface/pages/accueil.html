@@ -3,7 +3,7 @@
   :root { --accent:#B22222; --texte:#2C3E50; --fond:#F7F6F4; --carte:#FFFFFF;
           --bord:#DDD8D2; --discret:#7A8794; }
   * { box-sizing:border-box; }
-  html, body { overflow:hidden; }   /* taille fixe : jamais de barre de defilement */
+  html, body { overflow:auto; }   /* taille fixe : une barre de defilement seulement si le texte ne tient pas */
   body { margin:0; height:100vh; display:flex; align-items:center;
          justify-content:center; font:14px/1.5 Arial,Helvetica,sans-serif;
          color:var(--texte); background:var(--fond); }
@@ -42,14 +42,14 @@
   .accueil .version { color:var(--discret); font-size:11px; margin:0 0 2px; }
   .grille { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:16px; }
   .tuile { position:relative; background:var(--carte); border:1px solid var(--bord);
-           border-radius:4px; overflow:hidden; display:flex; flex-direction:column;
+           border-radius:4px; display:flex; flex-direction:column;
            cursor:pointer; transition:box-shadow .15s, transform .15s; }
   .tuile:hover { box-shadow:0 4px 14px rgba(44,62,80,.14); transform:translateY(-2px); }
-  .tete { position:relative; height:100px; display:grid; place-items:center; background:var(--cie); }
+  .tete { position:relative; height:100px; display:grid; place-items:center; background:var(--cie); border-radius:3px 3px 0 0; }
   .tuile.fictive .tete { background:repeating-linear-gradient(135deg, #cfe3f2 0 22px, #fff 22px 44px); }
   .medaillon { width:76px; height:76px; border-radius:50%; background:#fff;
-               display:grid; place-items:center; overflow:hidden; }
-  .medaillon img { width:56px; height:56px; object-fit:contain; }
+               display:grid; place-items:center; }
+  .medaillon img { width:53px; height:53px; object-fit:contain; }  /* le plus grand carre que le cercle contient */
   .medaillon .initiale { font:bold 30px Georgia, serif; color:var(--texte); }
   .corps { padding:11px 14px 13px; }
   .nom { display:block; font-weight:bold; font-size:15px; line-height:1.3; }
@@ -79,7 +79,7 @@
                                 transition:transform .15s; }
   .fictives[open] > summary::before { transform:rotate(90deg); }
   .fictives > summary:hover { color:var(--texte); }
-  /* Le message du « + » d'un logiciel bride (ticket #236), avant le nom. */
+  /* Le message du « + » d'un logiciel bride, avant le nom. */
   .avis-ajouter { position:fixed; inset:0; background:rgba(44,62,80,.35); display:grid; place-items:center; z-index:5; }
   .avis-ajouter[hidden] { display:none; }
   .avis-ajouter .carte-avis { background:#fff; padding:22px 26px; border-radius:6px; width:440px; max-width:calc(100vw - 32px); }
@@ -96,7 +96,7 @@
   .avis-ajouter .venue.choisie { box-shadow:inset 3px 0 0 var(--accent); }
   .avis-ajouter form label { display:block; margin-top:8px; font-weight:bold; }
   .avis-ajouter form input { margin-top:4px; font-weight:normal; }
-  /* Au deblocage, les compagnies creees en demo a garder (ticket #236). */
+  /* Au deblocage, les compagnies creees en demo a garder. */
   .a-garder { list-style:none; margin:0 0 12px; padding:0; }
   .a-garder li { padding:4px 0; }
   .a-garder label { display:flex; gap:9px; align-items:center; cursor:pointer; }
@@ -111,7 +111,7 @@
   .ecrire .dit { margin-top:8px; }
 </style>
 <style>
-  /* LE TABLEAU DE BORD DE L'ADMINISTRATEUR (ticket #244) : les declarations de ses compagnies, la plus pressee d'abord. */
+  /* LE TABLEAU DE BORD DE L'ADMINISTRATEUR : les declarations de ses compagnies, la plus pressee d'abord. */
   .tableau { margin:0 0 26px; }
   .tableau h2 { font-size:15px; margin:0 0 4px; }
   .tableau .intro { color:var(--discret); font-size:12.5px; margin:0 0 10px; }
@@ -146,7 +146,7 @@
 <div class="accueil">
   <div class="filet" id="geste"></div>
   <h1>PuppetPaie</h1>
-  <!-- La version, sous le nom, comme dans la page d'une compagnie (ticket #211). -->
+  <!-- La version, sous le nom, comme dans la page d'une compagnie. -->
   <div class="version">version {{VERSION}}</div>
   <div class="sous">{{SOUS_TITRE}}</div>
   <section class="tableau" id="tableau" data-place="L'accueil des compagnies" hidden></section>
@@ -167,7 +167,7 @@
 <script>
   const err = document.getElementById("erreur");
   for (const t of document.querySelectorAll(".tuile[data-id]")) {
-    // La reponse se lit (#141) : une compagnie qui ne s'ouvre pas le dit, au lieu de ne rien faire.
+    // La reponse se lit : une compagnie qui ne s'ouvre pas le dit, au lieu de ne rien faire.
     t.addEventListener("click", async () => {
       const r = await window.pywebview.api.choisir(t.dataset.id);
       err.textContent = r && r.ok ? "" : (r && r.erreur) || "{{P:ouvre_pas}}";
@@ -192,7 +192,7 @@
       err.textContent = r.ok ? r.resultat.phrase : r.erreur;
     });
   }
-  // LE GESTE (l'editeur, 02/10/2026) : cinq secondes d'appui sur le filet
+  // LE GESTE : cinq secondes d'appui sur le filet
   // rouge, au-dessus du nom, brident ou débloquent le logiciel. Rien ne
   // le montre, et rien ne bouge pendant l'appui.
   const geste = document.getElementById("geste");
@@ -235,7 +235,7 @@
     document.getElementById("venue-retour").onclick = () => montrer("");
     document.getElementById("venue-annuler").onclick = () => { choix.hidden = true; };
     choix.addEventListener("keydown", (e) => { if (e.key === "Escape") choix.hidden = true; });
-    // BRIDE (ticket #236) : le message d'abord, les chemins ensuite -- le moteur ne sert le message qu'a un logiciel bride.
+    // BRIDE : le message d'abord, les chemins ensuite -- le moteur ne sert le message qu'a un logiciel bride.
     const avis = document.getElementById("avis-ajouter");
     ajout.addEventListener("click", () => {
       if (!avis) { ouvrirChoix(); return; }
@@ -268,7 +268,7 @@
   });
 </script>
 <script>
-  /* LE TABLEAU DE BORD DE L'ADMINISTRATEUR (ticket #244). Tout vient du moteur (`administrateur.rs`) : les declarations
+  /* LE TABLEAU DE BORD DE L'ADMINISTRATEUR. Tout vient du moteur (`administrateur.rs`) : les declarations
      de ses compagnies, triees par urgence avec leur date limite, ce qui est pret, et s'il y a lieu de proposer le depot
      groupe (`groupe.*.propose` : au moins deux compagnies avec quelque chose de pret). La page affiche, elle ne decide
      rien. D'abord le tableau garde (tout de suite), puis refait en fond. */
@@ -388,7 +388,7 @@
     dessinerLesAvances();
   });
 </script>
-<!-- L'indicateur de la mise a jour, en bas a gauche (ticket #210). -->
+<!-- L'indicateur de la mise a jour, en bas a gauche. -->
 <script src="/js/mise-a-jour.js?v={{EMPREINTE}}"></script>
 
 <div class="bande"><button class="croix" title="Fermer"

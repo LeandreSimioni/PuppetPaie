@@ -397,7 +397,7 @@ fn garder_dans_le_geste(chemin: &Path, v: Option<Arc<Value>>) {
 }
 
 /// Ce que le geste vient d'ecrire dans `chemin` (`ecriture::ecrire_json`) : si le geste l'a lu, c'est ce qu'il a
-/// desormais en main ; il ne relit pas ce qu'il a ecrit.
+/// en main ; il ne relit pas ce qu'il a ecrit.
 pub(crate) fn ecrit_pendant_le_geste(chemin: &Path, v: &Value) {
     GESTE.with(|g| {
         if let Some(l) = g.borrow_mut().as_mut().filter(|l| l.contains_key(chemin)) {

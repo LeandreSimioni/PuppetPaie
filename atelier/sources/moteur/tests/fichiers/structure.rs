@@ -827,6 +827,16 @@ fn met_des_euros(l: &str) -> bool {
 /// Les litteraux de chaine d'un source Rust (hors commentaires), avec la ligne ou chacun commence ; une fin de ligne
 /// echappee (`\` puis le blanc qui suit) est retiree, comme le fait le compilateur.
 fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
+    jetons_rs(t).into_iter().filter(|j| !j.1).map(|(l, _, s)| (l, s)).collect()
+}
+
+/// Les commentaires d'un source Rust (`//`, `///`, `//!`, `/* */`), avec la ligne de chacun.
+fn commentaires_rs(t: &str) -> Vec<(usize, String)> {
+    jetons_rs(t).into_iter().filter(|j| j.1).map(|(l, _, s)| (l, s)).collect()
+}
+
+/// Les litteraux de chaine et les commentaires d'un source Rust : `(ligne, commentaire ?, texte)`.
+fn jetons_rs(t: &str) -> Vec<(usize, bool, String)> {
     let c: Vec<char> = t.chars().collect();
     let (mut v, mut i, mut ligne) = (Vec::new(), 0, 1);
     while i < c.len() {
@@ -836,17 +846,21 @@ fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
                 i += 1;
             }
             '/' if c.get(i + 1) == Some(&'/') => {
+                let debut = i;
                 while i < c.len() && c[i] != '\n' {
                     i += 1;
                 }
+                v.push((ligne, true, c[debut..i].iter().collect()));
             }
             '/' if c.get(i + 1) == Some(&'*') => {
+                let (debut, l) = (i, ligne);
                 i += 2;
                 while i + 1 < c.len() && !(c[i] == '*' && c[i + 1] == '/') {
                     ligne += (c[i] == '\n') as usize;
                     i += 1;
                 }
                 i += 2;
+                v.push((l, true, c[debut..i.min(c.len())].iter().collect()));
             }
             '\'' => {
                 // Un caractere ('"', '\'', '\u{a0}') ; sinon une duree de vie.
@@ -881,7 +895,7 @@ fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
                     s.push(c[j]);
                     j += 1;
                 }
-                v.push((debut, s));
+                v.push((debut, false, s));
                 i = j + 1 + dieses;
             }
             '"' => {
@@ -907,11 +921,184 @@ fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
                     }
                     i += 1;
                 }
-                v.push((debut, s));
+                v.push((debut, false, s));
                 i += 1;
             }
             _ => i += 1,
         }
     }
     v
+}
+
+/// LE CODE DIT CE QUI EST, JAMAIS COMMENT ON Y EST ARRIVE : aucun commentaire des sources Rust de l'espace (et de leurs
+/// tests), du CSS et du HTML de la page ne porte une marque d'histoire (`HISTOIRE` : le numero d'une demande, son
+/// demandeur, ce qui a change). Le CSS et le HTML ne citent aucun texte depose : une date y est celle d'une decision
+/// (`DATE`). L'histoire va au journal du depot prive ; un commentaire d'histoire s'efface, ou se reecrit en son pourquoi.
+#[test]
+fn le_code_ne_raconte_pas_son_histoire() {
+    const HISTOIRE: &str = r"(?i)(?:^|[^&\w])#\d{2,3}\b|\bticket|\bl[ée]andre\b|\bd[ée]sormais\b|\bavant, on\b|\bcomme le python\b";
+    const DATE: &str = r"\b\d{1,2}/\d{1,2}(?:/20\d{2})?\b";
+    let histoire = regex::Regex::new(HISTOIRE).unwrap();
+    let date = regex::Regex::new(DATE).unwrap();
+    let mut fautes = Vec::new();
+    let mut noter = |p: &Path, commentaires: Vec<(usize, String)>, page: bool| {
+        for (n, c) in commentaires {
+            if histoire.is_match(&c) || (page && date.is_match(&c)) {
+                let rel = p.canonicalize().unwrap().strip_prefix(depot()).unwrap().to_string_lossy().into_owned();
+                fautes.push(format!("{}:{} : {}", rel, n, c.lines().next().unwrap_or("").trim()));
+            }
+        }
+    };
+    for e in std::fs::read_dir(espace()).unwrap().flatten() {
+        for d in ["src", "tests"].map(|d| e.path().join(d)).into_iter().filter(|d| d.is_dir()) {
+            for p in sources(&d) {
+                noter(&p, commentaires_rs(&std::fs::read_to_string(&p).unwrap()), false);
+            }
+        }
+    }
+    for p in fichiers_de_la_page() {
+        let t = std::fs::read_to_string(&p).unwrap();
+        let c = if p.extension().is_some_and(|x| x == "css") { commentaires_c(&t, false) } else { commentaires_html(&t) };
+        noter(&p, c, true);
+    }
+    assert!(
+        fautes.is_empty(),
+        "{} commentaire(s) racontent l'histoire du code : un commentaire dit le pourquoi d'une regle (le texte depose, la contrainte), jamais d'ou elle vient ; l'histoire va au journal du depot prive :\n{}",
+        fautes.len(),
+        fautes.join("\n")
+    );
+}
+
+/// ON NE COUPE JAMAIS UN TEXTE : le CSS de la page (ses feuilles, et les `<style>` des pages que sert la fenetre) n'a ni
+/// `text-overflow`, ni `line-clamp`, ni `overflow: hidden` ou `clip` (sur un axe ou les deux). Ce qui ne tient pas
+/// defile (`overflow: auto`) ou passe a la ligne ; ce qui deborde se voit, et une phrase trop longue s'ecrit plus brève
+/// dans le moteur.
+#[test]
+fn la_page_ne_coupe_aucun_texte() {
+    let coupe = regex::Regex::new(r"(?i)text-overflow|line-clamp|overflow(?:-x|-y)?\s*:\s*(?:hidden|clip)").unwrap();
+    let mut fautes = Vec::new();
+    for p in fichiers_de_la_page() {
+        let t = std::fs::read_to_string(&p).unwrap();
+        let feuilles: Vec<(usize, String)> = if p.extension().is_some_and(|x| x == "css") {
+            vec![(1, t.clone())]
+        } else {
+            blocs(&t, "<style", "</style>")
+        };
+        for (debut, f) in feuilles {
+            for (n, l) in sans_commentaires_c(&f).lines().enumerate() {
+                if coupe.is_match(l) {
+                    let rel = p.canonicalize().unwrap().strip_prefix(depot()).unwrap().to_string_lossy().into_owned();
+                    fautes.push(format!("{}:{} : {}", rel, debut + n, l.trim()));
+                }
+            }
+        }
+    }
+    assert!(
+        fautes.is_empty(),
+        "{} regle(s) CSS coupent un texte : ce qui ne tient pas defile (`overflow: auto`) ou passe a la ligne, jamais ne se cache :\n{}",
+        fautes.len(),
+        fautes.join("\n")
+    );
+}
+
+fn depot() -> PathBuf {
+    espace().join("../..").canonicalize().unwrap()
+}
+
+/// Le CSS et le HTML de la page : les feuilles et `index.html` de `logiciel/interface/`, et les pages que sert la fenetre
+/// (`moteur/src/interface/pages/`).
+fn fichiers_de_la_page() -> Vec<PathBuf> {
+    let mut v: Vec<PathBuf> = std::fs::read_dir(depot().join("logiciel/interface")).unwrap().flatten().map(|e| e.path()).collect();
+    v.extend(std::fs::read_dir(espace().join("moteur/src/interface/pages")).unwrap().flatten().map(|e| e.path()));
+    v.retain(|p| p.extension().is_some_and(|x| x == "css" || x == "html"));
+    v.sort();
+    v
+}
+
+/// Ce qui est entre `ouvre` (jusqu'a son `>`) et `ferme`, avec la ligne du fichier ou chaque bloc commence.
+fn blocs(t: &str, ouvre: &str, ferme: &str) -> Vec<(usize, String)> {
+    let mut v = Vec::new();
+    let mut reste = 0;
+    while let Some(i) = t[reste..].find(ouvre) {
+        let Some(j) = t[reste + i..].find('>') else { break };
+        let debut = reste + i + j + 1;
+        let fin = t[debut..].find(ferme).map_or(t.len(), |k| debut + k);
+        v.push((t[..debut].matches('\n').count() + 1, t[debut..fin].to_string()));
+        reste = fin;
+    }
+    v
+}
+
+/// Les commentaires d'un HTML : les `<!-- -->`, et ceux des `<style>` et des `<script>` qu'il porte.
+fn commentaires_html(t: &str) -> Vec<(usize, String)> {
+    let mut v = blocs(t, "<!--", "-->");
+    for (ouvre, ferme, ligne) in [("<style", "</style>", false), ("<script", "</script>", true)] {
+        for (debut, b) in blocs(t, ouvre, ferme) {
+            v.extend(commentaires_c(&b, ligne).into_iter().map(|(n, c)| (debut + n - 1, c)));
+        }
+    }
+    v
+}
+
+/// Les commentaires `/* */` (et `//` si `ligne`, pour un script) d'un CSS ou d'un script, avec la ligne de chacun ; une
+/// chaine (`'`, `"`, `` ` ``) n'en porte pas.
+fn commentaires_c(t: &str, ligne: bool) -> Vec<(usize, String)> {
+    let c: Vec<char> = t.chars().collect();
+    let (mut v, mut i, mut n) = (Vec::new(), 0, 1);
+    while i < c.len() {
+        match c[i] {
+            '\n' => n += 1,
+            '/' if c.get(i + 1) == Some(&'*') => {
+                let (debut, l) = (i, n);
+                i += 2;
+                while i + 1 < c.len() && !(c[i] == '*' && c[i + 1] == '/') {
+                    n += (c[i] == '\n') as usize;
+                    i += 1;
+                }
+                i += 1;
+                v.push((l, c[debut..(i + 1).min(c.len())].iter().collect()));
+            }
+            '/' if ligne && c.get(i + 1) == Some(&'/') => {
+                let debut = i;
+                while i + 1 < c.len() && c[i + 1] != '\n' {
+                    i += 1;
+                }
+                v.push((n, c[debut..=i].iter().collect()));
+            }
+            // Une expression reguliere d'un script (`/[&<>"]/g`) : apres un operateur ou une ouverture, pas une division.
+            '/' if ligne && c[..i].iter().rev().find(|x| !x.is_whitespace()).is_none_or(|x| "(,=:[!&|?{};".contains(*x)) => {
+                let mut classe = false;
+                i += 1;
+                while i < c.len() && c[i] != '\n' && (classe || c[i] != '/') {
+                    match c[i] {
+                        '\\' => i += 1,
+                        '[' => classe = true,
+                        ']' => classe = false,
+                        _ => {}
+                    }
+                    i += 1;
+                }
+            }
+            q @ ('\'' | '"' | '`') => {
+                i += 1;
+                while i < c.len() && c[i] != q {
+                    i += (c[i] == '\\') as usize;
+                    n += (c.get(i) == Some(&'\n')) as usize;
+                    i += 1;
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    v
+}
+
+/// Un CSS sans ses commentaires, chaque fin de ligne gardee (les numeros de ligne restent justes).
+fn sans_commentaires_c(t: &str) -> String {
+    let mut s = t.to_string();
+    for (_, c) in commentaires_c(t, false) {
+        s = s.replacen(&c, &c.chars().filter(|x| *x == '\n').collect::<String>(), 1);
+    }
+    s
 }

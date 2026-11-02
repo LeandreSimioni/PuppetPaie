@@ -950,7 +950,7 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     Ok(conseil(&b, &d, "historique:resume", &v, &en_jeu).into_iter().collect())
 }
 
-/// « Anastasia », « Anastasia et Léandre », « Anastasia, Fanchon et Léandre ».
+/// « Anastasia », « Anastasia et Valentin », « Anastasia, Fanchon et Valentin ».
 fn et(noms: &[String]) -> String {
     match noms {
         [] => String::new(),
