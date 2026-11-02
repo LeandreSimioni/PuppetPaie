@@ -17,7 +17,7 @@ use droit::contexte::Contexte;
 use engagement::calcul::Paie;
 use envois::etats;
 use envois::releve_retours;
-use socle::date::{en_texte, repr_texte};
+use socle::date::en_texte;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
@@ -244,17 +244,6 @@ fn maintenant_iso() -> String {
     socle::paris::iso_secondes(maintenant())
 }
 
-fn mois_en_toutes_lettres(mois: &str) -> R<(String, String)> {
-    let an = mois.get(..4).ok_or_else(|| erreur("ValueError", "mois illisible"))?;
-    let rang: usize = mois
-        .get(5..7)
-        .and_then(|m| m.parse().ok())
-        .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(mois.get(5..7).unwrap_or("")))))?;
-    let nom = socle::date::nom_du_mois(rang as i64, socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))?;
-    let annee: i64 = an.parse().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(an))))?;
-    Ok((format!("{}{}", nom, annee), format!("{} {}", nom, annee)))
-}
-
 fn ecrire_texte(chemin: &Path, texte: &str) -> R<()> {
     if let Some(d) = chemin.parent() {
         std::fs::create_dir_all(d).map_err(|e| plain(format!("{} : {}", d.display(), e)))?;
@@ -334,7 +323,7 @@ fn fichier_json(f: &Path) -> Value {
 /// `{salarie, numero}` : le salarie et le numero du contrat de l'engagement) dans un fichier horodate a cote du complet.
 /// La phrase rendue dit combien d'embauches elle declare ; la demande de taux de PAS part avec son depot
 /// (`depot_acte::deposer_dpae`).
-pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
+pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
     let mois_demande = texte_requis(charge, "mois")?;
     // L'heure d'embauche que la DPAE declare.
     let heure = json!("0800");
@@ -354,7 +343,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
         engs.iter().map(|e| engagement::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let (etiq, libelle) = mois_en_toutes_lettres(&mois)?;
+    let etiq = socle::date::etiquette_du_mois(&mois).map_err(|e| erreur("ValueError", e))?;
     let sortie = ctx.racine.join("sorties").join(&mois);
     let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.numero.clone().unwrap_or_default()) };
 
@@ -383,18 +372,20 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
         let joint = |s: BTreeSet<&(String, String)>| s.into_iter().map(|(a, b)| format!("{} (contrat {})", a, b)).collect::<Vec<_>>().join(", ");
         let hors: BTreeSet<&(String, String)> = voulues.difference(&a_faire).collect();
         if !hors.is_empty() {
-            return Err(refus(format!(
+            let tous = hors.len() == voulues.len();
+            let phrase = format!(
                 "Aucune DPAE a faire pour : {} (deja partie, en cours depuis un mois precedent, ou absente de la saisie de {}). Rien n'est ecrit.",
                 joint(hors),
                 mois
-            )));
+            );
+            return if tous { Ok(Dpae::Rien(phrase)) } else { Err(refus(phrase)) };
         }
         retenues.retain(|p| voulues.contains(&cle_de(p)));
         let now = maintenant_iso();
         marque = format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16]);
     }
     if retenues.is_empty() {
-        return Err(refus(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", libelle)));
+        return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", engagement::libelle_mois(&mois))));
     }
 
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
@@ -489,7 +480,15 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     let fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
     let n = retenues.len();
     let phrase = format!("DPAE {} écrite : {} embauche{}.", socle::texte::de(&engagement::libelle_mois(&mois)), n, if n > 1 { "s" } else { "" });
-    Ok(json!({ "fichiers": fichiers, "phrase": phrase }))
+    Ok(Dpae::Ecrite(json!({ "fichiers": fichiers, "phrase": phrase })))
+}
+
+/// CE QUE `dpae` REND : la DPAE ecrite (ses fichiers, sa phrase), ou rien a declarer de ce que la charge designe (tout
+/// est parti, ou rien n'est valide), avec la phrase qui le dit. Un manque (une case de fiche, deux lignes identiques)
+/// est un refus, jamais « rien » : celui qui depose doit le lire.
+pub(crate) enum Dpae {
+    Ecrite(Value),
+    Rien(String),
 }
 
 /// LES FICHIERS D'UNE DPAE : l'enregistrement de chaque embauche de `retenues` dans `cible` (et son `.zip`), horodate
@@ -586,9 +585,10 @@ pub(crate) fn designee(ctx: &Contexte, charge: &Value) -> R<(Value, Value)> {
         let chemin = chemin.ok_or_else(|| refus("Aucune DSN de cet etablissement ce mois-ci. Rien n'est parti."))?;
         return Ok((json!(chemin.to_string_lossy()), dsn.avis()));
     }
-    match dpae(ctx, charge) {
-        Ok(w) => Ok((w["fichiers"][0]["chemin"].clone(), w)),
-        Err(e) => partie(ctx, charge)?.map(|c| (c, json!({}))).ok_or(e),
+    // Ce qui reste a declarer s'ecrit, et un manque refuse ; quand rien ne reste, c'est la DPAE partie.
+    match dpae(ctx, charge)? {
+        Dpae::Ecrite(w) => Ok((w["fichiers"][0]["chemin"].clone(), w)),
+        Dpae::Rien(phrase) => partie(ctx, charge)?.map(|c| (c, json!({}))).ok_or_else(|| refus(phrase)),
     }
 }
 

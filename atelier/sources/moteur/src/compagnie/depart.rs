@@ -191,40 +191,63 @@ impl Forme {
 
 /// LA DSN DE `mois` TELLE QU'ELLE PARTIRAIT, sous la forme `forme` : depuis les paies ecrites des engagements valides du
 /// mois de son etablissement, avec ce que `fabriquer_dsn` lui donne (les corrections a porter, les arrets du mois).
-fn fabriquer_du_present(ctx: &Contexte, mois: &str, forme: &Forme) -> R<(declarations::dsn::Fabriquee, bool)> {
-    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
-    let fiche = ctx.entreprise_du_mois(mois).map_err(valeur)?;
-    let nic = forme.etablissement.clone();
-    let du_nic = |sal: &Value| -> R<bool> {
-        match &nic {
-            Some(n) => Ok(droit::bareme::etablissement_du_salarie(&fiche, sal).map_err(valeur)? == *n),
-            None => Ok(true),
-        }
-    };
-    let (_data, toutes) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None, &departs)?;
-    let mut paies: Vec<Paie> = Vec::new();
-    for p in toutes {
-        if du_nic(&p.salarie)? {
-            paies.push(p);
-        }
+fn fabriquer_du_present(ctx: &Contexte, mois: &str, forme: &Forme) -> R<declarations::dsn::Fabriquee> {
+    Present::du_mois(ctx, mois, forme)?.fabriquer(ctx, mois, forme)
+}
+
+/// CE QU'UNE DSN DE `mois` DECLARERAIT AUJOURD'HUI pour l'etablissement de `forme` : les paies ecrites de ses engagements
+/// valides, les corrections d'autres mois a porter, les arrets du mois.
+struct Present {
+    paies: Vec<Paie>,
+    regs: Vec<declarations::dsn::Regularisation>,
+    arrets: Vec<declarations::dsn::Arret>,
+    departs: engagement::departs::Departs,
+}
+
+impl Present {
+    /// Ni paie ni correction : rien a declarer (un mois tenu avant ce logiciel, un mois sans engagement).
+    fn vide(&self) -> bool {
+        self.paies.is_empty() && self.regs.is_empty()
     }
-    let regs = regularisations::regularisations_pour(ctx, mois, &departs)?;
-    let mut regs_e: Vec<&Reg> = Vec::new();
-    for r in &regs {
-        if du_nic(&r.apres.salarie)? {
-            regs_e.push(r);
-        }
+
+    fn fabriquer(&self, ctx: &Contexte, mois: &str, forme: &Forme) -> R<declarations::dsn::Fabriquee> {
+        declarations::dsn::fabriquer(ctx, &self.paies, mois, &self.regs, &self.arrets, &forme.options(), &self.departs).map_err(valeur)
     }
-    let regs_dsn = regularisations::pour_la_dsn(&regs_e);
-    let mut arrets: Vec<declarations::dsn::Arret> = Vec::new();
-    for a in crate::compagnie::marques_depot::arrets_pour(ctx, mois)? {
-        let sal = engagement::imprevus::fiche_du_salarie(ctx, &a).map_err(valeur)?;
-        if du_nic(&sal)? {
-            arrets.push(declarations::dsn::Arret { v: a });
+
+    fn du_mois(ctx: &Contexte, mois: &str, forme: &Forme) -> R<Present> {
+        let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+        let fiche = ctx.entreprise_du_mois(mois).map_err(valeur)?;
+        let nic = forme.etablissement.clone();
+        let du_nic = |sal: &Value| -> R<bool> {
+            match &nic {
+                Some(n) => Ok(droit::bareme::etablissement_du_salarie(&fiche, sal).map_err(valeur)? == *n),
+                None => Ok(true),
+            }
+        };
+        let (_data, toutes) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None, &departs)?;
+        let mut paies: Vec<Paie> = Vec::new();
+        for p in toutes {
+            if du_nic(&p.salarie)? {
+                paies.push(p);
+            }
         }
+        let regs = regularisations::regularisations_pour(ctx, mois, &departs)?;
+        let mut regs_e: Vec<&Reg> = Vec::new();
+        for r in &regs {
+            if du_nic(&r.apres.salarie)? {
+                regs_e.push(r);
+            }
+        }
+        let regs_dsn = regularisations::pour_la_dsn(&regs_e);
+        let mut arrets: Vec<declarations::dsn::Arret> = Vec::new();
+        for a in crate::compagnie::marques_depot::arrets_pour(ctx, mois)? {
+            let sal = engagement::imprevus::fiche_du_salarie(ctx, &a).map_err(valeur)?;
+            if du_nic(&sal)? {
+                arrets.push(declarations::dsn::Arret { v: a });
+            }
+        }
+        Ok(Present { paies, regs: regs_dsn, arrets, departs })
     }
-    let vide = paies.is_empty() && regs_dsn.is_empty();
-    Ok((declarations::dsn::fabriquer(ctx, &paies, mois, &regs_dsn, &arrets, &forme.options(), &departs).map_err(valeur)?, vide))
 }
 
 /// LA DSN QUE PORTE LE FICHIER `chemin` (mois principal `mois`, etablissement `nic` ; le principal sans lui), fabriquee
@@ -246,7 +269,7 @@ pub(crate) fn refabriquer(ctx: &Contexte, chemin: &Path, mois: &str, nic: Option
         None
     };
     let forme = Forme { type_dsn, ordre, etablissement: plusieurs.then_some(nic), constitution, remplacee_versait_pas };
-    let (f, _) = fabriquer_du_present(ctx, mois, &forme)?;
+    let f = fabriquer_du_present(ctx, mois, &forme)?;
     Ok((declarations::dsn::en_latin1(&f.texte).ok().as_deref() == Some(octets.as_slice())).then_some(f))
 }
 
@@ -401,11 +424,11 @@ pub(crate) fn dsn_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>) -> R<Op
         return Ok(Some((f, true)));
     }
     let forme = Forme { type_dsn: "01".into(), ordre: 1, etablissement: plusieurs.then_some(nic), constitution: ctx.aujourdhui, remplacee_versait_pas: None };
-    let (f, vide) = fabriquer_du_present(ctx, mois, &forme)?;
-    if vide {
+    let present = Present::du_mois(ctx, mois, &forme)?;
+    if present.vide() {
         return Ok(None);
     }
-    Ok(Some((f, false)))
+    Ok(Some((present.fabriquer(ctx, mois, &forme)?, false)))
 }
 
 /// La DSN du mois, telle que le depot la prend.
@@ -628,7 +651,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         // constitue.
         if refabriquer(ctx, &f_dsn, mois, n.as_deref())?.is_none() {
             let forme = Forme { type_dsn, ordre, etablissement: n, constitution: ctx.aujourdhui, remplacee_versait_pas };
-            a_ecrire.push((f_dsn.clone(), fabriquer_du_present(ctx, mois, &forme)?.0.texte));
+            a_ecrire.push((f_dsn.clone(), fabriquer_du_present(ctx, mois, &forme)?.texte));
         }
         fichiers.push(f_dsn);
     }
@@ -1433,11 +1456,18 @@ fn sans_taux_recu<'a>(ctx: &Contexte, paies: impl Iterator<Item = &'a Paie>) -> 
         let demande = crate::compagnie::amorcage_demande::en_cours(ctx, &cle_de(p))?
             .map(|d| format!(" ; taux demandé le {}, réponse attendue avant le {}", d.quand.jj_mm_aaaa(), d.avant.jj_mm_aaaa()))
             .unwrap_or_default();
-        let l = format!(
-            "{}{} : sa paie prend le taux non personnalisé (CGI, art. 204 H).",
-            pourquoi.first().cloned().unwrap_or_else(|| format!("{} : aucun taux transmis par la DGFiP au jour de son paiement", ctx.nomme(&cle_de(p)))),
-            demande
-        );
+        // UN TAUX ARRIVE APRES QUE LA PAIE EST PARTIE (ses documents), avant son paiement : rien ne dit qu'aucun taux ne
+        // valait. La paie garde la grille, sans regularisation : « Aucune régularisation ne doit être effectuée par le
+        // débiteur en raison de la réception pour la première fois d'un taux personnalisé alors qu'il a, jusque-là,
+        // régulièrement appliqué les grilles de taux par défaut. Le taux personnalisé ne s'applique que pour l'avenir »
+        // (BOI-IR-PAS-30-10-50, § 20, `atelier/reference/sources/bofip/BOI-IR-PAS-30-10-50-20190227.html`).
+        let l = match pourquoi.first() {
+            Some(x) => format!("{}{} : sa paie prend le taux non personnalisé (CGI, art. 204 H).", x, demande),
+            None => format!(
+                "{} : le taux transmis par la DGFiP est arrivé après le départ de sa paie, qui garde le taux non personnalisé ; il vaut pour les suivantes (BOI-IR-PAS-30-10-50, § 20).",
+                ctx.nomme(&cle_de(p))
+            ),
+        };
         if !lignes.contains(&l) {
             lignes.push(l);
         }

@@ -661,7 +661,16 @@ fn deposer_les_amorcages(ctx: &Contexte, mois: &str, embauches: &[Value], reel: 
         Err(e) => return vec![format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, phrase_de(&e))],
     };
     let (retenues, ecartees): (Vec<ad::Ligne>, Vec<ad::Ligne>) = lignes.into_iter().partition(|l| l.pourquoi_pas.is_empty());
-    let mut dit: Vec<String> = ecartees.iter().map(|l| format!("Taux de PAS non demandé pour {} : {}.", ctx.nomme(&l.salarie), l.pourquoi_pas)).collect();
+    // UNE PHRASE PAR RAISON, pas par salarie : la phrase du depot tient dans sa place quel que soit le nombre d'embauches.
+    let noms = |v: &[String]| v.join(", ");
+    let mut par_raison: Vec<(String, Vec<String>)> = Vec::new();
+    for l in &ecartees {
+        match par_raison.iter_mut().find(|(r, _)| *r == l.pourquoi_pas) {
+            Some((_, v)) => v.push(ctx.nomme(&l.salarie)),
+            None => par_raison.push((l.pourquoi_pas.clone(), vec![ctx.nomme(&l.salarie)])),
+        }
+    }
+    let mut dit: Vec<String> = par_raison.iter().map(|(r, v)| format!("Taux de PAS non demandé pour {} : {}.", noms(v), r)).collect();
     if retenues.is_empty() {
         return dit;
     }
@@ -678,6 +687,7 @@ fn deposer_les_amorcages(ctx: &Contexte, mois: &str, embauches: &[Value], reel: 
         etats::repetition(&lignes, "dsn", &envois::journal::empreinte(&octets), &nom).is_ok_and(|r| vrai(&r["conforme"]))
     };
     let mut releve = false;
+    let mut parties: Vec<String> = Vec::new();
     for (l, f) in retenues.iter().zip(&fichiers) {
         let fichier = json!(f.to_string_lossy());
         let mut fait = if reel && !teste(f) { deposer_dsn(ctx, &fichier, false, preuve, qui, false, contournement).map(|_| ()) } else { Ok(()) };
@@ -691,10 +701,13 @@ fn deposer_les_amorcages(ctx: &Contexte, mois: &str, embauches: &[Value], reel: 
             fait = deposer_dsn(ctx, &fichier, reel, preuve, qui, false, contournement).map(|_| ());
         }
         let qui_demande = ctx.nomme(&l.salarie);
-        dit.push(match fait {
-            Ok(_) => format!("La demande de taux de prélèvement à la source de {} est partie{} avec la DPAE.", qui_demande, mode),
-            Err(e) => format!("La demande de taux de prélèvement à la source de {} n'est pas partie{} : {} Elle reste à demander.", qui_demande, mode, phrase_de(&e)),
-        });
+        match fait {
+            Ok(_) => parties.push(qui_demande),
+            Err(e) => dit.push(format!("La demande de taux de prélèvement à la source de {} n'est pas partie{} : {} Elle reste à demander.", qui_demande, mode, phrase_de(&e))),
+        }
+    }
+    if !parties.is_empty() {
+        dit.insert(0, format!("Taux de PAS demandé{} avec la DPAE pour {}.", mode, noms(&parties)));
     }
     dit
 }

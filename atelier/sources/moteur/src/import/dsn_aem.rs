@@ -345,9 +345,6 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     let contact = contacts.iter().find(|c| lu(c, "qualite").as_deref() == Some(declarations::dsn::TYPE_CONTACT_ORDINAIRE)).or(contacts.first());
     if let Some(c) = contact.filter(|c| lu(c, "nom_prenom").is_some()) {
         let mut d = c.clone();
-        if let Some(n) = lu(c, "nom_prenom") {
-            d.insert("nom_prenom_affichage".into(), texte(&n));
-        }
         let emetteur_est_l_entreprise = lu(&autres, "emetteur_siren").is_some() && lu(&autres, "emetteur_siren") == lu(&entreprise, "siren");
         if emetteur_est_l_entreprise && lu(&contact_emetteur, "nom_prenom") == lu(c, "nom_prenom") {
             if let Some(civ) = lu(&contact_emetteur, "civilite").filter(|x| x == "01" || x == "02") {

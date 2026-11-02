@@ -11,7 +11,7 @@
 //! tranche A declaree, avec les taux du bareme.
 
 use documents::plan_comptable::plan;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
 
@@ -156,9 +156,24 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         c.part_sal = add(c.part_sal, if ms.is_zero() { zero } else { ms });
         c.part_pat = add(c.part_pat, if mp.is_zero() { zero } else { mp });
     };
+    // CE QUE LES PIECES IMPORTEES NE VENTILENT PAS : une paie reprise de la seule DSN (ses lignes de cotisation sont sur
+    // un bulletin qu'on n'a pas), et une ligne de bulletin que la lecture de l'import ne rattache a aucune cotisation
+    // (`importe::Importe::paie` : elle garde son libelle, sans cotisation). Son organisme ne se devine pas (regle 1) ;
+    // l'etat dit ce qui n'y est pas, le plan comptable n'y est pour rien.
+    let mut sans_bulletin: BTreeSet<String> = BTreeSet::new();
+    let mut non_rattachees: BTreeMap<String, (BTreeSet<String>, Decimal)> = BTreeMap::new();
     for m in p.mois.clone() {
         for paie in lecture.paies(&m)?.iter() {
+            if paie.importee.is_some() && paie.lignes.is_empty() {
+                sans_bulletin.insert(m.clone());
+            }
             for c in &paie.lignes {
+                if paie.importee.is_some() && c.id.is_empty() {
+                    let (mois, total) = non_rattachees.entry(c.libelle.clone()).or_default();
+                    mois.insert(m.clone());
+                    *total = add(*total, add(eur2(c.montant_sal), eur2(c.montant_pat)));
+                    continue;
+                }
                 let Some(org) = org_de(&c.id) else {
                     manque.insert(format!("{} ({})", c.id, c.libelle));
                     continue;
@@ -196,6 +211,13 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             "Lignes de bulletin sans organisme dans le plan comptable : {}. Les ajouter dans config/plan-comptable.json sous « lignes » : on ne devine pas à qui une cotisation est due.",
             manque.into_iter().collect::<Vec<_>>().join(", ")
         )));
+    }
+    let mois_dits = |s: &BTreeSet<String>| s.iter().map(|m| engagement::libelle_mois(m)).collect::<Vec<_>>().join(", ");
+    if !sans_bulletin.is_empty() {
+        avert.push(format!("Paies reprises de la seule DSN, sans leur bulletin, hors de l'état : {}.", mois_dits(&sans_bulletin)));
+    }
+    for (libelle, (mois, total)) in &non_rattachees {
+        avert.push(format!("Ligne « {} » des bulletins repris ({}) : la lecture de l'import ne la rattache à aucune cotisation, hors de l'état ({} €).", libelle, mois_dits(mois), documents::bulletin::fmt_eur(*total)));
     }
     let mut lignes = Vec::new();
     for c in cumul {
