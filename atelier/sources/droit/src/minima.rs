@@ -1,5 +1,5 @@
 //! Les minima conventionnels : la table livree (`minima-conventionnels.json`, une grille par convention), ses paliers,
-//! la grille NAO non etendue de la CCNEAC et qui elle oblige, et ce qu'un minimum est. Les confronter a une paie, et
+//! les accords de salaires qui la suivent et depuis quand ils lient une compagnie, et ce qu'un minimum est. Les confronter a une paie, et
 //! l'avertir, est l'affaire de l'engagement (`engagement::minima`).
 
 use std::sync::Arc;
@@ -117,25 +117,47 @@ pub fn palier(paliers: &Value, nombre: i64) -> Resultat<Option<Decimal>> {
     Ok(None)
 }
 
-/// La grille NAO non etendue de la CCNEAC, si elle s'impose a cette compagnie :
-/// adherente d'une organisation signataire, travail posterieur a l'entree en vigueur.
-pub fn grille_non_etendue<'a>(t: &'a Value, organisation: Option<&str>, jour: Option<&str>) -> Option<&'a Value> {
-    let ne = g(g(t, "1285"), "non_etendu");
-    let (organisation, jour) = (organisation?, jour?);
-    if !vrai(ne) {
-        return None;
+/// L'accord de salaires `source` d'une convention de la table (`<idcc>.accords`), ou `None`.
+pub fn accord<'a>(t: &'a Value, source: &str) -> Option<&'a Value> {
+    t.as_object()?
+        .values()
+        .flat_map(|c| g(c, "accords").as_array().into_iter().flatten())
+        .find(|a| g(a, "source").as_str() == Some(source))
+}
+
+/// La compagnie adherente de `organisation` l'est-elle d'une organisation d'employeurs signataire de l'accord ?
+pub fn signataire(accord: &Value, organisation: Option<&str>) -> bool {
+    let Some(s) = organisation.map(sigle).filter(|s| !s.is_empty()) else { return false };
+    g(accord, "signataires").as_array().into_iter().flatten().any(|x| sigle(&en_texte(x)) == s)
+}
+
+/// LE JOUR OU UNE STIPULATION D'UN ACCORD, DATEE `depuis` PAR L'ACCORD, LIE LA COMPAGNIE ADHERENTE DE `organisation` :
+/// `depuis` pour l'adherente d'une organisation signataire (C. trav. L2262-1 : l'accord oblige « les signataires ou
+/// membres des organisations ou groupements signataires »), le jour de l'extension pour toute autre compagnie de la
+/// convention (`etendu_le` ; L2261-15), au plus tot `depuis` ; `None` tant que l'accord n'est pas etendu et ne la lie
+/// pas. Les deux articles : `atelier/reference/sources/legi-entrepot/articles.jsonl.gz`. Les minima d'un accord
+/// (`grille_au`) et les valeurs datees du bareme qui en viennent (`accord` dans l'entree,
+/// `droit::contexte::dater_les_accords`) se lisent ici.
+pub fn lie_depuis(accord: &Value, organisation: Option<&str>, depuis: &str) -> Option<String> {
+    let depuis: String = depuis.chars().take(10).collect();
+    if signataire(accord, organisation) {
+        return Some(depuis);
     }
-    let s = sigle(organisation);
-    let signe = g(ne, "signataires").as_array().into_iter().flatten().any(|x| sigle(&en_texte(x)) == s);
-    if !signe {
-        return None;
-    }
-    let vigueur = match g(ne, "en_vigueur") {
-        v if vrai(v) => en_texte(v),
-        _ => "9999".into(),
+    let etendu: String = Some(g(accord, "etendu_le")).filter(|v| vrai(v)).map(en_texte)?.chars().take(10).collect();
+    Some(etendu.max(depuis))
+}
+
+/// LA GRILLE DE LA CONVENTION `idcc` QUI LIE LA COMPAGNIE AU `jour` : celle du dernier de ses accords (`accords`) dont
+/// les minima (`en_vigueur`) la lient a ce jour (`lie_depuis`), avec le jour depuis lequel il la lie ; a defaut, la
+/// grille de la convention elle-meme. `None` : la table ne connait pas la convention.
+pub fn grille_au<'a>(t: &'a Value, idcc: &str, organisation: Option<&str>, jour: Option<&str>) -> Option<(&'a Value, Option<String>)> {
+    let base = t.get(idcc)?;
+    let jour: Option<String> = jour.map(|j| j.chars().take(10).collect());
+    let lie = |a: &'a Value| {
+        let depuis = lie_depuis(a, organisation, &en_texte(g(a, "en_vigueur")))?;
+        jour.as_ref().filter(|j| **j >= depuis).map(|_| (a, Some(depuis)))
     };
-    let jour: String = jour.chars().take(10).collect();
-    (jour >= vigueur).then_some(ne)
+    Some(g(base, "accords").as_array().into_iter().flatten().rev().find_map(lie).unwrap_or((base, None)))
 }
 
 /// Une condition de grille (`si_*`) : la valeur lue est-elle celle qu'on attend ?

@@ -1722,22 +1722,22 @@
     "SCENE ENSEMBLE": {
       "libelle": "Scène Ensemble, organisation professionnelle des arts de la représentation",
       "applicable": true,
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     },
     "SMA": {
       "libelle": "Syndicat des musiques actuelles",
       "applicable": true,
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     },
     "FNAR": {
       "libelle": "Fédération nationale des arts de la rue",
       "applicable": true,
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     },
     "FSICPA": {
       "libelle": "Fédération des structures indépendantes de création et de production artistique",
       "applicable": true,
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     },
     "LES FORCES MUSICALES": {
       "libelle": "Les Forces musicales, opéras et orchestres réunis",
@@ -1745,7 +1745,7 @@
       "alias": [
         "FORCES MUSICALES"
       ],
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     }
   },
   "retraite_t1_repartition": {
@@ -1860,14 +1860,14 @@
       "_confirme": "CONFIRMEE le 23/09/2026 sur la base KALI de la DILA (atelier/reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md), point par point de ce qui la retenait : (1) la contribution conventionnelle Afdas des intermittents est la MEME que celle de la 3090 -- les trois bulletins d'exemple CCNEAC de la web-conference Audiens 2026 (p. 5) portent la formation professionnelle a 2,1, comme celui de la 3090 (p. 12) : l'agregat `autres_1` ne change pas ; ce que la CCNEAC ajoute a cote est le FCAP (0,25 %, II.2.1) ; (2) la tranche B des cadres est << entre ce plafond et l'equivalent de 4 plafonds >> (en-tete de l'article XII.2) -- pour un intermittent, le plafond journalier, d'ou `t2_prevoyance_journaliere` ; et elle ne vise que les cadres qui effectuent des prestations TECHNIQUES (XII.2.2.1), les artistes cadres restant a l'interbranche (XII.2.2.4) ; (3) le CSEC est un fait de l'entreprise, lu sur sa fiche (`representation_personnel`) ; (4) la prevoyance des permanents est confirmee dans prevoyance-conventionnelle-base.json, avec leurs frais de sante (0,81 % du PMSS en 2026) ; (5) les lignes DSN du FNAS et du FCAP vont sous les adhesions Audiens de la compagnie, comme la CASC-SVP de la 3090 (`contributions_dsn`).",
       "bareme": {
         "tarifs_conventionnels": {
-          "_source": "Indemnite de deplacement de l'article VIII de la CCNEAC. Jusqu'au 18/09/2026 : accord du 2 mai 2024 relatif aux salaires (KALITEXT000049949387, etendu ; atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md, l. 373-388) : << a compter du 1er septembre 2024 [...] 20,70 EUR chaque repas principal ; 74,30 EUR chambre et petit dejeuner >>. Depuis le 19/09/2026 : accord du 1er juillet 2026 relatif aux salaires pour l'annee 2026 (KALITEXT000054981887), article 2 (KALIARTI000054981901) : << 21,40 EUR chaque repas principal ; 76,60 EUR chambre et petit dejeuner >> a compter du 1er septembre 2026 (atelier/reference/sources/kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-transcription-20261102.md). Pourquoi le 19/09 et pas le 01/09 : l'accord fixe le 01/09/2026 (art. 5), mais avant son extension il ne lie que les adherents des six organisations d'employeurs signataires (C. trav. L2262-1, atelier/reference/sources/legi-entrepot/articles.jsonl.gz) ; l'arrete d'extension du 7 septembre 2026 (NOR TRST2622487A) l'impose a tous les employeurs de la convention a compter de sa publication, au JORF du 19/09/2026 (son article 2 ; meme dossier, jorf-1285-arrete-extension-art2-JORFARTI000054860826-20261102.xml). Le 19/09 est donc la date ou le tarif est du par toute compagnie de la 1285 ; une compagnie adherente d'un signataire le doit des le 01/09 et saisit le taux de ses lignes du 01 au 18/09. Le taux d'une ligne << Repas >> ou << Nuitee >> saisie sans taux (`engagement::lignes_au_tarif`).",
+          "_source": "Indemnite de deplacement de l'article VIII de la CCNEAC. Avant : accord du 2 mai 2024 relatif aux salaires (KALITEXT000049949387, etendu ; atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md, l. 373-388) : << a compter du 1er septembre 2024 [...] 20,70 EUR chaque repas principal ; 74,30 EUR chambre et petit dejeuner >>. Puis : accord du 1er juillet 2026 relatif aux salaires pour l'annee 2026 (KALITEXT000054981887), article 2 (KALIARTI000054981901) : << 21,40 EUR chaque repas principal ; 76,60 EUR chambre et petit dejeuner >>, article 5 : a compter du 1er septembre 2026 pour les indemnites (atelier/reference/sources/kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-transcription-20261102.md). L'entree datee du 01/09/2026 porte `accord` : elle ne vaut pour une compagnie que du jour ou l'accord la lie (`droit::minima::lie_depuis`, l'accord decrit dans `1285.accords` de minima-conventionnels.json) -- des le 01/09/2026 pour une adherente d'une des six organisations d'employeurs signataires (C. trav. L2262-1, atelier/reference/sources/legi-entrepot/articles.jsonl.gz), au 19/09/2026 pour toute autre, date ou l'extension prend effet (arrete du 7 septembre 2026, NOR TRST2622487A, article 2 : a sa publication, JORF du 19/09/2026 ; meme dossier, jorf-1285-arrete-extension-art2-JORFARTI000054860826-20261102.xml). Le taux d'une ligne << Repas >> ou << Nuitee >> saisie sans taux (`engagement::lignes_au_tarif`).",
           "repas": [
             {"depuis": "2026-01-01", "valeur": 20.70},
-            {"depuis": "2026-09-19", "valeur": 21.40}
+            {"depuis": "2026-09-01", "valeur": 21.40, "accord": "kali-1285-accord-salaires-20260701"}
           ],
           "nuitee": [
             {"depuis": "2026-01-01", "valeur": 74.30},
-            {"depuis": "2026-09-19", "valeur": 76.60}
+            {"depuis": "2026-09-01", "valeur": 76.60, "accord": "kali-1285-accord-salaires-20260701"}
           ]
         },
         "contributions_conventionnelles": [

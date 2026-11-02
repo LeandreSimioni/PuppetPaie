@@ -250,7 +250,7 @@ datée, vérifiable**.
   le libellé de là. Le cadre se combine au statut.
 - `logiciel/donnees/minima-conventionnels.json` — les grilles de la **3090** (annexes
   1, 2, 4, 5 et clauses communes) et de la **1285** (cachet, répétition,
-  cirque, musiciens, lyrique, chœur ; NAO 2026 sous `non_etendu`).
+  cirque, musiciens, lyrique, chœur ; les accords suivants sous `accords`, chacun avec sa grille entière et la date où il lie la compagnie, `droit::minima::lie_depuis`).
   `engagement::minima::avertissements` compare chaque ligne à son plancher et
   rend une phrase, jamais un refus. **Toute inconnue tire vers le bas** :
   jauge minimale, palier du mois pour un barème trimestriel, la plus basse
