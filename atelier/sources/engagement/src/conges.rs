@@ -942,19 +942,19 @@ pub(crate) fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Res
 /// 2025, art. 9 : << dans la limite de 7 600 euros par annee civile >>). Une paie validee qui ne se lit pas refuse : le
 /// cumul de l'annee ne se devine pas.
 pub(crate) fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
-    cumul_de_l_annee(ctx, mois, cle, |p| p.dfs, "Deduction forfaitaire specifique", "Le plafond de 7 600 EUR par annee civile (arrete du 4 septembre 2025, art. 9)")
+    cumul_de_l_annee(ctx, mois, cle, |p| p.dfs, "Déduction forfaitaire spécifique", "Le plafond de 7 600 € par année civile (arrêté du 4 septembre 2025, art. 9)")
 }
 
 /// Les heures supplementaires payees au salarie `cle` dans les mois de la meme annee civile, strictement avant `mois` :
 /// les paliers annuels d'une convention et son contingent les comptent (`droit::heures_en_plus::supplementaires`).
 pub(crate) fn heures_supplementaires_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
-    cumul_de_l_annee(ctx, mois, cle, |p| p.heures_supplementaires, "Heures supplementaires", "Le contingent annuel et ses paliers")
+    cumul_de_l_annee(ctx, mois, cle, |p| p.heures_supplementaires, "Heures supplémentaires", "Le contingent annuel et ses paliers")
 }
 
 /// Le montant net des heures en plus deja exonere d'impot pour le salarie `cle` dans l'annee civile, avant `mois` : la
 /// limite annuelle de CGI 81 quater le compte (`heures_en_plus`).
 pub(crate) fn exonere_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
-    cumul_de_l_annee(ctx, mois, cle, |p| p.exonere, "Exoneration d'impot des heures en plus", "La limite annuelle de 7 500 EUR (CGI 81 quater)")
+    cumul_de_l_annee(ctx, mois, cle, |p| p.exonere, "Exonération d'impôt des heures en plus", "La limite annuelle de 7 500 € (CGI 81 quater)")
 }
 
 /// LE CUMUL DE L'ANNEE CIVILE, strictement avant `mois`, de ce que `quoi` lit dans chaque paie validee du salarie `cle`.
@@ -970,8 +970,8 @@ fn cumul_de_l_annee(ctx: &Contexte, mois: &str, cle: &str, quoi: impl Fn(&PaieLu
         }
         let paies = paies_du_mois(ctx, &m, &cle_fiche).map_err(|e| {
             format!(
-                "{} de {} : les paies validees de {} ne se lisent pas ({}). {} se suit sur toute l'annee : sans ce mois, le cumul \
-ne se connait pas. Rien n'est calcule.",
+                "{} de {} : les paies validées de {} ne se lisent pas ({}). {} se suit sur toute l'année : sans ce mois, le cumul \
+ne se connaît pas. Rien n'est calculé.",
                 qui, cle, m, e, regle
             )
         })?;

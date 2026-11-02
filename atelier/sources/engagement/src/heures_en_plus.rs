@@ -58,6 +58,16 @@ fn heures(e: &Value, k: &str) -> Resultat<Decimal> {
     }
 }
 
+
+/// Un nombre à la française : virgule décimale, sans zéros inutiles (« 151,67 »).
+fn virgule(x: Decimal) -> String {
+    x.normalize().to_string().replace('.', ",")
+}
+
+/// Un montant en euros à la française : « 16,40 € ».
+fn euros(x: Decimal) -> String {
+    format!("{} €", eur2(x)).replace('.', ",")
+}
 /// LES LIGNES DES HEURES EN PLUS DU MOIS de la saisie `e` d'un contrat paye au mois de `salaire` pour `quotite` heures
 /// par mois, a temps `partiel` ou non : une ligne par majoration, au taux horaire du contrat majore. INFERENCE, ecrite
 /// comme telle : le taux horaire est le salaire mensuel du contrat sur ses heures par mois ; le BOSS (§ 310) y ajoute les
@@ -69,16 +79,16 @@ pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, qu
     }
     if partiel && !(sup.is_zero() && a_50.is_zero()) {
         return Err(format!(
-            "{} : son contrat est a temps partiel ({} h par mois) ; les heures au-dela de son contrat sont des heures \
-             complementaires (C. trav. L3123-20). Les dire dans « Heures complémentaires ». Rien n'est calcule.",
+            "{} : son contrat est à temps partiel ({} h par mois) ; les heures au-delà de son contrat sont des heures \
+             complémentaires (C. trav. L3123-20). Les dire dans « Heures complémentaires ». Rien n'est calculé.",
             qui(ctx, e),
-            quotite.round_dp(2)
+            virgule(quotite.round_dp(2).normalize())
         ));
     }
     if !partiel && !comp.is_zero() {
         return Err(format!(
-            "{} : son contrat est a temps plein ; les heures au-dela de la duree legale sont des heures supplementaires (C. trav. \
-             L3121-28). Les dire dans « Heures supplémentaires ». Rien n'est calcule.",
+            "{} : son contrat est à temps plein ; les heures au-delà de la durée légale sont des heures supplémentaires (C. trav. \
+             L3121-28). Les dire dans « Heures supplémentaires ». Rien n'est calculé.",
             qui(ctx, e)
         ));
     }
@@ -105,17 +115,17 @@ pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, qu
             "rubrique": rubrique,
             "quantite": flot(p.heures),
             "taux": flot(taux),
-            "precision": format!("majorées de {} %", p.majoration.normalize()),
+            "precision": format!("majorées de {} %", virgule(p.majoration.normalize())),
         }));
     }
     let mut avis = vec![info(format!(
-        "{} : {} heures {} au taux horaire de son contrat ({} EUR, le salaire mensuel sur ses {} h), {}.",
+        "{} : {} heures {} au taux horaire de son contrat ({}, le salaire mensuel sur ses {} h), {}.",
         qui(ctx, e),
-        reparties.paliers.iter().fold(Decimal::ZERO, |a, p| a + p.heures).normalize(),
-        if partiel { "complementaires" } else { "supplementaires" },
-        horaire.round_dp(4).normalize(),
-        quotite.round_dp(2).normalize(),
-        reparties.paliers.iter().map(|p| format!("{} h majorees de {} %", p.heures.normalize(), p.majoration.normalize())).collect::<Vec<_>>().join(", ")
+        virgule(reparties.paliers.iter().fold(Decimal::ZERO, |a, p| a + p.heures).normalize()),
+        if partiel { "complémentaires" } else { "supplémentaires" },
+        euros(horaire.round_dp(2)),
+        virgule(quotite.round_dp(2).normalize()),
+        reparties.paliers.iter().map(|p| format!("{} h majorées de {} %", virgule(p.heures.normalize()), virgule(p.majoration.normalize()))).collect::<Vec<_>>().join(", ")
     ))];
     avis.extend(reparties.avis.into_iter().map(avertir));
     Ok((out, avis))
@@ -182,7 +192,7 @@ pub(crate) fn apres_les_cotisations(
     if !supplementaires.is_zero() {
         let annee = ctx.lue_au.an;
         let au_moins_20 = ctx.effectif()?.atteint(20, annee).map_err(|e| {
-            format!("La deduction patronale des heures supplementaires depend de l'effectif (CSS L241-18, L241-18-1 : moins de vingt salaries ou au moins vingt). {}", e)
+            format!("La déduction patronale des heures supplémentaires dépend de l'effectif (CSS L241-18, L241-18-1 : moins de vingt salariés ou au moins vingt). {}", e)
         })?;
         deduction = eur2(supplementaires * droit::heures_en_plus::deduction_par_heure(au_moins_20)?).min(tot_pat.max(Decimal::new(0, 2)));
         if !deduction.is_zero() {
@@ -212,12 +222,12 @@ pub(crate) fn apres_les_cotisations(
     let exonere = net.min(reste);
     if exonere < net {
         avis.push(format!(
-            "Heures en plus : {} EUR nets exoneres d'impot cette annee avant ce mois ; la limite de {} EUR (CGI 81 quater) laisse {} EUR \
-             exoneres ce mois, le reste ({} EUR) est imposable.",
-            deja,
-            droit::heures_en_plus::limite_de_l_exoneration()?,
-            exonere,
-            net - exonere
+            "Heures en plus : {} nets exonérés d'impôt cette année avant ce mois ; la limite de {} (CGI 81 quater) laisse {} \
+             exonérés ce mois, le reste ({}) est imposable.",
+            euros(deja),
+            euros(droit::heures_en_plus::limite_de_l_exoneration()?),
+            euros(exonere),
+            euros(net - exonere)
         ));
     }
     Ok(Some(Suites { lignes: out, reduction, deduction, remuneration, heures, exonere, avis }))

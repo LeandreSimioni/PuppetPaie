@@ -28,6 +28,11 @@ pub struct Reparties {
     pub avis: Vec<String>,
 }
 
+/// Un nombre à la française : virgule décimale, sans zéros inutiles.
+fn virgule(x: Decimal) -> String {
+    x.normalize().to_string().replace('.', ",")
+}
+
 fn loi() -> Resultat<Value> {
     let r = crate::permanents::regles()?;
     r.get("heures_en_plus").cloned().ok_or_else(|| socle::fichiers::absent("heures_en_plus"))
@@ -87,9 +92,9 @@ pub fn supplementaires(idcc: &Value, heures: Decimal, a_50: Decimal, deja: Decim
         _ => {
             if a_50 > heures {
                 return Err(format!(
-                    "{} heures supplementaires au-dela de la huitieme d'une semaine, pour {} heures supplementaires dans le mois : \
-                     les premieres sont une part des secondes. Rien n'est calcule.",
-                    a_50, heures
+                    "{} heures supplémentaires au-delà de la huitième d'une semaine, pour {} heures supplémentaires dans le mois : \
+                     les premières sont une part des secondes. Rien n'est calculé.",
+                    virgule(a_50), virgule(heures)
                 ));
             }
             let l = loi()?;
@@ -106,10 +111,10 @@ pub fn supplementaires(idcc: &Value, heures: Decimal, a_50: Decimal, deja: Decim
         let contingent = dec_avec_echelle(contingent)?;
         if deja + heures > contingent {
             r.avis.push(format!(
-                "Heures supplementaires de l'annee : {} avec ce mois, au-dela du contingent annuel de {} heures de la convention. \
-                 Les heures au-dela ouvrent droit a une contrepartie obligatoire en repos (C. trav. L3121-30), a poser hors de la paie.",
-                (deja + heures).normalize(),
-                contingent.normalize()
+                "Heures supplémentaires de l'année : {} avec ce mois, au-delà du contingent annuel de {} heures de la convention. \
+                 Les heures au-delà ouvrent droit à une contrepartie obligatoire en repos (C. trav. L3121-30), à poser hors de la paie.",
+                virgule(deja + heures),
+                virgule(contingent)
             ));
         }
     }
@@ -132,7 +137,7 @@ pub fn complementaires(idcc: &Value, heures: Decimal, contrat: Decimal) -> Resul
         match nom {
             "dixieme" => Ok(contrat / Decimal::from(10)),
             "tiers" => Ok(contrat / Decimal::from(3)),
-            autre => Err(format!("heures complementaires : une part du contrat inconnue, {}", autre)),
+            autre => Err(format!("heures complémentaires : une part du contrat inconnue, {}", autre)),
         }
     };
     let mut debut = Decimal::ZERO;
@@ -158,11 +163,11 @@ pub fn complementaires(idcc: &Value, heures: Decimal, contrat: Decimal) -> Resul
     let limite = part(&plafond)?;
     if heures > limite {
         r.avis.push(format!(
-            "{} heures complementaires pour un contrat de {} heures par mois : au-dela du {} de la duree du contrat que la loi ou la \
-             convention permettent (C. trav. L3123-20, L3123-28). Le logiciel les paie ; au-dela, la duree du contrat se revoit.",
-            heures,
-            contrat.round_dp(2),
-            plafond
+            "{} heures complémentaires pour un contrat de {} heures par mois : au-delà du {} de la durée du contrat que la loi ou la \
+             convention permettent (C. trav. L3123-20, L3123-28). Le logiciel les paie ; au-delà, la durée du contrat se revoit.",
+            virgule(heures),
+            virgule(contrat.round_dp(2)),
+            plafond.replace("dixieme", "dixième")
         ));
     }
     Ok(r)

@@ -2428,9 +2428,9 @@ cahier 2027.1.1, p. 268). Le logiciel ne sait pas encore l'annuler et la redecla
     let exonere = |p: &Paie| p.bases.get(engagement::heures_en_plus::EXONERE).is_some_and(|m| !m.is_zero());
     if exonere(avant) || exonere(apres) {
         return Err(format!(
-            "Correction de {} (contrat {}) : la paie porte des heures supplementaires ou complementaires exonerees d'impot, que \
-la DSN declare en S21.G00.58 de type 01 (fiche net-entreprises 2066). Le logiciel ne sait pas les annuler et les redeclarer \
-dans une correction. Rien n'est ecrit.",
+            "Correction de {} (contrat {}) : la paie porte des heures supplémentaires ou complémentaires exonérées d'impôt, que \
+la DSN déclare en S21.G00.58 de type 01 (fiche net-entreprises 2066). Le logiciel ne sait pas les annuler et les redéclarer \
+dans une correction. Rien n'est écrit.",
             r.mois,
             apres.engagement.numero.clone().unwrap_or_else(|| "?".into())
         ));
