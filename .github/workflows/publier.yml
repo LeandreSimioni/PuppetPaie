@@ -338,8 +338,16 @@ jobs:
               || { echo "::error::L'archive d'installation $S n'est pas une installation (logiciel/VERSION, $N fictive(s), fictives/.livraison.json)."; exit 1; }
             ARCHIVES+=("sortie/$A")
           done
-          ls -l "${ARCHIVES[@]}"
           L="${V:8:2}.${V:5:2}.${V:0:4}"; [ "${#V}" -gt 10 ] && L="$L-${V:11}"
+          # LES NOMS STABLES, pour les boutons de puppetpaie.fr (`releases/latest/download/<nom>`, le meme lien d'une
+          # version a l'autre) : une copie de l'installeur Windows et de chaque archive d'installation d'un systeme.
+          mkdir -p stables
+          cp "publication/PuppetPaie-$L-installeur.exe" stables/PuppetPaie-installeur-windows.exe
+          for S in $CHOISIS; do
+            [ "$S" = windows ] && continue
+            cp "sortie/puppetpaie-$V-$S-installation.zip" "stables/PuppetPaie-$S.zip"
+          done
+          ls -l "${ARCHIVES[@]}" stables/*
           gh release create "v$V" -R "$DEPOT" --target "${{ github.sha }}" --latest \
             --title "PuppetPaie ${L/-/ (}$([ "${#V}" -gt 10 ] && echo ")")" --notes "${NOTES:-PuppetPaie $L}" \
-            "${ARCHIVES[@]}" sortie/derniere.json "publication/PuppetPaie-$L-installeur.exe"
+            "${ARCHIVES[@]}" sortie/derniere.json "publication/PuppetPaie-$L-installeur.exe" stables/*
