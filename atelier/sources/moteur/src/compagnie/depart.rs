@@ -1458,11 +1458,18 @@ fn sans_taux_recu<'a>(ctx: &Contexte, paies: impl Iterator<Item = &'a Paie>) -> 
         let demande = crate::compagnie::amorcage_demande::en_cours(ctx, &cle_de(p))?
             .map(|d| format!(" ; taux demandé le {}, réponse attendue avant le {}", d.quand.jj_mm_aaaa(), d.avant.jj_mm_aaaa()))
             .unwrap_or_default();
-        let l = format!(
-            "{}{} : sa paie prend le taux non personnalisé (CGI, art. 204 H).",
-            pourquoi.first().cloned().unwrap_or_else(|| format!("{} : aucun taux transmis par la DGFiP au jour de son paiement", ctx.nomme(&cle_de(p)))),
-            demande
-        );
+        // UN TAUX ARRIVE APRES QUE LA PAIE EST PARTIE (ses documents), avant son paiement : rien ne dit qu'aucun taux ne
+        // valait. La paie garde la grille, sans regularisation : « Aucune régularisation ne doit être effectuée par le
+        // débiteur en raison de la réception pour la première fois d'un taux personnalisé alors qu'il a, jusque-là,
+        // régulièrement appliqué les grilles de taux par défaut. Le taux personnalisé ne s'applique que pour l'avenir »
+        // (BOI-IR-PAS-30-10-50, § 20, `atelier/reference/sources/bofip/BOI-IR-PAS-30-10-50-20190227.html`).
+        let l = match pourquoi.first() {
+            Some(x) => format!("{}{} : sa paie prend le taux non personnalisé (CGI, art. 204 H).", x, demande),
+            None => format!(
+                "{} : le taux transmis par la DGFiP est arrivé après le départ de sa paie, qui garde le taux non personnalisé ; il vaut pour les suivantes (BOI-IR-PAS-30-10-50, § 20).",
+                ctx.nomme(&cle_de(p))
+            ),
+        };
         if !lignes.contains(&l) {
             lignes.push(l);
         }

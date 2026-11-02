@@ -1278,7 +1278,9 @@ fn decision_de_l_editeur(raison: &str) -> bool {
 ///
 /// Un mois dont les documents sont partis ne bouge que par une decision de l'editeur (le code qui calcule, une regle
 /// datee : `empreinte::code_ou_regle_change`, puis la raison du recalcul), et la paie refaite rectifie le bulletin parti.
-/// Un taux de PAS recu, une configuration, une autre saisie ne touchent pas un mois parti.
+/// Un taux de PAS recu, une configuration, une autre saisie ne touchent pas un mois parti : un premier taux personnalise
+/// recu apres la grille « ne s'applique que pour l'avenir », sans regularisation (BOI-IR-PAS-30-10-50, § 20,
+/// `atelier/reference/sources/bofip/BOI-IR-PAS-30-10-50-20190227.html`).
 fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<Vec<Etat>>> {
     // Au contexte du mois, quel que soit le jour de celui qui lit : ce que l'empreinte relit (les fiches) vaut au mois paye.
     let ctx = &ctx.du_mois(mois)?;
