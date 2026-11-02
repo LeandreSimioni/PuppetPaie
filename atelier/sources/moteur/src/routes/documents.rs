@@ -11,7 +11,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION};
 use crate::routes::etapes::Moteur;
 use crate::routes::qui_de;
 use droit::contexte::Contexte;
@@ -31,7 +31,7 @@ pub(crate) type R<T> = Result<T, Echec>;
 /// boite simulee ; une route ouvre la vraie (`client_courriel`).
 pub type Ouvrir<'a> = &'a mut dyn FnMut() -> R<Box<dyn Courriel>>;
 
-const SALARIES: Champ = Champ { nom: "salaries", sens: "seulement ceux-ci (les clés de leurs fiches) ; tous sinon", avance: false };
+const SALARIES: Champ = Champ { nom: "salaries", libelle: Affiche::new("Salariés"), forme: Forme::Liste, sens: "seulement ceux-ci (les clés de leurs fiches) ; tous sinon", avance: false };
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
@@ -82,7 +82,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "piece-partie",
         geste: "Dire où est une pièce partie d'un mois, refaite à l'identique si elle manque.",
-        charge: &[MOIS, Champ { nom: "fichier", sens: "le nom de la pièce, tel que le journal le dit", avance: false }],
+        charge: &[MOIS, Champ { nom: "fichier", libelle: Affiche::new("Pièce"), forme: Forme::Texte, sens: "le nom de la pièce, tel que le journal le dit", avance: false }],
         exemple: r#"{"mois":"2026-11","fichier":"DPAE_Novembre2026.txt"}"#,
         rend: "chemin (relatif à la compagnie)",
         refus: &[MANQUE, OPERATION],
@@ -99,7 +99,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "envoi-apercu" => envoi_apercu(ctx, charge).map(|mut v| {
             let t = |x: &Value, k: &str| super::mot(&x[k]);
             let mut lignes: Vec<Value> = v["messages"].as_array().into_iter().flatten().map(|m| {
-                let pieces: Vec<String> = m["pieces"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+                let pieces: Vec<String> = m["sortes"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
                 json!(format!("{} ({}) : {}", t(m, "nom"), t(m, "destinataire"), pieces.join(", ")))
             }).collect();
             for k in ["empechements", "avertissements", "informations"] {
@@ -113,14 +113,14 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "documents-imprimer" => documents_imprimer(ctx, charge, &qui_de(charge)).map(|v| {
             let qui: Vec<String> = v["salaries"].as_array().into_iter().flatten().map(|c| super::salarie(ctx, c).map(|s| super::nom_a_l_ecran(&s)).unwrap_or_else(|_| valeur_en_texte(c))).collect();
             let mois = engagement::libelle_mois(&charge.get("mois").map(valeur_en_texte).unwrap_or_default());
-            let p = format!("Documents {} imprimés pour {}, à remettre en main propre : {}.", socle::texte::de(&mois), qui.join(", "), valeur_en_texte(&v["chemin"]));
+            let p = format!("Documents {} imprimés pour {}, à remettre en main propre.", socle::texte::de(&mois), qui.join(", "));
             let avert: Vec<Value> = v["avertissements"].as_array().cloned().unwrap_or_default();
             let mut v = super::phrase_en_tete(v, p);
             v["phrases"] = Value::Array(avert);
             v
         }),
         "piece-partie" => crate::compagnie::depart::piece_partie_route(ctx, charge).map(|v| {
-            let p = format!("La pièce partie : {}.", valeur_en_texte(&v["chemin"]));
+            let p = "La pièce partie, telle qu'elle est partie.".to_string();
             super::phrase_en_tete(v, p)
         }),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
@@ -558,6 +558,8 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
                     let renvoi = choix.renvois.get(&x.cle);
                     json!({"cle": x.cle, "nom": x.nom, "destinataire": x.destinataire,
                            "pieces": x.pieces.iter().map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()).collect::<Vec<_>>(),
+                           // Ce que l'écran en dit : la sorte de chaque pièce, pas son nom de fichier.
+                           "sortes": x.pieces.iter().map(|p| crate::historique_mois::sorte_de(&nom_du(p))).collect::<Vec<_>>(),
                            "renvoi": renvoi.is_some(),
                            // Un renvoi : des documents corriges, qui remplacent ceux deja partis (a faire partir).
                            "pastille": renvoi.map_or(Value::Null, |r| super::pastille("a_faire", &format!("documents corrigés — remplacent ceux du {}", r.envoye_le))),

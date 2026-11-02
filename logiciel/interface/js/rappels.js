@@ -62,7 +62,7 @@ function htmlPoses() {
     <ul class="rappel-liste">${POSES_DEMARRAGE.map((p) => `
       <li>${pastilleDeLEtat(p.pastille)}
         <button type="button" class="lien" data-manque-champ="${echapper(p.champ || "")}"
-          data-manque-ou="${echapper(p.ou || "")}"><b>${echapper(p.libelle)}</b></button>
+          data-manque-onglet="${echapper(p.onglet || "")}"><b>${echapper(p.libelle)}</b></button>
         <div class="note">${echapper(p.texte)}</div></li>`).join("")}</ul>
   </div>`;
 }
@@ -82,7 +82,7 @@ let DEMARRAGE = { titre: "", note: "", manques: [] };
  * dessine seule, dans sa structure. */
 function caseDuManque(m) {
   const conf = ETAT.configuration || {};
-  const nom = m.salarie ? "salarie" : m.spectacle ? "spectacle" : /^Configuration › Entreprise/.test(m.ou || "") ? "entreprise" : null;
+  const nom = ["salarie", "spectacle", "entreprise"].includes(m.onglet) ? m.onglet : null;
   if (!nom || !m.case) return null;
   const fiche = nom === "entreprise" ? conf.entreprise
     : ((nom === "salarie" ? conf.salaries : conf.spectacles) || []).find((f) => f.cle === (m.salarie || m.spectacle));
@@ -117,7 +117,7 @@ function htmlDemarrage(manques) {
   // CHAQUE CHOSE MÈNE À SA PLACE : `ou` est un lien qui y conduit (la fiche,
   // l'onglet), sous la case.
   const lien = (m) => `<button type="button" class="lien" data-manque-champ="${echapper(m.champ || "")}"
-        data-manque-ou="${echapper(m.ou || "")}" data-manque-fiche="${m.salarie ? "salarie" : m.spectacle ? "spectacle" : ""}" data-manque-cle="${echapper(m.salarie || m.spectacle || "")}">${echapper(m.ou || "")}</button>`;
+        data-manque-onglet="${echapper(m.onglet || "")}" data-manque-fiche="${m.salarie ? "salarie" : m.spectacle ? "spectacle" : ""}" data-manque-cle="${echapper(m.salarie || m.spectacle || "")}">${echapper(m.ou || "")}</button>`;
   const ligne = (m) => {
     const i = manques.indexOf(m);
     const k = caseDuManque(m);
@@ -292,7 +292,7 @@ async function lireDemarrage(lu) {
  *  (`ATMP_HTML`) ; les organismes ont leur onglet ; ce qui se dit sur la
  *  fiche d'un salarié ou d'un spectacle (`salarie`, `spectacle`, du moteur)
  *  ouvre sa fiche. */
-async function allerAuManque(champ, ou, nom, cle) {
+async function allerAuManque(champ, onglet, nom, cle) {
   if (!document.getElementById("voile").classList.contains("cachee")) {
     if (!(await quitterDemarrage())) return;
     fermerBoite();
@@ -304,7 +304,7 @@ async function allerAuManque(champ, ou, nom, cle) {
   if (document.getElementById("vue-configuration").classList.contains("cachee")) {
     document.querySelector('.onglets button[data-vue="configuration"]').click();
   }
-  const fiche = nom || (/Organismes/.test(ou) ? "organismes" : /Mots de passe/.test(ou) ? "coffre" : "entreprise");
+  const fiche = nom || onglet || "entreprise";
   if (nom) await ouvrirFicheImportee(nom, cle);
   else {
     const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
@@ -331,7 +331,7 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-manque-champ]");
   if (!b) return;
   e.preventDefault();
-  allerAuManque(b.dataset.manqueChamp, b.dataset.manqueOu, b.dataset.manqueFiche, b.dataset.manqueCle);
+  allerAuManque(b.dataset.manqueChamp, b.dataset.manqueOnglet, b.dataset.manqueFiche, b.dataset.manqueCle);
 });
 
 /** La liste « Pour démarrer », en tête de Configuration › Entreprise. */

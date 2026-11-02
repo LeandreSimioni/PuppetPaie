@@ -13,7 +13,7 @@ use std::path::PathBuf;
 
 use serde_json::{json, Value};
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, OPERATION};
 use crate::routes::engagement::texte_requis;
 use droit::contexte::Contexte;
 use droit::natures::Nature;
@@ -21,8 +21,8 @@ use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 use crate::routes::catalogue::{Ecran, Place};
 
-const NATURE: Champ = Champ { nom: "nature", sens: "la nature du contrat : cddu_spectacle, cdd, cdi…", avance: false };
-const QUOI: Champ = Champ { nom: "quoi", sens: "contrat ou avenant", avance: false };
+const NATURE: Champ = Champ { nom: "nature", libelle: Affiche::new("Nature du contrat"), forme: Forme::Texte, sens: "la nature du contrat : cddu_spectacle, cdd, cdi…", avance: false };
+const QUOI: Champ = Champ { nom: "quoi", libelle: Affiche::new("Contrat ou avenant"), forme: Forme::Texte, sens: "contrat ou avenant", avance: false };
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::ModelesContrat);
@@ -56,7 +56,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "poser-modele-contrat",
         geste: "Poser le modèle de contrat ou d'avenant propre à la compagnie.",
-        charge: &[NATURE, QUOI, Champ { nom: "texte", sens: "le modèle entier (le format des modèles livrés : TITRE:, ARTICLE:…)", avance: false }],
+        charge: &[NATURE, QUOI, Champ { nom: "texte", libelle: Affiche::new("Modèle"), forme: Forme::Texte, sens: "le modèle entier (le format des modèles livrés : TITRE:, ARTICLE:…)", avance: false }],
         exemple: r#"{"nature":"cddu_spectacle","quoi":"avenant","texte":"TITRE: Avenant n° {{avenant.numero}}\n\nMODIFICATION:\nL'article {{modification.numero}} est désormais rédigé ainsi : « {{modification.apres}} »\n\nARTICLE: Le reste\nLe reste du contrat est inchangé.\n"}"#,
         rend: "les modèles, comme modeles-contrat",
         refus: &[Refus { classe: "ErreurOperation", corriger: "le modèle : la mention obligatoire ou le champ que la phrase nomme ; rien n'est posé" }, MANQUE],
@@ -80,7 +80,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "clauses-particulieres",
         geste: "Écrire les clauses particulières que chaque contrat reprend dès aujourd'hui.",
-        charge: &[Champ { nom: "texte", sens: "les clauses ; vide : aucune", avance: false }],
+        charge: &[Champ { nom: "texte", libelle: Affiche::new("Clauses"), forme: Forme::Texte, sens: "les clauses ; vide : aucune", avance: false }],
         exemple: r#"{"texte":"Les répétitions ont lieu au théâtre."}"#,
         rend: "phrase",
         refus: &[OPERATION],

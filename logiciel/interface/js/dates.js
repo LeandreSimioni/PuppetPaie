@@ -52,13 +52,6 @@ function moisEnClair(iso) {
   return `${MOIS_FR[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 }
 
-/* << d'aout >>, << de septembre >>. Une elision qui manque se lit comme une
- * faute de frappe, et une interface qui ecrit mal fait douter de ce qu'elle
- * compte. */
-function deMois(iso) {
-  const nom = moisEnClair(iso);
-  return ("aeiouyâàéèêîôû".includes(nom[0]) ? "d'" : "de ") + nom;
-}
 /* Le mois déclaré, EN GROS : son nom en clair. */
 /* Le mois déclaré, EN GROS : son nom en clair, et l'ISO dessous. */
 function moisEnGros(mois) {

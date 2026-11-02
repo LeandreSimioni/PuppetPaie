@@ -20,9 +20,10 @@
 //! ont tous deux un `puppetpaie`, chacun son dossier (`dossier_programmes`). Une version a une archive par systeme (les
 //! fichiers communs et ceux de ce systeme, `systeme_du_fichier`) et une qui porte tout (`TOUT_SYSTEME` : un dossier
 //! portable pour plusieurs machines, et le repli), chacune signee ; `derniere.json` les nomme sous `archives`. Une
-//! installation prend celle de son systeme (`SYSTEME`), ou la tout-systeme si la sienne manque (`telecharger`). Seules les
-//! archives fabriquees sont nommees, la tout-systeme dit sous `systemes` ceux qu'elle porte, et une installation dont le
-//! systeme n'est pas publie garde sa version et le dit.
+//! installation prend celle de chacun de ses systemes (`systemes_poses` : le sien, et ceux d'un dossier portable), ou la
+//! tout-systeme si elle les porte tous (`telecharger`). Seules les archives fabriquees sont nommees, la tout-systeme dit
+//! sous `systemes` ceux qu'elle porte, et une installation dont l'un des systemes n'est pas publie garde sa version et le
+//! dit. Un dossier portable recoit les systemes qui lui manquent par la route `portable-completer` (`completer_le_portable`).
 //!
 //! ====================================================================================================================
 //! LA FORME DE L'ARCHIVE DE MISE A JOUR EST UN CONTRAT AVEC TOUTES LES INSTALLATIONS POSEES. ELLE NE CHANGE PLUS.
@@ -44,7 +45,8 @@
 //! pose, pour Linux, Mac et le dossier portable (la tout-systeme) : `logiciel/` et, a cote, `fictives/` (les compagnies
 //! fictives livrees). Decompressee dans un dossier neuf, elle s'ouvre bridee sur ses fictives. Elle ne sert qu'a
 //! installer : aucune installation ne la telecharge, `derniere.json` ne la nomme pas, et elle n'est pas signee
-//! (l'installeur Windows non plus) ; la Release la porte a cote des archives de mise a jour.
+//! (l'installeur Windows non plus) ; la Release la porte a cote des archives de mise a jour. Celle de tous les systemes
+//! porte aussi `PORTABLE.json` a sa racine : decompressee sur une cle USB, elle est portable.
 //!
 //! LES FICTIVES VOYAGENT A PART : `puppetpaie-<version>-fictives.zip`, signee, nommee dans `derniere.json` sous `fictives`
 //! (une cle qu'une installation posee qui ne la connait pas ignore) avec l'EMPREINTE de leur contenu. Une installation ne
@@ -361,7 +363,16 @@ pub(crate) fn b64(t: &str) -> R<Vec<u8>> {
 /// Les cles publiques dont une archive est acceptee : celle du poste de l'editeur (`CLE_PUBLIQUE`) et celle du flux de
 /// GitHub (`CLE_PUBLIQUE_GITHUB`), quand elle est reportee. Une signature de toute autre cle est refusee.
 pub fn cles_de_l_editeur() -> Vec<&'static str> {
-    [CLE_PUBLIQUE, CLE_PUBLIQUE_GITHUB].into_iter().filter(|c| !c.is_empty()).collect()
+    #[allow(unused_mut)]
+    let mut v: Vec<&'static str> = [CLE_PUBLIQUE, CLE_PUBLIQUE_GITHUB].into_iter().filter(|c| !c.is_empty()).collect();
+    // LE BINAIRE DE L'ATELIER (le banc, jamais livre) accepte aussi la cle d'un faux depot local, que nomme
+    // `PUPPETPAIE_ATELIER_CLE_MAJ` (une cle publique Ed25519 en base64) : la mise a jour et le dossier portable s'y
+    // jouent de bout en bout par `moteur route`. Le binaire livre n'en porte rien (`tests/atelier.rs`).
+    #[cfg(feature = "atelier")]
+    if let Some(c) = std::env::var("PUPPETPAIE_ATELIER_CLE_MAJ").ok().filter(|c| !c.trim().is_empty()) {
+        v.push(Box::leak(c.trim().to_string().into_boxed_str()));
+    }
+    v
 }
 
 /// La signature est-elle celle de l'une des `cles` ?
@@ -397,6 +408,12 @@ pub fn compagnies_de(inst: &Path) -> Vec<PathBuf> {
 /// l'archive n'en porte aucune. Une archive D'INSTALLATION (`archiver_installation` : `logiciel/` et `fictives/` en tete)
 /// n'est pas une mise a jour : refusee avant d'ecrire quoi que ce soit.
 fn deballer(octets: &[u8], neuf: &Path) -> R<()> {
+    deballer_ce_qui(octets, neuf, &|_| true)
+}
+
+/// `deballer`, seulement les fichiers dont le nom (chemin relatif, `/`) passe `garder` : les programmes d'un systeme
+/// qu'un dossier portable ajoute (`completer_le_portable`).
+fn deballer_ce_qui(octets: &[u8], neuf: &Path, garder: &dyn Fn(&str) -> bool) -> R<()> {
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(octets)).map_err(|e| format!("archive illisible : {}", e))?;
     if z.file_names().any(|n| n == format!("{}/VERSION", LOGICIEL) || n.starts_with(&format!("{}/", crate::interface::compagnies::DOSSIER_FICTIVES))) {
         return Err("c'est une archive d'installation (logiciel/ et fictives/), pas une archive de mise a jour".into());
@@ -404,6 +421,9 @@ fn deballer(octets: &[u8], neuf: &Path) -> R<()> {
     for i in 0..z.len() {
         let mut f = z.by_index(i).map_err(|e| e.to_string())?;
         let Some(rel) = f.enclosed_name() else { return Err(format!("archive suspecte : {}", f.name())) };
+        if !garder(&rel.to_string_lossy().replace('\\', "/")) {
+            continue;
+        }
         let chemin = neuf.join(rel);
         if f.is_dir() {
             std::fs::create_dir_all(&chemin).map_err(|e| e.to_string())?;
@@ -461,71 +481,97 @@ fn controler(neuf: &Path, racine: &Path) -> R<()> {
     }
 }
 
-/// L'archive de CE systeme, sinon celle de tous les systemes SI ELLE LE PORTE (sa liste `systemes`) : leur cle dans
-/// `derniere.json` et leur entree, dans l'ordre ou les essayer. Vide : la version est publiee sans ce systeme (« Publier »
-/// choisit Windows seul, Windows et Linux, ou les trois), l'installation ne telecharge rien.
-fn archives_a_essayer(d: &Value) -> Vec<(&'static str, &Value)> {
-    let porte = |a: &Value| a["systemes"].as_array().is_some_and(|l| l.iter().any(|x| x.as_str() == Some(SYSTEME)));
-    let mut v: Vec<(&'static str, &Value)> = d["archives"].get(SYSTEME).map(|a| (SYSTEME, a)).into_iter().collect();
-    v.extend(d["archives"].get(TOUT_SYSTEME).filter(|a| porte(a)).map(|a| (TOUT_SYSTEME, a)));
+/// UNE ARCHIVE SIGNEE, recue et verifiee : son entree de `derniere.json` (`archive`, `sha256`, `signature`) lue au depot,
+/// son condensat et la signature de l'editeur (l'une des `cles`) verifies. Le seul chemin par ou une archive de l'editeur
+/// entre dans une installation : la mise a jour, les fictives, les systemes qu'un dossier portable ajoute
+/// (`completer_le_portable`). Un echec de lecture porte `HORS_LIGNE` ou `INTROUVABLE` ; une archive qui n'est pas la
+/// notre, `ALTEREE` ou `SIGNATURE_REFUSEE`.
+fn archive_verifiee(depot: &str, a: &Value, cles: &[&str], suivre: &dyn Fn(u64, Option<u64>)) -> Result<Vec<u8>, Echec> {
+    let nom = a.get("archive").and_then(Value::as_str).filter(|n| !n.is_empty()).ok_or((INTROUVABLE, "derniere.json : une archive sans « archive »".to_string()))?;
+    let octets = lire_depot_suivi(depot, nom, suivre)?;
+    let sha = condensat(&octets);
+    let attendu = a.get("sha256").and_then(Value::as_str).unwrap_or_default();
+    if sha != attendu {
+        return Err((ALTEREE, format!("{} alteree (condensat {}, attendu {})", nom, sha, attendu)));
+    }
+    let signature = a.get("signature").and_then(Value::as_str).ok_or((SIGNATURE_REFUSEE, format!("{} non signee : derniere.json n'a pas de « signature »", nom)))?;
+    if !signee_par_l_une(&octets, signature, cles) {
+        return Err((SIGNATURE_REFUSEE, format!("la signature de {} n'est pas celle de l'editeur", nom)));
+    }
+    Ok(octets)
+}
+
+/// LES SYSTEMES D'UNE INSTALLATION : celui de ce programme, puis ceux dont la fenetre est posee dans `logiciel/`
+/// (`programme_de`). Une installation ordinaire n'en a qu'un ; un dossier portable en porte plusieurs, et la mise a jour
+/// les tient tous a jour.
+pub fn systemes_poses(code: &Path) -> Vec<&'static str> {
+    let mut v = vec![SYSTEME];
+    v.extend(SYSTEMES.into_iter().filter(|s| *s != SYSTEME && programme_de(code, s, "puppetpaie").is_file()));
     v
 }
 
-/// La version est-elle publiee pour ce systeme (son archive, ou celle de tous qui le porte) ?
-fn publiee_pour_ce_systeme(d: &Value) -> bool {
-    !archives_a_essayer(d).is_empty()
+/// Les archives qui portent `systemes`, chacune en un jeu a prendre en entier : l'archive de chaque systeme, et celle de
+/// tous les systemes SI ELLE LES PORTE TOUS (sa liste `systemes`) ; leur cle dans `derniere.json` et leur entree, dans
+/// l'ordre ou les essayer (pour un systeme seul, la sienne d'abord ; pour plusieurs, celle de tous, une seule archive).
+/// Vide : la version est publiee sans l'un d'eux (« Publier » choisit Windows seul, Windows et Linux, ou les trois),
+/// l'installation ne telecharge rien.
+fn jeux_a_essayer<'a>(d: &'a Value, systemes: &[&'static str]) -> Vec<Vec<(&'static str, &'a Value)>> {
+    let porte = |a: &Value| systemes.iter().all(|s| a["systemes"].as_array().is_some_and(|l| l.iter().any(|x| x.as_str() == Some(s))));
+    let siens: Option<Vec<(&'static str, &Value)>> = systemes.iter().map(|s| d["archives"].get(*s).map(|a| (*s, a))).collect();
+    let tous = d["archives"].get(TOUT_SYSTEME).filter(|a| porte(a)).map(|a| vec![(TOUT_SYSTEME, a)]);
+    let v: Vec<_> = if systemes.len() > 1 { [tous, siens] } else { [siens, tous] }.into_iter().flatten().collect();
+    v
 }
 
-/// Telecharge l'archive de ce systeme (ou, si `derniere.json` n'en a pas pour lui ou qu'elle ne se telecharge pas, celle
-/// de tous les systemes, si elle le porte), la verifie, la deballe, la controle et la pose prete. Rend la cle de l'archive prise. Une
-/// archive telechargee dont le condensat ou la signature ne vaut pas est refusee sans essayer l'autre : ce n'est pas
-/// qu'elle manque, c'est qu'elle n'est pas la notre.
-fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Recherche) -> Result<&'static str, Echec> {
+/// Telecharge les archives qui portent les systemes de l'installation (`systemes_poses`, `jeux_a_essayer` : un jeu qui ne
+/// se telecharge pas laisse essayer le suivant), les verifie (`archive_verifiee`), les deballe l'une sur l'autre (les
+/// fichiers communs sont les memes), la controle et la pose prete. Rend les cles des archives prises. Une archive
+/// telechargee dont le condensat ou la signature ne vaut pas est refusee sans essayer l'autre : ce n'est pas qu'elle
+/// manque, c'est qu'elle n'est pas la notre.
+fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Recherche) -> Result<String, Echec> {
     let version = d["version"].as_str().unwrap_or_default();
-    let candidates = archives_a_essayer(d);
-    if candidates.is_empty() {
-        return Err((INTROUVABLE, format!("derniere.json n'a pas d'archive qui porte ce systeme ({})", SYSTEME)));
+    let systemes = systemes_poses(&logiciel_de(inst));
+    let jeux = jeux_a_essayer(d, &systemes);
+    if jeux.is_empty() {
+        return Err((INTROUVABLE, format!("derniere.json n'a pas d'archive qui porte {}", systemes.join(", "))));
     }
     let mut manquees = Vec::new();
     let mut mot = INTROUVABLE;
-    let mut prise = None;
-    for (k, a) in candidates {
-        let suivre = |recus: u64, attendus: Option<u64>| suivi.poser(Etape::Telechargement, Some(version), |p| (p.recus, p.attendus) = (recus, attendus));
-        match lire_depot_suivi(depot, a["archive"].as_str().unwrap_or_default(), &suivre) {
-            Ok(o) => {
-                prise = Some((k, a, o));
-                break;
-            }
-            Err((m, e)) => {
-                mot = m;
-                manquees.push(e)
+    let mut prises = None;
+    'jeux: for jeu in jeux {
+        let mut recues = Vec::new();
+        for (k, a) in jeu {
+            let suivre = |recus: u64, attendus: Option<u64>| suivi.poser(Etape::Telechargement, Some(version), |p| (p.recus, p.attendus) = (recus, attendus));
+            match archive_verifiee(depot, a, cles, &suivre) {
+                Ok(o) => recues.push((k, o)),
+                Err((m, e)) if m == HORS_LIGNE || m == INTROUVABLE => {
+                    mot = m;
+                    manquees.push(e);
+                    continue 'jeux;
+                }
+                Err(e) => return Err(e),
             }
         }
+        prises = Some(recues);
+        break;
     }
-    let (systeme, a, octets) = prise.ok_or_else(|| (mot, manquees.join(" ; ")))?;
+    let prises = prises.ok_or_else(|| (mot, manquees.join(" ; ")))?;
     suivi.poser(Etape::Preparation, Some(version), |_| {});
-    let sha = condensat(&octets);
-    let attendu = a["sha256"].as_str().unwrap_or_default();
-    if sha != attendu {
-        return Err((ALTEREE, format!("archive alteree (condensat {}, attendu {})", sha, attendu)));
-    }
-    let signature = a.get("signature").and_then(Value::as_str).ok_or((SIGNATURE_REFUSEE, "archive non signee : derniere.json n'a pas de « signature »".to_string()))?;
-    if !signee_par_l_une(&octets, signature, cles) {
-        return Err((SIGNATURE_REFUSEE, "la signature de l'archive n'est pas celle de l'editeur".into()));
-    }
     let au_controle = |e: String| (REFUSEE_AU_CONTROLE, e);
     let cible = dossier_maj(inst).join(version);
     let _ = std::fs::remove_dir_all(&cible);
     let neuf = logiciel_de(&cible);
     std::fs::create_dir_all(&neuf).map_err(|e| au_controle(e.to_string()))?;
-    deballer(&octets, &neuf).map_err(au_controle)?;
+    for (_, octets) in &prises {
+        deballer(octets, &neuf).map_err(au_controle)?;
+    }
     if courante(&neuf) != version {
         return Err(au_controle(format!("l'archive dit {}, derniere.json dit {}", version_lue(&courante(&neuf)), version_lue(version))));
     }
-    // Le programme de ce systeme doit y etre, meme sans compagnie a controler.
-    if !programme(&neuf, "puppetpaie").is_file() {
+    // Le programme de chaque systeme doit y etre, meme sans compagnie a controler.
+    if let Some(s) = systemes.iter().find(|s| !programme_de(&neuf, s, "puppetpaie").is_file()) {
         let _ = std::fs::remove_dir_all(&cible);
-        return Err(au_controle(format!("le programme de ce systeme manque dans l'archive ({})", programme(Path::new(""), "puppetpaie").display())));
+        return Err(au_controle(format!("le programme de {} manque dans l'archive ({})", s, programme_de(Path::new(""), s, "puppetpaie").display())));
     }
     // Le programme neuf lit la configuration de chaque compagnie de l'installation (sans compagnie, il n'y a rien a lire).
     for racine in compagnies_de(inst) {
@@ -534,17 +580,126 @@ fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Reche
             return Err(au_controle(format!("le nouveau code ne demarre pas sur {} : {}", racine.display(), p)));
         }
     }
+    let noms: Vec<&str> = prises.iter().map(|(k, _)| *k).collect();
     ecrire_json(
         &dossier_maj(inst).join("prete.json"),
         &json!({
             "version": version, "quand": socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string(),
-            "archive": a["archive"].clone(),
+            "archives": noms,
             "notes": d.get("notes").cloned().unwrap_or(json!("")), "calcul": d.get("calcul").cloned().unwrap_or(json!("")),
             "exigee": d.get("exigee").cloned().unwrap_or(json!("")),
         }),
     )
     .map_err(au_controle)?;
-    Ok(systeme)
+    Ok(noms.join(", "))
+}
+
+/// Le nom d'un systeme tel qu'on le lit.
+pub fn systeme_lu(s: &str) -> &str {
+    match s {
+        "windows" => "Windows",
+        "linux" => "Linux",
+        "mac" => "macOS",
+        autre => autre,
+    }
+}
+
+/// Le depot qui porte la version `version` : la Release de cette version quand le reglage ne dit rien
+/// (`DEPOT_PAR_DEFAUT` nomme la derniere ; GitHub sert les fichiers d'une Release sous `releases/download/v<version>`,
+/// le nom que lui donne le flux « Publier »). Un depot pose dans le reglage est pris tel quel.
+fn depot_de_la_version(depot: &str, version: &str) -> String {
+    match depot.strip_suffix("/latest/download") {
+        Some(tete) if depot == DEPOT_PAR_DEFAUT => format!("{}/download/v{}", tete, version),
+        _ => depot.to_string(),
+    }
+}
+
+/// LE DOSSIER PORTABLE COMPLETE : une installation recoit les programmes des systemes qui lui manquent, POUR LA VERSION
+/// INSTALLEE, et s'ouvre ensuite sous Windows, Linux et macOS. Les archives de cette version (`derniere.json` de son
+/// depot, `depot_de_la_version`) : celle de chaque systeme manquant, sinon celle de tous qui le porte. Toutes sont
+/// recues et verifiees (`archive_verifiee`) avant que rien ne s'ecrive ; seuls les fichiers de ces systemes
+/// (`systeme_du_fichier`) vont dans `logiciel/`. `portable` pose aussi `PORTABLE.json` (`coffre::MARQUEUR_PORTABLE`).
+/// La mise a jour tient ensuite tous ces systemes a jour (`systemes_poses`). Ce que le telechargement recoit se dit
+/// sur la sortie d'erreur (l'installeur Windows le montre ; la sortie standard reste la reponse de la route).
+pub fn completer_le_portable(inst: &Path, portable: bool, cles: &[&str]) -> R<Value> {
+    let rien = "Rien n'est posé.";
+    let code = logiciel_de(inst);
+    let version = courante(&code);
+    if version == "0.0.0" {
+        return Err(format!("{} n'a pas de logiciel/VERSION : ce n'est pas une installation. {}", inst.display(), rien));
+    }
+    if a_installer(inst).is_some() {
+        return Err(format!("Une mise à jour attend le redémarrage : redémarrez PuppetPaie, puis recommencez. {}", rien));
+    }
+    let manquants: Vec<&'static str> = SYSTEMES.into_iter().filter(|s| !programme_de(&code, s, "puppetpaie").is_file()).collect();
+    let mut ajoutes: Vec<&'static str> = Vec::new();
+    let mut absents: Vec<&'static str> = Vec::new();
+    if !manquants.is_empty() {
+        let hors_ligne = |e: &str| format!("Le dépôt ne répond pas ({}). {} Reconnectez-vous, puis recommencez.", e, rien);
+        let depot = depot_de_la_version(&depot(reglage(inst)?.0), &version);
+        let d = derniere_dite(&depot).map_err(|(mot, e)| if mot == HORS_LIGNE { hors_ligne(&e) } else { format!("Le dépôt ne donne pas la version {} ({}). {}", version_lue(&version), e, rien) })?;
+        if d["version"].as_str() != Some(version.as_str()) {
+            return Err(format!("Le dépôt n'a plus la version installée ({}) : mettez PuppetPaie à jour, puis recommencez. {}", version_lue(&version), rien));
+        }
+        // Chaque systeme manquant, son archive : la sienne, sinon celle de tous qui le porte (une seule fois pour plusieurs).
+        let mut a_prendre: Vec<(&Value, Vec<&'static str>)> = Vec::new();
+        for s in &manquants {
+            match jeux_a_essayer(&d, &[s]).into_iter().next().and_then(|j| j.into_iter().next()) {
+                Some((TOUT_SYSTEME, a)) => match a_prendre.iter_mut().find(|(x, _)| std::ptr::eq(*x, a)) {
+                    Some((_, l)) => l.push(s),
+                    None => a_prendre.push((a, vec![s])),
+                },
+                Some((_, a)) => a_prendre.push((a, vec![s])),
+                None => absents.push(s),
+            }
+        }
+        let mut recues = Vec::new();
+        for (a, systemes) in a_prendre {
+            let qui = systemes.iter().map(|s| systeme_lu(s)).collect::<Vec<_>>().join(" et ");
+            let dit = std::cell::Cell::new(None);
+            let suivre = |recus: u64, attendus: Option<u64>| {
+                let quart = attendus.filter(|a| *a > 0).map(|a| recus * 4 / a);
+                if quart.is_some() && quart != dit.get() {
+                    dit.set(quart);
+                    let mo = |o: u64| format!("{:.1}", o as f64 / 1_048_576.0).replace('.', ",");
+                    eprintln!("{} : {} Mo reçus sur {} Mo", qui, mo(recus), mo(attendus.unwrap_or(0)));
+                }
+            };
+            let octets = archive_verifiee(&depot, a, cles, &suivre).map_err(|(mot, e)| if mot == HORS_LIGNE { hors_ligne(&e) } else { format!("{} : {}. {}", qui, e, rien) })?;
+            let dite = zip::ZipArchive::new(std::io::Cursor::new(&octets[..]))
+                .ok()
+                .and_then(|mut z| z.by_name("VERSION").ok().and_then(|mut f| { let mut t = String::new(); f.read_to_string(&mut t).ok().map(|_| t.trim().to_string()) }));
+            if dite.as_deref() != Some(version.as_str()) {
+                return Err(format!("{} : l'archive n'est pas de la version {}. {}", qui, version_lue(&version), rien));
+            }
+            recues.push((octets, systemes));
+        }
+        for (octets, systemes) in &recues {
+            deballer_ce_qui(octets, &code, &|rel| systeme_du_fichier(rel).is_some_and(|s| systemes.contains(&s)))?;
+            ajoutes.extend(systemes.iter().copied().filter(|s| programme_de(&code, s, "puppetpaie").is_file()));
+        }
+    }
+    if portable && !inst.join(crate::compagnie::coffre::MARQUEUR_PORTABLE).is_file() {
+        std::fs::write(inst.join(crate::compagnie::coffre::MARQUEUR_PORTABLE), crate::compagnie::coffre::CONTENU_PORTABLE).map_err(|e| format!("{} : {}", inst.display(), e))?;
+    }
+    let noms = |l: &[&'static str]| l.iter().map(|s| systeme_lu(s)).collect::<Vec<_>>().join(", ");
+    let mut phrase = if ajoutes.is_empty() && absents.is_empty() {
+        "Les trois systèmes sont déjà là.".to_string()
+    } else if ajoutes.is_empty() {
+        String::new()
+    } else {
+        format!("Ajoutés : {}.", noms(&ajoutes))
+    };
+    if !absents.is_empty() {
+        phrase.push_str(&format!("{}La {} n'est pas publiée pour {}.", if phrase.is_empty() { "" } else { " " }, version_lue(&version), noms(&absents)));
+    }
+    if inst.join(crate::compagnie::coffre::MARQUEUR_PORTABLE).is_file() {
+        phrase.push_str(" Le dossier est portable.");
+    }
+    Ok(json!({
+        "ajoutes": ajoutes, "absents": absents, "version": version,
+        "portable": inst.join(crate::compagnie::coffre::MARQUEUR_PORTABLE).is_file(), "phrase": phrase,
+    }))
 }
 
 /// LES FICTIVES PRETES : la livraison telechargee et verifiee (`preparer_les_fictives`), qui attend le prochain lancement
@@ -617,14 +772,7 @@ pub fn preparer_les_fictives(inst: &Path, depot: &str, d: &Value, cles: &[&str])
     }
     let court = &empreinte[..empreinte.len().min(12)];
     let essai = || -> R<()> {
-        let archive = f.get("archive").and_then(Value::as_str).filter(|a| !a.is_empty()).ok_or("derniere.json : les fictives sans « archive »")?;
-        let octets = lire_depot_suivi(depot, archive, &|_, _| {}).map_err(|(_, e)| e)?;
-        if Some(condensat(&octets).as_str()) != f.get("sha256").and_then(Value::as_str) {
-            return Err("archive des fictives alteree (condensat)".into());
-        }
-        if !f.get("signature").and_then(Value::as_str).is_some_and(|s| signee_par_l_une(&octets, s, cles)) {
-            return Err("la signature de l'archive des fictives n'est pas celle de l'editeur".into());
-        }
+        let octets = archive_verifiee(depot, f, cles, &|_, _| {}).map_err(|(_, e)| e)?;
         let part = maj.join(format!("{}.part", FICTIVES_PRETES));
         let _ = std::fs::remove_dir_all(&part);
         deballer_les_fictives(&octets, &part)?;
@@ -806,11 +954,13 @@ fn verifier_en(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Rech
         return format!("version {}, a jour", cour);
     }
     let lue = version_lue(&v);
-    // Publiee sans ce systeme : rien a telecharger, la version en place reste (une tout-systeme qui ne le porte pas ne
-    // se lancerait pas ici). Pour cette installation, il n'y a pas de mise a jour.
-    if !publiee_pour_ce_systeme(&d) {
+    // Publiee sans l'un des systemes de l'installation : rien a telecharger, la version en place reste (une tout-systeme
+    // qui ne le porte pas ne se lancerait pas la ; un dossier portable ne perd pas l'un de ses systemes). Pour cette
+    // installation, il n'y a pas de mise a jour.
+    let systemes = systemes_poses(&c);
+    if jeux_a_essayer(&d, &systemes).is_empty() {
         suivi.poser(Etape::AJour, Some(&courante(&c)), |p| p.sans_ce_systeme = Some(v.clone()));
-        return format!("version {} -- la {} est publiee sans ce systeme ({}) : cette installation garde sa version", cour, lue, SYSTEME);
+        return format!("version {} -- la {} est publiee sans l'un de ses systemes ({}) : cette installation garde sa version", cour, lue, systemes.join(", "));
     }
     let deja = prete(inst).and_then(|p| p["version"].as_str().map(String::from)).as_deref() == Some(v.as_str());
     if deja {
@@ -829,7 +979,7 @@ fn verifier_en(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Rech
                 "version {} -- la {} est telechargee, controlee, prete : elle s'appliquera au prochain demarrage{}",
                 cour,
                 lue,
-                if prise == SYSTEME { String::new() } else { format!(" (archive {} : celle de ce systeme manque)", prise) }
+                if prise == SYSTEME { String::new() } else { format!(" (archive {})", prise) }
             )
         }
         Err((mot, e)) => echec(mot, Some(&v), format!("version {} -- la {} existe mais n'a pas pu etre preparee : {}", cour, lue, e)),
@@ -1677,6 +1827,8 @@ mod tests {
         assert!(noms.contains(&"logiciel/VERSION".to_string()) && noms.contains(&"logiciel/donnees/a.json".to_string()), "{:?}", noms);
         assert!(noms.contains(&"fictives/LISEZ-MOI.md".to_string()) && noms.contains(&"fictives/fictive-essai/config/entreprise.json".to_string()), "{:?}", noms);
         assert!(noms.contains(&"fictives/fictive-essai/COPIE-DE-DEVELOPPEMENT.json".to_string()), "{:?}", noms);
+        // Celle de tous les systemes est le dossier portable : son marqueur a la racine, que le moteur lit (`coffre::dossier_portable`).
+        assert!(noms.contains(&crate::compagnie::coffre::MARQUEUR_PORTABLE.to_string()), "{:?}", noms);
         // Les trois fichiers livres, la marque de la fictive et ce que retient la livraison : rien du poste.
         assert!(noms.contains(&"fictives/fictive-essai/.livree.json".to_string()) && noms.contains(&"fictives/.livraison.json".to_string()), "{:?}", noms);
         assert_eq!(noms.iter().filter(|n| n.starts_with("fictives/")).count(), 5, "rien du poste : {:?}", noms);

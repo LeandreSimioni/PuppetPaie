@@ -23,6 +23,10 @@ use socle::echec::R;
 use socle::paris::maintenant;
 use socle::valeur::valeur_en_texte;
 
+/// La fin du nom de l'exemplaire contresigne d'un contrat (le contrat parti, `<souche>` ; contresigne, `<souche>_signe.pdf`) :
+/// la piece jointe du courriel qui le renvoie au signataire.
+pub const SUFFIXE_CONTRESIGNE: &str = "_signe.pdf";
+
 const SUJET_CONTRESIGNE: &str = "Ton contrat signé - {spectacle}";
 const SUJET_CONTRESIGNE_PLURIEL: &str = "Tes contrats signés - {mois} {annee}";
 const CORPS_CONTRESIGNE: &str = "Bonjour {prenom},\n\nNous avons bien reçu ta signature le {quand}. Ci-joint {quoi}, signé des deux parties : c'est l'exemplaire à conserver.\n\nBien à toi,\n{signataire}\n{raison_sociale}\n";

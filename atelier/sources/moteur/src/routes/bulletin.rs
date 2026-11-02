@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use serde_json::{json, Map, Value};
 
-use crate::routes::catalogue::{Acte, Champ, Ecran, Fiche, Place, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, OPERATION};
 use crate::routes::fiches::refus;
 use droit::contexte::Contexte;
 use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
@@ -13,7 +13,7 @@ use socle::fichiers::dossier_du_code;
 use socle::echec::{Echec, R};
 use socle::fichiers::lire_json;
 
-const MODELE: Champ = Champ { nom: "modele", sens: "« simplifié » ou « complet »", avance: false };
+const MODELE: Champ = Champ { nom: "modele", libelle: Affiche::new("Modèle"), forme: Forme::Texte, sens: "« simplifié » ou « complet »", avance: false };
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Bulletin);

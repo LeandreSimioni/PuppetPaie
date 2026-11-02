@@ -181,7 +181,7 @@ function ligneRubrique(l = {}, nat) {
     const voulu = g.dataset.pose === "1" ? g.value : (l.genre || "");
     poserListe(g, "genres:" + (r ? r.code : ""), [genres], () => `<option value="">— genre par défaut —</option>`
       + genres.map((x) => `<option value="${echapper(x.code)}">${echapper(x.code)} — ${
-        echapper(String(x.libelle).replace(/^Avantage en nature : /, ""))}</option>`).join(""));
+        echapper(x.libelle)}</option>`).join(""));
     g.value = genres.some((x) => x.code === voulu) ? voulu : "";
     g.dataset.pose = "1";
   };
@@ -1416,15 +1416,10 @@ function remplirFaits(div, e) {
 }
 
 /* LES CASES « AVANCÉ » D'UN MOIS PAYÉ : celles que le catalogue marque
-   (`cases` de valider-engagement, `avance`), une case nombre chacune. Le
+   (`cases` de valider-engagement, `avance`), une case nombre chacune, son
+   libellé celui du catalogue (`libelle`). Le
    moteur dit lesquelles l'engagement appelle (`faits_avances` de l'aperçu) :
    une case se montre appelée, ou quand elle a déjà une valeur. */
-const NOMS_DES_FAITS = {
-  heures_supplementaires: "Heures supplémentaires",
-  heures_supplementaires_a_50: "Dont à 50 %",
-  heures_complementaires: "Heures complémentaires",
-};
-
 function casesAvancees() {
   return ((CATALOGUE["valider-engagement"] || {}).cases || []).filter((c) => c.avance);
 }
@@ -1433,7 +1428,7 @@ function poserFaitsAvances(div, e) {
   const cible = div.querySelector(".e-faits-avances-cases");
   if (!cible) return;
   cible.innerHTML = casesAvancees().map((c) => `
-    <label data-fait="${echapper(c.nom)}" title="${echapper(c.sens)}" hidden>${echapper(NOMS_DES_FAITS[c.nom] || c.nom)}
+    <label data-fait="${echapper(c.nom)}" hidden>${echapper(c.libelle)}
       <input type="number" step="0.01" min="0" class="e-fait-nombre" data-cle="${echapper(c.nom)}"
              value="${echapper(e[c.nom] ?? "")}"></label>`).join("");
   cible.querySelectorAll("input").forEach((c) => { c.onchange = rafraichirApercu; });

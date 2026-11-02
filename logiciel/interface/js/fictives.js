@@ -21,9 +21,8 @@ async function repereCourrielsFictifs() {
   catch (e) { return null; }
 }
 
-/* Le retour d'une signature jouée se reconnaît à son objet. Le circuit de chaque genre (ce que reçoit le destinataire,
+/* Le retour d'une signature jouée, le moteur le dit (`contresigne` de `courriels-fictifs`). Le circuit de chaque genre (ce que reçoit le destinataire,
    ses étapes et ce qu'elles disent) vient du moteur : `circuits` de `courriels-fictifs`. */
-const RETOUR_SIGNE = /signé/i;
 
 /* CE QU'UNE COMPAGNIE FICTIVE NE FAIT PAS, DIT AU LIEU D'ÊTRE TU : le moteur le rend (`coulisses` de la route `etat`). */
 function fenetreExplicationFictive(quoi, apres = "") {
@@ -139,7 +138,7 @@ async function fenetreCourrielsFictifs(genre, repere) {
       dessiner();
       if (genre === "signature") {
         api("courriels-fictifs", { apres: partis[partis.length - 1].nom }).then((r) => {
-          retours = r.courriels.filter((m) => RETOUR_SIGNE.test(m.sujet) && m.a === premier.a);
+          retours = r.courriels.filter((m) => m.contresigne && m.a === premier.a);
         }).catch(() => {});
       }
     };
@@ -156,7 +155,7 @@ async function fenetreCourrielsFictifs(genre, repere) {
     try {
       if (genre === "signature") {
         const r = await api("courriels-fictifs", { apres: partis[partis.length - 1].nom });
-        retours = r.courriels.filter((m) => RETOUR_SIGNE.test(m.sujet) && m.a === premier.a);
+        retours = r.courriels.filter((m) => m.contresigne && m.a === premier.a);
       } else if (Date.now() - depuis > 21000) {
         const r = await api("fiches-relever", {});
         ETAT.configuration = await api("configuration", {}); peindreEtatGlobal();

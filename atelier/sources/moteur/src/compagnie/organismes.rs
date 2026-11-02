@@ -19,7 +19,7 @@ use socle::ecriture::ecrire_json;
 use socle::fichiers::{lire_json, vrai};
 use socle::echec::Echec;
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, ILLISIBLE, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, ILLISIBLE, OPERATION};
 use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
@@ -32,7 +32,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "organismes-contrats",
         geste: "Dire les contrats de la DSN (prévoyance, santé…) d'un mois, et ce qui manque.",
-        charge: &[Champ { nom: "mois", sens: "le mois regardé, AAAA-MM ; le mois en cours sinon", avance: false }],
+        charge: &[Champ { nom: "mois", libelle: Affiche::new("Mois"), forme: Forme::Mois, sens: "le mois regardé, AAAA-MM ; le mois en cours sinon", avance: false }],
         exemple: r#"{"mois":"2026-11"}"#,
         rend: "idcc, a_saisir, mois, contrats (une ligne par contrat attendu : libellé, organisme, periode), encarts",
         refus: &[OPERATION, ILLISIBLE],
@@ -45,8 +45,8 @@ pub const ROUTES: &[Fiche] = &[
         nom: "organismes-enregistrer",
         geste: "Écrire, à partir d'un mois, les contrats de la DSN que la compagnie dit.",
         charge: &[
-            Champ { nom: "contrats", sens: "{clé du contrat: {libelle, organisme}}, ce qui est saisi", avance: false },
-            Champ { nom: "mois", sens: "le mois à partir duquel ils valent, AAAA-MM ; le mois en cours sinon", avance: false },
+            Champ { nom: "contrats", libelle: Affiche::new("Contrats"), forme: Forme::Objet, sens: "{clé du contrat: {libelle, organisme}}, ce qui est saisi", avance: false },
+            Champ { nom: "mois", libelle: Affiche::new("À partir de"), forme: Forme::Mois, sens: "le mois à partir duquel ils valent, AAAA-MM ; le mois en cours sinon", avance: false },
         ],
         exemple: r#"{"mois":"2026-11","contrats":{"prevoyance_permanents":{"libelle":"PREVOYANCE","organisme":"P0983"},"sante_permanents":{"libelle":"SANTE","organisme":"P0983"}}}"#,
         rend: "ce que organismes-contrats rend",

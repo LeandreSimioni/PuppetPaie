@@ -774,8 +774,10 @@ impl Fenetre {
                 // moment ; celle d'une compagnie, quand la compagnie est ouverte -- ou quand elle n'a pas encore de mot de
                 // passe (rien a deverrouiller : la page du premier mot de passe le pose par sa route).
                 // Ecrire au developpeur se sert aussi a l'accueil, aucune compagnie ouverte (`routes::filet::sans_compagnie`).
+                // Le catalogue (`routes`) ne porte sur aucune compagnie : l'accueil le lit pour son « Avancé » (`js/avance.js`).
                 let au_developpeur = crate::routes::catalogue::dans(crate::routes::filet::ROUTES, nom).is_some() && !matches!(self.phase(), Phase::Ouverte { .. });
-                if crate::routes::catalogue::dans(crate::routes::accueil::ROUTES, nom).is_some() || au_developpeur {
+                let catalogue = crate::routes::catalogue::dans(crate::routes::catalogue::ROUTES, nom).is_some();
+                if crate::routes::catalogue::dans(crate::routes::accueil::ROUTES, nom).is_some() || au_developpeur || catalogue {
                     let debut = Instant::now();
                     let rendu = self.route_de_l_installation(nom, &charge);
                     self.ecrire(&ligne_de_route(nom, debut.elapsed(), &rendu));

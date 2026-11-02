@@ -51,6 +51,7 @@ pub mod rappels;
 pub mod mois;
 pub mod accueil;
 pub mod catalogue;
+pub mod affiche;
 
 /// Supprimer la compagnie : avertir, puis effacer (`interface::suppression::route`).
 pub const COMPAGNIE_SUPPRIMER: &str = "compagnie-supprimer";
@@ -250,6 +251,27 @@ pub fn plus_longue_phrase(v: &Value) -> usize {
     }
 }
 
+/// LES PHRASES QUE REND UNE ROUTE, celles que l'ecran lit : la `phrase`, les `phrases` et les `aides` de la reponse et de chaque ligne
+/// qu'elle porte, a toute profondeur.
+pub fn phrases_rendues(v: &Value) -> Vec<&str> {
+    let mut out = Vec::new();
+    match v {
+        Value::Object(o) => {
+            for (k, x) in o {
+                match (k.as_str(), x) {
+                    ("phrase", Value::String(p)) => out.push(p.as_str()),
+                    ("phrases", Value::Array(l)) => out.extend(l.iter().filter_map(Value::as_str)),
+                    ("aides", Value::Object(a)) => out.extend(a.values().filter_map(Value::as_str)),
+                    _ => out.extend(phrases_rendues(x)),
+                }
+            }
+        }
+        Value::Array(a) => out.extend(a.iter().flat_map(phrases_rendues)),
+        _ => {}
+    }
+    out
+}
+
 /// UNE PHRASE PLUS LONGUE QUE SA PLACE (la `phrase` de la fiche ; `plus_longue_phrase`) se lit entiere, et note un incident silencieux au
 /// developpeur : la route, la place, la longueur ; jamais la phrase, qui peut nommer un salarie. On la corrige a la cause,
 /// en l'ecrivant plus breve.
@@ -271,6 +293,20 @@ fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
             ..Default::default()
         });
         return;
+    }
+    // UNE PHRASE QUI N'EST PAS FAITE POUR L'ECRAN (un nom de fichier, un terme de code : `affiche::defaut`) : le meme
+    // incident silencieux, sans la phrase.
+    if let Some(d) = phrases_rendues(rendu).into_iter().find_map(|p| affiche::defaut(p, usize::MAX, false)) {
+        let resume = format!("Une phrase de la route {} n'est pas faite pour l'écran : {}.", route, d.corriger());
+        let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
+            nature: crate::compagnie::incidents::LOGICIEL,
+            resume: &resume,
+            ou: route,
+            quoi: "PhrasePasFaitePourLEcran",
+            detail: json!({"route": route, "defaut": format!("{:?}", d)}),
+            sans_contexte: true,
+            ..Default::default()
+        });
     }
     let Some(place) = catalogue::catalogue().iter().find(|f| f.nom == route).map(|f| f.phrase).filter(|p| *p > 0) else { return };
     let longueur = plus_longue_phrase(rendu);

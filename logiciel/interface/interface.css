@@ -1822,3 +1822,6 @@ body > .maj { position: static; flex: none; align-self: flex-start; margin: 0 0 
 
 /* Une compagnie fictive : ce que ses boutons envoient est joué. */
 body.fictive button.envoi::after { content: " — simulé"; }
+
+/* La première lettre en capitale, quand une phrase du moteur ouvre un paragraphe. */
+.capitale::first-letter { text-transform: uppercase; }

@@ -221,10 +221,16 @@ pub fn archiver_fictives(code: &Path) -> R<(Vec<u8>, String)> {
 /// installation ne la telecharge, et `deballer` la refuse comme mise a jour. Elle pourrait se composer des deux autres
 /// (les decompresser l'une dans `logiciel/`, l'autre a cote) ; elle reste une archive, pour qu'installer soit telecharger
 /// un fichier et le decompresser.
+/// Celle de TOUS LES SYSTEMES est le dossier portable : elle porte aussi, a sa racine, le marqueur `PORTABLE.json`
+/// (`coffre::MARQUEUR_PORTABLE`) ; decompressee sur une cle USB, elle s'ouvre sous Windows, Linux et macOS, et la cle du
+/// poste naitra a cote.
 pub fn archiver_installation(code: &Path, systeme: &str) -> R<Vec<u8>> {
     let mut entrees = entrees_du_logiciel(code, systeme, &format!("{}/", LOGICIEL))?;
-    let (fictives, en_plus, _) = entrees_des_fictives(code)?;
+    let (fictives, mut en_plus, _) = entrees_des_fictives(code)?;
     entrees.extend(fictives);
+    if systeme == TOUT_SYSTEME {
+        en_plus.push((crate::compagnie::coffre::MARQUEUR_PORTABLE.to_string(), crate::compagnie::coffre::CONTENU_PORTABLE.as_bytes().to_vec()));
+    }
     zipper(&entrees, &en_plus)
 }
 

@@ -46,6 +46,70 @@ fn chaque_route_dit_brievement_ce_qu_elle_fait() {
     }
 }
 
+/// CE QUE L'ECRAN AFFICHE EST FAIT POUR L'ECRAN (`routes::affiche`) : le bouton de chaque route sous « Avancé » et le
+/// libelle de chaque champ, tels que le catalogue les rend a la page (`routes --avance`), et le libelle, l'aide et les
+/// choix de chaque case de `donnees/champs-base.json` : brefs, sans fichier, chemin ni terme de code ; un libelle ou un
+/// bouton commence par une capitale. Les phrases que rendent les routes passent la meme verification
+/// (`l_exemple_de_chaque_fiche_est_accepte`). Le sens long, qui peut nommer un fichier, est celui du LLM (`sens`, `geste`).
+#[test]
+fn ce_que_l_ecran_affiche_est_fait_pour_l_ecran() {
+    use moteur::routes::affiche::{defaut, COURT};
+    let mut fautes = Vec::new();
+    let mut voir = |ou: String, t: &str, place: usize, court: bool| {
+        if let Some(d) = defaut(t, place, court) {
+            fautes.push(format!("{} : « {} » : {}", ou, t, d.corriger()));
+        }
+    };
+    for f in moteur::routes::catalogue::en_json(true)["routes"].as_array().unwrap() {
+        let nom = f["nom"].as_str().unwrap();
+        if let Some(b) = f["bouton"].as_str() {
+            voir(format!("le bouton de {}", nom), b, COURT, true);
+        }
+        for c in ["charge", "cases", "cases_de_la_fin"].iter().flat_map(|k| f[*k].as_array().unwrap()) {
+            voir(format!("le libellé de {}.{}", nom, c["nom"].as_str().unwrap()), c["libelle"].as_str().unwrap(), COURT, true);
+        }
+    }
+    fn cases<'a>(v: &'a Value, ou: &str, out: &mut Vec<(String, &'a Value)>) {
+        match v {
+            Value::Object(o) if o.contains_key("cle") && o.contains_key("libelle") => {
+                let ici = format!("{}.{}", ou, o["cle"].as_str().unwrap_or("?"));
+                out.push((ici.clone(), v));
+                for x in o.values() {
+                    cases(x, &ici, out);
+                }
+            }
+            Value::Object(o) => o.iter().filter(|(k, _)| !k.starts_with('_')).for_each(|(k, x)| cases(x, &format!("{}{}", ou, k), out)),
+            Value::Array(a) => a.iter().for_each(|x| cases(x, ou, out)),
+            _ => {}
+        }
+    }
+    let base: Value = serde_json::from_str(&std::fs::read_to_string(espace().join("../../logiciel/donnees/champs-base.json")).unwrap()).unwrap();
+    let mut toutes = Vec::new();
+    cases(&base, "", &mut toutes);
+    // Une case que l'ecran ne montre pas (`ecran: false`, et ce qu'elle porte) est pour le LLM.
+    let cachees: Vec<String> = toutes.iter().filter(|(_, c)| c["ecran"] == json!(false)).map(|(ou, _)| ou.clone()).collect();
+    for (ou, c) in toutes.iter().filter(|(ou, _)| !cachees.iter().any(|x| ou == x || ou.starts_with(&format!("{}.", x)))) {
+        voir(format!("champs-base.json {} : libelle", ou), c["libelle"].as_str().unwrap_or(""), CASE, true);
+        if let Some(a) = c["aide"].as_str().filter(|a| !a.is_empty()) {
+            voir(format!("champs-base.json {} : aide", ou), a, AIDE, false);
+        }
+        // Un choix sans libelle s'affiche tel qu'il s'ecrit.
+        for v in c["choix"].as_array().into_iter().flatten().filter_map(Value::as_str).filter(|v| !v.is_empty()) {
+            let l = c["libelles"][v].as_str().unwrap_or(v);
+            voir(format!("champs-base.json {} : le choix « {} »", ou, v), l, CHOIX, false);
+        }
+        if let Some(l) = c["libelles"][""].as_str() {
+            voir(format!("champs-base.json {} : le choix vide", ou), l, CHOIX, false);
+        }
+    }
+    assert!(fautes.is_empty(), "ce que l'écran affiche n'est pas fait pour l'écran : récris-le bref, en mots, dans le moteur (le sens long reste au LLM) :\n{}", fautes.join("\n"));
+}
+
+/// La place du libelle d'une case de fiche (une ligne du formulaire), de son aide et d'un choix de sa liste, en caracteres.
+const CASE: usize = 60;
+const AIDE: usize = 500;
+const CHOIX: usize = 100;
+
 /// Les Treteaux du Banc au 02/11, avant son premier jour joue : une compagnie configuree, FULLER en saisie.
 fn treteaux(test: &str) -> PathBuf {
     let d = dossier_de_test("structure", test);
@@ -113,6 +177,7 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
     // exemples du mot de passe du logiciel (celui d'une compagnie seule).
     let inst = c.parent().unwrap().parent().unwrap();
     let registre = json!({"compagnies": [{"dossier": c.strip_prefix(inst).unwrap().to_string_lossy()}]});
+    let mut phrases_fautives = Vec::new();
     for f in &fiches {
         if (f.nom == "administrateur-tableau" || f.nom == "administrateur-deposer") && !inst.join("administrateur.json").exists() {
             std::fs::write(inst.join("administrateur.json"), registre.to_string()).unwrap();
@@ -134,15 +199,31 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
             // une installation a part.
             "compagnie-couleur" | "compagnie-remettre-a-zero" | "compagnies-garder" => route(&installation_a_part(&c, f.nom).1, f.nom, exemple, "2026-11-02"),
             "administrateur-rattacher" | "administrateur-detacher" => administrateur(&c, f.nom, exemple),
+            // Le dossier portable : une installation a part qui porte deja les trois systemes (rien ne se telecharge).
+            "portable-completer" => {
+                let (inst, reelle) = installation_a_part(&c, f.nom);
+                for s in moteur::compagnie::maj::SYSTEMES {
+                    let p = moteur::compagnie::maj::programme_de(&inst.join("logiciel"), s, "puppetpaie");
+                    std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+                    std::fs::write(p, "").unwrap();
+                }
+                route(&reelle, f.nom, exemple, "2026-11-02")
+            }
             _ => route_avec(&c, f.nom, exemple, "2026-11-02", &[(VARIABLE_ESSAIS, "exemple")]),
         };
         assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom, r);
         assert!(r["resultat"]["phrase"].as_str().is_some_and(|p| !p.trim().is_empty()) && !moteur::service::en_texte(f.nom, &r).trim_start().starts_with(['{', '[']), "{} : sa phrase manque (moteur route --texte ne rend que des phrases, celles que l'écran lit) : {}", f.nom, r);
+        for p in moteur::routes::phrases_rendues(&r["resultat"]) {
+            if let Some(d) = moteur::routes::affiche::defaut(p, usize::MAX, false) {
+                phrases_fautives.push(format!("{} : « {} » : {}", f.nom, p, d.corriger()));
+            }
+        }
         if f.phrase > 0 {
             let n = moteur::routes::plus_longue_phrase(&r["resultat"]);
             assert!(n <= f.phrase, "{} : une phrase qu'elle rend (la sienne, ou celle d'une de ses lignes) passe sa place ({}) : {} caractères : {}", f.nom, f.phrase, n, r);
         }
     }
+    assert!(phrases_fautives.is_empty(), "des phrases que rendent les routes ne sont pas faites pour l'écran (un fichier, un chemin, un terme de code) : récris-les en mots, dans le moteur :\n{}", phrases_fautives.join("\n"));
 }
 
 
@@ -346,7 +427,8 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
                 "{} : aucune page de sa place ({}) ne l'appelle : donne à cette route sa place à l'écran (fiche, champ ecran) et appelle-la depuis cette page ({})",
                 f.nom, p.nom(), fichiers_de(p).join(", ")
             ),
-            Ecran::Auto(p) => {
+            Ecran::Auto(p, _) => {
+                assert!(f.charge.iter().all(|c| c.forme != moteur::routes::catalogue::Forme::Objet), "{} s'affiche sous « Avancé » : aucun champ de sa charge n'est un objet, que la page ne saisit pas d'une case", f.nom);
                 let porte = format!("data-auto=\"{}\"", p.nom());
                 let configuration = p.nom().starts_with("Configuration › ") && html.contains("id=\"config-avance\"");
                 assert!(f.avance, "{} s'affiche sous « Avancé » de sa place : sa fiche est avancée", f.nom);

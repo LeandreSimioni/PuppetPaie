@@ -18,7 +18,7 @@ use serde_json::{json, Map, Value};
 use crate::compagnie::incidents::{self, DEPOSE, EN_ATTENTE};
 use crate::compagnie::problemes;
 use droit::contexte::Contexte;
-use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, OPERATION};
 use envois::etats::get;
 use socle::echec::{Echec, R};
 use socle::fichiers::vrai;
@@ -27,10 +27,10 @@ use crate::routes::catalogue::{Ecran, Place};
 
 
 
-const TEXTE: Champ = Champ { nom: "texte", sens: "le message, en mots", avance: false };
-const OU: Champ = Champ { nom: "ecran", sens: "où l'on était (l'écran, ou ce que le LLM a tenté : la route, la charge sans donnée personnelle, la réponse)", avance: false };
-const CAPTURES: Champ = Champ { nom: "captures", sens: "[{type, donnees}] : des images en base64", avance: true };
-const QUOI: Champ = Champ { nom: "quoi", sens: "une seule nature d'incident ; toutes sinon", avance: true };
+const TEXTE: Champ = Champ { nom: "texte", libelle: Affiche::new("Message"), forme: Forme::Texte, sens: "le message, en mots", avance: false };
+const OU: Champ = Champ { nom: "ecran", libelle: Affiche::new("Où l'on était"), forme: Forme::Texte, sens: "où l'on était (l'écran, ou ce que le LLM a tenté : la route, la charge sans donnée personnelle, la réponse)", avance: false };
+const CAPTURES: Champ = Champ { nom: "captures", libelle: Affiche::new("Captures"), forme: Forme::Objet, sens: "[{type, donnees}] : des images en base64", avance: true };
+const QUOI: Champ = Champ { nom: "quoi", libelle: Affiche::new("Nature"), forme: Forme::Texte, sens: "une seule nature d'incident ; toutes sinon", avance: true };
 const DIAGNOSTIC_REND: &str = "envoi (vrai : actif), total, en_attente, groupes (ce qui part, mot pour mot), pastille";
 
 /// Ou ces routes se voient a l'ecran (une place par module).
@@ -96,12 +96,12 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
-        ecran: Ecran::Auto(Place::Signaler),
+        ecran: Ecran::Auto(Place::Signaler, Affiche::new("Envoyer les messages qui attendent")),
     },
     Fiche {
         nom: "incident-navigateur",
         geste: "Noter ce qui a cassé dans la page.",
-        charge: &[Champ { nom: "message", sens: "ce que la page a vu (et genre, fichier, ligne, pile)", avance: false }],
+        charge: &[Champ { nom: "message", libelle: Affiche::new("Ce que la page a vu"), forme: Forme::Texte, sens: "ce que la page a vu (et genre, fichier, ligne, pile)", avance: false }],
         exemple: r#"{"message":"exemple","genre":"erreur"}"#,
         rend: "note (vrai : noté), empreinte",
         refus: &[OPERATION],
@@ -137,7 +137,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "diagnostic-regler",
         geste: "Couper l'envoi des incidents au développeur, ou le rétablir.",
-        charge: &[Champ { nom: "actif", sens: "vrai : les envoyer", avance: false }],
+        charge: &[Champ { nom: "actif", libelle: Affiche::new("Envoyer les incidents"), forme: Forme::OuiNon, sens: "vrai : les envoyer", avance: false }],
         exemple: r#"{"actif":true}"#,
         rend: DIAGNOSTIC_REND,
         refus: &[OPERATION],
@@ -149,14 +149,14 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "incidents-lire",
         geste: "Lire les incidents gardés sur le poste.",
-        charge: &[QUOI, Champ { nom: "en_attente", sens: "vrai : seulement ceux qui ne sont pas partis", avance: true }],
+        charge: &[QUOI, Champ { nom: "en_attente", libelle: Affiche::new("Seulement ceux qui attendent"), forme: Forme::OuiNon, sens: "vrai : seulement ceux qui ne sont pas partis", avance: true }],
         exemple: r#"{}"#,
         rend: "phrase, phrases (une par incident), lignes (les plus récentes en dernier)",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
-        ecran: Ecran::Auto(Place::Signaler),
+        ecran: Ecran::Auto(Place::Signaler, Affiche::new("Lire les incidents gardés")),
     },
     Fiche {
         nom: "incidents-regrouper",
@@ -168,7 +168,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
-        ecran: Ecran::Auto(Place::Signaler),
+        ecran: Ecran::Auto(Place::Signaler, Affiche::new("Regrouper les incidents")),
     },
     Fiche {
         nom: "incidents-envoyer",
@@ -180,7 +180,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
-        ecran: Ecran::Auto(Place::Signaler),
+        ecran: Ecran::Auto(Place::Signaler, Affiche::new("Envoyer les incidents qui attendent")),
     },
     Fiche {
         nom: "incidents-oublier",
@@ -192,7 +192,7 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 0,
-        ecran: Ecran::Auto(Place::Signaler),
+        ecran: Ecran::Auto(Place::Signaler, Affiche::new("Effacer les incidents")),
     },
 ];
 /// Une route de ce module, pour la compagnie `ctx`.

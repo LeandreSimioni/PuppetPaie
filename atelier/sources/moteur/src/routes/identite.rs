@@ -5,13 +5,13 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::routes::catalogue::{Acte, Champ, Ecran, Fiche, Place, Refus, FORME, MANQUE, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, Refus, FORME, MANQUE, OPERATION};
 use crate::routes::fiches::{aujourd_hui, creer_dossier, ecrire, en_os, exiger, objet_du_fichier, refus, texte_requis};
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::vrai;
 
-const QUOI_IDENTITE: Champ = Champ { nom: "quoi", sens: "signature, cachet ou logo", avance: false };
+const QUOI_IDENTITE: Champ = Champ { nom: "quoi", libelle: Affiche::new("Signature, cachet ou logo"), forme: Forme::Texte, sens: "signature, cachet ou logo", avance: false };
 
 const IDENTITE_REND: &str = "signature, cachet et logo : chacun posé ou dessiné par le logiciel, et sa pastille";
 
@@ -35,7 +35,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "poser-identite",
         geste: "Poser la signature, le cachet ou le logo (une image PNG, JPEG ou SVG).",
-        charge: &[QUOI_IDENTITE, Champ { nom: "contenu", sens: "l'image en base64 (une adresse data: aussi)", avance: false }],
+        charge: &[QUOI_IDENTITE, Champ { nom: "contenu", libelle: Affiche::new("Image"), forme: Forme::Texte, sens: "l'image en base64 (une adresse data: aussi)", avance: false }],
         exemple: r#"{"quoi":"logo","contenu":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4="}"#,
         rend: IDENTITE_REND,
         refus: &[Refus { classe: "ErreurOperation", corriger: "une image lisible (PNG, JPEG, SVG), de 2 Mo au plus" }, FORME, MANQUE],

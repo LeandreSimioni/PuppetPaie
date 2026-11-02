@@ -37,7 +37,7 @@ use socle::echec::Refus;
 
 type R<T> = Result<T, Refus>;
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, ILLISIBLE, MANQUE, OPERATION};
 use crate::routes::catalogue::{Ecran, Place};
 
 /// Ou ces routes se voient a l'ecran (une place par module).
@@ -48,11 +48,11 @@ pub const ROUTES: &[Fiche] = &[Fiche {
     nom: "dossier-salarie",
     geste: "Assembler les documents de salariés sur une période, en PDF ou en ZIP.",
     charge: &[
-        Champ { nom: "salaries", sens: "les clés des salariés", avance: false },
-        Champ { nom: "mois", sens: "un mois AAAA-MM ; ou annee, ou toutes_les_annees", avance: false },
-        Champ { nom: "categories", sens: "les sortes de documents (bulletins, contrats…) ; toutes par défaut", avance: true },
-        Champ { nom: "ensemble", sens: "vrai : un seul fichier pour tous", avance: true },
-        Champ { nom: "apercu", sens: "vrai : dire ce qui serait assemblé, sans rien écrire", avance: true },
+        Champ { nom: "salaries", libelle: Affiche::new("Salariés"), forme: Forme::Liste, sens: "les clés des salariés", avance: false },
+        Champ { nom: "mois", libelle: Affiche::new("Période"), forme: Forme::Texte, sens: "un mois AAAA-MM ; ou annee, ou toutes_les_annees", avance: false },
+        Champ { nom: "categories", libelle: Affiche::new("Sortes de documents"), forme: Forme::Liste, sens: "les sortes de documents (bulletins, contrats…) ; toutes par défaut", avance: true },
+        Champ { nom: "ensemble", libelle: Affiche::new("Un seul fichier"), forme: Forme::OuiNon, sens: "vrai : un seul fichier pour tous", avance: true },
+        Champ { nom: "apercu", libelle: Affiche::new("Aperçu seulement"), forme: Forme::OuiNon, sens: "vrai : dire ce qui serait assemblé, sans rien écrire", avance: true },
     ],
     exemple: r#"{"salaries":["FULLER"],"mois":"2026-11","apercu":true}"#,
     rend: "les fichiers écrits (ou à écrire, en aperçu), par salarié et par sorte",
@@ -70,7 +70,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "dossier-salarie" => dossier_salarie_route(ctx, charge).map_err(Echec::from).map(|mut v| {
             let liste = |k: &str| v[k].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>();
             let (qui, fichiers) = (liste("salaries").join(", "), liste("fichiers"));
-            let p = if fichiers.is_empty() { format!("Dossier de {} ({}) : rien n'est écrit.", qui, valeur_en_texte(&v["periode"])) } else { format!("Dossier de {} ({}) : {}.", qui, valeur_en_texte(&v["periode"]), fichiers.join(", ")) };
+            let p = if fichiers.is_empty() { format!("Dossier de {} ({}) : rien n'est écrit.", qui, valeur_en_texte(&v["periode"])) } else { format!("Dossier de {} ({}) : {}.", qui, valeur_en_texte(&v["periode"]), super::compte(fichiers.len(), "fichier écrit", "fichiers écrits")) };
             let mut lignes = liste("avertissements");
             lignes.extend(liste("refus"));
             v["phrases"] = json!(lignes);
@@ -303,7 +303,7 @@ fn noms_commencant_finissant(dossier: &Path, debut: &str, fin: &str) -> Vec<Stri
 /// `glob("Contrat*_<cle>_*_signe.pdf")`.
 fn contrats_signes_de(dossier: &Path, cle: &str) -> Vec<String> {
     let marque = format!("_{}_", cle);
-    let fin = "_signe.pdf";
+    let fin = envois::releve_signatures::SUFFIXE_CONTRESIGNE;
     noms_commencant_finissant(dossier, "Contrat", fin)
         .into_iter()
         .filter(|n| {

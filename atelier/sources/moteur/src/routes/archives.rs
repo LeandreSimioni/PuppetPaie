@@ -8,7 +8,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
 use crate::routes::qui_de;
 use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, requis, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
@@ -27,7 +27,7 @@ use socle::html::courriel_en_html;
 use socle::valeur::{nom_type, valeur_en_texte};
 use crate::routes::catalogue::{Ecran, Place};
 
-const ANNEE: Champ = Champ { nom: "annee", sens: "l'année, AAAA", avance: false };
+const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
 
 /// Une lecture sans charge de l'Historique ou des Exports.
 const fn lecture(nom: &'static str, geste: &'static str, rend: &'static str) -> Fiche {
@@ -44,7 +44,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "retenir-logiciel",
         geste: "Retenir le logiciel du comptable, dont les écritures prennent le format.",
-        charge: &[Champ { nom: "logiciel", sens: "son nom, parmi ceux que exports-periodes connaît ; absent : aucun", avance: false }, Champ { nom: "analytique", sens: "vrai : par spectacle", avance: true }],
+        charge: &[Champ { nom: "logiciel", libelle: Affiche::new("Logiciel"), forme: Forme::Texte, sens: "son nom, parmi ceux que exports-periodes connaît ; absent : aucun", avance: false }, Champ { nom: "analytique", libelle: Affiche::new("Par spectacle"), forme: Forme::OuiNon, sens: "vrai : par spectacle", avance: true }],
         exemple: r#"{}"#,
         rend: "le logiciel retenu",
         refus: &[OPERATION],
@@ -58,8 +58,8 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Noter régularisée, hors DSN, la CASC-SVP d'une année de mois importés.",
         charge: &[
             ANNEE,
-            Champ { nom: "vire_le", sens: "le jour du virement, AAAA-MM-JJ", avance: false },
-            Champ { nom: "montant", sens: "le montant viré", avance: false },
+            Champ { nom: "vire_le", libelle: Affiche::new("Viré le"), forme: Forme::Date, sens: "le jour du virement, AAAA-MM-JJ", avance: false },
+            Champ { nom: "montant", libelle: Affiche::new("Montant viré"), forme: Forme::Nombre, sens: "le montant viré", avance: false },
         ],
         exemple: r#"{"annee":"2025","vire_le":"2026-11-02","montant":"12.80"}"#,
         rend: "la régularisation notée : année, mois, montant, calculé, vire_le",
@@ -73,11 +73,11 @@ pub const ROUTES: &[Fiche] = &[
         nom: "exporter",
         geste: "Exporter un état (livre de paie, charges…) en tableau ou en fichier.",
         charge: &[
-            Champ { nom: "etat", sens: "l'état, parmi ceux que exports-periodes dit", avance: false },
+            Champ { nom: "etat", libelle: Affiche::new("État"), forme: Forme::Texte, sens: "l'état, parmi ceux que exports-periodes dit", avance: false },
             MOIS,
             ANNEE,
-            Champ { nom: "format", sens: "le format du fichier", avance: true },
-            Champ { nom: "apercu", sens: "vrai : le tableau, sans écrire de fichier", avance: true },
+            Champ { nom: "format", libelle: Affiche::new("Format"), forme: Forme::Texte, sens: "le format du fichier", avance: true },
+            Champ { nom: "apercu", libelle: Affiche::new("Aperçu seulement"), forme: Forme::OuiNon, sens: "vrai : le tableau, sans écrire de fichier", avance: true },
         ],
         exemple: r#"{"etat":"livre-de-paie","mois":"2026-11","apercu":true}"#,
         rend: "le tableau, ou le fichier écrit",
@@ -91,10 +91,10 @@ pub const ROUTES: &[Fiche] = &[
         nom: "dossier-envoyer",
         geste: "Refaire le dossier de chaque salarié choisi et le lui envoyer par courriel.",
         charge: &[
-            Champ { nom: "salaries", sens: "les clés de leurs fiches", avance: false },
+            Champ { nom: "salaries", libelle: Affiche::new("Salariés"), forme: Forme::Liste, sens: "les clés de leurs fiches", avance: false },
             MOIS,
             ANNEE,
-            Champ { nom: "categories", sens: "ce que le dossier porte ; tout sinon", avance: true },
+            Champ { nom: "categories", libelle: Affiche::new("Ce que le dossier porte"), forme: Forme::Liste, sens: "ce que le dossier porte ; tout sinon", avance: true },
         ],
         exemple: r#"{"salaries":["FULLER"],"mois":"2026-11"}"#,
         rend: "le dossier, et envoi (partis)",
@@ -110,7 +110,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "droits",
         geste: "Dire les heures et cachets cumulés de chaque intermittent (annexes 8 et 10).",
-        charge: &[Champ { nom: "mois", sens: "le mois du tableau (le mois, l'année civile), AAAA-MM ; absent : celui du jour", avance: false }],
+        charge: &[Champ { nom: "mois", libelle: Affiche::new("Mois"), forme: Forme::Mois, sens: "le mois du tableau (le mois, l'année civile), AAAA-MM ; absent : celui du jour", avance: false }],
         exemple: r#"{"mois":"2026-11"}"#,
         rend: "salaries (chacun : nom, fenetre, lignes [quoi, valeur], phrase, notes, colonnes du tableau), phrase (ce que vaut ce compte)",
         refus: &[OPERATION, FORME],
@@ -123,8 +123,8 @@ pub const ROUTES: &[Fiche] = &[
         nom: "casc-envoyer",
         geste: "Envoyer à Audiens et au CASC-SVP la régularisation des mois importés.",
         charge: &[
-            Champ { nom: "vire_le", sens: "{année: jour du virement fait, AAAA-MM-JJ}", avance: false },
-            Champ { nom: "motdepasse", sens: "le mot de passe du logiciel ; sans lui, le moteur le demande à un humain", avance: false },
+            Champ { nom: "vire_le", libelle: Affiche::new("Virements faits"), forme: Forme::Objet, sens: "{année: jour du virement fait, AAAA-MM-JJ}", avance: false },
+            Champ { nom: "motdepasse", libelle: Affiche::new("Mot de passe du logiciel"), forme: Forme::Texte, sens: "le mot de passe du logiciel ; sans lui, le moteur le demande à un humain", avance: false },
         ],
         exemple: r#"{"vire_le":{"2026":"2026-11-02"}}"#,
         rend: "partis (les destinataires), expediteur, periode, total, annees (les régularisations notées), eml",
@@ -175,7 +175,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }),
         "dossier-envoyer" => dossier_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
             let fichiers: Vec<String> = v["fichiers"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
-            let p = format!("Dossier de {} ({}) : {}.", v["salaries"].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>().join(", "), t(&v, "periode"), fichiers.join(", "));
+            let p = format!("Dossier de {} ({}) : {}.", v["salaries"].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>().join(", "), t(&v, "periode"), super::compte(fichiers.len(), "fichier joint", "fichiers joints"));
             super::phrase_en_tete(v, p)
         }),
         "casc-envoyer" => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {

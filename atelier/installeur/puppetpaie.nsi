@@ -37,6 +37,8 @@ Unicode True
 SetCompressor /SOLID lzma
 RequestExecutionLevel user
 ManifestDPIAware true
+; Le detail de l installation se voit : ce que le moteur recoit pour Linux et macOS, ou son refus, s y lit.
+ShowInstDetails show
 
 !define NOM "PuppetPaie"
 !define CLE_DESINSTALLATION "Software\Microsoft\Windows\CurrentVersion\Uninstall\PuppetPaie"
@@ -70,6 +72,9 @@ Var BoutonDefaut
 Var BoutonPortable
 Var TexteDossier
 Var TexteFin
+; 1 : en portable, ajouter Linux et macOS (la case de la page « Par defaut ou portable »).
+Var AutresSystemes
+Var CaseAutresSystemes
 
 !define MUI_ICON "${ICONE}"
 !define MUI_UNICON "${ICONE}"
@@ -115,6 +120,7 @@ Function .onInit
     StrCpy $INSTDIR "$DOCUMENTS\${NOM}"
   ${EndIf}
   StrCpy $Portable 0
+  StrCpy $AutresSystemes 0
 FunctionEnd
 
 ; La page « Par defaut ou portable », avant le choix du dossier.
@@ -134,6 +140,11 @@ Function PageMode
   Pop $BoutonPortable
   ${NSD_CreateLabel} 16u 70u -16u 48u "Le logiciel, toutes ses données et la clé qui les scelle vivent ensemble dans ce dossier, qui s'ouvre sur n'importe quel ordinateur. Ni raccourci ni entrée dans Windows : pour le retirer, on efface le dossier. Vos données restent protégées par le mot de passe du logiciel."
   Pop $0
+  ${NSD_CreateCheckbox} 16u 122u -16u 12u "Pour Linux et macOS aussi"
+  Pop $CaseAutresSystemes
+  ${If} $AutresSystemes == 1
+    ${NSD_Check} $CaseAutresSystemes
+  ${EndIf}
   ${If} $Portable == 1
     ${NSD_Check} $BoutonPortable
     ${NSD_SetFocus} $BoutonPortable
@@ -148,12 +159,37 @@ Function PageModeQuitter
   ${NSD_GetState} $BoutonPortable $0
   ${If} $0 == ${BST_CHECKED}
     StrCpy $Portable 1
+    ${NSD_GetState} $CaseAutresSystemes $0
+    ${If} $0 == ${BST_CHECKED}
+      StrCpy $AutresSystemes 1
+    ${Else}
+      StrCpy $AutresSystemes 0
+    ${EndIf}
     StrCpy $TexteDossier "Portable : choisissez le dossier (une clé USB, par exemple). Le programme va dans son sous-dossier « logiciel », les compagnies fictives dans « fictives » ; vos données (« prive », « compagnies ») et la clé qui les scelle naîtront dans ce même dossier."
     StrCpy $TexteFin "${NOM} est installé en portable dans :$\r$\n$INSTDIR$\r$\n$\r$\nIl s'ouvre par logiciel\puppetpaie.exe, sur n'importe quel ordinateur. Pour le retirer, effacez le dossier."
   ${Else}
     StrCpy $Portable 0
+    StrCpy $AutresSystemes 0
     StrCpy $TexteDossier "Le programme va dans le sous-dossier « logiciel », les compagnies fictives dans « fictives ». Vos données (« prive », « compagnies ») naîtront dans ce même dossier : choisissez un dossier où vous avez le droit d'écrire (pas « Program Files »)."
     StrCpy $TexteFin "Le raccourci « ${NOM} » est dans le menu Démarrer.$\r$\n$\r$\nPour le retirer : Paramètres, Applications, ${NOM}. Le désinstalleur laisse vos données."
+  ${EndIf}
+FunctionEnd
+
+; LINUX ET MACOS DANS LE DOSSIER PORTABLE : le moteur installe le fait, par sa route `portable-completer`, en ligne de
+; commande comme un LLM (moteur/src/routes/accueil.rs, moteur/src/compagnie/maj.rs, completer_le_portable). Il telecharge
+; les archives signees de cette version et pose leurs programmes dans logiciel\linux et logiciel\mac ; ce qu'il recoit et
+; sa phrase s'ecrivent dans le detail. Un refus ne defait rien : PuppetPaie reste installe pour Windows.
+Function AjouterLesAutresSystemes
+  InitPluginsDir
+  FileOpen $1 "$PLUGINSDIR\portable-completer.json" w
+  FileWrite $1 '{"route": "portable-completer", "charge": {"portable": true}}'
+  FileClose $1
+  DetailPrint "Linux et macOS : téléchargement"
+  ; `start /wait` : cmd attend la fenetre (un programme de Windows sans console) et rend son code de sortie.
+  nsExec::ExecToLog '"$SYSDIR\cmd.exe" /d /c start "" /b /wait "$INSTDIR\logiciel\puppetpaie.exe" route --texte < "$PLUGINSDIR\portable-completer.json"'
+  Pop $0
+  ${If} $0 != 0
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Linux et macOS n'ont pas été ajoutés ; la raison est dans le détail de l'installation.$\r$\n$\r$\n${NOM} est installé pour Windows. L'accueil, sous « Avancé », les ajoute quand vous voulez."
   ${EndIf}
 FunctionEnd
 
@@ -184,6 +220,9 @@ Section "PuppetPaie" SecProgramme
     FileOpen $1 "$INSTDIR\PORTABLE.json" w
     FileWrite $1 '{"_quoi": "Ce dossier est une installation PORTABLE de PuppetPaie : le logiciel, ses donnees et la cle qui les scelle (cle-poste.bin) vivent ici, ensemble, et s$\'ouvrent sur n$\'importe quel ordinateur. Effacer ce fichier rattache le coffre a la machine."}$\r$\n'
     FileClose $1
+    ${If} $AutresSystemes == 1
+      Call AjouterLesAutresSystemes
+    ${EndIf}
     Goto apres_windows
   ${EndIf}
 

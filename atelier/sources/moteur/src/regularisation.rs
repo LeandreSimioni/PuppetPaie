@@ -428,6 +428,7 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
             let Some(par) = &x.par else { continue };
             let mut c = avant_apres(mois, i.checked_sub(1).map(|j| &declarees[j].paie), &x.paie)?;
             c["portee_par"] = json!(par);
+            c["portee_par_dit"] = json!(de_mois_en_clair(par));
             portees.push(c);
         }
     }

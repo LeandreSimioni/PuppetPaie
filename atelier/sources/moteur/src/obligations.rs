@@ -46,18 +46,18 @@ use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use declarations::signalement::sauf_motifs;
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, OPERATION};
 use crate::routes::catalogue::{Ecran, Place};
 
-const SALARIE_ARRETE: Champ = Champ { nom: "salarie", sens: "la clé de la fiche du salarié arrêté", avance: false };
-const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", sens: "le dernier jour travaillé de l'arrêt, AAAA-MM-JJ (il désigne l'arrêt)", avance: false };
+const SALARIE_ARRETE: Champ = Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "la clé de la fiche du salarié arrêté", avance: false };
+const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", libelle: Affiche::new("Dernier jour travaillé"), forme: Forme::Date, sens: "le dernier jour travaillé de l'arrêt, AAAA-MM-JJ (il désigne l'arrêt)", avance: false };
 const FAITE: &[Champ] = &[
     SALARIE_ARRETE,
     DERNIER_JOUR,
-    Champ { nom: "le", sens: "le jour où elle a été faite ; vide : la retirer", avance: false },
-    Champ { nom: "depot", sens: "où elle a été faite (un des lieux que l'obligation propose)", avance: false },
-    Champ { nom: "heure", sens: "l'heure, HH:MM", avance: true },
-    Champ { nom: "reference", sens: "la référence de l'accusé", avance: true },
+    Champ { nom: "le", libelle: Affiche::new("Fait le"), forme: Forme::Date, sens: "le jour où elle a été faite ; vide : la retirer", avance: false },
+    Champ { nom: "depot", libelle: Affiche::new("Où"), forme: Forme::Texte, sens: "où elle a été faite (un des lieux que l'obligation propose)", avance: false },
+    Champ { nom: "heure", libelle: Affiche::new("Heure"), forme: Forme::Texte, sens: "l'heure, HH:MM", avance: true },
+    Champ { nom: "reference", libelle: Affiche::new("Référence de l'accusé"), forme: Forme::Texte, sens: "la référence de l'accusé", avance: true },
 ];
 const OBLIGATIONS_REND: &str = "obligations (chacune son échéance, son état et ce qui reste à faire)";
 const NON_ECRIT: Refus = Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit (l'arrêt, le jour, le lieu) ; rien n'est écrit" };
@@ -71,12 +71,12 @@ pub const ROUTES: &[Fiche] = &[
         nom: "arret-obligations",
         geste: "Dire ce qu'un arrêt en cours de saisie fera naître (signalement…).",
         charge: &[
-            Champ { nom: "motif", sens: "le motif de l'arrêt (code DSN)", avance: false },
-            Champ { nom: "dernier_jour", sens: "le dernier jour travaillé", avance: false },
-            Champ { nom: "fin", sens: "la fin prescrite", avance: false },
-            Champ { nom: "salarie", sens: "le salarié : sa subrogation se tire de son contrat", avance: false },
-            Champ { nom: "contrat", sens: "le contrat suspendu, quand plusieurs couvrent le jour", avance: true },
-            Champ { nom: "date_accident", sens: "le jour de l'accident", avance: true },
+            Champ { nom: "motif", libelle: Affiche::new("Motif"), forme: Forme::Texte, sens: "le motif de l'arrêt (code DSN)", avance: false },
+            Champ { nom: "dernier_jour", libelle: Affiche::new("Dernier jour travaillé"), forme: Forme::Date, sens: "le dernier jour travaillé", avance: false },
+            Champ { nom: "fin", libelle: Affiche::new("Fin prescrite"), forme: Forme::Date, sens: "la fin prescrite", avance: false },
+            Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "le salarié : sa subrogation se tire de son contrat", avance: false },
+            Champ { nom: "contrat", libelle: Affiche::new("Contrat"), forme: Forme::Texte, sens: "le contrat suspendu, quand plusieurs couvrent le jour", avance: true },
+            Champ { nom: "date_accident", libelle: Affiche::new("Jour de l'accident"), forme: Forme::Date, sens: "le jour de l'accident", avance: true },
         ],
         exemple: r#"{"motif":"01","dernier_jour":"2026-11-02","fin":"2026-11-10","salarie":"SVOBODA"}"#,
         rend: OBLIGATIONS_REND,
@@ -92,9 +92,9 @@ pub const ROUTES: &[Fiche] = &[
         charge: &[
             SALARIE_ARRETE,
             DERNIER_JOUR,
-            Champ { nom: "de", sens: "arret ou accident", avance: false },
-            Champ { nom: "jour", sens: "le jour ; vide : le moteur reprend sa présomption", avance: false },
-            Champ { nom: "heure", sens: "l'heure, HH:MM", avance: true },
+            Champ { nom: "de", libelle: Affiche::new("De"), forme: Forme::Texte, sens: "arret ou accident", avance: false },
+            Champ { nom: "jour", libelle: Affiche::new("Jour"), forme: Forme::Date, sens: "le jour ; vide : le moteur reprend sa présomption", avance: false },
+            Champ { nom: "heure", libelle: Affiche::new("Heure"), forme: Forme::Texte, sens: "l'heure, HH:MM", avance: true },
         ],
         exemple: r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","de":"arret","jour":"2026-11-02"}"#,
         rend: OBLIGATIONS_REND,
@@ -792,7 +792,7 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
             out.push(signalement_dsn(ctx, &mut cal, aujourdhui, "signalement_reprise", &o, &subrogation, depart, rep, envoi(a, "05"))?);
         }
     }
-    Ok(out)
+    Ok(out.into_iter().map(dire_le_butoir).collect())
 }
 
 // -------------------------------------------------------- les fins de contrat
@@ -809,7 +809,7 @@ pub fn de_la_fin(ctx: &Contexte, cle: Option<&str>, fin: Jour, journal: &[Value]
     let fait = cle.and_then(|c| fctu_depose(journal, c, &fin));
     let depart = Depart { jour: fin, minute: None, quoi: "la fin du contrat".into(), presume: None };
     conclure(&mut m, aujourdhui, Some(&depart), butoir, None, &texte(d, "dit"), fait);
-    Ok(Value::Object(m))
+    Ok(dire_le_butoir(Value::Object(m)))
 }
 
 /// Le premier depot REEL, non refuse au bilan, du signalement de fin de ce contrat : une ligne `dsn` du journal, au jour de la fin
@@ -1160,4 +1160,10 @@ pub(crate) fn butoir_en_clair(o: &Value) -> Option<String> {
     let jour = o["butoir"].as_str().filter(|b| !b.is_empty())?;
     let heure = o["butoir_heure"].as_str().filter(|h| !h.is_empty() && *h != "24:00").map(|h| format!(" à {}", h)).unwrap_or_default();
     Some(format!("au plus tard le {}{}", crate::routes::jour_en_clair(&json!(jour)), heure))
+}
+
+/// La date butoir telle que l'ecran la lit (`butoir_dit`, `butoir_en_clair`) ; absente sans butoir.
+fn dire_le_butoir(mut o: Value) -> Value {
+    o["butoir_dit"] = json!(butoir_en_clair(&o));
+    o
 }

@@ -251,7 +251,7 @@ fn identite(ctx: &Contexte, l: &Value) -> String {
     morceaux.join(" · ")
 }
 
-fn sorte_de(nom: &str) -> &'static str {
+pub(crate) fn sorte_de(nom: &str) -> &'static str {
     SORTES.iter().find(|(_, p)| p.iter().any(|x| nom.starts_with(x))).map(|(s, _)| *s).unwrap_or("Autres pièces")
 }
 

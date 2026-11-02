@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, OPERATION};
 use crate::routes::etapes::Moteur;
 use crate::routes::mois::lire_saisie;
 use super::{lire_json_tolerant, lire_texte, ou_texte};
@@ -93,7 +93,7 @@ const AIDES: &[(&str, &str)] = &[
     ("date_accident", "La date de l'accident, ou de sa première constatation."),
     ("prolongation", "La nouvelle fin prescrite, celle de l'avis de prolongation."),
     ("note_imprevu", "Une note pour vous : elle ne part nulle part."),
-    ("cloture", "Les saisies et les sorties de l'année ne se modifieront plus (rouvrir reste possible, depuis l'Historique). Tout ce qu'il faut garder (saisies, bulletins, contrats signés, DPAE, DSN, certificats, retours des organismes, journal des dépôts, fiches, export compta) est réuni dans l'archive de l'exercice :"),
+    ("cloture", "Les saisies et les sorties de l'année ne se modifieront plus (rouvrir reste possible, depuis l'Historique). Tout ce qu'il faut garder (saisies, bulletins, contrats signés, DPAE, DSN, certificats, retours des organismes, journal des dépôts, fiches, export compta) est réuni dans l'archive de l'exercice."),
     ("cloture_refus", "La clôture vient après la dernière DSN de l'année : elle est refusée si un mois avec des paies n'a pas de DSN acceptée au journal."),
     ("cloture_forcer", "Si une DSN manque au journal (déposée ailleurs, par exemple)."),
     ("fiche_cle", "La clé de la fiche se fabrique à l'enregistrement."),
@@ -122,7 +122,7 @@ const AIDES: &[(&str, &str)] = &[
     ("dpae_heure", "Heure d'embauche déclarée : 08h00. Toutes les embauches cochées partent ensemble, dans un seul dépôt. D'abord le test, qui ne déclare rien ; puis, une fois le test revenu conforme, l'envoi réel."),
     ("revue_spectacles", "Décochés, ils s'archivent : ils restent lisibles et se réactivent d'un clic (Configuration › Spectacles). Ceux qui continuent gardent leur numéro d'objet."),
     ("mot_de_passe", "Le mot de passe du logiciel ne sert qu'à prouver que quelqu'un est là. Les mots de passe des organismes et de la boîte restent dans le coffre."),
-    ("import_dossier", "Vide : le dossier import/ de la compagnie."),
+    ("import_dossier", "Vide : le dossier d'import de la compagnie."),
     ("import_relire", "Un fichier ajouté depuis, un salarié ou une année qui manquait."),
     ("import_relire_note", "Les fiches qui existent déjà ne sont pas touchées ; ce que les DSN ou les bulletins disaient autrement est seulement signalé. Ce qui est déjà repris ne se double pas."),
     ("import_relire_intro", "Mettez dans ce dossier ce qui manquait, puis « Aperçu ». Rien n'est écrit avant « Reprendre »."),
@@ -131,7 +131,7 @@ const AIDES: &[(&str, &str)] = &[
     ("import_numero", "Le numéro du contrat : la rubrique S21.G00.40.009 de sa dernière DSN."),
     ("import_quotite", "La durée du travail, en heures par mois : la rubrique S21.G00.40.013 de la DSN."),
     ("import_ecarts", "Le bulletin fait foi : c'est son montant qui s'écrit, l'écart reste noté ici."),
-    ("import_copies", "Les fichiers lus sont copiés dans l'historique de la compagnie ; vous pouvez vider le dossier import/."),
+    ("import_copies", "Les fichiers lus sont copiés dans l'historique de la compagnie ; vous pouvez vider le dossier d'import."),
     ("import_rien", "Rien à reprendre : tout est déjà là."),
     ("import_avant_clic", "Rien n'est écrit avant ce clic."),
 ];
@@ -172,12 +172,12 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Lit,
         avance: true,
         phrase: 0,
-        ecran: Ecran::Auto(Place::Fiches),
+        ecran: Ecran::Auto(Place::Fiches, Affiche::new("Dire la version")),
     },
     Fiche {
         nom: "courriels-fictifs",
         geste: "Dire les courriels joués d'une compagnie fictive.",
-        charge: &[Champ { nom: "apres", sens: "seulement ceux d'après cet instant", avance: true }],
+        charge: &[Champ { nom: "apres", libelle: Affiche::new("Depuis"), forme: Forme::Texte, sens: "seulement ceux d'après cet instant", avance: true }],
         exemple: r#"{}"#,
         rend: "les courriels joués (à qui, quoi, quand)",
         refus: &[Refus { classe: "ErreurOperation", corriger: "rien : seulement dans une compagnie fictive" }],
@@ -320,9 +320,12 @@ fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Value>, anomali
     } else {
         super::pastille("fait", "complet")
     };
+    // Un spectacle dont l'import n'a lu que le numero d'objet porte le titre « A COMPLETER » : la page le range a part.
+    let sans_titre = nom == "spectacle"
+        && comble.get("titre").map(valeur_en_texte).is_some_and(|t| t.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER));
     Ok(json!({
         "nom": nom, "cle": cle, "donnees": brut(&Value::Object(comble)),
-        "declare": declare, "anomalies": anomalies, "derives": derives, "pastille": pastille,
+        "declare": declare, "anomalies": anomalies, "derives": derives, "pastille": pastille, "sans_titre": sans_titre,
     }))
 }
 
@@ -792,6 +795,10 @@ fn historique(m: &mut Moteur, ctx: &Contexte) -> Value {
 
 // ----------------------------------------------------------- les referentiels
 
+/// Ce que la liste du genre dit des cinq avantages en nature du bloc 54 (`catalogue::AVANTAGES_EN_NATURE` ;
+/// `catalogue::AUTRES_BRUTS` donne leur libelle de la norme).
+const GENRES_EN_CLAIR: [(&str, &str); 5] = [("02", "repas"), ("03", "logement"), ("04", "véhicule"), ("05", "NTIC"), ("06", "autres")];
+
 /// `rubriques` : le catalogue qui PAIE, dans l'ordre ou le proposer.
 pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
     let non_appliques: Vec<&str> = [
@@ -808,10 +815,9 @@ pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
     // en nature du bloc 54.
     let avec_genre = r.saisie.iter().any(|s| s == "genre") && r.dsn_autres_bruts.as_deref().is_some_and(|c| catalogue::AVANTAGES_EN_NATURE.contains(&c));
     let genres: Vec<Value> = if avec_genre {
-        catalogue::AVANTAGES_EN_NATURE
+        GENRES_EN_CLAIR
             .iter()
-            .map(|g| {
-                let libelle = catalogue::AUTRES_BRUTS.iter().find(|(k, _)| k == g).map(|(_, l)| *l).unwrap_or("");
+            .map(|(g, libelle)| {
                 json!({"code": g, "libelle": libelle, "defaut": Some(*g) == r.dsn_autres_bruts.as_deref()})
             })
             .collect()

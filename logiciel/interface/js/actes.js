@@ -529,7 +529,7 @@ async function boiteEnvoi(mois) {
                      aria-label="${echapper(m.nom)}"></td>
           <td>${echapper(m.nom)}${m.pastille ? `<br>${pastilleDeLEtat(m.pastille)}` : ""}</td>
           ${a.boite_liee ? `<td>${echapper(m.destinataire)}</td>` : ""}
-          <td class="pieces">${m.pieces.map((x) => `<div>${echapper(x)}</div>`).join("")}</td>
+          <td class="pieces">${m.sortes.map((x) => `<div>${echapper(x)}</div>`).join("")}</td>
         </tr>
         ${m.renvoi ? `<tr><td></td><td colspan="${a.boite_liee ? 3 : 2}" class="discret">Ce qui a changé
           <ul>${m.changements.map((c) => `<li>${echapper(c)}</li>`).join("")}</ul></td></tr>` : ""}`).join("")}

@@ -483,7 +483,7 @@
   {
    "_note": "LA LICENCE EST UN CHAMP, PAS UN MECANISME (22/09/2026). Elle etait une\nliste datee -- `[{\"depuis\": ..., \"numero\": ...}]` -- avec sa resolution\na elle dans `Contexte.licence`. C'etait le meme travail que `historique`\nfait deja pour TOUS les champs declares, ecrit une deuxieme fois pour un\nseul d'entre eux. L'editeur : << pas besoin de l'historique, quand on\nchange la licence, celle d'avant reste sauvegardee, simple et\nefficace. >> Elle se tape donc comme le reste, et changer sa valeur\nouvre la boite de datage comme pour une adresse : l'ancienne reste, avec\nla date jusqu'a laquelle elle valait, et le rejeu la retrouve.\nLe spectacle vivant seulement : une production audiovisuelle ou\nde cinema n'en a pas. Vide (compagnie neuve) : la case se montre.\nLA LICENCE ET LA CONVENTION. Est entrepreneur de spectacles vivants qui exploite un lieu, produit ou diffuse des spectacles (L7122-2) ; il declare son activite, et le recepisse vaut licence (L7122-3) ; celui dont ce n'est pas l'activite principale passe par le guichet unique (L7122-22, L7122-23) : `code-du-travail/articles-20261023.md`. La norme DSN l'ecrit dans chaque contrat (S21.G00.40.049, `norme-dsn/texte-2027/bloc-S21.G00.40.txt` l. 1418-1426). `si` : les conventions ou un employeur peut etre entrepreneur de spectacles vivants (3090, 1285, 1790 les lieux, 3252 la creation et l'evenement, et la compagnie sans convention) ; l'audiovisuel ne voit pas la case. `exige_si` : celles dont c'est le champ (3090, 1285, sans convention). En 1790 et en 3252, elle devient exigee quand la compagnie engage pour un spectacle (`demarrage::licence_exigee`, lu par « Pour demarrer » et par la DSN).",
    "cle": "licence_spectacle",
-   "libelle": "Licence d'entrepreneur de spectacles ou récépissé de déclaration",
+   "libelle": "Licence ou récépissé d'entrepreneur de spectacles",
    "forme": "texte",
    "aide": "Le numéro de licence attribué par la DRAC (de la forme L-R-20-1234), ou la référence du récépissé de déclaration d'entrepreneur de spectacles vivants, qui vaut licence. Quand il change, saisissez le nouveau : l'ancien est conservé pour les déclarations passées.",
    "longueur": null,
@@ -635,7 +635,7 @@
   {
    "_note": "EMPLOYER DES PERMANENTS, C'EST UNE DECISION -- PAS UN ETAT DEDUIT\n(22/09/2026). Tant que ce champ n'existait pas, tout l'appareil des\npermanents etait la pour tout le monde : le deroulant << Nature >>\nproposait le CDI et le CDD a une compagnie qui n'emploie que des\nintermittents, la fiche d'un cachetier demandait sa complementaire\nsante, et la prevoyance conventionnelle attendait dans un coin. Une\ncase affichee est une case a remplir, a relire et a ne pas se tromper :\ncelles-la ne se montrent plus qu'a qui a dit en employer.\n\nET C'EST UN REFUS, pas seulement un affichage (regle 2 : un garde-fou\npose dans un front se contourne par l'autre). Un engagement paye au\nmois dans une compagnie qui n'a pas coche la case est refuse par\n`entreprise.controler_permanents`, avec ce qu'il faut faire.",
    "cle": "emploie_des_permanents",
-   "libelle": "La compagnie emploie aussi des salariés au mois (CDI, CDD), en plus des intermittents",
+   "libelle": "La compagnie emploie aussi des salariés au mois",
    "forme": "booleen",
    "aide": "À cocher si vous avez des salariés payés au mois (CDI, CDD ordinaire) en plus des intermittents. Le logiciel demandera alors leur complémentaire santé ; la prévoyance de la convention s'applique d'elle-même.",
    "longueur": null,
@@ -744,7 +744,7 @@
    "libelles": {"": "vide : proratisé à la durée du contrat, la règle", "proratisé": "Proratisé à la durée du contrat (la règle)", "entier": "Entier : l'établissement renonce à la proratisation"},
    "libelle": "Plafond de la Sécurité sociale d'un salarié à temps partiel",
    "forme": "choix",
-   "aide": "Pour un salarié au mois à temps partiel, le plafond de la Sécurité sociale se réduit à la durée de son contrat (80 % du plafond pour un 80 %) : c'est la règle, et le cas ordinaire (laisser vide). L'établissement peut y renoncer pour tous ses salariés à temps partiel (« entier ») : ils cotisent alors sur le plafond entier, comme un temps plein. Le choix change le plafond du bulletin, et avec lui les cotisations plafonnées ; la DSN de 2027 le déclare pour chaque salarié à temps partiel. Les artistes ne sont jamais concernés : leur plafond reste entier.",
+   "aide": "Pour un salarié au mois à temps partiel, le plafond de la Sécurité sociale se réduit à la durée de son contrat (80 % du plafond pour un 80 %) : c'est la règle (laisser vide). L'établissement peut y renoncer pour tous ses salariés à temps partiel (« entier ») : ils cotisent alors sur le plafond entier, comme un temps plein ; la DSN de 2027 le déclare pour chacun. Les artistes ne sont jamais concernés : leur plafond reste entier.",
    "longueur": null,
    "exemple": "",
    "choix": [
@@ -765,9 +765,9 @@
    "_note": "LA DEDUCTION FORFAITAIRE SPECIFIQUE, OPTION DE L'EMPLOYEUR. Arrete du 4 septembre 2025 relatif aux frais\nprofessionnels, art. 9, I, al. 2 et 3 : << L'employeur peut opter pour la\ndeduction forfaitaire specifique lorsqu'une convention ou un accord\ncollectif l'a explicitement prevu ou lorsque le comite d'entreprise, le\ncomite social et economique ou les delegues du personnel ont donne leur\naccord. A defaut, il appartient a chaque salarie d'accepter ou non cette\noption. >> Vide : la compagnie ne l'exerce pas (le cas ordinaire), et une\nfiche salarie qui dirait une profession refuse. La decision :\n`calcul::deduction_forfaitaire`. Textes : atelier/reference/sources/dfs/LISEZ-MOI.md.",
    "cle": "deduction_forfaitaire_option",
    "libelles": {"": "Non appliquée — le cas ordinaire", "accord_collectif": "Oui : un accord collectif l'a explicitement prévue", "accord_cse": "Oui : le CSE a donné son accord", "accord_individuel": "Oui : chaque salarié l'accepte (contrat ou lettre)"},
-   "libelle": "Déduction forfaitaire spécifique (abattement pour frais professionnels)",
+   "libelle": "Déduction forfaitaire spécifique",
    "forme": "choix",
-   "aide": "La plupart des compagnies ne l'appliquent pas : laisser vide. C'est une option de l'employeur, pour les artistes musiciens, choristes, chefs d'orchestre, régisseurs de théâtre, artistes dramatiques, lyriques, chorégraphiques ou de cinéma : prévue par un accord collectif, acceptée par le CSE, ou, à défaut, acceptée par chaque salarié (dans son contrat ou un avenant, à défaut par un consentement recueilli chaque année). Les cotisations de Sécurité sociale et la retraite complémentaire se calculent alors sur le salaire abattu (16 ou 18 % en 2026, 7 600 € par an et par salarié au plus) ; le chômage, la CSG et les Congés Spectacles restent sur le brut.",
+   "aide": "Rarement appliquée : laisser vide. Une option de l'employeur pour les artistes musiciens, choristes, chefs d'orchestre, régisseurs de théâtre, artistes dramatiques, lyriques, chorégraphiques ou de cinéma, prévue par accord collectif, acceptée par le CSE ou, sinon, par chaque salarié. La Sécurité sociale et la retraite complémentaire cotisent alors sur le salaire abattu (16 ou 18 % en 2026, 7 600 € par an au plus) ; le chômage, la CSG et les Congés Spectacles, sur le brut.",
    "longueur": null,
    "exemple": "",
    "choix": [
@@ -876,7 +876,7 @@
    "cle": "sante_suspension_non_indemnisee",
    "libelle": "Santé d'un permanent suspendu sans indemnisation",
    "forme": "choix",
-   "aide": "Seulement si un permanent est absent tout un mois sans être payé (congé parental, congé sabbatique, congé sans solde) : votre contrat de complémentaire santé suspend-il ses garanties ce mois-là (« suspendue » : rien sur le bulletin ; s'il veut rester couvert, le salarié paie l'assureur directement), ou les maintient-il avec les cotisations sur le bulletin (« maintenue ») ? La réponse est dans le contrat d'adhésion ou la notice de l'assureur. Rien à remplir sous la 3090 : sa convention suspend les garanties.",
+   "aide": "Seulement si un permanent est absent tout un mois sans être payé (congé parental, congé sabbatique, congé sans solde) : votre contrat de complémentaire santé suspend-il ses garanties ce mois-là (« suspendue » : rien sur le bulletin), ou les maintient-il avec les cotisations sur le bulletin (« maintenue ») ? La réponse est dans le contrat d'adhésion ou la notice de l'assureur. Rien à remplir sous la 3090 : sa convention suspend les garanties.",
    "longueur": null,
    "exemple": "",
    "choix": [
@@ -896,9 +896,10 @@
   {
    "_note": "L'ARTICLE 45 DE LA 3097 : absorbe par les taux\nuniques de l'accord interbranches (avenants 5 et 7) ; la case reste pour\nune compagnie dont le contrat Audiens dirait autre chose.",
    "cle": "prevoyance_techniciens_3097",
+   "libelles": {"interbranche": "Accord interbranches", "article_45": "Article 45, 1,50 %"},
    "libelle": "Prévoyance des techniciens (cinéma)",
    "forme": "choix",
-   "aide": "Seulement pour une production cinématographique (convention 3097), et presque toujours à laisser vide. L'article 45 de la convention (2012) portait la prévoyance des techniciens intermittents non cadres à 1,50 % ; l'accord interbranches a depuis fixé les mêmes taux pour toutes les entreprises (0,34 % + 0,12 %). Vide ou « interbranche » : ces taux. « article_45 » seulement si votre fiche de paramétrage Audiens donne 1,50 %.",
+   "aide": "Seulement pour une production cinématographique (convention 3097), et presque toujours à laisser vide. L'article 45 de la convention (2012) portait la prévoyance des techniciens intermittents non cadres à 1,50 % ; l'accord interbranches a depuis fixé les mêmes taux pour toutes les entreprises (0,34 % + 0,12 %). Vide ou « Accord interbranches » : ces taux. « Article 45, 1,50 % » seulement si votre fiche de paramétrage Audiens le donne.",
    "longueur": null,
    "exemple": "",
    "choix": [
@@ -966,7 +967,7 @@
   {
    "_note": "LA TAXE D'APPRENTISSAGE NON DUE. Le bordereau paie la taxe (CTP 992 ou 993) et la DSN de\ndecembre declare 001 ; une compagnie qui ne la doit pas a un bordereau sans elle, et declare 002 avec le motif de\nla table MNATA (S21.G00.44.004, `donnees/mnata-base.json`). Ce champ le dit ; vide, le moteur refuse 002. Le motif\n007 (associations sans but lucratif) ne vaut que jusqu'au millesime 2025 (C. trav. L. 6241-1 depuis le 21/02/2026).\nLe motif retire lui-meme la taxe du bordereau (992, 993) et du solde d'avril, pour chaque annee ou il vaut\n(`droit::apprentissage::taxe_apprentissage_non_due`) ; le fichier des organismes n'a pas a etre retouche.",
    "cle": "taxe_apprentissage_motif_non_assujettissement",
-   "libelles": {"": "la compagnie doit la taxe (cas ordinaire)", "001": "001 — Non assujetti par choix du régime fiscal (option IR en catégorie BNC)", "002": "002 — Collectivités publiques, Parlementaires", "003": "003 — Etablissements publics de recherche et les établissements publics d'enseignement supérieurs", "004": "004 — Personnes morales créées pour la gestion d'un pôle de recherche et d'enseignement supérieur ou d'un réseau thématique de recherche avancée", "005": "005 — Fondations reconnues d'utilité public du secteur de la recherche", "006": "006 — Sociétés et personnes morales ayant pour objet exclusif l'enseignement", "007": "007 — Associations sans but lucratif", "008": "008 — Syndicats professionnels", "009": "009 — Entreprises sans établissement en France (ESEF)", "010": "010 — Sociétés civiles de moyens (SCM) non commerciale", "011": "011 — Personnes physiques ou morales assujetties aux BNC ou BA", "012": "012 — Les coopératives agricoles", "013": "013 — Les coopératives artisanales, transport (y compris fluvial et maritime) et leurs unions", "014": "014 — Les groupements d'employeurs dont agricoles", "015": "015 — Les sociétés civiles agricoles", "016": "016 — Les mutuelles et organismes mutualistes", "017": "017 — Les organismes HLM, SA de crédit immobilier (I et au II de l'article L. 422-4 du code de la construction et de l'habitation ) et unions d'économie sociale", "018": "018 — Les sociétés coopératives de construction désignées à l'article L. 432-2 du code de la construction et de l'habitation.", "019": "019 — Organismes chargés de l'organisation en France d'une compétition sportive internationale en France (Article L6131-1 du code du travail)"},
+   "libelles": {"": "la compagnie doit la taxe (cas ordinaire)", "001": "001 — Non assujetti par choix du régime fiscal (option IR en catégorie BNC)", "002": "002 — Collectivités publiques, Parlementaires", "003": "003 — Etablissements publics de recherche et les établissements publics d'enseignement supérieurs", "004": "004 — Gestion d'un pôle de recherche et d'enseignement supérieur", "005": "005 — Fondations reconnues d'utilité public du secteur de la recherche", "006": "006 — Sociétés et personnes morales ayant pour objet exclusif l'enseignement", "007": "007 — Associations sans but lucratif", "008": "008 — Syndicats professionnels", "009": "009 — Entreprises sans établissement en France (ESEF)", "010": "010 — Sociétés civiles de moyens (SCM) non commerciale", "011": "011 — Personnes physiques ou morales assujetties aux BNC ou BA", "012": "012 — Les coopératives agricoles", "013": "013 — Les coopératives artisanales, transport (y compris fluvial et maritime) et leurs unions", "014": "014 — Les groupements d'employeurs dont agricoles", "015": "015 — Les sociétés civiles agricoles", "016": "016 — Les mutuelles et organismes mutualistes", "017": "017 — Organismes HLM, SA de crédit immobilier, unions d'économie sociale", "018": "018 — Sociétés coopératives de construction", "019": "019 — Organisation en France d'une compétition sportive internationale"},
    "libelle": "Taxe d'apprentissage : motif de non-assujettissement",
    "forme": "choix",
    "aide": "Seulement si la compagnie ne doit pas la taxe d'apprentissage : à laisser vide sinon (c'est le cas ordinaire). Le motif est celui de la table de la DSN (S21.G00.44.004) ; posé, le bordereau Urssaf ne porte plus la taxe. Une association à activités non lucratives la doit depuis le 21 février 2026 (code du travail, art. L. 6241-1) : le motif « Associations sans but lucratif » ne vaut que pour 2025 et avant. La DSN de décembre le déclare.",
@@ -1007,6 +1008,7 @@
   {
    "_note": "LA CONTRIBUTION SUPPLEMENTAIRE A L'APPRENTISSAGE. Code du travail\nL. 6242-1 : due a partir de 250 salaries si moins de 5 % de l'effectif est en apprentissage, en\nprofessionnalisation, en CIFRE ou en CDI a leur suite. Sous 250 salaries (CRM 118, regle des cinq\nans), le moteur declare seul le non-assujettissement (004) et ne lit pas ce champ ; au-dela, il ne\ncompte pas ces contrats et refuse la DSN de decembre tant que le champ est vide.",
    "cle": "contribution_supplementaire_apprentissage",
+   "libelles": {"due": "Due", "non_due": "Non due"},
    "libelle": "Contribution supplémentaire à l'apprentissage",
    "forme": "choix",
    "aide": "Seulement pour une compagnie d'au moins 250 salariés : à laisser vide en dessous. Elle est due si moins de 5 % de l'effectif annuel est en contrat d'apprentissage, de professionnalisation, en convention CIFRE ou en CDI à leur suite (code du travail, art. L. 6242-1). La DSN de décembre la déclare.",
@@ -1214,7 +1216,7 @@
   {
    "_note": "LES CONSEILS « LE SAVIEZ-VOUS ? » : une option, decochee par defaut ; sans elle, rien ne s'affiche nulle part. Cochee : un conseil general a l'accueil, un conseil sous la carte d'engagement quand un fait de la saisie l'appelle, ce que la compagnie a fait pour le salarie dans sa fiche. La banque : donnees/conseils.json ; les conditions : moteur/src/compagnie/conseils.rs.",
    "cle": "conseils",
-   "libelle": "Afficher des conseils « Le saviez-vous ? » (paie, contrats, droits des intermittents)",
+   "libelle": "Afficher des conseils « Le saviez-vous ? »",
    "forme": "booleen",
    "aide": "Un conseil du jour à l'accueil, un conseil sous un engagement quand il y a quelque chose d'utile à savoir (les heures qui comptent pour les 507 heures, un mois au-delà de 28 cachets…), et, dans la fiche d'un salarié, ce que vos contrats ont fait compter pour ses droits. Chaque conseil cite son texte.",
    "longueur": null,
@@ -1988,7 +1990,7 @@
    "cle": "sante_svp",
    "libelle": "Complementaire sante (permanent)",
    "forme": "structure",
-   "aide": "Le contrat souscrit pour ce salarie : {\"niveau\": \"1\" | \"2\" | \"3\", \"conjoint\": false, \"enfants\": 0}. Il se lit sur son bulletin d'adhesion ; les taux des trois niveaux sont dans le bareme (fiche de parametrage Audiens). Obligatoire pour un permanent (art. L911-7), sans objet pour un intermittent.",
+   "aide": "Le contrat souscrit pour ce salarié : son niveau (1, 2 ou 3), et s'il couvre le conjoint et les enfants. Il se lit sur son bulletin d'adhésion ; les taux des trois niveaux sont dans le barème (fiche de paramétrage Audiens). Obligatoire pour un permanent (art. L911-7), sans objet pour un intermittent.",
    "longueur": null,
    "exemple": "",
    "choix": [],
@@ -2030,7 +2032,7 @@
    "cle": "classement_conventionnel",
    "libelle": "Classement dans la grille de la convention",
    "forme": "texte",
-   "aide": "La ligne de la grille des salaires minima où l'employeur classe ce salarié, écrite comme la grille la nomme : « indice 145 » (radio), « niveau IV.2 » (loisirs), « 1er assistant opérateur du son cinéma » (cinéma, quand le métier en couvre deux)… (`python -m moteur minima`). Vide : le minimum lu est le plus bas de la grille, ou la fonction du métier.",
+   "aide": "La ligne de la grille des salaires minima où l'employeur classe ce salarié, écrite comme la grille la nomme : « indice 145 » (radio), « niveau IV.2 » (loisirs), « 1er assistant opérateur du son cinéma » (cinéma, quand le métier en couvre deux)…. Vide : le minimum lu est le plus bas de la grille, ou la fonction du métier.",
    "longueur": null,
    "exemple": "",
    "choix": [],
