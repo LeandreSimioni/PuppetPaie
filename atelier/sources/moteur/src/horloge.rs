@@ -503,7 +503,7 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, mois: &str, calendrier: &
     let debuts: BTreeSet<String> = engagement::stock::objets_du_mois(d.racine, mois)
         .map_err(Echec::from)?
         .iter()
-        .filter(|o| !o.est_importe())
+        .filter(|o| !o.importe_seul())
         .map(|o| engagement::debut_brut(&o.brut))
         .filter(|debut| debut.starts_with(mois) && **debut <= *jour_iso)
         .collect();
@@ -839,7 +839,7 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
         let manques = crate::routes::mois::manques_de_la_saisie(ctx, &vue);
         let mut fait = false;
         for ((o, id), manque) in objets.iter().zip(ids).zip(manques) {
-            if o.est_valide() || o.est_importe() || manque.is_some() || engagement::debut_brut(&o.brut) > jusqu_au.iso() {
+            if o.est_valide() || o.importe_seul() || manque.is_some() || engagement::debut_brut(&o.brut) > jusqu_au.iso() {
                 continue;
             }
             let saisie = o.vue(mois).map_err(Echec::from)?.unwrap_or_default();

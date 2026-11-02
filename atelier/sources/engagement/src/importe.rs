@@ -6,11 +6,22 @@
 //! "importe": {"le", "contrat"?: {ce que l'AEM ou le bulletin atteste}, "paies": {"AAAA-MM": {ce qui a ete verse}}}
 //! ```
 //!
-//! Il est valide et ses documents sont partis : ce qui en est parti, c'est l'import lui-meme (les pieces de l'autre
-//! logiciel). IL SE LIT, IL NE SE MODIFIE PAS ET NE SE RECALCULE JAMAIS : il ne touche aucun mois de la saisie
-//! (`stock::Objet::couvre`), donc aucun calcul, aucune declaration ni aucun document qui part ne le prend ; l'ecran ne peut ni le
-//! reecrire ni en poser un double (`stock::ecrire_la_carte`). Son numero de contrat est celui que la DSN deposee lui
-//! a donne (S21.G00.40.009), jamais un numero tire : il compte parmi les numeros pris (`numeros`).
+//! Ses mois sont valides et leurs documents sont partis : ce qui en est parti, c'est l'import lui-meme (les pieces de
+//! l'autre logiciel). SES MOIS REPRIS SE LISENT, ILS NE SE MODIFIENT PAS ET NE SE RECALCULENT JAMAIS : ils ne sont
+//! aucun mois de la saisie (`stock::Objet::couvre`), donc aucun calcul, aucune declaration ni aucun document qui part
+//! ne les prend ; l'ecran ne peut ni les reecrire ni en poser un double (`stock::ecrire_la_carte`). Son numero de
+//! contrat est celui que la DSN deposee lui a donne (S21.G00.40.009), jamais un numero tire : il compte parmi les
+//! numeros pris (`numeros`).
+//!
+//! UN CONTRAT DE PERMANENT EST UN ENGAGEMENT, QU'IL AIT COMMENCE AILLEURS OU ICI. Les bulletins d'un permanent attestent
+//! chacun le mois qu'ils paient, tous du meme contrat : ils font un engagement importe, dont ses paies sont les mois.
+//! Paye le dernier mois repris et sans terme avant le mois qui suit (`continue_ici`), il continue ici : il vit dans le
+//! fichier de son premier mois neuf (`ecrire_tous`), son mois d'entree, et ce mois et les suivants se saisissent et
+//! se calculent comme ceux de tout engagement, sous la meme identite et le meme numero -- la DSN declare le contrat
+//! sous le numero (S21.G00.40.009) et la date de debut (.001) que l'ancien logiciel lui a donnes, reportes a
+//! l'identique d'une DSN a la suivante (`norme-dsn/texte/bloc-S21.G00.40.txt` ; cahier technique § 2.1.2,
+//! `norme-dsn/texte/chapitre-2-principes-de-constitution.txt`). Il ne se modifie pas avant ce mois : ce qui le definit
+//! se lit a partir de lui.
 //!
 //! Ce qui le lit : les cumuls des annexes 8 et 10 (`cumul`, par ce que le contrat atteste), le mois tenu avant
 //! PuppetPaie (`contrats_lus`, `paies_lues` : une ligne par contrat atteste, une ligne par paie versee), et les etats,
@@ -32,6 +43,9 @@ use socle::num::Resultat;
 
 /// Dans un engagement importe : ce que l'import a lu de lui.
 pub const IMPORTE: &str = "importe";
+
+/// Dans le contrat qu'un bulletin atteste : sa nature reste a dire (le bulletin d'un permanent ne la porte pas).
+pub const A_DIRE: &str = "nature_a_dire";
 
 /// Un engagement importe.
 #[derive(Debug, Clone)]
@@ -74,6 +88,21 @@ impl Importe {
         self.lu().get("paies").and_then(Value::as_object).into_iter().flatten().filter_map(|(m, p)| Some((m.clone(), p.as_object()?))).collect()
     }
 
+    /// La nature du contrat : celle qui a ete dite (l'engagement), sinon celle que la piece atteste.
+    pub fn nature(&self) -> Option<String> {
+        Some(self.texte("nature")).filter(|n| !n.is_empty()).or_else(|| self.contrat().and_then(|c| c.get("nature")).filter(|x| vrai(x)).map(en_texte))
+    }
+
+    /// Sa nature reste-t-elle a dire ? Le bulletin d'un permanent ne la porte pas (`A_DIRE`), et personne ne l'a dite.
+    pub fn a_dire(&self) -> bool {
+        self.nature().is_none() && self.contrat().and_then(|c| c.get(A_DIRE)).is_some_and(vrai)
+    }
+
+    /// Le contrat d'un permanent : paye au mois, ou de nature encore a dire.
+    pub fn permanent(&self) -> bool {
+        self.a_dire() || droit::natures::nature(self.nature().as_deref()).is_ok_and(|n| n.mensuelle())
+    }
+
     /// LE CONTRAT D'USAGE QUI CONTINUE ICI : le dernier mois verse par l'ancien logiciel, quand le contrat que la DSN
     /// deposee declare finit apres lui (S21.G00.40.010, sa fin previsionnelle : `norme-dsn/texte/bloc-S21.G00.40.txt`).
     /// Les mois qui suivent se paient ici, sous le numero et les dates que cette DSN lui a donnes (regle 4). Un contrat
@@ -82,20 +111,18 @@ impl Importe {
     pub fn continue_apres(&self) -> Option<String> {
         let dernier = self.paies().into_keys().max()?;
         let fin = self.texte("fin");
-        let contrat = self.contrat();
-        let lu = |k: &str| contrat.and_then(|c| c.get(k)).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
-        let paye_au_mois = droit::natures::nature(Some(&lu("nature"))).is_ok_and(|n| n.mensuelle()) || vrai(contrat.and_then(|c| c.get("nature_a_dire")).unwrap_or(&Value::Null));
-        let continue_ = fin.len() >= 7 && &fin[..7] > dernier.as_str() && lu("atteste_par") != "AEM" && !paye_au_mois && !self.texte("numero").is_empty();
+        let atteste_par = self.contrat().and_then(|c| c.get("atteste_par")).map(en_texte).unwrap_or_default();
+        let continue_ = fin.len() >= 7 && &fin[..7] > dernier.as_str() && atteste_par != "AEM" && !self.permanent() && !self.texte("numero").is_empty();
         continue_.then_some(dernier)
     }
 
     /// Les mois qu'il touche : de son debut a sa fin (au dernier mois verse, s'il continue ici : `continue_apres`), et
-    /// ceux ou il a ete verse. Un contrat sans fin (un CDI) ne touche que les mois ou il a ete verse : des mois d'avant
-    /// le premier bulletin repris, les pieces ne disent rien.
+    /// ceux ou il a ete verse. Le contrat d'un permanent ne touche que les mois ou il a ete verse : des mois d'avant le
+    /// premier bulletin repris, les pieces ne disent rien, et ceux d'apres le dernier sont ceux d'ici.
     pub fn mois(&self) -> Vec<String> {
         let (debut, fin) = (self.texte("debut"), self.texte("fin"));
         let mut v: Vec<String> = self.paies().into_keys().collect();
-        if debut.len() >= 7 {
+        if debut.len() >= 7 && !self.permanent() {
             let fin = match self.continue_apres() {
                 Some(dernier) => format!("{}-01", dernier),
                 None if fin.len() >= 7 => fin,
@@ -124,6 +151,11 @@ impl Importe {
         let c = self.contrat()?;
         let mut l = self.bornes();
         l.extend(c.iter().map(|(k, v)| (k.clone(), v.clone())));
+        // La nature dite est celle du contrat : il n'attend plus rien.
+        if let Some(n) = self.nature() {
+            l.remove(A_DIRE);
+            l.insert("nature".into(), Value::String(n));
+        }
         Some(Value::Object(l))
     }
 
@@ -179,7 +211,7 @@ impl Importe {
         let zero = Decimal::new(0, 2);
         let mut non_dits: Vec<&'static str> = MONTANTS.iter().copied().filter(|k| montant(k).is_none()).collect();
 
-        let nature = du_contrat("nature").or_else(|| Some(self.texte("nature")).filter(|n| !n.is_empty()));
+        let nature = self.nature();
         let nat = droit::natures::nature(nature.as_deref())?;
         let ctx = ctx.du_mois(mois)?;
         let cle = self.texte("salarie");
@@ -194,7 +226,12 @@ impl Importe {
         let emploi = |k: &str| imprime.and_then(|m| m.get(k)).filter(|x| vrai(x)).map(en_texte);
         let jour = |t: String| Jour::lire(&t);
         let debut = jour(self.texte("debut")).or_else(|_| jour(lu("debut").unwrap_or_default()))?;
-        let fin = jour(self.texte("fin")).or_else(|_| jour(lu("fin").unwrap_or_default())).ok();
+        // Le contrat d'un permanent finit a sa fin, dite ou declaree, jamais a celle du mois que paie un bulletin.
+        let fin = match jour(self.texte("fin")) {
+            Ok(f) => Some(f),
+            Err(_) if self.permanent() => None,
+            Err(_) => jour(lu("fin").unwrap_or_default()).ok(),
+        };
         let mut dates_travail = Vec::new();
         for d in p.get("dates").and_then(Value::as_array).into_iter().flatten() {
             let (Ok(mut j), Ok(b)) = (jour(d.get("debut").map(en_texte).unwrap_or_default()), jour(d.get("fin").map(en_texte).unwrap_or_default())) else { continue };
@@ -414,27 +451,14 @@ pub fn continue_par(racine: &Path, e: &Map<String, Value>) -> Resultat<Option<Im
     }))
 }
 
-/// LE CONTRAT `numero` DE `salarie` COMMENCE LE `debut` VIENT-IL DE L'ANCIEN LOGICIEL ? Un engagement importe l'atteste
-/// (un permanent : `Importe::atteste`), ou il continue un contrat d'usage importe (`continue_par`). L'ecran le dit sur
-/// la carte. Faux quand rien ne se lit.
+/// LE CONTRAT `numero` DE `salarie` COMMENCE LE `debut` VIENT-IL DE L'ANCIEN LOGICIEL ? Un engagement importe porte ces
+/// salarie, debut et numero : c'est lui, ou le contrat d'usage qu'il continue ici (`continue_par`). L'ecran le dit sur
+/// la carte. Faux quand rien ne se lit, ou sans numero.
 pub fn vient_d_un_ancien_logiciel(racine: &Path, salarie: &str, debut: &str, numero: &str) -> bool {
-    let tous = tous(racine).unwrap_or_default();
-    tous.iter().any(|i| i.atteste(salarie, debut, numero) || (i.continue_apres().is_some() && i.texte("salarie") == salarie && i.texte("debut") == debut && i.texte("numero") == numero))
+    !numero.is_empty() && tous(racine).unwrap_or_default().iter().any(|i| i.texte("salarie") == salarie && i.texte("debut") == debut && i.texte("numero") == numero)
 }
 
 impl Importe {
-    /// ATTESTE-T-IL LE CONTRAT `numero` DE `salarie` COMMENCE LE `debut` ? Le contrat d'un permanent qui court encore
-    /// porte le debut et le numero que la DSN de l'ancien logiciel lui a donnes (`contrat_debut`, `numero` :
-    /// `import::nature`) ; chacun de ses bulletins repris l'atteste, et l'engagement qui le continue ici est le meme
-    /// contrat (S21.G00.40.001 et .009, `norme-dsn/texte/bloc-S21.G00.40.txt`), pas une copie.
-    pub fn atteste(&self, salarie: &str, debut: &str, numero: &str) -> bool {
-        let du_contrat = self.contrat().and_then(|c| c.get("contrat_debut")).filter(|x| vrai(x)).map(en_texte);
-        !numero.is_empty()
-            && self.texte("salarie") == salarie
-            && self.texte("numero") == numero
-            && du_contrat.unwrap_or_else(|| self.texte("debut")) == debut
-    }
-
     /// LES JOURS DU CONTRAT ENTIER (S21.G00.40.013 d'un contrat d'usage : `Engagement::quotite`) d'un contrat qui continue
     /// ici, `propres` etant ceux que la saisie lui donne : les jours que les bulletins importes impriment, plus les siens ;
     /// a defaut d'un bulletin pour chaque mois verse, la quotite que la DSN deposee a declaree pour ce contrat (elle le
@@ -470,18 +494,60 @@ pub fn refus(qui: &str, debut: &str) -> String {
     )
 }
 
-/// ECRIT LES ENGAGEMENTS IMPORTES, tous : chacun dans le fichier du mois ou il commence (son `debut`, sinon le premier
-/// mois ou il a ete verse), apres les engagements de la saisie. Ceux qui y etaient s'en vont ; rien d'autre ne change.
+/// Les mois ou un engagement importe ecrit (`{"importe": {"paies": ...}}`) a ete verse.
+fn mois_verses(e: &Map<String, Value>) -> Vec<String> {
+    e.get(IMPORTE).and_then(|i| i.get("paies")).and_then(Value::as_object).map(|p| p.keys().cloned().collect()).unwrap_or_default()
+}
+
+/// LE CONTRAT DE PERMANENT QUI CONTINUE ICI : sa nature est dite et payee au mois, il a ete verse le dernier mois repris
+/// (`dernier`), et il ne finit pas avant le mois qui suit.
+fn continue_ici(e: &Map<String, Value>, dernier: &str) -> Resultat<bool> {
+    let texte = |k: &str| e.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
+    let nature = texte("nature");
+    let mensuel = !nature.is_empty() && droit::natures::nature(Some(&nature)).is_ok_and(|n| n.mensuelle());
+    let suite = stock::mois_apres(dernier)?;
+    let fin = texte("fin");
+    Ok(mensuel && mois_verses(e).iter().any(|m| m == dernier) && (fin.is_empty() || fin.as_str() >= format!("{}-01", suite).as_str()))
+}
+
+/// ECRIT LES ENGAGEMENTS IMPORTES, tous : chacun dans le fichier de son mois d'entree -- le mois ou il commence (son
+/// `debut`, sinon le premier mois ou il a ete verse), ou, pour le contrat de permanent qui continue ici (`continue_ici`),
+/// le mois qui suit le dernier mois repris : son premier mois neuf. Ils vont apres les engagements de la saisie. Ceux qui
+/// y etaient s'en vont ; rien d'autre ne change. LE MEME CONTRAT DEJA ECRIT (meme salarie, un mois verse en commun) garde
+/// ce qui a ete dit de lui et ce que la saisie lui a ecrit ; seul ce que les pieces en disent (`importe`) se remplace.
 /// Rend les fichiers ecrits.
 pub fn ecrire_tous(racine: &Path, importes: Vec<Map<String, Value>>) -> Resultat<Vec<PathBuf>> {
+    let existants = tous(racine)?;
+    let dernier = importes.iter().flat_map(mois_verses).max();
+    let mut repris = vec![false; existants.len()];
     let mut par_mois: BTreeMap<String, Vec<Value>> = BTreeMap::new();
-    for e in importes {
+    for mut e in importes {
+        let salarie = e.get("salarie").map(en_texte).unwrap_or_default();
+        let verses = mois_verses(&e);
+        let meme = (0..existants.len()).find(|&k| {
+            let x = &existants[k];
+            !repris[k] && x.texte("salarie") == salarie && x.paies().keys().any(|m| verses.contains(m))
+        });
+        if let Some(k) = meme {
+            repris[k] = true;
+            let x = existants[k].objet.champs();
+            if !e.get("nature").is_some_and(vrai) && x.get("nature").is_some_and(vrai) {
+                let pieces = e.remove(IMPORTE);
+                e = x.clone();
+                if let Some(p) = pieces {
+                    e.insert(IMPORTE.into(), p);
+                }
+            }
+        }
         let debut = e.get("debut").map(en_texte).unwrap_or_default();
-        let premier = e.get(IMPORTE).and_then(|i| i.get("paies")).and_then(Value::as_object).and_then(|p| p.keys().next().cloned());
-        let mois = if debut.len() >= 7 { debut[..7].to_string() } else { premier.ok_or("un engagement importe sans debut ni paie")? };
+        let mois = match &dernier {
+            Some(d) if continue_ici(&e, d)? => stock::mois_apres(d)?,
+            _ if debut.len() >= 7 => debut[..7].to_string(),
+            _ => verses.first().cloned().ok_or("un engagement importe sans debut ni paie")?,
+        };
         par_mois.entry(mois).or_default().push(Value::Object(e));
     }
-    let mut touches: Vec<String> = tous(racine)?.iter().map(|i| i.objet.fichier.clone()).collect();
+    let mut touches: Vec<String> = existants.iter().map(|i| i.objet.fichier.clone()).collect();
     touches.extend(par_mois.keys().cloned());
     touches.sort();
     touches.dedup();
@@ -494,8 +560,15 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Map<String, Value>>) -> Resultat
         let mut es: Vec<Value> =
             contenu.get("engagements").and_then(Value::as_array).into_iter().flatten().filter(|e| !e.get(IMPORTE).is_some_and(Value::is_object)).cloned().collect();
         es.extend(neufs);
+        let vide = es.is_empty() && contenu.keys().all(|k| k == "mois" || k == "engagements");
         contenu.insert("engagements".into(), Value::Array(es));
         if existe.as_ref() == Some(&contenu) {
+            continue;
+        }
+        if vide {
+            if existe.is_some() {
+                ecrits.push(stock::retirer(racine, &f)?);
+            }
             continue;
         }
         ecrits.push(stock::poser(racine, &f, &Value::Object(contenu))?);

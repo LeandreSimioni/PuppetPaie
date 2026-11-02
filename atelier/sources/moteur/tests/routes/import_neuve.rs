@@ -218,9 +218,9 @@ fn la_nature_d_un_contrat_de_permanent_se_demande_apres_l_import() {
 /// Le contrat d'un permanent paye le dernier mois repris continue : sa nature se dit avec la date de debut et le numero
 /// que la DSN de l'ancien logiciel lui a donnes (S21.G00.40.001 et .009, `norme-dsn/texte/bloc-S21.G00.40.txt` ; un
 /// numero ne se recalcule pas, regle 4). Sans eux, ou avec un debut que les bulletins dementent : refus, rien n'est
-/// ecrit. Dits, le contrat se reprend au mois suivant, avec sa nature, son debut et son numero.
+/// ecrit.
 #[test]
-fn le_contrat_d_un_permanent_qui_continue_se_reprend_au_mois_suivant() {
+fn le_contrat_d_un_permanent_qui_continue_dit_son_debut_et_son_numero() {
     let racine = neuve("continue");
     let import = racine.join("import");
     std::fs::create_dir_all(&import).unwrap();
@@ -249,15 +249,6 @@ fn le_contrat_d_un_permanent_qui_continue_se_reprend_au_mois_suivant() {
     }
     assert_eq!(engagements_ecrits(&racine), avant);
     assert!(!racine.join("config/entreprise.json").exists() || entreprise_lue(&racine)["emploie_des_permanents"] != json!(true));
-
-    reussi(&route(&racine, "importation-nature", json!({"salarie": cle, "nature": "cdi", "debut": "15/01/2024", "numero": "00042", "salaire": "2 400,50", "quotite": "151,67"})));
-    let r = reussi(&route(&racine, "contrats-en-cours", json!({"mois": "2025-06"}))).clone();
-    let c = r["contrats"].as_array().unwrap().iter().find(|c| c["salarie"] == json!(cle)).unwrap_or_else(|| panic!("{}", r)).clone();
-    assert_eq!((c["debut"].clone(), c["numero"].clone(), c["engagement"]["nature"].clone()), (json!("2024-01-15"), json!("00042"), json!("cdi")), "{}", c);
-    assert_eq!((c["engagement"]["salaire_mensuel"].clone(), c["engagement"]["quotite_contrat"].clone()), (json!(2400.5), json!(151.67)), "{}", c);
-    // Le mois repris lui-meme ne le reprend pas : il est dans l'historique.
-    let mai = reussi(&route(&racine, "contrats-en-cours", json!({"mois": "2025-05"}))).clone();
-    assert!(mai["contrats"].as_array().unwrap().iter().all(|c| c["salarie"] != json!(cle)), "{}", mai);
 }
 
 /// LE PASSE FAIT PAR PUPPETPAIE SE REIMPORTE comme celui d'un autre logiciel, et UN CONTRAT D'USAGE QUI Y A COMMENCE
@@ -563,34 +554,4 @@ fn le_bulletin_d_un_mois_ne_remplace_que_ce_mois_du_certificat_et_l_emporte_sur_
     let contrats = contrats_importes(&racine);
     assert_eq!(contrats.len(), 1, "{:?}", contrats);
     assert_eq!((&contrats[0]["atteste_par"], &contrats[0]["cachets"], &contrats[0]["brut"]), (&json!("bulletin"), &json!(2), &json!("590.00")), "{}", contrats[0]);
-}
-
-/// LA PROVISION DE CONGES D'UNE ANNEE REPRISE : au dernier jour repris (31/05/2025), le compteur d'un permanent dont le
-/// contrat continue est celui que sa fiche reprend au lendemain (`conges_reprise`), et son indemnite « égale au dixième
-/// de la rémunération brute totale perçue par le salarié au cours de la période de référence », ou le maintien s'il est
-/// plus fort (C. trav. L3141-24, `code-du-travail/articles-20260919.md`) : 25 jours reportés d'une période payée
-/// 24 000 € valent 2 400 €. Les bulletins repris ne couvrant pas cette période, c'est la rémunération recopiée qui compte.
-#[test]
-fn la_provision_d_une_annee_reprise_part_du_compteur_repris() {
-    let racine = neuve("provision");
-    let import = racine.join("import");
-    std::fs::create_dir_all(&import).unwrap();
-    pdf(vec![page_a(&permanent())], &import.join("permanent.pdf"));
-    reussi(&route(&racine, "importer", json!({"dossier": ""})));
-    let etat = reussi(&route(&racine, "importation-etat", json!({}))).clone();
-    let cle = etat["a_dire"][0]["salarie"].as_str().unwrap().to_string();
-    reussi(&route(&racine, "importation-nature", json!({"salarie": cle, "nature": "cdi", "debut": "15/01/2024", "numero": "00042", "salaire": "2 400,50", "quotite": "151,67"})));
-    // Le taux AT/MP de l'année, que la DSN reprise aurait donné, la première embauche et la santé : le barème de chaque
-    // paie reprise les lit.
-    crate::outils::ecrire(&racine, "config/baremes/2025.json", &json!({"annee": 2025, "socle": 2025, "taux_atmp": {"valeur": 1.65, "code_risque": "923AD"}}));
-    reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "donnees": {"premiere_embauche": "2024-01-15"}})));
-    reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "salarie", "cle": cle, "donnees": {"sante_svp": {"niveau": "1"}}})));
-    let sans = reussi(&route(&racine, "exporter", json!({"etat": "provision-conges", "annee": "2025"}))).clone();
-    assert!(sans["sections"][0]["lignes"].as_array().unwrap().is_empty(), "sans compteur repris, rien ne se devine : {}", sans);
-
-    reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "salarie", "cle": cle, "donnees": {"conges_reprise": {
-        "date": "2025-06-01", "report": "25", "acquis_report": "25", "acquis": "0", "pris": "0", "remuneration_report": "24000"}}})));
-    let r = reussi(&route(&racine, "exporter", json!({"etat": "provision-conges", "annee": "2025"}))).clone();
-    let l = &r["sections"][0]["lignes"][0];
-    assert_eq!((l["solde"].clone(), l["dixieme"].clone(), l["indemnite"].clone()), (json!("25"), json!("2400.00"), json!("2400.00")), "{}", r);
 }

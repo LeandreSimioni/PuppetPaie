@@ -1109,12 +1109,11 @@ fn provision_d_une_annee_importee(
     let mut lecture = crate::etats_paie::Lecture::nouvelle(ctx, &d.departs);
     let mut sans_compteur = 0;
     let cle_de = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_else(|| p.engagement.salarie.clone());
-    // Les salaries dont un contrat repris court au-dela du dernier jour repris : sa fin, telle que l'import l'a lue
-    // (`contrat_fin`), vide ou apres lui (l'engagement repris s'arrete, lui, au bout du mois paye).
+    // Les salaries dont un contrat repris court au-dela du dernier jour repris : sans fin, ou une fin apres lui.
     let continuent: BTreeSet<String> = engagement::importe::contrats_lus(&ctx.racine)
         .map_err(ko)?
         .iter()
-        .filter(|e| e.get("contrat_fin").filter(|v| vrai(v)).map(valeur_en_texte).is_none_or(|f| f > fin.iso()))
+        .filter(|e| e.get("fin").filter(|v| vrai(v)).map(valeur_en_texte).is_none_or(|f| f > fin.iso()))
         .filter_map(|e| e.get("salarie").filter(|v| vrai(v)).map(valeur_en_texte))
         .collect();
     let paies = lecture.paies(m)?;

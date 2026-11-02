@@ -496,7 +496,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     let mut saisis_ici: HashSet<(String, String)> = HashSet::new();
     if lus.iter().any(|l| l.mois_saisi) {
         let objets = engagement::stock::objets(&ctx.racine).map_err(|m| erreur("ErreurOperation", m))?;
-        for o in objets.iter().filter(|o| !o.est_importe()) {
+        for o in objets.iter().filter(|o| !o.importe_seul()) {
             let Some(cle) = engagement::cle_de_l_engagement(ctx, &o.brut) else { continue };
             for l in lus.iter().filter(|l| l.mois_saisi) {
                 if o.couvre(&l.mois).map_err(|m| erreur("ErreurOperation", m))? {

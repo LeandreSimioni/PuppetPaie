@@ -45,10 +45,11 @@ fn ligne_importee(e: &Value) -> Resultat<Option<Declare>> {
     Ok(Some(Declare { salarie: salarie.clone(), debut, fin, numero_objet, heures, cachets, jours, brut, heures_enseignement }))
 }
 
-/// Les contrats que l'import atteste (`importe::contrats_lus` : une AEM, un bulletin). Vide tant qu'on n'a rien importe.
+/// Les contrats que l'import atteste (`importe::contrats_lus` : une AEM, un bulletin), sauf ceux des permanents, qui
+/// n'ouvrent aucun droit. Vide tant qu'on n'a rien importe.
 pub(crate) fn lire_importes(ctx: &Contexte) -> Resultat<Vec<Declare>> {
     let mut out = Vec::new();
-    for i in crate::importe::tous(&ctx.racine)? {
+    for i in crate::importe::tous(&ctx.racine)?.into_iter().filter(|i| !i.permanent()) {
         let Some(mut e) = i.ligne_du_contrat() else { continue };
         // Un contrat qui continue ici : ce que les pieces attestent s'arrete a son dernier mois verse, la suite est
         // dans les paies de ce logiciel.

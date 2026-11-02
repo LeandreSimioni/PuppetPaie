@@ -406,6 +406,15 @@ pub(crate) fn ecrit_pendant_le_geste(chemin: &Path, v: &Value) {
     });
 }
 
+/// Le geste vient d'effacer `chemin` (`ecriture::effacer`) : s'il l'a lu, il ne l'a plus.
+pub(crate) fn efface_pendant_le_geste(chemin: &Path) {
+    GESTE.with(|g| {
+        if let Some(l) = g.borrow_mut().as_mut().filter(|l| l.contains_key(chemin)) {
+            l.insert(chemin.to_path_buf(), None);
+        }
+    });
+}
+
 /// UN GESTE (une route, l'etat d'un mois refait) LIT UNE FOIS ce que la compagnie porte et que `json_partage` sert (les
 /// engagements, le journal de ce qui est parti) : rendu par `geste`, la lecture vit tant que son garde vit, et tombe
 /// avec lui ; un geste ouvert depuis un autre lit dans la lecture de celui-ci.

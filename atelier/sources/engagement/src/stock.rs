@@ -212,6 +212,18 @@ pub(crate) fn poser_dans(racine: &Path, d: Dossier, mois: &str, contenu: &Value)
     Ok(p)
 }
 
+/// LE FICHIER D'ENGAGEMENTS DE `mois` QUI N'A PLUS RIEN (`{"mois", "engagements": []}` : un fichier que l'import avait
+/// pose) s'en va : un mois sans fichier ni engagement n'a pas de saisie. Dans un brouillon, il s'ecrit vide.
+pub(crate) fn retirer(racine: &Path, mois: &str) -> Resultat<PathBuf> {
+    let vide = serde_json::json!({"mois": mois, "engagements": []});
+    if Brouillon::tient(racine, Dossier::Engagements, mois, vide) {
+        return Ok(chemin(racine, mois));
+    }
+    let p = chemin(racine, mois);
+    socle::ecriture::effacer(&p)?;
+    Ok(p)
+}
+
 /// Le fichier d'engagements d'un mois (`lire_dans`).
 fn lire_partage(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<Value>>> {
     lire_dans(racine, Dossier::Engagements, mois)
@@ -230,12 +242,13 @@ pub(crate) fn lire_dans(racine: &Path, d: Dossier, mois: &str) -> Resultat<Optio
     }
 }
 
-/// Le fichier de `mois` ne porte-t-il que des engagements importes (`importe`) ? Un tel mois n'a pas de saisie : il se
-/// lit. Un fichier illisible ou sans engagement n'est pas de l'import.
+/// Le fichier de `mois` ne porte-t-il que des engagements importes seuls (`Objet::importe_seul`) ? Un tel mois n'a pas de
+/// saisie : il se lit. Un fichier illisible ou sans engagement n'est pas de l'import.
 fn importes_seuls(racine: &Path, mois: &str) -> bool {
     let Ok(Some(f)) = lire_partage(racine, mois) else { return false };
     let es = f.get("engagements").and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
-    !es.is_empty() && es.iter().all(|e| e.get(crate::importe::IMPORTE).is_some_and(Value::is_object))
+    let seul = |e: &Value| Objet { racine: racine.to_path_buf(), fichier: mois.to_string(), rang: 0, brut: std::sync::Arc::new(e.clone()) }.importe_seul();
+    !es.is_empty() && es.iter().all(seul)
 }
 
 /// Le mois suivant `AAAA-MM`.
@@ -322,15 +335,23 @@ impl Objet {
     }
 
     /// L'engagement touche-t-il `mois` ? Du premier mois a celui de sa fin ; sans terme, de son premier mois a toujours.
-    /// Un engagement non actif ne touche plus aucun mois ; un engagement importe n'en touche aucun de la saisie : il se
+    /// Un engagement non actif ne touche plus aucun mois ; un engagement importe seul (`importe_seul`) n'en touche aucun de la saisie : il se
     /// lit (`importe`), rien ne le calcule.
     pub fn couvre(&self, mois: &str) -> Resultat<bool> {
-        Ok(!self.est_non_actif() && !self.est_importe() && self.dans_ses_bornes(mois)?)
+        Ok(!self.est_non_actif() && !self.importe_seul() && self.dans_ses_bornes(mois)?)
     }
 
-    /// Est-il importe (`importe::IMPORTE`) ?
+    /// Est-il importe (`importe::IMPORTE`) ? Ses mois repris le sont ; il peut continuer ici (`importe_seul`).
     pub fn est_importe(&self) -> bool {
         self.brut.get(crate::importe::IMPORTE).is_some_and(Value::is_object)
+    }
+
+    /// N'est-il qu'importe : tous ses mois sont repris d'un ancien logiciel, et il ne touche aucun mois d'ici. Un contrat
+    /// de permanent qui continue ici vit dans le fichier de son premier mois neuf, apres tous ses mois verses
+    /// (`importe::ecrire_tous`) : ce mois et les suivants sont de la saisie.
+    pub fn importe_seul(&self) -> bool {
+        let verses = self.brut.get(crate::importe::IMPORTE).and_then(|i| i.get("paies")).and_then(Value::as_object);
+        self.est_importe() && verses.and_then(|p| p.keys().max()).is_none_or(|m| m.as_str() >= self.fichier.as_str())
     }
 
     /// N'est-il plus actif (`NON_ACTIF`) ?
@@ -603,7 +624,7 @@ impl Tires {
     /// L'objet de rang `i` touche-t-il `mois` (`Objet::couvre`) ?
     fn couvre(&self, i: usize, mois: &str) -> Resultat<bool> {
         let o = &self.objets[i];
-        Ok(!o.est_non_actif() && !o.est_importe() && self.dans_ses_bornes(i, mois)?)
+        Ok(!o.est_non_actif() && !o.importe_seul() && self.dans_ses_bornes(i, mois)?)
     }
 
     /// Les objets qui touchent `mois`, dans l'ordre des fichiers.
@@ -855,7 +876,7 @@ pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
     let mut v: Vec<String> = fichiers(racine).into_iter().filter(|m| !importes_seuls(racine, m)).collect();
     let courant = droit::contexte::aujourdhui_sans_note()?.mois_iso();
     let horizon = v.iter().max().cloned().map(|h| h.max(courant));
-    for o in objets(racine)?.into_iter().filter(|o| !o.est_importe()) {
+    for o in objets(racine)?.into_iter().filter(|o| !o.importe_seul()) {
         v.extend(o.mois_saisis());
         let fin = match o.dernier_mois()? {
             Some(d) => Some(d),
@@ -927,7 +948,7 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
 }
 
 /// UN CONTRAT AU MOIS N'A QU'UN ENGAGEMENT : une carte neuve d'un contrat paye au mois (CDI, CDD) dont le salarie a deja
-/// un contrat au mois commence le meme jour (actif, ni importe : `importe::refus` dit le sien) ne le refait pas, elle
+/// un contrat au mois commence le meme jour (actif, et qui n'est pas qu'importe : `importe::refus` dit le sien) ne le refait pas, elle
 /// refuse et n'ecrit rien ; cet engagement se designe et se modifie depuis sa carte. Le rang de l'identite (`identites`)
 /// ne distingue que des contrats d'usage du meme jour (deux spectacles) ; deux contrats au mois du meme salarie
 /// commencent deux jours differents (ils se suivent).
@@ -943,7 +964,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Value) -> Resultat<()> 
     let tires = tous(&ctx.racine)?.1;
     let Some(o) = tires.objets.iter().find(|o| {
         !o.est_non_actif()
-            && !o.est_importe()
+            && !o.importe_seul()
             && au_mois(&o.brut)
             && crate::debut_brut(&o.brut) == debut
             && crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle.as_str())
@@ -1210,10 +1231,10 @@ pub fn reecrire(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
 }
 
 /// LE MOIS D'ENTREE DE LA COMPAGNIE DANS LE LOGICIEL : le premier mois qu'elle y paie, celui du plus ancien fichier qui
-/// porte un engagement d'ici (ni importe, ni plus actif), ou `mois` s'il vient avant (la carte d'un premier mois, pas
+/// porte un engagement d'ici (qui n'est pas qu'importe, ni plus actif), ou `mois` s'il vient avant (la carte d'un premier mois, pas
 /// encore ecrite). Les mois repris d'un ancien logiciel (`importe`) sont d'avant lui.
 pub fn mois_d_entree(racine: &Path, mois: &str) -> Resultat<String> {
-    let premier = tous(racine)?.1.objets.iter().find(|o| !o.est_importe() && !o.est_non_actif()).map(|o| o.fichier.clone());
+    let premier = tous(racine)?.1.objets.iter().find(|o| !o.importe_seul() && !o.est_non_actif()).map(|o| o.fichier.clone());
     Ok(premier.filter(|p| p.as_str() < mois).unwrap_or_else(|| mois.to_string()))
 }
 

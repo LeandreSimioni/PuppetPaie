@@ -83,7 +83,7 @@ fn a_des_spectacles(ctx: &Contexte) -> bool {
 fn spectacles_declares(ctx: &Contexte) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for o in engagement::stock::objets(&ctx.racine).unwrap_or_default() {
-        if o.est_non_actif() || o.est_importe() {
+        if o.est_non_actif() || o.importe_seul() {
             continue;
         }
         let nature = o.brut.get("nature").and_then(Value::as_str);
@@ -348,34 +348,20 @@ pub fn conges_repris(ctx: &Contexte, salarie: &str) -> bool {
 }
 
 /// Les permanents dont un contrat commence avant le premier mois ou PuppetPaie le paie, et dont la fiche ne dit pas les
-/// conges a la reprise (`conges_reprise.date`) : `(salarie, nom, premier jour paye ici)`. Le premier mois paye ici est,
-/// pour un contrat repris d'un ancien logiciel (`engagement::importe`), celui qui suit le dernier mois repris (le contrat
-/// court encore ce mois-la, et sa nature est dite) ; sinon le premier `engagements/AAAA-MM.json` qui porte le salarie.
-/// Un intermittent n'en est pas (ses conges sont ceux des Conges Spectacles) ; un contrat ne d'ici n'a rien d'avant.
+/// conges a la reprise (`conges_reprise.date`) : `(salarie, nom, premier jour paye ici)`. Le premier mois paye ici est
+/// celui du fichier de l'engagement ; un contrat repris d'un ancien logiciel qui continue ici y est des le premier mois
+/// neuf (`engagement::importe`), valide ou non. Un intermittent n'en est pas (ses conges sont ceux des Conges
+/// Spectacles) ; un contrat ne d'ici n'a rien d'avant.
 fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
     let t = |e: &Value, k: &str| e.get(k).filter(|v| vrai(v)).map(socle::date::en_texte).unwrap_or_default();
     let mensuel = |nature: &str| droit::natures::nature(Some(nature)).is_ok_and(|n| n.mensuelle());
     // (salarie, debut du contrat, premier jour paye ici)
     let mut contrats: Vec<(String, String, String)> = Vec::new();
     let mut vus: Vec<String> = Vec::new();
-    let repris = engagement::importe::contrats_lus(&ctx.racine).unwrap_or_default();
-    if let Some(dernier) = repris.iter().map(|e| t(e, "fin")).filter(|f| f.len() >= 7).map(|f| f[..7].to_string()).max() {
-        let suite = socle::date::dernier_du_mois(&dernier).and_then(|j| j.plus_jours(1)).map(|j| j.iso()).unwrap_or_default();
-        for e in &repris {
-            let (salarie, debut, fin) = (t(e, "salarie"), t(e, "contrat_debut"), t(e, "contrat_fin"));
-            if salarie.is_empty() || debut.is_empty() || suite.is_empty() || !mensuel(&t(e, "nature")) {
-                continue;
-            }
-            vus.push(salarie.clone());
-            if debut < suite && (fin.is_empty() || fin >= suite) && !contrats.iter().any(|c| c.0 == salarie) {
-                contrats.push((salarie, debut, suite.clone()));
-            }
-        }
-    }
     // Les engagements valides et actifs, chacun dans le mois de son fichier (`engagement::stock::objets`) : un brouillon
-    // n'engage rien.
+    // n'engage rien, un contrat repris qui continue ici si.
     for o in engagement::stock::objets(&ctx.racine).unwrap_or_default() {
-        if !o.est_valide() || o.est_non_actif() {
+        if !(o.est_valide() || o.est_importe()) || o.est_non_actif() || o.importe_seul() {
             continue;
         }
         let e = &*o.brut;
