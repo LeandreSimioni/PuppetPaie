@@ -1410,18 +1410,26 @@ pub(crate) fn ecrire_une_carte(ctx: &Contexte, mois: &str, charge: &Value) -> R<
 /// CE QUI MANQUE A CHAQUE ENGAGEMENT DE LA SAISIE `data` pour se calculer, dans son ordre (`None` : rien). Une saisie
 /// qui se calcule entiere n'a rien qui manque. Sinon, chaque engagement se calcule a la suite de ceux d'avant qui se
 /// calculent (le calcul d'un engagement lit ceux qui le precedent) : celui qui refuse porte le refus, et les suivants se
-/// calculent sans lui. Un engagement valide ne manque de rien : sa validation l'a calcule.
+/// calculent sans lui. Un engagement valide ne manque de rien, sa validation l'a calcule, sauf les indemnites journalieres
+/// d'un arret venu apres elle (`engagement::maintien::indemnites_a_dire`).
 pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &Value) -> Vec<Option<String>> {
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    if tous.iter().all(engagement::etats::est_validee) || engagement::pour_l_ecran(ctx, data).is_ok() {
+    let mois = valeur_en_texte(&data["mois"]);
+    let a_dire = |e: &Value| -> Option<String> {
+        if engagement::etats::est_validee(e) { engagement::maintien::indemnites_a_dire(ctx, e, &mois).ok().flatten() } else { None }
+    };
+    let valides: Vec<Option<String>> = tous.iter().map(a_dire).collect();
+    if valides.iter().all(Option::is_none) && (tous.iter().all(engagement::etats::est_validee) || engagement::pour_l_ecran(ctx, data).is_ok()) {
         return vec![None; tous.len()];
     }
     let mut gardes: Vec<Value> = Vec::new();
     let mut manques = Vec::new();
-    for e in tous.iter() {
+    for (e, manque) in tous.iter().zip(valides) {
         if engagement::etats::est_validee(e) {
-            gardes.push(e.clone());
-            manques.push(None);
+            if manque.is_none() {
+                gardes.push(e.clone());
+            }
+            manques.push(manque);
             continue;
         }
         let mut essai = data.clone();

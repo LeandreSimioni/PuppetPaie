@@ -147,10 +147,6 @@ fn paire(r: Option<(String, Value)>) -> Value {
     r.map_or(Value::Null, |(a, s)| json!([a, s]))
 }
 
-fn texte_option(r: Option<String>) -> Value {
-    r.map_or(Value::Null, Value::String)
-}
-
 fn jour(v: &Value) -> Jour {
     Jour::lire(v.as_str().unwrap()).unwrap()
 }
