@@ -1081,6 +1081,20 @@ pub(crate) fn declaree_a_la_caisse_des_conges(p: &Paie) -> Resultat<bool> {
     droit::caisse_conges::affilie(&*e.nat()?, &p.salarie, &e.debut, e.fin.as_ref())
 }
 
+/// La meme question pour la saisie `e` d'un contrat paye au mois, avant que son engagement ne soit construit (le solde de
+/// tout compte de `conges::lignes_du_mois`) : sa fiche telle que sa paie la lira au dernier jour du contrat, le metier que
+/// la saisie dit l'emportant (`fiche_de_l_engagement`, `emploi_de`).
+pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &Value, fin: &Jour) -> Resultat<bool> {
+    let nat = droit::natures::nature(e.get("nature").and_then(Value::as_str))?;
+    let debut = socle::date::d(e.get("debut").ok_or_else(|| socle::fichiers::absent("debut"))?)?;
+    let salarie = e.get("salarie").map(en_texte).unwrap_or_default();
+    let cle = ctx.salarie(&salarie)?.get("_cle").and_then(Value::as_str).unwrap_or_default().to_string();
+    let dit = |c: &str| e.get(c).filter(|x| vrai(x)).map(en_texte);
+    let emploi = EmploiEngagement { code_emploi_ft: dit("code_emploi_ft").or_else(|| dit("metier")), ..Default::default() };
+    let fiche = emploi_de(&ctx.salarie_au(&cle, fin)?, &emploi)?;
+    droit::caisse_conges::affilie(&nat, &fiche, &debut, Some(fin))
+}
+
 /// LA PERIODE D'ESSAI QUE L'ENGAGEMENT STIPULE ne depasse pas la duree maximale de son contrat (`droit::essai` : C. trav.
 /// L. 1242-10 pour un CDD, L. 1221-19 pour un CDI, la convention 3090 art. 7.4 pour un artiste en CDI). Sa categorie se lit
 /// sur la fiche du salarie telle que l'engagement la voit (`fiche_de_l_engagement`).

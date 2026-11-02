@@ -87,7 +87,8 @@ Ce qui en découle, par la pile (`par_caisse_conges` du barème) :
   40.022, les majorations à 11,5 % — FNAL plafonné (`t1_mensuelle_x115`, R2), versement mobilité, et taxe
   d'apprentissage **à 11,5 % et non 10 %** (D. 243-0-2 : le 10 % vise les intermittents de L. 6331-55, c'est-à-dire le
   CDD d'usage ; *lecture*). Au bordereau : 992 sur la somme des `brut_x110`, 332 des permanents sur `t1_x115_permanent`.
-  Les lignes de congés payés de l'employeur refusent (la caisse les paie).
+  Les lignes de congés payés de l'employeur refusent (la caisse les paie), et le solde de tout compte ne compose pas
+  d'indemnité compensatrice de congés (voir « L'indemnité compensatrice d'un salarié déclaré à la caisse » ci-dessous).
 
 ## Ce qui n'est pas porté (décisions à prendre)
 
@@ -100,3 +101,25 @@ Ce qui en découle, par la pile (`par_caisse_conges` du barème) :
   (`../majoration-caisses-conges/LISEZ-MOI.md`, « La CPF-CDD d'un CDD déclaré à la caisse »).
 - L'assiette Congés Spectacles d'un CDD au mois : `mois` et `absence_non_remuneree` y entrent (catalogue) ; l'indemnité
   de précarité, le maintien de salaire n'y entrent pas — aucun texte déposé ne le dit.
+
+## L'indemnité compensatrice d'un salarié déclaré à la caisse (relevé LEGI du 02/11/2026)
+
+Textes : `../code-du-travail/articles-20261102.md` (XML : `../code-du-travail/xml/L3141-30.xml`, `xml/L1242-16.xml`,
+`xml/D7121-38.xml`).
+
+- **L. 3141-30** (`LEGIARTI000033020675`) : « Les articles L. 3141-28 et L. 3141-29 ne sont pas applicables lorsque
+  l'employeur est tenu d'adhérer à une caisse de congés en application de l'article L. 3141-32. » L. 3141-28 est
+  l'indemnité compensatrice due à la rupture.
+- **D. 7121-38** : la caisse « assure le service des congés annuels au personnel artistique et technique employé de façon
+  intermittente » ; D. 7121-41 dit qui lui est déclaré.
+- **L. 1242-16** : l'indemnité compensatrice du CDD est due « dès lors que le régime des congés applicable dans
+  l'entreprise ne lui permet pas de les prendre effectivement ».
+
+*Lecture* : le salarié que l'employeur déclare à la caisse (`caisse_conges::affilie`) reçoit ses congés de la caisse ;
+l'employeur ne lui doit pas d'indemnité compensatrice. Celui qu'il ne déclare pas (CDD de douze mois ou plus, technicien en
+CDD de droit commun, CDI) la reçoit de l'employeur (L. 3141-28, L. 1242-16), comme la CCN 3090, art. 10.1.1, le dit du
+salarié occupé douze mois.
+
+**Où le moteur s'en sert** : `engagement/src/solde.rs`, `solde_de_tout_compte` (l'indemnité compensatrice ne se compose
+que pour un contrat que l'employeur ne déclare pas), qui le demande à `calcul::saisie_declaree_a_la_caisse_des_conges`
+(la fiche telle que la paie la lit au dernier jour du contrat, puis `caisse_conges::affilie`).
