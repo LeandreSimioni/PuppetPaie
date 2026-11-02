@@ -35,7 +35,7 @@ async function montrerRappels(lu = api) {
   if (!liste.length && !(ech && ech.a_faire) && !manques.length) return;
   RAPPELS_MONTRES = { liste, ech, manques };
   if (dejaMontres(RAPPELS_MONTRES)) return;
-  boiteRappels(liste, ech, manques);
+  boiteRappels(liste, ech, manques, r.fermer_dit);
 }
 
 /* UNE FOIS, PUIS PLUS : la boîte s'ouvre à l'ouverture du logiciel ; la page
@@ -362,7 +362,7 @@ function htmlEcheancier(ech) {
       <div class="echeance-titre">${pastille(x)} ${echapper(x.titre)}${avant(x)}</div>
       ${x.etat === "fait" ? "" : `<div class="note">${echapper(x.detail)}</div>`}
       ${x.cochable ? `<button class="secondaire petit" data-echeance="${echapper(x.cle)}"
-        data-fait="${x.etat === "fait" ? "non" : "oui"}">${x.etat === "fait" ? "Pas encore fait" : "C'est fait"}</button>` : ""}
+        data-fait="${x.etat === "fait" ? "non" : "oui"}">${echapper(x.bouton_coche)}</button>` : ""}
     </li>`;
   const parMois = {};
   (ech.a_venir || []).forEach((x) => { (parMois[x.tombe] = parMois[x.tombe] || []).push(x); });
@@ -380,7 +380,7 @@ function htmlEcheancier(ech) {
   const ditAilleurs = (ech.ce_mois || []).some((x) => x.rappel);
   return `
     <div class="accueil">
-      <p class="accueil-date">Nous sommes le ${echapper(ech.date)}</p>
+      <p class="accueil-date">${echapper(ech.date_dit)}</p>
       <h2 class="accueil-titre">${echapper(ech.bienvenue)}</h2>
       ${ceMois.length
         ? `<h3>Ce mois-ci</h3><ul class="echeances">${ceMois.map(ligne).join("")}</ul>`
@@ -390,7 +390,7 @@ function htmlEcheancier(ech) {
     </div>`;
 }
 
-function boiteRappels(liste, ech, manques = []) {
+function boiteRappels(liste, ech, manques = [], fermer = "Fermer") {
   const html = htmlDemarrage(manques) + htmlEcheancier(ech) + liste.map((r, i) => `
     <div class="rappel ${r.en_retard ? "retard" : ""}">
       <h3>${echapper(r.titre)}${r.pastille ? ` ${pastilleDeLEtat(r.pastille)}` : ""}${r.quand
@@ -404,7 +404,7 @@ function boiteRappels(liste, ech, manques = []) {
   ouvrirBoite(`
     <div class="boite-rappels"></div>${html}
     <div class="actions">
-      <button class="secondaire" id="rappels-fermer">${liste.length ? "Plus tard" : "Fermer"}</button>
+      <button class="secondaire" id="rappels-fermer">${echapper(fermer)}</button>
     </div>`, () => {
     // FERMÉE, ELLE SORT DE LA PAGE : cachée sous le voile, elle gardait
     // ses boutons `[data-manque-champ]`, périmés dès que la fiche change, et
@@ -427,7 +427,7 @@ function boiteRappels(liste, ech, manques = []) {
         await api("echeance-faite", { cle: b.dataset.echeance, fait: b.dataset.fait === "oui" });
         const ech2 = await api("echeancier");
         const r2 = await api("rappels");
-        boiteRappels(r2.rappels || [], ech2, manques);
+        boiteRappels(r2.rappels || [], ech2, manques, r2.fermer_dit);
       } catch (e) { dire(e.message, "erreur"); }
     };
   });
@@ -455,13 +455,7 @@ function boutonRappel(r, i) {
     }[gesteObligation(r)];
     return `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>`;
   }
-  const libelle = {
-    "dsn": "Vérifier et envoyer",
-    "cloture": "Clôturer " + (r.annee || ""),
-    "export-compta": "Exporter pour la compta",
-    "revue-spectacles": "Choisir les spectacles",
-    "dpae": r.objet ? "Envoyer la DPAE" : "Préparer la DPAE",
-  }[r.quoi];
+  const libelle = r.bouton;
   // UNE ÉCHÉANCE QUE SEULE LA COMPAGNIE PEUT DIRE FAITE (`cochable`) : « C'est fait », comme dans l'échéancier.
   const coche = r.cochable ? `<button class="secondaire" data-echeance="${echapper(r.cle)}" data-fait="oui">C'est fait</button>` : "";
   return (libelle ? `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>` : "") + coche;
@@ -513,7 +507,7 @@ function boiteRevueSpectacles(r) {
     <label class="coche"><input type="checkbox" class="rv-garde" data-cle="${echapper(s.cle)}" checked>
       ${echapper(s.titre)}${s.numero_objet ? ` <span class="discret">${echapper(s.numero_objet)}</span>` : ""}</label>`).join("");
   ouvrirBoite(`
-    <h3>Les spectacles de ${echapper(r.annee)}</h3>
+    <h3>${echapper(r.titre_boite)}</h3>
     <p>${echapper(r.question)}</p>
     ${lignes}
     <p class="note">${aideDe("revue_spectacles")}</p>
@@ -554,17 +548,14 @@ async function dessinerExercices() {
       <span class="rang-nom">${echapper(x.annee)}</span>
       ${pastilleDeLEtat(x.pastille)}
       <span class="rang-infos">
-        ${x.mois.length} mois · ${x.dsn_acceptees.length} DSN acceptée${x.dsn_acceptees.length === 1 ? "" : "s"}
-        ${clos ? ` · clos le ${echapper(quand(clos.le))}, ${echapper(clos.archive)}` : ""}
-        ${x.export ? ` · export compta${x.export.ecrit ? ` du ${echapper(quand(x.export.ecrit))}` : ""}` : " · pas d'export compta"}
+        ${echapper(x.infos_dit)}
       </span>
       <button class="secondaire" data-export="${echapper(x.annee)}">Export compta</button>
       ${clos
         ? `<button class="secondaire" data-rouvrir="${echapper(x.annee)}">Rouvrir</button>`
         : `<button class="secondaire" data-cloturer="${echapper(x.annee)}">Clôturer…</button>`}
     </div>`;
-  }).join("") + `<p class="note"><button class="lien" id="ouvrir-exercices"
-    title="${echapper(r.dossier)}">Dossier des archives</button></p>`;
+  }).join("") + `<p class="note"><button class="lien" id="ouvrir-exercices">Dossier des archives</button></p>`;
   cible.querySelectorAll("[data-export]").forEach((b) => {
     b.onclick = () => lancerExportCompta(b.dataset.export);
   });

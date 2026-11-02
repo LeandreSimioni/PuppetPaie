@@ -378,6 +378,17 @@ impl Echeance {
             "salarie": opt(&self.salarie), "a_saisir": self.a_saisir,
             "echeance_depot": self.echeance_depot,
             "obligation": self.obligation, "objet": self.objet.as_ref().map(brut_valeur),
+            // Les mots de ses gestes : le bouton qui la fait, la case « C'est fait », le titre de sa boite.
+            "bouton": match self.quoi.as_str() {
+                "dsn" => Some("Vérifier et envoyer".to_string()),
+                "cloture" => Some(format!("Clôturer {}", self.annee.clone().unwrap_or_default()).trim().to_string()),
+                "export-compta" => Some("Exporter pour la compta".to_string()),
+                "revue-spectacles" => Some("Choisir les spectacles".to_string()),
+                "dpae" => Some(if self.objet.is_some() { "Envoyer la DPAE" } else { "Préparer la DPAE" }.to_string()),
+                _ => None,
+            },
+            "bouton_coche": if self.etat == FAIT { "Pas encore fait" } else { "C'est fait" },
+            "titre_boite": self.annee.as_ref().map(|a| format!("Les spectacles de {}", a)),
         })
     }
 }
@@ -412,7 +423,10 @@ impl Etat<'_> {
 pub(crate) fn rappels(ctx: &Contexte) -> socle::echec::R<Value> {
     let st = Etat::de(ctx)?;
     let out = echeances(&st)?;
-    Ok(json!({ "rappels": out.iter().filter(|e| e.due).map(Echeance::json).collect::<Vec<_>>() }))
+    let rappels: Vec<Value> = out.iter().filter(|e| e.due).map(Echeance::json).collect();
+    // La boite des rappels se ferme « plus tard » quand il y a quelque chose à faire.
+    let fermer = if rappels.is_empty() { "Fermer" } else { "Plus tard" };
+    Ok(json!({ "rappels": rappels, "fermer_dit": fermer }))
 }
 
 /// `echeancier` : les memes echeances, rangees. « Ce mois-ci » : celles qui sont dues (un rappel les dit, avec leur
@@ -442,6 +456,7 @@ fn echeancier(ctx: &Contexte) -> socle::echec::R<Value> {
     Ok(json!({
         "aujourdhui": st.aujourdhui.iso(),
         "date": date_en_clair(&st.aujourdhui),
+        "date_dit": format!("Nous sommes le {}", date_en_clair(&st.aujourdhui)),
         "bienvenue": "Bienvenue sur PuppetPaie",
         "compagnie": nom,
         "idcc": ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null),

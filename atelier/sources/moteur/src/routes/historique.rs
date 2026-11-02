@@ -240,7 +240,17 @@ fn etat_exercices(ctx: &Contexte) -> R<Value> {
             }
             None => Value::Null,
         };
+        // Ce que la ligne de l'annee dit : ses mois, ses DSN acceptees, sa cloture et son export compta.
+        let clos_dit = clos.get(a).map(|c| format!(" · clos le {}", super::quand(&super::mot(&c["le"])))).unwrap_or_default();
+        let export_dit = match export_json.get("ecrit").filter(|e| vrai(e)) {
+            Some(e) => format!(" · export compta du {}", super::quand(&super::mot(e))),
+            None if !export_json.is_null() => " · export compta".to_string(),
+            None => " · pas d'export compta".to_string(),
+        };
+        let n_dsn = super::nombre(&json!(acceptees));
+        let infos_dit = format!("{} mois · {}{}{}", super::nombre(&json!(mois)), super::compte(n_dsn, "DSN acceptée", "DSN acceptées"), clos_dit, export_dit);
         out.push(json!({
+            "infos_dit": infos_dit,
             "annee": a, "mois": mois, "dsn_acceptees": acceptees,
             "clos": clos.get(a).cloned().unwrap_or(Value::Null),
             // Sa pastille : close, faite ; ouverte, une information (une annee se clot quand la compagnie le veut).
