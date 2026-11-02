@@ -43,7 +43,7 @@ fn avertissement(texte: impl Into<String>) -> Avis {
 }
 
 fn os(chemin: &Path, e: std::io::Error) -> Echec {
-    erreur("OSError", format!("{} : {}", chemin.display(), e))
+    erreur("OSError", socle::echec::du_disque(chemin, &e))
 }
 
 fn valeur(m: String) -> Echec {

@@ -187,28 +187,33 @@ pub(crate) fn cite(texte: &str, cle: &str) -> bool {
 fn refuser_ce_que_le_modele_tairait(modele: &Path, texte: &str, valeurs: &Value) -> R<()> {
     const TAUX: &str = "remuneration.taux_cachet";
     if valeurs.get(TAUX).is_none() && cite(texte, TAUX) {
+        let modele_nom = modele.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
         return Err(Refus {
             classe: Some("ModeleIncomplet"),
-            message: format!(
-                "Le modèle de contrat {} cite {{{{{}}}}}, et le contrat de {} n'a aucun taux de cachet : il ne paie aucun cachet, et ni l'engagement ni le mois n'en écrivent. Le moteur n'en invente pas. Écrire la rémunération de ce modèle par {{{{remuneration.detail}}}}, qui la dit quelle que soit sa forme (le modèle livré le fait), ou porter le taux sur une ligne de cachet de l'engagement. Rien n'est écrit.",
-                modele.display(),
-                TAUX,
-                valeurs.get("salarie.nom_complet").and_then(Value::as_str).unwrap_or("ce salarie"),
+            message: socle::echec::avec(
+                format!(
+                    "Le modèle de contrat « {} » cite le taux du cachet, et le contrat de {} n'a aucun taux de cachet : il ne paie aucun cachet, et ni l'engagement ni le mois n'en écrivent. Le moteur n'en invente pas. Écrire la rémunération de ce modèle par le détail de la rémunération, qui la dit quelle que soit sa forme (le modèle livré le fait), ou porter le taux sur une ligne de cachet de l'engagement. Rien n'est écrit.",
+                    modele_nom,
+                    valeurs.get("salarie.nom_complet").and_then(Value::as_str).unwrap_or("ce salarie"),
+                ),
+                serde_json::json!({"chemin": modele.to_string_lossy(), "marqueur": format!("{{{{{}}}}}", TAUX), "a_ecrire": "{{remuneration.detail}}"}),
             ),
         });
     }
     for cle in A_CITER {
         let valeur = valeurs.get(cle).and_then(Value::as_str).unwrap_or_default();
         if !valeur.trim().is_empty() && !cite(texte, cle) {
+            let modele_nom = modele.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             return Err(Refus {
                 classe: Some("ModeleIncomplet"),
-                message: format!(
-                    "Le modèle de contrat {} n'a pas le marqueur {{{{{}}}}} : le contrat de {} tairait ce qui lui est versé hors brut ({}). Ajouter {{{{{}}}}} à l'article « Rémunération » de ce modèle (le modèle livré l'y place juste après {{{{remuneration.periode}}}}). Rien n'est écrit.",
-                    modele.display(),
-                    cle,
-                    valeurs.get("salarie.nom_complet").and_then(Value::as_str).unwrap_or("ce salarie"),
-                    valeur.trim().trim_start_matches(',').trim(),
-                    cle
+                message: socle::echec::avec(
+                    format!(
+                        "Le modèle de contrat « {} » ne cite pas ce que le contrat de {} lui verse hors brut ({}) : le contrat le tairait. Ajouter son marqueur à l'article « Rémunération » de ce modèle (le modèle livré l'y place juste après la période). Rien n'est écrit.",
+                        modele_nom,
+                        valeurs.get("salarie.nom_complet").and_then(Value::as_str).unwrap_or("ce salarie"),
+                        valeur.trim().trim_start_matches(',').trim()
+                    ),
+                    serde_json::json!({"chemin": modele.to_string_lossy(), "marqueur": format!("{{{{{}}}}}", cle), "apres": "{{remuneration.periode}}"}),
                 ),
             });
         }
@@ -308,9 +313,12 @@ pub fn ecrire_avenant(
     if ailleurs && !m.modification.iter().any(|b| b.contains("modification.phrase")) {
         return Err(Refus {
             classe: Some("ModeleIncomplet"),
-            message: format!(
-                "Le modèle d'avenant {} ne dit pas une modification en clair : un contrat signé hors du logiciel n'a pas d'article à citer. Ajoutez à son bloc MODIFICATION: un paragraphe {{{{modification.phrase}}}} (Configuration › Modèles de contrat). Rien n'est parti.",
-                nom
+            message: socle::echec::avec(
+                format!(
+                    "Le modèle d'avenant {} ne dit pas une modification en clair : un contrat signé hors du logiciel n'a pas d'article à citer. Ajoutez à son bloc de modification un paragraphe qui porte la phrase de la modification (Configuration › Modèles de contrat). Rien n'est parti.",
+                    nom
+                ),
+                serde_json::json!({"marqueur": "{{modification.phrase}}"}),
             ),
         });
     }
