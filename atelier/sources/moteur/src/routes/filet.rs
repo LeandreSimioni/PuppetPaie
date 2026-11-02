@@ -219,6 +219,11 @@ fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
     let message = |l: Option<&Value>| l.map(|s| format!("« {} » : {}", super::mot(&s["debut"]), super::mot(&s["depart"]["mots"]).to_lowercase())).unwrap_or_default();
     if nom == "signalements" || nom == "signalement-envoyer" {
         v["ecran"] = ecran_du_message();
+        // Le jour et l'heure de chaque message, tels qu'on les lit.
+        for s in v.get_mut("signalements").and_then(Value::as_array_mut).into_iter().flatten() {
+            let dit = super::quand(&super::mot(&s["quand"]));
+            s["quand_dit"] = json!(dit);
+        }
     }
     if nom.starts_with("diagnostic-") {
         v["ecran"] = ecran_du_diagnostic(&v);

@@ -851,7 +851,7 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
     let titre_dit = if !titre.is_empty() { titre.clone() } else if !libelle.is_empty() { libelle.clone() } else { format!("retour de nature {}", nature) };
     let nature_dit = if nature.is_empty() { String::new() } else { format!("Nature {} : {}", nature, libelle) };
     json!({
-        "titre_dit": titre_dit, "nature_dit": nature_dit,
+        "titre_dit": titre_dit, "nature_dit": nature_dit, "quand_dit": crate::routes::quand(&quand_publication(&publication)),
         "nature": nature, "libelle": libelle, "organisme": organisme, "statut": statut, "verdict": verdict, "pastille": pastille,
         "quand": quand_publication(&publication), "titre": titre, "phrases": phrases, "anomalies": anomalies, "traduite": traduite,
         "piece": piece.and_then(|p| p.strip_prefix(racine).ok().map(|x| x.to_string_lossy().replace('\\', "/"))),

@@ -399,7 +399,7 @@ function copieAvecSaisie(noeud, doc) {
 function vosMessages(liste) {
   if (!liste.length) return "";
   return `<h4 class="sg-titre-messages">Vos messages</h4><ul class="sg-messages">${liste.map((s) => `
-    <li${s.reponse && !s.lu ? ' class="nouveau"' : ""}><span class="discret">${echapper(quand(s.quand))}</span>
+    <li${s.reponse && !s.lu ? ' class="nouveau"' : ""}><span class="discret">${echapper(s.quand_dit)}</span>
       ${echapper(s.debut)}${s.debut && s.debut.length >= 80 ? "…" : ""}
       ${s.reponse ? `<p class="sg-reponse">${echapper(s.reponse)}</p>` : etatDuMessage(s)}</li>`).join("")}</ul>`;
 }
@@ -455,7 +455,7 @@ async function dessinerPastilleReponses(lus) {
 function listeSignalements(liste) {
   if (!liste.length) return "";
   return `<h4>Vos signalements</h4><ul class="sg-liste">${liste.map((s) => `
-    <li><span class="discret">${echapper(quand(s.quand))}</span> <b>${echapper(s.numero)}</b>
+    <li><span class="discret">${echapper(s.quand_dit)}</span> <b>${echapper(s.numero)}</b>
       — ${echapper(s.debut)}${s.ticket
         ? ` <a href="${echapper(s.ticket)}" target="_blank" rel="noopener">ticket n° ${echapper(String(s.ticket_numero ?? ""))}</a>` : ""}${s.etat !== "arrive" ? etatDuMessage(s) : ""}</li>`).join("")}</ul>`;
 }

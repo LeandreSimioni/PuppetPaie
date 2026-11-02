@@ -889,6 +889,9 @@ fn gabarit(c: &[char], mut i: usize, v: &mut Vec<String>) -> (String, usize) {
             i += 2;
             let mut profondeur = 1;
             let (mut ternaire, mut branches) = (false, Vec::new());
+            // Par niveau de parentheses (un appel, une liste) : un choix y a-t-il commence ? Un argument, ou ce qui
+            // precede le `?`, n'est pas une branche ; une virgule ferme le choix de son niveau.
+            let mut niveaux = vec![false];
             while i < c.len() && profondeur > 0 {
                 if c[i] == '/' && c.get(i + 1) == Some(&'/') {
                     while i < c.len() && c[i] != '\n' {
@@ -899,16 +902,25 @@ fn gabarit(c: &[char], mut i: usize, v: &mut Vec<String>) -> (String, usize) {
                 match c[i] {
                     '{' => profondeur += 1,
                     '}' => profondeur -= 1,
-                    '?' if profondeur == 1 && ternaire_en(c, i) => ternaire = true,
+                    '(' | '[' if profondeur == 1 => niveaux.push(false),
+                    ')' | ']' if profondeur == 1 && niveaux.len() > 1 => {
+                        niveaux.pop();
+                    }
+                    ',' if profondeur == 1 => *niveaux.last_mut().unwrap() = false,
+                    '?' if profondeur == 1 && ternaire_en(c, i) => {
+                        ternaire = true;
+                        *niveaux.last_mut().unwrap() = true;
+                    }
                     _ => {}
                 }
+                let branche = profondeur == 1 && *niveaux.last().unwrap();
                 if c[i] == '`' {
                     let (t, j) = gabarit(c, i + 1, v);
-                    if profondeur == 1 { branches.push(t) } else { v.push(t) }
+                    if branche { branches.push(t) } else { v.push(t) }
                     i = j;
                 } else if c[i] == '"' || c[i] == '\'' {
                     let (t, j) = chaine(c, i);
-                    if profondeur == 1 { branches.push(t) } else { v.push(t) }
+                    if branche { branches.push(t) } else { v.push(t) }
                     i = j;
                 } else {
                     i += 1;

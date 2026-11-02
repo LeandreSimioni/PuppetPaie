@@ -163,7 +163,7 @@ function dessinerRetour(r) {
       <td>${echapper(a.salarie || "")}</td></tr>`).join("")}</table>` : "";
   return `
     <details class="retour">
-      <summary><span class="discret">${echapper(r.quand ? quand(r.quand) : "")}</span>
+      <summary><span class="discret">${echapper(r.quand_dit || "")}</span>
         ${r.organisme ? `${echapper(r.organisme)} — ` : ""}${echapper(titre)}
         ${pastilleDeLEtat(r.pastille)}</summary>
       <div class="retour-corps">
