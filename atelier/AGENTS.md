@@ -216,7 +216,7 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
 | `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `envois/` (ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours, et le journal de ce qui est parti ; il reçoit des pièces faites et un mot de passe, et le branchement que `moteur` choisit : le monde, le simulateur ou le message), `moteur/` (programme `moteur` : `src/routes/` une route par geste de l'écran, `src/interface/` le serveur local de la page et la veille, `src/compagnie/` coffre, demande d'un acte réel, sauvegarde, mise à jour, bridage, ouverture, filet, incidents, conseils, `src/import/` le passé d'un ancien logiciel, `src/atelier/` les outils de l'éditeur et la publication, `src/commandes/` la ligne de commande ; exécutables livrés dans `moteur/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
-| `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `moteur`), les docs, les versions publiées, l'installeur, le site |
+| `atelier/outils/`, `docs/`, `installeur/`, `maquettes/` | les outils d'atelier (des commandes de `moteur`), les docs, l'installeur, les maquettes |
 
 **L'interface** : la page `logiciel/interface/` (HTML, CSS, JS sans cadre) parle au moteur par `moteur route` (`js/tuyau.js`) ;
 la fenêtre Tauri (`atelier/sources/fenetre/`) ne fait que l'afficher. **Toute décision vit dans le moteur** (règle 2) : une page
@@ -406,7 +406,7 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # les s
   `socle/src/garde_reseau.rs` refuse alors toute sortie hors de 127.0.0.1 ; un test qui veut voir une sortie nomme son faux
   mandataire dans cette variable. `tests/fichiers/garde_reseau.rs` exige que toute connexion du moteur passe par le garde-fou
   et qu'un `env_clear()` repose la variable.
-- `.claude/hooks/session-start.sh` compile la suite d'avance dans le nuage. Doutes sur des tests : `journal/tests/DOUTES-TESTS.md`.
+- `.claude/hooks/session-start.sh` compile la suite d'avance dans le nuage.
 
 ## GitHub Actions : à la fin seulement
 
@@ -435,7 +435,7 @@ un truc urgent ; c'est lui qui lance « Publier », jamais un agent. En cas de d
 6. **Une nature de contrat n'est pas un détail.** `donnees/contrats-base.json` dit ce que la DSN écrit par nature
    (`cddu_spectacle`, `cdi`, `cdd`) ; un engagement muet est un CDDU. Le numéro d'objet spectacle est **interdit** hors des
    natures 02 et 10 (CCH-11). Le barème a des axes qui s'empilent (statut, nature, santé, catégorie), à un seul endroit
-   (`droit::bareme::bareme_applique`). La prévoyance des permanents vient de la convention ; un cadre permanent lit
+   (`droit::bareme::bareme_applique_au_contrat`). La prévoyance des permanents vient de la convention ; un cadre permanent lit
    `par_categorie.cadre_permanent`. Détail : `docs/ARCHITECTURE.md`, « La nature du contrat ».
 7. **Deux contrôles avant tout dépôt** : les usages (une rubrique a-t-elle le *droit* d'être là pour la nature de déclaration)
    et les formats (ce qu'on y a *mis* a-t-il la bonne forme). Un contrôle faux refuserait du licite : c'est lui qu'on retire,
