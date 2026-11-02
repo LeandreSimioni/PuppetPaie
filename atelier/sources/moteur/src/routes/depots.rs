@@ -114,6 +114,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             v["encarts"] = Value::Array(encarts);
             lignes.extend(v["avertissements"].as_array().into_iter().flatten().cloned());
             v["phrases"] = Value::Array(lignes);
+            // Le titre de la boite : ce qui se depose.
+            v["titre"] = json!(if charge["quoi"] == json!("dsn") { "Déposer la DSN" } else { "Déposer la DPAE" });
+            v["ordres_titre"] = json!(format!("Ordres de télépaiement ({})", super::nombre(&v["ordres"])));
             // Une DSN se dit par sa nature, son mois et ses salaries quand rien d'autre n'est a dire ; une DPAE par ses
             // embauches.
             if !v["phrase"].as_str().is_some_and(|p| !p.is_empty()) {

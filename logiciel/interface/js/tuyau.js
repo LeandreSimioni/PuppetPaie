@@ -499,7 +499,7 @@ function occupe(bouton, texte) {
   const avant = bouton.innerHTML;
   bouton.disabled = true;
   bouton.classList.add("occupe");
-  bouton.textContent = texte;
+  bouton.textContent = texte ?? bouton.dataset.occupe ?? bouton.textContent;
   return () => {
     if (!bouton.isConnected) return;
     bouton.disabled = false;

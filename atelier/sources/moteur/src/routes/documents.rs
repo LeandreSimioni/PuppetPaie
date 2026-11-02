@@ -545,9 +545,10 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let lignes = m.lignes()?;
     // Ce qui est deja parti : la meme lecture que la case Documents de l'engagement (`etapes::documents_partis`).
     let partis = crate::routes::etapes::documents_partis(ctx, &mois, &m.etats_du_mois(&mois)?, &lignes)?;
-    let deja = messages.iter().filter_map(|x| partis.get(&x.cle)).filter_map(|p| p["quand"].as_str()).max().map(|q| json!({"quand": q}));
+    let deja = messages.iter().filter_map(|x| partis.get(&x.cle)).filter_map(|p| p["quand"].as_str()).max().map(|q| json!({"quand": q, "quand_dit": format!("Le {}.", super::quand(q))}));
     let mut r = Map::new();
     r.insert("expediteur".into(), json!(expediteur));
+    r.insert("expediteur_dit".into(), json!(format!("Courriels depuis {}", expediteur)));
     r.insert("avertissements".into(), json!(avertissements));
     r.insert(
         "messages".into(),

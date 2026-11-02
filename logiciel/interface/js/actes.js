@@ -169,30 +169,15 @@ function recapitulatifDsn(r) {
   // Un nombre du fichier, à la française ; une correction le signe d'un vrai
   // moins (« −184 h » : ce qui s'ajoute à ce qui a déjà été déclaré).
   const signe = (x) => String(x).replace(/^-/, "−");
-  const nombre = (x) => signe(Number(x).toLocaleString("fr-FR", { maximumFractionDigits: 2 }));
-  const vide = (x) => !x || Number(x) === 0;
-  // L'activité en une colonne : « 4 cachets · 4 j », « 151,67 h ».
-  const activite = (c) => [
-    vide(c.cachets) ? "" : `${nombre(c.cachets)} cachet${Math.abs(Number(c.cachets)) > 1 ? "s" : ""}`,
-    vide(c.heures) ? "" : `${nombre(c.heures)} h`,
-    vide(c.jours) ? "" : `${nombre(c.jours)} j`,
-  ].filter(Boolean).join(" · ") || "—";
-  // Les dates sur une ligne : « 06/10 → 09/10/2026 » dans une même année.
-  const dates = (c) => {
-    if (!c.fin || c.fin === c.debut) return jjmmaaaa(c.debut);
-    const d = jjmmaaaa(c.debut), f = jjmmaaaa(c.fin);
-    return `${c.debut.slice(0, 4) === c.fin.slice(0, 4) ? d.slice(0, 5) : d} → ${f}`;
-  };
   const lignes = r.salaries.map((s) => s.contrats.map((c, i) => `
     <tr class="${c.ecarts.length ? "ecart" : ""}${c.correction ? " correction" : ""}">
       <td>${i === 0 ? `<b>${echapper(s.nom)}</b> ${echapper(s.prenoms)}` : ""}</td>
       <td>${echapper(c.numero)}</td>
-      <td class="dates">${echapper(dates(c))}</td>
+      <td class="dates">${echapper(c.dates_dit)}</td>
       <td>${echapper(c.emploi)}</td>
-      <td class="num">${c.correction ? "correction : " : ""}${echapper(activite(c))}</td>
+      <td class="num">${echapper(c.activite_dit)}</td>
       <td class="num">${c.remunere ? echapper(signe(euros(c.brut))) : "—"}</td>
-      <td class="fin">${c.correction ? "mois déjà déclaré"
-        : c.fin_declaree ? "fin le " + echapper(jjmmaaaa(c.fin_declaree)) : "en cours"}</td>
+      <td class="fin">${echapper(c.fin_dit)}</td>
     </tr>
     ${c.ecarts.length ? `<tr class="ecart"><td></td><td colspan="6">
       ${pastilleDeLEtat(c.pastille_ecarts)}</td></tr>` : ""}`).join("")).join("");
@@ -201,8 +186,7 @@ function recapitulatifDsn(r) {
       <b>${echapper(r.titre)}</b> ${echapper(r.phrase)}
     </div>
     ${r.absents.length ? `<ul class="absents">${r.absents.map((x) =>
-      `<li>${pastilleDeLEtat(x.pastille)} ${echapper(x.nom)} — contrat
-       ${echapper(x.numero)}, du ${echapper(jjmmaaaa(x.debut))}</li>`).join("")}</ul>` : ""}
+      `<li>${pastilleDeLEtat(x.pastille)} ${echapper(x.dit)}</li>`).join("")}</ul>` : ""}
     <table class="recap-dsn">
       <tr><th>Salarié</th><th>Contrat</th><th>Dates</th><th>Emploi</th>
         <th class="num">Activité</th><th class="num">Brut</th><th>Fin</th></tr>
@@ -216,7 +200,7 @@ function corpsDsn(a) {
     <p class="discret">${echapper(a.description)}</p>
     ${recapitulatifDsn(a.recapitulatif)}
     <details class="replie">
-      <summary>Ordres de télépaiement (${v.length})</summary>
+      <summary>${echapper(a.ordres_titre)}</summary>
       <div class="encart ${ENCART_DE_COULEUR[a.couleur_ordres] ?? ""}">
       ${a.ordres_erreur ? `<p><b>${echapper(a.ordres_erreur)}</b></p>` : ""}
       ${v.length
@@ -270,7 +254,7 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
   rafraichirActions();
 
   ouvrirBoite(`
-    <h3>Déposer ${quoi === "dsn" ? "la DSN" : "la DPAE"}</h3>
+    <h3>${echapper(a.titre)}</h3>
     ${moisEnGros(a.mois)}
     ${quoi === "dsn" ? corpsDsn(a) : corpsDpae(a)}
     ${encarts(a.encarts)}
@@ -278,8 +262,8 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
     ${noteFictive()}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
-      <button class="primaire" id="d-test">Envoyer le test</button>
-      <button class="secondaire envoi" id="d-reel" disabled>Envoyer le réel</button>
+      <button class="primaire" id="d-test" data-occupe="Envoi…">Envoyer le test</button>
+      <button class="secondaire envoi" id="d-reel" data-occupe="Dépôt…" disabled>Envoyer le réel</button>
     </div>
     ${a.reel ? `<p class="discret"><button type="button" class="lien envoi" id="d-sans-test">envoyer sans test</button></p>` : ""}`);
 
@@ -289,14 +273,13 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
   const lancer = async (reel, forcer = false, contournement = "") => {
     let mdp = "";
     if (reel) {
-      mdp = mdpConnu || await demanderMotDePasse(quoi === "dsn" ? "Déposer la DSN" : "Déposer la DPAE", { envoi: true });
+      mdp = mdpConnu || await demanderMotDePasse(a.titre, { envoi: true });
       if (!mdp) return;
       mdpConnu = mdp;
     }
     document.getElementById("d-test").disabled = true;
     document.getElementById("d-reel").disabled = true;
-    const rendre = occupe(document.getElementById(reel ? "d-reel" : "d-test"),
-                          reel ? "Dépôt…" : "Envoi…");
+    const rendre = occupe(document.getElementById(reel ? "d-reel" : "d-test"));
     try {
       const r = await api("deposer", { ...charge, reel, motdepasse: mdp,
                                        forcer, contournement });
@@ -351,7 +334,8 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
     const b = document.getElementById("d-reel"), t = document.getElementById("d-test");
     if (!b) return;
     b.disabled = !a.reel || !principal;
-    b.className = (principal ? "primaire" : "secondaire") + " envoi";
+    b.className = principal ? "primaire" : "secondaire";
+    b.classList.add("envoi");
     if (t) t.className = principal ? "secondaire" : "primaire";
     if (principal && a.reel) b.focus();
     const sansTest = document.getElementById("d-sans-test");
@@ -515,7 +499,7 @@ async function boiteEnvoi(mois) {
   ouvrirBoite(`
     <h3>Les documents</h3>
     ${moisEnGros(mois)}
-    ${a.boite_liee && a.expediteur ? `<p class="discret">Courriels depuis ${echapper(a.expediteur)}</p>` : ""}
+    ${a.boite_liee && a.expediteur_dit ? `<p class="discret">${echapper(a.expediteur_dit)}</p>` : ""}
     ${(a.empechements || []).map((x) =>
       `<div class="encart attention">${echapper(x)}</div>`).join("")}
     ${(a.avertissements || []).concat(a.informations || []).map((x) =>
@@ -535,7 +519,7 @@ async function boiteEnvoi(mois) {
           <ul>${m.changements.map((c) => `<li>${echapper(c)}</li>`).join("")}</ul></td></tr>` : ""}`).join("")}
     </table>`}
     ${a.deja ? `<div class="encart attention"><b>Déjà partis</b>
-      Le ${echapper(quand(a.deja.quand))}.</div>` : ""}
+      ${echapper(a.deja.quand_dit || "")}</div>` : ""}
     ${peut && a.boite_liee ? noteFictive() : ""}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
@@ -570,7 +554,7 @@ async function boiteEnvoi(mois) {
       const r = await api("envoyer-documents", { mois, salaries, motdepasse: mdp });
       fermerBoite();
       dire(r.phrase, "envoye");
-      afficherEnvoi("Documents aux salariés", mois, r.partis, r.avertissements);
+      afficherEnvoi("Documents aux salariés", mois, r.phrase, r.avertissements);
       fenetreCourrielsFictifs("documents", repere);
       await rafraichirActions();
     } catch (e) {
@@ -610,8 +594,8 @@ async function boiteSignature(mois, seulement) {
                  data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}" ${c.en_avenant ? 'data-avenant="1"' : ""}
                  ${coche(c) ? "checked" : ""}>
           <span><b>${echapper(c.nom)}</b> — ${echapper(c.spectacle)},
-            ${echapper(periodeEnClair(c.debut, c.fin))}
-            ${c.numero ? `<span class="discret">(contrat n° ${echapper(c.numero)})</span>` : ""}
+            ${echapper(c.periode_dit)}
+            ${c.numero_dit ? `<span class="discret">(${echapper(c.numero_dit)})</span>` : ""}
             ${a.boite_liee ? (c.destinataire ? `<br><span class="discret">${echapper(c.destinataire)}</span>`
               : `<br><span class="s-courriel">Son courriel
                   <input type="email" class="s-courriel-saisi" placeholder="son courriel" data-salarie="${echapper(c.salarie)}">
@@ -694,8 +678,8 @@ async function boiteSignature(mois, seulement) {
       const r = await api("demander-signature", { mois, contrats: choisis, avenants, motdepasse: mdp });
       fermerBoite();
       dire(r.phrase, "envoye");
-      afficherEnvoi("Contrats à signer", mois, [...new Set(r.partis)],
-                    [...(r.avertissements || []), ...r.contrats.map((c) => c.fichier)]);
+      afficherEnvoi("Contrats à signer", mois, r.phrase,
+                    r.avertissements);
       if (enFictive()) {
         fenetreCourrielsFictifs("signature", repere);
       }
@@ -728,8 +712,8 @@ async function boiteContratsEnAttente(mois, fait) {
       ${contrats.map((c, i) => `
         <div class="choix">
           <span><b>${echapper(c.nom)}</b> — ${echapper(c.spectacle)},
-            ${echapper(periodeEnClair(c.debut, c.fin))}
-            ${c.numero ? `<span class="discret">(contrat n° ${echapper(c.numero)})</span>` : ""}
+            ${echapper(c.periode_dit)}
+            ${c.numero_dit ? `<span class="discret">(${echapper(c.numero_dit)})</span>` : ""}
             <br>${pastilleDeLEtat(c.pastille)}</span>
           <span class="gestes-contrat">
             <button class="primaire petit a-recu" data-i="${i}">Reçu signé</button>
@@ -801,7 +785,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
         <b>${echapper(m.article)}</b>
         <p>${echapper(m.phrase)}</p>
       </div>` : `<div class="modif-avenant">
-        <b>Article ${m.numero} — ${echapper(m.article)}</b>
+        <b>${echapper(m.titre_dit)}</b>
         <div class="discret">Avant</div>${cite(m.avant)}
         <div class="discret">Désormais</div>${cite(m.apres)}
       </div>`).join("")}
@@ -837,7 +821,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
       const r = await api("demander-signature", { mois, avenants: [{ salarie, debut, numero: numero || "", mois, effet }], motdepasse: mdp });
       fermerBoite();
       dire(r.phrase, "envoye");
-      afficherEnvoi("Avenant à signer", a.mois, r.partis, r.contrats.map((c) => c.fichier));
+      afficherEnvoi("Avenant à signer", a.mois, r.phrase, r.avertissements);
       await rafraichirActions();
     } catch (e) {
       rendre();
@@ -854,7 +838,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
                                                   motdepasse: mdp, remplace: true });
       fermerBoite();
       dire(r.phrase, "envoye");
-      afficherEnvoi("Contrat à signer", a.mois, r.partis, r.contrats.map((c) => c.fichier));
+      afficherEnvoi("Contrat à signer", a.mois, r.phrase, r.avertissements);
       await rafraichirActions();
     } catch (e) {
       rendre();
@@ -863,12 +847,11 @@ async function boiteAvenant(mois, salarie, debut, numero) {
   };
 }
 
-function afficherEnvoi(titre, mois, partis, details) {
+function afficherEnvoi(titre, mois, phrase, details) {
   document.getElementById("resultat").innerHTML = `
     <div class="carte" style="margin-top:20px">
       <h2>${echapper(titre)} — ${echapper(moisEnClair(mois))}</h2>
-      <div class="encart bien"><b>${partis.length} message(s) parti(s)</b>
-        ${echapper(partis.join(", "))}</div>
+      <div class="encart bien">${echapper(phrase || "")}</div>
       ${(details || []).length
         ? `<p class="note">${echapper(details.join(" · "))}</p>` : ""}
     </div>`;

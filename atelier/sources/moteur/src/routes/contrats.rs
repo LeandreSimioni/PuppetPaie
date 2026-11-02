@@ -719,6 +719,10 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("relancer".into(), relancer);
         l.insert("recu_le".into(), etat["recu"].clone());
         l.insert("caduc".into(), etat["caduc"].clone());
+        let champ = |k: &str| l.get(k).cloned().unwrap_or(Value::Null);
+        let (debut, fin, numero) = (champ("debut"), champ("fin"), champ("numero"));
+        l.insert("periode_dit".into(), json!(super::periode_en_clair(&debut, &fin)));
+        l.insert("numero_dit".into(), if vrai(&numero) { json!(format!("contrat n° {}", valeur_en_texte(&numero))) } else { Value::Null });
         l.insert("pourquoi".into(), etat["pourquoi"].clone());
         l.insert("avenant".into(), etat["avenant"].clone());
         l.insert("avenant_attendu".into(), etat["avenant_attendu"].clone());
@@ -879,7 +883,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let sal = &p.salarie;
     let modifications: Vec<Value> = modifs
         .iter()
-        .map(|x| json!({"numero": x.numero, "article": x.article, "avant": x.avant, "apres": x.apres, "blocs": x.blocs}))
+        .map(|x| json!({"numero": x.numero, "article": x.article, "titre_dit": format!("Article {} — {}", x.numero, x.article), "avant": x.avant, "apres": x.apres, "blocs": x.blocs}))
         .collect();
     Ok(json!({
         "salarie": salarie_v,

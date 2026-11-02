@@ -549,3 +549,12 @@ pub(crate) fn jour_en_clair(v: &Value) -> String {
     let t = mot(v);
     socle::date::Jour::lire(&t).map(|j| j.jj_mm_aaaa()).unwrap_or(t)
 }
+
+/// « du 02/11/2026 au 30/11/2026 », « depuis le 02/11/2026 » sans fin : une periode telle qu'une phrase la dit.
+pub(crate) fn periode_en_clair(debut: &Value, fin: &Value) -> String {
+    if vrai(fin) {
+        format!("du {} au {}", jour_en_clair(debut), jour_en_clair(fin))
+    } else {
+        format!("depuis le {}", jour_en_clair(debut))
+    }
+}

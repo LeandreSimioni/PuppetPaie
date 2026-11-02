@@ -149,7 +149,11 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             if !ecarts.is_empty() {
                 n_ecarts += 1;
             }
+            let (cachets, heures, jours) = (m.mesure_texte("cachets"), m.mesure_texte("heures"), m.mesure_texte("jours"));
             contrats_json.push(json!({
+                "activite_dit": activite_dite(&cachets, &heures, &jours, correction),
+                "dates_dit": dates_dites(&c.debut, &c.fin),
+                "fin_dit": if correction { "mois déjà déclaré".to_string() } else if !c.fin_declaree.is_empty() { format!("fin le {}", crate::routes::jour_en_clair(&json!(c.fin_declaree))) } else { "en cours".to_string() },
                 "numero": c.numero, "debut": c.debut, "fin": c.fin, "emploi": c.emploi,
                 "nature": c.nature, "objet": c.objet, "brut": brut,
                 "jours": m.mesure_texte("jours"), "cachets": m.mesure_texte("cachets"),
@@ -180,6 +184,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             "numero": n,
             "debut": p.engagement.debut.iso(),
             "fin": p.engagement.fin.map_or(String::new(), |f| f.iso()),
+            "dit": format!("{} — contrat {}, du {}", socle::texte::salarie_nomme_ou(Some(&p.salarie), "Ce salarié"), n, p.engagement.debut.jj_mm_aaaa()),
             "pastille": crate::routes::pastille("a_faire", "absent du fichier"),
         }));
     }
@@ -329,4 +334,41 @@ fn en_clair_jjmmaaaa(d: &str) -> String {
     } else {
         d.to_string()
     }
+}
+
+/// Un nombre du fichier, a la francaise ; une correction le signe d'un vrai moins (« −184 » : ce qui s'ajoute a ce qui a
+/// deja ete declare).
+fn nombre_dit(t: &str) -> String {
+    let x = decimal_lu(t).unwrap_or_default();
+    socle::texte::virgule(x).replacen('-', "−", 1)
+}
+
+/// L'ACTIVITE D'UN CONTRAT EN UNE COLONNE : « 4 cachets · 4 j », « 151,67 h » ; « correction : » devant celle d'un mois
+/// deja declare ; « — » sans rien.
+fn activite_dite(cachets: &str, heures: &str, jours: &str, correction: bool) -> String {
+    let vide = |t: &str| decimal_lu(t).is_none_or(|x| x.is_zero());
+    let mut l = Vec::new();
+    if !vide(cachets) {
+        let n = decimal_lu(cachets).unwrap_or_default().abs();
+        l.push(format!("{} {}", nombre_dit(cachets), if n > rust_decimal::Decimal::ONE { "cachets" } else { "cachet" }));
+    }
+    if !vide(heures) {
+        l.push(format!("{} h", nombre_dit(heures)));
+    }
+    if !vide(jours) {
+        l.push(format!("{} j", nombre_dit(jours)));
+    }
+    let a = if l.is_empty() { "—".to_string() } else { l.join(" · ") };
+    if correction { format!("correction : {}", a) } else { a }
+}
+
+/// Les dates d'un contrat sur une ligne : « 06/10 → 09/10/2026 » dans une meme annee, le jour seul s'il n'en a qu'un.
+fn dates_dites(debut: &str, fin: &str) -> String {
+    let jour = |t: &str| crate::routes::jour_en_clair(&json!(t));
+    if fin.is_empty() || fin == debut {
+        return jour(debut);
+    }
+    let d = jour(debut);
+    let d = if debut.get(..4) == fin.get(..4) { d.chars().take(5).collect() } else { d };
+    format!("{} → {}", d, jour(fin))
 }

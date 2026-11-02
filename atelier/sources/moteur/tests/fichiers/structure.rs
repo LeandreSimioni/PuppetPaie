@@ -754,9 +754,15 @@ fn composee(t: &str) -> bool {
                 blanc = true;
                 j += sens;
             }
-            if blanc && j >= 0 && (j as usize) < c.len() && c[j as usize].is_alphabetic() {
-                return true;
+            if !(blanc && j >= 0 && (j as usize) < c.len() && c[j as usize].is_alphabetic()) {
+                continue;
             }
+            // Apres la valeur, son unite (« … h », « … Ko ») : deux lettres au plus, ou un multiple d'octet.
+            let mot: String = c[j as usize..].iter().take_while(|x| x.is_alphabetic()).collect();
+            if sens == 1 && (mot.chars().count() <= 2 || ["Ko", "Mo", "Go"].contains(&mot.as_str())) {
+                continue;
+            }
+            return true;
         }
     }
     false
@@ -936,7 +942,8 @@ fn texte_humain(t: &str) -> bool {
     let t = t.trim();
     !t.contains('<')
         && t.chars().any(char::is_alphabetic)
-        && (t.split_whitespace().count() > 1 || t.chars().any(|c| c.is_uppercase() || !c.is_ascii() || c == '\''))
+        && (t.split_whitespace().filter(|m| 2 * m.chars().filter(|c| c.is_alphabetic()).count() > m.chars().count()).count() > 1
+            || t.chars().any(|c| c.is_uppercase() || !c.is_ascii() || c == '\''))
 }
 
 /// Un accord : une terminaison de trois lettres au plus (« s », « es », « nt »).
