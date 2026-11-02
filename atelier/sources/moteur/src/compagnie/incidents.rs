@@ -899,7 +899,7 @@ pub fn client_du_poste(ou: &Path, serveur: &str) -> R<Result<Client, ErreurFilet
                 Err(e) => return Ok(Err(e)),
             };
             let (Some(n), Some(c)) = (r.get("poste").and_then(numero_de_poste), r.get("cle").and_then(cle_de_poste)) else {
-                return Ok(Err(ErreurFilet::filet(format!("Filet DPAE : {}/poste n'a pas rendu une identite de poste.", serveur), 0)));
+                return Ok(Err(ErreurFilet::filet(format!("le serveur de l'éditeur a répondu : {}/poste n'a pas rendu une identité de poste.", serveur), 0)));
             };
             d.insert("poste".into(), json!(n));
             d.insert("cle".into(), json!(c));

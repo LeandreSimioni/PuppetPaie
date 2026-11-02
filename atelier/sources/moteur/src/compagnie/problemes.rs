@@ -407,17 +407,6 @@ fn empreinte_du_message(corps: &Value) -> String {
     h.finalize().iter().map(|b| format!("{:02x}", b)).collect()
 }
 
-/// La raison d'un essai manque, dite pour la boite : le canal de l'editeur parle du « filet DPAE », qui n'a rien a voir ici.
-fn raison_lisible(message: &str) -> String {
-    if let Some(r) = message.strip_prefix("Filet DPAE injoignable : ") {
-        format!("le serveur de l'éditeur est injoignable ({}).", r.trim_end_matches('.'))
-    } else if let Some(r) = message.strip_prefix("Filet DPAE : ") {
-        format!("le serveur de l'éditeur a répondu : {}", r)
-    } else {
-        message.to_string()
-    }
-}
-
 /// Le bilan d'un passage : `{"partis", "reste", "erreur", "occupe"}`.
 fn bilan(partis: usize, reste: usize, erreur: &str, occupe: bool) -> Value {
     json!({"partis": partis, "reste": reste, "erreur": erreur, "occupe": occupe})
@@ -482,7 +471,7 @@ fn passage(racine: &Path) -> R<Value> {
                     break;
                 }
                 Canal::Panne(e) => {
-                    panne = raison_lisible(&e.message);
+                    panne = e.message;
                     break;
                 }
                 Canal::Pret(c) => client = Some(c),
@@ -496,7 +485,7 @@ fn passage(racine: &Path) -> R<Value> {
                 partis += 1;
             }
             Err(e) => {
-                panne = raison_lisible(&e.message);
+                panne = e.message;
                 break;
             }
         }

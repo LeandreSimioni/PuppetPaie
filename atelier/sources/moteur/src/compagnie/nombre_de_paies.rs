@@ -127,7 +127,7 @@ pub fn envoyer_si_du(ctx: &Contexte) -> Value {
     if let Err(e) = client.compter_paies(annee, paies) {
         return bilan(Some(annee), false, Some(paies), "", &e.message);
     }
-    let poste = client.poste.as_ref().map(|(n, _)| n.clone()).unwrap_or_default();
+    let poste = client.poste.0.clone();
     match retenir(racine, annee, paies, &poste) {
         Ok(()) => bilan(Some(annee), true, Some(paies), "", ""),
         // Parti, mais pas retenu : le passage suivant le renverra, et le serveur remplace la meme annee.
