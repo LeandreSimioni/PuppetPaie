@@ -133,7 +133,7 @@ function champDeFiche(c, fiche, nom) {
         <textarea data-cle="${c.cle}" data-forme="${c.forme}" hidden
           >${echapper(html)}</textarea>
         <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
-          <span id="signature-poids" class="discret"></span>
+          <span id="signature-poids" class="discret" data-vide="signature habituelle"></span>
           <button type="button" class="secondaire" id="signature-vider"
             >Signature habituelle</button>
         </div>
@@ -149,8 +149,7 @@ function champDeFiche(c, fiche, nom) {
         <label>${echapper(c.libelle)}
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="chiffres">
-            <option value=""${v3 ? "" : " selected"}>— code postal (${
-              echapper(ETAT.urssaf_deduit || "")}) —</option>
+            <option value=""${v3 ? "" : " selected"}>${echapper(ETAT.urssaf_deduit_dit || "")}</option>
             ${org.map((o) => `<option value="${echapper(o.code)}"${
                 o.code === v3 ? " selected" : ""}
               >${echapper(o.code)} — ${echapper(o.nom)}</option>`).join("")}
@@ -165,16 +164,15 @@ function champDeFiche(c, fiche, nom) {
       const cv = ETAT.conventions;
       const connue = cv.some((x) => String(x.idcc) === String(v ?? ""));
       return `<div class="champ pleine">
-        <label>Convention collective
+        <label><span>Convention collective</span>
           ${aideHtml(c.cle, c.aide)}
           <select data-cle="${c.cle}" data-forme="chiffres">
             ${String(v ?? "") ? "" : `<option value="" selected>— à choisir —</option>`}
             ${cv.map((x) => `<option value="${echapper(x.idcc)}"${
                 String(x.idcc) === String(v ?? "") ? " selected" : ""}
-              >IDCC ${echapper(x.idcc)} — ${echapper(x.libelle)}${
-                x.applicable ? "" : " (taux non relevés)"}</option>`).join("")}
+              >${echapper(x.option_dit)}</option>`).join("")}
             ${connue || !String(v ?? "") ? "" : `<option value="${echapper(v)}" selected
-              >IDCC ${echapper(v)} — non servie</option>`}
+              >${echapper(v)}</option>`}
           </select></label>
         ${aideCorps(c.cle, c.aide)}
         ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
@@ -424,17 +422,14 @@ function dessinerFormulaire(fiche) {
   document.getElementById("config-formulaire").innerHTML = `
     <div class="carte" style="margin-top:16px">
       ${FICHE_ACTIVE === "salarie" ? enteteSalarie(fiche)
-        : FICHE_ACTIVE === "entreprise" ? "" : `<h2>${fiche.cle
+        : FICHE_ACTIVE === "entreprise" ? "" : `<h2>${echapper(fiche.titre_dit || "")}${fiche.cle
           // Le titre, pas la cle : `aaah-zerbinette` est un identifiant interne.
-          ? `${echapper(fiche.sans_titre
-              ? "Spectacle à nommer" : fiche.donnees.titre || fiche.cle)}
-             <span class="discret">— ${echapper(fiche.donnees.numero_objet || fiche.cle)}</span>`
-          : "Nouveau spectacle"}</h2>
+          ? ` <span class="discret">— ${echapper(fiche.donnees.numero_objet || fiche.cle)}</span>` : ""}</h2>
         ${fiche.cle && fiche.donnees.titre ? `<div class="cout-annee" data-cote="spectacles"
           data-cle="${echapper(fiche.donnees.titre)}"></div>` : ""}`}
       ${!fiche.cle && FICHE_ACTIVE === "spectacle" ? `<p class="note">${aideDe("fiche_cle")}</p>` : ""}
-      ${err ? `<div class="encart erreur"><b>${err > 1 ? `${err} champs à corriger` : "Un champ à corriger"}</b>
-        — marqué${err > 1 ? "s" : ""} ci-dessous</div>` : ""}
+      ${err && fiche.erreurs_titre ? `<div class="encart erreur"><b>${echapper(fiche.erreurs_titre)}</b>
+        — ${echapper(fiche.erreurs_note)}</div>` : ""}
       ${sections ? champs : `<div class="champs">${champs}</div>`}
       <div class="actions">
         <!-- ANNULER : une fiche qu'on crée ou modifie peut s'abandonner sans
@@ -527,7 +522,8 @@ function brancherSignatureCourriel() {
   const poids = document.getElementById("signature-poids");
   const peser = () => {
     const n = new Blob([champ.value]).size;
-    poids.textContent = n ? `${Math.ceil(n / 1024)} Ko sur 150 Ko` : "signature habituelle";
+    if (n) poids.textContent = `${Math.ceil(n / 1024)} / 150 Ko`;
+    else poids.textContent = poids.dataset.vide;
     poids.style.color = n > SIGNATURE_LIMITE ? "#B22222" : "";
     if (n > SIGNATURE_LIMITE) poids.textContent += " — " + ((ETAT.aides || {}).signature_lourde || "");
   };
@@ -690,7 +686,7 @@ function brancherNationalite() {
     note.hidden = !p;
     if (!p) return;
     code.value = p.codification_ue;
-    note.textContent = `${lib[p.codification_ue] || p.codification_ue} — déduite de la nationalité (${p.nom})`;
+    note.textContent = `${lib[p.codification_ue] || p.codification_ue} — ${p.deduit_dit}`;
   };
   pays.addEventListener("change", poser);
   poser();
@@ -777,11 +773,10 @@ function fichesAttenduesHtml() {
   const l = (ETAT.configuration || {}).fiches_attendues || [];
   if (!l.length) return "";
   return `<div class="encart attente-fiches">
-    <b>${l.length} fiche(s) en attente</b>
+    <b>${echapper((ETAT.configuration || {}).fiches_attendues_titre || "")}</b>
     <button class="lien" id="fiches-relever">relever maintenant</button>
     <ul>${l.map((a) => `<li>${echapper(a.prenom ? a.prenom + " — " : "")}${
-        echapper(a.adresse)} <span class="discret">demandée le ${
-        echapper(jjmmaaaa(String(a.quand || "").slice(0, 10)))}</span>
+        echapper(a.adresse)} <span class="discret">${echapper(a.demande_dit)}</span>
       <button class="lien" data-oublier-fiche="${echapper(a.adresse)}">ne plus attendre</button></li>`).join("")}</ul>
   </div>`;
 }
@@ -1045,13 +1040,13 @@ function histoireDuChamp(lignes, desc, donnees) {
   // REPLIEE : elle sert a qui la cherche, et elle
   // montrait a tout le monde, en bas de chaque fiche, les formes declarees.
   return `<details class="champ pleine historique-fiche">
-    <summary>Historique des modifications (${rangees.length})</summary>
+    <summary>Historique des modifications</summary>
     <div class="aide">${aideDe("historique_fiche")}</div>
     <div class="histoire">${rangees.map((e) => `
       <div class="histoire-ligne">
         <span class="histoire-champ">${echapper(libelle(e.champ))}</span>
         <span class="histoire-valeur">${echapper(valeurHistorique(e.champ, e.valeur, remplacante(e)))}</span>
-        <span class="histoire-date">jusqu'au ${echapper(jjmmaaaa(e.jusqu_au))}</span>
+        <span class="histoire-date">${echapper(e.jusqu_au_dit || "")}</span>
         ${e.note ? `<div class="histoire-note">${echapper(e.note)}</div>` : ""}
       </div>`).join("")}</div>
   </details>`;
@@ -1312,7 +1307,8 @@ async function verifierFormulaire() {
     let note = champ.querySelector(":scope > .anomalie");
     if (!a) { if (note) note.remove(); return; }
     if (!note) { note = document.createElement("div"); champ.appendChild(note); }
-    note.className = `anomalie ${a.gravite}`;
+    note.className = "anomalie";
+    note.classList.add(a.gravite);
     note.textContent = a.message;
   });
   // UNE VALEUR FAUSSE SE VOIT : le tiroir « Avancé » qui en tient une
@@ -1437,7 +1433,7 @@ function demanderDateDEffet({ changements = [], depuis: propose, pourquoi, usage
                    codes ? `<span class="discret">${echapper(codes)}</span>` : "");
   }
   blocs += autres.map((c) => ligne(c.libelle, lisible(c, "avant"), lisible(c, "apres"))).join("");
-  const titre = metier.length && !autres.length ? "Nouveau métier" : "Ce qui change";
+  const titre = "Ce qui change";
   const dater = changements.length > 0;
   return new Promise((resoudre) => {
     let repondu = false;
@@ -1503,7 +1499,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
     if (FICHE_ACTIVE === "entreprise") {
       // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé.
       const note = document.getElementById("config-modifie");
-      if (note && r.enregistre_a) { note.hidden = false; note.textContent = `enregistré à ${r.enregistre_a.slice(11, 16)}`; }
+      if (note && r.enregistre_dit) { note.hidden = false; note.textContent = r.enregistre_dit; }
     } else if (enregistree) {
       const rang = document.querySelector(`#config-liste .rang.fiche[data-cle="${CSS.escape(enregistree)}"]`);
       if (rang) {
@@ -1532,7 +1528,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
       const pourquoi = [...new Set(erreurs.filter((a) => forcable || a.forcable === false).map((a) => a.pourquoi).filter(Boolean))];
       // Le libellé et son message sur une ligne : `.encart b` est un titre.
       ouvrirBoite(`<h3>Enregistrement refusé</h3>
-        <div class="encart erreur"><b>${erreurs.length > 1 ? `${erreurs.length} erreurs` : "Une erreur"}</b>
+        <div class="encart erreur"><b>${echapper(e.detail.erreurs_dit || "")}</b>
           ${erreurs.map((a) => `<div class="anomalie"><b>${echapper(libelles[a.champ] || a.champ)}</b> : ${echapper(a.message)}</div>`).join("")}</div>
         ${pourquoi.map((p) => `<p class="note">${echapper(p)}</p>`).join("")}
         <div class="actions">

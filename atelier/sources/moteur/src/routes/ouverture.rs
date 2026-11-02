@@ -323,7 +323,20 @@ fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Value>, anomali
     // Un spectacle dont l'import n'a lu que le numero d'objet porte le titre « A COMPLETER » : la page le range a part.
     let sans_titre = nom == "spectacle"
         && comble.get("titre").map(valeur_en_texte).is_some_and(|t| t.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER));
+    // Ce que l'en-tete de la fiche dit : le titre d'un spectacle, et les champs a corriger.
+    let titre_dit = match cle {
+        None => "Nouveau spectacle".to_string(),
+        Some(_) if sans_titre => "Spectacle à nommer".to_string(),
+        Some(c) => comble.get("titre").filter(|t| vrai(t)).map(valeur_en_texte).unwrap_or_else(|| c.to_string()),
+    };
+    let erreurs_titre = match erreurs {
+        0 => Value::Null,
+        1 => json!("Un champ à corriger"),
+        n => json!(format!("{} champs à corriger", n)),
+    };
+    let erreurs_note = if erreurs > 1 { "marqués ci-dessous" } else { "marqué ci-dessous" };
     Ok(json!({
+        "titre_dit": titre_dit, "erreurs_titre": erreurs_titre, "erreurs_note": erreurs_note,
         "nom": nom, "cle": cle, "donnees": brut(&Value::Object(comble)),
         "declare": declare, "anomalies": anomalies, "derives": derives, "pastille": pastille, "sans_titre": sans_titre,
     }))
@@ -539,7 +552,7 @@ pub fn boite_liee(ctx: &Contexte) -> R<bool> {
 /// Les demandes de fiche parties et pas encore revenues, les plus anciennes d'abord, comme la page les lit.
 fn fiches_attendues(ctx: &Contexte) -> R<Value> {
     let attendues = crate::routes::fiches::fiches_attendues(ctx)?;
-    Ok(Value::Array(attendues.into_iter().map(|a| json!({"code": a.code, "adresse": a.adresse, "prenom": a.prenom, "quand": a.quand})).collect()))
+    Ok(Value::Array(attendues.into_iter().map(|a| { let demande_dit = format!("demandée le {}", super::jour_en_clair(&json!(a.quand.chars().take(10).collect::<String>()))); json!({"code": a.code, "adresse": a.adresse, "prenom": a.prenom, "quand": a.quand, "demande_dit": demande_dit}) }).collect()))
 }
 
 /// La fiche telle qu'elle vaut, avec `historique` : les valeurs qu'une autre a remplacees dans la fiche datee `brute`, et
@@ -553,7 +566,7 @@ fn avec_historique(fiche: &Value, brute: Option<&Value>) -> R<Value> {
             let Some(depuis) = paire[1].0 else { continue };
             let note = liste.iter().find(|e| e.get("depuis").and_then(Value::as_str) == Some(depuis.iso().as_str())).and_then(|e| e.get("note")).cloned();
             let veille = depuis.plus_jours(-1).map_err(Echec::from)?;
-            lignes.push(json!({"champ": champ, "valeur": paire[0].1, "jusqu_au": veille.iso(), "note": note.unwrap_or(Value::Null)}));
+            lignes.push(json!({"champ": champ, "valeur": paire[0].1, "jusqu_au": veille.iso(), "jusqu_au_dit": format!("jusqu'au {}", veille.jj_mm_aaaa()), "note": note.unwrap_or(Value::Null)}));
         }
     }
     let mut f = fiche.clone();
@@ -631,7 +644,9 @@ fn configuration(ctx: &Contexte) -> R<Value> {
         let n = |k: &str| if c[k].is_null() { "?".to_string() } else { valeur_en_texte(&c[k]) };
         format!("compteurs {} — bulletin {} · AEM {} · CS {}", an, n("bulletin"), n("aem"), n("certificat_cs"))
     });
+    let fiches_attendues_titre = format!("{} fiche(s) en attente", fiches_attendues(ctx)?.as_array().map_or(0, Vec::len));
     Ok(json!({
+        "fiches_attendues_titre": fiches_attendues_titre,
         "compteurs_dit": compteurs_dit,
         "deduction_forfaitaire": deduction,
         "numeros_sans_titre": numeros_sans_titre,
@@ -1084,7 +1099,9 @@ fn conventions(ctx: &Contexte) -> R<Value> {
             .into_iter()
             .map(|(k, v)| {
                 let libelle = v.get("libelle").filter(|l| vrai(l)).cloned().unwrap_or_else(|| json!(k));
-                json!({"idcc": k, "libelle": libelle, "applicable": v.get("applicable") != Some(&Value::Bool(false))})
+                let applicable = v.get("applicable") != Some(&Value::Bool(false));
+                let option_dit = format!("IDCC {} — {}{}", k, valeur_en_texte(&libelle), if applicable { "" } else { " (taux non relevés)" });
+                json!({"idcc": k, "libelle": libelle, "applicable": applicable, "option_dit": option_dit})
             })
             .collect(),
     ))
@@ -1195,10 +1212,11 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         // Les conventions collectives servies, pour la fiche entreprise.
         "conventions": conventions(ctx)?,
         "organismes_urssaf": organismes,
+        "urssaf_deduit_dit": format!("— code postal ({}) —", if deduit.is_empty() { "117" } else { deduit.as_str() }),
         "urssaf_deduit": if deduit.is_empty() { "117".to_string() } else { deduit },
         // LES PAYS : la liste livree, triee par nom, chacun avec la codification UE que le moteur en
         // deduit. Le pays de naissance et le pays de nationalite s'y choisissent.
-        "pays": socle::pays::servir().map_err(plain)?,
+        "pays": pays_dits(socle::pays::servir().map_err(plain)?),
         // Le pays de naissance : la table « Pays » de la DSN, ou se lit S21.G00.30.015.
         "pays_naissance": socle::pays::servir_naissance().map_err(plain)?,
     }))
@@ -1369,4 +1387,13 @@ fn coulisses_fictives() -> Value {
             ["L'horloge de la compagnie fictive", "La compagnie vit sans vous. À chaque ouverture, ce qui tombait depuis votre dernier passage a été fait par un administrateur fictif, chaque geste à sa date limite : le 1er du mois, le mois s'écrit ; le jour d'une embauche, sa DPAE part et son contrat revient signé ; le 15, la DSN du mois précédent part, puis les documents aux salariés ; fin janvier, l'année passée se clôt. Avant la date limite, c'est à vous : faites la DPAE deux jours avant, ou la DSN le 14, et l'horloge ne la refera pas. Ajoutez ou retirez un contrat : à votre retour, le mois est réécrit et tout est à jour."],
         ],
     })
+}
+
+/// Les pays servis a la fiche, chacun avec ce que la case de nationalite dit quand elle s'en deduit.
+fn pays_dits(mut pays: Value) -> Value {
+    for p in pays.as_array_mut().into_iter().flatten() {
+        let nom = super::mot(&p["nom"]);
+        p["deduit_dit"] = json!(format!("déduite de la nationalité ({})", nom));
+    }
+    pays
 }

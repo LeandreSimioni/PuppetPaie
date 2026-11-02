@@ -1743,7 +1743,8 @@ fn fiche_refusee(nom: &str, anomalies: &[Value]) -> Echec {
         })
         .collect();
     let message = format!("La fiche n'est pas écrite : {}", phrases.join(" ; "));
-    Echec { classe: Some("FicheRefusee"), message: socle::echec::avec(message, json!({"anomalies": anomalies})) }
+    let erreurs_dit = if phrases.len() > 1 { format!("{} erreurs", phrases.len()) } else { "Une erreur".to_string() };
+    Echec { classe: Some("FicheRefusee"), message: socle::echec::avec(message, json!({"anomalies": anomalies, "erreurs_dit": erreurs_dit})) }
 }
 
 /// Ce que l'ecriture d'une fiche a fait : sa cle (celle d'une fiche neuve est fabriquee ici), les anomalies, et si le
@@ -1789,7 +1790,9 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
         (true, false, false, _) => "Enregistré.".to_string(),
     };
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
-    Ok(json!({"cle": e.cle, "ecrits": e.champs, "enregistre_a": e.ecrit.then(maintenant), "phrase": phrase}))
+    let enregistre_a = e.ecrit.then(maintenant);
+    let enregistre_dit = enregistre_a.as_ref().map(|a| format!("enregistré à {}", a.chars().skip(11).take(5).collect::<String>()));
+    Ok(json!({"cle": e.cle, "ecrits": e.champs, "enregistre_a": enregistre_a, "enregistre_dit": enregistre_dit, "phrase": phrase}))
 }
 
 
