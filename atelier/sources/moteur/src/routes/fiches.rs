@@ -96,7 +96,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "forcer", sens: "vrai : écrire malgré une erreur de forme", avance: true },
         ],
         exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics","numero_objet":"266Z00952012"}}"#,
-        rend: "une valeur existante change : avertissement (changements, depuis proposé, pourquoi) et ses phrases, rien n'est écrit ; sinon : cle, ecrits (les champs changés), enregistre_a (vide si rien n'a changé), phrase",
+        rend: "une valeur existante change, ou un choix se confirme : avertissement (changements, depuis proposé, pourquoi ; usage, la phrase à confirmer) et ses phrases, rien n'est écrit ; sinon : cle, ecrits (les champs changés), enregistre_a (vide si rien n'a changé), phrase",
         refus: &[REFUSEE, OPERATION, MANQUE, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
         avance: false,
@@ -1040,7 +1040,8 @@ fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
 
 /// L'AVERTISSEMENT D'UN ENREGISTREMENT DE FICHE : ce qu'il ferait changer (chaque valeur existante qui change demande sa
 /// date d'effet), avec ce que la valeur sortante a deja servi a declarer, et la date que le moteur propose
-/// (`date_proposee`, `depuis` et `pourquoi`). `None` : rien n'est a dater. N'ecrit rien.
+/// (`date_proposee`, `depuis` et `pourquoi`) ; et ce qui se confirme sans se dater (`usage`, le jour fixe du versement des
+/// intermittents : `jour_des_intermittents_a_confirmer`). `None` : rien n'est a dater ni a confirmer. N'ecrit rien.
 fn avertissement_de_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: &Value) -> R<Option<Value>> {
     let vide = Value::Object(Map::new());
     let montree = crate::routes::etablissements::entreprise_montree(ctx);
@@ -1050,26 +1051,40 @@ fn avertissement_de_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees:
         "spectacle" => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
         autre => return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(autre)))),
     };
+    let usage = if nom == "entreprise" { jour_des_intermittents_a_confirmer(ancienne, donnees) } else { None };
     let changements = changements(ctx, nom, ancienne, copie_en_objet(donnees)?)?;
     if changements.is_empty() {
-        return Ok(None);
+        return Ok(usage.map(|u| json!({"changements": [], "usage": u})));
     }
     let (depuis, pourquoi) = date_proposee(ctx, nom, cle)?;
-    Ok(Some(json!({"changements": changements, "depuis": depuis.iso(), "pourquoi": pourquoi})))
+    let mut a = json!({"changements": changements, "depuis": depuis.iso(), "pourquoi": pourquoi});
+    if let Some(u) = usage {
+        a["usage"] = json!(u);
+    }
+    Ok(Some(a))
 }
 
-/// L'avertissement en phrases : chaque valeur qui change, puis la date proposee et ce qui l'ecrit.
+/// Le jour du versement des intermittents que `donnees` ecrit, quand il change et que la configuration le fait confirmer
+/// (`droit::versement::Versement::a_confirmer_pour_les_intermittents`) : la phrase a lire avant d'ecrire.
+fn jour_des_intermittents_a_confirmer(ancienne: &Value, donnees: &Value) -> Option<String> {
+    let cle = droit::versement::CLE_INTERMITTENTS;
+    let neuf = donnees.get(cle)?.as_str()?.trim();
+    let avant = ancienne.get(cle).and_then(Value::as_str).unwrap_or("").trim();
+    (neuf != avant).then(|| droit::versement::Versement::a_confirmer_pour_les_intermittents(neuf)).flatten()
+}
+
+/// L'avertissement en phrases : ce qui se confirme, chaque valeur qui change, puis la date proposee et ce qui l'ecrit.
 fn avertissement_en_phrases(a: &Value) -> Vec<Value> {
     let dite = |v: &Value| if sans_valeur(Some(v)) { "vide".to_string() } else { valeur_en_texte(v) };
-    let mut lignes: Vec<Value> = a["changements"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .map(|c| {
-            let (avant, apres) = if c.get("avant_lisible").is_some() { (&c["avant_lisible"], &c["apres_lisible"]) } else { (&c["avant"], &c["apres"]) };
-            json!(format!("{} : {} devient {}.", valeur_en_texte(&c["libelle"]), dite(avant), dite(apres)))
-        })
-        .collect();
+    let mut lignes: Vec<Value> = a.get("usage").into_iter().cloned().collect();
+    lignes.extend(a["changements"].as_array().into_iter().flatten().map(|c| {
+        let (avant, apres) = if c.get("avant_lisible").is_some() { (&c["avant_lisible"], &c["apres_lisible"]) } else { (&c["avant"], &c["apres"]) };
+        json!(format!("{} : {} devient {}.", valeur_en_texte(&c["libelle"]), dite(avant), dite(apres)))
+    }));
+    if a.get("depuis").is_none() {
+        lignes.push(json!("La même charge avec « confirme » l'écrit."));
+        return lignes;
+    }
     let depuis = Jour::lire(a["depuis"].as_str().unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
     lignes.push(json!(format!(
         "À partir du {}. {} La même charge avec « confirme » l'écrit (« depuis » pour une autre date).",
@@ -1736,7 +1751,8 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
     let note = charge.get("note").unwrap_or(&Value::Null);
     if let Some(a) = avertissement_de_fiche(ctx, nom, cle.as_deref().filter(|k| !k.is_empty()), donnees)? {
         if !charge.get("confirme").is_some_and(vrai) {
-            return Ok(json!({"avertissement": a, "phrase": "Ce qui change se date : rien n'est écrit.", "phrases": avertissement_en_phrases(&a)}));
+            let phrase = if a.get("depuis").is_some() { "Ce qui change se date : rien n'est écrit." } else { "À confirmer : rien n'est écrit." };
+            return Ok(json!({"avertissement": a, "phrase": phrase, "phrases": avertissement_en_phrases(&a)}));
         }
         if !vrai(&depuis) {
             depuis = a["depuis"].clone();

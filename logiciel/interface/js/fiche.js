@@ -1402,10 +1402,12 @@ function valeurHistorique(champ, avant, apres) {
  * un geste normal : la boîte ne demande que la date d'effet — c'est elle qui
  * garde aux déclarations déjà faites leur ancienne valeur (fiches datées) —,
  * sur un ton neutre. Le métier se dit en UNE ligne : emploi, PCS-ESE et code
- * France Travail changent ensemble, ce sont trois écritures d'un seul fait. */
+ * France Travail changent ensemble, ce sont trois écritures d'un seul fait.
+ * `usage` : la phrase que le moteur fait confirmer (le jour fixe des
+ * intermittents) ; sans rien à dater, la boîte ne demande pas de date. */
 const CHAMPS_DU_METIER = ["emploi_affichage", "emploi", "pcs_ese", "code_emploi_ft", "statut"];
 
-function demanderDateDEffet(changements, propose, pourquoi) {
+function demanderDateDEffet({ changements = [], depuis: propose, pourquoi, usage }) {
   const metier = changements.filter((c) => CHAMPS_DU_METIER.includes(c.champ));
   const autres = changements.filter((c) => !CHAMPS_DU_METIER.includes(c.champ));
   // Une case à choix se dit par le libellé que la fiche montre (« Régisseur de théâtre »), pas par son code.
@@ -1436,11 +1438,13 @@ function demanderDateDEffet(changements, propose, pourquoi) {
   }
   blocs += autres.map((c) => ligne(c.libelle, lisible(c, "avant"), lisible(c, "apres"))).join("");
   const titre = metier.length && !autres.length ? "Nouveau métier" : "Ce qui change";
+  const dater = changements.length > 0;
   return new Promise((resoudre) => {
     let repondu = false;
     const repondre = (v) => { if (!repondu) { repondu = true; resoudre(v); } };
     ouvrirBoite(`<h3>${titre}</h3>
-      <p>${aideDe("dater")}</p>
+      ${usage ? `<p class="encart attention">${echapper(usage)}</p>` : ""}
+      ${dater ? `<p>${aideDe("dater")}</p>
       <div class="changements">${blocs}</div>
       <label class="champ-boite">À partir du
         <input type="date" id="b-depuis" value="${echapper(propose || "")}">
@@ -1448,7 +1452,7 @@ function demanderDateDEffet(changements, propose, pourquoi) {
       <p class="note">${echapper(pourquoi || "")} ${aideDe("dater_avant")}</p>
       <details class="b-note-bloc"><summary class="discret">ajouter une note</summary>
         <input type="text" id="b-note" placeholder="motif">
-      </details>
+      </details>` : ""}
       <div class="actions">
         <button class="secondaire" id="b-annuler">Annuler</button>
         <button class="primaire" id="b-dater">Enregistrer</button>
@@ -1458,8 +1462,8 @@ function demanderDateDEffet(changements, propose, pourquoi) {
       () => repondre(null));
     document.getElementById("b-annuler").onclick = fermerBoite;
     document.getElementById("b-dater").onclick = () => {
-      repondre({ depuis: document.getElementById("b-depuis").value,
-                 note: document.getElementById("b-note").value });
+      repondre(dater ? { depuis: document.getElementById("b-depuis").value,
+                         note: document.getElementById("b-note").value } : {});
       fermerBoite();
     };
   });
@@ -1475,8 +1479,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
       { nom: FICHE_ACTIVE, cle: fiche.cle, donnees, ...daté, ...(forcer ? { forcer: true } : {}) });
     // Ce qui change demande sa date d'effet : le moteur l'a dit, rien n'est écrit ; la même demande, datée et confirmée.
     if (r.avertissement) {
-      const { changements, depuis, pourquoi } = r.avertissement;
-      const réponse = await demanderDateDEffet(changements, depuis, pourquoi);
+      const réponse = await demanderDateDEffet(r.avertissement);
       // Annulé, ou la boîte fermée d'un clic à côté : la fiche garde ce qu'on y a tapé, et la page le dit.
       if (!réponse) {
         dire((ETAT.aides || {}).rien_enregistre);

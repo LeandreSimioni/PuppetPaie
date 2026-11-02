@@ -1089,7 +1089,7 @@ pub(crate) fn engagements(
             poser(k, e.get(k));
         }
         let mut eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
-        eng.versement = droit::versement::Versement::de_la_fiche(&ctx.entreprise_au(&dernier_du_mois(&eng.mois)?)?)?;
+        eng.versement = droit::versement::Versement::de_la_fiche(&ctx.entreprise_au(&dernier_du_mois(&eng.mois)?)?, &*eng.nat()?)?;
         // Ce que l'ancien logiciel a verse est un fait : seul ce que la compagnie va verser se juge.
         if e.get(crate::importe::IMPORTE).is_none() {
             if let Some(refus) = versement_refuse(ctx, &eng, &qui)? {
