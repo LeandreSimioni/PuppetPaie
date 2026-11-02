@@ -1,0 +1,2737 @@
+{
+ "gabarit": "spaiectacle",
+ "entreprise": {
+  "raison_sociale": "Compagnie de l'Hôtel de Bourgogne",
+  "adresse": "12 rue Mauconseil",
+  "code_postal": "75001",
+  "commune": "Paris",
+  "siret": "12345682400010",
+  "naf": "9001Z",
+  "urssaf": "117000000015",
+  "licence": "PLATESV-R-2022-001284",
+  "convention": {
+   "idcc": "1285",
+   "libelle": "Entreprises artistiques et culturelles"
+  }
+ },
+ "salaries": [
+  {
+   "code": "1",
+   "nom": "Champmeslé",
+   "prenom": "Hortense",
+   "nir": "276067699900142",
+   "naissance": "1976-06-12",
+   "adresse": "9 rue de Charonne",
+   "code_postal": "75011",
+   "commune": "Paris"
+  },
+  {
+   "code": "2",
+   "nom": "Marivaux",
+   "prenom": "Gaspard",
+   "nir": "184025999900294",
+   "naissance": "1984-02-03",
+   "adresse": "27 rue des Pyrénées",
+   "code_postal": "75020",
+   "commune": "Paris"
+  },
+  {
+   "code": "3",
+   "nom": "Clairon",
+   "prenom": "Philomène",
+   "nir": "291094499900323",
+   "naissance": "1991-09-21",
+   "adresse": "4 rue Saint-Maur",
+   "code_postal": "75011",
+   "commune": "Paris"
+  },
+  {
+   "code": "4",
+   "nom": "Molière",
+   "prenom": "Anselme",
+   "nir": "180016999900402",
+   "naissance": "1980-01-14",
+   "adresse": "18 rue de la Roquette",
+   "code_postal": "75011",
+   "commune": "Paris",
+   "conges_spectacles": "M8001423"
+  },
+  {
+   "code": "5",
+   "nom": "Dorval",
+   "prenom": "Séraphine",
+   "nir": "287113199900518",
+   "naissance": "1987-11-08",
+   "adresse": "6 rue Oberkampf",
+   "code_postal": "75011",
+   "commune": "Paris",
+   "conges_spectacles": "D8711207"
+  },
+  {
+   "code": "6",
+   "nom": "Lemaître",
+   "prenom": "Octavien",
+   "nir": "175053399900620",
+   "naissance": "1975-05-27",
+   "adresse": "31 rue des Martyrs",
+   "code_postal": "75009",
+   "commune": "Paris",
+   "conges_spectacles": "L7505316"
+  },
+  {
+   "code": "7",
+   "nom": "Lekain",
+   "prenom": "Barnabé",
+   "nir": "182082199900748",
+   "naissance": "1982-08-30",
+   "adresse": "15 rue de Belleville",
+   "code_postal": "75019",
+   "commune": "Paris",
+   "conges_spectacles": "L8208554"
+  },
+  {
+   "code": "8",
+   "nom": "Talma",
+   "prenom": "Capucine",
+   "nir": "293036799900876",
+   "naissance": "1993-03-16",
+   "adresse": "2 rue de la Folie-Méricourt",
+   "code_postal": "75011",
+   "commune": "Paris",
+   "conges_spectacles": "T9303098"
+  }
+ ],
+ "bulletins": [
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-01-14",
+   "fin": "2025-01-17",
+   "dates": [
+    [
+     "2025-01-14",
+     "2025-01-17"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 8,
+     "taux": 64
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-01-14",
+   "fin": "2025-01-17",
+   "dates": [
+    [
+     "2025-01-14",
+     "2025-01-17"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 8,
+     "taux": 64
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-01-14",
+   "fin": "2025-01-17",
+   "dates": [
+    [
+     "2025-01-14",
+     "2025-01-17"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 8,
+     "taux": 64
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-01-24",
+   "fin": "2025-01-26",
+   "dates": [
+    [
+     "2025-01-24",
+     "2025-01-26"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-01-24",
+   "fin": "2025-01-26",
+   "dates": [
+    [
+     "2025-01-24",
+     "2025-01-26"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-01-24",
+   "fin": "2025-01-26",
+   "dates": [
+    [
+     "2025-01-24",
+     "2025-01-26"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-01-24",
+   "fin": "2025-01-26",
+   "dates": [
+    [
+     "2025-01-24",
+     "2025-01-26"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 21,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "8",
+   "emploi": "TECHNICIENNE DE PLATEAU",
+   "statut": "technicien",
+   "debut": "2025-01-24",
+   "fin": "2025-01-26",
+   "dates": [
+    [
+     "2025-01-24",
+     "2025-01-26"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 6,
+     "taux": 70
+    }
+   ],
+   "taux_pas": 4.4,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-01-01",
+   "fin": "2025-01-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 9.9,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-01-01",
+   "fin": "2025-01-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 3.5,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-01-01",
+   "fin": "2025-01-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 0.5,
+   "regle_le": "2025-01-31"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-02-07",
+   "fin": "2025-02-09",
+   "dates": [
+    [
+     "2025-02-07",
+     "2025-02-09"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-02-07",
+   "fin": "2025-02-09",
+   "dates": [
+    [
+     "2025-02-07",
+     "2025-02-09"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-02-07",
+   "fin": "2025-02-09",
+   "dates": [
+    [
+     "2025-02-07",
+     "2025-02-09"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-02-07",
+   "fin": "2025-02-09",
+   "dates": [
+    [
+     "2025-02-07",
+     "2025-02-09"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 21,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-02-21",
+   "fin": "2025-02-22",
+   "dates": [
+    [
+     "2025-02-21",
+     "2025-02-22"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-02-21",
+   "fin": "2025-02-22",
+   "dates": [
+    [
+     "2025-02-21",
+     "2025-02-22"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-02-21",
+   "fin": "2025-02-22",
+   "dates": [
+    [
+     "2025-02-21",
+     "2025-02-22"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 14,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-02-01",
+   "fin": "2025-02-28",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-02-01",
+   "fin": "2025-02-28",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-02-01",
+   "fin": "2025-02-28",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-02-28"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-03-14",
+   "fin": "2025-03-22",
+   "dates": [
+    [
+     "2025-03-14",
+     "2025-03-16"
+    ],
+    [
+     "2025-03-21",
+     "2025-03-22"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 5,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-03-31"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-03-14",
+   "fin": "2025-03-22",
+   "dates": [
+    [
+     "2025-03-14",
+     "2025-03-16"
+    ],
+    [
+     "2025-03-21",
+     "2025-03-22"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 5,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-03-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-03-14",
+   "fin": "2025-03-22",
+   "dates": [
+    [
+     "2025-03-14",
+     "2025-03-16"
+    ],
+    [
+     "2025-03-21",
+     "2025-03-22"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 5,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-03-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-03-14",
+   "fin": "2025-03-22",
+   "dates": [
+    [
+     "2025-03-14",
+     "2025-03-16"
+    ],
+    [
+     "2025-03-21",
+     "2025-03-22"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 35,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-03-31"
+  },
+  {
+   "salarie": "8",
+   "emploi": "TECHNICIENNE DE PLATEAU",
+   "statut": "technicien",
+   "debut": "2025-03-14",
+   "fin": "2025-03-22",
+   "dates": [
+    [
+     "2025-03-14",
+     "2025-03-16"
+    ],
+    [
+     "2025-03-21",
+     "2025-03-22"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 10,
+     "taux": 70
+    }
+   ],
+   "taux_pas": 4.4,
+   "regle_le": "2025-03-31"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-03-01",
+   "fin": "2025-03-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-03-31"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-03-01",
+   "fin": "2025-03-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-03-31"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-03-01",
+   "fin": "2025-03-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-03-31"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-04-04",
+   "fin": "2025-04-06",
+   "dates": [
+    [
+     "2025-04-04",
+     "2025-04-06"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-04-30"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-04-04",
+   "fin": "2025-04-06",
+   "dates": [
+    [
+     "2025-04-04",
+     "2025-04-06"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-04-30"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-04-04",
+   "fin": "2025-04-06",
+   "dates": [
+    [
+     "2025-04-04",
+     "2025-04-06"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-04-30"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-04-04",
+   "fin": "2025-04-06",
+   "dates": [
+    [
+     "2025-04-04",
+     "2025-04-06"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 21,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-04-30"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-04-22",
+   "fin": "2025-04-24",
+   "dates": [
+    [
+     "2025-04-22",
+     "2025-04-24"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 6,
+     "taux": 64
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-04-30"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-04-22",
+   "fin": "2025-04-24",
+   "dates": [
+    [
+     "2025-04-22",
+     "2025-04-24"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 6,
+     "taux": 64
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-04-30"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-04-01",
+   "fin": "2025-04-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-04-30"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-04-01",
+   "fin": "2025-04-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-04-30"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-04-01",
+   "fin": "2025-04-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-04-30"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-05-16",
+   "fin": "2025-05-18",
+   "dates": [
+    [
+     "2025-05-16",
+     "2025-05-18"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-05-16",
+   "fin": "2025-05-18",
+   "dates": [
+    [
+     "2025-05-16",
+     "2025-05-18"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-05-16",
+   "fin": "2025-05-18",
+   "dates": [
+    [
+     "2025-05-16",
+     "2025-05-18"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-05-16",
+   "fin": "2025-05-18",
+   "dates": [
+    [
+     "2025-05-16",
+     "2025-05-18"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 21,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "8",
+   "emploi": "TECHNICIENNE DE PLATEAU",
+   "statut": "technicien",
+   "debut": "2025-05-16",
+   "fin": "2025-05-18",
+   "dates": [
+    [
+     "2025-05-16",
+     "2025-05-18"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 6,
+     "taux": 70
+    }
+   ],
+   "taux_pas": 4.4,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-05-01",
+   "fin": "2025-05-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-05-01",
+   "fin": "2025-05-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-05-01",
+   "fin": "2025-05-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-05-30",
+   "fin": "2025-05-31",
+   "dates": [
+    [
+     "2025-05-30",
+     "2025-05-31"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-05-30",
+   "fin": "2025-05-31",
+   "dates": [
+    [
+     "2025-05-30",
+     "2025-05-31"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-05-30",
+   "fin": "2025-05-31",
+   "dates": [
+    [
+     "2025-05-30",
+     "2025-05-31"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 14,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-05-31"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-06-06",
+   "fin": "2025-06-15",
+   "dates": [
+    [
+     "2025-06-06",
+     "2025-06-08"
+    ],
+    [
+     "2025-06-13",
+     "2025-06-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 6,
+     "taux": 175
+    }
+   ],
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 6,
+     "taux": 25
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-06-30"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-06-06",
+   "fin": "2025-06-15",
+   "dates": [
+    [
+     "2025-06-06",
+     "2025-06-08"
+    ],
+    [
+     "2025-06-13",
+     "2025-06-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 6,
+     "taux": 165
+    }
+   ],
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 6,
+     "taux": 25
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-06-30"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-06-06",
+   "fin": "2025-06-15",
+   "dates": [
+    [
+     "2025-06-06",
+     "2025-06-08"
+    ],
+    [
+     "2025-06-13",
+     "2025-06-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 6,
+     "taux": 170
+    }
+   ],
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 6,
+     "taux": 25
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-06-30"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-06-06",
+   "fin": "2025-06-15",
+   "dates": [
+    [
+     "2025-06-06",
+     "2025-06-08"
+    ],
+    [
+     "2025-06-13",
+     "2025-06-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 42,
+     "taux": 17.5
+    }
+   ],
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 6,
+     "taux": 25
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-06-30"
+  },
+  {
+   "salarie": "8",
+   "emploi": "TECHNICIENNE DE PLATEAU",
+   "statut": "technicien",
+   "debut": "2025-06-06",
+   "fin": "2025-06-15",
+   "dates": [
+    [
+     "2025-06-06",
+     "2025-06-08"
+    ],
+    [
+     "2025-06-13",
+     "2025-06-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 12,
+     "taux": 70
+    }
+   ],
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 6,
+     "taux": 25
+    }
+   ],
+   "taux_pas": 4.4,
+   "regle_le": "2025-06-30"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-06-01",
+   "fin": "2025-06-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-06-30"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-06-01",
+   "fin": "2025-06-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-06-30"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-06-01",
+   "fin": "2025-06-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-06-30"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-07-04",
+   "fin": "2025-07-06",
+   "dates": [
+    [
+     "2025-07-04",
+     "2025-07-06"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-07-04",
+   "fin": "2025-07-06",
+   "dates": [
+    [
+     "2025-07-04",
+     "2025-07-06"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-07-04",
+   "fin": "2025-07-06",
+   "dates": [
+    [
+     "2025-07-04",
+     "2025-07-06"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-07-04",
+   "fin": "2025-07-06",
+   "dates": [
+    [
+     "2025-07-04",
+     "2025-07-06"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 21,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-07-11",
+   "fin": "2025-07-12",
+   "dates": [
+    [
+     "2025-07-11",
+     "2025-07-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-07-11",
+   "fin": "2025-07-12",
+   "dates": [
+    [
+     "2025-07-11",
+     "2025-07-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-07-11",
+   "fin": "2025-07-12",
+   "dates": [
+    [
+     "2025-07-11",
+     "2025-07-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 14,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-07-01",
+   "fin": "2025-07-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-07-01",
+   "fin": "2025-07-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-07-01",
+   "fin": "2025-07-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-07-31"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-08-01",
+   "fin": "2025-08-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-08-31"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-08-01",
+   "fin": "2025-08-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-08-31"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-08-01",
+   "fin": "2025-08-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-08-31"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-09-08",
+   "fin": "2025-09-12",
+   "dates": [
+    [
+     "2025-09-08",
+     "2025-09-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 10,
+     "taux": 64
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-09-08",
+   "fin": "2025-09-12",
+   "dates": [
+    [
+     "2025-09-08",
+     "2025-09-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 10,
+     "taux": 64
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-09-08",
+   "fin": "2025-09-12",
+   "dates": [
+    [
+     "2025-09-08",
+     "2025-09-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 10,
+     "taux": 64
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-09-19",
+   "fin": "2025-09-21",
+   "dates": [
+    [
+     "2025-09-19",
+     "2025-09-21"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-09-19",
+   "fin": "2025-09-21",
+   "dates": [
+    [
+     "2025-09-19",
+     "2025-09-21"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-09-19",
+   "fin": "2025-09-21",
+   "dates": [
+    [
+     "2025-09-19",
+     "2025-09-21"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-09-19",
+   "fin": "2025-09-21",
+   "dates": [
+    [
+     "2025-09-19",
+     "2025-09-21"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 21,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "8",
+   "emploi": "TECHNICIENNE DE PLATEAU",
+   "statut": "technicien",
+   "debut": "2025-09-19",
+   "fin": "2025-09-21",
+   "dates": [
+    [
+     "2025-09-19",
+     "2025-09-21"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 6,
+     "taux": 70
+    }
+   ],
+   "taux_pas": 4.4,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-09-01",
+   "fin": "2025-09-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-09-01",
+   "fin": "2025-09-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-09-01",
+   "fin": "2025-09-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-09-30"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-10-10",
+   "fin": "2025-10-12",
+   "dates": [
+    [
+     "2025-10-10",
+     "2025-10-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-10-10",
+   "fin": "2025-10-12",
+   "dates": [
+    [
+     "2025-10-10",
+     "2025-10-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-10-10",
+   "fin": "2025-10-12",
+   "dates": [
+    [
+     "2025-10-10",
+     "2025-10-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-10-10",
+   "fin": "2025-10-12",
+   "dates": [
+    [
+     "2025-10-10",
+     "2025-10-12"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 21,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-10-24",
+   "fin": "2025-10-25",
+   "dates": [
+    [
+     "2025-10-24",
+     "2025-10-25"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-10-24",
+   "fin": "2025-10-25",
+   "dates": [
+    [
+     "2025-10-24",
+     "2025-10-25"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-10-24",
+   "fin": "2025-10-25",
+   "dates": [
+    [
+     "2025-10-24",
+     "2025-10-25"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 14,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-10-01",
+   "fin": "2025-10-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-10-01",
+   "fin": "2025-10-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-10-01",
+   "fin": "2025-10-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-10-31"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-11-07",
+   "fin": "2025-11-15",
+   "dates": [
+    [
+     "2025-11-07",
+     "2025-11-09"
+    ],
+    [
+     "2025-11-14",
+     "2025-11-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 5,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-11-30"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-11-07",
+   "fin": "2025-11-15",
+   "dates": [
+    [
+     "2025-11-07",
+     "2025-11-09"
+    ],
+    [
+     "2025-11-14",
+     "2025-11-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 5,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-11-30"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-11-07",
+   "fin": "2025-11-15",
+   "dates": [
+    [
+     "2025-11-07",
+     "2025-11-09"
+    ],
+    [
+     "2025-11-14",
+     "2025-11-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 5,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-11-30"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-11-07",
+   "fin": "2025-11-15",
+   "dates": [
+    [
+     "2025-11-07",
+     "2025-11-09"
+    ],
+    [
+     "2025-11-14",
+     "2025-11-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 35,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-11-30"
+  },
+  {
+   "salarie": "8",
+   "emploi": "TECHNICIENNE DE PLATEAU",
+   "statut": "technicien",
+   "debut": "2025-11-07",
+   "fin": "2025-11-15",
+   "dates": [
+    [
+     "2025-11-07",
+     "2025-11-09"
+    ],
+    [
+     "2025-11-14",
+     "2025-11-15"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 10,
+     "taux": 70
+    }
+   ],
+   "taux_pas": 4.4,
+   "regle_le": "2025-11-30"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-11-01",
+   "fin": "2025-11-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-11-30"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-11-01",
+   "fin": "2025-11-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-11-30"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-11-01",
+   "fin": "2025-11-30",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-11-30"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-12-05",
+   "fin": "2025-12-07",
+   "dates": [
+    [
+     "2025-12-05",
+     "2025-12-07"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "5",
+   "emploi": "COMEDIENNE",
+   "statut": "artiste",
+   "debut": "2025-12-05",
+   "fin": "2025-12-07",
+   "dates": [
+    [
+     "2025-12-05",
+     "2025-12-07"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 165
+    }
+   ],
+   "taux_pas": 10.9,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-12-05",
+   "fin": "2025-12-07",
+   "dates": [
+    [
+     "2025-12-05",
+     "2025-12-07"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-12-05",
+   "fin": "2025-12-07",
+   "dates": [
+    [
+     "2025-12-05",
+     "2025-12-07"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 21,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "8",
+   "emploi": "TECHNICIENNE DE PLATEAU",
+   "statut": "technicien",
+   "debut": "2025-12-05",
+   "fin": "2025-12-07",
+   "dates": [
+    [
+     "2025-12-05",
+     "2025-12-07"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921042",
+    "titre": "Le Barbier de Séville"
+   },
+   "lignes": [
+    {
+     "libelle": "Service de répétition 4 heures",
+     "quantite": 6,
+     "taux": 70
+    }
+   ],
+   "taux_pas": 4.4,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "4",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-12-19",
+   "fin": "2025-12-20",
+   "dates": [
+    [
+     "2025-12-19",
+     "2025-12-20"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 175
+    }
+   ],
+   "taux_pas": 10,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "6",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-12-19",
+   "fin": "2025-12-20",
+   "dates": [
+    [
+     "2025-12-19",
+     "2025-12-20"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 170
+    }
+   ],
+   "taux_pas": 11.7,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "7",
+   "emploi": "TECHNICIEN LUMIERE",
+   "statut": "technicien",
+   "debut": "2025-12-19",
+   "fin": "2025-12-20",
+   "dates": [
+    [
+     "2025-12-19",
+     "2025-12-20"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00921041",
+    "titre": "Les Fausses Confidences"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 14,
+     "taux": 17.5
+    }
+   ],
+   "taux_pas": 6,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "1",
+   "emploi": "ADMINISTRATRICE DE PRODUCTION",
+   "statut": "cadre",
+   "regime": "permanent",
+   "debut": "2025-12-01",
+   "fin": "2025-12-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 26
+    }
+   ],
+   "taux_pas": 1.9,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-12-01",
+   "fin": "2025-12-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 151.67,
+     "taux": 16.4
+    }
+   ],
+   "taux_pas": 11.4,
+   "regle_le": "2025-12-31"
+  },
+  {
+   "salarie": "3",
+   "emploi": "CHARGEE DE PRODUCTION",
+   "statut": "non cadre",
+   "regime": "permanent",
+   "debut": "2025-12-01",
+   "fin": "2025-12-31",
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 121.33,
+     "taux": 16
+    }
+   ],
+   "taux_pas": 7.9,
+   "regle_le": "2025-12-31"
+  }
+ ]
+}
