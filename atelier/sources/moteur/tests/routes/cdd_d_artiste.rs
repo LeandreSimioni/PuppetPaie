@@ -80,4 +80,19 @@ fn de_la_validation_a_l_attestation() {
     assert!(!fait.contains("NON SIGNEE"), "l'attestation de FULLER : {}", fait);
     assert!(c.join("sorties").join("2026-05").join("envoi").join("AER_FULLER_Mai2026.pdf").exists(), "l'attestation signee, rangee : {}", fait);
     assert!(c.join("sorties").join("2026-05").join("envoi").join("CertificatCS_FULLER_Mai2026.pdf").exists(), "le certificat Conges Spectacles : {}", fait);
+
+    // SVOBODA demissionne, dernier jour le 02/06/2026 : ses conges non pris lui sont payes (L3141-28), au moins ce qu'il
+    // aurait percu en travaillant ces jours (L3141-24, II, `atelier/reference/sources/code-du-travail/xml/L3141-24.xml`) ;
+    // un jour de travail est une part du salaire du mois entier, pas de ses deux jours travailles. Un mois a au moins
+    // 24 jours ouvrables, et le dixieme d'un salaire constant paie un jour au vingt-cinquieme du salaire : un jour vaut au
+    // plus le vingt-quatrieme du salaire.
+    let demission = json!({"mois": "2026-06", "confirme": true, "engagement": {"salarie": "SVOBODA", "debut": "2026-01-05", "rang": 0},
+        "saisie": {"salarie": "SVOBODA", "nature": "cdi", "debut": "2026-01-05", "fin": "2026-06-02", "motif_rupture": "059",
+            "salaire_mensuel": 3400, "quotite_contrat": 151.67, "date_paiement": "2026-06-30"}});
+    reussi(&route(&c, "modifier-engagement", demission, "2026-06-20"));
+    let ap = route(&c, "apercu", json!({"mois": "2026-06"}), "2026-06-20");
+    let svoboda = reussi(&ap)["paies"].as_array().unwrap().iter().find(|p| p.to_string().contains("SVOBODA")).cloned().expect("SVOBODA");
+    let iccp = svoboda["remuneration"].as_array().unwrap().iter().find(|l| l["rubrique"] == "indemnite_compensatrice_conges").cloned().expect("l'indemnite compensatrice");
+    let taux: f64 = iccp["taux"].to_string().trim_matches('"').parse().unwrap();
+    assert!(taux <= 3400.0 / 24.0, "un jour de conge paye plus qu'un jour de travail : {}", iccp);
 }

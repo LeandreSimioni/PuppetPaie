@@ -280,6 +280,17 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     } else {
         let salarie = t(cle(e, "salarie")?);
         let cpt = compteur_conges(ctx, &salarie, &fin, mois)?;
+        // L'indemnite paie le solde du compteur : un compteur qui ignore les mois d'avant PuppetPaie la sous-paierait.
+        if let Some((debut, premier)) = crate::conges::compte_sans_la_reprise(ctx, &salarie, &cpt.report_debut.unwrap_or(cpt.periode_debut))? {
+            stc.avertissements.push(avertir(format!(
+                "{} : son contrat a commencé le {}, avant {}, premier mois payé ici ; ses congés acquis avant ne sont pas \
+                 comptés dans l'indemnité de ses congés non pris (L3141-28). Saisissez dans sa fiche « Congés payés à la \
+                 reprise », recopiés du dernier bulletin de l'ancien logiciel.",
+                qui,
+                debut.jj_mm_aaaa(),
+                crate::libelle_mois(&premier),
+            )));
+        }
         let mut pris_ce_mois = Decimal::ZERO;
         for c in e.get("conges_pris").and_then(|c| c.as_array()).map_or(&[][..], |a| &a[..]) {
             pris_ce_mois = add(pris_ce_mois, Decimal::from(jours_ouvrables_de(c, ent)?));
@@ -287,7 +298,10 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
         let acquis_ce_mois = jours_acquis(&d(cle(e, "debut")?)?.max(premier), &fin)?;
         let solde = sub(add(cpt.solde(), acquis_ce_mois), pris_ce_mois);
         if solde > Decimal::ZERO {
-            let ouvrables = Decimal::from(jours_ouvrables(&premier, &fin, None)?);
+            // Le maintien (L3141-24, II, `atelier/reference/sources/code-du-travail/xml/L3141-24.xml`) : ce que le salarie
+            // aurait percu s'il avait travaille ces jours, le salaire du mois entier reparti sur les jours ouvrables du
+            // mois entier, comme les conges pris (`conges::lignes_du_mois`), quel que soit le jour ou le contrat finit.
+            let ouvrables = Decimal::from(jours_ouvrables(&premier, &socle::date::dernier_du_mois(mois)?, Some(ent))?);
             let ouvrables = if ouvrables.is_zero() { Decimal::ONE } else { ouvrables };
             let maintien = eur2(mul(div(salaire, ouvrables), solde));
             // Les jours pris ce mois-ci ont deja consomme le report d'abord :
@@ -306,7 +320,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                  art. L3141-28, due quelle que soit la cause de la rupture.",
                 qui,
                 arrondir_jours(solde),
-                ind.retenu,
+                euros(ind.retenu),
                 ind.regle
             )));
         } else if solde < Decimal::ZERO {

@@ -402,6 +402,21 @@ fn reprise_ecrite(ctx: &Contexte, cle_salarie: &str) -> Value {
     fiche.as_ref().and_then(|f| f.get("conges_reprise")).cloned().unwrap_or(Value::Null)
 }
 
+/// LE COMPTEUR QUI NE COMPTE PAS TOUT : sa periode la plus ancienne (`depuis`, le debut du report, sinon de la periode
+/// en cours) commence avant le premier mois que PuppetPaie a paye au salarie, son contrat paye au mois a commence avant
+/// ce mois, et sa fiche ne dit pas ses conges a la reprise (`conges_reprise`). Les conges acquis avant ce mois ne se
+/// devinent pas (regle 1). Rend le debut du contrat et ce premier mois ; `None` : le compteur compte tout.
+pub(crate) fn compte_sans_la_reprise(ctx: &Contexte, cle_salarie: &str, depuis: &Jour) -> Resultat<Option<(Jour, String)>> {
+    if reprise_conges(ctx, cle_salarie)?.is_some() {
+        return Ok(None);
+    }
+    let Some(premier) = premier_mois(ctx, cle_salarie, None)? else { return Ok(None) };
+    if *depuis >= premier_du_mois(&premier)? {
+        return Ok(None);
+    }
+    Ok(commence_avant(&paies_du_mois(ctx, &premier, &cle_de_fiche(ctx, cle_salarie))?, &premier)?.map(|debut| (debut, premier)))
+}
+
 /// Le compteur de conges d'un salarie avant `mois` (les mois strictement anterieurs), a la date `a_la_date` de ce mois,
 /// tire des paies validees : ce qui n'est pas valide n'est pas paye, et aucun mois ne se calcule.
 pub(crate) fn compteur_conges(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> Resultat<CompteurConges> {

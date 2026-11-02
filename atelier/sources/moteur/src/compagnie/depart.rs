@@ -837,12 +837,12 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     for i in 0..paies.len() {
         let Some(r) = ecrits.get(i).and_then(|e| e.rectifie.clone()) else { continue };
         let parti = match (clos, valides.get(i)) {
-            (true, Some(v)) => engagement::etats::paie_partie(ctx, v.objet(), &departs, mois).map_err(Echec::from)?,
+            (true, Some(v)) => engagement::etats::paie_partie(ctx, v.objet(), &departs, mois).map_err(Echec::from)?.map(|p| (p, v)),
             _ => None,
         };
         let rectif = match parti {
-            Some(parti) => {
-                let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
+            Some((parti, v)) => {
+                let porteur = crate::regularisation::dsn_qui_porte_la_correction(ctx, v, &departs, mois)?;
                 let mut e = ecart_avec_le_bulletin_parti(ctx, &paies[i], &parti, &porteur)?;
                 e["rectifie"] = json!(r);
                 e["mois_origine"] = json!(crate::regularisation::mois_en_clair(mois));
@@ -1405,7 +1405,7 @@ fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usi
                 let parti = if clos { engagement::etats::paie_partie(&ctx, v.objet(), &avant, mois).map_err(Echec::from)? } else { None };
                 let rectif = match parti {
                     Some(parti) => {
-                        let porteur = crate::regularisation::dsn_qui_porte(&ctx, mois)?;
+                        let porteur = crate::regularisation::dsn_qui_porte_la_correction(&ctx, v, &avant, mois)?;
                         let mut e = ecart_avec_le_bulletin_parti(&ctx, &p, &parti, &porteur)?;
                         e["rectifie"] = json!(r);
                         e["mois_origine"] = json!(crate::regularisation::mois_en_clair(mois));

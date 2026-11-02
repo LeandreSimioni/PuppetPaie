@@ -447,3 +447,17 @@ pub(crate) fn dsn_qui_porte(ctx: &Contexte, mois: &str) -> R<String> {
     }
     Ok(porteur)
 }
+
+/// LA DSN QUI PORTE LA CORRECTION DE `mois` POUR L'ENGAGEMENT `v`, telle que `departs` la connait : celle d'un mois
+/// suivant qui l'a deja declaree (`engagement::etats::paies_declarees`, la derniere correction portee) quand aucune
+/// correction n'est plus due (`engagement::etats::correction_due`) ; sinon la DSN qui portera la suivante
+/// (`dsn_qui_porte`). Le versement de l'ecart d'un rectificatif est date du mois de cette DSN.
+pub(crate) fn dsn_qui_porte_la_correction(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs, mois: &str) -> R<String> {
+    if engagement::etats::correction_due(ctx, v, departs, mois, "9999-12").map_err(Echec::from)?.is_none() {
+        let declarees = engagement::etats::paies_declarees(ctx, v.objet(), departs, mois, "9999-12").map_err(Echec::from)?;
+        if let Some(par) = declarees.last().and_then(|d| d.par.clone()) {
+            return Ok(par);
+        }
+    }
+    dsn_qui_porte(ctx, mois)
+}

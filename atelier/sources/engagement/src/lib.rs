@@ -437,6 +437,15 @@ impl Engagement {
             let derniere = *jours_joues.last().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?;
             Some(derniere.max(planning.last().copied().unwrap_or(derniere)))
         };
+        // LA FIN D'UN CONTRAT SANS TERME est sa rupture, et elle ne vaut qu'a sa date : le mois paye avant celui ou elle
+        // tombe ne la connait pas. Un CDI n'a pas de date de fin previsionnelle (S21.G00.40.010 n'est exigee que d'un
+        // contrat a duree determinee, CCH-12, `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`, l. 517-527) ; sa
+        // fin se declare dans la DSN du mois ou il finit (bloc S21.G00.62). La paie d'un mois d'avant ne change donc pas
+        // quand la rupture se saisit.
+        let fin = match fin {
+            Some(f) if nat.duree_indeterminee && dernier_du_mois(&mois_saisi).is_ok_and(|m| f > m) => None,
+            autre => autre,
+        };
 
         let debut_mois_de = |m: &str| premier_du_mois(m);
         let fin_mois_de = |m: &str| dernier_du_mois(m);

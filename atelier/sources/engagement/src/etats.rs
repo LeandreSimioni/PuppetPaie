@@ -1088,11 +1088,22 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, anciennes: &Map<String
             Some(f) => f.clone(),
             None => {
                 let mut p = calculer(ctx, o, &m)?;
-                // Une paie partie, refaite : son bulletin sera un rectificatif de celui qui est parti.
-                if partis {
-                    if let Some(parti) = anciennes.get(&m).and_then(|f| f.get(BULLETIN).or_else(|| f.get(RECTIFIE))).filter(|b| b.is_string()) {
-                        p[RECTIFIE] = parti.clone();
+                match anciennes.get(&m).filter(|_| partis) {
+                    // Une paie partie, refaite aux memes chiffres : le bulletin parti reste juste, elle garde ses numeros.
+                    Some(f) if chiffres(f) == chiffres(&p) => {
+                        for k in [BULLETIN, CE, RECTIFIE] {
+                            if let Some(x) = f.get(k) {
+                                p[k] = x.clone();
+                            }
+                        }
                     }
+                    // Une paie partie, refaite : son bulletin sera un rectificatif de celui qui est parti.
+                    Some(f) => {
+                        if let Some(parti) = f.get(BULLETIN).or_else(|| f.get(RECTIFIE)).filter(|b| b.is_string()) {
+                            p[RECTIFIE] = parti.clone();
+                        }
+                    }
+                    None => {}
                 }
                 p
             }
