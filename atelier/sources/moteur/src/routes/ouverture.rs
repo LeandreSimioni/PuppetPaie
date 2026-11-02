@@ -376,7 +376,7 @@ pub(crate) fn etablissements_dits(ctx: &Contexte) -> Vec<Value> {
 /// CE QU'UN ENGAGEMENT CHOISIT quand la compagnie a d'autres etablissements que le siege : le siege (`nic` vide) puis
 /// chacun, nomme par son nom et sa commune, avec son ouverture, et son dernier jour s'il est ferme (un engagement passe
 /// le garde). `Null` : un seul etablissement, rien a choisir.
-fn choix_d_etablissement(ctx: &Contexte) -> Value {
+pub(crate) fn choix_d_etablissement(ctx: &Contexte) -> Value {
     let principal = texte_ou_vide(ctx.entreprise.get("nic"));
     let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(ctx.entreprise_brute())
         .unwrap_or_default()
@@ -609,16 +609,22 @@ fn configuration(ctx: &Contexte) -> R<Value> {
             h.retain(|l| l.get("champ").and_then(Value::as_str) != Some("etablissements"));
         }
     }
-    let entreprise = fiche_verifiee("entreprise", None, &vue)?;
+    // Ce que chaque fiche montre (`fiches::montres`) : la page ne montre que ces cases-la.
+    let avec_montres = |nom: &str, mut f: Value| -> R<Value> {
+        let m = super::fiches::montres(ctx, nom, &f["donnees"], &ctx.entreprise)?;
+        f["montres"] = json!(m);
+        Ok(f)
+    };
+    let entreprise = avec_montres("entreprise", fiche_verifiee("entreprise", None, &vue)?)?;
     let salaries = ctx
         .salaries
         .iter()
-        .map(|(k, v)| fiche_verifiee("salarie", Some(k), &avec_historique(v, ctx.salarie_brut(k))?))
+        .map(|(k, v)| avec_montres("salarie", fiche_verifiee("salarie", Some(k), &avec_historique(v, ctx.salarie_brut(k))?)?))
         .collect::<R<Vec<_>>>()?;
     let spectacles = ctx
         .spectacles
         .iter()
-        .map(|(k, v)| fiche_verifiee("spectacle", Some(k), &avec_historique(v, ctx.spectacle_brut(k))?))
+        .map(|(k, v)| avec_montres("spectacle", fiche_verifiee("spectacle", Some(k), &avec_historique(v, ctx.spectacle_brut(k))?)?))
         .collect::<R<Vec<_>>>()?;
     // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre (orange) : une valeur saisie et fausse,
     // les memes que la pastille de chaque fiche. Une case vide n'en est jamais une : ce qu'un acte exige, « Pour demarrer » le dit.

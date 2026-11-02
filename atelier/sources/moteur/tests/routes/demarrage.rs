@@ -37,7 +37,7 @@ fn par_champ<'a>(m: &'a [Value], champ: &str) -> Vec<&'a Value> {
 /// AUCUN MANQUE NE POINTE VERS UN CHAMP MASQUE, POUR AUCUNE CONVENTION (un bug qui a echappe : « Licence d'entrepreneur de spectacles —
 /// bloque la DSN » en 1790, alors que la case y etait repliee). Pour chaque convention du bareme 2026 (et la compagnie qui
 /// n'a pas encore dit la sienne), avec et sans permanents, avec et sans spectacle : tout ce que « Pour demarrer » demande
-/// dans la fiche Entreprise est une case que l'ecran montre (`Champ::montre`, la regle que la page applique, `fiche.js`),
+/// dans la fiche Entreprise est une case que l'ecran montre (les cases que le moteur dit a la page, `montres` de la route `permanents`),
 /// et tout champ EXIGE (`exige_si`) est montre.
 ///
 /// La licence (`demarrage::licence_exigee`) : « est entrepreneur de spectacles vivants toute personne qui exerce une
@@ -53,7 +53,6 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
     assert_eq!(conventions.len(), 10, "les dix conventions de 2026 : {:?}", conventions);
     conventions.push(String::new());
     let fiche = declarations::champs::fiche("entreprise").unwrap();
-    let licence = fiche.iter().find(|c| c.cle == "licence_spectacle").unwrap();
     for idcc in &conventions {
         for (permanents, spectacle) in [(false, false), (false, true), (true, false), (true, true)] {
             let nom = format!("grille-{}-{}-{}", if idcc.is_empty() { "sans" } else { idcc }, permanents, spectacle);
@@ -66,21 +65,24 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
                 ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": datee(&json!({"titre": "Le Banc", "actif": true}))}));
             }
             let m = manques(&racine);
+            // Ce que la fiche Entreprise montre, tel que le moteur le dit a la page (route `permanents`).
+            let montres: Vec<Value> = reussi(&route(&racine, "permanents", json!({}), JOUR))["montres"].as_array().unwrap().clone();
+            let montre = |cle: &str| montres.contains(&json!(cle));
             for x in &m {
                 let Some(champ) = x["champ"].as_str() else { continue };
                 if x["ou"] != json!("Configuration › Entreprise") || champ == "taux_atmp" {
                     continue; // le taux AT/MP vit dans le bareme de la compagnie (`ATMP_HTML`)
                 }
                 let c = fiche.iter().find(|c| c.cle == champ.split('.').next().unwrap()).unwrap_or_else(|| panic!("{} : pas un champ", champ));
-                assert!(c.montre(&ent, permanents, false), "{} : « {} » demande, case masquee", nom, champ);
+                assert!(montre(&c.cle), "{} : « {} » demande, case masquee", nom, champ);
             }
             for c in &fiche {
                 if c.exige(&ent) {
-                    assert!(c.montre(&ent, permanents, false), "{} : « {} » exige et masque", nom, c.cle);
+                    assert!(montre(&c.cle), "{} : « {} » exige et masque", nom, c.cle);
                 }
             }
             let demandee = par_champ(&m, "licence_spectacle").len() == 1;
-            let (montree, exigee) = (licence.montre(&ent, permanents, false), declarations::demarrage::licence_exigee(&ent, spectacle));
+            let (montree, exigee) = (montre("licence_spectacle"), declarations::demarrage::licence_exigee(&ent, spectacle));
             assert_eq!(demandee, exigee, "{} : la licence demandee si et seulement si exigee", nom);
             assert!(!exigee || montree, "{} : la licence exigee, case masquee", nom);
             match idcc.as_str() {

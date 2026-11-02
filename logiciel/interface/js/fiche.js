@@ -46,45 +46,19 @@ function structureDecrite(cle, nom = FICHE_ACTIVE) {
  * le même dessin. `c` : sa description ; `fiche` : `{donnees, anomalies}` ; `nom` : entreprise, salarie, spectacle. */
 function champDeFiche(c, fiche, nom) {
   const desc = ETAT.configuration.description[nom];
-  // CE QUE LA CASE « Emploie des permanents » OUVRE. Les
-  // champs qui ne servent qu'aux permanents restent dans le formulaire —
-  // avec leur valeur, qui repart à l'enregistrement — mais ne se montrent
-  // qu'à qui a dit en employer.
-  const avecPermanents = !!(ETAT.configuration || {}).permanents;
-  // Une compagnie à un seul établissement ne voit pas la case « Établissement »
-  // du salarié : la question ne se pose pas.
-  const avecEtablissements = !!(ETAT.configuration || {}).etablissements;
   const anomalie = (cle) => (fiche.anomalies || []).find((a) => a.champ === cle);
   const caches = CACHES[nom] || [];
-  // UN CHAMP QUI DÉPEND D'UN AUTRE (`si`) se replie quel que soit
-  // le chemin qui l'a dessiné — liste de choix, convention, champ simple :
-  // la marque se pose ici, sur ce que chacun rend, et `brancherConditions`
-  // la fait suivre à l'écran.
-  // UN CHAMP QUI DÉPEND DE L'ENTREPRISE (`si_entreprise`) : la
-  // convention décide, et elle ne change pas pendant qu'on remplit la fiche
-  // d'un salarié. Le champ est posé, replié — il garde sa valeur.
-  const entreprise = ((ETAT.configuration || {}).entreprise || {}).donnees || {};
-  // TOUTES LES CONDITIONS AU MÊME ENDROIT : les chemins de
-  // dessin (liste de choix, case, structure, champ simple) ne posaient pas
-  // tous la marque des permanents — « Jours fériés chômés » se montrait à
-  // une compagnie sans salarié au mois. Elle se pose ici, sur ce que chacun
-  // rend, avec celles des établissements, de l'entreprise et du `si`.
+  // Un champ replié reste dans le formulaire, avec sa valeur, qui repart à l'enregistrement.
+  // CE QUE LA FICHE MONTRE, LE MOTEUR LE DIT (`montres` de la fiche, puis de la route `permanents` à chaque changement,
+  // `brancherConditions`) : chaque case porte sa clé (`data-montre`), et se replie quand le moteur ne la nomme pas. Une
+  // fiche neuve, qui ne le dit pas encore, se dessine entière ; la première réponse la replie.
+  const montres = Array.isArray(fiche.montres) ? new Set(fiche.montres) : null;
   const champHtml = (c) => {
     const html = champHtmlBrut(c);
     if (!html) return html;
-    const horsEntreprise = c.si_entreprise && nom !== "entreprise"
-      && !conditionRemplie(c.si_entreprise, (k) => entreprise[k]);
-    if (!c.si && !horsEntreprise && !c.si_permanents && !c.si_etablissements) return html;
-    const ok = !horsEntreprise && conditionRemplie(c.si, (k) => fiche.donnees[k])
-      && !(c.si_permanents && !avecPermanents)
-      && !(c.si_etablissements && !avecEtablissements);
-    return html.replace(/^(\s*<div class="champ)([^"]*)"([^>]*)>/, (m, debut, classes, reste) => {
-      const cl = classes + (c.si_permanents && !/champ-permanents/.test(classes)
-        ? " champ-permanents" : "");
-      return `${debut}${cl}"${reste.replace(/\s+hidden\b/g, "")}${
-        c.si ? ` data-si="${echapper(JSON.stringify(c.si))}"` : ""}${
-        horsEntreprise ? " data-hors-entreprise" : ""}${ok ? "" : " hidden"}>`;
-    });
+    const ok = !montres || montres.has(c.cle);
+    return html.replace(/^(\s*<div class="champ)([^"]*)"([^>]*)>/, (m, debut, classes, reste) =>
+      `${debut}${classes}"${reste.replace(/\s+hidden\b/g, "")} data-montre="${echapper(c.cle)}"${ok ? "" : " hidden"}>`);
   };
   const champHtmlBrut = (c) => {
     const v = fiche.donnees[c.cle];
@@ -106,7 +80,7 @@ function champDeFiche(c, fiche, nom) {
                 value="${echapper(v ?? "")}">`;
     }
     const sous = sousChamps(c);
-    if (sous) return structureHtml(c, v, sous, a, avecPermanents);
+    if (sous) return structureHtml(c, v, sous, a);
     // LA CONVENTION SE CHOISIT, ELLE NE SE TAPE PAS : l'IDCC seul ; son
     // libelle et le code convention DSN, le moteur les tire de lui (voir
     // `routes::fiches::deriver`). Les champs propres a une convention suivent leur condition (`si`). La liste vient du moteur
@@ -255,8 +229,7 @@ function champDeFiche(c, fiche, nom) {
     // elle ne dit rien, l'aide du champ le dit ; les cases ne partent que si on les touche (`data-absent`, `lireFormulaire`).
     if (c.cle === "jours_travailles" && nom === "salarie") {
       const coches = Array.isArray(v) ? v : [];
-      return `<div class="champ pleine${c.si_permanents ? " champ-permanents" : ""}"${
-          c.si_permanents && !avecPermanents ? " hidden" : ""}>
+      return `<div class="champ pleine">
         <label>${echapper(c.libelle)} ${aideHtml(c.cle, c.aide)}</label>
         <div class="jours-semaine" data-cle="${c.cle}" data-jours="1"${Array.isArray(v) ? "" : " data-absent=\"1\""}>
           ${JOURS_DE_LA_SEMAINE.map((j) => `<label class="coche"><input type="checkbox"
@@ -271,8 +244,7 @@ function champDeFiche(c, fiche, nom) {
     // ne part que si on la touche.
     if (c.forme === "booleen") {
       const coche = v == null ? c.booleen_defaut !== false : v !== false;
-      return `<div class="champ pleine case${c.si_permanents ? " champ-permanents" : ""}"${
-          c.si_permanents && !avecPermanents ? " hidden" : ""}>
+      return `<div class="champ pleine case">
         <label class="coche"><input type="checkbox" data-cle="${c.cle}"
             data-forme="booleen"${coche ? " checked" : ""}${v == null ? " data-absent=\"1\"" : ""}>
           ${echapper(c.libelle)} ${aideHtml(c.cle, c.aide)}</label>
@@ -295,10 +267,7 @@ function champDeFiche(c, fiche, nom) {
     const large = structure || (nom === "entreprise"
       && ["adresse_affichage", "nom_affichage"].includes(c.cle))
       || (nom === "salarie" && ["adresse_affichage", "emploi_affichage"].includes(c.cle));
-    return `<div class="champ ${large ? "pleine" : ""}${
-        c.si_permanents ? " champ-permanents" : ""}"${
-        (c.si_permanents && !avecPermanents)
-          || (c.si_etablissements && !avecEtablissements) ? " hidden" : ""}>
+    return `<div class="champ ${large ? "pleine" : ""}">
       <label>${echapper(c.libelle)}
         ${aideHtml(c.cle, c.aide)}
         ${controle}
@@ -811,83 +780,41 @@ function brancherFichesAttendues() {
  *  cours. La page ne le déduit jamais elle-même. */
 let PERMANENTS_A_L_ECRAN = false;
 
-/** LA CASE OUVRE LES CHAMPS TOUT DE SUITE, sans attendre l'enregistrement.
- *  La cocher et ne rien voir apparaître, ce serait laisser croire qu'elle ne
- *  fait rien — alors que c'est elle qui décide de ce qu'il reste à remplir.
- *  Ce qui s'ouvre, c'est le moteur qui le dit (route `permanents`).
- *  Le déroulant « Nature » d'un engagement, lui, suit à l'enregistrement :
- *  il vient du serveur, qui ne propose que ce que le moteur accepterait. */
+/** LES BLOCS DES PERMANENTS (une section dont toutes les cases ne valent que pour eux, la santé d'un salarié) suivent
+ *  la réponse du moteur (`PERMANENTS_A_L_ECRAN`), sinon leur titre resterait seul au-dessus du vide. */
+function montrerBlocsPermanents() {
+  const oui = PERMANENTS_A_L_ECRAN;
+  document.querySelectorAll("#config-formulaire [data-bloc-permanents]").forEach((s) => { s.hidden = !oui; });
+  const sante = document.getElementById("config-sante");
+  if (sante) sante.hidden = !oui;
+}
+
 function brancherPermanents() {
   PERMANENTS_A_L_ECRAN = !!(ETAT.configuration || {}).permanents;
-  const case_ = document.querySelector(
-    '#config-formulaire [data-cle="emploie_des_permanents"]');
-  if (!case_) return;
-  const montrer = () => {
-    const oui = PERMANENTS_A_L_ECRAN;
-    // Un champ qui dépend AUSSI d'autre chose (`si`, l'entreprise) suit
-    // `brancherConditions`, qui écoute cette case comme les autres.
-    document.querySelectorAll("#config-formulaire .champ-permanents")
-      .forEach((c) => {
-        if (c.hasAttribute("data-si") || c.hasAttribute("data-hors-entreprise")) return;
-        c.hidden = !oui;
-      });
-    // La section entiere avec, sinon son titre reste seul au-dessus du vide.
-    document.querySelectorAll("#config-formulaire [data-bloc-permanents]")
-      .forEach((s) => { s.hidden = !oui; });
-    const sante = document.getElementById("config-sante");
-    if (sante) sante.hidden = !oui;
-    // Un champ des permanents qui dépend aussi d'un autre suit sa condition.
-    const form = document.getElementById("config-formulaire");
-    if (form && form.appliquerConditions) form.appliquerConditions();
-  };
-  case_.addEventListener("change", async () => {
-    try {
-      const r = await api("permanents", { entreprise: { emploie_des_permanents: case_.checked } });
-      PERMANENTS_A_L_ECRAN = !!r.permanents;
-    } catch (e) { dire(e.message, "erreur"); return; }
-    montrer();
-  });
-  montrer();
+  montrerBlocsPermanents();
 }
 
-/** La condition d'un champ (`si`, `si_entreprise` du moteur) : chaque clé
- *  doit valoir l'une des valeurs dites ; "*" veut dire « remplie ». Une liste : l'une des conditions. */
-function conditionRemplie(si, lire) {
-  if (Array.isArray(si)) return si.some((s) => conditionRemplie(s, lire));
-  return Object.entries(si || {}).every(([k, vals]) => {
-    const v = String(lire(k) ?? "").trim();
-    return vals.includes(v) || (vals.includes("*") && v !== "" && v !== "false");
-  });
-}
-
-/** LES CHAMPS QUI DÉPENDENT D'UN AUTRE (`si` du moteur) : ils suivent la
- *  valeur à l'écran, tout de suite, comme la case des permanents. */
+/** CE QUE LA FICHE MONTRE SUIT LA SAISIE, tout de suite, sans attendre l'enregistrement : à chaque changement, le
+ *  moteur dit les cases à l'écran et si la compagnie emploie des permanents (route `permanents`, `montres`) ; chaque
+ *  case (`data-montre`) se montre ou se replie selon ce qu'il nomme. La page n'en décide rien. Le déroulant « Nature »
+ *  d'un engagement, lui, suit à l'enregistrement : il vient du serveur. */
 function brancherConditions() {
   const form = document.getElementById("config-formulaire");
   if (!form) return;
-  const valeur = (k) => {
-    const c = form.querySelector(`[data-cle="${CSS.escape(k)}"]`);
-    return c ? (c.type === "checkbox" ? String(c.checked) : String(c.value ?? "")) : "";
+  let demande = 0;
+  const appliquer = async () => {
+    const n = ++demande;
+    const donnees = lireFormulaire();
+    const charge = FICHE_ACTIVE === "entreprise" ? { entreprise: donnees } : { nom: FICHE_ACTIVE, donnees };
+    let r;
+    try { r = await api("permanents", charge); } catch (e) { dire(e.message, "erreur"); return; }
+    if (n !== demande || !form.isConnected) return;
+    PERMANENTS_A_L_ECRAN = !!r.permanents;
+    const montres = new Set(r.montres || []);
+    form.querySelectorAll("[data-montre]").forEach((el) => { el.hidden = !montres.has(el.dataset.montre); });
+    montrerBlocsPermanents();
   };
-  const appliquer = () => {
-    form.querySelectorAll("[data-si]").forEach((el) => {
-      let si = {};
-      try { si = JSON.parse(el.dataset.si); } catch (e) { return; }
-      const ok = conditionRemplie(si, valeur) && !el.hasAttribute("data-hors-entreprise");
-      // Le curseur des permanents : la réponse du moteur (`brancherPermanents`).
-      const permOk = !el.classList.contains("champ-permanents") || PERMANENTS_A_L_ECRAN;
-      el.hidden = !(ok && permOk);
-    });
-  };
-  form.appliquerConditions = appliquer;
-  const cles = new Set();
-  form.querySelectorAll("[data-si]").forEach((el) => {
-    try { [JSON.parse(el.dataset.si)].flat().forEach((s) => Object.keys(s).forEach((k) => cles.add(k))); } catch (e) { /* rien */ }
-  });
-  cles.forEach((k) => {
-    const c = form.querySelector(`[data-cle="${CSS.escape(k)}"]`);
-    if (c) c.addEventListener("change", appliquer);
-  });
+  form.addEventListener("change", appliquer);
   appliquer();
 }
 

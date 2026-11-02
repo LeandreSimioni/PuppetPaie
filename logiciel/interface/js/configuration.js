@@ -929,8 +929,7 @@ function aideCorps(cle, aide) {
  *  avec un « + » pour en ajouter une et une croix pour en retirer une. Ce
  *  que la table ne nomme pas n'est pas affiche, et n'est pas perdu.
  */
-function structureHtml(c, v, sous, a, avecPermanents) {
-  const cache = c.si_permanents && !avecPermanents;
+function structureHtml(c, v, sous, a) {
   const tete = `<label class="titre-structure">${echapper(c.libelle)}
       ${aideHtml(c.cle, c.aide)}</label>
     ${aideCorps(c.cle, c.aide)}`;
@@ -964,8 +963,7 @@ function structureHtml(c, v, sous, a, avecPermanents) {
       </div>`;
     }).join("")}</div>`;
   }
-  return `<div class="champ pleine structure${c.si_permanents ? " champ-permanents" : ""}"${
-      cache ? " hidden" : ""}>
+  return `<div class="champ pleine structure">
     ${tete}
     ${corps}
     ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}

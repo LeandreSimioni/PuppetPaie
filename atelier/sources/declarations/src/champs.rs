@@ -713,13 +713,16 @@ pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
 }
 
 impl Champ {
-    /// Le champ de la fiche entreprise `donnees` est-il A L'ECRAN ? Ce que la page decide pour la fiche entreprise
-    /// (`fiche.js`, `champHtml`) : sa condition `si`, la case des permanents (`si_permanents`) et la liste des
-    /// etablissements (`si_etablissements`).
-    pub fn montre(&self, donnees: &Value, permanents: bool, etablissements: bool) -> bool {
+    /// Le champ de la fiche `donnees` est-il A L'ECRAN ? Il se saisit (ni deduit, ni hors de l'ecran), sa condition `si`
+    /// est remplie par la fiche, celle de l'entreprise (`si_entreprise`, pour la fiche d'un salarie ou d'un spectacle :
+    /// `entreprise`) aussi, la compagnie emploie des permanents s'il ne vaut que pour eux (`si_permanents`) et a plusieurs
+    /// etablissements s'il les nomme (`si_etablissements`). La page montre ce que cette fonction dit (`moteur::routes::
+    /// fiches::montres`), et rien d'autre.
+    pub fn montre(&self, donnees: &Value, entreprise: Option<&Value>, permanents: bool, etablissements: bool) -> bool {
         self.ecran
             && !self.calcule()
             && condition_remplie(&self.si, donnees)
+            && entreprise.is_none_or(|e| condition_remplie(&self.si_entreprise, e))
             && !(self.si_permanents && !permanents)
             && !(self.si_etablissements && !etablissements)
     }

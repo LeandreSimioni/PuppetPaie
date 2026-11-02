@@ -46,10 +46,14 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Fiches);
 pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "permanents",
-        geste: "Dire si la compagnie emploie des permanents (ce que la fiche montre alors).",
-        charge: &[Champ { nom: "entreprise", libelle: Affiche::new("Fiche Entreprise"), forme: Forme::Objet, sens: "la fiche Entreprise en cours de saisie ; sans elle, celle de la compagnie", avance: false }],
+        geste: "Dire les cases que montre la fiche en cours de saisie.",
+        charge: &[
+            Champ { nom: "entreprise", libelle: Affiche::new("Fiche Entreprise"), forme: Forme::Objet, sens: "la fiche Entreprise en cours de saisie ; sans elle, celle de la compagnie", avance: false },
+            Champ { nom: "nom", libelle: Affiche::new("Fiche"), forme: Forme::Texte, sens: "la fiche dont on veut les cases : entreprise (par défaut), salarie ou spectacle", avance: true },
+            Champ { nom: "donnees", libelle: Affiche::new("Fiche en cours"), forme: Forme::Objet, sens: "la fiche d'un salarié ou d'un spectacle en cours de saisie (pour entreprise, c'est `entreprise`)", avance: true },
+        ],
         exemple: r#"{}"#,
-        rend: "permanents (vrai ou faux)",
+        rend: "permanents (vrai ou faux), montres (les cases que la fiche montre)",
         refus: &[FORME],
         acte: Acte::Lit,
         avance: false,
@@ -394,12 +398,25 @@ fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Rend le curseur (`contexte::emploie_des_permanents`) : la page montre ou replie ce qui ne vaut que pour les
 /// permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case.
 fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let oui = match charge.get("entreprise") {
-        Some(e @ Value::Object(_)) => droit::contexte::emploie_des_permanents(e),
-        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
-        None => ctx.emploie_des_permanents(),
+    let objet = |k: &str| match charge.get(k) {
+        Some(e @ Value::Object(_)) => Ok(Some(e)),
+        Some(autre) => Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
+        None => Ok(None),
     };
-    Ok(json!({ "permanents": oui }))
+    let entreprise = objet("entreprise")?.unwrap_or(&ctx.entreprise);
+    let nom = charge.get("nom").and_then(Value::as_str).unwrap_or("entreprise");
+    let donnees = if nom == "entreprise" { entreprise } else { objet("donnees")?.unwrap_or(&Value::Null) };
+    Ok(json!({ "permanents": droit::contexte::emploie_des_permanents(entreprise), "montres": montres(ctx, nom, donnees, entreprise)? }))
+}
+
+/// CE QUE LA FICHE `nom` MONTRE pour `donnees` : chaque case que `champs::Champ::montre` dit a l'ecran, d'apres la
+/// fiche, l'entreprise `entreprise` (ses permanents, ses conditions) et les etablissements de la compagnie. La page ne
+/// montre que ces cases-la.
+pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &Value, entreprise: &Value) -> R<Vec<String>> {
+    let permanents = droit::contexte::emploie_des_permanents(entreprise);
+    let etablissements = !super::ouverture::choix_d_etablissement(ctx).is_null();
+    let autre = (nom != "entreprise").then_some(entreprise);
+    Ok(champs::fiche(nom)?.iter().filter(|c| c.montre(donnees, autre, permanents, etablissements)).map(|c| c.cle.clone()).collect())
 }
 
 // ------------------------------------------------------- taxe-sur-les-salaires-regime
