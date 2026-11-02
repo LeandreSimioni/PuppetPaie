@@ -21,7 +21,6 @@ PuppetPaie/  (ce dépôt, public)
     ├── reference/      les textes qui fondent chaque règle (un LISEZ-MOI par dossier)
     ├── docs/           ARCHITECTURE, RUBRIQUES, COMPAGNIE-D-ESSAI, COOLPAIE-SORTIR-SES-DOCUMENTS
     ├── outils/         banc/ (le banc d'essai daté, piloté en Node), demos/
-    ├── bac-a-sable/    une installation en retard d'une version, pour essayer la mise à jour
     ├── depot/, installeur/, site/, maquettes/
     ├── README.md       comment chaque commande s'utilise
     └── AVANT-LE-PREMIER-COMMIT.md   ce qui n'entre jamais dans le dépôt, et le garde avant commit

@@ -1714,8 +1714,6 @@ atelier/                  ← ce dossier : tout le reste
                           transcription) ; `moteur sources` y vérifie les copies
   docs/                   ARCHITECTURE.md, RUBRIQUES.md,
                           COMPAGNIE-D-ESSAI.md, COOLPAIE-SORTIR-SES-DOCUMENTS.md
-  bac-a-sable/            une installation en retard d'une version, pour essayer
-                          la mise à jour
   AVANT-LE-PREMIER-COMMIT.md   ce qui n'entre jamais dans le dépôt
   outils/                 les outils d'atelier : `banc/` (le banc d'essai daté, en
                           Node : LISEZ-MOI.md), `demos/` (un scénario de
