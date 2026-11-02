@@ -130,10 +130,7 @@ document.getElementById("voile").onclick = (e) => {
    (`#voile-mdp`), au-dessus de la boîte courante, et rend une promesse :
    le mot de passe, ou null si on annule (Échap, Annuler, clic à côté).
 
-   PLUS RIEN POUR CHROME. Le 15/09 on avait tout fait pour que Chrome garde
-   le mot de passe (utilisateur figé, autocomplete, `memoriserMotDePasse`) ;
-   la page vit dans la fenêtre unique, et vivra dans Tauri : « il n'y a plus
-   Chrome, et il n'y aura pas Chrome ». Le mot de passe se tape, à chaque
+   Le navigateur ne retient pas le mot de passe : il se tape, à chaque
    fois, et c'est le but. */
 function demanderMotDePasse(pourquoi, { envoi = false } = {}) {
   // UN ENVOI SANS RIEN À PROUVER (le moteur le dit : `envoi_sans_mot_de_passe`, route `etat`) : le geste part sans

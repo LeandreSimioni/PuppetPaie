@@ -1311,7 +1311,7 @@ fn jetons_rs(t: &str) -> Vec<(usize, usize, usize, bool, String)> {
 }
 
 /// LE CODE DIT CE QUI EST, JAMAIS COMMENT ON Y EST ARRIVE : aucun commentaire des sources Rust de l'espace (et de leurs
-/// tests), du CSS et du HTML de la page ne porte une marque d'histoire (`HISTOIRE` : le numero d'une demande, son
+/// tests), du CSS, du HTML et des scripts de la page ne porte une marque d'histoire (`HISTOIRE` : le numero d'une demande, son
 /// demandeur, ce qui a change). Le CSS et le HTML ne citent aucun texte depose : une date y est celle d'une decision
 /// (`DATE`). L'histoire va au journal du depot prive ; un commentaire d'histoire s'efface, ou se reecrit en son pourquoi.
 #[test]
@@ -1341,12 +1341,41 @@ fn le_code_ne_raconte_pas_son_histoire() {
         let c = if p.extension().is_some_and(|x| x == "css") { commentaires_c(&t, false) } else { commentaires_html(&t) };
         noter(&p, c, true);
     }
+    for p in std::fs::read_dir(depot().join("logiciel/interface/js")).unwrap().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "js")) {
+        noter(&p, commentaires_c(&std::fs::read_to_string(&p).unwrap(), true), false);
+    }
     assert!(
         fautes.is_empty(),
         "{} commentaire(s) racontent l'histoire du code : un commentaire dit le pourquoi d'une regle (le texte depose, la contrainte), jamais d'ou elle vient ; l'histoire va au journal du depot prive :\n{}",
         fautes.len(),
         fautes.join("\n")
     );
+}
+
+/// LA PAGE SE CHARGE : chaque script se lit sans erreur de syntaxe (`node --check`), et ses scripts, classiques
+/// (`index.html`, `<script src>`), partagent une seule
+/// portee. Un nom declare deux fois au premier niveau (`function`, `const`, `let`, `class`), dans un fichier ou d'un
+/// fichier a l'autre, fait refuser le second fichier entier au navigateur, et tout ce qu'il porte manque a l'ecran.
+#[test]
+fn chaque_script_de_la_page_se_charge() {
+    let decl = regex::Regex::new(r"(?m)^(?:async\s+)?(?:function\*?|const|let|class)\s+([A-Za-z_$][\w$]*)").unwrap();
+    let mut vus: std::collections::BTreeMap<String, Vec<String>> = Default::default();
+    let mut mal_ecrits = Vec::new();
+    for p in std::fs::read_dir(depot().join("logiciel/interface/js")).unwrap().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "js")) {
+        let t = std::fs::read_to_string(&p).unwrap();
+        let nom = p.file_name().unwrap().to_string_lossy().into_owned();
+        let syntaxe = std::process::Command::new("node").arg("--check").arg(&p).output().expect("node, pour lire chaque script de la page comme le navigateur le lit");
+        if !syntaxe.status.success() {
+            mal_ecrits.push(format!("{} : {}", nom, String::from_utf8_lossy(&syntaxe.stderr).lines().find(|l| l.contains("Error")).unwrap_or("")));
+        }
+        for c in decl.captures_iter(&t) {
+            let ligne = t[..c.get(0).unwrap().start()].matches('\n').count() + 1;
+            vus.entry(c[1].to_string()).or_default().push(format!("{}:{}", nom, ligne));
+        }
+    }
+    assert!(mal_ecrits.is_empty(), "{} script(s) de la page que le navigateur refuserait (node --check) :\n{}", mal_ecrits.len(), mal_ecrits.join("\n"));
+    let doubles: Vec<String> = vus.into_iter().filter(|(_, l)| l.len() > 1).map(|(n, l)| format!("{} : {}", n, l.join(", "))).collect();
+    assert!(doubles.is_empty(), "{} nom(s) declares deux fois au premier niveau des scripts de la page : le navigateur refuserait le second fichier ; renommer l'un, ou ne garder qu'une declaration :\n{}", doubles.len(), doubles.join("\n"));
 }
 
 /// ON NE COUPE JAMAIS UN TEXTE : le CSS de la page (ses feuilles, et les `<style>` des pages que sert la fenetre) n'a ni
