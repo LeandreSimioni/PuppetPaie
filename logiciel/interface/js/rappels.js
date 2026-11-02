@@ -390,7 +390,7 @@ function htmlEcheancier(ech) {
     </div>`;
 }
 
-function boiteRappels(liste, ech, manques = [], fermer = "Fermer") {
+function boiteRappels(liste, ech, manques = [], fermerDit = "Fermer") {
   const html = htmlDemarrage(manques) + htmlEcheancier(ech) + liste.map((r, i) => `
     <div class="rappel ${r.en_retard ? "retard" : ""}">
       <h3>${echapper(r.titre)}${r.pastille ? ` ${pastilleDeLEtat(r.pastille)}` : ""}${r.quand
@@ -404,7 +404,7 @@ function boiteRappels(liste, ech, manques = [], fermer = "Fermer") {
   ouvrirBoite(`
     <div class="boite-rappels"></div>${html}
     <div class="actions">
-      <button class="secondaire" id="rappels-fermer">${echapper(fermer)}</button>
+      <button class="secondaire" id="rappels-fermer">${echapper(fermerDit)}</button>
     </div>`, () => {
     // FERMÉE, ELLE SORT DE LA PAGE : cachée sous le voile, elle gardait
     // ses boutons `[data-manque-champ]`, périmés dès que la fiche change, et
