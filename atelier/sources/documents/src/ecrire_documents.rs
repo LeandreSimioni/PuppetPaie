@@ -157,7 +157,7 @@ impl Reserves {
         let p = ctx.racine.join(COMPTEURS);
         let mut c = compteurs(&ctx.racine)?;
         let lu = socle::valeur::nom_type(&c);
-        let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", socle::echec::abime(&ctx.racine.join("config").join("compteurs.json"), socle::fichiers::attendu("un objet", lu))))?;
+        let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", socle::echec::abime(&ctx.racine.join(COMPTEURS), socle::fichiers::attendu("un objet", lu))))?;
         for (an, cle) in &self.ordre {
             let annee = racine.entry(an.clone()).or_insert_with(|| json!({}));
             let annee = annee.as_object_mut().ok_or_else(|| erreur("AttributeError", "l'annee des compteurs n'est pas un dictionnaire"))?;

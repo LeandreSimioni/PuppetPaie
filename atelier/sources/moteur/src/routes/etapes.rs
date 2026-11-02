@@ -985,7 +985,7 @@ impl<'a> Moteur<'a> {
         t.trim().parse::<i64>().map_err(|_| {
             erreur(
                 "ValueError",
-                socle::echec::avec(format!("Un dépôt réel de la DSN de {} ne porte pas son ordre (S20.G00.05.004) dans le journal des envois : le rang d'un annule-et-remplace ne se devine pas ; le signaler au développeur.", mois), serde_json::json!({"fichier": "journal/depots.jsonl", "cle": "ordre"})),
+                socle::echec::avec(format!("Un dépôt réel de la DSN de {} ne porte pas son ordre (S20.G00.05.004) dans le journal des envois : le rang d'un annule-et-remplace ne se devine pas ; le signaler au développeur.", mois), serde_json::json!({"fichier": envois::journal::DEPOTS, "cle": "ordre"})),
             )
         })
     }

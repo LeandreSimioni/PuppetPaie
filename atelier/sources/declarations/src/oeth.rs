@@ -12,6 +12,8 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 
 const SEUIL: i64 = 20;
+/// Le fichier des chiffres OETH de la compagnie, un par millesime.
+const OETH: &str = "config/oeth.json";
 const MOIS_DE_DECLARATION: &str = "04";
 const CTP_CONTRIBUTION: &str = "730";
 const CTP_ACCORD: &str = "740";
@@ -286,7 +288,7 @@ Rien n'est ecrit.",
     let mut sans_action = donnees.get("aucune_action_depuis_plus_de_trois_ans").and_then(Value::as_bool);
     if d.beneficiaires.is_zero() && sous_traitance.is_zero() {
         if sans_action.is_none() {
-            return Err(socle::echec::avec("La déclaration OETH de l'année ne dit pas depuis quand la compagnie n'a ni bénéficiaire ni sous-traitance : le dire, depuis plus de trois ans ou non.", serde_json::json!({"fichier": "config/oeth.json", "detail": format!(
+            return Err(socle::echec::avec("La déclaration OETH de l'année ne dit pas depuis quand la compagnie n'a ni bénéficiaire ni sous-traitance : le dire, depuis plus de trois ans ou non.", serde_json::json!({"fichier": OETH, "detail": format!(
                 "{} : aucun beneficiaire et aucune sous-traitance cette annee. La contribution passe a 1 500 \
 fois le SMIC par manquant si cela dure depuis PLUS DE TROIS ANS (D5212-21), et 400 fois sinon : ecrire \
 \"aucune_action_depuis_plus_de_trois_ans\": true ou false. Le logiciel ne connait pas assez le passe \
@@ -341,7 +343,7 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Declaration>> 
         .parse::<i32>()
         .map_err(|_| format!("nombre entier illisible : {}", repr(&tranche(0, 4))))?
         - 1;
-    let chemin = ctx.racine.join(socle::fichiers::CONFIG).join("oeth.json");
+    let chemin = ctx.racine.join(OETH);
     let fichier = if socle::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
     let donnees = match fichier.get(millesime.to_string()) {
         None | Some(Value::Null) => None,
@@ -351,7 +353,7 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Declaration>> 
         if !assujetti_selon_l_effectif(ctx, millesime)? {
             return Ok(None);
         }
-        return Err(socle::echec::avec("La compagnie doit la déclaration OETH de l'année, et ses chiffres ne sont pas saisis : y écrire ceux que l'Urssaf transmet avant le 15 mars.", serde_json::json!({"fichier": "config/oeth.json", "detail": format!(
+        return Err(socle::echec::avec("La compagnie doit la déclaration OETH de l'année, et ses chiffres ne sont pas saisis : y écrire ceux que l'Urssaf transmet avant le 15 mars.", serde_json::json!({"fichier": OETH, "detail": format!(
             "DSN de {} : l'entreprise a atteint {} salaries cinq annees de suite, elle doit la declaration \
 OETH de {} (L5212-1, D5212-8), et config/oeth.json ne porte rien pour {}. Y ecrire les chiffres que \
 l'Urssaf transmet avant le 15 mars : \"{}\": {{\"effectif_assujettissement\": ..., \"boeth\": ..., \
@@ -365,7 +367,7 @@ l'Urssaf transmet avant le 15 mars : \"{}\": {{\"effectif_assujettissement\": ..
             _ => String::new(),
         };
         if pourquoi.trim().is_empty() {
-            return Err(socle::echec::avec("La déclaration OETH de l'année dit la compagnie non assujettie sans dire pourquoi : dire la raison.", serde_json::json!({"fichier": "config/oeth.json", "detail": format!(
+            return Err(socle::echec::avec("La déclaration OETH de l'année dit la compagnie non assujettie sans dire pourquoi : dire la raison.", serde_json::json!({"fichier": OETH, "detail": format!(
                 "config/oeth.json, {} : \"assujetti\": false sans \"pourquoi\". Dire la raison (delai de cinq \
 ans d'une entreprise creee a vingt salaries, L5212-4 ; seuil pas encore franchi, L. 130-1).",
                 millesime

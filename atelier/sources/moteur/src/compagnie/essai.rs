@@ -231,7 +231,7 @@ impl Identite {
     /// declarant net-entreprises, le compte DPAE), ce qui disait l'identite de la fictive retire. Chaque valeur posee vaut
     /// de tout temps, seule : une valeur datee de l'ancienne identite la redonnerait a une date passee.
     pub fn appliquer(&self, fiche: &Value) -> Result<Value, String> {
-        let mut brute = fiche.as_object().cloned().ok_or_else(|| socle::echec::avec("La fiche entreprise de la fictive est abîmée.", json!({"fichier": "config/entreprise.json"})))?;
+        let mut brute = fiche.as_object().cloned().ok_or_else(|| socle::echec::avec("La fiche entreprise de la fictive est abîmée.", json!({"fichier": droit::contexte::ENTREPRISE})))?;
         for k in RETIREES {
             brute.remove(k);
         }

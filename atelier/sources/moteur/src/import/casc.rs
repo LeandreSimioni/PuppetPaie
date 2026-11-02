@@ -733,7 +733,7 @@ pub fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montan
         "qui": qui,
     });
     let Value::Object(o) = &mut d else {
-        return Err(erreur("AttributeError", socle::echec::avec("Le fichier de la CASC-SVP de la compagnie est abîmé.", serde_json::json!({"fichier": "config/casc-svp.json"}))));
+        return Err(erreur("AttributeError", socle::echec::avec("Le fichier de la CASC-SVP de la compagnie est abîmé.", serde_json::json!({"fichier": declarations::casc::CASC_SVP}))));
     };
     match o.entry("regularisations").or_insert_with(|| json!([])) {
         Value::Array(a) => a.push(entree.clone()),
