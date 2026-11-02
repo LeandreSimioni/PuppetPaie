@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::import::dsn_aem::{self, SalarieDeclare};
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, OPERATION, SALARIE};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, OPERATION, SALARIE};
 use droit::contexte::Contexte;
 use envois::etats::get;
 use socle::echec::{erreur, Echec, R};
@@ -25,7 +25,7 @@ use crate::routes::catalogue::{Ecran, Place};
 
 
 
-const DOSSIER: Champ = Champ { nom: "dossier", sens: "le dossier choisi ; la boîte import/ de la compagnie sinon", avance: true };
+const DOSSIER: Champ = Champ { nom: "dossier", libelle: Affiche::new("Dossier"), forme: Forme::Texte, sens: "le dossier choisi ; la boîte import/ de la compagnie sinon", avance: true };
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Import);
@@ -73,12 +73,12 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Dire la nature des contrats repris d'un permanent, qu'aucune pièce ne dit.",
         charge: &[
             SALARIE,
-            Champ { nom: "nature", sens: "la nature d'un contrat de permanent (cdi, cdd…)", avance: false },
-            Champ { nom: "debut", sens: "le contrat court encore : son début", avance: true },
-            Champ { nom: "fin", sens: "son terme, s'il en a un", avance: true },
-            Champ { nom: "numero", sens: "son numéro, tel que la DSN de l'ancien logiciel l'a déclaré", avance: true },
-            Champ { nom: "salaire", sens: "son salaire mensuel", avance: true },
-            Champ { nom: "quotite", sens: "sa durée du travail, en heures par mois", avance: true },
+            Champ { nom: "nature", libelle: Affiche::new("Nature du contrat"), forme: Forme::Texte, sens: "la nature d'un contrat de permanent (cdi, cdd…)", avance: false },
+            Champ { nom: "debut", libelle: Affiche::new("Début"), forme: Forme::Date, sens: "le contrat court encore : son début", avance: true },
+            Champ { nom: "fin", libelle: Affiche::new("Terme"), forme: Forme::Date, sens: "son terme, s'il en a un", avance: true },
+            Champ { nom: "numero", libelle: Affiche::new("Numéro déclaré"), forme: Forme::Texte, sens: "son numéro, tel que la DSN de l'ancien logiciel l'a déclaré", avance: true },
+            Champ { nom: "salaire", libelle: Affiche::new("Salaire mensuel"), forme: Forme::Nombre, sens: "son salaire mensuel", avance: true },
+            Champ { nom: "quotite", libelle: Affiche::new("Heures par mois"), forme: Forme::Nombre, sens: "sa durée du travail, en heures par mois", avance: true },
         ],
         exemple: r#"{"salarie":"TARTEMPION","nature":"cdi"}"#,
         rend: "ecrits, a_dire (ce qui reste à dire), permanents_declares",
@@ -149,14 +149,14 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             } else {
                 String::new()
             };
-            let p = format!("Dans {} : {}DSN : {} ; AEM : {}. Rien n'est écrit.", t(&v, "source"), bulletins, t(&v, "dsn"), t(&v, "aem"));
+            let p = format!("Dans le dossier lu : {}DSN : {} ; AEM : {}. Rien n'est écrit.", bulletins, t(&v, "dsn"), t(&v, "aem"));
             Ok(super::phrase_en_tete(v, p))
         }
         "importation-etat" => etat_importation(&ctx.racine).map(|mut v| {
             dire_l_etat_de_l_import(&mut v);
             let t = |k: &str| super::mot(&v[k]);
             let p = if t("importe_le").is_empty() {
-                format!("Rien n'est repris d'un ancien logiciel. Ses bulletins, DSN ou AEM se déposent dans {}, puis s'importent.", t("dossier"))
+                "Rien n'est repris d'un ancien logiciel. Ses bulletins, DSN ou AEM se déposent dans le dossier d'import de la compagnie, puis s'importent.".to_string()
             } else {
                 format!("Repris le {} : {} contrats, {} salariés, du {} au {}.", super::quand(&t("importe_le")), t("contrats"), t("salaries"), super::quand(&t("du")), super::quand(&t("au")))
             };

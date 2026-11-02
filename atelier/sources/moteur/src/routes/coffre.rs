@@ -20,7 +20,7 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::coffre::{Coffre, Echec as EchecCoffre};
 use crate::compagnie::administrateur::Poste;
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, OPERATION};
 use droit::contexte::Contexte;
 use super::{ou_texte, vers_route};
 use envois::etats::{get, joindre, objet_vide, ou};
@@ -30,9 +30,9 @@ use socle::fichiers::{vrai, MARQUEUR_COPIE};
 use socle::valeur::{nom_type, valeur_en_texte};
 use crate::routes::catalogue::{Ecran, Place};
 
-const SERVICE: Champ = Champ { nom: "service", sens: "net-entreprises, urssaf ou courriel", avance: false };
-const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false };
-const ADMINISTRATEUR: Champ = Champ { nom: "administrateur", sens: "le mot de passe de l'administrateur, tapé dans la page ; par moteur route, le moteur le demande à un humain", avance: false };
+const SERVICE: Champ = Champ { nom: "service", libelle: Affiche::new("Service"), forme: Forme::Texte, sens: "net-entreprises, urssaf ou courriel", avance: false };
+const MOT_DE_PASSE: Champ = Champ { nom: "motdepasse", libelle: Affiche::new("Mot de passe du logiciel"), forme: Forme::Texte, sens: "le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false };
+const ADMINISTRATEUR: Champ = Champ { nom: "administrateur", libelle: Affiche::new("Mot de passe de l'administrateur"), forme: Forme::Texte, sens: "le mot de passe de l'administrateur, tapé dans la page ; par moteur route, le moteur le demande à un humain", avance: false };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est modifié" };
 const ETAT: &str = "l'état du coffre : ce qui est posé, depuis quand, jamais les valeurs";
 
@@ -88,10 +88,10 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Poser le mot de passe d'un organisme ; pour l'Urssaf, avec le compte des DPAE.",
         charge: &[
             SERVICE,
-            Champ { nom: "valeur", sens: "le mot de passe à poser, tapé dans la page ; par moteur route, le moteur le fait taper deux fois à un humain", avance: false },
-            Champ { nom: "compte", sens: "l'identifiant du compte (l'adresse, pour la boîte courriel)", avance: false },
-            Champ { nom: "nom", sens: "Urssaf : le nom du compte qui dépose les DPAE ; s'il change, la route ne pose que le compte quand `valeur` manque", avance: false },
-            Champ { nom: "prenom", sens: "Urssaf : son prénom", avance: false },
+            Champ { nom: "valeur", libelle: Affiche::new("Mot de passe"), forme: Forme::Texte, sens: "le mot de passe à poser, tapé dans la page ; par moteur route, le moteur le fait taper deux fois à un humain", avance: false },
+            Champ { nom: "compte", libelle: Affiche::new("Identifiant du compte"), forme: Forme::Texte, sens: "l'identifiant du compte (l'adresse, pour la boîte courriel)", avance: false },
+            Champ { nom: "nom", libelle: Affiche::new("Nom"), forme: Forme::Texte, sens: "Urssaf : le nom du compte qui dépose les DPAE ; s'il change, la route ne pose que le compte quand `valeur` manque", avance: false },
+            Champ { nom: "prenom", libelle: Affiche::new("Prénom"), forme: Forme::Texte, sens: "Urssaf : son prénom", avance: false },
             MOT_DE_PASSE,
         ],
         exemple: r#"{"service":"urssaf"}"#,
@@ -131,8 +131,8 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Poser ou changer le mot de passe du logiciel.",
         charge: &[
             MOT_DE_PASSE,
-            Champ { nom: "nouveau", sens: "le nouveau mot de passe, tapé dans la page ; par moteur route, le moteur le fait taper deux fois à un humain", avance: false },
-            Champ { nom: "confirmation", sens: "le même, retapé dans la page", avance: false },
+            Champ { nom: "nouveau", libelle: Affiche::new("Nouveau mot de passe"), forme: Forme::Texte, sens: "le nouveau mot de passe, tapé dans la page ; par moteur route, le moteur le fait taper deux fois à un humain", avance: false },
+            Champ { nom: "confirmation", libelle: Affiche::new("Confirmation"), forme: Forme::Texte, sens: "le même, retapé dans la page", avance: false },
         ],
         exemple: r#"{}"#,
         rend: ETAT,
@@ -195,7 +195,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Rattacher cette compagnie à l'administrateur : son mot de passe l'ouvre aussi.",
         charge: &[
             ADMINISTRATEUR,
-            Champ { nom: "motdepasse", sens: "le mot de passe actuel de cette compagnie, s'il est posé ; par moteur route, le moteur le demande à un humain", avance: false },
+            Champ { nom: "motdepasse", libelle: Affiche::new("Mot de passe actuel"), forme: Forme::Texte, sens: "le mot de passe actuel de cette compagnie, s'il est posé ; par moteur route, le moteur le demande à un humain", avance: false },
         ],
         exemple: r#"{}"#,
         rend: "compagnies (celles de l'administrateur), etat, phrase",
@@ -210,8 +210,8 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Détacher cette compagnie : elle reçoit son propre mot de passe.",
         charge: &[
             ADMINISTRATEUR,
-            Champ { nom: "nouveau", sens: "son propre mot de passe, tapé dans la page ; par moteur route, le moteur le fait taper deux fois à un humain", avance: false },
-            Champ { nom: "confirmation", sens: "le même, retapé dans la page", avance: false },
+            Champ { nom: "nouveau", libelle: Affiche::new("Nouveau mot de passe"), forme: Forme::Texte, sens: "son propre mot de passe, tapé dans la page ; par moteur route, le moteur le fait taper deux fois à un humain", avance: false },
+            Champ { nom: "confirmation", libelle: Affiche::new("Confirmation"), forme: Forme::Texte, sens: "le même, retapé dans la page", avance: false },
         ],
         exemple: r#"{}"#,
         rend: "etat, phrase",

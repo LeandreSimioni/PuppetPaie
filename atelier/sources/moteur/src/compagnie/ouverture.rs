@@ -38,7 +38,7 @@ use socle::fichiers::vrai;
 use envois::releve_retours::{Client, Releve};
 use crate::compagnie::releve_signatures::{self, ReleveSignatures};
 use socle::echec::Echec;
-use crate::routes::catalogue::{Acte, Champ, Fiche, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, OPERATION};
 use crate::routes::fiches::ReleveFiches;
 use crate::compagnie::sauvegarde::{self, Sauvegarde};
 
@@ -51,10 +51,10 @@ pub const ROUTES: &[Fiche] = &[
         nom: "ouverture",
         geste: "Ouvrir la compagnie : sauvegarder, relever retours, signatures et fiches.",
         charge: &[
-            Champ { nom: "sauvegarder", sens: "faux : ne pas sauvegarder dans le Drive", avance: true },
-            Champ { nom: "retours", sens: "faux : ne pas relever les retours des organismes", avance: true },
-            Champ { nom: "signatures", sens: "faux : ne pas relever les signatures", avance: true },
-            Champ { nom: "veille", sens: "vrai : un tour de veille", avance: true },
+            Champ { nom: "sauvegarder", libelle: Affiche::new("Sauvegarder"), forme: Forme::OuiNon, sens: "faux : ne pas sauvegarder dans le Drive", avance: true },
+            Champ { nom: "retours", libelle: Affiche::new("Relever les retours"), forme: Forme::OuiNon, sens: "faux : ne pas relever les retours des organismes", avance: true },
+            Champ { nom: "signatures", libelle: Affiche::new("Relever les signatures"), forme: Forme::OuiNon, sens: "faux : ne pas relever les signatures", avance: true },
+            Champ { nom: "veille", libelle: Affiche::new("Un tour de veille"), forme: Forme::OuiNon, sens: "vrai : un tour de veille", avance: true },
         ],
         exemple: r#"{}"#,
         rend: "ce que chaque passage a fait (sauvegarde, retours, signatures, fiches, filet), et les incidents en phrases ; ne refuse jamais",

@@ -40,7 +40,7 @@ use droit::minima::Par;
 use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, OPERATION, SALARIE};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, OPERATION, SALARIE};
 use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
@@ -53,7 +53,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "conseil-du-jour",
         geste: "Dire le conseil du jour (« Le saviez-vous ? »).",
-        charge: &[Champ { nom: "decalage", sens: "un autre conseil : +1 le suivant, -1 le précédent", avance: false }],
+        charge: &[Champ { nom: "decalage", libelle: Affiche::new("Autre conseil"), forme: Forme::Nombre, sens: "un autre conseil : +1 le suivant, -1 le précédent", avance: false }],
         exemple: r#"{}"#,
         rend: "le conseil (titre, texte, ce qu'il ouvre)",
         refus: &[OPERATION],

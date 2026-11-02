@@ -6,6 +6,8 @@
 
 use serde_json::{json, Value};
 
+pub use crate::routes::affiche::Affiche;
+
 /// Ce que fait la route.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Acte {
@@ -79,8 +81,9 @@ impl Place {
 pub enum Ecran {
     /// La page de cette place l'appelle (son ecran est dessine).
     Dessine(Place),
-    /// Sans ecran dessine : sous « Avancé » de sa place, la page l'affiche depuis sa fiche (`js/avance.js`).
-    Auto(Place),
+    /// Sans ecran dessine : sous « Avancé » de sa place, la page l'affiche depuis sa fiche (`js/avance.js`), avec ce
+    /// bouton (le `geste` est pour le LLM).
+    Auto(Place, Affiche),
     /// Une lecture qui nourrit les ecrans (l'etat, la configuration, le mois) : elle n'a pas de place.
     Lecture,
 }
@@ -88,7 +91,7 @@ pub enum Ecran {
 impl Ecran {
     pub fn place(self) -> Option<Place> {
         match self {
-            Ecran::Dessine(p) | Ecran::Auto(p) => Some(p),
+            Ecran::Dessine(p) | Ecran::Auto(p, _) => Some(p),
             Ecran::Lecture => None,
         }
     }
@@ -96,7 +99,7 @@ impl Ecran {
     fn mot(self) -> &'static str {
         match self {
             Ecran::Dessine(_) => "dessine",
-            Ecran::Auto(_) => "auto",
+            Ecran::Auto(..) => "auto",
             Ecran::Lecture => "lecture",
         }
     }
@@ -105,70 +108,91 @@ impl Ecran {
     pub fn texte(self) -> String {
         match self {
             Ecran::Dessine(p) => p.nom().to_string(),
-            Ecran::Auto(p) => format!("{} › Avancé", p.nom()),
+            Ecran::Auto(p, _) => format!("{} › Avancé", p.nom()),
             Ecran::Lecture => "(une lecture des écrans)".to_string(),
         }
     }
 }
 
-/// Un champ de la charge : son nom, son sens, et s'il est « avance » (l'ecran le range sous Avancé, ou seul un fait
-/// l'appelle).
+/// LA FORME D'UNE VALEUR DE LA CHARGE : ce que l'ecran saisit (une case, un nombre, un mois…) et ce que le LLM ecrit.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Forme {
+    Texte,
+    OuiNon,
+    Nombre,
+    /// AAAA-MM.
+    Mois,
+    /// AAAA-MM-JJ.
+    Date,
+    /// Une liste de textes.
+    Liste,
+    /// Une valeur composee (un objet, une liste d'objets) : le `sens` la decrit ; l'ecran ne la saisit pas d'une case.
+    Objet,
+}
+
+impl Forme {
+    pub fn mot(self) -> &'static str {
+        match self {
+            Forme::Texte => "texte",
+            Forme::OuiNon => "oui_non",
+            Forme::Nombre => "nombre",
+            Forme::Mois => "mois",
+            Forme::Date => "date",
+            Forme::Liste => "liste",
+            Forme::Objet => "objet",
+        }
+    }
+}
+
+/// Un champ de la charge : son nom, ce que l'ecran en montre (`libelle`) et sa forme, son sens pour le LLM, et s'il est
+/// « avance » (l'ecran le range sous Avancé, ou seul un fait l'appelle).
 #[derive(Clone, Copy, Debug)]
 pub struct Champ {
     pub nom: &'static str,
+    pub libelle: Affiche,
+    pub forme: Forme,
     pub sens: &'static str,
     pub avance: bool,
 }
 
-/// LE SENS D'UN OUI/NON commence par « vrai : » : le catalogue le dit (`oui_non`) et rend ce que l'écran affiche à côté
-/// de la case (`libelle`, le sens sans ce mot), pour que la page n'en décide rien.
-const OUI_NON: &str = "vrai : ";
-
 impl Champ {
     pub fn en_json(&self) -> Value {
-        let libelle = self.sens.strip_prefix(OUI_NON);
         json!({
             "nom": self.nom,
+            "libelle": self.libelle.texte(),
+            "forme": self.forme.mot(),
             "sens": self.sens,
             "avance": self.avance,
-            "oui_non": libelle.is_some(),
-            "libelle": libelle.map(majuscule).unwrap_or_else(|| self.sens.to_string()),
         })
     }
-}
-
-/// La première lettre en capitale : un libellé commence une phrase.
-fn majuscule(s: &str) -> String {
-    let mut c = s.chars();
-    c.next().map(|p| p.to_uppercase().chain(c).collect()).unwrap_or_default()
 }
 
 /// LES CASES DE LA CARTE D'UN CONTRAT PAYE AU MOIS, dans la charge `saisie` (les faits du mois et ses termes). La marque
 /// « avancé » range l'ecran et le catalogue a la fois : la page met sous « Avancé » de la carte les cases marquees, et
 /// seulement celles que l'engagement appelle (`faits_avances` de la route apercu, `engagement::heures_en_plus::faits_appeles`).
 pub const CASES_D_UN_MOIS_PAYE: &[Champ] = &[
-    Champ { nom: "salaire_mensuel", sens: "le salaire mensuel brut du contrat", avance: false },
-    Champ { nom: "quotite_contrat", sens: "ses heures par mois", avance: false },
-    Champ { nom: "conges_pris", sens: "les congés pris du mois : [{debut, fin}]", avance: false },
-    Champ { nom: "primes", sens: "les primes du mois : [{montant, rubrique, libelle}]", avance: false },
-    Champ { nom: "heures_supplementaires", sens: "un temps plein : ses heures supplémentaires du mois, que le moteur majore", avance: true },
+    Champ { nom: "salaire_mensuel", libelle: Affiche::new("Salaire mensuel brut"), forme: Forme::Nombre, sens: "le salaire mensuel brut du contrat", avance: false },
+    Champ { nom: "quotite_contrat", libelle: Affiche::new("Heures par mois"), forme: Forme::Nombre, sens: "ses heures par mois", avance: false },
+    Champ { nom: "conges_pris", libelle: Affiche::new("Congés pris"), forme: Forme::Objet, sens: "les congés pris du mois : [{debut, fin}]", avance: false },
+    Champ { nom: "primes", libelle: Affiche::new("Primes"), forme: Forme::Objet, sens: "les primes du mois : [{montant, rubrique, libelle}]", avance: false },
+    Champ { nom: "heures_supplementaires", libelle: Affiche::new("Heures supplémentaires"), forme: Forme::Nombre, sens: "un temps plein : ses heures supplémentaires du mois, que le moteur majore", avance: true },
     Champ {
-        nom: "heures_supplementaires_a_50",
+        nom: "heures_supplementaires_a_50", libelle: Affiche::new("Dont à 50 %"), forme: Forme::Nombre,
         sens: "dont celles au-delà de la huitième d'une semaine (majorées de 50 % quand la convention ne fixe pas les paliers)",
         avance: true,
     },
-    Champ { nom: "heures_complementaires", sens: "un temps partiel : ses heures complémentaires du mois, que le moteur majore", avance: true },
+    Champ { nom: "heures_complementaires", libelle: Affiche::new("Heures complémentaires"), forme: Forme::Nombre, sens: "un temps partiel : ses heures complémentaires du mois, que le moteur majore", avance: true },
 ];
 
 /// LES CASES DE LA FIN DU CONTRAT, dans la charge `saisie` : les faits du mois ou il finit (`engagement::stock::DE_LA_FIN`),
 /// la ou le moteur les ecrit quel que soit le mois de la carte. Ce que chaque motif appelle : `faits_de_rupture` des
 /// `natures` de la route etat.
 pub const CASES_DE_LA_FIN: &[Champ] = &[
-    Champ { nom: "fin", sens: "le dernier jour du contrat, AAAA-MM-JJ", avance: false },
-    Champ { nom: "motif_rupture", sens: "le code du motif, \"059\" pour une démission : `motifs_rupture` des `natures` de la route etat", avance: false },
-    Champ { nom: "notification_rupture", sens: "le jour où la rupture a été notifiée, AAAA-MM-JJ", avance: false },
-    Champ { nom: "preavis", sens: "{type, debut, fin} : type de `types_preavis` de la route etat (\"90\" sans préavis), ses dates s'il en a", avance: false },
-    Champ { nom: "dernier_jour_paye", sens: "le dernier jour payé, s'il n'est pas la fin", avance: false },
+    Champ { nom: "fin", libelle: Affiche::new("Dernier jour du contrat"), forme: Forme::Date, sens: "le dernier jour du contrat, AAAA-MM-JJ", avance: false },
+    Champ { nom: "motif_rupture", libelle: Affiche::new("Motif de la fin"), forme: Forme::Texte, sens: "le code du motif, \"059\" pour une démission : `motifs_rupture` des `natures` de la route etat", avance: false },
+    Champ { nom: "notification_rupture", libelle: Affiche::new("Notifiée le"), forme: Forme::Date, sens: "le jour où la rupture a été notifiée, AAAA-MM-JJ", avance: false },
+    Champ { nom: "preavis", libelle: Affiche::new("Préavis"), forme: Forme::Objet, sens: "{type, debut, fin} : type de `types_preavis` de la route etat (\"90\" sans préavis), ses dates s'il en a", avance: false },
+    Champ { nom: "dernier_jour_paye", libelle: Affiche::new("Dernier jour payé"), forme: Forme::Date, sens: "le dernier jour payé, s'il n'est pas la fin", avance: false },
 ];
 
 /// Les cases d'une carte que porte la charge de la fiche (`saisie`), s'il y en a.
@@ -211,8 +235,8 @@ pub struct Fiche {
 pub const GESTE_MAX: usize = 80;
 
 /// Ce que bien des fiches partagent : le mois de l'ecran, et les refus de la forme de la charge.
-pub const MOIS: Champ = Champ { nom: "mois", sens: "le mois de l'écran, AAAA-MM", avance: false };
-pub const SALARIE: Champ = Champ { nom: "salarie", sens: "la clé de la fiche du salarié (ou son nom)", avance: false };
+pub const MOIS: Champ = Champ { nom: "mois", libelle: Affiche::new("Mois"), forme: Forme::Mois, sens: "le mois de l'écran, AAAA-MM", avance: false };
+pub const SALARIE: Champ = Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "la clé de la fiche du salarié (ou son nom)", avance: false };
 pub const MANQUE: Refus = Refus { classe: "KeyError", corriger: "le champ de la charge, ou la fiche, que la phrase nomme" };
 pub const ILLISIBLE: Refus = Refus { classe: "ValueError", corriger: "la date ou la valeur que la phrase dit illisible" };
 pub const FORME: Refus = Refus { classe: "TypeError", corriger: "le champ de la charge que la phrase nomme" };
@@ -234,6 +258,7 @@ impl Fiche {
             "phrase": self.phrase,
             "ecran": self.ecran.place().map(Place::nom),
             "affichage": self.ecran.mot(),
+            "bouton": match self.ecran { Ecran::Auto(_, b) => Value::from(b.texte()), _ => Value::Null },
         })
     }
 
@@ -278,7 +303,7 @@ pub fn dans(fiches: &[Fiche], nom: &str) -> Option<Fiche> {
 pub const ROUTES: &[Fiche] = &[Fiche {
     nom: "routes",
     geste: "Dire les routes : leur fiche, le chemin simple d'abord.",
-    charge: &[Champ { nom: "avance", sens: "vrai : toutes les routes, les avancées comprises", avance: true }],
+    charge: &[Champ { nom: "avance", libelle: Affiche::new("Toutes les routes"), forme: Forme::OuiNon, sens: "vrai : toutes les routes, les avancées comprises", avance: true }],
     exemple: r#"{"avance": true}"#,
     rend: "routes : la fiche de chaque route (nom, geste, charge, exemple, rend, refus, acte, avance, phrase)",
     refus: &[FORME],

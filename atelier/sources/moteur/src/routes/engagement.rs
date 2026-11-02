@@ -10,17 +10,17 @@ use socle::echec::{erreur, Echec, Refus, R};
 use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus as RefusDit, FORME, MOIS};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusDit, FORME, MOIS};
 use crate::routes::catalogue::{Ecran, Place};
 
 const IDENTITE: Champ = Champ {
-    nom: "engagement",
+    nom: "engagement", libelle: Affiche::new("Carte"), forme: Forme::Objet,
     sens: "l'identité de la carte, telle que le moteur l'a rendue : {salarie, debut, rang}",
     avance: false,
 };
 /// La saisie d'une carte, ses cases et ou se lit ce que chacune demande.
 pub(crate) const SAISIE: Champ = Champ {
-    nom: "saisie",
+    nom: "saisie", libelle: Affiche::new("Saisie"), forme: Forme::Objet,
     sens: "ce que la carte porte : salarie (la clé de sa fiche), spectacle, nature (`natures` de la route etat ; muette, c'est un CDDU : un CDI la dit), debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures (par unité : 4 pour des services de 4 h), jours, montant…}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; sa fin : `cases_de_la_fin` de cette fiche ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
     avance: false,
 };
@@ -38,7 +38,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "valider-engagement",
         geste: "Valider l'engagement d'une carte : l'écrire et calculer ses paies.",
-        charge: &[MOIS, Champ { nom: "engagement", sens: "l'identité de la carte ; absente pour un engagement neuf", avance: false }, SAISIE],
+        charge: &[MOIS, Champ { nom: "engagement", libelle: Affiche::new("Carte"), forme: Forme::Objet, sens: "l'identité de la carte ; absente pour un engagement neuf", avance: false }, SAISIE],
         exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-27"]}]}}"#,
         rend: "engagement (l'identité de la carte), phrase",
         refus: &[SAISIE_INCOMPLETE, OPERATION, FORME],
@@ -54,8 +54,8 @@ pub const ROUTES: &[Fiche] = &[
             MOIS,
             IDENTITE,
             SAISIE,
-            Champ { nom: "confirme", sens: "vrai : l'avertissement rendu a été lu et accepté", avance: false },
-            Champ { nom: "jour", sens: "le jour du mois (un nombre, de 1 à 31) où un terme changé prend effet, quand ce n'est pas le 1er", avance: true },
+            Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu a été lu et accepté", avance: false },
+            Champ { nom: "jour", libelle: Affiche::new("Jour d'effet"), forme: Forme::Nombre, sens: "le jour du mois (un nombre, de 1 à 31) où un terme changé prend effet, quand ce n'est pas le 1er", avance: true },
         ],
         exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":160,"dates":["2026-11-27"]}]}}"#,
         rend: "rien n'a changé : change faux ; ce qui est parti le demande : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit ; écrit : change, phrase (un terme vaut à partir du mois de la carte)",
@@ -73,7 +73,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "retirer-engagement",
         geste: "Retirer l'engagement d'une carte, ou le rendre non actif si un envoi est parti.",
-        charge: &[MOIS, IDENTITE, Champ { nom: "confirme", sens: "vrai : l'avertissement rendu a été lu, et l'engagement devient non actif", avance: false }],
+        charge: &[MOIS, IDENTITE, Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu a été lu, et l'engagement devient non actif", avance: false }],
         exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"confirme":true}"#,
         rend: "phrase : retiré, ou non actif et ce que cela rend à faire ; un envoi est parti : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit",
         refus: &[OPERATION, FORME],

@@ -183,7 +183,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         for (mois_f, nom_f) in &fichiers {
             let envoye = ctx.racine.join("sorties").join(mois_f).join("envoi").join(nom_f);
             let souche = envoye.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-            let signe = envoye.with_file_name(format!("{}_signe.pdf", souche));
+            let signe = envoye.with_file_name(format!("{}{}", souche, envois::releve_signatures::SUFFIXE_CONTRESIGNE));
             // L'EXEMPLAIRE CONTRESIGNE se refait comme le contrat parti (`depart::refaire_le_contrat`), depuis la ligne de
             // la demande et la version de l'engagement qu'elle a emportee, la mention de l'artiste dans sa case.
             let porte = |l: &Value| l["detail"]["contrats"].as_array().is_some_and(|cs| cs.iter().any(|c| c["code"] == json!(code)));

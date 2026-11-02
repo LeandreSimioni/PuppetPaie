@@ -32,12 +32,12 @@ use socle::num::{dec, flottant, Decimal};
 use socle::valeur::{nom_type, nombre, valeur_en_texte, valeurs_egales};
 
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION};
 use crate::routes::engagement::SAISIE_INCOMPLETE;
 use crate::routes::catalogue::{Ecran, Place};
 
 const CARTES: Champ = Champ {
-    nom: "cartes",
+    nom: "cartes", libelle: Affiche::new("Cartes"), forme: Forme::Objet,
     sens: "les cartes non écrites de l'écran : [{engagement (son identité, ou null pour une neuve), saisie}]",
     avance: false,
 };
@@ -86,7 +86,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "contrats-passes",
         geste: "Lire les contrats déclarés d'un mois importé.",
-        charge: &[MOIS, Champ { nom: "salarie", sens: "la clé d'un salarié, pour ne lire que les siens", avance: true }],
+        charge: &[MOIS, Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "la clé d'un salarié, pour ne lire que les siens", avance: true }],
         exemple: r#"{"mois":"2026-11"}"#,
         rend: "contrats : ceux que les engagements importés attestent",
         refus: &[MANQUE],
@@ -98,7 +98,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "emploi",
         geste: "Traduire un métier du catalogue en champs de la fiche salarié.",
-        charge: &[Champ { nom: "metier", sens: "le code du métier au catalogue (COM010…)", avance: false }],
+        charge: &[Champ { nom: "metier", libelle: Affiche::new("Métier"), forme: Forme::Texte, sens: "le code du métier au catalogue (COM010…)", avance: false }],
         exemple: r#"{"metier":"COM010"}"#,
         rend: "les champs de la fiche que le métier remplit (emploi, statut, catégorie…)",
         refus: &[MANQUE, OPERATION],
@@ -112,7 +112,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Écrire la carte d'un engagement en saisie, et elle seule.",
         charge: &[
             MOIS,
-            Champ { nom: "engagement", sens: "l'identité de la carte ; absente pour une carte neuve", avance: false },
+            Champ { nom: "engagement", libelle: Affiche::new("Carte"), forme: Forme::Objet, sens: "l'identité de la carte ; absente pour une carte neuve", avance: false },
             super::engagement::SAISIE,
         ],
         exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}}"#,
@@ -129,9 +129,9 @@ pub const ROUTES: &[Fiche] = &[
         charge: &[
             MOIS,
             CARTES,
-            Champ { nom: "carte", sens: "le rang, dans cartes, de la carte à ajuster", avance: false },
-            Champ { nom: "cible", sens: "net, brut ou cout", avance: false },
-            Champ { nom: "montant", sens: "le montant voulu, en euros", avance: false },
+            Champ { nom: "carte", libelle: Affiche::new("Rang de la carte"), forme: Forme::Nombre, sens: "le rang, dans cartes, de la carte à ajuster", avance: false },
+            Champ { nom: "cible", libelle: Affiche::new("Net, brut ou coût"), forme: Forme::Texte, sens: "net, brut ou cout", avance: false },
+            Champ { nom: "montant", libelle: Affiche::new("Montant voulu"), forme: Forme::Nombre, sens: "le montant voulu, en euros", avance: false },
         ],
         exemple: r#"{"mois":"2026-11","cartes":[{"engagement":null,"saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-21"]}]}}],"carte":0,"cible":"brut","montant":200}"#,
         rend: "phrase (ce qui est atteint, et le taux qu'il faudrait), vise, atteint, ecart, engagements (les taux qui changent), paies ; rien n'est écrit",

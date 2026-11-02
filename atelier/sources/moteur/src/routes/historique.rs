@@ -7,7 +7,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::routes::catalogue::{Acte, Champ, Ecran, Fiche, Place, Refus, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, Refus, MANQUE, MOIS, OPERATION};
 use crate::routes::documents::requis;
 use crate::routes::lire_json_ou_vide;
 use crate::routes::ouverture::mois_connus;
@@ -16,7 +16,7 @@ use socle::echec::{erreur, Echec, R};
 use socle::valeur::{nom_type, valeur_en_texte};
 use socle::fichiers::vrai;
 
-const ANNEE: Champ = Champ { nom: "annee", sens: "l'année, AAAA", avance: false };
+const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Historique);
@@ -35,8 +35,8 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Clore une année passée : archiver ses engagements, documents et déclarations.",
         charge: &[
             ANNEE,
-            Champ { nom: "forcer", sens: "vrai : clore malgré un mois sans DSN réelle acceptée", avance: true },
-            Champ { nom: "rouvrir", sens: "vrai : rouvrir l'année close (son archive reste)", avance: true },
+            Champ { nom: "forcer", libelle: Affiche::new("Clore malgré tout"), forme: Forme::OuiNon, sens: "vrai : clore malgré un mois sans DSN réelle acceptée", avance: true },
+            Champ { nom: "rouvrir", libelle: Affiche::new("Rouvrir l'année"), forme: Forme::OuiNon, sens: "vrai : rouvrir l'année close (son archive reste)", avance: true },
         ],
         exemple: r#"{"annee":"2025"}"#,
         rend: "annee, archive, fichiers, empreinte, manques (ce qui n'a pu s'archiver) ; rouverte : etait_clos_depuis",
@@ -51,9 +51,9 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Écrire l'export comptable d'une année, du mois du au mois au.",
         charge: &[
             ANNEE,
-            Champ { nom: "du", sens: "le premier mois, 1 à 12", avance: true },
-            Champ { nom: "au", sens: "le dernier mois, 1 à 12", avance: true },
-            Champ { nom: "apercu", sens: "vrai : dire ce qui s'écrirait, sans écrire", avance: true },
+            Champ { nom: "du", libelle: Affiche::new("Du mois"), forme: Forme::Nombre, sens: "le premier mois, 1 à 12", avance: true },
+            Champ { nom: "au", libelle: Affiche::new("Au mois"), forme: Forme::Nombre, sens: "le dernier mois, 1 à 12", avance: true },
+            Champ { nom: "apercu", libelle: Affiche::new("Aperçu seulement"), forme: Forme::OuiNon, sens: "vrai : dire ce qui s'écrirait, sans écrire", avance: true },
         ],
         exemple: r#"{"annee":"2026","apercu":true}"#,
         rend: "les fichiers de l'export, ou ce qu'ils porteraient",
@@ -83,7 +83,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "journal-reprise",
         geste: "Reprendre le journal des envois d'après les retours relevés.",
-        charge: &[Champ { nom: "ecrire", sens: "vrai : écrire ce qui se reprend ; sinon, le dire seulement", avance: false }],
+        charge: &[Champ { nom: "ecrire", libelle: Affiche::new("Écrire ce qui se reprend"), forme: Forme::OuiNon, sens: "vrai : écrire ce qui se reprend ; sinon, le dire seulement", avance: false }],
         exemple: r#"{}"#,
         rend: "ce qui se reprend, ligne par ligne, et ses pastilles",
         refus: &[OPERATION],
@@ -114,7 +114,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             } else {
                 let manques: Vec<String> = v["manques"].as_array().into_iter().flatten().map(socle::valeur::valeur_en_texte).collect();
                 let reste = if manques.is_empty() { String::new() } else { format!(" Pas archivé : {}.", manques.iter().map(|m| m.trim_end_matches('.')).collect::<Vec<_>>().join(" ; ")) };
-                format!("Exercice {} clos : {} fichiers archivés dans {}.{}", t(&v, "annee"), t(&v, "fichiers"), t(&v, "archive"), reste)
+                format!("Exercice {} clos : {} fichiers archivés.{}", t(&v, "annee"), t(&v, "fichiers"), reste)
             };
             super::phrase_en_tete(v, p)
         }),
@@ -254,10 +254,12 @@ fn archiver(ctx: &Contexte, charge: &Value) -> R<Value> {
     let client: Option<&mut dyn envois::drive::Drive> = if joue { Some(&mut drive_joue) } else { None };
     let r = archivage::archiver(&ctx.racine, &mois, crate::compagnie::sauvegarde::RACINE_DRIVE, client).map_err(|e| erreur(e.classe, e.message))?;
     let dossier = format!("{}/{}", r.racine_drive, r.mois);
+    // Le dossier du Drive tel que l'écran le dit : ses dossiers séparés comme les places de l'écran.
+    let ou = format!("{} › {}", r.racine_drive, r.mois);
     let phrase = if joue {
-        format!("Compagnie fictive : rien ne part au Drive. {} fichier(s) iraient dans {}.", r.fichiers.len(), dossier)
+        format!("Compagnie fictive : rien ne part au Drive. {} fichier(s) iraient dans le dossier {}.", r.fichiers.len(), ou)
     } else {
-        format!("{} fichier(s) déposé(s) dans le Drive, dossier {}.", r.fichiers.len(), dossier)
+        format!("{} fichier(s) déposé(s) dans le Drive, dossier {}.", r.fichiers.len(), ou)
     };
     Ok(json!({
         "mois": r.mois,

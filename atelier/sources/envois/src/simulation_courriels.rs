@@ -321,6 +321,8 @@ pub fn courriels_joues(racine: &Path, apres: &str) -> Value {
             .filter(|f| est_multipart && !(f.ctype.mimetype.starts_with("text/") && nom_de_fichier(f).is_none()))
             .map(|f| json!({"nom": nom_de_fichier(f), "pages": pages(f)}))
             .collect();
+        // Le courriel qui renvoie au signataire son contrat contresigne : sa piece en est l'exemplaire.
+        let contresigne = pieces.iter().any(|p| p["nom"].as_str().is_some_and(|n| n.ends_with(crate::releve_signatures::SUFFIXE_CONTRESIGNE)));
         sortie.push(json!({
             "nom": nom,
             "de": adresses(&m, "From"),
@@ -329,6 +331,7 @@ pub fn courriels_joues(racine: &Path, apres: &str) -> Value {
             "texte": corps(&fs, "plain"),
             "html": corps(&fs, "html"),
             "pieces": pieces,
+            "contresigne": contresigne,
             "bouton": b.map(|(s, c)| json!({"sujet": s, "corps": c})),
         }));
     }

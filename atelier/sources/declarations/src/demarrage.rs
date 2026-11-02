@@ -26,7 +26,8 @@ pub const TITRE_LU_DANS: &str = "_titre_lu_dans";
 /// Le titre d'un spectacle que l'import n'a pas ecrit.
 const TITRE_A_COMPLETER: &str = "A COMPLETER";
 
-const ENTREPRISE: &str = "Configuration › Entreprise";
+/// Où une ligne mène : ce que l'écran en dit (`ou`), et l'onglet de la Configuration qu'elle ouvre (`onglet`).
+const ENTREPRISE: (&str, &str) = ("Configuration › Entreprise", "entreprise");
 
 fn valeur<'a>(ent: &'a Value, chemin: &str) -> Option<&'a Value> {
     chemin.split('.').try_fold(ent, |v, k| v.get(k))
@@ -40,8 +41,8 @@ fn champ(cle: &str) -> (String, String) {
     }
 }
 
-fn manque(cle: &str, libelle: String, bloque: &str, ou: &str, champ: Option<&str>, trouver: String) -> Value {
-    let mut l = json!({ "cle": cle, "libelle": libelle, "bloque": bloque, "ou": ou, "champ": champ, "case": champ, "trouver": trouver });
+fn manque(cle: &str, libelle: String, bloque: &str, ou: (&str, &str), champ: Option<&str>, trouver: String) -> Value {
+    let mut l = json!({ "cle": cle, "libelle": libelle, "bloque": bloque, "ou": ou.0, "onglet": ou.1, "champ": champ, "case": champ, "trouver": trouver });
     // UNE STRUCTURE DIT SES CASES (leur nom, leur forme, leurs valeurs), d'apres la table qui les decrit.
     if let Some(c) = champ.and_then(|k| crate::champs::champ("entreprise", k).ok().flatten()).filter(|c| !c.champs.is_empty()) {
         l["cases"] = json!(crate::champs::cases_dites(&c));
@@ -120,9 +121,9 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // sans lui (`sinon`).
     // Une ligne dit la case a remplir (`case`, son chemin dans la fiche, que l'ecran dessine) ; celle d'un salarie dit
     // aussi qui (`qui`), sous le nom duquel elle se range.
-    let ligne = |m: crate::champs::Manquant, ou: String, salarie: Option<(&str, &str)>| {
+    let ligne = |m: crate::champs::Manquant, ou: String, onglet: &str, salarie: Option<(&str, &str)>| {
         let racine = m.ecran.split('.').next().unwrap_or(&m.ecran).to_string();
-        let mut l = json!({ "cle": m.ecran, "case": m.ecran, "libelle": m.libelle, "ou": ou, "champ": racine, "trouver": m.aide });
+        let mut l = json!({ "cle": m.ecran, "case": m.ecran, "libelle": m.libelle, "ou": ou, "onglet": onglet, "champ": racine, "trouver": m.aide });
         if m.actes.is_empty() {
             l["utile"] = json!(crate::champs::actes_en_clair(&m.utile));
             l["sinon"] = json!(m.sinon);
@@ -144,12 +145,12 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         if m.cle == documents::conges_spectacles::CLE_ADHERENT && !intermittents {
             continue;
         }
-        out.push(ligne(m, ENTREPRISE.to_string(), None));
+        out.push(ligne(m, ENTREPRISE.0.to_string(), ENTREPRISE.1, None));
     }
     for (cle, s) in ctx.salaries.iter().filter(|(_, s)| s.get("actif") != Some(&json!(false))) {
         let nom = socle::texte::salarie_nomme_ou(Some(s), cle);
         for m in crate::champs::manquants("salarie", s).unwrap_or_default() {
-            out.push(ligne(m, format!("Configuration › Salariés, la fiche de {}", nom), Some((cle, &nom))));
+            out.push(ligne(m, format!("Configuration › Salariés, la fiche de {}", nom), "salarie", Some((cle, &nom))));
         }
     }
     // Un spectacle ne se dit que si un engagement dont la nature declare le numero d'objet (S21.G00.40.050, `champs` de
@@ -158,7 +159,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         let Some(sp) = ctx.spectacles.get(&cle) else { continue };
         let titre = sp.get("titre").filter(|t| vrai(t)).map(socle::date::en_texte).unwrap_or_else(|| cle.clone());
         for m in crate::champs::manquants("spectacle", sp).unwrap_or_default() {
-            let mut l = ligne(m, format!("Configuration › Spectacles, la fiche de {}", titre), None);
+            let mut l = ligne(m, format!("Configuration › Spectacles, la fiche de {}", titre), "spectacle", None);
             l["spectacle"] = json!(cle);
             l["qui"] = json!(titre);
             l["cle"] = json!(format!("{}.{}", l["case"].as_str().unwrap_or(""), cle));
@@ -186,7 +187,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         };
         let mut l = json!({
             "cle": format!("titre.{}", cle), "case": "titre", "libelle": "Titre", "champ": "titre",
-            "ou": format!("Configuration › Spectacles, la fiche du numéro d'objet {}", objet),
+            "ou": format!("Configuration › Spectacles, la fiche du numéro d'objet {}", objet), "onglet": "spectacle",
             "trouver": trouver, "utile": "les contrats et les bulletins", "sinon": "ils impriment « A COMPLETER »",
             "spectacle": cle, "qui": format!("Numéro d'objet {}", objet),
         });
@@ -306,7 +307,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
                 "organismes_permanents",
                 "Les contrats de prévoyance et de santé des permanents".into(),
                 "le mois d'un salarié au mois",
-                "Configuration › Organismes et contrats",
+                ("Configuration › Organismes et contrats", "organismes"),
                 None,
                 "La compagnie emploie des salariés au mois : leurs contrats de prévoyance et de santé se disent avec ceux des intermittents. La référence du contrat se lit sur le certificat d'adhésion de l'assureur.".into(),
             ));
@@ -333,7 +334,7 @@ pub fn conges_a_dire(salarie: &str, nom: &str, depuis: &str) -> Value {
         "libelle": format!("Ses congés payés acquis avant le {}", le),
         "utile": "le compteur de ses congés payés",
         "sinon": "il part de zéro",
-        "ou": format!("la fiche de {}, « Congés payés à la reprise »", nom),
+        "ou": format!("la fiche de {}, « Congés payés à la reprise »", nom), "onglet": "salarie",
         "champ": "conges_reprise",
         "case": "conges_reprise",
         "qui": nom,
@@ -428,7 +429,7 @@ pub fn poses(ctx: &Contexte) -> Vec<Value> {
                 date("calcul").or_else(|| date("le")).map(|d| format!(" du {}", d)).unwrap_or_default(),
                 date("effet").unwrap_or_default()
             ),
-            "ou": ENTREPRISE,
+            "ou": ENTREPRISE.0, "onglet": ENTREPRISE.1,
             "champ": "taux_atmp",
         })];
     }
@@ -440,7 +441,7 @@ pub fn poses(ctx: &Contexte) -> Vec<Value> {
             Some(de) => format!("« {} » Le code risque est celui que la compagnie a dit pour {} ; son taux de {} est celui de l'arrêté de tarification, le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle, de, an),
             None => format!("« {} » Le logiciel l'a posé pour vous : c'est le risque du spectacle vivant, et son taux est le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle),
         },
-        "ou": ENTREPRISE,
+        "ou": ENTREPRISE.0, "onglet": ENTREPRISE.1,
         "champ": "taux_atmp",
     })]
 }

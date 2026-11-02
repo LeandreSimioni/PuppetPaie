@@ -55,13 +55,6 @@ function minuscule(t) {
   return t.charAt(0).toLowerCase() + t.slice(1);
 }
 
-/** « au plus tard le 16/10/2026 à 10:00 » : la date butoir que le moteur a posée. */
-function butoirEnClair(o) {
-  if (!o || !o.butoir) return "";
-  const h = o.butoir_heure && o.butoir_heure !== "24:00" ? ` à ${o.butoir_heure}` : "";
-  return `au plus tard le ${jjmmaaaa(o.butoir)}${h}`;
-}
-
 /** Ce qu'un imprévu est, en une ligne : « Arrêt de travail (maladie) » ou le motif d'une absence. */
 function quoiDeLImprevu(i) {
   return i.genre === "arret" ? `Arrêt de travail (${i.motif_libelle})` : i.motif_libelle;
@@ -186,7 +179,7 @@ function rangObligation(a, o, k) {
   if (CONNAISSANCE[o.cle] && o.depart && o.subrogation !== true) {
     gestes.push(`<button class="lien" data-geste="connu">Connu le</button>`);
   }
-  return rangDu(k, pastilleDu(o), o.libelle, nomDuSalarie(a.salarie), butoirEnClair(o), gestes.join(""), "", pourquoiDu(o));
+  return rangDu(k, pastilleDu(o), o.libelle, nomDuSalarie(a.salarie), (o.butoir_dit || ""), gestes.join(""), "", pourquoiDu(o));
 }
 
 /** Une ligne de ce qui est dû : la pastille, ce qu'il faut faire et pour qui, la date butoir et les gestes ; dessous,
@@ -224,7 +217,7 @@ function rangFin(f, k) {
   const manque = f.a_saisir.length;
   const ailleurs = f.mois && f.mois !== MOIS_AFFICHE ? ` (${moisEnClair(f.mois)})` : "";
   return rangDu(k, pastilleDeLEtat(f.pastille), (f.obligation && f.obligation.libelle) || "Fin de contrat",
-    `${nomDuSalarie(f.salarie)}, ${f.nature}, fin le ${jjmmaaaa(f.fin)}${ailleurs}`, butoirEnClair(f.obligation),
+    `${nomDuSalarie(f.salarie)}, ${f.nature}, fin le ${jjmmaaaa(f.fin)}${ailleurs}`, ((f.obligation || {}).butoir_dit || ""),
     `<button class="secondaire petit" data-geste="signaler"${manque ? " disabled" : ""}>Signaler…</button>
      <button class="lien" data-geste="papiers">Papiers de fin</button>`,
     manque ? `<div class="du-manque"><p>${aideDe("a_dire_avant_signaler")}</p>
@@ -718,7 +711,7 @@ async function etapeSuite(i, p, phrase) {
       <div class="liste-jours">${jours.map((c, k) => c.dates.map((iso) => ici(c)
         ? `<label class="coche"><input type="checkbox" data-jour="${k}" value="${echapper(iso)}">
              ${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}</label>`
-        : `<div class="discret">${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}, ${echapper(deMois(c.mois))}</div>`).join("")).join("")}
+        : `<div class="discret">${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}, ${echapper(c.mois_dit)}</div>`).join("")).join("")}
       </div>
       ${jours.some((c) => !ici(c) && c.mois === MOIS_AFFICHE) ? `<p class="discret">${aideDe("imprevu_valide")}</p>` : ""}</div>` : ""}
     <div class="actions">
@@ -914,8 +907,8 @@ function boiteObligationFaite(a, o) {
   const route = ROUTES_OBLIGATION_FAITE[o.cle];
   ouvrirBoite(`
     <h3>${echapper(o.libelle)} — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p class="discret">${echapper(butoirEnClair(o).replace(/^./, (c) => c.toUpperCase()))}${
-      o.destinataire ? ` — ${echapper(o.destinataire.replace(/\.$/, ""))}` : ""}</p>
+    <p class="discret capitale">${echapper(o.butoir_dit || "")}${
+      o.destinataire ? ` — ${echapper(o.destinataire)}` : ""}</p>
     <p class="note">${aideDe("hors_dsn")}</p>
     ${(o.ou || []).map((x) => `<p class="note">${echapper(x.libelle)}</p>`).join("")}
     ${(o.a_avoir || []).length ? `<details class="pourquoi"><summary>pièces à avoir</summary>
@@ -1028,10 +1021,10 @@ function ceQuiEnEstParti(i) {
     echapper(jjmmaaaa(p.fin))} (avis du ${echapper(jjmmaaaa(p.le))})`));
   (i.signalements || []).forEach((s) => morceaux.push(`${s.nature === "05" ? "reprise signalée" : s.type === "03" ? "signalement rectifié" : "signalé"} le ${
     echapper(quand(s.quand || ""))}`));
-  if ((i.reporte_par || []).length) morceaux.push(`déclaré par la DSN ${i.reporte_par.map((m) => echapper(deMois(m))).join(", ")}`);
+  if ((i.reporte_par || []).length) morceaux.push(`déclaré par la DSN ${(i.reporte_par_dit || []).map(echapper).join(", ")}`);
   (i.obligations || []).forEach((o) => {
     if (o.fait && o.fait.le && Array.isArray(o.ou)) morceaux.push(`${echapper(minuscule(o.libelle))}, faite le ${echapper(jjmmaaaa(o.fait.le))}`);
-    else if (o.du) morceaux.push(`${pastilleDu(o)} ${echapper(minuscule(o.libelle))}, ${echapper(butoirEnClair(o))}`);
+    else if (o.du) morceaux.push(`${pastilleDu(o)} ${echapper(minuscule(o.libelle))}, ${echapper((o.butoir_dit || ""))}`);
   });
   return morceaux.length ? morceaux.join(" · ") : `<span class="discret">rien n'est encore parti</span>`;
 }

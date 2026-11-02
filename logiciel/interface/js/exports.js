@@ -595,7 +595,7 @@ function boiteCloture(annee) {
     <h3>Clôturer l'exercice ${echapper(annee)}</h3>
     <div class="encart">
       <b>L'année se fige</b>
-      ${aideDe("cloture")} <b>Exercice_${echapper(annee)}.zip</b>
+      ${aideDe("cloture")}
     </div>
     <p class="note">${aideDe("cloture_refus")}</p>
     <label class="coche" title="${aideDe("cloture_forcer")}"><input type="checkbox" id="c-forcer">

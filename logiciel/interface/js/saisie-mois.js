@@ -304,7 +304,7 @@ async function calculerApercu(lu) {
           (a) => `<div class="encart info avis-engagement">${echapperLiens(a)}</div>`).join("")
         // La case d'une fiche que cet engagement appelle (`a_dire`, comme « Pour démarrer ») : sa phrase, et le lien qui y mène.
         + part.flatMap((x) => (x && x.a_dire) || []).map((m) => `<div class="encart info avis-engagement">${echapper(m.trouver)}
-            <button type="button" class="lien" data-manque-champ="${echapper(m.champ)}" data-manque-ou="${echapper(m.ou)}"
+            <button type="button" class="lien" data-manque-champ="${echapper(m.champ)}" data-manque-onglet="${echapper(m.onglet)}"
               data-manque-fiche="salarie" data-manque-cle="${echapper(m.salarie)}">${echapper(m.ou)}</button></div>`).join("")
         // Le conseil que la saisie appelle, au plus un par carte, quand la compagnie a coché l'option.
         + conseilDuBloc(part);
@@ -327,30 +327,9 @@ function erreurEnClair(e) {
     ${lignes.map((l) => `<div>${echapper(l)}</div>`).join("")}</details>` : ""}`;
 }
 
-/* UN BLOC PARLE D'UNE SEULE VOIX. Deux salariés payés ensemble
- * recevaient chacun le même avis — « FAVART Célimène : contrat… » puis
- * « MARAIS Marin : contrat… », quatre encarts pour deux choses à dire.
- * Le moteur ouvre ses avis par le nom (`qui` : « NOM Prénom » suivi de
- * « : » ou de « , ») ; ce qui suit est comparé, et le même avis ne
- * s'affiche qu'une fois, pour tous ceux qu'il concerne. Un avis qui ne
- * commence pas par un nom du bloc reste tel quel. */
+/* Ce que le moteur dit de l'engagement de la carte (`avertissements`, `informations`), tel qu'il le dit. */
 function avisDuBloc(part, liste = "avertissements") {
-  const groupes = new Map();
-  part.forEach((x) => {
-    const s = x.salarie || {};
-    const qui = `${s.nom || ""} ${s.prenom || ""}`.trim();
-    (x[liste] || []).forEach((a) => {
-      const sep = qui && [" : ", ", "].find((c) => a.startsWith(qui + c));
-      const cle = sep ? sep + a.slice(qui.length + sep.length) : "\u0000" + a;
-      if (!groupes.has(cle)) groupes.set(cle, { texte: a, noms: [] });
-      if (sep && !groupes.get(cle).noms.includes(qui)) groupes.get(cle).noms.push(qui);
-    });
-  });
-  return [...groupes.entries()].map(([cle, g]) => {
-    if (g.noms.length < 2) return g.texte;
-    const noms = g.noms.slice(0, -1).join(", ") + " et " + g.noms[g.noms.length - 1];
-    return noms + cle;
-  });
+  return part.flatMap((x) => x[liste] || []);
 }
 
 /* L'ENGAGEMENT VALIDÉ, EN UNE LIGNE D'AGENDA.

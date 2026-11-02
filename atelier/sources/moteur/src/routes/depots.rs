@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use crate::compagnie::depot_acte::{self, phrase_de, Preuve};
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, MOIS, OPERATION};
 use declarations::dpae::{Chemins, Embauche, Parametres};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
@@ -25,10 +25,10 @@ use crate::routes::catalogue::{Ecran, Place};
 use super::mot;
 
 // LA DESIGNATION d'une declaration (`designee`) : la DSN ou la DPAE d'un mois, ou un signalement ecrit.
-const QUOI: Champ = Champ { nom: "quoi", sens: "dpae ou dsn", avance: false };
-const ETABLISSEMENT: Champ = Champ { nom: "etablissement", sens: "le NIC de l'établissement (DSN), le principal sinon", avance: true };
-const ENGAGEMENTS: Champ = Champ { nom: "engagements", sens: "seulement ces embauches (DPAE) : [{salarie, numero}]", avance: true };
-const SIGNALEMENT: Champ = Champ { nom: "fichier", sens: "un signalement écrit, tel que sa route le rend, à la place du mois", avance: true };
+const QUOI: Champ = Champ { nom: "quoi", libelle: Affiche::new("DPAE ou DSN"), forme: Forme::Texte, sens: "dpae ou dsn", avance: false };
+const ETABLISSEMENT: Champ = Champ { nom: "etablissement", libelle: Affiche::new("Établissement"), forme: Forme::Texte, sens: "le NIC de l'établissement (DSN), le principal sinon", avance: true };
+const ENGAGEMENTS: Champ = Champ { nom: "engagements", libelle: Affiche::new("Embauches"), forme: Forme::Objet, sens: "seulement ces embauches (DPAE) : [{salarie, numero}]", avance: true };
+const SIGNALEMENT: Champ = Champ { nom: "fichier", libelle: Affiche::new("Signalement"), forme: Forme::Texte, sens: "un signalement écrit, tel que sa route le rend, à la place du mois", avance: true };
 /// L'exemple : la DPAE de novembre, que `depot-apercu` ecrit.
 const DPAE_DE_L_EXEMPLE: &str = r#"{"quoi":"dpae","mois":"2026-11"}"#;
 const ILLISIBLE_FICHIER: Refus = Refus { classe: "FileNotFoundError", corriger: "le signalement : le fichier que sa route a rendu" };
@@ -59,9 +59,9 @@ pub const ROUTES: &[Fiche] = &[
             ETABLISSEMENT,
             ENGAGEMENTS,
             SIGNALEMENT,
-            Champ { nom: "reel", sens: "vrai : le dépôt réel (le mot de passe du logiciel, tapé par un humain au moment de l'acte)", avance: false },
-            Champ { nom: "forcer", sens: "vrai : l'annule-et-remplace d'une DSN déjà déposée, après l'avertissement", avance: true },
-            Champ { nom: "contournement", sens: "le motif écrit d'un dépôt réel sans test", avance: true },
+            Champ { nom: "reel", libelle: Affiche::new("Dépôt réel"), forme: Forme::OuiNon, sens: "vrai : le dépôt réel (le mot de passe du logiciel, tapé par un humain au moment de l'acte)", avance: false },
+            Champ { nom: "forcer", libelle: Affiche::new("Annule et remplace"), forme: Forme::OuiNon, sens: "vrai : l'annule-et-remplace d'une DSN déjà déposée, après l'avertissement", avance: true },
+            Champ { nom: "contournement", libelle: Affiche::new("Motif d'un dépôt réel sans test"), forme: Forme::Texte, sens: "le motif écrit d'un dépôt réel sans test", avance: true },
         ],
         exemple: DPAE_DE_L_EXEMPLE,
         rend: "le dépôt : accepté ou non, le retour de l'organisme, ses suites (chaque demande de taux), phrase, avis (l'encart à montrer après la DSN réelle d'un mois qui a des salariés)",
@@ -80,7 +80,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "suivre-depot",
         geste: "Après un dépôt réel, relever les retours et dire s'il est passé ou refusé.",
-        charge: &[QUOI, Champ { nom: "flux", sens: "le flux du dépôt, tel que deposer le rend", avance: false }, MOIS],
+        charge: &[QUOI, Champ { nom: "flux", libelle: Affiche::new("Flux"), forme: Forme::Texte, sens: "le flux du dépôt, tel que deposer le rend", avance: false }, MOIS],
         exemple: r#"{"quoi":"dpae"}"#,
         rend: "fini, passe, refuse, incident (le relevé qui n'a pu se faire), phrase et couleur",
         refus: &[MANQUE],

@@ -8,7 +8,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
 use crate::routes::documents::{charge_texte, client_courriel, cle, liste_de, nul, preuve_de, refus, requis, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
 use crate::routes::etapes::Moteur;
@@ -24,9 +24,9 @@ use crate::routes::catalogue::{Ecran, Place};
 
 
 
-const CONTRATS: Champ = Champ { nom: "contrats", sens: "les contrats choisis : [{salarie, debut, numero}]", avance: false };
-const DEBUT: Champ = Champ { nom: "debut", sens: "le premier jour de l'engagement, AAAA-MM-JJ", avance: false };
-const NUMERO: Champ = Champ { nom: "numero", sens: "le numéro du contrat, quand deux commencent le même jour", avance: true };
+const CONTRATS: Champ = Champ { nom: "contrats", libelle: Affiche::new("Contrats"), forme: Forme::Objet, sens: "les contrats choisis : [{salarie, debut, numero}]", avance: false };
+const DEBUT: Champ = Champ { nom: "debut", libelle: Affiche::new("Début de l'engagement"), forme: Forme::Date, sens: "le premier jour de l'engagement, AAAA-MM-JJ", avance: false };
+const NUMERO: Champ = Champ { nom: "numero", libelle: Affiche::new("Numéro du contrat"), forme: Forme::Texte, sens: "le numéro du contrat, quand deux commencent le même jour", avance: true };
 /// Un contrat ecrit refuse de se faire quand une case qu'il appelle est vide : elle se dit dans la saisie de l'engagement.
 const CONTRAT_ECRIT: Refus = Refus {
     classe: "ErreurOperation",
@@ -56,10 +56,10 @@ pub const ROUTES: &[Fiche] = &[
         charge: &[
             MOIS,
             CONTRATS,
-            Champ { nom: "avenants", sens: "les avenants cochés : [{salarie, debut, numero, mois, effet}]", avance: false },
-            Champ { nom: "salaries", sens: "tous les contrats de ces salariés", avance: true },
-            Champ { nom: "relance", sens: "vrai : relancer ceux qui attendent leur signature", avance: true },
-            Champ { nom: "remplace", sens: "vrai : un contrat refait qui annule et remplace le précédent", avance: true },
+            Champ { nom: "avenants", libelle: Affiche::new("Avenants"), forme: Forme::Objet, sens: "les avenants cochés : [{salarie, debut, numero, mois, effet}]", avance: false },
+            Champ { nom: "salaries", libelle: Affiche::new("Salariés"), forme: Forme::Liste, sens: "tous les contrats de ces salariés", avance: true },
+            Champ { nom: "relance", libelle: Affiche::new("Relancer"), forme: Forme::OuiNon, sens: "vrai : relancer ceux qui attendent leur signature", avance: true },
+            Champ { nom: "remplace", libelle: Affiche::new("Annule et remplace"), forme: Forme::OuiNon, sens: "vrai : un contrat refait qui annule et remplace le précédent", avance: true },
         ],
         exemple: r#"{"mois":"2026-11","contrats":[{"salarie":"FULLER","debut":"2026-11-27"}]}"#,
         rend: "phrase, partis, contrats (les fichiers partis), avertissements (ceux sans courriel), signatures (compagnie fictive : revenues aussitôt)",
@@ -78,8 +78,8 @@ pub const ROUTES: &[Fiche] = &[
         nom: "pieces-parties",
         geste: "Lister ce qui est parti pour un contrat : DPAE, contrat envoyé, signé, preuve.",
         charge: &[
-            Champ { nom: "numero", sens: "le numéro du contrat, tel que signature-apercu ou etat-par-engagement le rend", avance: false },
-            Champ { nom: "salarie", sens: "la clé de la fiche du salarié ; le numéro suffit", avance: true },
+            Champ { nom: "numero", libelle: Affiche::new("Numéro du contrat"), forme: Forme::Texte, sens: "le numéro du contrat, tel que signature-apercu ou etat-par-engagement le rend", avance: false },
+            Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "la clé de la fiche du salarié ; le numéro suffit", avance: true },
         ],
         exemple: r#"{"salarie":"FULLER","numero":"FU1.26.01"}"#,
         rend: "phrase (chaque pièce partie et son jour), dpae, contrat : les fichiers partis, lus au journal",
@@ -95,8 +95,8 @@ pub const ROUTES: &[Fiche] = &[
         charge: &[
             SALARIE,
             DEBUT,
-            Champ { nom: "numero", sens: "le numéro du contrat, tel que signature-apercu le rend", avance: false },
-            Champ { nom: "mois", sens: "le mois de l'écran, où se lit un contrat signé hors du logiciel (le mois présent sinon)", avance: true },
+            Champ { nom: "numero", libelle: Affiche::new("Numéro du contrat"), forme: Forme::Texte, sens: "le numéro du contrat, tel que signature-apercu le rend", avance: false },
+            Champ { nom: "mois", libelle: Affiche::new("Mois"), forme: Forme::Mois, sens: "le mois de l'écran, où se lit un contrat signé hors du logiciel (le mois présent sinon)", avance: true },
         ],
         exemple: r#"{"salarie":"FULLER","debut":"2026-11-27","numero":"FU1.26.01"}"#,
         rend: "le contrat (contrat, date_contrat, signe ; ailleurs : signé hors du logiciel, et contrat_signe : chemin du dossier de son PDF, deposes, phrase), numero de l'avenant, effet, modifications (numero et article, avant, apres ; phrase en clair sans numero), avenants (et la phrase de chacun), destinataire, titre (le contrat comme l'avenant le nomme), situation, encarts",
@@ -109,7 +109,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "contrats-imprimer",
         geste: "Réunir en un PDF les contrats et avenants cochés, à remettre en main propre.",
-        charge: &[MOIS, CONTRATS, Champ { nom: "avenants", sens: "les avenants cochés : [{salarie, debut, numero, mois, effet}]", avance: false }],
+        charge: &[MOIS, CONTRATS, Champ { nom: "avenants", libelle: Affiche::new("Avenants"), forme: Forme::Objet, sens: "les avenants cochés : [{salarie, debut, numero, mois, effet}]", avance: false }],
         exemple: r#"{"mois":"2026-11","contrats":[{"salarie":"SVOBODA","debut":"2026-11-02"}]}"#,
         rend: "impression (le PDF) et son chemin, contrats",
         refus: &[CONTRAT_ECRIT, MANQUE],
@@ -126,8 +126,8 @@ pub const ROUTES: &[Fiche] = &[
             SALARIE,
             DEBUT,
             NUMERO,
-            Champ { nom: "recu", sens: "faux : retirer la note", avance: true },
-            Champ { nom: "avenant", sens: "le numéro de l'avenant revenu signé", avance: true },
+            Champ { nom: "recu", libelle: Affiche::new("Reçu"), forme: Forme::OuiNon, sens: "faux : retirer la note", avance: true },
+            Champ { nom: "avenant", libelle: Affiche::new("Avenant signé"), forme: Forme::Texte, sens: "le numéro de l'avenant revenu signé", avance: true },
         ],
         exemple: r#"{"mois":"2026-11","salarie":"FULLER","debut":"2026-11-27"}"#,
         rend: "phrase, recu (quand), annuler (la route et la charge qui défont la note)",
@@ -140,7 +140,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "poser-courriel",
         geste: "Poser le courriel d'un salarié, là où il manque.",
-        charge: &[SALARIE, Champ { nom: "email", sens: "son adresse de courriel", avance: false }],
+        charge: &[SALARIE, Champ { nom: "email", libelle: Affiche::new("Courriel"), forme: Forme::Texte, sens: "son adresse de courriel", avance: false }],
         exemple: r#"{"salarie":"FULLER","email":"loie.fuller@exemple.invalid"}"#,
         rend: "salarie, email",
         refus: &[crate::routes::fiches::REFUSEE, OPERATION, MANQUE],
@@ -238,7 +238,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let quoi: Vec<String> = v["contrats"].as_array().into_iter().flatten().map(|c| format!("contrat n° {}", t(c, "numero")))
                 .chain(v["avenants"].as_array().into_iter().flatten().map(|c| format!("avenant n° {} au contrat n° {}", t(c, "avenant"), t(c, "numero"))))
                 .collect();
-            let p = format!("À faire signer en main propre : {} ; imprimés dans {}.", quoi.join(", "), t(&v, "chemin"));
+            let p = format!("À faire signer en main propre : {} ; imprimés.", quoi.join(", "));
             super::phrase_en_tete(v, p)
         }),
         "contrat-recu" => contrat_recu(ctx, charge),

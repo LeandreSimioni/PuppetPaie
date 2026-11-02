@@ -1953,11 +1953,11 @@ une paie passee ; pour l'embaucher a nouveau, remettre \
             }
         }
         let mut connus = Vec::new();
-        for (cle, v) in &ordre {
-            connus.push(format!("« {} » (`{}`)", exiger_texte(v, "titre")?, cle));
+        for (_, v) in &ordre {
+            connus.push(format!("« {} »", exiger_texte(v, "titre")?));
         }
         Err(format!(
-            "Spectacle inconnu : {}. Connus : {}.\nUn spectacle se crée dans Configuration › Spectacles (`enregistrer-fiche`), \
+            "Spectacle inconnu : {}. Connus : {}.\nUn spectacle se crée dans Configuration › Spectacles, \
 avec son numéro d'objet France Travail.",
             repr_texte(nom),
             if connus.is_empty() { "aucun".to_string() } else { connus.join(", ") }

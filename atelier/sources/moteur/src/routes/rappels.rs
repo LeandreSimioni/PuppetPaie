@@ -20,7 +20,7 @@ use socle::date::{en_texte, Jour};
 use engagement;
 use envois::etats;
 use crate::compagnie::etat_dsn;
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus as RefusFiche, FORME, MANQUE, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusFiche, FORME, MANQUE, OPERATION};
 use crate::routes::qui_de;
 use crate::routes::fiches::{entier, exiger};
 use crate::routes::ouverture::marquer_echeance;
@@ -72,7 +72,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "revue-spectacles",
         geste: "Archiver les spectacles qui ne continuent pas, et noter la revue faite.",
-        charge: &[ANNEE, Champ { nom: "continuent", sens: "les spectacles qui continuent (leurs clés) ; les autres s'archivent", avance: false }],
+        charge: &[ANNEE, Champ { nom: "continuent", libelle: Affiche::new("Spectacles qui continuent"), forme: Forme::Liste, sens: "les spectacles qui continuent (leurs clés) ; les autres s'archivent", avance: false }],
         exemple: r#"{"annee":2026,"continuent":["le-banc-des-menteurs"]}"#,
         rend: "phrase, archives, continuent, configuration",
         refus: &[MANQUE, FORME],
@@ -97,8 +97,8 @@ pub const ROUTES: &[Fiche] = &[
         nom: "echeance-faite",
         geste: "Cocher une échéance annuelle que seule la compagnie peut dire faite.",
         charge: &[
-            Champ { nom: "cle", sens: "l'échéance et son année, « quoi:AAAA » (celle que rappels ou echeancier rendent)", avance: false },
-            Champ { nom: "fait", sens: "faux : la décocher", avance: false },
+            Champ { nom: "cle", libelle: Affiche::new("Échéance"), forme: Forme::Texte, sens: "l'échéance et son année, « quoi:AAAA » (celle que rappels ou echeancier rendent)", avance: false },
+            Champ { nom: "fait", libelle: Affiche::new("Faite"), forme: Forme::OuiNon, sens: "faux : la décocher", avance: false },
         ],
         exemple: r#"{"cle":"revue-spectacles:2026"}"#,
         rend: "cle, fait",
@@ -110,7 +110,7 @@ pub const ROUTES: &[Fiche] = &[
     },
 ];
 
-const ANNEE: Champ = Champ { nom: "annee", sens: "l'année, AAAA", avance: false };
+const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
 
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> socle::echec::R<Value> {
@@ -1142,7 +1142,7 @@ fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)
     };
     if !mots.is_empty() {
         return Ok((Vec::new(), Some(json!({
-            "cle": "acces", "libelle": "Les accès aux organismes", "ou": OU, "champ": null, "texte": texte,
+            "cle": "acces", "libelle": "Les accès aux organismes", "ou": OU, "onglet": "coffre", "champ": null, "texte": texte,
             "pastille": super::pastille("information", mots),
         }))));
     }
@@ -1159,7 +1159,7 @@ fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)
             "libelle": s["libelle"].as_str().unwrap_or(""),
             "utile": format!("{} depuis le logiciel", s["sert_a"].as_str().unwrap_or("")),
             "sinon": "vous le faites vous-même, hors du logiciel",
-            "ou": OU, "champ": null, "trouver": "",
+            "ou": OU, "onglet": "coffre", "champ": null, "trouver": "",
         }));
     }
     // Le Drive de la sauvegarde : se lie au meme endroit (« Lier le Drive »), sans reseau pour le savoir.
@@ -1167,7 +1167,7 @@ fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)
         out.push(json!({
             "cle": "acces.google", "libelle": "Google Drive", "utile": "sauvegarder la compagnie dans votre Drive",
             "sinon": "rien ne se sauvegarde hors de ce poste",
-            "ou": OU, "champ": null, "trouver": "",
+            "ou": OU, "onglet": "coffre", "champ": null, "trouver": "",
         }));
     }
     Ok((out, None))

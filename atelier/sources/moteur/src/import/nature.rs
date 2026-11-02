@@ -124,7 +124,9 @@ pub(crate) fn a_dire(racine: &Path) -> Vec<Value> {
         .map(|(s, (n, du, au, en_cours))| {
             let natures: Vec<Value> =
                 natures.iter().map(|x| json!({"cle": x.cle, "libelle": x.libelle, "demande": demande(x, en_cours)})).collect();
-            json!({"salarie": s, "nom": nom_du_salarie(racine, &s), "contrats": n, "du": du, "au": au, "en_cours": en_cours,
+            // Le mois de la derniere DSN qui l'a declare, tel que l'ecran le lit (« de novembre 2026 »).
+            let au_dit = crate::regularisation::de_mois_en_clair(au.get(..7).unwrap_or(&au));
+            json!({"salarie": s, "nom": nom_du_salarie(racine, &s), "contrats": n, "du": du, "au": au, "au_dit": au_dit, "en_cours": en_cours,
                    "suite": if en_cours { json!(suite) } else { Value::Null }, "natures": natures})
         })
         .collect()

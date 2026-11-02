@@ -14,7 +14,6 @@
 //! `jours_deja_indemnises_attendus`. La page n'ouvre que cela.
 
 use std::collections::HashMap;
-use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
@@ -31,11 +30,11 @@ use socle::num::Decimal;
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
 
-use crate::routes::catalogue::{Acte, Champ, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
 use crate::routes::catalogue::{Ecran, Place};
 
-const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", sens: "le dernier jour travaillé avant l'arrêt, qui le désigne", avance: false };
-const DEBUT: Champ = Champ { nom: "debut", sens: "le premier jour de l'absence, qui la désigne", avance: false };
+const DERNIER_JOUR: Champ = Champ { nom: "dernier_jour", libelle: Affiche::new("Dernier jour travaillé"), forme: Forme::Date, sens: "le dernier jour travaillé avant l'arrêt, qui le désigne", avance: false };
+const DEBUT: Champ = Champ { nom: "debut", libelle: Affiche::new("Premier jour d'absence"), forme: Forme::Date, sens: "le premier jour de l'absence, qui la désigne", avance: false };
 const UN_ARRET: &str = r#"{"salarie":"FULLER","dernier_jour":"2026-11-27"}"#;
 
 /// Une fiche de ce module : `rend` et les refus que toutes partagent.
@@ -43,9 +42,9 @@ const fn fiche(nom: &'static str, geste: &'static str, charge: &'static [Champ],
     Fiche { nom, geste, charge, exemple, rend, refus: &[OPERATION, MANQUE, ILLISIBLE, FORME], acte, avance, phrase: 0, ecran: ECRAN }
 }
 
-const ORDRE: Champ = Champ { nom: "ordre", sens: "son numéro d'ordre ; sinon le suivant de ceux déjà partis", avance: true };
-const REMPLACE: Champ = Champ { nom: "remplace", sens: "le signalement qu'il remplace", avance: true };
-const TEST: Champ = Champ { nom: "test", sens: "vrai : un fichier d'essai, marqué comme tel", avance: true };
+const ORDRE: Champ = Champ { nom: "ordre", libelle: Affiche::new("Numéro d'ordre"), forme: Forme::Nombre, sens: "son numéro d'ordre ; sinon le suivant de ceux déjà partis", avance: true };
+const REMPLACE: Champ = Champ { nom: "remplace", libelle: Affiche::new("Remplace"), forme: Forme::Texte, sens: "le signalement qu'il remplace", avance: true };
+const TEST: Champ = Champ { nom: "test", libelle: Affiche::new("Fichier d'essai"), forme: Forme::OuiNon, sens: "vrai : un fichier d'essai, marqué comme tel", avance: true };
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
@@ -53,61 +52,61 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches, dans l'ordre d'un arrêt : il s'enregistre, se suit, se signale, s'oublie.
 pub const ROUTES: &[Fiche] = &[
     fiche("imprevus", "Lire les imprévus d'un mois ou d'un salarié, et ce qu'on peut en saisir.",
-        &[MOIS, Champ { nom: "salarie", sens: "à la place du mois : les imprévus de ce salarié", avance: true }],
+        &[MOIS, Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "à la place du mois : les imprévus de ce salarié", avance: true }],
         r#"{"mois":"2026-11"}"#, "imprevus (chacun résumé, un arrêt avec ses obligations), nomenclatures", Acte::Lit, false),
-    Fiche { ecran: Ecran::Auto(Place::Exports), ..fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "phrase, phrases (qui, quand, le motif, ce qui reste à signaler), arrets : chacun résumé", Acte::Lit, true) },
+    Fiche { ecran: Ecran::Auto(Place::Exports, Affiche::new("Lire tous les arrêts")), ..fiche("arrets", "Lire tous les arrêts de la compagnie.", &[], "{}", "phrase, phrases (qui, quand, le motif, ce qui reste à signaler), arrets : chacun résumé", Acte::Lit, true) },
     fiche("fins-de-contrat", "Lire les fins de contrat dues ce mois, et ce qui manque à chacune.", &[MOIS],
         r#"{"mois":"2026-11"}"#, "fins : chacune avec ce qui est fait et ce qui manque", Acte::Lit, false),
     fiche("arret-contrats", "Lire les contrats qu'un arrêt suspendrait à ce jour.",
-        &[SALARIE, Champ { nom: "jour", sens: "le dernier jour travaillé", avance: false }],
+        &[SALARIE, Champ { nom: "jour", libelle: Affiche::new("Dernier jour travaillé"), forme: Forme::Date, sens: "le dernier jour travaillé", avance: false }],
         r#"{"salarie":"FULLER","jour":"2026-11-27"}"#, "contrats : ceux du salarié qui couvrent ce jour", Acte::Lit, false),
     Fiche { phrase: 40, ..fiche("arret-enregistrer", "Enregistrer un arrêt de travail.",
         &[
             SALARIE, DERNIER_JOUR,
-            Champ { nom: "fin", sens: "la fin prescrite", avance: false },
-            Champ { nom: "motif", sens: "le code du motif d'arrêt (nomenclatures de imprevus)", avance: false },
-            Champ { nom: "date_accident", sens: "le jour de l'accident, quand le motif l'appelle", avance: true },
-            Champ { nom: "connu", sens: "{jour, heure} où la compagnie a su l'accident, quand le motif l'appelle", avance: true },
-            Champ { nom: "contrat", sens: "le contrat suspendu, quand plusieurs couvrent le jour", avance: true },
-            Champ { nom: "jours_deja_indemnises", sens: "pour le maintien d'un permanent", avance: true },
-            Champ { nom: "note", sens: "une note libre", avance: true },
+            Champ { nom: "fin", libelle: Affiche::new("Fin prescrite"), forme: Forme::Date, sens: "la fin prescrite", avance: false },
+            Champ { nom: "motif", libelle: Affiche::new("Motif"), forme: Forme::Texte, sens: "le code du motif d'arrêt (nomenclatures de imprevus)", avance: false },
+            Champ { nom: "date_accident", libelle: Affiche::new("Jour de l'accident"), forme: Forme::Date, sens: "le jour de l'accident, quand le motif l'appelle", avance: true },
+            Champ { nom: "connu", libelle: Affiche::new("Su le"), forme: Forme::Objet, sens: "{jour, heure} où la compagnie a su l'accident, quand le motif l'appelle", avance: true },
+            Champ { nom: "contrat", libelle: Affiche::new("Contrat"), forme: Forme::Texte, sens: "le contrat suspendu, quand plusieurs couvrent le jour", avance: true },
+            Champ { nom: "jours_deja_indemnises", libelle: Affiche::new("Jours déjà indemnisés"), forme: Forme::Nombre, sens: "pour le maintien d'un permanent", avance: true },
+            Champ { nom: "note", libelle: Affiche::new("Note"), forme: Forme::Texte, sens: "une note libre", avance: true },
         ],
         r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-11-30","motif":"01"}"#,
         "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 700, ..fiche("arret-prolonger", "Prolonger un arrêt : sa nouvelle fin.",
-        &[SALARIE, DERNIER_JOUR, Champ { nom: "fin", sens: "la nouvelle fin prescrite", avance: false }],
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "fin", libelle: Affiche::new("Nouvelle fin prescrite"), forme: Forme::Date, sens: "la nouvelle fin prescrite", avance: false }],
         r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-12-04"}"#,
         "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 20, ..fiche("arret-reprise", "Poser ou effacer la reprise d'un arrêt.",
-        &[SALARIE, DERNIER_JOUR, Champ { nom: "reprise", sens: "le jour de la reprise ; vide l'efface", avance: false }, Champ { nom: "motif_reprise", sens: "le motif de la reprise", avance: true }],
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "reprise", libelle: Affiche::new("Reprise le"), forme: Forme::Date, sens: "le jour de la reprise ; vide l'efface", avance: false }, Champ { nom: "motif_reprise", libelle: Affiche::new("Motif de la reprise"), forme: Forme::Texte, sens: "le motif de la reprise", avance: true }],
         r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","reprise":"2026-12-03"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 50, ..fiche("arret-indemnites", "Dire les indemnités journalières d'un arrêt, par jour.",
         &[SALARIE, DERNIER_JOUR,
-            Champ { nom: "ij_brute", sens: "l'indemnité d'un jour, avant CSG et CRDS (relevé de la CPAM)", avance: false },
-            Champ { nom: "ij_nette", sens: "la même, nette de CSG et CRDS", avance: false },
-            Champ { nom: "ij_brute_majoree", sens: "accident du travail, dès le 29e jour : brute", avance: true },
-            Champ { nom: "ij_nette_majoree", sens: "la même, nette", avance: true },
-            Champ { nom: "jours_deja_indemnises", sens: "les jours indemnisés dans les douze mois qu'aucun arrêt saisi ne porte", avance: true }],
+            Champ { nom: "ij_brute", libelle: Affiche::new("Indemnité brute d'un jour"), forme: Forme::Nombre, sens: "l'indemnité d'un jour, avant CSG et CRDS (relevé de la CPAM)", avance: false },
+            Champ { nom: "ij_nette", libelle: Affiche::new("Indemnité nette d'un jour"), forme: Forme::Nombre, sens: "la même, nette de CSG et CRDS", avance: false },
+            Champ { nom: "ij_brute_majoree", libelle: Affiche::new("Indemnité brute majorée"), forme: Forme::Nombre, sens: "accident du travail, dès le 29e jour : brute", avance: true },
+            Champ { nom: "ij_nette_majoree", libelle: Affiche::new("Indemnité nette majorée"), forme: Forme::Nombre, sens: "la même, nette", avance: true },
+            Champ { nom: "jours_deja_indemnises", libelle: Affiche::new("Jours déjà indemnisés"), forme: Forme::Nombre, sens: "les jours indemnisés dans les douze mois qu'aucun arrêt saisi ne porte", avance: true }],
         r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","ij_brute":"40.89","ij_nette":"38.15"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 600, ..fiche("arret-signaler", "Fabriquer le signalement d'un arrêt, sans le déposer.",
-        &[SALARIE, DERNIER_JOUR, Champ { nom: "nature", sens: "04 arrêt (par défaut), ou 05 reprise", avance: true }, REMPLACE, ORDRE, TEST,
-            Champ { nom: "le", sens: "le jour de constitution ; sinon aujourd'hui", avance: true }],
+        &[SALARIE, DERNIER_JOUR, Champ { nom: "nature", libelle: Affiche::new("Nature"), forme: Forme::Texte, sens: "04 arrêt (par défaut), ou 05 reprise", avance: true }, REMPLACE, ORDRE, TEST,
+            Champ { nom: "le", libelle: Affiche::new("Constitué le"), forme: Forme::Date, sens: "le jour de constitution ; sinon aujourd'hui", avance: true }],
         UN_ARRET, "fichier (écrit dans sorties/AAAA-MM/), phrase, nature, type, ordre, avertissements", Acte::Ecrit, false) },
     Fiche { phrase: 60, ..fiche("arret-oublier", "Retirer un arrêt qui n'a pas été déclaré.", &[SALARIE, DERNIER_JOUR],
         UN_ARRET, "arret (l'arrêt retiré, résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 80, ..fiche("suspension-enregistrer", "Enregistrer une absence qui suspend un contrat.",
-        &[SALARIE, DEBUT, Champ { nom: "fin", sens: "son dernier jour", avance: false }, Champ { nom: "motif", sens: "le code du motif (nomenclatures de imprevus)", avance: false }, Champ { nom: "contrat", sens: "le contrat, quand plusieurs couvrent le jour", avance: true }, Champ { nom: "note", sens: "une note libre", avance: true }],
+        &[SALARIE, DEBUT, Champ { nom: "fin", libelle: Affiche::new("Dernier jour"), forme: Forme::Date, sens: "son dernier jour", avance: false }, Champ { nom: "motif", libelle: Affiche::new("Motif"), forme: Forme::Texte, sens: "le code du motif (nomenclatures de imprevus)", avance: false }, Champ { nom: "contrat", libelle: Affiche::new("Contrat"), forme: Forme::Texte, sens: "le contrat, quand plusieurs couvrent le jour", avance: true }, Champ { nom: "note", libelle: Affiche::new("Note"), forme: Forme::Texte, sens: "une note libre", avance: true }],
         r#"{"salarie":"FULLER","debut":"2026-11-27","fin":"2026-11-27","motif":"501"}"#, "suspension (l'absence résumée), phrase", Acte::Ecrit, true) },
     Fiche { phrase: 20, ..fiche("suspension-modifier", "Changer la fin ou le motif d'une absence.",
-        &[SALARIE, DEBUT, Champ { nom: "fin", sens: "sa nouvelle fin", avance: false }, Champ { nom: "motif", sens: "son nouveau motif", avance: true }],
+        &[SALARIE, DEBUT, Champ { nom: "fin", libelle: Affiche::new("Nouvelle fin"), forme: Forme::Date, sens: "sa nouvelle fin", avance: false }, Champ { nom: "motif", libelle: Affiche::new("Nouveau motif"), forme: Forme::Texte, sens: "son nouveau motif", avance: true }],
         r#"{"salarie":"FULLER","debut":"2026-11-27","fin":"2026-11-27"}"#, "suspension (l'absence résumée), phrase", Acte::Ecrit, true) },
     Fiche { phrase: 60, ..fiche("suspension-oublier", "Retirer une absence qui n'a pas été déclarée.", &[SALARIE, DEBUT],
         r#"{"salarie":"FULLER","debut":"2026-11-27"}"#, "suspension (l'absence retirée, résumée), phrase", Acte::Ecrit, true) },
     Fiche { phrase: 600, ..fiche("fin-contrat-signaler", "Fabriquer le signalement d'une fin de contrat, sans le déposer.",
-        &[MOIS, SALARIE, REMPLACE, ORDRE, TEST, Champ { nom: "le", sens: "le jour de constitution ; sinon aujourd'hui", avance: true }],
+        &[MOIS, SALARIE, REMPLACE, ORDRE, TEST, Champ { nom: "le", libelle: Affiche::new("Constitué le"), forme: Forme::Date, sens: "le jour de constitution ; sinon aujourd'hui", avance: true }],
         r#"{"mois":"2026-11","salarie":"FULLER"}"#, "fichier (écrit dans sorties/AAAA-MM/), phrase, type, ordre, preavis, avertissements", Acte::Ecrit, true) },
     Fiche { phrase: 160, ..fiche("fin-contrat-documents", "Fabriquer le certificat de travail et le reçu pour solde de tout compte.",
-        &[MOIS, SALARIE, Champ { nom: "le", sens: "le jour où ils s'établissent ; sinon aujourd'hui", avance: true }],
+        &[MOIS, SALARIE, Champ { nom: "le", libelle: Affiche::new("Établis le"), forme: Forme::Date, sens: "le jour où ils s'établissent ; sinon aujourd'hui", avance: true }],
         r#"{"mois":"2026-11","salarie":"FULLER"}"#, "phrase, certificat et recu (leurs chemins), dossier, avertissements (ce qu'il faut savoir en les remettant)", Acte::Ecrit, false) },
 ];
 
@@ -335,7 +334,8 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
 /// `contrat_debut`, `motif`, `motif_libelle`, `remunere`, `debut`, `fin`, `premier_jour`, `dernier_jour`, `note`,
 /// `saisi_le`, `reporte_par`, `cachets`.
 pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
-    let cachets = magasin(imprevus::cachets_dans(ctx, imp))?;
+    // Chaque cachet dit son mois tel que l'écran le lit (« de novembre 2026 »).
+    let cachets: Vec<Value> = magasin(imprevus::cachets_dans(ctx, imp))?.into_iter().map(|mut c| { c["mois_dit"] = json!(crate::regularisation::de_mois_en_clair(&valeur_en_texte(&c["mois"]))); c }).collect();
     let premier = magasin(imprevus::premier_jour(imp))?.iso();
     let dernier = magasin(imprevus::dernier_jour(imp))?.iso();
     if imprevus::est_un_arret(imp) {
@@ -369,6 +369,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(ctx, imp, declarations::signalement::REPRISE)?));
         return Ok(r);
     }
+    let reportee = reporte_par(ctx, imp)?;
     let motif = magasin(imprevus::motif_de_suspension(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
     Ok(json!({
         "genre": SUSPENSION,
@@ -376,7 +377,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         "motif": imp["motif"], "motif_libelle": motif.get("libelle").cloned().unwrap_or(json!("?")),
         "remunere": motif.get("remunere").is_some_and(vrai),
         "debut": imp["debut"], "fin": imp["fin"], "premier_jour": premier, "dernier_jour": dernier,
-        "note": imp["note"], "saisi_le": imp["saisi_le"], "reporte_par": reporte_par(ctx, imp)?,
+        "note": imp["note"], "saisi_le": imp["saisi_le"], "reporte_par_dit": mois_de_la_dsn(&reportee), "reporte_par": reportee,
         "cachets": cachets,
     }))
 }
@@ -1061,9 +1062,8 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let p = paie_de_l_engagement(&paies, rang, &cle, salarie, mois)?;
     let date: Jour = jour_le(charge)?.unwrap_or(ctx.aujourdhui);
     let [certificat, recu] = documents::fin_de_contrat::ecrire(ctx, &p, date, &ctx.racine.join("sorties").join(mois))?;
-    let nom = |c: &Path| socle::fichiers::nom_du(c);
     Ok(json!({
-        "phrase": format!("Écrits pour {} : {}, {}.", crate::routes::nom_a_l_ecran(&p.salarie), nom(&certificat), nom(&recu)),
+        "phrase": format!("Écrits pour {} : le certificat de travail et le reçu pour solde de tout compte.", crate::routes::nom_a_l_ecran(&p.salarie)),
         "certificat": certificat.to_string_lossy(),
         "recu": recu.to_string_lossy(),
         "dossier": ctx.racine.join("sorties").join(mois).to_string_lossy(),
@@ -1160,7 +1160,7 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let preavis = declarations::fctu::libelle_preavis(&fin.type_preavis).map_err(plain)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
-        "phrase": phrase_du_signalement(&format!("Signalement écrit : {} (préavis : {}). Rien n'est parti.", nom, preavis), &avertissements),
+        "phrase": phrase_du_signalement(&format!("Signalement de fin de contrat écrit (préavis : {}). Rien n'est parti.", preavis), &avertissements),
         "type": type_declaration,
         "ordre": ordre,
         "preavis": preavis,
@@ -1257,7 +1257,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
-        "phrase": phrase_du_signalement(&format!("Signalement écrit : {}. Rien n'est parti.", nom), &avertissements),
+        "phrase": phrase_du_signalement(if nature == signalement::ARRET { "Signalement d'arrêt écrit. Rien n'est parti." } else { "Signalement de reprise écrit. Rien n'est parti." }, &avertissements),
         "nature": nature,
         "type": type_declaration,
         "ordre": ordre,
@@ -1393,6 +1393,7 @@ pub(crate) fn resume_arret(ctx: &Contexte, n: &Value, a: &Value) -> R<Value> {
         "signale": signale,
         "signalement_du": signalement_du,
         "signalements": signalements,
+        "reporte_par_dit": mois_de_la_dsn(&mois),
         "reporte_par": mois,
         "etat": if signale { "signale" } else if signalement_du { "a signaler" } else { "sans signalement" },
     }))
@@ -1776,4 +1777,9 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
     }
     sorties.sort_by(|a, b| a.0.cmp(&b.0));
     Ok(sorties.into_iter().map(|(_, v)| v).collect())
+}
+
+/// Les mois des DSN qui ont porte un imprevu, tels que l'ecran les lit (« de novembre 2026 »).
+fn mois_de_la_dsn(mois: &[Value]) -> Vec<String> {
+    mois.iter().map(|m| crate::regularisation::de_mois_en_clair(&valeur_en_texte(m))).collect()
 }

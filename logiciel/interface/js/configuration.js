@@ -104,14 +104,14 @@ function dessinerConfig() {
   // pas dans les archives.
   const titreDe = (d) => String(d.titre || "").normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-  const sansTitre = (d) => titreDe(d) === "a completer";
+  const sansTitre = (f) => !!f.sans_titre;
   const passees = {};
   const sousUnActif = new Set();
   if (!salarie) {
     const titresActifs = new Set(courantes.map((f) => titreDe(f.donnees)));
     archivees.forEach((f) => {
       const t = titreDe(f.donnees);
-      if (sansTitre(f.donnees) || !titresActifs.has(t)) return;
+      if (sansTitre(f) || !titresActifs.has(t)) return;
       (passees[t] = passees[t] || []).push(f);
       sousUnActif.add(f.cle);
     });
@@ -119,7 +119,7 @@ function dessinerConfig() {
   // Les archives qui restent : les spectacles qui ne se jouent plus, par
   // titre ; puis les numéros sans titre, groupés -- à nommer si on le sait.
   const archiveesSeules = archivees.filter((f) => !sousUnActif.has(f.cle))
-    .sort((a, b) => (sansTitre(a.donnees) - sansTitre(b.donnees))
+    .sort((a, b) => (sansTitre(a) - sansTitre(b))
       || titreDe(a.donnees).localeCompare(titreDe(b.donnees))
       || String(b.donnees.numero_objet || "").localeCompare(String(a.donnees.numero_objet || "")));
 
@@ -132,9 +132,9 @@ function dessinerConfig() {
     const titre = salarie
       ? `${String(d.nom_affichage || d.nom || "").toUpperCase()} ${d.prenom_affichage || d.prenom || ""}`.trim()
       : String(d.titre || "").trim();
-    // Un numero d'objet importe de CoolPaie n'a pas de titre : le moteur
-    // pose « A COMPLETER », que la ligne dit en minuscules.
-    const aCompleter = !salarie && titre.toUpperCase() === "A COMPLETER";
+    // Un numéro d'objet importé sans titre : le moteur le dit (`sans_titre`),
+    // la ligne le dit en minuscules.
+    const aCompleter = !salarie && sansTitre(f);
     const quoi = salarie
       ? [d.emploi_affichage || d.emploi || "", d.code_salarie ? "matricule " + d.code_salarie : ""]
       : [d.numero_objet || "", d.code_analytique ? "analytique " + d.code_analytique : ""];
@@ -187,20 +187,21 @@ function dessinerConfig() {
   // souvent là qu'on cherche.
   const libelles = {};
   (ETAT.configuration.description[FICHE_ACTIVE] || []).forEach((c) => { libelles[c.cle] = c.libelle; });
-  const libelleDe = (cle) => libelles[cle] || libelles[cle.replace(/_affichage$/, "")]
-    || cle.replace(/_/g, " ");
+  // Les cases du nom que la ligne lit déjà : une trouvaille dedans ne se redit pas.
+  const CASES_DU_NOM = new Set(["nom", "nom_affichage", "prenom", "prenom_affichage", "titre"]);
+  const libelleDe = (cle) => libelles[cle] || libelles[cle.replace(/_affichage$/, "")] || "";
   const plat = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const valeurs = (f) => {
     const out = [];
-    const ajouter = (ou, v) => {
+    const ajouter = (ou, v, champ) => {
       if (v === null || v === undefined || v === "" || typeof v === "boolean") return;
       if (typeof v === "object") {
-        Object.entries(v).forEach(([k, x]) => { if (!k.startsWith("_")) ajouter(ou, x); });
+        Object.entries(v).forEach(([k, x]) => { if (!k.startsWith("_")) ajouter(ou, x, champ); });
         return;
       }
       const t = String(v);
-      out.push({ ou, quoi: t });
-      if (/^\d{4}-\d{2}-\d{2}$/.test(t)) out.push({ ou, quoi: jjmmaaaa(t) });
+      out.push({ ou, champ, quoi: t });
+      if (/^\d{4}-\d{2}-\d{2}$/.test(t)) out.push({ ou, champ, quoi: jjmmaaaa(t) });
     };
     // La forme lisible d'abord (« Avallon »), la forme déclarée ensuite
     // (« AVALLON ») : c'est la première trouvée que la ligne cite.
@@ -208,10 +209,10 @@ function dessinerConfig() {
       .sort(([a], [b]) => b.endsWith("_affichage") - a.endsWith("_affichage"))
       .forEach(([k, v]) => {
         if (k.startsWith("_") || k === "historique" || k === "actif") return;
-        ajouter(libelleDe(k), v);
+        ajouter(libelleDe(k), v, k);
       });
     (f.donnees.historique || []).forEach((h) =>
-      ajouter(libelleDe(h.champ) + " (ancienne valeur)", h.valeur));
+      ajouter(libelleDe(h.champ) && libelleDe(h.champ) + " (ancienne valeur)", h.valeur, h.champ));
     return out.map((x) => ({ ...x, cle: plat(x.quoi), serre: plat(x.quoi).replace(/\s+/g, "") }));
   };
   const chercher = (f, mots) => {
@@ -229,8 +230,8 @@ function dessinerConfig() {
   // Les numéros sans titre (importés des DSN, « A COMPLETER ») en un groupe,
   // sous une phrase qui dit d'où ils viennent et ce qu'on peut en faire.
   const archivesHtml = () => {
-    const nommees = archiveesSeules.filter((f) => salarie || !sansTitre(f.donnees));
-    const anonymes = salarie ? [] : archiveesSeules.filter((f) => sansTitre(f.donnees));
+    const nommees = archiveesSeules.filter((f) => salarie || !sansTitre(f));
+    const anonymes = salarie ? [] : archiveesSeules.filter((f) => sansTitre(f));
     return `${nommees.length ? `<div class="rangs">${nommees.map((f) => rangHtml(f)).join("")}</div>` : ""}
       ${anonymes.length ? `<p class="note">${echapper(ETAT.configuration.numeros_sans_titre)}</p>
         <div class="rangs">${anonymes.map((f) => rangHtml(f)).join("")}</div>` : ""}`;
@@ -245,7 +246,7 @@ function dessinerConfig() {
       // Où l'on a trouvé, sauf si c'est le nom même qu'on lit sur la ligne.
       cible.innerHTML = trouvees.length
         ? `<div class="rangs">${trouvees.map(({ f, t }) =>
-            rangHtml(f, t.ou && !/^(nom|prénom|titre)/i.test(t.ou) ? t : null)).join("")}</div>`
+            rangHtml(f, t.ou && !CASES_DU_NOM.has(t.champ) ? t : null)).join("")}</div>`
         : `<p class="discret">Aucune fiche trouvée</p>`;
     } else {
       cible.innerHTML = `${courantes.length
@@ -461,7 +462,7 @@ function vueNaturesADire(liste) {
     debut: (x) => `<label>Début du contrat <input type="date" data-nature-champ="debut"></label>`,
     fin: (x) => `<label>Fin prévue <input type="date" data-nature-champ="fin"></label>`,
     numero: (x) => `<label title="${aideDe("import_numero")}">Numéro du contrat
-        <input type="text" data-nature-champ="numero" placeholder="sur la DSN ${echapper(deMois(String(x.au).slice(0, 7)))}"></label>`,
+        <input type="text" data-nature-champ="numero" placeholder="sur la DSN ${echapper(x.au_dit)}"></label>`,
     salaire: (x) => `<label>Salaire mensuel brut <input type="number" step="0.01" min="0" data-nature-champ="salaire"
         placeholder="celui du contrat signé"></label>`,
     quotite: (x) => `<label title="${aideDe("import_quotite")}">Heures par mois
@@ -1125,7 +1126,7 @@ async function dessinerMetiers(cible) {
     document.getElementById("metiers-liste").innerHTML = familles.length ? familles.map((f) => {
       const dedans = vus.filter((m) => m.famille === f);
       const n = dedans.filter((m) => m.retenu).length;
-      return `<details class="metiers-famille"${filtre ? " open" : ""}>
+      return `<details class="metiers-famille" data-famille="${echapper(f)}"${filtre ? " open" : ""}>
         <summary><b>${echapper(f)}</b> <span class="discret">${n} coché${n > 1 ? "s" : ""} sur ${dedans.length}</span></summary>
         <div class="metiers-colonnes">${dedans.map((m) => `
           <label class="coche" title="${echapper(m.code)}${m.de ? " — " + echapper(m.de) : ""}">
@@ -1142,10 +1143,10 @@ async function dessinerMetiers(cible) {
           ETAT.emplois_autres = x.emplois_autres;
           const m = r.metiers.find((y) => y.code === c.dataset.code);
           if (m) m.retenu = c.checked;
-          const garde = [...document.querySelectorAll("#metiers-liste details[open] summary b")].map((b) => b.textContent);
+          const garde = [...document.querySelectorAll("#metiers-liste details[open]")].map((d) => d.dataset.famille);
           peindre();
           document.querySelectorAll("#metiers-liste details").forEach((d) => {
-            if (garde.includes(d.querySelector("summary b").textContent)) d.open = true;
+            if (garde.includes(d.dataset.famille)) d.open = true;
           });
         } catch (e) { c.checked = !c.checked; dire(e.message, "erreur"); }
       };

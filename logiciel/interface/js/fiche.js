@@ -426,7 +426,7 @@ function dessinerFormulaire(fiche) {
       ${FICHE_ACTIVE === "salarie" ? enteteSalarie(fiche)
         : FICHE_ACTIVE === "entreprise" ? "" : `<h2>${fiche.cle
           // Le titre, pas la cle : `aaah-zerbinette` est un identifiant interne.
-          ? `${echapper(String(fiche.donnees.titre || "").toUpperCase() === "A COMPLETER"
+          ? `${echapper(fiche.sans_titre
               ? "Spectacle à nommer" : fiche.donnees.titre || fiche.cle)}
              <span class="discret">— ${echapper(fiche.donnees.numero_objet || fiche.cle)}</span>`
           : "Nouveau spectacle"}</h2>

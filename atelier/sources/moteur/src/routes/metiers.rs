@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::routes::catalogue::{Acte, Champ, Ecran, Fiche, Place, MANQUE, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, MANQUE, OPERATION};
 use crate::routes::fiches::{creer_dossier, ecrire, plain, refus, texte_requis};
 use droit::contexte::Contexte;
 use droit::emplois;
@@ -38,7 +38,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "metier-retenu",
         geste: "Proposer un métier du catalogue dans les listes, ou ne plus le proposer.",
-        charge: &[Champ { nom: "code", sens: "le code du métier au catalogue", avance: false }, Champ { nom: "retenu", sens: "vrai : le proposer", avance: false }],
+        charge: &[Champ { nom: "code", libelle: Affiche::new("Métier"), forme: Forme::Texte, sens: "le code du métier au catalogue", avance: false }, Champ { nom: "retenu", libelle: Affiche::new("Le proposer"), forme: Forme::OuiNon, sens: "vrai : le proposer", avance: false }],
         exemple: r#"{"code":"CHE350","retenu":true}"#,
         rend: METIERS_REND,
         refus: &[OPERATION, MANQUE],

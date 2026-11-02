@@ -11,7 +11,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
-use crate::routes::catalogue::{Acte, Champ, Fiche, Refus, FORME, ILLISIBLE, MANQUE, OPERATION};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, ILLISIBLE, MANQUE, OPERATION};
 use crate::routes::documents::{client_courriel, preuve_de, vrai_ou};
 use crate::routes::mois::{lire_saisie, sauver_avant};
 use declarations::champs;
@@ -31,9 +31,9 @@ use socle::html::{html_echapper, mailto};
 use socle::texte::{capitaliser, strip};
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
-const NOM_FICHE: Champ = Champ { nom: "nom", sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
-const CLE_FICHE: Champ = Champ { nom: "cle", sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
-const DONNEES: Champ = Champ { nom: "donnees", sens: "les cases de la fiche, que la route configuration décrit (description : nom, forme, valeurs) ; une case inconnue se refuse ; à l'écriture, une case non donnée garde sa valeur, aussi dans une structure ; null l'efface", avance: false };
+const NOM_FICHE: Champ = Champ { nom: "nom", libelle: Affiche::new("Fiche"), forme: Forme::Texte, sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
+const CLE_FICHE: Champ = Champ { nom: "cle", libelle: Affiche::new("Clé"), forme: Forme::Texte, sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
+const DONNEES: Champ = Champ { nom: "donnees", libelle: Affiche::new("Cases de la fiche"), forme: Forme::Objet, sens: "les cases de la fiche, que la route configuration décrit (description : nom, forme, valeurs) ; une case inconnue se refuse ; à l'écriture, une case non donnée garde sa valeur, aussi dans une structure ; null l'efface", avance: false };
 pub(crate) const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
 const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
@@ -47,7 +47,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "permanents",
         geste: "Dire si la compagnie emploie des permanents (ce que la fiche montre alors).",
-        charge: &[Champ { nom: "entreprise", sens: "la fiche Entreprise en cours de saisie ; sans elle, celle de la compagnie", avance: false }],
+        charge: &[Champ { nom: "entreprise", libelle: Affiche::new("Fiche Entreprise"), forme: Forme::Objet, sens: "la fiche Entreprise en cours de saisie ; sans elle, celle de la compagnie", avance: false }],
         exemple: r#"{}"#,
         rend: "permanents (vrai ou faux)",
         refus: &[FORME],
@@ -60,8 +60,8 @@ pub const ROUTES: &[Fiche] = &[
         nom: "taxe-sur-les-salaires-regime",
         geste: "Dire le régime de la taxe sur les salaires d'après les réponses de la fiche.",
         charge: &[
-            Champ { nom: "taxe_sur_les_salaires", sens: "les réponses en cours de saisie ; sans elles, celles de la compagnie", avance: false },
-            Champ { nom: "annee", sens: "l'année des salaires (ses plafonds) ; l'année en cours sinon", avance: true },
+            Champ { nom: "taxe_sur_les_salaires", libelle: Affiche::new("Réponses"), forme: Forme::Objet, sens: "les réponses en cours de saisie ; sans elles, celles de la compagnie", avance: false },
+            Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année des salaires (ses plafonds) ; l'année en cours sinon", avance: true },
         ],
         exemple: r#"{}"#,
         rend: "franchise (la question et ses plafonds), champs à montrer, consequence en clair, complet, due, part_taxee",
@@ -90,10 +90,10 @@ pub const ROUTES: &[Fiche] = &[
             NOM_FICHE,
             CLE_FICHE,
             DONNEES,
-            Champ { nom: "confirme", sens: "vrai : l'avertissement rendu (ce qui change) a été lu ; la fiche s'écrit", avance: false },
-            Champ { nom: "depuis", sens: "la date d'effet de ce qui change, AAAA-MM-JJ ; la date proposée sinon", avance: false },
-            Champ { nom: "note", sens: "pourquoi cela change (correction, déménagement…)", avance: true },
-            Champ { nom: "forcer", sens: "vrai : écrire malgré une erreur de forme", avance: true },
+            Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu (ce qui change) a été lu ; la fiche s'écrit", avance: false },
+            Champ { nom: "depuis", libelle: Affiche::new("Depuis le"), forme: Forme::Date, sens: "la date d'effet de ce qui change, AAAA-MM-JJ ; la date proposée sinon", avance: false },
+            Champ { nom: "note", libelle: Affiche::new("Pourquoi"), forme: Forme::Texte, sens: "pourquoi cela change (correction, déménagement…)", avance: true },
+            Champ { nom: "forcer", libelle: Affiche::new("Écrire malgré une erreur de forme"), forme: Forme::OuiNon, sens: "vrai : écrire malgré une erreur de forme", avance: true },
         ],
         exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics","numero_objet":"266Z00952012"}}"#,
         rend: "une valeur existante change, ou un choix se confirme : avertissement (changements, depuis proposé, pourquoi ; usage, la phrase à confirmer) et ses phrases, rien n'est écrit ; sinon : cle, ecrits (les champs changés), enregistre_a (vide si rien n'a changé), phrase",
@@ -106,7 +106,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "activer-fiche",
         geste: "Archiver une fiche de salarié ou de spectacle, ou la réactiver.",
-        charge: &[NOM_FICHE, CLE_FICHE, Champ { nom: "actif", sens: "vrai : réactiver ; faux : archiver", avance: false }],
+        charge: &[NOM_FICHE, CLE_FICHE, Champ { nom: "actif", libelle: Affiche::new("Active"), forme: Forme::OuiNon, sens: "vrai : réactiver ; faux : archiver", avance: false }],
         exemple: r#"{"nom":"spectacle","cle":"le-banc-des-menteurs","actif":true}"#,
         rend: ETAT_REND,
         refus: &[OPERATION, MANQUE],
@@ -119,9 +119,9 @@ pub const ROUTES: &[Fiche] = &[
         nom: "fiche-demander",
         geste: "Demander à une personne, par courriel, de remplir sa fiche.",
         charge: &[
-            Champ { nom: "adresse", sens: "son courriel", avance: false },
-            Champ { nom: "prenom", sens: "son prénom, pour lui écrire", avance: false },
-            Champ { nom: "motdepasse", sens: "le mot de passe du logiciel, s'il est posé ; sans lui, le moteur le demande à un humain", avance: false },
+            Champ { nom: "adresse", libelle: Affiche::new("Courriel"), forme: Forme::Texte, sens: "son courriel", avance: false },
+            Champ { nom: "prenom", libelle: Affiche::new("Prénom"), forme: Forme::Texte, sens: "son prénom, pour lui écrire", avance: false },
+            Champ { nom: "motdepasse", libelle: Affiche::new("Mot de passe du logiciel"), forme: Forme::Texte, sens: "le mot de passe du logiciel, s'il est posé ; sans lui, le moteur le demande à un humain", avance: false },
         ],
         exemple: r#"{"adresse":"isadora@exemple.invalid","prenom":"Isadora"}"#,
         rend: "code (celui de la demande), adresse",
@@ -146,7 +146,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "fiche-oublier-demande",
         geste: "Renoncer aux demandes de fiche restées sans réponse d'une personne.",
-        charge: &[Champ { nom: "adresse", sens: "le courriel à qui la fiche a été demandée", avance: false }],
+        charge: &[Champ { nom: "adresse", libelle: Affiche::new("Courriel"), forme: Forme::Texte, sens: "le courriel à qui la fiche a été demandée", avance: false }],
         exemple: r#"{"adresse":"isadora@exemple.invalid"}"#,
         rend: "adresse",
         refus: &[OPERATION],
@@ -159,9 +159,9 @@ pub const ROUTES: &[Fiche] = &[
         nom: "taux-atmp",
         geste: "Dire le code risque et le taux AT/MP d'une année ; les poser s'il y a lieu.",
         charge: &[
-            Champ { nom: "annee", sens: "l'année, AAAA", avance: false },
-            Champ { nom: "code_risque", sens: "le code risque notifié par la CARSAT", avance: false },
-            Champ { nom: "valeur", sens: "le taux net notifié, en %", avance: false },
+            Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false },
+            Champ { nom: "code_risque", libelle: Affiche::new("Code risque"), forme: Forme::Texte, sens: "le code risque notifié par la CARSAT", avance: false },
+            Champ { nom: "valeur", libelle: Affiche::new("Taux net"), forme: Forme::Nombre, sens: "le taux net notifié, en %", avance: false },
         ],
         exemple: r#"{"annee":2026}"#,
         rend: "le code, le taux, leur libellé et d'où ils viennent, les codes que le socle connaît ; phrase : ce que le geste a écrit",
@@ -175,8 +175,8 @@ pub const ROUTES: &[Fiche] = &[
         nom: "effectif",
         geste: "Dire l'effectif d'une année ; le poser quand l'Urssaf ne l'a pas renvoyé.",
         charge: &[
-            Champ { nom: "annee", sens: "l'année civile mesurée, AAAA ; absente : celles qui manquent pour payer cette année", avance: false },
-            Champ { nom: "valeur", sens: "son effectif annuel moyen, tel que l'Urssaf l'a calculé (au centième)", avance: false },
+            Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année civile mesurée, AAAA ; absente : celles qui manquent pour payer cette année", avance: false },
+            Champ { nom: "valeur", libelle: Affiche::new("Effectif annuel moyen"), forme: Forme::Nombre, sens: "son effectif annuel moyen, tel que l'Urssaf l'a calculé (au centième)", avance: false },
         ],
         exemple: r#"{"annee":2024,"valeur":6.5}"#,
         rend: "annee, valeur et d'où elle vient (l'Urssaf, la compagnie, la première embauche), a_dire (les années qui manquent pour payer cette année), phrase",
@@ -184,12 +184,12 @@ pub const ROUTES: &[Fiche] = &[
         acte: Acte::Ecrit,
         avance: true,
         phrase: 300,
-        ecran: Ecran::Auto(Place::Fiches),
+        ecran: Ecran::Auto(Place::Fiches, Affiche::new("Dire ou poser l'effectif")),
     },
     Fiche {
         nom: "couts",
         geste: "Dire le coût de l'année, spectacle par spectacle.",
-        charge: &[Champ { nom: "annee", sens: "l'année, AAAA", avance: false }],
+        charge: &[Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false }],
         exemple: r#"{"annee":"2026"}"#,
         rend: "le coût de l'année par spectacle",
         refus: &[MANQUE, OPERATION],
@@ -214,8 +214,8 @@ pub const ROUTES: &[Fiche] = &[
         nom: crate::routes::COMPAGNIE_SUPPRIMER,
         geste: "Supprimer la compagnie de ce poste : avertir, puis effacer tout son dossier.",
         charge: &[
-            Champ { nom: "confirme", sens: "vrai : effacer ; sans lui, la route dit seulement ce qui sera effacé et ce qu'elle demande", avance: false },
-            Champ { nom: "motdepasse", sens: "une compagnie réelle : le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false },
+            Champ { nom: "confirme", libelle: Affiche::new("Effacer"), forme: Forme::OuiNon, sens: "vrai : effacer ; sans lui, la route dit seulement ce qui sera effacé et ce qu'elle demande", avance: false },
+            Champ { nom: "motdepasse", libelle: Affiche::new("Mot de passe du logiciel"), forme: Forme::Texte, sens: "une compagnie réelle : le mot de passe du logiciel, tapé dans la page ; par moteur route, le moteur le demande lui-même à un humain", avance: false },
         ],
         exemple: r#"{"confirme": true}"#,
         rend: "sans confirme : nom, genre (ajoutee ou reelle), avertissement, conservation et sauvegarde à proposer, ou la phrase qui dit pourquoi elle ne se supprime pas ; avec : supprimee, phrase",
@@ -1776,12 +1776,11 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
     let neuve = nom != "entreprise" && cle.as_deref().map_or(true, str::is_empty);
     let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), &depuis, note)?;
     let en_erreur = e.anomalies.iter().any(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur"));
-    // Une fiche creee se nomme ensuite par sa cle (la saisie d'une carte, `cle` d'une autre ecriture) : la phrase la dit.
+    // Une fiche creee se nomme ensuite par sa cle (la saisie d'une carte, `cle` d'une autre ecriture) : la reponse la rend.
     let phrase = match (e.ecrit, neuve, forcer && en_erreur, &e.cle) {
         (false, _, _, _) => "Rien n'a changé : rien n'est écrit.".to_string(),
         (true, _, true, _) => "Enregistré malgré les erreurs.".to_string(),
-        (true, true, false, Some(c)) => format!("Fiche créée, sa clé : `{}`.", c),
-        (true, true, false, None) => "Fiche créée.".to_string(),
+        (true, true, false, _) => "Fiche créée.".to_string(),
         (true, false, false, _) => "Enregistré.".to_string(),
     };
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
