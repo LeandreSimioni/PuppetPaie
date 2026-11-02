@@ -346,7 +346,7 @@ fn racine() -> PathBuf {
 }
 
 fn compte(b: &BulletinLu) -> Value {
-    compteurs(b, &racine()).unwrap().to_json()
+    compteurs(b, &[], &racine()).unwrap().to_json()
 }
 
 /// Un libelle absent de la table : la ligne reste sans rubrique, sans erreur ; le cumul du bulletin compte quand meme.
@@ -375,6 +375,26 @@ fn bulletin_lu_un_libelle_inconnu_reste_sans_rubrique() {
     let mut fausse = table_livree_json();
     fausse["lignes"]["Cachets isolés"] = json!("cachet_devine");
     let l = lire_avec(&chemin, &Table::depuis(&fausse).unwrap()).unwrap();
-    assert!(compteurs(lu(&l[0]), &racine()).unwrap_err().starts_with("Rubrique inconnue : 'cachet_devine'"));
+    assert!(compteurs(lu(&l[0]), &[], &racine()).unwrap_err().starts_with("Rubrique inconnue : 'cachet_devine'"));
 }
 
+
+/// UN BULLETIN PAR CONTRAT, UNE COLONNE « PERIODE » POUR LE MOIS : deux contrats d'un salarie le meme mois (3 cachets,
+/// puis un contrat sans cachet), chaque bulletin imprimant les 3 cachets du mois. Le contrat sans cachet en garde zero ;
+/// la colonne ne l'emporte pas sur les lignes d'un des deux.
+#[test]
+fn bulletin_lu_la_colonne_du_mois_ne_se_met_pas_dans_chaque_contrat() {
+    let d = dossier("colonne-du-mois");
+    let chemin = d.join("b.pdf");
+    pdf(vec![page_b(&b_cachets())], &chemin);
+    let l = lire(&chemin).unwrap();
+    let cachets = lu(&l[0]).clone();
+    let mut sans_cachet = cachets.clone();
+    sans_cachet.lignes.clear();
+    sans_cachet.numero = Some("autre".into());
+    assert!(cachets.cumuls.iter().any(|(n, c)| n == "cachets" && c.periode.is_some_and(|x| x.normalize().to_string() == "3")));
+    let de = |b: &BulletinLu, frere: &BulletinLu| compteurs(b, &[frere], &racine()).unwrap().to_json();
+    assert_eq!(de(&sans_cachet, &cachets)["cachets"], json!("0"));
+    assert_eq!(de(&cachets, &sans_cachet)["cachets"], json!("3"));
+    assert!(!de(&sans_cachet, &cachets)["avertissements"].to_string().contains("cachets :"));
+}

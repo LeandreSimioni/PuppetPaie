@@ -381,8 +381,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                     continue;
                 }
             };
-            let compteurs = bulletin_lu::compteurs(&b, &ctx.racine);
-            lus.push(Lu { fichier: i, page: l.page, b, nir, cle_nir, mois, mois_saisi, compteurs, incoherences });
+            // Les compteurs se font plus bas, quand tous les bulletins du salarie sont lus (`compter`).
+            lus.push(Lu { fichier: i, page: l.page, b, nir, cle_nir, mois, mois_saisi, compteurs: Ok(Compteurs::default()), incoherences });
         }
     }
 
@@ -430,6 +430,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     }
     let mut lus = gardes;
     lus.sort_by(|a, b| (a.b.fin, a.b.debut, a.fichier, a.page).cmp(&(b.b.fin, b.b.debut, b.fichier, b.page)));
+    compter(&mut lus, &ctx.racine);
 
     // Les DSN et AEM de la compagnie, copiees la ou `apercu_lu` les lit, sous le nom de leur copie (`nom_copie`).
     // Un nom deja pris recoit un rang devant.
@@ -1492,7 +1493,8 @@ fn completer_a_creer(a_creer: &mut [ACreer], reponse: &mut Map<String, Value>, n
     let Some(a) = a_creer.iter_mut().find(|a| a.nom == nom && nir.is_none_or(|n| a.donnees.get("nir").map(valeur_en_texte).as_deref() == Some(n))) else {
         return Ok(());
     };
-    let champs = completer::champs_a_completer(nom, &Value::Object(a.donnees.clone()), proposees)?;
+    let mut champs = completer::champs_a_completer(nom, &Value::Object(a.donnees.clone()), proposees)?;
+    champs.extend(lisibles_de_la_piece_sur(nom, &a.donnees, proposees)?);
     if champs.is_empty() {
         return Ok(());
     }
@@ -1623,6 +1625,29 @@ fn lisibles_de_la_piece(nom: &str, f: &mut Map<String, Value>) -> R<()> {
         }
     }
     Ok(())
+}
+
+/// LA FORME LISIBLE QUE LA PIECE IMPRIME, DANS UNE FICHE QUE L'IMPORT CREE D'UNE DSN : la DSN ecrit sans accent ni
+/// minuscule (« CHAMPMESLE », norme DSN, caracteres autorises), la forme lisible qu'on en tire n'est qu'une
+/// reconstitution (« Champmesle »). Quand le bulletin imprime le meme texte (compare sans casse ni accents) avec ce que
+/// la DSN a perdu (« CHAMPMESLÉ », « Séraphine »), sa forme lisible (`lisibles_de_la_piece`, `champs::combler_affichage`)
+/// remplace la reconstitution ; la forme declaree s'en derive a l'ecriture, au seul endroit qui la derive. Une forme
+/// lisible que la fiche ne tient pas de la forme declaree (le metier du catalogue) reste la sienne.
+fn lisibles_de_la_piece_sur(nom: &str, fiche: &Map<String, Value>, proposees: &Map<String, Value>) -> R<Map<String, Value>> {
+    let mut out = Map::new();
+    for c in declarations::champs::fiche(nom)? {
+        let Some(source) = c.derive_de.as_deref().filter(|d| !d.is_empty()) else { continue };
+        let (Some(Value::String(officiel)), Some(Value::String(lisible))) = (fiche.get(&c.cle), fiche.get(source)) else { continue };
+        let (Some(Value::String(officiel_piece)), Some(Value::String(lisible_piece))) = (proposees.get(&c.cle), proposees.get(source)) else { continue };
+        if lisible_piece == lisible || compare(officiel_piece) != compare(officiel) {
+            continue;
+        }
+        let reconstitue = declarations::champs::combler_affichage(nom, &Map::from_iter([(c.cle.clone(), json!(officiel))]))?;
+        if reconstitue.get(source) == Some(&json!(lisible)) {
+            out.insert(source.to_string(), json!(lisible_piece));
+        }
+    }
+    Ok(out)
 }
 
 /// La fiche d'un salarie qu'aucune fiche ni aucune DSN ne porte : ce que ses bulletins impriment, champ par champ le
@@ -2126,4 +2151,25 @@ fn contrat_du_certificat(c: &crate::import::certificat_lu::Certificat, statut: O
     m.insert("fichier".into(), json!(copie));
     m.insert("page".into(), json!(c.page));
     Ok((Value::Object(m), quoi))
+}
+
+/// Les compteurs de chaque bulletin lu (`bulletin_lu::compteurs`), confrontes a ses cumuls avec ses freres : les autres
+/// bulletins du meme salarie, du meme logiciel, dont la periode finit le meme mois (un meme bulletin lu deux fois, meme
+/// numero et memes dates, n'en est pas un).
+fn compter(lus: &mut [Lu], racine: &Path) {
+    let comptes: Vec<Result<Compteurs, String>> = lus
+        .iter()
+        .map(|l| {
+            let freres: Vec<&BulletinLu> = lus
+                .iter()
+                .filter(|s| s.nir == l.nir && s.mois == l.mois && s.b.logiciel == l.b.logiciel)
+                .filter(|s| (&s.b.numero, s.b.debut, s.b.fin) != (&l.b.numero, l.b.debut, l.b.fin))
+                .map(|s| &s.b)
+                .collect();
+            bulletin_lu::compteurs(&l.b, &freres, racine).map_err(|e| e.to_string())
+        })
+        .collect();
+    for (l, c) in lus.iter_mut().zip(comptes) {
+        l.compteurs = c;
+    }
 }
