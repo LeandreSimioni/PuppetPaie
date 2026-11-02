@@ -1904,15 +1904,15 @@ une paie passee ; pour l'embaucher a nouveau, remettre \
                 return Ok(avec_cle(cle));
             }
         }
-        let mut titres = Vec::new();
-        for v in self.spectacles.values() {
-            titres.push(exiger_texte(v, "titre")?);
+        let mut connus = Vec::new();
+        for (cle, v) in &ordre {
+            connus.push(format!("« {} » (`{}`)", exiger_texte(v, "titre")?, cle));
         }
         Err(format!(
-            "Spectacle inconnu : {}. Connus : {}.\nAjouter une entree dans config/spectacles.json avec son numero d'objet \
-France Travail.",
+            "Spectacle inconnu : {}. Connus : {}.\nUn spectacle se crée dans Configuration › Spectacles (`enregistrer-fiche`), \
+avec son numéro d'objet France Travail.",
             repr_texte(nom),
-            titres.join(", ")
+            if connus.is_empty() { "aucun".to_string() } else { connus.join(", ") }
         ))
     }
 }

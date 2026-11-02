@@ -21,7 +21,7 @@ const IDENTITE: Champ = Champ {
 /// La saisie d'une carte, ses cases et ou se lit ce que chacune demande.
 pub(crate) const SAISIE: Champ = Champ {
     nom: "saisie",
-    sens: "ce que la carte porte : salarie (la clé de sa fiche), spectacle, nature (`natures` de la route etat), debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures, jours, montant…}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
+    sens: "ce que la carte porte : salarie (la clé de sa fiche), spectacle, nature (`natures` de la route etat ; muette, c'est un CDDU : un CDI la dit), debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures (par unité : 4 pour des services de 4 h), jours, montant…}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; sa fin : `cases_de_la_fin` de cette fiche ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
     avance: false,
 };
 pub(crate) const SAISIE_INCOMPLETE: RefusDit = RefusDit { classe: "SaisieIncomplete", corriger: "le fait que la phrase nomme, sur la carte ou la fiche du salarié" };
@@ -55,7 +55,7 @@ pub const ROUTES: &[Fiche] = &[
             IDENTITE,
             SAISIE,
             Champ { nom: "confirme", sens: "vrai : l'avertissement rendu a été lu et accepté", avance: false },
-            Champ { nom: "jour", sens: "le jour du mois où un terme changé prend effet, quand ce n'est pas le 1er", avance: true },
+            Champ { nom: "jour", sens: "le jour du mois (un nombre, de 1 à 31) où un terme changé prend effet, quand ce n'est pas le 1er", avance: true },
         ],
         exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":160,"dates":["2026-11-27"]}]}}"#,
         rend: "rien n'a changé : change faux ; ce qui est parti le demande : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit ; écrit : change, phrase (un terme vaut à partir du mois de la carte)",
