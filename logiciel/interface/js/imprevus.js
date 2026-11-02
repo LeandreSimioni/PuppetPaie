@@ -49,25 +49,6 @@ function nomDuSalarie(cle) {
   return s ? s.libelle : String(cle || "");
 }
 
-/** « attestation de salaire (DSIJ) » : la première lettre seulement, les sigles restent. */
-function minuscule(t) {
-  t = String(t || "");
-  return t.charAt(0).toLowerCase() + t.slice(1);
-}
-
-/** Ce qu'un imprévu est, en une ligne : « Arrêt de travail (maladie) » ou le motif d'une absence. */
-function quoiDeLImprevu(i) {
-  return i.genre === "arret" ? `Arrêt de travail (${i.motif_libelle})` : i.motif_libelle;
-}
-
-/** Sa période : du premier au dernier jour d'absence. Un arrêt sans reprise dit sa fin prescrite. */
-function periodeDeLImprevu(i) {
-  if (i.genre === "arret" && !i.reprise) {
-    return `depuis le ${jjmmaaaa(i.premier_jour)}, prescrit jusqu'au ${jjmmaaaa(i.dernier_jour)}`;
-  }
-  return `du ${jjmmaaaa(i.premier_jour)} au ${jjmmaaaa(i.dernier_jour)}`;
-}
-
 /* ------------------------------------------------------ lire, et peindre */
 
 /** Les imprévus et les fins du mois, lus ensemble : la colonne et les cartes en dépendent. */
@@ -140,8 +121,7 @@ function pourquoiDu(o) {
   const depart = o.depart || {};
   return `<details class="pourquoi"><summary>pourquoi</summary>
       <p>${echapper(o.phrase || "")}</p>
-      ${o.delai ? `<p>${echapper(o.delai.charAt(0).toUpperCase() + o.delai.slice(1))}${depart.quoi
-        ? ` — à compter de ${echapper(depart.quoi)}${depart.jour ? `, le ${echapper(jjmmaaaa(depart.jour))}` : ""}` : ""}.</p>` : ""}
+      ${o.delai_dit ? `<p>${echapper(o.delai_dit)}</p>` : ""}
       ${depart.presume ? `<p class="discret"><b>Point de départ présumé</b> ${echapper(depart.presume)}</p>` : ""}
       ${o.destinataire ? `<p class="discret">${echapper(o.destinataire)}</p>` : ""}
       ${(o.textes || []).length ? `<ul class="discret">${o.textes.map((t) =>
@@ -163,7 +143,6 @@ const ROUTES_OBLIGATION_FAITE = {
 // Le rectificatif d'un arrêt (une subrogation prolongée après le signalement, fiche 1983) est un signalement d'arrêt :
 // la même boîte, qui demande l'identifiant du signalement parti puisqu'il y en a déjà un.
 const SIGNALEMENTS_DSN = { signalement_arret: "04", signalement_arret_rectificatif: "04", signalement_reprise: "05" };
-const CONNAISSANCE = { signalement_arret: "arret", declaration_accident: "accident" };
 
 function rangObligation(a, o, k) {
   const gestes = [];
@@ -173,10 +152,8 @@ function rangObligation(a, o, k) {
   if (Array.isArray(o.ou) && ROUTES_OBLIGATION_FAITE[o.cle]) {
     gestes.push(`<button class="secondaire petit" data-geste="faite">Faite le</button>`);
   }
-  // Le point de départ ne se dit que là où le délai court de la connaissance
-  // (`arret-connaissance`) : l'accident, et le signalement d'un arrêt sans
-  // subrogation — subrogé, il court du mois de l'arrêt.
-  if (CONNAISSANCE[o.cle] && o.depart && o.subrogation !== true) {
+  // Le jour où la compagnie l'a su se dit là où le délai en court : le moteur le dit (`connaissance`).
+  if (o.connaissance) {
     gestes.push(`<button class="lien" data-geste="connu">Connu le</button>`);
   }
   return rangDu(k, pastilleDu(o), o.libelle, nomDuSalarie(a.salarie), (o.butoir_dit || ""), gestes.join(""), "", pourquoiDu(o));
@@ -199,7 +176,7 @@ function brancherObligation(r, a, o) {
   const b = (g) => r.querySelector(`[data-geste="${g}"]`);
   if (b("signaler")) b("signaler").onclick = () => boiteSignalerArret(a, SIGNALEMENTS_DSN[o.cle]);
   if (b("faite")) b("faite").onclick = () => boiteObligationFaite(a, o);
-  if (b("connu")) b("connu").onclick = () => boiteConnaissance(a, CONNAISSANCE[o.cle], o);
+  if (b("connu")) b("connu").onclick = () => boiteConnaissance(a, o.connaissance.de, o);
 }
 
 /* LA FIN D'UN CONTRAT QUI SE SIGNALE (nature 07), sous la même
@@ -215,9 +192,8 @@ function brancherObligation(r, a, o) {
    aussi (`mois`) : une échéance manquée ne se tait pas. */
 function rangFin(f, k) {
   const manque = f.a_saisir.length;
-  const ailleurs = f.mois && f.mois !== MOIS_AFFICHE ? ` (${moisEnClair(f.mois)})` : "";
   return rangDu(k, pastilleDeLEtat(f.pastille), (f.obligation && f.obligation.libelle) || "Fin de contrat",
-    `${nomDuSalarie(f.salarie)}, ${f.nature}, fin le ${jjmmaaaa(f.fin)}${ailleurs}`, ((f.obligation || {}).butoir_dit || ""),
+    f.qui_dit, ((f.obligation || {}).butoir_dit || ""),
     `<button class="secondaire petit" data-geste="signaler"${manque ? " disabled" : ""}>Signaler…</button>
      <button class="lien" data-geste="papiers">Papiers de fin</button>`,
     manque ? `<div class="du-manque"><p>${aideDe("a_dire_avant_signaler")}</p>
@@ -385,12 +361,12 @@ function peindreImprevusDeLaCarte(div, liste) {
   cible.innerHTML = liste.map((i, k) => {
     const jours = (i.cachets || []).filter((c) => c.mois === MOIS_AFFICHE);
     return `<div class="imprevu" data-imprevu="${k}">
-        <span class="imprevu-quoi"><b>${echapper(quoiDeLImprevu(i))}</b>
-          <span class="discret">${echapper(periodeDeLImprevu(i))}</span></span>
+        <span class="imprevu-quoi"><b>${echapper(i.quoi)}</b>
+          <span class="discret">${echapper(i.periode)}</span></span>
         <span class="imprevu-gestes">${gestesImprevu(i, MOIS_AFFICHE)}</span>
-        ${jours.length ? `<div class="imprevu-jours">Payé pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"}
-          ${jours.map((c) => c.dates.map((iso) => `${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}
-            ${validee ? "" : `<button class="lien" data-retirer="${echapper(iso)}" data-rubrique="${echapper(c.rubrique)}">retirer ce jour</button>`}`).join(" · ")).join(" · ")}
+        ${jours.length ? `<div class="imprevu-jours">${echapper(i.paye_pendant)}
+          ${jours.map((c) => (c.jours || []).map((j) => `${echapper(j.phrase)}
+            ${validee ? "" : `<button class="lien" data-retirer="${echapper(j.iso)}" data-rubrique="${echapper(c.rubrique)}">retirer ce jour</button>`}`).join(" · ")).join(" · ")}
           ${validee ? `<span class="discret">— ${aideDe("imprevu_valide")}</span>` : ""}
         </div>` : ""}
       </div>`;
@@ -630,8 +606,7 @@ async function boiteAbsence(ou) {
     <div id="ab-contrats" class="note"></div>
     <label class="champ-boite">Motif
       <select id="ab-motif"><option value="">— à choisir —</option>
-        ${motifs.map((m) => `<option value="${echapper(m.code)}">${echapper(m.libelle)}${
-          m.remunere ? " (payé)" : ""}</option>`).join("")}
+        ${motifs.map((m) => `<option value="${echapper(m.code)}">${echapper(m.libelle_dit || m.libelle)}</option>`).join("")}
       </select></label>
     <button type="button" class="lien" id="ab-note-btn">+ une note</button>
     <label class="champ-boite" id="ab-note-l" hidden>Note <span class="discret">— ${aideDe("note_imprevu")}</span>
@@ -708,10 +683,10 @@ async function etapeSuite(i, p, phrase) {
     <h3>Ce qu'il appelle encore</h3>
     ${champsIndemnites(i, "su")}
     ${jours.length ? `<div class="champ-boite">${aideDe("jours_payes")}
-      <div class="liste-jours">${jours.map((c, k) => c.dates.map((iso) => ici(c)
-        ? `<label class="coche"><input type="checkbox" data-jour="${k}" value="${echapper(iso)}">
-             ${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}</label>`
-        : `<div class="discret">${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}, ${echapper(c.mois_dit)}</div>`).join("")).join("")}
+      <div class="liste-jours">${jours.map((c, k) => (c.jours || []).map((j) => ici(c)
+        ? `<label class="coche"><input type="checkbox" data-jour="${k}" value="${echapper(j.iso)}">
+             ${echapper(j.phrase)}</label>`
+        : `<div class="discret">${echapper(j.phrase_du_mois)}</div>`).join("")).join("")}
       </div>
       ${jours.some((c) => !ici(c) && c.mois === MOIS_AFFICHE) ? `<p class="discret">${aideDe("imprevu_valide")}</p>` : ""}</div>` : ""}
     <div class="actions">
@@ -745,8 +720,8 @@ async function boiteReprise(a, apres) {
   try { n = await nomenclaturesImprevus(); } catch (e) { dire(e.message, "erreur"); return; }
   const motifs = n.motifs_reprise || [];
   ouvrirBoite(`
-    <h3>${a.reprise ? "La reprise" : "Reprise plus tôt"} — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}</p>
+    <h3>${echapper(a.reprise_titre)} — ${echapper(nomDuSalarie(a.salarie))}</h3>
+    <p class="discret">${echapper(a.quoi)}, ${echapper(a.periode)}</p>
     <label class="champ-boite">Premier jour retravaillé
       <input type="date" id="re-date" value="${echapper(a.reprise || "")}"></label>
     <label class="champ-boite">Comment
@@ -773,7 +748,7 @@ async function boiteReprise(a, apres) {
 function boiteProlonger(a, apres) {
   ouvrirBoite(`
     <h3>Prolonger l'arrêt — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}</p>
+    <p class="discret">${echapper(a.quoi)}, ${echapper(a.periode)}</p>
     <label class="champ-boite" title="${aideDe("prolongation")}">Prolongé jusqu'au
       <input type="date" id="pr-fin" value=""></label>
     <div class="actions">
@@ -798,7 +773,7 @@ function boiteProlonger(a, apres) {
 function boiteIndemnites(a, apres) {
   ouvrirBoite(`
     <h3>Indemnités journalières — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}</p>
+    <p class="discret">${echapper(a.quoi)}, ${echapper(a.periode)}</p>
     ${champsIndemnites(a, "ma")}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
@@ -819,7 +794,7 @@ function boiteIndemnites(a, apres) {
 function boiteFinAbsence(s, apres) {
   ouvrirBoite(`
     <h3>${echapper(s.motif_libelle)} — ${echapper(nomDuSalarie(s.salarie))}</h3>
-    <p class="discret">Depuis le ${echapper(jjmmaaaa(s.debut))}</p>
+    <p class="discret">${echapper(s.depuis_dit || "")}</p>
     <label class="champ-boite">Jusqu'au <input type="date" id="af-fin" value="${echapper(s.fin || "")}"></label>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
@@ -840,14 +815,14 @@ function boiteFinAbsence(s, apres) {
 /** Écrire le signalement (04 : l'arrêt ; 05 : la reprise anticipée), puis le déposer. Deux gestes et deux boîtes :
  *  écrire un fichier n'engage rien, le déposer engage tout. */
 function boiteSignalerArret(a, nature) {
-  const deja = (a.signalements || []).filter((s) => s.nature === nature).length;
+  const deja = (a.deja_signale || {})[nature];
   const reprise = nature === "05";
   ouvrirBoite(`
-    <h3>Signaler ${reprise ? "la reprise" : "l'arrêt"} — ${echapper(nomDuSalarie(a.salarie))}</h3>
-    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}${
-      reprise ? `, reprise le ${echapper(jjmmaaaa(a.reprise))}` : ""}</p>
+    <h3>${echapper((a.signaler_titre || {})[nature])} — ${echapper(nomDuSalarie(a.salarie))}</h3>
+    <p class="discret">${echapper(a.quoi)}, ${echapper(a.periode)}${
+      reprise && a.reprise_dit ? `, ${echapper(a.reprise_dit)}` : ""}</p>
     <p class="note">${aideDe("signalement_dsn")}</p>
-    ${deja ? `<div class="encart attention"><b>Déjà signalé ${deja} fois</b>
+    ${deja ? `<div class="encart attention"><b>${echapper(deja)}</b>
       ${aideDe("deja_signale")}
       <label class="champ-boite" title="${aideDe("identifiant_remplace")}">Déclaration remplacée
         <input type="text" id="si-remplace"></label></div>` : ""}
@@ -877,8 +852,8 @@ function boiteSignalerArret(a, nature) {
 function boiteConnaissance(a, de, o) {
   const depart = (o && o.depart) || {};
   ouvrirBoite(`
-    <h3>Connaissance ${de === "accident" ? "de l'accident" : "de l'arrêt"}</h3>
-    <p class="discret">${echapper(nomDuSalarie(a.salarie))} — ${echapper(quoiDeLImprevu(a))}</p>
+    <h3>${echapper(o.connaissance.titre)}</h3>
+    <p class="discret">${echapper(nomDuSalarie(a.salarie))} — ${echapper(a.quoi)}</p>
     ${depart.presume ? `<p class="note"><b>Point de départ présumé</b> ${echapper(depart.presume)}</p>` : ""}
     <div class="champs-deux">
       <label class="champ-boite">Le <input type="date" id="co-jour" value="${echapper(depart.saisi ? depart.jour : "")}"></label>
@@ -942,7 +917,7 @@ function boiteObligationFaite(a, o) {
 function boiteSignalerFin(mois, f) {
   ouvrirBoite(`
     <h3>Signaler la fin — ${echapper(nomDuSalarie(f.salarie))}</h3>
-    <p class="discret">${echapper(f.nature)} — contrat ${echapper(f.numero || "?")}, fin le ${echapper(jjmmaaaa(f.fin))}</p>
+    <p class="discret">${echapper(f.nature)} — ${echapper(f.contrat_dit)}</p>
     <p class="note">${aideDe("signalement_fin")}</p>
     <details class="pourquoi"><summary>Annule et remplace</summary>
       <label class="champ-boite" title="${aideDe("identifiant_remplace")}">Déclaration remplacée
@@ -1004,8 +979,8 @@ async function dessinerImprevusDuSalarie(cle) {
       <button type="button" class="lien" id="fiche-imprevu-porte">Imprévu…</button>
     </div>
     ${liste.map((i, k) => `<div class="imprevu" data-imprevu="${k}">
-        <span class="imprevu-quoi"><b>${echapper(quoiDeLImprevu(i))}</b>
-          <span class="discret">${echapper(periodeDeLImprevu(i))}${i.contrat ? ` · contrat ${echapper(i.contrat)}` : ""}</span></span>
+        <span class="imprevu-quoi"><b>${echapper(i.quoi)}</b>
+          <span class="discret">${echapper(i.periode)}${i.contrat_dit ? ` · ${echapper(i.contrat_dit)}` : ""}</span></span>
         <span class="imprevu-gestes">${gestesImprevu(i, null)}</span>
         <div class="imprevu-parti">${ceQuiEnEstParti(i)}</div>
       </div>`).join("")}`;
@@ -1014,17 +989,9 @@ async function dessinerImprevusDuSalarie(cle) {
   porte.onclick = (ev) => { ev.stopPropagation(); menuImprevu(porte, { salarie: cle, apres }); };
 }
 
-/** Ce qui est parti d'un imprévu, et ce qui en reste dû : une ligne courte. */
+/** Ce qui est parti d'un imprévu, et ce qui en reste dû : les morceaux que le moteur dit (`parti`), sur une ligne. */
 function ceQuiEnEstParti(i) {
-  const morceaux = [];
-  (i.prolongations || []).filter((p) => p.fin !== p.fin_avant).forEach((p) => morceaux.push(`prolongé jusqu'au ${
-    echapper(jjmmaaaa(p.fin))} (avis du ${echapper(jjmmaaaa(p.le))})`));
-  (i.signalements || []).forEach((s) => morceaux.push(`${s.nature === "05" ? "reprise signalée" : s.type === "03" ? "signalement rectifié" : "signalé"} le ${
-    echapper(quand(s.quand || ""))}`));
-  if ((i.reporte_par || []).length) morceaux.push(`déclaré par la DSN ${(i.reporte_par_dit || []).map(echapper).join(", ")}`);
-  (i.obligations || []).forEach((o) => {
-    if (o.fait && o.fait.le && Array.isArray(o.ou)) morceaux.push(`${echapper(minuscule(o.libelle))}, faite le ${echapper(jjmmaaaa(o.fait.le))}`);
-    else if (o.du) morceaux.push(`${pastilleDu(o)} ${echapper(minuscule(o.libelle))}, ${echapper((o.butoir_dit || ""))}`);
-  });
-  return morceaux.length ? morceaux.join(" · ") : `<span class="discret">rien n'est encore parti</span>`;
+  return (i.parti || []).map((p) => p.discret
+    ? `<span class="discret">${echapper(p.phrase)}</span>`
+    : `${p.pastille ? `${pastilleDeLEtat(p.pastille)} ` : ""}${echapper(p.phrase)}`).join(" · ");
 }

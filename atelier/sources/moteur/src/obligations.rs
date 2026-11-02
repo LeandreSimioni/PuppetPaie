@@ -1162,8 +1162,36 @@ pub(crate) fn butoir_en_clair(o: &Value) -> Option<String> {
     Some(format!("au plus tard le {}{}", crate::routes::jour_en_clair(&json!(jour)), heure))
 }
 
-/// La date butoir telle que l'ecran la lit (`butoir_dit`, `butoir_en_clair`) ; absente sans butoir.
+/// La date butoir telle que l'ecran la lit (`butoir_dit`, `butoir_en_clair`) ; absente sans butoir. Et le delai et son
+/// point de depart, en une phrase (`delai_dit`).
 fn dire_le_butoir(mut o: Value) -> Value {
     o["butoir_dit"] = json!(butoir_en_clair(&o));
+    o["delai_dit"] = json!(delai_en_clair(&o));
+    // LE JOUR OU LA COMPAGNIE L'A SU se dit la ou le delai en court (`arret-connaissance`) : l'accident, et le
+    // signalement d'un arret sans subrogation -- subroge, il court du mois de l'arret.
+    let connaissance = match o["cle"].as_str() {
+        Some("signalement_arret") => Some(("arret", "Connaissance de l'arrêt")),
+        Some("declaration_accident") => Some(("accident", "Connaissance de l'accident")),
+        _ => None,
+    };
+    o["connaissance"] = match connaissance {
+        Some((de, titre)) if o.get("depart").is_some_and(|d| !d.is_null()) && o["subrogation"] != json!(true) => json!({"de": de, "titre": titre}),
+        _ => Value::Null,
+    };
     o
+}
+
+/// « Dans les 48 heures — à compter de la connaissance de l'arrêt, le 02/11/2026. » : le delai d'une obligation et son
+/// point de depart, tels que l'ecran les dit ; `None` sans delai.
+fn delai_en_clair(o: &Value) -> Option<String> {
+    let d = o["delai"].as_str().map(str::trim).filter(|d| !d.is_empty())?;
+    let mut p: String = d.chars().take(1).flat_map(char::to_uppercase).chain(d.chars().skip(1)).collect();
+    if let Some(q) = o["depart"]["quoi"].as_str().filter(|q| !q.is_empty()) {
+        p.push_str(&format!(" — à compter de {}", q));
+        if o["depart"]["jour"].as_str().is_some_and(|j| !j.is_empty()) {
+            p.push_str(&format!(", le {}", crate::routes::jour_en_clair(&o["depart"]["jour"])));
+        }
+    }
+    p.push('.');
+    Some(p)
 }

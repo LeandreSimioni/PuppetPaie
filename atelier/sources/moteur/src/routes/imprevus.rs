@@ -367,11 +367,11 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         o.insert("peut_prolonger".into(), json!(cours));
         o.insert("peut_reprendre_plus_tot".into(), json!(cours));
         o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(ctx, imp, declarations::signalement::REPRISE)?));
-        return Ok(r);
+        return Ok(dire_l_imprevu(r));
     }
     let reportee = reporte_par(ctx, imp)?;
     let motif = magasin(imprevus::motif_de_suspension(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
-    Ok(json!({
+    Ok(dire_l_imprevu(json!({
         "genre": SUSPENSION,
         "salarie": imp["salarie"], "contrat": imp["contrat_numero"], "contrat_debut": imp["contrat_debut"],
         "motif": imp["motif"], "motif_libelle": motif.get("libelle").cloned().unwrap_or(json!("?")),
@@ -379,7 +379,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         "debut": imp["debut"], "fin": imp["fin"], "premier_jour": premier, "dernier_jour": dernier,
         "note": imp["note"], "saisi_le": imp["saisi_le"], "reporte_par_dit": mois_de_la_dsn(&reportee), "reporte_par": reportee,
         "cachets": cachets,
-    }))
+    })))
 }
 
 /// Les motifs d'une suspension qui se DECLARENT (`permanents-base.json`, section `suspensions`, sans le 200).
@@ -390,7 +390,11 @@ fn motifs_de_suspension() -> R<Vec<Value>> {
         .map_or(&[][..], |a| &a[..])
         .iter()
         .filter(|m| !m.get("_ne_pas_declarer").is_some_and(vrai))
-        .map(|m| json!({"code": m["code"], "libelle": m["libelle"], "remunere": m.get("remunere").is_some_and(vrai)}))
+        .map(|m| {
+            let remunere = m.get("remunere").is_some_and(vrai);
+            let dit = format!("{}{}", valeur_en_texte(&m["libelle"]), if remunere { " (payé)" } else { "" });
+            json!({"code": m["code"], "libelle": m["libelle"], "libelle_dit": dit, "remunere": remunere})
+        })
         .collect())
 }
 
@@ -430,7 +434,7 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
         if imprevus::est_un_arret(&imp) {
             r["obligations"] = Value::Array(crate::obligations::de_l_arret(ctx, &imp, &suivi, ctx.aujourdhui)?);
         }
-        out.push(r);
+        out.push(dire_ce_qui_est_parti(r));
     }
     Ok(json!({
         "imprevus": out,
@@ -1411,6 +1415,7 @@ fn arrets(ctx: &Contexte) -> R<Value> {
     for a in &tous {
         let mut r = crate::routes::imprevus::resume(ctx, &n, a)?;
         r["obligations"] = Value::Array(crate::obligations::de_l_arret(ctx, a, &suivi, ctx.aujourdhui)?);
+        let r = dire_ce_qui_est_parti(r);
         if !r["signale"].as_bool().unwrap_or(false) && r["signalement_du"].as_bool().unwrap_or(true) {
             a_signaler.push(r.clone());
         }
@@ -1683,6 +1688,19 @@ fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = valeur_en_texte(brut);
     let mut fins = fins_en_retard_avant(ctx, &mois, ctx.aujourdhui)?;
     fins.extend(fins_a_signaler(ctx, &mois, ctx.aujourdhui)?);
+    // Ce que l'ecran lit de chaque fin : qui, quelle nature, quel jour (et le mois d'une fin d'un mois passe), et son
+    // contrat.
+    for f in &mut fins {
+        let fin = crate::routes::jour_en_clair(&f["fin"]);
+        let nom = ctx.salarie(&valeur_en_texte(&f["salarie"])).map(|s| crate::routes::nom_a_l_ecran(&s)).unwrap_or_else(|_| valeur_en_texte(&f["salarie"]));
+        let ailleurs = match f["mois"].as_str().filter(|m| !m.is_empty() && *m != mois) {
+            Some(m) => format!(" ({})", engagement::libelle_mois(m)),
+            None => String::new(),
+        };
+        f["qui_dit"] = json!(format!("{}, {}, fin le {}{}", nom, valeur_en_texte(&f["nature"]), fin, ailleurs));
+        let numero = if vrai(&f["numero"]) { valeur_en_texte(&f["numero"]) } else { "?".to_string() };
+        f["contrat_dit"] = json!(format!("contrat {}, fin le {}", numero, fin));
+    }
     Ok(json!({"mois": brut, "fins": fins}))
 }
 
@@ -1782,4 +1800,84 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
 /// Les mois des DSN qui ont porte un imprevu, tels que l'ecran les lit (« de novembre 2026 »).
 fn mois_de_la_dsn(mois: &[Value]) -> Vec<String> {
     mois.iter().map(|m| crate::regularisation::de_mois_en_clair(&valeur_en_texte(m))).collect()
+}
+
+/// CE QUE L'ECRAN LIT D'UN IMPREVU, en phrases que la page ne compose pas : ce qu'il est (`quoi`), sa periode
+/// (`periode` ; un arret sans reprise dit sa fin prescrite), son contrat (`contrat_dit`), sa reprise (`reprise_dit`), le
+/// debut d'une absence (`depuis_dit`), ce qui est paye pendant (`paye_pendant`, et chaque jour d'un cachet : `jours`), et
+/// les signalements deja partis (`deja_signale`, par nature).
+fn dire_l_imprevu(mut r: Value) -> Value {
+    let jour = |v: &Value| crate::routes::jour_en_clair(v);
+    let arret = r["genre"] == json!(ARRET);
+    let libelle = valeur_en_texte(&r["motif_libelle"]);
+    r["quoi"] = json!(if arret { format!("Arrêt de travail ({})", libelle) } else { libelle });
+    r["periode"] = json!(if arret && !vrai(&r["reprise"]) {
+        format!("depuis le {}, prescrit jusqu'au {}", jour(&r["premier_jour"]), jour(&r["dernier_jour"]))
+    } else {
+        format!("du {} au {}", jour(&r["premier_jour"]), jour(&r["dernier_jour"]))
+    });
+    r["contrat_dit"] = if vrai(&r["contrat"]) { json!(format!("contrat {}", valeur_en_texte(&r["contrat"]))) } else { Value::Null };
+    r["reprise_dit"] = if vrai(&r["reprise"]) { json!(format!("reprise le {}", jour(&r["reprise"]))) } else { Value::Null };
+    r["depuis_dit"] = if vrai(&r["debut"]) { json!(format!("Depuis le {}", jour(&r["debut"]))) } else { Value::Null };
+    r["paye_pendant"] = json!(if arret { "Payé pendant l'arrêt" } else { "Payé pendant l'absence" });
+    r["reprise_titre"] = json!(if vrai(&r["reprise"]) { "La reprise" } else { "Reprise plus tôt" });
+    r["signaler_titre"] = json!({"04": "Signaler l'arrêt", "05": "Signaler la reprise"});
+    if let Some(cachets) = r["cachets"].as_array_mut() {
+        for c in cachets {
+            let libelle = valeur_en_texte(&c["libelle"]);
+            let mois_dit = valeur_en_texte(&c["mois_dit"]);
+            let jours: Vec<Value> = c["dates"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|iso| {
+                    let le = format!("{} le {}", libelle, jour(iso));
+                    json!({"iso": iso, "phrase": le, "phrase_du_mois": format!("{}, {}", le, mois_dit)})
+                })
+                .collect();
+            c["jours"] = Value::Array(jours);
+        }
+    }
+    let mut deja = Map::new();
+    for nature in ["04", "05"] {
+        let n = r["signalements"].as_array().map_or(0, |l| l.iter().filter(|s| s["nature"] == json!(nature)).count());
+        if n > 0 {
+            deja.insert(nature.into(), json!(format!("Déjà signalé {} fois", n)));
+        }
+    }
+    r["deja_signale"] = Value::Object(deja);
+    r
+}
+
+/// CE QUI EST PARTI D'UN IMPREVU, ET CE QUI EN RESTE DU : une ligne courte par morceau (`parti`), dans l'ordre ou l'ecran
+/// les lit -- les prolongations, les signalements, la DSN qui l'a declare, puis chaque obligation, faite ou due (avec sa
+/// pastille) ; « rien n'est encore parti » sinon. Se pose une fois les obligations de l'arret posees.
+pub(crate) fn dire_ce_qui_est_parti(mut r: Value) -> Value {
+    let jour = |v: &Value| crate::routes::jour_en_clair(v);
+    let minuscule = |t: String| -> String { t.chars().take(1).flat_map(char::to_lowercase).chain(t.chars().skip(1)).collect() };
+    let mut parti: Vec<Value> = Vec::new();
+    for p in r["prolongations"].as_array().into_iter().flatten().filter(|p| p["fin"] != p["fin_avant"]) {
+        parti.push(json!({"phrase": format!("prolongé jusqu'au {} (avis du {})", jour(&p["fin"]), jour(&p["le"]))}));
+    }
+    for s in r["signalements"].as_array().into_iter().flatten() {
+        let quoi = if s["nature"] == json!("05") { "reprise signalée" } else if s["type"] == json!("03") { "signalement rectifié" } else { "signalé" };
+        parti.push(json!({"phrase": format!("{} le {}", quoi, crate::routes::quand(&valeur_en_texte(&s["quand"])))}));
+    }
+    if r["reporte_par"].as_array().is_some_and(|l| !l.is_empty()) {
+        let dsn: Vec<String> = r["reporte_par_dit"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+        parti.push(json!({"phrase": format!("déclaré par la DSN {}", dsn.join(", "))}));
+    }
+    for o in r["obligations"].as_array().into_iter().flatten() {
+        let libelle = minuscule(valeur_en_texte(&o["libelle"]));
+        if vrai(&o["fait"]["le"]) && o["ou"].is_array() {
+            parti.push(json!({"phrase": format!("{}, faite le {}", libelle, jour(&o["fait"]["le"]))}));
+        } else if o["du"] == json!(true) {
+            parti.push(json!({"phrase": format!("{}, {}", libelle, valeur_en_texte(&o["butoir_dit"])), "pastille": o["pastille"]}));
+        }
+    }
+    if parti.is_empty() {
+        parti.push(json!({"phrase": "rien n'est encore parti", "discret": true}));
+    }
+    r["parti"] = Value::Array(parti);
+    r
 }

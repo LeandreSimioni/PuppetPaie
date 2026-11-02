@@ -732,10 +732,41 @@ fn la_page_n_ecrit_aucune_phrase() {
 /// Le plus de mots qu'ait un mot d'interface (« Envoyer à la signature », « Code emploi France Travail »).
 const MOTS_D_INTERFACE: usize = 4;
 
+/// Un mot se lie-t-il a une valeur dans `t` (\u{1}) ? Le mot et la valeur ne sont separes que par des blancs, une
+/// parenthese ou un guillemet (« du … », « travail (…) ») ; un tiret, un point median, deux-points ou une barre les
+/// separent (un titre et son nom, « Prolonger l'arrêt — … » ; une case et sa valeur, « Nom : … ») ; un mot colle a la
+/// valeur (« …px », « …h ») est une unite, pas un mot qui s'y lie. Un choix de texte (\u{2}) compose toujours ; un
+/// accord (\u{3}) colle a un mot (« salarié… ») aussi.
+fn composee(t: &str) -> bool {
+    let c: Vec<char> = t.chars().collect();
+    let lien = |x: char| x.is_whitespace() || "()«»\"'".contains(x);
+    for (i, x) in c.iter().enumerate() {
+        match *x {
+            '\u{2}' => return true,
+            '\u{3}' if i > 0 && c[i - 1].is_alphabetic() => return true,
+            '\u{1}' => {}
+            _ => continue,
+        }
+        for sens in [-1i64, 1] {
+            let mut j = i as i64 + sens;
+            let mut blanc = false;
+            while j >= 0 && (j as usize) < c.len() && lien(c[j as usize]) {
+                blanc = true;
+                j += sens;
+            }
+            if blanc && j >= 0 && (j as usize) < c.len() && c[j as usize].is_alphabetic() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 /// `Some(le texte)` si le texte est une phrase : plus de `MOTS_D_INTERFACE` mots, ou plusieurs mots et une ponctuation
-/// de phrase.
+/// de phrase, ou un texte compose autour d'une valeur (`composee`).
 fn phrase(texte: &str) -> Option<String> {
-    let t = texte.replace("&nbsp;", " ").replace("&#160;", " ").replace('\u{1}', " ");
+    let brut = texte.replace("&nbsp;", " ").replace("&#160;", " ");
+    let t = brut.replace(['\u{1}', '\u{2}', '\u{3}'], " ");
     if t.chars().any(|c| "[]{}=<>".contains(c)) {
         return None;
     }
@@ -748,7 +779,9 @@ fn phrase(texte: &str) -> Option<String> {
     let ponctue = (1..c.len()).any(|i| {
         ".:!…".contains(c[i]) && c.get(i + 1).is_none_or(|y| y.is_whitespace()) && (c[i - 1].is_alphanumeric() || "»)".contains(c[i - 1]) || (c[i - 1] == ' ' && c[i] != '.'))
     });
-    (mots.len() > MOTS_D_INTERFACE || mots.len() > 1 && ponctue).then(|| texte.replace('\u{1}', "…").split_whitespace().collect::<Vec<_>>().join(" "))
+    let compose = !mots.is_empty() && composee(&brut);
+    (compose || mots.len() > MOTS_D_INTERFACE || mots.len() > 1 && ponctue)
+        .then(|| texte.replace(['\u{1}', '\u{2}', '\u{3}'], "…").split_whitespace().collect::<Vec<_>>().join(" "))
 }
 
 /// Les litteraux de chaine d'un source JS, hors commentaires et expressions regulieres ; un gabarit garde la place de
@@ -756,7 +789,7 @@ fn phrase(texte: &str) -> Option<String> {
 fn litteraux_js(t: &str) -> Vec<String> {
     let c: Vec<char> = t.chars().collect();
     let mut v = Vec::new();
-    let (mut i, mut avant) = (0, '(');
+    let (mut i, mut avant, mut choix) = (0, '(', false);
     while i < c.len() {
         let x = c[i];
         if x == '/' && c.get(i + 1) == Some(&'/') {
@@ -785,10 +818,20 @@ fn litteraux_js(t: &str) -> Vec<String> {
             avant = 'r';
         } else if x == '"' || x == '\'' {
             let (s, j) = chaine(&c, i);
+            // Une concatenation (`"mots " + valeur`) garde la place de la valeur, comme un gabarit.
+            let apres = c[j.min(c.len())..].iter().find(|y| !y.is_whitespace()) == Some(&'+');
+            // Un choix de texte selon une valeur (`a ? "Envoyer" : "Préparer"`) se marque \u{2}.
+            let branche = avant == '?' || (avant == ':' && choix);
+            choix = avant == '?';
+            let marque = if branche && texte_humain(&s) { "\u{2}" } else { "" };
+            let s = format!("{}{}{}{}", marque, if avant == '+' { "\u{1}" } else { "" }, s, if apres { "\u{1}" } else { "" });
             v.push(s);
             (i, avant) = (j, 's');
         } else if x == '`' {
             let (s, j) = gabarit(&c, i + 1, &mut v);
+            let branche = avant == '?' || (avant == ':' && choix);
+            choix = avant == '?';
+            let s = if branche && texte_humain(&s) { format!("\u{2}{}", s) } else { s };
             v.push(s);
             (i, avant) = (j, 's');
         } else {
@@ -818,10 +861,13 @@ fn chaine(c: &[char], mut i: usize) -> (String, usize) {
     (s, i + 1)
 }
 
-/// Le gabarit qui commence en `i` (apres l'accent grave) : son texte, chaque `${…}` en \u{1}, et ou il finit. Les
-/// litteraux du code de chaque `${…}` vont dans `v`.
+/// Le gabarit qui commence en `i` (apres l'accent grave) : son texte, chaque `${…}` a sa place, et ou il finit. Les
+/// litteraux du code de chaque `${…}` vont dans `v`. La place d'une valeur est \u{1} ; celle d'un choix de texte selon
+/// une valeur (`a ? "Envoyer" : "Préparer"`) est \u{2} ; celle d'un accord (`n > 1 ? "s" : ""`) est \u{3}.
 fn gabarit(c: &[char], mut i: usize, v: &mut Vec<String>) -> (String, usize) {
     let mut s = String::new();
+    // Dans une balise, un choix est celui d'un attribut (` selected`, une classe) : il ne s'y lit pas.
+    let mut dans_balise = false;
     while i < c.len() && c[i] != '`' {
         if c[i] == '\\' {
             if let Some(&y) = c.get(i + 1) {
@@ -829,9 +875,9 @@ fn gabarit(c: &[char], mut i: usize, v: &mut Vec<String>) -> (String, usize) {
             }
             i += 2;
         } else if c[i] == '$' && c.get(i + 1) == Some(&'{') {
-            s.push('\u{1}');
             i += 2;
             let mut profondeur = 1;
+            let (mut ternaire, mut branches) = (false, Vec::new());
             while i < c.len() && profondeur > 0 {
                 if c[i] == '/' && c.get(i + 1) == Some(&'/') {
                     while i < c.len() && c[i] != '\n' {
@@ -842,26 +888,60 @@ fn gabarit(c: &[char], mut i: usize, v: &mut Vec<String>) -> (String, usize) {
                 match c[i] {
                     '{' => profondeur += 1,
                     '}' => profondeur -= 1,
+                    '?' if profondeur == 1 && ternaire_en(c, i) => ternaire = true,
                     _ => {}
                 }
                 if c[i] == '`' {
                     let (t, j) = gabarit(c, i + 1, v);
-                    v.push(t);
+                    if profondeur == 1 { branches.push(t) } else { v.push(t) }
                     i = j;
                 } else if c[i] == '"' || c[i] == '\'' {
                     let (t, j) = chaine(c, i);
-                    v.push(t);
+                    if profondeur == 1 { branches.push(t) } else { v.push(t) }
                     i = j;
                 } else {
                     i += 1;
                 }
             }
+            s.push(match () {
+                _ if dans_balise => '\u{1}',
+                _ if ternaire && branches.iter().any(|b| texte_humain(b)) => '\u{2}',
+                _ if ternaire && branches.iter().any(|b| accord(b)) => '\u{3}',
+                _ => '\u{1}',
+            });
+            // Les textes qu'un choix offre se lisent chacun, marques comme choisis.
+            v.extend(branches.into_iter().map(|b| if ternaire && !dans_balise && texte_humain(&b) { format!("\u{2}{}", b) } else { b }));
         } else {
+            match c[i] {
+                '<' if c.get(i + 1).is_some_and(|y| y.is_ascii_alphabetic() || *y == '/') => dans_balise = true,
+                '>' => dans_balise = false,
+                _ => {}
+            }
             s.push(c[i]);
             i += 1;
         }
     }
     (s, i + 1)
+}
+
+/// Le `?` en `i` est-il celui d'un choix (`a ? b : c`) ? Ni `?.`, ni `??`.
+fn ternaire_en(c: &[char], i: usize) -> bool {
+    c.get(i + 1).is_some_and(|y| *y != '.' && *y != '?') && (i == 0 || c[i - 1] != '?')
+}
+
+/// Un litteral qui se lit : des lettres, sans balise, et deux mots, une capitale, une lettre accentuee, un signe de
+/// l'ecran ou une apostrophe (« Envoyer », « l'arrêt », « · contrat ») ; un nom de code ou un attribut (`primaire`,
+/// `a_faire`, `arret-signaler`, ` selected`) n'en est pas un.
+fn texte_humain(t: &str) -> bool {
+    let t = t.trim();
+    !t.contains('<')
+        && t.chars().any(char::is_alphabetic)
+        && (t.split_whitespace().count() > 1 || t.chars().any(|c| c.is_uppercase() || !c.is_ascii() || c == '\''))
+}
+
+/// Un accord : une terminaison de trois lettres au plus (« s », « es », « nt »).
+fn accord(t: &str) -> bool {
+    (1..=3).contains(&t.chars().count()) && t.chars().all(|c| c.is_ascii_lowercase())
 }
 
 /// Les textes qu'un fragment HTML montre : ce qui est entre deux balises, et les attributs qui se lisent ; ni les
