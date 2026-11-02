@@ -61,7 +61,7 @@
 {"route":"deposer","charge":{"quoi":"dpae","mois":"2026-03"}}
 {"route":"deposer","charge":{"quoi":"dpae","mois":"2026-03","reel":true}}
 {"route":"demander-signature","charge":{"mois":"2026-03","contrats":[{"salarie":"MOLIERE","debut":"2026-03-13"},{"salarie":"DORVAL","debut":"2026-03-13"},{"salarie":"LEMAITRE","debut":"2026-03-13"},{"salarie":"LEKAIN","debut":"2026-03-13"},{"salarie":"TALMA","debut":"2026-03-13"},{"salarie":"MOLIERE","debut":"2026-03-20"},{"salarie":"DORVAL","debut":"2026-03-20"},{"salarie":"LEMAITRE","debut":"2026-03-20"},{"salarie":"LEKAIN","debut":"2026-03-20"},{"salarie":"TALMA","debut":"2026-03-20"}]}}
-{"heure":"2026-03-09T10:00","route":"arret-enregistrer","charge":{"salarie":"MARIVAUX","dernier_jour":"2026-03-06","fin":"2026-03-22","motif":"01"}}
+{"heure":"2026-03-09T10:00","route":"arret-enregistrer","charge":{"salarie":"MARIVAUX","dernier_jour":"2026-03-06","debut":"2026-03-09","fin":"2026-03-22","motif":"01"}}
 {"route":"arret-connaissance","charge":{"salarie":"MARIVAUX","dernier_jour":"2026-03-06","de":"arret","jour":"2026-03-09"}}
 {"route":"arret-signaler","charge":{"salarie":"MARIVAUX","dernier_jour":"2026-03-06"}}
 {"route":"deposer","charge":{"quoi":"dsn","fichier":"sorties/2026-03/SignalementArret_MARIVAUX_20260306.dsn"}}
