@@ -97,3 +97,10 @@ Ce qu'on en lit (chapitre 9) :
   2025 et 2026 suivent (`_professions`, `_plafond` de `logiciel/donnees/baremes/<année>.json`).
 - Hors chapitre 9, pour mémoire : § 760 (chapitre 4) et § 990, le non-cumul de la DFS avec la prise en charge des
   transports et du carburant, et sa dérogation pour les 50 % obligatoires des titres de transport.
+
+## `boss-heures-supplementaires-20260601.pdf` — Exonérations › Exonérations heures supplémentaires et complémentaires
+
+URL : `http://boss.gouv.fr/portail/sites/siteboss/accueil/exonerations/exonerations-heures-supplementai.html`,
+**version en vigueur au 01/06/2026**, imprimée par Léandre le 02/11/2026. Chapitre 1 : la réduction de cotisations
+salariales d'assurance vieillesse sur la rémunération des heures supplémentaires et complémentaires (L. 241-17 CSS).
+Ce que le moteur en lit : à compléter par le lot qui pose les heures supplémentaires (LONG7).
