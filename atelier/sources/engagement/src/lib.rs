@@ -959,6 +959,7 @@ pub(crate) fn engagements(
     let mois_dit = data.get("mois").map_or("?".to_string(), en_texte);
     // Le taux du mois, s'il en ecrit un ; sinon rien (regle 1).
     let defaut_taux = data.get("taux_cachet").cloned().unwrap_or(Value::Null);
+    let sans_taux = Value::Null;
     let (mut out, mut dits) = (Vec::new(), Vec::new());
     let tous = data.get("engagements").ok_or_else(|| socle::fichiers::absent("engagements"))?;
     let tous = tous.as_array().ok_or_else(|| socle::echec::cle("Une liste est attendue.", "engagements"))?;
@@ -1088,7 +1089,9 @@ pub(crate) fn engagements(
         poser("salarie", e.get("salarie"));
         poser("spectacle", spectacle.as_ref().map(|s| Value::String(s.clone())).as_ref());
         poser("dates_travail", Some(&Value::Array(jours)));
-        poser("taux_cachet", Some(e.get("taux_cachet").unwrap_or(&defaut_taux)));
+        // Un contrat payé au mois ne prend pas le cachet par défaut du mois : son calcul ne le lit pas, et sa paie ne se
+        // recalcule pas quand il change.
+        poser("taux_cachet", Some(e.get("taux_cachet").unwrap_or(if nat.mensuelle() { &sans_taux } else { &defaut_taux })));
         poser("debut", e.get("debut"));
         poser("fin", e.get("fin"));
         poser("numero", e.get("numero"));

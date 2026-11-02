@@ -9,6 +9,7 @@ intermittents, venue d'un logiciel précédent (sPAIEctacle) au 1er janvier 2026
 | | |
 |---|---|
 | `papiers-2025/` | ce qu'elle importe : les 110 bulletins de 2025 de l'ancien logiciel, un PDF par bulletin (`<mois>-<code du salarié>-<rang>.pdf`), et la DSN de décembre 2025 qu'il a déposée (`DSN_Decembre2025.dsn`) |
+| `gestes.jsonl` | **le parcours de référence de 2026** : un scénario (`moteur/src/atelier/scenario.rs`) écrit comme l'administratrice l'aurait joué, par les routes seulement (celles de l'écran et du LLM), du 2 janvier 2026 au 30 janvier 2027 |
 | `description.json` | la compagnie, ses salariés et ses bulletins de 2025, dont `moteur-atelier fabriquer-bulletins description.json papiers-2025 --gabarit spaiectacle` refait les PDF |
 
 L'année 2025 a été jouée dans PuppetPaie, par les routes, comme l'administratrice l'aurait jouée (les trois CDI repris à
@@ -87,7 +88,10 @@ Tous de nationalité française, nés en France.
   de 9 h à 16 h 30), depuis le 08/01/2024, 1 941,28 € (16,00 € de l'heure).
 - Cachet de représentation : Molière 175 €, Dorval 165 €, Lemaître 170 € ; un service de répétition de 4 heures, 64 €,
   deux par jour. Lekain : 17,50 € de l'heure, sept heures par jour de jeu. Talma : 70 € le service de quatre heures,
-  deux par jour de jeu.
+  deux par jour de jeu (ses papiers de 2025 la paient au « service de répétition ») ; en 2026, 17,50 € de l'heure, huit
+  heures par jour de jeu : les textes de la 1285 ne définissent le service que pour les artistes
+  (`atelier/reference/sources/chomage-intermittents/kali-1285-organisation-travail-repetitions-representations-20261020.md`), le titre VI ne
+  compte les techniciens qu'en heures (`atelier/reference/sources/kali-1285-titre-vi-duree-du-travail-20261102.md`).
 - Numéros Congés Spectacles : Molière M8001423, Dorval D8711207, Lemaître L7505316, Lekain L8208554, Talma T9303098.
 - Courriels : `<prénom>.<nom>@exemple.invalid`, sans accents (hortense.champmesle@exemple.invalid…).
 
@@ -120,3 +124,73 @@ sans congé, arrêt ni rupture.
 | ven. 19, sam. 20 décembre | Les Fausses Confidences, 2 représentations | M, L, K |
 
 Août : les permanents seuls.
+
+## L'année 2026 : le rejeu et la livraison
+
+- **Le rejeu, preuve commune en ligne de commande** : `moteur/tests/rejeu.rs`,
+  `la_fictive_de_l_hotel_de_bourgogne_tient_son_annee_et_se_livre` (`cargo nextest run --cargo-profile essais -E
+  'binary(rejeu) & test(hotel)'`, une trentaine de secondes). La fictive se livre au 02/11/2026 comme « Publier » la
+  livre ; aucune route ne refuse ; l'horloge, ce jour-là, ne trouve rien à faire ; les huit cartes de décembre sont
+  écrites et non validées ; passée au 31/01/2027, l'horloge seule valide décembre, déclare, envoie et clôt 2026 ;
+  chaque mois a ses étapes faites ; chaque DSN déclare chaque salarié au taux transmis par la DGFiP (type 01) ; les
+  paies, les DSN et les dépôts se comparent à l'oracle `moteur/tests/donnees/fictives/fictive-hotel-de-bourgogne.json`
+  (`PUPPETPAIE_REECRIRE_ORACLES=1`).
+- **La fictive livrée** : `moteur maj --marquer-fictives --logiciel logiciel` (le flux « Publier ») la refait dans
+  `fictives/fictive-hotel-de-bourgogne`, rejouée jusqu'au jour de la publication, comme le Fil de Fer ; à la main,
+  `moteur-atelier scenario livrer atelier/fictives/fictive-hotel-de-bourgogne fictives/fictive-hotel-de-bourgogne
+  [--jusqu-au AAAA-MM-JJ]`. Les paies de janvier 2027 des deux CDI attendent le barème de 2027.
+
+## Le parcours, mois par mois
+
+- **2 janvier 2026** : la compagnie s'ajoute « D'un logiciel précédent », importe ses papiers de 2025, remplit « Pour
+  démarrer » (compte Urssaf, santé au travail, première embauche, qui signe, taxe sur les salaires, l'effectif de 2025,
+  les congés à la reprise des trois CDI, les titres des spectacles), crée Les Plaideurs (256Z00921043), fait la revue
+  des spectacles et valide les trois CDI de janvier.
+- **Chaque série** : les engagements validés quelques jours avant le premier jour, la DPAE (test puis réel), les
+  contrats à la signature ; la DSN déposée entre le 1er et le 5 du mois suivant (test puis réel), puis les documents.
+- **Mars** : l'arrêt maladie de Marivaux (dernier jour travaillé le vendredi 6, prescrit du 9 au 22), su le 9 ; son
+  signalement d'arrêt (test puis réel) ; la prolongation au 3 avril, reçue le 20 ; le 30, les indemnités journalières
+  du relevé de la CPAM : **40,89 € brut, 38,15 € net par jour** (la moitié du salaire journalier de base, 3 × 2 487,39 /
+  91,25, CSS R323-4 ; net de CSG et CRDS, 6,7 %). La compagnie est subrogée et maintient le salaire (1285, X.4.6).
+- **Mai** : la tournée de Bretagne, le 13 à Rennes, le 14 à Lorient, les 15 et 16 à Quimper ; huit repas (le dîner du
+  13, déjeuner et dîner des 14, 15 et 16, le déjeuner du 17) et quatre nuitées par personne, au tarif de la convention,
+  chacun à sa date ; le repas du 17 ne fait pas un jour du contrat. Les 8 heures supplémentaires de Marivaux, saisies
+  le 18.
+- **Juin** : la démission de Clairon, remise le 2 (préavis du 3 juin au 2 juillet, son dernier jour).
+- **Juillet** : le congé de Champmeslé du 20 au 31 ; le 3, le signalement de fin du contrat de Clairon (test puis réel)
+  et ses documents de fin.
+- **Août** : sans intermittent ; Champmeslé en congé du 1er au 7, Marivaux du 10 au 28.
+- **Septembre** : l'augmentation de Champmeslé, décidée le 7, à 4 100,00 € au 1er septembre, et son avenant à la
+  signature ; le 29, les engagements d'Orléans (9, 10 et 11 octobre) et leurs contrats.
+- **Octobre** : le 2, la quatrième représentation d'Orléans (le 17) : les cinq engagements partis comptent une date de
+  plus, et leurs avenants partent à la signature.
+- **Janvier 2027** : la DSN de décembre, la revue des spectacles de 2027, la clôture de 2026 le 29.
+
+## Le calendrier 2026
+
+Une représentation par jour, le soir ; deux services de répétition par jour, à la salle de la compagnie (Paris). Chacun
+rentre dormir chez soi, sauf pendant la tournée de mai.
+
+| dates | quoi | où | qui |
+|---|---|---|---|
+| lun. 12 au ven. 16 janvier | répétitions, Le Barbier de Séville | Paris | M, D, L |
+| ven. 23 au dim. 25 janvier | Le Barbier de Séville, 3 représentations | Paris, théâtre du Marais-Neuf | M, D, L, K, T |
+| ven. 30, sam. 31 janvier | Le Barbier de Séville, 2 représentations | Vitry-sur-Seine | M, L, K |
+| ven. 6 au dim. 8 février | Les Fausses Confidences, 3 représentations | Versailles | M, D, L, K, T |
+| ven. 20, sam. 21 février | Les Fausses Confidences, 2 représentations | Saint-Denis | M, L, K |
+| ven. 13 au dim. 15 mars | Le Barbier de Séville, 3 représentations | Paris, théâtre du Marais-Neuf | M, D, L, K, T |
+| ven. 20, sam. 21 mars | Le Barbier de Séville, 2 représentations | Créteil | M, D, L, K, T |
+| ven. 10 au dim. 12 avril | Les Fausses Confidences, 3 représentations | Paris, théâtre du Marais-Neuf | M, D, L, K, T |
+| lun. 20 au ven. 24 avril | répétitions, Les Plaideurs | Paris | M, D, L |
+| mer. 13 au sam. 16 mai | Les Fausses Confidences, tournée de Bretagne | Rennes, Lorient, Quimper | M, D, L, K, T |
+| ven. 22, sam. 23 mai | Le Barbier de Séville, 2 représentations | Paris, théâtre du Marais-Neuf | M, D, K |
+| ven. 5 au dim. 7, ven. 12 au dim. 14 juin | Le Barbier de Séville, festival, 6 représentations | Paris, parc de Bagatelle | M, D, L, K, T |
+| ven. 3 au dim. 5 juillet | Les Fausses Confidences, 3 représentations | Avignon | M, D, L, K, T |
+| ven. 10, sam. 11 juillet | Les Fausses Confidences, 2 représentations | Villeneuve-lès-Avignon | D, L, K |
+| lun. 7 au ven. 11 septembre | répétitions, Les Plaideurs | Paris | M, D, L |
+| ven. 18 au dim. 20 septembre | Les Fausses Confidences, 3 représentations | Paris, théâtre du Marais-Neuf | M, D, L, K, T |
+| ven. 9 au dim. 11, sam. 17 octobre | Les Plaideurs, création, 4 représentations | Orléans | M, D, L, K, T |
+| ven. 23, sam. 24 octobre | Le Barbier de Séville, 2 représentations | Paris, théâtre du Marais-Neuf | M, L, K |
+| ven. 6 au dim. 8, ven. 13, sam. 14 novembre | Les Plaideurs, 5 représentations | Paris, théâtre du Marais-Neuf | M, D, L, K, T |
+| ven. 4 au dim. 6 décembre | Les Fausses Confidences, 3 représentations | Rouen | M, D, L, K, T |
+| ven. 18, sam. 19 décembre | Les Plaideurs, 2 représentations | Paris, théâtre du Marais-Neuf | M, D, K |
