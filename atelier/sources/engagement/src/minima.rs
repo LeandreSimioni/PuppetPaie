@@ -15,7 +15,7 @@ use droit::contexte::Contexte;
 use socle::date::{en_texte, repr_texte, Jour};
 use droit::emplois;
 use crate::{Avis, Engagement};
-use droit::minima::{ans_revolus, grille_non_etendue, iso, palier, plancher, plus_bas, table, vaut, Minimum, Par, Plancher};
+use droit::minima::{ans_revolus, grille_au, iso, palier, plancher, plus_bas, signataire, table, vaut, Minimum, Par, Plancher};
 use socle::fichiers::vrai;
 use socle::texte::{euros, virgule};
 use socle::num::{add, dec, dec_f64, div, mul, sub, Decimal, Resultat};
@@ -112,6 +112,10 @@ fn premiere_partie(v: &Value) -> Resultat<String> {
 struct Cx<'a> {
     t: &'a Value,
     idcc: &'a str,
+    /// La grille de la convention qui lie la compagnie au premier jour travaille (`droit::minima::grille_au`), et le
+    /// jour depuis lequel elle la lie quand c'est celle d'un accord qui suit la grille de la convention.
+    grille: &'a Value,
+    lie_depuis: Option<String>,
     m: &'a Value,
     sal: &'a Value,
     paie: &'a Paie,
@@ -182,9 +186,16 @@ impl<'a> Cx<'a> {
         Ok(plancher(montant, quoi))
     }
 
-    fn non_etendue(&self) -> Option<&'a Value> {
-        let jour = premier_jour(self.paie);
-        grille_non_etendue(self.t, self.organisation.as_deref(), jour.as_deref())
+    /// Le texte d'ou vient la grille lue, et, pour un accord qui suit la grille de la convention, depuis quand il lie la
+    /// compagnie : comme adherente d'une organisation signataire, ou comme toute compagnie de la convention.
+    fn texte_de_la_grille(&self) -> Resultat<String> {
+        let texte = premiere_partie(self.grille)?;
+        let Some(depuis) = &self.lie_depuis else { return Ok(texte) };
+        let le = Jour::lire(depuis)?.jj_mm_aaaa();
+        Ok(match self.organisation.as_deref().filter(|o| signataire(self.grille, Some(o))) {
+            Some(o) => format!("{}, que la compagnie doit depuis le {} comme adhérente de {}", texte, le, o),
+            None => format!("{}, dû par toute compagnie depuis le {}", texte, le),
+        })
     }
 
     fn plancher_cachet_1285(&self) -> Resultat<Option<Plancher>> {
@@ -192,23 +203,7 @@ impl<'a> Cx<'a> {
         if !vrai(r) {
             return Ok(None);
         }
-        let reference = en_texte(r);
-        let grille = cle(cle(cle(self.t, "1285")?, "cachets")?, &reference)?;
-        if let Some(ne) = self.non_etendue() {
-            if let Some(cachets) = g(ne, "cachets").get(&reference) {
-                if let Some(montant) = palier(cachets, self.nb_cachets)? {
-                    return Ok(plancher(
-                        montant,
-                        format!(
-                            "CCNEAC (1285), {} -- {}, que la compagnie doit comme adhérente de {}",
-                            en_texte(cle(grille, "libelle")?),
-                            premiere_partie(ne)?,
-                            self.organisation.clone().unwrap_or_default()
-                        ),
-                    ));
-                }
-            }
-        }
+        let grille = cle(cle(self.grille, "cachets")?, &en_texte(r))?;
         let Some(montant) = palier(cle(grille, "paliers")?, self.nb_cachets)? else { return Ok(None) };
         Ok(plancher(montant, format!("CCNEAC (1285), {}", en_texte(cle(grille, "libelle")?))))
     }
@@ -216,24 +211,9 @@ impl<'a> Cx<'a> {
     fn plancher_repetition(&self) -> Resultat<Option<Plancher>> {
         match self.idcc {
             "1285" => {
-                let r = cle(cle(self.t, "1285")?, "repetition")?;
+                let r = cle(self.grille, "repetition")?;
                 let reference = texte_de(g(self.m, "minima"), "1285");
-                let ne = self.non_etendue();
                 let propre = g(g(r, "par_categorie"), &reference);
-                if let Some(ne) = ne {
-                    let p = g(g(g(ne, "repetition"), "par_categorie"), &reference);
-                    if vrai(p) {
-                        return Ok(plancher(
-                            dec(cle(p, "service")?)?,
-                            format!(
-                                "CCNEAC (1285), service de répétition, {} -- {}, que la compagnie doit comme adhérente de {}",
-                                en_texte(cle(p, "libelle")?),
-                                premiere_partie(ne)?,
-                                self.organisation.clone().unwrap_or_default()
-                            ),
-                        ));
-                    }
-                }
                 if vrai(propre) {
                     return Ok(plancher(dec(cle(propre, "service")?)?, format!("CCNEAC (1285), {}", en_texte(cle(propre, "libelle")?))));
                 }
@@ -276,7 +256,7 @@ impl<'a> Cx<'a> {
     /// Le taux horaire minimum d'un emploi autre qu'artistique de la CCNEAC.
     fn plancher_horaire_1285(&self) -> Resultat<Option<Plancher>> {
         let groupe = texte_de(g(self.m, "classification_1285"), "groupe");
-        let grille = g(cle(self.t, "1285")?, "emplois_autres_qu_artistiques");
+        let grille = g(self.grille, "emplois_autres_qu_artistiques");
         if groupe.is_empty() || g(grille, "groupes").get(&groupe).is_none() {
             return Ok(None);
         }
@@ -455,7 +435,7 @@ impl<'a> Cx<'a> {
     }
 
     fn a_grilles(&self) -> bool {
-        vrai(g(g(self.t, self.idcc), "grilles"))
+        vrai(g(self.grille, "grilles"))
     }
 
     fn conditions(&self, c: &Value) -> Resultat<bool> {
@@ -505,7 +485,7 @@ impl<'a> Cx<'a> {
         let est_cachet = cachet(&ligne.code);
         let heures = !ligne.heures_annexes.is_zero();
         let mut out: Vec<&'a Value> = Vec::new();
-        for gr in g(cle(self.t, self.idcc)?, cl).as_array().into_iter().flatten() {
+        for gr in g(self.grille, cl).as_array().into_iter().flatten() {
             let pop = gr.get("population").map_or("tous".to_string(), en_texte);
             if pop != "tous" && pop != population {
                 continue;
@@ -899,15 +879,19 @@ fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Optio
         .to_string()
         .parse::<i64>()
         .map_err(|e| e.to_string())?;
+    let organisation = ou_rien(g(ent, "organisation_patronale"));
+    let Some((grille, lie_depuis)) = grille_au(t, &idcc, organisation.as_deref(), premier_jour(paie).as_deref()) else { return Ok(None) };
     let cx = Cx {
         t,
         idcc: &idcc,
+        grille,
+        lie_depuis,
         m: &m,
         sal,
         paie,
         ent,
         annexe: ou_rien(g(ent, "annexe_convention")),
-        organisation: ou_rien(g(ent, "organisation_patronale")),
+        organisation,
         nb_cachets,
     };
     f(&cx)
@@ -1006,7 +990,7 @@ pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>>
         let t = cx.t;
         let idcc = cx.idcc;
         let qui = socle::texte::salarie_nomme(cx.sal).unwrap_or_default();
-        let texte_source = premiere_partie(cle(t, idcc)?)?;
+        let texte_source = cx.texte_de_la_grille()?;
         let mut avis = Vec::new();
         for (l, saisie) in paie.remuneration.iter().zip(saisies_de(paie)) {
             let Some(p) = minimum_dans(cx, l, saisie)? else { continue };

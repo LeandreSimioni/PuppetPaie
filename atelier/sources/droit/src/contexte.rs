@@ -1174,6 +1174,39 @@ fn valeur_au<'a>(liste: &'a Value, jour: &Jour) -> Resultat<Option<&'a Value>> {
     Ok(entrees.into_iter().filter(|(j, _)| j.map_or(true, |j| j <= *jour)).last().map(|(_, v)| v))
 }
 
+/// LES VALEURS DATEES QUI VIENNENT D'UN ACCORD DE SALAIRES : une entree `{depuis, valeur, accord}` d'une liste datee ne
+/// vaut pour la compagnie adherente de `organisation` que du jour ou l'accord `accord` (decrit dans la table des minima,
+/// `droit::minima::accord`) la lie (`droit::minima::lie_depuis`) ; son `depuis` devient ce jour, et l'entree disparait
+/// tant que l'accord ne la lie pas. Une entree qui nomme un accord que la table ne decrit pas se refuse.
+fn dater_les_accords(v: &mut Value, organisation: Option<&str>) -> Resultat<()> {
+    let d_un_accord = est_liste_datee(v) && v.as_array().is_some_and(|a| a.iter().any(|e| e.get("accord").is_some()));
+    match v {
+        Value::Object(o) => o.values_mut().try_for_each(|x| dater_les_accords(x, organisation)),
+        Value::Array(a) if d_un_accord => {
+            let t = crate::minima::table()?;
+            let mut gardees = Vec::new();
+            for mut e in std::mem::take(a) {
+                let Some(source) = e.as_object_mut().and_then(|o| o.remove("accord")) else {
+                    gardees.push(e);
+                    continue;
+                };
+                let source = en_texte(&source);
+                let accord = crate::minima::accord(&t, &source)
+                    .ok_or_else(|| format!("Bareme : l'accord {} n'est pas decrit dans minima-conventionnels.json.", source))?;
+                let depuis = depuis_entree(&e)?.map(|j| j.iso()).unwrap_or_default();
+                if let Some(j) = crate::minima::lie_depuis(accord, organisation, &depuis) {
+                    e["depuis"] = Value::String(j);
+                    gardees.push(e);
+                }
+            }
+            *a = gardees;
+            Ok(())
+        }
+        Value::Array(a) => a.iter_mut().try_for_each(|x| dater_les_accords(x, organisation)),
+        _ => Ok(()),
+    }
+}
+
 /// Remplace chaque liste datee `[{depuis, valeur}]` par
 /// sa valeur au jour. Une liste sans entree applicable est une erreur : un taux
 /// qui n'existe pas encore ne se devine pas. Les cles de `garder` restent des listes.
@@ -1532,7 +1565,9 @@ impl Contexte {
             }
         }
         let idcc = ent.get("idcc").filter(|v| !v.is_null());
-        bareme_de_l_annee(&self.code.join("baremes"), an, fichier, idcc)
+        let mut fondu = bareme_de_l_annee(&self.code.join("baremes"), an, fichier, idcc)?;
+        dater_les_accords(&mut fondu, ent.get("organisation_patronale").filter(|v| vrai(v)).map(en_texte).as_deref())?;
+        Ok(fondu)
     }
 
     /// Le bareme applicable A CETTE DATE. Les listes
