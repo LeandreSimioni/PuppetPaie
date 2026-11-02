@@ -466,6 +466,7 @@ pub fn vers_json(r: &Regularisation) -> Value {
         m.insert("a".into(), json!(c.a));
         m.insert("objet".into(), json!(c.objet));
         m.insert("corps".into(), json!(c.corps));
+        m.insert("entete_dit".into(), json!(format!("à {}, objet {}", c.a, c.objet)));
         if let Some(p) = c.piece_jointe {
             m.insert("piece_jointe".into(), json!(p));
         }
@@ -481,7 +482,8 @@ pub fn vers_json(r: &Regularisation) -> Value {
         "etat": "regularisation-casc-svp",
         "periode": r.periode,
         "mois": r.mois.iter().map(|m| json!({"mois": m.mois, "libelle": m.libelle, "masse": m.masse.to_string(), "taux": m.taux.to_string(), "cotisation": m.cotisation.to_string(), "source": m.source})).collect::<Vec<_>>(),
-        "annees": r.annees.iter().map(|a| json!({"annee": a.annee, "masse": a.masse.to_string(), "taux": a.taux.to_string(), "cotisation": a.cotisation.to_string(), "libelle_virement": a.libelle_virement})).collect::<Vec<_>>(),
+        "annees": r.annees.iter().map(|a| json!({"annee": a.annee, "masse": a.masse.to_string(), "taux": a.taux.to_string(), "cotisation": a.cotisation.to_string(), "libelle_virement": a.libelle_virement, "libelle_dit": format!("libellé « {} »", a.libelle_virement), "date_libelle": format!("Virement {} fait le", a.annee)})).collect::<Vec<_>>(),
+        "virements_titre": if r.annees.len() > 1 { format!("Les {} virements", r.annees.len()) } else { "Le virement".to_string() },
         "salaries": r.salaries.iter().map(|s| json!({"annee": s.annee, "salarie": s.salarie, "nir": s.nir, "date_naissance": s.date_naissance, "adresse": s.adresse, "masse": s.masse.to_string()})).collect::<Vec<_>>(),
         "total": r.total.to_string(),
         "a_faire": r.a_faire,

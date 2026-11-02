@@ -103,7 +103,7 @@ async function dessinerDossier() {
         <select id="d-periode" class="cachee"></select>
       </div>
       <div class="champ pleine">
-        <label>Quoi <button type="button" class="lien d-tout">tout décocher</button></label>
+        <label>Quoi <button type="button" class="lien d-tout" data-cocher="tout cocher" data-decocher="tout décocher">tout décocher</button></label>
         <div class="d-cats">${f.categories.map((c) => `<label class="coche">
           <input type="checkbox" class="d-cat" value="${echapper(c.categorie)}" checked>
           ${echapper(c.quoi)}</label>`).join("")}</div>
@@ -132,7 +132,7 @@ async function dessinerDossier() {
     const cases = [...cible.querySelectorAll(".d-cat")];
     const cocher = cases.every((c) => !c.checked);
     cases.forEach((c) => { c.checked = cocher; });
-    tout.textContent = cocher ? "tout décocher" : "tout cocher";
+    tout.textContent = cocher ? tout.dataset.decocher : tout.dataset.cocher;
   };
   document.getElementById("d-quand").onchange = () => {
     const quand = document.getElementById("d-quand").value;
@@ -332,17 +332,17 @@ function dessinerCalendrier(periodes) {
   const peutMois = periodes.includes("mois");
   const peutAn = periodes.includes("annee");
   cal.innerHTML = `
-    ${periodes.includes("toutes") ? `<div class="rangee"><button type="button" data-quand="toutes" data-periode="">Tout</button></div>` : ""}
+    ${periodes.includes("toutes") ? `<div class="rangee"><button type="button" data-quand="toutes" data-periode="" data-dit="toutes les années">Tout</button></div>` : ""}
     ${annees.map((a) => `<div class="rangee">
-      <button type="button" class="an" data-quand="annee" data-periode="${a}"${peutAn ? "" : " disabled"}>${a}</button>
+      <button type="button" class="an" data-quand="annee" data-periode="${a}" data-dit="${a}"${peutAn ? "" : " disabled"}>${a}</button>
       ${MOIS_ABR.map((n, i) => {
         const m = `${a}-${String(i + 1).padStart(2, "0")}`;
         const ok = peutMois && dispo.has(m);
-        return `<button type="button" data-quand="mois" data-periode="${m}"${ok ? "" : " disabled"}
+        return `<button type="button" data-quand="mois" data-periode="${m}" data-dit="${echapper(moisEnClair(m))}"${ok ? "" : " disabled"}
           title="${echapper(moisEnClair(m))}">${n}</button>`;
       }).join("")}
     </div>`).join("")}`;
-  const choisir = (quand, periode) => {
+  const choisir = (quand, periode, dit) => {
     document.getElementById("x-quand").value = quand;
     document.getElementById("x-periode").value = periode;
     cal.querySelectorAll("button").forEach((b) => {
@@ -352,18 +352,17 @@ function dessinerCalendrier(periodes) {
         : d.quand === "mois" && d.periode === periode;
       b.classList.toggle("pris", !!pris);
     });
-    document.getElementById("x-quand-dit").textContent = "— " + (quand === "toutes" ? "toutes les années"
-      : quand === "annee" ? "l'année " + periode : moisEnClair(periode));
+    document.getElementById("x-quand-dit").textContent = "— " + dit;
     document.getElementById("exports-resultat").innerHTML = "";
   };
   cal.querySelectorAll("button").forEach((b) => {
-    b.onclick = () => choisir(b.dataset.quand, b.dataset.periode);
+    b.onclick = () => choisir(b.dataset.quand, b.dataset.periode, b.dataset.dit);
   });
   // Par défaut, le plus récent que l'état admet : le dernier mois, sinon la dernière année, sinon tout.
   const dernier = EXPORTS.mois[EXPORTS.mois.length - 1];
-  if (peutMois && dernier) choisir("mois", dernier);
-  else if (peutAn && annees.length) choisir("annee", annees[0]);
-  else choisir("toutes", "");
+  if (peutMois && dernier) choisir("mois", dernier, moisEnClair(dernier));
+  else if (peutAn && annees.length) choisir("annee", annees[0], annees[0]);
+  else choisir("toutes", "", (cal.querySelector("[data-quand=toutes]") || { dataset: {} }).dataset.dit || "");
 }
 
 async function lancerExport(apercu) {
@@ -409,16 +408,15 @@ function dessinerCasc(r) {
       <td class="r">${echapper(m.cotisation)}</td></tr>`).join("");
   const annees = r.annees.map((a) => `<tr class="sous-total"><td><b>${echapper(a.annee)}</b></td>
       <td class="r">${echapper(a.masse)}</td><td></td><td class="r"><b>${echapper(a.cotisation)}</b></td></tr>`).join("");
-  const courriel = (c, titre) => `<details><summary>${titre} — à ${echapper(c.a)}, objet ${echapper(c.objet)}</summary>
+  const courriel = (c, titre) => `<details><summary>${titre} — ${echapper(c.entete_dit)}</summary>
       <pre class="courriel">${echapper(c.corps)}</pre></details>`;
   const n = r.annees.length;
   cible.innerHTML = `
     <h3>Régularisation CASC-SVP — ${echapper(r.periode)} — ${echapper(euros(r.total))}</h3>
     ${r.avertissements.map((a) => `<div class="encart alerte">${echapper(a)}</div>`).join("")}
     <div class="casc-etape">
-      <h4>${n > 1 ? "Les " + n + " virements" : "Le virement"}</h4>
-      <ul>${r.annees.map((a) => `<li><b>${echapper(euros(a.cotisation))}</b>, libellé
-        « ${echapper(a.libelle_virement)} »</li>`).join("")}</ul>
+      <h4>${echapper(r.virements_titre)}</h4>
+      <ul>${r.annees.map((a) => `<li><b>${echapper(euros(a.cotisation))}</b>, ${echapper(a.libelle_dit)}</li>`).join("")}</ul>
       <p class="discret">${echapper(r.ecran.virement)}</p>
     </div>
     <div class="casc-etape">
@@ -428,7 +426,7 @@ function dessinerCasc(r) {
           <h5>Depuis la boîte</h5>
           ${r.boite_liee ? `
           <div class="e-contrat-champs">
-            ${r.annees.map((a) => `<label>Virement ${echapper(a.annee)} fait le
+            ${r.annees.map((a) => `<label>${echapper(a.date_libelle)}
               <input type="date" class="casc-date" data-annee="${echapper(a.annee)}"></label>`).join("")}
           </div>
           <button class="primaire" id="casc-envoyer">Envoyer les 2 courriels</button>
@@ -556,7 +554,7 @@ function dessinerLivre(r, apercu) {
   const total = (t, titre, classe) => `
     <tr class="${classe}">
       <td></td><td><b>${echapper(titre)}</b></td>
-      <td class="discret">${t.bulletins} bulletin${t.bulletins === 1 ? "" : "s"}</td>
+      <td class="discret">${echapper(t.bulletins_dit)}</td>
       <td class="r"><b>${eur(t.brut)}</b></td>
       <td class="r"><b>${eur(t.cotisations_salariales)}</b></td>
       <td class="r"><b>${eur(t.cotisations_patronales)}</b></td>
@@ -566,7 +564,7 @@ function dessinerLivre(r, apercu) {
       <td class="r"><b>${eur(t.cout_employeur)}</b></td>
     </tr>`;
   const corps = r.groupes.map((g) =>
-    g.lignes.map(ligne).join("") + total(g.totaux, "Total " + g.libelle, "sous-total")
+    g.lignes.map(ligne).join("") + total(g.totaux, g.total_dit, "sous-total")
   ).join("");
   cible.innerHTML = `
     <h2>${echapper(r.periode)}</h2>
@@ -592,7 +590,7 @@ function dessinerLivre(r, apercu) {
 
 function boiteCloture(annee) {
   ouvrirBoite(`
-    <h3>Clôturer l'exercice ${echapper(annee)}</h3>
+    <h3>Clôturer l'exercice — ${echapper(annee)}</h3>
     <div class="encart">
       <b>L'année se fige</b>
       ${aideDe("cloture")}
@@ -602,7 +600,7 @@ function boiteCloture(annee) {
       Clôturer quand même</label>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
-      <button class="primaire" id="c-lancer">Clôturer ${echapper(annee)}</button>
+      <button class="primaire" id="c-lancer">Clôturer</button>
     </div>`);
   document.getElementById("c-lancer").onclick = async () => {
     document.getElementById("c-lancer").disabled = true;
@@ -629,7 +627,7 @@ async function lancerExportCompta(annee) {
         <td class="r">${e.credit !== "0.00" ? echapper(e.credit) : ""}</td>
         <td class="discret">${echapper(e.analytique)}</td></tr>`).join("");
   ouvrirBoite(`
-    <h3>Export compta ${echapper(r.annee)}</h3>
+    <h3>Export compta — ${echapper(r.annee)}</h3>
     <p class="discret">Mois ${r.mois.map((m) => m.slice(5)).join(", ")} — ${r.ecritures.length}
       écritures, débit ${echapper(euros(r.total_debit))} = crédit ${echapper(euros(r.total_credit))}.
       ${r.fichier ? `Écrit : <b>${echapper(r.fichier)}</b>` : ""}</p>

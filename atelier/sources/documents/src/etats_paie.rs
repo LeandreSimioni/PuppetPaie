@@ -336,6 +336,7 @@ impl Totaux {
     fn json(&self) -> Value {
         let mut m = Map::new();
         m.insert("bulletins".into(), json!(self.bulletins));
+        m.insert("bulletins_dit".into(), json!(format!("{} {}", self.bulletins, if self.bulletins == 1 { "bulletin" } else { "bulletins" })));
         for c in CUMULABLES {
             m.insert(c.into(), json!(self.somme(c).to_string()));
         }
@@ -402,7 +403,7 @@ impl LivreDePaie {
             "periode": self.periode,
             "mois": self.mois,
             "regroupement": self.regroupement,
-            "groupes": self.groupes.iter().map(|g| json!({"libelle": g.libelle, "lignes": g.lignes.iter().map(ligne).collect::<Vec<_>>(), "totaux": g.totaux.json()})).collect::<Vec<_>>(),
+            "groupes": self.groupes.iter().map(|g| json!({"libelle": g.libelle, "total_dit": format!("Total {}", g.libelle), "lignes": g.lignes.iter().map(ligne).collect::<Vec<_>>(), "totaux": g.totaux.json()})).collect::<Vec<_>>(),
             "totaux": self.totaux.json(),
             "coordonnees": self.coordonnees,
             "format": self.format,
