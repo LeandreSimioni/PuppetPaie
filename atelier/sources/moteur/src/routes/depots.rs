@@ -17,7 +17,7 @@ use droit::contexte::Contexte;
 use engagement::calcul::Paie;
 use envois::etats;
 use envois::releve_retours;
-use socle::date::{en_texte, repr_texte};
+use socle::date::en_texte;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
@@ -244,17 +244,6 @@ fn maintenant_iso() -> String {
     socle::paris::iso_secondes(maintenant())
 }
 
-fn mois_en_toutes_lettres(mois: &str) -> R<(String, String)> {
-    let an = mois.get(..4).ok_or_else(|| erreur("ValueError", "mois illisible"))?;
-    let rang: usize = mois
-        .get(5..7)
-        .and_then(|m| m.parse().ok())
-        .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(mois.get(5..7).unwrap_or("")))))?;
-    let nom = socle::date::nom_du_mois(rang as i64, socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))?;
-    let annee: i64 = an.parse().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(an))))?;
-    Ok((format!("{}{}", nom, annee), format!("{} {}", nom, annee)))
-}
-
 fn ecrire_texte(chemin: &Path, texte: &str) -> R<()> {
     if let Some(d) = chemin.parent() {
         std::fs::create_dir_all(d).map_err(|e| plain(format!("{} : {}", d.display(), e)))?;
@@ -354,7 +343,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         engs.iter().map(|e| engagement::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let (etiq, libelle) = mois_en_toutes_lettres(&mois)?;
+    let etiq = socle::date::etiquette_du_mois(&mois).map_err(|e| erreur("ValueError", e))?;
     let sortie = ctx.racine.join("sorties").join(&mois);
     let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.numero.clone().unwrap_or_default()) };
 
@@ -396,7 +385,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         marque = format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16]);
     }
     if retenues.is_empty() {
-        return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", libelle)));
+        return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", engagement::libelle_mois(&mois))));
     }
 
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
