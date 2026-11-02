@@ -125,6 +125,11 @@ pub static TEXTES: &[Texte] = &[
             // (S21.G00.40.012) << ne doit pas inclure les heures
             // supplementaires structurelles >>.
             Domaine { cle: "temps_partiel", titre: "Le temps partiel, la duree legale et les heures complementaires et supplementaires", numeros: &["L3121-27", "L3121-28", "L3123-1", "L3123-6", "L3123-8", "L3123-20", "L3123-21", "L3123-28"] },
+            // LES HEURES SUPPLEMENTAIRES ET COMPLEMENTAIRES D'UN SALARIE AU MOIS : leur majoration, fixee par accord, a
+            // defaut 25 % puis 50 % (L3121-33, L3121-36) ; le contingent annuel (L3121-30, L3121-33) ; la majoration des
+            // heures complementaires, 10 % dans le dixieme puis 25 % a defaut d'accord (L3123-21, L3123-22, L3123-29).
+            // `engagement::heures_en_plus`.
+            Domaine { cle: "heures_supplementaires", titre: "Les heures supplementaires et complementaires : majoration et contingent", numeros: &["L3121-29", "L3121-30", "L3121-33", "L3121-34", "L3121-35", "L3121-36", "L3123-22", "L3123-29"] },
             // LA DUREE MAXIMALE DU TRAVAIL ET LE REPOS QUOTIDIEN : une journee saisie au-dela de la duree quotidienne
             // maximale (L3121-18, ses derogations L3121-19 ; la semaine, L3121-20) ou qui ne laisse pas les onze heures
             // de repos (L3131-1) se dit a la saisie, sans se refuser (`engagement::duree`).
@@ -219,6 +224,10 @@ pub static TEXTES: &[Texte] = &[
             // forfaitairement en pourcentage de cette remuneration que dans
             // des limites et conditions fixees par arrete >> (III).
             Domaine { cle: "reduction_generale", titre: "La reduction generale et les deductions forfaitaires pour frais professionnels", numeros: &["L241-13", "D241-7", "D241-10"] },
+            // LA REDUCTION DE COTISATIONS SALARIALES DES HEURES SUPPLEMENTAIRES ET COMPLEMENTAIRES (L241-17 ; son calcul,
+            // D241-21 et suivants) et la deduction forfaitaire patronale des heures supplementaires (L241-18, L241-18-1,
+            // D241-24) : `engagement::heures_en_plus` ; BOSS, `boss/boss-heures-supplementaires-20260601.txt`.
+            Domaine { cle: "heures_supplementaires", titre: "La reduction de cotisations des heures supplementaires et complementaires, et la deduction patronale", numeros: &["L241-17", "L241-18", "L241-18-1", "D241-21", "D241-22", "D241-24", "D241-25"] },
             // LE MONTANT NET SOCIAL : sa definition est codifiee
             // par le decret 2023-1378 au II de R844-1 (prime d'activite), le
             // meme texte que le 9 bis de R3243-1 du code du travail. C'est
@@ -492,6 +501,9 @@ pub static TEXTES: &[Texte] = &[
             // 204 A a 204 H (la retenue a la source, son assiette « montant net imposable », son taux). Une remuneration
             // nette fiscale negative : 50.013 a 0.00 (`pas::du_versement`, fiche DSN 1810).
             Domaine { cle: "assiette_pas", titre: "L'assiette de la retenue a la source, et la sante patronale reintegree", numeros: &["83", "204 A", "204 B", "204 E", "204 F", "204 H"] },
+            // L'EXONERATION D'IMPOT SUR LE REVENU DES HEURES SUPPLEMENTAIRES ET COMPLEMENTAIRES, dans sa limite annuelle
+            // (81 quater) : elle sort du net imposable, donc de l'assiette du PAS. `engagement::heures_en_plus`.
+            Domaine { cle: "heures_supplementaires", titre: "L'exoneration d'impot sur le revenu des heures supplementaires et complementaires", numeros: &["81 quater"] },
         ],
     },
 ];

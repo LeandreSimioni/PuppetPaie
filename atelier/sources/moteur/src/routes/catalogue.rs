@@ -120,6 +120,28 @@ pub struct Champ {
     pub avance: bool,
 }
 
+/// LES CASES DE LA CARTE D'UN CONTRAT PAYE AU MOIS, dans la charge `saisie` (les faits du mois et ses termes). La marque
+/// « avancé » range l'ecran et le catalogue a la fois : la page met sous « Avancé » de la carte les cases marquees, et
+/// seulement celles que l'engagement appelle (`faits_avances` de la route apercu, `engagement::heures_en_plus::faits_appeles`).
+pub const CASES_D_UN_MOIS_PAYE: &[Champ] = &[
+    Champ { nom: "salaire_mensuel", sens: "le salaire mensuel brut du contrat", avance: false },
+    Champ { nom: "quotite_contrat", sens: "ses heures par mois", avance: false },
+    Champ { nom: "conges_pris", sens: "les congés pris du mois : [{debut, fin}]", avance: false },
+    Champ { nom: "primes", sens: "les primes du mois : [{montant, rubrique, libelle}]", avance: false },
+    Champ { nom: "heures_supplementaires", sens: "un temps plein : ses heures supplémentaires du mois, que le moteur majore", avance: true },
+    Champ {
+        nom: "heures_supplementaires_a_50",
+        sens: "dont celles au-delà de la huitième d'une semaine (majorées de 50 % quand la convention ne fixe pas les paliers)",
+        avance: true,
+    },
+    Champ { nom: "heures_complementaires", sens: "un temps partiel : ses heures complémentaires du mois, que le moteur majore", avance: true },
+];
+
+/// Les cases d'une carte que porte la charge de la fiche (`saisie`), s'il y en a.
+fn cases(charge: &[Champ]) -> &'static [Champ] {
+    if charge.iter().any(|c| c.nom == "saisie") { CASES_D_UN_MOIS_PAYE } else { &[] }
+}
+
 /// Un refus : sa classe, et ce qu'il faut corriger.
 #[derive(Clone, Copy, Debug)]
 pub struct Refus {
@@ -163,6 +185,7 @@ impl Fiche {
             "nom": self.nom,
             "geste": self.geste,
             "charge": self.charge.iter().map(|c| json!({"nom": c.nom, "sens": c.sens, "avance": c.avance})).collect::<Vec<_>>(),
+            "cases": cases(self.charge).iter().map(|c| json!({"nom": c.nom, "sens": c.sens, "avance": c.avance})).collect::<Vec<_>>(),
             "exemple": serde_json::from_str::<Value>(self.exemple).unwrap_or(Value::Null),
             "rend": self.rend,
             "refus": self.refus.iter().map(|r| json!({"classe": r.classe, "corriger": r.corriger})).collect::<Vec<_>>(),
@@ -178,6 +201,12 @@ impl Fiche {
         let mut t = format!("{}{} : {}\n  Acte : {}\n  Charge :\n", self.nom, if self.avance { " (avancé)" } else { "" }, self.geste, self.acte.mot());
         for c in self.charge {
             t.push_str(&format!("    {}{} : {}\n", c.nom, if c.avance { " (avancé)" } else { "" }, c.sens));
+        }
+        if !cases(self.charge).is_empty() {
+            t.push_str("  Cases de la carte d'un contrat au mois (dans saisie) :\n");
+            for c in cases(self.charge) {
+                t.push_str(&format!("    {}{} : {}\n", c.nom, if c.avance { " (avancé)" } else { "" }, c.sens));
+            }
         }
         t.push_str(&format!("  Exemple : echo '{{\"route\":\"{}\",\"charge\":{}}}' | moteur route\n", self.nom, self.exemple));
         t.push_str(&format!("  Rend : {}\n", self.rend));

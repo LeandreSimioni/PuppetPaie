@@ -167,3 +167,15 @@ année, D. 242-6-15), `moteur/src/routes/atmp.rs`
 (`d_un_etablissement`), `droit/src/bareme.rs` (`taux_atmp_applique`) : chaque établissement a son code risque et son taux,
 lus au même endroit que ceux de la compagnie (`bareme_atmp`) ; un code « TC » prend le taux de l'arrêté de l'année
 (D. 242-6-14).
+
+## La réduction de cotisations salariales des heures supplémentaires et complémentaires, et la déduction patronale (relevé du 02/11/2026, lot LONG7)
+
+Domaine `heures_supplementaires` de `moteur/src/atelier/releve/codes/textes.rs` : L241-17 (la réduction, son taux par
+décret, son imputation sur la vieillesse de L241-3 et sa limite), L241-18 et L241-18-1 (la déduction forfaitaire patronale
+par heure supplémentaire, sous vingt salariés et à partir de vingt), D241-21 (le taux : la somme des taux de vieillesse à la
+charge du salarié, au plus 11,31 %), D241-22, D241-24 (1,50 € et 0,50 €), D241-25 ; D241-23 et D241-26 n'ont plus de
+version en vigueur (le relevé les dit périmés : retirés de la liste). D241-7, IV (déjà relevé) majore le SMIC de la
+réduction générale des heures supplémentaires et complémentaires. Texte dans `articles-20261102.md`, avec la page du BOSS
+(`../boss/boss-heures-supplementaires-20260601.txt`). **Où le moteur s'en sert** : `logiciel/donnees/permanents-base.json`
+(`heures_en_plus`), `atelier/sources/droit/src/heures_en_plus.rs`, `atelier/sources/engagement/src/heures_en_plus.rs`
+(`apres_les_cotisations`) ; la DSN (codes 114 et 021, CTP 003 et 004) dans `atelier/sources/declarations/src/dsn.rs`.

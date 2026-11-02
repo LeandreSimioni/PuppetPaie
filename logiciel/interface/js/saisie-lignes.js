@@ -755,6 +755,7 @@ function ouvrirCarte(div) {
   // Les cases du contrat écrit que le moteur a demandées pour cet engagement, au dernier aperçu.
   const p = (div._paies || [])[0];
   montrerEcrit(div, p && p.contrat ? p.contrat.ecrits : div._ecrits);
+  montrerFaitsAvances(div, p ? p.faits_avances : div._faitsAvances);
   marquerEcrite(div);
 }
 
@@ -848,6 +849,13 @@ function construireCarte(div, e) {
           <div class="e-primes"></div>
           <button class="ajouter-fait discret" data-quoi="primes">+ une prime</button>
         </div>
+        <!-- L'AVANCÉ DE LA CARTE : les cases que le catalogue marque « avancé »
+             (cases de la fiche de valider-engagement), et que l'engagement
+             appelle (faits_avances de l'aperçu). Voir montrerFaitsAvances(). -->
+        <details class="e-fait-groupe e-faits-avances" hidden>
+          <summary>Avancé</summary>
+          <div class="e-faits-avances-cases"></div>
+        </details>
       </div>
     </div>
     <!-- LES TROIS NOMBRES D'UNE PAIE — ET ON ÉCRIT DANS LES TROIS.
@@ -1112,6 +1120,7 @@ function construireCarte(div, e) {
   poserRares(div, e);
   poserEcrit(div, e);
   remplirFaits(div, e);
+  poserFaitsAvances(div, e);
   div.querySelectorAll(".ajouter-fait").forEach((b) => {
     b.onclick = (ev) => {
       ev.preventDefault();
@@ -1405,6 +1414,54 @@ const FAITS = { conges: ".e-conges", primes: ".e-primes" };
 function remplirFaits(div, e) {
   (e.conges_pris || []).forEach((c) => div.querySelector(FAITS.conges).appendChild(ligneFait("conges", c)));
   (e.primes || []).forEach((p) => div.querySelector(FAITS.primes).appendChild(ligneFait("primes", p)));
+}
+
+/* LES CASES « AVANCÉ » D'UN MOIS PAYÉ : celles que le catalogue marque
+   (`cases` de valider-engagement, `avance`), une case nombre chacune. Le
+   moteur dit lesquelles l'engagement appelle (`faits_avances` de l'aperçu) :
+   une case se montre appelée, ou quand elle a déjà une valeur. */
+const NOMS_DES_FAITS = {
+  heures_supplementaires: "Heures supplémentaires",
+  heures_supplementaires_a_50: "Dont à 50 %",
+  heures_complementaires: "Heures complémentaires",
+};
+
+function casesAvancees() {
+  return ((CATALOGUE["valider-engagement"] || {}).cases || []).filter((c) => c.avance);
+}
+
+function poserFaitsAvances(div, e) {
+  const cible = div.querySelector(".e-faits-avances-cases");
+  if (!cible) return;
+  cible.innerHTML = casesAvancees().map((c) => `
+    <label data-fait="${echapper(c.nom)}" title="${echapper(c.sens)}" hidden>${echapper(NOMS_DES_FAITS[c.nom] || c.nom)}
+      <input type="number" step="0.01" min="0" class="e-fait-nombre" data-cle="${echapper(c.nom)}"
+             value="${echapper(e[c.nom] ?? "")}"></label>`).join("");
+  cible.querySelectorAll("input").forEach((c) => { c.onchange = rafraichirApercu; });
+  montrerFaitsAvances(div, div._faitsAvances || []);
+}
+
+function montrerFaitsAvances(div, appeles) {
+  const bloc = div.querySelector(".e-faits-avances");
+  if (!bloc) return;
+  div._faitsAvances = appeles || [];
+  let visibles = 0, remplies = 0;
+  bloc.querySelectorAll("[data-fait]").forEach((l) => {
+    const rempli = l.querySelector("input").value.trim() !== "";
+    l.hidden = !div._faitsAvances.includes(l.dataset.fait) && !rempli;
+    if (!l.hidden) visibles++;
+    if (rempli) remplies++;
+  });
+  bloc.hidden = visibles === 0;
+  if (remplies) bloc.open = true;
+}
+
+/** Ce que les cases « avancé » écrivent dans la saisie : un nombre, quand il est tapé. */
+function faitsAvancesDuBloc(div, e) {
+  div.querySelectorAll(".e-faits-avances [data-fait]").forEach((l) => {
+    const v = l.querySelector("input").value.trim();
+    if (v !== "" && !l.hidden) e[l.dataset.fait] = +v;
+  });
 }
 
 function ajouterFait(div, quoi) {

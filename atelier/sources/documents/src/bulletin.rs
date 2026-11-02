@@ -627,7 +627,7 @@ fn rang(l: &engagement::calcul::LigneCotisation) -> Rang {
         "ccn" | "fcap" | "paritarisme" => Rang::Ligne(8, CONVENTION),
         "csg_ded" => Rang::Ligne(9, CSG_DEDUCTIBLE),
         "csg_crds_nd" => Rang::Ligne(10, CSG_NON_DEDUCTIBLE),
-        "reduction_generale" => Rang::Allegement,
+        "reduction_generale" | "reduction_heures_en_plus" | "deduction_heures_supplementaires" => Rang::Allegement,
         id if id == "prevoyance" || id.starts_with("prevoyance_") => Rang::Facultative(PREVOYANCE),
         _ => Rang::Hors(l.famille.clone()),
     }
@@ -772,7 +772,7 @@ fn somme_des_rangs(
 ///   8°, a : « avant deduction des exonerations et exemptions mentionnees au 13° »).
 /// - « EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS » : les reductions qui ne sont pas deduites de chaque cotisation
 ///   (arrete, art. 4, `LEGIARTI000047098456.xml` : la reduction generale de L. 241-13 pour l'employeur ; la reduction
-///   salariale des heures supplementaires de L. 241-17, que le moteur ne calcule pas).
+///   salariale des heures supplementaires et complementaires de L. 241-17, `engagement::heures_en_plus`).
 /// - « COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES » : la prevoyance.
 /// Aucun montant ne change : chaque ligne de la paie s'imprime une fois, et les trois sommes refont les totaux de la
 /// paie (sinon refus).

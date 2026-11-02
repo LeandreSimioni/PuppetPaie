@@ -329,6 +329,38 @@
     }
   },
 
+  "heures_en_plus": {
+    "_quoi": "Les heures supplementaires d'un salarie a temps plein paye au mois, et les heures complementaires d'un salarie a temps partiel : leur majoration a defaut d'accord, la reduction de cotisations salariales, la deduction forfaitaire patronale et l'exoneration d'impot sur le revenu. Lu par `droit::heures_en_plus`.",
+    "_source": "Code du travail L3121-28, L3121-29, L3121-30, L3121-33, L3121-36, L3123-20, L3123-21, L3123-28, L3123-29 ; code de la securite sociale L241-17, L241-18, L241-18-1, D241-21, D241-22, D241-24 ; CGI 81 quater : releves le 02/11/2026 dans la base LEGI par `moteur releve-codes` (`atelier/reference/sources/code-du-travail/articles-20261102.md`, `code-de-la-securite-sociale/articles-20261102.md`, `code-general-des-impots/articles-20261102.md`). BOSS, exonerations heures supplementaires et complementaires, version en vigueur au 01/06/2026 (`atelier/reference/sources/boss/boss-heures-supplementaires-20260601.txt`).",
+    "heures_supplementaires": {
+      "paliers_hebdomadaires": [
+        {"heures": 8, "majoration": 25},
+        {"heures": null, "majoration": 50}
+      ],
+      "_source": "L3121-36 : << A defaut d'accord, les heures supplementaires accomplies au-dela de la duree legale hebdomadaire [...] donnent lieu a une majoration de salaire de 25 % pour chacune des huit premieres heures supplementaires. Les heures suivantes donnent lieu a une majoration de 50 %. >> L3121-29 : elles << se decomptent par semaine >> : les heures au-dela de la huitieme d'une semaine se disent (`heures_supplementaires_a_50`), le mois ne les distingue pas."
+    },
+    "heures_complementaires": {
+      "plafond_sans_accord": "dixieme",
+      "paliers": [
+        {"jusqu_au": "dixieme", "majoration": 10},
+        {"jusqu_au": "tiers", "majoration": 25}
+      ],
+      "_source": "L3123-29 : << A defaut de stipulation conventionnelle prevues a l'article L. 3123-21, le taux de majoration des heures complementaires est de 10 % pour chacune des heures complementaires accomplies dans la limite du dixieme des heures prevues au contrat de travail et de 25 % pour chacune des heures accomplies entre le dixieme et le tiers des heures prevues au contrat de travail. >> L3123-28 : sans accord, le dixieme est la limite. INFERENCE : les heures prevues au contrat d'un salarie paye au mois sont ses heures par mois (S21.G00.40.013) ; le dixieme se compte sur elles."
+    },
+    "reduction_salariale": {
+      "taux_maximum": 11.31,
+      "_source": "L241-17, II : le produit d'un taux et des remunerations des heures, imputé sur les cotisations salariales d'assurance vieillesse d'origine legale (L241-3), dans leur limite. D241-21 : << la somme des taux de chacune des cotisations d'assurance vieillesse d'origine legale et conventionnelle rendue obligatoire par la loi effectivement a la charge du salarie, dans la limite de 11,31 % >>. BOSS § 370 : au-dela du plafond, le taux moyen de ces cotisations sur toute la remuneration. Le moteur prend ce taux moyen dans tous les cas (sous le plafond, il est la somme des taux) : la famille RETRAITE du bulletin (vieillesse plafonnee et deplafonnee, Agirc-Arrco et CET), sans l'Apec (BOSS § 370)."
+    },
+    "deduction_patronale": {
+      "moins_de_20_salaries": 1.5,
+      "au_moins_20_salaries": 0.5,
+      "_source": "L241-18 (moins de vingt salaries) et L241-18-1 (au moins vingt) : une deduction forfaitaire des cotisations patronales par heure supplementaire (pas les heures complementaires : BOSS § 570), d'un salarie de la reduction generale (L241-13, II), imputee sur ses cotisations patronales a l'Urssaf et dans leur limite. D241-24 : 1,50 EUR et 0,50 EUR. L'effectif : L130-1 (`contexte::Effectif::atteint`)."
+    },
+    "exoneration_impot": {
+      "limite_annuelle": 7500,
+      "_source": "CGI 81 quater, I : << Sont exoneres de l'impot sur le revenu les remunerations, les majorations et les elements de remunerations mentionnes aux I et III de l'article L. 241-17 du code de la securite sociale, dans les conditions et limites fixees au meme article L. 241-17 et dans une limite annuelle egale a 7 500 EUR. >> Fiche net-entreprises 2066 (21/10/2025, `atelier/reference/sources/net-entreprises-base-connaissances/`) : le montant NET des heures exonerees se declare en S21.G00.58.003 = 01 et n'entre pas dans la remuneration nette fiscale ; son exemple : 400 EUR bruts, 373,28 EUR nets (la CSG deductible, 6,80 % de 98,25 %, retiree). INFERENCE : la limite annuelle se compte sur ce montant net, par annee civile, chez l'employeur."
+    }
+  },
   "maintien_de_salaire": {
     "_quoi": "L'indemnite complementaire que l'employeur verse pendant un arret de travail, en plus des indemnites journalieres de la Securite sociale.",
     "_source": "Code du travail L1226-1 et D1226-1 a D1226-8, releves le 19/09/2026 dans la base LEGI de la DILA par `moteur releve-codes`.",

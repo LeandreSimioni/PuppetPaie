@@ -50,7 +50,9 @@
     "autres":       {"charge": "645800", "tiers": "431000", "libelle": "Autres contributions employeur, ensemble (un bulletin importe qui ne les ventile pas)"},
     "convention":   {"charge": "645800", "tiers": "437400", "libelle": "Cotisations conventionnelles, ensemble (un bulletin importe qui ne les ventile pas)"},
     "apec":         {"charge": "645300", "tiers": "437100", "libelle": "APEC, ensemble des tranches (un bulletin importe qui ne les ventile pas)"},
-    "reduction_generale": {"charge": "645100", "tiers": "431000", "libelle": "Reduction generale degressive unique"}
+    "reduction_generale": {"charge": "645100", "tiers": "431000", "libelle": "Reduction generale degressive unique"},
+    "reduction_heures_en_plus": {"charge": "645100", "tiers": "431000", "libelle": "Reduction de cotisations salariales sur heures supplementaires ou complementaires (CSS L241-17), imputee sur la vieillesse a l'Urssaf"},
+    "deduction_heures_supplementaires": {"charge": "645100", "tiers": "431000", "libelle": "Deduction patronale sur heures supplementaires (CSS L241-18, L241-18-1)"}
   },
   "provision_conges": {"conges": {"compte": "641200", "libelle": "Congés payés"}, "dette": {"compte": "428200", "libelle": "Dettes provisionnées pour congés à payer"}, "charges": {"compte": "645100", "libelle": "Charges sociales sur congés payés"}, "dette_charges": {"compte": "438200", "libelle": "Charges sociales sur congés à payer"}},
   "_provision_conges": "L'ecriture de cloture des conges acquis et non pris des salaries au mois (etat `provision-conges`) : 6412 au debit, 4282 au credit pour l'indemnite ; 645 au debit, 4382 au credit pour les charges patronales. Les comptes 4282 et 4382 sont ceux du plan comptable general (<< Dettes provisionnees pour conges a payer >>, << Charges sociales sur conges a payer >>). A extourner a l'ouverture de l'exercice suivant.",

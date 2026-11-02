@@ -744,6 +744,36 @@ pub fn cotisations(p: &Paie, bar: &Value) -> Resultat<Vec<Cotisation>> {
             }
         }
     }
+    // LES HEURES EN PLUS (`engagement::heures_en_plus`) : « 114 - Montant de réduction des heures supplémentaires/
+    // complémentaires » et « 021 - Déduction patronale au titre des heures supplémentaires », sous la base 03 (fiche
+    // net-entreprises 1265, tableau des combinaisons P26V01, feuille URSSAF CN, `net-entreprises-fiche1265-combinaisons-78-
+    // 79-81-p26v01-20250716.txt`, l. 48 et 77), a l'Urssaf, signees '-' comme la reduction generale (guide Urssaf du
+    // 04/06/2026, `editeur-dsn/guide-urssaf-regularisation.txt`, l. 1353 : « Au niveau individuel, le montant de reduction
+    // doit etre signe »). 81.003 : la remuneration des heures.
+    if let Some(remuneration) = p.bases.get(engagement::heures_en_plus::REMUNERATION).copied().filter(|m| !m.is_zero()) {
+        let urssaf = liste(g(&bar, "cotisations_dsn")).iter().find(|c| txt(g(c, "code81")) == "075").and_then(|c| opt_txt(g(c, "org")));
+        let brut_03 = bases[&cle_abattue(p, "03", "brut")?];
+        for (code, id) in [(CODE81_REDUCTION_HEURES, engagement::heures_en_plus::REDUCTION), (CODE81_DEDUCTION_HEURES, engagement::heures_en_plus::DEDUCTION)] {
+            let montant = p.lignes.iter().filter(|l| l.id == id).fold(zero(), |a, l| add(a, add(l.montant_pat, l.montant_sal)));
+            if montant.is_zero() {
+                continue;
+            }
+            out.push(Cotisation {
+                bloc78: "03".into(),
+                base78: brut_03,
+                code81: code.into(),
+                org: urssaf.clone(),
+                affectation: None,
+                cle_total: Some(code.into()),
+                code_insee: None,
+                base81: Some(remuneration),
+                taux: None,
+                montant: Some(montant),
+                composant79: None,
+                cet: false,
+            });
+        }
+    }
     // La base 31 d'une affiliation que le salarie n'a pas ce mois-la (`rattachements`) ne se declare pas : elle citerait
     // (78.005) un bloc 70 absent. Sa cotisation est nulle -- sinon la paie et l'affiliation se contredisent.
     let mut gardees = Vec::with_capacity(out.len());
@@ -1883,6 +1913,19 @@ pub fn remunerations(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour, signe:
             activites(f, p, signe)?;
         }
     }
+    // LES HEURES EN PLUS d'un salarie paye au mois (`engagement::heures_en_plus`) : « 017 - Heures supplémentaires ou
+    // complémentaires aléatoires », leurs heures en 51.012 (SIG-11 : obligatoire pour ce type) et leur remuneration en
+    // 51.013, datees de la periode d'emploi (fiche net-entreprises 2066, `atelier/reference/sources/
+    // net-entreprises-base-connaissances/net-entreprises-fiche2066-heures-supplementaires-exonerees-20251021.txt`).
+    let lire = |k: &str| p.bases.get(k).copied().filter(|m| !m.is_zero());
+    if let (Some(montant), Some(heures)) = (lire(engagement::heures_en_plus::REMUNERATION), lire(engagement::heures_en_plus::HEURES)) {
+        f.add("S21.G00.51.001", debut.jjmmaaaa());
+        f.add("S21.G00.51.002", fin.jjmmaaaa());
+        f.add_opt("S21.G00.51.010", e.numero.clone())?;
+        f.add("S21.G00.51.011", "017");
+        f.add("S21.G00.51.012", ms(heures, signe));
+        f.add("S21.G00.51.013", ms(montant, signe));
+    }
     Ok(())
 }
 
@@ -2062,6 +2105,14 @@ fn part_exoneree_des_indemnites_de_rupture(f: &Fichier, p: &Paie) -> Resultat<Op
 /// pas de dates, le 58 herite du versement).
 pub fn net_social(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour, signe: i64) -> Resultat<()> {
     let dates = dates_du_58_du_mois(f, debut, fin)?;
+    // Le montant net des heures en plus exonere d'impot (CGI 81 quater), hors de la remuneration nette fiscale : « 01 -
+    // Heure(s) complémentaire(s) ou supplémentaire(s) exonérée(s) fiscalement », date comme le versement (fiche
+    // net-entreprises 2066 ; `engagement::heures_en_plus::EXONERE`).
+    if let Some(exonere) = p.bases.get(engagement::heures_en_plus::EXONERE).filter(|m| !m.is_zero()) {
+        dater_le_58(f, dates);
+        f.add("S21.G00.58.003", "01");
+        f.add("S21.G00.58.004", ms(*exonere, signe));
+    }
     dater_le_58(f, dates);
     f.add("S21.G00.58.003", "03");
     f.add("S21.G00.58.004", ms(p.net_social, signe));
@@ -2372,6 +2423,18 @@ cahier 2027.1.1, p. 268). Le logiciel ne sait pas encore l'annuler et la redecla
             f.norme()?.version
         ));
     }
+    // Les heures en plus exonerees d'impot se declarent en S21.G00.58 de type 01, dates du versement (fiche net-entreprises
+    // 2066) : une correction qui en porte (avant ou apres) aurait a les annuler et les redeclarer, ce qui n'est pas porte.
+    let exonere = |p: &Paie| p.bases.get(engagement::heures_en_plus::EXONERE).is_some_and(|m| !m.is_zero());
+    if exonere(avant) || exonere(apres) {
+        return Err(format!(
+            "Correction de {} (contrat {}) : la paie porte des heures supplementaires ou complementaires exonerees d'impot, que \
+la DSN declare en S21.G00.58 de type 01 (fiche net-entreprises 2066). Le logiciel ne sait pas les annuler et les redeclarer \
+dans une correction. Rien n'est ecrit.",
+            r.mois,
+            apres.engagement.numero.clone().unwrap_or_else(|| "?".into())
+        ));
+    }
     // Le 58 de la paie d'origine se date de son versement (sa fin de periode, 50.001 de la DSN d'origine) en norme 2027.
     let (d_o, f_o) = dates_du_58(f, debut, fin, fin)?;
     let origine = |f: &mut Fichier, montant: Decimal| -> Resultat<()> {
@@ -2589,6 +2652,10 @@ fn lecture(p: &Paie, bar: &Value) -> Resultat<Lecture> {
     ] {
         l.roles.push((code, org, Role81::Reduction { part, cle }));
     }
+    // Les heures en plus : la reduction salariale et la deduction patronale, a l'Urssaf (`cotisations`).
+    for code in [CODE81_REDUCTION_HEURES, CODE81_DEDUCTION_HEURES] {
+        l.roles.push((code.to_string(), org_de("075"), Role81::Cotisation { cle: code.to_string(), base: None }));
+    }
     Ok(l)
 }
 
@@ -2780,6 +2847,9 @@ fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Res
         "brut_artiste" => si(art, &|| Ok(brut)),
         "brut_x115_artiste" => si(art, &|| base("brut_x115")),
         "reduction_generale_urssaf" => si(tech, &|| l.reduction_a_l_urssaf(&l81)),
+        // Les 114 et 021 deposes, signes '-' au nominatif : le montant de la ligne 23 est leur oppose.
+        MONTANT_REDUCTION_HEURES => Ok(l81.iter().filter(|x| x.code == CODE81_REDUCTION_HEURES).fold(zero(), |s, x| sub(s, x.montant.unwrap_or_else(zero)))),
+        MONTANT_DEDUCTION_HEURES => Ok(l81.iter().filter(|x| x.code == CODE81_DEDUCTION_HEURES).fold(zero(), |s, x| sub(s, x.montant.unwrap_or_else(zero)))),
         // Sous 921, l'assiette plafonnee (`assiettes_ctp`) : ce que la DSN deposee a declare en base 02 et sous le FNAL.
         k if k == plafonnee("t1_permanent") => si(mensuelle, &|| base("t1_mensuelle")),
         k if k == plafonnee("t1_x115_permanent") => {
@@ -3035,8 +3105,18 @@ fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decim
     out.insert(plafonnee("brut_x115_artiste"), plaf(&art, "brut_x115_plafonne")?);
     out.insert(plafonnee("brut_technicien"), plaf(&tech, "brut_plafonne")?);
     out.insert(plafonnee("brut_x115_technicien"), plaf(&tech, "brut_x115_plafonne")?);
+    // Les heures en plus : la reduction salariale (CTP 003) et la deduction patronale (CTP 004, 005), en montant, comme
+    // le nominatif les declare (114 et 021, `cotisations`).
+    for (cle, id) in [(MONTANT_REDUCTION_HEURES, engagement::heures_en_plus::REDUCTION), (MONTANT_DEDUCTION_HEURES, engagement::heures_en_plus::DEDUCTION)] {
+        let m = paies.iter().flat_map(|p| p.lignes.iter()).filter(|l| l.id == id).fold(zero(), |a, l| sub(a, add(l.montant_pat, l.montant_sal)));
+        out.insert(cle.into(), m);
+    }
     Ok(out)
 }
+
+/// Les cles de montant des CTP des heures en plus (`organismes-base.json`, `ctp_urssaf`).
+const MONTANT_REDUCTION_HEURES: &str = "reduction_heures_en_plus";
+const MONTANT_DEDUCTION_HEURES: &str = "deduction_heures_supplementaires";
 
 /// La base 07 (« Assiette des contributions d'Assurance Chomage », norme 2026.1 p. 294) que le nominatif du contrat
 /// declare : le 78.004 des lignes de `cotisations` sous le bloc 07, le meme montant que le bulletin (la base de la ligne
@@ -3100,6 +3180,10 @@ const CODE81_CPF_CDD: &str = "129";
 /// (CFP) », fiche net-entreprises 2503) ; l'assiette de ses CTP de droit commun (959 sous onze salaries, 971 au-dela)
 /// est la somme de ses 81.003 chez les permanents (`ASSIETTE_CFP_PERMANENT`).
 const CODE81_CFP: &str = "128";
+/// « 114 - Montant de réduction des heures supplémentaires/complémentaires » et « 021 - Déduction patronale au titre des
+/// heures supplémentaires » (cahier technique 2026.1, `atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, l. 191 et 281).
+const CODE81_REDUCTION_HEURES: &str = "114";
+const CODE81_DEDUCTION_HEURES: &str = "021";
 const ASSIETTE_CFP_PERMANENT: &str = "cfp_permanent";
 
 /// La table des CTP des organismes composes (`organismes::composer`), depuis `donnees/organismes-base.json`.

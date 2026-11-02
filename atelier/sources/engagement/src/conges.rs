@@ -266,6 +266,10 @@ struct PaieLue {
     mensuel: Option<MoisPaye>,
     /// Le compteur avant le mois que la paie a ecrit (`etats::CONGES_AVANT`).
     avant: Option<Avant>,
+    /// Les heures supplementaires payees (`heures_en_plus::HEURE_SUPPLEMENTAIRE`) et le montant net des heures en plus
+    /// exonere d'impot (`heures_en_plus::EXONERE`).
+    heures_supplementaires: Decimal,
+    exonere: Decimal,
 }
 
 #[derive(Debug, Clone)]
@@ -302,7 +306,10 @@ fn lue(ctx: &Contexte, mois: &str, p: &Paie) -> Resultat<PaieLue> {
         None
     };
     let dfs = p.deduction_forfaitaire.as_ref().map_or(zero2(), |d| d.montant);
-    Ok(PaieLue { brut: p.brut, dfs, mensuel, avant: p.conges_avant.clone() })
+    let heures_supplementaires =
+        p.remuneration.iter().filter(|l| l.code == crate::heures_en_plus::HEURE_SUPPLEMENTAIRE).fold(Decimal::ZERO, |a, l| a + l.quantite);
+    let exonere = p.bases.get(crate::heures_en_plus::EXONERE).copied().unwrap_or_else(zero2);
+    Ok(PaieLue { brut: p.brut, dfs, mensuel, avant: p.conges_avant.clone(), heures_supplementaires, exonere })
 }
 
 // Le memo d'une derivation : la profondeur des derivations ouvertes, et ce que les paies de chaque (racine, mois,
@@ -935,6 +942,24 @@ pub(crate) fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Res
 /// 2025, art. 9 : << dans la limite de 7 600 euros par annee civile >>). Une paie validee qui ne se lit pas refuse : le
 /// cumul de l'annee ne se devine pas.
 pub(crate) fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
+    cumul_de_l_annee(ctx, mois, cle, |p| p.dfs, "Deduction forfaitaire specifique", "Le plafond de 7 600 EUR par annee civile (arrete du 4 septembre 2025, art. 9)")
+}
+
+/// Les heures supplementaires payees au salarie `cle` dans les mois de la meme annee civile, strictement avant `mois` :
+/// les paliers annuels d'une convention et son contingent les comptent (`droit::heures_en_plus::supplementaires`).
+pub(crate) fn heures_supplementaires_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
+    cumul_de_l_annee(ctx, mois, cle, |p| p.heures_supplementaires, "Heures supplementaires", "Le contingent annuel et ses paliers")
+}
+
+/// Le montant net des heures en plus deja exonere d'impot pour le salarie `cle` dans l'annee civile, avant `mois` : la
+/// limite annuelle de CGI 81 quater le compte (`heures_en_plus`).
+pub(crate) fn exonere_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
+    cumul_de_l_annee(ctx, mois, cle, |p| p.exonere, "Exoneration d'impot des heures en plus", "La limite annuelle de 7 500 EUR (CGI 81 quater)")
+}
+
+/// LE CUMUL DE L'ANNEE CIVILE, strictement avant `mois`, de ce que `quoi` lit dans chaque paie validee du salarie `cle`.
+/// Une paie validee qui ne se lit pas refuse : le cumul de l'annee ne se devine pas.
+fn cumul_de_l_annee(ctx: &Contexte, mois: &str, cle: &str, quoi: impl Fn(&PaieLue) -> Decimal, qui: &str, regle: &str) -> Resultat<Decimal> {
     let _derivation = Derivation::ouvrir();
     let annee: String = mois.chars().take(4).collect();
     let cle_fiche = cle_de_fiche(ctx, cle);
@@ -945,13 +970,12 @@ pub(crate) fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> 
         }
         let paies = paies_du_mois(ctx, &m, &cle_fiche).map_err(|e| {
             format!(
-                "Deduction forfaitaire specifique de {} : les paies validees de {} ne se lisent pas ({}). Le plafond de \
-7 600 EUR par annee civile (arrete du 4 septembre 2025, art. 9) se suit sur toute l'annee : sans ce mois, le cumul ne se \
-connait pas. Rien n'est calcule.",
-                cle, m, e
+                "{} de {} : les paies validees de {} ne se lisent pas ({}). {} se suit sur toute l'annee : sans ce mois, le cumul \
+ne se connait pas. Rien n'est calcule.",
+                qui, cle, m, e, regle
             )
         })?;
-        total = paies.iter().fold(total, |a, p| add(a, p.dfs));
+        total = paies.iter().fold(total, |a, p| add(a, quoi(p)));
     }
     Ok(total)
 }
@@ -1174,6 +1198,21 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             "quantite": 1, "taux": montant,
         }));
     }
+
+    // --- les heures supplementaires d'un temps plein, complementaires d'un temps partiel
+    // Le temps partiel comme la DSN le declare (`Engagement::modalite_temps_travail`) : une duree du contrat inferieure a
+    // la plus courte de la duree legale et de la quotite de reference (C. trav. L3123-1).
+    let reference = match e.get("quotite_reference").filter(|q| vrai(q)) {
+        Some(r) => dec_avec_echelle(r)?.min(defaut),
+        None => defaut,
+    };
+    let partiel = match e.get("modalite_temps_travail").and_then(Value::as_str).filter(|m| !m.is_empty()) {
+        Some(m) => m == "20",
+        None => quotite < reference,
+    };
+    let (l, a) = crate::heures_en_plus::lignes(ctx, e, mois, salaire, quotite, partiel)?;
+    lignes.extend(l);
+    avert.extend(a);
 
     // --- la prime d'anciennete de l'annexe I de la 3090
     let mut fiche = ctx.salarie(&en_texte(requis(e, "salarie")?)).unwrap_or_else(|_| json!({}));

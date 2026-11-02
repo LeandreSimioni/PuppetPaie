@@ -64,7 +64,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Calculer sans rien écrire les paies du mois, avec les cartes en cours.",
         charge: &[MOIS, CARTES],
         exemple: r#"{"mois":"2026-11","cartes":[]}"#,
-        rend: "paies (une par engagement, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer »), les trois nombres de chaque carte, le mois",
+        rend: "paies (une par engagement, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer » ; faits_avances : les cases « avancé » de la carte d'un contrat au mois qu'il appelle, `cases` de valider-engagement), les trois nombres de chaque carte, le mois",
         refus: &[SAISIE_INCOMPLETE, MANQUE, FORME],
         acte: Acte::Lit,
         avance: false,
@@ -1786,6 +1786,13 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         "dates_travail": e.dates_travail.iter().map(iso).collect::<Vec<_>>(),
         "cachets": e.cachets, "taux_cachet": taux_cachet,
         "heures": e.heures.map_or(Value::Null, nombre_f),
+        // LES CASES « AVANCÉ » QUE CE CONTRAT PAYE AU MOIS APPELLE (`catalogue::CASES_D_UN_MOIS_PAYE`) : ses heures
+        // supplementaires a temps plein, complementaires a temps partiel (`engagement::heures_en_plus::faits_appeles`).
+        "faits_avances": if nat.mensuelle() {
+            engagement::heures_en_plus::faits_appeles(ctx, e.modalite_temps_travail()? == "20")?
+        } else {
+            Vec::new()
+        },
         // LES LIGNES DE NUITÉE OÙ LA CASE « justificatif conservé » A LIEU D'ÊTRE (leur rang dans la saisie) : une nuitée
         // au-delà de la limite du jour, d'un salarié que l'annexe 2 ne nomme pas (`engagement::nuitees_au_dela`).
         "justificatifs": e.lignes.iter().enumerate().filter(|(_, l)| l.get(engagement::JUSTIFICATIF_POSSIBLE).is_some_and(vrai)).map(|(i, _)| i).collect::<Vec<_>>(),

@@ -100,6 +100,14 @@ impl LigneBrut {
             "semaine" => ["semaine"].as_slice(),
             _ => [].as_slice(),
         };
+        // Des heures qui se nomment au pluriel (« Heures supplémentaires ») : leur nombre, et ce qui les distingue
+        // (leur majoration), entre parentheses.
+        if self.unite == "heure" && tete.to_lowercase() == "heures" {
+            return match &self.precision {
+                Some(p) => format!("{} ({} h, {})", self.libelle, nb, p),
+                None => format!("{} ({} h)", self.libelle, nb),
+            };
+        }
         // Au singulier jusqu'a deux exclus (« 1,5 journée »).
         let pluriel = q >= Decimal::TWO;
         if !compte.contains(&tete.to_lowercase().as_str()) {
@@ -784,7 +792,7 @@ contrat, {} EUR (CSS R. 242-1, al. 6 ; arrete du 4 septembre 2025, art. 9, I, de
 
 // ---------------------------------------------------------------- calculer
 
-const FAMILLE_ALLEGEMENTS: &str = "EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS";
+pub(crate) const FAMILLE_ALLEGEMENTS: &str = "EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS";
 
 /// Les bases lues par cle : une valeur par rubrique de salaire, sinon globale.
 const GLOBALES: [&str; 19] = [
@@ -1489,6 +1497,24 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         tot_pat -= rg.montant;
     }
 
+    // 7.9 bis : les heures en plus d'un salarie paye au mois (`heures_en_plus`) : la reduction de cotisations salariales,
+    // la deduction patronale, et le net exonere d'impot, que la remuneration nette fiscale ne prend pas.
+    let mois_paye = fin_periode.mois_iso();
+    let cle_sal = sal.get("_cle").and_then(Value::as_str).map(String::from).unwrap_or_else(|| eng.salarie.clone());
+    let heures_en_plus = crate::heures_en_plus::apres_les_cotisations(ctx, &bar, &lb, &lignes, brut, tot_pat, || {
+        crate::conges::exonere_des_mois_anterieurs(ctx, &mois_paye, &cle_sal)
+    })?;
+    let mut exonere = zero;
+    if let Some(h) = &heures_en_plus {
+        lignes.extend(h.lignes.iter().cloned());
+        tot_sal -= h.reduction;
+        tot_pat -= h.deduction;
+        exonere = h.exonere;
+        bases.insert(crate::heures_en_plus::REMUNERATION.into(), h.remuneration);
+        bases.insert(crate::heures_en_plus::HEURES.into(), h.heures);
+        bases.insert(crate::heures_en_plus::EXONERE.into(), h.exonere);
+    }
+
     // 7.10 : la sortie. Ce qui est hors assiette se paie ou se retient quand meme.
     let hors_assiette = lb.iter().filter(|l| !l.soumis).fold(zero, |a, l| a + l.montant);
     let net = brut - tot_sal + hors_assiette;
@@ -1539,12 +1565,15 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     p.total_sal = tot_sal;
     p.net_a_payer = net;
     p.net_social = brut - tot_sal + hors_assiette_revenu;
-    p.net_imposable = brut - tot_sal + hors_assiette_imposable + reintegrations(&p.lignes);
+    p.net_imposable = brut - tot_sal + hors_assiette_imposable + reintegrations(&p.lignes) - exonere;
     p.cout_employeur = brut + tot_pat;
     p.bases = bases;
     p.reduction_generale = rg;
     p.deduction_forfaitaire = dfs;
     p.avertissements.extend(avis_dfs.into_iter().map(|texte| Avis { info: true, texte }));
+    if let Some(h) = heures_en_plus {
+        p.avertissements.extend(h.avis.into_iter().map(|texte| Avis { info: false, texte }));
+    }
     p.salaire_de_base = base_51;
     p.salaire_retabli = retabli;
     p.assiette_chomage = chomage_51;
@@ -1707,8 +1736,8 @@ temps partiel (fiche 3369 ; BOSS, assiette generale, § 760).",
 /// la duree inscrite au contrat (S21.G00.40.013), rapportee a « la plus courte des durees mentionnees au 1° de
 /// l'article L. 3123-1 du code du travail » -- la duree legale (151,67 h, `contrats-base.json`, L. 3121-27) ou, si
 /// elle est plus courte, la duree collective de l'entreprise (S21.G00.40.012). Le texte ajoute a la duree du contrat
-/// « le nombre d'heures complementaires » du mois : le moteur ne les distingue pas d'autres heures payees, et une
-/// ligne d'heures en plus du mois refuse plutot que de les deviner.
+/// « le nombre d'heures complementaires » du mois : celles que le moteur compose du fait de la carte (`heures_en_plus`) ;
+/// une ligne d'heures tapee a la main ne dit pas si elle en est, et refuse plutot que de le deviner.
 pub(crate) fn duree_du_temps_partiel(e: &Engagement) -> Resultat<(Decimal, Decimal)> {
     let nat = e.nat()?;
     if let Some(l) = e.lignes.iter().find(|l| l.get("rubrique").and_then(Value::as_str) == Some("heure")) {
@@ -1726,7 +1755,14 @@ devine pas.",
         Some(r) => legale.min(dec_f64(r)?),
         None => legale,
     };
-    Ok((e.quotite()?, reference))
+    // « majoree du nombre d'heures complementaires » : celles que le moteur compose du fait du mois (`heures_en_plus`).
+    let complementaires = e
+        .lignes
+        .iter()
+        .filter(|l| l.get("rubrique").and_then(Value::as_str) == Some(crate::heures_en_plus::HEURE_COMPLEMENTAIRE))
+        .map(|l| dec(l.get("quantite").unwrap_or(&Value::Null)))
+        .sum::<Resultat<Decimal>>()?;
+    Ok((e.quotite()? + complementaires, reference))
 }
 
 impl Paie {
