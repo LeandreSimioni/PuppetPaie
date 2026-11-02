@@ -654,7 +654,9 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 return Ok(false);
             }
             let engagements: Vec<Value> = attente.iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
-            let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": engagements}))?;
+            let crate::routes::depots::Dpae::Ecrite(r) = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": engagements}))? else {
+                return Ok(false);
+            };
             let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             // La DPAE emporte la demande de taux de PAS de ses embauches (`depot_acte::deposer_dpae`).
             for reel in [false, true] {
