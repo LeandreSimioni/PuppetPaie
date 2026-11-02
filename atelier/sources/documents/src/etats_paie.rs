@@ -287,7 +287,7 @@ pub struct LigneLivre {
     pub net_a_payer: Option<Decimal>,
     pub pas: Option<Decimal>,
     pub cout_employeur: Option<Decimal>,
-    /// Le jour du versement (`date_paiement` de la paie), JJ/MM/AAAA ; vide s'il n'est pas dit.
+    /// Le jour du versement (`Engagement::date_du_versement`), JJ/MM/AAAA.
     pub verse_le: String,
     pub nir: String,
     pub date_naissance: String,
@@ -462,7 +462,7 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool, departs: &engag
             net_a_payer: dit("net_a_payer", p.net_a_payer),
             pas: r.as_ref().filter(|_| p.dit("pas")).map(|v| eur2(v.prelevement)),
             cout_employeur: dit("cout_employeur", p.cout_employeur),
-            verse_le: p.engagement.date_paiement.as_deref().map(jj).unwrap_or_default(),
+            verse_le: p.engagement.date_du_versement()?.jj_mm_aaaa(),
             nir,
             date_naissance,
             adresse,

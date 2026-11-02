@@ -63,7 +63,12 @@ pub struct Engagement {
     pub planning_lieux: BTreeMap<Jour, String>,
     pub jours: i64,
     pub jours_contrat: i64,
+    /// Le jour du versement que la saisie dit pour CET engagement (« Payé le » : un paiement fait un autre jour), ou
+    /// `None` : celui que la compagnie a choisi (`versement`).
     pub date_paiement: Option<String>,
+    /// Le jour du versement que la compagnie a choisi dans sa configuration (`droit::versement`), lu au dernier jour du
+    /// mois de la paie (`engagements`) ; `Engagement::nouveau` seul : le dernier jour du mois.
+    pub versement: droit::versement::Versement,
     /// Le taux de la premiere ligne de cachet ; sans cachet, celui que l'engagement ou son mois ecrit ; sinon `None`
     /// (regle 1 : aucun taux par defaut, aucun texte n'en fixe).
     pub taux_cachet: Option<f64>,
@@ -534,6 +539,7 @@ impl Engagement {
             jours,
             jours_contrat,
             date_paiement: chaine(get("date_paiement")),
+            versement: Default::default(),
             taux_cachet,
             cachets,
             heures,
@@ -676,13 +682,14 @@ impl Engagement {
         Ok(self.fin.map_or(fin_mois, |f| f.min(fin_mois)))
     }
 
-    /// Le jour du versement de ce que l'engagement paie (S21.G00.50.001) : la date de paiement dite, sinon la fin de la
-    /// periode. C'est le jour ou se fait la retenue a la source (CGI, art. 1671, 1, `atelier/reference/sources/
-    /// code-general-des-impots/articles-20261021.md`), donc celui ou se lit le taux de PAS du salarie.
+    /// Le jour du versement de ce que l'engagement paie (S21.G00.50.001, la « date de paiement » du bulletin) : celui que
+    /// la saisie dit pour lui, sinon celui que la compagnie a choisi (`droit::versement`). C'est le jour ou se fait la
+    /// retenue a la source (CGI, art. 1671, 1, `atelier/reference/sources/code-general-des-impots/articles-20261021.md`),
+    /// donc celui ou se lit le taux de PAS du salarie.
     pub fn date_du_versement(&self) -> Resultat<Jour> {
-        match self.date_paiement.as_deref().and_then(|d| Jour::lire(d.get(..10).unwrap_or(d)).ok()) {
-            Some(j) => Ok(j),
-            None => self.fin_periode(),
+        match self.date_paiement.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
+            Some(d) => Jour::lire(d.get(..10).unwrap_or(d)),
+            None => self.versement.jour(&self.mois, self.fin_periode()?),
         }
     }
 
@@ -1048,7 +1055,7 @@ pub(crate) fn engagements(
         poser("jours_contrat", e.get("jours_contrat").or(continue_.as_ref()));
         poser("planning", Some(&Value::Array(planning_engagement(e))));
         poser("lignes", lignes.as_ref());
-        poser("date_paiement", e.get("date_paiement").or(data.get("date_paiement")));
+        poser("date_paiement", e.get("date_paiement"));
         poser("lieu", e.get("lieu"));
         for champ in ["emploi", "pcs_ese", "code_emploi_ft", "statut", "statut_conventionnel", "statut_categoriel_rc"] {
             let v = ou(e.get(champ), declare.get(champ));
@@ -1080,7 +1087,14 @@ pub(crate) fn engagements(
         for k in CHAMPS_DU_CONTRAT_ECRIT {
             poser(k, e.get(k));
         }
-        let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
+        let mut eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
+        eng.versement = droit::versement::Versement::de_la_fiche(&ctx.entreprise_au(&dernier_du_mois(&eng.mois)?)?)?;
+        // Ce que l'ancien logiciel a verse est un fait : seul ce que la compagnie va verser se juge.
+        if e.get(crate::importe::IMPORTE).is_none() {
+            if let Some(refus) = versement_refuse(ctx, &eng, &qui)? {
+                return Err(refus);
+            }
+        }
         notifiee_pendant_le_contrat(e, &eng)?;
         // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
@@ -1096,6 +1110,26 @@ pub(crate) fn engagements(
 /// ou égale à la date de début de contrat de travail et inférieure ou égale à la date de fin de contrat de travail »
 /// (CCH-11 de S21.G00.62.003, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt`). La saisie `e` qui la dit
 /// (`notification_rupture`) se refuse, en disant les bornes du contrat `eng` ; un contrat sans fin ne borne que le debut.
+/// Le refus du jour du versement de `eng` que les textes interdisent (`droit::versement::refus`) ; `None` : il passe.
+fn versement_refuse(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<Option<String>> {
+    let verse = eng.date_du_versement()?;
+    // L'artiste de cirque en contrat a duree determinee de la 1285 dont le contrat finit dans ce mois : son metier est
+    // range « cirque » dans la grille de la 1285 (`emplois-base.json`, `minima`), la grille de X.3.5.
+    let fin_mois = eng.fin_mois()?;
+    let fin_cirque = match eng.fin.filter(|f| *f <= fin_mois) {
+        Some(f) if !eng.nat()?.duree_indeterminee && droit::versement::au_plus_tard_cirque_1285(&f)? < verse => {
+            let ent = ctx.entreprise_au(&fin_mois)?;
+            let fiche = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
+            let code = fiche.get("code_emploi_ft").filter(|c| vrai(c)).map(en_texte).unwrap_or_default();
+            let metier = emplois::metier(&code)?.unwrap_or(Value::Null);
+            let cirque = metier.get("minima").and_then(|m| m.get("1285")).and_then(Value::as_str) == Some("cirque");
+            (ent.get("idcc").map(en_texte).as_deref() == Some("1285") && cirque).then_some(f)
+        }
+        _ => None,
+    };
+    droit::versement::refus(qui, &verse, &eng.mois, fin_cirque.as_ref())
+}
+
 fn notifiee_pendant_le_contrat(e: &Value, eng: &Engagement) -> Resultat<()> {
     let Some(t) = e.get("notification_rupture").and_then(Value::as_str).filter(|t| !t.trim().is_empty()) else { return Ok(()) };
     let n = Jour::lire(t).map_err(|_| format!("{} : « Notifiée le » {} n'est pas une date.", eng.nom, t))?;

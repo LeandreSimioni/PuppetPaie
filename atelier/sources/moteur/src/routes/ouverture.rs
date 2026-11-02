@@ -61,7 +61,7 @@ const AIDES: &[(&str, &str)] = &[
     ("preavis_non_effectue", "L1234-5 : le préavis dont l'employeur dispense le salarié est payé en indemnité compensatrice."),
     ("preavis_mois", "La durée du préavis, en mois ; vide : celle de la loi et de la convention."),
     ("precarite_due", "L1243-10 : deux cas ne se lisent pas dans le contrat, l'étudiant pendant ses vacances et le salarié qui refuse un CDI ; dire lequel."),
-    ("date_paiement", "La date de paiement propre à ce contrat (sinon celle du mois)."),
+    ("date_paiement", "Le jour du virement de ce contrat, s'il diffère de celui de la configuration."),
     ("lieu", "Le lieu que le contrat imprime quand une ligne de paie n'en dit pas."),
     ("taux_cachet", "Le taux du cachet de ce contrat quand aucune ligne de cachet ne le dit."),
     ("jours", "Les jours travaillés que la DSN déclare (sinon les jours cochés)."),

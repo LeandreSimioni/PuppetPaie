@@ -540,7 +540,6 @@ function tauxParDefaut(code) {
  * chacun n'apparaît dans « Plus d'options » que s'il a une valeur — et alors
  * il se voit, se modifie, se vide, et s'écrit depuis là, comme le reste. */
 const CHAMPS_RARES = [
-  { cle: "date_paiement", libelle: "Payé le", type: "date" },
   { cle: "lieu", libelle: "Lieu du contrat", type: "text" },
   { cle: "taux_cachet", libelle: "Cachet du contrat", type: "number" },
   { cle: "jours", libelle: "Jours travaillés déclarés", type: "number" },
@@ -560,6 +559,9 @@ const aUneValeur = (v) => v !== undefined && v !== null && v !== "" && v !== fal
 
 /** Les champs rares que l'engagement porte, posés dans le formulaire. */
 function poserRares(div, e) {
+  const paye = div.querySelector(".e-paye-le");
+  paye.value = e.date_paiement || "";
+  paye.onchange = rafraichirApercu;
   const cible = div.querySelector(".e-rares");
   cible.innerHTML = CHAMPS_RARES.filter((c) => aUneValeur(e[c.cle])).map((c) => c.type === "checkbox"
     ? `<label class="coche" title="${aideDe(c.cle)}"><input type="checkbox" class="e-rare"
@@ -908,6 +910,11 @@ function construireCarte(div, e) {
         <select class="e-metier"></select></label>
       <label class="coche e-cadre-bloc" title="cadre pour la retraite complémentaire (DSN 40.003 = 01)">
         <input type="checkbox" class="e-cadre"> cadre</label>
+      <!-- LE JOUR DU VIREMENT DE CE CONTRAT, quand il n'est pas celui que la
+           compagnie a choisi dans sa configuration (droit::versement). Vide :
+           celui de la configuration. -->
+      <label title="${aideDe("date_paiement")}">Payé le
+        <input type="date" class="e-rare e-paye-le" data-cle="date_paiement" data-type="date"></label>
       </div>
       <div class="e-options-ligne e-rares" hidden></div>
     <!-- LE CONTRAT, replié : « du 12/10/2026 au 20/12/2026 », préréglé sur
@@ -1178,7 +1185,7 @@ function construireCarte(div, e) {
   // Ouvert d'office quand ce qu'il cache est déjà rempli : rien de saisi ne
   // devient invisible.
   const nat = natureDe(selNat.value);
-  div.querySelector(".e-options").hidden = !(e.metier || e.cadre != null
+  div.querySelector(".e-options").hidden = !(e.metier || e.cadre != null || aUneValeur(e.date_paiement)
     || CHAMPS_RARES.some((c) => aUneValeur(e[c.cle]))
     || ["periode_essai_jours", "personne_remplacee", "repartition_horaire", "clauses_particulieres"].some((c) => aUneValeur(e[c]))
     || nat.mensuelle || e.debut && e.debut.slice(0, 7) < (document.getElementById("mois").value || "")

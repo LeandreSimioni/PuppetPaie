@@ -225,6 +225,7 @@ impl Importe {
             jours: 0,
             jours_contrat: 0,
             date_paiement: lu("verse_le"),
+            versement: Default::default(),
             taux_cachet: None,
             cachets: 0,
             heures: None,

@@ -1752,7 +1752,10 @@ impl Paie {
             "deduction_forfaitaire".into(),
             self.deduction_forfaitaire.as_ref().map_or(Value::Null, |d| d.canon()),
         );
-        m.insert("engagement".into(), self.engagement.canon()?);
+        // Le jour du versement que la paie declare et imprime (`Engagement::date_du_versement`) : le contrat le dit.
+        let mut engagement = self.engagement.canon()?;
+        engagement["date_paiement"] = Value::String(self.engagement.date_du_versement()?.iso());
+        m.insert("engagement".into(), engagement);
         m.insert("heures".into(), n(self.heures));
         m.insert("heures_absence".into(), n(self.heures_absence));
         m.insert("heures_travaillees".into(), n(self.heures_travaillees));

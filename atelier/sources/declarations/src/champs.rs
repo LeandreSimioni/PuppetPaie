@@ -1091,6 +1091,10 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
             return Ok(Some(faute));
         }
     }
+    // LE JOUR DU VERSEMENT DES SALAIRES se lit comme la paie le lira (`droit::versement`).
+    if c.cle == droit::versement::CLE {
+        return Ok(droit::versement::Versement::lire(v).err());
+    }
     // LE CODE APE SE RECONNAIT DANS LA NAF REV. 2 OU LA NAF 2025 (`naf.rs`) : les deux sont admises a la saisie,
     // un code qu'aucune ne connait refuse.
     if c.cle == "naf" {

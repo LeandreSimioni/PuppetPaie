@@ -1,8 +1,8 @@
 //! OU VIVENT LES ENGAGEMENTS : `engagements/AAAA-MM.json`, le fichier du mois ou chaque engagement commence. Un
 //! engagement est UN objet, qu'il dure un jour ou six mois ; il n'est ecrit que la.
 //!
-//! Le fichier d'un mois : `{"mois", "taux_cachet", "date_paiement", "engagements": [...]}` : le cachet par defaut
-//! et la date de paiement du mois, que le calcul lit pour chaque engagement du mois ; le mois ne porte rien d'autre.
+//! Le fichier d'un mois : `{"mois", "taux_cachet", "engagements": [...]}` : le cachet par defaut du mois, que le
+//! calcul lit pour chaque engagement du mois ; le mois ne porte rien d'autre.
 //!
 //! Un engagement porte la saisie de son premier mois, telle que l'ecran l'ecrit (salarie, spectacle, dates, lignes,
 //! nature, metier...), et, s'il deborde, `mois_suivants` : pour chaque mois d'apres que la saisie a touche, ce qu'il y
@@ -674,7 +674,7 @@ pub fn cle_de_saisie(mois: &str, salarie: Option<&str>) -> String {
 
 /// L'empreinte de la saisie d'un mois : ce qu'elle dit, sans ce que le moteur tient seul (la validation) ni le numero du
 /// contrat (pose a l'envoi, il ne change aucun montant), les cles triees et un nombre ecrit comme un nombre. Deux parts,
-/// `<le mois>:<ses engagements>` : ce que le mois pose pour tous (taux du cachet, date de paiement...), et ses
+/// `<le mois>:<ses engagements>` : ce que le mois pose pour tous (le taux du cachet), et ses
 /// engagements ; la raison d'un recalcul dit laquelle a change (`etats::raison`). Seuls les engagements valides
 /// comptent : une paie ecrite ne lit que ceux-la (`etats::calculer_les_rangs`), et un brouillon tape a cote d'elle ne
 /// la fait pas recalculer. Avec `salarie`, seuls ses engagements comptent : la paie d'un engagement ne lit, des autres

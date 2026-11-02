@@ -326,10 +326,12 @@ fn comparer_une(
         }
     }
     e.insert("lignes".into(), Value::Array(saisies));
-    let mut data = json!({"mois": mois, "engagements": [Value::Object(e)]});
+    // Le jour ou l'ancien logiciel a verse : un fait (`crate::importe::IMPORTE`).
     if let Some(v) = p.get("verse_le").filter(|x| vrai(x)) {
-        data["date_paiement"] = v.clone();
+        e.insert("date_paiement".into(), v.clone());
     }
+    e.insert(crate::importe::IMPORTE.into(), json!(true));
+    let data = json!({"mois": mois, "engagements": [Value::Object(e)]});
     let mut saisie = crate::charger_donnees(&ctx, &data).map_err(|m| a_refaire(c, m))?;
     if let Some((taux, montant, base)) = atmp_imprime {
         // Calcule au taux notifie de 1 %, la ligne AT/MP porte le facteur du contrat, et son assiette.

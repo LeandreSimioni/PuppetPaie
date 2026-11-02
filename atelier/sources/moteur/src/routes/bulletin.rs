@@ -9,7 +9,6 @@ use crate::routes::catalogue::{Acte, Champ, Ecran, Fiche, Place, OPERATION};
 use crate::routes::fiches::refus;
 use droit::contexte::Contexte;
 use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
-use socle::date::Jour;
 use socle::fichiers::dossier_du_code;
 use socle::echec::{Echec, R};
 use socle::fichiers::lire_json;
@@ -154,8 +153,7 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let racine = dossier_apercu();
     let saisie = lire_json(&racine.join("saisie.json"))?;
     let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
-    let jour = saisie.get("date_paiement").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas sa date de paiement.")?;
-    let ctx = Contexte::nouveau(&racine, Some(Jour::lire(jour)?))?;
+    let ctx = Contexte::nouveau(&racine, Some(socle::date::dernier_du_mois(&mois)?))?;
     let s = engagement::pour_l_ecran(&ctx, &saisie)?;
     let mut ent = ctx.entreprise.clone();
     let o: &mut Map<String, Value> = ent.as_object_mut().ok_or("La fiche de la compagnie de l'aperçu n'est pas un objet.")?;

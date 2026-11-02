@@ -333,10 +333,8 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
     poser("contrat.fin", Jour::lire(e.fin.as_deref().ok_or("contrat sans fin")?)?.jj_mm_aaaa());
     poser("contrat.dates_travail", dates_travail(e)?);
     poser("contrat.lieu", lieu_du_contrat(e));
-    let paiement = match e.date_paiement.as_deref() {
-        Some(p) if !p.is_empty() => p,
-        _ => e.fin.as_deref().ok_or("contrat sans fin")?,
-    };
+    // Le jour du versement de la paie (`engagement::Engagement::date_du_versement`, que la paie ecrite porte).
+    let paiement = e.date_paiement.as_deref().filter(|p| !p.is_empty()).ok_or("engagement sans `date_paiement`")?;
     poser("contrat.date_paiement", Jour::lire(paiement)?.jj_mm_aaaa());
     poser("remuneration.detail", remuneration_detaillee(remuneration, e)?);
     poser("remuneration.periode", periode_remuneration(e)?);

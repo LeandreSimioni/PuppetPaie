@@ -781,7 +781,7 @@ const SECTIONS_FICHE = {
     // elle se pose en clair. Le moteur le lit (`contexte::emploie_des_permanents`).
     // Les conseils « Le saviez-vous ? » :
     // une option qui parle de vos salariés, elle se pose avec eux.
-    ["Vos salariés", ["emploie_des_permanents", "conseils"]],
+    ["Vos salariés", ["emploie_des_permanents", "date_de_versement", "conseils"]],
     // Le taux AT/MP se pose en tête de ce bloc (`ATMP_HTML`).
     // LE CODE DU SERVICE DE SANTÉ AU TRAVAIL N'EST PAS DANS L'« AVANCÉ » (le tiroir
     // replié) : chaque DPAE l'exige (`dpae::medecine_de`) et

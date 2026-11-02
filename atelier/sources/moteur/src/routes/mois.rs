@@ -25,7 +25,7 @@ use droit::contexte::{archivee, Contexte};
 use droit::emplois;
 use engagement::{self, Engagement};
 use envois::etats::{get, items, ou, Dico};
-use socle::date::{en_texte, jours_du_mois, Jour};
+use socle::date::{en_texte, Jour};
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{repr, repr_valeur, vrai};
 use socle::num::{dec, flottant, Decimal};
@@ -225,16 +225,6 @@ fn nombre_f(x: f64) -> Value {
     serde_json::Number::from_f64(x).map_or(Value::Null, Value::Number)
 }
 
-/// Un entier ecrit en texte (blancs autour admis).
-fn entier(t: &str) -> R<i32> {
-    t.trim().parse::<i32>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))))
-}
-
-/// Les `n` premiers caracteres (`mois[:n]`) et ceux de `a` a `b` (`mois[a:b]`).
-fn tranche(t: &str, a: usize, b: usize) -> String {
-    t.chars().skip(a).take(b - a).collect()
-}
-
 /// Le fichier d'une saisie, lu en JSON ; un fichier illisible refuse en le nommant.
 pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
@@ -248,18 +238,9 @@ pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
 /// dernier taux saisi -- `null` quand le dossier n'a encore aucun cachet (R12 :
 /// aucun texte ne fixe un taux de cachet, la compagnie le saisit).
 pub(crate) fn squelette(ctx: &Contexte, mois: &str) -> R<Value> {
-    let fin = fin_du_mois(mois)?;
+    socle::date::dernier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
     let taux = dernier_taux(ctx)?.map_or(Value::Null, nombre_f);
-    Ok(json!({ "mois": mois, "taux_cachet": taux, "date_paiement": fin, "engagements": [] }))
-}
-
-/// Le dernier jour du mois `AAAA-MM`, en ISO : la date de paiement d'un mois qui n'en dit pas.
-fn fin_du_mois(mois: &str) -> R<String> {
-    let (an, mo) = (entier(&tranche(mois, 0, 4))?, entier(&tranche(mois, 5, 7))?);
-    if !(1..=12).contains(&mo) {
-        return Err(erreur("ValueError", format!("bad month number {}; must be 1-12", mo)));
-    }
-    Ok(format!("{}-{:02}-{:02}", an, mo, jours_du_mois(an, mo as u32)))
+    Ok(json!({ "mois": mois, "taux_cachet": taux, "engagements": [] }))
 }
 
 /// Le flottant d'une valeur de saisie, quand elle est vraie.

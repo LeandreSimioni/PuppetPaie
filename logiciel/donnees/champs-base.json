@@ -625,6 +625,25 @@
    "ecran": true
   },
   {
+   "_note": "LE JOUR DU VERSEMENT DES SALAIRES : la date que la DSN declare (S21.G00.50.001, atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt), que le bulletin porte (C. trav., art. R. 3243-1, 11°) et a laquelle se lit le taux de PAS (BOI-IR-PAS-30-10-20, § 80). Vide : le dernier jour du mois. « fin du contrat » : chaque paie a la fin de sa periode. « le N » ou « le N du mois suivant » : un jour fixe (le decalage de paie, BOI-IR-PAS-30-10-30-20, § 50). Lu par `droit::versement`, au seul endroit `Engagement::date_du_versement` ; une carte dit un autre jour par « Payé le ».",
+   "cle": "date_de_versement",
+   "libelle": "Jour du versement des salaires",
+   "forme": "texte",
+   "aide": "Le jour où part le virement. Vide : le dernier jour du mois. Sinon « fin du contrat », « le 25 » ou « le 5 du mois suivant ». La DSN le déclare, le bulletin le porte, le taux de prélèvement à la source se lit ce jour-là.",
+   "longueur": null,
+   "exemple": "le 5 du mois suivant",
+   "choix": [],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": false,
+   "si": null,
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": true,
+   "ecran": true
+  },
+  {
    "_note": "LA PREVOYANCE DES PERMANENTS (19/09/2026). Rien a saisir dans le cas\nordinaire : le taux est celui de la convention collective (catalogue de\nbranche, moteur/prevoyance-conventionnelle-base.json), il est\nobligatoire, et le moteur l'applique sans demander. Ce champ ne sert\nqu'a DIRE CE QU'ON A EN PLUS -- une extension facultative, un contrat\nd'entreprise plus favorable. Une compagnie qui ne le remplit pas est\ncorrectement couverte ; une compagnie qui y ecrit moins que la branche\nest refusee.",
    "cle": "prevoyance_permanents",
    "champs": [
