@@ -363,6 +363,20 @@ impl Echeance {
         self.quand = format!("le {}", jour.jj_mm_aaaa());
     }
 
+    /// Le geste qui fait une obligation, lu sur ses champs : la fin d'un contrat se signale (ou, s'il manque une case, se
+    /// complete dans sa carte) ; un signalement DSN d'arret ou de reprise se signale ; une obligation hors DSN qu'une route
+    /// dit faite (`accident-declare`, `attestation-declare`) se dit faite ; le reste s'ouvre dans son mois.
+    fn geste(&self) -> Option<&'static str> {
+        let o = self.obligation.as_ref()?;
+        Some(match o.get("cle").and_then(Value::as_str).unwrap_or("") {
+            "signalement_fin_contrat" if !self.a_saisir.is_empty() => "carte",
+            "signalement_fin_contrat" => "signaler-fin",
+            "signalement_arret" | "signalement_arret_rectificatif" | "signalement_reprise" => "signaler",
+            "declaration_accident" | "attestation_salaire" if o.get("ou").is_some_and(Value::is_array) => "faite",
+            _ => "mois",
+        })
+    }
+
     /// L'échéance en objet JSON, champ par champ.
     fn json(&self) -> Value {
         let opt = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
@@ -379,7 +393,14 @@ impl Echeance {
             "echeance_depot": self.echeance_depot,
             "obligation": self.obligation, "objet": self.objet.as_ref().map(brut_valeur),
             // Les mots de ses gestes : le bouton qui la fait, la case « C'est fait », le titre de sa boite.
+            "geste": self.geste(),
             "bouton": match self.quoi.as_str() {
+                OBLIGATION => Some(match self.geste() {
+                    Some("carte") => "Compléter le contrat",
+                    Some("faite") => "Faite le",
+                    Some("mois") => "Ouvrir le mois",
+                    _ => "Signaler…",
+                }.to_string()),
                 "dsn" => Some("Vérifier et envoyer".to_string()),
                 "cloture" => Some(format!("Clôturer {}", self.annee.clone().unwrap_or_default()).trim().to_string()),
                 "export-compta" => Some("Exporter pour la compta".to_string()),

@@ -433,28 +433,10 @@ function boiteRappels(liste, ech, manques = [], fermer = "Fermer") {
   });
 }
 
-/* CE QUI EST DÛ : une obligation à faire ou en retard
-   (`obligations.rs`) — la fin d'un contrat qui se signale, la déclaration
-   d'accident du travail, le signalement d'un arrêt, l'attestation de salaire
-   du deuil. Le moteur rend l'obligation et ce sur quoi elle porte (`objet`) ;
-   le geste est celui de la colonne « Ce qui est dû » du mois, tiré des mêmes
-   champs (`imprevus.js` : `SIGNALEMENTS_DSN`, `ROUTES_OBLIGATION_FAITE`). */
-function gesteObligation(r) {
-  const o = r.obligation || {};
-  if (o.cle === "signalement_fin_contrat") return (r.a_saisir || []).length ? "carte" : "signaler-fin";
-  if (SIGNALEMENTS_DSN[o.cle]) return "signaler";
-  if (Array.isArray(o.ou) && ROUTES_OBLIGATION_FAITE[o.cle]) return "faite";
-  return "mois";
-}
-
+/* CE QUI EST DÛ : une obligation à faire ou en retard (`obligations.rs`). Le moteur rend l'obligation, ce sur quoi
+   elle porte (`objet`), son geste (`geste`) et le mot de son bouton (`bouton`). */
 function boutonRappel(r, i) {
-  if (r.quoi === "obligation") {
-    const libelle = {
-      "signaler-fin": "Signaler…", signaler: "Signaler…", faite: "Faite le",
-      carte: "Compléter le contrat", mois: "Ouvrir le mois",
-    }[gesteObligation(r)];
-    return `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>`;
-  }
+  if (r.quoi === "obligation") return `<button class="primaire" id="rappel-${i}">${echapper(r.bouton)}</button>`;
   const libelle = r.bouton;
   // UNE ÉCHÉANCE QUE SEULE LA COMPAGNIE PEUT DIRE FAITE (`cochable`) : « C'est fait », comme dans l'échéancier.
   const coche = r.cochable ? `<button class="secondaire" data-echeance="${echapper(r.cle)}" data-fait="oui">C'est fait</button>` : "";
@@ -483,7 +465,7 @@ async function agirSurRappel(r) {
     return boiteDpae(r.mois);
   }
   if (r.quoi === "obligation") {
-    const geste = gesteObligation(r);
+    const geste = r.geste;
     if (geste === "signaler-fin") return boiteSignalerFin(r.mois, r.objet);
     if (geste === "signaler") return boiteSignalerArret(r.objet, SIGNALEMENTS_DSN[r.obligation.cle]);
     if (geste === "faite") return boiteObligationFaite(r.objet, r.obligation);
