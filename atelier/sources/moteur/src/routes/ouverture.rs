@@ -91,6 +91,7 @@ const AIDES: &[(&str, &str)] = &[
     ("reference_faite", "L'accusé de réception, le numéro du recommandé, s'il y en a un."),
     ("hors_dsn", "Elle ne part pas avec la DSN."),
     ("date_accident", "La date de l'accident, ou de sa première constatation."),
+    ("debut_arret", "Le premier jour que l'avis prescrit ; prescrit un jour travaillé, ce jour-là, aussi le dernier jour travaillé."),
     ("prolongation", "La nouvelle fin prescrite, celle de l'avis de prolongation."),
     ("note_imprevu", "Une note pour vous : elle ne part nulle part."),
     ("cloture", "Les saisies et les sorties de l'année ne se modifieront plus (rouvrir reste possible, depuis l'Historique). Tout ce qu'il faut garder (saisies, bulletins, contrats signés, DPAE, DSN, certificats, retours des organismes, journal des dépôts, fiches, export compta) est réuni dans l'archive de l'exercice."),

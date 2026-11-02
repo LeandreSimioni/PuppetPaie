@@ -51,7 +51,7 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
     reussi(&route(&c, "valider-engagement", json!({"mois": "2026-02", "saisie": {"salarie": "SANSNIR",
         "spectacle": "objet-256Z00931107", "lignes": [{"rubrique": "cachet", "quantite": 3, "taux": 115,
         "lieu": "Salle Jean-Moulin, 39100 Dole", "dates": ["2026-02-06", "2026-02-07", "2026-02-08"]}]}}), jour));
-    reussi(&route(&c, "arret-enregistrer", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06", "fin": "2026-02-08",
+    reussi(&route(&c, "arret-enregistrer", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06", "debut": "2026-02-07", "fin": "2026-02-08",
         "motif": "01"}), jour));
     let f = reussi(&route(&c, "arret-signaler", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06"}), jour))["fichier"]
         .as_str()

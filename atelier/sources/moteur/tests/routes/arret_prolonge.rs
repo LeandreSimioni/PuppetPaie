@@ -24,7 +24,7 @@ fn un_accident_du_travail_se_prolonge_puis_se_reprend_plus_tot() {
     reussi(&route(
         &c,
         "arret-enregistrer",
-        json!({"salarie": "SVOBODA", "dernier_jour": "2026-02-10", "fin": "2026-02-15", "motif": "06",
+        json!({"salarie": "SVOBODA", "dernier_jour": "2026-02-10", "debut": "2026-02-11", "fin": "2026-02-15", "motif": "06",
                "date_accident": "2026-02-10"}),
         jour,
     ));

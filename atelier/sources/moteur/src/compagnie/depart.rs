@@ -638,7 +638,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             "Arret de travail reporte dans la DSN : {}, {}, du {} au {}{}.",
             valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null)),
             valeur_en_texte(&resume["motif_libelle"]),
-            jour(a.get("dernier_jour_travaille").unwrap_or(&Value::Null))?,
+            engagement::imprevus::dernier_jour_declare(a).map_err(valeur)?.jj_mm_aaaa(),
             jour(&fin)?,
             if reprise.is_some() { " (reprise)" } else { " (fin previsionnelle)" }
         )));
@@ -1360,7 +1360,7 @@ fn refaire_le_signalement(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -
                 declarations::dsn::ecrire(&texte, cible).map_err(valeur)
             }
             declarations::fctu::NATURE => route("fin-contrat-signaler", json!({"mois": mois, "salarie": premier, "ordre": ordre, "le": jour.iso()})),
-            n => route("arret-signaler", json!({"salarie": premier, "dernier_jour": evenement, "nature": n, "ordre": ordre, "le": jour.iso()})),
+            n => route("arret-signaler", json!({"salarie": premier, "dernier_jour": crate::routes::imprevus::dernier_jour_saisi(&ctx_j, &premier, &evenement)?, "nature": n, "ordre": ordre, "le": jour.iso()})),
         }
     };
     socle::temps::pendant(instant, refaire)?;

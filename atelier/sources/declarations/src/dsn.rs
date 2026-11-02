@@ -378,7 +378,8 @@ fn nomenclature_subrogation(libelle: &str) -> Resultat<String> {
 pub fn bloc_60(f: &mut Fichier, a: &Arret, nature: &str, banque: &Value) -> Resultat<()> {
     let v = &a.v;
     f.add_v("S21.G00.60.001", g(v, "motif"))?;
-    f.add("S21.G00.60.002", jj(g(v, "dernier_jour_travaille"))?);
+    // La veille du debut prescrit, ou ce jour s'il a ete travaille (S21.G00.60.002, `imprevus::dernier_jour_declare`).
+    f.add("S21.G00.60.002", engagement::imprevus::dernier_jour_declare(v)?.jjmmaaaa());
     f.add("S21.G00.60.003", jj(g(v, "fin_previsionnelle"))?);
     if usage_admet(f, "S21.G00.60.004", nature)? && vrai(g(v, "subrogation")) {
         f.add_v("S21.G00.60.004", g(v, "subrogation"))?;
@@ -5113,7 +5114,7 @@ mod tests {
         Arret {
             v: json!({
                 "salarie": "Audinot", "contrat_debut": "2025-09-01", "contrat_numero": "AU.25.01", "motif": "01",
-                "dernier_jour_travaille": "2026-06-20", "fin_previsionnelle": fin_previsionnelle, "subrogation": "02",
+                "dernier_jour_travaille": "2026-06-20", "debut": "2026-06-21", "fin_previsionnelle": fin_previsionnelle, "subrogation": "02",
                 "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null,
             }),
         }
