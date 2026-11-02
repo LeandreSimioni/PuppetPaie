@@ -210,9 +210,8 @@ async function enregistrerDemarrage(liste) {
     for (const charge of fiches) {
       let r = await api("enregistrer-fiche", charge);
       if (r.avertissement) {
-        const { changements, depuis, pourquoi } = r.avertissement;
         const rendre = mettreDeCote();
-        const reponse = await demanderDateDEffet(changements, depuis, pourquoi);
+        const reponse = await demanderDateDEffet(r.avertissement);
         if (rendre) rendre();
         if (!reponse) { if (bouton) bouton.disabled = false; return false; }
         r = await api("enregistrer-fiche", { ...charge, ...reponse, confirme: true });

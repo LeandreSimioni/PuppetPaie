@@ -37,10 +37,10 @@ pub static TEXTES: &[Texte] = &[
         dossier: "code-du-travail",
         titre: "Code du travail -- ce que la paie lit",
         domaines: &[
-            Domaine { cle: "conges", titre: "Les conges payes", numeros: &["L3141-3", "L3141-4", "L3141-5", "L3141-5-1", "L3141-6", "L3141-9", "L3141-10", "R3141-4", "L3141-24", "L3141-28"] },
+            Domaine { cle: "conges", titre: "Les conges payes", numeros: &["L3141-3", "L3141-4", "L3141-5", "L3141-5-1", "L3141-6", "L3141-9", "L3141-10", "R3141-4", "L3141-24", "L3141-28", "L3141-30"] },
             Domaine { cle: "feries", titre: "Les jours feries", numeros: &["L3133-1", "L3133-2", "L3133-3", "L3133-4", "L3133-5", "L3133-6"] },
             Domaine { cle: "maintien", titre: "Le maintien de salaire pendant un arret de travail", numeros: &["L1226-1", "D1226-1", "D1226-2", "D1226-3", "D1226-4", "D1226-5", "D1226-6", "D1226-7", "D1226-8"] },
-            Domaine { cle: "precarite", titre: "Le CDD et l'indemnite de fin de contrat", numeros: &["L1242-2", "L1242-12", "L1242-13", "L1243-8", "L1243-9", "L1243-10"] },
+            Domaine { cle: "precarite", titre: "Le CDD et l'indemnite de fin de contrat", numeros: &["L1242-2", "L1242-12", "L1242-13", "L1242-16", "L1243-8", "L1243-9", "L1243-10"] },
             Domaine { cle: "rupture", titre: "Le preavis et l'indemnite de licenciement", numeros: &["L1234-1", "L1234-4", "L1234-5", "L1234-9", "R1234-1", "R1234-2", "R1234-4"] },
             Domaine { cle: "documents", titre: "Les documents remis a la fin du contrat", numeros: &["L1234-19", "L1234-20", "D1234-6", "D1234-7", "D1234-8"] },
             Domaine { cle: "retraite", titre: "Le depart et la mise a la retraite", numeros: &["L1237-5", "L1237-6", "L1237-7", "L1237-8", "L1237-9", "L1237-10", "D1237-1", "D1237-2", "D1237-2-1"] },
@@ -88,7 +88,7 @@ pub static TEXTES: &[Texte] = &[
             // qu'il n'a pas employe de facon continue pendant les douze mois
             // precedant la demande de conge (la lettre circulaire Acoss 2013-019,
             // annexe 1, R5, y borne la majoration).
-            Domaine { cle: "majoration_caisses", titre: "Les contributions de formation et d'apprentissage majorees chez un employeur affilie a une caisse de conges", numeros: &["L3141-32", "L6131-2", "L6241-1", "L6242-1", "L6331-6", "L6331-55", "D7121-28", "D7121-40", "D7121-41"] },
+            Domaine { cle: "majoration_caisses", titre: "Les contributions de formation et d'apprentissage majorees chez un employeur affilie a une caisse de conges", numeros: &["L3141-32", "L6131-2", "L6241-1", "L6242-1", "L6331-6", "L6331-55", "D7121-28", "D7121-38", "D7121-40", "D7121-41"] },
             // LE CHOMAGE ET L'AGS D'UN PERMANENT.
             // L5422-9 : les contributions << sont assises sur les remunerations
             // brutes dans la limite d'un plafond >> ; L5422-20 renvoie ses

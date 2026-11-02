@@ -229,47 +229,57 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     let ent = &ctx.entreprise;
     let premier = premier_du_mois(mois)?;
 
-    // --- l'indemnite compensatrice de conges payes (L3141-28) : toujours due
-    let salarie = t(cle(e, "salarie")?);
-    let cpt = compteur_conges(ctx, &salarie, &fin, mois)?;
-    let mut pris_ce_mois = Decimal::ZERO;
-    for c in e.get("conges_pris").and_then(|c| c.as_array()).map_or(&[][..], |a| &a[..]) {
-        pris_ce_mois = add(pris_ce_mois, Decimal::from(jours_ouvrables_de(c, ent)?));
-    }
-    let acquis_ce_mois = jours_acquis(&d(cle(e, "debut")?)?.max(premier), &fin)?;
-    let solde = sub(add(cpt.solde(), acquis_ce_mois), pris_ce_mois);
-    if solde > Decimal::ZERO {
-        let ouvrables = Decimal::from(jours_ouvrables(&premier, &fin, None)?);
-        let ouvrables = if ouvrables.is_zero() { Decimal::ONE } else { ouvrables };
-        let maintien = eur2(mul(div(salaire, ouvrables), solde));
-        // Les jours pris ce mois-ci ont deja consomme le report d'abord :
-        // le reste du report est ce qui se paie au dixieme d'avant.
-        let entame = plus_petit(pris_ce_mois, cpt.report_restant());
-        let mut cpt2 = cpt.clone();
-        cpt2.reports = sub(cpt.reports, entame);
-        let ind = indemnite_des_jours(&cpt2, solde, maintien)?;
-        stc.lignes.push(json!({
-            "rubrique": "indemnite_compensatrice_conges",
-            "quantite": flot(solde),
-            "taux": flot(eur2(div(ind.retenu, solde))),
-        }));
+    // --- l'indemnite compensatrice de conges payes (L3141-28 ; L1242-16 pour un CDD), quelle que soit la cause de la
+    // rupture. L3141-28 « [n'est pas applicable] lorsque l'employeur est tenu d'adherer a une caisse de conges » (L3141-30) :
+    // la caisse des Conges Spectacles « assure le service des conges » (D7121-38) du salarie que l'employeur lui declare
+    // (D7121-41 ; `caisse_conges::affilie`, le meme que la paie lit). Ce salarie n'a pas d'indemnite de l'employeur.
+    if crate::calcul::saisie_declaree_a_la_caisse_des_conges(ctx, e, &fin)? {
         stc.avertissements.push(info(format!(
-            "{} : {} jour(s) de conges acquis et non pris, payes {} ({}) -- \
-             art. L3141-28, due quelle que soit la cause de la rupture.",
-            qui,
-            arrondir_jours(solde),
-            ind.retenu,
-            ind.regle
+            "{} : ses conges sont payes par la caisse des Conges Spectacles, pas d'indemnite compensatrice (L3141-30).",
+            qui
         )));
-    } else if solde < Decimal::ZERO {
-        stc.avertissements.push(avertir(format!(
-            "{} : le compteur de conges est NEGATIF ({} jours) -- le salarie \
-             a pris plus que ce qu'il a acquis. La retenue sur le solde de \
-             tout compte n'est pas calculee : elle se decide, et elle est \
-             encadree. A regler a la main.",
-            qui,
-            arrondir_jours(solde)
-        )));
+    } else {
+        let salarie = t(cle(e, "salarie")?);
+        let cpt = compteur_conges(ctx, &salarie, &fin, mois)?;
+        let mut pris_ce_mois = Decimal::ZERO;
+        for c in e.get("conges_pris").and_then(|c| c.as_array()).map_or(&[][..], |a| &a[..]) {
+            pris_ce_mois = add(pris_ce_mois, Decimal::from(jours_ouvrables_de(c, ent)?));
+        }
+        let acquis_ce_mois = jours_acquis(&d(cle(e, "debut")?)?.max(premier), &fin)?;
+        let solde = sub(add(cpt.solde(), acquis_ce_mois), pris_ce_mois);
+        if solde > Decimal::ZERO {
+            let ouvrables = Decimal::from(jours_ouvrables(&premier, &fin, None)?);
+            let ouvrables = if ouvrables.is_zero() { Decimal::ONE } else { ouvrables };
+            let maintien = eur2(mul(div(salaire, ouvrables), solde));
+            // Les jours pris ce mois-ci ont deja consomme le report d'abord :
+            // le reste du report est ce qui se paie au dixieme d'avant.
+            let entame = plus_petit(pris_ce_mois, cpt.report_restant());
+            let mut cpt2 = cpt.clone();
+            cpt2.reports = sub(cpt.reports, entame);
+            let ind = indemnite_des_jours(&cpt2, solde, maintien)?;
+            stc.lignes.push(json!({
+                "rubrique": "indemnite_compensatrice_conges",
+                "quantite": flot(solde),
+                "taux": flot(eur2(div(ind.retenu, solde))),
+            }));
+            stc.avertissements.push(info(format!(
+                "{} : {} jour(s) de conges acquis et non pris, payes {} ({}) -- \
+                 art. L3141-28, due quelle que soit la cause de la rupture.",
+                qui,
+                arrondir_jours(solde),
+                ind.retenu,
+                ind.regle
+            )));
+        } else if solde < Decimal::ZERO {
+            stc.avertissements.push(avertir(format!(
+                "{} : le compteur de conges est NEGATIF ({} jours) -- le salarie \
+                 a pris plus que ce qu'il a acquis. La retenue sur le solde de \
+                 tout compte n'est pas calculee : elle se decide, et elle est \
+                 encadree. A regler a la main.",
+                qui,
+                arrondir_jours(solde)
+            )));
+        }
     }
 
     // --- l'indemnite de fin de CDD (L1243-8)

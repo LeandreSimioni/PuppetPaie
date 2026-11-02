@@ -1092,7 +1092,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
         }
     }
     // LE JOUR DU VERSEMENT DES SALAIRES se lit comme la paie le lira (`droit::versement`).
-    if c.cle == droit::versement::CLE {
+    if droit::versement::CLES.contains(&c.cle.as_str()) {
         return Ok(droit::versement::Versement::lire(v).err());
     }
     // LE CODE APE SE RECONNAIT DANS LA NAF REV. 2 OU LA NAF 2025 (`naf.rs`) : les deux sont admises a la saisie,

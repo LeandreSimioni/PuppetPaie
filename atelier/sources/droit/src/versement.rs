@@ -1,5 +1,7 @@
-//! LE JOUR DU VERSEMENT DES SALAIRES : le jour ou part l'argent d'une paie. La compagnie le dit une fois, dans sa
-//! configuration (`date_de_versement` de la fiche entreprise, datee comme elle) ; un engagement paye un autre jour le dit
+//! LE JOUR DU VERSEMENT DES SALAIRES : le jour ou part l'argent d'une paie. La compagnie le dit dans sa configuration
+//! (fiche entreprise, datee comme elle), une fois pour ses permanents (`date_de_versement_permanents` : un contrat paye au
+//! mois, `Nature::mensuelle`) et une fois pour ses intermittents (`date_de_versement_intermittents` : les autres, au
+//! cachet ou a l'heure) ; un engagement paye un autre jour le dit
 //! sur sa carte (`date_paiement`). C'est la « Date à laquelle le débiteur effectue le versement » (S21.G00.50.001,
 //! `atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt`, l. 50-55), la « date de paiement » du bulletin (C. trav.,
 //! art. R. 3243-1, 11°, `atelier/reference/sources/code-du-travail/articles-20261030.md`) et le jour ou se lit le taux de
@@ -17,7 +19,8 @@
 //! Les intermittents ne sont pas sous le paiement mensuel (C. trav., art. L. 3242-1, al. 3,
 //! `atelier/reference/sources/code-du-travail/xml/L3242-1.xml`) : aucun texte de la loi ne fixe leur jour de paie. Ce que
 //! L. 3242-3 (deux paies par mois aux non-mensualises) dit d'eux, aucun texte depose ne le tranche : le moteur ne
-//! l'applique pas.
+//! l'applique pas. Un jour fixe dans le mois pour eux n'est pas refuse : la configuration demande seulement de le
+//! confirmer (`a_confirmer_pour_les_intermittents`) ; la case « Payé le » d'une carte ne demande rien.
 //!
 //! Ce que les textes refusent (`refus`) :
 //! - un versement apres le dernier jour du mois qui suit le mois principal declare (CCH-13 de S21.G00.50.001) ;
@@ -34,8 +37,21 @@ use serde_json::Value;
 use socle::date::{dernier_du_mois, jours_du_mois, Jour};
 use socle::num::Resultat;
 
-/// La case de la fiche entreprise.
-pub const CLE: &str = "date_de_versement";
+use crate::natures::Nature;
+
+/// Les deux cases de la fiche entreprise : le jour des permanents, le jour des intermittents.
+pub const CLE_PERMANENTS: &str = "date_de_versement_permanents";
+pub const CLE_INTERMITTENTS: &str = "date_de_versement_intermittents";
+pub const CLES: [&str; 2] = [CLE_PERMANENTS, CLE_INTERMITTENTS];
+
+/// La case qui dit le jour d'un contrat de nature `nat` : celle des permanents pour un contrat paye au mois.
+pub fn cle_de(nat: &Nature) -> &'static str {
+    if nat.mensuelle() {
+        CLE_PERMANENTS
+    } else {
+        CLE_INTERMITTENTS
+    }
+}
 
 /// Les formes qu'elle lit, dans la phrase d'un refus.
 const FORMES: &str = "vide (le dernier jour du mois), « fin du contrat », « le 25 » ou « le 5 du mois suivant »";
@@ -73,18 +89,33 @@ impl Versement {
         }
     }
 
-    /// La case de la fiche entreprise `ent` (absente : le dernier jour du mois).
-    pub fn de_la_fiche(ent: &Value) -> Resultat<Versement> {
-        match ent.get(CLE) {
+    /// La case de la fiche entreprise `ent` qui dit le jour d'un contrat de nature `nat` (`cle_de`) ; absente : le dernier
+    /// jour du mois.
+    pub fn de_la_fiche(ent: &Value, nat: &Nature) -> Resultat<Versement> {
+        match ent.get(cle_de(nat)) {
             Some(Value::String(t)) => Versement::lire(t).map_err(|_| {
                 format!(
-                    "Le jour du versement des salaires que dit la configuration, « {} », ne se lit pas : écrire {} \
+                    "Le jour du versement des {} que dit la configuration, « {} », ne se lit pas : écrire {} \
                      (Configuration › Entreprise).",
+                    if nat.mensuelle() { "permanents" } else { "intermittents" },
                     t.trim(),
                     FORMES
                 )
             }),
             _ => Ok(Versement::FinDuMois),
+        }
+    }
+
+    /// Ce que la configuration demande de confirmer avant d'ecrire le jour des intermittents `texte`, quand il change : un
+    /// jour fixe dans le mois paie avant leur fin les contrats qui finissent apres lui, ce qui n'est pas l'usage (un choix
+    /// de la compagnie, que rien n'interdit : `None` pour les autres formes, et le 31, qui est la fin du mois).
+    pub fn a_confirmer_pour_les_intermittents(texte: &str) -> Option<String> {
+        match Versement::lire(texte) {
+            Ok(Versement::Fixe { quantieme, mois_suivant: false }) if quantieme < 31 => Some(format!(
+                "Payer le {} alors que des contrats peuvent finir jusqu'au 31 n'est pas l'usage. Continuer ?",
+                if quantieme == 1 { "1er".to_string() } else { quantieme.to_string() }
+            )),
+            _ => None,
         }
     }
 
@@ -126,7 +157,7 @@ pub fn au_plus_tard_cirque_1285(fin: &Jour) -> Resultat<Jour> {
 /// determinee d'un artiste de cirque en convention 1285, quand elle tombe dans ce mois. `None` : les textes l'admettent.
 pub fn refus(qui: &str, verse: &Jour, mois: &str, fin_cirque: Option<&Jour>) -> Resultat<Option<String>> {
     let corriger = "Choisir un jour plus tôt : sur la carte (« Payé le »), ou dans la configuration (« Jour du versement \
-                    des salaires »).";
+                    des permanents » ou « des intermittents »).";
     let limite = au_plus_tard_en_dsn(mois)?;
     if *verse > limite {
         return Ok(Some(format!(

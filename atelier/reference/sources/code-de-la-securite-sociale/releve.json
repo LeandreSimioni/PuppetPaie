@@ -3,10 +3,10 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Code de la securite sociale",
  "_legitext": "LEGITEXT000006073189",
- "_livraisons_lues": 479,
- "_livraisons_totales": 479,
+ "_livraisons_lues": 482,
+ "_livraisons_totales": 482,
  "_complet": true,
- "_derniere_livraison": "20261029-215000",
+ "_derniere_livraison": "20261101-210226",
  "_changes_depuis_le_global": [
   {
    "apres": "LEGIARTI000006741897",
@@ -6353,7 +6353,7 @@
    "texte": "securite-sociale"
   }
  ],
- "_releve_le": "2026-10-30",
+ "_releve_le": "2026-11-02",
  "articles": {
   "D241-10": {
    "debut": "2026-06-15",
