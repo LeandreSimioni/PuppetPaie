@@ -293,9 +293,11 @@ LLM à la fois.
 - **Plusieurs Opus à la fois, quatre au plus, et deux Sonnet au plus** (Léandre, 15/10/2026 ; la limite est le disque du
   conteneur : une cible Cargo pèse 2 à 6 Go) : des lots disjoints, chacun dans son worktree et sa cible Cargo
   (`CARGO_TARGET_DIR` seul, un seul profil) ; une passation vérifiée à la fois ; le worktree d'un lot fusionné s'efface
-  aussitôt. **La cible, c'est l'orchestrateur qui la choisit** (Léandre, 23/10/2026) : des lots qui se suivent un par un
-  partagent une même cible, gardée d'un lot à l'autre (on ne recompile que ce qui a changé) ; des lots en parallèle ont
-  chacun la sienne, effacée à la fusion du lot. Sa consigne nomme la cible ; l'exécutant n'en crée pas d'autre.
+  aussitôt, sauf celui d'une chaîne. **La cible, c'est l'orchestrateur qui la choisit** (Léandre, 23/10/2026) : des lots qui se suivent un par un
+  partagent une même cible, gardée d'un lot à l'autre (on ne recompile que ce qui a changé). **Deux chaînes de lots**
+  (Léandre, 02/11/2026) : deux worktrees gardés, chacun avec sa cible compilée, où les lots se suivent en changeant de
+  branche (une chaîne pour un grand chantier, une pour les petits lots) ; une cible ne quitte jamais son worktree ; une
+  cible neuve coûte une longue compilation, on l'évite. Sa consigne nomme la cible ; l'exécutant n'en crée pas d'autre.
   **Une cible qui passe d'un checkout à un autre** (un worktree, puis le checkout où l'on fusionne) se nettoie d'abord :
   `cargo clean --profile essais -p <crate>` pour chaque crate de l'espace. Cargo y range les crates par chemin relatif à
   l'espace et les croit à jour d'après les dates : une crate compilée depuis l'autre checkout masque le code présent.
