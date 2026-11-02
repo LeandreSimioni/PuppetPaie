@@ -782,6 +782,9 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         if let Some(v) = avenant_d_un_contrat_signe_ailleurs(ctx, charge, &numero_voulu)? {
             return Ok(v);
         }
+        if numero_voulu.is_empty() {
+            return Err(erreur("KeyError", "Le numéro du contrat (`numero`, que signature-apercu rend) désigne le contrat parti dont l'avenant se fait. Rien n'est écrit."));
+        }
         return Err(erreur(
             "ErreurOperation",
             format!("Aucun contrat n'est parti à la signature pour {} du {} : il n'y a rien à modifier.", valeur_en_texte(salarie_v), documents::bulletin::jj_mm_aaaa(debut_v).map_err(|m| erreur("ValueError", m))?),
