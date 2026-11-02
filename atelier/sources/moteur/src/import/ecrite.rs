@@ -5,8 +5,8 @@
 //! de sa copie (`<empreinte>.<pdf|dsn|txt>` : rien de personnel ; `import::bulletins::nom_copie`) -- rien ne s'ecrase ;
 //! l'apercu est relu DANS ces copies, et c'est lui qui s'ecrit ; l'alerte CASC-SVP (`alerte_apres_import`) ; les fiches
 //! a creer (entreprise, salaries, spectacles), ecrites comme celles de l'ecran (`crate::routes::fiches::ecrire_fiche`,
-//! `forcer`) ; les ENGAGEMENTS IMPORTES (`engagement::importe`), chacun dans `engagements/AAAA-MM.json`, le fichier du
-//! mois ou il commence : le contrat qu'une AEM ou un bulletin atteste, et ce qui a ete verse, mois par mois (la DSN
+//! `forcer`) ; les ENGAGEMENTS IMPORTES (`engagement::importe`), chacun dans `engagements/AAAA-MM.json`, le fichier de son
+//! mois d'entree (`engagement::importe::ecrire_tous`) : le contrat qu'une AEM ou un bulletin atteste, et ce qui a ete verse, mois par mois (la DSN
 //! deposee, completee par le bulletin). Un import se rejoue sans dommage. La reponse est celle de l'apercu, completee de
 //! ce qui a ete ecrit (`ecrit`, `fichiers`, `copie`) ; elle garde le compte rendu (`tri`) du dossier lu, pour l'ecran ;
 //! un document accepte et pas lu part en incident, masque (`import::incident`). Les pieces copiees restent sous
@@ -309,7 +309,8 @@ fn sans(x: &Value, cles: &[&str]) -> Map<String, Value> {
 /// LES ENGAGEMENTS IMPORTES, tires des contrats attestes (`contrats`, une AEM ou un bulletin chacun) et des paies
 /// versees (`paies`, une par mois et par contrat). Un engagement, c'est un salarie, un debut et une fin : le contrat
 /// atteste qui les porte (plusieurs : celui du meme numero d'objet que la paie), et ses paies, une par mois. Une paie
-/// qu'aucun contrat atteste ne porte fait son engagement avec celles des memes salarie, debut, fin et numero de contrat.
+/// qu'aucun contrat atteste ne porte fait son engagement avec celles des memes salarie, debut, fin et numero de contrat. Les mois du
+/// contrat d'un permanent font un seul engagement (plus bas).
 /// Son numero est celui que la DSN deposee a declare (S21.G00.40.009), sinon celui que le bulletin imprime ; jamais un
 /// numero tire.
 fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<String, Value>> {
@@ -321,6 +322,8 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
         contrat: Option<Value>,
         paies: Vec<Value>,
     }
+    // Le contrat d'un permanent : sa nature, payee au mois, est dite, ou reste a dire (`import::nature`).
+    let permanent = |c: &Value| c.get(crate::import::nature::A_DIRE).is_some_and(vrai) || droit::natures::nature(c.get("nature").and_then(Value::as_str)).is_ok_and(|n| n.mensuelle());
     let mut groupes: Vec<Groupe> = Vec::new();
     for c in contrats {
         groupes.push(Groupe { salarie: t(&c, "salarie"), debut: t(&c, "debut"), fin: t(&c, "fin"), contrat: Some(c), paies: Vec::new() });
@@ -341,16 +344,20 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
                         && (f.is_empty() || g.fin <= f)
                 })
                 .collect();
-            // UN CONTRAT PAR MOIS : les bulletins d'un permanent attestent chacun le mois qu'ils paient, du meme contrat
-            // (`import::nature`) ; la paie declaree du mois va a celui de son mois, qui garde ses dates.
-            let (mois, numero) = (t(&p, "mois"), t(&p, "contrat"));
-            let du_contrat = |g: &Groupe| g.salarie == s && !numero.is_empty() && g.contrat.as_ref().is_some_and(|c| t(c, "atteste_par") == "bulletin" && t(c, "numero_contrat") == numero);
-            if groupes.iter().filter(|g| du_contrat(g)).count() > 1 {
-                candidats.retain(|&i| du_contrat(&groupes[i]) && groupes[i].debut.starts_with(&mois));
-            } else if let [i] = candidats.as_slice() {
+            if let [i] = candidats.as_slice() {
                 groupes[*i].debut = d.clone();
                 groupes[*i].fin = f.clone();
             }
+        }
+        // LE MOIS D'UN CONTRAT DE PERMANENT : la paie d'un bulletin va au contrat de permanent du salarie qui couvre sa
+        // periode.
+        if candidats.is_empty() {
+            candidats = (0..groupes.len())
+                .filter(|&i| {
+                    let g = &groupes[i];
+                    g.salarie == s && g.contrat.as_ref().is_some_and(permanent) && g.debut <= d && (g.fin.is_empty() || (!f.is_empty() && f <= g.fin))
+                })
+                .collect();
         }
         let atteste = match candidats.as_slice() {
             [i] => Some(*i),
@@ -377,6 +384,75 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
         };
         groupes[i].paies.push(p);
     }
+    // UN CONTRAT DE PERMANENT, UN ENGAGEMENT : les bulletins d'un permanent attestent chacun le mois qu'ils paient, tous
+    // du meme contrat, et la DSN le declare chaque mois sous le meme numero (S21.G00.40.009, reporte a l'identique d'une
+    // DSN a la suivante : `norme-dsn/texte/chapitre-2-principes-de-constitution.txt`, § 2.1.2). Les mois du contrat d'un
+    // permanent (et les paies declarees de ces mois qu'aucun contrat ne porte) font un engagement par numero ; deux
+    // numeros, deux contrats, comme la DSN les a declares. Un mois sans numero lu va au contrat declare a partir de lui,
+    // sinon au dernier (inference : le numero du contrat en cours ce mois-la).
+    let mois_de = |g: &Groupe| -> Vec<String> { g.paies.iter().map(|p| t(p, "mois")).collect() };
+    let du_permanent: HashSet<(String, String)> = groupes
+        .iter()
+        .filter(|g| g.contrat.as_ref().is_some_and(permanent))
+        .flat_map(|g| mois_de(g).into_iter().chain(std::iter::once(g.debut.chars().take(7).collect())).map(|m| (g.salarie.clone(), m)).collect::<Vec<_>>())
+        .collect();
+    let (mut a_fondre, mut autres): (Vec<Groupe>, Vec<Groupe>) = groupes.into_iter().partition(|g| match &g.contrat {
+        Some(c) => permanent(c),
+        None => !g.paies.is_empty() && mois_de(g).into_iter().all(|m| du_permanent.contains(&(g.salarie.clone(), m))),
+    });
+    let premier_mois = |g: &Groupe| mois_de(g).into_iter().min().unwrap_or_else(|| g.debut.chars().take(7).collect());
+    a_fondre.sort_by_key(|g| (g.salarie.clone(), premier_mois(g)));
+    let numero_de = |g: &Groupe| {
+        let declare = g.paies.iter().filter(|p| !declaree_par_bulletin(p)).map(|p| t(p, "contrat")).find(|n| !n.is_empty());
+        declare.or_else(|| g.contrat.iter().map(|c| t(c, "numero_contrat")).find(|n| !n.is_empty()))
+    };
+    // (salarie, numero, ses groupes)
+    let mut paquets: Vec<(String, Option<String>, Vec<Groupe>)> = Vec::new();
+    let (numerotes, muets): (Vec<Groupe>, Vec<Groupe>) = a_fondre.into_iter().partition(|g| numero_de(g).is_some());
+    for g in numerotes {
+        let n = numero_de(&g);
+        match paquets.iter_mut().find(|(s, x, _)| *s == g.salarie && *x == n) {
+            Some(p) => p.2.push(g),
+            None => paquets.push((g.salarie.clone(), n, vec![g])),
+        }
+    }
+    for g in muets {
+        let m = premier_mois(&g);
+        let siens: Vec<usize> = (0..paquets.len()).filter(|&k| paquets[k].0 == g.salarie).collect();
+        let a_partir = siens.iter().copied().filter(|&k| paquets[k].2.iter().map(premier_mois).min().is_some_and(|x| x >= m)).min_by_key(|&k| paquets[k].2.iter().map(premier_mois).min());
+        match a_partir.or_else(|| siens.last().copied()) {
+            Some(k) => paquets[k].2.push(g),
+            None => paquets.push((g.salarie.clone(), None, vec![g])),
+        }
+    }
+    for (salarie, _, mut gs) in paquets {
+        gs.sort_by_key(premier_mois);
+        // Ce que le bulletin d'un mois atteste de ce mois (ses heures, ses jours) reste a la paie de ce mois.
+        for g in gs.iter_mut().filter(|g| g.paies.len() == 1) {
+            let Some(c) = g.contrat.clone() else { continue };
+            if let Some(p) = g.paies[0].as_object_mut() {
+                for k in ["heures", "cachets", "jours"] {
+                    if let Some(v) = c.get(k).filter(|_| !p.contains_key(k)) {
+                        p.insert(k.into(), v.clone());
+                    }
+                }
+            }
+        }
+        let paies: Vec<Value> = gs.iter().flat_map(|g| g.paies.iter().cloned()).collect();
+        let declarees: Vec<&Value> = paies.iter().filter(|p| !declaree_par_bulletin(p)).collect();
+        let debut = declarees.iter().map(|p| t(p, "debut")).find(|d| !d.is_empty()).unwrap_or_else(|| gs.iter().map(|g| g.debut.clone()).min().unwrap_or_default());
+        // Sa fin est celle que la DSN declare ; un bulletin ne paie que son mois, il ne dit pas quand le contrat finit.
+        let fin = declarees.last().map(|p| t(p, "fin")).unwrap_or_default();
+        // Le contrat entier : ce qu'un bulletin atteste de son seul mois reste a la paie de ce mois.
+        let mut contrat = gs.iter().rev().find_map(|g| g.contrat.clone()).unwrap_or(Value::Null);
+        if let Some(c) = contrat.as_object_mut().filter(|_| gs.len() > 1) {
+            for k in ["fichier", "page", "numero_bulletin", "heures", "cachets", "jours", "brut"] {
+                c.remove(k);
+            }
+        }
+        autres.push(Groupe { salarie, debut, fin, contrat: Some(contrat).filter(|c| c.is_object()), paies });
+    }
+    let groupes = autres;
     let mut out = Vec::new();
     for g in groupes {
         let mut lu = Map::new();
@@ -394,7 +470,9 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
         let mut e = Map::new();
         e.insert("salarie".into(), json!(g.salarie));
         e.insert("debut".into(), json!(g.debut));
-        e.insert("fin".into(), json!(g.fin));
+        if !g.fin.is_empty() {
+            e.insert("fin".into(), json!(g.fin));
+        }
         let declare = g.paies.iter().filter(|p| !declaree_par_bulletin(p)).map(|p| t(p, "contrat")).find(|n| !n.is_empty());
         let imprime = g.contrat.iter().map(|c| t(c, "numero_contrat")).find(|n| !n.is_empty());
         if let Some(n) = declare.or(imprime) {
@@ -404,7 +482,7 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
         out.push(e);
     }
     out.sort_by(|a, b| {
-        let k = |e: &Map<String, Value>| (e["debut"].as_str().unwrap_or("").to_string(), e["fin"].as_str().unwrap_or("").to_string(), e["salarie"].as_str().unwrap_or("").to_string());
+        let k = |e: &Map<String, Value>| ["debut", "fin", "salarie"].map(|c| e.get(c).and_then(Value::as_str).unwrap_or("").to_string());
         k(a).cmp(&k(b))
     });
     out

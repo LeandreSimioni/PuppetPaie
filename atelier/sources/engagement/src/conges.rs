@@ -426,13 +426,13 @@ pub const MENSUELS: &str = "mensuels ";
 
 /// LE PREMIER MOIS D'UN PERMANENT NE RELIT RIEN : seul un mois paye au mois apporte des conges (`Tenue::ajouter`). Sans
 /// contrat paye au mois du salarie `cle` (la cle de sa fiche) commence avant `mois` (un engagement actif, qui n'est pas
-/// importe), l'etat avant le mois est le fait de son entree : zero, ou la reprise de sa fiche (`conges_reprise`). Rend
+/// qu'importe), l'etat avant le mois est le fait de son entree : zero, ou la reprise de sa fiche (`conges_reprise`). Rend
 /// ces contrats (leur premier mois et leur debut) ; la paie note leur empreinte (`empreinte_des_mensuels_d_avant`) : qu'un
 /// contrat s'ajoute avant elle, et elle se refait.
 fn mensuels_d_avant(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Vec<String>> {
     let mut out: Vec<String> = crate::stock::objets(&ctx.racine)?
         .iter()
-        .filter(|o| o.fichier.as_str() < mois && !o.est_non_actif() && !o.est_importe() && o.mensuel())
+        .filter(|o| o.fichier.as_str() < mois && !o.est_non_actif() && !o.importe_seul() && o.mensuel())
         .filter(|o| crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle))
         .map(|o| format!("{}#{}", o.fichier, crate::debut_brut(&o.brut)))
         .collect();

@@ -161,15 +161,14 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             super::phrase_en_tete(v, p)
         }),
         "contrats-en-cours" => contrats_en_cours_route(ctx, charge).map(|mut v| {
-            // Ce que l'ecran dit en posant les contrats qui ne sont pas encore repris : qui, et s'il reste des jours a poser.
+            // Ce que l'ecran dit en posant les contrats qui ne sont pas encore repris : qui, et que ses jours restent a poser.
             let restants: Vec<&Value> = v["contrats"].as_array().into_iter().flatten().filter(|c| !socle::fichiers::vrai(&c["deja_repris"])).collect();
-            let au_mois = restants.iter().all(|c| droit::natures::nature(c["engagement"]["nature"].as_str()).is_ok_and(|n| n.mensuelle()));
             let de_mois = socle::texte::de(&engagement::libelle_mois(&valeur_en_texte(&charge["mois"])));
             let noms: Vec<String> = restants.iter().map(|c| valeur_en_texte(&c["nom"])).collect();
             let reprise = match noms.len() {
                 0 => Value::Null,
-                1 => json!(format!("Contrat en cours repris : {}{}.", noms[0], if au_mois { String::new() } else { format!(" — poser ses jours {}", de_mois) })),
-                n => json!(format!("{} contrats en cours repris ({}){}.", n, noms.join(", "), if au_mois { String::new() } else { format!(" — poser leurs jours {}", de_mois) })),
+                1 => json!(format!("Contrat en cours repris : {} — poser ses jours {}.", noms[0], de_mois)),
+                n => json!(format!("{} contrats en cours repris ({}) — poser leurs jours {}.", n, noms.join(", "), de_mois)),
             };
             v["reprise"] = reprise;
             let p = format!("Contrats d'un mois passé qui courent encore ce mois : {}.", super::nombre(&v["contrats"]));
@@ -720,9 +719,6 @@ struct EnCours {
     lieu: Value,
     deja_repris: bool,
     lignes: Vec<Value>,
-    /// Un contrat paye au mois (CDD de droit commun...) : ce qui le definit, recopie tel quel ;
-    /// `None` pour un contrat d'usage, qui se reprend par ses lignes.
-    mensuel: Option<Map<String, Value>>,
 }
 
 impl EnCours {
@@ -744,9 +740,10 @@ impl EnCours {
         m
     }
 }
-/// LES CONTRATS REPRIS D'UN AUTRE LOGICIEL QUI COURENT SUR `mois`. Un engagement d'ici commence un mois precedent est
-/// deja a l'ecran de `mois` (un seul objet, lu dans le fichier du mois ou il commence : `engagement::stock`) ; ne
-/// restent que ceux que l'historique importe porte. Chacun se dit repris (`deja_repris`) quand un engagement de l'ecran
+/// LES CONTRATS D'USAGE REPRIS D'UN AUTRE LOGICIEL QUI COURENT SUR `mois`. Un engagement d'ici commence un mois precedent
+/// est deja a l'ecran de `mois` (un seul objet, lu dans le fichier du mois ou il commence : `engagement::stock`), comme
+/// le contrat repris d'un permanent, qui continue dans son engagement (`engagement::importe`) ; ne restent que les
+/// contrats d'usage que l'historique importe porte. Chacun se dit repris (`deja_repris`) quand un engagement de l'ecran
 /// a son salarie, son debut et son numero. Jamais lu dans la DSN.
 fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
     let Some(texte_mois) = mois.as_str() else {
@@ -754,42 +751,6 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
     };
     let mut out = Vec::new();
     let mut vus: Dico<()> = Dico::nouveau();
-    // LE CONTRAT D'UN PERMANENT REPRIS D'UN AUTRE LOGICIEL : aucun fichier de saisie ne le porte, l'historique
-    // si (`import::nature::repris_en_cours`, quand sa nature, son debut et son numero ont ete dits). Il se reprend
-    // comme les autres, avec sa nature, son debut, son numero, son salaire mensuel et sa duree du travail.
-    // Ensuite, il se recopie d'un mois a l'autre comme tout contrat paye au mois.
-    for r in crate::import::nature::repris_en_cours(&ctx.racine, texte_mois) {
-        let ident = vec![json!(r.salarie), json!(r.debut), json!(r.numero)];
-        if vus.contient(&ident)? {
-            continue;
-        }
-        vus.poser(ident, ())?;
-        let Ok(_) = ctx.salarie(&r.salarie) else { continue };
-        let mut mensuel = Map::new();
-        mensuel.insert("nature".into(), json!(r.nature));
-        if let Some(s) = &r.salaire_mensuel {
-            mensuel.insert("salaire_mensuel".into(), s.clone());
-        }
-        if let Some(q) = &r.quotite {
-            mensuel.insert("quotite_contrat".into(), q.clone());
-        }
-        out.push(EnCours {
-            salarie: r.salarie.clone(),
-            nom: ctx.nomme(&r.salarie),
-            spectacle: Value::Null,
-            debut: r.debut,
-            fin: r.fin,
-            numero: json!(r.numero),
-            depuis: r.depuis,
-            metier: Value::Null,
-            cadre: Value::Null,
-            taux_cachet: Value::Null,
-            lieu: json!(""),
-            deja_repris: false,
-            lignes: Vec::new(),
-            mensuel: Some(mensuel),
-        });
-    }
     // LE CONTRAT D'USAGE COMMENCE DANS L'ANCIEN LOGICIEL ET CONTINUE ICI (`engagement::importe::Importe::continue_apres`) :
     // ses mois verses sont importes, les suivants se paient ici, sous le numero et les dates que la DSN deposee lui a
     // donnes (regle 4). Le spectacle est celui de son numero d'objet, le cachet celui que l'ancien logiciel a paye.
@@ -835,7 +796,6 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             lieu: json!(""),
             deja_repris: false,
             lignes: Vec::new(),
-            mensuel: None,
         });
     }
     let mut deja: HashSet<(String, String, String)> = HashSet::new();
@@ -868,10 +828,6 @@ fn jour_de_planning(x: &Value) -> R<Value> {
 /// lignes de paie : les jours de `mois` du planning deviennent les dates de la
 /// ligne (au meme taux, au meme lieu), ceux des mois d'apres restent en
 /// planning.
-///
-/// Un contrat paye au mois se reprend avec sa nature et ce qui la definit, sans spectacle et sans
-/// ligne : le moteur compose chaque mois celles d'un permanent (`conges::lignes_du_mois`), et des
-/// lignes ecrites prendraient leur place.
 fn engagement_de_reprise(ctx: &Contexte, c: &EnCours, mois: &str) -> R<Value> {
     let mut e = Map::new();
     e.insert("salarie".into(), json!(c.salarie));
@@ -891,10 +847,6 @@ fn engagement_de_reprise(ctx: &Contexte, c: &EnCours, mois: &str) -> R<Value> {
     }
     if vrai(&c.lieu) {
         e.insert("lieu".into(), c.lieu.clone());
-    }
-    if let Some(definit) = &c.mensuel {
-        e.extend(definit.clone());
-        return Ok(Value::Object(e));
     }
     let mut lignes = Vec::new();
     for src in &c.lignes {
@@ -1235,9 +1187,28 @@ fn texte_ou(mois: &Value, texte: &str) -> String {
     }
 }
 
-/// Les contrats que les engagements importes attestent (`engagement::importe::contrats_lus`).
+/// Les contrats que les engagements importes attestent (`engagement::importe::Importe::ligne_du_contrat`) ; celui d'un
+/// permanent, mois par mois : chaque paie, aux jours qu'elle paie et avec ce que son bulletin compte.
 fn historique(ctx: &Contexte) -> R<Vec<Value>> {
-    engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)
+    let mut out = Vec::new();
+    for i in engagement::importe::tous(&ctx.racine).map_err(Echec::from)? {
+        let Some(contrat) = i.ligne_du_contrat() else { continue };
+        if !i.permanent() {
+            out.push(contrat);
+            continue;
+        }
+        for (m, p) in i.paies() {
+            let lu = |k: &str| p.get(k).filter(|x| vrai(x)).map(valeur_en_texte).filter(|j| j.starts_with(&m));
+            let mut l = contrat.clone();
+            l["debut"] = json!(lu("debut").unwrap_or_else(|| format!("{}-01", m)));
+            l["fin"] = json!(lu("fin").map_or_else(|| socle::date::dernier_du_mois(&m).map(|j| j.iso()), Ok).map_err(plain)?);
+            for k in ["heures", "cachets", "jours"] {
+                l[k] = p.get(k).cloned().unwrap_or(Value::Null);
+            }
+            out.push(l);
+        }
+    }
+    Ok(out)
 }
 
 fn contrats_passes_route(ctx: &Contexte, charge: &Value) -> R<Value> {

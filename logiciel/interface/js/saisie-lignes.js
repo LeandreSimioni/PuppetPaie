@@ -1606,7 +1606,7 @@ document.getElementById("ajouter-engagement").onclick = () => {
 /* LES CONTRATS EN COURS SE POSENT D'EUX-MÊMES. Un engagement commencé un
    mois précédent est déjà dans le mois (le moteur le montre, `deja_repris`) ;
    ce que le moteur rend en plus (`contrats-en-cours`), ce sont les contrats
-   repris d'un autre logiciel qui courent encore. Le mois ouvert les montre
+   d'usage repris d'un autre logiciel qui courent encore. Le mois ouvert les montre
    tout de suite, préremplis et verrouillés ; il reste à poser les jours, ou
    rien si aucun cachet ce mois-ci (la DSN porte le contrat, sans bulletin).
    */
@@ -1628,15 +1628,9 @@ async function poserContratsEnCours(mois) {
     // coché son planning. Sinon une ligne de cachets, à dater.
     const e = { ...(c.engagement || {}), salarie: c.salarie, spectacle: c.spectacle,
                 debut: c.debut, fin: c.fin, numero: c.numero };
-    // UN CONTRAT PAYÉ AU MOIS N'A PAS DE CACHET : le moteur le
-    // reprend avec sa nature et ce qui la définit, sans lignes — il compose
-    // chaque mois les siennes (`conges::lignes_du_mois`), et une ligne écrite
-    // remplacerait son salaire mensuel.
-    if (!natureDe(e.nature).mensuelle) {
-      // Le moteur rend toujours au moins une ligne de cachets, avec le taux
-      // du contrat ou le dernier saisi (`engagement_de_reprise`).
-      e.lignes = (e.lignes || []).map((l) => (l.quantite === 0 ? { ...l, quantite: "" } : l));
-    }
+    // Le moteur rend toujours au moins une ligne de cachets, avec le taux
+    // du contrat ou le dernier saisi (`engagement_de_reprise`).
+    e.lignes = (e.lignes || []).map((l) => (l.quantite === 0 ? { ...l, quantite: "" } : l));
     // Ce que l'engagement repris porte d'autre (la durée de référence,
     // l'emploi et les statuts déclarés…) se montre dans son formulaire
     // (`CHAMPS_RARES`), et s'écrit de là.

@@ -176,16 +176,16 @@ fn texte(o: &Map<String, Value>, k: &str) -> Option<String> {
 pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Vec<Comparaison> {
     let brut = imp.objet().champs();
     let contrat = imp.contrat();
-    let nature = contrat.and_then(|c| texte(c, "nature")).or_else(|| texte(brut, "nature"));
+    let nature = imp.nature();
     // UN CONTRAT DONT LA NATURE RESTE A DIRE (`nature_a_dire`, celui d'un permanent : `import::nature`) ne se compare
     // pas encore : muet, il se calculerait en contrat d'usage (regle 6). Il se compare une fois sa nature dite.
-    if contrat.is_some_and(|c| c.get("nature_a_dire").is_some_and(vrai)) {
+    if imp.a_dire() {
         return Vec::new();
     }
     let paies = imp.paies();
-    // Le nombre de jours travailles que le bulletin compte (son cumul « Jours », `contrat.jours`) : celui de sa paie
-    // quand le contrat n'en a qu'une.
-    let jours_comptes = contrat.and_then(|c| c.get("jours")).and_then(Value::as_i64).filter(|_| paies.len() == 1);
+    // Le nombre de jours travailles que le bulletin compte (son cumul « Jours ») : celui que la paie du mois porte (le
+    // mois d'un permanent), sinon celui du contrat quand il n'a qu'une paie.
+    let du_contrat = contrat.and_then(|c| c.get("jours")).and_then(Value::as_i64).filter(|_| paies.len() == 1);
     paies
         .into_iter()
         .filter_map(|(mois, p)| {
@@ -206,6 +206,7 @@ pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Ve
                 a_refaire: false,
                 non_rattachees: Vec::new(),
             };
+            let jours_comptes = p.get("jours").and_then(Value::as_i64).or(du_contrat);
             c.ecarts = comparer_une(racine, brut, &mois, p, nature.as_deref(), jours_comptes, &mut c);
             Some(c)
         })

@@ -221,3 +221,13 @@ pub fn provisoire(chemin: &Path) -> std::path::PathBuf {
     chemin.with_file_name(format!("{}.{}-{}.tmp", nom, std::process::id(), n))
 }
 
+
+/// Efface `chemin` s'il existe : le geste qui l'avait lu ne le voit plus (`fichiers::ecrit_pendant_le_geste`).
+pub fn effacer(chemin: &Path) -> Resultat<()> {
+    match std::fs::remove_file(chemin) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(format!("{} : {}", chemin.display(), e)),
+        _ => {}
+    }
+    crate::fichiers::efface_pendant_le_geste(chemin);
+    Ok(())
+}

@@ -206,7 +206,8 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
     };
     let nom = nom_du_salarie(ctx, &salarie);
     let dates = jours_du_mois(p.get("dates").unwrap_or(&Value::Null), mois);
-    let nombre = |k: &str| c.get(k).filter(|x| !x.is_null()).cloned();
+    // Ce que la piece du mois atteste de lui (la paie d'un mois d'un permanent), sinon le contrat.
+    let nombre = |k: &str| p.get(k).or_else(|| c.get(k)).filter(|x| !x.is_null()).cloned();
     let bulletin = p.get("bulletin").filter(|b| b.is_object()).cloned();
     let declare_par = texte(p, "declare_par");
 
