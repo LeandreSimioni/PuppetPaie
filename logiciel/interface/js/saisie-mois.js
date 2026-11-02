@@ -279,17 +279,9 @@ async function calculerApercu(lu) {
       // Les cases du contrat écrit que le moteur demande pour cet engagement.
       montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
       montrerFaitsAvances(div, p && p.faits_avances);
+      // Ce que le moteur a compris de la carte (`resolu_dit`) ; un mois sans cachet dit, dessous, pourquoi.
       div.querySelector(".resolu").innerHTML = p
-        ? `${p.contrat && p.contrat.sans_paie
-             ? `<b>aucun cachet ce mois-ci</b> — ${aideDe("sans_cachet")}`
-             : `bulletin <b>${echapper(p.numero_bulletin)}</b>`} · contrat ${echapper(p.numero_contrat)}
-           · ${echapper(jjmmaaaa(p.debut))} → ${echapper(jjmmaaaa(p.fin))}${
-             p.contrat && p.contrat.a_cheval
-               ? ` <span class="discret">(paie du ${echapper(jjmmaaaa(p.contrat.periode.debut))} au ${echapper(jjmmaaaa(p.contrat.periode.fin))})</span>`
-               : ""}
-           · ${echapper(designation(p))}${p.emploi && p.emploi.libelle
-             ? ` · ${echapper(p.emploi.libelle.toLowerCase())}${p.emploi.cadre ? " (cadre)" : ""}` : ""}
-           · brut <b>${echapper(euros(p.brut))}</b>`
+        ? `${echapper(p.resolu_dit)}${p.contrat && p.contrat.sans_paie ? `<div class="discret">${aideDe("sans_cachet")}</div>` : ""}`
         : "";
       // Ce que le moteur a à dire de CET engagement, en deux tons
       // (engagement.rs, Avis) : en orange ce qui demande quelque chose -- un
@@ -364,22 +356,19 @@ function peindreCarte(div) {
   const jours = dates.length ? joursEnClair(dates)
     : (p && p.nature && p.nature.mensuelle ? "mois" : "");
   const moisCourt = MOIS_COURTS[parseInt(mois.slice(5, 7), 10) - 1] || "";
-  // POUR QUOI. Le spectacle, puis ce qui est payé en mots.
-  const paye = p ? designation(p).toLowerCase() : "";
+  // POUR QUOI. Le spectacle, puis ce qui est payé en mots, et un contrat repris d'un ancien logiciel.
+  const pourquoi = [pourQuoi(ligne), p && p.paye_dit, ligne.repris_dit].filter(Boolean).join(" · ");
   // Un contrat sur plusieurs mois porte sa pastille à côté du nom.
   poserChevrons(div, ligne.contrat, ligne.debut, ligne.fin);
   const net = div._total ? euros(div._total.net_paye) : "";
-  const detail = [p && p.numero_bulletin ? `bulletin ${p.numero_bulletin}` : "",
-                  p && p.numero_contrat ? `contrat ${p.numero_contrat}` : "",
-                  `validée le ${quand(ligne.valide)}`].filter(Boolean).join(" · ");
+  const detail = [p && p.bulletin_dit, ligne.numero_dit, ligne.validee_dit].filter(Boolean).join(" · ");
   cible.innerHTML = `
     <div class="carte-quand" title="${echapper(dates.map(jjmmaaaa).join(", "))}">
       <b class="${jours.includes(" · ") ? "epars" : ""}">${echapper(jours)}</b><span>${echapper(moisCourt)}</span>
     </div>
     <div class="carte-qui" title="${echapper(detail)}">
       <span class="carte-nom"><b>${echapper(ligne.nom)}</b></span>
-      <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}${
-        ligne.contrat && ligne.contrat.repris ? " · contrat repris" : ""}</span>
+      <span class="discret">${echapper(pourquoi)}</span>
     </div>
     <div class="carte-actes">${bandeauEtats(ligne, false)}</div>
     <div class="carte-net" title="net à payer">${echapper(net)}</div>
@@ -416,10 +405,10 @@ function boiteFrise(ligne) {
   const vs = ligne.versions.versions || [];
   ouvrirBoite(`
     <h3>${echapper(ligne.nom)}</h3>
-    <p class="discret">${echapper(pourQuoi(ligne))}, ${echapper(periodeEnClair(ligne.debut, ligne.fin))}</p>
+    <p class="discret">${echapper([pourQuoi(ligne), ligne.periode_dit].filter(Boolean).join(", "))}</p>
     <ol class="frise">${vs.map((v) => `
       <li>
-        <b>Version ${echapper(v.version)}</b> <span class="discret">— le ${echapper(v.jour)}</span>
+        <b>${echapper(v.titre_dit)}</b> <span class="discret">— ${echapper(v.jour_dit)}</span>
         ${v.changements.length ? `<ul class="frise-changements">${v.changements.map((c) =>
           `<li>${echapper(c)}</li>`).join("")}</ul>` : ""}
         ${v.partis.length ? `<p class="frise-partis">Parti : ${v.partis.map(echapper).join(" ; ")}</p>` : ""}
@@ -497,15 +486,6 @@ function appliquerAjustement(div, r) {
   rafraichirApercu();
 }
 
-/* Ce que porte le contrat, en toutes lettres : « 2 Cachets », « 1 Journée de
- * travail, 6 h de Masterclass ». La phrase vient du MOTEUR (`remuneration`) ;
- * la page ne la fabrique pas depuis un nombre de cachets, sans quoi un contrat
- * sans cachet s'afficherait « 0 cachet(s) ». */
-function designation(p) {
-  const r = p.remuneration || [];
-  return r.length ? r.map((l) => l.designation).join(", ") : "—";
-}
-
 /* LE MOIS, EN DEUX NOMBRES : ce qu'on vire (le net) et ce que le mois coûte à la compagnie, puis une ligne par salarié,
  * son net, le coût et le brut au survol. Le moteur les somme (`total_net`, `total_cout`, `par_salarie` de l'aperçu). */
 function vueApercu(a) {
@@ -519,9 +499,9 @@ function vueApercu(a) {
       <div><span>Coût employeur</span><b>${euros(a.total_cout)}</b></div>
     </div>
     <ul class="mois-salaries">${groupes.map((g) => `
-      <li title="coût employeur ${echapper(euros(g.cout_employeur))} · brut ${echapper(euros(g.brut))}">
+      <li title="${echapper(g.survol_dit)}">
         <span>${echapper(g.nom)}
-          <span class="discret">· ${g.engagements} engagement${g.engagements > 1 ? "s" : ""}</span></span>
+          <span class="discret">· ${echapper(g.engagements_dit)}</span></span>
         <b>${euros(g.net_paye)}</b>
       </li>`).join("")}
     </ul>${phrase}`;
@@ -533,9 +513,9 @@ let MOIS_AFFICHE = null;        // le mois REELLEMENT charge dans l'ecran
 
 function afficherRappelsMois() {
   const t = TAUX_PAR_RUBRIQUE.cachet;
+  // Le taux du cachet d'une ligne neuve (le dernier tapé, ou celui que le moteur dit) : une case et sa valeur.
   document.getElementById("rappels-mois").innerHTML =
-    `${t == null ? "aucun cachet par défaut" : `cachet à <b>${echapper(euros(t))}</b> par défaut`} ·
-     ${aideDe("lieu_jours")}`;
+    `<span>Cachet par défaut</span> <b>${echapper(t == null ? "—" : euros(t))}</b> · ${aideDe("lieu_jours")}`;
 }
 
 let DEMANDE_MOIS = null;
@@ -636,7 +616,7 @@ async function chargerMois(mois, repeint = false) {
   }
   if (DEMANDE_MOIS !== mois) return;
   majAvisDuMois(mois, r.phrase);
-  dessinerMoisImporte(r.ferme_aux_neufs);
+  dessinerMoisImporte(r.ferme_aux_neufs, r);
   document.getElementById("resultat").innerHTML = "";
   // L'aperçu de la saisie enregistrée est dans la lecture : il ne se recalcule que quand on modifie la saisie.
   calculerApercu(lu.lectures.apercu);
@@ -685,7 +665,7 @@ async function repeindreLeMois(mois, ancien, frais) {
     afficherRappelsMois();
     IMPORTES = r.importes || [];
     majAvisDuMois(mois, r.phrase);
-    dessinerMoisImporte(r.ferme_aux_neufs);
+    dessinerMoisImporte(r.ferme_aux_neufs, r);
   } catch (e) { /* la saisie se lit telle quelle : rien à changer */ }
   if (!enCours) calculerApercu(frais.lectures.apercu);
   await Promise.allSettled([
@@ -723,18 +703,17 @@ const CASES_IMPORTEES = [
   ["cotisations_salariales", "Cotisations salariales"], ["cotisations_patronales", "Cotisations patronales"],
   ["cout_employeur", "Coût employeur"],
 ];
-const SOURCES_IMPORTEES = { bulletin: "bulletin", DSN: "DSN", AEM: "AEM", historique: "historique" };
 
 /** `ferme` : la phrase du moteur quand le mois ne reçoit pas d'engagement neuf (`ferme_aux_neufs` de la route `saisie`) ;
- *  « + un engagement » se cache, la phrase se lit à sa place. */
-function dessinerMoisImporte(ferme) {
+ *  « + un engagement » se cache, la phrase se lit à sa place. `r` : la réponse de `saisie` (son en-tête, `importes_titre`
+ *  et `importes_dit`). */
+function dessinerMoisImporte(ferme, r = {}) {
   const cible = document.getElementById("mois-importe");
   document.getElementById("ajouter-engagement").hidden = !!ferme;
   if (!IMPORTES.length) { cible.hidden = true; cible.innerHTML = ""; return; }
   const moisCourt = MOIS_COURTS[parseInt(MOIS_AFFICHE.slice(5, 7), 10) - 1] || "";
   cible.innerHTML = `
-    <p class="mi-tete"><b>Importé${IMPORTES.length > 1 ? "s" : ""}</b> <span class="discret">— ${IMPORTES.length}
-      engagement${IMPORTES.length > 1 ? "s" : ""} de l'ancien logiciel</span></p>
+    <p class="mi-tete"><b>${echapper(r.importes_titre || "")}</b> <span class="discret">— ${echapper(r.importes_dit || "")}</span></p>
     ${IMPORTES.map((p, i) => carteImportee(p, i, moisCourt)).join("")}
     <p class="discret mi-ferme"></p>`;
   cible.querySelector(".mi-ferme").textContent = ferme || "";
@@ -757,9 +736,6 @@ function carteImportee(p, i, moisCourt) {
   // QUAND : les jours travaillés que le bulletin imprime ; sans eux, la période du contrat, telle que le moteur la dit.
   const jours = p.dates.length ? joursEnClair(p.dates)
     : (p.periode || "");
-  const quoi = [p.spectacle.titre || p.spectacle.numero_objet,
-    p.cachets ? `${p.cachets} cachet${p.cachets > 1 ? "s" : ""}` : "",
-    p.heures ? `${p.heures} h` : ""].filter(Boolean).join(" · ");
   const pastille = (cle, titre) => {
     const e = p.etats[cle] || {};
     return `<span class="etat-acte ${e.couleur || "gris"}" title="${echapper(e.phrase || "")}">
@@ -777,7 +753,7 @@ function carteImportee(p, i, moisCourt) {
     const absent = valeur ? null : p.manque.find((m) => m.champ === champ);
     const pourquoi = absent && !dits.has(champ) ? (dits.add(champ), `<span class="ci-pourquoi">${echapper(absent.phrase)}</span>`) : "";
     return `<div class="ci-case${valeur ? "" : " vide"}${absent ? " non-lu" : ""}"><span class="champ">${echapper(libelle)}</span>
-      <span class="ci-valeur">${valeur ? echapper(valeur) : `<i>${absent ? "non lu" : "—"}</i>`}</span>${
+      <span class="ci-valeur">${valeur ? echapper(valeur) : `<i>${echapper(absent ? absent.dit : "—")}</i>`}</span>${
       valeur && source ? `<span class="ci-source">${echapper(source)}</span>` : ""}${pourquoi}</div>`;
   };
   const lignes = (p.lignes || []).length ? `
@@ -785,24 +761,22 @@ function carteImportee(p, i, moisCourt) {
       ${p.lignes.map((l) => `<tr><td>${echapper(l.libelle || "")}</td><td class="nombre">${echapper(l.quantite || "")}</td>
         <td class="nombre">${l.taux ? echapper(euros(l.taux)) : ""}</td><td class="nombre">${l.montant ? echapper(euros(l.montant)) : ""}</td></tr>`).join("")}
     </table>` : "";
-  const origine = [p.declare_par === "DSN" ? "DSN" : "", p.bulletin ? `bulletin${p.bulletin.numero ? " " + p.bulletin.numero : ""}` : "",
-    p.atteste_par === "AEM" ? "AEM" : ""].filter(Boolean).join(" + ");
   return `
     <div class="carte-importee${p.manque.length ? " incomplete" : ""}" data-rang="${i}">
       <div class="e-resume">
         <div class="carte-quand" title="${echapper(p.dates.length ? p.dates.map(jjmmaaaa).join(", ") : (ETAT.aides || {}).importe_dates)}">
           <b class="${jours.includes(" · ") || jours.includes(" – ") ? "epars" : ""}">${echapper(jours)}</b><span>${echapper(moisCourt)}</span></div>
-        <div class="carte-qui" title="${echapper(origine ? "lu dans " + origine : "")}">
+        <div class="carte-qui" title="${echapper(p.origine_dit || "")}">
           <span class="carte-nom"><b>${echapper(p.nom)}</b> <span class="mot-etat">importé</span></span>
-          <span class="discret">${echapper(quoi || "spectacle non lu")}</span></div>
+          <span class="discret">${echapper(p.quoi_dit)}</span></div>
         <div class="carte-actes"><div class="etats-actes">${pastille("dpae", "DPAE")}${pastille("signature", "Contrat")}${pastille("documents", "Documents")}</div></div>
-        <div class="carte-net" title="${p.montants.net_a_payer ? "net à payer" : aideDe("importe_brut")}">${net}</div>
+        <div class="carte-net" title="${echapper(p.net_titre || "") || aideDe("importe_brut")}">${net}</div>
       </div>
       ${manque}
       <div class="ci-cases" hidden>
         <div class="ci-grille">
           ${casePlate("Salarié", p.nom, "fiche", "salarie")}
-          ${casePlate("Spectacle", [p.spectacle.titre, p.spectacle.numero_objet && p.spectacle.numero_objet !== p.spectacle.titre ? `n° ${p.spectacle.numero_objet}` : ""].filter(Boolean).join(" — "), "", "spectacle")}
+          ${casePlate("Spectacle", p.spectacle_dit, "", "spectacle")}
           ${casePlate("Contrat", p.contrat, "", "contrat")}
           ${casePlate("Début", p.debut ? jjmmaaaa(p.debut) : "", "", "debut")}
           ${casePlate("Fin", p.fin ? jjmmaaaa(p.fin) : "", "", "fin")}
@@ -810,7 +784,7 @@ function carteImportee(p, i, moisCourt) {
           ${casePlate("Cachets", p.cachets != null ? String(p.cachets) : "", p.atteste_par || "", "cachets")}
           ${casePlate("Heures", p.heures != null ? String(p.heures) : "", p.atteste_par || "", "cachets")}
           ${CASES_IMPORTEES.map(([k, mot]) => casePlate(mot, p.montants[k] ? euros(p.montants[k]) : "",
-              SOURCES_IMPORTEES[p.sources[k]] || "", k)).join("")}
+              p.sources[k] || "", k)).join("")}
         </div>
         ${lignes}
       </div>
@@ -869,7 +843,7 @@ let ANNEE_GRILLE = null;
 function afficherMoisChoisi() {
   const x = moisLu(document.getElementById("mois").value);
   const nom = document.getElementById("mois-nom");
-  nom.textContent = x ? `${MOIS_FR[x[1] - 1].replace(/^./, (c) => c.toUpperCase())} ${x[0]}` : "Choisir un mois";
+  nom.textContent = x ? `${MOIS_FR[x[1] - 1].replace(/^./, (c) => c.toUpperCase())} ${x[0]}` : "—";
 }
 
 /** Aller à un mois : le nom et le chargement, tout de suite. */
@@ -897,7 +871,7 @@ function dessinerGrilleMois() {
   const grille = document.getElementById("mois-grille");
   const choisi = document.getElementById("mois").value;
   const ceMois = aujourdhuiIso().slice(0, 7);   // le mois du moteur
-  const saisis = new Set((ETAT.historique || []).map((h) => h.mois));
+  const saisis = new Map((ETAT.historique || []).map((h) => [h.mois, h.saisi_dit]));
   grille.innerHTML = `
     <div class="choix-mois-annee">
       <button type="button" class="choix-mois-pas" data-annee="-1" aria-label="Année précédente">&lsaquo;</button>
@@ -909,7 +883,7 @@ function dessinerGrilleMois() {
       const classes = [v === choisi ? "choisi" : "", v === ceMois ? "maintenant" : "",
                        saisis.has(v) ? "saisi" : ""].join(" ");
       return `<button type="button" class="${classes}" data-mois="${v}"
-                title="${MOIS_FR[i]} ${ANNEE_GRILLE}${saisis.has(v) ? " — saisi" : ""}">${n}</button>`;
+                title="${MOIS_FR[i]} ${ANNEE_GRILLE}${saisis.has(v) ? " — " + saisis.get(v) : ""}">${n}</button>`;
     }).join("")}</div>`;
   grille.querySelectorAll("[data-annee]").forEach((b) => {
     b.onclick = (e) => { e.stopPropagation(); ANNEE_GRILLE += +b.dataset.annee; dessinerGrilleMois(); };
@@ -1055,12 +1029,12 @@ async function enregistrerLesCartes(silencieux) {
   if (!attente.length) return false;
   const mois = attente[0][1].mois;
   let aCompleter = 0;
-  let heure = "";
+  let enregistre = "";
   for (const [div, charge] of attente) {
     try {
       const r = await ecrireLaCarte(div, charge);
       if (r.a_completer) aCompleter += 1;
-      heure = r.enregistre_a.slice(11, 16);
+      enregistre = r.enregistre_dit;
     } catch (e) {
       // Un échec d'enregistrement ne peut pas rester discret : c'est du travail qu'on croit posé et qui ne l'est pas.
       noteSaisie("Non enregistré — " + e.message);
@@ -1071,7 +1045,7 @@ async function enregistrerLesCartes(silencieux) {
   oublierCouts();
   // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé. Un engagement auquel il
   // manque un fait s'enregistre aussi : sa carte dit ce qui manque.
-  noteSaisie("Enregistré à " + heure + (aCompleter ? " — " + ((ETAT.aides || {}).a_completer || "") : ""));
+  noteSaisie(enregistre + (aCompleter ? " — " + ((ETAT.aides || {}).a_completer || "") : ""));
   ETAT.historique = await api("etat").then((e) => e.historique);
   // Ce qui vient d'être enregistré compte dans la colonne « ce qui part », et la fin d'un contrat comme les jours payés
   // pendant un imprévu se lisent sur ce qui est enregistré.

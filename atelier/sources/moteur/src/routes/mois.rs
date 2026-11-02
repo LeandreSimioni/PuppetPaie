@@ -505,10 +505,15 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
         (true, true) => json!("Saisie chargée. L'enregistrement est automatique."),
         (true, false) => json!("Nouveau mois — l'enregistrement est automatique dès la première saisie."),
     };
+    // L'en-tete des cartes importees : son titre, et combien d'engagements viennent de l'ancien logiciel.
+    let n_importes = importes.len();
+    let importes_titre = if n_importes > 1 { "Importés" } else { "Importé" };
+    let importes_dit = format!("{} de l'ancien logiciel", super::compte(n_importes, "engagement", "engagements"));
     Ok(json!({
         "mois": brut,
         "phrase": phrase,
         "importes": importes,
+        "importes_titre": importes_titre, "importes_dit": importes_dit,
         "ferme_aux_neufs": ferme,
         "defauts": defauts,
         "saisie": resoudre_noms(ctx, &saisie)?,
@@ -1303,7 +1308,9 @@ fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
     let a_completer = manques_de_la_saisie(ctx, &vue).swap_remove(k).map_or(Value::Null, Value::String);
     // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
-    Ok(json!({"engagement": id, "a_completer": a_completer, "enregistre_a": maintenant()}))
+    let a = maintenant();
+    let enregistre_dit = format!("Enregistré à {}", a.chars().skip(11).take(5).collect::<String>());
+    Ok(json!({"engagement": id, "a_completer": a_completer, "enregistre_a": a, "enregistre_dit": enregistre_dit}))
 }
 
 /// AVANT TOUTE ECRITURE D'UN ENGAGEMENT (saisir, valider, modifier, retirer) : une ecriture a la fois (la fenetre sert
@@ -1715,7 +1722,31 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
     let lieu = brut.get("lieu").cloned().unwrap_or_else(|| Value::String(String::new()));
     let avis: Vec<&Avis> = p.avertissements.iter().collect();
     let prelevement = p.pas.as_ref().map_or(Decimal::new(0, 2), |v| v.prelevement);
+    // CE QUE LE MOTEUR A COMPRIS DE LA CARTE, en une ligne : son bulletin (ou qu'il n'y en a pas), son contrat, ses
+    // bornes (et la periode de paie d'un contrat a cheval), ce qu'elle paye, le metier, le brut.
+    let resolu_dit = {
+        let mut m = vec![if e.sans_paie() { "aucun cachet ce mois-ci".to_string() } else { format!("bulletin {}", p.numero_bulletin.clone().unwrap_or_default()) }];
+        m.push(format!("contrat {}", e.numero.clone().unwrap_or_default()));
+        let mut bornes = format!("{} → {}", e.debut.jj_mm_aaaa(), e.fin.as_ref().map(|f| f.jj_mm_aaaa()).unwrap_or_default());
+        if e.a_cheval()? {
+            bornes.push_str(&format!(" (paie du {} au {})", e.debut_periode()?.jj_mm_aaaa(), e.fin_periode()?.jj_mm_aaaa()));
+        }
+        m.push(bornes);
+        let designations: Vec<String> = p.remuneration.iter().map(|l| l.designation().to_string()).collect();
+        m.push(if designations.is_empty() { "—".to_string() } else { designations.join(", ") });
+        if let Some(emploi) = s.get("emploi").and_then(Value::as_str).filter(|x| !x.is_empty()) {
+            let cadre = if s.get("statut_categoriel_rc").and_then(Value::as_str) == Some("01") { " (cadre)" } else { "" };
+            m.push(format!("{}{}", emploi.to_lowercase(), cadre));
+        }
+        m.push(format!("brut {}", socle::texte::euros(p.brut)));
+        m.join(" · ")
+    };
+    let paye_dit = p.remuneration.iter().map(|l| l.designation().to_string().to_lowercase()).collect::<Vec<_>>().join(", ");
     let d = json!({
+        "resolu_dit": resolu_dit,
+        // Ce que la carte validee dit de la paie : ce qu'elle paye, son bulletin.
+        "paye_dit": paye_dit,
+        "bulletin_dit": p.numero_bulletin.as_ref().map(|n| format!("bulletin {}", n)),
         "numero_bulletin": p.numero_bulletin.clone().map_or(Value::Null, Value::String),
         "numero_contrat": e.numero.clone().map_or(Value::Null, Value::String),
         "salarie": sal_vue,
@@ -2028,6 +2059,9 @@ fn apercu_de(ctx: &Contexte, data: &Value) -> R<Value> {
         let mut t = trois(vs)?;
         t["salarie"] = s.clone();
         t["nom"] = json!(nom);
+        // Ce que la ligne du salarie dit : ses engagements, et au survol le cout et le brut.
+        t["engagements_dit"] = json!(super::compte(vs.len(), "engagement", "engagements"));
+        t["survol_dit"] = json!(format!("coût employeur {} · brut {}", socle::texte::euros_de(&t["cout_employeur"]), socle::texte::euros_de(&t["brut"])));
         par_salarie.push(t);
     }
     let mut a_regarder = Vec::new();

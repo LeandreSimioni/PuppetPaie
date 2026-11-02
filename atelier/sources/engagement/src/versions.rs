@@ -346,7 +346,10 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Optio
             .collect();
         partis.dedup();
         let changes = precedente.map_or_else(Vec::new, |p| changements(ctx, p.get("saisie").unwrap_or(&Value::Null), x.get("saisie").unwrap_or(&Value::Null)));
-        versions.push(json!({"version": n, "le": le, "jour": jour_court(le), "changements": changes, "partis": partis}));
+        // Le titre de la version et son jour, tels que la frise les lit.
+        let titre_dit = format!("Version {}", n.map(|n| n.to_string()).unwrap_or_default()).trim().to_string();
+        let jour_dit = format!("le {}", jour_court(le));
+        versions.push(json!({"version": n, "le": le, "jour": jour_court(le), "titre_dit": titre_dit, "jour_dit": jour_dit, "changements": changes, "partis": partis}));
         precedente = Some(x);
     }
     Some(json!({"phrase": phrase_de_la_frise(ctx, v, departs, siens), "versions": versions}))

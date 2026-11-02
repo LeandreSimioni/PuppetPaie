@@ -168,7 +168,12 @@ fn jours_du_mois(dates: &Value, mois: &str) -> Vec<String> {
 }
 
 fn manque(champ: &str, libelle: &str, phrase: String) -> Value {
-    json!({"champ": champ, "libelle": libelle, "phrase": phrase})
+    json!({"champ": champ, "libelle": libelle, "phrase": phrase, "dit": "non lu"})
+}
+
+/// Un nombre d'une piece importee, tel qu'on le lit (« 2 », « 7,5 »).
+fn nombre_dit(v: &Value) -> String {
+    socle::num::dec(v).map(socle::texte::virgule).unwrap_or_else(|_| valeur_en_texte(v))
 }
 
 /// L'etat de la DPAE d'une embauche tenue avant : le journal (reel accepte, par le numero du contrat), puis les certificats
@@ -293,7 +298,40 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
         })}),
         None => json!({"couleur": "gris", "courte": "avant PuppetPaie", "phrase": "documents remis avant PuppetPaie : aucun bulletin importé pour cette paie"}),
     };
+    // CE QUE LA CARTE FERMEE DIT : le spectacle, les cachets et les heures ; au survol, les pieces lues.
+    let mut quoi = Vec::new();
+    if !titre.is_empty() || !numero.is_empty() {
+        quoi.push(if titre.is_empty() { numero.clone() } else { titre.clone() });
+    }
+    if let Some(n) = nombre("cachets").filter(|n| socle::num::dec(n).is_ok_and(|d| !d.is_zero())) {
+        let dit = nombre_dit(&n);
+        quoi.push(format!("{} {}", dit, if socle::num::dec(&n).is_ok_and(|d| d > rust_decimal::Decimal::ONE) { "cachets" } else { "cachet" }));
+    }
+    if let Some(n) = nombre("heures").filter(|n| socle::num::dec(n).is_ok_and(|d| !d.is_zero())) {
+        quoi.push(format!("{} h", nombre_dit(&n)));
+    }
+    let quoi_dit = if quoi.is_empty() { "spectacle non lu".to_string() } else { quoi.join(" · ") };
+    let mut lu = Vec::new();
+    if declare_par == "DSN" {
+        lu.push("DSN".to_string());
+    }
+    if let Some(b) = &bulletin {
+        let n = texte(b, "numero");
+        lu.push(if n.is_empty() { "bulletin".to_string() } else { format!("bulletin {}", n) });
+    }
+    if texte(c, "atteste_par") == "AEM" {
+        lu.push("AEM".to_string());
+    }
+    let origine_dit = (!lu.is_empty()).then(|| format!("lu dans {}", lu.join(" + ")));
+    let spectacle_dit = match (titre.is_empty(), numero.is_empty() || numero == titre) {
+        (false, false) => format!("{} — n° {}", titre, numero),
+        (false, true) => titre.clone(),
+        (true, false) => format!("n° {}", numero),
+        (true, true) => String::new(),
+    };
+    let net_titre = montants.contains_key("net_a_payer").then_some("net à payer");
     json!({
+        "quoi_dit": quoi_dit, "origine_dit": origine_dit, "spectacle_dit": spectacle_dit, "net_titre": net_titre,
         "salarie": salarie,
         "nom": nom.clone().unwrap_or_else(|| salarie.clone()),
         "spectacle": {

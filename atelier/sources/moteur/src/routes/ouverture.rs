@@ -778,7 +778,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             _ => ("orange", "DSN à déposer"),
         };
         out.push(json!({
-            "mois": nom, "produit": !noms.is_empty(), "dsn": etat,
+            "mois": nom, "produit": !noms.is_empty(), "dsn": etat, "saisi_dit": "saisi",
             "pastille": {"couleur": couleur, "mots": mots},
             "depose_le": if depose { lu.0["quand"].clone() } else { Value::Null },
             "depose_dit": if depose && etat != "a_deposer" { json!(format!("le {}", super::jour_en_clair(&json!(valeur_en_texte(&lu.0["quand"]).chars().take(10).collect::<String>())))) } else { Value::Null },
@@ -812,7 +812,7 @@ fn historique(m: &mut Moteur, ctx: &Contexte) -> Value {
         // Une fiche entreprise incomplete (effectif, echeance) ne doit pas
         // empecher la page de s'ouvrir : on retombe sur la liste nue.
         Err(_) => Value::Array(
-            mois.iter().map(|(nom, noms)| json!({"mois": nom, "produit": !noms.is_empty(), "dsn": null, "corrigeable": false, "a_faire": true, "sortes": [], "fichiers": noms})).collect(),
+            mois.iter().map(|(nom, noms)| json!({"mois": nom, "produit": !noms.is_empty(), "dsn": null, "saisi_dit": "saisi", "corrigeable": false, "a_faire": true, "sortes": [], "fichiers": noms})).collect(),
         ),
     }
 }

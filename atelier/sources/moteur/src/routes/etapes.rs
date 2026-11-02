@@ -2062,6 +2062,9 @@ pub(crate) fn dire_la_ligne(l: &mut Map<String, Value>) {
     let (debut, fin, valide, spectacle, numero) = (champ("debut"), champ("fin"), champ("valide"), champ("spectacle"), champ("numero"));
     l.insert("periode_dit".into(), json!(super::periode_en_clair(&debut, &fin)));
     l.insert("valide_dit".into(), if vrai(&valide) { json!(format!("le {}", super::quand(&valeur_en_texte(&valide)))) } else { Value::Null });
+    l.insert("validee_dit".into(), if vrai(&valide) { json!(format!("validée le {}", super::quand(&valeur_en_texte(&valide)))) } else { Value::Null });
+    let repris = l.get("contrat").and_then(|c| c.get("repris")).is_some_and(vrai);
+    l.insert("repris_dit".into(), if repris { json!("contrat repris") } else { Value::Null });
     let embauche = format!("embauche le {}", super::jour_en_clair(&debut));
     l.insert("embauche_dit".into(), json!(if vrai(&spectacle) { format!("{}, {}", valeur_en_texte(&spectacle), embauche) } else { embauche }));
     l.insert("numero_dit".into(), if vrai(&numero) { json!(format!("contrat n° {}", valeur_en_texte(&numero))) } else { Value::Null });
