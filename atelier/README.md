@@ -1723,8 +1723,7 @@ atelier/                  ← ce dossier : tout le reste
                           (`verifier-avant-commit`, `guet`, `generer-tables`,
                           `extraire`, `releve-codes`, `releve-conventions`)
   PuppetPaie.sh, PuppetPaie.command   les lanceurs Linux et Mac
-  prive-dev/, depot/ (versions publiées), site/, maquettes/
-                          (le serveur du filet : dépôt du site de l'éditeur, infra/filet/)
+  prive-dev/, maquettes/
 .claude/                  à la racine : compétences Claude (paie, contrat,
                           declarations, ouverture)
 
