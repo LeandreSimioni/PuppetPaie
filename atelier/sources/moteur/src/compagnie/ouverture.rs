@@ -395,7 +395,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
     trace.insert("fiches".into(), json!(r.fiches.as_ref().map(ReleveFiches::resume).unwrap_or_default()));
     trace.insert(
         "signatures_recues".into(),
-        json!(r.signatures.as_ref().map(|s| s.recues.iter().map(|x| json!({"nom": x.nom, "quand": x.quand, "renvoye": x.renvoye})).collect::<Vec<_>>()).unwrap_or_default()),
+        json!(r.signatures.as_ref().map(|s| s.recues.iter().map(|x| json!({"nom": x.nom, "quand": x.quand, "renvoye": x.renvoye, "phrase": format!("contrat signé par {}", x.nom)})).collect::<Vec<_>>()).unwrap_or_default()),
     );
     trace.insert("incidents".into(), json!(r.incidents));
     // Les phrases du coffre ne repartent pas : `a_poser` les dit.

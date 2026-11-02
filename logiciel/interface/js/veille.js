@@ -87,7 +87,7 @@ function dessinerVeille(v) {
   const nouvelles = [];
   // Les retours se LISENT dans l'Historique : le bandeau les annonce et y mène.
   const retours = k.retours ? ` <button class="lien" data-vers-historique>${echapper(k.retours)}</button>` : "";
-  (d.signatures_recues || []).forEach((x) => nouvelles.push(`contrat signé par ${x.nom}`));
+  (d.signatures_recues || []).forEach((x) => nouvelles.push(x.phrase));
   // L'HORLOGE DE LA COMPAGNIE FICTIVE : ce que l'administrateur fictif a fait
   // pendant l'absence du visiteur, chaque geste à sa date limite.
   const horloge = k.horloge ? ` <button class="lien" id="fictive-horloge">${echapper(k.horloge)}</button>` : "";
@@ -108,7 +108,7 @@ function dessinerVeille(v) {
     zone.classList.add("souci");
     morceaux.push(afaire.length === 1 ? afaire[0]
       : `<details class="ennuis"><summary>${afaire[0]}
-           <b>+ ${afaire.length - 1} autre${afaire.length > 2 ? "s" : ""}</b></summary>
+           <b>Voir la suite</b></summary>
            ${afaire.slice(1).map((x) => `<div>${x}</div>`).join("")}</details>`);
   } else if (nouvelles.length) {
     zone.classList.add("neuf");
