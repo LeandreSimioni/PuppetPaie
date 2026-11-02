@@ -172,6 +172,21 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
+        nom: "effectif",
+        geste: "Dire l'effectif d'une année ; le poser quand l'Urssaf ne l'a pas renvoyé.",
+        charge: &[
+            Champ { nom: "annee", sens: "l'année civile mesurée, AAAA ; absente : celles qui manquent pour payer cette année", avance: false },
+            Champ { nom: "valeur", sens: "son effectif annuel moyen, tel que l'Urssaf l'a calculé (au centième)", avance: false },
+        ],
+        exemple: r#"{"annee":2024,"valeur":6.5}"#,
+        rend: "annee, valeur et d'où elle vient (l'Urssaf, la compagnie, la première embauche), a_dire (les années qui manquent pour payer cette année), phrase",
+        refus: &[OPERATION, FORME, ILLISIBLE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 200,
+        ecran: Ecran::Auto(Place::Fiches),
+    },
+    Fiche {
         nom: "couts",
         geste: "Dire le coût de l'année, spectacle par spectacle.",
         charge: &[Champ { nom: "annee", sens: "l'année, AAAA", avance: false }],
@@ -274,6 +289,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             v["aide"] = json!("Le taux vide : celui de l'arrêté de l'année, quand il s'applique au code choisi. Avec 999ZZ, pas de taux.");
             v
         }),
+        "effectif" => effectif(ctx, charge),
         "activer-fiche" => activer_fiche_route(o, ctx, charge),
         "enregistrer-fiche" => enregistrer_fiche(ctx, charge),
         "fiche-oublier-demande" => oublier_demande(o, ctx, charge).map(|v| {
@@ -295,6 +311,66 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         }
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
+}
+
+// ------------------------------------------------------------------ l'effectif
+
+/// Un effectif dit en clair : « 6,5 ».
+fn effectif_en_clair(x: f64) -> String {
+    let t = format!("{:.2}", x);
+    t.trim_end_matches('0').trim_end_matches('.').replace('.', ",")
+}
+
+/// L'EFFECTIF D'UNE ANNEE (`config/effectifs.json`, A01) : le dire, et le poser quand la compagnie le donne pour une annee
+/// que l'Urssaf n'a pas renvoyee en compte rendu de nature 118 (`envois::releve_retours::poser_effectif`). L'effectif
+/// annuel est la moyenne des mois de l'annee civile, tronquee au centieme (CSS, L. 130-1, I, et R. 130-1, I :
+/// `atelier/reference/sources/code-de-la-securite-sociale/LISEZ-MOI.md`) ; il ne se dit qu'une annee finie. Sans
+/// `annee` : les annees qui manquent pour payer cette annee (`Effectif::a_dire`).
+fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let an_paie = ctx.aujourdhui.an;
+    let a_dire = |ctx: &Contexte| -> R<Vec<i32>> { Ok(ctx.effectif().map_err(Echec::from)?.a_dire(an_paie)) };
+    let Some(an) = charge.get("annee").filter(|a| vrai(a)) else {
+        let manquent = a_dire(ctx)?;
+        let phrase = if manquent.is_empty() {
+            format!("L'effectif de la paie de {} est connu.", an_paie)
+        } else {
+            format!("Pour payer en {}, il manque l'effectif de {}.", an_paie, manquent.iter().map(i32::to_string).collect::<Vec<_>>().join(", "))
+        };
+        return Ok(json!({"a_dire": manquent, "phrase": phrase}));
+    };
+    let an = entier(an)? as i32;
+    let mut phrase = String::new();
+    if let Some(v) = charge.get("valeur").filter(|v| !v.is_null() && valeur_en_texte(v).trim() != "") {
+        if an >= an_paie {
+            return Err(erreur("ErreurOperation", format!("L'effectif de {} se calcule sur l'année entière : il se dit une fois l'année finie. Rien n'est écrit.", an)));
+        }
+        let lu = valeur_en_texte(v).replace(',', ".");
+        let x: f64 = lu.trim().parse().ok().filter(|x: &f64| x.is_finite() && *x >= 0.0).ok_or_else(|| erreur("ValueError", format!("Effectif illisible : {}.", valeur_ecrite(v))))?;
+        // Tronque au centieme (R. 130-1, I).
+        let x = (x * 100.0).trunc() / 100.0;
+        let le = ctx.aujourdhui.iso();
+        if !envois::releve_retours::poser_effectif(&ctx.racine, an, x, &le)? {
+            return Err(erreur("ErreurOperation", format!("L'Urssaf a renvoyé l'effectif de {} : c'est le sien qui vaut. Rien n'est écrit.", an)));
+        }
+        phrase = format!("Effectif de {} : {}.", an, effectif_en_clair(x));
+    }
+    let e = ctx.effectif().map_err(Echec::from)?;
+    let lu = std::fs::read_to_string(ctx.racine.join("config").join("effectifs.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).unwrap_or(Value::Null);
+    let dit = lu.pointer(&format!("/annees/{}/A01/dit_le", an)).is_some();
+    let (valeur, source) = match e.annees.get(&an) {
+        Some(v) => (json!(v), if dit { "la compagnie" } else { "l'Urssaf" }),
+        None => match e.annee(an) {
+            Some(v) => (json!(v), "la première embauche"),
+            None => (Value::Null, ""),
+        },
+    };
+    if phrase.is_empty() {
+        phrase = match valeur.as_f64() {
+            Some(v) => format!("Effectif de {} : {}, d'après {}.", an, effectif_en_clair(v), source),
+            None => format!("L'effectif de {} n'est pas connu.", an),
+        };
+    }
+    Ok(json!({"annee": an, "valeur": valeur, "source": source, "a_dire": e.a_dire(an_paie), "phrase": phrase}))
 }
 
 // ------------------------------------------------------------------ permanents

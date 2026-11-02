@@ -718,8 +718,44 @@ fn lire_crm118(contenu: &[u8]) -> R<Option<Vec<(String, f64, String, String, Str
     Ok(Some(out))
 }
 
+/// Le code de l'effectif de securite sociale (art. L. 130-1 CSS), celui des seuils de cotisation.
+const A01: &str = "A01";
+/// La marque d'un effectif que la compagnie a dit : un 118 de la meme annee le remplace.
+const DIT_LE: &str = "dit_le";
+
+fn chemin_des_effectifs(racine: &Path) -> PathBuf {
+    racine.join("config").join("effectifs.json")
+}
+
+fn effectifs_lus(racine: &Path) -> Value {
+    std::fs::read_to_string(chemin_des_effectifs(racine)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_else(|| json!({}))
+}
+
+/// Ecrit `config/effectifs.json` s'il change : les effectifs par annee et par code.
+fn ecrire_effectifs(racine: &Path, existant: &Value, annees: std::collections::BTreeMap<String, Map<String, Value>>) -> R<()> {
+    let donnees = json!({
+        "_quoi": "Effectifs par année civile. A01 = effectif de sécurité sociale (art. L. 130-1 CSS), celui des seuils de cotisation. Ceux que l'Urssaf calcule et renvoie en compte rendu de nature 118 s'écrivent au relevé des retours ; ceux que la compagnie dit (dit_le) pour une année sans 118, par la route effectif, jusqu'à ce qu'un 118 de cette année les remplace.",
+        "annees": Value::Object(annees.into_iter().map(|(an, codes)| (an, Value::Object(codes))).collect()),
+    });
+    if *existant != donnees {
+        socle::ecriture::ecrire_json(&chemin_des_effectifs(racine), &donnees, 2).map_err(|m| erreur("OSError", m))?;
+    }
+    Ok(())
+}
+
+/// Les effectifs que la compagnie a dits (`dit_le`), par annee.
+fn dits(existant: &Value) -> std::collections::BTreeMap<String, Map<String, Value>> {
+    existant["annees"]
+        .as_object()
+        .into_iter()
+        .flatten()
+        .filter_map(|(an, c)| c.get(A01).filter(|a| a.get(DIT_LE).is_some()).map(|a| (an.clone(), Map::from_iter([(A01.to_string(), a.clone())]))))
+        .collect()
+}
+
 /// Relit tous les 118 archives et reecrit `config/effectifs.json`. Pour chaque annee
-/// et chaque code, le calcul le plus RECENT l'emporte. Ne touche pas au fichier s'il n'y a aucun 118.
+/// et chaque code, le calcul le plus RECENT l'emporte ; l'effectif qu'une annee sans 118 a recu de la compagnie reste.
+/// Ne touche pas au fichier s'il n'y a aucun 118.
 pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
     let dossier = racine.join("retours");
     let mut noms: Vec<String> = match std::fs::read_dir(&dossier) {
@@ -751,30 +787,34 @@ pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
             codes.insert(code, json!({"valeur": valeur, "calcule_le": calcule_le, "source": format!("retours/{}", nom)}));
         }
     }
-    let chemin = racine.join("config").join("effectifs.json");
-    let existant: Value = if chemin.exists() {
-        std::fs::read_to_string(&chemin).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_else(|| json!({}))
-    } else {
-        json!({})
-    };
     if annees.is_empty() {
         return Ok(());
     }
-    let mut donnees = Map::new();
-    donnees.insert(
-        "_quoi".into(),
-        json!("Effectifs calcules par l'Urssaf et renvoyes en CRM de nature 118. `annees` est ECRIT PAR LE MOTEUR a chaque releve des retours, depuis les archives de retours/ : ne pas le modifier a la main. Seule `jamais_au_dessus_de` s'ecrit a la main -- la declaration de l'employeur pour les annees que les retours ne servent plus -- et le releve la garde. A01 = effectif de securite sociale (art. L. 130-1 CSS), celui des seuils de cotisation."),
-    );
-    donnees.insert("annees".into(), Value::Object(annees.into_iter().map(|(an, codes)| (an, Value::Object(codes))).collect()));
-    // La declaration de l'employeur pour le passe n'est pas un retour : le releve ne l'efface pas.
-    if let Some(passe) = existant.get("jamais_au_dessus_de").filter(|p| vrai(p)) {
-        donnees.insert("jamais_au_dessus_de".into(), passe.clone());
+    let existant = effectifs_lus(racine);
+    for (an, dit) in dits(&existant) {
+        annees.entry(an).or_default().entry(A01.to_string()).or_insert_with(|| dit[A01].clone());
     }
-    let donnees = Value::Object(donnees);
-    if existant != donnees {
-        socle::ecriture::ecrire_json(&chemin, &donnees, 2).map_err(|m| erreur("OSError", m))?;
+    ecrire_effectifs(racine, &existant, annees)
+}
+
+/// L'EFFECTIF QUE LA COMPAGNIE DIT POUR L'ANNEE `an` (l'effectif annuel moyen de l'annee civile, L. 130-1, I, CSS ;
+/// `atelier/reference/sources/code-de-la-securite-sociale/LISEZ-MOI.md`, « L'effectif au sens de la sécurité sociale ») :
+/// une compagnie venue d'un autre logiciel n'a pas les 118 de ses annees passees. `Ok(false)` : un 118 de cette annee
+/// est deja la, et c'est lui qui vaut ; rien n'est ecrit.
+pub fn poser_effectif(racine: &Path, an: i32, valeur: f64, le: &str) -> R<bool> {
+    let existant = effectifs_lus(racine);
+    let mut annees: std::collections::BTreeMap<String, Map<String, Value>> =
+        existant["annees"].as_object().into_iter().flatten().filter_map(|(a, c)| Some((a.clone(), c.as_object()?.clone()))).collect();
+    let codes = annees.entry(an.to_string()).or_default();
+    if codes.get(A01).is_some_and(|a| a.get(DIT_LE).is_none()) {
+        return Ok(false);
     }
-    Ok(())
+    codes.insert(A01.to_string(), json!({"valeur": valeur, DIT_LE: le}));
+    if let Some(dossier) = chemin_des_effectifs(racine).parent() {
+        std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+    }
+    ecrire_effectifs(racine, &existant, annees)?;
+    Ok(true)
 }
 
 /// Le resume d'une relève, pour une phrase d'incident : `"; ".join(rel.incidents)`.

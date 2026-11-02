@@ -106,7 +106,9 @@ en vigueur depuis le 02/01/2020).
 
 **Où le moteur s'en sert** : `atelier/sources/envois/src/organismes_simules.rs` (`effectif_annuel`), le compte rendu de
 nature 118 que le simulateur rend à une compagnie fictive ; `droit/src/contexte.rs` (`Effectif::atteint`) pour la règle
-des cinq ans.
+des cinq ans, et `Effectif::a_dire` pour les années qui manquent ; `moteur/src/routes/fiches.rs` (route `effectif`) pour
+l'effectif qu'une compagnie venue d'un autre logiciel dit d'une année sans compte rendu 118, tronqué au centième (R. 130-1, I),
+qu'un 118 de la même année remplace (`envois/src/releve_retours.rs`, `poser_effectif`).
 
 ## Le mode de tarification des AT/MP : D. 242-6-2 et D. 242-6-14 (relevé du 29/10/2026)
 
