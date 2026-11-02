@@ -1859,6 +1859,11 @@
       "applicable": true,
       "_confirme": "CONFIRMEE le 23/09/2026 sur la base KALI de la DILA (atelier/reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md), point par point de ce qui la retenait : (1) la contribution conventionnelle Afdas des intermittents est la MEME que celle de la 3090 -- les trois bulletins d'exemple CCNEAC de la web-conference Audiens 2026 (p. 5) portent la formation professionnelle a 2,1, comme celui de la 3090 (p. 12) : l'agregat `autres_1` ne change pas ; ce que la CCNEAC ajoute a cote est le FCAP (0,25 %, II.2.1) ; (2) la tranche B des cadres est << entre ce plafond et l'equivalent de 4 plafonds >> (en-tete de l'article XII.2) -- pour un intermittent, le plafond journalier, d'ou `t2_prevoyance_journaliere` ; et elle ne vise que les cadres qui effectuent des prestations TECHNIQUES (XII.2.2.1), les artistes cadres restant a l'interbranche (XII.2.2.4) ; (3) le CSEC est un fait de l'entreprise, lu sur sa fiche (`representation_personnel`) ; (4) la prevoyance des permanents est confirmee dans prevoyance-conventionnelle-base.json, avec leurs frais de sante (0,81 % du PMSS en 2026) ; (5) les lignes DSN du FNAS et du FCAP vont sous les adhesions Audiens de la compagnie, comme la CASC-SVP de la 3090 (`contributions_dsn`).",
       "bareme": {
+        "tarifs_conventionnels": {
+          "_source": "Accord du 2 mai 2024 relatif aux salaires (CCNEAC, KALITEXT000049949387, etendu ; atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md, l. 373-388) : << a compter du 1er septembre 2024 [...] 20,70 EUR chaque repas principal ; 74,30 EUR chambre et petit dejeuner >> (indemnite de deplacement de l'article VIII). L'accord du 1er juillet 2026 (NAO 2026, atelier/reference/sources/ccneac-nao-2026-grilles-transcription-20260929.md, l. 87 : 21,40 et 76,60 EUR a compter du 01/09/2026) n'est pas etendu : il ne lie que les adherents de ses signataires (`minima.grille_non_etendue`), qui saisissent son montant. Le taux d'une ligne << Repas >> ou << Nuitee >> saisie sans taux (`engagement::lignes_au_tarif`).",
+          "repas": 20.70,
+          "nuitee": 74.30
+        },
         "contributions_conventionnelles": [
           {
             "id": "ccn",

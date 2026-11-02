@@ -1106,6 +1106,13 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>, le: Opt
             None => o.brut_mut().remove(k),
         };
     }
+    // La fin que la carte dit d'un autre mois que le sien va au mois ou le contrat finit (`DE_LA_FIN`).
+    let dernier = o.dernier_mois()?.filter(|d| d != mois);
+    let (reste, de_la_fin): (Map<String, Value>, Map<String, Value>) = match &dernier {
+        Some(_) => saisie.clone().into_iter().partition(|(k, x)| !DE_LA_FIN.contains(&k.as_str()) || x.is_null()),
+        None => (saisie.clone(), Map::new()),
+    };
+    let saisie = &reste;
     if mois == o.fichier {
         let tenus: Vec<(&str, Option<Value>)> = TENUS_PAR_LE_MOTEUR.iter().map(|k| (*k, o.brut_mut().remove(*k))).collect();
         let mut neuf = saisie.clone();
@@ -1148,6 +1155,9 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>, le: Opt
             }
         }
     }
+    if let Some(d) = dernier.filter(|_| !de_la_fin.is_empty()) {
+        poser_la_fin(o, &d, de_la_fin)?;
+    }
     // Les bornes ne laissent pas hors du contrat un mois ou il a des jours payes.
     let mois_des_faits: Vec<String> = o.brut.get(FAITS).and_then(Value::as_object).map(|f| f.keys().cloned().collect()).unwrap_or_default();
     for m in mois_des_faits {
@@ -1173,6 +1183,47 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>, le: Opt
         if o.brut.get(k).and_then(Value::as_object).is_some_and(Map::is_empty) {
             o.brut_mut().remove(k);
         }
+    }
+    Ok(())
+}
+
+/// CE QUE LA FIN DU CONTRAT DIT D'ELLE : son motif, ses dates (notifiee, engagee, signee), son preavis, la transaction,
+/// le dernier jour paye, et ce que le motif appelle (le droit a la retraite, le preavis non effectue, l'indemnite de fin
+/// de contrat ecartee). Ce sont les faits du mois ou le contrat finit : la paie de ce mois-la et le signalement de fin de
+/// contrat les lisent (S21.G00.62, S21.G00.63), aucun autre mois.
+pub const DE_LA_FIN: [&str; 12] = [
+    "motif_rupture",
+    "notification_rupture",
+    "engagement_licenciement",
+    "signature_convention",
+    "preavis",
+    "transaction",
+    "dernier_jour_paye",
+    "en_droit_a_la_retraite",
+    "preavis_non_effectue",
+    "preavis_mois",
+    "precarite_due",
+    "precarite_pourquoi",
+];
+
+/// LA FIN DITE SUR LA CARTE D'UN AUTRE MOIS s'ecrit au mois `dernier`, celui ou le contrat finit (`DE_LA_FIN`) : au
+/// premier mois s'il finit dans celui-ci, sinon parmi ses faits ; un contrat d'usage dont ce mois n'avait pas de faits
+/// y garde les jours que son planning y met.
+fn poser_la_fin(o: &mut Objet, dernier: &str, de_la_fin: Map<String, Value>) -> Resultat<()> {
+    if dernier == o.fichier {
+        o.brut_mut().extend(de_la_fin);
+        return Ok(());
+    }
+    let mut faits = match o.faits_de(dernier) {
+        Some(f) => f.clone(),
+        None if o.mensuel() => Map::new(),
+        None => Map::from_iter([("lignes".to_string(), Value::Array(o.lignes_du_planning(dernier)?))]),
+    };
+    faits.extend(de_la_fin);
+    let tous = o.brut_mut().entry(FAITS.to_string()).or_insert_with(|| Value::Object(Map::new()));
+    if let Value::Object(tous) = tous {
+        tous.insert(dernier.to_string(), Value::Object(faits));
+        tous.sort_keys();
     }
     Ok(())
 }

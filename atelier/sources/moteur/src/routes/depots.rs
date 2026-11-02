@@ -563,6 +563,13 @@ fn requis<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 /// celle qui est partie (`partie`), jamais refaite (regle 4). `{quoi, fichier}` : un signalement ecrit.
 pub(crate) fn designee(ctx: &Contexte, charge: &Value) -> R<(Value, Value)> {
     let quoi = requis(charge, "quoi")?;
+    // Un signalement se nomme par son fichier, la declaration du mois par son mois : les deux ne designent pas la meme.
+    if charge.get("mois").is_some_and(vrai) && charge.get("fichier").is_some_and(vrai) {
+        return Err(refus(
+            "`fichier` et `mois` désignent deux déclarations : `fichier` seul pour un signalement écrit, `mois` seul pour la \
+             déclaration du mois. Rien n'est parti.",
+        ));
+    }
     let Some(mois) = charge.get("mois").filter(|m| vrai(m)).map(valeur_en_texte) else {
         return Ok((requis(charge, "fichier")?.clone(), json!({})));
     };

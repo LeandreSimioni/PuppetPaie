@@ -31,7 +31,7 @@ bulletins), 74 contrats d'intermittents et 3 engagements de permanents (CH1.22.0
 05/09/2022, CL3.24.01 du 08/01/2024, les numéros de la DSN de décembre), sans écart de compteurs ni de nets. Les 11 bulletins de
 décembre complètent les paies que la DSN déclare. Janvier 2026 continue les trois CDI sous leurs numéros. « Pour
 démarrer » demande ce que ni les bulletins ni la DSN ne portent : le compte Urssaf, la santé au travail, qui signe, la
-date de la première embauche, la taxe sur les salaires, les titres des spectacles, et les congés acquis des trois
+date de la première embauche, l'effectif de 2025, la taxe sur les salaires, les titres des spectacles, et les congés acquis des trois
 permanents.
 
 ## La compagnie
@@ -49,6 +49,17 @@ permanents.
 - **Taxe sur les salaires** : la billetterie et les cessions sont soumises à la TVA ; en 2025, 72 % des recettes et
   produits (subventions comprises) y étaient soumis ; la compagnie dépasse la franchise en base.
 - **Première embauche** : Hortense Champmeslé, en CDI, le **1er mars 2022**.
+- **Effectif de 2025** : **3,65**, l'effectif annuel moyen que l'Urssaf a calculé de ses DSN de 2025 (compte rendu
+  « Effectifs », nature 118, reçu le 16/02/2026 dans l'année jouée).
+- **Congés payés à la reprise**, au 1er janvier 2026, tels que l'année 2025 jouée les a comptés (son dernier bulletin) :
+  aucun jour pris ; sur la période passée (juin 2024 à mai 2025), 12,5 jours acquis et 12,5 qui restent ; sur la
+  période en cours (depuis le 1er juin 2025), 17,5 jours acquis. Le brut de chaque période :
+
+  | | période passée | période en cours |
+  |---|---|---|
+  | Champmeslé | 19 717,10 € | 23 660,52 € |
+  | Marivaux | 12 436,95 € | 14 924,34 € |
+  | Clairon | 9 706,40 € | 11 647,68 € |
 - **Spectacles** : Les Fausses Confidences (Marivaux), 256Z00921041 ; Le Barbier de Séville (Beaumarchais),
   256Z00921042.
 

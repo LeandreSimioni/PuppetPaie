@@ -100,7 +100,7 @@ pub const ROUTES: &[Fiche] = &[
         refus: &[REFUSEE, OPERATION, MANQUE, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
         avance: false,
-        phrase: 60,
+        phrase: 120,
         ecran: ECRAN,
     },
     Fiche {
@@ -183,7 +183,7 @@ pub const ROUTES: &[Fiche] = &[
         refus: &[OPERATION, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
         avance: true,
-        phrase: 200,
+        phrase: 300,
         ecran: Ecran::Auto(Place::Fiches),
     },
     Fiche {
@@ -315,6 +315,11 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 // ------------------------------------------------------------------ l'effectif
 
+/// Ou une compagnie trouve l'effectif d'une annee : la moyenne de ses effectifs mensuels (L. 130-1, I), chaque salarie a due
+/// proportion de ses jours et de son temps partiel (R. 130-1, II), que l'Urssaf renvoie en compte rendu de nature 118.
+const OU_TROUVER_L_EFFECTIF: &str =
+    "C'est la moyenne de ses effectifs mensuels, chaque salarié compté au prorata de ses jours sous contrat et de son temps partiel (R. 130-1 CSS) ; l'Urssaf la renvoie en compte rendu « Effectifs » (nature 118) : `annee` et `valeur`.";
+
 /// L'EFFECTIF D'UNE ANNEE (`config/effectifs.json`, A01) : le dire, et le poser quand la compagnie le donne pour une annee
 /// que l'Urssaf n'a pas renvoyee en compte rendu de nature 118 (`envois::releve_retours::poser_effectif`). L'effectif
 /// annuel est la moyenne des mois de l'annee civile, tronquee au centieme (CSS, L. 130-1, I, et R. 130-1, I :
@@ -322,13 +327,29 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 /// `annee` : les annees qui manquent pour payer cette annee (`Effectif::a_dire`).
 fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
     let an_paie = ctx.aujourdhui.an;
-    let a_dire = |ctx: &Contexte| -> R<Vec<i32>> { Ok(ctx.effectif().map_err(Echec::from)?.a_dire(an_paie)) };
+    // Les annees qui manquent : celles des seuils (`Effectif::a_dire`), et celle d'avant quand la paie la lit elle-meme et
+    // ne la connait pas (le FNAS de la CCNEAC sans CSE dit) : ce que « Pour démarrer » demande (`demarrage::manques`).
+    let a_dire = |ctx: &Contexte| -> R<Vec<i32>> {
+        let e = ctx.effectif().map_err(Echec::from)?;
+        let mut v = e.a_dire(an_paie);
+        let demande = declarations::demarrage::manques(ctx).iter().any(|m| m["cle"] == "effectif");
+        if demande && e.valeur(an_paie).is_none() && !v.contains(&(an_paie - 1)) {
+            v.push(an_paie - 1);
+            v.sort();
+        }
+        Ok(v)
+    };
     let Some(an) = charge.get("annee").filter(|a| vrai(a)) else {
         let manquent = a_dire(ctx)?;
         let phrase = if manquent.is_empty() {
             format!("L'effectif de la paie de {} est connu.", an_paie)
         } else {
-            format!("Pour payer en {}, il manque l'effectif de {}.", an_paie, manquent.iter().map(i32::to_string).collect::<Vec<_>>().join(", "))
+            format!(
+                "Pour payer en {}, il manque l'effectif de {}. {}",
+                an_paie,
+                manquent.iter().map(i32::to_string).collect::<Vec<_>>().join(", "),
+                OU_TROUVER_L_EFFECTIF
+            )
         };
         return Ok(json!({"a_dire": manquent, "phrase": phrase}));
     };
@@ -361,10 +382,10 @@ fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
     if phrase.is_empty() {
         phrase = match valeur.as_f64() {
             Some(v) => format!("Effectif de {} : {}, d'après {}.", an, socle::num::dec_f64(v).map(|e| socle::texte::virgule(e.round_dp(2))).unwrap_or_default(), source),
-            None => format!("L'effectif de {} n'est pas connu.", an),
+            None => format!("L'effectif de {} n'est pas connu. {}", an, OU_TROUVER_L_EFFECTIF),
         };
     }
-    Ok(json!({"annee": an, "valeur": valeur, "source": source, "a_dire": e.a_dire(an_paie), "phrase": phrase}))
+    Ok(json!({"annee": an, "valeur": valeur, "source": source, "a_dire": a_dire(ctx)?, "phrase": phrase}))
 }
 
 // ------------------------------------------------------------------ permanents
@@ -1755,11 +1776,13 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
     let neuve = nom != "entreprise" && cle.as_deref().map_or(true, str::is_empty);
     let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), &depuis, note)?;
     let en_erreur = e.anomalies.iter().any(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur"));
-    let phrase = match (e.ecrit, neuve, forcer && en_erreur) {
-        (false, _, _) => "Rien n'a changé : rien n'est écrit.",
-        (true, _, true) => "Enregistré malgré les erreurs.",
-        (true, true, false) => "Fiche créée.",
-        (true, false, false) => "Enregistré.",
+    // Une fiche creee se nomme ensuite par sa cle (la saisie d'une carte, `cle` d'une autre ecriture) : la phrase la dit.
+    let phrase = match (e.ecrit, neuve, forcer && en_erreur, &e.cle) {
+        (false, _, _, _) => "Rien n'a changé : rien n'est écrit.".to_string(),
+        (true, _, true, _) => "Enregistré malgré les erreurs.".to_string(),
+        (true, true, false, Some(c)) => format!("Fiche créée, sa clé : `{}`.", c),
+        (true, true, false, None) => "Fiche créée.".to_string(),
+        (true, false, false, _) => "Enregistré.".to_string(),
     };
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
     Ok(json!({"cle": e.cle, "ecrits": e.champs, "enregistre_a": e.ecrit.then(maintenant), "phrase": phrase}))

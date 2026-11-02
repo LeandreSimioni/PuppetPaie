@@ -995,6 +995,15 @@ pub(crate) fn engagements(
             }
             spectacle = None;
         } else if spectacle.as_deref().map_or(true, str::is_empty) {
+            // Un salaire au mois sans nature : c'est la nature qui manque, pas le spectacle (un engagement muet est un
+            // contrat d'usage aux cachets, qui n'a pas de salaire au mois).
+            if !truthy(e.get("nature")) && ["salaire_mensuel", "quotite_contrat"].iter().any(|k| truthy(e.get(*k))) {
+                return Err(format!(
+                    "{}{}\nUn engagement qui ne la dit pas est un {}, payé aux cachets ; un salaire au mois est celui d'un \
+                     CDI ou d'un CDD.",
+                    qui, PAS_DE_NATURE, nat.libelle
+                ));
+            }
             return Err(format!(
                 "{}{}\n\
                  Le spectacle porte le numéro d'objet, qui part en DSN, en AEM et sur le bulletin : il se choisit, il ne \
@@ -1177,12 +1186,13 @@ fn notifiee_pendant_le_contrat(e: &Value, eng: &Engagement) -> Resultat<()> {
 /// (`moteur::routes::etapes::classer_saisie`, `moteur::routes::mois::refus_du_calcul`) ; leur message s'ouvre sur le
 /// salarie, puis dit quoi faire.
 const PAS_DE_SPECTACLE: &str = " : choisissez le spectacle que joue cet engagement, sur sa carte.";
+const PAS_DE_NATURE: &str = " : choisissez la nature du contrat, sur sa carte (`nature`).";
 const PAS_DE_JOUR: &str = " : cochez les jours joués sur sa ligne de paie.";
 const LIGNE_A_DIRE: &str = " : saisissez ";
 const QUANTITE_SANS_COMPTE: &str = " : saisissez un nombre plus grand que zéro";
 /// Une journee de plus de 24 heures (`duree::plus_d_une_journee`) : une faute de frappe, a corriger comme une saisie pas finie.
 pub(crate) const JOURNEE_DE_PLUS_DE_24: &str = ", et une journée n'a que 24 heures";
-const SAISIE_INCOMPLETE: [&str; 5] = [PAS_DE_SPECTACLE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE, JOURNEE_DE_PLUS_DE_24];
+const SAISIE_INCOMPLETE: [&str; 6] = [PAS_DE_SPECTACLE, PAS_DE_NATURE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE, JOURNEE_DE_PLUS_DE_24];
 
 /// LE TARIF DE LA CONVENTION d'une rubrique a ce jour (`tarifs_conventionnels.<code>` de la couche de la convention du
 /// bareme, liste datee : l'avenant qui le fixe et sa date d'effet y sont cites). `None` : la convention n'en fixe pas, ou

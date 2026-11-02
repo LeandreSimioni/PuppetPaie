@@ -1545,9 +1545,9 @@ pub(crate) fn fin_au_terme(e: &Value) -> R<Value> {
     Ok(e)
 }
 
-/// La phrase d'un manque (`ce_qui_manque`) : sa case et ce qu'on y met.
+/// La phrase d'un manque (`ce_qui_manque`) : sa case, son nom dans la saisie de la carte, et ce qu'on y met.
 pub(crate) fn phrase_du_manque(m: &Value) -> String {
-    format!("« {} » : {}", valeur_en_texte(&m["case"]), valeur_en_texte(&m["dire"]))
+    format!("« {} » (`{}`) : {}", valeur_en_texte(&m["case"]), valeur_en_texte(&m["champ"]), valeur_en_texte(&m["dire"]))
 }
 
 /// Ce qu'un signalement exige et que la saisie ne dit pas encore, un manque par case
@@ -1604,7 +1604,7 @@ technique DSN p. 275). Le signalement ne s'écrit pas sans elle.",
                 dit.push_str(&format!(" {} en donne {} : c'est elle qui s'applique.", tout.qui, conv));
             } else if tout.mois.is_none() {
                 if let Some(pourquoi) = tout.pourquoi.as_ref().filter(|p| !p.is_empty()) {
-                    dit.push_str(&format!(" Et {}.", pourquoi));
+                    dit.push_str(&format!(" Et {}.", pourquoi.trim_end_matches('.')));
                 }
             }
         }

@@ -137,9 +137,25 @@ pub const CASES_D_UN_MOIS_PAYE: &[Champ] = &[
     Champ { nom: "heures_complementaires", sens: "un temps partiel : ses heures complémentaires du mois, que le moteur majore", avance: true },
 ];
 
+/// LES CASES DE LA FIN DU CONTRAT, dans la charge `saisie` : les faits du mois ou il finit (`engagement::stock::DE_LA_FIN`),
+/// la ou le moteur les ecrit quel que soit le mois de la carte. Ce que chaque motif appelle : `faits_de_rupture` des
+/// `natures` de la route etat.
+pub const CASES_DE_LA_FIN: &[Champ] = &[
+    Champ { nom: "fin", sens: "le dernier jour du contrat, AAAA-MM-JJ", avance: false },
+    Champ { nom: "motif_rupture", sens: "le code du motif, \"059\" pour une démission : `motifs_rupture` des `natures` de la route etat", avance: false },
+    Champ { nom: "notification_rupture", sens: "le jour où la rupture a été notifiée, AAAA-MM-JJ", avance: false },
+    Champ { nom: "preavis", sens: "{type, debut, fin} : type de `types_preavis` de la route etat (\"90\" sans préavis), ses dates s'il en a", avance: false },
+    Champ { nom: "dernier_jour_paye", sens: "le dernier jour payé, s'il n'est pas la fin", avance: false },
+];
+
 /// Les cases d'une carte que porte la charge de la fiche (`saisie`), s'il y en a.
 fn cases(charge: &[Champ]) -> &'static [Champ] {
     if charge.iter().any(|c| c.nom == "saisie") { CASES_D_UN_MOIS_PAYE } else { &[] }
+}
+
+/// Les cases de la fin du contrat que porte la charge de la fiche (`saisie`), s'il y en a.
+fn cases_de_la_fin(charge: &[Champ]) -> &'static [Champ] {
+    if charge.iter().any(|c| c.nom == "saisie") { CASES_DE_LA_FIN } else { &[] }
 }
 
 /// Un refus : sa classe, et ce qu'il faut corriger.
@@ -186,6 +202,7 @@ impl Fiche {
             "geste": self.geste,
             "charge": self.charge.iter().map(|c| json!({"nom": c.nom, "sens": c.sens, "avance": c.avance})).collect::<Vec<_>>(),
             "cases": cases(self.charge).iter().map(|c| json!({"nom": c.nom, "sens": c.sens, "avance": c.avance})).collect::<Vec<_>>(),
+            "cases_de_la_fin": cases_de_la_fin(self.charge).iter().map(|c| json!({"nom": c.nom, "sens": c.sens, "avance": c.avance})).collect::<Vec<_>>(),
             "exemple": serde_json::from_str::<Value>(self.exemple).unwrap_or(Value::Null),
             "rend": self.rend,
             "refus": self.refus.iter().map(|r| json!({"classe": r.classe, "corriger": r.corriger})).collect::<Vec<_>>(),
@@ -206,6 +223,12 @@ impl Fiche {
             t.push_str("  Cases de la carte d'un contrat au mois (dans saisie) :\n");
             for c in cases(self.charge) {
                 t.push_str(&format!("    {}{} : {}\n", c.nom, if c.avance { " (avancé)" } else { "" }, c.sens));
+            }
+        }
+        if !cases_de_la_fin(self.charge).is_empty() {
+            t.push_str("  Cases de la fin du contrat (dans saisie, sur la carte de n'importe quel mois du contrat) :\n");
+            for c in cases_de_la_fin(self.charge) {
+                t.push_str(&format!("    {} : {}\n", c.nom, c.sens));
             }
         }
         t.push_str(&format!("  Exemple : echo '{{\"route\":\"{}\",\"charge\":{}}}' | moteur route\n", self.nom, self.exemple));
