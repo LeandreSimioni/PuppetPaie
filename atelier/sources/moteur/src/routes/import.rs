@@ -135,6 +135,8 @@ fn poser_les_pastilles(v: &mut Value) {
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    // Chaque PDF de la boite aux lettres se releve une fois pour toute la route (`import::releve`).
+    let _releves = crate::import::releve::Releves::ouvrir();
     match nom {
         // `{"dossier": ...}` (vide ou absent : `import/` de la compagnie) : la boite aux lettres entiere, bulletins
         // compris (`import::bulletins`).

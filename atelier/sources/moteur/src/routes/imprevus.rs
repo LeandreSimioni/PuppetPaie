@@ -1642,7 +1642,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         }
         let salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("salarie")))?;
         // La cle de la fiche : celle que porte le nom du fichier du signalement (`fin-contrat-signaler`).
-        let cle = ctx.salarie(&valeur_en_texte(salarie)).ok().and_then(|f| f.get("_cle").map(valeur_en_texte));
+        let cle = ctx.cle_du_salarie(&valeur_en_texte(salarie)).ok();
         let a_saisir = ce_qui_manque(ctx, e)?;
         // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`).
         let obligation = crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal.lignes, aujourdhui)?;

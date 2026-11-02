@@ -282,8 +282,8 @@ pub struct PageAem {
 
 /// Les pages du PDF qui sont des AEM (ou leur notice), lues. Les autres pages n'y sont pas.
 pub fn lire(chemin: &Path) -> Result<Vec<PageAem>, String> {
-    let (texte, _) = fabrique_pdf::inspection::inspecter(&chemin.to_string_lossy()).map_err(|r| format!("PDF que la fabrique n'ouvre pas : {}", r.0))?;
-    let releve: Value = serde_json::from_str(&texte).map_err(|e| format!("releve du PDF illisible ({})", e))?;
+    let r = crate::import::releve::du_pdf(chemin).map_err(|e| e.phrase())?;
+    let releve = &r.releve;
     let pages: Vec<Vec<Mot>> = releve.get("pages").and_then(Value::as_array).map(|ps| ps.iter().map(mots_de).collect()).unwrap_or_default();
     let notices: Vec<bool> = pages.iter().map(|m| est_notice(m)).collect();
     let mut out = Vec::new();

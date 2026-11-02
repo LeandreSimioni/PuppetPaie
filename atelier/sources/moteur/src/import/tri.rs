@@ -422,24 +422,22 @@ fn est_un_pdf(o: &[u8]) -> bool {
 
 /// Un PDF : la fabrique l'ouvre (dans le meme processus) et releve chaque page.
 fn lire_pdf(f: &mut Fichier) {
-    let (texte, avertissements) = match fabrique_pdf::inspection::inspecter(&f.disque.to_string_lossy()) {
+    let r = match crate::import::releve::du_pdf(&f.disque) {
         Ok(r) => r,
-        Err(r) => {
+        Err(crate::import::releve::Refus::Fabrique(r)) => {
             f.sorte = Sorte::Illisible;
             // Le refus de la fabrique commence par le chemin du disque : seule la cause compte ici.
-            let cause = r.0.strip_prefix(&*f.disque.to_string_lossy()).unwrap_or(&r.0).trim_start_matches([' ', ':']).to_string();
+            let cause = r.strip_prefix(&*f.disque.to_string_lossy()).unwrap_or(&r).trim_start_matches([' ', ':']).to_string();
             f.raison = Some(format!("PDF que la fabrique n'ouvre pas : {}", cause));
             return;
         }
-    };
-    let releve: Value = match serde_json::from_str(&texte) {
-        Ok(v) => v,
-        Err(e) => {
+        Err(crate::import::releve::Refus::Releve(e)) => {
             f.sorte = Sorte::Illisible;
             f.raison = Some(format!("PDF dont le releve ne se lit pas ({})", e));
             return;
         }
     };
+    let (releve, avertissements) = (&r.releve, &r.avertissements);
     let n = |v: &Value, k: &str| v.get(k).and_then(Value::as_array).map_or(0, Vec::len);
     f.pages = releve
         .get("pages")

@@ -50,6 +50,14 @@ impl Jour {
     /// Une date ecrite dans l'un des cinq formats.
     pub fn lire(texte: &str) -> Resultat<Jour> {
         let s = texte.trim();
+        // La forme qu'ecrit le moteur (`iso`), lue d'emblee : c'est celle que le premier format apparierait.
+        let o = s.as_bytes();
+        if o.len() == 10 && o[4] == b'-' && o[7] == b'-' && [0, 1, 2, 3, 5, 6, 8, 9].iter().all(|&i| o[i].is_ascii_digit()) {
+            let n = |a: usize, b: usize| s[a..b].parse::<u32>().unwrap_or(0);
+            if let Some(j) = Jour::nouveau(n(0, 4) as i32, n(5, 7), n(8, 10)) {
+                return Ok(j);
+            }
+        }
         let c: Vec<char> = s.chars().collect();
         for format in FORMATS {
             if let Some(j) = lire_format(format, &c) {

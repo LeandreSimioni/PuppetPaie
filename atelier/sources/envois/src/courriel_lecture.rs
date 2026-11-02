@@ -73,7 +73,12 @@ pub fn recouper_les_entetes(brut: &[u8]) -> std::borrow::Cow<'_, [u8]> {
 
 /// L'identifiant du message (`Message-ID`), sans blancs aux bords ; vide s'il manque.
 pub fn identifiant_de(m: &ParsedMail) -> String {
-    socle::texte::strip(&m.headers.get_first_value("Message-ID").unwrap_or_default()).to_string()
+    identifiant_des_entetes(&m.headers)
+}
+
+/// `identifiant_de`, sur des en-tetes lus seuls (`mailparse::parse_headers`).
+pub fn identifiant_des_entetes(entetes: &[mailparse::MailHeader]) -> String {
+    socle::texte::strip(&entetes.get_first_value("Message-ID").unwrap_or_default()).to_string()
 }
 
 /// La date du message, en heure locale (Paris), ISO a la seconde -- le format du journal. Sans en-tete

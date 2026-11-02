@@ -1517,7 +1517,7 @@ pub fn libelle_mois(mois: &str) -> String {
 /// (sans tenir compte de la casse ni des accents), comme le fait le calcul de sa paie. `None` s'il ne nomme aucune fiche.
 pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
     let nom = e.get("salarie").and_then(Value::as_str)?;
-    ctx.salarie(nom).ok()?.get("_cle").and_then(Value::as_str).map(str::to_string)
+    ctx.cle_du_salarie(nom).ok()
 }
 /// Le debut d'un engagement brut, comme `Engagement` le deduirait : `debut` s'il le dit, sinon son premier jour joue.
 pub fn debut_brut(e: &Value) -> String {

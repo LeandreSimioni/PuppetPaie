@@ -1016,10 +1016,9 @@ pub fn lire(chemin: &Path) -> Resultat<Vec<Lecture>> {
 
 /// La meme, avec une table donnee.
 pub fn lire_avec(chemin: &Path, table: &Table) -> Resultat<Vec<Lecture>> {
-    let (texte, avertissements) = fabrique_pdf::inspection::inspecter(&chemin.to_string_lossy())
-        .map_err(|r| format!("PDF que la fabrique n'ouvre pas : {}", r.0))?;
-    let releve: Value = serde_json::from_str(&texte).map_err(|e| format!("releve du PDF illisible ({})", e))?;
-    let pages = releve.get("pages").and_then(Value::as_array).cloned().unwrap_or_default();
+    let r = crate::import::releve::du_pdf(chemin).map_err(|e| e.phrase())?;
+    let avertissements = &r.avertissements;
+    let pages = r.releve.get("pages").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
     Ok(pages
         .iter()
         .enumerate()

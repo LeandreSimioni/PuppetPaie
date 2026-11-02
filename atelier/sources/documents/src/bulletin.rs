@@ -1306,7 +1306,14 @@ pub fn jeux_et_description(
         // Tout ce que la compagnie a declare jusqu'a ce mois, ce mois-ci compris : les paies
         // qu'on imprime remplacent le fichier de leur mois.
         let courantes = paies_du_mois.filter(|p| !p.is_empty()).unwrap_or(paies);
-        let mut engagements = lire_engagements_jusqu_au(ctx, Some(courantes), Some(mois), departs)?;
+        // Le cumul ne se tire que pour les salaries au cachet de ces paies : seuls leurs engagements se relisent.
+        let mut au_cachet = std::collections::BTreeSet::new();
+        for pa in paies {
+            if !pa.engagement.nat()?.mensuelle() {
+                au_cachet.insert(texte(&pa.salarie, "_cle")?);
+            }
+        }
+        let mut engagements = lire_engagements_jusqu_au(ctx, Some(courantes), Some(mois), Some(&au_cachet), departs)?;
         if borne_au_mois {
             let fin = dernier_du_mois(mois)?;
             engagements.retain(|e| e.debut <= fin);

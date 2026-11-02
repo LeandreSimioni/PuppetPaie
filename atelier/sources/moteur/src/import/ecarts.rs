@@ -54,17 +54,30 @@ fn montant() -> &'static Regex {
     M.get_or_init(|| Regex::new(r"\d[\d\u{a0}\u{202f} .]*[,.]\d{2}\b").expect("motif d'un montant"))
 }
 
-/// Le texte tel qu'il part : caviarde.
-fn propre(texte: &str, connus: &Connus) -> String {
-    caviardage::caviarder(texte, connus).texte
+/// Le caviardage des rapports (`caviardage::caviarder`), sur les noms connus de la compagnie : un meme texte (un mois, une
+/// nature, qui reviennent a chaque cas) ne se caviarde qu'une fois.
+struct Propre<'a> {
+    connus: &'a Connus,
+    vus: std::collections::HashMap<String, String>,
 }
 
-fn propre_json(v: &Value, connus: &Connus) -> Value {
-    match v {
-        Value::String(s) => Value::String(propre(s, connus)),
-        Value::Array(a) => Value::Array(a.iter().map(|x| propre_json(x, connus)).collect()),
-        Value::Object(o) => Value::Object(o.iter().map(|(k, x)| (k.clone(), propre_json(x, connus))).collect()),
-        autre => autre.clone(),
+impl Propre<'_> {
+    fn texte(&mut self, texte: &str) -> String {
+        if let Some(t) = self.vus.get(texte) {
+            return t.clone();
+        }
+        let t = caviardage::caviarder(texte, self.connus).texte;
+        self.vus.insert(texte.to_string(), t.clone());
+        t
+    }
+
+    fn json(&mut self, v: &Value) -> Value {
+        match v {
+            Value::String(s) => Value::String(self.texte(s)),
+            Value::Array(a) => Value::Array(a.iter().map(|x| self.json(x)).collect()),
+            Value::Object(o) => Value::Object(o.iter().map(|(k, x)| (k.clone(), self.json(x))).collect()),
+            autre => autre.clone(),
+        }
     }
 }
 
@@ -93,6 +106,7 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
     let (idcc, annexe, organisation) = (texte("idcc"), texte("annexe_convention"), texte("organisation_patronale"));
     let mut connus = Connus::default();
     ajouter_les_fiches(ctx, &mut connus);
+    let mut propre = Propre { connus: &connus, vus: Default::default() };
     let logiciel = |c: &Comparaison| c.logiciel.clone().unwrap_or_else(|| "autre".into());
     let cas = |c: &Comparaison| json!({"mois": c.mois, "nature": c.nature, "statut": c.statut, "cadre": c.cadre, "taux_atmp": c.taux_atmp});
 
@@ -101,7 +115,7 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
     let mut seules: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for c in comparaisons {
         match &c.ecarts {
-            Err(raison) => refus.entry(montant().replace_all(&propre(raison, &connus), "<MONTANT>").into_owned()).or_default().push(json!({"mois": c.mois, "logiciel": c.logiciel, "nature": c.nature, "statut": c.statut, "cadre": c.cadre})),
+            Err(raison) => refus.entry(montant().replace_all(&propre.texte(raison), "<MONTANT>").into_owned()).or_default().push(json!({"mois": c.mois, "logiciel": c.logiciel, "nature": c.nature, "statut": c.statut, "cadre": c.cadre})),
             Ok(liste) => {
                 for e in liste {
                     let (libelles, v) = ecarts.entry((e.cotisation.clone(), e.grandeur, logiciel(c))).or_default();
@@ -151,7 +165,7 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
         let resume = format!("Lignes de cotisation non comparées (bulletin {}) : la table de lecture ne les rattache à aucune cotisation : {}.", logiciel, libelles.join(" ; "));
         sortie.push(Rapport { genre: format!("cotisation non rattachée · {}", logiciel), resume, detail: json!({"logiciel": logiciel, "libelles": libelles, "idcc": idcc}) });
     }
-    sortie.into_iter().map(|r| Rapport { genre: propre(&r.genre, &connus), resume: propre(&r.resume, &connus), detail: propre_json(&r.detail, &connus) }).collect()
+    sortie.into_iter().map(|r| Rapport { genre: propre.texte(&r.genre), resume: propre.texte(&r.resume), detail: propre.json(&r.detail) }).collect()
 }
 
 /// A la fin d'un import : les rapports notes, puis l'envoi ordinaire. Ne leve jamais et ne dit rien a l'ecran : rend le

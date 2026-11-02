@@ -63,8 +63,9 @@ impl Norme {
         ))
     }
 
-    fn entree(&self) -> Resultat<Value> {
-        Ok(base()?["versions"][&self.version].clone())
+    /// L'entree de cette version dans la base des normes, lue dans la base partagee : rien n'est recopie.
+    fn entree(&self) -> Resultat<Entree> {
+        Ok(Entree(base()?, self.version.clone()))
     }
 
     /// La table des usages de cette version (un fichier de `logiciel/donnees/`).
@@ -243,4 +244,14 @@ logiciel/donnees/{}, `valeurs_retirees`. Rien n'est ecrit.",
         refus.join("\n"),
         BASE
     ))
+}
+
+/// L'entree d'une version (`Norme::entree`) : la base partagee et le nom de la version.
+struct Entree(Arc<Value>, String);
+
+impl std::ops::Deref for Entree {
+    type Target = Value;
+    fn deref(&self) -> &Value {
+        &self.0["versions"][&self.1]
+    }
 }

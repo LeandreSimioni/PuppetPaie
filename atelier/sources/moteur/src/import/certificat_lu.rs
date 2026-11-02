@@ -139,9 +139,9 @@ pub struct PageCertificat {
 
 /// Les pages du PDF qui sont des certificats d'emploi Congés Spectacles, lues. Les autres pages n'y sont pas.
 pub fn lire(chemin: &Path) -> Result<Vec<PageCertificat>, String> {
-    let (texte, _) = fabrique_pdf::inspection::inspecter(&chemin.to_string_lossy()).map_err(|r| format!("PDF que la fabrique n'ouvre pas : {}", r.0))?;
-    let releve: Value = serde_json::from_str(&texte).map_err(|e| format!("releve du PDF illisible ({})", e))?;
-    let pages = releve.get("pages").and_then(Value::as_array).cloned().unwrap_or_default();
+    let r = crate::import::releve::du_pdf(chemin).map_err(|e| e.phrase())?;
+    let releve = &r.releve;
+    let pages = releve.get("pages").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
     Ok(pages.iter().enumerate().filter_map(|(i, p)| lire_page(p, i + 1)).collect())
 }
 
