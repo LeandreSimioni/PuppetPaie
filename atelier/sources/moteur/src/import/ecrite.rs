@@ -729,20 +729,33 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     if de("spectacles") > 0 {
         fiches.push(crate::routes::compte(de("spectacles"), "spectacle", "spectacles"));
     }
-    // UN SPECTACLE SANS TITRE : les pieces ne portent que son numero d'objet (`completer::A_COMPLETER`) ; le contrat imprime
-    // le titre, la phrase le dit.
-    let sans_titre = reponse["spectacles"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter(|f| f["donnees"]["titre"].as_str().is_some_and(|t| t.eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)))
-        .count();
+    // UN SPECTACLE SANS TITRE (`completer::A_COMPLETER`) : les bulletins en proposent un a valider
+    // (`demarrage::TITRE_PROPOSE`), ou les pieces ne portent que son numero d'objet ; le contrat imprime le titre, la phrase
+    // le dit. Lu dans les fiches telles que l'import les a ecrites.
+    let (mut proposes, mut sans_titre) = (0, 0);
+    if let Ok(frais) = Contexte::nouveau(&ctx.racine, Some(ctx.date)) {
+        for sp in frais.spectacles.values().filter(|sp| sp.get("actif") != Some(&json!(false))) {
+            if sp.get("titre").map(valeur_en_texte).is_some_and(|t| t.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)) {
+                if sp.get(declarations::demarrage::TITRE_PROPOSE).is_some_and(vrai) {
+                    proposes += 1;
+                } else {
+                    sans_titre += 1;
+                }
+            }
+        }
+    }
+    let titres = match (proposes, sans_titre) {
+        (0, 0) => String::new(),
+        (p, 0) => format!(" Titre à valider pour {} spectacle(s), proposé d'après les bulletins (Pour démarrer).", p),
+        (0, s) => format!(" Titre à dire pour {} spectacle(s) : les pièces ne portent que le numéro d'objet (Pour démarrer).", s),
+        (p, s) => format!(" Titre à dire pour {} spectacle(s), dont {} proposé(s) d'après les bulletins (Pour démarrer).", p + s, p),
+    };
     reponse["phrase"] = json!(format!(
         "Repris : {}, {} ; fiches écrites : {}.{}",
         crate::routes::compte((n(&reponse["contrats_nouveaux"]) + n(&b["contrats_nouveaux"])) as usize, "contrat", "contrats"),
         crate::routes::compte((n(&b["paies_nouvelles"]) + n(&b["paies_completees"])) as usize, "bulletin", "bulletins"),
         if fiches.is_empty() { "aucune".to_string() } else { fiches.join(", ") },
-        if sans_titre > 0 { format!(" Titre à dire pour {} spectacle(s) : les pièces ne portent que le numéro d'objet (Configuration › Spectacles).", sans_titre) } else { String::new() }
+        titres
     ));
     reponse["couleur"] = json!(crate::routes::couleur_de_l_etat("fait"));
     rapporter_les_ecarts(ctx);
