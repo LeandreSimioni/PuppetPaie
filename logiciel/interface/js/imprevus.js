@@ -483,7 +483,7 @@ async function provenance(ou) {
 }
 
 /* -------------------------------------------------- un arrêt de travail
-   Toujours : le dernier jour travaillé, la fin prescrite, le motif (la
+   Toujours : le dernier jour travaillé, le début et la fin que l'avis prescrit, le motif (la
    subrogation se tire du droit, dans le moteur). Le reste n'apparaît que si un fait l'appelle :
      - la date de l'accident, si le motif en porte une (04, 05, 06 : le
        moteur le dit, `date_accident` du motif) ;
@@ -499,9 +499,11 @@ async function boiteArret(ou) {
   const motifs = n.motifs_arret || [];
   ouvrirBoite(`
     <h3>Un arrêt de travail — ${echapper(nomDuSalarie(p.salarie))}</h3>
+    <label class="champ-boite">Dernier jour travaillé
+      <input type="date" id="ar-dernier"></label>
     <div class="champs-deux">
-      <label class="champ-boite">Dernier jour travaillé
-        <input type="date" id="ar-dernier"></label>
+      <label class="champ-boite" title="${aideDe("debut_arret")}">Arrêt prescrit dès le
+        <input type="date" id="ar-debut"></label>
       <label class="champ-boite">Arrêt prescrit jusqu'au
         <input type="date" id="ar-fin"></label>
     </div>
@@ -541,7 +543,7 @@ async function boiteArret(ou) {
     let r;
     try {
       r = await api("arret-obligations", {
-        motif: val("ar-motif"), dernier_jour: val("ar-dernier"), fin: val("ar-fin"), salarie: p.salarie, ...contratAEnvoyer(trouve),
+        motif: val("ar-motif"), dernier_jour: val("ar-dernier"), debut: val("ar-debut"), fin: val("ar-fin"), salarie: p.salarie, ...contratAEnvoyer(trouve),
         date_accident: val("ar-accident"), connaissance_accident: val("ar-connu"), connaissance_heure: val("ar-connu-heure"),
       });
     } catch (e) { ligne.textContent = ""; return; }
@@ -561,7 +563,7 @@ async function boiteArret(ou) {
   };
   document.getElementById("ar-motif").onchange = () => { majFaits(); relireEnsuite(); };
   document.getElementById("ar-dernier").addEventListener("change", () => { relireContrats(); relireEnsuite(); });
-  for (const id of ["ar-fin", "ar-accident", "ar-connu", "ar-connu-heure"]) {
+  for (const id of ["ar-debut", "ar-fin","ar-accident", "ar-connu", "ar-connu-heure"]) {
     document.getElementById(id).addEventListener("change", relireEnsuite);
   }
   document.getElementById("ar-note-btn").onclick = () => {
@@ -575,7 +577,7 @@ async function boiteArret(ou) {
     // Ce qui part : les faits toujours dus, et ceux que les faits ont ouverts — rien d'autre.
     const m = motif();
     const charge = {
-      salarie: p.salarie, dernier_jour: val("ar-dernier"), fin: val("ar-fin"),
+      salarie: p.salarie, dernier_jour: val("ar-dernier"), debut: val("ar-debut"), fin: val("ar-fin"),
       motif: val("ar-motif"), ...contratAEnvoyer(trouve),
     };
     if (m && m.date_accident) charge.date_accident = val("ar-accident");

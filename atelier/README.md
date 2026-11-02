@@ -726,8 +726,8 @@ déclarations le disent, et ce ne sont pas la même :
 route arrets                      ce qui est saisi, et ce qui attend
 route imprevus                    les motifs de la norme
 route arret-contrats              ce qu'un arrêt suspendrait
-route arret-enregistrer {"salarie": "Celi", "dernier_jour": "2026-10-07", "fin": "2026-10-20", \
-                                  --motif 01 --subrogation non
+route arret-enregistrer {"salarie": "Celi", "dernier_jour": "2026-10-07", "debut": "2026-10-08", \
+                                  "fin": "2026-10-20", "motif": "01"}
 route arret-signaler {"salarie": "Celi", "dernier_jour": "2026-10-07"}
 route deposer {"quoi": "dsn", "fichier": "sorties/2026-10/SignalementArret_Celi_20261007.dsn"}
 ```

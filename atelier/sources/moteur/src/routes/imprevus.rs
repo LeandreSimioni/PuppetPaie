@@ -63,6 +63,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche { phrase: 40, ..fiche("arret-enregistrer", "Enregistrer un arrêt de travail.",
         &[
             SALARIE, DERNIER_JOUR,
+            Champ { nom: "debut", libelle: Affiche::new("Début de l'arrêt"), forme: Forme::Date, sens: "le premier jour que l'avis prescrit ; le dernier jour travaillé s'il a été prescrit ce jour-là", avance: false },
             Champ { nom: "fin", libelle: Affiche::new("Fin prescrite"), forme: Forme::Date, sens: "la fin prescrite", avance: false },
             Champ { nom: "motif", libelle: Affiche::new("Motif"), forme: Forme::Texte, sens: "le code du motif d'arrêt (nomenclatures de imprevus)", avance: false },
             Champ { nom: "date_accident", libelle: Affiche::new("Jour de l'accident"), forme: Forme::Date, sens: "le jour de l'accident, quand le motif l'appelle", avance: true },
@@ -71,7 +72,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "jours_deja_indemnises", libelle: Affiche::new("Jours déjà indemnisés"), forme: Forme::Nombre, sens: "pour le maintien d'un permanent", avance: true },
             Champ { nom: "note", libelle: Affiche::new("Note"), forme: Forme::Texte, sens: "une note libre", avance: true },
         ],
-        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-11-30","motif":"01"}"#,
+        r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","debut":"2026-11-30","fin":"2026-11-30","motif":"01"}"#,
         "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 700, ..fiche("arret-prolonger", "Prolonger un arrêt : sa nouvelle fin.",
         &[SALARIE, DERNIER_JOUR, Champ { nom: "fin", libelle: Affiche::new("Nouvelle fin prescrite"), forme: Forme::Date, sens: "la nouvelle fin prescrite", avance: false }],
@@ -844,19 +845,31 @@ pub(crate) fn trouver_l_arret(ctx: &Contexte, nom: &Value, dernier_jour: &Value)
     )))
 }
 
+/// Le dernier jour travaille saisi de l'arret de ce salarie dont un signalement a declare `declare` (S21.G00.60.002,
+/// `imprevus::dernier_jour_declare`) : ce qui designe l'arret aux routes ; `declare` lui-meme si aucun arret ne le porte.
+pub(crate) fn dernier_jour_saisi(ctx: &Contexte, salarie: &str, declare: &str) -> R<String> {
+    for a in tous_les_arrets(ctx)? {
+        if valeur_en_texte(&a["salarie"]) == salarie && magasin(imprevus::dernier_jour_declare(&a))?.iso() == declare {
+            return Ok(valeur_en_texte(&a["dernier_jour_travaille"]));
+        }
+    }
+    Ok(declare.to_string())
+}
+
 /// `{"arret": resume, "phrase"}` : l'arret tel que la page le lit (`crate::routes::imprevus::resume`, avec les cachets qui tombent dedans), et ce qui se lit du geste.
 fn reponse_arret(ctx: &Contexte, arret: &Value, phrase: &str) -> R<Value> {
     let n = nomenclatures(ctx)?;
     Ok(json!({"arret": crate::routes::imprevus::resume(ctx, &n, arret)?, "phrase": phrase}))
 }
 
-/// `arret-enregistrer` : `{salarie, dernier_jour, fin, motif,
+/// `arret-enregistrer` : `{salarie, dernier_jour, debut, fin, motif,
 /// date_accident?, jours_deja_indemnises?, contrat?, note?}` -> `{"arret": resume}`. Les controles de la norme sont ceux
 /// du signalement (`signalement::verifier`, nature 04), avant toute ecriture ; un arret ne chevauche pas un autre imprevu
 /// du meme contrat (`crate::routes::imprevus::sans_chevauchement`).
 fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom = exiger(charge, "salarie")?;
     let dernier_jour = exiger(charge, "dernier_jour")?;
+    let debut = jour(exiger(charge, "debut")?)?;
     let fin = exiger(charge, "fin")?;
     let motif = exiger(charge, "motif")?;
     let cle = cle_en_json(ctx, nom)?;
@@ -887,6 +900,7 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     a.insert("contrat_numero".into(), choisi["numero"].clone());
     a.insert("motif".into(), json!(valeur_en_texte(motif)));
     a.insert("dernier_jour_travaille".into(), json!(dernier.iso()));
+    a.insert("debut".into(), json!(debut.iso()));
     a.insert("fin_previsionnelle".into(), json!(jour(fin)?.iso()));
     a.insert("subrogation".into(), Value::Null);
     a.insert("subrogation_debut".into(), Value::Null);
@@ -1391,6 +1405,7 @@ pub(crate) fn resume_arret(ctx: &Contexte, n: &Value, a: &Value) -> R<Value> {
         "motif": motif,
         "motif_libelle": libelle,
         "dernier_jour_travaille": champ(a, "dernier_jour_travaille", Value::Null),
+        "debut": champ(a, "debut", Value::Null),
         "fin_previsionnelle": champ(a, "fin_previsionnelle", Value::Null),
         "subrogation": champ(a, "subrogation", Value::Null),
         "subrogation_debut": champ(a, "subrogation_debut", Value::Null),

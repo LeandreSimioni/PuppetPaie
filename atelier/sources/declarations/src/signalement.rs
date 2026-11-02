@@ -135,14 +135,33 @@ moteur n'ecrit pas.",
         ));
     }
 
-    let dernier = jours(a, "dernier_jour_travaille")?;
+    let travaille = jours(a, "dernier_jour_travaille")?;
+    let debut = jours(a, "debut")?;
     let fin_prev = jours(a, "fin_previsionnelle")?;
     let debut_contrat = jours(a, "contrat_debut")?;
 
+    // Le dernier jour travaille est la veille du debut prescrit, ou ce jour meme quand il a ete travaille
+    // (S21.G00.60.002) : un arret ne commence pas avant un jour travaille.
+    if debut < travaille {
+        return impossible(format!(
+            "Début de l'arrêt ({}) avant le dernier jour travaillé ({}) : corriger l'une des deux dates. L'arrêt commence le \
+jour que l'avis prescrit, le dernier jour travaillé est la veille ou ce jour même (S21.G00.60.002).",
+            debut.jj_mm_aaaa(),
+            travaille.jj_mm_aaaa()
+        ));
+    }
+    if debut > fin_prev {
+        return impossible(format!(
+            "Début de l'arrêt ({}) après sa fin prescrite ({}) : corriger l'une des deux dates de l'avis.",
+            debut.jj_mm_aaaa(),
+            fin_prev.jj_mm_aaaa()
+        ));
+    }
+    let dernier = engagement::imprevus::dernier_jour_declare(v)?;
     if dernier > fin_prev {
         return impossible(format!(
             "Dernier jour travaille ({}) posterieur a la fin previsionnelle de l'arret ({}) -- CCH-12.",
-            s(v, "dernier_jour_travaille"),
+            dernier.jj_mm_aaaa(),
             s(v, "fin_previsionnelle")
         ));
     }
@@ -150,7 +169,7 @@ moteur n'ecrit pas.",
         return impossible(format!(
             "Dernier jour travaille ({}) anterieur au debut du contrat ({}) -- CCH-18. Ce n'est pas ce \
 contrat-la qui est suspendu.",
-            s(v, "dernier_jour_travaille"),
+            dernier.jj_mm_aaaa(),
             s(v, "contrat_debut")
         ));
     }
@@ -229,7 +248,7 @@ obligatoires -- CCH-11."
                 "Date de reprise ({}) anterieure au dernier jour travaille ({}) ou au debut du contrat ({}) -- \
 CCH-11.",
                 s(v, "reprise"),
-                s(v, "dernier_jour_travaille"),
+                dernier.jj_mm_aaaa(),
                 s(v, "contrat_debut")
             ));
         }
@@ -378,7 +397,7 @@ annule-et-remplace (type 03)."
     }
 
     // La configuration du dernier jour travaille : celle de la periode que le signalement declare.
-    let ctx = &ctx.au(&jours(a, "dernier_jour_travaille")?)?;
+    let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&a.v)?)?;
     let ent = &ctx.entreprise;
     let salarie = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
     let constitution = match o.date_constitution {
@@ -435,7 +454,7 @@ annule-et-remplace (type 03)."
 
     // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
     let orgs = ctx.organismes()?;
-    let jour = jours(a, "dernier_jour_travaille")?;
+    let jour = engagement::imprevus::dernier_jour_declare(&a.v)?;
     for ad in req(&orgs, "adhesions_prevoyance")?.as_array().map(Vec::as_slice).unwrap_or(&[]) {
         if !droit::adhesions::en_vigueur(ad, &jour, &jour)? {
             continue;
@@ -451,7 +470,7 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.30.004", req(&salarie, "prenom")?)?;
     f.add("S21.G00.30.006", d(req(&salarie, "date_naissance")?)?.jjmmaaaa());
     f.add_v("S21.G00.30.019", req(&salarie, "code_salarie")?)?;
-    crate::ntt::poser_ntt(&mut f, ent, &salarie, crate::changements_individu::derniere_declaree(ctx, &salarie, &jours(a, "dernier_jour_travaille")?, departs)?.as_ref())?;
+    crate::ntt::poser_ntt(&mut f, ent, &salarie, crate::changements_individu::derniere_declaree(ctx, &salarie, &engagement::imprevus::dernier_jour_declare(&a.v)?, departs)?.as_ref())?;
 
     // -------------------------------------------------------- S21 contrat
     f.add("S21.G00.40.001", jours(a, "contrat_debut")?.jjmmaaaa());

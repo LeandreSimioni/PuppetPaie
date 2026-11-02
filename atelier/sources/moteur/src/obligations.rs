@@ -73,12 +73,13 @@ pub const ROUTES: &[Fiche] = &[
         charge: &[
             Champ { nom: "motif", libelle: Affiche::new("Motif"), forme: Forme::Texte, sens: "le motif de l'arrêt (code DSN)", avance: false },
             Champ { nom: "dernier_jour", libelle: Affiche::new("Dernier jour travaillé"), forme: Forme::Date, sens: "le dernier jour travaillé", avance: false },
+            Champ { nom: "debut", libelle: Affiche::new("Début de l'arrêt"), forme: Forme::Date, sens: "le premier jour que l'avis prescrit", avance: false },
             Champ { nom: "fin", libelle: Affiche::new("Fin prescrite"), forme: Forme::Date, sens: "la fin prescrite", avance: false },
             Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "le salarié : sa subrogation se tire de son contrat", avance: false },
             Champ { nom: "contrat", libelle: Affiche::new("Contrat"), forme: Forme::Texte, sens: "le contrat suspendu, quand plusieurs couvrent le jour", avance: true },
             Champ { nom: "date_accident", libelle: Affiche::new("Jour de l'accident"), forme: Forme::Date, sens: "le jour de l'accident", avance: true },
         ],
-        exemple: r#"{"motif":"01","dernier_jour":"2026-11-02","fin":"2026-11-10","salarie":"SVOBODA"}"#,
+        exemple: r#"{"motif":"01","dernier_jour":"2026-11-02","debut":"2026-11-03","fin":"2026-11-10","salarie":"SVOBODA"}"#,
         rend: OBLIGATIONS_REND,
         refus: &[OPERATION],
         acte: Acte::Lit,
@@ -606,7 +607,7 @@ fn connaissance(suivi: &Value, champ: &str, quoi: &str) -> Option<Depart> {
 // ------------------------------------------------------------- les arrets
 
 /// L'IMPREVU `a` ET CE QUI EN EST PARTI (`envois`), lu au journal des envois : les signalements de l'arret (une ligne `dsn`
-/// de nature 04 ou 05 dont l'evenement, `mois`, est le dernier jour travaille de l'arret et qui couvre un engagement du
+/// de nature 04 ou 05 dont l'evenement, `mois`, est le dernier jour travaille que l'arret declare, S21.G00.60.002, et qui couvre un engagement du
 /// salarie, `versions`) et les DSN mensuelles des mois qu'il traverse deposees apres sa saisie (elles le reportent). Seul
 /// compte un depot reel accepte : un signalement refuse au bilan n'est pas recu (cahier technique DSN,
 /// `norme-dsn/texte/chapitre-4-controles.txt` §4.2) et reste du.
@@ -614,7 +615,8 @@ pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
     let lignes = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
     let salarie = texte(a, "salarie");
     let dj = texte(a, "dernier_jour_travaille");
-    let traverses: Vec<String> = match (engagement::imprevus::premier_jour(a), engagement::imprevus::dernier_jour(a)) {
+    let declare = engagement::imprevus::dernier_jour_declare(a).map(|j| j.iso()).unwrap_or_default();
+    let traverses: Vec<String> = match (engagement::imprevus::dernier_jour_declare(a), engagement::imprevus::dernier_jour(a)) {
         (Ok(p), Ok(d)) if p <= d => socle::date::mois_entre(&p, &d),
         _ => Vec::new(),
     };
@@ -630,7 +632,7 @@ pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
         let (nature, type_dsn) = (texte(&d, "nature"), texte(&d, "type"));
         let ordre = texte(&d, "ordre").trim().parse::<i64>().unwrap_or(0);
         let du_salarie = l.get("versions").and_then(Value::as_array).is_some_and(|v| v.iter().any(|x| texte(x, "salarie") == salarie));
-        if matches!(nature.as_str(), "04" | "05") && dj.len() == 10 && mois == dj && du_salarie {
+        if matches!(nature.as_str(), "04" | "05") && dj.len() == 10 && mois == declare && du_salarie {
             partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "fichier": format!("sorties/{}/{}", &dj[..7], nom), "quand": quand}));
         } else if nature == "01" && traverses.contains(&mois) && quand.replace('T', " ") >= saisi {
             partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "mois": mois, "fichier": format!("sorties/{}/{}", mois, nom), "quand": quand}));
@@ -654,7 +656,11 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
     let fiche = suivi.de(&salarie, &dernier);
     let motif = texte(a, "motif");
     let subrogation = a.get("subrogation").cloned().unwrap_or(Value::Null);
-    let debut = match jour(&json!(dernier)) {
+    // L'evenement que le signalement declare est « le debut [...] de l'arret de travail » (CSS R. 133-13, I, 1°) : le
+    // premier jour que l'avis prescrit (`imprevus::premier_jour`). La maladie professionnelle compte depuis « la
+    // cessation du travail » (L. 461-5) : le lendemain du dernier jour travaille.
+    let debut = engagement::imprevus::premier_jour(a).ok();
+    let cessation = match jour(&json!(dernier)) {
         Some(j) => Some(plus(j, 1)?),
         None => None,
     };
@@ -663,7 +669,7 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
     let o = obligation(&n, "signalement_arret")?;
     if !sauf_motifs(&o).contains(&motif) {
         match debut {
-            None => out.push(indetermine(squelette("signalement_arret", &o), "Le dernier jour travaillé de cet arrêt est illisible : le délai ne se compte pas.".into())),
+            None => out.push(indetermine(squelette("signalement_arret", &o), "Le début de cet arrêt est illisible : le délai ne se compte pas.".into())),
             Some(debut) => {
                 let depart = connaissance(&fiche, "connaissance_arret", "le jour où la compagnie a connu l'arrêt").unwrap_or(Depart {
                     jour: debut,
@@ -693,7 +699,7 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
     if motifs_de(&o).contains(&motif) {
         let mut m = squelette("attestation_salaire", &o);
         match debut {
-            None => out.push(indetermine(m, "Le dernier jour travaillé de cet arrêt est illisible : le jour de l'attestation ne se compte pas.".into())),
+            None => out.push(indetermine(m, "Le début de cet arrêt est illisible : le jour de l'attestation ne se compte pas.".into())),
             Some(debut) => {
                 let d = &o["delai"];
                 let depart = connaissance(&fiche, "connaissance_arret", "le jour où la compagnie a connu l'arrêt").unwrap_or(Depart {
@@ -760,7 +766,7 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
     if motifs_de(&o).contains(&motif) {
         let mut m = squelette("declaration_maladie_professionnelle", &o);
         let d = &o["delai"];
-        match debut {
+        match cessation {
             None => out.push(indetermine(m, "Le dernier jour travaillé de cet arrêt est illisible.".into())),
             Some(debut) => {
                 let butoir = plus(debut, entier(d, "jours")?)?;
@@ -1093,7 +1099,7 @@ fn dire_faite(ctx: &Contexte, charge: &Value, f: &Faite) -> R<Value> {
 fn arret_obligations(ctx: &Contexte, charge: &Value) -> R<Value> {
     let champ = |k: &str| charge.get(k).map(en_texte).unwrap_or_default();
     let mut a = json!({
-        "salarie": "", "motif": champ("motif"), "dernier_jour_travaille": champ("dernier_jour"),
+        "genre": engagement::imprevus::ARRET, "salarie": "", "motif": champ("motif"), "dernier_jour_travaille": champ("dernier_jour"), "debut": champ("debut"),
         "fin_previsionnelle": champ("fin"), "subrogation": "", "date_accident": champ("date_accident"),
         "reprise": champ("reprise"),
     });
@@ -1103,8 +1109,8 @@ fn arret_obligations(ctx: &Contexte, charge: &Value) -> R<Value> {
             let contrat = charge.get("contrat").cloned().unwrap_or(Value::Null);
             if let Ok(c) = crate::routes::imprevus::contrat_suspendu(ctx, &cle, &dj, &contrat) {
                 let imp = json!({"genre": engagement::imprevus::ARRET, "salarie": cle, "contrat_debut": c["debut"], "motif": champ("motif"),
-                    "dernier_jour_travaille": dj.iso(), "fin_previsionnelle": champ("fin"), "reprise": Value::Null});
-                if socle::date::jour_iso(&champ("fin")).is_some() {
+                    "dernier_jour_travaille": dj.iso(), "debut": champ("debut"), "fin_previsionnelle": champ("fin"), "reprise": Value::Null});
+                if socle::date::jour_iso(&champ("fin")).is_some() && socle::date::jour_iso(&champ("debut")).is_some() {
                     let (sub, sub_debut, sub_fin) = crate::routes::imprevus::subrogation_de(ctx, &imp)?;
                     a["salarie"] = json!(cle);
                     a["contrat_debut"] = c["debut"].clone();

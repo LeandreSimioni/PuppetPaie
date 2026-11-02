@@ -38,17 +38,18 @@ pub const DOSSIER: &str = "imprevus";
 
 /// Les champs d'un arret, dans l'ordre ou ils s'ecrivent ; les `REQUIS_ARRET` premiers sont obligatoires. Ceux de la
 /// norme (motif, dernier jour travaille, fin previsionnelle, subrogation, reprise, accident) sont ceux du bloc 60 et du
-/// signalement (`signalement::verifier`) ; `jours_deja_indemnises` et les indemnites journalieres par
+/// signalement (`signalement::verifier`) ; `debut` est le premier jour que l'avis d'arret prescrit, d'ou se comptent
+/// l'incapacite (CSS R323-1, 1°) et ce que la DSN declare (`dernier_jour_declare`) ; `jours_deja_indemnises` et les indemnites journalieres par
 /// jour, brutes et nettes de CSG et CRDS (`ij_brute`, `ij_nette`, et `_majoree` au-dela du vingt-huitieme jour d'un accident du
 /// travail) sont ceux du maintien de salaire d'un permanent (`maintien`) ; `prolongations` garde chaque avis de
 /// prolongation saisi (`moteur::routes::imprevus::arret_prolonger` : quand, la fin et la fin de subrogation d'avant et d'apres),
 /// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`).
-pub const CHAMPS_ARRET: [&str; 22] = [
-    "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "fin_previsionnelle",
+pub const CHAMPS_ARRET: [&str; 23] = [
+    "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "debut", "fin_previsionnelle",
     "subrogation", "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident",
     "jours_deja_indemnises", "ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree", "prolongations", "saisi_le", "qui", "note",
 ];
-const REQUIS_ARRET: usize = 7;
+const REQUIS_ARRET: usize = 8;
 
 /// Les champs d'une suspension (bloc 65 : motif, debut, fin), dans l'ordre ou ils s'ecrivent ; les `REQUIS_SUSPENSION`
 /// premiers sont obligatoires.
@@ -221,11 +222,25 @@ pub fn jour_de_rangement(imp: &Value) -> Resultat<Jour> {
 
 // ------------------------------------------------------------------ les jours
 
-/// Le premier jour d'absence : le lendemain du dernier jour travaille d'un arret (S21.G00.60.002), le debut d'une
-/// suspension (S21.G00.65.002).
+/// LE DERNIER JOUR TRAVAILLE QUE LA DSN DECLARE D'UN ARRET (S21.G00.60.002) : « la veille de la date de debut de la
+/// prescription de l'arret de travail, sauf [...] arret prescrit lors d'un jour travaille : le dernier jour travaille
+/// correspond alors a la date de l'arret » (cahier technique DSN 2026.1, p. 266-267,
+/// `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`). Un arret prescrit un jour travaille a son debut egal au
+/// dernier jour travaille saisi ; sinon la DSN declare la veille de son debut, meme un dimanche : les organismes en lisent
+/// le debut de l'arret, « Date du dernier jour travaille S21.G00.60.002 + 1 [...] Aucune autre donnee ne permet d'avoir la
+/// date de debut de l'arret reelle en DSN » (fiche consigne 568, `atelier/reference/sources/net-entreprises-base-connaissances/
+/// net-entreprises-de-la-dsn-a-l-attestation-employeur-v3-2-20230328.txt`, l. 1683).
+pub fn dernier_jour_declare(arret: &Value) -> Resultat<Jour> {
+    let (travaille, debut) = (d(g(arret, "dernier_jour_travaille"))?, d(g(arret, "debut"))?);
+    Ok(if debut <= travaille { travaille } else { debut.plus_jours(-1)? })
+}
+
+/// Le premier jour d'absence : le lendemain du dernier jour que la DSN declare d'un arret (`dernier_jour_declare`) -- le
+/// debut que l'avis prescrit, ou son lendemain quand il est prescrit un jour travaille --, d'ou se compte « le quatrieme
+/// jour de l'incapacite de travail » (CSS R323-1, 1°) ; le debut d'une suspension (S21.G00.65.002).
 pub fn premier_jour(imp: &Value) -> Resultat<Jour> {
     if est_un_arret(imp) {
-        d(g(imp, "dernier_jour_travaille"))?.plus_jours(1)
+        dernier_jour_declare(imp)?.plus_jours(1)
     } else {
         d(g(imp, "debut"))
     }
@@ -248,7 +263,7 @@ pub fn dernier_jour(imp: &Value) -> Resultat<Jour> {
 /// Une periode commune avec [debut, fin] : ce qui fait reporter l'imprevu dans la DSN de ce mois. « En cas de suspension
 /// supra-mensuelle, la suspension doit etre declaree dans toutes les DSN mensuelles dont le Mois Principal declare
 /// presente une periode commune avec la suspension » (bloc S21.G00.60, cahier technique DSN 2026.1, p. 265). Un arret
-/// court de son dernier jour travaille (S21.G00.60.002) a son dernier jour d'absence (`dernier_jour`) : la veille de la
+/// court du dernier jour travaille qu'il declare (S21.G00.60.002, `dernier_jour_declare`) a son dernier jour d'absence (`dernier_jour`) : la veille de la
 /// reprise, qui est le « premier jour travaille et paye suite a l'arret de travail » (S21.G00.60.010, p. 269), sinon la
 /// fin previsionnelle (S21.G00.60.003, p. 267). Un arret repris le 1er du mois n'a donc aucun jour commun avec ce mois.
 pub fn croise(imp: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
@@ -261,7 +276,7 @@ pub fn croise(imp: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
 /// La meme regle pour un arret de travail, qu'il dise son genre ou non (un arret de la DSN, `dsn::Arret`).
 pub fn arret_croise(arret: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
     let dernier = if vrai(g(arret, "reprise")) { d(g(arret, "reprise"))?.plus_jours(-1)? } else { d(g(arret, "fin_previsionnelle"))? };
-    Ok(d(g(arret, "dernier_jour_travaille"))? <= *fin && dernier >= *debut)
+    Ok(dernier_jour_declare(arret)? <= *fin && dernier >= *debut)
 }
 
 /// Les imprevus d'un genre (ou de tous les genres) qui croisent le mois `AAAA-MM`.
@@ -812,7 +827,7 @@ mod tests {
     #[test]
     fn un_imprevu_se_complete_et_refuse_ce_qu_il_ne_connait_pas() {
         let a = complet(&json!({"genre": "arret", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": "N",
-            "motif": "01", "dernier_jour_travaille": "2026-02-02", "fin_previsionnelle": "2026-02-10"}))
+            "motif": "01", "dernier_jour_travaille": "2026-02-02", "debut": "2026-02-03", "fin_previsionnelle": "2026-02-10"}))
         .unwrap();
         let mut champs: Vec<String> = a.as_object().unwrap().keys().cloned().collect();
         champs.sort();
@@ -830,10 +845,15 @@ mod tests {
         assert!(complet(&s).unwrap_err().contains("champ inconnu"));
     }
 
+    /// S21.G00.60.002 : « la veille de la date de debut de la prescription de l'arret de travail, sauf [...] arret prescrit
+    /// lors d'un jour travaille : le dernier jour travaille correspond alors a la date de l'arret » (bloc-S21.G00.60.txt,
+    /// p. 266-267) ; l'absence va du lendemain a la veille de la reprise (S21.G00.60.010).
     #[test]
-    fn les_jours_d_un_arret_vont_du_lendemain_du_dernier_jour_travaille_a_la_veille_de_la_reprise() {
-        let mut a = json!({"genre": "arret", "dernier_jour_travaille": "2026-03-10", "fin_previsionnelle": "2026-03-20", "reprise": null});
-        assert_eq!(premier_jour(&a).unwrap().iso(), "2026-03-11");
+    fn la_dsn_declare_la_veille_du_debut_prescrit_et_l_absence_court_de_ce_debut() {
+        let mut a = json!({"genre": "arret", "dernier_jour_travaille": "2026-03-06", "debut": "2026-03-09", "fin_previsionnelle": "2026-03-20", "reprise": null});
+        assert_eq!((dernier_jour_declare(&a).unwrap().iso(), premier_jour(&a).unwrap().iso()), ("2026-03-08".into(), "2026-03-09".into()));
+        a["debut"] = json!("2026-03-06");
+        assert_eq!((dernier_jour_declare(&a).unwrap().iso(), premier_jour(&a).unwrap().iso()), ("2026-03-06".into(), "2026-03-07".into()));
         assert_eq!(dernier_jour(&a).unwrap().iso(), "2026-03-20");
         a["reprise"] = json!("2026-03-15");
         assert_eq!(dernier_jour(&a).unwrap().iso(), "2026-03-14");

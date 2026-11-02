@@ -774,4 +774,21 @@ mod tests {
         assert_eq!(montant(300, 500, 0), Decimal::from(500));
         assert_eq!(montant(300, 500, 200), Decimal::from(700));
     }
+
+    /// CSS R323-1, 1° : « le point de depart de l'indemnite journaliere [...] est le quatrieme jour de l'incapacite de
+    /// travail » (`atelier/reference/sources/code-de-la-securite-sociale/articles-20261102.md`), et l'incapacite commence au
+    /// jour que l'avis prescrit : travaille jusqu'au vendredi 06/03, arrete a partir du lundi 09/03, indemnise des le
+    /// 12/03. Un accident du travail l'est des le premier jour qui suit l'arret du travail (L433-1).
+    #[test]
+    fn la_caisse_indemnise_des_le_quatrieme_jour_de_l_incapacite_prescrite() {
+        let imp = json!({"genre": "arret", "dernier_jour_travaille": "2026-03-06", "debut": "2026-03-09",
+            "fin_previsionnelle": "2026-03-20", "reprise": null, "ij_brute": "40.89", "ij_nette": "38.15"});
+        let (premier, dernier) = (crate::imprevus::premier_jour(&imp).unwrap(), crate::imprevus::dernier_jour(&imp).unwrap());
+        let premier_indemnise = |o: Origine| {
+            let ij = indemnites_des_jours(&imp, o, &premier, &dernier, &premier, &dernier).unwrap().unwrap();
+            premier.plus_jours(ij.iter().position(Option::is_some).unwrap() as i64).unwrap().iso()
+        };
+        assert_eq!(premier_indemnise(Origine::Maladie), "2026-03-12");
+        assert_eq!(premier_indemnise(Origine::AccidentDuTravail), "2026-03-09");
+    }
 }
