@@ -1107,7 +1107,7 @@ pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &Value, 
     let nat = droit::natures::nature(e.get("nature").and_then(Value::as_str))?;
     let debut = socle::date::d(e.get("debut").ok_or_else(|| socle::fichiers::absent("debut"))?)?;
     let salarie = e.get("salarie").map(en_texte).unwrap_or_default();
-    let cle = ctx.salarie(&salarie)?.get("_cle").and_then(Value::as_str).unwrap_or_default().to_string();
+    let cle = ctx.cle_du_salarie(&salarie)?;
     let dit = |c: &str| e.get(c).filter(|x| vrai(x)).map(en_texte);
     let emploi = EmploiEngagement { code_emploi_ft: dit("code_emploi_ft").or_else(|| dit("metier")), ..Default::default() };
     let fiche = convention_de_l_employeur(ctx, emploi_de(&ctx.salarie_au(&cle, fin)?, &emploi)?);

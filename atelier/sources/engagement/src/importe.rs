@@ -161,15 +161,15 @@ impl Importe {
 
     /// Les paies versees, une ligne par mois : `{"mois", "salarie", "debut", "fin", "contrat"?, <ce qui a ete verse>}`.
     pub fn lignes_des_paies(&self) -> Vec<Value> {
-        self.paies()
-            .into_iter()
-            .map(|(m, p)| {
-                let mut l = self.bornes();
-                l.insert("mois".into(), Value::String(m));
-                l.extend(p.iter().map(|(k, v)| (k.clone(), v.clone())));
-                Value::Object(l)
-            })
-            .collect()
+        self.paies().into_iter().map(|(m, p)| self.ligne_de_paie(m, p)).collect()
+    }
+
+    /// La paie importee `p` de `mois`, en une ligne.
+    fn ligne_de_paie(&self, mois: String, p: &Map<String, Value>) -> Value {
+        let mut l = self.bornes();
+        l.insert("mois".into(), Value::String(mois));
+        l.extend(p.iter().map(|(k, v)| (k.clone(), v.clone())));
+        Value::Object(l)
     }
 
     fn bornes(&self) -> Map<String, Value> {
@@ -418,10 +418,10 @@ pub fn paies_lues(racine: &Path) -> Resultat<Vec<Value>> {
 /// aussi le mois ou non. Cette DSN n'est pas faite ici et ne se refait pas ici (regle 4) : ce que la saisie ajoute a
 /// ce mois se declare dans une DSN suivante, comme un contrat ajoute apres la DSN de son mois.
 pub fn dsn_deposee(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
-    Ok(du_mois(racine, mois)?
-        .iter()
-        .flat_map(Importe::lignes_des_paies)
-        .find(|p| p.get("mois").map(en_texte).as_deref() == Some(mois) && p.get("declare_par").map(en_texte).as_deref() == Some("DSN")))
+    Ok(tous(racine)?.iter().find_map(|i| {
+        let p = i.paies().remove(mois)?;
+        (p.get("declare_par").map(en_texte).as_deref() == Some("DSN")).then(|| i.ligne_de_paie(mois.to_string(), p))
+    }))
 }
 
 /// L'engagement importe du salarie `cle` (la cle de sa fiche) qui commence le `debut` et touche `mois`, s'il y en a un.

@@ -1251,13 +1251,13 @@ pub struct Contexte {
     pub aujourdhui: Jour,
     /// La fiche entreprise a `lue_au`.
     pub entreprise: Value,
-    entreprise_brute: Value,
+    entreprise_brute: std::sync::Arc<Value>,
     /// Les fiches salaries a `lue_au` (celles qui existaient ce jour-la).
     pub salaries: Map<String, Value>,
     /// Les fiches telles qu'ecrites, datees : une periode se lit a sa date (`salarie_au`, `au`).
-    salaries_bruts: Map<String, Value>,
+    salaries_bruts: std::sync::Arc<Map<String, Value>>,
     pub spectacles: Map<String, Value>,
-    spectacles_bruts: Map<String, Value>,
+    spectacles_bruts: std::sync::Arc<Map<String, Value>>,
     /// Le taux AT/MP d'une annee qu'une piece atteste, pour une compagnie qui n'en a pas encore pose
     /// (`avec_le_taux_atmp_lu`) ; en memoire seulement.
     atmp_lu: Option<(i32, Value)>,
@@ -1299,11 +1299,11 @@ impl Contexte {
             lue_au: date,
             aujourdhui,
             entreprise: fiche_au(&entreprise_brute, &date, ENTREPRISE)?,
-            entreprise_brute,
+            entreprise_brute: std::sync::Arc::new(entreprise_brute),
             salaries: fiches_au(&salaries_bruts, &date, "salaries.json")?,
-            salaries_bruts,
+            salaries_bruts: std::sync::Arc::new(salaries_bruts),
             spectacles: fiches_au(&spectacles_bruts, &date, "spectacles.json")?,
-            spectacles_bruts,
+            spectacles_bruts: std::sync::Arc::new(spectacles_bruts),
             atmp_lu: None,
         })
     }
@@ -1315,11 +1315,18 @@ impl Contexte {
             return Ok(self.clone());
         }
         Ok(Contexte {
+            racine: self.racine.clone(),
+            code: self.code.clone(),
+            date: self.date,
             lue_au: *jour,
+            aujourdhui: self.aujourdhui,
             entreprise: fiche_au(&self.entreprise_brute, jour, ENTREPRISE)?,
+            entreprise_brute: self.entreprise_brute.clone(),
             salaries: fiches_au(&self.salaries_bruts, jour, "salaries.json")?,
+            salaries_bruts: self.salaries_bruts.clone(),
             spectacles: fiches_au(&self.spectacles_bruts, jour, "spectacles.json")?,
-            ..self.clone()
+            spectacles_bruts: self.spectacles_bruts.clone(),
+            atmp_lu: self.atmp_lu.clone(),
         })
     }
 
@@ -1750,15 +1757,21 @@ PSS_H_METROP).",
     /// la recherche APPROCHANTE (prefixe, Levenshtein <= 3) ne va que parmi les actifs.
     /// Rend la fiche avec `_cle`, ou le refus.
     pub fn salarie(&self, nom: &str) -> Resultat<Value> {
+        let cle = self.cle_du_salarie(nom)?;
+        let mut f = self.salaries[&cle].clone();
+        f.as_object_mut().map(|o| o.insert("_cle".into(), Value::String(cle)));
+        Ok(f)
+    }
+
+    /// La cle de la fiche que `salarie` retrouve, sans la recopier ; la cle meme se retrouve d'abord.
+    pub fn cle_du_salarie(&self, nom: &str) -> Resultat<String> {
+        if self.salaries.contains_key(nom) {
+            return Ok(nom.to_string());
+        }
         let q = cle_recherche(nom);
-        let avec_cle = |cle: &str| -> Value {
-            let mut f = self.salaries[cle].clone();
-            f.as_object_mut().map(|o| o.insert("_cle".into(), Value::String(cle.to_string())));
-            f
-        };
         for cle in self.salaries.keys() {
             if cle_recherche(cle) == q {
-                return Ok(avec_cle(cle));
+                return Ok(cle.to_string());
             }
         }
         // Le NIR, quand c'est lui qu'on donne : 13 caracteres, ou 15 avec la cle.
@@ -1766,7 +1779,7 @@ PSS_H_METROP).",
         if forme_de_nir(&brut) {
             for (cle, s) in &self.salaries {
                 if s.get("nir").map_or(false, |n| vrai(n) && en_texte(n).to_uppercase() == brut[..13]) {
-                    return Ok(avec_cle(cle));
+                    return Ok(cle.to_string());
                 }
             }
         }
@@ -1787,7 +1800,7 @@ PSS_H_METROP).",
             ));
         }
         if let Some(cle) = trouves.first() {
-            return Ok(avec_cle(cle));
+            return Ok(cle.to_string());
         }
         // Tolerance : prefixe (Celi -> CELIMENE) puis distance d'edition, sur les seuls actifs.
         let actifs = self.salaries_actifs();
@@ -1810,7 +1823,7 @@ PSS_H_METROP).",
             ));
         }
         if let Some(cle) = prefixes.first() {
-            return Ok(avec_cle(cle));
+            return Ok(cle.to_string());
         }
         let (mut meilleur, mut score) = (None, 99);
         for cle in &actifs {
@@ -1823,7 +1836,7 @@ PSS_H_METROP).",
             }
         }
         if let Some(cle) = meilleur.filter(|c| !c.is_empty() && score <= 3) {
-            return Ok(avec_cle(cle));
+            return Ok(cle.to_string());
         }
         // Rien parmi les actifs : si une archive ressemble, le dire plutot que « inconnu ».
         for (cle, s) in &self.salaries {

@@ -842,7 +842,7 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
         .zip(salaries)
         .map(|((paie, fiches, pas, conges, fin, config, (cle_fiches, entree_fiches)), salarie)| {
             let regles = empreinte::regles(ctx, &fin)?;
-            let cle = ctx.salarie(&salarie).ok().and_then(|f| f.get("_cle").and_then(Value::as_str).map(String::from)).unwrap_or_else(|| salarie.clone());
+            let cle = ctx.cle_du_salarie(&salarie).ok().unwrap_or_else(|| salarie.clone());
             let mut siennes = entrees.clone();
             siennes.retain(|k, _| k.strip_prefix("paies ").and_then(|r| r.split_once(' ')).is_none_or(|(_, s)| s == cle));
             siennes.retain(|k, _| k.strip_prefix(crate::conges::MENSUELS).and_then(|r| r.split_once(' ')).is_none_or(|(_, s)| s == cle));
@@ -1812,6 +1812,29 @@ pub struct Declaree {
 /// n'a declare ce mois pour l'engagement `o`. Refus : une correction portee par la DSN d'un mois posterieur a `avant`
 /// (une correction se porte apres la derniere qui a declare le contrat), ou une version qui n'a pas de paie de ce mois.
 pub fn paies_declarees(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str, avant: &str) -> Resultat<Vec<Declaree>> {
+    let mut out: Vec<Declaree> = Vec::new();
+    let non_actif = o.brut.get(stock::NON_ACTIF).and_then(|n| n.get("version")).and_then(Value::as_u64);
+    for (par, n) in versions_declarees(ctx, o, departs, mois, avant)? {
+        // Une correction partie sur la version d'un non actif a declare la paie d'avant, annulee.
+        if Some(n) == non_actif {
+            if let Some(avant) = out.last().map(|d| d.paie.annulee()) {
+                out.push(Declaree { par, version: n, paie: avant });
+                continue;
+            }
+        }
+        let paie = version_ecrite(ctx, o, n)?
+            .map(|v| paie_de_la_version(ctx, o, v, mois))
+            .transpose()?
+            .flatten()
+            .ok_or_else(|| format!("{} : la version {} sur laquelle une DSN a declare {} n'a pas de paie de ce mois", qui_de(ctx, o), n, mois))?;
+        out.push(Declaree { par, version: n, paie });
+    }
+    Ok(out)
+}
+
+/// Les versions que `paies_declarees` relit, dans le meme ordre, chacune avec le mois de la DSN qui l'a portee : ce qui
+/// a ete declare, sans en relire les paies.
+fn versions_declarees(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str, avant: &str) -> Resultat<Vec<(Option<String>, u64)>> {
     let mut chaine: Vec<(Option<String>, u64)> = Vec::new();
     for d in ses_departs(ctx, o, departs).iter().filter(|d| d.envoi == Envoi::Dsn && d.mois.as_deref() == Some(mois)) {
         match d.par.as_deref() {
@@ -1832,43 +1855,26 @@ pub fn paies_declarees(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str,
             },
         }
     }
-    let mut out: Vec<Declaree> = Vec::new();
-    let non_actif = o.brut.get(stock::NON_ACTIF).and_then(|n| n.get("version")).and_then(Value::as_u64);
-    for (par, n) in chaine {
-        // Une correction partie sur la version d'un non actif a declare la paie d'avant, annulee.
-        if Some(n) == non_actif {
-            if let Some(avant) = out.last().map(|d| d.paie.annulee()) {
-                out.push(Declaree { par, version: n, paie: avant });
-                continue;
-            }
-        }
-        let paie = version_ecrite(ctx, o, n)?
-            .map(|v| paie_de_la_version(ctx, o, v, mois))
-            .transpose()?
-            .flatten()
-            .ok_or_else(|| format!("{} : la version {} sur laquelle une DSN a declare {} n'a pas de paie de ce mois", qui_de(ctx, o), n, mois))?;
-        out.push(Declaree { par, version: n, paie });
-    }
-    Ok(out)
+    Ok(chaine)
 }
 
 /// LA CORRECTION DUE pour `mois` de l'engagement valide `v`, dans la DSN de `avant` : ce qui a ete declare pour ce mois
 /// par les DSN anterieures a `avant` (`paies_declarees`) quand la paie presente de `mois` n'est plus celle que la
 /// derniere a declaree (la paie elle-meme, pas le prelevement ni le compteur de conges, que la DSN ne corrige pas) ; vide
 /// quand aucune DSN n'a declare ce mois pour lui. `None` : rien a corriger, ou pas de paie presente de ce mois. La couche
-/// des declarations dit si le mois se corrige ainsi (sa DSN partie, son annule-et-remplace passe).
+/// des declarations dit si le mois se corrige ainsi (sa DSN partie, son annule-et-remplace passe). Les paies declarees ne
+/// se relisent que quand la correction est due.
 pub fn correction_due(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str, avant: &str) -> Resultat<Option<Vec<Declaree>>> {
     let Some(presente) = v.paie_ecrite(mois).filter(|p| p.get("paie").is_some()) else { return Ok(None) };
-    let declarees = paies_declarees(ctx, &v.objet, departs, mois, avant)?;
-    let Some(derniere) = declarees.last() else { return Ok(Some(declarees)) };
-    if Some(derniere.version) == v.version() {
+    let Some(&(_, derniere)) = versions_declarees(ctx, &v.objet, departs, mois, avant)?.last() else { return Ok(Some(Vec::new())) };
+    if Some(derniere) == v.version() {
         return Ok(None);
     }
-    let ecrite = version_ecrite(ctx, &v.objet, derniere.version)?.map(|x| paie_ecrite_de_la_version(&v.objet, x, mois)).transpose()?.flatten();
+    let ecrite = version_ecrite(ctx, &v.objet, derniere)?.map(|x| paie_ecrite_de_la_version(&v.objet, x, mois)).transpose()?.flatten();
     if ecrite.is_some_and(|e| chiffres(&e)["paie"] == chiffres(&presente)["paie"]) {
         return Ok(None);
     }
-    Ok(Some(declarees))
+    Ok(Some(paies_declarees(ctx, &v.objet, departs, mois, avant)?))
 }
 
 /// LA DERNIERE DATE DE DEBUT DECLAREE de l'engagement `o` (AAAA-MM-JJ) par une DSN d'un mois anterieur a `avant` : celle

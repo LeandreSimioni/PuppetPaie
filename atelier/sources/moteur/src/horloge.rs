@@ -427,6 +427,13 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
             if clos.get(mois).and_then(Value::as_str) == Some(empreinte_du_mois(racine, mois).as_str()) && !crate::compagnie::etat_dsn::du_mois(&ctx, mois, &Value::Null)?.refusee() {
                 continue;
             }
+            // Un mois echu dont tout est deja fait (par la personne, avant que l'horloge ne passe) est fait : rien n'est a
+            // jouer pour lui.
+            let suivant = socle::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
+            if jour >= suivant && mois_fait(&ctx, mois, jour)? {
+                clos.insert(mois.clone(), json!(empreinte_du_mois(racine, mois)));
+                continue;
+            }
             if les_pas_du_mois(&d, &ctx, mois, &mut calendrier)? {
                 echus.push(mois.clone());
             }
@@ -451,14 +458,13 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         fait.extend(jouer(&d, p));
     }
 
-    // FAIT : un mois echu dont toutes les etapes sont vertes (`etapes_restantes`, ce que l'ecran montre) et dont aucun
-    // signalement n'est a faire que l'horloge puisse ecrire, sa date butoir passee ou non (`signalements_dus`). Un mois
+    // FAIT (`mois_fait`) : un mois echu, apres ce que l'horloge vient de jouer. Un mois
     // refuse se regarde a chaque ouverture ; un signalement qui attend la saisie (`fins_a_signaler`, `a_saisir` : une case
     // de la carte vide) est a la personne, et les rappels le lui disent : le mois se rouvre quand sa saisie change
     // (`empreinte_du_mois`).
     for mois in &echus {
         let ctx = d.contexte()?;
-        if Moteur::nouveau(&ctx).etapes_restantes(mois)?.is_empty() && signalements_dus(&ctx, mois, jour, true).is_empty() {
+        if mois_fait(&ctx, mois, jour)? {
             clos.insert(mois.clone(), json!(empreinte_du_mois(racine, mois)));
         } else {
             clos.remove(mois);
@@ -976,6 +982,12 @@ fn empreinte_du_mois(racine: &Path, mois: &str) -> String {
     tout.extend(socle::fichiers::sha256_hex(&imprevus).into_bytes());
     tout.extend(socle::fichiers::sha256_hex(&suivi).into_bytes());
     socle::fichiers::sha256_hex(&tout)[..16].to_string()
+}
+
+/// UN MOIS FAIT : toutes ses etapes sont vertes (`etapes_restantes`, ce que l'ecran montre) et aucun signalement n'est a
+/// faire que l'horloge puisse ecrire, sa date butoir passee ou non (`signalements_dus`).
+fn mois_fait(ctx: &Contexte, mois: &str, jour: Jour) -> R<bool> {
+    Ok(Moteur::nouveau(ctx).etapes_restantes(mois)?.is_empty() && signalements_dus(ctx, mois, jour, true).is_empty())
 }
 
 /// L'annee `annee` est-elle finie pour l'horloge : passee fin janvier de l'annee d'apres, et close et exportee, ou sans

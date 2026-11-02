@@ -30,7 +30,7 @@ pub fn courriels(racine: &Path) -> Vec<(String, Vec<u8>)> {
     noms.into_iter()
         .filter_map(|n| {
             let o = std::fs::read(dossier.join(&n)).ok()?;
-            parse_mail(&o).ok()?;
+            mailparse::parse_headers(&o).ok()?;
             Some((n, o))
         })
         .collect()
@@ -343,8 +343,8 @@ pub fn courriels_joues(racine: &Path, apres: &str) -> Value {
 pub fn courriels_par_identifiant(racine: &Path) -> HashMap<String, Vec<u8>> {
     let mut envoyes = HashMap::new();
     for (_, octets) in courriels(racine) {
-        if let Ok(m) = parse_mail(&octets) {
-            envoyes.insert(crate::courriel_lecture::identifiant_de(&m), octets.clone());
+        if let Ok((entetes, _)) = mailparse::parse_headers(&octets) {
+            envoyes.insert(crate::courriel_lecture::identifiant_des_entetes(&entetes), octets);
         }
     }
     envoyes
