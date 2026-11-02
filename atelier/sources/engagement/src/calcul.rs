@@ -885,7 +885,18 @@ pub(crate) fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resulta
     } else {
         emploi_de(&ctx.salarie_au(&cle, &eng.debut)?, &emploi)?
     };
-    Ok(anciennete_a_l_embauche(etablissement_du_contrat(fiche, eng), eng))
+    Ok(anciennete_a_l_embauche(etablissement_du_contrat(convention_de_l_employeur(ctx, fiche), eng), eng))
+}
+
+/// LA CONVENTION DE L'EMPLOYEUR sur la fiche que la paie lit (`droit::caisse_conges::IDCC_DE_L_EMPLOYEUR`) : l'IDCC de
+/// l'entreprise, telle que `ctx` la lit. Le domaine d'activite de l'annexe 8 se lit a cette convention
+/// (`droit::caisse_conges::intermittent`).
+pub(crate) fn convention_de_l_employeur(ctx: &Contexte, mut fiche: Value) -> Value {
+    let idcc = ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(en_texte);
+    if let (Some(o), Some(idcc)) = (fiche.as_object_mut(), idcc) {
+        o.insert(droit::caisse_conges::IDCC_DE_L_EMPLOYEUR.into(), Value::String(idcc));
+    }
+    fiche
 }
 
 /// L'ETABLISSEMENT DE RATTACHEMENT du salarie pour ce contrat (S21.G00.11.001, « l'etablissement de rattachement
@@ -1099,7 +1110,7 @@ pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &Value, 
     let cle = ctx.salarie(&salarie)?.get("_cle").and_then(Value::as_str).unwrap_or_default().to_string();
     let dit = |c: &str| e.get(c).filter(|x| vrai(x)).map(en_texte);
     let emploi = EmploiEngagement { code_emploi_ft: dit("code_emploi_ft").or_else(|| dit("metier")), ..Default::default() };
-    let fiche = emploi_de(&ctx.salarie_au(&cle, fin)?, &emploi)?;
+    let fiche = convention_de_l_employeur(ctx, emploi_de(&ctx.salarie_au(&cle, fin)?, &emploi)?);
     droit::caisse_conges::affilie(&nat, &fiche, &debut, Some(fin))
 }
 

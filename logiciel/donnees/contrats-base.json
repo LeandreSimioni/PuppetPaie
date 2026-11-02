@@ -468,7 +468,7 @@
         "quoi": "35 h × 52 / 12. Art. L.3121-27 du code du travail. Comme pour le CDI : une durée collective plus courte s'écrit dans la fiche entreprise, jamais une durée qui inclut des heures supplémentaires (norme DSN 2027, p. 190)."
       },
       "codes": {
-        "S21.G00.40.005": {"valeur": "999SPT", "quoi": "999SPT - emplois permanents du spectacle (CCH-18 du bloc 40, p. 185), comme le CDI, sauf le CDD d'un artiste : l'annexe 10 range « les artistes [...] engagés au titre d'un contrat de travail à durée déterminée » (art. 1er, § 2, atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt), et il déclare le code de son métier dans la nomenclature des emplois du spectacle (`droit::caisse_conges::intermittent`)."},
+        "S21.G00.40.005": {"valeur": "999SPT", "quoi": "999SPT - emplois permanents du spectacle (CCH-18 du bloc 40, p. 185), comme le CDI, sauf le CDD d'un intermittent : l'annexe 10 range « les artistes [...] engagés au titre d'un contrat de travail à durée déterminée », l'annexe 8 « les ouvriers et techniciens engagés dans le cadre d'un contrat à durée déterminée, pour assurer l'une des fonctions énumérées dans la liste » de leur domaine d'activité (art. 1er, § 2, atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt et unedic-annexe8-convention-20241115.txt), et il déclare le code de son métier dans la nomenclature des emplois du spectacle (`droit::caisse_conges::intermittent`)."},
         "S21.G00.40.007": {"valeur": "02", "quoi": "02 - Contrat de travail à durée déterminée de droit privé."},
         "S21.G00.40.008": {"valeur": "99", "quoi": "99 - Non concerné."},
         "S21.G00.40.016": {"valeur": "99", "quoi": "99 - non applicable."},
@@ -514,7 +514,7 @@
         "S21.G00.40.022": {
           "source": "97 + entreprise.congesspectacles_adherent (conges_spectacles::code_dsn ; fiche de spécificités Congés Spectacles d'Audiens, atelier/reference/sources/audiens-dsn/)",
           "si": "caisse_conges::affilie",
-          "quoi": "Code caisse professionnelle de congés payés, « dans le cas où les indemnités ne sont pas versées par l'employeur » (p. 195) : un CDD ordinaire de MOINS DE DOUZE MOIS d'un artiste (son métier est un emploi de l'annexe 10 de la nomenclature des emplois du spectacle) est déclaré à la caisse des Congés Spectacles « quelle que soit […] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) » (fiche Audiens ; code du travail D. 7121-40, D. 7121-41). Les autres prennent leurs congés — ou une indemnité compensatrice — chez leur employeur, et la rubrique ne s'écrit pas. Le technicien en CDD ordinaire reste parmi eux tant que n'est pas décidé quel technicien la caisse attend (l'annexe 8 range aussi l'attaché de production parmi les techniciens). Lot V2f, atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
+          "quoi": "Code caisse professionnelle de congés payés, « dans le cas où les indemnités ne sont pas versées par l'employeur » (p. 195) : un CDD ordinaire de MOINS DE DOUZE MOIS d'un intermittent (un artiste de l'annexe 10, ou un technicien d'une fonction que la liste de l'annexe 8 nomme pour la convention de l'employeur : `caisse_conges::intermittent`) est déclaré à la caisse des Congés Spectacles « quelle que soit […] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) » (fiche Audiens ; code du travail D. 7121-40, D. 7121-41). Les autres prennent leurs congés — ou une indemnité compensatrice — chez leur employeur, et la rubrique ne s'écrit pas. Lot V2f, atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
         }
       },
       "absents": {},
@@ -564,9 +564,10 @@
         "toutes_au_brut": false
       },
       "activites": {
-        "_quoi": "Les heures de travail rémunéré, et les absences.",
+        "_quoi": "Les heures de travail rémunéré, les jours travaillés d'un contrat déclaré à la caisse des Congés Spectacles, et les absences.",
         "unites": [
-          {"code": "10", "quoi": "10 - heure : les heures de travail rémunéré du mois", "mesure": "heures", "type": "01"}
+          {"code": "10", "quoi": "10 - heure : les heures de travail rémunéré du mois", "mesure": "heures", "type": "01"},
+          {"code": "12", "quoi": "12 - journée : les jours travaillés du mois, pour un contrat déclaré à la caisse des Congés Spectacles (`caisse_conges::affilie`) : « Pour les autres emplois, renseigner l'unité de mesure en jours (code 12) » (Audiens, fiche de spécificités Congés Spectacles, atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt, l. 96-102).", "mesure": "jours", "type": "01", "si_caisse_conges": true}
         ],
         "absences": {"code": "10", "type": "02", "quoi": "02 - Durée d'absence partiellement ou pas du tout rémunérée, en heures."}
       }

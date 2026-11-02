@@ -1623,8 +1623,8 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     f.add_v("S21.G00.40.004", req(s, "pcs_ese")?)?;
     // Le complement PCS-ESE : « 999SPT pour les emplois permanents du spectacle » (CCH-18, p. 185) quand la nature le
     // fixe (`contrats-base.json` : cdi, cdd) ; le contrat d'un intermittent (`droit::caisse_conges::intermittent` : un
-    // CDDU, le CDD d'un artiste) declare le code de son metier dans la nomenclature des emplois du spectacle, que France
-    // Travail Spectacle lit.
+    // CDDU, le CDD d'un artiste ou d'un technicien de la liste de l'annexe 8) declare le code de son metier dans la
+    // nomenclature des emplois du spectacle, que France Travail Spectacle lit.
     let intermittent = droit::caisse_conges::intermittent(&nat, s)?;
     match nat.code("S21.G00.40.005").filter(|c| !c.is_empty() && !intermittent) {
         Some(c) => f.add("S21.G00.40.005", c),
@@ -1949,6 +1949,10 @@ pub fn mesures_d_activite(p: &Paie) -> Resultat<Vec<(String, Decimal, String)>> 
             autre => return Err(format!("mesure inconnue : {}", socle::fichiers::repr(autre))),
         };
         if vrai(g(&u, "si_non_nul")) && valeur.is_zero() {
+            continue;
+        }
+        // Une unite que seule la caisse des Conges Spectacles demande (`contrats-base.json`, `si_caisse_conges`).
+        if vrai(g(&u, "si_caisse_conges")) && !p.declaree_a_la_caisse_des_conges()? {
             continue;
         }
         let t = if u.get("type").is_some() { en_texte(&u["type"]) } else { "01".into() };

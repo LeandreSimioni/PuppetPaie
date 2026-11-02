@@ -116,8 +116,9 @@ du corps (l'intermittent), 1,0 pour `par_nature.permanent`. `calcul::calculer` e
 - **Qui est déclaré à la caisse** (lot V2f, `../caisse-conges-affiliation/LISEZ-MOI.md`) : un CDDU de douze mois ou plus
   (du début au terme signés) ne l'est pas — ni Congés Spectacles ni majoration (R5), dès son premier bulletin ; un CDD
   de droit commun de moins de douze mois d'un artiste l'est — Congés Spectacles, et les majorations à 11,5 %, taxe
-  d'apprentissage comprise (D. 243-0-2, 1° : le 10 % ne vise que les intermittents de L. 6331-55). Restent à décider :
-  le technicien en CDD de droit commun, les contrats successifs qui font douze mois bout à bout.
+  d'apprentissage comprise (D. 243-0-2, 1° : le 10 % ne vise que les intermittents de L. 6331-55) ; le technicien de la
+  liste de l'annexe 8 en CDD de même. Reste à décider :
+  les contrats successifs qui font douze mois bout à bout.
 
 ## La CPF-CDD d'un CDD déclaré à la caisse (lot U5, 13/10/2026)
 

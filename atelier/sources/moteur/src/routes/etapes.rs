@@ -748,13 +748,13 @@ impl<'a> Moteur<'a> {
                        "anterieur": engagement::stock::commence_avant_le_logiciel(&self.ctx.racine, &p.engagement.debut.iso(), mois).map_err(plain)?}),
             );
             // CE QUE CE SALARIE RECOIT POUR CETTE PAIE : le bulletin s'il y a une paie, le certificat Conges Spectacles
-            // du contrat d'usage qui finit (`crate::routes::dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
-            // (`aer::due`). L'etape « Documents » du mois les nomme d'apres ceci, et rien d'autre.
+            // du contrat declare a la caisse qui finit (`crate::routes::dossier_salarie::certificats_dus`), l'AER Cinema
+            // Spectacle qui lui est due (`aer::due`). L'etape « Documents » du mois les nomme d'apres ceci, et rien d'autre.
             let mut pieces: Vec<&str> = Vec::new();
             if !p.engagement.sans_paie() {
                 pieces.push("bulletin");
             }
-            if !nat.mensuelle() && dernier_mois && p.declaree_a_la_caisse_des_conges().map_err(plain)? {
+            if dernier_mois && p.declaree_a_la_caisse_des_conges().map_err(plain)? {
                 pieces.push("certificat_cs");
             }
             if documents::aer::due(p).map_err(plain)? {

@@ -12,7 +12,8 @@
 //!   un contrat a duree indeterminee » (C. trav. L1243-8, meme fichier).
 //! - L'annexe 10 range « les artistes [...] engages au titre d'un contrat de travail a duree determinee » (art. 1er, § 2,
 //!   `atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt`) : leur attestation
-//!   Cinema Spectacle compte leurs heures, et se signe.
+//!   Cinema Spectacle compte leurs heures, et se signe ; le certificat Conges Spectacles est remis a l'issue du contrat
+//!   (fiche Audiens), et l'indemnite de fin de contrat compte les mois d'avant meme quand ils n'ont pas ete lus.
 
 use serde_json::json;
 
@@ -48,7 +49,15 @@ fn de_la_validation_a_l_attestation() {
     let paies = reussi(&ap)["paies"].as_array().unwrap().clone();
     let fuller = paies.iter().find(|p| p.to_string().contains("FULLER")).expect("la paie de mai de FULLER");
     assert!(!fuller.to_string().contains("indemnite_compensatrice_conges"), "une indemnite compensatrice : {}", fuller);
-    assert!(fuller.to_string().contains("indemnite_precarite"), "l'indemnite de fin de contrat : {}", fuller);
+    let precarite = |p: &serde_json::Value| p["remuneration"].as_array().unwrap().iter().find(|l| l["rubrique"] == "indemnite_precarite").map(|l| l["montant"].clone());
+    let avant = precarite(fuller).expect("l'indemnite de fin de contrat");
+    // Mai lu avant mars et avril : la remuneration totale du contrat compte deja leurs paies (L1243-8).
+    for mois in ["2026-03", "2026-04"] {
+        reussi(&route(&c, "apercu", json!({"mois": mois}), "2026-05-20"));
+    }
+    let ap = route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20");
+    let fuller = reussi(&ap)["paies"].as_array().unwrap().iter().find(|p| p.to_string().contains("FULLER")).cloned().expect("FULLER");
+    assert_eq!(precarite(&fuller), Some(avant), "la precarite de mai ne change pas quand mars et avril sont lus");
 
     // Un CDI le lundi qui suit le terme (un vendredi) : la relation se poursuit, l'indemnite de fin de contrat tombe.
     let cdi = json!({"mois": "2026-06", "saisie": {"salarie": "FULLER", "nature": "cdi", "debut": "2026-06-01", "salaire_mensuel": 2500,
@@ -62,7 +71,13 @@ fn de_la_validation_a_l_attestation() {
     let civilite = json!({"nom": "entreprise", "confirme": true, "donnees": {"declarant_dsn": {"civilite": "02", "nom_prenom": "APPIA ADOLPHE",
         "tel": "0100000052", "email": "DIRECTION@LES-FAISCEAUX.INVALID", "qualite": "04"}}});
     reussi(&route(&c, "enregistrer-fiche", civilite, "2026-05-20"));
+    // Le certificat d'emploi Conges Spectacles est remis « a l'issue de chacun de ses contrats de travail » d'artiste
+    // embauche sous CDD de moins de douze mois (fiche Audiens, `majoration-caisses-conges/audiens-fiche-pratique-conges-
+    // spectacles-202302.txt`, l. 27-31). L'adresse de FULLER s'ecrit sans accent pour que ses documents partent.
+    let adresse = json!({"nom": "salarie", "cle": "FULLER", "confirme": true, "donnees": {"email": "loie.fuller@exemple.invalid"}});
+    reussi(&route(&c, "enregistrer-fiche", adresse, "2026-05-20"));
     let fait = reussi(&route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-06-20", "retenir": false}), "2026-06-20")).to_string();
     assert!(!fait.contains("NON SIGNEE"), "l'attestation de FULLER : {}", fait);
     assert!(c.join("sorties").join("2026-05").join("envoi").join("AER_FULLER_Mai2026.pdf").exists(), "l'attestation signee, rangee : {}", fait);
+    assert!(c.join("sorties").join("2026-05").join("envoi").join("CertificatCS_FULLER_Mai2026.pdf").exists(), "le certificat Conges Spectacles : {}", fait);
 }

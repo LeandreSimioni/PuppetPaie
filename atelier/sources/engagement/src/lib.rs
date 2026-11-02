@@ -925,8 +925,8 @@ fn nature_de(ctx: &Contexte, e: &Value) -> Resultat<Arc<Nature>> {
 }
 
 /// Ce que `conges::lignes_du_mois` rend pour un engagement paye
-/// au mois : les lignes de paie du mois, et ce qu'il y a a en dire.
-pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &Value, &str) -> Resultat<(Vec<Value>, Vec<Avis>)>;
+/// au mois : les lignes de paie du mois, ce qu'il y a a en dire, et ses jours travailles (`None` : la saisie les dit).
+pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &Value, &str) -> Resultat<(Vec<Value>, Vec<Avis>, Option<i64>)>;
 
 /// Les engagements d'un fichier de mois,
 /// construits avant tout calcul. `lignes_permanent` fournit les lignes d'un
@@ -1031,10 +1031,13 @@ pub(crate) fn engagements(
             declare = emplois::resoudre(&code, cadre, feminin)
                 .map_err(|m| format!("{} : {}", qui, m))?;
         }
+        // Les jours travailles d'un contrat paye au mois : ceux que le moteur tire du mois (`conges::lignes_du_mois`).
+        let mut jours_du_mois: Option<Value> = None;
         let lignes = if nat.mensuelle() {
-            let (lignes, avis) =
+            let (lignes, avis, jours_travailles) =
                 lignes_permanent(ctx, e, data.get("mois").and_then(|m| m.as_str()).unwrap_or(""))?;
             dits.push(avis);
+            jours_du_mois = jours_travailles.map(Value::from);
             Some(Value::Array(lignes))
         } else {
             match e.get("lignes") {
@@ -1063,7 +1066,7 @@ pub(crate) fn engagements(
         poser("fin", e.get("fin"));
         poser("numero", e.get("numero"));
         poser("mois", Some(data.get("mois").ok_or_else(|| socle::fichiers::absent("mois"))?));
-        poser("jours", e.get("jours"));
+        poser("jours", e.get("jours").or(jours_du_mois.as_ref()));
         // Un contrat d'usage commence dans l'ancien logiciel et continue ici : les jours du contrat entier comptent ceux
         // que les pieces importees attestent (`importe::Importe::jours_du_contrat_continue`).
         let continue_ = match (e.get("jours_contrat"), e.as_object()) {
@@ -1767,7 +1770,7 @@ pub fn engagements_de_la_saisie(ctx: &Contexte, data: &Value) -> Resultat<Vec<En
 /// Le refus que donne la lecture de la saisie `data` quand elle est encore incomplete (`saisie_incomplete`), lignes
 /// d'un permanent mises a part ; `None` si elle se lit, ou si elle refuse pour une autre raison.
 pub fn refus_de_saisie_incomplete(ctx: &Contexte, data: &Value) -> Option<String> {
-    let vide: LignesPermanent = &|_, _, _| Ok((Vec::new(), Vec::new()));
+    let vide: LignesPermanent = &|_, _, _| Ok((Vec::new(), Vec::new(), None));
     match engagements(ctx, data, vide) {
         Err(m) if saisie_incomplete(&m) => Some(m),
         _ => None,

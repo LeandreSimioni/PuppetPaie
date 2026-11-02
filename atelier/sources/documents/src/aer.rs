@@ -46,10 +46,9 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use engagement::cachet;
-use rust_decimal::prelude::ToPrimitive;
 use socle::date::{en_texte, Jour};
 use socle::fichiers::vrai;
-use socle::num::Resultat;
+use socle::num::{Decimal, Resultat};
 
 /// Les champs du cadre 5, et rien d'autre.
 pub const CHAMPS_TEXTE: [&str; 10] = [
@@ -86,15 +85,16 @@ const FIN: &str = "SAL_DT_FIN_";
 const NUM_CONTRAT: &str = "CON_NUMERO_";
 
 /// QUAND UNE AER CINEMA SPECTACLE EST DUE : au contrat d'un intermittent (`droit::caisse_conges::intermittent` : un CDD
-/// d'usage, le CDD d'un artiste ; annexes 8 et 10), le mois ou il FINIT -- une seule par employeur et par mois, et pour
-/// un contrat sur plusieurs mois, « 1 AE CS éditée à la fin du dernier mois concerné par le contrat »
+/// d'usage, le CDD d'un artiste ou d'un technicien de la liste ; annexes 8 et 10), le mois ou il FINIT -- une seule par
+/// employeur et par mois, et pour un contrat sur plusieurs mois,
+/// « 1 AE CS éditée à la fin du dernier mois concerné par le contrat »
 /// (`atelier/reference/sources/francetravail-100-dsn/movinmotion-fin-des-aem-20260601.txt`, l. 152-166 ;
 /// `mescachets-aem-aer-cs-20260903.txt`, l. 47 et 69 : « salariés intermittents du spectacle relevant des annexes 8 et
 /// 10 », « l'attestation est produite à la fin du dernier mois concerné » ; `comenolo-aer-cs.txt`, l. 37). France Travail
 /// l'edite depuis la DSN mensuelle qui porte la fin du contrat (son bloc 62 ; `francetravail-100-dsn/LISEZMOI.md`,
 /// « Ce qu'on en conclut », point 1), pour un contrat dont le code emploi (S21.G00.40.005) est de la nomenclature du
 /// spectacle et non « 999SPT » (`net-entreprises-base-connaissances/net-entreprises-de-la-dsn-a-l-attestation-employeur-
-/// v3-2-20230328.txt`, l. 500-510). Un permanent (CDI, CDD de droit commun d'un salarie qui n'est pas artiste) n'en a
+/// v3-2-20230328.txt`, l. 500-510) : le contrat d'un intermittent (`droit::caisse_conges::intermittent`). Un permanent n'en a
 /// pas : sa fin de contrat est un signalement (`contrats-base.json`, `cdd.fin_de_contrat.signalement_fctu`), et
 /// l'attestation de droit commun qui en revient n'est pas celle-ci.
 pub fn due(p: &engagement::calcul::Paie) -> Resultat<bool> {
@@ -210,14 +210,18 @@ impl Cadre5 {
     }
 }
 
-/// Une quantite du formulaire -> entier. '' et None valent zero : seuls les
-/// chiffres comptent.
-pub fn entier(v: Option<&str>) -> Resultat<i128> {
-    let t: String = v.unwrap_or("").chars().filter(|c| c.is_ascii_digit()).collect();
+/// Une quantite du formulaire -> nombre. '' et None valent zero. Un nombre a virgule se lit tel qu'il est ecrit
+/// (« 151,67 » : cent cinquante et une heures soixante-sept), le separateur des milliers (espace) s'ote ; tout autre
+/// texte refuse : une quantite qu'on ne sait pas lire ne se compare pas.
+pub fn quantite(v: Option<&str>) -> Resultat<Decimal> {
+    let t: String = v.unwrap_or("").chars().filter(|c| !c.is_whitespace() && *c != '\u{a0}').collect::<String>().replace(',', ".");
     if t.is_empty() {
-        return Ok(0);
+        return Ok(Decimal::ZERO);
     }
-    t.parse::<i128>().map_err(|_| "quantite illisible : trop de chiffres".to_string())
+    if !t.chars().all(|c| c.is_ascii_digit() || c == '.') {
+        return Err(format!("quantite illisible : {}", socle::fichiers::repr(&t)));
+    }
+    socle::num::decimal_lu(&t).map(|d| d.normalize()).ok_or_else(|| format!("quantite illisible : {}", socle::fichiers::repr(&t)))
 }
 
 /// << 23/08/2026 >> -> date. None si ce n'est pas une date ; une date qui
@@ -247,8 +251,8 @@ pub struct Ligne {
     pub debut: Option<Jour>,
     pub fin: Option<Jour>,
     pub numero: String,
-    pub cachets: i128,
-    pub heures: i128,
+    pub cachets: Decimal,
+    pub heures: Decimal,
 }
 
 fn valeur(champs: &Value, nom: &str) -> Option<String> {
@@ -276,7 +280,7 @@ pub fn lire_quantites(champs: &Value) -> Resultat<Vec<Ligne>> {
         if debut.is_none() && fin.is_none() {
             continue;
         }
-        let q = |i: usize| entier(valeur(champs, &nom(QUANTITES[i].1)).as_deref());
+        let q = |i: usize| quantite(valeur(champs, &nom(QUANTITES[i].1)).as_deref());
         let ligne = Ligne { debut, fin, cachets: q(0)?, heures: q(1)?, numero: numero_courant.clone() };
         match out.iter_mut().find(|l| l.debut == debut && l.fin == fin && l.numero == ligne.numero) {
             Some(l) => *l = ligne,
@@ -293,8 +297,8 @@ pub struct PaieAer {
     pub numero: String,
     pub debut: Jour,
     pub fin: Jour,
-    pub cachets: i128,
-    pub heures: i128,
+    pub cachets: Decimal,
+    pub heures: Decimal,
 }
 
 impl PaieAer {
@@ -308,13 +312,13 @@ impl PaieAer {
         let e = &p.engagement;
         let (d, f) = (e.debut_mois()?, e.fin_mois()?);
         let fin = e.fin.ok_or_else(|| format!("contrat {} sans fin", e.numero.clone().unwrap_or_default()))?;
-        let heures = if e.nat()?.mensuelle() { p.heures_travaillees.trunc().to_i128().unwrap_or_default() } else { e.heures.unwrap_or(0.0) as i128 };
+        let heures = if e.nat()?.mensuelle() { p.heures_travaillees } else { socle::num::dec_f64(e.heures.unwrap_or(0.0))? };
         Ok(PaieAer {
             numero: e.numero.clone().unwrap_or_default(),
             debut: if e.debut > d { e.debut } else { d },
             fin: if fin < f { fin } else { f },
-            cachets: i128::from(e.cachets),
-            heures,
+            cachets: Decimal::from(e.cachets),
+            heures: heures.normalize(),
         })
     }
 }
@@ -322,6 +326,11 @@ impl PaieAer {
 fn periode(debut: Option<Jour>, fin: Option<Jour>) -> String {
     let j = |x: Option<Jour>| x.map(|j| j.iso()).unwrap_or_else(|| "?".to_string());
     format!("{} au {}", j(debut), j(fin))
+}
+
+/// Une quantite telle qu'on l'ecrit en francais : « 151,67 », « 12 ».
+fn nombre(d: Decimal) -> String {
+    d.normalize().to_string().replace('.', ",")
 }
 
 fn nom_du_contrat(numero: &str) -> &str {
@@ -348,8 +357,8 @@ pub fn ecarts(imprime: &[Ligne], paies: &[PaieAer]) -> Vec<String> {
                 "{} ({}) : une periode sur l'attestation qu'aucune paie n'explique ({} cachets, {} heures)",
                 nom_du_contrat(&ligne.numero),
                 periode(ligne.debut, ligne.fin),
-                ligne.cachets,
-                ligne.heures
+                nombre(ligne.cachets),
+                nombre(ligne.heures)
             ));
             continue;
         };
@@ -359,9 +368,9 @@ pub fn ecarts(imprime: &[Ligne], paies: &[PaieAer]) -> Vec<String> {
                     "{} ({}) : {} {} sur l'attestation, {} dans la paie",
                     nom_du_contrat(&ligne.numero),
                     periode(ligne.debut, ligne.fin),
-                    vu,
+                    nombre(vu),
                     quoi,
-                    n
+                    nombre(n)
                 ));
             }
         }
@@ -372,8 +381,8 @@ pub fn ecarts(imprime: &[Ligne], paies: &[PaieAer]) -> Vec<String> {
                 "{} ({}) : une periode de la paie ({} cachets, {} heures) que l'attestation ne porte pas",
                 nom_du_contrat(&p.numero),
                 periode(Some(p.debut), Some(p.fin)),
-                p.cachets,
-                p.heures
+                nombre(p.cachets),
+                nombre(p.heures)
             ));
         }
     }

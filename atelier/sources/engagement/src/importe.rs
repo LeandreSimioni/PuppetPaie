@@ -215,7 +215,7 @@ impl Importe {
         let nat = droit::natures::nature(nature.as_deref())?;
         let ctx = ctx.du_mois(mois)?;
         let cle = self.texte("salarie");
-        let sal = ctx.salarie(&cle)?;
+        let sal = crate::calcul::convention_de_l_employeur(&ctx, ctx.salarie(&cle)?);
         let objet = lu("numero_objet").or_else(|| du_contrat("numero_objet")).unwrap_or_default().to_uppercase();
         let spectacle = ctx.spectacles.iter().find(|(_, f)| !objet.is_empty() && f.get("numero_objet").map(en_texte).map(|n| n.to_uppercase()) == Some(objet.clone())).map(|(k, _)| k.clone());
         let spec = match &spectacle {

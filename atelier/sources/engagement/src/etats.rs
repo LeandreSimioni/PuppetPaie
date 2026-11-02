@@ -514,10 +514,11 @@ pub fn paies_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<
 }
 
 /// LES PAIES VALIDEES DU SALARIE `salarie` (la cle de sa fiche) EN `mois` QU'UN CALCUL LIT (le compteur de conges, le
-/// brut de sa periode, la deduction forfaitaire de l'annee) : la paie ecrite de chacun de ses engagements valides du
-/// mois, telle qu'elle est ecrite, dans l'ordre de l'ecran. Un engagement en saisie n'y est pas : ce qui n'est pas valide
-/// n'est pas paye. Rien ne se calcule ni ne se reecrit. Pendant une validation, les mois que son engagement a deja
-/// calcules s'y lisent comme ecrits (`EnValidation`).
+/// brut de sa periode, la remuneration du contrat, la deduction forfaitaire de l'annee) : la paie de chacun de ses
+/// engagements valides du mois, dans l'ordre de l'ecran -- ecrite, ou calculee sans s'ecrire quand son mois ne l'a pas
+/// encore ecrite (`valides_lues`). Un engagement en saisie n'y est pas : ce qui n'est pas valide n'est pas paye. Rien ne
+/// se reecrit. Pendant une validation, les mois que son engagement a deja calcules s'y lisent comme ecrits
+/// (`EnValidation`).
 ///
 /// Le calcul qui les lit note leur empreinte (`paies <mois> <salarie>`, `empreinte_des_paies_validees`), et elle seule :
 /// une paie validee de ce salarie qui change fait recalculer ses mois qui l'ont lue ; celle d'un autre salarie, non.
@@ -626,14 +627,15 @@ pub(crate) fn marque_de_validation() -> String {
     })
 }
 
-/// Les engagements valides de `mois` (de `salarie`, la cle de sa fiche, s'il est dit) qui ont une paie ecrite pour lui,
-/// avec leur rang a l'ecran ; un engagement en cours de validation y porte les paies qu'elle a deja calculees, et
-/// seulement elles (un engagement deja valide, ses paies ecrites a cote). Ce qui est parti n'y change rien (une paie
-/// partie se lit comme une paie validee) : le journal des envois ne se lit pas, et un calcul qui lit ces paies ne depend
-/// que d'elles (`paies <mois> <salarie>`).
+/// Les engagements valides de `mois` (de `salarie`, la cle de sa fiche, s'il est dit) et leur paie de ce mois, avec leur
+/// rang a l'ecran : la paie ecrite, ou celle qui se calcule quand son mois ne l'a pas encore ecrite ; un engagement en
+/// cours de validation y porte les paies qu'elle a deja calculees, et seulement elles (un engagement deja valide, ses
+/// paies ecrites a cote). Ce qui est parti n'y change rien (une paie partie se lit comme une paie validee) : le journal
+/// des envois ne se lit pas, et un calcul qui lit ces paies ne depend que d'elles (`paies <mois> <salarie>`).
 fn valides_lues(ctx: &Contexte, mois: &str, salarie: Option<&str>) -> Resultat<Vec<(usize, Valide)>> {
     let en_cours = EN_VALIDATION.with(|e| e.borrow().clone()).unwrap_or_default();
     let mut out = Vec::new();
+    let mut a_calculer: Vec<(usize, Valide)> = Vec::new();
     for (i, o) in stock::objets_du_mois(&ctx.racine, mois)?.into_iter().enumerate() {
         if salarie.is_some_and(|s| crate::cle_de_l_engagement(ctx, &o.brut).as_deref() != Some(s)) {
             continue;
@@ -647,9 +649,22 @@ fn valides_lues(ctx: &Contexte, mois: &str, salarie: Option<&str>) -> Resultat<V
             }
             None => Valide::de(o),
         };
-        if let Some(v) = v.filter(|v| v.paie_ecrite(mois).is_some_and(|p| p.get("paie").is_some())) {
-            out.push((i, v));
+        match v {
+            Some(v) if v.paie_ecrite(mois).is_some_and(|p| p.get("paie").is_some()) => out.push((i, v)),
+            Some(v) if v.paie_ecrite(mois).is_none() => a_calculer.push((i, v)),
+            _ => {}
         }
+    }
+    // UNE PAIE VALIDEE QUE SON MOIS N'A PAS ENCORE ECRITE (personne n'a lu ce mois) se calcule ici, sans s'ecrire : ce
+    // qui la lit (la remuneration du contrat d'un mois suivant, ses conges) depend de sa saisie, et son calcul note ce
+    // qu'il a lu dans le registre de celui qui la demande (`socle::fichiers::rendre`). Ecrite plus tard, elle porte les
+    // memes chiffres, et la meme empreinte (`empreinte_des_paies`).
+    if !a_calculer.is_empty() {
+        let rangs: Vec<usize> = a_calculer.iter().map(|(i, _)| *i).collect();
+        for ((i, v), p) in a_calculer.into_iter().zip(calculer_les_rangs(ctx, mois, &rangs)?) {
+            out.push((i, Valide { en_cours: Some((mois.to_string(), Arc::new(p))), ..v }));
+        }
+        out.sort_by_key(|(i, _)| *i);
     }
     Ok(out)
 }
