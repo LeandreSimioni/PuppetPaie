@@ -148,10 +148,6 @@ pub fn cause_de(e: &ErreurGoogle) -> &'static str {
 }
 
 impl Sauvegarde {
-    pub fn a_change(&self) -> bool {
-        !self.deposes.is_empty()
-    }
-
     /// La ligne de la sauvegarde. Ce qui est reporte au prochain passage s'y dit en passant, sans alarme : c'est
     /// `persistant` (la trace, `sauvegarde_souci`) qui dit ce qui dure.
     pub fn resume(&self) -> String {

@@ -632,32 +632,6 @@ pub fn fois_de(l: &Value) -> i64 {
     l.get("fois").and_then(Value::as_i64).filter(|n| *n > 0).unwrap_or(1)
 }
 
-/// `marquer_envoye` : passe les lignes en attente qui portent l'une de ces
-/// empreintes a `depose`. Rend le nombre touche ; ne leve jamais.
-pub fn marquer_envoye(racine: &Path, empreintes: &[Value]) -> usize {
-    let p = chemin(racine);
-    let mut toutes = lignes(&p);
-    let quand = socle::paris::maintenant();
-    let mut n = 0;
-    for l in toutes.iter_mut() {
-        let porte = match l.get("empreinte") {
-            Some(e) => empreintes.iter().any(|v| valeurs_egales(v, e)),
-            None => false,
-        };
-        if l.is_object() && porte && matches!(etat_d_envoi(l), Ok(Some(e)) if e == EN_ATTENTE) {
-            l["envoi"] = json!({"etat": DEPOSE, "quand": quand});
-            n += 1;
-        } else if !l.is_object() {
-            // `l.get` sur autre chose qu'un objet leve : l'appel entier s'arrete a 0.
-            return 0;
-        }
-    }
-    if n > 0 && ecrire_json(&p, &Value::Array(toutes), 2).is_err() {
-        return 0;
-    }
-    n
-}
-
 /// `oublier` : vide le journal, en entier ou d'une nature. Rend le nombre retire.
 pub fn oublier(racine: &Path, nature: Option<&str>) -> usize {
     let p = chemin(racine);

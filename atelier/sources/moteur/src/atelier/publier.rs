@@ -43,7 +43,7 @@ const EXCLUS: [&str; 6] = [".git", ".avant", ".apres", "__pycache__", ".pytest_c
 /// Un zip ne garde le bit d'execution que si on l'y marque : `archiver` le marque sur eux, `deballer` le remet.
 const PROGRAMMES_UNIX: [&str; 2] = ["puppetpaie", "moteur"];
 
-pub(crate) fn signer(octets: &[u8], privee: &[u8]) -> R<String> {
+pub fn signer(octets: &[u8], privee: &[u8]) -> R<String> {
     use ed25519_dalek::Signer;
     let k = <[u8; 32]>::try_from(privee).map_err(|_| "cle privee illisible (32 octets attendus)")?;
     Ok(socle::base64::ecrire(&ed25519_dalek::SigningKey::from_bytes(&k).sign(octets).to_bytes()))
@@ -302,10 +302,10 @@ fn cle_privee(coffre: &Coffre) -> R<Option<Vec<u8>>> {
     coffre.deproteger_par_le_coffre(&scelle, DESCRIPTION_CLE).map(Some).map_err(|e| e.message)
 }
 
-/// La signature de `octets` par la cle privee de la compagnie de `coffre` (le poste, sa cle, ce qui l'ouvre).
-pub fn signer_par_la_cle(coffre: &Coffre, octets: &[u8]) -> R<String> {
-    let privee = cle_privee(coffre)?.ok_or(SANS_CLE)?;
-    signer(octets, &privee)
+/// La cle privee de la compagnie de `coffre`, ouverte par ce qui ouvre le coffre (le poste, sa cle, le mot de passe du
+/// logiciel) ; refus sans cle.
+pub fn cle_de_signature(coffre: &Coffre) -> R<Vec<u8>> {
+    cle_privee(coffre)?.ok_or_else(|| SANS_CLE.into())
 }
 
 pub(crate) fn exiger_editeur(racine: &Path, quoi: &str) -> R<()> {
@@ -359,7 +359,7 @@ pub fn publier(racine: &Path, depot: Option<&str>, notes: &str, calcul: &str, ex
     if depot.starts_with("http://") || depot.starts_with("https://") {
         return Err("publier ecrit dans un dossier ; pour un depot en ligne, y deposer ensuite les archives et derniere.json".into());
     }
-    let privee = cle_privee(&Coffre::du_poste(racine, ""))?.ok_or(SANS_CLE)?;
+    let privee = cle_de_signature(&Coffre::du_poste(racine, ""))?;
     publier_signe(&code(), Path::new(&depot), &privee, CLE_PUBLIQUE, notes, calcul, exigee)
 }
 

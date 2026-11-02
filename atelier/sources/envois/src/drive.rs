@@ -45,7 +45,7 @@ const DELAI_APPEL: u64 = 120;
 pub const NOUVELLES_TENTATIVES: u32 = 3;
 
 /// L'attente avant la premiere nouvelle tentative, en millisecondes (1 s, puis le double) ; le hasard ajoute en vaut au plus
-/// autant. La preuve la raccourcit (`avec_attente`).
+/// autant.
 const ATTENTE_DE_BASE_MS: u64 = 1000;
 
 /// Une erreur que Google dit passagere : a retenter apres une attente (voir `NOUVELLES_TENTATIVES`).
@@ -184,55 +184,23 @@ pub struct Autorisation {
 
 /// Le jeton d'acces ne vit qu'en memoire.
 pub struct Client {
-    identifiants: Option<(Value, Value)>,
+    identifiants: (Value, Value),
     jeton: Result<Value, String>,
     compte: Option<String>,
     acces: Option<String>,
     adresses: Adresses,
-    /// Le delai d'un appel, en secondes (120, comme `urlopen(timeout=120)`) ; la preuve le raccourcit.
-    delai: u64,
-    /// L'attente avant la premiere nouvelle tentative, en millisecondes (`ATTENTE_DE_BASE_MS`) ; la preuve la raccourcit.
-    attente_ms: u64,
 }
 
 impl Client {
     /// Le client du Drive, avec ce que l'appelant a lu (`Autorisation`). Aucun appel reseau.
     pub fn nouveau(autorisation: Autorisation, adresses: Adresses) -> Client {
         Client {
-            identifiants: Some(autorisation.identifiants),
+            identifiants: autorisation.identifiants,
             jeton: autorisation.jeton,
             compte: autorisation.compte,
             acces: None,
             adresses,
-            delai: DELAI_APPEL,
-            attente_ms: ATTENTE_DE_BASE_MS,
         }
-    }
-
-    /// Pour la preuve : un client sans coffre ni jeton scelle, qui parle a `adresses` avec un jeton
-    /// d'acces deja donne. Ne refuse rien : n'a de sens que sur des adresses locales.
-    pub fn pour_essai(adresses: Adresses, acces: &str, compte: Option<&str>) -> Client {
-        Client {
-            identifiants: None,
-            jeton: Ok(Value::Null),
-            compte: compte.map(str::to_string),
-            acces: Some(acces.to_string()),
-            adresses,
-            delai: DELAI_APPEL,
-            attente_ms: ATTENTE_DE_BASE_MS,
-        }
-    }
-
-    /// Les memes identifiants et le meme jeton scelle, mais d'autres adresses (un serveur local).
-    pub fn avec_adresses(mut self, adresses: Adresses) -> Client {
-        self.adresses = adresses;
-        self
-    }
-
-    /// Pour la preuve : une attente avant la premiere nouvelle tentative plus courte que la seconde de Google.
-    pub fn avec_attente(mut self, millisecondes: u64) -> Client {
-        self.attente_ms = millisecondes;
-        self
     }
 
     // ------------------------------------------------------------- transport
@@ -249,10 +217,8 @@ impl Client {
                 "Compte Google pas encore lie : Configuration > Mots de passe > Lier le Drive.",
             ));
         }
-        let Some((id, secret)) = &self.identifiants else {
-            return Err(ErreurGoogle::google("Client sans identifiants de l'application Google."));
-        };
-        let acces = jeton_par_rafraichissement(&self.adresses.jetons, id, secret, &rafraichissement, self.delai.min(60))?.map_err(ErreurGoogle::google)?;
+        let (id, secret) = &self.identifiants;
+        let acces = jeton_par_rafraichissement(&self.adresses.jetons, id, secret, &rafraichissement, DELAI_APPEL.min(60))?.map_err(ErreurGoogle::google)?;
         self.acces = Some(acces.clone());
         Ok(acces)
     }
@@ -262,8 +228,7 @@ impl Client {
     ///
     /// UN JETON D'ACCES NE VIT QU'UNE HEURE (3600 s) : garde pour la vie du client, une sauvegarde de plus
     /// d'une heure recevrait des 401 pour chaque fichier restant. Un 401 fait donc oublier le jeton, en demande
-    /// un autre (rafraichissement) et recommence UNE fois ; un second 401 est rendu comme une erreur ordinaire. Un
-    /// client sans identifiants (`pour_essai`) ne peut pas rafraichir : le 401 est rendu tel quel.
+    /// un autre (rafraichissement) et recommence UNE fois ; un second 401 est rendu comme une erreur ordinaire.
     pub fn appel(&mut self, url: &str, donnees: Option<&[u8]>, content_type: Option<&str>, methode: Option<&str>) -> Result<Value, ErreurGoogle> {
         let brut = self.appel_brut(url, donnees, content_type, methode)?;
         if brut.is_empty() {
@@ -280,7 +245,7 @@ impl Client {
         let mut tentative = 0;
         loop {
             let r = match self.appel_une_fois(url, donnees, content_type, methode) {
-                Err(e) if e.statut == Some(401) && self.identifiants.is_some() => {
+                Err(e) if e.statut == Some(401) => {
                     self.acces = None;
                     self.appel_une_fois(url, donnees, content_type, methode)
                 }
@@ -288,7 +253,7 @@ impl Client {
             };
             match r {
                 Err(e) if passagere(&e) && tentative < NOUVELLES_TENTATIVES => {
-                    std::thread::sleep(std::time::Duration::from_millis(attente(self.attente_ms, tentative)));
+                    std::thread::sleep(std::time::Duration::from_millis(attente(ATTENTE_DE_BASE_MS, tentative)));
                     tentative += 1;
                 }
                 autre => return autre,
@@ -304,7 +269,7 @@ impl Client {
             jeton: None,
             donnees,
             content_type,
-            delai: self.delai,
+            delai: DELAI_APPEL,
             entetes: &entetes,
             methode,
             ..Default::default()

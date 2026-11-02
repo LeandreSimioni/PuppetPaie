@@ -45,14 +45,6 @@ pub fn chemin(racine: &Path) -> PathBuf {
     racine.join("journal").join("depots.jsonl")
 }
 
-/// LA TRACE D'UN DEPOT (`trace` d'une ligne du journal) : relative a la compagnie (elle
-/// peut changer de dossier), jointe a `racine` ; un chemin absolu se lit tel quel.
-pub fn trace_de(racine: &Path, ligne: &serde_json::Value) -> Option<PathBuf> {
-    let t = ligne.get("trace")?.as_str().filter(|t| !t.is_empty())?;
-    let p = Path::new(t);
-    Some(if p.is_absolute() { p.to_path_buf() } else { racine.join(p) })
-}
-
 /// Les 16 premiers caracteres du SHA-256.
 pub fn empreinte(contenu: &[u8]) -> String {
     let h = Sha256::digest(contenu);
@@ -596,15 +588,6 @@ pub fn dernier_ordre_des_signalements(racine: &Path) -> Resultat<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// La trace d'un depot se lit relative a la compagnie, ou absolue telle qu'elle avait ete ecrite avant.
-    #[test]
-    fn la_trace_relative_suit_la_compagnie_et_l_absolue_d_avant_se_lit_telle_quelle() {
-        let r = Path::new("/ici/compagnies/la-cie");
-        assert_eq!(trace_de(r, &json!({"trace": "retours/depots/x.txt"})), Some(r.join("retours/depots/x.txt")));
-        assert_eq!(trace_de(r, &json!({"trace": "/ailleurs/fictives/la-cie/retours/depots/x.txt"})), Some(PathBuf::from("/ailleurs/fictives/la-cie/retours/depots/x.txt")));
-        assert_eq!(trace_de(r, &json!({"trace": null})), None);
-    }
 
     /// Bug reel : une DSN ou une DPAE refusee au bilan comptait pour partie ; le mois se figeait et sa correction allait a
     /// la DSN suivante. Rien n'a ete recu (cahier technique DSN, § 4.2, `norme-dsn/texte/chapitre-4-controles.txt`).

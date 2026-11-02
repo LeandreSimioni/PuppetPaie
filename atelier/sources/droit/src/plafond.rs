@@ -35,7 +35,7 @@
 //! `(an, mois, jour)`.
 
 use socle::num::{add, div, eur, mul, Decimal, Resultat};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 
 /// Une date civile : (an, mois, jour).
 pub type Jour = (i32, u32, u32);
@@ -48,25 +48,6 @@ pub const JOURS_ENGAGEMENT_CONTINU: i64 = 5;
 
 /// Arrete du 24/01/1975, art. 3, al. 2 : « douze fois le plafond horaire » par journee de travail.
 pub const HEURES_PAR_JOURNEE: i64 = 12;
-
-/// `PlafondInconnu` : le message quand une annee manque a la table.
-pub fn plafond_inconnu(annee: i32) -> String {
-    format!(
-        "Pas de plafond de Securite sociale pour {a}.\n\
-         Le relever sur la table des parametres du BOSS (codes \
-         PSS_M_METROP et PSS_H_METROP) et le poser dans \
-         config/baremes/{a}.json, section plafond_securite_sociale \
-         ({{\"mensuel\": ..., \"horaire\": ...}}).",
-        a = annee)
-}
-
-/// Un resolveur tire d'une table `{annee: (mensuel, horaire)}` (celle des tests).
-pub fn pss_depuis_table(table: &HashMap<i32, (i64, i64)>) -> impl Fn(i32) -> Resultat<(Decimal, Decimal)> + '_ {
-    move |annee| match table.get(&annee) {
-        Some((m, h)) => Ok((Decimal::from(*m), Decimal::from(*h))),
-        None => Err(plafond_inconnu(annee)),
-    }
-}
 
 // ---------------------------------------------------------------- les dates
 
@@ -127,7 +108,6 @@ pub fn prorata_calendaire(debut: Jour, fin: Jour, pss: Pss) -> Resultat<Decimal>
     }
     Ok(total)
 }
-
 
 /// Le nombre de jours calendaires de la periode d'engagement continu, bornes incluses (du 24 au 24 fait un jour).
 pub fn duree_engagement(debut: Jour, fin: Jour) -> Resultat<i64> {

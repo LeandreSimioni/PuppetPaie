@@ -730,11 +730,6 @@ impl Coffre {
         self.cle_poste(true)?.ok_or_else(|| echec("OSError", "la cle de ce poste n'a pas pu etre posee"))
     }
 
-    pub fn poser_cle_poste(&self) -> R<PathBuf> {
-        self.cle_poste(true)?;
-        Ok(self.chemin_cle())
-    }
-
     // -------------------------------------------- proteger / deproteger
 
     pub fn proteger(&self, donnees: &[u8], description: &str) -> R<Vec<u8>> {

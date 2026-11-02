@@ -215,7 +215,7 @@ pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, con
     let Ok(lecture) = std::fs::read_dir(&dossier) else { return Ok(MensuellesVues::default()) };
     let mut noms: Vec<String> = lecture.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.contains("_nature11_")).collect();
     noms.sort();
-    let base = if essai { crate::retours::ESSAI_TEST } else { "02" }; // `essai_reel` : 01 essai, 02 reel
+    let base = if essai { crate::retours::ESSAI_TEST } else { crate::retours::ESSAI_REEL };
     let aaaamm = constitution.replace('-', "");
     let cite = regex::Regex::new(r"ordre (?:accept\S* )?(\d{7,})").map_err(|e| erreur("ValueError", e.to_string()))?;
     let mut vues = MensuellesVues::default();

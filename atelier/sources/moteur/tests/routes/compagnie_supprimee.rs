@@ -10,7 +10,7 @@ use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
 use moteur::compagnie::administrateur::{self, Poste};
-use moteur::interface::compagnies::{ajouter_dans, liste_de};
+use moteur::interface::compagnies::{ajouter_venant, liste_de, Venue};
 use moteur::interface::suppression::{self, supprimer};
 use serde_json::json;
 
@@ -33,8 +33,8 @@ fn une_compagnie_reelle_ne_se_supprime_que_sur_le_mot_de_passe_du_logiciel() {
     let i = inst("reelle");
     debloquer(&i);
     let p = poste(&i);
-    let a = ajouter_dans(&i, "Compagnie A").unwrap().racine;
-    let b = ajouter_dans(&i, "Compagnie B").unwrap().racine;
+    let a = ajouter_venant(&i, "Compagnie A", Venue::Neuve).unwrap().racine;
+    let b = ajouter_venant(&i, "Compagnie B", Venue::Neuve).unwrap().racine;
     p.coffre(&a).poser_ouverture(ADMIN, None).unwrap();
     administrateur::rattacher(&i, &b, ADMIN, None, &p).unwrap();
     assert!(administrateur::est_rattachee(&i, &b));
@@ -54,7 +54,7 @@ fn une_compagnie_reelle_ne_se_supprime_que_sur_le_mot_de_passe_du_logiciel() {
         assert!(administrateur::est_rattachee(&i, &b));
     }
     // Une compagnie reelle sans mot de passe du logiciel pose : rien ne prouve qui la supprime.
-    let c = ajouter_dans(&i, "Compagnie C").unwrap().racine;
+    let c = ajouter_venant(&i, "Compagnie C", Venue::Neuve).unwrap().racine;
     assert!(supprimer(&i, &c, Some(ADMIN), &p, &sans_rien).is_err() && c.is_dir());
 
     assert_eq!(supprimer(&i, &b, Some(ADMIN), &p, &|_| appele.set(true)).unwrap(), "Compagnie B");
@@ -62,7 +62,7 @@ fn une_compagnie_reelle_ne_se_supprime_que_sur_le_mot_de_passe_du_logiciel() {
     assert!(liste_de(&i).iter().all(|x| x.racine != b), "la tuile a disparu");
     assert_eq!(administrateur::rattachees(&i), vec![a.clone()], "le registre l'oublie");
     // Une compagnie neuve sous le meme dossier n'en herite rien.
-    let neuve = ajouter_dans(&i, "Compagnie B").unwrap().racine;
+    let neuve = ajouter_venant(&i, "Compagnie B", Venue::Neuve).unwrap().racine;
     assert_eq!(neuve, b);
     assert!(!administrateur::est_rattachee(&i, &neuve));
 }

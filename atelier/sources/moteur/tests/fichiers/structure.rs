@@ -6,15 +6,25 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use moteur::routes::catalogue::{catalogue, Acte, Ecran, Place, FICHES, GESTE_MAX};
+use moteur::routes::catalogue::{catalogue, Acte, Ecran, Place, FICHES};
 use serde_json::{json, Value};
 
 use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, pdf};
 use crate::outils::rejeu::{rejouer_dossier, scenario};
 use crate::outils::{dossier_de_test, route, route_avec};
 use moteur::compagnie::administrateur::Poste;
-use moteur::interface::compagnies::ajouter_dans;
+use moteur::interface::compagnies::{ajouter_venant, Venue};
 use moteur::compagnie::demande::VARIABLE_ESSAIS;
+
+/// La longueur d'un geste, en caracteres : une phrase breve.
+const GESTE_MAX: usize = 80;
+
+/// Toutes les places de l'ecran (`catalogue::Place`).
+const PLACES: [Place; 14] = [
+    Place::Paie, Place::Fiches, Place::Metiers, Place::Organismes, Place::Bulletin, Place::ModelesContrat, Place::Identite,
+    Place::Coffre, Place::Import, Place::Historique, Place::Exports, Place::Signaler, Place::Bandeau, Place::Accueil,
+];
+
 
 fn espace() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
@@ -272,9 +282,9 @@ fn google_autoriser(c: &Path, exemple: Value) -> Value {
 /// fictive livree (`fictive:fictive-essai`), une compagnie reelle (`cie:la-compagnie`). Rend l'installation et la reelle.
 fn installation_a_part(c: &Path, test: &str) -> (PathBuf, PathBuf) {
     let inst = crate::outils::installation(&dossier_de_test("structure", test), "2026.10.22");
-    ajouter_dans(&inst, "Demo").unwrap();
+    ajouter_venant(&inst, "Demo", Venue::Neuve).unwrap();
     crate::outils::debloquer(&inst);
-    let reelle = ajouter_dans(&inst, "La Compagnie").unwrap().racine;
+    let reelle = ajouter_venant(&inst, "La Compagnie", Venue::Neuve).unwrap().racine;
     let livree = inst.join("fictives").join("fictive-essai");
     crate::outils::copier(&c.join("config"), &livree.join("config"));
     std::fs::write(livree.join("COPIE-DE-DEVELOPPEMENT.json"), json!({"copie_de": "compagnie fictive essai"}).to_string()).unwrap();
@@ -290,7 +300,7 @@ fn administrateur(c: &Path, nom: &str, exemple: Value) -> Value {
     let (inst, a) = installation_a_part(c, nom);
     let poste = Poste { dossier_cle: inst.join("cle-du-poste"), maintenant: "2026-11-02T10:00".into() };
     poste.coffre(&a).poser_ouverture(ADMIN, None).unwrap();
-    let b = ajouter_dans(&inst, "Seconde").unwrap().racine;
+    let b = ajouter_venant(&inst, "Seconde", Venue::Neuve).unwrap().racine;
     let mut charge = exemple;
     charge["administrateur"] = json!(ADMIN);
     if nom == "administrateur-detacher" {
@@ -412,7 +422,7 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
         page.push_str(&t);
     }
     let html = (lu("logiciel/interface/index.html") + &lu("atelier/sources/moteur/src/interface/pages/accueil.html")).replace("&amp;", "&");
-    for p in Place::TOUTES {
+    for p in PLACES {
         assert!(html.contains(&format!("data-place=\"{}\"", p.nom())), "la place « {} » n'est pas dans la page : nomme-la (data-place) là où la page l'ouvre", p.nom());
     }
     let mut fenetre = lu("atelier/sources/moteur/src/etat_garde.rs");
@@ -1101,4 +1111,72 @@ fn sans_commentaires_c(t: &str) -> String {
         s = s.replacen(&c, &c.chars().filter(|x| *x == '\n').collect::<String>(), 1);
     }
     s
+}
+
+/// TOUT CE QUI EST PUBLIC SERT LE LOGICIEL : chaque `pub fn`, `pub const`, `pub static` et `pub type` d'une crate de
+/// l'espace a un appelant dans le code du logiciel (le `src/` d'une crate, la fenetre et l'atelier compris), hors de sa
+/// definition et hors des tests. Les crates sont des bibliotheques : le compilateur ne dit rien d'un `pub` mort. Une
+/// fonction que seul un test appelle teste ce que le logiciel n'emploie pas : le test passe par ce que le logiciel
+/// emploie, ou part avec elle. Le garde lit les noms, pas les types : un nom repris ailleurs (`nouveau`, `lire`) compte
+/// comme un appel, meme d'une autre fonction.
+#[test]
+fn tout_ce_qui_est_public_sert_le_logiciel() {
+    let def = regex::Regex::new(r"(?m)^\s*pub (?:const fn|async fn|unsafe fn|fn|const|static|type) ([A-Za-z_][A-Za-z0-9_]*)").unwrap();
+    let mot = regex::Regex::new(r"[A-Za-z_][A-Za-z0-9_]*").unwrap();
+    let mut codes = Vec::new();
+    for e in std::fs::read_dir(espace()).unwrap().flatten() {
+        let src = e.path().join("src");
+        if src.is_dir() {
+            for p in sources(&src) {
+                let t = std::fs::read_to_string(&p).unwrap();
+                let code = sans_tests(&t);
+                let sans: String = code.lines().map(|l| l.split("//").next().unwrap()).collect::<Vec<_>>().join("\n");
+                codes.push((p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned(), sans));
+            }
+        }
+    }
+    let mut vus: std::collections::BTreeMap<&str, usize> = Default::default();
+    for (_, c) in &codes {
+        for m in mot.find_iter(c) {
+            *vus.entry(m.as_str()).or_default() += 1;
+        }
+    }
+    let mut morts = Vec::new();
+    for (rel, c) in &codes {
+        for d in def.captures_iter(c) {
+            let nom = d.get(1).unwrap().as_str();
+            if vus.get(nom).copied().unwrap_or(0) < 2 {
+                let ligne = c[..d.get(0).unwrap().start()].matches('\n').count() + 1;
+                morts.push(format!("{}:{} `{}`", rel, ligne, nom));
+            }
+        }
+    }
+    assert!(
+        morts.is_empty(),
+        "{} `pub` sans appelant dans le logiciel : ce que rien n'appelle part (avec le test qui l'appelait seul) ; si le logiciel en a besoin, c'est un chemin debranche, a rebrancher :\n{}",
+        morts.len(),
+        morts.join("\n")
+    );
+}
+
+/// Le code d'un source Rust sans ses parties `#[cfg(test)]` (un module, une fonction ou un `use` a la marge).
+fn sans_tests(t: &str) -> String {
+    let mut v = Vec::new();
+    let mut lignes = t.lines();
+    while let Some(l) = lignes.next() {
+        if l != "#[cfg(test)]" {
+            v.push(l);
+            continue;
+        }
+        if let Some(item) = lignes.next() {
+            if !item.trim_end().ends_with(';') {
+                for x in lignes.by_ref() {
+                    if x == "}" {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    v.join("\n")
 }

@@ -10,6 +10,8 @@
 //!     et le rejeu verifie qu'il cree le meme ;
 //!   - `{"geste": "simuler"}` : le geste d'atelier qui fait d'une fictive ajoutee une fictive aux envois simules
 //!     (`rendre_simulee`) -- sans lui, ses envois sont refuses et elle ne peut pas vivre sa vie ;
+//!   - `{"geste": "annoncer", "annonce"}` : ce que les organismes de la fictive repondront a partir de ce jour (un taux de
+//!     PAS, un taux AT/MP, un refus : `organismes_simules::annoncer`) ;
 //!   - `{"geste": "jour", "jour", "veille"}` : le calendrier avance, et chaque compagnie du scenario s'ouvre ce jour-la :
 //!     son horloge joue ce qui etait du (`horloge::rattraper`, comme a l'ouverture). `veille` (le banc, quand une
 //!     compagnie est ouverte) : sa veille passe, et son horloge joue dans la route `ouverture` qui suit, pas ici ;
@@ -378,6 +380,11 @@ fn rejouer_les_gestes(
             Some("simuler") => {
                 let racine = racines.get(compagnie).ok_or(format!("geste {} : `simuler` sur {}, que le scenario n'a pas ajoutee", n, compagnie))?;
                 rendre_simulee(racine).map_err(|m| format!("geste {} : {}", n, m))?;
+            }
+            Some("annoncer") => {
+                let racine = racines.get(compagnie).ok_or(format!("geste {} : `annoncer` sur {}, que le scenario n'a pas ajoutee", n, compagnie))?;
+                let annonce = g.get("annonce").ok_or(format!("geste {} : `annoncer` sans annonce", n))?;
+                envois::organismes_simules::annoncer(racine, crate::compagnie::bridage::branchement(racine), annonce).map_err(|e| format!("geste {} : {}", n, e.message))?;
             }
             Some("etat") => {
                 let Some(racine) = racines.get(compagnie) else {

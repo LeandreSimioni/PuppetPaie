@@ -61,8 +61,6 @@ pub const NATURE_TAUX_ATMP: &str = "34";
 pub const NATURE_AER_SPECTACLE: &str = "46";
 pub const ESSAI_TEST: &str = "01";
 pub const ESSAI_REEL: &str = "02";
-pub const NATURES_BILAN_DEPOT: [&str; 2] = ["10", "11"];
-pub const A_ARCHIVER_ABSOLUMENT: [&str; 2] = ["10", "11"];
 pub const RAPPORTS_DEPOT: [&str; 3] = ["CCO", "BAN", "AEE"];
 
 /// Les rubriques DSN du taux de PAS, et ce qu'elles portent.
@@ -1307,130 +1305,6 @@ pub fn releves_vers_salaries(releves: &[Value], nirs: &[Value]) -> Value {
     json!({"rattaches": ok, "orphelins": orphelins})
 }
 
-// -------------------------------------------------- fiche de parametrage OC
-
-/// Les versions du format des fiches de parametrage OC que le lecteur connait : l'attribut `Version` de `FICHE` (schema
-/// XSD, enumeration `139` en R1.3.9, `140` en R1.4.0 ; `atelier/reference/sources/fpoc-format/fpoc-r1.3.9.xsd`,
-/// `fpoc-r1.4.0.xsd`). La 1.4.0 ajoute un plancher et un plafond facultatifs aux bases et montants specifiques
-/// (`BasePlancher`, `BasePlafond`) et admet une condition tarifaire seule (specification R1.4.0, onglet Versions ;
-/// `fpoc-specification-r1.4.0-20260721.txt` l. 49-75). Une autre valeur se lit sans format nomme.
-const FORMATS_FICHE: [(&str, &str); 2] = [("139", "1.3.9"), ("140", "1.4.0")];
-
-const COMPTEURS_PAR_TYPE: &[&str] = &["S21.G00.70.008", "S21.G00.70.010", "S21.G00.70.011"];
-const COMPTEUR_PAR_NOMBRE: &[&str] = &["S21.G00.70.009"];
-
-/// Les conditions tarifaires d'une base ou d'un montant specifique (attribut `Condition`, le meme en 1.3.9 et en 1.4.0),
-/// leur libelle et les compteurs du bloc 70 que la DSN doit alors valoriser. Specification R1.4.0, onglet Donnees
-/// (`fpoc-specification-r1.4.0-20260721.txt` l. 504-531 ; R1.3.9 l. 395-423, la meme regle) : « Si la condition
-/// tarifaire mentionne des ayants droit de type Conjoint, Autre, ou Enfant, les compteurs des rubriques 70.008, 70,010
-/// et 70.011 sont a valoriser en DSN. Si la condition tarifaire mentionne un nombre d'ayants droit, sans plus de
-/// precisions, le compteur de la rubrique 70.009 doit etre valorise. » Les conditions qui ne nomment aucun ayant droit
-/// compte (01, l'assure et TOUS ses ayants droit ; 02, l'assure seul ; 90, l'assure ouvrant droit) n'en appellent
-/// aucun : les recapitulatifs de la presentation V139-V140 (diapositives 16-17,
-/// `fpoc-presentation-versions-139-140-20260720.txt` l. 49-52) ne leur donnent pas de compteur a elles seules. 92
-/// (« chaque ayant droit », sans type) se range avec les nombres : INFERENCE, la diapositive 16 lui donne un seul
-/// compteur, « = 0 a n », sans que la transcription dise sa colonne.
-const CONDITIONS_TARIFAIRES: [(&str, &str, &[&str]); 15] = [
-    ("01", "tarif unique pour l'assure et tous ses ayants droit", &[]),
-    ("02", "tarif unique pour l'assure seul", &[]),
-    ("03", "tarif unique pour l'assure et 1 ayant droit Conjoint", COMPTEURS_PAR_TYPE),
-    ("04", "tarif unique pour l'assure et 1 ayant droit Enfant", COMPTEURS_PAR_TYPE),
-    ("05", "tarif unique pour l'assure et 1 ayant droit", COMPTEUR_PAR_NOMBRE),
-    ("06", "tarif unique pour l'assure et 2 ayants droit", COMPTEUR_PAR_NOMBRE),
-    ("07", "tarif unique pour l'assure et 2 ayants droit ou plus", COMPTEUR_PAR_NOMBRE),
-    ("09", "tarif unique pour l'assure et 3 ayants droit ou plus", COMPTEUR_PAR_NOMBRE),
-    ("11", "tarif unique pour l'assure et 2 ayants droit Enfant", COMPTEURS_PAR_TYPE),
-    ("12", "tarif unique pour l'assure et 3 ayants droit Enfant ou plus", COMPTEURS_PAR_TYPE),
-    ("90", "tarif pour l'assure ouvrant droit", &[]),
-    ("91", "tarif pour l'ayant droit Conjoint", COMPTEURS_PAR_TYPE),
-    ("92", "tarif pour chaque ayant droit", COMPTEUR_PAR_NOMBRE),
-    ("94", "tarif pour chaque ayant droit Enfant", COMPTEURS_PAR_TYPE),
-    ("95", "tarif pour chaque ayant droit Autre", COMPTEURS_PAR_TYPE),
-];
-
-fn fiche_parametrage(o: &[u8]) -> Resultat<Value> {
-    let texte: String = o.iter().map(|&b| b as char).collect();
-    let a = lire_texte(&texte)?;
-    let racine = a.racine();
-    let fils = |n: &Noeud, tag: &str| -> Option<usize> { n.enfants.iter().copied().find(|&i| a.n[i].tag == tag) };
-    let prod = fils(racine, "ProducteurFiche").map(|i| &a.n[i]);
-    let attr = |n: Option<&Noeud>, k: &str| -> Value { n.and_then(|n| n.get(k)).map(|s| Value::String(s.to_string())).unwrap_or(Value::Null) };
-    // Le texte d'un enfant nomme, ou null.
-    let texte_de = |n: &Noeud, tag: &str| -> Value {
-        fils(n, tag).map(|i| nettoye(&a.n[i].texte)).filter(|t| !t.is_empty()).map(|t| Value::String(t.to_string())).unwrap_or(Value::Null)
-    };
-    // Un plancher ou un plafond de base (1.4.0) : un montant, ou un taux, un coefficient et une assiette.
-    let borne = |n: &Noeud, tag: &str, suffixe: &str| -> Value {
-        match fils(n, tag).map(|i| &a.n[i]) {
-            None => Value::Null,
-            Some(b) => json!({"montant": texte_de(b, &format!("Montant{}", suffixe)), "taux": texte_de(b, &format!("Taux{}", suffixe)),
-                              "coef": texte_de(b, &format!("Coef{}", suffixe)), "assiette": texte_de(b, &format!("Assiette{}", suffixe))}),
-        }
-    };
-    let version = attr(Some(racine), "Version");
-    let format = FORMATS_FICHE.iter().find(|(v, _)| version.as_str() == Some(*v)).map(|(_, f)| Value::String(f.to_string())).unwrap_or(Value::Null);
-    let mut groupes = Vec::new();
-    for g in a.sous(racine).filter(|n| n.tag == "GROUPE") {
-        let mut contrats = Vec::new();
-        for pc in a.enfants(g).filter(|n| n.tag == "ParametresContrats") {
-            let c = fils(pc, "Contrat").map(|i| &a.n[i]);
-            let mut taux = Vec::new();
-            let mut bases = Vec::new();
-            let mut compteurs: Vec<&str> = Vec::new();
-            if let Some(ec) = fils(pc, "ElementsDeCalculAttendus").map(|i| &a.n[i]) {
-                for el in a.enfants(ec) {
-                    for enfant in a.enfants(el) {
-                        if local(&enfant.tag) == "Taux" && !enfant.texte.is_empty() {
-                            taux.push(json!({"assiette": el.tag, "nature": attr(Some(el), "LibelleCodeNature"),
-                                             "taux": nettoye(&enfant.texte)}));
-                        }
-                    }
-                    if el.tag != "BaseMontantSpecifique" {
-                        continue;
-                    }
-                    let condition = attr(Some(el), "Condition");
-                    let libelle_condition = match condition.as_str() {
-                        None => Value::Null,
-                        Some(code) => {
-                            let (_, libelle, appelle) = CONDITIONS_TARIFAIRES.iter().find(|(k, _, _)| *k == code).ok_or_else(|| {
-                                format!(
-                                    "Fiche de parametrage {} : la condition tarifaire « {} » d'une base ou d'un montant specifique (contrat {}) \
-n'est pas une valeur des formats 1.3.9 et 1.4.0 (01 a 07, 09, 11, 12, 90, 91, 92, 94, 95) : les compteurs du bloc 70 \
-qu'elle appelle ne se devinent pas. Rien n'est lu.",
-                                    attr(Some(racine), "IdentifiantFiche").as_str().unwrap_or("?"),
-                                    code,
-                                    attr(c, "ReferenceContrat").as_str().unwrap_or("?")
-                                )
-                            })?;
-                            for k in appelle.iter() {
-                                if !compteurs.contains(k) {
-                                    compteurs.push(k);
-                                }
-                            }
-                            Value::String(libelle.to_string())
-                        }
-                    };
-                    bases.push(json!({"code_nature": attr(Some(el), "ValeurCodeNature"), "libelle": attr(Some(el), "LibelleCodeNature"),
-                                      "condition": condition, "libelle_condition": libelle_condition,
-                                      "taux": texte_de(el, "Taux"), "montant": texte_de(el, "Montant"),
-                                      "coef": texte_de(el, "Coef"), "assiette": texte_de(el, "Assiette"),
-                                      "plancher": borne(el, "BasePlancher", "Plancher"), "plafond": borne(el, "BasePlafond", "Plafond")}));
-                }
-            }
-            compteurs.sort();
-            contrats.push(json!({"debut": attr(Some(pc), "DateDebutValidite"), "fin": attr(Some(pc), "DateFinValidite"),
-                                 "libelle": attr(c, "LibelleContrat"), "reference": attr(c, "ReferenceContrat"),
-                                 "option": attr(fils(pc, "Option").map(|i| &a.n[i]), "CodeOption"),
-                                 "population": attr(fils(pc, "Population").map(|i| &a.n[i]), "CodePopulation"),
-                                 "taux": taux, "bases_specifiques": bases, "compteurs": compteurs}));
-        }
-        groupes.push(json!({"numero": attr(Some(g), "NumeroGrp"), "libelle": attr(Some(g), "LibelleGrp"), "contrats": contrats}));
-    }
-    Ok(json!({"identifiant": attr(Some(racine), "IdentifiantFiche"), "version": version, "format": format,
-              "creee_le": attr(Some(racine), "DateHeureCreation"),
-              "producteur": attr(prod, "RaisonSocialeProducteur"), "groupes": groupes}))
-}
-
 // ------------------------------------------------------------ l'AER, le .zip
 
 fn u16_le(b: &[u8], i: usize) -> usize {
@@ -1970,11 +1844,6 @@ pub fn taux_atmp_d_octets(o: &[u8]) -> Result<Vec<TauxAtmpNotifie>, Echec> {
         return Err(echec("ValueError", "Notification du taux AT/MP : aucun élément taux_AT lisible (code risque, taux, date d'effet)."));
     }
     Ok(out)
-}
-
-/// Une fiche de parametrage d'un organisme complementaire.
-pub fn fiche_d_octets(o: &[u8]) -> Result<Value, Echec> {
-    fiche_parametrage(o)
 }
 
 // --------------------------------------------- un rapport au format harmonise, lu pour l'Historique

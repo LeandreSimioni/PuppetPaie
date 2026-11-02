@@ -32,10 +32,7 @@ use crate::usages::strip;
 
 pub const LONGUEUR: usize = 990;
 
-/// L'heure d'embauche portee par la DPAE quand personne n'en dit d'autre.
-/// 08h00 (<< l'heure d'embauche de base doit etre 0800, pas 1900, et pas
-/// besoin de poser la question lors de l'envoi >>). L'interface ne la demande
-/// plus ; la ligne de commande garde `--heure`.
+/// L'heure d'embauche que porte la DPAE : 8 h. Rien ne la demande.
 pub const HEURE_EMBAUCHE: &str = "0800";
 
 /// POSITIONS 0-BASED, [debut, fin). Le dessin d'enregistrement officiel

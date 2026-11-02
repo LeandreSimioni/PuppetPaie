@@ -550,11 +550,6 @@ impl Fil {
         self.reveil.notify_all();
     }
 
-    /// La compagnie que le fil sert en premier, s'il y en a une.
-    pub fn compagnie_devant(&self) -> Option<PathBuf> {
-        self.verrou().devant.as_ref().map(|f| f.racine.clone())
-    }
-
     /// Le prochain travail : la compagnie devant d'abord, puis les autres, chacune son tour.
     fn choisir(g: &mut EtatDuFil) -> Option<(Arc<FileDesEtats>, String, u64)> {
         if let Some(d) = g.devant.clone() {

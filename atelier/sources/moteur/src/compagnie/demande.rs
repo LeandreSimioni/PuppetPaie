@@ -91,12 +91,6 @@ pub enum Verdict {
     Refuse(String),
 }
 
-impl Verdict {
-    pub fn est_accepte(&self) -> bool {
-        matches!(self, Verdict::Accepte)
-    }
-}
-
 /// Un moyen de poser la question a un humain : une fenetre, un terminal, une fausse.
 pub trait Canal {
     fn demander(&self, question: &Question) -> Reponse;
@@ -797,7 +791,7 @@ mod tests {
         let f = Rc::new(Fausse::mot(LOGICIEL));
         let _g = installer(f.clone());
         let acte = Acte::nouveau("envoi des documents", "2026-09", "3 salaries : Ana, Bo, Cy");
-        assert!(autoriser_acte(&m.racine, &acte).est_accepte());
+        assert_eq!(autoriser_acte(&m.racine, &acte), Verdict::Accepte);
         let q = &f.questions()[0];
         let texte = format!("{} {}", q.titre, q.lignes.join(" | "));
         for attendu in ["envoi des documents", "2026-09", "Ana, Bo, Cy"] {
@@ -817,7 +811,7 @@ mod tests {
         crate::compagnie::coffre::retenir_mot_de_passe_tape(LOGICIEL);
         {
             let _g = installer(Rc::new(Fausse::mot(LOGICIEL)));
-            assert!(ouvrir_seance(&m.racine).est_accepte());
+            assert_eq!(ouvrir_seance(&m.racine), Verdict::Accepte);
         }
         assert!(proteger_un_acte(&m).unwrap_err().contains("aucun humain"));
         // Et la charge de la route, elle, reste une preuve (la fenetre Tk, la page) : le mot de passe tape y arrive.
@@ -836,7 +830,7 @@ mod tests {
         let f = Rc::new(Fausse::mot(LOGICIEL));
         {
             let _g = installer(f.clone());
-            assert!(ouvrir_seance(&m.racine).est_accepte());
+            assert_eq!(ouvrir_seance(&m.racine), Verdict::Accepte);
         }
         assert!(f.questions()[0].seance);
         // Plus rien de retenu en memoire : c'est la seance GARDEE (12 h) qui ouvre, dans un processus neuf.

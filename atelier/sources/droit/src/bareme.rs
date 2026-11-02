@@ -1197,15 +1197,9 @@ pub fn bareme_convention(bar: Value, nat: Option<&Nature>) -> Resultat<Value> {
 /// sante, la retraite en tranche 1, la categorie, l'article 45, la
 /// prevoyance, le regime local, le versement mobilite -- dans cet ordre.
 ///
-/// Sans contrat, la caisse de conges est celle que decrit la nature (`caisse_conges::par_defaut` : le CDDU y est
-/// declare, le permanent non) ; `bareme_applique_au_contrat` la recoit du contrat lui-meme.
-pub fn bareme_applique(bar: Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>) -> Resultat<Value> {
-    bareme_applique_au_contrat(bar, sal, nat, fin_periode, crate::caisse_conges::par_defaut(nat), false)
-}
-
-/// La pile pour un contrat dont on sait s'il est declare a la caisse des Conges Spectacles
-/// (`caisse_conges::affilie`) : la caisse est un etage, pose juste apres la nature (`bareme_caisse_conges`).
-pub fn bareme_applique_au_contrat(
+/// Le contrat dit s'il est declare a la caisse des Conges Spectacles (`caisse_conges::affilie`) : la caisse est un
+/// etage, pose juste apres la nature (`bareme_caisse_conges`).
+pub fn bareme_applique(
     mut bar: Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>, caisse_conges: bool, cpf_cdd: bool,
 ) -> Resultat<Value> {
     let etabs = g(&bar, "_etablissements").clone();

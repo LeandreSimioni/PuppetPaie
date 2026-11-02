@@ -109,8 +109,7 @@ fn noter(
     versions: Option<&Value>,
 ) -> R<Value> {
     let fichier = d.chemin.to_string_lossy().into_owned();
-    // LA TRACE, RELATIVE A LA COMPAGNIE : une compagnie change de dossier, et un chemin absolu ne mene plus nulle part ;
-    // `journal::trace_de` la relit, et lit tel quel un absolu.
+    // LA TRACE, RELATIVE A LA COMPAGNIE : une compagnie change de dossier, et un chemin absolu ne menerait nulle part.
     let trace = trace.map(|t| t.strip_prefix(&ctx.racine).unwrap_or(t).to_string_lossy().replace('\\', "/"));
     let n = crate::journal::Note {
         quoi,

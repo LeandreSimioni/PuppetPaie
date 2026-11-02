@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use rust_decimal::prelude::*;
 use serde_json::{Map, Value};
 
-use droit::bareme::{bareme_applique_au_contrat, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
+use droit::bareme::{bareme_applique, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
 use droit::natures::Nature;
 use droit::catalogue::{code_54, rubrique, HorsAssiette};
 use droit::contexte::Contexte;
@@ -840,7 +840,7 @@ fn tuple(j: &Jour) -> (i32, u32, u32) {
     (j.an, j.mois, j.jour)
 }
 
-/// `bareme_applique_au_contrat(ctx.bareme(fin), sal, nat, fin, caisse)`, garde : la pile ne
+/// `bareme_applique(ctx.bareme(fin), sal, nat, fin, caisse)`, garde : la pile ne
 /// depend que des fichiers du bareme, de la fiche entreprise, du salarie, de
 /// la nature, de la caisse de conges et du jour. Un mois et ses mois anterieurs la recomposaient a
 /// chaque paie, et c'etait l'essentiel du temps de calcul.
@@ -852,7 +852,7 @@ pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: 
     if let Some(v) = cache.lock().unwrap().get(&cle) {
         return Ok(v.clone());
     }
-    let bar = Arc::new(bareme_applique_au_contrat(ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd)?);
+    let bar = Arc::new(bareme_applique(ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd)?);
     socle::fichiers::ranger(cache, cle, bar.clone());
     Ok(bar)
 }

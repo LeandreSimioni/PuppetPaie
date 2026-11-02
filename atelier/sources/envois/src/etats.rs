@@ -145,11 +145,6 @@ fn paire(l: &Value, a: &str, b: &str) -> R<Vec<Value>> {
     Ok(vec![get(l, a)?.clone(), get(l, b)?.clone()])
 }
 
-/// (salarie, numero) : la cle d'un contrat, hors du journal. Le numero est pose a la validation de l'engagement et ne
-/// change plus des qu'un envoi l'a porte (regle 4) : deux contrats du meme salarie ont chacun leur etat, leur relance,
-/// leur avenant, quels que soient leurs premiers jours.
-pub type CleContrat = (String, String);
-
 /// Le numero d'une ligne de contrat, tel qu'il sert de cle : son texte, ou `""`.
 pub fn numero_de_cle(v: &Value) -> Value {
     Value::String(if vrai(v) { valeur_en_texte(v) } else { String::new() })

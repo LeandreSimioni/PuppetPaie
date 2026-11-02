@@ -205,28 +205,6 @@ impl P {
         }
         P { m: self.m.div_euclid(10i128.pow(self.e as u32)), e: 0 }
     }
-
-    pub fn est_entier(self) -> bool {
-        self == self.plancher()
-    }
-
-    /// Le plus grand des deux ; le premier a egalite.
-    pub fn max_premier(self, o: P) -> P {
-        if o > self {
-            o
-        } else {
-            self
-        }
-    }
-
-    /// Le plus petit des deux ; le premier a egalite.
-    pub fn min_premier(self, o: P) -> P {
-        if o < self {
-            o
-        } else {
-            self
-        }
-    }
 }
 
 impl PartialEq for P {

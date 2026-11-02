@@ -212,7 +212,8 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
     let mut paies = Map::new();
     let ctx = droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     for mois in engagement::stock::mois_saisis(&racine).unwrap() {
-        let calcul = engagement::mois_pour_l_ecran(&ctx, &mois)
+        let calcul = engagement::vue_requise(&racine, &mois)
+            .and_then(|d| engagement::pour_l_ecran(&ctx, &d))
             .and_then(|s| s.paies.iter().map(|p| p.canon(&ctx)).collect::<Result<Vec<_>, _>>())
             .map_or_else(|m| json!({"refus": m}), |v| json!({"paies": v}));
         paies.insert(mois.to_string(), masquer(calcul, &r));

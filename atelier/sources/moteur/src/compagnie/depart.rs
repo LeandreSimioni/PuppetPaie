@@ -1317,7 +1317,7 @@ fn refaire_la_dpae(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -> R<()>
     let base = nom.strip_suffix(".txt").unwrap_or(&nom).to_string();
     let recap = cible.with_file_name(format!("{}_recapitulatif.txt", base));
     let zip = cible.with_file_name(format!("{}.zip", nom));
-    socle::temps::pendant(instant, || crate::routes::depots::ecrire_la_dpae(&ctx_j, &retenues, cible, &recap, &json!("0800"), &quand))?;
+    socle::temps::pendant(instant, || crate::routes::depots::ecrire_la_dpae(&ctx_j, &retenues, cible, &recap, &json!(declarations::dpae::HEURE_EMBAUCHE), &quand))?;
     garder_si_identique(l, &[cible.to_path_buf(), zip, recap])
 }
 

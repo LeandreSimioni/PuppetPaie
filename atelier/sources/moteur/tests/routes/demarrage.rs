@@ -11,11 +11,11 @@
 //! - La rubrique d'une ligne de paie neuve (`etat.rubrique_par_defaut`, `catalogue::par_defaut`) : une rubrique de
 //!   salaire, jamais la premiere du catalogue trie (« Absence » dans une compagnie ou rien n'est coche).
 //!
-//! Chaque test cree sa compagnie par `compagnies::ajouter_dans`, comme le « + » d'un logiciel bride.
+//! Chaque test cree sa compagnie par `compagnies::ajouter_venant`, comme le « + » d'un logiciel bride.
 
 use std::path::PathBuf;
 
-use moteur::interface::compagnies::ajouter_dans;
+use moteur::interface::compagnies::{ajouter_venant, Venue};
 use serde_json::{json, Value};
 
 use crate::outils::{datee, dossier_de_test, ecrire, fiche_au, lire, reussi, route};
@@ -23,7 +23,7 @@ use crate::outils::{datee, dossier_de_test, ecrire, fiche_au, lire, reussi, rout
 const JOUR: &str = "2026-11-02";
 
 fn neuve(test: &str) -> PathBuf {
-    ajouter_dans(&dossier_de_test("demarrage", test), "Les Tréteaux Neufs").unwrap().racine
+    ajouter_venant(&dossier_de_test("demarrage", test), "Les Tréteaux Neufs", Venue::Neuve).unwrap().racine
 }
 
 fn manques(racine: &std::path::Path) -> Vec<Value> {

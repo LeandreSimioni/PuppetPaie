@@ -310,7 +310,7 @@ pub(crate) fn nom_de_dossier(nom: &str) -> String {
     }
 }
 
-/// LE JOUR OU UNE COMPAGNIE A ETE AJOUTEE : `config/creation.json`, ecrit par `ajouter_dans` et nulle part
+/// LE JOUR OU UNE COMPAGNIE A ETE AJOUTEE : `config/creation.json`, ecrit par `ajouter_venant` et nulle part
 /// ailleurs ; il suit la compagnie quand elle change de dossier. Une compagnie d'avant (une fictive livree, la vraie
 /// compagnie d'une installation) n'en a pas : `None`.
 pub const FICHIER_CREATION: &str = "creation.json";
@@ -355,10 +355,6 @@ pub fn vient_d_un_logiciel_precedent(racine: &Path) -> bool {
         == Some(Venue::LogicielPrecedent)
 }
 
-/// `ajouter_venant`, une compagnie neuve.
-pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
-    ajouter_venant(inst, nom, Venue::Neuve)
-}
 
 /// « Ajouter une compagnie » (la route `compagnie-ajouter`) dans l'installation `inst`, par le chemin `venue` : le
 /// dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.

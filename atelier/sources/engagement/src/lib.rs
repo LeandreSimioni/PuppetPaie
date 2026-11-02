@@ -1803,12 +1803,6 @@ pub fn pour_l_ecran(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
     Ok(s)
 }
 
-/// `pour_l_ecran` de la saisie de `mois` telle que ses engagements la montrent.
-#[cfg(feature = "ecran")]
-pub fn mois_pour_l_ecran(ctx: &Contexte, mois: &str) -> Resultat<Saisie> {
-    charger_donnees(ctx, &vue_requise(&ctx.racine, mois)?)
-}
-
 /// Les engagements de la saisie `data`, lus tels que l'ecran les montre (les lignes d'un permanent deduites de ses
 /// conges et de sa fin de contrat), sans paie.
 pub fn engagements_de_la_saisie(ctx: &Contexte, data: &Value) -> Resultat<Vec<Engagement>> {

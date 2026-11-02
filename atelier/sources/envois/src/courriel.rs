@@ -26,8 +26,8 @@
 //! longueur.
 //!
 //! Un mot de passe d'un caractere de controle est refuse ; le message envoye part avec des fins de ligne CRLF sur le
-//! fil -- le message archive reste celui d'`envoi::en_mime`, en LF. Une ligne vide precede le point final quand le
-//! message ne finit pas par CRLF (`en_mime` finit par LF).
+//! fil -- le message archive reste celui d'`envoi::en_mime_nomme`, en LF. Une ligne vide precede le point final quand le
+//! message ne finit pas par CRLF (`en_mime_nomme` finit par LF).
 
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
@@ -432,7 +432,7 @@ fn crlf(o: &[u8]) -> Vec<u8> {
 }
 
 /// Ce que `lettre::send_raw` recoit : le message en CRLF. `lettre` ajoute lui-meme la fin de ligne avant le point final.
-/// Le protocole en veut une quand le message ne finit pas par CRLF (et les octets d'`en_mime` finissent par un
+/// Le protocole en veut une quand le message ne finit pas par CRLF (et les octets d'`en_mime_nomme` finissent par un
 /// LF seul : une ligne vide precede donc le point). On ne retire la fin de ligne que si le message en avait deja une,
 /// CRLF.
 pub fn donnees_du_fil(brut: &[u8]) -> Vec<u8> {

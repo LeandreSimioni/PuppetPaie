@@ -105,7 +105,6 @@ fn premiere_passe_tout_part_dans_l_ordre_et_l_index_est_ecrit() {
     assert_eq!(s.compte.as_deref(), Some("compte@exemple.invalid"));
     assert_eq!(s.racine_drive, RD);
     assert_eq!(s.octets_deposes, [5u64, 8, 2, 3, 1, 1, 4, 21].iter().sum::<u64>());
-    assert!(s.a_change());
     // L'arbre du Drive : le contenu de chaque fichier, et rien des secrets.
     let arbre = d.arbre();
     assert_eq!(arbre.len(), 8);
@@ -138,7 +137,7 @@ fn rien_de_change_rien_ne_part_et_les_dossiers_connus_ne_sont_pas_recherches() {
     passer(&r, &mut d);
     d.journal.clear();
     let s = passer(&r, &mut d);
-    assert!(s.deposes.is_empty() && !s.a_change());
+    assert!(s.deposes.is_empty());
     assert_eq!((s.identiques, s.exclus), (8, 8)); // l'index ecrit s'ajoute aux ecartes
     assert_eq!(d.appels("televerser"), 0);
     assert_eq!(d.appels("chemin"), 0, "les identifiants de dossiers viennent de l'index");

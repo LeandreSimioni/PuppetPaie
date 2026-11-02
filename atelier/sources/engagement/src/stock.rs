@@ -1259,12 +1259,6 @@ impl Objet {
     }
 }
 
-/// Le mois qui precede `AAAA-MM`.
-pub fn mois_avant(mois: &str) -> Resultat<String> {
-    let j = premier_du_mois(mois)?.plus_jours(-1)?;
-    Ok(j.mois_iso())
-}
-
 /// L'engagement que designe, dans le mois `mois`, le rang `rang` de son ecran.
 pub fn objet_du_mois(racine: &Path, mois: &str, rang: usize) -> Resultat<Option<Objet>> {
     Ok(objets_du_mois(racine, mois)?.into_iter().nth(rang))
