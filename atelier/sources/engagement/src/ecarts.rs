@@ -5,8 +5,8 @@
 //!
 //! LA SAISIE REFAITE : le salarie (sa fiche, a la date de la periode ; le statut, la qualite de cadre et l'emploi que
 //! le bulletin imprime passent devant les siens), le spectacle que le bulletin nomme, la nature que la DSN ou l'AEM atteste (muette : un CDDU, regle 6), les lignes de remuneration que le
-//! bulletin imprime, par leur rubrique du catalogue (quantite, taux, heures), aux jours qu'il dit travailles (sa periode,
-//! quand elle tient en un jour et qu'il n'en imprime pas), payee le
+//! bulletin imprime, par leur rubrique du catalogue (quantite, taux, heures), aux jours qu'il dit travailles (a defaut,
+//! autant de jours de sa periode qu'il en compte : `comparer_une`), payee le
 //! jour du versement. Elle se calcule comme la validation la calculerait (`charger_donnees`), avec les baremes et la
 //! configuration a la date de la periode ; une compagnie qui n'a pas encore pose son taux AT/MP de l'annee lit celui que
 //! le bulletin applique (`Contexte::avec_le_taux_atmp_lu`).
@@ -182,7 +182,11 @@ pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Ve
     if contrat.is_some_and(|c| c.get("nature_a_dire").is_some_and(vrai)) {
         return Vec::new();
     }
-    imp.paies()
+    let paies = imp.paies();
+    // Le nombre de jours travailles que le bulletin compte (son cumul « Jours », `contrat.jours`) : celui de sa paie
+    // quand le contrat n'en a qu'une.
+    let jours_comptes = contrat.and_then(|c| c.get("jours")).and_then(Value::as_i64).filter(|_| paies.len() == 1);
+    paies
         .into_iter()
         .filter_map(|(mois, p)| {
             let empreinte = empreinte(imp, &mois, p);
@@ -202,7 +206,7 @@ pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Ve
                 a_refaire: false,
                 non_rattachees: Vec::new(),
             };
-            c.ecarts = comparer_une(racine, brut, &mois, p, nature.as_deref(), &mut c);
+            c.ecarts = comparer_une(racine, brut, &mois, p, nature.as_deref(), jours_comptes, &mut c);
             Some(c)
         })
         .collect()
@@ -214,6 +218,7 @@ fn comparer_une(
     mois: &str,
     p: &Map<String, Value>,
     nature: Option<&str>,
+    jours_comptes: Option<i64>,
     c: &mut Comparaison,
 ) -> Result<Vec<Ecart>, String> {
     let annee = mois.get(..4).unwrap_or("");
@@ -268,12 +273,30 @@ fn comparer_une(
             j = j.plus_jours(1)?;
         }
     }
-    // Un bulletin qui n'imprime pas ses jours travailles, sur une periode d'un seul jour : ce jour est le jour travaille.
-    // Une periode plus longue ne dit pas lesquels : la paie ne se compare pas.
-    if jours.is_empty() {
+    // UN BULLETIN QUI N'IMPRIME PAS SES JOURS TRAVAILLES en dit la periode et le nombre (`jours_comptes`) :
+    // - autant de jours que la periode : ce sont tous les siens ;
+    // - moins, dans une periode qui tient dans un mois : le calcul ne lit des jours que leur nombre, leur mois et le
+    //   premier. Le plafond d'un intermittent compte les jours remuneres mois par mois (BOSS, assiette generale, § 1090)
+    //   ou 12 heures du plafond horaire de l'annee par journee (arrete du 24/01/1975, art. 3, al. 2 : `droit::plafond`),
+    //   et l'engagement court se juge sur le debut et la fin du contrat ; le minimum conventionnel et le bareme se
+    //   lisent au premier jour, qui est le debut de la periode. Le debut et les jours qui le suivent en tiennent lieu.
+    // Sans ce nombre, une periode de plus d'un jour ne dit pas combien : la paie ne se compare pas.
+    let mensuelle = droit::natures::nature(nature).is_ok_and(|n| n.mensuelle());
+    if jours.is_empty() && !mensuelle {
         if let (Some(d), Some(f)) = (texte(p, "debut"), texte(p, "fin")) {
-            if d == f {
-                jours.push(json!(Jour::lire(&d)?.iso()));
+            let (d, f) = (Jour::lire(&d)?, Jour::lire(&f)?);
+            let periode = f.moins(&d) + 1;
+            let un_mois = (d.an, d.mois) == (f.an, f.mois);
+            let n = if periode == 1 { Some(1) } else { jours_comptes.filter(|n| *n >= 1 && *n <= periode && (*n == periode || un_mois)) };
+            let Some(n) = n else {
+                return Err(match jours_comptes {
+                    None => "le bulletin imprime sa période sans ses jours travaillés ni leur nombre".to_string(),
+                    Some(n) if n > periode => "le bulletin compte plus de jours travaillés que sa période n'en a".to_string(),
+                    Some(_) => "le bulletin ne dit pas lesquels de ses jours travaillés tombent dans chacun des mois de sa période".to_string(),
+                });
+            };
+            for i in 0..n {
+                jours.push(json!(d.plus_jours(i)?.iso()));
             }
         }
     }
@@ -300,7 +323,6 @@ fn comparer_une(
         }
         saisies.push(Value::Object(s));
     }
-    let mensuelle = droit::natures::nature(nature).is_ok_and(|n| n.mensuelle());
     let mut e = Map::new();
     e.insert("salarie".into(), json!(salarie));
     if !mensuelle {
