@@ -406,6 +406,32 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
     let _ = socle::ecriture::ecrire_json(&p, &Value::Object(trace), 1);
 }
 
+// ------------------------------------------------------------------ la version qui calcule
+
+/// Ou la compagnie garde la version qui a passe sur ses mois finis : `config/.version-du-calcul.json`.
+const VERSION_DU_CALCUL: &str = ".version-du-calcul.json";
+
+/// LES MOIS FINIS ET LA VERSION QUI CALCULE : un mois fini (ses documents et sa DSN partis) ne se relit plus de lui-meme
+/// (`engagement::etats::fini`). Une version qui change ce qui calcule (son numero, `VERSION`, et la marque du code,
+/// `engagement::empreinte::MOTEUR`) passe une fois sur eux, a la premiere ouverture de la compagnie qui la porte
+/// (`engagement::etats::corriger_les_mois_finis`) : une decision de l'editeur y refait la paie d'un mois, en
+/// rectificatif ; puis plus rien jusqu'a la version suivante. La marque ne s'ecrit qu'apres un passage entier : un
+/// passage interrompu se refait.
+fn passer_la_version(ctx: &Contexte) -> R<()> {
+    let code = socle::fichiers::dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
+    let marque = format!("{}+{}", crate::compagnie::maj::courante(&code), engagement::empreinte::MOTEUR);
+    let p = ctx.racine.join("config").join(VERSION_DU_CALCUL);
+    let lue = std::fs::read(&p).ok().and_then(|o| serde_json::from_slice::<Value>(&o).ok());
+    if lue.as_ref().and_then(|v| v.get("version")).and_then(Value::as_str) == Some(marque.as_str()) {
+        return Ok(());
+    }
+    dire_l_etape(ctx, "Nouvelle version : relecture des mois finis…");
+    let departs = envois::journal::lu(&ctx.racine)?.departs;
+    engagement::etats::corriger_les_mois_finis(ctx, &departs)?;
+    socle::ecriture::ecrire_json(&p, &json!({"version": marque}), 1).map_err(|m| socle::echec::erreur("OSError", m))?;
+    Ok(())
+}
+
 // ------------------------------------------------------------------ outils
 
 /// La compagnie est une copie de developpement (`MARQUEUR_COPIE`).
@@ -565,6 +591,11 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
     if crate::compagnie::bridage::branchement(&ctx.racine).refus().is_some() {
         retours = false;
         signatures = false;
+    }
+
+    // UNE VERSION QUI CALCULE AUTREMENT passe une fois sur les mois finis, avant le present.
+    if let Err(e) = passer_la_version(ctx) {
+        r.incidents.push(format!("Mois finis : {}", e.message));
     }
 
     // LA COMPAGNIE FICTIVE : les retours des depots joues et les signatures demandees arrivent d'ici, sans coffre ni reseau --

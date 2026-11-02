@@ -408,7 +408,45 @@ pub(crate) fn avant_le_mois(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour,
     if let Some(a) = suivant(ctx, cle_salarie, a_la_date, mois)? {
         return Ok(a);
     }
+    let cle = cle_de_fiche(ctx, cle_salarie);
+    let mensuels = mensuels_d_avant(ctx, mois, &cle)?;
+    socle::fichiers::noter_valeur(&format!("{}{} {}", MENSUELS, mois, cle), empreinte_des(&mensuels));
+    if mensuels.is_empty() {
+        // Aucun mois d'avant ne se lit : `RIEN_AVANT` les tient tous pour d'apres.
+        return compteur(ctx, cle_salarie, a_la_date, Some(RIEN_AVANT));
+    }
     compteur(ctx, cle_salarie, a_la_date, Some(mois))
+}
+
+/// Un mois avant tout mois (`avant_le_mois`, `mois_de_la_periode`, `premier_mois`) : aucun ne se lit.
+const RIEN_AVANT: &str = "0000-00";
+
+/// La cle sous laquelle un calcul note les contrats payes au mois d'un salarie avant un mois (`mensuels <mois> <salarie>`).
+pub const MENSUELS: &str = "mensuels ";
+
+/// LE PREMIER MOIS D'UN PERMANENT NE RELIT RIEN : seul un mois paye au mois apporte des conges (`Tenue::ajouter`). Sans
+/// contrat paye au mois du salarie `cle` (la cle de sa fiche) commence avant `mois` (un engagement actif, qui n'est pas
+/// importe), l'etat avant le mois est le fait de son entree : zero, ou la reprise de sa fiche (`conges_reprise`). Rend
+/// ces contrats (leur premier mois et leur debut) ; la paie note leur empreinte (`empreinte_des_mensuels_d_avant`) : qu'un
+/// contrat s'ajoute avant elle, et elle se refait.
+fn mensuels_d_avant(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Vec<String>> {
+    let mut out: Vec<String> = crate::stock::objets(&ctx.racine)?
+        .iter()
+        .filter(|o| o.fichier.as_str() < mois && !o.est_non_actif() && !o.est_importe() && o.mensuel())
+        .filter(|o| crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle))
+        .map(|o| format!("{}#{}", o.fichier, crate::debut_brut(&o.brut)))
+        .collect();
+    out.sort();
+    Ok(out)
+}
+
+fn empreinte_des(mensuels: &[String]) -> String {
+    socle::fichiers::sha256_hex(mensuels.join(";").as_bytes())
+}
+
+/// L'empreinte des contrats payes au mois du salarie `cle` commences avant `mois` (`mensuels_d_avant`).
+pub(crate) fn empreinte_des_mensuels_d_avant(ctx: &Contexte, mois: &str, cle: &str) -> Option<String> {
+    mensuels_d_avant(ctx, mois, cle).ok().map(|m| empreinte_des(&m))
 }
 
 /// Ce qu'une periode de reference a acquis (avant le plafond), vu prendre et paye, a mesure que ses mois s'y ajoutent,
