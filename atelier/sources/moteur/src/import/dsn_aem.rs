@@ -342,6 +342,9 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     // bloc : elle se lit dans celle du contact de l'emetteur (S10.G00.02.001, `bloc-S10.G00.02.txt` l. 33-40) quand
     // l'emetteur est l'entreprise (meme Siren, comme pour la raison sociale) et que son contact porte le meme nom et prenom
     // (S10.G00.02.002) -- une inference : c'est alors la meme personne.
+    // Son courriel se garde tel que la DSN le declare, capitales comprises : la casse de ce qui precede l'arobase est a
+    // l'adresse (« The local-part of a mailbox MUST BE treated as case sensitive », RFC 5321, § 2.4 :
+    // `ietf/ietf-rfc5321-simple-mail-transfer-protocol-20081001.txt`, l. 869).
     let contact = contacts.iter().find(|c| lu(c, "qualite").as_deref() == Some(declarations::dsn::TYPE_CONTACT_ORDINAIRE)).or(contacts.first());
     if let Some(c) = contact.filter(|c| lu(c, "nom_prenom").is_some()) {
         let mut d = c.clone();

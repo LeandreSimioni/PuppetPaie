@@ -1090,7 +1090,7 @@ fn phrase_du_test(r: &Value, quoi: &str) -> (String, String) {
     match etat_du_test(r) {
         "testee" => (
             format!("{} est testée — conforme. Voulez-vous l'envoyer ?", cette),
-            format!("Testée le {} : le même contenu est passé au bac à sable sans anomalie.", quand(&r["conforme"])),
+            format!("Déposée en test le {}, avec ce même contenu.", quand(&r["conforme"])),
         ),
         "en_test" => (
             format!("{} est en test — son compte rendu est attendu", cette),
