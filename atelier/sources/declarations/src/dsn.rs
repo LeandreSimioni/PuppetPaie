@@ -1951,6 +1951,10 @@ pub fn mesures_d_activite(p: &Paie) -> Resultat<Vec<(String, Decimal, String)>> 
         if vrai(g(&u, "si_non_nul")) && valeur.is_zero() {
             continue;
         }
+        // Une unite que seule la caisse des Conges Spectacles demande (`contrats-base.json`, `si_caisse_conges`).
+        if vrai(g(&u, "si_caisse_conges")) && !p.declaree_a_la_caisse_des_conges()? {
+            continue;
+        }
         let t = if u.get("type").is_some() { en_texte(&u["type"]) } else { "01".into() };
         out.push((t, valeur, en_texte(req(&u, "code")?)));
     }

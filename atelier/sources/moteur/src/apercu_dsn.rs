@@ -21,7 +21,6 @@ use envois::depot::{self, Apercu};
 use envois::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
-use socle::num::Decimal;
 use socle::num::{decimal_lu, entier_lu, q2};
 
 use socle::echec::Echec;
@@ -33,11 +32,6 @@ use declarations::recap_dsn::{lire_recap, norm};
 type R<T> = Result<T, Echec>;
 
 const TYPES: [(&str, &str); 5] = depot::TYPES;
-
-/// Le décimal en flottant.
-fn flottant(d: Decimal) -> f64 {
-    d.to_string().parse::<f64>().unwrap_or(0.0)
-}
 
 /// La meme, sans le detail du refus : le moindre refus, quel qu'il soit, rend `Err`.
 fn saisie_aux_numeros_declares(ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, String> {
@@ -100,7 +94,6 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                     }
                 }
                 Some(p) => {
-                    let e = &p.engagement;
                     let mut attendu: HashMap<&str, String> = HashMap::new();
                     // Le brut que la paie declare en 51 de type 001 (`dsn::brut_du_51` : abattu sous deduction forfaitaire
                     // specifique), a deux decimales.
@@ -108,38 +101,21 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                     for k in ["jours", "cachets", "heures"] {
                         attendu.insert(k, "0".to_string());
                     }
-                    let nat = e.nat()?;
-                    for u in nat.unites_activite() {
-                        let genre_ok = match u.get("type") {
-                            None => true,
-                            Some(Value::String(s)) => s == "01",
-                            Some(_) => false,
-                        };
-                        if !genre_ok {
+                    // Les mesures du travail remunere (type 01) que la DSN ecrit pour cette paie (`dsn::mesures_d_activite`).
+                    for (t, valeur, code) in declarations::dsn::mesures_d_activite(p)? {
+                        if t != "01" {
                             continue;
                         }
-                        let code = u.get("code").ok_or_else(|| socle::fichiers::absent("code"))?;
                         let Some(cle) = (match code.as_str() {
-                            Some("10") | Some("35") => Some("heures"),
-                            Some("12") => Some("jours"),
-                            Some("37") => Some("cachets"),
+                            "10" | "35" => Some("heures"),
+                            "12" => Some("jours"),
+                            "37" => Some("cachets"),
                             _ => None,
                         }) else {
                             continue;
                         };
-                        let mesure = u.get("mesure").and_then(Value::as_str).ok_or_else(|| socle::fichiers::absent("mesure"))?;
-                        let valeur = match mesure {
-                            "jours" => e.jours as f64,
-                            "cachets" => e.cachets as f64,
-                            "heures" => e.heures.unwrap_or(0.0),
-                            "heures_travaillees" => flottant(p.heures_travaillees),
-                            autre => return Err(format!("mesure inconnue : {}", repr(autre))),
-                        };
-                        let avant: f64 = attendu[cle].parse().unwrap_or(0.0);
-                        let somme = avant + valeur;
-                        let t = format!("{}", if somme == 0.0 { 0.0 } else { somme });
-                        let d = decimal_lu(&t).ok_or_else(|| socle::num::illisible(&t))?;
-                        attendu.insert(cle, norm(d));
+                        let avant = decimal_lu(&attendu[cle]).ok_or_else(|| socle::num::illisible(&attendu[cle]))?;
+                        attendu.insert(cle, norm(avant + valeur));
                     }
                     for cle in ["brut", "jours", "cachets", "heures"] {
                         let fichier = if cle == "brut" { brut.clone() } else { m.mesure_texte(cle) };

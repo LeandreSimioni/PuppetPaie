@@ -1037,8 +1037,9 @@ pub(crate) fn conges_pris_de_la_paie(racine: &Path, paie: &Paie) -> Resultat<Dec
 
 /// Les lignes de paie d'un mois de permanent, et ce qu'il y a a en dire.
 /// L'ordre des lignes est celui du bulletin : le salaire de base, les
-/// absences, les indemnites, les primes, puis le solde de tout compte.
-pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
+/// absences, les indemnites, les primes, puis le solde de tout compte. Et les jours travailles du mois, quand le moteur
+/// tire les lignes (`None` pour des lignes ecrites a la main : la saisie dit ses jours).
+pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Value>, Vec<Avis>, Option<i64>)> {
     let nat = nature_de(e.get("nature"))?;
     if !nat.mensuelle() {
         return Err(format!("{} n'est pas un contrat paye au mois : ses lignes se saisissent.", nat.libelle));
@@ -1066,7 +1067,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
                 crate::imprevus::dernier_jour(&imp)?.jj_mm_aaaa()
             )));
         }
-        return Ok((l.as_array().ok_or("lignes")?.clone(), dit));
+        return Ok((l.as_array().ok_or("lignes")?.clone(), dit, None));
     }
     let salaire = match e.get("salaire_mensuel").filter(|s| !s.is_null()) {
         Some(s) => s,
@@ -1181,7 +1182,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     }
 
     // --- les imprevus : un arret de travail, une suspension, saisis une fois sur le salarie (`imprevus`)
-    let (l, a) = crate::imprevus::lignes_du_mois(
+    let (l, a, absents) = crate::imprevus::lignes_du_mois(
         ctx,
         e,
         mois,
@@ -1189,6 +1190,15 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     )?;
     lignes.extend(l);
     avert.extend(a);
+    // LES JOURS TRAVAILLES DU MOIS (S21.G00.53, unite 12 ; le certificat d'emploi Conges Spectacles) : ceux que l'horaire
+    // du salarie programme dans le contrat (`droit::conges::JoursTravailles`, l'horaire reel de `part_du_mois`, les feries
+    // qu'il ne voit pas payes hors), moins ceux qu'un arret ou une suspension non remuneree retire. La caisse les demande
+    // pour « les autres emplois » que l'artiste : « renseigner l'unite de mesure en jours (code 12) » (Audiens, fiche de
+    // specificites, `atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt`,
+    // l. 96-102). INFERENCE : aucun texte depose ne dit comment compter les jours d'un contrat paye au mois ; les jours
+    // que son horaire programme sont ceux de son salaire (fiche DSN 2640, `droit::conges::JoursTravailles`).
+    let reel = droit::periodes::part_du_mois(&debut, &fin, &fin_mois, droit::periodes::RegleDuMoisIncomplet::HoraireReel, &horaire)?;
+    let jours_travailles = (reel.jours - absents).max(0);
 
     // --- les primes
     for pr in e.get("primes").and_then(|p| p.as_array()).map_or(&[][..], |a| &a[..]) {
@@ -1276,7 +1286,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             avert.extend(a);
         }
     }
-    Ok((lignes, avert))
+    Ok((lignes, avert, Some(jours_travailles)))
 }
 
 /// Ce que le moteur a retire du decompte des jours ouvrables, et ce qu'il n'a

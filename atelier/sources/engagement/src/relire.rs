@@ -76,7 +76,7 @@ fn drapeau(v: &Value, cle: &str) -> bool {
 
 /// Les engagements de la saisie `data`, construits sans rien chiffrer, puis ce que le calcul a pose dessus : le numero
 /// (quand l'engagement n'en porte pas),
-/// les jours du contrat, les suspensions, et, pour un permanent, les lignes que le moteur a deduites. `paies` : la forme
+/// les jours du contrat, les suspensions, et, pour un permanent, les lignes et les jours que le moteur a deduits. `paies` : la forme
 /// ecrite de chaque paie, dans l'ordre de la saisie.
 pub fn engagements_ecrits(ctx: &Contexte, data: &Value, paies: &[&Value]) -> Resultat<Vec<Engagement>> {
     let tous = data.get("engagements").and_then(Value::as_array).ok_or_else(|| socle::fichiers::absent("engagements"))?;
@@ -87,11 +87,13 @@ pub fn engagements_ecrits(ctx: &Contexte, data: &Value, paies: &[&Value]) -> Res
         .map(|(i, _)| i)
         .collect();
     let appel = Cell::new(0usize);
-    let lignes = |_: &Contexte, _: &Value, _: &str| -> Resultat<(Vec<Value>, Vec<Avis>)> {
+    let lignes = |_: &Contexte, _: &Value, _: &str| -> Resultat<(Vec<Value>, Vec<Avis>, Option<i64>)> {
         let rang = *mensuels.get(appel.get()).ok_or("rang d'engagement inconnu")?;
         appel.set(appel.get() + 1);
-        let l = paies.get(rang).and_then(|p| p.get("engagement")).and_then(|e| e.get("lignes")).and_then(Value::as_array);
-        Ok((l.cloned().ok_or("paie ecrite illisible : `lignes`")?, Vec::new()))
+        let ecrit = paies.get(rang).and_then(|p| p.get("engagement"));
+        let l = ecrit.and_then(|e| e.get("lignes")).and_then(Value::as_array);
+        let jours = ecrit.and_then(|e| e.get("jours")).and_then(|j| socle::date::en_texte(j).trim().parse::<i64>().ok());
+        Ok((l.cloned().ok_or("paie ecrite illisible : `lignes`")?, Vec::new(), jours))
     };
     let (mut engs, _) = crate::engagements(ctx, data, &lignes)?;
     if engs.len() != paies.len() {

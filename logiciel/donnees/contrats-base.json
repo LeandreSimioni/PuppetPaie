@@ -564,9 +564,10 @@
         "toutes_au_brut": false
       },
       "activites": {
-        "_quoi": "Les heures de travail rémunéré, et les absences.",
+        "_quoi": "Les heures de travail rémunéré, les jours travaillés d'un contrat déclaré à la caisse des Congés Spectacles, et les absences.",
         "unites": [
-          {"code": "10", "quoi": "10 - heure : les heures de travail rémunéré du mois", "mesure": "heures", "type": "01"}
+          {"code": "10", "quoi": "10 - heure : les heures de travail rémunéré du mois", "mesure": "heures", "type": "01"},
+          {"code": "12", "quoi": "12 - journée : les jours travaillés du mois, pour un contrat déclaré à la caisse des Congés Spectacles (`caisse_conges::affilie`) : « Pour les autres emplois, renseigner l'unité de mesure en jours (code 12) » (Audiens, fiche de spécificités Congés Spectacles, atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt, l. 96-102).", "mesure": "jours", "type": "01", "si_caisse_conges": true}
         ],
         "absences": {"code": "10", "type": "02", "quoi": "02 - Durée d'absence partiellement ou pas du tout rémunérée, en heures."}
       }

@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use engagement::calcul::Paie;
-use documents::conges_spectacles::{self, ContratCs, PaieCs};
+use documents::conges_spectacles::{self, ContratCs, MoisPaye, PaieCs};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use engagement::{self, Engagement};
@@ -454,6 +454,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
     let importe = engagement::importe::continue_par(&ctx.racine, &cherche).map_err(|e| avec("ValueError", e))?;
     let mut bruts = Decimal::new(0, 2);
     let mut jours = 0i64;
+    let mut mois_payes: Vec<MoisPaye> = Vec::new();
     for m in mois_du.iter().filter(|m| **m < eng.mois) {
         let ecrite = match eng.numero.as_deref() {
             Some(n) => engagement::etats::paie_ecrite_de(ctx, m, &cle, n, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(|e| avec("ValueError", e))?).map_err(|e| avec("ValueError", e))?,
@@ -475,8 +476,22 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
         if let Some(Value::Array(l)) = e.get("lignes").filter(|l| vrai(l)) {
             lignes.extend(l.iter().cloned());
         }
-        bruts += eur2(socle::num::dec(paie.get("brut").ok_or_else(|| illisible("brut"))?).map_err(|x| avec("ValueError", x))?);
-        jours += e.get("jours").map(valeur_en_texte).and_then(|j| j.trim().parse::<i64>().ok()).ok_or_else(|| illisible("jours"))?;
+        let (brut_du_mois, jours_du_mois) = (
+            eur2(socle::num::dec(paie.get("brut").ok_or_else(|| illisible("brut"))?).map_err(|x| avec("ValueError", x))?),
+            e.get("jours").map(valeur_en_texte).and_then(|j| j.trim().parse::<i64>().ok()).ok_or_else(|| illisible("jours"))?,
+        );
+        bruts += brut_du_mois;
+        jours += jours_du_mois;
+        mois_payes.push(MoisPaye { fin: socle::date::dernier_du_mois(m).map_err(|x| avec("ValueError", x))?, jours: jours_du_mois, brut: brut_du_mois });
+    }
+    let brut = bruts + eur2(p.brut);
+    // Un contrat paye au mois n'a ni cachet ni date jouee : son certificat porte ses bornes, et ses jours travailles et son
+    // brut mois par mois (`conges::lignes_du_mois`) ; le 31 mars le coupe entre deux mois.
+    if eng.nat()?.mensuelle() {
+        let fin_du_mois = socle::date::dernier_du_mois(&eng.mois).map_err(|x| avec("ValueError", x))?;
+        mois_payes.push(MoisPaye { fin: fin_du_mois, jours: eng.jours, brut: eur2(p.brut) });
+        let contrat = ContratCs { jours: jours + eng.jours, dates_travail: Vec::new(), cachets: 0, heures: None, taux_cachet: None, mois_payes, ..ContratCs::de(eng)? };
+        return Ok((PaieCs { engagement: contrat, brut, salarie: p.salarie.clone() }, manquants));
     }
     lignes.extend(eng.lignes.iter().cloned());
     // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.
@@ -502,7 +517,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
         "statut_categoriel_rc": texte(&eng.statut_categoriel_rc),
     });
     let entier = Engagement::nouveau(&ctx.racine, &entier, &ctx.nomme(&eng.salarie)).map_err(|m| avec("ValueError", m))?;
-    let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut: bruts + eur2(p.brut), salarie: p.salarie.clone() };
+    let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut, salarie: p.salarie.clone() };
     Ok((cs, manquants))
 }
 
@@ -519,9 +534,12 @@ pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec
         None => dus.push((cle, debut, v)),
     };
     for p in paies {
-        // Un permanent n'a pas de certificat Conges Spectacles ; un CDDU de douze mois ou plus non plus : il n'est pas
-        // declare a la caisse (`caisse_conges::affilie`, code du travail D. 7121-41).
-        if p.engagement.nat()?.mensuelle() || !p.declaree_a_la_caisse_des_conges()? {
+        // Le certificat suit la declaration a la caisse (`caisse_conges::affilie`, code du travail D. 7121-41) : « Un
+        // certificat d'emploi doit etre remis au salarie par son employeur a l'issue de chacun de ses contrats de
+        // travail » d'artiste ou de technicien « embauche sous contrat a duree determinee de moins de 12 mois », CDD de
+        // droit commun ou d'usage (fiche Audiens, `majoration-caisses-conges/audiens-fiche-pratique-conges-spectacles-
+        // 202302.txt`, l. 20-31). Un permanent, un contrat de douze mois ou plus n'en ont pas.
+        if !p.declaree_a_la_caisse_des_conges()? {
             continue;
         }
         let (cle, debut) = (cle_de(p), p.engagement.debut.iso());

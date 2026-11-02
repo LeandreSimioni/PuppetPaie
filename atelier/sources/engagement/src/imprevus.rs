@@ -601,9 +601,12 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 /// voit pas payes deja hors de son salaire), fois les heures d'un jour (`droit::conges::heures_par_jour`). La retenue est
 /// le salaire du mois fois ces heures sur les heures payees du mois, au taux exact (`taux_exact`) : un mois entier
 /// d'absence retire exactement le salaire du mois.
-pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<Value>, Vec<Avis>)> {
+///
+/// Rend aussi les jours travailles que les absences retirees ote du mois (un arret, une suspension non remuneree) :
+/// `conges::lignes_du_mois` en tire les jours travailles du mois.
+pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<Value>, Vec<Avis>, i64)> {
     let qui = crate::conges::qui(ctx, e);
-    let (mut lignes, mut avert) = (Vec::new(), Vec::new());
+    let (mut lignes, mut avert, mut absents) = (Vec::new(), Vec::new(), 0i64);
     // Le taux de l'heure d'absence : le salaire du mois sur ses heures de travail (Cass. soc. 11/02/1982).
     let heures_du_mois = eur2(mul(m.heures_par_jour, Decimal::from(m.jours_payes)));
     let taux_horaire = if heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, heures_du_mois)) } else { None };
@@ -646,6 +649,7 @@ nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
                 ));
             }
             lignes.extend(retenue(&rubrique));
+            absents += jours;
             avert.push(info(format!(
                 "{} : arrêt de travail ({}) du {} au {} : {} ; la DSN de chaque mois qu'il traverse le déclare.",
                 qui,
@@ -677,6 +681,7 @@ nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
                 )));
             } else {
                 lignes.extend(retenue("absence_non_remuneree"));
+                absents += jours;
                 avert.push(info(format!(
                     "{} : absence ({}) du {} au {} : {} ; la DSN de chaque mois qu'elle traverse la déclare.",
                     qui,
@@ -688,7 +693,7 @@ nomme cette absence (`arrets-base.json`). Rien n'est calcule.",
             }
         }
     }
-    Ok((lignes, avert))
+    Ok((lignes, avert, absents))
 }
 
 /// L'origine d'un arret pour le maintien de salaire, lue sur son motif (`arrets-base.json`, `origine`) : `at_mp` (accident
