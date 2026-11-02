@@ -6,7 +6,7 @@
 use serde_json::{json, Map, Value};
 
 use crate::departs::{Depart, Departs, Envoi};
-use crate::etats::{ses_departs, Valide};
+use crate::etats::{ses_departs, ARefaire, Valide};
 use crate::stock::{DATES, FAITS};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
@@ -249,10 +249,10 @@ pub(crate) fn quoi_du_depart(d: &Depart) -> String {
         (Envoi::Contrat, _) if d.avenant.is_some() => format!("l'avenant n° {}", d.avenant.as_deref().unwrap_or_default()),
         (Envoi::Contrat, _) => "le contrat".to_string(),
         (Envoi::Dpae, _) => "la DPAE".to_string(),
-        (Envoi::Documents, Some(m)) => format!("les documents de {}", crate::libelle_mois(m)),
+        (Envoi::Documents, Some(m)) => format!("les documents {}", de(&crate::libelle_mois(m))),
         (Envoi::Dsn, Some(m)) => match d.par.as_deref() {
-            Some(p) => format!("la DSN de {} (correction de {})", crate::libelle_mois(p), crate::libelle_mois(m)),
-            None => format!("la DSN de {}", crate::libelle_mois(m)),
+            Some(p) => format!("la DSN {} (correction {})", de(&crate::libelle_mois(p)), de(&crate::libelle_mois(m))),
+            None => format!("la DSN {}", de(&crate::libelle_mois(m))),
         },
         (Envoi::Signalement, _) => "un signalement".to_string(),
         (_, None) => "un envoi".to_string(),
@@ -266,10 +266,8 @@ fn complement(quoi: &str) -> String {
         format!("du {}", r)
     } else if let Some(r) = quoi.strip_prefix("les ") {
         format!("des {}", r)
-    } else if quoi.starts_with(['a', 'e', 'i', 'o', 'u', 'é', 'h']) {
-        format!("d'{}", quoi)
     } else {
-        format!("de {}", quoi)
+        de(quoi)
     }
 }
 
@@ -315,14 +313,98 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Optio
         versions.push(json!({"version": n, "le": le, "jour": jour_court(le), "changements": changes, "partis": partis}));
         precedente = Some(x);
     }
-    // CE QUI ETAIT PARTI quand l'engagement a change pour la derniere fois : les envois de la version d'avant.
-    let avant = numero(toutes[toutes.len() - 2].0);
-    let mut quoi: Vec<String> = siens.iter().filter(|d| Some(d.version) == avant).map(|d| complement(&quoi_du_depart(d))).collect();
-    quoi.dedup();
-    let phrase = if quoi.is_empty() {
-        format!("Modifié le {}", jour_court(v.le()))
+    Some(json!({"phrase": phrase_de_la_frise(ctx, v, departs, siens), "versions": versions}))
+}
+
+/// LA LIGNE SOUS LA CARTE : quand l'engagement a change, a partir de quel mois si ce n'est pas son premier, et ce qui
+/// etait parti que le changement touche (`etats::a_refaire`), groupe par sorte, les mois qui se suivent en une etendue :
+/// « Modifié le 20/01, à partir de septembre 2025, après l'envoi du contrat, des documents et des DSN de septembre à
+/// décembre 2025 ». Le detail, envoi par envoi, est dans la frise.
+fn phrase_de_la_frise(ctx: &Contexte, v: &Valide, departs: &Departs, siens: &[Depart]) -> String {
+    let mut phrase = format!("Modifié le {}", jour_court(v.le()));
+    if let Some(m) = premier_mois_change(v).filter(|m| m.as_str() != v.objet().premier_mois()) {
+        phrase.push_str(&format!(", à partir de {}", crate::libelle_mois(&m)));
+    }
+    let (mut contrat, mut dpae) = (false, false);
+    let (mut documents, mut dsn) = (std::collections::BTreeSet::new(), std::collections::BTreeSet::new());
+    for a in crate::etats::a_refaire(ctx, v, departs) {
+        match a {
+            ARefaire::Avenant { .. } => contrat = true,
+            ARefaire::Dpae { .. } => dpae = true,
+            ARefaire::Bulletin { mois, .. } => {
+                documents.insert(mois);
+            }
+            ARefaire::Dsn { mois, .. } => {
+                dsn.insert(mois);
+            }
+        }
+    }
+    let mut quoi = Vec::new();
+    // Le contrat, ou son dernier avenant : celui que le changement rend faux.
+    if let Some(d) = siens.iter().filter(|d| contrat && d.envoi == Envoi::Contrat).last() {
+        quoi.push(complement(&quoi_du_depart(d)));
+    }
+    if dpae {
+        quoi.push(complement("la DPAE"));
+    }
+    if !documents.is_empty() && documents == dsn {
+        quoi.push("des documents".to_string());
+        quoi.push(format!("des DSN {}", de_mois(&documents)));
     } else {
-        format!("Modifié le {}, après l'envoi {}", jour_court(v.le()), enumerer(&quoi))
-    };
-    Some(json!({"phrase": phrase, "versions": versions}))
+        if !documents.is_empty() {
+            quoi.push(format!("des documents {}", de_mois(&documents)));
+        }
+        if !dsn.is_empty() {
+            quoi.push(format!("des DSN {}", de_mois(&dsn)));
+        }
+    }
+    if !quoi.is_empty() {
+        phrase.push_str(&format!(", après l'envoi {}", enumerer(&quoi)));
+    }
+    phrase
+}
+
+/// Le premier mois dont la paie a change au dernier changement de l'engagement valide `v` (sa derniere version passee
+/// contre son present) ; `None` si aucune ne se lit autrement.
+fn premier_mois_change(v: &Valide) -> Option<String> {
+    let avant = v.versions().last()?;
+    let present = v.objet().brut.get("valide")?;
+    let paie = |x: &Value, m: &str| crate::etats::paie_ecrite_de_la_version(v.objet(), x, m).ok().flatten().and_then(|p| p.get("paie").cloned());
+    crate::paies::mois_ecrits(v.objet()).ok()?.into_iter().find(|m| paie(avant, m) != paie(present, m))
+}
+
+/// « de septembre à décembre 2025 », « d'avril 2025 et de juin 2025 », « de novembre 2025 à février 2026 » : des mois
+/// `AAAA-MM`, ceux qui se suivent en une etendue.
+fn de_mois(mois: &std::collections::BTreeSet<String>) -> String {
+    let mut etendues: Vec<(String, String)> = Vec::new();
+    for m in mois {
+        match etendues.last_mut() {
+            Some((_, fin)) if crate::stock::mois_apres(fin).is_ok_and(|s| &s == m) => *fin = m.clone(),
+            _ => etendues.push((m.clone(), m.clone())),
+        }
+    }
+    let dites: Vec<String> = etendues
+        .iter()
+        .map(|(a, b)| {
+            let (la, lb) = (crate::libelle_mois(a), crate::libelle_mois(b));
+            let texte = if a == b {
+                la
+            } else if a.get(..4) == b.get(..4) {
+                format!("{} à {}", la.trim_end_matches(&format!(" {}", a.get(..4).unwrap_or_default())), lb)
+            } else {
+                format!("{} à {}", la, lb)
+            };
+            de(&texte)
+        })
+        .collect();
+    enumerer(&dites)
+}
+
+/// « de mars 2025 », « d'avril 2025 » : la preposition, elidee devant une voyelle.
+fn de(texte: &str) -> String {
+    if texte.starts_with(['a', 'e', 'i', 'o', 'u', 'é', 'h']) {
+        format!("d'{}", texte)
+    } else {
+        format!("de {}", texte)
+    }
 }

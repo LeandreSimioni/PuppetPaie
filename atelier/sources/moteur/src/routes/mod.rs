@@ -232,7 +232,25 @@ fn reponse(rendu: Result<Value, Echec>) -> Resultat<Value> {
     }
 }
 
-/// UNE PHRASE PLUS LONGUE QUE SA PLACE (la `phrase` de la fiche) se lit entiere, et note un incident silencieux au
+/// LA PLUS LONGUE DES PHRASES QUE REND UNE ROUTE, en caracteres : la sienne, et celle de chaque ligne qu'elle porte (la
+/// `phrase` d'une carte, d'un carre, de la frise d'un engagement), a toute profondeur. Chacune s'affiche dans la place
+/// de la route (`Fiche::phrase`).
+pub fn plus_longue_phrase(v: &Value) -> usize {
+    match v {
+        Value::Object(o) => o
+            .iter()
+            .map(|(k, x)| match (k.as_str(), x) {
+                ("phrase", Value::String(p)) => p.chars().count(),
+                _ => plus_longue_phrase(x),
+            })
+            .max()
+            .unwrap_or(0),
+        Value::Array(a) => a.iter().map(plus_longue_phrase).max().unwrap_or(0),
+        _ => 0,
+    }
+}
+
+/// UNE PHRASE PLUS LONGUE QUE SA PLACE (la `phrase` de la fiche ; `plus_longue_phrase`) se lit entiere, et note un incident silencieux au
 /// developpeur : la route, la place, la longueur ; jamais la phrase, qui peut nommer un salarie. On la corrige a la cause,
 /// en l'ecrivant plus breve.
 fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
@@ -255,7 +273,10 @@ fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
         return;
     }
     let Some(place) = catalogue::catalogue().iter().find(|f| f.nom == route).map(|f| f.phrase).filter(|p| *p > 0) else { return };
-    let Some(longueur) = rendu.get("phrase").and_then(Value::as_str).map(|p| p.chars().count()).filter(|n| *n > place) else { return };
+    let longueur = plus_longue_phrase(rendu);
+    if longueur <= place {
+        return;
+    }
     let resume = format!("La phrase de la route {} passe sa place : {} caractères pour {}.", route, longueur, place);
     let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
         nature: crate::compagnie::incidents::LOGICIEL,

@@ -74,7 +74,7 @@ pub const ROUTES: &[Fiche] = &[
         refus: &[ILLISIBLE],
         acte: Acte::Lit,
         avance: false,
-        phrase: 0,
+        phrase: 160,
         ecran: ECRAN,
     },
     Fiche {
@@ -378,13 +378,13 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
     match nom {
         "etat-par-engagement" => {
             let n = crate::routes::nombre(etat.get("engagements").unwrap_or(&Value::Null));
-            // Chaque engagement, et ce que disent ses carres.
+            // Chaque engagement, ce que disent ses carres, et la ligne de sa frise.
             let phrases: Vec<String> = etat["engagements"]
                 .as_array()
                 .into_iter()
                 .flatten()
                 .map(|e| {
-                    let carres: Vec<String> = e["carres"].as_array().into_iter().flatten().filter_map(|c| c["phrase"].as_str().map(String::from)).collect();
+                    let carres: Vec<String> = e["carres"].as_array().into_iter().flatten().chain(std::iter::once(&e["versions"])).filter_map(|c| c["phrase"].as_str().map(String::from)).collect();
                     format!("{} ({}) : {}", crate::routes::mot(&e["nom"]), crate::routes::mot(&e["numero"]), carres.join(" ; "))
                 })
                 .collect();
