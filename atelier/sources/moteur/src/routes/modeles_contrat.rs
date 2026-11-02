@@ -95,8 +95,10 @@ pub const ROUTES: &[Fiche] = &[
 const CLAUSES: &str = "clauses_particulieres";
 
 /// Les champs qu'un modele d'avenant cite en plus de ceux du contrat (`documents::contrat::ecrire_avenant`).
-const CHAMPS_DE_L_AVENANT: [&str; 8] =
-    ["avenant.numero", "avenant.date_contrat", "avenant.effet", "avenant.date", "modification.numero", "modification.article", "modification.avant", "modification.apres"];
+const CHAMPS_DE_L_AVENANT: [&str; 10] = [
+    "avenant.numero", "avenant.date_contrat", "avenant.reference", "avenant.effet", "avenant.date", "modification.numero", "modification.article",
+    "modification.avant", "modification.apres", "modification.phrase",
+];
 
 /// Les champs du bloc ANNULE: d'un contrat qui en remplace un autre.
 const CHAMPS_DU_REMPLACEMENT: [&str; 2] = ["remplace.numero", "remplace.date"];

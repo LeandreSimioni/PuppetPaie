@@ -5,8 +5,9 @@
 //! `sorties/<mois>/Bulletins_<Mois>.pdf`, les certificats Conges Spectacles celles de `CertificatsCS_<Mois>.pdf` -- a
 //! chaque salarie les siennes, rien de recalcule ni de reimprime ; ce qui ne se lit pas refuse. Les contrats, eux, se
 //! recreent depuis la saisie (aucun compteur n'avance ; les numeros se lisent dans le fichier groupe archive ou dans la
-//! saisie quand ils y sont figes) et portent en pied la mention « Reedite ». Le contrat signe, l'AER, les documents de
-//! fin et les PDF de CoolPaie se prennent tels quels, page a page, dedoublonnes.
+//! saisie quand ils y sont figes) et portent en pied la mention « Reedite ». Le contrat signe (revenu de la signature, ou
+//! depose par la compagnie quand il a ete signe hors du logiciel), l'AER, les documents de fin et les PDF de CoolPaie se
+//! prennent tels quels, page a page, dedoublonnes.
 //!
 //! `dossier-envoyer` (`archives`) envoie ce dossier-ci, construit par `construire`.
 //!
@@ -262,6 +263,8 @@ pub(crate) struct Dossier {
     pub(crate) pages: Map<String, Value>,
     avertissements: Vec<String>,
     refus: Vec<String>,
+    /// Les PDF de contrats signes hors du logiciel deja pris (un contrat court sur plusieurs mois).
+    deposes_vus: HashSet<PathBuf>,
 }
 
 /// `dossier_json`.
@@ -766,6 +769,23 @@ fn mois_puppetpaie(
 
     // 4. Ce qui se prend tel quel : contrats signes, AER, documents de fin.
     for cle in &cles_des_siennes {
+        if categories.contains(CONTRATS_SIGNES) {
+            // Le contrat signe hors du logiciel (`engagement::signe_ailleurs`) : le PDF que la compagnie a depose dans son
+            // dossier (`signature::contrat_signe_depose`), une fois sur la periode.
+            for p in siennes.iter().map(|i| &paies[*i]).filter(|p| cle_de(p) == *cle) {
+                if !engagement::signe_ailleurs(&ctx.racine, &p.engagement).unwrap_or(false) {
+                    continue;
+                }
+                for f in crate::compagnie::signature::contrat_signe_depose(&ctx.racine, cle, &p.engagement.debut.iso()) {
+                    if !d.deposes_vus.insert(f.clone()) {
+                        continue;
+                    }
+                    for i in 0..pages_pdf(&f)? {
+                        pages.push(Page { categorie: CONTRATS_SIGNES, cle: cle.clone(), tri: format!("{}-01", mois), source: f.clone(), numero: i });
+                    }
+                }
+            }
+        }
         if categories.contains(CONTRATS_SIGNES) && envoi_dir.is_dir() {
             for nom in contrats_signes_de(&envoi_dir, cle) {
                 let f = envoi_dir.join(&nom);
@@ -889,7 +909,8 @@ fn assembler(pages: &[&Page]) -> R<Option<Vec<u8>>> {
             textes.insert(pg.source.as_path(), texte_pdf(&pg.source)?);
         }
         let texte = textes[pg.source.as_path()].get(pg.numero).cloned().ok_or_else(|| avec("IndexError", socle::fichiers::trop_courte(&format!("la page {} de {}", pg.numero + 1, pg.source.display()))))?;
-        if !vues.insert(texte) {
+        // Une page sans texte (un scan) ne se compare pas : elle se garde.
+        if !texte.trim().is_empty() && !vues.insert(texte) {
             continue;
         }
         retenues.push(pg);

@@ -197,12 +197,14 @@ impl Point {
         let s = &p["etats"]["signature"];
         // Le contrat se fait signer au mois de l'embauche ; un avenant, a chaque mois du contrat : tant qu'il n'est pas
         // revenu signe, chacun de ses mois le dit.
+        // Un contrat signe hors du logiciel ne se fait pas signer ici, ses avenants si.
         let ecrit = vrai(&p["contrat"]["ecrit"]);
-        let contrat = if ecrit && !embauche && vrai(&s["caduc"]) {
+        let ailleurs = vrai(&p["contrat"]["ailleurs"]);
+        let contrat = if (ecrit && !embauche || ailleurs) && vrai(&s["caduc"]) {
             "a_refaire"
-        } else if ecrit && !embauche && vrai(&s["avenant_attendu"]) {
+        } else if (ecrit && !embauche || ailleurs) && vrai(&s["avenant_attendu"]) {
             "en_attente"
-        } else if anterieur {
+        } else if anterieur || ailleurs {
             RIEN_A_SIGNER
         } else if !(embauche && ecrit) {
             "fait"
@@ -734,12 +736,15 @@ impl<'a> Moteur<'a> {
             ligne.insert("recalcul".into(), recalcul.map_or(Value::Null, Value::String));
             // REPRIS D'UN ANCIEN LOGICIEL : la carte le dit (`engagement::importe::vient_d_un_ancien_logiciel`).
             let repris = engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref().unwrap_or(""));
+            // SIGNE AILLEURS : son contrat ecrit ne se fait pas signer ici, ses avenants si (`engagement::signe_ailleurs`).
+            let ailleurs = engagement::signe_ailleurs(&self.ctx.racine, &p.engagement).map_err(plain)?;
             ligne.insert(
                 "contrat".into(),
                 // ECRIT : le contrat de cet engagement se fait signer ici (`engagement::contrat_a_signer`).
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last(),
-                       "repris": repris, "ecrit": engagement::contrat_a_signer(&self.ctx.racine, &p.engagement).map_err(plain)?,
+                       "repris": repris, "ecrit": engagement::contrat_a_signer(&self.ctx.racine, &p.engagement).map_err(plain)?, "ailleurs": ailleurs,
+                       "dossier": if ailleurs { crate::compagnie::signature::contrat_signe_dit(self.ctx, &cle, &p.engagement.debut.iso()) } else { Value::Null },
                        "anterieur": engagement::stock::commence_avant_le_logiciel(&self.ctx.racine, &p.engagement.debut.iso(), mois).map_err(plain)?}),
             );
             // CE QUE CE SALARIE RECOIT POUR CETTE PAIE : le bulletin s'il y a une paie, le certificat Conges Spectacles
@@ -798,6 +803,7 @@ impl<'a> Moteur<'a> {
                 g.renvoyes.contains(&k),
                 g.avenants.get(&k).unwrap_or(&nul),
                 avenant,
+                ailleurs,
             );
             // UN CDI EN COURS N'A PAS D'ETAT DE CONTRAT MENSUEL.
             if nat.mensuelle() && nat.duree_indeterminee && !premier_mois {
@@ -1666,9 +1672,12 @@ fn carres(p: &Value) -> Value {
     let dpae = json!({"cle": DPAE, "nom": "DPAE", "etat": etat, "phrase": phrase, "action": geste, "pieces": pieces});
 
     let cdi = &s["cdi_en_cours"];
-    let nom_contrat = if vrai(cdi) { format!("CDI, signé en {}", engagement::libelle_mois(&valeur_en_texte(&cdi["signe_en"]))) } else { "Contrat".to_string() };
+    let ailleurs = vrai(&p["contrat"]["ailleurs"]);
+    let dossier = &p["contrat"]["dossier"];
+    let nom_contrat = if vrai(cdi) && !ailleurs { format!("CDI, signé en {}", engagement::libelle_mois(&valeur_en_texte(&cdi["signe_en"]))) } else { "Contrat".to_string() };
     let (etat, phrase, geste) = match pt.contrat {
         "a_envoyer" => ("a_faire", "Contrat à envoyer".to_string(), action("faire_signer", "Demander la signature…".into())),
+        "a_refaire" if !vrai(&s["fait"]) => ("a_faire", majuscule_initiale(&valeur_en_texte(&s["pourquoi"])), action("faire_signer", "Demander la signature…".into())),
         "a_refaire" => ("a_faire", format!("Contrat parti {} : {}", le_jour(&s["fait"]), valeur_en_texte(&s["pourquoi"])), action("faire_signer", "Demander la signature…".into())),
         // Un avenant parti, imprime ou par courriel, se note signe d'un clic, comme le contrat ; la relance est dans la
         // boite des contrats en attente. `par` est celui du dernier depart, l'avenant attendu.
@@ -1687,13 +1696,14 @@ fn carres(p: &Value) -> Value {
             format!("Contrat {} {}", if s["par"].as_str() == Some("imprime") { "imprimé" } else { "envoyé" }, le_jour(&s["fait"])),
             noter_recu("Noter le contrat signé", Value::Null),
         ),
-        RIEN_A_SIGNER => ("fait", format!("Contrat commencé le {}, avant PuppetPaie : rien à signer ici", debut_dit), Value::Null),
+        RIEN_A_SIGNER if ailleurs && !vrai(&p["contrat"]["anterieur"]) => ("fait", "Contrat signé hors de PuppetPaie : rien à signer ici".to_string(), geste_du_dossier(dossier)),
+        RIEN_A_SIGNER => ("fait", format!("Contrat commencé le {}, avant PuppetPaie : rien à signer ici", debut_dit), geste_du_dossier(dossier)),
         _ if vrai(cdi) => ("fait", format!("CDI en cours depuis {}, sans terme : rien à envoyer", depuis), Value::Null),
         _ if !embauche => ("fait", format!("Contrat signé en {}", depuis), Value::Null),
         _ if !vrai(&p["contrat"]["ecrit"]) => ("fait", "Pas de contrat à faire signer ici".to_string(), Value::Null),
         _ => ("fait", format!("Contrat signé {}", le_jour(&s["recu"])), Value::Null),
     };
-    let contrat = json!({"cle": SIGNATURE, "nom": nom_contrat, "etat": etat, "phrase": phrase, "action": geste, "pieces": pieces_du_contrat(s)});
+    let contrat = json!({"cle": SIGNATURE, "nom": nom_contrat, "etat": etat, "phrase": phrase, "action": geste, "pieces": pieces_du_contrat(s, dossier)});
 
     let (etat, phrase, geste) = match pt.documents {
         "a_renvoyer" => ("a_faire", format!("Documents à renvoyer : {}", valeur_en_texte(&o["pourquoi"])), action("envoyer_documents", "Renvoyer les documents corrigés…".into())),
@@ -1707,10 +1717,11 @@ fn carres(p: &Value) -> Value {
         match pt.contrat { "a_envoyer" => "à envoyer", "a_refaire" => "à refaire signer", "en_attente" => "signature attendue", _ => "" },
         match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", _ => "" },
     ];
-    // LE LIEN DU DETAIL vers ce qui est parti : seulement quand une piece est passee par le logiciel.
+    // LE LIEN DU DETAIL vers ce qui est parti : seulement quand une piece est passee par le logiciel, ou vers le contrat
+    // signe hors du logiciel, que son dossier garde.
     let liens = [
         vrai(&d["fait"]).then_some("La DPAE partie"),
-        vrai(&s["fait"]).then_some("Le contrat parti"),
+        if ailleurs { Some("Le contrat signé") } else { vrai(&s["fait"]).then_some("Le contrat parti") },
         None,
     ];
     let mut tous = [dpae, contrat, documents];
@@ -1726,26 +1737,33 @@ fn carres(p: &Value) -> Value {
 /// CE QUE MONTRE LE DETAIL DU CONTRAT d'un engagement (les pieces parties, ouvertes depuis la ligne) : la phrase quand
 /// aucune piece n'est passee par le logiciel, l'encart d'un contrat qui n'est plus le bon, et les gestes, chacun son
 /// libelle, son geste et s'il est le principal. Un contrat parti ou recu se note signe (ou ne l'est plus) ; un contrat
-/// parti se modifie par un avenant, signe ou non, commence ou non ; un contrat jamais parti part a la signature.
-fn pieces_du_contrat(s: &Value) -> Value {
+/// parti se modifie par un avenant, signe ou non, commence ou non ; un contrat jamais parti part a la signature. Un
+/// contrat signe hors du logiciel (`dossier` : son dossier, `signature::contrat_signe_dit`) ne part pas : son PDF se range
+/// dans son dossier, et il se modifie par un avenant.
+fn pieces_du_contrat(s: &Value, dossier: &Value) -> Value {
     let (fait, recu, caduc) = (vrai(&s["fait"]), vrai(&s["recu"]), vrai(&s["caduc"]));
+    let ailleurs = vrai(dossier);
     // Un contrat ou un avenant parti (`fait`, imprime ou par courriel) est une piece : le detail la nomme, il n'a pas de
     // phrase « sans piece ».
     let vide = match (fait, recu) {
+        _ if ailleurs => dossier["phrase"].clone(),
         (true, _) => Value::Null,
         (false, true) => json!("Le contrat a été noté signé à la main : aucun fichier n'est passé par le logiciel."),
         (false, false) => json!("Aucun contrat n'est parti à la signature pour cet engagement."),
     };
     let encart = caduc.then(|| {
-        let pourquoi = valeur_en_texte(&s["pourquoi"]);
-        let mut c = pourquoi.chars();
-        let pourquoi = match c.next() {
-            Some(p) => format!("{}{}.", p.to_uppercase(), c.as_str()),
-            None => "L'engagement a changé depuis qu'il est parti.".to_string(),
-        };
+        let pourquoi = majuscule_initiale(&valeur_en_texte(&s["pourquoi"]));
+        let pourquoi = if pourquoi.is_empty() { "L'engagement a changé depuis qu'il est parti.".to_string() } else { format!("{}.", pourquoi) };
         json!({"titre": "Ce contrat n'est plus le bon", "texte": format!("{} Il se modifie par un avenant, que le salarié signe à son tour.", pourquoi)})
     });
     let mut gestes = Vec::new();
+    if ailleurs {
+        gestes.push(json!({"libelle": "Ranger le contrat signé…", "action": geste_du_dossier(dossier), "principal": !caduc}));
+        if caduc || fait {
+            gestes.push(json!({"libelle": "Avenant…", "titre": "Modifier le contrat signé hors de PuppetPaie : ce qui change, en clair", "action": {"geste": "avenant"}, "principal": caduc}));
+        }
+        return json!({"vide": vide, "encart": encart, "gestes": gestes});
+    }
     if fait || recu {
         let libelle = if recu { "Retirer la mention « signé »" } else { "Noter le contrat signé reçu" };
         gestes.push(json!({"libelle": libelle, "action": {"geste": "contrat_recu", "recu": !recu}, "principal": false}));
@@ -1757,6 +1775,21 @@ fn pieces_du_contrat(s: &Value) -> Value {
         gestes.push(json!({"libelle": "Envoyer à la signature…", "action": {"geste": "faire_signer"}, "principal": true}));
     }
     json!({"vide": vide, "encart": encart, "gestes": gestes})
+}
+
+/// Le geste qui ouvre le dossier d'un contrat signe hors du logiciel (`signature::contrat_signe_dit`) : la fenetre l'ouvre
+/// et le cree ; la phrase dit ce qu'on y depose. Rien pour un autre contrat.
+fn geste_du_dossier(dossier: &Value) -> Value {
+    if !vrai(dossier) {
+        return Value::Null;
+    }
+    json!({"geste": "dossier", "libelle": "Ranger le contrat signé…", "chemin": dossier["chemin"], "phrase": dossier["phrase"]})
+}
+
+/// « Un terme… » d'« un terme… ».
+fn majuscule_initiale(t: &str) -> String {
+    let mut c = t.chars();
+    c.next().map(|p| p.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default()
 }
 
 /// CE QUE LA BOITE DES DPAE DIT D'UN ENGAGEMENT : s'il se coche (une embauche du mois), s'il est coche d'avance (pas de
@@ -1879,6 +1912,9 @@ pub(crate) fn est_une_dsn_mensuelle(nom: &str) -> bool {
 /// La phrase de la pastille Contrat d'un engagement qui a change depuis la version sur laquelle son contrat est parti.
 pub(crate) const CONTRAT_A_REFAIRE: &str = "l'engagement a changé depuis l'envoi du contrat : un avenant est à faire signer";
 
+/// La meme, pour un contrat signe hors du logiciel (`engagement::signe_ailleurs`) dont un terme a change.
+pub(crate) const CONTRAT_AILLEURS_A_MODIFIER: &str = "un terme du contrat signé hors de PuppetPaie a changé : un avenant est à faire signer";
+
 /// La pastille Contrat d'un engagement.
 ///
 /// `caduc` : le contrat parti -- signe ou non -- ne dit plus ce que dit l'engagement : ses clauses ont change depuis la
@@ -1887,16 +1923,22 @@ pub(crate) const CONTRAT_A_REFAIRE: &str = "l'engagement a changé depuis l'envo
 #[allow(clippy::too_many_arguments)]
 pub fn etat_signature(
     fait: &Value, par: &Value, recu: &Value, recu_par: &Value, renvoye: bool, avenants: &Value,
-    a_refaire_signer: bool,
+    a_refaire_signer: bool, ailleurs: bool,
 ) -> Value {
     let (recu, recu_par) = if renvoye { (&Value::Null, &Value::Null) } else { (recu, recu_par) };
     let nul = Value::Null;
-    let caduc = vrai(fait) && a_refaire_signer;
+    // Un contrat signe hors du logiciel (`ailleurs`) vaut un contrat parti : un terme qui change s'y dit par un avenant.
+    let caduc = (vrai(fait) || ailleurs) && a_refaire_signer;
     // L'AVENANT : le dernier parti. Pas encore revenu, il laisse la pastille orange.
     let dernier = avenants.as_array().and_then(|a| a.last()).cloned().unwrap_or(Value::Null);
     let attendu = vrai(&dernier) && !vrai(dernier.get("signe").unwrap_or(&nul));
+    let pourquoi = match (caduc, ailleurs) {
+        (false, _) => "",
+        (true, false) => CONTRAT_A_REFAIRE,
+        (true, true) => CONTRAT_AILLEURS_A_MODIFIER,
+    };
     json!({"fait": fait, "par": if vrai(fait) { par } else { &nul }, "recu": recu, "recu_par": recu_par,
-           "caduc": caduc, "pourquoi": if caduc { CONTRAT_A_REFAIRE } else { "" },
+           "caduc": caduc, "pourquoi": pourquoi, "ailleurs": ailleurs,
            "avenant": dernier,
            "avenant_attendu": attendu})
 }

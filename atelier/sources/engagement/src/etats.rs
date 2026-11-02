@@ -337,6 +337,13 @@ fn cle_du_salarie(ctx: &Contexte, o: &Objet) -> Option<String> {
     crate::cle_de_l_engagement(ctx, &o.brut)
 }
 
+/// Le contrat de l'engagement `o` a-t-il ete signe hors du logiciel (`crate::signe_ailleurs_de`) ? Faux s'il ne se lit pas.
+pub fn signe_ailleurs(ctx: &Contexte, o: &Objet) -> bool {
+    let texte = |k: &str| o.brut.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
+    let Ok(nat) = droit::natures::nature(o.brut.get("nature").and_then(Value::as_str)) else { return false };
+    crate::signe_ailleurs_de(&ctx.racine, &nat, &texte("salarie"), &crate::debut_brut(&o.brut), &texte("numero"), &o.fichier).unwrap_or(false)
+}
+
 /// Qui est l'engagement `o`, pour une phrase de l'ecran : « MARTIN Lou (contrat du 20/11/2026) » (`crate::salarie_nomme`).
 pub fn qui_de(ctx: &Contexte, o: &Objet) -> String {
     let debut = crate::debut_brut(&o.brut);
@@ -1503,7 +1510,7 @@ fn conges_avant_a_jour(ctx: &Contexte, o: &Objet, ancienne: &Value, mois: &str, 
 /// Ce que dit le contrat, dans la saisie d'un engagement : ses parties, son objet, ses dates, sa remuneration, sa nature
 /// et son emploi. INFERENCE : la liste suit les marqueurs du modele de contrat (`donnees/modeles/`) ; les lignes d'un
 /// contrat paye au mois se composent chaque mois et ne sont pas des clauses.
-const CLAUSES: [&str; 18] = [
+pub(crate) const CLAUSES: [&str; 18] = [
     "salarie", "spectacle", "debut", "fin", "numero", "lignes", "lieu", "nature", "motif_recours", "quotite_contrat",
     "quotite_reference", "modalite_temps_travail", "salaire_mensuel", "emploi", "metier", "cadre", "statut", "planning",
 ];
@@ -1524,8 +1531,9 @@ fn clauses(saisie: &Value, mensuel: bool) -> Value {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ARefaire {
     /// Le contrat (ou son dernier avenant) est parti sur la version `depuis`, et ses clauses ont change : un avenant a
-    /// faire signer.
-    Avenant { depuis: u64 },
+    /// faire signer. `None` : le contrat a ete signe hors du logiciel (`crate::signe_ailleurs`), aucun avenant n'est
+    /// parti, et un de ses termes a change depuis le premier mois (`stock::DATES`).
+    Avenant { depuis: Option<u64> },
     /// La DPAE est partie sur la version `depuis` avec la date d'embauche `debut_declare`, qui a change.
     Dpae { depuis: u64, debut_declare: String },
     /// Les documents de `mois` sont partis sur la version `depuis`, et sa paie a change : un bulletin rectificatif.
@@ -1555,6 +1563,15 @@ pub fn a_refaire(ctx: &Contexte, v: &Valide, departs: &Departs) -> Vec<ARefaire>
     }
     let mensuel = v.objet.mensuel();
     let mut out = Vec::new();
+    // UN CONTRAT SIGNE AILLEURS, dont aucun avenant n'est parti : ce qu'il dit est ce que dit le premier mois ; un terme
+    // date apres lui (`stock::DATES`) est un changement que le salarie n'a pas signe.
+    let contrat_parti = derniers.keys().any(|(sorte, _)| *sorte == 0);
+    if !contrat_parti && signe_ailleurs(ctx, &v.objet) {
+        let presente = actuelle.get("saisie").cloned().unwrap_or(Value::Null);
+        if clauses(&presente, mensuel)["termes"].as_object().is_some_and(|t| !t.is_empty()) {
+            out.push(ARefaire::Avenant { depuis: None });
+        }
+    }
     for d in derniers.into_values() {
         if Some(d.version) == present {
             continue;
@@ -1566,7 +1583,7 @@ pub fn a_refaire(ctx: &Contexte, v: &Valide, departs: &Departs) -> Vec<ARefaire>
             Envoi::Contrat => {
                 let (partie, presente) = (saisie(passee), saisie(&actuelle));
                 if clauses(&partie, mensuel) != clauses(&presente, mensuel) && !seule_la_rupture(&partie, &presente) {
-                    out.push(ARefaire::Avenant { depuis: d.version });
+                    out.push(ARefaire::Avenant { depuis: Some(d.version) });
                 }
             }
             Envoi::Dpae => {

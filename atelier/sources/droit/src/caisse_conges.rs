@@ -98,6 +98,25 @@ pub fn intermittent(nat: &Nature, sal: &Value) -> Resultat<bool> {
     }
 }
 
+/// Le technicien d'un CDD de droit commun que la liste de l'annexe 8 de la convention de l'employeur ne nomme pas
+/// (`intermittent` : non, par la seule annexe 8) : son metier (le libelle du catalogue) et l'IDCC. Sans IDCC sur la
+/// fiche, rien : la convention ne dit alors rien.
+pub fn hors_de_l_annexe8(nat: &Nature, sal: &Value) -> Resultat<Option<(String, String)>> {
+    if nat.duree_indeterminee || !nat.mensuelle() {
+        return Ok(None);
+    }
+    let code = sal.get("code_emploi_ft").filter(|c| vrai(c)).and_then(Value::as_str).unwrap_or("").trim().to_string();
+    let Some(m) = emplois::metier(&code)?.filter(|m| m.get("annexe").and_then(|a| a.as_i64().or_else(|| a.as_f64().map(|x| x as i64))) == Some(8)) else {
+        return Ok(None);
+    };
+    let idcc = sal.get(IDCC_DE_L_EMPLOYEUR).filter(|c| vrai(c)).map(socle::date::en_texte).unwrap_or_default();
+    if idcc.trim().is_empty() || emplois::nomme_par_l_annexe8(&m, &idcc) {
+        return Ok(None);
+    }
+    let libelle = m.get("libelle").filter(|l| vrai(l)).map(socle::date::en_texte).unwrap_or(code);
+    Ok(Some((libelle, idcc.trim().to_string())))
+}
+
 /// L'employeur declare-t-il ce contrat a la caisse des Conges Spectacles ? `sal` est la fiche telle que la paie la lit
 /// (`emplois::emploi_de` a la date du contrat).
 /// - un CDI : non ;

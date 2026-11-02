@@ -9,6 +9,9 @@
 # le titre « Modification de l'article … » ; un paragraphe qui porte
 # {{modification.avant}} ou {{modification.apres}} se répète pour chaque
 # paragraphe cité. Les articles ARTICLE: suivent, numérotés à la suite.
+# Un contrat signé hors du logiciel, dont le logiciel ne connaît pas le
+# texte, ne voit que le paragraphe qui porte {{modification.phrase}} : ce
+# qui change en clair, sans citer d'article.
 #
 # Formulations d'usage, pas un texte de loi : aucune source officielle ne
 # fixe la forme d'un avenant. L'écrit est ce qui prouve
@@ -17,7 +20,7 @@
 
 TITRE: Avenant n° {{avenant.numero}} au contrat d'engagement
 
-SOUSTITRE: Contrat d'engagement à durée déterminée d'usage n° {{contrat.numero}} du {{avenant.date_contrat}}
+SOUSTITRE: Contrat d'engagement à durée déterminée d'usage {{avenant.reference}}
 
 PREAMBULE:
 **Entre les soussignés,**
@@ -28,7 +31,7 @@ L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employe
 
 L'artiste : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à {{salarie.lieu_naissance}}, ci-après dénommé(e) **l'artiste**,
 
-Les parties sont liées par le contrat d'engagement n° {{contrat.numero}} du {{avenant.date_contrat}}, conclu pour le spectacle **{{spectacle.titre}}**. Elles conviennent de le modifier comme suit.
+Les parties sont liées par le contrat d'engagement {{avenant.reference}}, conclu pour le spectacle **{{spectacle.titre}}**. Elles conviennent de le modifier comme suit.
 
 MODIFICATION:
 L'article {{modification.numero}} « {{modification.article}} » du contrat stipulait :
@@ -39,8 +42,10 @@ Il est désormais rédigé ainsi :
 
 « {{modification.apres}} »
 
+{{modification.phrase}}
+
 ARTICLE: Autres clauses
-Les autres clauses du contrat n° {{contrat.numero}} demeurent inchangées, notamment le motif de recours au contrat à durée déterminée d'usage et la convention collective applicable — {{employeur.convention}}, IDCC {{employeur.idcc}}.
+Les autres clauses du contrat {{avenant.reference}} demeurent inchangées, notamment le motif de recours au contrat à durée déterminée d'usage et la convention collective applicable — {{employeur.convention}}, IDCC {{employeur.idcc}}.
 
 ARTICLE: Date d'effet
 Le présent avenant prend effet le **{{avenant.effet}}**.
@@ -56,7 +61,10 @@ Fait en double exemplaire à {{employeur.commune}}, le {{avenant.date}}.
 #
 #   avenant.numero          1, 2… par contrat
 #   avenant.date_contrat    le jour où le contrat modifié a été signé
-#                           (à défaut, envoyé)
+#                           (à défaut, envoyé ; signé hors du logiciel :
+#                           son premier jour)
+#   avenant.reference       « n° FA1.26.13 du 12/10/2026 », ou, signé hors
+#                           du logiciel, « commencé le 01/03/2022 »
 #   avenant.effet           la date d'effet choisie à l'envoi
 #   avenant.date            le jour où l'avenant est établi
 #
@@ -65,4 +73,6 @@ Fait en double exemplaire à {{employeur.commune}}, le {{avenant.date}}.
 #   modification.article    son titre
 #   modification.avant      un paragraphe du contrat signé, tel qu'il s'y lit
 #   modification.apres      le même paragraphe, à jour
+#   modification.phrase     ce qui change en clair, pour un contrat signé
+#                           hors du logiciel (seul ce paragraphe s'écrit)
 # ---------------------------------------------------------------------------

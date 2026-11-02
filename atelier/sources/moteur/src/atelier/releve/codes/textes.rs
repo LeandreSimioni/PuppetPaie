@@ -160,6 +160,11 @@ pub static TEXTES: &[Texte] = &[
             // l'avenant) ; `documents::contrat` en tire les mentions obligatoires d'un CDI et de son avenant.
             // L6321-1 : la formation que l'employeur assure, a laquelle le contrat renvoie (R1221-34, 8°).
             Domaine { cle: "information_ecrite", titre: "L'information ecrite du salarie sur sa relation de travail", numeros: &["L1221-5-1", "R1221-34", "R1221-35", "R1221-38", "R1221-39", "R1221-40", "L6321-1"] },
+            // LA MODIFICATION DU CONTRAT : L1221-1 le soumet au droit commun (il ne se modifie que de l'accord des deux
+            // parties : l'avenant que le salarie signe, `engagement::signe_ailleurs`, `documents::avenant`) ; L1222-6 dit
+            // la proposition d'une modification pour motif economique (lettre recommandee, un mois pour refuser), que le
+            // moteur ne porte pas.
+            Domaine { cle: "modification_du_contrat", titre: "La modification du contrat de travail", numeros: &["L1221-1", "L1222-6"] },
             // LA PERIODE D'ESSAI ET SA DUREE MAXIMALE : celle d'un CDD (L1242-10 : un jour par semaine, deux semaines ou un
             // mois au plus), celle d'un CDI (L1221-19 par categorie, L1221-21 son renouvellement, L1221-22 ce que la
             // convention peut y changer, L1221-23 son ecrit) ; `droit::essai` refuse au-dela.

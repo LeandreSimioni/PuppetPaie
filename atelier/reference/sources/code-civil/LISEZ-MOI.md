@@ -25,3 +25,13 @@ articles se relèvent sur Légifrance, depuis le poste de Léandre (ticket #307 
   inaptitude », L. 1243-4) et 083 ; la phrase « rupture » du contrat d'usage.
 - `moteur/src/routes/ouverture.rs` (« LES DATES ET LA TRANSACTION SELON LE MOTIF ») : la date de notification que la norme
   exige pour le motif 083.
+
+## `legifrance-code-civil-art1193-force-obligatoire-20261102.md` — article 1193
+
+Version issue de l'ordonnance n° 2016-131 du 10/02/2016, relevée le 02/11/2026 par Léandre sur Légifrance et recopiée
+(transcription, pas de PDF). « Les contrats ne peuvent être modifiés ou révoqués que du consentement mutuel des parties, ou
+pour les causes que la loi autorise. »
+
+**Où le moteur s'en sert** : avec L1221-1 du code du travail (le contrat de travail est soumis au droit commun,
+`../code-du-travail/LISEZ-MOI.md`), il fonde l'avenant qu'un changement d'un terme du contrat (salaire, durée du travail,
+emploi) fait signer au salarié : `engagement::signe_ailleurs`, `documents::avenant`, et les contrats faits dans le logiciel.

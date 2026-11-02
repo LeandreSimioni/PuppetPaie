@@ -354,6 +354,32 @@ vérifié avant d'être posé) ; `moteur/src/routes/mois.rs` (`champs_du_contrat
 L1242-12 1°, et la répartition d'un temps partiel, L3123-6, que l'engagement appelle). Tests :
 `documents/tests/documents/contrat_ecrit.rs`.
 
+## La modification du contrat : L1221-1, L1222-6, et l'avenant d'un contrat signé hors du logiciel (relevé du 02/11/2026, #338)
+
+Le domaine `modification_du_contrat` (L1221-1, L1222-6) ajouté à `moteur/src/atelier/releve/codes/textes.rs`, relevé le
+02/11/2026 (`moteur releve-codes moissonner`, aucune livraison nouvelle : les articles étaient dans l'entrepôt ; puis
+`rapport`) : `articles-20261102.md`, l. 972-980 ; XML : `xml/L1221-1.xml`, `xml/L1222-6.xml`.
+
+- **L1221-1** (`LEGIARTI000006900839`) : « Le contrat de travail est soumis aux règles du droit commun. » Le droit commun
+  (code civil, article 1193 : « Les contrats ne peuvent être modifiés ou révoqués que du consentement mutuel des parties », déposé
+  dans `../code-civil/legifrance-code-civil-art1193-force-obligatoire-20261102.md`, relevé par Léandre le 02/11/2026) : un
+  terme du contrat (salaire, durée du travail, emploi) qui change se fait signer
+  par le salarié, d'où l'avenant envoyé à la signature.
+- **L1222-6** (`LEGIARTI000028724382`) : la modification d'un élément essentiel pour motif économique se propose par lettre
+  recommandée, et le salarié a un mois pour refuser. **Le moteur ne le porte pas** : il ne connaît pas le motif d'un
+  changement.
+- **R1221-40** (plus haut) fonde l'écrit : ce qui change se dit « dans un document indiquant ces modifications », au plus
+  tard à sa prise d'effet. Il ne demande pas de citer le texte d'origine : pour un contrat signé hors du logiciel, dont le
+  logiciel ne connaît pas le texte, l'avenant dit en clair chaque terme qui change, l'ancienne valeur, la nouvelle et à
+  partir de quand.
+
+**Où le moteur s'en sert** : `engagement::signe_ailleurs` (`engagement/src/lib.rs`) ; `engagement::etats::a_refaire`
+(l'avenant à faire d'un contrat signé ailleurs) ; `engagement::versions::termes_changes` ;
+`documents::avenant::changements_en_clair` ; `documents::contrat::ecrire_avenant` (`avenant.reference`,
+`modification.phrase`) ; les modèles `avenant-permanent.modele` et `avenant-cddu.modele` (le paragraphe
+`{{modification.phrase}}`) ; `moteur/src/routes/contrats.rs` (`avenant-apercu`, `signature-apercu`) ;
+`moteur/src/compagnie/signature.rs` (le dossier du contrat signé, joint à l'envoi de l'avenant).
+
 ## La période d'essai et sa durée maximale : L1242-10 (CDD), L1221-19 à L1221-24 (CDI) (relevé du 29/10/2026)
 
 Le domaine `periode_essai` ajouté à `moteur/src/atelier/releve/codes/textes.rs`, relevé le 29/10/2026 (`moteur

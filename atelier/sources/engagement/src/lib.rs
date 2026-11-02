@@ -1523,16 +1523,29 @@ fn numero_dit(eng: &Engagement) -> String {
 }
 
 /// LE CONTRAT DE CET ENGAGEMENT SE FAIT-IL SIGNER PAR LE LOGICIEL ? Oui quand sa nature a un contrat ecrit (`contrat_ecrit`
-/// de `contrats-base.json` : le CDD « est etabli par ecrit », L1242-12 ; tout salarie recoit l'ecrit de L1221-5-1). Un
-/// contrat repris d'un ancien logiciel -- celui d'un permanent, ou le contrat d'usage qui continue ici un contrat importe --
-/// a ete signe la-bas (`importe::vient_d_un_ancien_logiciel`) : il ne se refait pas signer ici. Un contrat commence avant
-/// le logiciel (`stock::commence_avant_le_logiciel`) non plus : il a ete signe avant.
+/// de `contrats-base.json` : le CDD « est etabli par ecrit », L1242-12 ; tout salarie recoit l'ecrit de L1221-5-1) et
+/// qu'il n'a pas ete signe ailleurs (`signe_ailleurs`).
 pub fn contrat_a_signer(racine: &Path, eng: &Engagement) -> Resultat<bool> {
-    let nat = eng.nat()?;
-    if nat.modele_contrat().is_none() || stock::commence_avant_le_logiciel(racine, &eng.debut.iso(), &eng.mois)? {
+    Ok(eng.nat()?.modele_contrat().is_some() && !signe_ailleurs(racine, eng)?)
+}
+
+/// LE CONTRAT ECRIT DE CET ENGAGEMENT A-T-IL ETE SIGNE HORS DU LOGICIEL ? Un contrat repris d'un ancien logiciel -- celui
+/// d'un permanent, ou le contrat d'usage qui continue ici un contrat importe -- a ete signe la-bas
+/// (`importe::vient_d_un_ancien_logiciel`) ; un contrat commence avant le logiciel (`stock::commence_avant_le_logiciel`),
+/// avant. Il ne se refait pas signer ici ; un terme qui change s'y dit par un avenant (code du travail R. 1221-40 : « un
+/// document indiquant ces modifications », `atelier/reference/sources/code-du-travail/xml/R1221-40.xml`), qui ne connait
+/// pas son texte et dit en clair ce qui change (`documents::avenant::changements_en_clair`).
+pub fn signe_ailleurs(racine: &Path, eng: &Engagement) -> Resultat<bool> {
+    signe_ailleurs_de(racine, &*eng.nat()?, &eng.salarie, &eng.debut.iso(), eng.numero.as_deref().unwrap_or(""), &eng.mois)
+}
+
+/// `signe_ailleurs`, de ce que l'engagement dit : sa nature, son salarie, son debut, son numero, et le mois d'ou on le
+/// regarde.
+pub fn signe_ailleurs_de(racine: &Path, nat: &Nature, salarie: &str, debut: &str, numero: &str, mois: &str) -> Resultat<bool> {
+    if nat.modele_contrat().is_none() {
         return Ok(false);
     }
-    Ok(!importe::vient_d_un_ancien_logiciel(racine, &eng.salarie, &eng.debut.iso(), eng.numero.as_deref().unwrap_or("")))
+    Ok(stock::commence_avant_le_logiciel(racine, debut, mois)? || importe::vient_d_un_ancien_logiciel(racine, salarie, debut, numero))
 }
 
 /// Un contrat permanent court d'un bout a l'autre, son numero est celui de l'engagement, et le dernier mois le dit.
@@ -1710,6 +1723,18 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> 
                 libelle
             );
             p.ecrire().avertissements.push(Avis { info: false, texte: msg });
+        }
+        // Un technicien en CDD que la liste de l'annexe 8 de la convention ne nomme pas : on dit ce qui en suit.
+        let nat = p.engagement.nat()?;
+        if let Some((metier, idcc)) = droit::caisse_conges::hors_de_l_annexe8(&nat, &p.salarie)? {
+            let texte = format!(
+                "{} : {} n'est pas sur la liste de l'annexe 8 de la convention {} ; ce CDD ne relève pas de \
+                 l'intermittence (ni Congés Spectacles ni AER spectacle) ; ses congés sont payés par la compagnie.",
+                qui_de(&p.salarie)?,
+                metier,
+                idcc
+            );
+            p.ecrire().avertissements.push(Avis { info: true, texte });
         }
         // Une journee au-dela de la duree quotidienne maximale : on le dit, l'employeur en repond.
         if let Some(texte) = duree::au_dela_du_maximum(ctx, e, &qui_de(&p.salarie)?)? {

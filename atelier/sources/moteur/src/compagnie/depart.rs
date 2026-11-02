@@ -1335,10 +1335,17 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, 
     let ecrire = || -> R<()> {
         if texte(premier, "acte") == "avenant" {
             let numero_av = premier.get("avenant").and_then(Value::as_i64).ok_or_else(|| valeur(format!("journal : {} sans numero d'avenant", nom)))?;
-            let parti = envois::etats::contrat_parti(&lignes[..rang], &texte(premier, "salarie"), &texte(premier, "numero"))?
-                .ok_or_else(|| valeur(format!("journal : {} modifie un contrat qui n'est pas parti avant lui", nom)))?;
+            // Le contrat qu'il modifie : parti avant lui, ou signe hors du logiciel (`ailleurs`), date de son premier jour.
+            let ailleurs = vrai(&premier["ailleurs"]);
+            let date_contrat = if ailleurs {
+                texte(premier, "debut")
+            } else {
+                envois::etats::contrat_parti(&lignes[..rang], &texte(premier, "salarie"), &texte(premier, "numero"))?
+                    .ok_or_else(|| valeur(format!("journal : {} modifie un contrat qui n'est pas parti avant lui", nom)))?
+                    .date()
+            };
             let modifs: Vec<Value> = premier["modifications"].as_array().cloned().unwrap_or_default();
-            return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, vers, &modifs, numero_av, &jj(&parti.date())?, &jj(&texte(premier, "effet"))?, &jour.jj_mm_aaaa(), mention)
+            return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, vers, &modifs, numero_av, &jj(&date_contrat)?, &jj(&texte(premier, "effet"))?, &jour.jj_mm_aaaa(), ailleurs, mention)
                 .map_err(Echec::from);
         }
         let mut remplacements: Vec<((String, String, String), (String, String))> = Vec::new();

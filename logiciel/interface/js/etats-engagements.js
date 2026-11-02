@@ -120,6 +120,7 @@ async function boitePieces(ligne, acte) {
       if (a.geste === "contrat_recu") noterSigne(mois, ligne, a.recu);
       else if (a.geste === "avenant") boiteAvenant(mois, ligne.salarie, ligne.debut, ligne.numero);
       else if (a.geste === "faire_signer") boiteSignature(mois, [ligne.salarie]);
+      else if (a.geste === "dossier") ouvrirEtDire(a.chemin, a.phrase, true);
     };
   });
   document.querySelectorAll(".p-ouvrir").forEach((b) => {

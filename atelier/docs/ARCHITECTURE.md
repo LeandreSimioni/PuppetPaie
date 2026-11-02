@@ -168,6 +168,15 @@ version passée ; `engagement::paies` seul lit et écrit ce fichier, dans le mê
   que par sa rupture (le motif, la fin et le préavis qu'il appelle, les jours d'après la fin retirés) ne le rend pas à
   refaire signer (`routes::contrats::seule_la_rupture`, lu par `routes::etapes::a_refaire_du_mois`) ; ce qui change en
   même temps (un taux) en fait un avenant.
+- **Un contrat signé hors du logiciel a ses avenants** (`engagement::signe_ailleurs` : commencé avant le logiciel, ou
+  repris d'un ancien logiciel ; code du travail R. 1221-40). Il ne se fait pas signer ici ; ce qu'il disait est ce que dit
+  le premier mois de l'engagement, puis la version de son dernier avenant parti. Un terme daté depuis (`termes` de la
+  saisie) en fait un avenant à signer (`etats::a_refaire`, `ARefaire::Avenant { depuis: None }`), qui ne cite aucun
+  article : chaque terme qui change se dit en clair, l'ancienne valeur, la nouvelle, à partir de quand
+  (`versions::termes_changes`, `documents::avenant::changements_en_clair`, le paragraphe `{{modification.phrase}}` du
+  modèle d'avenant, `{{avenant.reference}}` : « commencé le 01/03/2022 »). Le PDF du contrat signé, déposé par la
+  compagnie dans `salaries/<clé>/contrat-du-<début>/` (le chemin que rendent `avenant-apercu` et
+  `etat-par-engagement`, la fenêtre l'ouvre), part joint à chaque avenant envoyé ; le logiciel ne le lit pas.
 - **Le recalcul de lui-même** (`etats::rafraichir`, à chaque lecture d'un mois, `etats::du_mois`) : une paie validée
   dont l'empreinte ne tient plus et dont les documents ne sont pas partis se recalcule, d'un seul calcul du mois. Si un
   chiffre change, elle dit pourquoi : « taux de PAS reçu », « règle du JJ/MM/AAAA », « calcul corrigé » (le code ou ce
