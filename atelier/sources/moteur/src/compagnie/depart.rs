@@ -687,7 +687,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             declarations::dsn::ecrire(texte, f).map_err(|m| erreur("OSError", m))?;
         }
         // La paie que chaque DSN declare : l'ecran dira si elle change avant l'envoi.
-        let empreinte = m.empreinte_saisie(mois)?;
+        let empreinte = m.empreinte_saisie_avec(mois, || Ok(Moteur::portees(&lu.regs)))?;
         for (f, _) in &a_ecrire {
             noter_piece_ecrite(&ctx.racine, &cle_de_piece(f), Some(json!(empreinte)))?;
         }
@@ -955,38 +955,52 @@ fn imprimer(ctx: &Contexte, mois: &str, ent: &Value, imp: &Impression, cles: &[S
     let a_ecrire = |f: &Path| !(absents && f.exists());
     let paies = imp.paies;
     let numerotee = |i: usize| imp.numeros.get(i).is_some_and(Option::is_some);
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+
+    // UN JEU DE DOCUMENTS PAR SALARIE QUI LES RECOIT, et l'archive du mois : tous ses documents numerotes.
+    let mut destinataires: Vec<String> = Vec::new();
+    for p in paies.iter().filter(|p| cles.contains(&cle_de(p))) {
+        if !destinataires.contains(&cle_de(p)) {
+            destinataires.push(cle_de(p));
+        }
+    }
+    let siennes = |cle: &str| -> Vec<usize> { (0..paies.len()).filter(|i| cle_de(&paies[*i]) == cle && numerotee(*i)).collect() };
+    let piece_de = |cle: &str| dossier.join(envois::envoi::nom_fichier("Bulletin", cle, &etiq));
+    let archivees: Vec<usize> = (0..paies.len()).filter(|i| numerotee(*i)).collect();
+    let archive = sortie.join(format!("Bulletins_{}.pdf", etiq));
+    let archive_a_ecrire = !archivees.is_empty() && a_ecrire(&archive);
+
+    // Ce que les bulletins cumulent se lit une fois, pour tous les salaries qu'ils impriment.
+    let mut imprimees: Vec<usize> = destinataires.iter().filter(|c| a_ecrire(&piece_de(c))).flat_map(|c| siennes(c)).collect();
+    if archive_a_ecrire {
+        imprimees.extend(&archivees);
+    }
+    imprimees.sort_unstable();
+    imprimees.dedup();
+    let leurs_paies: Vec<Paie> = imprimees.iter().map(|i| paies[*i].clone()).collect();
+    let passe = documents::bulletin::passe_des_bulletins(ctx, &leurs_paies, mois, &departs).map_err(valeur)?;
     let bulletins = |rangs: &[usize], toutes: Option<&[Paie]>| -> R<Value> {
         let imprimees: Vec<Paie> = rangs.iter().map(|i| paies[*i].clone()).collect();
         let rectifs: HashMap<usize, Value> = rangs.iter().enumerate().filter_map(|(k, i)| imp.rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
         let leurs_numeros: Vec<Option<String>> = rangs.iter().map(|i| imp.numeros[*i].clone()).collect();
-        documents::bulletin::jeux_et_description(ctx, &imprimees, &leurs_numeros, ent, mois, toutes, false, &rectifs, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(valeur)
+        documents::bulletin::jeux_et_description(ctx, &imprimees, &leurs_numeros, ent, mois, toutes, false, &rectifs, &departs, &passe).map_err(valeur)
     };
 
-    // UN JEU DE DOCUMENTS PAR SALARIE QUI LES RECOIT.
-    let mut vus: Vec<String> = Vec::new();
-    for p in paies.iter().filter(|p| cles.contains(&cle_de(p))) {
-        let cle = cle_de(p);
-        if vus.contains(&cle) {
-            continue;
-        }
-        vus.push(cle.clone());
-        let siennes: Vec<usize> = (0..paies.len()).filter(|i| cle_de(&paies[*i]) == cle && numerotee(*i)).collect();
-        let piece = dossier.join(envois::envoi::nom_fichier("Bulletin", &cle, &etiq));
+    for cle in &destinataires {
+        let siennes = siennes(cle);
+        let piece = piece_de(cle);
         if !siennes.is_empty() && a_ecrire(&piece) {
             documents::fabrique::ecrire_pdf(&bulletins(&siennes, Some(paies))?, &piece)?;
         }
-        let ses_certificats: Vec<(&PaieCs, i64)> = imp.certificats.iter().filter(|(i, _, _)| cle_de(&paies[*i]) == cle).map(|(_, pc, n)| (*pc, *n)).collect();
-        let piece = dossier.join(envois::envoi::nom_fichier("CertificatCS", &cle, &etiq));
+        let ses_certificats: Vec<(&PaieCs, i64)> = imp.certificats.iter().filter(|(i, _, _)| cle_de(&paies[*i]) == *cle).map(|(_, pc, n)| (*pc, *n)).collect();
+        let piece = dossier.join(envois::envoi::nom_fichier("CertificatCS", cle, &etiq));
         if !ses_certificats.is_empty() && a_ecrire(&piece) {
             let description = conges_spectacles::description_numerotee(&ses_certificats, ent).map_err(Echec::from)?;
             documents::fabrique::ecrire_pdf(&description, &piece)?;
         }
     }
 
-    // L'ARCHIVE DU MOIS : tous ses documents numerotes.
-    let archivees: Vec<usize> = (0..paies.len()).filter(|i| numerotee(*i)).collect();
-    let archive = sortie.join(format!("Bulletins_{}.pdf", etiq));
-    if !archivees.is_empty() && a_ecrire(&archive) {
+    if archive_a_ecrire {
         documents::fabrique::ecrire_pdf(&bulletins(&archivees, None)?, &archive)?;
     }
     if !imp.certificats.is_empty() {

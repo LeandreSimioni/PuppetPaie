@@ -7,7 +7,7 @@ use engagement::calcul::Paie;
 use engagement::conges::CompteurConges;
 use droit::contexte::Contexte;
 use droit::cumul::{tableau_cumul, Colonne};
-use engagement::cumul::lire_engagements_jusqu_au;
+use engagement::cumul::Passe;
 use socle::date::{d, dernier_du_mois, en_texte, forme_ecrite, Jour};
 use socle::fichiers::vrai;
 use socle::texte::euros;
@@ -1275,7 +1275,9 @@ pub fn remboursements(ctx: &Contexte, p: &Paie) -> Resultat<Vec<usize>> {
 /// paies du mois quand on n'en imprime qu'une ; `borne_au_mois` : les cumuls
 /// ne lisent que les contrats commences avant la fin du mois ; `rectificatifs` :
 /// indice dans `paies` -> ce que le bloc rectificatif imprime ; `numeros` : le numero du bulletin de chaque paie, au
-/// meme rang.
+/// meme rang. `passe` : ce que la compagnie a declare jusqu'a `mois`, pour au moins les salaries au cachet de `paies`
+/// (`passe_des_bulletins`), lu une fois pour tous les bulletins du geste.
+#[allow(clippy::too_many_arguments)]
 pub fn jeux_et_description(
     ctx: &Contexte,
     paies: &[Paie],
@@ -1286,6 +1288,7 @@ pub fn jeux_et_description(
     borne_au_mois: bool,
     rectificatifs: &HashMap<usize, Value>,
     departs: &engagement::departs::Departs,
+    passe: &Passe,
 ) -> Resultat<Value> {
     // La licence est DATEE : l'appelant la resout au mois du bulletin.
     if let Some(l) = ent.get("licence_spectacle") {
@@ -1306,14 +1309,7 @@ pub fn jeux_et_description(
         // Tout ce que la compagnie a declare jusqu'a ce mois, ce mois-ci compris : les paies
         // qu'on imprime remplacent le fichier de leur mois.
         let courantes = paies_du_mois.filter(|p| !p.is_empty()).unwrap_or(paies);
-        // Le cumul ne se tire que pour les salaries au cachet de ces paies : seuls leurs engagements se relisent.
-        let mut au_cachet = std::collections::BTreeSet::new();
-        for pa in paies {
-            if !pa.engagement.nat()?.mensuelle() {
-                au_cachet.insert(texte(&pa.salarie, "_cle")?);
-            }
-        }
-        let mut engagements = lire_engagements_jusqu_au(ctx, Some(courantes), Some(mois), Some(&au_cachet), departs)?;
+        let mut engagements = passe.engagements(Some(courantes))?;
         if borne_au_mois {
             let fin = dernier_du_mois(mois)?;
             engagements.retain(|e| e.debut <= fin);
@@ -1348,4 +1344,16 @@ pub fn jeux_et_description(
         return Err("Aucun bulletin a ecrire : toutes les paies sont des mois sans paie.".to_string());
     }
     description(&jeux, ent)
+}
+
+/// CE QUE LES BULLETINS DE `paies` CUMULENT (`jeux_et_description`) : ce que la compagnie a declare jusqu'a `mois`, pour
+/// les seuls salaries au cachet de ces paies -- le cumul ne se tire que pour eux, seuls leurs engagements se relisent.
+pub fn passe_des_bulletins<'a>(ctx: &'a Contexte, paies: &[Paie], mois: &str, departs: &'a engagement::departs::Departs) -> Resultat<Passe<'a>> {
+    let mut au_cachet = std::collections::BTreeSet::new();
+    for pa in paies {
+        if !pa.engagement.nat()?.mensuelle() {
+            au_cachet.insert(texte(&pa.salarie, "_cle")?);
+        }
+    }
+    Ok(Passe::lire(ctx, Some(mois), Some(au_cachet), departs))
 }
