@@ -340,13 +340,15 @@ jobs:
           done
           L="${V:8:2}.${V:5:2}.${V:0:4}"; [ "${#V}" -gt 10 ] && L="$L-${V:11}"
           # LES NOMS STABLES, pour les boutons de puppetpaie.fr (`releases/latest/download/<nom>`, le meme lien d'une
-          # version a l'autre) : une copie de l'installeur Windows et de chaque archive d'installation d'un systeme.
+          # version a l'autre) : une copie de l'installeur Windows, de chaque archive d'installation d'un systeme, et du
+          # dossier portable (l'archive d'installation de tous les systemes, pour une cle USB).
           mkdir -p stables
           cp "publication/PuppetPaie-$L-installeur.exe" stables/PuppetPaie-installeur-windows.exe
           for S in $CHOISIS; do
             [ "$S" = windows ] && continue
             cp "sortie/puppetpaie-$V-$S-installation.zip" "stables/PuppetPaie-$S.zip"
           done
+          cp "sortie/puppetpaie-$V-tout-systeme-installation.zip" stables/PuppetPaie-portable.zip
           ls -l "${ARCHIVES[@]}" stables/*
           gh release create "v$V" -R "$DEPOT" --target "${{ github.sha }}" --latest \
             --title "PuppetPaie ${L/-/ (}$([ "${#V}" -gt 10 ] && echo ")")" --notes "${NOTES:-PuppetPaie $L}" \
