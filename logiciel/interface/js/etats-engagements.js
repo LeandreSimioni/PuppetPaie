@@ -90,20 +90,18 @@ async function boitePieces(ligne, acte) {
   const sienne = (lu.engagements || []).find((l) => l.salarie === ligne.salarie && l.debut === ligne.debut) || ligne;
   const carre = (sienne.carres || []).find((c) => c.cle === acte) || {};
   const montre = carre.pieces || { gestes: [] };
-  const titre = acte === "dpae" ? "DPAE" : "Contrat";
+  const titre = carre.titre || "";
   const pieces = (acte === "dpae" ? r.dpae : r.contrat) || [];
   const liste = pieces.length
     ? `<ul class="liste-pieces">${pieces.map((p, i) => `<li>
-        <span><b>${echapper(p.quoi)}</b> — ${echapper(quand(p.quand))}
-          <br><span class="discret">${echapper(p.fichier)}${p.existe ? ""
-            : " — " + aideDe("piece_absente")}</span></span>
+        <span><b>${echapper(p.quoi)}</b> — ${echapper(p.quand_dit || "")}
+          ${p.existe ? "" : `<br><span class="discret">${aideDe("piece_absente")}</span>`}</span>
         <button class="secondaire p-ouvrir" data-i="${i}" ${p.existe ? "" : "disabled"}>Ouvrir</button>
       </li>`).join("")}</ul>`
     : `<p class="discret">${echapper(montre.vide || "")}</p>`;
   ouvrirBoite(`
-    <h3>${titre} — ${echapper(ligne.nom)}</h3>
-    <p class="discret">${echapper(pourQuoi(ligne))},
-      ${echapper(periodeEnClair(ligne.debut, ligne.fin))}</p>
+    <h3>${echapper(titre)} — ${echapper(ligne.nom)}</h3>
+    <p class="discret">${echapper(pourQuoi(ligne))}, ${echapper(ligne.periode_dit)}</p>
     ${carre.phrase ? `<p>${echapper(carre.phrase)}</p>` : ""}
     ${montre.encart ? `<div class="encart attention"><b>${echapper(montre.encart.titre)}</b>
       ${echapper(montre.encart.texte)}</div>` : ""}
@@ -249,7 +247,7 @@ const BOUTON_RETIRER = `<button class="lien retirer-engagement">Retirer cet enga
 function bandeauValidation(ligne) {
   if (ligne.valide) {
     return `${recalculDe(ligne)}<div class="validation faite">
-      <span><b>Engagement validé</b> le ${echapper(quand(ligne.valide))}
+      <span><b>Engagement validé</b> ${echapper(ligne.valide_dit || "")}
         ${(ligne.carres || []).filter((c) => c.lien).map((c) =>
           ` · <button class="lien v-pieces" data-acte="${echapper(c.cle)}">${echapper(c.lien)}</button>`).join("")}
         ${ligne.versions ? ` · ${versionsDe(ligne)}` : ""}</span>
@@ -360,9 +358,8 @@ function peindreNonActifs(liste) {
     d.className = "engagement-non-actif";
     d.innerHTML = `<div class="na-ligne">
         <span><b>${echapper(n.nom)}</b>
-          <span class="discret">· contrat ${echapper(n.numero || "sans numéro")},
-            ${echapper(periodeEnClair(n.debut, n.fin))}</span></span>
-        <span class="mot-etat" title="non actif depuis le ${echapper(quand(n.non_actif))}">non actif</span>
+          <span class="discret">· ${echapper(n.dit)}</span></span>
+        <span class="mot-etat" title="${echapper(n.non_actif_dit)}">non actif</span>
       </div>
       ${n.a_faire?.length ? `<div class="etats-actes">${n.a_faire.map((x) =>
         `<span class="etat-acte orange"><i class="carre"></i>${echapper(x)}</span>`).join("")}</div>` : ""}`;
@@ -483,9 +480,8 @@ async function boiteDpae(mois) {
         return `<label class="choix ${c.cochable ? "" : "grise"}">
           <input type="checkbox" class="d-qui" data-i="${i}" ${c.cochee ? "checked" : ""}
                  ${c.cochable ? "" : "disabled"}>
-          <span><b>${echapper(l.nom)}</b> — ${l.spectacle ? `${echapper(l.spectacle)}, ` : ""}embauche le
-            ${echapper(jjmmaaaa(l.debut))}${l.numero
-              ? ` <span class="discret">(contrat n° ${echapper(l.numero)})</span>` : ""}
+          <span><b>${echapper(l.nom)}</b> — ${echapper(l.embauche_dit)}${l.numero_dit
+              ? ` <span class="discret">(${echapper(l.numero_dit)})</span>` : ""}
             ${etat}
             ${e.date_changee ? `<br><span class="note">${echapper(e.date_changee.phrase)}</span>` : ""}</span></label>`;
       }).join("")}
@@ -493,14 +489,14 @@ async function boiteDpae(mois) {
     <p class="note">${aideDe("dpae_heure")}</p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      <button class="primaire" id="d-ecrire">Envoyer le test</button>
+      <button class="primaire" id="d-ecrire" data-plein="Envoyer le test" data-vide="Rien de coché">Envoyer le test</button>
     </div>`);
 
   const bouton = document.getElementById("d-ecrire");
   const majBouton = () => {
     const n = document.querySelectorAll(".d-qui:checked").length;
     bouton.disabled = !n;
-    bouton.textContent = n ? `Envoyer le test (${n})` : "Rien de coché";
+    bouton.textContent = n ? bouton.dataset.plein : bouton.dataset.vide;
   };
   document.querySelectorAll(".d-qui").forEach((c) => { c.onchange = majBouton; });
   majBouton();

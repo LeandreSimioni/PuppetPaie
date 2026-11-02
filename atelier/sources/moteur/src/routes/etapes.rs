@@ -828,6 +828,7 @@ impl<'a> Moteur<'a> {
             let vue = Value::Object(ligne.clone());
             ligne.insert("carres".into(), carres(&vue));
             ligne.insert("dpae_choix".into(), choix_dpae(&vue));
+            dire_la_ligne(&mut ligne);
             // LA FRISE : un engagement modifie apres un envoi dit quand, et ce qui a change de version en version.
             let frise = e.valide().and_then(|v| engagement::versions::frise(self.ctx, v, &departs, mois));
             ligne.insert("versions".into(), frise.unwrap_or(Value::Null));
@@ -862,6 +863,9 @@ impl<'a> Moteur<'a> {
         });
         ligne["carres"] = carres(&ligne);
         ligne["dpae_choix"] = choix_dpae(&ligne);
+        if let Some(m) = ligne.as_object_mut() {
+            dire_la_ligne(m);
+        }
         Ok(ligne)
     }
 
@@ -1650,7 +1654,7 @@ fn le_jour(v: &Value) -> String {
 /// LES TROIS CARRES DE LA LIGNE D'UN ENGAGEMENT VALIDE (DPAE, Contrat, Documents), lus comme les cases du panneau
 /// (`Point::de`) : chacun son nom, son etat (`fait`, `a_faire`, `en_attente`, `refuse`), sa phrase (l'infobulle) et le
 /// geste qu'ouvre un clic. Le contrat ou l'avenant parti et pas revenu se note signe d'un clic (`contrat_recu`).
-fn carres(p: &Value) -> Value {
+fn carres_bruts(p: &Value) -> Value {
     let pt = Point::de(p, 0);
     if vrai(&p["non_calcule"]) {
         let manque = valeur_en_texte(&p["a_completer"]);
@@ -1985,6 +1989,8 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
             "debut": engagement::debut_brut(&ctx.racine, &b),
             "fin": b.get("fin").filter(|v| vrai(v)).cloned().unwrap_or_else(|| engagement::dates_engagement(&ctx.racine, &b).iter().map(|d| d.get("jour").map_or_else(|| valeur_en_texte(d), valeur_en_texte)).max().map_or(Value::Null, Value::String)),
             "non_actif": n.le(),
+            "non_actif_dit": format!("non actif depuis le {}", super::quand(&valeur_en_texte(&json!(n.le())))),
+            "dit": format!("contrat {}, {}", b.get("numero").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "sans numéro".to_string()), super::periode_en_clair(&json!(engagement::debut_brut(&ctx.racine, &b)), &b.get("fin").filter(|v| vrai(v)).cloned().unwrap_or(Value::Null))),
             "a_faire": crate::routes::engagement::a_faire_en_phrases(&n.a_refaire(ctx, &departs)),
         }));
     }
@@ -2038,4 +2044,25 @@ fn empreinte_de_l_embauche(e: &engagement::Engagement, sal: &Value) -> String {
         socle::fichiers::repr(e.nature.as_deref().unwrap_or(""))
     );
     sha256_hex(brut.as_bytes())[..16].to_string()
+}
+
+/// Les carres d'un engagement (`carres_bruts`), chacun avec le titre de sa boite.
+fn carres(p: &Value) -> Value {
+    let mut v = carres_bruts(p);
+    for c in v.as_array_mut().into_iter().flatten() {
+        c["titre"] = json!(if c["cle"] == json!("dpae") { "DPAE" } else { "Contrat" });
+    }
+    v
+}
+
+/// CE QUE L'ECRAN LIT D'UNE LIGNE D'ENGAGEMENT, en phrases : sa periode, sa validation, son embauche (le choix de la
+/// DPAE), son numero de contrat.
+pub(crate) fn dire_la_ligne(l: &mut Map<String, Value>) {
+    let champ = |k: &str| l.get(k).cloned().unwrap_or(Value::Null);
+    let (debut, fin, valide, spectacle, numero) = (champ("debut"), champ("fin"), champ("valide"), champ("spectacle"), champ("numero"));
+    l.insert("periode_dit".into(), json!(super::periode_en_clair(&debut, &fin)));
+    l.insert("valide_dit".into(), if vrai(&valide) { json!(format!("le {}", super::quand(&valeur_en_texte(&valide)))) } else { Value::Null });
+    let embauche = format!("embauche le {}", super::jour_en_clair(&debut));
+    l.insert("embauche_dit".into(), json!(if vrai(&spectacle) { format!("{}, {}", valeur_en_texte(&spectacle), embauche) } else { embauche }));
+    l.insert("numero_dit".into(), if vrai(&numero) { json!(format!("contrat n° {}", valeur_en_texte(&numero))) } else { Value::Null });
 }

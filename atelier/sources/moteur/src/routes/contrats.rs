@@ -998,7 +998,7 @@ fn piece_existe(racine: &Path, mois: &Value, fichier: &Value) -> R<bool> {
 }
 
 fn piece(racine: &Path, quoi: &str, quand: &Value, mois: &Value, fichier: &Value) -> R<Value> {
-    Ok(json!({"quoi": quoi, "quand": quand, "mois": mois, "fichier": fichier, "existe": piece_existe(racine, mois, fichier)?}))
+    Ok(json!({"quoi": quoi, "quand": quand, "quand_dit": super::quand(&valeur_en_texte(&json!(quand))), "mois": mois, "fichier": fichier, "existe": piece_existe(racine, mois, fichier)?}))
 }
 
 /// La ligne `c` (une embauche d'une DPAE, un contrat parti, un contrat revenu) est-elle celle du contrat n° `numero` (de ce
