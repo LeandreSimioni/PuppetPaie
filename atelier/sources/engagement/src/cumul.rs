@@ -84,66 +84,82 @@ fn engagement_de_paie(ctx: &Contexte, p: &Paie) -> Resultat<Option<Declare>> {
     }))
 }
 
-/// Ce que les engagements valides declarent. Chaque mois se lit dans les paies ecrites de ses engagements valides
-/// (`etats::validees_du_mois`) : ce qui est en saisie n'est pas paye, il n'entre dans aucun cumul. `paies_courantes` : les
-/// paies d'un mois deja lues par l'appelant ; elles remplacent celles de leur mois. `jusqu_au` : les mois d'apres ne se lisent pas.
-pub(crate) fn engagements_des_paies(
-    ctx: &Contexte,
-    paies_courantes: Option<&[Paie]>,
-    jusqu_au: Option<&str>,
-    salaries: Option<&std::collections::BTreeSet<String>>,
-    departs: &crate::departs::Departs,
-) -> Resultat<Vec<Declare>> {
-    let mut groupes: Vec<(String, Vec<Declare>)> = Vec::new();
-    for p in paies_courantes.unwrap_or(&[]) {
-        let mois = p.engagement.mois.clone();
-        let i = match groupes.iter().position(|(m, _)| *m == mois) {
-            Some(i) => i,
-            None => {
-                groupes.push((mois, Vec::new()));
-                groupes.len() - 1
-            }
-        };
-        if let Some(e) = engagement_de_paie(ctx, p)? {
-            groupes[i].1.push(e);
-        }
+/// CE QUE LA COMPAGNIE A DECLARE, LU UNE FOIS POUR UN GESTE QUI EN TIRE PLUSIEURS CUMULS (les bulletins d'un envoi) : les
+/// engagements importes, et les paies ecrites des engagements valides des salaries `salaries` (leurs cles ; `None` :
+/// tous) dans chaque mois saisi jusqu'a `jusqu_au` (les mois d'apres ne se lisent pas : un mois passe ne depend pas des
+/// suivants). Chaque mois se lit dans les paies ecrites de ses engagements valides (`etats::validees_du_mois`) : ce qui
+/// est en saisie n'est pas paye, il n'entre dans aucun cumul. Un mois se lit la premiere fois qu'un cumul le demande, et
+/// une seule fois.
+pub struct Passe<'a> {
+    ctx: &'a Contexte,
+    jusqu_au: Option<String>,
+    salaries: Option<std::collections::BTreeSet<String>>,
+    departs: &'a crate::departs::Departs,
+    importes: std::cell::RefCell<Option<Vec<Declare>>>,
+    lus: std::cell::RefCell<std::collections::BTreeMap<String, Vec<Declare>>>,
+}
+
+impl<'a> Passe<'a> {
+    pub fn lire(
+        ctx: &'a Contexte,
+        jusqu_au: Option<&str>,
+        salaries: Option<std::collections::BTreeSet<String>>,
+        departs: &'a crate::departs::Departs,
+    ) -> Passe<'a> {
+        Passe { ctx, jusqu_au: jusqu_au.map(str::to_string), salaries, departs, importes: Default::default(), lus: Default::default() }
     }
-    for stem in crate::stock::mois_saisis(&ctx.racine)? {
-        if groupes.iter().any(|(m, _)| *m == stem) || jusqu_au.is_some_and(|j| stem.as_str() > j) {
-            continue;
+
+    /// TOUT ce que la compagnie a declare, trie par (debut, fin, salarie) : les engagements importes, puis les paies.
+    /// `paies_courantes` : les paies d'un mois deja lues par l'appelant ; elles remplacent celles de leur mois. Un mois a
+    /// la fois importe et saisi compte les deux : un engagement importe ne touche aucun mois de la saisie
+    /// (`stock::Objet::couvre`), aucune paie d'ici ne le declare une seconde fois.
+    pub fn engagements(&self, paies_courantes: Option<&[Paie]>) -> Resultat<Vec<Declare>> {
+        let ctx = self.ctx;
+        if self.importes.borrow().is_none() {
+            *self.importes.borrow_mut() = Some(lire_importes(ctx)?);
         }
-        let sien = |v: &crate::etats::Valide| salaries.is_none_or(|s| crate::cle_de_l_engagement(ctx, &v.objet().brut).is_some_and(|c| s.contains(&c)));
-        let Some((_, paies)) = crate::etats::validees_du_mois_parmi(ctx, &stem, departs, &sien)? else { continue };
-        let mut es = Vec::new();
-        for p in &paies {
+        let mut groupes: Vec<(String, Vec<Declare>)> = Vec::new();
+        for p in paies_courantes.unwrap_or(&[]) {
+            let mois = p.engagement.mois.clone();
+            let i = match groupes.iter().position(|(m, _)| *m == mois) {
+                Some(i) => i,
+                None => {
+                    groupes.push((mois, Vec::new()));
+                    groupes.len() - 1
+                }
+            };
             if let Some(e) = engagement_de_paie(ctx, p)? {
-                es.push(e);
+                groupes[i].1.push(e);
             }
         }
-        groupes.push((stem, es));
+        for stem in crate::stock::mois_saisis(&ctx.racine)? {
+            if groupes.iter().any(|(m, _)| *m == stem) || self.jusqu_au.as_deref().is_some_and(|j| stem.as_str() > j) {
+                continue;
+            }
+            if let Some(es) = self.lus.borrow().get(&stem) {
+                groupes.push((stem, es.clone()));
+                continue;
+            }
+            let sien = |v: &crate::etats::Valide| self.salaries.as_ref().is_none_or(|s| crate::cle_de_l_engagement(ctx, &v.objet().brut).is_some_and(|c| s.contains(&c)));
+            let mut es = Vec::new();
+            if let Some((_, paies)) = crate::etats::validees_du_mois_parmi(ctx, &stem, self.departs, &sien)? {
+                for p in &paies {
+                    if let Some(e) = engagement_de_paie(ctx, p)? {
+                        es.push(e);
+                    }
+                }
+            }
+            self.lus.borrow_mut().insert(stem.clone(), es.clone());
+            groupes.push((stem, es));
+        }
+        let mut tous = self.importes.borrow().clone().unwrap_or_default();
+        tous.extend(groupes.into_iter().flat_map(|(_, es)| es));
+        tous.sort_by(|a, b| (a.debut, a.fin, &a.salarie).cmp(&(b.debut, b.fin, &b.salarie)));
+        Ok(tous)
     }
-    Ok(groupes.into_iter().flat_map(|(_, es)| es).collect())
 }
 
-/// TOUT ce que la compagnie a declare : les engagements importes, puis les paies ecrites de ses engagements valides,
-/// trie par (debut, fin, salarie). Un mois a la fois importe et saisi compte les deux : un engagement importe ne touche
-/// aucun mois de la saisie (`stock::Objet::couvre`), aucune paie d'ici ne le declare une seconde fois.
+/// TOUT ce que la compagnie a declare (`Passe::engagements`), pour un seul cumul.
 pub fn lire_engagements(ctx: &Contexte, paies_courantes: Option<&[Paie]>, departs: &crate::departs::Departs) -> Resultat<Vec<Declare>> {
-    lire_engagements_jusqu_au(ctx, paies_courantes, None, None, departs)
-}
-
-/// `lire_engagements`, sans les mois d'apres `jusqu_au` : ce qu'un document de ce mois-la cumule (ses fenetres se
-/// ferment a la fin du mois, `droit::cumul::tableau_cumul`). Un mois d'apres ne lui manque pas : un mois passe ne
-/// depend pas des suivants. `salaries` : seuls les engagements de ces salaries (leurs cles) se lisent dans les paies.
-pub fn lire_engagements_jusqu_au(
-    ctx: &Contexte,
-    paies_courantes: Option<&[Paie]>,
-    jusqu_au: Option<&str>,
-    salaries: Option<&std::collections::BTreeSet<String>>,
-    departs: &crate::departs::Departs,
-) -> Resultat<Vec<Declare>> {
-    let mut tous = lire_importes(ctx)?;
-    tous.extend(engagements_des_paies(ctx, paies_courantes, jusqu_au, salaries, departs)?);
-    tous.sort_by(|a, b| (a.debut, a.fin, &a.salarie).cmp(&(b.debut, b.fin, &b.salarie)));
-    Ok(tous)
+    Passe::lire(ctx, None, None, departs).engagements(paies_courantes)
 }

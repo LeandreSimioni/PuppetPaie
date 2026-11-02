@@ -919,15 +919,25 @@ impl<'a> Moteur<'a> {
     /// (`produire_regularisations::regularisations_pour`) : une correction validee apres l'ecriture du fichier le rend
     /// perime comme une paie du mois qui change. `None` si rien ne se lit ni ne se corrige.
     pub(crate) fn empreinte_saisie(&self, mois: &str) -> R<Option<String>> {
+        let departs = self.departs()?;
+        self.empreinte_saisie_avec(mois, || declarations::produire_regularisations::regularisations_pour(self.ctx, mois, &departs).map(|r| Self::portees(&r)))
+    }
+
+    /// `empreinte_saisie`, sur les corrections portees que `portees` lit (`Moteur::portees`) : la fabrication de la DSN,
+    /// qui les a deja lues, les passe.
+    pub(crate) fn empreinte_saisie_avec(&self, mois: &str, portees: impl FnOnce() -> R<Vec<Value>>) -> R<Option<String>> {
         let vue = engagement::etats::empreinte_des_paies_validees(self.ctx, mois, None);
-        let portees: Vec<Value> = match declarations::produire_regularisations::regularisations_pour(self.ctx, mois, &self.departs()?) {
-            Ok(regs) => regs.iter().map(|r| json!([r.mois, valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)), r.apres.engagement.numero, r.version])).collect(),
-            Err(e) => vec![json!(e.message)],
-        };
+        let portees: Vec<Value> = portees().unwrap_or_else(|e| vec![json!(e.message)]);
         Ok(match (vue, portees.is_empty()) {
             (vue, true) => vue.map(|v| v.chars().take(16).collect()),
             (vue, false) => Some(empreinte_de(&json!({"saisie": vue, "corrections": portees}))),
         })
+    }
+
+    /// Ce que l'empreinte de la saisie retient de chaque correction portee : le mois corrige, le salarie, le contrat et
+    /// la version.
+    pub(crate) fn portees(regs: &[declarations::produire_regularisations::Reg]) -> Vec<Value> {
+        regs.iter().map(|r| json!([r.mois, valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)), r.apres.engagement.numero, r.version])).collect()
     }
 
     /// `limite` : le dernier jour ou un annule-et-remplace est admis, jusqu'a minuit : la veille de l'echeance de depot
