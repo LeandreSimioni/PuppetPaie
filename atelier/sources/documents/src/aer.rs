@@ -46,6 +46,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use engagement::cachet;
+use rust_decimal::prelude::ToPrimitive;
 use socle::date::{en_texte, Jour};
 use socle::fichiers::vrai;
 use socle::num::Resultat;
@@ -84,18 +85,21 @@ const DEBUT: &str = "SAL_DT_DEB_";
 const FIN: &str = "SAL_DT_FIN_";
 const NUM_CONTRAT: &str = "CON_NUMERO_";
 
-/// QUAND UNE AER CINEMA SPECTACLE EST DUE : a l'intermittent (CDD d'usage du spectacle, la nature payee a l'activite de
-/// `contrats-base.json`, annexes 8 et 10), le mois ou son contrat FINIT -- une seule par employeur et par mois, et pour un
-/// contrat sur plusieurs mois, « 1 AE CS éditée à la fin du dernier mois concerné par le contrat »
+/// QUAND UNE AER CINEMA SPECTACLE EST DUE : au contrat d'un intermittent (`droit::caisse_conges::intermittent` : un CDD
+/// d'usage, le CDD d'un artiste ; annexes 8 et 10), le mois ou il FINIT -- une seule par employeur et par mois, et pour
+/// un contrat sur plusieurs mois, « 1 AE CS éditée à la fin du dernier mois concerné par le contrat »
 /// (`atelier/reference/sources/francetravail-100-dsn/movinmotion-fin-des-aem-20260601.txt`, l. 152-166 ;
 /// `mescachets-aem-aer-cs-20260903.txt`, l. 47 et 69 : « salariés intermittents du spectacle relevant des annexes 8 et
 /// 10 », « l'attestation est produite à la fin du dernier mois concerné » ; `comenolo-aer-cs.txt`, l. 37). France Travail
 /// l'edite depuis la DSN mensuelle qui porte la fin du contrat (son bloc 62 ; `francetravail-100-dsn/LISEZMOI.md`,
-/// « Ce qu'on en conclut », point 1). Un permanent (CDI, CDD de droit commun) n'en a pas : sa fin de contrat est un
-/// signalement (`contrats-base.json`, `cdd.fin_de_contrat.signalement_fctu`), et l'attestation de droit commun qui en
-/// revient n'est pas celle-ci.
-pub fn due(e: &engagement::Engagement) -> Resultat<bool> {
-    if e.nat()?.mensuelle() {
+/// « Ce qu'on en conclut », point 1), pour un contrat dont le code emploi (S21.G00.40.005) est de la nomenclature du
+/// spectacle et non « 999SPT » (`net-entreprises-base-connaissances/net-entreprises-de-la-dsn-a-l-attestation-employeur-
+/// v3-2-20230328.txt`, l. 500-510). Un permanent (CDI, CDD de droit commun d'un salarie qui n'est pas artiste) n'en a
+/// pas : sa fin de contrat est un signalement (`contrats-base.json`, `cdd.fin_de_contrat.signalement_fctu`), et
+/// l'attestation de droit commun qui en revient n'est pas celle-ci.
+pub fn due(p: &engagement::calcul::Paie) -> Resultat<bool> {
+    let e = &p.engagement;
+    if !droit::caisse_conges::intermittent(&*e.nat()?, &p.salarie)? {
         return Ok(false);
     }
     let (debut, fin) = (e.debut_mois()?, e.fin_mois()?);
@@ -294,16 +298,23 @@ pub struct PaieAer {
 }
 
 impl PaieAer {
-    /// La periode d'une paie : son contrat (`e.debut`, `e.fin`) borne au mois de la paie.
-    pub fn du_mois(e: &engagement::Engagement) -> Resultat<PaieAer> {
+    /// La periode d'une paie : son contrat (`e.debut`, `e.fin`) borne au mois de la paie, et les heures et cachets que
+    /// la DSN du mois declare en activite (bloc 53, `declarations::dsn::mesures_d_activite`) : les cachets et les heures
+    /// de l'engagement, ou les heures travaillees d'un contrat paye au mois. France Travail compte les heures de
+    /// l'artiste qui n'est pas au cachet (annexe 10, art. 3 : « Lorsque l'activite des artistes est declaree sous la
+    /// forme de cachets, chaque cachet est converti en heures » ; `plafond-intermittents/unedic-annexe10-convention-
+    /// 20241115.txt`).
+    pub fn du_mois(p: &engagement::calcul::Paie) -> Resultat<PaieAer> {
+        let e = &p.engagement;
         let (d, f) = (e.debut_mois()?, e.fin_mois()?);
         let fin = e.fin.ok_or_else(|| format!("contrat {} sans fin", e.numero.clone().unwrap_or_default()))?;
+        let heures = if e.nat()?.mensuelle() { p.heures_travaillees.trunc().to_i128().unwrap_or_default() } else { e.heures.unwrap_or(0.0) as i128 };
         Ok(PaieAer {
             numero: e.numero.clone().unwrap_or_default(),
             debut: if e.debut > d { e.debut } else { d },
             fin: if fin < f { fin } else { f },
             cachets: i128::from(e.cachets),
-            heures: e.heures.unwrap_or(0.0) as i128,
+            heures,
         })
     }
 }
@@ -485,19 +496,19 @@ pub fn periodes_attendues(periode: &str, cle: &str, paies_du_mois: &mut dyn FnMu
     let mut out = Vec::new();
     for p in paies_du_mois(periode).iter().filter(|p| de_lui(p)) {
         let e = &p.engagement;
-        if !due(e)? {
+        if !due(p)? {
             continue;
         }
         let numero = e.numero.clone().unwrap_or_default();
         let mut m = e.debut.iso()[..7].to_string();
         while m.as_str() < periode {
             for q in paies_du_mois(&m).iter().filter(|q| de_lui(q) && q.engagement.numero.as_deref() == Some(numero.as_str()) && !q.engagement.sans_paie()) {
-                out.push(PaieAer::du_mois(&q.engagement)?);
+                out.push(PaieAer::du_mois(q)?);
             }
             m = socle::date::premier_du_mois(&m)?.mois_suivant();
         }
         if !e.sans_paie() {
-            out.push(PaieAer::du_mois(e)?);
+            out.push(PaieAer::du_mois(p)?);
         }
     }
     Ok(out)

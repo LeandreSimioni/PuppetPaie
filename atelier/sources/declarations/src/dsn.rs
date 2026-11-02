@@ -1592,9 +1592,11 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     f.add("S21.G00.40.003", statut_categoriel_rc);
     f.add_v("S21.G00.40.004", req(s, "pcs_ese")?)?;
     // Le complement PCS-ESE : « 999SPT pour les emplois permanents du spectacle » (CCH-18, p. 185) quand la nature le
-    // fixe (`contrats-base.json` : cdi, cdd) ; un CDDU declare le code de son metier dans la nomenclature des emplois
-    // du spectacle, que France Travail Spectacle lit. La nature decide, pas le metier.
-    match nat.code("S21.G00.40.005").filter(|c| !c.is_empty()) {
+    // fixe (`contrats-base.json` : cdi, cdd) ; le contrat d'un intermittent (`droit::caisse_conges::intermittent` : un
+    // CDDU, le CDD d'un artiste) declare le code de son metier dans la nomenclature des emplois du spectacle, que France
+    // Travail Spectacle lit.
+    let intermittent = droit::caisse_conges::intermittent(&nat, s)?;
+    match nat.code("S21.G00.40.005").filter(|c| !c.is_empty() && !intermittent) {
         Some(c) => f.add("S21.G00.40.005", c),
         None => f.add_v("S21.G00.40.005", req(s, "code_emploi_ft")?)?,
     }

@@ -752,7 +752,7 @@ impl<'a> Moteur<'a> {
             if !nat.mensuelle() && dernier_mois && p.declaree_a_la_caisse_des_conges().map_err(plain)? {
                 pieces.push("certificat_cs");
             }
-            if documents::aer::due(&p.engagement).map_err(plain)? {
+            if documents::aer::due(p).map_err(plain)? {
                 pieces.push("aer");
             }
             ligne.insert("pieces".into(), json!(pieces));
