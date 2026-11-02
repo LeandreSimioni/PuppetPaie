@@ -157,10 +157,11 @@ version passée ; `engagement::paies` seul lit et écrit ce fichier, dans le mê
   portait), la DPAE (son `.zip`, son récapitulatif), les signalements d'amorçage, d'arrêt, de reprise et de fin de
   contrat, le contrat et l'avenant (et leur description gardée), le bulletin, le rectificatif et le bulletin d'origine
   gardé à côté de lui, le certificat Congés Spectacles, et l'archive du mois. Ce qui a une empreinte au journal (DSN,
-  DPAE, signalements) se vérifie par elle, un contrat par les clauses que sa ligne a notées : une pièce refaite qui ne
-  dit pas ce qui est parti s'efface et la page dit que le fichier manque. La fabrique des PDF est déterministe (date de
-  création fixe), rien n'y dépend de l'heure de la machine. **Ne se refait jamais ce qui vient de dehors** : le contrat
-  contresigné (rendu par le salarié), les bilans et comptes rendus ; l'AER se relit dans `retours/` (l'archive du retour
+  DPAE, signalements, contrat et avenant partis à la signature) se vérifie par elle, un contrat aussi par les clauses que
+  sa ligne a notées : une pièce refaite qui ne dit pas ce qui est parti s'efface et la page dit que le fichier manque.
+  L'exemplaire contresigné est le contrat parti, octet pour octet, plus la mention de l'artiste (une mise à jour
+  incrémentale, `fabrique_pdf::marquage::contresigner`) : il se refait du contrat parti et de la mention notée. La fabrique des PDF est déterministe (date de
+  création fixe), rien n'y dépend de l'heure de la machine. **Ne se refait jamais ce qui vient de dehors** : les bilans et comptes rendus ; l'AER se relit dans `retours/` (l'archive du retour
   46) et se range comme à sa relève. Règle 4 : une pièce refaite se lit, elle ne repart jamais ; ce qui repart se
   fabrique à son départ. Un annule-et-remplace de signalement ne se refait pas : sa ligne ne dit pas ce qu'il remplaçait.
 - **Un contrat rompu n'a pas d'avenant** (code du travail L. 1243-1, `reference/sources/code-du-travail/`) : la rupture

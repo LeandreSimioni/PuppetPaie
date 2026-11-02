@@ -352,7 +352,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     let (mut fichiers, mut contrats) = (Vec::new(), Vec::new());
     for (cle, ps, _) in &par_salarie {
         let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, ""));
-        documents::contrat::ecrire_contrat(ctx, ps, &ent, &pdf, &[], None)?;
+        documents::contrat::ecrire_contrat(ctx, ps, &ent, &pdf, &[])?;
         fichiers.push(json!(pdf.to_string_lossy()));
         for p in ps.iter() {
             contrats.push(Value::Object(entree_du_contrat(ctx, p, cle, &pdf, &p.titre()?, &s_mois, &ent)));
@@ -451,7 +451,9 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
         let code = code_signature();
         // Le contrat qui en remplace un autre porte son propre nom : le PDF parti avant lui reste sur le disque.
         let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, if remplace { "_remplace" } else { "" }));
-        documents::contrat::ecrire_contrat(ctx, ps, &ent, &pdf, &remplacements, None)?;
+        documents::contrat::ecrire_contrat(ctx, ps, &ent, &pdf, &remplacements)?;
+        // Le PDF tel qu'il part : son exemplaire contresigne commencera par ces octets-la (`depart::contresigner`).
+        let empreinte = envois::journal::empreinte_fichier(&pdf).map_err(|m| erreur("OSError", m))?;
         let mut spectacles: Vec<String> = Vec::new();
         let mut titres: Vec<String> = Vec::new();
         for p in ps {
@@ -530,6 +532,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
             c.insert("code".into(), json!(code));
             c.insert("adresse".into(), json!(adresse));
             c.insert("relance".into(), json!(relance));
+            c.insert("empreinte".into(), json!(empreinte));
             if remplace {
                 let propre = p.engagement.numero.clone().unwrap_or_default();
                 let numero = remplacements.iter().find(|(k, _)| *k == (cle.clone(), debut.clone(), propre.clone())).map(|(_, (n, _))| n.clone()).unwrap_or_default();
@@ -787,7 +790,7 @@ fn avenant_ecrit(
             if vrai(&a.apercu["contrat"]) { valeur_en_texte(&a.apercu["contrat"]) } else { "sans-numero".to_string() },
             socle::date::etiquette_du_mois(&mois_a).map_err(|m| erreur("ValueError", m))?
         ));
-        documents::contrat::ecrire_avenant(ctx, p, &ent, &f, &a.modifications(), a.numero(), &jj(&a.texte("date_contrat"))?, &jj(&a.effet)?, aujourdhui_jj, ailleurs, None)?;
+        documents::contrat::ecrire_avenant(ctx, p, &ent, &f, &a.modifications(), a.numero(), &jj(&a.texte("date_contrat"))?, &jj(&a.effet)?, aujourdhui_jj, ailleurs)?;
         f
     };
     let modifie: Vec<Value> = a.modifications().iter().map(|m| m["article"].clone()).collect();
@@ -805,6 +808,8 @@ fn avenant_ecrit(
     c.insert("modifie".into(), Value::Array(modifie));
     c.insert("modifications".into(), Value::Array(a.modifications()));
     c.insert("clauses".into(), clauses_du_contrat(ctx, p, &ent));
+    // Le PDF tel qu'il part (une relance reprend celui qui est parti) : son exemplaire contresigne commencera par ces octets-la.
+    c.insert("empreinte".into(), json!(envois::journal::empreinte_fichier(&pdf).map_err(|m| erreur("OSError", m))?));
     // Un avenant au contrat signe hors du logiciel : la piece se refait de meme (`depart::refaire_le_contrat`), et le
     // PDF du contrat signe, depose dans son dossier, part avec lui.
     if ailleurs {

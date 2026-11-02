@@ -1139,15 +1139,28 @@ pub(crate) fn piece_partie(ctx: &Contexte, mois: &str, nom: &str) -> R<PathBuf> 
     }
     // LE CONTRAT ET L'AVENANT : la derniere ligne qui les a fait partir.
     if nom.starts_with("Contrat") || nom.starts_with("Avenant") {
-        // Le contrat contresigne vient du salarie : il se lit la ou la signature l'a range, il ne se refait pas.
-        let signe = lignes.iter().filter(|l| texte(l, "mois") == mois).flat_map(|l| envois::etats::revenus(l).unwrap_or_default()).any(|r| texte(&r, "fichier_signe").split(", ").any(|f| f == nom));
-        if signe {
-            return Err(refus(format!("{} est le contrat contresigné que le salarié a renvoyé : il ne se refait pas ; le fichier a été déplacé ou effacé.", nom)));
+        // L'EXEMPLAIRE CONTRESIGNE : le contrat parti, plus la mention que sa signature a notee (`contresigner`).
+        let signe = lignes.iter().rev().filter(|l| texte(l, "mois") == mois).flat_map(|l| envois::etats::revenus(l).unwrap_or_default()).find(|r| texte(r, "fichier_signe").split(", ").any(|f| f == nom));
+        if let Some(r) = signe {
+            let (Some(envoye), mention) = (nom.strip_suffix("_signe.pdf"), texte(&r, "mention")) else {
+                return Err(refus(format!("{} : la signature notée ne dit pas quel contrat parti elle signe.", nom)));
+            };
+            if mention.is_empty() {
+                return Err(refus(format!("{} : la signature notée ne dit pas la mention de l'artiste ; il ne se refait pas.", nom)));
+            }
+            let pdf = sortie.join("envoi").join(nom);
+            contresigner(ctx, &lignes, &texte(&r, "code"), &sortie.join("envoi").join(format!("{}.pdf", envoye)), &pdf, &mention)?;
+            return Ok(pdf);
         }
         let porte = |l: &Value| l["detail"]["contrats"].as_array().is_some_and(|cs| cs.iter().any(|c| c["fichier"] == json!(nom)));
         if let Some(rang) = lignes.iter().rposition(|l| texte(l, "quoi") == "contrat-signature" && du_mois(l) && porte(l)) {
             let pdf = sortie.join("envoi").join(nom);
-            refaire_le_contrat(ctx, &lignes, rang, &pdf, &pdf, None)?;
+            // Parti par courriel, il a son empreinte : le refait la redonne, ou il ne s'ecrit pas ; imprime, ses clauses le gardent.
+            let empreinte = lignes[rang]["detail"]["contrats"].as_array().into_iter().flatten().find(|c| c["fichier"] == json!(nom)).and_then(|c| c.get("empreinte")).and_then(Value::as_str);
+            match empreinte {
+                Some(e) => std::fs::write(&pdf, contrat_parti(ctx, &lignes, rang, &pdf, e)?).map_err(|e| os(&pdf, e))?,
+                None => refaire_le_contrat(ctx, &lignes, rang, &pdf, &pdf)?,
+            }
             return Ok(pdf);
         }
     }
@@ -1351,14 +1364,68 @@ fn refaire_le_signalement(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -
     garder_si_identique(l, &[cible.to_path_buf()])
 }
 
+/// L'EXEMPLAIRE CONTRESIGNE `signe` DU CONTRAT (OU DE L'AVENANT) `envoye` QU'A FAIT PARTIR LA DEMANDE DE SIGNATURE `code` :
+/// le PDF parti, octet pour octet (l'empreinte que la demande a notee), plus la mention de l'artiste dans sa case, par une
+/// mise a jour incrementale (`fabrique_pdf::marquage::contresigner`). On ne contresigne que ce qui est parti : le PDF se
+/// lit ou il est ; s'il manque ou a change, il se refait (`refaire_le_contrat`) et doit redonner l'empreinte notee, sinon
+/// refus. Le fichier `envoye` n'est jamais reecrit.
+pub(crate) fn contresigner(ctx: &Contexte, lignes: &[Value], code: &str, envoye: &Path, signe: &Path, mention: &str) -> R<()> {
+    let nom = socle::fichiers::nom_du(envoye);
+    let refus = |m: String| erreur("ErreurOperation", m);
+    let entree = |l: &Value| -> Option<Value> {
+        (l.get("quoi").and_then(Value::as_str) == Some("contrat-signature"))
+            .then(|| l["detail"]["contrats"].as_array().and_then(|cs| cs.iter().find(|c| c["fichier"] == json!(nom) && c["code"] == json!(code)).cloned()))
+            .flatten()
+    };
+    let Some(rang) = lignes.iter().rposition(|l| entree(l).is_some()) else {
+        return Err(refus(format!("{} : aucune demande de signature ne porte le code {}.", nom, code)));
+    };
+    let Some(empreinte) = entree(&lignes[rang]).and_then(|c| c.get("empreinte").and_then(Value::as_str).map(String::from)) else {
+        return Err(refus(format!("{} est parti sans son empreinte : rien ne dit que c'est lui qu'on contresigne. Relancer la demande de signature.", nom)));
+    };
+    let octets = contrat_parti(ctx, lignes, rang, envoye, &empreinte)?;
+    let contresigne = fabrique_pdf::marquage::contresigner(&octets, mention).map_err(|r| erreur("FabriqueRefus", format!("{} : {}", nom, r.0)))?;
+    if let Some(parent) = signe.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| os(parent, e))?;
+    }
+    std::fs::write(signe, contresigne).map_err(|e| os(signe, e))
+}
+
+/// LES OCTETS DU CONTRAT (OU DE L'AVENANT) `envoye` TELS QU'ILS SONT PARTIS, d'empreinte `empreinte` (notee par la
+/// demande de signature `lignes[rang]`) : le fichier, s'il a cette empreinte ; sinon refait a cote, par la ligne qui
+/// l'a ecrit (celle-ci, ou une plus ancienne qui a fait partir les memes octets : la relance d'un avenant reprend le
+/// PDF parti). Refus quand rien ne redonne l'empreinte. Le fichier `envoye` n'est pas reecrit.
+fn contrat_parti(ctx: &Contexte, lignes: &[Value], rang: usize, envoye: &Path, empreinte: &str) -> R<Vec<u8>> {
+    if let Ok(o) = std::fs::read(envoye) {
+        if envois::journal::empreinte(&o) == empreinte {
+            return Ok(o);
+        }
+    }
+    let nom = socle::fichiers::nom_du(envoye);
+    let refait = envoye.with_extension("pdf.refait");
+    let a_empreinte = |l: &Value| {
+        l.get("quoi").and_then(Value::as_str) == Some("contrat-signature")
+            && l["detail"]["contrats"].as_array().is_some_and(|cs| cs.iter().any(|c| c["fichier"] == json!(nom) && c["empreinte"] == json!(empreinte)))
+    };
+    for r in (0..=rang).rev().filter(|r| a_empreinte(&lignes[*r])) {
+        let fait = refaire_le_contrat(ctx, lignes, r, envoye, &refait).and_then(|_| std::fs::read(&refait).map_err(|e| os(&refait, e)));
+        let _ = std::fs::remove_file(&refait);
+        let o = fait?;
+        if envois::journal::empreinte(&o) == empreinte {
+            return Ok(o);
+        }
+    }
+    Err(erreur("ErreurOperation", format!("{} ne se refait pas à l'identique de ce qui est parti : le fichier parti a été déplacé ou effacé.", nom)))
+}
+
 /// LE CONTRAT OU L'AVENANT `pdf` QU'A FAIT PARTIR LA LIGNE `lignes[rang]` (une demande de signature ou une impression),
-/// ecrit a `vers` ; `mention` : son exemplaire contresigne par le salarie (`documents::contrat::mention_signature`). Il est
+/// ecrit a `vers`. Il est
 /// refait par ce qui l'a ecrit (`documents::contrat::ecrire_contrat`, `ecrire_avenant`) :
 /// chaque contrat dans la version de l'engagement que la ligne a emportee, au jour et a l'heure de son depart ; un contrat
 /// qui en remplacait un autre le dit en tete, d'apres le contrat parti avant lui ; un avenant cite ce que sa ligne a
 /// note (articles modifies, effet), date du contrat qu'il modifie. Verifie par les clauses que la ligne a notees de chaque
 /// contrat : la piece refaite qui ne les redit pas s'efface et se refuse.
-pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, pdf: &Path, vers: &Path, mention: Option<&str>) -> R<()> {
+pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, pdf: &Path, vers: &Path) -> R<()> {
     let l = &lignes[rang];
     let nom = socle::fichiers::nom_du(pdf);
     let quand = valeur_en_texte(l.get("quand").unwrap_or(&Value::Null));
@@ -1398,7 +1465,7 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, 
                     .date()
             };
             let modifs: Vec<Value> = premier["modifications"].as_array().cloned().unwrap_or_default();
-            return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, vers, &modifs, numero_av, &jj(&date_contrat)?, &jj(&texte(premier, "effet"))?, &jour.jj_mm_aaaa(), ailleurs, mention)
+            return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, vers, &modifs, numero_av, &jj(&date_contrat)?, &jj(&texte(premier, "effet"))?, &jour.jj_mm_aaaa(), ailleurs)
                 .map_err(Echec::from);
         }
         let mut remplacements: Vec<((String, String, String), (String, String))> = Vec::new();
@@ -1411,7 +1478,7 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, 
                 remplacements.push(((cle, debut, texte(c, "numero")), (numero, jj(&parti.date())?)));
             }
         }
-        documents::contrat::ecrire_contrat(&ctx_j, &paies, &ent, vers, &remplacements, mention).map_err(Echec::from)
+        documents::contrat::ecrire_contrat(&ctx_j, &paies, &ent, vers, &remplacements).map_err(Echec::from)
     };
     socle::temps::pendant(instant, ecrire)?;
     let pareils = contrats.iter().zip(&paies).all(|(c, p)| c.get("clauses").is_none() || crate::compagnie::signature::clauses_du_contrat(&ctx_j, p, &ent) == c["clauses"]);

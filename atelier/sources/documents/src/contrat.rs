@@ -221,26 +221,11 @@ pub fn mention_signature(nom: &str, quand: &str, adresse: &str, code: &str) -> S
     format!("Signé électroniquement le {}\npar {}\n{}\ncode de signature {}", quand, nom, adresse, code)
 }
 
-/// Le PDF de la description `d` d'un contrat ou d'un avenant, ecrit a `chemin`. `mention` : la mention de signature de
-/// l'artiste (`mention_signature`), posee dans sa case ; le contrat contresigne se verrouille (AES-256, impression et
-/// copie seules).
-fn ecrire_signe_ou_non(d: &Value, chemin: &Path, mention: Option<&str>) -> R<()> {
-    let fabrique = |m: String| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() };
-    let Some(mention) = mention else {
-        crate::fabrique::ecrire(d, chemin).map_err(fabrique)?;
-        return Ok(());
-    };
-    let octets = crate::fabrique::avec_mention_artiste(d, mention).and_then(|d| crate::fabrique::fabriquer_octets(&d)).and_then(|o| crate::fabrique::verrouiller(&o)).map_err(fabrique)?;
-    if let Some(parent) = chemin.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| Refus { classe: Some("OSError"), message: format!("{} : {}", parent.display(), e) })?;
-    }
-    std::fs::write(chemin, octets).map_err(|e| Refus { classe: Some("OSError"), message: format!("{} : {}", chemin.display(), e) })
-}
-
-/// Le contrat de `paies` (un par page), ecrit a `chemin` ; `mention` : contresigne par l'artiste (`ecrire_signe_ou_non`).
-/// Le contrat parti et son exemplaire contresigne se refont ainsi, depuis la version de l'engagement qui est partie.
-pub fn ecrire_contrat(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements, mention: Option<&str>) -> R<()> {
-    ecrire_signe_ou_non(&description(ctx, paies, ent, remplacements)?, chemin, mention)
+/// Le contrat de `paies` (un par page), ecrit a `chemin`. Le contrat parti se refait ainsi, depuis la version de
+/// l'engagement qui est partie ; son exemplaire contresigne est ce PDF-la, plus la mention de l'artiste
+/// (`fabrique_pdf::marquage::contresigner`).
+pub fn ecrire_contrat(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements) -> R<()> {
+    crate::fabrique::ecrire_pdf(&description(ctx, paies, ent, remplacements)?, chemin).map_err(Refus::from)
 }
 
 
@@ -295,7 +280,7 @@ fn reference_du_contrat(p: &Paie, date_contrat: &str, ailleurs: bool) -> String 
 }
 
 /// L'avenant en PDF, a l'identite de la compagnie, la signature de l'employeur posee comme sur
-/// le contrat ; `mention` : contresigne par l'artiste (`ecrire_signe_ou_non`). Les dates en JJ/MM/AAAA. `modifs` : ce que
+/// le contrat. Les dates en JJ/MM/AAAA. `modifs` : ce que
 /// `avenant-apercu` rend ; `ailleurs` : le contrat a ete signe hors du logiciel, ses modifications se disent en clair
 /// (`avenant::changements_en_clair`), par le paragraphe `{{modification.phrase}}` du bloc MODIFICATION:.
 #[allow(clippy::too_many_arguments)]
@@ -310,7 +295,6 @@ pub fn ecrire_avenant(
     effet: &str,
     date: &str,
     ailleurs: bool,
-    mention: Option<&str>,
 ) -> R<()> {
     if modifs.is_empty() {
         return Err(Refus { classe: Some("ValueError"), message: "Rien n'a changé : pas d'avenant à écrire.".into() });
@@ -338,5 +322,5 @@ pub fn ecrire_avenant(
         ("avenant.date", date.to_string()),
     ];
     let d = description_avenant(ctx, p, ent, modifs, &extra, ailleurs)?;
-    ecrire_signe_ou_non(&d, chemin, mention)
+    crate::fabrique::ecrire_pdf(&d, chemin).map_err(Refus::from)
 }

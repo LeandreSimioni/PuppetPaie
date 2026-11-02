@@ -30,20 +30,7 @@ pub fn ecrire_pdf(description: &Value, chemin: &Path) -> socle::echec::R<()> {
     ecrire(description, chemin).map(|_| ()).map_err(|m| socle::echec::erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))
 }
 
-/// La description, avec la mention de signature de l'artiste dans la case de chaque
-/// document (`modele.mention_artiste`). `Err` si la description n'a pas de `documents` ou un document pas de `modele`
-/// (refus sous la forme `'cle'`).
-pub fn avec_mention_artiste(description: &Value, mention: &str) -> Result<Value, String> {
-    let mut nouvelle = description.clone();
-    let documents = nouvelle.get_mut("documents").and_then(Value::as_array_mut).ok_or_else(|| socle::fichiers::absent("documents"))?;
-    for doc in documents.iter_mut() {
-        let modele = doc.get_mut("modele").and_then(Value::as_object_mut).ok_or_else(|| socle::fichiers::absent("modele"))?;
-        modele.insert("mention_artiste".into(), Value::String(mention.to_string()));
-    }
-    Ok(nouvelle)
-}
-
-/// Les octets du PDF de `description`, sans fichier (`contrat._regenerer`).
+/// Les octets du PDF de `description`, sans fichier.
 pub fn fabriquer_octets(description: &Value) -> Result<Vec<u8>, String> {
     let texte = serde_json::to_string(description).map_err(|e| e.to_string())?;
     fabrique_pdf::fabriquer(&texte).map_err(|r| r.0.replace('\n', " "))
@@ -74,7 +61,7 @@ pub fn fusion_pieces(pieces: &[(PathBuf, Option<Vec<usize>>)]) -> Result<Vec<u8>
         ))
     };
     match fabrique_pdf::assemblage::assembler(&description.to_string()).map_err(|r| refus(&r.0))? {
-        // Une piece verrouillee (le contrat contresigne) garde son verrou dans ce qui la porte.
+        // Une piece verrouillee (un PDF venu d'ailleurs, tel qu'il a ete depose) garde son verrou dans ce qui la porte.
         (octets, true) => verrouiller(&octets).map_err(|m| refus(&m)),
         (octets, false) => Ok(octets),
     }

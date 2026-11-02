@@ -1,9 +1,6 @@
-//! La contresignature par régénération : le modèle donné en texte (`modele.texte`) et la mention de
-//! l'artiste (`modele.mention_artiste`). Le contrat signé se refait depuis la description gardée à
-//! l'envoi : sans mention c'est le même PDF au bit près, avec elle seule la case de l'artiste change.
+//! Le contrat refait depuis sa description : le modèle donné en texte (`modele.texte`) donne le même PDF que son
+//! fichier, au bit près ; l'exemplaire contresigné est ce PDF, plus la mention de l'artiste (`marquage::contresigner`).
 
-use lopdf::content::Content;
-use lopdf::{Document, Object};
 use serde_json::{json, Value};
 
 const MODELE: &str = "TITRE: Contrat n° {{contrat.numero}}\n\
@@ -30,34 +27,6 @@ fn fabriquer(v: &Value) -> Result<Vec<u8>, String> {
     })
 }
 
-/// Le texte de la première page, chaînes des opérateurs Tj / TJ mises bout à bout, une par ligne.
-fn texte(octets: &[u8]) -> Vec<String> {
-    let doc = Document::load_mem(octets).unwrap();
-    let id = *doc.get_pages().values().next().unwrap();
-    let contenu = Content::decode(&doc.get_page_content(id).unwrap()).unwrap();
-    let mut lignes = Vec::new();
-    for op in contenu.operations {
-        if op.operator == "Tj" || op.operator == "TJ" {
-            let mut t = String::new();
-            for o in &op.operands {
-                match o {
-                    Object::String(s, _) => t.extend(caracteres(s)),
-                    Object::Array(a) => {
-                        for x in a {
-                            if let Object::String(s, _) = x {
-                                t.extend(caracteres(s));
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            lignes.push(t);
-        }
-    }
-    lignes
-}
-
 #[test]
 fn le_modele_en_texte_donne_le_meme_pdf_que_le_fichier() {
     let f = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("regeneration.modele");
@@ -80,48 +49,24 @@ fn le_chemin_et_le_texte_s_excluent_et_l_un_des_deux_est_requis() {
     assert_eq!(e, "le modèle donné en texte ne contient aucun article");
 }
 
+/// L'exemplaire contresigné est le contrat parti, plus la mention : ses octets commencent par ceux du PDF
+/// parti (une mise à jour incrémentale, ISO 32000-2, 7.5.6), et sans ce qui les suit c'est le contrat parti.
 #[test]
-fn la_mention_ne_change_que_la_case_de_l_artiste() {
-    let sans = fabriquer(&description(json!({"texte": MODELE}))).unwrap();
-    let avec = fabriquer(&description(json!({"texte": MODELE, "mention_artiste": MENTION}))).unwrap();
-    assert_ne!(sans, avec);
-    let (t_sans, t_avec) = (texte(&sans), texte(&avec));
+fn l_exemplaire_contresigne_est_le_contrat_parti_plus_la_mention() {
+    let parti = fabriquer(&description(json!({"texte": MODELE}))).unwrap();
+    let signe = fabrique_pdf::marquage::contresigner(&parti, MENTION).unwrap();
+    assert_eq!(&signe[..parti.len()], &parti[..]);
+    let doc = fabrique_pdf::lecture::charger(&signe).unwrap();
+    assert!(doc.trailer.get(b"Encrypt").is_err());
+    let (textes, _) = fabrique_pdf::texte::texte_des_pages(&doc);
     for l in MENTION.lines() {
-        assert!(t_avec.iter().any(|t| t == l), "la ligne {:?} manque : {:?}", l, t_avec);
+        assert!(textes[0].lines().any(|t| t == l), "la ligne {:?} manque : {:?}", l, textes[0]);
     }
-    // Retirez les lignes de la mention : c'est le texte du PDF sans mention, dans le même ordre.
-    let reste: Vec<String> = t_avec.into_iter().filter(|t| !MENTION.lines().any(|l| l == t)).collect();
-    assert_eq!(reste, t_sans);
-    // Rien n'a bougé ailleurs : même nombre de pages.
-    assert_eq!(Document::load_mem(&sans).unwrap().get_pages().len(), Document::load_mem(&avec).unwrap().get_pages().len());
-}
-
-#[test]
-fn la_mention_est_refusee_quand_elle_ne_tient_pas() {
-    let trop_de_lignes = "a\nb\nc\nd\ne\nf";
-    let e = fabriquer(&description(json!({"texte": MODELE, "mention_artiste": trop_de_lignes}))).unwrap_err();
-    assert!(e.contains("la mention de signature ne tient pas dans la case"), "{}", e);
-    let longue = "x".repeat(200);
-    let e = fabriquer(&description(json!({"texte": MODELE, "mention_artiste": longue}))).unwrap_err();
-    assert!(e.contains("trop longue"), "{}", e);
-    // Un caractère que la police elle-même n'a pas (un idéogramme) : refus d'une ligne.
-    let e = fabriquer(&description(json!({"texte": MODELE, "mention_artiste": "Signé 日本"}))).unwrap_err();
-    assert!(e.contains("« 日 »") && e.contains("Liberation"), "{}", e);
-}
-
-#[test]
-fn la_mention_ne_va_pas_avec_l_attestation() {
-    let mut d = description(json!({"texte": MODELE, "mention_artiste": MENTION}));
-    d["style"] = json!("attestation");
-    let e = fabriquer(&d).unwrap_err();
-    assert!(e.contains("n'a pas de case de l'artiste"), "{}", e);
-}
-
-/// Le texte d'une chaîne du PDF : deux octets par caractère (le point de code Unicode), la police
-/// étant embarquée en sous-ensemble.
-fn caracteres(octets: &[u8]) -> Vec<char> {
-    octets
-        .chunks(2)
-        .map(|c| char::from_u32(((c[0] as u32) << 8) | c[1] as u32).unwrap())
-        .collect()
+    // Une mention qui ne tient pas dans la case, ou un PDF sans case de l'artiste : refus d'une ligne.
+    let e = fabrique_pdf::marquage::contresigner(&parti, "a\nb\nc\nd\ne\nf").unwrap_err().0;
+    assert!(e.contains("ne tient pas dans la case") && !e.contains('\n'), "{}", e);
+    let mut attestation = description(json!({"texte": MODELE}));
+    attestation["style"] = json!("attestation");
+    let sans_case = fabriquer(&attestation).unwrap();
+    assert!(fabrique_pdf::marquage::contresigner(&sans_case, MENTION).unwrap_err().0.contains("case de l'artiste"));
 }
