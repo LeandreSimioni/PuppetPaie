@@ -125,13 +125,21 @@ impl<'a> Declarations<'a> {
         Ok(Declarations { ctx, departs, mois: avant, lus: BTreeMap::new() })
     }
 
-    /// Les individus que les paies declarees du `i`-ieme mois portent (`dsn::paies_declarees_du_mois`), avec la fiche
-    /// que leur calcul a lue : l'identite que leur DSN a ecrite.
+    /// Les individus que les paies du `i`-ieme mois qu'une DSN partie a declarees portent (`engagement::etats::paie_declaree`),
+    /// avec la fiche que leur calcul a lue : l'identite que leur DSN a ecrite. Une paie qu'aucune DSN n'a encore declaree
+    /// n'a rien dit de lui.
     fn lire(&mut self, i: usize) -> Resultat<&Vec<Declaree>> {
         if !self.lus.contains_key(&i) {
             let mois = &self.mois[i];
+            let ctx_m = self.ctx.du_mois(mois)?;
+            let mut paies = Vec::new();
+            for e in engagement::etats::du_mois(self.ctx, mois, self.departs)? {
+                if let Some(p) = e.valide().map(|v| engagement::etats::paie_declaree(&ctx_m, v.objet(), self.departs, mois)).transpose()?.flatten() {
+                    paies.push(p);
+                }
+            }
             let mut tous = Vec::new();
-            for p in crate::dsn::paies_declarees_du_mois(self.ctx, mois, None, self.departs)? {
+            for p in paies {
                 let s = &p.salarie;
                 let nir = crate::ntt::nir_de(s);
                 tous.push(Declaree {
@@ -179,6 +187,13 @@ devine pas. Rien n'est ecrit.",
         }
         Ok(None)
     }
+}
+
+/// L'identite que la derniere DSN mensuelle a declaree pour `salarie` (sa fiche lue), des mois saisis jusqu'a celui de
+/// `jour` compris : ce que lit une DSN hors du mois (un signalement, une demande de taux) pour poser son NTT
+/// (`ntt::poser_ntt`).
+pub fn derniere_declaree(ctx: &Contexte, salarie: &Value, jour: &Jour, departs: &engagement::departs::Departs) -> Resultat<Option<Declaree>> {
+    Declarations::avant(ctx, &jour.mois_suivant(), departs)?.derniere(salarie, &crate::ntt::brute(ctx, salarie))
 }
 
 fn qui(salarie: &Value) -> String {

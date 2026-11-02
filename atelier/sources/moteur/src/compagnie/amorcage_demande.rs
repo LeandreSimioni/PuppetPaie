@@ -6,8 +6,8 @@
 //! l'atelier ecrit sans le deposer (`produire`). UN SIGNALEMENT, UN INDIVIDU, UN FICHIER.
 //!
 //! UNE DEMANDE, UNE FOIS : un salarie dont l'engagement n'a pas de taux valide au jour de son versement est demande, sauf
-//! si une demande est partie depuis le dernier taux recu pour lui (sa reponse est attendue). Ce qui ne se demande pas se
-//! dit : un salarie sans NIR, une demande deja partie.
+//! si une demande est partie depuis le dernier taux recu pour lui et que sa reponse est encore attendue (`en_cours`). Ce qui
+//! ne se demande pas se dit : un salarie sans NIR, une demande deja partie.
 
 use std::path::PathBuf;
 
@@ -89,8 +89,13 @@ fn jours_ouvres_apres(depart: Jour, combien: i64) -> R<Jour> {
 }
 
 /// LA DEMANDE DE TAUX DU SALARIE `cle` QUI ATTEND SA REPONSE : le dernier signalement d'amorcage reel parti pour lui
-/// (accepte, et pas refuse au bilan : regle 5), s'il est parti apres le dernier taux recu pour lui. Il se lit au journal
-/// de ce qui est parti ; rien d'autre ne le garde.
+/// (accepte, et pas refuse au bilan : regle 5), s'il est parti apres le dernier taux recu pour lui, et tant que le delai
+/// de la reponse n'est pas passe (« un délai qui ne devrait pas excéder 5 jours ouvrés », BOI-IR-PAS-30-10-20, § 30).
+/// Passe ce delai, elle n'attend plus rien : sa paie prend la grille (§ 10, « à défaut, le taux résultant de
+/// l'application d'une grille de taux par défaut ») et le taux se demande de nouveau, comme la premiere fois (§ 20 :
+/// « peuvent demander [...] par anticipation ») ; INFERENCE : le texte ne dit pas ce que devient une demande restee sans
+/// reponse, il ne la fait pas attendre au-dela du delai. Il se lit au journal de ce qui est parti ; rien d'autre ne le
+/// garde.
 pub fn en_cours(ctx: &Contexte, cle: &str) -> R<Option<EnCours>> {
     let lignes = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
     let texte = |l: &Value, k: &str| l.get(k).map(valeur_en_texte).unwrap_or_default();
@@ -114,7 +119,8 @@ pub fn en_cours(ctx: &Contexte, cle: &str) -> R<Option<EnCours>> {
         return Ok(None);
     }
     let jour = Jour::lire(quand.get(..10).unwrap_or("")).map_err(|m| erreur("ValueError", m))?;
-    Ok(Some(EnCours { quand: jour, avant: jours_ouvres_apres(jour, 5)? }))
+    let avant = jours_ouvres_apres(jour, 5)?;
+    Ok((ctx.aujourdhui <= avant).then_some(EnCours { quand: jour, avant }))
 }
 
 /// QUI A BESOIN D'UN TAUX, et par quel contrat on le demanderait : un salarie dont un engagement de `paies` n'a pas de taux

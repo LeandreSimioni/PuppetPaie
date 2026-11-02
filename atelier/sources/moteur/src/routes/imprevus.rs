@@ -1290,7 +1290,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         envoi_test,
         date_constitution: Some(constitution),
     };
-    let texte = signalement::generer(ctx, &dsn_arret, &options).map_err(echec)?;
+    let texte = signalement::generer(ctx, &dsn_arret, &options, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?).map_err(echec)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
     crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
     Ok(json!({

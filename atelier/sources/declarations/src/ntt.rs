@@ -3,7 +3,7 @@
 //! Il se fabrique (sexe + SIREN + matricule), il ne se saisit pas. Les
 //! regles de forme CSL-11, CSL-12, CCH-13 et la longueur [11,40] sont ici.
 
-use socle::date::{en_texte, Jour};
+use socle::date::en_texte;
 use crate::dsn::Fichier;
 use socle::fichiers::{repr, vrai};
 use crate::formats;
@@ -124,29 +124,6 @@ pub fn brute(ctx: &droit::contexte::Contexte, salarie: &Value) -> Value {
     salarie.get("_cle").and_then(Value::as_str).and_then(|c| ctx.salarie_brut(c)).cloned().unwrap_or(Value::Null)
 }
 
-/// Le jour ou le NIR a pris effet, s'il a succede a une absence de NIR : le `depuis` du premier NIR de la fiche datee
-/// `brute` qui suit une valeur vide.
-pub fn depuis_quand_le_nir(brute: &Value) -> Resultat<Option<Jour>> {
-    let valeurs = droit::contexte::valeurs_datees(brute, "nir")?;
-    Ok(valeurs
-        .windows(2)
-        .find(|p| strip(&socle::date::en_texte(p[0].1)).is_empty() && !strip(&socle::date::en_texte(p[1].1)).is_empty())
-        .and_then(|p| p[1].0))
-}
-
-/// Cette declaration-ci doit-elle porter le NTT a cote du NIR ?
-pub fn accompagne_le_nir(brute: &Value, date_ref: &Jour) -> Resultat<bool> {
-    Ok(match depuis_quand_le_nir(brute)? {
-        None => false,
-        Some(depuis) => depuis >= Jour { an: date_ref.an, mois: date_ref.mois, jour: 1 },
-    })
-}
-
-/// Faut-il ecrire S21.G00.30.020 dans cette declaration ?
-pub fn besoin(salarie: &Value, brute: &Value, date_ref: &Jour) -> Resultat<bool> {
-    Ok(nir_de(salarie).is_empty() || accompagne_le_nir(brute, date_ref)?)
-}
-
 /// S21.G00.30.001, quand il y en a un -- et rien du tout sinon.
 pub fn poser_nir(f: &mut Fichier, salarie: &Value) -> Resultat<()> {
     let nir = nir_de(salarie);
@@ -156,27 +133,22 @@ pub fn poser_nir(f: &mut Fichier, salarie: &Value) -> Resultat<()> {
     Ok(())
 }
 
-/// S21.G00.30.020, apres le matricule. `brute` : la fiche datee du salarie (`Contexte::salarie_brut`).
-pub fn poser_ntt(f: &mut Fichier, ent: &Value, salarie: &Value, brute: &Value, date_ref: &Jour) -> Resultat<()> {
-    if besoin(salarie, brute, date_ref)? {
+/// S21.G00.30.020, apres le matricule, dans toute DSN (mensuelle, signalement, demande de taux). Sans NIR, le NTT du
+/// salarie (« En l'absence de NIR ou de NIA, il est obligatoire de remplir la rubrique ») ; avec un NIR, le NTT sous lequel
+/// la derniere DSN partie l'a declare quand elle ne portait pas de NIR, quel que soit le jour ou le NIR est arrive dans la
+/// fiche (« Le NTT doit etre renseigne sur la premiere DSN ou le NIR est attribue. Ceci permettra de faire le lien entre
+/// les deux identites declarees par l'employeur », et « le NTT le plus ancien en cours de validite » :
+/// `norme-dsn/texte/bloc-S21.G00.30.txt`, l. 348-354) ; sinon rien. `declaree` : l'identite que la derniere DSN a
+/// declaree pour lui (`changements_individu::Declarations::derniere`, ou `derniere_declaree`).
+pub fn poser_ntt(f: &mut Fichier, ent: &Value, salarie: &Value, declaree: Option<&crate::changements_individu::Declaree>) -> Resultat<()> {
+    if nir_de(salarie).is_empty() {
         f.add(RUBRIQUE, numero(ent, salarie)?);
+        return Ok(());
+    }
+    if let Some(n) = declaree.filter(|d| d.nir.is_empty()).map(|d| strip(&d.ntt)).filter(|n| !n.is_empty()) {
+        f.add(RUBRIQUE, n);
     }
     Ok(())
-}
-
-/// S21.G00.30.020 d'une DSN mensuelle, ou l'on sait ce qui a ete DECLARE pour ce salarie : `ntt_declare`
-/// est le NTT de sa derniere declaration quand elle ne portait pas de NIR. Si la fiche a maintenant un NIR, c'est la
-/// premiere DSN qui le porte : le NTT declare l'accompagne, quel que soit le mois ou le NIR a pris effet (« Le NTT doit
-/// etre renseigne sur la premiere DSN ou le NIR est attribue. Ceci permettra de faire le lien entre les deux
-/// identites », p. 175 ; « le NTT le plus ancien en cours de validite », meme page). Sinon, `poser_ntt`.
-pub fn poser_ntt_declare(f: &mut Fichier, ent: &Value, salarie: &Value, brute: &Value, date_ref: &Jour, ntt_declare: Option<&str>) -> Resultat<()> {
-    match ntt_declare.map(strip).filter(|n| !n.is_empty()) {
-        Some(n) if !nir_de(salarie).is_empty() => {
-            f.add(RUBRIQUE, n);
-            Ok(())
-        }
-        _ => poser_ntt(f, ent, salarie, brute, date_ref),
-    }
 }
 
 /// CCH-12 et CCH-14, verifies sur le fichier seul.

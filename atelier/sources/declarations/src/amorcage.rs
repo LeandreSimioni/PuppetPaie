@@ -272,7 +272,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
-    crate::ntt::poser_ntt(&mut f, ent, s, &crate::ntt::brute(ctx, s), &e.debut)?;
+    crate::ntt::poser_ntt(&mut f, ent, s, crate::changements_individu::derniere_declaree(ctx, s, &e.debut, departs)?.as_ref())?;
 
     // ------------------------------------------------------------ S21 contrat
     if !changement {

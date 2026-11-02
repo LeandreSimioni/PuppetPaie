@@ -4611,7 +4611,6 @@ certificat de conformite du depot precedent.",
             ordre.push(c);
         }
     }
-    let date_ref = premier(mois)?;
     // LES CONTRATS DE CHAQUE PERIODE DE PAIE, pour les emplois multiples (`40.036`) : ceux de la declaration et ceux de
     // ses engagements valides (`contrats_du_mois`) ; pour un contrat regularise, ceux de son mois d'origine.
     let du_mois = contrats_du_mois(ctx, mois, departs)?;
@@ -4671,11 +4670,10 @@ certificat de conformite du depot precedent.",
             let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
             f.add_v(rub, &v)?;
         }
-        // L'identite DECLAREE, relue dans la derniere paie declaree qui le porte. Declare sans NIR, sous un NTT :
-        // la premiere DSN qui porte son NIR porte aussi ce NTT, quel que soit le mois ou le NIR est arrive (fiche N4).
+        // L'identite DECLAREE, relue dans la derniere paie declaree qui le porte : son NTT, s'il etait declare sans NIR
+        // (`ntt::poser_ntt`).
         let declaree = declarations.derniere(&ident, &brute)?;
-        let ntt_declare = declaree.as_ref().filter(|d| d.nir.is_empty()).map(|d| d.ntt.as_str());
-        crate::ntt::poser_ntt_declare(&mut f, &ent_e, &ident, &brute, &date_ref, ntt_declare)?;
+        crate::ntt::poser_ntt(&mut f, &ent_e, &ident, declaree.as_ref())?;
         // LE BLOC 31 : ce qui differe de l'identite declaree, a l'ancienne valeur, date par l'historique de la fiche ; un
         // changement que la fiche ne date pas refuse.
         crate::changements_individu::ecrire(&mut f, &ident, &brute, declaree.as_ref(), mois, &fin_m)?;

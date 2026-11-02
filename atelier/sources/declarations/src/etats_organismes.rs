@@ -289,8 +289,19 @@ pub type DsnDuMois<'a> = &'a dyn Fn(&Contexte, &str, Option<&str>) -> socle::ech
 /// partie, ou celle qui partirait (`dsn_du_mois`) : `(mois, nic, la DSN, partie)`. Un mois sans DSN est dit.
 fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, dsn_du_mois: DsnDuMois) -> R<Vec<(String, String, crate::dsn::Fabriquee, bool)>> {
     let (mut out, mut sans) = (Vec::new(), Vec::new());
+    // UN MOIS REPRIS D'UN ANCIEN LOGICIEL n'a pas de DSN de ce logiciel : ses versements se composent sur les bases du
+    // calcul de chaque paie (`engagement::calcul`, les bases globales : assiettes majorees de 15 et 10 %, plafonnees,
+    // abattues), que ses bulletins n'impriment pas.
+    let importes: Vec<String> = p.mois.iter().filter(|m| p.dispo.get(*m) == Some(&documents::etats_paie::IMPORTE)).cloned().collect();
+    if !importes.is_empty() {
+        let quand = if importes.len() == p.mois.len() { format!("Les paies de {}", p.libelle) } else { format!("Les paies de {}", importes.iter().map(|m| engagement::libelle_mois(m)).collect::<Vec<_>>().join(", ")) };
+        avert.push(format!(
+            "{} sont reprises d'un ancien logiciel : leurs versements ne se composent pas ici. La DSN se compose sur les assiettes que ce logiciel calcule (majorées, plafonnées), et leurs bulletins ne les impriment pas.",
+            quand
+        ));
+    }
     let principal = droit::bareme::nic_principal(&ctx.entreprise);
-    for m in &p.mois {
+    for m in p.mois.iter().filter(|m| !importes.contains(m)) {
         let mut une = false;
         for nic in crate::dsn::nics(&ctx.entreprise) {
             let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
@@ -307,6 +318,12 @@ fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, dsn_du_moi
         avert.push(format!("Aucune DSN partie ni paie validée pour {} : ces mois ne sont pas dans l'état.", sans.join(", ")));
     }
     if out.is_empty() {
+        // Seuls des mois repris : la raison qu'ils n'y sont pas est la reponse.
+        if sans.is_empty() {
+            if let Some(repris) = avert.pop() {
+                return Err(refus(repris));
+            }
+        }
         return Err(refus(format!("Aucune DSN partie ni paie validée sur la période ({}) : il n'y a rien à lire.", p.libelle)));
     }
     Ok(out)

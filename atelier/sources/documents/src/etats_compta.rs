@@ -1083,6 +1083,95 @@ fn taux_patronal(lignes: &[crate::etats_paie::LigneLivre], cle: &str, jusqu_a: &
     Ok((Some(quant(div(mul(pat, Decimal::ONE_HUNDRED), brut), 2)), n))
 }
 
+/// LA PROVISION D'UNE ANNEE REPRISE D'UN ANCIEN LOGICIEL, au dernier jour du dernier mois repris `m` : celle de chaque
+/// salarie au mois dont le contrat repris court au-dela. Ses jours sont ceux que la personne a recopies du dernier bulletin
+/// de l'ancien logiciel dans sa fiche (`conges_reprise`, dates du premier jour paye ici, que « Pour démarrer » demande :
+/// `declarations::demarrage`), soit son compteur a ce jour-la (`engagement::conges::compteur_a_la_reprise`). L'assiette du
+/// dixieme est « la rémunération brute totale perçue par le salarié au cours de la période de référence » (C. trav.
+/// L3141-24, I, `code-du-travail/articles-20260919.md`) : la somme des bruts que ses bulletins repris impriment sur la
+/// periode, et sur celle du report pour les jours reportes, quand les bulletins repris couvrent la periode entiere ;
+/// sinon la remuneration que la fiche recopie. INFERENCES : le brut imprime est cette remuneration (le bulletin ne
+/// detaille pas ce que L3141-24 ajoute ou retire) ; le maintien (L3141-24, II) prend pour salaire mensuel le brut du
+/// dernier mois repris.
+fn provision_d_une_annee_importee(
+    ctx: &Contexte,
+    d: &Demande,
+    p: &Periode,
+    m: &str,
+    a_provisionner: &mut Vec<(String, String, String, engagement::conges::Provision)>,
+    avert: &mut Vec<String>,
+) -> R<usize> {
+    let ko = |x: String| erreur("ErreurOperation", x);
+    let fin = socle::date::dernier_du_mois(m).map_err(|x| erreur("ValueError", x))?;
+    let lendemain = fin.plus_jours(1).map_err(|x| erreur("ValueError", x))?;
+    let importes: Vec<String> = p.dispo.iter().filter(|(_, s)| **s == crate::etats_paie::IMPORTE).map(|(k, _)| k.clone()).collect();
+    let premier_importe = importes.first().cloned().unwrap_or_default();
+    let mut lecture = crate::etats_paie::Lecture::nouvelle(ctx, &d.departs);
+    let mut sans_compteur = 0;
+    let cle_de = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_else(|| p.engagement.salarie.clone());
+    // Les salaries dont un contrat repris court au-dela du dernier jour repris : sa fin, telle que l'import l'a lue
+    // (`contrat_fin`), vide ou apres lui (l'engagement repris s'arrete, lui, au bout du mois paye).
+    let continuent: BTreeSet<String> = engagement::importe::contrats_lus(&ctx.racine)
+        .map_err(ko)?
+        .iter()
+        .filter(|e| e.get("contrat_fin").filter(|v| vrai(v)).map(valeur_en_texte).is_none_or(|f| f > fin.iso()))
+        .filter_map(|e| e.get("salarie").filter(|v| vrai(v)).map(valeur_en_texte))
+        .collect();
+    let paies = lecture.paies(m)?;
+    // Les bruts repris d'un salarie du mois de `du` a celui de `au`, et si les bulletins repris couvrent ces mois.
+    let mut bruts = |cle: &str, du: &socle::date::Jour, au: &socle::date::Jour| -> R<(Decimal, bool)> {
+        let mut total = zero2();
+        for mois in importes.iter().filter(|x| x.as_str() >= du.mois_iso().as_str() && x.as_str() <= au.mois_iso().as_str()) {
+            for q in lecture.paies(mois)?.iter().filter(|q| q.importee.is_some() && cle_de(q) == cle) {
+                total = add(total, q.brut);
+            }
+        }
+        Ok((total, premier_importe.as_str() <= du.mois_iso().as_str()))
+    };
+    for pa in paies.iter().filter(|q| q.importee.is_some()) {
+        let nat = pa.engagement.nat().map_err(|x| refus(x))?;
+        let cle = cle_de(pa);
+        if !nat.mensuelle() || !continuent.contains(&cle) {
+            continue;
+        }
+        if a_provisionner.iter().any(|(c, ..)| *c == cle) {
+            continue;
+        }
+        let date = ctx.salaries.get(&cle).and_then(|f| f.pointer("/conges_reprise/date")).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+        let Some(mut cpt) = engagement::conges::compteur_a_la_reprise(ctx, &cle).map_err(ko)?.filter(|_| date == lendemain.iso()) else {
+            avert.push(format!(
+                "{} : sa fiche ne dit pas ses congés payés au {} (« Congés payés à la reprise », recopiés de son dernier bulletin repris) : son compteur ne se lit pas, il n'est pas dans la provision.",
+                ctx.nomme(&cle),
+                lendemain.jj_mm_aaaa()
+            ));
+            sans_compteur += 1;
+            continue;
+        };
+        let (periode, couverte) = bruts(&cle, &cpt.periode_debut, &fin)?;
+        if couverte {
+            if !cpt.remuneration_periode.is_zero() && cpt.remuneration_periode != periode {
+                avert.push(format!(
+                    "{} : la rémunération de la période que sa fiche recopie ({} €) n'est pas la somme des bruts de ses bulletins repris ({} €) ; la provision prend les bulletins.",
+                    ctx.nomme(&cle),
+                    crate::bulletin::fmt_eur(cpt.remuneration_periode),
+                    crate::bulletin::fmt_eur(periode)
+                ));
+            }
+            cpt.remuneration_periode = periode;
+        }
+        if let (Some(du), Some(au)) = (cpt.report_debut, cpt.report_fin) {
+            let (report, couverte) = bruts(&cle, &du, &au)?;
+            if couverte {
+                cpt.remuneration_report = report;
+            }
+        }
+        let salaire = paies.iter().filter(|q| q.importee.is_some() && cle_de(q) == cle).fold(zero2(), |a, q| add(a, q.brut));
+        let provision = engagement::conges::provision_du_compteur(cpt, m, salaire).map_err(ko)?;
+        a_provisionner.push((cle, pa.engagement.numero.clone().unwrap_or_default(), nat.libelle.clone(), provision));
+    }
+    Ok(sans_compteur)
+}
+
 /// `provision_conges` : la dette de conges payes des salaries au mois a la fin de la periode -- ce que la compagnie
 /// devrait s'ils partaient ce jour-la. Un salarie, une ligne ; les intermittents n'y sont pas.
 pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
@@ -1091,39 +1180,53 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         return Err(refus("La provision de congés se calcule à UNE date : demander un mois (la fin du mois) ou une année (la fin du dernier mois produit)."));
     }
     let p = Periode::de(ctx, d, true)?;
+    let mut avert: Vec<String> = Vec::new();
+    let zero = zero2();
+    let cle_de = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_else(|| p.engagement.salarie.clone());
+    // CE QUI SE PROVISIONNE, salarie par salarie : (cle, contrat, nature, compteur et indemnite a la fin du mois `m`).
+    let mut a_provisionner: Vec<(String, String, String, engagement::conges::Provision)> = Vec::new();
     let saisis = p.saisis();
-    let Some(m) = saisis.last().cloned() else {
-        return Err(refus(format!("Aucun mois saisi dans PuppetPaie sur la période ({}) : la provision se calcule sur les paies du logiciel.", p.libelle)));
+    let mut sans_compteur = 0;
+    let m = match saisis.last().cloned() {
+        Some(m) => {
+            let fin = socle::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
+            // Ce qui a ete paye ce mois-la : les paies ecrites de ses engagements valides, la saisie au meme rang.
+            let (saisie, paies) = charger_mois(ctx, &m, &d.departs)?;
+            let vide = Vec::new();
+            let engagements = saisie.get("engagements").and_then(Value::as_array).unwrap_or(&vide);
+            for (e, pa) in engagements.iter().zip(paies.iter()) {
+                let nat = pa.engagement.nat().map_err(|x| refus(x))?;
+                // Un contrat fini ce mois-ci a eu son solde de tout compte : les conges non pris y sont payes, il n'y a plus de dette.
+                if !nat.mensuelle() || pa.engagement.fin.is_some_and(|f| f <= fin) {
+                    continue;
+                }
+                let cle = cle_de(pa);
+                if a_provisionner.iter().any(|(c, ..)| *c == cle) {
+                    continue;
+                }
+                let brut_du_mois = paies.iter().filter(|q| cle_de(q) == cle).fold(zero, |a, q| add(a, q.brut));
+                let Some(cpt) = engagement::conges::provision_conges_de(pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)? else { continue };
+                a_provisionner.push((cle, texte_ou_vide(e.get("numero")), nat.libelle.clone(), cpt));
+            }
+            m
+        }
+        None => {
+            let importes: Vec<String> = p.mois.iter().filter(|m| p.dispo.get(*m) == Some(&crate::etats_paie::IMPORTE)).cloned().collect();
+            let Some(m) = importes.last().cloned() else {
+                return Err(refus(format!("Aucun mois saisi ni repris d'un ancien logiciel sur la période ({}) : il n'y a pas de congés à provisionner.", p.libelle)));
+            };
+            sans_compteur = provision_d_une_annee_importee(ctx, d, &p, &m, &mut a_provisionner, &mut avert)?;
+            m
+        }
     };
     let fin = socle::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
-    let mut avert: Vec<String> = Vec::new();
-    // Ce qui a ete paye ce mois-la : les paies ecrites de ses engagements valides, la saisie au meme rang.
-    let (saisie, paies) = charger_mois(ctx, &m, &d.departs)?;
     let toutes = Periode::nouvelle(ctx, None, None, true, true)?;
     let livre = lignes_livre(ctx, &toutes, &mut Vec::new(), &d.departs)?;
-    let zero = zero2();
     let mut lignes: Vec<Ligne> = Vec::new();
-    let mut vus: BTreeSet<String> = BTreeSet::new();
-    let vide = Vec::new();
-    let engagements = saisie.get("engagements").and_then(Value::as_array).unwrap_or(&vide);
-    let cle_de = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_else(|| p.engagement.salarie.clone());
-    for (e, pa) in engagements.iter().zip(paies.iter()) {
-        let nat = pa.engagement.nat().map_err(|x| refus(x))?;
-        if !nat.mensuelle() {
-            continue;
-        }
-        if pa.engagement.fin.is_some_and(|f| f <= fin) {
-            // Un contrat fini ce mois-ci a eu son solde de tout compte : les conges non pris y sont payes, il n'y a plus de dette.
-            continue;
-        }
-        let cle = cle_de(pa);
-        if !vus.insert(cle.clone()) {
-            continue;
-        }
-        let brut_du_mois = paies.iter().filter(|q| cle_de(q) == cle).fold(zero, |a, q| add(a, q.brut));
-        let Some(cpt) = engagement::conges::provision_conges_de(pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)? else { continue };
+    for (cle, contrat, nature, cpt) in a_provisionner {
         for a in &cpt.avertissements {
-            avert.push(format!("{} : {}", cle, a.texte));
+            // Un avis du compteur nomme deja son salarie.
+            avert.push(if a.texte.starts_with(&format!("{} :", cle)) { a.texte.clone() } else { format!("{} : {}", cle, a.texte) });
         }
         let (dixieme, maintien, retenu, regle) = match &cpt.indemnite {
             Some(i) => (i.dixieme, i.maintien, i.retenu, i.regle.to_string()),
@@ -1147,14 +1250,14 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let prenom = texte_ou_vide(fiche.get("prenom"));
         let mut l = Ligne::nouvelle();
         l.t("salarie", format!("{} {}", nom, prenom));
-        l.t("contrat", texte_ou_vide(e.get("numero"))).t("nature", nat.libelle.clone());
+        l.t("contrat", contrat).t("nature", nature);
         l.d("report", arrondir_jours(cpt.report_restant)).d("acquis", arrondir_jours(cpt.acquis)).d("pris", arrondir_jours(cpt.pris)).d("solde", arrondir_jours(cpt.solde));
         l.d("dixieme", dixieme).d("maintien", maintien).d("indemnite", retenu).t("regle", regle);
         l.od("taux_patronal", taux).n("bulletins", n).od("charges", charges);
         l.od("total", charges.map(|c| add(retenu, c)));
         lignes.push(l);
     }
-    if lignes.is_empty() {
+    if lignes.is_empty() && sans_compteur == 0 {
         // RIEN A PROVISIONNER N'EST PAS UNE ERREUR : le comptable qui la demande a sa reponse -- zero, et pourquoi.
         avert.push(format!(
             "Aucun salarié au mois sous contrat au {} : pas de congés payés à provisionner (les intermittents relèvent de la Caisse des Congés Spectacles, à laquelle la compagnie cotise chaque mois).",

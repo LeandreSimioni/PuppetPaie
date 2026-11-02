@@ -564,3 +564,33 @@ fn le_bulletin_d_un_mois_ne_remplace_que_ce_mois_du_certificat_et_l_emporte_sur_
     assert_eq!(contrats.len(), 1, "{:?}", contrats);
     assert_eq!((&contrats[0]["atteste_par"], &contrats[0]["cachets"], &contrats[0]["brut"]), (&json!("bulletin"), &json!(2), &json!("590.00")), "{}", contrats[0]);
 }
+
+/// LA PROVISION DE CONGES D'UNE ANNEE REPRISE : au dernier jour repris (31/05/2025), le compteur d'un permanent dont le
+/// contrat continue est celui que sa fiche reprend au lendemain (`conges_reprise`), et son indemnite « égale au dixième
+/// de la rémunération brute totale perçue par le salarié au cours de la période de référence », ou le maintien s'il est
+/// plus fort (C. trav. L3141-24, `code-du-travail/articles-20260919.md`) : 25 jours reportés d'une période payée
+/// 24 000 € valent 2 400 €. Les bulletins repris ne couvrant pas cette période, c'est la rémunération recopiée qui compte.
+#[test]
+fn la_provision_d_une_annee_reprise_part_du_compteur_repris() {
+    let racine = neuve("provision");
+    let import = racine.join("import");
+    std::fs::create_dir_all(&import).unwrap();
+    pdf(vec![page_a(&permanent())], &import.join("permanent.pdf"));
+    reussi(&route(&racine, "importer", json!({"dossier": ""})));
+    let etat = reussi(&route(&racine, "importation-etat", json!({}))).clone();
+    let cle = etat["a_dire"][0]["salarie"].as_str().unwrap().to_string();
+    reussi(&route(&racine, "importation-nature", json!({"salarie": cle, "nature": "cdi", "debut": "15/01/2024", "numero": "00042", "salaire": "2 400,50", "quotite": "151,67"})));
+    // Le taux AT/MP de l'année, que la DSN reprise aurait donné, la première embauche et la santé : le barème de chaque
+    // paie reprise les lit.
+    crate::outils::ecrire(&racine, "config/baremes/2025.json", &json!({"annee": 2025, "socle": 2025, "taux_atmp": {"valeur": 1.65, "code_risque": "923AD"}}));
+    reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "donnees": {"premiere_embauche": "2024-01-15"}})));
+    reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "salarie", "cle": cle, "donnees": {"sante_svp": {"niveau": "1"}}})));
+    let sans = reussi(&route(&racine, "exporter", json!({"etat": "provision-conges", "annee": "2025"}))).clone();
+    assert!(sans["sections"][0]["lignes"].as_array().unwrap().is_empty(), "sans compteur repris, rien ne se devine : {}", sans);
+
+    reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "salarie", "cle": cle, "donnees": {"conges_reprise": {
+        "date": "2025-06-01", "report": "25", "acquis_report": "25", "acquis": "0", "pris": "0", "remuneration_report": "24000"}}})));
+    let r = reussi(&route(&racine, "exporter", json!({"etat": "provision-conges", "annee": "2025"}))).clone();
+    let l = &r["sections"][0]["lignes"][0];
+    assert_eq!((l["solde"].clone(), l["dixieme"].clone(), l["indemnite"].clone()), (json!("25"), json!("2400.00"), json!("2400.00")), "{}", r);
+}

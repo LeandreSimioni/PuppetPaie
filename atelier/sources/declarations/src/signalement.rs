@@ -345,8 +345,8 @@ impl Default for Options {
     }
 }
 
-/// Le fichier d'un signalement, pret a deposer.
-pub fn generer(ctx: &Contexte, a: &Arret, o: &Options) -> R<String> {
+/// Le fichier d'un signalement, pret a deposer. `departs` : ce qui est parti, pour l'identite declaree (`ntt::poser_ntt`).
+pub fn generer(ctx: &Contexte, a: &Arret, o: &Options, departs: &engagement::departs::Departs) -> R<String> {
     let nature = o.nature.as_str();
     if nature != ARRET && nature != REPRISE {
         return impossible(nature_inconnue(nature));
@@ -451,7 +451,7 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.30.004", req(&salarie, "prenom")?)?;
     f.add("S21.G00.30.006", d(req(&salarie, "date_naissance")?)?.jjmmaaaa());
     f.add_v("S21.G00.30.019", req(&salarie, "code_salarie")?)?;
-    crate::ntt::poser_ntt(&mut f, ent, &salarie, &crate::ntt::brute(ctx, &salarie), &jours(a, "dernier_jour_travaille")?)?;
+    crate::ntt::poser_ntt(&mut f, ent, &salarie, crate::changements_individu::derniere_declaree(ctx, &salarie, &jours(a, "dernier_jour_travaille")?, departs)?.as_ref())?;
 
     // -------------------------------------------------------- S21 contrat
     f.add("S21.G00.40.001", jours(a, "contrat_debut")?.jjmmaaaa());
