@@ -243,10 +243,24 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // ne se pose pas (III.3.1.b, `droit::bareme::representation_du_personnel`).
     let cle = "representation_personnel";
     let par_representation = |b: &Value| b["contributions_conventionnelles"].as_array().is_some_and(|l| l.iter().any(|c| c.get("par_representation").is_some()));
-    let onze = ctx.effectif().ok().and_then(|e| e.valeur(an)).is_some_and(|e| e >= 11.0);
-    if onze && !valeur(ent, cle).is_some_and(vrai) && ctx.bareme(&ctx.aujourdhui).is_ok_and(|b| par_representation(&b)) {
-        let (libelle, aide) = champ(cle);
-        out.push(manque(cle, libelle, "la contribution au FNAS de chaque paie", ENTREPRISE, Some(cle), aide));
+    // Sans CSE dit, c'est l'effectif de la paie (celui de l'annee d'avant, L. 130-1, I) qui decide (III.3.1.b) : inconnu,
+    // c'est lui que la contribution demande, pas le CSE.
+    if !valeur(ent, cle).is_some_and(vrai) && ctx.bareme(&ctx.aujourdhui).is_ok_and(|b| par_representation(&b)) {
+        match ctx.effectif().ok().and_then(|e| e.valeur(an)) {
+            Some(e) if e >= 11.0 => {
+                let (libelle, aide) = champ(cle);
+                out.push(manque(cle, libelle, "la contribution au FNAS de chaque paie", ENTREPRISE, Some(cle), aide));
+            }
+            Some(_) => {}
+            None => out.push(manque(
+                "effectif",
+                format!("L'effectif de {}", an - 1),
+                "la contribution au FNAS de chaque paie",
+                ENTREPRISE,
+                None,
+                format!("Sans comité social et économique dit, la CCNEAC fixe la contribution au FNAS par l'effectif (article III.3.1) : celui de {} tel que l'Urssaf l'a calculé (compte rendu « Effectifs » de nature 118), sous « Avancé », ou le comité dans Configuration › Entreprise.", an - 1),
+            )),
+        }
     }
     // EN ALSACE-MOSELLE, le taux pose a la creation (celui de l'annexe 1) ne vaut pas : l'annexe 3 en fixe d'autres (art. 4
     // de l'arrete, `atelier/reference/sources/tarification-atmp/`), et le taux se saisit (`droit::bareme::taux_de_l_arrete`).

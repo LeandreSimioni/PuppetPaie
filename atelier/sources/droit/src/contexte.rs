@@ -391,18 +391,15 @@ impl Effectif {
         }
     }
 
-    /// LES ANNEES DONT L'EFFECTIF MANQUE POUR PAYER EN `annee_paie` : la derniere, quand aucune n'est connue avant
-    /// (`valeur`, qui fait le taux de la paie) ; celles des cinq dernieres que le plus petit seuil ne departage pas
-    /// (`atteint`, L. 130-1, II, CSS). Vide : l'effectif de la paie est connu.
+    /// LES ANNEES DONT L'EFFECTIF MANQUE POUR LES TAUX DE LA PAIE EN `annee_paie` : celles des cinq dernieres que le plus
+    /// petit seuil ne departage pas (`atteint`, L. 130-1, II, CSS) ; ce sont elles qui font les taux a seuil
+    /// (`controler_effectif`). Vide : les seuils de la paie sont connus. Ce qui lit l'effectif de l'annee d'avant
+    /// (`valeur` : le FNAS de la CCNEAC sans CSE dit) le demande lui-meme.
     pub fn a_dire(&self, annee_paie: i32) -> Vec<i32> {
-        let mut v: Vec<i32> = Vec::new();
-        if self.atteint(PLUS_PETIT_SEUIL, annee_paie).is_err() {
-            v.extend((annee_paie - ANNEES_CONSECUTIVES..annee_paie).filter(|a| self.annee(*a).is_none()));
+        if self.atteint(PLUS_PETIT_SEUIL, annee_paie).is_ok() {
+            return Vec::new();
         }
-        if self.valeur(annee_paie).is_none() && !v.contains(&(annee_paie - 1)) {
-            v.push(annee_paie - 1);
-        }
-        v
+        (annee_paie - ANNEES_CONSECUTIVES..annee_paie).filter(|a| self.annee(*a).is_none()).collect()
     }
 
     /// Le seuil est-il franchi pour payer en `annee_paie` ? (L. 130-1, II, CSS :
