@@ -11,7 +11,7 @@ async function dessinerDiagnostic(rang) {
   // rallume d'un clic. Coupé, rien ne part ; le journal reste sur le poste.
   const couper = rang.querySelector("#k-diag-couper");
   couper.hidden = false;
-  couper.textContent = d.envoi === false ? "Réactiver" : "Désactiver";
+  couper.textContent = k.couper;
   couper.onclick = async () => {
     if (d.envoi !== false) {
       const a = k.desactiver || {};
@@ -57,7 +57,7 @@ function boiteDiagnostic(d, rang, signales = []) {
           <b>${echapper(NOMS[g.quoi] || g.quoi)}</b>
           ${g.combien > 1 ? `<span class="discret">× ${g.combien}</span>` : ""}
           — ${echapper(g.resume || g.genre || "")}
-          <br><span class="discret">${echapper(g.ou || "")} · dernier le ${echapper(quand(g.derniere))}</span>
+          <br><span class="discret">${echapper(g.ou || "")} · ${echapper(g.dernier_dit)}</span>
           <br>${pastilleDeLEtat(g.pastille)}
           <button class="lien d-contenu" data-i="${i}">voir le contenu exact</button>
           <pre class="d-pre" data-i="${i}" hidden></pre></span>
@@ -165,7 +165,7 @@ function boiteSignalement() {
 
   const dessinerVignettes = () => {
     $("sg-vignettes").innerHTML = captures.map((c, i) => `
-      <span class="sg-vignette"><img src="${c.donnees}" alt="Capture ${i + 1}">
+      <span class="sg-vignette"><img src="${c.donnees}" alt="Capture">
         <button type="button" class="sg-retirer" data-i="${i}" title="Retirer cette capture">×</button></span>`).join("")
       + `<span class="sg-vignette sg-en-cours">capture…</span>`.repeat(enCours.size);
     $("sg-vignettes").querySelectorAll(".sg-retirer").forEach((b) => {
@@ -265,9 +265,7 @@ function boiteSignalement() {
     const pastille = document.createElement("button");
     pastille.type = "button";
     pastille.className = "sg-pastille";
-    pastille.textContent = "Message en cours"
-      + (captures.length ? ` (${captures.length} capture${captures.length > 1 ? "s" : ""})` : "")
-      + " — reprendre";
+    pastille.textContent = "Message en cours — reprendre";
     SIGNALEMENT_REDUIT = () => {
       SIGNALEMENT_REDUIT = null;
       pastille.remove();
@@ -450,10 +448,10 @@ function suivreLesMessages(boite, depuis) {
 /** La pastille des réponses. `lus` : les signalements déjà lus (l'ouverture d'un coup, js/demarrage.js), sinon on
  *  les demande. */
 async function dessinerPastilleReponses(lus) {
-  let n = 0;
-  try { n = (lus || await api("signalements")).non_lues || 0; } catch (e) { return; }
+  let s;
+  try { s = lus || await api("signalements"); } catch (e) { return; }
   document.getElementById("signaler").innerHTML = "Un problème, une idée ?"
-    + (n ? ` <span class="sg-nouvelles">· ${n} réponse${n > 1 ? "s" : ""}</span>` : "");
+    + (s.reponses_dit ? ` <span class="sg-nouvelles">· ${echapper(s.reponses_dit)}</span>` : "");
 }
 
 function listeSignalements(liste) {

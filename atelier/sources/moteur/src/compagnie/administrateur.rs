@@ -222,6 +222,14 @@ pub fn etat(inst: &Path, racine: Option<&Path>, poste: &Poste) -> Value {
         reelles(inst).into_iter().filter(|c| relatif(inst, &c.racine) != relatif(inst, racine) && exigee(poste, &c.racine)).map(|c| c.nom).collect()
     };
     v["autres"] = json!(autres);
+    // Les autres, en liste lisible (« A, B et C »), et ce que le titre du mot de passe en dit.
+    let en_liste = match autres.as_slice() {
+        [] => String::new(),
+        [un] => un.clone(),
+        [tete @ .., dernier] => format!("{} et {}", tete.join(", "), dernier),
+    };
+    v["autres_dit"] = json!(en_liste);
+    v["ouvre_aussi_dit"] = if en_liste.is_empty() { Value::Null } else { json!(format!("il ouvre aussi {}", en_liste)) };
     v["peut_rattacher"] = json!(!fictive && !rattachee && !autres.is_empty() && !crate::compagnie::bridage::est_bride_de(inst));
     v["question"] = json!(!fictive && !rattachee && !autres.is_empty() && !exigee(poste, racine) && !crate::compagnie::bridage::est_bride_de(inst));
     v["mot_de_passe_pose"] = json!(exigee(poste, racine));

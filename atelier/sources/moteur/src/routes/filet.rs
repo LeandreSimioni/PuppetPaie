@@ -422,6 +422,8 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
         };
         incr(g, "combien");
         g.insert("derniere".into(), l.get("derniere").filter(|d| d.is_string()).unwrap_or(quand).clone());
+        let dernier_dit = format!("dernier le {}", super::quand(&super::mot(&g["derniere"])));
+        g.insert("dernier_dit".into(), json!(dernier_dit));
         let resume = get(l, "resume")?;
         if vrai(resume) {
             g.insert("resume".into(), resume.clone());
@@ -485,7 +487,8 @@ pub(crate) fn signalements_route(racine: &Path) -> R<Value> {
             non_lues += 1;
         }
     }
-    Ok(json!({"signalements": liste, "non_lues": non_lues}))
+    let reponses_dit = if non_lues > 0 { super::compte(non_lues as usize, "réponse", "réponses") } else { String::new() };
+    Ok(json!({"signalements": liste, "non_lues": non_lues, "reponses_dit": reponses_dit}))
 }
 
 /// LES PHRASES QUE L'ECRAN LIT de ces routes, sous « Un problème, une idée ? » › Avancé : ce que ce poste a envoyé au
@@ -548,6 +551,7 @@ fn ecran_du_diagnostic(v: &Value) -> Value {
     }
     json!({
         "compte": compte,
+        "couper": if coupe { "Réactiver" } else { "Désactiver" },
         "desactiver": {
             "titre": "Désactiver le signalement des dysfonctionnements ?",
             "phrase": "Si vous le désactivez, l'éditeur ne verra plus les problèmes de votre logiciel, et risque de ne pas pouvoir les corriger avant qu'ils vous arrivent, ou qu'ils arrivent à d'autres compagnies. Il ne saura plus non plus combien de paies PuppetPaie fait chez vous : le logiciel est gratuit, c'est sa seule façon de savoir s'il sert.",

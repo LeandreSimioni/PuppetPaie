@@ -33,7 +33,7 @@ async function dessinerModelesBulletin(cible) {
         ${pastilleDeLEtat(x.pastille)}
       </div>
       <p class="discret">${echapper(x.description)}</p>
-      <iframe class="fictive-pdf-cadre" style="height:560px" title="Aperçu du modèle ${echapper(x.nom)}"
+      <iframe class="fictive-pdf-cadre" style="height:560px" title="${echapper(x.apercu_dit)}"
               src="${adresse}#page=1&view=FitH"></iframe>
       <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
         ${choisi ? "" : `<button data-choisir="${echapper(x.cle)}">Choisir pour tous</button>`}

@@ -41,8 +41,7 @@ async function dessinerIdentite(cible) {
       : e.automatique ? apercu(`/identite/cachet-automatique?t=${t}`, titre)
       : `<div class="identite-apercu vide">rien de posé</div>`;
     const dit = e.pose
-      ? `${pastilleDeLEtat(e.pastille)} <span class="discret">${e.format.toUpperCase()},
-           ${Math.round((e.octets || 0) / 1024)} Ko, posé le ${jjmmaaaa((e.quand || "").slice(0, 10))}</span>`
+      ? `${pastilleDeLEtat(e.pastille)} <span class="discret">${echapper(e.pose_dit)}</span>`
       : e.automatique
         ? `${pastilleDeLEtat(e.pastille)} <span class="discret">${echapper(e.automatique_dit)}</span>`
         : pastilleDeLEtat(e.pastille);
@@ -56,9 +55,9 @@ async function dessinerIdentite(cible) {
       </div>
       <div class="rang-actions">
         ${e.pose ? `<button class="lien" data-retirer="${quoi}">${
-          e.automatique ? "Tampon du logiciel" : "Retirer"}</button>` : ""}
+          echapper(e.retirer_dit)}</button>` : ""}
         <label class="${e.pose ? "modifier" : "bouton-fichier"}">${
-          e.pose ? CRAYON + "Modifier…" : "Importer…"}
+          e.pose ? CRAYON : ""}${echapper(e.importer_dit)}
           <input type="file" accept="image/png,image/jpeg,image/svg+xml"
                  data-quoi="${quoi}"></label>
       </div>

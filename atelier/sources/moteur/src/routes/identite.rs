@@ -226,4 +226,18 @@ fn ecran_de_l_identite(v: &mut Value) {
     let logo = ou(&i["logo"]);
     i["logo"]["titre"] = json!("Le logo");
     i["logo"]["dit"] = json!(format!("{}, en haut à droite ; sans lui, rien n'y est imprimé.", logo));
+    // Ce que dit l'image posee (sa forme, son poids, son jour), et les mots de ses gestes.
+    for quoi in ["signature", "cachet", "logo"] {
+        let e = &mut i[quoi];
+        let pose = vrai(&e["pose"]);
+        let ko = e["octets"].as_f64().unwrap_or(0.0) / 1024.0;
+        let jour: String = super::mot(&e["quand"]).chars().take(10).collect();
+        e["pose_dit"] = if pose {
+            json!(format!("{}, {} Ko, posé le {}", super::mot(&e["format"]).to_uppercase(), ko.round() as i64, super::jour_en_clair(&json!(jour))))
+        } else {
+            Value::Null
+        };
+        e["retirer_dit"] = json!(if vrai(&e["automatique"]) { "Tampon du logiciel" } else { "Retirer" });
+        e["importer_dit"] = json!(if pose { "Modifier…" } else { "Importer…" });
+    }
 }

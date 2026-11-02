@@ -36,7 +36,7 @@ function dessinerHistorique() {
     const p = m.pastille;
     const couleur = CLASSE_DE_COULEUR[p.couleur] ?? "";
     const mots = p.mots;
-    const depose = m.depose_le && m.dsn !== "a_deposer" ? ` le ${quand(m.depose_le).slice(0, 10)}` : "";
+    const depose = m.depose_dit ? " " + m.depose_dit : "";
     return `
     <details class="mois-hist" data-mois="${echapper(m.mois)}" data-retard="${m.dsn === "en_retard" ? 1 : 0}"
              data-a-faire="${m.a_faire ? 1 : 0}">
@@ -44,8 +44,8 @@ function dessinerHistorique() {
         <span class="rang-nom">${echapper(majuscule(moisEnClair(m.mois)))}</span>
         <span class="rang-etat"><span class="pastille ${couleur}">${echapper(mots)}${echapper(depose)}</span>${
           m.clos ? ` <span class="pastille">clos</span>` : ""}</span>
-        <span class="rang-infos" title="${echapper((m.fichiers || []).join("\n"))}">${
-          (m.sortes || []).length ? echapper(m.sortes.join(" · ")) : "aucun document"}</span>
+        <span class="rang-infos">${
+          echapper(m.documents_dit || "")}</span>
         <span class="rang-actions">
         </span>
       </summary>
@@ -153,13 +153,13 @@ function dessinerEnvoi(e) {
 
 /** Un retour, lu : l'organisme, ce que dit sa pièce, ses anomalies ; la pièce elle-même en dernier recours. */
 function dessinerRetour(r) {
-  const titre = r.titre || r.libelle || `retour de nature ${r.nature}`;
+  const titre = r.titre_dit || r.titre || "";
   const anomalies = (r.anomalies || []).length ? `
     <table class="anomalies"><tr><th>code</th><th>message</th><th>rubrique</th><th>salarié</th></tr>
     ${r.anomalies.map((a) => `<tr><td><code>${echapper(a.code || "")}</code></td>
       <td>${echapper(a.message || "")}${a.categorie ? ` <span class="discret">(${echapper(a.categorie)})</span>` : ""}${
         a.nombre && a.nombre !== "1" ? ` <span class="discret">× ${echapper(a.nombre)}</span>` : ""}</td>
-      <td>${echapper(a.rubrique || "")}${a.ligne ? ` <span class="discret">ligne ${echapper(a.ligne)}</span>` : ""}</td>
+      <td>${echapper(a.rubrique || "")}${a.ligne_dit ? ` <span class="discret">${echapper(a.ligne_dit)}</span>` : ""}</td>
       <td>${echapper(a.salarie || "")}</td></tr>`).join("")}</table>` : "";
   return `
     <details class="retour">
@@ -167,11 +167,11 @@ function dessinerRetour(r) {
         ${r.organisme ? `${echapper(r.organisme)} — ` : ""}${echapper(titre)}
         ${pastilleDeLEtat(r.pastille)}</summary>
       <div class="retour-corps">
-        ${r.nature ? `<p class="discret">Nature ${echapper(r.nature)} : ${echapper(r.libelle || "")}</p>` : ""}
+        ${r.nature_dit ? `<p class="discret">${echapper(r.nature_dit)}</p>` : ""}
         ${(r.phrases || []).map((p) => `<p>${echapper(p)}</p>`).join("")}
         ${anomalies}
         ${r.piece ? `<p><button class="lien" data-piece="${echapper(r.piece)}">Ouvrir la pièce</button>
-          <span class="discret">${echapper(r.piece)}</span></p>` : ""}
+          </p>` : ""}
       </div>
     </details>`;
 }

@@ -28,10 +28,9 @@ function compteDuService(s) {
   const id = s.identifiant || {};
   if (id.texte) return `<span class="compte">${echapper(id.texte)}</span>`;
   if (!id.manque || !id.manque.length) return "";
-  const manque = id.manque.map((m) => ({ nom: "le nom", prenom: "le prénom", siret: "le SIRET" }[m] || m)).join(", ");
   return id.ici
     ? `<span class="compte a-completer">${echapper(id.manque_dit)}</span>`
-    : `<span class="compte a-completer">identifiant incomplet (${echapper(manque)}) —
+    : `<span class="compte a-completer">${echapper(id.incomplet_dit || "")} —
         <button class="lien" data-aller-fiche="entreprise">${echapper(id.ou || "fiche Entreprise")}</button></span>`;
 }
 
@@ -73,7 +72,7 @@ async function dessinerCoffre(cible) {
             <input type="password" id="k-nouveau" autocomplete="new-password"></label>
           <label>Le retaper <input type="password" id="k-confirmation" autocomplete="new-password"></label>
           <div class="barre-boutons">
-            <button class="primaire" id="k-changer">${exige ? "Enregistrer" : "Poser"}</button>
+            <button class="primaire" id="k-changer">${echapper(c.bouton_mot_de_passe)}</button>
             ${exige && !adm.rattachee ? `<button class="lien" id="k-retirer">retirer</button>` : ""}
           </div>
         </form>
@@ -126,7 +125,7 @@ async function dessinerCoffre(cible) {
             <input type="email" class="k-compte" autocomplete="off" value="${echapper(s.compte || "")}"></label>` : ""}
           <label>Mot de passe
             <input type="password" class="k-valeur" autocomplete="off"></label>
-          <div class="barre-boutons"><button class="primaire k-poser">${s.identifiant?.ici ? "Enregistrer" : "Poser"}</button></div>
+          <div class="barre-boutons"><button class="primaire k-poser">${echapper(s.bouton)}</button></div>
           ${s.identifiant?.ici ? `<p class="note">${echapper(k.urssaf)}</p>` : ""}
           ${s.avec_compte ? `<p class="note">${echapper(k.courriel)}</p>` : ""}
         </form>
@@ -319,10 +318,8 @@ async function dessinerCompteGoogle(cible, preuve, ok, raté, k) {
   catch (e) { etat.innerHTML = `<span class="discret">${echapper(e.message)}</span>`; }
   if (!carte.isConnected) return;       // la page a été redessinée entre-temps
   if (g) {
-    etat.innerHTML = `${pastilleDeLEtat(g.pastille)}${!g.compte ? ""
-      : g.verifie ? ` <span class="discret">${echapper(g.compte)}</span>`
-      : ` <span class="discret">${echapper(g.compte)} : ${echapper(g.probleme || "l'autorisation ne répond pas")}</span>`}`;
-    lier.textContent = g.compte ? "Relier le Drive" : "Lier le Drive";
+    etat.innerHTML = `${pastilleDeLEtat(g.pastille)}${g.compte_dit ? ` <span class="discret">${echapper(g.compte_dit)}</span>` : ""}`;
+    lier.textContent = g.bouton;
   }
   lier.disabled = false;
   oublier.disabled = !(g && g.compte);

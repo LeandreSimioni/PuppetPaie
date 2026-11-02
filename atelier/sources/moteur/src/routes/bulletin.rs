@@ -129,7 +129,7 @@ fn modeles(ctx: &Contexte) -> R<Value> {
     }
     let liste: Vec<Value> = Modele::TOUS
         .iter()
-        .map(|m| json!({"cle": m.cle(), "nom": m.nom(), "description": m.description(), "apercu": adresse_apercu(*m),
+        .map(|m| json!({"cle": m.cle(), "nom": m.nom(), "description": m.description(), "apercu_dit": format!("Aperçu du modèle {}", m.nom()), "apercu": adresse_apercu(*m),
             // Le modele de la compagnie : sa pastille, celle d'un choix fait.
             "pastille": if *m == modele { super::pastille("fait", if choisi.is_none() { "celui de la compagnie (par défaut)" } else { "celui de la compagnie" }) } else { Value::Null }}))
         .collect();

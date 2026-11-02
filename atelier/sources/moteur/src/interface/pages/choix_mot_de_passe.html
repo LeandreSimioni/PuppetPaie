@@ -82,8 +82,7 @@
   // choix d'un mot de passe propre, comme pour une premiere compagnie.
   const adm = JSON.parse(document.getElementById("administrateur").textContent || "{}");
   const question = document.getElementById("question"), formeA = document.getElementById("a");
-  const noms = (adm.autres || []);
-  const enListe = noms.length > 1 ? noms.slice(0, -1).join(", ") + " et " + noms[noms.length - 1] : (noms[0] || "");
+  const enListe = adm.autres_dit || "";
   for (const s of document.querySelectorAll(".q-noms")) s.textContent = enListe;
   if (adm.question) { question.hidden = false; f.hidden = true; }
   document.getElementById("q-non").onclick = () => { question.hidden = true; f.hidden = false; mdp.focus(); };

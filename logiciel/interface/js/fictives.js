@@ -132,7 +132,8 @@ async function fenetreCourrielsFictifs(genre, repere) {
     x.onclick = () => {
       premier = partis[+x.dataset.rang];
       document.querySelectorAll(".fictive-destinataire").forEach((y) => {
-        y.className = `${y === x ? "primaire" : "secondaire"} fictive-destinataire`;
+        y.classList.toggle("primaire", y === x);
+        y.classList.toggle("secondaire", y !== x);
       });
       etape = 0;
       dessiner();

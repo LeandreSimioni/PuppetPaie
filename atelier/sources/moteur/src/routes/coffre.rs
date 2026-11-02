@@ -845,6 +845,17 @@ fn google_etat(ctx: &Contexte) -> R<Value> {
         o.insert("autorise".into(), json!(vrai(&compte)));
         o.insert("compte".into(), compte);
         o.insert("verifie".into(), json!(verifie));
+        // Ce que la carte dit du compte lie, et son bouton.
+        let lie = vrai(&o["compte"]);
+        let compte_dit = if !lie {
+            String::new()
+        } else if verifie {
+            valeur_en_texte(&o["compte"])
+        } else {
+            format!("{} : {}", valeur_en_texte(&o["compte"]), probleme.clone().unwrap_or_else(|| "l'autorisation ne répond pas".into()))
+        };
+        o.insert("compte_dit".into(), json!(compte_dit));
+        o.insert("bouton".into(), json!(if lie { "Relier le Drive" } else { "Lier le Drive" }));
         o.insert("probleme".into(), json!(probleme));
         // Sa pastille : aucun Drive lie, a faire (la sauvegarde attend) ; lie et l'autorisation tient, fait ; lie mais
         // l'autorisation ne repond pas, a faire.
@@ -903,7 +914,9 @@ fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
             let noms: Vec<Value> = [get(&d, "nom")?, get(&d, "prenom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
             let texte = joindre(" ", &noms)?;
             let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(get(&d, "siret")?)) } else { String::new() };
-            Ok(json!({"texte": phrase, "manque": manque, "ici": false, "ou": "fiche Entreprise › Qui les organismes contactent"}))
+            let dits: Vec<&str> = manque.iter().map(|m| match m.as_str().unwrap_or("") { "nom" => "le nom", "prenom" => "le prénom", "siret" => "le SIRET", autre => autre }).collect();
+            let incomplet_dit = if manque.is_empty() { String::new() } else { format!("identifiant incomplet ({})", dits.join(", ")) };
+            Ok(json!({"texte": phrase, "manque": manque, "ici": false, "incomplet_dit": incomplet_dit, "ou": "fiche Entreprise › Qui les organismes contactent"}))
         }
         "urssaf" => {
             let cfg = ou(get(ent, "api_dpae")?, objet_vide());
@@ -956,11 +969,14 @@ pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
         } else {
             super::pastille("a_faire", "absent")
         };
+        let identifiant = identifiant_du_compte(entreprise, nom)?;
+        let bouton = if identifiant["ici"] == json!(true) { "Enregistrer" } else { "Poser" };
         services.push(json!({
             "service": s["service"], "libelle": s["libelle"], "sert_a": s["sert_a"],
             "pose": s["pose"], "pose_le": s["pose_le"], "environnement": s["dans_environnement"],
             "compte": s["compte"], "avec_compte": s["avec_compte"],
-            "identifiant": identifiant_du_compte(entreprise, nom)?,
+            "identifiant": identifiant,
+            "bouton": bouton,
             "pastille": pastille,
         }));
     }
@@ -969,6 +985,7 @@ pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
     Ok(json!({
         "services": services,
         "mot_de_passe_pose": mot_de_passe_pose,
+        "bouton_mot_de_passe": if mot_de_passe_pose { "Enregistrer" } else { "Poser" },
         "cle_poste": cle_poste,
         "chemin_cle": coffre.chemin_cle().display().to_string(),
         // Ce que montrent le filet et le compte Google d'une compagnie fictive, ou rien ne se branche : une information.

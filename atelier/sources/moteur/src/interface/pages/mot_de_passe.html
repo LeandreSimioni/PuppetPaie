@@ -63,9 +63,8 @@
   // UNE COMPAGNIE DE L'ADMINISTRATEUR (ticket #244) : son mot de passe ouvre aussi les autres, pour toute la fenetre.
   const adm = JSON.parse(document.getElementById("administrateur").textContent || "{}");
   if (adm.rattachee) {
-    const autres = adm.autres || [];
     document.getElementById("titre-mdp").textContent = "{{P:mdp_titre_admin}}"
-      + (autres.length ? " — il ouvre aussi " + (autres.length > 1 ? autres.slice(0, -1).join(", ") + " et " + autres[autres.length - 1] : autres[0]) : "");
+      + (adm.ouvre_aussi_dit ? " — " + adm.ouvre_aussi_dit : "");
   }
   window.addEventListener("pywebviewready", () => mdp.focus());
   // « Retour » et Echap : revenir au choix de la compagnie. La reponse du geste dit `recharger` et la cale ramene la

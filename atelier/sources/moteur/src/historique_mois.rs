@@ -827,6 +827,10 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
                 .into_iter()
                 .flatten()
                 .map(|a| if a.is_string() { json!({"code": "", "categorie": "", "message": a, "rubrique": "", "ligne": "", "nombre": "", "salarie": ""}) } else { a.clone() })
+                .map(|mut a| {
+                    a["ligne_dit"] = if vrai(&a["ligne"]) { json!(format!("ligne {}", valeur_en_texte(&a["ligne"]))) } else { Value::Null };
+                    a
+                })
                 .collect();
             for d in r["dpae"].as_array().into_iter().flatten() {
                 let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
@@ -844,7 +848,10 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
     let pastille = (!lu.is_empty()).then(|| {
         crate::routes::pastille(match lu.as_str() { "OK" => "fait", "KO" => "refuse", "ANO" => "a_faire", _ => "information" }, &lu)
     });
+    let titre_dit = if !titre.is_empty() { titre.clone() } else if !libelle.is_empty() { libelle.clone() } else { format!("retour de nature {}", nature) };
+    let nature_dit = if nature.is_empty() { String::new() } else { format!("Nature {} : {}", nature, libelle) };
     json!({
+        "titre_dit": titre_dit, "nature_dit": nature_dit,
         "nature": nature, "libelle": libelle, "organisme": organisme, "statut": statut, "verdict": verdict, "pastille": pastille,
         "quand": quand_publication(&publication), "titre": titre, "phrases": phrases, "anomalies": anomalies, "traduite": traduite,
         "piece": piece.and_then(|p| p.strip_prefix(racine).ok().map(|x| x.to_string_lossy().replace('\\', "/"))),
